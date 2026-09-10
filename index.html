@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <!-- WICHTIG: Dieser Tag macht es für Handys passend! -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HalDo AI OS - Professional Edition</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; color: white; -webkit-tap-highlight-color: transparent; }
+        
+        /* Hintergrund & Universum */
+        #earth-bg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100vw; height: 100vh; object-fit: cover; z-index: 1; filter: brightness(0.6); animation: slowZoom 60s infinite linear; }
+        @keyframes slowZoom { 0% { transform: translate(-50%, -50%) scale(1); } 100% { transform: translate(-50%, -50%) scale(1.1); } }
+        #universe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
+        
+        /* Cyborg - Passt sich an die Bildschirmgröße an! */
+        #cyborg { position: absolute; bottom: 0; right: 0; height: 80vh; max-height: 800px; z-index: 5; filter: drop-shadow(0 0 40px rgba(0, 170, 255, 0.8)); pointer-events: none; transition: filter 0.5s; object-fit: contain; }
+        #cyborg.speaking { filter: drop-shadow(0 0 80px rgba(0, 255, 255, 1)); }
+        
+        /* Fenster - Flexibel für alle Bildschirme! */
+        .os-window { position: absolute; background: rgba(0, 15, 40, 0.85); backdrop-filter: blur(12px); border: 2px solid #00aaff; border-radius: 12px; box-shadow: 0 0 30px rgba(0,170,255,0.5); z-index: 10; cursor: grab; user-select: none; transition: opacity 0.3s; display: flex; flex-direction: column; }
+        .os-window:active { cursor: grabbing; }
+        
+        #chat-window { bottom: 2vh; left: 2vw; width: 90vw; max-width: 400px; height: 45vh; max-height: 350px; }
+        #file-window { top: 10vh; left: 2vw; width: 90vw; max-width: 320px; display: none; }
+        #sun-window { top: 10vh; right: 2vw; width: 90vw; max-width: 320px; display: none; }
+        #music-window { top: 10vh; left: 50%; transform: translateX(-50%); width: 90vw; max-width: 400px; display: none; text-align: center; padding: 20px; }
+        
+        #header { padding: 12px; background: rgba(0, 40, 100, 0.9); border-bottom: 1px solid #00aaff; display: flex; justify-content: space-between; cursor: move; border-radius: 12px 12px 0 0; touch-action: none; }
+        .control-btn { width: 25px; height: 25px; border-radius: 50%; border: none; cursor: pointer; font-size: 12px; color: white; line-height: 25px; }
+        #btn-x { background: #ff0000; } #btn-min { background: #ffaa00; }
+        
+        #chat-body { padding: 15px; flex-grow: 1; overflow-y: auto; font-size: 14px; }
+        input { width: 85%; margin: 10px auto; padding: 10px; background: rgba(0,0,0,0.8); border: 1px solid #00aaff; border-radius: 8px; color: white; display: block; }
+
+        /* Statusleiste - Passt sich an kleine Bildschirme an */
+        #status-bar { position: absolute; top: 2vh; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; gap: 8px; background: rgba(0, 10, 30, 0.9); padding: 8px 12px; border-radius: 30px; border: 1px solid #00aaff; flex-wrap: wrap; justify-content: center; width: 90vw; max-width: 400px; }
+        .dot { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; flex-shrink: 0; }
+        
+        #btn-close { background: #ff0000; } #btn-mic { background: #00ff00; } #btn-spk { background: #00aaff; }
+        #btn-files { background: #ff00ff; } #btn-sun { background: #ffaa00; } #btn-update { background: #ffff00; }
+    </style>
+</head>
+<body>
+    <img id="earth-bg" src="earth.png" onerror="this.style.display='none'">
+    <canvas id="universe"></canvas>
+    <img id="cyborg" src="cyborg.png" onerror="this.style.display='none'">
+
+    <div id="status-bar">
+        <div class="dot" id="btn-close" onclick="closeAll()"></div>
+        <div class="dot" id="btn-mic" onclick="activateMic()"></div>
+        <div class="dot" id="btn-spk" onclick="activateSpeaker('System bereit, Bruder!')"></div>
+        <div class="dot" id="btn-files" onclick="toggle('file-window')"></div>
+        <div class="dot" id="btn-sun" onclick="toggle('sun-window')"></div>
+        <div class="dot" id="btn-update" onclick="checkUpdate()"></div>
+    </div>
+
+    <div id="chat-window" class="os-window">
+        <div id="header">💬 HalDo AI Chat <div><button class="control-btn" id="btn-x" onclick="close('chat-window')">X</button><button class="control-btn" id="btn-min" onclick="minimize('chat-window')">–</button></div></div>
+        <div id="chat-body"><img src="logo.png" style="width:35px; border-radius:50%; margin-right:8px; vertical-align:middle;" onerror="this.style.display='none'"> Willkommen Bruder! Sag mir, was ich öffnen soll (z.B. "Musik" oder "Dateien").</div>
+        <input id="chat-input" type="text" placeholder="Befehl an HalDo..." onkeydown="if(event.key==='Enter') sendMsg()">
+    </div>
+
+    <div id="file-window" class="os-window">
+        <div id="header">🗂️ Innere Systeme <div><button class="control-btn" id="btn-x" onclick="close('file-window')">X</button></div></div>
+        <div style="padding: 15px;">
+            <div onclick="alert('Dokumente geöffnet')">📁 Dokumente</div><br>
+            <div onclick="alert('Musik läuft')">🎵 Musik</div><br>
+            <div onclick="alert('Video startet')">🎬 Videos</div><br>
+            <div onclick="alert('Datenbank online')">📊 Datenbank</div>
+        </div>
+    </div>
+
+    <div id="sun-window" class="os-window">
+        <div id="header">☀️ Sonnenkern <div><button class="control-btn" id="btn-x" onclick="close('sun-window')">X</button></div></div>
+        <div style="padding: 20px; text-align: center;">
+            <h2 style="color: #ffaa00;">ENERGIE AKTIV</h2>
+            <button onclick="activateSpeaker('Energie freigesetzt!')" style="background: #ffaa00; color: black; border: none; padding: 10px; cursor: pointer;">Energie</button>
+        </div>
+    </div>
+
+    <div id="music-window" class="os-window">
+        <div id="header">🎵 HalDo Musik Player <div><button class="control-btn" id="btn-x" onclick="close('music-window')">X</button></div></div>
+        <h3>Musik wird geladen...</h3>
+        <audio controls autoplay style="width: 80%; margin-top: 10px;">
+            <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+        </audio>
+    </div>
+
+    <script>
+        // TOUCH & MAUS UNTERSTÜTZUNG (Damit es auf Handy & PC funktioniert)
+        document.querySelectorAll('#header').forEach(header => {
+            const startDrag = (e) => {
+                const win = header.parentElement;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                let x = clientX - win.getBoundingClientRect().left;
+                let y = clientY - win.getBoundingClientRect().top;
+                
+                const move = (e) => {
+                    const moveX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const moveY = e.touches ? e.touches[0].clientY : e.clientY;
+                    win.style.left = (moveX - x) + 'px'; win.style.top = (moveY - y) + 'px';
+                    win.style.right = 'auto'; win.style.bottom = 'auto'; win.style.transform = 'none';
+                };
+                const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up); document.removeEventListener('touchmove', move); document.removeEventListener('touchend', up); };
+                document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
+                document.addEventListener('touchmove', move, {passive: false}); document.addEventListener('touchend', up);
+            };
+            header.addEventListener('mousedown', startDrag);
+            header.addEventListener('touchstart', startDrag);
+        });
+
+        function close(id) { document.getElementById(id).style.display = 'none'; }
+        function closeAll() { document.querySelectorAll('.os-window').forEach(w => w.style.display = 'none'); }
+        function toggle(id) { const el = document.getElementById(id); el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none'; }
+        function minimize(id) { document.getElementById(id).style.display = 'none'; }
+        
+        function activateSpeaker(text) {
+            const u = new SpeechSynthesisUtterance(text); u.lang = 'de-DE';
+            document.getElementById('cyborg').classList.add('speaking');
+            u.onend = () => document.getElementById('cyborg').classList.remove('speaking');
+            speechSynthesis.speak(u);
+        }
+        function activateMic() {
+            const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            rec.lang = 'de-DE'; rec.start();
+            rec.onresult = (e) => { document.getElementById('chat-input').value = e.results[0][0].transcript; sendMsg(); };
+        }
+        function sendMsg() {
+            const input = document.getElementById('chat-input'); const msg = input.value.toLowerCase();
+            if(!msg) return;
+            const body = document.getElementById('chat-body');
+            body.innerHTML += `<br><b>Bruder:</b> ${input.value}`; input.value = "";
+            let response = "Ich habe dich verstanden, Bruder.";
+            if (msg.includes("musik")) { response = "Musik wird geöffnet!"; toggle('music-window'); }
+            else if (msg.includes("datei")) { response = "Dateisystem geöffnet."; toggle('file-window'); }
+            else if (msg.includes("sonne")) { response = "Sonnenenergie aktiviert!"; toggle('sun-window'); }
+            else if (msg.includes("hallo")) { response = "Hallo Bruder!"; }
+            setTimeout(() => { body.innerHTML += `<br><b>HalDo:</b> ${response}`; activateSpeaker(response); }, 800);
+        }
+        function checkUpdate() { activateSpeaker("System ist aktuell!"); }
+
+        // UNIVERSUM
+        const canvas = document.getElementById('universe'); const ctx = canvas.getContext('2d');
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; sun.x = canvas.width / 2; sun.y = canvas.height / 2; }
+        const sun = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        const planets = [
+            { r: 30, size: 6, color: "#b0b0b0", speed: 0.0005, offset: 0 }, { r: 55, size: 10, color: "#FFD700", speed: 0.0004, offset: 1.5 },
+            { r: 80, size: 12, color: "#4B90C2", speed: 0.00035, offset: 2.8 }, { r: 110, size: 9, color: "#C1440E", speed: 0.0003, offset: 4.0 },
+            { r: 150, size: 25, color: "#D8CA9D", speed: 0.00025, offset: 5.2 }, { r: 190, size: 22, color: "#EEDC82", speed: 0.0002, offset: 6.4, ring: true },
+            { r: 230, size: 14, color: "#00FFFF", speed: 0.00018, offset: 7.6 }, { r: 270, size: 14, color: "#4169E1", speed: 0.00015, offset: 8.8 },
+            { r: 310, size: 5, color: "#F5F5DC", speed: 0.00012, offset: 10.0 }, { r: 350, size: 5, color: "#8A2BE2", speed: 0.0001, offset: 11.2 },
+            { r: 390, size: 4, color: "#FFFFFF", speed: 0.00008, offset: 12.4 }, { r: 430, size: 6, color: "#FFB6C1", speed: 0.00006, offset: 13.6 }
+        ];
+        let t = 0;
+        function drawUniverse() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let glow = 1 + Math.sin(t * 0.05) * 0.1;
+            let gradient = ctx.createRadialGradient(sun.x, sun.y, 0, sun.x, sun.y, 180 * glow);
+            gradient.addColorStop(0, '#ffffff'); gradient.addColorStop(0.4, '#ffaa00'); gradient.addColorStop(1, 'rgba(255, 51, 0, 0)');
+            ctx.beginPath(); ctx.arc(sun.x, sun.y, 120 * glow, 0, Math.PI * 2); ctx.fillStyle = gradient; ctx.fill();
+            planets.forEach(p => {
+                let angle = (t * p.speed) + p.offset; let x = sun.x + Math.cos(angle) * p.r; let y = sun.y + Math.sin(angle) * p.r;
+                ctx.beginPath(); ctx.ellipse(sun.x, sun.y, p.r, p.r * 0.8, 0, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(0,170,255,0.4)'; ctx.lineWidth = 1; ctx.stroke();
+                ctx.beginPath(); ctx.arc(x, y, p.size, 0, Math.PI * 2); ctx.fillStyle = p.color; ctx.shadowColor = p.color; ctx.shadowBlur = 15; ctx.fill(); ctx.shadowBlur = 0;
+                if (p.ring) { ctx.beginPath(); ctx.ellipse(x, y, p.size * 2, p.size * 0.5, 0.3, 0, Math.PI * 2); ctx.strokeStyle = '#EEDC82'; ctx.lineWidth = 3; ctx.stroke(); }
+            });
+            t += 1; requestAnimationFrame(drawUniverse);
+        }
+        window.addEventListener('resize', resizeCanvas); resizeCanvas(); drawUniverse();
+    </script>
+</body>
+</html>
