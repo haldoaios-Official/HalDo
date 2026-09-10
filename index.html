@@ -8,20 +8,23 @@
         #earth-bg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 110vw; height: 110vh; object-fit: cover; z-index: 1; filter: brightness(0.6); animation: slowZoom 60s infinite linear; }
         @keyframes slowZoom { 0% { transform: translate(-50%, -50%) scale(1); } 100% { transform: translate(-50%, -50%) scale(1.1); } }
         #universe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
-        #cyborg { position: absolute; bottom: 0; right: 0; height: 95vh; z-index: 5; filter: drop-shadow(0 0 40px rgba(0, 170, 255, 0.8)); pointer-events: none; }
+        #cyborg { position: absolute; bottom: 0; right: 0; height: 95vh; z-index: 5; filter: drop-shadow(0 0 40px rgba(0, 170, 255, 0.8)); pointer-events: none; transition: filter 0.5s; }
+        #cyborg.speaking { filter: drop-shadow(0 0 80px rgba(0, 255, 255, 1)); } /* Cyborg leuchtet beim Sprechen */
         
-        .os-window { position: absolute; background: rgba(0, 15, 40, 0.75); backdrop-filter: blur(12px); border: 2px solid #00aaff; border-radius: 12px; box-shadow: 0 0 30px rgba(0,170,255,0.5); z-index: 10; cursor: grab; user-select: none; }
+        .os-window { position: absolute; background: rgba(0, 15, 40, 0.75); backdrop-filter: blur(12px); border: 2px solid #00aaff; border-radius: 12px; box-shadow: 0 0 30px rgba(0,170,255,0.5); z-index: 10; cursor: grab; user-select: none; transition: opacity 0.3s; }
         .os-window:active { cursor: grabbing; }
-        #chat-window { bottom: 30px; left: 30px; width: 380px; height: 320px; }
-        #file-window { top: 20px; left: 20px; width: 300px; }
+        #chat-window { bottom: 30px; left: 30px; width: 380px; height: 350px; }
+        #file-window { top: 20px; left: 20px; width: 300px; display: none; }
         #sun-window { top: 20px; right: 20px; width: 300px; display: none; }
+        #music-window { top: 20px; left: 50%; transform: translateX(-50%); width: 400px; display: none; text-align: center; padding: 20px; }
+        
         #header { padding: 12px; background: rgba(0, 40, 100, 0.8); border-bottom: 1px solid #00aaff; display: flex; justify-content: space-between; cursor: move; border-radius: 12px 12px 0 0; }
         .control-btn { width: 20px; height: 20px; border-radius: 50%; border: none; cursor: pointer; font-size: 12px; color: white; line-height: 20px; }
         #btn-x { background: #ff0000; } #btn-min { background: #ffaa00; }
-        #chat-body { padding: 15px; height: 170px; overflow-y: auto; font-size: 15px; }
+        #chat-body { padding: 15px; height: 200px; overflow-y: auto; font-size: 15px; }
         input { width: 90%; margin: 10px; padding: 10px; background: rgba(0,0,0,0.8); border: 1px solid #00aaff; border-radius: 8px; color: white; }
         
-        #status-bar { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 20; display: flex; gap: 10px; background: rgba(0, 10, 30, 0.9); padding: 10px 15px; border-radius: 30px; border: 1px solid #00aaff; }
+        #status-bar { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; gap: 10px; background: rgba(0, 10, 30, 0.9); padding: 10px 15px; border-radius: 30px; border: 1px solid #00aaff; }
         .dot { width: 25px; height: 25px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; }
         #btn-close { background: #ff0000; } #btn-mic { background: #00ff00; } #btn-spk { background: #00aaff; }
         #btn-files { background: #ff00ff; } #btn-sun { background: #ffaa00; } #btn-update { background: #ffff00; }
@@ -35,7 +38,7 @@
     <div id="status-bar">
         <div class="dot" id="btn-close" onclick="closeAll()"></div>
         <div class="dot" id="btn-mic" onclick="activateMic()"></div>
-        <div class="dot" id="btn-spk" onclick="activateSpeaker()"></div>
+        <div class="dot" id="btn-spk" onclick="activateSpeaker('System bereit, Bruder!')"></div>
         <div class="dot" id="btn-files" onclick="toggle('file-window')"></div>
         <div class="dot" id="btn-sun" onclick="toggle('sun-window')"></div>
         <div class="dot" id="btn-update" onclick="checkUpdate()"></div>
@@ -43,8 +46,8 @@
 
     <div id="chat-window" class="os-window">
         <div id="header">💬 HalDo AI Chat <div><button class="control-btn" id="btn-x" onclick="close('chat-window')">X</button><button class="control-btn" id="btn-min" onclick="minimize('chat-window')">–</button></div></div>
-        <div id="chat-body"><img src="logo.png" style="width:40px; border-radius:50%; margin-right:10px; vertical-align:middle;" onerror="this.style.display='none'"> Willkommen Bruder! Das System läuft!</div>
-        <input id="chat-input" type="text" placeholder="Sag was..." onkeydown="if(event.key==='Enter') sendMsg()">
+        <div id="chat-body"><img src="logo.png" style="width:40px; border-radius:50%; margin-right:10px; vertical-align:middle;" onerror="this.style.display='none'"> Willkommen Bruder! Ich bin bereit. Sag mir, was ich öffnen soll (z.B. "Musik" oder "Dateien").</div>
+        <input id="chat-input" type="text" placeholder="Befehl an HalDo..." onkeydown="if(event.key==='Enter') sendMsg()">
     </div>
 
     <div id="file-window" class="os-window">
@@ -62,8 +65,17 @@
         <div style="padding: 20px; text-align: center;">
             <h2 style="color: #ffaa00; text-shadow: 0 0 20px #ffaa00;">ENERGIE AKTIV</h2>
             <p>Die Sonne strahlt im Zentrum.</p>
-            <button onclick="alert('Energie freigesetzt!')" style="background: #ffaa00; color: black; border: none; padding: 10px; cursor: pointer;">Energie</button>
+            <button onclick="activateSpeaker('Energie freigesetzt!')" style="background: #ffaa00; color: black; border: none; padding: 10px; cursor: pointer;">Energie</button>
         </div>
+    </div>
+
+    <div id="music-window" class="os-window">
+        <div id="header">🎵 HalDo Musik Player <div><button class="control-btn" id="btn-x" onclick="close('music-window')">X</button></div></div>
+        <h3>Musik wird geladen...</h3>
+        <p>🎶 HalDo AI OS Soundtrack</p>
+        <audio controls autoplay style="width: 80%; margin-top: 10px;">
+            <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+        </audio>
     </div>
 
     <script>
@@ -77,15 +89,69 @@
                 document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
             });
         });
-        function close(id) { document.getElementById(id).style.display = 'none'; }
-        function closeAll() { close('chat-window'); close('file-window'); close('sun-window'); }
-        function minimize(id) { document.getElementById(id).style.transform = 'scale(0)'; setTimeout(() => { document.getElementById(id).style.transform = 'scale(1)'; close(id); }, 300); }
-        function toggle(id) { const el = document.getElementById(id); el.style.display = (el.style.display === 'none') ? 'block' : 'none'; }
-        function activateSpeaker() { const u = new SpeechSynthesisUtterance('Systeme sind bereit, Bruder!'); u.lang = 'de-DE'; speechSynthesis.speak(u); }
-        function activateMic() { const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)(); rec.lang = 'de-DE'; rec.start(); rec.onresult = (e) => { document.getElementById('chat-input').value = e.results[0][0].transcript; sendMsg(); }; }
-        function sendMsg() { const input = document.getElementById('chat-input'); const msg = input.value; if(!msg) return; document.getElementById('chat-body').innerHTML += `<br><b>Bruder:</b> ${msg}`; input.value = ""; setTimeout(() => { document.getElementById('chat-body').innerHTML += `<br><b>HalDo:</b> Befehl verstanden!`; }, 1000); }
-        function checkUpdate() { alert("System ist auf dem neuesten Stand!"); }
 
+        function close(id) { document.getElementById(id).style.display = 'none'; }
+        function closeAll() { document.querySelectorAll('.os-window').forEach(w => w.style.display = 'none'); }
+        function toggle(id) { const el = document.getElementById(id); el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none'; }
+        function minimize(id) { document.getElementById(id).style.transform = 'scale(0)'; setTimeout(() => { document.getElementById(id).style.transform = 'scale(1)'; close(id); }, 300); }
+        
+        // ECHTE SPRACHAUSGABE
+        function activateSpeaker(text) {
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'de-DE';
+            document.getElementById('cyborg').classList.add('speaking');
+            u.onend = () => document.getElementById('cyborg').classList.remove('speaking');
+            speechSynthesis.speak(u);
+        }
+
+        // ECHTE SPRACHERKENNUNG
+        function activateMic() {
+            const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            rec.lang = 'de-DE';
+            rec.start();
+            rec.onresult = (e) => { 
+                document.getElementById('chat-input').value = e.results[0][0].transcript; 
+                sendMsg(); 
+            };
+        }
+
+        // DIE AI-LOGIK (Das Gehirn von HalDo)
+        function sendMsg() {
+            const input = document.getElementById('chat-input');
+            const msg = input.value.toLowerCase();
+            if(!msg) return;
+            
+            const body = document.getElementById('chat-body');
+            body.innerHTML += `<br><b>Bruder:</b> ${input.value}`;
+            input.value = "";
+            
+            let response = "Ich habe dich verstanden, Bruder. Aber ich lerne noch.";
+            
+            // Befehls-Erkennung
+            if (msg.includes("musik") || msg.includes("music")) {
+                response = "Ich öffne den Musikplayer für dich!";
+                toggle('music-window');
+            } else if (msg.includes("datei") || msg.includes("file")) {
+                response = "Hier ist dein Dateisystem.";
+                toggle('file-window');
+            } else if (msg.includes("sonne") || msg.includes("sun")) {
+                response = "Die Energie der Sonne wird aktiviert!";
+                toggle('sun-window');
+            } else if (msg.includes("hallo") || msg.includes("hi")) {
+                response = "Hallo Bruder! Schön dich zu sehen.";
+            } else if (msg.includes("update")) {
+                response = "Ich suche nach Updates... System ist aktuell!";
+            }
+
+            setTimeout(() => { 
+                body.innerHTML += `<br><b>HalDo:</b> ${response}`; 
+                activateSpeaker(response); // Der Cyborg spricht!
+            }, 800);
+        }
+
+        function checkUpdate() { activateSpeaker("System ist auf dem neuesten Stand, Bruder!"); }
+
+        // DAS UNIVERSUM
         const canvas = document.getElementById('universe'); const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
         const sun = { x: canvas.width / 2, y: canvas.height / 2 };
