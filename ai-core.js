@@ -1,9 +1,7 @@
 // ============================================
 // HalDo AI-Core v1.0
 // ============================================
-
 const HalDoAI = (() => {
-
   const config = {
     provider: 'openai',
     apiKey: '',
@@ -21,13 +19,11 @@ Antworte kurz und präzise, außer der User will Details.`,
     config.apiKey = key;
     localStorage.setItem('haldo_api_key', key);
   }
-
   function loadApiKey() {
     const saved = localStorage.getItem('haldo_api_key');
     if (saved) config.apiKey = saved;
     return config.apiKey;
   }
-
   function setProvider(provider, model) {
     config.provider = provider;
     localStorage.setItem('haldo_provider', provider);
@@ -45,18 +41,15 @@ Antworte kurz und präzise, außer der User will Details.`,
 
   async function send(userMessage) {
     if (!userMessage || userMessage.trim() === '') return null;
-
     config.history.push({ role: 'user', content: userMessage });
     if (config.history.length > config.maxHistory) {
       config.history = config.history.slice(-config.maxHistory);
     }
-
     try {
       let reply = '';
       if (config.provider === 'openai') reply = await callOpenAI();
       else if (config.provider === 'anthropic') reply = await callAnthropic();
       else if (config.provider === 'ollama') reply = await callOllama();
-
       config.history.push({ role: 'assistant', content: reply });
       return reply;
     } catch (err) {
@@ -135,5 +128,4 @@ Antworte kurz und präzise, außer der User will Details.`,
     get provider() { return config.provider; },
     get apiKey() { return config.apiKey; }
   };
-
 })();
