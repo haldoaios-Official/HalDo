@@ -311,6 +311,20 @@ label{font-size:12px;color:#99ccff;display:block;margin-top:6px;}
 <div id="settings-window" class="os-window">
 <div class="header"><span class="header-title">⚙️ Einstellungen</span><div class="header-controls"><button class="control-btn btn-close" onclick="closeWin('settings-window')">✕</button></div></div>
 <div class="body">
+<div class="section"><h4>🤖 AI &amp; Memory</h4>
+  <label>Provider</label>
+  <select id="aiProviderSelect">
+    <option value="openai">OpenAI (GPT)</option>
+    <option value="anthropic">Anthropic (Claude)</option>
+    <option value="ollama">Ollama (lokal)</option>
+  </select>
+  <label>API Key</label>
+  <input id="aiKeyInput" type="password" placeholder="sk-...">
+  <button id="aiSaveBtn" style="width:100%;background:#00ffaa;color:#000;">💾 AI-Key speichern</button>
+  <button id="aiTestBtn" style="width:100%;">🧪 Verbindung testen</button>
+  <button id="aiClearBtn" style="width:100%;background:rgba(255,80,80,0.35);">🗑️ AI-Verlauf löschen</button>
+  <div id="aiStatus" style="margin-top:8px;font-size:12px;opacity:.85;"></div>
+</div>
 <div class="section"><h4>👤 Name</h4>
 <input id="user-name-input" placeholder="Dein Name">
 <button onclick="saveName()" style="width:100%;">💾 Speichern</button></div>
@@ -349,6 +363,7 @@ label{font-size:12px;color:#99ccff;display:block;margin-top:6px;}
 
 <div id="toast">✅ Gespeichert!</div>
 
+<script src="ai-core.js"></script>
 <script>
 // ===== WELTRAUM =====
 const canvas = document.getElementById('space');
@@ -466,7 +481,6 @@ function drawEarth(x, y, size){
   atm.addColorStop(1, 'rgba(100,180,255,0)');
   ctx.fillStyle = atm;
   ctx.beginPath(); ctx.arc(x, y, R*1.5, 0, Math.PI*2); ctx.fill();
-  // Mond
   const ma = t*0.008;
   const mx = x + Math.cos(ma)*R*2.5;
   const my = y + Math.sin(ma)*R*2.5;
@@ -589,7 +603,6 @@ function buildGrids(){
   document.getElementById('hair-grid').innerHTML=hairColors.map(h=>`<div class="swatch ${h.id===currentHair?'active':''}" data-id="${h.id}" style="background:${h.color};" onclick="applyHair('${h.id}')"></div>`).join('');
 }
 
-// Speech
 const voiceProfiles={young_man:{pitch:1.1,rate:1.0},man:{pitch:0.9,rate:1.0},old_man:{pitch:0.7,rate:0.85},young_woman:{pitch:1.4,rate:1.1},woman:{pitch:1.2,rate:1.0},old_woman:{pitch:1.1,rate:0.85},child:{pitch:1.7,rate:1.15},robot:{pitch:0.5,rate:0.9}};
 function speak(text){
   if(!text) return;
@@ -606,7 +619,6 @@ function testVoice(){ speak('Hallo '+currentName+', ich bin HalDo AI.'); }
 function setVoice(v){ currentVoice=v; saveSettings(); speak('Neue Stimme aktiviert.'); }
 function setVol(v){ currentVolume=v/100; saveSettings(); }
 
-// Avatar drag/click
 (function(){
   const av=document.getElementById('avatar');
   let isDrag=false,sx,sy,sl,st,moved=false;
@@ -645,7 +657,6 @@ function setVol(v){ currentVolume=v/100; saveSettings(); }
 
 setInterval(()=>{const av=document.getElementById('avatar');av.classList.add('blinking');setTimeout(()=>av.classList.remove('blinking'),200);},4000);
 
-// Settings
 function saveSettings(){
   localStorage.setItem('haldo_v22', JSON.stringify({
     skin:currentSkin, hair:currentHair, voice:currentVoice, volume:currentVolume,
@@ -690,13 +701,11 @@ function showToast(msg){
   setTimeout(()=>t.classList.remove('show'),2000);
 }
 
-// Windows
 function openWin(id){ const w=document.getElementById(id); if(!w) return; w.classList.add('show'); document.querySelectorAll('.os-window').forEach(x=>x.classList.remove('active')); w.classList.add('active'); }
 function closeWin(id){ document.getElementById(id).classList.remove('show'); }
 function minimizeWin(id){ document.getElementById(id).classList.remove('show'); }
 function closeAll(){ document.querySelectorAll('.os-window').forEach(w=>w.classList.remove('show')); }
 
-// Drag windows
 document.querySelectorAll('.header').forEach(h=>{
   const drag=(e)=>{
     if(e.target.closest('.control-btn')) return;
@@ -730,20 +739,42 @@ document.querySelectorAll('.header').forEach(h=>{
   h.addEventListener('touchstart',drag);
 });
 
-// Chat
-function sendMsg(){
+// ===== CHAT (mit echter AI) =====
+async function sendMsg(){
   const i=document.getElementById('chat-input');
   const m=i.value.trim(); if(!m) return;
   const b=document.getElementById('chat-body');
   b.innerHTML+='<div class="msg msg-user">'+m.replace(/</g,'&lt;')+'</div>';
   i.value=''; b.scrollTop=b.scrollHeight;
-  setTimeout(()=>{
-    const r=reply(m.toLowerCase());
-    b.innerHTML+='<div class="msg msg-ai">'+r+'</div>';
-    b.scrollTop=b.scrollHeight;
-    speak(r);
-  },700);
+
+  // Prüfen ob AI-Key gesetzt ist
+  const hasKey = HalDoAI.apiKey || HalDoAI.provider === 'ollama';
+
+  if (!hasKey) {
+    // Fallback: eingebaute Antworten
+    setTimeout(()=>{
+      const r=reply(m.toLowerCase());
+      b.innerHTML+='<div class="msg msg-ai">'+r+'</div>';
+      b.scrollTop=b.scrollHeight;
+      speak(r);
+    },400);
+    return;
+  }
+
+  // Tippen-Indikator
+  const typingId = 'typing-'+Date.now();
+  b.innerHTML+='<div class="msg msg-ai" id="'+typingId+'">… denkt nach …</div>';
+  b.scrollTop=b.scrollHeight;
+
+  const r = await HalDoAI.send(m);
+  const typingEl = document.getElementById(typingId);
+  if (typingEl) typingEl.remove();
+  b.innerHTML+='<div class="msg msg-ai">'+String(r).replace(/</g,'&lt;')+'</div>';
+  b.scrollTop=b.scrollHeight;
+  speak(r);
 }
+
+// Fallback (ohne Key)
 function reply(m){
   if(/hallo|hi|hey/.test(m)) return 'Hallo '+currentName+'! Wie geht es dir?';
   if(/wie geht/.test(m)) return 'Mir geht es großartig! Ich schaue auf 9 Planeten.';
@@ -801,7 +832,6 @@ async function playMelody(type){
 }
 function stopAudio(){ if(!toneStarted) return; try{Tone.Transport.stop();Tone.Transport.cancel();Object.values(instruments).forEach(i=>{try{i.releaseAll();}catch(e){}});}catch(e){} }
 
-// Video
 function createVideo(){
   const t=document.getElementById('v-title').value.trim()||'Video';
   const d=document.getElementById('v-desc').value.trim()||'';
@@ -810,7 +840,6 @@ function createVideo(){
   speak('Video-Plan erstellt!');
 }
 
-// Docs
 function createDoc(){
   const ty=document.getElementById('doc-type').value;
   const topic=document.getElementById('doc-topic').value.trim();
@@ -829,7 +858,6 @@ function downloadText(id,name){
   a.click();
 }
 
-// Translator
 async function translateText(){
   const x=document.getElementById('tr-in').value.trim();
   const from=document.getElementById('tr-from').value;
@@ -844,7 +872,6 @@ async function translateText(){
   }catch(e){document.getElementById('tr-status').textContent='❌ Fehler';}
 }
 
-// Mail
 let userMails=JSON.parse(localStorage.getItem('haldo_mails')||'[]');
 let sentMails=JSON.parse(localStorage.getItem('haldo_sent')||'[]');
 function renderMails(){
@@ -877,7 +904,6 @@ function switchMail(tab,el){
   if(tab==='inbox'||tab==='sent') renderMails();
 }
 
-// Calendar
 let calMonth=new Date().getMonth(), calYear=new Date().getFullYear();
 function renderCal(){
   const months=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
@@ -898,7 +924,6 @@ function renderCal(){
 function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCal();}
 function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCal();}
 
-// Clock
 let clockInt=null;
 function startClock(){
   if(clockInt) clearInterval(clockInt);
@@ -911,7 +936,6 @@ function startClock(){
   },1000);
 }
 
-// Calc
 let calcExpr='0';
 function buildCalc(){
   const btns=['C','( ',')','÷','7','8','9','×','4','5','6','−','1','2','3','+','0','.','='];
@@ -931,7 +955,6 @@ function calcPress(v){
   document.getElementById('calc-disp').textContent=calcExpr;
 }
 
-// Notes
 let userNotes=JSON.parse(localStorage.getItem('haldo_notes')||'[]');
 function renderNotes(){
   const l=document.getElementById('notes-list');
@@ -950,7 +973,6 @@ function saveNote(){
   renderNotes(); showToast('📝 Notiz gespeichert!');
 }
 
-// Weather
 function updateWeather(){
   const city=document.getElementById('weather-city').value;
   const c={Berlin:{t:18,i:'🌤️',d:'Bewölkt'},Istanbul:{t:22,i:'☀️',d:'Sonnig'},Bagdad:{t:35,i:'☀️',d:'Heiß'},Erbil:{t:28,i:'🌞',d:'Sonnig'}};
@@ -960,7 +982,6 @@ function updateWeather(){
   document.getElementById('w-desc').textContent=w.d;
 }
 
-// Game
 let board=['','','','','','','','',''], active=true, player='X';
 function buildGame(){
   document.getElementById('game-board').innerHTML=Array.from({length:9},(_,i)=>`<div class="game-cell" onclick="tttPlay(${i})"></div>`).join('');
@@ -992,7 +1013,6 @@ function tttReset(){
   document.getElementById('game-status').textContent='Du bist ❌';
 }
 
-// Camera
 let camStream=null;
 async function startCam(){
   try{ camStream=await navigator.mediaDevices.getUserMedia({video:true}); document.getElementById('cam-video').srcObject=camStream; }
@@ -1029,6 +1049,56 @@ function addDemo(){
   localStorage.setItem('haldo_images',JSON.stringify(userImages));
   renderGallery();
 }
+
+// ===== AI & MEMORY SETTINGS =====
+(function initAISettings(){
+  const providerSelect = document.getElementById('aiProviderSelect');
+  const keyInput       = document.getElementById('aiKeyInput');
+  const saveBtn        = document.getElementById('aiSaveBtn');
+  const testBtn        = document.getElementById('aiTestBtn');
+  const clearBtn       = document.getElementById('aiClearBtn');
+  const status         = document.getElementById('aiStatus');
+
+  if (!providerSelect || typeof HalDoAI === 'undefined') return;
+
+  HalDoAI.loadApiKey();
+  const savedProvider = localStorage.getItem('haldo_provider') || 'openai';
+  providerSelect.value = savedProvider;
+  HalDoAI.setProvider(savedProvider);
+  if (HalDoAI.apiKey) keyInput.value = HalDoAI.apiKey;
+
+  saveBtn.onclick = () => {
+    const key = keyInput.value.trim();
+    HalDoAI.setApiKey(key);
+    HalDoAI.setProvider(providerSelect.value);
+    status.textContent = '✅ Gespeichert – nur lokal in deinem Browser.';
+    status.style.color = '#00ffaa';
+    showToast('🤖 AI-Key gespeichert!');
+  };
+
+  providerSelect.onchange = () => {
+    HalDoAI.setProvider(providerSelect.value);
+  };
+
+  testBtn.onclick = async () => {
+    status.textContent = '⏳ Teste Verbindung...';
+    status.style.color = '#fff';
+    const r = await HalDoAI.send('Sag kurz "Verbindung OK" auf Deutsch.');
+    if (r && !String(r).startsWith('Fehler')) {
+      status.textContent = '✅ ' + r;
+      status.style.color = '#00ffaa';
+    } else {
+      status.textContent = '❌ ' + r;
+      status.style.color = '#ff5555';
+    }
+  };
+
+  clearBtn.onclick = () => {
+    HalDoAI.clearHistory();
+    status.textContent = '🗑️ Verlauf gelöscht.';
+    status.style.color = '#fff';
+  };
+})();
 
 // INIT
 buildGrids(); buildMusic(); buildCalc(); buildGame();
