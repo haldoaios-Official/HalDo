@@ -1,12 +1,20 @@
 // ============================================
-// HalDo AI-Core v2.0
-// Provider: Pollinations (frei, kein Key nötig)
-//           OpenAI, Anthropic, Ollama (optional)
+// HalDo AI-Core v3.0
+// Auto-Reset · Pollinations-Default · 4 Provider
 // ============================================
 const HalDoAI = (() => {
+  // Alte kaputte Configs aufräumen
+  const CONFIG_VERSION = '3.0';
+  const savedVersion = localStorage.getItem('haldo_ai_version');
+  if (savedVersion !== CONFIG_VERSION) {
+    localStorage.removeItem('haldo_provider');
+    localStorage.setItem('haldo_provider', 'pollinations');
+    localStorage.setItem('haldo_ai_version', CONFIG_VERSION);
+  }
+
   const config = {
-    provider: 'pollinations',   // Standard: kostenlos, kein Key
-    apiKey: '',
+    provider: localStorage.getItem('haldo_provider') || 'pollinations',
+    apiKey: localStorage.getItem('haldo_api_key') || '',
     model: 'openai',
     endpoint: '',
     systemPrompt: `Du bist der Cyborg von HalDo – ein AI-Betriebssystem.
@@ -18,12 +26,11 @@ Antworte kurz und präzise, außer der User will Details.`,
   };
 
   function setApiKey(key) {
-    config.apiKey = key;
-    localStorage.setItem('haldo_api_key', key);
+    config.apiKey = key || '';
+    localStorage.setItem('haldo_api_key', config.apiKey);
   }
   function loadApiKey() {
-    const saved = localStorage.getItem('haldo_api_key');
-    if (saved) config.apiKey = saved;
+    config.apiKey = localStorage.getItem('haldo_api_key') || '';
     return config.apiKey;
   }
   function setProvider(provider, model) {
@@ -40,9 +47,12 @@ Antworte kurz und präzise, außer der User will Details.`,
       config.model = model || 'llama3';
     } else if (provider === 'pollinations') {
       config.endpoint = 'https://text.pollinations.ai/openai';
-      config.model = model || 'openai';
+      config.model = 'openai';
     }
   }
+
+  // Provider beim Start synchronisieren
+  setProvider(config.provider);
 
   async function send(userMessage) {
     if (!userMessage || userMessage.trim() === '') return null;
@@ -56,6 +66,7 @@ Antworte kurz und präzise, außer der User will Details.`,
       else if (config.provider === 'openai') reply = await callOpenAI();
       else if (config.provider === 'anthropic') reply = await callAnthropic();
       else if (config.provider === 'ollama') reply = await callOllama();
+      else reply = 'Unbekannter Provider: ' + config.provider;
       config.history.push({ role: 'assistant', content: reply });
       return reply;
     } catch (err) {
@@ -104,7 +115,7 @@ Antworte kurz und präzise, außer der User will Details.`,
   }
 
   async function callAnthropic() {
-    if (!config.apiKey) throw new Error('Kein API-Key gesetzt.');
+    if (!config.apiKey) throw new Error('Kein API-Key gesetzt (Anthropic braucht einen Key).');
     const res = await fetch(config.endpoint, {
       method: 'POST',
       headers: {
@@ -144,11 +155,22 @@ Antworte kurz und präzise, außer der User will Details.`,
   }
 
   function clearHistory() { config.history = []; }
+  function setSystemPrompt(prompt) {
+    config.systemPrompt = prompt;
+    localStorage.setItem('haldo_system_prompt', prompt);
+  }
+  function loadSystemPrompt() {
+    const saved = localStorage.getItem('haldo_system_prompt');
+    if (saved) config.systemPrompt = saved;
+  }
+  loadSystemPrompt();
 
   return {
     send, setApiKey, loadApiKey, setProvider, clearHistory,
+    setSystemPrompt, loadSystemPrompt,
     get history() { return config.history; },
     get provider() { return config.provider; },
-    get apiKey() { return config.apiKey; }
+    get apiKey() { return config.apiKey; },
+    get systemPrompt() { return config.systemPrompt; }
   };
 })();
