@@ -1,12 +1,14 @@
 // ============================================
-// HalDo AI-Core v1.0
+// HalDo AI-Core v2.0
+// Provider: Pollinations (frei, kein Key nötig)
+//           OpenAI, Anthropic, Ollama (optional)
 // ============================================
 const HalDoAI = (() => {
   const config = {
-    provider: 'openai',
+    provider: 'pollinations',   // Standard: kostenlos, kein Key
     apiKey: '',
-    model: 'gpt-4o-mini',
-    endpoint: 'https://api.openai.com/v1/chat/completions',
+    model: 'openai',
+    endpoint: '',
     systemPrompt: `Du bist der Cyborg von HalDo – ein AI-Betriebssystem.
 Du sprichst Deutsch, bist direkt, loyal und nennst den User "Bruder".
 Du hilfst bei Code, Ideen und dem HalDo-System selbst.
@@ -36,6 +38,9 @@ Antworte kurz und präzise, außer der User will Details.`,
     } else if (provider === 'ollama') {
       config.endpoint = 'http://localhost:11434/api/chat';
       config.model = model || 'llama3';
+    } else if (provider === 'pollinations') {
+      config.endpoint = 'https://text.pollinations.ai/openai';
+      config.model = model || 'openai';
     }
   }
 
@@ -47,7 +52,8 @@ Antworte kurz und präzise, außer der User will Details.`,
     }
     try {
       let reply = '';
-      if (config.provider === 'openai') reply = await callOpenAI();
+      if (config.provider === 'pollinations') reply = await callPollinations();
+      else if (config.provider === 'openai') reply = await callOpenAI();
       else if (config.provider === 'anthropic') reply = await callAnthropic();
       else if (config.provider === 'ollama') reply = await callOllama();
       config.history.push({ role: 'assistant', content: reply });
@@ -56,6 +62,23 @@ Antworte kurz und präzise, außer der User will Details.`,
       console.error('[HalDoAI]', err);
       return `Fehler: ${err.message}`;
     }
+  }
+
+  async function callPollinations() {
+    const res = await fetch('https://text.pollinations.ai/openai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'openai',
+        messages: [
+          { role: 'system', content: config.systemPrompt },
+          ...config.history
+        ]
+      })
+    });
+    if (!res.ok) throw new Error(`Pollinations ${res.status}`);
+    const data = await res.json();
+    return data.choices[0].message.content;
   }
 
   async function callOpenAI() {
