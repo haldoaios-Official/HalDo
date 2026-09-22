@@ -1,13 +1,14 @@
 // ============================================
-// HalDo AI-Core v3.0
-// Auto-Reset · Pollinations-Default · 4 Provider
+// HalDo AI-Core v4.0
+// Provider: Pollinations (Default), OpenAI, Anthropic, Ollama
+// Auto-Reset bei Versions-Update
 // ============================================
 const HalDoAI = (() => {
-  // Alte kaputte Configs aufräumen
-  const CONFIG_VERSION = '3.0';
+  // Alte Configs aufräumen
+  const CONFIG_VERSION = '4.0';
   const savedVersion = localStorage.getItem('haldo_ai_version');
   if (savedVersion !== CONFIG_VERSION) {
-    localStorage.removeItem('haldo_provider');
+    // Nur Provider zurücksetzen, Key behalten
     localStorage.setItem('haldo_provider', 'pollinations');
     localStorage.setItem('haldo_ai_version', CONFIG_VERSION);
   }
@@ -24,6 +25,10 @@ Antworte kurz und präzise, außer der User will Details.`,
     history: [],
     maxHistory: 20
   };
+
+  // System-Prompt aus Storage laden (falls vorhanden)
+  const savedPrompt = localStorage.getItem('haldo_system_prompt');
+  if (savedPrompt) config.systemPrompt = savedPrompt;
 
   function setApiKey(key) {
     config.apiKey = key || '';
@@ -56,10 +61,12 @@ Antworte kurz und präzise, außer der User will Details.`,
 
   async function send(userMessage) {
     if (!userMessage || userMessage.trim() === '') return null;
+    
     config.history.push({ role: 'user', content: userMessage });
     if (config.history.length > config.maxHistory) {
       config.history = config.history.slice(-config.maxHistory);
     }
+    
     try {
       let reply = '';
       if (config.provider === 'pollinations') reply = await callPollinations();
@@ -67,6 +74,7 @@ Antworte kurz und präzise, außer der User will Details.`,
       else if (config.provider === 'anthropic') reply = await callAnthropic();
       else if (config.provider === 'ollama') reply = await callOllama();
       else reply = 'Unbekannter Provider: ' + config.provider;
+      
       config.history.push({ role: 'assistant', content: reply });
       return reply;
     } catch (err) {
@@ -154,20 +162,28 @@ Antworte kurz und präzise, außer der User will Details.`,
     return data.message.content;
   }
 
-  function clearHistory() { config.history = []; }
+  function clearHistory() {
+    config.history = [];
+  }
+  
   function setSystemPrompt(prompt) {
     config.systemPrompt = prompt;
     localStorage.setItem('haldo_system_prompt', prompt);
   }
+  
   function loadSystemPrompt() {
     const saved = localStorage.getItem('haldo_system_prompt');
     if (saved) config.systemPrompt = saved;
   }
-  loadSystemPrompt();
 
   return {
-    send, setApiKey, loadApiKey, setProvider, clearHistory,
-    setSystemPrompt, loadSystemPrompt,
+    send,
+    setApiKey,
+    loadApiKey,
+    setProvider,
+    clearHistory,
+    setSystemPrompt,
+    loadSystemPrompt,
     get history() { return config.history; },
     get provider() { return config.provider; },
     get apiKey() { return config.apiKey; },
