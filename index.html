@@ -5117,5 +5117,745 @@ console.log('%c🔷 HalDo AI OS v40 geladen','color:#00e5ff;font-size:16px;font-
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════ ENDE v44 ANHANG ══════════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════ v45 ANHANG – VOR </body> EINFÜGEN ═════════ -->
+<!-- ═══ Sticky-Notes + Sound-Library + Auto-Reply-Bot ════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  "use strict";
+
+  // ═══════════════════════════════════════════════════════
+  // 1) STICKY-NOTES am Desktop (immer sichtbar, frei bewegbar)
+  // ═══════════════════════════════════════════════════════
+  let stickyNotes = JSON.parse(localStorage.getItem('haldo_sticky_notes') || '[]');
+  let stickyColors = ['#ffcc00', '#ff60c0', '#00e5ff', '#00ff88', '#c060ff', '#ff8800', '#ff3344', '#88ffee'];
+
+  function saveStickyNotes(){ localStorage.setItem('haldo_sticky_notes', JSON.stringify(stickyNotes)); }
+
+  function renderStickyNotes(){
+    // Entferne alle alten
+    document.querySelectorAll('.haldo-sticky-note').forEach(el => el.remove());
+    stickyNotes.forEach(n => createStickyNote(n));
+  }
+
+  function createStickyNote(note){
+    const el = document.createElement('div');
+    el.className = 'haldo-sticky-note';
+    el.dataset.id = note.id;
+    el.style.cssText = `
+      position:fixed;
+      left:${note.x}px;top:${note.y}px;
+      width:${note.w || 220}px;height:${note.h || 180}px;
+      background:${note.color};
+      color:#000;
+      border-radius:12px;
+      box-shadow:0 8px 30px rgba(0,0,0,.5), 0 0 20px ${note.color}66;
+      z-index:80;
+      display:flex;flex-direction:column;
+      font-family:'Segoe UI',sans-serif;
+      overflow:hidden;
+      transition:box-shadow .2s;
+    `;
+    el.innerHTML = `
+      <div class="sticky-head" style="padding:8px 10px;background:rgba(0,0,0,.15);display:flex;justify-content:space-between;align-items:center;cursor:move;user-select:none;touch-action:none;">
+        <span style="font-size:11px;font-weight:bold;color:rgba(0,0,0,.7);">📌 Notiz</span>
+        <div style="display:flex;gap:4px;">
+          <button class="sticky-color-btn" style="width:18px;height:18px;border-radius:50%;border:2px solid rgba(0,0,0,.3);background:${note.color};cursor:pointer;padding:0;margin:0;" title="Farbe wechseln">🎨</button>
+          <button class="sticky-close-btn" style="width:18px;height:18px;border-radius:50%;border:none;background:rgba(0,0,0,.3);color:#fff;font-size:10px;cursor:pointer;padding:0;margin:0;line-height:1;">✕</button>
+        </div>
+      </div>
+      <textarea class="sticky-content" placeholder="Notiz..." style="flex:1;border:none;background:transparent;resize:none;padding:10px;font-family:inherit;font-size:13px;color:#000;outline:none;margin:0;min-height:0;border-radius:0;">${note.text || ''}</textarea>
+      <div class="sticky-resize" style="position:absolute;right:0;bottom:0;width:16px;height:16px;cursor:nwse-resize;background:linear-gradient(135deg,transparent 50%,rgba(0,0,0,.2) 50%);"></div>
+    `;
+    document.body.appendChild(el);
+
+    const head = el.querySelector('.sticky-head');
+    const textarea = el.querySelector('.sticky-content');
+    const colorBtn = el.querySelector('.sticky-color-btn');
+    const closeBtn = el.querySelector('.sticky-close-btn');
+    const resizeH = el.querySelector('.sticky-resize');
+
+    // Drag
+    let dragState = null;
+    const startDrag = (e) => {
+      if(e.target.closest('button') || e.target.closest('textarea')) return;
+      if(e.button && e.button !== 0) return;
+      const p = e.touches ? e.touches[0] : e;
+      const r = el.getBoundingClientRect();
+      dragState = { ox: p.clientX - r.left, oy: p.clientY - r.top };
+      el.style.zIndex = 85;
+      document.addEventListener('mousemove', doDrag);
+      document.addEventListener('touchmove', doDrag, {passive:false});
+      document.addEventListener('mouseup', endDrag);
+      document.addEventListener('touchend', endDrag);
+      e.preventDefault();
+    };
+    const doDrag = (ev) => {
+      if(!dragState) return;
+      if(ev.cancelable) ev.preventDefault();
+      const p = ev.touches ? ev.touches[0] : ev;
+      let nx = p.clientX - dragState.ox;
+      let ny = p.clientY - dragState.oy;
+      nx = Math.max(0, Math.min(window.innerWidth - 60, nx));
+      ny = Math.max(0, Math.min(window.innerHeight - 40, ny));
+      el.style.left = nx + 'px';
+      el.style.top = ny + 'px';
+    };
+    const endDrag = () => {
+      if(!dragState) return;
+      dragState = null;
+      const n = stickyNotes.find(x => x.id === note.id);
+      if(n){ n.x = parseInt(el.style.left); n.y = parseInt(el.style.top); saveStickyNotes(); }
+      el.style.zIndex = 80;
+      document.removeEventListener('mousemove', doDrag);
+      document.removeEventListener('touchmove', doDrag);
+      document.removeEventListener('mouseup', endDrag);
+      document.removeEventListener('touchend', endDrag);
+    };
+    head.addEventListener('mousedown', startDrag);
+    head.addEventListener('touchstart', startDrag, {passive:false});
+
+    // Resize
+    let rzState = null;
+    const startRz = (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const p = e.touches ? e.touches[0] : e;
+      const r = el.getBoundingClientRect();
+      rzState = { startW: r.width, startH: r.height, cx: p.clientX, cy: p.clientY };
+      document.addEventListener('mousemove', doRz);
+      document.addEventListener('touchmove', doRz, {passive:false});
+      document.addEventListener('mouseup', endRz);
+      document.addEventListener('touchend', endRz);
+    };
+    const doRz = (ev) => {
+      if(!rzState) return;
+      const p = ev.touches ? ev.touches[0] : ev;
+      const w = Math.max(140, rzState.startW + (p.clientX - rzState.cx));
+      const h = Math.max(120, rzState.startH + (p.clientY - rzState.cy));
+      el.style.width = w + 'px';
+      el.style.height = h + 'px';
+    };
+    const endRz = () => {
+      if(!rzState) return;
+      rzState = null;
+      const n = stickyNotes.find(x => x.id === note.id);
+      if(n){ n.w = parseInt(el.style.width); n.h = parseInt(el.style.height); saveStickyNotes(); }
+      document.removeEventListener('mousemove', doRz);
+      document.removeEventListener('touchmove', doRz);
+      document.removeEventListener('mouseup', endRz);
+      document.removeEventListener('touchend', endRz);
+    };
+    resizeH.addEventListener('mousedown', startRz);
+    resizeH.addEventListener('touchstart', startRz, {passive:false});
+
+    // Text ändern
+    let saveTimer = null;
+    textarea.addEventListener('input', () => {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        const n = stickyNotes.find(x => x.id === note.id);
+        if(n){ n.text = textarea.value; saveStickyNotes(); }
+      }, 300);
+    });
+    textarea.addEventListener('mousedown', (e) => e.stopPropagation());
+    textarea.addEventListener('touchstart', (e) => e.stopPropagation(), {passive:true});
+
+    // Farbe wechseln
+    colorBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const n = stickyNotes.find(x => x.id === note.id);
+      if(!n) return;
+      const curIdx = stickyColors.indexOf(n.color);
+      n.color = stickyColors[(curIdx + 1) % stickyColors.length];
+      el.style.background = n.color;
+      el.style.boxShadow = `0 8px 30px rgba(0,0,0,.5), 0 0 20px ${n.color}66`;
+      colorBtn.style.background = n.color;
+      saveStickyNotes();
+    });
+
+    // Löschen
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if(!confirm('Notiz löschen?')) return;
+      stickyNotes = stickyNotes.filter(x => x.id !== note.id);
+      saveStickyNotes();
+      el.remove();
+      if(typeof showToast === 'function') showToast('🗑️ Notiz entfernt');
+    });
+  }
+
+  window.addStickyNote = function(){
+    const id = 'sn_' + Date.now();
+    const note = {
+      id,
+      text: '',
+      color: stickyColors[stickyNotes.length % stickyColors.length],
+      x: 100 + (stickyNotes.length * 30) % 300,
+      y: 100 + (stickyNotes.length * 40) % 200,
+      w: 220,
+      h: 180
+    };
+    stickyNotes.push(note);
+    saveStickyNotes();
+    createStickyNote(note);
+    if(typeof showToast === 'function') showToast('📌 Notiz hinzugefügt');
+  };
+
+  window.clearStickyNotes = function(){
+    if(!confirm('Alle Sticky-Notes löschen?')) return;
+    stickyNotes = [];
+    saveStickyNotes();
+    document.querySelectorAll('.haldo-sticky-note').forEach(el => el.remove());
+    if(typeof showToast === 'function') showToast('🗑️ Alle entfernt');
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 2) SOUND-LIBRARY (eigene Klick-/Notif-Töne)
+  // ═══════════════════════════════════════════════════════
+  const SOUND_LIB_HTML = `
+  <div id="soundlibrary-window" class="os-window" style="top:8vh;left:50%;transform:translateX(-50%);width:680px;max-height:85vh;">
+    <div class="header">
+      <span class="header-title">🔊 Sound-Bibliothek</span>
+      <div class="header-controls">
+        <button class="control-btn btn-min" onclick="minimizeWin('soundlibrary-window')">–</button>
+        <button class="control-btn btn-max" onclick="toggleMaximize('soundlibrary-window')">□</button>
+        <button class="control-btn btn-close" onclick="closeWin('soundlibrary-window')">✕</button>
+      </div>
+    </div>
+    <div class="body" style="padding:14px;">
+      <p style="font-size:12px;color:#88ccff;margin-bottom:12px;">Wähle deine eigenen Töne für Klicks und Notifications.</p>
+
+      <div class="section">
+        <h4>🎵 Klick-Ton</h4>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:8px;" id="sndClickGrid"></div>
+      </div>
+
+      <div class="section">
+        <h4>🔔 Notification-Ton</h4>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:8px;" id="sndNotifGrid"></div>
+      </div>
+
+      <div class="section">
+        <h4>✅ Erfolgs-Ton</h4>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:8px;" id="sndSuccessGrid"></div>
+      </div>
+
+      <div class="section">
+        <h4>❌ Fehler-Ton</h4>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:8px;" id="sndErrorGrid"></div>
+      </div>
+
+      <div class="toolbar" style="margin-top:12px;">
+        <button onclick="sndResetAll()" style="background:#ff3344;flex:1;">🔄 Alle zurücksetzen</button>
+      </div>
+    </div>
+  </div>`;
+
+  const SOUND_PRESETS = {
+    click: [
+      {id:'soft', name:'Soft', icon:'🔈', freq:400, dur:0.05, type:'sine'},
+      {id:'classic', name:'Klassisch', icon:'🎵', freq:800, dur:0.05, type:'sine'},
+      {id:'mech', name:'Mechanisch', icon:'⌨️', freq:1200, dur:0.03, type:'square'},
+      {id:'water', name:'Wasser', icon:'💧', freq:600, dur:0.08, type:'sine'},
+      {id:'bubble', name:'Blubber', icon:'🫧', freq:900, dur:0.1, type:'triangle'},
+      {id:'pop', name:'Pop', icon:'🎈', freq:300, dur:0.06, type:'sine'},
+      {id:'wood', name:'Holz', icon:'🪵', freq:500, dur:0.05, type:'triangle'},
+      {id:'beep', name:'Beep', icon:'📢', freq:1000, dur:0.04, type:'square'}
+    ],
+    notif: [
+      {id:'ding', name:'Ding', icon:'🔔', freq:700, dur:0.2, type:'sine'},
+      {id:'bell', name:'Glocke', icon:'🛎️', freq:1200, dur:0.3, type:'sine'},
+      {id:'chime', name:'Chime', icon:'🎼', freq:900, dur:0.25, type:'triangle'},
+      {id:'marimba', name:'Marimba', icon:'🎹', freq:600, dur:0.3, type:'triangle'},
+      {id:'pluck', name:'Pluck', icon:'🎸', freq:800, dur:0.15, type:'sawtooth'},
+      {id:'echo', name:'Echo', icon:'🌊', freq:1000, dur:0.4, type:'sine'}
+    ],
+    success: [
+      {id:'up', name:'Aufsteigend', icon:'⬆️', freq:600, dur:0.15, type:'sine', slide:true, to:1200},
+      {id:'win', name:'Gewonnen', icon:'🏆', freq:800, dur:0.3, type:'sine', slide:true, to:1600},
+      {id:'coin', name:'Münze', icon:'🪙', freq:1000, dur:0.1, type:'square', slide:true, to:1500},
+      {id:'sparkle', name:'Funkeln', icon:'✨', freq:1200, dur:0.2, type:'sine', slide:true, to:1800},
+      {id:'fanfare', name:'Fanfare', icon:'🎺', freq:500, dur:0.4, type:'triangle', slide:true, to:1000}
+    ],
+    error: [
+      {id:'saw', name:'Brumm', icon:'📢', freq:200, dur:0.2, type:'sawtooth'},
+      {id:'buzz', name:'Buzzer', icon:'🐝', freq:150, dur:0.3, type:'square'},
+      {id:'down', name:'Absteigend', icon:'⬇️', freq:600, dur:0.2, type:'sine', slide:true, to:200},
+      {id:'alarm', name:'Alarm', icon:'🚨', freq:400, dur:0.3, type:'square', slide:true, to:300},
+      {id:'deny', name:'Abgelehnt', icon:'❌', freq:300, dur:0.25, type:'triangle', slide:true, to:150}
+    ]
+  };
+
+  let soundConfig = JSON.parse(localStorage.getItem('haldo_sound_config') || 'null') || {
+    click: 'classic', notif: 'ding', success: 'up', error: 'saw'
+  };
+
+  function saveSoundConfig(){ localStorage.setItem('haldo_sound_config', JSON.stringify(soundConfig)); }
+
+  function playPreset(preset){
+    try{
+      let ctx = window.audioCtx;
+      if(!ctx){
+        ctx = window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      const now = ctx.currentTime;
+      osc.type = preset.type || 'sine';
+      if(preset.slide && preset.to){
+        osc.frequency.setValueAtTime(preset.freq, now);
+        osc.frequency.exponentialRampToValueAtTime(preset.to, now + preset.dur);
+      } else {
+        osc.frequency.value = preset.freq;
+      }
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + preset.dur);
+      osc.start(now);
+      osc.stop(now + preset.dur + 0.02);
+    }catch(e){}
+  }
+
+  function renderSoundGrid(kind){
+    const grid = document.getElementById('snd' + kind.charAt(0).toUpperCase() + kind.slice(1) + 'Grid');
+    if(!grid) return;
+    const presets = SOUND_PRESETS[kind];
+    grid.innerHTML = presets.map(p => {
+      const active = soundConfig[kind] === p.id;
+      return `<div onclick="sndSelect('${kind}','${p.id}')" style="
+        padding:10px 6px;text-align:center;cursor:pointer;
+        background:${active ? 'var(--sys-color)' : 'rgba(0,0,0,.4)'};
+        color:${active ? '#000' : '#fff'};
+        border:1.5px solid var(--sys-color);
+        border-radius:10px;
+        font-size:11px;
+        transition:all .15s;
+      " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+        <div style="font-size:20px;">${p.icon}</div>
+        <div style="font-weight:bold;margin-top:4px;">${p.name}</div>
+        ${active ? '<div style="font-size:9px;margin-top:2px;">✓ Aktiv</div>' : ''}
+      </div>`;
+    }).join('');
+  }
+
+  window.sndSelect = function(kind, id){
+    soundConfig[kind] = id;
+    saveSoundConfig();
+    const p = SOUND_PRESETS[kind].find(x => x.id === id);
+    if(p) playPreset(p);
+    renderSoundGrid(kind);
+    if(typeof showToast === 'function') showToast('🔊 ' + kind + ': ' + p.name);
+  };
+
+  window.sndResetAll = function(){
+    if(!confirm('Alle Sounds zurücksetzen?')) return;
+    soundConfig = { click: 'classic', notif: 'ding', success: 'up', error: 'saw' };
+    saveSoundConfig();
+    ['click','notif','success','error'].forEach(renderSoundGrid);
+    if(typeof showToast === 'function') showToast('🔄 Sounds zurückgesetzt');
+  };
+
+  function ensureSoundLibrary(){
+    if(document.getElementById('soundlibrary-window')) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = SOUND_LIB_HTML;
+    const node = wrap.firstElementChild;
+    document.body.appendChild(node);
+    ['n','s','e','w','ne','nw','se','sw'].forEach(dir=>{
+      const h = document.createElement('div');
+      h.className = 'resize-handle resize-'+dir;
+      h.dataset.dir = dir;
+      node.appendChild(h);
+    });
+    bindWinManual(node);
+    ['click','notif','success','error'].forEach(renderSoundGrid);
+  }
+
+  // playSound patchen — benutzt Sound-Config
+  const origPlaySound = window.playSound;
+  window.playSound = function(type){
+    if(typeof soundEnabled !== 'undefined' && !soundEnabled) return;
+    let kind = null;
+    if(type === 'click') kind = 'click';
+    else if(type === 'notify' || type === 'message') kind = 'notif';
+    else if(type === 'success' || type === 'open') kind = 'success';
+    else if(type === 'error' || type === 'close') kind = 'error';
+    if(kind){
+      const id = soundConfig[kind];
+      const p = (SOUND_PRESETS[kind] || []).find(x => x.id === id);
+      if(p){ playPreset(p); return; }
+    }
+    // Fallback zur Original-Funktion
+    if(typeof origPlaySound === 'function') origPlaySound(type);
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 3) AUTO-REPLY-BOT für Messenger
+  // ═══════════════════════════════════════════════════════
+  let autoReplyEnabled = localStorage.getItem('haldo_autoreply_on') === 'true';
+  let autoReplyRules = JSON.parse(localStorage.getItem('haldo_autoreply_rules') || 'null') || [
+    {trigger:'hallo', response:'Hi! 👋 Wie geht\'s?', match:'contains'},
+    {trigger:'wie geht', response:'Mir geht es super, danke! Und dir?', match:'contains'},
+    {trigger:'danke', response:'Gerne! 💙', match:'contains'},
+    {trigger:'tschuess', response:'Bis bald! 👋', match:'contains'},
+    {trigger:'?', response:'Gute Frage! Lass mich kurz nachdenken...', match:'contains'}
+  ];
+
+  function saveAutoReply(){
+    localStorage.setItem('haldo_autoreply_rules', JSON.stringify(autoReplyRules));
+    localStorage.setItem('haldo_autoreply_on', autoReplyEnabled ? 'true' : 'false');
+  }
+
+  function applyAutoReply(text){
+    if(!autoReplyEnabled) return null;
+    const low = text.toLowerCase();
+    for(const rule of autoReplyRules){
+      if(!rule.trigger || !rule.response) continue;
+      const trig = rule.trigger.toLowerCase();
+      if(rule.match === 'exact'){
+        if(low === trig) return rule.response;
+      } else if(rule.match === 'starts'){
+        if(low.startsWith(trig)) return rule.response;
+      } else {
+        if(low.includes(trig)) return rule.response;
+      }
+    }
+    return null;
+  }
+
+  const AUTO_REPLY_HTML = `
+  <div id="autoreply-window" class="os-window" style="top:8vh;left:50%;transform:translateX(-50%);width:640px;max-height:85vh;">
+    <div class="header">
+      <span class="header-title">🤖 Auto-Reply-Bot</span>
+      <div class="header-controls">
+        <button class="control-btn btn-min" onclick="minimizeWin('autoreply-window')">–</button>
+        <button class="control-btn btn-max" onclick="toggleMaximize('autoreply-window')">□</button>
+        <button class="control-btn btn-close" onclick="closeWin('autoreply-window')">✕</button>
+      </div>
+    </div>
+    <div class="body" style="padding:14px;">
+      <div class="section">
+        <div class="row" style="padding:6px 0;">
+          <label style="font-size:13px;">🟢 Auto-Reply aktiv</label>
+          <input type="checkbox" id="arToggle" onchange="arToggle(this.checked)" style="width:auto;">
+        </div>
+        <p style="font-size:11px;color:#88ccff;margin-top:6px;">Wenn jemand dir im Messenger schreibt, antwortet der Bot automatisch mit passenden Regeln.</p>
+      </div>
+
+      <div class="section">
+        <h4>📝 Regeln</h4>
+        <div id="arRulesList" style="margin-top:8px;"></div>
+        <button onclick="arAddRule()" style="width:100%;background:var(--accent);color:#000;margin-top:10px;">➕ Neue Regel</button>
+      </div>
+
+      <div class="section">
+        <h4>🧪 Testen</h4>
+        <input id="arTestInput" placeholder="Testtext eingeben..." onkeydown="if(event.key==='Enter') arTest()" style="margin-top:8px;">
+        <button onclick="arTest()" style="width:100%;margin-top:6px;">▶️ Antwort simulieren</button>
+        <div id="arTestResult" style="margin-top:10px;padding:10px;background:rgba(0,0,0,.4);border-radius:8px;font-size:13px;color:#88ccff;min-height:40px;">
+          Ergebnis erscheint hier...
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <button onclick="arResetRules()" style="background:#ff3344;flex:1;">🔄 Standard-Regeln</button>
+        <button onclick="arExportRules()" style="flex:1;">📤 Export</button>
+        <button onclick="arImportRules()" style="flex:1;">📥 Import</button>
+      </div>
+    </div>
+  </div>`;
+
+  function ensureAutoReply(){
+    if(document.getElementById('autoreply-window')) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = AUTO_REPLY_HTML;
+    const node = wrap.firstElementChild;
+    document.body.appendChild(node);
+    ['n','s','e','w','ne','nw','se','sw'].forEach(dir=>{
+      const h = document.createElement('div');
+      h.className = 'resize-handle resize-'+dir;
+      h.dataset.dir = dir;
+      node.appendChild(h);
+    });
+    bindWinManual(node);
+    document.getElementById('arToggle').checked = autoReplyEnabled;
+    renderAutoReplyRules();
+  }
+
+  function renderAutoReplyRules(){
+    const el = document.getElementById('arRulesList');
+    if(!el) return;
+    if(!autoReplyRules.length){
+      el.innerHTML = '<p style="color:#888;font-size:12px;text-align:center;">Keine Regeln.</p>';
+      return;
+    }
+    el.innerHTML = autoReplyRules.map((r, i) => `
+      <div style="background:rgba(0,0,0,.35);border-radius:10px;padding:10px;margin-bottom:6px;border-left:3px solid var(--sys-color);">
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
+          <span style="font-size:10px;color:#88ccff;">WENN</span>
+          <select onchange="arUpdateRule(${i},'match',this.value)" style="flex:0 0 100px;padding:4px;font-size:11px;margin:0;">
+            <option value="contains"${r.match === 'contains' ? ' selected' : ''}>enthält</option>
+            <option value="starts"${r.match === 'starts' ? ' selected' : ''}>beginnt mit</option>
+            <option value="exact"${r.match === 'exact' ? ' selected' : ''}>ist genau</option>
+          </select>
+          <input value="${(r.trigger || '').replace(/"/g, '&quot;')}" onchange="arUpdateRule(${i},'trigger',this.value)" placeholder="hallo" style="flex:1;padding:4px 8px;font-size:12px;margin:0;">
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span style="font-size:10px;color:#88ccff;">DANN</span>
+          <input value="${(r.response || '').replace(/"/g, '&quot;')}" onchange="arUpdateRule(${i},'response',this.value)" placeholder="Antwort..." style="flex:1;padding:4px 8px;font-size:12px;margin:0;">
+          <button onclick="arDeleteRule(${i})" style="background:#ff3344;padding:4px 8px;font-size:11px;margin:0;">🗑️</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.arToggle = function(v){
+    autoReplyEnabled = v;
+    saveAutoReply();
+    if(typeof showToast === 'function') showToast(v ? '🤖 Auto-Reply aktiv' : '🤖 Auto-Reply aus');
+  };
+  window.arUpdateRule = function(i, key, val){
+    if(!autoReplyRules[i]) return;
+    autoReplyRules[i][key] = val;
+    saveAutoReply();
+  };
+  window.arDeleteRule = function(i){
+    autoReplyRules.splice(i, 1);
+    saveAutoReply();
+    renderAutoReplyRules();
+  };
+  window.arAddRule = function(){
+    const trigger = prompt('Trigger (z.B. "hallo"):'); if(!trigger) return;
+    const response = prompt('Antwort:'); if(!response) return;
+    autoReplyRules.push({trigger, response, match: 'contains'});
+    saveAutoReply();
+    renderAutoReplyRules();
+  };
+  window.arTest = function(){
+    const txt = document.getElementById('arTestInput').value.trim();
+    if(!txt){ return; }
+    const res = applyAutoReply(txt);
+    const out = document.getElementById('arTestResult');
+    if(res){
+      out.innerHTML = '<div style="color:#88ccff;font-size:11px;">Eingabe: "' + txt + '"</div><div style="margin-top:6px;color:var(--accent);font-weight:bold;">🤖 ' + res + '</div>';
+    } else {
+      out.innerHTML = '<div style="color:#88ccff;font-size:11px;">Eingabe: "' + txt + '"</div><div style="margin-top:6px;color:#ff5555;">❌ Keine Regel getroffen.</div>';
+    }
+  };
+  window.arResetRules = function(){
+    if(!confirm('Regeln zurücksetzen?')) return;
+    autoReplyRules = [
+      {trigger:'hallo', response:'Hi! 👋 Wie geht\'s?', match:'contains'},
+      {trigger:'wie geht', response:'Mir geht es super, danke! Und dir?', match:'contains'},
+      {trigger:'danke', response:'Gerne! 💙', match:'contains'},
+      {trigger:'tschuess', response:'Bis bald! 👋', match:'contains'},
+      {trigger:'?', response:'Gute Frage! Lass mich kurz nachdenken...', match:'contains'}
+    ];
+    saveAutoReply();
+    renderAutoReplyRules();
+    if(typeof showToast === 'function') showToast('🔄 Regeln zurückgesetzt');
+  };
+  window.arExportRules = function(){
+    const blob = new Blob([JSON.stringify(autoReplyRules, null, 2)], {type: 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'haldo-autoreply-rules.json';
+    a.click();
+  };
+  window.arImportRules = function(){
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = '.json';
+    inp.onchange = (e) => {
+      const f = e.target.files[0]; if(!f) return;
+      const r = new FileReader();
+      r.onload = (ev) => {
+        try{
+          const data = JSON.parse(ev.target.result);
+          if(Array.isArray(data)){
+            autoReplyRules = data;
+            saveAutoReply();
+            renderAutoReplyRules();
+            if(typeof showToast === 'function') showToast('📥 Regeln importiert');
+          }
+        }catch(err){ if(typeof showToast === 'function') showToast('❌ Ungültige Datei', 'error'); }
+      };
+      r.readAsText(f);
+    };
+    inp.click();
+  };
+
+  // Messenger: Auto-Reply einbinden
+  const origSendMsg = window.sendMessengerMsg;
+  window.sendMessengerMsg = async function(){
+    const inp = document.getElementById('messengerInput');
+    const text = inp ? inp.value.trim() : '';
+    // Vor dem Senden prüfen ob Auto-Reply getriggert wird (Nachricht vom Kontakt simulieren)
+    if(text && autoReplyEnabled){
+      const botReply = applyAutoReply(text);
+      if(botReply){
+        // Nachricht als "User" senden, dann Auto-Antwort nach kurzer Verzögerung
+        if(typeof origSendMsg === 'function') await origSendMsg();
+        setTimeout(() => {
+          if(typeof currentConversation !== 'undefined' && currentConversation){
+            const conv = (typeof conversations !== 'undefined' ? conversations : []).find(c => c.id === currentConversation);
+            if(conv){
+              conv.messages.push({from: '🤖 Auto-Bot', text: botReply, time: new Date().toLocaleTimeString()});
+              localStorage.setItem('haldo_conversations', JSON.stringify(conversations));
+              if(typeof renderConversationMessages === 'function') renderConversationMessages();
+              if(typeof addNotification === 'function') addNotification('Auto-Reply', botReply.substring(0, 50), 'info');
+            }
+          }
+        }, 800);
+        return;
+      }
+    }
+    if(typeof origSendMsg === 'function') await origSendMsg();
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 4) BUTTONS EINFÜGEN
+  // ═══════════════════════════════════════════════════════
+  function bindWinManual(win){
+    const header = win.querySelector('.header'); if(!header) return;
+    header.addEventListener('mousedown', (e)=>{
+      if(e.target.closest('.control-btn')) return;
+      if(win.classList.contains('maximized')) return;
+      e.preventDefault();
+      const cx = e.clientX, cy = e.clientY;
+      const r = win.getBoundingClientRect();
+      const ox = cx - r.left, oy = cy - r.top;
+      document.querySelectorAll('.os-window').forEach(x=>x.classList.remove('active'));
+      win.classList.add('active','dragging');
+      const mv = (ev)=>{ win.style.left = (ev.clientX - ox)+'px'; win.style.top = (ev.clientY - oy)+'px'; win.style.right='auto'; win.style.bottom='auto'; win.style.transform='none'; };
+      const up = ()=>{ document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); win.classList.remove('dragging'); };
+      document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
+    });
+    win.querySelectorAll('.resize-handle').forEach(h=>{
+      h.addEventListener('mousedown', (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        const dir = h.dataset.dir; const cx = e.clientX, cy = e.clientY;
+        const r = win.getBoundingClientRect();
+        const sW = r.width, sH = r.height, sL = r.left, sT = r.top;
+        win.classList.add('resizing');
+        const mv = (ev)=>{
+          const dx = ev.clientX - cx, dy = ev.clientY - cy;
+          if(dir.includes('e')) win.style.width = Math.max(320, sW+dx)+'px';
+          if(dir.includes('w')){ win.style.width = Math.max(320, sW-dx)+'px'; win.style.left = (sL+dx)+'px'; }
+          if(dir.includes('s')) win.style.height = Math.max(200, sH+dy)+'px';
+          if(dir.includes('n')){ win.style.height = Math.max(200, sH-dy)+'px'; win.style.top = (sT+dy)+'px'; }
+          win.style.transform = 'none';
+        };
+        const up = ()=>{ document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); win.classList.remove('resizing'); };
+        document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
+      });
+    });
+  }
+
+  function addButtons(){
+    const tray = document.getElementById('launcherTray');
+    if(tray){
+      const optsBtn = tray.querySelector('button[onclick*="showPanelLauncherMenu"]');
+      if(!document.getElementById('launcherSticky')){
+        const b = document.createElement('button');
+        b.className = 'launcher-btn';
+        b.id = 'launcherSticky';
+        b.title = 'Neue Sticky-Notiz';
+        b.textContent = '📌';
+        b.onclick = () => addStickyNote();
+        if(optsBtn) tray.insertBefore(b, optsBtn); else tray.appendChild(b);
+      }
+    }
+    const sysBody = document.querySelector('#sysMenu .menu-panel-body');
+    if(sysBody){
+      const closeItem = Array.from(sysBody.querySelectorAll('.sys-menu-item')).find(el => el.textContent.includes('Alle Fenster'));
+      if(!document.getElementById('sysSoundLib')){
+        const item = document.createElement('div');
+        item.className = 'sys-menu-item';
+        item.id = 'sysSoundLib';
+        item.innerHTML = '<span class="sys-icon">🔊</span>Sound-Bibliothek';
+        item.onclick = () => { ensureSoundLibrary(); if(typeof openWin === 'function') openWin('soundlibrary-window'); };
+        if(closeItem) sysBody.insertBefore(item, closeItem); else sysBody.appendChild(item);
+      }
+      if(!document.getElementById('sysAutoReply')){
+        const item = document.createElement('div');
+        item.className = 'sys-menu-item';
+        item.id = 'sysAutoReply';
+        item.innerHTML = '<span class="sys-icon">🤖</span>Auto-Reply-Bot';
+        item.onclick = () => { ensureAutoReply(); if(typeof openWin === 'function') openWin('autoreply-window'); };
+        if(closeItem) sysBody.insertBefore(item, closeItem); else sysBody.appendChild(item);
+      }
+      if(!document.getElementById('sysStickyAdd')){
+        const item = document.createElement('div');
+        item.className = 'sys-menu-item';
+        item.id = 'sysStickyAdd';
+        item.innerHTML = '<span class="sys-icon">📌</span>Neue Sticky-Notiz';
+        item.onclick = () => addStickyNote();
+        if(closeItem) sysBody.insertBefore(item, closeItem); else sysBody.appendChild(item);
+      }
+      if(!document.getElementById('sysStickyClear')){
+        const item = document.createElement('div');
+        item.className = 'sys-menu-item';
+        item.id = 'sysStickyClear';
+        item.innerHTML = '<span class="sys-icon">🗑️</span>Sticky-Notes löschen';
+        item.onclick = () => clearStickyNotes();
+        if(closeItem) sysBody.insertBefore(item, closeItem); else sysBody.appendChild(item);
+      }
+    }
+    // App-Einträge
+    if(typeof APPS !== 'undefined' && Array.isArray(APPS)){
+      if(!APPS.find(a => a.w === 'soundlibrary-window')) APPS.push({n:'Sound-Bibliothek', e:'🔊', w:'soundlibrary-window', d:'Eigene Töne', cat:'System'});
+      if(!APPS.find(a => a.w === 'autoreply-window')) APPS.push({n:'Auto-Reply-Bot', e:'🤖', w:'autoreply-window', d:'Bot für Messenger', cat:'KI'});
+      if(typeof renderAppMenu === 'function') renderAppMenu();
+    }
+  }
+
+  // openWin patchen
+  const origOpenWin = window.openWin;
+  window.openWin = function(id){
+    if(id === 'soundlibrary-window') ensureSoundLibrary();
+    if(id === 'autoreply-window') ensureAutoReply();
+    if(typeof origOpenWin === 'function') origOpenWin(id);
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 5) KEYBOARD
+  // ═══════════════════════════════════════════════════════
+  document.addEventListener('keydown', (e) => {
+    if(e.ctrlKey && e.shiftKey && (e.key === 'N' || e.key === 'n')){
+      e.preventDefault();
+      addStickyNote();
+    }
+    if(e.ctrlKey && e.shiftKey && (e.key === 'S' || e.key === 's')){
+      e.preventDefault();
+      ensureSoundLibrary();
+      if(typeof openWin === 'function') openWin('soundlibrary-window');
+    }
+    if(e.ctrlKey && e.shiftKey && (e.key === 'R' || e.key === 'r')){
+      e.preventDefault();
+      ensureAutoReply();
+      if(typeof openWin === 'function') openWin('autoreply-window');
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // 6) INIT
+  // ═══════════════════════════════════════════════════════
+  setTimeout(() => {
+    try{
+      renderStickyNotes();
+      addButtons();
+      console.log('%c📌 v45 geladen: Sticky-Notes + Sound-Bibliothek + Auto-Reply-Bot','color:#ffcc00;font-weight:bold;font-size:12px;');
+    }catch(err){
+      console.error('v45 Init-Fehler:', err);
+    }
+  }, 700);
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════ ENDE v45 ANHANG ══════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
