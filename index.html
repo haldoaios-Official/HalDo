@@ -5857,5 +5857,844 @@ console.log('%c🔷 HalDo AI OS v40 geladen','color:#00e5ff;font-size:16px;font-
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════ ENDE v45 ANHANG ══════════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+ <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════ v46 ANHANG – VOR </body> EINFÜGEN ═════════ -->
+<!-- ═══ Bildschirm-Aufnahme + Zitate + Mini-Karte ════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  "use strict";
+
+  // ═══════════════════════════════════════════════════════
+  // 1) BILDSCHIRM-AUFNAHME
+  // ═══════════════════════════════════════════════════════
+  const SCREEN_REC_HTML = `
+  <div id="screenrec-window" class="os-window" style="top:8vh;left:50%;transform:translateX(-50%);width:640px;max-height:88vh;">
+    <div class="header">
+      <span class="header-title">📊 Bildschirm-Aufnahme</span>
+      <div class="header-controls">
+        <button class="control-btn btn-min" onclick="minimizeWin('screenrec-window')">–</button>
+        <button class="control-btn btn-max" onclick="toggleMaximize('screenrec-window')">□</button>
+        <button class="control-btn btn-close" onclick="closeWin('screenrec-window')">✕</button>
+      </div>
+    </div>
+    <div class="body" style="padding:14px;">
+      <div id="srPreviewBox" style="background:#000;border-radius:12px;border:1.5px solid var(--sys-color);overflow:hidden;position:relative;min-height:280px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+        <video id="srPreviewVideo" autoplay muted playsinline style="width:100%;display:none;max-height:50vh;"></video>
+        <div id="srPlaceholder" style="text-align:center;color:#888;padding:40px;">
+          <div style="font-size:64px;margin-bottom:10px;">📊</div>
+          <div style="font-size:14px;">Bereit zur Bildschirm-Aufnahme</div>
+          <div style="font-size:11px;margin-top:8px;color:#88ccff;">Klick ▶️ Start – dann wähle was du aufnehmen willst</div>
+        </div>
+        <div id="srRecIndicator" style="display:none;position:absolute;top:10px;right:10px;background:#ff3344;color:#fff;padding:6px 12px;border-radius:20px;font-size:11px;font-weight:bold;animation:recPulse 1s infinite;">
+          ● REC <span id="srTimer">00:00</span>
+        </div>
+      </div>
+
+      <div class="toolbar" style="justify-content:center;">
+        <button id="srStartBtn" onclick="srStart()" style="background:var(--accent);color:#000;padding:12px 22px;">▶️ Start</button>
+        <button id="srPauseBtn" onclick="srPauseResume()" disabled style="background:#ffaa00;padding:12px 22px;">⏸️ Pause</button>
+        <button id="srStopBtn" onclick="srStop()" disabled style="background:#ff3344;padding:12px 22px;">⏹️ Stop</button>
+      </div>
+
+      <div class="section" style="margin-top:12px;">
+        <h4>⚙️ Optionen</h4>
+        <div class="row" style="padding:6px 0;">
+          <label style="font-size:12px;">🎙️ Mikrofon aufnehmen</label>
+          <input type="checkbox" id="srWithMic" style="width:auto;">
+        </div>
+        <div class="row" style="padding:6px 0;">
+          <label style="font-size:12px;">🔊 System-Audio aufnehmen</label>
+          <input type="checkbox" id="srWithSysAudio" style="width:auto;" checked>
+        </div>
+        <div class="row" style="padding:6px 0;">
+          <label style="font-size:12px;">📺 Qualität</label>
+          <select id="srQuality" style="width:130px;padding:6px;font-size:12px;">
+            <option value="1080p">1080p (Full HD)</option>
+            <option value="720p" selected>720p (HD)</option>
+            <option value="480p">480p (SD)</option>
+          </select>
+        </div>
+        <div class="row" style="padding:6px 0;">
+          <label style="font-size:12px;">🎬 FPS</label>
+          <select id="srFps" style="width:130px;padding:6px;font-size:12px;">
+            <option value="15">15 FPS</option>
+            <option value="30" selected>30 FPS</option>
+            <option value="60">60 FPS</option>
+          </select>
+        </div>
+      </div>
+
+      <h4 style="color:#88ccff;font-size:12px;margin:16px 0 8px 0;">📁 AUFNAHMEN (<span id="srCount">0</span>)</h4>
+      <div id="srRecordingsList"><p style="color:#888;text-align:center;font-size:12px;">Noch keine Aufnahmen.</p></div>
+    </div>
+  </div>`;
+
+  let srRecorder = null;
+  let srStream = null;
+  let srChunks = [];
+  let srIsRecording = false;
+  let srIsPaused = false;
+  let srStartTime = 0;
+  let srElapsed = 0;
+  let srTimerInt = null;
+  let srRecordings = JSON.parse(localStorage.getItem('haldo_screen_recs') || '[]');
+
+  function bindWinManual(win){
+    const header = win.querySelector('.header'); if(!header) return;
+    header.addEventListener('mousedown', (e)=>{
+      if(e.target.closest('.control-btn')) return;
+      if(win.classList.contains('maximized')) return;
+      e.preventDefault();
+      const cx = e.clientX, cy = e.clientY;
+      const r = win.getBoundingClientRect();
+      const ox = cx - r.left, oy = cy - r.top;
+      document.querySelectorAll('.os-window').forEach(x=>x.classList.remove('active'));
+      win.classList.add('active','dragging');
+      const mv = (ev)=>{ win.style.left = (ev.clientX - ox)+'px'; win.style.top = (ev.clientY - oy)+'px'; win.style.right='auto'; win.style.bottom='auto'; win.style.transform='none'; };
+      const up = ()=>{ document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); win.classList.remove('dragging'); };
+      document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
+    });
+    win.querySelectorAll('.resize-handle').forEach(h=>{
+      h.addEventListener('mousedown', (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        const dir = h.dataset.dir; const cx = e.clientX, cy = e.clientY;
+        const r = win.getBoundingClientRect();
+        const sW = r.width, sH = r.height, sL = r.left, sT = r.top;
+        win.classList.add('resizing');
+        const mv = (ev)=>{
+          const dx = ev.clientX - cx, dy = ev.clientY - cy;
+          if(dir.includes('e')) win.style.width = Math.max(320, sW+dx)+'px';
+          if(dir.includes('w')){ win.style.width = Math.max(320, sW-dx)+'px'; win.style.left = (sL+dx)+'px'; }
+          if(dir.includes('s')) win.style.height = Math.max(200, sH+dy)+'px';
+          if(dir.includes('n')){ win.style.height = Math.max(200, sH-dy)+'px'; win.style.top = (sT+dy)+'px'; }
+          win.style.transform = 'none';
+        };
+        const up = ()=>{ document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); win.classList.remove('resizing'); };
+        document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
+      });
+    });
+  }
+
+  function ensureScreenRec(){
+    if(document.getElementById('screenrec-window')) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = SCREEN_REC_HTML;
+    const node = wrap.firstElementChild;
+    document.body.appendChild(node);
+    ['n','s','e','w','ne','nw','se','sw'].forEach(dir=>{
+      const h = document.createElement('div');
+      h.className = 'resize-handle resize-'+dir;
+      h.dataset.dir = dir;
+      node.appendChild(h);
+    });
+    bindWinManual(node);
+    srRenderList();
+  }
+
+  window.srStart = async function(){
+    if(srIsRecording) return;
+    try{
+      const quality = document.getElementById('srQuality').value;
+      const fps = parseInt(document.getElementById('srFps').value);
+      const withMic = document.getElementById('srWithMic').checked;
+      const withSys = document.getElementById('srWithSysAudio').checked;
+      const heights = { '1080p': 1080, '720p': 720, '480p': 480 };
+      const h = heights[quality] || 720;
+      const constraints = {
+        video: {
+          frameRate: { ideal: fps },
+          height: { ideal: h }
+        },
+        audio: withSys || withMic
+      };
+      srStream = await navigator.mediaDevices.getDisplayMedia(constraints);
+      // Mikrofon hinzufügen falls gewünscht
+      if(withMic){
+        try{
+          const micStream = await navigator.mediaDevices.getUserMedia({audio:true});
+          micStream.getAudioTracks().forEach(t => srStream.addTrack(t));
+        }catch(e){ console.warn('Mikrofon verweigert'); }
+      }
+      // Vorschau
+      const v = document.getElementById('srPreviewVideo');
+      v.srcObject = srStream;
+      v.style.display = 'block';
+      document.getElementById('srPlaceholder').style.display = 'none';
+      // Recorder
+      srChunks = [];
+      let mime = 'video/webm;codecs=vp9,opus';
+      if(!MediaRecorder.isTypeSupported(mime)) mime = 'video/webm;codecs=vp8,opus';
+      if(!MediaRecorder.isTypeSupported(mime)) mime = 'video/webm';
+      srRecorder = new MediaRecorder(srStream, { mimeType: mime, videoBitsPerSecond: h * 1000000 / 100 });
+      srRecorder.ondataavailable = e => { if(e.data && e.data.size > 0) srChunks.push(e.data); };
+      srRecorder.onstop = srFinalize;
+      srRecorder.start(500);
+      srIsRecording = true;
+      srIsPaused = false;
+      srStartTime = Date.now();
+      srElapsed = 0;
+      document.getElementById('srStartBtn').disabled = true;
+      document.getElementById('srPauseBtn').disabled = false;
+      document.getElementById('srStopBtn').disabled = false;
+      document.getElementById('srRecIndicator').style.display = 'block';
+      srTimerInt = setInterval(srUpdateTimer, 1000);
+      // User stoppt Teilen → Aufnahme beenden
+      srStream.getVideoTracks()[0].addEventListener('ended', () => { if(srIsRecording) srStop(); });
+      if(typeof showToast === 'function') showToast('📊 Aufnahme läuft');
+      if(typeof playSound === 'function') playSound('success');
+    }catch(e){
+      console.warn(e);
+      if(typeof showToast === 'function') showToast('❌ Aufnahme abgebrochen oder verweigert', 'error');
+    }
+  };
+
+  function srUpdateTimer(){
+    if(!srIsRecording || srIsPaused) return;
+    srElapsed = Math.floor((Date.now() - srStartTime) / 1000);
+    const m = String(Math.floor(srElapsed / 60)).padStart(2, '0');
+    const s = String(srElapsed % 60).padStart(2, '0');
+    const el = document.getElementById('srTimer');
+    if(el) el.textContent = m + ':' + s;
+  }
+
+  window.srPauseResume = function(){
+    if(!srRecorder || !srIsRecording) return;
+    if(srIsPaused){
+      srRecorder.resume();
+      srStartTime = Date.now() - (srElapsed * 1000);
+      srIsPaused = false;
+      document.getElementById('srPauseBtn').textContent = '⏸️ Pause';
+      document.getElementById('srRecIndicator').style.background = '#ff3344';
+    } else {
+      srRecorder.pause();
+      srIsPaused = true;
+      document.getElementById('srPauseBtn').textContent = '▶️ Weiter';
+      document.getElementById('srRecIndicator').style.background = '#ffaa00';
+    }
+  };
+
+  window.srStop = function(){
+    if(!srRecorder || !srIsRecording) return;
+    if(srIsPaused){ try{ srRecorder.resume(); }catch(e){} }
+    try{ srRecorder.stop(); }catch(e){}
+    if(srStream){ srStream.getTracks().forEach(t => t.stop()); }
+    clearInterval(srTimerInt);
+    srIsRecording = false;
+    srIsPaused = false;
+    document.getElementById('srStartBtn').disabled = false;
+    document.getElementById('srPauseBtn').disabled = true;
+    document.getElementById('srStopBtn').disabled = true;
+    document.getElementById('srPauseBtn').textContent = '⏸️ Pause';
+    document.getElementById('srRecIndicator').style.display = 'none';
+    const v = document.getElementById('srPreviewVideo');
+    if(v) v.srcObject = null;
+    const ph = document.getElementById('srPlaceholder');
+    if(ph) ph.style.display = 'block';
+    if(typeof playSound === 'function') playSound('success');
+  };
+
+  function srFinalize(){
+    const blob = new Blob(srChunks, { type: 'video/webm' });
+    const sizeMB = (blob.size / (1024*1024)).toFixed(2);
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Nur kurze Aufnahmen speichern (localStorage hat nur ~5-10MB)
+      if(blob.size > 3 * 1024 * 1024){
+        // Zu groß → direkt als Download anbieten
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'haldo-screen-' + Date.now() + '.webm';
+        a.click();
+        if(typeof showToast === 'function') showToast('📥 Download gestartet (zu groß für Speicher)');
+        if(typeof addNotification === 'function') addNotification('Bildschirm-Aufnahme', 'Als Download gespeichert (' + sizeMB + ' MB)', 'success');
+      } else {
+        srRecordings.unshift({
+          id: 'sr_' + Date.now(),
+          name: 'Aufnahme ' + new Date().toLocaleString(),
+          size: blob.size,
+          duration: srElapsed,
+          data: reader.result,
+          date: new Date().toLocaleString()
+        });
+        if(srRecordings.length > 5) srRecordings = srRecordings.slice(0, 5);
+        localStorage.setItem('haldo_screen_recs', JSON.stringify(srRecordings));
+        srRenderList();
+        if(typeof showToast === 'function') showToast('💾 Aufnahme gespeichert');
+        if(typeof addNotification === 'function') addNotification('Bildschirm-Aufnahme', 'Gespeichert (' + sizeMB + ' MB)', 'success');
+      }
+    };
+    reader.readAsDataURL(blob);
+  }
+
+  function srRenderList(){
+    const el = document.getElementById('srRecordingsList');
+    if(!el) return;
+    const cnt = document.getElementById('srCount');
+    if(cnt) cnt.textContent = srRecordings.length;
+    if(!srRecordings.length){
+      el.innerHTML = '<p style="color:#888;text-align:center;font-size:12px;">Noch keine Aufnahmen.</p>';
+      return;
+    }
+    el.innerHTML = srRecordings.map((r, i) => {
+      const sizeMB = (r.size / (1024*1024)).toFixed(2);
+      const dur = String(Math.floor(r.duration / 60)).padStart(2, '0') + ':' + String(r.duration % 60).padStart(2, '0');
+      return `<div class="audio-clip">
+        <div class="ac-name"><span>🎬 ${r.name}</span><span>${dur} · ${sizeMB} MB</span></div>
+        <video src="${r.data}" controls style="width:100%;max-height:180px;border-radius:8px;margin-top:6px;background:#000;"></video>
+        <div class="ac-actions" style="margin-top:8px;">
+          <button onclick="srDownload(${i})" style="background:var(--accent);color:#000;padding:6px 12px;font-size:11px;">💾 Download</button>
+          <button onclick="srDelete(${i})" style="background:#ff3344;padding:6px 12px;font-size:11px;">🗑️</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  window.srDownload = function(i){
+    const r = srRecordings[i]; if(!r) return;
+    const a = document.createElement('a');
+    a.href = r.data;
+    a.download = 'haldo-screen-' + i + '.webm';
+    a.click();
+  };
+  window.srDelete = function(i){
+    if(!confirm('Aufnahme löschen?')) return;
+    srRecordings.splice(i, 1);
+    localStorage.setItem('haldo_screen_recs', JSON.stringify(srRecordings));
+    srRenderList();
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 2) ZITATE & SPRÜCHE
+  // ═══════════════════════════════════════════════════════
+  const QUOTES_DB = {
+    motiv: [
+      {t:'Der Weg ist das Ziel.', a:'Konfuzius'},
+      {t:'Erfolg ist die Summe kleiner Anstrengungen, die Tag für Tag wiederholt werden.', a:'Robert Collier'},
+      {t:'Wer will, findet Wege. Wer nicht will, findet Gründe.', a:'Unbekannt'},
+      {t:'Fange an, wo du bist. Nutze, was du hast. Tu, was du kannst.', a:'Arthur Ashe'},
+      {t:'Das größte Risiko ist, kein Risiko einzugehen.', a:'Mark Zuckerberg'},
+      {t:'Glaube an dich und alles ist möglich.', a:'Unbekannt'},
+      {t:'Jeder Tag ist eine neue Chance.', a:'Unbekannt'},
+      {t:'Wenn du aufhörst, besser zu werden, bist du nicht mehr gut.', a:'Oliver Kahn'}
+    ],
+    leben: [
+      {t:'Lebe jeden Tag, als wäre es dein letzter.', a:'Unbekannt'},
+      {t:'Das Leben ist wie ein Fahrrad. Um das Gleichgewicht zu halten, musst du in Bewegung bleiben.', a:'Albert Einstein'},
+      {t:'Man sieht nur mit dem Herzen gut. Das Wesentliche ist für die Augen unsichtbar.', a:'Antoine de Saint-Exupéry'},
+      {t:'Nicht die Jahre zählen, sondern das Leben in ihnen.', a:'Abraham Lincoln'},
+      {t:'Glück ist das Einzige, das sich verdoppelt, wenn man es teilt.', a:'Albert Schweitzer'},
+      {t:'Man muss das Leben tanzen, nicht darüber reden.', a:'Unbekannt'}
+    ],
+    weisheit: [
+      {t:'Der Klügere gibt nach.', a:'Sprichwort'},
+      {t:'Wissen ist Macht.', a:'Francis Bacon'},
+      {t:'Ich weiß, dass ich nichts weiß.', a:'Sokrates'},
+      {t:'Die Zeit heilt alle Wunden.', a:'Sprichwort'},
+      {t:'Wer nicht wagt, der nicht gewinnt.', a:'Sprichwort'},
+      {t:'Wo ein Wille ist, ist auch ein Weg.', a:'Sprichwort'}
+    ],
+    liebe: [
+      {t:'Liebe besteht nicht darin, dass man einander ansieht, sondern dass man gemeinsam in die gleiche Richtung blickt.', a:'Antoine de Saint-Exupéry'},
+      {t:'Liebe ist die einzige Kraft, die einen Feind in einen Freund verwandeln kann.', a:'Martin Luther King Jr.'},
+      {t:'Wo Liebe ist, ist auch Leben.', a:'Mahatma Gandhi'},
+      {t:'Das schönste Geschenk ist Liebe.', a:'Unbekannt'}
+    ],
+    freundschaft: [
+      {t:'Ein Freund ist jemand, der dich versteht, wenn alle anderen dich verlassen.', a:'Unbekannt'},
+      {t:'Echte Freunde sind wie Sterne – du siehst sie nicht immer, aber du weißt, sie sind immer da.', a:'Unbekannt'},
+      {t:'Freundschaft ist eine Seele in zwei Körpern.', a:'Aristoteles'},
+      {t:'Gute Freunde sind wie Bücher – man erkennt sie erst nach und nach.', a:'Unbekannt'}
+    ]
+  };
+
+  const QUOTES_HTML = `
+  <div id="quotes-window" class="os-window" style="top:8vh;left:50%;transform:translateX(-50%);width:580px;max-height:85vh;">
+    <div class="header">
+      <span class="header-title">💡 Zitate & Sprüche</span>
+      <div class="header-controls">
+        <button class="control-btn btn-min" onclick="minimizeWin('quotes-window')">–</button>
+        <button class="control-btn btn-max" onclick="toggleMaximize('quotes-window')">□</button>
+        <button class="control-btn btn-close" onclick="closeWin('quotes-window')">✕</button>
+      </div>
+    </div>
+    <div class="body" style="padding:14px;">
+      <div class="section">
+        <h4>📚 Kategorie</h4>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:8px;" id="qCategories"></div>
+      </div>
+
+      <div id="qDisplayBox" style="background:linear-gradient(135deg,rgba(0,60,120,.6),rgba(0,30,70,.8));border-radius:16px;padding:28px 24px;margin:14px 0;border:1.5px solid var(--sys-color);text-align:center;position:relative;min-height:180px;display:flex;flex-direction:column;justify-content:center;">
+        <div style="font-size:40px;color:var(--sys-color);line-height:1;margin-bottom:8px;">❝</div>
+        <div id="qText" style="font-size:17px;line-height:1.5;font-style:italic;margin-bottom:16px;">—</div>
+        <div id="qAuthor" style="font-size:13px;color:#88ccff;">—</div>
+      </div>
+
+      <div class="toolbar" style="justify-content:center;">
+        <button onclick="qNext()" class="btn-sm" style="background:var(--accent);color:#000;padding:10px 20px;">🎲 Neues Zitat</button>
+        <button onclick="qSpeak()" class="btn-sm" style="padding:10px 16px;">🔊</button>
+        <button onclick="qCopy()" class="btn-sm" style="padding:10px 16px;">📋</button>
+        <button onclick="qSaveToNotes()" class="btn-sm" style="padding:10px 16px;">📒</button>
+      </div>
+
+      <div class="toolbar" style="margin-top:10px;">
+        <button onclick="qShareSticky()" class="btn-sm" style="background:#ffcc00;color:#000;flex:1;">📌 Als Sticky-Notiz</button>
+        <button onclick="qShareMessenger()" class="btn-sm" style="flex:1;">📨 In Messenger</button>
+      </div>
+
+      <div class="section" style="margin-top:14px;">
+        <h4>❤️ Zitate des Tages</h4>
+        <div id="qDailyQuote" style="font-size:13px;color:#88ccff;margin-top:6px;">—</div>
+      </div>
+
+      <div class="section">
+        <h4>📚 Favoriten</h4>
+        <div id="qFavsList" style="font-size:12px;margin-top:6px;">—</div>
+      </div>
+    </div>
+  </div>`;
+
+  let qCurrentCategory = 'alle';
+  let qCurrent = null;
+  let qFavs = JSON.parse(localStorage.getItem('haldo_quote_favs') || '[]');
+
+  function ensureQuotes(){
+    if(document.getElementById('quotes-window')) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = QUOTES_HTML;
+    const node = wrap.firstElementChild;
+    document.body.appendChild(node);
+    ['n','s','e','w','ne','nw','se','sw'].forEach(dir=>{
+      const h = document.createElement('div');
+      h.className = 'resize-handle resize-'+dir;
+      h.dataset.dir = dir;
+      node.appendChild(h);
+    });
+    bindWinManual(node);
+    qRenderCategories();
+    qRenderDaily();
+    qRenderFavs();
+    qNext();
+  }
+
+  function qRenderCategories(){
+    const el = document.getElementById('qCategories');
+    if(!el) return;
+    const cats = [{id:'alle', name:'🎯 Alle'}, {id:'motiv', name:'💪 Motivation'}, {id:'leben', name:'🌱 Leben'}, {id:'weisheit', name:'🎓 Weisheit'}, {id:'liebe', name:'❤️ Liebe'}, {id:'freundschaft', name:'👥 Freundschaft'}];
+    el.innerHTML = cats.map(c => {
+      const active = qCurrentCategory === c.id;
+      return `<div onclick="qSetCat('${c.id}')" style="padding:10px 6px;text-align:center;cursor:pointer;background:${active ? 'var(--sys-color)' : 'rgba(0,0,0,.4)'};color:${active ? '#000' : '#fff'};border:1.5px solid var(--sys-color);border-radius:10px;font-size:11px;font-weight:bold;transition:all .15s;">${c.name}</div>`;
+    }).join('');
+  }
+
+  window.qSetCat = function(cat){
+    qCurrentCategory = cat;
+    qRenderCategories();
+    qNext();
+  };
+
+  function qGetRandom(){
+    let pool = [];
+    if(qCurrentCategory === 'alle'){
+      Object.values(QUOTES_DB).forEach(arr => pool.push(...arr));
+    } else {
+      pool = QUOTES_DB[qCurrentCategory] || [];
+    }
+    if(!pool.length) return {t:'Keine Zitate.', a:'—'};
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  window.qNext = function(){
+    qCurrent = qGetRandom();
+    const tEl = document.getElementById('qText');
+    const aEl = document.getElementById('qAuthor');
+    if(tEl) tEl.textContent = qCurrent.t;
+    if(aEl) aEl.textContent = '— ' + qCurrent.a;
+    if(typeof playSound === 'function') playSound('click');
+  };
+
+  window.qSpeak = function(){
+    if(qCurrent && typeof speak === 'function') speak(qCurrent.t + '. Von ' + qCurrent.a);
+  };
+  window.qCopy = function(){
+    if(!qCurrent) return;
+    navigator.clipboard.writeText('"' + qCurrent.t + '" — ' + qCurrent.a).then(() => {
+      if(typeof showToast === 'function') showToast('📋 Zitat kopiert');
+    });
+  };
+  window.qSaveToNotes = function(){
+    if(!qCurrent) return;
+    const notes = JSON.parse(localStorage.getItem('haldo_notes_plus') || '[]');
+    notes.unshift({
+      id: 'n_' + Date.now(),
+      title: '💡 Zitat von ' + qCurrent.a,
+      content: qCurrent.t,
+      tags: ['zitat'],
+      category: 'Ideen',
+      favorite: false,
+      created: new Date().toLocaleString(),
+      updated: new Date().toLocaleString()
+    });
+    localStorage.setItem('haldo_notes_plus', JSON.stringify(notes));
+    if(typeof showToast === 'function') showToast('📒 In Notizen gespeichert');
+  };
+  window.qShareSticky = function(){
+    if(!qCurrent) return;
+    if(typeof addStickyNote === 'function'){
+      addStickyNote();
+      setTimeout(() => {
+        const notes = JSON.parse(localStorage.getItem('haldo_sticky_notes') || '[]');
+        if(notes.length){
+          notes[notes.length - 1].text = '"' + qCurrent.t + '"\n\n— ' + qCurrent.a;
+          localStorage.setItem('haldo_sticky_notes', JSON.stringify(notes));
+          location.reload();
+        }
+      }, 200);
+    }
+  };
+  window.qShareMessenger = function(){
+    if(!qCurrent) return;
+    if(typeof openWin === 'function') openWin('messenger-window');
+    setTimeout(() => {
+      const inp = document.getElementById('messengerInput');
+      if(inp) inp.value = '"' + qCurrent.t + '" — ' + qCurrent.a;
+    }, 300);
+  };
+
+  function qRenderDaily(){
+    const el = document.getElementById('qDailyQuote');
+    if(!el) return;
+    const today = new Date().toLocaleDateString();
+    let dailyIdx = localStorage.getItem('haldo_quote_daily_date');
+    let daily = JSON.parse(localStorage.getItem('haldo_quote_daily_data') || 'null');
+    if(dailyIdx !== today || !daily){
+      const all = [];
+      Object.values(QUOTES_DB).forEach(arr => all.push(...arr));
+      daily = all[Math.floor(Math.random() * all.length)];
+      localStorage.setItem('haldo_quote_daily_date', today);
+      localStorage.setItem('haldo_quote_daily_data', JSON.stringify(daily));
+    }
+    el.innerHTML = `<div style="padding:10px;background:rgba(0,0,0,.4);border-radius:10px;border-left:3px solid var(--sys-color);">
+      <div style="font-style:italic;color:#fff;margin-bottom:6px;">"${daily.t}"</div>
+      <div style="text-align:right;font-size:11px;">— ${daily.a}</div>
+    </div>`;
+  }
+
+  function qRenderFavs(){
+    const el = document.getElementById('qFavsList');
+    if(!el) return;
+    if(!qFavs.length){
+      el.innerHTML = '<p style="color:#666;text-align:center;">Klick ❤️ um Zitate zu speichern.</p>';
+      return;
+    }
+    el.innerHTML = qFavs.slice(0, 5).map((f, i) => `
+      <div style="padding:6px 8px;background:rgba(0,0,0,.3);border-radius:6px;margin-bottom:4px;">
+        <div style="font-style:italic;">"${f.t.substring(0, 50)}${f.t.length > 50 ? '...' : ''}"</div>
+        <div style="font-size:10px;color:#88ccff;text-align:right;">— ${f.a}</div>
+      </div>
+    `).join('');
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // 3) MINI-KARTE
+  // ═══════════════════════════════════════════════════════
+  const MAP_HTML = `
+  <div id="map-window" class="os-window" style="top:6vh;left:50%;transform:translateX(-50%);width:800px;height:88vh;">
+    <div class="header">
+      <span class="header-title">🗺️ Mini-Karte</span>
+      <div class="header-controls">
+        <button class="control-btn btn-min" onclick="minimizeWin('map-window')">–</button>
+        <button class="control-btn btn-max" onclick="toggleMaximize('map-window')">□</button>
+        <button class="control-btn btn-close" onclick="closeWin('map-window')">✕</button>
+      </div>
+    </div>
+    <div class="body" style="padding:10px;display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;gap:6px;">
+        <input id="mapSearchInput" placeholder="🔍 Ort suchen (z.B. Berlin, Erbil, Istanbul...)" onkeydown="if(event.key==='Enter') mapSearch()" style="flex:1;margin:0;">
+        <button onclick="mapSearch()" style="margin:0;background:var(--accent);color:#000;padding:10px 18px;">🔍</button>
+        <button onclick="mapMyLocation()" style="margin:0;padding:10px 14px;" title="Mein Standort">📍</button>
+      </div>
+
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button onclick="mapSetZoom(3)" class="btn-sm">🌍 Welt</button>
+        <button onclick="mapSetZoom(6)" class="btn-sm">🇩🇪 Land</button>
+        <button onclick="mapSetZoom(10)" class="btn-sm">🏙️ Stadt</button>
+        <button onclick="mapSetZoom(14)" class="btn-sm">🏘️ Straße</button>
+        <button onclick="mapSetZoom(17)" class="btn-sm">🏢 Detail</button>
+      </div>
+
+      <div id="mapFrame" style="flex:1;border-radius:12px;overflow:hidden;border:1.5px solid var(--sys-color);position:relative;background:#000;min-height:400px;">
+        <iframe id="mapIframe" style="width:100%;height:100%;border:none;" src="https://www.openstreetmap.org/export/embed.html?bbox=13.30,52.44,13.50,52.56&layer=mapnik&marker=52.5,13.4" loading="lazy"></iframe>
+      </div>
+
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button onclick="mapOpenOSM()" class="btn-sm" style="flex:1;background:var(--accent);color:#000;">🌐 In OpenStreetMap öffnen</button>
+        <button onclick="mapSaveLocation()" class="btn-sm" style="flex:1;">⭐ Als Favorit</button>
+      </div>
+
+      <h4 style="color:#88ccff;font-size:12px;margin:6px 0 4px 0;">⭐ FAVORITEN (<span id="mapFavCount">0</span>)</h4>
+      <div id="mapFavList" style="max-height:120px;overflow-y:auto;font-size:12px;"></div>
+    </div>
+  </div>`;
+
+  let mapCurrentLat = 52.5, mapCurrentLon = 13.4, mapCurrentZoom = 12;
+  let mapFavs = JSON.parse(localStorage.getItem('haldo_map_favs') || '[]');
+  let mapCurrentName = 'Berlin';
+
+  function ensureMap(){
+    if(document.getElementById('map-window')) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = MAP_HTML;
+    const node = wrap.firstElementChild;
+    document.body.appendChild(node);
+    ['n','s','e','w','ne','nw','se','sw'].forEach(dir=>{
+      const h = document.createElement('div');
+      h.className = 'resize-handle resize-'+dir;
+      h.dataset.dir = dir;
+      node.appendChild(h);
+    });
+    bindWinManual(node);
+    mapRenderFavs();
+  }
+
+  function mapUpdateIframe(){
+    // bbox basierend auf lat/lon und zoom
+    const offsets = { 3: 30, 6: 10, 10: 2, 14: 0.3, 17: 0.08 };
+    const off = offsets[mapCurrentZoom] || 2;
+    const lonOff = off * 1.5;
+    const bbox = (mapCurrentLon - lonOff) + ',' + (mapCurrentLat - off) + ',' + (mapCurrentLon + lonOff) + ',' + (mapCurrentLat + off);
+    const iframe = document.getElementById('mapIframe');
+    if(iframe){
+      iframe.src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${mapCurrentLat},${mapCurrentLon}`;
+    }
+  }
+
+  window.mapSearch = async function(){
+    const q = document.getElementById('mapSearchInput').value.trim();
+    if(!q) return;
+    if(typeof showToast === 'function') showToast('🔍 Suche ' + q + '...');
+    try{
+      const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q) + '&limit=1');
+      const data = await res.json();
+      if(!data || !data.length){ if(typeof showToast === 'function') showToast('❌ Nicht gefunden', 'error'); return; }
+      const place = data[0];
+      mapCurrentLat = parseFloat(place.lat);
+      mapCurrentLon = parseFloat(place.lon);
+      mapCurrentZoom = 12;
+      mapCurrentName = place.display_name;
+      mapUpdateIframe();
+      if(typeof showToast === 'function') showToast('📍 ' + place.display_name.split(',')[0]);
+    }catch(e){
+      if(typeof showToast === 'function') showToast('❌ Suchfehler', 'error');
+    }
+  };
+
+  window.mapMyLocation = function(){
+    if(!navigator.geolocation){ if(typeof showToast === 'function') showToast('❌ Nicht verfügbar', 'error'); return; }
+    if(typeof showToast === 'function') showToast('📍 Suche Standort...');
+    navigator.geolocation.getCurrentPosition((pos) => {
+      mapCurrentLat = pos.coords.latitude;
+      mapCurrentLon = pos.coords.longitude;
+      mapCurrentZoom = 15;
+      mapCurrentName = '📍 Mein Standort';
+      mapUpdateIframe();
+      if(typeof showToast === 'function') showToast('📍 Standort gefunden');
+    }, () => { if(typeof showToast === 'function') showToast('❌ Standort verweigert', 'error'); });
+  };
+
+  window.mapSetZoom = function(z){
+    mapCurrentZoom = z;
+    mapUpdateIframe();
+  };
+
+  window.mapOpenOSM = function(){
+    window.open(`https://www.openstreetmap.org/?mlat=${mapCurrentLat}&mlon=${mapCurrentLon}#map=${mapCurrentZoom}/${mapCurrentLat}/${mapCurrentLon}`, '_blank');
+  };
+
+  window.mapSaveLocation = function(){
+    const name = prompt('Name für Favorit:', mapCurrentName.split(',')[0]);
+    if(!name) return;
+    mapFavs.push({name, lat: mapCurrentLat, lon: mapCurrentLon, zoom: mapCurrentZoom, date: new Date().toLocaleString()});
+    localStorage.setItem('haldo_map_favs', JSON.stringify(mapFavs));
+    mapRenderFavs();
+    if(typeof showToast === 'function') showToast('⭐ Favorit gespeichert');
+  };
+
+  function mapRenderFavs(){
+    const el = document.getElementById('mapFavList');
+    const cnt = document.getElementById('mapFavCount');
+    if(cnt) cnt.textContent = mapFavs.length;
+    if(!el) return;
+    if(!mapFavs.length){
+      el.innerHTML = '<p style="color:#666;text-align:center;padding:10px;">Noch keine Favoriten.</p>';
+      return;
+    }
+    el.innerHTML = mapFavs.map((f, i) => `
+      <div style="padding:6px 8px;background:rgba(0,0,0,.3);border-radius:6px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+        <div onclick="mapGoFav(${i})" style="flex:1;cursor:pointer;">⭐ <b>${f.name}</b><br><small style="color:#88ccff;font-size:10px;">${f.lat.toFixed(4)}, ${f.lon.toFixed(4)}</small></div>
+        <button onclick="mapDelFav(${i})" style="background:#ff3344;padding:4px 8px;font-size:11px;margin:0;">🗑️</button>
+      </div>
+    `).join('');
+  }
+
+  window.mapGoFav = function(i){
+    const f = mapFavs[i]; if(!f) return;
+    mapCurrentLat = f.lat;
+    mapCurrentLon = f.lon;
+    mapCurrentZoom = f.zoom || 12;
+    mapCurrentName = f.name;
+    mapUpdateIframe();
+  };
+  window.mapDelFav = function(i){
+    mapFavs.splice(i, 1);
+    localStorage.setItem('haldo_map_favs', JSON.stringify(mapFavs));
+    mapRenderFavs();
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 4) BUTTONS EINFÜGEN
+  // ═══════════════════════════════════════════════════════
+  function addButtons(){
+    const tray = document.getElementById('launcherTray');
+    if(tray){
+      const optsBtn = tray.querySelector('button[onclick*="showPanelLauncherMenu"]');
+      if(!document.getElementById('launcherQuotes')){
+        const b = document.createElement('button');
+        b.className = 'launcher-btn';
+        b.id = 'launcherQuotes';
+        b.title = 'Zitat des Tages';
+        b.textContent = '💡';
+        b.onclick = () => { ensureQuotes(); if(typeof openWin === 'function') openWin('quotes-window'); };
+        if(optsBtn) tray.insertBefore(b, optsBtn); else tray.appendChild(b);
+      }
+      if(!document.getElementById('launcherMap')){
+        const b = document.createElement('button');
+        b.className = 'launcher-btn';
+        b.id = 'launcherMap';
+        b.title = 'Mini-Karte';
+        b.textContent = '🗺️';
+        b.onclick = () => { ensureMap(); if(typeof openWin === 'function') openWin('map-window'); };
+        if(optsBtn) tray.insertBefore(b, optsBtn); else tray.appendChild(b);
+      }
+    }
+    const sysBody = document.querySelector('#sysMenu .menu-panel-body');
+    if(sysBody){
+      const closeItem = Array.from(sysBody.querySelectorAll('.sys-menu-item')).find(el => el.textContent.includes('Alle Fenster'));
+      if(!document.getElementById('sysScreenRec')){
+        const item = document.createElement('div');
+        item.className = 'sys-menu-item';
+        item.id = 'sysScreenRec';
+        item.innerHTML = '<span class="sys-icon">📊</span>Bildschirm-Aufnahme';
+        item.onclick = () => { ensureScreenRec(); if(typeof openWin === 'function') openWin('screenrec-window'); };
+        if(closeItem) sysBody.insertBefore(item, closeItem); else sysBody.appendChild(item);
+      }
+      if(!document.getElementById('sysQuotes')){
+        const item = document.createElement('div');
+        item.className = 'sys-menu-item';
+        item.id = 'sysQuotes';
+        item.innerHTML = '<span class="sys-icon">💡</span>Zitate & Sprüche';
+        item.onclick = () => { ensureQuotes(); if(typeof openWin === 'function') openWin('quotes-window'); };
+        if(closeItem) sysBody.insertBefore(item, closeItem); else sysBody.appendChild(item);
+      }
+      if(!document.getElementById('sysMap')){
+        const item = document.createElement('div');
+        item.className = 'sys-menu-item';
+        item.id = 'sysMap';
+        item.innerHTML = '<span class="sys-icon">🗺️</span>Mini-Karte';
+        item.onclick = () => { ensureMap(); if(typeof openWin === 'function') openWin('map-window'); };
+        if(closeItem) sysBody.insertBefore(item, closeItem); else sysBody.appendChild(item);
+      }
+    }
+    const dock = document.querySelector('#actDock .menu-panel-body');
+    if(dock){
+      if(!document.getElementById('dockScreenRecBtn')){
+        const b = document.createElement('button');
+        b.className = 'dock-btn';
+        b.id = 'dockScreenRecBtn';
+        b.title = 'Bildschirm-Aufnahme';
+        b.textContent = '📊';
+        b.onclick = () => { ensureScreenRec(); if(typeof openWin === 'function') openWin('screenrec-window'); };
+        dock.appendChild(b);
+      }
+      if(!document.getElementById('dockMapBtn')){
+        const b = document.createElement('button');
+        b.className = 'dock-btn';
+        b.id = 'dockMapBtn';
+        b.title = 'Karte';
+        b.textContent = '🗺️';
+        b.onclick = () => { ensureMap(); if(typeof openWin === 'function') openWin('map-window'); };
+        dock.appendChild(b);
+      }
+    }
+    // App-Einträge
+    if(typeof APPS !== 'undefined' && Array.isArray(APPS)){
+      if(!APPS.find(a => a.w === 'screenrec-window')) APPS.push({n:'Bildschirm-Aufnahme', e:'📊', w:'screenrec-window', d:'Screen Recording', cat:'Kreativ'});
+      if(!APPS.find(a => a.w === 'quotes-window')) APPS.push({n:'Zitate & Sprüche', e:'💡', w:'quotes-window', d:'Motivation', cat:'Sonstiges'});
+      if(!APPS.find(a => a.w === 'map-window')) APPS.push({n:'Mini-Karte', e:'🗺️', w:'map-window', d:'OpenStreetMap', cat:'Sonstiges'});
+      if(typeof renderAppMenu === 'function') renderAppMenu();
+    }
+  }
+
+  // openWin patchen
+  const origOpenWin = window.openWin;
+  window.openWin = function(id){
+    if(id === 'screenrec-window') ensureScreenRec();
+    if(id === 'quotes-window') ensureQuotes();
+    if(id === 'map-window') ensureMap();
+    if(typeof origOpenWin === 'function') origOpenWin(id);
+    if(id === 'map-window') setTimeout(mapUpdateIframe, 100);
+  };
+
+  // Notification mit Zitat des Tages
+  setTimeout(() => {
+    const today = new Date().toLocaleDateString();
+    const lastSent = localStorage.getItem('haldo_quote_notif_sent');
+    if(lastSent === today) return;
+    const daily = JSON.parse(localStorage.getItem('haldo_quote_daily_data') || 'null');
+    if(daily && typeof addNotification === 'function'){
+      addNotification('💡 Zitat des Tages', '"' + daily.t.substring(0, 60) + (daily.t.length > 60 ? '...' : '') + '" — ' + daily.a, 'info');
+      localStorage.setItem('haldo_quote_notif_sent', today);
+    }
+  }, 8000);
+
+  // ═══════════════════════════════════════════════════════
+  // 5) KEYBOARD
+  // ═══════════════════════════════════════════════════════
+  document.addEventListener('keydown', (e) => {
+    if(e.ctrlKey && e.shiftKey && (e.key === 'M' || e.key === 'm')){
+      e.preventDefault();
+      ensureMap();
+      if(typeof openWin === 'function') openWin('map-window');
+    }
+    if(e.ctrlKey && e.shiftKey && (e.key === 'Q' || e.key === 'q')){
+      e.preventDefault();
+      ensureQuotes();
+      if(typeof openWin === 'function') openWin('quotes-window');
+    }
+    if(e.ctrlKey && e.shiftKey && (e.key === 'E' || e.key === 'e')){
+      e.preventDefault();
+      ensureScreenRec();
+      if(typeof openWin === 'function') openWin('screenrec-window');
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // 6) INIT
+  // ═══════════════════════════════════════════════════════
+  setTimeout(() => {
+    try{
+      addButtons();
+      console.log('%c📊 v46 geladen: Screen-Recording + Zitate + Mini-Karte','color:#ff60c0;font-weight:bold;font-size:12px;');
+    }catch(err){
+      console.error('v46 Init-Fehler:', err);
+    }
+  }, 800);
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════ ENDE v46 ANHANG ══════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ --> 
 </body>
 </html>
