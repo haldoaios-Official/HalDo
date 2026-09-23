@@ -14784,5 +14784,981 @@ body.auto-night-active::after {
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ═════════════════════ ENDE v58 HABITS ═══════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════ v59 – TASKS (AUFGABEN) – HOLO ════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#tasksWindow {
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(0,229,255,.10) 0%, transparent 60%),
+    radial-gradient(circle at 15% 85%, rgba(0,150,255,.06) 0%, transparent 50%),
+    linear-gradient(180deg, rgba(0,10,30,.99), rgba(0,5,15,.99));
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  z-index: 8410; display: none; flex-direction: column;
+  color: #e6f4ff; font-family: inherit;
+  animation: tkFadeIn .25s;
+}
+#tasksWindow.show { display: flex; }
+@keyframes tkFadeIn { from {opacity:0;transform:scale(.98);} to {opacity:1;transform:scale(1);} }
+
+#tasksWindow::before {
+  content:''; position:absolute; top:-120px; right:-120px;
+  width: 380px; height: 380px; border-radius:50%; pointer-events:none;
+  background: radial-gradient(circle, rgba(0,229,255,.10), transparent 65%);
+  animation: tkOrbit 22s linear infinite;
+}
+@keyframes tkOrbit { to { transform: rotate(360deg); } }
+
+.tk-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid rgba(0,229,255,.2);
+  background: rgba(0,20,50,.55); flex-shrink: 0; position: relative; z-index: 2;
+}
+.tk-title { display: flex; align-items: center; gap: 12px; }
+.tk-title .tk-icon {
+  font-size: 26px; filter: drop-shadow(0 0 14px #00e5ff);
+  animation: tkPulse 2.6s ease-in-out infinite;
+}
+@keyframes tkPulse { 50% { filter: drop-shadow(0 0 26px #00e5ff); transform: scale(1.06); } }
+.tk-title h2 { font-size: 18px; margin: 0; font-weight: 700; color: #fff; letter-spacing: .5px; }
+.tk-title small { display: block; font-size: 10px; color: #7ce0ff; margin-top: 2px; letter-spacing: 1.5px; text-transform: uppercase; }
+.tk-actions { display: flex; gap: 8px; }
+.tk-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 14px; border-radius: 10px;
+  background: rgba(0,229,255,.12); border: 1px solid rgba(0,229,255,.4);
+  color: #e6f4ff; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all .15s; -webkit-tap-highlight-color: transparent;
+}
+.tk-btn:hover { background: rgba(0,229,255,.25); transform: translateY(-1px); box-shadow: 0 0 18px rgba(0,229,255,.3); }
+.tk-btn.primary { background: linear-gradient(135deg,#00e5ff,#4da8ff); color: #001018; border-color: #fff; }
+.tk-btn.primary:hover { filter: brightness(1.15); box-shadow: 0 0 24px rgba(0,229,255,.6); }
+.tk-btn.danger { background: rgba(255,60,60,.15); border-color: rgba(255,60,60,.4); color: #ff8080; }
+.tk-btn.icon-only { padding: 10px; font-size: 16px; }
+
+.tk-stats {
+  display: flex; gap: 10px; padding: 14px 20px; overflow-x: auto;
+  border-bottom: 1px solid rgba(0,229,255,.1); flex-shrink: 0;
+  position: relative; z-index: 2;
+}
+.tk-stat {
+  flex-shrink: 0; padding: 10px 16px; border-radius: 12px;
+  background: linear-gradient(160deg, rgba(0,60,120,.5), rgba(0,20,50,.7));
+  border: 1px solid rgba(0,229,255,.25);
+  text-align: center; min-width: 88px;
+  box-shadow: inset 0 0 20px rgba(0,229,255,.08);
+}
+.tk-stat .ts-num { font-size: 20px; font-weight: 800; color: #00e5ff; text-shadow: 0 0 12px rgba(0,229,255,.6); }
+.tk-stat .ts-lbl { font-size: 9px; color: #88ccff; text-transform: uppercase; letter-spacing: 1.2px; margin-top: 3px; }
+.tk-stat.warn .ts-num { color: #ff6688; }
+.tk-stat.good .ts-num { color: #00ff88; }
+
+.tk-filters {
+  display: flex; gap: 6px; padding: 12px 20px; overflow-x: auto;
+  border-bottom: 1px solid rgba(0,229,255,.1); flex-shrink: 0;
+  position: relative; z-index: 2;
+}
+.tk-chip {
+  flex-shrink: 0; padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: 700;
+  background: rgba(0,40,90,.5); border: 1.5px solid rgba(0,229,255,.25);
+  color: #aaddff; cursor: pointer; transition: all .15s;
+  -webkit-tap-highlight-color: transparent; white-space: nowrap;
+}
+.tk-chip:hover { background: rgba(0,229,255,.15); }
+.tk-chip.active { background: #00e5ff; color: #001018; border-color: #fff; }
+.tk-chip.warn.active { background: #ff6688; border-color: #fff; }
+
+.tk-toolbar {
+  padding: 12px 20px; display: flex; gap: 10px;
+  flex-shrink: 0; border-bottom: 1px solid rgba(0,229,255,.08);
+  position: relative; z-index: 2;
+}
+.tk-search {
+  flex: 1; display: flex; align-items: center; gap: 8px;
+  background: rgba(0,20,50,.7); border: 1px solid rgba(0,229,255,.3);
+  border-radius: 12px; padding: 10px 14px;
+}
+.tk-search input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: #fff; font-size: 14px; font-family: inherit;
+}
+.tk-search input::placeholder { color: #5a8ab0; }
+
+.tk-body { flex: 1; overflow-y: auto; padding: 16px 20px 100px; position: relative; z-index: 2; }
+.tk-list {
+  display: flex; flex-direction: column; gap: 10px;
+  max-width: 900px; margin: 0 auto;
+}
+
+.tk-task {
+  background: linear-gradient(160deg, rgba(0,50,100,.5), rgba(0,15,40,.85));
+  border: 1.5px solid rgba(0,229,255,.18);
+  border-radius: 14px; padding: 14px; cursor: pointer;
+  transition: all .18s; position: relative; overflow: hidden;
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.tk-task:hover {
+  transform: translateY(-2px);
+  border-color: #00e5ff;
+  box-shadow: 0 8px 30px rgba(0,0,0,.5), 0 0 26px rgba(0,229,255,.25);
+}
+.tk-task.prio-high { border-left: 4px solid #ff4466; }
+.tk-task.prio-mid  { border-left: 4px solid #ffaa00; }
+.tk-task.prio-low  { border-left: 4px solid #00e5ff; }
+.tk-task.done { opacity: .55; }
+.tk-task.done .tk-task-title { text-decoration: line-through; color: #88ccff; }
+.tk-task.overdue { border-color: rgba(255,80,80,.5); background: linear-gradient(160deg, rgba(80,15,30,.55), rgba(30,5,15,.85)); }
+
+.tk-check {
+  flex-shrink: 0; width: 26px; height: 26px; margin-top: 2px;
+  border-radius: 8px; border: 2px solid rgba(0,229,255,.5);
+  background: rgba(0,0,0,.3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: transparent; font-size: 15px; font-weight: 800;
+  transition: all .18s; -webkit-tap-highlight-color: transparent;
+}
+.tk-check:hover { border-color: #00e5ff; background: rgba(0,229,255,.15); }
+.tk-task.done .tk-check {
+  background: linear-gradient(135deg,#00ff88,#00e5ff);
+  border-color: #00ff88; color: #001018;
+  box-shadow: 0 0 18px rgba(0,255,136,.6);
+}
+
+.tk-task-main { flex: 1; min-width: 0; }
+.tk-task-title {
+  font-size: 15px; font-weight: 700; color: #fff; margin: 0 0 4px 0;
+  line-height: 1.3; word-break: break-word;
+}
+.tk-task-desc {
+  font-size: 12px; color: #aaddff; line-height: 1.5; margin: 0 0 8px 0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.tk-task-badges {
+  display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px;
+}
+.tk-badge {
+  font-size: 10px; padding: 3px 8px; border-radius: 8px;
+  background: rgba(0,229,255,.15); color: #7ce0ff; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .5px;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.tk-badge.cat { background: rgba(0,150,255,.15); color: #88ccff; }
+.tk-badge.due { background: rgba(136,204,255,.15); color: #aaddff; }
+.tk-badge.due.today { background: rgba(0,255,200,.2); color: #00ffcc; }
+.tk-badge.due.overdue { background: rgba(255,68,102,.2); color: #ff8899; }
+.tk-badge.goal { background: rgba(180,120,255,.15); color: #c4a8ff; }
+
+.tk-subprogress {
+  display: flex; align-items: center; gap: 8px; margin-top: 8px;
+  font-size: 11px; color: #88ccff;
+}
+.tk-subprogress-bar {
+  flex: 1; height: 4px; background: rgba(0,0,0,.5); border-radius: 2px;
+  overflow: hidden; border: 1px solid rgba(0,229,255,.15);
+}
+.tk-subprogress-fill {
+  height: 100%; background: linear-gradient(90deg,#00e5ff,#4da8ff);
+  transition: width .4s;
+}
+
+.tk-empty {
+  text-align: center; padding: 60px 20px; color: #5a8ab0;
+}
+.tk-empty .te-icon {
+  font-size: 72px; opacity: .5; margin-bottom: 16px;
+  filter: drop-shadow(0 0 30px #00e5ff);
+}
+.tk-empty .te-text { font-size: 16px; margin-bottom: 8px; color: #88ccff; }
+.tk-empty .te-sub { font-size: 12px; }
+
+/* ═══ Modal ═══ */
+.tk-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,.88);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  z-index: 8700; display: none; align-items: center; justify-content: center;
+  padding: 20px; animation: tkFadeIn .2s;
+}
+.tk-modal.show { display: flex; }
+.tk-modal-box {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0,229,255,.15), transparent 60%),
+    linear-gradient(180deg, rgba(0,25,60,.98), rgba(0,10,30,.99));
+  border: 2px solid #00e5ff; border-radius: 20px;
+  padding: 24px; max-width: 580px; width: 100%; max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.8), 0 0 60px rgba(0,229,255,.3);
+  animation: tkPop .3s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes tkPop { from {transform:scale(.9);opacity:0;} to {transform:scale(1);opacity:1;} }
+.tk-modal-box h3 { margin: 0 0 18px 0; font-size: 20px; color: #fff; }
+.tk-form-row { margin-bottom: 14px; }
+.tk-form-row label {
+  display: block; font-size: 11px; color: #7ce0ff; font-weight: 700;
+  margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1.2px;
+}
+.tk-form-row input, .tk-form-row textarea, .tk-form-row select {
+  width: 100%; padding: 12px 14px; border-radius: 10px;
+  background: rgba(0,0,0,.45); border: 1.5px solid rgba(0,229,255,.3);
+  color: #fff; font-size: 14px; font-family: inherit; outline: none;
+  transition: border-color .15s; box-sizing: border-box;
+}
+.tk-form-row input:focus, .tk-form-row textarea:focus, .tk-form-row select:focus {
+  border-color: #00e5ff; box-shadow: 0 0 20px rgba(0,229,255,.3);
+}
+.tk-form-row textarea { min-height: 80px; resize: vertical; font-family: inherit; }
+.tk-form-row select option { background: #001018; }
+.tk-form-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.tk-subs-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.tk-sub-row {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+  background: rgba(0,0,0,.35); border-radius: 10px;
+  border: 1px solid rgba(0,229,255,.2);
+}
+.tk-sub-row input[type=checkbox] {
+  width: 18px; height: 18px; accent-color: #00e5ff; cursor: pointer;
+}
+.tk-sub-row input[type=text] {
+  flex: 1; padding: 6px 10px; background: transparent; border: none;
+  color: #fff; font-size: 13px; outline: none;
+}
+.tk-sub-row .tk-sub-del {
+  background: transparent; border: none; color: #ff8080; cursor: pointer;
+  font-size: 16px; padding: 4px 8px;
+}
+.tk-sub-add {
+  padding: 8px 14px; border-radius: 10px; font-size: 12px; font-weight: 600;
+  background: rgba(0,229,255,.12); border: 1px dashed rgba(0,229,255,.4);
+  color: #7ce0ff; cursor: pointer; width: 100%; text-align: center;
+}
+
+.tk-form-actions { display: flex; gap: 10px; margin-top: 20px; }
+.tk-form-actions .tk-btn { flex: 1; padding: 14px; }
+
+/* View */
+.tk-view-box .tv-head {
+  display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px;
+}
+.tk-view-box .tv-check {
+  width: 34px; height: 34px; border-radius: 10px;
+  border: 2px solid rgba(0,229,255,.5); background: rgba(0,0,0,.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 800; color: transparent;
+  cursor: pointer; flex-shrink: 0;
+  transition: all .18s;
+}
+.tk-view-box.done .tv-check {
+  background: linear-gradient(135deg,#00ff88,#00e5ff);
+  color: #001018; border-color: #00ff88;
+  box-shadow: 0 0 18px rgba(0,255,136,.6);
+}
+.tk-view-box .tv-head-main { flex: 1; }
+.tk-view-box .tv-head-main h3 { margin: 0 0 6px 0; font-size: 18px; }
+.tk-view-box .tv-head-main .tv-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.tk-view-box .tv-desc {
+  font-size: 13.5px; line-height: 1.65; color: #cce6ff;
+  padding: 14px; background: rgba(0,0,0,.35); border-radius: 12px;
+  white-space: pre-wrap; margin-bottom: 14px;
+  max-height: 40vh; overflow-y: auto;
+}
+
+.tk-view-box .tv-sub-title {
+  font-size: 11px; color: #7ce0ff; text-transform: uppercase;
+  letter-spacing: 1.2px; margin-bottom: 8px;
+}
+.tk-view-box .tv-sub-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.tk-view-box .tv-sub {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  background: rgba(0,0,0,.3); border-radius: 10px;
+  border: 1px solid rgba(0,229,255,.15); cursor: pointer; transition: all .15s;
+}
+.tk-view-box .tv-sub:hover { background: rgba(0,229,255,.08); }
+.tk-view-box .tv-sub.done { opacity: .6; }
+.tk-view-box .tv-sub.done .tv-sub-text { text-decoration: line-through; color: #88ccff; }
+.tk-view-box .tv-sub-check {
+  width: 20px; height: 20px; border-radius: 6px; flex-shrink: 0;
+  border: 2px solid rgba(0,229,255,.4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: #001018;
+}
+.tk-view-box .tv-sub.done .tv-sub-check {
+  background: #00ff88; border-color: #00ff88; color: #001018;
+}
+.tk-view-box .tv-sub-text { flex: 1; font-size: 13px; color: #e6f4ff; }
+
+.tk-toast {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+  padding: 12px 20px; border-radius: 12px;
+  background: linear-gradient(135deg, #00e5ff, #4da8ff); color: #001018;
+  font-weight: 700; font-size: 13px; opacity: 0; pointer-events: none;
+  transition: all .3s; z-index: 9000;
+  box-shadow: 0 10px 40px rgba(0,229,255,.5);
+}
+.tk-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TASKS WINDOW ════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="tasksWindow">
+  <div class="tk-header">
+    <div class="tk-title">
+      <span class="tk-icon">✅</span>
+      <div>
+        <h2>Tasks</h2>
+        <small>Aufgaben & To-Do</small>
+      </div>
+    </div>
+    <div class="tk-actions">
+      <button class="tk-btn icon-only" onclick="HalDoTasksApp.exportAll()" title="Export">📤</button>
+      <button class="tk-btn icon-only" onclick="HalDoTasksApp.importFile()" title="Import">📥</button>
+      <button class="tk-btn icon-only" onclick="HalDoTasksApp.close()" title="Schließen">✕</button>
+    </div>
+  </div>
+
+  <div class="tk-stats" id="tkStats"></div>
+  <div class="tk-filters" id="tkFilters"></div>
+
+  <div class="tk-toolbar">
+    <div class="tk-search">
+      <span>🔍</span>
+      <input id="tkSearchInput" placeholder="Aufgaben durchsuchen..." oninput="HalDoTasksApp.render()">
+    </div>
+  </div>
+
+  <div class="tk-body">
+    <div class="tk-list" id="tkList"></div>
+  </div>
+
+  <button class="tk-btn primary" id="tkAddFab" onclick="HalDoTasksApp.openEditor()"
+    style="position:absolute;bottom:24px;right:24px;padding:16px 22px;font-size:15px;border-radius:16px;box-shadow:0 8px 30px rgba(0,229,255,.5);z-index:3;">
+    ✚ Neue Aufgabe
+  </button>
+</div>
+
+<!-- ═══ Editor Modal ═══ -->
+<div class="tk-modal" id="tkEditorModal">
+  <div class="tk-modal-box">
+    <h3 id="tkEditorTitle">✚ Neue Aufgabe</h3>
+    <input type="hidden" id="tkEditId">
+    <div class="tk-form-row">
+      <label>Titel</label>
+      <input id="tkInputTitle" placeholder="Was zu tun ist..." maxlength="160">
+    </div>
+    <div class="tk-form-row">
+      <label>Beschreibung (optional)</label>
+      <textarea id="tkInputDesc" placeholder="Details..."></textarea>
+    </div>
+    <div class="tk-form-2col">
+      <div class="tk-form-row">
+        <label>Priorität</label>
+        <select id="tkInputPrio">
+          <option value="low">🔵 Niedrig</option>
+          <option value="mid" selected>🟡 Mittel</option>
+          <option value="high">🔴 Hoch</option>
+        </select>
+      </div>
+      <div class="tk-form-row">
+        <label>Kategorie</label>
+        <select id="tkInputCat">
+          <option value="personal">👤 Persönlich</option>
+          <option value="work">💼 Arbeit</option>
+          <option value="home">🏠 Zuhause</option>
+          <option value="health">❤️ Gesundheit</option>
+          <option value="learn">📚 Lernen</option>
+          <option value="finance">💰 Finanzen</option>
+          <option value="family">👨‍👩‍👧 Familie</option>
+          <option value="other">📦 Sonstiges</option>
+        </select>
+      </div>
+    </div>
+    <div class="tk-form-2col">
+      <div class="tk-form-row">
+        <label>Fällig am</label>
+        <input id="tkInputDue" type="date">
+      </div>
+      <div class="tk-form-row">
+        <label>Verknüpft mit Ziel</label>
+        <select id="tkInputGoal"><option value="">(kein Ziel)</option></select>
+      </div>
+    </div>
+    <div class="tk-form-row">
+      <label>Unteraufgaben</label>
+      <div class="tk-subs-list" id="tkSubsList"></div>
+      <button class="tk-sub-add" onclick="HalDoTasksApp.addSubRow()">+ Unteraufgabe hinzufügen</button>
+    </div>
+    <div class="tk-form-actions">
+      <button class="tk-btn" onclick="HalDoTasksApp.closeEditor()">Abbrechen</button>
+      <button class="tk-btn primary" onclick="HalDoTasksApp.save()">💾 Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ View Modal ═══ -->
+<div class="tk-modal" id="tkViewModal">
+  <div class="tk-modal-box tk-view-box" id="tkViewBox">
+    <div class="tv-head">
+      <div class="tv-check" id="tvCheck" onclick="HalDoTasksApp.toggleCurrent()">✓</div>
+      <div class="tv-head-main">
+        <h3 id="tvTitle">Aufgabe</h3>
+        <div class="tv-badges" id="tvBadges"></div>
+      </div>
+    </div>
+    <div class="tv-desc" id="tvDesc"></div>
+    <div id="tvSubsSection">
+      <div class="tv-sub-title">Unteraufgaben</div>
+      <div class="tv-sub-list" id="tvSubList"></div>
+    </div>
+    <div class="tk-form-actions">
+      <button class="tk-btn danger" onclick="HalDoTasksApp.deleteCurrent()">🗑️ Löschen</button>
+      <button class="tk-btn" onclick="HalDoTasksApp.closeView()">Schließen</button>
+      <button class="tk-btn primary" onclick="HalDoTasksApp.editCurrent()">✏️ Bearbeiten</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="tkImportFile" accept="application/json" style="display:none">
+
+<script>
+(function(){
+  "use strict";
+
+  const STORAGE_KEY = 'haldo_tasks_v1';
+
+  const CATS = {
+    personal: { name:'Persönlich', icon:'👤' },
+    work:     { name:'Arbeit',     icon:'💼' },
+    home:     { name:'Zuhause',    icon:'🏠' },
+    health:   { name:'Gesundheit', icon:'❤️' },
+    learn:    { name:'Lernen',     icon:'📚' },
+    finance:  { name:'Finanzen',   icon:'💰' },
+    family:   { name:'Familie',    icon:'👨‍👩‍👧' },
+    other:    { name:'Sonstiges',  icon:'📦' }
+  };
+
+  let tasks = [];
+  let currentFilter = 'today';
+  let currentViewId = null;
+
+  function load(){
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      tasks = raw ? JSON.parse(raw) : [];
+    } catch(e){ tasks = []; }
+    if(!Array.isArray(tasks)) tasks = [];
+  }
+  function save(){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); } catch(e){}
+  }
+  function uid(){ return 't_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7); }
+  function escapeHtml(s){
+    return String(s==null?'':s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function dayKey(ts){
+    const d = new Date(ts);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function todayKey(){ return dayKey(Date.now()); }
+  function dueStatus(t){
+    if(!t.due || t.done) return 'none';
+    const today = todayKey();
+    if(t.due < today) return 'overdue';
+    if(t.due === today) return 'today';
+    return 'upcoming';
+  }
+  function isOverdue(t){ return dueStatus(t) === 'overdue'; }
+  function isToday(t){ return dueStatus(t) === 'today'; }
+  function isThisWeek(t){
+    if(!t.due || t.done) return false;
+    const due = new Date(t.due + 'T12:00:00');
+    const now = new Date(); now.setHours(0,0,0,0);
+    const diff = (due - now) / (24*3600*1000);
+    return diff >= 0 && diff <= 7;
+  }
+  function subProgress(t){
+    if(!t.subs || !t.subs.length) return null;
+    const done = t.subs.filter(s => s.done).length;
+    return { done, total: t.subs.length, pct: Math.round(done / t.subs.length * 100) };
+  }
+  function getGoalName(goalId){
+    if(!goalId || !window.HalDoGoals) return '';
+    const g = HalDoGoals.all().find(x => x.id === goalId);
+    return g ? g.title : '';
+  }
+
+  function renderStats(){
+    const el = document.getElementById('tkStats');
+    if(!el) return;
+    const open = tasks.filter(t => !t.done).length;
+    const todayCnt = tasks.filter(isToday).length;
+    const overdueCnt = tasks.filter(isOverdue).length;
+    const doneTotal = tasks.filter(t => t.done).length;
+    el.innerHTML = `
+      <div class="tk-stat"><div class="ts-num">${open}</div><div class="ts-lbl">Offen</div></div>
+      <div class="tk-stat ${todayCnt?'good':''}"><div class="ts-num">${todayCnt}</div><div class="ts-lbl">Heute</div></div>
+      <div class="tk-stat ${overdueCnt?'warn':''}"><div class="ts-num">${overdueCnt}</div><div class="ts-lbl">Überfällig</div></div>
+      <div class="tk-stat"><div class="ts-num">${doneTotal}</div><div class="ts-lbl">Erledigt</div></div>
+    `;
+  }
+
+  function renderFilters(){
+    const el = document.getElementById('tkFilters');
+    if(!el) return;
+    const list = [
+      ['today','📅 Heute'],
+      ['overdue','⏰ Überfällig'],
+      ['week','📆 Diese Woche'],
+      ['open','🔵 Alle offen'],
+      ['all','📋 Alle'],
+      ['done','✅ Erledigt']
+    ];
+    el.innerHTML = list.map(([id,label]) =>
+      `<button class="tk-chip ${currentFilter===id?'active':''} ${id==='overdue'?'warn':''}"
+        onclick="HalDoTasksApp.setFilter('${id}')">${label}</button>`
+    ).join('');
+  }
+
+  function renderList(){
+    const list = document.getElementById('tkList');
+    if(!list) return;
+    const q = (document.getElementById('tkSearchInput')?.value || '').toLowerCase().trim();
+    let arr = tasks.slice();
+
+    if(currentFilter === 'today') arr = arr.filter(t => !t.done && (isToday(t) || isOverdue(t)));
+    else if(currentFilter === 'overdue') arr = arr.filter(t => !t.done && isOverdue(t));
+    else if(currentFilter === 'week') arr = arr.filter(t => !t.done && isThisWeek(t));
+    else if(currentFilter === 'open') arr = arr.filter(t => !t.done);
+    else if(currentFilter === 'done') arr = arr.filter(t => t.done);
+
+    if(q){
+      arr = arr.filter(t =>
+        (t.title||'').toLowerCase().includes(q) ||
+        (t.desc||'').toLowerCase().includes(q)
+      );
+    }
+
+    const prioOrder = { high:0, mid:1, low:2 };
+    arr.sort((a,b) => {
+      const oa = isOverdue(a)?0:1, ob = isOverdue(b)?0:1;
+      if(oa !== ob) return oa - ob;
+      const da = dueStatus(a) === 'today' ? 0 : 1;
+      const db = dueStatus(b) === 'today' ? 0 : 1;
+      if(da !== db) return da - db;
+      const pa = prioOrder[a.prio] ?? 1, pb = prioOrder[b.prio] ?? 1;
+      if(pa !== pb) return pa - pb;
+      const ta = a.due ? new Date(a.due).getTime() : Infinity;
+      const tb = b.due ? new Date(b.due).getTime() : Infinity;
+      if(ta !== tb) return ta - tb;
+      return (b.created||0) - (a.created||0);
+    });
+
+    if(!arr.length){
+      const msgs = {
+        today: ['✨','Heute nichts zu tun','Genieß den Tag!'],
+        overdue: ['🎉','Nichts überfällig','Du bist auf Kurs!'],
+        week: ['📆','Diese Woche frei','Keine Aufgaben geplant'],
+        open: ['✅','Keine offenen Aufgaben','Alles erledigt!'],
+        all: ['📋','Noch keine Aufgaben','Klicke "✚ Neue Aufgabe"'],
+        done: ['🏆','Noch nichts erledigt','Arbeite an deinen Aufgaben!']
+      };
+      const m = msgs[currentFilter] || msgs.today;
+      list.innerHTML = `<div class="tk-empty">
+        <div class="te-icon">${m[0]}</div>
+        <div class="te-text">${m[1]}</div>
+        <div class="te-sub">${m[2]}</div>
+      </div>`;
+      return;
+    }
+
+    list.innerHTML = arr.map(t => {
+      const cat = CATS[t.cat] || CATS.other;
+      const ds = dueStatus(t);
+      const sp = subProgress(t);
+      const goalName = getGoalName(t.goalId);
+      let dueHtml = '';
+      if(t.due){
+        const d = new Date(t.due + 'T12:00:00');
+        const dateStr = d.toLocaleDateString('de-DE', { day:'2-digit', month:'short' });
+        let cls = 'tk-badge due';
+        let lbl = '📅 ' + dateStr;
+        if(ds === 'today'){ cls += ' today'; lbl = '📅 Heute'; }
+        else if(ds === 'overdue'){ cls += ' overdue'; lbl = '⏰ Überfällig · ' + dateStr; }
+        dueHtml = `<span class="${cls}">${lbl}</span>`;
+      }
+      const goalHtml = goalName ? `<span class="tk-badge goal">🎯 ${escapeHtml(goalName)}</span>` : '';
+      const subHtml = sp ? `<div class="tk-subprogress">
+        <span>☑ ${sp.done}/${sp.total}</span>
+        <div class="tk-subprogress-bar"><div class="tk-subprogress-fill" style="width:${sp.pct}%"></div></div>
+        <span>${sp.pct}%</span>
+      </div>` : '';
+      const descHtml = t.desc ? `<p class="tk-task-desc">${escapeHtml(t.desc)}</p>` : '';
+      return `<div class="tk-task prio-${t.prio||'mid'} ${t.done?'done':''} ${ds==='overdue'?'overdue':''}"
+        onclick="HalDoTasksApp.view('${t.id}')">
+        <div class="tk-check" onclick="event.stopPropagation();HalDoTasksApp.toggle('${t.id}')">✓</div>
+        <div class="tk-task-main">
+          <div class="tk-task-title">${escapeHtml(t.title)}</div>
+          ${descHtml}
+          <div class="tk-task-badges">
+            <span class="tk-badge cat">${cat.icon} ${cat.name}</span>
+            ${dueHtml}
+            ${goalHtml}
+          </div>
+          ${subHtml}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function render(){ renderStats(); renderFilters(); renderList(); }
+
+  // ═══ Toggle ═══
+  function toggle(id){
+    const t = tasks.find(x => x.id === id);
+    if(!t) return;
+    t.done = !t.done;
+    t.updated = Date.now();
+    if(t.done){
+      t.completedAt = Date.now();
+      if(window.HalDoMemory){
+        HalDoMemory.remember('✅ Aufgabe erledigt: ' + t.title,
+          t.desc || 'Aufgabe wurde abgeschlossen.',
+          t.cat === 'work' ? 'work' : (t.cat === 'family' ? 'family' : 'personal'),
+          ['task', 'done']);
+      }
+      if(navigator.vibrate) navigator.vibrate([10, 40, 10]);
+      if(typeof playSound === 'function') playSound('success');
+    }
+    save(); render();
+    if(currentViewId === id) view(id);
+  }
+
+  function toggleCurrent(){
+    if(!currentViewId) return;
+    toggle(currentViewId);
+  }
+
+  function toggleSub(id, idx){
+    if(!currentViewId) return;
+    const t = tasks.find(x => x.id === currentViewId);
+    if(!t || !t.subs || !t.subs[idx]) return;
+    t.subs[idx].done = !t.subs[idx].done;
+    // Auto-done
+    if(t.subs.every(s => s.done) && !t.done){
+      t.done = true;
+      t.completedAt = Date.now();
+      if(window.HalDoMemory){
+        HalDoMemory.remember('✅ Aufgabe erledigt: ' + t.title,
+          'Alle Unteraufgaben abgeschlossen.', 'personal', ['task','done']);
+      }
+      toast('🏆 Alle Unteraufgaben fertig!');
+    } else if(!t.subs.every(s => s.done) && t.done){
+      t.done = false;
+    }
+    t.updated = Date.now();
+    save(); render(); view(currentViewId);
+  }
+
+  // ═══ Editor ═══
+  function addSubRow(text, done){
+    const list = document.getElementById('tkSubsList');
+    if(!list) return;
+    const row = document.createElement('div');
+    row.className = 'tk-sub-row';
+    row.innerHTML = `
+      <input type="checkbox" ${done?'checked':''}>
+      <input type="text" placeholder="Unteraufgabe..." value="${escapeHtml(text||'')}">
+      <button class="tk-sub-del" onclick="this.parentNode.remove()">✕</button>
+    `;
+    list.appendChild(row);
+  }
+  function collectSubs(){
+    const rows = document.querySelectorAll('#tkSubsList .tk-sub-row');
+    const out = [];
+    rows.forEach(r => {
+      const txt = r.querySelector('input[type=text]').value.trim();
+      const done = r.querySelector('input[type=checkbox]').checked;
+      if(txt) out.push({ text: txt, done });
+    });
+    return out;
+  }
+  function buildGoalSelect(selectedId){
+    const sel = document.getElementById('tkInputGoal');
+    if(!sel) return;
+    let html = '<option value="">(kein Ziel)</option>';
+    if(window.HalDoGoals){
+      const goals = HalDoGoals.all().filter(g => g.status === 'active');
+      goals.forEach(g => {
+        html += `<option value="${g.id}" ${g.id===selectedId?'selected':''}>🎯 ${escapeHtml(g.title)}</option>`;
+      });
+    }
+    sel.innerHTML = html;
+  }
+
+  function openEditor(id){
+    document.getElementById('tkSubsList').innerHTML = '';
+    const titleEl = document.getElementById('tkEditorTitle');
+    if(id){
+      const t = tasks.find(x => x.id === id);
+      if(!t) return;
+      titleEl.textContent = '✏️ Aufgabe bearbeiten';
+      document.getElementById('tkEditId').value = t.id;
+      document.getElementById('tkInputTitle').value = t.title || '';
+      document.getElementById('tkInputDesc').value = t.desc || '';
+      document.getElementById('tkInputPrio').value = t.prio || 'mid';
+      document.getElementById('tkInputCat').value = t.cat || 'personal';
+      document.getElementById('tkInputDue').value = t.due || '';
+      buildGoalSelect(t.goalId);
+      (t.subs||[]).forEach(s => addSubRow(s.text, s.done));
+    } else {
+      titleEl.textContent = '✚ Neue Aufgabe';
+      document.getElementById('tkEditId').value = '';
+      document.getElementById('tkInputTitle').value = '';
+      document.getElementById('tkInputDesc').value = '';
+      document.getElementById('tkInputPrio').value = 'mid';
+      document.getElementById('tkInputCat').value = 'personal';
+      document.getElementById('tkInputDue').value = '';
+      buildGoalSelect();
+      addSubRow();
+    }
+    document.getElementById('tkEditorModal').classList.add('show');
+    setTimeout(() => document.getElementById('tkInputTitle').focus(), 100);
+  }
+  function closeEditor(){ document.getElementById('tkEditorModal').classList.remove('show'); }
+
+  function saveTask(){
+    const id = document.getElementById('tkEditId').value;
+    const title = document.getElementById('tkInputTitle').value.trim();
+    if(!title){ toast('⚠️ Bitte Titel eingeben'); return; }
+    const data = {
+      title,
+      desc: document.getElementById('tkInputDesc').value.trim(),
+      prio: document.getElementById('tkInputPrio').value,
+      cat: document.getElementById('tkInputCat').value,
+      due: document.getElementById('tkInputDue').value || '',
+      goalId: document.getElementById('tkInputGoal').value || '',
+      subs: collectSubs()
+    };
+    if(id){
+      const t = tasks.find(x => x.id === id);
+      if(t) Object.assign(t, data, { updated: Date.now() });
+    } else {
+      tasks.push({ id: uid(), ...data, done:false, created: Date.now(), updated: Date.now() });
+    }
+    save(); render(); closeEditor();
+    toast(id ? '✅ Aktualisiert' : '✏️ Aufgabe erstellt');
+    if(typeof playSound === 'function') playSound('success');
+    if(navigator.vibrate) navigator.vibrate(15);
+  }
+
+  // ═══ View ═══
+  function view(id){
+    const t = tasks.find(x => x.id === id);
+    if(!t) return;
+    currentViewId = id;
+    const box = document.getElementById('tkViewBox');
+    box.classList.toggle('done', !!t.done);
+    document.getElementById('tvTitle').textContent = t.title;
+    const cat = CATS[t.cat] || CATS.other;
+    const ds = dueStatus(t);
+    const badges = [`<span class="tk-badge cat">${cat.icon} ${cat.name}</span>`];
+    badges.push(`<span class="tk-badge">${(t.prio||'mid').toUpperCase()}</span>`);
+    if(t.due){
+      const d = new Date(t.due + 'T12:00:00');
+      const ds2 = d.toLocaleDateString('de-DE', { weekday:'short', day:'2-digit', month:'long', year:'numeric' });
+      let cls = 'tk-badge due'; let lbl = '📅 ' + ds2;
+      if(ds === 'today'){ cls += ' today'; lbl = '📅 Heute'; }
+      else if(ds === 'overdue'){ cls += ' overdue'; lbl = '⏰ Überfällig · ' + ds2; }
+      badges.push(`<span class="${cls}">${lbl}</span>`);
+    }
+    if(t.goalId){
+      const gname = getGoalName(t.goalId);
+      if(gname) badges.push(`<span class="tk-badge goal">🎯 ${escapeHtml(gname)}</span>`);
+    }
+    document.getElementById('tvBadges').innerHTML = badges.join('');
+    document.getElementById('tvDesc').textContent = t.desc || '(Keine Beschreibung)';
+
+    const subsSection = document.getElementById('tvSubsSection');
+    if(t.subs && t.subs.length){
+      subsSection.style.display = 'block';
+      document.getElementById('tvSubList').innerHTML = t.subs.map((s,i) =>
+        `<div class="tv-sub ${s.done?'done':''}" onclick="HalDoTasksApp.toggleSubAt(${i})">
+          <div class="tv-sub-check">${s.done?'✓':''}</div>
+          <div class="tv-sub-text">${escapeHtml(s.text)}</div>
+        </div>`).join('');
+    } else {
+      subsSection.style.display = 'none';
+    }
+
+    document.getElementById('tkViewModal').classList.add('show');
+  }
+  function closeView(){ document.getElementById('tkViewModal').classList.remove('show'); currentViewId = null; }
+  function editCurrent(){ if(!currentViewId) return; const id = currentViewId; closeView(); setTimeout(()=>openEditor(id),150); }
+  function deleteCurrent(){
+    if(!currentViewId) return;
+    const t = tasks.find(x => x.id === currentViewId);
+    if(!t) return;
+    if(!confirm('Aufgabe "' + t.title + '" wirklich löschen?')) return;
+    tasks = tasks.filter(x => x.id !== currentViewId);
+    save(); render(); closeView(); toast('🗑️ Gelöscht');
+  }
+  function toggleSubAt(i){
+    if(!currentViewId) return;
+    toggleSub(currentViewId, i);
+  }
+
+  function setFilter(f){ currentFilter = f; render(); }
+
+  // ═══ Export / Import ═══
+  function exportAll(){
+    if(!tasks.length){ toast('⚠️ Keine Aufgaben'); return; }
+    const data = { app:'HalDo Tasks', version:1, exported:new Date().toISOString(), count:tasks.length, tasks };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = 'haldo-tasks-' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast('📤 ' + tasks.length + ' Aufgaben exportiert');
+  }
+  function importFile(){ document.getElementById('tkImportFile').click(); }
+  function handleImport(ev){
+    const f = ev.target.files && ev.target.files[0];
+    if(!f) return;
+    const r = new FileReader();
+    r.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        const incoming = Array.isArray(data) ? data : (data.tasks || []);
+        if(!Array.isArray(incoming) || !incoming.length){ toast('⚠️ Keine Daten'); return; }
+        const mode = confirm(incoming.length + ' Aufgaben gefunden.\n\nOK = HINZUFÜGEN\nAbbrechen = ERSETZEN') ? 'merge' : 'replace';
+        if(mode === 'replace') tasks = incoming.map(norm);
+        else {
+          const ids = new Set(tasks.map(t=>t.id));
+          incoming.forEach(raw => { const t = norm(raw); if(ids.has(t.id)) t.id = uid(); tasks.push(t); });
+        }
+        save(); render(); toast('📥 ' + incoming.length + ' importiert');
+      } catch(err){ toast('❌ Import-Fehler'); console.error(err); }
+      ev.target.value = '';
+    };
+    r.readAsText(f);
+  }
+  function norm(raw){
+    return {
+      id: raw.id || uid(),
+      title: raw.title || '(Ohne Titel)',
+      desc: raw.desc || '',
+      prio: raw.prio || 'mid',
+      cat: raw.cat || 'other',
+      due: raw.due || '',
+      goalId: raw.goalId || '',
+      subs: Array.isArray(raw.subs) ? raw.subs.map(s => ({ text:s.text||'', done:!!s.done })) : [],
+      done: !!raw.done,
+      created: raw.created || Date.now(),
+      updated: raw.updated || Date.now(),
+      completedAt: raw.completedAt || null
+    };
+  }
+
+  // ═══ Window ═══
+  function openWindow(){
+    const w = document.getElementById('tasksWindow');
+    if(!w) return;
+    load(); render(); w.classList.add('show');
+    if(typeof playSound === 'function') playSound('open');
+    if(navigator.vibrate) navigator.vibrate(10);
+  }
+  function closeWindow(){
+    document.getElementById('tasksWindow').classList.remove('show');
+    closeEditor(); closeView();
+    if(typeof playSound === 'function') playSound('close');
+  }
+
+  // ═══ Toast ═══
+  function toast(msg){
+    let el = document.getElementById('tkToast');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'tkToast'; el.className = 'tk-toast';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), 2200);
+  }
+
+  // ═══ Public API ═══
+  window.HalDoTasks = {
+    add(title, opts){
+      const t = {
+        id: uid(),
+        title: title || '(Ohne Titel)',
+        desc: (opts && opts.desc) || '',
+        prio: (opts && opts.prio) || 'mid',
+        cat: (opts && opts.cat) || 'other',
+        due: (opts && opts.due) || '',
+        goalId: (opts && opts.goalId) || '',
+        subs: [],
+        done: false,
+        created: Date.now(), updated: Date.now(),
+        source: 'api'
+      };
+      tasks.push(t); save();
+      if(document.getElementById('tasksWindow')?.classList.contains('show')) render();
+      return t.id;
+    },
+    complete(id){
+      const t = tasks.find(x => x.id === id);
+      if(!t) return false;
+      t.done = true; t.completedAt = Date.now();
+      save();
+      if(document.getElementById('tasksWindow')?.classList.contains('show')) render();
+      return true;
+    },
+    all(){ return tasks.slice(); },
+    open(){ return tasks.filter(t => !t.done); },
+    today(){ return tasks.filter(t => !t.done && (isToday(t) || isOverdue(t))); },
+    count(){ return tasks.length; }
+  };
+
+  window.HalDoTasksApp = {
+    open: openWindow, close: closeWindow, render,
+    setFilter,
+    openEditor, closeEditor, save: saveTask, addSubRow,
+    view, closeView, editCurrent, deleteCurrent, toggle, toggleCurrent, toggleSubAt,
+    exportAll, importFile
+  };
+
+  // Hook openWin
+  const orig = window.openWin;
+  window.openWin = function(id){
+    if(id === 'tasks-window' || id === 'todo-window' || id === 'tasks'){ openWindow(); return; }
+    if(typeof orig === 'function') return orig(id);
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const fi = document.getElementById('tkImportFile');
+    if(fi) fi.addEventListener('change', handleImport);
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape'){
+        if(document.getElementById('tkEditorModal').classList.contains('show')) closeEditor();
+        else if(document.getElementById('tkViewModal').classList.contains('show')) closeView();
+        else if(document.getElementById('tasksWindow').classList.contains('show')) closeWindow();
+      }
+    });
+  });
+
+  load();
+  console.log('%c✅ Tasks App geladen · ' + tasks.length + ' Aufgaben · Offen: ' + tasks.filter(t=>!t.done).length,
+    'color:#00e5ff;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═════════════════════════ ENDE v59 TASKS ════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
