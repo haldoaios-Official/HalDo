@@ -11331,5 +11331,752 @@ body.auto-night-active::after {
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════ ENDE v54 ANHANG ══════════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════ v55 – AI MEMORY APP (KOMPLETT) ═══════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+/* ═══ AI MEMORY STYLES ═══ */
+#memoryWindow {
+  position: fixed; inset: 0;
+  background: linear-gradient(180deg, rgba(0,10,30,.98), rgba(0,5,15,.99));
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  z-index: 8500; display: none; flex-direction: column;
+  color: #e6f4ff; font-family: inherit;
+  animation: memFadeIn .25s;
+}
+#memoryWindow.show { display: flex; }
+@keyframes memFadeIn { from { opacity: 0; transform: scale(.98);} to { opacity:1; transform: scale(1);} }
+
+.mem-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid rgba(0,229,255,.15);
+  background: rgba(0,20,50,.6); flex-shrink: 0;
+}
+.mem-title { display: flex; align-items: center; gap: 10px; }
+.mem-title .mt-icon { font-size: 26px; filter: drop-shadow(0 0 12px var(--glow, #00e5ff)); }
+.mem-title h2 { font-size: 18px; margin: 0; font-weight: 700; color: #fff; letter-spacing: .5px; }
+.mem-title small { display: block; font-size: 10px; color: #7cc4ff; margin-top: 2px; letter-spacing: 1px; text-transform: uppercase; }
+.mem-actions { display: flex; gap: 8px; }
+.mem-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 14px; border-radius: 10px;
+  background: rgba(0,229,255,.12); border: 1px solid rgba(0,229,255,.35);
+  color: #e6f4ff; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all .15s; -webkit-tap-highlight-color: transparent;
+}
+.mem-btn:hover { background: rgba(0,229,255,.25); transform: translateY(-1px); }
+.mem-btn.primary { background: var(--sys-color, #00e5ff); color: #001018; border-color: #fff; }
+.mem-btn.primary:hover { filter: brightness(1.15); }
+.mem-btn.danger { background: rgba(255,60,60,.15); border-color: rgba(255,60,60,.4); color: #ff8080; }
+.mem-btn.icon-only { padding: 10px; font-size: 16px; }
+
+.mem-stats {
+  display: flex; gap: 8px; padding: 12px 20px; overflow-x: auto;
+  border-bottom: 1px solid rgba(0,229,255,.08); flex-shrink: 0;
+}
+.mem-stat {
+  flex-shrink: 0; padding: 8px 14px; border-radius: 10px;
+  background: rgba(0,40,90,.5); border: 1px solid rgba(0,229,255,.15);
+  text-align: center; min-width: 80px;
+}
+.mem-stat .ms-num { font-size: 18px; font-weight: 800; color: var(--sys-color, #00e5ff); }
+.mem-stat .ms-lbl { font-size: 9px; color: #88ccff; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+.mem-toolbar {
+  padding: 12px 20px; display: flex; flex-direction: column; gap: 10px;
+  flex-shrink: 0; border-bottom: 1px solid rgba(0,229,255,.08);
+}
+.mem-search {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(0,20,50,.7); border: 1px solid rgba(0,229,255,.25);
+  border-radius: 12px; padding: 10px 14px;
+}
+.mem-search input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: #fff; font-size: 14px; font-family: inherit;
+}
+.mem-search input::placeholder { color: #5a8ab0; }
+.mem-cats { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.mem-cat-chip {
+  flex-shrink: 0; padding: 6px 12px; border-radius: 20px;
+  background: rgba(0,40,90,.5); border: 1px solid rgba(0,229,255,.15);
+  color: #aaddff; font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: all .15s; -webkit-tap-highlight-color: transparent; white-space: nowrap;
+}
+.mem-cat-chip:hover { background: rgba(0,229,255,.15); }
+.mem-cat-chip.active {
+  background: var(--sys-color, #00e5ff); color: #001018; border-color: #fff;
+}
+
+.mem-body { flex: 1; overflow-y: auto; padding: 16px 20px 30px; }
+.mem-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.mem-card {
+  background: linear-gradient(160deg, rgba(0,40,90,.6), rgba(0,20,50,.8));
+  border: 1.5px solid rgba(0,229,255,.15);
+  border-radius: 14px; padding: 14px; cursor: pointer;
+  transition: all .18s; position: relative; overflow: hidden;
+}
+.mem-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--sys-color, #00e5ff);
+  box-shadow: 0 10px 30px rgba(0,0,0,.5), 0 0 24px rgba(0,229,255,.2);
+}
+.mem-card.starred { border-color: rgba(255,200,0,.5); }
+.mem-card .mc-top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 8px; margin-bottom: 8px;
+}
+.mem-card .mc-cat {
+  font-size: 10px; padding: 3px 8px; border-radius: 8px;
+  background: rgba(0,229,255,.15); color: #7ce0ff; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .5px;
+}
+.mem-card .mc-star { font-size: 16px; cursor: pointer; }
+.mem-card h3 {
+  font-size: 15px; margin: 0 0 6px 0; color: #fff; font-weight: 700;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mem-card p {
+  font-size: 12.5px; color: #aaddff; line-height: 1.5; margin: 0;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.mem-card .mc-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 10px; font-size: 10px; color: #5a8ab0;
+}
+.mem-card .mc-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.mem-card .mc-tag {
+  font-size: 9px; padding: 2px 6px; border-radius: 6px;
+  background: rgba(255,255,255,.08); color: #88ccff;
+}
+.mem-empty {
+  text-align: center; padding: 60px 20px; color: #5a8ab0;
+}
+.mem-empty .me-icon { font-size: 64px; opacity: .4; margin-bottom: 16px; }
+.mem-empty .me-text { font-size: 15px; margin-bottom: 8px; color: #88ccff; }
+.mem-empty .me-sub { font-size: 12px; }
+
+/* Modals */
+.mem-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,.85);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  z-index: 8700; display: none; align-items: center; justify-content: center;
+  padding: 20px; animation: memFadeIn .2s;
+}
+.mem-modal.show { display: flex; }
+.mem-modal-box {
+  background: linear-gradient(180deg, rgba(0,20,50,.98), rgba(0,10,30,.99));
+  border: 2px solid var(--sys-color, #00e5ff); border-radius: 20px;
+  padding: 24px; max-width: 520px; width: 100%; max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.7), 0 0 40px rgba(0,229,255,.2);
+  animation: memPop .3s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes memPop { from { transform: scale(.9); opacity: 0;} to { transform: scale(1); opacity: 1;} }
+.mem-modal-box h3 { margin: 0 0 18px 0; font-size: 20px; color: #fff; }
+.mem-form-row { margin-bottom: 14px; }
+.mem-form-row label {
+  display: block; font-size: 11px; color: #88ccff; font-weight: 700;
+  margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px;
+}
+.mem-form-row input, .mem-form-row textarea, .mem-form-row select {
+  width: 100%; padding: 12px 14px; border-radius: 10px;
+  background: rgba(0,0,0,.4); border: 1.5px solid rgba(0,229,255,.25);
+  color: #fff; font-size: 14px; font-family: inherit; outline: none;
+  transition: border-color .15s; box-sizing: border-box;
+}
+.mem-form-row input:focus, .mem-form-row textarea:focus, .mem-form-row select:focus {
+  border-color: var(--sys-color, #00e5ff);
+}
+.mem-form-row textarea { min-height: 120px; resize: vertical; }
+.mem-form-row select option { background: #001018; }
+.mem-form-actions { display: flex; gap: 10px; margin-top: 20px; }
+.mem-form-actions .mem-btn { flex: 1; padding: 14px; }
+
+.mem-view-box .mv-head {
+  display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px;
+}
+.mem-view-box .mv-head h3 { flex: 1; margin: 0; }
+.mem-view-box .mv-cat {
+  font-size: 11px; padding: 4px 10px; border-radius: 10px;
+  background: rgba(0,229,255,.15); color: #7ce0ff; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.mem-view-box .mv-content {
+  font-size: 14px; line-height: 1.7; color: #cce6ff;
+  padding: 16px; background: rgba(0,0,0,.35); border-radius: 12px;
+  white-space: pre-wrap; word-break: break-word;
+  max-height: 50vh; overflow-y: auto;
+}
+.mem-view-box .mv-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.mem-view-box .mv-tag {
+  font-size: 11px; padding: 4px 10px; border-radius: 10px;
+  background: rgba(255,255,255,.08); color: #88ccff;
+}
+.mem-view-box .mv-meta {
+  font-size: 11px; color: #5a8ab0; margin-top: 14px; text-align: center;
+}
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- AI MEMORY WINDOW ═════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="memoryWindow">
+  <div class="mem-header">
+    <div class="mem-title">
+      <span class="mt-icon">💾</span>
+      <div>
+        <h2>AI Memory</h2>
+        <small>Das Gedächtnis des Systems</small>
+      </div>
+    </div>
+    <div class="mem-actions">
+      <button class="mem-btn icon-only" onclick="HalDoMemoryApp.exportAll()" title="Export">📤</button>
+      <button class="mem-btn icon-only" onclick="HalDoMemoryApp.importFile()" title="Import">📥</button>
+      <button class="mem-btn icon-only" onclick="HalDoMemoryApp.close()" title="Schließen">✕</button>
+    </div>
+  </div>
+
+  <div class="mem-stats" id="memStats"></div>
+
+  <div class="mem-toolbar">
+    <div class="mem-search">
+      <span>🔍</span>
+      <input id="memSearchInput" placeholder="Erinnerungen durchsuchen..." oninput="HalDoMemoryApp.render()">
+    </div>
+    <div class="mem-cats" id="memCats"></div>
+  </div>
+
+  <div class="mem-body">
+    <div class="mem-grid" id="memGrid"></div>
+  </div>
+
+  <!-- Floating Add Button -->
+  <button class="mem-btn primary" id="memAddFab" onclick="HalDoMemoryApp.openEditor()"
+    style="position:absolute;bottom:24px;right:24px;padding:16px 20px;font-size:15px;border-radius:16px;box-shadow:0 8px 30px rgba(0,229,255,.4);">
+    ✚ Neue Erinnerung
+  </button>
+</div>
+
+<!-- Editor Modal -->
+<div class="mem-modal" id="memEditorModal">
+  <div class="mem-modal-box">
+    <h3 id="memEditorTitle">✚ Neue Erinnerung</h3>
+    <input type="hidden" id="memEditId">
+    <div class="mem-form-row">
+      <label>Titel</label>
+      <input id="memInputTitle" placeholder="z.B. Geburtstag von..." maxlength="120">
+    </div>
+    <div class="mem-form-row">
+      <label>Kategorie</label>
+      <select id="memInputCat"></select>
+    </div>
+    <div class="mem-form-row">
+      <label>Inhalt</label>
+      <textarea id="memInputContent" placeholder="Was möchtest du dir merken?"></textarea>
+    </div>
+    <div class="mem-form-row">
+      <label>Tags (mit Komma getrennt)</label>
+      <input id="memInputTags" placeholder="z.B. familie, wichtig, 2026">
+    </div>
+    <div class="mem-form-row">
+      <label>⭐ Wichtigkeit</label>
+      <select id="memInputStar">
+        <option value="0">Normal</option>
+        <option value="1">⭐ Wichtig</option>
+      </select>
+    </div>
+    <div class="mem-form-actions">
+      <button class="mem-btn" onclick="HalDoMemoryApp.closeEditor()">Abbrechen</button>
+      <button class="mem-btn primary" onclick="HalDoMemoryApp.save()">💾 Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Modal -->
+<div class="mem-modal" id="memViewModal">
+  <div class="mem-modal-box mem-view-box">
+    <div class="mv-head">
+      <h3 id="mvTitle">Titel</h3>
+      <span class="mv-cat" id="mvCat">Kategorie</span>
+    </div>
+    <div class="mv-content" id="mvContent"></div>
+    <div class="mv-tags" id="mvTags"></div>
+    <div class="mv-meta" id="mvMeta"></div>
+    <div class="mem-form-actions">
+      <button class="mem-btn danger" onclick="HalDoMemoryApp.deleteCurrent()">🗑️ Löschen</button>
+      <button class="mem-btn" onclick="HalDoMemoryApp.closeView()">Schließen</button>
+      <button class="mem-btn primary" onclick="HalDoMemoryApp.editCurrent()">✏️ Bearbeiten</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden File Input für Import -->
+<input type="file" id="memImportFile" accept="application/json" style="display:none">
+
+<script>
+(function(){
+  "use strict";
+
+  const STORAGE_KEY = 'haldo_memory_v1';
+
+  const CATEGORIES = [
+    { id: 'personal',  name: 'Persönlich',  icon: '👤' },
+    { id: 'family',    name: 'Familie',     icon: '👨‍👩‍👧' },
+    { id: 'work',      name: 'Arbeit',      icon: '💼' },
+    { id: 'learn',     name: 'Lernen',      icon: '📚' },
+    { id: 'health',    name: 'Gesundheit',  icon: '❤️' },
+    { id: 'ideas',     name: 'Ideen',       icon: '💡' },
+    { id: 'contacts',  name: 'Kontakte',    icon: '👥' },
+    { id: 'places',    name: 'Orte',        icon: '📍' },
+    { id: 'quotes',    name: 'Zitate',      icon: '💬' },
+    { id: 'other',     name: 'Sonstiges',   icon: '📦' }
+  ];
+
+  let memories = [];
+  let currentFilter = 'all';
+  let currentViewId = null;
+
+  // ═══ Storage ═══
+  function load(){
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      memories = raw ? JSON.parse(raw) : [];
+    } catch(e){ memories = []; }
+    if(!Array.isArray(memories)) memories = [];
+  }
+  function save(){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(memories)); } catch(e){}
+  }
+  function uid(){ return 'm_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7); }
+
+  // ═══ Render ═══
+  function renderStats(){
+    const el = document.getElementById('memStats');
+    if(!el) return;
+    const total = memories.length;
+    const starred = memories.filter(m => m.star).length;
+    const today = memories.filter(m => {
+      const d = new Date(m.created);
+      const n = new Date();
+      return d.toDateString() === n.toDateString();
+    }).length;
+    const week = memories.filter(m => {
+      const d = new Date(m.created);
+      return (Date.now() - d.getTime()) < 7*24*3600*1000;
+    }).length;
+
+    el.innerHTML = `
+      <div class="mem-stat"><div class="ms-num">${total}</div><div class="ms-lbl">Gesamt</div></div>
+      <div class="mem-stat"><div class="ms-num">${starred}</div><div class="ms-lbl">⭐ Wichtig</div></div>
+      <div class="mem-stat"><div class="ms-num">${today}</div><div class="ms-lbl">Heute</div></div>
+      <div class="mem-stat"><div class="ms-num">${week}</div><div class="ms-lbl">7 Tage</div></div>
+    `;
+  }
+
+  function renderCats(){
+    const el = document.getElementById('memCats');
+    if(!el) return;
+    let html = `<button class="mem-cat-chip ${currentFilter==='all'?'active':''}" onclick="HalDoMemoryApp.setFilter('all')">Alle (${memories.length})</button>`;
+    for(const c of CATEGORIES){
+      const count = memories.filter(m => m.cat === c.id).length;
+      if(count === 0 && currentFilter !== c.id) continue;
+      html += `<button class="mem-cat-chip ${currentFilter===c.id?'active':''}" onclick="HalDoMemoryApp.setFilter('${c.id}')">${c.icon} ${c.name} (${count})</button>`;
+    }
+    el.innerHTML = html;
+  }
+
+  function renderGrid(){
+    const grid = document.getElementById('memGrid');
+    if(!grid) return;
+    const q = (document.getElementById('memSearchInput')?.value || '').toLowerCase().trim();
+    let list = memories.slice();
+    if(currentFilter !== 'all') list = list.filter(m => m.cat === currentFilter);
+    if(q){
+      list = list.filter(m =>
+        (m.title || '').toLowerCase().includes(q) ||
+        (m.content || '').toLowerCase().includes(q) ||
+        (m.tags || []).some(t => t.toLowerCase().includes(q))
+      );
+    }
+    // Sortierung: Starred zuerst, dann nach updated desc
+    list.sort((a,b) => {
+      if((b.star?1:0) !== (a.star?1:0)) return (b.star?1:0) - (a.star?1:0);
+      return (b.updated || b.created || 0) - (a.updated || a.created || 0);
+    });
+
+    if(!list.length){
+      grid.innerHTML = `<div class="mem-empty" style="grid-column:1/-1;">
+        <div class="me-icon">💾</div>
+        <div class="me-text">${q ? 'Keine Treffer für "'+escapeHtml(q)+'"' : 'Noch keine Erinnerungen'}</div>
+        <div class="me-sub">${q ? 'Versuche einen anderen Suchbegriff' : 'Klicke auf "✚ Neue Erinnerung" um zu starten'}</div>
+      </div>`;
+      return;
+    }
+
+    grid.innerHTML = list.map(m => {
+      const cat = CATEGORIES.find(c => c.id === m.cat) || CATEGORIES[CATEGORIES.length-1];
+      const preview = (m.content || '').slice(0, 180);
+      const date = new Date(m.updated || m.created || Date.now());
+      const dateStr = date.toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'2-digit' });
+      const tagsHtml = (m.tags || []).slice(0,3).map(t => `<span class="mc-tag">#${escapeHtml(t)}</span>`).join('');
+      return `<div class="mem-card ${m.star?'starred':''}" onclick="HalDoMemoryApp.view('${m.id}')">
+        <div class="mc-top">
+          <span class="mc-cat">${cat.icon} ${cat.name}</span>
+          <span class="mc-star" onclick="event.stopPropagation();HalDoMemoryApp.toggleStar('${m.id}')">${m.star?'⭐':'☆'}</span>
+        </div>
+        <h3>${escapeHtml(m.title || '(Ohne Titel)')}</h3>
+        <p>${escapeHtml(preview)}</p>
+        <div class="mc-foot">
+          <div class="mc-tags">${tagsHtml}</div>
+          <span>${dateStr}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function render(){
+    renderStats();
+    renderCats();
+    renderGrid();
+  }
+
+  function escapeHtml(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  // ═══ Editor ═══
+  function openEditor(id){
+    const modal = document.getElementById('memEditorModal');
+    const titleEl = document.getElementById('memEditorTitle');
+    const sel = document.getElementById('memInputCat');
+    if(!sel.options.length){
+      sel.innerHTML = CATEGORIES.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+    }
+    if(id){
+      const m = memories.find(x => x.id === id);
+      if(!m) return;
+      titleEl.textContent = '✏️ Erinnerung bearbeiten';
+      document.getElementById('memEditId').value = m.id;
+      document.getElementById('memInputTitle').value = m.title || '';
+      document.getElementById('memInputCat').value = m.cat || 'personal';
+      document.getElementById('memInputContent').value = m.content || '';
+      document.getElementById('memInputTags').value = (m.tags || []).join(', ');
+      document.getElementById('memInputStar').value = m.star ? '1' : '0';
+    } else {
+      titleEl.textContent = '✚ Neue Erinnerung';
+      document.getElementById('memEditId').value = '';
+      document.getElementById('memInputTitle').value = '';
+      document.getElementById('memInputCat').value = 'personal';
+      document.getElementById('memInputContent').value = '';
+      document.getElementById('memInputTags').value = '';
+      document.getElementById('memInputStar').value = '0';
+    }
+    modal.classList.add('show');
+    setTimeout(() => document.getElementById('memInputTitle').focus(), 100);
+  }
+
+  function closeEditor(){
+    document.getElementById('memEditorModal').classList.remove('show');
+  }
+
+  function saveMemory(){
+    const id = document.getElementById('memEditId').value;
+    const title = document.getElementById('memInputTitle').value.trim();
+    const content = document.getElementById('memInputContent').value.trim();
+    const cat = document.getElementById('memInputCat').value;
+    const tagsRaw = document.getElementById('memInputTags').value;
+    const star = document.getElementById('memInputStar').value === '1';
+    const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean).slice(0,10);
+
+    if(!title && !content){
+      if(typeof showToast === 'function') showToast('⚠️ Bitte Titel oder Inhalt eingeben');
+      return;
+    }
+
+    if(id){
+      const m = memories.find(x => x.id === id);
+      if(m){
+        m.title = title || '(Ohne Titel)';
+        m.content = content;
+        m.cat = cat;
+        m.tags = tags;
+        m.star = star;
+        m.updated = Date.now();
+      }
+    } else {
+      memories.push({
+        id: uid(),
+        title: title || '(Ohne Titel)',
+        content, cat, tags, star,
+        created: Date.now(),
+        updated: Date.now()
+      });
+    }
+    save();
+    render();
+    closeEditor();
+    if(typeof showToast === 'function') showToast(id ? '✅ Aktualisiert' : '💾 Gespeichert');
+    if(typeof playSound === 'function') playSound('success');
+    if(navigator.vibrate) navigator.vibrate(15);
+  }
+
+  // ═══ View ═══
+  function viewMemory(id){
+    const m = memories.find(x => x.id === id);
+    if(!m) return;
+    currentViewId = id;
+    const cat = CATEGORIES.find(c => c.id === m.cat) || CATEGORIES[CATEGORIES.length-1];
+    document.getElementById('mvTitle').textContent = m.title || '(Ohne Titel)';
+    document.getElementById('mvCat').textContent = cat.icon + ' ' + cat.name;
+    document.getElementById('mvContent').textContent = m.content || '(Kein Inhalt)';
+    document.getElementById('mvTags').innerHTML = (m.tags || []).map(t => `<span class="mv-tag">#${escapeHtml(t)}</span>`).join('');
+    const created = new Date(m.created || Date.now()).toLocaleString('de-DE');
+    const updated = new Date(m.updated || m.created || Date.now()).toLocaleString('de-DE');
+    document.getElementById('mvMeta').textContent =
+      'Erstellt: ' + created + (m.updated && m.updated !== m.created ? ' · Bearbeitet: ' + updated : '');
+    document.getElementById('memViewModal').classList.add('show');
+  }
+
+  function closeView(){
+    document.getElementById('memViewModal').classList.remove('show');
+    currentViewId = null;
+  }
+
+  function editCurrent(){
+    if(!currentViewId) return;
+    const id = currentViewId;
+    closeView();
+    setTimeout(() => openEditor(id), 150);
+  }
+
+  function deleteCurrent(){
+    if(!currentViewId) return;
+    const m = memories.find(x => x.id === currentViewId);
+    if(!m) return;
+    if(!confirm('Erinnerung "' + (m.title || '(Ohne Titel)') + '" wirklich löschen?')) return;
+    memories = memories.filter(x => x.id !== currentViewId);
+    save();
+    render();
+    closeView();
+    if(typeof showToast === 'function') showToast('🗑️ Gelöscht');
+    if(navigator.vibrate) navigator.vibrate([15, 30, 15]);
+  }
+
+  // ═══ Star / Filter ═══
+  function toggleStar(id){
+    const m = memories.find(x => x.id === id);
+    if(!m) return;
+    m.star = !m.star;
+    m.updated = Date.now();
+    save(); render();
+    if(navigator.vibrate) navigator.vibrate(10);
+  }
+
+  function setFilter(f){
+    currentFilter = f;
+    render();
+  }
+
+  // ═══ Export / Import ═══
+  function exportAll(){
+    if(!memories.length){
+      if(typeof showToast === 'function') showToast('⚠️ Keine Erinnerungen zum Exportieren');
+      return;
+    }
+    const data = {
+      app: 'HalDo AI Memory',
+      version: 1,
+      exported: new Date().toISOString(),
+      count: memories.length,
+      memories
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'haldo-memory-' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    if(typeof showToast === 'function') showToast('📤 ' + memories.length + ' Erinnerungen exportiert');
+  }
+
+  function importFile(){
+    document.getElementById('memImportFile').click();
+  }
+
+  function handleImport(e){
+    const file = e.target.files && e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        const incoming = Array.isArray(data) ? data : (data.memories || []);
+        if(!Array.isArray(incoming) || !incoming.length){
+          if(typeof showToast === 'function') showToast('⚠️ Keine gültigen Daten');
+          return;
+        }
+        const mode = confirm(
+          incoming.length + ' Erinnerungen gefunden.\n\n' +
+          'OK = HINZUFÜGEN (bestehende bleiben)\n' +
+          'Abbrechen = ERSETZEN (alles löschen)'
+        ) ? 'merge' : 'replace';
+
+        if(mode === 'replace'){
+          memories = incoming.map(normalizeImport);
+        } else {
+          const existingIds = new Set(memories.map(m => m.id));
+          for(const raw of incoming){
+            const m = normalizeImport(raw);
+            if(existingIds.has(m.id)) m.id = uid();
+            memories.push(m);
+          }
+        }
+        save(); render();
+        if(typeof showToast === 'function') showToast('📥 ' + incoming.length + ' importiert');
+      } catch(err){
+        if(typeof showToast === 'function') showToast('❌ Fehler beim Import');
+        console.error(err);
+      }
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  }
+
+  function normalizeImport(raw){
+    return {
+      id: raw.id || uid(),
+      title: raw.title || '(Ohne Titel)',
+      content: raw.content || '',
+      cat: raw.cat || 'other',
+      tags: Array.isArray(raw.tags) ? raw.tags : [],
+      star: !!raw.star,
+      created: raw.created || Date.now(),
+      updated: raw.updated || Date.now()
+    };
+  }
+
+  // ═══ Window ═══
+  function openWindow(){
+    const win = document.getElementById('memoryWindow');
+    if(!win) return;
+    load();
+    render();
+    win.classList.add('show');
+    if(typeof playSound === 'function') playSound('open');
+    if(navigator.vibrate) navigator.vibrate(10);
+  }
+
+  function closeWindow(){
+    document.getElementById('memoryWindow').classList.remove('show');
+    closeEditor();
+    closeView();
+    if(typeof playSound === 'function') playSound('close');
+  }
+
+  // ═══ PUBLIC API für andere Apps ═══
+  // Andere Apps können so Erinnerungen speichern/lesen:
+  //   HalDoMemory.remember('Titel', 'Inhalt', 'kategorie')
+  //   HalDoMemory.recall('Suchbegriff')  → Array
+  //   HalDoMemory.forget(id)
+  //   HalDoMemory.all()
+  window.HalDoMemory = {
+    remember(title, content, cat, tags){
+      const m = {
+        id: uid(),
+        title: title || '(Ohne Titel)',
+        content: content || '',
+        cat: cat || 'other',
+        tags: Array.isArray(tags) ? tags : [],
+        star: false,
+        created: Date.now(),
+        updated: Date.now(),
+        source: 'api'
+      };
+      memories.push(m);
+      save();
+      if(document.getElementById('memoryWindow')?.classList.contains('show')) render();
+      return m.id;
+    },
+    recall(query){
+      const q = String(query || '').toLowerCase();
+      if(!q) return memories.slice();
+      return memories.filter(m =>
+        (m.title||'').toLowerCase().includes(q) ||
+        (m.content||'').toLowerCase().includes(q) ||
+        (m.tags||[]).some(t => t.toLowerCase().includes(q))
+      );
+    },
+    forget(id){
+      const before = memories.length;
+      memories = memories.filter(m => m.id !== id);
+      save();
+      if(document.getElementById('memoryWindow')?.classList.contains('show')) render();
+      return before !== memories.length;
+    },
+    all(){ return memories.slice(); },
+    count(){ return memories.length; }
+  };
+
+  // ═══ Expose UI Handlers ═══
+  window.HalDoMemoryApp = {
+    open: openWindow,
+    close: closeWindow,
+    render,
+    setFilter,
+    openEditor, closeEditor, save: saveMemory,
+    view: viewMemory, closeView, editCurrent, deleteCurrent,
+    toggleStar,
+    exportAll, importFile
+  };
+
+  // ═══ Hook in openWin falls vorhanden ═══
+  const origOpenWin = window.openWin;
+  window.openWin = function(id){
+    if(id === 'memory-window'){ openWindow(); return; }
+    if(typeof origOpenWin === 'function') return origOpenWin(id);
+  };
+
+  // ═══ Event Bindings ═══
+  document.addEventListener('DOMContentLoaded', () => {
+    const fi = document.getElementById('memImportFile');
+    if(fi) fi.addEventListener('change', handleImport);
+
+    // ESC schließt
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape'){
+        if(document.getElementById('memEditorModal').classList.contains('show')) closeEditor();
+        else if(document.getElementById('memViewModal').classList.contains('show')) closeView();
+        else if(document.getElementById('memoryWindow').classList.contains('show')) closeWindow();
+      }
+    });
+  });
+
+  // Sofort initialisieren (DOM ist bereits da)
+  load();
+
+  // ═══ Registry patchen: AI Memory als "gebaut" markieren ═══
+  setTimeout(() => {
+    // Versuche, den Eintrag in der v54 Registry zu aktualisieren
+    if(window.REGISTRY){ /* nichts, das ist const */ }
+    // Falls die Registry global verfügbar ist – einfach Info loggen
+    console.log('%c💾 AI Memory App geladen · ' + memories.length + ' Erinnerungen',
+      'color:#00e5ff;font-weight:bold;');
+  }, 500);
+
+  // ═══ openWin für Registry-Eintrag 'memory-window' aktivieren ═══
+  // (v54 Registry hat 'AI Memory' noch als planned, aber unsere App öffnet trotzdem)
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════ ENDE v55 AI MEMORY ═══════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
