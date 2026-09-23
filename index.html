@@ -12078,5 +12078,739 @@ body.auto-night-active::after {
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ═══════════════════ ENDE v55 AI MEMORY ═══════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════ v56 – JOURNAL / TAGEBUCH (KOMPLETT) ══════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#journalWindow {
+  position: fixed; inset: 0;
+  background: linear-gradient(180deg, rgba(20,5,40,.98), rgba(10,0,25,.99));
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  z-index: 8450; display: none; flex-direction: column;
+  color: #f0e6ff; font-family: inherit;
+  animation: jnFadeIn .25s;
+}
+#journalWindow.show { display: flex; }
+@keyframes jnFadeIn { from { opacity:0; transform: scale(.98);} to {opacity:1;transform:scale(1);} }
+
+.jn-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid rgba(180,120,255,.2);
+  background: rgba(40,10,70,.6); flex-shrink: 0;
+}
+.jn-title { display: flex; align-items: center; gap: 10px; }
+.jn-title .jn-icon { font-size: 26px; filter: drop-shadow(0 0 12px rgba(180,120,255,.8)); }
+.jn-title h2 { font-size: 18px; margin: 0; font-weight: 700; color: #fff; letter-spacing: .5px; }
+.jn-title small { display: block; font-size: 10px; color: #c4a8ff; margin-top: 2px; letter-spacing: 1px; text-transform: uppercase; }
+.jn-actions { display: flex; gap: 8px; }
+.jn-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 14px; border-radius: 10px;
+  background: rgba(180,120,255,.15); border: 1px solid rgba(180,120,255,.4);
+  color: #f0e6ff; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all .15s; -webkit-tap-highlight-color: transparent;
+}
+.jn-btn:hover { background: rgba(180,120,255,.3); transform: translateY(-1px); }
+.jn-btn.primary { background: #b478ff; color: #1a0033; border-color: #fff; }
+.jn-btn.primary:hover { filter: brightness(1.15); }
+.jn-btn.danger { background: rgba(255,60,60,.15); border-color: rgba(255,60,60,.4); color: #ff8080; }
+.jn-btn.icon-only { padding: 10px; font-size: 16px; }
+
+.jn-mood-bar {
+  display: flex; gap: 8px; padding: 14px 20px; overflow-x: auto;
+  border-bottom: 1px solid rgba(180,120,255,.12); flex-shrink: 0;
+  background: rgba(30,8,55,.4);
+}
+.jn-mood-btn {
+  flex-shrink: 0; display: flex; flex-direction: column; align-items: center;
+  padding: 10px 14px; border-radius: 14px; cursor: pointer;
+  background: rgba(60,20,90,.5); border: 1.5px solid rgba(180,120,255,.2);
+  transition: all .15s; -webkit-tap-highlight-color: transparent;
+}
+.jn-mood-btn:hover { transform: translateY(-3px); background: rgba(80,30,120,.6); }
+.jn-mood-btn.active { border-color: #fff; box-shadow: 0 0 20px currentColor; }
+.jn-mood-btn .jm-emoji { font-size: 22px; }
+.jn-mood-btn .jm-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; opacity: .9; }
+
+.jn-toolbar {
+  padding: 12px 20px; display: flex; gap: 10px;
+  flex-shrink: 0; border-bottom: 1px solid rgba(180,120,255,.1);
+  align-items: center;
+}
+.jn-search {
+  flex: 1; display: flex; align-items: center; gap: 8px;
+  background: rgba(40,10,70,.7); border: 1px solid rgba(180,120,255,.3);
+  border-radius: 12px; padding: 10px 14px;
+}
+.jn-search input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: #fff; font-size: 14px; font-family: inherit;
+}
+.jn-search input::placeholder { color: #9070b0; }
+
+.jn-stats {
+  display: flex; gap: 8px; padding: 12px 20px; overflow-x: auto;
+  border-bottom: 1px solid rgba(180,120,255,.1); flex-shrink: 0;
+}
+.jn-stat {
+  flex-shrink: 0; padding: 8px 14px; border-radius: 10px;
+  background: rgba(60,20,90,.5); border: 1px solid rgba(180,120,255,.2);
+  text-align: center; min-width: 84px;
+}
+.jn-stat .js-num { font-size: 18px; font-weight: 800; color: #b478ff; }
+.jn-stat .js-lbl { font-size: 9px; color: #c4a8ff; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+.jn-body { flex: 1; overflow-y: auto; padding: 16px 20px 100px; }
+.jn-list { display: flex; flex-direction: column; gap: 12px; max-width: 900px; margin: 0 auto; }
+
+.jn-entry {
+  background: linear-gradient(160deg, rgba(60,20,90,.55), rgba(30,8,55,.8));
+  border: 1.5px solid rgba(180,120,255,.2);
+  border-radius: 16px; padding: 16px; cursor: pointer;
+  transition: all .18s; position: relative; overflow: hidden;
+  display: flex; gap: 14px;
+}
+.jn-entry:hover {
+  transform: translateY(-2px);
+  border-color: #b478ff;
+  box-shadow: 0 8px 30px rgba(0,0,0,.5), 0 0 24px rgba(180,120,255,.25);
+}
+.jn-entry .je-mood {
+  flex-shrink: 0; width: 56px; height: 56px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; background: rgba(0,0,0,.3);
+}
+.jn-entry .je-main { flex: 1; min-width: 0; }
+.jn-entry .je-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 6px;
+}
+.jn-entry h3 {
+  font-size: 15px; margin: 0; color: #fff; font-weight: 700;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.jn-entry .je-date {
+  font-size: 10px; color: #c4a8ff; flex-shrink: 0; font-weight: 600;
+}
+.jn-entry .je-preview {
+  font-size: 12.5px; color: #d0b8ff; line-height: 1.5; margin: 0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.jn-entry .je-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px; }
+.jn-entry .je-tag {
+  font-size: 9px; padding: 2px 8px; border-radius: 6px;
+  background: rgba(180,120,255,.15); color: #c4a8ff;
+}
+.jn-entry .je-star {
+  position: absolute; top: 12px; right: 12px; font-size: 16px;
+}
+.jn-entry.starred { border-color: rgba(255,200,0,.5); }
+
+.jn-empty {
+  text-align: center; padding: 60px 20px; color: #9070b0;
+}
+.jn-empty .je-icon { font-size: 64px; opacity: .4; margin-bottom: 16px; }
+.jn-empty .je-text { font-size: 15px; margin-bottom: 8px; color: #c4a8ff; }
+.jn-empty .je-sub { font-size: 12px; }
+
+/* Modals */
+.jn-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,.88);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  z-index: 8700; display: none; align-items: center; justify-content: center;
+  padding: 20px; animation: jnFadeIn .2s;
+}
+.jn-modal.show { display: flex; }
+.jn-modal-box {
+  background: linear-gradient(180deg, rgba(40,10,70,.98), rgba(20,5,40,.99));
+  border: 2px solid #b478ff; border-radius: 20px;
+  padding: 24px; max-width: 560px; width: 100%; max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.7), 0 0 40px rgba(180,120,255,.25);
+  animation: jnPop .3s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes jnPop { from { transform: scale(.9); opacity:0;} to {transform:scale(1);opacity:1;} }
+.jn-modal-box h3 { margin: 0 0 18px 0; font-size: 20px; color: #fff; }
+.jn-form-row { margin-bottom: 14px; }
+.jn-form-row label {
+  display: block; font-size: 11px; color: #c4a8ff; font-weight: 700;
+  margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px;
+}
+.jn-form-row input, .jn-form-row textarea, .jn-form-row select {
+  width: 100%; padding: 12px 14px; border-radius: 10px;
+  background: rgba(0,0,0,.4); border: 1.5px solid rgba(180,120,255,.3);
+  color: #fff; font-size: 14px; font-family: inherit; outline: none;
+  transition: border-color .15s; box-sizing: border-box;
+}
+.jn-form-row input:focus, .jn-form-row textarea:focus, .jn-form-row select:focus {
+  border-color: #b478ff;
+}
+.jn-form-row textarea { min-height: 160px; resize: vertical; font-family: inherit; }
+.jn-form-row select option { background: #1a0033; }
+
+.jn-mood-picker {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 8px;
+}
+.jn-mood-opt {
+  padding: 10px 6px; border-radius: 12px; cursor: pointer;
+  background: rgba(0,0,0,.35); border: 2px solid transparent;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  transition: all .15s; -webkit-tap-highlight-color: transparent;
+}
+.jn-mood-opt:hover { background: rgba(180,120,255,.15); }
+.jn-mood-opt.selected { border-color: #fff; box-shadow: 0 0 15px currentColor; }
+.jn-mood-opt .jmo-emoji { font-size: 24px; }
+.jn-mood-opt .jmo-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+
+.jn-form-actions { display: flex; gap: 10px; margin-top: 20px; }
+.jn-form-actions .jn-btn { flex: 1; padding: 14px; }
+
+.jn-view-box .jv-head {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 16px;
+}
+.jn-view-box .jv-mood {
+  width: 60px; height: 60px; border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px; background: rgba(0,0,0,.35); flex-shrink: 0;
+}
+.jn-view-box .jv-head-main { flex: 1; min-width: 0; }
+.jn-view-box h3 { margin: 0 0 4px 0; }
+.jn-view-box .jv-date { font-size: 11px; color: #c4a8ff; font-weight: 600; }
+.jn-view-box .jv-content {
+  font-size: 14px; line-height: 1.75; color: #e0d0ff;
+  padding: 16px; background: rgba(0,0,0,.35); border-radius: 12px;
+  white-space: pre-wrap; word-break: break-word;
+  max-height: 50vh; overflow-y: auto;
+}
+.jn-view-box .jv-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.jn-view-box .jv-tag {
+  font-size: 11px; padding: 4px 10px; border-radius: 10px;
+  background: rgba(180,120,255,.15); color: #c4a8ff;
+}
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- JOURNAL WINDOW ═══════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="journalWindow">
+  <div class="jn-header">
+    <div class="jn-title">
+      <span class="jn-icon">📔</span>
+      <div>
+        <h2>Journal</h2>
+        <small>Dein Tagebuch</small>
+      </div>
+    </div>
+    <div class="jn-actions">
+      <button class="jn-btn icon-only" onclick="HalDoJournalApp.exportAll()" title="Export">📤</button>
+      <button class="jn-btn icon-only" onclick="HalDoJournalApp.importFile()" title="Import">📥</button>
+      <button class="jn-btn icon-only" onclick="HalDoJournalApp.close()" title="Schließen">✕</button>
+    </div>
+  </div>
+
+  <div class="jn-mood-bar" id="jnMoodBar"></div>
+  <div class="jn-stats" id="jnStats"></div>
+
+  <div class="jn-toolbar">
+    <div class="jn-search">
+      <span>🔍</span>
+      <input id="jnSearchInput" placeholder="Einträge durchsuchen..." oninput="HalDoJournalApp.render()">
+    </div>
+  </div>
+
+  <div class="jn-body">
+    <div class="jn-list" id="jnList"></div>
+  </div>
+
+  <button class="jn-btn primary" id="jnAddFab" onclick="HalDoJournalApp.openEditor()"
+    style="position:absolute;bottom:24px;right:24px;padding:16px 22px;font-size:15px;border-radius:16px;box-shadow:0 8px 30px rgba(180,120,255,.5);">
+    ✚ Neuer Eintrag
+  </button>
+</div>
+
+<!-- Editor Modal -->
+<div class="jn-modal" id="jnEditorModal">
+  <div class="jn-modal-box">
+    <h3 id="jnEditorTitle">✚ Neuer Eintrag</h3>
+    <input type="hidden" id="jnEditId">
+    <div class="jn-form-row">
+      <label>Wie fühlst du dich?</label>
+      <div class="jn-mood-picker" id="jnMoodPicker"></div>
+    </div>
+    <div class="jn-form-row">
+      <label>Titel</label>
+      <input id="jnInputTitle" placeholder="Worum geht es heute?" maxlength="140">
+    </div>
+    <div class="jn-form-row">
+      <label>Dein Tagebuch</label>
+      <textarea id="jnInputContent" placeholder="Schreib frei von der Seele..."></textarea>
+    </div>
+    <div class="jn-form-row">
+      <label>Tags (mit Komma getrennt)</label>
+      <input id="jnInputTags" placeholder="z.B. familie, arbeit, dankbar">
+    </div>
+    <div class="jn-form-actions">
+      <button class="jn-btn" onclick="HalDoJournalApp.closeEditor()">Abbrechen</button>
+      <button class="jn-btn primary" onclick="HalDoJournalApp.save()">💾 Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Modal -->
+<div class="jn-modal" id="jnViewModal">
+  <div class="jn-modal-box jn-view-box">
+    <div class="jv-head">
+      <div class="jv-mood" id="jvMood">😊</div>
+      <div class="jv-head-main">
+        <h3 id="jvTitle">Titel</h3>
+        <div class="jv-date" id="jvDate"></div>
+      </div>
+    </div>
+    <div class="jv-content" id="jvContent"></div>
+    <div class="jv-tags" id="jvTags"></div>
+    <div class="jn-form-actions">
+      <button class="jn-btn danger" onclick="HalDoJournalApp.deleteCurrent()">🗑️ Löschen</button>
+      <button class="jn-btn" onclick="HalDoJournalApp.toggleStarCurrent()" id="jvStarBtn">⭐ Merken</button>
+      <button class="jn-btn primary" onclick="HalDoJournalApp.editCurrent()">✏️ Bearbeiten</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="jnImportFile" accept="application/json" style="display:none">
+
+<script>
+(function(){
+  "use strict";
+
+  const STORAGE_KEY = 'haldo_journal_v1';
+
+  const MOODS = [
+    { id: 'great',   emoji: '🤩', label: 'Super',    color: '#ffd700' },
+    { id: 'good',    emoji: '😊', label: 'Gut',      color: '#00ff88' },
+    { id: 'okay',    emoji: '😌', label: 'Okay',     color: '#00e5ff' },
+    { id: 'meh',     emoji: '😐', label: 'Naja',     color: '#a0a0a0' },
+    { id: 'tired',   emoji: '😴', label: 'Müde',     color: '#8888ff' },
+    { id: 'sad',     emoji: '😢', label: 'Traurig',  color: '#6699ff' },
+    { id: 'angry',   emoji: '😠', label: 'Wütend',   color: '#ff4444' }
+  ];
+
+  let entries = [];
+  let currentMoodFilter = 'all';
+  let currentViewId = null;
+  let editorMood = 'good';
+
+  function load(){
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      entries = raw ? JSON.parse(raw) : [];
+    } catch(e){ entries = []; }
+    if(!Array.isArray(entries)) entries = [];
+  }
+  function save(){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); } catch(e){}
+  }
+  function uid(){ return 'j_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7); }
+  function escapeHtml(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function moodInfo(id){ return MOODS.find(m => m.id === id) || MOODS[2]; }
+  function dateKey(ts){ const d = new Date(ts); return d.toISOString().slice(0,10); }
+
+  function getStreak(){
+    if(!entries.length) return 0;
+    const days = new Set(entries.map(e => dateKey(e.created)));
+    let streak = 0;
+    const today = new Date();
+    for(let i = 0; i < 365; i++){
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const k = d.toISOString().slice(0,10);
+      if(days.has(k)) streak++;
+      else if(i > 0) break;
+    }
+    return streak;
+  }
+
+  function renderStats(){
+    const el = document.getElementById('jnStats');
+    if(!el) return;
+    const total = entries.length;
+    const week = entries.filter(e => (Date.now() - e.created) < 7*24*3600*1000).length;
+    const streak = getStreak();
+    // Häufigste Stimmung
+    const counts = {};
+    entries.forEach(e => { counts[e.mood] = (counts[e.mood]||0)+1; });
+    let topMood = '-', topCount = 0;
+    for(const k in counts){ if(counts[k] > topCount){ topCount = counts[k]; topMood = k; } }
+    const topMoodObj = topMood !== '-' ? moodInfo(topMood) : null;
+
+    el.innerHTML = `
+      <div class="jn-stat"><div class="js-num">${total}</div><div class="js-lbl">Einträge</div></div>
+      <div class="jn-stat"><div class="js-num">${week}</div><div class="js-lbl">7 Tage</div></div>
+      <div class="jn-stat"><div class="js-num">🔥 ${streak}</div><div class="js-lbl">Streak</div></div>
+      <div class="jn-stat"><div class="js-num">${topMoodObj ? topMoodObj.emoji : '-'}</div><div class="js-lbl">Häufigste</div></div>
+    `;
+  }
+
+  function renderMoodBar(){
+    const el = document.getElementById('jnMoodBar');
+    if(!el) return;
+    let html = `<button class="jn-mood-btn ${currentMoodFilter==='all'?'active':''}"
+      style="color:#b478ff" onclick="HalDoJournalApp.setMoodFilter('all')">
+      <span class="jm-emoji">📚</span><span class="jm-label">Alle</span></button>`;
+    for(const m of MOODS){
+      const count = entries.filter(e => e.mood === m.id).length;
+      html += `<button class="jn-mood-btn ${currentMoodFilter===m.id?'active':''}"
+        style="color:${m.color}" onclick="HalDoJournalApp.setMoodFilter('${m.id}')">
+        <span class="jm-emoji">${m.emoji}</span>
+        <span class="jm-label">${m.label}${count?' '+count:''}</span></button>`;
+    }
+    el.innerHTML = html;
+  }
+
+  function renderList(){
+    const list = document.getElementById('jnList');
+    if(!list) return;
+    const q = (document.getElementById('jnSearchInput')?.value || '').toLowerCase().trim();
+    let arr = entries.slice();
+    if(currentMoodFilter !== 'all') arr = arr.filter(e => e.mood === currentMoodFilter);
+    if(q){
+      arr = arr.filter(e =>
+        (e.title || '').toLowerCase().includes(q) ||
+        (e.content || '').toLowerCase().includes(q) ||
+        (e.tags || []).some(t => t.toLowerCase().includes(q))
+      );
+    }
+    arr.sort((a,b) => (b.created||0) - (a.created||0));
+
+    if(!arr.length){
+      list.innerHTML = `<div class="jn-empty">
+        <div class="je-icon">📔</div>
+        <div class="je-text">${q ? 'Keine Treffer für "'+escapeHtml(q)+'"' : 'Noch keine Einträge'}</div>
+        <div class="je-sub">${q ? 'Versuche einen anderen Suchbegriff' : 'Klicke auf "✚ Neuer Eintrag" um zu starten'}</div>
+      </div>`;
+      return;
+    }
+
+    list.innerHTML = arr.map(e => {
+      const m = moodInfo(e.mood);
+      const d = new Date(e.created);
+      const dateStr = d.toLocaleDateString('de-DE', { weekday:'short', day:'2-digit', month:'short', year:'numeric' });
+      const preview = (e.content || '').slice(0, 200);
+      const tagsHtml = (e.tags || []).slice(0,4).map(t => `<span class="je-tag">#${escapeHtml(t)}</span>`).join('');
+      return `<div class="jn-entry ${e.star?'starred':''}" onclick="HalDoJournalApp.view('${e.id}')">
+        ${e.star ? '<div class="je-star">⭐</div>' : ''}
+        <div class="je-mood" style="color:${m.color};background:${m.color}22;">${m.emoji}</div>
+        <div class="je-main">
+          <div class="je-head">
+            <h3>${escapeHtml(e.title || '(Ohne Titel)')}</h3>
+            <span class="je-date">${dateStr}</span>
+          </div>
+          <p class="je-preview">${escapeHtml(preview)}</p>
+          ${tagsHtml ? `<div class="je-tags">${tagsHtml}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function render(){ renderMoodBar(); renderStats(); renderList(); }
+
+  // ═══ Editor ═══
+  function buildMoodPicker(){
+    const el = document.getElementById('jnMoodPicker');
+    if(!el || el.dataset.built) return;
+    el.innerHTML = MOODS.map(m => `
+      <div class="jn-mood-opt" data-mood="${m.id}" style="color:${m.color}"
+        onclick="HalDoJournalApp.selectMood('${m.id}')">
+        <span class="jmo-emoji">${m.emoji}</span>
+        <span class="jmo-lbl" style="color:${m.color}">${m.label}</span>
+      </div>
+    `).join('');
+    el.dataset.built = '1';
+  }
+
+  function selectMood(id){
+    editorMood = id;
+    document.querySelectorAll('#jnMoodPicker .jn-mood-opt').forEach(el => {
+      el.classList.toggle('selected', el.dataset.mood === id);
+    });
+    if(navigator.vibrate) navigator.vibrate(8);
+  }
+
+  function openEditor(id){
+    buildMoodPicker();
+    const titleEl = document.getElementById('jnEditorTitle');
+    if(id){
+      const e = entries.find(x => x.id === id);
+      if(!e) return;
+      titleEl.textContent = '✏️ Eintrag bearbeiten';
+      document.getElementById('jnEditId').value = e.id;
+      document.getElementById('jnInputTitle').value = e.title || '';
+      document.getElementById('jnInputContent').value = e.content || '';
+      document.getElementById('jnInputTags').value = (e.tags || []).join(', ');
+      editorMood = e.mood || 'good';
+    } else {
+      titleEl.textContent = '✚ Neuer Eintrag';
+      document.getElementById('jnEditId').value = '';
+      document.getElementById('jnInputTitle').value = '';
+      document.getElementById('jnInputContent').value = '';
+      document.getElementById('jnInputTags').value = '';
+      editorMood = 'good';
+    }
+    selectMood(editorMood);
+    document.getElementById('jnEditorModal').classList.add('show');
+    setTimeout(() => document.getElementById('jnInputTitle').focus(), 100);
+  }
+  function closeEditor(){ document.getElementById('jnEditorModal').classList.remove('show'); }
+
+  function saveEntry(){
+    const id = document.getElementById('jnEditId').value;
+    const title = document.getElementById('jnInputTitle').value.trim();
+    const content = document.getElementById('jnInputContent').value.trim();
+    const tagsRaw = document.getElementById('jnInputTags').value;
+    const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean).slice(0,10);
+
+    if(!title && !content){
+      if(typeof showToast === 'function') showToast('⚠️ Bitte Titel oder Inhalt eingeben');
+      return;
+    }
+
+    if(id){
+      const e = entries.find(x => x.id === id);
+      if(e){
+        e.title = title || '(Ohne Titel)';
+        e.content = content;
+        e.mood = editorMood;
+        e.tags = tags;
+        e.updated = Date.now();
+      }
+    } else {
+      entries.push({
+        id: uid(),
+        title: title || '(Ohne Titel)',
+        content,
+        mood: editorMood,
+        tags,
+        star: false,
+        created: Date.now(),
+        updated: Date.now()
+      });
+    }
+    save(); render(); closeEditor();
+    if(typeof showToast === 'function') showToast(id ? '✅ Aktualisiert' : '📔 Gespeichert');
+    if(typeof playSound === 'function') playSound('success');
+    if(navigator.vibrate) navigator.vibrate(15);
+  }
+
+  // ═══ View ═══
+  function view(id){
+    const e = entries.find(x => x.id === id);
+    if(!e) return;
+    currentViewId = id;
+    const m = moodInfo(e.mood);
+    document.getElementById('jvMood').textContent = m.emoji;
+    document.getElementById('jvMood').style.color = m.color;
+    document.getElementById('jvTitle').textContent = e.title || '(Ohne Titel)';
+    const d = new Date(e.created);
+    const dateStr = d.toLocaleDateString('de-DE', { weekday:'long', day:'2-digit', month:'long', year:'numeric' }) +
+                    ' · ' + d.toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' });
+    document.getElementById('jvDate').textContent = dateStr + ' · ' + m.label;
+    document.getElementById('jvContent').textContent = e.content || '(Kein Inhalt)';
+    document.getElementById('jvTags').innerHTML = (e.tags || []).map(t => `<span class="jv-tag">#${escapeHtml(t)}</span>`).join('');
+    document.getElementById('jvStarBtn').innerHTML = e.star ? '💾 Gemerkt' : '⭐ Merken';
+    document.getElementById('jnViewModal').classList.add('show');
+  }
+  function closeView(){ document.getElementById('jnViewModal').classList.remove('show'); currentViewId = null; }
+  function editCurrent(){ if(!currentViewId) return; const id = currentViewId; closeView(); setTimeout(() => openEditor(id), 150); }
+  function deleteCurrent(){
+    if(!currentViewId) return;
+    const e = entries.find(x => x.id === currentViewId);
+    if(!e) return;
+    if(!confirm('Eintrag "' + (e.title || '(Ohne Titel)') + '" wirklich löschen?')) return;
+    entries = entries.filter(x => x.id !== currentViewId);
+    save(); render(); closeView();
+    if(typeof showToast === 'function') showToast('🗑️ Gelöscht');
+    if(navigator.vibrate) navigator.vibrate([15,30,15]);
+  }
+
+  // ⭐ Merken = ins AI Memory schicken
+  function toggleStarCurrent(){
+    if(!currentViewId) return;
+    const e = entries.find(x => x.id === currentViewId);
+    if(!e) return;
+    if(e.star){
+      e.star = false;
+      save(); render();
+      document.getElementById('jvStarBtn').innerHTML = '⭐ Merken';
+      if(typeof showToast === 'function') showToast('☆ Markierung entfernt');
+      return;
+    }
+    // Ins AI Memory schicken
+    if(window.HalDoMemory && typeof window.HalDoMemory.remember === 'function'){
+      const title = '📔 ' + (e.title || 'Tagebucheintrag');
+      const catMap = { great:'personal', good:'personal', okay:'personal', meh:'personal', tired:'personal', sad:'personal', angry:'personal' };
+      HalDoMemory.remember(title, e.content, catMap[e.mood] || 'personal', ['journal', ...(e.tags||[])]);
+      e.star = true;
+      e.memoryId = true;
+      save(); render();
+      document.getElementById('jvStarBtn').innerHTML = '💾 Gemerkt';
+      if(typeof showToast === 'function') showToast('💾 Ins AI Memory übertragen');
+      if(typeof playSound === 'function') playSound('success');
+    } else {
+      e.star = true;
+      save(); render();
+      document.getElementById('jvStarBtn').innerHTML = '💾 Gemerkt';
+      if(typeof showToast === 'function') showToast('⭐ Als wichtig markiert');
+    }
+    if(navigator.vibrate) navigator.vibrate(20);
+  }
+
+  function setMoodFilter(f){ currentMoodFilter = f; render(); }
+
+  // ═══ Export / Import ═══
+  function exportAll(){
+    if(!entries.length){
+      if(typeof showToast === 'function') showToast('⚠️ Keine Einträge zum Exportieren');
+      return;
+    }
+    const data = { app:'HalDo Journal', version:1, exported:new Date().toISOString(), count:entries.length, entries };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'haldo-journal-' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    if(typeof showToast === 'function') showToast('📤 ' + entries.length + ' Einträge exportiert');
+  }
+  function importFile(){ document.getElementById('jnImportFile').click(); }
+  function handleImport(ev){
+    const file = ev.target.files && ev.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        const incoming = Array.isArray(data) ? data : (data.entries || []);
+        if(!Array.isArray(incoming) || !incoming.length){
+          if(typeof showToast === 'function') showToast('⚠️ Keine gültigen Daten');
+          return;
+        }
+        const mode = confirm(
+          incoming.length + ' Einträge gefunden.\n\nOK = HINZUFÜGEN\nAbbrechen = ERSETZEN'
+        ) ? 'merge' : 'replace';
+        if(mode === 'replace'){
+          entries = incoming.map(norm);
+        } else {
+          const ids = new Set(entries.map(e => e.id));
+          for(const raw of incoming){
+            const e = norm(raw);
+            if(ids.has(e.id)) e.id = uid();
+            entries.push(e);
+          }
+        }
+        save(); render();
+        if(typeof showToast === 'function') showToast('📥 ' + incoming.length + ' importiert');
+      } catch(err){
+        if(typeof showToast === 'function') showToast('❌ Fehler beim Import');
+        console.error(err);
+      }
+      ev.target.value = '';
+    };
+    reader.readAsText(file);
+  }
+  function norm(raw){
+    return {
+      id: raw.id || uid(),
+      title: raw.title || '(Ohne Titel)',
+      content: raw.content || '',
+      mood: MOODS.find(m => m.id === raw.mood) ? raw.mood : 'okay',
+      tags: Array.isArray(raw.tags) ? raw.tags : [],
+      star: !!raw.star,
+      created: raw.created || Date.now(),
+      updated: raw.updated || Date.now()
+    };
+  }
+
+  // ═══ Window ═══
+  function openWindow(){
+    const w = document.getElementById('journalWindow');
+    if(!w) return;
+    load(); render(); w.classList.add('show');
+    if(typeof playSound === 'function') playSound('open');
+    if(navigator.vibrate) navigator.vibrate(10);
+  }
+  function closeWindow(){
+    document.getElementById('journalWindow').classList.remove('show');
+    closeEditor(); closeView();
+    if(typeof playSound === 'function') playSound('close');
+  }
+
+  // ═══ API für andere Apps ═══
+  window.HalDoJournal = {
+    write(title, content, mood, tags){
+      const id = uid();
+      entries.push({
+        id, title: title || '(Ohne Titel)', content: content || '',
+        mood: MOODS.find(m => m.id === mood) ? mood : 'okay',
+        tags: Array.isArray(tags) ? tags : [],
+        star: false, created: Date.now(), updated: Date.now(),
+        source: 'api'
+      });
+      save();
+      if(document.getElementById('journalWindow')?.classList.contains('show')) render();
+      return id;
+    },
+    read(query){
+      const q = String(query||'').toLowerCase();
+      if(!q) return entries.slice();
+      return entries.filter(e =>
+        (e.title||'').toLowerCase().includes(q) ||
+        (e.content||'').toLowerCase().includes(q) ||
+        (e.tags||[]).some(t=>t.toLowerCase().includes(q))
+      );
+    },
+    all(){ return entries.slice(); },
+    count(){ return entries.length; },
+    streak(){ return getStreak(); }
+  };
+
+  window.HalDoJournalApp = {
+    open: openWindow, close: closeWindow, render,
+    setMoodFilter, selectMood,
+    openEditor, closeEditor, save: saveEntry,
+    view, closeView, editCurrent, deleteCurrent, toggleStarCurrent,
+    exportAll, importFile
+  };
+
+  // ═══ Hook openWin ═══
+  const orig = window.openWin;
+  window.openWin = function(id){
+    if(id === 'journal-window'){ openWindow(); return; }
+    if(typeof orig === 'function') return orig(id);
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const fi = document.getElementById('jnImportFile');
+    if(fi) fi.addEventListener('change', handleImport);
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape'){
+        if(document.getElementById('jnEditorModal').classList.contains('show')) closeEditor();
+        else if(document.getElementById('jnViewModal').classList.contains('show')) closeView();
+        else if(document.getElementById('journalWindow').classList.contains('show')) closeWindow();
+      }
+    });
+  });
+
+  load();
+  console.log('%c📔 Journal App geladen · ' + entries.length + ' Einträge · Streak: ' + getStreak(),
+    'color:#b478ff;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════ ENDE v56 JOURNAL ═════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
