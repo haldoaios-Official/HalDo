@@ -3354,5 +3354,547 @@ console.log('%c🔷 HalDo AI OS v40 geladen','color:#00e5ff;font-size:16px;font-
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════ ENDE v41 ANHANG ═══════════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════ v42 ANHANG – VOR </body> EINFÜGEN ═════════ -->
+<!-- ═══════ Währungsrechner + Wörterbuch + Kalender-Plus ══════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  "use strict";
+
+  // ═══════════════════════════════════════════════════════
+  // 1) WÄHRUNGSRECHNER (live, ohne API-Key)
+  // ═══════════════════════════════════════════════════════
+  const CURR_HTML = `
+  <div id="currency-window" class="os-window">
+    <div class="header">
+      <span class="header-title">💱 Währungsrechner (Live)</span>
+      <div class="header-controls">
+        <button class="control-btn btn-extra" onclick="curRefresh()">🔄</button>
+        <button class="control-btn btn-min" onclick="minimizeWin('currency-window')">–</button>
+        <button class="control-btn btn-max" onclick="toggleMaximize('currency-window')">□</button>
+        <button class="control-btn btn-close" onclick="closeWin('currency-window')">✕</button>
+      </div>
+    </div>
+    <div class="body" style="padding:12px;">
+      <div id="cur-rates-info" style="font-size:11px;color:#88ccff;text-align:center;padding:8px;background:rgba(0,0,0,.3);border-radius:8px;margin-bottom:12px;">Lade Kurse...</div>
+
+      <div class="section">
+        <h4>💵 Betrag eingeben</h4>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+          <select id="cur-from-select" style="flex:0 0 130px;margin:0;" onchange="curCalculate()"></select>
+          <input id="cur-amount" type="number" value="1" step="any" oninput="curCalculate()" style="flex:1;margin:0;text-align:right;font-size:20px;font-weight:bold;color:var(--sys-color);">
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:10px;">
+          <select id="cur-to-select" style="flex:0 0 130px;margin:0;" onchange="curCalculate()"></select>
+          <div id="cur-result" style="flex:1;text-align:right;font-size:20px;font-weight:bold;color:var(--accent);padding:10px 12px;background:rgba(0,0,0,.5);border-radius:8px;border:1px solid var(--accent);min-height:44px;display:flex;align-items:center;justify-content:flex-end;">—</div>
+        </div>
+        <button onclick="curSwap()" style="width:100%;margin-top:10px;padding:10px;">🔁 Tauschen</button>
+      </div>
+
+      <div class="section">
+        <h4>⚡ Schnellbeträge</h4>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px;">
+          <button onclick="curSetAmount(1)" class="btn-sm">1</button>
+          <button onclick="curSetAmount(10)" class="btn-sm">10</button>
+          <button onclick="curSetAmount(100)" class="btn-sm">100</button>
+          <button onclick="curSetAmount(1000)" class="btn-sm">1000</button>
+          <button onclick="curSetAmount(5000)" class="btn-sm">5k</button>
+          <button onclick="curSetAmount(10000)" class="btn-sm">10k</button>
+          <button onclick="curSetAmount(100000)" class="btn-sm">100k</button>
+          <button onclick="curSetAmount(1000000)" class="btn-sm">1M</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h4>📊 Mehrere Währungen gleichzeitig</h4>
+        <div id="cur-multi-list" style="font-size:12px;color:#88ccff;margin-top:6px;">—</div>
+      </div>
+    </div>
+  </div>`;
+
+  const CURRENCIES = [
+    {code:'EUR', name:'🇪🇺 Euro', symbol:'€'},
+    {code:'USD', name:'🇺🇸 US-Dollar', symbol:'$'},
+    {code:'GBP', name:'🇬🇧 Britisches Pfund', symbol:'£'},
+    {code:'TRY', name:'🇹🇷 Türkische Lira', symbol:'₺'},
+    {code:'CHF', name:'🇨🇭 Schweizer Franken', symbol:'Fr'},
+    {code:'JPY', name:'🇯🇵 Japanischer Yen', symbol:'¥'},
+    {code:'CNY', name:'🇨🇳 Chinesischer Yuan', symbol:'¥'},
+    {code:'RUB', name:'🇷🇺 Rubel', symbol:'₽'},
+    {code:'AED', name:'🇦🇪 VAE Dirham', symbol:'د.إ'},
+    {code:'SAR', name:'🇸🇦 Saudi Riyal', symbol:'﷼'},
+    {code:'IQD', name:'🇮🇶 Irakischer Dinar', symbol:'ع.د'},
+    {code:'IRR', name:'🇮🇷 Iranischer Rial', symbol:'﷼'},
+    {code:'ILS', name:'🇮🇱 Schekel', symbol:'₪'},
+    {code:'EGP', name:'🇪🇬 Ägyptisches Pfund', symbol:'E£'},
+    {code:'CAD', name:'🇨🇦 Kanadischer Dollar', symbol:'C$'},
+    {code:'AUD', name:'🇦🇺 Australischer Dollar', symbol:'A$'},
+    {code:'INR', name:'🇮🇳 Indische Rupie', symbol:'₹'},
+    {code:'PKR', name:'🇵🇰 Pakistanische Rupie', symbol:'₨'},
+    {code:'AZN', name:'🇦🇿 Aserbaidschan Manat', symbol:'₼'},
+    {code:'GEL', name:'🇬🇪 Georgischer Lari', symbol:'₾'}
+  ];
+
+  let curRates = null;
+  let curBase = 'EUR';
+
+  function ensureCurrencyWindow(){
+    if(!document.getElementById('currency-window')){
+      const wrap = document.createElement('div');
+      wrap.innerHTML = CURR_HTML;
+      const node = wrap.firstElementChild;
+      document.body.appendChild(node);
+      ['n','s','e','w','ne','nw','se','sw'].forEach(dir=>{
+        const h = document.createElement('div');
+        h.className = 'resize-handle resize-'+dir;
+        h.dataset.dir = dir;
+        node.appendChild(h);
+      });
+      bindWinManual(node);
+      // Selects füllen
+      const fromSel = document.getElementById('cur-from-select');
+      const toSel = document.getElementById('cur-to-select');
+      const opts = CURRENCIES.map(c => `<option value="${c.code}">${c.name}</option>`).join('');
+      if(fromSel){ fromSel.innerHTML = opts; fromSel.value = 'EUR'; }
+      if(toSel){ toSel.innerHTML = opts; toSel.value = 'USD'; }
+      loadRates();
+    }
+  }
+  function bindWinManual(win){
+    const header = win.querySelector('.header'); if(!header) return;
+    header.addEventListener('mousedown', (e)=>{
+      if(e.target.closest('.control-btn')) return;
+      if(win.classList.contains('maximized')) return;
+      e.preventDefault();
+      const cx = e.clientX, cy = e.clientY;
+      const r = win.getBoundingClientRect();
+      const ox = cx - r.left, oy = cy - r.top;
+      document.querySelectorAll('.os-window').forEach(x=>x.classList.remove('active'));
+      win.classList.add('active','dragging');
+      const mv = (ev)=>{ win.style.left = (ev.clientX - ox)+'px'; win.style.top = (ev.clientY - oy)+'px'; win.style.right='auto'; win.style.bottom='auto'; win.style.transform='none'; };
+      const up = ()=>{ document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); win.classList.remove('dragging'); };
+      document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
+    });
+    win.querySelectorAll('.resize-handle').forEach(h=>{
+      h.addEventListener('mousedown', (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        const dir = h.dataset.dir; const cx = e.clientX, cy = e.clientY;
+        const r = win.getBoundingClientRect();
+        const sW = r.width, sH = r.height, sL = r.left, sT = r.top;
+        win.classList.add('resizing');
+        const mv = (ev)=>{
+          const dx = ev.clientX - cx, dy = ev.clientY - cy;
+          if(dir.includes('e')) win.style.width = Math.max(320, sW+dx)+'px';
+          if(dir.includes('w')){ win.style.width = Math.max(320, sW-dx)+'px'; win.style.left = (sL+dx)+'px'; }
+          if(dir.includes('s')) win.style.height = Math.max(200, sH+dy)+'px';
+          if(dir.includes('n')){ win.style.height = Math.max(200, sH-dy)+'px'; win.style.top = (sT+dy)+'px'; }
+          win.style.transform = 'none';
+        };
+        const up = ()=>{ document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); win.classList.remove('resizing'); };
+        document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
+      });
+    });
+  }
+
+  async function loadRates(){
+    const info = document.getElementById('cur-rates-info');
+    if(info) info.textContent = '⏳ Lade live Kurse von exchangerate.host...';
+    try{
+      // Ohne API-Key, kostenlos
+      const res = await fetch('https://open.er-api.com/v6/latest/' + curBase);
+      const data = await res.json();
+      if(data && data.rates){
+        curRates = data.rates;
+        const date = new Date(data.time_last_update_unix * 1000).toLocaleString();
+        if(info) info.textContent = '✅ Live-Kurse · Stand: ' + date;
+        curCalculate();
+        curRenderMulti();
+      } else {
+        throw new Error('Keine Daten');
+      }
+    }catch(e){
+      if(info) info.textContent = '⚠️ Fallback-Kurse (offline)';
+      // Fallback mit statischen Kursen
+      curRates = { EUR:1, USD:1.08, GBP:0.85, TRY:33.5, CHF:0.95, JPY:165, CNY:7.8, RUB:100, AED:3.97, SAR:4.05, IQD:1415, IRR:45500, ILS:4.05, EGP:52, CAD:1.47, AUD:1.65, INR:90, PKR:301, AZN:1.84, GEL:2.95 };
+      curCalculate();
+      curRenderMulti();
+    }
+  }
+
+  window.curCalculate = function(){
+    if(!curRates) return;
+    const from = document.getElementById('cur-from-select').value;
+    const to = document.getElementById('cur-to-select').value;
+    const amt = parseFloat(document.getElementById('cur-amount').value) || 0;
+    const rFrom = curRates[from] || 1;
+    const rTo = curRates[to] || 1;
+    const result = (amt / rFrom) * rTo;
+    const toSymbol = (CURRENCIES.find(c => c.code === to) || {}).symbol || '';
+    document.getElementById('cur-result').textContent = result.toLocaleString('de-DE', {maximumFractionDigits:2}) + ' ' + toSymbol;
+  };
+  window.curSwap = function(){
+    const f = document.getElementById('cur-from-select');
+    const t = document.getElementById('cur-to-select');
+    const tmp = f.value; f.value = t.value; t.value = tmp;
+    curCalculate();
+  };
+  window.curSetAmount = function(v){ document.getElementById('cur-amount').value = v; curCalculate(); };
+  window.curRefresh = function(){
+    curBase = document.getElementById('cur-from-select').value;
+    loadRates();
+    if(typeof showToast === 'function') showToast('🔄 Lade neue Kurse...');
+  };
+  window.curRenderMulti = function(){
+    const el = document.getElementById('cur-multi-list'); if(!el) return;
+    const from = document.getElementById('cur-from-select').value;
+    const amt = parseFloat(document.getElementById('cur-amount').value) || 0;
+    const rFrom = curRates[from] || 1;
+    const main = ['USD','EUR','GBP','TRY','CHF','JPY','IQD','AED','IRR','CNY'];
+    el.innerHTML = main.filter(c => c !== from).map(c => {
+      const r = curRates[c] || 1;
+      const v = (amt / rFrom) * r;
+      const sym = (CURRENCIES.find(x => x.code === c) || {}).symbol || '';
+      return `<div style="display:flex;justify-content:space-between;padding:6px 8px;background:rgba(0,0,0,.3);border-radius:6px;margin-bottom:4px;"><span>${c}</span><b style="color:var(--sys-color);">${v.toLocaleString('de-DE', {maximumFractionDigits:2})} ${sym}</b></div>`;
+    }).join('');
+  };
+  // Update Multi bei Änderungen
+  document.addEventListener('input', (e) => {
+    if(e.target.id === 'cur-amount') curRenderMulti();
+  });
+  document.addEventListener('change', (e) => {
+    if(e.target.id === 'cur-from-select' || e.target.id === 'cur-to-select') curRenderMulti();
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // 2) WÖRTERBUCH DE ↔ KU/AR/TR/EN
+  // ═══════════════════════════════════════════════════════
+  const DICT_HTML = `
+  <div id="dictionary-window" class="os-window">
+    <div class="header">
+      <span class="header-title">📖 Wörterbuch</span>
+      <div class="header-controls">
+        <button class="control-btn btn-min" onclick="minimizeWin('dictionary-window')">–</button>
+        <button class="control-btn btn-max" onclick="toggleMaximize('dictionary-window')">□</button>
+        <button class="control-btn btn-close" onclick="closeWin('dictionary-window')">✕</button>
+      </div>
+    </div>
+    <div class="body" style="padding:12px;">
+      <div style="display:flex;gap:6px;margin-bottom:10px;">
+        <select id="dict-from" style="flex:1;margin:0;padding:8px;font-size:12px;">
+          <option value="de">🇩🇪 Deutsch</option>
+          <option value="ku">🇹🇯 Kurdî</option>
+          <option value="ar">🇸🇦 العربية</option>
+          <option value="tr">🇹🇷 Türkçe</option>
+          <option value="en">🇬🇧 English</option>
+          <option value="fa">🇮🇷 فارسی</option>
+        </select>
+        <button onclick="dictSwap()" style="margin:0;padding:8px 12px;">🔁</button>
+        <select id="dict-to" style="flex:1;margin:0;padding:8px;font-size:12px;">
+          <option value="ku">🇹🇯 Kurdî</option>
+          <option value="ar">🇸🇦 العربية</option>
+          <option value="tr">🇹🇷 Türkçe</option>
+          <option value="en">🇬🇧 English</option>
+          <option value="de">🇩🇪 Deutsch</option>
+          <option value="fa">🇮🇷 فارسی</option>
+        </select>
+      </div>
+
+      <div style="display:flex;gap:6px;">
+        <input id="dict-input" placeholder="Wort eingeben..." onkeydown="if(event.key==='Enter') dictSearch()" style="flex:1;margin:0;font-size:14px;">
+        <button onclick="dictSearch()" style="background:var(--accent);color:#000;margin:0;padding:10px 18px;">🔍</button>
+      </div>
+
+      <div id="dict-result" style="margin-top:14px;padding:16px;background:rgba(0,0,0,.4);border-radius:10px;border-left:4px solid var(--sys-color);min-height:80px;font-size:15px;line-height:1.5;">
+        <p style="color:#888;font-size:13px;">Gib ein Wort ein und drücke Enter oder 🔍</p>
+      </div>
+
+      <div class="toolbar" style="margin-top:10px;">
+        <button onclick="dictSpeakResult()" class="btn-sm">🔊 Vorlesen</button>
+        <button onclick="dictCopyResult()" class="btn-sm">📋 Kopieren</button>
+        <button onclick="dictSaveToNotes()" class="btn-sm" style="background:var(--accent);color:#000;">📒 In Notizen</button>
+      </div>
+
+      <h4 style="color:#88ccff;font-size:12px;margin:16px 0 8px 0;">📚 VERLAUF</h4>
+      <div id="dict-history" style="font-size:12px;"></div>
+    </div>
+  </div>`;
+
+  let dictHistory = JSON.parse(localStorage.getItem('haldo_dict_history') || '[]');
+  let lastDictResult = '';
+
+  function ensureDictionaryWindow(){
+    if(!document.getElementById('dictionary-window')){
+      const wrap = document.createElement('div');
+      wrap.innerHTML = DICT_HTML;
+      const node = wrap.firstElementChild;
+      document.body.appendChild(node);
+      ['n','s','e','w','ne','nw','se','sw'].forEach(dir=>{
+        const h = document.createElement('div');
+        h.className = 'resize-handle resize-'+dir;
+        h.dataset.dir = dir;
+        node.appendChild(h);
+      });
+      bindWinManual(node);
+      renderDictHistory();
+    }
+  }
+
+  window.dictSwap = function(){
+    const f = document.getElementById('dict-from');
+    const t = document.getElementById('dict-to');
+    const tmp = f.value; f.value = t.value; t.value = tmp;
+  };
+  window.dictSearch = async function(){
+    const word = document.getElementById('dict-input').value.trim();
+    if(!word) return;
+    const from = document.getElementById('dict-from').value;
+    const to = document.getElementById('dict-to').value;
+    const res = document.getElementById('dict-result');
+    res.innerHTML = '<p style="color:var(--sys-color);">⏳ Suche Übersetzung...</p>';
+    try{
+      const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(word) + '&langpair=' + from + '|' + to;
+      const r = await fetch(url);
+      const d = await r.json();
+      if(d.responseData && d.responseData.translatedText){
+        const translated = d.responseData.translatedText;
+        lastDictResult = translated;
+        res.innerHTML = `<div style="font-size:11px;color:#88ccff;margin-bottom:8px;">📖 ${word} (${from.toUpperCase()})</div><div style="font-size:22px;font-weight:bold;color:var(--accent);margin-bottom:12px;">${translated}</div><div style="font-size:11px;color:#88ccff;">→ ${to.toUpperCase()}</div>`;
+        if(typeof speak === 'function') speak(translated);
+        dictHistory.unshift({word, from, to, translated, time: new Date().toLocaleString()});
+        dictHistory = dictHistory.slice(0, 15);
+        localStorage.setItem('haldo_dict_history', JSON.stringify(dictHistory));
+        renderDictHistory();
+        if(typeof playSound === 'function') playSound('success');
+      } else {
+        res.innerHTML = '<p style="color:#ff5555;">❌ Keine Übersetzung gefunden.</p>';
+      }
+    }catch(e){
+      res.innerHTML = '<p style="color:#ff5555;">❌ Fehler: ' + e.message + '</p>';
+    }
+  };
+  window.dictSpeakResult = function(){
+    if(lastDictResult && typeof speak === 'function') speak(lastDictResult);
+  };
+  window.dictCopyResult = function(){
+    if(lastDictResult) navigator.clipboard.writeText(lastDictResult).then(()=>{ if(typeof showToast === 'function') showToast('📋 Kopiert!'); });
+  };
+  window.dictSaveToNotes = function(){
+    if(!lastDictResult) return;
+    const word = document.getElementById('dict-input').value.trim();
+    if(typeof userNotes !== 'undefined' && Array.isArray(userNotes)){
+      userNotes.push({title:'Wörterbuch: ' + word, content: word + ' → ' + lastDictResult});
+      localStorage.setItem('haldo_notes', JSON.stringify(userNotes));
+      if(typeof renderNotes === 'function') renderNotes();
+      if(typeof showToast === 'function') showToast('📒 In Notizen gespeichert!');
+    }
+  };
+  function renderDictHistory(){
+    const el = document.getElementById('dict-history'); if(!el) return;
+    if(!dictHistory.length){ el.innerHTML = '<p style="color:#666;text-align:center;">Noch keine Einträge.</p>'; return; }
+    el.innerHTML = dictHistory.map(h =>
+      `<div style="padding:8px;background:rgba(0,0,0,.3);border-radius:6px;margin-bottom:4px;cursor:pointer;" onclick="dictReload('${encodeURIComponent(h.word)}','${h.from}','${h.to}')">
+        <b>${h.word}</b> <span style="color:#88ccff;font-size:10px;">(${h.from}→${h.to})</span><br>
+        <span style="color:var(--accent);">${h.translated}</span>
+      </div>`
+    ).join('');
+  }
+  window.dictReload = function(wordEnc, from, to){
+    document.getElementById('dict-input').value = decodeURIComponent(wordEnc);
+    document.getElementById('dict-from').value = from;
+    document.getElementById('dict-to').value = to;
+    dictSearch();
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 3) KALENDER-PLUS (Termine mit Uhrzeit + Erinnerung)
+  // ═══════════════════════════════════════════════════════
+  let calPlusEvents = JSON.parse(localStorage.getItem('haldo_cal_plus') || '[]');
+  let calPlusReminders = [];
+
+  function initCalPlus(){
+    // Prüft jede Minute ob eine Erinnerung fällig ist
+    setInterval(checkCalReminders, 60000);
+    checkCalReminders();
+    // Tägliche Vorschau in Notif
+    const now = new Date();
+    const today = now.toLocaleDateString();
+    const todays = calPlusEvents.filter(e => e.date === today);
+    if(todays.length && !sessionStorage.getItem('haldo_cal_notif_' + today)){
+      setTimeout(() => {
+        if(typeof addNotification === 'function'){
+          addNotification('Kalender', 'Heute ' + todays.length + ' Termin(e) geplant!', 'alert');
+        }
+        sessionStorage.setItem('haldo_cal_notif_' + today, '1');
+      }, 5000);
+    }
+  }
+  function checkCalReminders(){
+    const now = new Date();
+    const nowStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+    calPlusEvents.forEach(ev => {
+      if(ev.reminder && !ev.notified && ev.datetime){
+        const diff = (new Date(ev.datetime.replace(' ', 'T')) - now) / 60000;
+        if(diff <= ev.reminder && diff >= -1){
+          if(typeof addNotification === 'function') addNotification('⏰ Termin in ' + Math.round(diff) + 'min', ev.text, 'alert');
+          if(typeof speak === 'function') speak('Erinnerung: ' + ev.text);
+          ev.notified = true;
+          localStorage.setItem('haldo_cal_plus', JSON.stringify(calPlusEvents));
+        }
+      }
+    });
+  }
+  // Erweiterter Kalender: Event-Add überschreiben
+  const origAddEvent = window.addEvent;
+  window.addEvent = function(){
+    if(typeof origAddEvent === 'function') origAddEvent();
+    setTimeout(() => {
+      // Nach Eingabe: Uhrzeit + Erinnerung nachfragen
+      const last = events[events.length - 1];
+      if(!last) return;
+      const time = prompt('Uhrzeit (HH:MM, optional):', '');
+      if(time && /^\d{1,2}:\d{2}$/.test(time)){
+        const today = new Date();
+        const dateStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+        last.datetime = dateStr + ' ' + time;
+        const rem = prompt('Erinnerung vorher (Minuten, 0=keine):', '15');
+        last.reminder = parseInt(rem) || 0;
+        last.notified = false;
+        localStorage.setItem('haldo_events', JSON.stringify(events));
+        calPlusEvents = events.map(e => ({...e}));
+        localStorage.setItem('haldo_cal_plus', JSON.stringify(calPlusEvents));
+        if(typeof renderEvents === 'function') renderEvents();
+        if(typeof showToast === 'function') showToast('⏰ Termin mit Erinnerung gespeichert');
+      }
+    }, 200);
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 4) BUTTONS EINFÜGEN
+  // ═══════════════════════════════════════════════════════
+  function addLauncherButtons(){
+    const tray = document.getElementById('launcherTray');
+    if(!tray) return;
+    const optsBtn = tray.querySelector('button[onclick*="showPanelLauncherMenu"]');
+    if(!document.getElementById('launcherCurrency')){
+      const b = document.createElement('button');
+      b.className = 'launcher-btn';
+      b.id = 'launcherCurrency';
+      b.title = 'Währungsrechner';
+      b.textContent = '💱';
+      b.onclick = () => { ensureCurrencyWindow(); if(typeof openWin === 'function') openWin('currency-window'); };
+      if(optsBtn) tray.insertBefore(b, optsBtn); else tray.appendChild(b);
+    }
+    if(!document.getElementById('launcherDict')){
+      const b = document.createElement('button');
+      b.className = 'launcher-btn';
+      b.id = 'launcherDict';
+      b.title = 'Wörterbuch';
+      b.textContent = '📖';
+      b.onclick = () => { ensureDictionaryWindow(); if(typeof openWin === 'function') openWin('dictionary-window'); };
+      if(optsBtn) tray.insertBefore(b, optsBtn); else tray.appendChild(b);
+    }
+  }
+  function addDockButtons(){
+    const dock = document.querySelector('#actDock .menu-panel-body');
+    if(!dock) return;
+    if(!document.getElementById('dockCurrencyBtn')){
+      const b = document.createElement('button');
+      b.className = 'dock-btn';
+      b.id = 'dockCurrencyBtn';
+      b.title = 'Währungsrechner';
+      b.textContent = '💱';
+      b.onclick = () => { ensureCurrencyWindow(); if(typeof openWin === 'function') openWin('currency-window'); };
+      dock.appendChild(b);
+    }
+    if(!document.getElementById('dockDictBtn')){
+      const b = document.createElement('button');
+      b.className = 'dock-btn';
+      b.id = 'dockDictBtn';
+      b.title = 'Wörterbuch';
+      b.textContent = '📖';
+      b.onclick = () => { ensureDictionaryWindow(); if(typeof openWin === 'function') openWin('dictionary-window'); };
+      dock.appendChild(b);
+    }
+  }
+  function addSysItems(){
+    const sysBody = document.querySelector('#sysMenu .menu-panel-body');
+    if(!sysBody) return;
+    const closeItem = Array.from(sysBody.querySelectorAll('.sys-menu-item')).find(el => el.textContent.includes('Alle Fenster'));
+    if(!document.getElementById('sysCurrencyItem')){
+      const item = document.createElement('div');
+      item.className = 'sys-menu-item';
+      item.id = 'sysCurrencyItem';
+      item.innerHTML = '<span class="sys-icon">💱</span>Währungsrechner';
+      item.onclick = () => { ensureCurrencyWindow(); if(typeof openWin === 'function') openWin('currency-window'); };
+      if(closeItem) sysBody.insertBefore(item, closeItem); else sysBody.appendChild(item);
+    }
+    if(!document.getElementById('sysDictItem')){
+      const item = document.createElement('div');
+      item.className = 'sys-menu-item';
+      item.id = 'sysDictItem';
+      item.innerHTML = '<span class="sys-icon">📖</span>Wörterbuch';
+      item.onclick = () => { ensureDictionaryWindow(); if(typeof openWin === 'function') openWin('dictionary-window'); };
+      if(closeItem) sysBody.insertBefore(item, closeItem); else sysBody.appendChild(item);
+    }
+  }
+  function addAppEntries(){
+    if(typeof APPS !== 'undefined' && Array.isArray(APPS)){
+      if(!APPS.find(a => a.w === 'currency-window')){
+        APPS.push({n:'Währungsrechner', e:'💱', w:'currency-window', d:'20 Währungen', cat:'Tools'});
+      }
+      if(!APPS.find(a => a.w === 'dictionary-window')){
+        APPS.push({n:'Wörterbuch', e:'📖', w:'dictionary-window', d:'DE↔KU/AR/TR', cat:'Tools'});
+      }
+    }
+    if(typeof renderAppMenu === 'function') renderAppMenu();
+  }
+
+  // openWin patchen
+  const origOpenWin = window.openWin;
+  window.openWin = function(id){
+    if(id === 'currency-window') ensureCurrencyWindow();
+    if(id === 'dictionary-window') ensureDictionaryWindow();
+    if(typeof origOpenWin === 'function') origOpenWin(id);
+    if(id === 'currency-window'){ loadRates(); curRenderMulti(); }
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 5) KEYBOARD SHORTCUTS
+  // ═══════════════════════════════════════════════════════
+  document.addEventListener('keydown', (e) => {
+    if(e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c')){
+      e.preventDefault();
+      ensureCurrencyWindow();
+      if(typeof openWin === 'function') openWin('currency-window');
+    }
+    if(e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')){
+      e.preventDefault();
+      ensureDictionaryWindow();
+      if(typeof openWin === 'function') openWin('dictionary-window');
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // 6) INIT
+  // ═══════════════════════════════════════════════════════
+  setTimeout(() => {
+    try{
+      addLauncherButtons();
+      addDockButtons();
+      addSysItems();
+      addAppEntries();
+      initCalPlus();
+      console.log('%c💱 v42 geladen: Währung + Wörterbuch + Kalender-Plus','color:#ffcc00;font-weight:bold;font-size:12px;');
+    }catch(err){
+      console.error('v42 Init-Fehler:', err);
+    }
+  }, 400);
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════ ENDE v42 ANHANG ══════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
