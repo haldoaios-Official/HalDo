@@ -2601,5 +2601,758 @@ setTimeout(()=>speak('Willkommen zurück, '+currentName+'. v40 mit echter Wetter
 setTimeout(()=>{ addNotification('Willkommen', 'HalDo v40 bereit!', 'success'); }, 2000);
 console.log('%c🔷 HalDo AI OS v40 geladen','color:#00e5ff;font-size:16px;font-weight:bold;');
 </script>
+  <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════ v41 ANHANG – VOR </body> EINFÜGEN ═════════ -->
+<!-- ═══════════ Multiplayer Tic-Tac-Toe + Notif-System ═══════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  "use strict";
+
+  // ═══════════════════════════════════════════════════════
+  // 1) MULTIPLAYER TIC-TAC-TOE
+  // ═══════════════════════════════════════════════════════
+  const TTT_HTML = `
+  <div id="mpttt-window" class="os-window">
+    <div class="header">
+      <span class="header-title">🎮 Multiplayer Tic-Tac-Toe</span>
+      <div class="header-controls">
+        <button class="control-btn btn-min" onclick="minimizeWin('mpttt-window')">–</button>
+        <button class="control-btn btn-max" onclick="toggleMaximize('mpttt-window')">□</button>
+        <button class="control-btn btn-close" onclick="closeWin('mpttt-window')">✕</button>
+      </div>
+    </div>
+    <div class="body" style="padding:12px;">
+      <div class="tabs" style="margin-bottom:10px;">
+        <div class="tab active" data-mpttt-tab="setup" onclick="mptttSwitchTab('setup',this)">⚙️ Setup</div>
+        <div class="tab" data-mpttt-tab="game" onclick="mptttSwitchTab('game',this)">🎮 Spiel</div>
+        <div class="tab" data-mpttt-tab="stats" onclick="mptttSwitchTab('stats',this)">📊 Statistik</div>
+      </div>
+
+      <div id="mpttt-tab-setup">
+        <div class="section">
+          <h4>🎯 Spielmodus</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+            <button id="mpttt-mode-ai" onclick="mptttSetMode('ai')" style="background:var(--accent);color:#000;padding:14px;font-size:13px;">🤖 vs KI</button>
+            <button id="mpttt-mode-2p" onclick="mptttSetMode('2p')" style="padding:14px;font-size:13px;">👥 2 Spieler</button>
+          </div>
+        </div>
+
+        <div class="section">
+          <h4>📏 Feldgröße</h4>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;">
+            <button onclick="mptttSetSize(3)" class="mpttt-size-btn" data-size="3" style="padding:14px;font-size:14px;">3×3<br><small style="font-size:10px;opacity:0.7;">Klassisch</small></button>
+            <button onclick="mptttSetSize(4)" class="mpttt-size-btn" data-size="4" style="padding:14px;font-size:14px;">4×4<br><small style="font-size:10px;opacity:0.7;">4 in Reihe</small></button>
+            <button onclick="mptttSetSize(5)" class="mpttt-size-btn" data-size="5" style="padding:14px;font-size:14px;">5×5<br><small style="font-size:10px;opacity:0.7;">Gomoku</small></button>
+          </div>
+        </div>
+
+        <div class="section" id="mpttt-ai-diff-section">
+          <h4>🧠 KI-Schwierigkeit</h4>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;">
+            <button onclick="mptttSetAI('easy')" class="mpttt-ai-btn" data-ai="easy" style="padding:12px;font-size:12px;">😊 Leicht</button>
+            <button onclick="mptttSetAI('medium')" class="mpttt-ai-btn" data-ai="medium" style="padding:12px;font-size:12px;">😎 Mittel</button>
+            <button onclick="mptttSetAI('hard')" class="mpttt-ai-btn" data-ai="hard" style="padding:12px;font-size:12px;">💀 Brutal</button>
+          </div>
+        </div>
+
+        <button onclick="mptttStartGame()" style="width:100%;padding:16px;font-size:15px;background:var(--accent);color:#000;margin-top:12px;">▶️ Spiel starten</button>
+      </div>
+
+      <div id="mpttt-tab-game" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:rgba(0,0,0,.4);border-radius:10px;margin-bottom:12px;">
+          <div style="font-size:13px;">Du: <b style="color:var(--sys-color);" id="mpttt-you-label">❌</b></div>
+          <div style="font-size:12px;color:#88ccff;" id="mpttt-status">Bereit</div>
+          <div style="font-size:13px;"><span id="mpttt-turn-label" style="color:var(--accent);font-weight:bold;">Am Zug: ❌</span></div>
+        </div>
+        <div id="mpttt-board" style="display:grid;gap:8px;justify-content:center;margin:16px 0;"></div>
+        <div class="toolbar" style="justify-content:center;">
+          <button onclick="mptttNewRound()">🔄 Neue Runde</button>
+          <button onclick="mptttBackToSetup()">⚙️ Setup</button>
+        </div>
+      </div>
+
+      <div id="mpttt-tab-stats" style="display:none;">
+        <div class="section">
+          <h4>📊 Punktestand</h4>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px;">
+            <div style="text-align:center;padding:12px;background:rgba(0,255,136,.1);border-radius:10px;border:1.5px solid var(--accent);">
+              <div style="font-size:28px;font-weight:bold;color:var(--accent);" id="mpttt-stat-wins">0</div>
+              <div style="font-size:11px;color:#88ccff;">🏆 Siege</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:rgba(255,170,0,.1);border-radius:10px;border:1.5px solid #ffaa00;">
+              <div style="font-size:28px;font-weight:bold;color:#ffaa00;" id="mpttt-stat-draws">0</div>
+              <div style="font-size:11px;color:#88ccff;">🤝 Unent.</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:rgba(255,51,68,.1);border-radius:10px;border:1.5px solid #ff3344;">
+              <div style="font-size:28px;font-weight:bold;color:#ff3344;" id="mpttt-stat-losses">0</div>
+              <div style="font-size:11px;color:#88ccff;">💀 Ndlg.</div>
+            </div>
+          </div>
+          <button onclick="mptttResetStats()" style="width:100%;background:#ff3344;margin-top:14px;">🗑️ Statistik zurücksetzen</button>
+        </div>
+        <div class="section">
+          <h4>📜 Letzte Spiele</h4>
+          <div id="mpttt-history" style="font-size:12px;color:#88ccff;"></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  // ── State ──
+  let tttMode = 'ai';
+  let tttSize = 3;
+  let tttAI = 'medium';
+  let tttBoard = [];
+  let tttCurrent = 'X';
+  let tttRunning = false;
+  let tttGameOver = false;
+  let tttStats = JSON.parse(localStorage.getItem('haldo_mpttt_stats') || '{"wins":0,"losses":0,"draws":0,"history":[]}');
+
+  // ── Fenster injizieren ──
+  function ensureWindow(){
+    if(!document.getElementById('mpttt-window')){
+      const wrap = document.createElement('div');
+      wrap.innerHTML = TTT_HTML;
+      const node = wrap.firstElementChild;
+      document.body.appendChild(node);
+      // Resize-Handles
+      ['n','s','e','w','ne','nw','se','sw'].forEach(dir=>{
+        const h = document.createElement('div');
+        h.className = 'resize-handle resize-'+dir;
+        h.dataset.dir = dir;
+        node.appendChild(h);
+      });
+      // Drag & Resize binden
+      if(typeof bindWindowDragAndResize === 'function'){ bindWindowDragAndResize(node); }
+      else { bindDragManual(node); }
+    }
+  }
+  function bindDragManual(win){
+    const header = win.querySelector('.header');
+    if(!header) return;
+    header.addEventListener('mousedown', (e)=>{
+      if(e.target.closest('.control-btn')) return;
+      if(win.classList.contains('maximized')) return;
+      e.preventDefault();
+      const cx = e.clientX, cy = e.clientY;
+      const r = win.getBoundingClientRect();
+      const ox = cx - r.left, oy = cy - r.top;
+      document.querySelectorAll('.os-window').forEach(x=>x.classList.remove('active'));
+      win.classList.add('active','dragging');
+      const mv = (ev)=>{
+        win.style.left = (ev.clientX - ox)+'px';
+        win.style.top = (ev.clientY - oy)+'px';
+        win.style.right='auto'; win.style.bottom='auto'; win.style.transform='none';
+      };
+      const up = ()=>{ document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); win.classList.remove('dragging'); };
+      document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
+    });
+    win.querySelectorAll('.resize-handle').forEach(h=>{
+      h.addEventListener('mousedown', (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        const dir = h.dataset.dir; const cx = e.clientX, cy = e.clientY;
+        const r = win.getBoundingClientRect();
+        const startW = r.width, startH = r.height, startL = r.left, startT = r.top;
+        win.classList.add('resizing');
+        const mv = (ev)=>{
+          const dx = ev.clientX - cx, dy = ev.clientY - cy;
+          if(dir.includes('e')) win.style.width = Math.max(320, startW+dx)+'px';
+          if(dir.includes('w')){ win.style.width = Math.max(320, startW-dx)+'px'; win.style.left = (startL+dx)+'px'; }
+          if(dir.includes('s')) win.style.height = Math.max(200, startH+dy)+'px';
+          if(dir.includes('n')){ win.style.height = Math.max(200, startH-dy)+'px'; win.style.top = (startT+dy)+'px'; }
+          win.style.transform = 'none';
+        };
+        const up = ()=>{ document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); win.classList.remove('resizing'); };
+        document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
+      });
+    });
+  }
+
+  // ── Globale Funktionen ──
+  window.openMPTTT = function(){
+    ensureWindow();
+    if(typeof openWin === 'function') openWin('mpttt-window');
+    mptttRefreshStats();
+    mptttUpdateModeUI();
+    mptttUpdateSizeUI();
+    mptttUpdateAIUI();
+  };
+  window.mptttSwitchTab = function(tab, el){
+    document.querySelectorAll('#mpttt-window .tab').forEach(t => t.classList.remove('active'));
+    if(el) el.classList.add('active');
+    ['setup','game','stats'].forEach(t => {
+      const e = document.getElementById('mpttt-tab-'+t);
+      if(e) e.style.display = t === tab ? 'block' : 'none';
+    });
+    if(tab === 'stats') mptttRefreshStats();
+  };
+  window.mptttSetMode = function(mode){
+    tttMode = mode;
+    mptttUpdateModeUI();
+  };
+  window.mptttSetSize = function(size){
+    tttSize = size;
+    mptttUpdateSizeUI();
+  };
+  window.mptttSetAI = function(ai){
+    tttAI = ai;
+    mptttUpdateAIUI();
+  };
+  function mptttUpdateModeUI(){
+    const aiBtn = document.getElementById('mpttt-mode-ai');
+    const p2Btn = document.getElementById('mpttt-mode-2p');
+    if(!aiBtn || !p2Btn) return;
+    if(tttMode === 'ai'){
+      aiBtn.style.background = 'var(--accent)'; aiBtn.style.color = '#000';
+      p2Btn.style.background = ''; p2Btn.style.color = '';
+    } else {
+      p2Btn.style.background = 'var(--accent)'; p2Btn.style.color = '#000';
+      aiBtn.style.background = ''; aiBtn.style.color = '';
+    }
+    const diffSec = document.getElementById('mpttt-ai-diff-section');
+    if(diffSec) diffSec.style.display = tttMode === 'ai' ? 'block' : 'none';
+  }
+  function mptttUpdateSizeUI(){
+    document.querySelectorAll('.mpttt-size-btn').forEach(b=>{
+      const active = parseInt(b.dataset.size) === tttSize;
+      b.style.background = active ? 'var(--accent)' : '';
+      b.style.color = active ? '#000' : '';
+    });
+  }
+  function mptttUpdateAIUI(){
+    document.querySelectorAll('.mpttt-ai-btn').forEach(b=>{
+      const active = b.dataset.ai === tttAI;
+      b.style.background = active ? 'var(--accent)' : '';
+      b.style.color = active ? '#000' : '';
+    });
+  }
+
+  window.mptttStartGame = function(){
+    tttBoard = new Array(tttSize * tttSize).fill('');
+    tttCurrent = 'X';
+    tttRunning = true;
+    tttGameOver = false;
+    mptttSwitchTab('game', document.querySelector('[data-mpttt-tab="game"]'));
+    mptttRenderBoard();
+    mptttUpdateStatus('Am Zug: ❌');
+    if(typeof playSound === 'function') playSound('open');
+  };
+  window.mptttBackToSetup = function(){
+    mptttSwitchTab('setup', document.querySelector('[data-mpttt-tab="setup"]'));
+  };
+  window.mptttNewRound = function(){
+    tttBoard = new Array(tttSize * tttSize).fill('');
+    tttCurrent = 'X';
+    tttRunning = true;
+    tttGameOver = false;
+    mptttRenderBoard();
+    mptttUpdateStatus('Am Zug: ❌');
+  };
+
+  function mptttRenderBoard(){
+    const boardEl = document.getElementById('mpttt-board');
+    if(!boardEl) return;
+    const cellSize = tttSize === 3 ? 90 : tttSize === 4 ? 74 : 62;
+    boardEl.style.gridTemplateColumns = `repeat(${tttSize}, ${cellSize}px)`;
+    boardEl.innerHTML = tttBoard.map((v, i) => {
+      const ch = v === 'X' ? '❌' : v === 'O' ? '⭕' : '';
+      return `<div class="game-cell mpttt-cell" data-idx="${i}" onclick="mptttPlay(${i})" style="width:${cellSize}px;height:${cellSize}px;font-size:${Math.floor(cellSize*0.55)}px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:rgba(0,0,0,.5);border:2px solid var(--sys-color);border-radius:12px;color:var(--sys-color);transition:all .15s;">${ch}</div>`;
+    }).join('');
+  }
+  function mptttUpdateStatus(text){
+    const el = document.getElementById('mpttt-status');
+    if(el) el.textContent = text;
+    const turn = document.getElementById('mpttt-turn-label');
+    if(turn){
+      turn.textContent = 'Am Zug: ' + (tttCurrent === 'X' ? '❌' : '⭕');
+      turn.style.color = tttCurrent === 'X' ? 'var(--sys-color)' : 'var(--accent)';
+    }
+  }
+
+  function mptttCheckWin(board, size, needWin){
+    // Alle Reihen horizontal, vertikal, diagonal
+    const lines = [];
+    for(let r=0;r<size;r++){
+      for(let c=0;c<=size-needWin;c++){
+        const line = [];
+        for(let k=0;k<needWin;k++) line.push(r*size + c + k);
+        lines.push(line);
+      }
+    }
+    for(let c=0;c<size;c++){
+      for(let r=0;r<=size-needWin;r++){
+        const line = [];
+        for(let k=0;k<needWin;k++) line.push((r+k)*size + c);
+        lines.push(line);
+      }
+    }
+    for(let r=0;r<=size-needWin;r++){
+      for(let c=0;c<=size-needWin;c++){
+        const line1 = [], line2 = [];
+        for(let k=0;k<needWin;k++){ line1.push((r+k)*size + c + k); line2.push((r+k)*size + c + (needWin-1-k)); }
+        lines.push(line1); lines.push(line2);
+      }
+    }
+    for(const line of lines){
+      const first = board[line[0]];
+      if(first && line.every(i => board[i] === first)) return { winner: first, line };
+    }
+    return null;
+  }
+
+  function mptttGetWinLength(){
+    return tttSize === 3 ? 3 : tttSize === 4 ? 4 : 5;
+  }
+
+  // ── KI: Minimax für 3×3, Heuristik für größere ──
+  function mptttMinimax(board, size, depth, isMax, alpha, beta, aiPlayer, huPlayer){
+    const win = mptttCheckWin(board, size, 3);
+    if(win){
+      if(win.winner === aiPlayer) return { score: 10 - depth };
+      if(win.winner === huPlayer) return { score: depth - 10 };
+    }
+    if(board.every(v => v !== '')) return { score: 0 };
+    if(isMax){
+      let best = { score: -Infinity };
+      for(let i=0;i<board.length;i++){
+        if(board[i] === ''){
+          board[i] = aiPlayer;
+          const s = mptttMinimax(board, size, depth+1, false, alpha, beta, aiPlayer, huPlayer).score;
+          board[i] = '';
+          if(s > best.score){ best = { score: s, idx: i }; }
+          alpha = Math.max(alpha, s);
+          if(beta <= alpha) break;
+        }
+      }
+      return best;
+    } else {
+      let best = { score: Infinity };
+      for(let i=0;i<board.length;i++){
+        if(board[i] === ''){
+          board[i] = huPlayer;
+          const s = mptttMinimax(board, size, depth+1, true, alpha, beta, aiPlayer, huPlayer).score;
+          board[i] = '';
+          if(s < best.score){ best = { score: s, idx: i }; }
+          beta = Math.min(beta, s);
+          if(beta <= alpha) break;
+        }
+      }
+      return best;
+    }
+  }
+  function mptttAIRandom(board){
+    const empty = board.map((v,i)=>v === '' ? i : -1).filter(i => i >= 0);
+    return empty[Math.floor(Math.random() * empty.length)];
+  }
+  function mptttAIHeuristic(board, size){
+    const win = mptttGetWinLength();
+    const empty = board.map((v,i)=>v === '' ? i : -1).filter(i => i >= 0);
+    // 1. Direkt gewinnen
+    for(const i of empty){
+      board[i] = 'O';
+      if(mptttCheckWin(board, size, win)){ board[i] = ''; return i; }
+      board[i] = '';
+    }
+    // 2. Blockieren
+    for(const i of empty){
+      board[i] = 'X';
+      if(mptttCheckWin(board, size, win)){ board[i] = ''; return i; }
+      board[i] = '';
+    }
+    // 3. Zentrum bevorzugen
+    const center = Math.floor(size*size/2);
+    if(board[center] === '') return center;
+    // 4. Random
+    return empty[Math.floor(Math.random() * empty.length)];
+  }
+  function mptttAIMove(){
+    if(tttGameOver) return;
+    let move = -1;
+    if(tttAI === 'easy'){
+      move = mptttAIRandom(tttBoard);
+    } else if(tttAI === 'medium'){
+      // 50% Heuristik, 50% zufällig
+      if(Math.random() < 0.5) move = mptttAIRandom(tttBoard);
+      else move = mptttAIHeuristic(tttBoard, tttSize);
+    } else {
+      if(tttSize === 3){
+        const r = mptttMinimax(tttBoard.slice(), tttSize, 0, true, -Infinity, Infinity, 'O', 'X');
+        move = r.idx;
+      } else {
+        move = mptttAIHeuristic(tttBoard, tttSize);
+      }
+    }
+    if(move === undefined || move === -1 || tttBoard[move] !== ''){
+      const empty = tttBoard.map((v,i)=>v === '' ? i : -1).filter(i => i >= 0);
+      move = empty[Math.floor(Math.random() * empty.length)];
+    }
+    setTimeout(() => {
+      if(!tttGameOver && tttRunning && tttBoard[move] === ''){
+        mptttMakeMove(move, 'O');
+      }
+    }, 400);
+  }
+
+  window.mptttPlay = function(idx){
+    if(!tttRunning || tttGameOver) return;
+    if(tttBoard[idx] !== '') return;
+    if(tttMode === 'ai' && tttCurrent !== 'X') return;
+    mptttMakeMove(idx, tttCurrent);
+  };
+
+  function mptttMakeMove(idx, player){
+    tttBoard[idx] = player;
+    if(typeof playSound === 'function') playSound('click');
+    mptttRenderBoard();
+    const win = mptttCheckWin(tttBoard, tttSize, mptttGetWinLength());
+    if(win){
+      tttGameOver = true;
+      tttRunning = false;
+      mptttHighlightWin(win.line);
+      // Statistik
+      if(tttMode === 'ai'){
+        if(win.winner === 'X'){ tttStats.wins++; mptttUpdateStatus('🏆 Du hast gewonnen!'); if(typeof speak === 'function') speak('Du hast gewonnen'); if(typeof addNotification === 'function') addNotification('Tic-Tac-Toe', 'Du hast gewonnen!', 'success'); }
+        else { tttStats.losses++; mptttUpdateStatus('💀 KI gewinnt'); if(typeof speak === 'function') speak('KI gewinnt'); if(typeof addNotification === 'function') addNotification('Tic-Tac-Toe', 'KI hat gewonnen', 'error'); }
+      } else {
+        if(win.winner === 'X'){ tttStats.wins++; mptttUpdateStatus('🏆 Spieler ❌ gewinnt!'); }
+        else { tttStats.losses++; mptttUpdateStatus('🏆 Spieler ⭕ gewinnt!'); }
+        if(typeof speak === 'function') speak('Spieler ' + win.winner + ' gewinnt');
+      }
+      tttStats.history.unshift({r: new Date().toLocaleString(), mode: tttMode, size: tttSize, winner: win.winner});
+      tttStats.history = tttStats.history.slice(0, 20);
+      localStorage.setItem('haldo_mpttt_stats', JSON.stringify(tttStats));
+      if(typeof playSound === 'function') playSound('success');
+      mptttRefreshStats();
+      return;
+    }
+    if(tttBoard.every(v => v !== '')){
+      tttGameOver = true;
+      tttRunning = false;
+      tttStats.draws++;
+      tttStats.history.unshift({r: new Date().toLocaleString(), mode: tttMode, size: tttSize, winner: 'draw'});
+      tttStats.history = tttStats.history.slice(0, 20);
+      localStorage.setItem('haldo_mpttt_stats', JSON.stringify(tttStats));
+      mptttUpdateStatus('🤝 Unentschieden');
+      if(typeof speak === 'function') speak('Unentschieden');
+      mptttRefreshStats();
+      return;
+    }
+    // Nächster Spieler
+    tttCurrent = player === 'X' ? 'O' : 'X';
+    mptttUpdateStatus(tttMode === 'ai' ? (tttCurrent === 'X' ? 'Du bist dran' : 'KI denkt...') : 'Am Zug');
+    if(tttMode === 'ai' && tttCurrent === 'O'){
+      mptttAIMove();
+    }
+  }
+  function mptttHighlightWin(line){
+    const boardEl = document.getElementById('mpttt-board');
+    if(!boardEl) return;
+    line.forEach(idx => {
+      const cell = boardEl.querySelector(`[data-idx="${idx}"]`);
+      if(cell){
+        cell.style.background = 'linear-gradient(135deg, var(--accent), var(--sys-color))';
+        cell.style.color = '#000';
+        cell.style.transform = 'scale(1.08)';
+        cell.style.boxShadow = '0 0 25px var(--accent)';
+      }
+    });
+  }
+  function mptttRefreshStats(){
+    const w = document.getElementById('mpttt-stat-wins');
+    const d = document.getElementById('mpttt-stat-draws');
+    const l = document.getElementById('mpttt-stat-losses');
+    if(w) w.textContent = tttStats.wins;
+    if(d) d.textContent = tttStats.draws;
+    if(l) l.textContent = tttStats.losses;
+    const h = document.getElementById('mpttt-history');
+    if(h){
+      if(!tttStats.history.length){ h.innerHTML = '<p style="color:#666;text-align:center;">Noch keine Spiele.</p>'; }
+      else {
+        h.innerHTML = tttStats.history.map(e => {
+          const w = e.winner === 'draw' ? '🤝 Unentschieden' : (e.winner === 'X' ? '🏆 ❌' : '🏆 ⭕');
+          return `<div style="padding:6px 8px;background:rgba(0,0,0,.3);border-radius:6px;margin-bottom:4px;">${w} · ${e.size}×${e.size} · ${e.mode === 'ai' ? 'KI' : '2P'} <span style="float:right;font-size:10px;opacity:.6;">${e.r}</span></div>`;
+        }).join('');
+      }
+    }
+  }
+  window.mptttResetStats = function(){
+    if(!confirm('Statistik wirklich zurücksetzen?')) return;
+    tttStats = {wins:0, losses:0, draws:0, history:[]};
+    localStorage.setItem('haldo_mpttt_stats', JSON.stringify(tttStats));
+    mptttRefreshStats();
+    if(typeof showToast === 'function') showToast('🗑️ Statistik zurückgesetzt');
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 2) ERWEITERTE NOTIFICATIONS
+  // ═══════════════════════════════════════════════════════
+  let notifFilter = 'all';
+  let notifSearch = '';
+  const NOTIF_CATEGORIES = {
+    'System': {color:'#00e5ff', icon:'⚙️'},
+    'Messenger': {color:'#ff60c0', icon:'📨'},
+    'Wetter': {color:'#00ff88', icon:'🌤️'},
+    'Radio': {color:'#ffcc00', icon:'📻'},
+    'Mail': {color:'#88ccff', icon:'📧'},
+    'Backup': {color:'#ffaa00', icon:'💾'},
+    'QR': {color:'#c060ff', icon:'📸'},
+    'Tic-Tac-Toe': {color:'#00ff88', icon:'🎮'}
+  };
+
+  function getNotifCategory(title){
+    for(const cat in NOTIF_CATEGORIES){
+      if(title && title.toLowerCase().includes(cat.toLowerCase())) return cat;
+    }
+    return 'System';
+  }
+
+  function enhanceNotificationPanel(){
+    const panel = document.getElementById('notificationPanel');
+    if(!panel) return;
+    const npList = panel.querySelector('.np-list');
+    if(!npList) return;
+
+    // Filter-Bar einfügen (falls nicht vorhanden)
+    if(!document.getElementById('notifEnhancedBar')){
+      const bar = document.createElement('div');
+      bar.id = 'notifEnhancedBar';
+      bar.style.cssText = 'padding:10px 12px;border-bottom:1px solid rgba(0,229,255,.2);';
+      bar.innerHTML = `
+        <input id="notifSearchInput" placeholder="🔍 Notifs suchen..." oninput="window.notifSearchSet(this.value)" style="width:100%;padding:8px 12px;font-size:12px;border-radius:20px;background:rgba(0,0,0,.5);border:1px solid var(--sys-color);color:#fff;margin:0 0 8px 0;">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <div class="notif-filter-btn active" data-filter="all" onclick="window.notifFilterSet('all', this)">📋 Alle</div>
+          <div class="notif-filter-btn" data-filter="unread" onclick="window.notifFilterSet('unread', this)">🔵 Neu</div>
+          <div class="notif-filter-btn" data-filter="info" onclick="window.notifFilterSet('info', this)">ℹ️ Info</div>
+          <div class="notif-filter-btn" data-filter="success" onclick="window.notifFilterSet('success', this)">✅ Erfolg</div>
+          <div class="notif-filter-btn" data-filter="alert" onclick="window.notifFilterSet('alert', this)">⚠️ Warnung</div>
+          <div class="notif-filter-btn" data-filter="error" onclick="window.notifFilterSet('error', this)">❌ Fehler</div>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:6px;">
+          <button onclick="window.notifMarkAllRead()" style="flex:1;padding:6px 10px;font-size:11px;">✅ Alle gelesen</button>
+          <button onclick="window.notifClearRead()" style="flex:1;padding:6px 10px;font-size:11px;background:#ff3344;">🗑️ Gelesene</button>
+        </div>
+      `;
+      panel.insertBefore(bar, npList);
+      // CSS für Filter-Buttons
+      if(!document.getElementById('notifFilterCSS')){
+        const s = document.createElement('style');
+        s.id = 'notifFilterCSS';
+        s.textContent = `
+          .notif-filter-btn{padding:6px 10px;font-size:11px;background:rgba(0,0,0,.4);border:1px solid rgba(0,229,255,.3);border-radius:14px;cursor:pointer;color:#fff;transition:all .15s;}
+          .notif-filter-btn:hover{background:rgba(0,229,255,.2);}
+          .notif-filter-btn.active{background:var(--sys-color);color:#000;font-weight:bold;}
+          .notif-enhanced-item{position:relative;padding-right:70px !important;}
+          .notif-enhanced-item.unread{border-left-width:5px !important;box-shadow:0 0 12px rgba(0,229,255,.3);}
+          .notif-enhanced-item.read{opacity:.7;}
+          .notif-cat-badge{position:absolute;top:10px;right:10px;font-size:9px;padding:2px 6px;border-radius:8px;background:rgba(0,0,0,.5);color:#fff;font-weight:bold;}
+          .notif-del-btn{position:absolute;bottom:8px;right:8px;background:rgba(255,51,68,.8);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:11px;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;}
+          .notif-del-btn:hover{background:#ff3344;}
+          #notifEmptyState{text-align:center;padding:40px 20px;color:#888;}
+        `;
+        document.head.appendChild(s);
+      }
+    }
+    renderEnhancedNotifications();
+  }
+
+  function renderEnhancedNotifications(){
+    const list = document.getElementById('notifList');
+    if(!list) return;
+    let arr = (typeof notifications !== 'undefined' ? notifications : []) || [];
+    // Filter
+    if(notifFilter !== 'all'){
+      if(notifFilter === 'unread') arr = arr.filter(n => !n.read);
+      else arr = arr.filter(n => n.type === notifFilter);
+    }
+    // Suche
+    if(notifSearch){
+      const q = notifSearch.toLowerCase();
+      arr = arr.filter(n => (n.title && n.title.toLowerCase().includes(q)) || (n.text && n.text.toLowerCase().includes(q)));
+    }
+    if(!arr.length){
+      list.innerHTML = '<div id="notifEmptyState">📭<br>Keine Benachrichtigungen.</div>';
+      return;
+    }
+    list.innerHTML = arr.map((n, i) => {
+      const cat = getNotifCategory(n.title);
+      const catInfo = NOTIF_CATEGORIES[cat] || NOTIF_CATEGORIES['System'];
+      const readClass = n.read ? 'read' : 'unread';
+      const origIdx = notifications.indexOf(n);
+      return `<div class="notif-item ${n.type} notif-enhanced-item ${readClass}" onclick="window.notifItemClick(${origIdx})">
+        <div class="notif-title">${catInfo.icon} ${n.title || ''}</div>
+        <div class="notif-text">${n.text || ''}</div>
+        <div class="notif-time">${n.time || ''}</div>
+        <div class="notif-cat-badge" style="border:1px solid ${catInfo.color};color:${catInfo.color};">${cat}</div>
+        <button class="notif-del-btn" onclick="event.stopPropagation();window.notifDeleteOne(${origIdx})">✕</button>
+      </div>`;
+    }).join('');
+  }
+
+  window.notifFilterSet = function(filter, el){
+    notifFilter = filter;
+    document.querySelectorAll('.notif-filter-btn').forEach(b => b.classList.remove('active'));
+    if(el) el.classList.add('active');
+    renderEnhancedNotifications();
+  };
+  window.notifSearchSet = function(v){
+    notifSearch = v || '';
+    renderEnhancedNotifications();
+  };
+  window.notifItemClick = function(idx){
+    if(typeof notifications === 'undefined' || !notifications[idx]) return;
+    const n = notifications[idx];
+    n.read = true;
+    localStorage.setItem('haldo_notifs', JSON.stringify(notifications));
+    if(typeof updateNotifBadge === 'function') updateNotifBadge();
+    renderEnhancedNotifications();
+    // Kategorie-Fenster öffnen
+    const cat = getNotifCategory(n.title);
+    if(cat === 'Wetter' && typeof openWin === 'function') openWin('weather-window');
+    else if(cat === 'Radio' && typeof openWin === 'function') openWin('radio-window');
+    else if(cat === 'Messenger' && typeof openWin === 'function') openWin('messenger-window');
+    else if(cat === 'Mail' && typeof openWin === 'function') openWin('mail-window');
+    else if(cat === 'QR' && typeof openWin === 'function') openWin('qr-window');
+    else if(cat === 'Tic-Tac-Toe' && typeof openMPTTT === 'function') openMPTTT();
+  };
+  window.notifDeleteOne = function(idx){
+    if(typeof notifications === 'undefined') return;
+    notifications.splice(idx, 1);
+    localStorage.setItem('haldo_notifs', JSON.stringify(notifications));
+    if(typeof updateNotifBadge === 'function') updateNotifBadge();
+    renderEnhancedNotifications();
+  };
+  window.notifMarkAllRead = function(){
+    if(typeof notifications === 'undefined') return;
+    notifications.forEach(n => n.read = true);
+    localStorage.setItem('haldo_notifs', JSON.stringify(notifications));
+    if(typeof updateNotifBadge === 'function') updateNotifBadge();
+    renderEnhancedNotifications();
+    if(typeof showToast === 'function') showToast('✅ Alle als gelesen markiert');
+  };
+  window.notifClearRead = function(){
+    if(typeof notifications === 'undefined') return;
+    notifications = notifications.filter(n => !n.read);
+    window.notifications = notifications;
+    localStorage.setItem('haldo_notifs', JSON.stringify(notifications));
+    if(typeof updateNotifBadge === 'function') updateNotifBadge();
+    renderEnhancedNotifications();
+    if(typeof showToast === 'function') showToast('🗑️ Gelesene gelöscht');
+  };
+
+  // Patch: alte renderNotifications überschreiben
+  const origRenderNotifs = window.renderNotifications;
+  window.renderNotifications = function(){
+    if(typeof origRenderNotifs === 'function') origRenderNotifs();
+    setTimeout(renderEnhancedNotifications, 20);
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 3) BUTTONS EINFÜGEN
+  // ═══════════════════════════════════════════════════════
+  function addLauncherButton(){
+    const tray = document.getElementById('launcherTray');
+    if(!tray || document.getElementById('launcherMPTTT')) return;
+    const btn = document.createElement('button');
+    btn.className = 'launcher-btn';
+    btn.id = 'launcherMPTTT';
+    btn.title = 'Multiplayer Tic-Tac-Toe';
+    btn.textContent = '🎮';
+    btn.onclick = () => window.openMPTTT();
+    const optsBtn = tray.querySelector('button[onclick*="showPanelLauncherMenu"]');
+    if(optsBtn) tray.insertBefore(btn, optsBtn);
+    else tray.appendChild(btn);
+  }
+
+  function addDockButton(){
+    const dock = document.querySelector('#actDock .menu-panel-body');
+    if(!dock || document.getElementById('dockMPTTTBtn')) return;
+    const btn = document.createElement('button');
+    btn.className = 'dock-btn';
+    btn.id = 'dockMPTTTBtn';
+    btn.title = 'Tic-Tac-Toe Multiplayer';
+    btn.textContent = '🎮';
+    btn.onclick = () => window.openMPTTT();
+    dock.appendChild(btn);
+  }
+
+  function addSysMenuItem(){
+    const sysBody = document.querySelector('#sysMenu .menu-panel-body');
+    if(!sysBody || document.getElementById('sysMPTTTItem')) return;
+    const item = document.createElement('div');
+    item.className = 'sys-menu-item';
+    item.id = 'sysMPTTTItem';
+    item.innerHTML = '<span class="sys-icon">🎮</span>Multiplayer TTT';
+    item.onclick = () => window.openMPTTT();
+    const closeItem = Array.from(sysBody.querySelectorAll('.sys-menu-item')).find(el => el.textContent.includes('Alle Fenster'));
+    if(closeItem) sysBody.insertBefore(item, closeItem);
+    else sysBody.appendChild(item);
+  }
+
+  function addAppEntry(){
+    if(typeof APPS !== 'undefined' && Array.isArray(APPS)){
+      if(!APPS.find(a => a.w === 'mpttt-window')){
+        APPS.push({n:'Multiplayer TTT', e:'🎮', w:'mpttt-window', d:'3×3 · 4×4 · 5×5', cat:'Medien'});
+      }
+    }
+    if(typeof renderAppMenu === 'function') renderAppMenu();
+  }
+
+  // Patch openWin für mpttt-window
+  const origOpenWin = window.openWin;
+  window.openWin = function(id){
+    if(id === 'mpttt-window'){ ensureWindow(); }
+    if(typeof origOpenWin === 'function') origOpenWin(id);
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 4) KEYBOARD SHORTCUTS
+  // ═══════════════════════════════════════════════════════
+  document.addEventListener('keydown', (e) => {
+    if(e.ctrlKey && e.shiftKey && (e.key === 'G' || e.key === 'g')){
+      e.preventDefault();
+      window.openMPTTT();
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // 5) INIT
+  // ═══════════════════════════════════════════════════════
+  setTimeout(() => {
+    try{
+      addLauncherButton();
+      addDockButton();
+      addSysMenuItem();
+      addAppEntry();
+      enhanceNotificationPanel();
+      // Falls Panel später geöffnet wird, neu patchen
+      const origToggle = window.toggleNotificationPanel;
+      if(typeof origToggle === 'function'){
+        window.toggleNotificationPanel = function(){
+          origToggle();
+          setTimeout(enhanceNotificationPanel, 30);
+        };
+      }
+      console.log('%c🎮 v41 geladen: Multiplayer TTT + Notif-System','color:#00ff88;font-weight:bold;font-size:12px;');
+    }catch(err){
+      console.error('v41 Init-Fehler:', err);
+    }
+  }, 300);
+
+  // Notification Hook: neue Notifs sofort ins erweiterte Panel
+  const origAddNotif = window.addNotification;
+  if(typeof origAddNotif === 'function'){
+    window.addNotification = function(title, text, type){
+      if(!type) type = 'info';
+      origAddNotif(title, text, type);
+      setTimeout(renderEnhancedNotifications, 30);
+    };
+  }
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════ ENDE v41 ANHANG ═══════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
