@@ -7675,5 +7675,665 @@ body.float-mode .os-window.show::before{content:'🎈 FLOATING';position:absolut
 
 })();
 </script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════ v50 ANHANG – VOR </body> EINFÜGEN ═════════ -->
+<!-- ═════ Auto-Nacht-Modus + RSS-Reader + IP-Lookup ══════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+/* Auto-Nacht-Modus Indikator */
+body.auto-night-active {
+  filter: brightness(0.85);
+}
+body.auto-night-active::after {
+  content: '🌙';
+  position: fixed;
+  top: calc(8px + var(--safe-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px;
+  z-index: 9999;
+  opacity: 0.6;
+  pointer-events: none;
+  animation: autoNightPulse 3s infinite;
+}
+@keyframes autoNightPulse {
+  0%,100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+/* RSS-Reader Styles */
+.rss-feed-item {
+  padding: 12px;
+  background: rgba(0,0,0,.35);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  border-left: 3px solid var(--sys-color);
+  cursor: pointer;
+  transition: all .15s;
+}
+.rss-feed-item:hover {
+  background: rgba(0,229,255,.15);
+  transform: translateX(4px);
+}
+.rss-feed-item .rss-title {
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+.rss-feed-item .rss-desc {
+  font-size: 11px;
+  color: #88ccff;
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.rss-feed-item .rss-meta {
+  font-size: 10px;
+  color: #6688aa;
+  margin-top: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+.rss-feed-item .rss-source {
+  background: rgba(0,229,255,.2);
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: var(--sys-color);
+  font-weight: bold;
+}
+.rss-loading {
+  text-align: center;
+  padding: 30px;
+  color: var(--sys-color);
+  font-size: 13px;
+}
+
+/* IP-Lookup Styles */
+.ip-info-card {
+  background: linear-gradient(135deg, rgba(0,60,120,.6), rgba(0,30,70,.8));
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border-left: 4px solid var(--sys-color);
+}
+.ip-info-card .label {
+  font-size: 10px;
+  color: #88ccff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.ip-info-card .value {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--sys-color);
+  font-family: 'Courier New', monospace;
+  word-break: break-all;
+}
+.ip-flag-big {
+  font-size: 80px;
+  text-align: center;
+  margin: 16px 0;
+  filter: drop-shadow(0 0 20px var(--glow));
+}
+</style>
+
+<div id="autoNightBadge" style="display:none;position:fixed;top:calc(70px + var(--safe-top,0px));left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#1a1a4a,#0a0a2a);color:#88ccff;padding:8px 16px;border-radius:20px;font-size:11px;font-weight:bold;z-index:8000;border:1px solid #88ccff;box-shadow:0 0 20px rgba(136,204,255,.4);">
+  🌙 Auto-Nacht aktiv
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const IS_MOBILE = () => window.innerWidth <= 900 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  // ═══════════════════════════════════════════════════════
+  // 1) AUTO-NACHT-MODUS
+  // ═══════════════════════════════════════════════════════
+  let autoNightEnabled = localStorage.getItem('haldo_auto_night_enabled') === 'true';
+  let autoNightStart = localStorage.getItem('haldo_auto_night_start') || '22:00';
+  let autoNightEnd = localStorage.getItem('haldo_auto_night_end') || '07:00';
+  let autoNightCheckInt = null;
+
+  function checkAutoNight(){
+    if(!autoNightEnabled){
+      document.body.classList.remove('auto-night-active');
+      const b = document.getElementById('autoNightBadge');
+      if(b) b.style.display = 'none';
+      return;
+    }
+    const now = new Date();
+    const curMin = now.getHours() * 60 + now.getMinutes();
+    const [sh, sm] = autoNightStart.split(':').map(Number);
+    const [eh, em] = autoNightEnd.split(':').map(Number);
+    const startMin = sh * 60 + sm;
+    const endMin = eh * 60 + em;
+
+    let active = false;
+    if(startMin <= endMin){
+      // Normaler Bereich (z.B. 07:00 - 22:00)
+      active = curMin >= startMin && curMin < endMin;
+    } else {
+      // Über Mitternacht (z.B. 22:00 - 07:00)
+      active = curMin >= startMin || curMin < endMin;
+    }
+
+    if(active){
+      if(!document.body.classList.contains('light-mode')){
+        document.body.classList.add('auto-night-active');
+      }
+      const b = document.getElementById('autoNightBadge');
+      if(b) b.style.display = 'block';
+    } else {
+      document.body.classList.remove('auto-night-active');
+      const b = document.getElementById('autoNightBadge');
+      if(b) b.style.display = 'none';
+    }
+  }
+
+  function startAutoNightTimer(){
+    if(autoNightCheckInt) clearInterval(autoNightCheckInt);
+    checkAutoNight();
+    autoNightCheckInt = setInterval(checkAutoNight, 60000); // jede Minute
+  }
+
+  // Settings-Fenster erweitern
+  function enhanceSettingsWithAutoNight(){
+    const designTab = document.getElementById('tab-design');
+    if(!designTab || document.getElementById('autoNightSection')) return;
+
+    const section = document.createElement('div');
+    section.className = 'section';
+    section.id = 'autoNightSection';
+    section.innerHTML = `
+      <h4>🌙 Auto-Nacht-Modus</h4>
+      <div class="row" style="padding:6px 0;">
+        <label style="font-size:12px;">Automatisch aktivieren</label>
+        <input type="checkbox" id="autoNightToggle" ${autoNightEnabled ? 'checked' : ''} onchange="autoNightSetEnabled(this.checked)" style="width:auto;">
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+        <label style="flex:0 0 60px;font-size:12px;">Von:</label>
+        <input type="time" id="autoNightStart" value="${autoNightStart}" onchange="autoNightSetStart(this.value)" style="flex:1;margin:0;">
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+        <label style="flex:0 0 60px;font-size:12px;">Bis:</label>
+        <input type="time" id="autoNightEnd" value="${autoNightEnd}" onchange="autoNightSetEnd(this.value)" style="flex:1;margin:0;">
+      </div>
+      <p style="font-size:11px;color:#88ccff;margin-top:8px;">Zwischen den Zeiten wird der Bildschirm automatisch abgedunkelt.</p>
+    `;
+
+    // Nach Design-Sektion einfügen
+    const firstSection = designTab.querySelector('.section');
+    if(firstSection) designTab.insertBefore(section, firstSection);
+    else designTab.appendChild(section);
+  }
+
+  window.autoNightSetEnabled = function(v){
+    autoNightEnabled = v;
+    localStorage.setItem('haldo_auto_night_enabled', v ? 'true' : 'false');
+    checkAutoNight();
+    if(typeof showToast === 'function') showToast(v ? '🌙 Auto-Nacht an' : '🌙 Auto-Nacht aus');
+  };
+  window.autoNightSetStart = function(v){
+    autoNightStart = v || '22:00';
+    localStorage.setItem('haldo_auto_night_start', autoNightStart);
+    checkAutoNight();
+  };
+  window.autoNightSetEnd = function(v){
+    autoNightEnd = v || '07:00';
+    localStorage.setItem('haldo_auto_night_end', autoNightEnd);
+    checkAutoNight();
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 2) RSS-READER
+  // ═══════════════════════════════════════════════════════
+  const RSS_FEEDS = [
+    { id:'tagesschau', name:'Tagesschau', icon:'🇩🇪', url:'https://www.tagesschau.de/xml/rss2', cat:'Nachrichten' },
+    { id:'heise', name:'Heise', icon:'💻', url:'https://www.heise.de/rss/heise-atom.xml', cat:'Tech' },
+    { id:'spiegel', name:'Spiegel', icon:'📰', url:'https://www.spiegel.de/schlagzeilen/index.rss', cat:'Nachrichten' },
+    { id:'bbc', name:'BBC World', icon:'🌍', url:'https://feeds.bbci.co.uk/news/world/rss.xml', cat:'International' },
+    { id:'kicker', name:'Kicker', icon:'⚽', url:'https://newsfeed.kicker.de/news/aktuell', cat:'Sport' },
+    { id:'golem', name:'Golem', icon:'🖥️', url:'https://rss.golem.de/rss.php?feed=ATOM1.0', cat:'Tech' }
+  ];
+
+  const RSS_HTML = `
+  <div id="rss-window" class="os-window" style="top:6vh;left:50%;transform:translateX(-50%);width:720px;height:88vh;">
+    <div class="header">
+      <span class="header-title">📡 RSS-Reader</span>
+      <div class="header-controls">
+        <button class="control-btn btn-extra" onclick="rssRefresh()">🔄</button>
+        <button class="control-btn btn-min" onclick="minimizeWin('rss-window')">–</button>
+        <button class="control-btn btn-max" onclick="toggleMaximize('rss-window')">□</button>
+        <button class="control-btn btn-close" onclick="closeWin('rss-window')">✕</button>
+      </div>
+    </div>
+    <div class="body" style="padding:12px;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;" id="rssFeedTabs"></div>
+      <div id="rssLoading" class="rss-loading" style="display:none;">⏳ Lade Feed...</div>
+      <div id="rssList"></div>
+    </div>
+  </div>`;
+
+  let rssCurrentFeed = localStorage.getItem('haldo_rss_feed') || 'tagesschau';
+  let rssCache = {};
+  let rssCacheTime = {};
+
+  function ensureRSS(){
+    if(document.getElementById('rss-window')) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = RSS_HTML;
+    const node = wrap.firstElementChild;
+    document.body.appendChild(node);
+    ['n','s','e','w','ne','nw','se','sw'].forEach(dir => {
+      const h = document.createElement('div');
+      h.className = 'resize-handle resize-' + dir;
+      h.dataset.dir = dir;
+      node.appendChild(h);
+    });
+    if(typeof bindWindowDragAndResize === 'function') bindWindowDragAndResize(node);
+    renderRssTabs();
+    loadRssFeed(rssCurrentFeed);
+  }
+
+  function renderRssTabs(){
+    const el = document.getElementById('rssFeedTabs');
+    if(!el) return;
+    el.innerHTML = RSS_FEEDS.map(f => {
+      const active = rssCurrentFeed === f.id;
+      return `<button onclick="rssSelectFeed('${f.id}')" style="padding:8px 14px;font-size:12px;border-radius:20px;border:1.5px solid var(--sys-color);background:${active ? 'var(--sys-color)' : 'rgba(0,0,0,.4)'};color:${active ? '#000' : '#fff'};font-weight:bold;margin:0;cursor:pointer;">${f.icon} ${f.name}</button>`;
+    }).join('');
+  }
+
+  window.rssSelectFeed = function(id){
+    rssCurrentFeed = id;
+    localStorage.setItem('haldo_rss_feed', id);
+    renderRssTabs();
+    loadRssFeed(id);
+  };
+
+  window.rssRefresh = function(){
+    rssCacheTime[rssCurrentFeed] = 0;
+    loadRssFeed(rssCurrentFeed);
+    if(typeof showToast === 'function') showToast('🔄 Lade neu...');
+  };
+
+  async function loadRssFeed(feedId){
+    const feed = RSS_FEEDS.find(f => f.id === feedId);
+    if(!feed) return;
+    const listEl = document.getElementById('rssList');
+    const loadEl = document.getElementById('rssLoading');
+    if(!listEl) return;
+
+    // Cache für 5 Minuten
+    const now = Date.now();
+    if(rssCache[feedId] && rssCacheTime[feedId] && (now - rssCacheTime[feedId]) < 5*60*1000){
+      renderRssItems(rssCache[feedId]);
+      return;
+    }
+
+    if(loadEl) loadEl.style.display = 'block';
+    listEl.innerHTML = '';
+
+    try{
+      // Über CORS-Proxy laden
+      const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(feed.url);
+      const res = await fetch(proxyUrl);
+      const text = await res.text();
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(text, 'text/xml');
+
+      let items = [];
+      const rssItems = xml.querySelectorAll('item');
+      const atomEntries = xml.querySelectorAll('entry');
+
+      if(rssItems.length){
+        items = Array.from(rssItems).slice(0, 30).map(it => ({
+          title: it.querySelector('title')?.textContent || 'Ohne Titel',
+          link: it.querySelector('link')?.textContent || '#',
+          desc: (it.querySelector('description')?.textContent || '').replace(/<[^>]*>/g, '').substring(0, 200),
+          date: it.querySelector('pubDate')?.textContent || ''
+        }));
+      } else if(atomEntries.length){
+        items = Array.from(atomEntries).slice(0, 30).map(it => ({
+          title: it.querySelector('title')?.textContent || 'Ohne Titel',
+          link: it.querySelector('link')?.getAttribute('href') || '#',
+          desc: (it.querySelector('summary')?.textContent || it.querySelector('content')?.textContent || '').replace(/<[^>]*>/g, '').substring(0, 200),
+          date: it.querySelector('updated')?.textContent || it.querySelector('published')?.textContent || ''
+        }));
+      }
+
+      rssCache[feedId] = items;
+      rssCacheTime[feedId] = now;
+      renderRssItems(items);
+    } catch(e){
+      console.error('RSS-Fehler:', e);
+      if(loadEl) loadEl.style.display = 'none';
+      listEl.innerHTML = '<p style="color:#ff5555;text-align:center;padding:20px;">❌ Feed konnte nicht geladen werden.<br><small style="opacity:.7;">Prüfe Internet-Verbindung oder versuch später.</small></p>';
+    }
+  }
+
+  function renderRssItems(items){
+    const listEl = document.getElementById('rssList');
+    const loadEl = document.getElementById('rssLoading');
+    if(loadEl) loadEl.style.display = 'none';
+    if(!listEl) return;
+
+    if(!items || !items.length){
+      listEl.innerHTML = '<p style="color:#888;text-align:center;padding:20px;">Keine Einträge gefunden.</p>';
+      return;
+    }
+
+    const feed = RSS_FEEDS.find(f => f.id === rssCurrentFeed);
+    listEl.innerHTML = items.map(it => {
+      let dateStr = '';
+      if(it.date){
+        try{
+          const d = new Date(it.date);
+          if(!isNaN(d)) dateStr = d.toLocaleString('de-DE', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+        }catch(e){}
+      }
+      return `<div class="rss-feed-item" onclick="rssOpen('${encodeURIComponent(it.link)}')">
+        <div class="rss-title">${it.title.replace(/</g,'&lt;')}</div>
+        ${it.desc ? '<div class="rss-desc">' + it.desc.replace(/</g,'&lt;') + '</div>' : ''}
+        <div class="rss-meta">
+          <span class="rss-source">${feed ? feed.icon + ' ' + feed.name : ''}</span>
+          <span>${dateStr}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  window.rssOpen = function(linkEnc){
+    const url = decodeURIComponent(linkEnc);
+    if(url && url !== '#'){
+      window.open(url, '_blank');
+      if(typeof showToast === 'function') showToast('🔗 Öffne Link...');
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 3) IP-LOOKUP
+  // ═══════════════════════════════════════════════════════
+  const IP_HTML = `
+  <div id="iplookup-window" class="os-window" style="top:8vh;left:50%;transform:translateX(-50%);width:520px;max-height:88vh;">
+    <div class="header">
+      <span class="header-title">🌍 IP-Lookup</span>
+      <div class="header-controls">
+        <button class="control-btn btn-extra" onclick="ipLookupLoad()">🔄</button>
+        <button class="control-btn btn-min" onclick="minimizeWin('iplookup-window')">–</button>
+        <button class="control-btn btn-max" onclick="toggleMaximize('iplookup-window')">□</button>
+        <button class="control-btn btn-close" onclick="closeWin('iplookup-window')">✕</button>
+      </div>
+    </div>
+    <div class="body" style="padding:14px;">
+      <div style="display:flex;gap:6px;margin-bottom:14px;">
+        <input id="ipSearchInput" placeholder="Beliebige IP prüfen (leer = meine IP)" onkeydown="if(event.key==='Enter') ipLookupLoad()" style="flex:1;margin:0;">
+        <button onclick="ipLookupLoad()" style="background:var(--accent);color:#000;margin:0;padding:10px 16px;">🔍</button>
+      </div>
+      <div id="ipLoading" class="rss-loading" style="display:none;">⏳ Lade Info...</div>
+      <div id="ipContent"></div>
+    </div>
+  </div>`;
+
+  function ensureIPLookup(){
+    if(document.getElementById('iplookup-window')) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = IP_HTML;
+    const node = wrap.firstElementChild;
+    document.body.appendChild(node);
+    ['n','s','e','w','ne','nw','se','sw'].forEach(dir => {
+      const h = document.createElement('div');
+      h.className = 'resize-handle resize-' + dir;
+      h.dataset.dir = dir;
+      node.appendChild(h);
+    });
+    if(typeof bindWindowDragAndResize === 'function') bindWindowDragAndResize(node);
+    ipLookupLoad();
+  }
+
+  function getFlagEmoji(countryCode){
+    if(!countryCode || countryCode.length !== 2) return '🌍';
+    const codePoints = countryCode.toUpperCase().split('').map(c => 127397 + c.charCodeAt(0));
+    return String.fromCodePoint(...codePoints);
+  }
+
+  window.ipLookupLoad = async function(){
+    const input = document.getElementById('ipSearchInput');
+    const query = (input ? input.value.trim() : '');
+    const loading = document.getElementById('ipLoading');
+    const content = document.getElementById('ipContent');
+    if(!content) return;
+
+    if(loading) loading.style.display = 'block';
+    content.innerHTML = '';
+
+    try{
+      // ipapi.co: kostenlos, kein Key nötig
+      const url = query ? `https://ipapi.co/${query}/json/` : 'https://ipapi.co/json/';
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if(data.error){
+        if(loading) loading.style.display = 'none';
+        content.innerHTML = `<p style="color:#ff5555;text-align:center;padding:20px;">❌ ${data.reason || 'Fehler bei Anfrage'}</p>`;
+        return;
+      }
+
+      const flag = getFlagEmoji(data.country_code);
+      let html = '';
+
+      // Flagge groß
+      html += `<div class="ip-flag-big">${flag}</div>`;
+
+      // Hauptinfo
+      html += `<div class="ip-info-card">
+        <div class="label">📍 Standort</div>
+        <div class="value">${data.city || '—'}${data.region ? ', ' + data.region : ''}${data.country_name ? ', ' + data.country_name : ''}</div>
+      </div>`;
+
+      // IP
+      html += `<div class="ip-info-card">
+        <div class="label">🌐 IP-Adresse</div>
+        <div class="value">${data.ip || '—'}</div>
+      </div>`;
+
+      // ISP
+      if(data.org){
+        html += `<div class="ip-info-card">
+          <div class="label">📡 Provider / ISP</div>
+          <div class="value" style="font-size:13px;">${data.org}</div>
+        </div>`;
+      }
+
+      // Koordinaten
+      if(data.latitude && data.longitude){
+        html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div class="ip-info-card" style="margin:0;">
+            <div class="label">🌐 Breite</div>
+            <div class="value" style="font-size:14px;">${data.latitude.toFixed(4)}</div>
+          </div>
+          <div class="ip-info-card" style="margin:0;">
+            <div class="label">🌐 Länge</div>
+            <div class="value" style="font-size:14px;">${data.longitude.toFixed(4)}</div>
+          </div>
+        </div>`;
+      }
+
+      // Zusatzinfo
+      let extras = [];
+      if(data.timezone) extras.push(`⏰ ${data.timezone}`);
+      if(data.currency) extras.push(`💰 ${data.currency}`);
+      if(data.languages) extras.push(`🗣️ ${data.languages}`);
+      if(data.country_calling_code) extras.push(`📞 ${data.country_calling_code}`);
+      if(extras.length){
+        html += `<div class="ip-info-card">
+          <div class="label">ℹ️ Zusatzinfo</div>
+          <div style="font-size:12px;line-height:1.8;color:#fff;">${extras.join('<br>')}</div>
+        </div>`;
+      }
+
+      // Karte-Button
+      if(data.latitude && data.longitude){
+        html += `<button onclick="ipOpenInMap(${data.latitude}, ${data.longitude})" style="width:100%;margin-top:8px;background:var(--accent);color:#000;padding:12px;">🗺️ Auf Karte anzeigen</button>`;
+      }
+
+      content.innerHTML = html;
+      if(loading) loading.style.display = 'none';
+
+      if(typeof addNotification === 'function'){
+        addNotification('IP-Lookup', (data.city || 'Unbekannt') + ', ' + (data.country_name || ''), 'success');
+      }
+    } catch(e){
+      console.error('IP-Lookup-Fehler:', e);
+      if(loading) loading.style.display = 'none';
+      content.innerHTML = '<p style="color:#ff5555;text-align:center;padding:20px;">❌ Fehler beim Laden.<br><small style="opacity:.7;">Prüfe Internet-Verbindung.</small></p>';
+    }
+  };
+
+  window.ipOpenInMap = function(lat, lon){
+    if(typeof openWin === 'function') openWin('map-window');
+    // Karte-Funktion aus v46 nutzen
+    setTimeout(() => {
+      if(typeof mapCurrentLat !== 'undefined'){
+        window.mapCurrentLat = lat;
+        window.mapCurrentLon = lon;
+        window.mapCurrentZoom = 12;
+        if(typeof mapUpdateIframe === 'function') mapUpdateIframe();
+      }
+    }, 200);
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 4) BUTTONS EINFÜGEN
+  // ═══════════════════════════════════════════════════════
+  function addButtons(){
+    // Launcher-Tray (Desktop)
+    const tray = document.getElementById('launcherTray');
+    if(tray){
+      const optsBtn = tray.querySelector('button[onclick*="showPanelLauncherMenu"]');
+      if(!document.getElementById('launcherRSS')){
+        const b = document.createElement('button');
+        b.className = 'launcher-btn';
+        b.id = 'launcherRSS';
+        b.title = 'RSS-Reader';
+        b.textContent = '📡';
+        b.onclick = () => { ensureRSS(); if(typeof openWin === 'function') openWin('rss-window'); };
+        if(optsBtn) tray.insertBefore(b, optsBtn); else tray.appendChild(b);
+      }
+      if(!document.getElementById('launcherIP')){
+        const b = document.createElement('button');
+        b.className = 'launcher-btn';
+        b.id = 'launcherIP';
+        b.title = 'IP-Lookup';
+        b.textContent = '🌍';
+        b.onclick = () => { ensureIPLookup(); if(typeof openWin === 'function') openWin('iplookup-window'); };
+        if(optsBtn) tray.insertBefore(b, optsBtn); else tray.appendChild(b);
+      }
+    }
+
+    // System-Menü
+    const sysBody = document.querySelector('#sysMenu .menu-panel-body');
+    if(sysBody){
+      const closeItem = Array.from(sysBody.querySelectorAll('.sys-menu-item')).find(el => el.textContent.includes('Alle Fenster'));
+      if(!document.getElementById('sysRSSItem')){
+        const item = document.createElement('div');
+        item.className = 'sys-menu-item';
+        item.id = 'sysRSSItem';
+        item.innerHTML = '<span class="sys-icon">📡</span>RSS-Reader';
+        item.onclick = () => { ensureRSS(); if(typeof openWin === 'function') openWin('rss-window'); };
+        if(closeItem) sysBody.insertBefore(item, closeItem); else sysBody.appendChild(item);
+      }
+      if(!document.getElementById('sysIPItem')){
+        const item = document.createElement('div');
+        item.className = 'sys-menu-item';
+        item.id = 'sysIPItem';
+        item.innerHTML = '<span class="sys-icon">🌍</span>IP-Lookup';
+        item.onclick = () => { ensureIPLookup(); if(typeof openWin === 'function') openWin('iplookup-window'); };
+        if(closeItem) sysBody.insertBefore(item, closeItem); else sysBody.appendChild(item);
+      }
+    }
+
+    // Dock
+    const dock = document.querySelector('#actDock .menu-panel-body');
+    if(dock){
+      if(!document.getElementById('dockRSSBtn')){
+        const b = document.createElement('button');
+        b.className = 'dock-btn';
+        b.id = 'dockRSSBtn';
+        b.title = 'RSS-Reader';
+        b.textContent = '📡';
+        b.onclick = () => { ensureRSS(); if(typeof openWin === 'function') openWin('rss-window'); };
+        dock.appendChild(b);
+      }
+    }
+
+    // App-Einträge
+    if(typeof APPS !== 'undefined' && Array.isArray(APPS)){
+      if(!APPS.find(a => a.w === 'rss-window')){
+        APPS.push({n:'RSS-Reader', e:'📡', w:'rss-window', d:'Nachrichten', cat:'Sonstiges'});
+      }
+      if(!APPS.find(a => a.w === 'iplookup-window')){
+        APPS.push({n:'IP-Lookup', e:'🌍', w:'iplookup-window', d:'Meine IP + Standort', cat:'Tools'});
+      }
+      if(typeof renderAppMenu === 'function') renderAppMenu();
+    }
+  }
+
+  // openWin patchen
+  const origOpenWin = window.openWin;
+  window.openWin = function(id){
+    if(id === 'rss-window') ensureRSS();
+    if(id === 'iplookup-window') ensureIPLookup();
+    if(typeof origOpenWin === 'function') origOpenWin(id);
+  };
+
+  // Settings-Fenster erweitern
+  const origSwitchSettingsTab = window.switchSettingsTab;
+  window.switchSettingsTab = function(tab, el){
+    if(typeof origSwitchSettingsTab === 'function') origSwitchSettingsTab(tab, el);
+    if(tab === 'design') setTimeout(enhanceSettingsWithAutoNight, 50);
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 5) KEYBOARD-SHORTCUTS
+  // ═══════════════════════════════════════════════════════
+  document.addEventListener('keydown', (e) => {
+    if(e.ctrlKey && e.shiftKey && (e.key === 'F' || e.key === 'f')){
+      e.preventDefault();
+      ensureRSS();
+      if(typeof openWin === 'function') openWin('rss-window');
+    }
+    if(e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')){
+      e.preventDefault();
+      ensureIPLookup();
+      if(typeof openWin === 'function') openWin('iplookup-window');
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // 6) INIT
+  // ═══════════════════════════════════════════════════════
+  setTimeout(() => {
+    try{
+      startAutoNightTimer();
+      addButtons();
+      // Falls Settings schon offen ist, Design-Sektion erweitern
+      if(document.getElementById('tab-design')) enhanceSettingsWithAutoNight();
+      console.log('%c🌙 v50 geladen: Auto-Nacht + RSS-Reader + IP-Lookup','color:#00e5ff;font-weight:bold;font-size:12px;');
+    }catch(err){
+      console.error('v50 Init-Fehler:', err);
+    }
+  }, 1000);
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════ ENDE v50 ANHANG ══════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
