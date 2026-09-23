@@ -4372,5 +4372,750 @@ console.log('%c🔷 HalDo AI OS v40 geladen','color:#00e5ff;font-size:16px;font-
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════ ENDE v43 ANHANG ══════════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════ v44 ANHANG – VOR </body> EINFÜGEN ═════════ -->
+<!-- ═════ Notizen-Plus + Theme-Designer + Dashboard-Widget ═══ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  "use strict";
+
+  // ═══════════════════════════════════════════════════════
+  // 1) NOTIZEN-PLUS: Markdown + Tags + Suche + Kategorien
+  // ═══════════════════════════════════════════════════════
+  let notesPlusData = JSON.parse(localStorage.getItem('haldo_notes_plus') || 'null') || null;
+
+  function migrateNotes(){
+    if(notesPlusData) return;
+    const old = JSON.parse(localStorage.getItem('haldo_notes') || '[]');
+    notesPlusData = old.map((n, i) => ({
+      id: 'n_' + Date.now() + '_' + i,
+      title: n.title || 'Notiz',
+      content: n.content || '',
+      tags: [],
+      category: 'Allgemein',
+      favorite: false,
+      created: new Date().toLocaleString(),
+      updated: new Date().toLocaleString()
+    }));
+    localStorage.setItem('haldo_notes_plus', JSON.stringify(notesPlusData));
+  }
+  function saveNotesPlus(){ localStorage.setItem('haldo_notes_plus', JSON.stringify(notesPlusData)); }
+
+  let notesFilter = 'all';
+  let notesSearch = '';
+  let notesCurrentTag = null;
+
+  function renderNotesPlus(){
+    const list = document.getElementById('notes-list');
+    if(!list) return;
+    let arr = notesPlusData.slice();
+    if(notesFilter === 'favs') arr = arr.filter(n => n.favorite);
+    if(notesCurrentTag) arr = arr.filter(n => (n.tags || []).includes(notesCurrentTag));
+    if(notesSearch){
+      const q = notesSearch.toLowerCase();
+      arr = arr.filter(n =>
+        (n.title || '').toLowerCase().includes(q) ||
+        (n.content || '').toLowerCase().includes(q) ||
+        (n.tags || []).some(t => t.toLowerCase().includes(q))
+      );
+    }
+    if(!arr.length){
+      list.innerHTML = '<p style="color:#888;text-align:center;padding:20px;">Keine Notizen.</p>';
+      renderNotesTagsBar();
+      return;
+    }
+    list.innerHTML = arr.map(n => {
+      const tags = (n.tags || []).map(t => `<span style="display:inline-block;padding:2px 8px;background:rgba(0,229,255,.2);border-radius:10px;font-size:10px;margin-right:3px;">${t}</span>`).join('');
+      const preview = (n.content || '').replace(/[#*`]/g, '').substring(0, 80);
+      return `<div class="mail-item" onclick="npEdit('${n.id}')" style="cursor:pointer;position:relative;">
+        <div class="subject">${n.favorite ? '⭐ ' : ''}${n.title}</div>
+        <div class="preview">${preview}</div>
+        <div style="margin-top:4px;">${tags}</div>
+        <button onclick="event.stopPropagation();npToggleFav('${n.id}')" style="position:absolute;top:8px;right:36px;background:transparent;border:none;color:#ffcc00;font-size:16px;padding:4px;margin:0;">${n.favorite ? '⭐' : '☆'}</button>
+        <button onclick="event.stopPropagation();npDelete('${n.id}')" style="position:absolute;top:8px;right:6px;background:transparent;border:none;color:#ff3344;font-size:14px;padding:4px;margin:0;">🗑️</button>
+      </div>`;
+    }).join('');
+    renderNotesTagsBar();
+  }
+
+  function renderNotesTagsBar(){
+    const bar = document.getElementById('npTagsBar');
+    if(!bar) return;
+    const allTags = {};
+    notesPlusData.forEach(n => (n.tags || []).forEach(t => { allTags[t] = (allTags[t] || 0) + 1; }));
+    const tagKeys = Object.keys(allTags);
+    if(!tagKeys.length){ bar.innerHTML = ''; return; }
+    bar.innerHTML = '<div style="display:flex;gap:4px;flex-wrap:wrap;margin:8px 0;">' +
+      `<div onclick="npTagFilter(null)" style="padding:4px 10px;background:${notesCurrentTag ? 'rgba(0,0,0,.3)' : 'var(--sys-color)'};color:${notesCurrentTag ? '#fff' : '#000'};border-radius:12px;font-size:11px;cursor:pointer;">🏷️ Alle</div>` +
+      tagKeys.map(t => {
+        const active = notesCurrentTag === t;
+        return `<div onclick="npTagFilter('${t}')" style="padding:4px 10px;background:${active ? 'var(--sys-color)' : 'rgba(0,229,255,.15)'};color:${active ? '#000' : '#fff'};border-radius:12px;font-size:11px;cursor:pointer;">${t} (${allTags[t]})</div>`;
+      }).join('') +
+    '</div>';
+  }
+
+  window.npTagFilter = function(tag){
+    notesCurrentTag = (tag === notesCurrentTag) ? null : tag;
+    renderNotesPlus();
+  };
+  window.npToggleFav = function(id){
+    const n = notesPlusData.find(x => x.id === id); if(!n) return;
+    n.favorite = !n.favorite; n.updated = new Date().toLocaleString();
+    saveNotesPlus(); renderNotesPlus();
+    if(typeof showToast === 'function') showToast(n.favorite ? '⭐ Favorit' : '☆ Kein Favorit');
+  };
+  window.npDelete = function(id){
+    if(!confirm('Notiz löschen?')) return;
+    notesPlusData = notesPlusData.filter(x => x.id !== id);
+    saveNotesPlus(); renderNotesPlus();
+    if(typeof showToast === 'function') showToast('🗑️ Gelöscht');
+  };
+  window.npEdit = function(id){
+    const n = notesPlusData.find(x => x.id === id); if(!n) return;
+    const editor = document.getElementById('note-editor');
+    if(!editor) return;
+    editor.style.display = 'block';
+    document.getElementById('note-title').value = n.title;
+    document.getElementById('note-content').value = n.content;
+    editor.dataset.editingId = id;
+    // Erweiterte Felder anzeigen
+    npShowExtras(n);
+  };
+  window.npNew = function(){
+    const editor = document.getElementById('note-editor');
+    if(!editor) return;
+    editor.style.display = 'block';
+    document.getElementById('note-title').value = '';
+    document.getElementById('note-content').value = '';
+    editor.dataset.editingId = '';
+    npShowExtras(null);
+  };
+  window.npSave = function(){
+    const editor = document.getElementById('note-editor');
+    if(!editor) return;
+    const title = document.getElementById('note-title').value.trim();
+    const content = document.getElementById('note-content').value.trim();
+    if(!title && !content){ if(typeof showToast === 'function') showToast('❌ Leer'); return; }
+    const tagsStr = (document.getElementById('npTagsInput')?.value || '').trim();
+    const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(t => t) : [];
+    const category = document.getElementById('npCategorySelect')?.value || 'Allgemein';
+    const editingId = editor.dataset.editingId;
+    if(editingId){
+      const n = notesPlusData.find(x => x.id === editingId);
+      if(n){ n.title = title || 'Notiz'; n.content = content; n.tags = tags; n.category = category; n.updated = new Date().toLocaleString(); }
+    } else {
+      notesPlusData.unshift({
+        id: 'n_' + Date.now(),
+        title: title || 'Notiz',
+        content,
+        tags, category,
+        favorite: false,
+        created: new Date().toLocaleString(),
+        updated: new Date().toLocaleString()
+      });
+    }
+    saveNotesPlus();
+    editor.style.display = 'none';
+    renderNotesPlus();
+    if(typeof showToast === 'function') showToast('📝 Gespeichert');
+    // Alte Notizen für Kompatibilität synchronisieren
+    if(typeof userNotes !== 'undefined' && Array.isArray(userNotes)){
+      userNotes.length = 0;
+      notesPlusData.forEach(n => userNotes.push({title: n.title, content: n.content}));
+      localStorage.setItem('haldo_notes', JSON.stringify(userNotes));
+    }
+  };
+  function npShowExtras(n){
+    const editor = document.getElementById('note-editor');
+    if(!editor) return;
+    if(!document.getElementById('npTagsInput')){
+      const extras = document.createElement('div');
+      extras.id = 'npExtras';
+      extras.innerHTML = `
+        <label style="margin-top:10px;">🏷️ Tags (Komma-getrennt)</label>
+        <input id="npTagsInput" placeholder="arbeit, wichtig, idee">
+        <label style="margin-top:6px;">📂 Kategorie</label>
+        <select id="npCategorySelect">
+          <option>Allgemein</option>
+          <option>Arbeit</option>
+          <option>Persönlich</option>
+          <option>Ideen</option>
+          <option>Wichtig</option>
+          <option>Einkauf</option>
+          <option>Rezepte</option>
+          <option>Reisen</option>
+        </select>
+      `;
+      editor.insertBefore(extras, editor.querySelector('.toolbar'));
+    }
+    const tagsInput = document.getElementById('npTagsInput');
+    const catSel = document.getElementById('npCategorySelect');
+    if(tagsInput) tagsInput.value = n ? (n.tags || []).join(', ') : '';
+    if(catSel) catSel.value = n ? (n.category || 'Allgemein') : 'Allgemein';
+  }
+
+  // Notizen-Fenster patchen
+  function enhanceNotesWindow(){
+    const win = document.getElementById('notes-window');
+    if(!win || win.querySelector('#npTagsBar')) return;
+    const body = win.querySelector('.body');
+    if(!body) return;
+    // Suche erweitern
+    const searchInput = document.getElementById('notesSearch');
+    if(searchInput){
+      searchInput.placeholder = '🔍 Notizen durchsuchen...';
+      searchInput.oninput = (e) => { notesSearch = e.target.value; renderNotesPlus(); };
+    }
+    // Filterleiste vor notes-list einfügen
+    const bar = document.createElement('div');
+    bar.id = 'npTagsBar';
+    const notesList = document.getElementById('notes-list');
+    if(notesList) body.insertBefore(bar, notesList);
+
+    // Filter-Buttons
+    const filterBar = document.createElement('div');
+    filterBar.id = 'npFilterBar';
+    filterBar.style.cssText = 'display:flex;gap:6px;margin:8px 0;flex-wrap:wrap;';
+    filterBar.innerHTML = `
+      <button onclick="npSetFilter('all',this)" class="btn-sm np-filter-btn active" style="background:var(--sys-color);color:#000;">📋 Alle</button>
+      <button onclick="npSetFilter('favs',this)" class="btn-sm np-filter-btn">⭐ Favoriten</button>
+    `;
+    if(notesList) body.insertBefore(filterBar, notesList);
+
+    // Neu-Button patchen
+    const newBtn = body.querySelector('button[onclick="newNote()"]');
+    if(newBtn){ newBtn.onclick = npNew; newBtn.textContent = '➕ Neue Notiz'; }
+
+    renderNotesPlus();
+  }
+
+  window.npSetFilter = function(f, el){
+    notesFilter = f;
+    document.querySelectorAll('.np-filter-btn').forEach(b => {
+      b.classList.remove('active');
+      b.style.background = '';
+      b.style.color = '';
+    });
+    if(el){ el.classList.add('active'); el.style.background = 'var(--sys-color)'; el.style.color = '#000'; }
+    renderNotesPlus();
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 2) THEME-DESIGNER: eigene Farben
+  // ═══════════════════════════════════════════════════════
+  const THEME_DESIGNER_HTML = `
+  <div id="themedesigner-window" class="os-window">
+    <div class="header">
+      <span class="header-title">🎨 Theme-Designer</span>
+      <div class="header-controls">
+        <button class="control-btn btn-min" onclick="minimizeWin('themedesigner-window')">–</button>
+        <button class="control-btn btn-max" onclick="toggleMaximize('themedesigner-window')">□</button>
+        <button class="control-btn btn-close" onclick="closeWin('themedesigner-window')">✕</button>
+      </div>
+    </div>
+    <div class="body" style="padding:14px;">
+      <p style="font-size:12px;color:#88ccff;margin-bottom:14px;">Wähle deine eigenen Farben – wird sofort angewendet.</p>
+
+      <div class="section">
+        <h4>🎯 Hauptfarbe (System)</h4>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:8px;">
+          <input type="color" id="tdSysColor" value="#00e5ff" oninput="tdUpdate()" style="width:60px;height:50px;padding:0;border-radius:8px;cursor:pointer;flex:0;">
+          <input type="text" id="tdSysColorHex" value="#00e5ff" oninput="tdSyncInputs('tdSysColor','tdSysColorHex')" style="flex:1;margin:0;font-family:monospace;">
+        </div>
+      </div>
+
+      <div class="section">
+        <h4>✅ Akzentfarbe</h4>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:8px;">
+          <input type="color" id="tdAccentColor" value="#00ff88" oninput="tdUpdate()" style="width:60px;height:50px;padding:0;border-radius:8px;cursor:pointer;flex:0;">
+          <input type="text" id="tdAccentColorHex" value="#00ff88" oninput="tdSyncInputs('tdAccentColor','tdAccentColorHex')" style="flex:1;margin:0;font-family:monospace;">
+        </div>
+      </div>
+
+      <div class="section">
+        <h4>🌫️ Glow / Leuchten</h4>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:8px;">
+          <input type="color" id="tdGlowColor" value="#00e5ff" oninput="tdUpdate()" style="width:60px;height:50px;padding:0;border-radius:8px;cursor:pointer;flex:0;">
+          <div style="flex:1;">
+            <input type="range" id="tdGlowAlpha" min="0" max="100" value="50" oninput="tdUpdate()" style="margin:0;">
+            <div style="font-size:11px;color:#88ccff;text-align:right;margin-top:2px;">Deckkraft: <span id="tdGlowAlphaVal">50</span>%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h4>🌑 Hintergrund-Panel</h4>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:8px;">
+          <input type="color" id="tdBgColor" value="#000f28" oninput="tdUpdate()" style="width:60px;height:50px;padding:0;border-radius:8px;cursor:pointer;flex:0;">
+          <div style="flex:1;">
+            <input type="range" id="tdBgAlpha" min="0" max="100" value="94" oninput="tdUpdate()" style="margin:0;">
+            <div style="font-size:11px;color:#88ccff;text-align:right;margin-top:2px;">Deckkraft: <span id="tdBgAlphaVal">94</span>%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h4>💡 Vorschau</h4>
+        <div id="tdPreview" style="margin-top:10px;padding:16px;border-radius:10px;border:2px solid;background:rgba(0,0,0,.4);">
+          <div style="font-size:14px;font-weight:bold;margin-bottom:6px;" id="tdPreviewTitle">Beispieltitel</div>
+          <button style="padding:8px 16px;border-radius:8px;font-weight:bold;">Beispiel-Button</button>
+        </div>
+      </div>
+
+      <div class="toolbar" style="margin-top:12px;">
+        <button onclick="tdSave()" style="background:var(--accent);color:#000;flex:1;">💾 Speichern</button>
+        <button onclick="tdRandom()">🎲 Zufall</button>
+        <button onclick="tdReset()" style="background:#ff3344;">🔄 Reset</button>
+      </div>
+
+      <div class="section" style="margin-top:12px;">
+        <h4>📌 Vorgefertigte Farben</h4>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px;" id="tdPresets"></div>
+      </div>
+    </div>
+  </div>`;
+
+  const THEME_PRESETS = [
+    {sys:'#00e5ff', acc:'#00ff88', name:'Cyan'},
+    {sys:'#00ff88', acc:'#88ff00', name:'Neon Green'},
+    {sys:'#ff3344', acc:'#ff8800', name:'Fire Red'},
+    {sys:'#ffcc00', acc:'#ff8800', name:'Gold'},
+    {sys:'#c060ff', acc:'#ff60c0', name:'Purple'},
+    {sys:'#ff8800', acc:'#ffcc00', name:'Orange'},
+    {sys:'#ff60c0', acc:'#ffa0e0', name:'Pink'},
+    {sys:'#00ffcc', acc:'#88ffee', name:'Teal'},
+    {sys:'#ff6699', acc:'#ff99cc', name:'Rose'},
+    {sys:'#66ccff', acc:'#99ddff', name:'Sky'},
+    {sys:'#cc99ff', acc:'#ddaaff', name:'Lavender'},
+    {sys:'#99ff66', acc:'#ccff99', name:'Lime'}
+  ];
+
+  function ensureThemeDesigner(){
+    if(document.getElementById('themedesigner-window')) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = THEME_DESIGNER_HTML;
+    const node = wrap.firstElementChild;
+    document.body.appendChild(node);
+    ['n','s','e','w','ne','nw','se','sw'].forEach(dir=>{
+      const h = document.createElement('div');
+      h.className = 'resize-handle resize-'+dir;
+      h.dataset.dir = dir;
+      node.appendChild(h);
+    });
+    bindWinManual(node);
+    // Presets
+    const presets = document.getElementById('tdPresets');
+    if(presets){
+      presets.innerHTML = THEME_PRESETS.map((p, i) =>
+        `<button onclick="tdApplyPreset(${i})" style="height:34px;padding:0;background:linear-gradient(135deg,${p.sys},${p.acc});color:#000;font-size:10px;border-radius:8px;font-weight:bold;">${p.name}</button>`
+      ).join('');
+    }
+    // Geladene Werte setzen
+    const saved = JSON.parse(localStorage.getItem('haldo_custom_theme') || 'null');
+    if(saved){
+      document.getElementById('tdSysColor').value = saved.sys;
+      document.getElementById('tdSysColorHex').value = saved.sys;
+      document.getElementById('tdAccentColor').value = saved.acc;
+      document.getElementById('tdAccentColorHex').value = saved.acc;
+      document.getElementById('tdGlowColor').value = saved.glow;
+      document.getElementById('tdGlowAlpha').value = saved.glowA;
+      document.getElementById('tdGlowAlphaVal').textContent = saved.glowA;
+      document.getElementById('tdBgColor').value = saved.bg;
+      document.getElementById('tdBgAlpha').value = saved.bgA;
+      document.getElementById('tdBgAlphaVal').textContent = saved.bgA;
+    }
+    tdUpdate();
+  }
+
+  function bindWinManual(win){
+    const header = win.querySelector('.header'); if(!header) return;
+    header.addEventListener('mousedown', (e)=>{
+      if(e.target.closest('.control-btn')) return;
+      if(win.classList.contains('maximized')) return;
+      e.preventDefault();
+      const cx = e.clientX, cy = e.clientY;
+      const r = win.getBoundingClientRect();
+      const ox = cx - r.left, oy = cy - r.top;
+      document.querySelectorAll('.os-window').forEach(x=>x.classList.remove('active'));
+      win.classList.add('active','dragging');
+      const mv = (ev)=>{ win.style.left = (ev.clientX - ox)+'px'; win.style.top = (ev.clientY - oy)+'px'; win.style.right='auto'; win.style.bottom='auto'; win.style.transform='none'; };
+      const up = ()=>{ document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); win.classList.remove('dragging'); };
+      document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
+    });
+    win.querySelectorAll('.resize-handle').forEach(h=>{
+      h.addEventListener('mousedown', (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        const dir = h.dataset.dir; const cx = e.clientX, cy = e.clientY;
+        const r = win.getBoundingClientRect();
+        const sW = r.width, sH = r.height, sL = r.left, sT = r.top;
+        win.classList.add('resizing');
+        const mv = (ev)=>{
+          const dx = ev.clientX - cx, dy = ev.clientY - cy;
+          if(dir.includes('e')) win.style.width = Math.max(320, sW+dx)+'px';
+          if(dir.includes('w')){ win.style.width = Math.max(320, sW-dx)+'px'; win.style.left = (sL+dx)+'px'; }
+          if(dir.includes('s')) win.style.height = Math.max(200, sH+dy)+'px';
+          if(dir.includes('n')){ win.style.height = Math.max(200, sH-dy)+'px'; win.style.top = (sT+dy)+'px'; }
+          win.style.transform = 'none';
+        };
+        const up = ()=>{ document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); win.classList.remove('resizing'); };
+        document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
+      });
+    });
+  }
+
+  function hexToRgba(hex, alpha){
+    const r = parseInt(hex.slice(1,3), 16);
+    const g = parseInt(hex.slice(3,5), 16);
+    const b = parseInt(hex.slice(5,7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+
+  window.tdSyncInputs = function(colorId, hexId){
+    const c = document.getElementById(colorId);
+    const h = document.getElementById(hexId);
+    if(!c || !h) return;
+    if(/^#[0-9a-fA-F]{6}$/.test(h.value)){ c.value = h.value; tdUpdate(); }
+  };
+
+  window.tdUpdate = function(){
+    const sys = document.getElementById('tdSysColor')?.value || '#00e5ff';
+    const acc = document.getElementById('tdAccentColor')?.value || '#00ff88';
+    const glow = document.getElementById('tdGlowColor')?.value || '#00e5ff';
+    const glowA = parseInt(document.getElementById('tdGlowAlpha')?.value || '50');
+    const bg = document.getElementById('tdBgColor')?.value || '#000f28';
+    const bgA = parseInt(document.getElementById('tdBgAlpha')?.value || '94');
+
+    document.getElementById('tdSysColorHex').value = sys;
+    document.getElementById('tdAccentColorHex').value = acc;
+    document.getElementById('tdGlowAlphaVal').textContent = glowA;
+    document.getElementById('tdBgAlphaVal').textContent = bgA;
+
+    // Anwenden
+    document.documentElement.style.setProperty('--sys-color', sys);
+    document.documentElement.style.setProperty('--accent', acc);
+    document.documentElement.style.setProperty('--glow', hexToRgba(glow, glowA/100));
+    document.documentElement.style.setProperty('--bg-panel', hexToRgba(bg, bgA/100));
+
+    // Vorschau
+    const prev = document.getElementById('tdPreview');
+    if(prev){
+      prev.style.borderColor = sys;
+      prev.style.boxShadow = `0 0 20px ${hexToRgba(glow, glowA/100)}`;
+      prev.querySelector('#tdPreviewTitle').style.color = sys;
+      prev.querySelector('button').style.background = sys;
+      prev.querySelector('button').style.color = '#000';
+    }
+  };
+
+  window.tdApplyPreset = function(i){
+    const p = THEME_PRESETS[i]; if(!p) return;
+    document.getElementById('tdSysColor').value = p.sys;
+    document.getElementById('tdSysColorHex').value = p.sys;
+    document.getElementById('tdAccentColor').value = p.acc;
+    document.getElementById('tdAccentColorHex').value = p.acc;
+    document.getElementById('tdGlowColor').value = p.sys;
+    tdUpdate();
+    tdSave();
+  };
+
+  window.tdRandom = function(){
+    const rand = () => '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+    const s = rand(), a = rand();
+    document.getElementById('tdSysColor').value = s;
+    document.getElementById('tdAccentColor').value = a;
+    document.getElementById('tdGlowColor').value = s;
+    tdUpdate();
+    if(typeof showToast === 'function') showToast('🎲 Zufallsfarben');
+  };
+
+  window.tdSave = function(){
+    const data = {
+      sys: document.getElementById('tdSysColor').value,
+      acc: document.getElementById('tdAccentColor').value,
+      glow: document.getElementById('tdGlowColor').value,
+      glowA: parseInt(document.getElementById('tdGlowAlpha').value),
+      bg: document.getElementById('tdBgColor').value,
+      bgA: parseInt(document.getElementById('tdBgAlpha').value)
+    };
+    localStorage.setItem('haldo_custom_theme', JSON.stringify(data));
+    if(typeof showToast === 'function') showToast('💾 Theme gespeichert');
+  };
+
+  window.tdReset = function(){
+    if(!confirm('Eigenes Theme zurücksetzen?')) return;
+    localStorage.removeItem('haldo_custom_theme');
+    document.documentElement.style.removeProperty('--sys-color');
+    document.documentElement.style.removeProperty('--accent');
+    document.documentElement.style.removeProperty('--glow');
+    document.documentElement.style.removeProperty('--bg-panel');
+    if(typeof setColorTheme === 'function' && typeof currentTheme !== 'undefined') setColorTheme(currentTheme);
+    location.reload();
+  };
+
+  function loadCustomTheme(){
+    const saved = JSON.parse(localStorage.getItem('haldo_custom_theme') || 'null');
+    if(!saved) return;
+    document.documentElement.style.setProperty('--sys-color', saved.sys);
+    document.documentElement.style.setProperty('--accent', saved.acc);
+    document.documentElement.style.setProperty('--glow', hexToRgba(saved.glow, saved.glowA/100));
+    document.documentElement.style.setProperty('--bg-panel', hexToRgba(saved.bg, saved.bgA/100));
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // 3) DASHBOARD-WIDGET
+  // ═══════════════════════════════════════════════════════
+  const DASHBOARD_HTML = `
+  <div id="dashboard-window" class="os-window" style="top:8vh;left:50%;transform:translateX(-50%);width:520px;height:auto;max-height:80vh;">
+    <div class="header">
+      <span class="header-title">📊 Dashboard</span>
+      <div class="header-controls">
+        <button class="control-btn btn-extra" onclick="dashRefresh()">🔄</button>
+        <button class="control-btn btn-min" onclick="minimizeWin('dashboard-window')">–</button>
+        <button class="control-btn btn-close" onclick="closeWin('dashboard-window')">✕</button>
+      </div>
+    </div>
+    <div class="body" style="padding:12px;">
+      <div id="dashTime" style="text-align:center;font-size:52px;font-weight:bold;color:var(--sys-color);font-family:'Courier New',monospace;letter-spacing:2px;">--:--:--</div>
+      <div id="dashDate" style="text-align:center;font-size:14px;color:#88ccff;margin-bottom:14px;">--</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div style="background:rgba(0,0,0,.4);border-radius:12px;padding:14px;border-left:3px solid var(--sys-color);">
+          <div style="font-size:10px;color:#88ccff;text-transform:uppercase;letter-spacing:1px;">🌤️ Wetter</div>
+          <div id="dashWeather" style="font-size:14px;margin-top:6px;font-weight:bold;">—</div>
+        </div>
+        <div style="background:rgba(0,0,0,.4);border-radius:12px;padding:14px;border-left:3px solid var(--accent);">
+          <div style="font-size:10px;color:#88ccff;text-transform:uppercase;letter-spacing:1px;">🔔 Notifs</div>
+          <div id="dashNotifs" style="font-size:22px;margin-top:6px;font-weight:bold;color:var(--accent);">—</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div style="background:rgba(0,0,0,.4);border-radius:12px;padding:14px;border-left:3px solid #ffcc00;">
+          <div style="font-size:10px;color:#88ccff;text-transform:uppercase;letter-spacing:1px;">📋 Aufgaben</div>
+          <div id="dashTodos" style="font-size:22px;margin-top:6px;font-weight:bold;color:#ffcc00;">—</div>
+        </div>
+        <div style="background:rgba(0,0,0,.4);border-radius:12px;padding:14px;border-left:3px solid #ff60c0;">
+          <div style="font-size:10px;color:#88ccff;text-transform:uppercase;letter-spacing:1px;">📝 Notizen</div>
+          <div id="dashNotes" style="font-size:22px;margin-top:6px;font-weight:bold;color:#ff60c0;">—</div>
+        </div>
+      </div>
+
+      <div style="background:rgba(0,0,0,.4);border-radius:12px;padding:14px;border-left:3px solid #c060ff;">
+        <div style="font-size:10px;color:#88ccff;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">📅 Heute</div>
+        <div id="dashToday" style="font-size:13px;">—</div>
+      </div>
+
+      <div style="display:flex;gap:6px;margin-top:14px;">
+        <button onclick="openWin('weather-window')" class="btn-sm" style="flex:1;">🌤️ Wetter</button>
+        <button onclick="openWin('todo-window')" class="btn-sm" style="flex:1;">📋 Tasks</button>
+        <button onclick="openWin('notes-window')" class="btn-sm" style="flex:1;">📝 Notizen</button>
+        <button onclick="openWin('calendar-window')" class="btn-sm" style="flex:1;">📅 Termine</button>
+      </div>
+    </div>
+  </div>`;
+
+  let dashInterval = null;
+
+  function ensureDashboard(){
+    if(document.getElementById('dashboard-window')) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = DASHBOARD_HTML;
+    const node = wrap.firstElementChild;
+    document.body.appendChild(node);
+    ['n','s','e','w','ne','nw','se','sw'].forEach(dir=>{
+      const h = document.createElement('div');
+      h.className = 'resize-handle resize-'+dir;
+      h.dataset.dir = dir;
+      node.appendChild(h);
+    });
+    bindWinManual(node);
+    dashRefresh();
+    dashInterval = setInterval(dashRefresh, 1000);
+  }
+
+  window.dashRefresh = function(){
+    const n = new Date();
+    const t = document.getElementById('dashTime');
+    if(t) t.textContent = String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0') + ':' + String(n.getSeconds()).padStart(2,'0');
+    const d = document.getElementById('dashDate');
+    if(d){
+      const days = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+      const months = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+      d.textContent = days[n.getDay()] + ', ' + n.getDate() + '. ' + months[n.getMonth()] + ' ' + n.getFullYear();
+    }
+    // Notifs
+    const notifEl = document.getElementById('dashNotifs');
+    if(notifEl){
+      const arr = (typeof notifications !== 'undefined' ? notifications : []) || [];
+      const unread = arr.filter(x => !x.read).length;
+      notifEl.textContent = unread + ' neu · ' + arr.length + ' gesamt';
+    }
+    // Todos
+    const todoEl = document.getElementById('dashTodos');
+    if(todoEl){
+      const todos = JSON.parse(localStorage.getItem('haldo_todos') || '[]');
+      const open = todos.filter(t => !t.done).length;
+      todoEl.textContent = open + ' offen / ' + todos.length;
+    }
+    // Notizen
+    const notesEl = document.getElementById('dashNotes');
+    if(notesEl){
+      notesEl.textContent = notesPlusData.length + ' Notizen';
+    }
+    // Wetter aus Widget
+    const weatherEl = document.getElementById('dashWeather');
+    if(weatherEl){
+      const temp = document.getElementById('wWeatherTemp');
+      const city = document.getElementById('wWeatherCity');
+      if(temp && city) weatherEl.textContent = temp.textContent + ' ' + city.textContent;
+      else weatherEl.textContent = '—';
+    }
+    // Heutige Termine
+    const todayEl = document.getElementById('dashToday');
+    if(todayEl){
+      const events = JSON.parse(localStorage.getItem('haldo_events') || '[]');
+      const today = n.toLocaleDateString();
+      const todays = events.filter(e => e.date === today);
+      if(!todays.length){ todayEl.innerHTML = '<span style="color:#888;">Keine Termine heute</span>'; }
+      else {
+        todayEl.innerHTML = todays.map(e => {
+          const time = e.datetime ? e.datetime.split(' ')[1] + ' · ' : '';
+          return `<div style="padding:4px 0;">📌 ${time}<b>${e.text}</b></div>`;
+        }).join('');
+      }
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 4) BUTTONS EINFÜGEN
+  // ═══════════════════════════════════════════════════════
+  function addButtons(){
+    const tray = document.getElementById('launcherTray');
+    if(tray){
+      const optsBtn = tray.querySelector('button[onclick*="showPanelLauncherMenu"]');
+      if(!document.getElementById('launcherDashboard')){
+        const b = document.createElement('button');
+        b.className = 'launcher-btn';
+        b.id = 'launcherDashboard';
+        b.title = 'Dashboard';
+        b.textContent = '📊';
+        b.onclick = () => { ensureDashboard(); if(typeof openWin === 'function') openWin('dashboard-window'); };
+        if(optsBtn) tray.insertBefore(b, optsBtn); else tray.appendChild(b);
+      }
+      if(!document.getElementById('launcherThemeDesigner')){
+        const b = document.createElement('button');
+        b.className = 'launcher-btn';
+        b.id = 'launcherThemeDesigner';
+        b.title = 'Theme-Designer';
+        b.textContent = '🎨';
+        b.onclick = () => { ensureThemeDesigner(); if(typeof openWin === 'function') openWin('themedesigner-window'); };
+        if(optsBtn) tray.insertBefore(b, optsBtn); else tray.appendChild(b);
+      }
+    }
+    const dock = document.querySelector('#actDock .menu-panel-body');
+    if(dock){
+      if(!document.getElementById('dockDashboardBtn')){
+        const b = document.createElement('button');
+        b.className = 'dock-btn';
+        b.id = 'dockDashboardBtn';
+        b.title = 'Dashboard';
+        b.textContent = '📊';
+        b.onclick = () => { ensureDashboard(); if(typeof openWin === 'function') openWin('dashboard-window'); };
+        dock.appendChild(b);
+      }
+    }
+    const sysBody = document.querySelector('#sysMenu .menu-panel-body');
+    if(sysBody){
+      const closeItem = Array.from(sysBody.querySelectorAll('.sys-menu-item')).find(el => el.textContent.includes('Alle Fenster'));
+      if(!document.getElementById('sysDashItem')){
+        const item = document.createElement('div');
+        item.className = 'sys-menu-item';
+        item.id = 'sysDashItem';
+        item.innerHTML = '<span class="sys-icon">📊</span>Dashboard';
+        item.onclick = () => { ensureDashboard(); if(typeof openWin === 'function') openWin('dashboard-window'); };
+        if(closeItem) sysBody.insertBefore(item, closeItem); else sysBody.appendChild(item);
+      }
+      if(!document.getElementById('sysThemeItem')){
+        const item = document.createElement('div');
+        item.className = 'sys-menu-item';
+        item.id = 'sysThemeItem';
+        item.innerHTML = '<span class="sys-icon">🎨</span>Theme-Designer';
+        item.onclick = () => { ensureThemeDesigner(); if(typeof openWin === 'function') openWin('themedesigner-window'); };
+        if(closeItem) sysBody.insertBefore(item, closeItem); else sysBody.appendChild(item);
+      }
+    }
+    // App-Einträge
+    if(typeof APPS !== 'undefined' && Array.isArray(APPS)){
+      if(!APPS.find(a => a.w === 'dashboard-window')) APPS.push({n:'Dashboard', e:'📊', w:'dashboard-window', d:'Übersicht', cat:'System'});
+      if(!APPS.find(a => a.w === 'themedesigner-window')) APPS.push({n:'Theme-Designer', e:'🎨', w:'themedesigner-window', d:'Eigene Farben', cat:'System'});
+      if(typeof renderAppMenu === 'function') renderAppMenu();
+    }
+  }
+
+  // openWin patchen
+  const origOpenWin = window.openWin;
+  window.openWin = function(id){
+    if(id === 'dashboard-window') ensureDashboard();
+    if(id === 'themedesigner-window') ensureThemeDesigner();
+    if(typeof origOpenWin === 'function') origOpenWin(id);
+    if(id === 'dashboard-window') dashRefresh();
+  };
+
+  // Notizen-Fenster patch
+  const origOpenWin2 = window.openWin;
+  window.openWin = function(id){
+    if(typeof origOpenWin2 === 'function') origOpenWin2(id);
+    if(id === 'notes-window') setTimeout(enhanceNotesWindow, 100);
+  };
+
+  // Notiz-Buttons patchen (Save mit zusätzlichen Feldern)
+  const origSaveNote = window.saveNote;
+  window.saveNote = function(){ npSave(); };
+  const origNewNote = window.newNote;
+  window.newNote = function(){ npNew(); };
+  // Delete patchen
+  const origDeleteNote = window.deleteNote;
+  window.deleteNote = function(){
+    const editor = document.getElementById('note-editor');
+    if(editor && editor.dataset.editingId){ npDelete(editor.dataset.editingId); editor.style.display = 'none'; return; }
+    if(typeof origDeleteNote === 'function') origDeleteNote();
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 5) KEYBOARD
+  // ═══════════════════════════════════════════════════════
+  document.addEventListener('keydown', (e) => {
+    if(e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')){
+      e.preventDefault();
+      ensureDashboard();
+      if(typeof openWin === 'function') openWin('dashboard-window');
+    }
+    if(e.ctrlKey && e.shiftKey && (e.key === 'T' || e.key === 't')){
+      e.preventDefault();
+      ensureThemeDesigner();
+      if(typeof openWin === 'function') openWin('themedesigner-window');
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // 6) INIT
+  // ═══════════════════════════════════════════════════════
+  setTimeout(() => {
+    try{
+      migrateNotes();
+      loadCustomTheme();
+      addButtons();
+      console.log('%c📊 v44 geladen: Notizen-Plus + Theme-Designer + Dashboard','color:#00ff88;font-weight:bold;font-size:12px;');
+    }catch(err){
+      console.error('v44 Init-Fehler:', err);
+    }
+  }, 600);
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════ ENDE v44 ANHANG ══════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
