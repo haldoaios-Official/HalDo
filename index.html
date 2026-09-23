@@ -3896,5 +3896,481 @@ console.log('%c🔷 HalDo AI OS v40 geladen','color:#00e5ff;font-size:16px;font-
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════ ENDE v42 ANHANG ══════════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════ v43 ANHANG – VOR </body> EINFÜGEN ═════════ -->
+<!-- ══════ Radio-Plus + Galerie-Slider + Video-Player-Plus ════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  "use strict";
+
+  // ═══════════════════════════════════════════════════════
+  // 1) RADIO-PLUS: eigene Sender + Favoriten + Kategorien
+  // ═══════════════════════════════════════════════════════
+  let customStations = JSON.parse(localStorage.getItem('haldo_custom_stations') || '[]');
+  let radioFavs = JSON.parse(localStorage.getItem('haldo_radio_favs') || '[]');
+
+  function enhanceRadioWindow(){
+    const win = document.getElementById('radio-window');
+    if(!win || win.querySelector('#radioPlusToolbar')) return;
+    const body = win.querySelector('.body');
+    if(!body) return;
+    // Toolbar oben hinzufügen
+    const toolbar = document.createElement('div');
+    toolbar.id = 'radioPlusToolbar';
+    toolbar.className = 'toolbar';
+    toolbar.style.cssText = 'justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;';
+    toolbar.innerHTML = `
+      <button onclick="radioAddCustom()" class="btn-sm" style="background:var(--accent);color:#000;">➕ Eigener Sender</button>
+      <button onclick="radioShowFavs()" class="btn-sm">⭐ Favoriten (<span id="radioFavCount">${radioFavs.length}</span>)</button>
+      <button onclick="radioShowCustom()" class="btn-sm">🎛️ Eigene (<span id="radioCustomCount">${customStations.length}</span>)</button>
+      <button onclick="radioShowAll()" class="btn-sm">📻 Alle</button>
+    `;
+    body.insertBefore(toolbar, body.firstChild);
+
+    // Filtermodus
+    window.radioFilterMode = 'all';
+
+    // Buttons an Sender-Liste binden (Sterne zum Favorisieren)
+    patchRadioStationClick();
+  }
+
+  let radioCurrentFilterMode = 'all';
+  window.radioShowAll = function(){ radioCurrentFilterMode = 'all'; initRadioStations(); patchRadioStationClick(); };
+  window.radioShowFavs = function(){ radioCurrentFilterMode = 'favs'; renderFilteredStations(); };
+  window.radioShowCustom = function(){ radioCurrentFilterMode = 'custom'; renderFilteredStations(); };
+
+  function renderFilteredStations(){
+    const list = document.getElementById('radioStationsList');
+    if(!list) return;
+    let stations = [];
+    if(radioCurrentFilterMode === 'favs'){
+      stations = RADIO_STATIONS.filter(s => radioFavs.includes(s.id));
+    } else if(radioCurrentFilterMode === 'custom'){
+      stations = customStations.map(s => ({...s, custom:true}));
+    }
+    if(!stations.length){
+      list.innerHTML = '<p style="color:#888;text-align:center;padding:20px;">' +
+        (radioCurrentFilterMode === 'favs' ? '⭐ Noch keine Favoriten. Klick den Stern bei einem Sender!' :
+         '🎛️ Noch keine eigenen Sender. Klick ➕ Eigener Sender!') + '</p>';
+      return;
+    }
+    let html = '<div class="radio-category">' +
+      (radioCurrentFilterMode === 'favs' ? '⭐ Deine Favoriten' : '🎛️ Deine Sender') +
+      '</div>';
+    stations.forEach(s => {
+      const active = radioCurrentStation === s.id ? ' active' : '';
+      const fav = radioFavs.includes(s.id) ? '⭐' : '☆';
+      html += `<div class="radio-station${active}" data-id="${s.id}" onclick="playRadioStation('${s.id}', ${s.custom ? 'true' : 'false'})">`;
+      html += `<span class="station-icon">${s.icon || '📻'}</span>`;
+      html += `<div style="flex:1;min-width:0;"><div class="station-name">${s.name}</div><div class="station-desc">${s.desc || ''}</div>`;
+      if(radioCurrentStation === s.id && radioPlaying) html += '<div style="font-size:10px;color:var(--accent);">● LIVE</div>';
+      html += '</div>';
+      html += `<button onclick="event.stopPropagation();radioToggleFav('${s.id}')" style="background:transparent;border:none;font-size:18px;padding:4px;margin:0;color:#ffcc00;">${fav}</button>`;
+      if(s.custom) html += `<button onclick="event.stopPropagation();radioDeleteCustom('${s.id}')" style="background:transparent;border:none;font-size:14px;padding:4px;margin:0;color:#ff3344;">🗑️</button>`;
+      html += `</div>`;
+    });
+    list.innerHTML = html;
+  }
+
+  function patchRadioStationClick(){
+    // Add fav stars zu bestehenden Stationen
+    const list = document.getElementById('radioStationsList');
+    if(!list) return;
+    const stations = list.querySelectorAll('.radio-station');
+    stations.forEach(el => {
+      if(el.querySelector('.radio-fav-star')) return;
+      const id = el.dataset.id;
+      if(!id) return;
+      const star = document.createElement('button');
+      star.className = 'radio-fav-star';
+      star.style.cssText = 'background:transparent;border:none;font-size:18px;padding:4px;margin:0;color:#ffcc00;cursor:pointer;';
+      star.textContent = radioFavs.includes(id) ? '⭐' : '☆';
+      star.onclick = (e) => { e.stopPropagation(); radioToggleFav(id); };
+      el.appendChild(star);
+    });
+  }
+
+  window.radioToggleFav = function(id){
+    const i = radioFavs.indexOf(id);
+    if(i >= 0){ radioFavs.splice(i, 1); if(typeof showToast === 'function') showToast('☆ Favorit entfernt'); }
+    else { radioFavs.push(id); if(typeof showToast === 'function') showToast('⭐ Zu Favoriten hinzugefügt'); }
+    localStorage.setItem('haldo_radio_favs', JSON.stringify(radioFavs));
+    const cnt = document.getElementById('radioFavCount');
+    if(cnt) cnt.textContent = radioFavs.length;
+    if(radioCurrentFilterMode === 'favs') renderFilteredStations();
+    else { initRadioStations(); patchRadioStationClick(); }
+  };
+
+  window.radioAddCustom = function(){
+    const name = prompt('Sender-Name:'); if(!name) return;
+    const url = prompt('Stream-URL (z.B. https://...):'); if(!url) return;
+    const desc = prompt('Beschreibung (optional):') || '';
+    const icon = prompt('Emoji-Icon (optional, z.B. 📻):') || '📻';
+    const id = 'custom_' + Date.now();
+    customStations.push({id, name, url, desc, icon, cat:'Eigene'});
+    localStorage.setItem('haldo_custom_stations', JSON.stringify(customStations));
+    const cnt = document.getElementById('radioCustomCount');
+    if(cnt) cnt.textContent = customStations.length;
+    if(typeof showToast === 'function') showToast('✅ Sender hinzugefügt');
+  };
+
+  window.radioDeleteCustom = function(id){
+    if(!confirm('Sender löschen?')) return;
+    customStations = customStations.filter(s => s.id !== id);
+    localStorage.setItem('haldo_custom_stations', JSON.stringify(customStations));
+    const cnt = document.getElementById('radioCustomCount');
+    if(cnt) cnt.textContent = customStations.length;
+    if(radioCurrentFilterMode === 'custom') renderFilteredStations();
+  };
+
+  // playRadioStation patchen - auch custom
+  const origPlayRadio = window.playRadioStation;
+  window.playRadioStation = function(id, isCustom){
+    let station = null;
+    if(isCustom || id.startsWith('custom_')){ station = customStations.find(s => s.id === id); }
+    else { station = RADIO_STATIONS.find(s => s.id === id); }
+    if(!station){ if(typeof showToast === 'function') showToast('❌ Sender nicht gefunden'); return; }
+    if(typeof radioAudio === 'undefined' || !radioAudio){
+      window.radioAudio = new Audio();
+      window.radioAudio.crossOrigin = 'anonymous';
+      window.radioAudio.volume = window.radioVolume || 0.8;
+      window.radioAudio.addEventListener('error', () => { if(typeof showToast === 'function') showToast('❌ Stream-Fehler', 'error'); });
+    }
+    window.radioCurrentStation = id;
+    window.radioAudio.src = station.url;
+    window.radioAudio.play().then(() => {
+      window.radioPlaying = true;
+      const np = document.getElementById('radioNowPlaying');
+      if(np) np.textContent = (station.icon || '📻') + ' ' + station.name;
+      const meta = document.getElementById('radioMeta');
+      if(meta) meta.textContent = station.desc || station.url;
+      const btn = document.getElementById('radioPlayBtn');
+      if(btn){ btn.textContent = '⏸️'; btn.style.background = '#ff3344'; btn.style.color = '#fff'; }
+      if(typeof showToast === 'function') showToast('📻 ' + station.name);
+      if(typeof startRadioEq === 'function') startRadioEq();
+      if(radioCurrentFilterMode === 'favs') renderFilteredStations();
+      else if(radioCurrentFilterMode === 'custom') renderFilteredStations();
+      else { if(typeof initRadioStations === 'function') initRadioStations(); patchRadioStationClick(); }
+    }).catch(err => { if(typeof showToast === 'function') showToast('❌ Play fehlgeschlagen', 'error'); console.warn(err); });
+  };
+
+  // Radio-Fenster-Öffnen-Patch
+  const origOpenWin = window.openWin;
+  window.openWin = function(id){
+    if(typeof origOpenWin === 'function') origOpenWin(id);
+    if(id === 'radio-window'){
+      setTimeout(() => {
+        enhanceRadioWindow();
+        if(radioCurrentFilterMode === 'favs' || radioCurrentFilterMode === 'custom') renderFilteredStations();
+        else patchRadioStationClick();
+      }, 100);
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 2) GALERIE-SLIDER: Vollbild + Zoom + Navigieren
+  // ═══════════════════════════════════════════════════════
+  const GALLERY_SLIDER_HTML = `
+  <div id="gallerySliderOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:10000;flex-direction:column;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--sys-color);background:rgba(0,15,40,0.9);">
+      <div style="font-size:13px;color:#88ccff;" id="gsCounter">1 / 1</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="gsZoom(-0.2)" style="background:rgba(0,0,0,.5);color:#fff;padding:8px 12px;font-size:14px;">🔍−</button>
+        <button onclick="gsZoom(0.2)" style="background:rgba(0,0,0,.5);color:#fff;padding:8px 12px;font-size:14px;">🔍+</button>
+        <button onclick="gsReset()" style="background:rgba(0,0,0,.5);color:#fff;padding:8px 12px;font-size:14px;">🔄</button>
+        <button onclick="gsDownloadCurrent()" style="background:var(--accent);color:#000;padding:8px 14px;font-size:14px;">⬇️</button>
+        <button onclick="gsClose()" style="background:#ff3344;color:#fff;padding:8px 14px;font-size:14px;">✕</button>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;" id="gsViewport">
+      <button onclick="gsPrev()" style="position:absolute;left:20px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.6);color:#fff;width:56px;height:56px;border-radius:50%;font-size:24px;border:2px solid var(--sys-color);cursor:pointer;z-index:10;">‹</button>
+      <img id="gsImage" style="max-width:100%;max-height:100%;transition:transform 0.15s;user-select:none;" draggable="false">
+      <button onclick="gsNext()" style="position:absolute;right:20px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.6);color:#fff;width:56px;height:56px;border-radius:50%;font-size:24px;border:2px solid var(--sys-color);cursor:pointer;z-index:10;">›</button>
+    </div>
+    <div id="gsThumbs" style="display:flex;gap:6px;padding:10px;overflow-x:auto;background:rgba(0,15,40,.9);border-top:1px solid var(--sys-color);min-height:80px;"></div>
+  </div>`;
+
+  let gsIndex = 0, gsZoom = 1, gsPanX = 0, gsPanY = 0, gsDragging = false, gsStartX = 0, gsStartY = 0;
+
+  function ensureGallerySlider(){
+    if(!document.getElementById('gallerySliderOverlay')){
+      const wrap = document.createElement('div');
+      wrap.innerHTML = GALLERY_SLIDER_HTML;
+      document.body.appendChild(wrap.firstElementChild);
+      const img = document.getElementById('gsImage');
+      // Maus-Drag für Pan
+      img.addEventListener('mousedown', (e) => {
+        if(gsZoom <= 1) return;
+        gsDragging = true; gsStartX = e.clientX - gsPanX; gsStartY = e.clientY - gsPanY;
+        img.style.cursor = 'grabbing';
+      });
+      document.addEventListener('mousemove', (e) => {
+        if(!gsDragging) return;
+        gsPanX = e.clientX - gsStartX;
+        gsPanY = e.clientY - gsStartY;
+        gsApplyTransform();
+      });
+      document.addEventListener('mouseup', () => { gsDragging = false; img.style.cursor = gsZoom > 1 ? 'grab' : 'default'; });
+      // Mausrad = Zoom
+      document.getElementById('gsViewport').addEventListener('wheel', (e) => {
+        if(!document.getElementById('gallerySliderOverlay').style.display || document.getElementById('gallerySliderOverlay').style.display === 'none') return;
+        e.preventDefault();
+        gsZoom(Math.sign(e.deltaY) * -0.1);
+      }, {passive:false});
+      // Keyboard
+      document.addEventListener('keydown', (e) => {
+        const ov = document.getElementById('gallerySliderOverlay');
+        if(!ov || ov.style.display === 'none') return;
+        if(e.key === 'ArrowLeft'){ gsPrev(); }
+        else if(e.key === 'ArrowRight'){ gsNext(); }
+        else if(e.key === 'Escape'){ gsClose(); }
+        else if(e.key === '+' || e.key === '='){ gsZoom(0.2); }
+        else if(e.key === '-'){ gsZoom(-0.2); }
+      });
+    }
+  }
+
+  window.gsOpen = function(startIdx){
+    ensureGallerySlider();
+    const ov = document.getElementById('gallerySliderOverlay');
+    ov.style.display = 'flex';
+    gsIndex = startIdx || 0;
+    gsZoom = 1; gsPanX = 0; gsPanY = 0;
+    gsShow();
+    gsRenderThumbs();
+  };
+  window.gsClose = function(){
+    const ov = document.getElementById('gallerySliderOverlay');
+    if(ov) ov.style.display = 'none';
+  };
+  function gsShow(){
+    if(typeof userImages === 'undefined' || !userImages.length) return;
+    if(gsIndex < 0) gsIndex = userImages.length - 1;
+    if(gsIndex >= userImages.length) gsIndex = 0;
+    const img = document.getElementById('gsImage');
+    img.src = userImages[gsIndex].data;
+    const counter = document.getElementById('gsCounter');
+    if(counter) counter.textContent = (gsIndex + 1) + ' / ' + userImages.length;
+    gsApplyTransform();
+    gsUpdateThumbActive();
+  }
+  function gsApplyTransform(){
+    const img = document.getElementById('gsImage');
+    if(!img) return;
+    img.style.transform = `scale(${gsZoom}) translate(${gsPanX}px, ${gsPanY}px)`;
+    img.style.cursor = gsZoom > 1 ? 'grab' : 'default';
+  }
+  window.gsNext = function(){ gsIndex++; gsZoom = 1; gsPanX = 0; gsPanY = 0; gsShow(); };
+  window.gsPrev = function(){ gsIndex--; gsZoom = 1; gsPanX = 0; gsPanY = 0; gsShow(); };
+  window.gsZoom = function(d){
+    gsZoom = Math.max(0.5, Math.min(5, gsZoom + d));
+    if(gsZoom === 1){ gsPanX = 0; gsPanY = 0; }
+    gsApplyTransform();
+  };
+  window.gsReset = function(){ gsZoom = 1; gsPanX = 0; gsPanY = 0; gsApplyTransform(); };
+  window.gsDownloadCurrent = function(){
+    if(typeof userImages === 'undefined' || !userImages[gsIndex]) return;
+    const a = document.createElement('a');
+    a.href = userImages[gsIndex].data;
+    a.download = 'haldo_gallery_' + (gsIndex + 1) + '.png';
+    a.click();
+    if(typeof showToast === 'function') showToast('⬇️ Bild heruntergeladen');
+  };
+  function gsRenderThumbs(){
+    const t = document.getElementById('gsThumbs');
+    if(!t || typeof userImages === 'undefined') return;
+    t.innerHTML = userImages.map((img, i) =>
+      `<div onclick="gsThumbClick(${i})" data-thumb-idx="${i}" style="flex:0 0 60px;height:60px;border-radius:8px;overflow:hidden;border:2px solid ${i === gsIndex ? 'var(--accent)' : 'rgba(0,229,255,.3)'};cursor:pointer;transition:all .15s;">
+        <img src="${img.data}" style="width:100%;height:100%;object-fit:cover;">
+      </div>`
+    ).join('');
+  }
+  window.gsThumbClick = function(i){ gsIndex = i; gsZoom = 1; gsPanX = 0; gsPanY = 0; gsShow(); };
+  function gsUpdateThumbActive(){
+    document.querySelectorAll('[data-thumb-idx]').forEach(el => {
+      const i = parseInt(el.dataset.thumbIdx);
+      el.style.borderColor = i === gsIndex ? 'var(--accent)' : 'rgba(0,229,255,.3)';
+    });
+  }
+
+  // Galerie-Render patchen: Klick auf Bild öffnet Slider
+  const origRenderGallery = window.renderGallery;
+  window.renderGallery = function(){
+    if(typeof origRenderGallery === 'function') origRenderGallery();
+    setTimeout(() => {
+      const grid = document.getElementById('gallery-grid');
+      if(!grid) return;
+      const items = grid.querySelectorAll('div');
+      items.forEach((item, idx) => {
+        item.style.cursor = 'pointer';
+        const img = item.querySelector('img');
+        if(img && !img.dataset.sliderBound){
+          img.dataset.sliderBound = '1';
+          img.addEventListener('click', (e) => {
+            if(e.target.tagName === 'BUTTON') return;
+            gsOpen(idx);
+          });
+        }
+      });
+    }, 50);
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 3) VIDEO-PLAYER-PLUS: Playlist
+  // ═══════════════════════════════════════════════════════
+  let videoPlaylist = JSON.parse(localStorage.getItem('haldo_video_playlist') || '[]');
+  let currentVideoIdx = 0;
+
+  function enhanceVideoPlayer(){
+    const win = document.getElementById('videoplayer-window');
+    if(!win || win.querySelector('#videoPlaylistToolbar')) return;
+    const body = win.querySelector('.body');
+    if(!body) return;
+    const toolbar = document.createElement('div');
+    toolbar.id = 'videoPlaylistToolbar';
+    toolbar.className = 'toolbar';
+    toolbar.style.cssText = 'flex-wrap:wrap;justify-content:space-between;margin-top:10px;';
+    toolbar.innerHTML = `
+      <button onclick="vpAddToPlaylist()" class="btn-sm" style="background:var(--accent);color:#000;">➕ Zur Playlist</button>
+      <button onclick="vpPrev()" class="btn-sm">⏮️</button>
+      <button onclick="vpNext()" class="btn-sm">⏭️</button>
+      <button onclick="vpClearPlaylist()" class="btn-sm" style="background:#ff3344;">🗑️ Playlist</button>
+    `;
+    body.appendChild(toolbar);
+    const plDiv = document.createElement('div');
+    plDiv.id = 'videoPlaylistDiv';
+    plDiv.style.marginTop = '12px';
+    body.appendChild(plDiv);
+    renderVideoPlaylist();
+  }
+
+  function renderVideoPlaylist(){
+    const el = document.getElementById('videoPlaylistDiv');
+    if(!el) return;
+    if(!videoPlaylist.length){ el.innerHTML = '<p style="color:#888;font-size:12px;text-align:center;">Playlist leer.</p>'; return; }
+    el.innerHTML = '<h4 style="color:#88ccff;font-size:12px;margin-bottom:6px;">📁 PLAYLIST (' + videoPlaylist.length + ')</h4>' +
+      videoPlaylist.map((v, i) => {
+        const active = i === currentVideoIdx ? 'border-left-color:var(--accent);background:rgba(0,255,136,.1);' : '';
+        return `<div class="file-item" style="${active}border-left:3px solid var(--sys-color);margin-bottom:4px;cursor:pointer;" onclick="vpPlayIdx(${i})">
+          <span class="file-icon">🎬</span>
+          <div style="flex:1;min-width:0;"><b style="font-size:12px;">${v.name}</b><br><small style="color:#88ccff;">${v.type}</small></div>
+          <button class="btn-sm" onclick="event.stopPropagation();vpDeleteIdx(${i})" style="background:#ff3344;">✕</button>
+        </div>`;
+      }).join('');
+  }
+
+  window.vpAddToPlaylist = function(){
+    const player = document.getElementById('videoPlayer');
+    if(!player || !player.src){ if(typeof showToast === 'function') showToast('❌ Kein Video geladen'); return; }
+    const info = document.getElementById('videoInfo');
+    const name = info ? info.textContent.replace('▶️ ', '') : ('Video ' + (videoPlaylist.length + 1));
+    if(videoPlaylist.find(v => v.src === player.src)){ if(typeof showToast === 'function') showToast('⚠️ Schon in Playlist'); return; }
+    videoPlaylist.push({name, src: player.src, type: player.src.startsWith('data:') ? 'Datei' : 'URL'});
+    localStorage.setItem('haldo_video_playlist', JSON.stringify(videoPlaylist));
+    renderVideoPlaylist();
+    if(typeof showToast === 'function') showToast('➕ Zur Playlist hinzugefügt');
+  };
+  window.vpPlayIdx = function(i){
+    const v = videoPlaylist[i];
+    if(!v) return;
+    currentVideoIdx = i;
+    const player = document.getElementById('videoPlayer');
+    if(!player) return;
+    player.style.display = 'block';
+    player.src = v.src;
+    player.play();
+    const info = document.getElementById('videoInfo');
+    if(info) info.textContent = '▶️ ' + v.name;
+    renderVideoPlaylist();
+  };
+  window.vpNext = function(){ if(videoPlaylist.length) vpPlayIdx((currentVideoIdx + 1) % videoPlaylist.length); };
+  window.vpPrev = function(){ if(videoPlaylist.length) vpPlayIdx((currentVideoIdx - 1 + videoPlaylist.length) % videoPlaylist.length); };
+  window.vpDeleteIdx = function(i){ videoPlaylist.splice(i, 1); localStorage.setItem('haldo_video_playlist', JSON.stringify(videoPlaylist)); renderVideoPlaylist(); };
+  window.vpClearPlaylist = function(){ if(!confirm('Playlist leeren?')) return; videoPlaylist = []; localStorage.setItem('haldo_video_playlist', '[]'); renderVideoPlaylist(); };
+
+  // openWin patch für video
+  const origOpenWin2 = window.openWin;
+  window.openWin = function(id){
+    if(typeof origOpenWin2 === 'function') origOpenWin2(id);
+    if(id === 'videoplayer-window') setTimeout(enhanceVideoPlayer, 100);
+  };
+
+  // Auto-Next beim Videoende
+  setTimeout(() => {
+    const player = document.getElementById('videoPlayer');
+    if(player && !player.dataset.autonext){
+      player.dataset.autonext = '1';
+      player.addEventListener('ended', () => { if(videoPlaylist.length > 1) vpNext(); });
+    }
+  }, 500);
+
+  // ═══════════════════════════════════════════════════════
+  // 4) BUTTONS EINFÜGEN
+  // ═══════════════════════════════════════════════════════
+  function addLauncherExtra(){
+    const tray = document.getElementById('launcherTray');
+    if(!tray) return;
+    const optsBtn = tray.querySelector('button[onclick*="showPanelLauncherMenu"]');
+    if(!document.getElementById('launcherGallery')){
+      const b = document.createElement('button');
+      b.className = 'launcher-btn';
+      b.id = 'launcherGallery';
+      b.title = 'Galerie-Slider';
+      b.textContent = '🖼️';
+      b.onclick = () => {
+        if(typeof userImages === 'undefined' || !userImages.length){ if(typeof showToast === 'function') showToast('❌ Keine Bilder'); return; }
+        gsOpen(0);
+      };
+      if(optsBtn) tray.insertBefore(b, optsBtn); else tray.appendChild(b);
+    }
+  }
+
+  function addDockExtra(){
+    const dock = document.querySelector('#actDock .menu-panel-body');
+    if(!dock) return;
+    if(!document.getElementById('dockGalleryBtn')){
+      const b = document.createElement('button');
+      b.className = 'dock-btn';
+      b.id = 'dockGalleryBtn';
+      b.title = 'Galerie-Slider';
+      b.textContent = '🖼️';
+      b.onclick = () => {
+        if(typeof userImages === 'undefined' || !userImages.length){ if(typeof showToast === 'function') showToast('❌ Keine Bilder'); return; }
+        gsOpen(0);
+      };
+      dock.appendChild(b);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // 5) KEYBOARD
+  // ═══════════════════════════════════════════════════════
+  document.addEventListener('keydown', (e) => {
+    if(e.ctrlKey && e.shiftKey && (e.key === 'B' || e.key === 'b')){
+      e.preventDefault();
+      if(typeof userImages !== 'undefined' && userImages.length) gsOpen(0);
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // 6) INIT
+  // ═══════════════════════════════════════════════════════
+  setTimeout(() => {
+    try{
+      ensureGallerySlider();
+      addLauncherExtra();
+      addDockExtra();
+      console.log('%c🖼️ v43 geladen: Radio-Plus + Galerie-Slider + Video-Playlist','color:#c060ff;font-weight:bold;font-size:12px;');
+    }catch(err){
+      console.error('v43 Init-Fehler:', err);
+    }
+  }, 500);
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════ ENDE v43 ANHANG ══════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
