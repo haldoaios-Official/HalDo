@@ -8335,5 +8335,1181 @@ body.auto-night-active::after {
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════ ENDE v50 ANHANG ══════════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════ v51 ANHANG – VOR </body> EINFÜGEN ═════════ -->
+<!-- ═══ Snake Multiplayer + Video-Editor + Barcode-Scanner ════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
+<style>
+/* Snake Multiplayer Styles */
+.snake2p-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 12px 0;
+}
+.snake2p-score {
+  background: rgba(0,0,0,.4);
+  padding: 10px;
+  border-radius: 10px;
+  text-align: center;
+}
+.snake2p-score.player1 { border-left: 4px solid #00ff88; }
+.snake2p-score.player2 { border-left: 4px solid #ff60c0; }
+.snake2p-score .label { font-size: 10px; color: #88ccff; letter-spacing: 1px; }
+.snake2p-score .value { font-size: 24px; font-weight: bold; font-family: 'Courier New', monospace; }
+#snake2pCanvas {
+  background: rgba(0,0,0,.6);
+  border-radius: 10px;
+  display: block;
+  margin: 10px auto;
+  max-width: 100%;
+  width: 100%;
+  aspect-ratio: 1;
+}
+.snake2p-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+.snake2p-controls .pad {
+  background: rgba(0,0,0,.4);
+  padding: 10px;
+  border-radius: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 4px;
+  aspect-ratio: 1;
+}
+.snake2p-controls .pad-btn {
+  background: linear-gradient(135deg, rgba(0,60,120,.8), rgba(0,30,70,.9));
+  border: 1.5px solid var(--sys-color);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: all .1s;
+  min-height: 0;
+  margin: 0;
+}
+.snake2p-controls .pad-btn:active {
+  background: linear-gradient(135deg, var(--sys-color), var(--accent));
+  color: #000;
+  transform: scale(0.92);
+}
+.snake2p-controls .pad-btn.up { grid-column: 2; grid-row: 1; }
+.snake2p-controls .pad-btn.left { grid-column: 1; grid-row: 2; }
+.snake2p-controls .pad-btn.right { grid-column: 3; grid-row: 2; }
+.snake2p-controls .pad-btn.down { grid-column: 2; grid-row: 3; }
+.snake2p-controls .pad-label {
+  grid-column: 1 / 4;
+  grid-row: 2;
+  text-align: center;
+  font-size: 10px;
+  color: #88ccff;
+  align-self: center;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* Video-Editor */
+.ve-preview {
+  background: #000;
+  border-radius: 12px;
+  border: 1.5px solid var(--sys-color);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  max-height: 40vh;
+  margin-bottom: 12px;
+}
+.ve-preview video {
+  max-width: 100%;
+  max-height: 40vh;
+  display: block;
+}
+.ve-timeline {
+  background: rgba(0,0,0,.5);
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+.ve-timeline input[type=range] {
+  width: 100%;
+  margin: 6px 0;
+  -webkit-appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--sys-color), var(--accent));
+  padding: 0;
+}
+.ve-timeline input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--sys-color);
+  cursor: pointer;
+}
+.ve-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+}
+.ve-filter-btn {
+  padding: 10px 6px;
+  background: rgba(0,0,0,.5);
+  border: 1.5px solid rgba(0,229,255,.3);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 10px;
+  cursor: pointer;
+  text-align: center;
+  transition: all .15s;
+  -webkit-tap-highlight-color: transparent;
+  margin: 0;
+}
+.ve-filter-btn.active {
+  background: linear-gradient(135deg, var(--sys-color), var(--accent));
+  color: #000;
+  font-weight: bold;
+  border-color: #fff;
+}
+.ve-filter-btn .emoji { font-size: 20px; display: block; margin-bottom: 2px; }
+
+/* Barcode Scanner */
+.bc-video-wrap {
+  position: relative;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1.5px solid var(--sys-color);
+  margin-bottom: 12px;
+  min-height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bc-video-wrap video, .bc-video-wrap canvas {
+  width: 100%;
+  max-height: 45vh;
+  display: block;
+}
+.bc-scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #ff3344, transparent);
+  animation: bcScan 2s linear infinite;
+  box-shadow: 0 0 15px #ff3344;
+}
+@keyframes bcScan {
+  0% { top: 10%; }
+  50% { top: 90%; }
+  100% { top: 10%; }
+}
+.bc-result {
+  background: rgba(0,0,0,.5);
+  border-radius: 10px;
+  padding: 14px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  word-break: break-all;
+  min-height: 60px;
+  border-left: 4px solid var(--sys-color);
+}
+.bc-history-item {
+  background: rgba(0,0,0,.35);
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  border-left: 3px solid var(--accent);
+  font-family: 'Courier New', monospace;
+  word-break: break-all;
+}
+</style>
+
+<script>
+(function(){
+  "use strict";
+
+  const IS_MOBILE = () => window.innerWidth <= 900 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  // ═══════════════════════════════════════════════════════
+  // 1) SNAKE MULTIPLAYER (2 Spieler auf einem Gerät)
+  // ═══════════════════════════════════════════════════════
+  const SNAKE2P_HTML = `
+  <div id="snake2p-window" class="os-window" style="top:6vh;left:50%;transform:translateX(-50%);width:620px;height:92vh;">
+    <div class="header">
+      <span class="header-title">🐍 Snake Multiplayer</span>
+      <div class="header-controls">
+        <button class="control-btn btn-min" onclick="minimizeWin('snake2p-window')">–</button>
+        <button class="control-btn btn-max" onclick="toggleMaximize('snake2p-window')">□</button>
+        <button class="control-btn btn-close" onclick="closeWin('snake2p-window');snake2pStop()">✕</button>
+      </div>
+    </div>
+    <div class="body" style="padding:12px;">
+      <div class="snake2p-container">
+        <div class="snake2p-score player1">
+          <div class="label">🟢 SPIELER 1 (WASD)</div>
+          <div class="value" id="snake2p-score1" style="color:#00ff88;">0</div>
+        </div>
+        <div class="snake2p-score player2">
+          <div class="label">💗 SPIELER 2 (Pfeile)</div>
+          <div class="value" id="snake2p-score2" style="color:#ff60c0;">0</div>
+        </div>
+      </div>
+
+      <canvas id="snake2pCanvas" width="400" height="400"></canvas>
+
+      <div class="toolbar" style="justify-content:center;margin-top:10px;">
+        <button id="snake2pBtn" onclick="snake2pToggle()" style="background:var(--accent);color:#000;padding:12px 24px;">▶️ Start</button>
+        <button onclick="snake2pReset()" style="background:#ff3344;padding:12px 20px;">🔄 Reset</button>
+      </div>
+
+      <div class="snake2p-controls">
+        <div class="pad">
+          <button class="pad-btn up" onclick="snake2pDir(1,'up')">▲</button>
+          <button class="pad-btn left" onclick="snake2pDir(1,'left')">◀</button>
+          <span class="pad-label">P1</span>
+          <button class="pad-btn right" onclick="snake2pDir(1,'right')">▶</button>
+          <button class="pad-btn down" onclick="snake2pDir(1,'down')">▼</button>
+        </div>
+        <div class="pad">
+          <button class="pad-btn up" onclick="snake2pDir(2,'up')">▲</button>
+          <button class="pad-btn left" onclick="snake2pDir(2,'left')">◀</button>
+          <span class="pad-label">P2</span>
+          <button class="pad-btn right" onclick="snake2pDir(2,'right')">▶</button>
+          <button class="pad-btn down" onclick="snake2pDir(2,'down')">▼</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  let s2pCanvas = null, s2pCtx = null;
+  let s2pGrid = 20, s2pTile = 20;
+  let s2pRunning = false;
+  let s2pInterval = null;
+  let s2pSpeed = 130;
+  let s2pGameOver = false;
+  let s2pFood = {x: 0, y: 0};
+
+  const s2pSnakes = {
+    1: {body: [], dir: 'right', nextDir: 'right', score: 0, color: '#00ff88', alive: true},
+    2: {body: [], dir: 'left', nextDir: 'left', score: 0, color: '#ff60c0', alive: true}
+  };
+
+  function snake2pEnsure(){
+    if(document.getElementById('snake2p-window')) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = SNAKE2P_HTML;
+    const node = wrap.firstElementChild;
+    document.body.appendChild(node);
+    ['n','s','e','w','ne','nw','se','sw'].forEach(dir => {
+      const h = document.createElement('div');
+      h.className = 'resize-handle resize-' + dir;
+      h.dataset.dir = dir;
+      node.appendChild(h);
+    });
+    if(typeof bindWindowDragAndResize === 'function') bindWindowDragAndResize(node);
+    s2pCanvas = document.getElementById('snake2pCanvas');
+    if(s2pCanvas){
+      s2pCtx = s2pCanvas.getContext('2d');
+      s2pTile = s2pCanvas.width / s2pGrid;
+    }
+    s2pReset();
+  }
+
+  window.snake2pReset = function(){
+    s2pRunning = false;
+    s2pGameOver = false;
+    if(s2pInterval) { clearInterval(s2pInterval); s2pInterval = null; }
+    const mid = Math.floor(s2pGrid / 2);
+    s2pSnakes[1] = {body: [{x: 3, y: mid}, {x: 2, y: mid}, {x: 1, y: mid}], dir: 'right', nextDir: 'right', score: 0, color: '#00ff88', alive: true};
+    s2pSnakes[2] = {body: [{x: s2pGrid - 4, y: mid}, {x: s2pGrid - 3, y: mid}, {x: s2pGrid - 2, y: mid}], dir: 'left', nextDir: 'left', score: 0, color: '#ff60c0', alive: true};
+    s2pFood = s2pRandFood();
+    s2pUpdateScore();
+    s2pDraw();
+    const btn = document.getElementById('snake2pBtn');
+    if(btn){ btn.textContent = '▶️ Start'; btn.style.background = 'var(--accent)'; btn.style.color = '#000'; }
+  };
+
+  function s2pRandFood(){
+    let x, y, tries = 0;
+    do {
+      x = Math.floor(Math.random() * s2pGrid);
+      y = Math.floor(Math.random() * s2pGrid);
+      tries++;
+    } while(tries < 100 && (s2pSnakes[1].body.some(p => p.x === x && p.y === y) || s2pSnakes[2].body.some(p => p.x === x && p.y === y)));
+    return {x, y};
+  }
+
+  function s2pUpdateScore(){
+    const s1 = document.getElementById('snake2p-score1');
+    const s2 = document.getElementById('snake2p-score2');
+    if(s1) s1.textContent = s2pSnakes[1].score;
+    if(s2) s2.textContent = s2pSnakes[2].score;
+  }
+
+  window.snake2pToggle = function(){
+    if(s2pGameOver){ s2pReset(); return; }
+    if(s2pRunning){ s2pStop(); } else { s2pStart(); }
+  };
+
+  function s2pStart(){
+    if(s2pRunning || s2pGameOver) return;
+    s2pRunning = true;
+    const btn = document.getElementById('snake2pBtn');
+    if(btn){ btn.textContent = '⏸️ Pause'; btn.style.background = '#ffaa00'; }
+    if(s2pInterval) clearInterval(s2pInterval);
+    s2pInterval = setInterval(s2pTick, s2pSpeed);
+  }
+
+  function s2pStop(){
+    s2pRunning = false;
+    if(s2pInterval) { clearInterval(s2pInterval); s2pInterval = null; }
+    const btn = document.getElementById('snake2pBtn');
+    if(btn){ btn.textContent = '▶️ Weiter'; btn.style.background = 'var(--accent)'; btn.style.color = '#000'; }
+  }
+
+  window.snake2pStop = function(){
+    s2pRunning = false;
+    if(s2pInterval) { clearInterval(s2pInterval); s2pInterval = null; }
+  };
+
+  window.snake2pDir = function(player, dir){
+    const sn = s2pSnakes[player];
+    if(!sn || !sn.alive) return;
+    // Kein Rückwärts
+    if(dir === 'up' && sn.dir !== 'down') sn.nextDir = 'up';
+    else if(dir === 'down' && sn.dir !== 'up') sn.nextDir = 'down';
+    else if(dir === 'left' && sn.dir !== 'right') sn.nextDir = 'left';
+    else if(dir === 'right' && sn.dir !== 'left') sn.nextDir = 'right';
+  };
+
+  function s2pTick(){
+    if(s2pGameOver) return;
+
+    // Richtung übernehmen
+    for(const id of [1, 2]){
+      const sn = s2pSnakes[id];
+      if(!sn.alive) continue;
+      sn.dir = sn.nextDir;
+    }
+
+    // Bewegung berechnen
+    const newHeads = {};
+    for(const id of [1, 2]){
+      const sn = s2pSnakes[id];
+      if(!sn.alive) continue;
+      const head = {...sn.body[0]};
+      if(sn.dir === 'right') head.x++;
+      else if(sn.dir === 'left') head.x--;
+      else if(sn.dir === 'up') head.y--;
+      else if(sn.dir === 'down') head.y++;
+      newHeads[id] = head;
+    }
+
+    // Kollision mit Wand
+    for(const id in newHeads){
+      const h = newHeads[id];
+      if(h.x < 0 || h.x >= s2pGrid || h.y < 0 || h.y >= s2pGrid){
+        s2pSnakes[id].alive = false;
+      }
+    }
+
+    // Kollision mit sich selbst
+    for(const id in newHeads){
+      if(!s2pSnakes[id].alive) continue;
+      const h = newHeads[id];
+      if(s2pSnakes[id].body.some((p, i) => i > 0 && p.x === h.x && p.y === h.y)){
+        s2pSnakes[id].alive = false;
+      }
+    }
+
+    // Kollision mit anderer Schlange
+    for(const id of ['1', '2']){
+      const other = id === '1' ? '2' : '1';
+      if(!s2pSnakes[id].alive) continue;
+      const h = newHeads[id];
+      if(s2pSnakes[other].body.some(p => p.x === h.x && p.y === h.y)){
+        s2pSnakes[id].alive = false;
+      }
+    }
+
+    // Kopf-an-Kopf
+    if(newHeads[1] && newHeads[2] && newHeads[1].x === newHeads[2].x && newHeads[1].y === newHeads[2].y){
+      s2pSnakes[1].alive = false;
+      s2pSnakes[2].alive = false;
+    }
+
+    // Bewegung ausführen
+    for(const id of [1, 2]){
+      const sn = s2pSnakes[id];
+      if(!sn.alive) continue;
+      const h = newHeads[id];
+      sn.body.unshift(h);
+      if(h.x === s2pFood.x && h.y === s2pFood.y){
+        sn.score += 10;
+        s2pFood = s2pRandFood();
+        if(typeof playSound === 'function') playSound('click');
+      } else {
+        sn.body.pop();
+      }
+    }
+
+    s2pUpdateScore();
+    s2pDraw();
+
+    // Spiel-Ende
+    if(!s2pSnakes[1].alive || !s2pSnakes[2].alive){
+      s2pGameOver = true;
+      s2pRunning = false;
+      if(s2pInterval) { clearInterval(s2pInterval); s2pInterval = null; }
+      s2pDraw();
+      let result = '';
+      if(!s2pSnakes[1].alive && !s2pSnakes[2].alive) result = '🤝 Beide tot – Unentschieden!';
+      else if(!s2pSnakes[1].alive) result = '💗 Spieler 2 gewinnt!';
+      else result = '🟢 Spieler 1 gewinnt!';
+      if(typeof speak === 'function') speak(result.replace(/[^\w\s!äöüÄÖÜß]/g, ''));
+      if(typeof addNotification === 'function') addNotification('Snake 2P', result, 'info');
+      if(typeof playSound === 'function') playSound('success');
+    }
+  }
+
+  function s2pDraw(){
+    if(!s2pCtx) return;
+    const w = s2pCanvas.width, h = s2pCanvas.height;
+    s2pCtx.fillStyle = 'rgba(0,0,0,0.75)';
+    s2pCtx.fillRect(0, 0, w, h);
+
+    // Grid
+    s2pCtx.strokeStyle = 'rgba(0,229,255,0.08)';
+    s2pCtx.lineWidth = 1;
+    for(let i = 0; i <= s2pGrid; i++){
+      s2pCtx.beginPath();
+      s2pCtx.moveTo(i * s2pTile, 0);
+      s2pCtx.lineTo(i * s2pTile, h);
+      s2pCtx.stroke();
+      s2pCtx.beginPath();
+      s2pCtx.moveTo(0, i * s2pTile);
+      s2pCtx.lineTo(w, i * s2pTile);
+      s2pCtx.stroke();
+    }
+
+    // Food
+    s2pCtx.fillStyle = '#ff3344';
+    s2pCtx.beginPath();
+    s2pCtx.arc(s2pFood.x * s2pTile + s2pTile/2, s2pFood.y * s2pTile + s2pTile/2, s2pTile/2 - 2, 0, Math.PI * 2);
+    s2pCtx.fill();
+
+    // Schlangen
+    for(const id of [1, 2]){
+      const sn = s2pSnakes[id];
+      if(!sn) continue;
+      sn.body.forEach((p, i) => {
+        s2pCtx.fillStyle = i === 0 ? sn.color : sn.color + 'bb';
+        s2pCtx.fillRect(p.x * s2pTile + 1, p.y * s2pTile + 1, s2pTile - 2, s2pTile - 2);
+        if(i === 0){
+          s2pCtx.fillStyle = '#fff';
+          s2pCtx.beginPath();
+          s2pCtx.arc(p.x * s2pTile + s2pTile/2, p.y * s2pTile + s2pTile/2, 3, 0, Math.PI * 2);
+          s2pCtx.fill();
+        }
+      });
+    }
+
+    // Game Over Text
+    if(s2pGameOver){
+      s2pCtx.fillStyle = 'rgba(0,0,0,0.75)';
+      s2pCtx.fillRect(0, h/2 - 60, w, 120);
+      s2pCtx.fillStyle = '#00e5ff';
+      s2pCtx.font = 'bold 22px Segoe UI, sans-serif';
+      s2pCtx.textAlign = 'center';
+      let txt = '';
+      if(!s2pSnakes[1].alive && !s2pSnakes[2].alive) txt = '🤝 Unentschieden!';
+      else if(!s2pSnakes[1].alive) txt = '💗 Spieler 2 gewinnt!';
+      else txt = '🟢 Spieler 1 gewinnt!';
+      s2pCtx.fillText(txt, w/2, h/2);
+      s2pCtx.font = '12px Segoe UI, sans-serif';
+      s2pCtx.fillStyle = '#88ccff';
+      s2pCtx.fillText('Drück ▶️ für neue Runde', w/2, h/2 + 30);
+    }
+  }
+
+  // Keyboard für Snake 2P
+  document.addEventListener('keydown', (e) => {
+    const win = document.getElementById('snake2p-window');
+    if(!win || !win.classList.contains('show') || !s2pRunning) return;
+    // Spieler 1: WASD
+    if(e.key === 'w' || e.key === 'W'){ snake2pDir(1, 'up'); e.preventDefault(); }
+    else if(e.key === 's' || e.key === 'S'){ snake2pDir(1, 'down'); e.preventDefault(); }
+    else if(e.key === 'a' || e.key === 'A'){ snake2pDir(1, 'left'); e.preventDefault(); }
+    else if(e.key === 'd' || e.key === 'D'){ snake2pDir(1, 'right'); e.preventDefault(); }
+    // Spieler 2: Pfeile
+    else if(e.key === 'ArrowUp'){ snake2pDir(2, 'up'); e.preventDefault(); }
+    else if(e.key === 'ArrowDown'){ snake2pDir(2, 'down'); e.preventDefault(); }
+    else if(e.key === 'ArrowLeft'){ snake2pDir(2, 'left'); e.preventDefault(); }
+    else if(e.key === 'ArrowRight'){ snake2pDir(2, 'right'); e.preventDefault(); }
+    // Leertaste = Start/Pause
+    else if(e.key === ' '){ snake2pToggle(); e.preventDefault(); }
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // 2) VIDEO-EDITOR
+  // ═══════════════════════════════════════════════════════
+  const VIDEO_EDIT_HTML = `
+  <div id="videoedit-window" class="os-window" style="top:5vh;left:50%;transform:translateX(-50%);width:700px;height:92vh;">
+    <div class="header">
+      <span class="header-title">🎬 Video-Editor</span>
+      <div class="header-controls">
+        <button class="control-btn btn-min" onclick="minimizeWin('videoedit-window')">–</button>
+        <button class="control-btn btn-max" onclick="toggleMaximize('videoedit-window')">□</button>
+        <button class="control-btn btn-close" onclick="closeWin('videoedit-window')">✕</button>
+      </div>
+    </div>
+    <div class="body" style="padding:12px;">
+      <div class="toolbar">
+        <input type="file" id="veFile" accept="video/*" onchange="veLoadFile(event)" style="flex:1;margin:0;">
+        <input id="veURL" placeholder="Oder Video-URL..." onkeydown="if(event.key==='Enter') veLoadURL()" style="flex:1;margin:0;">
+        <button onclick="veLoadURL()">🎬</button>
+      </div>
+
+      <div class="ve-preview">
+        <video id="veVideo" controls playsinline style="display:none;"></video>
+        <p id="veEmpty" style="color:#888;padding:20px;">Kein Video geladen</p>
+      </div>
+
+      <div class="ve-timeline">
+        <label style="display:flex;justify-content:space-between;font-size:11px;color:#88ccff;">
+          <span>Start: <b id="veStartVal">0.0s</b></span>
+          <span>Ende: <b id="veEndVal">0.0s</b></span>
+        </label>
+        <input type="range" id="veStartRange" min="0" max="100" step="0.1" value="0" oninput="veUpdateTrim()">
+        <input type="range" id="veEndRange" min="0" max="100" step="0.1" value="100" oninput="veUpdateTrim()">
+      </div>
+
+      <div class="section">
+        <h4>🎨 Filter</h4>
+        <div class="ve-filter-grid" id="veFilterGrid"></div>
+      </div>
+
+      <div class="section">
+        <h4>⚙️ Effekte</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <label style="font-size:11px;">🔊 Lautstärke: <span id="veVolVal">100</span>%</label>
+            <input type="range" id="veVolume" min="0" max="200" value="100" oninput="veUpdateVolume()">
+          </div>
+          <div>
+            <label style="font-size:11px;">🎞️ Geschwindigkeit: <span id="veSpeedVal">1.0</span>×</label>
+            <input type="range" id="veSpeed" min="0.25" max="3" step="0.25" value="1" oninput="veUpdateSpeed()">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+          <div>
+            <label style="font-size:11px;">↻ Drehung</label>
+            <select id="veRotate" onchange="veUpdateRotate()">
+              <option value="0">Normal</option>
+              <option value="90">90° rechts</option>
+              <option value="180">180°</option>
+              <option value="270">90° links</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;">🪞 Spiegel</label>
+            <select id="veFlip" onchange="veUpdateFlip()">
+              <option value="none">Keine</option>
+              <option value="h">Horizontal</option>
+              <option value="v">Vertikal</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="toolbar" style="justify-content:center;margin-top:10px;">
+        <button onclick="vePlayTrim()" style="background:var(--accent);color:#000;padding:12px 20px;">▶️ Trim abspielen</button>
+        <button onclick="veSnapshot()" style="background:#ffaa00;padding:12px 20px;">📸 Snapshot</button>
+        <button onclick="veReset()" style="background:#ff3344;padding:12px 20px;">🔄 Reset</button>
+      </div>
+    </div>
+  </div>`;
+
+  let veFilters = [
+    {id:'none', n:'Original', e:'🎬', css:'none'},
+    {id:'bw', n:'S/W', e:'⚫', css:'grayscale(1) contrast(1.15)'},
+    {id:'sepia', n:'Sepia', e:'🟤', css:'sepia(0.85)'},
+    {id:'vintage', n:'Vintage', e:'📼', css:'sepia(0.4) contrast(1.1) brightness(0.95) saturate(0.85)'},
+    {id:'vivid', n:'Vivid', e:'🌈', css:'saturate(1.7) contrast(1.15)'},
+    {id:'cold', n:'Kalt', e:'❄️', css:'hue-rotate(180deg) saturate(1.3)'},
+    {id:'warm', n:'Warm', e:'🔥', css:'sepia(0.3) saturate(1.4) brightness(1.05)'},
+    {id:'dramatic', n:'Drama', e:'🎭', css:'contrast(1.6) brightness(0.85) saturate(1.2)'},
+    {id:'neon', n:'Neon', e:'💫', css:'saturate(2) contrast(1.3) hue-rotate(315deg)'},
+    {id:'matrix', n:'Matrix', e:'🟩', css:'hue-rotate(90deg) saturate(1.5) contrast(1.2)'},
+    {id:'invert', n:'Invert', e:'🔃', css:'invert(1)'},
+    {id:'blur', n:'Blur', e:'🌫️', css:'blur(2px)'}
+  ];
+  let veCurrentFilter = 'none';
+  let veVideoEl = null;
+  let veDuration = 0;
+
+  function veEnsure(){
+    if(document.getElementById('videoedit-window')) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = VIDEO_EDIT_HTML;
+    const node = wrap.firstElementChild;
+    document.body.appendChild(node);
+    ['n','s','e','w','ne','nw','se','sw'].forEach(dir => {
+      const h = document.createElement('div');
+      h.className = 'resize-handle resize-' + dir;
+      h.dataset.dir = dir;
+      node.appendChild(h);
+    });
+    if(typeof bindWindowDragAndResize === 'function') bindWindowDragAndResize(node);
+    veVideoEl = document.getElementById('veVideo');
+    veRenderFilters();
+  }
+
+  function veRenderFilters(){
+    const grid = document.getElementById('veFilterGrid');
+    if(!grid) return;
+    grid.innerHTML = veFilters.map(f => `
+      <button class="ve-filter-btn ${f.id === veCurrentFilter ? 'active' : ''}" data-filter="${f.id}" onclick="veSelectFilter('${f.id}')">
+        <span class="emoji">${f.e}</span>
+        ${f.n}
+      </button>
+    `).join('');
+  }
+
+  window.veSelectFilter = function(id){
+    veCurrentFilter = id;
+    document.querySelectorAll('.ve-filter-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.filter === id);
+    });
+    veApplyFilter();
+  };
+
+  function veApplyFilter(){
+    if(!veVideoEl) return;
+    const preset = veFilters.find(f => f.id === veCurrentFilter);
+    const rot = document.getElementById('veRotate')?.value || '0';
+    const flip = document.getElementById('veFlip')?.value || 'none';
+    let f = preset && preset.css !== 'none' ? preset.css + ' ' : '';
+    if(rot !== '0') f += `rotate(${rot}deg) `;
+    if(flip === 'h') f += 'scaleX(-1) ';
+    if(flip === 'v') f += 'scaleY(-1) ';
+    veVideoEl.style.filter = f.trim() || 'none';
+  }
+
+  window.veLoadFile = function(e){
+    const f = e.target.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if(!veVideoEl) veVideoEl = document.getElementById('veVideo');
+      veVideoEl.src = ev.target.result;
+      veVideoEl.style.display = 'block';
+      const empty = document.getElementById('veEmpty');
+      if(empty) empty.style.display = 'none';
+      veVideoEl.onloadedmetadata = () => {
+        veDuration = veVideoEl.duration || 0;
+        const sr = document.getElementById('veStartRange');
+        const er = document.getElementById('veEndRange');
+        if(sr){ sr.min = 0; sr.max = veDuration; sr.value = 0; }
+        if(er){ er.min = 0; er.max = veDuration; er.value = veDuration; }
+        veUpdateTrim();
+        if(typeof showToast === 'function') showToast('🎬 Video geladen');
+      };
+    };
+    reader.readAsDataURL(f);
+  };
+
+  window.veLoadURL = function(){
+    const url = document.getElementById('veURL')?.value.trim();
+    if(!url){ if(typeof showToast === 'function') showToast('❌ Keine URL', 'error'); return; }
+    if(!veVideoEl) veVideoEl = document.getElementById('veVideo');
+    veVideoEl.src = url;
+    veVideoEl.style.display = 'block';
+    const empty = document.getElementById('veEmpty');
+    if(empty) empty.style.display = 'none';
+    veVideoEl.play().catch(()=>{});
+  };
+
+  window.veUpdateTrim = function(){
+    const s = parseFloat(document.getElementById('veStartRange').value) || 0;
+    const e = parseFloat(document.getElementById('veEndRange').value) || 0;
+    document.getElementById('veStartVal').textContent = s.toFixed(1) + 's';
+    document.getElementById('veEndVal').textContent = e.toFixed(1) + 's';
+    if(veVideoEl && veVideoEl.currentTime < s){
+      veVideoEl.currentTime = s;
+    }
+  };
+
+  window.veUpdateVolume = function(){
+    const v = parseInt(document.getElementById('veVolume').value);
+    document.getElementById('veVolVal').textContent = v;
+    if(veVideoEl) veVideoEl.volume = Math.min(1, v / 100);
+  };
+
+  window.veUpdateSpeed = function(){
+    const v = parseFloat(document.getElementById('veSpeed').value);
+    document.getElementById('veSpeedVal').textContent = v.toFixed(2).replace(/0$/, '').replace(/\.$/, '.0');
+    if(veVideoEl) veVideoEl.playbackRate = v;
+  };
+
+  window.veUpdateRotate = function(){ veApplyFilter(); };
+  window.veUpdateFlip = function(){ veApplyFilter(); };
+
+  window.vePlayTrim = function(){
+    if(!veVideoEl || !veVideoEl.src){ if(typeof showToast === 'function') showToast('❌ Kein Video', 'error'); return; }
+    const s = parseFloat(document.getElementById('veStartRange').value) || 0;
+    const e = parseFloat(document.getElementById('veEndRange').value) || veDuration;
+    veVideoEl.currentTime = s;
+    veVideoEl.play();
+    const checkEnd = () => {
+      if(veVideoEl.currentTime >= e){
+        veVideoEl.pause();
+        veVideoEl.removeEventListener('timeupdate', checkEnd);
+      } else {
+        requestAnimationFrame(checkEnd);
+      }
+    };
+    veVideoEl.addEventListener('timeupdate', checkEnd);
+    if(typeof showToast === 'function') showToast('▶️ Trim abspielen');
+  };
+
+  window.veSnapshot = function(){
+    if(!veVideoEl || !veVideoEl.src){ if(typeof showToast === 'function') showToast('❌ Kein Video', 'error'); return; }
+    const c = document.createElement('canvas');
+    c.width = veVideoEl.videoWidth || 640;
+    c.height = veVideoEl.videoHeight || 360;
+    const ctx = c.getContext('2d');
+    const preset = veFilters.find(f => f.id === veCurrentFilter);
+    if(preset && preset.css !== 'none') ctx.filter = preset.css;
+    ctx.drawImage(veVideoEl, 0, 0, c.width, c.height);
+    const data = c.toDataURL('image/png');
+    if(typeof userImages !== 'undefined' && Array.isArray(userImages)){
+      userImages.push({data});
+      localStorage.setItem('haldo_images', JSON.stringify(userImages));
+      if(typeof renderGallery === 'function') renderGallery();
+    }
+    const a = document.createElement('a');
+    a.href = data;
+    a.download = 'haldo-video-snapshot-' + Date.now() + '.png';
+    a.click();
+    if(typeof showToast === 'function') showToast('📸 Snapshot gespeichert');
+    if(typeof playSound === 'function') playSound('success');
+  };
+
+  window.veReset = function(){
+    if(veVideoEl){
+      veVideoEl.pause();
+      veVideoEl.src = '';
+      veVideoEl.style.display = 'none';
+      veVideoEl.style.filter = 'none';
+      veVideoEl.volume = 1;
+      veVideoEl.playbackRate = 1;
+    }
+    const empty = document.getElementById('veEmpty');
+    if(empty) empty.style.display = 'block';
+    veCurrentFilter = 'none';
+    veRenderFilters();
+    const rot = document.getElementById('veRotate'); if(rot) rot.value = '0';
+    const flip = document.getElementById('veFlip'); if(flip) flip.value = 'none';
+    const vol = document.getElementById('veVolume'); if(vol) vol.value = 100;
+    const sp = document.getElementById('veSpeed'); if(sp) sp.value = 1;
+    veUpdateVolume();
+    veUpdateSpeed();
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 3) BARCODE-SCANNER
+  // ═══════════════════════════════════════════════════════
+  const BARCODE_HTML = `
+  <div id="barcode-window" class="os-window" style="top:6vh;left:50%;transform:translateX(-50%);width:640px;height:90vh;">
+    <div class="header">
+      <span class="header-title">📊 Barcode-Scanner</span>
+      <div class="header-controls">
+        <button class="control-btn btn-min" onclick="minimizeWin('barcode-window')">–</button>
+        <button class="control-btn btn-max" onclick="toggleMaximize('barcode-window')">□</button>
+        <button class="control-btn btn-close" onclick="closeWin('barcode-window');barcodeStop()">✕</button>
+      </div>
+    </div>
+    <div class="body" style="padding:12px;">
+      <p style="font-size:12px;color:#88ccff;margin-bottom:10px;">Richte die Kamera auf einen Barcode (EAN-13, EAN-8, Code-128, Code-39, UPC, QR, usw.)</p>
+
+      <div class="bc-video-wrap" id="bcVideoWrap">
+        <video id="bcVideo" autoplay playsinline muted></video>
+        <canvas id="bcCanvas" style="display:none;"></canvas>
+        <div class="bc-scan-line" id="bcScanLine" style="display:none;"></div>
+        <div id="bcPlaceholder" style="color:#888;text-align:center;padding:30px;position:absolute;">📷 Bereit</div>
+      </div>
+
+      <div class="toolbar" style="justify-content:center;">
+        <button id="bcStartBtn" onclick="barcodeStart()" style="background:var(--accent);color:#000;padding:12px 20px;">▶️ Start</button>
+        <button onclick="barcodeStop()" style="background:#ff3344;padding:12px 20px;">⏹️ Stop</button>
+        <button onclick="barcodeUpload()">📤 Bild</button>
+        <input type="file" id="bcFileInput" accept="image/*" style="display:none" onchange="barcodeFromFile(event)">
+      </div>
+
+      <div class="section" style="margin-top:12px;">
+        <h4>📋 Ergebnis</h4>
+        <div class="bc-result" id="bcResult">Noch kein Scan.</div>
+        <div class="toolbar" style="margin-top:8px;">
+          <button onclick="barcodeCopy()" class="btn-sm">📋 Kopieren</button>
+          <button onclick="barcodeOpenUrl()" class="btn-sm" style="background:var(--accent);color:#000;">🌐 URL öffnen</button>
+          <button onclick="barcodeSaveNotiz()" class="btn-sm">📒 Notiz</button>
+        </div>
+      </div>
+
+      <h4 style="color:#88ccff;font-size:12px;margin:14px 0 6px 0;">📚 VERLAUF (<span id="bcHistoryCount">0</span>)</h4>
+      <div id="bcHistory"></div>
+    </div>
+  </div>`;
+
+  let bcStream = null;
+  let bcRunning = false;
+  let bcLastResult = '';
+  let bcHistory = JSON.parse(localStorage.getItem('haldo_barcode_history') || '[]');
+  let bcQuaggaReady = false;
+
+  function bcEnsure(){
+    if(document.getElementById('barcode-window')) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = BARCODE_HTML;
+    const node = wrap.firstElementChild;
+    document.body.appendChild(node);
+    ['n','s','e','w','ne','nw','se','sw'].forEach(dir => {
+      const h = document.createElement('div');
+      h.className = 'resize-handle resize-' + dir;
+      h.dataset.dir = dir;
+      node.appendChild(h);
+    });
+    if(typeof bindWindowDragAndResize === 'function') bindWindowDragAndResize(node);
+    bcRenderHistory();
+    bcQuaggaReady = typeof Quagga !== 'undefined';
+    if(!bcQuaggaReady){
+      console.warn('Quagga2 nicht geladen');
+    }
+  }
+
+  function bcRenderHistory(){
+    const el = document.getElementById('bcHistory');
+    const cnt = document.getElementById('bcHistoryCount');
+    if(cnt) cnt.textContent = bcHistory.length;
+    if(!el) return;
+    if(!bcHistory.length){
+      el.innerHTML = '<p style="color:#666;text-align:center;font-size:12px;">Noch keine Scans.</p>';
+      return;
+    }
+    el.innerHTML = bcHistory.slice(0, 20).map(h => `
+      <div class="bc-history-item">
+        <b>${h.code}</b><br>
+        <small style="color:#88ccff;">${h.format || 'Unbekannt'} · ${h.time}</small>
+        <button class="btn-sm" onclick="barcodeHistoryCopy('${encodeURIComponent(h.code)}')" style="float:right;margin:0;">📋</button>
+      </div>
+    `).join('');
+  }
+
+  window.barcodeStart = async function(){
+    bcEnsure();
+    if(bcRunning) return;
+    if(!bcQuaggaReady){
+      if(typeof showToast === 'function') showToast('❌ Scanner-Bibliothek lädt noch...', 'error');
+      return;
+    }
+    const video = document.getElementById('bcVideo');
+    const placeholder = document.getElementById('bcPlaceholder');
+    const scanLine = document.getElementById('bcScanLine');
+    if(!video) return;
+
+    try{
+      bcStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: {ideal: 1280}, height: {ideal: 720} }
+      });
+      video.srcObject = bcStream;
+      if(placeholder) placeholder.style.display = 'none';
+      if(scanLine) scanLine.style.display = 'block';
+      video.style.display = 'block';
+
+      // Quagga starten
+      Quagga.init({
+        inputStream: {
+          name: 'Live',
+          type: 'LiveStream',
+          target: video,
+          constraints: { facingMode: 'environment' }
+        },
+        decoder: {
+          readers: ['ean_reader', 'ean_8_reader', 'code_128_reader', 'code_39_reader', 'upc_reader', 'upc_e_reader', 'codabar_reader', 'i2of5_reader']
+        },
+        locate: true,
+        numOfWorkers: 2
+      }, (err) => {
+        if(err){ console.error(err); if(typeof showToast === 'function') showToast('❌ Scanner-Fehler', 'error'); return; }
+        bcRunning = true;
+        Quagga.start();
+        Quagga.onDetected((result) => {
+          if(result && result.codeResult && result.codeResult.code){
+            const code = result.codeResult.code;
+            if(code !== bcLastResult){
+              bcLastResult = code;
+              const format = result.codeResult.format || 'Unbekannt';
+              bcOnDetected(code, format);
+            }
+          }
+        });
+      });
+    } catch(e){
+      console.error(e);
+      if(typeof showToast === 'function') showToast('❌ Kamera verweigert', 'error');
+    }
+  };
+
+  function bcOnDetected(code, format){
+    const resultEl = document.getElementById('bcResult');
+    if(resultEl) resultEl.innerHTML = `✅ <b>Gefunden:</b><br><span style="color:var(--accent);font-size:18px;">${code}</span><br><small style="color:#88ccff;">Format: ${format}</small>`;
+    if(typeof playSound === 'function') playSound('success');
+    if(typeof speak === 'function') speak('Barcode gefunden: ' + code);
+    if(navigator.vibrate) navigator.vibrate(100);
+
+    bcHistory.unshift({code, format, time: new Date().toLocaleString()});
+    bcHistory = bcHistory.slice(0, 50);
+    localStorage.setItem('haldo_barcode_history', JSON.stringify(bcHistory));
+    bcRenderHistory();
+
+    if(typeof addNotification === 'function'){
+      addNotification('Barcode-Scanner', code.substring(0, 40), 'success');
+    }
+  }
+
+  window.barcodeStop = function(){
+    bcRunning = false;
+    bcLastResult = '';
+    if(typeof Quagga !== 'undefined' && bcQuaggaReady){
+      try{ Quagga.stop(); }catch(e){}
+      try{ Quagga.offDetected(); }catch(e){}
+    }
+    if(bcStream){
+      bcStream.getTracks().forEach(t => t.stop());
+      bcStream = null;
+    }
+    const video = document.getElementById('bcVideo');
+    if(video){ video.srcObject = null; video.style.display = 'none'; }
+    const placeholder = document.getElementById('bcPlaceholder');
+    if(placeholder) placeholder.style.display = 'block';
+    const scanLine = document.getElementById('bcScanLine');
+    if(scanLine) scanLine.style.display = 'none';
+  };
+
+  window.barcodeUpload = function(){
+    document.getElementById('bcFileInput').click();
+  };
+
+  window.barcodeFromFile = function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    if(!bcQuaggaReady){ if(typeof showToast === 'function') showToast('❌ Scanner lädt...', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        Quagga.decodeSingle({
+          decoder: { readers: ['ean_reader','ean_8_reader','code_128_reader','code_39_reader','upc_reader','upc_e_reader','codabar_reader','i2of5_reader','qr_reader'] },
+          locate: true,
+          src: ev.target.result
+        }, (result) => {
+          if(result && result.codeResult && result.codeResult.code){
+            bcOnDetected(result.codeResult.code, result.codeResult.format || 'Unbekannt');
+          } else {
+            const resultEl = document.getElementById('bcResult');
+            if(resultEl) resultEl.innerHTML = '❌ Kein Barcode erkannt.';
+            if(typeof playSound === 'function') playSound('error');
+          }
+        });
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  window.barcodeCopy = function(){
+    if(!bcLastResult){ if(typeof showToast === 'function') showToast('❌ Kein Scan', 'error'); return; }
+    navigator.clipboard.writeText(bcLastResult).then(() => {
+      if(typeof showToast === 'function') showToast('📋 Kopiert!');
+    });
+  };
+
+  window.barcodeOpenUrl = function(){
+    if(!bcLastResult){ if(typeof showToast === 'function') showToast('❌ Kein Scan', 'error'); return; }
+    if(bcLastResult.startsWith('http')){
+      window.open(bcLastResult, '_blank');
+    } else {
+      if(typeof showToast === 'function') showToast('⚠️ Kein URL');
+    }
+  };
+
+  window.barcodeSaveNotiz = function(){
+    if(!bcLastResult){ if(typeof showToast === 'function') showToast('❌ Kein Scan', 'error'); return; }
+    const notes = JSON.parse(localStorage.getItem('haldo_notes_plus') || '[]');
+    notes.unshift({
+      id: 'n_' + Date.now(),
+      title: '📊 Barcode: ' + bcLastResult.substring(0, 30),
+      content: 'Barcode: ' + bcLastResult + '\nGescannt: ' + new Date().toLocaleString(),
+      tags: ['barcode'],
+      category: 'Wichtig',
+      favorite: false,
+      created: new Date().toLocaleString(),
+      updated: new Date().toLocaleString()
+    });
+    localStorage.setItem('haldo_notes_plus', JSON.stringify(notes));
+    if(typeof showToast === 'function') showToast('📒 In Notizen gespeichert');
+  };
+
+  window.barcodeHistoryCopy = function(enc){
+    const code = decodeURIComponent(enc);
+    navigator.clipboard.writeText(code).then(() => {
+      if(typeof showToast === 'function') showToast('📋 Kopiert!');
+    });
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 4) BUTTONS EINFÜGEN
+  // ═══════════════════════════════════════════════════════
+  function addButtons(){
+    const tray = document.getElementById('launcherTray');
+    if(tray){
+      const optsBtn = tray.querySelector('button[onclick*="showPanelLauncherMenu"]');
+      if(!document.getElementById('launcherSnake2P')){
+        const b = document.createElement('button');
+        b.className = 'launcher-btn';
+        b.id = 'launcherSnake2P';
+        b.title = 'Snake Multiplayer';
+        b.textContent = '🐍';
+        b.onclick = () => { snake2pEnsure(); if(typeof openWin === 'function') openWin('snake2p-window'); };
+        if(optsBtn) tray.insertBefore(b, optsBtn); else tray.appendChild(b);
+      }
+      if(!document.getElementById('launcherVideoEdit')){
+        const b = document.createElement('button');
+        b.className = 'launcher-btn';
+        b.id = 'launcherVideoEdit';
+        b.title = 'Video-Editor';
+        b.textContent = '🎬';
+        b.onclick = () => { veEnsure(); if(typeof openWin === 'function') openWin('videoedit-window'); };
+        if(optsBtn) tray.insertBefore(b, optsBtn); else tray.appendChild(b);
+      }
+      if(!document.getElementById('launcherBarcode')){
+        const b = document.createElement('button');
+        b.className = 'launcher-btn';
+        b.id = 'launcherBarcode';
+        b.title = 'Barcode-Scanner';
+        b.textContent = '📊';
+        b.onclick = () => { bcEnsure(); if(typeof openWin === 'function') openWin('barcode-window'); };
+        if(optsBtn) tray.insertBefore(b, optsBtn); else tray.appendChild(b);
+      }
+    }
+
+    const sysBody = document.querySelector('#sysMenu .menu-panel-body');
+    if(sysBody){
+      const closeItem = Array.from(sysBody.querySelectorAll('.sys-menu-item')).find(el => el.textContent.includes('Alle Fenster'));
+      if(!document.getElementById('sysSnake2P')){
+        const item = document.createElement('div');
+        item.className = 'sys-menu-item';
+        item.id = 'sysSnake2P';
+        item.innerHTML = '<span class="sys-icon">🐍</span>Snake Multiplayer';
+        item.onclick = () => { snake2pEnsure(); if(typeof openWin === 'function') openWin('snake2p-window'); };
+        if(closeItem) sysBody.insertBefore(item, closeItem); else sysBody.appendChild(item);
+      }
+      if(!document.getElementById('sysVideoEdit')){
+        const item = document.createElement('div');
+        item.className = 'sys-menu-item';
+        item.id = 'sysVideoEdit';
+        item.innerHTML = '<span class="sys-icon">🎬</span>Video-Editor';
+        item.onclick = () => { veEnsure(); if(typeof openWin === 'function') openWin('videoedit-window'); };
+        if(closeItem) sysBody.insertBefore(item, closeItem); else sysBody.appendChild(item);
+      }
+      if(!document.getElementById('sysBarcode')){
+        const item = document.createElement('div');
+        item.className = 'sys-menu-item';
+        item.id = 'sysBarcode';
+        item.innerHTML = '<span class="sys-icon">📊</span>Barcode-Scanner';
+        item.onclick = () => { bcEnsure(); if(typeof openWin === 'function') openWin('barcode-window'); };
+        if(closeItem) sysBody.insertBefore(item, closeItem); else sysBody.appendChild(item);
+      }
+    }
+
+    const dock = document.querySelector('#actDock .menu-panel-body');
+    if(dock && !document.getElementById('dockSnake2PBtn')){
+      const b = document.createElement('button');
+      b.className = 'dock-btn';
+      b.id = 'dockSnake2PBtn';
+      b.title = 'Snake 2P';
+      b.textContent = '🐍';
+      b.onclick = () => { snake2pEnsure(); if(typeof openWin === 'function') openWin('snake2p-window'); };
+      dock.appendChild(b);
+    }
+
+    if(typeof APPS !== 'undefined' && Array.isArray(APPS)){
+      if(!APPS.find(a => a.w === 'snake2p-window')) APPS.push({n:'Snake 2P', e:'🐍', w:'snake2p-window', d:'2 Spieler', cat:'Medien'});
+      if(!APPS.find(a => a.w === 'videoedit-window')) APPS.push({n:'Video-Editor', e:'🎬', w:'videoedit-window', d:'Trim + Filter', cat:'Kreativ'});
+      if(!APPS.find(a => a.w === 'barcode-window')) APPS.push({n:'Barcode-Scanner', e:'📊', w:'barcode-window', d:'EAN, QR, Code128', cat:'Tools'});
+      if(typeof renderAppMenu === 'function') renderAppMenu();
+    }
+  }
+
+  const origOpenWin = window.openWin;
+  window.openWin = function(id){
+    if(id === 'snake2p-window') snake2pEnsure();
+    if(id === 'videoedit-window') veEnsure();
+    if(id === 'barcode-window') bcEnsure();
+    if(typeof origOpenWin === 'function') origOpenWin(id);
+  };
+
+  document.addEventListener('keydown', (e) => {
+    if(e.ctrlKey && e.shiftKey && (e.key === '2' || e.key === '@')){
+      e.preventDefault();
+      snake2pEnsure();
+      if(typeof openWin === 'function') openWin('snake2p-window');
+    }
+    if(e.ctrlKey && e.shiftKey && (e.key === 'V' || e.key === 'v')){
+      e.preventDefault();
+      veEnsure();
+      if(typeof openWin === 'function') openWin('videoedit-window');
+    }
+    if(e.ctrlKey && e.shiftKey && (e.key === 'B' || e.key === 'b')){
+      e.preventDefault();
+      bcEnsure();
+      if(typeof openWin === 'function') openWin('barcode-window');
+    }
+  });
+
+  setTimeout(() => {
+    try{
+      addButtons();
+      console.log('%c🐍 v51 geladen: Snake 2P + Video-Editor + Barcode-Scanner','color:#00ff88;font-weight:bold;font-size:12px;');
+    }catch(err){
+      console.error('v51 Init-Fehler:', err);
+    }
+  }, 1100);
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════ ENDE v51 ANHANG ══════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
