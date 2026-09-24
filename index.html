@@ -24640,5 +24640,715 @@ body.wm-force-float .os-window.wm3-floating .header:active {
 })();
 </script>
 <!-- ═══════════════════════ ENDE v77 UTILITIES ═════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════ v79 – RANDOM (Würfel, Zufall, Teams) ════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#randomWindow {
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(180,80,255,.12), transparent 55%),
+    radial-gradient(circle at 30% 80%, rgba(255,80,180,.06), transparent 55%),
+    linear-gradient(180deg, rgba(15,5,25,.99), rgba(8,2,15,.99));
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  z-index: 8220; display: none; flex-direction: column;
+  color: #f0e6ff; font-family: inherit;
+  animation: rnFadeIn .25s;
+}
+#randomWindow.show { display: flex; }
+@keyframes rnFadeIn { from {opacity:0;transform:scale(.98);} to {opacity:1;transform:scale(1);} }
+
+.rn-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid rgba(180,80,255,.25);
+  background: rgba(40,10,60,.55); flex-shrink: 0;
+  position: relative; z-index: 10;
+}
+.rn-title { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.rn-title .rn-icon {
+  font-size: 26px; filter: drop-shadow(0 0 14px #b450ff);
+  animation: rnPulse 2.5s ease-in-out infinite;
+}
+@keyframes rnPulse { 50% { filter: drop-shadow(0 0 26px #ff50b4); transform: scale(1.06); } }
+.rn-title h2 { font-size: 18px; margin: 0; font-weight: 700; color: #fff; }
+.rn-title small { display: block; font-size: 10px; color: #d4a8ff; margin-top: 2px; letter-spacing: 1.5px; text-transform: uppercase; }
+.rn-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+.rn-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 14px; border-radius: 10px;
+  background: rgba(180,80,255,.12); border: 1px solid rgba(180,80,255,.4);
+  color: #f0e6ff; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all .15s; -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+  position: relative; z-index: 9999;
+  pointer-events: auto;
+}
+.rn-btn:hover { background: rgba(180,80,255,.25); }
+.rn-btn.primary { background: linear-gradient(135deg,#b450ff,#ff50b4); color: #1a0033; border-color: #fff; }
+.rn-btn.primary:hover { filter: brightness(1.15); box-shadow: 0 0 24px rgba(180,80,255,.6); }
+.rn-btn.danger { background: rgba(255,60,60,.15); border-color: rgba(255,60,60,.4); color: #ff8080; }
+.rn-btn.success { background: linear-gradient(135deg,#00ff88,#00e5ff); color: #001a08; border-color: #fff; }
+.rn-btn.icon-only { padding: 10px; font-size: 16px; }
+
+.rn-tabs {
+  display: flex; gap: 4px; padding: 10px 18px;
+  border-bottom: 1px solid rgba(180,80,255,.12); flex-shrink: 0;
+  overflow-x: auto; position: relative; z-index: 2;
+}
+.rn-tab {
+  padding: 8px 14px; border-radius: 10px;
+  background: rgba(60,25,90,.4); border: 1px solid rgba(180,80,255,.2);
+  color: #d4a8ff; font-size: 12px; font-weight: 700;
+  cursor: pointer; text-transform: uppercase; letter-spacing: .6px;
+  transition: all .15s; white-space: nowrap; flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.rn-tab.active { background: linear-gradient(135deg,#b450ff,#ff50b4); color: #fff; border-color: #fff; }
+
+.rn-body { flex: 1; overflow-y: auto; padding: 18px; position: relative; z-index: 2; }
+.rn-content { max-width: 560px; margin: 0 auto; }
+
+/* Display */
+.rn-display {
+  text-align: center;
+  padding: 30px 20px;
+  background: linear-gradient(160deg, rgba(60,15,100,.5), rgba(20,5,40,.85));
+  border: 1.5px solid rgba(180,80,255,.3);
+  border-radius: 20px;
+  margin-bottom: 16px;
+  box-shadow: inset 0 0 60px rgba(180,80,255,.1);
+  min-height: 180px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.rn-result {
+  font-size: 76px; font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 40px rgba(180,80,255,.7);
+  line-height: 1;
+  margin-bottom: 8px;
+  transition: all .15s;
+}
+.rn-result.rolling {
+  animation: rnRoll .1s linear infinite;
+}
+@keyframes rnRoll {
+  0%,100% { transform: translateY(-3px) rotate(-3deg); }
+  50% { transform: translateY(3px) rotate(3deg); }
+}
+.rn-label {
+  font-size: 12px; color: #d4a8ff;
+  text-transform: uppercase; letter-spacing: 2px;
+  font-weight: 800;
+}
+.rn-sub {
+  font-size: 13px; color: #f0e6ff;
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+/* Controls */
+.rn-controls {
+  display: flex; gap: 10px; justify-content: center;
+  flex-wrap: wrap; margin-bottom: 16px;
+}
+.rn-controls .rn-btn { padding: 16px 28px; font-size: 16px; min-width: 130px; }
+
+/* Range Inputs */
+.rn-range-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  margin-bottom: 16px;
+}
+.rn-form-row { margin-bottom: 14px; }
+.rn-form-row label {
+  display: block; font-size: 11px; color: #d4a8ff; font-weight: 700;
+  margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1.2px;
+}
+.rn-form-row input, .rn-form-row textarea, .rn-form-row select {
+  width: 100%; padding: 12px 14px; border-radius: 10px;
+  background: rgba(0,0,0,.45); border: 1.5px solid rgba(180,80,255,.3);
+  color: #fff; font-size: 14px; font-family: inherit; outline: none;
+  transition: border-color .15s; box-sizing: border-box;
+}
+.rn-form-row input:focus, .rn-form-row textarea:focus, .rn-form-row select:focus {
+  border-color: #b450ff;
+}
+.rn-form-row textarea { min-height: 120px; resize: vertical; font-family: inherit; line-height: 1.5; }
+
+/* Dice */
+.rn-dice-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px; margin-bottom: 16px;
+}
+.rn-die {
+  padding: 20px 12px; border-radius: 14px;
+  background: linear-gradient(160deg, rgba(60,15,100,.5), rgba(20,5,40,.85));
+  border: 1.5px solid rgba(180,80,255,.25);
+  text-align: center; cursor: pointer;
+  transition: all .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.rn-die:hover { border-color: #b450ff; transform: translateY(-2px); }
+.rn-die.active {
+  background: linear-gradient(160deg,#b450ff,#ff50b4);
+  border-color: #fff;
+}
+.rn-die .rnd-emoji { font-size: 28px; display: block; margin-bottom: 4px; }
+.rn-die .rnd-name { font-size: 12px; font-weight: 800; color: #fff; }
+
+/* Coin */
+.rn-coin {
+  width: 200px; height: 200px; margin: 20px auto;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffd700, #ff8800);
+  border: 6px solid #ffb700;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 80px; font-weight: 900;
+  color: #7a4d00;
+  text-shadow: 0 4px 8px rgba(0,0,0,.3);
+  box-shadow: 0 20px 60px rgba(255,170,0,.6), inset 0 -8px 20px rgba(0,0,0,.2), inset 0 8px 20px rgba(255,255,255,.4);
+  transition: transform .3s;
+  cursor: pointer;
+}
+.rn-coin.flipping {
+  animation: rnCoinFlip .6s ease-in-out;
+}
+@keyframes rnCoinFlip {
+  0% { transform: rotateY(0) scale(1); }
+  50% { transform: rotateY(900deg) scale(1.1); }
+  100% { transform: rotateY(1800deg) scale(1); }
+}
+.rn-coin.tails { background: linear-gradient(135deg, #c0c0c0, #888); border-color: #aaa; color: #333; }
+
+/* Team Ergebnis */
+.rn-team-result {
+  display: grid; gap: 12px; margin-top: 16px;
+}
+.rn-team {
+  padding: 14px; border-radius: 14px;
+  background: linear-gradient(160deg, rgba(60,15,100,.5), rgba(20,5,40,.85));
+  border: 1.5px solid rgba(180,80,255,.3);
+}
+.rn-team-head {
+  font-size: 13px; font-weight: 900; color: #b450ff;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  margin-bottom: 8px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.rn-team-members {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.rn-team-member {
+  padding: 6px 12px; border-radius: 10px;
+  background: rgba(180,80,255,.15);
+  color: #fff; font-size: 12px; font-weight: 700;
+}
+
+/* History */
+.rn-hist {
+  padding: 12px 14px; border-radius: 12px;
+  background: rgba(60,15,100,.4);
+  border: 1.5px solid rgba(180,80,255,.15);
+  margin-bottom: 8px;
+  font-size: 13px;
+  display: flex; justify-content: space-between; gap: 12px;
+}
+.rn-hist-text { color: #fff; }
+.rn-hist-time { color: #a080c0; font-size: 10px; white-space: nowrap; }
+
+.rn-toast {
+  position: fixed; bottom: 100px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  padding: 12px 20px; border-radius: 12px;
+  background: linear-gradient(135deg,#b450ff,#ff50b4); color: #fff;
+  font-weight: 700; font-size: 13px; opacity: 0; pointer-events: none;
+  transition: all .3s; z-index: 99999;
+  box-shadow: 0 10px 40px rgba(180,80,255,.5);
+  white-space: nowrap;
+}
+.rn-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+
+<div id="randomWindow">
+  <div class="rn-header">
+    <div class="rn-title">
+      <span class="rn-icon">🎲</span>
+      <div>
+        <h2>Random</h2>
+        <small>Zufall & Spiele</small>
+      </div>
+    </div>
+    <div class="rn-actions">
+      <button class="rn-btn icon-only" onclick="HalDoRandomApp.close()">✕</button>
+    </div>
+  </div>
+
+  <div class="rn-tabs">
+    <button class="rn-tab active" data-tab="number" onclick="HalDoRandomApp.setTab('number')">🔢 Zahl</button>
+    <button class="rn-tab" data-tab="dice" onclick="HalDoRandomApp.setTab('dice')">🎲 Würfel</button>
+    <button class="rn-tab" data-tab="coin" onclick="HalDoRandomApp.setTab('coin')">🪙 Münze</button>
+    <button class="rn-tab" data-tab="picker" onclick="HalDoRandomApp.setTab('picker')">🎯 Zufallsauswahl</button>
+    <button class="rn-tab" data-tab="team" onclick="HalDoRandomApp.setTab('team')">👥 Teams</button>
+  </div>
+
+  <div class="rn-body">
+    <div class="rn-content" id="rnContent"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  if(window.__rnLoaded) return;
+  window.__rnLoaded = true;
+
+  let currentTab = 'number';
+  let rolling = false;
+
+  // State für jeden Tab
+  let numberState = { min: 1, max: 100, result: '?', label: 'Zahl zwischen 1 und 100' };
+  let diceState = { sides: 6, count: 1, results: [], emoji: '🎲' };
+  let coinState = { result: '?', side: 'heads', count: 0, heads: 0, tails: 0 };
+  let pickerState = { items: ['Pizza','Pasta','Burger','Salat','Sushi'], result: '' };
+  let teamState = { players: ['Anna','Ben','Clara','David','Emma','Felix'], count: 2, teams: [] };
+  let history = [];
+
+  function esc(s){
+    return String(s==null?'':s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function randInt(min, max){
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+  function shuffle(arr){
+    const a = arr.slice();
+    for(let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // ═══ NUMBER ═══
+  function renderNumber(){
+    const el = document.getElementById('rnContent');
+    el.innerHTML = `
+      <div class="rn-display">
+        <div class="rn-result ${rolling?'rolling':''}" id="rnNumResult">${numberState.result}</div>
+        <div class="rn-label">Zufallszahl</div>
+        <div class="rn-sub">${esc(numberState.label)}</div>
+      </div>
+      <div class="rn-range-row">
+        <div class="rn-form-row">
+          <label>Minimum</label>
+          <input type="number" value="${numberState.min}" oninput="HalDoRandomApp.setRange('min', this.value)">
+        </div>
+        <div class="rn-form-row">
+          <label>Maximum</label>
+          <input type="number" value="${numberState.max}" oninput="HalDoRandomApp.setRange('max', this.value)">
+        </div>
+      </div>
+      <div class="rn-controls">
+        <button class="rn-btn primary" onclick="HalDoRandomApp.rollNumber()">🎲 Zahl ziehen</button>
+      </div>
+      <div class="rn-form-row" style="margin-top:16px">
+        <label>Presets</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="rn-btn" onclick="HalDoRandomApp.presetNumber(1,10)">1 – 10</button>
+          <button class="rn-btn" onclick="HalDoRandomApp.presetNumber(1,100)">1 – 100</button>
+          <button class="rn-btn" onclick="HalDoRandomApp.presetNumber(1,1000)">1 – 1000</button>
+          <button class="rn-btn" onclick="HalDoRandomApp.presetNumber(1,6)">1 – 6</button>
+          <button class="rn-btn" onclick="HalDoRandomApp.presetNumber(0,9)">0 – 9</button>
+          <button class="rn-btn" onclick="HalDoRandomApp.presetNumber(1,49)">Lotto 1 – 49</button>
+        </div>
+      </div>
+      ${history.length ? `<div style="margin-top:24px">
+        <div style="font-size:11px;color:#d4a8ff;text-transform:uppercase;letter-spacing:1.5px;font-weight:800;margin-bottom:8px">📜 Letzte Ziehungen</div>
+        ${history.slice(0,6).map(h => `<div class="rn-hist"><span class="rn-hist-text">${esc(h.text)}</span><span class="rn-hist-time">${new Date(h.ts).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})}</span></div>`).join('')}
+      </div>` : ''}
+    `;
+  }
+
+  function setRange(field, val){
+    const v = parseInt(val) || 0;
+    numberState[field] = v;
+  }
+  function presetNumber(min, max){
+    numberState.min = min;
+    numberState.max = max;
+    numberState.label = `Zahl zwischen ${min} und ${max}`;
+    renderNumber();
+  }
+  function rollNumber(){
+    if(rolling) return;
+    const min = Math.min(numberState.min, numberState.max);
+    const max = Math.max(numberState.min, numberState.max);
+    rolling = true;
+    // Animation
+    let ticks = 0;
+    const interval = setInterval(() => {
+      const el = document.getElementById('rnNumResult');
+      if(el){
+        el.textContent = randInt(min, max);
+        el.classList.add('rolling');
+      }
+      ticks++;
+      if(ticks > 12){
+        clearInterval(interval);
+        const result = randInt(min, max);
+        numberState.result = result;
+        numberState.label = `Zahl zwischen ${min} und ${max}`;
+        rolling = false;
+        history.unshift({ text: `${result} (${min}–${max})`, ts: Date.now() });
+        if(history.length > 20) history.pop();
+        renderNumber();
+        if(navigator.vibrate) navigator.vibrate([10, 30, 10]);
+        if(typeof playSound === 'function') playSound('success');
+      }
+    }, 60);
+  }
+
+  // ═══ DICE ═══
+  function renderDice(){
+    const el = document.getElementById('rnContent');
+    const diceEmojis = { 4: '🔺', 6: '🎲', 8: '🎲', 10: '🎲', 12: '🎲', 20: '🎲', 100: '💯' };
+
+    const resultsHtml = diceState.results.length
+      ? diceState.results.map(r => `<span style="display:inline-block;padding:8px 14px;margin:4px;border-radius:10px;background:rgba(180,80,255,.2);color:#fff;font-size:18px;font-weight:900">${r}</span>`).join('')
+      : '';
+
+    el.innerHTML = `
+      <div class="rn-display">
+        <div style="font-size:60px;margin-bottom:8px">${diceEmojis[diceState.sides] || '🎲'}</div>
+        <div class="rn-result">${diceState.results.length ? diceState.results.reduce((a,b)=>a+b,0) : '?'}</div>
+        <div class="rn-label">Summe ${diceState.results.length>1?'('+diceState.results.length+' Würfel)':''}</div>
+        ${resultsHtml ? `<div style="margin-top:12px">${resultsHtml}</div>` : ''}
+      </div>
+
+      <div class="rn-form-row">
+        <label>Würfel-Typ</label>
+        <div class="rn-dice-grid">
+          ${[4,6,8,10,12,20,100].map(s =>
+            `<div class="rn-die ${diceState.sides===s?'active':''}" onclick="HalDoRandomApp.setDice(${s})">
+              <span class="rnd-emoji">${s===100?'💯':'🎲'}</span>
+              <span class="rnd-name">D${s}</span>
+            </div>`
+          ).join('')}
+        </div>
+      </div>
+
+      <div class="rn-form-row">
+        <label>Anzahl Würfel</label>
+        <input type="number" min="1" max="10" value="${diceState.count}" oninput="HalDoRandomApp.setDiceCount(this.value)">
+      </div>
+
+      <div class="rn-controls">
+        <button class="rn-btn primary" onclick="HalDoRandomApp.rollDice()">🎲 Würfeln</button>
+      </div>
+    `;
+  }
+
+  function setDice(s){ diceState.sides = s; diceState.results = []; renderDice(); }
+  function setDiceCount(v){ diceState.count = Math.max(1, Math.min(10, parseInt(v)||1)); }
+  function rollDice(){
+    if(rolling) return;
+    rolling = true;
+    const sides = diceState.sides;
+    const count = diceState.count;
+    let ticks = 0;
+    const interval = setInterval(() => {
+      diceState.results = Array.from({length: count}, () => randInt(1, sides));
+      renderDice();
+      ticks++;
+      if(ticks > 10){
+        clearInterval(interval);
+        rolling = false;
+        const sum = diceState.results.reduce((a,b)=>a+b,0);
+        history.unshift({ text: `${count}×D${sides} → ${diceState.results.join(' + ')} = ${sum}`, ts: Date.now() });
+        if(history.length > 20) history.pop();
+        if(navigator.vibrate) navigator.vibrate([10, 30, 10]);
+        if(typeof playSound === 'function') playSound('success');
+      }
+    }, 80);
+  }
+
+  // ═══ COIN ═══
+  function renderCoin(){
+    const el = document.getElementById('rnContent');
+    const resultText = coinState.result === '?' ? '?' : (coinState.result === 'Kopf' ? 'K' : 'Z');
+    const coinClass = coinState.result === 'Zahl' ? 'tails' : '';
+
+    el.innerHTML = `
+      <div class="rn-display" style="background:none;border:none;box-shadow:none;padding:0;min-height:auto">
+        <div class="rn-coin ${coinClass}" id="rnCoin" onclick="HalDoRandomApp.flipCoin()">${resultText}</div>
+      </div>
+
+      <div class="rn-controls">
+        <button class="rn-btn primary" onclick="HalDoRandomApp.flipCoin()">🪙 Werfen</button>
+      </div>
+
+      <div style="display:flex;gap:12px;margin-top:24px;justify-content:center">
+        <div style="flex:1;padding:12px;border-radius:12px;background:rgba(255,215,0,.15);border:1px solid rgba(255,215,0,.3);text-align:center">
+          <div style="font-size:24px;font-weight:900;color:#ffd700">${coinState.heads}</div>
+          <div style="font-size:10px;color:#ffd700;text-transform:uppercase;letter-spacing:1px;font-weight:800;margin-top:2px">Kopf</div>
+        </div>
+        <div style="flex:1;padding:12px;border-radius:12px;background:rgba(200,200,200,.15);border:1px solid rgba(200,200,200,.3);text-align:center">
+          <div style="font-size:24px;font-weight:900;color:#ccc">${coinState.tails}</div>
+          <div style="font-size:10px;color:#ccc;text-transform:uppercase;letter-spacing:1px;font-weight:800;margin-top:2px">Zahl</div>
+        </div>
+      </div>
+
+      ${coinState.count > 0 ? `<div style="text-align:center;margin-top:16px;font-size:12px;color:#d4a8ff">Insgesamt ${coinState.count} Würfe</div>` : ''}
+    `;
+  }
+
+  function flipCoin(){
+    if(rolling) return;
+    rolling = true;
+    const coin = document.getElementById('rnCoin');
+    if(coin) coin.classList.add('flipping');
+    if(navigator.vibrate) navigator.vibrate([10, 30, 10]);
+
+    setTimeout(() => {
+      const isHeads = Math.random() < 0.5;
+      coinState.result = isHeads ? 'Kopf' : 'Zahl';
+      coinState.count++;
+      if(isHeads) coinState.heads++;
+      else coinState.tails++;
+      history.unshift({ text: `🪙 ${coinState.result}`, ts: Date.now() });
+      if(history.length > 20) history.pop();
+      rolling = false;
+      renderCoin();
+      if(typeof playSound === 'function') playSound('success');
+    }, 700);
+  }
+
+  // ═══ PICKER ═══
+  function renderPicker(){
+    const el = document.getElementById('rnContent');
+    const itemsText = pickerState.items.join('\n');
+
+    el.innerHTML = `
+      <div class="rn-display">
+        <div class="rn-result" style="font-size:${pickerState.result.length > 12 ? 32 : (pickerState.result.length > 6 ? 48 : 72)}px" id="rnPickResult">
+          ${pickerState.result ? esc(pickerState.result) : '?'}
+        </div>
+        <div class="rn-label">Auswahl</div>
+        ${pickerState.items.length ? `<div class="rn-sub" style="opacity:.7">${pickerState.items.length} Optionen</div>` : ''}
+      </div>
+
+      <div class="rn-form-row">
+        <label>Optionen (eine pro Zeile)</label>
+        <textarea id="rnPickerItems" oninput="HalDoRandomApp.setPickerItems(this.value)" placeholder="Pizza&#10;Pasta&#10;Burger&#10;Salat">${esc(itemsText)}</textarea>
+      </div>
+
+      <div class="rn-controls">
+        <button class="rn-btn primary" onclick="HalDoRandomApp.pick()" ${pickerState.items.length < 2?'disabled style="opacity:.4"':''}>
+          🎯 Zufällig wählen
+        </button>
+      </div>
+
+      <div style="margin-top:16px;display:flex;gap:6px;flex-wrap:wrap">
+        <button class="rn-btn" onclick="HalDoRandomApp.pickerPreset('essen')">🍔 Essen</button>
+        <button class="rn-btn" onclick="HalDoRandomApp.pickerPreset('film')">🎬 Film</button>
+        <button class="rn-btn" onclick="HalDoRandomApp.pickerPreset('ja-nein')">✅ Ja / Nein</button>
+        <button class="rn-btn" onclick="HalDoRandomApp.pickerPreset('wuerfel')">🎲 1–6</button>
+        <button class="rn-btn" onclick="HalDoRandomApp.pickerPreset('zahlen')">🔢 0–9</button>
+      </div>
+    `;
+  }
+
+  function setPickerItems(text){
+    pickerState.items = text.split('\n').map(s => s.trim()).filter(Boolean);
+    // Counter aktualisieren
+    const sub = document.querySelector('#rnContent .rn-sub');
+    if(sub) sub.textContent = pickerState.items.length + ' Optionen';
+  }
+  function pickerPreset(type){
+    if(type === 'essen'){
+      pickerState.items = ['Pizza','Pasta','Burger','Salat','Sushi','Döner','Kartoffeln','Suppe'];
+    } else if(type === 'film'){
+      pickerState.items = ['Action','Komödie','Drama','Sci-Fi','Horror','Romanze','Animation','Thriller'];
+    } else if(type === 'ja-nein'){
+      pickerState.items = ['Ja','Nein'];
+    } else if(type === 'wuerfel'){
+      pickerState.items = ['1','2','3','4','5','6'];
+    } else if(type === 'zahlen'){
+      pickerState.items = ['0','1','2','3','4','5','6','7','8','9'];
+    }
+    pickerState.result = '';
+    renderPicker();
+  }
+  function pick(){
+    if(pickerState.items.length < 2 || rolling) return;
+    rolling = true;
+    let ticks = 0;
+    const interval = setInterval(() => {
+      const el = document.getElementById('rnPickResult');
+      if(el){
+        el.textContent = pickerState.items[Math.floor(Math.random() * pickerState.items.length)];
+        el.style.fontSize = '32px';
+        el.classList.add('rolling');
+      }
+      ticks++;
+      if(ticks > 15){
+        clearInterval(interval);
+        const result = pickerState.items[Math.floor(Math.random() * pickerState.items.length)];
+        pickerState.result = result;
+        rolling = false;
+        history.unshift({ text: `🎯 ${result}`, ts: Date.now() });
+        if(history.length > 20) history.pop();
+        renderPicker();
+        if(navigator.vibrate) navigator.vibrate([10, 30, 10]);
+        if(typeof playSound === 'function') playSound('success');
+      }
+    }, 80);
+  }
+
+  // ═══ TEAM ═══
+  function renderTeam(){
+    const el = document.getElementById('rnContent');
+    const playersText = teamState.players.join('\n');
+
+    const teamsHtml = teamState.teams.length
+      ? `<div class="rn-team-result">
+          ${teamState.teams.map((team, i) => `
+            <div class="rn-team">
+              <div class="rn-team-head">
+                <span>Team ${i+1}</span>
+                <span style="color:#a080c0">${team.length} Spieler</span>
+              </div>
+              <div class="rn-team-members">
+                ${team.map(p => `<span class="rn-team-member">${esc(p)}</span>`).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>`
+      : '';
+
+    el.innerHTML = `
+      <div class="rn-form-row">
+        <label>Spieler (einer pro Zeile)</label>
+        <textarea id="rnTeamPlayers" oninput="HalDoRandomApp.setTeamPlayers(this.value)" placeholder="Anna&#10;Ben&#10;Clara">${esc(playersText)}</textarea>
+      </div>
+
+      <div class="rn-form-row">
+        <label>Anzahl Teams</label>
+        <input type="number" min="2" max="10" value="${teamState.count}" oninput="HalDoRandomApp.setTeamCount(this.value)">
+      </div>
+
+      <div class="rn-controls">
+        <button class="rn-btn primary" onclick="HalDoRandomApp.makeTeams()" ${teamState.players.length < 2?'disabled style="opacity:.4"':''}>
+          👥 Teams bilden
+        </button>
+      </div>
+
+      ${teamsHtml}
+
+      ${teamState.teams.length ? `<div style="text-align:center;margin-top:16px">
+        <button class="rn-btn" onclick="HalDoRandomApp.reshuffleTeams()">🔄 Neu mischen</button>
+      </div>` : ''}
+    `;
+  }
+
+  function setTeamPlayers(text){
+    teamState.players = text.split('\n').map(s => s.trim()).filter(Boolean);
+  }
+  function setTeamCount(v){
+    teamState.count = Math.max(2, Math.min(10, parseInt(v) || 2));
+  }
+  function makeTeams(){
+    if(teamState.players.length < 2) return;
+    const shuffled = shuffle(teamState.players);
+    const numTeams = Math.min(teamState.count, teamState.players.length);
+    const teams = Array.from({length: numTeams}, () => []);
+    shuffled.forEach((p, i) => {
+      teams[i % numTeams].push(p);
+    });
+    teamState.teams = teams;
+    history.unshift({ text: `👥 ${teamState.players.length} Spieler → ${numTeams} Teams`, ts: Date.now() });
+    if(history.length > 20) history.pop();
+    renderTeam();
+    if(navigator.vibrate) navigator.vibrate([15, 30, 15]);
+    if(typeof playSound === 'function') playSound('success');
+  }
+  function reshuffleTeams(){ makeTeams(); }
+
+  // ═══ Tabs ═══
+  function render(){
+    if(currentTab === 'number') renderNumber();
+    else if(currentTab === 'dice') renderDice();
+    else if(currentTab === 'coin') renderCoin();
+    else if(currentTab === 'picker') renderPicker();
+    else if(currentTab === 'team') renderTeam();
+    document.querySelectorAll('.rn-tab').forEach(el => {
+      el.classList.toggle('active', el.dataset.tab === currentTab);
+    });
+  }
+  function setTab(t){ currentTab = t; render(); }
+
+  function toast(msg){
+    let el = document.getElementById('rnToast');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'rnToast';
+      el.className = 'rn-toast';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), 2000);
+  }
+
+  function open(){
+    const w = document.getElementById('randomWindow');
+    if(!w) return;
+    render();
+    w.classList.add('show');
+    if(typeof playSound === 'function') playSound('open');
+  }
+  function close(){
+    const w = document.getElementById('randomWindow');
+    if(w) w.classList.remove('show');
+  }
+
+  window.HalDoRandom = {
+    open, close,
+    number(min, max){ return randInt(min||1, max||100); },
+    pick(arr){ return arr && arr.length ? arr[Math.floor(Math.random()*arr.length)] : null; },
+    roll(sides, count){
+      return Array.from({length: count||1}, () => randInt(1, sides||6));
+    }
+  };
+  window.HalDoRandomApp = {
+    open, close, render,
+    setTab,
+    setRange, presetNumber, rollNumber,
+    setDice, setDiceCount, rollDice,
+    flipCoin,
+    setPickerItems, pickerPreset, pick,
+    setTeamPlayers, setTeamCount, makeTeams, reshuffleTeams
+  };
+
+  const orig = window.openWin;
+  window.openWin = function(id){
+    if(id === 'random-window' || id === 'random' || id === 'wuerfel'){ open(); return; }
+    if(typeof orig === 'function') return orig(id);
+  };
+
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape' && document.getElementById('randomWindow')?.classList.contains('show')){
+      close();
+    }
+  });
+
+  console.log('%c🎲 Random geladen · Number · Dice · Coin · Picker · Teams', 'color:#b450ff;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════ ENDE v79 RANDOM ════════════════════ -->
 </body>
 </html>
