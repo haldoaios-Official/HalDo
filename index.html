@@ -18360,5 +18360,1096 @@ body.wm-force-float .os-window.wm3-floating .header:active {
 })();
 </script>
 <!-- ══════════════════ ENDE v61.3 FINAL FIX ═════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═════════ v63 – CALENDAR (TERMINE + LIVE-SYNC) ══════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#calendarWindow {
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(0,229,255,.10), transparent 55%),
+    radial-gradient(circle at 70% 80%, rgba(0,255,200,.06), transparent 55%),
+    linear-gradient(180deg, rgba(0,10,30,.99), rgba(0,5,15,.99));
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  z-index: 8380; display: none; flex-direction: column;
+  color: #e6f4ff; font-family: inherit;
+  animation: calFadeIn .25s;
+}
+#calendarWindow.show { display: flex; }
+@keyframes calFadeIn { from {opacity:0;transform:scale(.98);} to {opacity:1;transform:scale(1);} }
+
+.cal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid rgba(0,229,255,.2);
+  background: rgba(0,20,50,.55); flex-shrink: 0; position: relative; z-index: 2;
+  flex-wrap: wrap; gap: 10px;
+}
+.cal-title { display: flex; align-items: center; gap: 10px; }
+.cal-title .cal-icon {
+  font-size: 26px; filter: drop-shadow(0 0 14px #00e5ff);
+  animation: calPulse 2.6s ease-in-out infinite;
+}
+@keyframes calPulse { 50% { filter: drop-shadow(0 0 26px #00e5ff); transform: scale(1.05); } }
+.cal-title h2 { font-size: 18px; margin: 0; font-weight: 700; color: #fff; letter-spacing: .5px; }
+.cal-title small { display: block; font-size: 10px; color: #7ce0ff; margin-top: 2px; letter-spacing: 1.5px; text-transform: uppercase; }
+
+.cal-actions { display: flex; gap: 8px; align-items: center; }
+.cal-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 14px; border-radius: 10px;
+  background: rgba(0,229,255,.12); border: 1px solid rgba(0,229,255,.4);
+  color: #e6f4ff; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all .15s; -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+.cal-btn:hover { background: rgba(0,229,255,.25); transform: translateY(-1px); box-shadow: 0 0 18px rgba(0,229,255,.3); }
+.cal-btn.primary { background: linear-gradient(135deg,#00e5ff,#4da8ff); color: #001018; border-color: #fff; }
+.cal-btn.primary:hover { filter: brightness(1.15); box-shadow: 0 0 24px rgba(0,229,255,.6); }
+.cal-btn.icon-only { padding: 10px; font-size: 16px; min-width: 40px; }
+
+/* View-Switch */
+.cal-views {
+  display: flex; gap: 4px; background: rgba(0,0,0,.4); padding: 3px; border-radius: 10px;
+}
+.cal-view-btn {
+  padding: 6px 12px; border-radius: 8px;
+  background: transparent; border: none;
+  color: #7ce0ff; font-size: 11px; font-weight: 700;
+  cursor: pointer; text-transform: uppercase; letter-spacing: .8px;
+  transition: all .15s; -webkit-tap-highlight-color: transparent;
+}
+.cal-view-btn.active {
+  background: linear-gradient(135deg,#00e5ff,#4da8ff); color: #001018;
+  box-shadow: 0 0 12px rgba(0,229,255,.5);
+}
+
+.cal-nav {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  padding: 12px 18px; flex-shrink: 0;
+  border-bottom: 1px solid rgba(0,229,255,.1);
+  position: relative; z-index: 2;
+}
+.cal-nav-btn {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: rgba(0,229,255,.12); border: 1px solid rgba(0,229,255,.35);
+  color: #00e5ff; font-size: 18px; font-weight: 800;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .15s; -webkit-tap-highlight-color: transparent;
+}
+.cal-nav-btn:hover { background: rgba(0,229,255,.28); }
+.cal-nav-btn:active { transform: scale(.94); }
+.cal-nav-title {
+  flex: 1; text-align: center;
+  font-size: 16px; font-weight: 800; color: #fff;
+  text-shadow: 0 0 14px rgba(0,229,255,.5);
+  letter-spacing: .5px;
+}
+.cal-today-btn {
+  padding: 6px 12px; border-radius: 8px;
+  background: rgba(0,229,255,.1); border: 1px solid rgba(0,229,255,.3);
+  color: #7ce0ff; font-size: 11px; font-weight: 700;
+  cursor: pointer; letter-spacing: 1px; text-transform: uppercase;
+  -webkit-tap-highlight-color: transparent;
+}
+.cal-today-btn:hover { background: rgba(0,229,255,.25); }
+
+.cal-body { flex: 1; overflow: hidden; position: relative; z-index: 2; display: flex; flex-direction: column; }
+
+/* ═══ Monatsansicht ═══ */
+.cal-month-wrap { flex: 1; display: flex; flex-direction: column; padding: 8px 10px 90px; overflow-y: auto; }
+.cal-month-head {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+  padding: 6px 0; font-size: 10px; font-weight: 800;
+  color: #7ce0ff; text-transform: uppercase; letter-spacing: 1px;
+  text-align: center;
+  border-bottom: 1px solid rgba(0,229,255,.12);
+  position: sticky; top: 0;
+  background: rgba(0,10,30,.95);
+  backdrop-filter: blur(10px);
+  z-index: 5;
+}
+.cal-month-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 4px; margin-top: 6px;
+}
+.cal-day {
+  min-height: 62px; border-radius: 10px;
+  background: rgba(0,20,50,.4);
+  border: 1.5px solid rgba(0,229,255,.1);
+  padding: 4px 5px; position: relative;
+  cursor: pointer; transition: all .15s;
+  display: flex; flex-direction: column; gap: 2px;
+  overflow: hidden;
+}
+.cal-day:hover { border-color: #00e5ff; background: rgba(0,229,255,.08); }
+.cal-day.other-month { opacity: .35; }
+.cal-day.today {
+  background: linear-gradient(160deg, rgba(0,229,255,.2), rgba(0,150,200,.15));
+  border-color: #00e5ff;
+  box-shadow: 0 0 20px rgba(0,229,255,.4);
+}
+.cal-day.selected {
+  border-color: #fff;
+  box-shadow: 0 0 24px rgba(0,229,255,.6);
+  background: rgba(0,229,255,.15);
+}
+.cal-day-num {
+  font-size: 13px; font-weight: 800; color: #fff;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.cal-day.today .cal-day-num { color: #00e5ff; text-shadow: 0 0 10px rgba(0,229,255,.8); }
+.cal-day-events {
+  display: flex; flex-direction: column; gap: 2px; overflow: hidden;
+  flex: 1;
+}
+.cal-day-event {
+  font-size: 9px; font-weight: 700; color: #fff;
+  padding: 2px 4px; border-radius: 4px;
+  background: #00e5ff; color: #001018;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.cal-day-more {
+  font-size: 8px; font-weight: 700; color: #7ce0ff;
+  text-align: right;
+}
+
+/* ═══ Tagesansicht ═══ */
+.cal-day-wrap { flex: 1; overflow-y: auto; padding: 16px 18px 90px; }
+.cal-day-title {
+  font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 14px;
+  text-shadow: 0 0 18px rgba(0,229,255,.5);
+}
+.cal-timeline { display: flex; flex-direction: column; gap: 8px; }
+.cal-slot {
+  display: flex; gap: 12px; padding: 10px 12px;
+  background: rgba(0,20,50,.4);
+  border: 1.5px solid rgba(0,229,255,.1);
+  border-radius: 12px;
+  transition: all .15s; cursor: pointer;
+  position: relative;
+}
+.cal-slot:hover { border-color: #00e5ff; background: rgba(0,229,255,.08); }
+.cal-slot-time {
+  flex-shrink: 0; min-width: 60px;
+  font-size: 12px; font-weight: 800; color: #7ce0ff;
+  font-family: 'Courier New', monospace;
+}
+.cal-slot-body { flex: 1; min-width: 0; }
+.cal-slot-title {
+  font-size: 14px; font-weight: 700; color: #fff;
+  margin-bottom: 3px; word-break: break-word;
+}
+.cal-slot-desc {
+  font-size: 12px; color: #aaddff; line-height: 1.4;
+  overflow: hidden; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.cal-slot-source {
+  font-size: 9px; padding: 2px 6px; border-radius: 4px;
+  background: rgba(0,229,255,.2); color: #7ce0ff;
+  font-weight: 800; text-transform: uppercase; letter-spacing: .5px;
+  margin-left: 6px;
+}
+.cal-slot-source.task { background: rgba(255,170,0,.2); color: #ffcc77; }
+.cal-slot-source.reminder { background: rgba(255,68,102,.2); color: #ff99aa; }
+.cal-slot-source.goal { background: rgba(180,120,255,.2); color: #d4b8ff; }
+.cal-slot-source.event { background: rgba(0,229,255,.2); color: #7ce0ff; }
+.cal-slot-color {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 4px; border-radius: 12px 0 0 12px;
+}
+
+/* ═══ Wochenansicht ═══ */
+.cal-week-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 0 8px 90px; }
+.cal-week-head {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+  padding: 8px 0; flex-shrink: 0;
+  border-bottom: 1px solid rgba(0,229,255,.12);
+}
+.cal-week-head-day {
+  text-align: center; padding: 6px 2px; border-radius: 10px;
+  cursor: pointer; transition: all .15s;
+}
+.cal-week-head-day:hover { background: rgba(0,229,255,.08); }
+.cal-week-head-day .wdw {
+  font-size: 9px; font-weight: 800; color: #7ce0ff;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.cal-week-head-day .wdn {
+  font-size: 18px; font-weight: 900; color: #fff;
+  margin-top: 2px;
+}
+.cal-week-head-day.today .wdn {
+  color: #00e5ff; text-shadow: 0 0 14px rgba(0,229,255,.8);
+}
+.cal-week-head-day.selected {
+  background: rgba(0,229,255,.15);
+  border: 1px solid #00e5ff;
+}
+.cal-week-body {
+  flex: 1; overflow-y: auto; padding-top: 10px;
+}
+.cal-week-day-section { margin-bottom: 18px; }
+.cal-week-day-label {
+  font-size: 12px; font-weight: 800; color: #7ce0ff;
+  text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 8px; padding-left: 4px;
+  border-left: 3px solid #00e5ff;
+  padding-left: 8px;
+}
+
+/* ═══ FAB ═══ */
+.cal-fab {
+  position: absolute; bottom: 24px; right: 20px;
+  padding: 16px 22px;
+  background: linear-gradient(135deg,#00e5ff,#4da8ff);
+  color: #001018; font-size: 15px; font-weight: 800;
+  border: none; border-radius: 16px;
+  cursor: pointer;
+  box-shadow: 0 8px 30px rgba(0,229,255,.5);
+  z-index: 5;
+  -webkit-tap-highlight-color: transparent;
+  display: flex; align-items: center; gap: 6px;
+  transition: all .2s;
+}
+.cal-fab:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,229,255,.7); }
+.cal-fab:active { transform: scale(.96); }
+
+.cal-empty {
+  text-align: center; padding: 60px 20px; color: #5a8ab0;
+}
+.cal-empty .ce-icon {
+  font-size: 72px; opacity: .5; margin-bottom: 16px;
+  filter: drop-shadow(0 0 30px #00e5ff);
+}
+.cal-empty .ce-text { font-size: 15px; color: #88ccff; margin-bottom: 6px; }
+.cal-empty .ce-sub { font-size: 12px; }
+
+/* ═══ Modal ═══ */
+.cal-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,.88);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  z-index: 8700; display: none; align-items: center; justify-content: center;
+  padding: 20px; animation: calFadeIn .2s;
+}
+.cal-modal.show { display: flex; }
+.cal-modal-box {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0,229,255,.15), transparent 60%),
+    linear-gradient(180deg, rgba(0,25,60,.98), rgba(0,10,30,.99));
+  border: 2px solid #00e5ff; border-radius: 20px;
+  padding: 24px; max-width: 540px; width: 100%; max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.8), 0 0 60px rgba(0,229,255,.3);
+  animation: calPop .3s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes calPop { from {transform:scale(.9);opacity:0;} to {transform:scale(1);opacity:1;} }
+.cal-modal-box h3 { margin: 0 0 18px 0; font-size: 20px; color: #fff; }
+.cal-form-row { margin-bottom: 14px; }
+.cal-form-row label {
+  display: block; font-size: 11px; color: #7ce0ff; font-weight: 700;
+  margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1.2px;
+}
+.cal-form-row input, .cal-form-row textarea, .cal-form-row select {
+  width: 100%; padding: 12px 14px; border-radius: 10px;
+  background: rgba(0,0,0,.45); border: 1.5px solid rgba(0,229,255,.3);
+  color: #fff; font-size: 14px; font-family: inherit; outline: none;
+  transition: border-color .15s; box-sizing: border-box;
+}
+.cal-form-row input:focus, .cal-form-row textarea:focus, .cal-form-row select:focus {
+  border-color: #00e5ff; box-shadow: 0 0 20px rgba(0,229,255,.3);
+}
+.cal-form-row textarea { min-height: 70px; resize: vertical; font-family: inherit; }
+.cal-form-row select option { background: #001018; }
+.cal-form-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cal-color-picker {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.cal-color-opt {
+  width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+  border: 3px solid transparent; transition: all .15s;
+}
+.cal-color-opt.selected { border-color: #fff; box-shadow: 0 0 15px currentColor; transform: scale(1.1); }
+
+.cal-form-actions { display: flex; gap: 10px; margin-top: 20px; }
+.cal-form-actions .cal-btn { flex: 1; padding: 14px; }
+
+/* ═══ View Modal ═══ */
+.cal-view-box .cv-head {
+  display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px;
+}
+.cal-view-box .cv-color {
+  width: 6px; align-self: stretch; border-radius: 3px; flex-shrink: 0;
+  box-shadow: 0 0 16px currentColor;
+}
+.cal-view-box .cv-head-main { flex: 1; }
+.cal-view-box .cv-head-main h3 { margin: 0 0 4px 0; font-size: 18px; }
+.cal-view-box .cv-time {
+  font-size: 12px; color: #7ce0ff; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.cal-view-box .cv-body {
+  font-size: 13.5px; line-height: 1.6; color: #cce6ff;
+  padding: 14px; background: rgba(0,0,0,.35); border-radius: 12px;
+  white-space: pre-wrap; word-break: break-word;
+  max-height: 40vh; overflow-y: auto; margin-bottom: 14px;
+}
+.cal-view-box .cv-meta {
+  display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.cal-view-box .cv-meta-item {
+  font-size: 11px; padding: 6px 12px; border-radius: 8px;
+  background: rgba(0,229,255,.1); border: 1px solid rgba(0,229,255,.25);
+  color: #aaddff; font-weight: 700;
+}
+
+.cal-toast {
+  position: fixed; bottom: 100px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  padding: 12px 20px; border-radius: 12px;
+  background: linear-gradient(135deg, #00e5ff, #4da8ff); color: #001018;
+  font-weight: 700; font-size: 13px; opacity: 0; pointer-events: none;
+  transition: all .3s; z-index: 99999;
+  box-shadow: 0 10px 40px rgba(0,229,255,.5);
+  white-space: nowrap;
+}
+.cal-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 500px){
+  .cal-day { min-height: 56px; }
+  .cal-day-num { font-size: 12px; }
+  .cal-day-event { font-size: 8.5px; }
+  .cal-nav-title { font-size: 14px; }
+}
+</style>
+
+<div id="calendarWindow">
+  <div class="cal-header">
+    <div class="cal-title">
+      <span class="cal-icon">📅</span>
+      <div>
+        <h2>Calendar</h2>
+        <small>Termine & Events</small>
+      </div>
+    </div>
+    <div class="cal-actions">
+      <div class="cal-views">
+        <button class="cal-view-btn active" id="calViewMonth" onclick="HalDoCalendarApp.setView('month')">Monat</button>
+        <button class="cal-view-btn" id="calViewWeek" onclick="HalDoCalendarApp.setView('week')">Woche</button>
+        <button class="cal-view-btn" id="calViewDay" onclick="HalDoCalendarApp.setView('day')">Tag</button>
+      </div>
+      <button class="cal-btn icon-only" onclick="HalDoCalendarApp.exportAll()" title="Export">📤</button>
+      <button class="cal-btn icon-only" onclick="HalDoCalendarApp.importFile()" title="Import">📥</button>
+      <button class="cal-btn icon-only" onclick="HalDoCalendarApp.close()">✕</button>
+    </div>
+  </div>
+
+  <div class="cal-nav">
+    <button class="cal-nav-btn" onclick="HalDoCalendarApp.nav(-1)">◀</button>
+    <div class="cal-nav-title" id="calNavTitle">September 2026</div>
+    <button class="cal-nav-btn" onclick="HalDoCalendarApp.nav(1)">▶</button>
+    <button class="cal-today-btn" onclick="HalDoCalendarApp.goToday()">Heute</button>
+  </div>
+
+  <div class="cal-body">
+    <div id="calViewContainer"></div>
+  </div>
+
+  <button class="cal-fab" onclick="HalDoCalendarApp.openEditor()">
+    ✚ Termin
+  </button>
+</div>
+
+<!-- Editor Modal -->
+<div class="cal-modal" id="calEditorModal">
+  <div class="cal-modal-box">
+    <h3 id="calEditorTitle">✚ Neuer Termin</h3>
+    <input type="hidden" id="calEditId">
+    <div class="cal-form-row">
+      <label>Titel</label>
+      <input id="calInputTitle" placeholder="z.B. Zahnarzt" maxlength="140">
+    </div>
+    <div class="cal-form-2col">
+      <div class="cal-form-row">
+        <label>Datum</label>
+        <input id="calInputDate" type="date">
+      </div>
+      <div class="cal-form-row">
+        <label>Uhrzeit</label>
+        <input id="calInputTime" type="time">
+      </div>
+    </div>
+    <div class="cal-form-2col">
+      <div class="cal-form-row">
+        <label>Endzeit (optional)</label>
+        <input id="calInputEndTime" type="time">
+      </div>
+      <div class="cal-form-row">
+        <label>Ort (optional)</label>
+        <input id="calInputLocation" placeholder="z.B. Praxis Dr. Müller" maxlength="100">
+      </div>
+    </div>
+    <div class="cal-form-row">
+      <label>Notiz (optional)</label>
+      <textarea id="calInputNote" placeholder="Details..."></textarea>
+    </div>
+    <div class="cal-form-row">
+      <label>Farbe</label>
+      <div class="cal-color-picker" id="calColorPicker"></div>
+    </div>
+    <div class="cal-form-actions">
+      <button class="cal-btn danger" onclick="HalDoCalendarApp.deleteCurrent()" id="calDeleteBtn" style="display:none">🗑️</button>
+      <button class="cal-btn" onclick="HalDoCalendarApp.closeEditor()">Abbrechen</button>
+      <button class="cal-btn primary" onclick="HalDoCalendarApp.save()">💾 Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Modal -->
+<div class="cal-modal" id="calViewModal">
+  <div class="cal-modal-box cal-view-box">
+    <div class="cv-head">
+      <div class="cv-color" id="cvColor"></div>
+      <div class="cv-head-main">
+        <h3 id="cvTitle">Termin</h3>
+        <div class="cv-time" id="cvTime"></div>
+      </div>
+    </div>
+    <div class="cv-body" id="cvBody"></div>
+    <div class="cv-meta" id="cvMeta"></div>
+    <div class="cal-form-actions">
+      <button class="cal-btn danger" onclick="HalDoCalendarApp.deleteCurrent()">🗑️ Löschen</button>
+      <button class="cal-btn" onclick="HalDoCalendarApp.closeView()">Schließen</button>
+      <button class="cal-btn primary" onclick="HalDoCalendarApp.editCurrent()">✏️ Bearbeiten</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="calImportFile" accept="application/json" style="display:none">
+
+<script>
+(function(){
+  "use strict";
+  if(window.__calLoaded) return;
+  window.__calLoaded = true;
+
+  const STORAGE_KEY = 'haldo_calendar_v1';
+  const COLORS = ['#00e5ff', '#00ffcc', '#4da8ff', '#b478ff', '#ff6bd6', '#ffaa00', '#ff4466', '#00ff88'];
+
+  let events = [];
+  let currentView = 'month';
+  let cursor = new Date();
+  let selectedDate = new Date();
+  let currentViewId = null;
+  let editorColor = '#00e5ff';
+
+  const MONTHS_DE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  const WEEKDAYS_DE = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+
+  function load(){
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      events = raw ? JSON.parse(raw) : [];
+    } catch(e){ events = []; }
+    if(!Array.isArray(events)) events = [];
+  }
+  function save(){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(events)); } catch(e){}
+  }
+  function uid(){ return 'e_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7); }
+  function esc(s){
+    return String(s==null?'':s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function dateKey(d){
+    const dd = d instanceof Date ? d : new Date(d);
+    return dd.getFullYear() + '-' + String(dd.getMonth()+1).padStart(2,'0') + '-' + String(dd.getDate()).padStart(2,'0');
+  }
+  function todayKey(){ return dateKey(new Date()); }
+
+  // ── Alle Quellen holen (Events + Tasks + Reminders + Goals)
+  function collectItemsForDate(dateStr){
+    const items = [];
+
+    // 1. Eigene Events
+    events.forEach(e => {
+      if(e.date === dateStr){
+        items.push({
+          type: 'event', id: e.id, title: e.title,
+          time: e.time || '', endTime: e.endTime || '',
+          note: e.note || '', location: e.location || '',
+          color: e.color || '#00e5ff',
+          raw: e
+        });
+      }
+    });
+
+    // 2. Tasks mit Deadline
+    if(window.HalDoTasks){
+      HalDoTasks.all().forEach(t => {
+        if(t.due === dateStr && !t.done){
+          items.push({
+            type: 'task', id: t.id, title: t.title,
+            time: '', endTime: '',
+            note: t.desc || '',
+            color: t.prio === 'high' ? '#ff4466' : t.prio === 'mid' ? '#ffaa00' : '#00e5ff',
+            raw: t
+          });
+        }
+      });
+    }
+
+    // 3. Reminders
+    if(window.HalDoReminders){
+      HalDoReminders.all().forEach(r => {
+        if(r.date === dateStr && !r.done){
+          items.push({
+            type: 'reminder', id: r.id, title: (r.emoji || '🔔') + ' ' + r.title,
+            time: r.time || '', endTime: '',
+            note: r.desc || '',
+            color: '#ff4466',
+            raw: r
+          });
+        }
+      });
+    }
+
+    // 4. Goals mit Deadline
+    if(window.HalDoGoals){
+      HalDoGoals.all().forEach(g => {
+        if(g.due === dateStr && g.status === 'active'){
+          items.push({
+            type: 'goal', id: g.id, title: '🎯 ' + g.title,
+            time: '', endTime: '',
+            note: g.desc || '',
+            color: '#b478ff',
+            raw: g
+          });
+        }
+      });
+    }
+
+    // Sortieren nach Uhrzeit
+    items.sort((a,b) => {
+      if(!a.time && !b.time) return 0;
+      if(!a.time) return 1;
+      if(!b.time) return -1;
+      return a.time.localeCompare(b.time);
+    });
+    return items;
+  }
+
+  // ── Render Header
+  function renderNav(){
+    const title = document.getElementById('calNavTitle');
+    if(!title) return;
+    if(currentView === 'month'){
+      title.textContent = MONTHS_DE[cursor.getMonth()] + ' ' + cursor.getFullYear();
+    } else if(currentView === 'week'){
+      const ws = getWeekStart(cursor);
+      const we = new Date(ws); we.setDate(we.getDate() + 6);
+      title.textContent = ws.getDate() + '. – ' + we.getDate() + '. ' + MONTHS_DE[we.getMonth()];
+    } else {
+      title.textContent = cursor.toLocaleDateString('de-DE', { weekday:'long', day:'numeric', month:'long' });
+    }
+  }
+
+  function getWeekStart(d){
+    const dd = new Date(d);
+    const day = dd.getDay();
+    const off = day === 0 ? -6 : 1 - day;
+    dd.setDate(dd.getDate() + off);
+    dd.setHours(0,0,0,0);
+    return dd;
+  }
+
+  // ── Monatsansicht rendern
+  function renderMonth(){
+    const container = document.getElementById('calViewContainer');
+    if(!container) return;
+
+    const year = cursor.getFullYear();
+    const month = cursor.getMonth();
+    const first = new Date(year, month, 1);
+    const startDay = first.getDay();
+    const startOffset = startDay === 0 ? -6 : 1 - startDay;
+    const gridStart = new Date(year, month, 1 + startOffset);
+    gridStart.setHours(0,0,0,0);
+
+    let html = '<div class="cal-month-wrap">';
+    html += '<div class="cal-month-head">' + WEEKDAYS_DE.map(d => `<div>${d}</div>`).join('') + '</div>';
+    html += '<div class="cal-month-grid">';
+
+    const today = todayKey();
+    const selKey = dateKey(selectedDate);
+
+    for(let i = 0; i < 42; i++){
+      const d = new Date(gridStart);
+      d.setDate(d.getDate() + i);
+      const key = dateKey(d);
+      const isOther = d.getMonth() !== month;
+      const isToday = key === today;
+      const isSel = key === selKey;
+      const items = collectItemsForDate(key);
+      const visible = items.slice(0, 3);
+      const more = items.length - visible.length;
+
+      let cls = 'cal-day';
+      if(isOther) cls += ' other-month';
+      if(isToday) cls += ' today';
+      if(isSel) cls += ' selected';
+
+      html += `<div class="${cls}" onclick="HalDoCalendarApp.selectDate('${key}')" ondblclick="HalDoCalendarApp.openEditor(null, '${key}')">
+        <div class="cal-day-num">${d.getDate()}</div>
+        <div class="cal-day-events">
+          ${visible.map(it => `<div class="cal-day-event" style="background:${it.color};color:${it.color === '#ff4466' || it.color === '#ffaa00' ? '#fff' : '#001018'}">${esc(it.time || '')} ${esc(it.title)}</div>`).join('')}
+          ${more > 0 ? `<div class="cal-day-more">+${more}</div>` : ''}
+        </div>
+      </div>`;
+    }
+
+    html += '</div></div>';
+    container.innerHTML = html;
+  }
+
+  // ── Tagesansicht rendern
+  function renderDay(){
+    const container = document.getElementById('calViewContainer');
+    if(!container) return;
+
+    const key = dateKey(cursor);
+    const items = collectItemsForDate(key);
+    const d = new Date(key + 'T12:00:00');
+    const dateStr = d.toLocaleDateString('de-DE', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+    let html = '<div class="cal-day-wrap">';
+    html += `<div class="cal-day-title">${esc(dateStr)}</div>`;
+    html += '<div class="cal-timeline">';
+
+    if(!items.length){
+      html += `<div class="cal-empty">
+        <div class="ce-icon">📅</div>
+        <div class="ce-text">Keine Termine an diesem Tag</div>
+        <div class="ce-sub">Tippe auf "✚ Termin" um einen hinzuzufügen</div>
+      </div>`;
+    } else {
+      items.forEach(it => {
+        const srcLabel = {
+          event: 'Termin', task: 'Task', reminder: 'Reminder', goal: 'Ziel'
+        }[it.type];
+        const timeStr = it.time ? it.time + (it.endTime ? '–' + it.endTime : '') : 'Ganztägig';
+        html += `<div class="cal-slot" onclick="HalDoCalendarApp.openItem('${it.type}', '${it.id}')">
+          <div class="cal-slot-color" style="background:${it.color};color:${it.color}"></div>
+          <div class="cal-slot-time">${esc(timeStr)}</div>
+          <div class="cal-slot-body">
+            <div class="cal-slot-title">
+              ${esc(it.title)}
+              <span class="cal-slot-source ${it.type}">${srcLabel}</span>
+            </div>
+            ${it.location ? `<div class="cal-slot-desc">📍 ${esc(it.location)}</div>` : ''}
+            ${it.note ? `<div class="cal-slot-desc">${esc(it.note)}</div>` : ''}
+          </div>
+        </div>`;
+      });
+    }
+
+    html += '</div></div>';
+    container.innerHTML = html;
+  }
+
+  // ── Wochenansicht rendern
+  function renderWeek(){
+    const container = document.getElementById('calViewContainer');
+    if(!container) return;
+
+    const ws = getWeekStart(cursor);
+    const todayK = todayKey();
+
+    let html = '<div class="cal-week-wrap">';
+    html += '<div class="cal-week-head">';
+    for(let i = 0; i < 7; i++){
+      const d = new Date(ws);
+      d.setDate(d.getDate() + i);
+      const key = dateKey(d);
+      const isToday = key === todayK;
+      const wd = ['Mo','Di','Mi','Do','Fr','Sa','So'][i];
+      html += `<div class="cal-week-head-day ${isToday?'today':''}" onclick="HalDoCalendarApp.selectDate('${key}');HalDoCalendarApp.setView('day')">
+        <div class="wdw">${wd}</div>
+        <div class="wdn">${d.getDate()}</div>
+      </div>`;
+    }
+    html += '</div>';
+    html += '<div class="cal-week-body">';
+
+    for(let i = 0; i < 7; i++){
+      const d = new Date(ws);
+      d.setDate(d.getDate() + i);
+      const key = dateKey(d);
+      const items = collectItemsForDate(key);
+      const dateStr = d.toLocaleDateString('de-DE', { weekday:'long', day:'numeric', month:'long' });
+
+      html += `<div class="cal-week-day-section">
+        <div class="cal-week-day-label">${esc(dateStr)}</div>`;
+      if(!items.length){
+        html += '<div style="padding:10px 12px;color:#5a8ab0;font-size:12px;font-style:italic">Keine Termine</div>';
+      } else {
+        items.forEach(it => {
+          const srcLabel = { event:'Termin', task:'Task', reminder:'Reminder', goal:'Ziel' }[it.type];
+          const timeStr = it.time ? it.time : 'Ganztägig';
+          html += `<div class="cal-slot" onclick="HalDoCalendarApp.openItem('${it.type}', '${it.id}')" style="margin-bottom:6px">
+            <div class="cal-slot-color" style="background:${it.color};color:${it.color}"></div>
+            <div class="cal-slot-time">${esc(timeStr)}</div>
+            <div class="cal-slot-body">
+              <div class="cal-slot-title">
+                ${esc(it.title)}
+                <span class="cal-slot-source ${it.type}">${srcLabel}</span>
+              </div>
+            </div>
+          </div>`;
+        });
+      }
+      html += '</div>';
+    }
+
+    html += '</div></div>';
+    container.innerHTML = html;
+  }
+
+  function render(){
+    renderNav();
+    if(currentView === 'month') renderMonth();
+    else if(currentView === 'week') renderWeek();
+    else renderDay();
+    document.getElementById('calViewMonth').classList.toggle('active', currentView === 'month');
+    document.getElementById('calViewWeek').classList.toggle('active', currentView === 'week');
+    document.getElementById('calViewDay').classList.toggle('active', currentView === 'day');
+  }
+
+  // ── Navigation
+  function nav(dir){
+    if(currentView === 'month'){
+      cursor.setMonth(cursor.getMonth() + dir);
+    } else if(currentView === 'week'){
+      cursor.setDate(cursor.getDate() + dir * 7);
+    } else {
+      cursor.setDate(cursor.getDate() + dir);
+    }
+    render();
+    if(navigator.vibrate) navigator.vibrate(8);
+  }
+
+  function goToday(){
+    cursor = new Date();
+    selectedDate = new Date();
+    render();
+  }
+
+  function setView(v){
+    currentView = v;
+    if(v === 'day') cursor = new Date(selectedDate);
+    render();
+    if(navigator.vibrate) navigator.vibrate(8);
+  }
+
+  function selectDate(key){
+    selectedDate = new Date(key + 'T12:00:00');
+    if(currentView === 'month'){
+      render();
+    } else if(currentView === 'week'){
+      cursor = new Date(selectedDate);
+      render();
+    } else {
+      cursor = new Date(selectedDate);
+      render();
+    }
+  }
+
+  // ── Editor
+  function buildColorPicker(){
+    const el = document.getElementById('calColorPicker');
+    if(!el || el.dataset.built) return;
+    el.innerHTML = COLORS.map(c =>
+      `<div class="cal-color-opt" data-color="${c}" style="background:${c};color:${c}" onclick="HalDoCalendarApp.selectColor('${c}')"></div>`
+    ).join('');
+    el.dataset.built = '1';
+  }
+
+  function selectColor(c){
+    editorColor = c;
+    document.querySelectorAll('#calColorPicker .cal-color-opt').forEach(el => {
+      el.classList.toggle('selected', el.dataset.color === c);
+    });
+  }
+
+  function openEditor(id, presetDate){
+    buildColorPicker();
+    const titleEl = document.getElementById('calEditorTitle');
+    const delBtn = document.getElementById('calDeleteBtn');
+
+    if(id){
+      const e = events.find(x => x.id === id);
+      if(!e) return;
+      titleEl.textContent = '✏️ Termin bearbeiten';
+      document.getElementById('calEditId').value = e.id;
+      document.getElementById('calInputTitle').value = e.title || '';
+      document.getElementById('calInputDate').value = e.date || todayKey();
+      document.getElementById('calInputTime').value = e.time || '';
+      document.getElementById('calInputEndTime').value = e.endTime || '';
+      document.getElementById('calInputLocation').value = e.location || '';
+      document.getElementById('calInputNote').value = e.note || '';
+      editorColor = e.color || '#00e5ff';
+      delBtn.style.display = 'flex';
+    } else {
+      titleEl.textContent = '✚ Neuer Termin';
+      document.getElementById('calEditId').value = '';
+      document.getElementById('calInputTitle').value = '';
+      document.getElementById('calInputDate').value = presetDate || dateKey(selectedDate);
+      const now = new Date(Date.now() + 3600000);
+      document.getElementById('calInputTime').value = String(now.getHours()).padStart(2,'0') + ':00';
+      document.getElementById('calInputEndTime').value = '';
+      document.getElementById('calInputLocation').value = '';
+      document.getElementById('calInputNote').value = '';
+      editorColor = COLORS[Math.floor(Math.random() * COLORS.length)];
+      delBtn.style.display = 'none';
+    }
+    selectColor(editorColor);
+    document.getElementById('calEditorModal').classList.add('show');
+    setTimeout(() => document.getElementById('calInputTitle').focus(), 100);
+  }
+
+  function closeEditor(){
+    document.getElementById('calEditorModal').classList.remove('show');
+  }
+
+  function saveEvent(){
+    const id = document.getElementById('calEditId').value;
+    const title = document.getElementById('calInputTitle').value.trim();
+    if(!title){ toast('⚠️ Bitte Titel eingeben'); return; }
+    const date = document.getElementById('calInputDate').value;
+    if(!date){ toast('⚠️ Bitte Datum wählen'); return; }
+    const data = {
+      title,
+      date,
+      time: document.getElementById('calInputTime').value || '',
+      endTime: document.getElementById('calInputEndTime').value || '',
+      location: document.getElementById('calInputLocation').value.trim(),
+      note: document.getElementById('calInputNote').value.trim(),
+      color: editorColor
+    };
+    if(id){
+      const e = events.find(x => x.id === id);
+      if(e) Object.assign(e, data, { updated: Date.now() });
+    } else {
+      events.push({ id: uid(), ...data, created: Date.now(), updated: Date.now() });
+      if(window.HalDoMemory){
+        HalDoMemory.remember('📅 Termin: ' + title, (date + ' ' + (data.time || '')).trim(), 'personal', ['calendar','event']);
+      }
+    }
+    save(); render(); closeEditor();
+    toast(id ? '✅ Aktualisiert' : '📅 Termin gespeichert');
+    if(typeof playSound === 'function') playSound('success');
+    if(navigator.vibrate) navigator.vibrate(15);
+  }
+
+  // ── View
+  function openItem(type, id){
+    if(type === 'event'){ view(id); return; }
+    // Für Task/Reminder/Goal: öffne die App
+    if(type === 'task' && window.HalDoTasksApp){ HalDoTasksApp.view(id); close(); return; }
+    if(type === 'reminder' && window.HalDoRemindersApp){ HalDoRemindersApp.view(id); close(); return; }
+    if(type === 'goal' && window.HalDoGoalsApp){ HalDoGoalsApp.view(id); close(); return; }
+  }
+
+  function view(id){
+    const e = events.find(x => x.id === id);
+    if(!e) return;
+    currentViewId = id;
+    document.getElementById('cvColor').style.background = e.color;
+    document.getElementById('cvColor').style.color = e.color;
+    document.getElementById('cvTitle').textContent = e.title;
+    const d = new Date(e.date + 'T12:00:00');
+    const dateStr = d.toLocaleDateString('de-DE', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    const timeStr = e.time ? `${e.time}${e.endTime ? ' – ' + e.endTime : ''} Uhr` : 'Ganztägig';
+    document.getElementById('cvTime').textContent = dateStr + ' · ' + timeStr;
+    document.getElementById('cvBody').textContent = e.note || '(Keine Notiz)';
+    const meta = [];
+    if(e.location) meta.push('📍 ' + e.location);
+    meta.push('📅 Erstellt: ' + new Date(e.created).toLocaleDateString('de-DE'));
+    document.getElementById('cvMeta').innerHTML = meta.map(m => `<div class="cv-meta-item">${esc(m)}</div>`).join('');
+    document.getElementById('calViewModal').classList.add('show');
+  }
+
+  function closeView(){
+    document.getElementById('calViewModal').classList.remove('show');
+    currentViewId = null;
+  }
+
+  function editCurrent(){
+    if(!currentViewId) return;
+    const id = currentViewId;
+    closeView();
+    setTimeout(() => openEditor(id), 150);
+  }
+
+  function deleteCurrent(){
+    if(!currentViewId) return;
+    const e = events.find(x => x.id === currentViewId);
+    if(!e) return;
+    if(!confirm('Termin "' + e.title + '" wirklich löschen?')) return;
+    events = events.filter(x => x.id !== currentViewId);
+    save(); render(); closeView(); closeEditor();
+    toast('🗑️ Gelöscht');
+  }
+
+  // ── Export / Import
+  function exportAll(){
+    if(!events.length){ toast('⚠️ Keine Termine'); return; }
+    const data = { app:'HalDo Calendar', version:1, exported:new Date().toISOString(), count:events.length, events };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'haldo-calendar-' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast('📤 ' + events.length + ' Termine exportiert');
+  }
+
+  function importFile(){
+    document.getElementById('calImportFile').click();
+  }
+
+  function handleImport(ev){
+    const f = ev.target.files && ev.target.files[0];
+    if(!f) return;
+    const r = new FileReader();
+    r.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        const incoming = Array.isArray(data) ? data : (data.events || []);
+        if(!Array.isArray(incoming) || !incoming.length){ toast('⚠️ Keine Daten'); return; }
+        const mode = confirm(incoming.length + ' Termine gefunden.\n\nOK = HINZUFÜGEN\nAbbrechen = ERSETZEN') ? 'merge' : 'replace';
+        if(mode === 'replace') events = incoming.map(norm);
+        else {
+          const ids = new Set(events.map(x => x.id));
+          incoming.forEach(raw => { const e = norm(raw); if(ids.has(e.id)) e.id = uid(); events.push(e); });
+        }
+        save(); render(); toast('📥 ' + incoming.length + ' importiert');
+      } catch(err){ toast('❌ Import-Fehler'); console.error(err); }
+      ev.target.value = '';
+    };
+    r.readAsText(f);
+  }
+
+  function norm(raw){
+    return {
+      id: raw.id || uid(),
+      title: raw.title || '(Ohne Titel)',
+      date: raw.date || todayKey(),
+      time: raw.time || '',
+      endTime: raw.endTime || '',
+      location: raw.location || '',
+      note: raw.note || '',
+      color: raw.color || '#00e5ff',
+      created: raw.created || Date.now(),
+      updated: raw.updated || Date.now()
+    };
+  }
+
+  // ── Window
+  function open(){
+    const w = document.getElementById('calendarWindow');
+    if(!w) return;
+    load();
+    if(!cursor) cursor = new Date();
+    if(!selectedDate) selectedDate = new Date();
+    render();
+    w.classList.add('show');
+    if(typeof playSound === 'function') playSound('open');
+    if(navigator.vibrate) navigator.vibrate(10);
+  }
+
+  function close(){
+    const w = document.getElementById('calendarWindow');
+    if(w) w.classList.remove('show');
+    closeEditor();
+    closeView();
+    if(typeof playSound === 'function') playSound('close');
+  }
+
+  // ── Toast
+  function toast(msg){
+    let el = document.getElementById('calToast');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'calToast';
+      el.className = 'cal-toast';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), 2200);
+  }
+
+  // ── Public API
+  window.HalDoCalendar = {
+    add(title, date, opts){
+      const e = {
+        id: uid(),
+        title: title || '(Ohne Titel)',
+        date: date || todayKey(),
+        time: (opts && opts.time) || '',
+        endTime: (opts && opts.endTime) || '',
+        location: (opts && opts.location) || '',
+        note: (opts && opts.note) || '',
+        color: (opts && opts.color) || '#00e5ff',
+        created: Date.now(), updated: Date.now(),
+        source: 'api'
+      };
+      events.push(e); save();
+      if(document.getElementById('calendarWindow')?.classList.contains('show')) render();
+      return e.id;
+    },
+    forDate(dateStr){ return collectItemsForDate(dateStr); },
+    all(){ return events.slice(); },
+    count(){ return events.length; }
+  };
+
+  window.HalDoCalendarApp = {
+    open, close, render,
+    nav, goToday, setView, selectDate,
+    openEditor, closeEditor, save: saveEvent,
+    selectColor,
+    view, closeView, editCurrent, deleteCurrent,
+    openItem,
+    exportAll, importFile
+  };
+
+  // Hook openWin
+  const orig = window.openWin;
+  window.openWin = function(id){
+    if(id === 'calendar-window' || id === 'calendar'){ open(); return; }
+    if(typeof orig === 'function') return orig(id);
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const fi = document.getElementById('calImportFile');
+    if(fi) fi.addEventListener('change', handleImport);
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape'){
+        if(document.getElementById('calEditorModal').classList.contains('show')) closeEditor();
+        else if(document.getElementById('calViewModal').classList.contains('show')) closeView();
+        else if(document.getElementById('calendarWindow').classList.contains('show')) close();
+      }
+    });
+  });
+
+  load();
+  console.log('%c📅 Calendar geladen · ' + events.length + ' Termine', 'color:#00e5ff;font-weight:bold;');
+})();
+</script>
+<!-- ═════════════════════════ ENDE v63 CALENDAR ════════════════ -->
 </body>
 </html>
