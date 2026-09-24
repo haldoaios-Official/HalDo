@@ -22152,5 +22152,642 @@ body.wm-force-float .os-window.wm3-floating .header:active {
 })();
 </script>
 <!-- ═══════════════════════ ENDE v69 FINANCE ═══════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════ v71 – CALCULATOR PRO (Wissenschaftlich) ═════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#calcWindow {
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(0,229,255,.10), transparent 55%),
+    linear-gradient(180deg, rgba(0,10,25,.99), rgba(0,5,12,.99));
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  z-index: 8300; display: none; flex-direction: column;
+  color: #e6f4ff; font-family: inherit;
+  animation: caFadeIn .25s;
+}
+#calcWindow.show { display: flex; }
+@keyframes caFadeIn { from {opacity:0;transform:scale(.98);} to {opacity:1;transform:scale(1);} }
+
+.ca-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid rgba(0,229,255,.25);
+  background: rgba(0,30,60,.5); flex-shrink: 0;
+  position: relative; z-index: 2;
+}
+.ca-title { display: flex; align-items: center; gap: 10px; }
+.ca-title .ca-icon { font-size: 26px; filter: drop-shadow(0 0 14px #00e5ff); }
+.ca-title h2 { font-size: 18px; margin: 0; font-weight: 700; color: #fff; }
+.ca-title small { display: block; font-size: 10px; color: #7ce0ff; margin-top: 2px; letter-spacing: 1.5px; text-transform: uppercase; }
+.ca-actions { display: flex; gap: 6px; }
+
+.ca-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 14px; border-radius: 10px;
+  background: rgba(0,229,255,.12); border: 1px solid rgba(0,229,255,.4);
+  color: #e6f4ff; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all .15s; -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+.ca-btn:hover { background: rgba(0,229,255,.25); }
+.ca-btn.primary { background: linear-gradient(135deg,#00e5ff,#4da8ff); color: #001018; border-color: #fff; }
+.ca-btn.icon-only { padding: 10px; font-size: 16px; }
+
+/* Tabs */
+.ca-tabs {
+  display: flex; gap: 4px; padding: 10px 18px;
+  border-bottom: 1px solid rgba(0,229,255,.12); flex-shrink: 0;
+  overflow-x: auto;
+}
+.ca-tab {
+  padding: 8px 16px; border-radius: 10px;
+  background: rgba(0,60,90,.4); border: 1px solid rgba(0,229,255,.2);
+  color: #aaddff; font-size: 12px; font-weight: 700;
+  cursor: pointer; text-transform: uppercase; letter-spacing: .8px;
+  transition: all .15s; white-space: nowrap; flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.ca-tab.active { background: linear-gradient(135deg,#00e5ff,#4da8ff); color: #001018; border-color: #fff; }
+
+.ca-body { flex: 1; overflow-y: auto; padding: 16px 18px 30px; position: relative; z-index: 2; }
+.ca-content { max-width: 520px; margin: 0 auto; }
+
+/* Display */
+.ca-display {
+  background: linear-gradient(180deg, rgba(0,30,60,.6), rgba(0,15,35,.8));
+  border: 1.5px solid rgba(0,229,255,.3);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 14px;
+  min-height: 100px;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  text-align: right;
+  box-shadow: inset 0 0 40px rgba(0,229,255,.08);
+  overflow: hidden;
+}
+.ca-expr {
+  font-size: 14px; color: #7ce0ff; opacity: .8;
+  font-family: 'Courier New', monospace;
+  margin-bottom: 6px;
+  min-height: 18px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ca-result {
+  font-size: 38px; font-weight: 200; color: #fff;
+  font-family: 'Courier New', monospace;
+  letter-spacing: -1px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-shadow: 0 0 24px rgba(0,229,255,.4);
+}
+
+/* Buttons */
+.ca-pad {
+  display: grid; gap: 8px;
+}
+.ca-pad.scientific {
+  grid-template-columns: repeat(5, 1fr);
+}
+.ca-pad.basic {
+  grid-template-columns: repeat(4, 1fr);
+}
+.ca-key {
+  aspect-ratio: 1; border-radius: 14px;
+  background: linear-gradient(160deg, rgba(0,40,80,.6), rgba(0,15,40,.9));
+  border: 1.5px solid rgba(0,229,255,.2);
+  color: #fff; font-size: 20px; font-weight: 700;
+  cursor: pointer; transition: all .12s;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  font-family: inherit;
+  user-select: none;
+}
+.ca-key:hover { background: rgba(0,229,255,.15); border-color: #00e5ff; }
+.ca-key:active { transform: scale(.95); }
+.ca-key.op {
+  color: #00e5ff;
+  font-size: 22px;
+  font-weight: 900;
+}
+.ca-key.fn {
+  color: #7ce0ff;
+  font-size: 13px;
+  font-weight: 800;
+  background: linear-gradient(160deg, rgba(0,60,90,.4), rgba(0,20,45,.8));
+}
+.ca-key.eq {
+  background: linear-gradient(135deg, #00e5ff, #4da8ff);
+  color: #001018; border-color: #fff;
+  box-shadow: 0 0 20px rgba(0,229,255,.5);
+}
+.ca-key.eq:hover { filter: brightness(1.15); }
+.ca-key.clear {
+  color: #ff8080; font-weight: 900;
+}
+.ca-key.clear:hover { background: rgba(255,80,80,.15); border-color: #ff8080; }
+
+/* History */
+.ca-history-list {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.ca-hist-item {
+  padding: 12px 14px; border-radius: 12px;
+  background: rgba(0,30,60,.5);
+  border: 1.5px solid rgba(0,229,255,.15);
+  cursor: pointer; transition: all .15s;
+}
+.ca-hist-item:hover { border-color: #00e5ff; background: rgba(0,229,255,.1); }
+.ca-hist-expr { font-size: 13px; color: #7ce0ff; font-family: 'Courier New', monospace; margin-bottom: 4px; }
+.ca-hist-res { font-size: 18px; color: #fff; font-weight: 800; font-family: 'Courier New', monospace; }
+.ca-hist-time { font-size: 10px; color: #5a8ab0; margin-top: 4px; }
+
+/* Konverter */
+.ca-conv-select {
+  display: grid; gap: 10px; margin-bottom: 12px;
+}
+.ca-conv-row {
+  padding: 14px;
+  background: rgba(0,30,60,.5);
+  border: 1.5px solid rgba(0,229,255,.2);
+  border-radius: 12px;
+  display: flex; gap: 10px; align-items: center;
+}
+.ca-conv-row input, .ca-conv-row select {
+  padding: 10px 12px; border-radius: 8px;
+  background: rgba(0,0,0,.4);
+  border: 1px solid rgba(0,229,255,.3);
+  color: #fff; font-size: 14px; font-family: inherit;
+  outline: none;
+}
+.ca-conv-row input { flex: 1; min-width: 0; }
+.ca-conv-row select { flex: 0 0 auto; }
+.ca-conv-eq {
+  text-align: center; font-size: 20px; color: #00e5ff;
+  margin: 4px 0;
+}
+.ca-conv-cats {
+  display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.ca-conv-cat {
+  padding: 8px 14px; border-radius: 20px;
+  background: rgba(0,60,90,.5); border: 1px solid rgba(0,229,255,.2);
+  color: #aaddff; font-size: 12px; font-weight: 700;
+  cursor: pointer; transition: all .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.ca-conv-cat:hover { background: rgba(0,229,255,.15); }
+.ca-conv-cat.active { background: linear-gradient(135deg,#00e5ff,#4da8ff); color: #001018; border-color: #fff; }
+
+.ca-toast {
+  position: fixed; bottom: 100px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  padding: 12px 20px; border-radius: 12px;
+  background: linear-gradient(135deg,#00e5ff,#4da8ff); color: #001018;
+  font-weight: 700; font-size: 13px; opacity: 0; pointer-events: none;
+  transition: all .3s; z-index: 99999;
+  box-shadow: 0 10px 40px rgba(0,229,255,.5);
+  white-space: nowrap;
+}
+.ca-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 400px){
+  .ca-result { font-size: 30px; }
+  .ca-key { font-size: 17px; }
+  .ca-key.fn { font-size: 11px; }
+}
+</style>
+
+<div id="calcWindow">
+  <div class="ca-header">
+    <div class="ca-title">
+      <span class="ca-icon">🧮</span>
+      <div>
+        <h2>Calculator Pro</h2>
+        <small>Wissenschaftlich</small>
+      </div>
+    </div>
+    <div class="ca-actions">
+      <button class="ca-btn icon-only" onclick="HalDoCalcApp.clearHistory()" title="Verlauf löschen">🗑️</button>
+      <button class="ca-btn icon-only" onclick="HalDoCalcApp.close()">✕</button>
+    </div>
+  </div>
+
+  <div class="ca-tabs">
+    <button class="ca-tab active" data-tab="calc" onclick="HalDoCalcApp.setTab('calc')">🧮 Rechner</button>
+    <button class="ca-tab" data-tab="history" onclick="HalDoCalcApp.setTab('history')">📜 Verlauf</button>
+    <button class="ca-tab" data-tab="convert" onclick="HalDoCalcApp.setTab('convert')">🔄 Einheiten</button>
+  </div>
+
+  <div class="ca-body">
+    <div class="ca-content" id="caContent"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  if(window.__caLoaded) return;
+  window.__caLoaded = true;
+
+  const HISTORY_KEY = 'haldo_calc_history_v1';
+
+  let currentTab = 'calc';
+  let expr = '';
+  let result = '';
+  let history = [];
+  let convCat = 'length';
+  let convValue = 1;
+  let convFrom = 'm';
+  let convTo = 'km';
+
+  const CONVERSIONS = {
+    length: {
+      name: '📏 Länge',
+      units: {
+        m:  { name: 'Meter', factor: 1 },
+        km: { name: 'Kilometer', factor: 1000 },
+        cm: { name: 'Zentimeter', factor: 0.01 },
+        mm: { name: 'Millimeter', factor: 0.001 },
+        mi: { name: 'Meilen', factor: 1609.344 },
+        ft: { name: 'Fuß', factor: 0.3048 },
+        in: { name: 'Zoll', factor: 0.0254 }
+      }
+    },
+    mass: {
+      name: '⚖️ Gewicht',
+      units: {
+        kg: { name: 'Kilogramm', factor: 1 },
+        g:  { name: 'Gramm', factor: 0.001 },
+        mg: { name: 'Milligramm', factor: 0.000001 },
+        t:  { name: 'Tonne', factor: 1000 },
+        lb: { name: 'Pfund', factor: 0.45359237 },
+        oz: { name: 'Unze', factor: 0.0283495 }
+      }
+    },
+    temp: {
+      name: '🌡️ Temperatur',
+      units: {
+        c: { name: 'Celsius' },
+        f: { name: 'Fahrenheit' },
+        k: { name: 'Kelvin' }
+      }
+    },
+    currency: {
+      name: '💰 Währung',
+      units: {
+        eur: { name: 'Euro €', rate: 1 },
+        usd: { name: 'US-Dollar $', rate: 1.09 },
+        gbp: { name: 'Pfund £', rate: 0.85 },
+        try: { name: 'Türkische Lira ₺', rate: 37.5 },
+        chf: { name: 'CHF', rate: 0.94 }
+      }
+    }
+  };
+
+  function load(){
+    try {
+      const raw = localStorage.getItem(HISTORY_KEY);
+      history = raw ? JSON.parse(raw) : [];
+    } catch(e){ history = []; }
+    if(!Array.isArray(history)) history = [];
+  }
+  function save(){
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 50))); } catch(e){}
+  }
+
+  function esc(s){
+    return String(s==null?'':s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  // ── Safe Eval für Rechner-Expression
+  function evalExpr(e){
+    // Ersetze Anzeige-Symbole durch JS-Operatoren
+    let s = e
+      .replace(/×/g, '*')
+      .replace(/÷/g, '/')
+      .replace(/−/g, '-')
+      .replace(/π/g, 'Math.PI')
+      .replace(/\be\b/g, 'Math.E')
+      .replace(/√\(/g, 'Math.sqrt(')
+      .replace(/sin\(/g, 'Math.sin(')
+      .replace(/cos\(/g, 'Math.cos(')
+      .replace(/tan\(/g, 'Math.tan(')
+      .replace(/log\(/g, 'Math.log10(')
+      .replace(/ln\(/g, 'Math.log(')
+      .replace(/\^/g, '**');
+
+    // Sicherheitscheck – nur erlaubte Zeichen
+    if(!/^[0-9+\-*/().\s\*]|Math|e$/.test('') ) {}
+    const allowed = /^[0-9+\-*/().\s*MathPIEsqrtincoslogn]+$/;
+    const stripped = s.replace(/Math\.(PI|E|sqrt|sin|cos|tan|log10|log)/g, 'X');
+    if(!/^[0-9+\-*/().\sXe**]+$/.test(stripped)){
+      throw new Error('Ungültige Zeichen');
+    }
+
+    // eslint-disable-next-line no-new-func
+    const fn = new Function('return (' + s + ')');
+    const r = fn();
+    if(typeof r !== 'number' || !isFinite(r)) throw new Error('Ungültig');
+    // Runden auf sinnvolle Genauigkeit
+    return Math.round(r * 1e10) / 1e10;
+  }
+
+  function fmtResult(n){
+    if(!isFinite(n)) return 'Fehler';
+    if(Math.abs(n) >= 1e12 || (Math.abs(n) < 1e-6 && n !== 0)){
+      return n.toExponential(6);
+    }
+    return parseFloat(n.toFixed(10)).toString();
+  }
+
+  // ── Render
+  function renderCalc(){
+    const pad = [
+      // Scientific-Reihe
+      { k:'sin',  cls:'fn', action:"insert('sin(')" },
+      { k:'cos',  cls:'fn', action:"insert('cos(')" },
+      { k:'tan',  cls:'fn', action:"insert('tan(')" },
+      { k:'√',    cls:'fn', action:"insert('√(')" },
+      { k:'π',    cls:'fn', action:"insert('π')" },
+
+      { k:'(',    cls:'op', action:"insert('(')" },
+      { k:')',    cls:'op', action:"insert(')')" },
+      { k:'^',    cls:'op', action:"insert('^')" },
+      { k:'ln',   cls:'fn', action:"insert('ln(')" },
+      { k:'log',  cls:'fn', action:"insert('log(')" },
+
+      // Ziffern-Reihe
+      { k:'7', action:"insert('7')" },
+      { k:'8', action:"insert('8')" },
+      { k:'9', action:"insert('9')" },
+      { k:'÷', cls:'op', action:"insert('÷')" },
+      { k:'C', cls:'clear', action:"clearAll()" },
+
+      { k:'4', action:"insert('4')" },
+      { k:'5', action:"insert('5')" },
+      { k:'6', action:"insert('6')" },
+      { k:'×', cls:'op', action:"insert('×')" },
+      { k:'⌫', cls:'clear', action:"back()" },
+
+      { k:'1', action:"insert('1')" },
+      { k:'2', action:"insert('2')" },
+      { k:'3', action:"insert('3')" },
+      { k:'−', cls:'op', action:"insert('−')" },
+      { k:'%', cls:'fn', action:"insert('/100')" },
+
+      { k:'0', action:"insert('0')" },
+      { k:'.', action:"insert('.')" },
+      { k:'±', cls:'fn', action:"toggleSign()" },
+      { k:'+', cls:'op', action:"insert('+')" },
+      { k:'=', cls:'eq', action:"calculate()" }
+    ];
+
+    const html = `
+      <div class="ca-display">
+        <div class="ca-expr" id="caExpr">${esc(expr) || '&nbsp;'}</div>
+        <div class="ca-result" id="caResult">${esc(result) || '0'}</div>
+      </div>
+      <div class="ca-pad scientific" id="caPad">
+        ${pad.map(p => `<button class="ca-key ${p.cls || ''}" onclick="HalDoCalcApp.${p.action}">${esc(p.k)}</button>`).join('')}
+      </div>
+    `;
+    document.getElementById('caContent').innerHTML = html;
+  }
+
+  function renderHistory(){
+    const el = document.getElementById('caContent');
+    if(!history.length){
+      el.innerHTML = `<div class="ca-empty" style="text-align:center;padding:60px 20px;color:#5a8ab0">
+        <div style="font-size:72px;opacity:.4;margin-bottom:16px">📜</div>
+        <div style="font-size:15px;color:#88ccff">Kein Verlauf</div>
+        <div style="font-size:12px;margin-top:6px">Berechnungen erscheinen hier</div>
+      </div>`;
+      return;
+    }
+    el.innerHTML = `<div class="ca-history-list">
+      ${history.map((h, i) => `
+        <div class="ca-hist-item" onclick="HalDoCalcApp.loadFromHistory(${i})">
+          <div class="ca-hist-expr">${esc(h.expr)} =</div>
+          <div class="ca-hist-res">${esc(h.result)}</div>
+          <div class="ca-hist-time">${new Date(h.ts).toLocaleString('de-DE')}</div>
+        </div>
+      `).join('')}
+    </div>`;
+  }
+
+  function renderConvert(){
+    const cat = CONVERSIONS[convCat];
+    const unitKeys = Object.keys(cat.units);
+    if(!unitKeys.includes(convFrom)) convFrom = unitKeys[0];
+    if(!unitKeys.includes(convTo)) convTo = unitKeys[1] || unitKeys[0];
+
+    const result = convertValue();
+
+    const html = `
+      <div class="ca-conv-cats">
+        ${Object.entries(CONVERSIONS).map(([k, c]) =>
+          `<button class="ca-conv-cat ${convCat===k?'active':''}" onclick="HalDoCalcApp.setConvCat('${k}')">${c.name}</button>`
+        ).join('')}
+      </div>
+      <div class="ca-conv-select">
+        <div class="ca-conv-row">
+          <input type="number" step="any" value="${convValue}" oninput="HalDoCalcApp.setConvValue(this.value)" placeholder="Wert">
+          <select onchange="HalDoCalcApp.setConvFrom(this.value)">
+            ${unitKeys.map(u => `<option value="${u}" ${convFrom===u?'selected':''}>${cat.units[u].name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="ca-conv-eq">⇅</div>
+        <div class="ca-conv-row">
+          <input type="text" readonly value="${result}" style="background:rgba(0,229,255,.08);color:#00e5ff;font-weight:800;font-size:16px">
+          <select onchange="HalDoCalcApp.setConvTo(this.value)">
+            ${unitKeys.map(u => `<option value="${u}" ${convTo===u?'selected':''}>${cat.units[u].name}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div style="text-align:center;font-size:11px;color:#5a8ab0;margin-top:10px;line-height:1.6">
+        ${convCat === 'currency'
+          ? '⚠️ Währungskurse sind Schätzwerte. Für Live-Kurse brauchen wir eine API.'
+          : '🧮 Umrechnung erfolgt direkt'}
+      </div>
+    `;
+    document.getElementById('caContent').innerHTML = html;
+  }
+
+  function convertValue(){
+    const cat = CONVERSIONS[convCat];
+    const v = parseFloat(convValue) || 0;
+    if(convCat === 'temp'){
+      let c;
+      if(convFrom === 'c') c = v;
+      else if(convFrom === 'f') c = (v - 32) * 5/9;
+      else if(convFrom === 'k') c = v - 273.15;
+      let out;
+      if(convTo === 'c') out = c;
+      else if(convTo === 'f') out = c * 9/5 + 32;
+      else if(convTo === 'k') out = c + 273.15;
+      return Math.round(out * 1000) / 1000;
+    }
+    if(convCat === 'currency'){
+      const f = cat.units[convFrom].rate;
+      const t = cat.units[convTo].rate;
+      return Math.round((v / f * t) * 100) / 100;
+    }
+    const f = cat.units[convFrom].factor;
+    const t = cat.units[convTo].factor;
+    const res = v * f / t;
+    // Präzision je nach Größe
+    if(Math.abs(res) < 0.001) return res.toExponential(4);
+    return Math.round(res * 1e6) / 1e6;
+  }
+
+  function render(){
+    if(currentTab === 'calc') renderCalc();
+    else if(currentTab === 'history') renderHistory();
+    else if(currentTab === 'convert') renderConvert();
+    document.querySelectorAll('.ca-tab').forEach(el => {
+      el.classList.toggle('active', el.dataset.tab === currentTab);
+    });
+  }
+
+  // ── Actions
+  function insert(ch){
+    expr += ch;
+    updateDisplay();
+  }
+  function clearAll(){
+    expr = '';
+    result = '';
+    updateDisplay();
+  }
+  function back(){
+    expr = expr.slice(0, -1);
+    updateDisplay();
+  }
+  function toggleSign(){
+    // Suche letzte Zahl und stelle Vorzeichen um
+    expr = expr.replace(/(-?\d+\.?\d*)$/, (m) => m.startsWith('-') ? m.slice(1) : '-' + m);
+    updateDisplay();
+  }
+  function updateDisplay(){
+    const exprEl = document.getElementById('caExpr');
+    const resEl = document.getElementById('caResult');
+    if(exprEl) exprEl.innerHTML = esc(expr) || '&nbsp;';
+    if(resEl) resEl.textContent = result || '0';
+  }
+  function calculate(){
+    if(!expr.trim()) return;
+    try {
+      const r = evalExpr(expr);
+      result = fmtResult(r);
+      history.unshift({ expr, result, ts: Date.now() });
+      save();
+      updateDisplay();
+      if(navigator.vibrate) navigator.vibrate(10);
+      if(typeof playSound === 'function') playSound('click');
+    } catch(e){
+      result = 'Fehler';
+      updateDisplay();
+      if(navigator.vibrate) navigator.vibrate([30, 50, 30]);
+    }
+  }
+  function loadFromHistory(i){
+    const h = history[i];
+    if(!h) return;
+    expr = h.expr;
+    result = h.result;
+    setTab('calc');
+    setTimeout(updateDisplay, 50);
+  }
+  function clearHistory(){
+    if(!history.length) return;
+    if(!confirm('Verlauf wirklich löschen?')) return;
+    history = [];
+    save(); render();
+    toast('🗑️ Verlauf gelöscht');
+  }
+
+  function setTab(t){
+    currentTab = t;
+    render();
+  }
+  function setConvCat(c){ convCat = c; render(); }
+  function setConvValue(v){ convValue = v; renderConvert(); }
+  function setConvFrom(u){ convFrom = u; render(); }
+  function setConvTo(u){ convTo = u; render(); }
+
+  function toast(msg){
+    let el = document.getElementById('caToast');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'caToast';
+      el.className = 'ca-toast';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), 2000);
+  }
+
+  function open(){
+    const w = document.getElementById('calcWindow');
+    if(!w) return;
+    load();
+    render();
+    w.classList.add('show');
+    if(typeof playSound === 'function') playSound('open');
+    if(navigator.vibrate) navigator.vibrate(10);
+  }
+  function close(){
+    const w = document.getElementById('calcWindow');
+    if(w) w.classList.remove('show');
+  }
+
+  // Keyboard-Support
+  document.addEventListener('keydown', (e) => {
+    if(!document.getElementById('calcWindow')?.classList.contains('show')) return;
+    if(currentTab !== 'calc') return;
+    if(/^[0-9+\-*/().]$/.test(e.key)){ insert(e.key); e.preventDefault(); }
+    else if(e.key === 'Enter' || e.key === '='){ calculate(); e.preventDefault(); }
+    else if(e.key === 'Backspace'){ back(); e.preventDefault(); }
+    else if(e.key === 'Escape'){ clearAll(); }
+  });
+
+  window.HalDoCalc = {
+    open, close,
+    eval(expression){
+      try { return evalExpr(expression); }
+      catch(e){ return null; }
+    }
+  };
+
+  window.HalDoCalcApp = {
+    open, close, render,
+    setTab,
+    insert, clearAll, back, toggleSign, calculate,
+    loadFromHistory, clearHistory,
+    setConvCat, setConvValue, setConvFrom, setConvTo
+  };
+
+  const orig = window.openWin;
+  window.openWin = function(id){
+    if(id === 'calc-window' || id === 'calc' || id === 'calculator'){ open(); return; }
+    if(typeof orig === 'function') return orig(id);
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape' && document.getElementById('calcWindow')?.classList.contains('show')){
+        close();
+      }
+    });
+  });
+
+  load();
+  console.log('%c🧮 Calculator Pro geladen', 'color:#00e5ff;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════ ENDE v71 CALCULATOR PRO ═══════════════ -->
 </body>
 </html>
