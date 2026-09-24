@@ -22789,5 +22789,556 @@ body.wm-force-float .os-window.wm3-floating .header:active {
 })();
 </script>
 <!-- ═══════════════════ ENDE v71 CALCULATOR PRO ═══════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════ v73 – SHOPPING LIST (Einkaufsliste) ══════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#shoppingWindow {
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(80,220,120,.12), transparent 55%),
+    radial-gradient(circle at 70% 80%, rgba(0,229,255,.06), transparent 55%),
+    linear-gradient(180deg, rgba(0,20,8,.99), rgba(0,10,4,.99));
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  z-index: 8280; display: none; flex-direction: column;
+  color: #e6ffe6; font-family: inherit;
+  animation: shFadeIn .25s;
+}
+#shoppingWindow.show { display: flex; }
+@keyframes shFadeIn { from {opacity:0;transform:scale(.98);} to {opacity:1;transform:scale(1);} }
+
+.sh-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid rgba(80,220,120,.25);
+  background: rgba(0,50,20,.5); flex-shrink: 0;
+  position: relative; z-index: 2; flex-wrap: wrap; gap: 8px;
+}
+.sh-title { display: flex; align-items: center; gap: 10px; }
+.sh-title .sh-icon {
+  font-size: 26px; filter: drop-shadow(0 0 14px #50dc78);
+  animation: shPulse 3s ease-in-out infinite;
+}
+@keyframes shPulse { 50% { filter: drop-shadow(0 0 26px #50dc78); transform: scale(1.05); } }
+.sh-title h2 { font-size: 18px; margin: 0; font-weight: 700; color: #fff; letter-spacing: .5px; }
+.sh-title small { display: block; font-size: 10px; color: #88ffbb; margin-top: 2px; letter-spacing: 1.5px; text-transform: uppercase; }
+.sh-actions { display: flex; gap: 6px; }
+
+.sh-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 14px; border-radius: 10px;
+  background: rgba(80,220,120,.12); border: 1px solid rgba(80,220,120,.4);
+  color: #e6ffe6; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all .15s; -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+.sh-btn:hover { background: rgba(80,220,120,.25); transform: translateY(-1px); }
+.sh-btn.primary { background: linear-gradient(135deg,#50dc78,#00e5ff); color: #001a08; border-color: #fff; }
+.sh-btn.primary:hover { filter: brightness(1.15); box-shadow: 0 0 24px rgba(80,220,120,.6); }
+.sh-btn.danger { background: rgba(255,60,60,.15); border-color: rgba(255,60,60,.4); color: #ff8080; }
+.sh-btn.icon-only { padding: 10px; font-size: 16px; }
+
+.sh-stats {
+  display: flex; gap: 10px; padding: 12px 18px;
+  border-bottom: 1px solid rgba(80,220,120,.1); flex-shrink: 0;
+  overflow-x: auto; position: relative; z-index: 2;
+}
+.sh-stat {
+  flex-shrink: 0; padding: 10px 16px; border-radius: 12px;
+  background: linear-gradient(160deg, rgba(0,80,40,.4), rgba(0,25,12,.7));
+  border: 1px solid rgba(80,220,120,.25);
+  text-align: center; min-width: 88px;
+}
+.sh-stat .shs-num { font-size: 20px; font-weight: 800; color: #50dc78; text-shadow: 0 0 12px rgba(80,220,120,.6); }
+.sh-stat .shs-lbl { font-size: 9px; color: #88ffbb; text-transform: uppercase; letter-spacing: 1.2px; margin-top: 3px; }
+
+.sh-toolbar {
+  padding: 12px 18px; flex-shrink: 0;
+  border-bottom: 1px solid rgba(80,220,120,.1);
+  position: relative; z-index: 2;
+  display: flex; gap: 10px; align-items: center;
+}
+.sh-search {
+  flex: 1; display: flex; align-items: center; gap: 8px;
+  background: rgba(0,50,20,.6);
+  border: 1.5px solid rgba(80,220,120,.3);
+  border-radius: 12px; padding: 10px 14px;
+}
+.sh-search input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: #fff; font-size: 14px; font-family: inherit;
+}
+.sh-search input::placeholder { color: #70a080; }
+
+.sh-body { flex: 1; overflow-y: auto; padding: 16px 18px 100px; position: relative; z-index: 2; }
+.sh-list { max-width: 720px; margin: 0 auto; }
+
+/* Kategorie-Sektion */
+.sh-cat-section {
+  margin-bottom: 20px;
+}
+.sh-cat-head {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: #88ffbb; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 1.2px;
+  padding: 8px 4px 10px;
+  border-bottom: 1px solid rgba(80,220,120,.15);
+  margin-bottom: 8px;
+}
+.sh-cat-head .sh-cat-count {
+  margin-left: auto;
+  padding: 2px 8px; border-radius: 10px;
+  background: rgba(80,220,120,.15); color: #50dc78;
+  font-size: 10px;
+}
+
+.sh-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; margin-bottom: 6px;
+  background: linear-gradient(160deg, rgba(0,60,30,.4), rgba(0,18,8,.8));
+  border: 1.5px solid rgba(80,220,120,.15);
+  border-radius: 12px;
+  transition: all .15s;
+  cursor: pointer;
+}
+.sh-item:hover { border-color: #50dc78; background: rgba(80,220,120,.08); }
+.sh-item.checked {
+  opacity: .55;
+  background: rgba(0,40,20,.3);
+}
+.sh-item.checked .sh-item-text { text-decoration: line-through; color: #70a080; }
+
+.sh-check {
+  flex-shrink: 0;
+  width: 24px; height: 24px; border-radius: 8px;
+  border: 2px solid rgba(80,220,120,.5);
+  display: flex; align-items: center; justify-content: center;
+  color: transparent; font-size: 14px; font-weight: 900;
+  transition: all .15s;
+}
+.sh-item.checked .sh-check {
+  background: linear-gradient(135deg,#50dc78,#00e5ff);
+  border-color: #50dc78; color: #001a08;
+  box-shadow: 0 0 14px rgba(80,220,120,.6);
+}
+
+.sh-item-main { flex: 1; min-width: 0; }
+.sh-item-text {
+  font-size: 14px; font-weight: 700; color: #fff;
+  word-break: break-word; line-height: 1.3;
+}
+.sh-item-meta {
+  font-size: 10px; color: #88ffbb; margin-top: 3px;
+  display: flex; gap: 8px; align-items: center;
+}
+.sh-item-source {
+  padding: 2px 6px; border-radius: 6px;
+  background: rgba(80,220,120,.15); color: #50dc78;
+  font-weight: 800; text-transform: uppercase; letter-spacing: .5px;
+}
+
+.sh-item-del {
+  flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%;
+  background: transparent; border: none; color: #ff8080;
+  font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.sh-item-del:hover { background: rgba(255,80,80,.2); }
+
+.sh-empty {
+  text-align: center; padding: 60px 20px; color: #70a080;
+}
+.sh-empty .she-icon { font-size: 72px; opacity: .5; margin-bottom: 16px; filter: drop-shadow(0 0 30px #50dc78); }
+.sh-empty .she-text { font-size: 15px; color: #88ffbb; }
+.sh-empty .she-sub { font-size: 12px; margin-top: 6px; }
+
+/* Progress-Bar oben */
+.sh-progress-wrap {
+  padding: 12px 18px; flex-shrink: 0;
+  border-bottom: 1px solid rgba(80,220,120,.1);
+  position: relative; z-index: 2;
+}
+.sh-progress-bar {
+  height: 8px; border-radius: 4px;
+  background: rgba(0,0,0,.4);
+  border: 1px solid rgba(80,220,120,.2);
+  overflow: hidden;
+}
+.sh-progress-fill {
+  height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg,#50dc78,#00e5ff);
+  transition: width .5s;
+  box-shadow: 0 0 12px rgba(80,220,120,.6);
+}
+.sh-progress-text {
+  font-size: 11px; color: #88ffbb;
+  text-align: center; margin-top: 5px;
+  letter-spacing: 1px;
+  text-transform: uppercase; font-weight: 700;
+}
+
+/* Input Add */
+.sh-add-row {
+  display: flex; gap: 8px; padding: 12px 18px; flex-shrink: 0;
+  border-bottom: 1px solid rgba(80,220,120,.15);
+  background: rgba(0,50,20,.3);
+  position: relative; z-index: 2;
+}
+.sh-add-input {
+  flex: 1; padding: 12px 14px; border-radius: 10px;
+  background: rgba(0,0,0,.4);
+  border: 1.5px solid rgba(80,220,120,.3);
+  color: #fff; font-size: 14px; font-family: inherit;
+  outline: none;
+}
+.sh-add-input:focus { border-color: #50dc78; box-shadow: 0 0 18px rgba(80,220,120,.3); }
+
+.sh-toast {
+  position: fixed; bottom: 100px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  padding: 12px 20px; border-radius: 12px;
+  background: linear-gradient(135deg,#50dc78,#00e5ff); color: #001a08;
+  font-weight: 700; font-size: 13px; opacity: 0; pointer-events: none;
+  transition: all .3s; z-index: 99999;
+  box-shadow: 0 10px 40px rgba(80,220,120,.5);
+  white-space: nowrap;
+}
+.sh-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+
+<div id="shoppingWindow">
+  <div class="sh-header">
+    <div class="sh-title">
+      <span class="sh-icon">🛒</span>
+      <div>
+        <h2>Shopping</h2>
+        <small>Einkaufsliste</small>
+      </div>
+    </div>
+    <div class="sh-actions">
+      <button class="sh-btn icon-only" onclick="HalDoShoppingApp.clearChecked()" title="Erledigte löschen">🧹</button>
+      <button class="sh-btn icon-only" onclick="HalDoShoppingApp.exportAll()" title="Export">📤</button>
+      <button class="sh-btn icon-only" onclick="HalDoShoppingApp.close()">✕</button>
+    </div>
+  </div>
+
+  <div class="sh-progress-wrap">
+    <div class="sh-progress-bar">
+      <div class="sh-progress-fill" id="shProgressFill" style="width:0%"></div>
+    </div>
+    <div class="sh-progress-text" id="shProgressText">0 von 0 erledigt</div>
+  </div>
+
+  <div class="sh-stats" id="shStats"></div>
+
+  <div class="sh-add-row">
+    <input class="sh-add-input" id="shAddInput" placeholder="Artikel hinzufügen..."
+      onkeypress="if(event.key==='Enter')HalDoShoppingApp.quickAdd(this.value)">
+    <button class="sh-btn primary" onclick="HalDoShoppingApp.quickAdd(document.getElementById('shAddInput').value)">✚</button>
+  </div>
+
+  <div class="sh-toolbar">
+    <div class="sh-search">
+      <span>🔍</span>
+      <input id="shSearchInput" placeholder="Artikel suchen..." oninput="HalDoShoppingApp.render()">
+    </div>
+  </div>
+
+  <div class="sh-body">
+    <div class="sh-list" id="shList"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  if(window.__shLoaded) return;
+  window.__shLoaded = true;
+
+  const STORAGE_KEY = 'haldo_shopping_v1';
+
+  // Auto-Kategorisierung nach Stichwort
+  const CAT_KEYWORDS = [
+    { cat: 'obst',      keys: ['apfel','äpfel','banane','orange','birne','traube','beere','kirsche','zitrone','limette','erdbeer','melone','pfirsich','kiwi','mango','ananas'] },
+    { cat: 'gemuese',   keys: ['tomate','gurke','salat','karotte','möhre','zwiebel','knoblauch','paprika','kartoffel','brokkoli','spinat','zucchini','pilz','pilze','kohl','lauch'] },
+    { cat: 'fleisch',   keys: ['fleisch','huhn','hähnchen','rind','schwein','hackfleisch','wurst','salami','schinken','speck','fisch','lachs','thunfisch','steak'] },
+    { cat: 'milch',     keys: ['milch','käse','joghurt','butter','quark','sahne','eier','ei','frischkäse','mozzarella'] },
+    { cat: 'brot',      keys: ['brot','brötchen','semmel','baguette','toast','croissant','mehl','nudeln','pasta','reis','spaghetti'] },
+    { cat: 'getraenke', keys: ['wasser','saft','cola','bier','wein','kaffee','tee','limonade','mineralwasser','sprudel'] },
+    { cat: 'haushalt',  keys: ['spülmittel','waschmittel','klopapier','toilettenpapier','seife','shampoo','zahnpasta','putzmittel','müllbeutel','schwamm'] },
+    { cat: 'tiefkuehl', keys: ['pizza','eis','pommes','tk','tiefkühl','gefroren'] },
+    { cat: 'snacks',    keys: ['chips','schokolade','keks','kuchen','gummibärchen','bonbon','nüsse','popcorn','riegel'] }
+  ];
+
+  const CATS = {
+    obst:      { name: 'Obst',         icon: '🍎' },
+    gemuese:   { name: 'Gemüse',       icon: '🥦' },
+    fleisch:   { name: 'Fleisch/Fisch', icon: '🥩' },
+    milch:     { name: 'Milch & Eier', icon: '🥛' },
+    brot:      { name: 'Backwaren',    icon: '🥖' },
+    getraenke: { name: 'Getränke',     icon: '🥤' },
+    haushalt:  { name: 'Haushalt',     icon: '🧴' },
+    tiefkuehl: { name: 'Tiefkühl',     icon: '🧊' },
+    snacks:    { name: 'Snacks',       icon: '🍫' },
+    sonstiges: { name: 'Sonstiges',    icon: '📦' }
+  };
+
+  let items = [];
+  let categoryIndex = new Map(); // cache: name → cat
+
+  function load(){
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      items = raw ? JSON.parse(raw) : [];
+    } catch(e){ items = []; }
+    if(!Array.isArray(items)) items = [];
+  }
+  function save(){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); } catch(e){}
+  }
+  function uid(){ return 'sh_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7); }
+  function esc(s){
+    return String(s==null?'':s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function autoCat(name){
+    const lc = name.toLowerCase();
+    for(const rule of CAT_KEYWORDS){
+      for(const k of rule.keys){
+        if(lc.includes(k)) return rule.cat;
+      }
+    }
+    return 'sonstiges';
+  }
+
+  function renderStats(){
+    const el = document.getElementById('shStats');
+    if(!el) return;
+    const total = items.length;
+    const done = items.filter(i => i.checked).length;
+    const open = total - done;
+    const fromRecipes = items.filter(i => i.source === 'recipe').length;
+    el.innerHTML = `
+      <div class="sh-stat"><div class="shs-num">${open}</div><div class="shs-lbl">Offen</div></div>
+      <div class="sh-stat"><div class="shs-num">${done}</div><div class="shs-lbl">Erledigt</div></div>
+      <div class="sh-stat"><div class="shs-num">${total}</div><div class="shs-lbl">Gesamt</div></div>
+      ${fromRecipes ? `<div class="sh-stat"><div class="shs-num">🍳 ${fromRecipes}</div><div class="shs-lbl">Rezepte</div></div>` : ''}
+    `;
+  }
+
+  function renderProgress(){
+    const fill = document.getElementById('shProgressFill');
+    const text = document.getElementById('shProgressText');
+    if(!fill || !text) return;
+    const total = items.length;
+    const done = items.filter(i => i.checked).length;
+    const pct = total ? Math.round(done / total * 100) : 0;
+    fill.style.width = pct + '%';
+    text.textContent = done + ' von ' + total + ' erledigt' + (total ? ' · ' + pct + '%' : '');
+  }
+
+  function renderList(){
+    const list = document.getElementById('shList');
+    if(!list) return;
+    const q = (document.getElementById('shSearchInput')?.value || '').toLowerCase().trim();
+    let arr = items.slice();
+    if(q) arr = arr.filter(i => i.name.toLowerCase().includes(q));
+
+    if(!arr.length){
+      list.innerHTML = `<div class="sh-empty">
+        <div class="she-icon">🛒</div>
+        <div class="she-text">${q ? 'Kein Treffer' : 'Einkaufsliste ist leer'}</div>
+        <div class="she-sub">${q ? 'Andere Suche' : 'Tippe oben einen Artikel ein'}</div>
+      </div>`;
+      return;
+    }
+
+    // Gruppieren nach Kategorie
+    const groups = {};
+    Object.keys(CATS).forEach(k => groups[k] = []);
+    arr.forEach(i => {
+      const cat = i.cat || 'sonstiges';
+      if(!groups[cat]) groups[cat] = [];
+      groups[cat].push(i);
+    });
+
+    let html = '';
+    Object.entries(CATS).forEach(([catId, cat]) => {
+      const catItems = groups[catId];
+      if(!catItems || !catItems.length) return;
+      // Offene zuerst
+      catItems.sort((a,b) => {
+        if(a.checked !== b.checked) return a.checked ? 1 : -1;
+        return (a.created||0) - (b.created||0);
+      });
+      const doneCount = catItems.filter(i => i.checked).length;
+      html += `<div class="sh-cat-section">
+        <div class="sh-cat-head">
+          <span>${cat.icon}</span>
+          <span>${cat.name}</span>
+          <span class="sh-cat-count">${doneCount}/${catItems.length}</span>
+        </div>`;
+      catItems.forEach(i => {
+        const srcHtml = i.source === 'recipe'
+          ? `<span class="sh-item-source">🍳 ${esc(i.recipeName || 'Rezept')}</span>`
+          : '';
+        html += `<div class="sh-item ${i.checked?'checked':''}">
+          <div class="sh-check" onclick="event.stopPropagation();HalDoShoppingApp.toggle('${i.id}')">✓</div>
+          <div class="sh-item-main" onclick="HalDoShoppingApp.toggle('${i.id}')">
+            <div class="sh-item-text">${esc(i.name)}</div>
+            ${srcHtml ? `<div class="sh-item-meta">${srcHtml}</div>` : ''}
+          </div>
+          <button class="sh-item-del" onclick="event.stopPropagation();HalDoShoppingApp.remove('${i.id}')">✕</button>
+        </div>`;
+      });
+      html += '</div>';
+    });
+
+    list.innerHTML = html;
+  }
+
+  function render(){ renderStats(); renderProgress(); renderList(); }
+
+  // ── Actions
+  function quickAdd(name){
+    if(!name || !name.trim()) return;
+    const n = name.trim();
+    // Duplikat-Check
+    const existing = items.find(i => i.name.toLowerCase() === n.toLowerCase() && !i.checked);
+    if(existing){
+      toast('⚠️ Schon in der Liste');
+      return;
+    }
+    const cat = autoCat(n);
+    items.push({
+      id: uid(),
+      name: n,
+      cat,
+      checked: false,
+      created: Date.now(),
+      source: 'manual'
+    });
+    save(); render();
+    document.getElementById('shAddInput').value = '';
+    if(navigator.vibrate) navigator.vibrate(8);
+  }
+
+  function toggle(id){
+    const i = items.find(x => x.id === id);
+    if(!i) return;
+    i.checked = !i.checked;
+    if(i.checked) i.checkedAt = Date.now();
+    save(); render();
+    if(navigator.vibrate) navigator.vibrate(6);
+  }
+
+  function remove(id){
+    items = items.filter(x => x.id !== id);
+    save(); render();
+    toast('🗑️ Entfernt');
+  }
+
+  function clearChecked(){
+    const n = items.filter(i => i.checked).length;
+    if(!n){ toast('⚠️ Nichts erledigt'); return; }
+    if(!confirm(n + ' erledigte Artikel entfernen?')) return;
+    items = items.filter(i => !i.checked);
+    save(); render();
+    toast('🧹 ' + n + ' entfernt');
+  }
+
+  function exportAll(){
+    if(!items.length){ toast('⚠️ Liste leer'); return; }
+    const data = { app:'HalDo Shopping', version:1, exported:new Date().toISOString(), count:items.length, items };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = 'haldo-shopping-' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast('📤 Exportiert');
+  }
+
+  function toast(msg){
+    let el = document.getElementById('shToast');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'shToast';
+      el.className = 'sh-toast';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), 2000);
+  }
+
+  function open(){
+    const w = document.getElementById('shoppingWindow');
+    if(!w) return;
+    load(); render();
+    w.classList.add('show');
+    setTimeout(() => document.getElementById('shAddInput')?.focus(), 200);
+    if(typeof playSound === 'function') playSound('open');
+    if(navigator.vibrate) navigator.vibrate(10);
+  }
+  function close(){
+    const w = document.getElementById('shoppingWindow');
+    if(w) w.classList.remove('show');
+    if(typeof playSound === 'function') playSound('close');
+  }
+
+  window.HalDoShopping = {
+    open, close,
+    add(name, opts){
+      if(!name || !name.trim()) return null;
+      const n = name.trim();
+      const cat = autoCat(n);
+      // Duplikat-Check
+      const existing = items.find(i => i.name.toLowerCase() === n.toLowerCase() && !i.checked);
+      if(existing) return existing.id;
+      const id = uid();
+      items.push({
+        id, name: n, cat,
+        checked: false,
+        created: Date.now(),
+        source: (opts && opts.source) || 'api',
+        recipeName: (opts && opts.recipeName) || ''
+      });
+      save();
+      if(document.getElementById('shoppingWindow')?.classList.contains('show')) render();
+      return id;
+    },
+    remove(id){ remove(id); },
+    check(id){ const i = items.find(x => x.id === id); if(i){ i.checked = true; save(); if(document.getElementById('shoppingWindow')?.classList.contains('show')) render(); } },
+    all(){ return items.slice(); },
+    open(){ return items.filter(i => !i.checked); },
+    count(){ return items.length; }
+  };
+
+  window.HalDoShoppingApp = {
+    open, close, render,
+    quickAdd, toggle, remove, clearChecked,
+    exportAll
+  };
+
+  const orig = window.openWin;
+  window.openWin = function(id){
+    if(id === 'shopping-window' || id === 'shopping'){ open(); return; }
+    if(typeof orig === 'function') return orig(id);
+  };
+
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape' && document.getElementById('shoppingWindow')?.classList.contains('show')){
+      close();
+    }
+  });
+
+  load();
+  console.log('%c🛒 Shopping geladen · ' + items.length + ' Artikel', 'color:#50dc78;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════ ENDE v73 SHOPPING ═══════════════════ -->
 </body>
 </html>
