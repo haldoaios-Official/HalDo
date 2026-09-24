@@ -15760,5 +15760,921 @@ body.auto-night-active::after {
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ═════════════════════════ ENDE v59 TASKS ════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════ v60b – REMINDER (ERINNERUNGEN) – HOLO ═══════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#reminderWindow {
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(255,170,0,.10) 0%, transparent 60%),
+    radial-gradient(circle at 85% 15%, rgba(255,68,102,.06) 0%, transparent 50%),
+    linear-gradient(180deg, rgba(0,10,30,.99), rgba(0,5,15,.99));
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  z-index: 8405; display: none; flex-direction: column;
+  color: #e6f4ff; font-family: inherit;
+  animation: rmFadeIn .25s;
+}
+#reminderWindow.show { display: flex; }
+@keyframes rmFadeIn { from {opacity:0;transform:scale(.98);} to {opacity:1;transform:scale(1);} }
+
+#reminderWindow::before {
+  content:''; position:absolute; top:-80px; left:-80px;
+  width: 340px; height: 340px; border-radius:50%; pointer-events:none;
+  background: radial-gradient(circle, rgba(255,170,0,.10), transparent 65%);
+  animation: rmSpin 25s linear infinite;
+}
+@keyframes rmSpin { to { transform: rotate(360deg); } }
+
+.rm-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid rgba(255,170,0,.2);
+  background: rgba(50,25,0,.5); flex-shrink: 0; position: relative; z-index: 2;
+}
+.rm-title { display: flex; align-items: center; gap: 12px; }
+.rm-title .rm-icon {
+  font-size: 26px; filter: drop-shadow(0 0 14px #ffaa00);
+  animation: rmBell 3s ease-in-out infinite;
+}
+@keyframes rmBell {
+  0%, 90%, 100% { transform: rotate(0deg); }
+  93%, 97% { transform: rotate(15deg); }
+  95% { transform: rotate(-15deg); }
+}
+.rm-title h2 { font-size: 18px; margin: 0; font-weight: 700; color: #fff; letter-spacing: .5px; }
+.rm-title small { display: block; font-size: 10px; color: #ffcc77; margin-top: 2px; letter-spacing: 1.5px; text-transform: uppercase; }
+.rm-actions { display: flex; gap: 8px; }
+.rm-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 14px; border-radius: 10px;
+  background: rgba(255,170,0,.12); border: 1px solid rgba(255,170,0,.4);
+  color: #e6f4ff; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all .15s; -webkit-tap-highlight-color: transparent;
+}
+.rm-btn:hover { background: rgba(255,170,0,.25); transform: translateY(-1px); box-shadow: 0 0 18px rgba(255,170,0,.3); }
+.rm-btn.primary { background: linear-gradient(135deg,#ffaa00,#ff8844); color: #1a0800; border-color: #fff; }
+.rm-btn.primary:hover { filter: brightness(1.15); box-shadow: 0 0 24px rgba(255,170,0,.6); }
+.rm-btn.danger { background: rgba(255,60,60,.15); border-color: rgba(255,60,60,.4); color: #ff8080; }
+.rm-btn.icon-only { padding: 10px; font-size: 16px; }
+
+.rm-stats {
+  display: flex; gap: 10px; padding: 14px 20px; overflow-x: auto;
+  border-bottom: 1px solid rgba(255,170,0,.1); flex-shrink: 0;
+  position: relative; z-index: 2;
+}
+.rm-stat {
+  flex-shrink: 0; padding: 10px 16px; border-radius: 12px;
+  background: linear-gradient(160deg, rgba(120,60,0,.4), rgba(50,25,0,.7));
+  border: 1px solid rgba(255,170,0,.25);
+  text-align: center; min-width: 88px;
+  box-shadow: inset 0 0 20px rgba(255,170,0,.08);
+}
+.rm-stat .rs-num { font-size: 20px; font-weight: 800; color: #ffaa00; text-shadow: 0 0 12px rgba(255,170,0,.6); }
+.rm-stat .rs-lbl { font-size: 9px; color: #ffcc77; text-transform: uppercase; letter-spacing: 1.2px; margin-top: 3px; }
+
+.rm-filters {
+  display: flex; gap: 6px; padding: 12px 20px; overflow-x: auto;
+  border-bottom: 1px solid rgba(255,170,0,.1); flex-shrink: 0;
+  position: relative; z-index: 2;
+}
+.rm-chip {
+  flex-shrink: 0; padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: 700;
+  background: rgba(60,30,0,.5); border: 1.5px solid rgba(255,170,0,.25);
+  color: #ffcc77; cursor: pointer; transition: all .15s;
+  -webkit-tap-highlight-color: transparent; white-space: nowrap;
+}
+.rm-chip:hover { background: rgba(255,170,0,.15); }
+.rm-chip.active { background: #ffaa00; color: #1a0800; border-color: #fff; }
+
+.rm-body { flex: 1; overflow-y: auto; padding: 16px 20px 100px; position: relative; z-index: 2; }
+.rm-list {
+  display: flex; flex-direction: column; gap: 10px;
+  max-width: 900px; margin: 0 auto;
+}
+
+.rm-item {
+  background: linear-gradient(160deg, rgba(90,45,0,.5), rgba(40,15,0,.85));
+  border: 1.5px solid rgba(255,170,0,.2);
+  border-radius: 14px; padding: 14px; cursor: pointer;
+  transition: all .18s; position: relative; overflow: hidden;
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.rm-item:hover {
+  transform: translateY(-2px);
+  border-color: #ffaa00;
+  box-shadow: 0 8px 30px rgba(0,0,0,.5), 0 0 26px rgba(255,170,0,.25);
+}
+.rm-item.fired { border-color: rgba(255,80,80,.5); animation: rmFirePulse 1.5s infinite; }
+@keyframes rmFirePulse {
+  0%,100% { box-shadow: 0 0 30px rgba(255,80,80,.3); }
+  50% { box-shadow: 0 0 50px rgba(255,80,80,.6); }
+}
+.rm-item.done { opacity: .5; }
+.rm-item.done .rm-item-title { text-decoration: line-through; color: #ffcc77; }
+
+.rm-item-emoji {
+  flex-shrink: 0; width: 46px; height: 46px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; background: rgba(0,0,0,.35); border-radius: 12px;
+  border: 1px solid rgba(255,170,0,.25);
+}
+
+.rm-item-main { flex: 1; min-width: 0; }
+.rm-item-title {
+  font-size: 15px; font-weight: 700; color: #fff; margin: 0 0 4px 0;
+  line-height: 1.3; word-break: break-word;
+}
+.rm-item-desc {
+  font-size: 12px; color: #ffddaa; line-height: 1.5; margin: 0 0 6px 0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.rm-item-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.rm-badge {
+  font-size: 10px; padding: 3px 8px; border-radius: 8px;
+  background: rgba(255,170,0,.15); color: #ffcc77; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .5px;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.rm-badge.time { background: rgba(255,170,0,.2); color: #ffdd88; }
+.rm-badge.time.soon { background: rgba(255,68,102,.25); color: #ff99aa; }
+.rm-badge.time.soon2 { background: rgba(255,200,0,.25); color: #ffee88; }
+.rm-badge.repeat { background: rgba(180,120,255,.15); color: #d4b8ff; }
+.rm-badge.done { background: rgba(0,255,136,.15); color: #88ffbb; }
+.rm-badge.fired { background: rgba(255,80,80,.25); color: #ff99aa; }
+
+.rm-empty {
+  text-align: center; padding: 60px 20px; color: #8a6030;
+}
+.rm-empty .re-icon {
+  font-size: 72px; opacity: .5; margin-bottom: 16px;
+  filter: drop-shadow(0 0 30px #ffaa00);
+}
+.rm-empty .re-text { font-size: 16px; margin-bottom: 8px; color: #ffcc77; }
+.rm-empty .re-sub { font-size: 12px; }
+
+/* ═══ Modal ═══ */
+.rm-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,.88);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  z-index: 8700; display: none; align-items: center; justify-content: center;
+  padding: 20px; animation: rmFadeIn .2s;
+}
+.rm-modal.show { display: flex; }
+.rm-modal-box {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,170,0,.15), transparent 60%),
+    linear-gradient(180deg, rgba(50,25,0,.98), rgba(20,8,0,.99));
+  border: 2px solid #ffaa00; border-radius: 20px;
+  padding: 24px; max-width: 580px; width: 100%; max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.8), 0 0 60px rgba(255,170,0,.3);
+  animation: rmPop .3s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes rmPop { from {transform:scale(.9);opacity:0;} to {transform:scale(1);opacity:1;} }
+.rm-modal-box h3 { margin: 0 0 18px 0; font-size: 20px; color: #fff; }
+.rm-form-row { margin-bottom: 14px; }
+.rm-form-row label {
+  display: block; font-size: 11px; color: #ffcc77; font-weight: 700;
+  margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1.2px;
+}
+.rm-form-row input, .rm-form-row textarea, .rm-form-row select {
+  width: 100%; padding: 12px 14px; border-radius: 10px;
+  background: rgba(0,0,0,.45); border: 1.5px solid rgba(255,170,0,.3);
+  color: #fff; font-size: 14px; font-family: inherit; outline: none;
+  transition: border-color .15s; box-sizing: border-box;
+}
+.rm-form-row input:focus, .rm-form-row textarea:focus, .rm-form-row select:focus {
+  border-color: #ffaa00; box-shadow: 0 0 20px rgba(255,170,0,.3);
+}
+.rm-form-row textarea { min-height: 80px; resize: vertical; font-family: inherit; }
+.rm-form-row select option { background: #1a0800; }
+.rm-form-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.rm-form-actions { display: flex; gap: 10px; margin-top: 20px; }
+.rm-form-actions .rm-btn { flex: 1; padding: 14px; }
+
+/* Alert Popup wenn Erinnerung feuert */
+.rm-alert-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,.92);
+  backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+  z-index: 9500; display: none; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.rm-alert-modal.show { display: flex; }
+.rm-alert-box {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,170,0,.3), transparent 60%),
+    linear-gradient(180deg, rgba(60,30,0,.99), rgba(20,8,0,.99));
+  border: 3px solid #ffaa00; border-radius: 24px;
+  padding: 32px 24px; max-width: 440px; width: 100%;
+  text-align: center;
+  box-shadow: 0 30px 100px rgba(0,0,0,.9), 0 0 80px rgba(255,170,0,.5);
+  animation: rmAlertPop .4s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes rmAlertPop {
+  from { transform: scale(.7) rotate(-5deg); opacity: 0; }
+  to { transform: scale(1) rotate(0); opacity: 1; }
+}
+.rm-alert-box .ra-bell {
+  font-size: 84px;
+  animation: rmBell 1s ease-in-out infinite;
+  filter: drop-shadow(0 0 30px #ffaa00);
+}
+.rm-alert-box h2 {
+  font-size: 22px; color: #fff; margin: 8px 0 6px 0;
+}
+.rm-alert-box .ra-time {
+  font-size: 12px; color: #ffcc77; margin-bottom: 12px;
+  text-transform: uppercase; letter-spacing: 2px;
+}
+.rm-alert-box .ra-title {
+  font-size: 18px; font-weight: 700; color: #ffdd88;
+  margin-bottom: 10px;
+}
+.rm-alert-box .ra-desc {
+  font-size: 13px; color: #ffddaa; line-height: 1.6;
+  padding: 12px; background: rgba(0,0,0,.4); border-radius: 12px;
+  margin-bottom: 20px;
+}
+.rm-alert-actions { display: flex; gap: 10px; }
+.rm-alert-actions .rm-btn { flex: 1; padding: 14px; font-size: 14px; }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- REMINDER WINDOW ═════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="reminderWindow">
+  <div class="rm-header">
+    <div class="rm-title">
+      <span class="rm-icon">🔔</span>
+      <div>
+        <h2>Reminders</h2>
+        <small>Erinnerungen</small>
+      </div>
+    </div>
+    <div class="rm-actions">
+      <button class="rm-btn icon-only" onclick="HalDoRemindersApp.requestPermission()" title="Benachrichtigung erlauben">🔕</button>
+      <button class="rm-btn icon-only" onclick="HalDoRemindersApp.exportAll()" title="Export">📤</button>
+      <button class="rm-btn icon-only" onclick="HalDoRemindersApp.importFile()" title="Import">📥</button>
+      <button class="rm-btn icon-only" onclick="HalDoRemindersApp.close()" title="Schließen">✕</button>
+    </div>
+  </div>
+
+  <div class="rm-stats" id="rmStats"></div>
+  <div class="rm-filters" id="rmFilters"></div>
+
+  <div class="rm-body">
+    <div class="rm-list" id="rmList"></div>
+  </div>
+
+  <button class="rm-btn primary" id="rmAddFab" onclick="HalDoRemindersApp.openEditor()"
+    style="position:absolute;bottom:24px;right:24px;padding:16px 22px;font-size:15px;border-radius:16px;box-shadow:0 8px 30px rgba(255,170,0,.5);z-index:3;">
+    ✚ Neue Erinnerung
+  </button>
+</div>
+
+<!-- ═══ Editor Modal ═══ -->
+<div class="rm-modal" id="rmEditorModal">
+  <div class="rm-modal-box">
+    <h3 id="rmEditorTitle">✚ Neue Erinnerung</h3>
+    <input type="hidden" id="rmEditId">
+    <div class="rm-form-row">
+      <label>Titel</label>
+      <input id="rmInputTitle" placeholder="z.B. Mama anrufen" maxlength="140">
+    </div>
+    <div class="rm-form-row">
+      <label>Beschreibung (optional)</label>
+      <textarea id="rmInputDesc" placeholder="Details..."></textarea>
+    </div>
+    <div class="rm-form-2col">
+      <div class="rm-form-row">
+        <label>Datum</label>
+        <input id="rmInputDate" type="date">
+      </div>
+      <div class="rm-form-row">
+        <label>Uhrzeit</label>
+        <input id="rmInputTime" type="time" value="09:00">
+      </div>
+    </div>
+    <div class="rm-form-2col">
+      <div class="rm-form-row">
+        <label>Wiederholen</label>
+        <select id="rmInputRepeat">
+          <option value="none">Einmalig</option>
+          <option value="daily">Täglich</option>
+          <option value="weekly">Wöchentlich</option>
+          <option value="monthly">Monatlich</option>
+          <option value="weekdays">Werktags (Mo–Fr)</option>
+        </select>
+      </div>
+      <div class="rm-form-row">
+        <label>Emoji</label>
+        <select id="rmInputEmoji">
+          <option value="🔔">🔔 Glocke</option>
+          <option value="⏰">⏰ Wecker</option>
+          <option value="📞">📞 Anruf</option>
+          <option value="💊">💊 Medizin</option>
+          <option value="🍽️">🍽️ Essen</option>
+          <option value="💧">💧 Wasser</option>
+          <option value="🏋️">🏋️ Sport</option>
+          <option value="📚">📚 Lernen</option>
+          <option value="💼">💼 Arbeit</option>
+          <option value="🎂">🎂 Geburtstag</option>
+          <option value="💝">💝 Termin</option>
+          <option value="🌟">🌟 Sonstiges</option>
+        </select>
+      </div>
+    </div>
+    <div class="rm-form-row">
+      <label>🔊 Ton & Vibration bei Alarm</label>
+      <select id="rmInputSound">
+        <option value="1">An (empfohlen)</option>
+        <option value="0">Nur visuell</option>
+      </select>
+    </div>
+    <div class="rm-form-actions">
+      <button class="rm-btn" onclick="HalDoRemindersApp.closeEditor()">Abbrechen</button>
+      <button class="rm-btn primary" onclick="HalDoRemindersApp.save()">💾 Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Alert Popup ═══ -->
+<div class="rm-alert-modal" id="rmAlertModal">
+  <div class="rm-alert-box">
+    <div class="ra-bell">🔔</div>
+    <div class="ra-time" id="rmAlertTime">JETZT</div>
+    <h2>Erinnerung!</h2>
+    <div class="ra-title" id="rmAlertTitle">Titel</div>
+    <div class="ra-desc" id="rmAlertDesc"></div>
+    <div class="rm-alert-actions">
+      <button class="rm-btn" onclick="HalDoRemindersApp.snoozeAlert()">😴 5 Min</button>
+      <button class="rm-btn primary" onclick="HalDoRemindersApp.dismissAlert()">✓ Verstanden</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="rmImportFile" accept="application/json" style="display:none">
+
+<script>
+(function(){
+  "use strict";
+
+  const STORAGE_KEY = 'haldo_reminders_v1';
+  let reminders = [];
+  let currentFilter = 'upcoming';
+  let currentViewId = null;
+  let alertId = null;
+  let tickInterval = null;
+
+  function load(){
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      reminders = raw ? JSON.parse(raw) : [];
+    } catch(e){ reminders = []; }
+    if(!Array.isArray(reminders)) reminders = [];
+  }
+  function save(){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(reminders)); } catch(e){}
+  }
+  function uid(){ return 'r_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7); }
+  function escapeHtml(s){
+    return String(s==null?'':s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function dueDate(r){
+    if(!r.date || !r.time) return null;
+    const [y,mo,d] = r.date.split('-').map(Number);
+    const [hh,mm] = r.time.split(':').map(Number);
+    return new Date(y, mo-1, d, hh, mm, 0);
+  }
+  function timeUntil(r){
+    const due = dueDate(r);
+    if(!due) return null;
+    return due.getTime() - Date.now();
+  }
+  function formatDelta(ms){
+    if(ms < 0) return 'Überfällig';
+    const s = Math.floor(ms / 1000);
+    const m = Math.floor(s / 60);
+    const h = Math.floor(m / 60);
+    const d = Math.floor(h / 24);
+    if(d > 0) return 'in ' + d + (d===1?' Tag':' Tagen');
+    if(h > 0) return 'in ' + h + (h===1?' Std':' Std');
+    if(m > 0) return 'in ' + m + ' Min';
+    return 'in ' + s + ' Sek';
+  }
+  function isOverdue(r){
+    if(r.done || r.fired) return false;
+    const t = timeUntil(r);
+    return t !== null && t < -60000;
+  }
+  function isSoon(r){ // innerhalb 60 Min
+    const t = timeUntil(r);
+    return !r.done && !r.fired && t !== null && t > 0 && t < 60*60*1000;
+  }
+  function isToday(r){
+    if(!r.date) return false;
+    const today = new Date();
+    const y = today.getFullYear(), mo = today.getMonth()+1, d = today.getDate();
+    const todayStr = y + '-' + String(mo).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    return r.date === todayStr;
+  }
+  function nextOccurrence(r, fromTs){
+    // Bei Repeat: nächstes Vorkommen ab fromTs
+    if(r.repeat === 'none') return null;
+    const base = dueDate(r);
+    if(!base) return null;
+    let next = new Date(base.getTime());
+    while(next.getTime() <= fromTs){
+      if(r.repeat === 'daily') next.setDate(next.getDate() + 1);
+      else if(r.repeat === 'weekly') next.setDate(next.getDate() + 7);
+      else if(r.repeat === 'monthly') next.setMonth(next.getMonth() + 1);
+      else if(r.repeat === 'weekdays'){
+        next.setDate(next.getDate() + 1);
+        while(next.getDay() === 0 || next.getDay() === 6) next.setDate(next.getDate() + 1);
+      } else break;
+    }
+    return next;
+  }
+
+  function renderStats(){
+    const el = document.getElementById('rmStats');
+    if(!el) return;
+    const total = reminders.length;
+    const today = reminders.filter(r => !r.done && isToday(r)).length;
+    const overdue = reminders.filter(isOverdue).length;
+    const soon = reminders.filter(isSoon).length;
+    el.innerHTML = `
+      <div class="rm-stat"><div class="rs-num">${total}</div><div class="rs-lbl">Gesamt</div></div>
+      <div class="rm-stat"><div class="rs-num">${today}</div><div class="rs-lbl">Heute</div></div>
+      <div class="rm-stat"><div class="rs-num" style="color:${soon?'#ffee88':'#ffaa00'}">${soon}</div><div class="rs-lbl">Bald</div></div>
+      <div class="rm-stat"><div class="rs-num" style="color:${overdue?'#ff6688':'#ffaa00'}">${overdue}</div><div class="rs-lbl">Überfällig</div></div>
+    `;
+  }
+
+  function renderFilters(){
+    const el = document.getElementById('rmFilters');
+    if(!el) return;
+    const list = [
+      ['upcoming','📅 Kommend'],
+      ['today','⭐ Heute'],
+      ['overdue','⏰ Überfällig'],
+      ['all','📋 Alle'],
+      ['done','✅ Erledigt']
+    ];
+    el.innerHTML = list.map(([id,label]) =>
+      `<button class="rm-chip ${currentFilter===id?'active':''}" onclick="HalDoRemindersApp.setFilter('${id}')">${label}</button>`
+    ).join('');
+  }
+
+  function renderList(){
+    const list = document.getElementById('rmList');
+    if(!list) return;
+    let arr = reminders.slice();
+    if(currentFilter === 'upcoming') arr = arr.filter(r => !r.done);
+    else if(currentFilter === 'today') arr = arr.filter(r => !r.done && isToday(r));
+    else if(currentFilter === 'overdue') arr = arr.filter(isOverdue);
+    else if(currentFilter === 'done') arr = arr.filter(r => r.done);
+
+    // Sortiere nach Zeit
+    arr.sort((a,b) => {
+      const ta = dueDate(a)?.getTime() ?? Infinity;
+      const tb = dueDate(b)?.getTime() ?? Infinity;
+      return ta - tb;
+    });
+
+    if(!arr.length){
+      const msgs = {
+        upcoming: ['🔔','Keine anstehenden Erinnerungen','Klicke "✚ Neue Erinnerung"'],
+        today: ['✨','Heute keine Erinnerungen','Genieß den Tag!'],
+        overdue: ['🎉','Nichts überfällig','Perfekt im Zeitplan!'],
+        all: ['📭','Noch keine Erinnerungen','Klicke "✚ Neue Erinnerung"'],
+        done: ['🏆','Noch nichts erledigt','Arbeite deine Liste ab!']
+      };
+      const m = msgs[currentFilter] || msgs.upcoming;
+      list.innerHTML = `<div class="rm-empty">
+        <div class="re-icon">${m[0]}</div>
+        <div class="re-text">${m[1]}</div>
+        <div class="re-sub">${m[2]}</div>
+      </div>`;
+      return;
+    }
+
+    list.innerHTML = arr.map(r => {
+      const delta = timeUntil(r);
+      const soon = isSoon(r);
+      const overdue = isOverdue(r);
+      let timeCls = 'rm-badge time';
+      let timeLbl = '';
+      if(r.date && r.time){
+        const d = new Date(dueDate(r));
+        const dateStr = d.toLocaleDateString('de-DE', { day:'2-digit', month:'short' });
+        if(r.fired) timeLbl = '🔔 Hat gefeuert';
+        else if(r.done) timeLbl = '✓ Erledigt';
+        else if(overdue) timeLbl = '⏰ Überfällig';
+        else if(isToday(r)){ timeCls += ' soon2'; timeLbl = '⭐ Heute ' + r.time + ' · ' + formatDelta(delta); }
+        else { timeLbl = '📅 ' + dateStr + ' ' + r.time + ' · ' + formatDelta(delta); }
+        if(soon) timeCls += ' soon';
+      } else {
+        timeLbl = '📅 Kein Datum';
+      }
+      const repeatLbl = r.repeat && r.repeat !== 'none'
+        ? { daily:'🔁 Täglich', weekly:'🔁 Wöchentlich', monthly:'🔁 Monatlich', weekdays:'🔁 Werktags' }[r.repeat]
+        : null;
+      return `<div class="rm-item ${r.done?'done':''} ${r.fired?'fired':''}" onclick="HalDoRemindersApp.view('${r.id}')">
+        <div class="rm-item-emoji">${r.emoji || '🔔'}</div>
+        <div class="rm-item-main">
+          <div class="rm-item-title">${escapeHtml(r.title)}</div>
+          ${r.desc ? `<p class="rm-item-desc">${escapeHtml(r.desc)}</p>` : ''}
+          <div class="rm-item-badges">
+            <span class="${timeCls}">${timeLbl}</span>
+            ${repeatLbl ? `<span class="rm-badge repeat">${repeatLbl}</span>` : ''}
+            ${r.done ? `<span class="rm-badge done">✓ Erledigt</span>` : ''}
+            ${r.fired && !r.done ? `<span class="rm-badge fired">🔔 Feuert</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function render(){ renderStats(); renderFilters(); renderList(); }
+
+  // ═══ Feuern (Alarm) ═══
+  function checkDue(){
+    const now = Date.now();
+    for(const r of reminders){
+      if(r.done || r.fired) continue;
+      const due = dueDate(r);
+      if(!due) continue;
+      if(due.getTime() <= now){
+        fire(r);
+        break; // Eine nach der anderen
+      }
+    }
+  }
+
+  function fire(r){
+    r.fired = true;
+    r.firedAt = Date.now();
+    save();
+    showAlert(r);
+    if(r.sound !== false){
+      playAlertSound();
+      if(navigator.vibrate) navigator.vibrate([200,100,200,100,300]);
+    }
+    // Browser-Notification
+    if(window.Notification && Notification.permission === 'granted'){
+      try {
+        new Notification('🔔 ' + r.title, {
+          body: r.desc || ('Erinnerung um ' + r.time),
+          icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="80" font-size="80">🔔</text></svg>'
+        });
+      } catch(e){}
+    }
+    // In AI Memory notieren
+    if(window.HalDoMemory){
+      HalDoMemory.remember('🔔 Erinnerung ausgelöst: ' + r.title,
+        r.desc || '', 'personal', ['reminder','fired']);
+    }
+    render();
+  }
+
+  function showAlert(r){
+    alertId = r.id;
+    document.getElementById('rmAlertTitle').textContent = r.title;
+    document.getElementById('rmAlertDesc').textContent = r.desc || 'Zeit für diese Erinnerung!';
+    const d = dueDate(r);
+    document.getElementById('rmAlertTime').textContent = d
+      ? d.toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' }) + ' Uhr'
+      : 'JETZT';
+    document.getElementById('rmAlertModal').classList.add('show');
+  }
+
+  function dismissAlert(){
+    if(alertId){
+      const r = reminders.find(x => x.id === alertId);
+      if(r){
+        if(r.repeat && r.repeat !== 'none'){
+          // Nächstes Vorkommen planen
+          const next = nextOccurrence(r, Date.now());
+          if(next){
+            r.date = next.getFullYear() + '-' + String(next.getMonth()+1).padStart(2,'0') + '-' + String(next.getDate()).padStart(2,'0');
+            r.time = String(next.getHours()).padStart(2,'0') + ':' + String(next.getMinutes()).padStart(2,'0');
+            r.fired = false;
+            r.firedAt = null;
+          } else {
+            r.done = true;
+          }
+        } else {
+          r.done = true;
+          r.completedAt = Date.now();
+        }
+        save();
+      }
+    }
+    document.getElementById('rmAlertModal').classList.remove('show');
+    alertId = null;
+    render();
+    if(navigator.vibrate) navigator.vibrate(15);
+  }
+
+  function snoozeAlert(){
+    if(alertId){
+      const r = reminders.find(x => x.id === alertId);
+      if(r){
+        // 5 Min in der Zukunft
+        const next = new Date(Date.now() + 5*60*1000);
+        r.date = next.getFullYear() + '-' + String(next.getMonth()+1).padStart(2,'0') + '-' + String(next.getDate()).padStart(2,'0');
+        r.time = String(next.getHours()).padStart(2,'0') + ':' + String(next.getMinutes()).padStart(2,'0');
+        r.fired = false;
+        r.firedAt = null;
+        save();
+      }
+    }
+    document.getElementById('rmAlertModal').classList.remove('show');
+    alertId = null;
+    render();
+    toast('😴 In 5 Minuten wieder');
+    if(navigator.vibrate) navigator.vibrate(10);
+  }
+
+  // ═══ Sound ═══
+  function playAlertSound(){
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const now = ctx.currentTime;
+      [0, 0.25, 0.5].forEach((offset, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now + offset);
+        osc.frequency.exponentialRampToValueAtTime(1320, now + offset + 0.15);
+        gain.gain.setValueAtTime(0.001, now + offset);
+        gain.gain.exponentialRampToValueAtTime(0.3, now + offset + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.2);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + offset);
+        osc.stop(now + offset + 0.25);
+      });
+    } catch(e){ console.warn('Sound fehlgeschlagen', e); }
+  }
+
+  // ═══ Permission ═══
+  function requestPermission(){
+    if(!window.Notification){
+      toast('⚠️ Keine Benachrichtigungen möglich');
+      return;
+    }
+    Notification.requestPermission().then(p => {
+      if(p === 'granted') toast('🔔 Benachrichtigungen aktiviert');
+      else toast('🔕 Nicht erlaubt');
+    });
+  }
+
+  // ═══ Editor ═══
+  function openEditor(id){
+    const titleEl = document.getElementById('rmEditorTitle');
+    if(id){
+      const r = reminders.find(x => x.id === id);
+      if(!r) return;
+      titleEl.textContent = '✏️ Erinnerung bearbeiten';
+      document.getElementById('rmEditId').value = r.id;
+      document.getElementById('rmInputTitle').value = r.title || '';
+      document.getElementById('rmInputDesc').value = r.desc || '';
+      document.getElementById('rmInputDate').value = r.date || '';
+      document.getElementById('rmInputTime').value = r.time || '09:00';
+      document.getElementById('rmInputRepeat').value = r.repeat || 'none';
+      document.getElementById('rmInputEmoji').value = r.emoji || '🔔';
+      document.getElementById('rmInputSound').value = r.sound === false ? '0' : '1';
+    } else {
+      titleEl.textContent = '✚ Neue Erinnerung';
+      document.getElementById('rmEditId').value = '';
+      document.getElementById('rmInputTitle').value = '';
+      document.getElementById('rmInputDesc').value = '';
+      const now = new Date(Date.now() + 60*60*1000);
+      const y = now.getFullYear(), mo = String(now.getMonth()+1).padStart(2,'0'), d = String(now.getDate()).padStart(2,'0');
+      document.getElementById('rmInputDate').value = y + '-' + mo + '-' + d;
+      document.getElementById('rmInputTime').value = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+      document.getElementById('rmInputRepeat').value = 'none';
+      document.getElementById('rmInputEmoji').value = '🔔';
+      document.getElementById('rmInputSound').value = '1';
+    }
+    document.getElementById('rmEditorModal').classList.add('show');
+    setTimeout(() => document.getElementById('rmInputTitle').focus(), 100);
+  }
+  function closeEditor(){ document.getElementById('rmEditorModal').classList.remove('show'); }
+
+  function saveReminder(){
+    const id = document.getElementById('rmEditId').value;
+    const title = document.getElementById('rmInputTitle').value.trim();
+    if(!title){ toast('⚠️ Bitte Titel eingeben'); return; }
+    const date = document.getElementById('rmInputDate').value;
+    const time = document.getElementById('rmInputTime').value;
+    if(!date || !time){ toast('⚠️ Datum und Uhrzeit eingeben'); return; }
+    const data = {
+      title,
+      desc: document.getElementById('rmInputDesc').value.trim(),
+      date, time,
+      repeat: document.getElementById('rmInputRepeat').value,
+      emoji: document.getElementById('rmInputEmoji').value,
+      sound: document.getElementById('rmInputSound').value === '1'
+    };
+    if(id){
+      const r = reminders.find(x => x.id === id);
+      if(r) Object.assign(r, data, { updated: Date.now(), fired:false, firedAt:null, done:false });
+    } else {
+      reminders.push({ id: uid(), ...data, done:false, fired:false, created: Date.now(), updated: Date.now() });
+    }
+    save(); render(); closeEditor();
+    toast(id ? '✅ Aktualisiert' : '🔔 Erinnerung gesetzt');
+    if(typeof playSound === 'function') playSound('success');
+    if(navigator.vibrate) navigator.vibrate(15);
+  }
+
+  // ═══ View ═══
+  function view(id){
+    const r = reminders.find(x => x.id === id);
+    if(!r) return;
+    currentViewId = id;
+    // Für jetzt: direkt Editor öffnen beim Klick auf Item
+    openEditor(id);
+  }
+
+  function deleteCurrent(){
+    if(!currentViewId) return;
+    const r = reminders.find(x => x.id === currentViewId);
+    if(!r) return;
+    if(!confirm('Erinnerung "' + r.title + '" wirklich löschen?')) return;
+    reminders = reminders.filter(x => x.id !== currentViewId);
+    save(); render(); closeEditor(); toast('🗑️ Gelöscht');
+  }
+
+  function setFilter(f){ currentFilter = f; render(); }
+
+  // ═══ Export / Import ═══
+  function exportAll(){
+    if(!reminders.length){ toast('⚠️ Keine Erinnerungen'); return; }
+    const data = { app:'HalDo Reminders', version:1, exported:new Date().toISOString(), count:reminders.length, reminders };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = 'haldo-reminders-' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast('📤 ' + reminders.length + ' exportiert');
+  }
+  function importFile(){ document.getElementById('rmImportFile').click(); }
+  function handleImport(ev){
+    const f = ev.target.files && ev.target.files[0];
+    if(!f) return;
+    const r = new FileReader();
+    r.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        const incoming = Array.isArray(data) ? data : (data.reminders || []);
+        if(!Array.isArray(incoming) || !incoming.length){ toast('⚠️ Keine Daten'); return; }
+        const mode = confirm(incoming.length + ' Erinnerungen gefunden.\n\nOK = HINZUFÜGEN\nAbbrechen = ERSETZEN') ? 'merge' : 'replace';
+        if(mode === 'replace') reminders = incoming.map(norm);
+        else {
+          const ids = new Set(reminders.map(r => r.id));
+          incoming.forEach(raw => { const r = norm(raw); if(ids.has(r.id)) r.id = uid(); reminders.push(r); });
+        }
+        save(); render(); toast('📥 ' + incoming.length + ' importiert');
+      } catch(err){ toast('❌ Import-Fehler'); console.error(err); }
+      ev.target.value = '';
+    };
+    r.readAsText(f);
+  }
+  function norm(raw){
+    return {
+      id: raw.id || uid(),
+      title: raw.title || '(Ohne Titel)',
+      desc: raw.desc || '',
+      date: raw.date || '',
+      time: raw.time || '09:00',
+      repeat: raw.repeat || 'none',
+      emoji: raw.emoji || '🔔',
+      sound: raw.sound !== false,
+      done: !!raw.done,
+      fired: !!raw.fired,
+      firedAt: raw.firedAt || null,
+      created: raw.created || Date.now(),
+      updated: raw.updated || Date.now()
+    };
+  }
+
+  // ═══ Window ═══
+  function openWindow(){
+    const w = document.getElementById('reminderWindow');
+    if(!w) return;
+    load(); render(); w.classList.add('show');
+    startTicker();
+    if(typeof playSound === 'function') playSound('open');
+    if(navigator.vibrate) navigator.vibrate(10);
+  }
+  function closeWindow(){
+    document.getElementById('reminderWindow').classList.remove('show');
+    closeEditor();
+    if(typeof playSound === 'function') playSound('close');
+  }
+
+  function startTicker(){
+    if(tickInterval) return;
+    tickInterval = setInterval(() => {
+      // Nur feuern wenn Reminder-Fenster offen ODER Tab aktiv
+      if(document.visibilityState === 'visible') checkDue();
+      // Auch Render aktualisieren falls offen
+      if(document.getElementById('reminderWindow')?.classList.contains('show')) render();
+    }, 15000); // alle 15 Sek prüfen
+  }
+
+  // ═══ Toast ═══
+  function toast(msg){
+    let el = document.getElementById('rmToast');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'rmToast';
+      el.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);' +
+        'padding:12px 20px;border-radius:12px;background:linear-gradient(135deg,#ffaa00,#ff8844);' +
+        'color:#1a0800;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:all .3s;' +
+        'z-index:9000;box-shadow:0 10px 40px rgba(255,170,0,.5);';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.opacity = '1';
+    el.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(el._t);
+    el._t = setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateX(-50%) translateY(20px)';
+    }, 2200);
+  }
+
+  // ═══ Public API ═══
+  window.HalDoReminders = {
+    add(title, date, time, opts){
+      const r = {
+        id: uid(),
+        title: title || '(Ohne Titel)',
+        desc: (opts && opts.desc) || '',
+        date, time,
+        repeat: (opts && opts.repeat) || 'none',
+        emoji: (opts && opts.emoji) || '🔔',
+        sound: !(opts && opts.sound === false),
+        done: false, fired: false,
+        created: Date.now(), updated: Date.now(),
+        source: 'api'
+      };
+      reminders.push(r); save();
+      startTicker();
+      if(document.getElementById('reminderWindow')?.classList.contains('show')) render();
+      return r.id;
+    },
+    all(){ return reminders.slice(); },
+    upcoming(){ return reminders.filter(r => !r.done).sort((a,b) => (dueDate(a)?.getTime()||0) - (dueDate(b)?.getTime()||0)); },
+    count(){ return reminders.length; }
+  };
+
+  window.HalDoRemindersApp = {
+    open: openWindow, close: closeWindow, render,
+    setFilter,
+    openEditor, closeEditor, save: saveReminder,
+    view, deleteCurrent,
+    dismissAlert, snoozeAlert, requestPermission,
+    exportAll, importFile,
+    checkDue
+  };
+
+  // Hook openWin
+  const orig = window.openWin;
+  window.openWin = function(id){
+    if(id === 'reminder-window' || id === 'reminders-window'){ openWindow(); return; }
+    if(typeof orig === 'function') return orig(id);
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const fi = document.getElementById('rmImportFile');
+    if(fi) fi.addEventListener('change', handleImport);
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape'){
+        if(document.getElementById('rmEditorModal').classList.contains('show')) closeEditor();
+        else if(document.getElementById('rmAlertModal').classList.contains('show')) dismissAlert();
+        else if(document.getElementById('reminderWindow').classList.contains('show')) closeWindow();
+      }
+    });
+  });
+
+  load();
+  // Ticker starten wenn App geladen (damit auch ohne offenes Fenster geprüft wird)
+  startTicker();
+  console.log('%c🔔 Reminders App geladen · ' + reminders.length + ' Erinnerungen',
+    'color:#ffaa00;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═════════════════════ ENDE v60b REMINDER ════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
