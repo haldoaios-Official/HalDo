@@ -5558,5 +5558,452 @@ if(document.readyState === 'loading'){
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v131 – 6 CORE APPS (Memory · Goals · Habits · Tasks · Journal · Calendar) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+"use strict";
+if(window.__v131) return;
+window.__v131 = true;
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const store=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const todayK=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+
+// ═══ MEMORY PRO ═══
+window.HalDoMemoryPro={
+  key:'haldo_memorypro_v1',
+  cats:{personal:{n:'Persönlich',i:'👤',c:'#00e5ff'},family:{n:'Familie',i:'👨‍👩‍👧',c:'#ff78c8'},work:{n:'Arbeit',i:'💼',c:'#ffc800'},learn:{n:'Lernen',i:'📚',c:'#00ff88'},health:{n:'Gesundheit',i:'❤️',c:'#ff4466'},ideas:{n:'Ideen',i:'💡',c:'#b478ff'}},
+  all(){return store(this.key,[])},
+  add(title,content,cat,tags,star){
+    const l=this.all();
+    l.unshift({id:uid('m_'),title,content,cat:cat||'personal',tags:tags||[],star:!!star,created:Date.now()});
+    save(this.key,l.slice(0,1000));
+    return l[0].id;
+  },
+  remove(id){save(this.key,this.all().filter(x=>x.id!==id))},
+  toggleStar(id){const l=this.all();const x=l.find(v=>v.id===id);if(x){x.star=!x.star;save(this.key,l)}},
+  count(){return this.all().length}
+};
+
+let memProState={filter:'all',search:''};
+function buildMemoryPro(){
+  const w=$('memory-window'); if(!w) return;
+  w.dataset.title='AI Memory'; w.dataset.icon='💾';
+  const all=HalDoMemoryPro.all();
+  let filtered=all;
+  if(memProState.filter!=='all'&&memProState.filter!=='star') filtered=filtered.filter(m=>m.cat===memProState.filter);
+  if(memProState.filter==='star') filtered=filtered.filter(m=>m.star);
+  if(memProState.search){const q=memProState.search.toLowerCase();filtered=filtered.filter(m=>(m.title||'').toLowerCase().includes(q)||(m.content||'').toLowerCase().includes(q));}
+  filtered.sort((a,b)=>(b.star?1:0)-(a.star?1:0)||b.created-a.created);
+  const chips='<button class="os-btn '+(memProState.filter==='all'?'primary':'')+'" style="padding:6px 12px;font-size:11px;white-space:nowrap" onclick="HalDoMemPro.setFilter(\'all\')">Alle ('+all.length+')</button>'+
+    '<button class="os-btn '+(memProState.filter==='star'?'primary':'')+'" style="padding:6px 12px;font-size:11px;white-space:nowrap" onclick="HalDoMemPro.setFilter(\'star\')">⭐ Wichtig</button>'+
+    Object.entries(HalDoMemoryPro.cats).map(([k,c])=>{
+      const cnt=all.filter(m=>m.cat===k).length;
+      return '<button class="os-btn '+(memProState.filter===k?'primary':'')+'" style="padding:6px 12px;font-size:11px;white-space:nowrap;color:'+c.c+'" onclick="HalDoMemPro.setFilter(\''+k+'\')">'+c.i+' '+c.n+' ('+cnt+')</button>';
+    }).join('');
+  const list=filtered.length?filtered.slice(0,50).map(m=>{
+    const cat=HalDoMemoryPro.cats[m.cat]||HalDoMemoryPro.cats.personal;
+    return '<div class="card" style="padding:12px;border-left:4px solid '+cat.c+'">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'+
+      '<div style="flex:1;min-width:0">'+
+      '<div style="font-size:13px;font-weight:800;color:#fff;margin-bottom:3px">'+esc(m.title||'(Ohne Titel)')+'</div>'+
+      '<div style="font-size:11px;color:#aaddff;line-height:1.5">'+esc((m.content||'').slice(0,120))+'</div>'+
+      '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">'+
+      '<span style="font-size:9px;padding:2px 8px;background:'+cat.c+'22;color:'+cat.c+';border-radius:6px;font-weight:800">'+cat.i+' '+cat.n+'</span>'+
+      (m.tags||[]).slice(0,3).map(t=>'<span style="font-size:9px;padding:2px 6px;background:rgba(255,255,255,.08);color:#aaddff;border-radius:6px">#'+esc(t)+'</span>').join('')+
+      '</div></div>'+
+      '<div style="display:flex;flex-direction:column;gap:4px">'+
+      '<button class="os-btn" style="padding:6px 10px;font-size:14px" onclick="HalDoMemoryPro.toggleStar(\''+m.id+'\');HalDoMemPro.rebuild()">'+(m.star?'⭐':'☆')+'</button>'+
+      '<button class="os-btn danger" style="padding:6px 10px;font-size:12px" onclick="if(confirm(\'Löschen?\')){HalDoMemoryPro.remove(\''+m.id+'\');HalDoMemPro.rebuild()}">✕</button>'+
+      '</div></div></div>';
+  }).join(''):'<div class="empty"><div class="ei">💾</div><div class="et">Keine Erinnerungen</div></div>';
+  w.innerHTML=
+    '<div class="card">'+
+    '<input class="os-input" id="mpTitle" placeholder="Titel" style="margin-bottom:8px">'+
+    '<textarea class="os-textarea" id="mpContent" placeholder="Inhalt..." style="min-height:80px;margin-bottom:8px"></textarea>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+    '<select class="os-select" id="mpCat">'+Object.entries(HalDoMemoryPro.cats).map(([k,c])=>'<option value="'+k+'">'+c.i+' '+c.n+'</option>').join('')+'</select>'+
+    '<input class="os-input" id="mpTags" placeholder="Tags (Komma)">'+
+    '</div>'+
+    '<button class="os-btn primary full" onclick="HalDoMemPro.add()">💾 Speichern</button>'+
+    '</div>'+
+    '<div class="card"><input class="os-input" placeholder="🔍 Suchen..." value="'+esc(memProState.search)+'" oninput="HalDoMemPro.search(this.value)"></div>'+
+    '<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:10px">'+chips+'</div>'+
+    list;
+}
+
+window.HalDoMemPro={
+  setFilter(f){memProState.filter=f;buildMemoryPro()},
+  search(q){memProState.search=q;buildMemoryPro()},
+  add(){
+    const t=$('mpTitle').value.trim(),c=$('mpContent').value.trim();
+    if(!t&&!c){if(window.showToast)showToast('⚠️ Inhalt fehlt','error');return;}
+    const tags=$('mpTags').value.split(',').map(x=>x.trim()).filter(Boolean);
+    HalDoMemoryPro.add(t,c,$('mpCat').value,tags,false);
+    $('mpTitle').value='';$('mpContent').value='';$('mpTags').value='';
+    buildMemoryPro();
+    if(window.showToast)showToast('💾 Gespeichert','success');
+  },
+  rebuild(){buildMemoryPro()}
+};
+
+// ═══ GOALS PRO ═══
+window.HalDoGoalsPro={
+  key:'haldo_goalspro_v1',
+  all(){return store(this.key,[])},
+  add(title,desc,due,prio){const l=this.all();l.unshift({id:uid('g_'),title,desc,due,prio:prio||'mid',status:'active',milestones:[],created:Date.now()});save(this.key,l);return l[0].id},
+  remove(id){save(this.key,this.all().filter(x=>x.id!==id))},
+  addMilestone(gid,text){const l=this.all();const g=l.find(x=>x.id===gid);if(g){if(!g.milestones)g.milestones=[];g.milestones.push({text,done:false});save(this.key,l)}},
+  toggleMilestone(gid,idx){const l=this.all();const g=l.find(x=>x.id===gid);if(g&&g.milestones[idx]){g.milestones[idx].done=!g.milestones[idx].done;save(this.key,l)}},
+  progress(g){if(!g.milestones||!g.milestones.length)return g.status==='done'?100:0;return Math.round(g.milestones.filter(m=>m.done).length/g.milestones.length*100)},
+  active(){return this.all().filter(g=>g.status==='active')}
+};
+
+let goalsProState={filter:'active'};
+function buildGoalsPro(){
+  const w=$('goals-window'); if(!w) return;
+  w.dataset.title='Goals'; w.dataset.icon='🎯';
+  const all=HalDoGoalsPro.all();
+  let filtered=goalsProState.filter==='all'?all:all.filter(g=>g.status===goalsProState.filter);
+  const list=filtered.length?filtered.map(g=>{
+    const prog=HalDoGoalsPro.progress(g);
+    const pc=g.prio==='high'?'#ff4466':g.prio==='mid'?'#ffc800':'#00e5ff';
+    const ms=(g.milestones||[]).map((m,i)=>'<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(0,0,0,.3);border-radius:8px;margin-top:4px"><div style="width:20px;height:20px;border-radius:6px;border:2px solid '+(m.done?'#00ff88':'var(--border)')+';background:'+(m.done?'linear-gradient(135deg,#00ff88,#00e5ff)':'transparent')+';display:flex;align-items:center;justify-content:center;color:#001018;font-size:12px;font-weight:900;cursor:pointer;flex-shrink:0" onclick="HalDoGoalsPro.toggleMilestone(\''+g.id+'\','+i+');HalDoGoalsProApp.rebuild()">'+(m.done?'✓':'')+'</div><div style="flex:1;font-size:12px;color:#fff;'+(m.done?'text-decoration:line-through;opacity:.6':'')+'">'+esc(m.text)+'</div></div>').join('');
+    return '<div class="card" style="padding:12px;border-left:4px solid '+pc+'">'+
+      '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">'+
+      '<div style="flex:1;min-width:0">'+
+      '<div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">'+esc(g.title)+'</div>'+
+      (g.desc?'<div style="font-size:11px;color:#aaddff;margin-bottom:6px;line-height:1.5">'+esc(g.desc)+'</div>':'')+
+      (g.due?'<div style="font-size:10px;color:#7ce0ff;margin-bottom:6px">📅 bis '+esc(g.due)+'</div>':'')+
+      '<div style="height:6px;background:rgba(0,0,0,.5);border-radius:3px;overflow:hidden;margin-bottom:6px"><div style="height:100%;width:'+prog+'%;background:linear-gradient(90deg,#00e5ff,#4da8ff);box-shadow:0 0 8px var(--glow)"></div></div>'+
+      '<div style="font-size:10px;color:#7ce0ff;font-weight:800">'+prog+'% · '+((g.milestones||[]).filter(m=>m.done).length)+'/'+((g.milestones||[]).length)+' Meilensteine</div>'+
+      '</div>'+
+      '<button class="os-btn danger" style="padding:6px 10px;font-size:12px" onclick="if(confirm(\'Löschen?\')){HalDoGoalsPro.remove(\''+g.id+'\');HalDoGoalsProApp.rebuild()}">✕</button>'+
+      '</div>'+
+      (ms?'<div style="margin-top:8px">'+ms+'</div>':'')+
+      '<button class="os-btn" style="width:100%;margin-top:6px;padding:6px;font-size:11px" onclick="var t=prompt(\'Neuer Meilenstein:\');if(t){HalDoGoalsPro.addMilestone(\''+g.id+'\',t);HalDoGoalsProApp.rebuild()}">✚ Meilenstein</button>'+
+      '</div>';
+  }).join(''):'<div class="empty"><div class="ei">🎯</div><div class="et">Keine Ziele</div></div>';
+  w.innerHTML=
+    '<div class="card">'+
+    '<input class="os-input" id="gpT" placeholder="Ziel-Titel" style="margin-bottom:8px">'+
+    '<textarea class="os-textarea" id="gpD" placeholder="Beschreibung (optional)" style="min-height:60px;margin-bottom:8px"></textarea>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+    '<input class="os-input" id="gpDue" type="date">'+
+    '<select class="os-select" id="gpPrio"><option value="low">🔵 Niedrig</option><option value="mid" selected>🟡 Mittel</option><option value="high">🔴 Hoch</option></select>'+
+    '</div>'+
+    '<button class="os-btn primary full" onclick="HalDoGoalsProApp.add()">🎯 Ziel anlegen</button>'+
+    '</div>'+
+    '<div style="display:flex;gap:4px;margin-bottom:12px">'+
+    '<button class="os-btn '+(goalsProState.filter==='active'?'primary':'')+'" style="flex:1;padding:8px;font-size:11px" onclick="HalDoGoalsProApp.setFilter(\'active\')">Aktiv</button>'+
+    '<button class="os-btn '+(goalsProState.filter==='done'?'primary':'')+'" style="flex:1;padding:8px;font-size:11px" onclick="HalDoGoalsProApp.setFilter(\'done\')">Erreicht</button>'+
+    '<button class="os-btn '+(goalsProState.filter==='all'?'primary':'')+'" style="flex:1;padding:8px;font-size:11px" onclick="HalDoGoalsProApp.setFilter(\'all\')">Alle</button>'+
+    '</div>'+list;
+}
+
+window.HalDoGoalsProApp={
+  setFilter(f){goalsProState.filter=f;buildGoalsPro()},
+  add(){const t=$('gpT').value.trim();if(!t)return;HalDoGoalsPro.add(t,$('gpD').value.trim(),$('gpDue').value,$('gpPrio').value);$('gpT').value='';$('gpD').value='';buildGoalsPro();if(window.showToast)showToast('🎯 Ziel angelegt','success')},
+  rebuild(){buildGoalsPro()}
+};
+
+// ═══ HABITS PRO ═══
+window.HalDoHabitsPro={
+  key:'haldo_habitspro_v1',
+  all(){return store(this.key,[])},
+  add(name,emoji,color){const l=this.all();l.unshift({id:uid('h_'),name,emoji:emoji||'🎯',color:color||'#00e5ff',log:{},created:Date.now()});save(this.key,l);return l[0].id},
+  remove(id){save(this.key,this.all().filter(x=>x.id!==id))},
+  toggle(id){
+    const l=this.all();const h=l.find(x=>x.id===id);if(!h)return;
+    const k=todayK();
+    if(h.log[k])delete h.log[k];else h.log[k]=true;
+    save(this.key,l);
+  },
+  isDone(id){const h=this.all().find(x=>x.id===id);return h&&h.log&&h.log[todayK()]},
+  streak(h){
+    if(!h.log)return 0;let s=0;const t=new Date();
+    for(let i=0;i<365;i++){const d=new Date(t);d.setDate(d.getDate()-i);const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');if(h.log[k])s++;else if(i>0)break;}
+    return s;
+  }
+};
+
+function buildHabitsPro(){
+  const w=$('habits-window'); if(!w) return;
+  w.dataset.title='Habits'; w.dataset.icon='🔁';
+  const all=HalDoHabitsPro.all();
+  const doneToday=all.filter(h=>h.log&&h.log[todayK()]).length;
+  const list=all.length?all.map(h=>{
+    const done=HalDoHabitsPro.isDone(h.id);
+    const streak=HalDoHabitsPro.streak(h);
+    // 7 Tage Strip
+    let week='';const t=new Date();
+    for(let i=6;i>=0;i--){
+      const d=new Date(t);d.setDate(d.getDate()-i);
+      const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      const wasDone=h.log&&h.log[k];
+      const isToday=k===todayK();
+      const dayName=['So','Mo','Di','Mi','Do','Fr','Sa'][d.getDay()];
+      week+='<div style="flex:1;text-align:center;padding:6px 2px;border-radius:8px;background:'+(wasDone?'linear-gradient(135deg,'+h.color+',#00e5ff)':'rgba(0,0,0,.3)')+';border:1.5px solid '+(isToday?'#fff':'transparent')+';color:'+(wasDone?'#001018':'#5a8ab0')+';font-size:9px;font-weight:900">'+dayName+'</div>';
+    }
+    return '<div class="card" style="padding:12px">'+
+      '<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">'+
+      '<div style="font-size:32px;width:44px;text-align:center">'+h.emoji+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+      '<div style="font-size:14px;font-weight:800;color:#fff">'+esc(h.name)+'</div>'+
+      '<div style="font-size:11px;color:#ff8c3c;font-weight:800">🔥 '+streak+' Tage</div>'+
+      '</div>'+
+      '<button class="os-btn '+(done?'success':'primary')+'" style="padding:12px 18px;font-size:22px;min-width:56px" onclick="HalDoHabitsProApp.toggle(\''+h.id+'\')">'+(done?'✓':'○')+'</button>'+
+      '</div>'+
+      '<div style="display:flex;gap:4px">'+week+'</div>'+
+      '<button class="os-btn danger" style="width:100%;margin-top:8px;padding:6px;font-size:11px" onclick="if(confirm(\'Löschen?\')){HalDoHabitsPro.remove(\''+h.id+'\');HalDoHabitsProApp.rebuild()}">🗑️ Entfernen</button>'+
+      '</div>';
+  }).join(''):'<div class="empty"><div class="ei">🔁</div><div class="et">Keine Gewohnheiten</div></div>';
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center"><div class="big">'+doneToday+'/'+all.length+'</div><div class="lbl">Heute</div></div>'+
+    '<div class="card" style="text-align:center"><div class="big" style="color:#ff8c3c">🔥 '+all.reduce((m,h)=>Math.max(m,HalDoHabitsPro.streak(h)),0)+'</div><div class="lbl">Bester Streak</div></div>'+
+    '</div>'+
+    '<div class="card">'+
+    '<input class="os-input" id="hpN" placeholder="Neue Gewohnheit..." style="margin-bottom:8px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+    '<select class="os-select" id="hpE"><option value="💪">💪 Sport</option><option value="📚">📚 Lesen</option><option value="💧">💧 Wasser</option><option value="🧘">🧘 Meditation</option><option value="🏃">🏃 Laufen</option><option value="✍️">✍️ Schreiben</option><option value="🎯">🎯 Ziel</option></select>'+
+    '<select class="os-select" id="hpC"><option value="#00e5ff">🔵 Cyan</option><option value="#ff5078">🔴 Rot</option><option value="#00ff88">🟢 Grün</option><option value="#ffc800">🟡 Gelb</option><option value="#b478ff">🟣 Lila</option></select>'+
+    '</div>'+
+    '<button class="os-btn primary full" onclick="HalDoHabitsProApp.add()">✚ Gewohnheit hinzufügen</button>'+
+    '</div>'+list;
+}
+
+window.HalDoHabitsProApp={
+  add(){const n=$('hpN').value.trim();if(!n)return;HalDoHabitsPro.add(n,$('hpE').value,$('hpC').value);$('hpN').value='';buildHabitsPro();if(window.showToast)showToast('🔁 Hinzugefügt','success')},
+  toggle(id){HalDoHabitsPro.toggle(id);if(navigator.vibrate)navigator.vibrate(15);buildHabitsPro()},
+  rebuild(){buildHabitsPro()}
+};
+
+// ═══ TASKS PRO ═══
+window.HalDoTasksPro={
+  key:'haldo_taskspro_v1',
+  all(){return store(this.key,[])},
+  add(title,prio,due,cat){const l=this.all();l.unshift({id:uid('t_'),title,prio:prio||'mid',due,done:false,cat:cat||'personal',created:Date.now()});save(this.key,l);return l[0].id},
+  toggle(id){const l=this.all();const x=l.find(v=>v.id===id);if(x){x.done=!x.done;save(this.key,l)}},
+  remove(id){save(this.key,this.all().filter(x=>x.id!==id))},
+  isOverdue(t){return t.due&&t.due<todayK()&&!t.done}
+};
+
+let tasksProState={filter:'open'};
+function buildTasksPro(){
+  const w=$('tasks-window'); if(!w) return;
+  w.dataset.title='Tasks'; w.dataset.icon='✅';
+  const all=HalDoTasksPro.all();
+  let filtered=all;
+  if(tasksProState.filter==='open') filtered=filtered.filter(t=>!t.done);
+  else if(tasksProState.filter==='today') filtered=filtered.filter(t=>!t.done&&t.due===todayK());
+  else if(tasksProState.filter==='overdue') filtered=filtered.filter(t=>HalDoTasksPro.isOverdue(t));
+  else if(tasksProState.filter==='done') filtered=filtered.filter(t=>t.done);
+  filtered.sort((a,b)=>{if(a.done!==b.done)return a.done?1:-1;const po={high:0,mid:1,low:2};return (po[a.prio]||1)-(po[b.prio]||1);});
+  const list=filtered.length?filtered.map(t=>{
+    const pc=t.prio==='high'?'#ff4466':t.prio==='mid'?'#ffc800':'#00e5ff';
+    const overdue=HalDoTasksPro.isOverdue(t);
+    return '<div class="card" style="padding:10px;display:flex;gap:10px;align-items:flex-start;border-left:4px solid '+(overdue?'#ff4466':pc)+';'+(t.done?'opacity:.5':'')+'">'+
+      '<div style="width:24px;height:24px;border-radius:8px;border:2px solid '+pc+';background:'+(t.done?'linear-gradient(135deg,'+pc+',#00e5ff)':'transparent')+';display:flex;align-items:center;justify-content:center;color:#001018;font-size:13px;font-weight:900;cursor:pointer;flex-shrink:0;margin-top:2px" onclick="HalDoTasksProApp.toggle(\''+t.id+'\')">'+(t.done?'✓':'')+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+      '<div style="font-size:13px;font-weight:800;color:#fff;'+(t.done?'text-decoration:line-through':'')+'">'+esc(t.title)+'</div>'+
+      '<div style="font-size:10px;color:#88ccff;margin-top:3px">'+(t.due?'📅 '+t.due+(overdue?' ⏰ Überfällig':''):'')+' <span style="color:'+pc+';font-weight:800">● '+t.prio.toUpperCase()+'</span></div>'+
+      '</div>'+
+      '<button class="os-btn danger" style="padding:6px 8px;font-size:11px" onclick="if(confirm(\'Löschen?\')){HalDoTasksPro.remove(\''+t.id+'\');HalDoTasksProApp.rebuild()}">✕</button>'+
+      '</div>';
+  }).join(''):'<div class="empty"><div class="ei">✅</div><div class="et">Keine Aufgaben</div></div>';
+  const counts={open:all.filter(t=>!t.done).length,today:all.filter(t=>!t.done&&t.due===todayK()).length,overdue:all.filter(t=>HalDoTasksPro.isOverdue(t)).length,done:all.filter(t=>t.done).length};
+  w.innerHTML=
+    '<div class="card">'+
+    '<input class="os-input" id="tpT" placeholder="Neue Aufgabe..." onkeypress="if(event.key===\'Enter\')HalDoTasksProApp.add()" style="margin-bottom:8px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">'+
+    '<select class="os-select" id="tpP"><option value="low">🔵</option><option value="mid" selected>🟡</option><option value="high">🔴</option></select>'+
+    '<input class="os-input" id="tpD" type="date">'+
+    '<select class="os-select" id="tpC"><option value="personal">👤</option><option value="work">💼</option><option value="home">🏠</option><option value="health">❤️</option><option value="learn">📚</option></select>'+
+    '</div>'+
+    '<button class="os-btn primary full" onclick="HalDoTasksProApp.add()">✚ Hinzufügen</button>'+
+    '</div>'+
+    '<div style="display:flex;gap:4px;margin-bottom:12px;overflow-x:auto">'+
+    '<button class="os-btn '+(tasksProState.filter==='open'?'primary':'')+'" style="flex:1;padding:8px;font-size:11px;min-width:80px" onclick="HalDoTasksProApp.setFilter(\'open\')">Offen ('+counts.open+')</button>'+
+    '<button class="os-btn '+(tasksProState.filter==='today'?'primary':'')+'" style="flex:1;padding:8px;font-size:11px;min-width:80px" onclick="HalDoTasksProApp.setFilter(\'today\')">Heute ('+counts.today+')</button>'+
+    '<button class="os-btn '+(tasksProState.filter==='overdue'?'primary':'')+'" style="flex:1;padding:8px;font-size:11px;min-width:80px" onclick="HalDoTasksProApp.setFilter(\'overdue\')">Überf. ('+counts.overdue+')</button>'+
+    '<button class="os-btn '+(tasksProState.filter==='done'?'primary':'')+'" style="flex:1;padding:8px;font-size:11px;min-width:80px" onclick="HalDoTasksProApp.setFilter(\'done\')">✓ ('+counts.done+')</button>'+
+    '</div>'+list;
+}
+
+window.HalDoTasksProApp={
+  setFilter(f){tasksProState.filter=f;buildTasksPro()},
+  add(){const t=$('tpT').value.trim();if(!t)return;HalDoTasksPro.add(t,$('tpP').value,$('tpD').value,$('tpC').value);$('tpT').value='';$('tpD').value='';buildTasksPro();if(window.showToast)showToast('✅ Hinzugefügt','success')},
+  toggle(id){HalDoTasksPro.toggle(id);if(navigator.vibrate)navigator.vibrate(12);buildTasksPro()},
+  rebuild(){buildTasksPro()}
+};
+
+// ═══ JOURNAL PRO ═══
+window.HalDoJournalPro={
+  key:'haldo_journalpro_v1',
+  moods:{great:{e:'🤩',n:'Super',c:'#ffd700'},good:{e:'😊',n:'Gut',c:'#00ff88'},okay:{e:'😌',n:'Okay',c:'#00e5ff'},meh:{e:'😐',n:'Naja',c:'#a0a0a0'},tired:{e:'😴',n:'Müde',c:'#8888ff'},sad:{e:'😢',n:'Traurig',c:'#6699ff'},angry:{e:'😠',n:'Wütend',c:'#ff4444'}},
+  all(){return store(this.key,[])},
+  add(title,content,mood,tags){const l=this.all();l.unshift({id:uid('j_'),title,content,mood:mood||'good',tags:tags||[],created:Date.now()});save(this.key,l);return l[0].id},
+  remove(id){save(this.key,this.all().filter(x=>x.id!==id))},
+  streak(){const l=this.all();if(!l.length)return 0;const days=new Set(l.map(e=>new Date(e.created).toDateString()));let s=0;const t=new Date();for(let i=0;i<365;i++){const d=new Date(t);d.setDate(d.getDate()-i);if(days.has(d.toDateString()))s++;else if(i>0)break;}return s;}
+};
+
+let journalProState={mood:'good'};
+function buildJournalPro(){
+  const w=$('journal-window'); if(!w) return;
+  w.dataset.title='Journal'; w.dataset.icon='📔';
+  const all=HalDoJournalPro.all();
+  const streak=HalDoJournalPro.streak();
+  // 7 Tage Moods
+  const week=[];const t=new Date();
+  for(let i=6;i>=0;i--){const d=new Date(t);d.setDate(d.getDate()-i);const ds=d.toDateString();const e=all.find(x=>new Date(x.created).toDateString()===ds);week.push({d,e});}
+  const moodChips=Object.entries(HalDoJournalPro.moods).map(([k,m])=>
+    '<button class="os-btn '+(journalProState.mood===k?'primary':'')+'" style="padding:8px 6px;font-size:18px;flex:1;min-width:44px" style="color:'+m.c+'" onclick="HalDoJournalProApp.setMood(\''+k+'\')">'+m.e+'</button>'
+  ).join('');
+  const list=all.length?all.slice(0,20).map(e=>{
+    const m=HalDoJournalPro.moods[e.mood]||HalDoJournalPro.moods.good;
+    return '<div class="card" style="padding:12px;display:flex;gap:10px;align-items:flex-start">'+
+      '<div style="font-size:32px;width:44px;text-align:center">'+m.e+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+      '<div style="font-size:13px;font-weight:800;color:#fff">'+esc(e.title||'(Ohne Titel)')+'</div>'+
+      '<div style="font-size:11px;color:#aaddff;margin-top:4px;line-height:1.5">'+esc((e.content||'').slice(0,140))+'</div>'+
+      '<div style="font-size:10px;color:#5a8ab0;margin-top:6px">'+new Date(e.created).toLocaleString('de-DE',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})+'</div>'+
+      '</div>'+
+      '<button class="os-btn danger" style="padding:4px 8px;font-size:11px" onclick="if(confirm(\'Löschen?\')){HalDoJournalPro.remove(\''+e.id+'\');HalDoJournalProApp.rebuild()}">✕</button>'+
+      '</div>';
+  }).join(''):'<div class="empty"><div class="ei">📔</div><div class="et">Keine Einträge</div></div>';
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center"><div class="big">'+all.length+'</div><div class="lbl">Einträge</div></div>'+
+    '<div class="card" style="text-align:center"><div class="big" style="color:#ff8c3c">🔥 '+streak+'</div><div class="lbl">Streak</div></div>'+
+    '</div>'+
+    '<div class="card" style="padding:8px;display:flex;gap:4px">'+week.map(x=>'<div style="flex:1;text-align:center;padding:8px 2px;border-radius:8px;background:'+(x.e?'rgba(0,229,255,.15)':'rgba(0,0,0,.3)')+'"><div style="font-size:20px">'+(x.e?HalDoJournalPro.moods[x.e.mood].e:'○')+'</div><div style="font-size:9px;color:#88ccff;font-weight:800;margin-top:2px">'+['So','Mo','Di','Mi','Do','Fr','Sa'][x.d.getDay()]+'</div></div>').join('')+'</div>'+
+    '<div class="card">'+
+    '<input class="os-input" id="jpT" placeholder="Titel" style="margin-bottom:8px">'+
+    '<textarea class="os-textarea" id="jpC" placeholder="Was beschäftigt dich?" style="min-height:100px;margin-bottom:8px"></textarea>'+
+    '<div class="lbl" style="margin-bottom:6px">Stimmung</div>'+
+    '<div style="display:flex;gap:4px;margin-bottom:10px">'+moodChips+'</div>'+
+    '<button class="os-btn primary full" onclick="HalDoJournalProApp.add()">📔 Speichern</button>'+
+    '</div>'+list;
+}
+
+window.HalDoJournalProApp={
+  setMood(m){journalProState.mood=m;buildJournalPro()},
+  add(){const t=$('jpT').value.trim(),c=$('jpC').value.trim();if(!t&&!c)return;HalDoJournalPro.add(t,c,journalProState.mood,[]);$('jpT').value='';$('jpC').value='';buildJournalPro();if(window.showToast)showToast('📔 Gespeichert','success')},
+  rebuild(){buildJournalPro()}
+};
+
+// ═══ CALENDAR PRO ═══
+window.HalDoCalendarPro={
+  key:'haldo_calendarpro_v1',
+  all(){return store(this.key,[])},
+  add(title,date,time,color){const l=this.all();l.unshift({id:uid('c_'),title,date,time,color:color||'#00e5ff',created:Date.now()});save(this.key,l);return l[0].id},
+  remove(id){save(this.key,this.all().filter(x=>x.id!==id))},
+  forDate(d){return this.all().filter(e=>e.date===d)}
+};
+
+let calState={month:new Date().getMonth(),year:new Date().getFullYear(),selected:todayK()};
+function buildCalendarPro(){
+  const w=$('calendar-window'); if(!w) return;
+  w.dataset.title='Kalender'; w.dataset.icon='📅';
+  const months=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  const firstDay=new Date(calState.year,calState.month,1);
+  const daysInMonth=new Date(calState.year,calState.month+1,0).getDate();
+  const startWeekday=firstDay.getDay(); // 0=So
+  const startOffset=startWeekday===0?6:startWeekday-1; // Mo=0
+  const events=HalDoCalendarPro.all();
+  let grid='';
+  const weekdays=['Mo','Di','Mi','Do','Fr','Sa','So'];
+  grid+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px">'+weekdays.map(d=>'<div style="text-align:center;font-size:10px;color:#7ce0ff;font-weight:900;padding:4px">'+d+'</div>').join('')+'</div>';
+  grid+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">';
+  for(let i=0;i<startOffset;i++) grid+='<div></div>';
+  for(let d=1;d<=daysInMonth;d++){
+    const dk=calState.year+'-'+String(calState.month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const isToday=dk===todayK();
+    const isSel=dk===calState.selected;
+    const dayEvents=events.filter(e=>e.date===dk);
+    grid+='<div style="aspect-ratio:1;border-radius:10px;background:'+(isSel?'linear-gradient(135deg,#00e5ff,#4da8ff)':(isToday?'rgba(0,229,255,.2)':'rgba(0,30,60,.5)'))+';border:1.5px solid '+(isSel?'#fff':(isToday?'#00e5ff':'rgba(0,229,255,.15)'))+';padding:4px;cursor:pointer;position:relative;display:flex;flex-direction:column;overflow:hidden" onclick="HalDoCalProApp.select(\''+dk+'\')">'+
+      '<div style="font-size:12px;font-weight:900;color:'+(isSel?'#001018':'#fff')+'">'+d+'</div>'+
+      (dayEvents.length?'<div style="position:absolute;bottom:3px;left:3px;right:3px;display:flex;gap:2px">'+dayEvents.slice(0,3).map(e=>'<div style="flex:1;height:3px;border-radius:2px;background:'+(isSel?'#001018':e.color)+'"></div>').join('')+'</div>':'')+
+      '</div>';
+  }
+  grid+='</div>';
+  const selEvents=HalDoCalendarPro.forDate(calState.selected);
+  const list=selEvents.length?selEvents.map(e=>'<div class="card" style="padding:10px;display:flex;gap:10px;align-items:center;border-left:4px solid '+e.color+'">'+
+    '<div style="flex:1;min-width:0">'+
+    '<div style="font-size:13px;font-weight:800;color:#fff">'+esc(e.title)+'</div>'+
+    '<div style="font-size:11px;color:#7ce0ff;margin-top:2px">'+(e.time?'🕐 '+e.time:'')+'</div>'+
+    '</div>'+
+    '<button class="os-btn danger" style="padding:6px 10px;font-size:11px" onclick="if(confirm(\'Löschen?\')){HalDoCalendarPro.remove(\''+e.id+'\');HalDoCalProApp.rebuild()}">✕</button>'+
+    '</div>').join(''):'<div class="empty" style="padding:20px"><div class="et">Keine Termine</div></div>';
+  w.innerHTML=
+    '<div class="card" style="text-align:center">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+    '<button class="os-btn" style="padding:8px 14px;font-size:16px" onclick="HalDoCalProApp.nav(-1)">◀</button>'+
+    '<div style="font-size:16px;font-weight:900;color:#fff">'+months[calState.month]+' '+calState.year+'</div>'+
+    '<button class="os-btn" style="padding:8px 14px;font-size:16px" onclick="HalDoCalProApp.nav(1)">▶</button>'+
+    '</div>'+grid+'</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">Neuer Termin am '+calState.selected+'</div>'+
+    '<input class="os-input" id="cpT" placeholder="Titel" style="margin-bottom:8px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+    '<input class="os-input" id="cpTime" type="time" value="09:00">'+
+    '<select class="os-select" id="cpColor"><option value="#00e5ff">🔵 Cyan</option><option value="#ff5078">🔴 Rot</option><option value="#00ff88">🟢 Grün</option><option value="#ffc800">🟡 Gelb</option><option value="#b478ff">🟣 Lila</option></select>'+
+    '</div>'+
+    '<button class="os-btn primary full" onclick="HalDoCalProApp.add()">📅 Termin hinzufügen</button>'+
+    '</div>'+
+    '<div class="lbl" style="margin:14px 0 8px">📅 Termine am '+calState.selected+'</div>'+
+    list;
+}
+
+window.HalDoCalProApp={
+  nav(dir){
+    calState.month+=dir;
+    if(calState.month<0){calState.month=11;calState.year--;}
+    else if(calState.month>11){calState.month=0;calState.year++;}
+    buildCalendarPro();
+  },
+  select(d){calState.selected=d;buildCalendarPro()},
+  add(){const t=$('cpT').value.trim();if(!t)return;HalDoCalendarPro.add(t,calState.selected,$('cpTime').value,$('cpColor').value);$('cpT').value='';buildCalendarPro();if(window.showToast)showToast('📅 Termin gespeichert','success')},
+  rebuild(){buildCalendarPro()}
+};
+
+// ═══ INIT ═══
+function init(){
+  if(window.HalDoUI){
+    const orig=window.HalDoUI.rebuild;
+    window.HalDoUI.rebuild=function(id){
+      if(id==='memory-window'){buildMemoryPro();return}
+      if(id==='goals-window'){buildGoalsPro();return}
+      if(id==='habits-window'){buildHabitsPro();return}
+      if(id==='tasks-window'){buildTasksPro();return}
+      if(id==='journal-window'){buildJournalPro();return}
+      if(id==='calendar-window'){buildCalendarPro();return}
+      if(orig)orig(id);
+    };
+  }
+  ['memory-window','goals-window','habits-window','tasks-window','journal-window','calendar-window'].forEach(id=>{
+    const el=$(id);
+    if(el&&window.prepareWindow) window.prepareWindow(el);
+  });
+  console.log('%c🚀 v131 – 6 Core-Apps geladen','color:#00ff88;font-weight:bold;font-size:14px');
+  console.log('%c✅ Memory Pro · Goals Pro · Habits Pro · Tasks Pro · Journal Pro · Calendar Pro','color:#4da8ff;font-weight:bold');
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(init,1000));
+}else{
+  setTimeout(init,1000);
+}
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════ ENDE v131 ═════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
