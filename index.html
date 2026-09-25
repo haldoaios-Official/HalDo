@@ -110,12 +110,13 @@ button{font-family:inherit;color:inherit}
   bottom:calc(var(--safe-b) + 56px);z-index:1;overflow-y:auto;padding:18px 18px 40px;
 }
 #desktop h3{
-  margin:20px 0 12px;font-size:13px;letter-spacing:.5px;display:flex;align-items:center;gap:8px;
-  text-transform:none;color:var(--txt);font-weight:700;
+  margin:22px 0 12px;font-size:14px;letter-spacing:.5px;display:flex;align-items:center;gap:8px;
+  color:var(--txt);font-weight:700;
 }
 #desktop h3:first-child{margin-top:0}
-#desktop h3 .ico{font-size:16px}
-#desktop h3 .n{font-size:11px;color:var(--dim);font-weight:400;margin-left:auto}
+#desktop h3 .ico{font-size:18px}
+#desktop h3 .n{font-size:11px;color:var(--dim);font-weight:400;margin-left:auto;
+  background:rgba(255,255,255,.06);padding:3px 9px;border-radius:9px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
 .app{
   display:flex;flex-direction:column;align-items:center;gap:7px;padding:11px 5px;border-radius:15px;
@@ -133,7 +134,6 @@ button{font-family:inherit;color:inherit}
 .app.soon .ic{opacity:.4}
 .app .nm{font-size:11px;color:var(--dim);line-height:1.25;word-break:break-word;padding:0 2px}
 .app.ready .nm{color:var(--txt);font-weight:500}
-.app.soon::after{content:'';display:none}
 
 /* ============ FENSTER ============ */
 .window{
@@ -441,7 +441,7 @@ function toast(msg){
 }
 
 /* =========================================================================
-   KOSMOS — Sonne + 12 Planeten (Canvas-Sterne + CSS-Orbits)
+   KOSMOS — Sonne + 12 Planeten
    ========================================================================= */
 (function cosmos(){
   const cv=$('#stars'), ctx=cv.getContext('2d',{alpha:true});
@@ -451,13 +451,11 @@ function toast(msg){
     const h=cv.height=Math.floor(innerHeight*dpr);
     cv.style.width=innerWidth+'px'; cv.style.height=innerHeight+'px';
     ctx.clearRect(0,0,w,h);
-    // Sterne
     for(let i=0;i<280;i++){
       const x=Math.random()*w, y=Math.random()*h, r=(Math.random()*1.3+.3)*dpr;
       ctx.fillStyle='rgba(255,255,255,'+(Math.random()*.7+.2)+')';
       ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill();
     }
-    // Glow-Cluster
     for(let i=0;i<12;i++){
       const x=Math.random()*w, y=Math.random()*h, r=(Math.random()*2+1.2)*dpr;
       const g=ctx.createRadialGradient(x,y,0,x,y,r*6);
@@ -525,9 +523,9 @@ const WM = {
   open(appId, opts={}){
     const app = APPS[appId];
     if(!app){ toast('App nicht gefunden: '+appId); return; }
-    // Wenn schon offen → fokussieren
     for(const [id,w] of this.wins){
       if(w.appId===appId){
+        w.el.style.display='';
         this.focus(id);
         return w.el;
       }
@@ -537,8 +535,6 @@ const WM = {
     win.dataset.id = id;
     win.style.zIndex = ++this.zTop;
 
-    // Startgröße
-    const isMobile = innerWidth<820;
     const W = Math.min(opts.w||520, innerWidth-16);
     const H = Math.min(opts.h||420, innerHeight-16);
     win.style.width  = W+'px';
@@ -560,19 +556,15 @@ const WM = {
 
     document.body.appendChild(win);
 
-    // Buttons
     $('.wb.close', win).onclick = e => { e.stopPropagation(); this.close(id); };
     $('.wb.min',  win).onclick = e => { e.stopPropagation(); this.minimize(id); };
     $('.wb.max',  win).onclick = e => { e.stopPropagation(); this.maximize(id); };
 
-    // Fokus bei Klick
     win.addEventListener('pointerdown', ()=>this.focus(id), true);
 
-    // Drag
     const head = $('.win-head', win);
     head.addEventListener('pointerdown', e=>this.dragStart(e,id));
 
-    // Inhalt rendern
     const body = $('.win-body', win);
     try{
       const html = (typeof app.render==='function') ? app.render(win, body) : (app.render||'');
@@ -605,10 +597,7 @@ const WM = {
   minimize(id){
     const w = this.wins.get(id); if(!w) return;
     w.el.style.display='none';
-    w._min = true;
-    // Als "Task" in Bottom-Bar? Einfach: Toast + schließen reicht. Hier: nur ausblenden + wieder öffnen via doppelt.
-    // Wir nutzen: Klick auf Bottom-Bar-„Tasks" (falls vorhanden). Für Einfachheit: nach Klick wieder einblenden.
-    setTimeout(()=>toast('Fenster minimiert – öffne erneut zum Wiederherstellen'), 50);
+    toast('Fenster minimiert – über App-Symbol erneut öffnen');
   },
 
   maximize(id){
@@ -619,20 +608,17 @@ const WM = {
   dragStart(e, id){
     const w = this.wins.get(id); if(!w) return;
     const win = w.el;
-    // Drag-Zone: nur die Mitte 100px von links/rechts — gesteuert über ::before im CSS
+    if(win.classList.contains('maxed')) return;
     const r = win.getBoundingClientRect();
     const startX = e.clientX, startY = e.clientY;
     const startL = r.left, startT = r.top;
-    let moved = false;
     win.classList.add('dragging');
 
     const onMove = ev => {
       const dx = ev.clientX - startX;
       const dy = ev.clientY - startY;
-      if(Math.abs(dx)>3 || Math.abs(dy)>3) moved = true;
       let nl = startL + dx;
       let nt = startT + dy;
-      // Mindestens 20px sichtbar halten
       nl = Math.min(innerWidth-60, Math.max(-r.width+60, nl));
       nt = Math.min(innerHeight-60, Math.max(56, nt));
       win.style.left = nl+'px';
@@ -652,7 +638,7 @@ window.HalDo = window.HalDo || {};
 window.HalDo.WM = WM;
 
 /* =========================================================================
-   APP-IMPLEMENTIERUNGEN (funktionierende Apps)
+   APP-IMPLEMENTIERUNGEN
    ========================================================================= */
 const APPS = {};
 
@@ -797,7 +783,7 @@ APPS['kalender'] = {
   }
 };
 
-/* ---- Uhr (World Clock) ---- */
+/* ---- Weltuhr ---- */
 APPS['uhr'] = {
   name:'Weltuhr', icon:'🕐',
   render:()=>'<div class="col" id="wcWrap"></div>',
@@ -812,7 +798,6 @@ APPS['uhr'] = {
       }).join('');
     };
     render(); win._tick = setInterval(render,1000);
-    win.addEventListener('remove',()=>clearInterval(win._tick));
   }
 };
 
@@ -851,7 +836,7 @@ APPS['stoppuhr'] = {
     '</div>'+
     '<div class="list" id="swLaps"></div></div>',
   init:(win)=>{
-    let t0=0, elapsed=0, id=null, last=0;
+    let t0=0, elapsed=0, id=null;
     const D=$('#swD',win), L=$('#swLaps',win);
     const draw=()=>{
       const ms = elapsed + (id ? Date.now()-t0 : 0);
@@ -897,7 +882,6 @@ APPS['pomodoro'] = {
       if(isFocus){ round++; if(round%4===0) cur=longP; else cur=shortP; isFocus=false; }
       else{ cur=focus; isFocus=true; }
       draw();
-      try{ new AudioContext(); }catch(e){}
     };
     $('#pmStart',win).onclick=()=>{ if(id) return; id=setInterval(tick,1000); };
     $('#pmSkip',win).onclick=()=>nextPhase();
@@ -906,7 +890,7 @@ APPS['pomodoro'] = {
   }
 };
 
-/* ---- Wetter (Open-Meteo live) ---- */
+/* ---- Wetter ---- */
 APPS['wetter'] = {
   name:'Wetter', icon:'⛅',
   render:()=>'<div class="col">'+
@@ -1180,21 +1164,13 @@ APPS['schlaf'] = {
   }
 };
 
-/* ---- Einheiten-Umrechner ---- */
+/* ---- Umrechner ---- */
 APPS['einheiten'] = {
   name:'Umrechner', icon:'📏',
-  render:()=>{
-    const cats={
-      'Länge':{m:1,km:1000,cm:0.01,mm:0.001,mi:1609.34,ft:0.3048,in:0.0254},
-      'Gewicht':{kg:1,g:0.001,t:1000,lb:0.453592,oz:0.0283495},
-      'Volumen':{l:1,ml:0.001,m3:1000,gal:3.78541,cup:0.236588},
-      'Temperatur':null
-    };
-    return '<div class="col">'+
-      '<select class="inp" id="unCat">'+Object.keys(cats).map(k=>'<option>'+k+'</option>').join('')+'</select>'+
-      '<div class="row"><input class="inp" id="unV" type="number" value="1"><select class="inp" id="unFrom" style="width:auto"></select><span>→</span><select class="inp" id="unTo" style="width:auto"></select></div>'+
-      '<div class="big2 center" id="unOut">1</div></div>';
-  },
+  render:()=>'<div class="col">'+
+    '<select class="inp" id="unCat"><option>Länge</option><option>Gewicht</option><option>Volumen</option><option>Temperatur</option></select>'+
+    '<div class="row"><input class="inp" id="unV" type="number" value="1"><select class="inp" id="unFrom" style="width:auto"></select><span>→</span><select class="inp" id="unTo" style="width:auto"></select></div>'+
+    '<div class="big2 center" id="unOut">1</div></div>',
   init:(win)=>{
     const cats={
       'Länge':{m:1,km:1000,cm:0.01,mm:0.001,mi:1609.34,ft:0.3048,in:0.0254},
@@ -1230,7 +1206,7 @@ APPS['einheiten'] = {
   }
 };
 
-/* ---- BMI / Gesundheit ---- */
+/* ---- BMI ---- */
 APPS['bmi'] = {
   name:'BMI', icon:'⚖️',
   render:()=>'<div class="col">'+
@@ -1338,7 +1314,7 @@ APPS['farbwahl'] = {
   }
 };
 
-/* ---- QR-Generator ---- */
+/* ---- QR-Code ---- */
 APPS['qr'] = {
   name:'QR-Code', icon:'📱',
   render:()=>'<div class="col">'+
@@ -1347,9 +1323,6 @@ APPS['qr'] = {
     '<div id="qrO" class="center"></div></div>',
   init:(win)=>{
     function qr(text){
-      // Mini QR-Encoder (Version 1, Byte-Mode, ECC L) — für kurze Texte.
-      // Für Länge > 17 Zeichen: wir rendern stattdessen einen Hinweis + Link.
-      // Wir verwenden Google-Chart-API als Fallback (offline: SVG mit Muster).
       const out = $('#qrO',win);
       out.innerHTML = '<div class="dim sm">QR für: '+esc(text.slice(0,64))+'</div>';
       const img = new Image();
@@ -1432,8 +1405,8 @@ APPS['memory'] = {
         const isOpen = open.includes(i) || c.done;
         return '<div class="mc '+(c.done?'done':open.includes(i)?'open':'')+'" data-i="'+i+'">'+(isOpen?c.s:'')+'</div>';
       }).join('');
-      G.querySelectorAll('.mc').forEach(el=>el.onclick=()=>{
-        const i=parseInt(el.dataset.i);
+      G.querySelectorAll('.mc').forEach(el2=>el2.onclick=()=>{
+        const i=parseInt(el2.dataset.i);
         if(open.includes(i) || deck[i].done || open.length>=2) return;
         open.push(i); draw();
         if(open.length===2){
@@ -1453,15 +1426,14 @@ APPS['tictactoe'] = {
   name:'Tic Tac Toe', icon:'⭕',
   render:()=>'<div class="col center"><div class="big2" id="ttS">Du bist X</div><div class="ttt" id="ttG"></div><button class="btn" id="ttR" style="margin-top:12px">Neu</button></div>',
   init:(win)=>{
-    let b, turn, done;
+    let b, done;
     const G=$('#ttG',win), S=$('#ttS',win);
     const lines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
     const winner=()=>{ for(const l of lines){ const [a,b2,c]=l; if(b[a]&&b[a]===b[b2]&&b[a]===b[c]) return b[a]; } return b.includes('')?null:'T'; };
     const draw=()=>{ G.innerHTML = b.map((v,i)=>'<div class="tttc '+(v==='X'?'x':v==='O'?'o':'')+'" data-i="'+i+'">'+v+'</div>').join('');
-      G.querySelectorAll('.tttc').forEach(el=>el.onclick=()=>click(parseInt(el.dataset.i)));
+      G.querySelectorAll('.tttc').forEach(el2=>el2.onclick=()=>click(parseInt(el2.dataset.i)));
     };
     const ai=()=>{
-      // Simple: gewinne, blockiere, sonst Mitte/Ecke
       const empty = b.map((v,i)=>v===''?i:-1).filter(i=>i>=0);
       for(const l of lines){ const xs=l.filter(i=>b[i]==='O'); const es=l.filter(i=>b[i]===''); if(xs.length===2&&es.length===1) return es[0]; }
       for(const l of lines){ const xs=l.filter(i=>b[i]==='X'); const es=l.filter(i=>b[i]===''); if(xs.length===2&&es.length===1) return es[0]; }
@@ -1480,7 +1452,7 @@ APPS['tictactoe'] = {
         if(w){ S.textContent = w==='T'?'Unentschieden':'AI gewinnt'; done=true; }
       },300);
     };
-    const reset=()=>{ b=Array(9).fill(''); turn='X'; done=false; S.textContent='Du bist X'; draw(); };
+    const reset=()=>{ b=Array(9).fill(''); done=false; S.textContent='Du bist X'; draw(); };
     $('#ttR',win).onclick=reset; reset();
   }
 };
@@ -1563,14 +1535,12 @@ APPS['snake'] = {
     };
     const draw=()=>{
       ctx.fillStyle='#04050f'; ctx.fillRect(0,0,C.width,C.height);
-      ctx.fillStyle='rgba(0,229,255,.55)';
       snake.forEach((s,i)=>{ ctx.fillStyle = i===0?'#00e5ff':'#4da8ff'; ctx.fillRect(s.x*cs+1,s.y*cs+1,cs-2,cs-2); });
       ctx.fillStyle='#ff78c8'; ctx.fillRect(food.x*cs+2,food.y*cs+2,cs-4,cs-4);
     };
     const D={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
     win.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{ const d=D[b.dataset.d]; if(d.x===-dir.x&&d.y===-dir.y) return; dir=d; });
     $('#snR',win).onclick=reset;
-    // Keyboard
     const kd=e=>{ const k={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'}[e.key]; if(k&&WM.focused===win.dataset.id){ e.preventDefault(); const d=D[k]; if(d.x===-dir.x&&d.y===-dir.y) return; dir=d; } };
     document.addEventListener('keydown',kd);
     win.addEventListener('remove',()=>{ document.removeEventListener('keydown',kd); if(id)clearInterval(id); });
@@ -1594,13 +1564,12 @@ APPS['galgen'] = {
       $('#hgF',win).textContent = 'Fehler: '+bad.size+' / 6';
       const K=$('#hgK',win);
       K.innerHTML = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ'.split('').map(c=>'<button class="hk" data-c="'+c+'">'+c+'</button>').join('');
-      K.querySelectorAll('.hk').forEach(b=>b.onclick=()=>guess(b.dataset.c));
-      // Mark used
       K.querySelectorAll('.hk').forEach(b=>{
         const c=b.dataset.c;
         if(hits.has(c)) b.classList.add('good');
         if(bad.has(c)) b.classList.add('bad');
         if(hits.has(c)||bad.has(c)) b.disabled=true;
+        b.onclick=()=>guess(c);
       });
     };
     const guess=(c)=>{
@@ -1724,7 +1693,7 @@ APPS['ssp'] = {
   }
 };
 
-/* ---- Sprachmemos ---- */
+/* ---- Sprachmemo ---- */
 APPS['sprachnotiz'] = {
   name:'Sprachmemo', icon:'🎙️',
   render:()=>'<div class="col center">'+
@@ -1841,7 +1810,7 @@ APPS['karteikarten'] = {
   }
 };
 
-/* ---- Periodensystem (Auswahl) ---- */
+/* ---- Periodensystem ---- */
 APPS['periodensystem'] = {
   name:'PSE', icon:'⚛️',
   render:()=>'<div class="col"><div class="inp" id="peR" style="padding:8px 10px"><b id="peName">Element wählen</b><span class="dim" id="peInfo" style="margin-left:8px">Ordnungszahl 1-20</span></div><div id="peG" style="overflow:auto"><div class="ptable" id="peP"></div></div></div>',
@@ -1851,12 +1820,10 @@ APPS['periodensystem'] = {
       [11,'Na','Natrium'],[12,'Mg','Magnesium'],[13,'Al','Aluminium'],[14,'Si','Silicium'],[15,'P','Phosphor'],[16,'S','Schwefel'],[17,'Cl','Chlor'],[18,'Ar','Argon'],[19,'K','Kalium'],[20,'Ca','Calcium']
     ];
     const P=$('#peP',win);
-    // 18 Spalten, 3 Perioden — Elemente 1-20 als Beispiel
     const pos = [[1,1],[1,18],[2,1],[2,2],[2,13],[2,14],[2,15],[2,16],[2,17],[2,18],[3,1],[3,2],[3,13],[3,14],[3,15],[3,16],[3,17],[3,18],[4,1],[4,2]];
-    P.innerHTML = '<div style="grid-column:span 18"></div>';
-    let cells='';
     let cellMap={};
     E.forEach((e,i)=>{ const [r,c]=pos[i]; cellMap[r+'_'+c]=e; });
+    let cells='';
     for(let r=1;r<=4;r++){
       for(let c=1;c<=18;c++){
         const e = cellMap[r+'_'+c];
@@ -1865,8 +1832,8 @@ APPS['periodensystem'] = {
       }
     }
     P.innerHTML = cells;
-    P.querySelectorAll('.pe').forEach(el=>el.onclick=()=>{
-      const e = E[parseInt(el.dataset.z)-1];
+    P.querySelectorAll('.pe').forEach(el2=>el2.onclick=()=>{
+      const e = E[parseInt(el2.dataset.z)-1];
       $('#peName',win).textContent = e[1]+' — '+e[2];
       $('#peInfo',win).textContent = 'Ordnungszahl '+e[0];
     });
@@ -1929,16 +1896,13 @@ APPS['atem'] = {
   init:(win)=>{
     let id=null, phase=0, rem=4;
     const P=$('#brP',win), C=$('#brC',win);
-    const labels=['Einatmen','Halten','Ausatmen','Halten'];
-    const times=[4,7,8,0];
+    const labels=['Einatmen','Halten','Ausatmen'];
+    const times=[4,7,8];
     const step=()=>{
-      const i = phase%3;
-      P.textContent = labels[i];
+      P.textContent = labels[phase];
       C.textContent = rem;
-      if(rem<=0){
-        phase = (phase+1)%3;
-        rem = times[phase]||4;
-      } else rem--;
+      if(rem<=0){ phase=(phase+1)%3; rem=times[phase]; }
+      else rem--;
     };
     $('#brGo',win).onclick=()=>{
       if(id){ clearInterval(id); id=null; P.textContent='Bereit'; C.textContent='4'; phase=0; rem=4; return; }
@@ -1989,7 +1953,7 @@ APPS['rezepte'] = {
   }
 };
 
-/* ---- Formelsammlung ---- */
+/* ---- Formeln ---- */
 APPS['formeln'] = {
   name:'Formeln', icon:'🧪',
   render:()=>'<div class="col">'+
@@ -2008,7 +1972,7 @@ APPS['weltinfo'] = {
     '<div class="card"><b>Mond</b><div class="dim">Durchmesser: 3.474 km</div><div class="dim">Abstand: ~384.400 km</div></div></div>'
 };
 
-/* ---- HalDo AI (Chat) ---- */
+/* ---- HalDo AI ---- */
 APPS['haldo-ai'] = {
   name:'HalDo AI', icon:'🤖',
   render:()=>'<div class="col" style="height:100%">'+
@@ -2181,7 +2145,7 @@ const REGISTRY = [
 ];
 
 /* =========================================================================
-   SIDEBAR + DESKTOP AUFBAUEN
+   SIDEBAR + DESKTOP
    ========================================================================= */
 const desktop=$('#desktop');
 const sidebar=$('#sidebar');
@@ -2202,14 +2166,13 @@ const SIDEBAR_ITEMS = [
 function buildSidebar(){
   sidebar.innerHTML='<h4>Navigation</h4>';
   SIDEBAR_ITEMS.forEach(it=>{
-    if(it.sep){ sidebar.appendChild(el('div','',null)).style.cssText='height:8px'; return; }
+    if(it.sep){ const d=el('div'); d.style.cssText='height:8px'; sidebar.appendChild(d); return; }
     const b = el('button','catbtn');
     b.innerHTML = '<span class="ico">'+it.ico+'</span><span>'+it.lbl+'</span>';
     b.dataset.act = it.act;
     b.onclick = ()=>sidebarAction(it.act);
     sidebar.appendChild(b);
   });
-  // Kategorien A-Z
   sidebar.appendChild(el('h4','','Alle Kategorien'));
   REGISTRY.forEach(r=>{
     const b = el('button','catbtn');
@@ -2223,11 +2186,11 @@ function buildSidebar(){
 function sidebarAction(act){
   closeSidebarMobile();
   if(act==='home'){ renderHome(); return; }
-  if(act==='apps'){ renderCategory('A'); return; }
+  if(act==='apps'){ renderHome(); setTimeout(()=>desktop.scrollTo({top:400,behavior:'smooth'}),50); return; }
   if(act==='system'){ WM.open('rechner'); return; }
   if(act==='chat'){ WM.open('chat',{w:480,h:560}); return; }
   if(act==='files'){ WM.open('dateien'); return; }
-  if(act==='setup'){ openSetup(); return; }
+  if(act==='setup'){ openInfo(); return; }
   if(act==='info'){ openInfo(); return; }
   if(act==='ai'){ WM.open('haldo-ai',{w:520,h:600}); return; }
   if(act==='cyborg'){ $('#themeBtn').click(); return; }
@@ -2235,17 +2198,32 @@ function sidebarAction(act){
 
 function closeSidebarMobile(){ if(innerWidth<820) sidebar.classList.remove('open'); }
 
+/* =========================================================================
+   HOME — ALLE 375 APPS DIREKT DURCHSCROLLBAR
+   ========================================================================= */
 function renderHome(){
   desktop.innerHTML='';
-  const h = el('h3');
-  h.innerHTML = '<span class="ico">🏠</span>Home<span class="n">'+new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'})+'</span>';
-  desktop.appendChild(h);
+
+  // Hero
+  const hero = el('div','card');
+  hero.style.cssText='margin-bottom:16px;background:linear-gradient(135deg,rgba(0,229,255,.12),rgba(180,120,255,.08));border-color:var(--line)';
+  hero.innerHTML = '<div class="big2">🦚 HalDo AI OS</div>'+
+    '<div class="dim" style="margin-top:4px">'+REGISTRY.reduce((a,r)=>a+r.apps.length,0)+' Apps · '+Object.keys(APPS).length+' aktiv · v122</div>'+
+    '<div class="row" style="margin-top:10px;gap:6px">'+
+      '<button class="btn sm primary" id="scrollTop">⬆ Nach oben</button>'+
+      '<span class="dim sm">Scrolle durch alle Kategorien A–Z</span>'+
+    '</div>';
+  desktop.appendChild(hero);
 
   // Schnellzugriff
+  const qh = el('h3');
+  qh.innerHTML='<span class="ico">⚡</span>Schnellzugriff';
+  desktop.appendChild(qh);
   const quick = el('div','grid');
   [
     ['rechner','🧮'],['notizen','📝'],['aufgaben','✅'],['kalender','📅'],
-    ['wetter','⛅'],['uhr','🕐'],['timer','⏱️'],['haldo-ai','🤖']
+    ['wetter','⛅'],['uhr','🕐'],['timer','⏱️'],['haldo-ai','🤖'],
+    ['chat','💬'],['kamera','📷'],['klavier','🎹'],['sprachnotiz','🎙️']
   ].forEach(([id,ic])=>{
     const a = el('div','app ready');
     a.innerHTML = '<div class="ic">'+ic+'</div><div class="nm">'+esc(APPS[id]?.name||id)+'</div>';
@@ -2254,18 +2232,29 @@ function renderHome(){
   });
   desktop.appendChild(quick);
 
-  // Kategorien-Übersicht
-  const h2 = el('h3');
-  h2.innerHTML = '<span class="ico">📱</span>Alle Kategorien<span class="n">375 Apps</span>';
-  desktop.appendChild(h2);
-  const grid = el('div','grid');
+  // ALLE Kategorien mit ALLEN Apps durchscrollbar
   REGISTRY.forEach(r=>{
-    const a = el('div','app ready');
-    a.innerHTML = '<div class="ic">'+r.ico+'</div><div class="nm">'+r.k+' · '+r.t+'</div>';
-    a.onclick=()=>renderCategory(r.k);
-    grid.appendChild(a);
+    const h = el('h3');
+    h.innerHTML = '<span class="ico">'+r.ico+'</span>'+r.t+
+      ' <span class="dim" style="font-weight:400;font-size:11px">('+r.k+')</span>'+
+      '<span class="n">'+r.apps.length+'</span>';
+    desktop.appendChild(h);
+
+    const grid = el('div','grid');
+    r.apps.forEach(name=>{
+      const id = findAppId(name);
+      const a = el('div','app '+(id?'ready':'soon'));
+      const icon = id ? (APPS[id].icon || r.ico) : r.ico;
+      a.innerHTML = '<div class="ic">'+icon+'</div><div class="nm">'+esc(name)+'</div>';
+      if(id) a.onclick = ()=>WM.open(id);
+      else a.onclick = ()=>toast('„'+name+'" kommt bald! 🚧');
+      grid.appendChild(a);
+    });
+    desktop.appendChild(grid);
   });
-  desktop.appendChild(grid);
+
+  const st = $('#scrollTop');
+  if(st) st.onclick = ()=>desktop.scrollTo({top:0,behavior:'smooth'});
 
   updateAppCount();
 }
@@ -2274,7 +2263,6 @@ function renderCategory(k){
   const cat = REGISTRY.find(r=>r.k===k);
   if(!cat){ renderHome(); return; }
   desktop.innerHTML='';
-  // Kategorie-Navigation (Chips)
   const nav = el('div','row');
   nav.style.cssText='overflow-x:auto;padding-bottom:8px;margin-bottom:10px;flex-wrap:nowrap';
   REGISTRY.forEach(r=>{
@@ -2307,7 +2295,6 @@ function renderCategory(k){
 function findAppId(name){
   const s = slug(name);
   if(APPS[s]) return s;
-  // Aliase
   const A = {
     'rechner':'rechner','taschenrechner':'rechner','wissenschaftlich':'rechner',
     'notizen':'notizen','sticky-notes':'notizen',
@@ -2342,24 +2329,25 @@ function updateAppCount(){
 }
 
 /* =========================================================================
-   SETUP / INFO
+   INFO
    ========================================================================= */
-function openSetup(){
-  const w = WM.open('rechner'); // Platzhalter, dann ersetzen
-  // Wir öffnen ein eigenes Panel
-  WM.open('aufgaben');
-}
-
 function openInfo(){
-  const w = WM.wins;
-  // Nutze Chat als Container für Info — einfacher: eigenes Fenster
-  const body = document.body;
   if(document.getElementById('infoWin')) return;
   const win = document.createElement('section');
-  win.className='window'; win.id='infoWin'; win.style.cssText='left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,420px);height:auto';
-  win.innerHTML = '<div class="win-head"><span class="wic">ℹ️</span><div class="wtitle">Über HalDo AI OS</div><div class="wbtns"><button class="wb close">✕</button></div></div><div class="win-body"><div class="col"><div class="big2">HalDo AI OS</div><div class="dim">Version v122 · Neuaufbau</div><div class="card">Browser-Betriebssystem mit holografischem UI, Kosmos-Hintergrund, 375 Apps A-Z und ~'+Object.keys(APPS).length+' aktiven Apps.</div><button class="btn primary" onclick="document.getElementById(\'infoWin\').remove()">Schließen</button></div></div>';
+  win.className='window'; win.id='infoWin';
+  win.style.cssText='left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,440px);height:auto;z-index:99999';
+  win.innerHTML = '<div class="win-head"><span class="wic">ℹ️</span><div class="wtitle">Über HalDo AI OS</div><div class="wbtns"><button class="wb close">✕</button></div></div>'+
+    '<div class="win-body"><div class="col">'+
+    '<div class="big2">🦚 HalDo AI OS</div>'+
+    '<div class="dim">Version v122 · Komplett-Neubau</div>'+
+    '<div class="card">Browser-Betriebssystem mit holografischem UI, Kosmos-Hintergrund, '+REGISTRY.reduce((a,r)=>a+r.apps.length,0)+' Apps A-Z und '+Object.keys(APPS).length+' aktiven Apps.</div>'+
+    '<div class="card"><b>Features:</b><div class="dim">• Kosmos mit Sonne + 12 Planeten</div><div class="dim">• Sidebar links, Bottom-Bar unten</div><div class="dim">• Frei verschiebbare Fenster</div><div class="dim">• CYBORG-Modus (pink/violett)</div><div class="dim">• Alle Daten lokal (localStorage)</div></div>'+
+    '<button class="btn primary" id="infoClose">Schließen</button>'+
+    '</div></div>';
   document.body.appendChild(win);
-  win.querySelector('.wb.close').onclick=()=>win.remove();
+  const close = ()=>win.remove();
+  win.querySelector('.wb.close').onclick=close;
+  win.querySelector('#infoClose').onclick=close;
 }
 
 /* =========================================================================
@@ -2394,7 +2382,7 @@ document.addEventListener('click', e=>{
 });
 
 /* =========================================================================
-   UHR (Top-Bar)
+   UHR
    ========================================================================= */
 function tickClock(){
   const d=new Date();
@@ -2409,7 +2397,7 @@ $('#logoBtn').onclick = ()=>renderHome();
 $('#menuBtn').onclick = ()=>sidebar.classList.toggle('open');
 
 /* =========================================================================
-   BOTTOM-BAR Aktionen
+   BOTTOM-BAR
    ========================================================================= */
 $$('#bottomBar .bbtn').forEach(b=>b.onclick=()=>{
   const a=b.dataset.act;
@@ -2425,10 +2413,8 @@ buildSidebar();
 renderHome();
 updateAppCount();
 
-// Erststart-Hinweis
 setTimeout(()=>{ toast('Willkommen bei HalDo AI OS v122 🚀'); }, 800);
 
-// Globale API
 window.HalDo.open = (id)=>WM.open(id);
 window.HalDo.toast = toast;
 window.HalDo.apps = APPS;
