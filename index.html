@@ -5636,5 +5636,682 @@ setTimeout(()=>{ const logo=document.querySelector('#logoBtn'); if(logo) logo.cl
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v127 · Apps Pack 4 (O/P/Q/R)
+     16 neue funktionierende Apps
+     ============================================================ -->
+<script>
+(function(){
+'use strict';
+
+if(!window.HalDo || !window.HalDo.apps){
+  setTimeout(()=>location.reload(), 800);
+  return;
+}
+
+const APPS = window.HalDo.apps;
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = ()=>Math.random().toString(36).slice(2,10);
+const fmt = n => (Math.round(n*100)/100).toLocaleString('de-DE');
+const toast = window.HalDo.toast || ((m)=>console.log('[toast]',m));
+const store = {
+  key: k => 'haldo_'+k+'_v1',
+  get(k,d){ try{ const v=localStorage.getItem(this.key(k)); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(this.key(k), JSON.stringify(v)); }catch(e){} }
+};
+const rnd = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+
+/* ============================================================
+   O · ONLINE
+   ============================================================ */
+
+APPS['browser'] = {
+  name:'Browser', icon:'🌐',
+  render(){ return '<div class="col" style="height:100%">'+
+    '<div class="row"><input class="inp" id="brU" placeholder="URL oder Suche…" value="https://duckduckgo.com" style="flex:1"><button class="btn primary" id="brGo">→</button></div>'+
+    '<div class="row" style="justify-content:center"><button class="btn sm" data-q="https://duckduckgo.com">DuckDuckGo</button><button class="btn sm" data-q="https://de.wikipedia.org">Wikipedia</button><button class="btn sm" data-q="https://www.tagesschau.de">Tagesschau</button><button class="btn sm" data-q="https://www.github.com">GitHub</button></div>'+
+    '<iframe id="brF" style="flex:1;border:1.5px solid var(--line);border-radius:12px;background:#fff;min-height:300px" src="about:blank" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>'+
+    '<div class="dim sm center">💡 Manche Seiten verbieten das Einbetten. Dann öffnet sich der Link in neuem Tab.</div>'+
+  '</div>'; },
+  init(win){
+    const I=$('#brU',win), F=$('#brF',win);
+    const go=(u)=>{
+      if(!u) return;
+      if(!/^https?:\/\//.test(u)){
+        if(/^[\w.-]+\.[a-z]{2,}/i.test(u)) u='https://'+u;
+        else u='https://duckduckgo.com/?q='+encodeURIComponent(u);
+      }
+      I.value=u;
+      F.src=u;
+    };
+    $('#brGo',win).onclick=()=>go(I.value.trim());
+    I.addEventListener('keydown',e=>{ if(e.key==='Enter') go(I.value.trim()); });
+    win.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>go(b.dataset.q));
+  }
+};
+
+APPS['news'] = {
+  name:'News', icon:'📰',
+  render(){ return '<div class="col">'+
+    '<div class="row"><select class="inp" id="nwC" style="width:auto"><option value="de">Deutschland</option><option value="world">Welt</option><option value="business">Wirtschaft</option><option value="technology">Technologie</option><option value="sports">Sport</option></select><button class="btn primary" id="nwGo">Aktualisieren</button></div>'+
+    '<div id="nwL" class="col"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#nwL',win);
+    async function load(){
+      L.innerHTML='<div class="empty">Lade News…</div>';
+      try{
+        // GNews API ohne Key geht nicht — wir nutzen einen offenen RSS-Proxy
+        const topic=$('#nwC',win).value;
+        const q = topic==='de'?'germany':topic==='world'?'world':topic;
+        const r = await fetch('https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent('https://news.google.com/rss/search?q='+q+'&hl=de&gl=DE&ceid=DE:de'));
+        const j = await r.json();
+        if(!j.items || !j.items.length){ L.innerHTML='<div class="empty">Keine News verfügbar</div>'; return; }
+        L.innerHTML = j.items.slice(0,20).map(it=>'<a href="'+esc(it.link)+'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="card"><b>'+esc(it.title)+'</b><div class="dim sm" style="margin-top:4px">'+esc(it.pubDate||'')+'</div></div></a>').join('');
+      }catch(e){ L.innerHTML = '<div class="empty">Offline oder blockiert</div>'; }
+    }
+    $('#nwGo',win).onclick=load;
+    load();
+  }
+};
+
+APPS['rss'] = {
+  name:'RSS Reader', icon:'📡',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="rsU" placeholder="RSS-Feed URL…" style="flex:1"><button class="btn primary" id="rsA">+</button></div>'+
+    '<div id="rsF" class="list"></div>'+
+    '<div id="rsL" class="col"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#rsL',win), F=$('#rsF',win);
+    const feeds=()=>store.get('rss_feeds',[
+      {id:uid(), n:'Tagesschau', u:'https://www.tagesschau.de/xml/rss2/'},
+      {id:uid(), n:'Heise', u:'https://www.heise.de/rss/heise-atom.xml'}
+    ]);
+    function renderFeeds(){
+      const f=feeds();
+      F.innerHTML = f.map(x=>'<div class="item"><b>'+esc(x.n)+'</b><span class="dim sm" style="margin-left:auto;font-size:10px">'+esc(x.u.slice(0,30))+'</span><button class="btn sm primary" data-load="'+x.id+'">↻</button><span class="x" data-id="'+x.id+'">✕</span></div>').join('');
+      F.querySelectorAll('[data-load]').forEach(b=>b.onclick=()=>load(b.dataset.load));
+      F.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ const arr=feeds().filter(f=>f.id!==el2.dataset.id); store.set('rss_feeds',arr); renderFeeds(); });
+    }
+    async function load(id){
+      const f=feeds().find(x=>x.id===id); if(!f) return;
+      L.innerHTML='<div class="empty">Lade '+esc(f.n)+'…</div>';
+      try{
+        const r = await fetch('https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(f.u));
+        const j = await r.json();
+        if(!j.items){ L.innerHTML='<div class="empty">Fehler beim Laden</div>'; return; }
+        L.innerHTML = '<h3>'+esc(f.n)+'</h3>'+j.items.slice(0,15).map(it=>'<a href="'+esc(it.link)+'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="card"><b>'+esc(it.title)+'</b><div class="dim sm" style="margin-top:4px">'+esc((it.description||'').replace(/<[^>]+>/g,'').slice(0,120))+'…</div></div></a>').join('');
+      }catch(e){ L.innerHTML='<div class="empty">Fehler: '+esc(e.message)+'</div>'; }
+    }
+    $('#rsA',win).onclick=()=>{
+      const u=$('#rsU',win).value.trim(); if(!u) return;
+      const arr=feeds(); arr.push({id:uid(), n:new URL(u).hostname.replace('www.',''), u}); store.set('rss_feeds',arr);
+      $('#rsU',win).value=''; renderFeeds();
+    };
+    renderFeeds();
+  }
+};
+
+APPS['email'] = {
+  name:'E-Mail Client', icon:'📧',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="emTo" placeholder="An: name@example.com" style="flex:1"><input class="inp" id="emSub" placeholder="Betreff" style="flex:1"></div>'+
+    '<textarea class="ta" id="emB" placeholder="Nachricht…" style="min-height:140px"></textarea>'+
+    '<div class="row"><button class="btn primary" id="emGo">📧 Über Mail-App öffnen</button><button class="btn" id="emSave">💾 Als Entwurf</button></div>'+
+    '<div id="emL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#emL',win);
+    const all=()=>store.get('mail_drafts',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.map(x=>'<div class="item"><b>'+esc(x.to)+'</b><span class="dim sm">'+esc(x.subj)+'</span><span class="x" data-id="'+x.id+'">✕</span></div>').join('') : '<div class="empty">Keine Entwürfe</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('mail_drafts',all().filter(v=>v.id!==el2.dataset.id)); render(); });
+      L.querySelectorAll('.item').forEach((el2,i)=>el2.onclick=(e)=>{ if(e.target.classList.contains('x')) return; const m=a[i]; $('#emTo',win).value=m.to; $('#emSub',win).value=m.subj; $('#emB',win).value=m.body; });
+    }
+    $('#emGo',win).onclick=()=>{
+      const to=$('#emTo',win).value.trim(), sub=$('#emSub',win).value.trim(), body=$('#emB',win).value;
+      if(!to){ toast('Empfänger fehlt'); return; }
+      window.location.href='mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body);
+    };
+    $('#emSave',win).onclick=()=>{
+      const to=$('#emTo',win).value.trim(), sub=$('#emSub',win).value.trim(), body=$('#emB',win).value;
+      if(!to && !sub) return;
+      const arr=all(); arr.unshift({id:uid(), to, subj:sub, body, ts:Date.now()}); store.set('mail_drafts',arr);
+      render(); toast('Entwurf gespeichert');
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   P · KREATIVITÄT
+   ============================================================ */
+
+APPS['zeichnen'] = {
+  name:'Zeichnen', icon:'✏️',
+  render(){ return '<div class="col">'+
+    '<div class="row">'+
+      '<input type="color" id="zcC" value="#00e5ff" style="width:44px;height:36px;border:1.5px solid var(--line);border-radius:10px;background:transparent">'+
+      '<input type="range" id="zcW" min="1" max="40" value="4" style="flex:1;max-width:120px">'+
+      '<button class="btn sm" id="zcE">🧹 Radierer</button>'+
+      '<button class="btn sm" id="zcClr">🗑</button>'+
+      '<button class="btn sm primary" id="zcSave">💾</button>'+
+    '</div>'+
+    '<canvas id="zcV" style="width:100%;touch-action:none;border:1.5px solid var(--line);border-radius:12px;background:#0a0c18;cursor:crosshair"></canvas>'+
+  '</div>'; },
+  init(win){
+    const C=$('#zcV',win), ctx=C.getContext('2d');
+    function resize(){ C.width=C.clientWidth*2; C.height=Math.max(300,C.clientHeight)*2; ctx.scale(2,2); ctx.lineCap='round'; ctx.lineJoin='round'; }
+    setTimeout(resize, 50);
+    let drawing=false, eraser=false;
+    const pos=(e)=>{ const r=C.getBoundingClientRect(); return {x:(e.clientX-r.left), y:(e.clientY-r.top)}; };
+    C.addEventListener('pointerdown',(e)=>{ drawing=true; C.setPointerCapture(e.pointerId); const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
+    C.addEventListener('pointermove',(e)=>{ if(!drawing) return; const p=pos(e); ctx.strokeStyle = eraser?'#0a0c18':$('#zcC',win).value; ctx.lineWidth = parseInt($('#zcW',win).value); ctx.lineTo(p.x,p.y); ctx.stroke(); });
+    C.addEventListener('pointerup',()=>drawing=false);
+    C.addEventListener('pointerleave',()=>drawing=false);
+    $('#zcE',win).onclick=()=>{ eraser=!eraser; toast(eraser?'Radierer an':'Stift an'); };
+    $('#zcClr',win).onclick=()=>{ ctx.clearRect(0,0,C.width,C.height); };
+    $('#zcSave',win).onclick=()=>{ const a=document.createElement('a'); a.href=C.toDataURL('image/png'); a.download='haldo-draw-'+Date.now()+'.png'; a.click(); };
+  }
+};
+
+APPS['pixelart'] = {
+  name:'Pixel Art', icon:'🎮',
+  render(){ return '<div class="col">'+
+    '<div class="row">'+
+      '<input type="color" id="paC" value="#00e5ff" style="width:44px;height:36px;border:1.5px solid var(--line);border-radius:10px;background:transparent">'+
+      '<select class="inp" id="paS" style="width:auto"><option value="16">16×16</option><option value="24">24×24</option><option value="32">32×32</option></select>'+
+      '<button class="btn sm" id="paE">🧹 Radierer</button>'+
+      '<button class="btn sm" id="paClr">🗑</button>'+
+      '<button class="btn sm primary" id="paSave">💾</button>'+
+    '</div>'+
+    '<canvas id="paV" style="width:100%;max-width:400px;margin:0 auto;display:block;image-rendering:pixelated;border:1.5px solid var(--line);border-radius:12px;touch-action:none;background:#0a0c18"></canvas>'+
+  '</div>'; },
+  init(win){
+    const C=$('#paV',win), ctx=C.getContext('2d');
+    let N=16, grid=[], eraser=false;
+    function reset(){
+      N=parseInt($('#paS',win).value);
+      C.width=C.height=N;
+      C.style.height='auto';
+      grid=Array(N*N).fill('#0a0c18');
+      draw();
+    }
+    function draw(){
+      for(let y=0;y<N;y++) for(let x=0;x<N;x++){ ctx.fillStyle=grid[y*N+x]; ctx.fillRect(x,y,1,1); }
+    }
+    function setPixel(e){
+      const r=C.getBoundingClientRect();
+      const x=Math.floor((e.clientX-r.left)/r.width*N);
+      const y=Math.floor((e.clientY-r.top)/r.height*N);
+      if(x<0||x>=N||y<0||y>=N) return;
+      grid[y*N+x] = eraser?'#0a0c18':$('#paC',win).value;
+      draw();
+    }
+    let down=false;
+    C.addEventListener('pointerdown',(e)=>{ down=true; C.setPointerCapture(e.pointerId); setPixel(e); });
+    C.addEventListener('pointermove',(e)=>{ if(down) setPixel(e); });
+    C.addEventListener('pointerup',()=>down=false);
+    $('#paE',win).onclick=()=>{ eraser=!eraser; toast(eraser?'Radierer an':'Stift an'); };
+    $('#paClr',win).onclick=()=>{ grid=Array(N*N).fill('#0a0c18'); draw(); };
+    $('#paS',win).onchange=reset;
+    $('#paSave',win).onclick=()=>{ const a=document.createElement('a'); a.href=C.toDataURL('image/png'); a.download='haldo-pixel-'+Date.now()+'.png'; a.click(); };
+    reset();
+  }
+};
+
+APPS['farbtheorie'] = {
+  name:'Farbtheorie', icon:'🎨',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input type="color" id="ftC" value="#00e5ff" style="width:100%;height:70px;border:1.5px solid var(--line);border-radius:14px;background:transparent"></div>'+
+    '<div class="card center"><b id="ftH" style="font-family:monospace">#00e5ff</b></div>'+
+    '<div class="card"><b>🎯 Komplementär</b><div class="row" id="ftComp" style="margin-top:6px"></div></div>'+
+    '<div class="card"><b>🎨 Triade</b><div class="row" id="ftTri" style="margin-top:6px"></div></div>'+
+    '<div class="card"><b>🌈 Analog</b><div class="row" id="ftAna" style="margin-top:6px"></div></div>'+
+    '<div class="card"><b>💡 Bedeutung</b><div class="dim sm" id="ftInfo" style="margin-top:6px"></div></div>'+
+  '</div>'; },
+  init(win){
+    const hex2hsl=(h)=>{
+      const r=parseInt(h.slice(1,3),16)/255, g=parseInt(h.slice(3,5),16)/255, b=parseInt(h.slice(5,7),16)/255;
+      const max=Math.max(r,g,b), min=Math.min(r,g,b); let hh,s,l=(max+min)/2;
+      if(max===min){ hh=s=0; } else { const d=max-min; s=l>.5?d/(2-max-min):d/(max+min); switch(max){ case r: hh=(g-b)/d+(g<b?6:0); break; case g: hh=(b-r)/d+2; break; default: hh=(r-g)/d+4; } hh/=6; }
+      return [hh*360, s*100, l*100];
+    };
+    const hsl2hex=(h,s,l)=>{
+      s/=100; l/=100;
+      const k=n=>(n+h/30)%12, a=s*Math.min(l,1-l);
+      const f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
+      const to=v=>Math.round(255*v).toString(16).padStart(2,'0');
+      return '#'+to(f(0))+to(f(8))+to(f(4));
+    };
+    const box=(c)=>{ const d=document.createElement('div'); d.style.cssText='flex:1;height:50px;border-radius:10px;border:1.5px solid var(--line);background:'+c; d.title=c; d.onclick=()=>{ navigator.clipboard?.writeText(c); toast('Kopiert: '+c); }; return d; };
+    function update(){
+      const h=$('#ftC',win).value;
+      $('#ftH',win).textContent = h.toUpperCase();
+      const [H,S,L]=hex2hsl(h);
+      $('#ftComp',win).innerHTML=''; $('#ftComp',win).appendChild(box(hsl2hex((H+180)%360,S,L)));
+      $('#ftTri',win).innerHTML=''; [0,120,240].forEach(o=>$('#ftTri',win).appendChild(box(hsl2hex((H+o)%360,S,L))));
+      $('#ftAna',win).innerHTML=''; [-30,-15,0,15,30].forEach(o=>$('#ftAna',win).appendChild(box(hsl2hex((H+o+360)%360,S,L))));
+      // Bedeutung nach Farbbereich
+      let info='';
+      if(H<20||H>=340) info='Rot: Energie, Leidenschaft, Gefahr, Liebe';
+      else if(H<45) info='Orange: Wärme, Kreativität, Freundlichkeit';
+      else if(H<70) info='Gelb: Optimismus, Freude, Aufmerksamkeit';
+      else if(H<160) info='Grün: Natur, Ruhe, Wachstum, Hoffnung';
+      else if(H<200) info='Cyan: Frische, Klarheit, Technologie';
+      else if(H<260) info='Blau: Vertrauen, Ruhe, Weite, Intelligenz';
+      else if(H<300) info='Violett: Kreativität, Spiritualität, Luxus';
+      else info='Pink/Magenta: Romantik, Verspieltheit, Modern';
+      $('#ftInfo',win).textContent = info;
+    }
+    $('#ftC',win).oninput=update; update();
+  }
+};
+
+APPS['logodesigner'] = {
+  name:'Logo Designer', icon:'🎯',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="ldT" placeholder="Text (z.B. HalDo)" value="HalDo" style="flex:1"></div>'+
+    '<div class="row">'+
+      '<label class="lbl">Farbe <input type="color" id="ldC1" value="#00e5ff" style="width:50px;height:36px;border-radius:10px;border:1.5px solid var(--line);background:transparent"></label>'+
+      '<label class="lbl">Hintergrund <input type="color" id="ldC2" value="#0a0e24" style="width:50px;height:36px;border-radius:10px;border:1.5px solid var(--line);background:transparent"></label>'+
+      '<select class="inp" id="ldF" style="width:auto"><option value="sans">Fett</option><option value="serif">Serif</option><option value="mono">Mono</option></select>'+
+    '</div>'+
+    '<canvas id="ldV" width="400" height="400" style="max-width:100%;margin:0 auto;display:block;border:1.5px solid var(--line);border-radius:14px"></canvas>'+
+    '<button class="btn primary" id="ldSave">💾 Speichern</button>'+
+  '</div>'; },
+  init(win){
+    const C=$('#ldV',win), ctx=C.getContext('2d');
+    const SHAPES=['circle','square','diamond'];
+    let shape=0;
+    function draw(){
+      const t=$('#ldT',win).value||'?';
+      const c1=$('#ldC1',win).value, c2=$('#ldC2',win).value;
+      const ff=$('#ldF',win).value;
+      ctx.fillStyle=c2; ctx.fillRect(0,0,400,400);
+      const type = shape===0?'circle':shape===1?'square':'diamond';
+      ctx.fillStyle=c1;
+      ctx.beginPath();
+      if(type==='circle') ctx.arc(200,180,110,0,Math.PI*2);
+      else if(type==='square') ctx.rect(100,80,200,200);
+      else { ctx.moveTo(200,70); ctx.lineTo(310,180); ctx.lineTo(200,290); ctx.lineTo(90,180); ctx.closePath(); }
+      ctx.fill();
+      ctx.fillStyle=c2;
+      ctx.font='bold '+Math.min(80, 320/Math.max(3,t.length))+'px '+(ff==='mono'?'monospace':(ff==='serif'?'Georgia,serif':'sans-serif'));
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(t.slice(0,8), 200, 180);
+      ctx.fillStyle=c1;
+      ctx.font='14px sans-serif';
+      ctx.fillText('HalDo OS · '+new Date().getFullYear(), 200, 350);
+    }
+    C.onclick=()=>{ shape=(shape+1)%SHAPES.length; draw(); };
+    ['ldT','ldC1','ldC2','ldF'].forEach(id=>$('#'+id,win).oninput=draw);
+    $('#ldF',win).onchange=draw;
+    $('#ldSave',win).onclick=()=>{ const a=document.createElement('a'); a.href=C.toDataURL('image/png'); a.download='haldo-logo-'+Date.now()+'.png'; a.click(); };
+    draw();
+  }
+};
+
+/* ============================================================
+   Q · WISSENSCHAFT
+   ============================================================ */
+
+APPS['wissrechner'] = {
+  name:'Wissenschaftlich', icon:'🔬',
+  render(){ return '<div class="col center">'+
+    '<div class="calc-disp" style="max-width:400px;width:100%"><div class="prev" id="wsPrev"></div><div class="cur" id="wsCur">0</div></div>'+
+    '<div class="calc-keys" style="max-width:400px">'+
+      '<button class="ck op" data-k="sin">sin</button><button class="ck op" data-k="cos">cos</button><button class="ck op" data-k="tan">tan</button><button class="ck op" data-k="√">√</button>'+
+      '<button class="ck op" data-k="x²">x²</button><button class="ck op" data-k="x³">x³</button><button class="ck op" data-k="π">π</button><button class="ck op" data-k="e">e</button>'+
+      '<button class="ck op" data-k="log">log</button><button class="ck op" data-k="ln">ln</button><button class="ck op" data-k="!(">!</button><button class="ck op" data-k="/">÷</button>'+
+      '<button class="ck" data-k="7">7</button><button class="ck" data-k="8">8</button><button class="ck" data-k="9">9</button><button class="ck op" data-k="*">×</button>'+
+      '<button class="ck" data-k="4">4</button><button class="ck" data-k="5">5</button><button class="ck" data-k="6">6</button><button class="ck op" data-k="-">−</button>'+
+      '<button class="ck" data-k="1">1</button><button class="ck" data-k="2">2</button><button class="ck" data-k="3">3</button><button class="ck op" data-k="+">+</button>'+
+      '<button class="ck" data-k="0">0</button><button class="ck" data-k=".">.</button><button class="ck" data-k="C">C</button><button class="ck eq" data-k="=">=</button>'+
+    '</div>'+
+  '</div>'; },
+  init(win){
+    const C=$('#wsCur',win), P=$('#wsPrev',win);
+    let expr='';
+    const upd=()=>{ C.textContent = expr||'0'; };
+    const calc=()=>{
+      try{
+        let e = expr.replace(/π/g,'Math.PI').replace(/(?<![a-z])e(?![a-z])/g,'Math.E')
+          .replace(/sin/g,'Math.sin').replace(/cos/g,'Math.cos').replace(/tan/g,'Math.tan')
+          .replace(/√/g,'Math.sqrt').replace(/log/g,'Math.log10').replace(/ln/g,'Math.log')
+          .replace(/\^/g,'**').replace(/x²/g,'**2').replace(/x³/g,'**3');
+        const r = Function('"use strict";return('+e+')')();
+        if(isFinite(r)){ P.textContent = expr+' ='; expr = String(Math.round(r*1e10)/1e10); }
+      }catch(err){ C.textContent='Fehler'; return; }
+      upd();
+    };
+    win.querySelectorAll('.ck').forEach(b=>b.onclick=()=>{
+      const k=b.dataset.k;
+      if(k==='C'){ expr=''; P.textContent=''; upd(); return; }
+      if(k==='='){ calc(); return; }
+      if(k==='√') expr+='√(';
+      else if(k==='π') expr+='π';
+      else if(k==='e') expr+='e';
+      else if(k==='x²') expr+='x²';   // wir ersetzen in calc
+      else if(k==='x³') expr+='x³';
+      else if(k==='!') expr+='!(';
+      else expr+=k;
+      upd();
+    });
+  }
+};
+
+APPS['konstanten'] = {
+  name:'Konstanten', icon:'🔢',
+  render(){ return '<div class="col">'+
+    '<input class="inp" id="knQ" placeholder="Suche (z.B. Licht, Planck…)">'+
+    '<div id="knL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const list=[
+      ['Lichtgeschwindigkeit','c = 299.792.458 m/s'],
+      ['Planck-Konstante','h = 6,62607015 × 10⁻³⁴ J·s'],
+      ['Gravitationskonstante','G = 6,67430 × 10⁻¹¹ m³/(kg·s²)'],
+      ['Boltzmann-Konstante','k = 1,380649 × 10⁻²³ J/K'],
+      ['Avogadro-Konstante','Nₐ = 6,02214076 × 10²³ 1/mol'],
+      ['Elementarladung','e = 1,602176634 × 10⁻¹⁹ C'],
+      ['Elektronenmasse','mₑ = 9,1093837015 × 10⁻³¹ kg'],
+      ['Protonenmasse','mₚ = 1,67262192369 × 10⁻²⁷ kg'],
+      ['Neutronenmasse','mₙ = 1,67492749804 × 10⁻²⁷ kg'],
+      ['Erdbeschleunigung','g = 9,80665 m/s²'],
+      ['Erdmasse','M⊕ = 5,9722 × 10²⁴ kg'],
+      ['Erdradius','R⊕ = 6.371 km'],
+      ['Sonnenmasse','M☉ = 1,98892 × 10³⁰ kg'],
+      ['Sonnenradius','R☉ = 696.340 km'],
+      ['Mondmasse','M☾ = 7,342 × 10²² kg'],
+      ['Mondradius','R☾ = 1.737,4 km'],
+      ['Astronomische Einheit','AE = 149.597.870,7 km'],
+      ['Lichtjahr','Lj = 9,46073047 × 10¹² km'],
+      ['Parsec','pc = 3,0857 × 10¹³ km'],
+      ['Stefan-Boltzmann-Konstante','σ = 5,670374419 × 10⁻⁸ W/(m²·K⁴)'],
+      ['Rydberg-Konstante','R∞ = 1,0973731568160 × 10⁷ 1/m'],
+      ['Vakuumlichtgeschwindigkeit','c₀ = 299.792.458 m/s'],
+      ['Molares Volumen (ideales Gas)','Vₘ = 22,41396954 L/mol'],
+      ['Faraday-Konstante','F = 96.485,33212 C/mol'],
+      ['Atomare Masseneinheit','u = 1,66053906660 × 10⁻²⁷ kg'],
+      ['Stefan-Boltzmann','σ = 5,67 × 10⁻⁸ W/(m²·K⁴)'],
+      ['Kosmologische Konstante','Λ ≈ 1,1056 × 10⁻⁵² m⁻²'],
+      ['Hubble-Konstante','H₀ ≈ 67,4 km/s/Mpc']
+    ];
+    const L=$('#knL',win), Q=$('#knQ',win);
+    function render(){
+      const q=Q.value.toLowerCase();
+      const f=q?list.filter(x=>x[0].toLowerCase().includes(q)||x[1].toLowerCase().includes(q)):list;
+      L.innerHTML = f.map(x=>'<div class="card"><b>'+esc(x[0])+'</b><div class="dim sm" style="margin-top:4px;font-family:monospace">'+esc(x[1])+'</div></div>').join('') || '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput=render; render();
+  }
+};
+
+APPS['diagramme'] = {
+  name:'Diagramme', icon:'📊',
+  render(){ return '<div class="col">'+
+    '<label class="lbl">Werte (Komma-getrennt)</label>'+
+    '<input class="inp" id="dgV" value="12, 25, 8, 40, 18, 30">'+
+    '<label class="lbl">Diagrammtyp</label>'+
+    '<select class="inp" id="dgT" style="width:auto"><option value="bar">Balken</option><option value="line">Linie</option><option value="pie">Kuchen</option></select>'+
+    '<canvas id="dgC" width="600" height="400" style="width:100%;max-width:520px;margin:0 auto;display:block;border:1.5px solid var(--line);border-radius:12px;background:#0a0c18"></canvas>'+
+    '<button class="btn primary" id="dgSave">💾 Speichern</button>'+
+  '</div>'; },
+  init(win){
+    const C=$('#dgC',win), ctx=C.getContext('2d');
+    function draw(){
+      const nums = $('#dgV',win).value.split(/[,\s]+/).map(Number).filter(n=>!isNaN(n));
+      const type = $('#dgT',win).value;
+      ctx.fillStyle='#0a0c18'; ctx.fillRect(0,0,600,400);
+      if(!nums.length) return;
+      const max=Math.max(...nums);
+      const colors=['#00e5ff','#b478ff','#4de88a','#ffb03a','#ff6b88','#4da8ff','#e0b4ff','#7de3c7'];
+      if(type==='bar'){
+        const bw=600/nums.length*0.7, gap=600/nums.length*0.3;
+        nums.forEach((v,i)=>{
+          const h=v/max*340;
+          ctx.fillStyle=colors[i%colors.length];
+          ctx.fillRect(i*(bw+gap)+gap/2, 380-h, bw, h);
+          ctx.fillStyle='#e9edff'; ctx.font='12px sans-serif'; ctx.textAlign='center';
+          ctx.fillText(v, i*(bw+gap)+gap/2+bw/2, 380-h-6);
+        });
+        ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.beginPath(); ctx.moveTo(0,380); ctx.lineTo(600,380); ctx.stroke();
+      }else if(type==='line'){
+        ctx.strokeStyle='#00e5ff'; ctx.lineWidth=3; ctx.beginPath();
+        nums.forEach((v,i)=>{ const x=i/(nums.length-1||1)*560+20, y=380-v/max*340; i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+        ctx.stroke();
+        nums.forEach((v,i)=>{ const x=i/(nums.length-1||1)*560+20, y=380-v/max*340; ctx.fillStyle='#b478ff'; ctx.beginPath(); ctx.arc(x,y,5,0,7); ctx.fill(); });
+        ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.beginPath(); ctx.moveTo(0,380); ctx.lineTo(600,380); ctx.stroke();
+      }else{
+        const total=nums.reduce((a,b)=>a+b,0);
+        let angle=-Math.PI/2;
+        nums.forEach((v,i)=>{
+          const slice = v/total*Math.PI*2;
+          ctx.fillStyle=colors[i%colors.length];
+          ctx.beginPath(); ctx.moveTo(300,200); ctx.arc(300,200,140,angle,angle+slice); ctx.fill();
+          angle += slice;
+        });
+        ctx.fillStyle='#0a0c18'; ctx.beginPath(); ctx.arc(300,200,70,0,7); ctx.fill();
+        ctx.fillStyle='#e9edff'; ctx.font='bold 16px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(total, 300, 200);
+      }
+    }
+    $('#dgV',win).oninput=draw; $('#dgT',win).onchange=draw;
+    $('#dgSave',win).onclick=()=>{ const a=document.createElement('a'); a.href=C.toDataURL('image/png'); a.download='haldo-chart-'+Date.now()+'.png'; a.click(); };
+    draw();
+  }
+};
+
+APPS['funktionsplot'] = {
+  name:'Plotter', icon:'📈',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="fpF" placeholder="f(x) = …" value="sin(x)" style="flex:1"><button class="btn primary" id="fpGo">Zeichnen</button></div>'+
+    '<div class="dim sm">Funktionen: sin, cos, tan, sqrt, abs, log, exp, pow(x,n). Konstante: pi, e.</div>'+
+    '<div class="row"><label class="dim sm">x von <input class="inp" id="fpX1" type="number" value="-6" style="width:70px"></label><label class="dim sm">bis <input class="inp" id="fpX2" type="number" value="6" style="width:70px"></label></div>'+
+    '<canvas id="fpC" width="600" height="400" style="width:100%;max-width:520px;margin:0 auto;display:block;border:1.5px solid var(--line);border-radius:12px;background:#0a0c18"></canvas>'+
+  '</div>'; },
+  init(win){
+    const C=$('#fpC',win), ctx=C.getContext('2d');
+    function draw(){
+      const f = $('#fpF',win).value;
+      const x1 = parseFloat($('#fpX1',win).value), x2 = parseFloat($('#fpX2',win).value);
+      ctx.fillStyle='#0a0c18'; ctx.fillRect(0,0,600,400);
+      // Gitter
+      ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.lineWidth=1;
+      for(let i=0;i<=10;i++){ ctx.beginPath(); ctx.moveTo(i*60,0); ctx.lineTo(i*60,400); ctx.stroke(); }
+      for(let i=0;i<=10;i++){ ctx.beginPath(); ctx.moveTo(0,i*40); ctx.lineTo(600,i*40); ctx.stroke(); }
+      // Achsen
+      ctx.strokeStyle='rgba(255,255,255,.3)'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(300,0); ctx.lineTo(300,400); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,200); ctx.lineTo(600,200); ctx.stroke();
+      // Funktion
+      let fn;
+      try{
+        const code = 'with(Math){return '+f.replace(/pi/g,'PI').replace(/\^/g,'**')+'}';
+        fn = new Function('x', code);
+      }catch(e){ ctx.fillStyle='#ff6b88'; ctx.fillText('Fehler: '+e.message, 20, 30); return; }
+      ctx.strokeStyle='#00e5ff'; ctx.lineWidth=2.5; ctx.beginPath();
+      const steps=600;
+      for(let i=0;i<=steps;i++){
+        const x = x1 + (x2-x1)*i/steps;
+        let y;
+        try{ y = fn(x); }catch(e){ y = NaN; }
+        if(!isFinite(y) || Math.abs(y)>1e3){ ctx.moveTo(i,0); continue; }
+        const py = 200 - y*20;
+        if(i===0) ctx.moveTo(0,py);
+        else ctx.lineTo(i, py);
+      }
+      ctx.stroke();
+    }
+    $('#fpGo',win).onclick=draw;
+    $('#fpF',win).addEventListener('keydown',e=>{ if(e.key==='Enter') draw(); });
+    draw();
+  }
+};
+
+/* ============================================================
+   R · SICHERHEIT
+   ============================================================ */
+
+APPS['verschluesselung'] = {
+  name:'Verschlüsselung', icon:'🔐',
+  render(){ return '<div class="col">'+
+    '<label class="lbl">Verfahren</label>'+
+    '<select class="inp" id="veT"><option value="caesar">Caesar (+3)</option><option value="rot13">ROT13</option><option value="atbash">Atbash (A↔Z)</option></select>'+
+    '<textarea class="ta" id="veI" placeholder="Text…"></textarea>'+
+    '<div class="row"><button class="btn primary" id="veEnc">🔒 Verschlüsseln</button><button class="btn" id="veDec">🔓 Entschlüsseln</button></div>'+
+    '<textarea class="ta" id="veO" placeholder="Ergebnis…"></textarea>'+
+    '<button class="btn" id="veCopy">📋 Kopieren</button>'+
+  '</div>'; },
+  init(win){
+    const enc=(t,type)=>{
+      const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      if(type==='caesar') return t.replace(/[a-z]/gi,c=>{ const base=c<='Z'?65:97; return String.fromCharCode(((c.charCodeAt(0)-base+3)%26)+base); });
+      if(type==='rot13') return t.replace(/[a-z]/gi,c=>{ const base=c<='Z'?65:97; return String.fromCharCode(((c.charCodeAt(0)-base+13)%26)+base); });
+      return t.replace(/[a-z]/gi,c=>{ const base=c<='Z'?65:97; return String.fromCharCode(base+25-(c.charCodeAt(0)-base)); });
+    };
+    const dec=(t,type)=>{
+      const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      if(type==='caesar') return t.replace(/[a-z]/gi,c=>{ const base=c<='Z'?65:97; return String.fromCharCode(((c.charCodeAt(0)-base+23)%26)+base); });
+      if(type==='rot13') return enc(t,'rot13');
+      return enc(t,'atbash');
+    };
+    $('#veEnc',win).onclick=()=>{ $('#veO',win).value = enc($('#veI',win).value, $('#veT',win).value); };
+    $('#veDec',win).onclick=()=>{ $('#veO',win).value = dec($('#veI',win).value, $('#veT',win).value); };
+    $('#veCopy',win).onclick=()=>{ navigator.clipboard?.writeText($('#veO',win).value); toast('Kopiert'); };
+  }
+};
+
+APPS['hash'] = {
+  name:'Hash-Generator', icon:'#️⃣',
+  render(){ return '<div class="col">'+
+    '<textarea class="ta" id="hsI" placeholder="Text…"></textarea>'+
+    '<button class="btn primary" id="hsGo">Hash berechnen</button>'+
+    '<div id="hsO" class="col"></div>'+
+  '</div>'; },
+  init(win){
+    async function sha(algo, text){
+      const buf = new TextEncoder().encode(text);
+      const h = await crypto.subtle.digest(algo, buf);
+      return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
+    $('#hsGo',win).onclick=async()=>{
+      const t = $('#hsI',win).value;
+      try{
+        const [s1,s256,s384,s512] = await Promise.all([sha('SHA-1',t), sha('SHA-256',t), sha('SHA-384',t), sha('SHA-512',t)]);
+        $('#hsO',win).innerHTML = [
+          ['SHA-1',s1],['SHA-256',s256],['SHA-384',s384],['SHA-512',s512]
+        ].map(([n,v])=>'<div class="card"><b>'+n+'</b><div class="dim sm" style="word-break:break-all;font-family:monospace;margin-top:4px">'+v+'</div><button class="btn sm" data-c="'+v+'" style="margin-top:6px">📋</button></div>').join('');
+        $$('#hsO button',win).forEach(b=>b.onclick=()=>{ navigator.clipboard?.writeText(b.dataset.c); toast('Kopiert'); });
+      }catch(e){ toast('Fehler: '+e.message); }
+    };
+  }
+};
+
+APPS['zwei-faktor'] = {
+  name:'2FA-Codes', icon:'🔢',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🔐 TOTP-Codes (RFC 6238)</b><div class="dim sm" style="margin-top:4px">Füge ein Base32-Secret ein (aus deiner 2FA-App). Codes werden lokal berechnet.</div></div>'+
+    '<div class="row"><input class="inp" id="tfN" placeholder="Name (z.B. GitHub)" style="flex:1"><input class="inp" id="tfS" placeholder="Base32-Secret (z.B. JBSWY3DPEHPK3PXP)" style="flex:2"><button class="btn primary" id="tfA">+</button></div>'+
+    '<div id="tfL" class="col"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#tfL',win);
+    const all=()=>store.get('totp',[]);
+    const B32='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    function b32dec(str){
+      str=str.toUpperCase().replace(/[^A-Z2-7]/g,'');
+      let bits='', out=[];
+      for(const c of str){ const v=B32.indexOf(c); if(v<0) continue; bits += v.toString(2).padStart(5,'0'); }
+      for(let i=0;i+8<=bits.length;i+=8) out.push(parseInt(bits.slice(i,i+8),2));
+      return new Uint8Array(out);
+    }
+    async function totp(secret){
+      const key = b32dec(secret);
+      const counter = Math.floor(Date.now()/30000);
+      const buf = new ArrayBuffer(8);
+      const dv = new DataView(buf);
+      dv.setUint32(4, counter);
+      const ck = await crypto.subtle.importKey('raw', key, {name:'HMAC', hash:'SHA-1'}, false, ['sign']);
+      const sig = new Uint8Array(await crypto.subtle.sign('HMAC', ck, buf));
+      const off = sig[19] & 0x0f;
+      const code = ((sig[off]&0x7f)<<24 | sig[off+1]<<16 | sig[off+2]<<8 | sig[off+3]) % 1000000;
+      return String(code).padStart(6,'0');
+    }
+    async function render(){
+      const a=all();
+      if(!a.length){ L.innerHTML='<div class="empty">Keine Einträge</div>'; return; }
+      for(const it of a){
+        const code = await totp(it.s);
+        const rem = 30 - (Math.floor(Date.now()/1000)%30);
+        const d = document.createElement('div');
+        d.className='card';
+        d.innerHTML = '<div class="row between"><b>'+esc(it.n)+'</b><span class="dim sm">'+rem+'s</span></div><div class="big2" style="font-family:monospace;letter-spacing:4px;margin-top:6px;color:var(--c1)">'+code+'</div><button class="btn sm" data-c="'+code+'" style="margin-top:6px">📋</button><span class="x" data-id="'+it.id+'">✕</span>';
+        L.appendChild(d);
+      }
+      $$('#tfL button',win).forEach(b=>b.onclick=()=>{ navigator.clipboard?.writeText(b.dataset.c); toast('Kopiert'); });
+      $$('#tfL .x',win).forEach(el2=>el2.onclick=()=>{ store.set('totp',all().filter(v=>v.id!==el2.dataset.id)); render(); });
+    }
+    $('#tfA',win).onclick=()=>{
+      const n=$('#tfN',win).value.trim(), s=$('#tfS',win).value.trim();
+      if(!n||!s){ toast('Name + Secret'); return; }
+      const arr=all(); arr.push({id:uid(), n, s}); store.set('totp',arr);
+      $('#tfN',win).value=''; $('#tfS',win).value=''; render();
+    };
+    render();
+    const tick = setInterval(()=>{ L.innerHTML=''; render(); }, 10000);
+    win.addEventListener('remove', ()=>clearInterval(tick));
+  }
+};
+
+APPS['sicherheitscheck'] = {
+  name:'Passwort-Check', icon:'🔒',
+  render(){ return '<div class="col">'+
+    '<input class="inp" id="scP" type="text" placeholder="Passwort testen…">'+
+    '<div class="big2 center" id="scS">–</div>'+
+    '<div class="card"><b>Details</b><div id="scD" style="margin-top:6px"></div></div>'+
+    '<div class="card"><b>💡 Tipps für starke Passwörter</b><div class="dim sm" style="margin-top:6px">• Mindestens 12 Zeichen<br>• Groß- und Kleinbuchstaben<br>• Zahlen und Sonderzeichen<br>• Kein Wörterbuch-Wort<br>• Nicht für mehrere Dienste verwenden<br>• Passwortmanager nutzen</div></div>'+
+  '</div>'; },
+  init(win){
+    const P=$('#scP',win), S=$('#scS',win), D=$('#scD',win);
+    const COMMON = ['123456','password','qwerty','admin','welcome','111111','abc123','letmein','iloveyou','dragon'];
+    function check(){
+      const p = P.value;
+      if(!p){ S.textContent='–'; D.innerHTML=''; return; }
+      let score=0;
+      const checks = [];
+      if(p.length>=8) { score++; checks.push(['Länge ≥ 8',true]); } else checks.push(['Länge ≥ 8',false]);
+      if(p.length>=12){ score++; checks.push(['Länge ≥ 12',true]); } else checks.push(['Länge ≥ 12',false]);
+      if(/[a-z]/.test(p)){ score++; checks.push(['Kleinbuchstaben',true]); } else checks.push(['Kleinbuchstaben',false]);
+      if(/[A-Z]/.test(p)){ score++; checks.push(['Großbuchstaben',true]); } else checks.push(['Großbuchstaben',false]);
+      if(/[0-9]/.test(p)){ score++; checks.push(['Zahlen',true]); } else checks.push(['Zahlen',false]);
+      if(/[^A-Za-z0-9]/.test(p)){ score++; checks.push(['Sonderzeichen',true]); } else checks.push(['Sonderzeichen',false]);
+      if(!COMMON.includes(p.toLowerCase())){ score++; checks.push(['Kein Standard-Wort',true]); } else checks.push(['Kein Standard-Wort',false]);
+      let label, col;
+      if(score<=2){ label='Sehr schwach'; col='#ff6b88'; }
+      else if(score<=4){ label='Schwach'; col='#ffb03a'; }
+      else if(score<=5){ label='Mittel'; col='#ffd166'; }
+      else if(score<=6){ label='Stark'; col='#4de88a'; }
+      else { label='Sehr stark'; col='#00e5ff'; }
+      S.textContent = label;
+      S.style.color = col;
+      D.innerHTML = checks.map(([t,ok])=>'<div style="margin:4px 0;color:'+(ok?'#4de88a':'#ff6b88')+'">'+(ok?'✓':'✗')+' '+t+'</div>').join('');
+    }
+    P.oninput=check;
+  }
+};
+
+console.log('%c🚀 HalDo Apps v127 geladen','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('16 neue Apps: O·Browser/News/RSS/Mail  P·Zeichnen/PixelArt/Farbtheorie/Logo  Q·WissRechner/Konstanten/Diagramme/Plotter  R·Verschlüsselung/Hash/2FA/Passwort-Check');
+
+setTimeout(()=>{ const logo=document.querySelector('#logoBtn'); if(logo) logo.click(); }, 100);
+
+})();
+</script>
 </body>
 </html>
