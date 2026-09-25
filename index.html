@@ -4664,5 +4664,977 @@ setTimeout(()=>{
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v126 · Apps Pack 3 (I/L/M/N)
+     28 neue funktionierende Apps
+     ============================================================ -->
+<script>
+(function(){
+'use strict';
+
+if(!window.HalDo || !window.HalDo.apps){
+  setTimeout(()=>location.reload(), 800);
+  return;
+}
+
+const APPS = window.HalDo.apps;
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = ()=>Math.random().toString(36).slice(2,10);
+const fmt = n => (Math.round(n*100)/100).toLocaleString('de-DE');
+const toast = window.HalDo.toast || ((m)=>console.log('[toast]',m));
+const store = {
+  key: k => 'haldo_'+k+'_v1',
+  get(k,d){ try{ const v=localStorage.getItem(this.key(k)); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(this.key(k), JSON.stringify(v)); }catch(e){} }
+};
+const rnd = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+
+/* ============================================================
+   I · WISSEN
+   ============================================================ */
+
+APPS['woerterbuch'] = {
+  name:'Wörterbuch', icon:'📖',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="wbQ" placeholder="Wort suchen…" style="flex:1"><button class="btn primary" id="wbGo">Suchen</button></div>'+
+    '<div id="wbOut" class="col"></div>'+
+  '</div>'; },
+  init(win){
+    $('#wbGo',win).onclick=async()=>{
+      const w=$('#wbQ',win).value.trim(); if(!w){ toast('Wort eingeben'); return; }
+      const out=$('#wbOut',win);
+      out.innerHTML = '<div class="empty">Suche „'+esc(w)+'"…</div>';
+      try{
+        const r = await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/'+encodeURIComponent(w));
+        if(!r.ok){ out.innerHTML = '<div class="empty">Nicht gefunden (engl. Wörterbuch)</div>'; return; }
+        const data = await r.json();
+        const e = data[0];
+        let html = '<div class="card"><div class="big2">'+esc(e.word)+'</div>';
+        if(e.phonetic) html += '<div class="dim">'+esc(e.phonetic)+'</div>';
+        e.meanings.forEach(m=>{
+          html += '<div style="margin-top:8px"><b style="color:var(--c1)">'+esc(m.partOfSpeech)+'</b>';
+          m.definitions.slice(0,3).forEach(d=>{ html += '<div class="dim" style="margin-top:4px">• '+esc(d.definition)+'</div>'; });
+          if(m.synonyms && m.synonyms.length) html += '<div class="dim sm" style="margin-top:4px">Synonyme: '+m.synonyms.slice(0,6).map(esc).join(', ')+'</div>';
+          html += '</div>';
+        });
+        html += '</div>';
+        out.innerHTML = html;
+      }catch(e){ out.innerHTML = '<div class="empty">Netzwerkfehler</div>'; }
+    };
+    $('#wbQ',win).addEventListener('keydown',e=>{ if(e.key==='Enter') $('#wbGo',win).click(); });
+  }
+};
+
+APPS['zitate'] = {
+  name:'Zitate', icon:'💬',
+  render(){ return '<div class="col center">'+
+    '<div class="card" id="ztCard" style="min-height:180px;display:flex;flex-direction:column;justify-content:center;padding:20px">'+
+      '<div id="ztText" style="font-size:16px;font-style:italic;line-height:1.6"></div>'+
+      '<div id="ztAuthor" class="dim" style="margin-top:12px;text-align:right"></div>'+
+    '</div>'+
+    '<button class="btn primary" id="ztNext">🎲 Neues Zitat</button>'+
+    '<label class="dim sm"><input type="checkbox" id="ztAuto"> Automatisch alle 10 Sek.</label>'+
+  '</div>'; },
+  init(win){
+    const quotes = [
+      ['Der Weg ist das Ziel.','Konfuzius'],
+      ['Ich denke, also bin ich.','René Descartes'],
+      ['Wer kämpft, kann verlieren. Wer nicht kämpft, hat schon verloren.','Bertolt Brecht'],
+      ['Die größte Ehre liegt nicht darin, nie zu fallen, sondern immer wieder aufzustehen.','Konfuzius'],
+      ['Nur wer sein Ziel kennt, findet den Weg.','Laotse'],
+      ['Man sieht nur mit dem Herzen gut. Das Wesentliche ist für die Augen unsichtbar.','Antoine de Saint-Exupéry'],
+      ['Sei du selbst die Veränderung, die du dir wünschst für diese Welt.','Mahatma Gandhi'],
+      ['Erfolg ist die Summe kleiner Anstrengungen, die täglich wiederholt werden.','Robert Collier'],
+      ['Was dich nicht umbringt, macht dich stärker.','Friedrich Nietzsche'],
+      ['Phantasie ist wichtiger als Wissen, denn Wissen ist begrenzt.','Albert Einstein'],
+      ['Nicht weil es schwer ist, wagen wir es nicht, sondern weil wir es nicht wagen, ist es schwer.','Seneca'],
+      ['Der Mensch ist, was er isst.','Ludwig Feuerbach'],
+      ['Wo ein Wille ist, ist auch ein Weg.','Sprichwort'],
+      ['Das Glück deines Lebens hängt von der Beschaffenheit deiner Gedanken ab.','Marcus Aurelius'],
+      ['Wer nichts weiß, muss alles glauben.','Marie von Ebner-Eschenbach'],
+      ['Handle so, dass die Maxime deines Willens jederzeit als Prinzip einer allgemeinen Gesetzgebung gelten könne.','Immanuel Kant'],
+      ['Zeit ist das, was man an der Uhr abliest.','Albert Einstein'],
+      ['Ich habe keine besondere Begabung, sondern bin nur leidenschaftlich neugierig.','Albert Einstein'],
+      ['Bildung ist die mächtigste Waffe, um die Welt zu verändern.','Nelson Mandela'],
+      ['Wer aufhört, besser zu werden, hat aufgehört, gut zu sein.','Philip Rosenthal']
+    ];
+    const T=$('#ztText',win), A=$('#ztAuthor',win);
+    function next(){
+      const q = quotes[rnd(0,quotes.length-1)];
+      T.textContent = '„'+q[0]+'"';
+      A.textContent = '— '+q[1];
+    }
+    $('#ztNext',win).onclick=next;
+    let id=null;
+    $('#ztAuto',win).onchange=(e)=>{ if(e.target.checked){ id=setInterval(next, 10000); } else { clearInterval(id); id=null; } };
+    next();
+  }
+};
+
+APPS['fakten'] = {
+  name:'Fakten', icon:'🎓',
+  render(){ return '<div class="col">'+
+    '<div id="fkL" class="col"></div>'+
+    '<button class="btn primary" id="fkMore">🎲 Mehr Fakten laden</button>'+
+  '</div>'; },
+  init(win){
+    const facts = [
+      '🐙 Ein Oktopus hat drei Herzen und blaues Blut.',
+      '🍯 Honig verdirbt nie — ägyptische Grabbeigaben-Honig ist noch essbar.',
+      '🧠 Das Gehirn erzeugt etwa 20 Watt Strom — genug für eine Energiesparlampe.',
+      '🌕 Die Fußabdrücke der Apollo-Mission sind noch auf dem Mond sichtbar.',
+      '🐘 Elefanten können sich selbst im Spiegel erkennen.',
+      '⚡ Ein Blitz ist etwa 30.000 °C heiß — 5× heißer als die Sonnenoberfläche.',
+      '🌊 Über 80% der Weltmeere sind noch unerforscht.',
+      '🦈 Haie existieren länger als Bäume — seit über 400 Mio Jahren.',
+      '🍌 Bananen sind botanisch Beeren, Erdbeeren nicht.',
+      '💧 Heißes Wasser kann unter bestimmten Bedingungen schneller gefrieren als kaltes (Mpemba-Effekt).',
+      '🦋 Schmetterlinge schmecken mit ihren Füßen.',
+      '🌍 Die Erde ist keine perfekte Kugel — sie ist am Äquator breiter.',
+      '🐝 Bienen tanzen, um anderen zu zeigen, wo Blumen sind.',
+      '☀️ Ein Tag auf der Venus dauert länger als ein Venus-Jahr.',
+      '🐜 Ameisen können das 50-fache ihres Körpergewichts tragen.',
+      '💎 Diamanten regnen auf Neptun und Uranus.',
+      '🦴 Ein Erwachsener hat 206 Knochen, ein Baby ~300.',
+      '🌳 Bäume kommunizieren über ein unterirdisches Pilznetzwerk.',
+      '📱 Das erste iPhone kam 2007 raus — es hatte keinen App Store.',
+      '🦷 Zahnschmelz ist die härteste Substanz im menschlichen Körper.'
+    ];
+    const L=$('#fkL',win);
+    function add(n){
+      const used = new Set($$('.card',L).map(el=>el.dataset.f));
+      let added=0, tries=0;
+      while(added<n && tries<50){
+        tries++;
+        const f = facts[rnd(0,facts.length-1)];
+        if(used.has(f)) continue;
+        const d = document.createElement('div');
+        d.className='card'; d.dataset.f=f; d.textContent=f;
+        L.appendChild(d); added++;
+      }
+    }
+    $('#fkMore',win).onclick=()=>add(3);
+    add(5);
+  }
+};
+
+APPS['flaggen'] = {
+  name:'Flaggen', icon:'🏁',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>Flaggen-Lexikon</b></div>'+
+    '<input class="inp" id="fgQ" placeholder="Land suchen…">'+
+    '<div id="fgL" class="list" style="max-height:60vh;overflow-y:auto"></div>'+
+  '</div>'; },
+  init(win){
+    const flags = [
+      ['🇩🇪','Deutschland','Berlin','Europa','83 Mio.'],
+      ['🇦🇹','Österreich','Wien','Europa','9 Mio.'],
+      ['🇨🇭','Schweiz','Bern','Europa','8,7 Mio.'],
+      ['🇫🇷','Frankreich','Paris','Europa','68 Mio.'],
+      ['🇮🇹','Italien','Rom','Europa','59 Mio.'],
+      ['🇪🇸','Spanien','Madrid','Europa','47 Mio.'],
+      ['🇬🇧','Vereinigtes Königreich','London','Europa','67 Mio.'],
+      ['🇳🇱','Niederlande','Amsterdam','Europa','17 Mio.'],
+      ['🇧🇪','Belgien','Brüssel','Europa','11 Mio.'],
+      ['🇵🇹','Portugal','Lissabon','Europa','10 Mio.'],
+      ['🇬🇷','Griechenland','Athen','Europa','10 Mio.'],
+      ['🇵🇱','Polen','Warschau','Europa','38 Mio.'],
+      ['🇨🇿','Tschechien','Prag','Europa','10 Mio.'],
+      ['🇭🇺','Ungarn','Budapest','Europa','9,6 Mio.'],
+      ['🇷🇴','Rumänien','Bukarest','Europa','19 Mio.'],
+      ['🇸🇪','Schweden','Stockholm','Europa','10 Mio.'],
+      ['🇳🇴','Norwegen','Oslo','Europa','5,4 Mio.'],
+      ['🇩🇰','Dänemark','Kopenhagen','Europa','5,8 Mio.'],
+      ['🇫🇮','Finnland','Helsinki','Europa','5,5 Mio.'],
+      ['🇮🇪','Irland','Dublin','Europa','5 Mio.'],
+      ['🇺🇦','Ukraine','Kyjiw','Europa','44 Mio.'],
+      ['🇷🇺','Russland','Moskau','Europa/Asien','144 Mio.'],
+      ['🇹🇷','Türkei','Ankara','Eurasien','84 Mio.'],
+      ['🇺🇸','USA','Washington D.C.','Nordamerika','330 Mio.'],
+      ['🇨🇦','Kanada','Ottawa','Nordamerika','38 Mio.'],
+      ['🇲🇽','Mexiko','Mexiko-Stadt','Nordamerika','130 Mio.'],
+      ['🇧🇷','Brasilien','Brasília','Südamerika','212 Mio.'],
+      ['🇦🇷','Argentinien','Buenos Aires','Südamerika','45 Mio.'],
+      ['🇨🇳','China','Peking','Asien','1,4 Mrd.'],
+      ['🇯🇵','Japan','Tokio','Asien','126 Mio.'],
+      ['🇰🇷','Südkorea','Seoul','Asien','52 Mio.'],
+      ['🇮🇳','Indien','Neu-Delhi','Asien','1,4 Mrd.'],
+      ['🇮🇩','Indonesien','Jakarta','Asien','270 Mio.'],
+      ['🇹🇭','Thailand','Bangkok','Asien','70 Mio.'],
+      ['🇻🇳','Vietnam','Hanoi','Asien','97 Mio.'],
+      ['🇦🇺','Australien','Canberra','Ozeanien','26 Mio.'],
+      ['🇳🇿','Neuseeland','Wellington','Ozeanien','5 Mio.'],
+      ['🇪🇬','Ägypten','Kairo','Afrika','100 Mio.'],
+      ['🇿🇦','Südafrika','Pretoria','Afrika','60 Mio.'],
+      ['🇳🇬','Nigeria','Abuja','Afrika','210 Mio.'],
+      ['🇰🇪','Kenia','Nairobi','Afrika','54 Mio.'],
+      ['🇲🇦','Marokko','Rabat','Afrika','37 Mio.'],
+      ['🇸🇦','Saudi-Arabien','Riad','Asien','34 Mio.'],
+      ['🇦🇪','VAE','Abu Dhabi','Asien','10 Mio.'],
+      ['🇮🇱','Israel','Jerusalem','Asien','9 Mio.']
+    ];
+    const L=$('#fgL',win), Q=$('#fgQ',win);
+    function render(){
+      const q=Q.value.toLowerCase();
+      const f = q?flags.filter(x=>x[1].toLowerCase().includes(q)):flags;
+      L.innerHTML = f.length ? f.map(x=>'<div class="item"><span style="font-size:26px">'+x[0]+'</span><b>'+x[1]+'</b><span class="dim">'+x[2]+'</span><span class="dim sm" style="margin-left:auto">'+x[4]+'</span></div>').join('') : '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput=render; render();
+  }
+};
+
+APPS['hauptstaedte'] = {
+  name:'Hauptstädte', icon:'🏛️',
+  render(){ return '<div class="col">'+
+    '<div class="row"><select class="inp" id="hsC" style="width:auto"><option value="">Alle Kontinente</option><option>Europa</option><option>Asien</option><option>Afrika</option><option>Amerika</option><option>Ozeanien</option></select><button class="btn primary" id="hsGo">Quiz starten</button></div>'+
+    '<div id="hsQ" class="card center big2" style="min-height:80px;display:flex;align-items:center;justify-content:center">Start drücken</div>'+
+    '<div id="hsA" class="col"></div>'+
+    '<div class="card center">Punkte: <b id="hsP">0</b> · Richtig <b id="hsR">0</b></div>'+
+  '</div>'; },
+  init(win){
+    const data = [
+      ['Deutschland','Berlin','Europa'],['Frankreich','Paris','Europa'],['Italien','Rom','Europa'],
+      ['Spanien','Madrid','Europa'],['Portugal','Lissabon','Europa'],['Niederlande','Amsterdam','Europa'],
+      ['Belgien','Brüssel','Europa'],['Österreich','Wien','Europa'],['Schweiz','Bern','Europa'],
+      ['Polen','Warschau','Europa'],['Griechenland','Athen','Europa'],['Schweden','Stockholm','Europa'],
+      ['Norwegen','Oslo','Europa'],['Finnland','Helsinki','Europa'],['Dänemark','Kopenhagen','Europa'],
+      ['Irland','Dublin','Europa'],['Ungarn','Budapest','Europa'],['Tschechien','Prag','Europa'],
+      ['Rumänien','Bukarest','Europa'],['Ukraine','Kyjiw','Europa'],
+      ['Türkei','Ankara','Asien'],['China','Peking','Asien'],['Japan','Tokio','Asien'],
+      ['Indien','Neu-Delhi','Asien'],['Südkorea','Seoul','Asien'],['Thailand','Bangkok','Asien'],
+      ['Vietnam','Hanoi','Asien'],['Indonesien','Jakarta','Asien'],['Saudi-Arabien','Riad','Asien'],
+      ['Israel','Jerusalem','Asien'],['Iran','Teheran','Asien'],
+      ['Ägypten','Kairo','Afrika'],['Südafrika','Pretoria','Afrika'],['Nigeria','Abuja','Afrika'],
+      ['Kenia','Nairobi','Afrika'],['Marokko','Rabat','Afrika'],['Algerien','Algier','Afrika'],
+      ['USA','Washington D.C.','Amerika'],['Kanada','Ottawa','Amerika'],['Mexiko','Mexiko-Stadt','Amerika'],
+      ['Brasilien','Brasília','Amerika'],['Argentinien','Buenos Aires','Amerika'],['Chile','Santiago','Amerika'],
+      ['Peru','Lima','Amerika'],['Kolumbien','Bogotá','Amerika'],
+      ['Australien','Canberra','Ozeanien'],['Neuseeland','Wellington','Ozeanien']
+    ];
+    let idx=0, score=0, correct=0, cur=null;
+    const Q=$('#hsQ',win), A=$('#hsA',win), P=$('#hsP',win), R=$('#hsR',win);
+    function next(){
+      const cont=$('#hsC',win).value;
+      const pool = cont?data.filter(d=>d[2]===cont):data;
+      if(!pool.length){ toast('Keine Daten'); return; }
+      cur = pool[rnd(0,pool.length-1)];
+      Q.textContent = 'Hauptstadt von '+cur[0]+'?';
+      const others = pool.filter(d=>d!==cur).map(d=>d[1]).sort(()=>Math.random()-.5).slice(0,3);
+      const opts = [cur[1], ...others].sort(()=>Math.random()-.5);
+      A.innerHTML = opts.map(o=>'<button class="btn" data-c="'+esc(o)+'" style="width:100%;text-align:left">'+esc(o)+'</button>').join('');
+      A.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+        if(b.dataset.c===cur[1]){ correct++; b.style.background='rgba(77,232,138,.35)'; b.style.borderColor='#4de88a'; }
+        else{
+          b.style.background='rgba(224,59,90,.35)'; b.style.borderColor='#e03b5a';
+          A.querySelectorAll('button').forEach(x=>{ if(x.dataset.c===cur[1]){ x.style.background='rgba(77,232,138,.35)'; x.style.borderColor='#4de88a'; } });
+        }
+        score++; P.textContent=score; R.textContent=correct;
+        A.querySelectorAll('button').forEach(x=>x.disabled=true);
+        setTimeout(next, 900);
+      });
+    }
+    $('#hsGo',win).onclick=()=>{ score=0; correct=0; P.textContent=0; R.textContent=0; next(); };
+  }
+};
+
+APPS['tiere'] = {
+  name:'Tiere', icon:'🦁',
+  render(){ return '<div class="col">'+
+    '<input class="inp" id="trQ" placeholder="Tier suchen…">'+
+    '<div id="trL" class="list" style="max-height:60vh;overflow-y:auto"></div>'+
+  '</div>'; },
+  init(win){
+    const animals = [
+      ['🦁','Löwe','Afrika','Savanne','Rudeltier — Männchen bis 250 kg'],
+      ['🐘','Elefant','Afrika/Asien','Savanne/Wald','Größtes Landtier — bis 6 t'],
+      ['🐯','Tiger','Asien','Dschungel','Größte Katze — bis 300 kg'],
+      ['🐻','Braunbär','Europa/Asien/Amerika','Wald','Bis 600 kg, Winterschlaf'],
+      ['🐺','Wolf','Europa/Asien/Amerika','Wald/Berge','Rudeltier, Vorfahre des Hundes'],
+      ['🦊','Fuchs','Weltweit','Wald/Stadt','Anpassungsfähig, dämmerungsaktiv'],
+      ['🐼','Großer Panda','China','Bambuswald','Frisst 12 h/Tag Bambus'],
+      ['🐨','Koala','Australien','Eukalyptuswald','Schläft 20 h/Tag'],
+      ['🦘','Känguru','Australien','Buschland','Springt bis 9 m weit'],
+      ['🐧','Pinguin','Antarktis','Küste','Kann nicht fliegen, schwimmt 35 km/h'],
+      ['🦅','Adler','Weltweit','Berge/Wald','Sicht 4-5× schärfer als Mensch'],
+      ['🦉','Eule','Weltweit','Wald','Kann Kopf 270° drehen'],
+      ['🐬','Delfin','Meere','Ozean','Intelligent, schläft mit halbem Gehirn'],
+      ['🐳','Blauwal','Meere','Ozean','Größtes Tier — bis 30 m lang'],
+      ['🦈','Hai','Meere','Ozean','Existiert seit 400 Mio Jahren'],
+      ['🐙','Oktopus','Meere','Ozean','3 Herzen, blaues Blut'],
+      ['🐍','Kobra','Asien/Afrika','Tropen','Gift kann Menschen töten'],
+      ['🐊','Krokodil','Afrika/Amerika/Asien','Flüsse','Bissstärke bis 2 t'],
+      ['🦒','Giraffe','Afrika','Savanne','Höchstes Landtier — bis 6 m'],
+      ['🦓','Zebra','Afrika','Savanne','Streifenmuster individuell wie Fingerabdruck'],
+      ['🦏','Nashorn','Afrika/Asien','Savanne','Horn aus Keratin (wie Haare)'],
+      ['🐪','Kamel','Afrika/Asien','Wüste','Speichert Fett im Höcker'],
+      ['🦌','Hirsch','Europa/Asien/Amerika','Wald','Geweih wird jährlich abgeworfen'],
+      ['🐇','Kaninchen','Weltweit','Wiese','Zähne wachsen ständig nach'],
+      ['🐿️','Eichhörnchen','Weltweit','Wald','Vergräbt Nüsse und vergisst sie']
+    ];
+    const L=$('#trL',win), Q=$('#trQ',win);
+    function render(){
+      const q=Q.value.toLowerCase();
+      const f = q?animals.filter(x=>x[1].toLowerCase().includes(q)):animals;
+      L.innerHTML = f.length ? f.map(x=>'<div class="card"><div class="row"><span style="font-size:32px">'+x[0]+'</span><b>'+x[1]+'</b></div><div class="dim sm" style="margin-top:4px">📍 '+x[2]+' · 🏞 '+x[3]+'</div><div class="dim sm">'+x[4]+'</div></div>').join('') : '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput=render; render();
+  }
+};
+
+APPS['weltrekorde'] = {
+  name:'Weltrekorde', icon:'🏆',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🏆 Rekorde aus aller Welt</b></div>'+
+    '<div id="wrL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const records = [
+      ['Höchster Berg','Mount Everest — 8.848,86 m'],
+      ['Tiefster Punkt','Marianengraben — 11.034 m'],
+      ['Längster Fluss','Nil — 6.650 km'],
+      ['Größte Wüste','Antarktis — 14 Mio. km²'],
+      ['Tiefster See','Baikalsee — 1.642 m'],
+      ['Größter Ozean','Pazifik — 165 Mio. km²'],
+      ['Größtes Land','Russland — 17,1 Mio. km²'],
+      ['Kleinstes Land','Vatikan — 0,44 km²'],
+      ['Höchster Wasserfall','Angel Falls — 979 m'],
+      ['Längste Mauer','Chinesische Mauer — 21.196 km'],
+      ['Höchstes Gebäude','Burj Khalifa — 828 m'],
+      ['Längste Brücke','Danyang-Kunshan — 164,8 km'],
+      ['Schnellstes Landtier','Gepard — 120 km/h'],
+      ['Schnellster Vogel','Wanderfalke — 389 km/h'],
+      ['Größtes Tier','Blauwal — 30 m, 200 t'],
+      ['Ältestes Tier','Grönlandhai — bis 500 Jahre'],
+      ['Größte Stadt','Tokio — 37 Mio. Einwohner'],
+      ['Heißester Ort','Death Valley — 56,7 °C'],
+      ['Kältester Ort','Antarktis — -89,2 °C'],
+      ['Trockenster Ort','Atacama — 0 mm Regen/Jahr']
+    ];
+    $('#wrL',win).innerHTML = records.map(r=>'<div class="item"><b>'+r[0]+'</b><span class="dim" style="margin-left:auto;text-align:right">'+r[1]+'</span></div>').join('');
+  }
+};
+
+APPS['erfindungen'] = {
+  name:'Erfindungen', icon:'💡',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>💡 Große Erfindungen der Menschheit</b></div>'+
+    '<div id="efL" class="list" style="max-height:70vh;overflow-y:auto"></div>'+
+  '</div>'; },
+  init(win){
+    const inv = [
+      ['📜 Schrift','~3.200 v. Chr.','Sumer','Erste Keilschrift'],
+      ['🔢 Zahl Null','~600 n. Chr.','Indien','Grundlage moderner Mathematik'],
+      ['🖨️ Buchdruck','1440','Gutenberg','Massenhafte Verbreitung von Wissen'],
+      ['☎️ Telefon','1876','Bell','Erste Sprachübertragung'],
+      ['💡 Glühbirne','1879','Edison','Elektrisches Licht'],
+      ['🚗 Automobil','1886','Benz','Motorisiertes Fahrzeug'],
+      ['✈️ Flugzeug','1903','Wright','Erster Motorflug'],
+      ['💊 Penicillin','1928','Fleming','Erstes Antibiotikum'],
+      ['💻 Computer','1940er','Zuse','Erste programmierbare Rechner'],
+      ['🌐 Internet','1969','ARPA','Erstes Netzwerk ARPANET'],
+      ['🧬 DNA','1953','Watson/Crick','Entschlüsselung des Erbguts'],
+      ['📺 Fernsehen','1926','Baird','Erste Bewegtbilder'],
+      ['🚀 Raumfahrt','1957','UdSSR','Sputnik 1'],
+      ['🌕 Mondlandung','1969','Apollo 11','Erster Mensch auf dem Mond'],
+      ['📱 Smartphone','1992','IBM','Erstes Smartphone (Simon)'],
+      ['🔋 Lithium-Akku','1991','Sony','Wiederaufladbare Energie'],
+      ['🧠 KI','1956','Dartmouth','Beginn der KI-Forschung'],
+      ['🚁 Hubschrauber','1936','Focke','Erster brauchbarer Hubschrauber'],
+      ['🎙️ Radio','1895','Marconi','Drahtlose Übertragung'],
+      ['🛰️ Satellit','1957','UdSSR','Sputnik 1'],
+      ['📷 Fotografie','1826','Niépce','Erstes Foto'],
+      ['💉 Impfung','1796','Jenner','Schutz gegen Pocken'],
+      ['🧊 Kühlschrank','1876','Lindé','Künstliche Kühlung'],
+      ['🚿 Dusche','1767','Cumming','Erste moderne Dusche'],
+      ['🧴 Waschmittel','1907','Henkel','Erstes moderne Waschmittel']
+    ];
+    $('#efL',win).innerHTML = inv.map(x=>'<div class="card"><div class="row between"><b>'+x[0]+'</b><span class="dim sm">'+x[1]+'</span></div><div class="dim sm" style="margin-top:4px">'+x[2]+' — '+x[3]+'</div></div>').join('');
+  }
+};
+
+APPS['technik-lexikon'] = {
+  name:'Technik', icon:'⚙️',
+  render(){ return '<div class="col">'+
+    '<input class="inp" id="tlQ" placeholder="Begriff suchen…">'+
+    '<div id="tlL" class="list" style="max-height:65vh;overflow-y:auto"></div>'+
+  '</div>'; },
+  init(win){
+    const terms = [
+      ['API','Schnittstelle, über die Programme miteinander reden'],
+      ['Backend','Der unsichtbare Teil einer App — Server, Datenbank'],
+      ['Browser','Programm zum Anzeigen von Webseiten (Safari, Chrome)'],
+      ['Cache','Zwischenspeicher für schnelleres Laden'],
+      ['Cloud','Speicher/Server im Internet statt auf deinem Gerät'],
+      ['Cookie','Kleine Datei, die Webseiten im Browser speichern'],
+      ['CPU','Prozessor — das „Gehirn" des Computers'],
+      ['CSS','Sprache für das Aussehen von Webseiten'],
+      ['Datenbank','Strukturierter Speicher für Daten'],
+      ['DNS','Übersetzt Webadressen in IP-Adressen'],
+      ['Domain','Webadresse wie google.de'],
+      ['Firewall','Schutzwall gegen unerwünschten Netzwerkverkehr'],
+      ['Frontend','Sichtbarer Teil einer App — was du siehst'],
+      ['GPU','Grafikprozessor für Bilder und Spiele'],
+      ['HTML','Grundgerüst einer Webseite'],
+      ['HTTP','Protokoll für Webseiten-Übertragung'],
+      ['HTTPS','Verschlüsseltes HTTP — sicher'],
+      ['IP-Adresse','Eindeutige Nummer jedes Geräts im Netzwerk'],
+      ['JavaScript','Programmiersprache für dynamische Webseiten'],
+      ['JSON','Leichtes Datenformat für Webanwendungen'],
+      ['Kernel','Kern eines Betriebssystems'],
+      ['LAN','Lokales Netzwerk (z. B. zuhause)'],
+      ['LocalStorage','Browser-Speicher für Webseiten-Daten'],
+      ['Pixel','Kleinster Bildpunkt auf einem Bildschirm'],
+      ['RAM','Arbeitsspeicher — schnell, aber flüchtig'],
+      ['Server','Computer, der anderen Geräten Daten liefert'],
+      ['SSD','Schnelle Festplatte ohne bewegliche Teile'],
+      ['VPN','Verschlüsselte Verbindung über fremden Server'],
+      ['WLAN','Drahtloses Netzwerk'],
+      ['URL','Webadresse']
+    ];
+    const L=$('#tlL',win), Q=$('#tlQ',win);
+    function render(){
+      const q=Q.value.toLowerCase();
+      const f = q?terms.filter(t=>t[0].toLowerCase().includes(q)||t[1].toLowerCase().includes(q)):terms;
+      L.innerHTML = f.length ? f.map(t=>'<div class="card"><b>'+esc(t[0])+'</b><div class="dim" style="margin-top:4px">'+esc(t[1])+'</div></div>').join('') : '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput=render; render();
+  }
+};
+
+/* ============================================================
+   L · LERNEN
+   ============================================================ */
+
+APPS['quiz-lernen'] = {
+  name:'Quiz Lernen', icon:'❓',
+  render(){ return '<div class="col center">'+
+    '<div class="row" style="justify-content:center"><select class="inp" id="qlC" style="width:auto">'+
+      '<option value="mathe">Mathe</option>'+
+      '<option value="deutsch">Deutsch</option>'+
+      '<option value="englisch">Englisch</option>'+
+      '<option value="geschichte">Geschichte</option>'+
+    '</select></div>'+
+    '<div class="card big2" id="qlQ" style="min-height:80px;display:flex;align-items:center;justify-content:center;width:100%">Start drücken</div>'+
+    '<div id="qlA" class="col" style="width:100%"></div>'+
+    '<button class="btn primary" id="qlGo">▶ Start</button>'+
+    '<div class="card center" style="width:100%">Punkte: <b id="qlP">0</b></div>'+
+  '</div>'; },
+  init(win){
+    const data = {
+      mathe: [
+        ['7 × 8','56'],['144 ÷ 12','12'],['√81','9'],['15% von 200','30'],['2³','8'],
+        ['x+5=12 → x','7'],['Kreisfläche r=5','78,5'],['12 × 12','144'],['π rund','3,14'],['1 km in m','1000']
+      ],
+      deutsch: [
+        ['Nomen von „laufen"','Lauf'],['Akkusativ von „der Baum"','den Baum'],['Gegenteil von „hell"','dunkel'],
+        ['Plural von „Kind"','Kinder'],['Zeitform von „gehen" (Perfekt)','ist gegangen'],
+        ['Synonym für „schön"','hübsch'],['Dativ von „die Frau"','der Frau'],
+        ['Fragewort für Ort','wo'],['Gegenteil von „schnell"','langsam'],['Silben von „Elefant"','E-le-fant']
+      ],
+      englisch: [
+        ['Haus','house'],['Auto','car'],['Baum','tree'],['Wasser','water'],['Buch','book'],
+        ['laufen','to run'],['Katze','cat'],['Brot','bread'],['Freund','friend'],['Schule','school']
+      ],
+      geschichte: [
+        ['2. Weltkrieg Ende','1945'],['Mauerfall','1989'],['Erster Weltkrieg begann','1914'],
+        ['Mondlandung','1969'],['Berliner Mauer gebaut','1961'],['Französische Revolution','1789'],
+        ['Fall des Römischen Reiches (West)','476'],['Gutenberg Buchdruck','1440'],
+        ['Christoph Kolumbus Amerika','1492'],['Deutsche Wiedervereinigung','1990']
+      ]
+    };
+    let cur=null, score=0;
+    const Q=$('#qlQ',win), A=$('#qlA',win), P=$('#qlP',win);
+    function next(){
+      const cat=$('#qlC',win).value;
+      const pool = data[cat];
+      cur = pool[rnd(0,pool.length-1)];
+      Q.textContent = cur[0];
+      A.innerHTML = '<input class="inp" id="qlIn" placeholder="Antwort…" autocomplete="off"><button class="btn primary" id="qlChk">Prüfen</button>';
+      const I=$('#qlIn',win);
+      I.focus();
+      const check=()=>{
+        const v=I.value.trim().toLowerCase();
+        const ok = v===cur[1].toLowerCase() || (cat==='mathe' && Math.abs(parseFloat(v.replace(',','.'))-parseFloat(cur[1].replace(',','.')))<0.01);
+        if(ok){ score++; P.textContent=score; toast('✅ Richtig!'); setTimeout(next,500); }
+        else toast('❌ Richtig wäre: '+cur[1]);
+      };
+      $('#qlChk',win).onclick=check;
+      I.addEventListener('keydown',e=>{ if(e.key==='Enter') check(); });
+    }
+    $('#qlGo',win).onclick=()=>{ score=0; P.textContent=0; next(); };
+  }
+};
+
+APPS['eselsbruecken'] = {
+  name:'Eselsbrücken', icon:'🐴',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🐴 Merksätze, die wirklich helfen</b></div>'+
+    '<div id="ebL" class="col"></div>'+
+  '</div>'; },
+  init(win){
+    const list = [
+      ['Mathe — Reihenfolge','„Punkt vor Strich, sonst gibt\'s Stich."'],
+      ['Farben des Regenbogens','„Rot Orange Gelb Grün Blau Indigo Violett"'],
+      ['Planeten-Reihenfolge','„Mein Vater Erklärt Mir Jeden Sonntag Unsere Nachbarplaneten" (Merkur, Venus, Erde, Mars, Jupiter, Saturn, Uranus, Neptun)'],
+      ['Wochentage','„Montag, Dienstag, Mittwoch, Donnerstag, Freitag, Samstag, Sonntag"'],
+      ['Monate (Anzahl Tage)','„30 Tage hat September, April, Juni und November. Alle anderen 31, nur der Februar hat 28 (in Schaltjahren 29)."'],
+      ['i oder ie?','„Nach Konsonant schreib i, nach Vokal schreib ie."'],
+      ['Das oder dass?','„Wenn du „dieses" einsetzen kannst → das."'],
+      ['Dehnungs-h','„Nach langem Vokal steht oft ein h — Zahl, Stuhl, Mehl."'],
+      ['Links/Rechts','„Rechts ist da, wo der Daumen links ist."'],
+      ['Himmelsrichtungen','„Nie ohne Seife waschen" — Nord, Ost, Süd, West (im Uhrzeigersinn).'],
+      ['Resistor-Farben','„Bitte Bring Rote Ochsen, Gelbe Gänse, Blaue Vögel, Graue Wolken." (0-9)'],
+      ['Musiknoten','„Es geht hurtig durch Fleiß" — E G H D F (Violinschlüssel)'],
+      ['Chemie — Redox','„Oxidation ist Elektronenabgabe, Reduktion ist Elektronenaufnahme."'],
+      ['Winkel','„Rechter Winkel — 90°, gestreckter Winkel — 180°."'],
+      ['Geometrie — Umfang Kreis','„U = 2πr oder πd."']
+    ];
+    $('#ebL',win).innerHTML = list.map(x=>'<div class="card"><b>'+esc(x[0])+'</b><div style="margin-top:6px">'+esc(x[1])+'</div></div>').join('');
+  }
+};
+
+APPS['zuordnung'] = {
+  name:'Zuordnung', icon:'🔗',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>Verbinde Paare</b></div>'+
+    '<div class="row" style="gap:10px"><div class="col" id="zuL" style="flex:1"></div><div class="col" id="zuR" style="flex:1"></div></div>'+
+    '<div class="card center">Punkte: <b id="zuP">0</b></div>'+
+    '<button class="btn primary" id="zuNew">🎲 Neu mischen</button>'+
+  '</div>'; },
+  init(win){
+    const pairs = [
+      ['Deutschland','Berlin'],['Frankreich','Paris'],['Italien','Rom'],['Spanien','Madrid'],
+      ['Hund','Bellen'],['Katze','Miauen'],['Kuh','Muhen'],['Vogel','Zwitschern'],
+      ['2+2','4'],['5×5','25'],['√16','4'],['10/2','5']
+    ];
+    let leftPick=null, rightPick=null, score=0;
+    const L=$('#zuL',win), R=$('#zuR',win), P=$('#zuP',win);
+    function render(){
+      const picked = pairs.slice(0,6);
+      const Ls = picked.map(p=>p[0]);
+      const Rs = picked.map(p=>p[1]);
+      const shuf = a=>[...a].sort(()=>Math.random()-.5);
+      L.innerHTML = shuf(Ls).map(x=>'<div class="card" data-x="'+esc(x)+'" data-s="L" style="cursor:pointer;text-align:center;padding:12px">'+esc(x)+'</div>').join('');
+      R.innerHTML = shuf(Rs).map(x=>'<div class="card" data-x="'+esc(x)+'" data-s="R" style="cursor:pointer;text-align:center;padding:12px">'+esc(x)+'</div>').join('');
+      win.querySelectorAll('.card[data-s]').forEach(el2=>el2.onclick=()=>{
+        const side=el2.dataset.s, val=el2.dataset.x;
+        if(side==='L'){ if(leftPick) leftPick.style.background=''; leftPick=el2; el2.style.background='rgba(0,229,255,.2)'; }
+        else { if(rightPick) rightPick.style.background=''; rightPick=el2; el2.style.background='rgba(180,120,255,.2)'; }
+        if(leftPick && rightPick){
+          const match = pairs.some(p=>p[0]===leftPick.dataset.x && p[1]===rightPick.dataset.x);
+          if(match){ score++; P.textContent=score; leftPick.style.background='rgba(77,232,138,.35)'; rightPick.style.background='rgba(77,232,138,.35)'; setTimeout(()=>{ leftPick.style.visibility='hidden'; rightPick.style.visibility='hidden'; leftPick=null; rightPick=null; if(win.querySelectorAll('[data-s]:not([style*="hidden"])').length===0) toast('🎉 Alle Paare gefunden!'); }, 500); }
+          else{ leftPick.style.background='rgba(224,59,90,.35)'; rightPick.style.background='rgba(224,59,90,.35)'; setTimeout(()=>{ if(leftPick) leftPick.style.background=''; if(rightPick) rightPick.style.background=''; leftPick=null; rightPick=null; }, 500); }
+        }
+      });
+    }
+    $('#zuNew',win).onclick=()=>{ score=0; P.textContent=0; render(); };
+    render();
+  }
+};
+
+APPS['lueckentext'] = APPS['lueckentext'] || {
+  name:'Lückentext', icon:'📝',
+  render(){ return '<div class="col"><div class="empty">Siehe N · Notizen Version</div></div>'; }
+};
+
+/* ============================================================
+   M · MEDIEN
+   ============================================================ */
+
+APPS['musikplayer'] = {
+  name:'Musikplayer', icon:'🎧',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🎧 Deine lokale Playlist</b><div class="dim sm">Füge Songs aus deiner Mediathek hinzu.</div></div>'+
+    '<div class="row"><input type="file" id="mpFile" accept="audio/*" multiple class="inp"></div>'+
+    '<div id="mpL" class="list"></div>'+
+    '<div class="card"><b>🎵 Aktuell</b><div id="mpNow" class="dim">Nichts ausgewählt</div>'+
+      '<audio id="mpA" controls style="width:100%;margin-top:8px"></audio>'+
+    '</div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#mpL',win), A=$('#mpA',win), Now=$('#mpNow',win);
+    const all=()=>store.get('music',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.map((m,i)=>'<div class="item"><b>'+esc(m.n)+'</b><button class="btn sm primary" data-i="'+i+'" style="margin-left:auto">▶</button><span class="x" data-i="'+i+'">✕</span></div>').join('') : '<div class="empty">Keine Songs — Datei oben auswählen</div>';
+      L.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{
+        const m=a[parseInt(b.dataset.i)];
+        if(!m) return;
+        A.src=m.data; A.play(); Now.textContent='▶ '+m.n;
+      });
+      L.querySelectorAll('.x').forEach(x=>x.onclick=()=>{ const a2=all(); a2.splice(parseInt(x.dataset.i),1); store.set('music',a2); render(); });
+    }
+    $('#mpFile',win).onchange=(e)=>{
+      const files = e.target.files;
+      const arr=all();
+      const read = (f)=>new Promise(res=>{
+        const r=new FileReader();
+        r.onload=()=>{ arr.push({id:uid(), n:f.name, data:r.result}); res(); };
+        r.readAsDataURL(f);
+      });
+      Promise.all([...files].map(read)).then(()=>{
+        store.set('music',arr);
+        render();
+        toast(files.length+' Datei(en) hinzugefügt');
+      });
+    };
+    render();
+  }
+};
+
+APPS['podcasts'] = {
+  name:'Podcasts', icon:'🎙️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🎙️ Beliebte Podcasts</b><div class="dim sm">Öffnet direkt die Podcast-Seite.</div></div>'+
+    '<div class="list" id="pcL"></div>'+
+  '</div>'; },
+  init(win){
+    const pods = [
+      ['Fest & Flauschig','Böhmermann & Schulz','https://open.spotify.com/show/1LLaTFOR2pZ1sLZ2XlJTIq'],
+      ['Gemischtes Hack','Comedy-Podcast','https://open.spotify.com/show/2OtG5hOFDDLvTpoLom3z4v'],
+      ['Lage der Nation','Politik','https://lagedernation.org/'],
+      ['Das Coronavirus-Update','NDR','https://www.ndr.de/nachrichten/info/podcast4684.html'],
+      ['Zeit Verbrechen','True Crime','https://www.zeit.de/serie/verbrechen'],
+      ['Einfach Tasty','Kochen','https://einfach-tasty.de/'],
+      ['SWR2 Wissen','Bildung','https://www.swr.de/swr2/wissen/podcast'],
+      ['BR24 Retro','Geschichte','https://www.br.de/mediathek/podcast/br24-retro/'],
+      ['WDR ZeitZeichen','Geschichte','https://www1.wdr.de/radio/wdr5/sendungen/zeitzeichen/'],
+      ['Psychologie to go','Psychologie','https://www.psychologie-to-go.de/']
+    ];
+    $('#pcL',win).innerHTML = pods.map(p=>'<a href="'+p[2]+'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>'+esc(p[0])+'</b><span class="dim sm" style="margin-left:auto">'+esc(p[1])+'</span></div></a>').join('');
+  }
+};
+
+APPS['hoerbuecher'] = {
+  name:'Hörbücher', icon:'📚',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>📚 Kostenlose Hörbücher</b><div class="dim sm">Öffentliche Domäne — legal & gratis.</div></div>'+
+    '<div class="list" id="hbL"></div>'+
+  '</div>'; },
+  init(win){
+    const books = [
+      ['Faust I — Goethe','https://www.vorleser.net/goethe-faust.html'],
+      ['Die Verwandlung — Kafka','https://www.vorleser.net/kafka-verwandlung.html'],
+      ['Der Prozess — Kafka','https://www.vorleser.net/kafka-prozess.html'],
+      ['Effi Briest — Fontane','https://www.vorleser.net/fontane-effi-briest.html'],
+      ['Buddenbrooks — Mann','https://www.vorleser.net/mann-buddenbrooks.html'],
+      ['Dracula — Stoker','https://www.vorleser.net/stoker-dracula.html'],
+      ['Sherlock Holmes','https://www.vorleser.net/doyle-sherlock.html'],
+      ['Alice im Wunderland','https://www.vorleser.net/carroll-alice.html'],
+      ['Pinocchio','https://www.vorleser.net/collodi-pinocchio.html'],
+      ['Grimms Märchen','https://www.vorleser.net/grimm-maerchen.html']
+    ];
+    $('#hbL',win).innerHTML = books.map(b=>'<a href="'+b[1]+'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>'+esc(b[0])+'</b><span class="dim sm" style="margin-left:auto">↗ anhören</span></div></a>').join('');
+  }
+};
+
+APPS['videoplayer'] = {
+  name:'Video Player', icon:'📹',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>📹 Lokales Video abspielen</b></div>'+
+    '<input type="file" id="vpFile" accept="video/*" class="inp">'+
+    '<video id="vpV" controls style="width:100%;border-radius:14px;background:#000;margin-top:8px"></video>'+
+  '</div>'; },
+  init(win){
+    $('#vpFile',win).onchange=(e)=>{
+      const f=e.target.files[0]; if(!f) return;
+      const url=URL.createObjectURL(f);
+      $('#vpV',win).src = url;
+    };
+  }
+};
+
+APPS['galerie'] = {
+  name:'Galerie', icon:'🖼️',
+  render(){ return '<div class="col">'+
+    '<input type="file" id="glF" accept="image/*" multiple class="inp">'+
+    '<div id="glG" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:10px"></div>'+
+  '</div>'; },
+  init(win){
+    const G=$('#glG',win);
+    $('#glF',win).onchange=(e)=>{
+      [...e.target.files].forEach(f=>{
+        const url=URL.createObjectURL(f);
+        const img=document.createElement('img');
+        img.src=url; img.style.cssText='width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;cursor:pointer;border:1.5px solid var(--line)';
+        img.onclick=()=>{ const w=window.open('','_blank'); if(w){ w.document.write('<img src="'+url+'" style="max-width:100%">'); } };
+        G.prepend(img);
+      });
+    };
+  }
+};
+
+APPS['bildbearbeitung'] = {
+  name:'Bildbearbeitung', icon:'🎨',
+  render(){ return '<div class="col">'+
+    '<input type="file" id="bbF" accept="image/*" class="inp">'+
+    '<canvas id="bbC" style="max-width:100%;border-radius:12px;border:1.5px solid var(--line);margin-top:8px;display:none"></canvas>'+
+    '<div class="row" id="bbCtl" style="display:none">'+
+      '<label class="dim sm">Helligkeit <input type="range" id="bbB" min="0" max="200" value="100"></label>'+
+      '<label class="dim sm">Kontrast <input type="range" id="bbK" min="0" max="200" value="100"></label>'+
+      '<label class="dim sm">Sättigung <input type="range" id="bbS" min="0" max="200" value="100"></label>'+
+      '<label class="dim sm">Grau <input type="range" id="bbG" min="0" max="100" value="0"></label>'+
+      '<button class="btn primary" id="bbSave">💾 Speichern</button>'+
+    '</div>'+
+  '</div>'; },
+  init(win){
+    const C=$('#bbC',win), ctx=C.getContext('2d');
+    let img=new Image();
+    function draw(){
+      if(!img.complete || !img.naturalWidth) return;
+      C.width=img.naturalWidth; C.height=img.naturalHeight;
+      ctx.filter = 'brightness('+$('#bbB',win).value+'%) contrast('+$('#bbK',win).value+'%) saturate('+$('#bbS',win).value+'%) grayscale('+$('#bbG',win).value+'%)';
+      ctx.drawImage(img,0,0);
+    }
+    $('#bbF',win).onchange=(e)=>{
+      const f=e.target.files[0]; if(!f) return;
+      img = new Image();
+      img.onload=()=>{ C.style.display='block'; $('#bbCtl',win).style.display='flex'; draw(); };
+      img.src = URL.createObjectURL(f);
+    };
+    ['bbB','bbK','bbS','bbG'].forEach(id=>$('#'+id,win).oninput=draw);
+    $('#bbSave',win).onclick=()=>{ const a=document.createElement('a'); a.href=C.toDataURL('image/jpeg',.9); a.download='haldo-edit-'+Date.now()+'.jpg'; a.click(); };
+  }
+};
+
+APPS['collage'] = {
+  name:'Collage', icon:'🖼',
+  render(){ return '<div class="col">'+
+    '<input type="file" id="cgF" accept="image/*" multiple class="inp">'+
+    '<canvas id="cgC" width="600" height="600" style="max-width:100%;border-radius:12px;border:1.5px solid var(--line);margin-top:8px;background:#111;display:none"></canvas>'+
+    '<button class="btn primary" id="cgSave" style="display:none">💾 Speichern</button>'+
+  '</div>'; },
+  init(win){
+    const C=$('#cgC',win), ctx=C.getContext('2d');
+    let imgs=[];
+    async function draw(){
+      C.width=600; C.height=600;
+      ctx.fillStyle='#111'; ctx.fillRect(0,0,600,600);
+      const n=Math.ceil(Math.sqrt(imgs.length));
+      if(!n) return;
+      const size=600/n;
+      for(let i=0;i<imgs.length;i++){
+        const x=(i%n)*size, y=Math.floor(i/n)*size;
+        const im=imgs[i];
+        const scale=Math.max(size/im.width, size/im.height);
+        const w=im.width*scale, h=im.height*scale;
+        ctx.drawImage(im, x+(size-w)/2, y+(size-h)/2, w, h);
+      }
+    }
+    $('#cgF',win).onchange=async(e)=>{
+      imgs=[];
+      for(const f of e.target.files){
+        const im = new Image();
+        await new Promise(res=>{ im.onload=res; im.src=URL.createObjectURL(f); });
+        imgs.push(im);
+      }
+      C.style.display='block'; $('#cgSave',win).style.display='inline-block';
+      draw();
+    };
+    $('#cgSave',win).onclick=()=>{ const a=document.createElement('a'); a.href=C.toDataURL('image/jpeg',.9); a.download='haldo-collage-'+Date.now()+'.jpg'; a.click(); };
+  }
+};
+
+APPS['audiodecoder'] = {
+  name:'Audio-Rechner', icon:'🔊',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🎵 Frequenz-Generator</b><div class="dim sm">Erzeuge Töne mit verschiedenen Frequenzen (Hz).</div></div>'+
+    '<div class="row"><input class="inp" id="adF" type="number" value="440" placeholder="Hz" style="flex:1"><select class="inp" id="adW" style="width:auto"><option value="sine">Sinus</option><option value="square">Rechteck</option><option value="triangle">Dreieck</option><option value="sawtooth">Sägezahn</option></select></div>'+
+    '<button class="btn primary" id="adPlay">▶ Abspielen (2s)</button>'+
+    '<div class="card"><b>🔊 Referenz</b><div class="dim sm" style="margin-top:6px">440 Hz = Kammerton A<br>261.63 Hz = mittleres C<br>20 Hz = tiefste Hörgrenze<br>20.000 Hz = höchste Hörgrenze</div></div>'+
+  '</div>'; },
+  init(win){
+    let ctx=null;
+    $('#adPlay',win).onclick=()=>{
+      ctx = ctx || new (window.AudioContext||window.webkitAudioContext)();
+      if(ctx.state==='suspended') ctx.resume();
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type=$('#adW',win).value;
+      o.frequency.value=parseFloat($('#adF',win).value)||440;
+      g.gain.setValueAtTime(.15, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime+2);
+      o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+2.1);
+    };
+  }
+};
+
+/* ============================================================
+   N · NOTIZEN
+   ============================================================ */
+
+APPS['markdown'] = {
+  name:'Markdown', icon:'⬇️',
+  render(){ return '<div class="col">'+
+    '<div class="row"><button class="btn primary" id="mkP">👁 Vorschau</button><button class="btn" id="mkE">✏️ Bearbeiten</button><button class="btn" id="mkS">💾 Speichern</button><button class="btn" id="mkD">⬇️ Download</button></div>'+
+    '<textarea class="ta" id="mkI" style="min-height:280px;font-family:ui-monospace,Menlo,monospace"># Überschrift\n\n**Fett** und *kursiv* und `code`.\n\n- Punkt 1\n- Punkt 2\n\n[Link](https://example.com)\n\n> Zitat</textarea>'+
+    '<div id="mkO" class="card" style="min-height:200px;display:none"></div>'+
+  '</div>'; },
+  init(win){
+    const I=$('#mkI',win), O=$('#mkO',win);
+    const md = (t)=>{
+      let h = esc(t);
+      h = h.replace(/^### (.*)$/gm,'<h3>$1</h3>');
+      h = h.replace(/^## (.*)$/gm,'<h2 style="font-size:18px">$1</h2>');
+      h = h.replace(/^# (.*)$/gm,'<h1 style="font-size:22px;color:var(--c1)">$1</h1>');
+      h = h.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+      h = h.replace(/\*(.+?)\*/g,'<i>$1</i>');
+      h = h.replace(/`(.+?)`/g,'<code style="background:rgba(0,229,255,.14);padding:2px 6px;border-radius:6px">$1</code>');
+      h = h.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" style="color:var(--c1)">$1</a>');
+      h = h.replace(/^&gt; (.*)$/gm,'<blockquote style="border-left:3px solid var(--c1);padding-left:10px;color:var(--dim);margin:8px 0">$1</blockquote>');
+      h = h.replace(/^- (.*)$/gm,'<li>$1</li>');
+      h = h.replace(/(<li>.*<\/li>)/s,'<ul style="margin:6px 0 6px 18px">$1</ul>');
+      h = h.replace(/\n\n/g,'<br><br>');
+      return h;
+    };
+    $('#mkP',win).onclick=()=>{ O.innerHTML = md(I.value); O.style.display='block'; I.style.display='none'; };
+    $('#mkE',win).onclick=()=>{ O.style.display='none'; I.style.display='block'; };
+    $('#mkS',win).onclick=()=>{ store.set('markdown', I.value); toast('Gespeichert'); };
+    $('#mkD',win).onclick=()=>{ const blob=new Blob([I.value],{type:'text/markdown'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='notiz.md'; a.click(); };
+    I.value = store.get('markdown', I.value);
+  }
+};
+
+APPS['sticky-notes'] = {
+  name:'Sticky Notes', icon:'🗒️',
+  render(){ return '<div class="col">'+
+    '<button class="btn primary" id="snNew">+ Neue Notiz</button>'+
+    '<div id="snG" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px"></div>'+
+  '</div>'; },
+  init(win){
+    const G=$('#snG',win);
+    const colors = ['#ffb03a','#00e5ff','#b478ff','#4de88a','#ff6b88','#ffd166'];
+    const all=()=>store.get('sticky',[]);
+    function render(){
+      const a=all();
+      G.innerHTML = a.length ? a.map((x,i)=>'<div class="card" data-id="'+x.id+'" style="background:'+x.c+'22;border-color:'+x.c+'66;position:relative;padding:10px;min-height:130px"><textarea class="inp" style="border:none;background:transparent;padding:0;min-height:100px;font-size:12px;resize:none" data-id="'+x.id+'">'+esc(x.t)+'</textarea><span class="x" data-id="'+x.id+'" style="position:absolute;top:4px;right:8px;cursor:pointer">✕</span></div>').join('') : '<div class="empty">Keine Notizen — „+" drücken</div>';
+      G.querySelectorAll('textarea').forEach(t=>t.oninput=()=>{
+        const arr=all(); const x=arr.find(v=>v.id===t.dataset.id); if(x){ x.t=t.value; store.set('sticky',arr); }
+      });
+      G.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('sticky',all().filter(v=>v.id!==el2.dataset.id)); render(); });
+    }
+    $('#snNew',win).onclick=()=>{
+      const arr=all();
+      arr.push({id:uid(), t:'', c:colors[rnd(0,colors.length-1)]});
+      store.set('sticky',arr);
+      render();
+    };
+    render();
+  }
+};
+
+APPS['ideen'] = {
+  name:'Ideen', icon:'💡',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="idN" placeholder="Idee, Einfall, Geistesblitz…" style="flex:1"><button class="btn primary" id="idA">💡 Speichern</button></div>'+
+    '<div id="idL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#idL',win);
+    const all=()=>store.get('ideas',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.map(i=>'<div class="card"><div class="row between"><b>💡 '+esc(i.t)+'</b><span class="x" data-id="'+i.id+'">✕</span></div><div class="dim sm" style="margin-top:4px">'+new Date(i.ts).toLocaleString('de-DE')+'</div></div>').join('') : '<div class="empty">Noch keine Ideen</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('ideas',all().filter(i=>i.id!==el2.dataset.id)); render(); });
+    }
+    $('#idA',win).onclick=()=>{
+      const t=$('#idN',win).value.trim(); if(!t) return;
+      const arr=all(); arr.unshift({id:uid(), t, ts:Date.now()}); store.set('ideas',arr);
+      $('#idN',win).value=''; render(); toast('💡 Idee gespeichert');
+    };
+    render();
+  }
+};
+
+APPS['textbausteine'] = {
+  name:'Textbausteine', icon:'📋',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="tbK" placeholder="Kürzel (z.B. „adr")" style="width:130px"><input class="inp" id="tbV" placeholder="Text / Adresse / Info" style="flex:1"><button class="btn primary" id="tbA">+</button></div>'+
+    '<div id="tbL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#tbL',win);
+    const all=()=>store.get('snippets',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.map(s=>'<div class="item"><b>'+esc(s.k)+'</b><span class="dim" style="flex:1;overflow:hidden;text-overflow:ellipsis">'+esc(s.v)+'</span><button class="btn sm" data-c="'+esc(s.v)+'">📋</button><span class="x" data-id="'+s.id+'">✕</span></div>').join('') : '<div class="empty">Keine Bausteine</div>';
+      L.querySelectorAll('button[data-c]').forEach(b=>b.onclick=()=>{ navigator.clipboard?.writeText(b.dataset.c); toast('Kopiert'); });
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('snippets',all().filter(s=>s.id!==el2.dataset.id)); render(); });
+    }
+    $('#tbA',win).onclick=()=>{
+      const k=$('#tbK',win).value.trim(), v=$('#tbV',win).value.trim();
+      if(!k||!v) return;
+      const arr=all(); arr.push({id:uid(), k, v}); store.set('snippets',arr);
+      $('#tbK',win).value=''; $('#tbV',win).value=''; render();
+    };
+    render();
+  }
+};
+
+APPS['checklisten'] = {
+  name:'Checklisten', icon:'☑️',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="clN" placeholder="Neue Checkliste…" style="flex:1"><button class="btn primary" id="clA">+</button></div>'+
+    '<div id="clL" class="col"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#clL',win);
+    const all=()=>store.get('checklists',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.map(cl=>'<div class="card"><div class="row between"><b>'+esc(cl.n)+'</b><span class="x" data-id="'+cl.id+'">✕</span></div><div class="row" style="margin-top:6px"><input class="inp" data-add="'+cl.id+'" placeholder="Punkt hinzufügen…" style="flex:1;padding:6px 10px"><button class="btn sm primary" data-addBtn="'+cl.id+'">+</button></div><div class="list" style="margin-top:8px">'+((cl.items||[]).map((it,i)=>'<div class="item" style="padding:6px 10px"><input type="checkbox" data-cl="'+cl.id+'" data-i="'+i+'" '+(it.done?'checked':'')+'><span style="'+(it.done?'text-decoration:line-through;opacity:.5':'')+'">'+esc(it.t)+'</span><span class="x" data-cl2="'+cl.id+'" data-i2="'+i+'">✕</span></div>').join(''))+'</div></div>').join('') : '<div class="empty">Keine Checklisten</div>';
+      L.querySelectorAll('.x[data-id]').forEach(el2=>el2.onclick=()=>{ store.set('checklists',all().filter(c=>c.id!==el2.dataset.id)); render(); });
+      L.querySelectorAll('[data-addBtn]').forEach(b=>b.onclick=()=>{
+        const inp = L.querySelector('[data-add="'+b.dataset.addbtn+'"]');
+        const v = inp.value.trim(); if(!v) return;
+        const arr=all(); const cl=arr.find(c=>c.id===b.dataset.addbtn); if(cl){ cl.items=cl.items||[]; cl.items.push({t:v, done:false}); store.set('checklists',arr); render(); }
+      });
+      L.querySelectorAll('input[type=checkbox]').forEach(c=>c.onchange=()=>{
+        const arr=all(); const cl=arr.find(x=>x.id===c.dataset.cl); if(cl&&cl.items){ cl.items[parseInt(c.dataset.i)].done=c.checked; store.set('checklists',arr); render(); }
+      });
+      L.querySelectorAll('.x[data-cl2]').forEach(x=>x.onclick=()=>{
+        const arr=all(); const cl=arr.find(c=>c.id===x.dataset.cl2); if(cl&&cl.items){ cl.items.splice(parseInt(x.dataset.i2),1); store.set('checklists',arr); render(); }
+      });
+    }
+    $('#clA',win).onclick=()=>{ const n=$('#clN',win).value.trim(); if(!n) return; const arr=all(); arr.push({id:uid(), n, items:[]}); store.set('checklists',arr); $('#clN',win).value=''; render(); };
+    render();
+  }
+};
+
+APPS['wordcounter'] = APPS['textanalyse']; // gleiche Funktion unter anderem Namen
+
+APPS['notizbuch'] = {
+  name:'Notizbuch', icon:'📓',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="nbT" placeholder="Titel…" style="flex:1"><button class="btn primary" id="nbA">💾</button></div>'+
+    '<textarea class="ta" id="nbB" style="min-height:130px" placeholder="Inhalt…"></textarea>'+
+    '<div id="nbL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#nbL',win);
+    const all=()=>store.get('notebook',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.slice(0,30).map(n=>'<div class="item" data-open="'+n.id+'"><b>'+esc(n.t)+'</b><span class="dim sm" style="margin-left:auto">'+new Date(n.ts).toLocaleDateString('de-DE')+'</span><span class="x" data-id="'+n.id+'">✕</span></div>').join('') : '<div class="empty">Noch keine Notizen</div>';
+      L.querySelectorAll('[data-open]').forEach(el2=>el2.onclick=(e)=>{ if(e.target.classList.contains('x')) return; const n=all().find(x=>x.id===el2.dataset.open); if(n){ $('#nbT',win).value=n.t; $('#nbB',win).value=n.b; } });
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('notebook',all().filter(n=>n.id!==el2.dataset.id)); render(); });
+    }
+    $('#nbA',win).onclick=()=>{
+      const t=$('#nbT',win).value.trim(), b=$('#nbB',win).value;
+      if(!t && !b) return;
+      const arr=all(); arr.unshift({id:uid(), t:t||'(ohne Titel)', b, ts:Date.now()}); store.set('notebook',arr);
+      $('#nbT',win).value=''; $('#nbB',win).value=''; render(); toast('Gespeichert');
+    };
+    render();
+  }
+};
+
+console.log('%c🚀 HalDo Apps v126 geladen','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+
+setTimeout(()=>{ const logo=document.querySelector('#logoBtn'); if(logo) logo.click(); }, 100);
+
+})();
+</script>
 </body>
 </html>
