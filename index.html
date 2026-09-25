@@ -26491,5 +26491,1124 @@ Flesch: ${a.flesch.toFixed(1)}`;
 })();
 </script>
 <!-- ═══════════════════════ ENDE v83 CLIPBOARD ═════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v84 – TODO PRO (Pro-Aufgaben mit Wiederholung) ══════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#todoproWindow {
+  position: fixed; inset: 0;
+  background: radial-gradient(circle at 30% 20%, rgba(0,229,255,.10), transparent 55%),
+    linear-gradient(180deg, rgba(0,10,25,.99), rgba(0,5,12,.99));
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  z-index: 8170; display: none; flex-direction: column;
+  color: #e6f4ff; font-family: inherit;
+}
+#todoproWindow.show { display: flex; }
+.tp-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid rgba(0,229,255,.25);
+  background: rgba(0,30,60,.55); flex-shrink: 0;
+  position: relative; z-index: 10000; gap: 8px;
+}
+.tp-title { display: flex; align-items: center; gap: 10px; flex: 1; }
+.tp-title h2 { font-size: 18px; margin: 0; color: #fff; }
+.tp-title small { display: block; font-size: 10px; color: #7ce0ff; letter-spacing: 1.5px; text-transform: uppercase; }
+.tp-btn {
+  padding: 10px 14px; border-radius: 10px;
+  background: rgba(0,229,255,.12); border: 1px solid rgba(0,229,255,.4);
+  color: #e6f4ff; font-size: 13px; font-weight: 600; cursor: pointer;
+  position: relative; z-index: 99999; pointer-events: auto;
+}
+.tp-btn.primary { background: linear-gradient(135deg,#00e5ff,#4da8ff); color: #001018; border-color: #fff; }
+.tp-btn.icon-only { padding: 10px; font-size: 16px; min-width: 42px; }
+.tp-tabs { display: flex; gap: 4px; padding: 10px 18px; overflow-x: auto; flex-shrink: 0; }
+.tp-tab { padding: 8px 14px; border-radius: 10px; background: rgba(0,40,90,.4); border: 1px solid rgba(0,229,255,.2); color: #aaddff; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.tp-tab.active { background: linear-gradient(135deg,#00e5ff,#4da8ff); color: #001018; border-color: #fff; }
+.tp-body { flex: 1; overflow-y: auto; padding: 16px 18px 100px; }
+.tp-list { display: flex; flex-direction: column; gap: 8px; max-width: 700px; margin: 0 auto; }
+.tp-task {
+  padding: 14px; border-radius: 12px;
+  background: linear-gradient(160deg, rgba(0,50,90,.5), rgba(0,15,40,.85));
+  border: 1.5px solid rgba(0,229,255,.2);
+  display: flex; gap: 12px; align-items: flex-start;
+  cursor: pointer;
+}
+.tp-task:hover { border-color: #00e5ff; }
+.tp-task.done { opacity: .55; }
+.tp-check { width: 26px; height: 26px; border-radius: 8px; border: 2px solid rgba(0,229,255,.5); display: flex; align-items: center; justify-content: center; color: transparent; font-weight: 900; flex-shrink: 0; cursor: pointer; }
+.tp-task.done .tp-check { background: linear-gradient(135deg,#00ff88,#00e5ff); color: #001018; border-color: #00ff88; }
+.tp-task-main { flex: 1; min-width: 0; }
+.tp-task-title { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.tp-task.done .tp-task-title { text-decoration: line-through; }
+.tp-task-meta { font-size: 11px; color: #88ccff; display: flex; gap: 10px; flex-wrap: wrap; }
+.tp-task-meta .tp-badge { padding: 2px 8px; border-radius: 6px; background: rgba(0,229,255,.15); color: #7ce0ff; font-weight: 800; font-size: 10px; }
+.tp-task-meta .tp-badge.repeat { background: rgba(180,120,255,.15); color: #d4b8ff; }
+.tp-task-meta .tp-badge.overdue { background: rgba(255,68,102,.2); color: #ff8899; }
+.tp-empty { text-align: center; padding: 60px 20px; color: #5a8ab0; }
+.tp-toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); padding: 12px 20px; border-radius: 12px; background: linear-gradient(135deg,#00e5ff,#4da8ff); color: #001018; font-weight: 700; font-size: 13px; opacity: 0; pointer-events: none; transition: all .3s; z-index: 99999; }
+.tp-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+<div id="todoproWindow">
+  <div class="tp-header">
+    <div class="tp-title"><span>📋</span><div><h2>ToDo Pro</h2><small>Aufgaben mit Wiederholung</small></div></div>
+    <button class="tp-btn icon-only" onclick="HalDoTodoProApp.close()">✕</button>
+  </div>
+  <div class="tp-tabs">
+    <button class="tp-tab active" data-tab="all" onclick="HalDoTodoProApp.setTab('all')">📋 Alle</button>
+    <button class="tp-tab" data-tab="today" onclick="HalDoTodoProApp.setTab('today')">📅 Heute</button>
+    <button class="tp-tab" data-tab="week" onclick="HalDoTodoProApp.setTab('week')">📆 Woche</button>
+    <button class="tp-tab" data-tab="overdue" onclick="HalDoTodoProApp.setTab('overdue')">⏰ Überfällig</button>
+    <button class="tp-tab" data-tab="recurring" onclick="HalDoTodoProApp.setTab('recurring')">🔁 Wiederkehrend</button>
+  </div>
+  <div class="tp-body"><div class="tp-list" id="tpList"></div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__tpLoaded) return; window.__tpLoaded = true;
+  const STORAGE_KEY = 'haldo_todopro_v1';
+  let tasks = []; let currentFilter = 'all';
+  function load(){ try{ tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }catch(e){ tasks=[]; } if(!Array.isArray(tasks)) tasks=[]; }
+  function save(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }catch(e){} }
+  function uid(){ return 'tp_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6); }
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function todayKey(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function filterTasks(){
+    let arr = tasks.slice();
+    if(currentFilter === 'today') arr = arr.filter(t => t.due === todayKey() || (t.repeat && !t.done));
+    else if(currentFilter === 'week'){ const week = new Date(); week.setDate(week.getDate()+7); const wk=week.toISOString().slice(0,10); arr=arr.filter(t=>t.due>=todayKey()&&t.due<=wk); }
+    else if(currentFilter === 'overdue') arr = arr.filter(t => !t.done && t.due && t.due < todayKey());
+    else if(currentFilter === 'recurring') arr = arr.filter(t => t.repeat && t.repeat !== 'none');
+    return arr.sort((a,b) => { if(a.done!==b.done) return a.done?1:-1; return (a.due||'zzz').localeCompare(b.due||'zzz'); });
+  }
+  function render(){
+    const list = document.getElementById('tpList');
+    if(!list) return;
+    const arr = filterTasks();
+    if(!arr.length){ list.innerHTML = '<div class="tp-empty"><div style="font-size:60px;opacity:.5">✅</div><div style="color:#88ccff;margin-top:12px">Keine Aufgaben in dieser Ansicht</div></div>'; return; }
+    list.innerHTML = arr.map(t => {
+      const dueStatus = t.due && t.due < todayKey() && !t.done ? '<span class="tp-badge overdue">⏰ Überfällig</span>' : (t.due ? '<span class="tp-badge">📅 '+new Date(t.due+'T12:00:00').toLocaleDateString('de-DE',{day:'2-digit',month:'short'})+'</span>' : '');
+      const repeatLabel = t.repeat && t.repeat !== 'none' ? '<span class="tp-badge repeat">🔁 '+t.repeat+'</span>' : '';
+      const prioIcon = t.prio === 'high' ? '🔴' : t.prio === 'mid' ? '🟡' : '🔵';
+      return `<div class="tp-task ${t.done?'done':''}" onclick="HalDoTodoProApp.toggle('${t.id}')">
+        <div class="tp-check" onclick="event.stopPropagation();HalDoTodoProApp.toggle('${t.id}')">${t.done?'✓':''}</div>
+        <div class="tp-task-main">
+          <div class="tp-task-title">${prioIcon} ${esc(t.title)}</div>
+          <div class="tp-task-meta">${dueStatus}${repeatLabel}<span class="tp-badge">${esc(t.cat||'allgemein')}</span></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  function toggle(id){ const t = tasks.find(x=>x.id===id); if(!t) return; t.done=!t.done; if(t.done) t.completedAt=Date.now(); if(t.repeat && t.repeat!=='none' && t.done){ const d=new Date(t.due||todayKey()); if(t.repeat==='daily') d.setDate(d.getDate()+1); else if(t.repeat==='weekly') d.setDate(d.getDate()+7); else if(t.repeat==='monthly') d.setMonth(d.getMonth()+1); tasks.push({ id:uid(), title:t.title, due:d.toISOString().slice(0,10), prio:t.prio, cat:t.cat, repeat:t.repeat, created:Date.now() }); } save(); render(); }
+  function setTab(t){ currentFilter = t; document.querySelectorAll('.tp-tab').forEach(el=>el.classList.toggle('active',el.dataset.tab===t)); render(); }
+  function open(){ load(); render(); document.getElementById('todoproWindow').classList.add('show'); }
+  function close(){ document.getElementById('todoproWindow').classList.remove('show'); }
+  window.HalDoTodoProApp = { open, close, setTab, toggle };
+  console.log('%c📋 ToDo Pro geladen', 'color:#00e5ff;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v85 – POMODORO PRO (Fokus-Timer + Statistik) ═════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#pomodoroWindow {
+  position: fixed; inset: 0;
+  background: radial-gradient(circle at 50% 30%, rgba(255,80,80,.12), transparent 55%),
+    linear-gradient(180deg, rgba(20,5,5,.99), rgba(10,2,2,.99));
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  z-index: 8160; display: none; flex-direction: column;
+  color: #ffe8e8; font-family: inherit;
+}
+#pomodoroWindow.show { display: flex; }
+.pm-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid rgba(255,80,80,.25); background: rgba(50,10,10,.55); flex-shrink: 0; position: relative; z-index: 10000; gap: 8px; }
+.pm-title h2 { font-size: 18px; margin: 0; color: #fff; }
+.pm-title small { display: block; font-size: 10px; color: #ff9090; letter-spacing: 1.5px; text-transform: uppercase; }
+.pm-btn { padding: 10px 14px; border-radius: 10px; background: rgba(255,80,80,.12); border: 1px solid rgba(255,80,80,.4); color: #ffe8e8; font-size: 13px; font-weight: 600; cursor: pointer; position: relative; z-index: 99999; pointer-events: auto; }
+.pm-btn.primary { background: linear-gradient(135deg,#ff5050,#ff8800); color: #fff; border-color: #fff; }
+.pm-btn.icon-only { padding: 10px; font-size: 16px; min-width: 42px; }
+.pm-body { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.pm-timer-card { text-align: center; padding: 40px 20px; background: linear-gradient(160deg, rgba(120,30,30,.5), rgba(30,8,8,.85)); border: 2px solid #ff5050; border-radius: 24px; margin-bottom: 20px; width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 0 40px rgba(255,80,80,.3); }
+.pm-time { font-size: 80px; font-weight: 200; color: #fff; font-family: 'Courier New', monospace; text-shadow: 0 0 30px rgba(255,80,80,.7); line-height: 1; margin-bottom: 10px; }
+.pm-phase { font-size: 14px; color: #ff9090; text-transform: uppercase; letter-spacing: 2px; font-weight: 800; margin-bottom: 20px; }
+.pm-controls { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.pm-stat-row { display: flex; gap: 10px; width: 100%; max-width: 380px; margin-bottom: 16px; }
+.pm-stat { flex: 1; padding: 14px 10px; border-radius: 14px; background: rgba(120,30,30,.4); border: 1px solid rgba(255,80,80,.25); text-align: center; }
+.pm-stat .pms-num { font-size: 24px; font-weight: 900; color: #ff5050; }
+.pm-stat .pms-lbl { font-size: 9px; color: #ff9090; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; font-weight: 800; }
+.pm-toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); padding: 12px 20px; border-radius: 12px; background: linear-gradient(135deg,#ff5050,#ff8800); color: #fff; font-weight: 700; font-size: 13px; opacity: 0; pointer-events: none; transition: all .3s; z-index: 99999; }
+.pm-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+<div id="pomodoroWindow">
+  <div class="pm-header">
+    <div class="pm-title"><span style="font-size:24px">🍅</span><div><h2>Pomodoro Pro</h2><small>Fokus-Timer</small></div></div>
+    <button class="pm-btn icon-only" onclick="HalDoPomodoroApp.close()">✕</button>
+  </div>
+  <div class="pm-body">
+    <div class="pm-timer-card">
+      <div class="pm-time" id="pmTime">25:00</div>
+      <div class="pm-phase" id="pmPhase">🍅 Arbeit</div>
+      <div class="pm-controls">
+        <button class="pm-btn primary" id="pmStartBtn" onclick="HalDoPomodoroApp.toggle()">▶ Start</button>
+        <button class="pm-btn" onclick="HalDoPomodoroApp.reset()">↺ Reset</button>
+        <button class="pm-btn" onclick="HalDoPomodoroApp.setMode('work')">🍅</button>
+        <button class="pm-btn" onclick="HalDoPomodoroApp.setMode('break')">☕</button>
+        <button class="pm-btn" onclick="HalDoPomodoroApp.setMode('long')">🌴</button>
+      </div>
+    </div>
+    <div class="pm-stat-row">
+      <div class="pm-stat"><div class="pms-num" id="pmTodayCount">0</div><div class="pms-lbl">Heute</div></div>
+      <div class="pm-stat"><div class="pms-num" id="pmTotalCount">0</div><div class="pms-lbl">Gesamt</div></div>
+      <div class="pm-stat"><div class="pms-num" id="pmFocusMin">0</div><div class="pms-lbl">Fokus-Min</div></div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__pmLoaded) return; window.__pmLoaded = true;
+  const STORAGE_KEY = 'haldo_pomodoro_v1';
+  const DURATIONS = { work: 25*60, break: 5*60, long: 15*60 };
+  let state = { mode:'work', running:false, endTime:0, remaining:0, timer:null, todayCount:0, totalCount:0, focusMin:0 };
+  function load(){ try{ const d=JSON.parse(localStorage.getItem(STORAGE_KEY))||{}; Object.assign(state,d); }catch(e){} }
+  function save(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ todayCount:state.todayCount, totalCount:state.totalCount, focusMin:state.focusMin, lastDate:new Date().toDateString() })); }catch(e){} }
+  function render(){
+    const t = state.remaining || (DURATIONS[state.mode] - (state.running ? (state.endTime - Date.now())/1000 : 0));
+    const totalSec = Math.max(0, Math.ceil(state.running ? (state.endTime - Date.now())/1000 : state.remaining || DURATIONS[state.mode]));
+    const m = Math.floor(totalSec / 60); const s = totalSec % 60;
+    const timeEl = document.getElementById('pmTime'); if(timeEl) timeEl.textContent = String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    const phaseEl = document.getElementById('pmPhase'); if(phaseEl) phaseEl.textContent = { work:'🍅 Arbeit', break:'☕ Pause', long:'🌴 Lange Pause' }[state.mode];
+    const btn = document.getElementById('pmStartBtn'); if(btn) btn.textContent = state.running ? '⏸ Pause' : '▶ Start';
+    document.getElementById('pmTodayCount').textContent = state.todayCount;
+    document.getElementById('pmTotalCount').textContent = state.totalCount;
+    document.getElementById('pmFocusMin').textContent = state.focusMin;
+  }
+  function tick(){
+    if(!state.running) return;
+    const rem = (state.endTime - Date.now())/1000;
+    if(rem <= 0){ state.running=false; clearInterval(state.timer); state.timer=null; finish(); return; }
+    render();
+  }
+  function finish(){
+    playAlarm();
+    if(navigator.vibrate) navigator.vibrate([300,100,300,100,500]);
+    if(state.mode === 'work'){ state.todayCount++; state.totalCount++; state.focusMin += DURATIONS.work/60; toast('✅ Arbeit fertig! Pause'); setMode(state.todayCount % 4 === 0 ? 'long' : 'break'); }
+    else { toast('☕ Pause vorbei'); setMode('work'); }
+    save(); render();
+  }
+  function toggle(){
+    if(state.running){ state.running=false; state.remaining = (state.endTime - Date.now())/1000; clearInterval(state.timer); state.timer=null; render(); }
+    else { state.running=true; state.endTime = Date.now() + (state.remaining || DURATIONS[state.mode])*1000; state.remaining=0; state.timer = setInterval(tick, 200); render(); if(navigator.vibrate) navigator.vibrate(15); }
+  }
+  function reset(){ state.running=false; if(state.timer) clearInterval(state.timer); state.timer=null; state.remaining=0; render(); }
+  function setMode(m){ state.mode=m; reset(); render(); }
+  function playAlarm(){ try{ const ctx=new (window.AudioContext||window.webkitAudioContext)(); const now=ctx.currentTime; [0,0.3,0.6].forEach(o=>{ const osc=ctx.createOscillator(), g=ctx.createGain(); osc.type='square'; osc.frequency.setValueAtTime(880,now+o); g.gain.setValueAtTime(0.001,now+o); g.gain.exponentialRampToValueAtTime(0.3,now+o+0.02); g.gain.exponentialRampToValueAtTime(0.001,now+o+0.25); osc.connect(g).connect(ctx.destination); osc.start(now+o); osc.stop(now+o+0.3); }); }catch(e){} }
+  function toast(msg){ let el=document.getElementById('pmToast'); if(!el){ el=document.createElement('div'); el.id='pmToast'; el.className='pm-toast'; document.body.appendChild(el); } el.textContent=msg; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2200); }
+  function open(){ load(); if(state.lastDate !== new Date().toDateString()){ state.todayCount=0; state.lastDate=new Date().toDateString(); } render(); document.getElementById('pomodoroWindow').classList.add('show'); }
+  function close(){ document.getElementById('pomodoroWindow').classList.remove('show'); }
+  window.HalDoPomodoroApp = { open, close, toggle, reset, setMode };
+  console.log('%c🍅 Pomodoro Pro geladen', 'color:#ff5050;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v86 – WATER TRACKER (Wasser-Trink-Tracker) ═══════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#waterWindow {
+  position: fixed; inset: 0;
+  background: radial-gradient(circle at 50% 30%, rgba(0,150,255,.12), transparent 55%),
+    linear-gradient(180deg, rgba(0,10,25,.99), rgba(0,5,15,.99));
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  z-index: 8150; display: none; flex-direction: column;
+  color: #e6f4ff; font-family: inherit;
+}
+#waterWindow.show { display: flex; }
+.wa-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid rgba(0,150,255,.25); background: rgba(0,25,60,.55); flex-shrink: 0; position: relative; z-index: 10000; gap: 8px; }
+.wa-title h2 { font-size: 18px; margin: 0; color: #fff; }
+.wa-title small { display: block; font-size: 10px; color: #7ce0ff; letter-spacing: 1.5px; text-transform: uppercase; }
+.wa-btn { padding: 10px 14px; border-radius: 10px; background: rgba(0,150,255,.12); border: 1px solid rgba(0,150,255,.4); color: #e6f4ff; font-size: 13px; font-weight: 600; cursor: pointer; position: relative; z-index: 99999; pointer-events: auto; }
+.wa-btn.primary { background: linear-gradient(135deg,#0096ff,#00e5ff); color: #001018; border-color: #fff; }
+.wa-btn.icon-only { padding: 10px; font-size: 16px; min-width: 42px; }
+.wa-body { flex: 1; overflow-y: auto; padding: 20px 18px; display: flex; flex-direction: column; align-items: center; }
+.wa-glass-wrap { position: relative; width: 160px; height: 240px; margin: 20px 0; }
+.wa-glass { width: 100%; height: 100%; border: 4px solid rgba(0,150,255,.6); border-radius: 20px 20px 40px 40px; position: relative; overflow: hidden; background: rgba(0,0,0,.3); box-shadow: inset 0 0 30px rgba(0,150,255,.2); }
+.wa-water { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(180deg, #0096ff, #00d4ff); transition: height .6s cubic-bezier(0.34,1.56,0.64,1); border-radius: 0 0 36px 36px; box-shadow: 0 -10px 40px rgba(0,212,255,.6); }
+.wa-water::before { content: ''; position: absolute; top: -8px; left: 0; right: 0; height: 16px; background: radial-gradient(ellipse at center, rgba(0,212,255,.8), transparent 70%); }
+.wa-pct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 900; color: #fff; text-shadow: 0 0 20px rgba(0,150,255,.8); }
+.wa-info { text-align: center; margin-bottom: 20px; }
+.wa-big { font-size: 42px; font-weight: 900; color: #0096ff; }
+.wa-big .wa-unit { font-size: 20px; color: #7ce0ff; }
+.wa-sub { font-size: 13px; color: #88ccff; margin-top: 6px; }
+.wa-buttons { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 20px; }
+.wa-add { padding: 16px 24px; border-radius: 16px; background: linear-gradient(135deg,#0096ff,#00e5ff); color: #001018; font-size: 16px; font-weight: 900; border: none; cursor: pointer; }
+.wa-toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); padding: 12px 20px; border-radius: 12px; background: linear-gradient(135deg,#0096ff,#00e5ff); color: #001018; font-weight: 700; font-size: 13px; opacity: 0; pointer-events: none; transition: all .3s; z-index: 99999; }
+.wa-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+<div id="waterWindow">
+  <div class="wa-header">
+    <div class="wa-title"><span style="font-size:24px">💧</span><div><h2>Water Tracker</h2><small>Trink-Erinnerung</small></div></div>
+    <button class="wa-btn icon-only" onclick="HalDoWaterApp.close()">✕</button>
+  </div>
+  <div class="wa-body">
+    <div class="wa-info">
+      <div class="wa-big" id="waAmount">0 <span class="wa-unit">/ 2500 ml</span></div>
+      <div class="wa-sub" id="waSub">Trinke 8 Gläser pro Tag (250 ml)</div>
+    </div>
+    <div class="wa-glass-wrap">
+      <div class="wa-glass"><div class="wa-water" id="waWater" style="height:0%"></div><div class="wa-pct" id="waPct">0%</div></div>
+    </div>
+    <div class="wa-buttons">
+      <button class="wa-add" onclick="HalDoWaterApp.add(250)">+250 ml</button>
+      <button class="wa-add" style="background:linear-gradient(135deg,#00d4ff,#0096ff)" onclick="HalDoWaterApp.add(500)">+500 ml</button>
+      <button class="wa-add" style="background:linear-gradient(135deg,#00e5ff,#00d4ff)" onclick="HalDoWaterApp.add(1000)">+1 L</button>
+    </div>
+    <button class="wa-btn" style="margin-top:20px" onclick="HalDoWaterApp.reset()">↺ Zurücksetzen</button>
+  </div>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__waLoaded) return; window.__waLoaded = true;
+  const STORAGE_KEY = 'haldo_water_v1';
+  const GOAL = 2500;
+  let amount = 0; let lastDate = '';
+  function load(){ try{ const d=JSON.parse(localStorage.getItem(STORAGE_KEY))||{}; amount=d.amount||0; lastDate=d.date||''; }catch(e){} }
+  function save(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ amount, date:lastDate })); }catch(e){} }
+  function render(){
+    if(lastDate !== new Date().toDateString()){ amount = 0; lastDate = new Date().toDateString(); save(); }
+    const pct = Math.min(100, Math.round(amount / GOAL * 100));
+    document.getElementById('waAmount').innerHTML = amount + ' <span class="wa-unit">/ '+GOAL+' ml</span>';
+    document.getElementById('waWater').style.height = pct + '%';
+    document.getElementById('waPct').textContent = pct + '%';
+    document.getElementById('waSub').textContent = pct >= 100 ? '🎉 Ziel erreicht! Super!' : ('Noch ' + (GOAL - amount) + ' ml bis zum Ziel');
+  }
+  function add(ml){ amount += ml; if(amount > 5000) amount = 5000; save(); render(); if(navigator.vibrate) navigator.vibrate(10); if(typeof playSound === 'function') playSound('success'); }
+  function reset(){ amount = 0; save(); render(); }
+  function open(){ load(); render(); document.getElementById('waterWindow').classList.add('show'); }
+  function close(){ document.getElementById('waterWindow').classList.remove('show'); }
+  window.HalDoWaterApp = { open, close, add, reset };
+  console.log('%c💧 Water Tracker geladen', 'color:#0096ff;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v87 – BREATHING (Atem-Übungen + Meditation) ══════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#breathingWindow {
+  position: fixed; inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(180,120,255,.12), transparent 55%),
+    linear-gradient(180deg, rgba(10,5,25,.99), rgba(5,2,15,.99));
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  z-index: 8140; display: none; flex-direction: column;
+  color: #f0e6ff; font-family: inherit;
+}
+#breathingWindow.show { display: flex; }
+.br-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid rgba(180,120,255,.25); background: rgba(40,10,60,.55); flex-shrink: 0; position: relative; z-index: 10000; gap: 8px; }
+.br-title h2 { font-size: 18px; margin: 0; color: #fff; }
+.br-title small { display: block; font-size: 10px; color: #d4a8ff; letter-spacing: 1.5px; text-transform: uppercase; }
+.br-btn { padding: 10px 14px; border-radius: 10px; background: rgba(180,120,255,.12); border: 1px solid rgba(180,120,255,.4); color: #f0e6ff; font-size: 13px; font-weight: 600; cursor: pointer; position: relative; z-index: 99999; pointer-events: auto; }
+.br-btn.primary { background: linear-gradient(135deg,#b478ff,#ff6bd6); color: #1a0033; border-color: #fff; }
+.br-btn.icon-only { padding: 10px; font-size: 16px; min-width: 42px; }
+.br-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+.br-circle { width: 240px; height: 240px; border-radius: 50%; background: radial-gradient(circle, rgba(180,120,255,.4), rgba(180,120,255,.1)); border: 3px solid rgba(180,120,255,.6); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 0 60px rgba(180,120,255,.4), inset 0 0 40px rgba(180,120,255,.2); transition: all 4s ease-in-out; margin-bottom: 30px; }
+.br-circle.inhale { transform: scale(1.3); box-shadow: 0 0 100px rgba(180,120,255,.8); }
+.br-circle.exhale { transform: scale(0.85); }
+.br-phase { font-size: 22px; font-weight: 900; color: #fff; text-shadow: 0 0 20px rgba(180,120,255,.7); }
+.br-count { font-size: 48px; font-weight: 200; color: #fff; font-family: 'Courier New', monospace; }
+.br-controls { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.br-preset { padding: 12px 20px; border-radius: 14px; background: rgba(180,120,255,.12); border: 1.5px solid rgba(180,120,255,.3); color: #d4a8ff; font-size: 13px; font-weight: 700; cursor: pointer; }
+.br-preset.active { background: linear-gradient(135deg,#b478ff,#ff6bd6); color: #1a0033; border-color: #fff; }
+.br-toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); padding: 12px 20px; border-radius: 12px; background: linear-gradient(135deg,#b478ff,#ff6bd6); color: #1a0033; font-weight: 700; font-size: 13px; opacity: 0; pointer-events: none; transition: all .3s; z-index: 99999; }
+.br-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+<div id="breathingWindow">
+  <div class="br-header">
+    <div class="br-title"><span style="font-size:24px">🧘</span><div><h2>Breathing</h2><small>Atem-Übungen</small></div></div>
+    <button class="br-btn icon-only" onclick="HalDoBreathingApp.close()">✕</button>
+  </div>
+  <div class="br-body">
+    <div class="br-circle" id="brCircle"><div class="br-phase" id="brPhase">Bereit</div><div class="br-count" id="brCount">–</div></div>
+    <div class="br-controls">
+      <button class="br-preset active" onclick="HalDoBreathingApp.setPattern('478')">4-7-8</button>
+      <button class="br-preset" onclick="HalDoBreathingApp.setPattern('box')">Box</button>
+      <button class="br-preset" onclick="HalDoBreathingApp.setPattern('calm')">Calm</button>
+      <button class="br-btn primary" id="brStartBtn" onclick="HalDoBreathingApp.toggle()">▶ Start</button>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__brLoaded) return; window.__brLoaded = true;
+  const PATTERNS = { '478': { inhale:4, hold:7, exhale:8, name:'4-7-8' }, 'box': { inhale:4, hold:4, exhale:4, hold2:4, name:'Box' }, 'calm': { inhale:4, exhale:6, name:'Calm' } };
+  let pattern = '478'; let running = false; let timer = null; let phase = 'inhale'; let count = 0;
+  function render(){ const p=PATTERNS[pattern]; document.getElementById('brPhase').textContent = phase === 'inhale' ? '🫁 Einatmen' : phase === 'hold' ? '✋ Halten' : '💨 Ausatmen'; document.getElementById('brCount').textContent = count; const c=document.getElementById('brCircle'); c.classList.toggle('inhale', phase==='inhale'); c.classList.toggle('exhale', phase==='exhale'); }
+  function tick(){ count--; if(count <= 0){ const p=PATTERNS[pattern]; if(phase === 'inhale'){ if(p.hold){ phase='hold'; count=p.hold; } else { phase='exhale'; count=p.exhale; } } else if(phase === 'hold'){ if(p.hold2){ phase='hold2'; count=p.hold2; } else { phase='exhale'; count=p.exhale; } } else if(phase === 'hold2'){ phase='exhale'; count=p.exhale; } else if(phase === 'exhale'){ phase='inhale'; count=p.inhale; } } render(); }
+  function toggle(){ if(running){ running=false; clearInterval(timer); timer=null; document.getElementById('brStartBtn').textContent='▶ Start'; document.getElementById('brPhase').textContent='Bereit'; document.getElementById('brCount').textContent='–'; document.getElementById('brCircle').className='br-circle'; } else { running=true; phase='inhale'; count=PATTERNS[pattern].inhale; document.getElementById('brStartBtn').textContent='⏸ Stop'; timer=setInterval(tick,1000); render(); } }
+  function setPattern(p){ pattern=p; running=false; if(timer) clearInterval(timer); timer=null; document.getElementById('brStartBtn').textContent='▶ Start'; document.getElementById('brPhase').textContent='Bereit'; document.getElementById('brCount').textContent='–'; document.getElementById('brCircle').className='br-circle'; document.querySelectorAll('.br-preset').forEach(el=>el.classList.remove('active')); event.target.classList.add('active'); }
+  function open(){ render(); document.getElementById('breathingWindow').classList.add('show'); }
+  function close(){ running=false; if(timer) clearInterval(timer); timer=null; document.getElementById('breathingWindow').classList.remove('show'); }
+  window.HalDoBreathingApp = { open, close, toggle, setPattern };
+  console.log('%c🧘 Breathing geladen', 'color:#b478ff;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v88 – STATISTICS (Alle Apps zusammen) ════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#statsWindow {
+  position: fixed; inset: 0;
+  background: radial-gradient(circle at 50% 30%, rgba(0,229,255,.10), transparent 55%),
+    radial-gradient(circle at 80% 80%, rgba(0,255,200,.06), transparent 55%),
+    linear-gradient(180deg, rgba(0,10,25,.99), rgba(0,5,12,.99));
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  z-index: 8130; display: none; flex-direction: column;
+  color: #e6f4ff; font-family: inherit;
+}
+#statsWindow.show { display: flex; }
+.st-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid rgba(0,229,255,.25); background: rgba(0,30,60,.55); flex-shrink: 0; position: relative; z-index: 10000; gap: 8px; }
+.st-title h2 { font-size: 18px; margin: 0; color: #fff; }
+.st-title small { display: block; font-size: 10px; color: #7ce0ff; letter-spacing: 1.5px; text-transform: uppercase; }
+.st-btn { padding: 10px 14px; border-radius: 10px; background: rgba(0,229,255,.12); border: 1px solid rgba(0,229,255,.4); color: #e6f4ff; font-size: 13px; font-weight: 600; cursor: pointer; position: relative; z-index: 99999; pointer-events: auto; }
+.st-btn.icon-only { padding: 10px; font-size: 16px; min-width: 42px; }
+.st-body { flex: 1; overflow-y: auto; padding: 18px; }
+.st-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; max-width: 900px; margin: 0 auto; }
+.st-card { padding: 16px; border-radius: 16px; background: linear-gradient(160deg, rgba(0,60,120,.5), rgba(0,15,40,.85)); border: 1.5px solid rgba(0,229,255,.2); text-align: center; }
+.st-card .stc-icon { font-size: 28px; margin-bottom: 6px; }
+.st-card .stc-num { font-size: 26px; font-weight: 900; color: #00e5ff; }
+.st-card .stc-lbl { font-size: 10px; color: #88ccff; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; font-weight: 800; }
+.st-toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); padding: 12px 20px; border-radius: 12px; background: linear-gradient(135deg,#00e5ff,#4da8ff); color: #001018; font-weight: 700; font-size: 13px; opacity: 0; pointer-events: none; transition: all .3s; z-index: 99999; }
+.st-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+<div id="statsWindow">
+  <div class="st-header">
+    <div class="st-title"><span style="font-size:24px">📊</span><div><h2>Statistics</h2><small>Alle Apps im Überblick</small></div></div>
+    <button class="st-btn icon-only" onclick="HalDoStatsApp.close()">✕</button>
+  </div>
+  <div class="st-body"><div class="st-grid" id="stGrid"></div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__stLoaded) return; window.__stLoaded = true;
+  function getStats(){
+    const s = [];
+    if(window.HalDoMemory) s.push({ icon:'💾', num: HalDoMemory.count(), lbl:'Erinnerungen' });
+    if(window.HalDoJournal) s.push({ icon:'📔', num: HalDoJournal.count(), lbl:'Tagebuch' });
+    if(window.HalDoGoals) s.push({ icon:'🎯', num: HalDoGoals.count(), lbl:'Ziele' });
+    if(window.HalDoHabits) s.push({ icon:'🔁', num: HalDoHabits.count(), lbl:'Gewohnheiten' });
+    if(window.HalDoTasks) s.push({ icon:'✅', num: HalDoTasks.count(), lbl:'Aufgaben' });
+    if(window.HalDoReminders) s.push({ icon:'🔔', num: HalDoReminders.count(), lbl:'Erinnerungen' });
+    if(window.HalDoCalendar) s.push({ icon:'📅', num: HalDoCalendar.count(), lbl:'Termine' });
+    if(window.HalDoContacts) s.push({ icon:'👥', num: HalDoContacts.count(), lbl:'Kontakte' });
+    if(window.HalDoNotes) s.push({ icon:'📝', num: HalDoNotes.count(), lbl:'Notizen' });
+    if(window.HalDoFinance) s.push({ icon:'💰', num: HalDoFinance.count(), lbl:'Buchungen' });
+    if(window.HalDoRecipes) s.push({ icon:'🍳', num: HalDoRecipes.count(), lbl:'Rezepte' });
+    if(window.HalDoShopping) s.push({ icon:'🛒', num: HalDoShopping.count(), lbl:'Einkauf' });
+    if(window.HalDoClipboard) s.push({ icon:'📋', num: HalDoClipboard.all().length, lbl:'Clipboard' });
+    return s;
+  }
+  function render(){
+    const grid = document.getElementById('stGrid');
+    const stats = getStats();
+    grid.innerHTML = stats.map(s => `<div class="st-card"><div class="stc-icon">${s.icon}</div><div class="stc-num">${s.num}</div><div class="stc-lbl">${s.lbl}</div></div>`).join('');
+  }
+  function open(){ render(); document.getElementById('statsWindow').classList.add('show'); }
+  function close(){ document.getElementById('statsWindow').classList.remove('show'); }
+  window.HalDoStatsApp = { open, close };
+  console.log('%c📊 Statistics geladen', 'color:#00e5ff;font-weight:bold;');
+})();
+</script>
+<!-- ═══ v88b – AVATAR LEBENDIG (Update für #avatar) ═══════════ -->
+<style>
+#avatar {
+  transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1),
+              filter 0.3s ease;
+}
+#avatar:hover { transform: scale(1.04) translateY(-8px); }
+
+/* Neue Animationen */
+#avatar.thinking .pupil { animation: lookAround 1.5s infinite; }
+@keyframes lookAround {
+  0%, 100% { transform: translate(0,0); }
+  25% { transform: translate(4px, -2px); }
+  50% { transform: translate(-4px, 1px); }
+  75% { transform: translate(2px, 2px); }
+}
+
+/* Kopf leicht neigen beim Zuhören */
+#avatar.listening { transform: rotate(-3deg) scale(1.02); }
+
+/* Sanftes Atmen (verstärkt) */
+#avatar.breathing {
+  animation: breathe 4s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50% { transform: scale(1.03) translateY(-6px); }
+}
+
+/* Mund-Animation beim Sprechen (verstärkt) */
+#avatar.speaking .cy-mouth,
+#avatar.speaking .human-mouth {
+  animation: mouthTalk 0.15s infinite alternate;
+}
+@keyframes mouthTalk {
+  0% { transform: scaleY(0.3) scaleX(0.9); }
+  100% { transform: scaleY(2) scaleX(1.1); }
+}
+
+/* Augen-Glow wenn aktiv */
+#avatar.speaking .eye-glow,
+#avatar.listening .eye-glow {
+  animation: eyePulse 0.8s infinite;
+}
+@keyframes eyePulse {
+  0%, 100% { opacity: 0.6; filter: drop-shadow(0 0 10px var(--sys-color)); }
+  50% { opacity: 1; filter: drop-shadow(0 0 20px var(--sys-color)); }
+}
+
+/* Reaktion auf Klick */
+#avatar:active { transform: scale(0.98); }
+
+/* Blinzeln häufiger */
+#avatar.blinking { animation: autoBlink 4s infinite; }
+@keyframes autoBlink {
+  0%, 90%, 100% { }
+  92%, 96% { animation: blinkEye 0.15s; }
+}
+</style>
+
+<script>
+// Avatar-Zustände automatisch wechseln
+(function(){
+  "use strict";
+  if(window.__avatarLiveLoaded) return;
+  window.__avatarLiveLoaded = true;
+  
+  const avatar = document.getElementById('avatar');
+  if(!avatar) return;
+  
+  // Sanftes Dauer-Blinzeln
+  setInterval(() => {
+    if(!avatar.classList.contains('speaking')){
+      avatar.classList.add('blinking');
+      setTimeout(() => avatar.classList.remove('blinking'), 200);
+    }
+  }, 3000 + Math.random() * 3000);
+  
+  // Augen wandern lassen
+  setInterval(() => {
+    if(!avatar.classList.contains('speaking') && !avatar.classList.contains('listening')){
+      avatar.classList.add('looking');
+      setTimeout(() => avatar.classList.remove('looking'), 2500);
+    }
+  }, 5000 + Math.random() * 5000);
+  
+  // Atmen immer
+  avatar.classList.add('breathing');
+  
+  // Bei Hover: kurz neigen
+  avatar.addEventListener('mouseenter', () => {
+    if(!avatar.classList.contains('speaking')){
+      avatar.style.transition = 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1)';
+    }
+  });
+  
+  console.log('%c🤖 Avatar-Live-Updates aktiv', 'color:#00e5ff;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v89 – SCIENTIFIC CALCULATOR (Wissenschaftlich) ═══════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#sciCalcWindow{position:fixed;inset:0;background:radial-gradient(circle at 50% 20%,rgba(0,229,255,.10),transparent 55%),linear-gradient(180deg,rgba(0,10,25,.99),rgba(0,5,12,.99));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:8120;display:none;flex-direction:column;color:#e6f4ff;font-family:inherit;}
+#sciCalcWindow.show{display:flex;}
+.sc-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(0,229,255,.25);background:rgba(0,30,60,.55);flex-shrink:0;position:relative;z-index:10000;gap:8px;}
+.sc-title h2{font-size:18px;margin:0;color:#fff;font-weight:700;}
+.sc-title small{display:block;font-size:10px;color:#7ce0ff;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.sc-btn{padding:10px 14px;border-radius:10px;background:rgba(0,229,255,.12);border:1px solid rgba(0,229,255,.4);color:#e6f4ff;font-size:13px;font-weight:600;cursor:pointer;position:relative;z-index:99999;pointer-events:auto;-webkit-tap-highlight-color:transparent;}
+.sc-btn.primary{background:linear-gradient(135deg,#00e5ff,#4da8ff);color:#001018;border-color:#fff;}
+.sc-btn.icon-only{padding:10px;font-size:16px;min-width:42px;}
+.sc-body{flex:1;overflow-y:auto;padding:14px;position:relative;z-index:2;}
+.sc-content{max-width:520px;margin:0 auto;}
+.sc-mode-tabs{display:flex;gap:4px;background:rgba(0,0,0,.4);padding:4px;border-radius:12px;margin-bottom:12px;}
+.sc-mode-tab{flex:1;padding:8px;border-radius:8px;background:transparent;border:none;color:#7ce0ff;font-size:11px;font-weight:800;cursor:pointer;text-transform:uppercase;letter-spacing:.6px;}
+.sc-mode-tab.active{background:linear-gradient(135deg,#00e5ff,#4da8ff);color:#001018;}
+.sc-display{background:linear-gradient(180deg,rgba(0,30,60,.6),rgba(0,15,35,.8));border:1.5px solid rgba(0,229,255,.3);border-radius:16px;padding:18px;margin-bottom:12px;min-height:120px;display:flex;flex-direction:column;justify-content:flex-end;text-align:right;box-shadow:inset 0 0 40px rgba(0,229,255,.08);overflow:hidden;}
+.sc-expr{font-size:13px;color:#7ce0ff;opacity:.8;font-family:'Courier New',monospace;margin-bottom:6px;min-height:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sc-result{font-size:40px;font-weight:200;color:#fff;font-family:'Courier New',monospace;letter-spacing:-1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 0 24px rgba(0,229,255,.4);}
+.sc-pad{display:grid;gap:6px;}
+.sc-pad.scientific{grid-template-columns:repeat(5,1fr);}
+.sc-pad.basic{grid-template-columns:repeat(4,1fr);}
+.sc-key{aspect-ratio:1;border-radius:14px;background:linear-gradient(160deg,rgba(0,40,80,.6),rgba(0,15,40,.9));border:1.5px solid rgba(0,229,255,.2);color:#fff;font-size:19px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;user-select:none;-webkit-tap-highlight-color:transparent;transition:all .12s;}
+.sc-key:hover{background:rgba(0,229,255,.15);border-color:#00e5ff;}
+.sc-key:active{transform:scale(.95);}
+.sc-key.op{color:#00e5ff;font-size:20px;font-weight:900;}
+.sc-key.fn{color:#7ce0ff;font-size:12px;font-weight:800;background:linear-gradient(160deg,rgba(0,60,90,.4),rgba(0,20,45,.8));}
+.sc-key.eq{background:linear-gradient(135deg,#00e5ff,#4da8ff);color:#001018;border-color:#fff;box-shadow:0 0 20px rgba(0,229,255,.5);}
+.sc-key.clear{color:#ff8080;font-weight:900;}
+.sc-key.clear:hover{background:rgba(255,80,80,.15);border-color:#ff8080;}
+.sc-history{max-height:none;}
+.sc-hist-item{padding:10px 14px;border-radius:12px;background:rgba(0,30,60,.5);border:1.5px solid rgba(0,229,255,.15);margin-bottom:6px;cursor:pointer;}
+.sc-hist-expr{font-size:12px;color:#7ce0ff;font-family:'Courier New',monospace;}
+.sc-hist-res{font-size:16px;color:#fff;font-weight:800;font-family:'Courier New',monospace;}
+.sc-empty{text-align:center;padding:40px 20px;color:#5a8ab0;}
+@media(max-width:400px){.sc-result{font-size:30px;}.sc-key{font-size:16px;}.sc-key.fn{font-size:10px;}}
+</style>
+<div id="sciCalcWindow">
+  <div class="sc-header">
+    <div class="sc-title"><span style="font-size:24px">🧮</span><div><h2>Scientific Calc</h2><small>Wissenschaftlich</small></div></div>
+    <button class="sc-btn icon-only" onclick="HalDoSCCalcApp.close()">✕</button>
+  </div>
+  <div class="sc-body">
+    <div class="sc-content">
+      <div class="sc-mode-tabs">
+        <button class="sc-mode-tab active" data-mode="basic" onclick="HalDoSCCalcApp.setMode('basic')">📱 Basic</button>
+        <button class="sc-mode-tab" data-mode="scientific" onclick="HalDoSCCalcApp.setMode('scientific')">🔬 Scientific</button>
+        <button class="sc-mode-tab" data-mode="history" onclick="HalDoSCCalcApp.setMode('history')">📜 Verlauf</button>
+      </div>
+      <div id="scContent"></div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__scLoaded) return; window.__scLoaded = true;
+  const HKEY='haldo_scicalc_history_v1';
+  let mode='basic', expr='', result='', history=[];
+  function load(){ try{history=JSON.parse(localStorage.getItem(HKEY))||[];}catch(e){history=[];} if(!Array.isArray(history))history=[]; }
+  function save(){ try{localStorage.setItem(HKEY,JSON.stringify(history.slice(0,50)));}catch(e){} }
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function evalExpr(e){
+    let s=e.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/π/g,'Math.PI').replace(/\be\b/g,'Math.E').replace(/√\(/g,'Math.sqrt(').replace(/sin\(/g,'Math.sin(').replace(/cos\(/g,'Math.cos(').replace(/tan\(/g,'Math.tan(').replace(/log\(/g,'Math.log10(').replace(/ln\(/g,'Math.log(').replace(/\^/g,'**');
+    const stripped=s.replace(/Math\.(PI|E|sqrt|sin|cos|tan|log10|log)/g,'X');
+    if(!/^[0-9+\-*/().\sXe**]+$/.test(stripped)) throw new Error('Ungültig');
+    const r=new Function('return ('+s+')')();
+    if(typeof r!=='number'||!isFinite(r)) throw new Error('Ungültig');
+    return Math.round(r*1e10)/1e10;
+  }
+  function fmt(n){ if(!isFinite(n))return 'Fehler'; if(Math.abs(n)>=1e12||(Math.abs(n)<1e-6&&n!==0)) return n.toExponential(6); return parseFloat(n.toFixed(10)).toString(); }
+  function render(){
+    const el=document.getElementById('scContent');
+    if(mode==='history'){
+      if(!history.length){ el.innerHTML='<div class="sc-empty"><div style="font-size:60px;opacity:.4;margin-bottom:12px">📜</div><div>Kein Verlauf</div></div>'; return; }
+      el.innerHTML='<div class="sc-history">'+history.map((h,i)=>'<div class="sc-hist-item" onclick="HalDoSCCalcApp.loadHist('+i+')"><div class="sc-hist-expr">'+esc(h.expr)+' =</div><div class="sc-hist-res">'+esc(h.result)+'</div></div>').join('')+'</div>';
+      return;
+    }
+    const basicKeys=[
+      {k:'C',cls:'clear',a:"clearAll()"},{k:'⌫',cls:'clear',a:"back()"},{k:'%',cls:'fn',a:"insert('%')"},{k:'÷',cls:'op',a:"insert('÷')"},
+      {k:'7',a:"insert('7')"},{k:'8',a:"insert('8')"},{k:'9',a:"insert('9')"},{k:'×',cls:'op',a:"insert('×')"},
+      {k:'4',a:"insert('4')"},{k:'5',a:"insert('5')"},{k:'6',a:"insert('6')"},{k:'−',cls:'op',a:"insert('−')"},
+      {k:'1',a:"insert('1')"},{k:'2',a:"insert('2')"},{k:'3',a:"insert('3')"},{k:'+',cls:'op',a:"insert('+')"},
+      {k:'±',cls:'fn',a:"toggleSign()"},{k:'0',a:"insert('0')"},{k:'.',a:"insert('.')"},{k:'=',cls:'eq',a:"calc()"}
+    ];
+    const sciKeys=[
+      {k:'sin',cls:'fn',a:"insert('sin(')"},{k:'cos',cls:'fn',a:"insert('cos(')"},{k:'tan',cls:'fn',a:"insert('tan(')"},{k:'√',cls:'fn',a:"insert('√(')"},{k:'π',cls:'fn',a:"insert('π')"},
+      {k:'(',cls:'op',a:"insert('(')"},{k:')',cls:'op',a:"insert(')')"},{k:'^',cls:'op',a:"insert('^')"},{k:'ln',cls:'fn',a:"insert('ln(')"},{k:'log',cls:'fn',a:"insert('log(')"},
+      {k:'7',a:"insert('7')"},{k:'8',a:"insert('8')"},{k:'9',a:"insert('9')"},{k:'÷',cls:'op',a:"insert('÷')"},{k:'C',cls:'clear',a:"clearAll()"},
+      {k:'4',a:"insert('4')"},{k:'5',a:"insert('5')"},{k:'6',a:"insert('6')"},{k:'×',cls:'op',a:"insert('×')"},{k:'⌫',cls:'clear',a:"back()"},
+      {k:'1',a:"insert('1')"},{k:'2',a:"insert('2')"},{k:'3',a:"insert('3')"},{k:'−',cls:'op',a:"insert('−')"},{k:'%',cls:'fn',a:"insert('/100')"},
+      {k:'0',a:"insert('0')"},{k:'.',a:"insert('.')"},{k:'±',cls:'fn',a:"toggleSign()"},{k:'+',cls:'op',a:"insert('+')"},{k:'=',cls:'eq',a:"calc()"}
+    ];
+    const keys = mode==='scientific' ? sciKeys : basicKeys;
+    const padCls = mode==='scientific' ? 'scientific' : 'basic';
+    el.innerHTML='<div class="sc-display"><div class="sc-expr" id="scExpr">'+(esc(expr)||'&nbsp;')+'</div><div class="sc-result" id="scResult">'+(esc(result)||'0')+'</div></div><div class="sc-pad '+padCls+'">'+keys.map(p=>'<button class="sc-key '+(p.cls||'')+'" onclick="HalDoSCCalcApp.'+p.a+'">'+esc(p.k)+'</button>').join('')+'</div>';
+  }
+  function update(){ const e=document.getElementById('scExpr'),r=document.getElementById('scResult'); if(e)e.innerHTML=esc(expr)||'&nbsp;'; if(r)r.textContent=result||'0'; }
+  function insert(ch){ expr+=ch; update(); }
+  function clearAll(){ expr=''; result=''; update(); }
+  function back(){ expr=expr.slice(0,-1); update(); }
+  function toggleSign(){ expr=expr.replace(/(-?\d+\.?\d*)$/,m=>m.startsWith('-')?m.slice(1):'-'+m); update(); }
+  function calc(){ if(!expr.trim()) return; try{ const r=evalExpr(expr); result=fmt(r); history.unshift({expr,result,ts:Date.now()}); save(); update(); if(navigator.vibrate)navigator.vibrate(10); }catch(e){ result='Fehler'; update(); if(navigator.vibrate)navigator.vibrate([30,50,30]); } }
+  function setMode(m){ mode=m; document.querySelectorAll('.sc-mode-tab').forEach(el=>el.classList.toggle('active',el.dataset.mode===m)); render(); }
+  function loadHist(i){ if(!history[i])return; expr=history[i].expr; result=history[i].result; setMode(mode==='history'?(result?'scientific':'basic'):'scientific'); setTimeout(update,50); }
+  function open(){ load(); setMode('basic'); document.getElementById('sciCalcWindow').classList.add('show'); }
+  function close(){ document.getElementById('sciCalcWindow').classList.remove('show'); }
+  window.HalDoSCCalcApp={open,close,setMode,insert,clearAll,back,toggleSign,calc,loadHist};
+  document.addEventListener('keydown',e=>{ if(!document.getElementById('sciCalcWindow')?.classList.contains('show'))return; if(mode==='history')return; if(/^[0-9+\-*/().]$/.test(e.key)){insert(e.key);e.preventDefault();} else if(e.key==='Enter'||e.key==='='){calc();e.preventDefault();} else if(e.key==='Backspace'){back();e.preventDefault();} else if(e.key==='Escape'){clearAll();} });
+  console.log('%c🧮 Scientific Calc geladen','color:#00e5ff;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v90 – UNIT CONVERTER (Einheiten-Umrechner) ═══════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#unitWindow{position:fixed;inset:0;background:radial-gradient(circle at 30% 20%,rgba(0,255,200,.10),transparent 55%),linear-gradient(180deg,rgba(0,15,15,.99),rgba(0,8,8,.99));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:8110;display:none;flex-direction:column;color:#e6fff5;font-family:inherit;}
+#unitWindow.show{display:flex;}
+.un-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(0,255,200,.25);background:rgba(0,40,35,.55);flex-shrink:0;position:relative;z-index:10000;gap:8px;}
+.un-title h2{font-size:18px;margin:0;color:#fff;font-weight:700;}
+.un-title small{display:block;font-size:10px;color:#7cffdd;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.un-btn{padding:10px 14px;border-radius:10px;background:rgba(0,255,200,.12);border:1px solid rgba(0,255,200,.4);color:#e6fff5;font-size:13px;font-weight:600;cursor:pointer;position:relative;z-index:99999;pointer-events:auto;-webkit-tap-highlight-color:transparent;}
+.un-btn.icon-only{padding:10px;font-size:16px;min-width:42px;}
+.un-body{flex:1;overflow-y:auto;padding:14px;position:relative;z-index:2;}
+.un-content{max-width:520px;margin:0 auto;}
+.un-cats{display:flex;gap:6px;overflow-x:auto;padding-bottom:12px;margin-bottom:12px;}
+.un-cat{flex-shrink:0;padding:8px 14px;border-radius:20px;background:rgba(0,80,60,.5);border:1px solid rgba(0,255,200,.25);color:#7cffdd;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;}
+.un-cat.active{background:linear-gradient(135deg,#00ffc8,#00e5ff);color:#001a10;border-color:#fff;}
+.un-card{padding:18px;background:linear-gradient(160deg,rgba(0,80,60,.5),rgba(0,20,15,.85));border:1.5px solid rgba(0,255,200,.3);border-radius:18px;margin-bottom:14px;}
+.un-row{display:flex;gap:10px;align-items:center;margin-bottom:10px;}
+.un-input{flex:1;padding:14px;border-radius:12px;background:rgba(0,0,0,.4);border:1.5px solid rgba(0,255,200,.3);color:#fff;font-size:20px;font-family:'Courier New',monospace;outline:none;box-sizing:border-box;min-width:0;}
+.un-input:focus{border-color:#00ffc8;box-shadow:0 0 20px rgba(0,255,200,.3);}
+.un-select{padding:12px;border-radius:10px;background:rgba(0,0,0,.4);border:1.5px solid rgba(0,255,200,.3);color:#fff;font-size:13px;font-family:inherit;outline:none;cursor:pointer;-webkit-appearance:none;flex-shrink:0;}
+.un-swap{width:44px;height:44px;border-radius:50%;background:rgba(0,255,200,.15);border:1.5px solid rgba(0,255,200,.4);color:#00ffc8;font-size:18px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.un-result{padding:16px;background:rgba(0,0,0,.4);border-radius:12px;border:1.5px solid rgba(0,255,200,.4);color:#00ffc8;font-size:22px;font-weight:900;font-family:'Courier New',monospace;word-break:break-all;text-align:right;min-height:56px;display:flex;align-items:center;justify-content:flex-end;}
+.un-quick{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+.un-quick-btn{padding:6px 12px;border-radius:20px;background:rgba(0,255,200,.08);border:1px dashed rgba(0,255,200,.35);color:#7cffdd;font-size:11px;font-weight:700;cursor:pointer;}
+.un-toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;background:linear-gradient(135deg,#00ffc8,#00e5ff);color:#001a10;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:all .3s;z-index:99999;}
+.un-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+<div id="unitWindow">
+  <div class="un-header">
+    <div class="un-title"><span style="font-size:24px">📏</span><div><h2>Unit Converter</h2><small>Einheiten umrechnen</small></div></div>
+    <button class="un-btn icon-only" onclick="HalDoUnitApp.close()">✕</button>
+  </div>
+  <div class="un-body"><div class="un-content" id="unContent"></div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__unLoaded) return; window.__unLoaded = true;
+  const CATS={
+    length:{name:'Länge',icon:'📏',units:{m:{n:'Meter',f:1},km:{n:'Kilometer',f:1000},cm:{n:'Zentimeter',f:0.01},mm:{n:'Millimeter',f:0.001},mi:{n:'Meilen',f:1609.344},yd:{n:'Yards',f:0.9144},ft:{n:'Fuß',f:0.3048},in:{n:'Zoll',f:0.0254},nmi:{n:'Seemeilen',f:1852}}},
+    mass:{name:'Gewicht',icon:'⚖️',units:{kg:{n:'Kilogramm',f:1},g:{n:'Gramm',f:0.001},mg:{n:'Milligramm',f:0.000001},t:{n:'Tonne',f:1000},lb:{n:'Pfund',f:0.45359237},oz:{n:'Unze',f:0.0283495},st:{n:'Stone',f:6.35029}}},
+    area:{name:'Fläche',icon:'▦',units:{m2:{n:'Quadratmeter',f:1},km2:{n:'Quadratkilometer',f:1000000},cm2:{n:'Quadratzentimeter',f:0.0001},ha:{n:'Hektar',f:10000},ac:{n:'Acre',f:4046.86},ft2:{n:'Quadratfuß',f:0.092903}}},
+    volume:{name:'Volumen',icon:'🧪',units:{l:{n:'Liter',f:1},ml:{n:'Milliliter',f:0.001},m3:{n:'Kubikmeter',f:1000},gal:{n:'US-Gallone',f:3.78541},qt:{n:'Quart',f:0.946353},pt:{n:'Pint',f:0.473176},cup:{n:'Cup',f:0.236588},floz:{n:'Flüssigunze',f:0.0295735}}},
+    temp:{name:'Temperatur',icon:'🌡️',units:{c:{n:'Celsius'},f:{n:'Fahrenheit'},k:{n:'Kelvin'}}},
+    speed:{name:'Geschwindigkeit',icon:'🏎️',units:{kmh:{n:'km/h',f:1},ms:{n:'m/s',f:3.6},mph:{n:'mph',f:1.60934},kn:{n:'Knoten',f:1.852}}},
+    time:{name:'Zeit',icon:'⏱️',units:{s:{n:'Sekunden',f:1},min:{n:'Minuten',f:60},h:{n:'Stunden',f:3600},d:{n:'Tage',f:86400},w:{n:'Wochen',f:604800},mo:{n:'Monate (30d)',f:2592000},y:{n:'Jahre',f:31536000}}},
+    data:{name:'Daten',icon:'💾',units:{b:{n:'Byte',f:1},kb:{n:'KB',f:1024},mb:{n:'MB',f:1048576},gb:{n:'GB',f:1073741824},tb:{n:'TB',f:1099511627776},bit:{n:'Bit',f:0.125}}},
+    energy:{name:'Energie',icon:'⚡',units:{j:{n:'Joule',f:1},kj:{n:'Kilojoule',f:1000},cal:{n:'Kalorien',f:4.184},kcal:{n:'kcal',f:4184},wh:{n:'Wattstunde',f:3600},kwh:{n:'kWh',f:3600000}}},
+    pressure:{name:'Druck',icon:'🌬️',units:{pa:{n:'Pascal',f:1},kpa:{n:'Kilopascal',f:1000},bar:{n:'Bar',f:100000},psi:{n:'PSI',f:6894.76},atm:{n:'Atmosphären',f:101325},mmhg:{n:'mmHg',f:133.322}}}
+  };
+  let cat='length',from='m',to='km',val=1;
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function convert(){
+    const c=CATS[cat];
+    const v=parseFloat(val)||0;
+    if(cat==='temp'){
+      let cv;
+      if(from==='c')cv=v; else if(from==='f')cv=(v-32)*5/9; else if(from==='k')cv=v-273.15;
+      let out;
+      if(to==='c')out=cv; else if(to==='f')out=cv*9/5+32; else if(to==='k')out=cv+273.15;
+      return Math.round(out*1000)/1000;
+    }
+    const f=c.units[from].f, t=c.units[to].f;
+    const r=v*f/t;
+    if(Math.abs(r)<0.001&&r!==0) return r.toExponential(4);
+    return Math.round(r*1e8)/1e8;
+  }
+  function render(){
+    const el=document.getElementById('unContent');
+    const c=CATS[cat];
+    const units=Object.entries(c.units);
+    if(!c.units[from]) from=units[0][0];
+    if(!c.units[to]) to=units[1]?units[1][0]:units[0][0];
+    const catsHtml=Object.entries(CATS).map(([k,v])=>'<button class="un-cat '+(cat===k?'active':'')+'" onclick="HalDoUnitApp.setCat(\''+k+'\')">'+v.icon+' '+v.name+'</button>').join('');
+    el.innerHTML='<div class="un-cats">'+catsHtml+'</div>'+
+      '<div class="un-card">'+
+      '<div class="un-row"><input class="un-input" type="number" step="any" value="'+val+'" oninput="HalDoUnitApp.setVal(this.value)">'+
+      '<select class="un-select" onchange="HalDoUnitApp.setFrom(this.value)">'+units.map(([k,v])=>'<option value="'+k+'" '+(from===k?'selected':'')+'>'+v.n+'</option>').join('')+'</select></div>'+
+      '<div class="un-row" style="justify-content:center"><button class="un-swap" onclick="HalDoUnitApp.swap()">⇅</button></div>'+
+      '<div class="un-row"><div class="un-result">'+convert()+'</div>'+
+      '<select class="un-select" onchange="HalDoUnitApp.setTo(this.value)">'+units.map(([k,v])=>'<option value="'+k+'" '+(to===k?'selected':'')+'>'+v.n+'</option>').join('')+'</select></div>'+
+      '<div class="un-quick">'+
+      '<button class="un-quick-btn" onclick="HalDoUnitApp.setVal(1)">1</button>'+
+      '<button class="un-quick-btn" onclick="HalDoUnitApp.setVal(10)">10</button>'+
+      '<button class="un-quick-btn" onclick="HalDoUnitApp.setVal(100)">100</button>'+
+      '<button class="un-quick-btn" onclick="HalDoUnitApp.setVal(1000)">1000</button>'+
+      '</div></div>';
+  }
+  function setCat(c){ cat=c; const units=Object.keys(CATS[cat].units); from=units[0]; to=units[1]||units[0]; render(); }
+  function setVal(v){ val=v; const r=document.querySelector('.un-result'); if(r)r.textContent=convert(); }
+  function setFrom(f){ from=f; render(); }
+  function setTo(t){ to=t; render(); }
+  function swap(){ const tmp=from; from=to; to=tmp; render(); }
+  function open(){ render(); document.getElementById('unitWindow').classList.add('show'); }
+  function close(){ document.getElementById('unitWindow').classList.remove('show'); }
+  window.HalDoUnit={open,close,convert(cat,from,to,val){const old={cat,from,to,val};cat=cat;from=from;to=to;val=val;const r=convert();Object.assign(window,{cat:old.cat,from:old.from,to:old.to,val:old.val});return r;}};
+  window.HalDoUnitApp={open,close,setCat,setVal,setFrom,setTo,swap};
+  console.log('%c📏 Unit Converter geladen','color:#00ffc8;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v91 – CURRENCY CONVERTER (Live Währungskurse) ════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#currencyWindow{position:fixed;inset:0;background:radial-gradient(circle at 50% 20%,rgba(255,200,0,.10),transparent 55%),linear-gradient(180deg,rgba(20,15,0,.99),rgba(10,8,0,.99));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:8100;display:none;flex-direction:column;color:#fff8e6;font-family:inherit;}
+#currencyWindow.show{display:flex;}
+.cu-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(255,200,0,.25);background:rgba(50,40,0,.55);flex-shrink:0;position:relative;z-index:10000;gap:8px;}
+.cu-title h2{font-size:18px;margin:0;color:#fff;font-weight:700;}
+.cu-title small{display:block;font-size:10px;color:#ffe066;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.cu-btn{padding:10px 14px;border-radius:10px;background:rgba(255,200,0,.12);border:1px solid rgba(255,200,0,.4);color:#fff8e6;font-size:13px;font-weight:600;cursor:pointer;position:relative;z-index:99999;pointer-events:auto;-webkit-tap-highlight-color:transparent;}
+.cu-btn.primary{background:linear-gradient(135deg,#ffc800,#ff9a3d);color:#1a1000;border-color:#fff;}
+.cu-btn.icon-only{padding:10px;font-size:16px;min-width:42px;}
+.cu-body{flex:1;overflow-y:auto;padding:18px;position:relative;z-index:2;display:flex;flex-direction:column;justify-content:flex-start;}
+.cu-content{max-width:520px;margin:0 auto;width:100%;}
+.cu-card{padding:20px;background:linear-gradient(160deg,rgba(120,90,0,.4),rgba(40,25,0,.85));border:1.5px solid rgba(255,200,0,.3);border-radius:18px;margin-bottom:14px;}
+.cu-row{display:flex;gap:10px;align-items:center;margin-bottom:12px;}
+.cu-input{flex:1;padding:16px;border-radius:12px;background:rgba(0,0,0,.4);border:1.5px solid rgba(255,200,0,.3);color:#fff;font-size:24px;font-family:'Courier New',monospace;outline:none;box-sizing:border-box;min-width:0;font-weight:700;}
+.cu-input:focus{border-color:#ffc800;box-shadow:0 0 20px rgba(255,200,0,.3);}
+.cu-select{padding:14px;border-radius:10px;background:rgba(0,0,0,.4);border:1.5px solid rgba(255,200,0,.3);color:#fff;font-size:14px;font-family:inherit;outline:none;cursor:pointer;-webkit-appearance:none;flex-shrink:0;font-weight:700;}
+.cu-select option{background:#1a1000;padding:8px;}
+.cu-swap{width:48px;height:48px;border-radius:50%;background:rgba(255,200,0,.15);border:1.5px solid rgba(255,200,0,.4);color:#ffc800;font-size:20px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin:0 auto;}
+.cu-result{padding:20px;background:rgba(0,0,0,.4);border-radius:12px;border:1.5px solid rgba(255,200,0,.5);color:#ffc800;font-size:28px;font-weight:900;font-family:'Courier New',monospace;word-break:break-all;text-align:right;min-height:72px;display:flex;align-items:center;justify-content:flex-end;}
+.cu-rate-info{font-size:11px;color:#ffe066;text-align:center;margin-top:8px;}
+.cu-quick{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;}
+.cu-quick-btn{padding:8px 14px;border-radius:20px;background:rgba(255,200,0,.08);border:1px dashed rgba(255,200,0,.35);color:#ffe066;font-size:12px;font-weight:700;cursor:pointer;}
+.cu-popular{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;}
+.cu-pop{padding:8px 14px;border-radius:10px;background:rgba(255,200,0,.1);border:1.5px solid rgba(255,200,0,.25);color:#fff8e6;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
+.cu-pop:hover{background:rgba(255,200,0,.25);border-color:#ffc800;}
+.cu-status{text-align:center;font-size:11px;color:#a08040;margin-top:14px;line-height:1.6;}
+.cu-toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;background:linear-gradient(135deg,#ffc800,#ff9a3d);color:#1a1000;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:all .3s;z-index:99999;}
+.cu-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+<div id="currencyWindow">
+  <div class="cu-header">
+    <div class="cu-title"><span style="font-size:24px">💱</span><div><h2>Currency</h2><small>Live Währungsumrechnung</small></div></div>
+    <button class="cu-btn icon-only" onclick="HalDoCurrencyApp.close()">✕</button>
+  </div>
+  <div class="cu-body">
+    <div class="cu-content" id="cuContent"></div>
+  </div>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__cuLoaded) return; window.__cuLoaded = true;
+  const API='https://api.frankfurter.app/latest?from=';
+  const CURRENCIES={
+    EUR:{n:'Euro €',flag:'🇪🇺'},USD:{n:'US-Dollar $',flag:'🇺🇸'},GBP:{n:'Pfund £',flag:'🇬🇧'},
+    CHF:{n:'Schweizer Franken',flag:'🇨🇭'},JPY:{n:'Yen ¥',flag:'🇯🇵'},CNY:{n:'Yuan ¥',flag:'🇨🇳'},
+    TRY:{n:'Türkische Lira ₺',flag:'🇹🇷'},RUB:{n:'Rubel ₽',flag:'🇷🇺'},PLN:{n:'Złoty zł',flag:'🇵🇱'},
+    CZK:{n:'Tschechische Krone',flag:'🇨🇿'},HUF:{n:'Forint Ft',flag:'🇭🇺'},DKK:{n:'Dänische Krone',flag:'🇩🇰'},
+    SEK:{n:'Schwedische Krone',flag:'🇸🇪'},NOK:{n:'Norwegische Krone',flag:'🇳🇴'},CAD:{n:'Kanadischer Dollar',flag:'🇨🇦'},
+    AUD:{n:'Australischer Dollar',flag:'🇦🇺'},INR:{n:'Indische Rupie ₹',flag:'🇮🇳'},BRL:{n:'Real R$',flag:'🇧🇷'},
+    ZAR:{n:'Rand R',flag:'🇿🇦'},KRW:{n:'Won ₩',flag:'🇰🇷'},SGD:{n:'Singapur-Dollar',flag:'🇸🇬'},
+    HKD:{n:'HK-Dollar',flag:'🇭🇰'},MXN:{n:'Mexikanischer Peso',flag:'🇲🇽'},NZD:{n:'NZ-Dollar',flag:'🇳🇿'},
+    THB:{n:'Baht ฿',flag:'🇹🇭'},ILS:{n:'Schekel ₪',flag:'🇮🇱'},AED:{n:'Dirham',flag:'🇦🇪'},SAR:{n:'Riyal',flag:'🇸🇦'}
+  };
+  let from='EUR',to='USD',val=100;
+  let ratesCache={}, lastFetch=0;
+  const CACHE_MS=30*60*1000;
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  async function fetchRates(base){
+    const key=base;
+    if(ratesCache[key]&&Date.now()-lastFetch<CACHE_MS) return ratesCache[key];
+    try{
+      const res=await fetch(API+base);
+      if(!res.ok) throw new Error('HTTP');
+      const data=await res.json();
+      ratesCache[key]=data.rates;
+      lastFetch=Date.now();
+      return data.rates;
+    }catch(e){ console.warn('Currency fetch failed',e); return null; }
+  }
+  async function convert(){
+    if(from===to) return parseFloat(val)||0;
+    const r=await fetchRates(from);
+    if(!r||!r[to]) return null;
+    const v=parseFloat(val)||0;
+    return Math.round(v*r[to]*100)/100;
+  }
+  async function render(){
+    const el=document.getElementById('cuContent');
+    const result=await convert();
+    const fromInfo=CURRENCIES[from],toInfo=CURRENCIES[to];
+    el.innerHTML=
+      '<div class="cu-card">'+
+      '<div class="cu-row"><input class="cu-input" type="number" step="any" value="'+val+'" oninput="HalDoCurrencyApp.setVal(this.value)">'+
+      '<select class="cu-select" onchange="HalDoCurrencyApp.setFrom(this.value)">'+Object.entries(CURRENCIES).map(([k,v])=>'<option value="'+k+'" '+(from===k?'selected':'')+'>'+v.flag+' '+k+'</option>').join('')+'</select></div>'+
+      '<div class="cu-row"><div class="cu-swap" onclick="HalDoCurrencyApp.swap()">⇅</div></div>'+
+      '<div class="cu-row"><div class="cu-result">'+(result!==null?result:'⏳')+'</div>'+
+      '<select class="cu-select" onchange="HalDoCurrencyApp.setTo(this.value)">'+Object.entries(CURRENCIES).map(([k,v])=>'<option value="'+k+'" '+(to===k?'selected':'')+'>'+v.flag+' '+k+'</option>').join('')+'</select></div>'+
+      '<div class="cu-rate-info">'+(result!==null?'1 '+from+' = '+(result/parseFloat(val||1)).toFixed(4)+' '+to:'Lade Kurs...')+'</div>'+
+      '<div class="cu-quick">'+
+      '<button class="cu-quick-btn" onclick="HalDoCurrencyApp.setVal(1)">1</button>'+
+      '<button class="cu-quick-btn" onclick="HalDoCurrencyApp.setVal(10)">10</button>'+
+      '<button class="cu-quick-btn" onclick="HalDoCurrencyApp.setVal(100)">100</button>'+
+      '<button class="cu-quick-btn" onclick="HalDoCurrencyApp.setVal(1000)">1000</button>'+
+      '</div>'+
+      '<div class="cu-popular">'+
+      '<div class="cu-pop" onclick="HalDoCurrencyApp.setFrom(\'EUR\');HalDoCurrencyApp.setTo(\'USD\')">🇪🇺 EUR→USD</div>'+
+      '<div class="cu-pop" onclick="HalDoCurrencyApp.setFrom(\'EUR\');HalDoCurrencyApp.setTo(\'TRY\')">🇪🇺 EUR→TRY</div>'+
+      '<div class="cu-pop" onclick="HalDoCurrencyApp.setFrom(\'USD\');HalDoCurrencyApp.setTo(\'EUR\')">🇺🇸 USD→EUR</div>'+
+      '<div class="cu-pop" onclick="HalDoCurrencyApp.setFrom(\'USD\');HalDoCurrencyApp.setTo(\'TRY\')">🇺🇸 USD→TRY</div>'+
+      '<div class="cu-pop" onclick="HalDoCurrencyApp.setFrom(\'GBP\');HalDoCurrencyApp.setTo(\'EUR\')">🇬🇧 GBP→EUR</div>'+
+      '</div>'+
+      '</div>'+
+      '<div class="cu-status">🌐 Live-Kurse von Frankfurter API<br>'+
+      (lastFetch?'Zuletzt aktualisiert: '+new Date(lastFetch).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr':'')+'</div>';
+  }
+  function setVal(v){ val=v; const r=document.querySelector('.cu-result'); if(r){ convert().then(res=>{ if(r)r.textContent=res!==null?res:'⏳'; }); } }
+  function setFrom(f){ from=f; render(); }
+  function setTo(t){ to=t; render(); }
+  function swap(){ const tmp=from; from=to; to=tmp; render(); }
+  function open(){ render(); document.getElementById('currencyWindow').classList.add('show'); }
+  function close(){ document.getElementById('currencyWindow').classList.remove('show'); }
+  window.HalDoCurrency={open,close,async convert(v,f,t){ if(f)from=f; if(t)to=t; if(v)val=v; return await convert(); }};
+  window.HalDoCurrencyApp={open,close,setVal,setFrom,setTo,swap};
+  console.log('%c💱 Currency geladen · Live Frankfurter API','color:#ffc800;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v92 – HEALTH CALC (BMI, Kalorien, Idealgewicht) ══════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#healthCalcWindow{position:fixed;inset:0;background:radial-gradient(circle at 30% 20%,rgba(255,80,120,.10),transparent 55%),linear-gradient(180deg,rgba(20,5,10,.99),rgba(10,2,5,.99));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:8090;display:none;flex-direction:column;color:#ffe6ee;font-family:inherit;}
+#healthCalcWindow.show{display:flex;}
+.hc-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(255,80,120,.25);background:rgba(50,10,20,.55);flex-shrink:0;position:relative;z-index:10000;gap:8px;}
+.hc-title h2{font-size:18px;margin:0;color:#fff;font-weight:700;}
+.hc-title small{display:block;font-size:10px;color:#ff9db8;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.hc-btn{padding:10px 14px;border-radius:10px;background:rgba(255,80,120,.12);border:1px solid rgba(255,80,120,.4);color:#ffe6ee;font-size:13px;font-weight:600;cursor:pointer;position:relative;z-index:99999;pointer-events:auto;-webkit-tap-highlight-color:transparent;}
+.hc-btn.primary{background:linear-gradient(135deg,#ff5078,#ff88a8);color:#fff;border-color:#fff;}
+.hc-btn.icon-only{padding:10px;font-size:16px;min-width:42px;}
+.hc-tabs{display:flex;gap:4px;padding:10px 18px;overflow-x:auto;flex-shrink:0;}
+.hc-tab{padding:8px 14px;border-radius:10px;background:rgba(80,20,30,.4);border:1px solid rgba(255,80,120,.2);color:#ff9db8;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.hc-tab.active{background:linear-gradient(135deg,#ff5078,#ff88a8);color:#fff;border-color:#fff;}
+.hc-body{flex:1;overflow-y:auto;padding:18px;}
+.hc-content{max-width:520px;margin:0 auto;}
+.hc-card{padding:18px;background:linear-gradient(160deg,rgba(120,30,50,.4),rgba(40,8,15,.85));border:1.5px solid rgba(255,80,120,.3);border-radius:18px;margin-bottom:14px;}
+.hc-form-row{margin-bottom:12px;}
+.hc-form-row label{display:block;font-size:11px;color:#ff9db8;font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:1.2px;}
+.hc-form-row input,.hc-form-row select{width:100%;padding:12px 14px;border-radius:10px;background:rgba(0,0,0,.4);border:1.5px solid rgba(255,80,120,.3);color:#fff;font-size:15px;font-family:inherit;outline:none;box-sizing:border-box;}
+.hc-form-row input:focus,.hc-form-row select:focus{border-color:#ff5078;box-shadow:0 0 20px rgba(255,80,120,.3);}
+.hc-form-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.hc-result{padding:20px;background:linear-gradient(160deg,rgba(120,30,50,.5),rgba(30,8,15,.85));border:2px solid #ff5078;border-radius:18px;text-align:center;margin-bottom:14px;}
+.hc-big{font-size:54px;font-weight:200;color:#fff;font-family:'Courier New',monospace;line-height:1;margin-bottom:6px;text-shadow:0 0 30px rgba(255,80,120,.5);}
+.hc-big-label{font-size:12px;color:#ff9db8;text-transform:uppercase;letter-spacing:2px;font-weight:800;}
+.hc-cat{font-size:18px;font-weight:900;margin-top:10px;padding:8px 16px;border-radius:12px;display:inline-block;}
+.hc-cat.under{background:rgba(0,150,255,.2);color:#7cc4ff;}
+.hc-cat.normal{background:rgba(0,255,136,.2);color:#7cffb0;}
+.hc-cat.over{background:rgba(255,200,0,.2);color:#ffe066;}
+.hc-cat.obese1{background:rgba(255,140,60,.2);color:#ffb080;}
+.hc-cat.obese2{background:rgba(255,80,60,.2);color:#ff8a7a;}
+.hc-info-row{display:flex;justify-content:space-between;padding:10px 14px;margin-bottom:6px;background:rgba(0,0,0,.3);border-radius:10px;font-size:13px;}
+.hc-info-label{color:#ff9db8;}
+.hc-info-val{color:#fff;font-weight:800;}
+.hc-scale{position:relative;height:40px;margin:14px 0;border-radius:10px;overflow:hidden;display:flex;font-size:9px;font-weight:800;color:#fff;text-align:center;}
+.hc-scale div{display:flex;align-items:center;justify-content:center;text-transform:uppercase;letter-spacing:.5px;}
+.hc-scale .s1{background:linear-gradient(180deg,#0096ff,#4da8ff);flex:2;}
+.hc-scale .s2{background:linear-gradient(180deg,#00ff88,#00e5ff);flex:3;}
+.hc-scale .s3{background:linear-gradient(180deg,#ffc800,#ffaa00);flex:2;}
+.hc-scale .s4{background:linear-gradient(180deg,#ff8c3c,#ff6633);flex:2;}
+.hc-scale .s5{background:linear-gradient(180deg,#ff503c,#cc2244);flex:2;}
+.hc-scale-marker{position:absolute;top:-4px;width:3px;height:48px;background:#fff;border-radius:2px;box-shadow:0 0 12px #fff;transition:left .5s;}
+.hc-toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;background:linear-gradient(135deg,#ff5078,#ff88a8);color:#fff;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:all .3s;z-index:99999;}
+.hc-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+<div id="healthCalcWindow">
+  <div class="hc-header">
+    <div class="hc-title"><span style="font-size:24px">⚕️</span><div><h2>Health Calc</h2><small>BMI · Kalorien · Ideal</small></div></div>
+    <button class="hc-btn icon-only" onclick="HalDoHealthApp.close()">✕</button>
+  </div>
+  <div class="hc-tabs">
+    <button class="hc-tab active" data-tab="bmi" onclick="HalDoHealthApp.setTab('bmi')">📊 BMI</button>
+    <button class="hc-tab" data-tab="cal" onclick="HalDoHealthApp.setTab('cal')">🔥 Kalorien</button>
+    <button class="hc-tab" data-tab="ideal" onclick="HalDoHealthApp.setTab('ideal')">🎯 Ideal</button>
+    <button class="hc-tab" data-tab="water" onclick="HalDoHealthApp.setTab('water')">💧 Wasser</button>
+  </div>
+  <div class="hc-body"><div class="hc-content" id="hcContent"></div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__hcLoaded) return; window.__hcLoaded = true;
+  let tab='bmi';
+  let data={height:175,weight:75,age:30,sex:'m',activity:1.55,goal:'maintain'};
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function calcBMI(h,w){ if(!h||!w)return 0; return w/((h/100)**2); }
+  function bmiCat(b){
+    if(b<18.5)return{label:'Untergewicht',cls:'under'};
+    if(b<25)return{label:'Normalgewicht',cls:'normal'};
+    if(b<30)return{label:'Übergewicht',cls:'over'};
+    if(b<35)return{label:'Adipositas I',cls:'obese1'};
+    return{label:'Adipositas II',cls:'obese2'};
+  }
+  function calcBMR(h,w,a,s){
+    // Mifflin-St Jeor
+    if(s==='m') return 10*w+6.25*h-5*a+5;
+    return 10*w+6.25*h-5*a-161;
+  }
+  function calcTDEE(bmr,act){ return bmr*act; }
+  function idealWeight(h,s){
+    // Devine Formel
+    const inches=h/2.54;
+    if(s==='m') return 50+2.3*(inches-60);
+    return 45.5+2.3*(inches-60);
+  }
+  function waterNeed(w,act){
+    // ~35 ml pro kg + Aktivität
+    return Math.round(w*35 + (act-1.2)*500);
+  }
+  function render(){
+    const el=document.getElementById('hcContent');
+    if(tab==='bmi'){
+      const bmi=calcBMI(data.height,data.weight);
+      const cat=bmiCat(bmi);
+      const pos=Math.min(100,Math.max(0,((bmi-15)/(40-15))*100));
+      el.innerHTML='<div class="hc-form-2col"><div class="hc-form-row"><label>Größe (cm)</label><input type="number" value="'+data.height+'" oninput="HalDoHealthApp.set(\'height\',this.value)"></div>'+
+        '<div class="hc-form-row"><label>Gewicht (kg)</label><input type="number" value="'+data.weight+'" oninput="HalDoHealthApp.set(\'weight\',this.value)"></div></div>'+
+        '<div class="hc-result"><div class="hc-big">'+bmi.toFixed(1)+'</div><div class="hc-big-label">BMI</div>'+
+        (bmi>0?'<div class="hc-cat '+cat.cls+'">'+cat.label+'</div>':'')+'</div>'+
+        '<div class="hc-scale"><div class="s1">Unter</div><div class="s2">Normal</div><div class="s3">Über</div><div class="s4">Adipo I</div><div class="s5">Adipo II</div><div class="hc-scale-marker" style="left:'+pos+'%"></div></div>'+
+        '<div class="hc-info-row"><span class="hc-info-label">💚 Idealgewicht</span><span class="hc-info-val">'+idealWeight(data.height,data.sex).toFixed(1)+' kg</span></div>'+
+        '<div class="hc-info-row"><span class="hc-info-label">📏 Normalbereich</span><span class="hc-info-val">'+(18.5*(data.height/100)**2).toFixed(1)+' – '+(24.9*(data.height/100)**2).toFixed(1)+' kg</span></div>';
+    } else if(tab==='cal'){
+      const bmr=calcBMR(data.height,data.weight,data.age,data.sex);
+      const tdee=calcTDEE(bmr,data.activity);
+      el.innerHTML='<div class="hc-form-2col"><div class="hc-form-row"><label>Größe (cm)</label><input type="number" value="'+data.height+'" oninput="HalDoHealthApp.set(\'height\',this.value)"></div>'+
+        '<div class="hc-form-row"><label>Gewicht (kg)</label><input type="number" value="'+data.weight+'" oninput="HalDoHealthApp.set(\'weight\',this.value)"></div></div>'+
+        '<div class="hc-form-2col"><div class="hc-form-row"><label>Alter</label><input type="number" value="'+data.age+'" oninput="HalDoHealthApp.set(\'age\',this.value)"></div>'+
+        '<div class="hc-form-row"><label>Geschlecht</label><select onchange="HalDoHealthApp.set(\'sex\',this.value)"><option value="m" '+(data.sex==='m'?'selected':'')+'>Männlich</option><option value="f" '+(data.sex==='f'?'selected':'')+'>Weiblich</option></select></div></div>'+
+        '<div class="hc-form-row"><label>Aktivität</label><select onchange="HalDoHealthApp.set(\'activity\',this.value)">'+
+        '<option value="1.2" '+(data.activity==1.2?'selected':'')+'>Kaum Bewegung</option>'+
+        '<option value="1.375" '+(data.activity==1.375?'selected':'')+'>Leicht (1-3× Sport/Woche)</option>'+
+        '<option value="1.55" '+(data.activity==1.55?'selected':'')+'>Mäßig (3-5× Sport/Woche)</option>'+
+        '<option value="1.725" '+(data.activity==1.725?'selected':'')+'>Hoch (6-7× Sport/Woche)</option>'+
+        '<option value="1.9" '+(data.activity==1.9?'selected':'')+'>Extrem (Athlet)</option></select></div>'+
+        '<div class="hc-result"><div class="hc-big">'+Math.round(tdee)+'</div><div class="hc-big-label">kcal pro Tag</div><div class="hc-cat normal" style="margin-top:8px">Erhaltungskalorien</div></div>'+
+        '<div class="hc-info-row"><span class="hc-info-label">🛏️ Grundumsatz (BMR)</span><span class="hc-info-val">'+Math.round(bmr)+' kcal</span></div>'+
+        '<div class="hc-info-row"><span class="hc-info-label">🔥 TDEE</span><span class="hc-info-val">'+Math.round(tdee)+' kcal</span></div>'+
+        '<div class="hc-info-row"><span class="hc-info-label">📉 Abnehmen</span><span class="hc-info-val">'+Math.round(tdee-500)+' kcal (-0,5 kg/Wo)</span></div>'+
+        '<div class="hc-info-row"><span class="hc-info-label">📈 Zunehmen</span><span class="hc-info-val">'+Math.round(tdee+300)+' kcal</span></div>';
+    } else if(tab==='ideal'){
+      const ideal=idealWeight(data.height,data.sex);
+      el.innerHTML='<div class="hc-form-2col"><div class="hc-form-row"><label>Größe (cm)</label><input type="number" value="'+data.height+'" oninput="HalDoHealthApp.set(\'height\',this.value)"></div>'+
+        '<div class="hc-form-row"><label>Geschlecht</label><select onchange="HalDoHealthApp.set(\'sex\',this.value)"><option value="m" '+(data.sex==='m'?'selected':'')+'>Männlich</option><option value="f" '+(data.sex==='f'?'selected':'')+'>Weiblich</option></select></div></div>'+
+        '<div class="hc-result"><div class="hc-big">'+ideal.toFixed(1)+'</div><div class="hc-big-label">kg Idealgewicht</div></div>'+
+        '<div class="hc-info-row"><span class="hc-info-label">📏 BMI 18,5 (min)</span><span class="hc-info-val">'+(18.5*(data.height/100)**2).toFixed(1)+' kg</span></div>'+
+        '<div class="hc-info-row"><span class="hc-info-label">📏 BMI 25 (max)</span><span class="hc-info-val">'+(25*(data.height/100)**2).toFixed(1)+' kg</span></div>'+
+        '<div class="hc-info-row"><span class="hc-info-label">🎯 Dein aktuelles Gewicht</span><span class="hc-info-val">'+data.weight+' kg</span></div>';
+    } else if(tab==='water'){
+      const need=waterNeed(data.weight,data.activity);
+      el.innerHTML='<div class="hc-form-2col"><div class="hc-form-row"><label>Gewicht (kg)</label><input type="number" value="'+data.weight+'" oninput="HalDoHealthApp.set(\'weight\',this.value)"></div>'+
+        '<div class="hc-form-row"><label>Aktivität</label><select onchange="HalDoHealthApp.set(\'activity\',this.value)">'+
+        '<option value="1.2" '+(data.activity==1.2?'selected':'')+'>Ruhe</option>'+
+        '<option value="1.55" '+(data.activity==1.55?'selected':'')+'>Aktiv</option>'+
+        '<option value="1.9" '+(data.activity==1.9?'selected':'')+'>Sport/Athlet</option></select></div></div>'+
+        '<div class="hc-result"><div class="hc-big">'+need+'</div><div class="hc-big-label">ml Wasser/Tag</div><div class="hc-cat normal" style="margin-top:8px">💧 '+Math.round(need/250)+' Gläser (à 250 ml)</div></div>'+
+        '<div class="hc-info-row"><span class="hc-info-label">☕ Kaffee zählt nicht</span><span class="hc-info-val">+250 ml pro Tasse</span></div>'+
+        '<div class="hc-info-row"><span class="hc-info-label">🏃 Sport zusätzlich</span><span class="hc-info-val">+500 ml pro Stunde</span></div>';
+    }
+  }
+  function set(k,v){ if(k==='activity') v=parseFloat(v); else if(k==='sex') v=v; else v=parseFloat(v)||0; data[k]=v; render(); }
+  function setTab(t){ tab=t; document.querySelectorAll('.hc-tab').forEach(el=>el.classList.toggle('active',el.dataset.tab===t)); render(); }
+  function open(){ render(); document.getElementById('healthCalcWindow').classList.add('show'); }
+  function close(){ document.getElementById('healthCalcWindow').classList.remove('show'); }
+  window.HalDoHealth={open,close,bmi(h,w){return calcBMI(h,w);},bmr(h,w,a,s){return calcBMR(h,w,a,s);},tdee(h,w,a,s,act){return calcTDEE(calcBMR(h,w,a,s),act);}};
+  window.HalDoHealthApp={open,close,setTab,set};
+  console.log('%c⚕️ Health Calc geladen','color:#ff5078;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v93 – EMERGENCY INFO (Notfalldaten, ICE) ═════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#emergencyWindow{position:fixed;inset:0;background:radial-gradient(circle at 30% 20%,rgba(255,60,60,.15),transparent 55%),linear-gradient(180deg,rgba(25,5,5,.99),rgba(12,2,2,.99));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:8080;display:none;flex-direction:column;color:#ffe8e8;font-family:inherit;}
+#emergencyWindow.show{display:flex;}
+.em-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(255,60,60,.3);background:rgba(60,10,10,.6);flex-shrink:0;position:relative;z-index:10000;gap:8px;}
+.em-title h2{font-size:18px;margin:0;color:#fff;font-weight:800;}
+.em-title small{display:block;font-size:10px;color:#ff9090;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.em-btn{padding:10px 14px;border-radius:10px;background:rgba(255,60,60,.15);border:1px solid rgba(255,60,60,.4);color:#ffe8e8;font-size:13px;font-weight:600;cursor:pointer;position:relative;z-index:99999;pointer-events:auto;-webkit-tap-highlight-color:transparent;}
+.em-btn.primary{background:linear-gradient(135deg,#ff3c3c,#ff6688);color:#fff;border-color:#fff;}
+.em-btn.icon-only{padding:10px;font-size:16px;min-width:42px;}
+.em-body{flex:1;overflow-y:auto;padding:16px;position:relative;z-index:2;}
+.em-content{max-width:560px;margin:0 auto;}
+.em-alert-banner{padding:16px;background:linear-gradient(135deg,rgba(255,60,60,.3),rgba(255,80,120,.15));border:2px solid #ff3c3c;border-radius:16px;margin-bottom:16px;text-align:center;}
+.em-alert-banner .em-alert-icon{font-size:40px;margin-bottom:6px;}
+.em-alert-banner .em-alert-text{font-size:13px;color:#fff;font-weight:800;letter-spacing:.5px;line-height:1.5;}
+.em-section{margin-bottom:16px;}
+.em-section-title{font-size:11px;color:#ff9090;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;padding-left:4px;}
+.em-card{padding:14px;background:linear-gradient(160deg,rgba(80,20,20,.4),rgba(20,5,5,.85));border:1.5px solid rgba(255,60,60,.2);border-radius:14px;margin-bottom:8px;}
+.em-info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,60,60,.1);font-size:13px;align-items:center;}
+.em-info-row:last-child{border-bottom:none;}
+.em-info-label{color:#ff9090;font-weight:700;flex-shrink:0;}
+.em-info-val{color:#fff;font-weight:800;text-align:right;margin-left:12px;word-break:break-word;}
+.em-contact-card{padding:12px 14px;background:rgba(60,15,15,.5);border:1.5px solid rgba(255,60,60,.2);border-radius:12px;margin-bottom:8px;display:flex;gap:12px;align-items:center;}
+.em-contact-icon{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#ff3c3c,#ff6688);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.em-contact-info{flex:1;min-width:0;}
+.em-contact-name{font-size:14px;font-weight:800;color:#fff;}
+.em-contact-meta{font-size:11px;color:#ff9090;margin-top:2px;}
+.em-contact-call{padding:10px 14px;border-radius:10px;background:linear-gradient(135deg,#00ff88,#00e5ff);color:#001a08;font-weight:900;font-size:13px;border:none;cursor:pointer;flex-shrink:0;}
+.em-input{padding:10px 12px;border-radius:10px;background:rgba(0,0,0,.4);border:1.5px solid rgba(255,60,60,.3);color:#fff;font-size:13px;font-family:inherit;outline:none;width:100%;box-sizing:border-box;margin-bottom:8px;}
+.em-input:focus{border-color:#ff3c3c;box-shadow:0 0 18px rgba(255,60,60,.3);}
+.em-add-btn{padding:12px 20px;border-radius:12px;background:linear-gradient(135deg,#ff3c3c,#ff6688);color:#fff;font-weight:900;font-size:14px;border:none;cursor:pointer;width:100%;margin-top:6px;}
+.em-toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;background:linear-gradient(135deg,#ff3c3c,#ff6688);color:#fff;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:all .3s;z-index:99999;}
+.em-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+<div id="emergencyWindow">
+  <div class="em-header">
+    <div class="em-title"><span style="font-size:24px">🆘</span><div><h2>Emergency Info</h2><small>Notfall-Daten (ICE)</small></div></div>
+    <button class="em-btn icon-only" onclick="HalDoEmergencyApp.close()">✕</button>
+  </div>
+  <div class="em-body"><div class="em-content" id="emContent"></div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__emLoaded) return; window.__emLoaded = true;
+  const KEY='haldo_emergency_v1';
+  let data={name:'',birthdate:'',bloodtype:'',allergies:'',medications:'',conditions:'',organDonor:'',notes:'',contacts:[]};
+  let editMode=false;
+  function load(){ try{ const d=JSON.parse(localStorage.getItem(KEY))||{}; data=Object.assign(data,d); }catch(e){} if(!Array.isArray(data.contacts)) data.contacts=[]; }
+  function save(){ try{ localStorage.setItem(KEY,JSON.stringify(data)); }catch(e){} }
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function set(k,v){ data[k]=v; save(); render(); }
+  function addContact(){ const n=prompt('Name:',''); if(!n)return; const r=prompt('Beziehung (z.B. Ehefrau, Sohn):',''); const p=prompt('Telefonnummer:',''); if(!p)return; const icon=r&&/frau|mann|ehe/i.test(r)?'💑':r&&/sohn|tochter|kind/i.test(r)?'👶':r&&/mutter|vater|eltern/i.test(r)?'👨‍👩‍👧':'👤'; data.contacts.push({id:'c_'+Date.now(),name:n,relation:r||'',phone:p,icon}); save(); render(); toast('✅ Kontakt hinzugefügt'); }
+  function removeContact(id){ if(!confirm('Kontakt wirklich entfernen?'))return; data.contacts=data.contacts.filter(c=>c.id!==id); save(); render(); toast('🗑️ Entfernt'); }
+  function callContact(phone){ window.location.href='tel:'+phone.replace(/\s+/g,''); }
+  function render(){
+    const el=document.getElementById('emContent');
+    if(editMode){
+      el.innerHTML='<div class="em-alert-banner"><div class="em-alert-icon">✏️</div><div class="em-alert-text">Bearbeitungs-Modus</div></div>'+
+        '<div class="em-section"><div class="em-section-title">👤 Persönlich</div><div class="em-card">'+
+        '<input class="em-input" placeholder="Name" value="'+esc(data.name)+'" oninput="HalDoEmergencyApp.set(\'name\',this.value)">'+
+        '<input class="em-input" placeholder="Geburtsdatum (TT.MM.JJJJ)" value="'+esc(data.birthdate)+'" oninput="HalDoEmergencyApp.set(\'birthdate\',this.value)">'+
+        '<input class="em-input" placeholder="Blutgruppe (z.B. A+)" value="'+esc(data.bloodtype)+'" oninput="HalDoEmergencyApp.set(\'bloodtype\',this.value)">'+
+        '<input class="em-input" placeholder="Organspender (Ja/Nein)" value="'+esc(data.organDonor)+'" oninput="HalDoEmergencyApp.set(\'organDonor\',this.value)">'+
+        '</div></div>'+
+        '<div class="em-section"><div class="em-section-title">⚕️ Medizinisch</div><div class="em-card">'+
+        '<input class="em-input" placeholder="Allergien" value="'+esc(data.allergies)+'" oninput="HalDoEmergencyApp.set(\'allergies\',this.value)">'+
+        '<input class="em-input" placeholder="Medikamente" value="'+esc(data.medications)+'" oninput="HalDoEmergencyApp.set(\'medications\',this.value)">'+
+        '<input class="em-input" placeholder="Vorerkrankungen" value="'+esc(data.conditions)+'" oninput="HalDoEmergencyApp.set(\'conditions\',this.value)">'+
+        '<input class="em-input" placeholder="Sonstige Notizen" value="'+esc(data.notes)+'" oninput="HalDoEmergencyApp.set(\'notes\',this.value)">'+
+        '</div></div>'+
+        '<button class="em-btn primary" style="width:100%;padding:16px;font-size:15px" onclick="HalDoEmergencyApp.setEdit(false)">✓ Fertig</button>';
+      return;
+    }
+    const contactsHtml=data.contacts.length?data.contacts.map(c=>'<div class="em-contact-card"><div class="em-contact-icon">'+c.icon+'</div><div class="em-contact-info"><div class="em-contact-name">'+esc(c.name)+'</div><div class="em-contact-meta">'+esc(c.relation||'Kontakt')+' · '+esc(c.phone)+'</div></div><button class="em-contact-call" onclick="HalDoEmergencyApp.call(\''+esc(c.phone)+'\')">📞</button><button class="em-btn" style="padding:8px 10px;background:rgba(255,60,60,.15)" onclick="HalDoEmergencyApp.remove(\''+c.id+'\')">✕</button></div>').join(''):'<div class="em-card" style="text-align:center;padding:20px;color:#a08080;font-size:12px">Noch keine Notfallkontakte</div>';
+    el.innerHTML='<div class="em-alert-banner"><div class="em-alert-icon">🆘</div><div class="em-alert-text">NOTFALL-INFORMATIONEN<br><small style="opacity:.8">Diese Daten sind offline gespeichert und sofort verfügbar</small></div></div>'+
+      '<div class="em-section"><div class="em-section-title">📞 Notfallkontakte</div>'+contactsHtml+
+      '<button class="em-add-btn" onclick="HalDoEmergencyApp.addContact()">✚ Kontakt hinzufügen</button></div>'+
+      '<div class="em-section"><div class="em-section-title">👤 Persönliche Daten</div><div class="em-card">'+
+      '<div class="em-info-row"><span class="em-info-label">Name</span><span class="em-info-val">'+esc(data.name||'–')+'</span></div>'+
+      '<div class="em-info-row"><span class="em-info-label">Geburtstag</span><span class="em-info-val">'+esc(data.birthdate||'–')+'</span></div>'+
+      '<div class="em-info-row"><span class="em-info-label">Blutgruppe</span><span class="em-info-val" style="color:#ff3c3c;font-size:16px">'+esc(data.bloodtype||'–')+'</span></div>'+
+      '<div class="em-info-row"><span class="em-info-label">Organspender</span><span class="em-info-val">'+esc(data.organDonor||'–')+'</span></div>'+
+      '</div></div>'+
+      '<div class="em-section"><div class="em-section-title">⚕️ Medizinisch</div><div class="em-card">'+
+      '<div class="em-info-row"><span class="em-info-label">Allergien</span><span class="em-info-val">'+esc(data.allergies||'Keine bekannt')+'</span></div>'+
+      '<div class="em-info-row"><span class="em-info-label">Medikamente</span><span class="em-info-val">'+esc(data.medications||'Keine')+'</span></div>'+
+      '<div class="em-info-row"><span class="em-info-label">Vorerkrankungen</span><span class="em-info-val">'+esc(data.conditions||'Keine')+'</span></div>'+
+      '</div></div>'+
+      (data.notes?'<div class="em-section"><div class="em-section-title">📝 Notizen</div><div class="em-card"><div style="font-size:13px;color:#fff;line-height:1.6">'+esc(data.notes)+'</div></div></div>':'')+
+      '<div class="em-section"><div class="em-section-title">🚨 Notrufnummern (Europa)</div><div class="em-card">'+
+      '<div class="em-info-row"><span class="em-info-label">112 – Europaweit</span><button class="em-contact-call" onclick="HalDoEmergencyApp.call(\'112\')">📞</button></div>'+
+      '<div class="em-info-row"><span class="em-info-label">110 – Polizei (DE)</span><button class="em-contact-call" onclick="HalDoEmergencyApp.call(\'110\')">📞</button></div>'+
+      '<div class="em-info-row"><span class="em-info-label">116117 – Ärztl. Bereitschaft</span><button class="em-contact-call" onclick="HalDoEmergencyApp.call(\'116117\')">📞</button></div>'+
+      '<div class="em-info-row"><span class="em-info-label">0800 111 0 111 – Telefonseelsorge</span><button class="em-contact-call" onclick="HalDoEmergencyApp.call(\'08001110111\')">📞</button></div>'+
+      '</div></div>'+
+      '<button class="em-btn primary" style="width:100%;padding:16px;font-size:15px;margin-top:16px" onclick="HalDoEmergencyApp.setEdit(true)">✏️ Bearbeiten</button>';
+  }
+  function setEdit(v){ editMode=v; render(); }
+  function toast(msg){ let el=document.getElementById('emToast'); if(!el){ el=document.createElement('div'); el.id='emToast'; el.className='em-toast'; document.body.appendChild(el); } el.textContent=msg; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2200); }
+  function open(){ load(); editMode=!data.name&&!data.bloodtype; render(); document.getElementById('emergencyWindow').classList.add('show'); }
+  function close(){ document.getElementById('emergencyWindow').classList.remove('show'); }
+  window.HalDoEmergency={open,close};
+  window.HalDoEmergencyApp={open,close,set,addContact,remove:removeContact,call:callContact,setEdit};
+  console.log('%c🆘 Emergency Info geladen','color:#ff3c3c;font-weight:bold;');
+})();
+</script>
 </body>
 </html>
