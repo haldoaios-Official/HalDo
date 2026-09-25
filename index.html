@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000510">
+<title>HalDo AI OS</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+--cyan:#00e5ff;--blue:#4da8ff;--purple:#b478ff;--pink:#ff78c8;
+--success:#00ff88;--warning:#ffc800;--danger:#ff4466;
+--sys:var(--cyan);--sys2:var(--blue);--glow:rgba(0,229,255,.5);
+--border:rgba(0,229,255,.35);--border-soft:rgba(0,229,255,.15);
+--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
+--safe-left:env(safe-area-inset-left,0px);--safe-right:env(safe-area-inset-right,0px);
+}
+html,body{width:100%;height:100%;overflow:hidden;background:#000510;color:#e6f4ff;
+font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;
+line-height:1.5;-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:rgba(0,20,50,.3);border-radius:3px}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--cyan),var(--blue));border-radius:3px}
+
+/* KOSMOS */
+#kosmos{position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse at 50% 50%,#0a1832 0%,#050c1e 40%,#000510 100%);overflow:hidden;pointer-events:none}
+.star{position:absolute;background:#fff;border-radius:50%;animation:tw 3s infinite ease-in-out}
+@keyframes tw{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:1;transform:scale(1.4)}}
+#sun{position:absolute;top:50%;left:50%;width:140px;height:140px;margin:-70px 0 0 -70px;border-radius:50%;
+background:radial-gradient(circle at 35% 35%,#fff8d0 0%,#ffcc44 30%,#ff8833 60%,#cc4400 100%);
+box-shadow:0 0 60px 20px rgba(255,180,60,.6),0 0 120px 40px rgba(255,120,40,.4),0 0 200px 80px rgba(255,80,20,.2);
+animation:sunP 4s ease-in-out infinite}
+@keyframes sunP{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.orbit{position:absolute;top:50%;left:50%;border-radius:50%;border:1px solid rgba(0,229,255,.1);transform-origin:center;animation:orb linear infinite;pointer-events:none}
+@keyframes orb{to{transform:rotate(360deg)}}
+.planet{position:absolute;top:50%;left:0;border-radius:50%;box-shadow:0 0 12px currentColor}
+
+/* TOP-BAR */
+#topBar{position:fixed;top:0;left:0;right:0;height:calc(60px + var(--safe-top));
+padding:var(--safe-top) calc(12px + var(--safe-right)) 0 calc(12px + var(--safe-left));
+display:flex;align-items:center;justify-content:space-between;z-index:500;
+background:linear-gradient(180deg,rgba(0,15,40,.95),rgba(0,10,30,.7));
+backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);
+border-bottom:1px solid var(--border-soft)}
+.tb-brand{display:flex;align-items:center;gap:10px;cursor:pointer}
+.tb-logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--cyan),var(--purple));
+border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:20px;
+box-shadow:0 0 20px var(--glow);overflow:hidden;flex-shrink:0}
+.tb-logo img{width:100%;height:100%;object-fit:cover}
+.tb-name{font-size:14px;font-weight:900;color:#fff;letter-spacing:.3px}
+.tb-version{display:block;font-size:9px;color:var(--cyan);text-transform:uppercase;letter-spacing:2px;font-weight:800;margin-top:1px}
+.tb-actions{display:flex;gap:6px;align-items:center}
+.tb-btn{width:42px;height:42px;border-radius:12px;background:rgba(0,40,80,.5);border:1.5px solid var(--border);
+color:var(--cyan);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;
+transition:all .2s;position:relative}
+.tb-btn:hover{background:rgba(0,229,255,.2);transform:scale(1.05);box-shadow:0 0 16px var(--glow)}
+.tb-btn:active{transform:scale(.94)}
+.tb-btn .badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;
+background:var(--danger);color:#fff;font-size:10px;font-weight:900;display:flex;align-items:center;
+justify-content:center;border:2px solid #000510}
+
+/* SIDEBAR */
+#sidebar{position:fixed;top:calc(70px + var(--safe-top));left:calc(8px + var(--safe-left));
+bottom:calc(70px + var(--safe-bottom));width:64px;z-index:400;display:flex;flex-direction:column;gap:6px;
+padding:8px 6px;border-radius:22px;background:linear-gradient(180deg,rgba(0,25,55,.92),rgba(0,12,35,.98));
+backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);
+border:1.5px solid var(--border);box-shadow:0 20px 50px rgba(0,0,0,.7),0 0 40px var(--glow);
+overflow-y:auto;overflow-x:hidden;scrollbar-width:none;
+transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
+#sidebar::-webkit-scrollbar{display:none}
+#sidebar.collapsed{transform:translateX(-82px)}
+.sb-logo{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--cyan),var(--purple));
+border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:22px;
+box-shadow:0 0 18px var(--glow);cursor:pointer;transition:all .2s;flex-shrink:0;overflow:hidden;position:relative}
+.sb-logo img{width:100%;height:100%;object-fit:cover;border-radius:12px;position:relative;z-index:1}
+.sb-logo:hover{transform:scale(1.08);box-shadow:0 0 28px var(--glow)}
+.sb-div{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:3px 2px;flex-shrink:0}
+.sb-btn{width:46px;height:46px;border-radius:14px;display:flex;flex-direction:column;align-items:center;
+justify-content:center;gap:1px;cursor:pointer;transition:all .2s cubic-bezier(.34,1.56,.64,1);
+background:rgba(0,40,80,.45);border:1.5px solid var(--border-soft);color:#e6f4ff;flex-shrink:0;position:relative}
+.sb-btn .i{font-size:20px;line-height:1}
+.sb-btn .l{font-size:7px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;opacity:.8;line-height:1}
+.sb-btn:hover{background:rgba(0,229,255,.2);border-color:var(--cyan);transform:translateX(4px) scale(1.06);box-shadow:0 0 20px var(--glow)}
+.sb-btn:active{transform:translateX(2px) scale(.96)}
+.sb-btn.active{background:linear-gradient(135deg,var(--cyan),var(--blue));border-color:#fff;color:#001018;box-shadow:0 0 24px var(--glow)}
+.sb-avatar{width:46px;height:46px;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.95) 0%,rgba(0,255,255,.7) 30%,rgba(77,168,255,.8) 60%,rgba(180,120,255,.9) 100%);
+border:2px solid rgba(255,255,255,.9);box-shadow:0 0 18px var(--glow),inset 0 0 18px rgba(255,255,255,.5);
+cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;
+transition:all .2s;position:relative;animation:sbP 3s ease-in-out infinite}
+@keyframes sbP{0%,100%{box-shadow:0 0 18px var(--glow),inset 0 0 18px rgba(255,255,255,.5)}50%{box-shadow:0 0 30px var(--glow),inset 0 0 24px rgba(255,255,255,.7)}}
+.sb-avatar:hover{transform:scale(1.1)}
+.sb-avatar:active{transform:scale(.94)}
+.sb-avatar.cyborg{background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.95) 0%,rgba(255,120,220,.7) 30%,rgba(200,80,255,.8) 60%,rgba(150,100,255,.9) 100%)}
+#sidebarToggle{position:fixed;top:calc(76px + var(--safe-top));left:calc(78px + var(--safe-left));
+width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--blue));
+border:2px solid #fff;color:#001018;font-size:11px;font-weight:900;cursor:pointer;display:flex;
+align-items:center;justify-content:center;z-index:401;box-shadow:0 0 14px var(--glow);transition:all .2s}
+#sidebarToggle:hover{transform:scale(1.15)}
+#sidebarToggle:active{transform:scale(.9)}
+
+/* BOTTOM-BAR */
+#bottomBar{position:fixed;bottom:0;left:0;right:0;height:calc(60px + var(--safe-bottom));
+padding:0 calc(12px + var(--safe-right)) var(--safe-bottom) calc(12px + var(--safe-left));
+display:flex;align-items:center;justify-content:center;gap:10px;z-index:500;
+background:linear-gradient(0deg,rgba(0,15,40,.95),rgba(0,10,30,.7));
+backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);
+border-top:1px solid var(--border-soft)}
+.bb-btn{min-width:52px;height:44px;padding:0 14px;border-radius:14px;background:rgba(0,40,80,.6);
+border:1.5px solid var(--border);color:#e6f4ff;font-size:12px;font-weight:800;display:flex;
+align-items:center;justify-content:center;gap:5px;cursor:pointer;
+transition:all .2s cubic-bezier(.34,1.56,.64,1);font-family:inherit}
+.bb-btn .i{font-size:16px}
+.bb-btn:hover{background:rgba(0,229,255,.2);border-color:var(--cyan);transform:translateY(-2px);box-shadow:0 8px 20px var(--glow)}
+.bb-btn:active{transform:translateY(0) scale(.95)}
+.bb-btn.main{background:linear-gradient(135deg,var(--cyan),var(--blue));border-color:#fff;color:#001018;box-shadow:0 0 24px var(--glow)}
+.bb-btn.cyborg{background:linear-gradient(135deg,var(--pink),var(--purple));border-color:#fff;color:#fff;box-shadow:0 0 24px rgba(255,120,200,.6)}
+
+/* FENSTER */
+.os-window{position:fixed;display:none;flex-direction:column;min-width:300px;min-height:200px;
+max-width:96vw;max-height:90vh;border-radius:18px;border:1.5px solid var(--border);
+background:linear-gradient(180deg,rgba(0,25,55,.96),rgba(0,12,35,.99));
+backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);
+box-shadow:0 30px 80px rgba(0,0,0,.75),0 0 50px var(--glow),inset 0 1px 0 rgba(255,255,255,.1);
+z-index:200;overflow:hidden;transition:box-shadow .2s}
+.os-window.show{display:flex;animation:wOpen .3s cubic-bezier(.34,1.56,.64,1)}
+.os-window.active{z-index:250;box-shadow:0 35px 100px rgba(0,0,0,.85),0 0 70px var(--glow),inset 0 1px 0 rgba(255,255,255,.15)}
+.os-window.dragging,.os-window.resizing{transition:none!important}
+@keyframes wOpen{from{opacity:0;transform:scale(.9) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.win-header{display:flex;align-items:center;gap:10px;padding:10px 12px;min-height:54px;
+background:linear-gradient(180deg,rgba(0,40,80,.6),rgba(0,20,50,.8));
+border-bottom:1px solid var(--border-soft);cursor:grab;user-select:none;-webkit-user-select:none;
+touch-action:none;flex-shrink:0;position:relative;z-index:10}
+.win-header:active{cursor:grabbing}
+.win-icon{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,rgba(0,229,255,.2),rgba(180,120,255,.2));
+border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.win-title{flex:1;min-width:0;font-size:13px;font-weight:800;color:#fff;overflow:hidden;
+text-overflow:ellipsis;white-space:nowrap;letter-spacing:.3px}
+.win-buttons{display:flex;gap:5px;flex-shrink:0;align-items:center}
+.win-btn{width:36px;height:36px;border-radius:10px;background:rgba(0,40,80,.6);border:1.5px solid var(--border);
+color:var(--cyan);font-size:15px;font-weight:900;cursor:pointer;display:flex;align-items:center;
+justify-content:center;transition:all .15s;position:relative;z-index:999999;pointer-events:auto;
+touch-action:manipulation;-webkit-tap-highlight-color:transparent;flex-shrink:0;font-family:inherit}
+.win-btn:hover{background:rgba(0,229,255,.25);transform:scale(1.08);box-shadow:0 0 14px var(--glow)}
+.win-btn:active{transform:scale(.92)}
+.win-btn.min{color:var(--warning);border-color:rgba(255,200,0,.4)}
+.win-btn.flt{color:var(--purple);border-color:rgba(180,120,255,.4)}
+.win-btn.full{color:var(--success);border-color:rgba(0,255,136,.4)}
+.win-btn.close{color:var(--danger);border-color:rgba(255,68,102,.4)}
+.win-btn.close:hover{background:rgba(255,68,102,.25);color:#fff;box-shadow:0 0 14px rgba(255,68,102,.6)}
+.win-btn.flt.active{background:linear-gradient(135deg,var(--purple),var(--pink));color:#fff}
+.win-body{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px;min-height:0}
+.win-resize{position:absolute;z-index:50;touch-action:none;background:transparent}
+.win-resize.e{right:0;top:60px;bottom:24px;width:12px;cursor:e-resize}
+.win-resize.s{left:40px;right:40px;bottom:0;height:12px;cursor:s-resize}
+.win-resize.se{right:0;bottom:0;width:28px;height:28px;cursor:nwse-resize}
+.win-resize.se::before{content:'';position:absolute;right:5px;bottom:5px;width:12px;height:12px;
+border-right:2.5px solid var(--cyan);border-bottom:2.5px solid var(--cyan);border-radius:0 0 6px 0}
+.win-resize.w{left:0;top:60px;bottom:24px;width:12px;cursor:w-resize}
+.win-resize.n{top:54px;left:20px;right:20px;height:8px;cursor:n-resize}
+.os-window.fullscreen{top:0!important;left:0!important;right:0!important;bottom:0!important;
+width:100vw!important;height:100vh!important;max-width:100vw!important;max-height:100vh!important;
+border-radius:0!important;border:none!important}
+.os-window.floating{border-radius:14px}
+.os-window.minimized{display:none}
+
+/* PANELS (schwebend, verschiebbar) */
+.holo-panel{position:fixed;z-index:900;background:linear-gradient(180deg,rgba(0,25,55,.96),rgba(0,12,35,.99));
+backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);
+border:1.5px solid var(--border);border-radius:18px;
+box-shadow:0 25px 70px rgba(0,0,0,.75),0 0 50px var(--glow),inset 0 1px 0 rgba(255,255,255,.1);
+display:none;flex-direction:column;min-width:260px;max-width:380px;max-height:70vh;overflow:hidden}
+.holo-panel.show{display:flex;animation:pIn .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pIn{from{opacity:0;transform:scale(.9) translateY(-10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.holo-panel-head{display:flex;align-items:center;gap:10px;padding:10px 12px;
+border-bottom:1px solid var(--border-soft);
+background:linear-gradient(180deg,rgba(0,40,80,.5),rgba(0,20,50,.7));
+cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;flex-shrink:0}
+.holo-panel-head:active{cursor:grabbing}
+.hph-grip{font-size:14px;color:rgba(0,229,255,.7);font-weight:900;letter-spacing:1px;flex-shrink:0}
+.hph-logo{width:22px;height:22px;border-radius:6px;object-fit:cover;border:1.5px solid var(--border);flex-shrink:0}
+.hph-title{flex:1;font-size:13px;font-weight:800;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hph-close{width:30px;height:30px;border-radius:9px;background:rgba(255,60,60,.15);
+border:1px solid rgba(255,80,80,.4);color:#ff9090;font-size:14px;font-weight:900;cursor:pointer;
+display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;z-index:999999;
+pointer-events:auto;touch-action:manipulation;font-family:inherit}
+.hph-close:hover{background:rgba(255,60,60,.3);transform:scale(1.1)}
+.holo-panel-body{flex:1;overflow-y:auto;padding:10px}
+.holo-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;
+background:rgba(0,40,80,.35);border:1.5px solid var(--border-soft);margin-bottom:6px;
+cursor:pointer;transition:all .2s}
+.holo-item:hover{background:rgba(0,229,255,.15);border-color:var(--cyan);transform:translateX(4px)}
+.hi-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,rgba(0,229,255,.25),rgba(180,120,255,.25));
+border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+.hi-main{flex:1;min-width:0}
+.hi-title{font-size:13px;font-weight:800;color:#fff;margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hi-sub{font-size:10px;color:#88ccff;opacity:.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* MODAL */
+.os-modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:16px;
+background:rgba(0,0,0,.85);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:1100}
+.os-modal.show{display:flex;animation:mFade .25s}
+@keyframes mFade{from{opacity:0}to{opacity:1}}
+.os-modal-box{background:linear-gradient(180deg,rgba(0,25,55,.98),rgba(0,12,35,.99));
+border:2px solid var(--border);border-radius:20px;padding:20px;max-width:520px;width:100%;
+max-height:90vh;overflow-y:auto;box-shadow:0 25px 80px rgba(0,0,0,.8),0 0 60px var(--glow);
+animation:mPop .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes mPop{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+.os-modal-box h2{font-size:18px;margin-bottom:14px;color:#fff;font-weight:800}
+
+/* FORM */
+.os-input,.os-select,.os-textarea{width:100%;padding:12px 14px;border-radius:12px;
+background:rgba(0,0,0,.5);border:1.5px solid var(--border);color:#fff;font-size:14px;
+font-family:inherit;outline:none;transition:all .15s;box-sizing:border-box}
+.os-input:focus,.os-select:focus,.os-textarea:focus{border-color:var(--cyan);box-shadow:0 0 20px var(--glow)}
+.os-textarea{min-height:100px;resize:vertical;line-height:1.5}
+.os-select{cursor:pointer;-webkit-appearance:none;padding-right:36px;
+background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300e5ff'><path d='M7 10l5 5 5-5z'/></svg>");
+background-repeat:no-repeat;background-position:right 10px center;background-size:20px}
+.os-select option{background:#001028;color:#fff}
+.os-label{display:block;font-size:11px;color:var(--cyan);font-weight:800;text-transform:uppercase;
+letter-spacing:1px;margin-bottom:6px}
+.os-row{margin-bottom:12px}
+.os-btn{padding:12px 18px;border-radius:12px;background:rgba(0,40,80,.6);border:1.5px solid var(--border);
+color:#e6f4ff;font-size:14px;font-weight:800;cursor:pointer;transition:all .15s;
+display:inline-flex;align-items:center;justify-content:center;gap:6px;
+-webkit-tap-highlight-color:transparent;touch-action:manipulation;font-family:inherit}
+.os-btn:hover{background:rgba(0,229,255,.2);transform:translateY(-2px);box-shadow:0 8px 20px var(--glow)}
+.os-btn:active{transform:translateY(0) scale(.95)}
+.os-btn.primary{background:linear-gradient(135deg,var(--cyan),var(--blue));border-color:#fff;color:#001018}
+.os-btn.danger{background:rgba(255,68,102,.15);border-color:rgba(255,68,102,.5);color:var(--danger)}
+.os-btn.danger:hover{background:rgba(255,68,102,.3);color:#fff}
+.os-btn.full{width:100%}
+
+/* TOAST */
+#toast{position:fixed;bottom:calc(80px + var(--safe-bottom));left:50%;
+transform:translateX(-50%) translateY(20px);padding:11px 20px;border-radius:14px;
+background:linear-gradient(135deg,var(--cyan),var(--blue));color:#001018;font-size:13px;font-weight:800;
+opacity:0;pointer-events:none;transition:all .3s;z-index:1000;box-shadow:0 10px 40px var(--glow);
+white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.error{background:linear-gradient(135deg,var(--danger),var(--pink));color:#fff}
+#toast.success{background:linear-gradient(135deg,var(--success),var(--cyan))}
+
+/* Hilfsklassen */
+.empty{text-align:center;padding:40px 20px;color:#5a8ab0}
+.empty .ei{font-size:56px;opacity:.5;margin-bottom:12px}
+.empty .et{font-size:14px;color:#88ccff}
+.empty .es{font-size:12px;margin-top:4px;opacity:.7}
+.card{padding:14px;border-radius:14px;background:linear-gradient(160deg,rgba(0,60,120,.4),rgba(0,15,40,.85));
+border:1.5px solid var(--border-soft);margin-bottom:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.big{font-size:32px;font-weight:900;color:var(--cyan)}
+.lbl{font-size:10px;color:#88ccff;text-transform:uppercase;letter-spacing:1.2px;font-weight:800}
+
+@media(max-width:500px){
+  #sidebar{top:calc(66px + var(--safe-top));width:58px;padding:6px 5px;border-radius:18px;
+    bottom:calc(66px + var(--safe-bottom))}
+  .sb-logo,.sb-btn,.sb-avatar{width:42px;height:42px;border-radius:12px}
+  .sb-btn .i{font-size:18px}.sb-btn .l{font-size:6px}
+  #sidebarToggle{top:calc(70px + var(--safe-top));left:calc(70px + var(--safe-left))}
+  .bb-btn{height:42px;padding:0 10px;font-size:11px}
+  .bb-btn .i{font-size:15px}
+  .win-btn{width:34px;height:34px;font-size:14px}
+  .tb-btn{width:38px;height:38px;font-size:16px}
+  #sun{width:100px;height:100px;margin:-50px 0 0 -50px}
+}
+</style>
+</head>
+<body>
+
+<!-- KOSMOS -->
+<div id="kosmos">
+  <div id="stars"></div>
+  <div id="sun"></div>
+</div>
+
+<!-- TOP-BAR -->
+<div id="topBar">
+  <div class="tb-brand" onclick="HalDoUI.toggleSidebar()">
+    <div class="tb-logo"><img src="logo.png" alt="" onerror="this.parentElement.textContent='🦚'"></div>
+    <div>
+      <div class="tb-name">HalDo AI OS</div>
+      <span class="tb-version">v123</span>
+    </div>
+  </div>
+  <div class="tb-actions">
+    <button class="tb-btn" onclick="HalDoUI.openPanel('notif')" title="Notif">🔔</button>
+    <button class="tb-btn" onclick="HalDoUI.openPanel('settings')" title="Settings">⚙️</button>
+    <button class="tb-btn" onclick="HalDoUI.openPanel('about')" title="Info">ℹ️</button>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sb-logo" onclick="HalDoUI.openPanel('about')"><img src="logo.png" alt="" onerror="this.parentElement.textContent='🦚'"></div>
+  <div class="sb-div"></div>
+  <div class="sb-btn" onclick="HalDoUI.openPanel('home')"><span class="i">🏠</span><span class="l">Home</span></div>
+  <div class="sb-btn" onclick="HalDoUI.openPanel('apps')"><span class="i">📱</span><span class="l">Apps</span></div>
+  <div class="sb-btn" onclick="HalDoUI.openPanel('system')"><span class="i">⚙️</span><span class="l">System</span></div>
+  <div class="sb-div"></div>
+  <div class="sb-btn" onclick="HalDoUI.openPanel('chat')"><span class="i">💬</span><span class="l">Chat</span></div>
+  <div class="sb-btn" onclick="HalDoUI.openPanel('files')"><span class="i">📁</span><span class="l">Files</span></div>
+  <div class="sb-btn" onclick="HalDoUI.openPanel('settings')"><span class="i">🔧</span><span class="l">Setup</span></div>
+  <div class="sb-div"></div>
+  <div class="sb-avatar" onclick="HalDoUI.launchAvatar('ai')">🤖<span class="l" style="position:absolute;bottom:-11px;font-size:6px;font-weight:900;color:var(--cyan);text-transform:uppercase;letter-spacing:.5px">AI</span></div>
+  <div class="sb-avatar cyborg" onclick="HalDoUI.launchAvatar('cyborg')">⚡<span class="l" style="position:absolute;bottom:-11px;font-size:6px;font-weight:900;color:var(--pink);text-transform:uppercase;letter-spacing:.5px">CYBRG</span></div>
+</div>
+<div id="sidebarToggle" onclick="HalDoUI.toggleSidebar()">◀</div>
+
+<!-- BOTTOM-BAR -->
+<div id="bottomBar">
+  <button class="bb-btn" onclick="HalDoUI.launch('chat-window')"><span class="i">💬</span><span>Chat</span></button>
+  <button class="bb-btn main" onclick="HalDoUI.launchAvatar('ai')"><span class="i">🤖</span><span>AI</span></button>
+  <button class="bb-btn cyborg" onclick="HalDoUI.launchAvatar('cyborg')"><span class="i">⚡</span><span>CYBORG</span></button>
+</div>
+
+<!-- PANELS -->
+<div class="holo-panel" id="hp-home" style="top:100px;left:90px">
+  <div class="holo-panel-head" data-drag="home"><span class="hph-grip">⠿</span><span class="hph-title">🏠 Home</span><button class="hph-close" onclick="HalDoUI.closePanel('home')">✕</button></div>
+  <div class="holo-panel-body" id="hp-home-body"></div>
+</div>
+<div class="holo-panel" id="hp-apps" style="top:100px;left:90px">
+  <div class="holo-panel-head" data-drag="apps"><span class="hph-grip">⠿</span><span class="hph-title">📱 Apps</span><button class="hph-close" onclick="HalDoUI.closePanel('apps')">✕</button></div>
+  <div class="holo-panel-body" id="hp-apps-body"></div>
+</div>
+<div class="holo-panel" id="hp-system" style="top:100px;left:90px">
+  <div class="holo-panel-head" data-drag="system"><span class="hph-grip">⠿</span><span class="hph-title">⚙️ System</span><button class="hph-close" onclick="HalDoUI.closePanel('system')">✕</button></div>
+  <div class="holo-panel-body" id="hp-system-body"></div>
+</div>
+<div class="holo-panel" id="hp-chat" style="top:100px;left:90px">
+  <div class="holo-panel-head" data-drag="chat"><span class="hph-grip">⠿</span><span class="hph-title">💬 Chat</span><button class="hph-close" onclick="HalDoUI.closePanel('chat')">✕</button></div>
+  <div class="holo-panel-body" id="hp-chat-body"></div>
+</div>
+<div class="holo-panel" id="hp-files" style="top:100px;left:90px">
+  <div class="holo-panel-head" data-drag="files"><span class="hph-grip">⠿</span><span class="hph-title">📁 Files</span><button class="hph-close" onclick="HalDoUI.closePanel('files')">✕</button></div>
+  <div class="holo-panel-body" id="hp-files-body"></div>
+</div>
+<div class="holo-panel" id="hp-settings" style="top:100px;left:90px">
+  <div class="holo-panel-head" data-drag="settings"><span class="hph-grip">⠿</span><span class="hph-title">🔧 Setup</span><button class="hph-close" onclick="HalDoUI.closePanel('settings')">✕</button></div>
+  <div class="holo-panel-body" id="hp-settings-body"></div>
+</div>
+<div class="holo-panel" id="hp-about" style="top:100px;left:90px">
+  <div class="holo-panel-head" data-drag="about"><span class="hph-grip">⠿</span><span class="hph-title">ℹ️ Info</span><button class="hph-close" onclick="HalDoUI.closePanel('about')">✕</button></div>
+  <div class="holo-panel-body" id="hp-about-body"></div>
+</div>
+<div class="holo-panel" id="hp-notif" style="top:100px;left:90px">
+  <div class="holo-panel-head" data-drag="notif"><span class="hph-grip">⠿</span><span class="hph-title">🔔 Notifications</span><button class="hph-close" onclick="HalDoUI.closePanel('notif')">✕</button></div>
+  <div class="holo-panel-body" id="hp-notif-body"></div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+// ═══════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════
+function showToast(msg,type){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.className='';
+  if(type)el.classList.add(type);
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+// ═══════════════════════════════════════════════════════════
+// STERNE + PLANETEN
+// ═══════════════════════════════════════════════════════════
+function makeStars(){
+  const s=document.getElementById('stars');
+  s.innerHTML='';
+  for(let i=0;i<150;i++){
+    const d=document.createElement('div');
+    d.className='star';
+    d.style.left=Math.random()*100+'%';
+    d.style.top=Math.random()*100+'%';
+    const sz=Math.random()*2+.5;
+    d.style.width=sz+'px';d.style.height=sz+'px';
+    d.style.animationDelay=(Math.random()*3)+'s';
+    d.style.opacity=Math.random()*.7+.3;
+    s.appendChild(d);
+  }
+}
+function makePlanets(){
+  const k=document.getElementById('kosmos');
+  k.querySelectorAll('.orbit').forEach(o=>o.remove());
+  const ps=[
+    ['#a0a0a0',6,90,8],['#ffcc88',10,120,12],['#4da8ff',10,150,16],['#ff6644',8,180,20],
+    ['#dd9966',18,220,26],['#ddbb77',16,260,32],['#88dddd',12,300,40],['#6688dd',12,340,48],
+    ['#ccaa99',5,375,58],['#998877',4,400,68],['#cccccc',6,430,80],['#aabbcc',5,455,95]
+  ];
+  ps.forEach((p,i)=>{
+    const o=document.createElement('div');
+    o.className='orbit';
+    o.style.width=(p[2]*2)+'px';o.style.height=(p[2]*2)+'px';
+    o.style.marginLeft=-p[2]+'px';o.style.marginTop=-p[2]+'px';
+    o.style.animationDuration=p[3]+'s';
+    o.style.animationDelay=(-i*2)+'s';
+    const pl=document.createElement('div');
+    pl.className='planet';
+    pl.style.width=p[1]+'px';pl.style.height=p[1]+'px';
+    pl.style.marginTop=-(p[1]/2)+'px';pl.style.marginLeft=-(p[1]/2)+'px';
+    pl.style.background=p[0];pl.style.color=p[0];
+    o.appendChild(pl);
+    k.appendChild(o);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// SIDEBAR
+// ═══════════════════════════════════════════════════════════
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar');
+  const btn=document.getElementById('sidebarToggle');
+  sb.classList.toggle('collapsed');
+  btn.textContent=sb.classList.contains('collapsed')?'▶':'◀';
+  if(navigator.vibrate)navigator.vibrate(8);
+}
+
+// ═══════════════════════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════════════════════
+function setTheme(t){
+  const r=document.documentElement;
+  if(t==='cyborg'){
+    r.style.setProperty('--sys','var(--pink)');
+    r.style.setProperty('--sys2','var(--purple)');
+    r.style.setProperty('--glow','rgba(255,120,200,.5)');
+    r.style.setProperty('--border','rgba(255,120,200,.35)');
+    r.style.setProperty('--border-soft','rgba(255,120,200,.15)');
+  }else{
+    r.style.setProperty('--sys','var(--cyan)');
+    r.style.setProperty('--sys2','var(--blue)');
+    r.style.setProperty('--glow','rgba(0,229,255,.5)');
+    r.style.setProperty('--border','rgba(0,229,255,.35)');
+    r.style.setProperty('--border-soft','rgba(0,229,255,.15)');
+  }
+  try{localStorage.setItem('haldo_theme',t)}catch(e){}
+}
+
+// ═══════════════════════════════════════════════════════════
+// WINDOW MANAGER
+// ═══════════════════════════════════════════════════════════
+let zTop=200;
+const openWins=new Set();
+
+function prepareWindow(win){
+  if(win.dataset.ready)return;
+  win.dataset.ready='1';
+  win.classList.add('os-window');
+
+  // Header
+  let header=win.querySelector('.win-header');
+  if(!header){
+    const oldH=win.querySelector('.header');
+    if(oldH){
+      header=oldH;
+      header.classList.add('win-header');
+      header.classList.remove('header');
+    }
+  }
+  if(!header){
+    header=document.createElement('div');
+    header.className='win-header';
+    const title=win.dataset.title||win.id.replace(/-window$/,'').replace(/-/g,' ');
+    const icon=win.dataset.icon||'📱';
+    header.innerHTML='<div class="win-icon">'+icon+'</div><div class="win-title">'+
+      (title.charAt(0).toUpperCase()+title.slice(1))+'</div>'+
+      '<div class="win-buttons">'+
+      '<button class="win-btn min" title="Min">─</button>'+
+      '<button class="win-btn flt" title="Float">⇲</button>'+
+      '<button class="win-btn full" title="Full">⛶</button>'+
+      '<button class="win-btn close" title="Close">✕</button></div>';
+    win.insertBefore(header,win.firstChild);
+  }
+
+  // Buttons sicherstellen
+  let btnC=header.querySelector('.win-buttons');
+  if(!btnC){
+    btnC=document.createElement('div');
+    btnC.className='win-buttons';
+    btnC.innerHTML='<button class="win-btn min">─</button><button class="win-btn flt">⇲</button><button class="win-btn full">⛶</button><button class="win-btn close">✕</button>';
+    header.appendChild(btnC);
+  }
+
+  // Body
+  let body=win.querySelector('.win-body');
+  if(!body){
+    const kids=Array.from(win.children).filter(c=>c!==header);
+    body=document.createElement('div');
+    body.className='win-body';
+    kids.forEach(c=>body.appendChild(c));
+    win.appendChild(body);
+  }
+
+  // Resize handles
+  ['e','s','se','w','n'].forEach(d=>{
+    const h=document.createElement('div');
+    h.className='win-resize '+d;
+    h.dataset.dir=d;
+    win.appendChild(h);
+    enableResize(win,h);
+  });
+
+  // Buttons
+  btnC.querySelector('.close').addEventListener('click',e=>{e.stopPropagation();closeWin(win)});
+  btnC.querySelector('.min').addEventListener('click',e=>{
+    e.stopPropagation();win.classList.add('minimized');
+    setTimeout(()=>{win.classList.remove('show');win.style.display='none';openWins.delete(win.id)},200);
+  });
+  btnC.querySelector('.full').addEventListener('click',e=>{e.stopPropagation();win.classList.toggle('fullscreen')});
+  btnC.querySelector('.flt').addEventListener('click',e=>{
+    e.stopPropagation();
+    const b=e.currentTarget;
+    win.classList.toggle('floating');
+    b.classList.toggle('active');
+    if(win.classList.contains('floating')){
+      const vw=innerWidth,vh=innerHeight;
+      const w=Math.min(420,vw-40),h=Math.min(620,vh-140);
+      win.style.left=Math.round((vw-w)/2)+'px';
+      win.style.top='80px';
+      win.style.width=w+'px';
+      win.style.height=h+'px';
+    }
+  });
+
+  // Drag
+  enableDrag(win,header);
+
+  // Bring to front
+  win.addEventListener('mousedown',()=>bringFront(win));
+  win.addEventListener('touchstart',()=>bringFront(win),{passive:true});
+}
+
+function enableDrag(win,header){
+  let d=null;
+  const start=e=>{
+    if(e.target.closest('button,.win-btn,input,textarea,select'))return;
+    const t=e.touches?e.touches[0]:e;
+    const r=win.getBoundingClientRect();
+    d={x:t.clientX,y:t.clientY,l:r.left,t:r.top,moved:false};
+    win.classList.add('dragging');
+    bringFront(win);
+    if(e.cancelable)e.preventDefault();
+  };
+  const move=e=>{
+    if(!d)return;
+    const t=e.touches?e.touches[0]:e;
+    const dx=t.clientX-d.x,dy=t.clientY-d.y;
+    if(!d.moved&&(Math.abs(dx)>3||Math.abs(dy)>3))d.moved=true;
+    if(!d.moved)return;
+    const vw=innerWidth,vh=innerHeight,w=win.offsetWidth,h=win.offsetHeight;
+    win.style.left=Math.max(2,Math.min(vw-w-2,d.l+dx))+'px';
+    win.style.top=Math.max(2,Math.min(vh-h-2,d.t+dy))+'px';
+    if(e.cancelable)e.preventDefault();
+  };
+  const end=()=>{if(!d)return;win.classList.remove('dragging');d=null};
+  header.addEventListener('touchstart',start,{passive:false});
+  header.addEventListener('touchmove',move,{passive:false});
+  header.addEventListener('touchend',end);
+  header.addEventListener('touchcancel',end);
+  header.addEventListener('mousedown',e=>{
+    start(e);
+    const mm=ev=>move(ev),mu=()=>{end();removeEventListener('mousemove',mm);removeEventListener('mouseup',mu)};
+    addEventListener('mousemove',mm);addEventListener('mouseup',mu);
+  });
+}
+
+function enableResize(win,handle){
+  let s=null;
+  const start=e=>{
+    const t=e.touches?e.touches[0]:e;
+    const r=win.getBoundingClientRect();
+    s={x:t.clientX,y:t.clientY,w:r.width,h:r.height,l:r.left,t:r.top,dir:handle.dataset.dir};
+    win.classList.add('resizing');
+    if(e.cancelable)e.preventDefault();e.stopPropagation();
+  };
+  const move=e=>{
+    if(!s)return;
+    const t=e.touches?e.touches[0]:e;
+    const dx=t.clientX-s.x,dy=t.clientY-s.y,dir=s.dir;
+    let nW=s.w,nH=s.h,nL=s.l,nT=s.t;
+    if(dir.includes('e'))nW=Math.max(280,s.w+dx);
+    if(dir.includes('s'))nH=Math.max(200,s.h+dy);
+    if(dir.includes('w')){nW=Math.max(280,s.w-dx);nL=s.l+(s.w-nW)}
+    if(dir.includes('n')){nH=Math.max(200,s.h-dy);nT=s.t+(s.h-nH)}
+    win.style.width=nW+'px';win.style.height=nH+'px';
+    win.style.left=nL+'px';win.style.top=nT+'px';
+    if(e.cancelable)e.preventDefault();
+  };
+  const end=()=>{if(!s)return;win.classList.remove('resizing');s=null};
+  handle.addEventListener('touchstart',start,{passive:false});
+  handle.addEventListener('touchmove',move,{passive:false});
+  handle.addEventListener('touchend',end);
+  handle.addEventListener('touchcancel',end);
+  handle.addEventListener('mousedown',e=>{
+    start(e);
+    const mm=ev=>move(ev),mu=()=>{end();removeEventListener('mousemove',mm);removeEventListener('mouseup',mu)};
+    addEventListener('mousemove',mm);addEventListener('mouseup',mu);
+  });
+}
+
+function positionWin(win){
+  const vw=innerWidth,vh=innerHeight;
+  const isM=vw<700;
+  let w,h;
+  if(isM){w=Math.round(vw*.94);h=Math.round(vh*.62)}
+  else{w=Math.min(560,vw-200);h=Math.min(680,vh-200)}
+  const off=openWins.size;
+  const left=Math.max(20,Math.round((vw-w)/2)+(off*25)-50);
+  const top=Math.max(80,Math.round((vh-h)/2)+(off*15)-30);
+  win.style.width=w+'px';win.style.height=h+'px';
+  win.style.left=Math.min(left,vw-w-20)+'px';
+  win.style.top=top+'px';
+}
+
+function bringFront(win){
+  zTop++;
+  win.style.zIndex=zTop;
+  document.querySelectorAll('.os-window.active').forEach(w=>{if(w!==win)w.classList.remove('active')});
+  win.classList.add('active');
+}
+
+function openWin(id){
+  const win=document.getElementById(id);
+  if(!win){showToast('⚠️ "'+id+'" nicht gefunden','error');return null}
+  prepareWindow(win);
+  if(!win.dataset.pos){
+    positionWin(win);
+    win.dataset.pos='1';
+  }
+  win.classList.add('show');
+  win.style.display='flex';
+  bringFront(win);
+  openWins.add(id);
+  if(navigator.vibrate)navigator.vibrate(10);
+  return win;
+}
+
+function closeWin(id){
+  const win=typeof id==='string'?document.getElementById(id):id;
+  if(!win)return;
+  win.classList.remove('show','active','floating','fullscreen');
+  win.style.display='none';
+  openWins.delete(win.id);
+}
+
+// ═══════════════════════════════════════════════════════════
+// APP REGISTRY
+// ═══════════════════════════════════════════════════════════
+const APPS={
+  home:[
+    ['dashboard-window','📊','Dashboard','Übersicht'],
+    ['journal-window','📔','Journal','Tagebuch'],
+    ['calendar-window','📅','Kalender','Termine'],
+    ['weather-window','🌤️','Wetter','Live-Vorhersage'],
+    ['goals-window','🎯','Goals','Ziele'],
+    ['tasks-window','✅','Tasks','Aufgaben']
+  ],
+  apps:[
+    ['memory-window','💾','AI Memory','Gedächtnis'],
+    ['habits-window','🔁','Habits','Gewohnheiten'],
+    ['reminders-window','🔔','Reminders','Erinnerungen'],
+    ['notes-window','📝','Notes','Notizen'],
+    ['contacts-window','👥','Kontakte','Adressbuch'],
+    ['finance-window','💰','Finance','Finanzen'],
+    ['music-window','🎵','Music','Player'],
+    ['calc-window','🧮','Calculator','Rechner'],
+    ['recipes-window','🍳','Recipes','Rezepte'],
+    ['shopping-window','🛒','Shopping','Einkauf'],
+    ['timer-window','⏱️','Timer','Stoppuhr'],
+    ['translator-window','🌐','Translator','Übersetzer'],
+    ['workout-window','💪','Workout','Training'],
+    ['qrcode-window','📷','QR Code','Generator'],
+    ['password-window','🔐','Password','Generator'],
+    ['clipboard-window','📋','Clipboard','Zwischenspeicher'],
+    ['mood-window','😊','Mood','Stimmung'],
+    ['sleep-window','😴','Sleep','Schlaf'],
+    ['water-window','💧','Water','Wasser'],
+    ['pomodoro-window','🍅','Pomodoro','Fokus'],
+    ['breathing-window','🧘','Breathing','Atmung'],
+    ['periodic-window','⚛️','Periodic','Elemente'],
+    ['geo-window','🌍','Geo Quiz','Länder'],
+    ['flashcards-window','🎴','Flashcards','Karten']
+  ],
+  system:[
+    ['settings-window','⚙️','Einstellungen','Settings'],
+    ['files-window','📁','Dateien','File Manager'],
+    ['terminal-window','⌨️','Terminal','Konsole'],
+    ['monitor-window','📊','Monitor','System'],
+    ['device-window','📱','Device Info','Gerät'],
+    ['network-window','📶','Network','Netzwerk'],
+    ['clock-window','🌍','World Clock','Zeiten'],
+    ['stats-window','📊','Statistics','Statistik'],
+    ['camera-window','📷','Camera','Kamera'],
+    ['voice-window','🎙️','Voice Memos','Aufnahmen']
+  ],
+  chat:[
+    ['chat-window','💬','HalDo AI Chat','Sprechen'],
+    ['translator-window','🌐','Übersetzer','Sprachen']
+  ],
+  files:[
+    ['files-window','🗂️','File Manager','Dateien'],
+    ['camera-window','📷','Kamera','Foto'],
+    ['voice-window','🎙️','Voice','Aufnahmen']
+  ],
+  settings:[
+    ['settings-window','⚙️','Einstellungen','System'],
+    ['password-window','🔐','Passwort','Sicherheit']
+  ],
+  home_extra:[]
+};
+
+function renderPanelItems(containerId,items){
+  const el=document.getElementById(containerId);
+  if(!el)return;
+  el.innerHTML=items.map(i=>
+    '<div class="holo-item" onclick="HalDoUI.launch(\''+i[0]+'\')">'+
+    '<div class="hi-icon">'+i[1]+'</div>'+
+    '<div class="hi-main">'+
+    '<div class="hi-title">'+i[2]+'</div>'+
+    '<div class="hi-sub">'+i[3]+'</div>'+
+    '</div></div>'
+  ).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// PANELS
+// ═══════════════════════════════════════════════════════════
+const panelPos={};
+
+function openPanel(name){
+  const p=document.getElementById('hp-'+name);
+  if(!p)return;
+  if(p.classList.contains('show')){closePanel(name);return}
+  // Position aus Storage oder Default
+  const saved=panelPos[name];
+  if(saved){
+    p.style.left=saved.l+'px';
+    p.style.top=saved.t+'px';
+  }else{
+    // Kaskadierend
+    const open=document.querySelectorAll('.holo-panel.show').length;
+    const vw=innerWidth;
+    const sidebar=document.getElementById('sidebar');
+    const base=sidebar?(sidebar.offsetWidth+20):80;
+    p.style.left=Math.min(base+(open*20),vw-300)+'px';
+    p.style.top=(100+open*25)+'px';
+  }
+  p.classList.add('show');
+  bindPanelDrag(p);
+  if(navigator.vibrate)navigator.vibrate(8);
+}
+
+function closePanel(name){
+  const p=document.getElementById('hp-'+name);
+  if(p)p.classList.remove('show');
+}
+
+function closeAllPanels(){
+  document.querySelectorAll('.holo-panel.show').forEach(p=>p.classList.remove('show'));
+}
+
+function bindPanelDrag(panel){
+  const head=panel.querySelector('.holo-panel-head');
+  if(!head||head.dataset.drag)return;
+  head.dataset.drag='1';
+  let d=null;
+  const start=e=>{
+    if(e.target.closest('button,.hph-close'))return;
+    const t=e.touches?e.touches[0]:e;
+    const r=panel.getBoundingClientRect();
+    d={x:t.clientX,y:t.clientY,l:r.left,t:r.top,moved:false};
+    panel.style.zIndex='1000';
+    if(e.cancelable)e.preventDefault();
+  };
+  const move=e=>{
+    if(!d)return;
+    const t=e.touches?e.touches[0]:e;
+    const dx=t.clientX-d.x,dy=t.clientY-d.y;
+    if(!d.moved&&(Math.abs(dx)>3||Math.abs(dy)>3))d.moved=true;
+    if(!d.moved)return;
+    const vw=innerWidth,vh=innerHeight,w=panel.offsetWidth,h=panel.offsetHeight;
+    const nl=Math.max(4,Math.min(vw-w-4,d.l+dx));
+    const nt=Math.max(4,Math.min(vh-h-4,d.t+dy));
+    panel.style.left=nl+'px';
+    panel.style.top=nt+'px';
+    if(e.cancelable)e.preventDefault();
+  };
+  const end=()=>{
+    if(!d)return;
+    panel.style.zIndex='900';
+    if(d.moved){
+      const name=panel.id.replace('hp-','');
+      panelPos[name]={l:panel.offsetLeft,t:panel.offsetTop};
+      try{localStorage.setItem('haldo_panels',JSON.stringify(panelPos))}catch(e){}
+      if(navigator.vibrate)navigator.vibrate(6);
+    }
+    d=null;
+  };
+  head.addEventListener('touchstart',start,{passive:false});
+  head.addEventListener('touchmove',move,{passive:false});
+  head.addEventListener('touchend',end);
+  head.addEventListener('touchcancel',end);
+  head.addEventListener('mousedown',e=>{
+    start(e);
+    const mm=ev=>move(ev),mu=()=>{end();removeEventListener('mousemove',mm);removeEventListener('mouseup',mu)};
+    addEventListener('mousemove',mm);addEventListener('mouseup',mu);
+  });
+}
+
+function launch(id){
+  if(typeof openWin==='function'){
+    openWin(id);
+    setTimeout(closeAllPanels,150);
+  }
+  if(navigator.vibrate)navigator.vibrate(10);
+}
+
+function launchAvatar(mode){
+  setTheme(mode==='cyborg'?'cyborg':'ai');
+  showToast((mode==='cyborg'?'⚡ CYBORG':'🤖 HalDo AI')+' Modus aktiviert','success');
+  if(window.HalDoAvatar&&typeof window.HalDoAvatar.open==='function'){
+    window.HalDoAvatar.open();
+  }else{
+    showToast('🤖 Avatar wird in künftiger Version aktiviert','success');
+  }
+  closeAllPanels();
+  if(navigator.vibrate)navigator.vibrate(12);
+}
+
+// ═══════════════════════════════════════════════════════════
+// CORE APPS DATA
+// ═══════════════════════════════════════════════════════════
+function store(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def}catch(e){return def}}
+function saveStore(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function uid(p){return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+
+// ─── AI MEMORY ───
+window.HalDoMemory={
+  key:'haldo_memory_v1',
+  all(){return store(this.key,[])},
+  remember(title,content,cat,tags){
+    const m=this.all();
+    m.unshift({id:uid('m_'),title:title||'',content:content||'',cat:cat||'other',tags:tags||[],created:Date.now()});
+    saveStore(this.key,m.slice(0,500));
+    return m[0].id;
+  },
+  recall(q){
+    const lc=(q||'').toLowerCase();
+    return this.all().filter(m=>(m.title||'').toLowerCase().includes(lc)||(m.content||'').toLowerCase().includes(lc));
+  },
+  forget(id){
+    saveStore(this.key,this.all().filter(m=>m.id!==id));
+  },
+  count(){return this.all().length}
+};
+
+// ─── JOURNAL ───
+window.HalDoJournal={
+  key:'haldo_journal_v1',
+  all(){return store(this.key,[])},
+  write(title,content,mood,tags){
+    const e=this.all();
+    e.unshift({id:uid('j_'),title:title||'',content:content||'',mood:mood||'okay',tags:tags||[],created:Date.now()});
+    saveStore(this.key,e.slice(0,500));
+    return e[0].id;
+  },
+  count(){return this.all().length}
+};
+
+// ─── TASKS ───
+window.HalDoTasks={
+  key:'haldo_tasks_v1',
+  all(){return store(this.key,[])},
+  add(title,opts){
+    const t=this.all();
+    t.unshift({id:uid('t_'),title,cat:(opts&&opts.cat)||'personal',prio:(opts&&opts.prio)||'mid',due:(opts&&opts.due)||'',done:false,created:Date.now()});
+    saveStore(this.key,t);
+    return t[0].id;
+  },
+  complete(id){
+    const t=this.all();
+    const x=t.find(v=>v.id===id);
+    if(x){x.done=true;saveStore(this.key,t)}
+  },
+  count(){return this.all().length},
+  open(){return this.all().filter(t=>!t.done)}
+};
+
+// ─── HABITS ───
+window.HalDoHabits={
+  key:'haldo_habits_v1',
+  all(){return store(this.key,[])},
+  add(name,opts){
+    const h=this.all();
+    h.unshift({id:uid('h_'),name,emoji:(opts&&opts.emoji)||'🎯',color:(opts&&opts.color)||'#00e5ff',log:{},created:Date.now()});
+    saveStore(this.key,h);
+    return h[0].id;
+  },
+  checkIn(id){
+    const h=this.all();
+    const x=h.find(v=>v.id===id);
+    if(x){
+      const d=new Date();
+      const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      x.log[k]=true;
+      saveStore(this.key,h);
+    }
+  },
+  count(){return this.all().length}
+};
+
+// ─── GOALS ───
+window.HalDoGoals={
+  key:'haldo_goals_v1',
+  all(){return store(this.key,[])},
+  add(title,opts){
+    const g=this.all();
+    g.unshift({id:uid('g_'),title,cat:(opts&&opts.cat)||'personal',prio:(opts&&opts.prio)||'mid',status:'active',milestones:[],created:Date.now()});
+    saveStore(this.key,g);
+    return g[0].id;
+  },
+  active(){return this.all().filter(g=>g.status==='active')},
+  count(){return this.all().length}
+};
+
+// ─── CALENDAR ───
+window.HalDoCalendar={
+  key:'haldo_calendar_v1',
+  all(){return store(this.key,[])},
+  add(title,date,opts){
+    const e=this.all();
+    e.unshift({id:uid('c_'),title,date,time:(opts&&opts.time)||'',note:(opts&&opts.note)||'',color:(opts&&opts.color)||'#00e5ff',created:Date.now()});
+    saveStore(this.key,e);
+    return e[0].id;
+  },
+  count(){return this.all().length}
+};
+
+// ─── REMINDERS ───
+window.HalDoReminders={
+  key:'haldo_reminders_v1',
+  all(){return store(this.key,[])},
+  add(title,date,time,opts){
+    const r=this.all();
+    r.unshift({id:uid('r_'),title,date,time,emoji:(opts&&opts.emoji)||'🔔',done:false,created:Date.now()});
+    saveStore(this.key,r);
+    return r[0].id;
+  },
+  count(){return this.all().length}
+};
+
+// ═══════════════════════════════════════════════════════════
+// DASHBOARD APP
+// ═══════════════════════════════════════════════════════════
+function buildDashboard(){
+  const w=document.getElementById('dashboard-window');
+  if(!w)return;
+  w.innerHTML=
+    '<div class="card"><div class="lbl">📊 Übersicht</div>'+
+    '<div class="grid2" style="margin-top:10px">'+
+    '<div><div class="big">'+HalDoMemory.count()+'</div><div class="lbl">💾 Memory</div></div>'+
+    '<div><div class="big">'+HalDoTasks.open().length+'</div><div class="lbl">✅ Tasks offen</div></div>'+
+    '<div><div class="big">'+HalDoJournal.count()+'</div><div class="lbl">📔 Journal</div></div>'+
+    '<div><div class="big">'+HalDoHabits.count()+'</div><div class="lbl">🔁 Habits</div></div>'+
+    '<div><div class="big">'+HalDoGoals.active().length+'</div><div class="lbl">🎯 Goals</div></div>'+
+    '<div><div class="big">'+HalDoCalendar.count()+'</div><div class="lbl">📅 Termine</div></div>'+
+    '</div></div>'+
+    '<div class="card"><div class="lbl">🚀 Schnellzugriff</div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'+
+    '<button class="os-btn" onclick="HalDoUI.launch(\'memory-window\')">💾 Memory</button>'+
+    '<button class="os-btn" onclick="HalDoUI.launch(\'journal-window\')">📔 Journal</button>'+
+    '<button class="os-btn" onclick="HalDoUI.launch(\'tasks-window\')">✅ Tasks</button>'+
+    '<button class="os-btn" onclick="HalDoUI.launch(\'habits-window\')">🔁 Habits</button>'+
+    '</div></div>'+
+    '<div class="card"><div class="lbl">🌤️ Wetter (Live)</div>'+
+    '<div id="dashWeather" style="margin-top:8px;font-size:13px;color:#88ccff">Lade...</div></div>';
+  // Wetter laden
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=50.11&longitude=8.68&current=temperature_2m,weather_code&timezone=auto')
+    .then(r=>r.json()).then(d=>{
+      const el=document.getElementById('dashWeather');
+      if(el)el.innerHTML='Frankfurt: <b style="color:#00e5ff;font-size:18px">'+Math.round(d.current.temperature_2m)+'°C</b>';
+    }).catch(()=>{});
+}
+function buildDashboardHeader(){
+  const w=document.getElementById('dashboard-window');
+  if(!w)return;
+  w.dataset.title='Dashboard';
+  w.dataset.icon='📊';
+}
+
+// ═══════════════════════════════════════════════════════════
+// MEMORY APP
+// ═══════════════════════════════════════════════════════════
+function buildMemory(){
+  const w=document.getElementById('memory-window');
+  if(!w)return;
+  w.dataset.title='AI Memory';
+  w.dataset.icon='💾';
+  const items=HalDoMemory.all();
+  const list=items.length?items.slice(0,30).map(m=>
+    '<div class="card" style="padding:10px">'+
+    '<div style="font-size:13px;font-weight:800;color:#fff;margin-bottom:4px">'+(m.title||'(Ohne Titel)')+'</div>'+
+    '<div style="font-size:11px;color:#88ccff;line-height:1.5">'+((m.content||'').slice(0,120))+'</div>'+
+    '<button class="os-btn danger" style="padding:4px 10px;font-size:11px;margin-top:6px" onclick="event.stopPropagation();HalDoMemory.forget(\''+m.id+'\');HalDoUI.rebuild(\'memory-window\')">🗑️</button>'+
+    '</div>'
+  ).join(''):'<div class="empty"><div class="ei">💾</div><div class="et">Noch keine Erinnerungen</div></div>';
+  w.innerHTML=
+    '<div class="card"><div style="display:flex;gap:6px;align-items:center">'+
+    '<input class="os-input" id="memIn" placeholder="Was merken?" style="flex:1">'+
+    '<button class="os-btn primary" onclick="var v=document.getElementById(\'memIn\').value;if(v){HalDoMemory.remember(v,\'\',\'personal\',[]);document.getElementById(\'memIn\').value=\'\';HalDoUI.rebuild(\'memory-window\');showToast(\'💾 Gespeichert\',\'success\')}">✚</button>'+
+    '</div></div>'+
+    '<div style="font-size:11px;color:#00e5ff;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px">'+items.length+' Erinnerungen</div>'+
+    list;
+}
+
+// ═══════════════════════════════════════════════════════════
+// JOURNAL APP
+// ═══════════════════════════════════════════════════════════
+function buildJournal(){
+  const w=document.getElementById('journal-window');
+  if(!w)return;
+  w.dataset.title='Journal';
+  w.dataset.icon='📔';
+  const items=HalDoJournal.all();
+  const list=items.length?items.slice(0,20).map(e=>
+    '<div class="card" style="padding:10px">'+
+    '<div style="font-size:13px;font-weight:800;color:#fff">'+(e.title||'(Ohne Titel)')+'</div>'+
+    '<div style="font-size:11px;color:#88ccff;margin-top:4px">'+((e.content||'').slice(0,150))+'</div>'+
+    '<div style="font-size:10px;color:#5a8ab0;margin-top:6px">'+new Date(e.created).toLocaleDateString('de-DE')+' · '+e.mood+'</div>'+
+    '</div>'
+  ).join(''):'<div class="empty"><div class="ei">📔</div><div class="et">Noch keine Einträge</div></div>';
+  w.innerHTML=
+    '<div class="card"><input class="os-input" id="jnT" placeholder="Titel" style="margin-bottom:8px">'+
+    '<textarea class="os-textarea" id="jnC" placeholder="Was beschäftigt dich?" style="min-height:100px;margin-bottom:8px"></textarea>'+
+    '<button class="os-btn primary full" onclick="var t=document.getElementById(\'jnT\').value;var c=document.getElementById(\'jnC\').value;if(t||c){HalDoJournal.write(t,c,\'good\',[]);document.getElementById(\'jnT\').value=\'\';document.getElementById(\'jnC\').value=\'\';HalDoUI.rebuild(\'journal-window\');showToast(\'📔 Gespeichert\',\'success\')}">💾 Speichern</button></div>'+
+    '<div style="font-size:11px;color:#00e5ff;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px">'+items.length+' Einträge</div>'+
+    list;
+}
+
+// ═══════════════════════════════════════════════════════════
+// TASKS APP
+// ═══════════════════════════════════════════════════════════
+function buildTasks(){
+  const w=document.getElementById('tasks-window');
+  if(!w)return;
+  w.dataset.title='Tasks';
+  w.dataset.icon='✅';
+  const items=HalDoTasks.all();
+  const list=items.length?items.map(t=>
+    '<div class="card" style="padding:10px;display:flex;gap:10px;align-items:center">'+
+    '<div style="width:24px;height:24px;border-radius:6px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;'+(t.done?'background:linear-gradient(135deg,var(--success),var(--cyan));border-color:var(--success)':'')+'" onclick="HalDoTasks.complete(\''+t.id+'\');HalDoUI.rebuild(\'tasks-window\')">'+(t.done?'✓':'')+'</div>'+
+    '<div style="flex:1;min-width:0">'+
+    '<div style="font-size:13px;font-weight:700;color:#fff;'+(t.done?'text-decoration:line-through;opacity:.6':'')+'">'+(t.title||'')+'</div>'+
+    '<div style="font-size:10px;color:#88ccff;margin-top:2px">'+t.cat+' · '+t.prio+'</div>'+
+    '</div></div>'
+  ).join(''):'<div class="empty"><div class="ei">✅</div><div class="et">Keine Aufgaben</div></div>';
+  w.innerHTML=
+    '<div class="card"><input class="os-input" id="tkIn" placeholder="Neue Aufgabe..." onkeypress="if(event.key===\'Enter\'){HalDoUI.addTask()}" style="margin-bottom:8px">'+
+    '<button class="os-btn primary full" onclick="HalDoUI.addTask()">✚ Hinzufügen</button></div>'+
+    '<div style="font-size:11px;color:#00e5ff;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px">'+items.length+' Aufgaben</div>'+
+    list;
+}
+
+// ═══════════════════════════════════════════════════════════
+// HABITS APP
+// ═══════════════════════════════════════════════════════════
+function buildHabits(){
+  const w=document.getElementById('habits-window');
+  if(!w)return;
+  w.dataset.title='Habits';
+  w.dataset.icon='🔁';
+  const items=HalDoHabits.all();
+  const today=new Date();
+  const tk=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  const list=items.length?items.map(h=>{
+    const done=!!(h.log&&h.log[tk]);
+    return '<div class="card" style="padding:10px;display:flex;gap:10px;align-items:center">'+
+    '<div style="font-size:24px">'+h.emoji+'</div>'+
+    '<div style="flex:1"><div style="font-size:13px;font-weight:700;color:#fff">'+h.name+'</div></div>'+
+    '<button class="os-btn '+(done?'success':'primary')+'" style="padding:8px 12px;font-size:12px" onclick="HalDoHabits.checkIn(\''+h.id+'\');HalDoUI.rebuild(\'habits-window\')">'+(done?'✓':'⭕')+'</button>'+
+    '</div>';
+  }).join(''):'<div class="empty"><div class="ei">🔁</div><div class="et">Keine Gewohnheiten</div></div>';
+  w.innerHTML=
+    '<div class="card"><input class="os-input" id="hbIn" placeholder="Neue Gewohnheit..." onkeypress="if(event.key===\'Enter\'){HalDoUI.addHabit()}" style="margin-bottom:8px">'+
+    '<button class="os-btn primary full" onclick="HalDoUI.addHabit()">✚ Hinzufügen</button></div>'+
+    list;
+}
+
+// ═══════════════════════════════════════════════════════════
+// GOALS APP
+// ═══════════════════════════════════════════════════════════
+function buildGoals(){
+  const w=document.getElementById('goals-window');
+  if(!w)return;
+  w.dataset.title='Goals';
+  w.dataset.icon='🎯';
+  const items=HalDoGoals.all();
+  const list=items.length?items.map(g=>
+    '<div class="card"><div style="font-size:13px;font-weight:800;color:#fff">'+g.title+'</div>'+
+    '<div style="font-size:10px;color:#88ccff;margin-top:4px">'+g.cat+' · '+g.status+'</div></div>'
+  ).join(''):'<div class="empty"><div class="ei">🎯</div><div class="et">Keine Ziele</div></div>';
+  w.innerHTML=
+    '<div class="card"><input class="os-input" id="glIn" placeholder="Neues Ziel..." onkeypress="if(event.key===\'Enter\'){HalDoUI.addGoal()}" style="margin-bottom:8px">'+
+    '<button class="os-btn primary full" onclick="HalDoUI.addGoal()">✚ Hinzufügen</button></div>'+
+    list;
+}
+
+// ═══════════════════════════════════════════════════════════
+// CALENDAR APP
+// ═══════════════════════════════════════════════════════════
+function buildCalendar(){
+  const w=document.getElementById('calendar-window');
+  if(!w)return;
+  w.dataset.title='Kalender';
+  w.dataset.icon='📅';
+  const items=HalDoCalendar.all();
+  const list=items.length?items.map(e=>
+    '<div class="card" style="padding:10px"><div style="font-size:13px;font-weight:800;color:#fff">'+e.title+'</div>'+
+    '<div style="font-size:11px;color:#88ccff;margin-top:4px">📅 '+e.date+' '+e.time+'</div></div>'
+  ).join(''):'<div class="empty"><div class="ei">📅</div><div class="et">Keine Termine</div></div>';
+  w.innerHTML=
+    '<div class="card"><input class="os-input" id="caT" placeholder="Termin" style="margin-bottom:8px">'+
+    '<input class="os-input" id="caD" type="date" style="margin-bottom:8px">'+
+    '<button class="os-btn primary full" onclick="var t=document.getElementById(\'caT\').value;var d=document.getElementById(\'caD\').value;if(t&&d){HalDoCalendar.add(t,d,{});HalDoUI.rebuild(\'calendar-window\');showToast(\'📅 Gespeichert\',\'success\')}">✚ Hinzufügen</button></div>'+
+    list;
+}
+
+// ═══════════════════════════════════════════════════════════
+// WEATHER APP (Live)
+// ═══════════════════════════════════════════════════════════
+function buildWeather(){
+  const w=document.getElementById('weather-window');
+  if(!w)return;
+  w.dataset.title='Wetter';
+  w.dataset.icon='🌤️';
+  w.innerHTML='<div class="empty"><div class="ei">🌤️</div><div class="et">Lade Wetterdaten...</div></div>';
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=50.11&longitude=8.68&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=7')
+    .then(r=>r.json()).then(d=>{
+      const c=d.current;
+      const days=['So','Mo','Di','Mi','Do','Fr','Sa'];
+      let daily='';
+      for(let i=0;i<d.daily.time.length;i++){
+        const dd=new Date(d.daily.time[i]+'T12:00:00');
+        daily+='<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,229,255,.1);font-size:12px">'+
+        '<span style="color:#fff;font-weight:700">'+days[dd.getDay()]+'</span>'+
+        '<span style="color:#88ccff">'+Math.round(d.daily.temperature_2m_min[i])+'° / <b style="color:#00e5ff">'+Math.round(d.daily.temperature_2m_max[i])+'°</b></span></div>';
+      }
+      w.innerHTML=
+        '<div class="card" style="text-align:center">'+
+        '<div style="font-size:12px;color:#88ccff;text-transform:uppercase;letter-spacing:2px">Frankfurt</div>'+
+        '<div style="font-size:64px;font-weight:200;color:#fff;line-height:1;margin:10px 0">'+Math.round(c.temperature_2m)+'°C</div>'+
+        '<div style="font-size:14px;color:#00e5ff">💧 '+c.relative_humidity_2m+'% · 💨 '+Math.round(c.wind_speed_10m)+' km/h</div>'+
+        '</div>'+
+        '<div class="card"><div class="lbl" style="margin-bottom:10px">📅 Nächste 7 Tage</div>'+daily+'</div>'+
+        '<div style="text-align:center;font-size:10px;color:#5a8ab0;padding:8px">🌐 Open-Meteo Live-Daten</div>';
+    }).catch(()=>{
+      w.innerHTML='<div class="empty"><div class="ei">⚠️</div><div class="et">Wetter nicht verfügbar</div><div class="es">Internet prüfen</div></div>';
+    });
+}
+
+// ═══════════════════════════════════════════════════════════
+// COMING SOON (für alle nicht gebauten Apps)
+// ═══════════════════════════════════════════════════════════
+function buildComingSoon(id,icon,title){
+  const w=document.getElementById(id);
+  if(!w)return;
+  w.dataset.title=title;
+  w.dataset.icon=icon;
+  w.innerHTML='<div class="empty"><div class="ei">'+icon+'</div><div class="et">'+title+'</div>'+
+    '<div class="es">Diese App wird in einer künftigen Version aktiviert</div>'+
+    '<div style="margin-top:20px"><button class="os-btn primary" onclick="HalDoUI.closeSelf(\''+id+'\')">Verstanden</button></div></div>';
+}
+
+// ═══════════════════════════════════════════════════════════
+// REBUILD APP
+// ═══════════════════════════════════════════════════════════
+function rebuild(id){
+  switch(id){
+    case 'dashboard-window':buildDashboard();break;
+    case 'memory-window':buildMemory();break;
+    case 'journal-window':buildJournal();break;
+    case 'tasks-window':buildTasks();break;
+    case 'habits-window':buildHabits();break;
+    case 'goals-window':buildGoals();break;
+    case 'calendar-window':buildCalendar();break;
+    case 'weather-window':buildWeather();break;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// HILFSFUNKTIONEN
+// ═══════════════════════════════════════════════════════════
+function addTask(){
+  const v=document.getElementById('tkIn').value.trim();
+  if(!v)return;
+  HalDoTasks.add(v,{cat:'personal',prio:'mid'});
+  document.getElementById('tkIn').value='';
+  rebuild('tasks-window');
+  showToast('✅ Aufgabe hinzugefügt','success');
+}
+function addHabit(){
+  const v=document.getElementById('hbIn').value.trim();
+  if(!v)return;
+  HalDoHabits.add(v,{});
+  document.getElementById('hbIn').value='';
+  rebuild('habits-window');
+  showToast('🔁 Gewohnheit hinzugefügt','success');
+}
+function addGoal(){
+  const v=document.getElementById('glIn').value.trim();
+  if(!v)return;
+  HalDoGoals.add(v,{});
+  document.getElementById('glIn').value='';
+  rebuild('goals-window');
+  showToast('🎯 Ziel hinzugefügt','success');
+}
+function closeSelf(id){
+  closeWin(id);
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+function init(){
+  makeStars();
+  makePlanets();
+
+  // Panels vorbereiten
+  renderPanelItems('hp-home-body',APPS.home);
+  renderPanelItems('hp-apps-body',APPS.apps);
+  renderPanelItems('hp-system-body',APPS.system);
+  renderPanelItems('hp-chat-body',APPS.chat);
+  renderPanelItems('hp-files-body',APPS.files);
+  renderPanelItems('hp-settings-body',[
+    ['_theme','🎨','Design wechseln','AI ↔ CYBORG'],
+    ['_reset','🔄','Sidebar zurücksetzen','Positionen neu'],
+    ['_export','📤','Backup exportieren','Alle Daten']
+  ]);
+  renderPanelItems('hp-about-body',[
+    ['_about','ℹ️','HalDo AI OS','Version 123'],
+    ['_count','📊','Apps installiert','65+'],
+    ['_sys','🖥️','System','Online']
+  ]);
+  renderPanelItems('hp-notif-body',[
+    ['_none','🔔','Keine Benachrichtigungen','Alles gelesen']
+  ]);
+
+  // Panel-Clicks umleiten (speziell für _-Items)
+  document.querySelectorAll('.holo-panel-body').forEach(b=>{
+    b.addEventListener('click',e=>{
+      const item=e.target.closest('.holo-item');
+      if(!item)return;
+      // Standard-Apps via onclick
+    });
+  });
+
+  // Apps vorbereiten
+  buildDashboardHeader();
+  buildDashboard();
+  buildMemory();
+  buildJournal();
+  buildTasks();
+  buildHabits();
+  buildGoals();
+  buildCalendar();
+  buildWeather();
+
+  // Rest als Coming-Soon
+  const csApps=[
+    ['reminders-window','🔔','Erinnerungen'],
+    ['notes-window','📝','Notizen'],
+    ['contacts-window','👥','Kontakte'],
+    ['finance-window','💰','Finanzen'],
+    ['music-window','🎵','Music'],
+    ['calc-window','🧮','Calculator'],
+    ['recipes-window','🍳','Rezepte'],
+    ['shopping-window','🛒','Einkaufsliste'],
+    ['timer-window','⏱️','Timer'],
+    ['translator-window','🌐','Übersetzer'],
+    ['workout-window','💪','Workout'],
+    ['qrcode-window','📷','QR Generator'],
+    ['password-window','🔐','Passwort'],
+    ['clipboard-window','📋','Clipboard'],
+    ['mood-window','😊','Stimmung'],
+    ['sleep-window','😴','Schlaf'],
+    ['water-window','💧','Wasser'],
+    ['pomodoro-window','🍅','Pomodoro'],
+    ['breathing-window','🧘','Atmung'],
+    ['periodic-window','⚛️','Periodic Table'],
+    ['geo-window','🌍','Geo Quiz'],
+    ['flashcards-window','🎴','Flashcards'],
+    ['settings-window','⚙️','Einstellungen'],
+    ['files-window','📁','Dateien'],
+    ['terminal-window','⌨️','Terminal'],
+    ['monitor-window','📊','Monitor'],
+    ['device-window','📱','Device Info'],
+    ['network-window','📶','Network'],
+    ['clock-window','🌍','World Clock'],
+    ['stats-window','📊','Statistics'],
+    ['camera-window','📷','Kamera'],
+    ['voice-window','🎙️','Voice Memos'],
+    ['chat-window','💬','HalDo AI Chat']
+  ];
+  csApps.forEach(([id,ic,t])=>{
+    const el=document.createElement('div');
+    el.id=id;
+    document.body.appendChild(el);
+    buildComingSoon(id,ic,t);
+    prepareWindow(el);
+  });
+
+  // Panel-Positionen laden
+  try{
+    const saved=JSON.parse(localStorage.getItem('haldo_panels')||'{}');
+    Object.assign(panelPos,saved);
+  }catch(e){}
+
+  // Theme laden
+  try{
+    const t=localStorage.getItem('haldo_theme');
+    if(t)setTheme(t);
+  }catch(e){}
+
+  // ESC = Panels schließen
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape')closeAllPanels();
+  });
+
+  console.log('%c🌌 HalDo AI OS v123 geladen','color:#00e5ff;font-weight:bold;font-size:16px');
+  console.log('%c✅ Kosmos · Fenster · Sidebar · Panels · '+APPS.home.length+'+'+APPS.apps.length+'+'+APPS.system.length+' Apps','color:#4da8ff;font-weight:bold');
+}
+
+// ═══════════════════════════════════════════════════════════
+// PUBLIC API
+// ═══════════════════════════════════════════════════════════
+window.HalDoUI={
+  toggleSidebar,
+  openPanel,
+  closePanel,
+  closeAllPanels,
+  launch,
+  launchAvatar,
+  setTheme,
+  rebuild,
+  addTask,
+  addHabit,
+  addGoal,
+  closeSelf,
+  showToast,
+  open:openWin,
+  close:closeWin
+};
+window.openWin=openWin;
+window.closeWin=closeWin;
+window.showToast=showToast;
+
+// ═══════════════════════════════════════════════════════════
+// PANEL-HANDLER für spezielle Items (_theme, _reset, _export)
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('click',e=>{
+  const item=e.target.closest('.holo-item');
+  if(!item)return;
+  const title=item.querySelector('.hi-title');
+  if(!title)return;
+  const t=title.textContent;
+  if(t==='Design wechseln'){
+    const cur=localStorage.getItem('haldo_theme')||'ai';
+    setTheme(cur==='ai'?'cyborg':'ai');
+    showToast('🎨 Design: '+localStorage.getItem('haldo_theme').toUpperCase(),'success');
+  }else if(t==='Sidebar zurücksetzen'){
+    localStorage.removeItem('haldo_panels');
+    document.querySelectorAll('.holo-panel').forEach(p=>{p.style.left='';p.style.top=''});
+    showToast('🔄 Positionen zurückgesetzt','success');
+  }else if(t==='Backup exportieren'){
+    const data={};
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k&&k.startsWith('haldo_'))data[k]=localStorage.getItem(k);
+    }
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='haldo-backup-'+new Date().toISOString().slice(0,10)+'.json';
+    a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    showToast('📤 Backup exportiert','success');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════════════════════
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',init);
+}else{
+  init();
+}
+
+})();
+</script>
+
+</body>
+</html>
