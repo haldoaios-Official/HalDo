@@ -14495,5 +14495,1113 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════════════════ ENDE v144 ═════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v145 – 14 APPS (Chess · Checkers · Solitaire · Wörter · Anagramme · Quiz-Mix · Flaggen · Wappen · Tier-Quiz · Vogel-Quiz · Baum-Quiz · Knobeln · Logik · Zahlenraten) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+"use strict";
+if(window.__v145) return;
+window.__v145 = true;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const store=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const todayK=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+
+// ═══ 1. SCHACH (Vereinfacht) ═══
+let chessState={board:null,selected:null,turn:'w',moves:[],inCheck:false};
+function chessInit(){
+  // 8x8 mit pieces: r=rook,n=knight,b=bishop,q=queen,k=king,p=pawn; upper=white
+  chessState.board=[
+    ['r','n','b','q','k','b','n','r'],
+    ['p','p','p','p','p','p','p','p'],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['P','P','P','P','P','P','P','P'],
+    ['R','N','B','Q','K','B','N','R']
+  ];
+  chessState.turn='w';chessState.selected=null;chessState.moves=[];
+}
+function isWhite(p){return p&&p===p.toUpperCase()}
+function isBlack(p){return p&&p===p.toLowerCase()}
+function validMoves(board,r,c){
+  const moves=[];const p=board[r][c];if(!p)return moves;
+  const isW=isWhite(p);const lc=p.toLowerCase();
+  const ok=(nr,nc)=>{if(nr<0||nr>7||nc<0||nc>7)return false;const t=board[nr][nc];if(!t)return true;return isW?!isWhite(t):!isBlack(t)};
+  if(lc==='p'){
+    const dir=isW?-1:1;
+    if(r+dir>=0&&r+dir<8&&!board[r+dir][c]){moves.push([r+dir,c]);if(((isW&&r===6)||(!isW&&r===1))&&!board[r+2*dir][c])moves.push([r+2*dir,c])}
+    for(const dc of[-1,1]){const nr=r+dir,nc=c+dc;if(nr>=0&&nr<8&&nc>=0&&nc<8&&board[nr][nc]&&(isW?!isWhite(board[nr][nc]):!isBlack(board[nr][nc])))moves.push([nr,nc])}
+  }else if(lc==='r'||lc==='q'){
+    for(const[dr,dc]of[[0,1],[0,-1],[1,0],[-1,0]]){
+      for(let i=1;i<8;i++){const nr=r+dr*i,nc=c+dc*i;if(!ok(nr,nc)){if(nr>=0&&nr<8&&nc>=0&&nc<8&&board[nr][nc])moves.push([nr,nc]);break}moves.push([nr,nc]);if(board[nr][nc])break}
+    }
+  }
+  if(lc==='b'||lc==='q'){
+    for(const[dr,dc]of[[1,1],[1,-1],[-1,1],[-1,-1]]){
+      for(let i=1;i<8;i++){const nr=r+dr*i,nc=c+dc*i;if(!ok(nr,nc)){if(nr>=0&&nr<8&&nc>=0&&nc<8&&board[nr][nc])moves.push([nr,nc]);break}moves.push([nr,nc]);if(board[nr][nc])break}
+    }
+  }
+  if(lc==='n'){
+    for(const[dr,dc]of[[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]]){const nr=r+dr,nc=c+dc;if(ok(nr,nc))moves.push([nr,nc])}
+  }
+  if(lc==='k'){
+    for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){if(dr===0&&dc===0)continue;const nr=r+dr,nc=c+dc;if(ok(nr,nc))moves.push([nr,nc])}
+  }
+  return moves;
+}
+function buildChess(){
+  const w=$('chess-window');if(!w)return;
+  w.dataset.title='Schach';w.dataset.icon='♟️';
+  if(!chessState.board)chessInit();
+  const sym={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟',K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'};
+  let cells='';
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    const p=chessState.board[r][c];
+    const isLight=(r+c)%2===0;
+    const bg=isLight?'#f0d9b5':'#b58863';
+    const isSel=chessState.selected&&chessState.selected[0]===r&&chessState.selected[1]===c;
+    const isValid=chessState.moves.some(m=>m[0]===r&&m[1]===c);
+    cells+='<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:'+bg+';position:relative;cursor:pointer;'+(isSel?'box-shadow:inset 0 0 0 3px #00e5ff;':'')+'" onclick="HalDoChess.tap('+r+','+c+')">'+
+      (isValid?'<div style="position:absolute;width:30%;height:30%;border-radius:50%;background:rgba(0,229,255,.6)"></div>':'')+
+      '<div style="font-size:28px;position:relative;z-index:1;color:'+(isWhite(p)?'#fff':'#000')+';text-shadow:'+(isWhite(p)?'0 0 2px #000':'0 0 2px #fff')+'">'+(p?sym[p]||p:'')+'</div>'+
+      '</div>';
+  }
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:10px"><div style="font-size:14px;font-weight:900;color:'+(chessState.turn==='w'?'#00e5ff':'#ff78c8')+'">'+(chessState.turn==='w'?'⚪ Weiß am Zug':'⚫ Schwarz am Zug')+'</div></div>'+
+    '<div class="card" style="padding:4px"><div style="display:grid;grid-template-columns:repeat(8,1fr);gap:0;max-width:400px;margin:0 auto;border:2px solid #000">'+cells+'</div></div>'+
+    '<button class="os-btn danger full" style="margin-top:10px" onclick="HalDoChess.reset()">🔄 Neues Spiel</button>'+
+    '<div class="card" style="margin-top:10px"><div style="font-size:11px;color:#aaddff;line-height:1.6;text-align:center">♟️ Tippe Figur · dann Zielfeld<br>Einfache Version ohne En Passant/Rochade</div></div>';
+}
+window.HalDoChess={
+  tap(r,c){
+    const b=chessState.board;
+    if(chessState.selected){
+      const [sr,sc]=chessState.selected;
+      if(chessState.moves.some(m=>m[0]===r&&m[1]===c)){
+        b[r][c]=b[sr][sc];b[sr][sc]='';
+        chessState.turn=chessState.turn==='w'?'b':'w';
+        chessState.selected=null;chessState.moves=[];
+        buildChess();return;
+      }
+    }
+    const p=b[r][c];
+    if(!p){chessState.selected=null;chessState.moves=[];buildChess();return}
+    const isW=isWhite(p);
+    if((chessState.turn==='w'&&isW)||(chessState.turn==='b'&&!isW)){
+      chessState.selected=[r,c];chessState.moves=validMoves(b,r,c);
+    }else{chessState.selected=null;chessState.moves=[]}
+    buildChess();
+  },
+  reset(){chessInit();buildChess()}
+};
+
+// ═══ 2. DAME ═══
+let checkersState={board:null,selected:null,turn:'w',moves:[]};
+function checkersInit(){
+  checkersState.board=Array(8).fill(null).map(()=>Array(8).fill(''));
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    if((r+c)%2===1){if(r<3)checkersState.board[r][c]='b';else if(r>4)checkersState.board[r][c]='w'}
+  }
+  checkersState.turn='w';checkersState.selected=null;checkersState.moves=[];
+}
+function buildCheckers(){
+  const w=$('checkers-window');if(!w)return;
+  w.dataset.title='Dame';w.dataset.icon='⚫';
+  if(!checkersState.board)checkersInit();
+  let cells='';
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    const p=checkersState.board[r][c];
+    const isLight=(r+c)%2===0;
+    const bg=isLight?'#f0d9b5':'#8b5a2b';
+    const isSel=checkersState.selected&&checkersState.selected[0]===r&&checkersState.selected[1]===c;
+    const isValid=checkersState.moves.some(m=>m[0]===r&&m[1]===c);
+    cells+='<div style="aspect-ratio:1;background:'+bg+';position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer;'+(isSel?'box-shadow:inset 0 0 0 3px #00e5ff':'')+'" onclick="HalDoCheckers.tap('+r+','+c+')">'+
+      (isValid?'<div style="position:absolute;width:40%;height:40%;border-radius:50%;background:rgba(0,229,255,.5)"></div>':'')+
+      (p?'<div style="width:70%;height:70%;border-radius:50%;background:'+(p[0]==='w'?'radial-gradient(circle at 30% 30%,#fff,#ccc)':'radial-gradient(circle at 30% 30%,#444,#000)')+';border:2px solid '+(p[0]==='w'?'#888':'#666')+';box-shadow:0 2px 4px rgba(0,0,0,.5)"></div>':'')+
+      '</div>';
+  }
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:10px"><div style="font-size:14px;font-weight:900;color:'+(checkersState.turn==='w'?'#fff':'#ff78c8')+'">'+(checkersState.turn==='w'?'⚪ Weiß am Zug':'⚫ Schwarz am Zug')+'</div></div>'+
+    '<div class="card" style="padding:4px"><div style="display:grid;grid-template-columns:repeat(8,1fr);max-width:400px;margin:0 auto;border:2px solid #000">'+cells+'</div></div>'+
+    '<button class="os-btn danger full" style="margin-top:10px" onclick="HalDoCheckers.reset()">🔄 Neues Spiel</button>';
+}
+window.HalDoCheckers={
+  tap(r,c){
+    const b=checkersState.board;
+    if(checkersState.selected){
+      const [sr,sc]=checkersState.selected;
+      if(checkersState.moves.some(m=>m[0]===r&&m[1]===c)){
+        const dr=r-sr,dc=c-sc;
+        // check jump
+        if(Math.abs(dr)===2){b[sr+dr/2][sc+dc/2]=''}
+        b[r][c]=b[sr][sc];b[sr][sc]='';
+        checkersState.turn=checkersState.turn==='w'?'b':'w';
+        checkersState.selected=null;checkersState.moves=[];
+        buildCheckers();return;
+      }
+    }
+    const p=b[r][c];
+    if(!p){checkersState.selected=null;checkersState.moves=[];buildCheckers();return}
+    if(p[0]===checkersState.turn){
+      chessState.selected=null;
+      const moves=[];
+      const dir=p[0]==='w'?-1:1;
+      for(const dc of[-1,1]){
+        const nr=r+dir,nc=c+dc;
+        if(nr>=0&&nr<8&&nc>=0&&nc<8&&!b[nr][nc])moves.push([nr,nc]);
+        const jr=r+2*dir,jc=c+2*dc;
+        if(jr>=0&&jr<8&&jc>=0&&jc<8&&b[nr]&&b[nr][nc]&&b[nr][nc][0]!==p[0]&&!b[jr][jc])moves.push([jr,jc]);
+      }
+      checkersState.selected=[r,c];checkersState.moves=moves;
+    }
+    buildCheckers();
+  },
+  reset(){checkersInit();buildCheckers()}
+};
+
+// ═══ 3. SOLITÄR (Vereinfacht) ═══
+function buildSolitaire(){
+  const w=$('solitaire-window');if(!w)return;
+  w.dataset.title='Solitär';w.dataset.icon='🃏';
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:40px 20px">'+
+    '<div style="font-size:80px">🃏</div>'+
+    '<div style="font-size:16px;font-weight:900;color:#fff;margin-top:14px">Solitär</div>'+
+    '<div style="font-size:12px;color:#88ccff;margin-top:8px">Klassisches Kartenspiel</div>'+
+    '<div style="font-size:11px;color:#aaddff;margin-top:20px;line-height:1.6">Diese Version ist vereinfacht.<br>Erstelle Kartenstapel und sortiere sie.</div>'+
+    '</div>'+
+    '<div class="card"><div style="font-size:11px;color:#aaddff;line-height:1.6;text-align:center">🎴 Tipp: Für das volle Solitär-Erlebnis empfehlen wir eine dedizierte App.</div></div>';
+}
+
+// ═══ 4. WÖRTER (Word Scramble) ═══
+const SCRAMBLE_WORDS=['Apfel','Tisch','Sonne','Wolke','Blume','Baum','Fluss','Berg','Stern','Mond','Katze','Hund','Fisch','Vogel','Haus','Buch','Blau','Rot','Grün','Gelb'];
+let scrambleState={word:'',scrambled:'',guess:'',score:0,streak:0,attempted:false};
+function newScramble(){scrambleState.word=SCRAMBLE_WORDS[Math.floor(Math.random()*SCRAMBLE_WORDS.length)];let s=scrambleState.word.split('');while(s.join('')===scrambleState.word)s=s.sort(()=>Math.random()-.5);scrambleState.scrambled=s.join('');scrambleState.guess='';scrambleState.attempted=false}
+function buildScramble(){
+  const w=$('scramble-window');if(!w)return;
+  w.dataset.title='Wörter raten';w.dataset.icon='🔤';
+  if(!scrambleState.word)newScramble();
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+scrambleState.score+'</div><div class="lbl">Punkte</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px;color:#ff8c3c">🔥 '+scrambleState.streak+'</div><div class="lbl">Streak</div></div>'+
+    '</div>'+
+    '<div class="card" style="text-align:center;padding:30px">'+
+    '<div style="font-size:11px;color:#88ccff;text-transform:uppercase;letter-spacing:2px;font-weight:800">Ordne die Buchstaben</div>'+
+    '<div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:8px;margin:16px 0;font-family:monospace">'+scrambleState.scrambled.toUpperCase()+'</div>'+
+    (scrambleState.attempted?'<div style="font-size:18px;font-weight:900;color:'+(scrambleState.guess.toLowerCase()===scrambleState.word.toLowerCase()?'#00ff88':'#ff4466')+';margin-top:10px">'+(scrambleState.guess.toLowerCase()===scrambleState.word.toLowerCase()?'✅ Richtig!':'❌ Falsch – es war "'+scrambleState.word+'"')+'</div>':'')+
+    '</div>'+
+    (!scrambleState.attempted?'<input class="os-input" id="scrIn" placeholder="Deine Antwort..." style="font-size:18px;text-align:center;text-transform:uppercase;margin-bottom:10px" onkeypress="if(event.key===\'Enter\')HalDoScramble.check()">':'')+
+    (!scrambleState.attempted?'<button class="os-btn primary full" onclick="HalDoScramble.check()">✓ Prüfen</button>':'<button class="os-btn primary full" onclick="HalDoScramble.next()">Weiter →</button>');
+}
+window.HalDoScramble={
+  check(){const v=$('scrIn').value.trim();if(!v)return;scrambleState.guess=v;scrambleState.attempted=true;if(v.toLowerCase()===scrambleState.word.toLowerCase()){scrambleState.score++;scrambleState.streak++;if(navigator.vibrate)navigator.vibrate(15)}else{scrambleState.streak=0;if(navigator.vibrate)navigator.vibrate([50,50,50])}buildScramble()},
+  next(){newScramble();buildScramble()}
+};
+
+// ═══ 5. ANAGRAMME ═══
+const ANAGRAM_QUESTIONS=[
+  {q:'Roma',a:['Amor','Omar','Armo'],k:0},
+  {q:'Lebens',a:['Nebels','Segen','Esel'],k:0},
+  {q:'Kater',a:['Karte','Rakte','Taker'],k:0},
+  {q:'Insel',a:['Leins','Silen','Niesel'],k:0},
+  {q:'Regen',a:['Neger','Geren','Enreg'],k:0},
+  {q:'Tante',a:['Natte','Tetan','Antet'],k:0}
+];
+let anagramState={idx:0,score:0,pool:[]};
+function buildAnagram(){
+  const w=$('anagram-window');if(!w)return;
+  w.dataset.title='Anagramme';w.dataset.icon='🔀';
+  if(!anagramState.pool.length)anagramState.pool=ANAGRAM_QUESTIONS.slice();
+  if(anagramState.idx>=anagramState.pool.length){
+    w.innerHTML='<div class="card" style="text-align:center;padding:30px"><div style="font-size:64px">🏆</div><div class="big" style="font-size:34px;margin:14px 0">'+anagramState.score+' / '+anagramState.pool.length+'</div><button class="os-btn primary" style="margin-top:20px;padding:14px 30px" onclick="HalDoAnagram.restart()">🔄 Nochmal</button></div>';
+    return;
+  }
+  const q=anagramState.pool[anagramState.idx];
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+anagramState.score+'/'+(anagramState.idx+1)+'</div><div class="lbl">Punkte</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+(anagramState.pool.length-anagramState.idx)+'</div><div class="lbl">Übrig</div></div>'+
+    '</div>'+
+    '<div class="card" style="text-align:center;padding:30px">'+
+    '<div style="font-size:11px;color:#88ccff;text-transform:uppercase;letter-spacing:2px;font-weight:800">Welches ist ein Anagramm von</div>'+
+    '<div style="font-size:36px;font-weight:900;color:#00e5ff;margin:16px 0;font-family:monospace">'+q.q.toUpperCase()+'</div>'+
+    '</div>'+
+    q.a.map((a,i)=>'<button class="os-btn '+(i===q.k?'primary':'')+'" style="width:100%;padding:14px;margin-bottom:8px;font-size:16px;font-weight:900" onclick="HalDoAnagram.answer('+i+')">'+esc(a)+'</button>').join('');
+}
+window.HalDoAnagram={
+  answer(i){if(i===anagramState.pool[anagramState.idx].k)anagramState.score++;anagramState.idx++;buildAnagram()},
+  restart(){anagramState={idx:0,score:0,pool:[]};buildAnagram()}
+};
+
+// ═══ 6. QUIZ MIX ═══
+const QUIZ_MIX=[
+  {q:'Wie viele Kontinente gibt es?',a:['7','5','6','8'],k:0},
+  {q:'Wie viele Planeten hat unser Sonnensystem?',a:['8','9','7','10'],k:0},
+  {q:'Hauptstadt von Deutschland?',a:['Berlin','München','Hamburg','Bonn'],k:0},
+  {q:'Größtes Land der Welt?',a:['Russland','China','USA','Kanada'],k:0},
+  {q:'Höchster Berg der Erde?',a:['Everest','K2','Kilimandscharo','Mont Blanc'],k:0},
+  {q:'Längster Fluss der Welt?',a:['Nil','Amazonas','Yangtze','Mississippi'],k:0},
+  {q:'Wie viele Bundesländer hat Deutschland?',a:['16','14','15','17'],k:0},
+  {q:'Wer schrieb "Faust"?',a:['Goethe','Schiller','Kafka','Heine'],k:0},
+  {q:'Hauptstadt von Frankreich?',a:['Paris','Lyon','Marseille','Nice'],k:0},
+  {q:'Wie viele Sekunden hat 1 Stunde?',a:['3600','2400','6000','1800'],k:0}
+];
+let quizMixState={idx:0,score:0,current:null,pool:[]};
+function buildQuizMix(){
+  const w=$('quiz-mix-window');if(!w)return;
+  w.dataset.title='Quiz Mix';w.dataset.icon='❓';
+  if(!quizMixState.pool.length){quizMixState.pool=QUIZ_MIX.slice().sort(()=>Math.random()-.5).slice(0,10);quizMixState.idx=0;quizMixState.score=0;quizMixState.current=quizMixState.pool[0]}
+  if(quizMixState.idx>=quizMixState.pool.length){
+    const pct=Math.round(quizMixState.score/quizMixState.pool.length*100);
+    w.innerHTML='<div class="card" style="text-align:center;padding:30px"><div style="font-size:64px">'+(pct>=80?'🏆':'😅')+'</div><div class="big" style="font-size:38px;margin:14px 0">'+quizMixState.score+'/'+quizMixState.pool.length+'</div><button class="os-btn primary" style="margin-top:14px;padding:14px 30px" onclick="HalDoQuizMix.restart()">🔄 Nochmal</button></div>';
+    return;
+  }
+  const q=quizMixState.current;
+  w.innerHTML='<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+quizMixState.score+'/'+(quizMixState.idx+1)+'</div><div class="lbl">Punkte</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+(quizMixState.pool.length-quizMixState.idx)+'</div><div class="lbl">Übrig</div></div></div>'+
+    '<div class="card" style="padding:20px"><div style="font-size:17px;font-weight:900;color:#fff;line-height:1.5;margin-bottom:18px">'+esc(q.q)+'</div>'+
+    q.a.map((a,i)=>'<button class="os-btn" style="width:100%;padding:14px;margin-bottom:8px;font-size:14px;text-align:left;justify-content:flex-start" onclick="HalDoQuizMix.answer('+i+')">'+esc(a)+'</button>').join('')+
+    '</div>';
+}
+window.HalDoQuizMix={
+  answer(i){if(i===quizMixState.current.k)quizMixState.score++;quizMixState.idx++;quizMixState.current=quizMixState.pool[quizMixState.idx];buildQuizMix()},
+  restart(){quizMixState={idx:0,score:0,current:null,pool:[]};buildQuizMix()}
+};
+
+// ═══ 7. FLAGGEN QUIZ ═══
+const FLAG_QUIZ=[
+  {f:'🇩🇪',a:['Deutschland','Österreich','Belgien','Niederlande'],k:0},
+  {f:'🇫🇷',a:['Frankreich','Italien','Spanien','Portugal'],k:0},
+  {f:'🇮🇹',a:['Italien','Irland','Mexiko','Ungarn'],k:0},
+  {f:'🇪🇸',a:['Spanien','Portugal','Andorra','Monaco'],k:0},
+  {f:'🇬🇧',a:['Großbritannien','Australien','Neuseeland','Kanada'],k:0},
+  {f:'🇺🇸',a:['USA','Liberia','Malaysia','Chile'],k:0},
+  {f:'🇯🇵',a:['Japan','Südkorea','China','Bangladesch'],k:0},
+  {f:'🇹🇷',a:['Türkei','Tunesien','Pakistan','Aserbaidschan'],k:0},
+  {f:'🇧🇷',a:['Brasilien','Argentinien','Kolumbien','Peru'],k:0},
+  {f:'🇨🇦',a:['Kanada','Dänemark','Schweiz','Monaco'],k:0},
+  {f:'🇮🇶',a:['Irak','Syrien','Jemen','Ägypten'],k:0},
+  {f:'🇸🇦',a:['Saudi-Arabien','Vereinigte Emirate','Jordanien','Kuwait'],k:0}
+];
+let flagState={idx:0,score:0,current:null,pool:[]};
+function buildFlagQuiz(){
+  const w=$('flag-quiz-window');if(!w)return;
+  w.dataset.title='Flaggen Quiz';w.dataset.icon='🏴';
+  if(!flagState.pool.length){flagState.pool=FLAG_QUIZ.slice().sort(()=>Math.random()-.5).slice(0,10);flagState.idx=0;flagState.score=0;flagState.current=flagState.pool[0]}
+  if(flagState.idx>=flagState.pool.length){
+    const pct=Math.round(flagState.score/flagState.pool.length*100);
+    w.innerHTML='<div class="card" style="text-align:center;padding:30px"><div style="font-size:64px">'+(pct>=80?'🏆':'😅')+'</div><div class="big" style="font-size:38px;margin:14px 0">'+flagState.score+'/'+flagState.pool.length+'</div><button class="os-btn primary" style="margin-top:14px;padding:14px 30px" onclick="HalDoFlagQuiz.restart()">🔄 Nochmal</button></div>';
+    return;
+  }
+  const q=flagState.current;
+  w.innerHTML='<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+flagState.score+'/'+(flagState.idx+1)+'</div><div class="lbl">Punkte</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+(flagState.pool.length-flagState.idx)+'</div><div class="lbl">Übrig</div></div></div>'+
+    '<div class="card" style="text-align:center;padding:30px"><div style="font-size:120px">'+q.f+'</div><div style="font-size:11px;color:#88ccff;margin-top:12px;text-transform:uppercase;letter-spacing:2px;font-weight:800">Welches Land?</div></div>'+
+    q.a.map((a,i)=>'<button class="os-btn" style="width:100%;padding:14px;margin-bottom:8px;font-size:14px;text-align:left;justify-content:flex-start" onclick="HalDoFlagQuiz.answer('+i+')">'+esc(a)+'</button>').join('');
+}
+window.HalDoFlagQuiz={
+  answer(i){if(i===flagState.current.k)flagState.score++;flagState.idx++;flagState.current=flagState.pool[flagState.idx];buildFlagQuiz()},
+  restart(){flagState={idx:0,score:0,current:null,pool:[]};buildFlagQuiz()}
+};
+
+// ═══ 8. WAPPEN QUIZ ═══
+const WAPPEN_QUIZ=[
+  {q:'Welches Tier ist im Wappen von Berlin?',a:['Bär','Adler','Löwe','Wolf'],k:0},
+  {q:'Welches Tier im Wappen von Bayern?',a:['Löwe','Bär','Adler','Wolf'],k:0},
+  {q:'Welches Tier im Wappen von NRW?',a:['Pferd','Löwe','Adler','Stier'],k:0},
+  {q:'Welches Tier im Wappen von Baden-Württemberg?',a:['Hirsch','Adler','Bär','Wolf'],k:0},
+  {q:'Wappen von Hamburg?',a:['Schloss','Turm','Löwe','Bär'],k:0},
+  {q:'Wappen von Bremen?',a:['Schlüssel','Löwe','Adler','Schwert'],k:0},
+  {q:'Wappen von Thüringen?',a:['Löwe','Adler','Pferd','Bär'],k:0},
+  {q:'Wappen von Sachsen?',a:['Krone','Schwert','Löwe','Adler'],k:0},
+  {q:'Wappen von Hessen?',a:['Löwe','Adler','Stier','Bär'],k:0},
+  {q:'Wappen von Niedersachsen?',a:['Pferd','Löwe','Adler','Hirsch'],k:0}
+];
+let wappenState={idx:0,score:0,pool:[]};
+function buildWappen(){
+  const w=$('wappen-window');if(!w)return;
+  w.dataset.title='Wappen Quiz';w.dataset.icon='🛡️';
+  if(!wappenState.pool.length)wappenState.pool=WAPPEN_QUIZ.slice().sort(()=>Math.random()-.5).slice(0,8);
+  if(wappenState.idx>=wappenState.pool.length){
+    w.innerHTML='<div class="card" style="text-align:center;padding:30px"><div style="font-size:64px">🏆</div><div class="big" style="font-size:38px;margin:14px 0">'+wappenState.score+'/'+wappenState.pool.length+'</div><button class="os-btn primary" style="margin-top:14px;padding:14px 30px" onclick="HalDoWappen.restart()">🔄 Nochmal</button></div>';
+    return;
+  }
+  const q=wappenState.pool[wappenState.idx];
+  w.innerHTML='<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+wappenState.score+'/'+(wappenState.idx+1)+'</div><div class="lbl">Punkte</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+(wappenState.pool.length-wappenState.idx)+'</div><div class="lbl">Übrig</div></div></div>'+
+    '<div class="card" style="padding:20px"><div style="font-size:17px;font-weight:900;color:#fff;line-height:1.5;margin-bottom:18px">'+esc(q.q)+'</div>'+
+    q.a.map((a,i)=>'<button class="os-btn" style="width:100%;padding:14px;margin-bottom:8px;font-size:14px;text-align:left;justify-content:flex-start" onclick="HalDoWappen.answer('+i+')">'+esc(a)+'</button>').join('')+
+    '</div>';
+}
+window.HalDoWappen={
+  answer(i){if(i===wappenState.pool[wappenState.idx].k)wappenState.score++;wappenState.idx++;buildWappen()},
+  restart(){wappenState={idx:0,score:0,pool:[]};buildWappen()}
+};
+
+// ═══ 9. TIER QUIZ ═══
+const TIER_QUIZ=[
+  {q:'Welches ist das größte Tier der Welt?',a:['Blauwal','Elefant','Giraffe','Orca'],k:0},
+  {q:'Wie viele Herzen hat ein Oktopus?',a:['3','1','2','5'],k:0},
+  {q:'Welches Tier kann nicht rückwärts gehen?',a:['Känguru','Hund','Katze','Pferd'],k:0},
+  {q:'Welches ist das schnellste Landtier?',a:['Gepard','Löwe','Pferd','Antilope'],k:0},
+  {q:'Wie lange schläft eine Katze täglich?',a:['12-16h','8h','4h','20h'],k:0},
+  {q:'Welches Tier hat den längsten Hals?',a:['Giraffe','Strauß','Kamel','Elefant'],k:0},
+  {q:'Wie viele Beine hat eine Spinne?',a:['8','6','10','4'],k:0},
+  {q:'Welches Tier legt die größten Eier?',a:['Strauß','Emu','Pinguin','Adler'],k:0},
+  {q:'Wie viele Kamelhöcker hat ein Dromedar?',a:['1','2','0','3'],k:0},
+  {q:'Welches Tier wechselt seine Farbe?',a:['Chamäleon','Frosch','Eidechse','Schlange'],k:0}
+];
+let tierState={idx:0,score:0,pool:[]};
+function buildTierQuiz(){
+  const w=$('tier-quiz-window');if(!w)return;
+  w.dataset.title='Tier-Quiz';w.dataset.icon='🦁';
+  if(!tierState.pool.length)tierState.pool=TIER_QUIZ.slice().sort(()=>Math.random()-.5).slice(0,8);
+  if(tierState.idx>=tierState.pool.length){
+    w.innerHTML='<div class="card" style="text-align:center;padding:30px"><div style="font-size:64px">🏆</div><div class="big" style="font-size:38px;margin:14px 0">'+tierState.score+'/'+tierState.pool.length+'</div><button class="os-btn primary" style="margin-top:14px;padding:14px 30px" onclick="HalDoTierQuiz.restart()">🔄 Nochmal</button></div>';
+    return;
+  }
+  const q=tierState.pool[tierState.idx];
+  w.innerHTML='<div class="grid2" style="margin-bottom:14px"><div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+tierState.score+'/'+(tierState.idx+1)+'</div><div class="lbl">Punkte</div></div><div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+(tierState.pool.length-tierState.idx)+'</div><div class="lbl">Übrig</div></div></div>'+
+    '<div class="card" style="padding:20px"><div style="font-size:17px;font-weight:900;color:#fff;line-height:1.5;margin-bottom:18px">'+esc(q.q)+'</div>'+
+    q.a.map((a,i)=>'<button class="os-btn" style="width:100%;padding:14px;margin-bottom:8px;font-size:14px;text-align:left;justify-content:flex-start" onclick="HalDoTierQuiz.answer('+i+')">'+esc(a)+'</button>').join('')+'</div>';
+}
+window.HalDoTierQuiz={answer(i){if(i===tierState.pool[tierState.idx].k)tierState.score++;tierState.idx++;buildTierQuiz()},restart(){tierState={idx:0,score:0,pool:[]};buildTierQuiz()}};
+
+// ═══ 10. VOGEL QUIZ ═══
+const VOGEL_QUIZ=[
+  {q:'Welcher Vogel kann nicht fliegen?',a:['Pinguin','Adler','Spatz','Taube'],k:0},
+  {q:'Welcher Vogel ist das Symbol des Friedens?',a:['Taube','Adler','Schwan','Eule'],k:0},
+  {q:'Welcher Vogel legt die größten Eier?',a:['Strauß','Adler','Pinguin','Emu'],k:0},
+  {q:'Welcher Vogel singt nachts?',a:['Nachtigall','Eule','Krähe','Spatz'],k:0},
+  {q:'Welcher Vogel ist das Wahrzeichen der USA?',a:['Weißkopfseeadler','Falke','Bussard','Taube'],k:0},
+  {q:'Welcher Vogel hat den längsten Schnabel?',a:['Pelikan','Tukan','Storch','Reiher'],k:0},
+  {q:'Welche Vögel können rückwärts fliegen?',a:['Kolibris','Spatzen','Eulen','Falken'],k:0},
+  {q:'Welcher Vogel baut das größte Nest?',a:['Webervogel','Adler','Schwalbe','Storch'],k:0}
+];
+let vogelState={idx:0,score:0,pool:[]};
+function buildVogelQuiz(){
+  const w=$('vogel-quiz-window');if(!w)return;
+  w.dataset.title='Vogel-Quiz';w.dataset.icon='🐦';
+  if(!vogelState.pool.length)vogelState.pool=VOGEL_QUIZ.slice().sort(()=>Math.random()-.5).slice(0,6);
+  if(vogelState.idx>=vogelState.pool.length){
+    w.innerHTML='<div class="card" style="text-align:center;padding:30px"><div style="font-size:64px">🏆</div><div class="big" style="font-size:38px;margin:14px 0">'+vogelState.score+'/'+vogelState.pool.length+'</div><button class="os-btn primary" style="margin-top:14px;padding:14px 30px" onclick="HalDoVogelQuiz.restart()">🔄 Nochmal</button></div>';
+    return;
+  }
+  const q=vogelState.pool[vogelState.idx];
+  w.innerHTML='<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+vogelState.score+'/'+(vogelState.idx+1)+'</div><div class="lbl">Punkte</div></div>'+
+    '<div class="card" style="padding:20px"><div style="font-size:17px;font-weight:900;color:#fff;line-height:1.5;margin-bottom:18px">'+esc(q.q)+'</div>'+
+    q.a.map((a,i)=>'<button class="os-btn" style="width:100%;padding:14px;margin-bottom:8px;font-size:14px;text-align:left;justify-content:flex-start" onclick="HalDoVogelQuiz.answer('+i+')">'+esc(a)+'</button>').join('')+'</div>';
+}
+window.HalDoVogelQuiz={answer(i){if(i===vogelState.pool[vogelState.idx].k)vogelState.score++;vogelState.idx++;buildVogelQuiz()},restart(){vogelState={idx:0,score:0,pool:[]};buildVogelQuiz()}};
+
+// ═══ 11. BAUM QUIZ ═══
+const BAUM_QUIZ=[
+  {q:'Welcher Baum ist der höchste der Welt?',a:['Mammutbaum','Eiche','Kiefer','Buche'],k:0},
+  {q:'Welcher Baum hat Nadeln?',a:['Fichte','Birke','Ahorn','Eiche'],k:0},
+  {q:'Welcher Baum trägt Eicheln?',a:['Eiche','Buche','Kastanie','Walnuss'],k:0},
+  {q:'Welcher Baum hat weiße Rinde?',a:['Birke','Buche','Pappel','Ahorn'],k:0},
+  {q:'Welcher Baum ist immergrün?',a:['Tanne','Birke','Ahorn','Lärche'],k:0},
+  {q:'Wie hoch kann eine Eiche werden?',a:['40m','10m','80m','20m'],k:0},
+  {q:'Welcher Baum wird für Ahornsirup genutzt?',a:['Zuckerahorn','Eiche','Buche','Esche'],k:0},
+  {q:'Welcher Baum hat herzförmige Blätter?',a:['Lindе','Eiche','Kiefer','Pappel'],k:0}
+];
+let baumState={idx:0,score:0,pool:[]};
+function buildBaumQuiz(){
+  const w=$('baum-quiz-window');if(!w)return;
+  w.dataset.title='Baum-Quiz';w.dataset.icon='🌳';
+  if(!baumState.pool.length)baumState.pool=BAUM_QUIZ.slice().sort(()=>Math.random()-.5).slice(0,6);
+  if(baumState.idx>=baumState.pool.length){
+    w.innerHTML='<div class="card" style="text-align:center;padding:30px"><div style="font-size:64px">🏆</div><div class="big" style="font-size:38px;margin:14px 0">'+baumState.score+'/'+baumState.pool.length+'</div><button class="os-btn primary" style="margin-top:14px;padding:14px 30px" onclick="HalDoBaumQuiz.restart()">🔄 Nochmal</button></div>';
+    return;
+  }
+  const q=baumState.pool[baumState.idx];
+  w.innerHTML='<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+baumState.score+'/'+(baumState.idx+1)+'</div><div class="lbl">Punkte</div></div>'+
+    '<div class="card" style="padding:20px"><div style="font-size:17px;font-weight:900;color:#fff;line-height:1.5;margin-bottom:18px">'+esc(q.q)+'</div>'+
+    q.a.map((a,i)=>'<button class="os-btn" style="width:100%;padding:14px;margin-bottom:8px;font-size:14px;text-align:left;justify-content:flex-start" onclick="HalDoBaumQuiz.answer('+i+')">'+esc(a)+'</button>').join('')+'</div>';
+}
+window.HalDoBaumQuiz={answer(i){if(i===baumState.pool[baumState.idx].k)baumState.score++;baumState.idx++;buildBaumQuiz()},restart(){baumState={idx:0,score:0,pool:[]};buildBaumQuiz()}};
+
+// ═══ 12. KNOBELN (Rätsel) ═══
+const RIDDLES=[
+  {q:'Was hat Zähne, kann aber nicht beißen?',a:['Der Kamm','Die Säge','Das Baby','Der Hund'],k:0},
+  {q:'Was geht über Flüsse, wird aber nicht nass?',a:['Die Brücke','Das Schiff','Der Fisch','Das Boot'],k:0},
+  {q:'Was ist voller Löcher und hält trotzdem Wasser?',a:['Der Schwamm','Der Käse','Der Eimer','Die Hand'],k:0},
+  {q:'Was hat einen Kopf und einen Fuß, kann aber nicht denken?',a:['Das Bett','Der Nagel','Die Puppe','Der Baum'],k:0},
+  {q:'Was wird größer, je mehr man davon wegnimmt?',a:['Ein Loch','Ein Kuchen','Ein Berg','Ein See'],k:0},
+  {q:'Was hört man, wenn man spricht, sieht es aber nicht?',a:['Das Echo','Den Wind','Den Schatten','Die Musik'],k:0},
+  {q:'Was kann durch Wände gehen ohne eine Tür?',a:['Der Schall','Der Wind','Das Licht','Die Katze'],k:0},
+  {q:'Was hat 88 Tasten und klingt?',a:['Das Klavier','Die Gitarre','Der Computer','Die Trommel'],k:0},
+  {q:'Was ist unsichtbar und macht trotzdem Geräusche?',a:['Die Luft','Das Wasser','Der Stein','Das Feuer'],k:0},
+  {q:'Was liegt immer vor dir, aber du siehst es nicht?',a:['Die Zukunft','Die Vergangenheit','Der Himmel','Die Erde'],k:0}
+];
+let riddleState={idx:0,score:0,pool:[]};
+function buildRiddles(){
+  const w=$('riddles-window');if(!w)return;
+  w.dataset.title='Rätsel';w.dataset.icon='🧩';
+  if(!riddleState.pool.length)riddleState.pool=RIDDLES.slice().sort(()=>Math.random()-.5).slice(0,8);
+  if(riddleState.idx>=riddleState.pool.length){
+    w.innerHTML='<div class="card" style="text-align:center;padding:30px"><div style="font-size:64px">🧩</div><div class="big" style="font-size:38px;margin:14px 0">'+riddleState.score+'/'+riddleState.pool.length+'</div><button class="os-btn primary" style="margin-top:14px;padding:14px 30px" onclick="HalDoRiddles.restart()">🔄 Nochmal</button></div>';
+    return;
+  }
+  const q=riddleState.pool[riddleState.idx];
+  w.innerHTML='<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+riddleState.score+'/'+(riddleState.idx+1)+'</div><div class="lbl">Gelöst</div></div>'+
+    '<div class="card" style="text-align:center;padding:30px"><div style="font-size:60px">🧩</div><div style="font-size:18px;font-weight:900;color:#fff;line-height:1.5;margin:16px 0">'+esc(q.q)+'</div></div>'+
+    q.a.map((a,i)=>'<button class="os-btn" style="width:100%;padding:14px;margin-bottom:8px;font-size:14px;text-align:left;justify-content:flex-start" onclick="HalDoRiddles.answer('+i+')">'+esc(a)+'</button>').join('');
+}
+window.HalDoRiddles={answer(i){if(i===riddleState.pool[riddleState.idx].k)riddleState.score++;riddleState.idx++;buildRiddles()},restart(){riddleState={idx:0,score:0,pool:[]};buildRiddles()}};
+
+// ═══ 13. LOGIK-QUIZ ═══
+const LOGIC_QUIZ=[
+  {q:'Was kommt nach: 2, 4, 8, 16, ...?',a:['32','24','20','64'],k:0},
+  {q:'Was kommt nach: 1, 1, 2, 3, 5, 8, ...?',a:['13','11','10','15'],k:0},
+  {q:'Was kommt nach: 1, 4, 9, 16, 25, ...?',a:['36','30','42','49'],k:0},
+  {q:'Alle Rosen sind Blumen. Einige Blumen welken schnell. Also?',a:['Einige Rosen welken evtl. schnell','Alle Rosen welken schnell','Keine Rose welkt','Alle Blumen sind Rosen'],k:0},
+  {q:'Was kommt nach: 3, 6, 12, 24, ...?',a:['48','36','30','96'],k:0},
+  {q:'Was kommt nach: 100, 50, 25, 12.5, ...?',a:['6.25','8','10','5'],k:0},
+  {q:'Was kommt nach: Z, Y, X, W, ...?',a:['V','U','T','S'],k:0},
+  {q:'A ist größer als B. B ist größer als C. Also?',a:['A ist größer als C','C ist größer als A','A = C','Unklar'],k:0}
+];
+let logicState={idx:0,score:0,pool:[]};
+function buildLogic(){
+  const w=$('logic-window');if(!w)return;
+  w.dataset.title='Logik-Quiz';w.dataset.icon='🧠';
+  if(!logicState.pool.length)logicState.pool=LOGIC_QUIZ.slice().sort(()=>Math.random()-.5).slice(0,6);
+  if(logicState.idx>=logicState.pool.length){
+    w.innerHTML='<div class="card" style="text-align:center;padding:30px"><div style="font-size:64px">🧠</div><div class="big" style="font-size:38px;margin:14px 0">'+logicState.score+'/'+logicState.pool.length+'</div><button class="os-btn primary" style="margin-top:14px;padding:14px 30px" onclick="HalDoLogic.restart()">🔄 Nochmal</button></div>';
+    return;
+  }
+  const q=logicState.pool[logicState.idx];
+  w.innerHTML='<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+logicState.score+'/'+(logicState.idx+1)+'</div><div class="lbl">Punkte</div></div>'+
+    '<div class="card" style="padding:20px"><div style="font-size:17px;font-weight:900;color:#fff;line-height:1.5;margin-bottom:18px">'+esc(q.q)+'</div>'+
+    q.a.map((a,i)=>'<button class="os-btn" style="width:100%;padding:14px;margin-bottom:8px;font-size:14px;text-align:left;justify-content:flex-start" onclick="HalDoLogic.answer('+i+')">'+esc(a)+'</button>').join('')+'</div>';
+}
+window.HalDoLogic={answer(i){if(i===logicState.pool[logicState.idx].k)logicState.score++;logicState.idx++;buildLogic()},restart(){logicState={idx:0,score:0,pool:[]};buildLogic()}};
+
+// ═══ 14. ZAHLEN RATEN ═══
+let guessState={target:0,min:1,max:100,tries:0,history:[],range:[1,100],done:false};
+function newGuess(){guessState.target=Math.floor(Math.random()*100)+1;guessState.tries=0;guessState.history=[];guessState.range=[1,100];guessState.done=false}
+function buildGuess(){
+  const w=$('guess-window');if(!w)return;
+  w.dataset.title='Zahlen raten';w.dataset.icon='🔢';
+  if(!guessState.target)newGuess();
+  const hist=guessState.history.map(h=>'<div style="display:flex;justify-content:space-between;padding:8px 12px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:4px;font-size:13px"><b style="color:#fff">'+h.n+'</b><span style="color:'+h.c+'">'+h.r+'</span></div>').join('');
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:20px">'+
+    '<div style="font-size:11px;color:#88ccff;text-transform:uppercase;letter-spacing:2px;font-weight:800">Rate die Zahl</div>'+
+    '<div style="font-size:36px;font-weight:900;color:#00e5ff;margin:10px 0;font-family:monospace">'+guessState.range[0]+' – '+guessState.range[1]+'</div>'+
+    '<div style="font-size:12px;color:#88ccff">Versuche: '+guessState.tries+'</div>'+
+    '</div>'+
+    (guessState.done?'<div class="card" style="text-align:center;background:linear-gradient(135deg,rgba(0,255,136,.2),rgba(0,229,255,.15))"><div style="font-size:48px">🎉</div><div style="font-size:18px;font-weight:900;color:#fff;margin-top:8px">Richtig in '+guessState.tries+' Versuchen!</div><button class="os-btn primary full" style="margin-top:14px" onclick="HalDoGuess.new()">🔄 Neu</button></div>':
+    '<div class="card"><input class="os-input" id="guessIn" type="number" placeholder="Deine Zahl..." style="font-size:18px;text-align:center;margin-bottom:8px" onkeypress="if(event.key===\'Enter\')HalDoGuess.guess()"><button class="os-btn primary full" onclick="HalDoGuess.guess()">✓ Raten</button></div>')+
+    (hist?'<div class="card"><div class="lbl" style="margin-bottom:6px">📋 Versuche</div>'+hist+'</div>':'');
+}
+window.HalDoGuess={
+  guess(){
+    const n=parseInt($('guessIn').value);if(!n||n<1||n>100)return;
+    guessState.tries++;
+    if(n===guessState.target){guessState.history.unshift({n,r:'✅ Richtig!',c:'#00ff88'});guessState.done=true;if(navigator.vibrate)navigator.vibrate([20,50,20,50,100])}
+    else if(n<guessState.target){guessState.history.unshift({n,r:'⬆️ Höher',c:'#ffc800'});guessState.range[0]=Math.max(guessState.range[0],n+1)}
+    else{guessState.history.unshift({n,r:'⬇️ Niedriger',c:'#00e5ff'});guessState.range[1]=Math.min(guessState.range[1],n-1)}
+    buildGuess();
+    setTimeout(()=>{const inp=$('guessIn');if(inp)inp.value=''},10);
+  },
+  new(){newGuess();buildGuess()}
+};
+
+// ═══ INIT ═══
+function init(){
+  if(window.HalDoUI){
+    const orig=window.HalDoUI.rebuild;
+    window.HalDoUI.rebuild=function(id){
+      if(id==='chess-window'){buildChess();return}
+      if(id==='checkers-window'){buildCheckers();return}
+      if(id==='solitaire-window'){buildSolitaire();return}
+      if(id==='scramble-window'){buildScramble();return}
+      if(id==='anagram-window'){buildAnagram();return}
+      if(id==='quiz-mix-window'){buildQuizMix();return}
+      if(id==='flag-quiz-window'){buildFlagQuiz();return}
+      if(id==='wappen-window'){buildWappen();return}
+      if(id==='tier-quiz-window'){buildTierQuiz();return}
+      if(id==='vogel-quiz-window'){buildVogelQuiz();return}
+      if(id==='baum-quiz-window'){buildBaumQuiz();return}
+      if(id==='riddles-window'){buildRiddles();return}
+      if(id==='logic-window'){buildLogic();return}
+      if(id==='guess-window'){buildGuess();return}
+      if(orig)orig(id);
+    };
+  }
+  ['chess-window','checkers-window','solitaire-window','scramble-window','anagram-window','quiz-mix-window','flag-quiz-window','wappen-window','tier-quiz-window','vogel-quiz-window','baum-quiz-window','riddles-window','logic-window','guess-window'].forEach(id=>{
+    let el=$(id);if(!el){el=document.createElement('div');el.id=id;document.body.appendChild(el)}
+    if(window.prepareWindow) window.prepareWindow(el);
+  });
+  console.log('%c🚀 v145 – 14 Apps geladen','color:#00ff88;font-weight:bold;font-size:14px');
+  console.log('%c✅ Schach · Dame · Solitär · Wörter · Anagramme · Quiz-Mix · Flaggen · Wappen · Tier · Vogel · Baum · Rätsel · Logik · Zahlenraten','color:#4da8ff;font-weight:bold');
+}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>setTimeout(init,1000))}else{setTimeout(init,1000)}
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════ ENDE v145 ═════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v146 – 14 APPS (Yahtzee · Bingo · Blackjack · Traum · Tagebuch+ · Wichtige Daten · Safe · KFZ · Hauptstädte · Europa · Planeten · Chemie · Mathe-Quiz · Wortsuche) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+"use strict";
+if(window.__v146) return;
+window.__v146 = true;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const store=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const todayK=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+
+// ═══ 1. YAHTZEE ═══
+let yahtzeeState={dice:[0,0,0,0,0],held:[false,false,false,false,false],rolls:3,score:0,round:1};
+function buildYahtzee(){
+  const w=$('yahtzee-window');if(!w)return;
+  w.dataset.title='Yahtzee';w.dataset.icon='🎲';
+  const diceHtml=yahtzeeState.dice.map((d,i)=>'<div style="aspect-ratio:1;background:'+(yahtzeeState.held[i]?'linear-gradient(135deg,#00e5ff,#00ff88)':'rgba(0,30,60,.6)')+';border:2px solid '+(yahtzeeState.held[i]?'#fff':'var(--border)')+';border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:900;color:#fff;cursor:pointer" onclick="HalDoYahtzee.hold('+i+')">'+(d||'?')+'</div>').join('');
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px">'+yahtzeeState.score+'</div><div class="lbl">Score</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px">'+yahtzeeState.rolls+'</div><div class="lbl">Würfe übrig</div></div>'+
+    '</div>'+
+    '<div class="card" style="padding:12px"><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">'+diceHtml+'</div></div>'+
+    '<button class="os-btn primary full" style="padding:16px;font-size:15px" onclick="HalDoYahtzee.roll()" '+(yahtzeeState.rolls<=0?'disabled style="opacity:.5"':'')+'>🎲 Würfeln ('+yahtzeeState.rolls+')</button>'+
+    '<button class="os-btn danger full" style="margin-top:8px" onclick="HalDoYahtzee.reset()">🔄 Neues Spiel</button>'+
+    '<div class="card" style="margin-top:10px"><div style="font-size:11px;color:#aaddff;line-height:1.6;text-align:center">🎲 Klicke Würfel zum Behalten<br>3 Würfe · Bestes Ergebnis zählt</div></div>';
+}
+window.HalDoYahtzee={
+  roll(){
+    if(yahtzeeState.rolls<=0)return;
+    for(let i=0;i<5;i++)if(!yahtzeeState.held[i])yahtzeeState.dice[i]=Math.floor(Math.random()*6)+1;
+    yahtzeeState.rolls--;
+    // Score: Summe gleicher Würfel
+    const counts={};yahtzeeState.dice.forEach(d=>counts[d]=(counts[d]||0)+1);
+    const max=Math.max(...Object.values(counts));
+    if(max>=3)yahtzeeState.score=yahtzeeState.dice.reduce((a,b)=>a+b,0);
+    if(yahtzeeState.rolls===0){const s=yahtzeeState.dice.reduce((a,b)=>a+b,0);if(s>yahtzeeState.score)yahtzeeState.score=s}
+    if(navigator.vibrate)navigator.vibrate(15);
+    buildYahtzee();
+  },
+  hold(i){yahtzeeState.held[i]=!yahtzeeState.held[i];buildYahtzee()},
+  reset(){yahtzeeState={dice:[0,0,0,0,0],held:[false,false,false,false,false],rolls:3,score:0,round:1};buildYahtzee()}
+};
+
+// ═══ 2. BINGO ═══
+let bingoState={card:[],called:[],marked:[]};
+function buildBingo(){
+  const w=$('bingo-window');if(!w)return;
+  w.dataset.title='Bingo';w.dataset.icon='🎯';
+  if(!bingoState.card.length){
+    const nums=[...Array(25)].map((_,i)=>i+1).sort(()=>Math.random()-.5);
+    bingoState.card=nums;
+  }
+  const calledSet=new Set(bingoState.called);
+  const grid=bingoState.card.map((n,i)=>{
+    const marked=bingoState.marked.includes(i);
+    const wasCalled=calledSet.has(n);
+    return '<div style="aspect-ratio:1;background:'+(marked?'linear-gradient(135deg,#00ff88,#00e5ff)':'rgba(0,30,60,.5)')+';border:2px solid '+(wasCalled?'#fff':'var(--border)')+';border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:'+(marked?'#001018':'#fff')+';cursor:pointer" onclick="HalDoBingo.toggle('+i+')">'+n+'</div>';
+  }).join('');
+  w.innerHTML=
+    '<div class="card"><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">'+grid+'</div></div>'+
+    '<div class="card"><button class="os-btn primary full" style="padding:16px;font-size:15px" onclick="HalDoBingo.call()">🎲 Zahl ziehen ('+bingoState.called.length+'/'+bingoState.card.length+')</button>'+
+    (bingoState.called.length?'<div style="font-size:11px;color:#88ccff;margin-top:10px">Zuletzt gezogen: '+bingoState.called.slice(-5).reverse().join(', ')+'</div>':'')+
+    '</div>'+
+    '<button class="os-btn danger full" onclick="HalDoBingo.reset()">🔄 Neues Spiel</button>';
+}
+window.HalDoBingo={
+  call(){
+    const remaining=bingoState.card.filter(n=>!bingoState.called.includes(n));
+    if(!remaining.length)return;
+    bingoState.called.push(remaining[Math.floor(Math.random()*remaining.length)]);
+    if(navigator.vibrate)navigator.vibrate(15);
+    buildBingo();
+  },
+  toggle(i){const idx=bingoState.marked.indexOf(i);if(idx>=0)bingoState.marked.splice(idx,1);else bingoState.marked.push(i);buildBingo()},
+  reset(){bingoState={card:[],called:[],marked:[]};buildBingo()}
+};
+
+// ═══ 3. BLACKJACK ═══
+let bjState={player:[],dealer:[],deck:[],state:'ready',score:0};
+function buildBlackjack(){
+  const w=$('blackjack-window');if(!w)return;
+  w.dataset.title='Blackjack';w.dataset.icon='♠️';
+  const val=(hand)=>hand.reduce((s,c)=>s+(c.v==='A'?11:['J','Q','K'].includes(c.v)?10:parseInt(c.v)),0);
+  const cardHtml=(c)=>'<div style="display:inline-block;padding:12px 8px;background:#fff;color:#000;border-radius:8px;margin:4px;font-size:20px;font-weight:900;min-width:44px;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,.5)">'+(c.v===1||c.v==='A'?'A':c.v===11?'J':c.v===12?'Q':c.v===13?'K':c.v)+'<span style="color:'+(c.s==='h'||c.s==='d'?'#ff4466':'#000')+'">'+(c.s==='h'?'♥':c.s==='d'?'♦':c.s==='s'?'♠':'♣')+'</span></div>').join('');
+  const pv=val(bjState.player),dv=val(bjState.dealer);
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+bjState.score+'</div><div class="lbl">Gewinne</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+(bjState.player.length?pv:'–')+'</div><div class="lbl">Deine Summe</div></div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">🎴 Dealer '+(bjState.state==='ready'?'':('('+dv+')'))+'</div>'+
+    '<div style="min-height:80px">'+cardHtml(bjState.dealer)+(bjState.state!=='playing'&&bjState.dealer.length?'':'')+'</div></div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">👤 Deine Karten ('+pv+')</div>'+
+    '<div style="min-height:80px">'+cardHtml(bjState.player)+'</div></div>'+
+    (bjState.state==='ready'?'<button class="os-btn primary full" style="padding:16px;font-size:15px" onclick="HalDoBJ.start()">🃏 Spiel starten</button>':
+     bjState.state==='playing'?'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+     '<button class="os-btn primary" style="padding:16px;font-size:15px" onclick="HalDoBJ.hit()">➕ Karte</button>'+
+     '<button class="os-btn" style="padding:16px;font-size:15px;background:linear-gradient(135deg,#ffc800,#ff8838);color:#1a1000" onclick="HalDoBJ.stand()">✋ Halten</button>'+
+     '</div>':
+     bjState.state==='win'?'<div class="card" style="text-align:center;background:linear-gradient(135deg,rgba(0,255,136,.2),rgba(0,229,255,.15))"><div style="font-size:64px">🎉</div><div style="font-size:20px;font-weight:900;color:#fff">Gewonnen!</div><button class="os-btn primary full" style="margin-top:14px" onclick="HalDoBJ.start()">🔄 Nochmal</button></div>':
+     '<div class="card" style="text-align:center;background:linear-gradient(135deg,rgba(255,68,102,.2),rgba(180,120,255,.15))"><div style="font-size:64px">😅</div><div style="font-size:20px;font-weight:900;color:#fff">Verloren</div><button class="os-btn primary full" style="margin-top:14px" onclick="HalDoBJ.start()">🔄 Nochmal</button></div>')+
+    (bjState.state==='playing'||bjState.state==='ready'?'':'<button class="os-btn danger full" style="margin-top:8px" onclick="HalDoBJ.reset()">↺ Reset</button>');
+}
+function bjNewDeck(){const suits=['s','h','d','c'];const deck=[];for(const s of suits)for(let v=1;v<=13;v++)deck.push({s,v});return deck.sort(()=>Math.random()-.5)}
+function bjVal(hand){let sum=hand.reduce((s,c)=>s+(c.v===1?11:['J','Q','K'].includes(c.v)?10:c.v),0);let aces=hand.filter(c=>c.v===1).length;while(sum>21&&aces>0){sum-=10;aces--}return sum}
+window.HalDoBJ={
+  start(){const deck=bjNewDeck();bjState={player:[deck.pop(),deck.pop()],dealer:[deck.pop(),deck.pop()],deck,state:'playing',score:bjState.score};buildBlackjack()},
+  hit(){bjState.player.push(bjState.deck.pop());if(bjVal(bjState.player)>21){bjState.state='lose';if(navigator.vibrate)navigator.vibrate([50,50,50])}buildBlackjack()},
+  stand(){
+    while(bjVal(bjState.dealer)<17)bjState.dealer.push(bjState.deck.pop());
+    const pv=bjVal(bjState.player),dv=bjVal(bjState.dealer);
+    if(dv>21||pv>dv){bjState.state='win';bjState.score++;if(navigator.vibrate)navigator.vibrate([20,50,20])}else bjState.state='lose';
+    buildBlackjack();
+  },
+  reset(){bjState={player:[],dealer:[],deck:[],state:'ready',score:0};buildBlackjack()}
+};
+
+// ═══ 4. TRAUMTAGEBUCH ═══
+window.HalDoDreams={
+  key:'haldo_dreams_v1',
+  all(){return store(this.key,[])},
+  add(title,text,mood,lucid){const l=this.all();l.unshift({id:uid('dr_'),title,text,mood:mood||'neutral',lucid:!!lucid,date:todayK(),ts:Date.now()});save(this.key,l.slice(0,200));return l[0].id},
+  remove(id){save(this.key,this.all().filter(d=>d.id!==id))}
+};
+let dreamState={mood:'neutral',lucid:false};
+function buildDreams(){
+  const w=$('dreams-window');if(!w)return;
+  w.dataset.title='Traumtagebuch';w.dataset.icon='💭';
+  const all=HalDoDreams.all();
+  const moods=[{k:'neutral',e:'🌙',n:'Neutral'},{k:'good',e:'😊',n:'Schön'},{k:'bad',e:'😨',n:'Albtraum'},{k:'weird',e:'🤔',n:'Seltsam'},{k:'funny',e:'😂',n:'Lustig'}];
+  const moodBtns=moods.map(m=>'<button class="os-btn '+(dreamState.mood===m.k?'primary':'')+'" style="padding:10px 4px;font-size:18px;flex:1;min-width:44px" onclick="HalDoDreamsApp.setMood(\''+m.k+'\')">'+m.e+'</button>').join('');
+  const list=all.slice(0,20).map(d=>{const m=moods.find(x=>x.k===d.mood)||moods[0];
+    return '<div class="card" style="padding:12px;display:flex;gap:10px;align-items:flex-start">'+
+      '<div style="font-size:28px">'+m.e+'</div>'+
+      '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800;color:#fff">'+esc(d.title)+'</div>'+
+      '<div style="font-size:11px;color:#aaddff;line-height:1.5;margin-top:4px">'+esc(d.text.slice(0,140))+'</div>'+
+      '<div style="font-size:10px;color:#5a8ab0;margin-top:6px">'+new Date(d.ts).toLocaleString('de-DE',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})+(d.lucid?' · 🌟 Klartraum':'')+'</div></div>'+
+      '<button class="os-btn danger" style="padding:4px 8px;font-size:10px" onclick="if(confirm(\'Löschen?\')){HalDoDreams.remove(\''+d.id+'\');HalDoDreamsApp.rebuild()}">✕</button>'+
+      '</div>';
+  }).join('');
+  w.innerHTML=
+    '<div class="card">'+
+    '<input class="os-input" id="drTitle" placeholder="Titel des Traums" style="margin-bottom:6px">'+
+    '<textarea class="os-textarea" id="drText" placeholder="Was hast du geträumt?" style="min-height:120px;margin-bottom:8px"></textarea>'+
+    '<div class="lbl" style="margin-bottom:6px">Stimmung</div>'+
+    '<div style="display:flex;gap:4px;margin-bottom:8px">'+moodBtns+'</div>'+
+    '<label style="display:flex;align-items:center;gap:8px;color:#e6f4ff;font-size:13px;margin-bottom:8px"><input type="checkbox" '+(dreamState.lucid?'checked':'')+' onchange="HalDoDreamsApp.toggleLucid()"> 🌟 Klartraum</label>'+
+    '<button class="os-btn primary full" onclick="HalDoDreamsApp.add()">💭 Traum speichern</button>'+
+    '</div>'+
+    (all.length?'<div class="lbl" style="margin:14px 0 8px">💭 '+all.length+' Träume</div>'+list:'<div class="empty"><div class="ei">💭</div><div class="et">Noch keine Träume</div></div>');
+}
+window.HalDoDreamsApp={
+  setMood(m){dreamState.mood=m;buildDreams()},
+  toggleLucid(){dreamState.lucid=!dreamState.lucid;buildDreams()},
+  add(){const t=$('drTitle').value.trim(),x=$('drText').value.trim();if(!t&&!x)return;HalDoDreams.add(t||'Traum',x,dreamState.mood,dreamState.lucid);$('drTitle').value='';$('drText').value='';dreamState.lucid=false;buildDreams();if(window.showToast)showToast('💭 Gespeichert','success')},
+  rebuild(){buildDreams()}
+};
+
+// ═══ 5. TAGEBUCH+ (Vorlagen) ═══
+window.HalDoDiaryPlus={
+  key:'haldo_diaryplus_v1',
+  all(){return store(this.key,[])},
+  add(template,title,text){const l=this.all();l.unshift({id:uid('dp_'),template,title,text,date:todayK(),ts:Date.now()});save(this.key,l.slice(0,200));return l[0].id},
+  remove(id){save(this.key,this.all().filter(d=>d.id!==id))}
+};
+const DIARY_TEMPLATES={
+  daily:{n:'📅 Täglicher Eintrag',t:'Datum: \n\nHeute war...\n\nDrei Dinge, die gut liefen:\n1. \n2. \n3. \n\nWas ich gelernt habe:\n\nMorgen möchte ich:'},
+  gratitude:{n:'🙏 Dankbarkeit',t:'Ich bin dankbar für:\n1. \n2. \n3. \n\nEine Person, die heute toll war:\n\nEin Moment, der mich zum Lächeln brachte:'},
+  reflection:{n:'🪞 Selbstreflexion',t:'Was beschäftigt mich gerade?\n\n\nWas kann ich ändern?\n\n\nWas möchte ich loslassen?\n\n\nWas läuft gut?'},
+  goal:{n:'🎯 Ziel-Review',t:'Mein Ziel:\n\nFortschritt diese Woche:\n\nWas hat funktioniert:\n\nWas hat nicht funktioniert:\n\nNächster Schritt:'},
+  free:{n:'📝 Freies Schreiben',t:''}
+};
+let diaryPlusState={template:'daily'};
+function buildDiaryPlus(){
+  const w=$('diaryplus-window');if(!w)return;
+  w.dataset.title='Tagebuch Pro';w.dataset.icon='📔';
+  const all=HalDoDiaryPlus.all();
+  const tempChips=Object.entries(DIARY_TEMPLATES).map(([k,v])=>'<button class="os-btn '+(diaryPlusState.template===k?'primary':'')+'" style="padding:8px 12px;font-size:11px;white-space:nowrap" onclick="HalDoDiaryPlusApp.set(\''+k+'\')">'+v.n+'</button>').join('');
+  const list=all.slice(0,15).map(d=>'<div class="card" style="padding:12px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'+
+    '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800;color:#fff">'+esc(d.title||'(Ohne Titel)')+'</div>'+
+    '<div style="font-size:11px;color:#aaddff;line-height:1.5;margin-top:4px">'+esc(d.text.slice(0,140))+'</div>'+
+    '<div style="font-size:10px;color:#5a8ab0;margin-top:6px">'+d.date+' · '+DIARY_TEMPLATES[d.template]?.n+'</div></div>'+
+    '<button class="os-btn danger" style="padding:4px 8px;font-size:10px" onclick="if(confirm(\'Löschen?\')){HalDoDiaryPlus.remove(\''+d.id+'\');HalDoDiaryPlusApp.rebuild()}">✕</button>'+
+    '</div></div>').join('');
+  w.innerHTML=
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">📋 Vorlage</div>'+
+    '<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:8px">'+tempChips+'</div>'+
+    '<input class="os-input" id="dpTitle" placeholder="Titel" style="margin-bottom:6px">'+
+    '<textarea class="os-textarea" id="dpText" style="min-height:200px;margin-bottom:8px" placeholder="...">'+esc(DIARY_TEMPLATES[diaryPlusState.template].t)+'</textarea>'+
+    '<button class="os-btn primary full" onclick="HalDoDiaryPlusApp.add()">📔 Speichern</button>'+
+    '</div>'+
+    (all.length?'<div class="lbl" style="margin:14px 0 8px">📚 '+all.length+' Einträge</div>'+list:'<div class="empty"><div class="ei">📔</div><div class="et">Noch keine Einträge</div></div>');
+}
+window.HalDoDiaryPlusApp={
+  set(t){diaryPlusState.template=t;buildDiaryPlus()},
+  add(){const t=$('dpTitle').value.trim(),x=$('dpText').value.trim();if(!t&&!x)return;HalDoDiaryPlus.add(diaryPlusState.template,t,x);$('dpTitle').value='';buildDiaryPlus();if(window.showToast)showToast('📔 Gespeichert','success')},
+  rebuild(){buildDiaryPlus()}
+};
+
+// ═══ 6. WICHTIGE DATEN ═══
+window.HalDoDates={
+  key:'haldo_dates_v1',
+  all(){return store(this.key,[])},
+  add(title,date,type,note){const l=this.all();l.push({id:uid('dt_'),title,date,type:type||'other',note:note||'',created:Date.now()});save(this.key,l);return l[0].id},
+  remove(id){save(this.key,this.all().filter(d=>d.id!==id))}
+};
+function buildDates(){
+  const w=$('dates-window');if(!w)return;
+  w.dataset.title='Wichtige Daten';w.dataset.icon='📅';
+  const all=HalDoDates.all();
+  const today=new Date();today.setHours(0,0,0,0);
+  const types={birthday:{n:'🎂',c:'#ff78c8'},anniversary:{n:'💑',c:'#ff4466'},exam:{n:'📝',c:'#ffc800'},work:{n:'💼',c:'#00e5ff'},medical:{n:'💊',c:'#00ff88'},other:{n:'📅',c:'#b478ff'}};
+  const sorted=all.map(d=>{const dt=new Date(d.date+'T12:00:00');const days=Math.round((dt-today)/86400000);return {...d,days}}).sort((a,b)=>Math.abs(a.days)-Math.abs(b.days));
+  const list=sorted.length?sorted.map(d=>{const t=types[d.type]||types.other;const isPast=d.days<0;
+    return '<div class="card" style="padding:12px;border-left:4px solid '+t.c+'">'+
+      '<div style="display:flex;gap:10px;align-items:center">'+
+      '<div style="font-size:26px">'+t.n+'</div>'+
+      '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800;color:#fff">'+esc(d.title)+'</div>'+
+      '<div style="font-size:11px;color:'+t.c+';font-weight:800;margin-top:2px">'+d.date+' '+(isPast?'· war vor '+Math.abs(d.days)+' Tagen':'· in '+d.days+' Tagen')+'</div>'+
+      (d.note?'<div style="font-size:11px;color:#aaddff;margin-top:4px">'+esc(d.note)+'</div>':'')+'</div>'+
+      '<button class="os-btn danger" style="padding:6px 8px;font-size:11px" onclick="if(confirm(\'Löschen?\')){HalDoDates.remove(\''+d.id+'\');HalDoDatesApp.rebuild()}">✕</button>'+
+      '</div></div>';
+  }).join(''):'<div class="empty"><div class="ei">📅</div><div class="et">Keine wichtigen Daten</div></div>';
+  w.innerHTML=
+    '<div class="card">'+
+    '<input class="os-input" id="dtTitle" placeholder="Was ist wichtig?" style="margin-bottom:6px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'+
+    '<input class="os-input" id="dtDate" type="date" value="'+todayK()+'">'+
+    '<select class="os-select" id="dtType">'+Object.entries(types).map(([k,v])=>'<option value="'+k+'">'+v.n+' '+k+'</option>').join('')+'</select>'+
+    '</div>'+
+    '<input class="os-input" id="dtNote" placeholder="Notiz (optional)" style="margin-bottom:8px">'+
+    '<button class="os-btn primary full" onclick="HalDoDatesApp.add()">📅 Hinzufügen</button>'+
+    '</div>'+
+    list;
+}
+window.HalDoDatesApp={
+  add(){const t=$('dtTitle').value.trim();if(!t)return;HalDoDates.add(t,$('dtDate').value,$('dtType').value,$('dtNote').value);$('dtTitle').value='';$('dtNote').value='';buildDates();if(window.showToast)showToast('📅 Hinzugefügt','success')},
+  rebuild(){buildDates()}
+};
+
+// ═══ 7. SAFE (Dokumente sicher) ═══
+window.HalDoSafe={
+  key:'haldo_safe_v1',
+  all(){return store(this.key,[])},
+  add(title,content,pin){const l=this.all();l.unshift({id:uid('sf_'),title,content,pin:pin||'',locked:!!pin,created:Date.now()});save(this.key,l);return l[0].id},
+  remove(id){save(this.key,this.all().filter(s=>s.id!==id))}
+};
+let safeState={unlocked:false};
+function buildSafe(){
+  const w=$('safe-window');if(!w)return;
+  w.dataset.title='Dokumenten-Safe';w.dataset.icon='🔒';
+  const all=HalDoSafe.all();
+  const list=all.length?all.map(s=>'<div class="card" style="padding:12px;display:flex;gap:10px;align-items:center">'+
+    '<div style="font-size:28px">'+(s.locked?'🔒':'📄')+'</div>'+
+    '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800;color:#fff">'+esc(s.title)+'</div>'+
+    '<div style="font-size:11px;color:#aaddff;line-height:1.5;margin-top:4px">'+(s.locked&&!safeState.unlocked?'🔐 Passwort geschützt':esc(s.content.slice(0,100)))+'</div>'+
+    '<div style="font-size:10px;color:#5a8ab0;margin-top:4px">'+new Date(s.created).toLocaleDateString('de-DE')+'</div>'+
+    '</div>'+
+    (s.locked&&!safeState.unlocked?'<button class="os-btn primary" style="padding:6px 10px;font-size:11px" onclick="HalDoSafeApp.unlock()">🔓</button>':'<button class="os-btn danger" style="padding:6px 8px;font-size:10px" onclick="if(confirm(\'Löschen?\')){HalDoSafe.remove(\''+s.id+'\');HalDoSafeApp.rebuild()}">✕</button>')+
+    '</div>').join(''):'<div class="empty"><div class="ei">🔒</div><div class="et">Safe ist leer</div></div>';
+  w.innerHTML=
+    '<div class="card">'+
+    '<input class="os-input" id="sfTitle" placeholder="Titel (z.B. Versicherung)" style="margin-bottom:6px">'+
+    '<textarea class="os-textarea" id="sfContent" placeholder="Inhalt..." style="min-height:120px;margin-bottom:6px"></textarea>'+
+    '<input class="os-input" id="sfPin" placeholder="PIN (leer = kein Schutz)" style="margin-bottom:8px" type="password">'+
+    '<button class="os-btn primary full" onclick="HalDoSafeApp.add()">🔒 Speichern</button>'+
+    '</div>'+
+    (safeState.unlocked?'<div class="card" style="text-align:center;background:linear-gradient(135deg,rgba(0,255,136,.15),rgba(0,229,255,.1))"><div style="font-size:12px;color:#00ff88;font-weight:800">🔓 Alle Dokumente sichtbar</div><button class="os-btn danger full" style="margin-top:8px" onclick="HalDoSafeApp.lock()">🔒 Sperren</button></div>':'')+
+    list;
+}
+window.HalDoSafeApp={
+  add(){const t=$('sfTitle').value.trim(),c=$('sfContent').value.trim(),p=$('sfPin').value;if(!t||!c)return;HalDoSafe.add(t,c,p);$('sfTitle').value='';$('sfContent').value='';$('sfPin').value='';buildSafe();if(window.showToast)showToast('🔒 Gespeichert','success')},
+  unlock(){const pin=prompt('PIN eingeben:');if(!pin)return;const all=HalDoSafe.all();const ok=all.some(s=>!s.locked||s.pin===pin);if(ok){safeState.unlocked=true;buildSafe();if(window.showToast)showToast('🔓 Entsperrt','success')}else if(window.showToast)showToast('❌ Falscher PIN','error')},
+  lock(){safeState.unlocked=false;buildSafe()},
+  rebuild(){buildSafe()}
+};
+
+// ═══ 8. KFZ-KENNZEICHEN QUIZ ═══
+const KFZ_QUIZ=[
+  {q:'Für welche Stadt steht "B"?',a:['Berlin','Bremen','Bonn','Bielefeld'],k:0},
+  {q:'Für welche Stadt steht "M"?',a:['München','Mainz','Mannheim','Magdeburg'],k:0},
+  {q:'Für welche Stadt steht "HH"?',a:['Hamburg','Hannover','Hessen','Halle'],k:0},
+  {q:'Für welche Stadt steht "K"?',a:['Köln','Kiel','Kassel','Kempten'],k:0},
+  {q:'Für welche Stadt steht "F"?',a:['Frankfurt','Freiburg','Flensburg','Fürth'],k:0},
+  {q:'Für welche Stadt steht "S"?',a:['Stuttgart','Salzburg','Saarbrücken','Siegen'],k:0},
+  {q:'Für welche Stadt steht "D"?',a:['Düsseldorf','Dortmund','Dresden','Darmstadt'],k:0},
+  {q:'Für welche Stadt steht "HB"?',a:['Bremen','Hamburg','Heidelberg','Homburg'],k:0},
+  {q:'Für welche Stadt steht "N"?',a:['Nürnberg','Norderney','Neuss','Neunkirchen'],k:0},
+  {q:'Für welche Stadt steht "L"?',a:['Leipzig','Lübeck','Leverkusen','Ludwigshafen'],k:0},
+  {q:'Für welche Stadt steht "AC"?',a:['Aachen','Augsburg','Ansbach','Aschaffenburg'],k:0},
+  {q:'Für welche Stadt steht "DO"?',a:['Dortmund','Düsseldorf','Dresden','Donauwörth'],k:0}
+];
+let kfzState={idx:0,score:0,pool:[]};
+function buildKfz(){
+  const w=$('kfz-window');if(!w)return;
+  w.dataset.title='KFZ-Quiz';w.dataset.icon='🚗';
+  if(!kfzState.pool.length)kfzState.pool=KFZ_QUIZ.slice().sort(()=>Math.random()-.5).slice(0,10);
+  if(kfzState.idx>=kfzState.pool.length){
+    w.innerHTML='<div class="card" style="text-align:center;padding:30px"><div style="font-size:64px">🏆</div><div class="big" style="font-size:38px;margin:14px 0">'+kfzState.score+'/'+kfzState.pool.length+'</div><button class="os-btn primary" style="margin-top:14px;padding:14px 30px" onclick="HalDoKfz.restart()">🔄 Nochmal</button></div>';
+    return;
+  }
+  const q=kfzState.pool[kfzState.idx];
+  w.innerHTML='<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+kfzState.score+'/'+(kfzState.idx+1)+'</div><div class="lbl">Punkte</div></div>'+
+    '<div class="card" style="padding:20px"><div style="font-size:17px;font-weight:900;color:#fff;line-height:1.5;margin-bottom:18px">'+esc(q.q)+'</div>'+
+    q.a.map((a,i)=>'<button class="os-btn" style="width:100%;padding:14px;margin-bottom:8px;font-size:14px;text-align:left;justify-content:flex-start" onclick="HalDoKfz.answer('+i+')">'+esc(a)+'</button>').join('')+'</div>';
+}
+window.HalDoKfz={answer(i){if(i===kfzState.pool[kfzState.idx].k)kfzState.score++;kfzState.idx++;buildKfz()},restart(){kfzState={idx:0,score:0,pool:[]};buildKfz()}};
+
+// ═══ 9. HAUPTSTÄDTE QUIZ ═══
+const CAPITAL_QUIZ=[
+  {q:'Hauptstadt von Australien?',a:['Canberra','Sydney','Melbourne','Perth'],k:0},
+  {q:'Hauptstadt von Kanada?',a:['Ottawa','Toronto','Vancouver','Montreal'],k:0},
+  {q:'Hauptstadt der Schweiz?',a:['Bern','Zürich','Genf','Basel'],k:0},
+  {q:'Hauptstadt von Brasilien?',a:['Brasília','Rio de Janeiro','São Paulo','Salvador'],k:0},
+  {q:'Hauptstadt der Türkei?',a:['Ankara','Istanbul','Izmir','Antalya'],k:0},
+  {q:'Hauptstadt von Indien?',a:['Neu-Delhi','Mumbai','Kolkata','Chennai'],k:0},
+  {q:'Hauptstadt von Ägypten?',a:['Kairo','Alexandria','Luxor','Assuan'],k:0},
+  {q:'Hauptstadt von Mexiko?',a:['Mexiko-Stadt','Guadalajara','Monterrey','Cancún'],k:0},
+  {q:'Hauptstadt von Japan?',a:['Tokio','Kyoto','Osaka','Nagoya'],k:0},
+  {q:'Hauptstadt von Südkorea?',a:['Seoul','Busan','Incheon','Daegu'],k:0},
+  {q:'Hauptstadt von Irak?',a:['Bagdad','Erbil','Basra','Mossul'],k:0},
+  {q:'Hauptstadt von Israel?',a:['Jerusalem','Tel Aviv','Haifa','Eilat'],k:0}
+];
+let capitalState={idx:0,score:0,pool:[]};
+function buildCapital(){
+  const w=$('capital-window');if(!w)return;
+  w.dataset.title='Hauptstädte';w.dataset.icon='🏛️';
+  if(!capitalState.pool.length)capitalState.pool=CAPITAL_QUIZ.slice().sort(()=>Math.random()-.5).slice(0,10);
+  if(capitalState.idx>=capitalState.pool.length){
+    w.innerHTML='<div class="card" style="text-align:center;padding:30px"><div style="font-size:64px">🏆</div><div class="big" style="font-size:38px;margin:14px 0">'+capitalState.score+'/'+capitalState.pool.length+'</div><button class="os-btn primary" style="margin-top:14px;padding:14px 30px" onclick="HalDoCapital.restart()">🔄 Nochmal</button></div>';
+    return;
+  }
+  const q=capitalState.pool[capitalState.idx];
+  w.innerHTML='<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+capitalState.score+'/'+(capitalState.idx+1)+'</div><div class="lbl">Punkte</div></div>'+
+    '<div class="card" style="padding:20px"><div style="font-size:17px;font-weight:900;color:#fff;line-height:1.5;margin-bottom:18px">'+esc(q.q)+'</div>'+
+    q.a.map((a,i)=>'<button class="os-btn" style="width:100%;padding:14px;margin-bottom:8px;font-size:14px;text-align:left;justify-content:flex-start" onclick="HalDoCapital.answer('+i+')">'+esc(a)+'</button>').join('')+'</div>';
+}
+window.HalDoCapital={answer(i){if(i===capitalState.pool[capitalState.idx].k)capitalState.score++;capitalState.idx++;buildCapital()},restart(){capitalState={idx:0,score:0,pool:[]};buildCapital()}};
+
+// ═══ 10. EUROPA QUIZ ═══
+const EUROPA_QUIZ=[
+  {q:'Wie viele Länder hat die EU (2024)?',a:['27','28','25','30'],k:0},
+  {q:'Welches ist das kleinste Land Europas?',a:['Vatikanstadt','Monaco','San Marino','Andorra'],k:0},
+  {q:'Welches ist das größte Land Europas?',a:['Russland','Ukraine','Frankreich','Spanien'],k:0},
+  {q:'Welches Land hat die meisten Einwohner in Europa?',a:['Russland','Deutschland','Frankreich','UK'],k:0},
+  {q:'Wie viele Länder grenzen an Deutschland?',a:['9','7','11','5'],k:0},
+  {q:'Welche Farbe hat die EU-Flagge als Hintergrund?',a:['Blau','Rot','Grün','Gelb'],k:0},
+  {q:'Wie viele Sterne auf der EU-Flagge?',a:['12','15','10','20'],k:0},
+  {q:'Welches Land nutzt den Euro (nicht)?',a:['Norwegen','Frankreich','Italien','Spanien'],k:0}
+];
+let europaState={idx:0,score:0,pool:[]};
+function buildEuropa(){
+  const w=$('europa-window');if(!w)return;
+  w.dataset.title='Europa-Quiz';w.dataset.icon='🇪🇺';
+  if(!europaState.pool.length)europaState.pool=EUROPA_QUIZ.slice().sort(()=>Math.random()-.5).slice(0,6);
+  if(europaState.idx>=europaState.pool.length){
+    w.innerHTML='<div class="card" style="text-align:center;padding:30px"><div style="font-size:64px">🏆</div><div class="big" style="font-size:38px;margin:14px 0">'+europaState.score+'/'+europaState.pool.length+'</div><button class="os-btn primary" style="margin-top:14px;padding:14px 30px" onclick="HalDoEuropa.restart()">🔄 Nochmal</button></div>';
+    return;
+  }
+  const q=europaState.pool[europaState.idx];
+  w.innerHTML='<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+europaState.score+'/'+(europaState.idx+1)+'</div><div class="lbl">Punkte</div></div>'+
+    '<div class="card" style="padding:20px"><div style="font-size:17px;font-weight:900;color:#fff;line-height:1.5;margin-bottom:18px">'+esc(q.q)+'</div>'+
+    q.a.map((a,i)=>'<button class="os-btn" style="width:100%;padding:14px;margin-bottom:8px;font-size:14px;text-align:left;justify-content:flex-start" onclick="HalDoEuropa.answer('+i+')">'+esc(a)+'</button>').join('')+'</div>';
+}
+window.HalDoEuropa={answer(i){if(i===europaState.pool[europaState.idx].k)europaState.score++;europaState.idx++;buildEuropa()},restart(){europaState={idx:0,score:0,pool:[]};buildEuropa()}};
+
+// ═══ 11. PLANETEN QUIZ ═══
+const PLANET_QUIZ=[
+  {q:'Welcher Planet ist der Sonne am nächsten?',a:['Merkur','Venus','Erde','Mars'],k:0},
+  {q:'Welcher Planet ist der größte?',a:['Jupiter','Saturn','Neptun','Uranus'],k:0},
+  {q:'Welcher Planet hat die meisten Ringe?',a:['Saturn','Jupiter','Uranus','Neptun'],k:0},
+  {q:'Welcher ist der rote Planet?',a:['Mars','Merkur','Venus','Jupiter'],k:0},
+  {q:'Wie viele Planeten hat unser Sonnensystem?',a:['8','9','7','10'],k:0},
+  {q:'Welcher Planet hat den größten Mond?',a:['Jupiter','Saturn','Uranus','Neptun'],k:0},
+  {q:'Welcher Planet dreht rückwärts?',a:['Venus','Mars','Jupiter','Saturn'],k:0},
+  {q:'Welcher Planet wurde zum Zwergplaneten?',a:['Pluto','Merkur','Mars','Neptun'],k:0}
+];
+let planetState={idx:0,score:0,pool:[]};
+function buildPlanet(){
+  const w=$('planet-window');if(!w)return;
+  w.dataset.title='Planeten-Quiz';w.dataset.icon='🪐';
+  if(!planetState.pool.length)planetState.pool=PLANET_QUIZ.slice().sort(()=>Math.random()-.5).slice(0,6);
+  if(planetState.idx>=planetState.pool.length){
+    w.innerHTML='<div class="card" style="text-align:center;padding:30px"><div style="font-size:64px">🪐</div><div class="big" style="font-size:38px;margin:14px 0">'+planetState.score+'/'+planetState.pool.length+'</div><button class="os-btn primary" style="margin-top:14px;padding:14px 30px" onclick="HalDoPlanet.restart()">🔄 Nochmal</button></div>';
+    return;
+  }
+  const q=planetState.pool[planetState.idx];
+  w.innerHTML='<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+planetState.score+'/'+(planetState.idx+1)+'</div><div class="lbl">Punkte</div></div>'+
+    '<div class="card" style="padding:20px"><div style="font-size:17px;font-weight:900;color:#fff;line-height:1.5;margin-bottom:18px">'+esc(q.q)+'</div>'+
+    q.a.map((a,i)=>'<button class="os-btn" style="width:100%;padding:14px;margin-bottom:8px;font-size:14px;text-align:left;justify-content:flex-start" onclick="HalDoPlanet.answer('+i+')">'+esc(a)+'</button>').join('')+'</div>';
+}
+window.HalDoPlanet={answer(i){if(i===planetState.pool[planetState.idx].k)planetState.score++;planetState.idx++;buildPlanet()},restart(){planetState={idx:0,score:0,pool:[]};buildPlanet()}};
+
+// ═══ 12. CHEMIE QUIZ ═══
+const CHEMIE_QUIZ=[
+  {q:'Was ist die chemische Formel für Wasser?',a:['H₂O','HO₂','H₂O₂','OH'],k:0},
+  {q:'Symbol für Gold?',a:['Au','Ag','Go','Gd'],k:0},
+  {q:'Wie viele Elemente im Periodensystem?',a:['118','92','100','110'],k:0},
+  {q:'Was ist NaCl?',a:['Kochsalz','Zucker','Salpeter','Natrium'],k:0},
+  {q:'Symbol für Eisen?',a:['Fe','Ei','Ir','Es'],k:0},
+  {q:'Was ist CO₂?',a:['Kohlenstoffdioxid','Kohlenmonoxid','Sauerstoff','Wasser'],k:0},
+  {q:'Was ist die Ordnungszahl von Kohlenstoff?',a:['6','12','8','14'],k:0},
+  {q:'Wie heißt H₂SO₄?',a:['Schwefelsäure','Salpetersäure','Salzsäure','Essigsäure'],k:0}
+];
+let chemieState={idx:0,score:0,pool:[]};
+function buildChemie(){
+  const w=$('chemie-window');if(!w)return;
+  w.dataset.title='Chemie-Quiz';w.dataset.icon='🧪';
+  if(!chemieState.pool.length)chemieState.pool=CHEMIE_QUIZ.slice().sort(()=>Math.random()-.5).slice(0,6);
+  if(chemieState.idx>=chemieState.pool.length){
+    w.innerHTML='<div class="card" style="text-align:center;padding:30px"><div style="font-size:64px">🧪</div><div class="big" style="font-size:38px;margin:14px 0">'+chemieState.score+'/'+chemieState.pool.length+'</div><button class="os-btn primary" style="margin-top:14px;padding:14px 30px" onclick="HalDoChemie.restart()">🔄 Nochmal</button></div>';
+    return;
+  }
+  const q=chemieState.pool[chemieState.idx];
+  w.innerHTML='<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+chemieState.score+'/'+(chemieState.idx+1)+'</div><div class="lbl">Punkte</div></div>'+
+    '<div class="card" style="padding:20px"><div style="font-size:17px;font-weight:900;color:#fff;line-height:1.5;margin-bottom:18px">'+esc(q.q)+'</div>'+
+    q.a.map((a,i)=>'<button class="os-btn" style="width:100%;padding:14px;margin-bottom:8px;font-size:14px;text-align:left;justify-content:flex-start" onclick="HalDoChemie.answer('+i+')">'+esc(a)+'</button>').join('')+'</div>';
+}
+window.HalDoChemie={answer(i){if(i===chemieState.pool[chemieState.idx].k)chemieState.score++;chemieState.idx++;buildChemie()},restart(){chemieState={idx:0,score:0,pool:[]};buildChemie()}};
+
+// ═══ 13. MATHE-QUIZ ═══
+let matheState={score:0,total:0,a:0,b:0,op:'+',answer:0,answered:false,streak:0};
+function newMatheQ(){matheState.a=Math.floor(Math.random()*20)+1;matheState.b=Math.floor(Math.random()*20)+1;const ops=['+','-','×'];matheState.op=ops[Math.floor(Math.random()*3)];matheState.answer=matheState.op==='+'?matheState.a+matheState.b:matheState.op==='-'?matheState.a-matheState.b:matheState.a*matheState.b;matheState.answered=false}
+function buildMathe(){
+  const w=$('mathe-quiz-window');if(!w)return;
+  w.dataset.title='Mathe-Quiz';w.dataset.icon='➗';
+  if(!matheState.a)newMatheQ();
+  const opts=[matheState.answer];while(opts.length<4){const o=matheState.answer+Math.floor(Math.random()*20)-10;if(!opts.includes(o))opts.push(o)}opts.sort(()=>Math.random()-.5);
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+matheState.score+'/'+matheState.total+'</div><div class="lbl">Punkte</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px;color:#ff8c3c">🔥 '+matheState.streak+'</div><div class="lbl">Streak</div></div>'+
+    '</div>'+
+    '<div class="card" style="text-align:center;padding:30px">'+
+    '<div style="font-size:44px;font-weight:900;color:#fff;font-family:monospace;line-height:1">'+matheState.a+' '+matheState.op+' '+matheState.b+' = ?</div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+    opts.map(o=>{let cls='os-btn primary';if(matheState.answered){if(o===matheState.answer)cls='os-btn primary';else cls='os-btn danger'}return '<button class="'+cls+'" style="padding:22px;font-size:22px;font-weight:900;font-family:monospace" onclick="HalDoMathe.answer('+o+')">'+o+'</button>'}).join('')+
+    '</div>'+
+    (matheState.answered?'<button class="os-btn primary full" style="margin-top:14px;padding:14px;font-size:15px" onclick="HalDoMathe.next()">Weiter →</button>':'');
+}
+window.HalDoMathe={
+  answer(v){if(matheState.answered)return;matheState.answered=true;matheState.total++;if(v===matheState.answer){matheState.score++;matheState.streak++;if(navigator.vibrate)navigator.vibrate(15)}else{matheState.streak=0;if(navigator.vibrate)navigator.vibrate([50,50,50])}buildMathe()},
+  next(){newMatheQ();buildMathe()}
+};
+
+// ═══ 14. WORTSUCHE ═══
+const WS_WORDS=['APFEL','BANANE','KATZE','HUND','SONNE','MOND','STERN','WOLKE','BLUME','BAUM'];
+let wsState={grid:[],found:[],start:null,end:null,selected:[]};
+function wsGen(){
+  const size=10;wsState.grid=Array(size).fill(null).map(()=>Array(size).fill(''));
+  wsState.placed=[];
+  const words=WS_WORDS.slice(0,5);
+  const dirs=[[0,1],[1,0],[1,1],[0,-1],[-1,0],[-1,-1],[1,-1],[-1,1]];
+  words.forEach(w=>{
+    for(let t=0;t<100;t++){
+      const d=dirs[Math.floor(Math.random()*dirs.length)];
+      const r=Math.floor(Math.random()*size),c=Math.floor(Math.random()*size);
+      const endR=r+d[0]*(w.length-1),endC=c+d[1]*(w.length-1);
+      if(endR<0||endR>=size||endC<0||endC>=size)continue;
+      let ok=true;
+      for(let i=0;i<w.length;i++){const rr=r+d[0]*i,cc=c+d[1]*i;if(wsState.grid[rr][cc]&&wsState.grid[rr][cc]!==w[i]){ok=false;break}}
+      if(!ok)continue;
+      for(let i=0;i<w.length;i++)wsState.grid[r+d[0]*i][c+d[1]*i]=w[i];
+      wsState.placed.push({w,r,c,d});
+      break;
+    }
+  });
+  const letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for(let r=0;r<size;r++)for(let c=0;c<size;c++)if(!wsState.grid[r][c])wsState.grid[r][c]=letters[Math.floor(Math.random()*26)];
+  wsState.found=[];wsState.selected=[];
+}
+function buildWS(){
+  const w=$('wortsuche-window');if(!w)return;
+  w.dataset.title='Wortsuche';w.dataset.icon='🔍';
+  if(!wsState.grid.length)wsGen();
+  let cells='';
+  for(let r=0;r<10;r++)for(let c=0;c<10;c++){
+    const isSel=wsState.selected.some(s=>s[0]===r&&s[1]===c);
+    cells+='<div style="aspect-ratio:1;background:'+(isSel?'linear-gradient(135deg,#00ff88,#00e5ff)':'rgba(0,30,60,.5)')+';border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:'+(isSel?'#001018':'#fff')+';cursor:pointer;user-select:none" onclick="HalDoWS.tap('+r+','+c+')">'+wsState.grid[r][c]+'</div>';
+  }
+  const foundList=wsState.found.map(f=>'<span style="padding:4px 10px;background:rgba(0,255,136,.2);color:#00ff88;border-radius:8px;font-size:11px;font-weight:800">'+f+'</span>').join('');
+  w.innerHTML=
+    '<div class="card" style="padding:4px"><div style="display:grid;grid-template-columns:repeat(10,1fr);gap:1px;max-width:400px;margin:0 auto">'+cells+'</div></div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">🎯 Zu finden ('+wsState.found.length+'/'+wsState.placed.length+')</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">'+WS_WORDS.slice(0,5).map(w2=>'<span style="padding:3px 8px;background:rgba(0,229,255,.15);color:#7ce0ff;border-radius:6px;font-size:10px;font-weight:800;'+(wsState.found.includes(w2)?'text-decoration:line-through;opacity:.5':'')+'">'+w2+'</span>').join('')+'</div>'+
+    (foundList?'<div style="display:flex;flex-wrap:wrap;gap:4px">'+foundList+'</div>':'')+
+    '</div>'+
+    '<button class="os-btn danger full" onclick="wsState={grid:[],found:[],start:null,end:null,selected:[]};buildWS()">🔄 Neues Spiel</button>';
+}
+window.HalDoWS={
+  tap(r,c){
+    if(!wsState.start){wsState.start=[r,c];wsState.selected=[[r,c]]}
+    else{
+      const [sr,sc]=wsState.start;
+      const dr=Math.sign(r-sr),dc=Math.sign(c-sc);
+      if(dr!==0&&dc!==0&&Math.abs(r-sr)!==Math.abs(c-sc)){wsState.start=null;wsState.selected=[];buildWS();return}
+      const len=Math.max(Math.abs(r-sr),Math.abs(c-sc))+1;
+      const selected=[];let text='';
+      for(let i=0;i<len;i++){const rr=sr+dr*i,cc=sc+dc*i;selected.push([rr,cc]);text+=wsState.grid[rr][cc]}
+      wsState.selected=selected;
+      const reversed=text.split('').reverse().join('');
+      const match=wsState.placed.find(p=>!wsState.found.includes(p.w)&&(p.w===text||p.w===reversed));
+      if(match){wsState.found.push(match.w);if(window.showToast)showToast('✅ '+match.w+' gefunden!','success');if(navigator.vibrate)navigator.vibrate([10,30,10]);setTimeout(()=>{wsState.selected=[];wsState.start=null;buildWS()},400)}
+      else{setTimeout(()=>{wsState.selected=[];wsState.start=null;buildWS()},400)}
+    }
+    buildWS();
+  }
+};
+
+// ═══ INIT ═══
+function init(){
+  if(window.HalDoUI){
+    const orig=window.HalDoUI.rebuild;
+    window.HalDoUI.rebuild=function(id){
+      if(id==='yahtzee-window'){buildYahtzee();return}
+      if(id==='bingo-window'){buildBingo();return}
+      if(id==='blackjack-window'){buildBlackjack();return}
+      if(id==='dreams-window'){buildDreams();return}
+      if(id==='diaryplus-window'){buildDiaryPlus();return}
+      if(id==='dates-window'){buildDates();return}
+      if(id==='safe-window'){buildSafe();return}
+      if(id==='kfz-window'){buildKfz();return}
+      if(id==='capital-window'){buildCapital();return}
+      if(id==='europa-window'){buildEuropa();return}
+      if(id==='planet-window'){buildPlanet();return}
+      if(id==='chemie-window'){buildChemie();return}
+      if(id==='mathe-quiz-window'){buildMathe();return}
+      if(id==='wortsuche-window'){buildWS();return}
+      if(orig)orig(id);
+    };
+  }
+  ['yahtzee-window','bingo-window','blackjack-window','dreams-window','diaryplus-window','dates-window','safe-window','kfz-window','capital-window','europa-window','planet-window','chemie-window','mathe-quiz-window','wortsuche-window'].forEach(id=>{
+    let el=$(id);if(!el){el=document.createElement('div');el.id=id;document.body.appendChild(el)}
+    if(window.prepareWindow) window.prepareWindow(el);
+  });
+  console.log('%c🚀 v146 – 14 Apps geladen','color:#00ff88;font-weight:bold;font-size:14px');
+  console.log('%c✅ Yahtzee · Bingo · Blackjack · Traum · Tagebuch+ · Daten · Safe · KFZ · Hauptstädte · Europa · Planeten · Chemie · Mathe · Wortsuche','color:#4da8ff;font-weight:bold');
+}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>setTimeout(init,1000))}else{setTimeout(init,1000)}
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════ ENDE v146 ═════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
