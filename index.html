@@ -25350,5 +25350,592 @@ body.wm-force-float .os-window.wm3-floating .header:active {
 })();
 </script>
 <!-- ═══════════════════════ ENDE v79 RANDOM ════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v81 – TEXT ANALYZER (Zeichen, Wörter, Lesbarkeit) ════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#analyzerWindow {
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,200,0,.10), transparent 55%),
+    radial-gradient(circle at 70% 80%, rgba(255,140,60,.06), transparent 55%),
+    linear-gradient(180deg, rgba(20,15,0,.99), rgba(10,8,0,.99));
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  z-index: 8200; display: none; flex-direction: column;
+  color: #fff8e6; font-family: inherit;
+  animation: taFadeIn .25s;
+}
+#analyzerWindow.show { display: flex; }
+@keyframes taFadeIn { from {opacity:0;transform:scale(.98);} to {opacity:1;transform:scale(1);} }
+
+.ta-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid rgba(255,200,0,.25);
+  background: rgba(50,40,0,.55); flex-shrink: 0;
+  position: relative; z-index: 10000; gap: 8px;
+}
+.ta-title { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.ta-title .ta-icon {
+  font-size: 26px; filter: drop-shadow(0 0 14px #ffc800);
+  animation: taPulse 3s ease-in-out infinite;
+}
+@keyframes taPulse { 50% { filter: drop-shadow(0 0 26px #ffc800); transform: scale(1.05); } }
+.ta-title h2 { font-size: 18px; margin: 0; font-weight: 700; color: #fff; }
+.ta-title small { display: block; font-size: 10px; color: #ffe066; margin-top: 2px; letter-spacing: 1.5px; text-transform: uppercase; }
+.ta-actions { display: flex; gap: 6px; flex-shrink: 0; position: relative; z-index: 99999; }
+
+.ta-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 14px; border-radius: 10px;
+  background: rgba(255,200,0,.12); border: 1px solid rgba(255,200,0,.4);
+  color: #fff8e6; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all .15s; -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+  position: relative; z-index: 99999;
+  pointer-events: auto;
+}
+.ta-btn:hover { background: rgba(255,200,0,.25); }
+.ta-btn.primary { background: linear-gradient(135deg,#ffc800,#ff9a3d); color: #1a1000; border-color: #fff; }
+.ta-btn.primary:hover { filter: brightness(1.15); box-shadow: 0 0 24px rgba(255,200,0,.6); }
+.ta-btn.danger { background: rgba(255,60,60,.15); border-color: rgba(255,60,60,.4); color: #ff8080; }
+.ta-btn.icon-only { padding: 10px; font-size: 16px; min-width: 42px; }
+
+.ta-body { flex: 1; overflow-y: auto; padding: 16px 18px 30px; position: relative; z-index: 2; }
+.ta-content { max-width: 700px; margin: 0 auto; }
+
+/* Input */
+.ta-input-wrap {
+  background: rgba(50,40,0,.4);
+  border: 1.5px solid rgba(255,200,0,.25);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+.ta-input-head {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 10px; color: #ffe066;
+  text-transform: uppercase; letter-spacing: 1.2px; font-weight: 800;
+  margin-bottom: 8px;
+}
+.ta-input-actions { display: flex; gap: 6px; }
+.ta-mini-btn {
+  padding: 4px 10px; border-radius: 6px;
+  background: rgba(255,200,0,.15); border: 1px solid rgba(255,200,0,.3);
+  color: #ffe066; font-size: 10px; font-weight: 800;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.ta-mini-btn:hover { background: rgba(255,200,0,.3); }
+.ta-textarea {
+  width: 100%; min-height: 160px;
+  padding: 12px;
+  background: rgba(0,0,0,.4);
+  border: none;
+  border-radius: 10px;
+  color: #fff; font-size: 14px; font-family: inherit;
+  outline: none;
+  resize: vertical;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+.ta-textarea::placeholder { color: #a08040; }
+
+/* Stat Grid */
+.ta-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.ta-stat {
+  padding: 14px;
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgba(120,90,0,.4), rgba(40,25,0,.85));
+  border: 1.5px solid rgba(255,200,0,.2);
+  text-align: center;
+}
+.ta-stat .tas-num {
+  font-size: 26px; font-weight: 900;
+  color: #ffc800;
+  text-shadow: 0 0 14px rgba(255,200,0,.6);
+  line-height: 1;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+.ta-stat .tas-lbl {
+  font-size: 9px; color: #ffe066;
+  text-transform: uppercase; letter-spacing: 1.2px;
+  font-weight: 800;
+  margin-top: 3px;
+}
+
+/* Sections */
+.ta-section-title {
+  font-size: 12px; color: #ffe066;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  font-weight: 800;
+  margin: 20px 0 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* Readability */
+.ta-readability {
+  padding: 16px; border-radius: 14px;
+  background: rgba(50,40,0,.4);
+  border: 1.5px solid rgba(255,200,0,.2);
+  margin-bottom: 14px;
+}
+.ta-read-level {
+  text-align: center;
+  padding: 12px;
+  font-size: 20px; font-weight: 900;
+  margin-bottom: 12px;
+  border-radius: 12px;
+}
+.ta-read-level.a1 { background: rgba(0,255,136,.15); color: #00ff88; }
+.ta-read-level.a2 { background: rgba(0,229,255,.15); color: #00e5ff; }
+.ta-read-level.b1 { background: rgba(0,150,255,.15); color: #4da8ff; }
+.ta-read-level.b2 { background: rgba(255,200,0,.15); color: #ffc800; }
+.ta-read-level.c1 { background: rgba(255,140,60,.15); color: #ff8c3c; }
+.ta-read-level.c2 { background: rgba(255,80,60,.15); color: #ff503c; }
+
+.ta-read-row {
+  display: flex; justify-content: space-between;
+  padding: 8px 0; border-bottom: 1px solid rgba(255,200,0,.08);
+  font-size: 13px;
+}
+.ta-read-row:last-child { border-bottom: none; }
+.ta-read-label { color: #a08040; }
+.ta-read-val { color: #fff; font-weight: 800; }
+
+/* Top Words */
+.ta-word-list { display: flex; flex-direction: column; gap: 6px; }
+.ta-word {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 12px;
+  background: rgba(50,40,0,.35);
+  border-radius: 10px;
+  border: 1px solid rgba(255,200,0,.15);
+  font-size: 13px;
+}
+.ta-word-text { flex: 1; color: #fff; font-weight: 700; }
+.ta-word-bar {
+  flex: 0 0 100px; height: 6px;
+  background: rgba(0,0,0,.4);
+  border-radius: 3px; overflow: hidden;
+}
+.ta-word-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg,#ffc800,#ff9a3d);
+  border-radius: 3px;
+}
+.ta-word-count {
+  flex: 0 0 30px; text-align: right;
+  color: #ffc800; font-weight: 800; font-size: 13px;
+}
+
+/* Letter Frequency */
+.ta-letter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+  gap: 6px;
+}
+.ta-letter {
+  padding: 8px 4px;
+  border-radius: 8px;
+  background: rgba(50,40,0,.4);
+  border: 1px solid rgba(255,200,0,.15);
+  text-align: center;
+  font-size: 12px;
+}
+.ta-letter .tal-char {
+  font-size: 16px; font-weight: 900; color: #ffc800;
+  text-transform: uppercase;
+}
+.ta-letter .tal-count {
+  font-size: 10px; color: #ffe066;
+  margin-top: 2px;
+}
+
+/* Reading time */
+.ta-time-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.ta-time-item {
+  padding: 12px 8px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, rgba(120,90,0,.4), rgba(40,25,0,.85));
+  border: 1.5px solid rgba(255,200,0,.2);
+  text-align: center;
+}
+.ta-time-item .tati-icon { font-size: 22px; margin-bottom: 4px; }
+.ta-time-item .tati-time { font-size: 16px; font-weight: 900; color: #ffc800; }
+.ta-time-item .tati-lbl { font-size: 9px; color: #ffe066; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; font-weight: 800; }
+
+.ta-empty {
+  text-align: center; padding: 60px 20px; color: #a08040;
+}
+.ta-empty .tae-icon { font-size: 72px; opacity: .5; margin-bottom: 16px; filter: drop-shadow(0 0 30px #ffc800); }
+.ta-empty .tae-text { font-size: 15px; color: #ffe066; }
+
+.ta-toast {
+  position: fixed; bottom: 100px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  padding: 12px 20px; border-radius: 12px;
+  background: linear-gradient(135deg,#ffc800,#ff9a3d); color: #1a1000;
+  font-weight: 700; font-size: 13px; opacity: 0; pointer-events: none;
+  transition: all .3s; z-index: 99999;
+  box-shadow: 0 10px 40px rgba(255,200,0,.5);
+  white-space: nowrap;
+}
+.ta-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+
+<div id="analyzerWindow">
+  <div class="ta-header">
+    <div class="ta-title">
+      <span class="ta-icon">📊</span>
+      <div>
+        <h2>Text Analyzer</h2>
+        <small>Zeichen · Wörter · Lesbarkeit</small>
+      </div>
+    </div>
+    <div class="ta-actions">
+      <button class="ta-btn icon-only" onclick="HalDoAnalyzerApp.close()" title="Schließen">✕</button>
+    </div>
+  </div>
+
+  <div class="ta-body">
+    <div class="ta-content" id="taContent"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  if(window.__taLoaded) return;
+  window.__taLoaded = true;
+
+  let currentText = '';
+
+  function esc(s){
+    return String(s==null?'':s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function analyze(text){
+    const chars = text.length;
+    const charsNoSpaces = text.replace(/\s/g, '').length;
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    const sentences = (text.match(/[.!?]+/g) || []).length || (text.trim() ? 1 : 0);
+    const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim()).length || (text.trim() ? 1 : 0);
+    const lines = text ? text.split('\n').length : 0;
+
+    // Lesbarkeit
+    const syllables = countSyllables(text);
+    const avgWordsPerSentence = sentences ? words / sentences : 0;
+    const avgSyllablesPerWord = words ? syllables / words : 0;
+    // Flesch-Reading-Ease (deutsche Version)
+    const flesch = 180 - avgWordsPerSentence - 58.5 * avgSyllablesPerWord;
+    // Flesch-Kincaid Grade Level
+    const grade = 0.39 * avgWordsPerSentence + 11.8 * avgSyllablesPerWord - 15.59;
+
+    // Lesezeit
+    const readTime = Math.ceil(words / 200); // 200 wpm
+    const speakTime = Math.ceil(words / 130); // 130 wpm
+    const readSeconds = Math.round(words / 200 * 60);
+
+    // Top-Wörter
+    const wordsLower = text.toLowerCase().match(/[a-zäöüß]+/g) || [];
+    const stopwords = new Set(['der','die','das','und','oder','aber','mit','von','für','auf','aus','dem','den','des','ein','eine','einen','einem','einer','ist','sind','war','waren','wird','werden','hat','habe','haben','hatte','hatten','kann','können','soll','sollen','will','wollen','muss','müssen','dass','wenn','aber','nicht','kein','keine','sich','auch','nur','noch','schon','so','als','wie','bei','nach','über','unter','durch','zum','zur','am','an','im','in','es','er','sie','wir','ihr','du','ich','to','the','and','or','of','in','on','at','for','with']);
+    const wordCounts = {};
+    wordsLower.forEach(w => {
+      if(w.length < 3) return;
+      if(stopwords.has(w)) return;
+      wordCounts[w] = (wordCounts[w] || 0) + 1;
+    });
+    const topWords = Object.entries(wordCounts)
+      .sort((a,b) => b[1] - a[1])
+      .slice(0, 8);
+
+    // Buchstaben-Häufigkeit
+    const letterCounts = {};
+    text.toLowerCase().replace(/[^a-zäöüß]/g, '').split('').forEach(c => {
+      letterCounts[c] = (letterCounts[c] || 0) + 1;
+    });
+    const topLetters = Object.entries(letterCounts)
+      .sort((a,b) => b[1] - a[1])
+      .slice(0, 20);
+
+    return {
+      chars, charsNoSpaces, words, sentences, paragraphs, lines,
+      syllables, avgWordsPerSentence, avgSyllablesPerWord,
+      flesch, grade, readTime, speakTime, readSeconds,
+      topWords, topLetters
+    };
+  }
+
+  function countSyllables(text){
+    const words = text.toLowerCase().match(/[a-zäöüß]+/g) || [];
+    let count = 0;
+    words.forEach(w => {
+      // Deutsch: Vokalgruppen zählen
+      const matches = w.match(/[aeiouäöüy]+/g);
+      count += matches ? matches.length : 1;
+    });
+    return count;
+  }
+
+  function readabilityLevel(flesch){
+    // Flesch-Reading-Ease: 90-100 = sehr leicht, 0-30 = sehr schwer
+    if(flesch >= 80) return { level: 'A1', label: 'Sehr leicht', cls: 'a1' };
+    if(flesch >= 70) return { level: 'A2', label: 'Leicht', cls: 'a2' };
+    if(flesch >= 60) return { level: 'B1', label: 'Mittel', cls: 'b1' };
+    if(flesch >= 50) return { level: 'B2', label: 'Mittel-schwer', cls: 'b2' };
+    if(flesch >= 30) return { level: 'C1', label: 'Schwer', cls: 'c1' };
+    return { level: 'C2', label: 'Sehr schwer', cls: 'c2' };
+  }
+
+  function render(){
+    const el = document.getElementById('taContent');
+
+    // Input
+    el.innerHTML = `
+      <div class="ta-input-wrap">
+        <div class="ta-input-head">
+          <span>📝 Text</span>
+          <div class="ta-input-actions">
+            <button class="ta-mini-btn" onclick="HalDoAnalyzerApp.pasteText()">📋 Einfügen</button>
+            <button class="ta-mini-btn" onclick="HalDoAnalyzerApp.clearText()">🗑️ Leeren</button>
+          </div>
+        </div>
+        <textarea class="ta-textarea" id="taTextInput" placeholder="Text zum Analysieren eingeben oder einfügen..." oninput="HalDoAnalyzerApp.onInput(this.value)">${esc(currentText)}</textarea>
+      </div>
+
+      <div id="taResults"></div>
+    `;
+
+    renderResults();
+  }
+
+  function renderResults(){
+    const results = document.getElementById('taResults');
+    if(!results) return;
+    const text = currentText;
+    if(!text.trim()){
+      results.innerHTML = `<div class="ta-empty">
+        <div class="tae-icon">📊</div>
+        <div class="tae-text">Tippe etwas ein, um die Analyse zu sehen</div>
+      </div>`;
+      return;
+    }
+
+    const a = analyze(text);
+    const rl = readabilityLevel(a.flesch);
+
+    results.innerHTML = `
+      <div class="ta-stats">
+        <div class="ta-stat"><div class="tas-num">${a.chars}</div><div class="tas-lbl">Zeichen</div></div>
+        <div class="ta-stat"><div class="tas-num">${a.charsNoSpaces}</div><div class="tas-lbl">Ohne Leerz.</div></div>
+        <div class="ta-stat"><div class="tas-num">${a.words}</div><div class="tas-lbl">Wörter</div></div>
+        <div class="ta-stat"><div class="tas-num">${a.sentences}</div><div class="tas-lbl">Sätze</div></div>
+        <div class="ta-stat"><div class="tas-num">${a.paragraphs}</div><div class="tas-lbl">Absätze</div></div>
+        <div class="ta-stat"><div class="tas-num">${a.lines}</div><div class="tas-lbl">Zeilen</div></div>
+      </div>
+
+      <div class="ta-section-title">⏱️ Lesezeit</div>
+      <div class="ta-time-card">
+        <div class="ta-time-item">
+          <div class="tati-icon">📖</div>
+          <div class="tati-time">${a.readTime} Min</div>
+          <div class="tati-lbl">Lesen</div>
+        </div>
+        <div class="ta-time-item">
+          <div class="tati-icon">🎙️</div>
+          <div class="tati-time">${a.speakTime} Min</div>
+          <div class="tati-lbl">Sprechen</div>
+        </div>
+        <div class="ta-time-item">
+          <div class="tati-icon">⚡</div>
+          <div class="tati-time">${a.readSeconds} Sek</div>
+          <div class="tati-lbl">Schnell</div>
+        </div>
+      </div>
+
+      <div class="ta-section-title">📚 Lesbarkeit</div>
+      <div class="ta-readability">
+        <div class="ta-read-level ${rl.cls}">${rl.level} · ${rl.label}</div>
+        <div class="ta-read-row">
+          <span class="ta-read-label">Flesch-Reading-Ease</span>
+          <span class="ta-read-val">${a.flesch.toFixed(1)}</span>
+        </div>
+        <div class="ta-read-row">
+          <span class="ta-read-label">Klassenstufe (FKGL)</span>
+          <span class="ta-read-val">${a.grade.toFixed(1)}</span>
+        </div>
+        <div class="ta-read-row">
+          <span class="ta-read-label">Ø Wörter pro Satz</span>
+          <span class="ta-read-val">${a.avgWordsPerSentence.toFixed(1)}</span>
+        </div>
+        <div class="ta-read-row">
+          <span class="ta-read-label">Ø Silben pro Wort</span>
+          <span class="ta-read-val">${a.avgSyllablesPerWord.toFixed(2)}</span>
+        </div>
+        <div class="ta-read-row">
+          <span class="ta-read-label">Silben gesamt</span>
+          <span class="ta-read-val">${a.syllables}</span>
+        </div>
+      </div>
+
+      ${a.topWords.length ? `
+        <div class="ta-section-title">🔥 Häufigste Wörter</div>
+        <div class="ta-word-list">
+          ${a.topWords.map(([w, c]) => {
+            const maxC = a.topWords[0][1];
+            const pct = Math.round(c / maxC * 100);
+            return `<div class="ta-word">
+              <span class="ta-word-text">${esc(w)}</span>
+              <div class="ta-word-bar"><div class="ta-word-bar-fill" style="width:${pct}%"></div></div>
+              <span class="ta-word-count">${c}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      ` : ''}
+
+      ${a.topLetters.length ? `
+        <div class="ta-section-title">🔤 Buchstaben-Häufigkeit</div>
+        <div class="ta-letter-grid">
+          ${a.topLetters.map(([l, c]) =>
+            `<div class="ta-letter"><div class="tal-char">${esc(l)}</div><div class="tal-count">${c}</div></div>`
+          ).join('')}
+        </div>
+      ` : ''}
+
+      <div style="display:flex;gap:8px;margin-top:20px;flex-wrap:wrap">
+        <button class="ta-btn" onclick="HalDoAnalyzerApp.copyStats()">📋 Stats kopieren</button>
+        <button class="ta-btn" onclick="HalDoAnalyzerApp.shareStats()">📤 Teilen</button>
+      </div>
+    `;
+  }
+
+  function onInput(val){
+    currentText = val;
+    // Nur Ergebnisse neu rendern ohne das Textfeld zu verlieren
+    renderResults();
+  }
+
+  function pasteText(){
+    if(navigator.clipboard?.readText){
+      navigator.clipboard.readText().then(text => {
+        if(text){
+          currentText = text;
+          const ta = document.getElementById('taTextInput');
+          if(ta) ta.value = text;
+          renderResults();
+          toast('📋 Eingefügt');
+        }
+      }).catch(() => toast('❌ Einfügen verweigert'));
+    } else {
+      toast('⚠️ Nicht möglich');
+    }
+  }
+
+  function clearText(){
+    if(!currentText) return;
+    currentText = '';
+    const ta = document.getElementById('taTextInput');
+    if(ta) ta.value = '';
+    renderResults();
+    toast('🗑️ Geleert');
+  }
+
+  function getStatsText(){
+    if(!currentText.trim()) return '';
+    const a = analyze(currentText);
+    const rl = readabilityLevel(a.flesch);
+    return `📊 Text-Analyse
+Zeichen: ${a.chars} (${a.charsNoSpaces} ohne Leerzeichen)
+Wörter: ${a.words}
+Sätze: ${a.sentences}
+Absätze: ${a.paragraphs}
+Lesezeit: ~${a.readTime} Min
+Lesbarkeit: ${rl.level} (${rl.label})
+Flesch: ${a.flesch.toFixed(1)}`;
+  }
+
+  function copyStats(){
+    const text = getStatsText();
+    if(!text){ toast('⚠️ Kein Text'); return; }
+    if(navigator.clipboard?.writeText){
+      navigator.clipboard.writeText(text).then(() => toast('📋 Stats kopiert'));
+    }
+  }
+
+  async function shareStats(){
+    const text = getStatsText();
+    if(!text){ toast('⚠️ Kein Text'); return; }
+    if(navigator.share){
+      try { await navigator.share({ title: 'Text-Analyse', text }); }
+      catch(e){ if(e.name !== 'AbortError') toast('❌ Fehler'); }
+    } else {
+      copyStats();
+    }
+  }
+
+  function toast(msg){
+    let el = document.getElementById('taToast');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'taToast';
+      el.className = 'ta-toast';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), 2000);
+  }
+
+  function open(){
+    const w = document.getElementById('analyzerWindow');
+    if(!w) return;
+    render();
+    w.classList.add('show');
+    if(typeof playSound === 'function') playSound('open');
+  }
+  function close(){
+    const w = document.getElementById('analyzerWindow');
+    if(w) w.classList.remove('show');
+  }
+
+  window.HalDoAnalyzer = {
+    open, close,
+    analyze(text){ return analyze(text || ''); }
+  };
+  window.HalDoAnalyzerApp = {
+    open, close, render,
+    onInput, pasteText, clearText,
+    copyStats, shareStats
+  };
+
+  const orig = window.openWin;
+  window.openWin = function(id){
+    if(id === 'analyzer-window' || id === 'analyzer' || id === 'text-analyzer'){ open(); return; }
+    if(typeof orig === 'function') return orig(id);
+  };
+
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape' && document.getElementById('analyzerWindow')?.classList.contains('show')){
+      close();
+    }
+  });
+
+  console.log('%c📊 Text Analyzer geladen · Zeichen · Wörter · Lesbarkeit', 'color:#ffc800;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════ ENDE v81 ANALYZER ═══════════════════ -->
 </body>
 </html>
