@@ -3845,5 +3845,824 @@ setTimeout(()=>{
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v125 · Apps Pack 2 (D/E/G/H)
+     28 neue funktionierende Apps — einfach vor </body> einfügen
+     ============================================================ -->
+<script>
+(function(){
+'use strict';
+
+if(!window.HalDo || !window.HalDo.apps){
+  console.warn('[v125 Apps] HalDo nicht bereit — Retry in 800ms');
+  setTimeout(()=>location.reload(), 800);
+  return;
+}
+
+const APPS = window.HalDo.apps;
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = ()=>Math.random().toString(36).slice(2,10);
+const fmt = n => (Math.round(n*100)/100).toLocaleString('de-DE');
+const toast = window.HalDo.toast || ((m)=>console.log('[toast]',m));
+const store = {
+  key: k => 'haldo_'+k+'_v1',
+  get(k,d){ try{ const v=localStorage.getItem(this.key(k)); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(this.key(k), JSON.stringify(v)); }catch(e){} }
+};
+
+/* ============================================================
+   D · GESUNDHEIT
+   ============================================================ */
+
+APPS['symptom-checker'] = {
+  name:'Symptom Checker', icon:'🩺',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>⚠️ Hinweis</b><div class="dim sm">Kein Ersatz für ärztliche Beratung. Bei akuten Beschwerden: 112.</div></div>'+
+    '<label class="lbl">Beschwerde auswählen</label>'+
+    '<select class="inp" id="scS">'+
+      '<option value="">– wählen –</option>'+
+      '<option value="kopf">Kopfschmerzen</option>'+
+      '<option value="bauch">Bauchschmerzen</option>'+
+      '<option value="fieber">Fieber</option>'+
+      '<option value="husten">Husten</option>'+
+      '<option value="halsschmerz">Halsschmerzen</option>'+
+      '<option value="muede">Müdigkeit</option>'+
+      '<option value="schwindel">Schwindel</option>'+
+      '<option value="ruecken">Rückenschmerzen</option>'+
+      '<option value="uebel">Übelkeit</option>'+
+      '<option value="juckreiz">Juckreiz / Ausschlag</option>'+
+    '</select>'+
+    '<div class="row"><label class="dim sm"><input type="checkbox" id="scF"> Fieber > 39°C</label><label class="dim sm"><input type="checkbox" id="scL"> > 3 Tage</label><label class="dim sm"><input type="checkbox" id="scW"> Verschlimmert sich</label></div>'+
+    '<button class="btn primary" id="scGo">Einschätzen</button>'+
+    '<div id="scOut"></div>'+
+  '</div>'; },
+  init(win){
+    const TIPS = {
+      kopf: { leichte:['Viel trinken (2-3 L Wasser)','Dunkler, ruhiger Raum','Schläfen massieren','Bildschirmpause'], mittel:['Ibuprofen/Paracetamol (nach Beipackzettel)','Kalt-Warm-Wechsel-Dusche'], ernst:'Plötzlicher stärkster Kopfschmerz → sofort 112' },
+      bauch: { leichte:['Wärmflasche auf den Bauch','Kamillentee','Leichtes Essen (Zwieback, Reis)'], mittel:['Kohletabletten','Elektrolyte trinken'], ernst:'Blut im Stuhl / starke Krämpfe → Arzt' },
+      fieber: { leichte:['Ruhe, im Bett bleiben','Viel trinken','Wadenwickel ab 38,5°C'], mittel:['Fieber senken (Paracetamol)','Leichte Kleidung'], ernst:'> 39,5°C oder Krampf → 112' },
+      husten: { leichte:['Warme Getränke (Honig, Ingwer)','Feuchte Luft (Wasserschale)','Aufrecht schlafen'], mittel:['Hustenlöser (ACC)','Inhalation'], ernst:'Blut husten / > 3 Wochen → Arzt' },
+      halsschmerz:{ leichte:['Gurgeln mit Salzwasser','Bonbons lutschen','Warm halten'], mittel:['Halstabletten','Schmerzmittel'], ernst:'Schluckunfähigkeit → Arzt' },
+      muede: { leichte:['Schlaf 7-9 h','Tageslicht','Bewegung'], mittel:['Blutwerte prüfen (Eisen, B12, Schilddrüse)'], ernst:'Plötzliche Erschöpfung → Arzt' },
+      schwindel: { leichte:['Hinsetzen / festhalten','Langsam aufstehen','Wasser trinken'], mittel:['Lagerungstraining (Epley)'], ernst:'Mit Bewusstlosigkeit → 112' },
+      ruecken: { leichte:['Bewegung, nicht liegen','Wärme','Sanfte Dehnung'], mittel:['Ibuprofen','Physiotherapie'], ernst:'Ausstrahlung ins Bein / Blase → Arzt' },
+      uebel: { leichte:['Kleine Portionen','Ingwertee','Frische Luft'], mittel:['Vomex'], ernst:'> 24h / Blut → Arzt' },
+      juckreiz:{ leichte:['Kühlen','Kein Kratzen','Baumwolle tragen'], mittel:['Antihistaminika (Cetirizin)'], ernst:'Atemnot / Schwellung → 112' }
+    };
+    $('#scGo',win).onclick=()=>{
+      const s=$('#scS',win).value;
+      if(!s){ toast('Bitte Beschwerde wählen'); return; }
+      const t=TIPS[s];
+      const f=$('#scF',win).checked, l=$('#scL',win).checked, w=$('#scW',win).checked;
+      const ernst = f||l||w;
+      let html = '<div class="card" style="margin-top:10px;border-color:'+(ernst?'#ff6b88':'#4de88a')+'">'+
+        '<b>'+(ernst?'⚠️ Bitte ärztlich abklären':'✅ Selbsthilfe möglich')+'</b></div>';
+      const level = ernst ? 'mittel' : 'leichte';
+      html += '<div class="card"><b>Empfehlungen</b><ul style="margin:8px 0 0 18px;padding:0">'+
+        t[level].map(x=>'<li>'+x+'</li>').join('')+'</ul></div>';
+      html += '<div class="card" style="border-color:#ff9db1"><b>🚨 Notfall-Warnzeichen</b><div class="dim sm" style="margin-top:4px">'+t.ernst+'</div></div>';
+      $('#scOut',win).innerHTML = html;
+    };
+  }
+};
+
+APPS['yoga'] = {
+  name:'Yoga', icon:'🧘',
+  render(){ return '<div class="col">'+
+    '<div class="card center"><div class="dim">Übung</div><div class="big2" id="ygN">Bereit</div><div class="big" id="ygT">–</div></div>'+
+    '<div class="row" style="justify-content:center"><button class="btn primary" id="ygGo">▶ Start</button><button class="btn" id="ygSk">⏭ Skip</button></div>'+
+    '<div class="list" id="ygL"></div>'+
+  '</div>'; },
+  init(win){
+    const poses=[
+      ['🧘 Berg (Tadasana)','Aufrecht stehen, Füße parallel, Arme hängen. 30s.'],
+      ['🐕 Hund (Adho Mukha)','Hände + Füße am Boden, Po nach oben. 45s.'],
+      ['🐈 Katze-Kuh','Vierfüßler, Rücken abwechselnd wölben/senken. 60s.'],
+      ['🦅 Krieger I','Ausfallschritt, Arme hoch. 45s je Seite.'],
+      ['🦅 Krieger II','Ausfallschritt, Arme seitlich. 45s je Seite.'],
+      ['🌳 Baum','Auf einem Bein stehen, Fuß an Wade. 30s je Seite.'],
+      ['🦋 Schmetterling','Sitzend, Fußsohlen zusammen. 60s.'],
+      ['🐍 Kobra','Bauchlage, Oberkörper hochdrücken. 30s.'],
+      ['👶 Kind','Kniend, Stirn am Boden, Arme nach vorn. 60s.'],
+      ['😴 Savasana','Flach liegen, Augen zu, atmen. 2 Min.']
+    ];
+    let i=-1, rem=0, id=null;
+    const N=$('#ygN',win), T=$('#ygT',win), L=$('#ygL',win);
+    L.innerHTML = poses.map((p,idx)=>'<div class="item" data-i="'+idx+'"><b>'+(idx+1)+'.</b><span>'+p[0]+'</span></div>').join('');
+    function start(){ i=0; run(); }
+    function run(){
+      if(i>=poses.length){ N.textContent='✅ Fertig!'; T.textContent='🎉'; if(id) clearInterval(id); id=null; toast('Yoga-Session beendet'); return; }
+      const p=poses[i];
+      N.textContent = p[0];
+      T.textContent = '5s';
+      rem=5;
+      $$('.item',win).forEach(el2=>el2.style.background = parseInt(el2.dataset.i)===i?'rgba(0,229,255,.15)':'');
+      if(id) clearInterval(id);
+      id=setInterval(()=>{ rem--; T.textContent=rem+'s'; if(rem<=0){ i++; run(); } },1000);
+    }
+    $('#ygGo',win).onclick=()=>{ if(id){ clearInterval(id); id=null; N.textContent='Pause'; return; } if(i<0) start(); else run(); };
+    $('#ygSk',win).onclick=()=>{ i++; run(); };
+  }
+};
+
+APPS['dehnuebungen'] = {
+  name:'Dehnen', icon:'🤸',
+  render(){ return '<div class="col">'+
+    '<div class="card center"><div class="big2" id="dhN">Bereit</div><div class="big" id="dhT">–</div></div>'+
+    '<button class="btn primary" id="dhGo">▶ Start (60s gesamt)</button>'+
+    '<div class="list">'+
+      '<div class="item"><b>1.</b> Nacken: Kopf langsam links/rechts drehen. 20s</div>'+
+      '<div class="item"><b>2.</b> Schultern: Kreisen vor/zurück. 20s</div>'+
+      '<div class="item"><b>3.</b> Rücken: Katze-Kuh im Stehen. 20s</div>'+
+      '<div class="item"><b>4.</b> Hüfte: Ausfallschritt halten. 20s je Seite</div>'+
+      '<div class="item"><b>5.</b> Beine: Fuß an Po ziehen. 20s je Seite</div>'+
+      '<div class="item"><b>6.</b> Waden: An Wand lehnen, Ferse drücken. 20s je Seite</div>'+
+    '</div>'+
+  '</div>'; },
+  init(win){
+    let t=60, id=null;
+    const N=$('#dhN',win), T=$('#dhT',win);
+    $('#dhGo',win).onclick=()=>{
+      if(id){ clearInterval(id); id=null; N.textContent='Pause'; return; }
+      t=60; N.textContent='Dehnen läuft…'; T.textContent=t+'s';
+      id=setInterval(()=>{
+        t--;
+        T.textContent = t+'s';
+        if(t<=0){ clearInterval(id); id=null; N.textContent='✅ Fertig!'; T.textContent='🎉'; toast('Dehnen beendet'); }
+      },1000);
+    };
+  }
+};
+
+APPS['meditation'] = {
+  name:'Meditation', icon:'🧘‍♀️',
+  render(){ return '<div class="col center">'+
+    '<div class="big2" id="mdT">Bereit</div>'+
+    '<div class="big" id="mdC">–</div>'+
+    '<select class="inp" id="mdM" style="width:auto"><option value="3">3 Min</option><option value="5" selected>5 Min</option><option value="10">10 Min</option><option value="20">20 Min</option></select>'+
+    '<button class="btn primary" id="mdGo">▶ Start</button>'+
+    '<div class="card" style="max-width:360px"><b>Anleitung</b><div class="dim sm">Bequem sitzen. Augen schließen. Atme ruhig durch die Nase. Bei Gedanken: sanft zum Atem zurück.</div></div>'+
+  '</div>'; },
+  init(win){
+    let rem=300, id=null;
+    const T=$('#mdT',win), C=$('#mdC',win);
+    const draw=()=>{ const m=Math.floor(rem/60), s=rem%60; C.textContent=pad(m)+':'+pad(s); };
+    const pad=(n)=>String(n).padStart(2,'0');
+    $('#mdGo',win).onclick=()=>{
+      if(id){ clearInterval(id); id=null; T.textContent='Pause'; return; }
+      rem = parseInt($('#mdM',win).value)*60;
+      T.textContent='Meditiere…';
+      draw();
+      id=setInterval(()=>{ rem--; draw(); if(rem<=0){ clearInterval(id); id=null; T.textContent='✅ Fertig'; C.textContent='🧘'; toast('Meditation beendet'); } },1000);
+    };
+  }
+};
+
+APPS['blutdruck'] = {
+  name:'Blutdruck', icon:'❤️',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="bdS" type="number" inputmode="numeric" placeholder="Systole (mmHg)" style="flex:1"><input class="inp" id="bdD" type="number" inputmode="numeric" placeholder="Diastole" style="flex:1"><input class="inp" id="bdP" type="number" inputmode="numeric" placeholder="Puls" style="width:80px"><button class="btn primary" id="bdA">+</button></div>'+
+    '<div id="bdL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#bdL',win);
+    const all=()=>store.get('bp',[]);
+    function cat(s,d){
+      if(s<90||d<60) return {t:'Niedrig',c:'#4da8ff'};
+      if(s<120&&d<80) return {t:'Optimal',c:'#4de88a'};
+      if(s<130&&d<85) return {t:'Normal',c:'#4de88a'};
+      if(s<140||d<90) return {t:'Hochnormal',c:'#ffb03a'};
+      if(s<160||d<100) return {t:'Hypertonie 1',c:'#ff9040'};
+      return {t:'Hypertonie 2',c:'#ff6b88'};
+    }
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.slice(0,20).map(x=>{
+        const c=cat(x.s,x.d);
+        return '<div class="item"><b>'+x.s+'/'+x.d+'</b>'+(x.p?'<span class="dim">· '+x.p+' bpm</span>':'')+'<span style="margin-left:auto;color:'+c.c+'">'+c.t+'</span><span class="dim sm">'+new Date(x.ts).toLocaleDateString('de-DE')+'</span><span class="x" data-id="'+x.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Noch keine Werte</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('bp',all().filter(v=>v.id!==el2.dataset.id)); render(); });
+    }
+    $('#bdA',win).onclick=()=>{
+      const s=parseInt($('#bdS',win).value), d=parseInt($('#bdD',win).value), p=parseInt($('#bdP',win).value)||null;
+      if(!s||!d){ toast('Systole + Diastole'); return; }
+      const arr=all(); arr.unshift({id:uid(), s, d, p, ts:Date.now()}); store.set('bp',arr.slice(0,60));
+      $('#bdS',win).value=''; $('#bdD',win).value=''; $('#bdP',win).value=''; render();
+    };
+    render();
+  }
+};
+
+APPS['medikamente'] = {
+  name:'Medikamente', icon:'💊',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="mkN" placeholder="Medikament…" style="flex:1"><input class="inp" id="mkD" placeholder="Dosis (z.B. 1 Tbl.)" style="width:130px"><input class="inp" id="mkZ" placeholder="Uhrzeit" type="time" style="width:110px"><button class="btn primary" id="mkA">+</button></div>'+
+    '<div id="mkL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#mkL',win);
+    const all=()=>store.get('meds',[]);
+    function render(){
+      const a=all();
+      const today = new Date().toISOString().slice(0,10);
+      L.innerHTML = a.length ? a.map(m=>{
+        const taken = (m.taken||[]).includes(today);
+        return '<div class="item"><button class="btn sm '+(taken?'primary':'')+'" data-id="'+m.id+'">'+(taken?'✓':'○')+'</button><b>'+esc(m.n)+'</b><span class="dim">'+esc(m.d||'')+'</span><span class="dim sm" style="margin-left:auto">'+esc(m.z||'')+'</span><span class="x" data-id="'+m.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Medikamente</div>';
+      L.querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>{
+        const arr=all(); const m=arr.find(x=>x.id===b.dataset.id); if(!m) return;
+        m.taken = m.taken||[];
+        if(m.taken.includes(today)) m.taken=m.taken.filter(x=>x!==today);
+        else m.taken.push(today);
+        store.set('meds',arr); render();
+      });
+      L.querySelectorAll('.x').forEach(x=>x.onclick=()=>{ store.set('meds',all().filter(m=>m.id!==x.dataset.id)); render(); });
+    }
+    $('#mkA',win).onclick=()=>{
+      const n=$('#mkN',win).value.trim(); if(!n){ toast('Name fehlt'); return; }
+      const arr=all(); arr.push({id:uid(), n, d:$('#mkD',win).value.trim(), z:$('#mkZ',win).value, taken:[]}); store.set('meds',arr);
+      $('#mkN',win).value=''; $('#mkD',win).value=''; $('#mkZ',win).value=''; render();
+    };
+    render();
+  }
+};
+
+APPS['zahnpflege'] = {
+  name:'Zahnpflege', icon:'🦷',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🪥 Zähne putzen — Timer</b></div>'+
+    '<div class="row" style="justify-content:center;gap:8px">'+
+      '<button class="btn primary" id="zp2">▶ 2 Minuten</button>'+
+      '<button class="btn" id="zp1">▶ 1 Minute</button>'+
+    '</div>'+
+    '<div class="big center" id="zpT">–</div>'+
+    '<div class="dim center" id="zpQ">Oberkiefer außen → innen · Unterkiefer außen → innen</div>'+
+    '<div class="card"><b>💡 Tipps</b>'+
+      '<div class="dim" style="margin-top:6px">• 2× täglich je 2 Minuten</div>'+
+      '<div class="dim">• Zahnseide 1× täglich</div>'+
+      '<div class="dim">• Zunge nicht vergessen</div>'+
+      '<div class="dim">• Alle 6 Monate zum Zahnarzt</div>'+
+      '<div class="dim">• Zahnbürste alle 3 Monate wechseln</div>'+
+    '</div>'+
+  '</div>'; },
+  init(win){
+    let t=0, id=null;
+    const T=$('#zpT',win), Q=$('#zpQ',win);
+    const pad2=(n)=>String(n).padStart(2,'0');
+    function start(sec){
+      if(id){ clearInterval(id); id=null; }
+      t=sec;
+      const quad = ['Oben rechts außen','Oben rechts innen','Oben links außen','Oben links innen','Unten rechts außen','Unten rechts innen','Unten links außen','Unten links innen'];
+      let qi=0;
+      const draw=()=>{ T.textContent = pad2(Math.floor(t/60))+':'+pad2(t%60)+' · '+quad[qi]; };
+      draw();
+      const perQuad = Math.floor(sec/8);
+      let qc=0;
+      id=setInterval(()=>{
+        t--; qc++;
+        if(qc>=perQuad){ qc=0; qi=(qi+1)%8; }
+        draw();
+        if(t<=0){ clearInterval(id); id=null; T.textContent='✅ Fertig!'; toast('Zähneputzen abgeschlossen 💪'); }
+      },1000);
+    }
+    $('#zp2',win).onclick=()=>start(120);
+    $('#zp1',win).onclick=()=>start(60);
+  }
+};
+
+APPS['hautpflege'] = {
+  name:'Hautpflege', icon:'🧴',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>☀️ Morgen-Routine</b><div class="dim" style="margin-top:6px">1. Sanfter Reiniger (kein Seifenschaum)<br>2. Vitamin-C-Serum<br>3. Feuchtigkeitscreme<br>4. Sonnencreme LSF 30+ (immer!)</div></div>'+
+    '<div class="card"><b>🌙 Abend-Routine</b><div class="dim" style="margin-top:6px">1. Reiniger / Öl-Reinigung<br>2. Retinol (2-3×/Woche)<br>3. Feuchtigkeitscreme<br>4. Augencreme</div></div>'+
+    '<div class="card"><b>💡 Grundregeln</b><div class="dim" style="margin-top:6px">• 8 Gläser Wasser/Tag<br>• Nicht rauchen<br>• 7-9 h Schlaf<br>• Nie an Akne-Pickeln spielen<br>• Neue Produkte erst am Arm testen</div></div>'+
+    '<div class="card"><b>🧴 Hauttyp-Ratgeber</b><div class="list" style="margin-top:6px">'+
+      '<div class="item"><span>Fettig</span><span class="dim" style="margin-left:auto">Gel-Reiniger, Niacinamid</span></div>'+
+      '<div class="item"><span>Trocken</span><span class="dim" style="margin-left:auto">Cremereiniger, Hyaluron</span></div>'+
+      '<div class="item"><span>Mischhaut</span><span class="dim" style="margin-left:auto">Milchreiniger, leichte Creme</span></div>'+
+      '<div class="item"><span>Sensibel</span><span class="dim" style="margin-left:auto">Parfümfrei, Panthenol</span></div>'+
+    '</div></div>'+
+  '</div>'
+};
+
+/* ============================================================
+   E · ARBEIT
+   ============================================================ */
+
+APPS['kanban'] = {
+  name:'Kanban', icon:'📋',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="kbN" placeholder="Neue Aufgabe…" style="flex:1"><select class="inp" id="kbC" style="width:auto"><option value="todo">Todo</option><option value="doing">Doing</option><option value="done">Done</option></select><button class="btn primary" id="kbA">+</button></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;min-height:300px">'+
+      '<div><div class="lbl">📥 Todo</div><div class="col" id="kbTodo" style="min-height:100px;background:rgba(255,255,255,.03);border-radius:10px;padding:6px;gap:6px"></div></div>'+
+      '<div><div class="lbl">⚙️ Doing</div><div class="col" id="kbDoing" style="min-height:100px;background:rgba(255,255,255,.03);border-radius:10px;padding:6px;gap:6px"></div></div>'+
+      '<div><div class="lbl">✅ Done</div><div class="col" id="kbDone" style="min-height:100px;background:rgba(255,255,255,.03);border-radius:10px;padding:6px;gap:6px"></div></div>'+
+    '</div>'+
+    '<div class="dim sm center">Tipp: Klick auf Karte → verschieben zur nächsten Spalte</div>'+
+  '</div>'; },
+  init(win){
+    const all=()=>store.get('kanban',[]);
+    function render(){
+      ['todo','doing','done'].forEach(col=>{
+        const c=$('#kb'+col[0].toUpperCase()+col.slice(1),win);
+        const items = all().filter(x=>x.c===col);
+        c.innerHTML = items.length ? items.map(x=>'<div class="card" data-id="'+x.id+'" style="padding:8px;font-size:12px;cursor:pointer;margin:0">'+esc(x.t)+'</div>').join('') : '<div class="empty" style="font-size:11px">leer</div>';
+        c.querySelectorAll('.card').forEach(el2=>el2.onclick=()=>{
+          const arr=all(); const it=arr.find(x=>x.id===el2.dataset.id);
+          if(!it) return;
+          it.c = it.c==='todo'?'doing':(it.c==='doing'?'done':'todo');
+          store.set('kanban',arr); render();
+        });
+        c.querySelectorAll('.card').forEach(el2=>el2.oncontextmenu=(e)=>{ e.preventDefault(); store.set('kanban',all().filter(x=>x.id!==el2.dataset.id)); render(); });
+      });
+    }
+    $('#kbA',win).onclick=()=>{
+      const t=$('#kbN',win).value.trim(); if(!t) return;
+      const arr=all(); arr.push({id:uid(), t, c:$('#kbC',win).value, ts:Date.now()});
+      store.set('kanban',arr); $('#kbN',win).value=''; render();
+    };
+    render();
+  }
+};
+
+APPS['zeiterfassung'] = {
+  name:'Zeiterfassung', icon:'⏱️',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="zfT" placeholder="Tätigkeit…" style="flex:1"><button class="btn primary" id="zfGo">▶ Start</button><button class="btn danger" id="zfSt">■ Stop</button></div>'+
+    '<div class="card center"><div class="dim" id="zfA">Aktiv: –</div><div class="big2" id="zfTime">00:00:00</div></div>'+
+    '<div class="list" id="zfL"></div>'+
+  '</div>'; },
+  init(win){
+    let active=null, t0=0, id=null;
+    const A=$('#zfA',win), T=$('#zfTime',win), L=$('#zfL',win);
+    const all=()=>store.get('worktime',[]);
+    const pad2=n=>String(n).padStart(2,'0');
+    function render(){
+      const a=all();
+      const totalToday = a.filter(x=>new Date(x.ts).toDateString()===new Date().toDateString()).reduce((s,x)=>s+x.sec,0);
+      L.innerHTML = '<div class="card center">Heute gesamt: <b>'+fmtTime(totalToday)+'</b></div>'+
+        (a.length ? a.slice(0,20).map(x=>'<div class="item"><b>'+esc(x.t)+'</b><span class="dim sm">'+new Date(x.ts).toLocaleString('de-DE')+'</span><b style="margin-left:auto">'+fmtTime(x.sec)+'</b></div>').join('') : '<div class="empty">Keine Einträge</div>');
+    }
+    function fmtTime(sec){
+      const h=Math.floor(sec/3600), m=Math.floor(sec/60)%60, s=sec%60;
+      return pad2(h)+':'+pad2(m)+':'+pad2(s);
+    }
+    $('#zfGo',win).onclick=()=>{
+      const t=$('#zfT',win).value.trim(); if(!t){ toast('Tätigkeit angeben'); return; }
+      if(id) return;
+      active = t; t0 = Date.now();
+      A.textContent = 'Aktiv: '+t;
+      id = setInterval(()=>{ T.textContent = fmtTime(Math.floor((Date.now()-t0)/1000)); }, 1000);
+    };
+    $('#zfSt',win).onclick=()=>{
+      if(!id) return;
+      const sec = Math.floor((Date.now()-t0)/1000);
+      clearInterval(id); id=null;
+      const arr=all(); arr.unshift({id:uid(), t:active, sec, ts:t0});
+      store.set('worktime',arr);
+      A.textContent='Aktiv: –'; T.textContent='00:00:00'; active=null;
+      render();
+    };
+    render();
+  }
+};
+
+APPS['projekte'] = {
+  name:'Projekte', icon:'📊',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="pjN" placeholder="Projektname…" style="flex:1"><button class="btn primary" id="pjA">+</button></div>'+
+    '<div id="pjL" class="col"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#pjL',win);
+    const all=()=>store.get('projects',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.map(p=>'<div class="card"><div class="row between"><b>'+esc(p.n)+'</b><span class="x" data-id="'+p.id+'">✕</span></div>'+
+        '<div class="row" style="margin-top:8px"><input type="range" min="0" max="100" value="'+p.p+'" data-id="'+p.id+'" style="flex:1"><b style="min-width:40px;text-align:right" id="pp_'+p.id+'">'+p.p+'%</b></div></div>').join('') : '<div class="empty">Keine Projekte</div>';
+      L.querySelectorAll('input[type=range]').forEach(r=>r.oninput=()=>{
+        const arr=all(); const p=arr.find(x=>x.id===r.dataset.id); if(p){ p.p=parseInt(r.value); store.set('projects',arr); const el2=document.getElementById('pp_'+p.id); if(el2) el2.textContent=p.p+'%'; }
+      });
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('projects',all().filter(p=>p.id!==el2.dataset.id)); render(); });
+    }
+    $('#pjA',win).onclick=()=>{ const n=$('#pjN',win).value.trim(); if(!n) return; const arr=all(); arr.push({id:uid(), n, p:0}); store.set('projects',arr); $('#pjN',win).value=''; render(); };
+    render();
+  }
+};
+
+APPS['meeting'] = {
+  name:'Meeting Notizen', icon:'📝',
+  render(){ return '<div class="col">'+
+    '<input class="inp" id="mtT" placeholder="Meeting-Titel…">'+
+    '<textarea class="ta" id="mtB" placeholder="Notizen, Teilnehmer, Entscheidungen…" style="min-height:140px"></textarea>'+
+    '<button class="btn primary" id="mtS">Speichern</button>'+
+    '<div id="mtL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#mtL',win);
+    const all=()=>store.get('meetings',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.slice(0,30).map(m=>'<div class="item"><b>'+esc(m.t)+'</b><span class="dim sm">'+new Date(m.ts).toLocaleString('de-DE')+'</span><span class="x" data-id="'+m.id+'">✕</span></div>').join('') : '<div class="empty">Keine Meetings</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('meetings',all().filter(x=>x.id!==el2.dataset.id)); render(); });
+      L.querySelectorAll('.item').forEach((el2,i)=>el2.onclick=(e)=>{ if(e.target.classList.contains('x')) return; const m=a[i]; if(!m) return; $('#mtT',win).value=m.t; $('#mtB',win).value=m.b; });
+    }
+    $('#mtS',win).onclick=()=>{
+      const t=$('#mtT',win).value.trim(); if(!t){ toast('Titel fehlt'); return; }
+      const arr=all(); arr.unshift({id:uid(), t, b:$('#mtB',win).value, ts:Date.now()}); store.set('meetings',arr);
+      $('#mtT',win).value=''; $('#mtB',win).value=''; render(); toast('Gespeichert');
+    };
+    render();
+  }
+};
+
+APPS['brainstorming'] = {
+  name:'Brainstorming', icon:'💡',
+  render(){ return '<div class="col">'+
+    '<input class="inp" id="bsT" placeholder="Thema (z.B. Produktname, Lösung, Idee)…">'+
+    '<button class="btn primary" id="bsGo">💡 10 Ideen generieren</button>'+
+    '<div id="bsL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const PRE=['Smart','Rapid','Nova','Flash','Prime','Eco','Zen','Ultra','Hyper','Quantum','Future','Vivid','Pure','Bold','Easy'];
+    const SUF=['Flow','Sync','Lab','Craft','Wave','Hub','Core','Space','Stack','Base','Pilot','Mind','Works','Vibe','Path'];
+    const VERB=['Automatisiere','Vereinfache','Verbinde','Beschleunige','Skaliere','Optimiere','Personalisiere','Kombiniere','Recycele','Digitalisiere'];
+    $('#bsGo',win).onclick=()=>{
+      const t=$('#bsT',win).value.trim()||'Dein Projekt';
+      const ideas=[];
+      for(let i=0;i<10;i++){
+        const mode = i%3;
+        if(mode===0) ideas.push(PRE[Math.floor(Math.random()*PRE.length)]+' '+SUF[Math.floor(Math.random()*SUF.length)]);
+        else if(mode===1) ideas.push(VERB[Math.floor(Math.random()*VERB.length)]+' → '+t);
+        else ideas.push('Frage: Was wäre '+t+' ohne X?');
+      }
+      $('#bsL',win).innerHTML = ideas.map((x,i)=>'<div class="item"><b>'+(i+1)+'.</b><span>'+esc(x)+'</span></div>').join('');
+    };
+  }
+};
+
+APPS['mindmap'] = {
+  name:'Mindmap', icon:'🌳',
+  render(){ return '<div class="col">'+
+    '<input class="inp" id="mmC" placeholder="Zentrales Thema…">'+
+    '<div class="row"><input class="inp" id="mmB" placeholder="Unterpunkt…" style="flex:1"><button class="btn primary" id="mmA">+ Ast</button></div>'+
+    '<div id="mmV" class="card" style="min-height:160px"></div>'+
+  '</div>'; },
+  init(win){
+    let center='', branches=[];
+    function render(){
+      if(!center){ $('#mmV',win).innerHTML='<div class="empty">Zentrales Thema eingeben</div>'; return; }
+      $('#mmV',win).innerHTML = '<div class="center big2" style="color:var(--c1);margin-bottom:10px">'+esc(center)+'</div>'+
+        branches.map((b,i)=>'<div class="item" style="margin-left:'+(20+(i%3)*15)+'px"><span>└─ '+esc(b)+'</span><span class="x" data-i="'+i+'">✕</span></div>').join('');
+      $$('#mmV .x',win).forEach(x=>x.onclick=()=>{ branches.splice(parseInt(x.dataset.i),1); render(); });
+    }
+    $('#mmC',win).oninput=()=>{ center=$('#mmC',win).value.trim(); render(); };
+    $('#mmA',win).onclick=()=>{ const b=$('#mmB',win).value.trim(); if(!b||!center){ toast('Thema + Unterpunkt'); return; } branches.push(b); $('#mmB',win).value=''; render(); };
+    render();
+  }
+};
+
+/* ============================================================
+   G · ZUHAUSE & FAMILIE
+   ============================================================ */
+
+APPS['haushaltsplan'] = {
+  name:'Haushalt', icon:'🏠',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="hhN" placeholder="Aufgabe…" style="flex:1"><select class="inp" id="hhT" style="width:auto"><option>täglich</option><option>wöchentlich</option><option>monatlich</option></select><button class="btn primary" id="hhA">+</button></div>'+
+    '<div id="hhL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#hhL',win);
+    const all=()=>store.get('household',[]);
+    const today = new Date().toISOString().slice(0,10);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.map(h=>{
+        const done = (h.done||[]).includes(today);
+        return '<div class="item"><button class="btn sm '+(done?'primary':'')+'" data-id="'+h.id+'">'+(done?'✓':'○')+'</button><span>'+esc(h.n)+'</span><span class="dim sm" style="margin-left:auto">'+esc(h.t)+'</span><span class="x" data-id="'+h.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Aufgaben</div>';
+      L.querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>{
+        const arr=all(); const h=arr.find(x=>x.id===b.dataset.id); if(!h) return;
+        h.done=h.done||[];
+        if(h.done.includes(today)) h.done=h.done.filter(x=>x!==today); else h.done.push(today);
+        store.set('household',arr); render();
+      });
+      L.querySelectorAll('.x').forEach(x=>x.onclick=()=>{ store.set('household',all().filter(h=>h.id!==x.dataset.id)); render(); });
+    }
+    $('#hhA',win).onclick=()=>{ const n=$('#hhN',win).value.trim(); if(!n) return; const arr=all(); arr.push({id:uid(), n, t:$('#hhT',win).value, done:[]}); store.set('household',arr); $('#hhN',win).value=''; render(); };
+    render();
+  }
+};
+
+APPS['putzplan'] = {
+  name:'Putzplan', icon:'🧹',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>Wochenplan</b></div>'+
+    '<div id="pzL"></div>'+
+  '</div>'; },
+  init(win){
+    const plan = {
+      'Mo':'🛋️ Wohnzimmer saugen',
+      'Di':'🚿 Bad putzen',
+      'Mi':'🍳 Küche wischen',
+      'Do':'🛏️ Bettwäsche wechseln',
+      'Fr':'🧺 Wäsche waschen',
+      'Sa':'🧽 Staub wischen',
+      'So':'🗑️ Müll rausbringen'
+    };
+    const today = new Date().getDay();
+    const todayIdx = today===0?6:today-1;
+    const days=['Mo','Di','Mi','Do','Fr','Sa','So'];
+    $('#pzL',win).innerHTML = days.map((d,i)=>'<div class="item" style="'+(i===todayIdx?'border-color:var(--c1);background:rgba(0,229,255,.1)':'')+'"><b>'+d+'</b><span>'+plan[d]+'</span>'+(i===todayIdx?'<span class="dim sm" style="margin-left:auto">heute</span>':'')+'</div>').join('');
+  }
+};
+
+APPS['kuehlschrank'] = {
+  name:'Kühlschrank', icon:'🥛',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="ksN" placeholder="Lebensmittel…" style="flex:1"><input class="inp" id="ksM" placeholder="Menge" style="width:90px"><input class="inp" id="ksD" type="date" style="width:auto"><button class="btn primary" id="ksA">+</button></div>'+
+    '<div id="ksL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#ksL',win);
+    const all=()=>store.get('fridge',[]);
+    function render(){
+      const a=all().sort((x,y)=>(x.d||'').localeCompare(y.d||''));
+      const today = new Date().toISOString().slice(0,10);
+      L.innerHTML = a.length ? a.map(x=>{
+        const tage = x.d ? Math.ceil((new Date(x.d)-new Date(today))/86400000) : null;
+        let warn='';
+        if(tage!==null){
+          if(tage<0) warn='<span style="color:#ff6b88;margin-left:8px">abgelaufen</span>';
+          else if(tage<=2) warn='<span style="color:#ffb03a;margin-left:8px">bald ('+tage+' T)</span>';
+          else warn='<span class="dim sm" style="margin-left:8px">'+tage+' T</span>';
+        }
+        return '<div class="item"><b>'+esc(x.n)+'</b><span class="dim">'+esc(x.m||'')+'</span>'+warn+'<span class="x" data-id="'+x.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Kühlschrank leer</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('fridge',all().filter(x=>x.id!==el2.dataset.id)); render(); });
+    }
+    $('#ksA',win).onclick=()=>{
+      const n=$('#ksN',win).value.trim(); if(!n) return;
+      const arr=all(); arr.push({id:uid(), n, m:$('#ksM',win).value.trim(), d:$('#ksD',win).value||null}); store.set('fridge',arr);
+      $('#ksN',win).value=''; $('#ksM',win).value=''; $('#ksD',win).value=''; render();
+    };
+    render();
+  }
+};
+
+APPS['vorratskammer'] = {
+  name:'Vorrat', icon:'🥫',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="vrN" placeholder="Artikel…" style="flex:1"><input class="inp" id="vrM" type="number" placeholder="Menge" style="width:90px"><button class="btn primary" id="vrA">+</button></div>'+
+    '<div id="vrL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#vrL',win);
+    const all=()=>store.get('pantry',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.map(x=>'<div class="item"><b>'+esc(x.n)+'</b><span class="dim" style="margin-left:auto">'+x.m+' Stk.</span><button class="btn sm" data-inc="'+x.id+'">+</button><button class="btn sm" data-dec="'+x.id+'">−</button><span class="x" data-id="'+x.id+'">✕</span></div>').join('') : '<div class="empty">Vorrat leer</div>';
+      L.querySelectorAll('[data-inc]').forEach(b=>b.onclick=()=>{ const arr=all(); const it=arr.find(x=>x.id===b.dataset.inc); if(it){ it.m++; store.set('pantry',arr); render(); } });
+      L.querySelectorAll('[data-dec]').forEach(b=>b.onclick=()=>{ const arr=all(); const it=arr.find(x=>x.id===b.dataset.dec); if(it&&it.m>0){ it.m--; store.set('pantry',arr); render(); } });
+      L.querySelectorAll('.x').forEach(x=>x.onclick=()=>{ store.set('pantry',all().filter(v=>v.id!==x.dataset.id)); render(); });
+    }
+    $('#vrA',win).onclick=()=>{ const n=$('#vrN',win).value.trim(); if(!n) return; const arr=all(); arr.push({id:uid(), n, m:parseInt($('#vrM',win).value)||1}); store.set('pantry',arr); $('#vrN',win).value=''; $('#vrM',win).value=''; render(); };
+    render();
+  }
+};
+
+APPS['haustiere'] = {
+  name:'Haustiere', icon:'🐾',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="htN" placeholder="Name / was gemacht…" style="flex:1"><select class="inp" id="htT" style="width:auto"><option>Futter</option><option>Wasser</option><option>Spaziergang</option><option>Tierarzt</option><option>Spielzeit</option><option>Medikament</option></select><button class="btn primary" id="htA">+</button></div>'+
+    '<div id="htL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#htL',win);
+    const all=()=>store.get('pets',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.slice(0,40).map(x=>'<div class="item"><b>'+esc(x.t)+'</b><span>'+esc(x.n)+'</span><span class="dim sm" style="margin-left:auto">'+new Date(x.ts).toLocaleString('de-DE')+'</span><span class="x" data-id="'+x.id+'">✕</span></div>').join('') : '<div class="empty">Noch nichts eingetragen</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('pets',all().filter(v=>v.id!==el2.dataset.id)); render(); });
+    }
+    $('#htA',win).onclick=()=>{ const n=$('#htN',win).value.trim(); if(!n) return; const arr=all(); arr.unshift({id:uid(), t:$('#htT',win).value, n, ts:Date.now()}); store.set('pets',arr); $('#htN',win).value=''; render(); };
+    render();
+  }
+};
+
+APPS['pflanzen'] = {
+  name:'Pflanzen', icon:'🌱',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="pfN" placeholder="Pflanzenname…" style="flex:1"><input class="inp" id="pfT" type="number" placeholder="Alle X Tage" value="3" style="width:110px"><button class="btn primary" id="pfA">+</button></div>'+
+    '<div id="pfL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#pfL',win);
+    const all=()=>store.get('plants',[]);
+    const today = new Date();
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.map(p=>{
+        const last = p.last ? new Date(p.last) : null;
+        const days = last ? Math.floor((today-last)/86400000) : 999;
+        const due = days>=p.t;
+        const info = last ? (days===0?'heute gegossen':('vor '+days+' T')) : 'nie gegossen';
+        return '<div class="item" style="'+(due?'border-color:#4de88a;background:rgba(77,232,138,.08)':'')+'"><button class="btn sm '+(due?'primary':'')+'" data-id="'+p.id+'">💧</button><b>'+esc(p.n)+'</b><span class="dim sm">'+info+'</span><span class="dim sm" style="margin-left:auto">alle '+p.t+' T</span><span class="x" data-id="'+p.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Pflanzen</div>';
+      L.querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>{
+        const arr=all(); const p=arr.find(x=>x.id===b.dataset.id); if(!p) return;
+        p.last = new Date().toISOString().slice(0,10);
+        store.set('plants',arr); render(); toast('💧 '+p.n+' gegossen');
+      });
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('plants',all().filter(p=>p.id!==el2.dataset.id)); render(); });
+    }
+    $('#pfA',win).onclick=()=>{ const n=$('#pfN',win).value.trim(); if(!n) return; const arr=all(); arr.push({id:uid(), n, t:parseInt($('#pfT',win).value)||3, last:null}); store.set('plants',arr); $('#pfN',win).value=''; render(); };
+    render();
+  }
+};
+
+APPS['garten'] = {
+  name:'Garten', icon:'🌻',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>Frühling (Mär–Mai)</b><div class="dim" style="margin-top:4px">• Rasen vertikutieren<br>• Blumenzwiebeln setzen<br>• Beete umgraben<br>• Erste Aussaat im Haus</div></div>'+
+    '<div class="card"><b>Sommer (Jun–Aug)</b><div class="dim" style="margin-top:4px">• Täglich gießen (abends)<br>• Unkraut jäten<br>• Hecke schneiden<br>• Ernte</div></div>'+
+    '<div class="card"><b>Herbst (Sep–Nov)</b><div class="dim" style="margin-top:4px">• Laub harken<br>• Zwiebeln für Frühling<br>• Bäume pflanzen<br>• Teich winterfest</div></div>'+
+    '<div class="card"><b>Winter (Dez–Feb)</b><div class="dim" style="margin-top:4px">• Werkzeug reinigen<br>• Sträucher schneiden (außer Frühblüher)<br>• Vögel füttern<br>• Planung fürs Frühjahr</div></div>'+
+  '</div>'
+};
+
+/* ============================================================
+   H · HALDO WORLD
+   ============================================================ */
+
+APPS['haldo-music'] = {
+  name:'HalDo Music', icon:'🎵',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🎹 Synth-Keyboard</b><div class="dim sm">Einfach Töne erzeugen</div></div>'+
+    '<div class="piano" id="hmKeys"></div>'+
+    '<div class="card"><b>🎼 Noten-Sequenzer</b>'+
+      '<div class="row" id="hmSeq" style="margin-top:6px">'+
+        '<button class="btn sm" data-note="261.63">C</button>'+
+        '<button class="btn sm" data-note="293.66">D</button>'+
+        '<button class="btn sm" data-note="329.63">E</button>'+
+        '<button class="btn sm" data-note="349.23">F</button>'+
+        '<button class="btn sm" data-note="392">G</button>'+
+        '<button class="btn sm" data-note="440">A</button>'+
+        '<button class="btn sm" data-note="493.88">B</button>'+
+      '</div>'+
+      '<div class="row" style="margin-top:8px">'+
+        '<button class="btn primary" id="hmPlay">▶ Play Sequenz</button>'+
+        '<button class="btn" id="hmClr">🗑 Löschen</button>'+
+      '</div>'+
+      '<div class="dim sm" id="hmSeqL" style="margin-top:6px">Sequenz: (leer)</div>'+
+    '</div>'+
+  '</div>'; },
+  init(win){
+    let ctx=null;
+    const play=(f,dur=0.4)=>{
+      ctx = ctx || new (window.AudioContext||window.webkitAudioContext)();
+      if(ctx.state==='suspended') ctx.resume();
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type='triangle'; o.frequency.value=f;
+      g.gain.setValueAtTime(.18, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime+dur);
+      o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+dur+0.05);
+    };
+    const notes=[['C',261.63],['D',293.66],['E',329.63],['F',349.23],['G',392],['A',440],['B',493.88],['C²',523.25]];
+    const K=$('#hmKeys',win);
+    K.innerHTML = notes.map((n,i)=>'<button class="pk" data-f="'+n[1]+'">'+n[0]+'</button>').join('');
+    K.querySelectorAll('.pk').forEach(b=>b.onclick=()=>play(parseFloat(b.dataset.f)));
+    let seq=[];
+    $$('#hmSeq [data-note]',win).forEach(b=>b.onclick=()=>{
+      const f=parseFloat(b.dataset.note);
+      seq.push(f); play(f,0.3);
+      $('#hmSeqL',win).textContent = 'Sequenz: '+seq.length+' Noten';
+    });
+    $('#hmPlay',win).onclick=()=>{
+      if(!seq.length){ toast('Erst Noten wählen'); return; }
+      let i=0;
+      const id=setInterval(()=>{ if(i>=seq.length){ clearInterval(id); return; } play(seq[i],0.35); i++; }, 420);
+    };
+    $('#hmClr',win).onclick=()=>{ seq=[]; $('#hmSeqL',win).textContent='Sequenz: (leer)'; };
+  }
+};
+
+APPS['haldo-radio'] = {
+  name:'HalDo Radio', icon:'📻',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>📻 Live-Streams (öffnen in neuem Tab)</b></div>'+
+    '<div class="list" id="hrL"></div>'+
+    '<div class="dim sm center">Tipp: Öffnet die offizielle Stream-Seite des Senders.</div>'+
+  '</div>'; },
+  init(win){
+    const stations = [
+      ['1LIVE','https://www1.wdr.de/radio/1live/livestream/index.html','Pop / Aktuell'],
+      ['WDR 2','https://www1.wdr.de/radio/wdr2/livestream/index.html','Info / Pop'],
+      ['Bayern 3','https://www.br.de/radio/bayern3/livestream/index.html','Pop'],
+      ['SWR3','https://www.swr3.de/livestream','Pop'],
+      ['Deutschlandfunk','https://www.deutschlandfunk.de/livestream','Info'],
+      ['Rock Antenne','https://www.rockantenne.de/hoeren/livestream','Rock'],
+      ['Klassik Radio','https://www.klassikradio.de/','Klassik'],
+      ['BBC World Service','https://www.bbc.co.uk/sounds/play/live:bbc_world_service','International']
+    ];
+    $('#hrL',win).innerHTML = stations.map(s=>'<a href="'+s[1]+'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>'+s[0]+'</b><span class="dim sm" style="margin-left:auto">'+s[2]+'</span></div></a>').join('');
+  }
+};
+
+APPS['haldo-tv'] = {
+  name:'HalDo TV', icon:'📺',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>📺 Mediatheken & Live-TV</b></div>'+
+    '<div class="list" id="hvL"></div>'+
+  '</div>'; },
+  init(win){
+    const channels = [
+      ['ARD Mediathek','https://www.ardmediathek.de/'],
+      ['ZDF Mediathek','https://www.zdf.de/'],
+      ['Arte','https://www.arte.tv/de/'],
+      ['YouTube','https://www.youtube.com/'],
+      ['3sat','https://www.3sat.de/'],
+      ['Phoenix','https://www.phoenix.de/'],
+      ['Tagesschau','https://www.tagesschau.de/'],
+      ['KiKA','https://www.kika.de/']
+    ];
+    $('#hvL',win).innerHTML = channels.map(s=>'<a href="'+s[1]+'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>'+s[0]+'</b><span class="dim sm" style="margin-left:auto">↗ öffnen</span></div></a>').join('');
+  }
+};
+
+APPS['haldo-wallet'] = {
+  name:'HalDo Wallet', icon:'💎',
+  render(){ return '<div class="col">'+
+    '<div class="card center"><div class="dim">HalDo Credits</div><div class="big" id="hwB">0</div></div>'+
+    '<div class="row"><input class="inp" id="hwV" type="number" placeholder="Menge" style="flex:1"><button class="btn primary" id="hwAdd">+ Einzahlen</button><button class="btn danger" id="hwSub">− Ausgeben</button></div>'+
+    '<div class="card"><b>Transaktionen</b><div class="list" id="hwL" style="margin-top:6px"></div></div>'+
+    '<div class="dim sm center">Dies ist eine lokale Demo-Wallet — keine echten Werte.</div>'+
+  '</div>'; },
+  init(win){
+    let bal=store.get('wallet_bal',0);
+    let tx=store.get('wallet_tx',[]);
+    function render(){
+      $('#hwB',win).textContent = fmt(bal);
+      $('#hwL',win).innerHTML = tx.length ? tx.slice(0,20).map(t=>'<div class="item"><b>'+esc(t.d)+'</b><span style="margin-left:auto;color:'+(t.v>0?'#4de88a':'#ff9db1')+'">'+(t.v>0?'+':'')+fmt(t.v)+'</span></div>').join('') : '<div class="empty">Keine Transaktionen</div>';
+    }
+    $('#hwAdd',win).onclick=()=>{ const v=parseFloat($('#hwV',win).value); if(!v||v<=0) return; bal+=v; tx.unshift({d:'Einzahlung',v,ts:Date.now()}); store.set('wallet_bal',bal); store.set('wallet_tx',tx.slice(0,50)); $('#hwV',win).value=''; render(); toast('+'+v+' Credits'); };
+    $('#hwSub',win).onclick=()=>{ const v=parseFloat($('#hwV',win).value); if(!v||v<=0) return; if(v>bal){ toast('Nicht genug Credits'); return; } bal-=v; tx.unshift({d:'Ausgabe',v:-v,ts:Date.now()}); store.set('wallet_bal',bal); store.set('wallet_tx',tx.slice(0,50)); $('#hwV',win).value=''; render(); toast('−'+v+' Credits'); };
+    render();
+  }
+};
+
+APPS['haldo-cloud'] = {
+  name:'HalDo Cloud', icon:'☁️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>☁️ Backup & Restore</b><div class="dim sm">Alle HalDo-Daten als Datei exportieren / importieren.</div></div>'+
+    '<button class="btn primary" id="hcEx">⬇ Alle Daten exportieren</button>'+
+    '<label class="lbl" style="margin-top:10px">Backup importieren</label>'+
+    '<input type="file" id="hcFile" accept="application/json" class="inp">'+
+    '<div class="card" id="hcInfo"><span class="dim sm">Keine Aktionen</span></div>'+
+  '</div>'; },
+  init(win){
+    $('#hcEx',win).onclick=()=>{
+      const data = {};
+      for(let i=0;i<localStorage.length;i++){
+        const k = localStorage.key(i);
+        if(k && k.startsWith('haldo_')) data[k] = localStorage.getItem(k);
+      }
+      const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href=url; a.download='haldo-backup-'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+      URL.revokeObjectURL(url);
+      $('#hcInfo',win).innerHTML = '<b>✅ Exportiert</b><div class="dim sm">'+Object.keys(data).length+' Einträge</div>';
+    };
+    $('#hcFile',win).onchange=(e)=>{
+      const f=e.target.files[0]; if(!f) return;
+      const r=new FileReader();
+      r.onload=()=>{
+        try{
+          const data=JSON.parse(r.result);
+          let n=0;
+          for(const k in data){ if(k.startsWith('haldo_')){ localStorage.setItem(k, data[k]); n++; } }
+          $('#hcInfo',win).innerHTML = '<b>✅ Importiert</b><div class="dim sm">'+n+' Einträge — bitte Seite neu laden.</div>';
+          toast('Backup importiert ✅');
+        }catch(err){ toast('Fehler beim Import'); }
+      };
+      r.readAsText(f);
+    };
+  }
+};
+
+console.log('%c🚀 HalDo Apps v125 geladen','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('Neue Apps: 28 registriert');
+
+setTimeout(()=>{
+  const logo = document.querySelector('#logoBtn');
+  if(logo) logo.click();
+}, 100);
+
+})();
+</script>
 </body>
 </html>
