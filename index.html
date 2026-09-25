@@ -3685,5 +3685,403 @@ if(document.readyState==='loading'){
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════════════════════════════ ENDE v126 ═════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v127 – 4 APPS (Sleep · Mood · Workout · Breathing) ══ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+"use strict";
+if(window.__v127) return;
+window.__v127 = true;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const store = (k,def) => { try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def }catch(e){ return def } };
+const save = (k,v) => { try{ localStorage.setItem(k,JSON.stringify(v)) }catch(e){} };
+const todayK = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0') };
+
+// ═══════════════════════════════════════════════════════════
+// 1. SLEEP TRACKER
+// ═══════════════════════════════════════════════════════════
+window.HalDoSleep={
+  key:'haldo_sleep_v1',
+  all(){ return store(this.key,[]); },
+  add(bed, wake, quality, note){
+    const l=this.all();
+    const d=todayK();
+    // Berechne Dauer
+    const [bh,bm]=bed.split(':').map(Number);
+    const [wh,wm]=wake.split(':').map(Number);
+    let bedMin=bh*60+bm, wakeMin=wh*60+wm;
+    if(wakeMin<=bedMin) wakeMin+=1440;
+    const dur=(wakeMin-bedMin)/60;
+    const idx=l.findIndex(x=>x.date===d);
+    const entry={date:d, bed, wake, dur, quality, note:note||''};
+    if(idx>=0) l[idx]=entry; else l.unshift(entry);
+    save(this.key, l.slice(0,180));
+    return entry;
+  },
+  remove(i){ const l=this.all(); l.splice(i,1); save(this.key,l); },
+  avg(){ const l=this.all().slice(0,7); return l.length ? l.reduce((s,e)=>s+e.dur,0)/l.length : 0; },
+  today(){ return this.all().find(e=>e.date===todayK()); }
+};
+
+let slState={quality:3};
+
+function buildSleep(){
+  const w=$('sleep-window'); if(!w) return;
+  w.dataset.title='Schlaf'; w.dataset.icon='😴';
+  const l=HalDoSleep.all();
+  const avg=HalDoSleep.avg();
+  const today=HalDoSleep.today();
+  const qEmojis=['😫','😕','😐','🙂','😴'];
+  const qGrid=qEmojis.map((e,i)=>
+    '<button class="os-btn '+(slState.quality===i+1?'primary':'')+'" style="flex:1;padding:14px 6px;font-size:22px" onclick="HalDoSleepApp.setQ('+(i+1)+')">'+e+'</button>'
+  ).join('');
+  const list=l.slice(0,15).map((e,i)=>{
+    const dt=new Date(e.date+'T12:00:00');
+    return '<div class="hl-card" style="display:flex;gap:10px;align-items:center">'+
+      '<div style="flex:1;min-width:0">'+
+      '<div style="font-size:12px;color:#88ccff;font-weight:800;text-transform:uppercase;letter-spacing:1px">'+dt.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'short'})+'</div>'+
+      '<div style="font-size:13px;color:#fff;font-weight:700;margin-top:2px">'+e.bed+' → '+e.wake+' · '+qEmojis[e.quality-1]+'</div>'+
+      (e.note?'<div style="font-size:11px;color:#aaddff;margin-top:3px">'+esc(e.note.slice(0,60))+'</div>':'')+
+      '</div>'+
+      '<div style="font-size:22px;font-weight:900;color:#6c78ff;font-family:monospace">'+e.dur.toFixed(1)+'h</div>'+
+      '<button class="os-btn danger" style="padding:6px 8px;font-size:10px" onclick="HalDoSleep.remove('+i+');HalDoUI.rebuild(\'sleep-window\')">✕</button>'+
+      '</div>';
+  }).join('');
+  w.innerHTML=
+    '<div class="card" style="text-align:center">'+
+    '<div class="big" style="color:#6c78ff">'+avg.toFixed(1)+'<span style="font-size:18px;color:#a8b8ff">h</span></div>'+
+    '<div class="lbl">Ø Letzte 7 Nächte</div></div>'+
+    '<div class="card">'+
+    '<div class="lbl" style="margin-bottom:8px">'+(today?'✏️ Heute bearbeiten':'➕ Neue Nacht eintragen')+'</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+    '<div><div class="lbl" style="font-size:9px">Eingeschlafen</div><input class="os-input" id="slBed" type="time" value="'+(today?today.bed:'23:00')+'"></div>'+
+    '<div><div class="lbl" style="font-size:9px">Aufgewacht</div><input class="os-input" id="slWake" type="time" value="'+(today?today.wake:'07:00')+'"></div>'+
+    '</div>'+
+    '<div class="lbl" style="margin-bottom:6px">Qualität</div>'+
+    '<div style="display:flex;gap:6px;margin-bottom:10px">'+qGrid+'</div>'+
+    '<textarea class="os-textarea" id="slNote" placeholder="Notiz (optional)..." style="min-height:60px;margin-bottom:8px">'+(today?esc(today.note||''):'')+'</textarea>'+
+    '<button class="os-btn primary full" onclick="HalDoSleepApp.save()">💾 Speichern</button>'+
+    '</div>'+
+    (l.length?'<div class="lbl" style="margin:14px 0 8px">📜 Verlauf ('+l.length+')</div>'+list:'');
+}
+
+window.HalDoSleepApp={
+  setQ(q){ slState.quality=q; buildSleep(); },
+  save(){
+    const bed=$('slBed').value, wake=$('slWake').value, note=$('slNote').value.trim();
+    if(!bed||!wake) return;
+    const e=HalDoSleep.add(bed, wake, slState.quality, note);
+    if(window.showToast) showToast('😴 Gespeichert: '+e.dur.toFixed(1)+'h','success');
+    if(navigator.vibrate) navigator.vibrate(15);
+    if(window.HalDoMemory) HalDoMemory.remember('😴 Schlaf: '+e.dur.toFixed(1)+'h', 'Qualität: '+e.quality+'/5', 'health', ['sleep']);
+    buildSleep();
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 2. MOOD TRACKER
+// ═══════════════════════════════════════════════════════════
+window.HalDoMood={
+  key:'haldo_mood_v1',
+  all(){ return store(this.key,[]); },
+  save(value, note){
+    const l=this.all();
+    const d=todayK();
+    const idx=l.findIndex(x=>x.date===d);
+    const entry={date:d, value, note:note||''};
+    if(idx>=0) l[idx]=entry; else l.unshift(entry);
+    save(this.key, l.slice(0,365));
+  },
+  today(){ return this.all().find(x=>x.date===todayK()); },
+  avg(){ const l=this.all().slice(0,30); return l.length ? l.reduce((s,e)=>s+e.value,0)/l.length : 0; }
+};
+
+const MOODS=[
+  {v:1,e:'😢',n:'Traurig',c:'#6699ff'},
+  {v:2,e:'😕',n:'Niedrig',c:'#88aadd'},
+  {v:3,e:'😐',n:'Neutral',c:'#ffc864'},
+  {v:4,e:'🙂',n:'Gut',c:'#88dd88'},
+  {v:5,e:'😄',n:'Super',c:'#ff8838'}
+];
+
+function buildMood(){
+  const w=$('mood-window'); if(!w) return;
+  w.dataset.title='Stimmung'; w.dataset.icon='😊';
+  const today=HalDoMood.today();
+  const cur=today?today.value:3;
+  const grid=MOODS.map(m=>
+    '<div style="text-align:center;padding:14px 6px;border-radius:14px;background:rgba(0,40,80,.4);border:2px solid '+(cur===m.v?m.c:'rgba(0,229,255,.15)')+';cursor:pointer;'+(cur===m.v?'transform:scale(1.08)':'')+'" onclick="HalDoMoodApp.setMood('+m.v+')">'+
+    '<div style="font-size:34px">'+m.e+'</div>'+
+    '<div style="font-size:9px;color:'+m.c+';font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-top:4px">'+m.n+'</div>'+
+    '</div>'
+  ).join('');
+  // Chart 14 Tage
+  const days=[];
+  for(let i=13;i>=0;i--){
+    const dt=new Date(); dt.setDate(dt.getDate()-i);
+    const k=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+    const e=HalDoMood.all().find(x=>x.date===k);
+    days.push({d:dt, v:e?e.value:0});
+  }
+  const chart=days.map(d=>{
+    const m=MOODS.find(x=>x.v===d.v);
+    const h=d.v?d.v*18:4;
+    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:14px">'+
+    '<div style="width:100%;height:'+h+'px;background:'+(m?m.c:'rgba(0,229,255,.1)')+';border-radius:3px;'+(m?'box-shadow:0 0 8px '+m.c:'')+'"></div>'+
+    '<div style="font-size:8px;color:#88ccff;font-weight:700">'+d.d.getDate()+'</div>'+
+    '</div>';
+  }).join('');
+  // Verlauf
+  const recent=HalDoMood.all().slice(0,10).map((e,i)=>{
+    const m=MOODS.find(x=>x.v===e.value)||MOODS[2];
+    const dt=new Date(e.date+'T12:00:00');
+    return '<div class="hl-card" style="display:flex;gap:10px;align-items:center;padding:10px">'+
+      '<div style="font-size:28px">'+m.e+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+      '<div style="font-size:12px;color:#fff;font-weight:700">'+dt.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'short'})+' · '+m.n+'</div>'+
+      (e.note?'<div style="font-size:11px;color:#aaddff;margin-top:2px">'+esc(e.note.slice(0,60))+'</div>':'')+
+      '</div></div>';
+  }).join('');
+  w.innerHTML=
+    '<div class="card"><div class="lbl" style="margin-bottom:10px">'+(today?'✏️ Heute bearbeiten':'➕ Wie fühlst du dich heute?')+'</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">'+grid+'</div>'+
+    '<textarea class="os-textarea" id="moNote" placeholder="Notiz (optional)..." style="min-height:70px;margin-top:10px">'+(today?esc(today.note||''):'')+'</textarea>'+
+    '<button class="os-btn primary full" style="margin-top:8px" onclick="HalDoMoodApp.save()">💾 Speichern</button></div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">📊 Letzte 14 Tage</div>'+
+    '<div style="display:flex;gap:4px;height:110px;align-items:flex-end;padding:8px;background:rgba(0,0,0,.3);border-radius:10px">'+chart+'</div>'+
+    '<div style="text-align:center;margin-top:8px;font-size:11px;color:#88ccff">Ø Stimmung: <b style="color:#00e5ff">'+HalDoMood.avg().toFixed(1)+'/5</b></div></div>'+
+    (recent?'<div class="lbl" style="margin:14px 0 8px">📜 Verlauf</div>'+recent:'');
+}
+
+window.HalDoMoodApp={
+  setMood(v){ HalDoMood.save(v, $('moNote')?$('moNote').value:''); if(window.showToast) showToast('😊 Gespeichert','success'); buildMood(); },
+  save(){ this.setMood(HalDoMood.today()?HalDoMood.today().value:3); }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 3. WORKOUT / FITNESS
+// ═══════════════════════════════════════════════════════════
+window.HalDoWorkout={
+  key:'haldo_workout_v1',
+  all(){ return store(this.key,{}); },
+  toggle(exId){
+    const d=this.all();
+    const t=todayK();
+    if(!d[t]) d[t]=[];
+    const i=d[t].indexOf(exId);
+    if(i>=0) d[t].splice(i,1);
+    else d[t].push(exId);
+    save(this.key,d);
+  },
+  isDoneToday(exId){ const d=this.all(); return (d[todayK()]||[]).includes(exId); },
+  todayCount(){ return (this.all()[todayK()]||[]).length; },
+  streak(){
+    const d=this.all();
+    let s=0; const now=new Date();
+    for(let i=0;i<365;i++){
+      const dt=new Date(now); dt.setDate(dt.getDate()-i);
+      const k=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+      if(d[k]&&d[k].length) s++;
+      else if(i>0) break;
+    }
+    return s;
+  }
+};
+
+const WORKOUT_EXERCISES={
+  Brust:[
+    {id:'push', n:'Liegestütze', e:'💪', sets:'3×12'},
+    {id:'bench', n:'Bankdrücken', e:'🏋️', sets:'3×8'},
+    {id:'dips', n:'Dips', e:'⬇️', sets:'3×10'}
+  ],
+  Rücken:[
+    {id:'pull', n:'Klimmzüge', e:'🏔️', sets:'3×8'},
+    {id:'row', n:'Rudern', e:'🚣', sets:'3×10'},
+    {id:'dead', n:'Kreuzheben', e:'💀', sets:'3×6'}
+  ],
+  Beine:[
+    {id:'squat', n:'Kniebeugen', e:'🦵', sets:'3×12'},
+    {id:'lunge', n:'Ausfallschritte', e:'🚶', sets:'3×12'},
+    {id:'legpress', n:'Beinpresse', e:'🦿', sets:'3×12'}
+  ],
+  Arme:[
+    {id:'bicep', n:'Bizepscurls', e:'💪', sets:'3×12'},
+    {id:'tricep', n:'Trizepsdrücken', e:'🔨', sets:'3×12'},
+    {id:'hammer', n:'Hammercurls', e:'⚒️', sets:'3×12'}
+  ],
+  Bauch:[
+    {id:'crunch', n:'Crunches', e:'🧱', sets:'3×20'},
+    {id:'plank', n:'Plank', e:'⏱️', sets:'3×60s'},
+    {id:'legraise', n:'Beinheben', e:'🦵', sets:'3×15'}
+  ],
+  Cardio:[
+    {id:'run', n:'Joggen', e:'🏃', sets:'20 Min'},
+    {id:'bike', n:'Radfahren', e:'🚴', sets:'30 Min'},
+    {id:'burpee', n:'Burpees', e:'🔥', sets:'3×10'}
+  ]
+};
+
+let wkState={group:'Brust'};
+
+function buildWorkout(){
+  const w=$('workout-window'); if(!w) return;
+  w.dataset.title='Training'; w.dataset.icon='💪';
+  const groups=Object.keys(WORKOUT_EXERCISES);
+  const exs=WORKOUT_EXERCISES[wkState.group];
+  const tabs=groups.map(g=>'<button class="os-btn '+(wkState.group===g?'primary':'')+'" style="padding:8px 12px;font-size:12px;white-space:nowrap" onclick="HalDoWorkoutApp.setGroup(\''+g+'\')">'+g+'</button>').join('');
+  const list=exs.map(ex=>{
+    const done=HalDoWorkout.isDoneToday(ex.id);
+    return '<div class="card" style="padding:12px;display:flex;gap:12px;align-items:center;'+(done?'border-color:var(--success);background:rgba(0,255,136,.08)':'')+'">'+
+    '<div style="font-size:32px;width:44px;text-align:center">'+ex.e+'</div>'+
+    '<div style="flex:1;min-width:0">'+
+    '<div style="font-size:14px;font-weight:800;color:#fff">'+ex.n+'</div>'+
+    '<div style="font-size:11px;color:#88ccff;margin-top:2px">'+ex.sets+'</div>'+
+    '</div>'+
+    '<button class="os-btn '+(done?'success':'primary')+'" style="padding:10px 14px;font-size:14px;min-width:44px" onclick="HalDoWorkoutApp.toggle(\''+ex.id+'\')">'+(done?'✓':'⭕')+'</button>'+
+    '</div>';
+  }).join('');
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center"><div class="big">'+HalDoWorkout.todayCount()+'</div><div class="lbl">Heute</div></div>'+
+    '<div class="card" style="text-align:center"><div class="big" style="color:#ff8c3c">🔥 '+HalDoWorkout.streak()+'</div><div class="lbl">Streak</div></div>'+
+    '</div>'+
+    '<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:14px">'+tabs+'</div>'+
+    list;
+}
+
+window.HalDoWorkoutApp={
+  setGroup(g){ wkState.group=g; buildWorkout(); },
+  toggle(id){
+    HalDoWorkout.toggle(id);
+    if(navigator.vibrate) navigator.vibrate(10);
+    buildWorkout();
+    if(window.HalDoMemory && HalDoWorkout.isDoneToday(id)){
+      HalDoMemory.remember('💪 Training: '+id,'','health',['workout']);
+    }
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 4. BREATHING / MEDITATION
+// ═══════════════════════════════════════════════════════════
+const BREATH_PATTERNS={
+  '478':{n:'4-7-8', desc:'Beruhigend', phases:[['Einatmen',4],['Halten',7],['Ausatmen',8]]},
+  'box':{n:'Box', desc:'Fokus', phases:[['Einatmen',4],['Halten',4],['Ausatmen',4],['Halten',4]]},
+  'calm':{n:'Calm', desc:'Sanft', phases:[['Einatmen',4],['Ausatmen',6]]},
+  'sleep':{n:'Sleep', desc:'Einschlafen', phases:[['Einatmen',4],['Halten',7],['Ausatmen',8],['Halten',2]]}
+};
+
+let brState={pattern:'478', running:false, phaseIdx:0, count:0, interval:null, cycles:0};
+
+function buildBreathing(){
+  const w=$('breathing-window'); if(!w) return;
+  w.dataset.title='Atmung'; w.dataset.icon='🧘';
+  const p=BREATH_PATTERNS[brState.pattern];
+  const phase=p.phases[brState.phaseIdx];
+  const scale=phase[0]==='Einatmen'?'scale(1.25)':(phase[0]==='Ausatmen'?'scale(0.85)':'scale(1)');
+  const buttons=Object.entries(BREATH_PATTERNS).map(([k,v])=>
+    '<button class="os-btn '+(brState.pattern===k?'primary':'')+'" style="padding:10px 14px;font-size:12px;font-weight:800" onclick="HalDoBreathApp.setPattern(\''+k+'\')">'+v.n+'</button>'
+  ).join('');
+  w.innerHTML=
+    '<div style="text-align:center;padding:20px 0">'+
+    '<div id="brCircle" style="width:220px;height:220px;margin:0 auto 20px;border-radius:50%;background:radial-gradient(circle,rgba(180,120,255,.5),rgba(180,120,255,.15));border:3px solid rgba(180,120,255,.7);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all 4s ease-in-out;box-shadow:0 0 60px rgba(180,120,255,.5),inset 0 0 40px rgba(180,120,255,.3);transform:'+scale+'">'+
+    '<div id="brPhase" style="font-size:20px;font-weight:900;color:#fff;text-shadow:0 0 20px rgba(180,120,255,.7)">'+(brState.running?phase[0]:'Bereit')+'</div>'+
+    '<div id="brCount" style="font-size:44px;font-weight:200;color:#fff;font-family:monospace">'+(brState.running?brState.count:'–')+'</div>'+
+    '</div>'+
+    '<div style="font-size:12px;color:#d4a8ff;margin-bottom:16px;letter-spacing:1.5px;text-transform:uppercase;font-weight:800">'+p.n+' · '+p.desc+'</div>'+
+    '<button class="os-btn primary" style="padding:16px 40px;font-size:16px" onclick="HalDoBreathApp.toggle()">'+(brState.running?'⏸ Stop':'▶ Start')+'</button>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:10px">🎯 Muster wählen</div>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap">'+buttons+'</div></div>'+
+    (brState.cycles?'<div class="card" style="text-align:center"><div class="big">'+brState.cycles+'</div><div class="lbl">Zyklen absolviert</div></div>':'');
+}
+
+window.HalDoBreathApp={
+  setPattern(p){
+    if(brState.interval){ clearInterval(brState.interval); brState.interval=null; }
+    brState.pattern=p; brState.running=false; brState.phaseIdx=0; brState.count=0;
+    buildBreathing();
+  },
+  toggle(){
+    if(brState.running){
+      brState.running=false;
+      if(brState.interval) clearInterval(brState.interval);
+      brState.interval=null;
+      buildBreathing();
+    } else {
+      brState.running=true;
+      brState.phaseIdx=0;
+      brState.count=BREATH_PATTERNS[brState.pattern].phases[0][1];
+      brState.cycles=0;
+      brState.interval=setInterval(()=>{
+        brState.count--;
+        if(brState.count<=0){
+          brState.phaseIdx=(brState.phaseIdx+1)%BREATH_PATTERNS[brState.pattern].phases.length;
+          if(brState.phaseIdx===0){
+            brState.cycles++;
+            if(navigator.vibrate) navigator.vibrate(10);
+          }
+          brState.count=BREATH_PATTERNS[brState.pattern].phases[brState.phaseIdx][1];
+        }
+        buildBreathing();
+      },1000);
+      buildBreathing();
+      if(navigator.vibrate) navigator.vibrate([10,30,10]);
+    }
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 5. REGISTRY-MAPPING ERWEITERN
+// ═══════════════════════════════════════════════════════════
+function initV127(){
+  // Registry-App-Mapping
+  if(window.HalDoRegistry){
+    const origOpen=window.HalDoRegistry.openApp;
+    window.HalDoRegistry.openApp=function(id){
+      if(id==='schlaf'){ if(typeof openWin==='function') openWin('sleep-window'); buildSleep(); setTimeout(()=>window.HalDoUI?.closeAllPanels(),100); return; }
+      if(id==='fitness'||id==='training'){ if(typeof openWin==='function') openWin('workout-window'); buildWorkout(); setTimeout(()=>window.HalDoUI?.closeAllPanels(),100); return; }
+      if(id==='meditation'||id==='atmung'){ if(typeof openWin==='function') openWin('breathing-window'); buildBreathing(); setTimeout(()=>window.HalDoUI?.closeAllPanels(),100); return; }
+      if(id==='mental'||id==='stress'||id==='mood'){ if(typeof openWin==='function') openWin('mood-window'); buildMood(); setTimeout(()=>window.HalDoUI?.closeAllPanels(),100); return; }
+      return origOpen.apply(this, arguments);
+    };
+  }
+  // Rebuild-Erweiterung
+  if(window.HalDoUI){
+    const origRebuild=window.HalDoUI.rebuild;
+    window.HalDoUI.rebuild=function(id){
+      if(id==='sleep-window'){ buildSleep(); return; }
+      if(id==='mood-window'){ buildMood(); return; }
+      if(id==='workout-window'){ buildWorkout(); return; }
+      if(id==='breathing-window'){ buildBreathing(); return; }
+      if(origRebuild) origRebuild(id);
+    };
+  }
+  // Apps vorbereiten
+  ['sleep-window','mood-window','workout-window','breathing-window'].forEach(id=>{
+    const el=$(id);
+    if(el && window.prepareWindow) window.prepareWindow(el);
+  });
+  // Initial bauen
+  buildSleep(); buildMood(); buildWorkout(); buildBreathing();
+  console.log('%c🚀 v127 – 4 Apps geladen','color:#00ff88;font-weight:bold;font-size:14px');
+  console.log('%c✅ Sleep · Mood · Workout · Breathing','color:#4da8ff;font-weight:bold');
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded', ()=>setTimeout(initV127,1200));
+} else {
+  setTimeout(initV127, 1200);
+}
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════ ENDE v127 ═════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
