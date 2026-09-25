@@ -6313,5 +6313,598 @@ setTimeout(()=>{ const logo=document.querySelector('#logoBtn'); if(logo) logo.cl
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v128 · Apps Pack 5 (S/T/U/V)
+     16 neue funktionierende Apps
+     ============================================================ -->
+<script>
+(function(){
+'use strict';
+
+if(!window.HalDo || !window.HalDo.apps){
+  setTimeout(()=>location.reload(), 800);
+  return;
+}
+
+const APPS = window.HalDo.apps;
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = ()=>Math.random().toString(36).slice(2,10);
+const fmt = n => (Math.round(n*100)/100).toLocaleString('de-DE');
+const toast = window.HalDo.toast || ((m)=>console.log('[toast]',m));
+const store = {
+  key: k => 'haldo_'+k+'_v1',
+  get(k,d){ try{ const v=localStorage.getItem(this.key(k)); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(this.key(k), JSON.stringify(v)); }catch(e){} }
+};
+const rnd = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+
+/* ============================================================
+   S · SYSTEM
+   ============================================================ */
+
+APPS['einstellungen'] = {
+  name:'Einstellungen', icon:'⚙️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🎨 Theme</b><div class="row" style="margin-top:8px"><button class="btn" data-t="holo">🌌 Holo (Cyan)</button><button class="btn" data-t="cyborg">⚡ Cyborg (Pink)</button></div></div>'+
+    '<div class="card"><b>🔊 Sprache</b><div class="row" style="margin-top:8px"><button class="btn" id="stVoice">Test-Stimme</button><button class="btn" id="stMute">Stimme aus</button></div></div>'+
+    '<div class="card"><b>🌍 Sprache der AI</b><select class="inp" id="stLang" style="margin-top:8px"><option value="de-DE" selected>Deutsch</option><option value="en-US">English</option><option value="tr-TR">Türkçe</option><option value="ar-SA">العربية</option></select></div>'+
+    '<div class="card"><b>💾 Speicher</b><div class="dim sm" id="stStorage" style="margin-top:6px">–</div><button class="btn danger" id="stClear" style="margin-top:8px">🗑 Alle Daten löschen</button></div>'+
+  '</div>'; },
+  init(win){
+    const cur = document.body.classList.contains('cyborg')?'cyborg':'holo';
+    win.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{
+      if(b.dataset.t==='cyborg') document.body.classList.add('cyborg');
+      else document.body.classList.remove('cyborg');
+      try{ localStorage.setItem('haldo_theme_v1', JSON.stringify(b.dataset.t)); }catch(e){}
+      toast(b.dataset.t==='cyborg'?'CYBORG aktiv ⚡':'Holo aktiv 🌌');
+    });
+    $('#stVoice',win).onclick=()=>{
+      if(typeof speechSynthesis==='undefined'){ toast('Sprachausgabe nicht verfügbar'); return; }
+      const u = new SpeechSynthesisUtterance('Hallo Bruder, die Stimme funktioniert!');
+      u.lang='de-DE';
+      const vs = speechSynthesis.getVoices();
+      const de = vs.find(v=>/de[-_]DE/i.test(v.lang));
+      if(de) u.voice = de;
+      speechSynthesis.speak(u);
+    };
+    $('#stMute',win).onclick=()=>{ try{ speechSynthesis.cancel(); }catch(e){} toast('Sprachausgabe gestoppt'); };
+    $('#stLang',win).onchange=()=>{ try{ localStorage.setItem('haldo_lang_v1', JSON.stringify($('#stLang',win).value)); }catch(e){} toast('Sprache gespeichert'); };
+    // Speicher
+    let total=0;
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k && k.startsWith('haldo_')) total += (localStorage.getItem(k)||'').length;
+    }
+    $('#stStorage',win).textContent = (total/1024).toFixed(1)+' KB belegt ('+Math.round(total/5242880*100)+'% von 5 MB)';
+    $('#stClear',win).onclick=()=>{
+      if(!confirm('Wirklich ALLE HalDo-Daten löschen? (Apps, Notizen, alles)')) return;
+      for(let i=localStorage.length-1;i>=0;i--){
+        const k=localStorage.key(i);
+        if(k && k.startsWith('haldo_')) localStorage.removeItem(k);
+      }
+      toast('Alle Daten gelöscht');
+      setTimeout(()=>location.reload(), 800);
+    };
+  }
+};
+
+APPS['taskmanager'] = {
+  name:'Taskmanager', icon:'📊',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🪟 Offene Fenster</b><div class="list" id="tmW" style="margin-top:8px"></div></div>'+
+    '<div class="card"><b>📈 Performance</b><div class="list" id="tmP" style="margin-top:8px"></div></div>'+
+    '<button class="btn danger" id="tmKill">🗑 Alle Fenster schließen</button>'+
+  '</div>'; },
+  init(win){
+    function render(){
+      const wins = [...document.querySelectorAll('.window')];
+      $('#tmW',win).innerHTML = wins.length ? wins.map((w,i)=>{
+        const t = w.querySelector('.wtitle')?.textContent || 'Fenster';
+        return '<div class="item"><span>'+esc(t)+'</span><button class="btn sm danger" data-i="'+i+'" style="margin-left:auto">✕</button></div>';
+      }).join('') : '<div class="empty">Keine Fenster offen</div>';
+      $$('#tmW button',win).forEach(b=>b.onclick=()=>{
+        const idx=parseInt(b.dataset.i);
+        const w = document.querySelectorAll('.window')[idx];
+        if(w) w.remove();
+        setTimeout(render,100);
+      });
+      // Performance-Metriken
+      const mem = performance.memory ? (performance.memory.usedJSHeapSize/1048576).toFixed(1)+' MB' : 'n/a';
+      const up = (performance.now()/1000).toFixed(1)+' s';
+      const nav = performance.getEntriesByType('navigation')[0];
+      const dom = nav ? (nav.domContentLoadedEventEnd - nav.startTime).toFixed(0)+' ms' : 'n/a';
+      $('#tmP',win).innerHTML =
+        '<div class="item"><span>Fenster offen</span><b style="margin-left:auto">'+wins.length+'</b></div>'+
+        '<div class="item"><span>JS-Speicher</span><b style="margin-left:auto">'+mem+'</b></div>'+
+        '<div class="item"><span>Laufzeit</span><b style="margin-left:auto">'+up+'</b></div>'+
+        '<div class="item"><span>DOM-Load</span><b style="margin-left:auto">'+dom+'</b></div>'+
+        '<div class="item"><span>Online</span><b style="margin-left:auto">'+(navigator.onLine?'✅':'❌')+'</b></div>';
+    }
+    $('#tmKill',win).onclick=()=>{
+      document.querySelectorAll('.window').forEach(w=>w.remove());
+      toast('Alle Fenster geschlossen');
+      render();
+    };
+    render();
+    const tick=setInterval(render, 2000);
+    win.addEventListener('remove', ()=>clearInterval(tick));
+  }
+};
+
+APPS['systeminfo'] = {
+  name:'Systeminfo', icon:'💻',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>📱 Gerät</b><div class="list" id="siD" style="margin-top:8px"></div></div>'+
+    '<div class="card"><b>🌐 Browser / Netzwerk</b><div class="list" id="siB" style="margin-top:8px"></div></div>'+
+    '<div class="card"><b>📐 Display</b><div class="list" id="siS" style="margin-top:8px"></div></div>'+
+    '<button class="btn" id="siCopy">📋 Alle Infos kopieren</button>'+
+  '</div>'; },
+  init(win){
+    const ua = navigator.userAgent;
+    const isiOS = /iPhone|iPad|iPod/.test(ua);
+    const isAndroid = /Android/.test(ua);
+    const browser = /Edg/.test(ua)?'Edge':/Chrome/.test(ua)?'Chrome':/Safari/.test(ua)?'Safari':/Firefox/.test(ua)?'Firefox':'Unbekannt';
+    const os = isiOS?'iOS / iPadOS':isAndroid?'Android':/Win/.test(ua)?'Windows':/Mac/.test(ua)?'macOS':/Linux/.test(ua)?'Linux':'Unbekannt';
+    const rows = {
+      siD: [
+        ['Gerätetyp', isiOS?'iPhone/iPad':(isAndroid?'Android':'Desktop')],
+        ['Betriebssystem', os],
+        ['Browser', browser],
+        ['Sprache', navigator.language],
+        ['CPU-Kerne', navigator.hardwareConcurrency || 'n/a'],
+        ['Touch', ('ontouchstart' in window)?'✅ ja':'❌ nein']
+      ],
+      siB: [
+        ['Online', navigator.onLine?'✅ ja':'❌ offline'],
+        ['Cookies', navigator.cookieEnabled?'✅':'❌'],
+        ['Online-Event', 'WebSocket' in window?'✅':'❌'],
+        ['Plattform', navigator.platform || 'n/a']
+      ],
+      siS: [
+        ['Fenster', window.innerWidth+' × '+window.innerHeight+' px'],
+        ['Bildschirm', screen.width+' × '+screen.height+' px'],
+        ['Pixel-Ratio', (window.devicePixelRatio||1).toFixed(2)],
+        ['Farbtiefe', screen.colorDepth+' bit'],
+        ['Orientierung', screen.orientation ? screen.orientation.type : 'n/a']
+      ]
+    };
+    for(const k in rows){
+      $('#'+k,win).innerHTML = rows[k].map(([n,v])=>'<div class="item"><span>'+esc(n)+'</span><b style="margin-left:auto">'+esc(String(v))+'</b></div>').join('');
+    }
+    $('#siCopy',win).onclick=()=>{
+      let text='HalDo Systeminfo\n\n';
+      for(const k in rows){ rows[k].forEach(([n,v])=>text+=n+': '+v+'\n'); text+='\n'; }
+      navigator.clipboard?.writeText(text).then(()=>toast('Kopiert'));
+    };
+  }
+};
+
+APPS['energie'] = {
+  name:'Energie', icon:'🔋',
+  render(){ return '<div class="col center">'+
+    '<div class="card"><div class="big2" id="enP">– %</div><div class="dim" id="enS">Ladezustand</div>'+
+      '<div style="margin-top:12px;height:20px;background:rgba(255,255,255,.06);border-radius:10px;overflow:hidden">'+
+        '<div id="enBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--c1),var(--c2));transition:width .3s"></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="card"><div class="list" id="enL"></div></div>'+
+    '<div class="dim sm">Akku-Status über die Battery API (nur Chrome/Android)</div>'+
+  '</div>'; },
+  init(win){
+    const upd=async()=>{
+      if(!navigator.getBattery){ $('#enP',win).textContent='n/a'; $('#enS',win).textContent='Battery API nicht verfügbar'; return; }
+      const b = await navigator.getBattery();
+      const draw=()=>{
+        const p = Math.round(b.level*100);
+        $('#enP',win).textContent = p+' %';
+        $('#enS',win).textContent = b.charging?'⚡ Lädt':'🔋 Entlädt';
+        $('#enBar',win).style.width = p+'%';
+        $('#enBar',win).style.background = p<20?'linear-gradient(90deg,#ff6b88,#ffb03a)':(b.charging?'linear-gradient(90deg,#4de88a,#00e5ff)':'linear-gradient(90deg,var(--c1),var(--c2))');
+      };
+      draw();
+      b.addEventListener('levelchange',draw);
+      b.addEventListener('chargingchange',draw);
+      const chg = b.chargingTime===Infinity?'∞':(b.chargingTime/60).toFixed(0)+' min';
+      const dis = b.dischargingTime===Infinity?'∞':(b.dischargingTime/60).toFixed(0)+' min';
+      $('#enL',win).innerHTML = '<div class="item"><span>Ladezeit</span><b style="margin-left:auto">'+chg+'</b></div>'+
+        '<div class="item"><span>Restzeit</span><b style="margin-left:auto">'+dis+'</b></div>';
+    };
+    upd();
+  }
+};
+
+/* ============================================================
+   T · TRAVEL
+   ============================================================ */
+
+APPS['packliste'] = {
+  name:'Packliste', icon:'🎒',
+  render(){ return '<div class="col">'+
+    '<div class="row"><select class="inp" id="plT" style="width:auto"><option value="">Vorlage wählen…</option><option value="strand">🏖 Strandurlaub</option><option value="city">🏙 Städtereise</option><option value="winter">⛷ Winterurlaub</option><option value="business">💼 Geschäftsreise</option><option value="camping">⛺ Camping</option></select><button class="btn primary" id="plLoad">Laden</button></div>'+
+    '<div class="row"><input class="inp" id="plN" placeholder="Neues Item…" style="flex:1"><button class="btn primary" id="plA">+</button></div>'+
+    '<div id="plL" class="list"></div>'+
+    '<div class="card center">Erledigt: <b id="plP">0 / 0</b></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#plL',win);
+    const TEMPLATES = {
+      strand: ['🩳 Badehose','👕 T-Shirts','🕶 Sonnenbrille','🧴 Sonnencreme','👡 Flip-Flops','🎩 Sonnenhut','🏖 Strandtuch','📚 Urlaubsbuch'],
+      city: ['👕 T-Shirts','👖 Jeans','👟 Bequeme Schuhe','🧥 Jacke','🎒 Tagesrucksack','📷 Kamera','🔌 Powerbank'],
+      winter: ['🧥 Winterjacke','🧤 Handschuhe','🧣 Schal','🥾 Winterstiefel','🧦 Wollsocken','🕶 Skibrille','🎿 Ski-Ausrüstung','🧴 Lippenpflege'],
+      business: ['👔 Hemd','👖 Anzughose','👞 Anzugschuhe','💼 Aktentasche','💻 Laptop','🔌 Ladegerät','📓 Notizbuch'],
+      camping: ['⛺ Zelt','🛏 Isomatte','🛌 Schlafsack','🔦 Taschenlampe','🥫 Campingkocher','🔪 Taschenmesser','🪥 Zahnbürste','💊 Erste-Hilfe']
+    };
+    const all=()=>store.get('packlist',[]);
+    function render(){
+      const a=all();
+      const done=a.filter(x=>x.done).length;
+      L.innerHTML = a.length ? a.map(x=>'<div class="item"><input type="checkbox" data-id="'+x.id+'" '+(x.done?'checked':'')+'><span style="'+(x.done?'text-decoration:line-through;opacity:.5':'')+'">'+esc(x.n)+'</span><span class="x" data-id="'+x.id+'">✕</span></div>').join('') : '<div class="empty">Liste leer</div>';
+      $('#plP',win).textContent = done+' / '+a.length;
+      L.querySelectorAll('input[type=checkbox]').forEach(c=>c.onchange=()=>{ const arr=all(); const x=arr.find(v=>v.id===c.dataset.id); if(x){ x.done=c.checked; store.set('packlist',arr); render(); } });
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('packlist',all().filter(x=>x.id!==el2.dataset.id)); render(); });
+    }
+    $('#plA',win).onclick=()=>{ const n=$('#plN',win).value.trim(); if(!n) return; const arr=all(); arr.push({id:uid(), n, done:false}); store.set('packlist',arr); $('#plN',win).value=''; render(); };
+    $('#plLoad',win).onclick=()=>{
+      const t=$('#plT',win).value; if(!t){ toast('Vorlage wählen'); return; }
+      const arr=all();
+      TEMPLATES[t].forEach(n=>arr.push({id:uid(), n, done:false}));
+      store.set('packlist',arr); render(); toast('Vorlage geladen: '+TEMPLATES[t].length+' Items');
+    };
+    render();
+  }
+};
+
+APPS['waehrung'] = {
+  name:'Währung Live', icon:'💱',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="wcV" type="number" value="100" style="width:120px;text-align:center">'+
+      '<select class="inp" id="wcF" style="width:auto"></select>'+
+      '<span>→</span>'+
+      '<select class="inp" id="wcT" style="width:auto"></select>'+
+      '<button class="btn primary" id="wcGo">Umrechnen</button></div>'+
+    '<div class="big2 center" id="wcO">–</div>'+
+    '<div class="dim sm center" id="wcInfo"></div>'+
+    '<button class="btn" id="wcSwap" style="margin-top:8px">🔄 Tauschen</button>'+
+  '</div>'; },
+  init(win){
+    const CURR = ['EUR','USD','GBP','CHF','TRY','JPY','CNY','RUB','INR','BRL','CAD','AUD','SEK','NOK','DKK','PLN','CZK','HUF','RON','UAH','ILS','SAR','AED','KRW','MXN','ZAR','THB'];
+    const F=$('#wcF',win), T=$('#wcT',win);
+    F.innerHTML = CURR.map(c=>'<option'+(c==='EUR'?' selected':'')+'>'+c+'</option>').join('');
+    T.innerHTML = CURR.map(c=>'<option'+(c==='USD'?' selected':'')+'>'+c+'</option>').join('');
+    async function conv(){
+      const v=parseFloat($('#wcV',win).value)||0;
+      const f=F.value, t=T.value;
+      if(f===t){ $('#wcO',win).textContent = fmt(v)+' '+t; $('#wcInfo',win).textContent=''; return; }
+      $('#wcO',win).textContent='Lade…';
+      try{
+        const r = await fetch('https://api.frankfurter.app/latest?amount='+v+'&from='+f+'&to='+t);
+        const j = await r.json();
+        const rate = j.rates[t];
+        $('#wcO',win).textContent = fmt(rate)+' '+t;
+        $('#wcInfo',win).textContent = '1 '+f+' = '+(rate/v).toFixed(4)+' '+t+' · '+new Date(j.date).toLocaleDateString('de-DE');
+      }catch(e){ $('#wcO',win).textContent='Fehler'; $('#wcInfo',win).textContent = e.message; }
+    }
+    $('#wcGo',win).onclick=conv;
+    $('#wcSwap',win).onclick=()=>{ const f=F.value; F.value=T.value; T.value=f; conv(); };
+    F.onchange=conv; T.onchange=conv; $('#wcV',win).oninput=conv;
+    conv();
+  }
+};
+
+APPS['reiseplaner'] = {
+  name:'Reiseplaner', icon:'✈️',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="rpZ" placeholder="Reiseziel…" style="flex:1"><input class="inp" id="rpD" type="date" style="width:auto"><button class="btn primary" id="rpA">+</button></div>'+
+    '<div class="row"><input class="inp" id="rpN" placeholder="Notiz (z.B. Flugnummer, Hotel)…" style="flex:1"></div>'+
+    '<div id="rpL" class="col"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#rpL',win);
+    const all=()=>store.get('trips',[]);
+    function render(){
+      const a=all().sort((x,y)=>x.d.localeCompare(y.d));
+      L.innerHTML = a.length ? a.map(x=>{
+        const tage = Math.ceil((new Date(x.d)-new Date())/86400000);
+        const col = tage<0?'#8a95bd':(tage<=7?'#ff6b88':(tage<=30?'#ffb03a':'#4de88a'));
+        const info = tage<0?(Math.abs(tage)+' Tage her'):(tage===0?'Heute!':tage===1?'Morgen':('in '+tage+' Tagen'));
+        return '<div class="card"><div class="row between"><b>🌍 '+esc(x.z)+'</b><span style="color:'+col+'">'+info+'</span><span class="x" data-id="'+x.id+'">✕</span></div><div class="dim sm" style="margin-top:4px">📅 '+new Date(x.d).toLocaleDateString('de-DE')+(x.n?'<br>📝 '+esc(x.n):'')+'</div></div>';
+      }).join('') : '<div class="empty">Keine Reisen geplant</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('trips',all().filter(t=>t.id!==el2.dataset.id)); render(); });
+    }
+    $('#rpA',win).onclick=()=>{
+      const z=$('#rpZ',win).value.trim(), d=$('#rpD',win).value;
+      if(!z||!d){ toast('Ziel und Datum'); return; }
+      const arr=all(); arr.push({id:uid(), z, d, n:$('#rpN',win).value.trim()});
+      store.set('trips',arr);
+      $('#rpZ',win).value=''; $('#rpD',win).value=''; $('#rpN',win).value='';
+      render();
+    };
+    render();
+  }
+};
+
+APPS['sprachfuehrer'] = {
+  name:'Sprachführer', icon:'🗣️',
+  render(){ return '<div class="col">'+
+    '<div class="row"><select class="inp" id="sfL" style="width:auto"><option value="en">🇬🇧 Englisch</option><option value="fr">🇫🇷 Französisch</option><option value="es">🇪🇸 Spanisch</option><option value="it">🇮🇹 Italienisch</option><option value="tr">🇹🇷 Türkisch</option><option value="ar">🇸🇦 Arabisch</option><option value="ru">🇷🇺 Russisch</option></select></div>'+
+    '<input class="inp" id="sfQ" placeholder="Deutsches Wort / Satz suchen…">'+
+    '<div id="sfL2" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const D = {
+      en: { 'hallo':'hello','danke':'thank you','bitte':'please','ja':'yes','nein':'no','wasser':'water','essen':'food','toilette':'toilet','hilfe':'help','wie viel':'how much','wo ist':'where is','guten morgen':'good morning','guten abend':'good evening','auf wiedersehen':'goodbye','entschuldigung':'excuse me','arzt':'doctor','polizei':'police','bahnhof':'train station','flughafen':'airport','hotel':'hotel' },
+      fr: { 'hallo':'bonjour','danke':'merci','bitte':'s\'il vous plaît','ja':'oui','nein':'non','wasser':'eau','essen':'nourriture','toilette':'toilettes','hilfe':'au secours','wie viel':'combien','wo ist':'où est','guten morgen':'bonjour','guten abend':'bonsoir','auf wiedersehen':'au revoir','entschuldigung':'pardon','arzt':'médecin','polizei':'police','bahnhof':'gare','flughafen':'aéroport','hotel':'hôtel' },
+      es: { 'hallo':'hola','danke':'gracias','bitte':'por favor','ja':'sí','nein':'no','wasser':'agua','essen':'comida','toilette':'baño','hilfe':'ayuda','wie viel':'cuánto','wo ist':'dónde está','guten morgen':'buenos días','guten abend':'buenas noches','auf wiedersehen':'adiós','entschuldigung':'perdón','arzt':'médico','polizei':'policía','bahnhof':'estación','flughafen':'aeropuerto','hotel':'hotel' },
+      it: { 'hallo':'ciao','danke':'grazie','bitte':'per favore','ja':'sì','nein':'no','wasser':'acqua','essen':'cibo','toilette':'bagno','hilfe':'aiuto','wie viel':'quanto','wo ist':'dov\'è','guten morgen':'buongiorno','guten abend':'buonasera','auf wiedersehen':'arrivederci','entschuldigung':'scusi','arzt':'medico','polizei':'polizia','bahnhof':'stazione','flughafen':'aeroporto','hotel':'hotel' },
+      tr: { 'hallo':'merhaba','danke':'teşekkürler','bitte':'lütfen','ja':'evet','nein':'hayır','wasser':'su','essen':'yemek','toilette':'tuvalet','hilfe':'yardım','wie viel':'ne kadar','wo ist':'nerede','guten morgen':'günaydın','guten abend':'iyi akşamlar','auf wiedersehen':'hoşça kal','entschuldigung':'affedersiniz','arzt':'doktor','polizei':'polis','bahnhof':'tren istasyonu','flughafen':'havalimanı','hotel':'otel' },
+      ar: { 'hallo':'مرحبا','danke':'شكرا','bitte':'من فضلك','ja':'نعم','nein':'لا','wasser':'ماء','essen':'طعام','toilette':'حمام','hilfe':'مساعدة','wie viel':'كم','wo ist':'أين','guten morgen':'صباح الخير','guten abend':'مساء الخير','auf wiedersehen':'مع السلامة','entschuldigung':'عفوا','arzt':'طبيب','polizei':'شرطة','bahnhof':'محطة قطار','flughafen':'مطار','hotel':'فندق' },
+      ru: { 'hallo':'привет','danke':'спасибо','bitte':'пожалуйста','ja':'да','nein':'нет','wasser':'вода','essen':'еда','toilette':'туалет','hilfe':'помощь','wie viel':'сколько','wo ist':'где','guten morgen':'доброе утро','guten abend':'добрый вечер','auf wiedersehen':'до свидания','entschuldigung':'извините','arzt':'врач','polizei':'полиция','bahnhof':'вокзал','flughafen':'аэропорт','hotel':'отель' }
+    };
+    const L=$('#sfL2',win), Q=$('#sfQ',win);
+    function render(){
+      const lang = $('#sfL',win).value;
+      const d = D[lang];
+      const q = Q.value.toLowerCase().trim();
+      const entries = Object.entries(d).filter(([k,v])=>!q || k.includes(q) || v.toLowerCase().includes(q));
+      L.innerHTML = entries.length ? entries.map(([k,v])=>'<div class="item"><b>'+esc(k)+'</b><span style="margin-left:auto;color:var(--c1)">'+esc(v)+'</span><button class="btn sm" data-s="'+esc(v)+'">🔊</button></div>').join('') : '<div class="empty">Nichts gefunden</div>';
+      $$('#sfL2 button',win).forEach(b=>b.onclick=()=>{
+        const u = new SpeechSynthesisUtterance(b.dataset.s);
+        u.lang = lang==='en'?'en-US':lang==='fr'?'fr-FR':lang==='es'?'es-ES':lang==='it'?'it-IT':lang==='tr'?'tr-TR':lang==='ar'?'ar-SA':'ru-RU';
+        try{ speechSynthesis.speak(u); }catch(e){}
+      });
+    }
+    $('#sfL',win).onchange=render;
+    Q.oninput=render;
+    render();
+  }
+};
+
+/* ============================================================
+   U · UNIVERSITÄT
+   ============================================================ */
+
+APPS['stundenplan'] = {
+  name:'Stundenplan', icon:'📚',
+  render(){ return '<div class="col">'+
+    '<div class="row"><select class="inp" id="spD" style="width:auto"><option>Mo</option><option>Di</option><option>Mi</option><option>Do</option><option>Fr</option><option>Sa</option></select>'+
+      '<input class="inp" id="spT" type="time" value="09:00" style="width:auto">'+
+      '<input class="inp" id="spN" placeholder="Fach / Raum…" style="flex:1">'+
+      '<button class="btn primary" id="spA">+</button></div>'+
+    '<div id="spL" class="col"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#spL',win);
+    const all=()=>store.get('timetable',[]);
+    const DAYS=['Mo','Di','Mi','Do','Fr','Sa'];
+    function render(){
+      const a=all();
+      L.innerHTML = DAYS.map(d=>{
+        const day = a.filter(x=>x.d===d).sort((x,y)=>x.t.localeCompare(y.t));
+        if(!day.length) return '';
+        return '<div class="card"><b>'+d+'</b>'+day.map(x=>'<div class="item" style="margin-top:6px"><b>'+esc(x.t)+'</b><span>'+esc(x.n)+'</span><span class="x" data-id="'+x.id+'">✕</span></div>').join('')+'</div>';
+      }).join('') || '<div class="empty">Stundenplan leer</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('timetable',all().filter(t=>t.id!==el2.dataset.id)); render(); });
+    }
+    $('#spA',win).onclick=()=>{
+      const d=$('#spD',win).value, t=$('#spT',win).value, n=$('#spN',win).value.trim();
+      if(!n){ toast('Fach fehlt'); return; }
+      const arr=all(); arr.push({id:uid(), d, t, n}); store.set('timetable',arr);
+      $('#spN',win).value=''; render();
+    };
+    render();
+  }
+};
+
+APPS['noten'] = {
+  name:'Notenverwaltung', icon:'🎓',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="ntF" placeholder="Fach…" style="flex:1"><input class="inp" id="ntN" type="number" min="1" max="6" step="0.25" placeholder="Note" style="width:100px"><input class="inp" id="ntC" type="number" min="1" max="30" placeholder="ECTS" value="5" style="width:90px"><button class="btn primary" id="ntA">+</button></div>'+
+    '<div id="ntL" class="list"></div>'+
+    '<div class="card center big2" id="ntS">Ø –</div>'+
+    '<div class="dim sm center">Gewichteter Durchschnitt nach ECTS</div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#ntL',win);
+    const all=()=>store.get('grades',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.map(g=>'<div class="item"><b>'+esc(g.f)+'</b><span class="dim">'+g.c+' ECTS</span><span style="margin-left:auto;color:'+(g.n<=2?'#4de88a':(g.n<=3?'#ffb03a':'#ff6b88'))+';font-weight:700">'+g.n+'</span><span class="x" data-id="'+g.id+'">✕</span></div>').join('') : '<div class="empty">Keine Noten</div>';
+      const totalC = a.reduce((s,g)=>s+g.c,0);
+      const avg = totalC ? (a.reduce((s,g)=>s+g.c*g.n,0)/totalC) : null;
+      $('#ntS',win).textContent = avg!==null?('Ø '+avg.toFixed(2)):'Ø –';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('grades',all().filter(g=>g.id!==el2.dataset.id)); render(); });
+    }
+    $('#ntA',win).onclick=()=>{
+      const f=$('#ntF',win).value.trim(), n=parseFloat($('#ntN',win).value), c=parseInt($('#ntC',win).value)||5;
+      if(!f||isNaN(n)){ toast('Fach + Note'); return; }
+      const arr=all(); arr.push({id:uid(), f, n, c}); store.set('grades',arr);
+      $('#ntF',win).value=''; $('#ntN',win).value=''; render();
+    };
+    render();
+  }
+};
+
+APPS['bafoeg'] = {
+  name:'Bafög Rechner', icon:'💶',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>💶 Bafög-Bedarf (Höchstsatz 2025: 992 €)</b></div>'+
+    '<label class="lbl">Wohnsituation</label><select class="inp" id="bgW"><option value="855">Bei Eltern wohnend</option><option value="992" selected>Eigene Wohnung</option></select>'+
+    '<label class="lbl">Eigenes Einkommen (€/Monat)</label><input class="inp" id="bgE" type="number" value="0">'+
+    '<label class="lbl">Einkommen Eltern (€/Monat, geschätzt)</label><input class="inp" id="bgP" type="number" value="2000">'+
+    '<label class="lbl">Vermögen (€)</label><input class="inp" id="bgV" type="number" value="0">'+
+    '<button class="btn primary" id="bgGo">Berechnen</button>'+
+    '<div class="card center"><div class="dim">Geschätzter Bedarf</div><div class="big2" id="bgO">–</div><div class="dim sm" id="bgInfo"></div></div>'+
+    '<div class="dim sm center">⚠️ Nur Schätzung. Verbindlich: bafoeg-digital.de</div>'+
+  '</div>'; },
+  init(win){
+    $('#bgGo',win).onclick=()=>{
+      const max = parseFloat($('#bgW',win).value);
+      const own = parseFloat($('#bgE',win).value)||0;
+      const par = parseFloat($('#bgP',win).value)||0;
+      const cap = parseFloat($('#bgV',win).value)||0;
+      // einfache Anrechnung: 100€ Freibetrag eigenes Einkommen, dann 50% Abzug
+      let bedarf = max;
+      bedarf -= Math.max(0, own - 100) * 0.5;
+      // Eltern: Freibetrag 2.415 € netto/Monat zusammen (2025 grob)
+      const parAnr = Math.max(0, par - 2415) * 0.5;
+      bedarf -= parAnr;
+      // Vermögen: Freibetrag ~15.000 € (unter 30)
+      if(cap > 15000) bedarf -= Math.min(500, (cap-15000)*0.01);
+      bedarf = Math.max(0, Math.min(max, bedarf));
+      $('#bgO',win).textContent = fmt(bedarf)+' €';
+      $('#bgInfo',win).textContent = 'Höchstsatz '+max+' € · abzüglich Anrechnung';
+    };
+    $('#bgGo',win).click();
+  }
+};
+
+APPS['semesterplaner'] = {
+  name:'Semesterplaner', icon:'📆',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="smpT" placeholder="Aufgabe (z.B. Hausarbeit XY)…" style="flex:1"><input class="inp" id="smpD" type="date" style="width:auto"><button class="btn primary" id="smpA">+</button></div>'+
+    '<div id="smpL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#smpL',win);
+    const all=()=>store.get('semesterplan',[]);
+    function render(){
+      const a=all().sort((x,y)=>x.d.localeCompare(y.d));
+      const today = new Date();
+      L.innerHTML = a.length ? a.map(x=>{
+        const tage = Math.ceil((new Date(x.d)-today)/86400000);
+        const col = tage<0?'#8a95bd':(tage<=3?'#ff6b88':(tage<=14?'#ffb03a':'#4de88a'));
+        const info = tage<0?(Math.abs(tage)+' Tage her'):(tage===0?'Heute!':tage===1?'Morgen':('in '+tage+' Tagen'));
+        return '<div class="item"><b>'+esc(x.t)+'</b><span style="margin-left:auto;color:'+col+'">'+info+'</span><span class="dim sm">'+new Date(x.d).toLocaleDateString('de-DE')+'</span><span class="x" data-id="'+x.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Abgaben geplant</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('semesterplan',all().filter(t=>t.id!==el2.dataset.id)); render(); });
+    }
+    $('#smpA',win).onclick=()=>{
+      const t=$('#smpT',win).value.trim(), d=$('#smpD',win).value;
+      if(!t||!d) return;
+      const arr=all(); arr.push({id:uid(), t, d}); store.set('semesterplan',arr);
+      $('#smpT',win).value=''; render();
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   V · VOICE
+   ============================================================ */
+
+APPS['sprachausgabe'] = {
+  name:'Sprachausgabe', icon:'🔊',
+  render(){ return '<div class="col">'+
+    '<textarea class="ta" id="saT" placeholder="Text zum Vorlesen…" style="min-height:120px">Hallo Bruder! Dies ist HalDo, dein Betriebssystem.</textarea>'+
+    '<div class="row"><label class="lbl">Stimme</label><select class="inp" id="saV" style="flex:1"></select></div>'+
+    '<div class="row"><label class="lbl">Geschwindigkeit</label><input type="range" id="saR" min="0.5" max="2" step="0.1" value="1" style="flex:1"><span class="dim" id="saRV">1.0×</span></div>'+
+    '<div class="row"><label class="lbl">Tonhöhe</label><input type="range" id="saP" min="0" max="2" step="0.1" value="1" style="flex:1"><span class="dim" id="saPV">1.0</span></div>'+
+    '<div class="row"><button class="btn primary" id="saPlay">▶ Vorlesen</button><button class="btn" id="saStop">⏹ Stop</button><button class="btn" id="saPause">⏸ Pause</button></div>'+
+    '<div class="dim sm">Sprachausgabe über Web Speech API</div>'+
+  '</div>'; },
+  init(win){
+    const V=$('#saV',win);
+    function fillVoices(){
+      const vs = speechSynthesis.getVoices() || [];
+      V.innerHTML = vs.map((v,i)=>'<option value="'+i+'">'+v.name+' ('+v.lang+')</option>').join('');
+      const de = vs.findIndex(v=>/de[-_]DE/i.test(v.lang));
+      if(de>=0) V.value = de;
+    }
+    fillVoices();
+    if(typeof speechSynthesis !== 'undefined') speechSynthesis.onvoiceschanged = fillVoices;
+    $('#saR',win).oninput=()=>{ $('#saRV',win).textContent = parseFloat($('#saR',win).value).toFixed(1)+'×'; };
+    $('#saP',win).oninput=()=>{ $('#saPV',win).textContent = parseFloat($('#saP',win).value).toFixed(1); };
+    $('#saPlay',win).onclick=()=>{
+      const t=$('#saT',win).value.trim(); if(!t){ toast('Text fehlt'); return; }
+      const u = new SpeechSynthesisUtterance(t);
+      const vs = speechSynthesis.getVoices();
+      const idx = parseInt(V.value);
+      if(vs[idx]) u.voice = vs[idx];
+      u.rate = parseFloat($('#saR',win).value);
+      u.pitch = parseFloat($('#saP',win).value);
+      try{ speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){ toast('Nicht verfügbar'); }
+    };
+    $('#saStop',win).onclick=()=>{ try{ speechSynthesis.cancel(); }catch(e){} };
+    $('#saPause',win).onclick=()=>{ try{ speechSynthesis.paused?speechSynthesis.resume():speechSynthesis.pause(); }catch(e){} };
+  }
+};
+
+APPS['vorlesen'] = {
+  name:'Vorlesen', icon:'📖',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>📖 Text vorlesen lassen</b><div class="dim sm">Kopiere einen Text hier rein — HalDo liest ihn laut vor.</div></div>'+
+    '<textarea class="ta" id="vlT" placeholder="Text einfügen…" style="min-height:200px"></textarea>'+
+    '<div class="row"><button class="btn primary" id="vlPlay">▶ Vorlesen</button><button class="btn" id="vlStop">⏹ Stop</button><button class="btn" id="vlPaste">📋 Einfügen</button><button class="btn" id="vlClr">🗑</button></div>'+
+    '<div class="dim sm" id="vlSt">Bereit</div>'+
+  '</div>'; },
+  init(win){
+    $('#vlPlay',win).onclick=()=>{
+      const t=$('#vlT',win).value.trim(); if(!t){ toast('Text fehlt'); return; }
+      const u = new SpeechSynthesisUtterance(t);
+      u.lang='de-DE';
+      const vs = speechSynthesis.getVoices();
+      const de = vs.find(v=>/de[-_]DE/i.test(v.lang));
+      if(de) u.voice = de;
+      u.rate = 1.0;
+      u.onstart=()=>{ $('#vlSt',win).textContent='🔊 Liest vor…'; };
+      u.onend=()=>{ $('#vlSt',win).textContent='✅ Fertig'; };
+      u.onerror=()=>{ $('#vlSt',win).textContent='❌ Fehler'; };
+      try{ speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){ toast('Nicht verfügbar'); }
+    };
+    $('#vlStop',win).onclick=()=>{ try{ speechSynthesis.cancel(); $('#vlSt',win).textContent='⏹ Gestoppt'; }catch(e){} };
+    $('#vlPaste',win).onclick=async()=>{
+      try{ const t=await navigator.clipboard.readText(); $('#vlT',win).value=t; toast('Eingefügt'); }
+      catch(e){ toast('Zwischenablage leer'); }
+    };
+    $('#vlClr',win).onclick=()=>{ $('#vlT',win).value=''; };
+  }
+};
+
+APPS['diktiergeraet'] = {
+  name:'Diktiergerät', icon:'🎙️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🎙️ Live-Diktat (Spracherkennung)</b><div class="dim sm">Sprich — der Text erscheint live. Nur Chrome/Edge/Safari.</div></div>'+
+    '<div class="row"><button class="btn primary" id="dkGo">🎤 Start</button><button class="btn danger" id="dkSt">⏹ Stop</button><button class="btn" id="dkClr">🗑</button><button class="btn" id="dkCopy">📋</button></div>'+
+    '<div class="card" id="dkT" style="min-height:160px;font-size:14px;line-height:1.7;white-space:pre-wrap">–</div>'+
+  '</div>'; },
+  init(win){
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let rec=null, text='';
+    if(!SR){ $('#dkT',win).textContent='❌ Spracherkennung nicht verfügbar'; return; }
+    function upd(){ $('#dkT',win).textContent = text || '–'; }
+    $('#dkGo',win).onclick=()=>{
+      if(rec){ toast('Läuft schon'); return; }
+      rec = new SR();
+      rec.lang = 'de-DE';
+      rec.interimResults = true;
+      rec.continuous = true;
+      rec.onresult = (e)=>{
+        let interim='';
+        for(let i=e.resultIndex;i<e.results.length;i++){
+          const t = e.results[i][0].transcript;
+          if(e.results[i].isFinal) text += t+' ';
+          else interim += t;
+        }
+        $('#dkT',win).textContent = text + interim;
+      };
+      rec.onerror = (e)=>{ toast('Fehler: '+e.error); };
+      rec.onend = ()=>{ rec=null; };
+      try{ rec.start(); toast('🎤 Aufnahme läuft…'); }catch(e){ toast('Start fehlgeschlagen'); }
+    };
+    $('#dkSt',win).onclick=()=>{ if(rec){ rec.stop(); rec=null; toast('Gestoppt'); upd(); } };
+    $('#dkClr',win).onclick=()=>{ text=''; upd(); };
+    $('#dkCopy',win).onclick=()=>{ navigator.clipboard?.writeText(text).then(()=>toast('Kopiert')); };
+  }
+};
+
+console.log('%c🚀 HalDo Apps v128 geladen','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('16 neue Apps: S·Einstellungen/Taskmanager/Systeminfo/Energie  T·Packliste/Währung/Reiseplaner/Sprachführer  U·Stundenplan/Noten/Bafög/Semesterplan  V·Sprachausgabe/Vorlesen/Diktat + Extra');
+
+setTimeout(()=>{ const logo=document.querySelector('#logoBtn'); if(logo) logo.click(); }, 100);
+
+})();
+</script>
 </body>
 </html>
