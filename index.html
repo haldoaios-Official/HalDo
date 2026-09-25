@@ -8241,5 +8241,759 @@ console.log('%c🚀 HalDo Apps v133 geladen (16 Apps)','background:linear-gradie
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v134 · Apps Pack 11 (B/D/M/Y/Z)
+     18 neue funktionierende Apps
+     ============================================================ -->
+<script>
+(function(){
+'use strict';
+
+if(!window.HalDo || !window.HalDo.apps){ return; }
+
+const APPS = window.HalDo.apps;
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = ()=>Math.random().toString(36).slice(2,10);
+const fmt = n => (Math.round(n*100)/100).toLocaleString('de-DE');
+const toast = window.HalDo.toast || ((m)=>console.log('[toast]',m));
+const store = {
+  key: k => 'haldo_'+k+'_v1',
+  get(k,d){ try{ const v=localStorage.getItem(this.key(k)); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(this.key(k), JSON.stringify(v)); }catch(e){} }
+};
+const rnd = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const shuffle = a=>[...a].sort(()=>Math.random()-.5);
+
+function makeQuiz(title, icon, questions){
+  return { name: title, icon,
+    render(){ return '<div class="col center" style="max-width:520px;margin:0 auto">'+
+      '<div class="row between" style="width:100%"><span class="dim" id="qzP">1 / '+questions.length+'</span><span class="dim">Punkte: <b id="qzS">0</b></span></div>'+
+      '<div class="card center big2" id="qzQ" style="min-height:80px;display:flex;align-items:center;justify-content:center;width:100%"></div>'+
+      '<div id="qzA" class="col" style="width:100%"></div>'+
+      '<button class="btn" id="qzR" style="margin-top:6px">🔄 Neu</button></div>'; },
+    init(win){
+      let i=0, score=0, order=shuffle(questions);
+      const Q=$('#qzQ',win), A=$('#qzA',win), P=$('#qzP',win), S=$('#qzS',win);
+      function draw(){
+        if(i>=order.length){
+          Q.textContent = score===order.length?'🎉 Perfekt!':(score>=order.length*0.7?'👍 Gut gemacht!':'Weiter üben!');
+          A.innerHTML = '<div class="card center big2" style="width:100%">'+score+' / '+order.length+'</div>';
+          P.textContent = order.length+' / '+order.length; return;
+        }
+        const q=order[i]; Q.textContent=q.q; P.textContent=(i+1)+' / '+order.length; S.textContent=score;
+        A.innerHTML = q.a.map((a,j)=>'<button class="btn" data-j="'+j+'" style="width:100%;text-align:left">'+esc(a)+'</button>').join('');
+        A.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+          const j=parseInt(b.dataset.j);
+          if(j===q.correct){ score++; b.style.background='rgba(77,232,138,.35)'; b.style.borderColor='#4de88a'; }
+          else{ b.style.background='rgba(224,59,90,.35)'; b.style.borderColor='#e03b5a';
+            const c=A.querySelector('[data-j="'+q.correct+'"]'); if(c){ c.style.background='rgba(77,232,138,.35)'; c.style.borderColor='#4de88a'; } }
+          A.querySelectorAll('button').forEach(x=>x.disabled=true);
+          setTimeout(()=>{ i++; draw(); }, 850);
+        });
+      }
+      draw();
+      $('#qzR',win).onclick=()=>{ i=0; score=0; order=shuffle(questions); draw(); };
+    }
+  };
+}
+
+/* ============================================================
+   B · BILDUNG
+   ============================================================ */
+
+APPS['algebra-trainer'] = {
+  name:'Algebra Trainer', icon:'📐',
+  render(){ return '<div class="col center" style="max-width:460px;margin:0 auto">'+
+    '<div class="row" style="justify-content:center"><select class="inp" id="alT" style="width:auto"><option value="1">Lineare Gl. x+b=c</option><option value="2" selected>ax+b=c</option><option value="3">ax+b=cx+d</option><option value="4">Quadratisch</option></select><button class="btn" id="alNew">🔄 Neu</button></div>'+
+    '<div class="card big2" id="alQ" style="min-height:80px;display:flex;align-items:center;justify-content:center;width:100%">–</div>'+
+    '<input class="inp" id="alA" type="number" step="0.01" placeholder="x = ?" style="text-align:center;font-size:20px;max-width:200px;margin:0 auto">'+
+    '<div class="row" style="justify-content:center"><button class="btn primary" id="alChk">✓ Prüfen</button><button class="btn" id="alShow">💡 Lösung</button></div>'+
+    '<div class="card center">Punkte: <b id="alP">0</b> · Streak: <b id="alS">0</b></div>'+
+    '<div class="dim" id="alMsg" style="min-height:24px"></div></div>'; },
+  init(win){
+    let answer=0, score=0, streak=0;
+    function newQ(){
+      const t = $('#alT',win).value;
+      let a=1,b=0,c=0,d=0;
+      if(t==='1'){ b=rnd(-10,10); c=rnd(-20,20); answer=c-b; $('#alQ',win).textContent = 'x + '+b+' = '+c; }
+      else if(t==='2'){ a=rnd(2,9); b=rnd(-10,10); c=rnd(-20,20); answer=(c-b)/a; $('#alQ',win).textContent = a+'x + '+b+' = '+c; }
+      else if(t==='3'){ a=rnd(2,9); b=rnd(-10,10); d=rnd(1,a-1); c=rnd(-10,10); answer=(c-b)/(a-d); $('#alQ',win).textContent = a+'x + '+b+' = '+d+'x + '+c; }
+      else { a=1; b=rnd(-10,10); c=rnd(-15,15); const disc=b*b-4*c; if(disc<0){ newQ(); return; } answer=Math.max((-b+Math.sqrt(disc))/2,(-b-Math.sqrt(disc))/2); $('#alQ',win).textContent = 'x² + '+b+'x + '+c+' = 0 (größere Lösung)'; }
+      $('#alA',win).value=''; $('#alMsg',win).textContent='';
+    }
+    $('#alNew',win).onclick=newQ;
+    $('#alT',win).onchange=newQ;
+    $('#alChk',win).onclick=()=>{
+      const v = parseFloat($('#alA',win).value);
+      if(isNaN(v)){ $('#alMsg',win).textContent='Zahl eingeben'; return; }
+      if(Math.abs(v-answer)<0.05){ score++; streak++; $('#alP',win).textContent=score; $('#alS',win).textContent=streak; $('#alMsg',win).textContent='✅ Richtig!'; $('#alMsg',win).style.color='#4de88a'; setTimeout(newQ,700); }
+      else{ streak=0; $('#alS',win).textContent=0; $('#alMsg',win).textContent='❌ Richtig wäre x = '+fmt(answer); $('#alMsg',win).style.color='#ff6b88'; }
+    };
+    $('#alShow',win).onclick=()=>{ $('#alMsg',win).textContent='💡 x = '+fmt(answer); $('#alMsg',win).style.color='var(--c3)'; };
+    $('#alA',win).addEventListener('keydown',e=>{ if(e.key==='Enter') $('#alChk',win).click(); });
+    newQ();
+  }
+};
+
+APPS['analysis'] = {
+  name:'Analysis', icon:'📈',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>📈 Ableitungs-Rechner</b><div class="dim sm">Einfache Polynome: f(x) = ax^n + bx + c</div></div>'+
+    '<div class="row"><input class="inp" id="anA" type="number" placeholder="a (Koeff.)" value="3"><input class="inp" id="anN" type="number" placeholder="n (Exponent)" value="2"><input class="inp" id="anB" type="number" placeholder="b" value="5"><button class="btn primary" id="anGo">▶ Ableiten</button></div>'+
+    '<div class="card" id="anOut" style="min-height:120px"><span class="dim">–</span></div>'+
+    '<div class="card"><b>🔍 Funktion prüfen</b>'+
+      '<label class="lbl" style="margin-top:8px">x-Wert einsetzen</label>'+
+      '<div class="row"><input class="inp" id="anX" type="number" value="2" style="flex:1"><button class="btn" id="anEval">f(x) und f\'(x) berechnen</button></div>'+
+      '<div id="anEvalOut" class="dim" style="margin-top:8px">–</div>'+
+    '</div>'+
+    '<div class="card"><b>💡 Ableitungsregeln</b><div class="dim sm" style="margin-top:6px">• Potenzregel: (xⁿ)\' = n·xⁿ⁻¹<br>• Faktorregel: (a·f)\' = a·f\'<br>• Summenregel: (f+g)\' = f\' + g\'<br>• Kettenregel: (f(g(x)))\' = f\'(g(x))·g\'(x)</div></div>'+
+  '</div>'; },
+  init(win){
+    let a=1, n=2, b=0;
+    function render(){
+      a = parseFloat($('#anA',win).value)||0;
+      n = parseFloat($('#anN',win).value)||0;
+      b = parseFloat($('#anB',win).value)||0;
+      const an = a*n;
+      const nn = n-1;
+      let f = 'f(x) = ';
+      if(a!==0 && n!==0) f += (a===1?'':(a===-1?'-':a))+'x'+(n===1?'':'^'+n);
+      if(b!==0){ f += (b>0?' + ':' - ')+Math.abs(b)+'x'; }
+      if(f==='f(x) = ') f += '0';
+      let df = "f'(x) = ";
+      if(an!==0 && nn>=0){ df += (an===1?'':(an===-1?'-':an))+'x'+(nn===0?'':(nn===1?'':'^'+nn)); }
+      if(b!==0) df += (b>0&&an!==0?' + ':(b<0&&an!==0?' - ':''))+(an===0?b:Math.abs(b));
+      if(df==="f'(x) = ") df += '0';
+      $('#anOut',win).innerHTML = '<div style="font-family:monospace;font-size:15px;color:var(--c1);margin-bottom:8px">'+esc(f)+'</div><div style="font-family:monospace;font-size:15px;color:var(--c3)">'+esc(df)+'</div>'+
+        '<div class="dim sm" style="margin-top:12px">• Zweite Ableitung: f\'\'(x) = '+fmt(an*(nn>=0?nn:0))+(nn>=2?'x^'+Math.max(0,nn-1):'')+'</div>';
+    }
+    $('#anGo',win).onclick=render;
+    ['anA','anN','anB'].forEach(id=>$('#'+id,win).oninput=render);
+    $('#anEval',win).onclick=()=>{
+      const x = parseFloat($('#anX',win).value)||0;
+      const fx = a*Math.pow(x,n) + b*x;
+      const dfx = a*n*Math.pow(x,n-1) + b;
+      $('#anEvalOut',win).innerHTML = 'f('+x+') = <b style="color:var(--c1)">'+fmt(fx)+'</b><br>f\'('+x+') = <b style="color:var(--c3)">'+fmt(dfx)+'</b>';
+    };
+    render();
+  }
+};
+
+APPS['stochastik'] = {
+  name:'Stochastik', icon:'🎲',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🎲 Wahrscheinlichkeitsrechner</b></div>'+
+    '<label class="lbl">Was berechnen?</label>'+
+    '<select class="inp" id="stT">'+
+      '<option value="comb">Kombination C(n,k)</option>'+
+      '<option value="perm">Permutation P(n,k)</option>'+
+      '<option value="fact">Fakultät n!</option>'+
+      '<option value="binom">Binomial P(X=k)</option>'+
+      '<option value="dice">Würfel: P(mind. 1 mal X)</option>'+
+    '</select>'+
+    '<div id="stInputs"></div>'+
+    '<button class="btn primary" id="stGo">▶ Berechnen</button>'+
+    '<div class="card" id="stOut" style="min-height:80px"><span class="dim">–</span></div>'+
+    '<div class="card"><b>📖 Erklärung</b><div class="dim sm" id="stInfo" style="margin-top:6px">–</div></div>'+
+  '</div>'; },
+  init(win){
+    function fact(n){ let r=1; for(let i=2;i<=n;i++) r*=i; return r; }
+    function comb(n,k){ if(k>n) return 0; return fact(n)/(fact(k)*fact(n-k)); }
+    function inputs(){
+      const t = $('#stT',win).value;
+      const cont = $('#stInputs',win);
+      if(t==='comb'||t==='perm') cont.innerHTML = '<div class="row"><input class="inp" id="stN" type="number" placeholder="n" value="10" style="text-align:center"><input class="inp" id="stK" type="number" placeholder="k" value="3" style="text-align:center"></div>';
+      else if(t==='fact') cont.innerHTML = '<input class="inp" id="stN" type="number" placeholder="n" value="5">';
+      else if(t==='binom') cont.innerHTML = '<div class="row"><input class="inp" id="stN" type="number" placeholder="n (Versuche)" value="10"><input class="inp" id="stK" type="number" placeholder="k (Erfolge)" value="3"><input class="inp" id="stP" type="number" step="0.01" placeholder="p" value="0.5"></div>';
+      else if(t==='dice') cont.innerHTML = '<div class="row"><input class="inp" id="stN" type="number" placeholder="Würfe" value="3"><input class="inp" id="stK" type="number" placeholder="Seite (1-6)" value="6"></div>';
+    }
+    $('#stT',win).onchange=()=>{ inputs(); $('#stOut',win).innerHTML='<span class="dim">–</span>'; };
+    $('#stGo',win).onclick=()=>{
+      const t=$('#stT',win).value; let r='', info='';
+      try{
+        if(t==='comb'){ const n=parseInt($('#stN',win).value), k=parseInt($('#stK',win).value); r = comb(n,k); info='C(n,k) = Anzahl der Möglichkeiten, k aus n ohne Reihenfolge zu wählen.'; }
+        else if(t==='perm'){ const n=parseInt($('#stN',win).value), k=parseInt($('#stK',win).value); r = fact(n)/fact(n-k); info='P(n,k) = Anzahl der Möglichkeiten, k aus n mit Reihenfolge zu wählen.'; }
+        else if(t==='fact'){ const n=parseInt($('#stN',win).value); r = fact(n); info='n! = Produkt aller Zahlen 1 bis n.'; }
+        else if(t==='binom'){ const n=parseInt($('#stN',win).value), k=parseInt($('#stK',win).value), p=parseFloat($('#stP',win).value); r = comb(n,k)*Math.pow(p,k)*Math.pow(1-p,n-k); info='Binomialverteilung P(X=k) = C(n,k) · p^k · (1-p)^(n-k)'; }
+        else if(t==='dice'){ const n=parseInt($('#stN',win).value), k=parseInt($('#stK',win).value); r = 1 - Math.pow((6-1)/6, n); info='Wahrscheinlichkeit, dass bei '+n+' Würfen mindestens einmal die '+k+' fällt.'; }
+        $('#stOut',win).innerHTML = '<div class="big2 center" style="color:var(--c1)">'+(t==='binom'||t==='dice'?(r*100).toFixed(2)+' %':fmt(r))+'</div>';
+      }catch(e){ $('#stOut',win).textContent='Fehler: '+e.message; }
+      $('#stInfo',win).textContent = info;
+    };
+    inputs();
+  }
+};
+
+APPS['geschichte-quiz'] = makeQuiz('Geschichte Quiz','📜',[
+  {q:'Wann begann der Erste Weltkrieg?', a:['1912','1914','1918','1939'], correct:1},
+  {q:'Wer war der erste Mensch auf dem Mond?', a:['Juri Gagarin','Neil Armstrong','Buzz Aldrin','Michael Collins'], correct:1},
+  {q:'Wann fiel die Berliner Mauer?', a:['1985','1989','1990','1991'], correct:1},
+  {q:'Wer baute die Pyramiden von Gizeh?', a:['Römer','Griechen','Ägypter','Perser'], correct:2},
+  {q:'Wann endete der Zweite Weltkrieg?', a:['1943','1944','1945','1946'], correct:2},
+  {q:'Wer war der erste Bundeskanzler der BRD?', a:['Adenauer','Brandt','Schmidt','Kohl'], correct:0},
+  {q:'Wann wurde Amerika entdeckt?', a:['1492','1498','1500','1510'], correct:0},
+  {q:'Wo fand die Französische Revolution statt?', a:['Lyon','Marseille','Paris','Bordeaux'], correct:2},
+  {q:'Wer war der letzte deutsche Kaiser?', a:['Wilhelm I','Wilhelm II','Friedrich III','Otto von Bismarck'], correct:1},
+  {q:'Wann begann der Zweite Weltkrieg?', a:['1937','1938','1939','1940'], correct:2},
+  {q:'Welches Reich war das größte der Geschichte?', a:['Römisches Reich','Britisches Empire','Mongolisches Reich','Osmanisches Reich'], correct:1},
+  {q:'Wann wurde Deutschland wiedervereinigt?', a:['1989','1990','1991','1992'], correct:1}
+]);
+
+APPS['deutsch-quiz'] = makeQuiz('Deutsch Quiz','📖',[
+  {q:'Wie viele Fälle hat die deutsche Sprache?', a:['3','4','5','6'], correct:1},
+  {q:'Was ist der Plural von "Atlas"?', a:['Atlasse','Atlasten','Atlanten','Atlas'], correct:2},
+  {q:'Welcher Fall antwortet auf "wem"?', a:['Nominativ','Genitiv','Dativ','Akkusativ'], correct:2},
+  {q:'Was ist ein Synonym für "hübsch"?', a:['hässlich','schön','traurig','alt'], correct:1},
+  {q:'Welches Wort ist ein Nomen?', a:['laufen','rot','Freundschaft','schnell'], correct:2},
+  {q:'Wie schreibt man es richtig?', a:['Rythmus','Rhythmus','Rytmus','Rhytmus'], correct:1},
+  {q:'Welche Zeitform ist "ich habe gelesen"?', a:['Präsens','Präteritum','Perfekt','Futur'], correct:2},
+  {q:'Was ist ein Adjektiv?', a:['Hauptwort','Eigenschaftswort','Tunwort','Fürwort'], correct:1},
+  {q:'Wie viele Buchstaben hat das Alphabet?', a:['24','25','26','27'], correct:2},
+  {q:'Was bedeutet "Ambivalenz"?', a:['Eindeutigkeit','Zweiseitigkeit','Gleichgültigkeit','Neugier'], correct:1},
+  {q:'Welcher Satz ist korrekt?', a:['Ich gehe zum Arzt.','Ich gehe zu Arzt.','Ich gehe nach Arzt.','Ich gehe im Arzt.'], correct:0},
+  {q:'Was ist der Genitiv von "der Hund"?', a:['den Hund','dem Hund','des Hundes','die Hunde'], correct:2}
+]);
+
+APPS['englisch-quiz'] = makeQuiz('Englisch Quiz','🇬🇧',[
+  {q:'Was heißt "Haus" auf Englisch?', a:['mouse','house','horse','hose'], correct:1},
+  {q:'Was ist das Perfekt von "go"?', a:['goed','went','gone','going'], correct:2},
+  {q:'Wie sagt man "Guten Morgen"?', a:['Good night','Good evening','Good morning','Good day'], correct:2},
+  {q:'Was ist das Plural von "child"?', a:['childs','childes','children','child'], correct:2},
+  {q:'Was bedeutet "to be able to"?', a:['müssen','können','wollen','sollen'], correct:1},
+  {q:'Wie sagt man "Ich mag Pizza"?', a:['I like pizza','I am like pizza','I liked pizza','I likes pizza'], correct:0},
+  {q:'Was ist das Gegenteil von "hot"?', a:['warm','cold','wet','cool'], correct:1},
+  {q:'Was bedeutet "elephant" auf Deutsch?', a:['Elefant','Elch','Esel','Eiche'], correct:0},
+  {q:'Was ist die Vergangenheit von "eat"?', a:['eated','ate','eaten','eating'], correct:1},
+  {q:'Wie sagt man "Wie geht es dir?"', a:['How are you?','How do you do?','How is you?','How you?'], correct:0},
+  {q:'Was ist das Synonym für "happy"?', a:['sad','angry','glad','tired'], correct:2},
+  {q:'Was bedeutet "to learn"?', a:['laufen','lernen','lehren','lesen'], correct:1}
+]);
+
+/* ============================================================
+   D · GESUNDHEIT
+   ============================================================ */
+
+APPS['fitness-plan'] = {
+  name:'Fitness Plan', icon:'💪',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>💪 Wochenplan</b></div>'+
+    '<div id="fpL" class="col"></div>'+
+    '<button class="btn primary" id="fpA">+ Training hinzufügen</button>'+
+  '</div>'; },
+  init(win){
+    const DAYS=['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
+    const defaultPlan = [
+      {d:'Montag', n:'Brust + Trizeps', ex:'Bankdrücken 3×10, Fliegende 3×12, Dips 3×8'},
+      {d:'Dienstag', n:'Cardio', ex:'30 min Joggen, 15 min Radfahren'},
+      {d:'Mittwoch', n:'Rücken + Bizeps', ex:'Klimmzüge 3×8, Rudern 3×10, Curls 3×12'},
+      {d:'Donnerstag', n:'Beine', ex:'Kniebeugen 3×10, Ausfallschritte 3×12, Wadenheben 4×15'},
+      {d:'Freitag', n:'Schultern + Bauch', ex:'Schulterdrücken 3×10, Seitheben 3×15, Plank 3×60s'},
+      {d:'Samstag', n:'Ruhetag', ex:'Spaziergang, Dehnen'},
+      {d:'Sonntag', n:'Ruhetag', ex:'Erholung, leichtes Yoga'}
+    ];
+    const all=()=>store.get('fitness_plan', defaultPlan);
+    function render(){
+      const a=all();
+      $('#fpL',win).innerHTML = DAYS.map(d=>{
+        const day = a.filter(x=>x.d===d);
+        if(!day.length) return '<div class="card" style="opacity:.4"><b>'+d+'</b><div class="dim sm">Ruhetag</div></div>';
+        return day.map(x=>'<div class="card"><div class="row between"><b>'+d+'</b><span class="x" data-id="'+x.id+'">✕</span></div><div style="margin-top:4px;color:var(--c1);font-weight:500">'+esc(x.n)+'</div><div class="dim sm" style="margin-top:4px">'+esc(x.ex)+'</div></div>').join('');
+      }).join('');
+      $$('#fpL .x',win).forEach(el2=>el2.onclick=()=>{ store.set('fitness_plan',all().filter(x=>x.id!==el2.dataset.id)); render(); });
+    }
+    $('#fpA',win).onclick=()=>{
+      const d = prompt('Welcher Tag? (Montag, Dienstag, …)') || 'Montag';
+      const n = prompt('Training (z.B. Brust)') || 'Training';
+      const ex = prompt('Übungen?') || '';
+      const arr=all(); arr.push({id:uid(), d, n, ex}); store.set('fitness_plan',arr); render();
+    };
+    // Default-Plan mit IDs versehen
+    const stored = store.get('fitness_plan', null);
+    if(!stored){ store.set('fitness_plan', defaultPlan.map(x=>({...x, id:uid()}))); }
+    render();
+  }
+};
+
+APPS['koerpermasse'] = {
+  name:'Körpermaße', icon:'📏',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="km2W" type="number" step="0.1" placeholder="Gewicht kg" style="flex:1"><input class="inp" id="km2T" type="number" step="0.1" placeholder="Taille cm" style="flex:1"><input class="inp" id="km2B" type="number" step="0.1" placeholder="Brust cm" style="flex:1"><button class="btn primary" id="km2A">+</button></div>'+
+    '<div id="km2L" class="list"></div>'+
+    '<div class="card"><b>📊 Trends</b><div id="km2Trend" style="margin-top:6px"></div></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#km2L',win);
+    const all=()=>store.get('bodymeasures',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.slice(0,30).map(x=>'<div class="item"><b>'+x.w+' kg</b><span class="dim sm">'+new Date(x.ts).toLocaleDateString('de-DE')+'</span><span class="dim" style="margin-left:auto">T: '+x.t+' · B: '+x.b+'</span><span class="x" data-id="'+x.id+'">✕</span></div>').join('') : '<div class="empty">Keine Einträge</div>';
+      if(a.length>=2){
+        const first=a[a.length-1], last=a[0];
+        const dW = last.w-first.w;
+        const dT = last.t-first.t;
+        const dB = last.b-first.b;
+        const arrow = v=>v>0?'▲ +'+v.toFixed(1):(v<0?'▼ '+v.toFixed(1):'– 0');
+        const col = v=>v>0?'#ff6b88':(v<0?'#4de88a':'var(--dim)');
+        $('#km2Trend',win).innerHTML = '<div class="item"><span>Gewicht</span><b style="margin-left:auto;color:'+col(dW)+'">'+arrow(dW)+' kg</b></div>'+
+          '<div class="item"><span>Taille</span><b style="margin-left:auto;color:'+col(dT)+'">'+arrow(dT)+' cm</b></div>'+
+          '<div class="item"><span>Brust</span><b style="margin-left:auto;color:'+col(dB)+'">'+arrow(dB)+' cm</b></div>';
+      } else { $('#km2Trend',win).innerHTML = '<span class="dim sm">Mindestens 2 Einträge für Trends</span>'; }
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('bodymeasures',all().filter(v=>v.id!==el2.dataset.id)); render(); });
+    }
+    $('#km2A',win).onclick=()=>{
+      const w=parseFloat($('#km2W',win).value), t=parseFloat($('#km2T',win).value), b=parseFloat($('#km2B',win).value);
+      if(!w) return;
+      const arr=all(); arr.unshift({id:uid(), w, t:t||0, b:b||0, ts:Date.now()}); store.set('bodymeasures',arr.slice(0,100));
+      $('#km2W',win).value=''; $('#km2T',win).value=''; $('#km2B',win).value=''; render();
+    };
+    render();
+  }
+};
+
+APPS['krankenakte'] = {
+  name:'Krankenakte', icon:'📋',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="kaT" placeholder="Titel (z.B. Allergie Penicillin)…" style="flex:1"><select class="inp" id="kaC" style="width:auto"><option>Allergie</option><option>Impfung</option><option>OP</option><option>Diagnose</option><option>Medikament</option><option>Arztbesuch</option></select><input class="inp" id="kaD" type="date" style="width:auto"><button class="btn primary" id="kaA">+</button></div>'+
+    '<textarea class="ta" id="kaB" placeholder="Details…" style="min-height:60px"></textarea>'+
+    '<div id="kaL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#kaL',win);
+    const all=()=>store.get('health_record',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.map(x=>'<div class="card"><div class="row between"><div><span class="dim sm">'+esc(x.c)+'</span><b style="margin-left:8px">'+esc(x.t)+'</b></div><span class="dim sm">'+(x.d||'')+'</span><span class="x" data-id="'+x.id+'">✕</span></div>'+(x.b?'<div class="dim sm" style="margin-top:6px">'+esc(x.b)+'</div>':'')+'</div>').join('') : '<div class="empty">Keine Einträge</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('health_record',all().filter(v=>v.id!==el2.dataset.id)); render(); });
+    }
+    $('#kaA',win).onclick=()=>{
+      const t=$('#kaT',win).value.trim(); if(!t) return;
+      const arr=all(); arr.unshift({id:uid(), t, c:$('#kaC',win).value, d:$('#kaD',win).value, b:$('#kaB',win).value, ts:Date.now()}); store.set('health_record',arr);
+      $('#kaT',win).value=''; $('#kaD',win).value=''; $('#kaB',win).value=''; render();
+    };
+    render();
+  }
+};
+
+APPS['blutwerte'] = {
+  name:'Blutwerte', icon:'🩸',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="bw2N" placeholder="Wert (z.B. Hb)" style="flex:1"><input class="inp" id="bw2V" type="number" step="0.1" placeholder="Wert" style="width:100px"><input class="inp" id="bw2U" placeholder="Einheit" style="width:100px"><button class="btn primary" id="bw2A">+</button></div>'+
+    '<div id="bw2L" class="list"></div>'+
+    '<div class="card"><b>📚 Referenzwerte</b><div class="dim sm" style="margin-top:6px">• Hb: 12-16 g/dl<br>• Leukozyten: 4.000-10.000 /µl<br>• Thrombozyten: 150.000-400.000 /µl<br>• Cholesterin: <200 mg/dl<br>• Blutzucker nüchtern: 70-100 mg/dl</div></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#bw2L',win);
+    const all=()=>store.get('blood_values',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.map(x=>'<div class="item"><b>'+esc(x.n)+'</b><span style="margin-left:auto">'+x.v+' '+esc(x.u)+'</span><span class="dim sm">'+new Date(x.ts).toLocaleDateString('de-DE')+'</span><span class="x" data-id="'+x.id+'">✕</span></div>').join('') : '<div class="empty">Keine Werte</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('blood_values',all().filter(v=>v.id!==el2.dataset.id)); render(); });
+    }
+    $('#bw2A',win).onclick=()=>{
+      const n=$('#bw2N',win).value.trim(), v=parseFloat($('#bw2V',win).value), u=$('#bw2U',win).value.trim();
+      if(!n||isNaN(v)) return;
+      const arr=all(); arr.unshift({id:uid(), n, v, u, ts:Date.now()}); store.set('blood_values',arr);
+      $('#bw2N',win).value=''; $('#bw2V',win).value=''; $('#bw2U',win).value=''; render();
+    };
+    render();
+  }
+};
+
+APPS['atemuebung2'] = {
+  name:'Box Breathing', icon:'🫁',
+  render(){ return '<div class="col center">'+
+    '<div class="big2" id="bxP">Bereit</div>'+
+    '<div class="big" id="bxC" style="min-height:100px;display:flex;align-items:center;justify-content:center">4</div>'+
+    '<button class="btn primary" id="bxGo">▶ Start</button>'+
+    '<div class="card" style="max-width:360px;margin:8px auto 0"><b>Box Breathing (4-4-4-4)</b><div class="dim sm">4s einatmen · 4s halten · 4s ausatmen · 4s halten — wie ein Quadrat. Beruhigt das Nervensystem.</div></div>'+
+    '<div class="card"><b>Wann anwenden?</b><div class="dim sm">• Vor Prüfungen / Vorträgen<br>• Bei Stress<br>• Vor dem Schlafen<br>• Nach dem Training</div></div>'+
+  '</div>'; },
+  init(win){
+    let id=null, phase=0, rem=4;
+    const labels=['🌬️ Einatmen','✋ Halten','💨 Ausatmen','✋ Halten'];
+    const P=$('#bxP',win), C=$('#bxC',win);
+    $('#bxGo',win).onclick=()=>{
+      if(id){ clearInterval(id); id=null; P.textContent='Bereit'; C.textContent='4'; phase=0; rem=4; return; }
+      phase=0; rem=4;
+      const step=()=>{
+        P.textContent = labels[phase];
+        C.textContent = rem;
+        if(rem<=0){ phase=(phase+1)%4; rem=4; }
+        else rem--;
+      };
+      step();
+      id = setInterval(step, 1000);
+    };
+  }
+};
+
+/* ============================================================
+   M · MEDIEN
+   ============================================================ */
+
+APPS['radioplayer'] = {
+  name:'Radio Player', icon:'📻',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>📻 Sender-Liste</b><div class="dim sm">Klick auf einen Sender → öffnet im Browser.</div></div>'+
+    '<input class="inp" id="rp2Q" placeholder="Sender suchen…">'+
+    '<div id="rp2L" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const stations = [
+      ['1LIVE','Pop / Aktuell','https://www1.wdr.de/radio/1live/livestream/index.html','🎵'],
+      ['WDR 2','Info / Pop','https://www1.wdr.de/radio/wdr2/livestream/index.html','📻'],
+      ['Bayern 3','Pop','https://www.br.de/radio/bayern3/livestream/index.html','🎵'],
+      ['SWR3','Pop','https://www.swr3.de/livestream','🎵'],
+      ['Deutschlandfunk','Info','https://www.deutschlandfunk.de/livestream','📰'],
+      ['Rock Antenne','Rock','https://www.rockantenne.de/hoeren/livestream','🎸'],
+      ['Klassik Radio','Klassik','https://www.klassikradio.de/','🎻'],
+      ['Jazz Radio Berlin','Jazz','https://www.jazzradio.net/','🎷'],
+      ['BBC World Service','International','https://www.bbc.co.uk/sounds/play/live:bbc_world_service','🌍'],
+      ['Ö3','Österreich Pop','https://oe3.orf.at/','🎵'],
+      ['FFH','Deutschland Pop','https://www.ffh.de/','🎵'],
+      ['Antenne Bayern','Bayern Pop','https://www.antenne.de/','🎵']
+    ];
+    const L=$('#rp2L',win), Q=$('#rp2Q',win);
+    function render(){
+      const q=Q.value.toLowerCase();
+      const f=q?stations.filter(s=>s[0].toLowerCase().includes(q)||s[1].toLowerCase().includes(q)):stations;
+      L.innerHTML = f.map(s=>'<a href="'+s[2]+'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><span style="font-size:22px">'+s[3]+'</span><b>'+esc(s[0])+'</b><span class="dim sm" style="margin-left:auto">'+esc(s[1])+'</span></div></a>').join('');
+    }
+    Q.oninput=render;
+    render();
+  }
+};
+
+APPS['musikplayer2'] = {
+  name:'Soundboard', icon:'🎵',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🎵 Sound-Board</b><div class="dim sm">Klick für Töne und Effekte (Web Audio API)</div></div>'+
+    '<div id="sbL" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px"></div>'+
+    '<div class="card"><b>🎹 Eigener Ton</b>'+
+      '<div class="row" style="margin-top:8px"><input class="inp" id="sbF" type="number" value="440" placeholder="Hz" style="flex:1"><select class="inp" id="sbW" style="width:auto"><option value="sine">Sinus</option><option value="square">Rechteck</option><option value="triangle">Dreieck</option><option value="sawtooth">Sägezahn</option></select><button class="btn primary" id="sbGo">▶</button></div>'+
+    '</div>'+
+  '</div>'; },
+  init(win){
+    let ctx=null;
+    function play(freq, dur=0.3, type='sine'){
+      ctx = ctx || new (window.AudioContext||window.webkitAudioContext)();
+      if(ctx.state==='suspended') ctx.resume();
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.setValueAtTime(.15, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime+dur);
+      o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+dur+0.02);
+    }
+    const sounds = [
+      ['🔔','Ding',1200,0.4,'sine'],
+      ['📢','Pfeife',800,0.3,'square'],
+      ['🚨','Alarm',600,0.5,'sawtooth'],
+      ['🐝','Summen',150,0.6,'sawtooth'],
+      ['💥','Boom',80,0.5,'sine'],
+      ['🪙','Münze',1500,0.15,'triangle'],
+      ['💧','Tropfen',2000,0.1,'sine'],
+      ['🎵','Note C',262,0.4,'triangle'],
+      ['🎵','Note D',294,0.4,'triangle'],
+      ['🎵','Note E',330,0.4,'triangle'],
+      ['🎵','Note F',349,0.4,'triangle'],
+      ['🎵','Note G',392,0.4,'triangle']
+    ];
+    $('#sbL',win).innerHTML = sounds.map((s,i)=>'<button class="btn" data-i="'+i+'" style="padding:16px 8px;font-size:14px;display:flex;flex-direction:column;align-items:center;gap:4px"><span style="font-size:28px">'+s[0]+'</span><span>'+s[1]+'</span></button>').join('');
+    $$('#sbL button',win).forEach(b=>b.onclick=()=>{ const s=sounds[parseInt(b.dataset.i)]; play(s[2], s[3], s[4]); });
+    $('#sbGo',win).onclick=()=>{ play(parseFloat($('#sbF',win).value)||440, 1, $('#sbW',win).value); };
+  }
+};
+
+APPS['audiorekorder2'] = {
+  name:'Audiorekorder Plus', icon:'🎙️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🎙️ Aufnahme mit Wellenform</b></div>'+
+    '<div class="row"><button class="btn primary" id="ar2Rec">● Aufnahme</button><button class="btn" id="ar2St">■ Stop</button><button class="btn" id="ar2Pause">⏸ Pause</button></div>'+
+    '<div class="big2 center" id="ar2T">00:00</div>'+
+    '<canvas id="ar2C" width="600" height="100" style="width:100%;border-radius:10px;background:#0a0c18;border:1.5px solid var(--line)"></canvas>'+
+    '<div id="ar2L" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    let rec=null, chunks=[], t0=0, timer=null, analyser=null, audioCtx=null, stream=null;
+    const pad=n=>String(n).padStart(2,'0');
+    function startTimer(){
+      t0=Date.now();
+      timer = setInterval(()=>{ const dt=Math.floor((Date.now()-t0)/1000); $('#ar2T',win).textContent = pad(Math.floor(dt/60))+':'+pad(dt%60); }, 500);
+    }
+    async function drawWave(){
+      if(!analyser) return;
+      const C=$('#ar2C',win), ctx=C.getContext('2d');
+      const buf = new Uint8Array(analyser.frequencyBinCount);
+      function loop(){
+        if(!analyser) return;
+        analyser.getByteTimeDomainData(buf);
+        ctx.fillStyle='#0a0c18'; ctx.fillRect(0,0,C.width,C.height);
+        ctx.strokeStyle='#00e5ff'; ctx.lineWidth=2; ctx.beginPath();
+        for(let i=0;i<buf.length;i++){ const x=i/buf.length*C.width, y=buf[i]/128*C.height/2; i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+        ctx.stroke();
+        requestAnimationFrame(loop);
+      }
+      loop();
+    }
+    $('#ar2Rec',win).onclick=async()=>{
+      try{
+        stream = await navigator.mediaDevices.getUserMedia({audio:true});
+        audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+        const src = audioCtx.createMediaStreamSource(stream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 1024;
+        src.connect(analyser);
+        drawWave();
+        rec = new MediaRecorder(stream); chunks=[];
+        rec.ondataavailable = e => chunks.push(e.data);
+        rec.onstop = ()=>{
+          const blob = new Blob(chunks, {type:chunks[0]?.type||'audio/webm'});
+          const r = new FileReader();
+          r.onload = ()=>{ const all=store.get('memos2',[]); all.unshift({id:uid(), ts:Date.now(), data:r.result}); store.set('memos2',all.slice(0,10)); render(); };
+          r.readAsDataURL(blob);
+          stream.getTracks().forEach(t=>t.stop());
+          analyser = null;
+        };
+        rec.start();
+        startTimer();
+        toast('🔴 Aufnahme läuft');
+      }catch(e){ toast('Mikrofon verweigert'); }
+    };
+    $('#ar2St',win).onclick=()=>{ if(rec && rec.state!=='inactive'){ rec.stop(); rec=null; } if(timer){ clearInterval(timer); timer=null; } };
+    $('#ar2Pause',win).onclick=()=>{ if(rec && rec.state==='recording'){ rec.pause(); toast('Pausiert'); } else if(rec && rec.state==='paused'){ rec.resume(); toast('Fortgesetzt'); } };
+    function render(){
+      const all=store.get('memos2',[]);
+      $('#ar2L',win).innerHTML = all.length ? all.map(m=>'<div class="item"><span>'+new Date(m.ts).toLocaleString('de-DE')+'</span><button class="btn sm" data-id="'+m.id+'" style="margin-left:auto">Abspielen</button><span class="x" data-id="'+m.id+'">✕</span></div>').join('') : '<div class="empty">Keine Aufnahmen</div>';
+      $$('#ar2L button',win).forEach(b=>b.onclick=()=>{ const m=all.find(x=>x.id===b.dataset.id); if(m){ const a=new Audio(m.data); a.play(); } });
+      $$('#ar2L .x',win).forEach(el2=>el2.onclick=()=>{ store.set('memos2', all.filter(m=>m.id!==el2.dataset.id)); render(); });
+    }
+    render();
+  }
+};
+
+/* ============================================================
+   Y · YOUR LIFE
+   ============================================================ */
+
+APPS['zeitmanagement'] = {
+  name:'Zeitmanagement', icon:'⏰',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>⏰ Time-Blocking</b><div class="dim sm">Plane deinen Tag in Blöcke.</div></div>'+
+    '<div class="row"><input class="inp" id="zmT" placeholder="Aufgabe…" style="flex:1"><input class="inp" id="zmV" type="time" value="09:00" style="width:auto"><input class="inp" id="zmB" type="time" value="10:00" style="width:auto"><button class="btn primary" id="zmA">+</button></div>'+
+    '<div id="zmL" class="list"></div>'+
+    '<div class="card center"><span class="dim">Geplant heute: </span><b id="zmSum">0 h</b></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#zmL',win);
+    const all=()=>store.get('timeblocks',[]);
+    function render(){
+      const a=all().sort((x,y)=>x.s.localeCompare(y.s));
+      let total=0;
+      L.innerHTML = a.length ? a.map(x=>{
+        const [sh,sm]=x.s.split(':').map(Number);
+        const [eh,em]=x.e.split(':').map(Number);
+        const dur = (eh*60+em)-(sh*60+sm);
+        if(dur>0) total += dur;
+        return '<div class="item"><b style="color:var(--c1)">'+x.s+'</b><span class="dim">– '+x.e+'</span><span>'+esc(x.t)+'</span><span class="dim sm" style="margin-left:auto">'+dur+' min</span><span class="x" data-id="'+x.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Blöcke</div>';
+      $('#zmSum',win).textContent = (total/60).toFixed(1)+' h';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('timeblocks',all().filter(v=>v.id!==el2.dataset.id)); render(); });
+    }
+    $('#zmA',win).onclick=()=>{
+      const t=$('#zmT',win).value.trim(); if(!t) return;
+      const arr=all(); arr.push({id:uid(), t, s:$('#zmV',win).value, e:$('#zmB',win).value}); store.set('timeblocks',arr);
+      $('#zmT',win).value=''; render();
+    };
+    render();
+  }
+};
+
+APPS['selbstwert'] = {
+  name:'Selbstwert', icon:'💖',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>💖 Positive Affirmationen</b><div class="dim sm">Klick für eine neue Affirmation.</div></div>'+
+    '<div class="card center" id="sw2A" style="min-height:140px;display:flex;align-items:center;justify-content:center;font-size:17px;font-style:italic;line-height:1.6">Klick „Neue Affirmation"</div>'+
+    '<button class="btn primary" id="sw2Go">✨ Neue Affirmation</button>'+
+    '<div class="row"><label class="dim sm"><input type="checkbox" id="sw2Auto"> Automatisch alle 15 Sek.</label></div>'+
+    '<div class="card"><b>📝 Eigene Affirmationen</b><textarea class="ta" id="sw2Own" style="min-height:60px"></textarea><button class="btn primary" id="sw2Add" style="margin-top:8px">+ Hinzufügen</button></div>'+
+    '<div id="sw2L" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const DEFAULT=['Ich bin stark und schaffe alles, was ich mir vornehme.','Ich verdiene Liebe und Respekt.','Ich bin genug, genau so wie ich bin.','Jeden Tag wachse ich ein bisschen mehr.','Ich vertraue meinem eigenen Weg.','Ich darf Fehler machen — sie machen mich stärker.','Meine Gefühle sind wichtig und richtig.','Ich bin dankbar für alles, was ich habe.','Ich umgebe mich mit Menschen, die mich lieben.','Meine Gesundheit ist mein höchstes Gut.','Ich habe die Kraft, Veränderungen zu schaffen.','Jeder Schritt, auch der kleinste, bringt mich weiter.'];
+    const all=()=>store.get('affirmations', DEFAULT);
+    const A=$('#sw2A',win);
+    function next(){
+      const arr=all();
+      A.textContent = '„'+arr[rnd(0,arr.length-1)]+'"';
+    }
+    $('#sw2Go',win).onclick=next;
+    let id=null;
+    $('#sw2Auto',win).onchange=(e)=>{ if(e.target.checked) id=setInterval(next,15000); else { clearInterval(id); id=null; } };
+    function renderList(){
+      const arr=all();
+      $('#sw2L',win).innerHTML = arr.length>DEFAULT.length ? arr.slice(DEFAULT.length).map(a=>'<div class="item"><span>'+esc(a)+'</span><span class="x" data-v="'+esc(a)+'">✕</span></div>').join('') : '<div class="empty">Noch keine eigenen</div>';
+      $$('#sw2L .x',win).forEach(el2=>el2.onclick=()=>{ const arr2=all().filter(x=>x!==el2.dataset.v); store.set('affirmations',arr2); renderList(); });
+    }
+    $('#sw2Add',win).onclick=()=>{
+      const t=$('#sw2Own',win).value.trim(); if(!t) return;
+      const arr=all(); arr.push(t); store.set('affirmations',arr);
+      $('#sw2Own',win).value=''; renderList();
+    };
+    next(); renderList();
+  }
+};
+
+APPS['kreativitaet'] = {
+  name:'Kreativität', icon:'🎨',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🎨 Kreativ-Impulse</b><div class="dim sm">Blockade? Klick für einen Impuls.</div></div>'+
+    '<div class="card center" id="kvA" style="min-height:140px;display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1.6"></div>'+
+    '<button class="btn primary" id="kvGo">🎲 Neuer Impuls</button>'+
+    '<div class="card"><b>🧠 Techniken gegen Blockade</b><div class="dim sm" style="margin-top:6px">• Brainstorming ohne Filter<br>• Mind Mapping<br>• 6-3-5 Methode<br>• Umkehren: „Was wäre das Gegenteil?"<br>• SCAMPER: Substitute, Combine, Adapt, Modify, Put to another use, Eliminate, Reverse</div></div>'+
+  '</div>'; },
+  init(win){
+    const ideas = [
+      '🎨 Kombiniere zwei gegensätzliche Farben.',
+      '✍️ Schreibe 10 Sätze mit demselben Anfangsbuchstaben.',
+      '🎵 Summe eine Melodie zu einem Alltagsgeräusch.',
+      '🖼️ Mal dein Lieblingswort als Bild.',
+      '📝 Erfinde ein neues Wort für ein bekanntes Gefühl.',
+      '🎭 Denk dir eine Figur aus, die nur in Reimen spricht.',
+      '🏗️ Baue etwas aus 5 zufälligen Gegenständen in deiner Nähe.',
+      '📸 Fotografiere 3 Dinge aus dem gleichen Winkel.',
+      '🍳 Koche etwas mit 3 Zutaten, die du nie kombinierst.',
+      '💭 Was würdest du tun, wenn du 1 Mio. € hättest?',
+      '✂️ Nimm ein bekanntes Logo und zeichne es aus dem Gedächtnis.',
+      '🎬 Schreibe die erste Szene eines Films in 5 Sätzen.'
+    ];
+    $('#kvGo',win).onclick=()=>{ $('#kvA',win).textContent = ideas[rnd(0,ideas.length-1)]; };
+    $('#kvGo',win).click();
+  }
+};
+
+APPS['traeume'] = {
+  name:'Traumtagebuch', icon:'🌙',
+  render(){ return '<div class="col">'+
+    '<input class="inp" id="tmT" placeholder="Titel des Traums…">'+
+    '<textarea class="ta" id="tmB" placeholder="Beschreibe deinen Traum…" style="min-height:140px"></textarea>'+
+    '<div class="row"><select class="inp" id="tmM" style="width:auto"><option>😊 Schön</option><option>😐 Neutral</option><option>😨 Albtraum</option><option>🤔 Verwirrend</option><option>🌟 Lucid</option></select><input class="inp" id="tmS" type="number" placeholder="Schlafstunden" style="width:120px"><button class="btn primary" id="tmA">💾 Speichern</button></div>'+
+    '<div id="tmL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#tmL',win);
+    const all=()=>store.get('dreams',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.slice(0,30).map(x=>'<div class="card"><div class="row between"><b>'+esc(x.m)+' '+esc(x.t)+'</b><span class="dim sm">'+new Date(x.ts).toLocaleDateString('de-DE')+'</span><span class="x" data-id="'+x.id+'">✕</span></div>'+(x.b?'<div class="dim sm" style="margin-top:6px;white-space:pre-wrap">'+esc(x.b.slice(0,150))+'</div>':'')+'</div>').join('') : '<div class="empty">Noch keine Träume</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('dreams',all().filter(v=>v.id!==el2.dataset.id)); render(); });
+    }
+    $('#tmA',win).onclick=()=>{
+      const t=$('#tmT',win).value.trim(); if(!t) return;
+      const arr=all(); arr.unshift({id:uid(), t, b:$('#tmB',win).value, m:$('#tmM',win).value, s:parseInt($('#tmS',win).value)||0, ts:Date.now()}); store.set('dreams',arr);
+      $('#tmT',win).value=''; $('#tmB',win).value=''; $('#tmS',win).value=''; render();
+    };
+    render();
+  }
+};
+
+APPS['fokus'] = {
+  name:'Deep Focus', icon:'🎯',
+  render(){ return '<div class="col center">'+
+    '<div class="card"><b>🎯 Deep Focus</b><div class="dim sm">Eine Aufgabe — eine Zeit. Kein Multitasking.</div></div>'+
+    '<input class="inp" id="fk3T" placeholder="Was willst du schaffen?" style="text-align:center">'+
+    '<div class="big" id="fk3Z">25:00</div>'+
+    '<div class="row" style="justify-content:center"><input class="inp" id="fk3M" type="number" value="25" min="1" max="180" style="width:90px"><span class="dim">Minuten</span></div>'+
+    '<div class="row" style="justify-content:center"><button class="btn primary" id="fk3Go">▶ Start</button><button class="btn" id="fk3P">⏸ Pause</button></div>'+
+    '<div class="card"><b>🎵 Fokus-Sound</b><div class="row" style="margin-top:8px"><button class="btn sm" data-s="rain">🌧️ Regen</button><button class="btn sm" data-s="white">⬜ Weißes Rauschen</button><button class="btn sm" data-s="brown">🟤 Braunes Rauschen</button></div></div>'+
+  '</div>'; },
+  init(win){
+    let rem=1500, id=null;
+    const pad=n=>String(n).padStart(2,'0');
+    function draw(){ $('#fk3Z',win).textContent = pad(Math.floor(rem/60))+':'+pad(rem%60); }
+    $('#fk3Go',win).onclick=()=>{
+      if(id){ clearInterval(id); id=null; return; }
+      const m = parseInt($('#fk3M',win).value)||25;
+      if(rem===1500 || rem<=0) rem = m*60;
+      draw();
+      id = setInterval(()=>{ rem--; draw(); if(rem<=0){ clearInterval(id); id=null; toast('🎯 Fokus-Session beendet!'); } }, 1000);
+    };
+    $('#fk3P',win).onclick=()=>{ if(id){ clearInterval(id); id=null; toast('Pausiert'); } };
+    let noiseCtx=null, noiseSrc=null;
+    win.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{
+      if(noiseSrc){ noiseSrc.stop(); noiseSrc=null; return; }
+      noiseCtx = noiseCtx || new (window.AudioContext||window.webkitAudioContext)();
+      if(noiseCtx.state==='suspended') noiseCtx.resume();
+      const bufferSize = 2 * noiseCtx.sampleRate;
+      const buffer = noiseCtx.createBuffer(1, bufferSize, noiseCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      const type = b.dataset.s;
+      for(let i=0;i<bufferSize;i++){
+        const white = Math.random()*2-1;
+        if(type==='white') data[i]=white;
+        else if(type==='brown'){ data[i] = (data[i-1]||0) + 0.02*white; if(data[i]>1) data[i]=1; if(data[i]<-1) data[i]=-1; }
+        else data[i]=white*0.5;
+      }
+      noiseSrc = noiseCtx.createBufferSource();
+      noiseSrc.buffer = buffer; noiseSrc.loop = true;
+      const g = noiseCtx.createGain(); g.gain.value = 0.15;
+      noiseSrc.connect(g); g.connect(noiseCtx.destination); noiseSrc.start();
+      toast('▶ '+b.textContent.trim());
+    });
+    draw();
+  }
+};
+
+/* ============================================================
+   Z · ENTWICKLER
+   ============================================================ */
+
+APPS['diffchecker'] = {
+  name:'Diff Checker', icon:'🔀',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🔀 Text-Vergleich</b><div class="dim sm">Vergleicht zwei Texte Zeile für Zeile.</div></div>'+
+    '<div class="row"><textarea class="ta" id="dcA" style="flex:1;min-height:140px;font-family:monospace;font-size:12px" placeholder="Text A (alt)">Hallo Welt\nDas ist Zeile 2\nZeile 3 bleibt gleich\nDas ist weg</textarea><textarea class="ta" id="dcB" style="flex:1;min-height:140px;font-family:monospace;font-size:12px" placeholder="Text B (neu)">Hallo Welt\nDas ist Zeile 2 geändert\nZeile 3 bleibt gleich\nDas ist neu hier</textarea></div>'+
+    '<button class="btn primary" id="dcGo">▶ Vergleichen</button>'+
+    '<div class="card"><b>Ergebnis</b><div id="dcOut" style="margin-top:8px;font-family:monospace;font-size:12px;line-height:1.6"></div></div>'+
+  '</div>'; },
+  init(win){
+    $('#dcGo',win).onclick=()=>{
+      const A = $('#dcA',win).value.split('\n');
+      const B = $('#dcB',win).value.split('\n');
+      const maxLen = Math.max(A.length, B.length);
+      let html='', add=0, rem=0, same=0;
+      for(let i=0;i<maxLen;i++){
+        const a = A[i], b = B[i];
+        if(a===b){ html += '<div style="color:var(--dim)">  '+esc(a||'')+'</div>'; same++; }
+        else if(a===undefined){ html += '<div style="color:#4de88a">+ '+esc(b)+'</div>'; add++; }
+        else if(b===undefined){ html += '<div style="color:#ff6b88">- '+esc(a)+'</div>'; rem++; }
+        else { html += '<div style="color:#ff6b88">- '+esc(a)+'</div><div style="color:#4de88a">+ '+esc(b)+'</div>'; add++; rem++; }
+      }
+      $('#dcOut',win).innerHTML = '<div class="dim sm" style="margin-bottom:6px">+ '+add+' hinzugefügt · - '+rem+' entfernt · '+same+' unverändert</div>'+html;
+    };
+    $('#dcGo',win).click();
+  }
+};
+
+APPS['url-tool'] = {
+  name:'URL Encoder', icon:'🔗',
+  render(){ return '<div class="col">'+
+    '<div class="row"><button class="btn primary" id="utEnc">→ Encode</button><button class="btn" id="utDec">← Decode</button><button class="btn" id="utCopy">📋</button></div>'+
+    '<textarea class="ta" id="utI" style="min-height:100px;font-family:monospace;font-size:12px" placeholder="Text oder URL…"></textarea>'+
+    '<textarea class="ta" id="utO" style="min-height:100px;font-family:monospace;font-size:12px" readonly></textarea>'+
+    '<div class="card"><b>💡 Beispiel</b><div class="dim sm">Encode: <code style="color:var(--c1)">Hallo Welt → Hallo%20Welt</code><br>Decode: <code style="color:var(--c3)">Hallo%20Welt → Hallo Welt</code></div></div>'+
+  '</div>'; },
+  init(win){
+    $('#utEnc',win).onclick=()=>{ $('#utO',win).value = encodeURIComponent($('#utI',win).value); };
+    $('#utDec',win).onclick=()=>{ try{ $('#utO',win).value = decodeURIComponent($('#utI',win).value); }catch(e){ $('#utO',win).value='Ungültige URL'; } };
+    $('#utCopy',win).onclick=()=>{ navigator.clipboard?.writeText($('#utO',win).value); toast('Kopiert'); };
+  }
+};
+
+console.log('%c🚀 HalDo Apps v134 geladen (18 Apps)','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+
+})();
+</script>
 </body>
 </html>
