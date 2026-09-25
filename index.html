@@ -5252,5 +5252,512 @@ setTimeout(()=>{ const logo=document.querySelector('#logoBtn'); if(logo) logo.cl
 
 })();
 </script>
+ <!-- ============================================================
+     HalDo AI OS · v129 · Apps Pack 6 (W/X/Y/Z)
+     16 neue funktionierende Apps — KEIN logo.click() mehr!
+     ============================================================ -->
+<script>
+(function(){
+'use strict';
+
+if(!window.HalDo || !window.HalDo.apps){ return; }
+
+const APPS = window.HalDo.apps;
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = ()=>Math.random().toString(36).slice(2,10);
+const fmt = n => (Math.round(n*100)/100).toLocaleString('de-DE');
+const toast = window.HalDo.toast || ((m)=>console.log('[toast]',m));
+const store = {
+  key: k => 'haldo_'+k+'_v1',
+  get(k,d){ try{ const v=localStorage.getItem(this.key(k)); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(this.key(k), JSON.stringify(v)); }catch(e){} }
+};
+const rnd = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+
+/* ============================================================
+   W · WINDOWS
+   ============================================================ */
+
+APPS['splitview'] = {
+  name:'Split View', icon:'🪟',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🪟 Zwei Apps nebeneinander</b><div class="dim sm">Wähle links und rechts je eine App.</div></div>'+
+    '<div class="row"><select class="inp" id="svL" style="flex:1"></select><select class="inp" id="svR" style="flex:1"></select></div>'+
+    '<button class="btn primary" id="svGo">▶ Split öffnen</button>'+
+    '<div class="card"><b>📐 Layout-Vorlagen</b><div class="row" style="margin-top:8px;gap:6px">'+
+      '<button class="btn sm" data-l="50">50 / 50</button>'+
+      '<button class="btn sm" data-l="70">70 / 30</button>'+
+      '<button class="btn sm" data-l="30">30 / 70</button>'+
+      '<button class="btn sm" data-l="tall">Übereinander</button>'+
+    '</div></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#svL',win), R=$('#svR',win);
+    const ids = Object.keys(APPS).sort((a,b)=>(APPS[a].name||a).localeCompare(APPS[b].name||b));
+    const opts = ids.map(id=>'<option value="'+id+'">'+esc(APPS[id].name||id)+'</option>').join('');
+    L.innerHTML = opts; R.innerHTML = opts;
+    if(ids[1]) R.value = ids[1];
+    $('#svGo',win).onclick=()=>{
+      const a=L.value, b=R.value;
+      if(a===b){ toast('Zwei verschiedene Apps wählen'); return; }
+      const w1 = window.HalDo.open(a);
+      const w2 = window.HalDo.open(b);
+      const isMobile = innerWidth < 820;
+      setTimeout(()=>{
+        if(w1){ w1.style.left='8px'; w1.style.top='68px'; w1.style.width=(innerWidth/2-12)+'px'; w1.style.height='calc(100vh - 140px)'; }
+        if(w2){ w2.style.left=(innerWidth/2+4)+'px'; w2.style.top='68px'; w2.style.width=(innerWidth/2-12)+'px'; w2.style.height='calc(100vh - 140px)'; }
+        if(isMobile){
+          if(w1){ w1.style.left='8px'; w1.style.top='68px'; w1.style.width='calc(50vw - 12px)'; w1.style.height='calc(50vh - 80px)'; }
+          if(w2){ w2.style.left='calc(50vw + 4px)'; w2.style.top='68px'; w2.style.width='calc(50vw - 12px)'; w2.style.height='calc(50vh - 80px)'; }
+        }
+      }, 50);
+      toast('Split View aktiv');
+    };
+    win.querySelectorAll('[data-l]').forEach(b=>b.onclick=()=>{
+      const wins = [...document.querySelectorAll('.window')];
+      if(wins.length < 2){ toast('Erst 2 Fenster öffnen'); return; }
+      const p = parseInt(b.dataset.l);
+      if(b.dataset.l==='tall'){
+        wins[0].style.cssText += ';left:8px;top:68px;width:calc(100vw - 16px);height:calc(50vh - 80px)';
+        wins[1].style.cssText += ';left:8px;top:calc(50vh + 40px);width:calc(100vw - 16px);height:calc(50vh - 80px)';
+      } else {
+        wins[0].style.cssText += ';left:8px;top:68px;width:calc('+p+'% - 12px);height:calc(100vh - 140px)';
+        wins[1].style.cssText += ';left:calc('+p+'% + 4px);top:68px;width:calc('+(100-p)+'% - 12px);height:calc(100vh - 140px)';
+      }
+    });
+  }
+};
+
+APPS['missioncontrol'] = {
+  name:'Mission Control', icon:'🚀',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🚀 Alle offenen Fenster</b><div class="dim sm">Klick auf eine Karte, um sie in den Vordergrund zu holen.</div></div>'+
+    '<div id="mcG" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px"></div>'+
+    '<button class="btn danger" id="mcCloseAll">🗑 Alle schließen</button>'+
+  '</div>'; },
+  init(win){
+    const G=$('#mcG',win);
+    function render(){
+      const wins = [...document.querySelectorAll('.window')];
+      G.innerHTML = wins.length ? wins.map((w,i)=>{
+        const t = w.querySelector('.wtitle')?.textContent || 'Fenster';
+        const ic = w.querySelector('.wic')?.textContent || '▣';
+        return '<div class="card" data-i="'+i+'" style="cursor:pointer;text-align:center;padding:16px 8px;min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px"><div style="font-size:36px">'+esc(ic)+'</div><b>'+esc(t)+'</b></div>';
+      }).join('') : '<div class="empty">Keine Fenster offen</div>';
+      G.querySelectorAll('.card').forEach(c=>c.onclick=()=>{
+        const w = document.querySelectorAll('.window')[parseInt(c.dataset.i)];
+        if(w){ w.style.zIndex = 9999; w.focus(); }
+      });
+    }
+    $('#mcCloseAll',win).onclick=()=>{
+      document.querySelectorAll('.window').forEach(w=>w.remove());
+      toast('Alle geschlossen');
+      setTimeout(render,100);
+    };
+    render();
+    const tick = setInterval(render, 1500);
+    win.addEventListener('remove', ()=>clearInterval(tick));
+  }
+};
+
+APPS['widgets'] = {
+  name:'Widgets', icon:'🔲',
+  render(){ return '<div class="col">'+
+    '<div class="card center big2" id="wgUhr">--:--</div>'+
+    '<div class="card center"><div class="dim">Heute</div><b id="wgTag">–</b></div>'+
+    '<div class="card center"><div class="dim">Batterie</div><b id="wgBat">–</b></div>'+
+    '<div class="card center"><div class="dim">Netzwerk</div><b id="wgNet">–</b></div>'+
+    '<div class="card center"><div class="dim">Speicher</div><b id="wgMem">–</b></div>'+
+  '</div>'; },
+  init(win){
+    const pad = n=>String(n).padStart(2,'0');
+    function tick(){
+      const d = new Date();
+      $('#wgUhr',win).textContent = pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+      $('#wgTag',win).textContent = d.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
+      $('#wgNet',win).textContent = navigator.onLine?'✅ Online':'❌ Offline';
+      if(performance.memory) $('#wgMem',win).textContent = (performance.memory.usedJSHeapSize/1048576).toFixed(1)+' MB';
+      else $('#wgMem',win).textContent = 'n/a';
+      if(navigator.getBattery){
+        navigator.getBattery().then(b=>{ $('#wgBat',win).textContent = Math.round(b.level*100)+'%'+(b.charging?' ⚡':''); });
+      } else $('#wgBat',win).textContent = 'n/a';
+    }
+    tick();
+    const id = setInterval(tick, 1000);
+    win.addEventListener('remove', ()=>clearInterval(id));
+  }
+};
+
+APPS['windowmanager'] = {
+  name:'Fenster-Manager', icon:'🗔',
+  render(){ return '<div class="col">'+
+    '<div class="row"><button class="btn primary" id="wmCloseAll">🗑 Alle schließen</button><button class="btn" id="wmCascade">🎴 Kaskade</button><button class="btn" id="wmTile">⬜ Kacheln</button></div>'+
+    '<div id="wmL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#wmL',win);
+    function render(){
+      const wins = [...document.querySelectorAll('.window')];
+      L.innerHTML = wins.length ? wins.map((w,i)=>{
+        const t = w.querySelector('.wtitle')?.textContent || 'Fenster';
+        return '<div class="item"><b>'+esc(t)+'</b><button class="btn sm" data-f="'+i+'">▲</button><button class="btn sm danger" data-c="'+i+'">✕</button></div>';
+      }).join('') : '<div class="empty">Keine Fenster</div>';
+      L.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{ const w=document.querySelectorAll('.window')[parseInt(b.dataset.f)]; if(w) w.style.zIndex=9999; });
+      L.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{ const w=document.querySelectorAll('.window')[parseInt(b.dataset.c)]; if(w) w.remove(); setTimeout(render,100); });
+    }
+    $('#wmCloseAll',win).onclick=()=>{ document.querySelectorAll('.window').forEach(w=>w.remove()); setTimeout(render,100); };
+    $('#wmCascade',win).onclick=()=>{ document.querySelectorAll('.window').forEach((w,i)=>{ w.style.left=(30+i*24)+'px'; w.style.top=(80+i*24)+'px'; w.style.width='min(520px, calc(100vw - 60px))'; w.style.height='min(420px, calc(100vh - 140px))'; }); };
+    $('#wmTile',win).onclick=()=>{
+      const wins=[...document.querySelectorAll('.window')];
+      if(!wins.length) return;
+      const cols=Math.ceil(Math.sqrt(wins.length));
+      const rows=Math.ceil(wins.length/cols);
+      const w=innerWidth/cols-6, h=(innerHeight-120)/rows-6;
+      wins.forEach((el2,i)=>{ el2.style.left=(i%cols)*(w+6)+'px'; el2.style.top=68+Math.floor(i/cols)*(h+6)+'px'; el2.style.width=w+'px'; el2.style.height=h+'px'; });
+    };
+    render();
+    const id = setInterval(render, 1500);
+    win.addEventListener('remove', ()=>clearInterval(id));
+  }
+};
+
+/* ============================================================
+   X · EXPLORER
+   ============================================================ */
+
+APPS['dateisuche'] = {
+  name:'Dateisuche', icon:'🔎',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🔎 Alle HalDo-Daten durchsuchen</b></div>'+
+    '<input class="inp" id="dsQ" placeholder="Suchbegriff…">'+
+    '<div id="dsL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#dsL',win), Q=$('#dsQ',win);
+    function search(){
+      const q = Q.value.toLowerCase().trim();
+      if(!q){ L.innerHTML='<div class="empty">Suchbegriff eingeben</div>'; return; }
+      const hits=[];
+      for(let i=0;i<localStorage.length;i++){
+        const k=localStorage.key(i);
+        if(!k || !k.startsWith('haldo_')) continue;
+        const v = localStorage.getItem(k)||'';
+        if(k.toLowerCase().includes(q) || v.toLowerCase().includes(q)) hits.push({k, v});
+      }
+      L.innerHTML = hits.length ? hits.map(h=>'<div class="card"><b>'+esc(h.k.replace('haldo_','').replace('_v1',''))+'</b><div class="dim sm" style="margin-top:4px;max-height:60px;overflow:hidden;text-overflow:ellipsis">'+esc(h.v.slice(0,180))+'…</div></div>').join('') : '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput=search;
+  }
+};
+
+APPS['verlauf'] = {
+  name:'Verlauf', icon:'🕐',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🕐 Deine Aktivität</b><div class="dim sm">Aktuelle Sitzung · '+new Date().toLocaleString('de-DE')+'</div></div>'+
+    '<div id="vhL" class="list"></div>'+
+    '<button class="btn danger" id="vhClr">🗑 Verlauf leeren</button>'+
+  '</div>'; },
+  init(win){
+    const L=$('#vhL',win);
+    const all=()=>store.get('history',[]);
+    function push(t){ const a=all(); a.unshift({id:uid(), t, ts:Date.now()}); store.set('history',a.slice(0,100)); render(); }
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.slice(0,40).map(x=>'<div class="item"><span>'+esc(x.t)+'</span><span class="dim sm" style="margin-left:auto">'+new Date(x.ts).toLocaleTimeString('de-DE')+'</span></div>').join('') : '<div class="empty">Keine Einträge</div>';
+    }
+    $('#vhClr',win).onclick=()=>{ store.set('history',[]); render(); toast('Verlauf geleert'); };
+    render();
+    // Auto-log: App-Öffnungen
+    const origOpen = window.HalDo.open;
+    if(!window._haldoHistPatched){
+      window._haldoHistPatched = true;
+      window.HalDo.open = function(id){
+        try{ push('📱 '+(APPS[id]?.name||id)); }catch(e){}
+        return origOpen.apply(this, arguments);
+      };
+    }
+  }
+};
+
+APPS['downloads'] = {
+  name:'Downloads', icon:'⬇️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>⬇️ Schnellzugriff auf Download-Portale</b></div>'+
+    '<div class="list">'+
+      '<a href="https://www.google.com/search?q=download" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>🔍 Download-Suche</b><span class="dim sm" style="margin-left:auto">Google</span></div></a>'+
+      '<a href="https://archive.org" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>📚 Internet Archive</b><span class="dim sm" style="margin-left:auto">archive.org</span></div></a>'+
+      '<a href="https://commons.wikimedia.org" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>🖼 Wikimedia Commons</b><span class="dim sm" style="margin-left:auto">freie Bilder</span></div></a>'+
+      '<a href="https://www.pexels.com" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>📷 Pexels</b><span class="dim sm" style="margin-left:auto">freie Fotos</span></div></a>'+
+      '<a href="https://unsplash.com" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>🖼 Unsplash</b><span class="dim sm" style="margin-left:auto">freie Fotos</span></div></a>'+
+      '<a href="https://pixabay.com" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>🎨 Pixabay</b><span class="dim sm" style="margin-left:auto">Bilder/Videos</span></div></a>'+
+    '</div>'+
+  '</div>'; },
+  init(){}
+};
+
+APPS['papierkorb'] = {
+  name:'Papierkorb', icon:'🗑️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🗑 Gelöschte HalDo-Einträge</b><div class="dim sm">Sammelt gelöschte Aufgaben, Notizen etc.</div></div>'+
+    '<div id="pkL" class="list"></div>'+
+    '<button class="btn danger" id="pkClr">🗑 Papierkorb endgültig leeren</button>'+
+  '</div>'; },
+  init(win){
+    const L=$('#pkL',win);
+    const all=()=>store.get('trash',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.slice(0,50).map(x=>'<div class="item"><b>'+esc(x.t)+'</b><span class="dim sm" style="margin-left:auto">'+new Date(x.ts).toLocaleString('de-DE')+'</span></div>').join('') : '<div class="empty">Papierkorb leer</div>';
+    }
+    $('#pkClr',win).onclick=()=>{ store.set('trash',[]); render(); toast('Endgültig gelöscht'); };
+    render();
+  }
+};
+
+/* ============================================================
+   Y · YOUR LIFE
+   ============================================================ */
+
+APPS['bucketlist'] = {
+  name:'Bucket List', icon:'🎯',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="blN" placeholder="Was willst du erleben?" style="flex:1"><button class="btn primary" id="blA">+</button></div>'+
+    '<div id="blL" class="list"></div>'+
+    '<div class="card center">Erfüllt: <b id="blC">0 / 0</b></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#blL',win);
+    const all=()=>store.get('bucket',[]);
+    function render(){
+      const a=all();
+      const done = a.filter(x=>x.done).length;
+      L.innerHTML = a.length ? a.map(x=>'<div class="item"><input type="checkbox" data-id="'+x.id+'" '+(x.done?'checked':'')+'><span style="'+(x.done?'text-decoration:line-through;opacity:.5':'')+'">'+esc(x.t)+'</span><span class="x" data-id="'+x.id+'">✕</span></div>').join('') : '<div class="empty">Noch nichts auf der Liste</div>';
+      $('#blC',win).textContent = done+' / '+a.length;
+      L.querySelectorAll('input[type=checkbox]').forEach(c=>c.onchange=()=>{ const arr=all(); const x=arr.find(v=>v.id===c.dataset.id); if(x){ x.done=c.checked; store.set('bucket',arr); render(); } });
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('bucket',all().filter(x=>x.id!==el2.dataset.id)); render(); });
+    }
+    $('#blA',win).onclick=()=>{ const t=$('#blN',win).value.trim(); if(!t) return; const arr=all(); arr.push({id:uid(), t, done:false}); store.set('bucket',arr); $('#blN',win).value=''; render(); };
+    render();
+  }
+};
+
+APPS['visionboard'] = {
+  name:'Vision Board', icon:'✨',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>✨ Deine Ziele visualisieren</b><div class="dim sm">Wähle ein Symbol und ein Ziel.</div></div>'+
+    '<div class="row"><select class="inp" id="vbI" style="width:80px"><option>🎯</option><option>💰</option><option>🏠</option><option>✈️</option><option>💪</option><option>❤️</option><option>🎓</option><option>🚗</option><option>🎸</option><option>🌍</option></select><input class="inp" id="vbT" placeholder="Dein Ziel…" style="flex:1"><button class="btn primary" id="vbA">+</button></div>'+
+    '<div id="vbG" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px"></div>'+
+  '</div>'; },
+  init(win){
+    const G=$('#vbG',win);
+    const all=()=>store.get('vision',[]);
+    function render(){
+      const a=all();
+      G.innerHTML = a.length ? a.map(x=>'<div class="card" style="text-align:center;padding:16px 8px"><div style="font-size:38px">'+x.i+'</div><b style="font-size:12px">'+esc(x.t)+'</b><div class="x" data-id="'+x.id+'" style="cursor:pointer;margin-top:8px;font-size:11px;color:var(--dim)">✕ entfernen</div></div>').join('') : '<div class="empty" style="grid-column:1/-1">Noch keine Ziele — oben hinzufügen</div>';
+      G.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('vision',all().filter(v=>v.id!==el2.dataset.id)); render(); });
+    }
+    $('#vbA',win).onclick=()=>{ const t=$('#vbT',win).value.trim(); if(!t) return; const arr=all(); arr.push({id:uid(), i:$('#vbI',win).value, t}); store.set('vision',arr); $('#vbT',win).value=''; render(); };
+    render();
+  }
+};
+
+APPS['dankbarkeit'] = {
+  name:'Dankbarkeit', icon:'🙏',
+  render(){ return '<div class="col">'+
+    '<textarea class="ta" id="dkT" placeholder="3 Dinge, für die du heute dankbar bist…\n1. \n2. \n3. "></textarea>'+
+    '<button class="btn primary" id="dkA">💾 Eintrag speichern</button>'+
+    '<div id="dkL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#dkL',win);
+    const all=()=>store.get('gratitude',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.slice(0,20).map(x=>'<div class="card"><div class="dim sm">'+new Date(x.ts).toLocaleDateString('de-DE')+'</div><div style="margin-top:6px;white-space:pre-wrap">'+esc(x.t)+'</div><span class="x" data-id="'+x.id+'" style="cursor:pointer;float:right;color:var(--dim)">✕</span></div>').join('') : '<div class="empty">Noch keine Einträge</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('gratitude',all().filter(x=>x.id!==el2.dataset.id)); render(); });
+    }
+    $('#dkA',win).onclick=()=>{
+      const t=$('#dkT',win).value.trim(); if(!t) return;
+      const arr=all(); arr.unshift({id:uid(), t, ts:Date.now()}); store.set('gratitude',arr);
+      $('#dkT',win).value=''; render(); toast('🙏 Gespeichert');
+    };
+    render();
+  }
+};
+
+APPS['selbstreflexion'] = {
+  name:'Reflexion', icon:'🪞',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🪞 Abend-Reflexion</b></div>'+
+    '<div class="card">✨ <b>Was lief heute gut?</b><textarea class="ta" id="rf1" style="min-height:60px"></textarea></div>'+
+    '<div class="card">😔 <b>Was hätte ich besser machen können?</b><textarea class="ta" id="rf2" style="min-height:60px"></textarea></div>'+
+    '<div class="card">🎯 <b>Was nehme ich mir für morgen vor?</b><textarea class="ta" id="rf3" style="min-height:60px"></textarea></div>'+
+    '<button class="btn primary" id="rfA">💾 Speichern</button>'+
+    '<div id="rfL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#rfL',win);
+    const all=()=>store.get('reflections',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.slice(0,10).map(x=>'<div class="card"><div class="dim sm">'+new Date(x.ts).toLocaleDateString('de-DE')+'</div><div style="margin-top:6px"><b>+ </b>'+esc(x.g||'—')+'</div><div><b>− </b>'+esc(x.b||'—')+'</div><div><b>→ </b>'+esc(x.n||'—')+'</div></div>').join('') : '<div class="empty">Noch keine Reflexionen</div>';
+    }
+    $('#rfA',win).onclick=()=>{
+      const arr=all();
+      arr.unshift({id:uid(), g:$('#rf1',win).value.trim(), b:$('#rf2',win).value.trim(), n:$('#rf3',win).value.trim(), ts:Date.now()});
+      store.set('reflections',arr);
+      $('#rf1',win).value=''; $('#rf2',win).value=''; $('#rf3',win).value='';
+      render(); toast('Reflexion gespeichert');
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   Z · ENTWICKLER
+   ============================================================ */
+
+APPS['codeeditor'] = {
+  name:'Code Editor', icon:'💻',
+  render(){ return '<div class="col">'+
+    '<div class="row"><select class="inp" id="ceL" style="width:auto"><option>HTML</option><option>CSS</option><option>JavaScript</option></select><button class="btn primary" id="ceR">▶ Ausführen</button><button class="btn" id="ceS">💾 Speichern</button><button class="btn" id="ceD">⬇️ Download</button></div>'+
+    '<textarea class="ta" id="ceC" style="min-height:220px;font-family:ui-monospace,Menlo,monospace;font-size:13px" spellcheck="false"></textarea>'+
+    '<div class="card"><b>Ausgabe</b><iframe id="ceO" style="width:100%;height:220px;border:1.5px solid var(--line);border-radius:10px;background:#fff;margin-top:8px"></iframe></div>'+
+  '</div>'; },
+  init(win){
+    const C=$('#ceC',win), O=$('#ceO',win);
+    const templates = {
+      HTML:'<!doctype html>\n<html>\n<head><meta charset="utf-8"><title>Test</title></head>\n<body>\n  <h1>Hallo HalDo!</h1>\n  <p>Bearbeite den Code und drücke ▶.</p>\n</body>\n</html>',
+      CSS:'body { font-family: sans-serif; background: #0a0e24; color: #00e5ff; text-align: center; padding: 40px; }\nh1 { font-size: 48px; }',
+      JavaScript:'console.log("Hallo HalDo!");\nalert("Hallo Welt!");'
+    };
+    C.value = store.get('code', templates.HTML);
+    $('#ceL',win).onchange=()=>{ C.value = templates[$('#ceL',win).value] || ''; };
+    $('#ceR',win).onclick=()=>{
+      const lang=$('#ceL',win).value;
+      const code=C.value;
+      let html;
+      if(lang==='HTML') html = code;
+      else if(lang==='CSS') html = '<!doctype html><html><head><style>'+code+'</style></head><body><h1>Überschrift</h1><p>Absatz</p><button>Button</button></body></html>';
+      else html = '<!doctype html><html><body style="background:#0a0e24;color:#00e5ff;font-family:monospace;padding:20px"><div id="out"></div><script>const origLog=console.log;console.log=(...a)=>{document.getElementById("out").innerHTML+=a.map(x=>JSON.stringify(x)).join(" ")+"<br>";origLog(...a);};try{'+code+'}catch(e){document.getElementById("out").innerHTML+="❌ "+e.message;}<\/script></body></html>';
+      O.srcdoc = html;
+    };
+    $('#ceS',win).onclick=()=>{ store.set('code', C.value); toast('Gespeichert'); };
+    $('#ceD',win).onclick=()=>{ const ext = $('#ceL',win).value.toLowerCase().replace('javascript','js'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([C.value],{type:'text/plain'})); a.download='code.'+ext; a.click(); };
+    $('#ceR',win).click();
+  }
+};
+
+APPS['regex'] = {
+  name:'Regex Tester', icon:'🔤',
+  render(){ return '<div class="col">'+
+    '<label class="lbl">Regex</label><input class="inp" id="rtR" placeholder="z.B. \\d+" value="\\d+">'+
+    '<label class="lbl">Flags</label><div class="row"><label class="dim sm"><input type="checkbox" id="rtG" checked> g</label><label class="dim sm"><input type="checkbox" id="rtI"> i</label><label class="dim sm"><input type="checkbox" id="rtM"> m</label></div>'+
+    '<label class="lbl">Test-Text</label><textarea class="ta" id="rtT" placeholder="Text zum Testen…" style="min-height:120px">Hallo 123 Welt 456, dies ist 7 ein Test.</textarea>'+
+    '<div class="card"><b>Treffer</b><div id="rtO" style="margin-top:8px;font-family:monospace;font-size:13px;line-height:1.6"></div></div>'+
+  '</div>'; },
+  init(win){
+    const R=$('#rtR',win), T=$('#rtT',win), O=$('#rtO',win);
+    function test(){
+      const pattern = R.value; if(!pattern) return;
+      let flags='';
+      if($('#rtG',win).checked) flags+='g';
+      if($('#rtI',win).checked) flags+='i';
+      if($('#rtM',win).checked) flags+='m';
+      try{
+        const re = new RegExp(pattern, flags);
+        const text = T.value;
+        const matches = [...text.matchAll(re)];
+        if(!matches.length){ O.innerHTML='<span class="dim">Keine Treffer</span>'; return; }
+        let html = '';
+        let last = 0;
+        matches.forEach(m=>{
+          html += esc(text.slice(last, m.index));
+          html += '<span style="background:rgba(0,229,255,.35);padding:2px 4px;border-radius:4px;color:#000">'+esc(m[0]||'')+'</span>';
+          last = m.index + m[0].length;
+        });
+        html += esc(text.slice(last));
+        O.innerHTML = html + '<div class="dim sm" style="margin-top:8px">'+matches.length+' Treffer</div>';
+      }catch(e){ O.innerHTML = '<span style="color:#ff6b88">Fehler: '+esc(e.message)+'</span>'; }
+    }
+    [R,T].forEach(el2=>el2.oninput=test);
+    ['rtG','rtI','rtM'].forEach(id=>$('#'+id,win).onchange=test);
+    test();
+  }
+};
+
+APPS['lorem'] = {
+  name:'Lorem Ipsum', icon:'📄',
+  render(){ return '<div class="col">'+
+    '<div class="row"><select class="inp" id="liT" style="width:auto"><option value="p">Absätze</option><option value="s">Sätze</option><option value="w">Wörter</option></select>'+
+      '<input class="inp" id="liN" type="number" value="3" min="1" max="50" style="width:90px">'+
+      '<button class="btn primary" id="liGo">Generieren</button>'+
+      '<button class="btn" id="liCopy">📋</button></div>'+
+    '<textarea class="ta" id="liO" style="min-height:220px"></textarea>'+
+  '</div>'; },
+  init(win){
+    const W='lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua enim ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo consequat duis aute irure in reprehenderit voluptate velit esse cillum eu fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt culpa qui officia deserunt mollit anim id est laborum'.split(' ');
+    const cap = s=>s.charAt(0).toUpperCase()+s.slice(1);
+    const rndW=()=>W[Math.floor(Math.random()*W.length)];
+    const rndS=()=>{ const n=rnd(8,18); let s=[]; for(let i=0;i<n;i++) s.push(rndW()); return cap(s.join(' '))+'.'; };
+    $('#liGo',win).onclick=()=>{
+      const t=$('#liT',win).value, n=parseInt($('#liN',win).value)||3;
+      let out='';
+      if(t==='w'){ let s=[]; for(let i=0;i<n;i++) s.push(rndW()); out=s.join(' '); }
+      else if(t==='s'){ let s=[]; for(let i=0;i<n;i++) s.push(rndS()); out=s.join(' '); }
+      else { let s=[]; for(let i=0;i<n;i++){ let p=[]; const k=rnd(3,6); for(let j=0;j<k;j++) p.push(rndS()); s.push(p.join(' ')); } out=s.join('\n\n'); }
+      $('#liO',win).value = cap(out);
+    };
+    $('#liCopy',win).onclick=()=>{ navigator.clipboard?.writeText($('#liO',win).value); toast('Kopiert'); };
+    $('#liGo',win).click();
+  }
+};
+
+APPS['farbkontrast'] = {
+  name:'Farbkontrast', icon:'🌓',
+  render(){ return '<div class="col">'+
+    '<div class="row"><label class="lbl">Text <input type="color" id="fc1" value="#e9edff" style="width:60px;height:36px;border-radius:10px;border:1.5px solid var(--line);background:transparent"></label>'+
+      '<label class="lbl">Hintergrund <input type="color" id="fc2" value="#0a0e24" style="width:60px;height:36px;border-radius:10px;border:1.5px solid var(--line);background:transparent"></label></div>'+
+    '<div class="card" id="fcP" style="padding:24px;text-align:center;border-radius:14px"><b style="font-size:22px">Vorschau-Text</b><div class="dim sm">So sieht es aus.</div></div>'+
+    '<div class="card center big2" id="fcR">–</div>'+
+    '<div class="list">'+
+      '<div class="item"><b>AA normal</b><span id="fcAA" style="margin-left:auto">–</span></div>'+
+      '<div class="item"><b>AA groß</b><span id="fcAAL" style="margin-left:auto">–</span></div>'+
+      '<div class="item"><b>AAA normal</b><span id="fcAAA" style="margin-left:auto">–</span></div>'+
+      '<div class="item"><b>AAA groß</b><span id="fcAAAL" style="margin-left:auto">–</span></div>'+
+    '</div>'+
+  '</div>'; },
+  init(win){
+    const lum = (hex)=>{
+      const c = hex.slice(1).match(/../g).map(h=>parseInt(h,16)/255).map(v=>v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4));
+      return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2];
+    };
+    const ratio = (c1,c2)=>{ const l1=lum(c1), l2=lum(c2); const [hi,lo]=l1>l2?[l1,l2]:[l2,l1]; return (hi+0.05)/(lo+0.05); };
+    function upd(){
+      const c1=$('#fc1',win).value, c2=$('#fc2',win).value;
+      $('#fcP',win).style.background=c2; $('#fcP',win).style.color=c1;
+      const r = ratio(c1,c2);
+      $('#fcR',win).innerHTML = r.toFixed(2)+' : 1';
+      const pass = (n)=>{ const ok=n<=r; return ok?'<span style="color:#4de88a">✅ bestanden</span>':'<span style="color:#ff6b88">❌ durchgefallen</span>'; };
+      $('#fcAA',win).innerHTML = pass(4.5);
+      $('#fcAAL',win).innerHTML = pass(3);
+      $('#fcAAA',win).innerHTML = pass(7);
+      $('#fcAAAL',win).innerHTML = pass(4.5);
+    }
+    ['fc1','fc2'].forEach(id=>$('#'+id,win).oninput=upd);
+    upd();
+  }
+};
+
+/* ============================================================
+   FERTIG
+   ============================================================ */
+
+console.log('%c🚀 HalDo Apps v129 geladen (16 Apps)','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+
+})();
+</script>
 </body>
-</html>
+</html>         
