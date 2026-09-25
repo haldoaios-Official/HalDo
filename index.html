@@ -27610,5 +27610,635 @@ Flesch: ${a.flesch.toFixed(1)}`;
   console.log('%c🆘 Emergency Info geladen','color:#ff3c3c;font-weight:bold;');
 })();
 </script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v94 – WORLD CLOCK (Weltzeit + Zeitzonen) ═════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#worldclockWindow{position:fixed;inset:0;background:radial-gradient(circle at 50% 20%,rgba(0,150,255,.10),transparent 55%),linear-gradient(180deg,rgba(0,10,25,.99),rgba(0,5,12,.99));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:8070;display:none;flex-direction:column;color:#e6f4ff;font-family:inherit;}
+#worldclockWindow.show{display:flex;}
+.wc-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(0,150,255,.25);background:rgba(0,30,60,.55);flex-shrink:0;position:relative;z-index:10000;gap:8px;}
+.wc-title h2{font-size:18px;margin:0;color:#fff;font-weight:700;}
+.wc-title small{display:block;font-size:10px;color:#7ce0ff;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.wc-btn{padding:10px 14px;border-radius:10px;background:rgba(0,150,255,.12);border:1px solid rgba(0,150,255,.4);color:#e6f4ff;font-size:13px;font-weight:600;cursor:pointer;position:relative;z-index:99999;pointer-events:auto;-webkit-tap-highlight-color:transparent;}
+.wc-btn.primary{background:linear-gradient(135deg,#0096ff,#00e5ff);color:#001018;border-color:#fff;}
+.wc-btn.icon-only{padding:10px;font-size:16px;min-width:42px;}
+.wc-body{flex:1;overflow-y:auto;padding:16px;position:relative;z-index:2;}
+.wc-content{max-width:560px;margin:0 auto;}
+.wc-hero{text-align:center;padding:24px 20px;background:linear-gradient(160deg,rgba(0,60,120,.4),rgba(0,15,40,.85));border:1.5px solid rgba(0,150,255,.3);border-radius:20px;margin-bottom:16px;box-shadow:inset 0 0 60px rgba(0,150,255,.08);}
+.wc-hero-time{font-size:60px;font-weight:200;font-family:'Courier New',monospace;color:#fff;text-shadow:0 0 30px rgba(0,150,255,.6);letter-spacing:-2px;line-height:1;}
+.wc-hero-date{font-size:13px;color:#7ce0ff;margin-top:8px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;}
+.wc-clock-card{padding:16px;background:linear-gradient(160deg,rgba(0,60,120,.4),rgba(0,15,40,.85));border:1.5px solid rgba(0,150,255,.2);border-radius:14px;margin-bottom:10px;display:flex;align-items:center;gap:14px;position:relative;}
+.wc-flag{font-size:32px;flex-shrink:0;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);border-radius:12px;}
+.wc-info{flex:1;min-width:0;}
+.wc-city{font-size:15px;font-weight:800;color:#fff;margin-bottom:2px;}
+.wc-zone{font-size:11px;color:#7ce0ff;letter-spacing:.5px;}
+.wc-time{font-size:22px;font-weight:800;color:#00e5ff;font-family:'Courier New',monospace;text-shadow:0 0 12px rgba(0,229,255,.5);text-align:right;flex-shrink:0;}
+.wc-time .wc-day{display:block;font-size:10px;color:#88ccff;font-family:inherit;font-weight:700;letter-spacing:1px;margin-top:2px;}
+.wc-del{position:absolute;top:8px;right:8px;width:24px;height:24px;border-radius:50%;background:transparent;border:none;color:#ff8080;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.wc-del:hover{background:rgba(255,80,80,.2);}
+.wc-add-row{display:flex;gap:8px;padding:14px;background:rgba(0,40,80,.4);border-radius:14px;margin-top:16px;border:1.5px solid rgba(0,150,255,.2);}
+.wc-add-input{flex:1;padding:12px 14px;background:rgba(0,0,0,.4);border:1.5px solid rgba(0,150,255,.3);border-radius:10px;color:#fff;font-size:14px;font-family:inherit;outline:none;}
+.wc-add-input:focus{border-color:#00e5ff;box-shadow:0 0 18px rgba(0,229,255,.3);}
+.wc-toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;background:linear-gradient(135deg,#0096ff,#00e5ff);color:#001018;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:all .3s;z-index:99999;}
+.wc-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+<div id="worldclockWindow">
+  <div class="wc-header">
+    <div class="wc-title"><span style="font-size:24px">🌍</span><div><h2>World Clock</h2><small>Weltzeiten</small></div></div>
+    <button class="wc-btn icon-only" onclick="HalDoWorldClockApp.close()">✕</button>
+  </div>
+  <div class="wc-body"><div class="wc-content" id="wcContent"></div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__wcLoaded) return; window.__wcLoaded = true;
+  const KEY='haldo_worldclock_v1';
+  const CITIES={
+    'berlin':{n:'Berlin',f:'🇩🇪',z:'Europe/Berlin'},
+    'istanbul':{n:'Istanbul',f:'🇹🇷',z:'Europe/Istanbul'},
+    'london':{n:'London',f:'🇬🇧',z:'Europe/London'},
+    'paris':{n:'Paris',f:'🇫🇷',z:'Europe/Paris'},
+    'moscow':{n:'Moskau',f:'🇷🇺',z:'Europe/Moscow'},
+    'dubai':{n:'Dubai',f:'🇦🇪',z:'Asia/Dubai'},
+    'delhi':{n:'Delhi',f:'🇮🇳',z:'Asia/Kolkata'},
+    'tokyo':{n:'Tokio',f:'🇯🇵',z:'Asia/Tokyo'},
+    'beijing':{n:'Peking',f:'🇨🇳',z:'Asia/Shanghai'},
+    'singapore':{n:'Singapur',f:'🇸🇬',z:'Asia/Singapore'},
+    'sydney':{n:'Sydney',f:'🇦🇺',z:'Australia/Sydney'},
+    'newyork':{n:'New York',f:'🇺🇸',z:'America/New_York'},
+    'losangeles':{n:'Los Angeles',f:'🇺🇸',z:'America/Los_Angeles'},
+    'chicago':{n:'Chicago',f:'🇺🇸',z:'America/Chicago'},
+    'toronto':{n:'Toronto',f:'🇨🇦',z:'America/Toronto'},
+    'mexico':{n:'Mexiko-Stadt',f:'🇲🇽',z:'America/Mexico_City'},
+    'saopaulo':{n:'São Paulo',f:'🇧🇷',z:'America/Sao_Paulo'},
+    'cairo':{n:'Kairo',f:'🇪🇬',z:'Africa/Cairo'},
+    'johannesburg':{n:'Johannesburg',f:'🇿🇦',z:'Africa/Johannesburg'},
+    'auckland':{n:'Auckland',f:'🇳🇿',z:'Pacific/Auckland'}
+  };
+  let cities=['berlin','istanbul','london','newyork','tokyo','dubai'];
+  let tick=null;
+  function load(){ try{ const d=JSON.parse(localStorage.getItem(KEY))||[]; if(Array.isArray(d)&&d.length) cities=d; }catch(e){} }
+  function save(){ try{ localStorage.setItem(KEY,JSON.stringify(cities)); }catch(e){} }
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function fmtTime(date){ return date.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+  function fmtTimeShort(date){ return date.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}); }
+  function getTimeInZone(tz){ try{ return new Date(new Date().toLocaleString('en-US',{timeZone:tz})); }catch(e){ return new Date(); } }
+  function dayDiff(cityDate){
+    const local=new Date();
+    const localDay=new Date(local.getFullYear(),local.getMonth(),local.getDate());
+    const cityDay=new Date(cityDate.getFullYear(),cityDate.getMonth(),cityDate.getDate());
+    const diff=Math.round((cityDay-localDay)/(24*3600*1000));
+    if(diff===0) return 'Heute';
+    if(diff===1) return 'Morgen';
+    if(diff===-1) return 'Gestern';
+    return diff>0?'+'+diff+' Tage':diff+' Tage';
+  }
+  function render(){
+    const el=document.getElementById('wcContent');
+    const now=new Date();
+    let html='<div class="wc-hero"><div class="wc-hero-time" id="wcHeroTime">'+fmtTime(now)+'</div><div class="wc-hero-date">'+now.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'</div></div>';
+    html+='<div style="font-size:11px;color:#7ce0ff;text-transform:uppercase;letter-spacing:1.5px;font-weight:800;margin-bottom:10px;padding-left:4px">🌐 Deine Städte</div>';
+    cities.forEach((k,i)=>{
+      const c=CITIES[k]; if(!c) return;
+      const t=getTimeInZone(c.z);
+      html+='<div class="wc-clock-card"><div class="wc-flag">'+c.f+'</div><div class="wc-info"><div class="wc-city">'+esc(c.n)+'</div><div class="wc-zone">'+esc(c.z)+'</div></div><div class="wc-time"><span id="wcCityTime'+i+'">'+fmtTimeShort(t)+'</span><span class="wc-day">'+dayDiff(t)+'</span></div><button class="wc-del" onclick="HalDoWorldClockApp.remove('+i+')">✕</button></div>';
+    });
+    const available=Object.entries(CITIES).filter(([k])=>!cities.includes(k));
+    html+='<div style="font-size:11px;color:#7ce0ff;text-transform:uppercase;letter-spacing:1.5px;font-weight:800;margin:20px 0 10px;padding-left:4px">➕ Stadt hinzufügen</div>';
+    html+='<div class="wc-add-row"><select class="wc-add-input" id="wcAddSelect"><option value="">Stadt wählen...</option>'+available.map(([k,c])=>'<option value="'+k+'">'+c.f+' '+esc(c.n)+'</option>').join('')+'</select><button class="wc-btn primary" onclick="HalDoWorldClockApp.add()">✚</button></div>';
+    el.innerHTML=html;
+    if(tick) clearInterval(tick);
+    tick=setInterval(()=>{
+      const hero=document.getElementById('wcHeroTime'); if(hero) hero.textContent=fmtTime(new Date());
+      cities.forEach((k,i)=>{
+        const c=CITIES[k]; if(!c) return;
+        const el2=document.getElementById('wcCityTime'+i); if(el2) el2.textContent=fmtTimeShort(getTimeInZone(c.z));
+      });
+    },1000);
+  }
+  function add(){ const sel=document.getElementById('wcAddSelect'); const k=sel?.value; if(!k){ toast('⚠️ Stadt wählen'); return; } cities.push(k); save(); render(); toast('🌍 '+CITIES[k].n+' hinzugefügt'); }
+  function remove(i){ if(cities.length<=1){ toast('⚠️ Mindestens 1 Stadt'); return; } const k=cities[i]; cities.splice(i,1); save(); render(); toast('🗑️ Entfernt'); }
+  function toast(msg){ let el=document.getElementById('wcToast'); if(!el){ el=document.createElement('div'); el.id='wcToast'; el.className='wc-toast'; document.body.appendChild(el); } el.textContent=msg; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2000); }
+  function open(){ load(); render(); document.getElementById('worldclockWindow').classList.add('show'); }
+  function close(){ if(tick) clearInterval(tick); tick=null; document.getElementById('worldclockWindow').classList.remove('show'); }
+  window.HalDoWorldClock={open,close,timeIn(tz){ return getTimeInZone(tz); }};
+  window.HalDoWorldClockApp={open,close,add,remove};
+  console.log('%c🌍 World Clock geladen','color:#0096ff;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v95 – VOICE MEMOS (Audio-Recorder) ═══════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#voiceWindow{position:fixed;inset:0;background:radial-gradient(circle at 50% 20%,rgba(255,80,120,.10),transparent 55%),linear-gradient(180deg,rgba(20,5,10,.99),rgba(10,2,5,.99));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:8060;display:none;flex-direction:column;color:#ffe6ee;font-family:inherit;}
+#voiceWindow.show{display:flex;}
+.vm-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(255,80,120,.25);background:rgba(50,10,25,.55);flex-shrink:0;position:relative;z-index:10000;gap:8px;}
+.vm-title h2{font-size:18px;margin:0;color:#fff;font-weight:700;}
+.vm-title small{display:block;font-size:10px;color:#ff9db8;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.vm-btn{padding:10px 14px;border-radius:10px;background:rgba(255,80,120,.12);border:1px solid rgba(255,80,120,.4);color:#ffe6ee;font-size:13px;font-weight:600;cursor:pointer;position:relative;z-index:99999;pointer-events:auto;-webkit-tap-highlight-color:transparent;}
+.vm-btn.primary{background:linear-gradient(135deg,#ff5078,#ff88a8);color:#fff;border-color:#fff;}
+.vm-btn.danger{background:rgba(255,60,60,.2);border-color:rgba(255,60,60,.5);color:#ff8080;}
+.vm-btn.icon-only{padding:10px;font-size:16px;min-width:42px;}
+.vm-body{flex:1;overflow-y:auto;padding:16px;position:relative;z-index:2;}
+.vm-content{max-width:560px;margin:0 auto;}
+.vm-recorder{text-align:center;padding:30px 20px;background:linear-gradient(160deg,rgba(120,30,50,.5),rgba(30,8,15,.85));border:2px solid #ff5078;border-radius:20px;margin-bottom:16px;box-shadow:0 20px 60px rgba(0,0,0,.5),0 0 40px rgba(255,80,120,.2);}
+.vm-mic{width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,#ff5078,#ff88a8);border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:44px;cursor:pointer;margin:0 auto 16px;box-shadow:0 8px 30px rgba(255,80,120,.5);transition:all .2s;}
+.vm-mic:hover{transform:scale(1.05);}
+.vm-mic.recording{animation:vmPulse 1s ease-in-out infinite;}
+@keyframes vmPulse{0%,100%{box-shadow:0 0 30px rgba(255,60,60,.6);}50%{box-shadow:0 0 70px rgba(255,60,60,1);transform:scale(1.08);}}
+.vm-timer{font-size:42px;font-weight:200;font-family:'Courier New',monospace;color:#fff;text-shadow:0 0 24px rgba(255,80,120,.6);letter-spacing:-1px;line-height:1;margin-bottom:8px;}
+.vm-status{font-size:12px;color:#ff9db8;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin-bottom:14px;}
+.vm-waveform{height:40px;display:flex;align-items:center;justify-content:center;gap:2px;margin-bottom:14px;padding:0 10px;}
+.vm-waveform span{width:3px;background:linear-gradient(180deg,#ff5078,#ff88a8);border-radius:2px;transition:height .1s;}
+.vm-memo{padding:14px;background:linear-gradient(160deg,rgba(80,20,30,.4),rgba(20,5,10,.85));border:1.5px solid rgba(255,80,120,.2);border-radius:12px;margin-bottom:8px;display:flex;gap:12px;align-items:center;}
+.vm-memo-icon{width:44px;height:44px;border-radius:50%;background:rgba(255,80,120,.15);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;cursor:pointer;}
+.vm-memo-info{flex:1;min-width:0;}
+.vm-memo-name{font-size:14px;font-weight:800;color:#fff;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.vm-memo-meta{font-size:11px;color:#ff9db8;}
+.vm-memo-del{width:32px;height:32px;border-radius:50%;background:transparent;border:none;color:#ff8080;font-size:16px;cursor:pointer;flex-shrink:0;}
+.vm-empty{text-align:center;padding:40px 20px;color:#a08080;font-size:13px;}
+.vm-toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;background:linear-gradient(135deg,#ff5078,#ff88a8);color:#fff;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:all .3s;z-index:99999;}
+.vm-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+<div id="voiceWindow">
+  <div class="vm-header">
+    <div class="vm-title"><span style="font-size:24px">🎙️</span><div><h2>Voice Memos</h2><small>Aufnahmen</small></div></div>
+    <button class="vm-btn icon-only" onclick="HalDoVoiceApp.close()">✕</button>
+  </div>
+  <div class="vm-body"><div class="vm-content" id="vmContent"></div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__vmLoaded) return; window.__vmLoaded = true;
+  const KEY='haldo_voice_memos_v1';
+  let memos=[]; let recording=false; let mediaRecorder=null; let chunks=[]; let startTime=0; let timer=null; let stream=null;
+  let recordingName='';
+  function load(){ try{ const d=JSON.parse(localStorage.getItem(KEY))||[]; memos=d.filter(m=>m.url); }catch(e){ memos=[]; } if(!Array.isArray(memos)) memos=[]; }
+  function save(){ try{ localStorage.setItem(KEY,JSON.stringify(memos)); }catch(e){} }
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function fmt(sec){ const m=Math.floor(sec/60); const s=Math.floor(sec%60); return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); }
+  function fmtSize(b){ if(b<1024) return b+' B'; if(b<1048576) return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(1)+' MB'; }
+  async function toggleRec(){
+    if(recording){
+      // Stop
+      try{ mediaRecorder.stop(); }catch(e){}
+      recording=false; clearInterval(timer); timer=null;
+      if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+      return;
+    }
+    try{
+      stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      mediaRecorder=new MediaRecorder(stream);
+      chunks=[];
+      mediaRecorder.ondataavailable=e=>{ if(e.data.size>0) chunks.push(e.data); };
+      mediaRecorder.onstop=()=>{
+        const blob=new Blob(chunks,{type:'audio/webm'});
+        const url=URL.createObjectURL(blob);
+        recordingName=prompt('Name für die Aufnahme:','Memo '+(memos.length+1))||'Memo '+(memos.length+1);
+        memos.unshift({id:'vm_'+Date.now(),name:recordingName,url,size:blob.size,duration:(Date.now()-startTime)/1000,created:Date.now()});
+        save(); render();
+      };
+      mediaRecorder.start();
+      recording=true; startTime=Date.now();
+      timer=setInterval(()=>{
+        const el=document.getElementById('vmTimer'); if(el) el.textContent=fmt((Date.now()-startTime)/1000);
+        // Waveform-Animation
+        document.querySelectorAll('.vm-waveform span').forEach((s,i)=>{ s.style.height=(10+Math.random()*30)+'px'; });
+      },150);
+      render();
+      if(navigator.vibrate) navigator.vibrate(20);
+    }catch(e){
+      toast('❌ Mikrofon-Zugriff verweigert');
+      console.warn(e);
+    }
+  }
+  function playM(id){ const m=memos.find(x=>x.id===id); if(!m) return; const a=new Audio(m.url); a.play(); }
+  function remove(id){ const m=memos.find(x=>x.id===id); if(!m) return; if(!confirm('Aufnahme "'+m.name+'" löschen?')) return; memos=memos.filter(x=>x.id!==id); save(); render(); toast('🗑️ Gelöscht'); }
+  function render(){
+    const el=document.getElementById('vmContent');
+    let waveHtml=''; for(let i=0;i<32;i++) waveHtml+='<span style="height:'+(5+Math.random()*25)+'px"></span>';
+    const t=recording?((Date.now()-startTime)/1000):0;
+    const listHtml=memos.length?memos.map(m=>'<div class="vm-memo"><div class="vm-memo-icon" onclick="HalDoVoiceApp.play(\''+m.id+'\')">▶</div><div class="vm-memo-info"><div class="vm-memo-name">'+esc(m.name)+'</div><div class="vm-memo-meta">'+fmt(m.duration)+' · '+fmtSize(m.size)+' · '+new Date(m.created).toLocaleString('de-DE',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})+'</div></div><button class="vm-memo-del" onclick="HalDoVoiceApp.remove(\''+m.id+'\')">✕</button></div>').join(''):'<div class="vm-empty">🎙️ Noch keine Aufnahmen<br>Tippe das Mikrofon zum Starten</div>';
+    el.innerHTML='<div class="vm-recorder"><div class="vm-mic '+(recording?'recording':'')+'" onclick="HalDoVoiceApp.toggle()">'+(recording?'⏹':'🎙️')+'</div><div class="vm-timer" id="vmTimer">'+fmt(t)+'</div><div class="vm-status">'+(recording?'🔴 Aufnahme läuft':'Bereit zum Aufnehmen')+'</div><div class="vm-waveform">'+waveHtml+'</div></div>'+
+      '<div style="font-size:11px;color:#ff9db8;text-transform:uppercase;letter-spacing:1.5px;font-weight:800;margin-bottom:10px;padding-left:4px">📁 Aufnahmen ('+memos.length+')</div>'+listHtml;
+  }
+  function toast(msg){ let el=document.getElementById('vmToast'); if(!el){ el=document.createElement('div'); el.id='vmToast'; el.className='vm-toast'; document.body.appendChild(el); } el.textContent=msg; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2000); }
+  function open(){ load(); render(); document.getElementById('voiceWindow').classList.add('show'); }
+  function close(){ if(recording&&mediaRecorder){ try{mediaRecorder.stop();}catch(e){} } if(stream){ stream.getTracks().forEach(t=>t.stop()); } if(timer)clearInterval(timer); recording=false; document.getElementById('voiceWindow').classList.remove('show'); }
+  window.HalDoVoice={open,close};
+  window.HalDoVoiceApp={open,close,toggle:toggleRec,play:playM,remove};
+  console.log('%c🎙️ Voice Memos geladen','color:#ff5078;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v96 – CAMERA PRO (Foto + Filter + Grid) ══════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#cameraWindow{position:fixed;inset:0;background:#000;z-index:8050;display:none;flex-direction:column;color:#fff;font-family:inherit;}
+#cameraWindow.show{display:flex;}
+.cp-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(180deg,rgba(0,0,0,.9),rgba(0,0,0,.6));position:absolute;top:0;left:0;right:0;z-index:10000;gap:8px;}
+.cp-title h2{font-size:16px;margin:0;color:#fff;font-weight:700;}
+.cp-title small{display:block;font-size:10px;color:#7ce0ff;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.cp-btn{padding:10px 14px;border-radius:10px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:13px;font-weight:600;cursor:pointer;position:relative;z-index:99999;pointer-events:auto;-webkit-tap-highlight-color:transparent;backdrop-filter:blur(10px);}
+.cp-btn.icon-only{padding:10px;font-size:16px;min-width:42px;}
+.cp-view{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#000;}
+.cp-video{width:100%;height:100%;object-fit:cover;display:block;}
+.cp-grid{position:absolute;inset:0;pointer-events:none;display:none;}
+.cp-grid.show{display:block;}
+.cp-grid::before,.cp-grid::after{content:'';position:absolute;background:rgba(255,255,255,.25);}
+.cp-grid::before{top:33.33%;left:0;right:0;height:1px;box-shadow:0 33.33vh 0 rgba(255,255,255,.25);}
+.cp-grid::after{left:33.33%;top:0;bottom:0;width:1px;box-shadow:33.33vw 0 0 rgba(255,255,255,.25);}
+.cp-controls{position:absolute;bottom:0;left:0;right:0;padding:20px 16px 30px;background:linear-gradient(0deg,rgba(0,0,0,.9),transparent);display:flex;flex-direction:column;gap:14px;z-index:100;}
+.cp-filters{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;}
+.cp-filter{flex-shrink:0;padding:8px 14px;border-radius:20px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:12px;font-weight:700;cursor:pointer;backdrop-filter:blur(10px);}
+.cp-filter.active{background:linear-gradient(135deg,#00e5ff,#4da8ff);color:#001018;border-color:#fff;}
+.cp-shutter-row{display:flex;align-items:center;justify-content:center;gap:20px;}
+.cp-shutter{width:76px;height:76px;border-radius:50%;background:#fff;border:5px solid rgba(255,255,255,.4);cursor:pointer;box-shadow:0 0 30px rgba(255,255,255,.6);transition:all .15s;}
+.cp-shutter:active{transform:scale(.92);}
+.cp-shutter.recording{background:#ff3c3c;animation:cpRec 1s ease-in-out infinite;}
+@keyframes cpRec{50%{box-shadow:0 0 60px rgba(255,60,60,1);}}
+.cp-side-btn{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);transition:all .15s;}
+.cp-side-btn.active{background:linear-gradient(135deg,#00e5ff,#4da8ff);color:#001018;border-color:#fff;}
+.cp-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .1s;}
+.cp-flash.flash{opacity:.9;transition:none;}
+.cp-countdown{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:180px;font-weight:200;color:#fff;text-shadow:0 0 60px rgba(255,255,255,.8);z-index:200;background:rgba(0,0,0,.3);pointer-events:none;}
+.cp-countdown.show{display:flex;}
+.cp-toast{position:fixed;bottom:200px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;background:rgba(0,0,0,.8);color:#fff;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:all .3s;z-index:99999;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.3);}
+.cp-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.cp-thumbs{position:absolute;bottom:110px;right:16px;width:60px;height:60px;border-radius:12px;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.5);overflow:hidden;cursor:pointer;z-index:100;display:flex;align-items:center;justify-content:center;font-size:24px;}
+.cp-thumbs img{width:100%;height:100%;object-fit:cover;}
+</style>
+<div id="cameraWindow">
+  <div class="cp-view">
+    <video class="cp-video" id="cpVideo" autoplay playsinline muted></video>
+    <div class="cp-grid" id="cpGrid"></div>
+    <div class="cp-flash" id="cpFlash"></div>
+    <div class="cp-countdown" id="cpCountdown">3</div>
+    <div class="cp-header">
+      <div class="cp-title"><span style="font-size:22px">📷</span><div><h2>Camera Pro</h2><small>Foto + Filter</small></div></div>
+      <button class="cp-btn icon-only" onclick="HalDoCameraApp.close()">✕</button>
+    </div>
+    <button class="cp-side-btn" id="cpGridBtn" onclick="HalDoCameraApp.toggleGrid()" style="position:absolute;top:70px;right:16px;">▦</button>
+    <button class="cp-side-btn" id="cpTimerBtn" onclick="HalDoCameraApp.cycleTimer()" style="position:absolute;top:130px;right:16px;">⏱</button>
+    <button class="cp-side-btn" id="cpFlipBtn" onclick="HalDoCameraApp.flip()" style="position:absolute;top:190px;right:16px;">🔄</button>
+    <div class="cp-thumbs" id="cpThumbs" onclick="HalDoCameraApp.showLast()">📸</div>
+    <div class="cp-controls">
+      <div class="cp-filters" id="cpFilters"></div>
+      <div class="cp-shutter-row">
+        <div style="width:52px"></div>
+        <div class="cp-shutter" onclick="HalDoCameraApp.shoot()"></div>
+        <div style="width:52px"></div>
+      </div>
+    </div>
+  </div>
+  <canvas id="cpCanvas" style="display:none"></canvas>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__cpLoaded) return; window.__cpLoaded = true;
+  const KEY='haldo_camera_photos_v1';
+  const FILTERS=[
+    {id:'none',n:'Original',css:''},
+    {id:'grayscale',n:'S/W',css:'grayscale(1)'},
+    {id:'sepia',n:'Sepia',css:'sepia(0.8)'},
+    {id:'bright',n:'Hell',css:'brightness(1.3)'},
+    {id:'dark',n:'Dunkel',css:'brightness(0.7)'},
+    {id:'contrast',n:'Kontrast',css:'contrast(1.5)'},
+    {id:'saturate',n:'Satt',css:'saturate(1.8)'},
+    {id:'blur',n:'Weich',css:'blur(1px)'},
+    {id:'hue',n:'Farbig',css:'hue-rotate(90deg)'},
+    {id:'invert',n:'Invert',css:'invert(1)'}
+  ];
+  let stream=null; let facing='environment'; let filterId='none'; let gridOn=false; let timerDelay=0; let photos=[];
+  function load(){ try{ const d=JSON.parse(localStorage.getItem(KEY))||[]; photos=d.slice(0,10); }catch(e){ photos=[]; } if(!Array.isArray(photos)) photos=[]; }
+  function save(){ try{ localStorage.setItem(KEY,JSON.stringify(photos.slice(0,10))); }catch(e){} }
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  async function startCamera(){
+    try{
+      if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+      stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1920},height:{ideal:1080}}});
+      const v=document.getElementById('cpVideo');
+      v.srcObject=stream;
+      v.style.filter=FILTERS.find(f=>f.id===filterId)?.css||'';
+    }catch(e){
+      toast('❌ Kamera-Zugriff verweigert');
+      console.warn(e);
+    }
+  }
+  function applyFilter(){
+    const v=document.getElementById('cpVideo');
+    const f=FILTERS.find(x=>x.id===filterId);
+    if(v) v.style.filter=f?f.css:'';
+    document.querySelectorAll('.cp-filter').forEach(el=>el.classList.toggle('active',el.dataset.id===filterId));
+  }
+  function shoot(){
+    if(timerDelay>0){ doCountdown(timerDelay); return; }
+    capture();
+  }
+  function doCountdown(n){
+    const el=document.getElementById('cpCountdown');
+    el.textContent=n; el.classList.add('show');
+    const iv=setInterval(()=>{
+      n--;
+      if(n<=0){ clearInterval(iv); el.classList.remove('show'); capture(); }
+      else el.textContent=n;
+    },1000);
+  }
+  function capture(){
+    const video=document.getElementById('cpVideo');
+    const canvas=document.getElementById('cpCanvas');
+    canvas.width=video.videoWidth||640;
+    canvas.height=video.videoHeight||480;
+    const ctx=canvas.getContext('2d');
+    const f=FILTERS.find(x=>x.id===filterId);
+    ctx.filter=f?f.css:'none';
+    ctx.drawImage(video,0,0);
+    const flash=document.getElementById('cpFlash');
+    flash.classList.add('flash');
+    setTimeout(()=>flash.classList.remove('flash'),100);
+    if(navigator.vibrate) navigator.vibrate(20);
+    try{
+      const data=canvas.toDataURL('image/jpeg',0.85);
+      photos.unshift({id:'p_'+Date.now(),url:data,created:Date.now(),filter:filterId});
+      photos=photos.slice(0,10); save(); updateThumb();
+      toast('📸 Foto aufgenommen');
+    }catch(e){ toast('❌ Fehler beim Speichern'); }
+  }
+  function updateThumb(){
+    const el=document.getElementById('cpThumbs');
+    if(photos.length&&photos[0].url){ el.innerHTML='<img src="'+photos[0].url+'">'; }
+    else el.innerHTML='📸';
+  }
+  function showLast(){
+    if(!photos.length){ toast('📁 Keine Fotos'); return; }
+    const p=photos[0];
+    const w=window.open('','_blank');
+    if(w){ w.document.write('<title>Foto</title><img src="'+p.url+'" style="max-width:100%;display:block;margin:auto">'); }
+    else {
+      const a=document.createElement('a'); a.href=p.url; a.download='haldo-'+Date.now()+'.jpg'; a.click();
+    }
+  }
+  function buildFilters(){
+    const el=document.getElementById('cpFilters');
+    if(!el) return;
+    el.innerHTML=FILTERS.map(f=>'<button class="cp-filter '+(f.id===filterId?'active':'')+'" data-id="'+f.id+'" onclick="HalDoCameraApp.setFilter(\''+f.id+'\')">'+esc(f.n)+'</button>').join('');
+  }
+  function setFilter(id){ filterId=id; applyFilter(); }
+  function toggleGrid(){ gridOn=!gridOn; document.getElementById('cpGrid').classList.toggle('show',gridOn); document.getElementById('cpGridBtn').classList.toggle('active',gridOn); }
+  function cycleTimer(){ timerDelay=timerDelay===0?3:(timerDelay===3?10:0); document.getElementById('cpTimerBtn').textContent=timerDelay>0?timerDelay+'s':'⏱'; document.getElementById('cpTimerBtn').classList.toggle('active',timerDelay>0); toast(timerDelay===0?'⏱ Kein Timer':('⏱ '+timerDelay+' Sekunden'); }
+  function flip(){ facing=facing==='environment'?'user':'environment'; startCamera(); }
+  function toast(msg){ let el=document.getElementById('cpToast'); if(!el){ el=document.createElement('div'); el.id='cpToast'; el.className='cp-toast'; document.body.appendChild(el); } el.textContent=msg; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2000); }
+  function open(){ load(); buildFilters(); updateThumb(); document.getElementById('cameraWindow').classList.add('show'); startCamera(); }
+  function close(){ if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } document.getElementById('cameraWindow').classList.remove('show'); }
+  window.HalDoCamera={open,close};
+  window.HalDoCameraApp={open,close,shoot,setFilter,toggleGrid,cycleTimer,flip,showLast};
+  console.log('%c📷 Camera Pro geladen','color:#ff5078;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v97 – FILE MANAGER (Dateien verwalten) ═══════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#filemanWindow{position:fixed;inset:0;background:radial-gradient(circle at 30% 20%,rgba(100,180,255,.10),transparent 55%),linear-gradient(180deg,rgba(0,10,25,.99),rgba(0,5,12,.99));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:8040;display:none;flex-direction:column;color:#e6f4ff;font-family:inherit;}
+#filemanWindow.show{display:flex;}
+.fm-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(100,180,255,.25);background:rgba(0,25,60,.55);flex-shrink:0;position:relative;z-index:10000;gap:8px;}
+.fm-title h2{font-size:18px;margin:0;color:#fff;font-weight:700;}
+.fm-title small{display:block;font-size:10px;color:#a8d0ff;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.fm-btn{padding:10px 14px;border-radius:10px;background:rgba(100,180,255,.12);border:1px solid rgba(100,180,255,.4);color:#e6f4ff;font-size:13px;font-weight:600;cursor:pointer;position:relative;z-index:99999;pointer-events:auto;-webkit-tap-highlight-color:transparent;}
+.fm-btn.primary{background:linear-gradient(135deg,#64b4ff,#b464ff);color:#001a3a;border-color:#fff;}
+.fm-btn.icon-only{padding:10px;font-size:16px;min-width:42px;}
+.fm-toolbar{padding:12px 18px;border-bottom:1px solid rgba(100,180,255,.12);display:flex;gap:8px;align-items:center;flex-shrink:0;}
+.fm-path{flex:1;padding:10px 14px;border-radius:10px;background:rgba(0,0,0,.4);border:1px solid rgba(100,180,255,.25);color:#7ce0ff;font-size:13px;font-weight:800;font-family:'Courier New',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fm-stats{display:flex;gap:8px;padding:12px 18px;flex-shrink:0;overflow-x:auto;border-bottom:1px solid rgba(100,180,255,.1);}
+.fm-stat{flex-shrink:0;padding:8px 14px;border-radius:10px;background:rgba(0,40,90,.4);border:1px solid rgba(100,180,255,.2);text-align:center;min-width:80px;}
+.fm-stat .fms-num{font-size:16px;font-weight:800;color:#64b4ff;}
+.fm-stat .fms-lbl{font-size:9px;color:#a8d0ff;text-transform:uppercase;letter-spacing:1px;margin-top:2px;font-weight:700;}
+.fm-body{flex:1;overflow-y:auto;padding:14px;position:relative;z-index:2;}
+.fm-list{max-width:700px;margin:0 auto;display:flex;flex-direction:column;gap:6px;}
+.fm-item{padding:12px 14px;background:linear-gradient(160deg,rgba(0,60,120,.4),rgba(0,15,40,.85));border:1.5px solid rgba(100,180,255,.2);border-radius:12px;display:flex;gap:12px;align-items:center;cursor:pointer;transition:all .15s;}
+.fm-item:hover{border-color:#64b4ff;background:rgba(100,180,255,.1);}
+.fm-item.folder{background:linear-gradient(160deg,rgba(120,80,255,.3),rgba(0,15,40,.85));}
+.fm-icon{width:44px;height:44px;border-radius:12px;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.fm-info{flex:1;min-width:0;}
+.fm-name{font-size:14px;font-weight:800;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fm-meta{font-size:11px;color:#a8d0ff;margin-top:2px;}
+.fm-del{width:32px;height:32px;border-radius:50%;background:transparent;border:none;color:#ff8080;font-size:16px;cursor:pointer;flex-shrink:0;}
+.fm-del:hover{background:rgba(255,80,80,.2);}
+.fm-empty{text-align:center;padding:60px 20px;color:#5a8ab0;font-size:13px;}
+.fm-toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;background:linear-gradient(135deg,#64b4ff,#b464ff);color:#001a3a;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:all .3s;z-index:99999;}
+.fm-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+<div id="filemanWindow">
+  <div class="fm-header">
+    <div class="fm-title"><span style="font-size:24px">🗂️</span><div><h2>File Manager</h2><small>Dateien im System</small></div></div>
+    <button class="fm-btn icon-only" onclick="HalDoFilemanApp.close()">✕</button>
+  </div>
+  <div class="fm-stats" id="fmStats"></div>
+  <div class="fm-toolbar">
+    <div class="fm-path" id="fmPath">🏠 / root</div>
+    <button class="fm-btn primary" onclick="HalDoFilemanApp.newFolder()">📁</button>
+    <button class="fm-btn" onclick="HalDoFilemanApp.newFile()">📄</button>
+  </div>
+  <div class="fm-body"><div class="fm-list" id="fmList"></div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__fmLoaded) return; window.__fmLoaded = true;
+  const KEY='haldo_filemanager_v1';
+  let files=[]; let cwd='/';
+  function load(){ try{ const d=JSON.parse(localStorage.getItem(KEY))||[]; files=d; }catch(e){ files=[]; } if(!Array.isArray(files)) files=[]; }
+  function save(){ try{ localStorage.setItem(KEY,JSON.stringify(files)); }catch(e){} }
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function sizeOf(str){ return new Blob([str]).size; }
+  function fmtSize(b){ if(b<1024) return b+' B'; if(b<1048576) return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(1)+' MB'; }
+  function render(){
+    const el=document.getElementById('fmList');
+    const pathEl=document.getElementById('fmPath');
+    if(pathEl) pathEl.textContent='🏠 '+cwd;
+    const inFolder=files.filter(f=>f.parent===cwd);
+    const totalSize=files.reduce((s,f)=>s+(f.size||0),0);
+    const folders=files.filter(f=>f.type==='folder').length;
+    const statsEl=document.getElementById('fmStats');
+    if(statsEl) statsEl.innerHTML='<div class="fm-stat"><div class="fms-num">'+files.length+'</div><div class="fms-lbl">Dateien</div></div><div class="fm-stat"><div class="fms-num">'+folders+'</div><div class="fms-lbl">Ordner</div></div><div class="fm-stat"><div class="fms-num">'+fmtSize(totalSize)+'</div><div class="fms-lbl">Größe</div></div>';
+    if(cwd!=='/'){ inFolder.unshift({id:'_up',type:'folder',name:'..',parent:cwd,isUp:true}); }
+    if(!inFolder.length&&cwd==='/'){ el.innerHTML='<div class="fm-empty">📂 Keine Dateien<br><small>Tippe 📁 oder 📄 um zu starten</small></div>'; return; }
+    el.innerHTML=inFolder.map(f=>{
+      const icon=f.isUp?'⬆️':(f.type==='folder'?'📁':getFileIcon(f.name));
+      return '<div class="fm-item '+(f.type==='folder'?'folder':'')+'" onclick="HalDoFilemanApp.clickItem(\''+f.id+'\')"><div class="fm-icon">'+icon+'</div><div class="fm-info"><div class="fm-name">'+esc(f.name)+'</div><div class="fm-meta">'+(f.type==='folder'?'Ordner':fmtSize(f.size||0))+' · '+new Date(f.created).toLocaleDateString('de-DE')+'</div></div>'+(!f.isUp?'<button class="fm-del" onclick="event.stopPropagation();HalDoFilemanApp.remove(\''+f.id+'\')">✕</button>':'')+'</div>';
+    }).join('');
+  }
+  function getFileIcon(name){
+    const n=name.toLowerCase();
+    if(/\.(jpg|jpeg|png|gif|webp)$/.test(n)) return '🖼️';
+    if(/\.(mp3|wav|ogg|m4a)$/.test(n)) return '🎵';
+    if(/\.(mp4|webm|mov)$/.test(n)) return '🎬';
+    if(/\.(txt|md|log)$/.test(n)) return '📝';
+    if(/\.(pdf)$/.test(n)) return '📕';
+    if(/\.(json)$/.test(n)) return '⚙️';
+    if(/\.(zip|rar|7z)$/.test(n)) return '📦';
+    return '📄';
+  }
+  function clickItem(id){
+    const f=files.find(x=>x.id===id);
+    if(!f) return;
+    if(f.isUp){ const p=f.parent; cwd=p.substring(0,p.lastIndexOf('/'))||'/'; if(cwd==='') cwd='/'; render(); return; }
+    if(f.type==='folder'){ cwd=f.fullPath||('/'+f.name); render(); return; }
+    // Datei: anzeigen
+    const w=window.open('','_blank');
+    if(w){ w.document.write('<title>'+esc(f.name)+'</title><pre style="font-family:monospace;padding:20px;white-space:pre-wrap">'+esc(f.content||'')+'</pre>'); }
+    else alert((f.name)+':\n\n'+(f.content||'').slice(0,500));
+  }
+  function newFolder(){ const n=prompt('Ordnername:','Neuer Ordner'); if(!n)return; const path=cwd==='/'?('/'+n):(cwd+'/'+n); files.push({id:'f_'+Date.now(),type:'folder',name:n,parent:cwd,fullPath:path,created:Date.now()}); save(); render(); toast('📁 Ordner erstellt'); }
+  function newFile(){ const n=prompt('Dateiname:','notiz.txt'); if(!n)return; const c=prompt('Inhalt:','')||''; files.push({id:'f_'+Date.now(),type:'file',name:n,parent:cwd,content:c,size:sizeOf(c),created:Date.now()}); save(); render(); toast('📄 Datei erstellt'); }
+  function remove(id){ const f=files.find(x=>x.id===id); if(!f)return; if(!confirm('"'+f.name+'" wirklich löschen?')) return; files=files.filter(x=>x.id!==id); save(); render(); toast('🗑️ Gelöscht'); }
+  function toast(msg){ let el=document.getElementById('fmToast'); if(!el){ el=document.createElement('div'); el.id='fmToast'; el.className='fm-toast'; document.body.appendChild(el); } el.textContent=msg; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2000); }
+  function open(){ load(); cwd='/'; render(); document.getElementById('filemanWindow').classList.add('show'); }
+  function close(){ document.getElementById('filemanWindow').classList.remove('show'); }
+  window.HalDoFileman={open,close};
+  window.HalDoFilemanApp={open,close,clickItem,newFolder,newFile,remove};
+  console.log('%c🗂️ File Manager geladen','color:#64b4ff;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v98 – HABIT HEATMAP (Jahres-GitHub-Style) ════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#heatmapWindow{position:fixed;inset:0;background:radial-gradient(circle at 50% 20%,rgba(255,140,60,.10),transparent 55%),linear-gradient(180deg,rgba(20,8,0,.99),rgba(10,4,0,.99));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:8030;display:none;flex-direction:column;color:#ffe8d6;font-family:inherit;}
+#heatmapWindow.show{display:flex;}
+.hm-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(255,140,60,.25);background:rgba(50,25,0,.55);flex-shrink:0;position:relative;z-index:10000;gap:8px;}
+.hm-title h2{font-size:18px;margin:0;color:#fff;font-weight:700;}
+.hm-title small{display:block;font-size:10px;color:#ffb088;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.hm-btn{padding:10px 14px;border-radius:10px;background:rgba(255,140,60,.12);border:1px solid rgba(255,140,60,.4);color:#ffe8d6;font-size:13px;font-weight:600;cursor:pointer;position:relative;z-index:99999;pointer-events:auto;-webkit-tap-highlight-color:transparent;}
+.hm-btn.icon-only{padding:10px;font-size:16px;min-width:42px;}
+.hm-body{flex:1;overflow-y:auto;padding:16px;}
+.hm-content{max-width:900px;margin:0 auto;}
+.hm-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-bottom:16px;}
+.hm-stat{padding:14px;background:linear-gradient(160deg,rgba(120,60,0,.4),rgba(40,15,0,.7));border:1px solid rgba(255,140,60,.25);border-radius:12px;text-align:center;}
+.hm-stat .hms-num{font-size:22px;font-weight:900;color:#ff8c3c;text-shadow:0 0 12px rgba(255,140,60,.5);}
+.hm-stat .hms-lbl{font-size:9px;color:#ffb088;text-transform:uppercase;letter-spacing:1.2px;margin-top:3px;font-weight:800;}
+.hm-habit-select{display:flex;gap:6px;overflow-x:auto;padding-bottom:12px;margin-bottom:14px;}
+.hm-habit-chip{flex-shrink:0;padding:8px 14px;border-radius:20px;background:rgba(80,35,0,.5);border:1.5px solid rgba(255,140,60,.25);color:#ffb088;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.hm-habit-chip.active{background:linear-gradient(135deg,#ff8c3c,#ff5078);color:#fff;border-color:#fff;}
+.hm-heatmap{overflow-x:auto;padding:16px;background:rgba(0,0,0,.3);border-radius:14px;border:1px solid rgba(255,140,60,.15);}
+.hm-grid{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,1fr);gap:3px;min-width:max-content;}
+.hm-cell{width:12px;height:12px;border-radius:3px;background:rgba(255,140,60,.1);border:1px solid rgba(255,140,60,.15);cursor:pointer;}
+.hm-cell.done{background:linear-gradient(135deg,#ff8c3c,#ff5078);border-color:#ff8c3c;box-shadow:0 0 6px rgba(255,140,60,.5);}
+.hm-cell.today{border:2px solid #fff;box-shadow:0 0 10px #fff;}
+.hm-cell.missed{background:rgba(255,60,60,.15);border-color:rgba(255,60,60,.3);}
+.hm-cell.future{opacity:.3;}
+.hm-months{display:flex;gap:3px;margin-bottom:4px;padding-left:0;}
+.hm-month{width:52px;font-size:9px;color:#ffb088;font-weight:800;text-transform:uppercase;letter-spacing:.5px;}
+.hm-legend{display:flex;gap:6px;align-items:center;margin-top:12px;justify-content:flex-end;font-size:10px;color:#ffb088;}
+.hm-legend-box{width:12px;height:12px;border-radius:3px;}
+.hm-toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;background:linear-gradient(135deg,#ff8c3c,#ff5078);color:#fff;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:all .3s;z-index:99999;}
+.hm-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+<div id="heatmapWindow">
+  <div class="hm-header">
+    <div class="hm-title"><span style="font-size:24px">🔥</span><div><h2>Habit Heatmap</h2><small>Jahres-Übersicht</small></div></div>
+    <button class="hm-btn icon-only" onclick="HalDoHeatmapApp.close()">✕</button>
+  </div>
+  <div class="hm-body"><div class="hm-content" id="hmContent"></div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__hmLoaded) return; window.__hmLoaded = true;
+  let currentHabitId='all';
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function todayKey(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function dayKey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function render(){
+    const el=document.getElementById('hmContent');
+    const habits=window.HalDoHabits?HalDoHabits.all():[];
+    if(!habits.length){
+      el.innerHTML='<div style="text-align:center;padding:60px 20px;color:#ffb088"><div style="font-size:60px;opacity:.5;margin-bottom:12px">🔥</div><div>Keine Gewohnheiten vorhanden</div><div style="font-size:11px;opacity:.7;margin-top:6px">Erstelle welche in der Habits-App</div></div>';
+      return;
+    }
+    // Stats über alle Habits
+    const today=new Date();
+    let totalDone=0, streakMax=0, perfectDays=0;
+    const allDaysMap={};
+    habits.forEach(h=>{ if(h.log) Object.keys(h.log).forEach(k=>{ if(h.log[k]){ allDaysMap[k]=(allDaysMap[k]||0)+1; totalDone++; } }); });
+    // Streak
+    for(let i=0;i<365;i++){ const d=new Date(today); d.setDate(d.getDate()-i); const k=dayKey(d); if(allDaysMap[k]) streakMax++; else if(i>0) break; }
+    // Perfect days
+    Object.keys(allDaysMap).forEach(k=>{ if(allDaysMap[k]>=habits.length) perfectDays++; });
+
+    // Habit-Chips
+    const chipsHtml='<button class="hm-habit-chip '+(currentHabitId==='all'?'active':'')+'" onclick="HalDoHeatmapApp.setHabit(\'all\')">🌟 Alle zusammen</button>'+
+      habits.map(h=>'<button class="hm-habit-chip '+(currentHabitId===h.id?'active':'')+'" onclick="HalDoHeatmapApp.setHabit(\''+h.id+'\')">'+(h.emoji||'🎯')+' '+esc(h.name.slice(0,15))+'</button>').join('');
+
+    // Grid 365 Tage
+    const start=new Date(today); start.setDate(start.getDate()-364);
+    // Zuerst auf Montag stellen
+    const startDay=start.getDay(); const adjust=startDay===0?6:startDay-1;
+    start.setDate(start.getDate()-adjust);
+    const cells=[];
+    let d=new Date(start);
+    const monthPositions=[];
+    let prevMonth=-1;
+    while(d<=today){
+      const k=dayKey(d);
+      const isToday=k===todayKey();
+      let state='';
+      if(currentHabitId==='all'){
+        const cnt=allDaysMap[k]||0;
+        if(cnt>0) state='done';
+        else if(d<today) state='missed';
+      } else {
+        const h=habits.find(x=>x.id===currentHabitId);
+        if(h&&h.log&&h.log[k]) state='done';
+        else if(d<today) state='missed';
+      }
+      if(d>today) state='future';
+      const month=d.getMonth();
+      if(month!==prevMonth){ monthPositions.push({idx:cells.length, name:['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][month]}); prevMonth=month; }
+      cells.push({state,isToday,key:k,date:new Date(d)});
+      d.setDate(d.getDate()+1);
+    }
+    // Monats-Labels
+    const weeks=cells.length/7;
+    let monthHtml='<div style="display:flex;gap:3px;margin-bottom:6px">';
+    for(let i=0;i<weeks;i++) monthHtml+='<div style="width:12px;flex-shrink:0"></div>';
+    // Nachricht: wir machen die Monat-Labels über die Zellen einzeln - einfacher:
+    // Daumen-Regel: für jeden Monat eine Beschriftung bei der Wochen-Position
+    // Neu: einfache Variante mit fester Breite
+    monthHtml='<div class="hm-months">';
+    let wCount=0;
+    monthPositions.forEach((mp,i)=>{
+      const nextIdx=i<monthPositions.length-1?monthPositions[i+1].idx:cells.length;
+      const spanWeeks=Math.round((nextIdx-mp.idx)/7);
+      monthHtml+='<div class="hm-month" style="width:'+(spanWeeks*15)+'px">'+mp.name+'</div>';
+    });
+    monthHtml+='</div>';
+
+    const gridHtml='<div class="hm-grid">'+cells.map(c=>'<div class="hm-cell '+c.state+(c.isToday?' today':'')+'" title="'+c.key+'"></div>').join('')+'</div>';
+
+    el.innerHTML='<div class="hm-stats">'+
+      '<div class="hm-stat"><div class="hms-num">'+habits.length+'</div><div class="hms-lbl">Gewohnheiten</div></div>'+
+      '<div class="hm-stat"><div class="hms-num">🔥 '+streakMax+'</div><div class="hms-lbl">Streak</div></div>'+
+      '<div class="hm-stat"><div class="hms-num">'+totalDone+'</div><div class="hms-lbl">Check-ins</div></div>'+
+      '<div class="hm-stat"><div class="hms-num">🏆 '+perfectDays+'</div><div class="hms-lbl">Perfekte Tage</div></div>'+
+      '</div>'+
+      '<div class="hm-habit-select">'+chipsHtml+'</div>'+
+      '<div style="font-size:11px;color:#ffb088;text-transform:uppercase;letter-spacing:1.2px;font-weight:800;margin-bottom:8px">📅 Letzte 52 Wochen</div>'+
+      '<div class="hm-heatmap">'+monthHtml+gridHtml+
+      '<div class="hm-legend"><span>Weniger</span><div class="hm-legend-box" style="background:rgba(255,140,60,.1)"></div><div class="hm-legend-box" style="background:linear-gradient(135deg,#ff8c3c,#ff5078)"></div><span>Mehr</span></div>'+
+      '</div>';
+  }
+  function setHabit(id){ currentHabitId=id; render(); }
+  function toast(msg){ let el=document.getElementById('hmToast'); if(!el){ el=document.createElement('div'); el.id='hmToast'; el.className='hm-toast'; document.body.appendChild(el); } el.textContent=msg; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2000); }
+  function open(){ render(); document.getElementById('heatmapWindow').classList.add('show'); }
+  function close(){ document.getElementById('heatmapWindow').classList.remove('show'); }
+  window.HalDoHeatmap={open,close};
+  window.HalDoHeatmapApp={open,close,setHabit};
+  console.log('%c🔥 Habit Heatmap geladen','color:#ff8c3c;font-weight:bold;');
+})();
+</script>
 </body>
 </html>
