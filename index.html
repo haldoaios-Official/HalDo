@@ -8488,5 +8488,524 @@ if(document.readyState==='loading'){
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════════════════════════════ ENDE v134 ═════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v135 – 6 APPS (Health Calc · Emergency · World Clock · Heatmap · Sticky · Network) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+"use strict";
+if(window.__v135) return;
+window.__v135 = true;
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const store=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const todayK=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+
+// ═══ 1. HEALTH CALCULATOR ═══
+let hlState={tab:'bmi',height:175,weight:75,age:30,sex:'m',activity:1.55};
+
+function buildHealthCalc(){
+  const w=$('healthcalc-window'); if(!w) return;
+  w.dataset.title='Health Calc'; w.dataset.icon='⚕️';
+  const tabs=[{k:'bmi',n:'📊 BMI'},{k:'cal',n:'🔥 Kalorien'},{k:'ideal',n:'🎯 Ideal'},{k:'water',n:'💧 Wasser'}];
+  const tabsHtml='<div style="display:flex;gap:4px;margin-bottom:14px;overflow-x:auto">'+tabs.map(t=>'<button class="os-btn '+(hlState.tab===t.k?'primary':'')+'" style="flex:1;min-width:70px;padding:10px;font-size:11px" onclick="HalDoHealthCalc.setTab(\''+t.k+'\')">'+t.n+'</button>').join('')+'</div>';
+  const inputs='<div class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+    '<div><div class="lbl" style="font-size:9px">Größe (cm)</div><input class="os-input" type="number" value="'+hlState.height+'" oninput="HalDoHealthCalc.set(\'height\',this.value)"></div>'+
+    '<div><div class="lbl" style="font-size:9px">Gewicht (kg)</div><input class="os-input" type="number" value="'+hlState.weight+'" oninput="HalDoHealthCalc.set(\'weight\',this.value)"></div>'+
+    '<div><div class="lbl" style="font-size:9px">Alter</div><input class="os-input" type="number" value="'+hlState.age+'" oninput="HalDoHealthCalc.set(\'age\',this.value)"></div>'+
+    '<div><div class="lbl" style="font-size:9px">Geschlecht</div><select class="os-select" onchange="HalDoHealthCalc.set(\'sex\',this.value)"><option value="m" '+(hlState.sex==='m'?'selected':'')+'>Männlich</option><option value="f" '+(hlState.sex==='f'?'selected':'')+'>Weiblich</option></select></div>'+
+    '</div></div>';
+  let body='';
+  const h=parseFloat(hlState.height)||0,w2=parseFloat(hlState.weight)||0,a=parseFloat(hlState.age)||0;
+  if(hlState.tab==='bmi'){
+    const bmi=h&&w2?w2/((h/100)**2):0;
+    let cat={n:'–',c:'#5a8ab0',cls:''};
+    if(bmi<18.5)cat={n:'Untergewicht',c:'#4da8ff'};
+    else if(bmi<25)cat={n:'Normalgewicht',c:'#00ff88'};
+    else if(bmi<30)cat={n:'Übergewicht',c:'#ffc800'};
+    else if(bmi<35)cat={n:'Adipositas I',c:'#ff8c3c'};
+    else cat={n:'Adipositas II',c:'#ff4466'};
+    const pos=Math.min(100,Math.max(0,((bmi-15)/25)*100));
+    const ideal=h?(18.5*(h/100)**2):0;
+    const idealMax=h?(24.9*(h/100)**2):0;
+    body='<div class="card" style="text-align:center">'+
+      '<div style="font-size:56px;font-weight:900;color:#fff;line-height:1;text-shadow:0 0 30px rgba(0,229,255,.5)">'+bmi.toFixed(1)+'</div>'+
+      '<div style="font-size:11px;color:#7ce0ff;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin:8px 0">BMI</div>'+
+      '<div style="display:inline-block;padding:8px 16px;background:'+cat.c+'22;color:'+cat.c+';border-radius:20px;font-weight:900;font-size:13px">'+cat.n+'</div>'+
+      '</div>'+
+      '<div class="card">'+
+      '<div style="height:36px;border-radius:10px;overflow:hidden;display:flex;position:relative;margin-bottom:8px">'+
+      '<div style="flex:2;background:linear-gradient(180deg,#0096ff,#4da8ff);display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:800">Unter</div>'+
+      '<div style="flex:3;background:linear-gradient(180deg,#00ff88,#00e5ff);display:flex;align-items:center;justify-content:center;font-size:9px;color:#001018;font-weight:800">Normal</div>'+
+      '<div style="flex:2;background:linear-gradient(180deg,#ffc800,#ffaa00);display:flex;align-items:center;justify-content:center;font-size:9px;color:#1a1000;font-weight:800">Über</div>'+
+      '<div style="flex:2;background:linear-gradient(180deg,#ff8c3c,#ff6633);display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:800">Adipo I</div>'+
+      '<div style="flex:2;background:linear-gradient(180deg,#ff503c,#cc2244);display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:800">Adipo II</div>'+
+      '<div style="position:absolute;top:-4px;left:'+pos+'%;width:3px;height:44px;background:#fff;border-radius:2px;box-shadow:0 0 12px #fff;transition:left .5s"></div>'+
+      '</div>'+
+      '<div style="display:flex;justify-content:space-between;font-size:10px;color:#88ccff;font-weight:700">15 · 18.5 · 25 · 30 · 35 · 40</div>'+
+      '</div>'+
+      '<div class="card"><div style="font-size:12px;line-height:1.9;color:#aaddff">'+
+      '<div style="display:flex;justify-content:space-between"><span>💚 Idealgewicht</span><b style="color:#00e5ff">'+ideal.toFixed(1)+' kg</b></div>'+
+      '<div style="display:flex;justify-content:space-between"><span>📏 Normalbereich</span><b style="color:#00e5ff">'+ideal.toFixed(1)+'–'+idealMax.toFixed(1)+' kg</b></div>'+
+      '</div></div>';
+  } else if(hlState.tab==='cal'){
+    const bmr=hlState.sex==='m'?(10*w2+6.25*h-5*a+5):(10*w2+6.25*h-5*a-161);
+    const tdee=bmr*hlState.activity;
+    body='<div class="card" style="text-align:center">'+
+      '<div style="font-size:48px;font-weight:900;color:#ff8c3c;text-shadow:0 0 30px rgba(255,140,60,.5)">'+Math.round(tdee)+'</div>'+
+      '<div style="font-size:11px;color:#7ce0ff;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin-top:8px">kcal/Tag · Erhaltung</div>'+
+      '</div>'+
+      '<div class="card"><div class="lbl" style="margin-bottom:8px">Aktivität</div>'+
+      '<select class="os-select" onchange="HalDoHealthCalc.set(\'activity\',parseFloat(this.value))">'+
+      '<option value="1.2" '+(hlState.activity==1.2?'selected':'')+'>Kaum Bewegung</option>'+
+      '<option value="1.375" '+(hlState.activity==1.375?'selected':'')+'>Leicht (1-3× Sport)</option>'+
+      '<option value="1.55" '+(hlState.activity==1.55?'selected':'')+'>Mäßig (3-5× Sport)</option>'+
+      '<option value="1.725" '+(hlState.activity==1.725?'selected':'')+'>Hoch (6-7× Sport)</option>'+
+      '<option value="1.9" '+(hlState.activity==1.9?'selected':'')+'>Extrem (Athlet)</option>'+
+      '</select></div>'+
+      '<div class="card"><div style="font-size:12px;line-height:1.9;color:#aaddff">'+
+      '<div style="display:flex;justify-content:space-between"><span>🛏️ Grundumsatz (BMR)</span><b style="color:#ff8c3c">'+Math.round(bmr)+' kcal</b></div>'+
+      '<div style="display:flex;justify-content:space-between"><span>🔥 Gesamtumsatz (TDEE)</span><b style="color:#ff8c3c">'+Math.round(tdee)+' kcal</b></div>'+
+      '<div style="display:flex;justify-content:space-between"><span>📉 Abnehmen (-0,5kg/Wo)</span><b style="color:#00ff88">'+Math.round(tdee-500)+' kcal</b></div>'+
+      '<div style="display:flex;justify-content:space-between"><span>📈 Zunehmen</span><b style="color:#00e5ff">'+Math.round(tdee+300)+' kcal</b></div>'+
+      '</div></div>';
+  } else if(hlState.tab==='ideal'){
+    const inches=h/2.54;
+    const ideal=hlState.sex==='m'?50+2.3*(inches-60):45.5+2.3*(inches-60);
+    body='<div class="card" style="text-align:center">'+
+      '<div style="font-size:56px;font-weight:900;color:#00ff88;text-shadow:0 0 30px rgba(0,255,136,.5)">'+ideal.toFixed(1)+'</div>'+
+      '<div style="font-size:11px;color:#7ce0ff;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin-top:8px">kg Idealgewicht</div>'+
+      '</div>'+
+      '<div class="card"><div style="font-size:12px;line-height:1.9;color:#aaddff">'+
+      '<div style="display:flex;justify-content:space-between"><span>Min (BMI 18,5)</span><b style="color:#00e5ff">'+(18.5*(h/100)**2).toFixed(1)+' kg</b></div>'+
+      '<div style="display:flex;justify-content:space-between"><span>Max (BMI 25)</span><b style="color:#00e5ff">'+(25*(h/100)**2).toFixed(1)+' kg</b></div>'+
+      '<div style="display:flex;justify-content:space-between"><span>Dein aktuelles Gewicht</span><b style="color:#fff">'+w2+' kg</b></div>'+
+      '<div style="display:flex;justify-content:space-between"><span>Differenz zum Ideal</span><b style="color:'+(Math.abs(w2-ideal)<1?'#00ff88':'#ffc800')+'">'+(w2-ideal>0?'+':'')+((w2-ideal).toFixed(1))+' kg</b></div>'+
+      '</div></div>';
+  } else {
+    const water=Math.round(w2*35+(hlState.activity-1.2)*500);
+    body='<div class="card" style="text-align:center">'+
+      '<div style="font-size:56px;font-weight:900;color:#0096ff;text-shadow:0 0 30px rgba(0,150,255,.5)">'+water+'</div>'+
+      '<div style="font-size:11px;color:#7ce0ff;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin-top:8px">ml Wasser/Tag</div>'+
+      '<div style="font-size:13px;color:#00e5ff;font-weight:800;margin-top:8px">'+Math.round(water/250)+' Gläser à 250ml</div>'+
+      '</div>'+
+      '<div class="card"><div style="font-size:12px;line-height:1.9;color:#aaddff">'+
+      '<div style="display:flex;justify-content:space-between"><span>☕ Kaffee zählt nicht</span><b>+250ml pro Tasse</b></div>'+
+      '<div style="display:flex;justify-content:space-between"><span>🏃 Sport zusätzlich</span><b>+500ml pro Stunde</b></div>'+
+      '<div style="display:flex;justify-content:space-between"><span>🌡️ Heißes Wetter</span><b>+500ml</b></div>'+
+      '</div></div>';
+  }
+  w.innerHTML=tabsHtml+inputs+body;
+}
+
+window.HalDoHealthCalc={
+  setTab(t){hlState.tab=t;buildHealthCalc()},
+  set(k,v){hlState[k]=k==='activity'?parseFloat(v):v;buildHealthCalc()}
+};
+
+// ═══ 2. EMERGENCY INFO ═══
+window.HalDoEmergency={
+  key:'haldo_emergency_v1',
+  get(){return store(this.key,{name:'',birth:'',blood:'',allergies:'',meds:'',conditions:'',organ:'',contacts:[]})},
+  set(d){save(this.key,Object.assign(this.get(),d))},
+  addContact(name,relation,phone){
+    const d=this.get();
+    d.contacts=d.contacts||[];
+    d.contacts.push({id:uid('ec_'),name,relation,phone});
+    save(this.key,d);
+  },
+  removeContact(id){const d=this.get();d.contacts=(d.contacts||[]).filter(c=>c.id!==id);save(this.key,d)}
+};
+
+let emgState={edit:false};
+
+function buildEmergency(){
+  const w=$('emergency-window'); if(!w) return;
+  w.dataset.title='Notfall-Info'; w.dataset.icon='🆘';
+  const d=HalDoEmergency.get();
+  const emergencyNumbers=[
+    {n:'112',l:'Europaweit Notruf',c:'#ff4466'},
+    {n:'110',l:'Polizei (DE)',c:'#4da8ff'},
+    {n:'116117',l:'Ärztl. Bereitschaft',c:'#00e5ff'},
+    {n:'08001110111',l:'Telefonseelsorge',c:'#00ff88'},
+    {n:'08001110222',l:'Elterntelefon',c:'#ffc800'}
+  ];
+  const contacts=(d.contacts||[]).map(c=>'<div class="card" style="padding:10px;display:flex;gap:10px;align-items:center">'+
+    '<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#ff4466,#ff78c8);display:flex;align-items:center;justify-content:center;font-size:18px">👤</div>'+
+    '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800;color:#fff">'+esc(c.name)+'</div>'+
+    '<div style="font-size:11px;color:#ffaabb">'+esc(c.relation||'Kontakt')+' · '+esc(c.phone)+'</div></div>'+
+    '<a href="tel:'+esc(c.phone).replace(/\s+/g,'')+'" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#00ff88,#00e5ff);display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:18px">📞</a>'+
+    '<button class="os-btn danger" style="padding:6px 8px;font-size:11px" onclick="HalDoEmergency.removeContact(\''+c.id+'\');HalDoEmergencyApp.rebuild()">✕</button>'+
+    '</div>').join('');
+  w.innerHTML=
+    '<div class="card" style="text-align:center;background:linear-gradient(135deg,rgba(255,68,102,.2),rgba(255,120,200,.15));border-color:rgba(255,68,102,.4)">'+
+    '<div style="font-size:44px">🆘</div>'+
+    '<div style="font-size:14px;color:#fff;font-weight:900;margin-top:6px">NOTFALL-INFORMATIONEN</div>'+
+    '<div style="font-size:10px;color:#ffaabb;margin-top:4px">Offline gespeichert · sofort verfügbar</div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">📞 Notfallkontakte</div>'+
+    (contacts||'<div style="text-align:center;padding:14px;color:#5a8ab0;font-size:12px">Keine Kontakte</div>')+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">'+
+    '<input class="os-input" id="ecN" placeholder="Name">'+
+    '<input class="os-input" id="ecR" placeholder="Beziehung">'+
+    '<input class="os-input" id="ecP" placeholder="Telefon">'+
+    '</div>'+
+    '<button class="os-btn primary full" style="margin-top:8px" onclick="HalDoEmergencyApp.addContact()">✚ Kontakt hinzufügen</button>'+
+    '</div>'+
+    (emgState.edit?
+      '<div class="card"><div class="lbl" style="margin-bottom:8px">👤 Persönliche Daten</div>'+
+      '<input class="os-input" placeholder="Name" value="'+esc(d.name)+'" oninput="HalDoEmergency.set({name:this.value})" style="margin-bottom:6px">'+
+      '<input class="os-input" placeholder="Geburtsdatum" value="'+esc(d.birth)+'" oninput="HalDoEmergency.set({birth:this.value})" style="margin-bottom:6px">'+
+      '<input class="os-input" placeholder="Blutgruppe" value="'+esc(d.blood)+'" oninput="HalDoEmergency.set({blood:this.value})" style="margin-bottom:6px">'+
+      '<input class="os-input" placeholder="Organspender" value="'+esc(d.organ)+'" oninput="HalDoEmergency.set({organ:this.value})" style="margin-bottom:6px">'+
+      '<div class="lbl" style="margin:8px 0 6px">⚕️ Medizinisch</div>'+
+      '<input class="os-input" placeholder="Allergien" value="'+esc(d.allergies)+'" oninput="HalDoEmergency.set({allergies:this.value})" style="margin-bottom:6px">'+
+      '<input class="os-input" placeholder="Medikamente" value="'+esc(d.meds)+'" oninput="HalDoEmergency.set({meds:this.value})" style="margin-bottom:6px">'+
+      '<input class="os-input" placeholder="Vorerkrankungen" value="'+esc(d.conditions)+'" oninput="HalDoEmergency.set({conditions:this.value})">'+
+      '<button class="os-btn primary full" style="margin-top:10px" onclick="HalDoEmergencyApp.setEdit(false)">✓ Fertig</button>'+
+      '</div>':
+      '<div class="card"><div class="lbl" style="margin-bottom:8px">👤 Persönliche Daten</div>'+
+      '<div style="font-size:12px;line-height:1.9;color:#aaddff">'+
+      '<div style="display:flex;justify-content:space-between"><span>Name</span><b style="color:#fff">'+esc(d.name||'–')+'</b></div>'+
+      '<div style="display:flex;justify-content:space-between"><span>Geburtstag</span><b style="color:#fff">'+esc(d.birth||'–')+'</b></div>'+
+      '<div style="display:flex;justify-content:space-between"><span>Blutgruppe</span><b style="color:#ff4466;font-size:15px">'+esc(d.blood||'–')+'</b></div>'+
+      '<div style="display:flex;justify-content:space-between"><span>Organspender</span><b style="color:#fff">'+esc(d.organ||'–')+'</b></div>'+
+      '</div>'+
+      '<div class="lbl" style="margin:12px 0 8px">⚕️ Medizinisch</div>'+
+      '<div style="font-size:12px;line-height:1.9;color:#aaddff">'+
+      '<div style="display:flex;justify-content:space-between"><span>Allergien</span><b style="color:#ffc800">'+esc(d.allergies||'Keine bekannt')+'</b></div>'+
+      '<div style="display:flex;justify-content:space-between"><span>Medikamente</span><b style="color:#fff">'+esc(d.meds||'Keine')+'</b></div>'+
+      '<div style="display:flex;justify-content:space-between"><span>Vorerkrankungen</span><b style="color:#fff">'+esc(d.conditions||'Keine')+'</b></div>'+
+      '</div>'+
+      '<button class="os-btn primary full" style="margin-top:10px" onclick="HalDoEmergencyApp.setEdit(true)">✏️ Bearbeiten</button>'+
+      '</div>')+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">🚨 Notrufnummern (Europa)</div>'+
+    emergencyNumbers.map(n=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:rgba(0,0,0,.3);border-radius:10px;margin-bottom:6px;border-left:4px solid '+n.c+'">'+
+      '<div><div style="font-size:14px;font-weight:900;color:'+n.c+'">'+n.n+'</div><div style="font-size:10px;color:#aaddff">'+n.l+'</div></div>'+
+      '<a href="tel:'+n.n+'" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,'+n.c+',#00e5ff);display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:18px">📞</a>'+
+      '</div>').join('')+
+    '</div>';
+}
+
+window.HalDoEmergencyApp={
+  setEdit(v){emgState.edit=v;buildEmergency()},
+  addContact(){const n=$('ecN').value.trim(),r=$('ecR').value.trim(),p=$('ecP').value.trim();if(!n||!p)return;HalDoEmergency.addContact(n,r,p);$('ecN').value='';$('ecR').value='';$('ecP').value='';buildEmergency();if(window.showToast)showToast('🆘 Kontakt gespeichert','success')},
+  rebuild(){buildEmergency()}
+};
+
+// ═══ 3. WORLD CLOCK ═══
+const WORLD_CITIES=[
+  {k:'berlin',n:'Berlin',f:'🇩🇪',tz:'Europe/Berlin'},
+  {k:'istanbul',n:'Istanbul',f:'🇹🇷',tz:'Europe/Istanbul'},
+  {k:'london',n:'London',f:'🇬🇧',tz:'Europe/London'},
+  {k:'paris',n:'Paris',f:'🇫🇷',tz:'Europe/Paris'},
+  {k:'moscow',n:'Moskau',f:'🇷🇺',tz:'Europe/Moscow'},
+  {k:'dubai',n:'Dubai',f:'🇦🇪',tz:'Asia/Dubai'},
+  {k:'delhi',n:'Delhi',f:'🇮🇳',tz:'Asia/Kolkata'},
+  {k:'tokyo',n:'Tokio',f:'🇯🇵',tz:'Asia/Tokyo'},
+  {k:'beijing',n:'Peking',f:'🇨🇳',tz:'Asia/Shanghai'},
+  {k:'singapore',n:'Singapur',f:'🇸🇬',tz:'Asia/Singapore'},
+  {k:'sydney',n:'Sydney',f:'🇦🇺',tz:'Australia/Sydney'},
+  {k:'ny',n:'New York',f:'🇺🇸',tz:'America/New_York'},
+  {k:'la',n:'Los Angeles',f:'🇺🇸',tz:'America/Los_Angeles'},
+  {k:'erbil',n:'Erbil (Hewlêr)',f:'🇮🇶',tz:'Asia/Baghdad'},
+  {k:'cairo',n:'Kairo',f:'🇪🇬',tz:'Africa/Cairo'},
+  {k:'johannesburg',n:'Johannesburg',f:'🇿🇦',tz:'Africa/Johannesburg'}
+];
+
+window.HalDoWorldClock={
+  key:'haldo_worldclock_v1',
+  get(){return store(this.key,['berlin','istanbul','erbil','ny','tokyo','dubai'])},
+  save(l){save(this.key,l)},
+  add(k){const l=this.get();if(!l.includes(k))l.push(k);this.save(l)},
+  remove(k){this.save(this.get().filter(x=>x!==k))}
+};
+
+let wcInterval=null;
+
+function buildWorldClock(){
+  const w=$('worldclock-window'); if(!w) return;
+  w.dataset.title='Weltzeituhr'; w.dataset.icon='🌍';
+  const cities=HalDoWorldClock.get();
+  const now=new Date();
+  const getTime=(tz)=>{
+    try{return new Date(now.toLocaleString('en-US',{timeZone:tz}))}catch(e){return new Date()}
+  };
+  const list=cities.map(k=>{
+    const c=WORLD_CITIES.find(x=>x.k===k);if(!c)return '';
+    const t=getTime(c.tz);
+    const timeStr=t.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+    const localDay=new Date();localDay.setHours(0,0,0,0);
+    const cityDay=new Date(t);cityDay.setHours(0,0,0,0);
+    const diff=Math.round((cityDay-localDay)/86400000);
+    const dayStr=diff===0?'Heute':diff===1?'Morgen':diff===-1?'Gestern':diff>0?'+'+diff:' '+diff;
+    return '<div class="card" style="padding:12px;display:flex;gap:10px;align-items:center">'+
+      '<div style="font-size:32px;width:44px;text-align:center">'+c.f+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+      '<div style="font-size:14px;font-weight:800;color:#fff">'+c.n+'</div>'+
+      '<div style="font-size:10px;color:#7ce0ff">'+c.tz+'</div>'+
+      '</div>'+
+      '<div style="text-align:right">'+
+      '<div style="font-size:22px;font-weight:900;color:#00e5ff;font-family:monospace">'+timeStr+'</div>'+
+      '<div style="font-size:9px;color:#88ccff;font-weight:800;letter-spacing:1px;text-transform:uppercase">'+dayStr+'</div>'+
+      '</div>'+
+      '<button class="os-btn danger" style="padding:6px 8px;font-size:11px" onclick="HalDoWorldClock.remove(\''+c.k+'\');HalDoWorldClockApp.rebuild()">✕</button>'+
+      '</div>';
+  }).join('');
+  const available=WORLD_CITIES.filter(c=>!cities.includes(c.k));
+  const localTime=now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const localDate=now.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
+  w.innerHTML=
+    '<div class="card" style="text-align:center">'+
+    '<div id="wcHeroTime" style="font-size:56px;font-weight:200;color:#fff;font-family:monospace;text-shadow:0 0 30px var(--glow);line-height:1">'+localTime+'</div>'+
+    '<div style="font-size:12px;color:#7ce0ff;margin-top:8px;text-transform:uppercase;letter-spacing:1.5px;font-weight:800">'+localDate+'</div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">➕ Stadt hinzufügen</div>'+
+    '<div style="display:flex;gap:6px">'+
+    '<select class="os-select" id="wcAdd" style="flex:1"><option value="">Wählen...</option>'+available.map(c=>'<option value="'+c.k+'">'+c.f+' '+c.n+'</option>').join('')+'</select>'+
+    '<button class="os-btn primary" onclick="HalDoWorldClockApp.add()">✚</button>'+
+    '</div></div>'+
+    '<div class="lbl" style="margin:10px 0 8px">🌐 Deine Städte ('+cities.length+')</div>'+
+    list;
+  if(wcInterval)clearInterval(wcInterval);
+  wcInterval=setInterval(()=>{
+    const hero=$('wcHeroTime');
+    if(hero)hero.textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  },1000);
+}
+
+window.HalDoWorldClockApp={
+  add(){const k=$('wcAdd').value;if(!k)return;HalDoWorldClock.add(k);buildWorldClock();if(window.showToast)showToast('🌍 Stadt hinzugefügt','success')},
+  rebuild(){buildWorldClock()}
+};
+
+// ═══ 4. HABIT HEATMAP ═══
+function buildHeatmap(){
+  const w=$('heatmap-window'); if(!w) return;
+  w.dataset.title='Habit Heatmap'; w.dataset.icon='🔥';
+  const habits=window.HalDoHabitsPro?HalDoHabitsPro.all():[];
+  if(!habits.length){
+    w.innerHTML='<div class="empty"><div class="ei">🔥</div><div class="et">Keine Gewohnheiten</div><div class="es">Erstelle welche in Habits Pro</div></div>';
+    return;
+  }
+  // Tage der letzten 52 Wochen
+  const today=new Date();today.setHours(0,0,0,0);
+  const days=[];
+  const start=new Date(today);start.setDate(start.getDate()-364);
+  // Auf Montag
+  const wd=start.getDay();const adj=wd===0?6:wd-1;start.setDate(start.getDate()-adj);
+  let d=new Date(start);
+  while(d<=today){
+    const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    let cnt=0;habits.forEach(h=>{if(h.log&&h.log[k])cnt++});
+    days.push({k,cnt,total:habits.length,d:new Date(d)});
+    d.setDate(d.getDate()+1);
+  }
+  // Wochen-Spalten
+  const weeks=[];
+  for(let i=0;i<days.length;i+=7)weeks.push(days.slice(i,i+7));
+  const cellHtml=weeks.map(week=>'<div style="display:flex;flex-direction:column;gap:3px">'+week.map(day=>{
+    const pct=day.total?day.cnt/day.total:0;
+    let bg='rgba(0,229,255,.08)';
+    if(pct>0)bg='linear-gradient(135deg,#00e5ff,'+(pct>=1?'#00ff88':pct>=0.5?'#4da8ff':'#7ce0ff')+')';
+    const isToday=day.k===todayK();
+    return '<div title="'+day.k+' ('+day.cnt+'/'+day.total+')" style="width:13px;height:13px;border-radius:3px;background:'+bg+';border:1px solid '+(isToday?'#fff':'rgba(0,229,255,.15)')+'"></div>';
+  }).join('')+'</div>').join('');
+  // Statistiken
+  const totalDone=days.reduce((s,d)=>s+d.cnt,0);
+  const perfectDays=days.filter(d=>d.total>0&&d.cnt===d.total).length;
+  let streak=0;const todayKey=todayK();
+  for(let i=days.length-1;i>=0;i--){
+    if(days[i].cnt>0)streak++;
+    else if(days[i].k!==todayKey)break;
+  }
+  const stats='<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px">🔥 '+streak+'</div><div class="lbl">Streak</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px;color:#00ff88">'+perfectDays+'</div><div class="lbl">Perfekte Tage</div></div>'+
+    '</div>';
+  // Pro Habit Statistik
+  const habitStats=habits.map(h=>{
+    const done=days.filter(d=>h.log&&h.log[d.k]).length;
+    const pct=Math.round(done/days.length*100);
+    return '<div class="card" style="padding:10px">'+
+      '<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:13px;font-weight:800;color:#fff">'+h.emoji+' '+esc(h.name)+'</span><b style="color:'+h.color+'">'+pct+'%</b></div>'+
+      '<div style="height:6px;background:rgba(0,0,0,.4);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,'+h.color+',#00e5ff);border-radius:3px"></div></div>'+
+      '<div style="font-size:10px;color:#88ccff;margin-top:4px">'+done+'/'+days.length+' Tage</div>'+
+      '</div>';
+  }).join('');
+  w.innerHTML=stats+
+    '<div class="card" style="overflow-x:auto">'+
+    '<div class="lbl" style="margin-bottom:10px">📅 Letzte 52 Wochen</div>'+
+    '<div style="display:flex;gap:3px;min-width:max-content;padding-bottom:4px">'+cellHtml+'</div>'+
+    '<div style="display:flex;justify-content:flex-end;gap:4px;align-items:center;margin-top:10px;font-size:10px;color:#88ccff">'+
+    '<span>Weniger</span><div style="width:11px;height:11px;border-radius:2px;background:rgba(0,229,255,.08)"></div>'+
+    '<div style="width:11px;height:11px;border-radius:2px;background:linear-gradient(135deg,#00e5ff,#7ce0ff)"></div>'+
+    '<div style="width:11px;height:11px;border-radius:2px;background:linear-gradient(135deg,#00e5ff,#4da8ff)"></div>'+
+    '<div style="width:11px;height:11px;border-radius:2px;background:linear-gradient(135deg,#00e5ff,#00ff88)"></div>'+
+    '<span>Mehr</span>'+
+    '</div></div>'+
+    '<div class="lbl" style="margin:14px 0 8px">📊 Nach Gewohnheit</div>'+
+    habitStats;
+}
+
+// ═══ 5. STICKY NOTES ═══
+window.HalDoSticky={
+  key:'haldo_sticky_v1',
+  colors:['#ffe066','#ffb84d','#ff8888','#88ddff','#a8ff88','#e0a8ff','#ffa8d4','#88ffcc'],
+  all(){return store(this.key,[])},
+  add(title,text,color,pinned){const l=this.all();l.unshift({id:uid('sn_'),title,text,color:color||'#ffe066',pinned:!!pinned,created:Date.now(),updated:Date.now()});save(this.key,l);return l[0].id},
+  remove(id){save(this.key,this.all().filter(n=>n.id!==id))},
+  togglePin(id){const l=this.all();const x=l.find(n=>n.id===id);if(x){x.pinned=!x.pinned;save(this.key,l)}}
+};
+
+let stickyState={color:'#ffe066',editing:null};
+
+function buildSticky(){
+  const w=$('sticky-window'); if(!w) return;
+  w.dataset.title='Sticky Notes'; w.dataset.icon='📋';
+  const all=HalDoSticky.all();
+  const sorted=all.slice().sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)||b.updated-a.updated);
+  const colorPicker=HalDoSticky.colors.map(c=>'<button style="width:32px;height:32px;border-radius:50%;background:'+c+';border:3px solid '+(stickyState.color===c?'#fff':'transparent')+';cursor:pointer" onclick="HalDoStickyApp.setColor(\''+c+'\')"></button>').join('');
+  const list=sorted.length?'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">'+sorted.map(n=>'<div style="padding:12px;border-radius:12px;background:'+n.color+';color:#1a1000;min-height:120px;cursor:pointer;position:relative;box-shadow:0 8px 20px rgba(0,0,0,.4);display:flex;flex-direction:column" onclick="HalDoStickyApp.view(\''+n.id+'\')">'+
+    (n.pinned?'<div style="position:absolute;top:6px;right:8px;font-size:14px">📌</div>':'')+
+    '<div style="font-size:14px;font-weight:900;margin-bottom:6px;word-break:break-word;padding-right:18px">'+esc(n.title||'(Ohne Titel)')+'</div>'+
+    '<div style="font-size:12px;line-height:1.5;flex:1;white-space:pre-wrap;word-break:break-word;overflow:hidden">'+esc(n.text.slice(0,150))+'</div>'+
+    '<div style="font-size:9px;opacity:.6;margin-top:6px">'+new Date(n.updated).toLocaleDateString('de-DE',{day:'2-digit',month:'short'})+'</div>'+
+    '</div>').join('')+'</div>':'<div class="empty"><div class="ei">📋</div><div class="et">Keine Notizen</div></div>';
+  w.innerHTML=
+    '<div class="card">'+
+    '<input class="os-input" id="stkT" placeholder="Titel" style="margin-bottom:6px">'+
+    '<textarea class="os-textarea" id="stkN" placeholder="Inhalt..." style="min-height:80px;margin-bottom:8px"></textarea>'+
+    '<div class="lbl" style="margin-bottom:6px">Farbe</div>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">'+colorPicker+'</div>'+
+    '<button class="os-btn primary full" onclick="HalDoStickyApp.add()">📋 Notiz erstellen</button>'+
+    '</div>'+
+    list;
+}
+
+window.HalDoStickyApp={
+  setColor(c){stickyState.color=c;buildSticky()},
+  add(){
+    const t=$('stkT').value.trim(),n=$('stkN').value.trim();
+    if(!t&&!n)return;
+    HalDoSticky.add(t,n,stickyState.color,false);
+    $('stkT').value='';$('stkN').value='';
+    buildSticky();
+    if(window.showToast)showToast('📋 Notiz erstellt','success');
+  },
+  view(id){
+    const n=HalDoSticky.all().find(x=>x.id===id);if(!n)return;
+    const m=document.createElement('div');m.className='os-modal show';m.style.zIndex='99999';
+    m.innerHTML='<div class="os-modal-box" style="max-width:520px">'+
+      '<div style="padding:20px;background:'+n.color+';color:#1a1000;border-radius:12px;margin-bottom:14px">'+
+      '<div style="font-size:18px;font-weight:900;margin-bottom:8px">'+esc(n.title||'(Ohne Titel)')+'</div>'+
+      '<div style="font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word">'+esc(n.text)+'</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+      '<button class="os-btn" style="flex:1" onclick="HalDoSticky.togglePin(\''+n.id+'\');this.closest(\'.os-modal\').remove();HalDoStickyApp.rebuild()">'+(n.pinned?'📌':'☆')+' Pin</button>'+
+      '<button class="os-btn danger" onclick="if(confirm(\'Löschen?\')){HalDoSticky.remove(\''+n.id+'\');this.closest(\'.os-modal\').remove();HalDoStickyApp.rebuild()}">🗑️</button>'+
+      '<button class="os-btn primary" style="flex:1" onclick="this.closest(\'.os-modal\').remove()">Schließen</button>'+
+      '</div></div>';
+    document.body.appendChild(m);
+    m.addEventListener('click',e=>{if(e.target===m)m.remove()});
+  },
+  rebuild(){buildSticky()}
+};
+
+// ═══ 6. NETWORK INFO ═══
+function buildNetwork(){
+  const w=$('network-window'); if(!w) return;
+  w.dataset.title='Netzwerk'; w.dataset.icon='📶';
+  const online=navigator.onLine;
+  const conn=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+  const ua=navigator.userAgent;
+  let browser='Unbekannt',os='Unbekannt';
+  if(/iPhone|iPad|iPod/.test(ua))os='iOS';else if(/Android/.test(ua))os='Android';else if(/Mac/.test(ua))os='macOS';else if(/Windows/.test(ua))os='Windows';else if(/Linux/.test(ua))os='Linux';
+  if(/Safari/.test(ua)&&!/Chrome/.test(ua))browser='Safari';else if(/Chrome/.test(ua)&&!/Edg/.test(ua))browser='Chrome';else if(/Firefox/.test(ua))browser='Firefox';else if(/Edg/.test(ua))browser='Edge';
+  const connType=conn?(conn.effectiveType||conn.type||'unbekannt'):'unbekannt';
+  const features=[
+    ['📷 Kamera',!!navigator.mediaDevices?.getUserMedia],
+    ['🎙️ Mikrofon',!!navigator.mediaDevices?.getUserMedia],
+    ['📍 GPS',!!navigator.geolocation],
+    ['📳 Vibration',!!navigator.vibrate],
+    ['🔔 Benachrichtigungen',!!window.Notification],
+    ['📋 Clipboard',!!navigator.clipboard],
+    ['🔊 Web Audio',!!(window.AudioContext||window.webkitAudioContext)],
+    ['🗣️ Speech',!!(window.SpeechRecognition||window.webkitSpeechRecognition)],
+    ['🔒 HTTPS',location.protocol==='https:'],
+    ['💾 LocalStorage',!!window.localStorage],
+    ['🛜 Service Worker',!!navigator.serviceWorker]
+  ];
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:20px">'+
+    '<div style="font-size:56px">'+(online?'✅':'❌')+'</div>'+
+    '<div style="font-size:20px;font-weight:900;color:#fff;margin:6px 0">'+(online?'Online':'Offline')+'</div>'+
+    '<div style="font-size:12px;color:'+(online?'#00ff88':'#ff4466')+'">'+(online?'Internetverbindung aktiv':'Keine Verbindung')+'</div>'+
+    '</div>'+
+    (conn?'<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px">'+(conn.downlink||'?')+'</div><div class="lbl">Mbit/s</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px">'+(conn.rtt||'?')+'</div><div class="lbl">ms Ping</div></div>'+
+    '</div>':'')+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">📡 Verbindung</div>'+
+    '<div style="font-size:12px;line-height:1.9;color:#aaddff">'+
+    '<div style="display:flex;justify-content:space-between"><span>Status</span><b style="color:'+(online?'#00ff88':'#ff4466')+'">'+(online?'Online':'Offline')+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span>Typ</span><b style="color:#fff">'+connType+'</b></div>'+
+    (conn?.saveData!==undefined?'<div style="display:flex;justify-content:space-between"><span>Datensparmodus</span><b style="color:#fff">'+(conn.saveData?'An':'Aus')+'</b></div>':'')+
+    '</div></div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">💻 Gerät</div>'+
+    '<div style="font-size:12px;line-height:1.9;color:#aaddff">'+
+    '<div style="display:flex;justify-content:space-between"><span>OS</span><b style="color:#fff">'+os+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span>Browser</span><b style="color:#fff">'+browser+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span>Sprache</span><b style="color:#fff">'+navigator.language+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span>CPU-Kerne</span><b style="color:#fff">'+(navigator.hardwareConcurrency||'?')+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span>RAM</span><b style="color:#fff">'+(navigator.deviceMemory?navigator.deviceMemory+' GB':'?')+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span>Zeitzone</span><b style="color:#fff">'+(Intl.DateTimeFormat().resolvedOptions().timeZone||'?')+'</b></div>'+
+    '</div></div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">🔧 Features</div>'+
+    features.map(([n,v])=>'<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px;border-bottom:1px solid rgba(0,229,255,.08)"><span style="color:#aaddff">'+n+'</span><b style="color:'+(v?'#00ff88':'#5a8ab0')+'">'+(v?'✅':'❌')+'</b></div>').join('')+
+    '</div>';
+}
+
+// ═══ INIT ═══
+function init(){
+  if(window.HalDoUI){
+    const orig=window.HalDoUI.rebuild;
+    window.HalDoUI.rebuild=function(id){
+      if(id==='healthcalc-window'){buildHealthCalc();return}
+      if(id==='emergency-window'){buildEmergency();return}
+      if(id==='worldclock-window'){buildWorldClock();return}
+      if(id==='heatmap-window'){buildHeatmap();return}
+      if(id==='sticky-window'){buildSticky();return}
+      if(id==='network-window'){buildNetwork();return}
+      if(orig)orig(id);
+    };
+  }
+  ['healthcalc-window','emergency-window','worldclock-window','heatmap-window','sticky-window','network-window'].forEach(id=>{
+    let el=$(id);
+    if(!el){el=document.createElement('div');el.id=id;document.body.appendChild(el)}
+    if(window.prepareWindow) window.prepareWindow(el);
+  });
+  console.log('%c🚀 v135 – 6 Apps geladen','color:#00ff88;font-weight:bold;font-size:14px');
+  console.log('%c✅ Health Calc · Emergency · World Clock · Heatmap · Sticky · Network','color:#4da8ff;font-weight:bold');
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(init,1000));
+}else{
+  setTimeout(init,1000);
+}
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════ ENDE v135 ═════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
