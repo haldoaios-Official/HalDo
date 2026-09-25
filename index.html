@@ -6436,5 +6436,522 @@ if(document.readyState==='loading'){
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════════════════════════════ ENDE v132 ═════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v133 – 6 APPS (Notes · Contacts · Finance · Recipes · Shopping · Music) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+"use strict";
+if(window.__v133) return;
+window.__v133 = true;
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const store=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const todayK=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+
+// ═══ 1. NOTES ADVANCED ═══
+window.HalDoNotesPro={
+  key:'haldo_notespro_v1',
+  folders:{general:{n:'Allgemein',i:'📁'},ideas:{n:'Ideen',i:'💡'},work:{n:'Arbeit',i:'💼'},personal:{n:'Persönlich',i:'👤'},learn:{n:'Lernen',i:'📚'},recipes:{n:'Rezepte',i:'🍳'}},
+  all(){return store(this.key,[])},
+  add(title,body,folder,color,pinned){
+    const l=this.all();
+    l.unshift({id:uid('n_'),title:title||'(Ohne Titel)',body:body||'',folder:folder||'general',color:color||'#00e5ff',pinned:!!pinned,created:Date.now(),updated:Date.now()});
+    save(this.key,l.slice(0,500));
+    return l[0].id;
+  },
+  remove(id){save(this.key,this.all().filter(x=>x.id!==id))},
+  togglePin(id){const l=this.all();const x=l.find(v=>v.id===id);if(x){x.pinned=!x.pinned;x.updated=Date.now();save(this.key,l)}}
+};
+
+let notesProState={filter:'all',search:''};
+function buildNotesPro(){
+  const w=$('notes-window'); if(!w) return;
+  w.dataset.title='Notes'; w.dataset.icon='📝';
+  const all=HalDoNotesPro.all();
+  let filtered=all;
+  if(notesProState.filter==='pinned') filtered=filtered.filter(n=>n.pinned);
+  else if(notesProState.filter!=='all') filtered=filtered.filter(n=>n.folder===notesProState.filter);
+  if(notesProState.search){const q=notesProState.search.toLowerCase();filtered=filtered.filter(n=>(n.title||'').toLowerCase().includes(q)||(n.body||'').toLowerCase().includes(q))}
+  filtered.sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)||b.updated-a.updated);
+  const chips='<button class="os-btn '+(notesProState.filter==='all'?'primary':'')+'" style="padding:6px 12px;font-size:11px;white-space:nowrap" onclick="HalDoNotesProApp.setFilter(\'all\')">Alle ('+all.length+')</button>'+
+    '<button class="os-btn '+(notesProState.filter==='pinned'?'primary':'')+'" style="padding:6px 12px;font-size:11px;white-space:nowrap" onclick="HalDoNotesProApp.setFilter(\'pinned\')">📌 Angepinnt</button>'+
+    Object.entries(HalDoNotesPro.folders).map(([k,f])=>{
+      const cnt=all.filter(n=>n.folder===k).length;
+      return '<button class="os-btn '+(notesProState.filter===k?'primary':'')+'" style="padding:6px 12px;font-size:11px;white-space:nowrap" onclick="HalDoNotesProApp.setFilter(\''+k+'\')">'+f.i+' '+f.n+' ('+cnt+')</button>';
+    }).join('');
+  const list=filtered.length?filtered.map(n=>{
+    const f=HalDoNotesPro.folders[n.folder]||HalDoNotesPro.folders.general;
+    return '<div class="card" style="padding:12px;border-left:4px solid '+n.color+';position:relative;'+(n.pinned?'background:rgba(0,229,255,.05)':'')+'">'+
+      (n.pinned?'<div style="position:absolute;top:6px;right:6px;font-size:14px">📌</div>':'')+
+      '<div style="font-size:13px;font-weight:800;color:#fff;margin-bottom:4px;padding-right:20px">'+esc(n.title)+'</div>'+
+      '<div style="font-size:11px;color:#aaddff;line-height:1.5;max-height:60px;overflow:hidden">'+esc((n.body||'').slice(0,160))+'</div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:10px;color:#5a8ab0">'+
+      '<span>'+f.i+' '+f.n+'</span>'+
+      '<div style="display:flex;gap:4px">'+
+      '<button class="os-btn" style="padding:4px 8px;font-size:11px" onclick="HalDoNotesPro.togglePin(\''+n.id+'\');HalDoNotesProApp.rebuild()">'+(n.pinned?'📍':'📌')+'</button>'+
+      '<button class="os-btn danger" style="padding:4px 8px;font-size:11px" onclick="if(confirm(\'Löschen?\')){HalDoNotesPro.remove(\''+n.id+'\');HalDoNotesProApp.rebuild()}">✕</button>'+
+      '</div></div></div>';
+  }).join(''):'<div class="empty"><div class="ei">📝</div><div class="et">Keine Notizen</div></div>';
+  w.innerHTML=
+    '<div class="card">'+
+    '<input class="os-input" id="npT" placeholder="Titel" style="margin-bottom:8px">'+
+    '<textarea class="os-textarea" id="npB" placeholder="Inhalt..." style="min-height:100px;margin-bottom:8px"></textarea>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+    '<select class="os-select" id="npF">'+Object.entries(HalDoNotesPro.folders).map(([k,f])=>'<option value="'+k+'">'+f.i+' '+f.n+'</option>').join('')+'</select>'+
+    '<select class="os-select" id="npC"><option value="#00e5ff">🔵 Cyan</option><option value="#ff5078">🔴 Rot</option><option value="#00ff88">🟢 Grün</option><option value="#ffc800">🟡 Gelb</option><option value="#b478ff">🟣 Lila</option></select>'+
+    '</div>'+
+    '<button class="os-btn primary full" onclick="HalDoNotesProApp.add()">📝 Notiz speichern</button>'+
+    '</div>'+
+    '<div class="card"><input class="os-input" placeholder="🔍 Suchen..." value="'+esc(notesProState.search)+'" oninput="HalDoNotesProApp.search(this.value)"></div>'+
+    '<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:10px">'+chips+'</div>'+
+    list;
+}
+
+window.HalDoNotesProApp={
+  setFilter(f){notesProState.filter=f;buildNotesPro()},
+  search(q){notesProState.search=q;buildNotesPro()},
+  add(){const t=$('npT').value.trim(),b=$('npB').value.trim();if(!t&&!b)return;HalDoNotesPro.add(t,b,$('npF').value,$('npC').value,false);$('npT').value='';$('npB').value='';buildNotesPro();if(window.showToast)showToast('📝 Notiz gespeichert','success')},
+  rebuild(){buildNotesPro()}
+};
+
+// ═══ 2. CONTACTS PRO ═══
+window.HalDoContactsPro={
+  key:'haldo_contactspro_v1',
+  cats:{family:{n:'Familie',i:'👨‍👩‍👧'},friend:{n:'Freunde',i:'👥'},work:{n:'Arbeit',i:'💼'},other:{n:'Sonstige',i:'📦'}},
+  all(){return store(this.key,[])},
+  add(first,last,phone,email,cat,address,birthday){
+    const l=this.all();
+    l.unshift({id:uid('c_'),first,last,phone,email,cat:cat||'other',address:address||'',birthday:birthday||'',fav:false,created:Date.now()});
+    save(this.key,l.slice(0,500));
+    return l[0].id;
+  },
+  remove(id){save(this.key,this.all().filter(x=>x.id!==id))},
+  toggleFav(id){const l=this.all();const x=l.find(v=>v.id===id);if(x){x.fav=!x.fav;save(this.key,l)}}
+};
+
+let contactsProState={filter:'all'};
+function buildContactsPro(){
+  const w=$('contacts-window'); if(!w) return;
+  w.dataset.title='Kontakte'; w.dataset.icon='👥';
+  const all=HalDoContactsPro.all();
+  let filtered=contactsProState.filter==='fav'?all.filter(c=>c.fav):(contactsProState.filter==='all'?all:all.filter(c=>c.cat===contactsProState.filter));
+  filtered.sort((a,b)=>{if(a.fav!==b.fav)return a.fav?-1:1;return (a.first+a.last).localeCompare(b.first+b.last,'de')});
+  const chips='<button class="os-btn '+(contactsProState.filter==='all'?'primary':'')+'" style="padding:6px 12px;font-size:11px;white-space:nowrap" onclick="HalDoContactsProApp.setFilter(\'all\')">Alle ('+all.length+')</button>'+
+    '<button class="os-btn '+(contactsProState.filter==='fav'?'primary':'')+'" style="padding:6px 12px;font-size:11px;white-space:nowrap" onclick="HalDoContactsProApp.setFilter(\'fav\')">⭐ Favoriten</button>'+
+    Object.entries(HalDoContactsPro.cats).map(([k,c])=>{
+      const cnt=all.filter(x=>x.cat===k).length;
+      return '<button class="os-btn '+(contactsProState.filter===k?'primary':'')+'" style="padding:6px 12px;font-size:11px;white-space:nowrap" onclick="HalDoContactsProApp.setFilter(\''+k+'\')">'+c.i+' '+c.n+' ('+cnt+')</button>';
+    }).join('');
+  const list=filtered.length?filtered.map(c=>{
+    const ini=((c.first||'?')[0]+(c.last||'')[0]).toUpperCase();
+    const cat=HalDoContactsPro.cats[c.cat]||HalDoContactsPro.cats.other;
+    return '<div class="card" style="padding:12px;display:flex;gap:10px;align-items:center">'+
+      '<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#00e5ff,#b478ff);display:flex;align-items:center;justify-content:center;font-weight:900;color:#001018;font-size:16px;flex-shrink:0">'+ini+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+      '<div style="font-size:14px;font-weight:800;color:#fff">'+esc((c.first||'')+' '+(c.last||''))+'</div>'+
+      '<div style="font-size:11px;color:#7ce0ff;margin-top:2px">'+cat.i+' '+cat.n+(c.phone?' · 📞 '+esc(c.phone):'')+'</div>'+
+      '</div>'+
+      (c.phone?'<a href="tel:'+esc(c.phone)+'" style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#00ff88,#00e5ff);display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:16px;flex-shrink:0">📞</a>':'')+
+      '<button class="os-btn" style="padding:6px 8px;font-size:12px" onclick="HalDoContactsPro.toggleFav(\''+c.id+'\');HalDoContactsProApp.rebuild()">'+(c.fav?'⭐':'☆')+'</button>'+
+      '<button class="os-btn danger" style="padding:6px 8px;font-size:11px" onclick="if(confirm(\'Löschen?\')){HalDoContactsPro.remove(\''+c.id+'\');HalDoContactsProApp.rebuild()}">✕</button>'+
+      '</div>';
+  }).join(''):'<div class="empty"><div class="ei">👥</div><div class="et">Keine Kontakte</div></div>';
+  w.innerHTML=
+    '<div class="card">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+    '<input class="os-input" id="cpF" placeholder="Vorname">'+
+    '<input class="os-input" id="cpL" placeholder="Nachname">'+
+    '</div>'+
+    '<input class="os-input" id="cpP" type="tel" placeholder="Telefon +49..." style="margin-bottom:8px">'+
+    '<input class="os-input" id="cpE" type="email" placeholder="E-Mail" style="margin-bottom:8px">'+
+    '<input class="os-input" id="cpA" placeholder="Adresse" style="margin-bottom:8px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+    '<select class="os-select" id="cpC">'+Object.entries(HalDoContactsPro.cats).map(([k,c])=>'<option value="'+k+'">'+c.i+' '+c.n+'</option>').join('')+'</select>'+
+    '<input class="os-input" id="cpB" type="date" placeholder="Geburtstag">'+
+    '</div>'+
+    '<button class="os-btn primary full" onclick="HalDoContactsProApp.add()">👥 Kontakt speichern</button>'+
+    '</div>'+
+    '<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:10px">'+chips+'</div>'+
+    list;
+}
+
+window.HalDoContactsProApp={
+  setFilter(f){contactsProState.filter=f;buildContactsPro()},
+  add(){
+    const f=$('cpF').value.trim(),l=$('cpL').value.trim();
+    if(!f&&!l)return;
+    HalDoContactsPro.add(f,l,$('cpP').value.trim(),$('cpE').value.trim(),$('cpC').value,$('cpA').value.trim(),$('cpB').value);
+    ['cpF','cpL','cpP','cpE','cpA','cpB'].forEach(id=>$(id).value='');
+    buildContactsPro();
+    if(window.showToast)showToast('👥 Kontakt gespeichert','success');
+  },
+  rebuild(){buildContactsPro()}
+};
+
+// ═══ 3. FINANCE PRO ═══
+window.HalDoFinancePro={
+  key:'haldo_financepro_v1',
+  cats:{food:{n:'Essen',i:'🍔',t:'expense'},transport:{n:'Transport',i:'🚗',t:'expense'},home:{n:'Wohnen',i:'🏠',t:'expense'},shopping:{n:'Shopping',i:'🛍️',t:'expense'},health:{n:'Gesundheit',i:'💊',t:'expense'},fun:{n:'Freizeit',i:'🎮',t:'expense'},bills:{n:'Rechnungen',i:'📄',t:'expense'},salary:{n:'Gehalt',i:'💼',t:'income'},gift:{n:'Geschenk',i:'🎁',t:'income'},other_i:{n:'Sonstige',i:'💰',t:'income'}},
+  all(){return store(this.key,[])},
+  add(type,title,amount,cat,date,note){
+    const l=this.all();
+    l.unshift({id:uid('f_'),type,title,amount:parseFloat(amount)||0,cat:cat||'other',date:date||todayK(),note:note||'',created:Date.now()});
+    save(this.key,l.slice(0,1000));
+    return l[0].id;
+  },
+  remove(id){save(this.key,this.all().filter(x=>x.id!==id))},
+  income(){return this.all().filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0)},
+  expense(){return this.all().filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0)},
+  balance(){return this.income()-this.expense()},
+  byMonth(){const m={};this.all().forEach(t=>{const mk=t.date.slice(0,7);if(!m[mk])m[mk]={in:0,out:0};if(t.type==='income')m[mk].in+=t.amount;else m[mk].out+=t.amount});return m}
+};
+
+let financeProState={filter:'all'};
+function buildFinancePro(){
+  const w=$('finance-window'); if(!w) return;
+  w.dataset.title='Finanzen'; w.dataset.icon='💰';
+  const all=HalDoFinancePro.all();
+  const bal=HalDoFinancePro.balance();
+  const inc=HalDoFinancePro.income();
+  const exp=HalDoFinancePro.expense();
+  let filtered=all;
+  if(financeProState.filter==='income')filtered=all.filter(t=>t.type==='income');
+  else if(financeProState.filter==='expense')filtered=all.filter(t=>t.type==='expense');
+  filtered=filtered.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.created-a.created);
+  // Chart
+  const byMonth=HalDoFinancePro.byMonth();
+  const months=Object.keys(byMonth).sort().slice(-6);
+  const maxVal=Math.max(1,...months.map(m=>Math.max(byMonth[m].in,byMonth[m].out)));
+  const chart=months.map(m=>{
+    const [y,mo]=m.split('-');
+    const mn=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][parseInt(mo)-1];
+    const ih=Math.round(byMonth[m].in/maxVal*100),oh=Math.round(byMonth[m].out/maxVal*100);
+    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:30px">'+
+      '<div style="display:flex;gap:2px;align-items:flex-end;height:80px;width:100%">'+
+      '<div style="flex:1;background:linear-gradient(180deg,#00ff88,#00e5ff);border-radius:3px 3px 0 0;height:'+ih+'%;min-height:3px"></div>'+
+      '<div style="flex:1;background:linear-gradient(180deg,#ff4466,#ff8899);border-radius:3px 3px 0 0;height:'+oh+'%;min-height:3px"></div>'+
+      '</div><div style="font-size:9px;color:#88ccff;font-weight:800">'+mn+'</div></div>';
+  }).join('')||'<div style="text-align:center;color:#5a8ab0;font-size:12px;width:100%">Noch keine Daten</div>';
+  const list=filtered.length?filtered.slice(0,50).map(t=>{
+    const cat=HalDoFinancePro.cats[t.cat]||{n:'Sonstiges',i:'📦'};
+    return '<div class="card" style="padding:10px;display:flex;gap:10px;align-items:center;border-left:4px solid '+(t.type==='income'?'#00ff88':'#ff4466')+'">'+
+      '<div style="font-size:24px;width:36px;text-align:center">'+cat.i+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+      '<div style="font-size:13px;font-weight:800;color:#fff">'+esc(t.title)+'</div>'+
+      '<div style="font-size:10px;color:#7ce0ff;margin-top:2px">'+cat.n+' · '+t.date+'</div>'+
+      '</div>'+
+      '<div style="font-size:15px;font-weight:900;color:'+(t.type==='income'?'#00ff88':'#ff4466')+'">'+(t.type==='income'?'+':'-')+t.amount.toFixed(2)+' €</div>'+
+      '<button class="os-btn danger" style="padding:4px 8px;font-size:11px" onclick="if(confirm(\'Löschen?\')){HalDoFinancePro.remove(\''+t.id+'\');HalDoFinanceProApp.rebuild()}">✕</button>'+
+      '</div>';
+  }).join(''):'<div class="empty"><div class="ei">💰</div><div class="et">Keine Buchungen</div></div>';
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:20px;background:linear-gradient(135deg,'+(bal>=0?'rgba(0,255,136,.15),rgba(0,229,255,.15)':'rgba(255,68,102,.15),rgba(255,120,200,.15)')+')">'+
+    '<div style="font-size:44px;font-weight:900;color:'+(bal>=0?'#00ff88':'#ff4466')+';line-height:1;text-shadow:0 0 20px currentColor">'+bal.toFixed(2)+' €</div>'+
+    '<div class="lbl" style="margin-top:6px">Aktueller Saldo</div>'+
+    '</div>'+
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px;color:#00ff88">+'+inc.toFixed(0)+' €</div><div class="lbl">Einnahmen</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px;color:#ff4466">-'+exp.toFixed(0)+' €</div><div class="lbl">Ausgaben</div></div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:10px">📊 Letzte 6 Monate</div>'+
+    '<div style="display:flex;gap:4px;align-items:flex-end;height:100px">'+chart+'</div>'+
+    '<div style="display:flex;gap:12px;justify-content:center;margin-top:8px;font-size:10px"><span style="color:#00ff88">■ Einnahmen</span><span style="color:#ff4466">■ Ausgaben</span></div></div>'+
+    '<div class="card">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+    '<select class="os-select" id="fpType"><option value="expense">💸 Ausgabe</option><option value="income">💰 Einnahme</option></select>'+
+    '<select class="os-select" id="fpCat">'+Object.entries(HalDoFinancePro.cats).map(([k,c])=>'<option value="'+k+'">'+c.i+' '+c.n+'</option>').join('')+'</select>'+
+    '</div>'+
+    '<input class="os-input" id="fpT" placeholder="Beschreibung" style="margin-bottom:8px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+    '<input class="os-input" id="fpA" type="number" step="0.01" placeholder="Betrag €">'+
+    '<input class="os-input" id="fpD" type="date" value="'+todayK()+'">'+
+    '</div>'+
+    '<button class="os-btn primary full" onclick="HalDoFinanceProApp.add()">💰 Buchung speichern</button>'+
+    '</div>'+
+    '<div style="display:flex;gap:4px;margin-bottom:10px">'+
+    '<button class="os-btn '+(financeProState.filter==='all'?'primary':'')+'" style="flex:1;padding:8px;font-size:11px" onclick="HalDoFinanceProApp.setFilter(\'all\')">Alle</button>'+
+    '<button class="os-btn '+(financeProState.filter==='income'?'primary':'')+'" style="flex:1;padding:8px;font-size:11px" onclick="HalDoFinanceProApp.setFilter(\'income\')">Einnahmen</button>'+
+    '<button class="os-btn '+(financeProState.filter==='expense'?'primary':'')+'" style="flex:1;padding:8px;font-size:11px" onclick="HalDoFinanceProApp.setFilter(\'expense\')">Ausgaben</button>'+
+    '</div>'+list;
+}
+
+window.HalDoFinanceProApp={
+  setFilter(f){financeProState.filter=f;buildFinancePro()},
+  add(){
+    const t=$('fpT').value.trim(),a=parseFloat($('fpA').value);
+    if(!t||!a)return;
+    HalDoFinancePro.add($('fpType').value,t,a,$('fpCat').value,$('fpD').value,'');
+    $('fpT').value='';$('fpA').value='';
+    buildFinancePro();
+    if(window.showToast)showToast('💰 Buchung gespeichert','success');
+  },
+  rebuild(){buildFinancePro()}
+};
+
+// ═══ 4. RECIPES PRO ═══
+window.HalDoRecipesPro={
+  key:'haldo_recipespro_v1',
+  cats:{haupt:{n:'Hauptgericht',i:'🍽️'},fruehstueck:{n:'Frühstück',i:'🥐'},suppe:{n:'Suppe',i:'🍲'},salat:{n:'Salat',i:'🥗'},dessert:{n:'Dessert',i:'🍰'},getraenk:{n:'Getränk',i:'🥤'}},
+  all(){return store(this.key,[])},
+  add(name,ingredients,steps,cat,emoji,prep){
+    const l=this.all();
+    l.unshift({id:uid('rc_'),name,ingredients,steps,cat:cat||'haupt',emoji:emoji||'🍽️',prep:prep||30,created:Date.now()});
+    save(this.key,l.slice(0,300));
+    return l[0].id;
+  },
+  remove(id){save(this.key,this.all().filter(x=>x.id!==id))}
+};
+
+let recipesProState={cat:'all',emoji:'🍽️'};
+const RC_EMOJIS=['🍽️','🍝','🍕','🍔','🍜','🍲','🥗','🥘','🍰','🍪','🥐','🍳','☕','🍵','🥤'];
+
+function buildRecipesPro(){
+  const w=$('recipes-window'); if(!w) return;
+  w.dataset.title='Rezepte'; w.dataset.icon='🍳';
+  const all=HalDoRecipesPro.all();
+  let filtered=recipesProState.cat==='all'?all:all.filter(r=>r.cat===recipesProState.cat);
+  const chips='<button class="os-btn '+(recipesProState.cat==='all'?'primary':'')+'" style="padding:6px 12px;font-size:11px;white-space:nowrap" onclick="HalDoRecipesProApp.setCat(\'all\')">Alle ('+all.length+')</button>'+
+    Object.entries(HalDoRecipesPro.cats).map(([k,c])=>{
+      const cnt=all.filter(r=>r.cat===k).length;
+      return '<button class="os-btn '+(recipesProState.cat===k?'primary':'')+'" style="padding:6px 12px;font-size:11px;white-space:nowrap" onclick="HalDoRecipesProApp.setCat(\''+k+'\')">'+c.i+' '+c.n+' ('+cnt+')</button>';
+    }).join('');
+  const emojiRow=RC_EMOJIS.map(e=>'<button class="os-btn '+(recipesProState.emoji===e?'primary':'')+'" style="padding:6px 8px;font-size:16px;flex:1;min-width:38px" onclick="HalDoRecipesProApp.setEmoji(\''+e+'\')">'+e+'</button>').join('');
+  const list=filtered.length?filtered.map(r=>{
+    const cat=HalDoRecipesPro.cats[r.cat]||HalDoRecipesPro.cats.haupt;
+    return '<div class="card" style="padding:12px">'+
+      '<div style="display:flex;gap:12px;align-items:flex-start">'+
+      '<div style="font-size:36px;width:48px;text-align:center">'+r.emoji+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+      '<div style="font-size:14px;font-weight:800;color:#fff">'+esc(r.name)+'</div>'+
+      '<div style="font-size:10px;color:#7ce0ff;margin-top:3px">'+cat.i+' '+cat.n+' · ⏱️ '+r.prep+' Min</div>'+
+      '<div style="font-size:11px;color:#aaddff;margin-top:6px;line-height:1.5">'+esc((r.ingredients||'').slice(0,120))+'</div>'+
+      '</div>'+
+      '<button class="os-btn danger" style="padding:6px 10px;font-size:11px" onclick="if(confirm(\'Löschen?\')){HalDoRecipesPro.remove(\''+r.id+'\');HalDoRecipesProApp.rebuild()}">✕</button>'+
+      '</div></div>';
+  }).join(''):'<div class="empty"><div class="ei">🍳</div><div class="et">Keine Rezepte</div></div>';
+  w.innerHTML=
+    '<div class="card">'+
+    '<input class="os-input" id="rpN" placeholder="Rezeptname" style="margin-bottom:8px">'+
+    '<div class="lbl" style="margin-bottom:6px">Icon</div>'+
+    '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">'+emojiRow+'</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+    '<select class="os-select" id="rpC">'+Object.entries(HalDoRecipesPro.cats).map(([k,c])=>'<option value="'+k+'">'+c.i+' '+c.n+'</option>').join('')+'</select>'+
+    '<input class="os-input" id="rpP" type="number" placeholder="Min" value="30">'+
+    '</div>'+
+    '<textarea class="os-textarea" id="rpI" placeholder="Zutaten (eine pro Zeile)" style="min-height:80px;margin-bottom:8px"></textarea>'+
+    '<textarea class="os-textarea" id="rpS" placeholder="Zubereitung (eine pro Zeile)" style="min-height:80px;margin-bottom:8px"></textarea>'+
+    '<button class="os-btn primary full" onclick="HalDoRecipesProApp.add()">🍳 Rezept speichern</button>'+
+    '</div>'+
+    '<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:10px">'+chips+'</div>'+
+    list;
+}
+
+window.HalDoRecipesProApp={
+  setCat(c){recipesProState.cat=c;buildRecipesPro()},
+  setEmoji(e){recipesProState.emoji=e;buildRecipesPro()},
+  add(){
+    const n=$('rpN').value.trim();if(!n)return;
+    HalDoRecipesPro.add(n,$('rpI').value,$('rpS').value,$('rpC').value,recipesProState.emoji,parseInt($('rpP').value)||30);
+    $('rpN').value='';$('rpI').value='';$('rpS').value='';
+    buildRecipesPro();
+    if(window.showToast)showToast('🍳 Rezept gespeichert','success');
+  },
+  rebuild(){buildRecipesPro()}
+};
+
+// ═══ 5. SHOPPING PRO ═══
+window.HalDoShoppingPro={
+  key:'haldo_shoppingpro_v1',
+  cats:{obst:{n:'Obst',i:'🍎',keys:['apfel','äpfel','banane','orange','birne','traube','beere','kirsche','zitrone','erdbeer','melone','kiwi','mango']},
+    gemuese:{n:'Gemüse',i:'🥦',keys:['tomate','gurke','salat','karotte','möhre','zwiebel','knoblauch','paprika','kartoffel','brokkoli','spinat','zucchini','pilz']},
+    fleisch:{n:'Fleisch',i:'🥩',keys:['fleisch','huhn','hähnchen','rind','schwein','hack','wurst','salami','schinken','speck','fisch','lachs']},
+    milch:{n:'Milch/Eier',i:'🥛',keys:['milch','käse','joghurt','butter','quark','sahne','eier','ei','frischkäse']},
+    brot:{n:'Backwaren',i:'🥖',keys:['brot','brötchen','semmel','baguette','toast','mehl','nudeln','pasta','reis']},
+    getraenke:{n:'Getränke',i:'🥤',keys:['wasser','saft','cola','bier','wein','kaffee','tee','limonade']},
+    haushalt:{n:'Haushalt',i:'🧴',keys:['spülmittel','waschmittel','klopapier','seife','shampoo','zahnpasta','schwamm']},
+    sonstiges:{n:'Sonstiges',i:'📦',keys:[]}
+  },
+  all(){return store(this.key,[])},
+  detectCat(name){
+    const lc=name.toLowerCase();
+    for(const [k,c] of Object.entries(this.cats)){
+      if(c.keys&&c.keys.some(x=>lc.includes(x)))return k;
+    }
+    return 'sonstiges';
+  },
+  add(name,cat){
+    const l=this.all();
+    const c=cat||this.detectCat(name);
+    const existing=l.find(i=>i.name.toLowerCase()===name.toLowerCase()&&!i.done);
+    if(existing)return existing.id;
+    l.unshift({id:uid('s_'),name,cat:c,done:false,created:Date.now()});
+    save(this.key,l.slice(0,500));
+    return l[0].id;
+  },
+  toggle(id){const l=this.all();const x=l.find(i=>i.id===id);if(x){x.done=!x.done;save(this.key,l)}},
+  remove(id){save(this.key,this.all().filter(x=>x.id!==id))},
+  clearDone(){save(this.key,this.all().filter(i=>!i.done))},
+  open(){return this.all().filter(i=>!i.done)}
+};
+
+function buildShoppingPro(){
+  const w=$('shopping-window'); if(!w) return;
+  w.dataset.title='Einkauf'; w.dataset.icon='🛒';
+  const all=HalDoShoppingPro.all();
+  const open=HalDoShoppingPro.open();
+  const doneCount=all.filter(i=>i.done).length;
+  // Gruppieren
+  const groups={};
+  Object.keys(HalDoShoppingPro.cats).forEach(k=>groups[k]=[]);
+  all.forEach(i=>{if(!groups[i.cat])groups[i.cat]=[];groups[i.cat].push(i)});
+  let bodyHtml='';
+  Object.entries(HalDoShoppingPro.cats).forEach(([k,c])=>{
+    const items=groups[k];if(!items||!items.length)return;
+    items.sort((a,b)=>(a.done?1:0)-(b.done?1:0)||a.created-b.created);
+    bodyHtml+='<div style="margin-bottom:14px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding-left:4px">'+
+      '<span style="font-size:12px;font-weight:900;color:#7ce0ff;text-transform:uppercase;letter-spacing:1px">'+c.i+' '+c.n+'</span>'+
+      '<span style="font-size:10px;color:#5a8ab0">'+items.filter(i=>i.done).length+'/'+items.length+'</span>'+
+      '</div>'+
+      items.map(i=>'<div class="card" style="padding:10px;display:flex;gap:10px;align-items:center;margin-bottom:4px;'+(i.done?'opacity:.5':'')+'">'+
+        '<div style="width:24px;height:24px;border-radius:8px;border:2px solid '+(i.done?'#00ff88':'var(--border)')+';background:'+(i.done?'linear-gradient(135deg,#00ff88,#00e5ff)':'transparent')+';display:flex;align-items:center;justify-content:center;color:#001018;font-size:13px;font-weight:900;cursor:pointer;flex-shrink:0" onclick="HalDoShoppingPro.toggle(\''+i.id+'\');HalDoShoppingProApp.rebuild()">'+(i.done?'✓':'')+'</div>'+
+        '<div style="flex:1;font-size:13px;font-weight:700;color:#fff;'+(i.done?'text-decoration:line-through':'')+'">'+esc(i.name)+'</div>'+
+        '<button class="os-btn danger" style="padding:4px 8px;font-size:11px" onclick="HalDoShoppingPro.remove(\''+i.id+'\');HalDoShoppingProApp.rebuild()">✕</button>'+
+        '</div>').join('')+
+      '</div>';
+  });
+  const pct=all.length?Math.round(doneCount/all.length*100):0;
+  w.innerHTML=
+    '<div class="card">'+
+    '<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span class="lbl">Fortschritt</span><span style="font-size:12px;color:#00e5ff;font-weight:900">'+doneCount+'/'+all.length+' · '+pct+'%</span></div>'+
+    '<div style="height:8px;background:rgba(0,0,0,.4);border-radius:4px;overflow:hidden;border:1px solid rgba(0,229,255,.2)"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#00e5ff,#00ff88);box-shadow:0 0 10px var(--glow);transition:width .5s"></div></div>'+
+    '</div>'+
+    '<div class="card">'+
+    '<div style="display:flex;gap:6px">'+
+    '<input class="os-input" id="spN" placeholder="Artikel hinzufügen..." onkeypress="if(event.key===\'Enter\')HalDoShoppingProApp.add()" style="flex:1">'+
+    '<button class="os-btn primary" onclick="HalDoShoppingProApp.add()">✚</button>'+
+    '</div></div>'+
+    (doneCount?'<button class="os-btn danger full" style="margin-bottom:14px;padding:10px;font-size:12px" onclick="if(confirm(\'Erledigte löschen?\')){HalDoShoppingPro.clearDone();HalDoShoppingProApp.rebuild()}">🧹 '+doneCount+' erledigte löschen</button>':'')+
+    (all.length?bodyHtml:'<div class="empty"><div class="ei">🛒</div><div class="et">Liste ist leer</div></div>');
+}
+
+window.HalDoShoppingProApp={
+  add(){const n=$('spN').value.trim();if(!n)return;HalDoShoppingPro.add(n);$('spN').value='';buildShoppingPro();if(navigator.vibrate)navigator.vibrate(8)},
+  rebuild(){buildShoppingPro()}
+};
+
+// ═══ 6. MUSIC PLAYER PRO ═══
+let musicState={tracks:[],currentIdx:-1,playing:false,audio:null,shuffle:false,repeat:false};
+
+function buildMusicPro(){
+  const w=$('music-window'); if(!w) return;
+  w.dataset.title='Music'; w.dataset.icon='🎵';
+  const cur=musicState.tracks[musicState.currentIdx];
+  const list=musicState.tracks.length?musicState.tracks.map((t,i)=>
+    '<div class="card" style="padding:10px;display:flex;gap:10px;align-items:center;cursor:pointer;'+(i===musicState.currentIdx?'border-color:var(--cyan);background:rgba(0,229,255,.08)':'')+'" onclick="HalDoMusicProApp.play('+i+')">'+
+    '<div style="font-size:20px;width:32px;text-align:center">'+(i===musicState.currentIdx&&musicState.playing?'▶️':'🎵')+'</div>'+
+    '<div style="flex:1;min-width:0">'+
+    '<div style="font-size:13px;font-weight:800;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.name)+'</div>'+
+    '<div style="font-size:10px;color:#7ce0ff">'+esc(t.artist||'Unbekannt')+'</div>'+
+    '</div>'+
+    '<button class="os-btn danger" style="padding:4px 8px;font-size:11px" onclick="event.stopPropagation();HalDoMusicProApp.remove('+i+')">✕</button>'+
+    '</div>').join(''):'<div class="empty"><div class="ei">🎵</div><div class="et">Noch keine Musik</div><div class="es">Lade Audiodateien hoch</div></div>';
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:20px 16px">'+
+    '<div style="font-size:60px;margin-bottom:12px;'+(musicState.playing?'animation:musPulse 1s infinite':'')+'">🎵</div>'+
+    '<div style="font-size:15px;font-weight:900;color:#fff;margin-bottom:4px">'+(cur?esc(cur.name):'Kein Track')+'</div>'+
+    '<div style="font-size:11px;color:#7ce0ff;margin-bottom:16px">'+(cur?esc(cur.artist||'Unbekannt'):'Wähle einen Track')+'</div>'+
+    '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">'+
+    '<button class="os-btn" style="padding:12px 18px;font-size:18px" onclick="HalDoMusicProApp.prev()">⏮</button>'+
+    '<button class="os-btn primary" style="padding:14px 24px;font-size:22px" onclick="HalDoMusicProApp.toggle()">'+(musicState.playing?'⏸':'▶')+'</button>'+
+    '<button class="os-btn" style="padding:12px 18px;font-size:18px" onclick="HalDoMusicProApp.next()">⏭</button>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;justify-content:center;margin-top:10px">'+
+    '<button class="os-btn '+(musicState.shuffle?'primary':'')+'" style="padding:6px 12px;font-size:11px" onclick="HalDoMusicProApp.toggleShuffle()">🔀 Zufall</button>'+
+    '<button class="os-btn '+(musicState.repeat?'primary':'')+'" style="padding:6px 12px;font-size:11px" onclick="HalDoMusicProApp.toggleRepeat()">🔁 Wiederh.</button>'+
+    '</div>'+
+    '<style>@keyframes musPulse{50%{transform:scale(1.1)}}</style>'+
+    '</div>'+
+    '<div class="card">'+
+    '<input type="file" id="mpFile" accept="audio/*" multiple style="display:none" onchange="HalDoMusicProApp.load(this)">'+
+    '<button class="os-btn primary full" onclick="document.getElementById(\'mpFile\').click()">📁 Musik laden</button>'+
+    '</div>'+
+    '<div class="lbl" style="margin:14px 0 8px">📀 Playlist ('+musicState.tracks.length+')</div>'+
+    list;
+}
+
+window.HalDoMusicProApp={
+  load(input){
+    const files=Array.from(input.files||[]).filter(f=>f.type.startsWith('audio/'));
+    files.forEach(f=>{
+      const url=URL.createObjectURL(f);
+      const nameParts=f.name.replace(/\.[^.]+$/,'').split(' - ');
+      musicState.tracks.push({name:nameParts.length>1?nameParts.slice(1).join(' - '):f.name,artist:nameParts.length>1?nameParts[0]:'Unbekannt',url});
+    });
+    input.value='';
+    buildMusicPro();
+    if(window.showToast)showToast('🎵 '+files.length+' Track(s) geladen','success');
+  },
+  play(i){
+    if(i<0||i>=musicState.tracks.length)return;
+    musicState.currentIdx=i;
+    const t=musicState.tracks[i];
+    if(!musicState.audio){musicState.audio=new Audio();musicState.audio.onended=()=>this.onEnd()}
+    musicState.audio.src=t.url;
+    musicState.audio.play().then(()=>{musicState.playing=true;buildMusicPro()}).catch(()=>{});
+  },
+  toggle(){
+    if(!musicState.audio||musicState.currentIdx<0){if(musicState.tracks.length)this.play(0);return}
+    if(musicState.playing){musicState.audio.pause();musicState.playing=false}
+    else{musicState.audio.play();musicState.playing=true}
+    buildMusicPro();
+  },
+  prev(){if(!musicState.tracks.length)return;let i=musicState.currentIdx-1;if(i<0)i=musicState.tracks.length-1;this.play(i)},
+  next(){if(!musicState.tracks.length)return;let i;if(musicState.shuffle)i=Math.floor(Math.random()*musicState.tracks.length);else i=(musicState.currentIdx+1)%musicState.tracks.length;this.play(i)},
+  onEnd(){if(musicState.repeat&&musicState.audio){musicState.audio.currentTime=0;musicState.audio.play()}else this.next()},
+  toggleShuffle(){musicState.shuffle=!musicState.shuffle;buildMusicPro()},
+  toggleRepeat(){musicState.repeat=!musicState.repeat;buildMusicPro()},
+  remove(i){if(i===musicState.currentIdx&&musicState.audio){musicState.audio.pause();musicState.playing=false;musicState.currentIdx=-1}musicState.tracks.splice(i,1);buildMusicPro()},
+  rebuild(){buildMusicPro()}
+};
+
+// ═══ INIT ═══
+function init(){
+  if(window.HalDoUI){
+    const orig=window.HalDoUI.rebuild;
+    window.HalDoUI.rebuild=function(id){
+      if(id==='notes-window'){buildNotesPro();return}
+      if(id==='contacts-window'){buildContactsPro();return}
+      if(id==='finance-window'){buildFinancePro();return}
+      if(id==='recipes-window'){buildRecipesPro();return}
+      if(id==='shopping-window'){buildShoppingPro();return}
+      if(id==='music-window'){buildMusicPro();return}
+      if(orig)orig(id);
+    };
+  }
+  ['notes-window','contacts-window','finance-window','recipes-window','shopping-window','music-window'].forEach(id=>{
+    const el=$(id);
+    if(el&&window.prepareWindow) window.prepareWindow(el);
+  });
+  console.log('%c🚀 v133 – 6 Apps geladen','color:#00ff88;font-weight:bold;font-size:14px');
+  console.log('%c✅ Notes · Contacts · Finance · Recipes · Shopping · Music','color:#4da8ff;font-weight:bold');
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(init,1000));
+}else{
+  setTimeout(init,1000);
+}
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════ ENDE v133 ═════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
