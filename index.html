@@ -4578,5 +4578,602 @@ if(document.readyState==='loading'){
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════════════════════════════ ENDE v128 ═════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v129 – 6 SPRACHEN-APPS (Translator · Dict · Phrase · Vocab · Quiz · Pronounce) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+"use strict";
+if(window.__v129) return;
+window.__v129 = true;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const store = (k,def) => { try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def }catch(e){ return def } };
+const save = (k,v) => { try{ localStorage.setItem(k,JSON.stringify(v)) }catch(e){} };
+
+// ═══════════════════════════════════════════════════════════
+// 30 SPRACHEN
+// ═══════════════════════════════════════════════════════════
+const LANGS={
+  de:{n:'🇩🇪 Deutsch', code:'de-DE'},
+  en:{n:'🇬🇧 Englisch', code:'en-GB'},
+  tr:{n:'🇹🇷 Türkisch', code:'tr-TR'},
+  ar:{n:'🇸🇦 Arabisch', code:'ar-SA'},
+  ku:{n:'🟨 Kurdisch (Kurmandschi)', code:'ku-TR'},
+  fa:{n:'🇮🇷 Persisch', code:'fa-IR'},
+  fr:{n:'🇫🇷 Französisch', code:'fr-FR'},
+  es:{n:'🇪🇸 Spanisch', code:'es-ES'},
+  it:{n:'🇮🇹 Italienisch', code:'it-IT'},
+  pt:{n:'🇵🇹 Portugiesisch', code:'pt-PT'},
+  ru:{n:'🇷🇺 Russisch', code:'ru-RU'},
+  zh:{n:'🇨🇳 Chinesisch', code:'zh-CN'},
+  ja:{n:'🇯🇵 Japanisch', code:'ja-JP'},
+  ko:{n:'🇰🇷 Koreanisch', code:'ko-KR'},
+  hi:{n:'🇮🇳 Hindi', code:'hi-IN'},
+  bn:{n:'🇧🇩 Bengalisch', code:'bn-BD'},
+  ur:{n:'🇵🇰 Urdu', code:'ur-PK'},
+  he:{n:'🇮🇱 Hebräisch', code:'he-IL'},
+  el:{n:'🇬🇷 Griechisch', code:'el-GR'},
+  pl:{n:'🇵🇱 Polnisch', code:'pl-PL'},
+  nl:{n:'🇳🇱 Niederländisch', code:'nl-NL'},
+  sv:{n:'🇸🇪 Schwedisch', code:'sv-SE'},
+  no:{n:'🇳🇴 Norwegisch', code:'no-NO'},
+  da:{n:'🇩🇰 Dänisch', code:'da-DK'},
+  fi:{n:'🇫🇮 Finnisch', code:'fi-FI'},
+  cs:{n:'🇨🇿 Tschechisch', code:'cs-CZ'},
+  hu:{n:'🇭🇺 Ungarisch', code:'hu-HU'},
+  ro:{n:'🇷🇴 Rumänisch', code:'ro-RO'},
+  uk:{n:'🇺🇦 Ukrainisch', code:'uk-UA'},
+  vi:{n:'🇻🇳 Vietnamesisch', code:'vi-VN'},
+  th:{n:'🇹🇭 Thailändisch', code:'th-TH'},
+  id:{n:'🇮🇩 Indonesisch', code:'id-ID'},
+  sw:{n:'🇰🇪 Suaheli', code:'sw-KE'}
+};
+
+// ═══════════════════════════════════════════════════════════
+// 1. TRANSLATOR PRO (30 Sprachen)
+// ═══════════════════════════════════════════════════════════
+let trState={from:'de', to:'en', text:'', result:'', history:[]};
+
+function trBuildLangOptions(selected){
+  return Object.entries(LANGS).map(([k,v])=>
+    '<option value="'+k+'" '+(selected===k?'selected':'')+'>'+v.n+'</option>'
+  ).join('');
+}
+
+function buildTranslatorPro(){
+  const w=$('translator-pro-window'); if(!w) return;
+  w.dataset.title='Translator Pro'; w.dataset.icon='🌐';
+  const history=trState.history.slice(0,10).map((h,i)=>
+    '<div class="card" style="padding:8px;cursor:pointer" onclick="HalDoTranslatorPro.load('+i+')">'+
+    '<div style="font-size:10px;color:#7ce0ff;margin-bottom:4px">'+LANGS[h.from].n+' → '+LANGS[h.to].n+'</div>'+
+    '<div style="font-size:11px;color:#aaddff;margin-bottom:2px">'+esc(h.text.slice(0,80))+'</div>'+
+    '<div style="font-size:12px;color:#fff;font-weight:700">'+esc(h.result.slice(0,100))+'</div>'+
+    '</div>'
+  ).join('');
+  w.innerHTML=
+    '<div class="card">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">'+
+    '<select class="os-select" id="trFrom" onchange="HalDoTranslatorPro.setFrom(this.value)">'+trBuildLangOptions(trState.from)+'</select>'+
+    '<select class="os-select" id="trTo" onchange="HalDoTranslatorPro.setTo(this.value)">'+trBuildLangOptions(trState.to)+'</select>'+
+    '</div>'+
+    '<button class="os-btn" style="width:100%;margin-bottom:10px;padding:8px;font-size:12px" onclick="HalDoTranslatorPro.swap()">⇄ Sprachen tauschen</button>'+
+    '<textarea class="os-textarea" id="trInput" placeholder="Text eingeben..." style="min-height:100px;margin-bottom:8px">'+esc(trState.text)+'</textarea>'+
+    '<div style="display:flex;gap:8px">'+
+    '<button class="os-btn primary" style="flex:1" onclick="HalDoTranslatorPro.translate()">🔄 Übersetzen</button>'+
+    '<button class="os-btn" onclick="HalDoTranslatorPro.mic()" title="Mikrofon">🎙️</button>'+
+    '<button class="os-btn" onclick="HalDoTranslatorPro.speak()" title="Vorlesen">🔊</button>'+
+    '</div>'+
+    '</div>'+
+    '<div class="card" style="background:linear-gradient(135deg,rgba(0,229,255,.1),rgba(180,120,255,.1));border-color:var(--cyan)">'+
+    '<div class="lbl" style="margin-bottom:8px">✨ Übersetzung</div>'+
+    '<div id="trResult" style="font-size:15px;color:#fff;line-height:1.6;min-height:60px;font-weight:500">'+(trState.result?esc(trState.result):'<span style="color:#5a8ab0">Ergebnis erscheint hier...</span>')+'</div>'+
+    '<div style="display:flex;gap:6px;margin-top:10px">'+
+    '<button class="os-btn" style="flex:1;padding:8px;font-size:11px" onclick="HalDoTranslatorPro.copy()">📋 Kopieren</button>'+
+    '<button class="os-btn" style="flex:1;padding:8px;font-size:11px" onclick="HalDoTranslatorPro.saveMemory()">💾 Merken</button>'+
+    '</div></div>'+
+    (history?'<div class="lbl" style="margin:14px 0 8px">📜 Verlauf</div>'+history:'');
+}
+
+window.HalDoTranslatorPro={
+  setFrom(f){ trState.from=f; },
+  setTo(t){ trState.to=t; },
+  swap(){ const tmp=trState.from; trState.from=trState.to; trState.to=tmp; if(trState.result){ const tmp2=trState.text; trState.text=trState.result; trState.result=tmp2; } buildTranslatorPro(); },
+  async translate(){
+    const text=$('trInput').value.trim();
+    if(!text){ if(window.showToast) showToast('⚠️ Text eingeben','error'); return; }
+    trState.text=text;
+    const r=$('trResult');
+    r.innerHTML='<span style="color:#7ce0ff">⏳ Übersetze...</span>';
+    try {
+      const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(text.slice(0,500))+'&langpair='+trState.from+'|'+trState.to;
+      const res=await fetch(url);
+      const d=await res.json();
+      const out=(d.responseData&&d.responseData.translatedText)||'Keine Übersetzung';
+      trState.result=out;
+      trState.history.unshift({from:trState.from,to:trState.to,text,result:out,ts:Date.now()});
+      trState.history=trState.history.slice(0,30);
+      buildTranslatorPro();
+      if(navigator.vibrate) navigator.vibrate(15);
+    } catch(e){
+      r.innerHTML='<span style="color:#ff8080">❌ Fehler. Internet prüfen.</span>';
+    }
+  },
+  load(i){ const h=trState.history[i]; if(!h) return; trState.from=h.from; trState.to=h.to; trState.text=h.text; trState.result=h.result; buildTranslatorPro(); },
+  mic(){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){ if(window.showToast) showToast('❌ Mikrofon n. verfügbar','error'); return; }
+    const r=new SR();
+    r.lang=LANGS[trState.from].code;
+    r.onresult=e=>{ const t=e.results[0][0].transcript; $('trInput').value=t; trState.text=t; HalDoTranslatorPro.translate(); };
+    r.start();
+    if(window.showToast) showToast('🎙️ Sprich jetzt...','success');
+  },
+  speak(){
+    const text=trState.result||$('trInput').value;
+    if(!text||!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang=LANGS[trState.to].code;
+    window.speechSynthesis.speak(u);
+  },
+  copy(){
+    if(!trState.result) return;
+    if(navigator.clipboard?.writeText){
+      navigator.clipboard.writeText(trState.result).then(()=>{ if(window.showToast) showToast('📋 Kopiert','success'); });
+    }
+  },
+  saveMemory(){
+    if(!trState.result) return;
+    if(window.HalDoMemory) HalDoMemory.remember('🌐 '+trState.text.slice(0,40), trState.result.slice(0,200), 'learn', ['translate']);
+    if(window.showToast) showToast('💾 Ins Memory','success');
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 2. DICTIONARY (Wörterbuch)
+// ═══════════════════════════════════════════════════════════
+let dictState={word:'', results:null};
+
+function buildDictionary(){
+  const w=$('dictionary-window'); if(!w) return;
+  w.dataset.title='Wörterbuch'; w.dataset.icon='📖';
+  let resultHtml='';
+  if(dictState.results && dictState.results.length){
+    resultHtml=dictState.results.map(r=>{
+      const meanings=(r.meanings||[]).map(m=>
+        '<div style="margin-top:8px;padding:10px;background:rgba(0,0,0,.3);border-radius:10px">'+
+        '<div style="font-size:11px;color:#7ce0ff;text-transform:uppercase;letter-spacing:1px;font-weight:800;margin-bottom:6px">'+esc(m.partOfSpeech||'')+'</div>'+
+        (m.definitions||[]).slice(0,3).map((d,i)=>
+          '<div style="font-size:13px;color:#fff;margin-bottom:6px">'+(i+1)+'. '+esc(d.definition||'')+
+          (d.example?'<div style="font-size:11px;color:#aaddff;font-style:italic;margin-top:2px;padding-left:12px">z.B. "'+esc(d.example)+'"</div>':'')+
+          '</div>'
+        ).join('')+
+        '</div>'
+      ).join('');
+      return '<div class="card"><div style="font-size:22px;font-weight:900;color:#fff;margin-bottom:4px">'+esc(r.word)+'</div>'+
+        (r.phonetic?'<div style="font-size:13px;color:#7ce0ff;margin-bottom:8px">/'+esc(r.phonetic)+'/</div>':'')+
+        meanings+'</div>';
+    }).join('');
+  } else if(dictState.results===null){
+    resultHtml='<div class="empty"><div class="ei">📖</div><div class="et">Englisches Wörterbuch</div><div class="es">Gib ein englisches Wort ein</div></div>';
+  } else {
+    resultHtml='<div class="empty"><div class="ei">❓</div><div class="et">Kein Ergebnis</div><div class="es">Versuche ein anderes Wort</div></div>';
+  }
+  w.innerHTML=
+    '<div class="card">'+
+    '<div style="display:flex;gap:6px">'+
+    '<input class="os-input" id="dictInput" placeholder="Englisches Wort..." value="'+esc(dictState.word)+'" onkeypress="if(event.key===\'Enter\')HalDoDictionary.search()" style="flex:1">'+
+    '<button class="os-btn primary" onclick="HalDoDictionary.search()">🔍</button>'+
+    '</div>'+
+    '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">'+
+    '<button class="os-btn" style="padding:6px 10px;font-size:11px" onclick="HalDoDictionary.quick(\'hello\')">hello</button>'+
+    '<button class="os-btn" style="padding:6px 10px;font-size:11px" onclick="HalDoDictionary.quick(\'world\')">world</button>'+
+    '<button class="os-btn" style="padding:6px 10px;font-size:11px" onclick="HalDoDictionary.quick(\'love\')">love</button>'+
+    '<button class="os-btn" style="padding:6px 10px;font-size:11px" onclick="HalDoDictionary.quick(\'water\')">water</button>'+
+    '</div></div>'+
+    '<div id="dictResult">'+resultHtml+'</div>';
+}
+
+window.HalDoDictionary={
+  async search(word){
+    const w=(word||$('dictInput').value).trim().toLowerCase();
+    if(!w) return;
+    dictState.word=w;
+    const r=$('dictResult');
+    r.innerHTML='<div class="empty"><div class="et">⏳ Suche...</div></div>';
+    try {
+      const res=await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/'+encodeURIComponent(w));
+      if(!res.ok) throw new Error();
+      const d=await res.json();
+      dictState.results=d;
+      buildDictionary();
+      if(window.HalDoMemory) HalDoMemory.remember('📖 Wörterbuch: '+w, d[0]?.meanings?.[0]?.definitions?.[0]?.definition||'', 'learn', ['dictionary']);
+    } catch(e){
+      dictState.results=[];
+      buildDictionary();
+    }
+  },
+  quick(w){ $('dictInput').value=w; this.search(w); }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 3. PHRASEBOOK (Reise-Sätze in vielen Sprachen)
+// ═══════════════════════════════════════════════════════════
+const PHRASES=[
+  {de:'Hallo',en:'Hello',tr:'Merhaba',ar:'مرحبا',fr:'Bonjour',es:'Hola',it:'Ciao',ru:'Привет',zh:'你好',ja:'こんにちは',ku:'Silav'},
+  {de:'Danke',en:'Thank you',tr:'Teşekkür ederim',ar:'شكرا',fr:'Merci',es:'Gracias',it:'Grazie',ru:'Спасибо',zh:'谢谢',ja:'ありがとう',ku:'Sipas'},
+  {de:'Bitte',en:'Please',tr:'Lütfen',ar:'من فضلك',fr:'S\'il vous plaît',es:'Por favor',it:'Per favore',ru:'Пожалуйста',zh:'请',ja:'お願いします',ku:'Ji kerema xwe'},
+  {de:'Guten Morgen',en:'Good morning',tr:'Günaydın',ar:'صباح الخير',fr:'Bonjour',es:'Buenos días',it:'Buongiorno',ru:'Доброе утро',zh:'早上好',ja:'おはよう',ku:'Beyanî baş'},
+  {de:'Guten Abend',en:'Good evening',tr:'İyi akşamlar',ar:'مساء الخير',fr:'Bonsoir',es:'Buenas tardes',it:'Buonasera',ru:'Добрый вечер',zh:'晚上好',ja:'こんばんは',ku:'Êvar baş'},
+  {de:'Wie geht es dir?',en:'How are you?',tr:'Nasılsın?',ar:'كيف حالك؟',fr:'Comment vas-tu?',es:'¿Cómo estás?',it:'Come stai?',ru:'Как дела?',zh:'你好吗？',ja:'お元気ですか？',ku:'Tu çawa yî?'},
+  {de:'Ich heiße...',en:'My name is...',tr:'Benim adım...',ar:'اسمي...',fr:'Je m\'appelle...',es:'Me llamo...',it:'Mi chiamo...',ru:'Меня зовут...',zh:'我叫...',ja:'私は...です',ku:'Navê min... e'},
+  {de:'Ich verstehe nicht',en:'I don\'t understand',tr:'Anlamıyorum',ar:'لا أفهم',fr:'Je ne comprends pas',es:'No entiendo',it:'Non capisco',ru:'Я не понимаю',zh:'我不懂',ja:'わかりません',ku:'Ez fam nakim'},
+  {de:'Wo ist die Toilette?',en:'Where is the bathroom?',tr:'Tuvalet nerede?',ar:'أين الحمام؟',fr:'Où sont les toilettes?',es:'¿Dónde está el baño?',it:'Dov\'è il bagno?',ru:'Где туалет?',zh:'洗手间在哪里？',ja:'トイレはどこですか？',ku:'Tûwalet li ku ye?'},
+  {de:'Wie viel kostet das?',en:'How much is this?',tr:'Bu ne kadar?',ar:'كم الثمن؟',fr:'Combien ça coûte?',es:'¿Cuánto cuesta?',it:'Quanto costa?',ru:'Сколько стоит?',zh:'这个多少钱？',ja:'いくらですか？',ku:'Ev çend e?'},
+  {de:'Ich brauche Hilfe',en:'I need help',tr:'Yardıma ihtiyacım var',ar:'أحتاج مساعدة',fr:'J\'ai besoin d\'aide',es:'Necesito ayuda',it:'Ho bisogno di aiuto',ru:'Мне нужна помощь',zh:'我需要帮助',ja:'助けが必要です',ku:'Alîkariyê dixwazim'},
+  {de:'Entschuldigung',en:'Excuse me',tr:'Özür dilerim',ar:'آسف',fr:'Excusez-moi',es:'Disculpe',it:'Scusi',ru:'Извините',zh:'对不起',ja:'すみません',ku:'Bibore'},
+  {de:'Ich liebe dich',en:'I love you',tr:'Seni seviyorum',ar:'أحبك',fr:'Je t\'aime',es:'Te amo',it:'Ti amo',ru:'Я тебя люблю',zh:'我爱你',ja:'愛してる',ku:'Ez ji te hez dikim'},
+  {de:'Wie heißt du?',en:'What\'s your name?',tr:'Adın ne?',ar:'ما اسمك؟',fr:'Comment tu t\'appelles?',es:'¿Cómo te llamas?',it:'Come ti chiami?',ru:'Как тебя зовут?',zh:'你叫什么名字？',ja:'お名前は？',ku:'Navê te çi ye?'},
+  {de:'Ich bin müde',en:'I am tired',tr:'Yorgunum',ar:'أنا متعب',fr:'Je suis fatigué',es:'Estoy cansado',it:'Sono stanco',ru:'Я устал',zh:'我很累',ja:'疲れました',ku:'Ez westiyam'},
+  {de:'Guten Appetit',en:'Bon appetit',tr:'Afiyet olsun',ar:'بالهناء والشفاء',fr:'Bon appétit',es:'Buen provecho',it:'Buon appetito',ru:'Приятного аппетита',zh:'用餐愉快',ja:'いただきます',ku:'Noş e'},
+  {de:'Alles Gute',en:'Good luck',tr:'İyi şanslar',ar:'حظا سعيدا',fr:'Bonne chance',es:'Buena suerte',it:'Buona fortuna',ru:'Удачи',zh:'祝你好运',ja:'頑張って',ku:'Serkeftin'},
+  {de:'Ich bin Ausländer',en:'I am a foreigner',tr:'Ben yabancıyım',ar:'أنا أجنبي',fr:'Je suis étranger',es:'Soy extranjero',it:'Sono straniero',ru:'Я иностранец',zh:'我是外国人',ja:'外国人です',ku:'Ez biyanî me'}
+];
+
+let pbState={lang:'en', cat:'all'};
+
+function buildPhrasebook(){
+  const w=$('phrasebook-window'); if(!w) return;
+  w.dataset.title='Reise-Sätze'; w.dataset.icon='💬';
+  const langKeys=Object.keys(LANGS).filter(k=>k==='en'||k==='tr'||k==='ar'||k==='fr'||k==='es'||k==='it'||k==='ru'||k==='zh'||k==='ja'||k==='ku');
+  const langChips=langKeys.map(k=>'<button class="os-btn '+(pbState.lang===k?'primary':'')+'" style="padding:6px 10px;font-size:11px" onclick="HalDoPhrasebook.setLang(\''+k+'\')">'+LANGS[k].n+'</button>').join('');
+  const list=PHRASES.map((p,i)=>{
+    const trans=p[pbState.lang]||p.en||'–';
+    return '<div class="card" style="padding:12px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">'+
+    '<div style="flex:1;min-width:0">'+
+    '<div style="font-size:12px;color:#7ce0ff;margin-bottom:4px">🇩🇪 '+esc(p.de)+'</div>'+
+    '<div style="font-size:15px;color:#fff;font-weight:700;word-break:break-word">'+esc(trans)+'</div>'+
+    '</div>'+
+    '<div style="display:flex;flex-direction:column;gap:4px">'+
+    '<button class="os-btn" style="padding:6px 10px;font-size:12px" onclick="HalDoPhrasebook.speak('+i+')">🔊</button>'+
+    '<button class="os-btn" style="padding:6px 10px;font-size:12px" onclick="HalDoPhrasebook.copy('+i+')">📋</button>'+
+    '</div></div></div>';
+  }).join('');
+  w.innerHTML=
+    '<div class="card" style="padding:10px"><div class="lbl" style="margin-bottom:8px">🌍 Sprache wählen</div>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap">'+langChips+'</div></div>'+
+    '<div class="lbl" style="margin:14px 0 8px">💬 '+PHRASES.length+' häufige Sätze</div>'+
+    list;
+}
+
+window.HalDoPhrasebook={
+  setLang(l){ pbState.lang=l; buildPhrasebook(); },
+  speak(i){
+    const p=PHRASES[i]; if(!p) return;
+    const text=p[pbState.lang]||p.en;
+    if(!window.speechSynthesis||!text) return;
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang=LANGS[pbState.lang].code;
+    u.rate=0.85;
+    window.speechSynthesis.speak(u);
+  },
+  copy(i){
+    const p=PHRASES[i]; if(!p) return;
+    const text=p[pbState.lang]||p.en;
+    if(navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(()=>{ if(window.showToast) showToast('📋 Kopiert','success'); });
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 4. VOCABULARY TRAINER (Vokabeltrainer)
+// ═══════════════════════════════════════════════════════════
+window.HalDoVocab={
+  key:'haldo_vocab_v1',
+  all(){ return store(this.key,[]); },
+  add(q, a, lang){
+    const v=this.all();
+    v.unshift({id:uid('v_'), q, a, lang:lang||'en', seen:false, correct:0, wrong:0, created:Date.now()});
+    save(this.key, v.slice(0,1000));
+    return v[0].id;
+  },
+  remove(id){ save(this.key, this.all().filter(v=>v.id!==id)); },
+  update(id, correct){
+    const v=this.all();
+    const x=v.find(i=>i.id===id);
+    if(x){ x.seen=true; if(correct) x.correct++; else x.wrong++; save(this.key,v); }
+  }
+};
+
+let vocabState={currentTab:'train', currentCard:null, showAns:false};
+
+function buildVocab(){
+  const w=$('vocabulary-window'); if(!w) return;
+  w.dataset.title='Vokabeln'; w.dataset.icon='📖';
+  const all=HalDoVocab.all();
+  let body='';
+  if(vocabState.currentTab==='train'){
+    if(!all.length){
+      body='<div class="empty"><div class="ei">📖</div><div class="et">Keine Vokabeln</div><div class="es">Füge welche im "Verwalten"-Tab hinzu</div></div>';
+    } else {
+      if(!vocabState.currentCard) vocabState.currentCard=all[Math.floor(Math.random()*all.length)];
+      const c=vocabState.currentCard;
+      const totalCorrect=all.reduce((s,v)=>s+v.correct,0);
+      const totalWrong=all.reduce((s,v)=>s+v.wrong,0);
+      body='<div class="grid2" style="margin-bottom:14px">'+
+        '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+all.length+'</div><div class="lbl">Karten</div></div>'+
+        '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px;color:#00ff88">'+totalCorrect+'</div><div class="lbl">Richtig</div></div>'+
+        '</div>'+
+        '<div class="card" style="text-align:center;padding:30px 20px;min-height:220px;display:flex;flex-direction:column;justify-content:center">'+
+        '<div style="font-size:36px;font-weight:900;color:#fff;margin-bottom:14px;word-break:break-word">'+esc(c.q)+'</div>'+
+        (vocabState.showAns?'<div style="font-size:22px;color:var(--cyan);font-weight:700;margin-bottom:20px">'+esc(c.a)+'</div>'
+          :'<div style="font-size:14px;color:#5a8ab0;margin-bottom:20px">👆 Antwort zeigen</div>')+
+        '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'+
+        (!vocabState.showAns?
+          '<button class="os-btn primary" style="padding:12px 24px" onclick="HalDoVocabApp.show()">👁️ Antwort</button>':
+          '<button class="os-btn" style="background:linear-gradient(135deg,#00ff88,#00e5ff);color:#001018;padding:12px 20px" onclick="HalDoVocabApp.rate(true)">✅ Konnte</button>'+
+          '<button class="os-btn danger" style="padding:12px 20px" onclick="HalDoVocabApp.rate(false)">❌ Nicht</button>')+
+        '</div></div>'+
+        '<div class="lbl" style="margin:14px 0 8px">📜 Verlauf</div>'+
+        all.slice(0,10).map(v=>'<div class="card" style="padding:8px;font-size:12px;display:flex;justify-content:space-between">'+
+          '<span style="color:#fff">'+esc(v.q.slice(0,20))+' → '+esc(v.a.slice(0,20))+'</span>'+
+          '<span style="color:#7ce0ff">✓'+v.correct+' ✗'+v.wrong+'</span></div>').join('');
+    }
+  } else {
+    body='<div class="card">'+
+      '<input class="os-input" id="vcbQ" placeholder="Wort/Frage" style="margin-bottom:8px">'+
+      '<input class="os-input" id="vcbA" placeholder="Übersetzung" style="margin-bottom:8px">'+
+      '<select class="os-select" id="vcbLang" style="margin-bottom:8px">'+trBuildLangOptions('en')+'</select>'+
+      '<button class="os-btn primary full" onclick="HalDoVocabApp.add()">✚ Vokabel hinzufügen</button>'+
+      '</div>'+
+      (all.length?'<div class="lbl" style="margin:14px 0 8px">📚 '+all.length+' Vokabeln</div>'+
+      all.slice(0,30).map((v,i)=>'<div class="card" style="padding:10px;display:flex;gap:10px;align-items:center">'+
+        '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:13px;font-weight:800;color:#fff">'+esc(v.q)+'</div>'+
+        '<div style="font-size:11px;color:#aaddff;margin-top:2px">'+esc(v.a)+'</div>'+
+        '</div>'+
+        '<button class="os-btn danger" style="padding:4px 8px;font-size:11px" onclick="HalDoVocab.remove(\''+v.id+'\');HalDoVocabApp.rebuild()">✕</button>'+
+        '</div>').join(''):'');
+  }
+  w.innerHTML=
+    '<div style="display:flex;gap:4px;margin-bottom:14px">'+
+    '<button class="os-btn '+(vocabState.currentTab==='train'?'primary':'')+'" style="flex:1;padding:10px;font-size:12px" onclick="HalDoVocabApp.tab(\'train\')">🎓 Üben</button>'+
+    '<button class="os-btn '+(vocabState.currentTab==='manage'?'primary':'')+'" style="flex:1;padding:10px;font-size:12px" onclick="HalDoVocabApp.tab(\'manage\')">📝 Verwalten</button>'+
+    '</div>'+body;
+}
+
+window.HalDoVocabApp={
+  tab(t){ vocabState.currentTab=t; buildVocab(); },
+  show(){ vocabState.showAns=true; buildVocab(); },
+  rate(ok){
+    if(vocabState.currentCard) HalDoVocab.update(vocabState.currentCard.id, ok);
+    vocabState.currentCard=null; vocabState.showAns=false;
+    buildVocab();
+    if(navigator.vibrate) navigator.vibrate(ok?10:[30,50,30]);
+  },
+  add(){
+    const q=$('vcbQ').value.trim(), a=$('vcbA').value.trim();
+    if(!q||!a){ if(window.showToast) showToast('⚠️ Beide Felder','error'); return; }
+    HalDoVocab.add(q,a,$('vcbLang').value);
+    $('vcbQ').value=''; $('vcbA').value='';
+    buildVocab();
+    if(window.showToast) showToast('📖 Hinzugefügt','success');
+  },
+  rebuild(){ buildVocab(); }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 5. LANGUAGE QUIZ (Sprach-Quiz)
+// ═══════════════════════════════════════════════════════════
+const LANG_QUIZ=[
+  {q:'Was heißt "Hallo" auf Türkisch?',a:['Merhaba','Bonjour','Ciao','Hello'],k:0},
+  {q:'Was heißt "Danke" auf Französisch?',a:['Merci','Gracias','Danke','Sipas'],k:0},
+  {q:'Was heißt "Ich liebe dich" auf Spanisch?',a:['Te amo','Ti amo','Je t\'aime','Seni seviyorum'],k:0},
+  {q:'Was heißt "Wasser" auf Englisch?',a:['Water','Aqua','Wasser','Agua'],k:0},
+  {q:'Was heißt "Freund" auf Italienisch?',a:['Amico','Ami','Freund','Amigo'],k:0},
+  {q:'Was heißt "Buch" auf Russisch?',a:['Книга','Buch','Buku','Livre'],k:0},
+  {q:'Was heißt "Sonne" auf Arabisch?',a:['شمس','قمر','نجم','شمس'],k:0},
+  {q:'Was heißt "Haus" auf Chinesisch?',a:['房子','家','房','屋'],k:0},
+  {q:'Was heißt "Liebe" auf Japanisch?',a:['愛','恋','好き','心'],k:0},
+  {q:'Was heißt "Katze" auf Türkisch?',a:['Kedi','Köpek','Kuş','Balık'],k:0},
+  {q:'Was heißt "Auto" auf Spanisch?',a:['Coche','Auto','Carro','Wagen'],k:0},
+  {q:'Was heißt "Baum" auf Französisch?',a:['Arbre','Baum','Tree','Albero'],k:0},
+  {q:'Was heißt "Brot" auf Italienisch?',a:['Pane','Brot','Pan','Bread'],k:0},
+  {q:'Was heißt "Mutter" auf Arabisch?',a:['أم','أب','أخت','أخ'],k:0},
+  {q:'Was heißt "Tag" auf Kurdisch?',a:['Roj','Şev','Sibê','Êvar'],k:0},
+  {q:'Was heißt "Sonne" auf Kurdisch?',a:['Roj','Heyv','Stêr','Esman'],k:0},
+  {q:'Was heißt "Wasser" auf Kurdisch?',a:['Av','Agir','Ax','Av'],k:0},
+  {q:'Was heißt "Herz" auf Kurdisch?',a:['Dil','Ser','Çav','Dest'],k:0},
+  {q:'Was heißt "Freund" auf Kurdisch?',a:['Heval','Bira','Dost','Yar'],k:0},
+  {q:'Was heißt "Ich" auf Kurdisch?',a:['Ez','Tu','Ew','Em'],k:0}
+];
+
+let langQuizState={idx:0, score:0, current:null, answered:false};
+
+function buildLangQuiz(){
+  const w=$('language-quiz-window'); if(!w) return;
+  w.dataset.title='Sprach-Quiz'; w.dataset.icon='🎯';
+  if(langQuizState.idx>=10){
+    const pct=Math.round(langQuizState.score/langQuizState.idx*100);
+    w.innerHTML='<div class="card" style="text-align:center;padding:30px">'+
+      '<div style="font-size:64px;margin-bottom:12px">'+(pct>=80?'🏆':'😅')+'</div>'+
+      '<div style="font-size:22px;font-weight:900;color:#fff;margin-bottom:8px">Quiz beendet!</div>'+
+      '<div class="big" style="margin:12px 0">'+langQuizState.score+' / '+langQuizState.idx+'</div>'+
+      '<div style="font-size:14px;color:#88ccff;margin-bottom:20px">'+pct+'% richtig</div>'+
+      '<button class="os-btn primary" style="padding:14px 30px" onclick="HalDoLangQuiz.restart()">🔄 Nochmal</button></div>';
+    return;
+  }
+  if(!langQuizState.current){
+    const shuffled=LANG_QUIZ.slice().sort(()=>Math.random()-.5);
+    langQuizState.current=shuffled[0];
+  }
+  const q=langQuizState.current;
+  const answers=q.a.map((a,i)=>{
+    let cls='os-btn';
+    if(langQuizState.answered){
+      if(i===q.k) cls+=' primary';
+    }
+    return '<button class="'+cls+'" style="width:100%;padding:14px;font-size:14px;text-align:left;justify-content:flex-start;margin-bottom:8px;'+(langQuizState.answered?'pointer-events:none':'')+'" onclick="HalDoLangQuiz.answer('+i+')">'+esc(a)+'</button>';
+  }).join('');
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+langQuizState.score+'/'+(langQuizState.idx+1)+'</div><div class="lbl">Punkte</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+(10-langQuizState.idx)+'</div><div class="lbl">Übrig</div></div>'+
+    '</div>'+
+    '<div class="card" style="padding:20px"><div style="font-size:18px;font-weight:900;color:#fff;line-height:1.5;margin-bottom:20px">'+esc(q.q)+'</div>'+answers+'</div>'+
+    (langQuizState.answered?'<button class="os-btn primary full" style="margin-top:14px;padding:14px" onclick="HalDoLangQuiz.next()">Weiter →</button>':'');
+}
+
+window.HalDoLangQuiz={
+  answer(i){
+    if(langQuizState.answered) return;
+    langQuizState.answered=true;
+    if(i===langQuizState.current.k){
+      langQuizState.score++;
+      if(navigator.vibrate) navigator.vibrate([10,30,10]);
+    } else {
+      if(navigator.vibrate) navigator.vibrate([50,50,50]);
+    }
+    buildLangQuiz();
+  },
+  next(){
+    langQuizState.idx++;
+    langQuizState.current=null;
+    langQuizState.answered=false;
+    buildLangQuiz();
+  },
+  restart(){
+    langQuizState={idx:0,score:0,current:null,answered:false};
+    buildLangQuiz();
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 6. PRONUNCIATION GUIDE (Aussprache-Hilfe)
+// ═══════════════════════════════════════════════════════════
+const PRONUNCIATION=[
+  {lang:'Türkisch',items:[['Merhaba','mer-ha-BA','Hallo'],['Teşekkür','tesh-ek-KÜR','Danke'],['Günaydın','gü-nay-DIN','Guten Morgen'],['Nasılsın','na-sil-SIN','Wie geht\'s?']]},
+  {lang:'Arabisch',items:[['مرحبا','MAR-haba','Hallo'],['شكرا','SCHUK-ran','Danke'],['صباح الخير','sa-BAH al-CHER','Guten Morgen'],['كيف حالك','kejf HÁ-lak','Wie geht\'s?']]},
+  {lang:'Kurdisch',items:[['Silav','si-LAV','Hallo'],['Sipas','si-PAS','Danke'],['Beyanî baş','be-ja-NI basch','Guten Morgen'],['Tu çawa yî','tu tscha-WA ji','Wie geht\'s?']]},
+  {lang:'Französisch',items:[['Bonjour','bon-SCHUR','Hallo'],['Merci','mer-SI','Danke'],['Au revoir','o-re-VOAR','Auf Wiedersehen'],['Comment ça va','kom-MAN sa VA','Wie geht\'s?']]},
+  {lang:'Spanisch',items:[['Hola','O-la','Hallo'],['Gracias','GRA-sias','Danke'],['Buenos días','BWE-nos DI-as','Guten Morgen'],['¿Cómo estás?','KO-mo es-TAS','Wie geht\'s?']]},
+  {lang:'Italienisch',items:[['Ciao','TSCHAU','Hallo'],['Grazie','GRAT-tsi-e','Danke'],['Buongiorno','bwon-DSCHOR-no','Guten Morgen'],['Come stai','KO-me STAI','Wie geht\'s?']]},
+  {lang:'Japanisch',items:[['こんにちは','kon-ni-TSCHI-wa','Hallo'],['ありがとう','a-ri-ga-TO','Danke'],['おはよう','o-ha-JO','Guten Morgen'],['元気ですか','gen-ki des-ka','Wie geht\'s?']]},
+  {lang:'Chinesisch',items:[['你好','NI hao','Hallo'],['谢谢','SIE-sie','Danke'],['早上好','ZAO-shang hao','Guten Morgen'],['你好吗','NI hao ma','Wie geht\'s?']]}
+];
+
+let prState={lang:0};
+
+function buildPronounce(){
+  const w=$('pronunciation-window'); if(!w) return;
+  w.dataset.title='Aussprache'; w.dataset.icon='🗣️';
+  const langChips=PRONUNCIATION.map((p,i)=>
+    '<button class="os-btn '+(prState.lang===i?'primary':'')+'" style="padding:6px 10px;font-size:11px" onclick="HalDoPronounce.setLang('+i+')">'+p.lang+'</button>'
+  ).join('');
+  const current=PRONUNCIATION[prState.lang];
+  const list=current.items.map((it,i)=>
+    '<div class="card" style="padding:12px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">'+
+    '<div style="flex:1;min-width:0">'+
+    '<div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:4px">'+esc(it[0])+'</div>'+
+    '<div style="font-size:13px;color:#7ce0ff;font-style:italic">'+esc(it[1])+'</div>'+
+    '<div style="font-size:11px;color:#aaddff;margin-top:2px">→ '+esc(it[2])+'</div>'+
+    '</div>'+
+    '<button class="os-btn" style="padding:8px 12px;font-size:14px" onclick="HalDoPronounce.speak('+i+')">🔊</button>'+
+    '</div></div>'
+  ).join('');
+  w.innerHTML=
+    '<div class="card" style="padding:10px"><div class="lbl" style="margin-bottom:8px">🌍 Sprache wählen</div>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap">'+langChips+'</div></div>'+
+    '<div class="lbl" style="margin:14px 0 8px">🗣️ '+current.lang+'</div>'+
+    list;
+}
+
+window.HalDoPronounce={
+  setLang(i){ prState.lang=i; buildPronounce(); },
+  speak(i){
+    const it=PRONUNCIATION[prState.lang].items[i]; if(!it) return;
+    if(!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(it[0]);
+    const langMap={0:'tr-TR',1:'ar-SA',2:'ku-TR',3:'fr-FR',4:'es-ES',5:'it-IT',6:'ja-JP',7:'zh-CN'};
+    u.lang=langMap[prState.lang]||'en';
+    u.rate=0.8;
+    window.speechSynthesis.speak(u);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// INIT + REGISTRY-MAPPING
+// ═══════════════════════════════════════════════════════════
+function initV129(){
+  // Registry-Mapping
+  if(window.HalDoRegistry){
+    const orig=window.HalDoRegistry.openApp;
+    window.HalDoRegistry.openApp=function(id){
+      const map={
+        'ai-translator':'translator-pro-window',
+        'translator-k':'translator-pro-window',
+        'translator':'translator-pro-window',
+        'language-quiz':'language-quiz-window',
+        'lang-quiz':'language-quiz-window',
+        'vocab':'vocabulary-window',
+        'vocabulary':'vocabulary-window',
+        'dictionary':'dictionary-window',
+        'phrasebook':'phrasebook-window',
+        'pronounce':'pronunciation-window',
+        'pronunciation':'pronunciation-window'
+      };
+      if(map[id]){
+        if(typeof openWin==='function') openWin(map[id]);
+        const b=window.HalDoUI?.rebuild;
+        if(b) setTimeout(()=>b(map[id]),50);
+        setTimeout(()=>window.HalDoUI?.closeAllPanels(),100);
+        return;
+      }
+      return orig.apply(this, arguments);
+    };
+  }
+  // Rebuild-Mappingen
+  if(window.HalDoUI){
+ |
+    const orig=window.H|---|---alDoUI.rebuild;
+    window.HalDoUI.rebuild=|
+function(id){
+      if(id==='translator-pro-window')|{ buildTranslatorPro(); return; }
+      if(id==='dictionary-window'){ buildDictionary(); return; }
+      if(id==='phrasebook-window'){ buildPhrasebook(); return; }
+      if(id==='vocabulary-window'){ buildVocab(); return; }
+      if(id==='language-quiz-window'){ buildLangQuiz(); return; }
+      if(id==='pronunciation-window'){ buildPronounce(); return; }
+      if(orig) orig(id);
+    };
+  }
+  // Fenster vorbereiten
+  ['translator-pro-window','dictionary-window','phrasebook-window','vocabulary-window','language-quiz-window','pronunciation-window'].forEach(id=>{
+    let el=$(id);
+    if(!el){ el=document.createElement('div'); el.id=id; document.body.appendChild(el); }
+    if(window.prepareWindow) window.prepareWindow(el);
+  });
+  console.log('%c🚀 v129 – 6 Sprachen-Apps geladen','color:#00ff88;font-weight:bold;font-size:14px');
+  console.log('%c✅ Translator Pro (33 Sprachen) · Dictionary · Phrasebook · Vocabulary · Quiz · Pronunciation','color:#4da8ff;font-weight:bold');
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded', ()=>setTimeout(initV129,1600));
+} else {
+  setTimeout(initV129, 1600);
+}
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════ ENDE v129 ═════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
