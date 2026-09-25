@@ -6005,5 +6005,436 @@ if(document.readyState==='loading'){
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════════════════════════════ ENDE v131 ═════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v132 – 6 APPS (Reminders · Camera · Voice · Files · Settings · Dashboard) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+"use strict";
+if(window.__v132) return;
+window.__v132 = true;
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const store=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const todayK=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+
+// ═══ 1. REMINDERS PRO ═══
+window.HalDoRemindersPro={
+  key:'haldo_reminderspro_v1',
+  all(){return store(this.key,[])},
+  add(title,date,time,emoji,note){
+    const l=this.all();
+    l.unshift({id:uid('rm_'),title,date,time,emoji:emoji||'🔔',note:note||'',done:false,created:Date.now()});
+    save(this.key,l.slice(0,500));
+    return l[0].id;
+  },
+  done(id){const l=this.all();const x=l.find(v=>v.id===id);if(x){x.done=true;save(this.key,l)}},
+  remove(id){save(this.key,this.all().filter(x=>x.id!==id))},
+  upcoming(){return this.all().filter(r=>!r.done).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time))},
+  today(){return this.all().filter(r=>!r.done&&r.date===todayK())}
+};
+
+let rmProState={emoji:'🔔'};
+const RM_EMOJIS=['🔔','⏰','📞','💊','🎂','💼','🎯','📅','✈️','🍽️','💧','🏋️'];
+
+function buildRemindersPro(){
+  const w=$('reminders-window'); if(!w) return;
+  w.dataset.title='Erinnerungen'; w.dataset.icon='🔔';
+  const all=HalDoRemindersPro.all();
+  const upcoming=HalDoRemindersPro.upcoming();
+  const todayList=HalDoRemindersPro.today();
+  const emojiGrid=RM_EMOJIS.map(e=>'<button class="os-btn '+(rmProState.emoji===e?'primary':'')+'" style="padding:8px 6px;font-size:18px;flex:1;min-width:44px" onclick="HalDoRemProApp.setEmoji(\''+e+'\')">'+e+'</button>').join('');
+  const list=upcoming.length?upcoming.slice(0,30).map(r=>{
+    const isOverdue=r.date<todayK();
+    const isToday=r.date===todayK();
+    return '<div class="card" style="padding:12px;display:flex;gap:10px;align-items:flex-start;border-left:4px solid '+(isOverdue?'#ff4466':isToday?'#ffc800':'#00e5ff')+'">'+
+      '<div style="font-size:28px;width:40px;text-align:center;flex-shrink:0">'+r.emoji+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+      '<div style="font-size:14px;font-weight:800;color:#fff">'+esc(r.title)+'</div>'+
+      '<div style="font-size:11px;color:#7ce0ff;margin-top:3px">📅 '+r.date+' · 🕐 '+r.time+(isOverdue?' · <b style="color:#ff4466">ÜBERFÄLLIG</b>':isToday?' · <b style="color:#ffc800">HEUTE</b>':'')+'</div>'+
+      (r.note?'<div style="font-size:11px;color:#aaddff;margin-top:4px">'+esc(r.note)+'</div>':'')+
+      '</div>'+
+      '<div style="display:flex;flex-direction:column;gap:4px">'+
+      '<button class="os-btn success" style="padding:6px 10px;font-size:14px" onclick="HalDoRemindersPro.done(\''+r.id+'\');HalDoRemProApp.rebuild()">✓</button>'+
+      '<button class="os-btn danger" style="padding:6px 10px;font-size:12px" onclick="if(confirm(\'Löschen?\')){HalDoRemindersPro.remove(\''+r.id+'\');HalDoRemProApp.rebuild()}">✕</button>'+
+      '</div></div>';
+  }).join(''):'<div class="empty"><div class="ei">🔔</div><div class="et">Keine Erinnerungen</div></div>';
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center"><div class="big">'+upcoming.length+'</div><div class="lbl">Anstehend</div></div>'+
+    '<div class="card" style="text-align:center"><div class="big" style="color:#ffc800">'+todayList.length+'</div><div class="lbl">Heute</div></div>'+
+    '</div>'+
+    '<div class="card">'+
+    '<input class="os-input" id="rmpT" placeholder="Was erinnern?" style="margin-bottom:8px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+    '<input class="os-input" id="rmpD" type="date" value="'+todayK()+'">'+
+    '<input class="os-input" id="rmpTime" type="time" value="09:00">'+
+    '</div>'+
+    '<div class="lbl" style="margin-bottom:6px">Icon</div>'+
+    '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">'+emojiGrid+'</div>'+
+    '<textarea class="os-textarea" id="rmpN" placeholder="Notiz (optional)" style="min-height:60px;margin-bottom:8px"></textarea>'+
+    '<button class="os-btn primary full" onclick="HalDoRemProApp.add()">🔔 Erinnerung anlegen</button>'+
+    '</div>'+
+    '<div class="lbl" style="margin:14px 0 8px">📋 Anstehend</div>'+list;
+}
+
+window.HalDoRemProApp={
+  setEmoji(e){rmProState.emoji=e;buildRemindersPro()},
+  add(){
+    const t=$('rmpT').value.trim();if(!t)return;
+    HalDoRemindersPro.add(t,$('rmpD').value,$('rmpTime').value,rmProState.emoji,$('rmpN').value.trim());
+    $('rmpT').value='';$('rmpN').value='';
+    buildRemindersPro();
+    if(window.showToast)showToast('🔔 Erinnerung gespeichert','success');
+    if(navigator.vibrate)navigator.vibrate(15);
+  },
+  rebuild(){buildRemindersPro()}
+};
+
+// ═══ 2. CAMERA PRO ═══
+let camState={filter:'none',facing:'environment',grid:false,stream:null};
+
+const CAM_FILTERS=[
+  {id:'none',n:'Original',css:''},
+  {id:'gray',n:'S/W',css:'grayscale(1)'},
+  {id:'sepia',n:'Sepia',css:'sepia(.8)'},
+  {id:'bright',n:'Hell',css:'brightness(1.3)'},
+  {id:'contrast',n:'Kontrast',css:'contrast(1.5)'},
+  {id:'saturate',n:'Satt',css:'saturate(1.8)'},
+  {id:'blur',n:'Weich',css:'blur(1px)'},
+  {id:'invert',n:'Invert',css:'invert(1)'}
+];
+
+async function buildCamera(){
+  const w=$('camera-window'); if(!w) return;
+  w.dataset.title='Kamera Pro'; w.dataset.icon='📷';
+  const f=CAM_FILTERS.find(x=>x.id===camState.filter);
+  const filters=CAM_FILTERS.map(x=>'<button class="os-btn '+(camState.filter===x.id?'primary':'')+'" style="padding:6px 10px;font-size:11px;flex-shrink:0" onclick="HalDoCamApp.setFilter(\''+x.id+'\')">'+x.n+'</button>').join('');
+  w.innerHTML=
+    '<div style="position:relative;background:#000;border-radius:14px;overflow:hidden;margin-bottom:12px;aspect-ratio:4/3">'+
+    '<video id="camVideo" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:block;filter:'+(f?f.css:'')+';'+(camState.facing==='user'?'transform:scaleX(-1)':'')+'"></video>'+
+    (camState.grid?'<div style="position:absolute;inset:0;pointer-events:none"><div style="position:absolute;top:33%;left:0;right:0;height:1px;background:rgba(255,255,255,.3)"></div><div style="position:absolute;top:66%;left:0;right:0;height:1px;background:rgba(255,255,255,.3)"></div><div style="position:absolute;left:33%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.3)"></div><div style="position:absolute;left:66%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.3)"></div></div>':'')+
+    '</div>'+
+    '<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:10px">'+filters+'</div>'+
+    '<div style="display:flex;gap:8px;margin-bottom:10px">'+
+    '<button class="os-btn '+(camState.grid?'primary':'')+'" style="flex:1;font-size:11px" onclick="HalDoCamApp.toggleGrid()">▦ Grid</button>'+
+    '<button class="os-btn" style="flex:1;font-size:11px" onclick="HalDoCamApp.flip()">🔄 Kamera</button>'+
+    '<button class="os-btn" style="flex:1;font-size:11px" onclick="HalDoCamApp.stop()">⏹ Stop</button>'+
+    '</div>'+
+    '<button class="os-btn primary full" style="padding:20px;font-size:18px" onclick="HalDoCamApp.shoot()">📸 Foto aufnehmen</button>'+
+    '<canvas id="camCanvas" style="display:none"></canvas>';
+  await camStart();
+}
+
+async function camStart(){
+  try{
+    if(camState.stream){camState.stream.getTracks().forEach(t=>t.stop())}
+    camState.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:camState.facing,width:{ideal:1280},height:{ideal:720}}});
+    const v=$('camVideo');if(v)v.srcObject=camState.stream;
+  }catch(e){
+    if(window.showToast)showToast('❌ Kamera-Zugriff verweigert','error');
+  }
+}
+
+window.HalDoCamApp={
+  setFilter(f){camState.filter=f;const v=$('camVideo');const fl=CAM_FILTERS.find(x=>x.id===f);if(v)v.style.filter=fl?fl.css:'';document.querySelectorAll('#camera-window .os-btn').forEach(b=>{if(CAM_FILTERS.some(x=>b.textContent===x.n))b.classList.toggle('primary',b.textContent===(fl?fl.n:''))})},
+  toggleGrid(){camState.grid=!camState.grid;buildCamera()},
+  async flip(){camState.facing=camState.facing==='environment'?'user':'environment';buildCamera()},
+  stop(){if(camState.stream){camState.stream.getTracks().forEach(t=>t.stop());camState.stream=null}if(window.showToast)showToast('Kamera gestoppt')},
+  shoot(){
+    const v=$('camVideo'),c=$('camCanvas');
+    if(!v||!c||!v.videoWidth)return;
+    c.width=v.videoWidth;c.height=v.videoHeight;
+    const ctx=c.getContext('2d');
+    const f=CAM_FILTERS.find(x=>x.id===camState.filter);
+    ctx.filter=f?f.css:'none';
+    if(camState.facing==='user'){ctx.translate(c.width,0);ctx.scale(-1,1);}
+    ctx.drawImage(v,0,0);
+    if(navigator.vibrate)navigator.vibrate([20,30,20]);
+    const data=c.toDataURL('image/jpeg',0.9);
+    const a=document.createElement('a');a.href=data;a.download='haldo-foto-'+Date.now()+'.jpg';a.click();
+    if(window.showToast)showToast('📸 Foto gespeichert','success');
+  }
+};
+
+// ═══ 3. VOICE MEMOS ═══
+let voiceState={recording:false,mediaRecorder:null,chunks:[],stream:null,startTime:0,timer:null};
+
+function buildVoice(){
+  const w=$('voice-window'); if(!w) return;
+  w.dataset.title='Voice Memos'; w.dataset.icon='🎙️';
+  const secs=voiceState.recording?Math.floor((Date.now()-voiceState.startTime)/1000):0;
+  const m=Math.floor(secs/60),s=secs%60;
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:20px">'+
+    '<div style="font-size:64px;margin-bottom:12px;'+(voiceState.recording?'animation:voicePulse 1s infinite':'')+'">'+(voiceState.recording?'🔴':'🎙️')+'</div>'+
+    '<div id="voiceTimer" style="font-size:42px;font-weight:200;color:#fff;font-family:monospace;line-height:1;margin-bottom:16px">'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+'</div>'+
+    '<div style="display:flex;gap:10px;justify-content:center">'+
+    '<button class="os-btn '+(voiceState.recording?'danger':'primary')+'" style="padding:16px 30px;font-size:15px" onclick="HalDoVoiceApp.toggle()">'+(voiceState.recording?'⏹ Stop':'▶ Aufnahme starten')+'</button>'+
+    '</div>'+
+    '</div>'+
+    '<style>@keyframes voicePulse{50%{transform:scale(1.08)}}</style>';
+}
+
+window.HalDoVoiceApp={
+  async toggle(){
+    if(voiceState.recording){
+      try{voiceState.mediaRecorder.stop()}catch(e){}
+      voiceState.recording=false;
+      clearInterval(voiceState.timer);
+      if(voiceState.stream){voiceState.stream.getTracks().forEach(t=>t.stop());voiceState.stream=null}
+      return;
+    }
+    try{
+      voiceState.stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      voiceState.mediaRecorder=new MediaRecorder(voiceState.stream);
+      voiceState.chunks=[];
+      voiceState.mediaRecorder.ondataavailable=e=>{if(e.data.size>0)voiceState.chunks.push(e.data)};
+      voiceState.mediaRecorder.onstop=()=>{
+        const blob=new Blob(voiceState.chunks,{type:'audio/webm'});
+        const url=URL.createObjectURL(blob);
+        const name=prompt('Name der Aufnahme:','Memo '+new Date().toLocaleString('de-DE'))||'Memo';
+        const a=document.createElement('a');
+        a.href=url;a.download=name+'.webm';a.click();
+        setTimeout(()=>URL.revokeObjectURL(url),2000);
+        if(window.showToast)showToast('🎙️ Aufnahme gespeichert','success');
+      };
+      voiceState.mediaRecorder.start();
+      voiceState.recording=true;
+      voiceState.startTime=Date.now();
+      voiceState.timer=setInterval(()=>{
+        const secs=Math.floor((Date.now()-voiceState.startTime)/1000);
+        const el=$('voiceTimer');
+        if(el)el.textContent=String(Math.floor(secs/60)).padStart(2,'0')+':'+String(secs%60).padStart(2,'0');
+      },500);
+      buildVoice();
+      if(navigator.vibrate)navigator.vibrate(20);
+    }catch(e){if(window.showToast)showToast('❌ Mikrofon verweigert','error')}
+  }
+};
+
+// ═══ 4. FILE MANAGER ═══
+window.HalDoFiles={
+  key:'haldo_files_v1',
+  all(){return store(this.key,[])},
+  add(name,type,content,size){
+    const l=this.all();
+    l.unshift({id:uid('f_'),name,type:type||'text',content:content||'',size:size||0,created:Date.now()});
+    save(this.key,l.slice(0,200));
+    return l[0].id;
+  },
+  remove(id){save(this.key,this.all().filter(f=>f.id!==id))},
+  createFile(){const n=prompt('Dateiname:','notiz.txt');if(!n)return;const c=prompt('Inhalt:','')||'';this.add(n,'text',c,new Blob([c]).size)},
+  createFolder(){const n=prompt('Ordnername:','Neuer Ordner');if(!n)return;this.add(n,'folder','',0)}
+};
+
+function buildFiles(){
+  const w=$('files-window'); if(!w) return;
+  w.dataset.title='Dateien'; w.dataset.icon='📁';
+  const all=HalDoFiles.all();
+  const totalSize=all.reduce((s,f)=>s+(f.size||0),0);
+  const fmt=b=>b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB';
+  const iconOf=n=>{
+    const l=n.toLowerCase();
+    if(/\.(jpg|jpeg|png|gif|webp)$/.test(l))return '🖼️';
+    if(/\.(mp3|wav|ogg|m4a)$/.test(l))return '🎵';
+    if(/\.(mp4|webm|mov)$/.test(l))return '🎬';
+    if(/\.(txt|md|log)$/.test(l))return '📝';
+    if(/\.(pdf)$/.test(l))return '📕';
+    if(/\.(json)$/.test(l))return '⚙️';
+    if(/\.(zip|rar|7z)$/.test(l))return '📦';
+    return '📄';
+  };
+  const list=all.length?all.map(f=>'<div class="card" style="padding:10px;display:flex;gap:10px;align-items:center;cursor:pointer" onclick="HalDoFilesApp.open(\''+f.id+'\')">'+
+    '<div style="font-size:28px;width:40px;text-align:center">'+(f.type==='folder'?'📁':iconOf(f.name))+'</div>'+
+    '<div style="flex:1;min-width:0">'+
+    '<div style="font-size:13px;font-weight:800;color:#fff">'+esc(f.name)+'</div>'+
+    '<div style="font-size:11px;color:#7ce0ff;margin-top:2px">'+(f.type==='folder'?'Ordner':fmt(f.size||0))+' · '+new Date(f.created).toLocaleDateString('de-DE')+'</div>'+
+    '</div>'+
+    '<button class="os-btn danger" style="padding:6px 10px;font-size:11px" onclick="event.stopPropagation();if(confirm(\'Löschen?\')){HalDoFiles.remove(\''+f.id+'\');HalDoFilesApp.rebuild()}">✕</button>'+
+    '</div>').join(''):'<div class="empty"><div class="ei">📁</div><div class="et">Keine Dateien</div><div class="es">Erstelle deine erste Datei</div></div>';
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px">'+all.length+'</div><div class="lbl">Dateien</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px">'+fmt(totalSize)+'</div><div class="lbl">Speicher</div></div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'+
+    '<button class="os-btn primary" onclick="HalDoFiles.createFile();HalDoFilesApp.rebuild()">📄 Neue Datei</button>'+
+    '<button class="os-btn primary" onclick="HalDoFiles.createFolder();HalDoFilesApp.rebuild()">📁 Neuer Ordner</button>'+
+    '</div>'+
+    list;
+}
+
+window.HalDoFilesApp={
+  open(id){
+    const f=HalDoFiles.all().find(x=>x.id===id);
+    if(!f)return;
+    if(f.type==='folder'){if(window.showToast)showToast('📁 '+f.name);return}
+    alert(f.name+'\n\n'+(f.content||'(leer)'));
+  },
+  rebuild(){buildFiles()}
+};
+
+// ═══ 5. SETTINGS PRO ═══
+let settingsState={};
+
+function buildSettings(){
+  const w=$('settings-window'); if(!w) return;
+  w.dataset.title='Einstellungen'; w.dataset.icon='⚙️';
+  const theme=localStorage.getItem('haldo_theme')||'ai';
+  const avatarMode=localStorage.getItem('haldo_avatar_mode')||'ai';
+  const totalStorage=(()=>{let s=0;for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('haldo_'))s+=(localStorage.getItem(k)||'').length}return s})();
+  w.innerHTML=
+    '<div class="card"><div class="lbl" style="margin-bottom:10px">🎨 Design</div>'+
+    '<div style="display:flex;gap:6px">'+
+    '<button class="os-btn '+(theme==='ai'?'primary':'')+'" style="flex:1;padding:14px" onclick="HalDoSettings.setTheme(\'ai\')">🤖 HalDo AI</button>'+
+    '<button class="os-btn '+(theme==='cyborg'?'primary':'')+'" style="flex:1;padding:14px" onclick="HalDoSettings.setTheme(\'cyborg\')">⚡ CYBORG</button>'+
+    '</div></div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:10px">🤖 Avatar-Modus</div>'+
+    '<div style="display:flex;gap:6px">'+
+    '<button class="os-btn '+(avatarMode==='ai'?'primary':'')+'" style="flex:1;padding:14px" onclick="HalDoSettings.setAvatar(\'ai\')">🤖 AI</button>'+
+    '<button class="os-btn '+(avatarMode==='cyborg'?'primary':'')+'" style="flex:1;padding:14px" onclick="HalDoSettings.setAvatar(\'cyborg\')">⚡ CYBORG</button>'+
+    '</div></div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:10px">📊 System</div>'+
+    '<div style="font-size:12px;color:#aaddff;line-height:1.8">'+
+    'Version: <b style="color:#00e5ff">v132</b><br>'+
+    'Apps installiert: <b style="color:#00e5ff">'+document.querySelectorAll('.os-window').length+'</b><br>'+
+    'Speicher: <b style="color:#00e5ff">'+(totalStorage/1024).toFixed(1)+' KB</b><br>'+
+    'Theme: <b style="color:#00e5ff">'+theme.toUpperCase()+'</b><br>'+
+    'Avatar: <b style="color:#00e5ff">'+avatarMode.toUpperCase()+'</b>'+
+    '</div></div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:10px">💾 Daten</div>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
+    '<button class="os-btn primary" style="flex:1;padding:12px;font-size:12px" onclick="HalDoSettings.export()">📤 Export</button>'+
+    '<button class="os-btn primary" style="flex:1;padding:12px;font-size:12px" onclick="HalDoSettings.import()">📥 Import</button>'+
+    '</div>'+
+    '<button class="os-btn danger full" style="margin-top:8px;padding:12px" onclick="HalDoSettings.reset()">🗑️ Alle Daten löschen</button>'+
+    '</div>';
+}
+
+window.HalDoSettings={
+  setTheme(t){if(window.HalDoUI?.setTheme)HalDoUI.setTheme(t);if(localStorage)localStorage.setItem('haldo_theme',t);buildSettings();if(window.showToast)showToast('🎨 Theme: '+t.toUpperCase(),'success')},
+  setAvatar(m){localStorage.setItem('haldo_avatar_mode',m);buildSettings();if(window.showToast)showToast('🤖 Avatar: '+m.toUpperCase(),'success')},
+  export(){
+    const data={};
+    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('haldo_'))data[k]=localStorage.getItem(k)}
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download='haldo-backup-'+todayK()+'.json';a.click();
+    if(window.showToast)showToast('📤 Export gestartet','success');
+  },
+  import(){
+    const inp=document.createElement('input');inp.type='file';inp.accept='.json';
+    inp.onchange=e=>{
+      const f=e.target.files[0];if(!f)return;
+      const r=new FileReader();
+      r.onload=ev=>{
+        try{
+          const d=JSON.parse(ev.target.result);
+          Object.entries(d).forEach(([k,v])=>localStorage.setItem(k,v));
+          if(window.showToast)showToast('📥 Import erfolgreich','success');
+          setTimeout(()=>location.reload(),1000);
+        }catch(err){if(window.showToast)showToast('❌ Fehler','error')}
+      };
+      r.readAsText(f);
+    };
+    inp.click();
+  },
+  reset(){
+    if(!confirm('ALLE HalDo-Daten löschen? Das kann nicht rückgängig gemacht werden!'))return;
+    const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('haldo_'))keys.push(k)}
+    keys.forEach(k=>localStorage.removeItem(k));
+    if(window.showToast)showToast('🗑️ Alle Daten gelöscht','success');
+    setTimeout(()=>location.reload(),800);
+  }
+};
+
+// ═══ 6. DASHBOARD PRO ═══
+function buildDashboard(){
+  const w=$('dashboard-window'); if(!w) return;
+  w.dataset.title='Dashboard'; w.dataset.icon='📊';
+  const mem=window.HalDoMemoryPro?HalDoMemoryPro.all().length:0;
+  const goals=window.HalDoGoalsPro?HalDoGoalsPro.active().length:0;
+  const habits=window.HalDoHabitsPro?HalDoHabitsPro.all().length:0;
+  const habitsDone=window.HalDoHabitsPro?HalDoHabitsPro.all().filter(h=>h.log&&h.log[todayK()]).length:0;
+  const tasks=window.HalDoTasksPro?HalDoTasksPro.all().filter(t=>!t.done).length:0;
+  const journal=window.HalDoJournalPro?HalDoJournalPro.all().length:0;
+  const journalStreak=window.HalDoJournalPro?HalDoJournalPro.streak():0;
+  const calendar=window.HalDoCalendarPro?HalDoCalendarPro.all().length:0;
+  const reminders=window.HalDoRemindersPro?HalDoRemindersPro.today().length:0;
+  const hour=new Date().getHours();
+  let greet='Guten Abend';if(hour<12)greet='Guten Morgen';else if(hour<18)greet='Guten Tag';else if(hour<22)greet='Guten Abend';else greet='Gute Nacht';
+  const dateStr=new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  w.innerHTML=
+    '<div class="card" style="background:linear-gradient(135deg,rgba(0,229,255,.15),rgba(180,120,255,.15))">'+
+    '<div style="font-size:18px;font-weight:900;color:#fff;margin-bottom:4px">'+greet+', Bruder! 👋</div>'+
+    '<div style="font-size:12px;color:#aaddff">'+dateStr+'</div>'+
+    '</div>'+
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:14px" onclick="HalDoUI.launch(\'tasks-window\')">'+
+    '<div class="big">'+tasks+'</div><div class="lbl">✅ Aufgaben</div></div>'+
+    '<div class="card" style="text-align:center;padding:14px" onclick="HalDoUI.launch(\'habits-window\')">'+
+    '<div class="big">'+habitsDone+'/'+habits+'</div><div class="lbl">🔁 Habits</div></div>'+
+    '<div class="card" style="text-align:center;padding:14px" onclick="HalDoUI.launch(\'goals-window\')">'+
+    '<div class="big">'+goals+'</div><div class="lbl">🎯 Ziele</div></div>'+
+    '<div class="card" style="text-align:center;padding:14px" onclick="HalDoUI.launch(\'reminders-window\')">'+
+    '<div class="big">'+reminders+'</div><div class="lbl">🔔 Heute</div></div>'+
+    '<div class="card" style="text-align:center;padding:14px" onclick="HalDoUI.launch(\'journal-window\')">'+
+    '<div class="big">'+journal+'</div><div class="lbl">📔 Journal</div></div>'+
+    '<div class="card" style="text-align:center;padding:14px" onclick="HalDoUI.launch(\'calendar-window\')">'+
+    '<div class="big">'+calendar+'</div><div class="lbl">📅 Termine</div></div>'+
+    '<div class="card" style="text-align:center;padding:14px" onclick="HalDoUI.launch(\'memory-window\')">'+
+    '<div class="big">'+mem+'</div><div class="lbl">💾 Memory</div></div>'+
+    '<div class="card" style="text-align:center;padding:14px">'+
+    '<div class="big">🔥 '+journalStreak+'</div><div class="lbl">Journal-Streak</div></div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:10px">🚀 Schnellzugriff</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px">'+
+    '<button class="os-btn" style="padding:10px 6px;font-size:11px;flex-direction:column;height:auto" onclick="HalDoUI.launch(\'tasks-window\')"><span style="font-size:20px">✅</span><span>Tasks</span></button>'+
+    '<button class="os-btn" style="padding:10px 6px;font-size:11px;flex-direction:column;height:auto" onclick="HalDoUI.launch(\'habits-window\')"><span style="font-size:20px">🔁</span><span>Habits</span></button>'+
+    '<button class="os-btn" style="padding:10px 6px;font-size:11px;flex-direction:column;height:auto" onclick="HalDoUI.launch(\'journal-window\')"><span style="font-size:20px">📔</span><span>Journal</span></button>'+
+    '<button class="os-btn" style="padding:10px 6px;font-size:11px;flex-direction:column;height:auto" onclick="HalDoUI.launch(\'weather-window\')"><span style="font-size:20px">🌤️</span><span>Wetter</span></button>'+
+    '<button class="os-btn" style="padding:10px 6px;font-size:11px;flex-direction:column;height:auto" onclick="HalDoUI.launch(\'mood-window\')"><span style="font-size:20px">😊</span><span>Mood</span></button>'+
+    '<button class="os-btn" style="padding:10px 6px;font-size:11px;flex-direction:column;height:auto" onclick="HalDoUI.launch(\'water-window\')"><span style="font-size:20px">💧</span><span>Wasser</span></button>'+
+    '</div></div>';
+}
+
+// ═══ INIT ═══
+function init(){
+  if(window.HalDoUI){
+    const orig=window.HalDoUI.rebuild;
+    window.HalDoUI.rebuild=function(id){
+      if(id==='reminders-window'){buildRemindersPro();return}
+      if(id==='camera-window'){buildCamera();return}
+      if(id==='voice-window'){buildVoice();return}
+      if(id==='files-window'){buildFiles();return}
+      if(id==='settings-window'){buildSettings();return}
+      if(id==='dashboard-window'){buildDashboard();return}
+      if(orig)orig(id);
+    };
+  }
+  ['reminders-window','camera-window','voice-window','files-window','settings-window','dashboard-window'].forEach(id=>{
+    const el=$(id);
+    if(el&&window.prepareWindow) window.prepareWindow(el);
+  });
+  console.log('%c🚀 v132 – 6 Apps geladen','color:#00ff88;font-weight:bold;font-size:14px');
+  console.log('%c✅ Reminders · Camera · Voice · Files · Settings · Dashboard','color:#4da8ff;font-weight:bold');
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(init,1000));
+}else{
+  setTimeout(init,1000);
+}
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════ ENDE v132 ═════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
