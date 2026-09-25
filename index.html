@@ -28240,5 +28240,735 @@ Flesch: ${a.flesch.toFixed(1)}`;
   console.log('%c🔥 Habit Heatmap geladen','color:#ff8c3c;font-weight:bold;');
 })();
 </script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v99 – STICKY NOTES (Haftnotizen auf Desktop) ════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#stickyWindow{position:fixed;inset:0;background:radial-gradient(circle at 30% 20%,rgba(255,220,80,.10),transparent 55%),linear-gradient(180deg,rgba(20,18,5,.99),rgba(10,8,2,.99));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:8020;display:none;flex-direction:column;color:#fff8d6;font-family:inherit;}
+#stickyWindow.show{display:flex;}
+.sn-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(255,220,80,.25);background:rgba(50,45,0,.55);flex-shrink:0;position:relative;z-index:10000;gap:8px;}
+.sn-title h2{font-size:18px;margin:0;color:#fff;font-weight:700;}
+.sn-title small{display:block;font-size:10px;color:#ffe066;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.sn-btn{padding:10px 14px;border-radius:10px;background:rgba(255,220,80,.12);border:1px solid rgba(255,220,80,.4);color:#fff8d6;font-size:13px;font-weight:600;cursor:pointer;position:relative;z-index:99999;pointer-events:auto;-webkit-tap-highlight-color:transparent;}
+.sn-btn.primary{background:linear-gradient(135deg,#ffdc50,#ff9a3d);color:#1a1000;border-color:#fff;}
+.sn-btn.icon-only{padding:10px;font-size:16px;min-width:42px;}
+.sn-body{flex:1;overflow-y:auto;padding:16px;position:relative;z-index:2;}
+.sn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;max-width:1100px;margin:0 auto;}
+.sn-note{padding:16px;border-radius:14px;min-height:160px;display:flex;flex-direction:column;position:relative;box-shadow:0 8px 30px rgba(0,0,0,.5);transition:all .2s;cursor:pointer;color:#1a1000;}
+.sn-note:hover{transform:translateY(-3px) rotate(-.5deg);box-shadow:0 14px 40px rgba(0,0,0,.6);}
+.sn-note.pinned::before{content:'📌';position:absolute;top:6px;right:8px;font-size:14px;}
+.sn-note-title{font-size:15px;font-weight:900;margin-bottom:8px;word-break:break-word;}
+.sn-note-text{font-size:13px;line-height:1.5;flex:1;white-space:pre-wrap;word-break:break-word;opacity:.9;}
+.sn-note-foot{font-size:10px;opacity:.6;margin-top:8px;font-weight:700;}
+.sn-note-del{position:absolute;bottom:6px;right:6px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.15);border:none;color:rgba(0,0,0,.6);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.sn-note-del:hover{background:rgba(255,60,60,.4);color:#fff;}
+.sn-empty{text-align:center;padding:60px 20px;color:#a08040;grid-column:1/-1;}
+.sn-modal{position:fixed;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(10px);z-index:8700;display:none;align-items:center;justify-content:center;padding:20px;}
+.sn-modal.show{display:flex;}
+.sn-modal-box{background:linear-gradient(180deg,rgba(50,45,0,.98),rgba(20,15,0,.99));border:2px solid #ffdc50;border-radius:20px;padding:24px;max-width:500px;width:100%;}
+.sn-modal-box h3{margin:0 0 16px;color:#fff;}
+.sn-input{width:100%;padding:12px 14px;border-radius:10px;background:rgba(0,0,0,.4);border:1.5px solid rgba(255,220,80,.3);color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:10px;}
+.sn-textarea{min-height:140px;resize:vertical;font-family:inherit;line-height:1.5;}
+.sn-color-picker{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.sn-color-opt{width:36px;height:36px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .15s;}
+.sn-color-opt.selected{border-color:#fff;transform:scale(1.1);}
+.sn-modal-actions{display:flex;gap:10px;margin-top:14px;}
+.sn-modal-actions .sn-btn{flex:1;padding:14px;}
+.sn-toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;background:linear-gradient(135deg,#ffdc50,#ff9a3d);color:#1a1000;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:all .3s;z-index:99999;}
+.sn-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+<div id="stickyWindow">
+  <div class="sn-header">
+    <div class="sn-title"><span style="font-size:24px">📋</span><div><h2>Sticky Notes</h2><small>Haftnotizen</small></div></div>
+    <button class="sn-btn icon-only" onclick="HalDoStickyApp.close()">✕</button>
+  </div>
+  <div class="sn-body"><div class="sn-grid" id="snGrid"></div>
+    <button class="sn-btn primary" style="position:absolute;bottom:24px;right:20px;padding:16px 22px;font-size:15px;border-radius:16px;box-shadow:0 8px 30px rgba(255,220,80,.5);" onclick="HalDoStickyApp.openEditor()">✚ Neue Notiz</button>
+  </div>
+</div>
+<div class="sn-modal" id="snEditorModal">
+  <div class="sn-modal-box">
+    <h3 id="snEditorTitle">✚ Neue Notiz</h3>
+    <input type="hidden" id="snEditId">
+    <input class="sn-input" id="snInputTitle" placeholder="Titel" maxlength="80">
+    <textarea class="sn-input sn-textarea" id="snInputText" placeholder="Text..."></textarea>
+    <div class="sn-color-picker" id="snColorPicker"></div>
+    <label style="display:flex;align-items:center;gap:8px;color:#ffe066;font-size:13px;font-weight:700;margin-bottom:10px">
+      <input type="checkbox" id="snInputPinned"> 📌 Anpinnen
+    </label>
+    <div class="sn-modal-actions">
+      <button class="sn-btn" onclick="HalDoStickyApp.closeEditor()">Abbrechen</button>
+      <button class="sn-btn primary" onclick="HalDoStickyApp.save()">💾 Speichern</button>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__snLoaded) return; window.__snLoaded = true;
+  const KEY='haldo_sticky_v1';
+  const COLORS=['#ffe066','#ffb84d','#ff8888','#88ddff','#a8ff88','#e0a8ff','#ffa8d4','#88ffcc'];
+  let notes=[]; let editingId=null; let editorColor=COLORS[0];
+  function load(){ try{notes=JSON.parse(localStorage.getItem(KEY))||[];}catch(e){notes=[];} if(!Array.isArray(notes))notes=[]; }
+  function save(){ try{localStorage.setItem(KEY,JSON.stringify(notes));}catch(e){} }
+  function uid(){ return 'sn_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6); }
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function render(){
+    const el=document.getElementById('snGrid');
+    if(!notes.length){ el.innerHTML='<div class="sn-empty"><div style="font-size:60px;opacity:.4;margin-bottom:12px">📋</div><div>Keine Notizen</div><div style="font-size:11px;margin-top:6px">Tippe ✚ um zu starten</div></div>'; return; }
+    const sorted=notes.slice().sort((a,b)=>{ if(a.pinned!==b.pinned)return a.pinned?-1:1; return b.updated-a.updated; });
+    el.innerHTML=sorted.map(n=>'<div class="sn-note '+(n.pinned?'pinned':'')+'" style="background:'+n.color+'" onclick="HalDoStickyApp.openEditor(\''+n.id+'\')"><div class="sn-note-title">'+esc(n.title||'(Ohne Titel)')+'</div><div class="sn-note-text">'+esc((n.text||'').slice(0,200))+'</div><div class="sn-note-foot">'+new Date(n.updated).toLocaleDateString('de-DE',{day:'2-digit',month:'short'})+'</div><button class="sn-note-del" onclick="event.stopPropagation();HalDoStickyApp.remove(\''+n.id+'\')">✕</button></div>').join('');
+  }
+  function buildColorPicker(){
+    const el=document.getElementById('snColorPicker'); if(!el||el.dataset.built) return;
+    el.innerHTML=COLORS.map(c=>'<div class="sn-color-opt" data-color="'+c+'" style="background:'+c+'" onclick="HalDoStickyApp.selectColor(\''+c+'\')"></div>').join('');
+    el.dataset.built='1';
+  }
+  function selectColor(c){ editorColor=c; document.querySelectorAll('.sn-color-opt').forEach(el=>el.classList.toggle('selected',el.dataset.color===c)); }
+  function openEditor(id){
+    buildColorPicker();
+    editingId=id||null;
+    const titleEl=document.getElementById('snEditorTitle');
+    if(id){
+      const n=notes.find(x=>x.id===id); if(!n) return;
+      titleEl.textContent='✏️ Notiz bearbeiten';
+      document.getElementById('snEditId').value=n.id;
+      document.getElementById('snInputTitle').value=n.title||'';
+      document.getElementById('snInputText').value=n.text||'';
+      document.getElementById('snInputPinned').checked=!!n.pinned;
+      editorColor=n.color||COLORS[0];
+    } else {
+      titleEl.textContent='✚ Neue Notiz';
+      document.getElementById('snEditId').value='';
+      document.getElementById('snInputTitle').value='';
+      document.getElementById('snInputText').value='';
+      document.getElementById('snInputPinned').checked=false;
+      editorColor=COLORS[Math.floor(Math.random()*COLORS.length)];
+    }
+    selectColor(editorColor);
+    document.getElementById('snEditorModal').classList.add('show');
+    setTimeout(()=>document.getElementById('snInputTitle').focus(),100);
+  }
+  function closeEditor(){ document.getElementById('snEditorModal').classList.remove('show'); }
+  function saveNote(){
+    const id=document.getElementById('snEditId').value;
+    const title=document.getElementById('snInputTitle').value.trim();
+    const text=document.getElementById('snInputText').value;
+    const pinned=document.getElementById('snInputPinned').checked;
+    if(!title&&!text){toast('⚠️ Bitte Inhalt eingeben');return;}
+    if(id){ const n=notes.find(x=>x.id===id); if(n) Object.assign(n,{title,text,pinned,color:editorColor,updated:Date.now()}); }
+    else { notes.push({id:uid(),title,text,pinned,color:editorColor,created:Date.now(),updated:Date.now()}); }
+    save(); render(); closeEditor(); toast(id?'✅ Aktualisiert':'📋 Notiz erstellt');
+    if(navigator.vibrate) navigator.vibrate(15);
+  }
+  function remove(id){ if(!confirm('Notiz löschen?')) return; notes=notes.filter(x=>x.id!==id); save(); render(); closeEditor(); toast('🗑️ Gelöscht'); }
+  function toast(msg){ let el=document.getElementById('snToast'); if(!el){el=document.createElement('div');el.id='snToast';el.className='sn-toast';document.body.appendChild(el);} el.textContent=msg; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2000); }
+  function open(){ load(); render(); document.getElementById('stickyWindow').classList.add('show'); }
+  function close(){ document.getElementById('stickyWindow').classList.remove('show'); closeEditor(); }
+  window.HalDoSticky={open,close,add(title,text){notes.push({id:uid(),title:title||'',text:text||'',pinned:false,color:COLORS[0],created:Date.now(),updated:Date.now()});save();if(document.getElementById('stickyWindow')?.classList.contains('show'))render();}};
+  window.HalDoStickyApp={open,close,openEditor,closeEditor,save:saveNote,selectColor,remove};
+  console.log('%c📋 Sticky Notes geladen','color:#ffdc50;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v100 – QR STICKER (Social Media QR-Codes) ═══════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#qrstickerWindow{position:fixed;inset:0;background:radial-gradient(circle at 30% 20%,rgba(0,229,255,.10),transparent 55%),linear-gradient(180deg,rgba(0,10,25,.99),rgba(0,5,12,.99));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:8010;display:none;flex-direction:column;color:#e6f4ff;font-family:inherit;}
+#qrstickerWindow.show{display:flex;}
+.qs-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(0,229,255,.25);background:rgba(0,30,60,.55);flex-shrink:0;position:relative;z-index:10000;gap:8px;}
+.qs-title h2{font-size:18px;margin:0;color:#fff;font-weight:700;}
+.qs-title small{display:block;font-size:10px;color:#7ce0ff;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.qs-btn{padding:10px 14px;border-radius:10px;background:rgba(0,229,255,.12);border:1px solid rgba(0,229,255,.4);color:#e6f4ff;font-size:13px;font-weight:600;cursor:pointer;position:relative;z-index:99999;pointer-events:auto;-webkit-tap-highlight-color:transparent;}
+.qs-btn.primary{background:linear-gradient(135deg,#00e5ff,#4da8ff);color:#001018;border-color:#fff;}
+.qs-btn.icon-only{padding:10px;font-size:16px;min-width:42px;}
+.qs-body{flex:1;overflow-y:auto;padding:16px;position:relative;z-index:2;}
+.qs-content{max-width:640px;margin:0 auto;}
+.qs-cats{display:flex;gap:6px;overflow-x:auto;padding-bottom:12px;margin-bottom:14px;}
+.qs-cat{flex-shrink:0;padding:8px 14px;border-radius:20px;background:rgba(0,60,90,.5);border:1.5px solid rgba(0,229,255,.2);color:#7ce0ff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.qs-cat.active{background:linear-gradient(135deg,#00e5ff,#4da8ff);color:#001018;border-color:#fff;}
+.qs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:16px;}
+.qs-sticker{padding:14px 10px;border-radius:14px;background:linear-gradient(160deg,rgba(0,60,120,.4),rgba(0,15,40,.85));border:1.5px solid rgba(0,229,255,.2);cursor:pointer;text-align:center;transition:all .15s;}
+.qs-sticker:hover{border-color:#00e5ff;transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,0,0,.5),0 0 24px rgba(0,229,255,.3);}
+.qs-sticker .qss-icon{font-size:36px;margin-bottom:6px;display:block;}
+.qs-sticker .qss-name{font-size:12px;font-weight:800;color:#fff;}
+.qs-preview{padding:20px;background:rgba(0,0,0,.4);border-radius:16px;border:1.5px solid rgba(0,229,255,.3);text-align:center;margin-bottom:16px;}
+.qs-preview img{width:220px;height:220px;background:#fff;padding:12px;border-radius:12px;}
+.qs-preview-name{font-size:14px;font-weight:800;color:#fff;margin-top:10px;}
+.qs-preview-url{font-size:11px;color:#7ce0ff;margin-top:4px;word-break:break-all;}
+.qs-actions{display:flex;gap:10px;flex-wrap:wrap;}
+.qs-actions .qs-btn{flex:1;padding:14px;min-width:120px;}
+.qs-input{padding:12px 14px;border-radius:10px;background:rgba(0,0,0,.4);border:1.5px solid rgba(0,229,255,.3);color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;width:100%;margin-bottom:14px;}
+.qs-toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;background:linear-gradient(135deg,#00e5ff,#4da8ff);color:#001018;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:all .3s;z-index:99999;}
+.qs-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+<div id="qrstickerWindow">
+  <div class="qs-header">
+    <div class="qs-title"><span style="font-size:24px">📷</span><div><h2>QR Sticker</h2><small>Social Media QR</small></div></div>
+    <button class="qs-btn icon-only" onclick="HalDoQRStickerApp.close()">✕</button>
+  </div>
+  <div class="qs-body"><div class="qs-content" id="qsContent"></div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__qsLoaded) return; window.__qsLoaded = true;
+  const API='https://api.qrserver.com/v1/create-qr-code/';
+  const CATS={
+    social:[
+      {id:'whatsapp',n:'WhatsApp',icon:'💬',build:p=>'https://wa.me/'+p.replace(/[^0-9]/g,'')},
+      {id:'instagram',n:'Instagram',icon:'📷',build:p=>'https://instagram.com/'+p},
+      {id:'tiktok',n:'TikTok',icon:'🎵',build:p=>'https://tiktok.com/@'+p},
+      {id:'youtube',n:'YouTube',icon:'▶️',build:p=>'https://youtube.com/@'+p},
+      {id:'twitter',n:'X/Twitter',icon:'𝕏',build:p=>'https://x.com/'+p},
+      {id:'facebook',n:'Facebook',icon:'📘',build:p=>'https://facebook.com/'+p},
+      {id:'snapchat',n:'Snapchat',icon:'👻',build:p=>'https://snapchat.com/add/'+p},
+      {id:'linkedin',n:'LinkedIn',icon:'💼',build:p=>'https://linkedin.com/in/'+p}
+    ],
+    contact:[
+      {id:'phone',n:'Telefon',icon:'📞',build:p=>'tel:'+p.replace(/\s+/g,'')},
+      {id:'email',n:'E-Mail',icon:'📧',build:p=>'mailto:'+p},
+      {id:'sms',n:'SMS',icon:'💬',build:p=>'SMSTO:'+p.replace(/\s+/g,'')+':'},
+      {id:'vcard',n:'Visitenkarte',icon:'👤',build:p=>p},
+      {id:'wifi',n:'WLAN',icon:'📶',build:p=>p}
+    ],
+    web:[
+      {id:'url',n:'Website',icon:'🌐',build:p=>{let u=p.trim();if(u&&!/^https?:/i.test(u))u='https://'+u;return u;}},
+      {id:'maps',n:'Google Maps',icon:'📍',build:p=>'https://maps.google.com/?q='+encodeURIComponent(p)},
+      {id:'youtube-search',n:'YouTube Suche',icon:'🔍',build:p=>'https://youtube.com/results?search_query='+encodeURIComponent(p)},
+      {id:'playstore',n:'Play Store',icon:'📱',build:p=>'https://play.google.com/store/apps/details?id='+p},
+      {id:'appstore',n:'App Store',icon:'🍎',build:p=>'https://apps.apple.com/app/id'+p}
+    ],
+    crypto:[
+      {id:'btc',n:'Bitcoin',icon:'₿',build:p=>'bitcoin:'+p},
+      {id:'eth',n:'Ethereum',icon:'Ξ',build:p=>'ethereum:'+p},
+      {id:'paypal',n:'PayPal',icon:'💸',build:p=>'https://paypal.me/'+p}
+    ]
+  };
+  let currentCat='social'; let currentSticker=CATS.social[0]; let customValue=''; let currentUrl='';
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function buildQR(data,size){ return API+'?size='+(size||400)+'x'+(size||400)+'&data='+encodeURIComponent(data)+'&margin=10'; }
+  function render(){
+    const el=document.getElementById('qsContent');
+    const catsHtml=Object.entries(CATS).map(([k,v])=>'<button class="qs-cat '+(currentCat===k?'active':'')+'" onclick="HalDoQRStickerApp.setCat(\''+k+'\')">'+({social:'📱 Social',contact:'📞 Kontakt',web:'🌐 Web',crypto:'₿ Krypto'}[k])+'</button>').join('');
+    const stickers=CATS[currentCat];
+    const stickersHtml=stickers.map(s=>'<div class="qs-sticker '+(currentSticker&&currentSticker.id===s.id?'active':'')+'" onclick="HalDoQRStickerApp.setSticker(\''+s.id+'\')"><span class="qss-icon">'+s.icon+'</span><span class="qss-name">'+s.n+'</span></div>').join('');
+    el.innerHTML='<div class="qs-cats">'+catsHtml+'</div>'+
+      '<div class="qs-grid">'+stickersHtml+'</div>'+
+      '<input class="qs-input" id="qsValueInput" placeholder="'+(currentSticker?currentSticker.n+' eingeben...':'Wert eingeben')+'" value="'+esc(customValue)+'" oninput="HalDoQRStickerApp.onInput(this.value)">'+
+      '<div class="qs-preview" id="qsPreview"></div>'+
+      '<div class="qs-actions">'+
+      '<button class="qs-btn primary" onclick="HalDoQRStickerApp.download()">💾 Download</button>'+
+      '<button class="qs-btn" onclick="HalDoQRStickerApp.share()">📤 Teilen</button>'+
+      '<button class="qs-btn" onclick="HalDoQRStickerApp.copy()">📋 Link kopieren</button>'+
+      '</div>';
+    updatePreview();
+  }
+  function updatePreview(){
+    const preview=document.getElementById('qsPreview'); if(!preview) return;
+    if(!customValue||!currentSticker){ preview.innerHTML='<div style="padding:40px;color:#5a8ab0;font-size:13px">Feld oben ausfüllen...</div>'; currentUrl=''; return; }
+    const data=currentSticker.build(customValue);
+    if(!data){ preview.innerHTML='<div style="padding:40px;color:#5a8ab0">Ungültig</div>'; currentUrl=''; return; }
+    currentUrl=data;
+    preview.innerHTML='<img src="'+buildQR(data,400)+'" alt="QR"><div class="qs-preview-name">'+currentSticker.icon+' '+currentSticker.n+'</div><div class="qs-preview-url">'+esc(data)+'</div>';
+  }
+  function setCat(c){ currentCat=c; currentSticker=CATS[c][0]; customValue=''; render(); }
+  function setSticker(id){ const s=CATS[currentCat].find(x=>x.id===id); if(!s) return; currentSticker=s; render(); }
+  function onInput(v){ customValue=v; updatePreview(); }
+  async function download(){
+    if(!currentUrl){ toast('⚠️ Kein Inhalt'); return; }
+    try{ const res=await fetch(buildQR(currentUrl,600)); const blob=await res.blob(); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='qr-'+(currentSticker?currentSticker.id:'code')+'.png'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); toast('💾 Download gestartet'); }catch(e){ toast('❌ Fehler'); }
+  }
+  async function share(){
+    if(!currentUrl){ toast('⚠️ Kein Inhalt'); return; }
+    try{ const res=await fetch(buildQR(currentUrl,600)); const blob=await res.blob(); const file=new File([blob],'qr.png',{type:'image/png'});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:currentSticker.n,text:currentUrl}); }
+      else if(navigator.share){ await navigator.share({title:currentSticker.n,text:currentUrl}); }
+      else toast('📤 Teilen nicht verfügbar');
+    }catch(e){ if(e.name!=='AbortError') toast('❌ Fehler'); }
+  }
+  function copy(){ if(!currentUrl){toast('⚠️ Kein Inhalt');return;} if(navigator.clipboard?.writeText) navigator.clipboard.writeText(currentUrl).then(()=>toast('📋 Link kopiert')); }
+  function toast(msg){ let el=document.getElementById('qsToast'); if(!el){el=document.createElement('div');el.id='qsToast';el.className='qs-toast';document.body.appendChild(el);} el.textContent=msg; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2000); }
+  function open(){ render(); document.getElementById('qrstickerWindow').classList.add('show'); }
+  function close(){ document.getElementById('qrstickerWindow').classList.remove('show'); }
+  window.HalDoQRSticker={open,close,generate(data,size){ return buildQR(data,size); }};
+  window.HalDoQRStickerApp={open,close,setCat,setSticker,onInput,download,share,copy};
+  console.log('%c📷 QR Sticker geladen','color:#00e5ff;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v101 – NETWORK INFO (Verbindung + Speed-Test) ════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#networkWindow{position:fixed;inset:0;background:radial-gradient(circle at 50% 20%,rgba(0,255,180,.10),transparent 55%),linear-gradient(180deg,rgba(0,15,15,.99),rgba(0,8,8,.99));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:8000;display:none;flex-direction:column;color:#e6fff5;font-family:inherit;}
+#networkWindow.show{display:flex;}
+.nw-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(0,255,180,.25);background:rgba(0,50,40,.55);flex-shrink:0;position:relative;z-index:10000;gap:8px;}
+.nw-title h2{font-size:18px;margin:0;color:#fff;font-weight:700;}
+.nw-title small{display:block;font-size:10px;color:#88ffdd;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.nw-btn{padding:10px 14px;border-radius:10px;background:rgba(0,255,180,.12);border:1px solid rgba(0,255,180,.4);color:#e6fff5;font-size:13px;font-weight:600;cursor:pointer;position:relative;z-index:99999;pointer-events:auto;-webkit-tap-highlight-color:transparent;}
+.nw-btn.primary{background:linear-gradient(135deg,#00ffb4,#00e5ff);color:#001a10;border-color:#fff;}
+.nw-btn.icon-only{padding:10px;font-size:16px;min-width:42px;}
+.nw-body{flex:1;overflow-y:auto;padding:16px;}
+.nw-content{max-width:600px;margin:0 auto;}
+.nw-hero{text-align:center;padding:24px 20px;background:linear-gradient(160deg,rgba(0,80,60,.4),rgba(0,25,15,.85));border:1.5px solid rgba(0,255,180,.3);border-radius:20px;margin-bottom:16px;}
+.nw-status-icon{font-size:56px;margin-bottom:8px;}
+.nw-status-text{font-size:20px;font-weight:900;color:#fff;margin-bottom:4px;}
+.nw-status-sub{font-size:12px;color:#88ffdd;}
+.nw-section-title{font-size:11px;color:#88ffdd;text-transform:uppercase;letter-spacing:1.5px;font-weight:800;margin:18px 0 10px;padding-left:4px;}
+.nw-card{padding:14px;background:linear-gradient(160deg,rgba(0,80,60,.4),rgba(0,20,15,.85));border:1.5px solid rgba(0,255,180,.2);border-radius:14px;margin-bottom:8px;}
+.nw-row{display:flex;justify-content:space-between;padding:8px 0;font-size:13px;border-bottom:1px solid rgba(0,255,180,.08);gap:12px;}
+.nw-row:last-child{border-bottom:none;}
+.nw-row .nw-label{color:#88ffdd;flex-shrink:0;font-weight:700;}
+.nw-row .nw-val{color:#fff;font-weight:800;text-align:right;word-break:break-word;font-family:'Courier New',monospace;font-size:12px;}
+.nw-speed{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.nw-speed-item{padding:20px 10px;background:linear-gradient(160deg,rgba(0,80,60,.4),rgba(0,20,15,.85));border:1.5px solid rgba(0,255,180,.25);border-radius:14px;text-align:center;}
+.nw-speed-item .nws-icon{font-size:30px;margin-bottom:6px;}
+.nw-speed-item .nws-num{font-size:28px;font-weight:900;color:#00ffb4;text-shadow:0 0 14px rgba(0,255,180,.6);}
+.nw-speed-item .nws-lbl{font-size:10px;color:#88ffdd;text-transform:uppercase;letter-spacing:1px;margin-top:4px;font-weight:800;}
+.nw-toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;background:linear-gradient(135deg,#00ffb4,#00e5ff);color:#001a10;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:all .3s;z-index:99999;}
+.nw-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+<div id="networkWindow">
+  <div class="nw-header">
+    <div class="nw-title"><span style="font-size:24px">📶</span><div><h2>Network Info</h2><small>Verbindung</small></div></div>
+    <button class="nw-btn icon-only" onclick="HalDoNetworkApp.close()">✕</button>
+  </div>
+  <div class="nw-body"><div class="nw-content" id="nwContent"></div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__nwLoaded) return; window.__nwLoaded = true;
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function getConnectionInfo(){
+    const c=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+    if(!c) return {supported:false};
+    return {supported:true,type:c.effectiveType||c.type||'unknown',downlink:c.downlink,saveData:c.saveData,rtt:c.rtt};
+  }
+  function getNetworkStatus(){
+    const online=navigator.onLine;
+    const conn=getConnectionInfo();
+    const typeLabel={'4g':'📡 4G/LTE','3g':'📶 3G','2g':'📻 2G','slow-2g':'🐢 Sehr langsam','5g':'⚡ 5G','wifi':'📶 WLAN','ethernet':'🔌 LAN','bluetooth':'🔵 Bluetooth'}[conn.type]||'🌐 Netzwerk';
+    return {online,conn,typeLabel};
+  }
+  function render(){
+    const el=document.getElementById('nwContent');
+    const s=getNetworkStatus();
+    const conn=s.conn;
+    let heroClass='nw-status-icon'; let heroText=s.online?'Verbunden':'Nicht verbunden';
+    let icon=s.online?'✅':'❌'; let iconColor=s.online?'#00ffb4':'#ff4466';
+    let html='<div class="nw-hero"><div class="nw-status-icon" style="color:'+iconColor+'">'+icon+'</div><div class="nw-status-text">'+heroText+'</div><div class="nw-status-sub">'+(s.online?'Internetverbindung aktiv':'Keine Internetverbindung')+'</div></div>';
+    if(s.online&&conn.supported){
+      html+='<div class="nw-speed"><div class="nw-speed-item"><div class="nws-icon">⬇️</div><div class="nws-num">'+(conn.downlink||'–')+'</div><div class="nws-lbl">Mbit/s</div></div><div class="nw-speed-item"><div class="nws-icon">⚡</div><div class="nws-num">'+(conn.rtt||'–')+'</div><div class="nws-lbl">ms Ping</div></div></div>';
+    }
+    html+='<div class="nw-section-title">📡 Verbindung</div>';
+    html+='<div class="nw-card">';
+    html+='<div class="nw-row"><span class="nw-label">🌐 Status</span><span class="nw-val">'+(s.online?'🟢 Online':'🔴 Offline')+'</span></div>';
+    html+='<div class="nw-row"><span class="nw-label">📶 Typ</span><span class="nw-val">'+s.typeLabel+'</span></div>';
+    if(conn.supported){
+      if(conn.downlink) html+='<div class="nw-row"><span class="nw-label">⬇️ Geschwindigkeit</span><span class="nw-val">'+conn.downlink+' Mbit/s</span></div>';
+      if(conn.rtt) html+='<div class="nw-row"><span class="nw-label">⏱️ Ping (RTT)</span><span class="nw-val">'+conn.rtt+' ms</span></div>';
+      html+='<div class="nw-row"><span class="nw-label">💾 Datensparmodus</span><span class="nw-val">'+(conn.saveData?'Aktiv ✅':'Aus')+'</span></div>';
+    }
+    html+='</div>';
+    html+='<div class="nw-section-title">💻 Gerät & Browser</div>';
+    const ua=navigator.userAgent;
+    let browser='Unbekannt', os='Unbekannt';
+    if(/Safari/.test(ua)&&!/Chrome/.test(ua)) browser='Safari';
+    else if(/Chrome/.test(ua)&&!/Edg/.test(ua)) browser='Chrome';
+    else if(/Firefox/.test(ua)) browser='Firefox';
+    else if(/Edg/.test(ua)) browser='Edge';
+    if(/iPhone|iPad|iPod/.test(ua)) os='iOS';
+    else if(/Android/.test(ua)) os='Android';
+    else if(/Mac/.test(ua)) os='macOS';
+    else if(/Windows/.test(ua)) os='Windows';
+    else if(/Linux/.test(ua)) os='Linux';
+    html+='<div class="nw-card">';
+    html+='<div class="nw-row"><span class="nw-label">💻 OS</span><span class="nw-val">'+os+'</span></div>';
+    html+='<div class="nw-row"><span class="nw-label">🌐 Browser</span><span class="nw-val">'+browser+'</span></div>';
+    html+='<div class="nw-row"><span class="nw-label">🗣️ Sprache</span><span class="nw-val">'+navigator.language+'</span></div>';
+    html+='<div class="nw-row"><span class="nw-label">🎯 Plattform</span><span class="nw-val">'+(navigator.platform||'–')+'</span></div>';
+    html+='</div>';
+    html+='<div class="nw-section-title">🔧 Erweitert</div>';
+    html+='<div class="nw-card">';
+    html+='<div class="nw-row"><span class="nw-label">📱 Touch</span><span class="nw-val">'+('ontouchstart' in window?'Ja':'Nein')+'</span></div>';
+    html+='<div class="nw-row"><span class="nw-label">🎮 Gamepad</span><span class="nw-val">'+(navigator.getGamepads?'Ja':'Nein')+'</span></div>';
+    html+='<div class="nw-row"><span class="nw-label">🔋 Batterie</span><span class="nw-val">'+('getBattery' in navigator?'Ja':'Nein')+'</span></div>';
+    html+='<div class="nw-row"><span class="nw-label">📳 Vibration</span><span class="nw-val">'+('vibrate' in navigator?'Ja':'Nein')+'</span></div>';
+    html+='<div class="nw-row"><span class="nw-label">📍 Geolocation</span><span class="nw-val">'+('geolocation' in navigator?'Ja':'Nein')+'</span></div>';
+    html+='<div class="nw-row"><span class="nw-label">📷 Kamera</span><span class="nw-val">'+('mediaDevices' in navigator?'Ja':'Nein')+'</span></div>';
+    html+='<div class="nw-row"><span class="nw-label">🎙️ Mikrofon</span><span class="nw-val">'+('mediaDevices' in navigator?'Ja':'Nein')+'</span></div>';
+    html+='<div class="nw-row"><span class="nw-label">🔒 HTTPS</span><span class="nw-val">'+(location.protocol==='https:'?'Ja':'Nein')+'</span></div>';
+    html+='</div>';
+    el.innerHTML=html;
+  }
+  function open(){ render(); document.getElementById('networkWindow').classList.add('show'); if(navigator.connection){ navigator.connection.addEventListener('change',render); } }
+  function close(){ document.getElementById('networkWindow').classList.remove('show'); }
+  window.HalDoNetwork={open,close,info(){ return getNetworkStatus(); }};
+  window.HalDoNetworkApp={open,close};
+  console.log('%c📶 Network Info geladen','color:#00ffb4;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v102 – DEVICE INFO (Geräte + Screen + PPI) ══════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#deviceWindow{position:fixed;inset:0;background:radial-gradient(circle at 30% 20%,rgba(120,140,255,.10),transparent 55%),linear-gradient(180deg,rgba(5,8,20,.99),rgba(2,4,10,.99));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:7990;display:none;flex-direction:column;color:#e6ecff;font-family:inherit;}
+#deviceWindow.show{display:flex;}
+.dv-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(120,140,255,.25);background:rgba(20,25,60,.55);flex-shrink:0;position:relative;z-index:10000;gap:8px;}
+.dv-title h2{font-size:18px;margin:0;color:#fff;font-weight:700;}
+.dv-title small{display:block;font-size:10px;color:#a8b8ff;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.dv-btn{padding:10px 14px;border-radius:10px;background:rgba(120,140,255,.12);border:1px solid rgba(120,140,255,.4);color:#e6ecff;font-size:13px;font-weight:600;cursor:pointer;position:relative;z-index:99999;pointer-events:auto;-webkit-tap-highlight-color:transparent;}
+.dv-btn.icon-only{padding:10px;font-size:16px;min-width:42px;}
+.dv-body{flex:1;overflow-y:auto;padding:16px;}
+.dv-content{max-width:600px;margin:0 auto;}
+.dv-section-title{font-size:11px;color:#a8b8ff;text-transform:uppercase;letter-spacing:1.5px;font-weight:800;margin:18px 0 10px;padding-left:4px;}
+.dv-card{padding:14px;background:linear-gradient(160deg,rgba(60,70,120,.4),rgba(20,25,50,.85));border:1.5px solid rgba(120,140,255,.2);border-radius:14px;margin-bottom:8px;}
+.dv-row{display:flex;justify-content:space-between;padding:8px 0;font-size:13px;border-bottom:1px solid rgba(120,140,255,.08);gap:12px;}
+.dv-row:last-child{border-bottom:none;}
+.dv-row .dv-label{color:#a8b8ff;font-weight:700;flex-shrink:0;}
+.dv-row .dv-val{color:#fff;font-weight:800;text-align:right;word-break:break-word;font-family:'Courier New',monospace;font-size:12px;}
+.dv-screen{display:flex;justify-content:center;align-items:center;padding:20px;background:rgba(0,0,0,.4);border-radius:14px;margin-bottom:14px;border:1.5px solid rgba(120,140,255,.2);}
+.dv-screen-rect{background:linear-gradient(135deg,#788cff,#b47dff);border-radius:14px;box-shadow:0 0 30px rgba(120,140,255,.4);position:relative;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;text-shadow:0 2px 4px rgba(0,0,0,.5);}
+.dv-bar{padding:12px 14px;background:rgba(0,0,0,.3);border-radius:12px;margin-bottom:6px;}
+.dv-bar-fill{height:8px;border-radius:4px;background:linear-gradient(90deg,#788cff,#b47dff);margin-top:6px;transition:width .5s;}
+.dv-toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;background:linear-gradient(135deg,#788cff,#b47dff);color:#fff;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:all .3s;z-index:99999;}
+.dv-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+<div id="deviceWindow">
+  <div class="dv-header">
+    <div class="dv-title"><span style="font-size:24px">📱</span><div><h2>Device Info</h2><small>Gerät & Bildschirm</small></div></div>
+    <button class="dv-btn icon-only" onclick="HalDoDeviceApp.close()">✕</button>
+  </div>
+  <div class="dv-body"><div class="dv-content" id="dvContent"></div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__dvLoaded) return; window.__dvLoaded = true;
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function gcd(a,b){ return b===0?a:gcd(b,a%b); }
+  function calcPPI(){
+    const w=screen.width||0, h=screen.height||0;
+    const diagPx=Math.sqrt(w*w+h*h);
+    const dpr=window.devicePixelRatio||1;
+    // Diagonale Zoll schätzen aus typischen Größen
+    // Nutzer kann manuell eingeben - Standardfall
+    const diagInch=diagPx/(160*dpr); // grobe Schätzung für Android
+    return { dpr, diagPx: Math.round(diagPx), diagInch: diagInch.toFixed(1) };
+  }
+  function render(){
+    const el=document.getElementById('dvContent');
+    const w=window.innerWidth, h=window.innerHeight, sw=screen.width, sh=screen.height;
+    const dpr=window.devicePixelRatio||1;
+    const ratio=gcd(w,h); const aw=w/ratio, ah=h/ratio;
+    const mem=navigator.deviceMemory||'?';
+    const cores=navigator.hardwareConcurrency||'?';
+    const ppi=calcPPI();
+    // Screen-Rechteck zeichnen (proportional)
+    const maxW=280, maxH=300;
+    const ar=w/h;
+    let rw=maxW, rh=maxW/ar;
+    if(rh>maxH){ rh=maxH; rw=maxH*ar; }
+
+    let html='<div class="dv-screen"><div class="dv-screen-rect" style="width:'+rw+'px;height:'+rh+'px">'+w+' × '+h+'<br>(Viewport)</div></div>';
+    html+='<div class="dv-section-title">🖥️ Bildschirm</div>';
+    html+='<div class="dv-card">';
+    html+='<div class="dv-row"><span class="dv-label">📐 Viewport</span><span class="dv-val">'+w+' × '+h+' px</span></div>';
+    html+='<div class="dv-row"><span class="dv-label">🖥️ Screen</span><span class="dv-val">'+sw+' × '+sh+' px</span></div>';
+    html+='<div class="dv-row"><span class="dv-label">🔍 Device Pixel Ratio</span><span class="dv-val">'+dpr+'×</span></div>';
+    html+='<div class="dv-row"><span class="dv-label">🎯 Physische Pixel</span><span class="dv-val">'+Math.round(sw*dpr)+' × '+Math.round(sh*dpr)+'</span></div>';
+    html+='<div class="dv-row"><span class="dv-label">📏 Seitenverhältnis</span><span class="dv-val">'+aw+':'+ah+'</span></div>';
+    html+='<div class="dv-row"><span class="dv-label">↔️ Diagonal (px)</span><span class="dv-val">'+ppi.diagPx+'</span></div>';
+    html+='<div class="dv-row"><span class="dv-label">🎨 Farbtiefe</span><span class="dv-val">'+(screen.colorDepth||'–')+' bit</span></div>';
+    html+='<div class="dv-row"><span class="dv-label">🔆 Helligkeit</span><span class="dv-val">'+(screen.brightness!==undefined?screen.brightness:'–')+'</span></div>';
+    html+='<div class="dv-row"><span class="dv-label">🔄 Orientierung</span><span class="dv-val">'+(screen.orientation?.type||'–')+'</span></div>';
+    html+='</div>';
+    html+='<div class="dv-section-title">💻 Gerät</div>';
+    html+='<div class="dv-card">';
+    html+='<div class="dv-row"><span class="dv-label">🎯 Platform</span><span class="dv-val">'+esc(navigator.platform||'–')+'</span></div>';
+    html+='<div class="dv-row"><span class="dv-label">🧠 CPU-Kerne</span><span class="dv-val">'+cores+'</span></div>';
+    html+='<div class="dv-row"><span class="dv-label">💾 RAM (Schätzung)</span><span class="dv-val">'+(mem!=='?'?mem+' GB':'Unbekannt')+'</span></div>';
+    html+='<div class="dv-row"><span class="dv-label">🌍 Sprache</span><span class="dv-val">'+navigator.language+'</span></div>';
+    html+='<div class="dv-row"><span class="dv-label">🌐 Sprachen</span><span class="dv-val">'+(navigator.languages?navigator.languages.join(', '):'–')+'</span></div>';
+    html+='<div class="dv-row"><span class="dv-label">⏰ Zeitzone</span><span class="dv-val">'+(Intl.DateTimeFormat().resolvedOptions().timeZone||'–')+'</span></div>';
+    html+='</div>';
+    html+='<div class="dv-section-title">🌐 Umgebung</div>';
+    const ua=navigator.userAgent;
+    let browser='Unbekannt', bVersion='';
+    if(/Safari/.test(ua)&&!/Chrome/.test(ua)){ const m=ua.match(/Version\/([\d.]+)/); browser='Safari'; bVersion=m?m[1]:''; }
+    else if(/Chrome/.test(ua)){ const m=ua.match(/Chrome\/([\d.]+)/); browser='Chrome'; bVersion=m?m[1]:''; }
+    else if(/Firefox/.test(ua)){ const m=ua.match(/Firefox\/([\d.]+)/); browser='Firefox'; bVersion=m?m[1]:''; }
+    html+='<div class="dv-card">';
+    html+='<div class="dv-row"><span class="dv-label">🌐 Browser</span><span class="dv-val">'+browser+(bVersion?' '+bVersion:'')+'</span></div>';
+    html+='<div class="dv-row"><span class="dv-label">🔗 URL</span><span class="dv-val" style="font-size:10px">'+esc(location.href.slice(0,40))+(location.href.length>40?'…':'')+'</span></div>';
+    html+='<div class="dv-row"><span class="dv-label">🕒 Session Start</span><span class="dv-val">'+new Date(performance.timeOrigin||Date.now()).toLocaleTimeString('de-DE')+'</span></div>';
+    html+='<div class="dv-row"><span class="dv-label">⚡ Online seit</span><span class="dv-val">'+Math.round(performance.now()/1000)+' s</span></div>';
+    html+='</div>';
+    html+='<div class="dv-section-title">🔋 Features</div>';
+    html+='<div class="dv-card">';
+    const features=[['📷 getUserMedia',!!navigator.mediaDevices?.getUserMedia],['📍 Geolocation',!!navigator.geolocation],['📳 Vibration',!!navigator.vibrate],['🔔 Notifications',!!window.Notification],['📋 Clipboard',!!navigator.clipboard],['💾 Service Worker',!!navigator.serviceWorker],['🔊 Web Audio',!!window.AudioContext],['🗣️ Speech',!!(window.SpeechRecognition||window.webkitSpeechRecognition)],['🌐 WebRTC',!!window.RTCPeerConnection],['💳 Payment',!!window.PaymentRequest],['🔒 Crypto',!!window.crypto?.subtle],['📱 PWA',!!window.matchMedia('(display-mode: standalone)').matches]];
+    features.forEach(([k,v])=>{ html+='<div class="dv-row"><span class="dv-label">'+k+'</span><span class="dv-val">'+(v?'✅':'❌')+'</span></div>'; });
+    html+='</div>';
+    el.innerHTML=html;
+  }
+  function open(){ render(); document.getElementById('deviceWindow').classList.add('show'); window.addEventListener('resize',render); window.addEventListener('orientationchange',render); }
+  function close(){ document.getElementById('deviceWindow').classList.remove('show'); window.removeEventListener('resize',render); }
+  window.HalDoDevice={open,close};
+  window.HalDoDeviceApp={open,close};
+  console.log('%c📱 Device Info geladen','color:#788cff;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v103 – LOAN CALCULATOR (Kredit + Tilgungsplan) ═══════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#loanWindow{position:fixed;inset:0;background:radial-gradient(circle at 50% 20%,rgba(255,200,0,.10),transparent 55%),linear-gradient(180deg,rgba(20,15,0,.99),rgba(10,8,0,.99));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:7980;display:none;flex-direction:column;color:#fff8e6;font-family:inherit;}
+#loanWindow.show{display:flex;}
+.lo-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(255,200,0,.25);background:rgba(50,40,0,.55);flex-shrink:0;position:relative;z-index:10000;gap:8px;}
+.lo-title h2{font-size:18px;margin:0;color:#fff;font-weight:700;}
+.lo-title small{display:block;font-size:10px;color:#ffe066;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.lo-btn{padding:10px 14px;border-radius:10px;background:rgba(255,200,0,.12);border:1px solid rgba(255,200,0,.4);color:#fff8e6;font-size:13px;font-weight:600;cursor:pointer;position:relative;z-index:99999;pointer-events:auto;-webkit-tap-highlight-color:transparent;}
+.lo-btn.primary{background:linear-gradient(135deg,#ffc800,#ff9a3d);color:#1a1000;border-color:#fff;}
+.lo-btn.icon-only{padding:10px;font-size:16px;min-width:42px;}
+.lo-body{flex:1;overflow-y:auto;padding:16px;}
+.lo-content{max-width:600px;margin:0 auto;}
+.lo-tabs{display:flex;gap:4px;background:rgba(0,0,0,.4);padding:4px;border-radius:12px;margin-bottom:14px;}
+.lo-tab{flex:1;padding:10px;border-radius:8px;background:transparent;border:none;color:#ffe066;font-size:12px;font-weight:800;cursor:pointer;text-transform:uppercase;letter-spacing:.6px;}
+.lo-tab.active{background:linear-gradient(135deg,#ffc800,#ff9a3d);color:#1a1000;}
+.lo-form-row{margin-bottom:12px;}
+.lo-form-row label{display:block;font-size:11px;color:#ffe066;font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:1.2px;}
+.lo-form-row input,.lo-form-row select{width:100%;padding:12px 14px;border-radius:10px;background:rgba(0,0,0,.4);border:1.5px solid rgba(255,200,0,.3);color:#fff;font-size:15px;font-family:inherit;outline:none;box-sizing:border-box;}
+.lo-form-row input:focus,.lo-form-row select:focus{border-color:#ffc800;box-shadow:0 0 18px rgba(255,200,0,.3);}
+.lo-form-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.lo-result{padding:20px;background:linear-gradient(160deg,rgba(120,90,0,.5),rgba(40,25,0,.85));border:2px solid #ffc800;border-radius:18px;text-align:center;margin:14px 0;box-shadow:0 15px 40px rgba(0,0,0,.5),0 0 30px rgba(255,200,0,.2);}
+.lo-result .lo-big{font-size:44px;font-weight:900;color:#ffc800;text-shadow:0 0 20px rgba(255,200,0,.5);line-height:1;}
+.lo-result .lo-lbl{font-size:12px;color:#ffe066;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin-top:6px;}
+.lo-info-row{display:flex;justify-content:space-between;padding:10px 14px;background:rgba(0,0,0,.3);border-radius:10px;font-size:13px;margin-bottom:6px;}
+.lo-info-row .lo-label{color:#ffe066;}
+.lo-info-row .lo-val{color:#fff;font-weight:800;}
+.lo-info-row .lo-val.highlight{color:#ffc800;font-size:15px;}
+.lo-schedule{margin-top:14px;max-height:400px;overflow-y:auto;}
+.lo-schedule table{width:100%;border-collapse:collapse;font-size:11px;}
+.lo-schedule th{background:rgba(255,200,0,.15);color:#ffc800;padding:8px;text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;}
+.lo-schedule td{padding:6px 8px;border-bottom:1px solid rgba(255,200,0,.08);color:#fff;}
+.lo-schedule tr:nth-child(even) td{background:rgba(0,0,0,.15);}
+.lo-toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;background:linear-gradient(135deg,#ffc800,#ff9a3d);color:#1a1000;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:all .3s;z-index:99999;}
+.lo-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+<div id="loanWindow">
+  <div class="lo-header">
+    <div class="lo-title"><span style="font-size:24px">🏦</span><div><h2>Loan Calculator</h2><small>Kredit-Rechner</small></div></div>
+    <button class="lo-btn icon-only" onclick="HalDoLoanApp.close()">✕</button>
+  </div>
+  <div class="lo-body"><div class="lo-content" id="loContent"></div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__loLoaded) return; window.__loLoaded = true;
+  let mode='loan'; // loan | savings
+  let data={amount:100000,rate:4.5,years:20,downpayment:20000};
+  let savings={initial:1000,monthly:200,rate:3,years:10};
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function fmt(n){ return (Math.round(n*100)/100).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
+  function calcLoan(){
+    const principal=data.amount-data.downpayment;
+    if(principal<=0) return null;
+    const monthlyRate=data.rate/100/12;
+    const months=data.years*12;
+    let payment;
+    if(monthlyRate===0) payment=principal/months;
+    else payment=principal*monthlyRate*Math.pow(1+monthlyRate,months)/(Math.pow(1+monthlyRate,months)-1);
+    const total=payment*months;
+    const interest=total-principal;
+    // Tilgungsplan
+    const schedule=[]; let balance=principal;
+    for(let m=1;m<=months;m++){
+      const intPart=balance*monthlyRate;
+      const princPart=payment-intPart;
+      balance-=princPart;
+      if(m<=12||m%12===0||m===months){
+        schedule.push({m,interest:intPart,principal:princPart,balance:Math.max(0,balance),year:Math.ceil(m/12)});
+      }
+    }
+    return {principal,payment,total,interest,months,schedule};
+  }
+  function calcSavings(){
+    const {initial,monthly,rate,years}=savings;
+    const months=years*12;
+    const monthlyRate=rate/100/12;
+    let balance=initial;
+    const schedule=[];
+    for(let m=1;m<=months;m++){
+      balance=balance*(1+monthlyRate)+monthly;
+      if(m<=12||m%12===0||m===months){
+        schedule.push({m,year:Math.ceil(m/12),balance,interest:balance-(initial+monthly*m)});
+      }
+    }
+    const totalInvested=initial+monthly*months;
+    const profit=balance-totalInvested;
+    return {final:balance,totalInvested,profit,months,schedule};
+  }
+  function render(){
+    const el=document.getElementById('loContent');
+    const tabsHtml='<div class="lo-tabs"><button class="lo-tab '+(mode==='loan'?'active':'')+'" onclick="HalDoLoanApp.setMode(\'loan\')">🏦 Kredit</button><button class="lo-tab '+(mode==='savings'?'active':'')+'" onclick="HalDoLoanApp.setMode(\'savings\')">💰 Sparen</button></div>';
+    if(mode==='loan'){
+      const r=calcLoan();
+      el.innerHTML=tabsHtml+
+        '<div class="lo-form-2col">'+
+        '<div class="lo-form-row"><label>Kreditsumme</label><input type="number" value="'+data.amount+'" oninput="HalDoLoanApp.set(\'amount\',this.value)"></div>'+
+        '<div class="lo-form-row"><label>Anzahlung</label><input type="number" value="'+data.downpayment+'" oninput="HalDoLoanApp.set(\'downpayment\',this.value)"></div>'+
+        '</div>'+
+        '<div class="lo-form-2col">'+
+        '<div class="lo-form-row"><label>Zinssatz (% p.a.)</label><input type="number" step="0.1" value="'+data.rate+'" oninput="HalDoLoanApp.set(\'rate\',this.value)"></div>'+
+        '<div class="lo-form-row"><label>Laufzeit (Jahre)</label><input type="number" value="'+data.years+'" oninput="HalDoLoanApp.set(\'years\',this.value)"></div>'+
+        '</div>'+
+        (r?
+          '<div class="lo-result"><div class="lo-big">'+fmt(r.payment)+'</div><div class="lo-lbl">Monatliche Rate</div></div>'+
+          '<div class="lo-info-row"><span class="lo-label">💵 Kreditsumme</span><span class="lo-val">'+fmt(r.principal)+'</span></div>'+
+          '<div class="lo-info-row"><span class="lo-label">📊 Gesamtzahlung</span><span class="lo-val highlight">'+fmt(r.total)+'</span></div>'+
+          '<div class="lo-info-row"><span class="lo-label">💸 Zinskosten</span><span class="lo-val" style="color:#ff8080">'+fmt(r.interest)+'</span></div>'+
+          '<div class="lo-info-row"><span class="lo-label">📅 Laufzeit</span><span class="lo-val">'+r.months+' Monate / '+data.years+' Jahre</span></div>'+
+          '<div style="margin-top:20px;font-size:11px;color:#ffe066;text-transform:uppercase;letter-spacing:1.5px;font-weight:800;margin-bottom:8px">📋 Tilgungsplan (Jahresweise)</div>'+
+          '<div class="lo-schedule"><table><thead><tr><th>Jahr</th><th>Rate/Jahr</th><th>Zinsen</th><th>Restschuld</th></tr></thead><tbody>'+
+          (()=>{ let html=''; for(let y=1;y<=data.years;y++){ let paySum=0,intSum=0,lastBal=0; r.schedule.forEach(s=>{ if(s.year===y){ paySum+=s.interest+s.principal; intSum+=s.interest; lastBal=s.balance; } }); html+='<tr><td>'+y+'</td><td>'+fmt(paySum)+'</td><td style="color:#ff9a3d">'+fmt(intSum)+'</td><td>'+fmt(lastBal)+'</td></tr>'; } return html; })()+
+          '</tbody></table></div>'
+          :'<div style="text-align:center;padding:40px;color:#a08040">Bitte Kreditsumme eingeben</div>');
+    } else {
+      const r=calcSavings();
+      el.innerHTML=tabsHtml+
+        '<div class="lo-form-2col">'+
+        '<div class="lo-form-row"><label>Startkapital</label><input type="number" value="'+savings.initial+'" oninput="HalDoLoanApp.setS(\'initial\',this.value)"></div>'+
+        '<div class="lo-form-row"><label>Monatlich sparen</label><input type="number" value="'+savings.monthly+'" oninput="HalDoLoanApp.setS(\'monthly\',this.value)"></div>'+
+        '</div>'+
+        '<div class="lo-form-2col">'+
+        '<div class="lo-form-row"><label>Zinsen (% p.a.)</label><input type="number" step="0.1" value="'+savings.rate+'" oninput="HalDoLoanApp.setS(\'rate\',this.value)"></div>'+
+        '<div class="lo-form-row"><label>Jahre</label><input type="number" value="'+savings.years+'" oninput="HalDoLoanApp.setS(\'years\',this.value)"></div>'+
+        '</div>'+
+        '<div class="lo-result"><div class="lo-big">'+fmt(r.final)+'</div><div class="lo-lbl">Endkapital nach '+savings.years+' Jahren</div></div>'+
+        '<div class="lo-info-row"><span class="lo-label">💰 Eingezahlt</span><span class="lo-val">'+fmt(r.totalInvested)+'</span></div>'+
+        '<div class="lo-info-row"><span class="lo-label">📈 Zinsertrag</span><span class="lo-val highlight">+'+fmt(r.profit)+'</span></div>'+
+        '<div class="lo-info-row"><span class="lo-label">📅 Gesamtdauer</span><span class="lo-val">'+r.months+' Monate</span></div>'+
+        '<div style="margin-top:20px;font-size:11px;color:#ffe066;text-transform:uppercase;letter-spacing:1.5px;font-weight:800;margin-bottom:8px">📋 Verlauf (Jahresweise)</div>'+
+        '<div class="lo-schedule"><table><thead><tr><th>Jahr</th><th>Kapital</th><th>Zinsen gesamt</th></tr></thead><tbody>'+
+        (()=>{ let html=''; for(let y=1;y<=savings.years;y++){ const s=r.schedule.find(x=>x.year===y&&x.m===y*12)||r.schedule.filter(x=>x.year===y).pop(); if(s) html+='<tr><td>'+y+'</td><td>'+fmt(s.balance)+'</td><td style="color:#00ff88">+'+fmt(s.interest)+'</td></tr>'; } return html; })()+
+        '</tbody></table></div>';
+    }
+  }
+  function set(k,v){ data[k]=parseFloat(v)||0; render(); }
+  function setS(k,v){ savings[k]=parseFloat(v)||0; render(); }
+  function setMode(m){ mode=m; render(); }
+  function toast(msg){ let el=document.getElementById('loToast'); if(!el){el=document.createElement('div');el.id='loToast';el.className='lo-toast';document.body.appendChild(el);} el.textContent=msg; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2000); }
+  function open(){ render(); document.getElementById('loanWindow').classList.add('show'); }
+  function close(){ document.getElementById('loanWindow').classList.remove('show'); }
+  window.HalDoLoan={open,close,monthlyPayment(amount,rate,years){ const mr=rate/100/12; const n=years*12; if(mr===0)return amount/n; return amount*mr*Math.pow(1+mr,n)/(Math.pow(1+mr,n)-1); }};
+  window.HalDoLoanApp={open,close,set,setS,setMode};
+  console.log('%c🏦 Loan Calculator geladen','color:#ffc800;font-weight:bold;');
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v104 – SCIENCE LAB (Physik + Chemie Rechner) ════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+#scienceWindow{position:fixed;inset:0;background:radial-gradient(circle at 50% 20%,rgba(0,255,200,.10),transparent 55%),linear-gradient(180deg,rgba(0,15,15,.99),rgba(0,8,8,.99));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:7970;display:none;flex-direction:column;color:#e6fff5;font-family:inherit;}
+#scienceWindow.show{display:flex;}
+.sci-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(0,255,200,.25);background:rgba(0,50,40,.55);flex-shrink:0;position:relative;z-index:10000;gap:8px;}
+.sci-title h2{font-size:18px;margin:0;color:#fff;font-weight:700;}
+.sci-title small{display:block;font-size:10px;color:#7cffdd;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.sci-btn{padding:10px 14px;border-radius:10px;background:rgba(0,255,200,.12);border:1px solid rgba(0,255,200,.4);color:#e6fff5;font-size:13px;font-weight:600;cursor:pointer;position:relative;z-index:99999;pointer-events:auto;-webkit-tap-highlight-color:transparent;}
+.sci-btn.primary{background:linear-gradient(135deg,#00ffc8,#00e5ff);color:#001a10;border-color:#fff;}
+.sci-btn.icon-only{padding:10px;font-size:16px;min-width:42px;}
+.sci-body{flex:1;overflow-y:auto;padding:16px;}
+.sci-content{max-width:600px;margin:0 auto;}
+.sci-cats{display:flex;gap:6px;overflow-x:auto;padding-bottom:12px;margin-bottom:14px;}
+.sci-cat{flex-shrink:0;padding:8px 14px;border-radius:20px;background:rgba(0,80,60,.5);border:1.5px solid rgba(0,255,200,.25);color:#7cffdd;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.sci-cat.active{background:linear-gradient(135deg,#00ffc8,#00e5ff);color:#001a10;border-color:#fff;}
+.sci-formula{padding:14px;background:linear-gradient(160deg,rgba(0,80,60,.4),rgba(0,20,15,.85));border:1.5px solid rgba(0,255,200,.2);border-radius:14px;margin-bottom:14px;text-align:center;}
+.sci-formula .sf-name{font-size:12px;color:#7cffdd;text-transform:uppercase;letter-spacing:1.5px;font-weight:800;margin-bottom:8px;}
+.sci-formula .sf-eq{font-size:18px;color:#00ffc8;font-family:'Courier New',monospace;font-weight:800;text-shadow:0 0 12px rgba(0,255,200,.5);}
+.sci-inputs{display:grid;gap:10px;margin-bottom:14px;}
+.sci-inputs.two{grid-template-columns:1fr 1fr;}
+.sci-inputs.three{grid-template-columns:1fr 1fr 1fr;}
+.sci-input-group{position:relative;}
+.sci-input-group label{display:block;font-size:10px;color:#7cffdd;font-weight:800;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;}
+.sci-input-group input,.sci-input-group select{width:100%;padding:12px;border-radius:10px;background:rgba(0,0,0,.4);border:1.5px solid rgba(0,255,200,.3);color:#fff;font-size:15px;font-family:'Courier New',monospace;outline:none;box-sizing:border-box;}
+.sci-input-group input:focus{border-color:#00ffc8;box-shadow:0 0 18px rgba(0,255,200,.3);}
+.sci-input-group .sci-unit{position:absolute;right:12px;bottom:12px;font-size:11px;color:#7cffdd;font-weight:800;pointer-events:none;}
+.sci-result{padding:24px;background:linear-gradient(160deg,rgba(0,80,60,.5),rgba(0,20,15,.85));border:2px solid #00ffc8;border-radius:18px;text-align:center;margin-bottom:14px;box-shadow:0 15px 40px rgba(0,0,0,.5),0 0 30px rgba(0,255,200,.2);}
+.sci-result .sr-big{font-size:38px;font-weight:900;color:#00ffc8;text-shadow:0 0 24px rgba(0,255,200,.6);line-height:1;word-break:break-all;}
+.sci-result .sr-unit{font-size:16px;color:#7cffdd;margin-left:6px;}
+.sci-result .sr-lbl{font-size:11px;color:#7cffdd;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin-top:8px;}
+.sci-steps{padding:14px;background:rgba(0,0,0,.3);border-radius:12px;font-size:12px;color:#aaddcc;line-height:1.7;font-family:'Courier New',monospace;}
+.sci-steps b{color:#00ffc8;}
+.sci-toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;background:linear-gradient(135deg,#00ffc8,#00e5ff);color:#001a10;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:all .3s;z-index:99999;}
+.sci-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+<div id="scienceWindow">
+  <div class="sci-header">
+    <div class="sci-title"><span style="font-size:24px">🧪</span><div><h2>Science Lab</h2><small>Physik & Chemie</small></div></div>
+    <button class="sci-btn icon-only" onclick="HalDoScienceApp.close()">✕</button>
+  </div>
+  <div class="sci-body"><div class="sci-content" id="sciContent"></div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  if(window.__sciLoaded) return; window.__sciLoaded = true;
+  const CALCS={
+    force:{name:'Kraft (Newton)',eq:'F = m · a',cat:'physik',inputs:[{k:'m',l:'Masse',u:'kg',v:10},{k:'a',l:'Beschleunigung',u:'m/s²',v:9.81}],calc:v=>v.m*v.a,unit:'N'},
+    energy:{name:'Kinetische Energie',eq:'E = ½ · m · v²',cat:'physik',inputs:[{k:'m',l:'Masse',u:'kg',v:10},{k:'v',l:'Geschwindigkeit',u:'m/s',v:5}],calc:v=>0.5*v.m*v.v*v.v,unit:'J'},
+    potential:{name:'Potenzielle Energie',eq:'E = m · g · h',cat:'physik',inputs:[{k:'m',l:'Masse',u:'kg',v:10},{k:'h',l:'Höhe',u:'m',v:5}],calc:v=>v.m*9.81*v.h,unit:'J'},
+    work:{name:'Arbeit',eq:'W = F · s',cat:'physik',inputs:[{k:'F',l:'Kraft',u:'N',v:50},{k:'s',l:'Strecke',u:'m',v:10}],calc:v=>v.F*v.s,unit:'J'},
+    power:{name:'Leistung',eq:'P = W / t',cat:'physik',inputs:[{k:'W',l:'Arbeit',u:'J',v:1000},{k:'t',l:'Zeit',u:'s',v:10}],calc:v=>v.W/v.t,unit:'W'},
+    speed:{name:'Geschwindigkeit',eq:'v = s / t',cat:'physik',inputs:[{k:'s',l:'Strecke',u:'m',v:100},{k:'t',l:'Zeit',u:'s',v:10}],calc:v=>v.s/v.t,unit:'m/s'},
+    pressure:{name:'Druck',eq:'p = F / A',cat:'physik',inputs:[{k:'F',l:'Kraft',u:'N',v:100},{k:'A',l:'Fläche',u:'m²',v:2}],calc:v=>v.F/v.A,unit:'Pa'},
+    density:{name:'Dichte',eq:'ρ = m / V',cat:'physik',inputs:[{k:'m',l:'Masse',u:'kg',v:10},{k:'V',l:'Volumen',u:'m³',v:2}],calc:v=>v.m/v.V,unit:'kg/m³'},
+    ohm:{name:'Ohmsches Gesetz',eq:'U = R · I',cat:'physik',inputs:[{k:'R',l:'Widerstand',u:'Ω',v:100},{k:'I',l:'Strom',u:'A',v:0.5}],calc:v=>v.R*v.I,unit:'V'},
+    electrical:{name:'Elektrische Leistung',eq:'P = U · I',cat:'physik',inputs:[{k:'U',l:'Spannung',u:'V',v:230},{k:'I',l:'Strom',u:'A',v:2}],calc:v=>v.U*v.I,unit:'W'},
+    resistance:{name:'Widerstand',eq:'R = U / I',cat:'physik',inputs:[{k:'U',l:'Spannung',u:'V',v:12},{k:'I',l:'Strom',u:'A',v:0.5}],calc:v=>v.U/v.I,unit:'Ω'},
+    c2f:{name:'Celsius → Fahrenheit',eq:'°F = °C · 9/5 + 32',cat:'physik',inputs:[{k:'c',l:'Celsius',u:'°C',v:25}],calc:v=>v.c*9/5+32,unit:'°F'},
+    f2c:{name:'Fahrenheit → Celsius',eq:'°C = (°F − 32) · 5/9',cat:'physik',inputs:[{k:'f',l:'Fahrenheit',u:'°F',v:77}],calc:v=>(v.f-32)*5/9,unit:'°C'},
+    molmass:{name:'Molmasse (Mol)',eq:'n = m / M',cat:'chemie',inputs:[{k:'m',l:'Masse',u:'g',v:180},{k:'M',l:'Molmasse',u:'g/mol',v:18}],calc:v=>v.m/v.M,unit:'mol'},
+    concentration:{name:'Konzentration',eq:'c = n / V',cat:'chemie',inputs:[{k:'n',l:'Stoffmenge',u:'mol',v:2},{k:'V',l:'Volumen',u:'L',v:1}],calc:v=>v.n/v.V,unit:'mol/L'},
+    dilution:{name:'Verdünnung',eq:'c1·V1 = c2·V2',cat:'chemie',inputs:[{k:'c1',l:'Ausgangskonz.',u:'mol/L',v:2},{k:'V1',l:'Volumen 1',u:'L',v:0.5},{k:'c2',l:'Zielkonz.',u:'mol/L',v:0.5}],calc:v=>(v.c1*v.V1)/v.c2,unit:'L'},
+    ph:{name:'pH-Wert',eq:'pH = −log[H⁺]',cat:'chemie',inputs:[{k:'h',l:'[H⁺] in mol/L',u:'mol/L',v:0.001}],calc:v=>-Math.log10(v.h),unit:'pH'},
+    gas:{name:'Ideales Gasgesetz',eq:'V = n·R·T / p',cat:'chemie',inputs:[{k:'n',l:'Stoffmenge',u:'mol',v:1},{k:'T',l:'Temperatur',u:'K',v:273.15},{k:'p',l:'Druck',u:'atm',v:1}],calc:v=>(v.n*0.08206*v.T)/v.p,unit:'L'}
+  };
+  let currentKey='force'; let values={};
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function initValues(){ const c=CALCS[currentKey]; values={}; c.inputs.forEach(i=>values[i.k]=i.v); }
+  function render(){
+    const el=document.getElementById('sciContent');
+    const c=CALCS[currentKey];
+    const cats=['physik','chemie'];
+    const catLabel={physik:'⚛️ Physik',chemie:'🧪 Chemie'};
+    const catsHtml=cats.map(cat=>'<button class="sci-cat '+(c.cat===cat?'active':'')+'" onclick="HalDoScienceApp.setCat(\''+cat+'\')">'+catLabel[cat]+'</button>').join('');
+    const calcsInCat=Object.entries(CALCS).filter(([k,v])=>v.cat===c.cat);
+    const calcChips=calcsInCat.map(([k,v])=>'<button class="sci-cat '+(currentKey===k?'active':'')+'" onclick="HalDoScienceApp.setCalc(\''+k+'\')">'+v.name.split(' ')[0]+'</button>').join('');
+    const inputsGrid=c.inputs.length===1?'sci-inputs':(c.inputs.length===2?'sci-inputs two':'sci-inputs three');
+    const inputsHtml=c.inputs.map(i=>'<div class="sci-input-group"><label>'+i.l+'</label><input type="number" step="any" value="'+(values[i.k]||0)+'" oninput="HalDoScienceApp.setVal(\''+i.k+'\',this.value)"><div class="sci-unit">'+i.u+'</div></div>').join('');
+    let result=0;
+    try{ result=c.calc(values); }catch(e){ result=0; }
+    const resultStr=isFinite(result)?(Math.abs(result)>1e9||(Math.abs(result)<1e-4&&result!==0)?result.toExponential(4):result.toFixed(4).replace(/\.?0+$/,'')):'–';
+    // Rechenschritt
+    const stepParts=c.inputs.map(i=>i.k+' = '+values[i.k]+' '+i.u).join('\n');
+    el.innerHTML='<div class="sci-cats">'+catsHtml+'</div>'+
+      '<div class="sci-cats">'+calcChips+'</div>'+
+      '<div class="sci-formula"><div class="sf-name">'+esc(c.name)+'</div><div class="sf-eq">'+esc(c.eq)+'</div></div>'+
+      '<div class="'+inputsGrid+'">'+inputsHtml+'</div>'+
+      '<div class="sci-result"><div class="sr-big">'+resultStr+'<span class="sr-unit">'+c.unit+'</span></div><div class="sr-lbl">Ergebnis</div></div>'+
+      '<div class="sci-steps"><b>Formel:</b> '+esc(c.eq)+'\n<b>Werte:</b>\n'+esc(stepParts)+'\n<b>Ergebnis:</b> '+resultStr+' '+c.unit+'</div>';
+  }
+  function setCat(cat){ const first=Object.keys(CALCS).find(k=>CALCS[k].cat===cat); if(first){ currentKey=first; initValues(); render(); } }
+  function setCalc(k){ if(!CALCS[k]) return; currentKey=k; initValues(); render(); }
+  function setVal(k,v){ values[k]=parseFloat(v)||0; render(); }
+  function open(){ initValues(); render(); document.getElementById('scienceWindow').classList.add('show'); }
+  function close(){ document.getElementById('scienceWindow').classList.remove('show'); }
+  window.HalDoScience={open,close,calc(k,v){ const c=CALCS[k]; if(!c) return null; return c.calc(v); },list(){ return Object.keys(CALCS); }};
+  window.HalDoScienceApp={open,close,setCat,setCalc,setVal};
+  console.log('%c🧪 Science Lab geladen · '+(Object.keys(CALCS).length)+' Rechner','color:#00ffc8;font-weight:bold;');
+})();
+</script>
 </body>
 </html>
