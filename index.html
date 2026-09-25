@@ -4083,5 +4083,500 @@ if(document.readyState==='loading'){
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════════════════════════════ ENDE v127 ═════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v128 – 6 APPS (Water · Pomodoro · Stats · Calc · Unit · Currency) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+"use strict";
+if(window.__v128) return;
+window.__v128 = true;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const store = (k,def) => { try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def }catch(e){ return def } };
+const save = (k,v) => { try{ localStorage.setItem(k,JSON.stringify(v)) }catch(e){} };
+const todayK = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0') };
+
+// ═══════════════════════════════════════════════════════════
+// 1. WATER TRACKER
+// ═══════════════════════════════════════════════════════════
+window.HalDoWater={
+  key:'haldo_water_v1',
+  get(){
+    const d=store(this.key,{amount:0,date:todayK()});
+    if(d.date!==todayK()) return {amount:0,date:todayK()};
+    return d;
+  },
+  add(ml){ const d=this.get(); d.amount=Math.min(5000,d.amount+ml); save(this.key,d); },
+  remove(ml){ const d=this.get(); d.amount=Math.max(0,d.amount-ml); save(this.key,d); },
+  reset(){ save(this.key,{amount:0,date:todayK()}); },
+  goal(){ return 2500; }
+};
+
+function buildWater(){
+  const w=$('water-window'); if(!w) return;
+  w.dataset.title='Wasser'; w.dataset.icon='💧';
+  const d=HalDoWater.get();
+  const pct=Math.min(100,Math.round(d.amount/HalDoWater.goal()*100));
+  const glasses=Math.round(d.amount/250);
+  const remaining=Math.max(0,HalDoWater.goal()-d.amount);
+  w.innerHTML=
+    '<div class="card" style="text-align:center">'+
+    '<div style="font-size:52px;font-weight:900;color:#0096ff;text-shadow:0 0 24px rgba(0,150,255,.6);line-height:1">'+d.amount+'<span style="font-size:20px;color:#7ce0ff"> / '+HalDoWater.goal()+' ml</span></div>'+
+    '<div style="font-size:12px;color:#88ccff;margin-top:10px">'+(pct>=100?'🎉 Ziel erreicht! Super!':'Noch '+remaining+' ml bis zum Ziel')+'</div>'+
+    '<div style="font-size:11px;color:#7ce0ff;margin-top:6px">🥤 '+glasses+' Gläser (à 250ml)</div>'+
+    '</div>'+
+    '<div class="card" style="padding:20px">'+
+    '<div style="width:100%;max-width:170px;height:260px;margin:0 auto;border:4px solid rgba(0,150,255,.6);border-radius:20px 20px 40px 40px;position:relative;overflow:hidden;background:rgba(0,0,0,.3);box-shadow:inset 0 0 30px rgba(0,150,255,.2)">'+
+    '<div style="position:absolute;bottom:0;left:0;right:0;height:'+pct+'%;background:linear-gradient(180deg,#0096ff,#00d4ff);transition:height .6s cubic-bezier(.34,1.56,.64,1);border-radius:0 0 36px 36px;box-shadow:0 -10px 40px rgba(0,212,255,.7)"></div>'+
+    '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:900;color:#fff;text-shadow:0 0 20px rgba(0,150,255,.9)">'+pct+'%</div>'+
+    '</div></div>'+
+    '<div class="card">'+
+    '<div class="lbl" style="margin-bottom:10px">💧 Schnell hinzufügen</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">'+
+    '<button class="os-btn primary" onclick="HalDoWater.add(200);HalDoUI.rebuild(\'water-window\');showToast(\'+200ml\',\'success\')">+200</button>'+
+    '<button class="os-btn primary" onclick="HalDoWater.add(250);HalDoUI.rebuild(\'water-window\');showToast(\'+250ml\',\'success\')">+250</button>'+
+    '<button class="os-btn primary" onclick="HalDoWater.add(500);HalDoUI.rebuild(\'water-window\');showToast(\'+500ml\',\'success\')">+500</button>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">'+
+    '<button class="os-btn primary" onclick="HalDoWater.add(750);HalDoUI.rebuild(\'water-window\');showToast(\'+750ml\',\'success\')">+750ml</button>'+
+    '<button class="os-btn primary" onclick="HalDoWater.add(1000);HalDoUI.rebuild(\'water-window\');showToast(\'+1L\',\'success\')">+1 Liter</button>'+
+    '</div>'+
+    '<button class="os-btn danger full" onclick="if(confirm(\'Zurücksetzen?\')){HalDoWater.reset();HalDoUI.rebuild(\'water-window\')}">↺ Heute zurücksetzen</button>'+
+    '</div>';
+}
+
+// ═══════════════════════════════════════════════════════════
+// 2. POMODORO PRO
+// ═══════════════════════════════════════════════════════════
+window.HalDoPomodoro={
+  key:'haldo_pomodoro_v1',
+  get(){ const d=store(this.key,{today:0,total:0,minutes:0,lastDate:''}); if(d.lastDate!==todayK()){ d.today=0; d.lastDate=todayK(); save(this.key,d); } return d; },
+  complete(){
+    const d=this.get();
+    d.today++; d.total++; d.minutes+=25;
+    save(this.key,d);
+  },
+  reset(){ save(this.key,{today:0,total:0,minutes:0,lastDate:todayK()}); }
+};
+
+const POMO_DURATIONS={work:25*60, break:5*60, long:15*60};
+let pomoState={mode:'work', running:false, endTime:0, timer:null, remaining:0};
+
+function buildPomodoro(){
+  const w=$('pomodoro-window'); if(!w) return;
+  w.dataset.title='Pomodoro'; w.dataset.icon='🍅';
+  const stats=HalDoPomodoro.get();
+  const dur=POMO_DURATIONS[pomoState.mode];
+  const remaining=pomoState.running?Math.max(0,(pomoState.endTime-Date.now())/1000):(pomoState.remaining||dur);
+  const totalSec=Math.ceil(remaining);
+  const m=Math.floor(totalSec/60), s=totalSec%60;
+  const modeLabel={work:'🍅 Arbeit', break:'☕ Pause', long:'🌴 Lange Pause'}[pomoState.mode];
+  const pct=Math.round((dur-totalSec)/dur*100);
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:24px 20px">'+
+    '<div style="font-size:44px;margin-bottom:10px">'+(pomoState.mode==='work'?'🍅':pomoState.mode==='break'?'☕':'🌴')+'</div>'+
+    '<div id="pomoTime" style="font-size:72px;font-weight:200;color:#fff;font-family:monospace;text-shadow:0 0 30px rgba(255,80,80,.6);line-height:1">'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+'</div>'+
+    '<div style="font-size:12px;color:#ff9090;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin:12px 0">'+modeLabel+'</div>'+
+    '<div style="height:8px;background:rgba(0,0,0,.4);border-radius:4px;overflow:hidden;margin-bottom:16px;border:1px solid rgba(255,80,80,.2)">'+
+    '<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#ff4466,#ff8800);transition:width .5s;box-shadow:0 0 12px rgba(255,80,80,.6)"></div>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'+
+    '<button class="os-btn primary" style="padding:14px 30px;font-size:15px" onclick="HalDoPomodoroApp.toggle()">'+(pomoState.running?'⏸ Pause':'▶ Start')+'</button>'+
+    '<button class="os-btn danger" onclick="HalDoPomodoroApp.reset()">↺ Reset</button>'+
+    '</div></div>'+
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center"><div class="big">'+stats.today+'</div><div class="lbl">Heute</div></div>'+
+    '<div class="card" style="text-align:center"><div class="big">'+stats.minutes+'</div><div class="lbl">Fokus-Min</div></div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:10px">Modus wechseln</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">'+
+    '<button class="os-btn '+(pomoState.mode==='work'?'primary':'')+'" onclick="HalDoPomodoroApp.setMode(\'work\')">🍅 Arbeit</button>'+
+    '<button class="os-btn '+(pomoState.mode==='break'?'primary':'')+'" onclick="HalDoPomodoroApp.setMode(\'break\')">☕ Pause</button>'+
+    '<button class="os-btn '+(pomoState.mode==='long'?'primary':'')+'" onclick="HalDoPomodoroApp.setMode(\'long\')">🌴 Lang</button>'+
+    '</div></div>';
+}
+
+window.HalDoPomodoroApp={
+  setMode(m){ if(pomoState.timer) clearInterval(pomoState.timer); pomoState={mode:m,running:false,endTime:0,timer:null,remaining:0}; buildPomodoro(); },
+  toggle(){
+    if(pomoState.running){
+      pomoState.remaining=(pomoState.endTime-Date.now())/1000;
+      clearInterval(pomoState.timer);
+      pomoState.running=false;
+      buildPomodoro();
+    } else {
+      pomoState.running=true;
+      pomoState.endTime=Date.now()+(pomoState.remaining||POMO_DURATIONS[pomoState.mode])*1000;
+      pomoState.remaining=0;
+      pomoState.timer=setInterval(()=>{
+        const rem=Math.max(0,(pomoState.endTime-Date.now())/1000);
+        const t=Math.ceil(rem);
+        const mm=Math.floor(t/60), ss=t%60;
+        const el=$('pomoTime');
+        if(el) el.textContent=String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+        if(rem<=0){
+          clearInterval(pomoState.timer);
+          pomoState.timer=null;
+          pomoState.running=false;
+          HalDoPomodoroApp.finish();
+        }
+      },200);
+      buildPomodoro();
+      if(navigator.vibrate) navigator.vibrate(15);
+    }
+  },
+  finish(){
+    if(navigator.vibrate) navigator.vibrate([300,100,300,100,500]);
+    try {
+      const ctx=new (window.AudioContext||window.webkitAudioContext)();
+      const now=ctx.currentTime;
+      [0,.3,.6].forEach(o=>{const osc=ctx.createOscillator(),g=ctx.createGain();
+        osc.type='square';osc.frequency.setValueAtTime(880,now+o);
+        g.gain.setValueAtTime(.001,now+o);g.gain.exponentialRampToValueAtTime(.3,now+o+.02);
+        g.gain.exponentialRampToValueAtTime(.001,now+o+.25);
+        osc.connect(g).connect(ctx.destination);osc.start(now+o);osc.stop(now+o+.3);});
+    } catch(e){}
+    if(pomoState.mode==='work'){
+      HalDoPomodoro.complete();
+      if(window.showToast) showToast('🍅 Arbeit fertig! Pause','success');
+      if(window.HalDoMemory) HalDoMemory.remember('🍅 Pomodoro fertig','25 Min Fokus','learn',['pomodoro']);
+      pomoState.mode=HalDoPomodoro.get().today%4===0?'long':'break';
+    } else {
+      if(window.showToast) showToast('☕ Pause vorbei!','success');
+      pomoState.mode='work';
+    }
+    pomoState.remaining=0;
+    buildPomodoro();
+  },
+  reset(){ if(pomoState.timer) clearInterval(pomoState.timer); pomoState={mode:pomoState.mode,running:false,endTime:0,timer:null,remaining:0}; buildPomodoro(); }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 3. STATISTICS
+// ═══════════════════════════════════════════════════════════
+let statsState={result:null};
+
+function buildStats(){
+  const w=$('stats-window'); if(!w) return;
+  w.dataset.title='Statistik'; w.dataset.icon='📊';
+  const r=statsState.result;
+  let resultHtml='';
+  if(r){
+    resultHtml='<div class="card">'+
+      '<div class="lbl" style="margin-bottom:10px">📊 Ergebnis ('+r.n+' Werte)</div>'+
+      '<div class="grid2">'+
+      '<div style="text-align:center"><div class="big" style="font-size:22px">'+r.mean.toFixed(3)+'</div><div class="lbl">Mittelwert</div></div>'+
+      '<div style="text-align:center"><div class="big" style="font-size:22px">'+r.median.toFixed(3)+'</div><div class="lbl">Median</div></div>'+
+      '<div style="text-align:center"><div class="big" style="font-size:22px">'+r.min.toFixed(3)+'</div><div class="lbl">Min</div></div>'+
+      '<div style="text-align:center"><div class="big" style="font-size:22px">'+r.max.toFixed(3)+'</div><div class="lbl">Max</div></div>'+
+      '<div style="text-align:center"><div class="big" style="font-size:22px">'+r.sum.toFixed(3)+'</div><div class="lbl">Summe</div></div>'+
+      '<div style="text-align:center"><div class="big" style="font-size:22px">'+r.range.toFixed(3)+'</div><div class="lbl">Spannweite</div></div>'+
+      '<div style="text-align:center"><div class="big" style="font-size:22px">'+r.variance.toFixed(3)+'</div><div class="lbl">Varianz</div></div>'+
+      '<div style="text-align:center"><div class="big" style="font-size:22px">'+r.stddev.toFixed(3)+'</div><div class="lbl">Std.Abw</div></div>'+
+      '</div></div>'+
+      '<div class="card"><div class="lbl" style="margin-bottom:8px">📈 Histogramm</div>'+
+      '<div style="display:flex;gap:2px;height:100px;align-items:flex-end;padding:8px;background:rgba(0,0,0,.3);border-radius:10px">'+
+      r.histogram.map(b=>'<div style="flex:1;min-width:8px;height:'+b.pct+'%;background:linear-gradient(180deg,#b478ff,#ff78c8);border-radius:3px 3px 0 0"></div>').join('')+
+      '</div></div>';
+  }
+  w.innerHTML=
+    '<div class="card">'+
+    '<div class="lbl" style="margin-bottom:8px">📥 Daten eingeben</div>'+
+    '<textarea class="os-textarea" id="stInput" placeholder="Zahlen durch Komma, Leerzeichen oder Zeilenumbruch getrennt&#10;&#10;Beispiel: 12, 15, 18, 22, 25, 28, 30" style="min-height:120px;margin-bottom:8px"></textarea>'+
+    '<button class="os-btn primary full" onclick="HalDoStatsApp.calc()">📊 Analysieren</button>'+
+    '</div>'+
+    resultHtml;
+}
+
+window.HalDoStatsApp={
+  calc(){
+    const raw=$('stInput').value.trim();
+    const nums=raw.split(/[\s,;]+/).map(Number).filter(n=>!isNaN(n));
+    if(!nums.length){ if(window.showToast) showToast('⚠️ Keine Zahlen','error'); return; }
+    const sorted=nums.slice().sort((a,b)=>a-b);
+    const n=nums.length;
+    const sum=nums.reduce((a,b)=>a+b,0);
+    const mean=sum/n;
+    const median=n%2===0?(sorted[n/2-1]+sorted[n/2])/2:sorted[(n-1)/2];
+    const variance=nums.reduce((s,v)=>s+Math.pow(v-mean,2),0)/n;
+    const min=sorted[0],max=sorted[n-1];
+    // Histogramm
+    const binCount=Math.min(15,Math.max(5,Math.ceil(Math.sqrt(n)*2)));
+    const range=max-min||1;
+    const binSize=range/binCount;
+    const bins=Array(binCount).fill(0);
+    nums.forEach(v=>{ const i=Math.min(binCount-1,Math.floor((v-min)/binSize)); bins[i]++; });
+    const maxBin=Math.max(...bins)||1;
+    statsState.result={
+      n, sum, mean, median, min, max, range,
+      variance, stddev:Math.sqrt(variance),
+      histogram:bins.map(b=>({count:b,pct:(b/maxBin)*100}))
+    };
+    buildStats();
+    if(navigator.vibrate) navigator.vibrate(15);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 4. SCIENTIFIC CALCULATOR
+// ═══════════════════════════════════════════════════════════
+let sciState={expr:'', res:'0', mode:'basic', history:[]};
+
+function buildSciCalc(){
+  const w=$('sci-calc-window'); if(!w) return;
+  w.dataset.title='Scientific Calc'; w.dataset.icon='🔬';
+  const basic=[
+    ['C','clr'],['⌫','clr'],['%','fn'],['÷','op'],
+    ['7','n'],['8','n'],['9','n'],['×','op'],
+    ['4','n'],['5','n'],['6','n'],['−','op'],
+    ['1','n'],['2','n'],['3','n'],['+','op'],
+    ['±','fn'],['0','n'],['.','n'],['=','eq']
+  ];
+  const sci=[
+    ['sin','fn'],['cos','fn'],['tan','fn'],['√','fn'],['π','fn'],
+    ['(','op'],[')','op'],['^','op'],['ln','fn'],['log','fn'],
+    ['7','n'],['8','n'],['9','n'],['÷','op'],['C','clr'],
+    ['4','n'],['5','n'],['6','n'],['×','op'],['⌫','clr'],
+    ['1','n'],['2','n'],['3','n'],['−','op'],['%','fn'],
+    ['0','n'],['.','n'],['±','fn'],['+','op'],['=','eq']
+  ];
+  const keys=sciState.mode==='scientific'?sci:basic;
+  const cols=sciState.mode==='scientific'?5:4;
+  w.innerHTML=
+    '<div class="card" style="text-align:right;padding:16px;min-height:110px;display:flex;flex-direction:column;justify-content:flex-end">'+
+    '<div id="sciExpr" style="font-size:12px;color:#7ce0ff;min-height:16px;font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(sciState.expr)+'</div>'+
+    '<div id="sciRes" style="font-size:38px;font-weight:200;color:#fff;font-family:monospace;letter-spacing:-1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(sciState.res)+'</div>'+
+    '</div>'+
+    '<div style="display:flex;gap:6px;margin-bottom:10px">'+
+    '<button class="os-btn '+(sciState.mode==='basic'?'primary':'')+'" style="flex:1;font-size:11px" onclick="HalDoSCCalc.setMode(\'basic\')">Basic</button>'+
+    '<button class="os-btn '+(sciState.mode==='scientific'?'primary':'')+'" style="flex:1;font-size:11px" onclick="HalDoSCCalc.setMode(\'scientific\')">Scientific</button>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat('+cols+',1fr);gap:5px">'+
+    keys.map(k=>{
+      let cls='os-btn';
+      if(k[1]==='eq'||k[1]==='clr') cls+=' primary';
+      if(k[1]==='op') cls+='';
+      return '<button class="'+cls+'" style="aspect-ratio:1;padding:0;font-size:'+(k[1]==='fn'?12:18)+'px;font-weight:900" onclick="HalDoSCCalc.key(\''+k[0]+'\')">'+k[0]+'</button>';
+    }).join('')+
+    '</div>';
+}
+
+window.HalDoSCCalc={
+  setMode(m){ sciState.mode=m; buildSciCalc(); },
+  key(k){
+    let e=sciState.expr, r=sciState.res;
+    if(k==='C'){ e=''; r='0'; }
+    else if(k==='⌫'){ e=e.slice(0,-1); }
+    else if(k==='='){
+      try {
+        const s=e.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-')
+          .replace(/π/g,'Math.PI').replace(/\^/g,'**')
+          .replace(/√\(/g,'Math.sqrt(').replace(/sin\(/g,'Math.sin(')
+          .replace(/cos\(/g,'Math.cos(').replace(/tan\(/g,'Math.tan(')
+          .replace(/ln\(/g,'Math.log(').replace(/log\(/g,'Math.log10(');
+        const stripped=s.replace(/Math\.(PI|sqrt|sin|cos|tan|log|log10)/g,'X');
+        if(!/^[0-9+\-*/().\sXe**]+$/.test(stripped)) throw new Error();
+        const fn=new Function('return ('+s+')');
+        const v=fn();
+        if(!isFinite(v)) throw new Error();
+        r=String(Math.round(v*1e10)/1e10);
+      } catch(err){ r='Fehler'; }
+    }
+    else if(k==='±'){ if(e.startsWith('-')) e=e.slice(1); else e='-'+e; }
+    else if(k==='%'){ e+='/100'; }
+    else if(['sin','cos','tan','ln','log'].includes(k)){ e+=k+'('; }
+    else if(k==='√'){ e+='√('; }
+    else if(k==='π'){ e+='π'; }
+    else e+=k;
+    sciState.expr=e; sciState.res=r;
+    buildSciCalc();
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 5. UNIT CONVERTER
+// ═══════════════════════════════════════════════════════════
+const UNITS={
+  length:{n:'📏 Länge', units:{m:1,km:1000,cm:0.01,mm:0.001,mi:1609.344,ft:0.3048,in:0.0254}},
+  mass:{n:'⚖️ Gewicht', units:{kg:1,g:0.001,mg:0.000001,t:1000,lb:0.45359237,oz:0.0283495}},
+  area:{n:'▦ Fläche', units:{m2:1,km2:1000000,cm2:0.0001,ha:10000,ac:4046.86,ft2:0.092903}},
+  volume:{n:'🧪 Volumen', units:{l:1,ml:0.001,m3:1000,gal:3.78541,qt:0.946353,cup:0.236588}},
+  temp:{n:'🌡️ Temperatur', units:{c:1,f:1,k:1}},
+  speed:{n:'🏎️ Geschwindigkeit', units:{kmh:1,ms:3.6,mph:1.60934,kn:1.852}},
+  time:{n:'⏱️ Zeit', units:{s:1,min:60,h:3600,d:86400,w:604800}},
+  data:{n:'💾 Daten', units:{b:1,kb:1024,mb:1048576,gb:1073741824,tb:1099511627776}}
+};
+let unitState={cat:'length', from:'m', to:'km', val:1};
+
+function buildUnitConv(){
+  const w=$('unit-conv-window'); if(!w) return;
+  w.dataset.title='Einheiten'; w.dataset.icon='📏';
+  const cat=UNITS[unitState.cat];
+  const unitKeys=Object.keys(cat.units);
+  if(!unitKeys.includes(unitState.from)) unitState.from=unitKeys[0];
+  if(!unitKeys.includes(unitState.to)) unitState.to=unitKeys[1]||unitKeys[0];
+  const result=unitConvert(unitState.cat,unitState.from,unitState.to,unitState.val);
+  const cats=Object.entries(UNITS).map(([k,v])=>
+    '<button class="os-btn '+(unitState.cat===k?'primary':'')+'" style="padding:8px 12px;font-size:11px;white-space:nowrap" onclick="HalDoUnitConv.setCat(\''+k+'\')">'+v.n+'</button>'
+  ).join('');
+  const opts=(sel)=>unitKeys.map(k=>'<option value="'+k+'" '+(sel===k?'selected':'')+'>'+k.toUpperCase()+'</option>').join('');
+  w.innerHTML=
+    '<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:12px">'+cats+'</div>'+
+    '<div class="card">'+
+    '<input class="os-input" type="number" step="any" value="'+unitState.val+'" oninput="HalDoUnitConv.setVal(this.value)" style="font-size:24px;font-family:monospace;text-align:right;margin-bottom:8px">'+
+    '<select class="os-select" onchange="HalDoUnitConv.setFrom(this.value)" style="margin-bottom:14px">'+opts(unitState.from)+'</select>'+
+    '<div style="text-align:center;font-size:24px;color:var(--cyan);margin-bottom:14px">⇅</div>'+
+    '<div style="padding:14px;background:rgba(0,0,0,.4);border:1.5px solid var(--border);border-radius:12px;text-align:right;font-size:22px;font-weight:900;color:var(--cyan);font-family:monospace;margin-bottom:8px">'+result+'</div>'+
+    '<select class="os-select" onchange="HalDoUnitConv.setTo(this.value)">'+opts(unitState.to)+'</select>'+
+    '</div>'+
+    '<div style="text-align:center;font-size:11px;color:#7ce0ff;padding:8px">1 '+unitState.from.toUpperCase()+' = '+unitConvert(unitState.cat,unitState.from,unitState.to,1)+' '+unitState.to.toUpperCase()+'</div>';
+}
+
+function unitConvert(cat,from,to,val){
+  const v=parseFloat(val)||0;
+  if(cat==='temp'){
+    let c;
+    if(from==='c') c=v; else if(from==='f') c=(v-32)*5/9; else c=v-273.15;
+    let out;
+    if(to==='c') out=c; else if(to==='f') out=c*9/5+32; else out=c+273.15;
+    return Math.round(out*1000)/1000;
+  }
+  const f=UNITS[cat].units[from], t=UNITS[cat].units[to];
+  const r=v*f/t;
+  if(Math.abs(r)<0.001&&r!==0) return r.toExponential(3);
+  return Math.round(r*1e8)/1e8;
+}
+
+window.HalDoUnitConv={
+  setCat(c){ unitState.cat=c; const keys=Object.keys(UNITS[c].units); unitState.from=keys[0]; unitState.to=keys[1]||keys[0]; buildUnitConv(); },
+  setVal(v){ unitState.val=v; buildUnitConv(); },
+  setFrom(f){ unitState.from=f; buildUnitConv(); },
+  setTo(t){ unitState.to=t; buildUnitConv(); }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 6. CURRENCY LIVE
+// ═══════════════════════════════════════════════════════════
+const CURRENCIES={EUR:'🇪🇺 Euro',USD:'🇺🇸 US-Dollar',GBP:'🇬🇧 Pfund',CHF:'🇨🇭 Franken',JPY:'🇯🇵 Yen',TRY:'🇹🇷 Lira',CNY:'🇨🇳 Yuan',RUB:'🇷🇺 Rubel',PLN:'🇵🇱 Złoty',INR:'🇮🇳 Rupie',BRL:'🇧🇷 Real',CAD:'🇨🇦 Dollar',AUD:'🇦🇺 Dollar',SEK:'🇸🇪 Krone',NOK:'🇳🇴 Krone'};
+let currState={from:'EUR',to:'USD',val:100,rates:null,lastFetch:0};
+
+async function fetchRates(base){
+  if(currState.rates && Date.now()-currState.lastFetch<1800000) return currState.rates;
+  try {
+    const res=await fetch('https://api.frankfurter.app/latest?from='+base);
+    const d=await res.json();
+    currState.rates=d.rates;
+    currState.lastFetch=Date.now();
+    return d.rates;
+  } catch(e){ return null; }
+}
+
+function buildCurrency(){
+  const w=$('currency-window'); if(!w) return;
+  w.dataset.title='Währung'; w.dataset.icon='💱';
+  const opts=(sel)=>Object.entries(CURRENCIES).map(([k,v])=>'<option value="'+k+'" '+(sel===k?'selected':'')+'>'+v+'</option>').join('');
+  w.innerHTML=
+    '<div class="card">'+
+    '<input class="os-input" type="number" step="any" value="'+currState.val+'" oninput="HalDoCurrency.setVal(this.value)" style="font-size:24px;font-family:monospace;text-align:right;margin-bottom:8px">'+
+    '<select class="os-select" onchange="HalDoCurrency.setFrom(this.value)" style="margin-bottom:14px">'+opts(currState.from)+'</select>'+
+    '<div style="text-align:center;font-size:24px;color:var(--cyan);margin-bottom:14px">⇅</div>'+
+    '<div id="currResult" style="padding:16px;background:rgba(0,0,0,.4);border:1.5px solid var(--border);border-radius:12px;text-align:right;font-size:24px;font-weight:900;color:var(--cyan);font-family:monospace;margin-bottom:8px">⏳ Lade Kurs...</div>'+
+    '<select class="os-select" onchange="HalDoCurrency.setTo(this.value)">'+opts(currState.to)+'</select>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">'+
+    '<button class="os-btn" onclick="HalDoCurrency.setFrom(\'EUR\');HalDoCurrency.setTo(\'USD\')">🇪🇺→🇺🇸</button>'+
+    '<button class="os-btn" onclick="HalDoCurrency.setFrom(\'USD\');HalDoCurrency.setTo(\'EUR\')">🇺🇸→🇪🇺</button>'+
+    '<button class="os-btn" onclick="HalDoCurrency.setFrom(\'EUR\');HalDoCurrency.setTo(\'TRY\')">🇪🇺→🇹🇷</button>'+
+    '<button class="os-btn" onclick="HalDoCurrency.setFrom(\'USD\');HalDoCurrency.setTo(\'TRY\')">🇺🇸→🇹🇷</button>'+
+    '</div>'+
+    '<div style="text-align:center;font-size:10px;color:#5a8ab0;padding:8px">🌐 Live-Kurse von Frankfurter API</div>';
+  currUpdate();
+}
+
+async function currUpdate(){
+  const el=$('currResult');
+  if(!el) return;
+  if(currState.from===currState.to){
+    el.textContent=currState.val.toFixed(2);
+    return;
+  }
+  const rates=await fetchRates(currState.from);
+  if(!rates||!rates[currState.to]){
+    el.textContent='❌ Nicht verfügbar';
+    return;
+  }
+  const v=parseFloat(currState.val)||0;
+  const result=Math.round(v*rates[currState.to]*100)/100;
+  el.textContent=result.toFixed(2)+' '+currState.to;
+}
+
+window.HalDoCurrency={
+  setVal(v){ currState.val=v; currUpdate(); },
+  setFrom(f){ currState.from=f; buildCurrency(); },
+  setTo(t){ currState.to=t; buildCurrency(); }
+};
+
+// ═══════════════════════════════════════════════════════════
+// REGISTRY-MAPPING + REBUILD
+// ═══════════════════════════════════════════════════════════
+function initV128(){
+  if(window.HalDoRegistry){
+    const orig=window.HalDoRegistry.openApp;
+    window.HalDoRegistry.openApp=function(id){
+      const map={
+        'wasser':'water-window','pomodoro':'pomodoro-window','stats':'stats-window',
+        'sci-calc':'sci-calc-window','unit-conv':'unit-conv-window','currency':'currency-window'
+      };
+      if(map[id]){
+        if(typeof openWin==='function') openWin(map[id]);
+        const build=window.HalDoUI?.rebuild;
+        if(build) setTimeout(()=>build(map[id]),50);
+        setTimeout(()=>window.HalDoUI?.closeAllPanels(),100);
+        return;
+      }
+      return orig.apply(this, arguments);
+    };
+  }
+  if(window.HalDoUI){
+    const orig=window.HalDoUI.rebuild;
+    window.HalDoUI.rebuild=function(id){
+      if(id==='water-window'){ buildWater(); return; }
+      if(id==='pomodoro-window'){ buildPomodoro(); return; }
+      if(id==='stats-window'){ buildStats(); return; }
+      if(id==='sci-calc-window'){ buildSciCalc(); return; }
+      if(id==='unit-conv-window'){ buildUnitConv(); return; }
+      if(id==='currency-window'){ buildCurrency(); return; }
+      if(orig) orig(id);
+    };
+  }
+  // Apps vorbereiten
+  ['water-window','pomodoro-window','stats-window','sci-calc-window','unit-conv-window','currency-window'].forEach(id=>{
+    const el=$(id);
+    if(!el){
+      const div=document.createElement('div');
+      div.id=id;
+      document.body.appendChild(div);
+    }
+    if(window.prepareWindow) window.prepareWindow($(id));
+  });
+  console.log('%c🚀 v128 – 6 Apps geladen','color:#00ff88;font-weight:bold;font-size:14px');
+  console.log('%c✅ Water · Pomodoro · Stats · SciCalc · Unit · Currency','color:#4da8ff;font-weight:bold');
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded', ()=>setTimeout(initV128,1400));
+} else {
+  setTimeout(initV128, 1400);
+}
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════ ENDE v128 ═════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
