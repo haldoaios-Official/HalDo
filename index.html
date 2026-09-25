@@ -7951,5 +7951,542 @@ if(document.readyState==='loading'){
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════════════════════════════ ENDE v133 ═════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v134 – 6 APPS (Notes Pro · QR · Password · Clipboard · Timer · Random) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+"use strict";
+if(window.__v134) return;
+window.__v134 = true;
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const store=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+
+// ═══ 1. NOTES PRO (Markdown + Farben + Pinned) ═══
+window.HalDoNotesPro={
+  key:'haldo_notespro_v1',
+  colors:['#00e5ff','#00ff88','#ffc800','#ff4466','#b478ff','#ff78c8','#4da8ff','#ff8c3c'],
+  folders:{all:{n:'Alle',i:'📁'},ideas:{n:'Ideen',i:'💡'},work:{n:'Arbeit',i:'💼'},personal:{n:'Persönlich',i:'👤'},learn:{n:'Lernen',i:'📚'}},
+  all(){return store(this.key,[])},
+  add(title,body,color,folder,pinned){const l=this.all();l.unshift({id:uid('n_'),title:title||'(Ohne Titel)',body,color:color||'#00e5ff',folder:folder||'personal',pinned:!!pinned,tags:[],created:Date.now(),updated:Date.now()});save(this.key,l.slice(0,1000));return l[0].id},
+  remove(id){save(this.key,this.all().filter(n=>n.id!==id))},
+  update(id,data){const l=this.all();const x=l.find(n=>n.id===id);if(x){Object.assign(x,data,{updated:Date.now()});save(this.key,l)}},
+  togglePin(id){const l=this.all();const x=l.find(n=>n.id===id);if(x){x.pinned=!x.pinned;save(this.key,l)}}
+};
+
+let notesProState={folder:'all',search:''};
+function renderMD(md){
+  if(!md)return '';
+  let h=md.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  h=h.replace(/^### (.+)$/gm,'<h3 style="color:#00e5ff;font-size:15px;margin:10px 0 6px">$1</h3>');
+  h=h.replace(/^## (.+)$/gm,'<h2 style="color:#00e5ff;font-size:17px;margin:12px 0 6px">$1</h2>');
+  h=h.replace(/^# (.+)$/gm,'<h1 style="color:#00e5ff;font-size:19px;margin:12px 0 8px">$1</h1>');
+  h=h.replace(/\*\*([^*]+)\*\*/g,'<b style="color:#fff">$1</b>');
+  h=h.replace(/\*([^*]+)\*/g,'<i style="color:#aaddff">$1</i>');
+  h=h.replace(/`([^`]+)`/g,'<code style="background:rgba(0,0,0,.5);padding:2px 6px;border-radius:4px;color:#ff8c3c">$1</code>');
+  h=h.replace(/^- (.+)$/gm,'<li>$1</li>');
+  h=h.split(/\n\n+/).map(p=>/^<(h[1-6]|ul|ol|li)/.test(p.trim())?p:'<p style="margin:6px 0">'+p.replace(/\n/g,'<br>')+'</p>').join('');
+  h=h.replace(/(<li>.*?<\/li>\s*)+/g,m=>'<ul style="margin:6px 0;padding-left:20px;color:#e6f4ff">'+m+'</ul>');
+  return h;
+}
+
+function buildNotesPro(){
+  const w=$('notes-window'); if(!w) return;
+  w.dataset.title='Notes Pro'; w.dataset.icon='📝';
+  const all=HalDoNotesPro.all();
+  let filtered=notesProState.folder==='all'?all:all.filter(n=>n.folder===notesProState.folder);
+  if(notesProState.search){const q=notesProState.search.toLowerCase();filtered=filtered.filter(n=>(n.title||'').toLowerCase().includes(q)||(n.body||'').toLowerCase().includes(q));}
+  filtered.sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)||b.updated-a.updated);
+  const folderChips=Object.entries(HalDoNotesPro.folders).map(([k,f])=>{
+    const cnt=all.filter(n=>n.folder===k).length;
+    return '<button class="os-btn '+(notesProState.folder===k?'primary':'')+'" style="padding:6px 12px;font-size:11px;white-space:nowrap" onclick="HalDoNotesProApp.setFolder(\''+k+'\')">'+f.i+' '+f.n+' ('+cnt+')</button>';
+  }).join('');
+  const list=filtered.length?filtered.map(n=>{
+    const f=HalDoNotesPro.folders[n.folder]||HalDoNotesPro.folders.personal;
+    return '<div class="card" style="padding:12px;border-left:4px solid '+n.color+';cursor:pointer;position:relative" onclick="HalDoNotesProApp.view(\''+n.id+'\')">'+
+      (n.pinned?'<div style="position:absolute;top:8px;right:8px;font-size:14px">📌</div>':'')+
+      '<div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px;padding-right:20px">'+esc(n.title)+'</div>'+
+      '<div style="font-size:11px;color:#aaddff;line-height:1.5;max-height:60px;overflow:hidden">'+esc((n.body||'').slice(0,140))+'</div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">'+
+      '<span style="font-size:9px;padding:2px 8px;background:rgba(0,229,255,.15);color:#7ce0ff;border-radius:6px;font-weight:800">'+f.i+' '+f.n+'</span>'+
+      '<span style="font-size:10px;color:#5a8ab0">'+new Date(n.updated).toLocaleDateString('de-DE',{day:'2-digit',month:'short'})+'</span>'+
+      '</div></div>';
+  }).join(''):'<div class="empty"><div class="ei">📝</div><div class="et">Keine Notizen</div></div>';
+  w.innerHTML=
+    '<div class="card"><input class="os-input" placeholder="🔍 Suchen..." value="'+esc(notesProState.search)+'" oninput="HalDoNotesProApp.search(this.value)"></div>'+
+    '<div class="card"><input class="os-input" id="npT" placeholder="Titel" style="margin-bottom:6px">'+
+    '<textarea class="os-textarea" id="npB" placeholder="# Überschrift&#10;**Fett** und *kursiv*&#10;- Liste" style="min-height:100px;margin-bottom:6px"></textarea>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">'+
+    '<select class="os-select" id="npF">'+Object.entries(HalDoNotesPro.folders).filter(([k])=>k!=='all').map(([k,f])=>'<option value="'+k+'">'+f.i+' '+f.n+'</option>').join('')+'</select>'+
+    '<select class="os-select" id="npC">'+HalDoNotesPro.colors.map(c=>'<option value="'+c+'">'+c+'</option>').join('')+'</select>'+
+    '</div>'+
+    '<button class="os-btn primary full" onclick="HalDoNotesProApp.add()">📝 Speichern</button></div>'+
+    '<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:10px">'+folderChips+'</div>'+
+    list;
+}
+
+window.HalDoNotesProApp={
+  setFolder(f){notesProState.folder=f;buildNotesPro()},
+  search(q){notesProState.search=q;buildNotesPro()},
+  add(){const t=$('npT').value.trim(),b=$('npB').value;if(!t&&!b)return;HalDoNotesPro.add(t,b,$('npC').value,$('npF').value,false);$('npT').value='';$('npB').value='';buildNotesPro();if(window.showToast)showToast('📝 Gespeichert','success')},
+  view(id){
+    const n=HalDoNotesPro.all().find(x=>x.id===id);if(!n)return;
+    const m=document.createElement('div');m.className='os-modal show';m.style.zIndex='99999';
+    m.innerHTML='<div class="os-modal-box" style="max-width:560px;border-color:'+n.color+'">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px">'+
+      '<h2 style="margin:0;flex:1">'+esc(n.title)+'</h2>'+
+      '<button class="os-btn" style="padding:6px 10px" onclick="HalDoNotesPro.togglePin(\''+n.id+'\');this.closest(\'.os-modal\').remove();HalDoNotesProApp.rebuild()">'+(n.pinned?'📌':'☆')+'</button>'+
+      '</div>'+
+      '<div style="font-size:14px;line-height:1.7;color:#e6f4ff;padding:14px;background:rgba(0,0,0,.3);border-radius:12px;max-height:50vh;overflow-y:auto">'+renderMD(n.body)+'</div>'+
+      '<div style="display:flex;gap:8px;margin-top:14px">'+
+      '<button class="os-btn danger" onclick="if(confirm(\'Löschen?\')){HalDoNotesPro.remove(\''+n.id+'\');this.closest(\'.os-modal\').remove();HalDoNotesProApp.rebuild()}">🗑️</button>'+
+      '<button class="os-btn primary" style="flex:1" onclick="this.closest(\'.os-modal\').remove()">Schließen</button>'+
+      '</div></div>';
+    document.body.appendChild(m);
+    m.addEventListener('click',e=>{if(e.target===m)m.remove()});
+  },
+  rebuild(){buildNotesPro()}
+};
+
+// ═══ 2. QR GENERATOR ═══
+let qrState={type:'text',data:''};
+
+function buildQRGen(){
+  const w=$('qrcode-window'); if(!w) return;
+  w.dataset.title='QR Generator'; w.dataset.icon='📱';
+  const types=[{k:'text',n:'📝 Text'},{k:'url',n:'🌐 URL'},{k:'wifi',n:'📶 WLAN'},{k:'email',n:'📧 E-Mail'},{k:'phone',n:'📞 Telefon'},{k:'sms',n:'💬 SMS'}];
+  const typeChips=types.map(t=>'<button class="os-btn '+(qrState.type===t.k?'primary':'')+'" style="padding:8px 12px;font-size:11px;white-space:nowrap" onclick="HalDoQRGenApp.setType(\''+t.k+'\')">'+t.n+'</button>').join('');
+  let form='';
+  if(qrState.type==='text') form='<textarea class="os-textarea" id="qrInput" placeholder="Text..." style="min-height:80px">'+esc(qrState.data)+'</textarea>';
+  else if(qrState.type==='url') form='<input class="os-input" id="qrInput" placeholder="https://..." value="'+esc(qrState.data)+'">';
+  else if(qrState.type==='wifi') form='<input class="os-input" id="qrSsid" placeholder="WLAN-Name" style="margin-bottom:6px"><input class="os-input" id="qrPass" placeholder="Passwort" style="margin-bottom:6px"><select class="os-select" id="qrEnc"><option value="WPA">WPA/WPA2</option><option value="WEP">WEP</option><option value="nopass">Offen</option></select>';
+  else if(qrState.type==='email') form='<input class="os-input" id="qrEmail" placeholder="name@example.com" style="margin-bottom:6px"><input class="os-input" id="qrSubj" placeholder="Betreff (optional)">';
+  else if(qrState.type==='phone') form='<input class="os-input" id="qrPhone" placeholder="+49...">';
+  else if(qrState.type==='sms') form='<input class="os-input" id="qrSmsNum" placeholder="Nummer" style="margin-bottom:6px"><textarea class="os-textarea" id="qrSmsMsg" placeholder="Nachricht" style="min-height:60px"></textarea>';
+  const currentData=qrBuildData();
+  const qrUrl=currentData?'https://api.qrserver.com/v1/create-qr-code/?size=400x400&data='+encodeURIComponent(currentData):'';
+  w.innerHTML=
+    '<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:10px">'+typeChips+'</div>'+
+    '<div class="card">'+form+'<button class="os-btn primary full" style="margin-top:8px" onclick="HalDoQRGenApp.gen()">📱 QR erzeugen</button></div>'+
+    '<div class="card" style="text-align:center;background:#fff;padding:20px">'+
+    (qrUrl?'<img src="'+qrUrl+'" style="width:100%;max-width:280px;height:auto;display:block;margin:0 auto">':'<div style="color:#666;padding:40px 10px;font-size:13px">QR-Code erscheint hier</div>')+
+    '</div>'+
+    (qrUrl?'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="os-btn primary" onclick="HalDoQRGenApp.download()">💾 Download</button><button class="os-btn" onclick="HalDoQRGenApp.copy()">📋 Link</button></div>':'');
+}
+
+function qrBuildData(){
+  const t=qrState.type;
+  if(t==='text') return qrState.data||'';
+  if(t==='url') return qrState.data?/^https?:/i.test(qrState.data)?qrState.data:'https://'+qrState.data:'';
+  if(t==='wifi'){const s=$('qrSsid'),p=$('qrPass'),e=$('qrEnc');if(!s||!s.value)return '';return 'WIFI:T:'+(e?e.value:'WPA')+';S:'+s.value+';P:'+(p?p.value:'')+';;';}
+  if(t==='email'){const em=$('qrEmail'),s=$('qrSubj');if(!em||!em.value)return '';return 'mailto:'+em.value+(s&&s.value?'?subject='+encodeURIComponent(s.value):'');}
+  if(t==='phone'){const p=$('qrPhone');return p&&p.value?'tel:'+p.value:'';}
+  if(t==='sms'){const n=$('qrSmsNum'),m=$('qrSmsMsg');if(!n||!n.value)return '';return 'SMSTO:'+n.value+':'+(m?m.value:'');}
+  return '';
+}
+
+window.HalDoQRGenApp={
+  setType(t){qrState.type=t;qrState.data='';buildQRGen()},
+  gen(){
+    const inputs=$('qrcode-window').querySelectorAll('input,textarea,select');
+    const t=qrState.type;
+    if(t==='text'||t==='url'){qrState.data=$('qrInput').value}
+    buildQRGen();
+    if(window.showToast)showToast('📱 QR erzeugt','success');
+  },
+  async download(){
+    const data=qrBuildData();if(!data)return;
+    try{const res=await fetch('https://api.qrserver.com/v1/create-qr-code/?size=800x800&data='+encodeURIComponent(data));const blob=await res.blob();const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='qr-'+Date.now()+'.png';a.click();if(window.showToast)showToast('💾 Download','success')}catch(e){}
+  },
+  copy(){
+    const data=qrBuildData();if(!data)return;
+    if(navigator.clipboard?.writeText)navigator.clipboard.writeText(data).then(()=>{if(window.showToast)showToast('📋 Kopiert','success')});
+  }
+};
+
+// ═══ 3. PASSWORD PRO ═══
+let pwState={length:20,upper:true,lower:true,numbers:true,symbols:true,excludeSim:false,current:''};
+
+function buildPasswordPro(){
+  const w=$('password-window'); if(!w) return;
+  w.dataset.title='Passwort'; w.dataset.icon='🔐';
+  const strength=(()=>{if(!pwState.current)return {l:0,n:'–',c:'#5a8ab0'};let pool=0;if(/[a-z]/.test(pwState.current))pool+=26;if(/[A-Z]/.test(pwState.current))pool+=26;if(/[0-9]/.test(pwState.current))pool+=10;if(/[^a-zA-Z0-9]/.test(pwState.current))pool+=32;const e=Math.round(pwState.current.length*Math.log2(pool||1));if(e<40)return{l:e,n:'Schwach',c:'#ff4466',pct:25};if(e<60)return{l:e,n:'Mittel',c:'#ffc800',pct:50};if(e<80)return{l:e,n:'Stark',c:'#00e5ff',pct:75};return{l:e,n:'Sehr stark',c:'#00ff88',pct:100}})();
+  w.innerHTML=
+    '<div class="card" style="text-align:center">'+
+    '<div style="font-family:monospace;font-size:16px;font-weight:900;color:#fff;word-break:break-all;padding:14px;background:rgba(0,0,0,.5);border-radius:10px;min-height:60px;display:flex;align-items:center;justify-content:center">'+(pwState.current||'Klicke "Neu"')+'</div>'+
+    (pwState.current?'<div style="margin-top:10px"><div style="height:6px;background:rgba(0,0,0,.4);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+strength.pct+'%;background:'+strength.c+';border-radius:3px;transition:width .3s"></div></div><div style="font-size:11px;color:'+strength.c+';font-weight:800;margin-top:6px">'+strength.n+' · '+strength.l+' Bit Entropie</div></div>':'')+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">📏 Länge: <b style="color:var(--cyan)" id="pwLenV">'+pwState.length+'</b></div>'+
+    '<input type="range" min="4" max="64" value="'+pwState.length+'" style="width:100%;accent-color:var(--cyan)" oninput="document.getElementById(\'pwLenV\').textContent=this.value;HalDoPassPro.setLen(this.value)">'+
+    '</div>'+
+    '<div class="card">'+
+    ['upper|Großbuchstaben','lower|Kleinbuchstaben','numbers|Zahlen','symbols|Sonderzeichen','excludeSim|Ähnliche ausschließen'].map(x=>{
+      const [k,n]=x.split('|');
+      return '<label style="display:flex;align-items:center;gap:8px;color:#e6f4ff;font-size:13px;margin-bottom:8px;cursor:pointer"><input type="checkbox" '+(pwState[k]?'checked':'')+' onchange="HalDoPassPro.toggle(\''+k+'\')"> '+n+'</label>';
+    }).join('')+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+    '<button class="os-btn primary" style="padding:14px" onclick="HalDoPassPro.gen()">🔄 Neu</button>'+
+    '<button class="os-btn" style="padding:14px" onclick="HalDoPassPro.copy()">📋 Kopieren</button>'+
+    '</div>';
+}
+
+window.HalDoPassPro={
+  setLen(v){pwState.length=parseInt(v)||20},
+  toggle(k){pwState[k]=!pwState[k];buildPasswordPro()},
+  gen(){
+    let pool='';
+    if(pwState.upper)pool+='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    if(pwState.lower)pool+='abcdefghijklmnopqrstuvwxyz';
+    if(pwState.numbers)pool+='0123456789';
+    if(pwState.symbols)pool+='!@#$%^&*()_+-=[]{}|;:,.<>?';
+    if(!pool)pool='abcdefghijklmnopqrstuvwxyz';
+    if(pwState.excludeSim)pool=pool.split('').filter(c=>!'il1Lo0O'.includes(c)).join('');
+    let pw='';
+    if(window.crypto?.getRandomValues){
+      const arr=new Uint32Array(pwState.length);
+      crypto.getRandomValues(arr);
+      for(let i=0;i<pwState.length;i++)pw+=pool[arr[i]%pool.length];
+    }else{for(let i=0;i<pwState.length;i++)pw+=pool[Math.floor(Math.random()*pool.length)];}
+    pwState.current=pw;
+    buildPasswordPro();
+    if(navigator.vibrate)navigator.vibrate(10);
+  },
+  copy(){if(!pwState.current)return;if(navigator.clipboard?.writeText)navigator.clipboard.writeText(pwState.current).then(()=>{if(window.showToast)showToast('📋 Kopiert','success')})}
+};
+
+// ═══ 4. CLIPBOARD PRO ═══
+window.HalDoClipPro={
+  key:'haldo_clippro_v1',
+  all(){return store(this.key,[])},
+  add(text){
+    if(!text)return null;
+    const l=this.all();
+    const ex=l.find(i=>i.text===text);
+    if(ex){ex.created=Date.now();save(this.key,l);return ex.id}
+    l.unshift({id:uid('cl_'),text,pinned:false,created:Date.now()});
+    save(this.key,l.slice(0,300));
+    return l[0].id;
+  },
+  remove(id){save(this.key,this.all().filter(i=>i.id!==id))},
+  togglePin(id){const l=this.all();const x=l.find(i=>i.id===id);if(x){x.pinned=!x.pinned;save(this.key,l)}}
+};
+
+let clipProState={search:''};
+
+function buildClipPro(){
+  const w=$('clipboard-window'); if(!w) return;
+  w.dataset.title='Clipboard'; w.dataset.icon='📋';
+  const all=HalDoClipPro.all();
+  let filtered=all;
+  if(clipProState.search){const q=clipProState.search.toLowerCase();filtered=filtered.filter(i=>(i.text||'').toLowerCase().includes(q))}
+  filtered.sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)||b.created-a.created);
+  const list=filtered.length?filtered.slice(0,50).map(c=>'<div class="card" style="padding:10px;position:relative">'+
+    (c.pinned?'<div style="position:absolute;top:8px;right:8px;font-size:12px">📌</div>':'')+
+    '<div style="font-size:12px;color:#fff;line-height:1.5;word-break:break-word;max-height:80px;overflow:hidden">'+esc(c.text.slice(0,300))+'</div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">'+
+    '<span style="font-size:10px;color:#5a8ab0">'+new Date(c.created).toLocaleString('de-DE',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})+'</span>'+
+    '<div style="display:flex;gap:4px">'+
+    '<button class="os-btn" style="padding:4px 10px;font-size:11px" onclick="HalDoClipPro.togglePin(\''+c.id+'\');HalDoClipProApp.rebuild()">'+(c.pinned?'📌':'☆')+'</button>'+
+    '<button class="os-btn" style="padding:4px 10px;font-size:11px" onclick="navigator.clipboard.writeText(\''+esc(c.text).replace(/\n/g,'\\n').replace(/'/g,"\\'")+'\').then(()=>showToast(\'📋 Kopiert\',\'success\'))">📋</button>'+
+    '<button class="os-btn danger" style="padding:4px 8px;font-size:11px" onclick="HalDoClipPro.remove(\''+c.id+'\');HalDoClipProApp.rebuild()">✕</button>'+
+    '</div></div></div>').join(''):'<div class="empty"><div class="ei">📋</div><div class="et">Clipboard leer</div></div>';
+  w.innerHTML=
+    '<div class="card"><textarea class="os-textarea" id="clpIn" placeholder="Text zum Speichern..." style="min-height:80px;margin-bottom:8px"></textarea>'+
+    '<div style="display:flex;gap:8px"><button class="os-btn primary" style="flex:1" onclick="HalDoClipProApp.add()">💾 Speichern</button>'+
+    '<button class="os-btn" style="flex:1" onclick="navigator.clipboard.readText().then(t=>{document.getElementById(\'clpIn\').value=t;showToast(\'📋 Eingefügt\')})">📋 Aus Zwischenablage</button>'+
+    '</div></div>'+
+    '<div class="card"><input class="os-input" placeholder="🔍 Suchen..." value="'+esc(clipProState.search)+'" oninput="HalDoClipProApp.search(this.value)"></div>'+
+    '<div class="lbl" style="margin:10px 0 8px">'+all.length+' Einträge</div>'+list;
+}
+
+window.HalDoClipProApp={
+  search(q){clipProState.search=q;buildClipPro()},
+  add(){const t=$('clpIn').value.trim();if(!t)return;HalDoClipPro.add(t);$('clpIn').value='';buildClipPro();if(window.showToast)showToast('💾 Gespeichert','success')},
+  rebuild(){buildClipPro()}
+};
+
+// ═══ 5. TIMER PRO ═══
+let timerProState={mode:'stopwatch',swRunning:false,swElapsed:0,swStart:0,swInterval:null,laps:[],cdEnd:0,cdTotal:0,cdInterval:null,pomoMode:'work',pomoEnd:0,pomoRunning:false,pomoInterval:null,pomoCycles:0};
+
+function buildTimerPro(){
+  const w=$('timer-window'); if(!w) return;
+  w.dataset.title='Timer Pro'; w.dataset.icon='⏱️';
+  const tabs=[{k:'stopwatch',n:'⏱️ Stoppuhr'},{k:'countdown',n:'⏳ Countdown'},{k:'pomodoro',n:'🍅 Pomodoro'}];
+  const tabsHtml='<div style="display:flex;gap:4px;margin-bottom:14px">'+tabs.map(t=>'<button class="os-btn '+(timerProState.mode===t.k?'primary':'')+'" style="flex:1;padding:10px;font-size:11px" onclick="HalDoTimerPro.setMode(\''+t.k+'\')">'+t.n+'</button>').join('')+'</div>';
+  let body='';
+  const fmt=(ms)=>{const s=Math.floor(ms/1000);const h=Math.floor(s/3600);const m=Math.floor((s%3600)/60);const sec=s%60;let str=h>0?h+':':'';str+=String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');return str};
+  const fmtMs=(ms)=>{const s=Math.floor(ms/1000);const cs=Math.floor((ms%1000)/10);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')+'.'+String(cs).padStart(2,'0')};
+  if(timerProState.mode==='stopwatch'){
+    const el=$('tpSWTime');
+    body='<div class="card" style="text-align:center;padding:24px">'+
+      '<div id="tpSWTime" style="font-size:64px;font-weight:200;color:#fff;font-family:monospace;text-shadow:0 0 30px rgba(0,229,255,.5);line-height:1">'+fmtMs(timerProState.swElapsed)+'</div>'+
+      '<div style="font-size:11px;color:#7ce0ff;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin:14px 0 16px">Stoppuhr</div>'+
+      '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'+
+      '<button class="os-btn '+(timerProState.swRunning?'danger':'primary')+'" style="padding:14px 24px;font-size:15px" onclick="HalDoTimerPro.swToggle()">'+(timerProState.swRunning?'⏸ Stop':'▶ Start')+'</button>'+
+      '<button class="os-btn" style="padding:14px 20px" onclick="HalDoTimerPro.swLap()">🚩 Runde</button>'+
+      '<button class="os-btn danger" style="padding:14px 20px" onclick="HalDoTimerPro.swReset()">↺ Reset</button>'+
+      '</div></div>'+
+      (timerProState.laps.length?'<div class="card"><div class="lbl" style="margin-bottom:8px">🚩 Runden ('+timerProState.laps.length+')</div>'+timerProState.laps.slice().reverse().map((lap,i)=>{const idx=timerProState.laps.length-1-i;const prev=idx>0?timerProState.laps[idx-1]:0;return '<div style="display:flex;justify-content:space-between;padding:8px 12px;background:rgba(0,0,0,.3);border-radius:8px;margin-bottom:4px;font-family:monospace;font-size:13px"><span style="color:#7ce0ff;font-weight:800">Runde '+(idx+1)+'</span><span style="color:#fff">'+fmtMs(lap)+'</span><span style="color:#88ccff">+'+fmtMs(lap-prev)+'</span></div>'}).join('')+'</div>':'');
+  } else if(timerProState.mode==='countdown'){
+    const remaining=timerProState.cdTotal?(timerProState.cdEnd-Date.now()):0;
+    const active=timerProState.cdInterval!==null;
+    body='<div class="card" style="text-align:center;padding:24px">'+
+      '<div id="tpCDTime" style="font-size:56px;font-weight:200;color:#fff;font-family:monospace;text-shadow:0 0 30px rgba(255,140,60,.6);line-height:1">'+(active?fmt(remaining):'00:00')+'</div>'+
+      '<div style="font-size:11px;color:#ff8c3c;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin:14px 0 16px">Countdown</div>'+
+      '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'+
+      (active?'<button class="os-btn danger" style="padding:14px 24px" onclick="HalDoTimerPro.cdStop()">⏹ Stop</button>':'<button class="os-btn primary" style="padding:14px 24px" onclick="HalDoTimerPro.cdStart()">▶ Start</button>')+
+      '<button class="os-btn" style="padding:14px 20px" onclick="HalDoTimerPro.cdReset()">↺ Reset</button>'+
+      '</div></div>'+
+      '<div class="card"><div class="lbl" style="margin-bottom:8px">Einstellen</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">'+
+      '<input class="os-input" id="cdH" type="number" placeholder="Std" value="0" min="0" max="99">'+
+      '<input class="os-input" id="cdM" type="number" placeholder="Min" value="5" min="0" max="59">'+
+      '<input class="os-input" id="cdS" type="number" placeholder="Sek" value="0" min="0" max="59">'+
+      '</div>'+
+      '<div class="lbl" style="margin-bottom:6px">Presets</div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
+      [1,5,10,15,30,60].map(n=>'<button class="os-btn" style="padding:8px 12px;font-size:11px" onclick="document.getElementById(\'cdM\').value='+n+';document.getElementById(\'cdH\').value=0;document.getElementById(\'cdS\').value=0">'+n+' Min</button>').join('')+
+      '</div></div>';
+  } else {
+    const dur=timerProState.pomoMode==='work'?25*60:timerProState.pomoMode==='break'?5*60:15*60;
+    const remaining=timerProState.pomoRunning?(timerProState.pomoEnd-Date.now()):dur*1000;
+    body='<div class="card" style="text-align:center;padding:24px">'+
+      '<div style="font-size:56px;margin-bottom:10px">'+(timerProState.pomoMode==='work'?'🍅':timerProState.pomoMode==='break'?'☕':'🌴')+'</div>'+
+      '<div id="tpPomoTime" style="font-size:64px;font-weight:200;color:#fff;font-family:monospace;text-shadow:0 0 30px rgba(255,80,80,.6);line-height:1">'+fmt(remaining)+'</div>'+
+      '<div style="font-size:11px;color:#ff9090;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin:14px 0 16px">'+(timerProState.pomoMode==='work'?'🍅 Arbeit':timerProState.pomoMode==='break'?'☕ Pause':'🌴 Lange Pause')+'</div>'+
+      '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'+
+      '<button class="os-btn '+(timerProState.pomoRunning?'danger':'primary')+'" style="padding:14px 24px" onclick="HalDoTimerPro.pomoToggle()">'+(timerProState.pomoRunning?'⏸ Stop':'▶ Start')+'</button>'+
+      '<button class="os-btn" style="padding:14px 20px" onclick="HalDoTimerPro.pomoReset()">↺ Reset</button>'+
+      '</div></div>'+
+      '<div class="grid2" style="margin-bottom:14px">'+
+      '<div class="card" style="text-align:center"><div class="big">'+timerProState.pomoCycles+'</div><div class="lbl">Zyklen</div></div>'+
+      '<div class="card" style="text-align:center"><div class="big">'+(timerProState.pomoCycles*25)+'</div><div class="lbl">Min Fokus</div></div>'+
+      '</div>'+
+      '<div class="card"><div class="lbl" style="margin-bottom:8px">Modus</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">'+
+      '<button class="os-btn '+(timerProState.pomoMode==='work'?'primary':'')+'" style="padding:10px;font-size:11px" onclick="HalDoTimerPro.setPomoMode(\'work\')">🍅 Arbeit</button>'+
+      '<button class="os-btn '+(timerProState.pomoMode==='break'?'primary':'')+'" style="padding:10px;font-size:11px" onclick="HalDoTimerPro.setPomoMode(\'break\')">☕ Pause</button>'+
+      '<button class="os-btn '+(timerProState.pomoMode==='long'?'primary':'')+'" style="padding:10px;font-size:11px" onclick="HalDoTimerPro.setPomoMode(\'long\')">🌴 Lang</button>'+
+      '</div></div>';
+  }
+  w.innerHTML=tabsHtml+body;
+  if(timerProState.swRunning)tpTickSW();
+  if(timerProState.cdInterval)tpTickCD();
+  if(timerProState.pomoRunning)tpTickPomo();
+}
+
+function tpTickSW(){
+  clearInterval(timerProState.swInterval);
+  const startEl=Date.now()-timerProState.swElapsed;
+  timerProState.swInterval=setInterval(()=>{
+    timerProState.swElapsed=Date.now()-startEl;
+    const el=$('tpSWTime');
+    if(el){const s=Math.floor(timerProState.swElapsed/1000);const cs=Math.floor((timerProState.swElapsed%1000)/10);el.textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')+'.'+String(cs).padStart(2,'0')}
+  },50);
+}
+function tpTickCD(){
+  clearInterval(timerProState.cdInterval);
+  timerProState.cdInterval=setInterval(()=>{
+    const rem=timerProState.cdEnd-Date.now();
+    const el=$('tpCDTime');
+    if(rem<=0){clearInterval(timerProState.cdInterval);timerProState.cdInterval=null;tpAlarm();if(window.showToast)showToast('⏰ Countdown fertig','error');buildTimerPro();return}
+    if(el){const s=Math.floor(rem/1000);el.textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+  },200);
+}
+function tpTickPomo(){
+  clearInterval(timerProState.pomoInterval);
+  timerProState.pomoInterval=setInterval(()=>{
+    const rem=timerProState.pomoEnd-Date.now();
+    const el=$('tpPomoTime');
+    if(rem<=0){clearInterval(timerProState.pomoInterval);timerProState.pomoInterval=null;timerProState.pomoRunning=false;tpAlarm();
+      if(timerProState.pomoMode==='work'){timerProState.pomoCycles++;timerProState.pomoMode=timerProState.pomoCycles%4===0?'long':'break'}else{timerProState.pomoMode='work'}
+      if(window.showToast)showToast('🍅 Fertig!','success');buildTimerPro();return}
+    if(el){const s=Math.floor(rem/1000);el.textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+  },200);
+}
+function tpAlarm(){
+  if(navigator.vibrate)navigator.vibrate([300,100,300,100,500]);
+  try{const ctx=new (window.AudioContext||window.webkitAudioContext)();const now=ctx.currentTime;[0,.3,.6].forEach(o=>{const osc=ctx.createOscillator(),g=ctx.createGain();osc.type='square';osc.frequency.setValueAtTime(880,now+o);g.gain.setValueAtTime(.001,now+o);g.gain.exponentialRampToValueAtTime(.3,now+o+.02);g.gain.exponentialRampToValueAtTime(.001,now+o+.25);osc.connect(g).connect(ctx.destination);osc.start(now+o);osc.stop(now+o+.3)})}catch(e){}
+}
+
+window.HalDoTimerPro={
+  setMode(m){timerProState.mode=m;buildTimerPro()},
+  swToggle(){
+    if(timerProState.swRunning){clearInterval(timerProState.swInterval);timerProState.swInterval=null;timerProState.swRunning=false}
+    else{timerProState.swRunning=true;tpTickSW()}
+    buildTimerPro();
+  },
+  swLap(){if(timerProState.swElapsed>0)timerProState.laps.push(timerProState.swElapsed);buildTimerPro()},
+  swReset(){clearInterval(timerProState.swInterval);timerProState={...timerProState,swRunning:false,swElapsed:0,swInterval:null,laps:[]};buildTimerPro()},
+  cdStart(){
+    const h=parseInt($('cdH').value)||0,m=parseInt($('cdM').value)||0,s=parseInt($('cdS').value)||0;
+    const total=(h*3600+m*60+s)*1000;
+    if(total<=0)return;
+    timerProState.cdEnd=Date.now()+total;
+    tpTickCD();buildTimerPro();
+  },
+  cdStop(){clearInterval(timerProState.cdInterval);timerProState.cdInterval=null;buildTimerPro()},
+  cdReset(){clearInterval(timerProState.cdInterval);timerProState.cdInterval=null;timerProState.cdEnd=0;buildTimerPro()},
+  pomoToggle(){
+    if(timerProState.pomoRunning){clearInterval(timerProState.pomoInterval);timerProState.pomoInterval=null;timerProState.pomoRunning=false}
+    else{const dur=timerProState.pomoMode==='work'?25*60:timerProState.pomoMode==='break'?5*60:15*60;timerProState.pomoEnd=Date.now()+dur*1000;timerProState.pomoRunning=true;tpTickPomo()}
+    buildTimerPro();
+  },
+  pomoReset(){clearInterval(timerProState.pomoInterval);timerProState.pomoInterval=null;timerProState.pomoRunning=false;buildTimerPro()},
+  setPomoMode(m){timerProState.pomoMode=m;clearInterval(timerProState.pomoInterval);timerProState.pomoInterval=null;timerProState.pomoRunning=false;buildTimerPro()}
+};
+
+// ═══ 6. RANDOM (Zufall + Würfel + Münze + Teams) ═══
+let randState={tab:'num',result:'?',rolling:false,min:1,max:100,diceResult:[],count:1,sides:6,teams:[],teamPlayers:'Anna\nBen\nClara\nDavid\nEmma\nFelix',teamCount:2,coinResult:'?',coinCount:{h:0,t:0}};
+
+function buildRandom(){
+  const w=$('random-window'); if(!w) return;
+  w.dataset.title='Random'; w.dataset.icon='🎲';
+  const tabs=[{k:'num',n:'🔢 Zahl'},{k:'dice',n:'🎲 Würfel'},{k:'coin',n:'🪙 Münze'},{k:'teams',n:'👥 Teams'}];
+  const tabsHtml='<div style="display:flex;gap:4px;margin-bottom:14px;overflow-x:auto">'+tabs.map(t=>'<button class="os-btn '+(randState.tab===t.k?'primary':'')+'" style="flex:1;min-width:80px;padding:10px;font-size:11px" onclick="HalDoRandomApp.setTab(\''+t.k+'\')">'+t.n+'</button>').join('')+'</div>';
+  let body='';
+  if(randState.tab==='num'){
+    body='<div class="card" style="text-align:center;padding:30px">'+
+      '<div id="randNum" style="font-size:80px;font-weight:900;color:#fff;line-height:1;text-shadow:0 0 40px var(--glow)">'+randState.result+'</div>'+
+      '<div style="font-size:11px;color:#7ce0ff;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin:14px 0 16px">Zufallszahl</div>'+
+      '<button class="os-btn primary" style="padding:16px 40px;font-size:16px" onclick="HalDoRandomApp.roll()">🎲 Zahl ziehen</button>'+
+      '</div>'+
+      '<div class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+      '<input class="os-input" id="rMin" type="number" placeholder="Min" value="'+randState.min+'">'+
+      '<input class="os-input" id="rMax" type="number" placeholder="Max" value="'+randState.max+'">'+
+      '</div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
+      '<button class="os-btn" style="padding:6px 10px;font-size:11px" onclick="HalDoRandomApp.preset(1,10)">1-10</button>'+
+      '<button class="os-btn" style="padding:6px 10px;font-size:11px" onclick="HalDoRandomApp.preset(1,100)">1-100</button>'+
+      '<button class="os-btn" style="padding:6px 10px;font-size:11px" onclick="HalDoRandomApp.preset(1,6)">1-6</button>'+
+      '<button class="os-btn" style="padding:6px 10px;font-size:11px" onclick="HalDoRandomApp.preset(1,49)">Lotto 1-49</button>'+
+      '</div></div>';
+  } else if(randState.tab==='dice'){
+    const diceHtml=randState.diceResult.map(r=>'<div style="font-size:56px;text-align:center">🎲<div style="font-size:28px;font-weight:900;color:#fff;margin-top:-10px">'+r+'</div></div>').join('');
+    const sum=randState.diceResult.reduce((a,b)=>a+b,0);
+    body='<div class="card" style="text-align:center;padding:24px">'+
+      '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:14px">'+(diceHtml||'<div style="font-size:56px">🎲</div>')+'</div>'+
+      (randState.diceResult.length>1?'<div style="font-size:28px;font-weight:900;color:#00e5ff;margin-bottom:14px">Summe: '+sum+'</div>':'')+
+      '<button class="os-btn primary" style="padding:16px 40px;font-size:16px" onclick="HalDoRandomApp.rollDice()">🎲 Würfeln</button>'+
+      '</div>'+
+      '<div class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+      '<select class="os-select" id="rSides"><option value="4" '+(randState.sides===4?'selected':'')+'>D4</option><option value="6" '+(randState.sides===6?'selected':'')+'>D6</option><option value="8" '+(randState.sides===8?'selected':'')+'>D8</option><option value="10" '+(randState.sides===10?'selected':'')+'>D10</option><option value="12" '+(randState.sides===12?'selected':'')+'>D12</option><option value="20" '+(randState.sides===20?'selected':'')+'>D20</option></select>'+
+      '<input class="os-input" id="rCount" type="number" placeholder="Anzahl" value="'+randState.count+'" min="1" max="10">'+
+      '</div></div>';
+  } else if(randState.tab==='coin'){
+    const isH=randState.coinResult==='Kopf';
+    body='<div class="card" style="text-align:center;padding:24px">'+
+      '<div style="font-size:120px;line-height:1;margin:20px 0;filter:drop-shadow(0 10px 30px rgba(255,200,0,.5))">🪙</div>'+
+      '<div style="font-size:32px;font-weight:900;color:'+(isH?'#ffc800':'#c0c0c0')+';margin-bottom:20px">'+randState.coinResult+'</div>'+
+      '<button class="os-btn primary" style="padding:16px 40px;font-size:16px" onclick="HalDoRandomApp.flipCoin()">🪙 Münze werfen</button>'+
+      '</div>'+
+      '<div class="grid2">'+
+      '<div class="card" style="text-align:center"><div class="big" style="color:#ffc800">'+randState.coinCount.h+'</div><div class="lbl">Kopf</div></div>'+
+      '<div class="card" style="text-align:center"><div class="big" style="color:#c0c0c0">'+randState.coinCount.t+'</div><div class="lbl">Zahl</div></div>'+
+      '</div>';
+  } else {
+    const list=randState.teams.length?randState.teams.map((t,i)=>'<div class="card" style="padding:12px">'+
+      '<div style="font-size:12px;color:#00e5ff;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Team '+(i+1)+' ('+t.length+')</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:6px">'+t.map(p=>'<span style="padding:6px 12px;background:rgba(0,229,255,.15);color:#fff;border-radius:20px;font-size:12px;font-weight:700">'+esc(p)+'</span>').join('')+'</div></div>').join(''):'<div class="empty" style="padding:30px"><div class="et">Noch keine Teams</div></div>';
+    body='<div class="card"><div class="lbl" style="margin-bottom:6px">Spieler (einer pro Zeile)</div>'+
+      '<textarea class="os-textarea" id="rPlayers" style="min-height:120px;margin-bottom:8px">'+esc(randState.teamPlayers)+'</textarea>'+
+      '<input class="os-input" id="rTeams" type="number" placeholder="Anzahl Teams" value="'+randState.teamCount+'" min="2" max="10" style="margin-bottom:8px">'+
+      '<button class="os-btn primary full" onclick="HalDoRandomApp.makeTeams()">👥 Teams bilden</button>'+
+      '</div>'+list;
+  }
+  w.innerHTML=tabsHtml+body;
+}
+
+window.HalDoRandomApp={
+  setTab(t){randState.tab=t;buildRandom()},
+  preset(min,max){randState.min=min;randState.max=max;buildRandom()},
+  roll(){
+    const min=parseInt($('rMin').value)||1,max=parseInt($('rMax').value)||100;
+    const lo=Math.min(min,max),hi=Math.max(min,max);
+    let ticks=0;
+    const iv=setInterval(()=>{
+      const el=$('randNum');
+      if(el)el.textContent=Math.floor(Math.random()*(hi-lo+1))+lo;
+      ticks++;
+      if(ticks>10){clearInterval(iv);randState.result=Math.floor(Math.random()*(hi-lo+1))+lo;randState.min=lo;randState.max=hi;buildRandom();if(navigator.vibrate)navigator.vibrate(15)}
+    },60);
+  },
+  rollDice(){
+    const sides=parseInt($('rSides').value)||6,count=Math.min(10,parseInt($('rCount').value)||1);
+    randState.sides=sides;randState.count=count;
+    let ticks=0;
+    const iv=setInterval(()=>{
+      randState.diceResult=Array.from({length:count},()=>Math.floor(Math.random()*sides)+1);
+      buildRandom();
+      ticks++;
+      if(ticks>10){clearInterval(iv);if(navigator.vibrate)navigator.vibrate(15)}
+    },60);
+  },
+  flipCoin(){
+    randState.rolling=true;
+    setTimeout(()=>{
+      const isH=Math.random()<0.5;
+      randState.coinResult=isH?'Kopf':'Zahl';
+      if(isH)randState.coinCount.h++;else randState.coinCount.t++;
+      buildRandom();
+      if(navigator.vibrate)navigator.vibrate(20);
+    },600);
+    buildRandom();
+  },
+  makeTeams(){
+    const players=$('rPlayers').value.split('\n').map(s=>s.trim()).filter(Boolean);
+    const n=Math.min(players.length,parseInt($('rTeams').value)||2);
+    if(players.length<2||n<2){if(window.showToast)showToast('⚠️ Mind. 2 Spieler','error');return}
+    randState.teamPlayers=$('rPlayers').value;randState.teamCount=n;
+    const shuffled=players.slice().sort(()=>Math.random()-.5);
+    const teams=Array.from({length:n},()=>[]);
+    shuffled.forEach((p,i)=>teams[i%n].push(p));
+    randState.teams=teams;
+    buildRandom();
+    if(navigator.vibrate)navigator.vibrate(20);
+  }
+};
+
+// ═══ INIT ═══
+function init(){
+  if(window.HalDoUI){
+    const orig=window.HalDoUI.rebuild;
+    window.HalDoUI.rebuild=function(id){
+      if(id==='notes-window'){buildNotesPro();return}
+      if(id==='qrcode-window'){buildQRGen();return}
+      if(id==='password-window'){buildPasswordPro();return}
+      if(id==='clipboard-window'){buildClipPro();return}
+      if(id==='timer-window'){buildTimerPro();return}
+      if(id==='random-window'){buildRandom();return}
+      if(orig)orig(id);
+    };
+  }
+  ['notes-window','qrcode-window','password-window','clipboard-window','timer-window','random-window'].forEach(id=>{
+    let el=$(id);
+    if(!el){el=document.createElement('div');el.id=id;document.body.appendChild(el)}
+    if(window.prepareWindow) window.prepareWindow(el);
+  });
+  console.log('%c🚀 v134 – 6 Apps geladen','color:#00ff88;font-weight:bold;font-size:14px');
+  console.log('%c✅ Notes Pro · QR · Password · Clipboard · Timer Pro · Random','color:#4da8ff;font-weight:bold');
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(init,1000));
+}else{
+  setTimeout(init,1000);
+}
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════ ENDE v134 ═════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
