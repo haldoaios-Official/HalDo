@@ -10161,5 +10161,555 @@ if(document.readyState==='loading'){
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════════════════════════════ ENDE v137 ═════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v138 – 10 APPS (Compass · Sound · Metronome · Scanner · Split · Binary · Roman · Timezone · Age · Prime) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+"use strict";
+if(window.__v138) return;
+window.__v138 = true;
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+
+// ═══ 1. COMPASS ═══
+let compassState={heading:0,active:false};
+
+function buildCompass(){
+  const w=$('compass-window');if(!w)return;
+  w.dataset.title='Kompass';w.dataset.icon='🧭';
+  const dirs=['N','NO','O','SO','S','SW','W','NW'];
+  const idx=Math.round(compassState.heading/45)%8;
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:24px">'+
+    '<div style="position:relative;width:240px;height:240px;margin:0 auto">'+
+    '<div style="position:absolute;inset:0;border-radius:50%;border:3px solid var(--border);background:radial-gradient(circle,rgba(0,40,80,.5),rgba(0,15,40,.8))"></div>'+
+    '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">'+
+    '<div style="transform:rotate('+(-compassState.heading)+'deg);transition:transform .2s;font-size:120px;line-height:1;filter:drop-shadow(0 0 20px var(--glow))">⬆️</div>'+
+    '</div>'+
+    '<div style="position:absolute;top:8px;left:50%;transform:translateX(-50%);color:#ff4466;font-weight:900;font-size:16px">N</div>'+
+    '<div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);color:#88ccff;font-weight:800">S</div>'+
+    '<div style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:#88ccff;font-weight:800">W</div>'+
+    '<div style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:#88ccff;font-weight:800">O</div>'+
+    '</div>'+
+    '<div style="font-size:36px;font-weight:900;color:#fff;margin-top:20px;font-family:monospace">'+Math.round(compassState.heading)+'°</div>'+
+    '<div style="font-size:14px;color:#00e5ff;font-weight:800;margin-top:6px">'+dirs[idx]+'</div>'+
+    '<button class="os-btn primary" style="margin-top:16px;padding:14px 30px" onclick="HalDoCompass.toggle()">'+(compassState.active?'⏹ Stop':'▶ Start')+'</button>'+
+    '</div>'+
+    '<div class="card"><div style="font-size:11px;color:#aaddff;line-height:1.6;text-align:center">📱 Kompass benötigt Zugriff auf die Geräte-Orientierung.<br>Funktioniert am besten auf Mobilgeräten.</div></div>';
+}
+
+window.HalDoCompass={
+  toggle(){
+    if(compassState.active){
+      compassState.active=false;
+      window.removeEventListener('deviceorientationabsolute',compassState._handler);
+      window.removeEventListener('deviceorientation',compassState._handler);
+      buildCompass();
+    }else{
+      compassState.active=true;
+      compassState._handler=(e)=>{
+        let h=e.webkitCompassHeading||(e.alpha!==null?(360-e.alpha):0);
+        compassState.heading=h;
+        const el=$('compass-window');
+        if(el){const d=el.querySelector('div[style*="font-family:monospace"]');if(d)d.textContent=Math.round(h)+'°';const arrow=el.querySelector('div[style*="rotate"]');if(arrow)arrow.style.transform='rotate('+(-h)+'deg)'}
+      };
+      if(window.DeviceOrientationEvent&&DeviceOrientationEvent.requestPermission){
+        DeviceOrientationEvent.requestPermission().then(p=>{if(p==='granted')window.addEventListener('deviceorientationabsolute',compassState._handler)});
+      }else{
+        window.addEventListener('deviceorientationabsolute',compassState._handler);
+        window.addEventListener('deviceorientation',compassState._handler);
+      }
+      buildCompass();
+    }
+  }
+};
+
+// ═══ 2. SOUND LEVEL METER ═══
+let soundState={active:false,level:0,ctx:null,analyser:null};
+
+function buildSound(){
+  const w=$('sound-window');if(!w)return;
+  w.dataset.title='Schallpegel';w.dataset.icon='🔊';
+  const pct=Math.min(100,soundState.level);
+  let level='Ruhig',color='#00ff88';
+  if(pct>20){level='Normal';color='#00e5ff'}
+  if(pct>50){level='Laut';color='#ffc800'}
+  if(pct>75){level='Sehr laut';color='#ff8c3c'}
+  if(pct>90){level='Extrem laut';color='#ff4466'}
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:30px">'+
+    '<div style="font-size:11px;color:#7ce0ff;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin-bottom:10px">Schallpegel</div>'+
+    '<div id="soundLevel" style="font-size:64px;font-weight:900;color:'+color+';text-shadow:0 0 30px '+color+';line-height:1">'+Math.round(pct)+'</div>'+
+    '<div style="font-size:14px;color:'+color+';font-weight:800;margin-top:8px">'+level+'</div>'+
+    '<div style="margin-top:20px;height:20px;background:rgba(0,0,0,.4);border-radius:10px;overflow:hidden;border:1px solid '+color+'44">'+
+    '<div id="soundBar" style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#00ff88,#ffc800,#ff4466);transition:width .1s"></div>'+
+    '</div>'+
+    '<button class="os-btn primary" style="margin-top:20px;padding:14px 30px" onclick="HalDoSound.toggle()">'+(soundState.active?'⏹ Stop':'▶ Start')+'</button>'+
+    '</div>'+
+    '<div class="card"><div style="font-size:11px;color:#aaddff;line-height:1.6;text-align:center">🎙️ Nutzt das Mikrofon zur Lautstärkemessung.<br>Werte sind relative Pegel (kein dB-Kalibrierung).</div></div>';
+}
+
+window.HalDoSound={
+  async toggle(){
+    if(soundState.active){
+      soundState.active=false;
+      if(soundState.ctx){soundState.ctx.close();soundState.ctx=null}
+      buildSound();
+      return;
+    }
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      soundState.ctx=new (window.AudioContext||window.webkitAudioContext)();
+      const src=soundState.ctx.createMediaStreamSource(stream);
+      soundState.analyser=soundState.ctx.createAnalyser();
+      soundState.analyser.fftSize=256;
+      src.connect(soundState.analyser);
+      soundState.active=true;
+      const data=new Uint8Array(soundState.analyser.frequencyBinCount);
+      const tick=()=>{
+        if(!soundState.active)return;
+        soundState.analyser.getByteFrequencyData(data);
+        const avg=data.reduce((a,b)=>a+b,0)/data.length;
+        soundState.level=avg;
+        const levelEl=$('soundLevel'),barEl=$('soundBar');
+        if(levelEl)levelEl.textContent=Math.round(avg);
+        if(barEl)barEl.style.width=Math.min(100,avg)+'%';
+        requestAnimationFrame(tick);
+      };
+      tick();
+      buildSound();
+    }catch(e){
+      if(window.showToast)showToast('❌ Mikrofon verweigert','error');
+    }
+  }
+};
+
+// ═══ 3. METRONOME ═══
+let metroState={bpm:120,playing:false,ctx:null,interval:null,beat:0,beatsPerBar:4};
+
+function buildMetronome(){
+  const w=$('metronome-window');if(!w)return;
+  w.dataset.title='Metronom';w.dataset.icon='🎵';
+  const dots=Array.from({length:metroState.beatsPerBar},(_,i)=>'<div style="width:24px;height:24px;border-radius:50%;background:'+(metroState.playing&&metroState.beat===i?'#00e5ff':'rgba(0,229,255,.15)')+';border:2px solid '+(metroState.playing&&metroState.beat===i?'#fff':'var(--border)')+';transition:all .1s"></div>').join('');
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:24px">'+
+    '<div style="font-size:72px;font-weight:200;color:#fff;font-family:monospace;text-shadow:0 0 30px var(--glow);line-height:1">'+metroState.bpm+'</div>'+
+    '<div style="font-size:11px;color:#7ce0ff;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin:8px 0 20px">BPM</div>'+
+    '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:20px">'+dots+'</div>'+
+    '<button class="os-btn primary" style="padding:16px 40px;font-size:16px" onclick="HalDoMetro.toggle()">'+(metroState.playing?'⏹ Stop':'▶ Start')+'</button>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">Tempo: '+metroState.bpm+' BPM</div>'+
+    '<input type="range" min="40" max="240" value="'+metroState.bpm+'" style="width:100%;accent-color:var(--cyan)" oninput="HalDoMetro.setBpm(this.value)"></div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">Taktart: '+metroState.beatsPerBar+'/4</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'+
+    [2,3,4,6].map(n=>'<button class="os-btn '+(metroState.beatsPerBar===n?'primary':'')+'" style="padding:10px;font-size:12px" onclick="HalDoMetro.setBeats('+n+')">'+n+'/4</button>').join('')+
+    '</div></div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">Tempo-Presets</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">'+
+    [['Largo',60],['Adagio',70],['Andante',90],['Moderato',110],['Allegro',140],['Presto',180]].map(p=>'<button class="os-btn" style="padding:8px;font-size:10px" onclick="HalDoMetro.setBpm('+p[1]+')">'+p[0]+'<br>'+p[1]+'</button>').join('')+
+    '</div></div>';
+}
+
+window.HalDoMetro={
+  setBpm(v){metroState.bpm=parseInt(v)||120;if(metroState.playing){this.stop();this.start()}else buildMetronome()},
+  setBeats(n){metroState.beatsPerBar=n;buildMetronome()},
+  stop(){if(metroState.interval)clearInterval(metroState.interval);metroState.interval=null;metroState.playing=false},
+  start(){
+    if(!metroState.ctx)metroState.ctx=new (window.AudioContext||window.webkitAudioContext)();
+    metroState.playing=true;
+    metroState.beat=0;
+    const tick=()=>{
+      if(!metroState.playing)return;
+      const isFirst=metroState.beat===0;
+      try{
+        const osc=metroState.ctx.createOscillator(),g=metroState.ctx.createGain();
+        osc.frequency.setValueAtTime(isFirst?1200:800,metroState.ctx.currentTime);
+        g.gain.setValueAtTime(.001,metroState.ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(.3,metroState.ctx.currentTime+.005);
+        g.gain.exponentialRampToValueAtTime(.001,metroState.ctx.currentTime+.08);
+        osc.connect(g).connect(metroState.ctx.destination);
+        osc.start();osc.stop(metroState.ctx.currentTime+.1);
+      }catch(e){}
+      if(navigator.vibrate&&isFirst)navigator.vibrate(15);
+      const el=$('metronome-window');
+      if(el){
+        el.querySelectorAll('div[style*="width:24px"]').forEach((d,i)=>{
+          const active=i===metroState.beat;
+          d.style.background=active?'#00e5ff':'rgba(0,229,255,.15)';
+          d.style.borderColor=active?'#fff':'var(--border)';
+        });
+      }
+      metroState.beat=(metroState.beat+1)%metroState.beatsPerBar;
+    };
+    tick();
+    metroState.interval=setInterval(tick,60000/metroState.bpm);
+    buildMetronome();
+  },
+  toggle(){if(metroState.playing){this.stop();buildMetronome()}else this.start()}
+};
+
+// ═══ 4. BARCODE SCANNER ═══
+let scanState={stream:null,interval:null,result:null};
+
+function buildScanner(){
+  const w=$('scanner-window');if(!w)return;
+  w.dataset.title='Barcode Scanner';w.dataset.icon='📷';
+  w.innerHTML=
+    (scanState.stream?'<div style="position:relative;border-radius:14px;overflow:hidden;margin-bottom:12px;aspect-ratio:4/3;background:#000">'+
+      '<video id="scanVideo" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:block"></video>'+
+      '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70%;height:30%;border:3px solid #00e5ff;border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.3)"></div>'+
+      '</div>':'')+
+    (scanState.result?'<div class="card" style="background:rgba(0,255,136,.15);border-color:#00ff88"><div class="lbl" style="margin-bottom:6px">✅ Erkannt</div><div style="font-size:15px;color:#fff;font-weight:700;word-break:break-all;font-family:monospace">'+esc(scanState.result)+'</div><button class="os-btn primary full" style="margin-top:10px" onclick="HalDoScanner.copy()">📋 Kopieren</button></div>':'')+
+    '<button class="os-btn '+(scanState.stream?'danger':'primary')+'" style="width:100%;padding:16px;font-size:15px" onclick="HalDoScanner.toggle()">'+(scanState.stream?'⏹ Stop Scanner':'📷 Scanner starten')+'</button>'+
+    '<div class="card" style="margin-top:12px"><div style="font-size:11px;color:#aaddff;line-height:1.6;text-align:center">📷 Unterstützt QR-Codes, EAN-13, EAN-8, Code-128.<br>Benötigt Browser mit BarcodeDetector API.</div></div>';
+}
+
+window.HalDoScanner={
+  async toggle(){
+    if(scanState.stream){
+      scanState.stream.getTracks().forEach(t=>t.stop());
+      scanState.stream=null;
+      if(scanState.interval)clearInterval(scanState.interval);
+      scanState.interval=null;
+      buildScanner();
+      return;
+    }
+    try{
+      scanState.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+      buildScanner();
+      const v=$('scanVideo');
+      if(v)v.srcObject=scanState.stream;
+      if('BarcodeDetector' in window){
+        const det=new window.BarcodeDetector({formats:['qr_code','ean_13','ean_8','code_128','code_39','upc_a','upc_e']});
+        scanState.interval=setInterval(async()=>{
+          const v2=$('scanVideo');if(!v2||v2.videoWidth===0)return;
+          try{const codes=await det.detect(v2);if(codes.length){scanState.result=codes[0].rawValue;if(navigator.vibrate)navigator.vibrate([30,50,30]);this.toggle();buildScanner()}}catch(e){}
+        },500);
+      }else{
+        if(window.showToast)showToast('⚠️ BarcodeDetector nicht unterstützt','error');
+      }
+    }catch(e){if(window.showToast)showToast('❌ Kamera verweigert','error')}
+  },
+  copy(){if(scanState.result)navigator.clipboard.writeText(scanState.result).then(()=>{if(window.showToast)showToast('📋 Kopiert','success')})}
+};
+
+// ═══ 5. SPLIT BILL ═══
+let splitState={total:100,people:4,items:[]};
+
+function buildSplit(){
+  const w=$('split-window');if(!w)return;
+  w.dataset.title='Rechnung teilen';w.dataset.icon='💰';
+  const perPerson=splitState.people>0?splitState.total/splitState.people:0;
+  w.innerHTML=
+    '<div class="card" style="text-align:center">'+
+    '<div style="font-size:11px;color:#88ccff;text-transform:uppercase;letter-spacing:1.5px;font-weight:800">Pro Person</div>'+
+    '<div style="font-size:52px;font-weight:900;color:#00ff88;text-shadow:0 0 30px rgba(0,255,136,.5);margin:10px 0">'+perPerson.toFixed(2)+' €</div>'+
+    '<div style="font-size:12px;color:#88ccff">'+splitState.people+' Personen</div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">💰 Gesamtbetrag</div>'+
+    '<input class="os-input" type="number" step="0.01" value="'+splitState.total+'" oninput="HalDoSplit.set(\'total\',this.value)" style="font-size:20px;text-align:right;font-family:monospace"></div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">👥 Personen: <b style="color:#00e5ff">'+splitState.people+'</b></div>'+
+    '<input type="range" min="1" max="20" value="'+splitState.people+'" style="width:100%;accent-color:var(--cyan)" oninput="HalDoSplit.set(\'people\',this.value)"></div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">Personen einzeln</div>'+
+    Array.from({length:splitState.people},(_,i)=>'<div style="display:flex;justify-content:space-between;padding:10px 14px;background:rgba(0,0,0,.3);border-radius:10px;margin-bottom:4px"><span style="color:#aaddff">Person '+(i+1)+'</span><b style="color:#00ff88;font-family:monospace">'+perPerson.toFixed(2)+' €</b></div>').join('')+
+    '</div>';
+}
+
+window.HalDoSplit={
+  set(k,v){splitState[k]=parseFloat(v)||(k==='people'?1:0);buildSplit()}
+};
+
+// ═══ 6. BINARY/HEX CONVERTER ═══
+let binState={dec:255,from:'dec'};
+
+function buildBinary(){
+  const w=$('bin-window');if(!w)return;
+  w.dataset.title='Zahlen-Konverter';w.dataset.icon='🔢';
+  const d=binState.dec;
+  w.innerHTML=
+    '<div class="card">'+
+    '<div class="lbl" style="margin-bottom:6px">Dezimal</div>'+
+    '<input class="os-input" id="binDec" type="number" value="'+d+'" oninput="HalDoBin.set(\'dec\',this.value)" style="font-family:monospace;font-size:18px;text-align:right">'+
+    '</div>'+
+    '<div class="card">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span class="lbl">Binär</span><button class="os-btn" style="padding:6px 12px;font-size:11px" onclick="navigator.clipboard.writeText(\''+d.toString(2)+'\').then(()=>showToast(\'📋 Kopiert\',\'success\'))">📋</button></div>'+
+    '<div style="font-family:monospace;font-size:16px;color:#00e5ff;padding:12px;background:rgba(0,0,0,.4);border-radius:10px;word-break:break-all;font-weight:800">'+d.toString(2)+'</div>'+
+    '</div>'+
+    '<div class="card">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span class="lbl">Hexadezimal</span><button class="os-btn" style="padding:6px 12px;font-size:11px" onclick="navigator.clipboard.writeText(\''+d.toString(16).toUpperCase()+'\').then(()=>showToast(\'📋 Kopiert\',\'success\'))">📋</button></div>'+
+    '<div style="font-family:monospace;font-size:16px;color:#ffc800;padding:12px;background:rgba(0,0,0,.4);border-radius:10px;word-break:break-all;font-weight:800">'+d.toString(16).toUpperCase()+'</div>'+
+    '</div>'+
+    '<div class="card">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span class="lbl">Oktal</span><button class="os-btn" style="padding:6px 12px;font-size:11px" onclick="navigator.clipboard.writeText(\''+d.toString(8)+'\').then(()=>showToast(\'📋 Kopiert\',\'success\'))">📋</button></div>'+
+    '<div style="font-family:monospace;font-size:16px;color:#b478ff;padding:12px;background:rgba(0,0,0,.4);border-radius:10px;word-break:break-all;font-weight:800">'+d.toString(8)+'</div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">📥 Anderes Format eingeben</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">'+
+    '<button class="os-btn" style="padding:8px;font-size:11px" onclick="HalDoBin.conv(\'bin\')">Binär</button>'+
+    '<button class="os-btn" style="padding:8px;font-size:11px" onclick="HalDoBin.conv(\'hex\')">Hex</button>'+
+    '<button class="os-btn" style="padding:8px;font-size:11px" onclick="HalDoBin.conv(\'oct\')">Oktal</button>'+
+    '</div></div>';
+}
+
+window.HalDoBin={
+  set(k,v){const n=parseInt(v)||0;binState.dec=Math.max(0,n);buildBinary()},
+  conv(type){
+    const labels={bin:'Binär (0/1)',hex:'Hexadezimal (0-F)',oct:'Oktal (0-7)'};
+    const val=prompt(labels[type]+':');
+    if(!val)return;
+    const base={bin:2,hex:16,oct:8}[type];
+    const n=parseInt(val,base);
+    if(isNaN(n)){if(window.showToast)showToast('⚠️ Ungültig','error');return}
+    binState.dec=n;
+    buildBinary();
+  }
+};
+
+// ═══ 7. ROMAN NUMERALS ═══
+let romanState={num:2024};
+
+function toRoman(n){
+  if(n<1||n>3999)return '–';
+  const map=[[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];
+  let r='';
+  for(const [v,s] of map){while(n>=v){r+=s;n-=v}}
+  return r;
+}
+
+function fromRoman(s){
+  const map={I:1,V:5,X:10,L:50,C:100,D:500,M:1000};
+  let n=0;
+  for(let i=0;i<s.length;i++){
+    const c=map[s[i]]||0,nx=map[s[i+1]]||0;
+    if(c<nx)n-=c;else n+=c;
+  }
+  return n;
+}
+
+function buildRoman(){
+  const w=$('roman-window');if(!w)return;
+  w.dataset.title='Römische Zahlen';w.dataset.icon='🏛️';
+  w.innerHTML=
+    '<div class="card" style="text-align:center">'+
+    '<div class="big" style="font-size:44px;color:#ffc800;text-shadow:0 0 30px rgba(255,200,0,.5);font-family:serif;letter-spacing:4px">'+toRoman(romanState.num)+'</div>'+
+    '<div style="font-size:12px;color:#88ccff;margin-top:8px">Arabisch: '+romanState.num+'</div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">Zahl eingeben (1-3999)</div>'+
+    '<input class="os-input" type="number" min="1" max="3999" value="'+romanState.num+'" oninput="HalDoRoman.set(this.value)" style="font-size:18px;text-align:right;font-family:monospace"></div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">Römisch → Arabisch</div>'+
+    '<input class="os-input" id="romanIn" placeholder="z.B. MCMXCIX" style="font-family:serif;font-size:18px;text-transform:uppercase;margin-bottom:8px">'+
+    '<button class="os-btn primary full" onclick="HalDoRoman.convert()">🔄 Umrechnen</button>'+
+    '<div id="romanOut" style="margin-top:10px;padding:14px;background:rgba(0,0,0,.4);border-radius:10px;font-family:monospace;font-size:20px;color:#ffc800;text-align:center;font-weight:900">–</div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">📚 Übersicht</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">'+
+    '<div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(0,0,0,.3);border-radius:8px"><span style="color:#aaddff">I</span><b style="color:#fff">1</b></div>'+
+    '<div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(0,0,0,.3);border-radius:8px"><span style="color:#aaddff">V</span><b style="color:#fff">5</b></div>'+
+    '<div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(0,0,0,.3);border-radius:8px"><span style="color:#aaddff">X</span><b style="color:#fff">10</b></div>'+
+    '<div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(0,0,0,.3);border-radius:8px"><span style="color:#aaddff">L</span><b style="color:#fff">50</b></div>'+
+    '<div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(0,0,0,.3);border-radius:8px"><span style="color:#aaddff">C</span><b style="color:#fff">100</b></div>'+
+    '<div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(0,0,0,.3);border-radius:8px"><span style="color:#aaddff">D</span><b style="color:#fff">500</b></div>'+
+    '<div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(0,0,0,.3);border-radius:8px;grid-column:span 2"><span style="color:#aaddff">M</span><b style="color:#fff">1000</b></div>'+
+    '</div></div>';
+}
+
+window.HalDoRoman={
+  set(v){romanState.num=Math.max(1,Math.min(3999,parseInt(v)||1));buildRoman()},
+  convert(){
+    const v=$('romanIn').value.toUpperCase().trim();
+    const n=fromRoman(v);
+    $('romanOut').textContent=n>0?n:'Ungültig';
+  }
+};
+
+// ═══ 8. TIMEZONE CONVERTER ═══
+const TZ_LIST=[
+  {k:'Europe/Berlin',n:'🇩🇪 Berlin'},
+  {k:'Europe/Istanbul',n:'🇹🇷 Istanbul'},
+  {k:'Asia/Baghdad',n:'🇮🇶 Bagdad / Hewlêr'},
+  {k:'Europe/London',n:'🇬🇧 London'},
+  {k:'America/New_York',n:'🇺🇸 New York'},
+  {k:'America/Los_Angeles',n:'🇺🇸 Los Angeles'},
+  {k:'Asia/Dubai',n:'🇦🇪 Dubai'},
+  {k:'Asia/Tokyo',n:'🇯🇵 Tokio'},
+  {k:'Asia/Shanghai',n:'🇨🇳 Peking'},
+  {k:'Australia/Sydney',n:'🇦🇺 Sydney'},
+  {k:'Europe/Moscow',n:'🇷🇺 Moskau'},
+  {k:'Africa/Cairo',n:'🇪🇬 Kairo'},
+  {k:'Asia/Kolkata',n:'🇮🇳 Delhi'}
+];
+let tzState={from:'Europe/Berlin',time:'12:00',date:new Date().toISOString().slice(0,10)};
+
+function buildTimezone(){
+  const w=$('timezone-window');if(!w)return;
+  w.dataset.title='Zeitzonen';w.dataset.icon='🌍';
+  const opts=TZ_LIST.map(t=>'<option value="'+t.k+'" '+(tzState.from===t.k?'selected':'')+'>'+t.n+'</option>').join('');
+  // Convert time to all zones
+  const convert=(tz)=>{
+    try{
+      const dt=new Date(tzState.date+'T'+tzState.time+':00');
+      const localStr=dt.toLocaleString('en-US',{timeZone:'Europe/Berlin',hour12:false});
+      const targetStr=dt.toLocaleString('en-US',{timeZone:tz,hour12:false});
+      // Trick: use timestamp
+      const utcStr=dt.toISOString();
+      const result=new Date(utcStr);
+      return result.toLocaleTimeString('de-DE',{timeZone:tz,hour:'2-digit',minute:'2-digit'});
+    }catch(e){return '–'}
+  };
+  const results=TZ_LIST.map(t=>'<div class="card" style="padding:10px;display:flex;justify-content:space-between;align-items:center">'+
+    '<div style="font-size:13px;font-weight:800;color:#fff">'+t.n+'</div>'+
+    '<div style="font-size:18px;font-weight:900;color:#00e5ff;font-family:monospace">'+convert(t.k)+'</div>'+
+    '</div>').join('');
+  w.innerHTML=
+    '<div class="card">'+
+    '<div class="lbl" style="margin-bottom:6px">📍 Ausgangs-Zeitzone</div>'+
+    '<select class="os-select" onchange="HalDoTz.set(\'from\',this.value)" style="margin-bottom:10px">'+opts+'</select>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+    '<input class="os-input" type="date" value="'+tzState.date+'" onchange="HalDoTz.set(\'date\',this.value)">'+
+    '<input class="os-input" type="time" value="'+tzState.time+'" onchange="HalDoTz.set(\'time\',this.value)">'+
+    '</div></div>'+
+    '<div class="lbl" style="margin:14px 0 8px">🌍 Alle Zeitzonen</div>'+
+    results;
+}
+
+window.HalDoTz={
+  set(k,v){tzState[k]=v;buildTimezone()}
+};
+
+// ═══ 9. AGE CALCULATOR ═══
+let ageState={birth:'1990-01-01'};
+
+function buildAge(){
+  const w=$('age-window');if(!w)return;
+  w.dataset.title='Alters-Rechner';w.dataset.icon='🎂';
+  const birth=new Date(ageState.birth+'T12:00:00');
+  const now=new Date();
+  const totalDays=Math.floor((now-birth)/86400000);
+  const years=Math.floor(totalDays/365.25);
+  const remainderDays=Math.floor(totalDays-years*365.25);
+  const months=Math.floor(remainderDays/30.44);
+  const days=Math.floor(remainderDays-months*30.44);
+  const next=new Date(birth);next.setFullYear(now.getFullYear());
+  if(next<now)next.setFullYear(now.getFullYear()+1);
+  const daysToNext=Math.floor((next-now)/86400000);
+  const weekdays=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+  const birthW=weekdays[birth.getDay()];
+  w.innerHTML=
+    '<div class="card" style="text-align:center">'+
+    '<div style="font-size:64px;font-weight:900;color:#fff;line-height:1;text-shadow:0 0 30px var(--glow)">'+years+'</div>'+
+    '<div style="font-size:11px;color:#7ce0ff;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin-top:8px">Jahre alt</div>'+
+    '<div style="font-size:13px;color:#aaddff;margin-top:10px">'+years+' J, '+months+' M, '+days+' T</div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">🎂 Geburtsdatum</div>'+
+    '<input class="os-input" type="date" value="'+ageState.birth+'" oninput="HalDoAge.set(this.value)"></div>'+
+    '<div class="card" style="background:linear-gradient(135deg,rgba(255,200,0,.15),rgba(255,140,60,.15))">'+
+    '<div style="font-size:12px;color:#ffc800;font-weight:800;text-transform:uppercase;letter-spacing:1px">🎉 Nächster Geburtstag</div>'+
+    '<div style="font-size:24px;font-weight:900;color:#fff;margin-top:8px">'+(daysToNext===0?'HEUTE!':'in '+daysToNext+' Tagen')+'</div>'+
+    '</div>'+
+    '<div class="card"><div style="font-size:12px;line-height:2;color:#aaddff">'+
+    '<div style="display:flex;justify-content:space-between"><span>📅 Tage gelebt</span><b style="color:#fff">'+totalDays.toLocaleString('de-DE')+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span>⏰ Stunden</span><b style="color:#fff">'+(totalDays*24).toLocaleString('de-DE')+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span>⏱️ Minuten</span><b style="color:#fff">'+(totalDays*1440).toLocaleString('de-DE')+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span>💓 Sekunden</span><b style="color:#fff">'+(totalDays*86400).toLocaleString('de-DE')+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span>📆 Wochentag</span><b style="color:#fff">'+birthW+'</b></div>'+
+    '</div></div>';
+}
+
+window.HalDoAge={
+  set(v){ageState.birth=v;buildAge()}
+};
+
+// ═══ 10. PRIME CHECKER ═══
+let primeState={num:97,range:100};
+
+function isPrime(n){
+  if(n<2)return false;
+  if(n===2)return true;
+  if(n%2===0)return false;
+  for(let i=3;i<=Math.sqrt(n);i+=2){if(n%i===0)return false}
+  return true;
+}
+
+function factorize(n){
+  if(n<2)return [];
+  const f=[];
+  while(n%2===0){f.push(2);n/=2}
+  for(let i=3;i<=Math.sqrt(n);i+=2){while(n%i===0){f.push(i);n/=i}}
+  if(n>1)f.push(n);
+  return f;
+}
+
+function buildPrime(){
+  const w=$('prime-window');if(!w)return;
+  w.dataset.title='Primzahlen';w.dataset.icon='🔢';
+  const n=primeState.num;
+  const prime=isPrime(n);
+  const factors=factorize(n);
+  const primesUpTo=[];for(let i=2;i<=primeState.range;i++){if(isPrime(i))primesUpTo.push(i)}
+  w.innerHTML=
+    '<div class="card" style="text-align:center">'+
+    '<div style="font-size:64px;font-weight:900;color:'+(prime?'#00ff88':'#ff4466')+';line-height:1;text-shadow:0 0 30px '+(prime?'#00ff88':'#ff4466')+'">'+n+'</div>'+
+    '<div style="font-size:14px;color:'+(prime?'#00ff88':'#ff4466')+';font-weight:900;margin-top:10px;text-transform:uppercase;letter-spacing:2px">'+(prime?'✅ Primzahl':'❌ Keine Primzahl')+'</div>'+
+    (factors.length?'<div style="font-size:13px;color:#aaddff;margin-top:10px;font-family:monospace">= '+factors.join(' × ')+'</div>':'')+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">Zahl prüfen</div>'+
+    '<input class="os-input" type="number" value="'+n+'" min="0" oninput="HalDoPrime.set(this.value)" style="font-size:18px;text-align:right;font-family:monospace"></div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">Primzahlen bis: <b style="color:#00e5ff">'+primeState.range+'</b></div>'+
+    '<input type="range" min="10" max="500" value="'+primeState.range+'" style="width:100%;accent-color:var(--cyan)" oninput="HalDoPrime.setRange(this.value)">'+
+    '<div style="font-size:11px;color:#88ccff;margin-top:6px">'+primesUpTo.length+' Primzahlen gefunden</div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">🔢 Liste</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:4px">'+primesUpTo.map(p=>'<span style="padding:4px 8px;background:rgba(0,229,255,.15);color:#00e5ff;border-radius:6px;font-size:11px;font-weight:800;font-family:monospace">'+p+'</span>').join('')+'</div></div>';
+}
+
+window.HalDoPrime={
+  set(v){primeState.num=Math.max(0,parseInt(v)||0);buildPrime()},
+  setRange(v){primeState.range=parseInt(v)||100;buildPrime()}
+};
+
+// ═══ INIT ═══
+function init(){
+  if(window.HalDoUI){
+    const orig=window.HalDoUI.rebuild;
+    window.HalDoUI.rebuild=function(id){
+      if(id==='compass-window'){buildCompass();return}
+      if(id==='sound-window'){buildSound();return}
+      if(id==='metronome-window'){buildMetronome();return}
+      if(id==='scanner-window'){buildScanner();return}
+      if(id==='split-window'){buildSplit();return}
+      if(id==='bin-window'){buildBinary();return}
+      if(id==='roman-window'){buildRoman();return}
+      if(id==='timezone-window'){buildTimezone();return}
+      if(id==='age-window'){buildAge();return}
+      if(id==='prime-window'){buildPrime();return}
+      if(orig)orig(id);
+    };
+  }
+  ['compass-window','sound-window','metronome-window','scanner-window','split-window','bin-window','roman-window','timezone-window','age-window','prime-window'].forEach(id=>{
+    let el=$(id);
+    if(!el){el=document.createElement('div');el.id=id;document.body.appendChild(el)}
+    if(window.prepareWindow) window.prepareWindow(el);
+  });
+  console.log('%c🚀 v138 – 10 Apps geladen','color:#00ff88;font-weight:bold;font-size:14px');
+  console.log('%c✅ Compass · Sound · Metronome · Scanner · Split · Binary · Roman · Timezone · Age · Prime','color:#4da8ff;font-weight:bold');
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(init,1000));
+}else{
+  setTimeout(init,1000);
+}
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════ ENDE v138 ═════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
