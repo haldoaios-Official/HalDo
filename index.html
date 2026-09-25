@@ -13864,5 +13864,636 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════════════════ ENDE v143 ═════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v144 – 14 APPS (HIIT · Fasten · Kalorien · Kegel · Einmaleins · PSE-Quiz · Formeln · Physik-Quiz · Merk-Palast · Tipp-Test · Wort · Sudoku · 2048 · Reaktion) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+"use strict";
+if(window.__v144) return;
+window.__v144 = true;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const store=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const todayK=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+
+// ═══ 1. HIIT TIMER ═══
+let hiitState={work:30,rest:15,rounds:8,current:0,phase:'ready',running:false,interval:null,currentRound:1};
+function buildHIIT(){
+  const w=$('hiit-window');if(!w)return;
+  w.dataset.title='HIIT Timer';w.dataset.icon='🔥';
+  const total=hiitState.currentRound+'/'+hiitState.rounds;
+  const phaseLabel={ready:'BEREIT',work:'🔥 ARBEIT',rest:'😮‍💨 PAUSE',done:'✅ FERTIG'}[hiitState.phase];
+  const phaseCol={ready:'#7ce0ff',work:'#ff4466',rest:'#00ff88',done:'#ffc800'}[hiitState.phase];
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:24px;background:linear-gradient(135deg,'+phaseCol+'22,'+phaseCol+'11)">'+
+    '<div style="font-size:11px;color:'+phaseCol+';text-transform:uppercase;letter-spacing:3px;font-weight:900">'+phaseLabel+'</div>'+
+    '<div id="hiitTime" style="font-size:80px;font-weight:200;color:#fff;font-family:monospace;line-height:1;margin:12px 0;text-shadow:0 0 30px '+phaseCol+'">'+hiitState.current+'</div>'+
+    '<div style="font-size:14px;color:#88ccff;font-weight:800">Runde '+total+'</div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">🔥 Arbeit: <b style="color:#ff4466">'+hiitState.work+'s</b></div>'+
+    '<input type="range" min="10" max="120" step="5" value="'+hiitState.work+'" style="width:100%;accent-color:#ff4466" oninput="HalDoHIIT.set(\'work\',parseInt(this.value))">'+
+    '<div class="lbl" style="margin:10px 0 6px">😮‍💨 Pause: <b style="color:#00ff88">'+hiitState.rest+'s</b></div>'+
+    '<input type="range" min="5" max="60" step="5" value="'+hiitState.rest+'" style="width:100%;accent-color:#00ff88" oninput="HalDoHIIT.set(\'rest\',parseInt(this.value))">'+
+    '<div class="lbl" style="margin:10px 0 6px">🔁 Runden: <b style="color:#00e5ff">'+hiitState.rounds+'</b></div>'+
+    '<input type="range" min="1" max="30" value="'+hiitState.rounds+'" style="width:100%;accent-color:#00e5ff" oninput="HalDoHIIT.set(\'rounds\',parseInt(this.value))">'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+    '<button class="os-btn primary" style="padding:18px;font-size:16px" onclick="HalDoHIIT.toggle()">'+(hiitState.running?'⏸ Pause':'▶ Start')+'</button>'+
+    '<button class="os-btn danger" style="padding:18px;font-size:16px" onclick="HalDoHIIT.reset()">↺ Reset</button>'+
+    '</div>';
+}
+window.HalDoHIIT={
+  set(k,v){hiitState[k]=v;buildHIIT()},
+  toggle(){
+    if(hiitState.running){hiitState.running=false;clearInterval(hiitState.interval);hiitState.interval=null;buildHIIT();return}
+    if(hiitState.phase==='ready'||hiitState.phase==='done'){hiitState.phase='work';hiitState.current=hiitState.work;hiitState.currentRound=1}
+    hiitState.running=true;
+    buildHIIT();
+    hiitState.interval=setInterval(()=>{
+      hiitState.current--;
+      if(hiitState.current<=0){
+        if(navigator.vibrate)navigator.vibrate([200,100,200]);
+        if(hiitState.phase==='work'){
+          if(hiitState.currentRound>=hiitState.rounds){hiitState.phase='done';hiitState.current=0;clearInterval(hiitState.interval);hiitState.running=false}
+          else{hiitState.phase='rest';hiitState.current=hiitState.rest}
+        }else if(hiitState.phase==='rest'){hiitState.phase='work';hiitState.current=hiitState.work;hiitState.currentRound++}
+      }
+      const el=$('hiitTime');if(el)el.textContent=hiitState.current;
+      buildHIIT();
+    },1000);
+  },
+  reset(){clearInterval(hiitState.interval);hiitState={...hiitState,running:false,phase:'ready',current:0,currentRound:1,interval:null};buildHIIT()}
+};
+
+// ═══ 2. FASTING TRACKER ═══
+window.HalDoFasting={
+  key:'haldo_fasting_v1',
+  get(){return store(this.key,{start:null,target:16,history:[]})},
+  set(d){save(this.key,d)},
+  start(hrs){const d=this.get();d.start=Date.now();d.target=hrs;this.set(d)},
+  stop(){const d=this.get();if(d.start){const dur=(Date.now()-d.start)/3600000;d.history.unshift({start:d.start,end:Date.now(),duration:dur,target:d.target});d.history=d.history.slice(0,20);d.start=null;this.set(d)}},
+  reset(){this.set({start:null,target:16,history:[]})}
+};
+function buildFasting(){
+  const w=$('fasting-window');if(!w)return;
+  w.dataset.title='Intervallfasten';w.dataset.icon='⏱️';
+  const d=HalDoFasting.get();
+  let elapsed=0,pct=0,remaining=0;
+  if(d.start){elapsed=(Date.now()-d.start)/3600000;pct=Math.min(100,elapsed/d.target*100);remaining=Math.max(0,d.target-elapsed)}
+  const fmtTime=(h)=>{const hr=Math.floor(h),mn=Math.floor((h-hr)*60);return hr+'h '+mn+'m'};
+  const history=d.history.slice(0,10).map(h=>{
+    const dt=new Date(h.start);
+    return '<div class="card" style="padding:10px;display:flex;justify-content:space-between;align-items:center">'+
+      '<div><div style="font-size:12px;color:#fff;font-weight:800">'+dt.toLocaleDateString('de-DE')+'</div>'+
+      '<div style="font-size:10px;color:#88ccff;margin-top:2px">Ziel: '+h.target+'h</div></div>'+
+      '<div style="font-size:15px;font-weight:900;color:'+(h.duration>=h.target?'#00ff88':'#ffc800')+';font-family:monospace">'+h.duration.toFixed(1)+'h</div>'+
+      '</div>';
+  }).join('');
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:30px;background:linear-gradient(135deg,rgba(0,229,255,.15),rgba(180,120,255,.1))">'+
+    '<div style="font-size:64px;margin-bottom:10px">'+(d.start?'⏱️':'🍽️')+'</div>'+
+    (d.start?
+      '<div style="font-size:44px;font-weight:900;color:#00e5ff;text-shadow:0 0 30px var(--glow);font-family:monospace;line-height:1">'+fmtTime(elapsed)+'</div>'+
+      '<div style="font-size:11px;color:#7ce0ff;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin-top:8px">Gefastet</div>'+
+      '<div style="height:8px;background:rgba(0,0,0,.4);border-radius:4px;overflow:hidden;margin:16px 0 8px;border:1px solid var(--border)"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#00e5ff,#00ff88);border-radius:4px;transition:width .5s"></div></div>'+
+      '<div style="font-size:12px;color:#88ccff">'+(remaining>0?'Noch '+fmtTime(remaining):'✅ Ziel erreicht!')+'</div>':
+      '<div style="font-size:14px;color:#aaddff;font-weight:800">Bereit zum Fasten?</div>')+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'+
+    [12,14,16,18,20,24].map(h=>'<button class="os-btn '+(d.target===h?'primary':'')+'" style="padding:10px" onclick="HalDoFasting.get().start?0:HalDoFasting.set({...HalDoFasting.get(),target:'+h+'});buildFasting()">'+h+'h</button>').join('')+
+    '</div>'+
+    (d.start?
+      '<button class="os-btn danger full" style="padding:16px;font-size:15px" onclick="HalDoFasting.stop();buildFasting()">⏹ Fasten beenden</button>':
+      '<button class="os-btn primary full" style="padding:16px;font-size:15px" onclick="HalDoFasting.start(HalDoFasting.get().target);buildFasting()">▶ Fasten starten ('+d.target+'h)</button>')+
+    (history?'<div class="lbl" style="margin:14px 0 8px">📜 Verlauf</div>'+history:'');
+}
+
+// ═══ 3. CALORIE TRACKER ═══
+window.HalDoCal={
+  key:'haldo_cal_v1',
+  get(){return store(this.key,{goal:2000,entries:{}})},
+  set(d){save(this.key,d)},
+  add(name,kcal){const d=this.get();const today=todayK();if(!d.entries[today])d.entries[today]=[];d.entries[today].push({name,kcal,ts:Date.now()});this.set(d)},
+  remove(date,i){const d=this.get();if(d.entries[date]){d.entries[date].splice(i,1);this.set(d)}},
+  todayTotal(){const d=this.get();const e=d.entries[todayK()]||[];return e.reduce((s,x)=>s+x.kcal,0)},
+  todayList(){const d=this.get();return d.entries[todayK()]||[]}
+};
+function buildCal(){
+  const w=$('cal-window');if(!w)return;
+  w.dataset.title='Kalorien';w.dataset.icon='🍽️';
+  const total=HalDoCal.todayTotal();
+  const goal=HalDoCal.get().goal;
+  const pct=Math.min(100,Math.round(total/goal*100));
+  const remaining=Math.max(0,goal-total);
+  const list=HalDoCal.todayList().length?HalDoCal.todayList().map((e,i)=>'<div class="card" style="padding:10px;display:flex;gap:10px;align-items:center">'+
+    '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800;color:#fff">'+esc(e.name)+'</div>'+
+    '<div style="font-size:10px;color:#88ccff">'+new Date(e.ts).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+'</div></div>'+
+    '<div style="font-size:14px;font-weight:900;color:#ffc800;font-family:monospace">'+e.kcal+' kcal</div>'+
+    '<button class="os-btn danger" style="padding:4px 8px;font-size:10px" onclick="HalDoCal.remove(\''+todayK()+'\','+i+');buildCal()">✕</button>'+
+    '</div>').join(''):'<div class="empty" style="padding:20px"><div class="et" style="font-size:12px">Noch nichts gegessen</div></div>';
+  w.innerHTML=
+    '<div class="card" style="text-align:center;background:linear-gradient(135deg,rgba(255,200,0,.15),rgba(255,140,60,.1))">'+
+    '<div style="font-size:44px;font-weight:900;color:#ffc800;font-family:monospace;line-height:1">'+total+'</div>'+
+    '<div style="font-size:11px;color:#ffe066;font-weight:800;margin-top:6px">von '+goal+' kcal</div>'+
+    '<div style="height:8px;background:rgba(0,0,0,.4);border-radius:4px;overflow:hidden;margin:14px 0 8px;border:1px solid rgba(255,200,0,.3)"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#ffc800,#ff8838);border-radius:4px;transition:width .4s"></div></div>'+
+    '<div style="font-size:12px;color:#ffdd88">'+(remaining>0?remaining+' kcal übrig':'✅ Ziel erreicht!')+'</div>'+
+    '</div>'+
+    '<div class="card">'+
+    '<input class="os-input" id="calName" placeholder="Was gegessen?" style="margin-bottom:6px">'+
+    '<div style="display:flex;gap:6px"><input class="os-input" id="calKcal" type="number" placeholder="kcal" style="flex:1">'+
+    '<button class="os-btn primary" onclick="HalDoCal.add(document.getElementById(\'calName\').value,document.getElementById(\'calKcal\').value);document.getElementById(\'calName\').value=\'\';document.getElementById(\'calKcal\').value=\'\';buildCal()">✚</button></div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">⚡ Schnell</div>'+
+    '<div style="display:flex;gap:4px;flex-wrap:wrap">'+
+    [['🍎 Apfel',80],['🍞 Brot',120],['🥚 Ei',70],['🍕 Pizza',285],['🍔 Burger',550],['☕ Kaffee',5],['🥗 Salat',80],['🍝 Pasta',350]].map(x=>'<button class="os-btn" style="padding:6px 10px;font-size:10px" onclick="HalDoCal.add(\''+x[0]+'\','+x[1]+');buildCal()">'+x[0]+' '+x[1]+'</button>').join('')+
+    '</div></div>'+
+    '<div class="lbl" style="margin:14px 0 8px">📋 Heute</div>'+list;
+}
+
+// ═══ 4. KEGEL TRAINER ═══
+let kegelState={running:false,phase:'contract',count:5,rounds:0,interval:null,target:10};
+function buildKegel(){
+  const w=$('kegel-window');if(!w)return;
+  w.dataset.title='Kegel-Trainer';w.dataset.icon='💪';
+  const scale=kegelState.phase==='contract'?'scale(1.15)':'scale(0.9)';
+  const col=kegelState.phase==='contract'?'#ff4466':'#00ff88';
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:30px">'+
+    '<div style="width:220px;height:220px;margin:0 auto;border-radius:50%;background:radial-gradient(circle,'+col+'44,'+col+'11);border:3px solid '+col+';display:flex;flex-direction:column;align-items:center;justify-content:center;transition:transform 1s ease-in-out, border-color .3s;transform:'+scale+';box-shadow:0 0 50px '+col+'80">'+
+    '<div style="font-size:20px;font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:2px">'+(kegelState.phase==='contract'?'🔼 Anspannen':'🔽 Entspannen')+'</div>'+
+    '<div id="kegelCount" style="font-size:60px;font-weight:200;color:#fff;font-family:monospace;margin-top:8px">'+kegelState.count+'</div>'+
+    '</div>'+
+    '</div>'+
+    '<div class="card" style="text-align:center">'+
+    '<div style="font-size:11px;color:#88ccff;text-transform:uppercase;letter-spacing:2px;font-weight:800">Runden</div>'+
+    '<div style="font-size:28px;font-weight:900;color:#00e5ff;font-family:monospace">'+kegelState.rounds+' / '+kegelState.target+'</div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+    '<button class="os-btn primary" style="padding:16px;font-size:15px" onclick="HalDoKegel.toggle()">'+(kegelState.running?'⏹ Stop':'▶ Start')+'</button>'+
+    '<button class="os-btn danger" style="padding:16px;font-size:15px" onclick="HalDoKegel.reset()">↺ Reset</button>'+
+    '</div>'+
+    '<div class="card" style="margin-top:14px"><div style="font-size:11px;color:#aaddff;line-height:1.6;text-align:center">💪 5s Anspannen · 5s Entspannen<br>Training für Beckenboden-Muskulatur</div></div>';
+}
+window.HalDoKegel={
+  toggle(){
+    if(kegelState.running){clearInterval(kegelState.interval);kegelState.running=false;kegelState.interval=null;buildKegel();return}
+    kegelState.running=true;kegelState.phase='contract';kegelState.count=5;
+    kegelState.interval=setInterval(()=>{
+      kegelState.count--;
+      if(kegelState.count<=0){
+        if(navigator.vibrate)navigator.vibrate(100);
+        if(kegelState.phase==='contract')kegelState.phase='relax';
+        else{kegelState.phase='contract';kegelState.rounds++;if(kegelState.rounds>=kegelState.target){clearInterval(kegelState.interval);kegelState.running=false;if(window.showToast)showToast('🎉 Training fertig!','success')}}
+        kegelState.count=5;
+      }
+      const el=$('kegelCount');if(el)el.textContent=kegelState.count;
+      buildKegel();
+    },1000);
+    buildKegel();
+  },
+  reset(){clearInterval(kegelState.interval);kegelState={...kegelState,running:false,phase:'contract',count:5,rounds:0,interval:null};buildKegel()}
+};
+
+// ═══ 5. EINMALEINS ═══
+let math1x1State={score:0,total:0,a:0,b:0,answered:false,answer:0,streak:0};
+function new1x1Q(){math1x1State.a=Math.floor(Math.random()*10)+1;math1x1State.b=Math.floor(Math.random()*10)+1;math1x1State.answer=math1x1State.a*math1x1State.b;math1x1State.answered=false}
+function build1x1(){
+  const w=$('einmaleins-window');if(!w)return;
+  w.dataset.title='Einmaleins';w.dataset.icon='✖️';
+  if(!math1x1State.a)new1x1Q();
+  const opts=[math1x1State.answer];while(opts.length<4){const o=math1x1State.answer+Math.floor(Math.random()*20)-10;if(o>0&&!opts.includes(o))opts.push(o)}opts.sort(()=>Math.random()-.5);
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+math1x1State.score+'/'+math1x1State.total+'</div><div class="lbl">Punkte</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px;color:#ff8c3c">🔥 '+math1x1State.streak+'</div><div class="lbl">Streak</div></div>'+
+    '</div>'+
+    '<div class="card" style="text-align:center;padding:30px">'+
+    '<div style="font-size:44px;font-weight:900;color:#fff;font-family:monospace;line-height:1">'+math1x1State.a+' × '+math1x1State.b+' = ?</div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+    opts.map(o=>{let cls='os-btn primary';if(math1x1State.answered){if(o===math1x1State.answer)cls='os-btn primary';else cls='os-btn danger'}return '<button class="'+cls+'" style="padding:22px;font-size:22px;font-weight:900;font-family:monospace" onclick="HalDo1x1.answer('+o+')">'+o+'</button>'}).join('')+
+    '</div>'+
+    (math1x1State.answered?'<button class="os-btn primary full" style="margin-top:14px;padding:14px;font-size:15px" onclick="HalDo1x1.next()">Weiter →</button>':'');
+}
+window.HalDo1x1={
+  answer(v){
+    if(math1x1State.answered)return;
+    math1x1State.answered=true;math1x1State.total++;
+    if(v===math1x1State.answer){math1x1State.score++;math1x1State.streak++;if(navigator.vibrate)navigator.vibrate(15)}
+    else{math1x1State.streak=0;if(navigator.vibrate)navigator.vibrate([50,50,50])}
+    build1x1();
+  },
+  next(){new1x1Q();build1x1()}
+};
+
+// ═══ 6. PSE QUIZ ═══
+const PSE_QUIZ=[
+  {q:'Symbol für Wasserstoff?',a:['H','W','Hy','He'],k:0},
+  {q:'Symbol für Sauerstoff?',a:['O','Ox','S','Sa'],k:0},
+  {q:'Wie heißt Fe?',a:['Eisen','Flour','Fen','Francium'],k:0},
+  {q:'Wie heißt Au?',a:['Gold','Silber','Aluminium','Argon'],k:0},
+  {q:'Symbol für Natrium?',a:['Na','N','So','Nat'],k:0},
+  {q:'Wie heißt K?',a:['Kalium','Kohlenstoff','Kupfer','Kalzium'],k:0},
+  {q:'Symbol für Kohlenstoff?',a:['C','Co','Ca','Cn'],k:0},
+  {q:'Atommasse von Helium?',a:['4','2','8','12'],k:0},
+  {q:'Ordnungszahl von Wasserstoff?',a:['1','0','2','11'],k:0},
+  {q:'Wie heißt Hg?',a:['Quecksilber','Hydrargyrum','Silber','Mangan'],k:0},
+  {q:'Symbol für Blei?',a:['Pb','B','Ble','Pl'],k:0},
+  {q:'Wie heißt Cu?',a:['Kupfer','Cäsium','Curium','Calcium'],k:0}
+];
+let pseQuizState={idx:0,score:0,current:null,answered:false,pool:[]};
+function buildPSEQuiz(){
+  const w=$('pse-quiz-window');if(!w)return;
+  w.dataset.title='PSE Quiz';w.dataset.icon='⚛️';
+  if(!pseQuizState.pool.length){pseQuizState.pool=PSE_QUIZ.slice().sort(()=>Math.random()-.5).slice(0,10);pseQuizState.idx=0;pseQuizState.score=0;pseQuizState.current=pseQuizState.pool[0];pseQuizState.answered=false}
+  if(pseQuizState.idx>=pseQuizState.pool.length){
+    const pct=Math.round(pseQuizState.score/pseQuizState.pool.length*100);
+    w.innerHTML='<div class="card" style="text-align:center;padding:30px"><div style="font-size:64px">'+(pct>=80?'🏆':'😅')+'</div><div class="big" style="font-size:38px;margin:14px 0">'+pseQuizState.score+' / '+pseQuizState.pool.length+'</div><div style="font-size:14px;color:#88ccff">'+pct+'% richtig</div><button class="os-btn primary" style="margin-top:20px;padding:14px 30px" onclick="HalDoPSEQuiz.restart()">🔄 Nochmal</button></div>';
+    return;
+  }
+  const q=pseQuizState.current;
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+pseQuizState.score+'/'+(pseQuizState.idx+1)+'</div><div class="lbl">Punkte</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+(pseQuizState.pool.length-pseQuizState.idx)+'</div><div class="lbl">Übrig</div></div>'+
+    '</div>'+
+    '<div class="card" style="padding:20px"><div style="font-size:17px;font-weight:900;color:#fff;line-height:1.5;margin-bottom:18px">'+esc(q.q)+'</div>'+
+    q.a.map((a,i)=>{let cls='os-btn';if(pseQuizState.answered){if(i===q.k)cls='os-btn primary'}return '<button class="'+cls+'" style="width:100%;padding:14px;font-size:14px;text-align:left;justify-content:flex-start;margin-bottom:8px;'+(pseQuizState.answered?'pointer-events:none':'')+'" onclick="HalDoPSEQuiz.answer('+i+')">'+esc(a)+'</button>'}).join('')+
+    '</div>'+
+    (pseQuizState.answered?'<button class="os-btn primary full" style="margin-top:14px;padding:14px;font-size:15px" onclick="HalDoPSEQuiz.next()">Weiter →</button>':'');
+}
+window.HalDoPSEQuiz={
+  answer(i){if(pseQuizState.answered)return;pseQuizState.answered=true;if(i===pseQuizState.current.k)pseQuizState.score++;buildPSEQuiz()},
+  next(){pseQuizState.idx++;pseQuizState.current=pseQuizState.pool[pseQuizState.idx];pseQuizState.answered=false;buildPSEQuiz()},
+  restart(){pseQuizState={idx:0,score:0,current:null,answered:false,pool:[]};buildPSEQuiz()}
+};
+
+// ═══ 7. FORMELSAMMLUNG ═══
+const FORMULAS=[
+  {cat:'physik',n:'Geschwindigkeit',f:'v = s / t',e:'m/s',d:'s=Strecke, t=Zeit'},
+  {cat:'physik',n:'Beschleunigung',f:'a = Δv / t',e:'m/s²',d:'Δv=Geschwindigkeitsänderung'},
+  {cat:'physik',n:'Kraft',f:'F = m · a',e:'N',d:'m=Masse, a=Beschleunigung'},
+  {cat:'physik',n:'Energie',f:'E = ½·m·v²',e:'J',d:'Kinetische Energie'},
+  {cat:'physik',n:'Potenzielle Energie',f:'E = m·g·h',e:'J',d:'g=9.81 m/s²'},
+  {cat:'physik',n:'Leistung',f:'P = W / t',e:'W',d:'W=Arbeit'},
+  {cat:'physik',n:'Ohmsches Gesetz',f:'U = R · I',e:'V',d:'R=Widerstand, I=Strom'},
+  {cat:'physik',n:'Elektrische Leistung',f:'P = U · I',e:'W',d:''},
+  {cat:'math',n:'Kreisfläche',f:'A = π · r²',e:'m²',d:''},
+  {cat:'math',n:'Kreisumfang',f:'U = 2 · π · r',e:'m',d:''},
+  {cat:'math',n:'Satz Pythagoras',f:'a² + b² = c²',e:'',d:''},
+  {cat:'math',n:'Quadratische Gl.',f:'x = (-b ± √(b²-4ac)) / 2a',e:'',d:'ax²+bx+c=0'},
+  {cat:'math',n:'Kugelvolumen',f:'V = (4/3)·π·r³',e:'m³',d:''},
+  {cat:'math',n:'Zylindervolumen',f:'V = π·r²·h',e:'m³',d:''},
+  {cat:'chemie',n:'Molmasse',f:'n = m / M',e:'mol',d:'m=Masse, M=Molmasse'},
+  {cat:'chemie',n:'Konzentration',f:'c = n / V',e:'mol/L',d:''},
+  {cat:'chemie',n:'pH-Wert',f:'pH = -log[H⁺]',e:'',d:''},
+  {cat:'chemie',n:'Ideales Gas',f:'p·V = n·R·T',e:'',d:'R=8.314'},
+  {cat:'chemie',n:'Verdünnung',f:'c₁·V₁ = c₂·V₂',e:'',d:''}
+];
+let formulaState={cat:'physik'};
+function buildFormulas(){
+  const w=$('formulas-window');if(!w)return;
+  w.dataset.title='Formelsammlung';w.dataset.icon='📐';
+  const cats=[{k:'physik',n:'⚛️ Physik'},{k:'math',n:'➗ Mathe'},{k:'chemie',n:'🧪 Chemie'}];
+  const filtered=FORMULAS.filter(f=>f.cat===formulaState.cat);
+  const list=filtered.map(f=>'<div class="card" style="padding:12px"><div style="font-size:12px;color:#7ce0ff;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">'+esc(f.n)+'</div>'+
+    '<div style="font-size:18px;font-weight:900;color:#fff;font-family:monospace;margin-bottom:6px">'+esc(f.f)+(f.e?' <span style="color:#00e5ff;font-size:13px">['+f.e+']</span>':'')+'</div>'+
+    (f.d?'<div style="font-size:11px;color:#aaddff">'+esc(f.d)+'</div>':'')+
+    '</div>').join('');
+  w.innerHTML=
+    '<div style="display:flex;gap:4px;margin-bottom:12px">'+cats.map(c=>'<button class="os-btn '+(formulaState.cat===c.k?'primary':'')+'" style="flex:1;padding:10px;font-size:11px" onclick="HalDoFormulas.set(\''+c.k+'\')">'+c.n+'</button>').join('')+'</div>'+
+    '<div class="lbl" style="margin:0 0 10px">📐 '+filtered.length+' Formeln</div>'+
+    list;
+}
+window.HalDoFormulas={set(c){formulaState.cat=c;buildFormulas()}};
+
+// ═══ 8. PHYSIK QUIZ ═══
+const PHYSIK_QUIZ=[
+  {q:'Einheit der Kraft?',a:['Newton','Joule','Watt','Pascal'],k:0},
+  {q:'Einheit der Energie?',a:['Joule','Newton','Watt','Volt'],k:0},
+  {q:'Einheit der Leistung?',a:['Watt','Joule','Newton','Ampere'],k:0},
+  {q:'Einheit der Spannung?',a:['Volt','Ampere','Ohm','Watt'],k:0},
+  {q:'Wie groß ist g (Erdbeschleunigung)?',a:['9,81 m/s²','10,5 m/s²','8,5 m/s²','9,0 m/s²'],k:0},
+  {q:'Formel für Geschwindigkeit?',a:['v = s/t','v = t/s','v = s·t','v = t·s'],k:0},
+  {q:'Einheit der Frequenz?',a:['Hertz','Sekunde','Meter','Watt'],k:0},
+  {q:'Lichtgeschwindigkeit?',a:['300.000 km/s','150.000 km/s','30.000 km/s','3.000 km/s'],k:0},
+  {q:'Einheit der elektrischen Ladung?',a:['Coulomb','Ampere','Volt','Ohm'],k:0},
+  {q:'Was ist Wärme?',a:['Energieform','Temperatur','Kraft','Licht'],k:0},
+  {q:'Erster Hauptsatz der Thermodynamik?',a:['Energieerhaltung','Entropie steigt','Wärme fließt','Nichts'],k:0},
+  {q:'Was ist ein Vakuum?',a:['Luftleerer Raum','Wasser','Licht','Vakuum-Materie'],k:0}
+];
+let physikState={idx:0,score:0,current:null,answered:false,pool:[]};
+function buildPhysikQuiz(){
+  const w=$('physik-quiz-window');if(!w)return;
+  w.dataset.title='Physik Quiz';w.dataset.icon='⚛️';
+  if(!physikState.pool.length){physikState.pool=PHYSIK_QUIZ.slice().sort(()=>Math.random()-.5).slice(0,10);physikState.idx=0;physikState.score=0;physikState.current=physikState.pool[0];physikState.answered=false}
+  if(physikState.idx>=physikState.pool.length){
+    const pct=Math.round(physikState.score/physikState.pool.length*100);
+    w.innerHTML='<div class="card" style="text-align:center;padding:30px"><div style="font-size:64px">'+(pct>=80?'🏆':'😅')+'</div><div class="big" style="font-size:38px;margin:14px 0">'+physikState.score+' / '+physikState.pool.length+'</div><div style="font-size:14px;color:#88ccff">'+pct+'% richtig</div><button class="os-btn primary" style="margin-top:20px;padding:14px 30px" onclick="HalDoPhysikQuiz.restart()">🔄 Nochmal</button></div>';
+    return;
+  }
+  const q=physikState.current;
+  w.innerHTML='<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+physikState.score+'/'+(physikState.idx+1)+'</div><div class="lbl">Punkte</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+(physikState.pool.length-physikState.idx)+'</div><div class="lbl">Übrig</div></div></div>'+
+    '<div class="card" style="padding:20px"><div style="font-size:17px;font-weight:900;color:#fff;line-height:1.5;margin-bottom:18px">'+esc(q.q)+'</div>'+
+    q.a.map((a,i)=>{let cls='os-btn';if(physikState.answered&&i===q.k)cls='os-btn primary';return '<button class="'+cls+'" style="width:100%;padding:14px;font-size:14px;text-align:left;justify-content:flex-start;margin-bottom:8px;'+(physikState.answered?'pointer-events:none':'')+'" onclick="HalDoPhysikQuiz.answer('+i+')">'+esc(a)+'</button>'}).join('')+
+    '</div>'+
+    (physikState.answered?'<button class="os-btn primary full" style="margin-top:14px;padding:14px;font-size:15px" onclick="HalDoPhysikQuiz.next()">Weiter →</button>':'');
+}
+window.HalDoPhysikQuiz={
+  answer(i){if(physikState.answered)return;physikState.answered=true;if(i===physikState.current.k)physikState.score++;buildPhysikQuiz()},
+  next(){physikState.idx++;physikState.current=physikState.pool[physikState.idx];physikState.answered=false;buildPhysikQuiz()},
+  restart(){physikState={idx:0,score:0,current:null,answered:false,pool:[]};buildPhysikQuiz()}
+};
+
+// ═══ 9. MERK-PALAST ═══
+window.HalDoPalace={
+  key:'haldo_palace_v1',
+  all(){return store(this.key,[])},
+  add(place,item,note){const l=this.all();l.push({id:uid('mp_'),place,item,note:note||'',created:Date.now()});save(this.key,l);return l[0].id},
+  remove(id){save(this.key,this.all().filter(p=>p.id!==id))}
+};
+function buildPalace(){
+  const w=$('palace-window');if(!w)return;
+  w.dataset.title='Merk-Palast';w.dataset.icon='🏛️';
+  const all=HalDoPalace.all();
+  const byPlace={};all.forEach(p=>{if(!byPlace[p.place])byPlace[p.place]=[];byPlace[p.place].push(p)});
+  const list=Object.entries(byPlace).map(([place,items])=>'<div class="card" style="padding:14px">'+
+    '<div style="font-size:14px;font-weight:900;color:#b478ff;margin-bottom:10px">🏛️ '+esc(place)+'</div>'+
+    items.map(it=>'<div style="padding:10px;background:rgba(0,0,0,.2);border-radius:10px;margin-bottom:6px;display:flex;gap:10px;align-items:flex-start">'+
+    '<div style="flex:1"><div style="font-size:13px;font-weight:800;color:#fff">'+esc(it.item)+'</div>'+
+    (it.note?'<div style="font-size:11px;color:#aaddff;margin-top:2px">'+esc(it.note)+'</div>':'')+
+    '</div><button class="os-btn danger" style="padding:4px 8px;font-size:10px" onclick="if(confirm(\'Löschen?\')){HalDoPalace.remove(\''+it.id+'\');buildPalace()}">✕</button>'+
+    '</div>').join('')+
+    '</div>').join('');
+  w.innerHTML=
+    '<div class="card" style="background:linear-gradient(135deg,rgba(180,120,255,.15),rgba(0,229,255,.1))">'+
+    '<div style="font-size:11px;color:#b478ff;text-transform:uppercase;letter-spacing:1.5px;font-weight:800;margin-bottom:8px">💡 Methode</div>'+
+    '<div style="font-size:12px;color:#aaddff;line-height:1.6">Stell dir einen Ort vor (z.B. dein Zuhause). Ordne jedem Raum eine Sache zu, die du merken willst. Beim Abrufen gehst du gedanklich durch den Raum.</div>'+
+    '</div>'+
+    '<div class="card">'+
+    '<input class="os-input" id="mpPlace" placeholder="Ort/Raum (z.B. Küche)" style="margin-bottom:6px">'+
+    '<input class="os-input" id="mpItem" placeholder="Was merken?" style="margin-bottom:6px">'+
+    '<textarea class="os-textarea" id="mpNote" placeholder="Bild/Verbindung (optional)" style="min-height:60px;margin-bottom:8px"></textarea>'+
+    '<button class="os-btn primary full" onclick="HalDoPalaceApp.add()">🏛️ Hinzufügen</button>'+
+    '</div>'+
+    (list||'<div class="empty"><div class="ei">🏛️</div><div class="et">Palast ist leer</div><div class="es">Erstelle deinen ersten Raum</div></div>');
+}
+window.HalDoPalaceApp={
+  add(){const pl=$('mpPlace').value.trim(),it=$('mpItem').value.trim();if(!pl||!it)return;HalDoPalace.add(pl,it,$('mpNote').value);$('mpPlace').value='';$('mpItem').value='';$('mpNote').value='';buildPalace();if(window.showToast)showToast('🏛️ Hinzugefügt','success')}
+};
+
+// ═══ 10. TIPP-TEST ═══
+const TYPING_TEXTS=[
+  'Die Sonne scheint hell am Himmel und wärmt die Erde.',
+  'Ein schneller brauner Fuchs springt über den faulen Hund.',
+  'HalDo AI OS ist ein Betriebssystem im Browser.',
+  'Übung macht den Meister, sagte der Lehrer lächelnd.',
+  'Zwölf Boxkämpfer jagen Eva quer über den großen Sylter Deich.'
+];
+let typingState={text:'',typed:'',startTime:0,started:false,wpm:0,accuracy:100,errors:0};
+function buildTyping(){
+  const w=$('typing-window');if(!w)return;
+  w.dataset.title='Tipp-Test';w.dataset.icon='⌨️';
+  if(!typingState.text)typingState.text=TYPING_TEXTS[Math.floor(Math.random()*TYPING_TEXTS.length)];
+  const chars=typingState.text.split('').map((c,i)=>{
+    let color='#5a8ab0';
+    if(i<typingState.typed.length){color=typingState.typed[i]===c?'#00ff88':'#ff4466'}
+    else if(i===typingState.typed.length)color='#00e5ff';
+    return '<span style="color:'+color+';font-family:monospace;font-size:16px">'+esc(c)+'</span>';
+  }).join('');
+  const elapsed=typingState.started?(Date.now()-typingState.startTime)/1000:0;
+  const wpm=elapsed>0?Math.round((typingState.typed.length/5)/(elapsed/60)):0;
+  const acc=typingState.typed.length>0?Math.round((typingState.typed.split('').filter((c,i)=>c===typingState.text[i]).length/typingState.typed.length)*100):100;
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+wpm+'</div><div class="lbl">WPM</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px;color:'+(acc>90?'#00ff88':acc>70?'#ffc800':'#ff4466')+'">'+acc+'%</div><div class="lbl">Genauigkeit</div></div>'+
+    '</div>'+
+    '<div class="card" style="padding:14px;line-height:1.8">'+chars+'</div>'+
+    '<textarea class="os-textarea" id="typIn" placeholder="Text hier tippen..." style="min-height:80px;margin-bottom:10px" oninput="HalDoTyping.input(this.value)">'+esc(typingState.typed)+'</textarea>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+    '<button class="os-btn primary" onclick="HalDoTyping.next()">🔄 Neuer Text</button>'+
+    '<button class="os-btn danger" onclick="HalDoTyping.reset()">↺ Reset</button>'+
+    '</div>';
+}
+window.HalDoTyping={
+  input(v){
+    if(!typingState.started){typingState.started=true;typingState.startTime=Date.now()}
+    typingState.typed=v;
+    if(v===typingState.text){if(window.showToast)showToast('🎉 Fertig!','success')}
+    buildTyping();
+    setTimeout(()=>{const t=$('typIn');if(t)t.focus()},10);
+  },
+  next(){typingState={text:TYPING_TEXTS[Math.floor(Math.random()*TYPING_TEXTS.length)],typed:'',startTime:0,started:false,wpm:0,accuracy:100,errors:0};buildTyping()},
+  reset(){typingState.typed='';typingState.started=false;typingState.startTime=0;buildTyping()}
+};
+
+// ═══ 11. WORT DES TAGES ═══
+const WORDS_OF_DAY=[
+  {w:'Serendipität',b:'Das unerwartete Glück, etwas Wertvolles zu finden, während man etwas anderes sucht.',c:'✨'},
+  {w:'Ephemer',b:'Nur für kurze Zeit bestehend oder von kurzer Dauer.',c:'🕰️'},
+  {w:'Quintessenz',b:'Das Wesentliche, die reinste Essenz einer Sache.',c:'💎'},
+  {w:'Elysisch',b:'Paradiesisch, himmlisch schön.',c:'🌺'},
+  {w:'Melliflu',b:'Wie Honig fließend, süß klingend.',c:'🍯'},
+  {w:'Sonor',b:'Voll und klangvoll im Ton.',c:'🔊'},
+  {w:'Kaleidoskop',b:'Ein sich ständig veränderndes Muster aus Farben und Formen.',c:'🌈'},
+  {w:'Idylle',b:'Ein friedlicher, malerischer Zustand.',c:'🏞️'},
+  {w:'Neophyt',b:'Ein Anfänger auf einem Gebiet.',c:'🌱'},
+  {w:'Vernissage',b:'Die feierliche Eröffnung einer Kunstausstellung.',c:'🎨'},
+  {w:'Renaissance',b:'Wiedergeburt, kulturelle Blütezeit.',c:'🎭'},
+  {w:'Panazee',b:'Ein universelles Heilmittel für alle Probleme.',c:'💊'},
+  {w:'Nostalgie',b:'Sehnsucht nach vergangenen Zeiten.',c:'📸'},
+  {w:'Euphorie',b:'Ein intensives Gefühl der Freude und Begeisterung.',c:'🎉'},
+  {w:'Zenit',b:'Der höchste Punkt, Höhepunkt.',c:'⛰️'}
+];
+function buildWord(){
+  const w=$('word-window');if(!w)return;
+  w.dataset.title='Wort des Tages';w.dataset.icon='📖';
+  const idx=(new Date().getDate())%WORDS_OF_DAY.length;
+  const word=WORDS_OF_DAY[idx];
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:30px;background:linear-gradient(135deg,rgba(0,229,255,.15),rgba(180,120,255,.1))">'+
+    '<div style="font-size:80px;margin-bottom:10px">'+word.c+'</div>'+
+    '<div style="font-size:11px;color:#7ce0ff;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin-bottom:14px">Wort des Tages</div>'+
+    '<div style="font-size:32px;font-weight:900;color:#fff;letter-spacing:1px">'+word.w+'</div>'+
+    '<div style="font-size:14px;color:#aaddff;line-height:1.6;margin-top:14px">'+esc(word.b)+'</div>'+
+    '<button class="os-btn" style="margin-top:20px" onclick="if(window.speechSynthesis){window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(\''+word.w+'\');u.lang=\'de-DE\';window.speechSynthesis.speak(u)}">🔊 Vorlesen</button>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">📚 Alle Wörter ('+WORDS_OF_DAY.length+')</div>'+
+    '<div style="display:flex;flex-direction:column;gap:4px">'+WORDS_OF_DAY.map((w2,i)=>'<div style="padding:10px;background:rgba(0,0,0,.2);border-radius:10px;'+(i===idx?'border:1.5px solid #00e5ff':'')+'">'+
+    '<div style="font-size:12px;font-weight:800;color:#fff">'+w2.c+' '+esc(w2.w)+'</div>'+
+    '<div style="font-size:11px;color:#88ccff;margin-top:2px;line-height:1.5">'+esc(w2.b)+'</div>'+
+    '</div>').join('')+'</div></div>';
+}
+
+// ═══ 12. SUDOKU ═══
+function sudokuGenerate(){
+  // Simple base pattern shifted
+  const base=[[5,3,4,6,7,8,9,1,2],[6,7,2,1,9,5,3,4,8],[1,9,8,3,4,2,5,6,7],[8,5,9,7,6,1,4,2,3],[4,2,6,8,5,3,7,9,1],[7,1,3,9,2,4,8,5,6],[9,6,1,5,3,7,2,8,4],[2,8,7,4,1,9,6,3,5],[3,4,5,2,8,6,1,7,9]];
+  const solution=base.map(r=>r.slice());
+  const puzzle=base.map(r=>r.slice());
+  // Remove ~45 cells
+  let removed=0;
+  while(removed<45){const r=Math.floor(Math.random()*9),c=Math.floor(Math.random()*9);if(puzzle[r][c]!==0){puzzle[r][c]=0;removed++}}
+  return {puzzle,solution};
+}
+let sudokuState={grid:[],solution:[],selected:null};
+function buildSudoku(){
+  const w=$('sudoku-window');if(!w)return;
+  w.dataset.title='Sudoku';w.dataset.icon='🔢';
+  if(!sudokuState.grid.length){const g=sudokuGenerate();sudokuState.grid=g.puzzle;sudokuState.solution=g.solution}
+  const cells=[];
+  for(let r=0;r<9;r++)for(let c=0;c<9;c++){
+    const v=sudokuState.grid[r][c];
+    const isSel=sudokuState.selected&&sudokuState.selected.r===r&&sudokuState.selected.c===c;
+    const isFixed=sudokuState.solution[r][c]!==0&&sudokuState.grid[r][c]!==0&&JSON.stringify(sudokuState.grid)!==JSON.stringify(sudokuState.solution)?false:false;
+    const bg=v===0?'rgba(0,0,0,.3)':(sudokuState.selected&&sudokuState.solution[r][c]===v?'rgba(0,229,255,.15)':'linear-gradient(135deg,rgba(0,229,255,.15),rgba(180,120,255,.1))');
+    const border=(c%3===2&&c<8)?'2px solid #00e5ff':(r%3===2&&r<8)?'2px solid #00e5ff':'1px solid rgba(0,229,255,.15)';
+    cells.push('<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;background:'+bg+';cursor:pointer;'+(isSel?'border:3px solid #fff':'border:1px solid rgba(0,229,255,.15)')+';color:'+(v===0?'transparent':'#fff')+';font-family:monospace" onclick="HalDoSudoku.select('+r+','+c+')">'+(v||'·')+'</div>');
+  }
+  w.innerHTML=
+    '<div class="card" style="padding:4px"><div style="display:grid;grid-template-columns:repeat(9,1fr);gap:1px;max-width:400px;margin:0 auto;background:rgba(0,229,255,.2)">'+cells.join('')+'</div></div>'+
+    '<div style="display:grid;grid-template-columns:repeat(9,1fr);gap:4px;margin-bottom:10px">'+
+    [1,2,3,4,5,6,7,8,9].map(n=>'<button class="os-btn primary" style="padding:10px 4px;font-size:16px;font-weight:900" onclick="HalDoSudoku.setNum('+n+')">'+n+'</button>').join('')+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+
+    '<button class="os-btn danger" onclick="HalDoSudoku.setNum(0)">🗑️ Löschen</button>'+
+    '<button class="os-btn primary" onclick="HalDoSudoku.newGame()">🔄 Neu</button>'+
+    '</div>';
+}
+window.HalDoSudoku={
+  select(r,c){sudokuState.selected={r,c};buildSudoku()},
+  setNum(n){
+    if(!sudokuState.selected)return;
+    const {r,c}=sudokuState.selected;
+    // Don't overwrite original puzzle (if it was in the puzzle)
+    sudokuState.grid[r][c]=n;
+    buildSudoku();
+    // Check win
+    let win=true;
+    for(let i=0;i<9;i++)for(let j=0;j<9;j++)if(sudokuState.grid[i][j]!==sudokuState.solution[i][j])win=false;
+    if(win&&window.showToast)showToast('🎉 Sudoku gelöst!','success');
+  },
+  newGame(){const g=sudokuGenerate();sudokuState.grid=g.puzzle;sudokuState.solution=g.solution;sudokuState.selected=null;buildSudoku()}
+};
+
+// ═══ 13. 2048 ═══
+let game2048State={grid:[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],score:0,best:store('haldo_2048_best',0),over:false};
+function add2048(){
+  const empty=[];for(let r=0;r<4;r++)for(let c=0;c<4;c++)if(!game2048State.grid[r][c])empty.push([r,c]);
+  if(!empty.length)return;
+  const [r,c]=empty[Math.floor(Math.random()*empty.length)];
+  game2048State.grid[r][c]=Math.random()<0.9?2:4;
+}
+function move2048(dir){
+  const g=game2048State.grid;
+  const merge=(row)=>{const nz=row.filter(x=>x);const out=[];for(let i=0;i<nz.length;i++){if(i<nz.length-1&&nz[i]===nz[i+1]){out.push(nz[i]*2);game2048State.score+=nz[i]*2;i++}else out.push(nz[i])}while(out.length<4)out.push(0);return out};
+  const rotate=(m)=>{const n=[];for(let i=0;i<4;i++){n.push([]);for(let j=0;j<4;j++)n[i].push(m[3-j][i])}return n};
+  const rot=(m)=>{const n=[];for(let i=0;i<4;i++){n.push([]);for(let j=0;j<4;j++)n[i].push(m[j][3-i])}return n};
+  let before=JSON.stringify(g);
+  if(dir==='left')for(let r=0;r<4;r++)g[r]=merge(g[r]);
+  else if(dir==='right')for(let r=0;r<4;r++){g[r].reverse();g[r]=merge(g[r]);g[r].reverse()}
+  else if(dir==='up'){let t=rotate(rotate(rotate(g)));for(let r=0;r<4;r++)t[r]=merge(t[r]);for(let i=0;i<3;i++)t=rotate(t);for(let r=0;r<4;r++)g[r]=t[r].slice()}
+  else if(dir==='down'){let t=rotate(g);for(let r=0;r<4;r++)t[r]=merge(t[r]);for(let i=0;i<3;i++)t=rotate(t);for(let r=0;r<4;r++)g[r]=t[r].slice()}
+  if(JSON.stringify(g)!==before){add2048();if(game2048State.score>game2048State.best){game2048State.best=game2048State.score;save('haldo_2048_best',game2048State.best)}}
+  build2048();
+}
+function build2048(){
+  const w=$('game2048-window');if(!w)return;
+  w.dataset.title='2048';w.dataset.icon='🎮';
+  if(!game2048State.grid.flat().some(x=>x)){add2048();add2048()}
+  const colors={2:'#eee4da',4:'#ede0c8',8:'#f2b179',16:'#f59563',32:'#f67c5f',64:'#f65e3b',128:'#edcf72',256:'#edcc61',512:'#edc850',1024:'#edc53f',2048:'#edc22e'};
+  const cells=[];for(let r=0;r<4;r++)for(let c=0;c<4;c++){const v=game2048State.grid[r][c];const bg=colors[v]||(v?'#3c3a32':'rgba(0,0,0,.3)');const col=v>4?'#fff':'#776e65';cells.push('<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:'+bg+';color:'+col+';font-size:'+(v>=1000?'18':v>=100?'22':'26')+'px;font-weight:900;border-radius:8px;font-family:monospace">'+(v||'')+'</div>')}
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:12px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px">'+game2048State.score+'</div><div class="lbl">Score</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px;color:#ffc800">🏆 '+game2048State.best+'</div><div class="lbl">Best</div></div>'+
+    '</div>'+
+    '<div class="card" style="padding:6px"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:340px;margin:0 auto">'+cells.join('')+'</div></div>'+
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:200px;margin:0 auto 10px">'+
+    '<div></div><button class="os-btn" style="padding:14px;font-size:18px" onclick="move2048(\'up\')">⬆️</button><div></div>'+
+    '<button class="os-btn" style="padding:14px;font-size:18px" onclick="move2048(\'left\')">⬅️</button>'+
+    '<button class="os-btn" style="padding:14px;font-size:18px" onclick="move2048(\'down\')">⬇️</button>'+
+    '<button class="os-btn" style="padding:14px;font-size:18px" onclick="move2048(\'right\')">➡️</button>'+
+    '</div>'+
+    '<button class="os-btn danger full" onclick="game2048State={grid:[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],score:0,best:game2048State.best,over:false};build2048()">🔄 Neues Spiel</button>';
+}
+
+// ═══ 14. REAKTIONSTEST ═══
+let reactionState={phase:'idle',startTime:0,lastTime:0,best:store('haldo_reaction_best',9999),history:[],timeout:null};
+function buildReaction(){
+  const w=$('reaction-window');if(!w)return;
+  w.dataset.title='Reaktionstest';w.dataset.icon='⚡';
+  const phases={
+    idle:{bg:'linear-gradient(135deg,rgba(0,229,255,.2),rgba(0,229,255,.1))',text:'👆 Tippen zum Starten',color:'#00e5ff'},
+    wait:{bg:'linear-gradient(135deg,rgba(255,68,102,.25),rgba(255,68,102,.1))',text:'⏳ Warten...',color:'#ff4466'},
+    go:{bg:'linear-gradient(135deg,rgba(0,255,136,.3),rgba(0,255,136,.15))',text:'🟢 JETZT!',color:'#00ff88'},
+    result:{bg:'linear-gradient(135deg,rgba(180,120,255,.25),rgba(180,120,255,.1))',text:'⚡ '+reactionState.lastTime+' ms',color:'#b478ff'},
+    early:{bg:'linear-gradient(135deg,rgba(255,200,0,.25),rgba(255,200,0,.1))',text:'⏰ Zu früh!',color:'#ffc800'}
+  };
+  const p=phases[reactionState.phase];
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px;color:#ffc800">🏆 '+(reactionState.best===9999?'–':reactionState.best+'ms')+'</div><div class="lbl">Bestzeit</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px">'+reactionState.history.length+'</div><div class="lbl">Versuche</div></div>'+
+    '</div>'+
+    '<div class="card" style="padding:0;cursor:pointer;user-select:none" onclick="HalDoReaction.tap()">'+
+    '<div style="aspect-ratio:1;background:'+p.bg+';border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:3px solid '+p.color+';box-shadow:0 0 40px '+p.color+'40">'+
+    '<div style="font-size:80px;margin-bottom:20px">'+(reactionState.phase==='idle'?'⚡':reactionState.phase==='wait'?'⏳':reactionState.phase==='go'?'🟢':reactionState.phase==='result'?'⚡':'⏰')+'</div>'+
+    '<div style="font-size:22px;font-weight:900;color:'+p.color+';text-transform:uppercase;letter-spacing:2px">'+p.text+'</div>'+
+    '</div></div>'+
+    (reactionState.history.length?'<div class="card"><div class="lbl" style="margin-bottom:8px">📊 Letzte Versuche</div>'+
+    reactionState.history.slice(0,10).map((t,i)=>'<div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:4px;font-size:12px"><span style="color:#88ccff">#'+(reactionState.history.length-i)+'</span><b style="color:'+(t<250?'#00ff88':t<400?'#ffc800':'#ff4466')+';font-family:monospace">'+t+'ms</b></div>').join('')+
+    '</div>':'');
+}
+window.HalDoReaction={
+  tap(){
+    if(reactionState.phase==='idle'){reactionState.phase='wait';buildReaction();reactionState.timeout=setTimeout(()=>{reactionState.phase='go';reactionState.startTime=Date.now();if(navigator.vibrate)navigator.vibrate(50);buildReaction()},1500+Math.random()*2000)}
+    else if(reactionState.phase==='wait'){clearTimeout(reactionState.timeout);reactionState.phase='early';buildReaction();setTimeout(()=>{reactionState.phase='idle';buildReaction()},1000)}
+    else if(reactionState.phase==='go'){const t=Date.now()-reactionState.startTime;reactionState.lastTime=t;reactionState.history.unshift(t);if(t<reactionState.best){reactionState.best=t;save('haldo_reaction_best',t)}reactionState.phase='result';buildReaction();setTimeout(()=>{reactionState.phase='idle';buildReaction()},1500)}
+    else if(reactionState.phase==='result'||reactionState.phase==='early'){reactionState.phase='wait';buildReaction();reactionState.timeout=setTimeout(()=>{reactionState.phase='go';reactionState.startTime=Date.now();buildReaction()},1500+Math.random()*2000)}
+  }
+};
+
+// ═══ INIT ═══
+function init(){
+  if(window.HalDoUI){
+    const orig=window.HalDoUI.rebuild;
+    window.HalDoUI.rebuild=function(id){
+      if(id==='hiit-window'){buildHIIT();return}
+      if(id==='fasting-window'){buildFasting();return}
+      if(id==='cal-window'){buildCal();return}
+      if(id==='kegel-window'){buildKegel();return}
+      if(id==='einmaleins-window'){build1x1();return}
+      if(id==='pse-quiz-window'){buildPSEQuiz();return}
+      if(id==='formulas-window'){buildFormulas();return}
+      if(id==='physik-quiz-window'){buildPhysikQuiz();return}
+      if(id==='palace-window'){buildPalace();return}
+      if(id==='typing-window'){buildTyping();return}
+      if(id==='word-window'){buildWord();return}
+      if(id==='sudoku-window'){buildSudoku();return}
+      if(id==='game2048-window'){build2048();return}
+      if(id==='reaction-window'){buildReaction();return}
+      if(orig)orig(id);
+    };
+  }
+  ['hiit-window','fasting-window','cal-window','kegel-window','einmaleins-window','pse-quiz-window','formulas-window','physik-quiz-window','palace-window','typing-window','word-window','sudoku-window','game2048-window','reaction-window'].forEach(id=>{
+    let el=$(id);if(!el){el=document.createElement('div');el.id=id;document.body.appendChild(el)}
+    if(window.prepareWindow) window.prepareWindow(el);
+  });
+  console.log('%c🚀 v144 – 14 Apps geladen','color:#00ff88;font-weight:bold;font-size:14px');
+  console.log('%c✅ HIIT · Fasten · Kalorien · Kegel · Einmaleins · PSE-Quiz · Formeln · Physik-Quiz · Merk-Palast · Tipp-Test · Wort · Sudoku · 2048 · Reaktion','color:#4da8ff;font-weight:bold');
+}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>setTimeout(init,1000))}else{setTimeout(init,1000)}
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════ ENDE v144 ═════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
