@@ -7469,5 +7469,487 @@ if(document.readyState==='loading'){
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v133 – 6 APPS (Music · Recipes · Shopping · Contacts · Finance · Weather Pro) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+"use strict";
+if(window.__v133) return;
+window.__v133 = true;
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const store=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const todayK=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+
+// ═══ 1. MUSIC PRO ═══
+let musicState={tracks:[],current:null,playing:false,audio:null,shuffle:false,repeat:false};
+
+function buildMusicPro(){
+  const w=$('music-window'); if(!w) return;
+  w.dataset.title='Music Pro'; w.dataset.icon='🎵';
+  const list=musicState.tracks.length?musicState.tracks.map((t,i)=>
+    '<div class="card" style="padding:10px;display:flex;gap:10px;align-items:center;'+(musicState.current===i?'border-color:var(--cyan);background:rgba(0,229,255,.1)':'')+'">'+
+    '<div style="font-size:24px;width:36px;text-align:center">'+(musicState.current===i&&musicState.playing?'▶':'🎵')+'</div>'+
+    '<div style="flex:1;min-width:0">'+
+    '<div style="font-size:13px;font-weight:800;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.name)+'</div>'+
+    '<div style="font-size:10px;color:#88ccff;margin-top:2px">'+(t.size?((t.size/1048576).toFixed(1)+' MB'):'')+'</div>'+
+    '</div>'+
+    '<button class="os-btn primary" style="padding:6px 12px;font-size:14px" onclick="HalDoMusicPro.play('+i+')">▶</button>'+
+    '<button class="os-btn danger" style="padding:6px 10px;font-size:11px" onclick="HalDoMusicPro.remove('+i+')">✕</button>'+
+    '</div>'
+  ).join(''):'<div class="empty"><div class="ei">🎵</div><div class="et">Keine Musik</div><div class="es">Lade Audiodateien hoch</div></div>';
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:20px">'+
+    '<div style="font-size:56px;margin-bottom:8px;'+(musicState.playing?'animation:musicPulse 1.5s infinite':'')+'">🎵</div>'+
+    '<div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">'+(musicState.current!==null?esc(musicState.tracks[musicState.current].name):'Kein Track')+'</div>'+
+    '<div style="font-size:11px;color:#88ccff;margin-bottom:14px">'+(musicState.tracks.length+' Tracks')+'</div>'+
+    '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px">'+
+    '<button class="os-btn" style="padding:10px 16px" onclick="HalDoMusicPro.prev()">⏮</button>'+
+    '<button class="os-btn primary" style="padding:12px 24px;font-size:18px" onclick="HalDoMusicPro.toggle()">'+(musicState.playing?'⏸':'▶')+'</button>'+
+    '<button class="os-btn" style="padding:10px 16px" onclick="HalDoMusicPro.next()">⏭</button>'+
+    '</div>'+
+    '<div style="display:flex;gap:6px;justify-content:center">'+
+    '<button class="os-btn '+(musicState.shuffle?'primary':'')+'" style="padding:6px 12px;font-size:11px" onclick="HalDoMusicPro.toggleShuffle()">🔀 Zufall</button>'+
+    '<button class="os-btn '+(musicState.repeat?'primary':'')+'" style="padding:6px 12px;font-size:11px" onclick="HalDoMusicPro.toggleRepeat()">🔁 Wiederh.</button>'+
+    '</div>'+
+    '</div>'+
+    '<div class="card">'+
+    '<input type="file" id="musicFiles" accept="audio/*" multiple style="display:none" onchange="HalDoMusicPro.loadFiles(this)">'+
+    '<button class="os-btn primary full" onclick="document.getElementById(\'musicFiles\').click()">📁 Musik hinzufügen</button>'+
+    '</div>'+
+    '<style>@keyframes musicPulse{50%{transform:scale(1.08);filter:brightness(1.3)}}</style>'+
+    '<div class="lbl" style="margin:14px 0 8px">🎵 Playlist ('+musicState.tracks.length+')</div>'+
+    list;
+}
+
+window.HalDoMusicPro={
+  loadFiles(input){
+    Array.from(input.files||[]).forEach(f=>{
+      const url=URL.createObjectURL(f);
+      musicState.tracks.push({name:f.name.replace(/\.[^.]+$/,''),url,size:f.size});
+    });
+    if(!musicState.audio){musicState.audio=new Audio();musicState.audio.onended=()=>HalDoMusicPro.onEnded();}
+    buildMusicPro();
+    if(window.showToast)showToast('🎵 '+input.files.length+' Track(s)','success');
+  },
+  play(i){
+    if(!musicState.tracks[i])return;
+    if(!musicState.audio){musicState.audio=new Audio();musicState.audio.onended=()=>HalDoMusicPro.onEnded();}
+    musicState.current=i;
+    musicState.audio.src=musicState.tracks[i].url;
+    musicState.audio.play();
+    musicState.playing=true;
+    buildMusicPro();
+  },
+  toggle(){
+    if(!musicState.audio){if(musicState.tracks.length)HalDoMusicPro.play(0);return;}
+    if(musicState.playing){musicState.audio.pause();musicState.playing=false}
+    else{musicState.audio.play();musicState.playing=true}
+    buildMusicPro();
+  },
+  next(){
+    if(!musicState.tracks.length)return;
+    let i=musicState.shuffle?Math.floor(Math.random()*musicState.tracks.length):(musicState.current+1)%musicState.tracks.length;
+    HalDoMusicPro.play(i);
+  },
+  prev(){
+    if(!musicState.tracks.length)return;
+    let i=(musicState.current-1+musicState.tracks.length)%musicState.tracks.length;
+    HalDoMusicPro.play(i);
+  },
+  onEnded(){
+    if(musicState.repeat){musicState.audio.currentTime=0;musicState.audio.play();return}
+    HalDoMusicPro.next();
+  },
+  toggleShuffle(){musicState.shuffle=!musicState.shuffle;buildMusicPro()},
+  toggleRepeat(){musicState.repeat=!musicState.repeat;buildMusicPro()},
+  remove(i){musicState.tracks.splice(i,1);if(musicState.current===i){musicState.audio?.pause();musicState.current=null;musicState.playing=false}buildMusicPro()}
+};
+
+// ═══ 2. RECIPES PRO ═══
+window.HalDoRecipesPro={
+  key:'haldo_recipespro_v1',
+  cats:{haupt:{n:'Hauptgericht',i:'🍽️'},frueh:{n:'Frühstück',i:'🥐'},suppe:{n:'Suppe',i:'🍲'},salat:{n:'Salat',i:'🥗'},dessert:{n:'Dessert',i:'🍰'},snack:{n:'Snack',i:'🥪'},drink:{n:'Getränk',i:'🥤'}},
+  all(){return store(this.key,[])},
+  add(name,cat,servings,prep,cook,ingredients,steps){
+    const l=this.all();
+    l.unshift({id:uid('r_'),name,cat,servings,prep,cook,ingredients,steps,created:Date.now()});
+    save(this.key,l.slice(0,200));
+    return l[0].id;
+  },
+  remove(id){save(this.key,this.all().filter(r=>r.id!==id))}
+};
+
+let recipesProState={cat:'all'};
+
+function buildRecipesPro(){
+  const w=$('recipes-window'); if(!w) return;
+  w.dataset.title='Rezepte Pro'; w.dataset.icon='🍳';
+  const all=HalDoRecipesPro.all();
+  let filtered=recipesProState.cat==='all'?all:all.filter(r=>r.cat===recipesProState.cat);
+  const cats='<button class="os-btn '+(recipesProState.cat==='all'?'primary':'')+'" style="padding:6px 12px;font-size:11px;white-space:nowrap" onclick="HalDoRecipesProApp.setCat(\'all\')">Alle ('+all.length+')</button>'+
+    Object.entries(HalDoRecipesPro.cats).map(([k,c])=>{
+      const cnt=all.filter(r=>r.cat===k).length;
+      return '<button class="os-btn '+(recipesProState.cat===k?'primary':'')+'" style="padding:6px 12px;font-size:11px;white-space:nowrap" onclick="HalDoRecipesProApp.setCat(\''+k+'\')">'+c.i+' '+c.n+' ('+cnt+')</button>';
+    }).join('');
+  const list=filtered.length?filtered.map(r=>{
+    const cat=HalDoRecipesPro.cats[r.cat]||HalDoRecipesPro.cats.haupt;
+    const totalTime=(parseInt(r.prep)||0)+(parseInt(r.cook)||0);
+    return '<div class="card" style="padding:12px;cursor:pointer" onclick="HalDoRecipesProApp.view(\''+r.id+'\')">'+
+      '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">'+
+      '<div style="flex:1;min-width:0">'+
+      '<div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:4px">'+cat.i+' '+esc(r.name)+'</div>'+
+      '<div style="font-size:11px;color:#88ccff">⏱️ '+totalTime+' Min · 👥 '+r.servings+' Portionen</div>'+
+      '</div>'+
+      '<button class="os-btn danger" style="padding:6px 10px;font-size:11px" onclick="event.stopPropagation();if(confirm(\'Löschen?\')){HalDoRecipesPro.remove(\''+r.id+'\');HalDoRecipesProApp.rebuild()}">✕</button>'+
+      '</div></div>';
+  }).join(''):'<div class="empty"><div class="ei">🍳</div><div class="et">Keine Rezepte</div></div>';
+  w.innerHTML=
+    '<div class="card">'+
+    '<input class="os-input" id="rcpN" placeholder="Rezeptname" style="margin-bottom:8px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">'+
+    '<select class="os-select" id="rcpC">'+Object.entries(HalDoRecipesPro.cats).map(([k,c])=>'<option value="'+k+'">'+c.i+' '+c.n+'</option>').join('')+'</select>'+
+    '<input class="os-input" id="rcpS" type="number" placeholder="Portionen" value="2" min="1">'+
+    '<input class="os-input" id="rcpT" type="number" placeholder="Min ges." value="30" min="0">'+
+    '</div>'+
+    '<textarea class="os-textarea" id="rcpI" placeholder="Zutaten (eine pro Zeile)&#10;500 g Mehl&#10;2 Eier" style="min-height:80px;margin-bottom:8px"></textarea>'+
+    '<textarea class="os-textarea" id="rcpSteps" placeholder="Zubereitung (eine pro Zeile)" style="min-height:80px;margin-bottom:8px"></textarea>'+
+    '<button class="os-btn primary full" onclick="HalDoRecipesProApp.add()">🍳 Rezept speichern</button>'+
+    '</div>'+
+    '<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:10px">'+cats+'</div>'+
+    list;
+}
+
+window.HalDoRecipesProApp={
+  setCat(c){recipesProState.cat=c;buildRecipesPro()},
+  add(){
+    const n=$('rcpN').value.trim();if(!n)return;
+    HalDoRecipesPro.add(n,$('rcpC').value,parseInt($('rcpS').value)||2,0,$('rcpT').value||30,$('rcpI').value,$('rcpSteps').value);
+    $('rcpN').value='';$('rcpI').value='';$('rcpSteps').value='';
+    buildRecipesPro();
+    if(window.showToast)showToast('🍳 Rezept gespeichert','success');
+  },
+  view(id){
+    const r=HalDoRecipesPro.all().find(x=>x.id===id);if(!r)return;
+    const ings=(r.ingredients||'').split('\n').filter(x=>x.trim());
+    const steps=(r.steps||'').split('\n').filter(x=>x.trim());
+    const modal=document.createElement('div');
+    modal.className='os-modal show';modal.style.zIndex='99999';
+    modal.innerHTML=
+      '<div class="os-modal-box" style="max-width:520px">'+
+      '<h2>'+esc(r.name)+'</h2>'+
+      '<div style="font-size:12px;color:#88ccff;margin-bottom:14px">⏱️ '+(parseInt(r.prep)+parseInt(r.cook))+' Min · 👥 '+r.servings+' Portionen</div>'+
+      '<div class="lbl" style="margin-bottom:6px">🛒 Zutaten</div>'+
+      '<div style="padding:10px;background:rgba(0,0,0,.3);border-radius:10px;margin-bottom:14px;font-size:13px;line-height:1.8">'+
+      (ings.length?ings.map(i=>'• '+esc(i)).join('<br>'):'–')+'</div>'+
+      '<div class="lbl" style="margin-bottom:6px">👨‍🍳 Zubereitung</div>'+
+      '<div style="padding:10px;background:rgba(0,0,0,.3);border-radius:10px;margin-bottom:14px;font-size:13px;line-height:1.8">'+
+      (steps.length?steps.map((s,i)=>(i+1)+'. '+esc(s)).join('<br>'):'–')+'</div>'+
+      '<button class="os-btn primary full" onclick="this.closest(\'.os-modal\').remove()">Schließen</button>'+
+      '</div>';
+    document.body.appendChild(modal);
+    modal.addEventListener('click',e=>{if(e.target===modal)modal.remove()});
+  },
+  rebuild(){buildRecipesPro()}
+};
+
+// ═══ 3. SHOPPING PRO ═══
+window.HalDoShoppingPro={
+  key:'haldo_shoppingpro_v1',
+  cats:{obst:{n:'Obst',i:'🍎'},gemuese:{n:'Gemüse',i:'🥦'},fleisch:{n:'Fleisch',i:'🥩'},milch:{n:'Milch',i:'🥛'},brot:{n:'Backwaren',i:'🥖'},getraenke:{n:'Getränke',i:'🥤'},haushalt:{n:'Haushalt',i:'🧴'},sonstiges:{n:'Sonstiges',i:'📦'}},
+  all(){return store(this.key,[])},
+  add(name,cat,qty){const l=this.all();l.unshift({id:uid('s_'),name,cat:cat||'sonstiges',qty:qty||'',checked:false,created:Date.now()});save(this.key,l);return l[0].id},
+  toggle(id){const l=this.all();const x=l.find(v=>v.id===id);if(x){x.checked=!x.checked;save(this.key,l)}},
+  remove(id){save(this.key,this.all().filter(s=>s.id!==id))},
+  clearChecked(){save(this.key,this.all().filter(s=>!s.checked))}
+};
+
+function buildShoppingPro(){
+  const w=$('shopping-window'); if(!w) return;
+  w.dataset.title='Einkaufsliste'; w.dataset.icon='🛒';
+  const all=HalDoShoppingPro.all();
+  const open=all.filter(s=>!s.checked);
+  const done=all.filter(s=>s.checked);
+  const groups={};
+  all.forEach(s=>{if(!groups[s.cat])groups[s.cat]=[];groups[s.cat].push(s)});
+  const list=Object.entries(groups).length?Object.entries(groups).map(([cat,items])=>{
+    const c=HalDoShoppingPro.cats[cat]||HalDoShoppingPro.cats.sonstiges;
+    return '<div style="margin-bottom:14px">'+
+      '<div style="font-size:11px;color:#7ce0ff;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;padding-left:4px">'+c.i+' '+c.n+' ('+items.length+')</div>'+
+      items.map(s=>'<div class="card" style="padding:10px;display:flex;gap:10px;align-items:center;margin-bottom:6px;'+(s.checked?'opacity:.5':'')+'">'+
+        '<div style="width:22px;height:22px;border-radius:6px;border:2px solid var(--border);background:'+(s.checked?'linear-gradient(135deg,#00ff88,#00e5ff)':'transparent')+';display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:#001018;font-size:12px;font-weight:900" onclick="HalDoShoppingPro.toggle(\''+s.id+'\');HalDoShoppingProApp.rebuild()">'+(s.checked?'✓':'')+'</div>'+
+        '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:13px;font-weight:700;color:#fff;'+(s.checked?'text-decoration:line-through':'')+'">'+esc(s.name)+'</div>'+
+        (s.qty?'<div style="font-size:11px;color:#88ccff">'+esc(s.qty)+'</div>':'')+
+        '</div>'+
+        '<button class="os-btn danger" style="padding:4px 8px;font-size:11px" onclick="HalDoShoppingPro.remove(\''+s.id+'\');HalDoShoppingProApp.rebuild()">✕</button>'+
+        '</div>').join('')+
+      '</div>';
+  }).join(''):'<div class="empty"><div class="ei">🛒</div><div class="et">Einkaufsliste leer</div></div>';
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:22px">'+open.length+'</div><div class="lbl">Offen</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:22px;color:#00ff88">'+done.length+'</div><div class="lbl">Erledigt</div></div>'+
+    '</div>'+
+    '<div class="card">'+
+    '<div style="display:flex;gap:6px;margin-bottom:8px">'+
+    '<input class="os-input" id="shpN" placeholder="Artikel..." onkeypress="if(event.key===\'Enter\')HalDoShoppingProApp.add()" style="flex:2">'+
+    '<input class="os-input" id="shpQ" placeholder="Menge" style="flex:1">'+
+    '</div>'+
+    '<div style="display:flex;gap:6px;align-items:center">'+
+    '<select class="os-select" id="shpC" style="flex:1">'+Object.entries(HalDoShoppingPro.cats).map(([k,c])=>'<option value="'+k+'">'+c.i+' '+c.n+'</option>').join('')+'</select>'+
+    '<button class="os-btn primary" onclick="HalDoShoppingProApp.add()">✚</button>'+
+    '</div>'+
+    '</div>'+
+    (done.length?'<button class="os-btn danger full" style="margin-bottom:14px" onclick="if(confirm(\'Erledigte löschen?\')){HalDoShoppingPro.clearChecked();HalDoShoppingProApp.rebuild()}">🧹 Erledigte löschen ('+done.length+')</button>':'')+
+    list;
+}
+
+window.HalDoShoppingProApp={
+  add(){const n=$('shpN').value.trim();if(!n)return;HalDoShoppingPro.add(n,$('shpC').value,$('shpQ').value.trim());$('shpN').value='';$('shpQ').value='';buildShoppingPro();if(window.showToast)showToast('🛒 Hinzugefügt','success')},
+  rebuild(){buildShoppingPro()}
+};
+
+// ═══ 4. CONTACTS PRO ═══
+window.HalDoContactsPro={
+  key:'haldo_contactspro_v1',
+  all(){return store(this.key,[])},
+  add(first,last,mobile,email,birthday,cat){const l=this.all();l.unshift({id:uid('c_'),first,last,mobile,email,birthday,cat:cat||'other',favorite:false,created:Date.now()});save(this.key,l);return l[0].id},
+  remove(id){save(this.key,this.all().filter(c=>c.id!==id))},
+  toggleFav(id){const l=this.all();const x=l.find(v=>v.id===id);if(x){x.favorite=!x.favorite;save(this.key,l)}}
+};
+
+const CT_CATS={family:{n:'Familie',i:'👨‍👩‍👧',c:'#ff78c8'},friend:{n:'Freunde',i:'👥',c:'#00e5ff'},work:{n:'Arbeit',i:'💼',c:'#ffc800'},school:{n:'Schule',i:'🎓',c:'#00ff88'},other:{n:'Sonstiges',i:'📦',c:'#b478ff'}};
+
+function buildContactsPro(){
+  const w=$('contacts-window'); if(!w) return;
+  w.dataset.title='Kontakte'; w.dataset.icon='👥';
+  const all=HalDoContactsPro.all();
+  const sorted=all.slice().sort((a,b)=>{if(a.favorite!==b.favorite)return a.favorite?-1:1;return (a.last||a.first||'').localeCompare(b.last||b.first||'')});
+  const list=sorted.length?sorted.map(c=>{
+    const cat=CT_CATS[c.cat]||CT_CATS.other;
+    const ini=((c.first||'?')[0]+((c.last||'')[0]||'')).toUpperCase();
+    return '<div class="card" style="padding:12px;display:flex;gap:10px;align-items:center;border-left:4px solid '+cat.c+'">'+
+      '<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,'+cat.c+',#4da8ff);display:flex;align-items:center;justify-content:center;font-weight:900;color:#001018;font-size:15px;flex-shrink:0;position:relative">'+ini+(c.favorite?'<span style="position:absolute;top:-2px;right:-4px;font-size:14px">⭐</span>':'')+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+      '<div style="font-size:14px;font-weight:800;color:#fff">'+esc((c.first||'')+' '+(c.last||''))+'</div>'+
+      '<div style="font-size:11px;color:#7ce0ff;margin-top:2px">'+cat.i+' '+cat.n+(c.mobile?' · 📞 '+esc(c.mobile):'')+'</div>'+
+      (c.email?'<div style="font-size:11px;color:#88ccff;margin-top:1px">📧 '+esc(c.email)+'</div>':'')+
+      (c.birthday?'<div style="font-size:11px;color:#ffc800;margin-top:1px">🎂 '+esc(c.birthday)+'</div>':'')+
+      '</div>'+
+      '<div style="display:flex;flex-direction:column;gap:4px">'+
+      (c.mobile?'<a href="tel:'+esc(c.mobile)+'" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#00ff88,#00e5ff);display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:16px">📞</a>':'')+
+      '<button class="os-btn" style="padding:6px 10px;font-size:14px" onclick="HalDoContactsPro.toggleFav(\''+c.id+'\');HalDoContactsProApp.rebuild()">'+(c.favorite?'⭐':'☆')+'</button>'+
+      '<button class="os-btn danger" style="padding:4px 8px;font-size:11px" onclick="if(confirm(\'Löschen?\')){HalDoContactsPro.remove(\''+c.id+'\');HalDoContactsProApp.rebuild()}">✕</button>'+
+      '</div></div>';
+  }).join(''):'<div class="empty"><div class="ei">👥</div><div class="et">Keine Kontakte</div></div>';
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:22px">'+all.length+'</div><div class="lbl">Kontakte</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:22px;color:#ffc800">'+all.filter(c=>c.favorite).length+'</div><div class="lbl">Favoriten</div></div>'+
+    '</div>'+
+    '<div class="card">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'+
+    '<input class="os-input" id="ctpF" placeholder="Vorname">'+
+    '<input class="os-input" id="ctpL" placeholder="Nachname">'+
+    '</div>'+
+    '<input class="os-input" id="ctpM" placeholder="Mobil" style="margin-bottom:6px">'+
+    '<input class="os-input" id="ctpE" placeholder="E-Mail" style="margin-bottom:6px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">'+
+    '<input class="os-input" id="ctpB" type="date">'+
+    '<select class="os-select" id="ctpC">'+Object.entries(CT_CATS).map(([k,c])=>'<option value="'+k+'">'+c.i+' '+c.n+'</option>').join('')+'</select>'+
+    '</div>'+
+    '<button class="os-btn primary full" onclick="HalDoContactsProApp.add()">👥 Kontakt speichern</button>'+
+    '</div>'+
+    list;
+}
+
+window.HalDoContactsProApp={
+  add(){
+    const f=$('ctpF').value.trim(),l=$('ctpL').value.trim();
+    if(!f&&!l)return;
+    HalDoContactsPro.add(f,l,$('ctpM').value.trim(),$('ctpE').value.trim(),$('ctpB').value,$('ctpC').value);
+    $('ctpF').value='';$('ctpL').value='';$('ctpM').value='';$('ctpE').value='';$('ctpB').value='';
+    buildContactsPro();
+    if(window.showToast)showToast('👥 Kontakt gespeichert','success');
+  },
+  rebuild(){buildContactsPro()}
+};
+
+// ═══ 5. FINANCE PRO ═══
+window.HalDoFinancePro={
+  key:'haldo_financepro_v1',
+  cats:{food:{n:'Essen',i:'🍔'},transport:{n:'Transport',i:'🚗'},home:{n:'Wohnen',i:'🏠'},shopping:{n:'Shopping',i:'🛍️'},health:{n:'Gesundheit',i:'💊'},fun:{n:'Freizeit',i:'🎮'},bills:{n:'Rechnungen',i:'📄'},salary:{n:'Gehalt',i:'💼'},gift:{n:'Geschenk',i:'🎁'},other:{n:'Sonstiges',i:'📦'}},
+  all(){return store(this.key,[])},
+  add(type,title,amount,cat,note){const l=this.all();l.unshift({id:uid('f_'),type,title,amount:parseFloat(amount)||0,cat:cat||'other',note:note||'',date:todayK(),created:Date.now()});save(this.key,l.slice(0,2000));return l[0].id},
+  remove(id){save(this.key,this.all().filter(t=>t.id!==id))},
+  income(){return this.all().filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0)},
+  expense(){return this.all().filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0)},
+  balance(){return this.income()-this.expense()},
+  byCat(){const b={};this.all().filter(t=>t.type==='expense').forEach(t=>{b[t.cat]=(b[t.cat]||0)+t.amount});return b}
+};
+
+let finProState={type:'expense'};
+
+function buildFinancePro(){
+  const w=$('finance-window'); if(!w) return;
+  w.dataset.title='Finanzen'; w.dataset.icon='💰';
+  const all=HalDoFinancePro.all();
+  const income=HalDoFinancePro.income();
+  const expense=HalDoFinancePro.expense();
+  const balance=HalDoFinancePro.balance();
+  const byCat=HalDoFinancePro.byCat();
+  const maxCat=Math.max(...Object.values(byCat),1);
+  const catChart=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([k,v])=>{
+    const c=HalDoFinancePro.cats[k]||HalDoFinancePro.cats.other;
+    const pct=Math.round(v/maxCat*100);
+    return '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:11px;color:#aaddff;margin-bottom:3px"><span>'+c.i+' '+c.n+'</span><b style="color:#ff4466">'+v.toFixed(2)+' €</b></div><div style="height:6px;background:rgba(0,0,0,.4);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#ff4466,#ff78c8);border-radius:3px"></div></div></div>';
+  }).join('');
+  const list=all.length?all.slice(0,30).map(t=>{
+    const c=HalDoFinancePro.cats[t.cat]||HalDoFinancePro.cats.other;
+    return '<div class="card" style="padding:10px;display:flex;gap:10px;align-items:center;border-left:4px solid '+(t.type==='income'?'#00ff88':'#ff4466')+'">'+
+      '<div style="font-size:24px;width:36px;text-align:center">'+c.i+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+      '<div style="font-size:13px;font-weight:800;color:#fff">'+esc(t.title)+'</div>'+
+      '<div style="font-size:10px;color:#88ccff;margin-top:2px">'+t.date+' · '+c.n+'</div>'+
+      '</div>'+
+      '<div style="font-size:15px;font-weight:900;color:'+(t.type==='income'?'#00ff88':'#ff4466')+'">'+(t.type==='income'?'+':'-')+t.amount.toFixed(2)+' €</div>'+
+      '<button class="os-btn danger" style="padding:6px 8px;font-size:10px" onclick="if(confirm(\'Löschen?\')){HalDoFinancePro.remove(\''+t.id+'\');HalDoFinanceProApp.rebuild()}">✕</button>'+
+      '</div>';
+  }).join(''):'<div class="empty"><div class="ei">💰</div><div class="et">Keine Buchungen</div></div>';
+  w.innerHTML=
+    '<div class="card" style="text-align:center;background:linear-gradient(135deg,rgba(0,229,255,.1),rgba(255,120,200,.1))">'+
+    '<div style="font-size:11px;color:#88ccff;text-transform:uppercase;letter-spacing:1.5px;font-weight:800">Saldo</div>'+
+    '<div class="big" style="font-size:42px;color:'+(balance>=0?'#00ff88':'#ff4466')+'">'+balance.toFixed(2)+' €</div>'+
+    '</div>'+
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px;color:#00ff88">+'+income.toFixed(2)+'</div><div class="lbl">Einnahmen</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px;color:#ff4466">-'+expense.toFixed(2)+'</div><div class="lbl">Ausgaben</div></div>'+
+    '</div>'+
+    (catChart?'<div class="card"><div class="lbl" style="margin-bottom:10px">📊 Ausgaben nach Kategorie</div>'+catChart+'</div>':'')+
+    '<div class="card">'+
+    '<div style="display:flex;gap:6px;margin-bottom:8px">'+
+    '<button class="os-btn '+(finProState.type==='expense'?'primary':'')+'" style="flex:1;padding:10px;font-size:12px" onclick="HalDoFinanceProApp.setType(\'expense\')">💸 Ausgabe</button>'+
+    '<button class="os-btn '+(finProState.type==='income'?'primary':'')+'" style="flex:1;padding:10px;font-size:12px" onclick="HalDoFinanceProApp.setType(\'income\')">💰 Einnahme</button>'+
+    '</div>'+
+    '<input class="os-input" id="fpTitle" placeholder="Beschreibung" style="margin-bottom:6px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">'+
+    '<input class="os-input" id="fpAmt" type="number" step="0.01" placeholder="Betrag €">'+
+    '<select class="os-select" id="fpCat">'+Object.entries(HalDoFinancePro.cats).map(([k,c])=>'<option value="'+k+'">'+c.i+' '+c.n+'</option>').join('')+'</select>'+
+    '</div>'+
+    '<button class="os-btn primary full" onclick="HalDoFinanceProApp.add()">💾 Speichern</button>'+
+    '</div>'+
+    '<div class="lbl" style="margin:14px 0 8px">📋 Letzte Buchungen</div>'+
+    list;
+}
+
+window.HalDoFinanceProApp={
+  setType(t){finProState.type=t;buildFinancePro()},
+  add(){const t=$('fpTitle').value.trim(),a=parseFloat($('fpAmt').value);if(!t||!a)return;HalDoFinancePro.add(finProState.type,t,a,$('fpCat').value);$('fpTitle').value='';$('fpAmt').value='';buildFinancePro();if(window.showToast)showToast('💰 Gespeichert','success')},
+  rebuild(){buildFinancePro()}
+};
+
+// ═══ 6. WEATHER PRO ═══
+let weatherProCache=null;
+
+async function buildWeatherPro(){
+  const w=$('weather-window'); if(!w) return;
+  w.dataset.title='Wetter'; w.dataset.icon='🌤️';
+  w.innerHTML='<div class="empty"><div class="ei">🌤️</div><div class="et">Lade Wetterdaten...</div></div>';
+  try{
+    const res=await fetch('https://api.open-meteo.com/v1/forecast?latitude=50.11&longitude=8.68&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code,precipitation_probability&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max&timezone=auto&forecast_days=7');
+    const d=await res.json();
+    weatherProCache=d;
+    const c=d.current;
+    const wc=(code)=>{const map={0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌧️',55:'🌧️',61:'🌧️',63:'🌧️',65:'⛈️',71:'❄️',73:'❄️',75:'❄️',80:'🌧️',81:'🌧️',82:'⛈️',95:'⛈️',96:'⛈️',99:'⛈️'};return map[code]||'🌡️'};
+    // Stunden (nächste 12)
+    const now=new Date();
+    const hourHtml=[];
+    for(let i=0;i<d.hourly.time.length;i++){
+      const t=new Date(d.hourly.time[i]);
+      if(t<now)continue;
+      if(hourHtml.length>=12)break;
+      hourHtml.push('<div style="flex-shrink:0;min-width:60px;text-align:center;padding:8px 6px;background:rgba(0,0,0,.3);border-radius:10px;border:1px solid rgba(0,229,255,.15)">'+
+        '<div style="font-size:10px;color:#7ce0ff;font-weight:800">'+t.getHours()+':00</div>'+
+        '<div style="font-size:20px;margin:4px 0">'+wc(d.hourly.weather_code[i])+'</div>'+
+        '<div style="font-size:12px;color:#fff;font-weight:800">'+Math.round(d.hourly.temperature_2m[i])+'°</div>'+
+        (d.hourly.precipitation_probability[i]>10?'<div style="font-size:9px;color:#4da8ff;margin-top:2px">💧'+d.hourly.precipitation_probability[i]+'%</div>':'')+
+        '</div>');
+    }
+    // 7 Tage
+    const days=['So','Mo','Di','Mi','Do','Fr','Sa'];
+    const dailyHtml=d.daily.time.map((date,i)=>{
+      const dt=new Date(date+'T12:00:00');
+      const rain=d.daily.precipitation_probability_max?d.daily.precipitation_probability_max[i]:0;
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(0,229,255,.1);font-size:13px">'+
+        '<div style="flex:1;color:#fff;font-weight:700">'+(i===0?'Heute':days[dt.getDay()])+'</div>'+
+        '<div style="font-size:22px;margin:0 10px">'+wc(d.daily.weather_code[i])+'</div>'+
+        '<div style="color:#7ce0ff;margin-right:10px;font-size:11px;min-width:34px">'+(rain>10?'💧'+rain+'%':'')+'</div>'+
+        '<div style="color:#fff;font-weight:800;min-width:80px;text-align:right"><span style="color:#7ce0ff">'+Math.round(d.daily.temperature_2m_min[i])+'°</span> / <b style="color:#fff">'+Math.round(d.daily.temperature_2m_max[i])+'°</b></div>'+
+        '</div>';
+    }).join('');
+    const sunrise=new Date(d.daily.sunrise[0]).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+    const sunset=new Date(d.daily.sunset[0]).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+    w.innerHTML=
+      '<div class="card" style="text-align:center">'+
+      '<div style="font-size:11px;color:#88ccff;text-transform:uppercase;letter-spacing:2px;font-weight:800">Frankfurt am Main</div>'+
+      '<div style="font-size:80px;margin:8px 0">'+wc(c.weather_code)+'</div>'+
+      '<div style="font-size:56px;font-weight:200;color:#fff;line-height:1;margin-bottom:8px">'+Math.round(c.temperature_2m)+'°C</div>'+
+      '<div style="font-size:13px;color:#aaddff">Gefühlt '+Math.round(c.apparent_temperature)+'°C</div>'+
+      '</div>'+
+      '<div class="grid2" style="margin-bottom:14px">'+
+      '<div class="card" style="text-align:center;padding:10px"><div style="font-size:20px">💧</div><div class="big" style="font-size:18px">'+c.relative_humidity_2m+'%</div><div class="lbl">Feuchte</div></div>'+
+      '<div class="card" style="text-align:center;padding:10px"><div style="font-size:20px">💨</div><div class="big" style="font-size:18px">'+Math.round(c.wind_speed_10m)+'</div><div class="lbl">km/h Wind</div></div>'+
+      '<div class="card" style="text-align:center;padding:10px"><div style="font-size:20px">🌅</div><div class="big" style="font-size:16px">'+sunrise+'</div><div class="lbl">Aufgang</div></div>'+
+      '<div class="card" style="text-align:center;padding:10px"><div style="font-size:20px">🌇</div><div class="big" style="font-size:16px">'+sunset+'</div><div class="lbl">Untergang</div></div>'+
+      '</div>'+
+      '<div class="card"><div class="lbl" style="margin-bottom:10px">⏰ Nächste Stunden</div>'+
+      '<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:6px">'+hourHtml.join('')+'</div></div>'+
+      '<div class="card"><div class="lbl" style="margin-bottom:6px">📅 Nächste 7 Tage</div>'+dailyHtml+'</div>'+
+      '<div style="text-align:center;font-size:10px;color:#5a8ab0;padding:8px">🌐 Open-Meteo Live-Daten</div>';
+  }catch(e){
+    w.innerHTML='<div class="empty"><div class="ei">⚠️</div><div class="et">Wetter nicht verfügbar</div><div class="es">Internet prüfen</div></div>';
+  }
+}
+
+// ═══ INIT ═══
+function init(){
+  if(window.HalDoUI){
+    const orig=window.HalDoUI.rebuild;
+    window.HalDoUI.rebuild=function(id){
+      if(id==='music-window'){buildMusicPro();return}
+      if(id==='recipes-window'){buildRecipesPro();return}
+      if(id==='shopping-window'){buildShoppingPro();return}
+      if(id==='contacts-window'){buildContactsPro();return}
+      if(id==='finance-window'){buildFinancePro();return}
+      if(id==='weather-window'){buildWeatherPro();return}
+      if(orig)orig(id);
+    };
+  }
+  ['music-window','recipes-window','shopping-window','contacts-window','finance-window','weather-window'].forEach(id=>{
+    const el=$(id);
+    if(el&&window.prepareWindow) window.prepareWindow(el);
+  });
+  console.log('%c🚀 v133 – 6 Apps geladen','color:#00ff88;font-weight:bold;font-size:14px');
+  console.log('%c✅ Music · Recipes · Shopping · Contacts · Finance · Weather Pro','color:#4da8ff;font-weight:bold');
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(init,1000));
+}else{
+  setTimeout(init,1000);
+}
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════ ENDE v133 ═════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
