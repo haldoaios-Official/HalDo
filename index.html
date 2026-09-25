@@ -12575,5 +12575,700 @@ if(document.readyState==='loading'){
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════════════════════════════ ENDE v141 ═════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v142 – 13 APPS (Job · Study · Subscription · Warranty · Anniversary · Receipt · Garden · Password Strength · WiFi QR · Backup · Grocery · Habit Grid · Sleep Sounds) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+"use strict";
+if(window.__v142) return;
+window.__v142 = true;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const store=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const todayK=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const daysBetween=(a,b)=>Math.round((new Date(b)-new Date(a))/86400000);
+
+// ═══ 1. JOB APPLICATION TRACKER ═══
+window.HalDoJobs={
+  key:'haldo_jobs_v1',
+  all(){return store(this.key,[])},
+  add(company,position,status,date,note){const l=this.all();l.unshift({id:uid('jb_'),company,position,status:status||'applied',date:date||todayK(),note:note||'',created:Date.now()});save(this.key,l);return l[0].id},
+  updateStatus(id,status){const l=this.all();const j=l.find(x=>x.id===id);if(j){j.status=status;save(this.key,l)}},
+  remove(id){save(this.key,this.all().filter(j=>j.id!==id))}
+};
+const JOB_STATUSES={applied:{n:'📤 Beworben',c:'#00e5ff'},interview:{n:'💬 Interview',c:'#ffc800'},offer:{n:'✅ Angebot',c:'#00ff88'},rejected:{n:'❌ Absage',c:'#ff4466'},accepted:{n:'🎉 Angenommen',c:'#b478ff'}};
+
+function buildJobs(){
+  const w=$('jobs-window');if(!w)return;
+  w.dataset.title='Bewerbungen';w.dataset.icon='💼';
+  const all=HalDoJobs.all();
+  const counts={};Object.keys(JOB_STATUSES).forEach(k=>counts[k]=all.filter(j=>j.status===k).length);
+  const list=all.length?all.map(j=>{const s=JOB_STATUSES[j.status]||JOB_STATUSES.applied;
+    return '<div class="card" style="padding:12px;border-left:4px solid '+s.c+'">'+
+      '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">'+
+      '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800;color:#fff">'+esc(j.position)+'</div>'+
+      '<div style="font-size:12px;color:#7ce0ff;margin-top:2px">🏢 '+esc(j.company)+'</div>'+
+      '<div style="display:flex;gap:6px;margin-top:8px;align-items:center"><span style="font-size:10px;padding:3px 8px;background:'+s.c+'22;color:'+s.c+';border-radius:6px;font-weight:800">'+s.n+'</span>'+
+      '<span style="font-size:10px;color:#88ccff">📅 '+j.date+'</span></div>'+
+      (j.note?'<div style="font-size:11px;color:#aaddff;margin-top:6px">'+esc(j.note)+'</div>':'')+
+      '</div>'+
+      '<div style="display:flex;flex-direction:column;gap:4px">'+
+      '<select class="os-select" style="padding:6px;font-size:10px" onchange="HalDoJobs.updateStatus(\''+j.id+'\',this.value);HalDoJobsApp.rebuild()">'+
+      Object.entries(JOB_STATUSES).map(([k,v])=>'<option value="'+k+'" '+(j.status===k?'selected':'')+'>'+v.n+'</option>').join('')+'</select>'+
+      '<button class="os-btn danger" style="padding:6px 8px;font-size:11px" onclick="if(confirm(\'Löschen?\')){HalDoJobs.remove(\''+j.id+'\');HalDoJobsApp.rebuild()}">✕</button>'+
+      '</div></div></div>';
+  }).join(''):'<div class="empty"><div class="ei">💼</div><div class="et">Keine Bewerbungen</div></div>';
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px">'+all.length+'</div><div class="lbl">Gesamt</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px;color:#ffc800">'+counts.interview+'</div><div class="lbl">Interviews</div></div>'+
+    '</div>'+
+    '<div class="card">'+
+    '<input class="os-input" id="jbCompany" placeholder="Firma" style="margin-bottom:6px">'+
+    '<input class="os-input" id="jbPosition" placeholder="Position" style="margin-bottom:6px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'+
+    '<select class="os-select" id="jbStatus">'+Object.entries(JOB_STATUSES).map(([k,v])=>'<option value="'+k+'">'+v.n+'</option>').join('')+'</select>'+
+    '<input class="os-input" id="jbDate" type="date" value="'+todayK()+'">'+
+    '</div>'+
+    '<input class="os-input" id="jbNote" placeholder="Notiz (optional)" style="margin-bottom:8px">'+
+    '<button class="os-btn primary full" onclick="HalDoJobsApp.add()">💼 Hinzufügen</button>'+
+    '</div>'+
+    list;
+}
+window.HalDoJobsApp={
+  add(){const c=$('jbCompany').value.trim(),p=$('jbPosition').value.trim();if(!c||!p)return;HalDoJobs.add(c,p,$('jbStatus').value,$('jbDate').value,$('jbNote').value);$('jbCompany').value='';$('jbPosition').value='';$('jbNote').value='';buildJobs();if(window.showToast)showToast('💼 Hinzugefügt','success')},
+  rebuild(){buildJobs()}
+};
+
+// ═══ 2. STUDY PLANNER ═══
+window.HalDoStudy={
+  key:'haldo_study_v1',
+  all(){return store(this.key,[])},
+  add(subject,topic,date,duration){const l=this.all();l.unshift({id:uid('st_'),subject,topic,date:date||todayK(),duration:parseInt(duration)||60,done:false,created:Date.now()});save(this.key,l);return l[0].id},
+  toggle(id){const l=this.all();const s=l.find(x=>x.id===id);if(s){s.done=!s.done;save(this.key,l)}},
+  remove(id){save(this.key,this.all().filter(s=>s.id!==id))}
+};
+function buildStudy(){
+  const w=$('study-window');if(!w)return;
+  w.dataset.title='Lernplaner';w.dataset.icon='📚';
+  const all=HalDoStudy.all();
+  const today=todayK();
+  const todaySessions=all.filter(s=>s.date===today);
+  const doneToday=todaySessions.filter(s=>s.done).length;
+  const list=all.length?all.slice(0,30).map(s=>{const isToday=s.date===today;
+    return '<div class="card" style="padding:12px;'+(isToday?'border-color:#00e5ff;background:rgba(0,229,255,.05)':'')+'">'+
+      '<div style="display:flex;gap:10px;align-items:flex-start">'+
+      '<div style="width:24px;height:24px;border-radius:6px;border:2px solid #00e5ff;background:'+(s.done?'linear-gradient(135deg,#00e5ff,#00ff88)':'transparent')+';display:flex;align-items:center;justify-content:center;color:#001018;font-size:12px;font-weight:900;cursor:pointer;flex-shrink:0" onclick="HalDoStudy.toggle(\''+s.id+'\');HalDoStudyApp.rebuild()">'+(s.done?'✓':'')+'</div>'+
+      '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800;color:#fff;'+(s.done?'text-decoration:line-through;opacity:.6':'')+'">'+esc(s.subject)+'</div>'+
+      '<div style="font-size:11px;color:#aaddff;margin-top:2px">'+esc(s.topic)+'</div>'+
+      '<div style="font-size:10px;color:#88ccff;margin-top:4px">📅 '+s.date+' · ⏱️ '+s.duration+' Min'+(isToday?' <b style="color:#ffc800">HEUTE</b>':'')+'</div></div>'+
+      '<button class="os-btn danger" style="padding:6px 8px;font-size:11px" onclick="if(confirm(\'Löschen?\')){HalDoStudy.remove(\''+s.id+'\');HalDoStudyApp.rebuild()}">✕</button>'+
+      '</div></div>';
+  }).join(''):'<div class="empty"><div class="ei">📚</div><div class="et">Keine Lern-Sessions</div></div>';
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px">'+todaySessions.length+'</div><div class="lbl">Heute</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px;color:#00ff88">'+doneToday+'/'+todaySessions.length+'</div><div class="lbl">Erledigt</div></div>'+
+    '</div>'+
+    '<div class="card">'+
+    '<input class="os-input" id="stSubject" placeholder="Fach" style="margin-bottom:6px">'+
+    '<input class="os-input" id="stTopic" placeholder="Thema" style="margin-bottom:6px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">'+
+    '<input class="os-input" id="stDate" type="date" value="'+today+'">'+
+    '<input class="os-input" id="stDuration" type="number" placeholder="Min" value="60">'+
+    '</div>'+
+    '<button class="os-btn primary full" onclick="HalDoStudyApp.add()">📚 Planen</button>'+
+    '</div>'+
+    list;
+}
+window.HalDoStudyApp={
+  add(){const s=$('stSubject').value.trim(),t=$('stTopic').value.trim();if(!s||!t)return;HalDoStudy.add(s,t,$('stDate').value,$('stDuration').value);$('stSubject').value='';$('stTopic').value='';buildStudy();if(window.showToast)showToast('📚 Geplant','success')},
+  rebuild(){buildStudy()}
+};
+
+// ═══ 3. SUBSCRIPTION MANAGER ═══
+window.HalDoSubs={
+  key:'haldo_subs_v1',
+  all(){return store(this.key,[])},
+  add(name,amount,cycle,renewal){const l=this.all();l.push({id:uid('sb_'),name,amount:parseFloat(amount)||0,cycle:cycle||'monthly',renewal,created:Date.now()});save(this.key,l);return l[0].id},
+  remove(id){save(this.key,this.all().filter(s=>s.id!==id))},
+  monthlyTotal(){return this.all().reduce((sum,s)=>{if(s.cycle==='monthly')return sum+s.amount;if(s.cycle==='yearly')return sum+s.amount/12;if(s.cycle==='weekly')return sum+s.amount*4.33;return sum},0)},
+  yearlyTotal(){return this.monthlyTotal()*12}
+};
+function buildSubs(){
+  const w=$('subs-window');if(!w)return;
+  w.dataset.title='Abos';w.dataset.icon='🔄';
+  const all=HalDoSubs.all();
+  const monthly=HalDoSubs.monthlyTotal();
+  const yearly=HalDoSubs.yearlyTotal();
+  const sorted=all.slice().sort((a,b)=>b.amount-a.amount);
+  const list=sorted.length?sorted.map(s=>{const days=s.renewal?daysBetween(todayK(),s.renewal):null;
+    return '<div class="card" style="padding:12px;display:flex;gap:10px;align-items:center">'+
+      '<div style="font-size:24px">🔄</div>'+
+      '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800;color:#fff">'+esc(s.name)+'</div>'+
+      '<div style="font-size:11px;color:#88ccff;margin-top:2px">'+({monthly:'pro Monat',yearly:'pro Jahr',weekly:'pro Woche'}[s.cycle]||s.cycle)+(s.renewal?' · verlängert in '+days+' Tagen':'')+'</div></div>'+
+      '<div style="font-size:15px;font-weight:900;color:#ffc800;font-family:monospace">'+s.amount.toFixed(2)+'€</div>'+
+      '<button class="os-btn danger" style="padding:6px 8px;font-size:11px" onclick="if(confirm(\'Löschen?\')){HalDoSubs.remove(\''+s.id+'\');HalDoSubsApp.rebuild()}">✕</button>'+
+      '</div>';
+  }).join(''):'<div class="empty"><div class="ei">🔄</div><div class="et">Keine Abos</div></div>';
+  w.innerHTML=
+    '<div class="card" style="text-align:center;background:linear-gradient(135deg,rgba(255,200,0,.15),rgba(255,140,60,.1))">'+
+    '<div style="font-size:11px;color:#ffc800;text-transform:uppercase;letter-spacing:2px;font-weight:800">Monatlich</div>'+
+    '<div class="big" style="font-size:36px;color:#ffc800;margin:8px 0">'+monthly.toFixed(2)+'€</div>'+
+    '<div style="font-size:11px;color:#88ccff">Jährlich: '+yearly.toFixed(2)+'€</div>'+
+    '</div>'+
+    '<div class="card">'+
+    '<input class="os-input" id="sbName" placeholder="Name (z.B. Netflix)" style="margin-bottom:6px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'+
+    '<input class="os-input" id="sbAmount" type="number" step="0.01" placeholder="Betrag €">'+
+    '<select class="os-select" id="sbCycle"><option value="monthly">Monatlich</option><option value="yearly">Jährlich</option><option value="weekly">Wöchentlich</option></select>'+
+    '</div>'+
+    '<input class="os-input" id="sbRenewal" type="date" style="margin-bottom:8px">'+
+    '<button class="os-btn primary full" onclick="HalDoSubsApp.add()">🔄 Hinzufügen</button>'+
+    '</div>'+
+    (sorted.length?'<div class="lbl" style="margin:14px 0 8px">📋 '+sorted.length+' Abos</div>':'')+
+    list;
+}
+window.HalDoSubsApp={
+  add(){const n=$('sbName').value.trim();if(!n)return;HalDoSubs.add(n,$('sbAmount').value,$('sbCycle').value,$('sbRenewal').value);$('sbName').value='';$('sbAmount').value='';buildSubs();if(window.showToast)showToast('🔄 Hinzugefügt','success')},
+  rebuild(){buildSubs()}
+};
+
+// ═══ 4. WARRANTY TRACKER ═══
+window.HalDoWarranty={
+  key:'haldo_warranty_v1',
+  all(){return store(this.key,[])},
+  add(item,purchase,months,store){const l=this.all();l.push({id:uid('wr_'),item,purchase:purchase||todayK(),months:parseInt(months)||24,store:store||'',created:Date.now()});save(this.key,l);return l[0].id},
+  remove(id){save(this.key,this.all().filter(w=>w.id!==id))}
+};
+function buildWarranty(){
+  const w=$('warranty-window');if(!w)return;
+  w.dataset.title='Garantie';w.dataset.icon='🛡️';
+  const all=HalDoWarranty.all();
+  const today=new Date();
+  const items=all.map(x=>{
+    const end=new Date(x.purchase);
+    end.setMonth(end.getMonth()+x.months);
+    const daysLeft=Math.round((end-today)/86400000);
+    return {...x,end:end.toISOString().slice(0,10),daysLeft};
+  }).sort((a,b)=>a.daysLeft-b.daysLeft);
+  const list=items.length?items.map(x=>{
+    let col='#00ff88',status='✅ Aktiv';
+    if(x.daysLeft<0){col='#5a8ab0';status='❌ Abgelaufen'}
+    else if(x.daysLeft<30){col='#ff4466';status='⚠️ Bald abgelaufen'}
+    else if(x.daysLeft<90){col='#ffc800';status='⏰ '+x.daysLeft+' Tage'}
+    return '<div class="card" style="padding:12px;border-left:4px solid '+col+'">'+
+      '<div style="display:flex;gap:10px;align-items:flex-start">'+
+      '<div style="font-size:24px">🛡️</div>'+
+      '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800;color:#fff">'+esc(x.item)+'</div>'+
+      '<div style="font-size:11px;color:'+col+';font-weight:800;margin-top:3px">'+status+'</div>'+
+      '<div style="font-size:11px;color:#88ccff;margin-top:4px">📅 Bis: '+x.end+(x.store?' · '+esc(x.store):'')+'</div>'+
+      '</div>'+
+      '<button class="os-btn danger" style="padding:6px 8px;font-size:11px" onclick="if(confirm(\'Löschen?\')){HalDoWarranty.remove(\''+x.id+'\');HalDoWarrantyApp.rebuild()}">✕</button>'+
+      '</div></div>';
+  }).join(''):'<div class="empty"><div class="ei">🛡️</div><div class="et">Keine Garantien</div></div>';
+  const active=items.filter(x=>x.daysLeft>=0).length;
+  const soon=items.filter(x=>x.daysLeft>=0&&x.daysLeft<30).length;
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px">'+active+'</div><div class="lbl">Aktiv</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px;color:#ff4466">'+soon+'</div><div class="lbl">Bald abgelaufen</div></div>'+
+    '</div>'+
+    '<div class="card">'+
+    '<input class="os-input" id="wrItem" placeholder="Gerät / Produkt" style="margin-bottom:6px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'+
+    '<input class="os-input" id="wrPurchase" type="date" value="'+todayK()+'">'+
+    '<input class="os-input" id="wrMonths" type="number" value="24" placeholder="Monate Garantie">'+
+    '</div>'+
+    '<input class="os-input" id="wrStore" placeholder="Händler (optional)" style="margin-bottom:8px">'+
+    '<button class="os-btn primary full" onclick="HalDoWarrantyApp.add()">🛡️ Hinzufügen</button>'+
+    '</div>'+
+    list;
+}
+window.HalDoWarrantyApp={
+  add(){const i=$('wrItem').value.trim();if(!i)return;HalDoWarranty.add(i,$('wrPurchase').value,$('wrMonths').value,$('wrStore').value);$('wrItem').value='';$('wrStore').value='';buildWarranty();if(window.showToast)showToast('🛡️ Hinzugefügt','success')},
+  rebuild(){buildWarranty()}
+};
+
+// ═══ 5. ANNIVERSARY / BIRTHDAY TRACKER ═══
+window.HalDoAnniversaries={
+  key:'haldo_anniv_v1',
+  all(){return store(this.key,[])},
+  add(name,date,type){const l=this.all();l.push({id:uid('an_'),name,date,type:type||'birthday',created:Date.now()});save(this.key,l);return l[0].id},
+  remove(id){save(this.key,this.all().filter(a=>a.id!==id))}
+};
+function buildAnniversaries(){
+  const w=$('anniv-window');if(!w)return;
+  w.dataset.title='Jahrestage';w.dataset.icon='🎂';
+  const all=HalDoAnniversaries.all();
+  const today=new Date();today.setHours(0,0,0,0);
+  const items=all.map(x=>{
+    const [y,m,d]=x.date.split('-').map(Number);
+    const next=new Date(today.getFullYear(),m-1,d);
+    if(next<today)next.setFullYear(today.getFullYear()+1);
+    const days=Math.round((next-today)/86400000);
+    const years=y?today.getFullYear()-y:0;
+    return {...x,next:next.toISOString().slice(0,10),days,years:days===0?years+1:years};
+  }).sort((a,b)=>a.days-b.days);
+  const list=items.length?items.map(x=>{
+    let col='#00e5ff';
+    if(x.days===0){col='#ffc800'}
+    else if(x.days<7){col='#ff8c3c'}
+    else if(x.days<30){col='#ff78c8'}
+    const typeIcon={birthday:'🎂',anniversary:'💑',wedding:'💍',other:'📅'}[x.type]||'📅';
+    return '<div class="card" style="padding:12px;border-left:4px solid '+col+'">'+
+      '<div style="display:flex;gap:10px;align-items:center">'+
+      '<div style="font-size:28px">'+typeIcon+'</div>'+
+      '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800;color:#fff">'+esc(x.name)+'</div>'+
+      '<div style="font-size:11px;color:'+col+';font-weight:800;margin-top:2px">'+(x.days===0?'🎉 HEUTE!':'in '+x.days+' Tag'+(x.days===1?'':'en'))+'</div>'+
+      (x.years?'<div style="font-size:10px;color:#88ccff;margin-top:3px">Wird '+x.years+' Jahre</div>':'')+
+      '</div>'+
+      '<button class="os-btn danger" style="padding:6px 8px;font-size:11px" onclick="if(confirm(\'Löschen?\')){HalDoAnniversaries.remove(\''+x.id+'\');HalDoAnniversariesApp.rebuild()}">✕</button>'+
+      '</div></div>';
+  }).join(''):'<div class="empty"><div class="ei">🎂</div><div class="et">Keine Jahrestage</div></div>';
+  const upcoming=items.filter(x=>x.days<=7).length;
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px">'+all.length+'</div><div class="lbl">Gesamt</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px;color:#ff8c3c">'+upcoming+'</div><div class="lbl">Diese Woche</div></div>'+
+    '</div>'+
+    '<div class="card">'+
+    '<input class="os-input" id="anName" placeholder="Name" style="margin-bottom:6px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">'+
+    '<input class="os-input" id="anDate" type="date">'+
+    '<select class="os-select" id="anType"><option value="birthday">🎂 Geburtstag</option><option value="anniversary">💑 Jubiläum</option><option value="wedding">💍 Hochzeitstag</option><option value="other">📅 Sonstiges</option></select>'+
+    '</div>'+
+    '<button class="os-btn primary full" onclick="HalDoAnniversariesApp.add()">🎂 Hinzufügen</button>'+
+    '</div>'+
+    list;
+}
+window.HalDoAnniversariesApp={
+  add(){const n=$('anName').value.trim(),d=$('anDate').value;if(!n||!d)return;HalDoAnniversaries.add(n,d,$('anType').value);$('anName').value='';$('anDate').value='';buildAnniversaries();if(window.showToast)showToast('🎂 Hinzugefügt','success')},
+  rebuild(){buildAnniversaries()}
+};
+
+// ═══ 6. RECEIPT / EXPENSE SCANNER ═══
+window.HalDoReceipts={
+  key:'haldo_receipts_v1',
+  all(){return store(this.key,[])},
+  add(store,amount,cat,note){const l=this.all();l.unshift({id:uid('rc_'),store,amount:parseFloat(amount)||0,cat:cat||'other',note:note||'',date:todayK(),created:Date.now()});save(this.key,l.slice(0,500));return l[0].id},
+  remove(id){save(this.key,this.all().filter(r=>r.id!==id))},
+  total(){return this.all().reduce((s,r)=>s+r.amount,0)},
+  thisMonth(){const m=todayK().slice(0,7);return this.all().filter(r=>r.date.startsWith(m)).reduce((s,r)=>s+r.amount,0)}
+};
+const RECEIPT_CATS={food:'🍔',shopping:'🛍️',transport:'🚗',home:'🏠',health:'💊',fun:'🎮',bills:'📄',other:'📦'};
+function buildReceipts(){
+  const w=$('receipts-window');if(!w)return;
+  w.dataset.title='Belege';w.dataset.icon='🧾';
+  const all=HalDoReceipts.all();
+  const list=all.length?all.slice(0,30).map(r=>{
+    const c=RECEIPT_CATS[r.cat]||'📦';
+    return '<div class="card" style="padding:10px;display:flex;gap:10px;align-items:center">'+
+      '<div style="font-size:24px">'+c+'</div>'+
+      '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800;color:#fff">'+esc(r.store)+'</div>'+
+      '<div style="font-size:10px;color:#88ccff;margin-top:2px">'+r.date+(r.note?' · '+esc(r.note):'')+'</div></div>'+
+      '<div style="font-size:14px;font-weight:900;color:#ff4466;font-family:monospace">'+r.amount.toFixed(2)+'€</div>'+
+      '<button class="os-btn danger" style="padding:4px 8px;font-size:10px" onclick="if(confirm(\'Löschen?\')){HalDoReceipts.remove(\''+r.id+'\');HalDoReceiptsApp.rebuild()}">✕</button>'+
+      '</div>';
+  }).join(''):'<div class="empty"><div class="ei">🧾</div><div class="et">Keine Belege</div></div>';
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px;color:#ff4466">'+HalDoReceipts.thisMonth().toFixed(2)+'€</div><div class="lbl">Diesen Monat</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+HalDoReceipts.total().toFixed(2)+'€</div><div class="lbl">Gesamt</div></div>'+
+    '</div>'+
+    '<div class="card">'+
+    '<input class="os-input" id="rcStore" placeholder="Geschäft" style="margin-bottom:6px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'+
+    '<input class="os-input" id="rcAmount" type="number" step="0.01" placeholder="Betrag €">'+
+    '<select class="os-select" id="rcCat">'+Object.entries(RECEIPT_CATS).map(([k,v])=>'<option value="'+k+'">'+v+' '+k+'</option>').join('')+'</select>'+
+    '</div>'+
+    '<input class="os-input" id="rcNote" placeholder="Notiz" style="margin-bottom:8px">'+
+    '<button class="os-btn primary full" onclick="HalDoReceiptsApp.add()">🧾 Hinzufügen</button>'+
+    '</div>'+
+    list;
+}
+window.HalDoReceiptsApp={
+  add(){const s=$('rcStore').value.trim();if(!s)return;HalDoReceipts.add(s,$('rcAmount').value,$('rcCat').value,$('rcNote').value);$('rcStore').value='';$('rcAmount').value='';$('rcNote').value='';buildReceipts();if(window.showToast)showToast('🧾 Hinzugefügt','success')},
+  rebuild(){buildReceipts()}
+};
+
+// ═══ 7. GARDEN PLANNER ═══
+window.HalDoGarden={
+  key:'haldo_garden_v1',
+  all(){return store(this.key,[])},
+  add(name,planted,harvest,note){const l=this.all();l.push({id:uid('gd_'),name,planted:planted||todayK(),harvest,note:note||'',created:Date.now()});save(this.key,l);return l[0].id},
+  remove(id){save(this.key,this.all().filter(g=>g.id!==id))}
+};
+function buildGarden(){
+  const w=$('garden-window');if(!w)return;
+  w.dataset.title='Garten';w.dataset.icon='🌻';
+  const all=HalDoGarden.all();
+  const today=todayK();
+  const list=all.length?all.map(g=>{
+    const planted=new Date(g.planted+'T12:00:00');
+    const daysSince=Math.floor((new Date()-planted)/86400000);
+    const daysToHarvest=g.harvest?daysBetween(today,g.harvest):null;
+    return '<div class="card" style="padding:12px">'+
+      '<div style="display:flex;gap:10px;align-items:flex-start">'+
+      '<div style="font-size:28px">🌻</div>'+
+      '<div style="flex:1;min-width:0">'+
+      '<div style="font-size:14px;font-weight:800;color:#fff">'+esc(g.name)+'</div>'+
+      '<div style="font-size:11px;color:#aaddff;margin-top:3px">🌱 Gepflanzt: '+g.planted+' ('+daysSince+' Tage)</div>'+
+      (g.harvest?'<div style="font-size:11px;color:'+(daysToHarvest<0?'#5a8ab0':daysToHarvest<14?'#ff8c3c':'#00ff88')+';font-weight:800;margin-top:3px">🌾 '+(daysToHarvest<0?'Ernte vorbei':daysToHarvest===0?'Ernte heute!':'Ernte in '+daysToHarvest+' Tagen')+'</div>':'')+
+      (g.note?'<div style="font-size:11px;color:#88ccff;margin-top:4px">'+esc(g.note)+'</div>':'')+
+      '</div>'+
+      '<button class="os-btn danger" style="padding:6px 8px;font-size:11px" onclick="if(confirm(\'Löschen?\')){HalDoGarden.remove(\''+g.id+'\');HalDoGardenApp.rebuild()}">✕</button>'+
+      '</div></div>';
+  }).join(''):'<div class="empty"><div class="ei">🌻</div><div class="et">Keine Pflanzen im Garten</div></div>';
+  w.innerHTML=
+    '<div class="card">'+
+    '<input class="os-input" id="gdName" placeholder="Pflanze (z.B. Tomaten)" style="margin-bottom:6px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'+
+    '<input class="os-input" id="gdPlanted" type="date" value="'+today+'">'+
+    '<input class="os-input" id="gdHarvest" type="date">'+
+    '</div>'+
+    '<input class="os-input" id="gdNote" placeholder="Notiz (optional)" style="margin-bottom:8px">'+
+    '<button class="os-btn primary full" onclick="HalDoGardenApp.add()">🌻 Pflanzen</button>'+
+    '</div>'+
+    list;
+}
+window.HalDoGardenApp={
+  add(){const n=$('gdName').value.trim();if(!n)return;HalDoGarden.add(n,$('gdPlanted').value,$('gdHarvest').value,$('gdNote').value);$('gdName').value='';$('gdNote').value='';buildGarden();if(window.showToast)showToast('🌻 Gepflanzt','success')},
+  rebuild(){buildGarden()}
+};
+
+// ═══ 8. PASSWORD STRENGTH CHECKER ═══
+function buildPwStrength(){
+  const w=$('pwstrength-window');if(!w)return;
+  w.dataset.title='Passwort-Check';w.dataset.icon='🔐';
+  w.innerHTML=
+    '<div class="card">'+
+    '<div class="lbl" style="margin-bottom:6px">Passwort prüfen</div>'+
+    '<input class="os-input" id="pwsIn" type="text" placeholder="Passwort eingeben..." oninput="HalDoPwStrength.check(this.value)" style="font-family:monospace">'+
+    '</div>'+
+    '<div class="card" style="text-align:center">'+
+    '<div id="pwsScore" style="font-size:56px;font-weight:900;color:#5a8ab0;line-height:1">0</div>'+
+    '<div id="pwsLabel" style="font-size:14px;color:#5a8ab0;font-weight:800;margin-top:8px">Gib ein Passwort ein</div>'+
+    '<div style="height:8px;background:rgba(0,0,0,.4);border-radius:4px;overflow:hidden;margin:14px 0 10px;border:1px solid var(--border)">'+
+    '<div id="pwsBar" style="height:100%;width:0;background:linear-gradient(90deg,#ff4466,#ffc800,#00ff88);border-radius:4px;transition:width .4s"></div>'+
+    '</div>'+
+    '</div>'+
+    '<div id="pwsChecks" class="card"></div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">💡 Tipps</div>'+
+    '<div style="font-size:12px;color:#aaddff;line-height:1.8">'+
+    '✅ Mindestens 12 Zeichen<br>'+
+    '✅ Groß- und Kleinbuchstaben<br>'+
+    '✅ Zahlen und Sonderzeichen<br>'+
+    '✅ Keine Wörterbuch-Wörter<br>'+
+    '✅ Nicht auf anderen Seiten verwendet'+
+    '</div></div>';
+  setTimeout(()=>HalDoPwStrength.check($('pwsIn')?.value||''),50);
+}
+window.HalDoPwStrength={
+  check(pw){
+    let score=0;
+    const checks=[];
+    const add=(ok,text)=>{checks.push({ok,text});if(ok)score++};
+    add(pw.length>=8,'Mind. 8 Zeichen');
+    add(pw.length>=12,'Mind. 12 Zeichen');
+    add(pw.length>=16,'Mind. 16 Zeichen');
+    add(/[a-z]/.test(pw),'Kleinbuchstaben');
+    add(/[A-Z]/.test(pw),'Großbuchstaben');
+    add(/[0-9]/.test(pw),'Zahlen');
+    add(/[^a-zA-Z0-9]/.test(pw),'Sonderzeichen');
+    add(!/(.)\1{2,}/.test(pw),'Keine Wiederholungen');
+    add(!/^(123|abc|qwerty|password|admin)/i.test(pw),'Kein Standard-Passwort');
+    add(pw.length>0,'Nicht leer');
+    const pct=Math.min(100,Math.round(score/10*100));
+    let label='Sehr schwach',col='#ff4466';
+    if(score>=9){label='Sehr stark';col='#00ff88'}
+    else if(score>=7){label='Stark';col='#00e5ff'}
+    else if(score>=5){label='Mittel';col='#ffc800'}
+    else if(score>=3){label='Schwach';col='#ff8c3c'}
+    const sc=$('pwsScore'),lb=$('pwsLabel'),bar=$('pwsBar'),chk=$('pwsChecks');
+    if(sc)sc.textContent=score+'/10';
+    if(sc)sc.style.color=col;
+    if(lb){lb.textContent=pw?label:'Gib ein Passwort ein';lb.style.color=pw?col:'#5a8ab0'}
+    if(bar)bar.style.width=pct+'%';
+    if(chk)chk.innerHTML='<div class="lbl" style="margin-bottom:8px">✓ Checkliste</div>'+checks.map(c=>'<div style="display:flex;gap:8px;padding:6px 0;font-size:12px;border-bottom:1px solid rgba(0,229,255,.08)"><span style="color:'+(c.ok?'#00ff88':'#5a8ab0')+'">'+(c.ok?'✓':'○')+'</span><span style="color:'+(c.ok?'#fff':'#5a8ab0')+'">'+c.text+'</span></div>').join('');
+  }
+};
+
+// ═══ 9. WIFI QR GENERATOR ═══
+let wifiState={ssid:'',pass:'',enc:'WPA'};
+function buildWifiQR(){
+  const w=$('wifiqr-window');if(!w)return;
+  w.dataset.title='WLAN QR';w.dataset.icon='📶';
+  const data=wifiState.ssid?'WIFI:T:'+wifiState.enc+';S:'+wifiState.ssid+';P:'+wifiState.pass+';;':'';
+  const url=data?'https://api.qrserver.com/v1/create-qr-code/?size=400x400&data='+encodeURIComponent(data):'';
+  w.innerHTML=
+    '<div class="card">'+
+    '<input class="os-input" id="wfSsid" placeholder="WLAN-Name (SSID)" value="'+esc(wifiState.ssid)+'" style="margin-bottom:6px">'+
+    '<input class="os-input" id="wfPass" placeholder="Passwort" value="'+esc(wifiState.pass)+'" style="margin-bottom:6px">'+
+    '<select class="os-select" id="wfEnc" style="margin-bottom:8px">'+
+    '<option value="WPA" '+(wifiState.enc==='WPA'?'selected':'')+'>WPA/WPA2</option>'+
+    '<option value="WEP" '+(wifiState.enc==='WEP'?'selected':'')+'>WEP</option>'+
+    '<option value="nopass" '+(wifiState.enc==='nopass'?'selected':'')+'>Offen</option>'+
+    '</select>'+
+    '<button class="os-btn primary full" onclick="HalDoWifiQR.gen()">📶 QR-Code erzeugen</button>'+
+    '</div>'+
+    (url?'<div class="card" style="text-align:center;background:#fff;padding:20px"><img src="'+url+'" style="width:100%;max-width:300px;display:block;margin:0 auto">'+
+    '<div style="font-size:11px;color:#333;margin-top:10px">Mit Handy-Kamera scannen</div></div>':
+    '<div class="card" style="text-align:center;padding:40px 20px"><div style="font-size:64px;opacity:.3">📶</div><div style="font-size:12px;color:#5a8ab0;margin-top:10px">WLAN-Daten eingeben</div></div>');
+}
+window.HalDoWifiQR={
+  gen(){wifiState.ssid=$('wfSsid').value.trim();wifiState.pass=$('wfPass').value;wifiState.enc=$('wfEnc').value;buildWifiQR();if(window.showToast)showToast('📶 QR erzeugt','success')}
+};
+
+// ═══ 10. BACKUP MANAGER ═══
+function buildBackup(){
+  const w=$('backup-window');if(!w)return;
+  w.dataset.title='Backup';w.dataset.icon='💾';
+  const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('haldo_'))keys.push({key:k,size:(localStorage.getItem(k)||'').length})}
+  const total=keys.reduce((s,k)=>s+k.size,0);
+  const list=keys.sort((a,b)=>b.size-a.size).map(k=>'<div style="display:flex;justify-content:space-between;padding:8px 10px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:4px;font-size:11px">'+
+    '<span style="color:#aaddff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;margin-right:10px">'+esc(k.key)+'</span>'+
+    '<b style="color:#00e5ff;font-family:monospace">'+(k.size/1024).toFixed(1)+' KB</b></div>').join('');
+  w.innerHTML=
+    '<div class="card" style="text-align:center">'+
+    '<div style="font-size:44px;margin-bottom:10px">💾</div>'+
+    '<div style="font-size:11px;color:#88ccff;text-transform:uppercase;letter-spacing:2px;font-weight:800">Gesamt</div>'+
+    '<div class="big" style="font-size:32px;color:#00e5ff;margin:8px 0">'+(total/1024).toFixed(1)+' KB</div>'+
+    '<div style="font-size:12px;color:#88ccff">'+keys.length+' Einträge</div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'+
+    '<button class="os-btn primary" style="padding:14px;font-size:13px" onclick="HalDoBackup.export()">📤 Export</button>'+
+    '<button class="os-btn primary" style="padding:14px;font-size:13px" onclick="HalDoBackup.import()">📥 Import</button>'+
+    '</div>'+
+    (list?'<div class="lbl" style="margin:14px 0 8px">📋 Speicher-Einträge</div>'+list:'')+
+    '<button class="os-btn danger full" style="margin-top:14px" onclick="HalDoBackup.clearAll()">🗑️ Alle HalDo-Daten löschen</button>';
+}
+window.HalDoBackup={
+  export(){
+    const data={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('haldo_'))data[k]=localStorage.getItem(k)}
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='haldo-backup-'+todayK()+'.json';a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+    if(window.showToast)showToast('📤 Export gestartet','success');
+  },
+  import(){
+    const inp=document.createElement('input');inp.type='file';inp.accept='.json';
+    inp.onchange=e=>{
+      const f=e.target.files[0];if(!f)return;
+      const r=new FileReader();
+      r.onload=ev=>{
+        try{const d=JSON.parse(ev.target.result);Object.entries(d).forEach(([k,v])=>localStorage.setItem(k,v));buildBackup();if(window.showToast)showToast('📥 Import erfolgreich','success');setTimeout(()=>location.reload(),1000)}catch(err){if(window.showToast)showToast('❌ Fehler','error')}
+      };
+      r.readAsText(f);
+    };
+    inp.click();
+  },
+  clearAll(){
+    if(!confirm('ALLE HalDo-Daten löschen? Kann nicht rückgängig gemacht werden!'))return;
+    const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('haldo_'))keys.push(k)}
+    keys.forEach(k=>localStorage.removeItem(k));
+    buildBackup();
+    if(window.showToast)showToast('🗑️ Alle Daten gelöscht','success');
+  }
+};
+
+// ═══ 11. GROCERY PRICE TRACKER ═══
+window.HalDoGrocery={
+  key:'haldo_grocery_v1',
+  all(){return store(this.key,[])},
+  add(name,price,store){const l=this.all();l.unshift({id:uid('gr_'),name,price:parseFloat(price)||0,store:store||'',date:todayK(),ts:Date.now()});save(this.key,l.slice(0,500));return l[0].id},
+  remove(id){save(this.key,this.all().filter(g=>g.id!==id))},
+  history(name){return this.all().filter(g=>g.name.toLowerCase()===name.toLowerCase()).sort((a,b)=>a.ts-b.ts)}
+};
+let groceryState={search:''};
+function buildGrocery(){
+  const w=$('grocery-window');if(!w)return;
+  w.dataset.title='Preis-Tracker';w.dataset.icon='🛒';
+  const all=HalDoGrocery.all();
+  const products=[...new Set(all.map(g=>g.name))];
+  let filtered=all;
+  if(groceryState.search){filtered=all.filter(g=>g.name.toLowerCase().includes(groceryState.search.toLowerCase()))}
+  const list=filtered.length?filtered.slice(0,30).map(g=>'<div class="card" style="padding:10px;display:flex;gap:10px;align-items:center">'+
+    '<div style="font-size:24px">🛒</div>'+
+    '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800;color:#fff">'+esc(g.name)+'</div>'+
+    '<div style="font-size:10px;color:#88ccff;margin-top:2px">'+(g.store?esc(g.store)+' · ':'')+g.date+'</div></div>'+
+    '<div style="font-size:14px;font-weight:900;color:#00e5ff;font-family:monospace">'+g.price.toFixed(2)+'€</div>'+
+    '<button class="os-btn danger" style="padding:4px 8px;font-size:10px" onclick="if(confirm(\'Löschen?\')){HalDoGrocery.remove(\''+g.id+'\');HalDoGroceryApp.rebuild()}">✕</button>'+
+    '</div>').join(''):'<div class="empty"><div class="ei">🛒</div><div class="et">Keine Preise erfasst</div></div>';
+  w.innerHTML=
+    '<div class="card">'+
+    '<input class="os-input" id="grName" placeholder="Produkt (z.B. Milch)" style="margin-bottom:6px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">'+
+    '<input class="os-input" id="grPrice" type="number" step="0.01" placeholder="Preis €">'+
+    '<input class="os-input" id="grStore" placeholder="Geschäft">'+
+    '</div>'+
+    '<button class="os-btn primary full" onclick="HalDoGroceryApp.add()">🛒 Preis erfassen</button>'+
+    '</div>'+
+    '<div class="card"><input class="os-input" placeholder="🔍 Suchen..." value="'+esc(groceryState.search)+'" oninput="HalDoGroceryApp.search(this.value)"></div>'+
+    (products.length?'<div class="grid2" style="margin-bottom:14px"><div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px">'+products.length+'</div><div class="lbl">Produkte</div></div><div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:20px">'+all.length+'</div><div class="lbl">Einträge</div></div></div>':'')+
+    list;
+}
+window.HalDoGroceryApp={
+  add(){const n=$('grName').value.trim();if(!n)return;HalDoGrocery.add(n,$('grPrice').value,$('grStore').value);$('grName').value='';$('grPrice').value='';buildGrocery();if(window.showToast)showToast('🛒 Gespeichert','success')},
+  search(q){groceryState.search=q;buildGrocery()},
+  rebuild(){buildGrocery()}
+};
+
+// ═══ 12. HABIT GRID (5 Wochen) ═══
+window.HalDoHabitGrid={
+  key:'haldo_habitgrid_v1',
+  all(){return store(this.key,[])},
+  add(name){const l=this.all();l.push({id:uid('hg_'),name,days:{},created:Date.now()});save(this.key,l);return l[0].id},
+  toggle(id,dayKey){const l=this.all();const h=l.find(x=>x.id===id);if(h){if(h.days[dayKey])delete h.days[dayKey];else h.days[dayKey]=true;save(this.key,l)}},
+  remove(id){save(this.key,this.all().filter(h=>h.id!==id))}
+};
+function buildHabitGrid(){
+  const w=$('habitgrid-window');if(!w)return;
+  w.dataset.title='Habit Grid';w.dataset.icon='📅';
+  const all=HalDoHabitGrid.all();
+  // Erstelle 35 Tage (5 Wochen)
+  const today=new Date();today.setHours(0,0,0,0);
+  const days=[];for(let i=34;i>=0;i--){const d=new Date(today);d.setDate(d.getDate()-i);days.push({key:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),date:d,isToday:i===0})}
+  const list=all.length?all.map(h=>{
+    const cells=days.map(day=>{
+      const done=h.days[day.key];
+      return '<div style="aspect-ratio:1;border-radius:4px;background:'+(done?'linear-gradient(135deg,#00e5ff,#00ff88)':'rgba(0,0,0,.3)')+';border:1px solid '+(day.isToday?'#fff':done?'#00e5ff':'rgba(0,229,255,.15)')+';cursor:pointer;transition:all .1s" onclick="HalDoHabitGrid.toggle(\''+h.id+'\',\''+day.key+'\');HalDoHabitGridApp.rebuild()"></div>';
+    }).join('');
+    const done7=days.slice(-7).filter(d=>h.days[d.key]).length;
+    return '<div class="card" style="padding:12px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+      '<div style="font-size:14px;font-weight:800;color:#fff">'+esc(h.name)+'</div>'+
+      '<div style="display:flex;gap:6px;align-items:center"><span style="font-size:11px;color:#00e5ff;font-weight:800">'+done7+'/7</span>'+
+      '<button class="os-btn danger" style="padding:4px 8px;font-size:10px" onclick="if(confirm(\'Löschen?\')){HalDoHabitGrid.remove(\''+h.id+'\');HalDoHabitGridApp.rebuild()}">✕</button></div>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">'+cells+'</div>'+
+      '<div style="display:flex;justify-content:space-between;font-size:9px;color:#88ccff;margin-top:6px"><span>vor 5 Wochen</span><span>heute</span></div>'+
+      '</div>';
+  }).join(''):'<div class="empty"><div class="ei">📅</div><div class="et">Keine Gewohnheiten</div></div>';
+  w.innerHTML=
+    '<div class="card"><input class="os-input" id="hgName" placeholder="Neue Gewohnheit (z.B. Wasser trinken)" onkeypress="if(event.key===\'Enter\')HalDoHabitGridApp.add()" style="margin-bottom:8px">'+
+    '<button class="os-btn primary full" onclick="HalDoHabitGridApp.add()">✚ Hinzufügen</button></div>'+
+    (all.length?'<div class="lbl" style="margin:14px 0 8px">📅 5-Wochen Übersicht</div>':'')+list;
+}
+window.HalDoHabitGridApp={
+  add(){const n=$('hgName').value.trim();if(!n)return;HalDoHabitGrid.add(n);$('hgName').value='';buildHabitGrid();if(window.showToast)showToast('📅 Hinzugefügt','success')},
+  rebuild(){buildHabitGrid()}
+};
+
+// ═══ 13. SLEEP SOUNDS ═══
+let sleepSoundState={current:null,volume:0.3,ctx:null,source:null,gain:null,timer:null,timerMin:30};
+const SLEEP_SOUNDS=[
+  {k:'rain',n:'Regen',i:'🌧️'},
+  {k:'thunder',n:'Gewitter',i:'⛈️'},
+  {k:'ocean',n:'Ozean',i:'🌊'},
+  {k:'forest',n:'Wald',i:'🌲'},
+  {k:'crickets',n:'Grillen',i:'🦗'},
+  {k:'fan',n:'Ventilator',i:'💨'},
+  {k:'tibetan',n:'Tibetische Klänge',i:'🎵'}
+];
+function ssCreateSound(ctx,type){
+  const bufferSize=ctx.sampleRate*2;
+  const buffer=ctx.createBuffer(1,bufferSize,ctx.sampleRate);
+  const data=buffer.getChannelData(0);
+  for(let i=0;i<bufferSize;i++){
+    const white=Math.random()*2-1;
+    if(type==='rain'){data[i]=white*0.5}
+    else if(type==='ocean'){data[i]=(data[i-1]||0)*0.98+white*0.02;data[i]*=2}
+    else if(type==='thunder'){data[i]=white*(Math.random()<0.005?3:0.3)}
+    else if(type==='forest'||type==='crickets'){data[i]=white*0.3*(Math.sin(i*0.001)>0.9?1:0.3)}
+    else if(type==='fan'){data[i]=white*0.4*(Math.sin(i*0.01)*0.5+0.5)}
+    else if(type==='tibetan'){data[i]=white*0.2}
+    else{data[i]=white*0.4}
+  }
+  const src=ctx.createBufferSource();src.buffer=buffer;src.loop=true;return src;
+}
+function buildSleepSounds(){
+  const w=$('sleepsounds-window');if(!w)return;
+  w.dataset.title='Sleep Sounds';w.dataset.icon='😴';
+  const cards=SLEEP_SOUNDS.map(s=>'<div class="card" style="padding:14px 8px;text-align:center;cursor:pointer;'+(sleepSoundState.current===s.k?'border-color:#00e5ff;background:linear-gradient(135deg,rgba(0,229,255,.15),rgba(180,120,255,.1))':'')+'" onclick="HalDoSleepSounds.play(\''+s.k+'\')">'+
+    '<div style="font-size:34px;margin-bottom:6px">'+s.i+'</div>'+
+    '<div style="font-size:11px;font-weight:800;color:#fff">'+s.n+'</div>'+
+    '</div>').join('');
+  const active=sleepSoundState.current?SLEEP_SOUNDS.find(x=>x.k===sleepSoundState.current):null;
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:20px">'+
+    '<div style="font-size:64px;margin-bottom:8px">'+(active?active.i:'😴')+'</div>'+
+    '<div style="font-size:14px;color:#fff;font-weight:800">'+(active?active.n:'Kein Sound')+'</div>'+
+    '<div style="font-size:11px;color:#88ccff;margin-top:4px">'+(sleepSoundState.current?'▶ Läuft':'Klicke unten um zu starten')+'</div>'+
+    '<div id="ssTimer" style="font-size:22px;font-weight:900;color:#b478ff;font-family:monospace;margin-top:10px">'+(sleepSoundState.timer?'':('⏱️ '+sleepSoundState.timerMin+' Min Timer bereit'))+'</div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">🔊 Lautstärke: '+Math.round(sleepSoundState.volume*100)+'%</div>'+
+    '<input type="range" min="0" max="100" value="'+Math.round(sleepSoundState.volume*100)+'" style="width:100%;accent-color:#b478ff" oninput="HalDoSleepSounds.setVol(this.value)">'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">⏱️ Sleep-Timer: '+sleepSoundState.timerMin+' Min</div>'+
+    '<input type="range" min="5" max="120" step="5" value="'+sleepSoundState.timerMin+'" style="width:100%;accent-color:#b478ff" oninput="HalDoSleepSounds.setTimer(this.value)">'+
+    '<div style="display:flex;justify-content:space-between;font-size:10px;color:#88ccff;margin-top:4px"><span>5 Min</span><span>30</span><span>60</span><span>120</span></div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px">'+cards+'</div>'+
+    '<button class="os-btn danger full" onclick="HalDoSleepSounds.stop()">⏹ Stop</button>';
+}
+window.HalDoSleepSounds={
+  play(k){
+    if(!sleepSoundState.ctx)sleepSoundState.ctx=new (window.AudioContext||window.webkitAudioContext)();
+    if(sleepSoundState.source)try{sleepSoundState.source.stop()}catch(e){}
+    sleepSoundState.source=ssCreateSound(sleepSoundState.ctx,k);
+    sleepSoundState.gain=sleepSoundState.ctx.createGain();
+    sleepSoundState.gain.gain.value=sleepSoundState.volume;
+    sleepSoundState.source.connect(sleepSoundState.gain).connect(sleepSoundState.ctx.destination);
+    sleepSoundState.source.start();
+    sleepSoundState.current=k;
+    // Timer starten
+    if(sleepSoundState.timer)clearTimeout(sleepSoundState.timer);
+    sleepSoundState.timer=setTimeout(()=>{this.stop();if(window.showToast)showToast('😴 Sleep-Timer beendet','success')},sleepSoundState.timerMin*60000);
+    buildSleepSounds();
+  },
+  stop(){
+    if(sleepSoundState.source)try{sleepSoundState.source.stop()}catch(e){}
+    if(sleepSoundState.ctx)try{sleepSoundState.ctx.close()}catch(e){}
+    if(sleepSoundState.timer)clearTimeout(sleepSoundState.timer);
+    sleepSoundState={current:null,volume:sleepSoundState.volume,ctx:null,source:null,gain:null,timer:null,timerMin:sleepSoundState.timerMin};
+    buildSleepSounds();
+  },
+  setVol(v){sleepSoundState.volume=parseInt(v)/100;if(sleepSoundState.gain)sleepSoundState.gain.gain.value=sleepSoundState.volume;const l=document.querySelector('#sleepsounds-window .lbl');if(l)l.textContent='🔊 Lautstärke: '+v+'%'},
+  setTimer(v){sleepSoundState.timerMin=parseInt(v);const l=document.querySelectorAll('#sleepsounds-window .lbl')[1];if(l)l.textContent='⏱️ Sleep-Timer: '+v+' Min'}
+};
+
+// ═══ INIT ═══
+function init(){
+  if(window.HalDoUI){
+    const orig=window.HalDoUI.rebuild;
+    window.HalDoUI.rebuild=function(id){
+      if(id==='jobs-window'){buildJobs();return}
+      if(id==='study-window'){buildStudy();return}
+      if(id==='subs-window'){buildSubs();return}
+      if(id==='warranty-window'){buildWarranty();return}
+      if(id==='anniv-window'){buildAnniversaries();return}
+      if(id==='receipts-window'){buildReceipts();return}
+      if(id==='garden-window'){buildGarden();return}
+      if(id==='pwstrength-window'){buildPwStrength();return}
+      if(id==='wifiqr-window'){buildWifiQR();return}
+      if(id==='backup-window'){buildBackup();return}
+      if(id==='grocery-window'){buildGrocery();return}
+      if(id==='habitgrid-window'){buildHabitGrid();return}
+      if(id==='sleepsounds-window'){buildSleepSounds();return}
+      if(orig)orig(id);
+    };
+  }
+  ['jobs-window','study-window','subs-window','warranty-window','anniv-window','receipts-window','garden-window','pwstrength-window','wifiqr-window','backup-window','grocery-window','habitgrid-window','sleepsounds-window'].forEach(id=>{
+    let el=$(id);if(!el){el=document.createElement('div');el.id=id;document.body.appendChild(el)}
+    if(window.prepareWindow) window.prepareWindow(el);
+  });
+  console.log('%c🚀 v142 – 13 Apps geladen','color:#00ff88;font-weight:bold;font-size:14px');
+  console.log('%c✅ Jobs · Study · Subs · Warranty · Anniv · Receipts · Garden · PwStrength · WiFiQR · Backup · Grocery · HabitGrid · SleepSounds','color:#4da8ff;font-weight:bold');
+}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>setTimeout(init,1000))}else{setTimeout(init,1000)}
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════ ENDE v142 ═════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
