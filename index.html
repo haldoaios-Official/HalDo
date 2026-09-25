@@ -15603,5 +15603,609 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════════════════ ENDE v146 ═════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v147 – 14 APPS (Akku · Speicher · Crypto · Aktien · RSS · Medikamente · Morse · Tarot · I Ging · Gematria · Fake · Voice-Alarm · Display · Kartendeck) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+"use strict";
+if(window.__v147) return;
+window.__v147 = true;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const store=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const todayK=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+
+// ═══ 1. BATTERY INFO ═══
+let battState={level:0,charging:false,chargingTime:0,dischargingTime:0,supported:false};
+async function initBatt(){
+  if(!navigator.getBattery)return;
+  battState.supported=true;
+  const b=await navigator.getBattery();
+  const upd=()=>{battState.level=Math.round(b.level*100);battState.charging=b.charging;battState.chargingTime=b.chargingTime;battState.dischargingTime=b.dischargingTime;buildBattery()};
+  b.addEventListener('levelchange',upd);b.addEventListener('chargingchange',upd);
+  upd();
+}
+function buildBattery(){
+  const w=$('battery-window');if(!w)return;
+  w.dataset.title='Akku-Info';w.dataset.icon='🔋';
+  if(!battState.supported){
+    w.innerHTML='<div class="empty"><div class="ei">🔋</div><div class="et">Nicht unterstützt</div><div class="es">Dein Browser unterstützt die Battery API nicht</div></div>';
+    return;
+  }
+  const col=battState.level>60?'#00ff88':battState.level>20?'#ffc800':'#ff4466';
+  const fmt=(s)=>{if(!s||!isFinite(s))return '–';const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h>0?h+'h '+m+'min':m+'min'};
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:30px">'+
+    '<div style="font-size:80px">'+(battState.charging?'🔌':battState.level>60?'🔋':battState.level>20?'🪫':'🪫')+'</div>'+
+    '<div class="big" style="font-size:64px;color:'+col+';text-shadow:0 0 30px '+col+';margin:12px 0">'+battState.level+'%</div>'+
+    '<div style="font-size:14px;color:'+(battState.charging?'#00ff88':'#aaddff')+';font-weight:800;text-transform:uppercase;letter-spacing:2px">'+(battState.charging?'🔌 Lädt':'🔋 Entlädt')+'</div>'+
+    '</div>'+
+    '<div class="card"><div style="font-size:13px;line-height:2;color:#aaddff">'+
+    (battState.charging?'<div style="display:flex;justify-content:space-between"><span>⚡ Voll in</span><b style="color:#fff">'+fmt(battState.chargingTime)+'</b></div>':
+    '<div style="display:flex;justify-content:space-between"><span>⏱️ Leer in</span><b style="color:#fff">'+fmt(battState.dischargingTime)+'</b></div>')+
+    '</div></div>'+
+    '<div class="card"><div style="font-size:11px;color:#aaddff;line-height:1.6;text-align:center">🔋 Live-Aktualisierung<br>Werte hängen vom Gerät ab</div></div>';
+}
+
+// ═══ 2. STORAGE ANALYZER ═══
+function buildStorage(){
+  const w=$('storage-window');if(!w)return;
+  w.dataset.title='Speicher-Analyse';w.dataset.icon='💾';
+  const keys=[];let total=0;
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('haldo_')){const s=(localStorage.getItem(k)||'').length;keys.push({key:k,size:s});total+=s}}
+  keys.sort((a,b)=>b.size-a.size);
+  const fmt=(b)=>b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(2)+' MB';
+  const list=keys.length?keys.slice(0,30).map(k=>{
+    const pct=total?(k.size/total*100):0;
+    const name=k.key.replace('haldo_','').replace(/_v\d+$/,'');
+    return '<div style="margin-bottom:10px">'+
+      '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="color:#aaddff;font-weight:700">'+esc(name)+'</span><b style="color:#00e5ff;font-family:monospace">'+fmt(k.size)+'</b></div>'+
+      '<div style="height:6px;background:rgba(0,0,0,.4);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#00e5ff,#b478ff);border-radius:3px"></div></div>'+
+      '</div>';
+  }).join(''):'<div class="empty"><div class="ei">💾</div><div class="et">Noch keine Daten</div></div>';
+  w.innerHTML=
+    '<div class="card" style="text-align:center">'+
+    '<div style="font-size:11px;color:#88ccff;text-transform:uppercase;letter-spacing:2px;font-weight:800">Gesamt</div>'+
+    '<div class="big" style="font-size:40px;color:#00e5ff;margin:10px 0">'+fmt(total)+'</div>'+
+    '<div style="font-size:12px;color:#88ccff">'+keys.length+' Einträge</div>'+
+    '</div>'+
+    (list?'<div class="card"><div class="lbl" style="margin-bottom:12px">📊 Verteilung</div>'+list+'</div>':'')+
+    '<button class="os-btn danger full" style="margin-top:10px" onclick="if(confirm(\'Alle HalDo-Daten löschen? Kann nicht rückgängig gemacht werden!\')){const d=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith(\'haldo_\'))d.push(k)}d.forEach(k=>localStorage.removeItem(k));buildStorage()}">🗑️ Alle Daten löschen</button>';
+}
+
+// ═══ 3. CRYPTO PRICES ═══
+const CRYPTO_COINS=[
+  {id:'bitcoin',s:'BTC',n:'Bitcoin',i:'₿'},
+  {id:'ethereum',s:'ETH',n:'Ethereum',i:'Ξ'},
+  {id:'binancecoin',s:'BNB',n:'BNB',i:'🟡'},
+  {id:'solana',s:'SOL',n:'Solana',i:'☀️'},
+  {id:'cardano',s:'ADA',n:'Cardano',i:'🔷'},
+  {id:'dogecoin',s:'DOGE',n:'Dogecoin',i:'🐕'},
+  {id:'ripple',s:'XRP',n:'Ripple',i:'💧'},
+  {id:'polkadot',s:'DOT',n:'Polkadot',i:'⚪'}
+];
+let cryptoState={data:null,lastFetch:0};
+async function buildCrypto(){
+  const w=$('crypto-window');if(!w)return;
+  w.dataset.title='Crypto Preise';w.dataset.icon='₿';
+  w.innerHTML='<div class="empty"><div class="ei">₿</div><div class="et">Lade Preise...</div></div>';
+  try{
+    const ids=CRYPTO_COINS.map(c=>c.id).join(',');
+    const res=await fetch('https://api.coingecko.com/api/v3/simple/price?ids='+ids+'&vs_currencies=eur,usd&include_24hr_change=true');
+    const data=await res.json();
+    const rows=CRYPTO_COINS.map(c=>{
+      const d=data[c.id];if(!d)return '';
+      const price=d.eur||d.usd;const change=d.eur_24h_change||d.usd_24h_change||0;
+      const col=change>0?'#00ff88':'#ff4466';
+      return '<div class="card" style="padding:12px;display:flex;gap:12px;align-items:center">'+
+        '<div style="font-size:28px;width:40px;text-align:center">'+c.i+'</div>'+
+        '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800;color:#fff">'+c.n+'</div>'+
+        '<div style="font-size:11px;color:#88ccff">'+c.s+'</div></div>'+
+        '<div style="text-align:right"><div style="font-size:15px;font-weight:900;color:#fff;font-family:monospace">'+price.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</div>'+
+        '<div style="font-size:11px;color:'+col+';font-weight:800">'+(change>0?'+':'')+change.toFixed(2)+'%</div></div>'+
+        '</div>';
+    }).join('');
+    w.innerHTML=
+      '<div class="card" style="text-align:center"><div style="font-size:44px">₿</div><div style="font-size:11px;color:#88ccff;font-weight:800;margin-top:6px">Live von CoinGecko</div></div>'+
+      rows+
+      '<div style="text-align:center;font-size:10px;color:#5a8ab0;margin-top:10px">🌐 '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr</div>';
+  }catch(e){
+    w.innerHTML='<div class="empty"><div class="ei">⚠️</div><div class="et">Konnte nicht laden</div><div class="es">Internet prüfen</div></div>';
+  }
+}
+
+// ═══ 4. STOCK WATCHLIST ═══
+window.HalDoStocks={
+  key:'haldo_stocks_v1',
+  all(){return store(this.key,[])},
+  add(symbol,name){const l=this.all();l.push({id:uid('st_'),symbol:symbol.toUpperCase(),name:name||'',created:Date.now()});save(this.key,l);return l[0].id},
+  remove(id){save(this.key,this.all().filter(s=>s.id!==id))}
+};
+function buildStocks(){
+  const w=$('stocks-window');if(!w)return;
+  w.dataset.title='Aktien';w.dataset.icon='📈';
+  const all=HalDoStocks.all();
+  const list=all.length?all.map(s=>'<div class="card" style="padding:12px;display:flex;gap:10px;align-items:center">'+
+    '<div style="font-size:28px">📈</div>'+
+    '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800;color:#fff">'+esc(s.symbol)+'</div>'+
+    (s.name?'<div style="font-size:11px;color:#88ccff">'+esc(s.name)+'</div>':'')+'</div>'+
+    '<button class="os-btn danger" style="padding:6px 8px;font-size:11px" onclick="if(confirm(\'Löschen?\')){HalDoStocks.remove(\''+s.id+'\');buildStocks()}">✕</button>'+
+    '</div>').join(''):'<div class="empty"><div class="ei">📈</div><div class="et">Keine Aktien</div></div>';
+  w.innerHTML=
+    '<div class="card">'+
+    '<input class="os-input" id="stSym" placeholder="Symbol (z.B. AAPL)" style="margin-bottom:6px" maxlength="10">'+
+    '<input class="os-input" id="stName" placeholder="Name (z.B. Apple)" style="margin-bottom:8px">'+
+    '<button class="os-btn primary full" onclick="HalDoStocks.add(document.getElementById(\'stSym\').value,document.getElementById(\'stName\').value);document.getElementById(\'stSym\').value=\'\';document.getElementById(\'stName\').value=\'\';buildStocks()">📈 Hinzufügen</button>'+
+    '</div>'+
+    '<div class="card" style="background:rgba(255,200,0,.1);border-color:rgba(255,200,0,.3)"><div style="font-size:11px;color:#ffc800;line-height:1.6;text-align:center">⚠️ Live-Kurse benötigen kostenpflichtige API<br>Diese Liste dient nur zur Organisation</div></div>'+
+    (all.length?'<div class="lbl" style="margin:14px 0 8px">📈 '+all.length+' Aktien</div>':'')+
+    list;
+}
+
+// ═══ 5. RSS READER ═══
+const RSS_FEEDS=[
+  {n:'Tagesschau',u:'https://www.tagesschau.de/xml/rss2'},
+  {n:'Heise',u:'https://www.heise.de/rss/heise-atom.xml'},
+  {n:'Spiegel',u:'https://www.spiegel.de/schlagzeilen/tops/index.rss'},
+  {n:'Zeit',u:'https://newsfeed.zeit.de/index'}
+];
+let rssState={feed:0,items:null,loading:false};
+async function buildRSS(){
+  const w=$('rss-window');if(!w)return;
+  w.dataset.title='RSS Nachrichten';w.dataset.icon='📰';
+  const feeds=RSS_FEEDS.map((f,i)=>'<button class="os-btn '+(rssState.feed===i?'primary':'')+'" style="padding:6px 12px;font-size:11px;white-space:nowrap" onclick="HalDoRSS.set('+i+')">'+f.n+'</button>').join('');
+  let listHtml='';
+  if(rssState.loading)listHtml='<div class="empty"><div class="et">⏳ Lade Nachrichten...</div></div>';
+  else if(rssState.items===null)listHtml='<div class="empty"><div class="ei">📰</div><div class="et">Klicke auf Feed zum Laden</div></div>';
+  else if(rssState.items===false)listHtml='<div class="card" style="background:rgba(255,68,102,.15);border-color:#ff4466"><div style="font-size:12px;color:#ff8080;text-align:center">❌ Konnte Feed nicht laden (CORS)</div></div>';
+  else if(rssState.items.length===0)listHtml='<div class="empty"><div class="et">Keine Artikel</div></div>';
+  else listHtml=rssState.items.slice(0,15).map(it=>'<div class="card" style="padding:12px" onclick="window.open(\''+esc(it.link)+'\',\'_blank\')"><div style="font-size:13px;font-weight:800;color:#fff;line-height:1.4">'+esc(it.title)+'</div>'+(it.desc?'<div style="font-size:11px;color:#aaddff;margin-top:4px;line-height:1.5">'+esc(it.desc.slice(0,120))+'</div>':'')+'</div>').join('');
+  w.innerHTML=
+    '<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:10px">'+feeds+'</div>'+
+    '<button class="os-btn primary full" style="margin-bottom:14px" onclick="HalDoRSS.load()">🔄 Laden</button>'+
+    listHtml+
+    '<div style="text-align:center;font-size:10px;color:#5a8ab0;margin-top:10px;line-height:1.6">⚠️ Manche Feeds können wegen CORS blockiert sein</div>';
+}
+window.HalDoRSS={
+  set(i){rssState.feed=i;buildRSS()},
+  async load(){
+    rssState.loading=true;rssState.items=null;buildRSS();
+    try{
+      const url=RSS_FEEDS[rssState.feed].u;
+      const res=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(url));
+      const data=await res.json();
+      const parser=new DOMParser();
+      const xml=parser.parseFromString(data.contents,'text/xml');
+      const items=Array.from(xml.querySelectorAll('item,entry')).slice(0,20).map(it=>{
+        const get=(sel)=>{const el=it.querySelector(sel);return el?el.textContent.trim():''};
+        return {
+          title:get('title'),
+          link:get('link')||(it.querySelector('link')?.getAttribute('href'))||'',
+          desc:get('description')||get('summary')||''
+        };
+      }).filter(x=>x.title);
+      rssState.items=items.length?items:false;
+    }catch(e){rssState.items=false}
+    rssState.loading=false;
+    buildRSS();
+  }
+};
+
+// ═══ 6. MEDIKAMENTEN-ERINNERUNG ═══
+window.HalDoMeds={
+  key:'haldo_meds_v1',
+  all(){return store(this.key,[])},
+  add(name,dose,times){const l=this.all();l.push({id:uid('md_'),name,dose,times:times.split(',').map(t=>t.trim()),done:{},created:Date.now()});save(this.key,l);return l[0].id},
+  toggle(id,time){const l=this.all();const m=l.find(x=>x.id===id);if(m){const k=todayK()+'_'+time;if(m.done[k])delete m.done[k];else m.done[k]=true;save(this.key,l)}},
+  remove(id){save(this.key,this.all().filter(m=>m.id!==id))}
+};
+function buildMeds(){
+  const w=$('meds-window');if(!w)return;
+  w.dataset.title='Medikamente';w.dataset.icon='💊';
+  const all=HalDoMeds.all();
+  const list=all.length?all.map(m=>{
+    const times=(m.times||[]).map(t=>{
+      const done=m.done&&m.done[todayK()+'_'+t];
+      return '<div style="flex:1;text-align:center;padding:10px 4px;border-radius:10px;background:'+(done?'linear-gradient(135deg,#00ff88,#00e5ff)':'rgba(0,0,0,.3)')+';border:1.5px solid '+(done?'#00ff88':'var(--border)')+';cursor:pointer" onclick="HalDoMeds.toggle(\''+m.id+'\',\''+t+'\');buildMeds()">'+
+        '<div style="font-size:12px;font-weight:900;color:'+(done?'#001018':'#fff')+'">'+t+'</div>'+
+        '<div style="font-size:14px;margin-top:2px">'+(done?'✅':'⬜')+'</div>'+
+        '</div>';
+    }).join('');
+    return '<div class="card" style="padding:12px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'+
+      '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800;color:#fff">💊 '+esc(m.name)+'</div>'+
+      '<div style="font-size:11px;color:#88ccff;margin-top:2px">'+esc(m.dose||'')+'</div></div>'+
+      '<button class="os-btn danger" style="padding:6px 8px;font-size:11px" onclick="if(confirm(\'Löschen?\')){HalDoMeds.remove(\''+m.id+'\');buildMeds()}">✕</button>'+
+      '</div>'+
+      '<div style="display:flex;gap:6px">'+times+'</div>'+
+      '</div>';
+  }).join(''):'<div class="empty"><div class="ei">💊</div><div class="et">Keine Medikamente</div></div>';
+  w.innerHTML=
+    '<div class="card">'+
+    '<input class="os-input" id="mdName" placeholder="Medikament" style="margin-bottom:6px">'+
+    '<input class="os-input" id="mdDose" placeholder="Dosis (z.B. 1 Tablette)" style="margin-bottom:6px">'+
+    '<input class="os-input" id="mdTimes" placeholder="Uhrzeiten (Komma: 08:00,20:00)" style="margin-bottom:8px">'+
+    '<button class="os-btn primary full" onclick="HalDoMedsApp.add()">💊 Hinzufügen</button>'+
+    '</div>'+
+    (list?'<div class="lbl" style="margin:14px 0 8px">💊 '+all.length+' Medikamente</div>'+list:'');
+}
+window.HalDoMedsApp={
+  add(){const n=$('mdName').value.trim(),d=$('mdDose').value,t=$('mdTimes').value;if(!n||!t)return;HalDoMeds.add(n,d,t);$('mdName').value='';$('mdDose').value='';$('mdTimes').value='';buildMeds();if(window.showToast)showToast('💊 Hinzugefügt','success')}
+};
+
+// ═══ 7. MORSE CODE ═══
+const MORSE_MAP={A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..','0':'-----','1':'.----','2':'..---','3':'...--','4':'....-','5':'.....','6':'-....','7':'--...','8':'---..','9':'----.',' ':'/'};
+const MORSE_REV={};Object.entries(MORSE_MAP).forEach(([k,v])=>MORSE_REV[v]=k);
+let morseState={text:'',morse:''};
+function buildMorse(){
+  const w=$('morse-window');if(!w)return;
+  w.dataset.title='Morse Code';w.dataset.icon='📡';
+  w.innerHTML=
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">📝 Text → Morse</div>'+
+    '<input class="os-input" id="mrText" placeholder="Text eingeben..." value="'+esc(morseState.text)+'" style="margin-bottom:8px">'+
+    '<button class="os-btn primary full" onclick="HalDoMorse.toMorse()">📡 Übersetzen</button>'+
+    '<div style="margin-top:10px;padding:12px;background:rgba(0,0,0,.4);border-radius:10px;font-family:monospace;font-size:16px;color:#00e5ff;word-break:break-all;min-height:40px;font-weight:800">'+esc(morseState.morse||'·-· ·-·· -- ·-')+'</div>'+
+    (morseState.morse?'<button class="os-btn" style="width:100%;margin-top:8px" onclick="HalDoMorse.play()">🔊 Abspielen</button>':'')+
+    '<button class="os-btn" style="width:100%;margin-top:6px" onclick="navigator.clipboard.writeText(\''+esc(morseState.morse)+'\').then(()=>showToast(\'📋 Kopiert\',\'success\'))">📋 Kopieren</button>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">📡 Morse → Text</div>'+
+    '<input class="os-input" id="mrMorse" placeholder="z.B. .... .-.. ---" style="margin-bottom:8px">'+
+    '<button class="os-btn primary full" onclick="HalDoMorse.fromMorse()">📝 Übersetzen</button>'+
+    '<div id="mrOut" style="margin-top:10px;padding:12px;background:rgba(0,0,0,.4);border-radius:10px;font-size:16px;color:#fff;min-height:40px;font-weight:800">Text erscheint hier</div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">📚 Übersicht</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px;font-size:10px;font-family:monospace">'+
+    Object.entries(MORSE_MAP).filter(([k])=>k!==' ').map(([k,v])=>'<div style="text-align:center;padding:6px 2px;background:rgba(0,0,0,.2);border-radius:6px"><b style="color:#00e5ff">'+k+'</b><br><span style="color:#aaddff">'+v+'</span></div>').join('')+
+    '</div></div>';
+}
+window.HalDoMorse={
+  toMorse(){
+    const t=$('mrText').value.toUpperCase();
+    morseState.text=t;
+    morseState.morse=t.split('').map(c=>MORSE_MAP[c]||'').filter(x=>x).join(' ');
+    buildMorse();
+  },
+  fromMorse(){
+    const m=$('mrMorse').value.trim();
+    const t=m.split(/\s+/).map(c=>MORSE_REV[c]||'').join('');
+    $('mrOut').textContent=t||'–';
+  },
+  play(){
+    if(!morseState.morse)return;
+    try{
+      const ctx=new (window.AudioContext||window.webkitAudioContext)();
+      let time=ctx.currentTime;
+      morseState.morse.split('').forEach(c=>{
+        if(c==='.'||c==='-'){
+          const dur=c==='.'?0.1:0.3;
+          const osc=ctx.createOscillator(),g=ctx.createGain();
+          osc.frequency.value=600;
+          g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(0.3,time+0.01);
+          g.gain.setValueAtTime(0.3,time+dur-0.01);g.gain.linearRampToValueAtTime(0,time+dur);
+          osc.connect(g).connect(ctx.destination);
+          osc.start(time);osc.stop(time+dur);
+          time+=dur+0.1;
+        }else if(c===' '){time+=0.2}
+        else if(c==='/'){time+=0.4}
+      });
+    }catch(e){}
+  }
+};
+
+// ═══ 8. TAROT ═══
+const TAROT_CARDS=[
+  {n:'Der Narr',i:'🃏',m:'Neuanfang, Unschuld, Abenteuer, Spontanität'},
+  {n:'Der Magier',i:'🎩',m:'Willenskraft, Können, Konzentration, Macht'},
+  {n:'Die Hohepriesterin',i:'🌙',m:'Intuition, Mysterium, innere Stimme'},
+  {n:'Die Herrscherin',i:'👑',m:'Fruchtbarkeit, Weiblichkeit, Natur, Fülle'},
+  {n:'Der Herrscher',i:'⚜️',m:'Autorität, Struktur, Stabilität, Vater'},
+  {n:'Der Hierophant',i:'⛪',m:'Tradition, Lehre, Spiritualität, Führung'},
+  {n:'Die Liebenden',i:'💕',m:'Liebe, Harmonie, Beziehung, Entscheidung'},
+  {n:'Der Wagen',i:'🏇',m:'Erfolg, Wille, Reise, Triumph'},
+  {n:'Die Kraft',i:'🦁',m:'Mut, Ausdauer, Mitgefühl, Beherrschung'},
+  {n:'Der Eremit',i:'🕯️',m:'Rückzug, Weisheit, Besinnung, Suche'},
+  {n:'Das Rad des Schicksals',i:'🎡',m:'Wechsel, Zyklen, Schicksal, Glück'},
+  {n:'Die Gerechtigkeit',i:'⚖️',m:'Gerechtigkeit, Wahrheit, Karma, Balance'},
+  {n:'Der Gehängte',i:'🙃',m:'Loslassen, Perspektivwechsel, Opfer'},
+  {n:'Der Tod',i:'💀',m:'Transformation, Ende, Neuanfang'},
+  {n:'Die Mäßigkeit',i:'🏺',m:'Balance, Geduld, Mäßigung, Heilung'},
+  {n:'Der Teufel',i:'😈',m:'Versuchung, Bindung, Schatten, Materie'},
+  {n:'Der Turm',i:'🗼',m:'Wandel, Umbruch, Erwachen, Befreiung'},
+  {n:'Der Stern',i:'⭐',m:'Hoffnung, Inspiration, Glaube, Heilung'},
+  {n:'Der Mond',i:'🌕',m:'Illusion, Angst, Unterbewusstsein, Träume'},
+  {n:'Die Sonne',i:'☀️',m:'Freude, Erfolg, Vitalität, Klarheit'},
+  {n:'Das Gericht',i:'📯',m:'Erwachen, Wiedergeburt, Ruf, Vergebung'},
+  {n:'Die Welt',i:'🌍',m:'Vollendung, Erfolg, Erfüllung, Ganzheit'}
+];
+let tarotState={card:null,reversed:false};
+function buildTarot(){
+  const w=$('tarot-window');if(!w)return;
+  w.dataset.title='Tarot';w.dataset.icon='🔮';
+  const card=tarotState.card;
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:30px;background:linear-gradient(135deg,rgba(180,120,255,.2),rgba(0,229,255,.1))">'+
+    (card?
+      '<div style="font-size:80px;'+(tarotState.reversed?'transform:rotate(180deg);display:inline-block':'')+'">'+card.i+'</div>'+
+      '<div style="font-size:20px;font-weight:900;color:#fff;margin:10px 0">'+card.n+(tarotState.reversed?' (Umgekehrt)':'')+'</div>'+
+      '<div style="font-size:13px;color:#aaddff;line-height:1.6;margin-top:10px">'+card.m+'</div>':
+      '<div style="font-size:80px">🔮</div>'+
+      '<div style="font-size:14px;color:#aaddff;font-weight:800;margin-top:14px">Ziehe eine Karte</div>')+
+    '</div>'+
+    '<button class="os-btn primary full" style="padding:18px;font-size:16px" onclick="HalDoTarot.draw()">🃏 '+(card?'Neu ziehen':'Karte ziehen')+'</button>'+
+    '<div class="card" style="margin-top:14px"><div style="font-size:11px;color:#aaddff;line-height:1.6;text-align:center">🔮 22 Karten der Großen Arkana<br>Meditative Bedeutung, keine Vorhersage</div></div>';
+}
+window.HalDoTarot={
+  draw(){tarotState.card=TAROT_CARDS[Math.floor(Math.random()*TAROT_CARDS.length)];tarotState.reversed=Math.random()<0.5;buildTarot();if(navigator.vibrate)navigator.vibrate(20)}
+};
+
+// ═══ 9. I GING ═══
+const ICHING=[
+  {n:'Das Schöpferische',i:'☰☰',m:'Kraft, Himmel, Yang, Durchsetzungsvermögen'},
+  {n:'Das Empfangende',i:'☷☷',m:'Hingabe, Erde, Yin, Empfänglichkeit'},
+  {n:'Die Anfangsschwierigkeit',i:'☵☳',m:'Anfängliche Herausforderung, Wachstum'},
+  {n:'Die Jugendtorheit',i:'☶☵',m:'Unreife, Lernen, Führung nötig'},
+  {n:'Das Warten',i:'☵☰',m:'Geduld, Vorbereitung, Vertrauen'},
+  {n:'Der Streit',i:'☰☵',m:'Konflikt, Klärung, Kompromiss'},
+  {n:'Das Heer',i:'☷☵',m:'Disziplin, Führung, Organisation'},
+  {n:'Das Zusammenhalten',i:'☵☷',m:'Einheit, Gemeinschaft, Verbundenheit'},
+  {n:'Die kleine Zähmung',i:'☴☰',m:'Sanfte Kraft, kleine Schritte'},
+  {n:'Das Wandeln',i:'☰☱',m:'Vorsicht, richtiges Verhalten'},
+  {n:'Der Friede',i:'☷☰',m:'Harmonie, Wohlstand, Austausch'},
+  {n:'Die Stockung',i:'☰☷',m:'Blockade, Rückzug, Neuorientierung'},
+  {n:'Die Gemeinschaft',i:'☰☲',m:'Zusammenschluss, gemeinsame Ziele'},
+  {n:'Der Besitz',i:'☲☰',m:'Reichtum, Verantwortung, Großzügigkeit'},
+  {n:'Die Bescheidenheit',i:'☷☶',m:'Demut, Selbstkontrolle, Erfolg'},
+  {n:'Die Begeisterung',i:'☳☷',m:'Freude, Enthusiasmus, Bewegung'}
+];
+let ichingState={hex:null};
+function buildIChing(){
+  const w=$('iching-window');if(!w)return;
+  w.dataset.title='I Ging';w.dataset.icon='☯️';
+  const h=ichingState.hex;
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:30px;background:linear-gradient(135deg,rgba(0,229,255,.15),rgba(180,120,255,.1))">'+
+    (h?
+      '<div style="font-size:48px;letter-spacing:6px">'+h.i+'</div>'+
+      '<div style="font-size:18px;font-weight:900;color:#fff;margin:14px 0">'+h.n+'</div>'+
+      '<div style="font-size:13px;color:#aaddff;line-height:1.6">'+h.m+'</div>':
+      '<div style="font-size:80px">☯️</div>'+
+      '<div style="font-size:14px;color:#aaddff;font-weight:800;margin-top:14px">Befrage das Orakel</div>')+
+    '</div>'+
+    '<button class="os-btn primary full" style="padding:18px;font-size:16px" onclick="HalDoIChing.draw()">☯️ '+(h?'Neu werfen':'Hexagramm werfen')+'</button>'+
+    '<div class="card" style="margin-top:14px"><div style="font-size:11px;color:#aaddff;line-height:1.6;text-align:center">☯️ Das I Ging (Buch der Wandlungen)<br>Ist ein altes chinesisches Weisheitsbuch</div></div>';
+}
+window.HalDoIChing={
+  draw(){ichingState.hex=ICHING[Math.floor(Math.random()*ICHING.length)];buildIChing();if(navigator.vibrate)navigator.vibrate(20)}
+};
+
+// ═══ 10. GEMATRIA ═══
+const GEMATRIA={
+  hebräisch:{alef:1,bet:2,gimel:3,dalet:4,he:5,vav:6,zajin:7,chet:8,tet:9,jod:10,kaf:20,lamed:30,mem:40,nun:50,samech:60,ajin:70,pe:80,zade:90,kuf:100,resh:200,shin:300,tav:400},
+  latein:{a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:20,l:30,m:40,n:50,o:60,p:70,q:80,r:90,s:100,t:200,u:300,v:400,w:500,x:600,y:700,z:800,ä:1,ö:6,ü:300,ß:200}
+};
+let gematriaState={text:'',result:0,system:'latein'};
+function buildGematria(){
+  const w=$('gematria-window');if(!w)return;
+  w.dataset.title='Gematria';w.dataset.icon='✡️';
+  w.innerHTML=
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">📝 Text eingeben</div>'+
+    '<input class="os-input" id="gmText" placeholder="z.B. Leben" value="'+esc(gematriaState.text)+'" style="margin-bottom:8px">'+
+    '<button class="os-btn primary full" onclick="HalDoGematria.calc()">✡️ Berechnen</button>'+
+    '</div>'+
+    (gematriaState.result?'<div class="card" style="text-align:center;background:linear-gradient(135deg,rgba(180,120,255,.2),rgba(0,229,255,.1))">'+
+    '<div style="font-size:11px;color:#b478ff;text-transform:uppercase;letter-spacing:2px;font-weight:800">Zahlenwert</div>'+
+    '<div class="big" style="font-size:56px;color:#b478ff;margin:10px 0">'+gematriaState.result+'</div>'+
+    '<div style="font-size:12px;color:#aaddff">'+esc(gematriaState.text)+'</div>'+
+    '</div>':'')+
+    '<div class="card"><div style="font-size:11px;color:#aaddff;line-height:1.6;text-align:center">✡️ Gematria ordnet Buchstaben Zahlen zu<br>Jüdische Tradition zur Textanalyse</div></div>';
+}
+window.HalDoGematria={
+  calc(){
+    const t=$('gmText').value.toLowerCase().trim();
+    if(!t)return;
+    gematriaState.text=$('gmText').value;
+    let sum=0;
+    for(const c of t.replace(/[^a-zäöüß]/g,''))sum+=(GEMATRIA.latein[c]||0);
+    gematriaState.result=sum;
+    buildGematria();
+  }
+};
+
+// ═══ 11. FAKE DATEN GENERATOR ═══
+const FAKE_FIRST=['Max','Anna','Lena','Tom','Lisa','Ben','Sara','Paul','Mia','Felix','Emma','Julian','Marie','Leo','Sophie','David'];
+const FAKE_LAST=['Müller','Schmidt','Weber','Fischer','Meyer','Wagner','Becker','Schulz','Hoffmann','Koch'];
+const FAKE_STREETS=['Hauptstraße','Bahnhofstraße','Schulstraße','Gartenweg','Lindenallee','Waldstraße'];
+const FAKE_CITIES=['Berlin','Hamburg','München','Köln','Frankfurt','Stuttgart','Düsseldorf','Leipzig','Dresden','Hannover'];
+const FAKE_JOBS=['Ingenieur','Lehrer','Arzt','Designer','Programmierer','Manager','Verkäufer','Koch','Journalist','Architekt'];
+let fakeState={data:null};
+function buildFake(){
+  const w=$('fake-window');if(!w)return;
+  w.dataset.title='Fake Generator';w.dataset.icon='🎭';
+  const d=fakeState.data;
+  w.innerHTML=
+    '<div class="card"><button class="os-btn primary full" style="padding:18px;font-size:16px" onclick="HalDoFake.gen()">🎲 Daten generieren</button></div>'+
+    (d?'<div class="card" style="line-height:2;font-size:13px">'+
+    '<div style="display:flex;justify-content:space-between"><span style="color:#aaddff">👤 Name</span><b style="color:#fff">'+d.name+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span style="color:#aaddff">📧 E-Mail</span><b style="color:#00e5ff;font-size:11px">'+d.email+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span style="color:#aaddff">📞 Telefon</span><b style="color:#fff">'+d.phone+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span style="color:#aaddff">🏠 Adresse</span><b style="color:#fff;font-size:11px;text-align:right">'+d.address+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span style="color:#aaddff">🎂 Geburtstag</span><b style="color:#fff">'+d.birthday+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span style="color:#aaddff">💼 Beruf</span><b style="color:#fff">'+d.job+'</b></div>'+
+    '</div>'+
+    '<button class="os-btn full" onclick="navigator.clipboard.writeText(JSON.stringify('+JSON.stringify(JSON.stringify(d))+')).then(()=>showToast(\'📋 Kopiert\',\'success\'))">📋 JSON kopieren</button>':'')+
+    '<div class="card" style="margin-top:14px"><div style="font-size:11px;color:#aaddff;line-height:1.6;text-align:center">🎭 Zufallsdaten für Tests & Prototypen</div></div>';
+}
+window.HalDoFake={
+  gen(){
+    const f=FAKE_FIRST[Math.floor(Math.random()*FAKE_FIRST.length)];
+    const l=FAKE_LAST[Math.floor(Math.random()*FAKE_LAST.length)];
+    const street=FAKE_STREETS[Math.floor(Math.random()*FAKE_STREETS.length)];
+    const city=FAKE_CITIES[Math.floor(Math.random()*FAKE_CITIES.length)];
+    const job=FAKE_JOBS[Math.floor(Math.random()*FAKE_JOBS.length)];
+    const num=Math.floor(Math.random()*200)+1;
+    const plz=String(Math.floor(Math.random()*90000)+10000);
+    const phone='+49 '+Math.floor(Math.random()*900+100)+' '+Math.floor(Math.random()*9000000+1000000);
+    const year=1950+Math.floor(Math.random()*60);
+    const month=String(Math.floor(Math.random()*12)+1).padStart(2,'0');
+    const day=String(Math.floor(Math.random()*28)+1).padStart(2,'0');
+    fakeState.data={
+      name:f+' '+l,
+      email:f.toLowerCase()+'.'+l.toLowerCase()+'@example.com',
+      phone,
+      address:street+' '+num+', '+plz+' '+city,
+      birthday:year+'-'+month+'-'+day,
+      job
+    };
+    buildFake();
+  }
+};
+
+// ═══ 12. VOICE ALARM ═══
+window.HalDoVoiceAlarm={
+  key:'haldo_voicealarm_v1',
+  all(){return store(this.key,[])},
+  add(name,time){const l=this.all();l.push({id:uid('va_'),name,time,enabled:true,created:Date.now()});save(this.key,l);return l[0].id},
+  toggle(id){const l=this.all();const a=l.find(x=>x.id===id);if(a){a.enabled=!a.enabled;save(this.key,l)}},
+  remove(id){save(this.key,this.all().filter(a=>a.id!==id))}
+};
+let voiceAlarmInterval=null;
+function buildVoiceAlarm(){
+  const w=$('voicealarm-window');if(!w)return;
+  w.dataset.title='Sprach-Wecker';w.dataset.icon='🔔';
+  const all=HalDoVoiceAlarm.all();
+  const list=all.length?all.map(a=>'<div class="card" style="padding:12px;display:flex;gap:10px;align-items:center;'+(a.enabled?'':'opacity:.5')+'">'+
+    '<div style="font-size:28px">🔔</div>'+
+    '<div style="flex:1;min-width:0"><div style="font-size:20px;font-weight:900;color:'+(a.enabled?'#00e5ff':'#5a8ab0')+';font-family:monospace">'+a.time+'</div>'+
+    '<div style="font-size:11px;color:#88ccff">'+esc(a.name)+'</div></div>'+
+    '<button class="os-btn '+(a.enabled?'primary':'')+'" style="padding:8px 12px;font-size:11px" onclick="HalDoVoiceAlarm.toggle(\''+a.id+'\');buildVoiceAlarm()">'+(a.enabled?'ON':'OFF')+'</button>'+
+    '<button class="os-btn danger" style="padding:6px 8px;font-size:11px" onclick="if(confirm(\'Löschen?\')){HalDoVoiceAlarm.remove(\''+a.id+'\');buildVoiceAlarm()}">✕</button>'+
+    '</div>').join(''):'<div class="empty"><div class="ei">🔔</div><div class="et">Keine Wecker</div></div>';
+  w.innerHTML=
+    '<div class="card">'+
+    '<input class="os-input" id="vaName" placeholder="Text (z.B. Aufwachen!)" style="margin-bottom:6px">'+
+    '<input class="os-input" id="vaTime" type="time" value="07:00" style="margin-bottom:8px">'+
+    '<button class="os-btn primary full" onclick="HalDoVoiceAlarmApp.add()">🔔 Wecker stellen</button>'+
+    '</div>'+
+    list+
+    '<div class="card" style="margin-top:14px"><div style="font-size:11px;color:#aaddff;line-height:1.6;text-align:center">🔔 Wecker liest Text per Sprachausgabe vor<br>Prüft jede Minute</div></div>';
+  if(!voiceAlarmInterval){
+    voiceAlarmInterval=setInterval(()=>{
+      const now=new Date();
+      const t=now.toTimeString().slice(0,5);
+      const sec=now.getSeconds();
+      if(sec!==0)return;
+      HalDoVoiceAlarm.all().forEach(a=>{
+        if(a.enabled&&a.time===t){
+          if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(a.name);u.lang='de-DE';window.speechSynthesis.speak(u)}
+          if(navigator.vibrate)navigator.vibrate([300,100,300,100,500]);
+        }
+      });
+    },10000);
+  }
+}
+window.HalDoVoiceAlarmApp={
+  add(){const n=$('vaName').value.trim(),t=$('vaTime').value;if(!n||!t)return;HalDoVoiceAlarm.add(n,t);$('vaName').value='';buildVoiceAlarm();if(window.showToast)showToast('🔔 Wecker gestellt','success')}
+};
+
+// ═══ 13. DISPLAY INFO ═══
+function buildDisplay(){
+  const w=$('display-window');if(!w)return;
+  w.dataset.title='Display-Info';w.dataset.icon='🖥️';
+  const w1=window.innerWidth,h1=window.innerHeight;
+  const sw=screen.width,sh=screen.height;
+  const dpr=window.devicePixelRatio||1;
+  const colorDepth=screen.colorDepth||24;
+  const orientation=screen.orientation?screen.orientation.type:'unbekannt';
+  const touch='ontouchstart' in window;
+  const ratio=gcd(w1,h1);
+  w.innerHTML=
+    '<div class="card" style="text-align:center">'+
+    '<div style="font-size:80px">🖥️</div>'+
+    '<div class="big" style="font-size:26px;color:#00e5ff;margin:12px 0">'+w1+' × '+h1+'</div>'+
+    '<div style="font-size:12px;color:#88ccff">Viewport (CSS-Pixel)</div>'+
+    '</div>'+
+    '<div class="card"><div style="font-size:13px;line-height:2.2;color:#aaddff">'+
+    '<div style="display:flex;justify-content:space-between"><span>📐 Screen</span><b style="color:#fff">'+sw+' × '+sh+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span>🔍 Pixel Ratio</span><b style="color:#fff">'+dpr+'×</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span>🎨 Physische Pixel</span><b style="color:#fff">'+Math.round(sw*dpr)+' × '+Math.round(sh*dpr)+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span>📏 Seitenverhältnis</span><b style="color:#fff">'+(w1/ratio)+':'+(h1/ratio)+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span>🎯 Farbtiefe</span><b style="color:#fff">'+colorDepth+' bit</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span>🔄 Ausrichtung</span><b style="color:#fff">'+esc(orientation)+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span>👆 Touch</span><b style="color:'+(touch?'#00ff88':'#ffc800')+'">'+(touch?'Ja':'Nein')+'</b></div>'+
+    '</div></div>';
+}
+function gcd(a,b){return b===0?a:gcd(b,a%b)}
+
+// ═══ 14. KARTENDECK ═══
+const CARD_RANKS=['A','2','3','4','5','6','7','8','9','10','B','D','K'];
+const CARD_SUITS=[{s:'♥',c:'#ff4466',n:'Herz'},{s:'♦',c:'#ff4466',n:'Karo'},{s:'♠',c:'#000',n:'Pik'},{s:'♣',c:'#000',n:'Kreuz'}];
+let deckState={cards:[],drawn:[]};
+function deckInit(){
+  const d=[];for(const su of CARD_SUITS)for(const r of CARD_RANKS)d.push({r,s:su.s,c:su.c,n:su.n});
+  deckState.cards=d.sort(()=>Math.random()-.5);deckState.drawn=[];
+}
+function buildDeck(){
+  const w=$('deck-window');if(!w)return;
+  w.dataset.title='Kartendeck';w.dataset.icon='🃏';
+  if(!deckState.cards.length)deckInit();
+  const cardHtml=(c)=>'<div style="display:inline-block;padding:16px 12px;background:#fff;color:#000;border-radius:10px;margin:6px;font-size:24px;font-weight:900;min-width:56px;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,.5);border:1px solid #ccc"><div style="color:'+c.c+';font-size:14px;text-align:left">'+c.s+'</div><div>'+c.r+'</div><div style="color:'+c.c+';font-size:14px;text-align:right;transform:rotate(180deg)">'+c.s+'</div></div>';
+  const drawn=deckState.drawn.slice(-5).map(cardHtml).join('');
+  w.innerHTML=
+    '<div class="card" style="text-align:center">'+
+    '<div style="font-size:11px;color:#88ccff;text-transform:uppercase;letter-spacing:2px;font-weight:800">Verbleibend</div>'+
+    '<div class="big" style="font-size:44px;color:#00e5ff;margin:10px 0">'+deckState.cards.length+'</div>'+
+    '<div style="font-size:12px;color:#88ccff">von 52 Karten</div>'+
+    '</div>'+
+    '<div class="card" style="text-align:center;min-height:140px;padding:20px">'+
+    (drawn||'<div style="font-size:60px;opacity:.3">🃏</div>')+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+    '<button class="os-btn primary" style="padding:16px;font-size:15px" onclick="HalDoDeck.draw()" '+(deckState.cards.length?'':'disabled style="opacity:.5;padding:16px"')+'>🃏 Karte ziehen</button>'+
+    '<button class="os-btn danger" style="padding:16px;font-size:15px" onclick="deckInit();buildDeck()">🔄 Neu mischen</button>'+
+    '</div>';
+}
+window.HalDoDeck={
+  draw(){if(!deckState.cards.length)return;deckState.drawn.push(deckState.cards.pop());if(navigator.vibrate)navigator.vibrate(10);buildDeck()}
+};
+
+// ═══ INIT ═══
+function init(){
+  if(window.HalDoUI){
+    const orig=window.HalDoUI.rebuild;
+    window.HalDoUI.rebuild=function(id){
+      if(id==='battery-window'){buildBattery();return}
+      if(id==='storage-window'){buildStorage();return}
+      if(id==='crypto-window'){buildCrypto();return}
+      if(id==='stocks-window'){buildStocks();return}
+      if(id==='rss-window'){buildRSS();return}
+      if(id==='meds-window'){buildMeds();return}
+      if(id==='morse-window'){buildMorse();return}
+      if(id==='tarot-window'){buildTarot();return}
+      if(id==='iching-window'){buildIChing();return}
+      if(id==='gematria-window'){buildGematria();return}
+      if(id==='fake-window'){buildFake();return}
+      if(id==='voicealarm-window'){buildVoiceAlarm();return}
+      if(id==='display-window'){buildDisplay();return}
+      if(id==='deck-window'){buildDeck();return}
+      if(orig)orig(id);
+    };
+  }
+  ['battery-window','storage-window','crypto-window','stocks-window','rss-window','meds-window','morse-window','tarot-window','iching-window','gematria-window','fake-window','voicealarm-window','display-window','deck-window'].forEach(id=>{
+    let el=$(id);if(!el){el=document.createElement('div');el.id=id;document.body.appendChild(el)}
+    if(window.prepareWindow) window.prepareWindow(el);
+  });
+  initBatt();
+  console.log('%c🚀 v147 – 14 Apps geladen','color:#00ff88;font-weight:bold;font-size:14px');
+  console.log('%c✅ Akku · Speicher · Crypto · Aktien · RSS · Medikamente · Morse · Tarot · I Ging · Gematria · Fake · Voice-Alarm · Display · Kartendeck','color:#4da8ff;font-weight:bold');
+}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>setTimeout(init,1000))}else{setTimeout(init,1000)}
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════ ENDE v147 ═════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
