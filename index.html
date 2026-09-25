@@ -9597,5 +9597,569 @@ if(document.readyState==='loading'){
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════════════════════════════════ ENDE v136 ═ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v137 – 10 APPS (Gallery · Markdown · Stats · Text · Video · Dice · Temp · Alarm · Angle · Font) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+"use strict";
+if(window.__v137) return;
+window.__v137 = true;
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const store=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+
+// ═══════════════════════════════════════════════════════════
+// 1. GALLERY / PHOTOS
+// ═══════════════════════════════════════════════════════════
+window.HalDoGallery={
+  key:'haldo_gallery_v1',
+  all(){return store(this.key,[])},
+  add(name,dataUrl){const l=this.all();l.unshift({id:uid('g_'),name,url:dataUrl,created:Date.now()});save(this.key,l.slice(0,50));return l[0].id},
+  remove(id){save(this.key,this.all().filter(g=>g.id!==id))}
+};
+
+function buildGallery(){
+  const w=$('gallery-window');if(!w)return;
+  w.dataset.title='Gallery';w.dataset.icon='🖼️';
+  const all=HalDoGallery.all();
+  const grid=all.length?'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px">'+all.map(g=>'<div style="position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;cursor:pointer;border:1.5px solid var(--border-soft)" onclick="HalDoGalleryApp.view(\''+g.id+'\')">'+
+    '<img src="'+g.url+'" style="width:100%;height:100%;object-fit:cover;display:block">'+
+    '<button class="os-btn danger" style="position:absolute;top:4px;right:4px;padding:4px 8px;font-size:10px;border-radius:50%;width:26px;height:26px" onclick="event.stopPropagation();if(confirm(\'Löschen?\')){HalDoGallery.remove(\''+g.id+'\');HalDoGalleryApp.rebuild()}">✕</button>'+
+    '</div>').join('')+'</div>':'<div class="empty"><div class="ei">🖼️</div><div class="et">Keine Bilder</div><div class="es">Lade Fotos hoch</div></div>';
+  w.innerHTML=
+    '<div class="card"><input type="file" id="galFiles" accept="image/*" multiple style="display:none" onchange="HalDoGalleryApp.load(this)">'+
+    '<button class="os-btn primary full" onclick="document.getElementById(\'galFiles\').click()">📷 Fotos hinzufügen</button></div>'+
+    (all.length?'<div class="card" style="text-align:center;padding:8px"><b style="color:#00e5ff">'+all.length+'</b> <span style="font-size:12px;color:#88ccff">Bilder in Galerie</span></div>':'')+
+    '<div class="lbl" style="margin:14px 0 8px">🖼️ Galerie</div>'+
+    grid;
+}
+
+window.HalDoGalleryApp={
+  load(input){
+    Array.from(input.files||[]).forEach(f=>{
+      const r=new FileReader();
+      r.onload=e=>{HalDoGallery.add(f.name,e.target.result);buildGallery()};
+      r.readAsDataURL(f);
+    });
+    if(window.showToast)showToast('🖼️ Fotos geladen','success');
+  },
+  view(id){
+    const g=HalDoGallery.all().find(x=>x.id===id);if(!g)return;
+    const m=document.createElement('div');m.className='os-modal show';m.style.zIndex='99999';
+    m.innerHTML='<div class="os-modal-box" style="max-width:90vw;text-align:center;background:rgba(0,0,0,.95)">'+
+      '<img src="'+g.url+'" style="max-width:100%;max-height:70vh;border-radius:12px;display:block;margin:0 auto 14px">'+
+      '<div style="font-size:12px;color:#88ccff;margin-bottom:14px">'+esc(g.name)+'</div>'+
+      '<div style="display:flex;gap:8px">'+
+      '<button class="os-btn danger" onclick="if(confirm(\'Löschen?\')){HalDoGallery.remove(\''+g.id+'\');this.closest(\'.os-modal\').remove();HalDoGalleryApp.rebuild()}">🗑️ Löschen</button>'+
+      '<button class="os-btn primary" style="flex:1" onclick="this.closest(\'.os-modal\').remove()">Schließen</button>'+
+      '</div></div>';
+    document.body.appendChild(m);
+    m.addEventListener('click',e=>{if(e.target===m)m.remove()});
+  },
+  rebuild(){buildGallery()}
+};
+
+// ═══════════════════════════════════════════════════════════
+// 2. MARKDOWN EDITOR
+// ═══════════════════════════════════════════════════════════
+function renderMarkdown(md){
+  if(!md)return '';
+  let h=md.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  h=h.replace(/```([\s\S]*?)```/g,(m,c)=>'<pre style="background:rgba(0,0,0,.5);padding:10px;border-radius:8px;overflow-x:auto;font-size:12px;color:#ff8c3c">'+c.trim()+'</pre>');
+  h=h.replace(/`([^`]+)`/g,'<code style="background:rgba(0,0,0,.5);padding:2px 6px;border-radius:4px;color:#ff8c3c">$1</code>');
+  h=h.replace(/^### (.+)$/gm,'<h3 style="color:#00e5ff;font-size:15px;margin:10px 0 6px">$1</h3>');
+  h=h.replace(/^## (.+)$/gm,'<h2 style="color:#00e5ff;font-size:18px;margin:12px 0 6px">$1</h2>');
+  h=h.replace(/^# (.+)$/gm,'<h1 style="color:#00e5ff;font-size:22px;margin:14px 0 8px;border-bottom:1px solid rgba(0,229,255,.3);padding-bottom:6px">$1</h1>');
+  h=h.replace(/\*\*([^*]+)\*\*/g,'<b style="color:#fff">$1</b>');
+  h=h.replace(/\*([^*]+)\*/g,'<i style="color:#aaddff">$1</i>');
+  h=h.replace(/^&gt; (.+)$/gm,'<blockquote style="border-left:3px solid #00e5ff;padding-left:12px;color:#aaddff;font-style:italic;margin:8px 0">$1</blockquote>');
+  h=h.replace(/^- (.+)$/gm,'<li>$1</li>');
+  h=h.replace(/^\d+\. (.+)$/gm,'<li>$1</li>');
+  h=h.replace(/(<li>.*?<\/li>\s*)+/g,m=>'<ul style="margin:8px 0;padding-left:20px;line-height:1.8">'+m+'</ul>');
+  h=h.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" style="color:#4da8ff;text-decoration:underline">$1</a>');
+  h=h.replace(/^---$/gm,'<hr style="border:none;border-top:1px solid rgba(0,229,255,.3);margin:14px 0">');
+  h=h.split(/\n\n+/).map(p=>/^<(h[1-6]|ul|ol|pre|blockquote|hr)/.test(p.trim())?p:'<p style="margin:8px 0;line-height:1.7">'+p.replace(/\n/g,'<br>')+'</p>').join('');
+  return h;
+}
+
+let mdState={content:'# Hallo Welt\n\nDas ist **Markdown**.\n\n- Punkt 1\n- Punkt 2\n\n> Zitat hier',preview:false};
+
+function buildMarkdown(){
+  const w=$('markdown-window');if(!w)return;
+  w.dataset.title='Markdown';w.dataset.icon='📝';
+  const toolbar=[['B','**','**'],['I','*','*'],['H1','# ',''],['H2','## ',''],['H3','### ',''],['•','- ',''],['1.','1. ',''],['>','> ',''],['`','`','`'],['---','---\n','']];
+  const toolBtns=toolbar.map(t=>'<button class="os-btn" style="padding:6px 10px;font-size:11px;font-weight:900;font-family:monospace" onclick="HalDoMD.wrap(\''+t[1].replace(/\n/g,'\\n')+'\',\''+t[2].replace(/\n/g,'\\n')+'\')">'+t[0]+'</button>').join('');
+  w.innerHTML=
+    '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px">'+toolBtns+
+    '<button class="os-btn '+(mdState.preview?'primary':'')+'" style="padding:6px 12px;font-size:11px" onclick="HalDoMD.togglePreview()">'+(mdState.preview?'✏️ Bearbeiten':'👁️ Vorschau')+'</button>'+
+    '</div>'+
+    (mdState.preview?
+      '<div class="card" style="min-height:300px;font-size:14px;color:#e6f4ff">'+renderMarkdown(mdState.content)+'</div>':
+      '<textarea class="os-textarea" id="mdInput" style="min-height:340px;font-family:monospace;font-size:13px;line-height:1.6" oninput="HalDoMD.update(this.value)">'+esc(mdState.content)+'</textarea>')+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">'+
+    '<button class="os-btn" onclick="HalDoMD.copy()">📋 Kopieren</button>'+
+    '<button class="os-btn primary" onclick="HalDoMD.download()">💾 Download</button>'+
+    '</div>';
+}
+
+window.HalDoMD={
+  update(v){mdState.content=v},
+  togglePreview(){mdState.preview=!mdState.preview;buildMarkdown()},
+  wrap(before,after){
+    const ta=$('mdInput');if(!ta)return;
+    const s=ta.selectionStart,e=ta.selectionEnd;
+    const sel=ta.value.slice(s,e);
+    ta.value=ta.value.slice(0,s)+before+sel+after+ta.value.slice(e);
+    mdState.content=ta.value;
+    ta.focus();
+    ta.setSelectionRange(s+before.length,s+before.length+sel.length);
+  },
+  copy(){navigator.clipboard.writeText(mdState.content).then(()=>{if(window.showToast)showToast('📋 Kopiert','success')})},
+  download(){const blob=new Blob([mdState.content],{type:'text/markdown'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='notiz-'+Date.now()+'.md';a.click()}
+};
+
+// ═══════════════════════════════════════════════════════════
+// 3. STATISTICS PRO
+// ═══════════════════════════════════════════════════════════
+let statState={result:null};
+
+function buildStatsPro(){
+  const w=$('statspro-window');if(!w)return;
+  w.dataset.title='Statistik Pro';w.dataset.icon='📊';
+  const r=statState.result;
+  let resultHtml='';
+  if(r){
+    resultHtml='<div class="card"><div class="lbl" style="margin-bottom:10px">📊 Ergebnisse ('+r.n+' Werte)</div>'+
+      '<div class="grid2">'+
+      '<div style="text-align:center"><div class="big" style="font-size:20px">'+r.mean.toFixed(3)+'</div><div class="lbl">Mittelwert</div></div>'+
+      '<div style="text-align:center"><div class="big" style="font-size:20px">'+r.median.toFixed(3)+'</div><div class="lbl">Median</div></div>'+
+      '<div style="text-align:center"><div class="big" style="font-size:20px">'+r.min.toFixed(3)+'</div><div class="lbl">Min</div></div>'+
+      '<div style="text-align:center"><div class="big" style="font-size:20px">'+r.max.toFixed(3)+'</div><div class="lbl">Max</div></div>'+
+      '<div style="text-align:center"><div class="big" style="font-size:20px">'+r.sum.toFixed(3)+'</div><div class="lbl">Summe</div></div>'+
+      '<div style="text-align:center"><div class="big" style="font-size:20px">'+r.stddev.toFixed(3)+'</div><div class="lbl">Std.Abw.</div></div>'+
+      '<div style="text-align:center"><div class="big" style="font-size:20px">'+r.variance.toFixed(3)+'</div><div class="lbl">Varianz</div></div>'+
+      '<div style="text-align:center"><div class="big" style="font-size:20px">'+r.range.toFixed(3)+'</div><div class="lbl">Range</div></div>'+
+      '</div></div>'+
+      '<div class="card"><div class="lbl" style="margin-bottom:8px">📈 Histogramm</div>'+
+      '<div style="display:flex;gap:2px;height:100px;align-items:flex-end;padding:8px;background:rgba(0,0,0,.3);border-radius:10px">'+
+      r.histogram.map(b=>'<div style="flex:1;min-width:8px;height:'+b.pct+'%;background:linear-gradient(180deg,#00e5ff,#b478ff);border-radius:3px 3px 0 0"></div>').join('')+
+      '</div></div>';
+  }
+  w.innerHTML=
+    '<div class="card">'+
+    '<div class="lbl" style="margin-bottom:8px">📥 Zahlen eingeben</div>'+
+    '<textarea class="os-textarea" id="statIn" placeholder="Zahlen durch Komma, Leerzeichen oder Zeilenumbruch getrennt...\n\nBeispiel: 12, 15, 18, 22, 25, 28, 30" style="min-height:140px;font-family:monospace"></textarea>'+
+    '<button class="os-btn primary full" style="margin-top:8px" onclick="HalDoStatsPro.calc()">📊 Analysieren</button>'+
+    '</div>'+
+    resultHtml;
+}
+
+window.HalDoStatsPro={
+  calc(){
+    const raw=$('statIn').value.trim();
+    const nums=raw.split(/[\s,;]+/).map(Number).filter(n=>!isNaN(n));
+    if(!nums.length){if(window.showToast)showToast('⚠️ Keine Zahlen','error');return}
+    const sorted=nums.slice().sort((a,b)=>a-b);
+    const n=nums.length,sum=nums.reduce((a,b)=>a+b,0);
+    const mean=sum/n;
+    const median=n%2===0?(sorted[n/2-1]+sorted[n/2])/2:sorted[(n-1)/2];
+    const variance=nums.reduce((s,v)=>s+Math.pow(v-mean,2),0)/n;
+    const min=sorted[0],max=sorted[n-1];
+    const binCount=Math.min(15,Math.max(5,Math.ceil(Math.sqrt(n)*2)));
+    const range=max-min||1,binSize=range/binCount;
+    const bins=Array(binCount).fill(0);
+    nums.forEach(v=>{const i=Math.min(binCount-1,Math.floor((v-min)/binSize));bins[i]++});
+    const maxBin=Math.max(...bins)||1;
+    statState.result={n,sum,mean,median,min,max,range,variance,stddev:Math.sqrt(variance),histogram:bins.map(b=>({count:b,pct:(b/maxBin)*100}))};
+    buildStatsPro();
+    if(navigator.vibrate)navigator.vibrate(15);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 4. TEXT TOOLS (Character/Word Counter)
+// ═══════════════════════════════════════════════════════════
+let textState={text:''};
+
+function buildTextTools(){
+  const w=$('texttools-window');if(!w)return;
+  w.dataset.title='Text Tools';w.dataset.icon='🔤';
+  const t=textState.text;
+  const chars=t.length;
+  const charsNoSpace=t.replace(/\s/g,'').length;
+  const words=t.trim()?t.trim().split(/\s+/).length:0;
+  const sentences=(t.match(/[.!?]+/g)||[]).length||(t.trim()?1:0);
+  const paragraphs=t.split(/\n\s*\n/).filter(p=>p.trim()).length||(t.trim()?1:0);
+  const lines=t?t.split('\n').length:0;
+  const readTime=Math.ceil(words/200);
+  const speakTime=Math.ceil(words/130);
+  w.innerHTML=
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:22px">'+chars+'</div><div class="lbl">Zeichen</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:22px">'+charsNoSpace+'</div><div class="lbl">Ohne Leerz.</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:22px">'+words+'</div><div class="lbl">Wörter</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:22px">'+sentences+'</div><div class="lbl">Sätze</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:22px">'+paragraphs+'</div><div class="lbl">Absätze</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:22px">'+lines+'</div><div class="lbl">Zeilen</div></div>'+
+    '</div>'+
+    '<div class="card" style="text-align:center;padding:14px"><div style="display:flex;justify-content:space-around">'+
+    '<div><div class="big" style="font-size:20px">'+readTime+' Min</div><div class="lbl">📖 Lesen</div></div>'+
+    '<div><div class="big" style="font-size:20px">'+speakTime+' Min</div><div class="lbl">🎙️ Sprechen</div></div>'+
+    '</div></div>'+
+    '<div class="card"><textarea class="os-textarea" id="txtIn" style="min-height:200px" oninput="HalDoTextTools.update(this.value)" placeholder="Text eingeben...">'+esc(t)+'</textarea>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">'+
+    '<button class="os-btn" style="font-size:11px" onclick="HalDoTextTools.upper()">AA</button>'+
+    '<button class="os-btn" style="font-size:11px" onclick="HalDoTextTools.lower()">aa</button>'+
+    '<button class="os-btn" style="font-size:11px" onclick="HalDoTextTools.clear()">🗑️</button>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">'+
+    '<button class="os-btn" style="font-size:11px" onclick="HalDoTextTools.copy()">📋 Kopieren</button>'+
+    '<button class="os-btn" style="font-size:11px" onclick="HalDoTextTools.reverse()">🔄 Reverse</button>'+
+    '</div></div>';
+}
+
+window.HalDoTextTools={
+  update(v){textState.text=v;const w=$('texttools-window');if(!w)return;const t=v;const chars=t.length;const words=t.trim()?t.trim().split(/\s+/).length:0;document.querySelectorAll('#texttools-window .big').forEach((el,i)=>{const vals=[chars,t.replace(/\s/g,'').length,words,(t.match(/[.!?]+/g)||[]).length||(t.trim()?1:0),t.split(/\n\s*\n/).filter(p=>p.trim()).length||(t.trim()?1:0),t?t.split('\n').length:0];if(i<6)el.textContent=vals[i]})},
+  upper(){textState.text=textState.text.toUpperCase();buildTextTools()},
+  lower(){textState.text=textState.text.toLowerCase();buildTextTools()},
+  clear(){textState.text='';buildTextTools()},
+  reverse(){textState.text=textState.text.split('\n').map(l=>l.split('').reverse().join('')).join('\n');buildTextTools()},
+  copy(){navigator.clipboard.writeText(textState.text).then(()=>{if(window.showToast)showToast('📋 Kopiert','success')})}
+};
+
+// ═══════════════════════════════════════════════════════════
+// 5. VIDEO PLAYER
+// ═══════════════════════════════════════════════════════════
+let videoState={files:[],current:null};
+
+function buildVideo(){
+  const w=$('video-window');if(!w)return;
+  w.dataset.title='Video Player';w.dataset.icon='🎬';
+  const list=videoState.files.length?videoState.files.map((f,i)=>'<div class="card" style="padding:10px;display:flex;gap:10px;align-items:center;cursor:pointer" onclick="HalDoVideo.play('+i+')">'+
+    '<div style="font-size:24px;width:36px;text-align:center">🎬</div>'+
+    '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(f.name)+'</div>'+
+    '<div style="font-size:10px;color:#88ccff">'+(f.size?((f.size/1048576).toFixed(1)+' MB'):'')+'</div></div>'+
+    '<button class="os-btn primary" style="padding:6px 12px;font-size:12px">▶</button></div>').join(''):'<div class="empty"><div class="ei">🎬</div><div class="et">Keine Videos</div></div>';
+  w.innerHTML=
+    (videoState.current?
+      '<div class="card" style="padding:0;background:#000;overflow:hidden"><video id="videoPlayer" controls autoplay style="width:100%;display:block;max-height:60vh" src="'+videoState.current.url+'"></video></div>':
+      '')+
+    '<div class="card">'+
+    '<input type="file" id="videoFiles" accept="video/*" multiple style="display:none" onchange="HalDoVideo.load(this)">'+
+    '<button class="os-btn primary full" onclick="document.getElementById(\'videoFiles\').click()">📁 Video laden</button>'+
+    '</div>'+
+    list;
+}
+
+window.HalDoVideo={
+  load(input){
+    Array.from(input.files||[]).forEach(f=>videoState.files.push({name:f.name,size:f.size,url:URL.createObjectURL(f)}));
+    buildVideo();
+    if(window.showToast)showToast('🎬 '+input.files.length+' Videos','success');
+  },
+  play(i){const f=videoState.files[i];if(!f)return;videoState.current=f;buildVideo()}
+};
+
+// ═══════════════════════════════════════════════════════════
+// 6. DICE ROLLER
+// ═══════════════════════════════════════════════════════════
+let diceState={sides:6,count:1,results:[],history:[]};
+
+function buildDice(){
+  const w=$('dice-window');if(!w)return;
+  w.dataset.title='Würfel';w.dataset.icon='🎲';
+  const emojis={1:'⚀',2:'⚁',3:'⚂',4:'⚃',5:'⚄',6:'⚅'};
+  const dice=Array.from({length:diceState.count},(_,i)=>diceState.results[i]||0);
+  const sum=diceState.results.reduce((a,b)=>a+b,0);
+  const hist=diceState.history.slice(0,10).map(h=>'<div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(0,0,0,.3);border-radius:8px;margin-bottom:4px;font-size:12px"><span style="color:#88ccff">'+h.dice.join('+')+'</span><b style="color:#00e5ff">='+h.sum+'</b></div>').join('');
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:24px">'+
+    '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:14px;min-height:60px;align-items:center">'+
+    (dice.length?dice.map(d=>'<div style="font-size:56px;line-height:1;color:#fff;text-shadow:0 0 20px var(--glow)">'+(diceState.sides<=6?(emojis[d]||'🎲'):'🎲')+'<div style="font-size:20px;font-weight:900;color:#00e5ff;margin-top:-8px">'+d+'</div></div>').join(''):'<div style="font-size:60px">🎲</div>')+
+    '</div>'+
+    (diceState.count>1&&sum?'<div style="font-size:28px;font-weight:900;color:#00e5ff;margin-bottom:14px">Summe: '+sum+'</div>':'')+
+    '<button class="os-btn primary" style="padding:16px 40px;font-size:16px" onclick="HalDoDice.roll()">🎲 Würfeln</button>'+
+    '</div>'+
+    '<div class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+    '<select class="os-select" id="dcSides" onchange="HalDoDice.setSides(this.value)">'+
+    '<option value="4" '+(diceState.sides===4?'selected':'')+'>D4</option>'+
+    '<option value="6" '+(diceState.sides===6?'selected':'')+'>D6</option>'+
+    '<option value="8" '+(diceState.sides===8?'selected':'')+'>D8</option>'+
+    '<option value="10" '+(diceState.sides===10?'selected':'')+'>D10</option>'+
+    '<option value="12" '+(diceState.sides===12?'selected':'')+'>D12</option>'+
+    '<option value="20" '+(diceState.sides===20?'selected':'')+'>D20</option>'+
+    '<option value="100" '+(diceState.sides===100?'selected':'')+'>D100</option>'+
+    '</select>'+
+    '<select class="os-select" id="dcCount" onchange="HalDoDice.setCount(this.value)">'+
+    Array.from({length:10},(_,i)=>'<option value="'+(i+1)+'" '+(diceState.count===i+1?'selected':'')+'>'+(i+1)+' Würfel</option>').join('')+
+    '</select>'+
+    '</div></div>'+
+    (hist?'<div class="card"><div class="lbl" style="margin-bottom:8px">📜 Verlauf</div>'+hist+'</div>':'');
+}
+
+window.HalDoDice={
+  setSides(v){diceState.sides=parseInt(v)||6;diceState.results=[];buildDice()},
+  setCount(v){diceState.count=parseInt(v)||1;diceState.results=[];buildDice()},
+  roll(){
+    let ticks=0;
+    const iv=setInterval(()=>{
+      diceState.results=Array.from({length:diceState.count},()=>Math.floor(Math.random()*diceState.sides)+1);
+      buildDice();
+      ticks++;
+      if(ticks>10){
+        clearInterval(iv);
+        diceState.history.unshift({dice:diceState.results.slice(),sum:diceState.results.reduce((a,b)=>a+b,0)});
+        diceState.history=diceState.history.slice(0,20);
+        buildDice();
+        if(navigator.vibrate)navigator.vibrate(15);
+      }
+    },60);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 7. TEMPERATURE CONVERTER
+// ═══════════════════════════════════════════════════════════
+let tempState={c:25};
+
+function buildTemp(){
+  const w=$('temp-window');if(!w)return;
+  w.dataset.title='Temperatur';w.dataset.icon='🌡️';
+  const c=tempState.c;
+  const f=c*9/5+32;
+  const k=c+273.15;
+  const feel=c<0?'❄️ Eiskalt':c<10?'🥶 Kalt':c<18?'😐 Kühl':c<25?'😊 Angenehm':c<32?'🌞 Warm':'🔥 Heiß';
+  w.innerHTML=
+    '<div class="card" style="text-align:center">'+
+    '<div style="font-size:56px;font-weight:900;color:#fff;line-height:1;text-shadow:0 0 30px var(--glow)">'+c.toFixed(1)+'<span style="font-size:24px;color:#7ce0ff">°C</span></div>'+
+    '<div style="font-size:14px;color:#00e5ff;margin-top:8px">'+feel+'</div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">Celsius (°C)</div>'+
+    '<input type="range" min="-50" max="100" value="'+c+'" style="width:100%;accent-color:var(--cyan)" oninput="HalDoTemp.set(this.value)">'+
+    '<div style="display:flex;justify-content:space-between;font-size:10px;color:#88ccff;margin-top:4px"><span>-50°</span><span>0°</span><span>100°</span></div></div>'+
+    '<div class="grid2">'+
+    '<div class="card" style="text-align:center;padding:14px" onclick="HalDoTemp.setF()">'+
+    '<div class="big" style="font-size:24px;color:#ff8c3c">'+f.toFixed(1)+'<span style="font-size:14px">°F</span></div>'+
+    '<div class="lbl" style="margin-top:4px">Fahrenheit</div></div>'+
+    '<div class="card" style="text-align:center;padding:14px">'+
+    '<div class="big" style="font-size:24px;color:#4da8ff">'+k.toFixed(2)+'<span style="font-size:14px">K</span></div>'+
+    '<div class="lbl" style="margin-top:4px">Kelvin</div></div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">Umrechnungen</div>'+
+    '<div style="font-size:12px;line-height:1.9;color:#aaddff;font-family:monospace">'+
+    '<div style="display:flex;justify-content:space-between"><span>°C → °F</span><b style="color:#fff">×9/5 + 32</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span>°F → °C</span><b style="color:#fff">(°F-32) × 5/9</b></div>'+
+    '<div style="display:flex;justify-content:space-between"><span>°C → K</span><b style="color:#fff">+ 273.15</b></div>'+
+    '</div></div>';
+}
+
+window.HalDoTemp={
+  set(v){tempState.c=parseFloat(v)||0;buildTemp()},
+  setF(){const f=prompt('Fahrenheit eingeben:',(tempState.c*9/5+32).toFixed(1));if(f!==null){tempState.c=(parseFloat(f)-32)*5/9;buildTemp()}}
+};
+
+// ═══════════════════════════════════════════════════════════
+// 8. ALARM CLOCK
+// ═══════════════════════════════════════════════════════════
+window.HalDoAlarm={
+  key:'haldo_alarm_v1',
+  all(){return store(this.key,[])},
+  add(time,label){const l=this.all();l.push({id:uid('al_'),time,label:label||'Wecker',enabled:true,created:Date.now()});save(this.key,l)},
+  remove(id){save(this.key,this.all().filter(a=>a.id!==id))},
+  toggle(id){const l=this.all();const x=l.find(a=>a.id===id);if(x){x.enabled=!x.enabled;save(this.key,l)}}
+};
+
+let alarmState={interval:null,lastFired:null};
+
+function buildAlarm(){
+  const w=$('alarm-window');if(!w)return;
+  w.dataset.title='Wecker';w.dataset.icon='⏰';
+  const all=HalDoAlarm.all();
+  const now=new Date();
+  const timeStr=now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const list=all.length?all.map(a=>'<div class="card" style="padding:12px;display:flex;gap:10px;align-items:center;'+(a.enabled?'':'opacity:.5')+'">'+
+    '<div style="flex:1;min-width:0">'+
+    '<div style="font-size:32px;font-weight:900;color:'+(a.enabled?'#00e5ff':'#5a8ab0')+';font-family:monospace;line-height:1">'+esc(a.time)+'</div>'+
+    '<div style="font-size:11px;color:#88ccff;margin-top:4px">'+esc(a.label)+'</div>'+
+    '</div>'+
+    '<button class="os-btn '+(a.enabled?'primary':'')+'" style="padding:8px 14px;font-size:12px" onclick="HalDoAlarm.toggle(\''+a.id+'\');HalDoAlarmApp.rebuild()">'+(a.enabled?'ON':'OFF')+'</button>'+
+    '<button class="os-btn danger" style="padding:8px 10px;font-size:12px" onclick="if(confirm(\'Löschen?\')){HalDoAlarm.remove(\''+a.id+'\');HalDoAlarmApp.rebuild()}">✕</button>'+
+    '</div>').join(''):'<div class="empty"><div class="ei">⏰</div><div class="et">Keine Wecker</div></div>';
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:20px">'+
+    '<div id="alarmNow" style="font-size:48px;font-weight:200;color:#fff;font-family:monospace;text-shadow:0 0 30px var(--glow);line-height:1">'+timeStr+'</div>'+
+    '<div style="font-size:11px;color:#7ce0ff;text-transform:uppercase;letter-spacing:2px;margin-top:8px;font-weight:800">'+now.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'})+'</div>'+
+    '</div>'+
+    '<div class="card">'+
+    '<div style="display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-bottom:8px">'+
+    '<input class="os-input" id="alTime" type="time" value="07:00">'+
+    '<input class="os-input" id="alLabel" placeholder="Beschriftung">'+
+    '</div>'+
+    '<button class="os-btn primary full" onclick="HalDoAlarmApp.add()">⏰ Wecker stellen</button>'+
+    '</div>'+
+    list;
+  if(alarmState.interval)clearInterval(alarmState.interval);
+  alarmState.interval=setInterval(()=>{
+    const el=$('alarmNow');
+    if(el)el.textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    // Check Alarme
+    const t=new Date();
+    const tk=t.toTimeString().slice(0,5);
+    if(tk!==alarmState.lastFired){
+      HalDoAlarm.all().forEach(a=>{
+        if(a.enabled&&a.time===tk){
+          alarmState.lastFired=tk;
+          HalDoAlarmApp.fire(a);
+        }
+      });
+    }
+  },1000);
+}
+
+window.HalDoAlarmApp={
+  add(){const t=$('alTime').value;if(!t)return;HalDoAlarm.add(t,$('alLabel').value);$('alLabel').value='';buildAlarm();if(window.showToast)showToast('⏰ Wecker gestellt','success')},
+  fire(a){
+    if(navigator.vibrate)navigator.vibrate([300,100,300,100,500,100,300]);
+    try{const ctx=new (window.AudioContext||window.webkitAudioContext)();const now=ctx.currentTime;
+      for(let i=0;i<5;i++){const o=now+i*0.4;const osc=ctx.createOscillator(),g=ctx.createGain();
+        osc.frequency.setValueAtTime(880,o);osc.frequency.linearRampToValueAtTime(1200,o+0.15);
+        g.gain.setValueAtTime(.001,o);g.gain.exponentialRampToValueAtTime(.4,o+0.02);g.gain.exponentialRampToValueAtTime(.001,o+0.35);
+        osc.connect(g).connect(ctx.destination);osc.start(o);osc.stop(o+0.4)}
+    }catch(e){}
+    const m=document.createElement('div');m.className='os-modal show';m.style.zIndex='99999';
+    m.innerHTML='<div class="os-modal-box" style="text-align:center;max-width:340px;border-color:#ff4466">'+
+      '<div style="font-size:80px;animation:ring 0.5s infinite">⏰</div>'+
+      '<h2 style="font-size:24px">'+esc(a.label)+'</h2>'+
+      '<div style="font-size:32px;font-weight:900;color:#00e5ff;font-family:monospace;margin:12px 0">'+esc(a.time)+'</div>'+
+      '<button class="os-btn danger full" style="padding:16px" onclick="this.closest(\'.os-modal\').remove()">⏹ Stop</button>'+
+      '</div><style>@keyframes ring{50%{transform:rotate(15deg)}}</style>';
+    document.body.appendChild(m);
+  },
+  rebuild(){buildAlarm()}
+};
+
+// ═══════════════════════════════════════════════════════════
+// 9. ANGLE CALCULATOR
+// ═══════════════════════════════════════════════════════════
+let angleState={deg:45};
+
+function buildAngle(){
+  const w=$('angle-window');if(!w)return;
+  w.dataset.title='Winkel';w.dataset.icon='📐';
+  const d=angleState.deg;
+  const rad=d*Math.PI/180;
+  const sin=Math.sin(rad),cos=Math.cos(rad),tan=Math.tan(rad);
+  w.innerHTML=
+    '<div class="card" style="text-align:center">'+
+    '<div style="font-size:48px;font-weight:900;color:#fff;text-shadow:0 0 30px var(--glow)">'+d.toFixed(1)+'°</div>'+
+    '<div style="font-size:12px;color:#7ce0ff;margin-top:6px">'+(rad).toFixed(4)+' rad</div>'+
+    '</div>'+
+    '<div class="card"><input type="range" min="0" max="360" value="'+d+'" style="width:100%;accent-color:var(--cyan)" oninput="HalDoAngle.set(this.value)"></div>'+
+    '<div class="grid2">'+
+    '<div class="card" style="text-align:center;padding:12px"><div class="big" style="font-size:20px">'+sin.toFixed(4)+'</div><div class="lbl">sin</div></div>'+
+    '<div class="card" style="text-align:center;padding:12px"><div class="big" style="font-size:20px">'+cos.toFixed(4)+'</div><div class="lbl">cos</div></div>'+
+    '<div class="card" style="text-align:center;padding:12px"><div class="big" style="font-size:20px">'+(isFinite(tan)?tan.toFixed(4):'–')+'</div><div class="lbl">tan</div></div>'+
+    '<div class="card" style="text-align:center;padding:12px"><div class="big" style="font-size:20px">'+d.toFixed(1)+'°</div><div class="lbl">Grad</div></div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">🔄 Umrechnen</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+
+    '<input class="os-input" id="angIn" type="number" placeholder="Wert" step="any">'+
+    '<select class="os-select" id="angUnit"><option value="deg">Grad</option><option value="rad">Radiant</option></select>'+
+    '</div>'+
+    '<button class="os-btn primary full" style="margin-top:8px" onclick="HalDoAngle.convert()">Umrechnen</button>'+
+    '<div id="angOut" style="margin-top:10px;padding:12px;background:rgba(0,0,0,.3);border-radius:10px;font-family:monospace;color:#00e5ff;text-align:center">Ergebnis</div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">💡 Häufige Winkel</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'+
+    [30,45,60,90].map(a=>'<button class="os-btn" style="padding:8px;font-size:11px" onclick="HalDoAngle.set('+a+')">'+a+'°</button>').join('')+
+    '</div></div>';
+}
+
+window.HalDoAngle={
+  set(v){angleState.deg=parseFloat(v)||0;buildAngle()},
+  convert(){
+    const v=parseFloat($('angIn').value)||0;
+    const u=$('angUnit').value;
+    const r=u==='deg'?v*Math.PI/180:v*180/Math.PI;
+    $('angOut').innerHTML=u==='deg'?(r.toFixed(4)+' rad'):(r.toFixed(4)+'°');
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 10. FONT VIEWER
+// ═══════════════════════════════════════════════════════════
+let fontState={text:'HalDo AI OS',size:24};
+
+const FONTS=['Arial','Helvetica','Georgia','Times New Roman','Courier New','Verdana','Tahoma','Trebuchet MS','Impact','Comic Sans MS','Palatino','Garamond','Bookman','Rockwell','Futura','Gill Sans'];
+
+function buildFont(){
+  const w=$('font-window');if(!w)return;
+  w.dataset.title='Font Viewer';w.dataset.icon='🔠';
+  const list=FONTS.map(f=>'<div class="card" style="padding:14px"><div style="font-size:10px;color:#7ce0ff;text-transform:uppercase;letter-spacing:1px;font-weight:800;margin-bottom:8px">'+f+'</div>'+
+    '<div style="font-family:\''+f+'\',sans-serif;font-size:'+fontState.size+'px;color:#fff;line-height:1.2;word-break:break-word">'+esc(fontState.text)+'</div>'+
+    '<div style="font-family:\''+f+'\',sans-serif;font-size:14px;color:#aaddff;margin-top:6px">ABCDEFGHIJKLM · abcdefghijklm · 0123456789</div>'+
+    '</div>').join('');
+  w.innerHTML=
+    '<div class="card">'+
+    '<input class="os-input" id="fontText" placeholder="Vorschautext" value="'+esc(fontState.text)+'" oninput="HalDoFont.update(this.value)" style="margin-bottom:8px">'+
+    '<div class="lbl" style="margin-bottom:6px">Größe: <b style="color:#00e5ff">'+fontState.size+'px</b></div>'+
+    '<input type="range" min="10" max="72" value="'+fontState.size+'" style="width:100%;accent-color:var(--cyan)" oninput="HalDoFont.setSize(this.value)">'+
+    '</div>'+
+    '<div class="lbl" style="margin:10px 0 8px">🔠 Schriftarten ('+FONTS.length+')</div>'+
+    list;
+}
+
+window.HalDoFont={
+  update(v){fontState.text=v;const w=$('font-window');if(!w)return;w.querySelectorAll('.card div[style*="font-family"]').forEach(el=>{if(el.style.fontSize===fontState.size+'px')el.textContent=v})},
+  setSize(v){fontState.size=parseInt(v)||24;buildFont()}
+};
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+function init(){
+  if(window.HalDoUI){
+    const orig=window.HalDoUI.rebuild;
+    window.HalDoUI.rebuild=function(id){
+      if(id==='gallery-window'){buildGallery();return}
+      if(id==='markdown-window'){buildMarkdown();return}
+      if(id==='statspro-window'){buildStatsPro();return}
+      if(id==='texttools-window'){buildTextTools();return}
+      if(id==='video-window'){buildVideo();return}
+      if(id==='dice-window'){buildDice();return}
+      if(id==='temp-window'){buildTemp();return}
+      if(id==='alarm-window'){buildAlarm();return}
+      if(id==='angle-window'){buildAngle();return}
+      if(id==='font-window'){buildFont();return}
+      if(orig)orig(id);
+    };
+  }
+  ['gallery-window','markdown-window','statspro-window','texttools-window','video-window','dice-window','temp-window','alarm-window','angle-window','font-window'].forEach(id=>{
+    let el=$(id);
+    if(!el){el=document.createElement('div');el.id=id;document.body.appendChild(el)}
+    if(window.prepareWindow) window.prepareWindow(el);
+  });
+  console.log('%c🚀 v137 – 10 Apps geladen','color:#00ff88;font-weight:bold;font-size:14px');
+  console.log('%c✅ Gallery · Markdown · Stats · Text · Video · Dice · Temp · Alarm · Angle · Font','color:#4da8ff;font-weight:bold');
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(init,1000));
+}else{
+  setTimeout(init,1000);
+}
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════ ENDE v137 ═════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
