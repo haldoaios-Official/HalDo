@@ -2968,5 +2968,882 @@ console.log('%c🤖 HalDo Avatar AI v123 geladen','background:linear-gradient(90
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v124 · Apps Pack 1 (A/B/C/F/K)
+     26 neue funktionierende Apps — einfach vor </body> einfügen
+     ============================================================ -->
+<script>
+(function(){
+'use strict';
+
+if(!window.HalDo || !window.HalDo.apps){
+  console.warn('[v124 Apps] HalDo nicht bereit — Retry in 800ms');
+  setTimeout(()=>location.reload(), 800);
+  return;
+}
+
+const APPS = window.HalDo.apps;
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = ()=>Math.random().toString(36).slice(2,10);
+const fmt = n => (Math.round(n*100)/100).toLocaleString('de-DE');
+const toast = window.HalDo.toast || ((m)=>console.log('[toast]',m));
+const store = {
+  key: k => 'haldo_'+k+'_v1',
+  get(k,d){ try{ const v=localStorage.getItem(this.key(k)); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(this.key(k), JSON.stringify(v)); }catch(e){} }
+};
+const rnd = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const shuffle = a=>[...a].sort(()=>Math.random()-.5);
+
+/* ============================================================
+   GENERISCHER QUIZ-BAUSTEIN (für mehrere Apps genutzt)
+   ============================================================ */
+function makeQuiz(title, icon, questions){
+  return {
+    name: title, icon: icon,
+    render(){
+      return '<div class="col center" style="max-width:520px;margin:0 auto">'+
+        '<div class="row between" style="width:100%"><span class="dim" id="qzProg">1 / '+questions.length+'</span><span class="dim">Punkte: <b id="qzScore">0</b></span></div>'+
+        '<div class="card center big2" id="qzQ" style="min-height:70px;display:flex;align-items:center;justify-content:center;width:100%"></div>'+
+        '<div id="qzA" class="col" style="width:100%"></div>'+
+        '<button class="btn" id="qzR" style="margin-top:6px">🔄 Neu starten</button>'+
+      '</div>';
+    },
+    init(win){
+      let idx=0, score=0, order=shuffle(questions);
+      const Q=$('#qzQ',win), A=$('#qzA',win), P=$('#qzProg',win), S=$('#qzScore',win);
+      function draw(){
+        if(idx>=order.length){
+          Q.textContent = score===order.length ? '🎉 Perfekt!' : (score>=order.length*0.7 ? '👍 Gut gemacht!' : 'Weiter üben!');
+          A.innerHTML = '<div class="card center big2" style="width:100%">Ergebnis: '+score+' / '+order.length+'</div>';
+          P.textContent = order.length+' / '+order.length;
+          return;
+        }
+        const q = order[idx];
+        Q.textContent = q.q;
+        P.textContent = (idx+1)+' / '+order.length;
+        S.textContent = score;
+        A.innerHTML = q.a.map((ans,i)=>'<button class="btn" data-i="'+i+'" style="width:100%;text-align:left">'+esc(ans)+'</button>').join('');
+        A.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+          const i = parseInt(b.dataset.i);
+          if(i===q.correct){ score++; b.style.background='rgba(77,232,138,.35)'; b.style.borderColor='#4de88a'; }
+          else{
+            b.style.background='rgba(224,59,90,.35)'; b.style.borderColor='#e03b5a';
+            const correct = A.querySelector('[data-i="'+q.correct+'"]');
+            if(correct){ correct.style.background='rgba(77,232,138,.35)'; correct.style.borderColor='#4de88a'; }
+          }
+          A.querySelectorAll('button').forEach(x=>x.disabled=true);
+          setTimeout(()=>{ idx++; draw(); }, 850);
+        });
+      }
+      draw();
+      $('#qzR',win).onclick=()=>{ idx=0; score=0; order=shuffle(questions); draw(); };
+    }
+  };
+}
+
+/* ============================================================
+   A · AI & ASSISTANT
+   ============================================================ */
+
+APPS['ai-writer'] = {
+  name:'AI Writer', icon:'✍️',
+  render(){ return '<div class="col">'+
+    '<div class="row"><select class="inp" id="awT" style="width:auto">'+
+      '<option value="email">E-Mail</option><option value="brief">Brief</option><option value="sms">SMS</option>'+
+      '<option value="geburtstag">Geburtstagsgruß</option><option value="entschuldigung">Entschuldigung</option>'+
+      '<option value="bewerbung">Bewerbung</option>'+
+    '</select><input class="inp" id="awN" placeholder="Empfänger / Thema…" style="flex:1"></div>'+
+    '<textarea class="ta" id="awNote" placeholder="Stichpunkte (optional)…" style="min-height:70px"></textarea>'+
+    '<button class="btn primary" id="awGo">Text generieren</button>'+
+    '<textarea class="ta" id="awOut" placeholder="Ergebnis…" style="min-height:180px"></textarea>'+
+    '<button class="btn" id="awCopy">📋 Kopieren</button>'+
+  '</div>'; },
+  init(win){
+    $('#awGo',win).onclick=()=>{
+      const t = $('#awT',win).value;
+      const n = $('#awN',win).value.trim() || 'Empfänger';
+      const note = $('#awNote',win).value.trim();
+      const sign = '\n\nMit freundlichen Grüßen\n(Dein Name)';
+      let text = '';
+      if(t==='email') text = 'Betreff: '+n+'\n\nHallo '+n+',\n\n'+ (note||'ich hoffe, es geht dir gut. Ich schreibe dir, weil ich folgendes Anliegen habe:') + '\n\nÜber eine kurze Rückmeldung würde ich mich sehr freuen.' + sign;
+      else if(t==='brief') text = 'Sehr geehrte Damen und Herren,\n\n'+ (note||'hiermit wende ich mich an Sie mit folgendem Anliegen:') + '\n\nIch bitte um Ihre Rückmeldung.' + sign;
+      else if(t==='sms') text = 'Hey '+n+', '+(note||'kurze Frage — passt es dir gerade?')+' LG';
+      else if(t==='geburtstag') text = 'Liebe/r '+n+',\n\nherzlichen Glückwunsch zu deinem Geburtstag! 🎉\n\n'+ (note||'Ich wünsche dir einen wunderschönen Tag voller Freude, Gesundheit und guter Laune.') + '\n\nFeier schön! ❤️\n(Dein Name)';
+      else if(t==='entschuldigung') text = 'Hallo '+n+',\n\nleider muss ich mich für '+(note||'den Termin')+' entschuldigen. Es tut mir aufrichtig leid.' + '\n\nIch melde mich schnellstmöglich bei dir.' + sign;
+      else if(t==='bewerbung') text = 'Sehr geehrte Damen und Herren,\n\nmit großem Interesse habe ich Ihre Ausschreibung für die Stelle als '+n+' gelesen.' + (note?'\n\n'+note:'') + '\n\nÜber die Möglichkeit eines persönlichen Gesprächs freue ich mich sehr.' + sign;
+      $('#awOut',win).value = text;
+    };
+    $('#awCopy',win).onclick=()=>{
+      const v = $('#awOut',win).value;
+      if(!v){ toast('Erst generieren'); return; }
+      navigator.clipboard?.writeText(v).then(()=>toast('Kopiert ✅'));
+    };
+  }
+};
+
+APPS['ai-summarizer'] = {
+  name:'AI Summarizer', icon:'📄',
+  render(){ return '<div class="col">'+
+    '<textarea class="ta" id="asI" placeholder="Text zum Zusammenfassen einfügen…" style="min-height:140px"></textarea>'+
+    '<div class="row"><select class="inp" id="asLen" style="width:auto"><option value="1">Sehr kurz</option><option value="3" selected>Mittel</option><option value="5">Ausführlich</option></select><button class="btn primary" id="asGo">Zusammenfassen</button></div>'+
+    '<div class="card" id="asOut" style="min-height:80px"><span class="dim">Ergebnis erscheint hier…</span></div>'+
+    '<div class="dim sm" id="asStats"></div>'+
+  '</div>'; },
+  init(win){
+    $('#asGo',win).onclick=()=>{
+      const t = $('#asI',win).value.trim();
+      if(!t){ toast('Text fehlt'); return; }
+      const n = parseInt($('#asLen',win).value);
+      const sentences = t.split(/(?<=[.!?])\s+/).filter(s=>s.length>10);
+      if(sentences.length<=n){
+        $('#asOut',win).textContent = t;
+      } else {
+        // Score: Sätze mit häufigen Wörtern + Länge
+        const words = t.toLowerCase().match(/[a-zäöüß]{4,}/g)||[];
+        const freq = {}; words.forEach(w=>freq[w]=(freq[w]||0)+1);
+        const scored = sentences.map((s,i)=>{
+          const sw = s.toLowerCase().match(/[a-zäöüß]{4,}/g)||[];
+          const score = sw.reduce((a,w)=>a+(freq[w]||0),0)/Math.max(1,sw.length) + (i===0?2:0) + (i===sentences.length-1?1:0);
+          return {s, score};
+        });
+        const top = [...scored].sort((a,b)=>b.score-a.score).slice(0,n).map(x=>x.s);
+        // in Originalreihenfolge
+        $('#asOut',win).innerHTML = sentences.filter(s=>top.includes(s)).map(s=>'• '+esc(s)).join('<br>');
+      }
+      const before = t.length;
+      const after = $('#asOut',win).textContent.length;
+      $('#asStats',win).textContent = 'Vorher: '+before+' Zeichen · Nachher: ~'+after+' Zeichen ('+Math.round(100-after/before*100)+'% kürzer)';
+    };
+  }
+};
+
+APPS['ai-tutor'] = {
+  name:'AI Tutor', icon:'🎓',
+  render(){ return '<div class="col">'+
+    '<div class="card">📚 <b>Frag mich alles</b> — Mathe, Geschichte, Wissenschaft, Sprachen…</div>'+
+    '<div class="col" id="atL" style="min-height:200px;max-height:50vh;overflow-y:auto;gap:6px"></div>'+
+    '<div class="row"><input class="inp" id="atI" placeholder="Deine Frage…" style="flex:1"><button class="btn primary" id="atS">Fragen</button></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#atL',win), I=$('#atI',win);
+    const push=(who,txt)=>{ const d=document.createElement('div'); d.className='card'; d.style.alignSelf = who==='u'?'flex-end':'flex-start'; d.style.maxWidth='85%'; d.style.background = who==='u'?'rgba(0,229,255,.14)':'rgba(255,255,255,.05)'; d.innerHTML = esc(txt); L.appendChild(d); L.scrollTop=L.scrollHeight; };
+    push('b','Hallo! Frag mich was — z. B. „Was ist Photosynthese?" oder „Hauptstadt von Frankreich".');
+    const KNOW = {
+      'hauptstadt von frankreich':'Paris 🇫🇷',
+      'hauptstadt von deutschland':'Berlin 🇩🇪',
+      'hauptstadt von italien':'Rom 🇮🇹',
+      'hauptstadt von spanien':'Madrid 🇪🇸',
+      'hauptstadt von türkei':'Ankara 🇹🇷',
+      'hauptstadt von england':'London 🇬🇧',
+      'photosynthese':'Pflanzen wandeln mit Sonnenlicht CO₂ + Wasser in Zucker + Sauerstoff um. Formel: 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂ 🌱',
+      'gravitation':'Anziehungskraft zwischen Massen. Erde zieht dich mit ~9,81 m/s² an. 🍎',
+      'wasser':'H₂O — zwei Wasserstoffatome, ein Sauerstoffatom. 💧',
+      'pi':'π ≈ 3,14159… Verhältnis von Kreisumfang zu Durchmesser. 🥧',
+      'sauerstoff':'O₂ — chemisches Element Nr. 8. Wir atmen es zum Leben. 🫁',
+      'sonne':'Unser Stern. ~1,4 Mio km Durchmesser, ca. 5.500°C an der Oberfläche. ☀️'
+    };
+    function answer(q){
+      const lq = q.toLowerCase().trim();
+      for(const k in KNOW){ if(lq.includes(k)) return KNOW[k]; }
+      if(/^[\d\s+\-*/().]+$/.test(q)){ try{ const r=Function('"use strict";return('+q+')')(); return '= '+r; }catch(e){} }
+      if(/wie geht/.test(lq)) return 'Mir geht es gut! 💙 Und dir?';
+      return 'Gute Frage! Dazu weiß ich noch nicht genug. Öffne die Browser-App für eine Websuche. 🌐';
+    }
+    const send=()=>{ const q=I.value.trim(); if(!q) return; push('u',q); I.value=''; setTimeout(()=>push('b',answer(q)),300); };
+    $('#atS',win).onclick=send;
+    I.addEventListener('keydown',e=>{ if(e.key==='Enter') send(); });
+  }
+};
+
+/* ============================================================
+   B · BILDUNG
+   ============================================================ */
+
+APPS['mathe-trainer'] = {
+  name:'Mathe Trainer', icon:'➗',
+  render(){ return '<div class="col center" style="max-width:420px;margin:0 auto">'+
+    '<div class="row" style="justify-content:center"><select class="inp" id="mtLvl" style="width:auto"><option value="1">Leicht</option><option value="2" selected>Mittel</option><option value="3">Schwer</option></select></div>'+
+    '<div class="big" id="mtQ" style="margin:14px 0">–</div>'+
+    '<input class="inp" id="mtA" type="number" inputmode="decimal" placeholder="Antwort…" style="max-width:200px;text-align:center;font-size:22px;margin:0 auto">'+
+    '<div class="row" style="justify-content:center;margin-top:8px"><button class="btn primary" id="mtC">Prüfen</button><button class="btn" id="mtN">Überspringen</button></div>'+
+    '<div class="row between" style="width:100%;max-width:300px"><span class="dim">Punkte: <b id="mtP">0</b></span><span class="dim">Streak: <b id="mtS">0</b></span></div>'+
+    '<div class="dim" id="mtMsg" style="min-height:22px"></div>'+
+  '</div>'; },
+  init(win){
+    let answer=0, score=0, streak=0;
+    const Q=$('#mtQ',win), A=$('#mtA',win), P=$('#mtP',win), S=$('#mtS',win), M=$('#mtMsg',win);
+    function newQ(){
+      const lvl=parseInt($('#mtLvl',win).value);
+      let a=rnd(1,20), b=rnd(1,20), op='+';
+      if(lvl===1){ op=Math.random()<.5?'+':'-'; if(op==='-'&&b>a){[a,b]=[b,a];} }
+      else if(lvl===2){ op=['+','-','×'][rnd(0,2)]; if(op==='-'&&b>a){[a,b]=[b,a];} if(op==='×'){a=rnd(2,12);b=rnd(2,12);} }
+      else { a=rnd(2,25); b=rnd(2,15); op=['+','-','×','÷'][rnd(0,3)]; if(op==='-'&&b>a){[a,b]=[b,a];} if(op==='÷'){a=b*rnd(2,10);} }
+      if(op==='+'){ answer=a+b; Q.textContent=a+' + '+b; }
+      else if(op==='-'){ answer=a-b; Q.textContent=a+' − '+b; }
+      else if(op==='×'){ answer=a*b; Q.textContent=a+' × '+b; }
+      else { answer=a/b; Q.textContent=a+' ÷ '+b; }
+      A.value=''; A.focus(); M.textContent='';
+    }
+    $('#mtN',win).onclick=newQ;
+    $('#mtLvl',win).onchange=newQ;
+    $('#mtC',win).onclick=()=>{
+      const v=parseFloat(A.value);
+      if(isNaN(v)){ M.textContent='Bitte eine Zahl eingeben.'; return; }
+      if(Math.abs(v-answer)<0.001){ score++; streak++; P.textContent=score; S.textContent=streak; M.textContent='✅ Richtig!'; M.style.color='#4de88a'; setTimeout(newQ,700); }
+      else{ streak=0; S.textContent=0; M.textContent='❌ Richtig wäre '+answer; M.style.color='#ff6b88'; }
+    };
+    A.addEventListener('keydown',e=>{ if(e.key==='Enter') $('#mtC',win).click(); });
+    newQ();
+  }
+};
+
+APPS['einmaleins'] = {
+  name:'Einmaleins', icon:'✖️',
+  render(){ return '<div class="col center" style="max-width:420px;margin:0 auto">'+
+    '<div class="row" style="justify-content:center"><label class="dim">Reihe:</label><select class="inp" id="emR" style="width:auto"></select></div>'+
+    '<div class="big" id="emQ" style="margin:14px 0">–</div>'+
+    '<input class="inp" id="emA" type="number" inputmode="numeric" placeholder="?" style="max-width:140px;text-align:center;font-size:22px;margin:0 auto">'+
+    '<div class="row" style="justify-content:center;margin-top:8px"><button class="btn primary" id="emC">Prüfen</button><button class="btn" id="emN">Weiter</button></div>'+
+    '<div class="dim" id="emM" style="min-height:22px"></div>'+
+    '<div class="card center">Punkte: <b id="emP">0</b></div>'+
+  '</div>'; },
+  init(win){
+    const R=$('#emR',win);
+    R.innerHTML = '<option value="0">Alle Reihen</option>'+Array.from({length:10},(_,i)=>'<option value="'+(i+1)+'">'+(i+1)+'er</option>').join('');
+    let a=0,b=0,score=0;
+    const Q=$('#emQ',win), A=$('#emA',win), M=$('#emM',win);
+    function newQ(){
+      const r=parseInt(R.value);
+      if(r===0){ a=rnd(1,10); b=rnd(1,10); } else { a=r; b=rnd(1,10); }
+      Q.textContent = a+' × '+b;
+      A.value=''; A.focus(); M.textContent='';
+    }
+    $('#emN',win).onclick=newQ;
+    R.onchange=newQ;
+    $('#emC',win).onclick=()=>{
+      const v=parseInt(A.value);
+      if(v===a*b){ score++; $('#emP',win).textContent=score; M.textContent='✅ Richtig!'; M.style.color='#4de88a'; setTimeout(newQ,600); }
+      else{ M.textContent='❌ '+a+' × '+b+' = '+(a*b); M.style.color='#ff6b88'; }
+    };
+    A.addEventListener('keydown',e=>{ if(e.key==='Enter') $('#emC',win).click(); });
+    newQ();
+  }
+};
+
+APPS['bruchrechner'] = {
+  name:'Bruchrechner', icon:'½',
+  render(){ return '<div class="col">'+
+    '<div class="row" style="justify-content:center;align-items:center;gap:6px;flex-wrap:nowrap">'+
+      '<input class="inp" id="b1z" type="number" inputmode="numeric" placeholder="Zähler" style="width:70px;text-align:center">'+
+      '<span>/</span>'+
+      '<input class="inp" id="b1n" type="number" inputmode="numeric" placeholder="Nenner" style="width:70px;text-align:center">'+
+      '<select class="inp" id="bOp" style="width:auto"><option>+</option><option>−</option><option>×</option><option>÷</option></select>'+
+      '<input class="inp" id="b2z" type="number" inputmode="numeric" placeholder="Zähler" style="width:70px;text-align:center">'+
+      '<span>/</span>'+
+      '<input class="inp" id="b2n" type="number" inputmode="numeric" placeholder="Nenner" style="width:70px;text-align:center">'+
+    '</div>'+
+    '<button class="btn primary" id="bGo">Berechnen</button>'+
+    '<div class="card center big2" id="bOut">–</div>'+
+    '<div class="dim sm center" id="bDec"></div>'+
+    '<div class="card"><b>Info</b><div class="dim sm">Ergebnis wird gekürzt angezeigt.</div></div>'+
+  '</div>'; },
+  init(win){
+    function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a||1; }
+    $('#bGo',win).onclick=()=>{
+      const z1=parseInt($('#b1z',win).value), n1=parseInt($('#b1n',win).value);
+      const z2=parseInt($('#b2z',win).value), n2=parseInt($('#b2n',win).value);
+      if(!z1||!n1||!z2||!n2){ toast('Bitte alle Felder füllen'); return; }
+      const op=$('#bOp',win).value;
+      let z, n;
+      if(op==='+'){ z = z1*n2 + z2*n1; n = n1*n2; }
+      else if(op==='−'){ z = z1*n2 - z2*n1; n = n1*n2; }
+      else if(op==='×'){ z = z1*z2; n = n1*n2; }
+      else { z = z1*n2; n = n1*z2; }
+      const g = gcd(z,n);
+      z/=g; n/=g;
+      if(n<0){ z=-z; n=-n; }
+      $('#bOut',win).textContent = (n===1?z:(z+' / '+n));
+      $('#bDec',win).textContent = '≈ '+fmt(z/n);
+    };
+    $('#bGo',win).click();
+  }
+};
+
+APPS['vokabeltrainer'] = {
+  name:'Vokabeln', icon:'🌍',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="vkD" placeholder="Deutsch…" style="flex:1"><input class="inp" id="vkE" placeholder="Fremdsprache…" style="flex:1"><button class="btn primary" id="vkAdd">+</button></div>'+
+    '<div class="card center big2" id="vkShow" style="min-height:110px;display:flex;align-items:center;justify-content:center;cursor:pointer">Start drücken</div>'+
+    '<div class="row" style="justify-content:center"><button class="btn primary" id="vkGo">▶ Start / Nächstes</button><button class="btn" id="vkDel">🗑 Aktuelles löschen</button></div>'+
+    '<div id="vkL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const D=$('#vkD',win), E=$('#vkE',win), S=$('#vkShow',win), L=$('#vkL',win);
+    let cur=null, showBack=false;
+    const all=()=>store.get('vocab',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.map(v=>'<div class="item"><b>'+esc(v.d)+'</b><span class="dim">→ '+esc(v.e)+'</span><span class="x" data-id="'+v.id+'">✕</span></div>').join('') : '<div class="empty">Noch keine Vokabeln</div>';
+      L.querySelectorAll('.x').forEach(x=>x.onclick=()=>{ store.set('vocab',all().filter(v=>v.id!==x.dataset.id)); render(); });
+    }
+    const pick=()=>{ const a=all(); if(!a.length){ toast('Erst Vokabeln anlegen'); return; } cur=a[rnd(0,a.length-1)]; showBack=false; S.textContent=cur.d; };
+    $('#vkAdd',win).onclick=()=>{ const d=D.value.trim(), e=E.value.trim(); if(!d||!e){ toast('Beide Felder füllen'); return; } const arr=all(); arr.push({id:uid(), d, e}); store.set('vocab',arr); D.value=''; E.value=''; render(); };
+    $('#vkGo',win).onclick=pick;
+    $('#vkDel',win).onclick=()=>{ if(!cur) return; store.set('vocab',all().filter(v=>v.id!==cur.id)); cur=null; S.textContent='Start drücken'; render(); };
+    S.onclick=()=>{ if(!cur) return; showBack=!showBack; S.textContent = showBack?cur.e:cur.d; };
+    render();
+  }
+};
+
+APPS['kopfrechnen'] = {
+  name:'Kopfrechnen', icon:'🧠',
+  render(){ return '<div class="col center" style="max-width:420px;margin:0 auto">'+
+    '<div class="dim">Antworte in unter 5 Sekunden!</div>'+
+    '<div class="big" id="krQ" style="margin:14px 0">–</div>'+
+    '<input class="inp" id="krA" type="number" inputmode="numeric" style="max-width:160px;text-align:center;font-size:22px;margin:0 auto" placeholder="?">'+
+    '<div class="big2" id="krT" style="color:var(--c3)">5.0s</div>'+
+    '<div class="row" style="justify-content:center;margin-top:8px"><button class="btn primary" id="krGo">Start</button></div>'+
+    '<div class="card center">Bestzeit: <b id="krB">–</b></div>'+
+  '</div>'; },
+  init(win){
+    let ans=0, t0=0, id=null, best=store.get('kr_best',null);
+    const Q=$('#krQ',win), A=$('#krA',win), T=$('#krT',win), B=$('#krB',win);
+    if(best) B.textContent = best.toFixed(2)+'s';
+    function newQ(){ const a=rnd(2,20), b=rnd(2,20); ans=a*b; Q.textContent=a+' × '+b; A.value=''; A.focus(); t0=Date.now(); T.textContent='0.0s'; if(id) clearInterval(id); id=setInterval(()=>{ T.textContent = ((Date.now()-t0)/1000).toFixed(1)+'s'; }, 100); }
+    $('#krGo',win).onclick=newQ;
+    A.addEventListener('keydown',e=>{
+      if(e.key==='Enter'){
+        const v=parseInt(A.value);
+        if(v===ans){ clearInterval(id); const t=(Date.now()-t0)/1000; T.textContent=t.toFixed(2)+'s ✅'; if(!best||t<best){ best=t; B.textContent=t.toFixed(2)+'s'; store.set('kr_best',best); } setTimeout(newQ,700); }
+        else{ T.textContent='❌ Richtig wäre '+ans; clearInterval(id); }
+      }
+    });
+  }
+};
+
+APPS['quiz-allgemein'] = makeQuiz('Quiz Allgemeinwissen','🧠',[
+  {q:'Hauptstadt von Frankreich?', a:['Paris','Lyon','Marseille','Nizza'], correct:0},
+  {q:'Wie viele Kontinente gibt es?', a:['5','6','7','8'], correct:2},
+  {q:'Wer schrieb „Faust"?', a:['Schiller','Goethe','Heine','Kafka'], correct:1},
+  {q:'Größter Planet im Sonnensystem?', a:['Erde','Mars','Jupiter','Saturn'], correct:2},
+  {q:'Chemisches Symbol für Gold?', a:['Go','Gd','Au','Ag'], correct:2},
+  {q:'Wie viele Bundesländer hat Deutschland?', a:['14','15','16','17'], correct:2},
+  {q:'Hauptstadt von Japan?', a:['Kyoto','Osaka','Tokio','Seoul'], correct:2},
+  {q:'Wer malte die Mona Lisa?', a:['Michelangelo','Da Vinci','Raffael','Van Gogh'], correct:1},
+  {q:'Wie heißt der längste Fluss der Welt?', a:['Amazonas','Nil','Jangtse','Mississippi'], correct:1},
+  {q:'Wie viele Minuten hat ein Tag?', a:['1200','1440','1600','1800'], correct:1}
+]);
+
+APPS['multiple-choice'] = {
+  name:'Multiple Choice', icon:'📋',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>Eigene Fragen erstellen</b></div>'+
+    '<div class="row"><input class="inp" id="mcQ" placeholder="Frage…" style="flex:1"></div>'+
+    '<div class="row"><input class="inp" id="mc1" placeholder="Antwort A"><input class="inp" id="mc2" placeholder="Antwort B"><input class="inp" id="mc3" placeholder="Antwort C"></div>'+
+    '<div class="row"><input class="inp" id="mc4" placeholder="Antwort D"><select class="inp" id="mcC" style="width:auto"><option value="0">A richtig</option><option value="1">B richtig</option><option value="2">C richtig</option><option value="3">D richtig</option></select><button class="btn primary" id="mcAdd">+</button></div>'+
+    '<div id="mcList" class="list"></div>'+
+    '<button class="btn primary" id="mcStart">▶ Quiz starten</button>'+
+  '</div>'; },
+  init(win){
+    const L=$('#mcList',win);
+    const all=()=>store.get('mc_qs',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.map((x,i)=>'<div class="item"><b>'+(i+1)+'.</b><span>'+esc(x.q)+'</span><span class="dim" style="margin-left:auto">✓ '+esc(x.a[x.correct])+'</span><span class="x" data-id="'+x.id+'">✕</span></div>').join('') : '<div class="empty">Noch keine Fragen</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('mc_qs',all().filter(v=>v.id!==el2.dataset.id)); render(); });
+    }
+    $('#mcAdd',win).onclick=()=>{
+      const q=$('#mcQ',win).value.trim();
+      const a=[$('#mc1',win).value.trim(),$('#mc2',win).value.trim(),$('#mc3',win).value.trim(),$('#mc4',win).value.trim()].filter(Boolean);
+      const c=parseInt($('#mcC',win).value);
+      if(!q || a.length<2 || c>=a.length){ toast('Frage + mind. 2 Antworten'); return; }
+      const arr=all(); arr.push({id:uid(), q, a, correct:c}); store.set('mc_qs',arr);
+      ['mcQ','mc1','mc2','mc3','mc4'].forEach(id=>$('#'+id,win).value='');
+      render();
+    };
+    $('#mcStart',win).onclick=()=>{
+      const a=all();
+      if(!a.length){ toast('Erst Fragen erstellen'); return; }
+      try{ window.HalDo.open && window.HalDo.open('quiz-allgemein'); }catch(e){}
+      toast('Quiz-Modus öffnet sich');
+    };
+    render();
+  }
+};
+
+APPS['lueckentext'] = {
+  name:'Lückentext', icon:'📝',
+  render(){ return '<div class="col">'+
+    '<div class="card sm"><b>Anleitung:</b> Schreibe Sätze mit `___` für die Lücke. In Klammern die Lösung. Beispiel: „Der Himmel ist ___ (blau)."</div>'+
+    '<textarea class="ta" id="ltI" placeholder="Text mit ___ (Lösung)…" style="min-height:120px">Der Himmel ist ___ (blau). Gras ist ___ (grün). Die Sonne scheint ___ (hell).</textarea>'+
+    '<button class="btn primary" id="ltGo">Übung starten</button>'+
+    '<div id="ltOut" class="col"></div>'+
+  '</div>'; },
+  init(win){
+    $('#ltGo',win).onclick=()=>{
+      const txt = $('#ltI',win).value;
+      const parts = txt.split(/_{2,}\s*\(([^)]+)\)/g);
+      let html='', idx=0;
+      for(let i=0;i<parts.length;i++){
+        if(i%2===0){ html += esc(parts[i]); }
+        else { html += '<input class="inp" data-a="'+esc(parts[i].toLowerCase())+'" style="display:inline-block;width:auto;min-width:110px;padding:2px 8px;margin:0 4px" placeholder="?">'; idx++; }
+      }
+      $('#ltOut',win).innerHTML = '<div class="card" style="line-height:2">'+html+'</div>'+
+        '<button class="btn primary" id="ltCheck">Prüfen</button>'+
+        '<div class="big2 center" id="ltRes"></div>';
+      $('#ltCheck',win).onclick=()=>{
+        let ok=0, total=0;
+        $$('#ltOut input',win).forEach(inp=>{
+          total++;
+          if(inp.value.trim().toLowerCase()===inp.dataset.a){ inp.style.background='rgba(77,232,138,.3)'; inp.style.borderColor='#4de88a'; ok++; }
+          else{ inp.style.background='rgba(224,59,90,.3)'; inp.style.borderColor='#e03b5a'; }
+        });
+        $('#ltRes',win).textContent = ok+' / '+total+' richtig';
+      };
+    };
+    $('#ltGo',win).click();
+  }
+};
+
+APPS['geometrie'] = {
+  name:'Geometrie', icon:'📐',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>Flächen-Rechner</b></div>'+
+    '<label class="lbl">Form</label><select class="inp" id="gmT"><option value="rect">Rechteck</option><option value="circ">Kreis</option><option value="tri">Dreieck</option><option value="trap">Trapez</option></select>'+
+    '<div id="gmIn" class="row"></div>'+
+    '<div class="card center big2" id="gmOut">–</div>'+
+    '<div class="card"><b>Volumen</b></div>'+
+    '<label class="lbl">Körper</label><select class="inp" id="gvT"><option value="cube">Würfel</option><option value="sph">Kugel</option><option value="cyl">Zylinder</option><option value="cone">Kegel</option></select>'+
+    '<div id="gvIn" class="row"></div>'+
+    '<div class="card center big2" id="gvOut">–</div>'+
+  '</div>'; },
+  init(win){
+    const PI=Math.PI;
+    function renderIn(sel, cont, fields){
+      cont.innerHTML = fields.map(f=>'<input class="inp" data-k="'+f+' "placeholder="'+f+'" type="number" inputmode="decimal" style="flex:1;min-width:80px">').join('');
+      cont.oninput = ()=>{
+        const vals={}; cont.querySelectorAll('input').forEach(i=>vals[i.dataset.k.trim()]=parseFloat(i.value)||0);
+        const out = sel();
+        return out;
+      };
+    }
+    function updFlaeche(){
+      const t=$('#gmT',win).value;
+      const C=$('#gmIn',win);
+      if(t==='rect') C.innerHTML = '<input class="inp" data-k="a" placeholder="Länge" type="number" style="flex:1"><input class="inp" data-k="b" placeholder="Breite" type="number" style="flex:1">';
+      else if(t==='circ') C.innerHTML = '<input class="inp" data-k="r" placeholder="Radius" type="number" style="flex:1">';
+      else if(t==='tri') C.innerHTML = '<input class="inp" data-k="g" placeholder="Grundseite" type="number" style="flex:1"><input class="inp" data-k="h" placeholder="Höhe" type="number" style="flex:1">';
+      else C.innerHTML = '<input class="inp" data-k="a" placeholder="Seite a" type="number" style="flex:1"><input class="inp" data-k="c" placeholder="Seite c" type="number" style="flex:1"><input class="inp" data-k="h" placeholder="Höhe" type="number" style="flex:1">';
+      C.oninput = calc;
+    }
+    function calc(){
+      const t=$('#gmT',win).value;
+      const vals={}; $$('#gmIn input',win).forEach(i=>vals[i.dataset.k]=parseFloat(i.value)||0);
+      let r=0, f='';
+      if(t==='rect'){ r=vals.a*vals.b; f='A = a·b'; }
+      else if(t==='circ'){ r=PI*vals.r*vals.r; f='A = π·r²'; }
+      else if(t==='tri'){ r=vals.g*vals.h/2; f='A = ½·g·h'; }
+      else if(t==='trap'){ r=(vals.a+vals.c)*vals.h/2; f='A = (a+c)/2 · h'; }
+      $('#gmOut',win).innerHTML = (r>0?fmt(r)+' <span class="dim sm">('+f+')</span>':'–');
+    }
+    function updVol(){
+      const t=$('#gvT',win).value;
+      const C=$('#gvIn',win);
+      if(t==='cube') C.innerHTML = '<input class="inp" data-k="a" placeholder="Kante a" type="number" style="flex:1">';
+      else if(t==='sph') C.innerHTML = '<input class="inp" data-k="r" placeholder="Radius r" type="number" style="flex:1">';
+      else if(t==='cyl') C.innerHTML = '<input class="inp" data-k="r" placeholder="Radius r" type="number" style="flex:1"><input class="inp" data-k="h" placeholder="Höhe h" type="number" style="flex:1">';
+      else C.innerHTML = '<input class="inp" data-k="r" placeholder="Radius r" type="number" style="flex:1"><input class="inp" data-k="h" placeholder="Höhe h" type="number" style="flex:1">';
+      C.oninput = calcV;
+    }
+    function calcV(){
+      const t=$('#gvT',win).value;
+      const vals={}; $$('#gvIn input',win).forEach(i=>vals[i.dataset.k]=parseFloat(i.value)||0);
+      let r=0, f='';
+      if(t==='cube'){ r=Math.pow(vals.a,3); f='V = a³'; }
+      else if(t==='sph'){ r=4/3*PI*Math.pow(vals.r,3); f='V = 4/3·π·r³'; }
+      else if(t==='cyl'){ r=PI*vals.r*vals.r*vals.h; f='V = π·r²·h'; }
+      else if(t==='cone'){ r=PI*vals.r*vals.r*vals.h/3; f='V = 1/3·π·r²·h'; }
+      $('#gvOut',win).innerHTML = (r>0?fmt(r)+' <span class="dim sm">('+f+')</span>':'–');
+    }
+    $('#gmT',win).onchange=()=>{ updFlaeche(); calc(); };
+    $('#gvT',win).onchange=()=>{ updVol(); calcV(); };
+    updFlaeche(); updVol(); calc(); calcV();
+  }
+};
+
+APPS['quadratisch'] = {
+  name:'Quadratische Gl.', icon:'📈',
+  render(){ return '<div class="col">'+
+    '<div class="card">Löse: <b>a·x² + b·x + c = 0</b></div>'+
+    '<div class="row"><input class="inp" id="q_a" type="number" placeholder="a" value="1" style="text-align:center"><input class="inp" id="q_b" type="number" placeholder="b" value="0" style="text-align:center"><input class="inp" id="q_c" type="number" placeholder="c" value="-4" style="text-align:center"></div>'+
+    '<button class="btn primary" id="qGo">Lösen</button>'+
+    '<div class="card" id="qOut" style="min-height:80px"></div>'+
+  '</div>'; },
+  init(win){
+    $('#qGo',win).onclick=()=>{
+      const a=parseFloat($('#q_a',win).value), b=parseFloat($('#q_b',win).value), c=parseFloat($('#q_c',win).value);
+      if(!a){ $('#qOut',win).innerHTML='<span style="color:#ff9db1">a darf nicht 0 sein!</span>'; return; }
+      const D = b*b - 4*a*c;
+      let html = '<b>Diskriminante:</b> D = '+fmt(D)+'<br>';
+      if(D>0){
+        const x1 = (-b + Math.sqrt(D))/(2*a), x2 = (-b - Math.sqrt(D))/(2*a);
+        html += '<b>Zwei Lösungen:</b><br>x₁ = '+fmt(x1)+'<br>x₂ = '+fmt(x2);
+      } else if(D===0){
+        html += '<b>Eine Lösung:</b><br>x = '+fmt(-b/(2*a));
+      } else {
+        const re = -b/(2*a), im = Math.sqrt(-D)/(2*a);
+        html += '<b>Komplexe Lösungen:</b><br>x₁ = '+fmt(re)+' + '+fmt(im)+'i<br>x₂ = '+fmt(re)+' − '+fmt(im)+'i';
+      }
+      $('#qOut',win).innerHTML = html;
+    };
+    $('#qGo',win).click();
+  }
+};
+
+APPS['trigonometrie'] = {
+  name:'Trigonometrie', icon:'📊',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>Rechtwinkliges Dreieck</b> — Sinus, Cosinus, Tangens</div>'+
+    '<div class="row"><input class="inp" id="tgA" type="number" placeholder="Winkel α (°)" value="30" style="text-align:center"><select class="inp" id="tgF" style="width:auto"><option value="sin">sin α</option><option value="cos">cos α</option><option value="tan">tan α</option></select></div>'+
+    '<button class="btn primary" id="tgGo">Berechnen</button>'+
+    '<div class="card center big2" id="tgOut">–</div>'+
+    '<div class="card"><b>Werte-Tabelle</b></div>'+
+    '<div class="list" id="tgTbl"></div>'+
+  '</div>'; },
+  init(win){
+    const rad = d=>d*Math.PI/180;
+    $('#tgGo',win).onclick=()=>{
+      const a=parseFloat($('#tgA',win).value)||0;
+      const f=$('#tgF',win).value;
+      const r = f==='sin'?Math.sin(rad(a)) : f==='cos'?Math.cos(rad(a)) : Math.tan(rad(a));
+      $('#tgOut',win).innerHTML = f+'('+a+'°) = '+r.toFixed(4);
+    };
+    const angles=[0,30,45,60,90];
+    $('#tgTbl',win).innerHTML = '<div class="item"><b>Winkel</b><b style="margin-left:auto">sin / cos / tan</b></div>'+
+      angles.map(a=>'<div class="item"><span>'+a+'°</span><span style="margin-left:auto" class="dim">'+
+        Math.sin(rad(a)).toFixed(3)+' / '+Math.cos(rad(a)).toFixed(3)+' / '+(a===90?'∞':Math.tan(rad(a)).toFixed(3))+'</span></div>').join('');
+    $('#tgGo',win).click();
+  }
+};
+
+APPS['linear'] = {
+  name:'Lineare Funktion', icon:'📉',
+  render(){ return '<div class="col">'+
+    '<div class="card">f(x) = <b>m·x + b</b></div>'+
+    '<div class="row"><input class="inp" id="lfM" type="number" placeholder="m (Steigung)" value="2" style="text-align:center"><input class="inp" id="lfB" type="number" placeholder="b (y-Achse)" value="1" style="text-align:center"></div>'+
+    '<div class="row"><input class="inp" id="lfX" type="number" placeholder="x-Wert" value="3" style="text-align:center"><button class="btn primary" id="lfGo">f(x) berechnen</button></div>'+
+    '<div class="card center big2" id="lfOut">–</div>'+
+    '<div class="card"><b>Nullstelle</b><div id="lfN" class="dim">–</div></div>'+
+  '</div>'; },
+  init(win){
+    $('#lfGo',win).onclick=()=>{
+      const m=parseFloat($('#lfM',win).value)||0, b=parseFloat($('#lfB',win).value)||0, x=parseFloat($('#lfX',win).value)||0;
+      const y = m*x+b;
+      $('#lfOut',win).innerHTML = 'f('+x+') = '+fmt(y);
+      if(m!==0){ const n = -b/m; $('#lfN',win).textContent = 'x = '+fmt(n)+' (bei f(x)=0)'; }
+      else{ $('#lfN',win).textContent = b===0?'Unendlich viele':'Keine Nullstelle'; }
+    };
+    $('#lfGo',win).click();
+  }
+};
+
+APPS['lernplaner'] = {
+  name:'Lernplaner', icon:'📅',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="lpF" placeholder="Fach / Thema…" style="flex:1"><input class="inp" id="lpD" type="date" style="width:auto"><button class="btn primary" id="lpAdd">+</button></div>'+
+    '<div id="lpL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#lpL',win);
+    const all=()=>store.get('lernplan',[]);
+    function render(){
+      const a=all().sort((x,y)=>x.d.localeCompare(y.d));
+      const today = new Date().toISOString().slice(0,10);
+      L.innerHTML = a.length ? a.map(x=>{
+        const tage = Math.ceil((new Date(x.d)-new Date(today))/86400000);
+        const col = tage<0?'#8a95bd':(tage<=2?'#ff6b88':(tage<=7?'#ffb03a':'#4de88a'));
+        const info = tage<0?(Math.abs(tage)+' Tage her'):(tage===0?'Heute!':tage===1?'Morgen':('in '+tage+' Tagen'));
+        return '<div class="item"><span>📖 '+esc(x.f)+'</span><span class="dim" style="margin-left:auto;color:'+col+'">'+info+'</span><span class="x" data-id="'+x.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Nichts geplant</div>';
+      L.querySelectorAll('.x').forEach(x=>x.onclick=()=>{ store.set('lernplan',all().filter(v=>v.id!==x.dataset.id)); render(); });
+    }
+    $('#lpAdd',win).onclick=()=>{
+      const f=$('#lpF',win).value.trim(), d=$('#lpD',win).value;
+      if(!f||!d){ toast('Fach und Datum'); return; }
+      const arr=all(); arr.push({id:uid(), f, d}); store.set('lernplan',arr);
+      $('#lpF',win).value=''; render();
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   C · FAHRSCHULE
+   ============================================================ */
+
+APPS['verkehrszeichen'] = makeQuiz('Verkehrszeichen','🚸',[
+  {q:'Rotes Dreieck mit Spitze nach oben', a:['Vorfahrt gewähren','Achtung/Gefahr','Halt','Verbot'], correct:1},
+  {q:'Roter Kreis mit weißem Balken', a:['Verbot der Einfahrt','Halteverbot','Ende Verbot','Halt'], correct:0},
+  {q:'Blaues rundes Schild mit weißem Pfeil nach oben', a:['Vorgeschriebene Fahrtrichtung geradeaus','Einbahnstraße','Autobahn','Vorfahrtstraße'], correct:0},
+  {q:'Gelbe Raute auf weißem Grund', a:['Vorfahrtstraße','Bundesstraße','Hauptstraße','Achtung'], correct:0},
+  {q:'Rotes Achteck mit "STOP"', a:['Halt — Vorfahrt gewähren','Vorfahrt','Achtung','Halten'], correct:0},
+  {q:'Blaues Quadrat mit weißem "P"', a:['Parkplatz','Parkverbot','Polizei','Passage'], correct:0},
+  {q:'Zebra-Streifen auf Schild', a:['Fußgängerüberweg','Fußweg','Schulweg','Spielstraße'], correct:0},
+  {q:'Roter Kreis mit Zahl 30', a:['Mindestgeschwindigkeit 30','Höchstgeschwindigkeit 30','Empfohlen 30','Ende 30'], correct:1},
+  {q:'Blaues rundes Schild mit Fahrrad', a:['Radweg','Radfahrverbot','Radfahrer kreuzen','Fahrradparkplatz'], correct:0},
+  {q:'Rotes Dreieck mit Ausrufezeichen', a:['Allgemeine Gefahr','Vorsicht','Achtung','Alle Gefahren'], correct:0}
+]);
+
+APPS['vorfahrt'] = makeQuiz('Vorfahrt','🚦',[
+  {q:'Sie kommen an eine Kreuzung ohne Schilder. Wer hat Vorfahrt?', a:['Rechts vor Links','Links vor Rechts','Ich','Der Schnellere'], correct:0},
+  {q:'Sie wollen links abbiegen. Ein Auto kommt von rechts. Wer zuerst?', a:['Ich','Das Auto von rechts','Gleichzeitig','Wer zuerst hupt'], correct:1},
+  {q:'Sie fahren aus einer Grundstückseinfahrt. Wer hat Vorfahrt?', a:['Ich','Fließender Verkehr','Kommt drauf an','Polizei'], correct:1},
+  {q:'Kreisverkehr — wer hat Vorfahrt?', a:['Der Einfahrende','Im Kreisverkehr fahrende Fahrzeuge','Rechts vor Links','Immer ich'], correct:1},
+  {q:'Ampel ist aus. Wer hat Vorfahrt?', a:['Rechts vor Links','Links vor Rechts','Der Größere','Ich'], correct:0},
+  {q:'Verkehrszeichen „Vorfahrt gewähren". Sie müssen…', a:['Anhalten','Vorfahrt gewähren','Warten bis frei','Hupen'], correct:1},
+  {q:'Rechtsabbiegen an einer roten Ampel mit Grünpfeil-Schild?', a:['Nur nach Halt','Direkt fahren','Verboten','Nur LKW'], correct:0},
+  {q:'Fußgänger an Zebrastreifen — Sie müssen…', a:['Warten','Hupen','Vorbeifahren','Beschleunigen'], correct:0},
+  {q:'Ausfahrt aus verkehrsberuhigtem Bereich?', a:['Ich habe Vorfahrt','Ich muss Vorfahrt gewähren','Rechts vor Links','Gleichzeitig'], correct:1},
+  {q:'Ein Einsatzfahrzeug mit Blaulicht naht. Was tun?', a:['Weiterfahren','Sofort Platz machen','Hupen','Rechts ran'], correct:1}
+]);
+
+APPS['fuehrerschein-fragen'] = makeQuiz('Führerschein','🚗',[
+  {q:'Promillegrenze für Fahranfänger (Probezeit)?', a:['0,0‰','0,3‰','0,5‰','0,8‰'], correct:0},
+  {q:'Wie tief muss das Profil mind. sein?', a:['1,0 mm','1,6 mm','2,0 mm','3,0 mm'], correct:1},
+  {q:'Innerorts — erlaubte Höchstgeschwindigkeit?', a:['30 km/h','40 km/h','50 km/h','60 km/h'], correct:2},
+  {q:'Anzahl der Kontrollpunkte beim Schulterblick?', a:['1','2','3','Keiner'], correct:0},
+  {q:'Wann darf man die Hupe benutzen?', a:['Immer','Bei Gefahr / Warnung','Aus Spaß','Zum Grüßen'], correct:1},
+  {q:'Warnblinker — wann benutzen?', a:['Immer beim Parken','Bei Gefahr / Stau','Immer beim Abbiegen','Nie'], correct:1},
+  {q:'Wie weit vor einer Kreuzung darf man parken?', a:['3 m','5 m','8 m','10 m'], correct:1},
+  {q:'Mit Sommerreifen bei Schnee — erlaubt?', a:['Ja','Nein, Winterreifenpflicht bei winterlichen Verhältnissen','Nur im Dorf','Egal'], correct:1},
+  {q:'Höchstgeschwindigkeit außerorts (Landstraße)?', a:['70 km/h','90 km/h','100 km/h','130 km/h'], correct:2},
+  {q:'Wann ist ein grüner Pfeil neben roter Ampel erlaubt?', a:['Immer','Nach Halt und Vorfahrt gewähren','Niemals','Nur Motorräder'], correct:1}
+]);
+
+APPS['erste-hilfe'] = {
+  name:'Erste Hilfe', icon:'🚑',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>📋 Notruf: 112</b></div>'+
+    '<div class="list" id="ehL"></div>'+
+  '</div>'; },
+  init(win){
+    const items=[
+      ['🩸 Blutung','Wunde mit sauberem Tuch abdecken, stark drücken. Bei starker Blutung Druckverband und Notruf 112.'],
+      ['😵 Bewusstlosigkeit','Atmung prüfen (Kopf nackenwärts überstrecken). Bei normaler Atmung: stabile Seitenlage. Bei keiner Atmung: sofort 112 + Herzdruckmassage (100-120/min).'],
+      ['🔥 Verbrennung','Mit kaltem Wasser (ca. 20°C) für 10 Min kühlen. Kleidung an der Wunde lassen. Keine Hausmittel (Butter, Mehl).'],
+      ['🦴 Knochenbruch','Gliedmaße ruhig halten, nicht selbst richten. Kühlen, lagern, 112.'],
+      ['😮‍💨 Ersticken','Heimlich-Manöver: 5 Mal kräftig zwischen Schulterblätter schlagen. Danach 5x Oberbauch-Kompression. Bei Bewusstlosigkeit: 112 + Herzdruckmassage.'],
+      ['😰 Schock','Flach lagern, warm halten, beruhigen. Bei Bewusstlosigkeit: Seitenlage. 112.'],
+      ['🐝 Insektenstich','Kühlen, Stachel entfernen. Bei Allergie (Atemnot, Schwellung): Notruf 112 und Adrenalin-Autoinjektor, falls vorhanden.'],
+      ['💊 Vergiftung','Nichts zu trinken geben! Giftnotruf: 030 19240 (Berlin). Notruf 112.'],
+      ['🌡️ Hitzschlag','Kühl lagern, in Schatten bringen, Kleidung lockern, kühle Wickel. Bei Bewusstlosigkeit: 112.'],
+      ['⚡ Stromunfall','ERST Netzstecker ziehen. NIEMALS direkt berühren! Danach Atmung prüfen und 112.']
+    ];
+    $('#ehL',win).innerHTML = items.map(([t,d])=>'<div class="card"><b>'+t+'</b><div class="dim" style="margin-top:4px">'+d+'</div></div>').join('');
+  }
+};
+
+/* ============================================================
+   F · FINANZEN
+   ============================================================ */
+
+APPS['budgetplaner'] = {
+  name:'Budgetplaner', icon:'💼',
+  render(){ return '<div class="col">'+
+    '<label class="lbl">Monatliches Einkommen (€)</label><input class="inp" id="bpInc" type="number" inputmode="decimal" placeholder="2500" value="2500">'+
+    '<h3>Ausgaben-Kategorien</h3>'+
+    '<div id="bpList"></div>'+
+    '<button class="btn" id="bpAdd">+ Kategorie</button>'+
+    '<div class="card center"><div>Einkommen: <b id="bpI">0 €</b></div><div>Ausgaben: <b id="bpE">0 €</b></div><div class="big2" id="bpR" style="margin-top:6px">–</div></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#bpList',win);
+    const all=()=>store.get('budget_cats',[{id:uid(), n:'Miete', v:800},{id:uid(), n:'Essen', v:350},{id:uid(), n:'Transport', v:80},{id:uid(), n:'Freizeit', v:150}]);
+    function render(){
+      L.innerHTML = all().map(c=>'<div class="item"><input class="inp" data-k="n" data-id="'+c.id+'" value="'+esc(c.n)+'" style="flex:1"><input class="inp" data-k="v" data-id="'+c.id+'" type="number" value="'+c.v+'" style="width:100px;text-align:right"><span class="dim">€</span><span class="x" data-id="'+c.id+'">✕</span></div>').join('');
+      $$('#bpList input',win).forEach(inp=>inp.oninput=()=>{
+        const arr=all(); const c=arr.find(x=>x.id===inp.dataset.id); if(c){ c[inp.dataset.k] = inp.dataset.k==='v'?parseFloat(inp.value)||0:inp.value; store.set('budget_cats',arr); }
+        calc();
+      });
+      $$('#bpList .x',win).forEach(x=>x.onclick=()=>{ store.set('budget_cats',all().filter(c=>c.id!==x.dataset.id)); render(); });
+      calc();
+    }
+    function calc(){
+      const inc=parseFloat($('#bpInc',win).value)||0;
+      const exp=all().reduce((a,c)=>a+(c.v||0),0);
+      const rest=inc-exp;
+      $('#bpI',win).textContent = fmt(inc)+' €';
+      $('#bpE',win).textContent = fmt(exp)+' €';
+      const R=$('#bpR',win);
+      R.textContent = (rest>=0?'Übrig: '+fmt(rest)+' €':'Minus: '+fmt(Math.abs(rest))+' €');
+      R.style.color = rest>=0?'#4de88a':'#ff6b88';
+    }
+    $('#bpAdd',win).onclick=()=>{ const arr=all(); arr.push({id:uid(), n:'Neu', v:0}); store.set('budget_cats',arr); render(); };
+    $('#bpInc',win).oninput=calc;
+    render();
+  }
+};
+
+APPS['ausgaben'] = {
+  name:'Ausgaben Tracker', icon:'💸',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="axT" placeholder="Was…" style="flex:1"><input class="inp" id="axV" type="number" step="0.01" placeholder="€" style="width:100px"><input class="inp" id="axC" placeholder="Kategorie" style="width:130px"><button class="btn primary" id="axA">+</button></div>'+
+    '<div id="axL" class="list"></div>'+
+    '<div class="card center">Summe: <b id="axSum">0 €</b></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#axL',win);
+    const all=()=>store.get('expenses',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.slice(0,40).map(x=>'<div class="item"><span>'+esc(x.t)+'</span><span class="dim">'+esc(x.c||'—')+'</span><span style="margin-left:auto;color:#ff9db1">−'+fmt(x.v)+' €</span><span class="dim sm">'+new Date(x.ts).toLocaleDateString('de-DE')+'</span><span class="x" data-id="'+x.id+'">✕</span></div>').join('') : '<div class="empty">Keine Ausgaben</div>';
+      $('#axSum',win).textContent = fmt(a.reduce((s,x)=>s+x.v,0))+' €';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('expenses',all().filter(x=>x.id!==el2.dataset.id)); render(); });
+    }
+    $('#axA',win).onclick=()=>{
+      const t=$('#axT',win).value.trim(), v=parseFloat($('#axV',win).value), c=$('#axC',win).value.trim();
+      if(!t||isNaN(v)){ toast('Titel + Betrag'); return; }
+      const arr=all(); arr.unshift({id:uid(), t, v, c, ts:Date.now()}); store.set('expenses',arr);
+      $('#axT',win).value=''; $('#axV',win).value=''; render();
+    };
+    render();
+  }
+};
+
+APPS['zinsrechner'] = {
+  name:'Zinsrechner', icon:'%',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="zrK" type="number" placeholder="Kapital €" value="1000" style="text-align:center"><input class="inp" id="zrP" type="number" placeholder="Zins %" value="3" style="text-align:center"><input class="inp" id="zrJ" type="number" placeholder="Jahre" value="5" style="text-align:center"></div>'+
+    '<button class="btn primary" id="zrGo">Berechnen</button>'+
+    '<div class="card center"><b>Einfache Zinsen</b><div class="big2" id="zrSimple">–</div></div>'+
+    '<div class="card center"><b>Zinseszins</b><div class="big2" id="zrComp">–</div></div>'+
+    '<div class="card"><b>Verlauf (Zinseszins)</b><div class="list" id="zrTbl"></div></div>'+
+  '</div>'; },
+  init(win){
+    $('#zrGo',win).onclick=()=>{
+      const K=parseFloat($('#zrK',win).value)||0, P=parseFloat($('#zrP',win).value)||0, J=parseFloat($('#zrJ',win).value)||0;
+      const simple = K * (1 + P/100 * J);
+      const comp = K * Math.pow(1 + P/100, J);
+      $('#zrSimple',win).innerHTML = fmt(simple)+' € <span class="dim sm">(+'+fmt(simple-K)+' €)</span>';
+      $('#zrComp',win).innerHTML = fmt(comp)+' € <span class="dim sm">(+'+fmt(comp-K)+' €)</span>';
+      let rows=''; let val=K;
+      for(let i=1;i<=Math.min(J,30);i++){ val*=1+P/100; rows += '<div class="item"><span>Jahr '+i+'</span><b style="margin-left:auto">'+fmt(val)+' €</b></div>'; }
+      $('#zrTbl',win).innerHTML = rows || '<div class="empty">–</div>';
+    };
+    $('#zrGo',win).click();
+  }
+};
+
+APPS['kreditrechner'] = {
+  name:'Kreditrechner', icon:'🏦',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="krS" type="number" placeholder="Kredit €" value="10000" style="text-align:center"><input class="inp" id="krP" type="number" placeholder="Zins % p.a." value="5" step="0.1" style="text-align:center"><input class="inp" id="krM" type="number" placeholder="Monate" value="24" style="text-align:center"></div>'+
+    '<button class="btn primary" id="krGo">Berechnen</button>'+
+    '<div class="card center"><div>Monatliche Rate</div><div class="big2" id="kOut">–</div><div class="dim" id="kTot"></div></div>'+
+  '</div>'; },
+  init(win){
+    $('#krGo',win).onclick=()=>{
+      const S=parseFloat($('#krS',win).value)||0;
+      const P=parseFloat($('#krP',win).value)||0;
+      const M=parseFloat($('#krM',win).value)||1;
+      const r = P/100/12;
+      let rate;
+      if(r===0) rate = S/M;
+      else rate = S * r * Math.pow(1+r, M) / (Math.pow(1+r, M) - 1);
+      const total = rate*M;
+      $('#kOut',win).textContent = fmt(rate)+' € / Monat';
+      $('#kTot',win).textContent = 'Gesamt: '+fmt(total)+' € · Zinsen: '+fmt(total-S)+' €';
+    };
+    $('#krGo',win).click();
+  }
+};
+
+/* ============================================================
+   K · KEYBOARD
+   ============================================================ */
+
+APPS['emoji-tastatur'] = {
+  name:'Emoji', icon:'😀',
+  render(){ return '<div class="col">'+
+    '<textarea class="ta" id="eeOut" placeholder="Emojis hier rein…" style="min-height:80px"></textarea>'+
+    '<div class="row"><button class="btn" id="eeCopy">📋 Kopieren</button><button class="btn" id="eeClr">🗑 Löschen</button></div>'+
+    '<div id="eeGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:4px;max-height:60vh;overflow-y:auto"></div>'+
+  '</div>'; },
+  init(win){
+    const OUT=$('#eeOut',win), G=$('#eeGrid',win);
+    const groups = {
+      '😊 Gefühle':['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥'],
+      '👍 Gesten':['👍','👎','👌','🤌','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','👇','☝️','✋','🤚','🖐️','🖖','👋','🤝','🙏','💪','👏','🙌','👐','🤲'],
+      '❤️ Herz':['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','♥️'],
+      '🔥 Symbole':['🔥','✨','⭐','🌟','💫','⚡','💥','💢','💨','💦','💤','🎉','🎊','🎈','🎁','🏆','🎯','🚀','⚙️','⚛️','🧲','💎','👑','🎨','🎭','🎬'],
+      '🐶 Tiere':['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🦆','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞'],
+      '🍕 Essen':['🍎','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🥑','🍆','🥕','🌽','🌶️','🍕','🍔','🍟','🌭','🍿','🍩','🍪','🎂','🍰','☕','🍵','🍺','🍷'],
+      '🌍 Reise':['🚗','🚕','🚙','🚌','🚎','🏎️','🚓','🚑','🚒','🚐','🛻','🚚','🚛','🚜','🛵','🏍️','✈️','🛫','🛬','🚀','🛸','🚁','⛵','🚢','🏝️','🏖️','🏔️','🗺️','🧭','🏰']
+    };
+    let html='';
+    for(const g in groups){
+      html += '<div style="grid-column:1/-1;font-size:11px;color:var(--dim);padding:8px 4px 4px;text-transform:uppercase;letter-spacing:1px">'+g+'</div>';
+      html += groups[g].map(e=>'<button class="btn" data-e="'+e+'" style="padding:6px;font-size:22px">'+e+'</button>').join('');
+    }
+    G.innerHTML = html;
+    G.querySelectorAll('button').forEach(b=>b.onclick=()=>{ OUT.value += b.dataset.e; OUT.focus(); });
+    $('#eeCopy',win).onclick=()=>{ navigator.clipboard?.writeText(OUT.value); toast('Kopiert'); };
+    $('#eeClr',win).onclick=()=>{ OUT.value=''; };
+  }
+};
+
+APPS['sonderzeichen'] = {
+  name:'Sonderzeichen', icon:'®',
+  render(){ return '<div class="col">'+
+    '<textarea class="ta" id="szOut" placeholder="Zeichen hier rein…" style="min-height:80px"></textarea>'+
+    '<div class="row"><button class="btn" id="szCopy">📋 Kopieren</button><button class="btn" id="szClr">🗑 Löschen</button></div>'+
+    '<div id="szGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:4px"></div>'+
+  '</div>'; },
+  init(win){
+    const OUT=$('#szOut',win), G=$('#szGrid',win);
+    const chars = ['©','®','™','°','±','×','÷','≠','≈','≤','≥','∞','√','∑','∏','∫','∂','∆','∇','π','µ','Ω','α','β','γ','δ','ε','θ','λ','σ','φ','ψ','ω','€','$','£','¥','¢','§','¶','†','‡','•','·','…','–','—','"','"','‚','‘','«','»','‹','›','¡','¿','‼','⁉','♠','♥','♦','♣','♪','♫','☀','☁','☂','★','☆','✓','✔','✗','✘','→','←','↑','↓','↔','⇐','⇒','⇔'];
+    G.innerHTML = chars.map(c=>'<button class="btn" data-c="'+esc(c)+'" style="padding:8px 2px;font-size:17px">'+esc(c)+'</button>').join('');
+    G.querySelectorAll('button').forEach(b=>b.onclick=()=>{ OUT.value += b.dataset.c; OUT.focus(); });
+    $('#szCopy',win).onclick=()=>{ navigator.clipboard?.writeText(OUT.value); toast('Kopiert'); };
+    $('#szClr',win).onclick=()=>{ OUT.value=''; };
+  }
+};
+
+APPS['shortcuts'] = {
+  name:'Shortcuts', icon:'⌨️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>HalDo OS</b><div class="list" style="margin-top:6px">'+
+      '<div class="item"><span>Fenster schließen</span><b style="margin-left:auto">✕ oben rechts</b></div>'+
+      '<div class="item"><span>Fenster maximieren</span><b style="margin-left:auto">▢ oben rechts</b></div>'+
+      '<div class="item"><span>Fenster verschieben</span><b style="margin-left:auto">Titelleiste ziehen</b></div>'+
+      '<div class="item"><span>Theme wechseln</span><b style="margin-left:auto">⚡ oben rechts</b></div>'+
+      '<div class="item"><span>Suche</span><b style="margin-left:auto">Suchfeld oben</b></div>'+
+    '</div></div>'+
+    '<div class="card"><b>iPhone / iPad (Safari)</b><div class="list" style="margin-top:6px">'+
+      '<div class="item"><span>Neu laden</span><b style="margin-left:auto">⟳</b></div>'+
+      '<div class="item"><span>Zur Startseite</span><b style="margin-left:auto">🦚 oben links</b></div>'+
+      '<div class="item"><span>Menü öffnen</span><b style="margin-left:auto">☰ oben links</b></div>'+
+    '</div></div>'+
+    '<div class="card"><b>Desktop</b><div class="list" style="margin-top:6px">'+
+      '<div class="item"><span>Snake steuern</span><b style="margin-left:auto">↑ ↓ ← →</b></div>'+
+      '<div class="item"><span>Senden</span><b style="margin-left:auto">Enter</b></div>'+
+    '</div></div>'+
+  '</div>'
+};
+
+console.log('%c🚀 HalDo Apps v124 geladen','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('Neue Apps:', ['ai-writer','ai-summarizer','ai-tutor','mathe-trainer','einmaleins','bruchrechner','vokabeltrainer','kopfrechnen','quiz-allgemein','multiple-choice','lueckentext','geometrie','quadratisch','trigonometrie','linear','lernplaner','verkehrszeichen','vorfahrt','fuehrerschein-fragen','erste-hilfe','budgetplaner','ausgaben','zinsrechner','kreditrechner','emoji-tastatur','sonderzeichen','shortcuts'].length+' registriert');
+
+// Home neu rendern damit neue Apps als "ready" erscheinen
+setTimeout(()=>{
+  const logo = document.querySelector('#logoBtn');
+  if(logo) logo.click();
+}, 100);
+
+})();
+</script>
 </body>
 </html>
