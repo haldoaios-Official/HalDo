@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#001028">
+<title>HalDo AI OS</title>
+
+<style>
+/* ═══════════════════════════════════════════════════════════ */
+/* GLOBAL RESET + VARIABLEN                                     */
+/* ═══════════════════════════════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+  /* Farben */
+  --cyan: #00e5ff;
+  --blue: #4da8ff;
+  --purple: #b478ff;
+  --pink: #ff78c8;
+  --success: #00ff88;
+  --warning: #ffc800;
+  --danger: #ff4466;
+
+  /* Theme (wechselbar) */
+  --sys-color: var(--cyan);
+  --sys-color-2: var(--blue);
+  --glow: rgba(0, 229, 255, 0.5);
+
+  /* Hintergründe */
+  --bg-deep: #000510;
+  --bg-dark: #001028;
+  --bg-mid: rgba(0, 20, 50, 0.88);
+  --bg-light: rgba(0, 40, 80, 0.5);
+
+  /* Borders */
+  --border-color: rgba(0, 229, 255, 0.35);
+  --border-soft: rgba(0, 229, 255, 0.15);
+
+  /* Z-Index Hierarchie */
+  --z-bg: 0;
+  --z-kosmos: 1;
+  --z-window: 100;
+  --z-window-active: 200;
+  --z-sidebar: 500;
+  --z-topbar: 500;
+  --z-bottombar: 500;
+  --z-panel: 900;
+  --z-toast: 1000;
+  --z-modal: 1100;
+  --z-alert: 1200;
+
+  /* Safe-Area (iPhone) */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-deep);
+  color: #e6f4ff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(0,20,50,0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--cyan), var(--blue));
+  border-radius: 3px;
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* KOSMOS HINTERGRUND (Sonne + 12 Planeten + Sterne)            */
+/* ═══════════════════════════════════════════════════════════ */
+#kosmos {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-kosmos);
+  background: radial-gradient(ellipse at 50% 50%,
+    #0a1832 0%,
+    #050c1e 40%,
+    #000510 100%);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Sterne */
+#stars {
+  position: absolute;
+  inset: 0;
+}
+.star {
+  position: absolute;
+  background: #fff;
+  border-radius: 50%;
+  animation: twinkle 3s infinite ease-in-out;
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.4); }
+}
+
+/* Sonne in Mitte */
+#sun {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 140px;
+  height: 140px;
+  margin: -70px 0 0 -70px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%,
+    #fff8d0 0%,
+    #ffcc44 30%,
+    #ff8833 60%,
+    #cc4400 100%);
+  box-shadow:
+    0 0 60px 20px rgba(255, 180, 60, 0.6),
+    0 0 120px 40px rgba(255, 120, 40, 0.4),
+    0 0 200px 80px rgba(255, 80, 20, 0.2);
+  animation: sunPulse 4s ease-in-out infinite;
+}
+@keyframes sunPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 60px 20px rgba(255,180,60,0.6), 0 0 120px 40px rgba(255,120,40,0.4), 0 0 200px 80px rgba(255,80,20,0.2); }
+  50% { transform: scale(1.06); box-shadow: 0 0 80px 28px rgba(255,200,80,0.8), 0 0 160px 55px rgba(255,140,60,0.5), 0 0 260px 100px rgba(255,100,30,0.3); }
+}
+
+/* Planeten-Orbits + Planeten */
+.orbit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 229, 255, 0.1);
+  transform-origin: center center;
+  animation: orbitRotate linear infinite;
+  pointer-events: none;
+}
+@keyframes orbitRotate {
+  to { transform: rotate(360deg); }
+}
+.planet {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  margin-top: -8px;
+  margin-left: -8px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  box-shadow: 0 0 12px currentColor;
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* TOP-BAR (Logo + System-Icons)                                */
+/* ═══════════════════════════════════════════════════════════ */
+#topBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(64px + var(--safe-top));
+  padding: var(--safe-top) calc(16px + var(--safe-right)) 0 calc(16px + var(--safe-left));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: var(--z-topbar);
+  background: linear-gradient(180deg,
+    rgba(0, 15, 40, 0.95) 0%,
+    rgba(0, 10, 30, 0.7) 100%);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.tb-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.tb-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--cyan), var(--purple));
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  box-shadow: 0 0 20px var(--glow);
+  overflow: hidden;
+  position: relative;
+}
+.tb-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tb-name {
+  font-size: 15px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+.tb-version {
+  display: block;
+  font-size: 9px;
+  color: var(--cyan);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 800;
+  margin-top: 1px;
+}
+
+.tb-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.tb-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(0, 40, 80, 0.5);
+  border: 1.5px solid var(--border-color);
+  color: var(--cyan);
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.tb-btn:hover {
+  background: rgba(0, 229, 255, 0.2);
+  transform: scale(1.05);
+  box-shadow: 0 0 20px var(--glow);
+}
+.tb-btn:active {
+  transform: scale(0.94);
+}
+.tb-btn .badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-dark);
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* SIDEBAR LINKS                                                */
+/* ═══════════════════════════════════════════════════════════ */
+#sidebar {
+  position: fixed;
+  top: calc(74px + var(--safe-top));
+  left: calc(10px + var(--safe-left));
+  bottom: calc(74px + var(--safe-bottom));
+  width: 68px;
+  z-index: var(--z-sidebar);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 8px;
+  border-radius: 22px;
+  background: linear-gradient(180deg,
+    rgba(0, 25, 55, 0.92) 0%,
+    rgba(0, 12, 35, 0.98) 100%);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1.5px solid var(--border-color);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.7),
+    0 0 40px var(--glow);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#sidebar::-webkit-scrollbar { display: none; }
+#sidebar.collapsed {
+  transform: translateX(-85px);
+}
+
+.sb-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--cyan), var(--purple));
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  box-shadow: 0 0 20px var(--glow);
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+}
+.sb-logo::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 16px;
+  border: 1px dashed rgba(0, 229, 255, 0.5);
+  animation: spin 10s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.sb-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+  position: relative;
+  z-index: 1;
+}
+.sb-logo:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 30px var(--glow);
+}
+
+.sb-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-color), transparent);
+  margin: 4px 2px;
+  flex-shrink: 0;
+}
+
+.sb-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: rgba(0, 40, 80, 0.45);
+  border: 1.5px solid var(--border-soft);
+  color: #e6f4ff;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+.sb-btn .sb-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+.sb-btn .sb-label {
+  font-size: 7px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  opacity: 0.8;
+  line-height: 1;
+}
+.sb-btn:hover {
+  background: rgba(0, 229, 255, 0.2);
+  border-color: var(--cyan);
+  transform: translateX(4px) scale(1.06);
+  box-shadow: 0 0 24px var(--glow);
+}
+.sb-btn:active {
+  transform: translateX(2px) scale(0.96);
+}
+.sb-btn.active {
+  background: linear-gradient(135deg, var(--cyan), var(--blue));
+  border-color: #fff;
+  color: #001018;
+  box-shadow: 0 0 30px var(--glow);
+}
+
+.sb-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(0, 255, 255, 0.7) 30%,
+    rgba(77, 168, 255, 0.8) 60%,
+    rgba(180, 120, 255, 0.9) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 0 18px var(--glow),
+    inset 0 0 18px rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  position: relative;
+  animation: sbAvatarPulse 3s ease-in-out infinite;
+}
+@keyframes sbAvatarPulse {
+  0%, 100% { box-shadow: 0 0 18px var(--glow), inset 0 0 18px rgba(255,255,255,0.5); }
+  50% { box-shadow: 0 0 32px var(--glow), inset 0 0 24px rgba(255,255,255,0.7); }
+}
+.sb-avatar:hover { transform: scale(1.1); }
+.sb-avatar:active { transform: scale(0.94); }
+.sb-avatar.cyborg {
+  background: radial-gradient(circle at 35% 30%,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 120, 220, 0.7) 30%,
+    rgba(200, 80, 255, 0.8) 60%,
+    rgba(150, 100, 255, 0.9) 100%);
+}
+.sb-avatar .sb-label {
+  position: absolute;
+  bottom: -12px;
+  font-size: 6px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--cyan);
+  white-space: nowrap;
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.8);
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* SIDEBAR TOGGLE                                               */
+/* ═══════════════════════════════════════════════════════════ */
+#sidebarToggle {
+  position: fixed;
+  top: calc(80px + var(--safe-top));
+  left: calc(82px + var(--safe-left));
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--cyan), var(--blue));
+  border: 2px solid #fff;
+  color: #001018;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: calc(var(--z-sidebar) + 1);
+  box-shadow: 0 0 16px var(--glow);
+  transition: all 0.2s;
+}
+#sidebarToggle:hover { transform: scale(1.15); }
+#sidebarToggle:active { transform: scale(0.9); }
+
+/* ═══════════════════════════════════════════════════════════ */
+/* BOTTOM-BAR (Chat / AI / CYBORG)                              */
+/* ═══════════════════════════════════════════════════════════ */
+#bottomBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(64px + var(--safe-bottom));
+  padding: 0 calc(16px + var(--safe-right)) var(--safe-bottom) calc(16px + var(--safe-left));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: var(--z-bottombar);
+  background: linear-gradient(0deg,
+    rgba(0, 15, 40, 0.95) 0%,
+    rgba(0, 10, 30, 0.7) 100%);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-top: 1px solid var(--border-soft);
+}
+
+.bb-btn {
+  min-width: 54px;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 14px;
+  background: rgba(0, 40, 80, 0.6);
+  border: 1.5px solid var(--border-color);
+  color: #e6f4ff;
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.bb-btn .bb-icon { font-size: 18px; }
+.bb-btn:hover {
+  background: rgba(0, 229, 255, 0.2);
+  border-color: var(--cyan);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px var(--glow);
+}
+.bb-btn:active {
+  transform: translateY(0) scale(0.95);
+}
+.bb-btn.main {
+  background: linear-gradient(135deg, var(--cyan), var(--blue));
+  border-color: #fff;
+  color: #001018;
+  box-shadow: 0 0 24px var(--glow);
+}
+.bb-btn.cyborg {
+  background: linear-gradient(135deg, var(--pink), var(--purple));
+  border-color: #fff;
+  color: #fff;
+  box-shadow: 0 0 24px rgba(255, 120, 200, 0.6);
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* TOAST                                                        */
+/* ═══════════════════════════════════════════════════════════ */
+#toast {
+  position: fixed;
+  bottom: calc(90px + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  padding: 12px 22px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--cyan), var(--blue));
+  color: #001018;
+  font-size: 13px;
+  font-weight: 800;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s;
+  z-index: var(--z-toast);
+  box-shadow: 0 10px 40px var(--glow);
+  white-space: nowrap;
+  max-width: 90vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+#toast.error {
+  background: linear-gradient(135deg, var(--danger), var(--pink));
+  color: #fff;
+}
+#toast.success {
+  background: linear-gradient(135deg, var(--success), var(--cyan));
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* RESPONSIVE                                                   */
+/* ═══════════════════════════════════════════════════════════ */
+@media (max-width: 500px) {
+  #sidebar {
+    top: calc(70px + var(--safe-top));
+    width: 62px;
+    padding: 8px 6px;
+    border-radius: 18px;
+  }
+  .sb-logo, .sb-btn, .sb-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+  .sb-btn .sb-icon { font-size: 18px; }
+  .sb-btn .sb-label { font-size: 6px; }
+  #sidebarToggle {
+    top: calc(74px + var(--safe-top));
+    left: calc(74px + var(--safe-left));
+  }
+  .bb-btn {
+    height: 44px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
+  .tb-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+  .tb-name { font-size: 13px; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- KOSMOS HINTERGRUND                                           -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="kosmos">
+  <div id="stars"></div>
+  <div id="sun"></div>
+  <!-- Orbits + Planeten werden per JS eingefügt -->
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TOP-BAR                                                      -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="topBar">
+  <div class="tb-brand" onclick="HalDoUI.toggleSidebar()">
+    <div class="tb-logo">
+      <img src="logo.png" alt="" onerror="this.parentElement.textContent='🦚'">
+    </div>
+    <div>
+      <div class="tb-name">HalDo AI OS</div>
+      <span class="tb-version">v122</span>
+    </div>
+  </div>
+  <div class="tb-actions">
+    <button class="tb-btn" id="tbNotifBtn" onclick="HalDoUI.openPanel('notif')" title="Benachrichtigungen">
+      🔔
+      <span class="badge" id="tbNotifBadge" style="display:none;">0</span>
+    </button>
+    <button class="tb-btn" onclick="HalDoUI.openPanel('settings')" title="Einstellungen">⚙️</button>
+    <button class="tb-btn" onclick="HalDoUI.openPanel('about')" title="Info">ℹ️</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SIDEBAR                                                      -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="sidebar">
+  <div class="sb-logo" onclick="HalDoUI.openPanel('about')" title="HalDo AI OS">
+    <img src="logo.png" alt="" onerror="this.parentElement.textContent='🦚'">
+  </div>
+
+  <div class="sb-divider"></div>
+
+  <div class="sb-btn" data-panel="home" onclick="HalDoUI.openPanel('home')" title="Home">
+    <span class="sb-icon">🏠</span>
+    <span class="sb-label">Home</span>
+  </div>
+  <div class="sb-btn" data-panel="apps" onclick="HalDoUI.openPanel('apps')" title="Apps">
+    <span class="sb-icon">📱</span>
+    <span class="sb-label">Apps</span>
+  </div>
+  <div class="sb-btn" data-panel="system" onclick="HalDoUI.openPanel('system')" title="System">
+    <span class="sb-icon">⚙️</span>
+    <span class="sb-label">System</span>
+  </div>
+
+  <div class="sb-divider"></div>
+
+  <div class="sb-btn" data-panel="chat" onclick="HalDoUI.openPanel('chat')" title="Chat">
+    <span class="sb-icon">💬</span>
+    <span class="sb-label">Chat</span>
+  </div>
+  <div class="sb-btn" data-panel="files" onclick="HalDoUI.openPanel('files')" title="Dateien">
+    <span class="sb-icon">📁</span>
+    <span class="sb-label">Files</span>
+  </div>
+  <div class="sb-btn" data-panel="settings" onclick="HalDoUI.openPanel('settings')" title="Einstellungen">
+    <span class="sb-icon">🔧</span>
+    <span class="sb-label">Setup</span>
+  </div>
+
+  <div class="sb-divider"></div>
+
+  <!-- Avatar-Buttons -->
+  <div class="sb-avatar" id="sbAvatarAI" onclick="HalDoUI.launchAvatar('ai')" title="HalDo AI">
+    🤖
+    <span class="sb-label">AI</span>
+  </div>
+  <div class="sb-avatar cyborg" id="sbAvatarCyborg" onclick="HalDoUI.launchAvatar('cyborg')" title="HalDo CYBORG">
+    ⚡
+    <span class="sb-label">Cyborg</span>
+  </div>
+</div>
+
+<!-- Sidebar Toggle -->
+<div id="sidebarToggle" onclick="HalDoUI.toggleSidebar()">◀</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- BOTTOM-BAR                                                   -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="bottomBar">
+  <button class="bb-btn" onclick="HalDoUI.launch('chat-window')">
+    <span class="bb-icon">💬</span>
+    <span>Chat</span>
+  </button>
+  <button class="bb-btn main" onclick="HalDoUI.launchAvatar('ai')">
+    <span class="bb-icon">🤖</span>
+    <span>HalDo AI</span>
+  </button>
+  <button class="bb-btn cyborg" onclick="HalDoUI.launchAvatar('cyborg')">
+    <span class="bb-icon">⚡</span>
+    <span>CYBORG</span>
+  </button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TOAST                                                        -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════ */
+/* CORE UI SYSTEM                                               */
+/* ═══════════════════════════════════════════════════════════ */
+(function(){
+  "use strict";
+  if(window.__coreUI) return;
+  window.__coreUI = true;
+
+  // ═══════════════════════════════════════════════════════════
+  // 1. STERNE GENERIEREN
+  // ═══════════════════════════════════════════════════════════
+  function generateStars(){
+    const stars = document.getElementById('stars');
+    if(!stars) return;
+    stars.innerHTML = '';
+    const count = 150;
+    for(let i = 0; i < count; i++){
+      const s = document.createElement('div');
+      s.className = 'star';
+      s.style.left = Math.random() * 100 + '%';
+      s.style.top = Math.random() * 100 + '%';
+      const size = Math.random() * 2 + 0.5;
+      s.style.width = size + 'px';
+      s.style.height = size + 'px';
+      s.style.animationDelay = (Math.random() * 3) + 's';
+      s.style.opacity = Math.random() * 0.7 + 0.3;
+      stars.appendChild(s);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 2. PLANETEN GENERIEREN (12 Planeten)
+  // ═══════════════════════════════════════════════════════════
+  function generatePlanets(){
+    const kosmos = document.getElementById('kosmos');
+    if(!kosmos) return;
+    // Alte Orbits entfernen
+    kosmos.querySelectorAll('.orbit').forEach(o => o.remove());
+
+    const planets = [
+      { name: 'Merkur', size: 6,  radius: 90,  speed: 8,  color: '#a0a0a0' },
+      { name: 'Venus',  size: 10, radius: 120, speed: 12, color: '#ffcc88' },
+      { name: 'Erde',   size: 10, radius: 150, speed: 16, color: '#4da8ff' },
+      { name: 'Mars',   size: 8,  radius: 180, speed: 20, color: '#ff6644' },
+      { name: 'Jupiter',size: 18, radius: 220, speed: 26, color: '#dd9966' },
+      { name: 'Saturn', size: 16, radius: 260, speed: 32, color: '#ddbb77' },
+      { name: 'Uranus', size: 12, radius: 300, speed: 40, color: '#88dddd' },
+      { name: 'Neptun', size: 12, radius: 340, speed: 48, color: '#6688dd' },
+      { name: 'Pluto',  size: 5,  radius: 375, speed: 58, color: '#ccaa99' },
+      { name: 'Ceres',  size: 4,  radius: 400, speed: 68, color: '#998877' },
+      { name: 'Eris',   size: 6,  radius: 430, speed: 80, color: '#cccccc' },
+      { name: 'Haumea', size: 5,  radius: 455, speed: 95, color: '#aabbcc' }
+    ];
+
+    planets.forEach((p, i) => {
+      const orbit = document.createElement('div');
+      orbit.className = 'orbit';
+      orbit.style.width = (p.radius * 2) + 'px';
+      orbit.style.height = (p.radius * 2) + 'px';
+      orbit.style.marginLeft = -p.radius + 'px';
+      orbit.style.marginTop = -p.radius + 'px';
+      orbit.style.animationDuration = p.speed + 's';
+      orbit.style.animationDelay = (-i * 2) + 's';
+
+      const planet = document.createElement('div');
+      planet.className = 'planet';
+      planet.style.width = p.size + 'px';
+      planet.style.height = p.size + 'px';
+      planet.style.marginTop = -(p.size / 2) + 'px';
+      planet.style.marginLeft = -(p.size / 2) + 'px';
+      planet.style.background = p.color;
+      planet.style.color = p.color;
+      planet.title = p.name;
+
+      orbit.appendChild(planet);
+      kosmos.appendChild(orbit);
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 3. TOAST SYSTEM
+  // ═══════════════════════════════════════════════════════════
+  function showToast(msg, type){
+    const el = document.getElementById('toast');
+    if(!el) return;
+    el.textContent = msg;
+    el.className = '';
+    if(type) el.classList.add(type);
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 4. SIDEBAR TOGGLE
+  // ═══════════════════════════════════════════════════════════
+  function toggleSidebar(){
+    const sb = document.getElementById('sidebar');
+    const btn = document.getElementById('sidebarToggle');
+    if(!sb) return;
+    sb.classList.toggle('collapsed');
+    if(btn) btn.textContent = sb.classList.contains('collapsed') ? '▶' : '◀';
+    if(navigator.vibrate) navigator.vibrate(8);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 5. BENACHRICHTIGUNGEN
+  // ═══════════════════════════════════════════════════════════
+  function setNotifCount(n){
+    const badge = document.getElementById('tbNotifBadge');
+    if(!badge) return;
+    if(n > 0){
+      badge.textContent = n > 99 ? '99+' : n;
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 6. THEME WECHSEL (AI ↔ CYBORG)
+  // ═══════════════════════════════════════════════════════════
+  function setTheme(theme){
+    const root = document.documentElement;
+    if(theme === 'cyborg'){
+      root.style.setProperty('--sys-color', 'var(--pink)');
+      root.style.setProperty('--sys-color-2', 'var(--purple)');
+      root.style.setProperty('--glow', 'rgba(255, 120, 200, 0.5)');
+      root.style.setProperty('--border-color', 'rgba(255, 120, 200, 0.35)');
+      document.body.classList.add('cyborg-mode');
+    } else {
+      root.style.setProperty('--sys-color', 'var(--cyan)');
+      root.style.setProperty('--sys-color-2', 'var(--blue)');
+      root.style.setProperty('--glow', 'rgba(0, 229, 255, 0.5)');
+      root.style.setProperty('--border-color', 'rgba(0, 229, 255, 0.35)');
+      document.body.classList.remove('cyborg-mode');
+    }
+    try { localStorage.setItem('haldo_theme', theme); } catch(e){}
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 7. AVATAR
+  // ═══════════════════════════════════════════════════════════
+  function launchAvatar(mode){
+    if(mode === 'cyborg') setTheme('cyborg');
+    else setTheme('ai');
+    if(window.HalDoAvatar && typeof window.HalDoAvatar.open === 'function'){
+      window.HalDoAvatar.open();
+      if(window.HalDoAvatar.setMode) window.HalDoAvatar.setMode(mode);
+    } else {
+      showToast('🤖 Avatar wird in Teil 9 eingebaut', 'success');
+    }
+    if(navigator.vibrate) navigator.vibrate(12);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 8. LAUNCH (Fenster öffnen)
+  // ═══════════════════════════════════════════════════════════
+  function launch(windowId){
+    if(typeof window.openWin === 'function'){
+      window.openWin(windowId);
+    } else {
+      const win = document.getElementById(windowId);
+      if(win){
+        win.classList.add('show', 'active');
+        win.style.display = 'flex';
+      } else {
+        showToast('⚠️ App noch nicht eingebaut', 'error');
+      }
+    }
+    if(navigator.vibrate) navigator.vibrate(10);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 9. PANEL OPEN (kommt in Teil 8)
+  // ═══════════════════════════════════════════════════════════
+  function openPanel(name){
+    if(typeof window.HalDoPanels === 'object' && window.HalDoPanels.open){
+      window.HalDoPanels.open(name);
+    } else {
+      showToast('📦 Panel "' + name + '" kommt in Teil 8');
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 10. INIT
+  // ═══════════════════════════════════════════════════════════
+  function init(){
+    generateStars();
+    generatePlanets();
+    // Theme laden
+    try {
+      const t = localStorage.getItem('haldo_theme');
+      if(t) setTheme(t);
+    } catch(e){}
+    console.log('%c🌌 HalDo AI OS v122 – Teil 1 geladen', 'color:#00e5ff;font-weight:bold;font-size:14px;');
+    console.log('%c✅ Kosmos, Top-Bar, Sidebar, Bottom-Bar aktiv', 'color:#4da8ff;font-weight:bold;');
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 11. PUBLIC API
+  // ═══════════════════════════════════════════════════════════
+  window.HalDoUI = {
+    toggleSidebar,
+    openPanel,
+    launch,
+    launchAvatar,
+    setTheme,
+    showToast,
+    setNotifCount,
+    generateStars,
+    generatePlanets
+  };
+
+  // Kurz-Alias für Toast
+  window.showToast = showToast;
+
+})();
+</script>
+
+</body>
+</html>
