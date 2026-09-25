@@ -1,0 +1,2442 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05060f">
+<title>HalDo AI OS · v122</title>
+<style>
+:root{
+  --c1:#00e5ff;--c2:#4da8ff;--c3:#b478ff;
+  --bg:#05060f;--panel:rgba(10,14,32,.72);--panel2:rgba(18,22,44,.82);
+  --line:rgba(0,229,255,.28);--line2:rgba(255,255,255,.08);
+  --txt:#e9edff;--dim:#8a95bd;--acc:var(--c1);
+  --glow:0 0 12px rgba(0,229,255,.45),0 0 32px rgba(0,229,255,.15);
+  --sh:0 26px 70px rgba(0,0,0,.6);
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-l:env(safe-area-inset-left,0px);
+  --safe-r:env(safe-area-inset-right,0px);
+}
+body.cyborg{
+  --c1:#ff78c8;--c2:#b478ff;--c3:#d484ff;
+  --line:rgba(255,120,200,.32);
+  --glow:0 0 12px rgba(255,120,200,.5),0 0 32px rgba(180,120,255,.2);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{
+  margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:var(--bg);color:var(--txt);font-size:14px;
+  padding:var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l);
+}
+button{font-family:inherit;color:inherit}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:8px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ============ KOSMOS ============ */
+#cosmos{position:fixed;inset:0;overflow:hidden;z-index:0;
+  background:radial-gradient(ellipse at 68% 14%,#101a3a 0%,#070a1c 45%,#03040c 100%);}
+#stars{position:absolute;inset:0;display:block}
+.sun{position:absolute;left:50%;top:52%;width:104px;height:104px;margin:-52px 0 0 -52px;border-radius:50%;
+  background:radial-gradient(circle at 38% 32%,#fff8c8,var(--c1) 42%,var(--c3) 68%,rgba(0,0,0,0) 72%);
+  box-shadow:0 0 70px 26px rgba(0,229,255,.32),0 0 200px 90px rgba(180,120,255,.15);
+  animation:sunPulse 8s ease-in-out infinite;}
+@keyframes sunPulse{50%{transform:scale(1.06)}}
+.orbit{position:absolute;left:50%;top:52%;border:1px solid rgba(255,255,255,.05);border-radius:50%;
+  transform:translate(-50%,-50%);animation:spin linear infinite;}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.planet{position:absolute;left:50%;top:0;border-radius:50%;transform:translate(-50%,-50%);}
+
+/* ============ TOP-BAR ============ */
+#topbar{
+  position:fixed;top:var(--safe-t);left:var(--safe-l);right:var(--safe-r);height:56px;z-index:9000;
+  display:flex;align-items:center;gap:10px;padding:0 12px;
+  background:var(--panel);backdrop-filter:blur(20px) saturate(1.4);
+  -webkit-backdrop-filter:blur(20px) saturate(1.4);
+  border-bottom:1.5px solid var(--line);
+}
+#menuBtn{display:none}
+.iconbtn{background:rgba(255,255,255,.06);border:1.5px solid var(--line);color:var(--txt);
+  width:40px;height:40px;border-radius:12px;font-size:17px;cursor:pointer;
+  display:grid;place-items:center;transition:.15s;flex:0 0 auto;}
+.iconbtn:hover{background:rgba(0,229,255,.12);box-shadow:var(--glow)}
+.logo{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;cursor:pointer;
+  font-size:20px;font-weight:800;color:#fff;flex:0 0 auto;
+  background:linear-gradient(135deg,var(--c1),var(--c3));
+  box-shadow:0 0 14px rgba(0,229,255,.5);}
+.brand{display:flex;flex-direction:column;line-height:1.1;min-width:0}
+.brand b{font-size:13.5px;letter-spacing:.4px;white-space:nowrap}
+.sm{font-size:11px}
+.dim{color:var(--dim)}
+.spacer{flex:1}
+#search{
+  width:220px;max-width:42vw;height:40px;border-radius:12px;padding:0 12px;
+  background:rgba(255,255,255,.06);border:1.5px solid var(--line2);color:var(--txt);
+  outline:none;font-size:13px;transition:.15s;
+}
+#search:focus{border-color:var(--c1);box-shadow:var(--glow)}
+#clock{font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--dim);white-space:nowrap}
+
+/* ============ SIDEBAR ============ */
+#sidebar{
+  position:fixed;top:calc(var(--safe-t) + 56px);bottom:calc(var(--safe-b) + 56px);left:var(--safe-l);
+  width:236px;z-index:8000;padding:14px 10px;
+  background:var(--panel);backdrop-filter:blur(20px) saturate(1.4);
+  -webkit-backdrop-filter:blur(20px) saturate(1.4);
+  border-right:1.5px solid var(--line);overflow-y:auto;
+  transition:transform .28s cubic-bezier(.4,0,.2,1);
+}
+#sidebar h4{margin:8px 4px 8px;font-size:10.5px;letter-spacing:1.4px;color:var(--dim);
+  text-transform:uppercase;font-weight:700}
+.catbtn{
+  display:flex;align-items:center;gap:10px;width:100%;padding:10px 11px;margin-bottom:3px;
+  background:transparent;border:1.5px solid transparent;border-radius:12px;color:var(--txt);
+  cursor:pointer;font-size:13px;text-align:left;transition:.15s;
+}
+.catbtn:hover{background:rgba(0,229,255,.08);border-color:var(--line)}
+.catbtn.active{background:rgba(0,229,255,.14);border-color:var(--c1);box-shadow:var(--glow)}
+.catbtn .ico{font-size:16px;width:22px;text-align:center;flex:0 0 auto}
+.catbtn .n{margin-left:auto;font-size:10.5px;color:var(--dim);padding:2px 7px;border-radius:8px;
+  background:rgba(255,255,255,.06);font-variant-numeric:tabular-nums}
+.catbtn.active .n{background:rgba(0,229,255,.2);color:#fff}
+
+/* ============ DESKTOP ============ */
+#desktop{
+  position:fixed;top:calc(var(--safe-t) + 56px);left:calc(var(--safe-l) + 236px);right:var(--safe-r);
+  bottom:calc(var(--safe-b) + 56px);z-index:1;overflow-y:auto;padding:18px 18px 40px;
+}
+#desktop h3{
+  margin:20px 0 12px;font-size:13px;letter-spacing:.5px;display:flex;align-items:center;gap:8px;
+  text-transform:none;color:var(--txt);font-weight:700;
+}
+#desktop h3:first-child{margin-top:0}
+#desktop h3 .ico{font-size:16px}
+#desktop h3 .n{font-size:11px;color:var(--dim);font-weight:400;margin-left:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
+.app{
+  display:flex;flex-direction:column;align-items:center;gap:7px;padding:11px 5px;border-radius:15px;
+  cursor:pointer;text-align:center;transition:.18s;border:1.5px solid transparent;user-select:none;
+}
+.app:hover{background:rgba(0,229,255,.06);border-color:var(--line);transform:translateY(-2px)}
+.app:active{transform:scale(.95)}
+.app .ic{
+  font-size:26px;width:52px;height:52px;display:grid;place-items:center;border-radius:15px;
+  background:linear-gradient(150deg,rgba(0,229,255,.14),rgba(180,120,255,.08));
+  border:1.5px solid var(--line);
+  transition:.18s;
+}
+.app.ready:hover .ic{box-shadow:var(--glow)}
+.app.soon .ic{opacity:.4}
+.app .nm{font-size:11px;color:var(--dim);line-height:1.25;word-break:break-word;padding:0 2px}
+.app.ready .nm{color:var(--txt);font-weight:500}
+.app.soon::after{content:'';display:none}
+
+/* ============ FENSTER ============ */
+.window{
+  position:fixed;z-index:200;display:flex;flex-direction:column;overflow:hidden;
+  background:var(--panel2);
+  backdrop-filter:blur(26px) saturate(1.5);
+  -webkit-backdrop-filter:blur(26px) saturate(1.5);
+  border:1.5px solid var(--line);border-radius:18px;
+  box-shadow:var(--sh),0 0 0 1px rgba(0,0,0,.3),var(--glow);
+  animation:winIn .2s cubic-bezier(.4,0,.2,1);
+  will-change:transform;
+}
+@keyframes winIn{from{opacity:0;transform:scale(.95) translateY(12px)}}
+.window.maxed{left:8px!important;top:64px!important;right:8px;bottom:8px;width:auto!important;height:auto!important;border-radius:14px}
+.window.dragging{transition:none!important}
+.win-head{
+  height:46px;flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:0 6px 0 14px;
+  border-bottom:1.5px solid var(--line);user-select:none;
+  touch-action:none;position:relative;
+}
+.win-head::before{
+  content:'';position:absolute;left:100px;right:100px;top:0;bottom:0;
+  cursor:grab;
+}
+.win-head:active::before{cursor:grabbing}
+.wic{font-size:16px;flex:0 0 auto}
+.wtitle{font-size:13px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wbtns{display:flex;gap:5px;position:relative;z-index:999999}
+.wb{
+  width:40px;height:40px;border-radius:11px;border:1.5px solid transparent;background:rgba(255,255,255,.05);
+  color:var(--dim);cursor:pointer;font-size:14px;line-height:1;display:grid;place-items:center;
+  transition:.12s;position:relative;z-index:999999;
+}
+.wb:hover{background:rgba(0,229,255,.15);color:var(--txt)}
+.wb.close:hover{background:#e03b5a;color:#fff;border-color:#e03b5a}
+.win-body{flex:1;overflow:auto;padding:16px;position:relative}
+.win-body.nopad{padding:0}
+
+/* ============ BOTTOM-BAR ============ */
+#bottomBar{
+  position:fixed;bottom:var(--safe-b);left:var(--safe-l);right:var(--safe-r);height:56px;z-index:9000;
+  display:flex;align-items:center;justify-content:center;gap:8px;padding:0 12px;
+  background:var(--panel);backdrop-filter:blur(20px) saturate(1.4);
+  -webkit-backdrop-filter:blur(20px) saturate(1.4);
+  border-top:1.5px solid var(--line);
+}
+.bbtn{
+  display:flex;align-items:center;gap:7px;padding:9px 14px;border-radius:12px;
+  background:rgba(255,255,255,.05);border:1.5px solid var(--line);color:var(--txt);
+  cursor:pointer;font-size:13px;font-weight:500;transition:.15s;
+}
+.bbtn:hover{background:rgba(0,229,255,.14);box-shadow:var(--glow)}
+.bbtn.cyborg{background:linear-gradient(135deg,rgba(255,120,200,.14),rgba(180,120,255,.14))}
+.bbtn.on{background:linear-gradient(135deg,var(--c1),var(--c3));color:#fff;border-color:var(--c1);box-shadow:var(--glow)}
+
+/* ============ UI-BAUSTEINE ============ */
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row.between{justify-content:space-between}
+.col{display:flex;flex-direction:column;gap:10px}
+.center{text-align:center}
+.big{font-size:42px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:1px;line-height:1.05}
+.big2{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.btn{
+  padding:9px 15px;border-radius:12px;border:1.5px solid var(--line);
+  background:rgba(255,255,255,.06);color:var(--txt);cursor:pointer;font-size:13px;font-weight:500;
+  transition:.15s;font-family:inherit;
+}
+.btn:hover{background:rgba(0,229,255,.14);box-shadow:var(--glow)}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:linear-gradient(135deg,var(--c1),var(--c2));border-color:var(--c1);color:#fff;font-weight:600}
+.btn.danger{background:rgba(224,59,90,.16);border-color:rgba(224,59,90,.5);color:#ff9db1}
+.btn.sm{padding:6px 11px;font-size:12px;border-radius:10px}
+.card{padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.045);border:1.5px solid var(--line);font-size:13px}
+.card.tight{padding:9px 11px}
+.inp,.ta{
+  width:100%;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.055);
+  border:1.5px solid var(--line2);color:var(--txt);outline:none;font-size:13.5px;font-family:inherit;
+  transition:.15s;
+}
+.inp:focus,.ta:focus{border-color:var(--c1);box-shadow:var(--glow)}
+.ta{min-height:150px;resize:vertical;line-height:1.5;font-family:inherit}
+.lbl{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.6px;font-weight:600;margin-bottom:4px;display:block}
+h3{font-size:12.5px;margin:14px 0 8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
+.list{display:flex;flex-direction:column;gap:6px}
+.item{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:11px;
+  background:rgba(255,255,255,.045);border:1.5px solid var(--line2);font-size:13px;
+}
+.item .x{margin-left:auto;color:var(--dim);cursor:pointer;padding:2px 6px;border-radius:6px;font-size:16px;line-height:1}
+.item .x:hover{background:rgba(224,59,90,.2);color:#ff9db1}
+.empty{color:var(--dim);font-size:12.5px;text-align:center;padding:22px 10px;font-style:italic}
+
+/* Rechner */
+.calc{max-width:340px;margin:0 auto}
+.calc-disp{
+  font-size:30px;font-weight:700;text-align:right;padding:16px 14px;border-radius:14px;
+  background:rgba(0,0,0,.25);border:1.5px solid var(--line);margin-bottom:10px;min-height:66px;
+  overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;
+  display:flex;flex-direction:column;justify-content:center;
+}
+.calc-disp .prev{font-size:12px;color:var(--dim);height:14px;overflow:hidden}
+.calc-disp .cur{line-height:1.1}
+.calc-keys{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ck{
+  padding:15px 0;border-radius:13px;border:1.5px solid var(--line);background:rgba(255,255,255,.05);
+  color:var(--txt);font-size:17px;cursor:pointer;transition:.1s;font-weight:500;
+}
+.ck:hover{background:rgba(0,229,255,.14)}
+.ck:active{transform:scale(.94)}
+.ck.op{background:rgba(180,120,255,.12);border-color:rgba(180,120,255,.4)}
+.ck.wide{grid-column:span 2}
+.ck.eq{background:linear-gradient(135deg,var(--c1),var(--c2));border-color:var(--c1);color:#fff;font-weight:700}
+
+/* Kalender */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:12px}
+.cal-h{text-align:center;font-size:11px;color:var(--dim);padding:4px 0;font-weight:600}
+.cal-d{
+  text-align:center;padding:9px 0;border-radius:10px;background:rgba(255,255,255,.04);
+  font-size:13px;cursor:pointer;transition:.15s;border:1.5px solid transparent;
+}
+.cal-d:hover{background:rgba(0,229,255,.1)}
+.cal-d.today{background:var(--c1);color:#fff;font-weight:700;box-shadow:var(--glow)}
+.cal-d.empty{background:transparent;cursor:default;pointer-events:none}
+
+/* Spiele */
+.ttt{display:grid;grid-template-columns:repeat(3,86px);gap:8px;margin:0 auto}
+.tttc{
+  height:86px;display:grid;place-items:center;font-size:36px;font-weight:800;border-radius:14px;
+  background:rgba(255,255,255,.05);border:1.5px solid var(--line);cursor:pointer;transition:.12s;
+  color:var(--txt);
+}
+.tttc:hover{background:rgba(0,229,255,.12)}
+.tttc.x{color:var(--c1)}
+.tttc.o{color:var(--c3)}
+.mem{display:grid;grid-template-columns:repeat(4,66px);gap:8px;margin:0 auto}
+.mc{
+  height:66px;display:grid;place-items:center;font-size:28px;border-radius:12px;cursor:pointer;
+  background:rgba(255,255,255,.06);border:1.5px solid var(--line);transition:.18s;user-select:none;
+}
+.mc.open{background:rgba(0,229,255,.24);border-color:var(--c1)}
+.mc.done{background:rgba(180,120,255,.12);border-color:var(--c3);opacity:.55}
+.g2048{
+  display:grid;grid-template-columns:repeat(4,72px);gap:8px;padding:10px;border-radius:16px;
+  background:rgba(0,0,0,.22);border:1.5px solid var(--line);margin:0 auto;width:fit-content;
+}
+.g2048 .t{
+  height:72px;display:grid;place-items:center;font-size:22px;font-weight:800;border-radius:10px;
+  transition:.1s;color:#fff;
+}
+.snake-cv{display:block;margin:0 auto;background:#04050f;border:1.5px solid var(--line);border-radius:14px;max-width:100%;touch-action:none}
+.hang-keys{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:12px;max-width:460px}
+.hk{
+  width:36px;height:36px;border-radius:9px;border:1.5px solid var(--line);background:rgba(255,255,255,.06);
+  color:var(--txt);cursor:pointer;font-size:13px;font-weight:600;
+}
+.hk:disabled{opacity:.35;cursor:default}
+.hk.bad{background:rgba(224,59,90,.32);border-color:#e03b5a;color:#fff}
+.hk.good{background:rgba(0,229,255,.32);border-color:var(--c1);color:#fff}
+.reaction-area{
+  height:220px;border-radius:14px;border:1.5px solid var(--line);display:grid;place-items:center;
+  cursor:pointer;user-select:none;font-size:18px;font-weight:600;transition:background .15s;
+}
+.typing-text{font-size:15px;line-height:1.7;padding:14px;border-radius:12px;background:rgba(0,0,0,.22);border:1.5px solid var(--line);font-family:ui-monospace,Menlo,monospace}
+.typing-text .ok{color:#4de88a}
+.typing-text .bad{color:#ff6b88;text-decoration:underline}
+
+/* Piano */
+.piano{display:flex;justify-content:center;gap:3px;margin-top:12px;user-select:none}
+.pk{
+  width:52px;height:150px;border-radius:0 0 10px 10px;border:1.5px solid var(--line);
+  background:linear-gradient(180deg,#fff,#dde3f5);color:#1a1d2e;font-weight:700;cursor:pointer;
+  display:flex;align-items:flex-end;justify-content:center;padding-bottom:10px;font-size:13px;
+  transition:.08s;font-family:inherit;
+}
+.pk:active,.pk.on{background:linear-gradient(180deg,var(--c1),var(--c2));color:#fff;transform:scale(.97)}
+
+/* Farbe / QR */
+.swatch{width:100%;height:120px;border-radius:14px;border:1.5px solid var(--line)}
+canvas.qr{display:block;margin:0 auto;background:#fff;border-radius:12px;image-rendering:pixelated}
+
+/* Übersetzer */
+.tr-out{min-height:90px;padding:12px;border-radius:12px;background:rgba(0,229,255,.06);border:1.5px solid var(--line)}
+
+/* Periodensystem */
+.ptable{display:grid;grid-template-columns:repeat(18,1fr);gap:3px;font-size:10px;min-width:640px}
+.pe{padding:6px 3px;border-radius:6px;text-align:center;border:1px solid var(--line2);cursor:pointer}
+.pe:hover{border-color:var(--c1);box-shadow:var(--glow)}
+
+/* Toast */
+#toast{
+  position:fixed;left:50%;bottom:calc(var(--safe-b) + 76px);transform:translate(-50%,140%);z-index:9999;
+  padding:11px 18px;border-radius:13px;background:rgba(10,14,32,.96);
+  border:1.5px solid var(--line);font-size:13px;transition:transform .3s cubic-bezier(.4,0,.2,1);
+  max-width:88vw;text-align:center;box-shadow:var(--sh),var(--glow);
+}
+#toast.on{transform:translate(-50%,0)}
+
+/* Search dropdown */
+#searchRes{
+  position:fixed;top:calc(var(--safe-t) + 60px);left:50%;transform:translateX(-50%);width:min(90vw,420px);
+  max-height:60vh;overflow-y:auto;z-index:9500;padding:8px;
+  background:var(--panel2);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border:1.5px solid var(--line);border-radius:14px;box-shadow:var(--sh),var(--glow);
+  display:none;
+}
+#searchRes.on{display:block}
+#searchRes .sr{
+  display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:10px;cursor:pointer;
+  border:1.5px solid transparent;font-size:13px;
+}
+#searchRes .sr:hover{background:rgba(0,229,255,.1);border-color:var(--line)}
+#searchRes .sr .ico{font-size:18px;width:24px;text-align:center}
+
+/* ============ MOBILE ============ */
+@media(max-width:820px){
+  #menuBtn{display:grid}
+  #sidebar{transform:translateX(-105%)}
+  #sidebar.open{transform:translateX(0);box-shadow:14px 0 40px rgba(0,0,0,.55)}
+  #desktop{left:var(--safe-l);padding:14px 12px 30px}
+  .brand{display:none}
+  #search{width:auto;flex:1;max-width:none}
+  #clock{display:none}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px}
+  .app .ic{width:48px;height:48px;font-size:24px}
+  .window{border-radius:0!important}
+  .window.maxed{left:0!important;top:56px!important;right:0;bottom:56px;border-radius:0!important}
+  .win-body{padding:13px}
+  .mem{grid-template-columns:repeat(4,1fr);width:100%;max-width:340px}
+  .mc{height:auto;aspect-ratio:1}
+  .ttt{grid-template-columns:repeat(3,1fr);width:100%;max-width:300px}
+  .tttc{height:auto;aspect-ratio:1}
+  .g2048{grid-template-columns:repeat(4,1fr);width:100%;max-width:340px}
+  .g2048 .t{height:auto;aspect-ratio:1;font-size:18px}
+  .pk{width:40px;height:130px}
+  #bottomBar{gap:5px;padding:0 8px}
+  .bbtn{padding:9px 10px;font-size:12px}
+  .bbtn span.lbl-txt{display:none}
+  .calc{max-width:100%}
+  .calc-disp{font-size:26px;padding:14px 12px}
+  .ck{padding:14px 0;font-size:16px}
+  .ptable{min-width:520px}
+}
+@media(max-width:400px){
+  .bbtn{padding:9px 8px}
+  .bbtn span.lbl-txt{display:none}
+}
+</style>
+</head>
+<body class="holo">
+
+<div id="cosmos"><canvas id="stars"></canvas></div>
+
+<header id="topbar">
+  <button id="menuBtn" class="iconbtn" aria-label="Menü">☰</button>
+  <div class="logo" id="logoBtn" title="Home">🦚</div>
+  <div class="brand"><b>HalDo AI OS</b><span id="ver" class="dim sm">v122</span></div>
+  <div class="spacer"></div>
+  <input id="search" placeholder="Apps suchen…" autocomplete="off" autocapitalize="off">
+  <div id="clock" class="dim"></div>
+  <button class="iconbtn" id="themeBtn" title="CYBORG umschalten">⚡</button>
+</header>
+
+<aside id="sidebar"></aside>
+<main id="desktop"></main>
+
+<div id="bottomBar">
+  <button class="bbtn" data-act="chat">💬 <span class="lbl-txt">Chat</span></button>
+  <button class="bbtn" data-act="ai">🤖 <span class="lbl-txt">AI</span></button>
+  <button class="bbtn cyborg" data-act="cyborg">⚡ <span class="lbl-txt">CYBORG</span></button>
+</div>
+
+<div id="searchRes"></div>
+<div id="toast"></div>
+
+<script>
+/* =========================================================================
+   HalDo AI OS v122 — kompletter Neubau
+   ========================================================================= */
+(function(){
+'use strict';
+
+/* ---------- Helpers ---------- */
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const el = (t,c,txt)=>{const e=document.createElement(t); if(c)e.className=c; if(txt!=null)e.textContent=txt; return e;};
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const slug = s => String(s).toLowerCase()
+  .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')
+  .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+const uid = ()=>Math.random().toString(36).slice(2,10);
+const pad = (n,l=2)=>String(n).padStart(l,'0');
+const fmt = n => (Math.round(n*100)/100).toLocaleString('de-DE');
+
+const store = {
+  key: k => 'haldo_'+k+'_v1',
+  get(k,d){ try{ const v=localStorage.getItem(this.key(k)); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(this.key(k), JSON.stringify(v)); }catch(e){} },
+  del(k){ try{ localStorage.removeItem(this.key(k)); }catch(e){} }
+};
+
+let toastT;
+function toast(msg){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),2200);
+}
+
+/* =========================================================================
+   KOSMOS — Sonne + 12 Planeten (Canvas-Sterne + CSS-Orbits)
+   ========================================================================= */
+(function cosmos(){
+  const cv=$('#stars'), ctx=cv.getContext('2d',{alpha:true});
+  let dpr = Math.min(devicePixelRatio||1, 2);
+  function draw(){
+    const w=cv.width=Math.floor(innerWidth*dpr);
+    const h=cv.height=Math.floor(innerHeight*dpr);
+    cv.style.width=innerWidth+'px'; cv.style.height=innerHeight+'px';
+    ctx.clearRect(0,0,w,h);
+    // Sterne
+    for(let i=0;i<280;i++){
+      const x=Math.random()*w, y=Math.random()*h, r=(Math.random()*1.3+.3)*dpr;
+      ctx.fillStyle='rgba(255,255,255,'+(Math.random()*.7+.2)+')';
+      ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill();
+    }
+    // Glow-Cluster
+    for(let i=0;i<12;i++){
+      const x=Math.random()*w, y=Math.random()*h, r=(Math.random()*2+1.2)*dpr;
+      const g=ctx.createRadialGradient(x,y,0,x,y,r*6);
+      g.addColorStop(0,'rgba(160,220,255,.5)');
+      g.addColorStop(1,'rgba(160,220,255,0)');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r*6,0,7); ctx.fill();
+    }
+  }
+  draw();
+  addEventListener('resize',()=>{ dpr=Math.min(devicePixelRatio||1,2); draw(); },{passive:true});
+
+  const cos=$('#cosmos');
+  cos.appendChild(el('div','sun'));
+  const P=[
+    ['#a9c8ff', 168, 12, 22],
+    ['#ffd18a', 250, 17, 34],
+    ['#8ad4ff', 348, 19, 50],
+    ['#ff8ea3', 440, 16, 66],
+    ['#e0b4ff', 545, 24, 90],
+    ['#7de3c7', 650, 21, 118],
+    ['#9fd7ff', 760, 20, 148],
+    ['#c1a3ff', 875, 18, 184],
+    ['#ffbfa3', 990, 15, 224],
+    ['#a3ffd1', 1095, 14, 266],
+    ['#ffa3c9', 1200, 13, 314],
+    ['#d1c9ff', 1305, 12, 360]
+  ];
+  P.forEach(([c,d,s,sec])=>{
+    const o=el('div','orbit');
+    o.style.width=o.style.height=d+'px';
+    o.style.animationDuration=sec+'s';
+    const p=el('div','planet');
+    p.style.width=p.style.height=s+'px';
+    p.style.background='radial-gradient(circle at 34% 30%,#fff,'+c+' 58%,rgba(0,0,0,.62))';
+    p.style.boxShadow='0 0 16px '+c+',0 0 40px '+c+'44';
+    o.appendChild(p); cos.appendChild(o);
+  });
+})();
+
+/* =========================================================================
+   THEME (Holo / Cyborg)
+   ========================================================================= */
+function setTheme(mode){
+  if(mode==='cyborg'){ document.body.classList.add('cyborg'); }
+  else{ document.body.classList.remove('cyborg'); }
+  store.set('theme', mode);
+  $('#themeBtn').textContent = mode==='cyborg'?'🌌':'⚡';
+  $$('.bbtn.cyborg').forEach(b=>b.classList.toggle('on', mode==='cyborg'));
+}
+$('#themeBtn').onclick = ()=>{
+  const on = document.body.classList.contains('cyborg');
+  setTheme(on?'holo':'cyborg');
+  toast(on?'Holo-Modus aktiv 🌌':'CYBORG-Modus aktiv ⚡');
+};
+setTheme(store.get('theme','holo'));
+
+/* =========================================================================
+   FENSTER-MANAGER
+   ========================================================================= */
+const WM = {
+  wins: new Map(),
+  zTop: 200,
+  focused: null,
+
+  open(appId, opts={}){
+    const app = APPS[appId];
+    if(!app){ toast('App nicht gefunden: '+appId); return; }
+    // Wenn schon offen → fokussieren
+    for(const [id,w] of this.wins){
+      if(w.appId===appId){
+        this.focus(id);
+        return w.el;
+      }
+    }
+    const id = uid();
+    const win = el('section','window');
+    win.dataset.id = id;
+    win.style.zIndex = ++this.zTop;
+
+    // Startgröße
+    const isMobile = innerWidth<820;
+    const W = Math.min(opts.w||520, innerWidth-16);
+    const H = Math.min(opts.h||420, innerHeight-16);
+    win.style.width  = W+'px';
+    win.style.height = H+'px';
+    win.style.left   = Math.max(8, (innerWidth-W)/2 + (this.wins.size%5)*22 - 44)+'px';
+    win.style.top    = Math.max(64, (innerHeight-H)/2 + (this.wins.size%5)*18 - 36)+'px';
+
+    win.innerHTML =
+      '<div class="win-head">'+
+        '<span class="wic">'+esc(app.icon||'▣')+'</span>'+
+        '<div class="wtitle">'+esc(app.name||appId)+'</div>'+
+        '<div class="wbtns">'+
+          '<button class="wb min" title="Minimieren">—</button>'+
+          '<button class="wb max" title="Vollbild">▢</button>'+
+          '<button class="wb close" title="Schließen">✕</button>'+
+        '</div>'+
+      '</div>'+
+      '<div class="win-body"></div>';
+
+    document.body.appendChild(win);
+
+    // Buttons
+    $('.wb.close', win).onclick = e => { e.stopPropagation(); this.close(id); };
+    $('.wb.min',  win).onclick = e => { e.stopPropagation(); this.minimize(id); };
+    $('.wb.max',  win).onclick = e => { e.stopPropagation(); this.maximize(id); };
+
+    // Fokus bei Klick
+    win.addEventListener('pointerdown', ()=>this.focus(id), true);
+
+    // Drag
+    const head = $('.win-head', win);
+    head.addEventListener('pointerdown', e=>this.dragStart(e,id));
+
+    // Inhalt rendern
+    const body = $('.win-body', win);
+    try{
+      const html = (typeof app.render==='function') ? app.render(win, body) : (app.render||'');
+      if(html!=null) body.innerHTML = html;
+      if(typeof app.init==='function') app.init(win, body);
+    }catch(err){
+      body.innerHTML = '<div class="empty">Fehler beim Laden: '+esc(err.message)+'</div>';
+      console.error('[HalDo App]', appId, err);
+    }
+
+    this.wins.set(id, {el:win, appId});
+    this.focus(id);
+    return win;
+  },
+
+  close(id){
+    const w = this.wins.get(id); if(!w) return;
+    w.el.style.animation = 'winIn .14s reverse';
+    setTimeout(()=>{ w.el.remove(); }, 130);
+    this.wins.delete(id);
+    if(this.focused===id) this.focused = null;
+  },
+
+  focus(id){
+    const w = this.wins.get(id); if(!w) return;
+    w.el.style.zIndex = ++this.zTop;
+    this.focused = id;
+  },
+
+  minimize(id){
+    const w = this.wins.get(id); if(!w) return;
+    w.el.style.display='none';
+    w._min = true;
+    // Als "Task" in Bottom-Bar? Einfach: Toast + schließen reicht. Hier: nur ausblenden + wieder öffnen via doppelt.
+    // Wir nutzen: Klick auf Bottom-Bar-„Tasks" (falls vorhanden). Für Einfachheit: nach Klick wieder einblenden.
+    setTimeout(()=>toast('Fenster minimiert – öffne erneut zum Wiederherstellen'), 50);
+  },
+
+  maximize(id){
+    const w = this.wins.get(id); if(!w) return;
+    w.el.classList.toggle('maxed');
+  },
+
+  dragStart(e, id){
+    const w = this.wins.get(id); if(!w) return;
+    const win = w.el;
+    // Drag-Zone: nur die Mitte 100px von links/rechts — gesteuert über ::before im CSS
+    const r = win.getBoundingClientRect();
+    const startX = e.clientX, startY = e.clientY;
+    const startL = r.left, startT = r.top;
+    let moved = false;
+    win.classList.add('dragging');
+
+    const onMove = ev => {
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      if(Math.abs(dx)>3 || Math.abs(dy)>3) moved = true;
+      let nl = startL + dx;
+      let nt = startT + dy;
+      // Mindestens 20px sichtbar halten
+      nl = Math.min(innerWidth-60, Math.max(-r.width+60, nl));
+      nt = Math.min(innerHeight-60, Math.max(56, nt));
+      win.style.left = nl+'px';
+      win.style.top  = nt+'px';
+      ev.preventDefault();
+    };
+    const onUp = () => {
+      win.classList.remove('dragging');
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+    };
+    document.addEventListener('pointermove', onMove, {passive:false});
+    document.addEventListener('pointerup', onUp);
+  }
+};
+window.HalDo = window.HalDo || {};
+window.HalDo.WM = WM;
+
+/* =========================================================================
+   APP-IMPLEMENTIERUNGEN (funktionierende Apps)
+   ========================================================================= */
+const APPS = {};
+
+/* ---- Rechner ---- */
+APPS['rechner'] = {
+  name:'Rechner', icon:'🧮',
+  render:()=>'<div class="calc">'+
+    '<div class="calc-disp"><div class="prev" id="cvPrev"></div><div class="cur" id="cvCur">0</div></div>'+
+    '<div class="calc-keys">'+
+      '<button class="ck" data-k="C">C</button>'+
+      '<button class="ck" data-k="±">±</button>'+
+      '<button class="ck" data-k="%">%</button>'+
+      '<button class="ck op" data-k="/">÷</button>'+
+      '<button class="ck" data-k="7">7</button>'+
+      '<button class="ck" data-k="8">8</button>'+
+      '<button class="ck" data-k="9">9</button>'+
+      '<button class="ck op" data-k="*">×</button>'+
+      '<button class="ck" data-k="4">4</button>'+
+      '<button class="ck" data-k="5">5</button>'+
+      '<button class="ck" data-k="6">6</button>'+
+      '<button class="ck op" data-k="-">−</button>'+
+      '<button class="ck" data-k="1">1</button>'+
+      '<button class="ck" data-k="2">2</button>'+
+      '<button class="ck" data-k="3">3</button>'+
+      '<button class="ck op" data-k="+">+</button>'+
+      '<button class="ck wide" data-k="0">0</button>'+
+      '<button class="ck" data-k=".">.</button>'+
+      '<button class="ck eq" data-k="=">=</button>'+
+    '</div></div>',
+  init:(win)=>{
+    const cur=$('#cvCur',win), prev=$('#cvPrev',win);
+    let a=null, op=null, b='', fresh=false;
+    const set=v=>{ cur.textContent=v; };
+    const eval_=(x,y,o)=>({'+':x+y,'-':x-y,'*':x*y,'/':y===0?NaN:x/y,'%':x%y}[o]);
+    win.querySelectorAll('.ck').forEach(btn=>{
+      btn.onclick=()=>{
+        const k=btn.dataset.k;
+        if(k>='0'&&k<='9'){ if(fresh){b='';fresh=false;} b+=k; set(b); return; }
+        if(k==='.'){ if(fresh){b='0';fresh=false;} if(!b.includes('.')) b+= '.'; set(b||'0.'); return; }
+        if(k==='C'){ a=null; op=null; b=''; fresh=false; prev.textContent=''; set('0'); return; }
+        if(k==='±'){ b = b.startsWith('-') ? b.slice(1) : '-'+b; set(b||'-0'); return; }
+        if('+-*/'.includes(k)){
+          if(a===null && op===null){ a = parseFloat(b||'0'); }
+          else if(op && b!==''){ a = eval_(a, parseFloat(b), op); }
+          op = k; prev.textContent = fmt(a)+' '+({'+':'+','-':'−','*':'×','/':'÷'}[k]||k);
+          fresh = true;
+          return;
+        }
+        if(k==='%'){ b = String((parseFloat(b||'0'))/100); set(b); return; }
+        if(k==='='){
+          if(op && b!==''){ const r = eval_(a, parseFloat(b), op); prev.textContent = fmt(a)+' '+op+' '+fmt(parseFloat(b))+' ='; set(isFinite(r)?fmt(r):'Fehler'); a=null; op=null; b=''; fresh=true; }
+        }
+      };
+    });
+  }
+};
+
+/* ---- Notizen ---- */
+APPS['notizen'] = {
+  name:'Notizen', icon:'📝',
+  render:()=>'<div class="col">'+
+    '<div class="row"><input class="inp" id="ntTitle" placeholder="Titel…"><button class="btn primary" id="ntAdd">Speichern</button></div>'+
+    '<textarea class="ta" id="ntBody" placeholder="Inhalt…"></textarea>'+
+    '<div id="ntList" class="list"></div></div>',
+  init:(win)=>{
+    const T=$('#ntTitle',win), B=$('#ntBody',win), L=$('#ntList',win);
+    const render=()=>{
+      const all=store.get('notes',[]);
+      L.innerHTML = all.length ? all.map(n=>'<div class="item"><b>'+esc(n.t)+'</b><span class="dim">'+(n.b?esc(n.b.slice(0,50)):'')+'</span><span class="x" data-id="'+n.id+'">✕</span></div>').join('') : '<div class="empty">Noch keine Notizen</div>';
+      L.querySelectorAll('.x').forEach(x=>x.onclick=()=>{
+        const id=x.dataset.id;
+        store.set('notes', store.get('notes',[]).filter(n=>n.id!==id));
+        render();
+      });
+    };
+    $('#ntAdd',win).onclick=()=>{
+      const t=T.value.trim(), b=B.value.trim();
+      if(!t){ toast('Titel fehlt'); return; }
+      const all=store.get('notes',[]); all.unshift({id:uid(), t, b, ts:Date.now()});
+      store.set('notes',all); T.value=''; B.value=''; render(); toast('Gespeichert');
+    };
+    render();
+  }
+};
+
+/* ---- Aufgaben ---- */
+APPS['aufgaben'] = {
+  name:'Aufgaben', icon:'✅',
+  render:()=>'<div class="col">'+
+    '<div class="row"><input class="inp" id="tkT" placeholder="Neue Aufgabe…"><button class="btn primary" id="tkA">+</button></div>'+
+    '<div id="tkL" class="list"></div></div>',
+  init:(win)=>{
+    const T=$('#tkT',win), L=$('#tkL',win);
+    const render=()=>{
+      const all=store.get('tasks',[]);
+      L.innerHTML = all.length ? all.map(t=>'<div class="item"><input type="checkbox" data-id="'+t.id+'" '+(t.done?'checked':'')+'><span style="'+(t.done?'text-decoration:line-through;opacity:.5':'')+'">'+esc(t.t)+'</span><span class="x" data-id="'+t.id+'">✕</span></div>').join('') : '<div class="empty">Keine Aufgaben</div>';
+      L.querySelectorAll('input[type=checkbox]').forEach(c=>c.onchange=()=>{
+        const all=store.get('tasks',[]); const t=all.find(x=>x.id===c.dataset.id); if(t) t.done=c.checked;
+        store.set('tasks',all); render();
+      });
+      L.querySelectorAll('.x').forEach(x=>x.onclick=()=>{
+        store.set('tasks', store.get('tasks',[]).filter(t=>t.id!==x.dataset.id)); render();
+      });
+    };
+    $('#tkA',win).onclick=()=>{
+      const t=T.value.trim(); if(!t) return;
+      const all=store.get('tasks',[]); all.unshift({id:uid(), t, done:false, ts:Date.now()});
+      store.set('tasks',all); T.value=''; render();
+    };
+    T.addEventListener('keydown',e=>{ if(e.key==='Enter') $('#tkA',win).click(); });
+    render();
+  }
+};
+
+/* ---- Kalender ---- */
+APPS['kalender'] = {
+  name:'Kalender', icon:'📅',
+  render:()=>'<div class="col">'+
+    '<div class="row between"><button class="btn sm" id="calPrev">◀</button><b id="calTitle"></b><button class="btn sm" id="calNext">▶</button></div>'+
+    '<div class="cal" id="calGrid"></div></div>',
+  init:(win)=>{
+    let cur = new Date();
+    const render=()=>{
+      $('#calTitle',win).textContent = cur.toLocaleDateString('de-DE',{month:'long',year:'numeric'});
+      const y=cur.getFullYear(), m=cur.getMonth();
+      const first = new Date(y,m,1).getDay();
+      const days = new Date(y,m+1,0).getDate();
+      const offset = (first+6)%7;
+      let html='';
+      ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d=>html+='<div class="cal-h">'+d+'</div>');
+      for(let i=0;i<offset;i++) html+='<div class="cal-d empty"></div>';
+      const today = new Date();
+      for(let d=1;d<=days;d++){
+        const isT = d===today.getDate() && m===today.getMonth() && y===today.getFullYear();
+        html += '<div class="cal-d'+(isT?' today':'')+'">'+d+'</div>';
+      }
+      $('#calGrid',win).innerHTML = html;
+    };
+    $('#calPrev',win).onclick=()=>{ cur=new Date(cur.getFullYear(),cur.getMonth()-1,1); render(); };
+    $('#calNext',win).onclick=()=>{ cur=new Date(cur.getFullYear(),cur.getMonth()+1,1); render(); };
+    render();
+  }
+};
+
+/* ---- Uhr (World Clock) ---- */
+APPS['uhr'] = {
+  name:'Weltuhr', icon:'🕐',
+  render:()=>'<div class="col" id="wcWrap"></div>',
+  init:(win)=>{
+    const zones = ['Europe/Berlin','Europe/London','America/New_York','Asia/Tokyo','Asia/Dubai','Australia/Sydney'];
+    const wrap=$('#wcWrap',win);
+    const render=()=>{
+      wrap.innerHTML = zones.map(z=>{
+        const t = new Date().toLocaleTimeString('de-DE',{timeZone:z,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+        const d = new Date().toLocaleDateString('de-DE',{timeZone:z,weekday:'short'});
+        return '<div class="item"><b>'+z.split('/')[1].replace(/_/g,' ')+'</b><span class="dim">'+d+'</span><span style="margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600">'+t+'</span></div>';
+      }).join('');
+    };
+    render(); win._tick = setInterval(render,1000);
+    win.addEventListener('remove',()=>clearInterval(win._tick));
+  }
+};
+
+/* ---- Timer ---- */
+APPS['timer'] = {
+  name:'Timer', icon:'⏱️',
+  render:()=>'<div class="col center">'+
+    '<div class="big" id="tmD">00:00</div>'+
+    '<div class="row" style="justify-content:center"><input class="inp" id="tmI" type="number" min="1" max="600" value="5" style="width:90px"><span>Min</span></div>'+
+    '<div class="row" style="justify-content:center">'+
+      '<button class="btn primary" id="tmStart">Start</button>'+
+      '<button class="btn" id="tmPause">Pause</button>'+
+      '<button class="btn danger" id="tmReset">Reset</button>'+
+    '</div></div>',
+  init:(win)=>{
+    let rem=300, id=null, running=false;
+    const D=$('#tmD',win);
+    const draw=()=>{ D.textContent = pad(Math.floor(rem/60))+':'+pad(rem%60); };
+    const tick=()=>{ if(rem<=0){ clearInterval(id); id=null; running=false; toast('⏰ Timer abgelaufen!'); return; } rem--; draw(); };
+    $('#tmStart',win).onclick=()=>{ if(running) return; const v=parseInt($('#tmI',win).value)||5; if(!id){ rem=Math.max(1,v*60); draw(); } running=true; id=setInterval(tick,1000); };
+    $('#tmPause',win).onclick=()=>{ running=false; clearInterval(id); id=null; };
+    $('#tmReset',win).onclick=()=>{ running=false; clearInterval(id); id=null; rem=(parseInt($('#tmI',win).value)||5)*60; draw(); };
+    draw();
+  }
+};
+
+/* ---- Stoppuhr ---- */
+APPS['stoppuhr'] = {
+  name:'Stoppuhr', icon:'⏲️',
+  render:()=>'<div class="col center">'+
+    '<div class="big" id="swD">00:00.00</div>'+
+    '<div class="row" style="justify-content:center">'+
+      '<button class="btn primary" id="swStart">Start</button>'+
+      '<button class="btn" id="swStop">Stop</button>'+
+      '<button class="btn danger" id="swReset">Reset</button>'+
+    '</div>'+
+    '<div class="list" id="swLaps"></div></div>',
+  init:(win)=>{
+    let t0=0, elapsed=0, id=null, last=0;
+    const D=$('#swD',win), L=$('#swLaps',win);
+    const draw=()=>{
+      const ms = elapsed + (id ? Date.now()-t0 : 0);
+      const m=Math.floor(ms/60000), s=Math.floor(ms/1000)%60, c=Math.floor(ms/10)%100;
+      D.textContent = pad(m)+':'+pad(s)+'.'+pad(c);
+    };
+    $('#swStart',win).onclick=()=>{ if(id) return; t0=Date.now(); id=setInterval(draw,42); };
+    $('#swStop',win).onclick=()=>{
+      if(!id) return;
+      elapsed += Date.now()-t0;
+      clearInterval(id); id=null;
+      const laps = store.get('sw_laps',[]);
+      const ms = elapsed;
+      const m=Math.floor(ms/60000), s=Math.floor(ms/1000)%60, c=Math.floor(ms/10)%100;
+      laps.unshift(pad(m)+':'+pad(s)+'.'+pad(c));
+      store.set('sw_laps',laps.slice(0,20));
+      L.innerHTML = laps.slice(0,20).map(x=>'<div class="item">'+x+'</div>').join('');
+    };
+    $('#swReset',win).onclick=()=>{ elapsed=0; t0=Date.now(); if(id){ clearInterval(id); id=null; } D.textContent='00:00.00'; store.set('sw_laps',[]); L.innerHTML=''; };
+    draw();
+  }
+};
+
+/* ---- Pomodoro ---- */
+APPS['pomodoro'] = {
+  name:'Pomodoro', icon:'🍅',
+  render:()=>'<div class="col center">'+
+    '<div class="big2" id="pmMode">Fokus</div>'+
+    '<div class="big" id="pmD">25:00</div>'+
+    '<div class="row" style="justify-content:center">'+
+      '<button class="btn primary" id="pmStart">Start</button>'+
+      '<button class="btn" id="pmSkip">Skip</button>'+
+      '<button class="btn danger" id="pmReset">Reset</button>'+
+    '</div>'+
+    '<div class="card" style="max-width:340px;margin:8px auto 0"><span class="dim">Fokus 25 min · Pause 5 min · nach 4 Runden lange Pause 15 min</span></div></div>',
+  init:(win)=>{
+    let focus=25*60, shortP=5*60, longP=15*60, cur=focus, isFocus=true, round=0, id=null;
+    const D=$('#pmD',win), M=$('#pmMode',win);
+    const draw=()=>{ D.textContent = pad(Math.floor(cur/60))+':'+pad(cur%60); M.textContent = isFocus?'Fokus':'Pause'; };
+    const tick=()=>{ if(cur<=0){ nextPhase(); return; } cur--; draw(); };
+    const nextPhase=()=>{
+      clearInterval(id); id=null;
+      if(isFocus){ round++; if(round%4===0) cur=longP; else cur=shortP; isFocus=false; }
+      else{ cur=focus; isFocus=true; }
+      draw();
+      try{ new AudioContext(); }catch(e){}
+    };
+    $('#pmStart',win).onclick=()=>{ if(id) return; id=setInterval(tick,1000); };
+    $('#pmSkip',win).onclick=()=>nextPhase();
+    $('#pmReset',win).onclick=()=>{ clearInterval(id); id=null; cur=focus; isFocus=true; round=0; draw(); };
+    draw();
+  }
+};
+
+/* ---- Wetter (Open-Meteo live) ---- */
+APPS['wetter'] = {
+  name:'Wetter', icon:'⛅',
+  render:()=>'<div class="col">'+
+    '<div class="row"><input class="inp" id="wCity" placeholder="Stadt…" value="Berlin"><button class="btn primary" id="wGo">Suchen</button></div>'+
+    '<div id="wOut" class="col"></div></div>',
+  init:(win)=>{
+    const out=$('#wOut',win);
+    const codeMap = c=>({
+      0:'☀️ Klar',1:'🌤️ Überwiegend klar',2:'⛅ Teils bewölkt',3:'☁️ Bewölkt',
+      45:'🌫️ Nebel',48:'🌫️ Nebel',51:'🌦️ Niesel',53:'🌦️ Niesel',55:'🌦️ Niesel',
+      61:'🌧️ Leichter Regen',63:'🌧️ Regen',65:'🌧️ Starker Regen',
+      71:'🌨️ Schnee',73:'🌨️ Schnee',75:'🌨️ Starker Schnee',
+      80:'🌦️ Schauer',81:'🌦️ Schauer',82:'⛈️ Starkregen',
+      95:'⛈️ Gewitter',96:'⛈️ Gewitter',99:'⛈️ Gewitter'}[c]||('Code '+c));
+    async function load(city){
+      out.innerHTML = '<div class="empty">Lade Wetter für '+esc(city)+'…</div>';
+      try{
+        const g = await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(city)+'&count=1&language=de&format=json').then(r=>r.json());
+        if(!g.results||!g.results.length){ out.innerHTML='<div class="empty">Stadt nicht gefunden</div>'; return; }
+        const { latitude:lat, longitude:lon, name, country } = g.results[0];
+        const w = await fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=4').then(r=>r.json());
+        const c = w.current;
+        const d = w.daily;
+        out.innerHTML =
+          '<div class="card center"><div class="big2">'+esc(name)+', '+esc(country)+'</div>'+
+          '<div style="font-size:42px;margin:6px 0">'+esc((codeMap(c.weather_code)||'').split(' ')[0])+'</div>'+
+          '<div class="big2">'+c.temperature_2m+'°C</div>'+
+          '<div class="dim sm">'+codeMap(c.weather_code)+'</div>'+
+          '<div class="row" style="justify-content:center;margin-top:10px;gap:16px">'+
+            '<span class="dim">💧 '+c.relative_humidity_2m+'%</span>'+
+            '<span class="dim">🌬️ '+c.wind_speed_10m+' km/h</span>'+
+          '</div></div>'+
+          '<h3>Vorhersage</h3>'+
+          '<div class="list">'+
+            d.time.map((t,i)=>'<div class="item"><b>'+new Date(t).toLocaleDateString('de-DE',{weekday:'short'})+'</b><span style="margin-left:auto">'+d.temperature_2m_min[i]+'° / '+d.temperature_2m_max[i]+'°</span></div>').join('')+
+          '</div>';
+      }catch(e){ out.innerHTML='<div class="empty">Fehler: '+esc(e.message)+'</div>'; }
+    }
+    $('#wGo',win).onclick=()=>load($('#wCity',win).value.trim()||'Berlin');
+    $('#wCity',win).addEventListener('keydown',e=>{ if(e.key==='Enter') $('#wGo',win).click(); });
+    load('Berlin');
+  }
+};
+
+/* ---- Dateien ---- */
+APPS['dateien'] = {
+  name:'Dateien', icon:'📁',
+  render:()=>'<div class="col">'+
+    '<div class="row"><input class="inp" id="flN" placeholder="Dateiname…"><button class="btn primary" id="flNew">Anlegen</button></div>'+
+    '<div id="flL" class="list"></div></div>',
+  init:(win)=>{
+    const N=$('#flN',win), L=$('#flL',win);
+    const render=()=>{
+      const all=store.get('files',[]);
+      L.innerHTML = all.length ? all.map(f=>'<div class="item"><span>📄 '+esc(f.n)+'</span><span class="x" data-id="'+f.id+'">✕</span></div>').join('') : '<div class="empty">Keine Dateien</div>';
+      L.querySelectorAll('.x').forEach(x=>x.onclick=()=>{ store.set('files',store.get('files',[]).filter(f=>f.id!==x.dataset.id)); render(); });
+    };
+    $('#flNew',win).onclick=()=>{
+      const n=N.value.trim(); if(!n) return;
+      const all=store.get('files',[]); all.unshift({id:uid(), n, ts:Date.now()});
+      store.set('files',all); N.value=''; render();
+    };
+    render();
+  }
+};
+
+/* ---- Gewohnheiten ---- */
+APPS['gewohnheiten'] = {
+  name:'Gewohnheiten', icon:'🔁',
+  render:()=>'<div class="col">'+
+    '<div class="row"><input class="inp" id="hbN" placeholder="Neue Gewohnheit…"><button class="btn primary" id="hbA">+</button></div>'+
+    '<div id="hbL" class="list"></div></div>',
+  init:(win)=>{
+    const N=$('#hbN',win), L=$('#hbL',win);
+    const today = new Date().toISOString().slice(0,10);
+    const render=()=>{
+      const all=store.get('habits',[]);
+      L.innerHTML = all.length ? all.map(h=>{
+        const done = (h.days||[]).includes(today);
+        return '<div class="item"><button class="btn sm '+(done?'primary':'')+'" data-id="'+h.id+'">'+(done?'✓':'○')+'</button><span>'+esc(h.n)+'</span><span class="dim" style="margin-left:auto">'+((h.days||[]).length)+' Tage</span><span class="x" data-id="'+h.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Noch keine Gewohnheiten</div>';
+      L.querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>{
+        const all=store.get('habits',[]); const h=all.find(x=>x.id===b.dataset.id); if(!h) return;
+        h.days = h.days||[];
+        if(h.days.includes(today)) h.days=h.days.filter(d=>d!==today);
+        else h.days.push(today);
+        store.set('habits',all); render();
+      });
+      L.querySelectorAll('.x').forEach(x=>x.onclick=()=>{ store.set('habits',store.get('habits',[]).filter(h=>h.id!==x.dataset.id)); render(); });
+    };
+    $('#hbA',win).onclick=()=>{
+      const n=N.value.trim(); if(!n) return;
+      const all=store.get('habits',[]); all.push({id:uid(), n, days:[]});
+      store.set('habits',all); N.value=''; render();
+    };
+    render();
+  }
+};
+
+/* ---- Ziele ---- */
+APPS['ziele'] = {
+  name:'Ziele', icon:'🎯',
+  render:()=>'<div class="col">'+
+    '<div class="row"><input class="inp" id="glN" placeholder="Ziel…"><input class="inp" id="glP" type="number" min="0" max="100" value="0" style="width:90px"><button class="btn primary" id="glA">+</button></div>'+
+    '<div id="glL" class="list"></div></div>',
+  init:(win)=>{
+    const N=$('#glN',win), P=$('#glP',win), L=$('#glL',win);
+    const render=()=>{
+      const all=store.get('goals',[]);
+      L.innerHTML = all.length ? all.map(g=>'<div class="item"><span>'+esc(g.n)+'</span><input type="range" min="0" max="100" value="'+g.p+'" data-id="'+g.id+'" style="flex:1;margin:0 8px"><span style="min-width:38px;text-align:right">'+g.p+'%</span><span class="x" data-id="'+g.id+'">✕</span></div>').join('') : '<div class="empty">Keine Ziele</div>';
+      L.querySelectorAll('input[type=range]').forEach(r=>r.oninput=()=>{
+        const all=store.get('goals',[]); const g=all.find(x=>x.id===r.dataset.id); if(g){ g.p=parseInt(r.value); store.set('goals',all); r.nextElementSibling.textContent=g.p+'%'; }
+      });
+      L.querySelectorAll('.x').forEach(x=>x.onclick=()=>{ store.set('goals',store.get('goals',[]).filter(g=>g.id!==x.dataset.id)); render(); });
+    };
+    $('#glA',win).onclick=()=>{
+      const n=N.value.trim(); if(!n) return;
+      const all=store.get('goals',[]); all.push({id:uid(), n, p:parseInt(P.value)||0});
+      store.set('goals',all); N.value=''; P.value='0'; render();
+    };
+    render();
+  }
+};
+
+/* ---- Journal ---- */
+APPS['journal'] = {
+  name:'Journal', icon:'📖',
+  render:()=>'<div class="col">'+
+    '<input class="inp" id="jrT" placeholder="Überschrift…">'+
+    '<textarea class="ta" id="jrB" placeholder="Heute war…"></textarea>'+
+    '<div class="row between"><select class="inp" id="jrM" style="width:auto"><option>😊 Gut</option><option>😐 Okay</option><option>😔 Schlecht</option><option>😡 Wütend</option><option>😴 Müde</option></select><button class="btn primary" id="jrS">Eintragen</button></div>'+
+    '<div id="jrL" class="list"></div></div>',
+  init:(win)=>{
+    const T=$('#jrT',win), B=$('#jrB',win), M=$('#jrM',win), L=$('#jrL',win);
+    const render=()=>{
+      const all=store.get('journal',[]);
+      L.innerHTML = all.length ? all.slice(0,30).map(e=>'<div class="item"><span>'+esc(e.m)+'</span><b>'+esc(e.t)+'</b><span class="dim" style="margin-left:auto">'+new Date(e.ts).toLocaleDateString('de-DE')+'</span><span class="x" data-id="'+e.id+'">✕</span></div>').join('') : '<div class="empty">Kein Eintrag</div>';
+      L.querySelectorAll('.x').forEach(x=>x.onclick=()=>{ store.set('journal',store.get('journal',[]).filter(e=>e.id!==x.dataset.id)); render(); });
+    };
+    $('#jrS',win).onclick=()=>{
+      const t=T.value.trim(), b=B.value.trim(), m=M.value;
+      if(!t && !b){ toast('Leer'); return; }
+      const all=store.get('journal',[]); all.unshift({id:uid(), t:t||'(ohne Titel)', b, m, ts:Date.now()});
+      store.set('journal',all); T.value=''; B.value=''; render(); toast('Eingetragen');
+    };
+    render();
+  }
+};
+
+/* ---- Kontakte ---- */
+APPS['kontakte'] = {
+  name:'Kontakte', icon:'👥',
+  render:()=>'<div class="col">'+
+    '<div class="row"><input class="inp" id="knN" placeholder="Name…"><input class="inp" id="knP" placeholder="Telefon…"><button class="btn primary" id="knA">+</button></div>'+
+    '<div id="knL" class="list"></div></div>',
+  init:(win)=>{
+    const N=$('#knN',win), P=$('#knP',win), L=$('#knL',win);
+    const render=()=>{
+      const all=store.get('contacts',[]);
+      L.innerHTML = all.length ? all.map(c=>'<div class="item"><b>'+esc(c.n)+'</b><span class="dim" style="margin-left:auto">'+esc(c.p||'')+'</span><span class="x" data-id="'+c.id+'">✕</span></div>').join('') : '<div class="empty">Keine Kontakte</div>';
+      L.querySelectorAll('.x').forEach(x=>x.onclick=()=>{ store.set('contacts',store.get('contacts',[]).filter(c=>c.id!==x.dataset.id)); render(); });
+    };
+    $('#knA',win).onclick=()=>{
+      const n=N.value.trim(); if(!n) return;
+      const all=store.get('contacts',[]); all.push({id:uid(), n, p:P.value.trim()});
+      store.set('contacts',all); N.value=''; P.value=''; render();
+    };
+    render();
+  }
+};
+
+/* ---- Lesezeichen ---- */
+APPS['lesezeichen'] = {
+  name:'Lesezeichen', icon:'🔖',
+  render:()=>'<div class="col">'+
+    '<div class="row"><input class="inp" id="bmT" placeholder="Titel…"><input class="inp" id="bmU" placeholder="URL…"><button class="btn primary" id="bmA">+</button></div>'+
+    '<div id="bmL" class="list"></div></div>',
+  init:(win)=>{
+    const T=$('#bmT',win), U=$('#bmU',win), L=$('#bmL',win);
+    const render=()=>{
+      const all=store.get('bookmarks',[]);
+      L.innerHTML = all.length ? all.map(b=>'<div class="item"><a href="'+esc(b.u)+'" target="_blank" style="color:var(--c1);text-decoration:none"><b>'+esc(b.t)+'</b></a><span class="dim" style="margin-left:auto;font-size:11px">'+esc(b.u.slice(0,32))+'</span><span class="x" data-id="'+b.id+'">✕</span></div>').join('') : '<div class="empty">Keine Lesezeichen</div>';
+      L.querySelectorAll('.x').forEach(x=>x.onclick=()=>{ store.set('bookmarks',store.get('bookmarks',[]).filter(b=>b.id!==x.dataset.id)); render(); });
+    };
+    $('#bmA',win).onclick=()=>{
+      const t=T.value.trim(), u=U.value.trim(); if(!t||!u) return;
+      const all=store.get('bookmarks',[]); all.push({id:uid(), t, u});
+      store.set('bookmarks',all); T.value=''; U.value=''; render();
+    };
+    render();
+  }
+};
+
+/* ---- Einkaufsliste ---- */
+APPS['einkaufsliste'] = {
+  name:'Einkauf', icon:'🛒',
+  render:()=>'<div class="col">'+
+    '<div class="row"><input class="inp" id="shI" placeholder="Artikel…"><button class="btn primary" id="shA">+</button></div>'+
+    '<div id="shL" class="list"></div></div>',
+  init:(win)=>{
+    const I=$('#shI',win), L=$('#shL',win);
+    const render=()=>{
+      const all=store.get('shopping',[]);
+      L.innerHTML = all.length ? all.map(s=>'<div class="item"><input type="checkbox" data-id="'+s.id+'" '+(s.done?'checked':'')+'><span style="'+(s.done?'text-decoration:line-through;opacity:.5':'')+'">'+esc(s.t)+'</span><span class="x" data-id="'+s.id+'">✕</span></div>').join('') : '<div class="empty">Leer</div>';
+      L.querySelectorAll('input').forEach(c=>c.onchange=()=>{ const a=store.get('shopping',[]); const s=a.find(x=>x.id===c.dataset.id); if(s){s.done=c.checked; store.set('shopping',a);} render(); });
+      L.querySelectorAll('.x').forEach(x=>x.onclick=()=>{ store.set('shopping',store.get('shopping',[]).filter(s=>s.id!==x.dataset.id)); render(); });
+    };
+    $('#shA',win).onclick=()=>{ const t=I.value.trim(); if(!t) return; const a=store.get('shopping',[]); a.push({id:uid(), t, done:false}); store.set('shopping',a); I.value=''; render(); };
+    render();
+  }
+};
+
+/* ---- Wasser ---- */
+APPS['wasser'] = {
+  name:'Wasser', icon:'💧',
+  render:()=>'<div class="col center">'+
+    '<div class="big" id="wtV">0</div><div class="dim">Gläser heute (Ziel: 8)</div>'+
+    '<div class="row" style="justify-content:center;margin-top:10px">'+
+      '<button class="btn" id="wtM">−</button><button class="btn primary" id="wtP">+</button>'+
+    '</div></div>',
+  init:(win)=>{
+    const today=new Date().toISOString().slice(0,10);
+    let v = store.get('water_'+today, 0);
+    const draw=()=>$('#wtV',win).textContent=v;
+    $('#wtP',win).onclick=()=>{ v++; store.set('water_'+today,v); draw(); };
+    $('#wtM',win).onclick=()=>{ if(v>0){ v--; store.set('water_'+today,v); draw(); } };
+    draw();
+  }
+};
+
+/* ---- Stimmung ---- */
+APPS['stimmung'] = {
+  name:'Stimmung', icon:'😊',
+  render:()=>'<div class="col center">'+
+    '<div class="row" style="justify-content:center;font-size:34px;gap:8px">'+
+      '<button class="btn" data-m="1">😢</button><button class="btn" data-m="2">😐</button><button class="btn" data-m="3">🙂</button><button class="btn" data-m="4">😊</button><button class="btn" data-m="5">😄</button>'+
+    '</div>'+
+    '<div id="mdL" class="list" style="width:100%"></div></div>',
+  init:(win)=>{
+    const L=$('#mdL',win);
+    const render=()=>{
+      const all=store.get('moods',[]);
+      const avg = all.length ? (all.reduce((a,b)=>a+b.m,0)/all.length).toFixed(1) : '-';
+      L.innerHTML = '<div class="card center">Ø '+avg+' / 5 · '+all.length+' Einträge</div>'+
+        all.slice(0,20).map(m=>'<div class="item">'+['😢','😐','🙂','😊','😄'][m.m-1]+'<span class="dim" style="margin-left:auto">'+new Date(m.ts).toLocaleDateString('de-DE')+'</span></div>').join('');
+    };
+    win.querySelectorAll('button[data-m]').forEach(b=>b.onclick=()=>{
+      const all=store.get('moods',[]); all.unshift({id:uid(), m:parseInt(b.dataset.m), ts:Date.now()});
+      store.set('moods',all); render(); toast('Stimmung gespeichert');
+    });
+    render();
+  }
+};
+
+/* ---- Schlaf ---- */
+APPS['schlaf'] = {
+  name:'Schlaf', icon:'😴',
+  render:()=>'<div class="col">'+
+    '<div class="row"><input class="inp" id="slH" type="number" step="0.5" min="0" max="24" placeholder="Stunden"><button class="btn primary" id="slA">+</button></div>'+
+    '<div id="slL" class="list"></div></div>',
+  init:(win)=>{
+    const H=$('#slH',win), L=$('#slL',win);
+    const render=()=>{
+      const all=store.get('sleep',[]);
+      const avg = all.length ? (all.reduce((a,b)=>a+b.h,0)/all.length).toFixed(1) : '-';
+      L.innerHTML = '<div class="card center">Ø '+avg+' Stunden · '+all.length+' Nächte</div>'+
+        all.slice(0,15).map(s=>'<div class="item">'+s.h+' h<span class="dim" style="margin-left:auto">'+new Date(s.ts).toLocaleDateString('de-DE')+'</span></div>').join('');
+    };
+    $('#slA',win).onclick=()=>{ const h=parseFloat(H.value); if(!h) return; const all=store.get('sleep',[]); all.unshift({id:uid(),h,ts:Date.now()}); store.set('sleep',all); H.value=''; render(); };
+    render();
+  }
+};
+
+/* ---- Einheiten-Umrechner ---- */
+APPS['einheiten'] = {
+  name:'Umrechner', icon:'📏',
+  render:()=>{
+    const cats={
+      'Länge':{m:1,km:1000,cm:0.01,mm:0.001,mi:1609.34,ft:0.3048,in:0.0254},
+      'Gewicht':{kg:1,g:0.001,t:1000,lb:0.453592,oz:0.0283495},
+      'Volumen':{l:1,ml:0.001,m3:1000,gal:3.78541,cup:0.236588},
+      'Temperatur':null
+    };
+    return '<div class="col">'+
+      '<select class="inp" id="unCat">'+Object.keys(cats).map(k=>'<option>'+k+'</option>').join('')+'</select>'+
+      '<div class="row"><input class="inp" id="unV" type="number" value="1"><select class="inp" id="unFrom" style="width:auto"></select><span>→</span><select class="inp" id="unTo" style="width:auto"></select></div>'+
+      '<div class="big2 center" id="unOut">1</div></div>';
+  },
+  init:(win)=>{
+    const cats={
+      'Länge':{m:1,km:1000,cm:0.01,mm:0.001,mi:1609.34,ft:0.3048,in:0.0254},
+      'Gewicht':{kg:1,g:0.001,t:1000,lb:0.453592,oz:0.0283495},
+      'Volumen':{l:1,ml:0.001,m3:1000,gal:3.78541,cup:0.236588},
+      'Temperatur':{'°C':1,'°F':1,'K':1}
+    };
+    const fill=()=>{
+      const c=$('#unCat',win).value, keys=Object.keys(cats[c]);
+      $('#unFrom',win).innerHTML = keys.map(k=>'<option>'+k+'</option>').join('');
+      $('#unTo',win).innerHTML = keys.map(k=>'<option>'+k+'</option>').join('');
+      if(keys.length>1) $('#unTo',win).selectedIndex = 1;
+      go();
+    };
+    const go=()=>{
+      const c=$('#unCat',win).value;
+      const v=parseFloat($('#unV',win).value)||0;
+      const f=$('#unFrom',win).value, t=$('#unTo',win).value;
+      let r;
+      if(c==='Temperatur'){
+        let cels = f==='°C'?v : f==='°F'?(v-32)*5/9 : v-273.15;
+        r = t==='°C'?cels : t==='°F'?cels*9/5+32 : cels+273.15;
+      }else{
+        r = v * cats[c][f] / cats[c][t];
+      }
+      $('#unOut',win).textContent = fmt(r)+' '+t;
+    };
+    $('#unCat',win).onchange = fill;
+    $('#unV',win).oninput = go;
+    $('#unFrom',win).onchange = go;
+    $('#unTo',win).onchange = go;
+    fill();
+  }
+};
+
+/* ---- BMI / Gesundheit ---- */
+APPS['bmi'] = {
+  name:'BMI', icon:'⚖️',
+  render:()=>'<div class="col">'+
+    '<div class="row"><input class="inp" id="bmH" type="number" placeholder="Größe cm" value="175"><input class="inp" id="bmW" type="number" placeholder="Gewicht kg" value="70"></div>'+
+    '<button class="btn primary" id="bmGo">Berechnen</button>'+
+    '<div id="bmOut" class="card center"></div></div>',
+  init:(win)=>{
+    $('#bmGo',win).onclick=()=>{
+      const h=parseFloat($('#bmH',win).value)/100, w=parseFloat($('#bmW',win).value);
+      if(!h||!w){ toast('Werte prüfen'); return; }
+      const bmi = w/(h*h);
+      let cat = bmi<18.5?'Untergewicht' : bmi<25?'Normalgewicht' : bmi<30?'Übergewicht':'Adipositas';
+      $('#bmOut',win).innerHTML = '<div class="big2">'+bmi.toFixed(1)+'</div><div>'+cat+'</div>';
+    };
+    $('#bmGo',win).click();
+  }
+};
+
+/* ---- Textanalyse ---- */
+APPS['textanalyse'] = {
+  name:'Textanalyse', icon:'📊',
+  render:()=>'<div class="col">'+
+    '<textarea class="ta" id="txI" placeholder="Text eingeben…"></textarea>'+
+    '<div id="txO" class="col"></div></div>',
+  init:(win)=>{
+    const I=$('#txI',win), O=$('#txO',win);
+    const run=()=>{
+      const t=I.value;
+      const words = t.trim()?t.trim().split(/\s+/).length:0;
+      const chars = t.length;
+      const noSpace = t.replace(/\s/g,'').length;
+      const sents = (t.match(/[.!?]+/g)||[]).length;
+      const readMin = Math.ceil(words/200);
+      O.innerHTML = '<div class="list">'+
+        '<div class="item"><span>Zeichen</span><b style="margin-left:auto">'+chars+'</b></div>'+
+        '<div class="item"><span>ohne Leerzeichen</span><b style="margin-left:auto">'+noSpace+'</b></div>'+
+        '<div class="item"><span>Wörter</span><b style="margin-left:auto">'+words+'</b></div>'+
+        '<div class="item"><span>Sätze</span><b style="margin-left:auto">'+sents+'</b></div>'+
+        '<div class="item"><span>Lesezeit</span><b style="margin-left:auto">'+readMin+' min</b></div>'+
+      '</div>';
+    };
+    I.oninput=run; run();
+  }
+};
+
+/* ---- Passwort-Generator ---- */
+APPS['passwort'] = {
+  name:'Passwort', icon:'🔐',
+  render:()=>'<div class="col">'+
+    '<div class="row"><input class="inp" id="pwL" type="number" min="4" max="64" value="16" style="width:90px"><label><input type="checkbox" id="pwU" checked> A-Z</label><label><input type="checkbox" id="pwD" checked> 0-9</label><label><input type="checkbox" id="pwS" checked> !#?</label></div>'+
+    '<button class="btn primary" id="pwGo">Generieren</button>'+
+    '<div class="card center" id="pwO" style="font-family:ui-monospace,Menlo,monospace;font-size:16px;word-break:break-all"></div>'+
+    '<button class="btn" id="pwC">Kopieren</button></div>',
+  init:(win)=>{
+    const gen=()=>{
+      const len=parseInt($('#pwL',win).value)||16;
+      let chars = 'abcdefghijklmnopqrstuvwxyz';
+      if($('#pwU',win).checked) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      if($('#pwD',win).checked) chars += '0123456789';
+      if($('#pwS',win).checked) chars += '!#$%&?@*+-_';
+      let out='';
+      const arr = new Uint32Array(len); crypto.getRandomValues(arr);
+      for(let i=0;i<len;i++) out += chars[arr[i]%chars.length];
+      $('#pwO',win).textContent = out;
+    };
+    $('#pwGo',win).onclick = gen;
+    $('#pwC',win).onclick = ()=>{ navigator.clipboard?.writeText($('#pwO',win).textContent).then(()=>toast('Kopiert')); };
+    gen();
+  }
+};
+
+/* ---- Zufall ---- */
+APPS['zufall'] = {
+  name:'Zufall', icon:'🎲',
+  render:()=>'<div class="col">'+
+    '<div class="row"><input class="inp" id="rzA" type="number" value="1" style="width:80px"><span>bis</span><input class="inp" id="rzB" type="number" value="100" style="width:80px"><button class="btn primary" id="rzN">Zahl</button></div>'+
+    '<div class="row"><button class="btn" id="rzD">🎲 Würfel</button><button class="btn" id="rzC">🪙 Münze</button></div>'+
+    '<div class="big center" id="rzO">–</div></div>',
+  init:(win)=>{
+    const O=$('#rzO',win);
+    $('#rzN',win).onclick=()=>{ const a=parseInt($('#rzA',win).value), b=parseInt($('#rzB',win).value); O.textContent = Math.floor(Math.random()*(b-a+1))+a; };
+    $('#rzD',win).onclick=()=>{ O.textContent = '🎲 '+(Math.floor(Math.random()*6)+1); };
+    $('#rzC',win).onclick=()=>{ O.textContent = Math.random()<.5?'Kopf':'Zahl'; };
+  }
+};
+
+/* ---- Farbwähler ---- */
+APPS['farbwahl'] = {
+  name:'Farbwahl', icon:'🎨',
+  render:()=>'<div class="col">'+
+    '<input type="color" id="clP" value="#00e5ff" style="width:100%;height:120px;border:1.5px solid var(--line);border-radius:14px;background:transparent">'+
+    '<div class="row between"><span class="dim">HEX</span><b id="clH">#00e5ff</b></div>'+
+    '<div class="row between"><span class="dim">RGB</span><b id="clR">0,229,255</b></div>'+
+    '<button class="btn" id="clC">Kopieren</button></div>',
+  init:(win)=>{
+    const P=$('#clP',win);
+    const upd=()=>{
+      const h=P.value; $('#clH',win).textContent=h;
+      const r=parseInt(h.slice(1,3),16), g=parseInt(h.slice(3,5),16), b=parseInt(h.slice(5,7),16);
+      $('#clR',win).textContent = r+','+g+','+b;
+    };
+    P.oninput=upd;
+    $('#clC',win).onclick=()=>{ navigator.clipboard?.writeText(P.value); toast('Kopiert'); };
+    upd();
+  }
+};
+
+/* ---- QR-Generator ---- */
+APPS['qr'] = {
+  name:'QR-Code', icon:'📱',
+  render:()=>'<div class="col">'+
+    '<input class="inp" id="qrI" placeholder="Text oder URL…" value="https://haldoaios-official.github.io/HalDo/">'+
+    '<button class="btn primary" id="qrGo">Generieren</button>'+
+    '<div id="qrO" class="center"></div></div>',
+  init:(win)=>{
+    function qr(text){
+      // Mini QR-Encoder (Version 1, Byte-Mode, ECC L) — für kurze Texte.
+      // Für Länge > 17 Zeichen: wir rendern stattdessen einen Hinweis + Link.
+      // Wir verwenden Google-Chart-API als Fallback (offline: SVG mit Muster).
+      const out = $('#qrO',win);
+      out.innerHTML = '<div class="dim sm">QR für: '+esc(text.slice(0,64))+'</div>';
+      const img = new Image();
+      img.onload = ()=>{ out.innerHTML = '<div class="dim sm" style="margin-bottom:6px">'+esc(text.slice(0,64))+'</div>'; out.appendChild(img); };
+      img.onerror = ()=>{ out.innerHTML = '<div class="empty">Offline — QR nicht verfügbar</div>'; };
+      img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+encodeURIComponent(text);
+      img.alt='QR'; img.style.borderRadius='12px'; img.style.background='#fff'; img.style.padding='8px';
+    }
+    $('#qrGo',win).onclick=()=>qr($('#qrI',win).value.trim()||'HalDo AI OS');
+    $('#qrI',win).addEventListener('keydown',e=>{ if(e.key==='Enter') $('#qrGo',win).click(); });
+    qr($('#qrI',win).value);
+  }
+};
+
+/* ---- Datumsrechner ---- */
+APPS['datum'] = {
+  name:'Datumsrechner', icon:'📆',
+  render:()=>'<div class="col">'+
+    '<label class="lbl">Geburtsdatum</label><input class="inp" id="dtB" type="date">'+
+    '<button class="btn primary" id="dtGo">Alter berechnen</button>'+
+    '<div class="card center" id="dtO">–</div></div>',
+  init:(win)=>{
+    $('#dtGo',win).onclick=()=>{
+      const v=$('#dtB',win).value; if(!v){ toast('Datum fehlt'); return; }
+      const b=new Date(v), n=new Date();
+      let y=n.getFullYear()-b.getFullYear();
+      let m=n.getMonth()-b.getMonth();
+      let d=n.getDate()-b.getDate();
+      if(d<0){ m--; d+=new Date(n.getFullYear(),n.getMonth(),0).getDate(); }
+      if(m<0){ y--; m+=12; }
+      const days = Math.floor((n-b)/(1000*60*60*24));
+      $('#dtO',win).innerHTML = '<div class="big2">'+y+' J · '+m+' M · '+d+' T</div><div class="dim">'+days+' Tage insgesamt</div>';
+    };
+  }
+};
+
+/* ---- Base64 ---- */
+APPS['base64'] = {
+  name:'Base64', icon:'🔡',
+  render:()=>'<div class="col">'+
+    '<textarea class="ta" id="b64I" placeholder="Text…"></textarea>'+
+    '<div class="row"><button class="btn primary" id="b64E">Encode</button><button class="btn" id="b64D">Decode</button></div>'+
+    '<textarea class="ta" id="b64O" placeholder="Ergebnis…"></textarea></div>',
+  init:(win)=>{
+    $('#b64E',win).onclick=()=>{ try{ $('#b64O',win).value = btoa(unescape(encodeURIComponent($('#b64I',win).value))); }catch(e){ toast('Fehler'); } };
+    $('#b64D',win).onclick=()=>{ try{ $('#b64O',win).value = decodeURIComponent(escape(atob($('#b64I',win).value))); }catch(e){ toast('Ungültiges Base64'); } };
+  }
+};
+
+/* ---- Morse ---- */
+APPS['morse'] = {
+  name:'Morse', icon:'📡',
+  render:()=>'<div class="col">'+
+    '<input class="inp" id="moI" placeholder="Text…" value="SOS">'+
+    '<div class="card center big2" id="moO" style="word-break:break-all;font-family:ui-monospace,Menlo,monospace">…</div></div>',
+  init:(win)=>{
+    const M={A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..','0':'-----','1':'.----','2':'..---','3':'...--','4':'....-','5':'.....','6':'-....','7':'--...','8':'---..','9':'----.',' ':'/'};
+    const run=()=>{
+      const t=$('#moI',win).value.toUpperCase();
+      $('#moO',win).textContent = [...t].map(c=>M[c]||'').filter(Boolean).join(' ');
+    };
+    $('#moI',win).oninput = run; run();
+  }
+};
+
+/* ---- Memory ---- */
+APPS['memory'] = {
+  name:'Memory', icon:'🃏',
+  render:()=>'<div class="col center"><div class="dim" id="mmS">Züge: 0</div><div class="mem" id="mmG"></div><button class="btn" id="mmR" style="margin-top:12px">Neu</button></div>',
+  init:(win)=>{
+    const E=['🍀','🌟','🎈','🎁','🍕','🎸','🚀','🐙'];
+    let deck=[], open=[], moves=0, found=0;
+    const G=$('#mmG',win), S=$('#mmS',win);
+    const reset=()=>{
+      deck = [...E,...E].map(s=>({s,id:Math.random()})).sort(()=>Math.random()-.5);
+      open=[]; moves=0; found=0; S.textContent='Züge: 0'; draw();
+    };
+    const draw=()=>{
+      G.innerHTML = deck.map((c,i)=>{
+        const isOpen = open.includes(i) || c.done;
+        return '<div class="mc '+(c.done?'done':open.includes(i)?'open':'')+'" data-i="'+i+'">'+(isOpen?c.s:'')+'</div>';
+      }).join('');
+      G.querySelectorAll('.mc').forEach(el=>el.onclick=()=>{
+        const i=parseInt(el.dataset.i);
+        if(open.includes(i) || deck[i].done || open.length>=2) return;
+        open.push(i); draw();
+        if(open.length===2){
+          moves++; S.textContent='Züge: '+moves;
+          const [a,b]=open;
+          if(deck[a].s===deck[b].s){ deck[a].done=deck[b].done=true; found++; open=[]; draw(); if(found===E.length) setTimeout(()=>toast('🎉 Gewonnen in '+moves+' Zügen!'),300); }
+          else setTimeout(()=>{ open=[]; draw(); }, 700);
+        }
+      });
+    };
+    $('#mmR',win).onclick=reset; reset();
+  }
+};
+
+/* ---- Tic Tac Toe ---- */
+APPS['tictactoe'] = {
+  name:'Tic Tac Toe', icon:'⭕',
+  render:()=>'<div class="col center"><div class="big2" id="ttS">Du bist X</div><div class="ttt" id="ttG"></div><button class="btn" id="ttR" style="margin-top:12px">Neu</button></div>',
+  init:(win)=>{
+    let b, turn, done;
+    const G=$('#ttG',win), S=$('#ttS',win);
+    const lines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    const winner=()=>{ for(const l of lines){ const [a,b2,c]=l; if(b[a]&&b[a]===b[b2]&&b[a]===b[c]) return b[a]; } return b.includes('')?null:'T'; };
+    const draw=()=>{ G.innerHTML = b.map((v,i)=>'<div class="tttc '+(v==='X'?'x':v==='O'?'o':'')+'" data-i="'+i+'">'+v+'</div>').join('');
+      G.querySelectorAll('.tttc').forEach(el=>el.onclick=()=>click(parseInt(el.dataset.i)));
+    };
+    const ai=()=>{
+      // Simple: gewinne, blockiere, sonst Mitte/Ecke
+      const empty = b.map((v,i)=>v===''?i:-1).filter(i=>i>=0);
+      for(const l of lines){ const xs=l.filter(i=>b[i]==='O'); const es=l.filter(i=>b[i]===''); if(xs.length===2&&es.length===1) return es[0]; }
+      for(const l of lines){ const xs=l.filter(i=>b[i]==='X'); const es=l.filter(i=>b[i]===''); if(xs.length===2&&es.length===1) return es[0]; }
+      if(b[4]==='') return 4;
+      const corners=[0,2,6,8].filter(i=>b[i]===''); if(corners.length) return corners[Math.floor(Math.random()*corners.length)];
+      return empty[Math.floor(Math.random()*empty.length)];
+    };
+    const click=(i)=>{
+      if(done || b[i]!=='') return;
+      b[i]='X'; draw();
+      let w=winner();
+      if(w){ S.textContent = w==='T'?'Unentschieden':'Du gewinnst! 🎉'; done=true; return; }
+      setTimeout(()=>{
+        const j=ai(); if(j!=null) b[j]='O'; draw();
+        w=winner();
+        if(w){ S.textContent = w==='T'?'Unentschieden':'AI gewinnt'; done=true; }
+      },300);
+    };
+    const reset=()=>{ b=Array(9).fill(''); turn='X'; done=false; S.textContent='Du bist X'; draw(); };
+    $('#ttR',win).onclick=reset; reset();
+  }
+};
+
+/* ---- 2048 ---- */
+APPS['spiel2048'] = {
+  name:'2048', icon:'🔢',
+  render:()=>'<div class="col center"><div class="big2" id="g2S">0</div><div class="g2048" id="g2G"></div><div class="row" style="justify-content:center;margin-top:12px"><button class="btn" data-d="up">↑</button><button class="btn" data-d="left">←</button><button class="btn" data-d="down">↓</button><button class="btn" data-d="right">→</button></div><button class="btn primary" id="g2R" style="margin-top:8px">Neu</button></div>',
+  init:(win)=>{
+    let g, score;
+    const G=$('#g2G',win), S=$('#g2S',win);
+    const colors={2:'#2a3350',4:'#314070',8:'#3d5195',16:'#4b64b8',32:'#5f7ad9',64:'#7b95f2',128:'#9db2ff',256:'#b9c8ff',512:'#d4ddff',1024:'#e8efff',2048:'#ffffff'};
+    const addTile=()=>{ const e=[]; for(let i=0;i<16;i++) if(!g[i]) e.push(i); if(!e.length) return; g[e[Math.floor(Math.random()*e.length)]] = Math.random()<.9?2:4; };
+    const draw=()=>{
+      S.textContent = 'Punkte: '+score;
+      G.innerHTML = g.map(v=>{
+        const c = colors[v]||'#ff6f9c';
+        return '<div class="t" style="background:'+(v?c:'rgba(255,255,255,.04)')+';color:'+(v>=128?'#0a0c18':'#e9edff')+'">'+(v||'')+'</div>';
+      }).join('');
+    };
+    const slide=(row)=>{
+      let a=row.filter(x=>x), out=[];
+      for(let i=0;i<a.length;i++){
+        if(a[i]===a[i+1]){ out.push(a[i]*2); score+=a[i]*2; i++; }
+        else out.push(a[i]);
+      }
+      while(out.length<4) out.push(0);
+      return out;
+    };
+    const move=(d)=>{
+      const get=(i,j)=> g[i*4+j];
+      const set=(i,j,v)=>{ g[i*4+j]=v; };
+      let moved=false;
+      if(d==='left'||d==='right'){
+        for(let i=0;i<4;i++){
+          let row=[get(i,0),get(i,1),get(i,2),get(i,3)];
+          if(d==='right') row.reverse();
+          const nr=slide(row);
+          if(d==='right') nr.reverse();
+          for(let j=0;j<4;j++) if(get(i,j)!==nr[j]){ set(i,j,nr[j]); moved=true; }
+        }
+      }else{
+        for(let j=0;j<4;j++){
+          let col=[get(0,j),get(1,j),get(2,j),get(3,j)];
+          if(d==='down') col.reverse();
+          const nc=slide(col);
+          if(d==='down') nc.reverse();
+          for(let i=0;i<4;i++) if(get(i,j)!==nc[i]){ set(i,j,nc[i]); moved=true; }
+        }
+      }
+      if(moved){ addTile(); draw(); }
+    };
+    const reset=()=>{ g=Array(16).fill(0); score=0; addTile(); addTile(); draw(); };
+    win.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>move(b.dataset.d));
+    $('#g2R',win).onclick=reset; reset();
+  }
+};
+
+/* ---- Snake ---- */
+APPS['snake'] = {
+  name:'Snake', icon:'🐍',
+  render:()=>'<div class="col center"><div class="dim" id="snS">Punkte: 0</div><canvas class="snake-cv" id="snC" width="300" height="300"></canvas><div class="row" style="justify-content:center;margin-top:10px"><button class="btn" data-d="up">↑</button><button class="btn" data-d="left">←</button><button class="btn" data-d="down">↓</button><button class="btn" data-d="right">→</button></div><button class="btn primary" id="snR" style="margin-top:8px">Neu</button></div>',
+  init:(win)=>{
+    const C=$('#snC',win), ctx=C.getContext('2d'), S=$('#snS',win);
+    const N=15, cs=C.width/N;
+    let snake, dir, food, score, id;
+    const reset=()=>{
+      snake=[{x:7,y:7}]; dir={x:1,y:0}; food={x:3,y:3}; score=0; S.textContent='Punkte: 0';
+      if(id) clearInterval(id);
+      id=setInterval(tick, 130);
+      draw();
+    };
+    const tick=()=>{
+      const h={x:snake[0].x+dir.x, y:snake[0].y+dir.y};
+      if(h.x<0||h.x>=N||h.y<0||h.y>=N||snake.some(s=>s.x===h.x&&s.y===h.y)){ clearInterval(id); id=null; toast('Game Over — '+score+' Punkte'); return; }
+      snake.unshift(h);
+      if(h.x===food.x && h.y===food.y){ score++; S.textContent='Punkte: '+score; food={x:Math.floor(Math.random()*N),y:Math.floor(Math.random()*N)}; }
+      else snake.pop();
+      draw();
+    };
+    const draw=()=>{
+      ctx.fillStyle='#04050f'; ctx.fillRect(0,0,C.width,C.height);
+      ctx.fillStyle='rgba(0,229,255,.55)';
+      snake.forEach((s,i)=>{ ctx.fillStyle = i===0?'#00e5ff':'#4da8ff'; ctx.fillRect(s.x*cs+1,s.y*cs+1,cs-2,cs-2); });
+      ctx.fillStyle='#ff78c8'; ctx.fillRect(food.x*cs+2,food.y*cs+2,cs-4,cs-4);
+    };
+    const D={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
+    win.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{ const d=D[b.dataset.d]; if(d.x===-dir.x&&d.y===-dir.y) return; dir=d; });
+    $('#snR',win).onclick=reset;
+    // Keyboard
+    const kd=e=>{ const k={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'}[e.key]; if(k&&WM.focused===win.dataset.id){ e.preventDefault(); const d=D[k]; if(d.x===-dir.x&&d.y===-dir.y) return; dir=d; } };
+    document.addEventListener('keydown',kd);
+    win.addEventListener('remove',()=>{ document.removeEventListener('keydown',kd); if(id)clearInterval(id); });
+    reset();
+  }
+};
+
+/* ---- Galgenmännchen ---- */
+APPS['galgen'] = {
+  name:'Galgen', icon:'🎯',
+  render:()=>'<div class="col center">'+
+    '<div class="big2" id="hgW" style="letter-spacing:6px;font-family:ui-monospace,Menlo,monospace">_ _ _</div>'+
+    '<div class="dim" id="hgF">Fehler: 0 / 6</div>'+
+    '<div class="hang-keys" id="hgK"></div>'+
+    '<button class="btn" id="hgR" style="margin-top:12px">Neues Wort</button></div>',
+  init:(win)=>{
+    const W=['HALLO','BRUDER','KOMPUTER','WELTRAUM','ZUKUNFT','FREUNDSCHAFT','PROGRAMM','SCHLUESSEL','FENSTER','STERNE','PLANET','GALAXIE','KOSMOS','LICHT','SCHATTEN','HOFFNUNG','TRAUM','MUSIK','FARBE','SPIEGEL'];
+    let word, hits, bad;
+    const draw=()=>{
+      $('#hgW',win).textContent = [...word].map(c=>hits.has(c)?c:'_').join(' ');
+      $('#hgF',win).textContent = 'Fehler: '+bad.size+' / 6';
+      const K=$('#hgK',win);
+      K.innerHTML = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ'.split('').map(c=>'<button class="hk" data-c="'+c+'">'+c+'</button>').join('');
+      K.querySelectorAll('.hk').forEach(b=>b.onclick=()=>guess(b.dataset.c));
+      // Mark used
+      K.querySelectorAll('.hk').forEach(b=>{
+        const c=b.dataset.c;
+        if(hits.has(c)) b.classList.add('good');
+        if(bad.has(c)) b.classList.add('bad');
+        if(hits.has(c)||bad.has(c)) b.disabled=true;
+      });
+    };
+    const guess=(c)=>{
+      if(hits.has(c)||bad.has(c)) return;
+      if(word.includes(c)){ hits.add(c);
+        if([...word].every(x=>hits.has(x))){ toast('🎉 Gewonnen!'); }
+      } else { bad.add(c); if(bad.size>=6) toast('Verloren — Wort: '+word); }
+      draw();
+    };
+    const reset=()=>{ word=W[Math.floor(Math.random()*W.length)]; hits=new Set(); bad=new Set(); draw(); };
+    $('#hgR',win).onclick=reset; reset();
+  }
+};
+
+/* ---- Simon Says ---- */
+APPS['simon'] = {
+  name:'Simon', icon:'🎵',
+  render:()=>'<div class="col center">'+
+    '<div class="big2" id="smS">Beobachte…</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;width:min(280px,80vw);margin:12px auto">'+
+      '<button class="btn" data-c="0" style="height:110px;background:#e03b5a;border-radius:14px">1</button>'+
+      '<button class="btn" data-c="1" style="height:110px;background:#00e5ff;border-radius:14px">2</button>'+
+      '<button class="btn" data-c="2" style="height:110px;background:#4de88a;border-radius:14px">3</button>'+
+      '<button class="btn" data-c="3" style="height:110px;background:#ffb03a;border-radius:14px">4</button>'+
+    '</div>'+
+    '<button class="btn primary" id="smR">Start</button></div>',
+  init:(win)=>{
+    let seq=[], idx=0, playing=false;
+    const S=$('#smS',win);
+    const flash=(i)=>{ const b=win.querySelector('[data-c="'+i+'"]'); b.style.filter='brightness(2)'; setTimeout(()=>b.style.filter='',280); };
+    const playSeq=async()=>{
+      playing=true; S.textContent='Beobachte…';
+      for(const i of seq){ flash(i); await new Promise(r=>setTimeout(r,400)); }
+      playing=false; idx=0; S.textContent='Du bist dran!';
+    };
+    const next=()=>{ seq.push(Math.floor(Math.random()*4)); playSeq(); };
+    win.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{
+      if(playing) return;
+      const i=parseInt(b.dataset.c); flash(i);
+      if(seq[idx]===i){ idx++; if(idx===seq.length){ S.textContent='Weiter!'; setTimeout(next,600); } }
+      else{ S.textContent='Falsch! Runde '+(seq.length-1); seq=[]; idx=0; }
+    });
+    $('#smR',win).onclick=()=>{ seq=[]; idx=0; next(); };
+  }
+};
+
+/* ---- Reaktionstest ---- */
+APPS['reaktion'] = {
+  name:'Reaktion', icon:'⚡',
+  render:()=>'<div class="col center"><div class="reaction-area" id="rcA">Klicke zum Start</div></div>',
+  init:(win)=>{
+    const A=$('#rcA',win);
+    let state='idle', t0=0, to=null;
+    A.onclick=()=>{
+      if(state==='idle'||state==='done'){
+        A.style.background='rgba(224,59,90,.25)'; A.textContent='Warte…';
+        state='wait';
+        to=setTimeout(()=>{ A.style.background='rgba(0,229,255,.3)'; A.textContent='KLICK!'; t0=Date.now(); state='go'; }, 1500+Math.random()*2000);
+      } else if(state==='wait'){
+        clearTimeout(to); A.style.background='rgba(0,0,0,0)'; A.textContent='Zu früh! Klicke für neuen Versuch'; state='done';
+      } else if(state==='go'){
+        const ms=Date.now()-t0;
+        A.style.background='rgba(0,229,255,.15)'; A.textContent=ms+' ms · Klicke für neuen Versuch';
+        state='done';
+      }
+    };
+  }
+};
+
+/* ---- Tipptest ---- */
+APPS['tippen'] = {
+  name:'Tipptest', icon:'⌨️',
+  render:()=>'<div class="col">'+
+    '<div class="typing-text" id="tpT"></div>'+
+    '<input class="inp" id="tpI" placeholder="Hier tippen…" autocomplete="off" autocapitalize="off" spellcheck="false">'+
+    '<div class="row between"><span class="dim">WPM</span><b id="tpW">0</b><span class="dim">Genauigkeit</span><b id="tpA">100%</b></div></div>',
+  init:(win)=>{
+    const TEXT='Der schnelle braune Fuchs springt über den faulen Hund und verschwindet im tiefen Wald.';
+    const T=$('#tpT',win), I=$('#tpI',win), W=$('#tpW',win), A=$('#tpA',win);
+    let t0=null;
+    const draw=()=>{
+      const v=I.value;
+      T.innerHTML = [...TEXT].map((c,i)=>{
+        if(i>=v.length) return esc(c);
+        return '<span class="'+(v[i]===c?'ok':'bad')+'">'+esc(c)+'</span>';
+      }).join('');
+    };
+    I.oninput=()=>{
+      if(!t0) t0=Date.now();
+      draw();
+      const v=I.value;
+      const ok = [...v].filter((c,i)=>c===TEXT[i]).length;
+      A.textContent = v.length?Math.round(ok/v.length*100)+'%':'100%';
+      const min = (Date.now()-t0)/60000;
+      W.textContent = min>0?Math.round(v.split(/\s+/).filter(Boolean).length/min):0;
+    };
+    draw();
+  }
+};
+
+/* ---- Schere Stein Papier ---- */
+APPS['ssp'] = {
+  name:'SSP', icon:'✊',
+  render:()=>'<div class="col center">'+
+    '<div class="row" style="justify-content:center;font-size:38px;gap:14px">'+
+      '<button class="btn" data-p="0">✊</button><button class="btn" data-p="1">✋</button><button class="btn" data-p="2">✌️</button>'+
+    '</div>'+
+    '<div class="big2" id="rpR">Wähle…</div>'+
+    '<div class="dim" id="rpS">0 : 0</div></div>',
+  init:(win)=>{
+    const N=['✊','✋','✌️'];
+    let u=0,c=0;
+    win.querySelectorAll('button[data-p]').forEach(b=>b.onclick=()=>{
+      const p=parseInt(b.dataset.p), cc=Math.floor(Math.random()*3);
+      let r;
+      if(p===cc) r='Unentschieden '+N[p]+' vs '+N[cc];
+      else if((p===0&&cc===2)||(p===1&&cc===0)||(p===2&&cc===1)){ u++; r='Du gewinnst! '+N[p]+' vs '+N[cc]; }
+      else{ c++; r='AI gewinnt. '+N[p]+' vs '+N[cc]; }
+      $('#rpR',win).textContent=r; $('#rpS',win).textContent=u+' : '+c;
+    });
+  }
+};
+
+/* ---- Sprachmemos ---- */
+APPS['sprachnotiz'] = {
+  name:'Sprachmemo', icon:'🎙️',
+  render:()=>'<div class="col center">'+
+    '<div class="big2" id="vmS">Bereit</div>'+
+    '<div class="row" style="justify-content:center"><button class="btn primary" id="vmR">● Aufnahme</button><button class="btn" id="vmS2">■ Stop</button></div>'+
+    '<div id="vmL" class="list" style="width:100%"></div></div>',
+  init:(win)=>{
+    let rec=null, chunks=[];
+    const S=$('#vmS',win), L=$('#vmL',win);
+    const render=()=>{
+      const all=store.get('memos',[]);
+      L.innerHTML = all.length ? all.map(m=>'<div class="item"><span>'+new Date(m.ts).toLocaleString('de-DE')+'</span><button class="btn sm" data-id="'+m.id+'" style="margin-left:auto">Abspielen</button><span class="x" data-id="'+m.id+'">✕</span></div>').join('') : '<div class="empty">Keine Aufnahmen</div>';
+      L.querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>{
+        const m=store.get('memos',[]).find(x=>x.id===b.dataset.id);
+        if(m){ const a=new Audio(m.data); a.play(); }
+      });
+      L.querySelectorAll('.x').forEach(x=>x.onclick=()=>{ store.set('memos',store.get('memos',[]).filter(m=>m.id!==x.dataset.id)); render(); });
+    };
+    $('#vmR',win).onclick=async()=>{
+      try{
+        const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+        rec = new MediaRecorder(stream); chunks=[];
+        rec.ondataavailable = e => chunks.push(e.data);
+        rec.onstop = ()=>{
+          const blob = new Blob(chunks, {type:chunks[0]?.type||'audio/webm'});
+          const r = new FileReader();
+          r.onload = ()=>{ const all=store.get('memos',[]); all.unshift({id:uid(), ts:Date.now(), data:r.result}); store.set('memos',all.slice(0,8)); render(); };
+          r.readAsDataURL(blob);
+          stream.getTracks().forEach(t=>t.stop());
+          S.textContent='Gespeichert';
+        };
+        rec.start(); S.textContent='🔴 Aufnahme läuft…';
+      }catch(e){ toast('Mikrofon verweigert'); }
+    };
+    $('#vmS2',win).onclick=()=>{ if(rec && rec.state!=='inactive'){ rec.stop(); rec=null; } };
+    render();
+  }
+};
+
+/* ---- Piano ---- */
+APPS['klavier'] = {
+  name:'Piano', icon:'🎹',
+  render:()=>'<div class="col center"><div class="piano" id="pnP"></div></div>',
+  init:(win)=>{
+    const N=['C','D','E','F','G','A','B','C2'];
+    const F=[261.63,293.66,329.63,349.23,392.00,440.00,493.88,523.25];
+    let ctx=null;
+    const play=(f)=>{
+      ctx = ctx || new (window.AudioContext||window.webkitAudioContext)();
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type='triangle'; o.frequency.value=f;
+      g.gain.setValueAtTime(.18, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime+1.2);
+      o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+1.3);
+    };
+    const P=$('#pnP',win);
+    P.innerHTML = N.map((n,i)=>'<button class="pk" data-i="'+i+'">'+n+'</button>').join('');
+    P.querySelectorAll('.pk').forEach(b=>{
+      b.onclick=()=>{ play(F[parseInt(b.dataset.i)]); b.classList.add('on'); setTimeout(()=>b.classList.remove('on'),200); };
+    });
+  }
+};
+
+/* ---- Kamera ---- */
+APPS['kamera'] = {
+  name:'Kamera', icon:'📷',
+  render:()=>'<div class="col center">'+
+    '<video id="kmV" autoplay playsinline muted style="width:100%;max-width:420px;border-radius:14px;border:1.5px solid var(--line);background:#000"></video>'+
+    '<button class="btn primary" id="kmS">📸 Aufnehmen</button>'+
+    '<canvas id="kmC" style="display:none"></canvas>'+
+    '<div id="kmG" class="row" style="justify-content:center"></div></div>',
+  init:async(win)=>{
+    const V=$('#kmV',win), C=$('#kmC',win), G=$('#kmG',win);
+    try{
+      const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+      V.srcObject = s;
+    }catch(e){ toast('Kamera verweigert'); V.outerHTML='<div class="empty">Kamera nicht verfügbar</div>'; return; }
+    $('#kmS',win).onclick=()=>{
+      C.width = V.videoWidth; C.height = V.videoHeight;
+      C.getContext('2d').drawImage(V,0,0);
+      const url = C.toDataURL('image/jpeg',.85);
+      const img = document.createElement('img');
+      img.src = url; img.style.width='60px'; img.style.height='60px'; img.style.borderRadius='8px'; img.style.objectFit='cover';
+      img.onclick = ()=>{ const a=document.createElement('a'); a.href=url; a.download='haldo-'+Date.now()+'.jpg'; a.click(); };
+      G.prepend(img);
+      if(G.children.length>8) G.lastChild.remove();
+    };
+  }
+};
+
+/* ---- Karteikarten ---- */
+APPS['karteikarten'] = {
+  name:'Karteikarten', icon:'🗂️',
+  render:()=>'<div class="col">'+
+    '<div class="row"><input class="inp" id="fcQ" placeholder="Frage…"><input class="inp" id="fcA" placeholder="Antwort…"><button class="btn primary" id="fcAdd">+</button></div>'+
+    '<div class="card center big2" id="fcShow" style="min-height:110px;display:flex;align-items:center;justify-content:center;cursor:pointer">Klicke Start</div>'+
+    '<div class="row" style="justify-content:center"><button class="btn primary" id="fcS">Start</button><button class="btn" id="fcN">Nächste</button></div>'+
+    '<div id="fcL" class="list"></div></div>',
+  init:(win)=>{
+    const Q=$('#fcQ',win), A=$('#fcA',win), L=$('#fcL',win), S=$('#fcShow',win);
+    let cur=null, showA=false;
+    const all=()=>store.get('flash',[]);
+    const render=()=>{
+      const a=all();
+      L.innerHTML = a.length ? a.map(c=>'<div class="item"><b>'+esc(c.q)+'</b><span class="dim" style="margin-left:8px">'+esc(c.a)+'</span><span class="x" data-id="'+c.id+'">✕</span></div>').join('') : '<div class="empty">Keine Karten</div>';
+      L.querySelectorAll('.x').forEach(x=>x.onclick=()=>{ store.set('flash',all().filter(c=>c.id!==x.dataset.id)); render(); });
+    };
+    const pick=()=>{ const a=all(); if(!a.length) return; cur=a[Math.floor(Math.random()*a.length)]; showA=false; S.textContent=cur.q; };
+    $('#fcAdd',win).onclick=()=>{ const q=Q.value.trim(), a=A.value.trim(); if(!q||!a) return; const arr=all(); arr.push({id:uid(), q, a}); store.set('flash',arr); Q.value=''; A.value=''; render(); };
+    $('#fcS',win).onclick=pick;
+    $('#fcN',win).onclick=pick;
+    S.onclick=()=>{ if(!cur) return; showA=!showA; S.textContent = showA?cur.a:cur.q; };
+    render();
+  }
+};
+
+/* ---- Periodensystem (Auswahl) ---- */
+APPS['periodensystem'] = {
+  name:'PSE', icon:'⚛️',
+  render:()=>'<div class="col"><div class="inp" id="peR" style="padding:8px 10px"><b id="peName">Element wählen</b><span class="dim" id="peInfo" style="margin-left:8px">Ordnungszahl 1-20</span></div><div id="peG" style="overflow:auto"><div class="ptable" id="peP"></div></div></div>',
+  init:(win)=>{
+    const E=[
+      [1,'H','Wasserstoff'],[2,'He','Helium'],[3,'Li','Lithium'],[4,'Be','Beryllium'],[5,'B','Bor'],[6,'C','Kohlenstoff'],[7,'N','Stickstoff'],[8,'O','Sauerstoff'],[9,'F','Fluor'],[10,'Ne','Neon'],
+      [11,'Na','Natrium'],[12,'Mg','Magnesium'],[13,'Al','Aluminium'],[14,'Si','Silicium'],[15,'P','Phosphor'],[16,'S','Schwefel'],[17,'Cl','Chlor'],[18,'Ar','Argon'],[19,'K','Kalium'],[20,'Ca','Calcium']
+    ];
+    const P=$('#peP',win);
+    // 18 Spalten, 3 Perioden — Elemente 1-20 als Beispiel
+    const pos = [[1,1],[1,18],[2,1],[2,2],[2,13],[2,14],[2,15],[2,16],[2,17],[2,18],[3,1],[3,2],[3,13],[3,14],[3,15],[3,16],[3,17],[3,18],[4,1],[4,2]];
+    P.innerHTML = '<div style="grid-column:span 18"></div>';
+    let cells='';
+    let cellMap={};
+    E.forEach((e,i)=>{ const [r,c]=pos[i]; cellMap[r+'_'+c]=e; });
+    for(let r=1;r<=4;r++){
+      for(let c=1;c<=18;c++){
+        const e = cellMap[r+'_'+c];
+        if(e) cells += '<div class="pe" data-z="'+e[0]+'" title="'+e[2]+'">'+e[1]+'<br><span style="font-size:8px;color:var(--dim)">'+e[0]+'</span></div>';
+        else cells += '<div></div>';
+      }
+    }
+    P.innerHTML = cells;
+    P.querySelectorAll('.pe').forEach(el=>el.onclick=()=>{
+      const e = E[parseInt(el.dataset.z)-1];
+      $('#peName',win).textContent = e[1]+' — '+e[2];
+      $('#peInfo',win).textContent = 'Ordnungszahl '+e[0];
+    });
+  }
+};
+
+/* ---- Statistik ---- */
+APPS['statistik'] = {
+  name:'Statistik', icon:'📈',
+  render:()=>'<div class="col">'+
+    '<textarea class="ta" id="stI" placeholder="Zahlen, durch Komma getrennt…">1,2,3,4,5,6,7,8,9,10</textarea>'+
+    '<button class="btn primary" id="stGo">Berechnen</button>'+
+    '<div id="stO" class="list"></div></div>',
+  init:(win)=>{
+    $('#stGo',win).onclick=()=>{
+      const nums = $('#stI',win).value.split(/[,\s]+/).map(Number).filter(n=>!isNaN(n));
+      if(!nums.length){ toast('Keine Zahlen'); return; }
+      const sum=nums.reduce((a,b)=>a+b,0), avg=sum/nums.length;
+      const sorted=[...nums].sort((a,b)=>a-b);
+      const median = sorted.length%2 ? sorted[(sorted.length-1)/2] : (sorted[sorted.length/2-1]+sorted[sorted.length/2])/2;
+      const min=Math.min(...nums), max=Math.max(...nums);
+      const varr = nums.reduce((a,b)=>a+(b-avg)**2,0)/nums.length;
+      const std = Math.sqrt(varr);
+      const rows = [['Anzahl',nums.length],['Summe',fmt(sum)],['Mittelwert',fmt(avg)],['Median',fmt(median)],['Min',min],['Max',max],['Varianz',fmt(varr)],['Stdabw.',fmt(std)]];
+      $('#stO',win).innerHTML = rows.map(([k,v])=>'<div class="item"><span>'+k+'</span><b style="margin-left:auto">'+v+'</b></div>').join('');
+    };
+    $('#stGo',win).click();
+  }
+};
+
+/* ---- Übersetzer ---- */
+APPS['uebersetzer'] = {
+  name:'Übersetzer', icon:'🌐',
+  render:()=>'<div class="col">'+
+    '<textarea class="ta" id="trI" placeholder="Text…"></textarea>'+
+    '<div class="row"><select class="inp" id="trF" style="width:auto"><option value="de">DE</option><option value="en">EN</option><option value="fr">FR</option><option value="es">ES</option><option value="it">IT</option><option value="tr">TR</option><option value="ar">AR</option></select><span>→</span><select class="inp" id="trT" style="width:auto"><option value="en">EN</option><option value="de">DE</option><option value="fr">FR</option><option value="es">ES</option><option value="it">IT</option><option value="tr">TR</option><option value="ar">AR</option></select><button class="btn primary" id="trGo">Übersetzen</button></div>'+
+    '<div class="tr-out" id="trO">–</div></div>',
+  init:(win)=>{
+    $('#trGo',win).onclick=async()=>{
+      const t=$('#trI',win).value.trim(); if(!t){ toast('Text fehlt'); return; }
+      const f=$('#trF',win).value, to=$('#trT',win).value;
+      $('#trO',win).textContent='Lade…';
+      try{
+        const r= await fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(t)+'&langpair='+f+'|'+to);
+        const j = await r.json();
+        $('#trO',win).textContent = j.responseData?.translatedText || 'Keine Antwort';
+      }catch(e){ $('#trO',win).textContent = 'Fehler: '+e.message; }
+    };
+  }
+};
+
+/* ---- Atemübung ---- */
+APPS['atem'] = {
+  name:'Atmen', icon:'🫁',
+  render:()=>'<div class="col center">'+
+    '<div class="big2" id="brP">Bereit</div>'+
+    '<div class="big" id="brC" style="min-height:90px;display:flex;align-items:center;justify-content:center">4</div>'+
+    '<button class="btn primary" id="brGo">Start</button>'+
+    '<div class="card" style="max-width:340px;margin:8px auto 0"><span class="dim">4-7-8 Technik: 4s einatmen · 7s halten · 8s ausatmen</span></div></div>',
+  init:(win)=>{
+    let id=null, phase=0, rem=4;
+    const P=$('#brP',win), C=$('#brC',win);
+    const labels=['Einatmen','Halten','Ausatmen','Halten'];
+    const times=[4,7,8,0];
+    const step=()=>{
+      const i = phase%3;
+      P.textContent = labels[i];
+      C.textContent = rem;
+      if(rem<=0){
+        phase = (phase+1)%3;
+        rem = times[phase]||4;
+      } else rem--;
+    };
+    $('#brGo',win).onclick=()=>{
+      if(id){ clearInterval(id); id=null; P.textContent='Bereit'; C.textContent='4'; phase=0; rem=4; return; }
+      phase=0; rem=4; id=setInterval(step,1000);
+    };
+  }
+};
+
+/* ---- Workout ---- */
+APPS['workout'] = {
+  name:'Workout', icon:'💪',
+  render:()=>'<div class="col">'+
+    '<div class="card"><b>Übungen</b><ul style="margin:6px 0 0 18px;padding:0"><li>10× Kniebeugen</li><li>10× Liegestütze</li><li>20× Hampelmann</li><li>30s Plank</li><li>10× Ausfallschritte</li></ul></div>'+
+    '<button class="btn primary" id="woGo">Start (30s pro Übung)</button>'+
+    '<div class="big2 center" id="woT">–</div></div>',
+  init:(win)=>{
+    const list=['Kniebeugen','Liegestütze','Hampelmann','Plank','Ausfallschritte'];
+    let i=0, rem=30, id=null;
+    $('#woGo',win).onclick=()=>{
+      if(id){ clearInterval(id); id=null; $('#woT',win).textContent='–'; return; }
+      i=0; rem=30;
+      const upd=()=>$('#woT',win).textContent = list[i]+' · '+rem+'s';
+      upd();
+      id=setInterval(()=>{
+        rem--;
+        if(rem<=0){ i++; rem=30; if(i>=list.length){ clearInterval(id); id=null; $('#woT',win).textContent='Fertig! 🎉'; return; } }
+        upd();
+      },1000);
+    };
+  }
+};
+
+/* ---- Rezepte ---- */
+APPS['rezepte'] = {
+  name:'Rezepte', icon:'🍳',
+  render:()=>'<div class="col">'+
+    '<div class="row"><input class="inp" id="rzN" placeholder="Rezeptname…"><button class="btn primary" id="rzA">+</button></div>'+
+    '<div id="rzL" class="list"></div></div>',
+  init:(win)=>{
+    const N=$('#rzN',win), L=$('#rzL',win);
+    const render=()=>{
+      const all=store.get('recipes',[]);
+      L.innerHTML = all.length ? all.map(r=>'<div class="item"><b>'+esc(r.n)+'</b><span class="x" data-id="'+r.id+'">✕</span></div>').join('') : '<div class="empty">Keine Rezepte</div>';
+      L.querySelectorAll('.x').forEach(x=>x.onclick=()=>{ store.set('recipes',store.get('recipes',[]).filter(r=>r.id!==x.dataset.id)); render(); });
+    };
+    $('#rzA',win).onclick=()=>{ const n=N.value.trim(); if(!n) return; const a=store.get('recipes',[]); a.push({id:uid(), n}); store.set('recipes',a); N.value=''; render(); };
+    render();
+  }
+};
+
+/* ---- Formelsammlung ---- */
+APPS['formeln'] = {
+  name:'Formeln', icon:'🧪',
+  render:()=>'<div class="col">'+
+    '<div class="card"><b>Fläche</b><div class="dim">Rechteck: A = a · b</div><div class="dim">Kreis: A = π · r²</div><div class="dim">Dreieck: A = ½ · g · h</div></div>'+
+    '<div class="card"><b>Volumen</b><div class="dim">Würfel: V = a³</div><div class="dim">Kugel: V = 4/3 · π · r³</div><div class="dim">Zylinder: V = π · r² · h</div></div>'+
+    '<div class="card"><b>Physik</b><div class="dim">v = s / t</div><div class="dim">F = m · a</div><div class="dim">E = m · c²</div></div>'+
+    '<div class="card"><b>Zins</b><div class="dim">Z = K · p · t / 100</div></div></div>'
+};
+
+/* ---- Weltinfo ---- */
+APPS['weltinfo'] = {
+  name:'Weltinfo', icon:'🌍',
+  render:()=>'<div class="col">'+
+    '<div class="card"><b>Erde</b><div class="dim">Durchmesser: 12.742 km</div><div class="dim">Umfang: 40.075 km</div><div class="dim">Bevölkerung: ~8,1 Mrd.</div></div>'+
+    '<div class="card"><b>Sonne</b><div class="dim">Durchmesser: 1.392.700 km</div><div class="dim">Abstand: ~149,6 Mio. km</div></div>'+
+    '<div class="card"><b>Mond</b><div class="dim">Durchmesser: 3.474 km</div><div class="dim">Abstand: ~384.400 km</div></div></div>'
+};
+
+/* ---- HalDo AI (Chat) ---- */
+APPS['haldo-ai'] = {
+  name:'HalDo AI', icon:'🤖',
+  render:()=>'<div class="col" style="height:100%">'+
+    '<div id="aiL" class="col" style="flex:1;overflow:auto;padding-right:4px"></div>'+
+    '<div class="row"><input class="inp" id="aiI" placeholder="Frage mich etwas…" autocomplete="off"><button class="btn primary" id="aiS">Senden</button></div></div>',
+  init:(win, body)=>{
+    body.style.display='flex'; body.style.flexDirection='column';
+    const L=$('#aiL',win), I=$('#aiI',win);
+    const hist = store.get('ai_hist',[]);
+    const push=(who,text)=>{ const d=el('div','card'); d.innerHTML = '<b style="color:'+(who==='u'?'var(--c1)':'var(--c3)')+'">'+(who==='u'?'Du':'HalDo AI')+':</b> '+esc(text); L.appendChild(d); L.scrollTop=L.scrollHeight; };
+    hist.forEach(m=>push(m.who,m.text));
+    const reply=(q)=>{
+      q=q.toLowerCase();
+      if(/hallo|hi|hey/.test(q)) return 'Hallo Bruder! Wie kann ich helfen? 💙';
+      if(/zeit|uhr/.test(q)) return 'Es ist '+new Date().toLocaleTimeString('de-DE')+'.';
+      if(/datum|tag/.test(q)) return 'Heute ist '+new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'.';
+      if(/wetter/.test(q)) return 'Öffne die Wetter-App für Live-Daten.';
+      if(/wie geht/.test(q)) return 'Mir geht es gut, danke! Und dir, Bruder?';
+      if(/danke/.test(q)) return 'Immer gerne! ❤️';
+      if(/wer bist/.test(q)) return 'Ich bin HalDo AI, dein Betriebssystem-Assistent.';
+      if(/rechne|berechne/.test(q)){
+        const m = q.match(/[\d+\-*/().\s]+/);
+        if(m){ try{ const r=Function('"use strict";return ('+m[0]+')')(); return 'Ergebnis: '+r; }catch(e){} }
+      }
+      return 'Ich lerne noch. Probiere: „Wie spät ist es?", „Rechne 12*8", oder „Wie geht es dir?"';
+    };
+    const send=()=>{
+      const t=I.value.trim(); if(!t) return;
+      push('u',t); hist.push({who:'u',text:t}); I.value='';
+      setTimeout(()=>{ const a=reply(t); push('a',a); hist.push({who:'a',text:a}); store.set('ai_hist',hist.slice(-40)); }, 300);
+    };
+    $('#aiS',win).onclick=send;
+    I.addEventListener('keydown',e=>{ if(e.key==='Enter') send(); });
+  }
+};
+
+/* ---- Chat ---- */
+APPS['chat'] = {
+  name:'Chat', icon:'💬',
+  render:()=>'<div class="col" style="height:100%">'+
+    '<div id="chL" class="col" style="flex:1;overflow:auto"></div>'+
+    '<div class="row"><input class="inp" id="chI" placeholder="Nachricht…"><button class="btn primary" id="chS">Senden</button></div></div>',
+  init:(win, body)=>{
+    body.style.display='flex'; body.style.flexDirection='column';
+    const L=$('#chL',win), I=$('#chI',win);
+    const hist=store.get('chat',[]);
+    const push=(who,text)=>{ const d=el('div','card'); d.innerHTML='<b style="color:'+(who==='u'?'var(--c1)':'var(--c3)')+'">'+esc(who)+':</b> '+esc(text); L.appendChild(d); L.scrollTop=L.scrollHeight; };
+    hist.forEach(m=>push(m.who,m.text));
+    const send=()=>{ const t=I.value.trim(); if(!t) return; hist.push({who:'Du',text:t}); push('Du',t); store.set('chat',hist.slice(-60)); I.value=''; };
+    $('#chS',win).onclick=send;
+    I.addEventListener('keydown',e=>{ if(e.key==='Enter') send(); });
+  }
+};
+
+/* =========================================================================
+   APP-REGISTRY — 375 Apps A-Z
+   ========================================================================= */
+const REGISTRY = [
+  { k:'A', t:'AI & Assistant', ico:'🤖', apps:[
+    'HalDo AI','AI Chat','AI Writer','AI Image','AI Code','AI Voice','AI Vision','AI Music','AI Tutor',
+    'AI Translator','AI Summarizer','AI Notes','AI Search','AI Calendar','AI Mail','AI Agent','AI Studio'
+  ]},
+  { k:'B', t:'Bildung', ico:'🎓', apps:[
+    'Mathe Trainer','Deutsch Trainer','Englisch Trainer','Geschichte','Biologie','Chemie','Physik',
+    'Erdkunde','Formelsammlung','Vokabeltrainer','Kopfrechnen','Einmaleins','Bruchrechner','Geometrie',
+    'Algebra','Analysis','Stochastik','Wahrscheinlichkeit','Lineare Funktionen','Quadratische Gleichungen',
+    'Trigonometrie','Logikrätsel','Denksport','IQ Trainer','Konzentration','Gedächtnistraining','Lesetrainer',
+    'Rechtschreibung','Grammatik','Zeichensetzung','Aufsatz Helfer','Referat Planer','Zitierhelfer',
+    'Bibliografie','Studienführer','Prüfungstrainer','Lernkarten','Lernplaner','Nachhilfe'
+  ]},
+  { k:'C', t:'Fahrschule', ico:'🚗', apps:[
+    'Fahrschul Theorie','Verkehrszeichen','Vorfahrt','Kreuzungen','Autobahn','Landstraße','Stadtverkehr',
+    'Nachtfahrt','Parken','Einparken','Rückwärts','Anfahren','Schalten','Bremsen','Spiegel','Blinken',
+    'Umweltbewusst','Fahrphysik','Erste Hilfe','Pannenhilfe','Führerschein Fragen','Punkte Rechner'
+  ]},
+  { k:'D', t:'Gesundheit', ico:'💚', apps:[
+    'Schrittzähler','Kalorienzähler','Wasser Tracker','Schlaf Tracker','Stimmungs Tracker','BMI Rechner',
+    'Herzfrequenz','Blutdruck','Medikamente','Arzttermine','Symptom Checker','Meditation','Atemübung',
+    'Yoga','Pilates','Fitness','Workout Timer','Trainingsplan','Dehnübungen','Ernährungsberater',
+    'Rezepte Gesund','Zahnpflege','Hautpflege','Fitness Tracker'
+  ]},
+  { k:'E', t:'Arbeit', ico:'💼', apps:[
+    'Projekte','Kanban','Zeiterfassung','Meeting Notizen','Aufgaben','Team Chat','Kalender Arbeit',
+    'Rechnungen','Angebote','Kundenverwaltung','Stundenzettel','Urlaubsplaner','Berichte','Protokolle',
+    'Präsentation','Mindmap','Brainstorming','Whiteboard'
+  ]},
+  { k:'F', t:'Finanzen', ico:'💰', apps:[
+    'Budgetplaner','Ausgaben Tracker','Einnahmen Tracker','Kreditrechner','Zinsrechner','Währungsrechner',
+    'Aktien Tracker','Krypto Tracker','Sparen','Investieren','Steuern','Rechnungen','Quittungen'
+  ]},
+  { k:'G', t:'Zuhause & Familie', ico:'🏠', apps:[
+    'Einkaufsliste','Haushaltsplan','Putzplan','Kühlschrank','Vorratskammer','Rezepte','Familien Kalender',
+    'Kinderbetreuung','Haustiere','Pflanzen','Garten','Renovierung','Smart Home'
+  ]},
+  { k:'H', t:'HalDo World', ico:'🌌', apps:[
+    'HalDo AI','HalDo Cyborg','HalDo Kosmos','HalDo Avatar','HalDo Music','HalDo Radio','HalDo TV',
+    'HalDo Games','HalDo Store','HalDo Cloud','HalDo Sync','HalDo Backup','HalDo Wallet','HalDo Social'
+  ]},
+  { k:'I', t:'Wissen', ico:'📚', apps:[
+    'Wikipedia','Wörterbuch','Enzyklopädie','Zitate','Fakten','Astronomie','Geschichte Welt','Länder Lexikon',
+    'Hauptstädte','Flaggen','Karten','Tiere','Pflanzen','Weltrekorde','Erfindungen','Wissenschaft','Technik Lexikon'
+  ]},
+  { k:'J', t:'Kultur & Religion', ico:'🕌', apps:[
+    'Êzîdî Wissen','Weltreligionen','Bibel','Koran','Tora','Gebete','Feste','Mythen','Sagen'
+  ]},
+  { k:'K', t:'Keyboard', ico:'⌨️', apps:[
+    'Bildschirmtastatur','Emoji Tastatur','Sonderzeichen','Tastatur Tests','Tippgeschwindigkeit','Tippspiele',
+    'Tastatur Layout','Shortcuts','Clipboard','Textbausteine','Autokorrektur'
+  ]},
+  { k:'L', t:'Lernen', ico:'🧠', apps:[
+    'Karteikarten','Vokabeltrainer','Lernplaner','Prüfungstrainer','Quiz','Multiple Choice','Lückentext',
+    'Zuordnung','Memory Lernen','Eselsbrücken','Mindmap Lernen'
+  ]},
+  { k:'M', t:'Medien', ico:'🎬', apps:[
+    'Musik Player','Radio','Podcasts','Hörbücher','Video Player','Foto Galerie','Kamera','Sprachmemo',
+    'Bildbearbeitung','Collage','Memegenerator','Videobearbeitung'
+  ]},
+  { k:'N', t:'Notizen', ico:'📝', apps:[
+    'Notizen','Sticky Notes','Checklisten','Journal','Tagebuch','Ideen','Sprachnotizen','Textbausteine',
+    'Markdown Editor','Zeichenzähler','Word Counter'
+  ]},
+  { k:'O', t:'Online', ico:'🌐', apps:[
+    'Browser','E-Mail','News','RSS Reader','Foren','Social Media','Video Konferenz','Cloud Speicher','VPN'
+  ]},
+  { k:'P', t:'Kreativität', ico:'🎨', apps:[
+    'Zeichnen','Malerei','Pixel Art','Farbwähler','Farbtheorie','Logo Designer','UI Builder','Wireframe',
+    'Moodboard','Kreativität','Ideen Generator'
+  ]},
+  { k:'Q', t:'Wissenschaft', ico:'🔬', apps:[
+    'Taschenrechner','Wissenschaftlich','Statistik','Formeln','Periodensystem','Einheiten','Konstanten',
+    'Umrechner','Diagramme','Funktionen','Geometrie'
+  ]},
+  { k:'R', t:'Sicherheit', ico:'🔒', apps:[
+    'Passwort Generator','Passwort Manager','Verschlüsselung','Base64','Hash','Zwei-Faktor','Sicherheitscheck',
+    'Backup','Wiederherstellung','Datenschutz'
+  ]},
+  { k:'S', t:'System', ico:'⚙️', apps:[
+    'Einstellungen','Dateien','Terminal','Taskmanager','Energie','Datenschutz','Benutzer','Drucker',
+    'Bluetooth','WLAN','Bildschirm','Tastatur','Maus','Updates','Systeminfo','Papierkorb','Downloads',
+    'Uhr','Wetter','Rechner'
+  ]},
+  { k:'T', t:'Travel', ico:'✈️', apps:[
+    'Reiseplaner','Packliste','Währungsrechner','Weltuhr','Karten','Navigation','Flugplan','Hotelbuchung',
+    'Sehenswürdigkeiten','Reiseführer','Sprachführer','Reisetagebuch','Wetter Reise','Reisekosten'
+  ]},
+  { k:'U', t:'Universität', ico:'🎓', apps:[
+    'Stundenplan','Notenverwaltung','Semesterplaner','Vorlesungen','Skripte','Übungen','Prüfungen',
+    'Bachelor Arbeit','Master Arbeit','Zitierhelfer','Bibliothek','Literaturverwaltung','Formelsammlung',
+    'Studienberatung','Bafög Rechner','Semesterticket','Campus Karte','Mensa Plan'
+  ]},
+  { k:'V', t:'Voice', ico:'🎙️', apps:[
+    'Sprachmemo','Sprachausgabe','Spracherkennung','Diktiergerät','Sprachnotizen','Vorlesen','Stimmrekorder',
+    'Sprachübersetzer','Sprachbefehle'
+  ]},
+  { k:'W', t:'Windows', ico:'🪟', apps:[
+    'Fenster Manager','Split View','Mission Control','Virtuelle Desktops','Widgets','Vollbild',
+    'Fenster Layout','Fenster Übersicht'
+  ]},
+  { k:'X', t:'Explorer', ico:'🧭', apps:[
+    'Dateimanager','Datei Suche','Ordner','Verlauf','Lesezeichen','Lesezeichen Manager','Downloads Manager'
+  ]},
+  { k:'Y', t:'Your Life', ico:'⭐', apps:[
+    'Ziele','Gewohnheiten','Stimmung','Journal','Lebensplan','Bucket List','Vision Board','Dankbarkeit',
+    'Selbstreflexion','Persönlichkeit','Stärken','Zeitmanagement'
+  ]},
+  { k:'Z', t:'Entwickler', ico:'💻', apps:[
+    'Code Editor','HTML Vorschau','CSS Playground','JS Konsole','Regex Tester','Markdown','Git Helper',
+    'Farbkontrast','Lorem Ipsum','Minifier','Beautifier','SQL Formatter','JSON Formatter','Base64 Dev','Timestamp'
+  ]}
+];
+
+/* =========================================================================
+   SIDEBAR + DESKTOP AUFBAUEN
+   ========================================================================= */
+const desktop=$('#desktop');
+const sidebar=$('#sidebar');
+
+const SIDEBAR_ITEMS = [
+  { ico:'🏠', lbl:'Home',   act:'home' },
+  { ico:'📱', lbl:'Apps',   act:'apps' },
+  { ico:'⚙️', lbl:'System', act:'system' },
+  { ico:'💬', lbl:'Chat',   act:'chat' },
+  { ico:'📁', lbl:'Files',  act:'files' },
+  { ico:'🔧', lbl:'Setup',  act:'setup' },
+  { ico:'ℹ️', lbl:'Info',   act:'info' },
+  { sep:true },
+  { ico:'🤖', lbl:'AI',     act:'ai' },
+  { ico:'⚡', lbl:'CYBORG', act:'cyborg' }
+];
+
+function buildSidebar(){
+  sidebar.innerHTML='<h4>Navigation</h4>';
+  SIDEBAR_ITEMS.forEach(it=>{
+    if(it.sep){ sidebar.appendChild(el('div','',null)).style.cssText='height:8px'; return; }
+    const b = el('button','catbtn');
+    b.innerHTML = '<span class="ico">'+it.ico+'</span><span>'+it.lbl+'</span>';
+    b.dataset.act = it.act;
+    b.onclick = ()=>sidebarAction(it.act);
+    sidebar.appendChild(b);
+  });
+  // Kategorien A-Z
+  sidebar.appendChild(el('h4','','Alle Kategorien'));
+  REGISTRY.forEach(r=>{
+    const b = el('button','catbtn');
+    b.innerHTML = '<span class="ico">'+r.ico+'</span><span>'+r.k+' · '+r.t+'</span><span class="n">'+r.apps.length+'</span>';
+    b.dataset.cat = r.k;
+    b.onclick = ()=>{ renderCategory(r.k); closeSidebarMobile(); };
+    sidebar.appendChild(b);
+  });
+}
+
+function sidebarAction(act){
+  closeSidebarMobile();
+  if(act==='home'){ renderHome(); return; }
+  if(act==='apps'){ renderCategory('A'); return; }
+  if(act==='system'){ WM.open('rechner'); return; }
+  if(act==='chat'){ WM.open('chat',{w:480,h:560}); return; }
+  if(act==='files'){ WM.open('dateien'); return; }
+  if(act==='setup'){ openSetup(); return; }
+  if(act==='info'){ openInfo(); return; }
+  if(act==='ai'){ WM.open('haldo-ai',{w:520,h:600}); return; }
+  if(act==='cyborg'){ $('#themeBtn').click(); return; }
+}
+
+function closeSidebarMobile(){ if(innerWidth<820) sidebar.classList.remove('open'); }
+
+function renderHome(){
+  desktop.innerHTML='';
+  const h = el('h3');
+  h.innerHTML = '<span class="ico">🏠</span>Home<span class="n">'+new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'})+'</span>';
+  desktop.appendChild(h);
+
+  // Schnellzugriff
+  const quick = el('div','grid');
+  [
+    ['rechner','🧮'],['notizen','📝'],['aufgaben','✅'],['kalender','📅'],
+    ['wetter','⛅'],['uhr','🕐'],['timer','⏱️'],['haldo-ai','🤖']
+  ].forEach(([id,ic])=>{
+    const a = el('div','app ready');
+    a.innerHTML = '<div class="ic">'+ic+'</div><div class="nm">'+esc(APPS[id]?.name||id)+'</div>';
+    a.onclick=()=>WM.open(id);
+    quick.appendChild(a);
+  });
+  desktop.appendChild(quick);
+
+  // Kategorien-Übersicht
+  const h2 = el('h3');
+  h2.innerHTML = '<span class="ico">📱</span>Alle Kategorien<span class="n">375 Apps</span>';
+  desktop.appendChild(h2);
+  const grid = el('div','grid');
+  REGISTRY.forEach(r=>{
+    const a = el('div','app ready');
+    a.innerHTML = '<div class="ic">'+r.ico+'</div><div class="nm">'+r.k+' · '+r.t+'</div>';
+    a.onclick=()=>renderCategory(r.k);
+    grid.appendChild(a);
+  });
+  desktop.appendChild(grid);
+
+  updateAppCount();
+}
+
+function renderCategory(k){
+  const cat = REGISTRY.find(r=>r.k===k);
+  if(!cat){ renderHome(); return; }
+  desktop.innerHTML='';
+  // Kategorie-Navigation (Chips)
+  const nav = el('div','row');
+  nav.style.cssText='overflow-x:auto;padding-bottom:8px;margin-bottom:10px;flex-wrap:nowrap';
+  REGISTRY.forEach(r=>{
+    const b = el('button','btn sm'+(r.k===k?' primary':''));
+    b.textContent = r.k;
+    b.style.flex='0 0 auto';
+    b.onclick = ()=>renderCategory(r.k);
+    nav.appendChild(b);
+  });
+  desktop.appendChild(nav);
+
+  const h = el('h3');
+  h.innerHTML = '<span class="ico">'+cat.ico+'</span>'+cat.t+'<span class="n">'+cat.apps.length+' Apps</span>';
+  desktop.appendChild(h);
+
+  const grid = el('div','grid');
+  cat.apps.forEach(name=>{
+    const id = findAppId(name);
+    const a = el('div','app '+(id?'ready':'soon'));
+    const icon = id ? (APPS[id].icon || cat.ico) : cat.ico;
+    a.innerHTML = '<div class="ic">'+icon+'</div><div class="nm">'+esc(name)+'</div>';
+    if(id) a.onclick = ()=>WM.open(id);
+    else a.onclick = ()=>toast('„'+name+'" kommt bald! 🚧');
+    grid.appendChild(a);
+  });
+  desktop.appendChild(grid);
+  updateAppCount();
+}
+
+function findAppId(name){
+  const s = slug(name);
+  if(APPS[s]) return s;
+  // Aliase
+  const A = {
+    'rechner':'rechner','taschenrechner':'rechner','wissenschaftlich':'rechner',
+    'notizen':'notizen','sticky-notes':'notizen',
+    'aufgaben':'aufgaben','todo-pro':'aufgaben',
+    'kalender':'kalender','familien-kalender':'kalender','kalender-arbeit':'kalender',
+    'uhr':'uhr','weltuhr':'uhr','wetter':'wetter','wetter-reise':'wetter',
+    'timer':'timer','stoppuhr':'stoppuhr','pomodoro':'pomodoro',
+    'dateien':'dateien','dateimanager':'dateien','datei-suche':'dateien',
+    'gewohnheiten':'gewohnheiten','ziele':'ziele','journal':'journal','tagebuch':'journal',
+    'kontakte':'kontakte','lesezeichen':'lesezeichen','einkaufsliste':'einkaufsliste',
+    'wasser-tracker':'wasser','stimmungs-tracker':'stimmung','schlaf-tracker':'schlaf',
+    'umrechner':'einheiten','einheiten':'einheiten','wahrungsrechner':'einheiten',
+    'bmi-rechner':'bmi','gesundheit':'bmi','textanalyse':'textanalyse','word-counter':'textanalyse','zeichenzähler':'textanalyse',
+    'passwort-generator':'passwort','passwort':'passwort','zufall':'zufall','zufallsgenerator':'zufall',
+    'farbwähler':'farbwahl','farbwahl':'farbwahl','qr-code':'qr','qr-generator':'qr',
+    'datumsrechner':'datum','base64':'base64','morse':'morse',
+    'memory':'memory','memory-lernen':'memory','tic-tac-toe':'tictactoe','2048':'spiel2048',
+    'snake':'snake','galgen':'galgen','galgenmännchen':'galgen','simon':'simon','simon-says':'simon',
+    'reaktion':'reaktion','reaktionstest':'reaktion','tippen':'tippen','tippgeschwindigkeit':'tippen',
+    'ssp':'ssp','schere-stein-papier':'ssp','sprachmemo':'sprachnotiz','sprachnotizen':'sprachnotiz',
+    'klavier':'klavier','piano':'klavier','kamera':'kamera','karteikarten':'karteikarten','lernkarten':'karteikarten',
+    'pse':'periodensystem','periodensystem':'periodensystem','statistik':'statistik','übersetzer':'uebersetzer','ai-translator':'uebersetzer',
+    'atem':'atem','atemübung':'atem','workout':'workout','workout-timer':'workout','rezepte':'rezepte','formeln':'formeln','formelsammlung':'formeln',
+    'weltinfo':'weltinfo','haldo-ai':'haldo-ai','ai-chat':'haldo-ai','chat':'chat','team-chat':'chat'
+  };
+  return A[s] || null;
+}
+
+function updateAppCount(){
+  const total = REGISTRY.reduce((a,r)=>a+r.apps.length,0);
+  $('#appcount').textContent = total+' Apps · '+Object.keys(APPS).length+' aktiv';
+}
+
+/* =========================================================================
+   SETUP / INFO
+   ========================================================================= */
+function openSetup(){
+  const w = WM.open('rechner'); // Platzhalter, dann ersetzen
+  // Wir öffnen ein eigenes Panel
+  WM.open('aufgaben');
+}
+
+function openInfo(){
+  const w = WM.wins;
+  // Nutze Chat als Container für Info — einfacher: eigenes Fenster
+  const body = document.body;
+  if(document.getElementById('infoWin')) return;
+  const win = document.createElement('section');
+  win.className='window'; win.id='infoWin'; win.style.cssText='left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,420px);height:auto';
+  win.innerHTML = '<div class="win-head"><span class="wic">ℹ️</span><div class="wtitle">Über HalDo AI OS</div><div class="wbtns"><button class="wb close">✕</button></div></div><div class="win-body"><div class="col"><div class="big2">HalDo AI OS</div><div class="dim">Version v122 · Neuaufbau</div><div class="card">Browser-Betriebssystem mit holografischem UI, Kosmos-Hintergrund, 375 Apps A-Z und ~'+Object.keys(APPS).length+' aktiven Apps.</div><button class="btn primary" onclick="document.getElementById(\'infoWin\').remove()">Schließen</button></div></div>';
+  document.body.appendChild(win);
+  win.querySelector('.wb.close').onclick=()=>win.remove();
+}
+
+/* =========================================================================
+   SUCHEN
+   ========================================================================= */
+const searchRes = $('#searchRes');
+$('#search').addEventListener('input', e=>{
+  const q = e.target.value.trim().toLowerCase();
+  if(!q){ searchRes.classList.remove('on'); return; }
+  const hits = [];
+  REGISTRY.forEach(r=>{
+    r.apps.forEach(name=>{
+      if(name.toLowerCase().includes(q)) hits.push({name, cat:r.k, catT:r.t, ico:r.ico, id:findAppId(name)});
+    });
+  });
+  if(!hits.length){ searchRes.classList.remove('on'); return; }
+  searchRes.innerHTML = hits.slice(0,20).map(h=>
+    '<div class="sr" data-id="'+(h.id||'')+'" data-n="'+esc(h.name)+'"><span class="ico">'+h.ico+'</span><span>'+esc(h.name)+'</span><span class="dim" style="margin-left:auto;font-size:11px">'+h.cat+'</span></div>'
+  ).join('');
+  searchRes.classList.add('on');
+  searchRes.querySelectorAll('.sr').forEach(s=>s.onclick=()=>{
+    const id = s.dataset.id;
+    const n = s.dataset.n;
+    if(id) WM.open(id);
+    else toast('„'+n+'" kommt bald!');
+    searchRes.classList.remove('on');
+    $('#search').value='';
+  });
+});
+document.addEventListener('click', e=>{
+  if(!e.target.closest('#search') && !e.target.closest('#searchRes')) searchRes.classList.remove('on');
+});
+
+/* =========================================================================
+   UHR (Top-Bar)
+   ========================================================================= */
+function tickClock(){
+  const d=new Date();
+  $('#clock').textContent = pad(d.getHours())+':'+pad(d.getMinutes());
+}
+tickClock(); setInterval(tickClock, 15000);
+
+/* =========================================================================
+   LOGO / MENU
+   ========================================================================= */
+$('#logoBtn').onclick = ()=>renderHome();
+$('#menuBtn').onclick = ()=>sidebar.classList.toggle('open');
+
+/* =========================================================================
+   BOTTOM-BAR Aktionen
+   ========================================================================= */
+$$('#bottomBar .bbtn').forEach(b=>b.onclick=()=>{
+  const a=b.dataset.act;
+  if(a==='chat') WM.open('chat',{w:480,h:560});
+  else if(a==='ai') WM.open('haldo-ai',{w:520,h:600});
+  else if(a==='cyborg'){ $('#themeBtn').click(); }
+});
+
+/* =========================================================================
+   INIT
+   ========================================================================= */
+buildSidebar();
+renderHome();
+updateAppCount();
+
+// Erststart-Hinweis
+setTimeout(()=>{ toast('Willkommen bei HalDo AI OS v122 🚀'); }, 800);
+
+// Globale API
+window.HalDo.open = (id)=>WM.open(id);
+window.HalDo.toast = toast;
+window.HalDo.apps = APPS;
+window.HalDo.registry = REGISTRY;
+
+console.log('%cHalDo AI OS v122','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('Aktive Apps:', Object.keys(APPS).length, '/ 375');
+})();
+</script>
+</body>
+</html>
