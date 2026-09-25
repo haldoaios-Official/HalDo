@@ -11332,5 +11332,601 @@ if(document.readyState==='loading'){
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ══════════════════════════════════════════ ENDE v139 ═════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ v140 – 10 APPS (White Noise · Tone · Soundboard · Signature · Doc Scanner · Podcast · Radio · Steps · Meal · Water Reminder) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+"use strict";
+if(window.__v140) return;
+window.__v140 = true;
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const store=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const todayK=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+
+// ═══ 1. WHITE NOISE / SLEEP SOUNDS ═══
+let wnState={active:null,volume:0.3,ctx:null,source:null,gain:null};
+const WN_SOUNDS=[
+  {k:'white',n:'Weißes Rauschen',i:'🌫️'},
+  {k:'pink',n:'Rosa Rauschen',i:'🌸'},
+  {k:'brown',n:'Braunes Rauschen',i:'🟤'},
+  {k:'rain',n:'Regen',i:'🌧️'},
+  {k:'ocean',n:'Ozean',i:'🌊'},
+  {k:'forest',n:'Wald',i:'🌲'},
+  {k:'fire',n:'Kamin',i:'🔥'},
+  {k:'wind',n:'Wind',i:'💨'}
+];
+
+function buildWhiteNoise(){
+  const w=$('whitenoise-window');if(!w)return;
+  w.dataset.title='White Noise';w.dataset.icon='🌫️';
+  const cards=WN_SOUNDS.map(s=>'<div class="card" style="padding:14px;text-align:center;cursor:pointer;'+(wnState.active===s.k?'border-color:#00e5ff;background:linear-gradient(135deg,rgba(0,229,255,.15),rgba(180,120,255,.1))':'')+'" onclick="HalDoWN.play(\''+s.k+'\')">'+
+    '<div style="font-size:32px;margin-bottom:6px">'+s.i+'</div>'+
+    '<div style="font-size:12px;font-weight:800;color:#fff">'+s.n+'</div>'+
+    '</div>').join('');
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:20px">'+
+    '<div style="font-size:64px;margin-bottom:10px">'+(wnState.active?(WN_SOUNDS.find(s=>s.k===wnState.active)||{}).i||'🌫️':'🌫️')+'</div>'+
+    '<div style="font-size:14px;color:#fff;font-weight:800">'+(wnState.active?(WN_SOUNDS.find(s=>s.k===wnState.active)||{}).n:'Kein Sound')+'</div>'+
+    '<div style="font-size:11px;color:#88ccff;margin-top:6px">'+(wnState.active?'▶ Läuft':'Klicke unten um zu starten')+'</div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">🔊 Lautstärke: '+Math.round(wnState.volume*100)+'%</div>'+
+    '<input type="range" min="0" max="100" value="'+Math.round(wnState.volume*100)+'" style="width:100%;accent-color:var(--cyan)" oninput="HalDoWN.setVolume(this.value)">'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'+cards+'</div>'+
+    '<button class="os-btn danger full" onclick="HalDoWN.stop()">⏹ Stop</button>';
+}
+
+function wnCreateNoise(type){
+  const ctx=wnState.ctx;
+  const bufferSize=ctx.sampleRate*2;
+  const buffer=ctx.createBuffer(1,bufferSize,ctx.sampleRate);
+  const data=buffer.getChannelData(0);
+  if(type==='white'){
+    for(let i=0;i<bufferSize;i++)data[i]=Math.random()*2-1;
+  }else if(type==='pink'){
+    let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+    for(let i=0;i<bufferSize;i++){
+      const white=Math.random()*2-1;
+      b0=0.99886*b0+white*0.0555179;
+      b1=0.99332*b1+white*0.0750759;
+      b2=0.96900*b2+white*0.1538520;
+      b3=0.86650*b3+white*0.3104856;
+      b4=0.55000*b4+white*0.5329522;
+      b5=-0.7616*b5-white*0.0168980;
+      data[i]=(b0+b1+b2+b3+b4+b5+b6+white*0.5362)*0.11;
+      b6=white*0.115926;
+    }
+  }else if(type==='brown'){
+    let last=0;
+    for(let i=0;i<bufferSize;i++){
+      const white=Math.random()*2-1;
+      data[i]=(last+0.02*white)/1.02;
+      last=data[i];
+      data[i]*=3.5;
+    }
+  }else{
+    // Rain/ocean/forest/fire/wind = filtered noise
+    let last=0;
+    const filterFreq={rain:0.3,ocean:0.05,forest:0.1,fire:0.15,wind:0.08}[type]||0.1;
+    for(let i=0;i<bufferSize;i++){
+      const white=Math.random()*2-1;
+      last=last*(1-filterFreq)+white*filterFreq;
+      data[i]=last*(type==='fire'?5:3);
+    }
+  }
+  const src=ctx.createBufferSource();
+  src.buffer=buffer;
+  src.loop=true;
+  return src;
+}
+
+window.HalDoWN={
+  play(k){
+    if(!wnState.ctx)wnState.ctx=new (window.AudioContext||window.webkitAudioContext)();
+    if(wnState.source)try{wnState.source.stop()}catch(e){}
+    wnState.source=wnCreateNoise(k);
+    wnState.gain=wnState.ctx.createGain();
+    wnState.gain.gain.value=wnState.volume;
+    wnState.source.connect(wnState.gain).connect(wnState.ctx.destination);
+    wnState.source.start();
+    wnState.active=k;
+    buildWhiteNoise();
+  },
+  stop(){
+    if(wnState.source)try{wnState.source.stop()}catch(e){}
+    if(wnState.ctx)try{wnState.ctx.close()}catch(e){}
+    wnState={active:null,volume:wnState.volume,ctx:null,source:null,gain:null};
+    buildWhiteNoise();
+  },
+  setVolume(v){wnState.volume=parseInt(v)/100;if(wnState.gain)wnState.gain.gain.value=wnState.volume;const l=document.querySelector('#whitenoise-window .lbl');if(l)l.textContent='🔊 Lautstärke: '+v+'%'}
+};
+
+// ═══ 2. TONE GENERATOR ═══
+let toneState={freq:440,playing:false,ctx:null,osc:null,type:'sine',volume:0.3};
+
+function buildTone(){
+  const w=$('tone-window');if(!w)return;
+  w.dataset.title='Tongenerator';w.dataset.icon='🎼';
+  const notes=[
+    {n:'C4',f:261.63},{n:'D4',f:293.66},{n:'E4',f:329.63},{n:'F4',f:349.23},
+    {n:'G4',f:392.00},{n:'A4',f:440.00},{n:'B4',f:493.88},{n:'C5',f:523.25}
+  ];
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:24px">'+
+    '<div style="font-size:64px;font-weight:900;color:#00e5ff;font-family:monospace;text-shadow:0 0 30px var(--glow);line-height:1">'+toneState.freq+'</div>'+
+    '<div style="font-size:11px;color:#7ce0ff;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin:8px 0 20px">Hz</div>'+
+    '<button class="os-btn primary" style="padding:16px 40px;font-size:15px" onclick="HalDoTone.toggle()">'+(toneState.playing?'⏹ Stop':'▶ Abspielen')+'</button>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">Frequenz: '+toneState.freq+' Hz</div>'+
+    '<input type="range" min="20" max="2000" value="'+toneState.freq+'" style="width:100%;accent-color:var(--cyan)" oninput="HalDoTone.setFreq(this.value)">'+
+    '<div style="display:flex;justify-content:space-between;font-size:10px;color:#88ccff;margin-top:4px"><span>20Hz</span><span>440</span><span>2kHz</span></div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">🔊 Lautstärke: '+Math.round(toneState.volume*100)+'%</div>'+
+    '<input type="range" min="0" max="100" value="'+Math.round(toneState.volume*100)+'" style="width:100%;accent-color:var(--cyan)" oninput="HalDoTone.setVol(this.value)"></div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">🎵 Wellenform</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'+
+    ['sine','square','sawtooth','triangle'].map(t=>'<button class="os-btn '+(toneState.type===t?'primary':'')+'" style="padding:10px;font-size:11px" onclick="HalDoTone.setType(\''+t+'\')">'+t+'</button>').join('')+
+    '</div></div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">🎹 Noten</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'+
+    notes.map(n=>'<button class="os-btn" style="padding:12px 6px;font-size:12px;font-weight:900" onclick="HalDoTone.setFreq('+n.f+')">'+n.n+'</button>').join('')+
+    '</div></div>';
+}
+
+window.HalDoTone={
+  setFreq(v){toneState.freq=parseInt(v);if(toneState.osc)toneState.osc.frequency.setValueAtTime(toneState.freq,toneState.ctx.currentTime);buildTone()},
+  setVol(v){toneState.volume=parseInt(v)/100;if(toneState.osc){}buildTone()},
+  setType(t){toneState.type=t;if(toneState.playing){this.stop();this.start()}else buildTone()},
+  start(){
+    if(!toneState.ctx)toneState.ctx=new (window.AudioContext||window.webkitAudioContext)();
+    toneState.osc=toneState.ctx.createOscillator();
+    const g=toneState.ctx.createGain();
+    toneState.osc.type=toneState.type;
+    toneState.osc.frequency.value=toneState.freq;
+    g.gain.value=toneState.volume;
+    toneState.osc.connect(g).connect(toneState.ctx.destination);
+    toneState.osc.start();
+    toneState.playing=true;
+    buildTone();
+  },
+  stop(){
+    if(toneState.osc)try{toneState.osc.stop()}catch(e){}
+    if(toneState.ctx)try{toneState.ctx.close()}catch(e){}
+    toneState.ctx=null;toneState.osc=null;toneState.playing=false;
+    buildTone();
+  },
+  toggle(){this.playing?this.stop():this.start()}
+};
+
+// ═══ 3. SOUNDBOARD ═══
+const SOUNDBOARD=[
+  {n:'Applaus',i:'👏',f:()=>{}},
+  {n:'Lachen',i:'😂',f:()=>{}},
+  {n:'Buh',i:'👎',f:()=>{}},
+  {n:'Trommel',i:'🥁',f:()=>{}},
+  {n:'Fanfare',i:'🎺',f:()=>{}},
+  {n:'Ding',i:'🔔',f:()=>{}},
+  {n:'Boom',i:'💥',f:()=>{}},
+  {n:'Whoosh',i:'💨',f:()=>{}},
+  {n:'Pop',i:'🫧',f:()=>{}},
+  {n:'Klick',i:'👆',f:()=>{}},
+  {n:'Fehler',i:'❌',f:()=>{}},
+  {n:'Erfolg',i:'✅',f:()=>{}}
+];
+
+function sbPlay(n){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const now=ctx.currentTime;
+    const patterns={
+      'Ding':[{f:1200,t:0,d:0.3},{f:1600,t:0.05,d:0.5}],
+      'Boom':[{f:80,t:0,d:0.6,type:'sine'}],
+      'Whoosh':[{f:800,t:0,d:0.3,sweep:200}],
+      'Pop':[{f:400,t:0,d:0.08}],
+      'Klick':[{f:2000,t:0,d:0.02}],
+      'Fehler':[{f:200,t:0,d:0.15},{f:180,t:0.15,d:0.15}],
+      'Erfolg':[{f:523,t:0,d:0.1},{f:659,t:0.1,d:0.1},{f:784,t:0.2,d:0.3}],
+      'Trommel':[{f:150,t:0,d:0.15},{f:100,t:0.15,d:0.15},{f:150,t:0.3,d:0.15}],
+      'Fanfare':[{f:523,t:0,d:0.15},{f:659,t:0.15,d:0.15},{f:784,t:0.3,d:0.15},{f:1047,t:0.45,d:0.3}],
+      'Applaus':[],
+      'Lachen':[],
+      'Buh':[{f:150,t:0,d:0.5,sweep:100}]
+    };
+    const pat=patterns[n]||[{f:800,t:0,d:0.1}];
+    pat.forEach(p=>{
+      const osc=ctx.createOscillator(),g=ctx.createGain();
+      osc.type=p.type||'square';
+      osc.frequency.setValueAtTime(p.f,now+p.t);
+      if(p.sweep)osc.frequency.exponentialRampToValueAtTime(p.sweep,now+p.t+p.d);
+      g.gain.setValueAtTime(.001,now+p.t);
+      g.gain.exponentialRampToValueAtTime(.3,now+p.t+.01);
+      g.gain.exponentialRampToValueAtTime(.001,now+p.t+p.d);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(now+p.t);osc.stop(now+p.t+p.d+.1);
+    });
+  }catch(e){}
+}
+
+function buildSoundboard(){
+  const w=$('soundboard-window');if(!w)return;
+  w.dataset.title='Soundboard';w.dataset.icon='🎵';
+  const pads=SOUNDBOARD.map(s=>"'<div class="card" style=" stylepadding:20px 8px;="text-alignwidth:center;cursor:pointer;active::scale(.95);transition:all100 .1s" onclick="HalDoSBoard.play(\''+s.n+'\')">'+
+    '<div style="font-size:36px;margin-bottom:6px">'+s.i+'</div>'+
+    '<div style="font-size:11px;font-weight:800;color:#fff">'+s.n+'</div>'+
+    '</div>').join('');
+  w.innerHTML='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'+pads+'</div>'+
+    '<div class="card" style="margin-top:14px"><div style="font-size:11px;color:#aaddff;line-height:1.6;text-align:center">🎵 Sounds werden live mit Web Audio erzeugt.</div></div>';
+}
+
+window.HalDoSBoard={
+  play(n){sbPlay(n);if(navigator.vibrate)navigator.vibrate(10)}
+};
+
+// ═══ 4. SIGNATURE PAD ═══
+let sigState={ctx:null,drawing:false,color:'#00e5ff',size:3};
+
+function buildSignature(){
+  const w=$('signature-window');if(!w)return;
+  w.dataset.title='Unterschrift';w.dataset.icon='✍️';
+  w.innerHTML=
+    '<div class="card" style="padding:0;overflow:hidden;background:#fff">'+
+    '<canvas id="sigCanvas%;height:280px;display:block;touch-action:none;cursor:crosshair"></canvas>'+
+    '</div>'+
+    '<div class="card">'+
+    '<div class="lbl" style="margin-bottom:8px">Farbe</div>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">'+
+    ['#00e5ff','#000000','#ff4466','#00ff88','#ffc800','#b478ff'].map(c=>'<button style="width:32px;height:32px;border-radius:50%;background:'+c+';border:3px solid '+(sigState.color===c?'#fff':'transparent')+';cursor:pointer" onclick="HalDoSig.setColor(\''+c+'\')"></button>').join('')+
+    '</div>'+
+    '<div class="lbl" style="margin-bottom:6px">Dicke: '+sigState.size+'px</div>'+
+    '<input type="range" min="1" max="10" value="'+sigState.size+'" style="width:100%;accent-color:var(--cyan)" oninput="HalDoSig.setSize(this.value)">'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">'+
+    '<button class="os-btn" onclick="HalDoSig.clear()">🗑️ Löschen</button>'+
+    '<button class="os-btn primary" onclick="HalDoSig.save()">💾 Speichern</button>'+
+    '<button class="os-btn" onclick="HalDoSig.saveBg()">🖼️ Mit BG</button>'+
+    '</div>';
+  setTimeout(()=>HalDoSig.init(),100);
+}
+
+window.HalDoSig={
+  init(){
+    const c=$('sigCanvas');if(!c)return;
+    const rect=c.getBoundingClientRect();
+    c.width=rect.width*2;c.height=rect.height*2;
+    const ctx=c.getContext('2d');
+    ctx.scale(2,2);
+    ctx.lineCap='round';ctx.lineJoin='round';
+    sigState.ctx=ctx;
+    const start=(e)=>{e.preventDefault();sigState.drawing=true;const r=c.getBoundingClientRect();const t=e.touches?e.touches[0]:e;ctx.beginPath();ctx.moveTo(t.clientX-r.left,t.clientY-r.top)};
+    const move=(e)=>{if(!sigState.drawing)return;e.preventDefault();const r=c.getBoundingClientRect();const t=e.touches?e.touches[0]:e;ctx.strokeStyle=sigState.color;ctx.lineWidth=sigState.size;ctx.lineTo(t.clientX-r.left,t.clientY-r.top);ctx.stroke()};
+    const end=()=>{sigState.drawing=false};
+    c.addEventListener('touchstart',start);c.addEventListener('touchmove',move);c.addEventListener('touchend',end);
+    c.addEventListener('mousedown',start);c.addEventListener('mousemove',move);c.addEventListener('mouseup',end);c.addEventListener('mouseleave',end);
+  },
+  setColor(c){sigState.color=c;buildSignature()},
+  setSize(s){sigState.size=parseInt(s);const l=document.querySelector('#signature-window .lbl:nth-of-type(2)');if(l)l.textContent='Dicke: '+s+'px'},
+  clear(){const c=$('sigCanvas');if(c){const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height)}},
+  save(){const c=$('sigCanvas');if(!c)return;const a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='unterschrift-'+Date.now()+'.png';a.click();if(window.showToast)showToast('💾 Gespeichert','success')},
+  saveBg(){
+    const c=$('sigCanvas');if(!c)return;
+    const nc=document.createElement('canvas');nc.width=c.width;nc.height=c.height;
+    const ctx=nc.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,nc.width,nc.height);ctx.drawImage(c,0,0);
+    const a=document.createElement('a');a.href=nc.toDataURL('image/png');a.download='unterschrift-bg-'+Date.now()+'.png';a.click();
+  }
+};
+
+// ═══ 5. DOC SCANNER ═══
+let docScanState={images:[],filter:'none'};
+
+const DOC_FILTERS=[
+  {k:'none',n:'Original',c:'none'},
+  {k:'gray',n:'S/W',c:'grayscale(1) contrast(1.3)'},
+  {k:'bw',n:'Scharf S/W',c:'grayscale(1) contrast(2) brightness(1.2)'},
+  {k:'magic',n:'Magic Color',c:'contrast(1.4) saturate(1.2) brightness(1.05)'}
+];
+
+function buildDocScanner(){
+  const w=$('docscan-window');if(!w)return;
+  w.dataset.title='Dokumenten-Scanner';w.dataset.icon='📄';
+  const imgs=docScanState.images.map((img,i)=>'<div style="position:relative;border-radius:12px;overflow:hidden;border:1.5px solid var(--border-soft);margin-bottom:8px">'+
+    '<img src="'+img+'" style="width:100%;display:block;filter:'+(DOC_FILTERS.find(f=>f.k===docScanState.filter)||{}).c+'" id="docImg'+i+'">'+
+    '<button class="os-btn danger" style="position:absolute;top:6px;right:6px;padding:4px 10px;font-size:11px" onclick="HalDoDocScan.remove('+i+')">✕</button>'+
+    '</div>').join('');
+  w.innerHTML=
+    '<div class="card">'+
+    '<input type="file" id="docFiles" accept="image/*" capture="environment" multiple style="display:none" onchange="HalDoDocScan.load(this)">'+
+    '<button class="os-btn primary full" onclick="document.getElementById(\'docFiles\').click()">📷 Dokument scannen</button>'+
+    '</div>'+
+    (docScanState.images.length?'<div class="card"><div class="lbl" style="margin-bottom:8px">🎨 Filter</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px">'+
+    DOC_FILTERS.map(f=>'<button class="os-btn '+(docScanState.filter===f.k?'primary':'')+'" style="padding:10px;font-size:11px" onclick="HalDoDocScan.setFilter(\''+f.k+'\')">'+f.n+'</button>').join('')+
+    '</div></div>':'')+
+    (imgs?'<div class="lbl" style="margin:14px 0 8px">📄 Gescannte Seiten ('+docScanState.images.length+')</div>':'')+
+    imgs+
+    (docScanState.images.length?'<button class="os-btn danger full" style="margin-top:8px" onclick="if(confirm(\'Alle löschen?\')){docScanState.images=[];buildDocScanner()}">🗑️ Alle löschen</button>':'');
+}
+
+window.HalDoDocScan={
+  load(input){
+    Array.from(input.files||[]).forEach(f=>{
+      const r=new FileReader();
+      r.onload=e=>{docScanState.images.push(e.target.result);buildDocScanner()};
+      r.readAsDataURL(f);
+    });
+    if(window.showToast)showToast('📄 '+input.files.length+' Seite(n)','success');
+  },
+  remove(i){docScanState.images.splice(i,1);buildDocScanner()},
+  setFilter(f){docScanState.filter=f;buildDocScanner()}
+};
+
+// ═══ 6. PODCAST PLAYER ═══
+window.HalDoPodcast={
+  key:'haldo_podcast_v1',
+  all(){return store(this.key,[])},
+  add(name,url){const l=this.all();l.unshift({id:uid('p_'),name,url,created:Date.now()});save(this.key,l);return l[0].id},
+  remove(id){save(this.key,this.all().filter(p=>p.id!==id))}
+};
+
+let podcastState={current:null,playing:false,audio:null};
+
+function buildPodcast(){
+  const w=$('podcast-window');if(!w)return;
+  w.dataset.title='Podcast Player';w.dataset.icon='🎙️';
+  const all=HalDoPodcast.all();
+  const list=all.length?all.map(p=>'<div class="card" style="padding:10px;display:flex;gap:10px;align-items:center">'+
+    '<div style="font-size:24px;width:36px;text-align:center">🎙️</div>'+
+    '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.name)+'</div>'+
+    '<div style="font-size:10px;color:#88ccff;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.url.slice(0,50))+'</div></div>'+
+    '<button class="os-btn primary" style="padding:6px 12px;font-size:14px" onclick="HalDoPodcast.play(\''+p.id+'\')">▶</button>'+
+    '<button class="os-btn danger" style="padding:6px 8px;font-size:11px" onclick="if(confirm(\'Löschen?\')){HalDoPodcast.remove(\''+p.id+'\');HalDoPodcastApp.rebuild()}">✕</button>'+
+    '</div>').join(''):'<div class="empty"><div class="ei">🎙️</div><div class="et">Keine Podcasts</div><div class="es">Füge Podcast-RSS-Feeds oder MP3-URLs hinzu</div></div>';
+  w.innerHTML=
+    '<div class="card">'+
+    '<input class="os-input" id="podName" placeholder="Podcast-Name" style="margin-bottom:6px">'+
+    '<input class="os-input" id="podUrl" placeholder="Audio-URL (mp3/ogg)" style="margin-bottom:8px">'+
+    '<button class="os-btn primary full" onclick="HalDoPodcastApp.add()">🎙️ Podcast hinzufügen</button>'+
+    '</div>'+
+    (podcastState.audio?'<div class="card" style="padding:0;background:#000"><audio id="podAudio" controls autoplay style="width:100%;display:block" src="'+podcastState.current+'"></audio></div>':'')+
+    '<div class="lbl" style="margin:14px 0 8px">🎙️ Bibliothek ('+all.length+')</div>'+
+    list;
+}
+
+window.HalDoPodcast={
+  play(id){const p=HalDoPodcast.all().find(x=>x.id===id);if(!p)return;podcastState.current=p.url;podcastState.audio=true;buildPodcast()}
+};
+
+window.HalDoPodcastApp={
+  add(){const n=$('podName').value.trim(),u=$('podUrl').value.trim();if(!n||!u)return;HalDoPodcast.add(n,u);$('podName').value='';$('podUrl').value='';buildPodcast();if(window.showToast)showToast('🎙️ Hinzugefügt','success')},
+  rebuild(){buildPodcast()}
+};
+
+// ═══ 7. RADIO (Streams) ═══
+const RADIO_STATIONS=[
+  {n:'1LIVE',c:'🇩🇪',u:'https://wdr-1live-live.icecastssl.wdr.de/wdr/1live/live/mp3/128/stream.mp3'},
+  {n:'WDR 2',c:'🇩🇪',u:'https://wdr-wdr2-rheinland.icecastssl.wdr.de/wdr/wdr2/rheinland/mp3/128/stream.mp3'},
+  {n:'Bayern 3',c:'🇩🇪',u:'https://streams.br.de/bayern3_2.m3u'},
+  {n:'SWR3',c:'🇩🇪',u:'https://liveradio.swr.de/sw282p3/swr3/play.mp3'},
+  {n:'Deutschlandfunk',c:'🇩🇪',u:'https://st01.sslstream.dlf.de/dlf/01/128/mp3/stream.mp3'}
+];
+
+let radioState={playing:false,audio:null,current:null};
+
+function buildRadio(){
+  const w=$('radio-window');if(!w)return;
+  w.dataset.title='Radio';w.dataset.icon='📻';
+  const list=RADIO_STATIONS.map(r=>'<div class="card" style="padding:12px;display:flex;gap:10px;align-items:center;cursor:pointer;'+(radioState.current===r.n?'border-color:#00e5ff;background:rgba(0,229,255,.1)':'')+'" onclick="HalDoRadio.play(\''+r.n+'\',\''+r.u+'\')">'+
+    '<div style="font-size:28px;width:40px;text-align:center">📻</div>'+
+    '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800;color:#fff">'+esc(r.n)+'</div>'+
+    '<div style="font-size:10px;color:#88ccff">'+r.c+' Radio</div></div>'+
+    '<div style="font-size:20px">'+(radioState.current===r.n&&radioState.playing?'▶️':'▶')+'</div>'+
+    '</div>').join('');
+  w.innerHTML=
+    (radioState.playing?'<div class="card" style="text-align:center;padding:20px;background:linear-gradient(135deg,rgba(0,229,255,.15),rgba(180,120,255,.1))">'+
+      '<div style="font-size:56px;margin-bottom:10px">📻</div>'+
+      '<div style="font-size:16px;color:#fff;font-weight:900">'+esc(radioState.current||'')+'</div>'+
+      '<div style="font-size:11px;color:#00e5ff;margin-top:6px">▶ LIVE</div>'+
+      '<audio id="radioAudio" autoplay controls style="width:100%;margin-top:14px" src="'+radioState.audio+'"></audio>'+
+      '<button class="os-btn danger full" style="margin-top:10px" onclick="HalDoRadio.stop()">⏹ Stop</button>'+
+      '</div>':'')+
+    '<div class="lbl" style="margin:14px 0 8px">📻 Sender</div>'+
+    list;
+}
+
+window.HalDoRadio={
+  play(n,u){
+    if(radioState.audio&&radioState.playing)try{}catch(e){}
+    radioState.current=n;radioState.audio=u;radioState.playing=true;
+    buildRadio();
+    if(window.showToast)showToast('📻 '+n+' läuft','success');
+  },
+  stop(){radioState.playing=false;radioState.audio=null;radioState.current=null;buildRadio()}
+};
+
+// ═══ 8. STEP COUNTER ═══
+window.HalDoSteps={
+  key:'haldo_steps_v1',
+  get(){const d=store(this.key,{today:0,date:todayK(),history:[]});if(d.date!==todayK()){if(d.today>0)d.history.unshift({date:d.date,steps:d.today});d.today=0;d.date=todayK();d.history=d.history.slice(0,30)}return d},
+  set(n){const d=this.get();d.today=Math.max(0,parseInt(n)||0);save(this.key,d)},
+  add(n){const d=this.get();d.today+=n;save(this.key,d)},
+  goal(){return 10000}
+};
+
+function buildSteps(){
+  const w=$('steps-window');if(!w)return;
+  w.dataset.title='Schrittzähler';w.dataset.icon='👣';
+  const d=HalDoSteps.get();
+  const pct=Math.min(100,Math.round(d.today/HalDoSteps.goal()*100));
+  const km=(d.today*0.0007).toFixed(2);
+  const kcal=Math.round(d.today*0.04);
+  const last7=d.history.slice(0,7).reverse();
+  const max=Math.max(...last7.map(x=>x.steps),1);
+  const chart=last7.length?last7.map(x=>'<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:20px"><div style="width:100%;height:'+Math.round(x.steps/max*80)+'px;background:linear-gradient(180deg,#00e5ff,#4da8ff);border-radius:4px 4px 0 0;min-height:4px"></div><div style="font-size:8px;color:#88ccff;font-weight:800">'+new Date(x.date+'T12:00:00').getDate()+'</div></div>').join(''):'<div style="width:100%;text-align:center;color:#5a8ab0;padding:20px;font-size:12px">Noch keine Daten</div>';
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:20px">'+
+    '<div style="font-size:56px;font-weight:900;color:#00e5ff;text-shadow:0 0 30px var(--glow);line-height:1">'+d.today.toLocaleString('de-DE')+'</div>'+
+    '<div style="font-size:11px;color:#7ce0ff;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin-top:8px">Schritte heute</div>'+
+    '<div style="height:8px;background:rgba(0,0,0,.4);border-radius:4px;overflow:hidden;margin:14px 0 10px;border:1px solid var(--border)"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#00e5ff,#00ff88);border-radius:4px;transition:width .4s"></div></div>'+
+    '<div style="font-size:12px;color:#88ccff">'+pct+'% von '+(HalDoSteps.goal()/1000)+'k Ziel</div>'+
+    '</div>'+
+    '<div class="grid2" style="margin-bottom:14px">'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+km+' km</div><div class="lbl">Distanz</div></div>'+
+    '<div class="card" style="text-align:center;padding:10px"><div class="big" style="font-size:18px">'+kcal+' kcal</div><div class="lbl">Kalorien</div></div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:6px">➕ Schritte hinzufügen</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'+
+    [100,500,1000,5000].map(n=>'<button class="os-btn primary" style="padding:10px;font-size:11px" onclick="HalDoSteps.add('+n+');buildSteps()">+'+n+'</button>').join('')+
+    '</div>'+
+    '<div style="display:flex;gap:6px;margin-top:8px">'+
+    '<input class="os-input" id="stepsIn" type="number" placeholder="Manuell eingeben" style="flex:1">'+
+    '<button class="os-btn primary" onclick="HalDoSteps.set(document.getElementById(\'stepsIn\').value);buildSteps()">OK</button>'+
+    '</div></div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">📊 Letzte 7 Tage</div>'+
+    '<div style="display:flex;gap:4px;height:100px;align-items:flex-end;padding:8px;background:rgba(0,0,0,.3);border-radius:10px">'+chart+'</div></div>';
+}
+
+// ═══ 9. MEAL PLANNER ═══
+window.HalDoMeal={
+  key:'haldo_meal_v1',
+  all(){return store(this.key,{})},
+  set(date,meal,text){const d=this.all();if(!d[date])d[date]={};d[date][meal]=text;save(this.key,d)},
+  get(date,meal){const d=this.all();return (d[date]||{})[meal]||''}
+};
+
+function buildMeal(){
+  const w=$('meal-window');if(!w)return;
+  w.dataset.title='Essensplan';w.dataset.icon='🍽️';
+  const days=[];const t=new Date();
+  for(let i=0;i<7;i++){
+    const d=new Date(t);d.setDate(d.getDate()+i);
+    const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    days.push({k,d});
+  }
+  const weekdays=['So','Mo','Di','Mi','Do','Fr','Sa'];
+  const list=days.map(day=>{
+    const fr=HalDoMeal.get(day.k,'fruehstueck');
+    const mi=HalDoMeal.get(day.k,'mittag');
+    const ab=HalDoMeal.get(day.k,'abend');
+    const isToday=day.k===todayK();
+    return '<div class="card" style="padding:14px;'+(isToday?'border-color:#00e5ff;background:rgba(0,229,255,.05)':'')+'">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+      '<div style="font-size:14px;font-weight:900;color:'+(isToday?'#00e5ff':'#fff')+'">'+weekdays[day.d.getDay()]+', '+day.d.getDate()+'.'+String(day.d.getMonth()+1).padStart(2,'0')+'.'+(isToday?' (Heute)':'')+'</div>'+
+      '</div>'+
+      [['fruehstueck','🥐 Frühstück',fr],['mittag','🍲 Mittag',mi],['abend','🍽️ Abend',ab]].map(x=>'<div style="margin-bottom:6px">'+
+      '<div style="font-size:10px;color:#88ccff;margin-bottom:3px;font-weight:800;text-transform:uppercase;letter-spacing:1px">'+x[1]+'</div>'+
+      '<input class="os-input" style="font-size:12px;padding:8px 10px" placeholder="..." value="'+esc(x[2])+'" oninput="HalDoMeal.set(\''+day.k+'\',\''+x[0]+'\',this.value)">'+
+      '</div>').join('')+
+      '</div>';
+  }).join('');
+  w.innerHTML='<div class="lbl" style="margin-bottom:10px">🍽️ Essensplan für die nächsten 7 Tage</div>'+list;
+}
+
+// ═══ 10. WATER REMINDER ═══
+window.HalDoWaterReminder={
+  key:'haldo_waterreminder_v1',
+  get(){return store(this.key,{interval:60,lastDrink:0,drank:0,date:todayK()})},
+  save(d){save(this.key,d)},
+  drink(){const d=this.get();if(d.date!==todayK()){d.drank=0;d.date=todayK()}d.drank+=1;d.lastDrink=Date.now();this.save(d);return d},
+  reset(){this.save({interval:60,lastDrink:0,drank:0,date:todayK()})}
+};
+
+let wrInterval=null;
+
+function buildWaterReminder(){
+  const w=$('waterreminder-window');if(!w)return;
+  w.dataset.title='Trink-Erinnerung';w.dataset.icon='💧';
+  const d=HalDoWaterReminder.get();
+  const sinceLast=d.lastDrink?Math.floor((Date.now()-d.lastDrink)/60000):0;
+  const remaining=Math.max(0,d.interval-sinceLast);
+  const pct=Math.min(100,Math.round(d.drank/8*100));
+  w.innerHTML=
+    '<div class="card" style="text-align:center;padding:20px;background:linear-gradient(135deg,rgba(0,150,255,.15),rgba(0,229,255,.1))">'+
+    '<div style="font-size:64px;margin-bottom:10px">💧</div>'+
+    '<div style="font-size:44px;font-weight:900;color:#0096ff;text-shadow:0 0 30px rgba(0,150,255,.5);line-height:1">'+d.drank+'</div>'+
+    '<div style="font-size:11px;color:#7ce0ff;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin-top:8px">Gläser heute</div>'+
+    '<div style="height:6px;background:rgba(0,0,0,.4);border-radius:3px;overflow:hidden;margin:14px 0 10px;border:1px solid rgba(0,150,255,.3)"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#0096ff,#00e5ff);border-radius:3px"></div></div>'+
+    '<div style="font-size:12px;color:#88ccff">Ziel: 8 Gläser (2L)</div>'+
+    '</div>'+
+    '<div class="card" style="text-align:center">'+
+    '<div style="font-size:12px;color:#88ccff;margin-bottom:8px">⏱️ Nächste Erinnerung</div>'+
+    '<div id="wrTimer" style="font-size:32px;font-weight:900;color:#fff;font-family:monospace">'+Math.floor(remaining)+' Min</div>'+
+    '</div>'+
+    '<div class="card"><div class="lbl" style="margin-bottom:8px">⏰ Erinnerung alle: <b style="color:#00e5ff">'+d.interval+' Min</b></div>'+
+    '<input type="range" min="15" max="180" step="15" value="'+d.interval+'" style="width:100%;accent-color:#0096ff" oninput="HalDoWaterReminder.setInterval(this.value)">'+
+    '</div>'+
+    '<button class="os-btn primary full" style="padding:16px;font-size:15px;background:linear-gradient(135deg,#0096ff,#00e5ff)" onclick="HalDoWaterReminderApp.drink()">💧 Glas getrunken</button>'+
+    '<button class="os-btn danger full" style="margin-top:8px" onclick="if(confirm(\'Zurücksetzen?\')){HalDoWaterReminder.reset();buildWaterReminder()}">↺ Zurücksetzen</button>';
+  if(wrInterval)clearInterval(wrInterval);
+  wrInterval=setInterval(()=>{
+    const d2=HalDoWaterReminder.get();
+    const since=d2.lastDrink?Math.floor((Date.now()-d2.lastDrink)/60000):0;
+    const rem=Math.max(0,d2.interval-since);
+    const el=$('wrTimer');if(el)el.textContent=Math.floor(rem)+' Min';
+    if(rem===0&&d2.lastDrink){
+      if(window.showToast)showToast('💧 Zeit zu trinken!','success');
+      if(navigator.vibrate)navigator.vibrate([200,100,200]);
+      d2.lastDrink=Date.now();
+      HalDoWaterReminder.save(d2);
+    }
+  },10000);
+}
+
+window.HalDoWaterReminder={
+  setInterval(v){const d=this.get();d.interval=parseInt(v);this.save(d);buildWaterReminder()}
+};
+
+window.HalDoWaterReminderApp={
+  drink(){
+    HalDoWaterReminder.drink();
+    buildWaterReminder();
+    if(navigator.vibrate)navigator.vibrate(15);
+    if(window.showToast)showToast('💧 +1 Glas!','success');
+  }
+};
+
+// ═══ INIT ═══
+function init(){
+  if(window.HalDoUI){
+    const orig=window.HalDoUI.rebuild;
+    window.HalDoUI.rebuild=function(id){
+      if(id==='whitenoise-window'){buildWhiteNoise();return}
+      if(id==='tone-window'){buildTone();return}
+      if(id==='soundboard-window'){buildSoundboard();return}
+      if(id==='signature-window'){buildSignature();return}
+      if(id==='docscan-window'){buildDocScanner();return}
+      if(id==='podcast-window'){buildPodcast();return}
+      if(id==='radio-window'){buildRadio();return}
+      if(id==='steps-window'){buildSteps();return}
+      if(id==='meal-window'){buildMeal();return}
+      if(id==='waterreminder-window'){buildWaterReminder();return}
+      if(orig)orig(id);
+    };
+  }
+  ['whitenoise-window','tone-window','soundboard-window','signature-window','docscan-window','podcast-window','radio-window','steps-window','meal-window','waterreminder-window'].forEach(id=>{
+    let el=$(id);
+    if(!el){el=document.createElement('div');el.id=id;document.body.appendChild(el)}
+    if(window.prepareWindow) window.prepareWindow(el);
+  });
+  console.log('%c🚀 v140 – 10 Apps geladen','color:#00ff88;font-weight:bold;font-size:14px');
+  console.log('%c✅ WhiteNoise · Tone · Soundboard · Signature · DocScan · Podcast · Radio · Steps · Meal · WaterReminder','color:#4da8ff;font-weight:bold');
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(init,1000));
+}else{
+  setTimeout(init,1000);
+}
+
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════ ENDE v140 ═════ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
