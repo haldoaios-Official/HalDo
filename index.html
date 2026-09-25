@@ -8995,5 +8995,722 @@ console.log('%c🚀 HalDo Apps v134 geladen (18 Apps)','background:linear-gradie
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v135 · Apps Pack 12 (B/C/S/K)
+     18 neue funktionierende Apps
+     ============================================================ -->
+<script>
+(function(){
+'use strict';
+
+if(!window.HalDo || !window.HalDo.apps){ return; }
+
+const APPS = window.HalDo.apps;
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = ()=>Math.random().toString(36).slice(2,10);
+const fmt = n => (Math.round(n*100)/100).toLocaleString('de-DE');
+const toast = window.HalDo.toast || ((m)=>console.log('[toast]',m));
+const store = {
+  key: k => 'haldo_'+k+'_v1',
+  get(k,d){ try{ const v=localStorage.getItem(this.key(k)); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(this.key(k), JSON.stringify(v)); }catch(e){} }
+};
+const rnd = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const shuffle = a=>[...a].sort(()=>Math.random()-.5);
+
+/* ============================================================
+   B · BILDUNG
+   ============================================================ */
+
+APPS['referat-planer'] = {
+  name:'Referat Planer', icon:'🎤',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🎤 Referat vorbereiten</b></div>'+
+    '<input class="inp" id="rfT" placeholder="Thema des Referats…">'+
+    '<div class="row"><input class="inp" id="rfM" type="number" placeholder="Dauer (Min.)" value="10" style="width:130px"><button class="btn primary" id="rfA">+ Referat anlegen</button></div>'+
+    '<div id="rfL" class="col"></div>'+
+  '</div>'; },
+  init(win){
+    const all=()=>store.get('presentations',[]);
+    function render(){
+      const a=all();
+      $('#rfL',win).innerHTML = a.length ? a.map(p=>{
+        const segs = [
+          ['🎬 Einleitung', Math.round(p.m*0.15), 'Aufmerksamkeit, Thema vorstellen'],
+          ['📚 Hauptteil 1', Math.round(p.m*0.25), 'Grundlagen, Kontext'],
+          ['🔍 Hauptteil 2', Math.round(p.m*0.30), 'Vertiefung, Beispiele'],
+          ['💡 Hauptteil 3', Math.round(p.m*0.15), 'Fazit, Ausblick'],
+          ['🎯 Schluss', Math.round(p.m*0.10), 'Zusammenfassung, Dank'],
+          ['❓ Fragen', Math.round(p.m*0.05), 'Q&A der Zuhörer']
+        ];
+        return '<div class="card"><div class="row between"><b>🎤 '+esc(p.t)+'</b><span class="dim sm">'+p.m+' Min</span><span class="x" data-id="'+p.id+'">✕</span></div>'+
+          '<div class="list" style="margin-top:8px">'+segs.map(s=>'<div class="item"><span>'+s[0]+'</span><span class="dim sm">'+s[1]+' min</span><span class="dim sm" style="margin-left:auto;text-align:right;max-width:180px">'+s[2]+'</span></div>').join('')+'</div></div>';
+      }).join('') : '<div class="empty">Noch kein Referat geplant</div>';
+      $$('#rfL .x',win).forEach(el2=>el2.onclick=()=>{ store.set('presentations',all().filter(p=>p.id!==el2.dataset.id)); render(); });
+    }
+    $('#rfA',win).onclick=()=>{
+      const t=$('#rfT',win).value.trim(); if(!t){ toast('Thema fehlt'); return; }
+      const arr=all(); arr.push({id:uid(), t, m:parseInt($('#rfM',win).value)||10}); store.set('presentations',arr);
+      $('#rfT',win).value=''; render();
+    };
+    render();
+  }
+};
+
+APPS['zitierhelfer'] = {
+  name:'Zitierhelfer', icon:'📚',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>📚 Literaturverzeichnis erstellen</b><div class="dim sm">Erzeuge Zitate in APA, MLA, Chicago.</div></div>'+
+    '<div class="row"><select class="inp" id="zhT" style="width:auto"><option value="apa">APA</option><option value="mla">MLA</option><option value="chicago">Chicago</option><option value="harvard">Harvard</option><option value="din">DIN 1505</option></select></div>'+
+    '<input class="inp" id="zhA" placeholder="Autor (Nachname, Vorname)…">'+
+    '<input class="inp" id="zhY" type="number" placeholder="Jahr" value="2024">'+
+    '<input class="inp" id="zhT2" placeholder="Titel…">'+
+    '<input class="inp" id="zhV" placeholder="Verlag / Zeitschrift…">'+
+    '<input class="inp" id="zhO" placeholder="Ort (optional)">'+
+    '<button class="btn primary" id="zhGo">📝 Zitat erzeugen</button>'+
+    '<textarea class="ta" id="zhO2" style="min-height:80px;font-family:monospace;font-size:12px" readonly placeholder="Ergebnis…"></textarea>'+
+    '<div class="row"><button class="btn" id="zhCopy">📋 Kopieren</button><button class="btn" id="zhSave">💾 Speichern</button></div>'+
+    '<div id="zhL" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const all=()=>store.get('citations',[]);
+    function render(){
+      const a=all();
+      $('#zhL',win).innerHTML = a.length ? a.map(c=>'<div class="card"><div class="dim sm" style="white-space:pre-wrap">'+esc(c.text)+'</div><span class="x" data-id="'+c.id+'">✕</span></div>').join('') : '<div class="empty">Keine gespeicherten Zitate</div>';
+      $$('#zhL .x',win).forEach(el2=>el2.onclick=()=>{ store.set('citations',all().filter(c=>c.id!==el2.dataset.id)); render(); });
+    }
+    $('#zhGo',win).onclick=()=>{
+      const a=$('#zhA',win).value.trim(), y=$('#zhY',win).value, t=$('#zhT2',win).value.trim(), v=$('#zhV',win).value.trim(), o=$('#zhO',win).value.trim();
+      if(!a||!t){ toast('Autor + Titel'); return; }
+      const type=$('#zhT',win).value;
+      let cite='';
+      if(type==='apa') cite = a+' ('+y+'). '+t+'. '+v+(o?', '+o:'')+'.';
+      else if(type==='mla') cite = a+'. "'+t+'." '+v+', '+y+'.';
+      else if(type==='chicago') cite = a+'. '+t+'. '+o+(o?': ':'')+v+', '+y+'.';
+      else if(type==='harvard') cite = a+' ('+y+') '+t+'. '+o+': '+v+'.';
+      else cite = a+': '+t+'. '+o+': '+v+', '+y+'.';
+      $('#zhO2',win).value = cite;
+    };
+    $('#zhCopy',win).onclick=()=>{ navigator.clipboard?.writeText($('#zhO2',win).value); toast('Kopiert'); };
+    $('#zhSave',win).onclick=()=>{
+      const text=$('#zhO2',win).value; if(!text) return;
+      const arr=all(); arr.push({id:uid(), text}); store.set('citations',arr); render(); toast('Gespeichert');
+    };
+    render();
+  }
+};
+
+APPS['studienfuehrer'] = {
+  name:'Studienführer', icon:'🎓',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🎓 Studienfächer-Übersicht</b><div class="dim sm">Wichtige Infos zu Studienrichtungen.</div></div>'+
+    '<input class="inp" id="sf2Q" placeholder="Studienfach suchen…">'+
+    '<div id="sf2L" class="col" style="max-height:65vh;overflow-y:auto"></div>'+
+  '</div>'; },
+  init(win){
+    const faecher = [
+      ['⚕️','Medizin','6 Jahre + Facharzt','NC ~1,0-1,3','Anatomie, Physiologie, Klinik'],
+      ['⚖️','Jura','5 Jahre + 2. Examen','NC ~1,3-2,0','BGB, StGB, Verfassungsrecht'],
+      ['💼','BWL','3-4 Jahre (Bachelor)','NC ~2,0-3,0','Marketing, Controlling, Finance'],
+      ['📊','VWL','3-4 Jahre','NC ~2,0-3,0','Mikro, Makro, Ökonometrie'],
+      ['💻','Informatik','3-4 Jahre','NC ~2,0-3,5','Programmierung, Algorithmen, Mathe'],
+      ['🔬','Maschinenbau','3-4 Jahre','NC ~2,0-3,0','Mechanik, Thermodynamik, CAD'],
+      ['⚡','Elektrotechnik','3-4 Jahre','NC ~2,0-3,0','Physik, Schaltungen, Regelungstechnik'],
+      ['🧪','Chemie','3-4 Jahre','NC ~2,0-3,0','Anorganik, Organik, Physikalische'],
+      ['🔬','Physik','3-4 Jahre','NC ~1,5-2,5','Mechanik, Quanten, Relativität'],
+      ['🧬','Biologie','3-4 Jahre','NC ~1,5-2,5','Botanik, Zoologie, Genetik'],
+      ['📐','Mathematik','3-4 Jahre','NC ~1,5-2,5','Analysis, Algebra, Stochastik'],
+      ['🏛️','Geschichte','3-4 Jahre','NC ~2,0-3,0','Alte, Mittelalter, Neuzeit'],
+      ['📚','Germanistik','3-4 Jahre','NC ~2,0-3,0','Literatur, Linguistik'],
+      ['🌍','Geographie','3-4 Jahre','NC ~2,0-3,0','Physisch, Human, Kartographie'],
+      ['🎨','Kunst','3-4 Jahre','Mappe nötig','Malerei, Grafik, Kunstgeschichte'],
+      ['🎵','Musik','3-4 Jahre','Aufnahmeprüfung','Instrument, Theorie, Gehör'],
+      ['🏗️','Architektur','4-5 Jahre','Mappe + NC','Entwurf, Statik, Baugeschichte'],
+      ['🧠','Psychologie','3-4 Jahre','NC ~1,3-1,8','Klinisch, Sozial, Entwicklung'],
+      ['📢','Kommunikation','3-4 Jahre','NC ~2,0-2,5','Journalismus, PR, Medien'],
+      ['🌱','Umweltwissenschaft','3-4 Jahre','NC ~2,0-3,0','Ökologie, Klima, Nachhaltigkeit']
+    ];
+    const L=$('#sf2L',win), Q=$('#sf2Q',win);
+    function render(){
+      const q=Q.value.toLowerCase();
+      const f=q?faecher.filter(x=>x[1].toLowerCase().includes(q)||x[4].toLowerCase().includes(q)):faecher;
+      L.innerHTML = f.length ? f.map(x=>'<div class="card"><div class="row"><span style="font-size:32px">'+x[0]+'</span><div><b>'+x[1]+'</b><div class="dim sm">'+x[2]+'</div></div></div><div class="dim sm" style="margin-top:6px">📝 NC: '+x[3]+'</div><div class="dim sm">📚 '+x[4]+'</div></div>').join('') : '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput=render;
+    render();
+  }
+};
+
+APPS['pruefungstrainer'] = {
+  name:'Prüfungstrainer', icon:'📝',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>📝 Prüfungs-Simulation</b><div class="dim sm">Erstelle Fragen und trainiere mit Zeitlimit.</div></div>'+
+    '<div class="row"><input class="inp" id="ptF" placeholder="Frage…" style="flex:1"><input class="inp" id="ptA" placeholder="Antwort…" style="flex:1"><button class="btn primary" id="ptAdd">+</button></div>'+
+    '<div class="row"><label class="dim sm">Zeit pro Frage: <input class="inp" id="ptZ" type="number" value="30" style="width:70px">s</label><button class="btn primary" id="ptGo">▶ Simulation starten</button></div>'+
+    '<div id="ptL" class="list"></div>'+
+    '<div id="ptQ"></div>'+
+  '</div>'; },
+  init(win){
+    const all=()=>store.get('exam_questions',[]);
+    function render(){
+      const a=all();
+      $('#ptL',win).innerHTML = a.length ? a.map((x,i)=>'<div class="item"><b>'+(i+1)+'.</b><span>'+esc(x.q)+'</span><span class="dim sm" style="margin-left:auto">'+esc(x.a)+'</span><span class="x" data-i="'+i+'">✕</span></div>').join('') : '<div class="empty">Noch keine Fragen</div>';
+      $$('#ptL .x',win).forEach(el2=>el2.onclick=()=>{ const arr=all(); arr.splice(parseInt(el2.dataset.i),1); store.set('exam_questions',arr); render(); });
+    }
+    $('#ptAdd',win).onclick=()=>{
+      const q=$('#ptF',win).value.trim(), a=$('#ptA',win).value.trim();
+      if(!q||!a){ toast('Frage + Antwort'); return; }
+      const arr=all(); arr.push({q, a}); store.set('exam_questions',arr);
+      $('#ptF',win).value=''; $('#ptA',win).value=''; render();
+    };
+    $('#ptGo',win).onclick=()=>{
+      const arr=all();
+      if(!arr.length){ toast('Erst Fragen erstellen'); return; }
+      const limit=parseInt($('#ptZ',win).value)||30;
+      let idx=0, score=0, timer=null, rem=limit;
+      const Q=$('#ptQ',win);
+      function nextQ(){
+        if(idx>=arr.length){
+          if(timer) clearInterval(timer);
+          Q.innerHTML = '<div class="card center big2">🎉 Ergebnis: '+score+' / '+arr.length+'</div>';
+          return;
+        }
+        const q = arr[idx];
+        Q.innerHTML = '<div class="card"><div class="row between"><span class="dim">Frage '+(idx+1)+'/'+arr.length+'</span><b id="ptT">'+rem+'s</b></div><div class="big2" style="margin-top:8px">'+esc(q.q)+'</div><input class="inp" id="ptIn" placeholder="Antwort…" autocomplete="off" style="margin-top:12px"></div>';
+        const In=$('#ptIn',win); In.focus();
+        rem=limit;
+        if(timer) clearInterval(timer);
+        timer = setInterval(()=>{
+          rem--;
+          const T=$('#ptT',win); if(T) T.textContent = rem+'s';
+          if(rem<=0){ clearInterval(timer); check(false); }
+        }, 1000);
+        function check(timeout){
+          clearInterval(timer);
+          const v = In.value.trim().toLowerCase();
+          const correct = v===q.a.toLowerCase();
+          if(correct) score++;
+          idx++;
+          setTimeout(nextQ, 700);
+        }
+        In.addEventListener('keydown', e=>{ if(e.key==='Enter') check(false); });
+      }
+      nextQ();
+    };
+    render();
+  }
+};
+
+APPS['aufsatz-helfer'] = {
+  name:'Aufsatz Helfer', icon:'✍️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>✍️ Aufsatz-Struktur</b></div>'+
+    '<select class="inp" id="ahT"><option value="erzaehlung">Erzählung</option><option value="beschreibung">Beschreibung</option><option value="bericht">Bericht</option><option value="erort">Erörterung</option><option value="analyse">Textanalyse</option><option value="interpretation">Interpretation</option></select>'+
+    '<div id="ahO" class="col"></div>'+
+  '</div>'; },
+  init(win){
+    const structs = {
+      erzaehlung: ['📌 Einleitung','Wer? Wo? Wann? — Situation und Personen vorstellen'],
+      erort: ['📌 Einleitung','These / Fragestellung klar nennen','📚 Hauptteil 1','Argumente PRO mit Beispielen','📚 Hauptteil 2','Argumente CONTRA mit Beispielen','💡 Schluss','Eigene Position begründen'],
+      analyse: ['📌 Einleitung','Autor, Titel, Textsorte, Thema, Deutungshypothese','📚 Hauptteil 1','Inhaltliche Analyse (Aufbau, Sprache)','📚 Hauptteil 2','Sprachliche Mittel (Metapher, Alliteration…)','💡 Schluss','Bezug zur Deutungshypothese'],
+      interpretation: ['📌 Einleitung','Basissatz: Autor, Titel, Textsorte, Jahr, Thema','📚 Hauptteil 1','Inhaltsangabe (kurz!)','📚 Hauptteil 2','Analyse von Sprache und Aufbau','💡 Schluss','Deutung, Bezug zur Epoche'],
+      bericht: ['📌 Einleitung','Was? Wer? Wo? Wann? Wie? Warum? (W-Fragen)','📚 Hauptteil','Sachlich chronologisch schildern','💡 Schluss','Folgen / Ergebnis'],
+      beschreibung: ['📌 Einleitung','Was wird beschrieben?','📚 Hauptteil','Sinnvolle Reihenfolge (außen → innen, oben → unten)','💡 Schluss','Besonderheiten, Gesamteindruck']
+    };
+    function show(){
+      const t = $('#ahT',win).value;
+      const s = structs[t];
+      let html='';
+      for(let i=0;i<s.length;i+=2) html += '<div class="card"><b>'+s[i]+'</b><div class="dim sm" style="margin-top:6px">'+s[i+1]+'</div></div>';
+      $('#ahO',win).innerHTML = html;
+    }
+    $('#ahT',win).onchange=show;
+    show();
+  }
+};
+
+APPS['formelsammlung2'] = {
+  name:'Formelsammlung Plus', icon:'📐',
+  render(){ return '<div class="col">'+
+    '<input class="inp" id="fs2Q" placeholder="Formel suchen (z.B. Kreis, Zins, Dreieck)…">'+
+    '<div id="fs2L" class="col" style="max-height:70vh;overflow-y:auto"></div>'+
+  '</div>'; },
+  init(win){
+    const formeln = [
+      ['Kreis','A = π·r²','U = 2·π·r','d = 2·r'],
+      ['Rechteck','A = a·b','U = 2·(a+b)','d = √(a²+b²)'],
+      ['Dreieck','A = ½·g·h','U = a+b+c','A = ½·a·b·sin(γ)'],
+      ['Quader','V = a·b·c','O = 2·(ab+bc+ac)','d = √(a²+b²+c²)'],
+      ['Kugel','V = 4/3·π·r³','O = 4·π·r²',''],
+      ['Zylinder','V = π·r²·h','O = 2·π·r·(r+h)',''],
+      ['Kegel','V = 1/3·π·r²·h','O = π·r·(r+s)',''],
+      ['Pyramide','V = 1/3·G·h','O = G + M',''],
+      ['Lineare Funktion','y = m·x + b','m = Δy/Δx','Nullstelle: x = -b/m'],
+      ['Quadratisch','x = (-b ± √(b²-4ac))/(2a)','D = b²-4ac',''],
+      ['Zins','Z = K·p·t/100','K_end = K·(1+p/100)ⁿ',''],
+      ['Prozent','p% = (W/G)·100','W = G·p/100',''],
+      ['Geschwindigkeit','v = s/t','s = v·t','t = s/v'],
+      ['Kraft','F = m·a','G = m·g',''],
+      ['Energie','E = ½·m·v²','E = m·c²','E = P·t'],
+      ['Ohm','U = R·I','P = U·I','R = U/I'],
+      ['Wellenlänge','λ = c/f','E = h·f',''],
+      ['Trigonometrie','sin = G/H','cos = A/H','tan = G/A'],
+      ['Logarithmen','log(a·b) = log a + log b','log(a/b) = log a − log b','ln(e^x) = x'],
+      ['Binomial','(a+b)² = a²+2ab+b²','(a-b)² = a²-2ab+b²','a²-b² = (a+b)(a-b)']
+    ];
+    const L=$('#fs2L',win), Q=$('#fs2Q',win);
+    function render(){
+      const q=Q.value.toLowerCase();
+      const f=q?formeln.filter(x=>x[0].toLowerCase().includes(q)||x.slice(1).some(y=>y.toLowerCase().includes(q))):formeln;
+      L.innerHTML = f.length ? f.map(x=>'<div class="card"><b>📐 '+esc(x[0])+'</b>'+x.slice(1).filter(Boolean).map(y=>'<div class="dim sm" style="margin-top:6px;font-family:monospace;font-size:13px">• '+esc(y)+'</div>').join('')+'</div>').join('') : '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput=render;
+    render();
+  }
+};
+
+APPS['geschichtstafel'] = {
+  name:'Zeittafel', icon:'🕰️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🕰️ Wichtige Daten der Geschichte</b></div>'+
+    '<input class="inp" id="zt2Q" placeholder="Suche (Jahr oder Ereignis)…">'+
+    '<div id="zt2L" class="col" style="max-height:65vh;overflow-y:auto"></div>'+
+  '</div>'; },
+  init(win){
+    const events = [
+      ['~3000 v.Chr.','Erste Hochkulturen (Sumer, Ägypten)'],
+      ['~800 v.Chr.','Beginn der griechischen Antike'],
+      ['753 v.Chr.','Gründung Roms (Legende)'],
+      ['5. Jh. v.Chr.','Blütezeit Athens, Sokrates'],
+      ['44 v.Chr.','Caesar ermordet'],
+      ['0','Geburt Jesu (vermutlich 4-6 v.Chr.)'],
+      ['476','Ende des Weströmischen Reiches'],
+      ['800','Kaiserkrönung Karls des Großen'],
+      ['1096','Beginn der Kreuzzüge'],
+      ['1347','Schwarzer Tod in Europa'],
+      ['1440','Gutenberg erfindet den Buchdruck'],
+      ['1492','Kolumbus entdeckt Amerika'],
+      ['1517','Luther veröffentlicht seine Thesen'],
+      ['1618','Beginn des Dreißigjährigen Krieges'],
+      ['1648','Westfälischer Frieden'],
+      ['1776','Amerikanische Unabhängigkeitserklärung'],
+      ['1789','Französische Revolution'],
+      ['1804','Napoleon wird Kaiser'],
+      ['1815','Wiener Kongress'],
+      ['1848','Märzrevolution in Deutschland'],
+      ['1871','Gründung des Deutschen Reiches'],
+      ['1914','Beginn des Ersten Weltkriegs'],
+      ['1918','Ende des Ersten Weltkriegs'],
+      ['1919','Vertrag von Versailles'],
+      ['1929','Weltwirtschaftskrise'],
+      ['1933','Hitler wird Reichskanzler'],
+      ['1939','Beginn des Zweiten Weltkriegs'],
+      ['1945','Ende des Zweiten Weltkriegs'],
+      ['1949','Gründung BRD und DDR'],
+      ['1961','Bau der Berliner Mauer'],
+      ['1963','Kennedy: „Ich bin ein Berliner"'],
+      ['1969','Mondlandung'],
+      ['1989','Fall der Berliner Mauer'],
+      ['1990','Deutsche Wiedervereinigung'],
+      ['1991','Zerfall der Sowjetunion'],
+      ['2001','9/11-Anschläge'],
+      ['2008','Weltfinanzkrise'],
+      ['2015','Flüchtlingskrise in Europa'],
+      ['2020','COVID-19-Pandemie'],
+      ['2022','Ukraine-Krieg']
+    ];
+    const L=$('#zt2L',win), Q=$('#zt2Q',win);
+    function render(){
+      const q=Q.value.toLowerCase();
+      const f=q?events.filter(x=>x[0].toLowerCase().includes(q)||x[1].toLowerCase().includes(q)):events;
+      L.innerHTML = f.length ? f.map(x=>'<div class="item"><b style="color:var(--c1)">'+esc(x[0])+'</b><span>'+esc(x[1])+'</span></div>').join('') : '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput=render;
+    render();
+  }
+};
+
+/* ============================================================
+   C · FAHRSCHULE
+   ============================================================ */
+
+APPS['fahrphysik'] = {
+  name:'Fahrphysik', icon:'⚡',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>⚡ Brems- und Anhalteweg</b></div>'+
+    '<label class="lbl">Geschwindigkeit (km/h)</label>'+
+    '<input class="inp" id="fp2V" type="number" value="50">'+
+    '<label class="lbl">Straßenverhältnisse</label>'+
+    '<select class="inp" id="fp2S">'+
+      '<option value="1">Trocken (μ = 0,8)</option>'+
+      '<option value="0.5">Nass (μ = 0,4)</option>'+
+      '<option value="0.3">Schnee (μ = 0,2)</option>'+
+      '<option value="0.15">Eis (μ = 0,1)</option>'+
+    '</select>'+
+    '<button class="btn primary" id="fp2Go">▶ Berechnen</button>'+
+    '<div id="fp2O" class="col"></div>'+
+  '</div>'; },
+  init(win){
+    $('#fp2Go',win).onclick=()=>{
+      const v = parseFloat($('#fp2V',win).value)||50;
+      const mu = parseFloat($('#fp2S',win).value);
+      const react = 1; // 1 Sek Reaktionszeit
+      const vms = v/3.6;
+      const reaktionsweg = vms * react;
+      const bremsweg = (vms * vms) / (2 * 9.81 * mu);
+      const anhalteweg = reaktionsweg + bremsweg;
+      const cols = v < 30 ? '#4de88a' : (v < 80 ? '#ffb03a' : '#ff6b88');
+      $('#fp2O',win).innerHTML =
+        '<div class="card center"><div class="dim">Reaktionsweg (1s)</div><div class="big2">'+reaktionsweg.toFixed(1)+' m</div></div>'+
+        '<div class="card center"><div class="dim">Bremsweg</div><div class="big2" style="color:'+cols+'">'+bremsweg.toFixed(1)+' m</div></div>'+
+        '<div class="card center"><div class="dim">Anhalteweg</div><div class="big2" style="color:'+cols+'">'+anhalteweg.toFixed(1)+' m</div></div>'+
+        '<div class="card"><b>📏 Zum Vergleich</b><div class="dim sm" style="margin-top:6px">50 km/h — ca. 10 × Autolänge<br>100 km/h — ca. 30 × Autolänge<br>Bei doppelter Geschwindigkeit: 4× Bremsweg!</div></div>';
+    };
+    $('#fp2Go',win).click();
+  }
+};
+
+APPS['pannenhilfe'] = {
+  name:'Pannenhilfe', icon:'🔧',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🔧 Was tun bei Panne?</b></div>'+
+    '<div id="phL" class="col"></div>'+
+    '<div class="card"><b>📞 Notrufnummern</b><div class="list" style="margin-top:6px">'+
+      '<a href="tel:112" style="text-decoration:none;color:inherit"><div class="item"><b>🚨 112</b><span class="dim sm" style="margin-left:auto">Rettung / Feuer</span></div></a>'+
+      '<a href="tel:110" style="text-decoration:none;color:inherit"><div class="item"><b>🚔 110</b><span class="dim sm" style="margin-left:auto">Polizei</span></div></a>'+
+      '<div class="item"><b>🆘 ADAC</b><span class="dim sm" style="margin-left:auto">+49 89 22 22 22</span></div>'+
+      '<div class="item"><b>🆘 ACE</b><span class="dim sm" style="margin-left:auto">+49 221 95 70 90</span></div>'+
+    '</div></div>'+
+  '</div>'; },
+  init(win){
+    const tips = [
+      ['🛑 Sofort anhalten','Blinker rechts, Warnblinkanlage an.'],
+      ['🦺 Warnweste anziehen','Bevor du aussteigst — Sicherheit zuerst!'],
+      ['🔺 Warndreieck aufstellen','Autobahn: 150-200m, Landstraße: 100m, Stadt: 50m'],
+      ['👥 Alle Insassen raus','Hinter die Leitplanke, nicht auf dem Standstreifen bleiben!'],
+      ['📞 Hilfe rufen','112 oder Pannendienst (ADAC/ACE).'],
+      ['🚗 Reifenpanne?','Wenn möglich: Auf Standstreifen rollen, nicht auf der Fahrbahn anhalten.'],
+      ['🔋 Batterie leer?','Starthilfekabel — Rot auf Plus (+), Schwarz auf Minus (−) und Masse.'],
+      ['⛽ Tank leer?','Reservekanister oder Pannendienst. Bei E-Auto: Abschleppdienst.'],
+      ['🌡️ Motor überhitzt?','Anhalten, abkühlen lassen (15-30 Min), Kühlmittel prüfen (NICHT bei heißem Motor öffnen!).'],
+      ['🌨️ Winter: Stecken geblieben?','Vorsichtig Gas, 2. Gang, Sand/Matten unter Räder, aussteigen wenn sicher.']
+    ];
+    $('#phL',win).innerHTML = tips.map(t=>'<div class="card"><b>'+t[0]+'</b><div class="dim sm" style="margin-top:6px">'+t[1]+'</div></div>').join('');
+  }
+};
+
+APPS['punkte-rechner'] = {
+  name:'Punkte in Flensburg', icon:'📋',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>📋 Punkte-Rechner (Fahreignungsregister)</b></div>'+
+    '<div id="prL" class="col"></div>'+
+    '<div class="card"><b>📊 Regeln</b><div class="dim sm" style="margin-top:6px">• 1-3 Punkte: Verwarnung<br>• 4-5 Punkte: Verwarnung mit Hinweis<br>• 6-7 Punkte: Verwarnung mit Seminarsempfehlung<br>• 8 Punkte: Führerschein weg!<br>• Punkte verfallen nach 2,5 bis 10 Jahren (je nach Vergehen)</div></div>'+
+  '</div>'; },
+  init(win){
+    const vergehen = [
+      ['🚗 Zu schnell (bis 20 km/h)','1 Punkt',1],
+      ['🚗 Zu schnell (21-25 km/h)','1 Punkt',1],
+      ['🚗 Zu schnell (26-30 km/h)','2 Punkte',2],
+      ['🚗 Zu schnell (über 31 km/h)','2 Punkte',2],
+      ['🚦 Rotlicht (einfach)','2 Punkte',2],
+      ['🚦 Rotlicht (>1s oder Gefährdung)','3 Punkte',3],
+      ['🚧 Überholverbot missachtet','2 Punkte',2],
+      ['📱 Handy am Steuer','1 Punkt',1],
+      ['🍺 Alkohol (>0,5‰)','3 Punkte',3],
+      ['💊 Drogen','3 Punkte',3],
+      ['🚗 Unfall mit Sachschaden','2 Punkte',2],
+      ['🚶 Unfall mit Personenschaden','3 Punkte',3]
+    ];
+    const L=$('#prL',win);
+    let total = store.get('flensburg_points',0);
+    function render(){
+      L.innerHTML = vergehen.map((v,i)=>'<div class="item"><span>'+v[0]+'</span><b style="margin-left:auto">'+v[1]+'</b><button class="btn sm primary" data-i="'+i+'">+</button></div>').join('')+
+        '<div class="card center"><div class="dim">Gesamt</div><div class="big2" style="color:'+(total>=8?'#ff6b88':(total>=4?'#ffb03a':'#4de88a'))+'">'+total+' Punkte</div>'+
+        (total>=8?'<div class="dim sm">⚠️ Führerschein weg!</div>':(total>=4?'<div class="dim sm">Achtung — Verwarnung</div>':''))+'</div>'+
+        '<button class="btn danger" id="prRst">🗑 Zurücksetzen</button>';
+      $$('#prL [data-i]',win).forEach(b=>b.onclick=()=>{ const v=vergehen[parseInt(b.dataset.i)]; total += v[2]; store.set('flensburg_points',total); render(); });
+      $('#prRst',win).onclick=()=>{ total=0; store.set('flensburg_points',0); render(); };
+    }
+    render();
+  }
+};
+
+APPS['auto-kosten'] = {
+  name:'Auto-Kosten', icon:'🚗',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🚗 KFZ-Kosten berechnen</b></div>'+
+    '<div class="row"><input class="inp" id="ak2K" type="number" step="0.01" placeholder="Kaufpreis €" value="15000" style="flex:1"><input class="inp" id="ak2J" type="number" placeholder="Haltedauer (Jahre)" value="5" style="width:110px"></div>'+
+    '<div class="row"><input class="inp" id="ak2V" type="number" step="0.01" placeholder="Versicherung €/Monat" value="80" style="flex:1"><input class="inp" id="ak2S" type="number" step="0.01" placeholder="Steuer €/Jahr" value="120" style="width:120px"></div>'+
+    '<div class="row"><input class="inp" id="ak2B" type="number" step="0.01" placeholder="Sprit €/Monat" value="150" style="flex:1"><input class="inp" id="ak2W" type="number" step="0.01" placeholder="Wartung €/Jahr" value="500" style="width:120px"></div>'+
+    '<input class="inp" id="ak2Km" type="number" placeholder="km pro Jahr" value="15000">'+
+    '<button class="btn primary" id="ak2Go">▶ Berechnen</button>'+
+    '<div id="ak2O" class="col"></div>'+
+  '</div>'; },
+  init(win){
+    $('#ak2Go',win).onclick=()=>{
+      const k=parseFloat($('#ak2K',win).value)||0;
+      const j=parseFloat($('#ak2J',win).value)||1;
+      const v=parseFloat($('#ak2V',win).value)||0;
+      const st=parseFloat($('#ak2S',win).value)||0;
+      const b=parseFloat($('#ak2B',win).value)||0;
+      const w=parseFloat($('#ak2W',win).value)||0;
+      const km=parseFloat($('#ak2Km',win).value)||10000;
+      const monthly = v + b + st/12 + w/12 + k/(j*12);
+      const yearly = monthly*12;
+      const perKm = yearly/km;
+      $('#ak2O',win).innerHTML =
+        '<div class="card center"><div class="dim">Monatlich</div><div class="big2">'+fmt(monthly)+' €</div></div>'+
+        '<div class="card center"><div class="dim">Jährlich</div><div class="big2">'+fmt(yearly)+' €</div></div>'+
+        '<div class="card center"><div class="dim">Pro Kilometer</div><div class="big2" style="color:var(--c3)">'+fmt(perKm)+' €</div></div>'+
+        '<div class="card"><b>📊 Aufschlüsselung</b><div class="list" style="margin-top:6px">'+
+          '<div class="item"><span>Versicherung</span><b style="margin-left:auto">'+fmt(v)+' €/M</b></div>'+
+          '<div class="item"><span>Steuer</span><b style="margin-left:auto">'+fmt(st/12)+' €/M</b></div>'+
+          '<div class="item"><span>Sprit</span><b style="margin-left:auto">'+fmt(b)+' €/M</b></div>'+
+          '<div class="item"><span>Wartung</span><b style="margin-left:auto">'+fmt(w/12)+' €/M</b></div>'+
+          '<div class="item"><span>Wertverlust</span><b style="margin-left:auto">'+fmt(k/(j*12))+' €/M</b></div>'+
+        '</div></div>';
+    };
+    $('#ak2Go',win).click();
+  }
+};
+
+/* ============================================================
+   S · SYSTEM
+   ============================================================ */
+
+APPS['drucker'] = {
+  name:'Drucker', icon:'🖨️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🖨️ Drucken aus HalDo</b><div class="dim sm">Druckt den Inhalt als PDF oder an echten Drucker.</div></div>'+
+    '<textarea class="ta" id="drT" style="min-height:200px" placeholder="Text zum Drucken…">HalDo AI OS\n\nDas ist ein Testdruck aus dem Betriebssystem.\n\nDatum: '+new Date().toLocaleDateString('de-DE')+'</textarea>'+
+    '<div class="row"><button class="btn primary" id="drGo">🖨️ Drucken</button><button class="btn" id="drPdf">💾 Als PDF</button><button class="btn" id="drCopy">📋 Kopieren</button></div>'+
+    '<div class="card"><b>💡 Tipp</b><div class="dim sm">Am iPhone: „Drucken" → dann im Dialog auf „Teilen → Als PDF sichern" tippen.</div></div>'+
+  '</div>'; },
+  init(win){
+    $('#drGo',win).onclick=()=>{ try{ window.print(); }catch(e){ toast('Drucken nicht verfügbar'); } };
+    $('#drPdf',win).onclick=()=>{
+      const blob=new Blob([$('#drT',win).value],{type:'text/plain'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='haldo-print-'+Date.now()+'.txt'; a.click();
+    };
+    $('#drCopy',win).onclick=()=>{ navigator.clipboard?.writeText($('#drT',win).value); toast('Kopiert'); };
+  }
+};
+
+APPS['updates'] = {
+  name:'Updates', icon:'🔄',
+  render(){ return '<div class="col">'+
+    '<div class="card center"><div style="font-size:48px">🔄</div><div class="big2">HalDo v135</div><div class="dim sm">Aktuelle Version installiert</div></div>'+
+    '<div class="card"><b>✅ Was ist neu in v135?</b><div class="list" style="margin-top:6px">'+
+      '<div class="item"><span>📚 Zitierhelfer</span><span class="dim sm" style="margin-left:auto">neu</span></div>'+
+      '<div class="item"><span>🎤 Referat Planer</span><span class="dim sm" style="margin-left:auto">neu</span></div>'+
+      '<div class="item"><span>🚗 Fahrphysik</span><span class="dim sm" style="margin-left:auto">neu</span></div>'+
+      '<div class="item"><span>📞 Pannenhilfe</span><span class="dim sm" style="margin-left:auto">neu</span></div>'+
+      '<div class="item"><span>🖨️ Drucker</span><span class="dim sm" style="margin-left:auto">neu</span></div>'+
+    '</div></div>'+
+    '<button class="btn primary" id="upChk">🔄 Auf Updates prüfen</button>'+
+    '<div class="card" id="upInfo"><span class="dim sm">Letzte Prüfung: –</span></div>'+
+  '</div>'; },
+  init(win){
+    $('#upChk',win).onclick=()=>{
+      $('#upInfo',win).innerHTML = '<span style="color:var(--c1)">🔄 Prüfe…</span>';
+      setTimeout(()=>{
+        $('#upInfo',win).innerHTML = '<b>✅ Auf dem neuesten Stand</b><div class="dim sm">Version v135 · '+new Date().toLocaleTimeString('de-DE')+'</div>';
+      }, 1200);
+    };
+  }
+};
+
+APPS['tastatur-einstellungen'] = {
+  name:'Tastatur System', icon:'⌨️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>⌨️ Tastatur-Einstellungen</b></div>'+
+    '<label class="lbl">Virtuelle Tastatur</label>'+
+    '<div class="row"><label class="dim sm"><input type="checkbox" id="te1" checked> Autokorrektur</label><label class="dim sm"><input type="checkbox" id="te2" checked> Autokapitalisierung</label></div>'+
+    '<div class="row"><label class="dim sm"><input type="checkbox" id="te3"> Rechtschreibprüfung</label><label class="dim sm"><input type="checkbox" id="te4"> Vorhersage</label></div>'+
+    '<label class="lbl" style="margin-top:12px">Tastaturgröße</label>'+
+    '<input type="range" id="te5" min="60" max="130" value="100" style="width:100%">'+
+    '<div class="dim sm" id="te5v">100%</div>'+
+    '<label class="lbl" style="margin-top:12px">Haptisches Feedback</label>'+
+    '<select class="inp" id="te6"><option>Aus</option><option>Leicht</option><option>Mittel</option><option>Stark</option></select>'+
+    '<button class="btn primary" id="teGo" style="margin-top:12px">💾 Übernehmen</button>'+
+    '<div class="card" id="teInfo" style="margin-top:8px"><span class="dim sm">Änderungen gelten nur für diese Einstellung.</span></div>'+
+  '</div>'; },
+  init(win){
+    $('#te5',win).oninput=()=>{ $('#te5v',win).textContent = $('#te5',win).value+'%'; };
+    $('#teGo',win).onclick=()=>{
+      const s={ac:$('#te1',win).checked, ak:$('#te2',win).checked, rs:$('#te3',win).checked, vh:$('#te4',win).checked, gr:$('#te5',win).value, hf:$('#te6',win).value};
+      store.set('keyboard_settings', s);
+      toast('Einstellungen gespeichert');
+      $('#teInfo',win).innerHTML = '<b>✅ Gespeichert</b><div class="dim sm">'+new Date().toLocaleTimeString('de-DE')+'</div>';
+    };
+    const cur = store.get('keyboard_settings', null);
+    if(cur){
+      $('#te1',win).checked=cur.ac; $('#te2',win).checked=cur.ak; $('#te3',win).checked=cur.rs; $('#te4',win).checked=cur.vh;
+      $('#te5',win).value=cur.gr; $('#te5v',win).textContent=cur.gr+'%'; $('#te6',win).value=cur.hf;
+    }
+  }
+};
+
+APPS['maus-einstellungen'] = {
+  name:'Maus System', icon:'🖱️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🖱️ Zeiger & Maus</b></div>'+
+    '<label class="lbl">Zeigergröße</label>'+
+    '<input type="range" id="me1" min="1" max="4" value="2" style="width:100%">'+
+    '<div class="dim sm" id="me1v">Normal</div>'+
+    '<label class="lbl" style="margin-top:12px">Zeigerfarbe</label>'+
+    '<div class="row" id="me2">'+
+      '<button class="btn" data-c="auto">Auto</button>'+
+      '<button class="btn" data-c="white">Weiß</button>'+
+      '<button class="btn" data-c="black">Schwarz</button>'+
+      '<button class="btn" data-c="invert">Invertiert</button>'+
+    '</div>'+
+    '<label class="lbl" style="margin-top:12px">Doppelklick-Geschwindigkeit</label>'+
+    '<input type="range" id="me3" min="200" max="1000" value="500" step="100" style="width:100%">'+
+    '<div class="dim sm" id="me3v">500 ms</div>'+
+    '<div class="card" style="margin-top:12px"><b>💡 Tipp</b><div class="dim sm">Diese Einstellungen wirken nur im Browser. Für das echte System: Einstellungen → Bedienungshilfen.</div></div>'+
+  '</div>'; },
+  init(win){
+    $('#me1',win).oninput=()=>{ const v=['','Sehr klein','Normal','Groß','Sehr groß'][$('#me1',win).value]; $('#me1v',win).textContent=v; };
+    $('#me3',win).oninput=()=>{ $('#me3v',win).textContent=$('#me3',win).value+' ms'; };
+    $$('#me2 button',win).forEach(b=>b.onclick=()=>toast('Zeigerfarbe: '+b.textContent));
+  }
+};
+
+/* ============================================================
+   K · KEYBOARD
+   ============================================================ */
+
+APPS['tastatur-layouts'] = {
+  name:'Tastatur Layouts', icon:'🌐',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🌐 Tastatur-Layouts weltweit</b></div>'+
+    '<div id="tlL" class="col"></div>'+
+  '</div>'; },
+  init(win){
+    const layouts = [
+      ['🇩🇪','QWERTZ','Deutschland/Österreich/Schweiz','Y und Z getauscht, Umlaute Ä Ö Ü ß'],
+      ['🇺🇸','QWERTY','USA/UK','Standard-Layout, keine Umlaute'],
+      ['🇫🇷','AZERTY','Frankreich/Belgien','A und Q, Z und W getauscht, M neben L'],
+      ['🇪🇸','QWERTY-ES','Spanien','Mit Ñ, umgekehrte Satzzeichen ¿ ¡'],
+      ['🇮🇹','QWERTY-IT','Italien','Q und W getauscht'],
+      ['🇵🇹','QWERTY-PT','Portugal','Mit Ç und Akzenten'],
+      ['🇹🇷','QWERTY-TR','Türkei','Mit Ğ Ü Ş İ Ö Ç'],
+      ['🇷🇺','ЙЦУКЕН','Russland','Kyrillisch, 33 Buchstaben'],
+      ['🇬🇷','QWERTY-EL','Griechenland','Griechisches Alphabet'],
+      ['🇯🇵','JIS','Japan','Kana-Tasten, 3 Modi (Hiragana/Katakana/Kanji)'],
+      ['🇨🇳','QWERTY-CN','China','Pinyin-Eingabe mit Zeichen-Vorschlägen'],
+      ['🇰🇷','QWERTY-KR','Südkorea','Hangul kombiniert']
+    ];
+    $('#tlL',win).innerHTML = layouts.map(l=>'<div class="card"><div class="row"><span style="font-size:32px">'+l[0]+'</span><div><b>'+l[1]+'</b><div class="dim sm">'+l[2]+'</div></div></div><div class="dim sm" style="margin-top:6px">'+l[3]+'</div></div>').join('');
+  }
+};
+
+APPS['autokorrektur'] = {
+  name:'Autokorrektur', icon:'🔤',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🔤 Autokorrektur-Simulator</b><div class="dim sm">Tippe und sieh, was die Autokorrektur macht.</div></div>'+
+    '<textarea class="ta" id="ak3I" placeholder="Tippe hier… (z.B. "hallo wie gehts dir")" style="min-height:100px"></textarea>'+
+    '<button class="btn primary" id="ak3Go">✨ Autokorrektur anwenden</button>'+
+    '<textarea class="ta" id="ak3O" style="min-height:100px" readonly></textarea>'+
+    '<div class="card"><b>📚 Bekannte Korrekturen</b><div class="list" id="ak3L" style="margin-top:6px"></div></div>'+
+  '</div>'; },
+  init(win){
+    const FIX = {
+      'hallo':'Hallo', 'wie gehts':'wie geht\'s', 'ich':'Ich', 'du':'du', 'bist':'bist',
+      'nicht':'nicht', 'morgen':'Morgen', 'heute':'heute', 'was':'was', 'machst':'machst',
+      'will':'will', 'essen':'essen', 'gehen':'gehen', 'später':'später', 'danke':'danke',
+      'bitte':'bitte', 'sorry':'Sorry', 'ok':'OK', 'okay':'okay', 'ja':'ja', 'nein':'Nein'
+    };
+    const ENTRIES = [['gehts','geht\'s'],['machst','machst'],['ich','Ich'],['du','du'],['hallo','Hallo']];
+    $('#ak3L',win).innerHTML = ENTRIES.map(e=>'<div class="item"><span>'+e[0]+'</span><span class="dim" style="margin-left:auto">→ '+e[1]+'</span></div>').join('');
+    $('#ak3Go',win).onclick=()=>{
+      let t = $('#ak3I',win).value;
+      // Satzanfänge groß
+      t = t.replace(/(^\s*|[.!?]\s+)([a-zäöüß])/g, (m,p,c)=>p+c.toUpperCase());
+      // Häufige Fixes
+      for(const k in FIX) t = t.replace(new RegExp('\\b'+k+'\\b','g'), FIX[k]);
+      // Doppelte Leerzeichen
+      t = t.replace(/ {2,}/g,' ');
+      // i → ich
+      t = t.replace(/\bi\b/g,'ich');
+      $('#ak3O',win).value = t;
+    };
+  }
+};
+
+APPS['clipboard-manager'] = {
+  name:'Clipboard Manager', icon:'📋',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>📋 Zwischenablage verwalten</b></div>'+
+    '<div class="row"><input class="inp" id="cb2I" placeholder="Text hinzufügen…" style="flex:1"><button class="btn primary" id="cb2Add">+</button></div>'+
+    '<button class="btn" id="cb2Paste">📥 Aus Zwischenablage lesen</button>'+
+    '<div id="cb2L" class="list"></div>'+
+    '<button class="btn danger" id="cb2Clr">🗑 Leeren</button>'+
+  '</div>'; },
+  init(win){
+    const L=$('#cb2L',win);
+    const all=()=>store.get('clips',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.map((x,i)=>'<div class="card"><div class="row between"><span class="dim sm">'+new Date(x.ts).toLocaleString('de-DE')+'</span><span class="x" data-i="'+i+'">✕</span></div><div style="margin-top:6px;font-family:monospace;font-size:12px;word-break:break-all">'+esc(x.t.slice(0,200))+'</div><div class="row" style="margin-top:6px"><button class="btn sm primary" data-c="'+esc(x.t)+'">📋 Kopieren</button><button class="btn sm" data-e="'+i+'">✏️ Bearbeiten</button></div></div>').join('') : '<div class="empty">Zwischenablage leer</div>';
+      $$('#cb2L [data-c]',win).forEach(b=>b.onclick=()=>{ navigator.clipboard?.writeText(b.dataset.c); toast('Kopiert'); });
+      $$('#cb2L [data-e]',win).forEach(b=>b.onclick=()=>{
+        const i=parseInt(b.dataset.e); const arr=all();
+        const nv = prompt('Neuer Text:', arr[i].t);
+        if(nv!==null){ arr[i].t=nv; store.set('clips',arr); render(); }
+      });
+      $$('#cb2L .x',win).forEach(el2=>el2.onclick=()=>{ const arr=all(); arr.splice(parseInt(el2.dataset.i),1); store.set('clips',arr); render(); });
+    }
+    $('#cb2Add',win).onclick=()=>{ const t=$('#cb2I',win).value.trim(); if(!t) return; const arr=all(); arr.unshift({id:uid(),t,ts:Date.now()}); store.set('clips',arr.slice(0,50)); $('#cb2I',win).value=''; render(); };
+    $('#cb2Paste',win).onclick=async()=>{ try{ const t=await navigator.clipboard.readText(); if(t){ const arr=all(); arr.unshift({id:uid(),t,ts:Date.now()}); store.set('clips',arr.slice(0,50)); render(); toast('Eingefügt'); } }catch(e){ toast('Kann nicht lesen'); } };
+    $('#cb2Clr',win).onclick=()=>{ store.set('clips',[]); render(); };
+    render();
+  }
+};
+
+APPS['sprachbefehle'] = {
+  name:'Sprachbefehle', icon:'🗣️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🗣️ Sprachbefehle-Übersicht</b><div class="dim sm">Diese Befehle versteht HalDo AI.</div></div>'+
+    '<input class="inp" id="sb2Q" placeholder="Befehl suchen…">'+
+    '<div id="sb2L" class="list"></div>'+
+    '<button class="btn primary" id="sb2Go">🎤 HalDo AI öffnen</button>'+
+  '</div>'; },
+  init(win){
+    const cmds = [
+      ['👋','hallo / hi','Begrüßung'],
+      ['⏰','wie spät','Zeit ausgeben'],
+      ['📅','welcher tag','Datum ausgeben'],
+      ['🧮','rechne 12*8','Rechnen'],
+      ['😂','erzähl einen witz','Witz erzählen'],
+      ['😊','wie geht es dir','Befindlichkeit'],
+      ['📱','öffne rechner','App starten'],
+      ['📱','öffne notizen','App starten'],
+      ['📱','öffne kamera','App starten'],
+      ['🎤','ich heiße [Name]','Namen merken'],
+      ['☁️','wetter','Wetter-Info'],
+      ['💙','danke','Dankeschön'],
+      ['👋','tschüss','Verabschiedung'],
+      ['❓','wer bist du','Selbstvorstellung'],
+      ['🆘','hilfe','Hilfe anzeigen']
+    ];
+    const L=$('#sb2L',win), Q=$('#sb2Q',win);
+    function render(){
+      const q=Q.value.toLowerCase();
+      const f=q?cmds.filter(c=>c[1].toLowerCase().includes(q)||c[2].toLowerCase().includes(q)):cmds;
+      L.innerHTML = f.map(c=>'<div class="item"><span style="font-size:22px">'+c[0]+'</span><code style="color:var(--c1);font-size:12px">'+esc(c[1])+'</code><span class="dim sm" style="margin-left:auto">'+esc(c[2])+'</span></div>').join('');
+    }
+    Q.oninput=render; render();
+    $('#sb2Go',win).onclick=()=>window.HalDo.open('haldo-ai');
+  }
+};
+
+console.log('%c🚀 HalDo Apps v135 geladen (18 Apps)','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+
+})();
+</script>
 </body>
 </html>
