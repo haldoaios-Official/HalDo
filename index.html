@@ -11796,5 +11796,601 @@ setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v12 · Wissen & Alltag · 10 Apps
+     ============================================================ -->
+<style id="v12-style">
+.v12-flash{
+  min-height:220px;display:flex;align-items:center;justify-content:center;
+  padding:24px;border-radius:20px;cursor:pointer;
+  background:linear-gradient(150deg,rgba(0,229,255,.14),rgba(180,120,255,.1));
+  border:1px solid rgba(0,229,255,.3);
+  font-size:24px;font-weight:700;text-align:center;
+  transition:.3s;user-select:none;
+}
+.v12-flash.flipped{background:linear-gradient(150deg,rgba(77,232,138,.14),rgba(0,120,200,.1));border-color:rgba(77,232,138,.4)}
+.v12-flash:hover{transform:scale(1.01)}
+.v12-emerg{
+  padding:14px 16px;border-radius:14px;margin-bottom:8px;
+  background:linear-gradient(90deg,rgba(224,59,90,.15),rgba(224,59,90,.03));
+  border-left:4px solid #e03b5a;
+}
+.v12-emerg .num{font-size:22px;font-weight:800;color:#ff9db1;font-family:monospace}
+.v12-emerg .lbl{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
+.v12-rec{
+  padding:14px;border-radius:14px;
+  background:linear-gradient(150deg,rgba(30,45,80,.6),rgba(14,22,50,.8));
+  border:1px solid rgba(120,180,255,.14);transition:.15s;
+}
+.v12-rec:hover{border-color:rgba(0,229,255,.3)}
+.v12-count{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.v12-count > div{text-align:center;padding:12px 4px;background:rgba(0,20,50,.5);border-radius:12px;border:1px solid rgba(120,180,255,.18)}
+.v12-count .n{font-size:26px;font-weight:800;color:var(--c1);font-variant-numeric:tabular-nums}
+.v12-count .l{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.v12-white{position:fixed;inset:0;background:#fff;z-index:9999;display:none;align-items:center;justify-content:center;cursor:pointer;color:#000;font-size:16px;font-weight:700}
+.v12-white.on{display:flex}
+.v12-lamp{
+  width:100%;aspect-ratio:1;max-width:280px;margin:0 auto;border-radius:50%;
+  background:radial-gradient(circle at 30% 30%, #fff, #ffe9a8 60%, #ffb03a 100%);
+  box-shadow:0 0 80px rgba(255,200,80,.6), inset -20px -20px 60px rgba(255,180,60,.5);
+  display:flex;align-items:center;justify-content:center;font-size:60px;
+}
+.v12-price{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.v12-price > div{text-align:center;padding:12px 4px;background:rgba(255,255,255,.03);border-radius:12px;border:1px solid rgba(120,180,255,.14)}
+.v12-price .n{font-size:18px;font-weight:800;color:var(--c1);font-variant-numeric:tabular-nums}
+.v12-price .l{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.v12-noise-btn{padding:14px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(120,180,255,.14);cursor:pointer;color:var(--txt);font-family:inherit;font-weight:600;font-size:13px;transition:.15s;width:100%}
+.v12-noise-btn:hover{background:rgba(0,229,255,.08);border-color:var(--c1)}
+.v12-noise-btn.on{background:linear-gradient(135deg,var(--c1),var(--c2));color:#02101e;border-color:var(--c1)}
+</style>
+
+<script>
+(function(){
+'use strict';
+var H = window.HalDo;
+if(!H || !H.APPS){ console.error('[v12] Foundation fehlt'); return; }
+var APPS = H.APPS;
+var esc=H.esc, uid=H.uid, store=H.store, toast=H.toast;
+
+/* ============================================================
+   1 · VOKABELTRAINER
+   ============================================================ */
+APPS['vokabeln'] = {
+  name:'Vokabeltrainer', icon:'📖',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📖 Vokabeltrainer</div><div class="dim sm">Karteikarten mit Wiederholung</div></div>'+
+      '<div class="row"><input class="v9-input" id="v12-vD" placeholder="Deutsch…" style="flex:1"><input class="v9-input" id="v12-vK" placeholder="Kurdisch / Fremdsprache…" style="flex:1"><button class="btn primary" id="v12-vA">+</button></div>'+
+      '<div class="row between"><span class="dim sm">Karte <b id="v12-vI" style="color:var(--c1)">0/0</b> · Gelernt: <b id="v12-vM" style="color:#4de88a">0</b></span><span class="dim sm" id="v12-vWarn">Richtig gezählt</span></div>'+
+      '<div class="v12-flash" id="v12-vF">Keine Karten · Füge welche hinzu</div>'+
+      '<div class="row"><button class="btn" id="v12-vShow" style="flex:1">👁 Umdrehen</button><button class="btn primary" id="v12-vOK" style="flex:1">✅ Richtig</button><button class="btn" id="v12-vNo" style="flex:1">❌ Nochmal</button></div>'+
+      '<details class="v9-card" style="padding:12px"><summary style="cursor:pointer;font-weight:700">📋 Alle Vokabeln</summary><div id="v12-vL" class="col" style="gap:6px;margin-top:8px"></div></details>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('vokabeln12',[]); }
+    var idx = 0, flipped = false;
+    function render(){
+      var a = all();
+      var F = win.querySelector('#v12-vF');
+      if(!a.length){ F.textContent = 'Keine Karten · Füge welche hinzu'; win.querySelector('#v12-vI').textContent = '0/0'; return; }
+      if(idx >= a.length) idx = 0;
+      var c = a[idx];
+      F.textContent = flipped ? c.k : c.d;
+      F.classList.toggle('flipped', flipped);
+      win.querySelector('#v12-vI').textContent = (idx+1) + '/' + a.length;
+      win.querySelector('#v12-vM').textContent = a.filter(function(x){ return x.ok; }).length;
+      win.querySelector('#v12-vL').innerHTML = a.map(function(x, i){
+        return '<div class="v9-row" style="cursor:pointer" data-i="'+i+'"><b style="flex:1">'+esc(x.d)+'</b><span class="dim sm">'+esc(x.k)+'</span>'+(x.ok?'<span style="color:#4de88a">✓</span>':'')+'<span class="x" data-del="'+x.id+'">✕</span></div>';
+      }).join('');
+      win.querySelectorAll('[data-i]').forEach(function(el){ el.onclick = function(e){ if(e.target.dataset.del) return; idx = parseInt(el.dataset.i); flipped = false; render(); }; });
+      win.querySelectorAll('[data-del]').forEach(function(x){ x.onclick = function(e){ e.stopPropagation(); store.set('vokabeln12', all().filter(function(v){ return v.id !== x.dataset.del; })); idx = 0; flipped = false; render(); }; });
+    }
+    win.querySelector('#v12-vA').onclick = function(){
+      var d = win.querySelector('#v12-vD').value.trim(), k = win.querySelector('#v12-vK').value.trim();
+      if(!d || !k) return;
+      var a = all(); a.push({id:uid(), d:d, k:k, ok:false});
+      store.set('vokabeln12', a);
+      win.querySelector('#v12-vD').value = ''; win.querySelector('#v12-vK').value = '';
+      render();
+    };
+    win.querySelector('#v12-vShow').onclick = win.querySelector('#v12-vF').onclick = function(){ flipped = !flipped; render(); };
+    win.querySelector('#v12-vOK').onclick = function(){ var a = all(); if(!a.length) return; a[idx].ok = true; store.set('vokabeln12', a); idx++; flipped = false; render(); };
+    win.querySelector('#v12-vNo').onclick = function(){ var a = all(); if(!a.length) return; a[idx].ok = false; store.set('vokabeln12', a); idx++; flipped = false; render(); };
+    render();
+  }
+};
+
+/* ============================================================
+   2 · WÖRTERBUCH (Kurdisch / Arabisch / Türkisch)
+   ============================================================ */
+APPS['woerterbuch'] = {
+  name:'Wörterbuch', icon:'🌍',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🌍 Mehrsprachen-Wörterbuch</div><div class="dim sm">Deutsch · Kurdisch (Kurmancî) · Türkisch · Arabisch · Englisch</div></div>'+
+      '<input class="v9-input" id="v12-wQ" placeholder="🔍 Suchen (Deutsch, Kurdisch, Englisch …)">'+
+      '<div class="row" id="v12-wT"><button class="v9-chip on" data-d="all">Alle</button><button class="v9-chip" data-d="begruessung">👋 Begrüßung</button><button class="v9-chip" data-d="zahlen">🔢 Zahlen</button><button class="v9-chip" data-d="familie">👨‍👩‍👧 Familie</button><button class="v9-chip" data-d="essen">🍽 Essen</button><button class="v9-chip" data-d="notfall">🚨 Notfall</button></div>'+
+      '<div id="v12-wL" class="col" style="gap:6px;max-height:60vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      {c:'begruessung', de:'Hallo', ku:'Silav', tr:'Merhaba', ar:'مرحبا', en:'Hello'},
+      {c:'begruessung', de:'Guten Morgen', ku:'Beyanî baş', tr:'Günaydın', ar:'صباح الخير', en:'Good morning'},
+      {c:'begruessung', de:'Guten Abend', ku:'Êvar baş', tr:'İyi akşamlar', ar:'مساء الخير', en:'Good evening'},
+      {c:'begruessung', de:'Wie geht es dir?', ku:'Tu çawa yî?', tr:'Nasılsın?', ar:'كيف حالك؟', en:'How are you?'},
+      {c:'begruessung', de:'Danke', ku:'Spas', tr:'Teşekkürler', ar:'شكرا', en:'Thank you'},
+      {c:'begruessung', de:'Bitte', ku:'Ji kerema xwe', tr:'Lütfen', ar:'من فضلك', en:'Please'},
+      {c:'begruessung', de:'Auf Wiedersehen', ku:'Bi xatirê te', tr:'Hoşça kal', ar:'مع السلامة', en:'Goodbye'},
+      {c:'zahlen', de:'Eins', ku:'Yek', tr:'Bir', ar:'واحد', en:'One'},
+      {c:'zahlen', de:'Zwei', ku:'Du', tr:'İki', ar:'اثنان', en:'Two'},
+      {c:'zahlen', de:'Drei', ku:'Sê', tr:'Üç', ar:'ثلاثة', en:'Three'},
+      {c:'zahlen', de:'Vier', ku:'Çar', tr:'Dört', ar:'أربعة', en:'Four'},
+      {c:'zahlen', de:'Fünf', ku:'Pênc', tr:'Beş', ar:'خمسة', en:'Five'},
+      {c:'zahlen', de:'Zehn', ku:'Deh', tr:'On', ar:'عشرة', en:'Ten'},
+      {c:'zahlen', de:'Hundert', ku:'Sed', tr:'Yüz', ar:'مئة', en:'Hundred'},
+      {c:'familie', de:'Mutter', ku:'Dayik', tr:'Anne', ar:'أم', en:'Mother'},
+      {c:'familie', de:'Vater', ku:'Bav', tr:'Baba', ar:'أب', en:'Father'},
+      {c:'familie', de:'Bruder', ku:'Bira', tr:'Kardeş', ar:'أخ', en:'Brother'},
+      {c:'familie', de:'Schwester', ku:'Xwişk', tr:'Kız kardeş', ar:'أخت', en:'Sister'},
+      {c:'familie', de:'Sohn', ku:'Kur', tr:'Oğul', ar:'ابن', en:'Son'},
+      {c:'familie', de:'Tochter', ku:'Keç', tr:'Kız', ar:'ابنة', en:'Daughter'},
+      {c:'familie', de:'Kind', ku:'Zarok', tr:'Çocuk', ar:'طفل', en:'Child'},
+      {c:'essen', de:'Wasser', ku:'Av', tr:'Su', ar:'ماء', en:'Water'},
+      {c:'essen', de:'Brot', ku:'Nan', tr:'Ekmek', ar:'خبز', en:'Bread'},
+      {c:'essen', de:'Tee', ku:'Çay', tr:'Çay', ar:'شاي', en:'Tea'},
+      {c:'essen', de:'Kaffee', ku:'Qehwe', tr:'Kahve', ar:'قهوة', en:'Coffee'},
+      {c:'essen', de:'Fleisch', ku:'Goşt', tr:'Et', ar:'لحم', en:'Meat'},
+      {c:'essen', de:'Reis', ku:'Birinc', tr:'Pirinç', ar:'أرز', en:'Rice'},
+      {c:'notfall', de:'Hilfe!', ku:'Alîkarî!', tr:'Yardım!', ar:'مساعدة!', en:'Help!'},
+      {c:'notfall', de:'Arzt', ku:'Bijîşk', tr:'Doktor', ar:'طبيب', en:'Doctor'},
+      {c:'notfall', de:'Krankenhaus', ku:'Nexweşxane', tr:'Hastane', ar:'مستشفى', en:'Hospital'},
+      {c:'notfall', de:'Polizei', ku:'Polîs', tr:'Polis', ar:'شرطة', en:'Police'},
+      {c:'notfall', de:'Notfall', ku:'Rewşa awarte', tr:'Acil durum', ar:'طارئ', en:'Emergency'},
+      {c:'notfall', de:'Ich brauche Hilfe', ku:'Ez alîkariyê dixwazim', tr:'Yardıma ihtiyacım var', ar:'أحتاج مساعدة', en:'I need help'}
+    ];
+    var Q = win.querySelector('#v12-wQ'), curCat = 'all';
+    function render(){
+      var q = Q.value.toLowerCase();
+      var f = D.filter(function(x){
+        if(curCat !== 'all' && x.c !== curCat) return false;
+        if(!q) return true;
+        return (x.de+' '+x.ku+' '+x.tr+' '+x.ar+' '+x.en).toLowerCase().indexOf(q) >= 0;
+      });
+      win.querySelector('#v12-wL').innerHTML = f.map(function(x){
+        return '<div class="v12-rec"><div class="row between"><b style="font-size:15px">🇩🇪 '+esc(x.de)+'</b></div>'+
+          '<div style="margin-top:8px;display:grid;gap:4px;font-size:13px">'+
+          '<div>🟡 <b style="color:var(--c1)">'+esc(x.ku)+'</b> <span class="dim sm">Kurmancî</span></div>'+
+          '<div>🇹🇷 '+esc(x.tr)+' <span class="dim sm">Türkçe</span></div>'+
+          '<div>🇸🇦 '+esc(x.ar)+' <span class="dim sm">العربية</span></div>'+
+          '<div>🇬🇧 '+esc(x.en)+' <span class="dim sm">English</span></div>'+
+          '</div></div>';
+      }).join('') || '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput = render;
+    win.querySelectorAll('#v12-wT [data-d]').forEach(function(b){
+      b.onclick = function(){
+        curCat = b.dataset.d;
+        win.querySelectorAll('#v12-wT [data-d]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        render();
+      };
+    });
+    render();
+  }
+};
+
+/* ============================================================
+   3 · ERSTE HILFE
+   ============================================================ */
+APPS['erstehilfe'] = {
+  name:'Erste Hilfe', icon:'🚨',
+  render: function(){
+    var NOTRUF = [
+      ['112','Europaweit · Feuerwehr + Rettung','#e03b5a'],
+      ['110','Polizei Deutschland','#3b6ee0'],
+      ['116 117','Ärztlicher Bereitschaftsdienst','#4de88a'],
+      ['122','Feuerwehr Österreich','#e03b5a'],
+      ['144','Rettung Österreich','#e03b5a'],
+      ['144','Rettung Schweiz','#e03b5a']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🚨 Erste Hilfe & Notruf</div><div class="dim sm">Sofort-Hilfe-Anleitung</div></div>'+
+      '<div class="col" style="gap:8px">'+
+        NOTRUF.map(function(n){
+          return '<a href="tel:'+n[0].replace(/\s/g,'')+'" style="text-decoration:none;color:inherit"><div class="v12-emerg" style="border-left-color:'+n[2]+'"><div class="num" style="color:'+n[2]+'">📞 '+n[0]+'</div><div class="lbl">'+n[1]+'</div></div></a>';
+        }).join('')+
+      '</div>'+
+      '<details class="v9-card" style="padding:14px"><summary style="cursor:pointer;font-weight:800;font-size:15px">💓 Herz-Lungen-Wiederbelebung</summary><div class="dim sm" style="margin-top:10px;line-height:1.8">1️⃣ <b>Prüfen:</b> Ansprechen, rütteln, Atmung prüfen.<br>2️⃣ <b>Notruf:</b> 112 anrufen oder anrufen lassen.<br>3️⃣ <b>Drücken:</b> Mitte Brustkorb, 5-6 cm tief, 100-120×/Min.<br>4️⃣ <b>Nicht aufhören</b> bis Rettung kommt.<br>5️⃣ <b>AED</b> holen lassen falls vorhanden.</div></details>'+
+      '<details class="v9-card" style="padding:14px"><summary style="cursor:pointer;font-weight:800;font-size:15px">🩸 Starke Blutung</summary><div class="dim sm" style="margin-top:10px;line-height:1.8">1️⃣ <b>Druck:</b> Mit Hand/Finger direkt auf Wunde.<br>2️⃣ <b>Verband:</b> Druckverband anlegen.<br>3️⃣ <b>Hochlagern</b> falls möglich.<br>4️⃣ <b>112</b> anrufen.<br>5️⃣ <b>Schocklage:</b> Beine erhöht, warm halten.</div></details>'+
+      '<details class="v9-card" style="padding:14px"><summary style="cursor:pointer;font-weight:800;font-size:15px">🔥 Verbrennung</summary><div class="dim sm" style="margin-top:10px;line-height:1.8">1️⃣ <b>Kühlen:</b> 10-15 Min mit lauwarmem Wasser (max. 20 °C).<br>2️⃣ <b>Nicht:</b> Eis, Mehl, Öl, Pflaster.<br>3️⃣ <b>Abdecken:</b> Sterile Folie oder Tuch.<br>4️⃣ <b>Arzt</b> bei >Handfläche oder Gesicht.</div></details>'+
+      '<details class="v9-card" style="padding:14px"><summary style="cursor:pointer;font-weight:800;font-size:15px">🫁 Ersticken / Verschlucken</summary><div class="dim sm" style="margin-top:10px;line-height:1.8">1️⃣ <b>Husten lassen</b> wenn möglich.<br>2️⃣ <b>5× Rücken</b> zwischen Schulterblätter.<br>3️⃣ <b>5× Heimlich:</b> Faust zwischen Nabel, kräftig drücken.<br>4️⃣ Abwechseln bis Objekt raus.<br>5️⃣ <b>112</b> falls bewusstlos.</div></details>'+
+      '<details class="v9-card" style="padding:14px"><summary style="cursor:pointer;font-weight:800;font-size:15px">⚡ Schock / Ohnmacht</summary><div class="dim sm" style="margin-top:10px;line-height:1.8">1️⃣ <b>Beine hoch:</b> 30 cm anheben.<br>2️⃣ <b>Warm halten:</b> Decke, Jacke.<br>3️⃣ <b>Beruhigen</b>, nicht allein lassen.<br>4️⃣ <b>Nichts zu trinken</b> geben.<br>5️⃣ <b>112</b> bei Bewusstlosigkeit.</div></details>'+
+      '<div class="v9-card" style="background:rgba(255,176,58,.08);border-color:#ffb03a"><b>⚠️ Wichtig</b><div class="dim sm" style="margin-top:6px">Diese Anleitungen ersetzen keinen Erste-Hilfe-Kurs. Bei Unsicherheit immer 112 anrufen.</div></div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* ============================================================
+   4 · REZEPTE
+   ============================================================ */
+APPS['rezepte'] = {
+  name:'Rezepte', icon:'🍽️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🍽️ Rezept-Sammlung</div><div class="dim sm">Eigene Rezepte verwalten</div></div>'+
+      '<input class="v9-input" id="v12-rT" placeholder="Rezeptname (z.B. Linsensuppe)…">'+
+      '<div class="row"><input class="v9-input" id="v12-rZ" type="number" placeholder="Portionen" value="4" style="width:110px"><input class="v9-input" id="v12-rD" type="number" placeholder="Minuten" value="30" style="width:110px"><select class="v9-input" id="v12-rK" style="flex:1"><option>🥗 Vegetarisch</option><option>🍖 Fleisch</option><option>🐟 Fisch</option><option>🍝 Pasta</option><option>🍰 Dessert</option><option>☕ Getränk</option></select></div>'+
+      '<textarea class="ta" id="v12-rB" style="min-height:120px" placeholder="Zutaten & Zubereitung…&#10;&#10;Zutaten:&#10;- 250g Linsen&#10;- 1 Zwiebel&#10;&#10;Zubereitung:&#10;1. Zwiebel anbraten…"></textarea>'+
+      '<button class="btn primary" id="v12-rS">💾 Rezept speichern</button>'+
+      '<input class="v9-input" id="v12-rQ" placeholder="🔍 Suchen…">'+
+      '<div id="v12-rL" class="col" style="gap:8px;max-height:50vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('recipes12',[]); }
+    function render(){
+      var q = win.querySelector('#v12-rQ').value.toLowerCase();
+      var a = all().filter(function(x){ return !q || (x.t+' '+x.b).toLowerCase().indexOf(q) >= 0; });
+      win.querySelector('#v12-rL').innerHTML = a.length ? a.map(function(r){
+        return '<details class="v12-rec"><summary style="cursor:pointer;font-weight:800"><span>'+esc(r.t)+'</span> <span class="dim sm" style="float:right;font-weight:500;margin-right:20px">'+esc(r.k)+' · '+r.d+' min · '+r.z+' Port.</span></summary><div class="dim sm" style="margin-top:8px;white-space:pre-wrap;line-height:1.6">'+esc(r.b)+'</div><button class="btn sm" data-del="'+r.id+'" style="margin-top:8px">🗑 Löschen</button></details>';
+      }).join('') : '<div class="empty">Keine Rezepte</div>';
+      win.querySelectorAll('[data-del]').forEach(function(b){ b.onclick = function(){ store.set('recipes12', all().filter(function(v){ return v.id !== b.dataset.del; })); render(); }; });
+    }
+    win.querySelector('#v12-rS').onclick = function(){
+      var t = win.querySelector('#v12-rT').value.trim(); if(!t) return toast('Name fehlt');
+      var a = all();
+      a.unshift({id:uid(), t:t, z:win.querySelector('#v12-rZ').value||'4', d:win.querySelector('#v12-rD').value||'30', k:win.querySelector('#v12-rK').value, b:win.querySelector('#v12-rB').value, ts:Date.now()});
+      store.set('recipes12', a.slice(0,100));
+      ['v12-rT','v12-rB'].forEach(function(id){ win.querySelector('#'+id).value = ''; });
+      render(); toast('✅ Rezept gespeichert');
+    };
+    win.querySelector('#v12-rQ').oninput = render;
+    render();
+  }
+};
+
+/* ============================================================
+   5 · COUNTDOWN
+   ============================================================ */
+APPS['countdown'] = {
+  name:'Countdown', icon:'⏳',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">⏳ Countdown</div><div class="dim sm">Tage bis zu deinem Event</div></div>'+
+      '<input class="v9-input" id="v12-cT" placeholder="Event (Geburtstag, Hochzeit, Reise…)">'+
+      '<input class="v9-input" id="v12-cD" type="datetime-local">'+
+      '<button class="btn primary" id="v12-cA">🎯 Event anlegen</button>'+
+      '<div id="v12-cL" class="col" style="gap:10px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('countdowns12',[]); }
+    var int = null;
+    function render(){
+      var a = all().sort(function(x,y){ return new Date(x.d) - new Date(y.d); });
+      var now = Date.now();
+      win.querySelector('#v12-cL').innerHTML = a.length ? a.map(function(x){
+        var d = new Date(x.d) - now;
+        if(d < 0){
+          return '<div class="v9-card" style="padding:12px"><div class="row between"><b>'+esc(x.t)+'</b><span class="x" data-id="'+x.id+'">✕</span></div><div class="dim sm" style="margin-top:4px">✅ Vorbei</div></div>';
+        }
+        var t = Math.floor(d/1000);
+        var days = Math.floor(t/86400); t %= 86400;
+        var h = Math.floor(t/3600); t %= 3600;
+        var m = Math.floor(t/60); var s = t % 60;
+        return '<div class="v9-card" style="padding:12px"><div class="row between" style="margin-bottom:8px"><b>'+esc(x.t)+'</b><span class="x" data-id="'+x.id+'">✕</span></div><div class="v12-count"><div><div class="n">'+days+'</div><div class="l">Tage</div></div><div><div class="n">'+h+'</div><div class="l">Std</div></div><div><div class="n">'+m+'</div><div class="l">Min</div></div><div><div class="n">'+s+'</div><div class="l">Sek</div></div></div><div class="dim sm" style="margin-top:8px;text-align:center">'+new Date(x.d).toLocaleString('de-DE')+'</div></div>';
+      }).join('') : '<div class="empty">Keine Events</div>';
+      win.querySelectorAll('.x').forEach(function(b){ b.onclick = function(){ store.set('countdowns12', all().filter(function(v){ return v.id !== b.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v12-cA').onclick = function(){
+      var t = win.querySelector('#v12-cT').value.trim(), d = win.querySelector('#v12-cD').value;
+      if(!t || !d) return toast('Name + Datum');
+      var a = all(); a.push({id:uid(), t:t, d:d}); store.set('countdowns12', a);
+      win.querySelector('#v12-cT').value = ''; win.querySelector('#v12-cD').value = '';
+      render();
+    };
+    render();
+    int = setInterval(render, 1000);
+    win.addEventListener('remove', function(){ clearInterval(int); });
+  }
+};
+
+/* ============================================================
+   6 · WEISSES RAUSCHEN
+   ============================================================ */
+APPS['rauschen'] = {
+  name:'Weißes Rauschen', icon:'🎵',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎵 Weißes Rauschen</div><div class="dim sm">Einschlafen · Konzentration · Entspannung</div></div>'+
+      '<div class="v9-card"><b>🔊 Sound wählen</b><div class="dim sm" style="margin-top:6px">Klicke einen Sound zum Starten.</div></div>'+
+      '<div class="col" style="gap:8px">'+
+        '<button class="v12-noise-btn" data-n="white">🌫️ Weißes Rauschen</button>'+
+        '<button class="v12-noise-btn" data-n="pink">🌸 Rosa Rauschen</button>'+
+        '<button class="v12-noise-btn" data-n="brown">🟤 Braunes Rauschen</button>'+
+        '<button class="v12-noise-btn" data-n="rain">🌧️ Regen</button>'+
+        '<button class="v12-noise-btn" data-n="brown_noise_low">🌊 Meeresrauschen</button>'+
+      '</div>'+
+      '<label class="lbl">🔉 Lautstärke: <b id="v12-nV" style="color:var(--c1)">30</b>%</label>'+
+      '<input type="range" id="v12-nR" min="0" max="100" value="30" style="width:100%;accent-color:var(--c1)">'+
+      '<button class="btn" id="v12-nStop" style="width:100%">⏹ Stop</button>'+
+      '<div class="dim sm center">💡 Nutze Kopfhörer für beste Wirkung</div>'+
+    '</div>';
+  },
+  init: function(win){
+    var ctx = null, src = null, gain = null, current = null;
+    var R = win.querySelector('#v12-nR'), V = win.querySelector('#v12-nV');
+    R.oninput = function(){ V.textContent = R.value; if(gain) gain.gain.value = (parseFloat(R.value)/100) * 0.5; };
+    function makeNoise(type){
+      var bufferSize = 2 * ctx.sampleRate;
+      var buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      var data = buffer.getChannelData(0);
+      if(type === 'white'){
+        for(var i=0;i<bufferSize;i++) data[i] = Math.random()*2 - 1;
+      } else if(type === 'pink'){
+        var b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+        for(var i=0;i<bufferSize;i++){
+          var w = Math.random()*2 - 1;
+          b0 = 0.99886*b0 + w*0.0555179;
+          b1 = 0.99332*b1 + w*0.0750759;
+          b2 = 0.96900*b2 + w*0.1538520;
+          b3 = 0.86650*b3 + w*0.3104856;
+          b4 = 0.55000*b4 + w*0.5329522;
+          b5 = -0.7616*b5 - w*0.0168980;
+          data[i] = (b0+b1+b2+b3+b4+b5+b6+w*0.5362) * 0.11;
+          b6 = w*0.115926;
+        }
+      } else if(type === 'brown'){
+        var last = 0;
+        for(var i=0;i<bufferSize;i++){
+          var w = Math.random()*2 - 1;
+          last = (last + 0.02*w) / 1.02;
+          data[i] = last * 3.5;
+        }
+      } else if(type === 'rain'){
+        for(var i=0;i<bufferSize;i++){
+          var w = Math.random()*2 - 1;
+          data[i] = w * (Math.random() < 0.3 ? 0.8 : 0.3);
+        }
+      } else if(type === 'brown_noise_low'){
+        var last = 0;
+        for(var i=0;i<bufferSize;i++){
+          var w = Math.random()*2 - 1;
+          last = (last + 0.005*w) / 1.005;
+          data[i] = last * 5;
+        }
+      }
+      return buffer;
+    }
+    function stop(){
+      if(src){ try{ src.stop(); }catch(e){} src = null; }
+      if(current){ win.querySelectorAll('[data-n]').forEach(function(b){ b.classList.toggle('on', b.dataset.n === current); }); current = null; win.querySelectorAll('[data-n]').forEach(function(b){ b.classList.remove('on'); }); }
+    }
+    win.querySelectorAll('[data-n]').forEach(function(b){
+      b.onclick = function(){
+        var t = b.dataset.n;
+        if(current === t){ stop(); return; }
+        stop();
+        if(!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+        var buf = makeNoise(t);
+        src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.loop = true;
+        gain = ctx.createGain();
+        gain.gain.value = (parseFloat(R.value)/100) * 0.5;
+        src.connect(gain); gain.connect(ctx.destination);
+        src.start();
+        current = t;
+        win.querySelectorAll('[data-n]').forEach(function(x){ x.classList.toggle('on', x === b); });
+      };
+    });
+    win.querySelector('#v12-nStop').onclick = stop;
+    win.addEventListener('remove', stop);
+  }
+};
+
+/* ============================================================
+   7 · TASCHENLAMPE
+   ============================================================ */
+APPS['taschenlampe'] = {
+  name:'Taschenlampe', icon:'🔆',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🔆 Taschenlampe</div><div class="dim sm">Bildschirm als Lichtquelle</div></div>'+
+      '<div class="v12-lamp">🔆</div>'+
+      '<button class="btn primary" id="v12-tA" style="width:100%">▶ Bildschirm hell machen</button>'+
+      '<div class="v9-card"><b>💡 So funktioniert\'s</b><div class="dim sm" style="margin-top:6px">• Bildschirm wird komplett weiß<br>• Maximale Helligkeit manuell einstellen<br>• Zurück: Bildschirm berühren oder ESC</div></div>'+
+      '<div class="dim sm center">📱 Praktisch im Dunkeln, beim Zelten oder als Notlicht</div>'+
+    '</div>';
+  },
+  init: function(win){
+    var overlay = document.createElement('div');
+    overlay.className = 'v12-white';
+    overlay.textContent = '🔆 Tippen zum Schließen';
+    overlay.onclick = function(){ overlay.classList.remove('on'); };
+    document.body.appendChild(overlay);
+    win.querySelector('#v12-tA').onclick = function(){
+      overlay.classList.add('on');
+    };
+    win.addEventListener('remove', function(){ overlay.remove(); });
+  }
+};
+
+/* ============================================================
+   8 · STUNDENLOHN-RECHNER
+   ============================================================ */
+APPS['stundenlohn'] = {
+  name:'Stundenlohn-Rechner', icon:'💶',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💶 Stundenlohn-Rechner</div><div class="dim sm">Brutto ↔ Netto ↔ Stundenlohn</div></div>'+
+      '<label class="lbl">Gehalt (€/Monat, Brutto)</label>'+
+      '<input class="v9-input" id="v12-sG" type="number" value="3000">'+
+      '<label class="lbl" style="margin-top:8px">Stunden / Woche</label>'+
+      '<input class="v9-input" id="v12-sH" type="number" value="40">'+
+      '<label class="lbl" style="margin-top:8px">Steuerklasse / Schätzung</label>'+
+      '<select class="v9-input" id="v12-sSt">'+
+        '<option value="0.65">💼 Angestellt (ca. 65 % netto)</option>'+
+        '<option value="0.72">🎓 Student/Werkstudent</option>'+
+        '<option value="0.78">📋 Minijob (pauschal)</option>'+
+        '<option value="0.55">💰 Selbstständig (Schätzung)</option>'+
+      '</select>'+
+      '<button class="btn primary" id="v12-sGo">▶ Berechnen</button>'+
+      '<div class="v12-price">'+
+        '<div><div class="n" id="v12-sO1">–</div><div class="l">€/Stunde brutto</div></div>'+
+        '<div><div class="n" id="v12-sO2">–</div><div class="l">€/Stunde netto</div></div>'+
+        '<div><div class="n" id="v12-sO3">–</div><div class="l">€/Monat netto</div></div>'+
+      '</div>'+
+      '<div class="v12-price" style="grid-template-columns:repeat(2,1fr)">'+
+        '<div><div class="n" id="v12-sO4">–</div><div class="l">€/Jahr brutto</div></div>'+
+        '<div><div class="n" id="v12-sO5">–</div><div class="l">€/Stunde Ø</div></div>'+
+      '</div>'+
+      '<div class="dim sm center">⚠️ Nur Schätzung. Verbindlich: Gehaltsrechner.de</div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v12-sGo').onclick = function(){
+      var g = parseFloat(win.querySelector('#v12-sG').value) || 0;
+      var h = parseFloat(win.querySelector('#v12-sH').value) || 40;
+      var f = parseFloat(win.querySelector('#v12-sSt').value) || 0.65;
+      var stundenMonat = h * 4.33;
+      var bruttoStd = g / stundenMonat;
+      var nettoMonat = g * f;
+      var nettoStd = nettoMonat / stundenMonat;
+      win.querySelector('#v12-sO1').textContent = bruttoStd.toFixed(2);
+      win.querySelector('#v12-sO2').textContent = nettoStd.toFixed(2);
+      win.querySelector('#v12-sO3').textContent = nettoMonat.toFixed(0);
+      win.querySelector('#v12-sO4').textContent = (g * 12).toFixed(0);
+      win.querySelector('#v12-sO5').textContent = ((g*12) / (h*52)).toFixed(2);
+    };
+    win.querySelector('#v12-sGo').click();
+  }
+};
+
+/* ============================================================
+   9 · MIET-RECHNER
+   ============================================================ */
+APPS['mietrechner'] = {
+  name:'Miet-Recher', icon:'🏘️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🏘️ Miet-Recher</div><div class="dim sm">Warmmiete · Nebenkosten · Kaution</div></div>'+
+      '<div class="row"><input class="v9-input" id="v12-mQ" type="number" placeholder="Wohnfläche m²" value="70" style="flex:1"><input class="v9-input" id="v12-mP" type="number" placeholder="€/m²" value="12" style="flex:1"></div>'+
+      '<input class="v9-input" id="v12-mN" type="number" placeholder="Nebenkosten €/Monat (Schätzung leer lassen)" value="">'+
+      '<input class="v9-input" id="v12-mH" type="number" placeholder="Heizkosten €/Monat" value="80">'+
+      '<button class="btn primary" id="v12-mGo">▶ Berechnen</button>'+
+      '<div class="v9-stat"><div class="v" id="v12-mO1">–</div><div class="l">Kaltmiete</div></div>'+
+      '<div class="v9-stat"><div class="v" id="v12-mO2">–</div><div class="l">Warmmiete</div></div>'+
+      '<div class="row"><div class="v9-stat" style="flex:1"><div class="v" id="v12-mO3">–</div><div class="l">Kaution (3 MM)</div></div><div class="v9-stat" style="flex:1"><div class="v" id="v12-mO4">–</div><div class="l">Jahreskosten</div></div></div>'+
+      '<div class="v9-card"><b>💡 Faustregeln</b><div class="dim sm" style="margin-top:6px">• Miete max. 30 % vom Netto<br>• Kaution meist 3 Nettokaltmieten<br>• Nebenkosten ~ 2-3 €/m²<br>• Bei >15 €/m²: teuer</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v12-mGo').onclick = function(){
+      var q = parseFloat(win.querySelector('#v12-mQ').value) || 0;
+      var p = parseFloat(win.querySelector('#v12-mP').value) || 0;
+      var n = parseFloat(win.querySelector('#v12-mN').value);
+      var h = parseFloat(win.querySelector('#v12-mH').value) || 0;
+      var kalt = q * p;
+      if(isNaN(n)) n = q * 2.5;
+      var warm = kalt + n + h;
+      win.querySelector('#v12-mO1').textContent = kalt.toFixed(0) + ' €';
+      win.querySelector('#v12-mO2').textContent = warm.toFixed(0) + ' €';
+      win.querySelector('#v12-mO3').textContent = (kalt * 3).toFixed(0) + ' €';
+      win.querySelector('#v12-mO4').textContent = (warm * 12).toFixed(0) + ' €';
+    };
+    win.querySelector('#v12-mGo').click();
+  }
+};
+
+/* ============================================================
+   10 · SPRICHWÖRTER & WITZE
+   ============================================================ */
+APPS['sprueche'] = {
+  name:'Sprüche & Witze', icon:'😄',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">😄 Sprüche & Witze</div><div class="dim sm">Kurze Sprüche, Witze & Weisheiten</div></div>'+
+      '<div class="row" id="v12-spT">'+
+        '<button class="v9-chip on" data-c="witze">😂 Witze</button>'+
+        '<button class="v9-chip" data-c="motivation">💪 Motivation</button>'+
+        '<button class="v9-chip" data-c="weisheit">🦉 Weisheiten</button>'+
+        '<button class="v9-chip" data-c="kurdisch">🦚 Kurdische Sprüche</button>'+
+      '</div>'+
+      '<div class="v9-card" id="v12-spB" style="min-height:140px;padding:24px;text-align:center;font-size:16px;line-height:1.7;display:flex;align-items:center;justify-content:center">Klicke auf "Neu" für einen Spruch</div>'+
+      '<div class="row"><button class="btn primary" id="v12-spN" style="flex:1">🔄 Neu</button><button class="btn" id="v12-spC" style="flex:1">📋 Kopieren</button></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = {
+      witze: [
+        'Was macht ein Pirat auf einem Segelflugzeug? — Kaperfahrt in der Luft.',
+        'Treffen sich zwei Jäger. Beide tot.',
+        'Was ist orange und läuft durch den Wald? — Eine Wanderine.',
+        'Wie nennt man einen Bumerang, der nicht zurückkommt? — Stock.',
+        'Was liegt am Strand und redet undeutlich? — Eine Nuschel.',
+        'Zwei Kaffeebohnen unterhalten sich. Sagt die eine: "Ich bin so müde." Sagt die andere: "Dann lass uns zum Filter gehen."',
+        'Warum können Geister so schlecht lügen? — Weil man durch sie hindurchsieht.',
+        'Was sagt ein Genie, wenn es zwei Genies trifft? — "Hi, Genies!"'
+      ],
+      motivation: [
+        'Der einzige Weg, großartige Arbeit zu leisten, ist zu lieben, was du tust. — Steve Jobs',
+        'Erfolg ist die Summe kleiner Anstrengungen, die Tag für Tag wiederholt werden.',
+        'Wenn du es träumen kannst, kannst du es auch tun. — Walt Disney',
+        'Der beste Zeitpunkt, einen Baum zu pflanzen, war vor 20 Jahren. Der zweitbeste ist jetzt.',
+        'Scheitern ist die Würze, die dem Erfolg seinen Geschmack gibt. — Truman Capote',
+        'Du musst nicht großartig sein, um anzufangen. Aber du musst anfangen, um großartig zu werden.'
+      ],
+      weisheit: [
+        'Wer immer tut, was er schon kann, bleibt immer das, was er schon ist. — Henry Ford',
+        'Das Glück deines Lebens hängt von der Beschaffenheit deiner Gedanken ab. — Marcus Aurelius',
+        'Man sieht nur mit dem Herzen gut. Das Wesentliche ist für die Augen unsichtbar. — Saint-Exupéry',
+        'Die Zeit heilt keine Wunden. Man gewöhnt sich nur an den Schmerz.',
+        'Wer nicht mit der Zeit geht, geht mit der Zeit.',
+        'Das Leben ist wie ein Fahrrad. Man muss sich vorwärts bewegen, um das Gleichgewicht zu halten. — Einstein'
+      ],
+      kurdisch: [
+        'Kes nebêje "av heye" heya ku tu xwe negihîjî serê kaniyê. — Sag nicht "es gibt Wasser", bis du an die Quelle kommst.',
+        'Zimanê mirov nasnameya wî ye. — Die Sprache eines Menschen ist seine Identität.',
+        'Rojekê roj jî hiltê. — Eines Tages geht auch die Sonne auf.',
+        'Bi hev re em bi hêz in. — Zusammen sind wir stark.',
+        'Welatê bê ziman, welatê bê kes e. — Ein Land ohne Sprache ist ein Land ohne Menschen.',
+        'Êzîdî ne tenê ne, bi hev re ne. — Êzîdî sind nicht allein, sie sind zusammen.',
+        'Keç û kur, herdu jî ronahiya malê ne. — Töchter und Söhne, beide sind das Licht des Hauses.'
+      ]
+    };
+    var cur = 'witze', last = -1;
+    function pick(){
+      var arr = D[cur];
+      var i = Math.floor(Math.random()*arr.length);
+      if(arr.length > 1 && i === last) i = (i+1) % arr.length;
+      last = i;
+      win.querySelector('#v12-spB').textContent = arr[i];
+    }
+    win.querySelectorAll('#v12-spT [data-c]').forEach(function(b){
+      b.onclick = function(){
+        cur = b.dataset.c;
+        win.querySelectorAll('#v12-spT [data-c]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        pick();
+      };
+    });
+    win.querySelector('#v12-spN').onclick = pick;
+    win.querySelector('#v12-spC').onclick = function(){
+      var t = win.querySelector('#v12-spB').textContent;
+      if(navigator.clipboard){ navigator.clipboard.writeText(t).then(function(){ toast('📋 Kopiert'); }); }
+    };
+    pick();
+  }
+};
+
+console.log('%c📦 v12 geladen — Wissen & Alltag · 10 Apps','background:linear-gradient(90deg,#4de88a,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('Aktive Apps:', Object.keys(APPS).length);
+
+setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click(); }, 150);
+
+})();
+</script>
 </body>
 </html>
