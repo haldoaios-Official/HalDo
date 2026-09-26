@@ -6000,5 +6000,347 @@ setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · Block 5 · MediaPipe Handgesten-Steuerung
+     Echte Hand vor Kamera = Maus + Klick
+     ============================================================ -->
+<script>
+(function(){
+'use strict';
+var H = window.HalDo;
+if(!H || !H.APPS){ console.error('[Block 5] Foundation fehlt'); return; }
+
+/* ============================================================
+   1. GESTURE CONTROLLER — MediaPipe HandLandmarker
+   ============================================================ */
+var GestureController = {
+  video: null,
+  canvas: null,
+  ctx: null,
+  landmarker: null,
+  running: false,
+  lastVideoTime: -1,
+  cursor: {x: 0.5, y: 0.5},
+  pinchActive: false,
+  pinchStart: 0,
+  smoothX: 0.5,
+  smoothY: 0.5,
+  onAction: null,
+  hoverEl: null,
+  hoverStart: 0,
+
+  async init(videoEl, canvasEl){
+    this.video = videoEl;
+    this.canvas = canvasEl;
+    this.ctx = canvasEl.getContext('2d');
+
+    try {
+      /* 1. MediaPipe WASM laden */
+      const vision = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+      );
+
+      /* 2. HandLandmarker erstellen */
+      this.landmarker = await HandLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+          delegate: "GPU"
+        },
+        runningMode: "VIDEO",
+        numHands: 1,
+        minHandDetectionConfidence: 0.5,
+        minHandPresenceConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      });
+
+      /* 3. Webcam starten */
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 640, height: 480, facingMode: 'user' }
+      });
+      this.video.srcObject = stream;
+      await this.video.play();
+
+      /* 4. Canvas-Größe anpassen */
+      this.canvas.width = 640;
+      this.canvas.height = 480;
+
+      this.running = true;
+      this.detectLoop();
+      H.toast('✋ Handsteuerung aktiv');
+
+    } catch(err) {
+      console.error('[Gestures]', err);
+      H.toast('⚠️ Handsteuerung nicht verfügbar');
+    }
+  },
+
+  stop(){
+    this.running = false;
+    if(this.video && this.video.srcObject){
+      this.video.srcObject.getTracks().forEach(t => t.stop());
+    }
+    if(this.landmarker){ try{ this.landmarker.close(); }catch(e){} }
+  },
+
+  /* Hauptschleife */
+  detectLoop(){
+    if(!this.running) return;
+
+    const v = this.video;
+    if(v.readyState >= 2){
+      const now = performance.now();
+      if(this.lastVideoTime !== v.currentTime){
+        this.lastVideoTime = v.currentTime;
+
+        try {
+          const result = this.landmarker.detectForVideo(v, now);
+          this.drawOverlay(v, result);
+          this.processHand(result);
+        } catch(e) {}
+      }
+    }
+    requestAnimationFrame(() => this.detectLoop());
+  },
+
+  /* Hand → Cursor */
+  processHand(result){
+    const ctx = this.ctx;
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    if(!result || !result.landmarks || !result.landmarks.length){
+      this.pinchActive = false;
+      this.hoverEl = null;
+      return;
+    }
+
+    const lm = result.landmarks[0]; // 21 Punkte
+
+    /* Zeigefinger-Spitze = Punkt 8, Daumen-Spitze = Punkt 4 */
+    const indexTip = lm[8];
+    const thumbTip = lm[4];
+
+    /* Bildschirm-Koordinaten (spiegelverkehrt für Selfie-Modus) */
+    this.cursor.x = 1 - indexTip.x;
+    this.cursor.y = indexTip.y;
+
+    /* Smoothing (One-Euro-ähnlich) */
+    this.smoothX += (this.cursor.x - this.smoothX) * 0.35;
+    this.smoothY += (this.cursor.y - this.smoothY) * 0.35;
+
+    /* Pinch-Erkennung */
+    const dx = indexTip.x - thumbTip.x;
+    const dy = indexTip.y - thumbTip.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+
+    /* Pinch-Schwelle */
+    const PINCH_THRESHOLD = 0.045;
+
+    if(dist < PINCH_THRESHOLD){
+      if(!this.pinchActive){
+        this.pinchActive = true;
+        this.pinchStart = Date.now();
+        this.onPinch();
+      }
+    } else {
+      this.pinchActive = false;
+    }
+
+    /* Cursor zeichnen */
+    const cx = (1 - this.smoothX) * this.canvas.width;
+    const cy = this.smoothY * this.canvas.height;
+
+    /* Cursor-Ring */
+    ctx.beginPath();
+    ctx.arc(cx, cy, 18, 0, 7);
+    ctx.strokeStyle = this.pinchActive ? '#4de88a' : 'rgba(0,229,255,.85)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    /* Innerer Punkt */
+    ctx.beginPath();
+    ctx.arc(cx, cy, 5, 0, 7);
+    ctx.fillStyle = this.pinchActive ? '#4de88a' : '#00e5ff';
+    ctx.fill();
+
+    /* Hand-Skelett zeichnen */
+    this.drawSkeleton(lm);
+  },
+
+  /* Hand-Skelett über Video */
+  drawSkeleton(lm){
+    const ctx = this.ctx;
+    const W = this.canvas.width, Hh = this.canvas.height;
+    const conns = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+
+    ctx.strokeStyle = 'rgba(0,229,255,.65)';
+    ctx.lineWidth = 2;
+    conns.forEach(([a,b]) => {
+      ctx.beginPath();
+      ctx.moveTo((1-lm[a].x)*W, lm[a].y*Hh);
+      ctx.lineTo((1-lm[b].x)*W, lm[b].y*Hh);
+      ctx.stroke();
+    });
+
+    lm.forEach((p, i) => {
+      const isTip = [4,8,12,16,20].includes(i);
+      ctx.beginPath();
+      ctx.arc((1-p.x)*W, p.y*Hh, isTip ? 5 : 3, 0, 7);
+      ctx.fillStyle = isTip ? '#ff78c8' : 'rgba(0,229,255,.9)';
+      ctx.fill();
+    });
+  },
+
+  /* Overlay zeichnen (Video) */
+  drawOverlay(v, result){
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.drawImage(v, -this.canvas.width, 0, this.canvas.width, this.canvas.height);
+    ctx.restore();
+    ctx.fillStyle = 'rgba(4,10,32,.15)';
+    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+  },
+
+  /* PINCH = Klick */
+  onPinch(){
+    const x = window.innerWidth * (1 - this.smoothX);
+    const y = window.innerHeight * this.smoothY;
+
+    /* Finde Element an dieser Position */
+    const el = document.elementFromPoint(x, y);
+    if(!el) return;
+
+    /* Klickbar? */
+    const clickable = el.closest('[data-app-id]') || el.closest('.app.ready') || el.closest('button') || el.closest('.btn');
+    if(!clickable) return;
+
+    /* Visuelles Feedback */
+    clickable.style.transition = 'transform .15s';
+    clickable.style.transform = 'scale(.92)';
+    setTimeout(() => { clickable.style.transform = ''; }, 200);
+
+    /* Klick auslösen */
+    clickable.click();
+    H.toast('👆 Klick!');
+  },
+
+  /* Virtueller Cursor (visuell) */
+  renderCursor(){
+    if(!this.cursorEl){
+      this.cursorEl = document.createElement('div');
+      this.cursorEl.style.cssText = 'position:fixed;width:36px;height:36px;border:2.5px solid #00e5ff;border-radius:50%;pointer-events:none;z-index:99999;transition:transform .12s, background .12s;box-shadow:0 0 16px #00e5ff, inset 0 0 12px rgba(0,229,255,.35);transform:translate(-50%,-50%);mix-blend-mode:screen';
+      this.cursorEl.innerHTML = '<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:6px;height:6px;background:#00e5ff;border-radius:50%;box-shadow:0 0 8px #00e5ff"></div>';
+      document.body.appendChild(this.cursorEl);
+    }
+    this.cursorEl.style.left = (window.innerWidth * (1 - this.smoothX)) + 'px';
+    this.cursorEl.style.top = (window.innerHeight * this.smoothY) + 'px';
+    this.cursorEl.style.background = this.pinchActive ? 'rgba(77,232,138,.35)' : 'rgba(0,229,255,.15)';
+    this.cursorEl.style.borderColor = this.pinchActive ? '#4de88a' : '#00e5ff';
+
+    if(this.running) requestAnimationFrame(() => this.renderCursor());
+  },
+
+  destroy(){
+    this.stop();
+    if(this.cursorEl) this.cursorEl.remove();
+  }
+};
+
+/* ============================================================
+   2. HANDGESTEN-STEUERUNG — App-Fenster
+   ============================================================ */
+H.APPS['handgesten'] = {
+  name:'Handgesten', icon:'✋',
+  render: function(){
+    return '<div class="col" style="height:100%;gap:10px">'+
+      '<div class="card" style="background:linear-gradient(135deg,rgba(0,229,255,.15),rgba(180,120,255,.08));border-color:var(--c1)">'+
+        '<b style="color:var(--c1)">✋ HANDGESTEN-STEUERUNG</b>'+
+        '<div class="dim sm" style="margin-top:6px">Steuere HalDo mit deiner echten Hand.</div>'+
+      '</div>'+
+      '<div class="card"><b>📷 Kamera-Feed</b>'+
+        '<div style="position:relative;margin-top:8px;border-radius:12px;overflow:hidden;border:1.5px solid var(--line)">'+
+          '<video id="gestVideo" playsinline muted style="display:block;width:100%;max-width:480px;background:#000"></video>'+
+          '<canvas id="gestCanvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></canvas>'+
+        '</div>'+
+        '<div class="dim sm center" id="gestStatus" style="margin-top:6px">● Bereit</div>'+
+      '</div>'+
+      '<div class="row">'+
+        '<button class="btn primary" id="gestStart" style="flex:1">▶ Starten</button>'+
+        '<button class="btn danger" id="gestStop" style="flex:1">⏹ Stop</button>'+
+      '</div>'+
+      '<div class="card"><b>🎯 So funktioniert es</b>'+
+        '<div class="dim sm" style="margin-top:6px;line-height:1.7">'+
+          '👉 <b>Zeigefinger bewegen</b> = Cursor bewegen<br>'+
+          '🤏 <b>Pinch (Daumen + Zeigefinger zusammen)</b> = Klick<br>'+
+          '📱 <b>Auf App-Icons zeigen</b> = App öffnen<br>'+
+          '✋ <b>Hand aus Kamera</b> = Cursor pausiert'+
+        '</div>'+
+      '</div>'+
+      '<div class="card" style="background:rgba(255,176,58,.08);border-color:#ffb03a">'+
+        '<b>⚠️ Kamera-Erlaubnis</b>'+
+        '<div class="dim sm" style="margin-top:6px">Dein Browser fragt beim ersten Start nach Kamera-Zugriff. Erlaube es, damit die Handsteuerung funktioniert. <b>Alle Daten bleiben auf deinem Gerät.</b></div>'+
+      '</div>'+
+    '</div>';
+  },
+  init: function(win){
+    var video = win.querySelector('#gestVideo');
+    var canvas = win.querySelector('#gestCanvas');
+    var status = win.querySelector('#gestStatus');
+
+    /* Warten auf MediaPipe-Libs */
+    async function start(){
+      if(typeof FilesetResolver === 'undefined' || typeof HandLandmarker === 'undefined'){
+        status.textContent = '⏳ Lade MediaPipe...';
+        await new Promise(function(resolve){
+          var check = setInterval(function(){
+            if(typeof FilesetResolver !== 'undefined' && typeof HandLandmarker !== 'undefined'){
+              clearInterval(check); resolve();
+            }
+          }, 200);
+        });
+      }
+
+      status.textContent = '⏳ Initialisiere...';
+      await GestureController.init(video, canvas);
+      GestureController.renderCursor();
+      status.textContent = '✋ Aktiv — Zeig mit der Hand!';
+      status.style.color = '#4de88a';
+    }
+
+    win.querySelector('#gestStart').onclick = function(){ start(); };
+    win.querySelector('#gestStop').onclick = function(){
+      GestureController.destroy();
+      status.textContent = '● Gestoppt';
+      status.style.color = '';
+    };
+
+    win.addEventListener('remove', function(){ GestureController.destroy(); });
+  }
+};
+
+/* ============================================================
+   3. SCRIPTS LADEN (MediaPipe Tasks Vision)
+   ============================================================ */
+(function loadMediaPipe(){
+  if(window._mediaPipeLoaded) return;
+  window._mediaPipeLoaded = true;
+
+  var s = document.createElement('script');
+  s.type = 'module';
+  s.textContent = `
+    import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs";
+    window.FilesetResolver = FilesetResolver;
+    window.HandLandmarker = HandLandmarker;
+    console.log('%c✋ MediaPipe geladen','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:3px 8px;border-radius:5px;font-weight:800');
+  `;
+  document.head.appendChild(s);
+})();
+
+console.log('%c📦 Block 5 geladen — Handgesten-Steuerung','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+
+setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click(); }, 150);
+
+})();
+</script>
 </body>
 </html>
