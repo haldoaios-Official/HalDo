@@ -9810,5 +9810,772 @@ setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v9 · Travel & Online · 18 Apps
+     ============================================================ -->
+<style id="v9-style">
+@keyframes v9-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes v9-plane{0%{transform:translateX(-100%)}100%{transform:translateX(100vw)}}
+.v9-card{
+  padding:16px;border-radius:16px;
+  background:linear-gradient(150deg,rgba(20,30,60,.65),rgba(10,16,40,.82));
+  border:1px solid rgba(120,180,255,.14);
+  box-shadow:0 4px 20px rgba(0,0,0,.3);animation:v9-fade .3s;transition:.18s;
+}
+.v9-card:hover{border-color:rgba(0,229,255,.28);box-shadow:0 8px 28px rgba(0,80,160,.22)}
+.v9-header{
+  padding:20px;border-radius:20px;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,rgba(0,229,255,.14),rgba(180,120,255,.1));
+  border:1px solid rgba(0,229,255,.22);
+  box-shadow:0 8px 32px rgba(0,80,160,.2),inset 0 1px 0 rgba(255,255,255,.08);
+}
+.v9-h1{
+  font-size:22px;font-weight:800;letter-spacing:-.3px;margin:0 0 4px;
+  background:linear-gradient(135deg,#fff,var(--c1));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.v9-input{
+  width:100%;padding:10px 12px;border-radius:11px;
+  background:rgba(0,20,50,.5);border:1px solid rgba(120,180,255,.18);
+  color:var(--txt);outline:none;font-size:13px;font-family:inherit;
+}
+.v9-input:focus{border-color:var(--c1);box-shadow:0 0 0 3px rgba(0,229,255,.12)}
+.v9-stat{
+  padding:14px;border-radius:14px;text-align:center;
+  background:linear-gradient(150deg,rgba(0,229,255,.08),rgba(20,30,60,.4));
+  border:1px solid rgba(0,229,255,.18);
+}
+.v9-stat .v{font-size:22px;font-weight:800;color:var(--c1);font-variant-numeric:tabular-nums}
+.v9-stat .l{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.v9-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);transition:.15s}
+.v9-row:hover{background:rgba(0,229,255,.05);border-color:rgba(0,229,255,.2)}
+.v9-row .x{cursor:pointer;color:var(--dim);padding:2px 6px;border-radius:6px}
+.v9-row .x:hover{background:rgba(224,59,90,.2);color:#ff9db1}
+.v9-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.3);color:var(--c1);transition:.15s}
+.v9-chip.on{background:linear-gradient(135deg,var(--c1),var(--c2));color:#02101e;border-color:var(--c1);box-shadow:0 0 10px rgba(0,229,255,.4)}
+.v9-tile{
+  padding:14px;border-radius:14px;cursor:pointer;
+  background:linear-gradient(150deg,rgba(30,45,80,.6),rgba(14,22,50,.8));
+  border:1px solid rgba(120,180,255,.14);transition:.18s;text-align:center;
+}
+.v9-tile:hover{transform:translateY(-2px);border-color:rgba(0,229,255,.3);box-shadow:0 8px 24px rgba(0,80,160,.22)}
+.v9-tile .ic{font-size:38px;line-height:1;margin-bottom:8px}
+.v9-tile .nm{font-size:12px;font-weight:600;color:var(--txt)}
+.v9-tile .sub{font-size:10px;color:var(--dim);margin-top:3px}
+</style>
+
+<script>
+(function(){
+'use strict';
+var H = window.HalDo;
+if(!H || !H.APPS){ console.error('[v9] Foundation fehlt'); return; }
+var APPS = H.APPS;
+var $=H.$, $$=H.$$, el=H.el, esc=H.esc, uid=H.uid, rnd=H.rnd, store=H.store, toast=H.toast;
+
+/* ============================================================
+   1 · REISEPLANER
+   ============================================================ */
+APPS['reiseplaner'] = {
+  name:'Reiseplaner', icon:'✈️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">✈️ Reiseplaner</div><div class="dim sm">Plane deine nächste Reise</div></div>'+
+      '<div class="row"><input class="v9-input" id="v9-rpZ" placeholder="Reiseziel…" style="flex:1"><input class="v9-input" id="v9-rpD" type="date" style="width:auto"><input class="v9-input" id="v9-rpN" placeholder="Notiz" style="flex:1"><button class="btn primary" id="v9-rpA">+</button></div>'+
+      '<div id="v9-rpL" class="col" style="gap:10px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('trips3',[]); }
+    function render(){
+      var a = all().sort(function(x,y){ return x.d.localeCompare(y.d); });
+      win.querySelector('#v9-rpL').innerHTML = a.length ? a.map(function(x){
+        var tage = Math.ceil((new Date(x.d) - new Date()) / 86400000);
+        var col = tage < 0 ? '#6b8bb8' : tage <= 7 ? '#ff6b88' : tage <= 30 ? '#ffb03a' : '#4de88a';
+        var info = tage < 0 ? Math.abs(tage) + ' Tage her' : tage === 0 ? 'Heute!' : tage === 1 ? 'Morgen' : 'in ' + tage + ' Tagen';
+        return '<div class="v9-card" style="padding:12px 14px;border-color:'+col+'44"><div class="row between"><b>🌍 '+esc(x.z)+'</b><span style="color:'+col+';font-weight:600;font-size:11px">'+info+'</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div><div class="dim sm" style="margin-top:4px">📅 '+new Date(x.d).toLocaleDateString('de-DE')+(x.n?' · 📝 '+esc(x.n):'')+'</div></div>';
+      }).join('') : '<div class="empty">Keine Reisen geplant</div>';
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('trips3', all().filter(function(t){ return t.id !== x.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v9-rpA').onclick = function(){
+      var z = win.querySelector('#v9-rpZ').value.trim(), d = win.querySelector('#v9-rpD').value;
+      if(!z || !d) return;
+      var a = all(); a.push({id:uid(), z:z, d:d, n:win.querySelector('#v9-rpN').value.trim()}); store.set('trips3', a);
+      ['v9-rpZ','v9-rpD','v9-rpN'].forEach(function(id){ win.querySelector('#'+id).value = ''; });
+      render();
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   2 · PACKLISTE
+   ============================================================ */
+APPS['packliste'] = {
+  name:'Packliste', icon:'🎒',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎒 Packliste</div><div class="dim sm">Vorlagen für jede Reise</div></div>'+
+      '<div class="row">'+
+        '<select class="v9-input" id="v9-plT" style="flex:1"><option value="">— Vorlage wählen —</option><option value="strand">🏖 Strandurlaub</option><option value="city">🏙 Städtereise</option><option value="winter">⛷ Winterurlaub</option><option value="business">💼 Geschäftsreise</option><option value="camping">⛺ Camping</option></select>'+
+        '<button class="btn primary" id="v9-plL2">📥 Laden</button>'+
+      '</div>'+
+      '<div class="row"><input class="v9-input" id="v9-plN" placeholder="Item…" style="flex:1"><button class="btn primary" id="v9-plA">+</button></div>'+
+      '<div id="v9-plList" class="col" style="gap:6px"></div>'+
+      '<div class="v9-stat"><div class="v" id="v9-plP">0 / 0</div><div class="l">Erledigt</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var T = {
+      strand:['🩳 Badehose','👕 T-Shirts','🕶 Sonnenbrille','🧴 Sonnencreme','👡 Flip-Flops','🎩 Sonnenhut','🏖 Strandtuch'],
+      city:['👕 T-Shirts','👖 Jeans','👟 Bequeme Schuhe','🧥 Jacke','🎒 Tagesrucksack','📷 Kamera'],
+      winter:['🧥 Winterjacke','🧤 Handschuhe','🧣 Schal','🥾 Winterstiefel','🧦 Wollsocken','🧴 Lippenpflege'],
+      business:['👔 Hemd','👖 Anzughose','👞 Anzugschuhe','💼 Aktentasche','💻 Laptop','📓 Notizbuch'],
+      camping:['⛺ Zelt','🛏 Isomatte','🛌 Schlafsack','🔦 Taschenlampe','🥫 Campingkocher','🔪 Taschenmesser']
+    };
+    function all(){ return store.get('packlist3',[]); }
+    function render(){
+      var a = all();
+      var done = a.filter(function(x){ return x.done; }).length;
+      win.querySelector('#v9-plList').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v9-row"><input type="checkbox" data-id="'+x.id+'" '+(x.done?'checked':'')+'><span style="flex:1;'+(x.done?'text-decoration:line-through;opacity:.5':'')+'">'+esc(x.n)+'</span><span class="x" data-id="'+x.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Liste leer</div>';
+      win.querySelector('#v9-plP').textContent = done + ' / ' + a.length;
+      win.querySelectorAll('input[type=checkbox]').forEach(function(c){ c.onchange = function(){ var arr = all(); var x = arr.find(function(v){ return v.id === c.dataset.id; }); if(x){ x.done = c.checked; store.set('packlist3', arr); render(); } }; });
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('packlist3', all().filter(function(v){ return v.id !== x.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v9-plA').onclick = function(){
+      var n = win.querySelector('#v9-plN').value.trim(); if(!n) return;
+      var a = all(); a.push({id:uid(), n:n, done:false}); store.set('packlist3', a);
+      win.querySelector('#v9-plN').value = ''; render();
+    };
+    win.querySelector('#v9-plL2').onclick = function(){
+      var t = win.querySelector('#v9-plT').value; if(!t) return toast('Vorlage wählen');
+      var a = all();
+      T[t].forEach(function(n){ a.push({id:uid(), n:n, done:false}); });
+      store.set('packlist3', a); render(); toast('Vorlage geladen: ' + T[t].length + ' Items');
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   3 · FLUGPLAN
+   ============================================================ */
+APPS['flugplan'] = {
+  name:'Flugplan', icon:'🛫',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🛫 Flug-Suche</div><div class="dim sm">Google Flights & mehr</div></div>'+
+      '<div class="row"><input class="v9-input" id="v9-flV" placeholder="Von (Stadt)…" style="flex:1"><input class="v9-input" id="v9-flZ" placeholder="Nach (Stadt)…" style="flex:1"></div>'+
+      '<div class="row"><input class="v9-input" id="v9-flA" type="date" style="flex:1"><input class="v9-input" id="v9-flG" type="number" value="1" placeholder="Gäste" style="width:90px"></div>'+
+      '<button class="btn primary" id="v9-flGo" style="width:100%">🔍 Flüge suchen</button>'+
+      '<div class="card"><b>🛫 Portale</b><div class="list" style="margin-top:8px">'+
+        '<a href="https://www.google.com/travel/flights" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>🔍 Google Flights</b><span class="dim sm" style="margin-left:auto">Weltweit</span></div></a>'+
+        '<a href="https://www.skyscanner.de" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>✈️ Skyscanner</b><span class="dim sm" style="margin-left:auto">Vergleich</span></div></a>'+
+        '<a href="https://www.kayak.de" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>✈️ Kayak</b></div></a>'+
+        '<a href="https://www.momondo.de" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>✈️ Momondo</b></div></a>'+
+      '</div></div>'+
+      '<div class="card" style="background:rgba(255,176,58,.08);border-color:#ffb03a"><b>💡 Spartipps</b><div class="dim sm" style="margin-top:6px">• Di + Mi sind günstiger<br>• 6-8 Wochen vor Abflug buchen<br>• Nebensaison wählen<br>• Inkognito-Modus nutzen</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v9-flGo').onclick = function(){
+      var v = win.querySelector('#v9-flV').value.trim(), z = win.querySelector('#v9-flZ').value.trim();
+      if(!v || !z) return toast('Von + Nach eingeben');
+      var a = win.querySelector('#v9-flA').value;
+      var url = 'https://www.google.com/travel/flights?q=' + encodeURIComponent('Flüge von ' + v + ' nach ' + z) + (a ? ' am ' + a : '');
+      window.open(url, '_blank');
+    };
+  }
+};
+
+/* ============================================================
+   4 · HOTELBUCHUNG
+   ============================================================ */
+APPS['hotel'] = {
+  name:'Hotelbuchung', icon:'🏨',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🏨 Hotel-Suche</div><div class="dim sm">Booking · Airbnb · HRS</div></div>'+
+      '<div class="row"><input class="v9-input" id="v9-hbO" placeholder="Ort…" style="flex:1"><input class="v9-input" id="v9-hbA" type="date" style="width:auto"><input class="v9-input" id="v9-hbB" type="date" style="width:auto"><input class="v9-input" id="v9-hbG" type="number" value="2" style="width:70px"></div>'+
+      '<button class="btn primary" id="v9-hbGo" style="width:100%">🔍 Hotels suchen (Booking.com)</button>'+
+      '<div class="card"><b>🏨 Portale</b><div class="list" style="margin-top:8px">'+
+        '<a href="https://www.booking.com" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>🏨 Booking.com</b><span class="dim sm" style="margin-left:auto">Weltweit</span></div></a>'+
+        '<a href="https://www.airbnb.de" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>🏠 Airbnb</b><span class="dim sm" style="margin-left:auto">Wohnungen</span></div></a>'+
+        '<a href="https://www.hrs.de" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>🏨 HRS</b><span class="dim sm" style="margin-left:auto">Business</span></div></a>'+
+        '<a href="https://www.trivago.de" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>🔍 Trivago</b><span class="dim sm" style="margin-left:auto">Vergleich</span></div></a>'+
+      '</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v9-hbGo').onclick = function(){
+      var o = win.querySelector('#v9-hbO').value.trim(); if(!o) return toast('Ort eingeben');
+      var a = win.querySelector('#v9-hbA').value, b = win.querySelector('#v9-hbB').value, g = win.querySelector('#v9-hbG').value || 2;
+      var url = 'https://www.booking.com/searchresults.de.html?ss=' + encodeURIComponent(o) + (a ? '&checkin=' + a : '') + (b ? '&checkout=' + b : '') + '&group_adults=' + g;
+      window.open(url, '_blank');
+    };
+  }
+};
+
+/* ============================================================
+   5 · SEHENSWÜRDIGKEITEN
+   ============================================================ */
+APPS['sehenswuerdigkeiten'] = {
+  name:'Sehenswürdigkeiten', icon:'🏰',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🏰 Weltwunder</div><div class="dim sm">Die schönsten Orte der Welt</div></div>'+
+      '<input class="v9-input" id="v9-swQ" placeholder="🔍 Suchen (Land, Stadt, Name)…">'+
+      '<div id="v9-swL" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['🇩🇪','Brandenburger Tor','Berlin','Wahrzeichen, 1791'],
+      ['🇩🇪','Kölner Dom','Köln','Gotisch, 157 m, UNESCO'],
+      ['🇩🇪','Neuschwanstein','Bayern','Märchenschloss, 1869'],
+      ['🇫🇷','Eiffelturm','Paris','1889, 324 m'],
+      ['🇫🇷','Louvre','Paris','Größtes Kunstmuseum'],
+      ['🇮🇹','Kolosseum','Rom','Antikes Amphitheater'],
+      ['🇮🇹','Schiefer Turm','Pisa','12. Jh., 56 m'],
+      ['🇪🇸','Sagrada Família','Barcelona','Gaudí, seit 1882'],
+      ['🇬🇧','Big Ben','London','Glockenturm, 96 m'],
+      ['🇬🇧','Stonehenge','Salisbury','3000 v. Chr.'],
+      ['🇳🇱','Anne-Frank-Haus','Amsterdam','Versteck 1942-44'],
+      ['🇹🇷','Hagia Sophia','Istanbul','537, UNESCO'],
+      ['🇹🇷','Kappadokien','Nevşehir','Feenkamine'],
+      ['🇪🇬','Pyramiden','Gizeh','4500 Jahre alt'],
+      ['🇺🇸','Freiheitsstatue','New York','1886'],
+      ['🇺🇸','Grand Canyon','Arizona','446 km lang'],
+      ['🇨🇳','Chinesische Mauer','China','21.196 km'],
+      ['🇯🇵','Mount Fuji','Japan','3.776 m'],
+      ['🇮🇳','Taj Mahal','Agra','Mausoleum, 1648'],
+      ['🇦🇺','Opera House','Sydney','1973, UNESCO'],
+      ['🇧🇷','Christusstatue','Rio','30 m, 1931'],
+      ['🇵🇪','Machu Picchu','Peru','Inka, 1450'],
+      ['🇬🇷','Akropolis','Athen','Parthenon 447 v.Chr.'],
+      ['🇦🇹','Schönbrunn','Wien','Sommerresidenz']
+    ];
+    var Q = win.querySelector('#v9-swQ'), L = win.querySelector('#v9-swL');
+    function render(){
+      var q = Q.value.toLowerCase();
+      var f = q ? D.filter(function(x){ return (x[1]+' '+x[2]).toLowerCase().indexOf(q) >= 0; }) : D;
+      L.innerHTML = f.map(function(x){
+        return '<div class="v9-tile" style="text-align:left">'+
+          '<div class="row" style="gap:10px;margin-bottom:8px"><span style="font-size:34px;line-height:1">'+x[0]+'</span><div><b style="font-size:13.5px">'+esc(x[1])+'</b><div class="dim sm">'+esc(x[2])+'</div></div></div>'+
+          '<div class="dim sm">'+esc(x[3])+'</div>'+
+        '</div>';
+      }).join('') || '<div class="empty" style="grid-column:1/-1">Nichts gefunden</div>';
+    }
+    Q.oninput = render; render();
+  }
+};
+
+/* ============================================================
+   6 · SPRACHFÜHRER
+   ============================================================ */
+APPS['sprachfuehrer'] = {
+  name:'Sprachführer', icon:'🗣️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🗣️ Sprachführer</div><div class="dim sm">Wichtigste Phrasen für die Reise</div></div>'+
+      '<div class="row" id="v9-sfT">'+
+        '<button class="v9-chip on" data-l="en">🇬🇧 Englisch</button>'+
+        '<button class="v9-chip" data-l="fr">🇫🇷 Französisch</button>'+
+        '<button class="v9-chip" data-l="es">🇪🇸 Spanisch</button>'+
+        '<button class="v9-chip" data-l="it">🇮🇹 Italienisch</button>'+
+        '<button class="v9-chip" data-l="tr">🇹🇷 Türkisch</button>'+
+        '<button class="v9-chip" data-l="ar">🇸🇦 Arabisch</button>'+
+        '<button class="v9-chip" data-l="ku">🟡 Kurdisch</button>'+
+      '</div>'+
+      '<div id="v9-sfL" class="col" style="gap:6px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = {
+      en: {'Hallo':'Hello','Danke':'Thank you','Bitte':'Please','Ja':'Yes','Nein':'No','Wasser':'Water','Essen':'Food','Toilette':'Toilet','Hilfe':'Help','Wie viel':'How much','Wo ist':'Where is','Guten Morgen':'Good morning','Auf Wiedersehen':'Goodbye'},
+      fr: {'Hallo':'Bonjour','Danke':'Merci','Bitte':'S\'il vous plaît','Ja':'Oui','Nein':'Non','Wasser':'Eau','Essen':'Nourriture','Toilette':'Toilettes','Hilfe':'Au secours','Wie viel':'Combien','Wo ist':'Où est','Guten Morgen':'Bonjour','Auf Wiedersehen':'Au revoir'},
+      es: {'Hallo':'Hola','Danke':'Gracias','Bitte':'Por favor','Ja':'Sí','Nein':'No','Wasser':'Agua','Essen':'Comida','Toilette':'Baño','Hilfe':'Ayuda','Wie viel':'Cuánto','Wo ist':'Dónde está','Guten Morgen':'Buenos días','Auf Wiedersehen':'Adiós'},
+      it: {'Hallo':'Ciao','Danke':'Grazie','Bitte':'Per favore','Ja':'Sì','Nein':'No','Wasser':'Acqua','Essen':'Cibo','Toilette':'Bagno','Hilfe':'Aiuto','Wie viel':'Quanto','Wo ist':'Dov\'è','Guten Morgen':'Buongiorno','Auf Wiedersehen':'Arrivederci'},
+      tr: {'Hallo':'Merhaba','Danke':'Teşekkürler','Bitte':'Lütfen','Ja':'Evet','Nein':'Hayır','Wasser':'Su','Essen':'Yemek','Toilette':'Tuvalet','Hilfe':'Yardım','Wie viel':'Ne kadar','Wo ist':'Nerede','Guten Morgen':'Günaydın','Auf Wiedersehen':'Hoşça kal'},
+      ar: {'Hallo':'مرحبا','Danke':'شكرا','Bitte':'من فضلك','Ja':'نعم','Nein':'لا','Wasser':'ماء','Essen':'طعام','Toilette':'حمام','Hilfe':'مساعدة','Wie viel':'كم','Wo ist':'أين','Guten Morgen':'صباح الخير','Auf Wiedersehen':'مع السلامة'},
+      ku: {'Hallo':'Silav','Danke':'Spas','Bitte':'Ji kerema xwe','Ja':'Erê','Nein':'Na','Wasser':'Av','Essen':'Xwarin','Toilette':'Tuvalet','Hilfe':'Alîkarî','Wie viel':'Çend','Wo ist':'Li ku','Guten Morgen':'Beyanî baş','Auf Wiedersehen':'Bi xatirê te'}
+    };
+    var cur = 'en';
+    function show(l){
+      cur = l;
+      win.querySelectorAll('#v9-sfT [data-l]').forEach(function(b){ b.classList.toggle('on', b.dataset.l === l); });
+      var dict = D[l];
+      win.querySelector('#v9-sfL').innerHTML = Object.keys(dict).map(function(k){
+        return '<div class="v9-row"><b style="flex:1">'+esc(k)+'</b><span style="color:var(--c1);flex:1;text-align:right">'+esc(dict[k])+'</span><button class="btn sm" data-s="'+esc(dict[k])+'">🔊</button></div>';
+      }).join('');
+      win.querySelectorAll('[data-s]').forEach(function(b){
+        b.onclick = function(){
+          try{
+            speechSynthesis.cancel();
+            var u = new SpeechSynthesisUtterance(b.dataset.s);
+            u.lang = {en:'en-US',fr:'fr-FR',es:'es-ES',it:'it-IT',tr:'tr-TR',ar:'ar-SA',ku:'ku'}[cur] || 'de-DE';
+            speechSynthesis.speak(u);
+          }catch(e){}
+        };
+      });
+    }
+    win.querySelectorAll('#v9-sfT [data-l]').forEach(function(b){ b.onclick = function(){ show(b.dataset.l); }; });
+    show(cur);
+  }
+};
+
+/* ============================================================
+   7 · WÄHRUNGSRECHNER (Live) — KORRIGIERT: frankfurter.dev
+   ============================================================ */
+APPS['waehrung-live'] = {
+  name:'Währung Live', icon:'💱',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💱 Währung Live</div><div class="dim sm">Echte Kurse (Frankfurter API)</div></div>'+
+      '<div class="row"><input class="v9-input" id="v9-wlV" type="number" value="100" style="flex:1"><select class="v9-input" id="v9-wlF" style="width:auto"></select><span class="dim">→</span><select class="v9-input" id="v9-wlT" style="width:auto"></select></div>'+
+      '<button class="btn primary" id="v9-wlGo">🔄 Umrechnen</button>'+
+      '<div class="v9-stat"><div class="v" id="v9-wlO">–</div><div class="l" id="v9-wlI"></div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var C = ['EUR','USD','GBP','CHF','TRY','JPY','CNY','RUB','INR','BRL','CAD','AUD','SEK','NOK','DKK','PLN','CZK','HUF','RON','UAH','ILS','SAR','AED','KRW','MXN','ZAR','THB'];
+    var F = win.querySelector('#v9-wlF'), T = win.querySelector('#v9-wlT');
+    F.innerHTML = C.map(function(c){ return '<option'+(c==='EUR'?' selected':'')+'>'+c+'</option>'; }).join('');
+    T.innerHTML = C.map(function(c){ return '<option'+(c==='USD'?' selected':'')+'>'+c+'</option>'; }).join('');
+    function conv(){
+      var v = parseFloat(win.querySelector('#v9-wlV').value) || 0;
+      var f = F.value, t = T.value;
+      if(f === t){ win.querySelector('#v9-wlO').textContent = H.fmt(v) + ' ' + t; return; }
+      win.querySelector('#v9-wlO').textContent = 'Lade…';
+      fetch('https://api.frankfurter.dev/latest?amount=' + v + '&from=' + f + '&to=' + t)
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          var rate = j.rates[t];
+          win.querySelector('#v9-wlO').textContent = H.fmt(rate) + ' ' + t;
+          win.querySelector('#v9-wlI').textContent = '1 ' + f + ' = ' + (rate/v).toFixed(4) + ' ' + t + ' · ' + new Date(j.date).toLocaleDateString('de-DE');
+        })
+        .catch(function(){ win.querySelector('#v9-wlO').textContent = 'Fehler'; });
+    }
+    win.querySelector('#v9-wlGo').onclick = conv;
+    F.onchange = conv; T.onchange = conv; win.querySelector('#v9-wlV').oninput = conv;
+    conv();
+  }
+};
+
+/* ============================================================
+   8 · REISETAGEBUCH
+   ============================================================ */
+APPS['reisetagebuch'] = {
+  name:'Reisetagebuch', icon:'📔',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📔 Reisetagebuch</div><div class="dim sm">Deine Reise-Erinnerungen</div></div>'+
+      '<input class="v9-input" id="v9-rtT" placeholder="Titel / Ort…">'+
+      '<textarea class="ta" id="v9-rtB" style="min-height:100px" placeholder="Was hast du erlebt?"></textarea>'+
+      '<button class="btn primary" id="v9-rtS">💾 Speichern</button>'+
+      '<div id="v9-rtL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('traveld3',[]); }
+    function render(){
+      var a = all();
+      win.querySelector('#v9-rtL').innerHTML = a.length ? a.slice(0,15).map(function(x){
+        return '<div class="v9-card" style="padding:12px 14px"><div class="row between"><b>📔 '+esc(x.t)+'</b><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div><div class="dim sm" style="margin-top:4px">'+new Date(x.ts).toLocaleDateString('de-DE')+'</div><div class="dim sm" style="margin-top:6px;white-space:pre-wrap">'+esc(x.b.slice(0,140))+'</div></div>';
+      }).join('') : '<div class="empty">Noch keine Einträge</div>';
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('traveld3', all().filter(function(v){ return v.id !== x.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v9-rtS').onclick = function(){
+      var t = win.querySelector('#v9-rtT').value.trim(); if(!t) return;
+      var a = all(); a.unshift({id:uid(), t:t, b:win.querySelector('#v9-rtB').value, ts:Date.now()});
+      store.set('traveld3', a.slice(0,50));
+      win.querySelector('#v9-rtT').value = ''; win.querySelector('#v9-rtB').value = '';
+      render(); toast('✅ Gespeichert');
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   9 · NAVIGATION PRO
+   ============================================================ */
+APPS['navigation'] = {
+  name:'Navigation', icon:'🧭',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🧭 Navigation</div><div class="dim sm">Weltweite Ziele · Kurdisch · Êzîdî · Arabisch</div></div>'+
+      '<div class="row"><input class="v9-input" id="v9-nvF" placeholder="Von…" style="flex:1"><input class="v9-input" id="v9-nvT" placeholder="Nach…" style="flex:1"></div>'+
+      '<button class="btn primary" id="v9-nvGo" style="width:100%">▶ Route berechnen</button>'+
+      '<input class="v9-input" id="v9-nvQ" placeholder="🔍 Stadt suchen…">'+
+      '<div id="v9-nvL" class="col" style="gap:6px;max-height:40vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var CITIES = [
+      ['🇩🇪','Berlin'],['🇩🇪','München'],['🇩🇪','Hamburg'],['🇩🇪','Frankfurt'],
+      ['🇦🇹','Wien'],['🇨🇭','Zürich'],['🇫🇷','Paris'],['🇬🇧','London'],
+      ['🇮🇹','Rom'],['🇮🇹','Mailand'],['🇪🇸','Madrid'],['🇪🇸','Barcelona'],
+      ['🇹🇷','Istanbul'],['🇹🇷','Ankara'],['🇹🇷','Amed (Diyarbakır)'],['🇹🇷','Mêrdîn'],
+      ['🇮🇶','Hewlêr (Erbil)'],['🇮🇶','Silêmanî'],['🇮🇶','Duhok'],['🇮🇶','Şingal'],
+      ['🇮🇶','Laliş'],['🇮🇶','Başîqa'],['🇮🇶','Şêxan'],['🇮🇶','Xankê'],
+      ['🇸🇾','Qamişlo'],['🇸🇾','Hesekê'],['🇸🇾','Dêrik'],
+      ['🇮🇷','Urmiye'],['🇮🇷','Sine'],['🇮🇷','Kirmaşan'],['🇮🇷','Mehabad'],
+      ['🇺🇸','New York'],['🇺🇸','Los Angeles'],['🇯🇵','Tokio'],['🇨🇳','Peking'],
+      ['🇨🇳','Shanghai'],['🇦🇺','Sydney'],['🇳🇿','Auckland'],
+      ['🇦🇪','Dubai'],['🇪🇬','Kairo'],['🇲🇦','Marokko'],['🇿🇦','Kapstadt'],
+      ['🇧🇷','São Paulo'],['🇦🇷','Buenos Aires'],['🇮🇳','Neu-Delhi'],['🇹🇭','Bangkok']
+    ];
+    var Q = win.querySelector('#v9-nvQ'), L = win.querySelector('#v9-nvL');
+    function render(){
+      var q = Q.value.toLowerCase();
+      var f = q ? CITIES.filter(function(c){ return c[1].toLowerCase().indexOf(q) >= 0; }) : CITIES;
+      L.innerHTML = f.map(function(c){
+        return '<div class="v9-row" style="cursor:pointer" data-city="'+esc(c[1])+'"><span style="font-size:22px">'+c[0]+'</span><b>'+esc(c[1])+'</b></div>';
+      }).join('') || '<div class="empty">Nichts gefunden</div>';
+      win.querySelectorAll('[data-city]').forEach(function(el2){
+        el2.onclick = function(){
+          var F = win.querySelector('#v9-nvF');
+          if(!F.value) F.value = el2.dataset.city;
+          else win.querySelector('#v9-nvT').value = el2.dataset.city;
+          toast('📍 ' + el2.dataset.city);
+        };
+      });
+    }
+    win.querySelector('#v9-nvGo').onclick = function(){
+      var v = win.querySelector('#v9-nvF').value.trim(), z = win.querySelector('#v9-nvT').value.trim();
+      if(!v || !z) return toast('Start + Ziel');
+      var url = 'https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=' + encodeURIComponent(v) + '%3B' + encodeURIComponent(z);
+      window.open(url, '_blank');
+    };
+    Q.oninput = render; render();
+  }
+};
+
+/* ============================================================
+   10 · KARTEN
+   ============================================================ */
+APPS['karten'] = {
+  name:'Karten', icon:'🗺️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🗺️ Karten</div><div class="dim sm">OpenStreetMap & Satelliten</div></div>'+
+      '<div class="row"><input class="v9-input" id="v9-kmQ" placeholder="Ort suchen…" value="Kurdistan" style="flex:1"><button class="btn primary" id="v9-kmGo">🔍</button></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">'+
+        '<a href="https://www.openstreetmap.org" target="_blank" rel="noopener" style="text-decoration:none" class="v9-tile"><div class="ic">🗺️</div><div class="nm">OpenStreetMap</div><div class="sub">kostenlos</div></a>'+
+        '<a href="https://earth.google.com/web/" target="_blank" rel="noopener" style="text-decoration:none" class="v9-tile"><div class="ic">🌍</div><div class="nm">Google Earth</div><div class="sub">3D</div></a>'+
+        '<a href="https://zoom.earth" target="_blank" rel="noopener" style="text-decoration:none" class="v9-tile"><div class="ic">🛰️</div><div class="nm">Zoom Earth</div><div class="sub">Live</div></a>'+
+        '<a href="https://www.windy.com" target="_blank" rel="noopener" style="text-decoration:none" class="v9-tile"><div class="ic">🌪️</div><div class="nm">Windy</div><div class="sub">Wind</div></a>'+
+      '</div>'+
+      '<div class="card"><b>🦚 Êzîdî-Orte</b><div class="list" style="margin-top:8px">'+
+        '<a href="https://www.openstreetmap.org/search?query=Lalish" target="_blank" style="text-decoration:none;color:inherit"><div class="item"><b>🦚 Lalisch</b></div></a>'+
+        '<a href="https://www.openstreetmap.org/search?query=Sinjar" target="_blank" style="text-decoration:none;color:inherit"><div class="item"><b>🏔️ Şengal (Sinjar)</b></div></a>'+
+        '<a href="https://www.openstreetmap.org/search?query=Duhok" target="_blank" style="text-decoration:none;color:inherit"><div class="item"><b>🏙️ Duhok</b></div></a>'+
+        '<a href="https://www.openstreetmap.org/search?query=Erbil" target="_blank" style="text-decoration:none;color:inherit"><div class="item"><b>🏙️ Hewlêr (Erbil)</b></div></a>'+
+        '<a href="https://www.openstreetmap.org/search?query=Diyarbakir" target="_blank" style="text-decoration:none;color:inherit"><div class="item"><b>🏙️ Amed (Diyarbakır)</b></div></a>'+
+      '</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v9-kmGo').onclick = function(){
+      var q = win.querySelector('#v9-kmQ').value.trim(); if(!q) return;
+      window.open('https://www.openstreetmap.org/search?query=' + encodeURIComponent(q), '_blank');
+    };
+  }
+};
+
+/* ============================================================
+   11 · E-MAIL
+   ============================================================ */
+APPS['email'] = {
+  name:'E-Mail', icon:'📧',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📧 E-Mail</div><div class="dim sm">Entwürfe speichern + mailto</div></div>'+
+      '<div class="row"><input class="v9-input" id="v9-emT" placeholder="An (E-Mail)…" style="flex:1"><input class="v9-input" id="v9-emC" placeholder="CC" style="flex:1"></div>'+
+      '<input class="v9-input" id="v9-emS" placeholder="Betreff…">'+
+      '<textarea class="ta" id="v9-emB" style="min-height:150px">Hallo,\n\n\n\nMit freundlichen Grüßen</textarea>'+
+      '<div class="row"><button class="btn primary" id="v9-emGo" style="flex:1">📤 Öffnen (Mail-App)</button><button class="btn" id="v9-emSv" style="flex:1">💾 Entwurf</button></div>'+
+      '<div id="v9-emL" class="col" style="gap:6px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('drafts3',[]); }
+    function render(){
+      var a = all();
+      win.querySelector('#v9-emL').innerHTML = a.length ? a.slice(0,10).map(function(d){
+        return '<div class="v9-row"><b>✉️ '+esc(d.t||'(leer)')+'</b><span class="dim sm">'+new Date(d.ts).toLocaleDateString('de-DE')+'</span><span class="x" data-id="'+d.id+'">✕</span></div>';
+      }).join('') : '';
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('drafts3', all().filter(function(d){ return d.id !== x.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v9-emGo').onclick = function(){
+      var t = win.querySelector('#v9-emT').value.trim(); if(!t) return toast('Empfänger fehlt');
+      var s = win.querySelector('#v9-emS').value, b = win.querySelector('#v9-emB').value;
+      var c = win.querySelector('#v9-emC').value.trim();
+      var url = 'mailto:' + encodeURIComponent(t) + '?subject=' + encodeURIComponent(s) + '&body=' + encodeURIComponent(b) + (c ? '&cc=' + encodeURIComponent(c) : '');
+      window.location.href = url;
+    };
+    win.querySelector('#v9-emSv').onclick = function(){
+      var t = win.querySelector('#v9-emT').value.trim(), s = win.querySelector('#v9-emS').value.trim(), b = win.querySelector('#v9-emB').value;
+      if(!t && !s && !b) return;
+      var a = all(); a.unshift({id:uid(), t:t, c:win.querySelector('#v9-emC').value.trim(), s:s, b:b, ts:Date.now()});
+      store.set('drafts3', a.slice(0,20));
+      render(); toast('Entwurf gespeichert');
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   12 · NEWS (Live)
+   ============================================================ */
+APPS['news'] = {
+  name:'News', icon:'📰',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📰 News Live</div><div class="dim sm">Aktuelle Nachrichten (Google News)</div></div>'+
+      '<div class="row" id="v9-nwT">'+
+        '<button class="v9-chip on" data-t="germany">🇩🇪 Deutschland</button>'+
+        '<button class="v9-chip" data-t="world">🌍 Welt</button>'+
+        '<button class="v9-chip" data-t="business">💼 Wirtschaft</button>'+
+        '<button class="v9-chip" data-t="technology">💻 Technologie</button>'+
+        '<button class="v9-chip" data-t="sports">⚽ Sport</button>'+
+      '</div>'+
+      '<button class="btn primary" id="v9-nwGo">🔄 Neu laden</button>'+
+      '<div id="v9-nwL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var cur = 'germany';
+    function load(){
+      var L = win.querySelector('#v9-nwL');
+      L.innerHTML = '<div class="empty">Lade…</div>';
+      fetch('https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://news.google.com/rss/search?q=' + cur + '&hl=de&gl=DE&ceid=DE:de'))
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          if(!j.items){ L.innerHTML = '<div class="empty">Keine News</div>'; return; }
+          L.innerHTML = j.items.slice(0, 18).map(function(it){
+            return '<a href="' + esc(it.link) + '" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="v9-card" style="padding:12px 14px"><b>'+esc(it.title)+'</b><div class="dim sm" style="margin-top:4px">'+esc((it.pubDate||'').slice(0,16))+'</div></div></a>';
+          }).join('');
+        })
+        .catch(function(){ L.innerHTML = '<div class="empty">Offline</div>'; });
+    }
+    win.querySelectorAll('#v9-nwT [data-t]').forEach(function(b){
+      b.onclick = function(){
+        cur = b.dataset.t;
+        win.querySelectorAll('#v9-nwT [data-t]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        load();
+      };
+    });
+    win.querySelector('#v9-nwGo').onclick = load;
+    load();
+  }
+};
+
+/* ============================================================
+   13 · RSS READER
+   ============================================================ */
+APPS['rss'] = {
+  name:'RSS Reader', icon:'📡',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📡 RSS Reader</div><div class="dim sm">Deine eigenen Feeds</div></div>'+
+      '<div class="row"><input class="v9-input" id="v9-rsU" placeholder="RSS-URL…" style="flex:1"><button class="btn primary" id="v9-rsA">+</button></div>'+
+      '<div id="v9-rsF" class="col" style="gap:6px"></div>'+
+      '<div id="v9-rsL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var def = [
+      {id:uid(), n:'Tagesschau', u:'https://www.tagesschau.de/xml/rss2/'},
+      {id:uid(), n:'Heise', u:'https://www.heise.de/rss/heise-atom.xml'}
+    ];
+    function feeds(){ return store.get('rss3', def); }
+    function renderFeeds(){
+      win.querySelector('#v9-rsF').innerHTML = feeds().map(function(f){
+        return '<div class="v9-row"><b style="flex:1">'+esc(f.n)+'</b><button class="btn sm primary" data-l="'+f.id+'">↻</button><span class="x" data-id="'+f.id+'">✕</span></div>';
+      }).join('');
+      win.querySelectorAll('[data-l]').forEach(function(b){ b.onclick = function(){ load(b.dataset.l); }; });
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('rss3', feeds().filter(function(f){ return f.id !== x.dataset.id; })); renderFeeds(); }; });
+    }
+    function load(id){
+      var f = feeds().find(function(x){ return x.id === id; }); if(!f) return;
+      var L = win.querySelector('#v9-rsL');
+      L.innerHTML = '<div class="empty">Lade ' + esc(f.n) + '…</div>';
+      fetch('https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(f.u))
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          if(!j.items){ L.innerHTML = '<div class="empty">Fehler</div>'; return; }
+          L.innerHTML = '<h3>' + esc(f.n) + '</h3>' + j.items.slice(0, 12).map(function(it){
+            return '<a href="'+esc(it.link)+'" target="_blank" style="text-decoration:none;color:inherit"><div class="v9-card" style="padding:12px 14px"><b>'+esc(it.title)+'</b><div class="dim sm" style="margin-top:4px">'+esc((it.description||'').replace(/<[^>]+>/g,'').slice(0,120))+'…</div></div></a>';
+          }).join('');
+        })
+        .catch(function(){ L.innerHTML = '<div class="empty">Fehler</div>'; });
+    }
+    win.querySelector('#v9-rsA').onclick = function(){
+      var u = win.querySelector('#v9-rsU').value.trim(); if(!u) return;
+      var a = feeds(); a.push({id:uid(), n:u.replace(/^https?:\/\//,'').split('/')[0], u:u}); store.set('rss3', a);
+      win.querySelector('#v9-rsU').value = ''; renderFeeds();
+    };
+    renderFeeds();
+  }
+};
+
+/* ============================================================
+   14 · BROWSER
+   ============================================================ */
+APPS['browser'] = {
+  name:'Browser', icon:'🌐',
+  render: function(){
+    return '<div class="col" style="gap:12px;height:100%">'+
+      '<div class="v9-header" style="padding:14px 18px"><div class="row"><input class="v9-input" id="v9-brU" placeholder="URL oder Suche…" value="https://duckduckgo.com" style="flex:1"><button class="btn primary" id="v9-brGo">→</button></div><div class="row" style="margin-top:8px">'+
+        '<button class="v9-chip" data-q="https://duckduckgo.com">🔍 DuckDuckGo</button>'+
+        '<button class="v9-chip" data-q="https://de.wikipedia.org">📚 Wikipedia</button>'+
+        '<button class="v9-chip" data-q="https://www.tagesschau.de">📰 Tagesschau</button>'+
+        '<button class="v9-chip" data-q="https://www.bing.com">🔎 Bing</button>'+
+      '</div></div>'+
+      '<iframe id="v9-brF" style="flex:1;border:1px solid var(--line);border-radius:14px;background:#fff;min-height:320px" src="about:blank" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>'+
+      '<div class="dim sm center">Wenn Seite blockiert → öffnet in neuem Tab</div>'+
+    '</div>';
+  },
+  init: function(win){
+    function go(u){
+      if(!u) return;
+      if(!/^https?:\/\//.test(u)){
+        if(/^[\w.-]+\.[a-z]{2,}/i.test(u)) u = 'https://' + u;
+        else u = 'https://duckduckgo.com/?q=' + encodeURIComponent(u);
+      }
+      win.querySelector('#v9-brU').value = u;
+      win.querySelector('#v9-brF').src = u;
+    }
+    win.querySelector('#v9-brGo').onclick = function(){ go(win.querySelector('#v9-brU').value.trim()); };
+    win.querySelector('#v9-brU').addEventListener('keydown', function(e){ if(e.key === 'Enter') go(win.querySelector('#v9-brU').value.trim()); });
+    win.querySelectorAll('[data-q]').forEach(function(b){ b.onclick = function(){ go(b.dataset.q); }; });
+  }
+};
+
+/* ============================================================
+   15 · FOREN
+   ============================================================ */
+APPS['foren'] = {
+  name:'Foren', icon:'💬',
+  render: function(){
+    var F = [
+      ['🖥️','Reddit','https://www.reddit.com','Alles'],
+      ['💬','Quora','https://www.quora.com','Fragen'],
+      ['⌨️','Stack Overflow','https://stackoverflow.com','Code'],
+      ['🎮','Steam Community','https://steamcommunity.com','Gaming'],
+      ['🇩🇪','gutefrage.net','https://www.gutefrage.net','Deutsch'],
+      ['🎓','Academia.edu','https://www.academia.edu','Wissenschaft'],
+      ['📸','500px','https://500px.com','Fotografie'],
+      ['🍳','Chefkoch','https://www.chefkoch.de','Kochen'],
+      ['🚗','Motor-Talk','https://www.motor-talk.de','Auto'],
+      ['🦚','Êzîdî-Foren','https://www.ezidi-forum.de','Kultur']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💬 Foren & Communities</div></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">'+
+        F.map(function(f){ return '<a href="'+f[2]+'" target="_blank" rel="noopener" style="text-decoration:none" class="v9-tile"><div class="ic">'+f[0]+'</div><div class="nm">'+esc(f[1])+'</div><div class="sub">'+esc(f[3])+'</div></a>'; }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* ============================================================
+   16 · SOCIAL MEDIA
+   ============================================================ */
+APPS['socialmedia'] = {
+  name:'Social Media', icon:'📱',
+  render: function(){
+    var F = [
+      ['📷','Instagram','https://www.instagram.com'],
+      ['🐦','X / Twitter','https://x.com'],
+      ['📘','Facebook','https://www.facebook.com'],
+      ['💼','LinkedIn','https://www.linkedin.com'],
+      ['🎵','TikTok','https://www.tiktok.com'],
+      ['📌','Pinterest','https://www.pinterest.com'],
+      ['▶️','YouTube','https://www.youtube.com'],
+      ['📸','Snapchat','https://www.snapchat.com'],
+      ['🎮','Twitch','https://www.twitch.tv'],
+      ['💬','Discord','https://discord.com'],
+      ['📱','Telegram','https://web.telegram.org'],
+      ['📲','WhatsApp','https://web.whatsapp.com']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📱 Soziale Netzwerke</div></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">'+
+        F.map(function(f){ return '<a href="'+f[2]+'" target="_blank" rel="noopener" style="text-decoration:none" class="v9-tile"><div class="ic">'+f[0]+'</div><div class="nm">'+esc(f[1])+'</div></a>'; }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* ============================================================
+   17 · CLOUD SPEICHER
+   ============================================================ */
+APPS['cloud'] = {
+  name:'Cloud Speicher', icon:'☁️',
+  render: function(){
+    var C = [
+      ['📁','Google Drive','https://drive.google.com','15 GB frei'],
+      ['☁️','OneDrive','https://onedrive.live.com','5 GB frei'],
+      ['📦','Dropbox','https://www.dropbox.com','2 GB frei'],
+      ['🍎','iCloud','https://www.icloud.com','5 GB frei'],
+      ['📸','Google Photos','https://photos.google.com','15 GB'],
+      ['📦','MEGA','https://mega.nz','20 GB frei'],
+      ['📄','WeTransfer','https://wetransfer.com','bis 2 GB'],
+      ['🎬','YouTube Studio','https://studio.youtube.com','Videos']
+    ];
+    function size(){
+      var t = 0, c = 0;
+      for(var i=0;i<localStorage.length;i++){
+        var k = localStorage.key(i);
+        if(k && k.indexOf('haldo_') === 0){ t += (localStorage.getItem(k)||'').length; c++; }
+      }
+      return { t: t, c: c };
+    }
+    var s = size();
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">☁️ Cloud Speicher</div></div>'+
+      '<div class="v9-stat"><div class="v">'+(s.t/1024).toFixed(1)+' KB</div><div class="l">'+s.c+' lokale Einträge</div></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">'+
+        C.map(function(c){ return '<a href="'+c[2]+'" target="_blank" rel="noopener" style="text-decoration:none" class="v9-tile"><div class="ic">'+c[0]+'</div><div class="nm">'+esc(c[1])+'</div><div class="sub">'+esc(c[3])+'</div></a>'; }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* ============================================================
+   18 · VPN INFO
+   ============================================================ */
+APPS['vpn'] = {
+  name:'VPN & Privacy', icon:'🔒',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header" style="background:linear-gradient(135deg,rgba(0,229,255,.16),rgba(180,120,255,.12))"><div class="v9-h1">🔒 VPN & Privacy</div><div class="dim sm">Sicher im Netz unterwegs</div></div>'+
+      '<div class="v9-card"><b>✅ Wann sinnvoll?</b><div class="dim sm" style="margin-top:8px;line-height:1.7">• In öffentlichen WLANs<br>• Geo-Sperren umgehen<br>• Mehr Privatsphäre<br>• Bei Reisen in unsicheren Netzen</div></div>'+
+      '<div class="v9-card" style="border-color:rgba(255,176,58,.3)"><b>⚠️ Was VPN NICHT macht</b><div class="dim sm" style="margin-top:8px;line-height:1.7">• Kein Schutz vor Malware<br>• Kein Anonymisierungs-Tool<br>• Keine Wunderwaffe gegen Hacker</div></div>'+
+      '<div class="v9-card"><b>🌐 Bekannte Anbieter</b><div class="list" style="margin-top:8px">'+
+        '<div class="item"><b>Mullvad</b><span class="dim sm" style="margin-left:auto">~5 €/Monat</span></div>'+
+        '<div class="item"><b>ProtonVPN</b><span class="dim sm" style="margin-left:auto">Gratis-Tarif</span></div>'+
+        '<div class="item"><b>NordVPN</b><span class="dim sm" style="margin-left:auto">Beliebt</span></div>'+
+        '<div class="item"><b>WireGuard</b><span class="dim sm" style="margin-left:auto">Open Source</span></div>'+
+      '</div></div>'+
+      '<div class="v9-card"><b>🛡️ Datenschutz-Basics</b><div class="dim sm" style="margin-top:8px;line-height:1.7">• Passwort-Manager<br>• 2FA überall<br>• Firefox / Brave / DuckDuckGo<br>• Kein Klick auf verdächtige Links<br>• Regelmäßige Backups</div></div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+console.log('%c📦 v9 geladen — Travel & Online · 18 Apps','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('Aktive Apps:', Object.keys(APPS).length);
+
+setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click(); }, 150);
+
+})();
+</script>
 </body>
 </html>
