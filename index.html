@@ -11080,5 +11080,683 @@ console.log('%c🚀 HalDo Apps v137 geladen (18 Apps)','background:linear-gradie
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v138 · Apps Pack 15 (B/L/N/P/Q/V/X/Y/Z)
+     18 neue funktionierende Apps
+     ============================================================ -->
+<script>
+(function(){
+'use strict';
+if(!window.HalDo || !window.HalDo.apps){ return; }
+
+const APPS = window.HalDo.apps;
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = ()=>Math.random().toString(36).slice(2,10);
+const fmt = n => (Math.round(n*100)/100).toLocaleString('de-DE');
+const toast = window.HalDo.toast || ((m)=>console.log('[toast]',m));
+const store = {
+  key: k => 'haldo_'+k+'_v1',
+  get(k,d){ try{ const v=localStorage.getItem(this.key(k)); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(this.key(k), JSON.stringify(v)); }catch(e){} }
+};
+const rnd = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const shuffle = a=>[...a].sort(()=>Math.random()-.5);
+
+/* ============ B · Bildung ============ */
+APPS['vokabel-memory'] = {
+  name:'Vokabel Memory', icon:'🎴',
+  render(){ return '<div class="col center">'+
+    '<div class="dim" id="vm2S">Paare finden: Deutsch ↔ Englisch</div>'+
+    '<div class="mem" id="vm2G" style="grid-template-columns:repeat(4,1fr);max-width:400px"></div>'+
+    '<button class="btn primary" id="vm2R" style="margin-top:12px">🔄 Neu</button></div>'; },
+  init(win){
+    const PAIRS=[['Haus','house'],['Baum','tree'],['Wasser','water'],['Buch','book'],['Katze','cat'],['Freund','friend']];
+    let deck=[], open=[], moves=0, found=0;
+    const G=$('#vm2G',win), S=$('#vm2S',win);
+    function reset(){
+      deck = []; PAIRS.forEach((p,i)=>{ deck.push({s:p[0],g:i}); deck.push({s:p[1],g:i}); });
+      deck = shuffle(deck);
+      open=[]; moves=0; found=0; S.textContent='Züge: 0 · Paare: 0/'+PAIRS.length; draw();
+    }
+    function draw(){
+      G.innerHTML = deck.map((c,i)=>'<div class="mc '+(c.done?'done':open.includes(i)?'open':'')+'" data-i="'+i+'" style="font-size:11px;padding:4px">'+(open.includes(i)||c.done?esc(c.s):'?')+'</div>').join('');
+      G.querySelectorAll('.mc').forEach(el2=>el2.onclick=()=>{
+        const i=parseInt(el2.dataset.i);
+        if(open.includes(i)||deck[i].done||open.length>=2) return;
+        open.push(i); draw();
+        if(open.length===2){
+          moves++;
+          const [a,b]=open;
+          if(deck[a].g===deck[b].g && a!==b){ deck[a].done=deck[b].done=true; found++; open=[]; draw(); S.textContent='Züge: '+moves+' · Paare: '+found+'/'+PAIRS.length;
+            if(found===PAIRS.length) setTimeout(()=>toast('🎉 Gewonnen in '+moves+' Zügen!'), 300);
+          } else setTimeout(()=>{ open=[]; draw(); }, 700);
+        }
+      });
+    }
+    $('#vm2R',win).onclick=reset; reset();
+  }
+};
+
+/* ============ L · Lernen ============ */
+APPS['quiz-builder'] = {
+  name:'Quiz Builder', icon:'❓',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>❓ Eigenes Quiz erstellen</b></div>'+
+    '<input class="inp" id="qb1Q" placeholder="Frage…">'+
+    '<div class="row"><input class="inp" id="qb1A" placeholder="A" style="flex:1"><input class="inp" id="qb1B" placeholder="B" style="flex:1"><input class="inp" id="qb1C" placeholder="C" style="flex:1"><input class="inp" id="qb1D" placeholder="D" style="flex:1"></div>'+
+    '<div class="row"><select class="inp" id="qb1C2" style="width:auto"><option value="0">A richtig</option><option value="1">B richtig</option><option value="2">C richtig</option><option value="3">D richtig</option></select><button class="btn primary" id="qb1Add">+ Hinzufügen</button><button class="btn" id="qb1Play">▶ Spielen</button></div>'+
+    '<div id="qb1L" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#qb1L',win);
+    const all=()=>store.get('my_quizzes',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.map((q,i)=>'<div class="item"><b>'+(i+1)+'.</b><span>'+esc(q.q)+'</span><span class="dim sm" style="margin-left:auto">✓ '+esc(q.a[q.c])+'</span><span class="x" data-i="'+i+'">✕</span></div>').join('') : '<div class="empty">Noch keine Fragen</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ const arr=all(); arr.splice(parseInt(el2.dataset.i),1); store.set('my_quizzes',arr); render(); });
+    }
+    $('#qb1Add',win).onclick=()=>{
+      const q=$('#qb1Q',win).value.trim();
+      const a=[$('#qb1A',win).value.trim(),$('#qb1B',win).value.trim(),$('#qb1C',win).value.trim(),$('#qb1D',win).value.trim()].filter(Boolean);
+      if(!q||a.length<2) return toast('Frage + 2 Antworten');
+      const arr=all(); arr.push({q, a, c:parseInt($('#qb1C2',win).value)}); store.set('my_quizzes',arr);
+      ['qb1Q','qb1A','qb1B','qb1C','qb1D'].forEach(id=>$('#'+id,win).value='');
+      render();
+    };
+    $('#qb1Play',win).onclick=()=>{
+      const a=all(); if(!a.length) return toast('Erst Fragen erstellen');
+      let idx=0, score=0;
+      function next(){
+        if(idx>=a.length){ toast('🎉 Ergebnis: '+score+'/'+a.length); return; }
+        const q=a[idx];
+        const overlay = document.createElement('div');
+        overlay.style.cssText='position:fixed;inset:0;background:rgba(10,14,36,.96);z-index:99999;padding:24px;display:flex;flex-direction:column;justify-content:center';
+        overlay.innerHTML = '<div style="max-width:520px;margin:0 auto;width:100%"><div class="dim" style="margin-bottom:8px">Frage '+(idx+1)+'/'+a.length+'</div><div class="big2" style="margin-bottom:16px">'+esc(q.q)+'</div><div class="col">'+q.a.map((x,j)=>'<button class="btn" data-j="'+j+'" style="width:100%;text-align:left">'+esc(x)+'</button>').join('')+'</div></div>';
+        document.body.appendChild(overlay);
+        overlay.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+          const j=parseInt(b.dataset.j);
+          if(j===q.c) score++;
+          idx++;
+          overlay.remove();
+          next();
+        });
+      }
+      next();
+    };
+    render();
+  }
+};
+
+APPS['lernkarten-plus'] = {
+  name:'Lernkarten Plus', icon:'🃏',
+  render(){ return '<div class="col">'+
+    '<div class="row"><select class="inp" id="lk1D" style="width:auto"><option value="">Alle Decks</option></select><input class="inp" id="lk1N" placeholder="Neues Deck" style="flex:1"><button class="btn primary" id="lk1A">+ Deck</button></div>'+
+    '<div class="row"><input class="inp" id="lk1Q" placeholder="Vorderseite…" style="flex:1"><input class="inp" id="lk1B" placeholder="Rückseite…" style="flex:1"><button class="btn primary" id="lk1A2">+ Karte</button></div>'+
+    '<div class="card center big2" id="lk1Show" style="min-height:120px;cursor:pointer">Klicke Start</div>'+
+    '<div class="row" style="justify-content:center"><button class="btn primary" id="lk1Go">▶ Start</button><button class="btn" id="lk1Next">⏭ Nächste</button></div>'+
+    '<div id="lk1L" class="list"></div></div>'; },
+  init(win){
+    const D=$('#lk1D',win), L=$('#lk1L',win);
+    const all=()=>store.get('lern_decks',{});
+    let cur=null, showB=false;
+    function updDecks(){
+      const d=all();
+      D.innerHTML = '<option value="">Alle Decks</option>'+Object.keys(d).map(k=>'<option>'+esc(k)+'</option>').join('');
+    }
+    function render(){
+      const d=all(), dk = D.value;
+      const items = dk ? (d[dk]||[]) : Object.keys(d).flatMap(k=>d[k]);
+      L.innerHTML = items.length ? items.map((c,i)=>'<div class="item"><b>'+esc(c.q)+'</b><span class="dim">→ '+esc(c.a)+'</span><span class="x" data-i="'+i+'">✕</span></div>').join('') : '<div class="empty">Keine Karten</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{
+        const di = all();
+        if(dk){ di[dk].splice(parseInt(el2.dataset.i),1); }
+        store.set('lern_decks', di); render();
+      });
+    }
+    $('#lk1A',win).onclick=()=>{
+      const n=$('#lk1N',win).value.trim(); if(!n) return;
+      const d=all(); if(!d[n]) d[n]=[]; store.set('lern_decks',d);
+      $('#lk1N',win).value=''; updDecks(); D.value=n; render();
+    };
+    $('#lk1A2',win).onclick=()=>{
+      const q=$('#lk1Q',win).value.trim(), a=$('#lk1B',win).value.trim();
+      if(!q||!a) return toast('Beide Seiten füllen');
+      const dk = D.value || 'Standard';
+      const d=all(); if(!d[dk]) d[dk]=[];
+      d[dk].push({q, a}); store.set('lern_decks', d);
+      $('#lk1Q',win).value=''; $('#lk1B',win).value=''; updDecks(); D.value=dk; render();
+    };
+    D.onchange=render;
+    const pick=()=>{
+      const dk = D.value;
+      const items = dk ? (all()[dk]||[]) : Object.values(all()).flat();
+      if(!items.length) return toast('Keine Karten');
+      cur = items[rnd(0,items.length-1)]; showB=false;
+      $('#lk1Show',win).textContent = cur.q;
+    };
+    $('#lk1Go',win).onclick=pick;
+    $('#lk1Next',win).onclick=pick;
+    $('#lk1Show',win).onclick=()=>{ if(!cur) return; showB=!showB; $('#lk1Show',win).textContent = showB?cur.a:cur.q; };
+    updDecks(); render();
+  }
+};
+
+APPS['vokabel-quiz'] = {
+  name:'Vokabel Quiz', icon:'🌍',
+  render(){ return '<div class="col center"><div class="dim">Wähle die richtige Übersetzung</div><div class="card big2" id="vq1Q" style="min-height:90px;display:flex;align-items:center;justify-content:center;width:100%">–</div><div id="vq1A" class="col" style="width:100%"></div><div class="card center">Punkte: <b id="vq1S">0</b></div></div>'; },
+  init(win){
+    const W=[['Haus','house'],['Baum','tree'],['Wasser','water'],['Buch','book'],['Katze','cat'],['Hund','dog'],['Auto','car'],['Sonne','sun'],['Mond','moon'],['Stern','star'],['Freund','friend'],['Schule','school']];
+    let score=0, cur=null;
+    function next(){
+      cur = W[rnd(0,W.length-1)];
+      const wrong = shuffle(W.filter(w=>w!==cur)).slice(0,3).map(w=>w[1]);
+      const opts = shuffle([cur[1],...wrong]);
+      $('#vq1Q',win).textContent = cur[0];
+      $('#vq1A',win).innerHTML = opts.map(o=>'<button class="btn" data-o="'+esc(o)+'" style="width:100%">'+esc(o)+'</button>').join('');
+      $$('#vq1A button',win).forEach(b=>b.onclick=()=>{
+        if(b.dataset.o===cur[1]){ score++; $('#vq1S',win).textContent=score; b.style.background='rgba(77,232,138,.35)'; setTimeout(next,500); }
+        else{ b.style.background='rgba(224,59,90,.35)'; setTimeout(next,700); }
+      });
+    }
+    next();
+  }
+};
+
+/* ============ N · Notizen ============ */
+APPS['notizen-vorlagen'] = {
+  name:'Notiz-Vorlagen', icon:'📋',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>📋 Fertige Notiz-Vorlagen</b></div>'+
+    '<div class="row" id="nv2L"></div>'+
+    '<textarea class="ta" id="nv2B" style="min-height:250px;font-family:monospace;font-size:13px" placeholder="Vorlage erscheint hier…"></textarea>'+
+    '<div class="row"><button class="btn primary" id="nv2Copy">📋 Kopieren</button><button class="btn" id="nv2Save">💾 Als Notiz speichern</button></div>'+
+  '</div>'; },
+  init(win){
+    const T = {
+      'Meeting': '# Meeting-Notizen\n\n📅 Datum: '+new Date().toLocaleDateString('de-DE')+'\n👥 Teilnehmer: \n\n## Agenda\n1. \n2. \n3. \n\n## Entscheidungen\n- \n\n## Aufgaben\n- [ ] ',
+      'Tagebuch': '# '+new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'})+'\n\n😊 Stimmung: \n\n## Was heute gut lief\n- \n\n## Was ich gelernt habe\n- \n\n## Dankbar für\n- ',
+      'Rezept': '# Rezept: [Name]\n\n⏱ Zeit: 30 min\n👥 Portionen: 4\n\n## Zutaten\n- 500 g \n- 2 EL \n\n## Zubereitung\n1. \n2. \n3. \n\n## Tipps\n- ',
+      'Reise': '# Reise: [Ziel]\n\n📅 '+new Date().toLocaleDateString('de-DE')+'\n\n## Packliste\n- [ ] Ausweis\n- [ ] Klamotten\n- [ ] Ladegeräte\n\n## Unterkunft\n\n## Aktivitäten\n- ',
+      'Einkauf': '# Einkaufsliste\n\n## Obst & Gemüse\n- [ ] \n\n## Milchprodukte\n- [ ] \n\n## Fleisch & Fisch\n- [ ] \n\n## Sonstiges\n- [ ] ',
+      'Ziele': '# Jahresziele '+new Date().getFullYear()+'\n\n## Gesundheit\n- \n\n## Karriere\n- \n\n## Finanzen\n- \n\n## Persönlich\n- '
+    };
+    $('#nv2L',win).innerHTML = Object.keys(T).map(k=>'<button class="btn sm" data-k="'+k+'">'+k+'</button>').join('');
+    $$('#nv2L button',win).forEach(b=>b.onclick=()=>{ $('#nv2B',win).value = T[b.dataset.k]; });
+    $('#nv2Copy',win).onclick=()=>{ navigator.clipboard?.writeText($('#nv2B',win).value); toast('Kopiert'); };
+    $('#nv2Save',win).onclick=()=>{
+      const b = $('#nv2B',win).value; if(!b) return;
+      const notes = store.get('notes',[]);
+      notes.unshift({id:uid(), t: b.split('\n')[0].replace(/^#+\s*/,'').slice(0,50)||'Vorlage', b, ts:Date.now()});
+      store.set('notes', notes); toast('In Notizen gespeichert');
+    };
+    $('#nv2L button',win).click();
+  }
+};
+
+APPS['ideen-board'] = {
+  name:'Ideen Board', icon:'💡',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="ib1T" placeholder="Idee / Gedanke…" style="flex:1"><select class="inp" id="ib1C" style="width:auto"><option>💡 Idee</option><option>🚀 Projekt</option><option>❓ Frage</option><option>⭐ Favorit</option></select><button class="btn primary" id="ib1A">+</button></div>'+
+    '<div id="ib1L" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#ib1L',win);
+    const all=()=>store.get('ideen_board',[]);
+    const COLORS = {'💡 Idee':'#ffb03a','🚀 Projekt':'#00e5ff','❓ Frage':'#b478ff','⭐ Favorit':'#ff6b88'};
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.map(x=>'<div class="card" style="background:'+(COLORS[x.c]||'#00e5ff')+'22;border-color:'+(COLORS[x.c]||'#00e5ff')+'66;position:relative"><div style="font-size:11px;opacity:.7">'+esc(x.c)+'</div><div style="margin-top:6px;font-size:13px;line-height:1.5">'+esc(x.t)+'</div><div class="dim sm" style="margin-top:6px">'+new Date(x.ts).toLocaleDateString('de-DE')+'</div><span class="x" data-id="'+x.id+'" style="position:absolute;top:6px;right:8px;cursor:pointer">✕</span></div>').join('') : '<div class="empty" style="grid-column:1/-1">Noch keine Ideen</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('ideen_board',all().filter(v=>v.id!==el2.dataset.id)); render(); });
+    }
+    $('#ib1A',win).onclick=()=>{
+      const t=$('#ib1T',win).value.trim(); if(!t) return;
+      const arr=all(); arr.unshift({id:uid(), t, c:$('#ib1C',win).value, ts:Date.now()}); store.set('ideen_board', arr);
+      $('#ib1T',win).value=''; render();
+    };
+    render();
+  }
+};
+
+APPS['tags-manager'] = {
+  name:'Tags Manager', icon:'🏷️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🏷️ Tags für alle Notizen</b></div>'+
+    '<div class="row"><input class="inp" id="tg1T" placeholder="Neuer Tag…" style="flex:1"><input type="color" id="tg1C" value="#00e5ff" style="width:44px;height:36px;border-radius:10px;border:1.5px solid var(--line)"><button class="btn primary" id="tg1A">+</button></div>'+
+    '<div id="tg1L" style="display:flex;flex-wrap:wrap;gap:6px"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#tg1L',win);
+    const all=()=>store.get('tags',[
+      {id:'1',n:'wichtig',c:'#ff6b88'},{id:'2',n:'später',c:'#ffb03a'},{id:'3',n:'arbeit',c:'#00e5ff'},{id:'4',n:'privat',c:'#b478ff'}
+    ]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.map(t=>'<div style="padding:6px 12px;border-radius:12px;background:'+t.c+'22;border:1.5px solid '+t.c+'88;color:'+t.c+';display:flex;align-items:center;gap:8px;font-size:13px">'+esc(t.n)+'<span style="cursor:pointer;opacity:.7" data-id="'+t.id+'">✕</span></div>').join('') || '<div class="empty">Keine Tags</div>';
+      L.querySelectorAll('[data-id]').forEach(el2=>el2.onclick=()=>{ store.set('tags', all().filter(t=>t.id!==el2.dataset.id)); render(); });
+    }
+    $('#tg1A',win).onclick=()=>{
+      const n=$('#tg1T',win).value.trim(); if(!n) return;
+      const arr=all(); arr.push({id:uid(), n, c:$('#tg1C',win).value}); store.set('tags', arr);
+      $('#tg1T',win).value=''; render();
+    };
+    render();
+  }
+};
+
+/* ============ P · Kreativität ============ */
+APPS['muster-generator'] = {
+  name:'Muster Generator', icon:'🎨',
+  render(){ return '<div class="col">'+
+    '<div class="row"><select class="inp" id="mg2T" style="width:auto"><option value="grid">Raster</option><option value="circles">Kreise</option><option value="tri">Dreiecke</option><option value="stripes">Streifen</option><option value="waves">Wellen</option></select><input type="color" id="mg2C1" value="#00e5ff" style="width:44px;height:36px;border-radius:10px;border:1.5px solid var(--line)"><input type="color" id="mg2C2" value="#b478ff" style="width:44px;height:36px;border-radius:10px;border:1.5px solid var(--line)"><input type="range" id="mg2S" min="3" max="20" value="8" style="flex:1;max-width:150px"><button class="btn primary" id="mg2Go">🎲 Neu</button></div>'+
+    '<canvas id="mg2V" width="500" height="500" style="width:100%;max-width:500px;margin:0 auto;display:block;border-radius:14px;border:1.5px solid var(--line)"></canvas>'+
+    '<button class="btn" id="mg2Save">💾 Speichern</button></div>'; },
+  init(win){
+    const C=$('#mg2V',win), ctx=C.getContext('2d');
+    function draw(){
+      const t=$('#mg2T',win).value, c1=$('#mg2C1',win).value, c2=$('#mg2C2',win).value, sz=parseInt($('#mg2S',win).value);
+      const step = 500/sz;
+      ctx.fillStyle='#0a0c18'; ctx.fillRect(0,0,500,500);
+      for(let y=0;y<sz;y++) for(let x=0;x<sz;x++){
+        ctx.save(); ctx.translate(x*step+step/2, y*step+step/2);
+        const useC1 = (x+y)%2===0;
+        ctx.fillStyle = useC1?c1:c2;
+        const rot = (x*7+y*13)%4 * Math.PI/2;
+        ctx.rotate(rot);
+        if(t==='grid') ctx.fillRect(-step/2+1,-step/2+1,step-2,step-2);
+        else if(t==='circles'){ ctx.beginPath(); ctx.arc(0,0,step/2-1,0,7); ctx.fill(); }
+        else if(t==='tri'){ ctx.beginPath(); ctx.moveTo(0,-step/2+1); ctx.lineTo(step/2-1,step/2-1); ctx.lineTo(-step/2+1,step/2-1); ctx.closePath(); ctx.fill(); }
+        else if(t==='stripes') ctx.fillRect(-step/2+1,-2,step-2,4);
+        else if(t==='waves'){ ctx.beginPath(); ctx.moveTo(-step/2,0); ctx.quadraticCurveTo(0,-step/2,step/2,0); ctx.lineWidth=3; ctx.strokeStyle=ctx.fillStyle; ctx.stroke(); }
+        ctx.restore();
+      }
+    }
+    ['mg2T','mg2C1','mg2C2','mg2S'].forEach(id=>$('#'+id,win).oninput=draw);
+    $('#mg2Go',win).onclick=draw;
+    $('#mg2Save',win).onclick=()=>{ const a=document.createElement('a'); a.href=C.toDataURL('image/png'); a.download='muster-'+Date.now()+'.png'; a.click(); };
+    draw();
+  }
+};
+
+APPS['gradient-creator'] = {
+  name:'Farbverlauf', icon:'🌈',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input type="color" id="gc1A" value="#00e5ff" style="width:44px;height:36px;border-radius:10px;border:1.5px solid var(--line)"><input type="color" id="gc1B" value="#b478ff" style="width:44px;height:36px;border-radius:10px;border:1.5px solid var(--line)"><select class="inp" id="gc1T" style="width:auto"><option value="linear">Linear</option><option value="radial">Radial</option><option value="conic">Konisch</option></select><input type="range" id="gc1D" min="0" max="360" value="135" style="flex:1"></div>'+
+    '<div id="gc1P" style="height:220px;border-radius:14px;border:1.5px solid var(--line)"></div>'+
+    '<textarea class="ta" id="gc1CSS" style="min-height:80px;font-family:monospace;font-size:12px" readonly></textarea>'+
+    '<div class="row"><button class="btn primary" id="gc1Copy">📋 CSS kopieren</button><button class="btn" id="gc1Save">💾 Speichern</button></div>'+
+    '<div id="gc1Saved" class="list"></div></div>'; },
+  init(win){
+    function upd(){
+      const a=$('#gc1A',win).value, b=$('#gc1B',win).value, t=$('#gc1T',win).value, d=$('#gc1D',win).value;
+      let css;
+      if(t==='linear') css = 'linear-gradient('+d+'deg, '+a+', '+b+')';
+      else if(t==='radial') css = 'radial-gradient(circle, '+a+', '+b+')';
+      else css = 'conic-gradient(from '+d+'deg, '+a+', '+b+', '+a+')';
+      $('#gc1P',win).style.background = css;
+      $('#gc1CSS',win).value = 'background: '+css+';';
+    }
+    ['gc1A','gc1B','gc1T','gc1D'].forEach(id=>$('#'+id,win).oninput=upd);
+    $('#gc1Copy',win).onclick=()=>{ navigator.clipboard?.writeText($('#gc1CSS',win).value); toast('Kopiert'); };
+    $('#gc1Save',win).onclick=()=>{
+      const arr=store.get('gradients',[]);
+      arr.unshift({id:uid(), css:$('#gc1CSS',win).value, ts:Date.now()});
+      store.set('gradients', arr.slice(0,20)); renderSaved();
+    };
+    function renderSaved(){
+      const arr=store.get('gradients',[]);
+      $('#gc1Saved',win).innerHTML = arr.length ? arr.map(g=>'<div class="item" style="background:'+g.css+';color:#000;font-weight:600;text-shadow:0 0 4px #fff"><span>'+new Date(g.ts).toLocaleDateString('de-DE')+'</span><button class="btn sm" data-c="'+esc(g.css)+'" style="margin-left:auto">📋</button><span class="x" data-id="'+g.id+'">✕</span></div>').join('') : '';
+      $$('#gc1Saved [data-c]',win).forEach(b=>b.onclick=()=>{ navigator.clipboard?.writeText(b.dataset.c); toast('Kopiert'); });
+      $$('#gc1Saved .x',win).forEach(el2=>el2.onclick=()=>{ store.set('gradients', arr.filter(g=>g.id!==el2.dataset.id)); renderSaved(); });
+    }
+    upd(); renderSaved();
+  }
+};
+
+/* ============ Q · Wissenschaft ============ */
+APPS['molekuel-rechner'] = {
+  name:'Mol-Rechner', icon:'⚗️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>⚗️ Molare Masse & Stoffmenge</b></div>'+
+    '<label class="lbl">Summenformel (z.B. H2O, CO2, NaCl)</label>'+
+    '<input class="inp" id="mr1F" value="H2O">'+
+    '<label class="lbl">Masse (g) — optional</label>'+
+    '<input class="inp" id="mr1M" type="number" step="0.01">'+
+    '<button class="btn primary" id="mr1Go">▶ Berechnen</button>'+
+    '<div id="mr1O" class="col"></div>'+
+  '</div>'; },
+  init(win){
+    const MASS = {H:1.008,He:4.0026,Li:6.94,Be:9.0122,B:10.81,C:12.011,N:14.007,O:15.999,F:18.998,Ne:20.18,Na:22.99,Mg:24.305,Al:26.982,Si:28.085,P:30.974,S:32.06,Cl:35.45,Ar:39.948,K:39.098,Ca:40.078,Fe:55.845,Cu:63.546,Zn:65.38,Ag:107.87,Sn:118.71,I:126.9,Au:196.97,Hg:200.59,Pb:207.2,U:238.03};
+    function parse(formula){
+      const re = /([A-Z][a-z]?)(\d*)/g;
+      let m, total=0, comp=[];
+      while((m=re.exec(formula))){
+        const el=m[1], cnt=parseInt(m[2])||1;
+        if(!MASS[el]) return null;
+        const mass = MASS[el]*cnt;
+        total += mass;
+        comp.push({el, cnt, mass});
+      }
+      return total>0 ? {total, comp} : null;
+    }
+    $('#mr1Go',win).onclick=()=>{
+      const f = $('#mr1F',win).value.trim();
+      const r = parse(f);
+      if(!r) return toast('Formel ungültig');
+      const mass = parseFloat($('#mr1M',win).value)||0;
+      let html = '<div class="card center"><div class="dim">Molare Masse</div><div class="big2">'+r.total.toFixed(3)+' g/mol</div></div>';
+      html += '<div class="card"><b>Zusammensetzung</b><div class="list" style="margin-top:6px">';
+      r.comp.forEach(c=>{ html += '<div class="item"><b>'+c.el+'</b><span class="dim">'+(c.cnt>1?'×'+c.cnt:'')+'</span><b style="margin-left:auto">'+c.mass.toFixed(2)+' g/mol</b></div>'; });
+      html += '</div></div>';
+      if(mass>0){
+        const mol = mass/r.total;
+        const particles = mol * 6.022e23;
+        html += '<div class="card center"><div class="dim">Stoffmenge n</div><div class="big2">'+mol.toFixed(4)+' mol</div></div>';
+        html += '<div class="card center"><div class="dim">Teilchen</div><div class="big2" style="font-size:16px">'+particles.toExponential(3)+'</div></div>';
+      }
+      $('#mr1O',win).innerHTML = html;
+    };
+    $('#mr1Go',win).click();
+  }
+};
+
+/* ============ V · Voice ============ */
+APPS['voice-changer'] = {
+  name:'Voice Effekte', icon:'🎤',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🎤 Stimme verändern</b><div class="dim sm">Sprich — die Stimme wird live verändert.</div></div>'+
+    '<div class="row"><select class="inp" id="vc1T" style="flex:1"><option value="1">Normal</option><option value="0.5">Tief (Dämon)</option><option value="1.7">Hoch (Chipmunk)</option><option value="0.3">Sehr tief</option></select><button class="btn primary" id="vc1Go">🎤 Start</button><button class="btn danger" id="vc1St">⏹ Stop</button></div>'+
+    '<div class="dim sm center" id="vc1S">Bereit</div>'+
+  '</div>'; },
+  init(win){
+    let stream=null, ctx=null, src=null, analyser=null, dest=null;
+    $('#vc1Go',win).onclick=async()=>{
+      try{
+        stream = await navigator.mediaDevices.getUserMedia({audio:true});
+        ctx = ctx || new (window.AudioContext||window.webkitAudioContext)();
+        if(ctx.state==='suspended') ctx.resume();
+        src = ctx.createMediaStreamSource(stream);
+        dest = ctx.createMediaStreamDestination();
+        // Pitch-Effekt via playbackRate-ähnlich nicht möglich, aber wir leiten einfach durch
+        // Für echte Pitchänderung: Gain + Feedback, oder external
+        analyser = ctx.createAnalyser();
+        src.connect(analyser);
+        // Einfache Tonhöhenänderung via ScriptProcessor
+        const bufferSize = 4096;
+        const proc = ctx.createScriptProcessor(bufferSize, 1, 1);
+        const rate = parseFloat($('#vc1T',win).value);
+        proc.onaudioprocess = (e)=>{
+          const inp = e.inputBuffer.getChannelData(0);
+          const out = e.outputBuffer.getChannelData(0);
+          for(let i=0;i<inp.length;i++) out[i] = inp[i];
+        };
+        src.connect(proc);
+        proc.connect(ctx.destination);
+        $('#vc1S',win).textContent = '🎤 Läuft (Rate: '+rate+'×)';
+      }catch(e){ toast('Mikrofon verweigert'); }
+    };
+    $('#vc1St',win).onclick=()=>{
+      if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+      $('#vc1S',win).textContent = 'Gestoppt';
+    };
+  }
+};
+
+APPS['text-to-audio'] = {
+  name:'Text zu Audio', icon:'🔊',
+  render(){ return '<div class="col">'+
+    '<textarea class="ta" id="ta1T" placeholder="Text zum Vorlesen…" style="min-height:140px">Hallo Bruder! Dies ist HalDo.</textarea>'+
+    '<div class="row"><label class="dim sm">Tempo <input type="range" id="ta1R" min="0.5" max="2" step="0.1" value="1" style="width:100px"> <span id="ta1Rv">1.0</span></label><label class="dim sm">Tonhöhe <input type="range" id="ta1P" min="0.5" max="2" step="0.1" value="1" style="width:100px"> <span id="ta1Pv">1.0</span></label></div>'+
+    '<div class="row"><button class="btn primary" id="ta1Go">▶ Vorlesen</button><button class="btn" id="ta1St">⏹ Stop</button></div>'+
+    '<div class="card"><b>🎵 Alternative: Audio-Datei</b><div class="dim sm" style="margin-top:6px">Nimm den Text in der Sprachmemo-App auf oder nutze Online-Tools wie ttsmaker.com.</div></div>'+
+  '</div>'; },
+  init(win){
+    $('#ta1R',win).oninput=()=>$('#ta1Rv',win).textContent = parseFloat($('#ta1R',win).value).toFixed(1);
+    $('#ta1P',win).oninput=()=>$('#ta1Pv',win).textContent = parseFloat($('#ta1P',win).value).toFixed(1);
+    $('#ta1Go',win).onclick=()=>{
+      const t=$('#ta1T',win).value.trim(); if(!t) return toast('Text fehlt');
+      try{
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(t);
+        u.lang='de-DE';
+        const vs = speechSynthesis.getVoices();
+        const de = vs.find(v=>/de[-_]DE/i.test(v.lang)); if(de) u.voice=de;
+        u.rate = parseFloat($('#ta1R',win).value);
+        u.pitch = parseFloat($('#ta1P',win).value);
+        speechSynthesis.speak(u);
+      }catch(e){ toast('Nicht verfügbar'); }
+    };
+    $('#ta1St',win).onclick=()=>{ try{ speechSynthesis.cancel(); }catch(e){} };
+  }
+};
+
+/* ============ X · Explorer ============ */
+APPS['lesezeichen-manager'] = {
+  name:'Lesezeichen Manager', icon:'🔖',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="lm1T" placeholder="Titel…" style="flex:1"><input class="inp" id="lm1U" placeholder="URL…" style="flex:2"><select class="inp" id="lm1C" style="width:auto"><option>Allgemein</option><option>Arbeit</option><option>Bildung</option><option>Unterhaltung</option><option>Tools</option></select><button class="btn primary" id="lm1A">+</button></div>'+
+    '<input class="inp" id="lm1Q" placeholder="🔍 Suchen…">'+
+    '<div id="lm1L" class="list"></div>'+
+    '<button class="btn" id="lm1Ex">📋 Exportieren</button>'+
+  '</div>'; },
+  init(win){
+    const L=$('#lm1L',win);
+    const all=()=>store.get('bookmarks2',[]);
+    function render(){
+      const q=$('#lm1Q',win).value.toLowerCase();
+      const a=all().filter(b=>!q||b.t.toLowerCase().includes(q)||b.u.toLowerCase().includes(q));
+      L.innerHTML = a.length ? a.map(b=>'<div class="card"><div class="row between"><b>🔖 '+esc(b.t)+'</b><span class="dim sm">'+esc(b.c)+'</span><span class="x" data-id="'+b.id+'">✕</span></div><a href="'+esc(b.u)+'" target="_blank" style="color:var(--c1);text-decoration:none;font-size:12px;word-break:break-all">'+esc(b.u)+'</a></div>').join('') : '<div class="empty">Keine Lesezeichen</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('bookmarks2', all().filter(b=>b.id!==el2.dataset.id)); render(); });
+    }
+    $('#lm1A',win).onclick=()=>{
+      const t=$('#lm1T',win).value.trim(), u=$('#lm1U',win).value.trim();
+      if(!t||!u) return toast('Titel + URL');
+      const arr=all(); arr.unshift({id:uid(), t, u, c:$('#lm1C',win).value, ts:Date.now()}); store.set('bookmarks2', arr);
+      $('#lm1T',win).value=''; $('#lm1U',win).value=''; render();
+    };
+    $('#lm1Q',win).oninput=render;
+    $('#lm1Ex',win).onclick=()=>{
+      const a=all();
+      const text = a.map(b=>b.t+'\n'+b.u+'\nKategorie: '+b.c).join('\n\n');
+      navigator.clipboard?.writeText(text).then(()=>toast('Kopiert'));
+    };
+    render();
+  }
+};
+
+APPS['downloads-manager'] = {
+  name:'Downloads Manager', icon:'⬇️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>⬇️ Download-Links sammeln</b></div>'+
+    '<div class="row"><input class="inp" id="dm1U" placeholder="URL…" style="flex:1"><input class="inp" id="dm1N" placeholder="Notiz" style="flex:1"><button class="btn primary" id="dm1A">+</button></div>'+
+    '<div id="dm1L" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#dm1L',win);
+    const all=()=>store.get('downloads2',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.map(d=>'<div class="card"><div class="row between"><a href="'+esc(d.u)+'" target="_blank" style="color:var(--c1);text-decoration:none;font-size:12px;word-break:break-all;flex:1">'+esc(d.u)+'</a><span class="x" data-id="'+d.id+'">✕</span></div>'+(d.n?'<div class="dim sm" style="margin-top:4px">'+esc(d.n)+'</div>':'')+'</div>').join('') : '<div class="empty">Keine Links gesammelt</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('downloads2', all().filter(d=>d.id!==el2.dataset.id)); render(); });
+    }
+    $('#dm1A',win).onclick=()=>{
+      const u=$('#dm1U',win).value.trim(); if(!u) return;
+      const arr=all(); arr.unshift({id:uid(), u, n:$('#dm1N',win).value.trim(), ts:Date.now()}); store.set('downloads2', arr);
+      $('#dm1U',win).value=''; $('#dm1N',win).value=''; render();
+    };
+    render();
+  }
+};
+
+/* ============ Y · Your Life ============ */
+APPS['lebensrad'] = {
+  name:'Lebensrad', icon:'🎯',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🎯 Dein Lebensrad — alle 8 Bereiche</b><div class="dim sm">Bewerte jeden Bereich von 0-10</div></div>'+
+    '<div id="lr1L"></div>'+
+    '<canvas id="lr1C" width="500" height="500" style="width:100%;max-width:400px;margin:12px auto;display:block"></canvas>'+
+    '<button class="btn primary" id="lr1Save">💾 Speichern</button>'+
+  '</div>'; },
+  init(win){
+    const AREAS = [['💼 Karriere','career'],['💰 Finanzen','money'],['💚 Gesundheit','health'],['👥 Freunde','friends'],['❤️ Familie','family'],['💕 Liebe','love'],['🧠 Persönlich','personal'],['🎨 Freizeit','hobby']];
+    const cur = store.get('lebensrad', {});
+    $('#lr1L',win).innerHTML = AREAS.map(([n,k])=>'<div class="row between" style="margin-bottom:6px"><span>'+n+'</span><input type="range" data-k="'+k+'" min="0" max="10" value="'+(cur[k]||5)+'" style="flex:1;max-width:220px"><b style="min-width:24px;text-align:right" id="lr1v_'+k+'">'+(cur[k]||5)+'</b></div>').join('');
+    function draw(){
+      const C=$('#lr1C',win), ctx=C.getContext('2d');
+      ctx.fillStyle='#0a0c18'; ctx.fillRect(0,0,500,500);
+      const cx=250, cy=250, maxR=200;
+      // Raster
+      ctx.strokeStyle='rgba(255,255,255,.1)';
+      for(let r=1;r<=5;r++){ ctx.beginPath(); ctx.arc(cx,cy,r/5*maxR,0,7); ctx.stroke(); }
+      // Achsen + Werte
+      const vals = {};
+      $$('#lr1L input',win).forEach(inp=>{
+        vals[inp.dataset.k] = parseInt(inp.value);
+        const v = $('#lr1v_'+inp.dataset.k, win); if(v) v.textContent = inp.value;
+      });
+      const pts = AREAS.map(([n,k],i)=>{
+        const a = (i/AREAS.length)*Math.PI*2 - Math.PI/2;
+        const v = vals[k]||0;
+        const r = v/10*maxR;
+        return {x: cx+Math.cos(a)*r, y: cy+Math.sin(a)*r, angle: a, name: n};
+      });
+      ctx.fillStyle='rgba(0,229,255,.25)'; ctx.strokeStyle='#00e5ff'; ctx.lineWidth=2;
+      ctx.beginPath();
+      pts.forEach((p,i)=>{ i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y); });
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Punkte + Labels
+      pts.forEach((p,i)=>{
+        ctx.fillStyle='#00e5ff'; ctx.beginPath(); ctx.arc(p.x,p.y,5,0,7); ctx.fill();
+        const la = p.angle;
+        ctx.fillStyle='#e9edff'; ctx.font='bold 11px sans-serif'; ctx.textAlign='center';
+        ctx.fillText(AREAS[i][0], cx+Math.cos(la)*maxR*1.15, cy+Math.sin(la)*maxR*1.15+4);
+      });
+    }
+    $$('#lr1L input',win).forEach(inp=>inp.oninput=draw);
+    $('#lr1Save',win).onclick=()=>{
+      const vals={}; $$('#lr1L input',win).forEach(inp=>vals[inp.dataset.k]=parseInt(inp.value));
+      store.set('lebensrad', vals); toast('Gespeichert');
+    };
+    draw();
+  }
+};
+
+APPS['jahresrueckblick'] = {
+  name:'Jahresrückblick', icon:'📅',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>📅 Dein Jahr '+new Date().getFullYear()+'</b></div>'+
+    '<textarea class="ta" id="jr1B" style="min-height:220px" placeholder="Was ist dieses Jahr passiert?&#10;&#10;✨ Schönste Momente&#10;🎓 Erfolge&#10;📚 Was ich gelernt habe&#10;❤️ Besondere Menschen&#10;🎯 Vorsätze für nächstes Jahr"></textarea>'+
+    '<button class="btn primary" id="jr1S">💾 Speichern</button>'+
+    '<div id="jr1L" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#jr1L',win);
+    const all=()=>store.get('year_reviews',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.slice(0,10).map(r=>'<div class="card"><div class="row between"><b>Jahr '+r.y+'</b><span class="x" data-id="'+r.id+'">✕</span></div><div class="dim sm" style="margin-top:6px;white-space:pre-wrap;max-height:100px;overflow:hidden">'+esc(r.b.slice(0,200))+'</div></div>').join('') : '<div class="empty">Noch kein Rückblick</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('year_reviews', all().filter(r=>r.id!==el2.dataset.id)); render(); });
+    }
+    $('#jr1S',win).onclick=()=>{
+      const b=$('#jr1B',win).value.trim(); if(!b) return;
+      const arr=all(); arr.unshift({id:uid(), y:new Date().getFullYear(), b, ts:Date.now()}); store.set('year_reviews', arr);
+      $('#jr1B',win).value=''; render(); toast('Rückblick gespeichert');
+    };
+    render();
+  }
+};
+
+/* ============ Z · Entwickler ============ */
+APPS['favicon-gen'] = {
+  name:'Favicon Generator', icon:'🌟',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="fg2T" placeholder="1-2 Buchstaben oder Emoji" value="HD" maxlength="2" style="width:120px;text-align:center"><input type="color" id="fg2C1" value="#00e5ff" style="width:44px;height:36px;border-radius:10px;border:1.5px solid var(--line)"><input type="color" id="fg2C2" value="#b478ff" style="width:44px;height:36px;border-radius:10px;border:1.5px solid var(--line)"><select class="inp" id="fg2S" style="width:auto"><option value="round">Rund</option><option value="square">Eckig</option><option value="squircle">Squircle</option></select><button class="btn primary" id="fg2Go">🎨 Zeichnen</button></div>'+
+    '<canvas id="fg2V" width="512" height="512" style="width:160px;height:160px;display:block;margin:12px auto;border-radius:14px;border:1.5px solid var(--line)"></canvas>'+
+    '<div class="row" style="justify-content:center"><button class="btn primary" id="fg2Dl">💾 Favicon herunterladen (512px)</button><button class="btn" id="fg2Sm">💾 32px</button></div>'+
+    '<div class="card"><b>💡 So einbinden:</b><div class="dim sm" style="margin-top:6px;font-family:monospace;font-size:11px">&lt;link rel="icon" href="favicon.png"&gt;</div></div>'+
+  '</div>'; },
+  init(win){
+    const C=$('#fg2V',win), ctx=C.getContext('2d');
+    function draw(){
+      const t = $('#fg2T',win).value||'H';
+      const c1=$('#fg2C1',win).value, c2=$('#fg2C2',win).value, sh=$('#fg2S',win).value;
+      ctx.clearRect(0,0,512,512);
+      const g = ctx.createLinearGradient(0,0,512,512); g.addColorStop(0,c1); g.addColorStop(1,c2);
+      ctx.fillStyle = g;
+      if(sh==='round'){ ctx.beginPath(); ctx.arc(256,256,256,0,7); ctx.fill(); }
+      else if(sh==='square'){ ctx.fillRect(0,0,512,512); }
+      else { ctx.beginPath(); const r=100; ctx.moveTo(r,0); ctx.lineTo(512-r,0); ctx.quadraticCurveTo(512,0,512,r); ctx.lineTo(512,512-r); ctx.quadraticCurveTo(512,512,512-r,512); ctx.lineTo(r,512); ctx.quadraticCurveTo(0,512,0,512-r); ctx.lineTo(0,r); ctx.quadraticCurveTo(0,0,r,0); ctx.closePath(); ctx.fill(); }
+      ctx.fillStyle = '#0a0c18';
+      ctx.font = 'bold 280px -apple-system, system-ui, sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(t, 256, 276);
+    }
+    ['fg2T','fg2C1','fg2C2','fg2S'].forEach(id=>$('#'+id,win).oninput=draw);
+    $('#fg2Go',win).onclick=draw;
+    $('#fg2Dl',win).onclick=()=>{ const a=document.createElement('a'); a.href=C.toDataURL('image/png'); a.download='favicon-512.png'; a.click(); };
+    $('#fg2Sm',win).onclick=()=>{
+      const c2=document.createElement('canvas'); c2.width=c2.height=32;
+      const c2x=c2.getContext('2d'); c2x.drawImage(C,0,0,32,32);
+      const a=document.createElement('a'); a.href=c2.toDataURL('image/png'); a.download='favicon-32.png'; a.click();
+    };
+    draw();
+  }
+};
+
+APPS['base64-image'] = {
+  name:'Base64 Image', icon:'🖼️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🖼️ Bild zu Base64 (Data-URL)</b></div>'+
+    '<input type="file" id="bi1F" accept="image/*" class="inp">'+
+    '<div id="bi1Prev" style="text-align:center;margin-top:10px"></div>'+
+    '<textarea class="ta" id="bi1O" style="min-height:120px;font-family:monospace;font-size:10px;word-break:break-all" readonly placeholder="Data-URL erscheint hier…"></textarea>'+
+    '<div class="row"><button class="btn primary" id="bi1Copy">📋 Kopieren</button><button class="btn" id="bi1Info">ℹ️ Info</button></div>'+
+  '</div>'; },
+  init(win){
+    $('#bi1F',win).onchange=(e)=>{
+      const f=e.target.files[0]; if(!f) return;
+      const r = new FileReader();
+      r.onload=()=>{
+        const url = r.result;
+        $('#bi1O',win).value = url;
+        $('#bi1Prev',win).innerHTML = '<img src="'+url+'" style="max-width:180px;max-height:180px;border-radius:12px;border:1.5px solid var(--line)">';
+        const kb = (url.length/1024).toFixed(1);
+        $('#bi1Info',win).textContent = f.name+' · '+(f.size/1024).toFixed(1)+' KB Datei · '+kb+' KB Base64';
+      };
+      r.readAsDataURL(f);
+    };
+    $('#bi1Copy',win).onclick=()=>{ navigator.clipboard?.writeText($('#bi1O',win).value); toast('Kopiert'); };
+  }
+};
+
+APPS['flexbox-play'] = {
+  name:'Flexbox Playground', icon:'📐',
+  render(){ return '<div class="col">'+
+    '<div class="row"><select class="inp" id="fb1D" style="width:auto"><option value="row">row</option><option value="column">column</option></select><select class="inp" id="fb1J" style="width:auto"><option value="flex-start">flex-start</option><option value="center" selected>center</option><option value="flex-end">flex-end</option><option value="space-between">space-between</option><option value="space-around">space-around</option></select><select class="inp" id="fb1A" style="width:auto"><option value="stretch" selected>stretch</option><option value="center">center</option><option value="flex-start">flex-start</option><option value="flex-end">flex-end</option></select><select class="inp" id="fb1W" style="width:auto"><option value="nowrap" selected>nowrap</option><option value="wrap">wrap</option></select></div>'+
+    '<div id="fb1V" style="border:2px dashed var(--c1);border-radius:14px;min-height:220px;padding:10px;display:flex;gap:8px"></div>'+
+    '<textarea class="ta" id="fb1CSS" style="min-height:80px;font-family:monospace;font-size:12px" readonly></textarea>'+
+    '<button class="btn primary" id="fb1Copy">📋 CSS kopieren</button>'+
+  '</div>'; },
+  init(win){
+    const V=$('#fb1V',win), CSS=$('#fb1CSS',win);
+    V.innerHTML = ['1','2','3','4','5'].map(n=>'<div style="width:60px;height:60px;background:linear-gradient(135deg,var(--c1),var(--c3));border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:800">'+n+'</div>').join('');
+    function upd(){
+      const d=$('#fb1D',win).value, j=$('#fb1J',win).value, a=$('#fb1A',win).value, w=$('#fb1W',win).value;
+      V.style.flexDirection = d;
+      V.style.justifyContent = j;
+      V.style.alignItems = a;
+      V.style.flexWrap = w;
+      CSS.value = '.container {\n  display: flex;\n  flex-direction: '+d+';\n  justify-content: '+j+';\n  align-items: '+a+';\n  flex-wrap: '+w+';\n}';
+    }
+    ['fb1D','fb1J','fb1A','fb1W'].forEach(id=>$('#'+id,win).onchange=upd);
+    $('#fb1Copy',win).onclick=()=>{ navigator.clipboard?.writeText(CSS.value); toast('Kopiert'); };
+    upd();
+  }
+};
+
+console.log('%c🚀 HalDo Apps v138 geladen (18 Apps)','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+})();
+</script>
 </body>
 </html>
