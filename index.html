@@ -640,5 +640,829 @@ console.log('→ Bereit für Block 2 (KI + Apps)');
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · Block 2 · KI & Kommunikation
+     17 funktionierende Apps
+     ============================================================ -->
+<script>
+(function(){
+'use strict';
+var H = window.HalDo;
+if(!H || !H.APPS){ console.error('[Block 2] Foundation fehlt'); return; }
+var APPS = H.APPS;
+var $=H.$, $$=H.$$, el=H.el, esc=H.esc, uid=H.uid, pad=H.pad, fmt=H.fmt, rnd=H.rnd, store=H.store, toast=H.toast;
+
+/* ========================================================================
+   SPRACHPAKETE (DE / EN / TR / AR / Kurmancî / Sorani / Goranî / Êzîdî)
+   ======================================================================== */
+H.LANGS = H.LANGS || {};
+H.LANGS.de = { greeting:'Hey Bruder! 💙 Wie geht\'s?', ready:'Bereit', listening:'🎤 Ich höre zu…', speaking:'🔊 Ich spreche…', help:'Ich kann Apps öffnen, Wetter, Zeit, Datum, rechnen.', not_understood:'Das verstand ich nicht. Sag „hilfe".', lang_name:'Deutsch', code:'de-DE' };
+H.LANGS.en = { greeting:'Hey brother! 💙 How are you?', ready:'Ready', listening:'🎤 Listening…', speaking:'🔊 Speaking…', help:'I can open apps, weather, time, calculations.', not_understood:'Didn\'t understand. Say "help".', lang_name:'English', code:'en-US' };
+H.LANGS.tr = { greeting:'Merhaba kardeşim! 💙 Nasılsın?', ready:'Hazır', listening:'🎤 Dinliyorum…', speaking:'🔊 Konuşuyorum…', help:'Uygulama açabilirim, hava durumu, hesap, saat.', not_understood:'Anlamadım. "yardım" de.', lang_name:'Türkçe', code:'tr-TR' };
+H.LANGS.ar = { greeting:'مرحبا أخي! 💙 كيف حالك؟', ready:'جاهز', listening:'🎤 أنا أسمع…', speaking:'🔊 أتحدث…', help:'أفتح التطبيقات، الطقس، الحساب، الوقت.', not_understood:'لم أفهم. قل "مساعدة".', lang_name:'العربية', code:'ar-SA' };
+H.LANGS['ku-kmr'] = { greeting:'Silav bira! 💙 Tu çawa yî?', ready:'Amade', listening:'🎤 Ez guhdarî dikim…', speaking:'🔊 Ez dipeyvim…', help:'Ez dikarim sepanan vekim, hewa, hesab, dem.', not_understood:'Min fêm nekir. Bibêje "alîkarî".', lang_name:'Kurmancî', code:'ku' };
+H.LANGS['ku-ckb'] = { greeting:'سڵاو برا! 💙 چۆنی؟', ready:'ئامادە', listening:'🎤 گوێ دەگرم…', speaking:'🔊 قسە دەکەم…', help:'دەتوانم ئەپەکان بکەمەوە، کەشوهەوا، ژماردن، کات.', not_understood:'تێنەگەیشتم. بڵێ "یارمەتی".', lang_name:'سۆرانی', code:'ckb' };
+H.LANGS['ku-gor'] = { greeting:'Silav bira! 💙 Tu çawa yî?', ready:'Amade', listening:'🎤 Ez guhdarî dikim…', speaking:'🔊 Ez dipeyvim…', help:'Ez dikarim sepanan vekim, hewa, hesab.', not_understood:'Min fêm nekir.', lang_name:'Goranî', code:'ku' };
+H.LANGS.ez = { greeting:'Silav bira! 💙 Tu çawa yî?', ready:'Amade', listening:'🎤 Ez guhdarî dikim…', speaking:'🔊 Ez dipeyvim…', help:'Ez dikarim sepanan vekim, hewa, hesab.', not_understood:'Min fêm nekir. Bibêje "alîkarî".', lang_name:'Êzîdî', code:'ku' };
+
+H.langList = [
+  {code:'de', name:'Deutsch', flag:'🇩🇪'},
+  {code:'en', name:'English', flag:'🇬🇧'},
+  {code:'tr', name:'Türkçe', flag:'🇹🇷'},
+  {code:'ar', name:'العربية', flag:'🇸🇦'},
+  {code:'ku-kmr', name:'Kurmancî', flag:'🟡'},
+  {code:'ku-ckb', name:'سۆرانی', flag:'🟢'},
+  {code:'ku-gor', name:'Goranî', flag:'🔵'},
+  {code:'ez', name:'Êzîdî', flag:'🦚'}
+];
+
+/* ========================================================================
+   SPRACH-ENGINE (TTS + STT)
+   ======================================================================== */
+var speech = {
+  voices: [],
+  loadVoices: function(){ try{ speech.voices = window.speechSynthesis.getVoices() || []; }catch(e){ speech.voices = []; } },
+  pickVoice: function(code){
+    var vs = speech.voices, prefix = String(code).split('-')[0];
+    for(var i=0;i<vs.length;i++){ if(vs[i].lang.toLowerCase().indexOf(code.toLowerCase())===0) return vs[i]; }
+    for(var j=0;j<vs.length;j++){ if(vs[j].lang.toLowerCase().indexOf(prefix)===0) return vs[j]; }
+    return null;
+  },
+  speak: function(text, code, opts){
+    opts = opts || {};
+    if(typeof speechSynthesis === 'undefined'){ if(opts.onEnd) opts.onEnd(); return; }
+    try{ speechSynthesis.cancel(); }catch(e){}
+    var clean = String(text).replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}]/gu,'');
+    var u = new SpeechSynthesisUtterance(clean);
+    u.lang = code || 'de-DE';
+    u.rate = opts.rate || 1.0;
+    u.pitch = opts.pitch || 1.0;
+    var v = speech.pickVoice(code); if(v) u.voice = v;
+    if(opts.onStart) u.onstart = opts.onStart;
+    if(opts.onEnd) u.onend = opts.onEnd;
+    try{ speechSynthesis.speak(u); }catch(e){ if(opts.onEnd) opts.onEnd(); }
+  },
+  stop: function(){ try{ speechSynthesis.cancel(); }catch(e){} },
+  listen: function(code, onResult, onEnd, onError){
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR){ if(onError) onError('not-supported'); return null; }
+    var r = new SR();
+    r.lang = code || 'de-DE';
+    r.interimResults = true;
+    r.continuous = false;
+    r.maxAlternatives = 1;
+    r.onresult = function(e){
+      var text = '';
+      for(var i=e.resultIndex;i<e.results.length;i++) text += e.results[i][0].transcript;
+      if(onResult) onResult(text, e.results[e.results.length-1].isFinal);
+    };
+    r.onerror = function(e){ if(onError) onError(e.error); };
+    r.onend = function(){ if(onEnd) onEnd(); };
+    try{ r.start(); }catch(e){ if(onError) onError('start-failed'); }
+    return r;
+  }
+};
+if(typeof speechSynthesis !== 'undefined'){
+  speech.loadVoices();
+  if(!speechSynthesis.onvoiceschanged) speechSynthesis.onvoiceschanged = speech.loadVoices;
+}
+H.speech = speech;
+
+/* ========================================================================
+   KOMMANDO-ENGINE
+   ======================================================================== */
+var CMD = [
+  {k:['öffne','open','veke','بکەمەوە','aç'], a:function(arg){
+    var id = H.findId(arg);
+    if(id){ H.open(id); return '📱 '+arg+' geöffnet'; }
+    return '❓ App nicht gefunden: '+arg;
+  }},
+  {k:['wetter','weather','hewa','کەشوهەوا'], a:function(){ H.open('wetter'); return '⛅ Wetter geöffnet'; }},
+  {k:['wie spät','uhrzeit','zeit','time','کات'], a:function(){ return '🕐 Es ist '+new Date().toLocaleTimeString('de-DE'); }},
+  {k:['datum','welcher tag','date','بەروار'], a:function(){ return '📅 '+new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }},
+  {k:['rechne','berechne','calc','hesab'], a:function(arg){
+    try{ var r = Function('return('+arg.replace(/[^0-9+\-*/().]/g,'')+')')(); return '🧮 = '+r; }catch(e){ return null; }
+  }},
+  {k:['hilfe','help','alîkarî','یارمەتی'], a:function(){
+    return 'Ich kann: "öffne rechner" · "wetter" · "wie spät" · "welcher tag" · "rechne 12*8" · "öffne notizen" · "öffne aufgaben"';
+  }},
+  {k:['fahrschule','theorie'], a:function(){ H.open('verkehrszeichen'); return '🚗 Verkehrszeichen geöffnet'; }},
+  {k:['blitzer','radar'], a:function(){ return '📸 Blitzer-Warnung kommt in Block 5 (Live-Daten Deutschland)'; }},
+  {k:['stau'], a:function(){ return '🚗 Stau-Warnung kommt in Block 5'; }},
+  {k:['baustelle'], a:function(){ return '🚧 Baustellen-Warnung kommt in Block 5'; }},
+  {k:['polizei'], a:function(){ return '🚔 Polizei-Warnung kommt in Block 5'; }},
+  {k:['unfall'], a:function(){ return '🚨 Unfall-Warnung kommt in Block 5'; }},
+  {k:['navigation','navigiere'], a:function(){ return '🧭 Navigation mit Ezidxan/Kurdistan kommt in Block 5'; }},
+  {k:['notiz'], a:function(){ H.open('notizen'); return '📝 Notizen geöffnet'; }},
+  {k:['aufgabe'], a:function(){ H.open('aufgaben'); return '✅ Aufgaben geöffnet'; }},
+  {k:['rechner'], a:function(){ H.open('rechner'); return '🧮 Rechner geöffnet'; }},
+  {k:['kalender'], a:function(){ H.open('kalender'); return '📅 Kalender geöffnet'; }},
+  {k:['musik','lied'], a:function(){ return '🎵 Musik kommt in Block 4'; }},
+  {k:['stopp','stop','bes'], a:function(){ H.speech.stop(); return '⏹ Gestoppt'; }}
+];
+H.runCommand = function(input){
+  var lower = String(input).toLowerCase().trim();
+  for(var i=0;i<CMD.length;i++){
+    var c = CMD[i];
+    for(var k=0;k<c.k.length;k++){
+      var key = c.k[k];
+      var idx = lower.indexOf(key);
+      if(idx>=0){
+        var arg = lower.slice(idx + key.length).trim();
+        var r = c.a(arg);
+        if(r) return r;
+      }
+    }
+  }
+  return null;
+};
+
+/* ========================================================================
+   WISSENSBASIS (Kultur, Wissenschaft, Êzîdî)
+   ======================================================================== */
+var KNOW = {
+  'photosynthese':'Pflanzen wandeln Sonnenlicht + CO₂ + Wasser in Zucker + Sauerstoff um. 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂ 🌱',
+  'gravitation':'Anziehung zwischen Massen. Erde zieht mit 9,81 m/s² an. 🍎',
+  'wasser':'H₂O — zwei Wasserstoffatome, ein Sauerstoffatom 💧',
+  'pi':'π ≈ 3,14159 — Verhältnis Umfang/Durchmesser 🥧',
+  'sonne':'Unser Stern. 1,4 Mio km Durchmesser, 5.500 °C Oberfläche ☀️',
+  'ezidi':'Êzîdî: kurdischsprachige Religionsgemeinschaft aus Mesopotamien. Hauptheiligtum Lalisch im Nordirak. Zentral: Tausî Melek (Pfauengel). Heute ~1 Mio. Anhänger, große Diaspora in Deutschland. 🦚',
+  'tausi melek':'Tausî Melek — der Pfauengel, zentrale Figur im êzîdîschen Glauben. Symbol für Schönheit, Weisheit und göttliche Ordnung. 🦚',
+  'lalisch':'Lalisch — Hauptheiligtum der Êzîdî im Nordirak, enthält das Grab von Sheikh Adi ibn Musafir. Jährliche Pilgerfahrt im Herbst. 🕌',
+  'sengal':'Şengal (Sinjar) — heiliger Berg der Êzîdî im Nordirak. 2014 Schauplatz des Völkermords an den Êzîdî durch den IS. 🕯️',
+  'newroz':'Newroz — kurdisches Neujahrsfest am 21. März. Symbol für Frühling, Freiheit und Widerstand. Feuer werden entzündet. 🌸',
+  'kurdisch':'Kurdisch hat drei Hauptdialekte: Kurmandschi (Nord, ~15 Mio), Sorani (Zentral, ~6 Mio), Gorani (Süd, ~500k). Zwei Schriftsysteme: Latein und Arabisch.',
+  'qewl':'Qewl — religiöse Gesänge der Êzîdî, mündlich überliefert, in Kurmandschi.',
+  'stran':'Stran — kurdische Volkslieder. Oft von Dengbêj (traditionellen Sängern) vorgetragen.'
+};
+
+/* ========================================================================
+   HALDO AI / HALDO CYBORG — Vollständige Chat-AI
+   ======================================================================== */
+function buildAI(isCyborg){
+  var id = isCyborg ? 'haldo-cyborg' : 'haldo-ai';
+  var name = isCyborg ? 'HalDo Cyborg' : 'HalDo AI';
+  var icon = isCyborg ? '⚡' : '🤖';
+  var skinColor = isCyborg ? '#ff78c8' : '#00e5ff';
+  var g1 = isCyborg ? '#ffe4f4' : '#d4f6ff';
+  var g2 = isCyborg ? '#ff78c8' : '#00e5ff';
+  var g3 = isCyborg ? '#d484ff' : '#b478ff';
+
+  return {
+    name: name, icon: icon,
+    render: function(){
+      return '<div class="col" style="height:100%;gap:8px">'+
+        '<div id="aiFace" style="position:relative;height:130px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,rgba(0,229,255,.14),transparent 70%);border-radius:16px;border:1.5px solid var(--line);flex:0 0 auto;overflow:hidden">'+
+          '<div style="position:absolute;width:120px;height:120px;border:1.5px solid var(--c1);border-radius:50%;opacity:.4;animation:aiSpin 8s linear infinite"></div>'+
+          '<div style="position:absolute;width:150px;height:150px;border:1px dashed var(--c3);border-radius:50%;opacity:.3;animation:aiSpin 14s linear infinite reverse"></div>'+
+          '<svg width="110" height="110" viewBox="0 0 120 120" style="position:relative;z-index:2;filter:drop-shadow(0 0 12px '+skinColor+')">'+
+            '<defs><radialGradient id="ag'+id+'" cx="50%" cy="38%">'+
+              '<stop offset="0%" stop-color="'+g1+'"/><stop offset="55%" stop-color="'+g2+'"/><stop offset="100%" stop-color="'+g3+'"/>'+
+            '</radialGradient></defs>'+
+            '<ellipse cx="60" cy="60" rx="38" ry="42" fill="url(#ag'+id+')" opacity="0.92"/>'+
+            '<circle class="aiEyeL" cx="47" cy="56" r="6" fill="#0a0e24"/>'+
+            '<circle class="aiEyeR" cx="73" cy="56" r="6" fill="#0a0e24"/>'+
+            '<circle cx="45" cy="54" r="2" fill="#fff" opacity=".9"/>'+
+            '<circle cx="71" cy="54" r="2" fill="#fff" opacity=".9"/>'+
+            '<path class="aiMouth" d="M 48 78 Q 60 82 72 78" stroke="#0a0e24" stroke-width="2.6" fill="none" stroke-linecap="round"/>'+
+          '</svg>'+
+        '</div>'+
+        '<style>@keyframes aiSpin{to{transform:rotate(360deg)}}</style>'+
+        '<div class="dim center" id="aiStatus" style="font-size:11px;min-height:16px">'+H.t('ready','Bereit')+'</div>'+
+        '<div id="aiChat" style="flex:1;overflow-y:auto;padding:6px 0;display:flex;flex-direction:column;gap:6px;min-height:120px"></div>'+
+        '<div class="row" style="gap:6px;flex:0 0 auto">'+
+          '<button class="btn" id="aiMic" style="width:44px;height:44px;border-radius:50%;padding:0;font-size:18px">🎤</button>'+
+          '<input class="inp" id="aiInput" placeholder="Schreib mir was…" style="flex:1" autocomplete="off">'+
+          '<button class="btn primary" id="aiSend" style="width:44px;height:44px;border-radius:50%;padding:0;font-size:18px">➤</button>'+
+          '<button class="btn" id="aiStop" style="width:44px;height:44px;border-radius:50%;padding:0;font-size:16px">⏹</button>'+
+        '</div>'+
+      '</div>';
+    },
+    init: function(win){
+      var chat = win.querySelector('#aiChat');
+      var input = win.querySelector('#aiInput');
+      var statusEl = win.querySelector('#aiStatus');
+      var micBtn = win.querySelector('#aiMic');
+      var mouthPath = win.querySelector('.aiMouth');
+
+      var KEY = 'ai_chat_' + (isCyborg ? 'cyborg' : 'ai');
+      var hist = [];
+      try{ hist = JSON.parse(localStorage.getItem('haldo_'+KEY+'_v1')||'[]'); }catch(e){ hist = []; }
+
+      function addMsg(who, text, save){
+        save = save !== false;
+        var d = document.createElement('div');
+        d.style.cssText = 'padding:8px 12px;border-radius:14px;font-size:13px;line-height:1.45;max-width:85%;word-wrap:break-word;'+
+          (who==='u' ? 'align-self:flex-end;background:linear-gradient(135deg,var(--c1),var(--c2));color:#fff;border-bottom-right-radius:4px'
+                     : 'background:rgba(255,255,255,.07);border:1.5px solid var(--line);align-self:flex-start;border-bottom-left-radius:4px');
+        d.textContent = text;
+        chat.appendChild(d);
+        chat.scrollTop = chat.scrollHeight;
+        if(save){
+          hist.push({w:who, t:text, ts:Date.now()});
+          try{ localStorage.setItem('haldo_'+KEY+'_v1', JSON.stringify(hist.slice(-60))); }catch(e){}
+        }
+      }
+
+      function setState(st){
+        if(st==='idle') statusEl.textContent = H.t('ready','Bereit');
+        else if(st==='thinking') statusEl.textContent = '🤔 Denke…';
+        else if(st==='speaking') statusEl.textContent = H.t('speaking','🔊 Ich spreche…');
+        else if(st==='listening') statusEl.textContent = H.t('listening','🎤 Ich höre zu…');
+      }
+
+      var mouthId = null;
+      function mouthAnim(on){
+        if(!mouthPath) return;
+        if(mouthId){ clearInterval(mouthId); mouthId = null; }
+        if(on){
+          mouthPath.setAttribute('d','M 48 78 Q 60 82 72 78');
+          mouthId = setInterval(function(){
+            var closed = mouthPath.getAttribute('d').indexOf('82')>=0;
+            mouthPath.setAttribute('d', closed ? 'M 48 80 Q 60 90 72 80' : 'M 48 78 Q 60 82 72 78');
+          }, 160);
+        } else {
+          mouthPath.setAttribute('d','M 48 78 Q 60 82 72 78');
+        }
+      }
+
+      var blinkId = setInterval(function(){
+        var L = win.querySelector('.aiEyeL'), R = win.querySelector('.aiEyeR');
+        if(!L||!R) return;
+        L.style.r = '0.5'; R.style.r = '0.5';
+        setTimeout(function(){ L.style.r = '6'; R.style.r = '6'; }, 130);
+      }, 4200);
+      win.addEventListener('remove', function(){ clearInterval(blinkId); if(mouthId) clearInterval(mouthId); });
+
+      function getLangCode(){
+        var l = H.LANGS[H.currentLang];
+        return l ? l.code : 'de-DE';
+      }
+
+      function speakText(text){
+        setState('speaking');
+        mouthAnim(true);
+        H.speech.speak(text, getLangCode(), {
+          onEnd: function(){ mouthAnim(false); setState('idle'); }
+        });
+      }
+
+      function reply(raw){
+        var q = String(raw).trim();
+        var lower = q.toLowerCase();
+        var cmd = H.runCommand(q);
+        if(cmd) return cmd;
+        for(var k in KNOW){ if(lower.indexOf(k)>=0) return KNOW[k]; }
+        if(/(hallo|hi|hey|servus|silav|merhaba|مرحبا)/.test(lower))
+          return isCyborg ? '⚡ Cyborg hier. Was brauchst du, Bruder?' : H.t('greeting','Hey Bruder! 💙');
+        if(/(wie geht|nasılsın|çawa yî|كيف حالك)/.test(lower))
+          return isCyborg ? '⚡ Alle Systeme stabil. Und dir?' : 'Mir geht\'s super! Und dir? 💙';
+        if(/(danke|thanks|spas|teşekkür|شكرا)/.test(lower)) return 'Immer gerne! ❤️';
+        if(/(wer bist|kimsin|tu kî yî|من أنت)/.test(lower))
+          return isCyborg ? '⚡ Ich bin HalDo Cyborg — dein taktischer Beifahrer.' : 'Ich bin HalDo AI 💙 — dein OS-Begleiter.';
+        if(/(witz|joke)/.test(lower)){
+          var w = ['Treffen sich zwei Jäger. Beide tot 💀','Was ist grün und schwimmt? Ein Kaugummi auf Tauchgang 🟢','Warum können Geister nicht lügen? Weil sie durchsichtig sind 👻'];
+          return w[rnd(0,w.length-1)];
+        }
+        if(/(müde|traurig|schlecht|stress)/.test(lower)) return 'Oh Bruder, das klingt nicht gut 💙 Atme mal durch. Was ist los?';
+        if(/(gut|super|freu|glück)/.test(lower)) return 'Das freut mich riesig! 💙';
+        return H.t('not_understood','Das verstand ich nicht. Sag „hilfe" für Beispiele.');
+      }
+
+      function send(text){
+        text = String(text||'').trim(); if(!text) return;
+        addMsg('u', text);
+        input.value = '';
+        setState('thinking');
+        setTimeout(function(){
+          var a = reply(text);
+          addMsg('b', a);
+          speakText(a);
+        }, 380);
+      }
+
+      if(hist.length===0){
+        var h = new Date().getHours();
+        var greet;
+        if(h<5) greet = 'Hey, noch wach? 🌙';
+        else if(h<11) greet = 'Guten Morgen! ☀️';
+        else if(h<18) greet = isCyborg ? '⚡ Cyborg bereit. Was steht an?' : 'Hey Bruder! 💙 Was steht an?';
+        else if(h<22) greet = 'Guten Abend! 🌆';
+        else greet = 'Hey, spät unterwegs 🌙';
+        addMsg('b', greet);
+        setTimeout(function(){ speakText(greet); }, 500);
+      } else hist.forEach(function(m){ addMsg(m.w, m.t, false); });
+
+      win.querySelector('#aiSend').onclick = function(){ send(input.value); };
+      input.addEventListener('keydown', function(e){ if(e.key==='Enter') send(input.value); });
+      win.querySelector('#aiStop').onclick = function(){ H.speech.stop(); mouthAnim(false); setState('idle'); };
+
+      var rec = null, listening = false;
+      micBtn.onclick = function(){
+        if(listening){
+          if(rec) try{ rec.stop(); }catch(e){}
+          listening = false; micBtn.classList.remove('primary'); setState('idle'); return;
+        }
+        var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if(!SR){ statusEl.textContent = '⚠️ Spracherkennung nicht verfügbar'; return; }
+        rec = H.speech.listen(getLangCode(),
+          function(text, isFinal){
+            statusEl.textContent = '🎤 '+text;
+            if(isFinal && text.trim()){ listening = false; micBtn.classList.remove('primary'); send(text); }
+          },
+          function(){ listening = false; micBtn.classList.remove('primary'); setState('idle'); },
+          function(err){ listening = false; micBtn.classList.remove('primary'); statusEl.textContent = '⚠️ '+err; setState('idle'); }
+        );
+        if(rec){ listening = true; micBtn.classList.add('primary'); setState('listening'); }
+      };
+    }
+  };
+}
+APPS['haldo-ai'] = buildAI(false);
+APPS['haldo-cyborg'] = buildAI(true);
+
+/* ========================================================================
+   SPRACHE EINSTELLUNGEN
+   ======================================================================== */
+APPS['sprache-einstellungen'] = {
+  name:'Sprache Einstellungen', icon:'🌍',
+  render: function(){
+    return '<div class="col">'+
+      '<div class="card"><b>🌍 OS-Sprache wählen</b><div class="dim sm">Gilt für HalDo AI, Sprachausgabe und Spracherkennung.</div></div>'+
+      '<div id="langList" class="col"></div>'+
+      '<div class="card"><b>🔊 Verfügbare Stimmen</b><div class="dim sm" id="voiceInfo">Lade…</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var L = win.querySelector('#langList');
+    function render(){
+      L.innerHTML = H.langList.map(function(l){
+        var active = H.currentLang === l.code;
+        return '<div class="item" style="cursor:pointer;'+(active?'border-color:var(--c1);background:rgba(0,229,255,.1)':'')+'" data-code="'+l.code+'">'+
+          '<span style="font-size:22px">'+l.flag+'</span><b>'+esc(l.name)+'</b>'+
+          '<span class="dim sm" style="margin-left:auto">'+(active?'✓ aktiv':'')+'</span>'+
+        '</div>';
+      }).join('');
+      win.querySelectorAll('[data-code]').forEach(function(e2){
+        e2.onclick = function(){
+          H.setLang(e2.dataset.code);
+          render();
+          var cur = H.LANGS[H.currentLang];
+          if(cur) H.speech.speak(cur.greeting || 'Sprache geändert', cur.code);
+        };
+      });
+    }
+    function updVoices(){
+      var vs = H.speech.voices || [];
+      var de = vs.filter(function(v){ return /de/i.test(v.lang); }).length;
+      var en = vs.filter(function(v){ return /en/i.test(v.lang); }).length;
+      var tr = vs.filter(function(v){ return /tr/i.test(v.lang); }).length;
+      var ar = vs.filter(function(v){ return /ar/i.test(v.lang); }).length;
+      var ku = vs.filter(function(v){ return /ku|ckb|kmr/i.test(v.lang); }).length;
+      win.querySelector('#voiceInfo').innerHTML = '🇩🇪 DE: '+de+' · 🇬🇧 EN: '+en+' · 🇹🇷 TR: '+tr+' · 🇸🇦 AR: '+ar+' · 🟡 KU: '+ku+' (Gesamt: '+vs.length+')';
+    }
+    render();
+    setTimeout(updVoices, 400);
+    setTimeout(updVoices, 1500);
+  }
+};
+
+/* ========================================================================
+   SPRACHAUSGABE (TTS)
+   ======================================================================== */
+APPS['sprachausgabe'] = {
+  name:'Sprachausgabe', icon:'🔊',
+  render: function(){
+    return '<div class="col">'+
+      '<textarea class="ta" id="ttsText" style="min-height:110px">Silav bira! Ez HalDo AI me.</textarea>'+
+      '<select class="inp" id="ttsLang"></select>'+
+      '<div class="row"><label class="lbl" style="flex:1">Tempo <input type="range" id="ttsRate" min="0.5" max="2" step="0.1" value="1" style="width:100%"></label><span class="dim" id="ttsRateV">1.0</span></div>'+
+      '<div class="row"><label class="lbl" style="flex:1">Tonhöhe <input type="range" id="ttsPitch" min="0.5" max="2" step="0.1" value="1" style="width:100%"></label><span class="dim" id="ttsPitchV">1.0</span></div>'+
+      '<div class="row"><button class="btn primary" id="ttsPlay" style="flex:1">▶ Vorlesen</button><button class="btn" id="ttsStop">⏹</button></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var LS = win.querySelector('#ttsLang');
+    LS.innerHTML = H.langList.map(function(l){ return '<option value="'+l.code+'">'+l.flag+' '+esc(l.name)+'</option>'; }).join('');
+    LS.value = H.currentLang;
+    var r = win.querySelector('#ttsRate'), p = win.querySelector('#ttsPitch');
+    r.oninput = function(){ win.querySelector('#ttsRateV').textContent = parseFloat(r.value).toFixed(1); };
+    p.oninput = function(){ win.querySelector('#ttsPitchV').textContent = parseFloat(p.value).toFixed(1); };
+    win.querySelector('#ttsPlay').onclick = function(){
+      var code = (H.LANGS[LS.value]||{}).code || 'de-DE';
+      H.speech.speak(win.querySelector('#ttsText').value, code, { rate: parseFloat(r.value), pitch: parseFloat(p.value) });
+    };
+    win.querySelector('#ttsStop').onclick = function(){ H.speech.stop(); };
+  }
+};
+
+/* ========================================================================
+   SPRACHERKENNUNG (STT)
+   ======================================================================== */
+APPS['spracherkennung'] = {
+  name:'Spracherkennung', icon:'🎤',
+  render: function(){
+    return '<div class="col">'+
+      '<div class="card"><b>🎤 Live-Transkription</b><div class="dim sm">Sprich — Text erscheint live.</div></div>'+
+      '<select class="inp" id="sttLang"></select>'+
+      '<div class="row"><button class="btn primary" id="sttGo" style="flex:1">🎤 Start</button><button class="btn danger" id="sttStop">⏹ Stop</button></div>'+
+      '<div class="card" id="sttOut" style="min-height:150px;font-size:14px;line-height:1.6;white-space:pre-wrap">–</div>'+
+      '<div class="row"><button class="btn" id="sttCopy">📋 Kopieren</button><button class="btn" id="sttClr">🗑</button></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var LS = win.querySelector('#sttLang');
+    LS.innerHTML = H.langList.map(function(l){ return '<option value="'+l.code+'">'+l.flag+' '+esc(l.name)+'</option>'; }).join('');
+    LS.value = H.currentLang;
+    var text = '', rec = null;
+    var out = win.querySelector('#sttOut');
+    win.querySelector('#sttGo').onclick = function(){
+      if(rec) return;
+      var code = (H.LANGS[LS.value]||{}).code || 'de-DE';
+      rec = H.speech.listen(code,
+        function(t, isFinal){ out.textContent = text + (isFinal ? t+' ' : t); if(isFinal) text += t+' '; },
+        function(){ rec = null; },
+        function(err){ out.textContent = '⚠️ '+err; rec = null; }
+      );
+      if(!rec) out.textContent = '⚠️ Spracherkennung nicht verfügbar.';
+    };
+    win.querySelector('#sttStop').onclick = function(){ if(rec){ try{ rec.stop(); }catch(e){} rec = null; } };
+    win.querySelector('#sttCopy').onclick = function(){ navigator.clipboard.writeText(text).then(function(){ toast('Kopiert'); }); };
+    win.querySelector('#sttClr').onclick = function(){ text = ''; out.textContent = '–'; };
+  }
+};
+
+/* ========================================================================
+   SPRACHBEFEHLE
+   ======================================================================== */
+APPS['sprachbefehle'] = {
+  name:'Sprachbefehle', icon:'💬',
+  render: function(){
+    var list = [
+      ['📱','öffne [App]','„öffne rechner"'],
+      ['⛅','wetter','Öffnet Wetter'],
+      ['🕐','wie spät','Zeit'],
+      ['📅','welcher tag','Datum'],
+      ['🧮','rechne [Zahl]','Rechnen'],
+      ['📝','notiz','Notizen'],
+      ['✅','aufgabe','Aufgaben'],
+      ['🚗','fahrschule','Verkehrszeichen'],
+      ['📸','blitzer','kommt Block 5'],
+      ['🚗','stau / baustelle','kommt Block 5'],
+      ['🚔','polizei','kommt Block 5'],
+      ['🚨','unfall','kommt Block 5'],
+      ['🧭','navigation','kommt Block 5'],
+      ['🦚','ezidi / lalisch / sengal','Kultur-Info'],
+      ['❓','hilfe','Hilfe'],
+      ['⏹','stopp','Stop']
+    ];
+    return '<div class="col">'+
+      '<div class="card"><b>💬 Sprachbefehle</b></div>'+
+      '<input class="inp" id="cmdQ" placeholder="Befehl suchen…">'+
+      '<div id="cmdList" class="list"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var list = [
+      ['📱','öffne [App]','„öffne rechner"'],
+      ['⛅','wetter','Öffnet Wetter'],
+      ['🕐','wie spät','Zeit'],
+      ['📅','welcher tag','Datum'],
+      ['🧮','rechne [Zahl]','Rechnen'],
+      ['📝','notiz','Notizen'],
+      ['✅','aufgabe','Aufgaben'],
+      ['🚗','fahrschule','Verkehrszeichen'],
+      ['📸','blitzer','kommt Block 5'],
+      ['🚗','stau / baustelle','kommt Block 5'],
+      ['🚔','polizei','kommt Block 5'],
+      ['🚨','unfall','kommt Block 5'],
+      ['🧭','navigation','kommt Block 5'],
+      ['🦚','ezidi / lalisch / sengal','Kultur-Info'],
+      ['❓','hilfe','Hilfe'],
+      ['⏹','stopp','Stop']
+    ];
+    var Q = win.querySelector('#cmdQ'), L = win.querySelector('#cmdList');
+    function r(){
+      var q = Q.value.toLowerCase();
+      var f = q ? list.filter(function(x){ return x[1].toLowerCase().indexOf(q)>=0 || x[2].toLowerCase().indexOf(q)>=0; }) : list;
+      L.innerHTML = f.map(function(x){
+        return '<div class="item"><span style="font-size:20px">'+x[0]+'</span><code style="color:var(--c1);font-size:12px;flex:1">'+esc(x[1])+'</code><span class="dim sm" style="text-align:right">'+esc(x[2])+'</span></div>';
+      }).join('') || '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput = r; r();
+  }
+};
+
+/* ========================================================================
+   AI WRITER
+   ======================================================================== */
+APPS['ai-writer'] = {
+  name:'AI Writer', icon:'✍️',
+  render: function(){
+    return '<div class="col">'+
+      '<div class="row"><select class="inp" id="awT" style="width:auto">'+
+        '<option value="email">E-Mail</option><option value="brief">Brief</option><option value="sms">SMS</option>'+
+        '<option value="geburtstag">Geburtstag</option><option value="entschuldigung">Entschuldigung</option><option value="bewerbung">Bewerbung</option>'+
+      '</select><input class="inp" id="awN" placeholder="Empfänger / Thema…" style="flex:1"></div>'+
+      '<textarea class="ta" id="awNote" placeholder="Stichpunkte…" style="min-height:60px"></textarea>'+
+      '<div class="row"><button class="btn primary" id="awGo" style="flex:1">✨ Generieren</button><button class="btn" id="awCopy">📋</button></div>'+
+      '<textarea class="ta" id="awOut" placeholder="Ergebnis…" style="min-height:170px"></textarea>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#awGo').onclick = function(){
+      var t = win.querySelector('#awT').value;
+      var n = win.querySelector('#awN').value.trim() || 'Empfänger';
+      var note = win.querySelector('#awNote').value.trim();
+      var sign = '\n\nMit freundlichen Grüßen\n(Dein Name)';
+      var text = '';
+      if(t==='email') text = 'Betreff: '+n+'\n\nHallo '+n+',\n\n'+(note||'ich hoffe, es geht dir gut. Ich schreibe dir wegen folgendem Anliegen:')+'\n\nÜber eine Rückmeldung würde ich mich freuen.'+sign;
+      else if(t==='brief') text = 'Sehr geehrte Damen und Herren,\n\n'+(note||'hiermit wende ich mich an Sie mit folgendem Anliegen:')+'\n\nIch bitte um Rückmeldung.'+sign;
+      else if(t==='sms') text = 'Hey '+n+', '+(note||'kurze Frage — passt es dir gerade?')+' LG';
+      else if(t==='geburtstag') text = 'Liebe/r '+n+',\n\nherzlichen Glückwunsch! 🎉\n\n'+(note||'Ich wünsche dir einen wunderschönen Tag voller Freude und Gesundheit.')+'\n\nFeier schön! ❤️';
+      else if(t==='entschuldigung') text = 'Hallo '+n+',\n\nleider muss ich mich für '+(note||'den Termin')+' entschuldigen.'+sign;
+      else if(t==='bewerbung') text = 'Sehr geehrte Damen und Herren,\n\nmit großem Interesse habe ich Ihre Ausschreibung für die Stelle als '+n+' gelesen.'+(note?'\n\n'+note:'')+'\n\nÜber ein Gespräch freue ich mich sehr.'+sign;
+      win.querySelector('#awOut').value = text;
+    };
+    win.querySelector('#awCopy').onclick = function(){ navigator.clipboard.writeText(win.querySelector('#awOut').value); toast('Kopiert'); };
+    win.querySelector('#awGo').click();
+  }
+};
+
+/* ========================================================================
+   AI TUTOR
+   ======================================================================== */
+APPS['ai-tutor'] = {
+  name:'AI Tutor', icon:'🎓',
+  render: function(){
+    return '<div class="col">'+
+      '<div class="card">📚 Frag mich alles — Mathe, Geschichte, Kulturen, Wissenschaft…</div>'+
+      '<div class="col" id="tutL" style="min-height:200px;max-height:55vh;overflow-y:auto;gap:6px"></div>'+
+      '<div class="row"><input class="inp" id="tutI" placeholder="Deine Frage…" style="flex:1"><button class="btn primary" id="tutS">Fragen</button></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var L = win.querySelector('#tutL'), I = win.querySelector('#tutI');
+    function push(who, txt){
+      var d = document.createElement('div');
+      d.className = 'card';
+      d.style.alignSelf = who==='u' ? 'flex-end' : 'flex-start';
+      d.style.maxWidth = '85%';
+      d.style.background = who==='u' ? 'rgba(0,229,255,.14)' : 'rgba(255,255,255,.05)';
+      d.textContent = txt;
+      L.appendChild(d); L.scrollTop = L.scrollHeight;
+    }
+    push('b', 'Hallo! Frag mich — z. B. „Was ist Photosynthese?" oder „Wer sind die Êzîdî?"');
+    function answer(q){
+      var lq = q.toLowerCase();
+      for(var k in KNOW){ if(lq.indexOf(k)>=0) return KNOW[k]; }
+      if(/^[\d\s+\-*/().]+$/.test(q)){ try{ return '= '+Function('return('+q+')')(); }catch(e){} }
+      return 'Gute Frage! Dazu weiß ich noch nicht genug. Öffne Wikipedia.';
+    }
+    function send(){
+      var q = I.value.trim(); if(!q) return;
+      push('u', q); I.value = '';
+      setTimeout(function(){ push('b', answer(q)); }, 300);
+    }
+    win.querySelector('#tutS').onclick = send;
+    I.addEventListener('keydown', function(e){ if(e.key==='Enter') send(); });
+  }
+};
+
+/* ========================================================================
+   AI SUMMARIZER
+   ======================================================================== */
+APPS['ai-summarizer'] = {
+  name:'AI Summarizer', icon:'📄',
+  render: function(){
+    return '<div class="col">'+
+      '<textarea class="ta" id="sumI" placeholder="Text zum Zusammenfassen…" style="min-height:140px"></textarea>'+
+      '<div class="row"><select class="inp" id="sumLen" style="width:auto"><option value="1">Sehr kurz</option><option value="3" selected>Mittel</option><option value="5">Ausführlich</option></select><button class="btn primary" id="sumGo">Zusammenfassen</button></div>'+
+      '<div class="card" id="sumOut" style="min-height:80px"><span class="dim">Ergebnis…</span></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#sumGo').onclick = function(){
+      var t = win.querySelector('#sumI').value.trim();
+      if(!t){ toast('Text fehlt'); return; }
+      var n = parseInt(win.querySelector('#sumLen').value);
+      var sentences = t.split(/[.!?]+\s+/).filter(function(s){ return s.length>10; });
+      if(sentences.length<=n){ win.querySelector('#sumOut').textContent = t; return; }
+      var words = t.toLowerCase().match(/[a-zäöüß]{4,}/g) || [];
+      var freq = {}; words.forEach(function(w){ freq[w] = (freq[w]||0)+1; });
+      var scored = sentences.map(function(s,i){
+        var sw = s.toLowerCase().match(/[a-zäöüß]{4,}/g) || [];
+        var score = sw.reduce(function(a,w){ return a + (freq[w]||0); }, 0)/Math.max(1, sw.length);
+        score += (i===0 ? 2 : 0) + (i===sentences.length-1 ? 1 : 0);
+        return {s:s, score:score};
+      });
+      var top = scored.slice().sort(function(a,b){ return b.score-a.score; }).slice(0,n).map(function(x){ return x.s; });
+      win.querySelector('#sumOut').innerHTML = sentences.filter(function(s){ return top.indexOf(s)>=0; }).map(function(s){ return '• '+esc(s); }).join('<br>');
+    };
+  }
+};
+
+/* ========================================================================
+   CHAT (lokale Räume)
+   ======================================================================== */
+APPS['chat'] = {
+  name:'Chat', icon:'💬',
+  render: function(){
+    var rooms = ['Allgemein','Ezidi','Kurdisch','Projekte'];
+    return '<div class="col" style="height:100%">'+
+      '<div class="row" id="chatRooms">'+rooms.map(function(r){ return '<button class="btn sm" data-r="'+r+'">'+r+'</button>'; }).join('')+'</div>'+
+      '<div id="chatBox" style="flex:1;overflow-y:auto;background:rgba(0,0,0,.2);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:200px"></div>'+
+      '<div class="row"><input class="inp" id="chatIn" placeholder="Nachricht…" style="flex:1"><button class="btn primary" id="chatSend">Senden</button></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var rooms = ['Allgemein','Ezidi','Kurdisch','Projekte'];
+    var cur = store.get('chat_room_cur', rooms[0]);
+    function all(){ return store.get('chat_rooms', {}); }
+    function r(){
+      win.querySelectorAll('[data-r]').forEach(function(b){
+        b.classList.toggle('primary', b.dataset.r===cur);
+        b.onclick = function(){ cur = b.dataset.r; store.set('chat_room_cur', cur); r(); };
+      });
+      var d = all(); var msgs = d[cur] || [];
+      var box = win.querySelector('#chatBox');
+      box.innerHTML = msgs.length ? msgs.map(function(m){
+        return '<div style="align-self:flex-end;max-width:80%;background:linear-gradient(135deg,var(--c1),var(--c2));color:#fff;padding:8px 12px;border-radius:12px;font-size:13px"><div>'+esc(m.t)+'</div><div style="font-size:10px;opacity:.7;margin-top:3px">'+new Date(m.ts).toLocaleTimeString('de-DE')+'</div></div>';
+      }).join('') : '<div class="empty">Noch keine Nachrichten</div>';
+      box.scrollTop = box.scrollHeight;
+    }
+    win.querySelector('#chatSend').onclick = function(){
+      var t = win.querySelector('#chatIn').value.trim(); if(!t) return;
+      var d = all(); if(!d[cur]) d[cur] = [];
+      d[cur].push({t:t, ts:Date.now()});
+      store.set('chat_rooms', d);
+      win.querySelector('#chatIn').value = '';
+      r();
+    };
+    win.querySelector('#chatIn').addEventListener('keydown', function(e){ if(e.key==='Enter') win.querySelector('#chatSend').click(); });
+    r();
+  }
+};
+
+/* ========================================================================
+   STIMMEN STUDIO
+   ======================================================================== */
+APPS['stimmen-studio'] = {
+  name:'Stimmen Studio', icon:'🎙️',
+  render: function(){
+    return '<div class="col">'+
+      '<div class="card"><b>🎙️ Text → Stimme mit Effekten</b></div>'+
+      '<textarea class="ta" id="vsText" style="min-height:80px">Silav bira! Ez HalDo AI me.</textarea>'+
+      '<div class="row"><select class="inp" id="vsPreset" style="flex:1">'+
+        '<option value="normal">Normal</option><option value="robot">🤖 Roboter</option>'+
+        '<option value="tief">🐻 Tief</option><option value="hoch">🎈 Hoch</option>'+
+        '<option value="schnell">⚡ Schnell</option><option value="langsam">🐌 Langsam</option>'+
+        '<option value="flüstern">🤫 Flüstern</option><option value="cyborg">⚡ Cyborg</option>'+
+      '</select><select class="inp" id="vsLang" style="flex:1"></select></div>'+
+      '<button class="btn primary" id="vsGo" style="width:100%">▶ Sprechen</button>'+
+      '<button class="btn danger" id="vsStop" style="width:100%">⏹ Stop</button>'+
+    '</div>';
+  },
+  init: function(win){
+    var LS = win.querySelector('#vsLang');
+    LS.innerHTML = H.langList.map(function(l){ return '<option value="'+l.code+'">'+l.flag+' '+esc(l.name)+'</option>'; }).join('');
+    LS.value = H.currentLang;
+    win.querySelector('#vsGo').onclick = function(){
+      var preset = win.querySelector('#vsPreset').value;
+      var code = (H.LANGS[LS.value]||{}).code || 'de-DE';
+      var opts = {rate:1.0, pitch:1.0};
+      if(preset==='robot'){ opts.pitch=0.4; opts.rate=0.8; }
+      else if(preset==='tief') opts.pitch=0.3;
+      else if(preset==='hoch') opts.pitch=2.0;
+      else if(preset==='schnell') opts.rate=1.8;
+      else if(preset==='langsam') opts.rate=0.6;
+      else if(preset==='cyborg'){ opts.pitch=1.4; opts.rate=1.1; }
+      H.speech.speak(win.querySelector('#vsText').value, code, opts);
+    };
+    win.querySelector('#vsStop').onclick = function(){ H.speech.stop(); };
+  }
+};
+
+/* ========================================================================
+   SONG CREATOR
+   ======================================================================== */
+APPS['song-creator'] = {
+  name:'Song Creator', icon:'🎵',
+  render: function(){
+    return '<div class="col">'+
+      '<div class="card"><b>🎵 Song mit HalDo-Stimme erstellen</b><div class="dim sm">Text eingeben — HalDo singt ihn.</div></div>'+
+      '<textarea class="ta" id="scText" style="min-height:100px">HalDo, HalDo, mein bester Freund,\nwo der Kosmos ewig träumt.\nBruder, Bruder, Hand in Hand,\nbauen wir ein neues Land.</textarea>'+
+      '<div class="row"><select class="inp" id="scLang" style="flex:1"></select><select class="inp" id="scStyle" style="width:auto">'+
+        '<option value="normal">Normal</option><option value="melodie">🎶 Melodie</option>'+
+        '<option value="rap">🎤 Rap</option><option value="wiegenlied">🌙 Wiegenlied</option>'+
+      '</select></div>'+
+      '<button class="btn primary" id="scGo" style="width:100%;padding:14px">▶ Song singen</button>'+
+      '<button class="btn danger" id="scStop" style="width:100%">⏹ Stop</button>'+
+    '</div>';
+  },
+  init: function(win){
+    var LS = win.querySelector('#scLang');
+    LS.innerHTML = H.langList.map(function(l){ return '<option value="'+l.code+'">'+l.flag+' '+esc(l.name)+'</option>'; }).join('');
+    LS.value = H.currentLang;
+    win.querySelector('#scGo').onclick = function(){
+      var text = win.querySelector('#scText').value;
+      var style = win.querySelector('#scStyle').value;
+      var code = (H.LANGS[LS.value]||{}).code || 'de-DE';
+      var opts = {rate:1.0, pitch:1.1};
+      if(style==='melodie'){ opts.pitch=1.3; opts.rate=0.9; }
+      else if(style==='rap'){ opts.pitch=0.9; opts.rate=1.4; }
+      else if(style==='wiegenlied'){ opts.pitch=1.2; opts.rate=0.7; }
+      H.speech.speak(text, code, opts);
+    };
+    win.querySelector('#scStop').onclick = function(){ H.speech.stop(); };
+  }
+};
+
+/* ========================================================================
+   ÜBERSETZER (online via MyMemory)
+   ======================================================================== */
+APPS['uebersetzer'] = {
+  name:'Übersetzer', icon:'🌐',
+  render: function(){
+    return '<div class="col">'+
+      '<div class="row"><select class="inp" id="trFrom" style="flex:1"></select><span>→</span><select class="inp" id="trTo" style="flex:1"></select></div>'+
+      '<textarea class="ta" id="trIn" style="min-height:100px" placeholder="Text eingeben…"></textarea>'+
+      '<button class="btn primary" id="trGo" style="width:100%">Übersetzen (online)</button>'+
+      '<div class="card" id="trOut" style="min-height:100px"><span class="dim">Ergebnis…</span></div>'+
+      '<div class="card"><b>💡 Hinweis</b><div class="dim sm">Für Kurdisch/Êzîdî sind Online-Übersetzer begrenzt — oft ist Englisch → Kurdisch besser.</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var langs = [
+      {code:'de', name:'Deutsch'},{code:'en', name:'English'},{code:'fr', name:'Français'},
+      {code:'es', name:'Español'},{code:'it', name:'Italiano'},{code:'tr', name:'Türkçe'},
+      {code:'ar', name:'العربية'},{code:'ru', name:'Русский'},{code:'ku', name:'Kurmancî'},
+      {code:'ckb', name:'سۆرانی'},{code:'fa', name:'فارسی'},{code:'nl', name:'Nederlands'}
+    ];
+    var F = win.querySelector('#trFrom'), T = win.querySelector('#trTo');
+    F.innerHTML = langs.map(function(l){ return '<option value="'+l.code+'">'+l.name+'</option>'; }).join('');
+    T.innerHTML = F.innerHTML;
+    F.value = 'de'; T.value = 'en';
+    win.querySelector('#trGo').onclick = function(){
+      var t = win.querySelector('#trIn').value.trim();
+      if(!t){ toast('Text fehlt'); return; }
+      win.querySelector('#trOut').textContent = 'Lade…';
+      fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(t)+'&langpair='+F.value+'|'+T.value)
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          win.querySelector('#trOut').textContent = (j.responseData && j.responseData.translatedText) || 'Keine Antwort';
+        })
+        .catch(function(){ win.querySelector('#trOut').textContent = 'Fehler — offline?'; });
+    };
+  }
+};
+
+/* ========================================================================
+   KURDISCH SPRACHAUSGABE (Schnellzugriff)
+   ======================================================================== */
+APPS['kurdisch-sprachausgabe'] = {
+  name:'Kurdisch Sprachausgabe', icon:'🟡',
+  render: function(){
+    var s = ['Silav, tu çawa yî?','Ez ji te hez dikim.','Spas ji bo alîkariya te.','Navê min HalDo ye.','Ez ê biçim mala xwe.'];
+    return '<div class="col">'+
+      '<div class="card"><b>🟡 Kurmandschi Sprachausgabe</b></div>'+
+      '<textarea class="ta" id="kuText" style="min-height:100px">Silav bira! Ez HalDo AI me.</textarea>'+
+      '<div class="row">'+s.map(function(x){ return '<button class="btn sm" data-s="'+esc(x)+'">'+esc(x)+'</button>'; }).join('')+'</div>'+
+      '<button class="btn primary" id="kuGo" style="width:100%">▶ Vorlesen</button>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelectorAll('[data-s]').forEach(function(b){ b.onclick = function(){ win.querySelector('#kuText').value = b.dataset.s; }; });
+    win.querySelector('#kuGo').onclick = function(){ H.speech.speak(win.querySelector('#kuText').value, 'ku', {}); };
+  }
+};
+
+APPS['ezidi-sprachausgabe'] = {
+  name:'Êzîdî Sprachausgabe', icon:'🦚',
+  render: function(){
+    var s = ['Silav bira, tu çawa yî?','Êzîdî — gelê me yê kevnar.','Tausî Melek — sembola me.','Lalisch — cihê pîroz.','Şengal — çiyayê me.'];
+    return '<div class="col">'+
+      '<div class="card" style="background:linear-gradient(135deg,rgba(255,180,58,.12),rgba(224,59,90,.08))"><b>🦚 Êzîdî Sprachausgabe</b><div class="dim sm">Kurmandschi-Basis mit êzîdîschem Wortschatz.</div></div>'+
+      '<textarea class="ta" id="ezText" style="min-height:100px">Silav bira! Ez HalDo AI me.</textarea>'+
+      '<div class="row">'+s.map(function(x){ return '<button class="btn sm" data-s="'+esc(x)+'">'+esc(x)+'</button>'; }).join('')+'</div>'+
+      '<button class="btn primary" id="ezGo" style="width:100%">▶ Vorlesen</button>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelectorAll('[data-s]').forEach(function(b){ b.onclick = function(){ win.querySelector('#ezText').value = b.dataset.s; }; });
+    win.querySelector('#ezGo').onclick = function(){ H.speech.speak(win.querySelector('#ezText').value, 'ku', {}); };
+  }
+};
+
+/* ========================================================================
+   FERTIG
+   ======================================================================== */
+console.log('%c📦 Block 2 geladen — KI & Kommunikation','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('Aktive Apps:', Object.keys(APPS).length);
+
+setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click(); }, 150);
+
+})();
+</script>
 </body>
 </html>
