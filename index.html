@@ -12392,5 +12392,445 @@ setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v13 · Medien & Entertainment · 10 Apps
+     ============================================================ -->
+<style id="v13-style">
+.v13-radio-row{display:flex;gap:8px;padding:12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(120,180,255,.12);cursor:pointer;transition:.15s;align-items:center}
+.v13-radio-row:hover{background:rgba(0,229,255,.06);border-color:rgba(0,229,255,.3)}
+.v13-radio-row.on{background:linear-gradient(90deg,rgba(0,229,255,.15),rgba(180,120,255,.1));border-color:var(--c1);box-shadow:0 0 16px rgba(0,229,255,.2)}
+.v13-play{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--c1),var(--c2));display:flex;align-items:center;justify-content:center;color:#02101e;font-size:18px;font-weight:800;flex-shrink:0}
+.v13-eq{display:flex;align-items:flex-end;gap:2px;height:20px}
+.v13-eq i{width:3px;background:var(--c1);border-radius:2px;animation:v13-eq .8s ease-in-out infinite}
+.v13-eq i:nth-child(1){animation-delay:0s;height:8px}
+.v13-eq i:nth-child(2){animation-delay:.15s;height:16px}
+.v13-eq i:nth-child(3){animation-delay:.3s;height:12px}
+.v13-eq i:nth-child(4){animation-delay:.45s;height:20px}
+.v13-eq i:nth-child(5){animation-delay:.6s;height:14px}
+@keyframes v13-eq{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.4)}}
+.v13-video{width:100%;aspect-ratio:16/9;background:#000;border-radius:14px;overflow:hidden;border:1px solid rgba(120,180,255,.14)}
+.v13-video iframe,.v13-video video{width:100%;height:100%;border:0}
+.v13-karaoke-line{padding:6px 12px;border-radius:8px;transition:.2s;font-size:14px;line-height:1.6}
+.v13-karaoke-line.on{background:linear-gradient(90deg,rgba(0,229,255,.2),transparent);color:var(--c1);font-weight:700;font-size:17px}
+.v13-podcast{display:flex;gap:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(120,180,255,.12);align-items:center;transition:.15s}
+.v13-podcast:hover{background:rgba(0,229,255,.06);border-color:rgba(0,229,255,.3)}
+.v13-podcast .cover{width:56px;height:56px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:28px;background:linear-gradient(135deg,rgba(0,229,255,.2),rgba(180,120,255,.15));flex-shrink:0}
+.v13-yt-thumb{aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000;position:relative;cursor:pointer;border:1px solid rgba(120,180,255,.14)}
+.v13-yt-thumb img{width:100%;height:100%;object-fit:cover;transition:.3s}
+.v13-yt-thumb:hover img{transform:scale(1.06)}
+.v13-yt-thumb .play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:44px;background:rgba(0,0,0,.35);opacity:0;transition:.2s;color:#fff}
+.v13-yt-thumb:hover .play{opacity:1}
+.v13-music-btn{padding:12px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(120,180,255,.14);color:var(--txt);font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;transition:.15s;width:100%;text-align:left;display:flex;align-items:center;gap:10px}
+.v13-music-btn:hover{background:rgba(0,229,255,.08);border-color:var(--c1)}
+</style>
+
+<script>
+(function(){
+'use strict';
+var H = window.HalDo;
+if(!H || !H.APPS){ console.error('[v13] Foundation fehlt'); return; }
+var APPS = H.APPS;
+var esc=H.esc, uid=H.uid, store=H.store, toast=H.toast;
+
+/* ============================================================
+   1 · RADIO LIVE
+   ============================================================ */
+APPS['radio'] = {
+  name:'Radio Live', icon:'📻',
+  render: function(){
+    var S = [
+      ['🇩🇪','Deutschlandfunk','https://st01.sslstream.dlf.de/dlf/01/128/mp3/stream.mp3'],
+      ['🇩🇪','Bayern 3','https://streams.br.de/bayern3_2.m3u'],
+      ['🇩🇪','1LIVE','https://wdr-1live-live.icecastssl.wdr.de/wdr/1live/live/mp3/128/stream.mp3'],
+      ['🇩🇪','SWR3','https://liveradio.swr.de/sw282p3/swr3/play.mp3'],
+      ['🇦🇹','Ö3','https://orf-live.ors-shoutcast.at/oe3-q2a'],
+      ['🇨🇭','SRF3','https://stream.srg-ssr.ch/m/drs3/mp3_128'],
+      ['🇬🇧','BBC Radio 1','https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one'],
+      ['🇫🇷','France Info','https://icecast.radiofrance.fr/franceinfo-midfi.mp3'],
+      ['🌍','Radio Paradise','https://stream.radioparadise.com/mp3-128']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📻 Radio Live</div><div class="dim sm">Echte Sender · weltweit</div></div>'+
+      '<audio id="v13-rA" controls style="width:100%;border-radius:12px"></audio>'+
+      '<div class="col" style="gap:6px;max-height:55vh;overflow-y:auto">'+
+        S.map(function(s, i){
+          return '<div class="v13-radio-row" data-i="'+i+'"><div class="v13-play">▶</div><div style="flex:1"><b>'+s[0]+' '+esc(s[1])+'</b></div><div class="v13-eq" style="display:none"><i></i><i></i><i></i><i></i><i></i></div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(win){
+    var S = [
+      'https://st01.sslstream.dlf.de/dlf/01/128/mp3/stream.mp3',
+      'https://streams.br.de/bayern3_2.m3u',
+      'https://wdr-1live-live.icecastssl.wdr.de/wdr/1live/live/mp3/128/stream.mp3',
+      'https://liveradio.swr.de/sw282p3/swr3/play.mp3',
+      'https://orf-live.ors-shoutcast.at/oe3-q2a',
+      'https://stream.srg-ssr.ch/m/drs3/mp3_128',
+      'https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one',
+      'https://icecast.radiofrance.fr/franceinfo-midfi.mp3',
+      'https://stream.radioparadise.com/mp3-128'
+    ];
+    var A = win.querySelector('#v13-rA');
+    win.querySelectorAll('.v13-radio-row').forEach(function(row){
+      row.onclick = function(){
+        var i = parseInt(row.dataset.i);
+        var url = S[i];
+        if(row.classList.contains('on')){
+          A.pause(); row.classList.remove('on'); row.querySelector('.v13-eq').style.display = 'none'; row.querySelector('.v13-play').textContent = '▶';
+          return;
+        }
+        win.querySelectorAll('.v13-radio-row').forEach(function(r){ r.classList.remove('on'); r.querySelector('.v13-eq').style.display = 'none'; r.querySelector('.v13-play').textContent = '▶'; });
+        A.src = url;
+        A.play().then(function(){
+          row.classList.add('on'); row.querySelector('.v13-eq').style.display = 'flex'; row.querySelector('.v13-play').textContent = '⏸';
+          toast('▶ Sender läuft');
+        }).catch(function(){ toast('❌ Sender offline'); });
+      };
+    });
+  }
+};
+
+/* ============================================================
+   2 · YOUTUBE SUCHER
+   ============================================================ */
+APPS['youtube'] = {
+  name:'YouTube', icon:'▶️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">▶️ YouTube Sucher</div><div class="dim sm">Finde & schau Videos direkt</div></div>'+
+      '<div class="row"><input class="v9-input" id="v13-yQ" placeholder="Suche (Musik, Tutorial, Doku)…" style="flex:1"><button class="btn primary" id="v13-yS">🔍</button></div>'+
+      '<div id="v13-yL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function load(q){
+      win.querySelector('#v13-yL').innerHTML = '<div class="empty">Öffne YouTube für: <b>'+esc(q)+'</b></div>'+
+        '<a href="https://www.youtube.com/results?search_query='+encodeURIComponent(q)+'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="v9-card" style="padding:16px;text-align:center"><div style="font-size:48px">▶️</div><b style="display:block;margin-top:8px">Auf YouTube öffnen</b></div></a>'+
+        '<div class="row" style="margin-top:8px">'+
+          ['Musik','Nachrichten','Doku','Comedy','Sport'].map(function(t){
+            return '<a href="https://www.youtube.com/results?search_query='+encodeURIComponent(t)+'" target="_blank" rel="noopener" class="v9-chip" style="text-decoration:none">'+esc(t)+'</a>';
+          }).join('')+
+        '</div>';
+    }
+    win.querySelector('#v13-yS').onclick = function(){
+      var q = win.querySelector('#v13-yQ').value.trim();
+      if(!q) return toast('Suche eingeben');
+      load(q);
+    };
+    win.querySelector('#v13-yQ').addEventListener('keydown', function(e){ if(e.key === 'Enter') win.querySelector('#v13-yS').click(); });
+    load('Best of 2024');
+  }
+};
+
+/* ============================================================
+   3 · VIDEO-PLAYER (URL)
+   ============================================================ */
+APPS['videoplayer'] = {
+  name:'Video-Player', icon:'🎬',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎬 Video-Player</div><div class="dim sm">Direkt-Link zu MP4 / HLS · YouTube · Vimeo</div></div>'+
+      '<input class="v9-input" id="v13-vU" placeholder="URL zu Video (mp4) ODER YouTube-Link ODER Vimeo-Link…">'+
+      '<div class="row"><select class="v9-input" id="v13-vT" style="width:auto"><option value="auto">🤖 Auto-Erkennung</option><option value="mp4">🎥 MP4 (direkt)</option><option value="yt">▶️ YouTube</option><option value="vimeo">🎞️ Vimeo</option></select><button class="btn primary" id="v13-vGo" style="flex:1">▶ Laden</button></div>'+
+      '<div class="v13-video" id="v13-vP"><div class="empty" style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--dim)">Kein Video geladen</div></div>'+
+      '<div class="dim sm center">💡 Direkte MP4-Links funktionieren sofort. YouTube/Vimeo werden eingebettet.</div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v13-vGo').onclick = function(){
+      var u = win.querySelector('#v13-vU').value.trim();
+      if(!u) return toast('URL eingeben');
+      var t = win.querySelector('#v13-vT').value;
+      var P = win.querySelector('#v13-vP');
+      if(t === 'auto'){
+        if(/youtube\.com|youtu\.be/.test(u)) t = 'yt';
+        else if(/vimeo\.com/.test(u)) t = 'vimeo';
+        else t = 'mp4';
+      }
+      if(t === 'yt'){
+        var id = '';
+        var m = u.match(/[?&]v=([^&]+)/); if(m) id = m[1];
+        else m = u.match(/youtu\.be\/([^?]+)/); if(m) id = m[1];
+        if(!id) return toast('YouTube-ID nicht erkannt');
+        P.innerHTML = '<iframe src="https://www.youtube.com/embed/'+id+'" allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups allow-presentation"></iframe>';
+      } else if(t === 'vimeo'){
+        var m2 = u.match(/vimeo\.com\/(\d+)/);
+        if(!m2) return toast('Vimeo-ID nicht erkannt');
+        P.innerHTML = '<iframe src="https://player.vimeo.com/video/'+m2[1]+'" allowfullscreen></iframe>';
+      } else {
+        P.innerHTML = '<video src="'+esc(u)+'" controls autoplay playsinline style="width:100%;height:100%"></video>';
+      }
+      toast('▶ Video lädt');
+    };
+  }
+};
+
+/* ============================================================
+   4 · PODCASTS
+   ============================================================ */
+APPS['podcasts'] = {
+  name:'Podcasts', icon:'🎙️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎙️ Podcast-Empfehlungen</div><div class="dim sm">Beliebte deutsche Podcasts</div></div>'+
+      '<input class="v9-input" id="v13-pQ" placeholder="🔍 Podcast suchen…">'+
+      '<div id="v13-pL" class="col" style="gap:8px;max-height:65vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['🎧','Fest & Flauschig','Jan Böhmermann & Olli Schulz','Comedy/Talk'],
+      ['🕵️','Zeit Verbrechen','Sabine Rückert & Andreas Sentker','True Crime'],
+      ['📚','Eine Stunde History','Deutschlandfunk Nova','Geschichte'],
+      ['💡','SWR2 Wissen','SWR','Wissen'],
+      ['🔬','Quarks Daily','WDR','Wissenschaft'],
+      ['💰','Finanzfluss','Thomas Kehl','Finanzen'],
+      ['🏛️','Deutschlandfunk Politik','DLF','Politik'],
+      ['🎬','Kino Plus','Filmstarts','Film'],
+      ['⚽','Kicker Daily','Kicker','Sport'],
+      ['🧠','Psychologie to go','Psychologie','Psychologie'],
+      ['🌍','Weltspiegel','ARD','Ausland'],
+      ['🍳','Küchenradio','SRF','Kochen']
+    ];
+    var Q = win.querySelector('#v13-pQ');
+    function render(){
+      var q = Q.value.toLowerCase();
+      var f = D.filter(function(x){ return !q || (x[1]+' '+x[2]+' '+x[3]).toLowerCase().indexOf(q) >= 0; });
+      win.querySelector('#v13-pL').innerHTML = f.map(function(x){
+        var u = 'https://www.google.com/search?q=' + encodeURIComponent(x[1] + ' Podcast');
+        return '<a href="'+u+'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="v13-podcast"><div class="cover">'+x[0]+'</div><div style="flex:1;min-width:0"><b style="font-size:13.5px;display:block">'+esc(x[1])+'</b><div class="dim sm" style="margin-top:2px">'+esc(x[2])+'</div><div class="dim sm" style="margin-top:2px;font-size:10px">'+esc(x[3])+'</div></div></div></a>';
+      }).join('') || '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput = render; render();
+  }
+};
+
+/* ============================================================
+   5 · KARAOKE MODUS
+   ============================================================ */
+APPS['karaoke'] = {
+  name:'Karaoke', icon:'🎤',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎤 Karaoke</div><div class="dim sm">Songtext + Video suchen</div></div>'+
+      '<input class="v9-input" id="v13-kQ" placeholder="Song + Interpret (z.B. "99 Luftballons Nena")">'+
+      '<div class="row"><button class="btn primary" id="v13-kYt" style="flex:1">▶ YouTube Karaoke</button><button class="btn" id="v13-kLy" style="flex:1">📝 Songtext</button></div>'+
+      '<div class="v9-card" id="v13-kInfo" style="text-align:center">Gib einen Song ein</div>'+
+      '<div class="v9-card"><b>🎤 Beliebte Karaoke-Hits</b><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+
+        ['99 Luftballons','Bohemian Rhapsody','My Way','Yesterday','Wonderwall','Atemlos','Rolling in the Deep'].map(function(s){
+          return '<button class="v9-chip" data-s="'+esc(s)+'">'+esc(s)+'</button>';
+        }).join('')+
+      '</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function go(song){
+      var P = win.querySelector('#v13-kInfo');
+      P.innerHTML = '<b style="font-size:15px">🎤 '+esc(song)+'</b><div class="dim sm" style="margin-top:6px">Wähle unten Video oder Text</div>';
+      win.querySelector('#v13-kQ').value = song;
+    }
+    win.querySelector('#v13-kYt').onclick = function(){
+      var q = win.querySelector('#v13-kQ').value.trim();
+      if(!q) return toast('Song eingeben');
+      window.open('https://www.youtube.com/results?search_query=' + encodeURIComponent(q + ' Karaoke'), '_blank');
+    };
+    win.querySelector('#v13-kLy').onclick = function(){
+      var q = win.querySelector('#v13-kQ').value.trim();
+      if(!q) return toast('Song eingeben');
+      window.open('https://www.google.com/search?q=' + encodeURIComponent(q + ' Songtext lyrics'), '_blank');
+    };
+    win.querySelectorAll('[data-s]').forEach(function(b){ b.onclick = function(){ go(b.dataset.s); }; });
+  }
+};
+
+/* ============================================================
+   6 · MUSIK-SUCHE
+   ============================================================ */
+APPS['musik-suche'] = {
+  name:'Musik-Suche', icon:'🎵',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎵 Musik-Suche</div><div class="dim sm">Schnellzugriff auf Streaming-Dienste</div></div>'+
+      '<input class="v9-input" id="v13-mQ" placeholder="Song · Interpret · Album…">'+
+      '<div class="col" style="gap:8px">'+
+        '<button class="v13-music-btn" data-s="spotify">🟢 <b>Spotify</b> · 100M+ Songs</button>'+
+        '<button class="v13-music-btn" data-s="ytm">🔴 <b>YouTube Music</b> · Videos + Musik</button>'+
+        '<button class="v13-music-btn" data-s="apple">🍎 <b>Apple Music</b> · Lossless</button>'+
+        '<button class="v13-music-btn" data-s="deezer">🎶 <b>Deezer</b> · Flow</button>'+
+        '<button class="v13-music-btn" data-s="soundcloud">☁️ <b>SoundCloud</b> · Indie</button>'+
+        '<button class="v13-music-btn" data-s="bandcamp">🎸 <b>Bandcamp</b> · Unabhängig</button>'+
+      '</div>'+
+      '<div class="v9-card"><b>💡 Tipp</b><div class="dim sm" style="margin-top:6px">Klicke einen Dienst – der Song wird automatisch gesucht.</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var base = {
+      spotify:'https://open.spotify.com/search/',
+      ytm:'https://music.youtube.com/search?q=',
+      apple:'https://music.apple.com/de/search?term=',
+      deezer:'https://www.deezer.com/search/',
+      soundcloud:'https://soundcloud.com/search?q=',
+      bandcamp:'https://bandcamp.com/search?q='
+    };
+    win.querySelectorAll('[data-s]').forEach(function(b){
+      b.onclick = function(){
+        var q = win.querySelector('#v13-mQ').value.trim();
+        if(!q) return toast('Song eingeben');
+        var url = base[b.dataset.s] + encodeURIComponent(q);
+        window.open(url, '_blank');
+      };
+    });
+  }
+};
+
+/* ============================================================
+   7 · BILDER-GALERIE (Picsum)
+   ============================================================ */
+APPS['galerie'] = {
+  name:'Foto-Galerie', icon:'🖼️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🖼️ Zufalls-Foto-Galerie</div><div class="dim sm">Schöne Bilder · Lorem Picsum</div></div>'+
+      '<div class="row"><select class="v9-input" id="v13-gT" style="flex:1"><option value="nature">🌲 Natur</option><option value="city">🏙 Städte</option><option value="people">👤 Menschen</option><option value="tech">💻 Technologie</option><option value="all">🌍 Alles</option></select><button class="btn primary" id="v13-gR">🔄 Neu laden</button></div>'+
+      '<div id="v13-gL" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px"></div>'+
+      '<div class="dim sm center">💡 Klick auf Bild → öffnet in Original-Größe</div>'+
+    '</div>';
+  },
+  init: function(win){
+    function load(){
+      var seed = Math.floor(Math.random()*99999);
+      var L = win.querySelector('#v13-gL');
+      var html = '';
+      for(var i=0; i<12; i++){
+        var s = seed + i;
+        var url = 'https://picsum.photos/seed/haldo'+s+'/400/400';
+        var full = 'https://picsum.photos/seed/haldo'+s+'/1600/1200';
+        html += '<a href="'+full+'" target="_blank" rel="noopener" style="text-decoration:none"><div style="aspect-ratio:1;border-radius:12px;overflow:hidden;background:rgba(255,255,255,.03);border:1px solid rgba(120,180,255,.14)"><img src="'+url+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block" alt="Foto"></div></a>';
+      }
+      L.innerHTML = html;
+    }
+    win.querySelector('#v13-gR').onclick = load;
+    load();
+  }
+};
+
+/* ============================================================
+   8 · SOUNDBOARD
+   ============================================================ */
+APPS['soundboard'] = {
+  name:'Soundboard', icon:'🔊',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🔊 Soundboard</div><div class="dim sm">Fun-Sounds per Klick</div></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'+
+        ['🔔 Glocke','🎺 Fanfare','💥 Boom','😂 Lachen','👏 Applaus','🚨 Alarm','💧 Tropfen','🐦 Vogel','⚡ Zisch','🥁 Trommel','🎉 Tada','❌ Buzzer'].map(function(s, i){
+          return '<button class="v9-tile" data-s="'+i+'" style="font-size:32px;padding:20px 8px;aspect-ratio:1">'+s.split(' ')[0]+'<div style="font-size:10px;margin-top:6px;color:var(--dim)">'+s.split(' ').slice(1).join(' ')+'</div></button>';
+        }).join('')+
+      '</div>'+
+      '<div class="dim sm center">💡 Kurze synthetische Sounds – keine Downloads</div>'+
+    '</div>';
+  },
+  init: function(win){
+    function play(type){
+      try{
+        var A = new (window.AudioContext || window.webkitAudioContext)();
+        var o = A.createOscillator(), g = A.createGain();
+        o.connect(g); g.connect(A.destination);
+        var t = A.currentTime;
+        if(type === 0){ o.frequency.value = 880; g.gain.value = 0.15; o.start(t); o.stop(t+0.2); }
+        else if(type === 1){ o.type = 'square'; [523,659,784,1046].forEach(function(f, i){ o.frequency.setValueAtTime(f, t + i*0.12); }); g.gain.value = 0.15; o.start(t); o.stop(t+0.6); }
+        else if(type === 2){ o.type = 'sawtooth'; o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(40, t+0.4); g.gain.value = 0.2; o.start(t); o.stop(t+0.4); }
+        else if(type === 3){ o.type = 'sine'; [600, 800, 700, 900, 750, 1000].forEach(function(f, i){ o.frequency.setValueAtTime(f, t+i*0.08); }); g.gain.value = 0.15; o.start(t); o.stop(t+0.6); }
+        else if(type === 4){ o.type = 'triangle'; o.frequency.value = 1000; g.gain.value = 0.1; [0,0.1,0.2,0.3,0.4].forEach(function(d){ o.frequency.setValueAtTime(600 + Math.random()*800, t+d); }); o.start(t); o.stop(t+0.5); }
+        else if(type === 5){ o.type = 'square'; o.frequency.value = 800; g.gain.value = 0.15; [0,0.15,0.3].forEach(function(d){ o.frequency.setValueAtTime(d % 0.3 === 0 ? 1200 : 800, t+d); }); o.start(t); o.stop(t+0.5); }
+        else if(type === 6){ o.frequency.setValueAtTime(1500, t); o.frequency.exponentialRampToValueAtTime(400, t+0.3); g.gain.value = 0.15; o.start(t); o.stop(t+0.35); }
+        else if(type === 7){ o.type = 'triangle'; o.frequency.setValueAtTime(2200, t); o.frequency.exponentialRampToValueAtTime(1400, t+0.15); g.gain.value = 0.1; o.start(t); o.stop(t+0.2); }
+        else if(type === 8){ o.type = 'sawtooth'; o.frequency.setValueAtTime(1800, t); o.frequency.exponentialRampToValueAtTime(200, t+0.3); g.gain.value = 0.12; o.start(t); o.stop(t+0.35); }
+        else if(type === 9){ o.type = 'sine'; o.frequency.value = 80; g.gain.value = 0.25; o.start(t); o.stop(t+0.15); setTimeout(function(){ var o2 = A.createOscillator(), g2 = A.createGain(); o2.connect(g2); g2.connect(A.destination); o2.frequency.value = 80; g2.gain.value = 0.25; o2.start(A.currentTime); o2.stop(A.currentTime+0.15); }, 180); }
+        else if(type === 10){ [523, 659, 784, 1046].forEach(function(f, i){ var o3 = A.createOscillator(), g3 = A.createGain(); o3.connect(g3); g3.connect(A.destination); o3.frequency.value = f; g3.gain.value = 0.15; o3.start(A.currentTime + i*0.1); o3.stop(A.currentTime + i*0.1 + 0.2); }); }
+        else if(type === 11){ o.type = 'square'; o.frequency.value = 200; g.gain.value = 0.2; o.start(t); o.stop(t+0.4); }
+      }catch(e){}
+    }
+    win.querySelectorAll('[data-s]').forEach(function(b){ b.onclick = function(){ play(parseInt(b.dataset.s)); }; });
+  }
+};
+
+/* ============================================================
+   9 · FILM-SUCHER
+   ============================================================ */
+APPS['filme'] = {
+  name:'Film & Serie', icon:'🎥',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎥 Film & Serie</div><div class="dim sm">Schnellsuche auf Streaming-Portalen</div></div>'+
+      '<input class="v9-input" id="v13-fQ" placeholder="Filmtitel oder Serie…">'+
+      '<div class="col" style="gap:8px">'+
+        '<button class="v13-music-btn" data-s="netflix">🔴 <b>Netflix</b></button>'+
+        '<button class="v13-music-btn" data-s="prime">🔵 <b>Amazon Prime Video</b></button>'+
+        '<button class="v13-music-btn" data-s="disney">✨ <b>Disney+</b></button>'+
+        '<button class="v13-music-btn" data-s="apple">🍎 <b>Apple TV+</b></button>'+
+        '<button class="v13-music-btn" data-s="wow">🎭 <b>WOW / Sky</b></button>'+
+        '<button class="v13-music-btn" data-s="justwatch">🎯 <b>JustWatch</b> · alle vergleichen</button>'+
+        '<button class="v13-music-btn" data-s="imdb">⭐ <b>IMDb</b> · Bewertungen</button>'+
+      '</div>'+
+    '</div>';
+  },
+  init: function(win){
+    var base = {
+      netflix:'https://www.netflix.com/search?q=',
+      prime:'https://www.amazon.de/s?k=',
+      disney:'https://www.disneyplus.com/de-de/search?q=',
+      apple:'https://tv.apple.com/de/search?term=',
+      wow:'https://www.wowtv.de/suche?q=',
+      justwatch:'https://www.justwatch.com/de/Suche?q=',
+      imdb:'https://www.imdb.com/find?q='
+    };
+    win.querySelectorAll('[data-s]').forEach(function(b){
+      b.onclick = function(){
+        var q = win.querySelector('#v13-fQ').value.trim();
+        if(!q) return toast('Titel eingeben');
+        window.open(base[b.dataset.s] + encodeURIComponent(q), '_blank');
+      };
+    });
+  }
+};
+
+/* ============================================================
+   10 · STREAMING-VERGLEICH
+   ============================================================ */
+APPS['streaming'] = {
+  name:'Streaming-Vergleich', icon:'📺',
+  render: function(){
+    var S = [
+      ['🔴','Netflix','Standard 13,99 €','4K · 4 Geräte'],
+      ['🔵','Amazon Prime','8,99 €','4K · 3 Geräte'],
+      ['✨','Disney+','11,99 €','4K · 4 Geräte'],
+      ['🍎','Apple TV+','9,99 €','4K · 6 Geräte'],
+      ['🎭','WOW','9,99 €','HD · 2 Geräte'],
+      ['📺','Paramount+','7,99 €','HD · 3 Geräte'],
+      ['🎬','Sky Q','25 €+','4K · Multiroom']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📺 Streaming-Vergleich</div><div class="dim sm">Preise Stand 2025 · Basis-Tarife</div></div>'+
+      '<div class="col" style="gap:8px">'+
+        S.map(function(s){
+          return '<div class="v13-podcast"><div class="cover">'+s[0]+'</div><div style="flex:1"><b>'+esc(s[1])+'</b><div class="dim sm" style="margin-top:2px">'+esc(s[3])+'</div></div><div style="text-align:right;font-weight:800;color:var(--c1)">'+esc(s[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+      '<div class="v9-card" style="background:rgba(255,176,58,.08);border-color:#ffb03a"><b>💡 Spartipp</b><div class="dim sm" style="margin-top:6px">• Immer nur 1-2 Dienste gleichzeitig abonnieren<br>• Nach Serien-Ende sofort kündigen<br>• Family-Tarife teilen<br>• Black Friday Deals abwarten</div></div>'+
+      '<div class="dim sm center">⚠️ Preise können sich ändern. Immer auf der Anbieter-Website prüfen.</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+console.log('%c📦 v13 geladen — Medien & Entertainment · 10 Apps','background:linear-gradient(90deg,#ff6b88,#00e5ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('Aktive Apps:', Object.keys(APPS).length);
+
+setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click(); }, 150);
+
+})();
+</script>
 </body>
 </html>
