@@ -1464,5 +1464,611 @@ setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · Block 3 · Fahrschule & Verkehr
+     12 funktionierende Apps
+     ============================================================ -->
+<script>
+(function(){
+'use strict';
+var H = window.HalDo;
+if(!H || !H.APPS){ console.error('[Block 3] Foundation fehlt'); return; }
+var APPS = H.APPS;
+var $=H.$, $$=H.$$, el=H.el, esc=H.esc, uid=H.uid, pad=H.pad, fmt=H.fmt, rnd=H.rnd, shuf=H.shuf, store=H.store, toast=H.toast;
+
+/* ============================================================
+   VERKEHRSZEICHEN KATALOG (75 Zeichen)
+   ============================================================ */
+var SIGNS = {
+  gefahr:[
+    ['⚠️','Allgemeine Gefahr','Gefahrzeichen','Rot-weißes Dreieck mit Ausrufezeichen'],
+    ['🚸','Kinder','Gefahrzeichen','Dreieck mit laufenden Kindern'],
+    ['🐄','Wildwechsel','Gefahrzeichen','Dreieck mit springendem Wild'],
+    ['🚧','Baustelle','Gefahrzeichen','Dreieck mit Bagger'],
+    ['⛰️','Steinschlag','Gefahrzeichen','Dreieck mit Steinen'],
+    ['🌊','Ufer','Gefahrzeichen','Dreieck mit Wellen'],
+    ['🚂','Bahnübergang','Gefahrzeichen','Dreieck mit Lok'],
+    ['🌀','Kurve links','Gefahrzeichen','Dreieck mit Pfeil nach links'],
+    ['🌀','Kurve rechts','Gefahrzeichen','Dreieck mit Pfeil nach rechts'],
+    ['🛣️','Doppelkurve','Gefahrzeichen','Dreieck mit S-Kurve'],
+    ['🚦','Lichtzeichenanlage','Gefahrzeichen','Dreieck mit Ampel'],
+    ['🚶','Fußgänger','Gefahrzeichen','Dreieck mit Fußgänger'],
+    ['🚴','Radfahrer','Gefahrzeichen','Dreieck mit Radfahrer'],
+    ['🏔️','Gefälle','Gefahrzeichen','Dreieck mit %-Zahl'],
+    ['💧','Glätte','Gefahrzeichen','Dreieck mit Auto auf Wellen']
+  ],
+  vorfahrt:[
+    ['🔺','Vorfahrt gewähren','Vorfahrt','Weißes Dreieck mit rotem Rand, Spitze unten'],
+    ['🛑','Halt — Vorfahrt gewähren','Vorfahrt','Rotes Achteck mit STOP'],
+    ['💠','Vorfahrtstraße','Vorfahrt','Gelbe Raute auf weißem Grund'],
+    ['🟡','Ende Vorfahrtstraße','Vorfahrt','Gelbe Raute durchgestrichen'],
+    ['✖️','Andreaskreuz','Vorfahrt','Weißes Kreuz auf Rot']
+  ],
+  verbot:[
+    ['🚫','Verbot der Einfahrt','Verbotszeichen','Roter Kreis mit weißem Balken'],
+    ['🚷','Verbot für Fußgänger','Verbotszeichen','Roter Kreis mit Fußgänger'],
+    ['🚳','Verbot für Radfahrer','Verbotszeichen','Roter Kreis mit Radfahrer'],
+    ['⛔','Verbot für Fahrzeuge','Verbotszeichen','Roter Kreis weiß'],
+    ['🚛','Verbot für LKW','Verbotszeichen','Roter Kreis mit LKW-Symbol'],
+    ['↩️','Verbot der Einfahrt (Pfeil)','Verbotszeichen','Roter Kreis mit Pfeil'],
+    ['30','Tempolimit 30','Verbotszeichen','Roter Kreis mit Zahl'],
+    ['50','Tempolimit 50','Verbotszeichen','Roter Kreis mit Zahl'],
+    ['⏸️','Haltverbot','Verbotszeichen','Blauer Kreis, rotes Kreuz'],
+    ['🅿️','Eingeschränktes Haltverbot','Verbotszeichen','Blauer Kreis, roter Strich']
+  ],
+  gebot:[
+    ['⬆️','Vorgeschriebene Fahrtrichtung geradeaus','Gebotszeichen','Blauer Kreis mit Pfeil hoch'],
+    ['⬅️','Vorgeschrieben links','Gebotszeichen','Blauer Kreis mit Pfeil links'],
+    ['➡️','Vorgeschrieben rechts','Gebotszeichen','Blauer Kreis mit Pfeil rechts'],
+    ['⏪','Vorgeschrieben links abbiegen','Gebotszeichen','Blauer Kreis mit Links-Pfeil'],
+    ['🔄','Kreisverkehr','Gebotszeichen','Blauer Kreis mit 3 Pfeilen'],
+    ['🚴','Radweg','Gebotszeichen','Blauer Kreis mit Fahrrad'],
+    ['🚶','Fußweg','Gebotszeichen','Blauer Kreis mit Person'],
+    ['🐎','Reitweg','Gebotszeichen','Blauer Kreis mit Reiter'],
+    ['⬇️','Vorgeschrieben Mindestgeschwindigkeit','Gebotszeichen','Blauer Kreis mit weißer Zahl']
+  ],
+  richt:[
+    ['🅿️','Parkplatz','Richtzeichen','Blaues Quadrat mit P'],
+    ['🏥','Krankenhaus','Richtzeichen','Blaues Quadrat mit H'],
+    ['🏨','Hotel','Richtzeichen','Blaues Quadrat mit Bett'],
+    ['⛽','Tankstelle','Richtzeichen','Blaues Quadrat mit Zapfsäule'],
+    ['🚻','Toilette','Richtzeichen','Blaues Quadrat'],
+    ['🎯','Einbahnstraße','Richtzeichen','Blauer Pfeil weiß'],
+    ['🚶‍♂️','Fußgängerzone','Richtzeichen','Blaues Schild'],
+    ['🏁','Autobahn','Richtzeichen','Blau mit weißer Autobahn'],
+    ['🛣️','Bundesstraße','Richtzeichen','Gelb mit Nummer'],
+    ['🎯','Kreisverkehr','Richtzeichen','Blau mit Richtungspfeilen'],
+    ['🅿️','Parkhaus','Richtzeichen','Blau mit P und Dach'],
+    ['🆘','Notrufsäule','Richtzeichen','Grün-weiß']
+  ]
+};
+
+/* ============================================================
+   1. VERKEHRSZEICHEN KATALOG
+   ============================================================ */
+APPS['verkehrszeichen'] = {
+  name:'Verkehrszeichen', icon:'🚸',
+  render: function(){
+    var cats = [
+      {k:'gefahr', t:'Gefahrzeichen', ico:'⚠️'},
+      {k:'vorfahrt', t:'Vorfahrt', ico:'🔺'},
+      {k:'verbot', t:'Verbotszeichen', ico:'⛔'},
+      {k:'gebot', t:'Gebotszeichen', ico:'⬆️'},
+      {k:'richt', t:'Richtzeichen', ico:'🅿️'}
+    ];
+    return '<div class="col">'+
+      '<input class="inp" id="vsQ" placeholder="Zeichen suchen…">'+
+      '<div class="row" id="vsTabs">'+cats.map(function(c){ return '<button class="btn sm" data-k="'+c.k+'">'+c.ico+' '+c.t+'</button>'; }).join('')+'</div>'+
+      '<div id="vsL" class="col" style="max-height:60vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var cur = 'gefahr';
+    var L = win.querySelector('#vsL'), Q = win.querySelector('#vsQ');
+    function r(){
+      win.querySelectorAll('[data-k]').forEach(function(b){ b.classList.toggle('primary', b.dataset.k===cur); });
+      var q = Q.value.toLowerCase();
+      var list = SIGNS[cur] || [];
+      if(q) list = list.filter(function(s){ return s[1].toLowerCase().indexOf(q)>=0 || s[3].toLowerCase().indexOf(q)>=0; });
+      L.innerHTML = list.map(function(s){
+        return '<div class="card"><div class="row"><span style="font-size:36px;min-width:50px;text-align:center">'+s[0]+'</span>'+
+          '<div style="flex:1"><b>'+esc(s[1])+'</b><div class="dim sm">'+esc(s[2])+'</div></div></div>'+
+          '<div class="dim sm" style="margin-top:6px">'+esc(s[3])+'</div></div>';
+      }).join('') || '<div class="empty">Nichts gefunden</div>';
+    }
+    win.querySelectorAll('[data-k]').forEach(function(b){ b.onclick = function(){ cur = b.dataset.k; r(); }; });
+    Q.oninput = r; r();
+  }
+};
+
+/* ============================================================
+   2. VERKEHRSZEICHEN QUIZ
+   ============================================================ */
+function makeQuiz(title, icon, questions){
+  return { name:title, icon:icon,
+    render: function(){
+      return '<div class="col center" style="max-width:520px;margin:0 auto">'+
+        '<div class="row between" style="width:100%"><span class="dim" id="qzP">1 / '+questions.length+'</span><span class="dim">Punkte: <b id="qzS">0</b></span></div>'+
+        '<div class="card center big2" id="qzQ" style="min-height:80px;display:flex;align-items:center;justify-content:center;width:100%"></div>'+
+        '<div id="qzA" class="col" style="width:100%"></div>'+
+        '<button class="btn" id="qzR" style="margin-top:6px">🔄 Neu</button>'+
+      '</div>';
+    },
+    init: function(win){
+      var i=0, score=0, order=shuf(questions);
+      var Q=win.querySelector('#qzQ'), A=win.querySelector('#qzA'), P=win.querySelector('#qzP'), S=win.querySelector('#qzS');
+      function draw(){
+        if(i >= order.length){
+          Q.textContent = score===order.length?'🎉 Perfekt!':(score>=order.length*0.7?'👍 Gut gemacht!':'Weiter üben!');
+          A.innerHTML = '<div class="card center big2" style="width:100%">'+score+' / '+order.length+'</div>';
+          P.textContent = order.length+' / '+order.length; return;
+        }
+        var q = order[i];
+        Q.textContent = q.q;
+        P.textContent = (i+1)+' / '+order.length;
+        S.textContent = score;
+        A.innerHTML = q.a.map(function(a,j){ return '<button class="btn" data-j="'+j+'" style="width:100%;text-align:left">'+esc(a)+'</button>'; }).join('');
+        win.querySelectorAll('#qzA button').forEach(function(b){
+          b.onclick = function(){
+            var j = parseInt(b.dataset.j);
+            if(j===q.c){ score++; b.style.background='rgba(77,232,138,.35)'; b.style.borderColor='#4de88a'; }
+            else{ b.style.background='rgba(224,59,90,.35)'; b.style.borderColor='#e03b5a';
+              var cor = A.querySelector('[data-j="'+q.c+'"]'); if(cor){ cor.style.background='rgba(77,232,138,.35)'; cor.style.borderColor='#4de88a'; } }
+            win.querySelectorAll('#qzA button').forEach(function(x){ x.disabled = true; });
+            setTimeout(function(){ i++; draw(); }, 850);
+          };
+        });
+      }
+      draw();
+      win.querySelector('#qzR').onclick = function(){ i=0; score=0; order=shuf(questions); draw(); };
+    }
+  };
+}
+
+APPS['quiz-verkehrszeichen'] = makeQuiz('Verkehrszeichen Quiz','🚸',[
+  {q:'Rotes Dreieck mit Ausrufezeichen?',a:['Vorfahrt gewähren','Allgemeine Gefahr','Halt','Verbot'],c:1},
+  {q:'Roter Kreis mit weißem Balken?',a:['Verbot der Einfahrt','Halteverbot','Ende Verbot','Halt'],c:0},
+  {q:'Gelbe Raute auf weißem Grund?',a:['Vorfahrtstraße','Bundesstraße','Hauptstraße','Achtung'],c:0},
+  {q:'Rotes Achteck mit „STOP"?',a:['Halt — Vorfahrt gewähren','Vorfahrt','Achtung','Halten'],c:0},
+  {q:'Blaues Quadrat mit weißem P?',a:['Parkplatz','Parkverbot','Polizei','Passage'],c:0},
+  {q:'Zebra-Streifen auf Schild?',a:['Fußgängerüberweg','Fußweg','Schulweg','Spielstraße'],c:0},
+  {q:'Roter Kreis mit Zahl 30?',a:['Mindestgeschwindigkeit','Höchstgeschwindigkeit 30','Empfohlen 30','Ende 30'],c:1},
+  {q:'Blaues rundes Schild mit Fahrrad?',a:['Radweg','Radfahrverbot','Radfahrer kreuzen','Fahrradparkplatz'],c:0},
+  {q:'Rotes Dreieck mit Ausrufezeichen — Bedeutung?',a:['Vorsicht, Gefahr','Vorfahrt','Verbot','Gebot'],c:0},
+  {q:'Blaues Schild mit weißem H?',a:['Haltestelle','Krankenhaus','Hotel','Hafen'],c:1}
+]);
+
+APPS['quiz-fahrschule'] = makeQuiz('Fahrschul-Theorie','🚗',[
+  {q:'Promillegrenze für Fahranfänger?',a:['0,0‰','0,3‰','0,5‰','0,8‰'],c:0},
+  {q:'Profil-Tiefe mindestens?',a:['1,0 mm','1,6 mm','2,0 mm','3,0 mm'],c:1},
+  {q:'Innerorts Höchstgeschwindigkeit?',a:['30 km/h','40 km/h','50 km/h','60 km/h'],c:2},
+  {q:'Wann Hupe benutzen?',a:['Immer','Bei Gefahr','Aus Spaß','Zum Grüßen'],c:1},
+  {q:'Warnblinker wann?',a:['Immer beim Parken','Bei Gefahr / Stau','Immer beim Abbiegen','Nie'],c:1},
+  {q:'Abstand zum Zebrastreifen beim Parken?',a:['3 m','5 m','8 m','10 m'],c:1},
+  {q:'Außerorts Höchstgeschwindigkeit?',a:['70 km/h','90 km/h','100 km/h','130 km/h'],c:2},
+  {q:'Grüner Pfeil neben roter Ampel?',a:['Immer','Nach Halt und Vorfahrt','Niemals','Nur Motorräder'],c:1},
+  {q:'Wie lange gilt die Probezeit?',a:['1 Jahr','2 Jahre','3 Jahre','5 Jahre'],c:1},
+  {q:'Wer hat Vorfahrt im Kreisverkehr?',a:['Einfahrende','Im Kreis fahrende','Rechts vor Links','Ich'],c:1},
+  {q:'Rotes Blinklicht am Bahnübergang?',a:['Weiterfahren','Anhalten','Langsam fahren','Hupen'],c:1},
+  {q:'Wie viel Abstand zum vorausfahrenden Fahrzeug?',a:['halber Tacho','1 Sekunde','2 Meter','5 Meter'],c:0}
+]);
+
+APPS['quiz-vorfahrt'] = makeQuiz('Vorfahrt','🚦',[
+  {q:'Kreuzung ohne Schilder. Wer hat Vorfahrt?',a:['Rechts vor Links','Links vor Rechts','Ich','Schnellere'],c:0},
+  {q:'Linksabbiegen. Auto kommt von rechts. Wer zuerst?',a:['Ich','Das Auto von rechts','Gleichzeitig','Hupen'],c:1},
+  {q:'Aus Grundstückseinfahrt rausfahren?',a:['Ich habe Vorfahrt','Ich muss Vorfahrt gewähren','Rechts vor Links','Gleichzeitig'],c:1},
+  {q:'Kreisverkehr — wer hat Vorfahrt?',a:['Einfahrende','Im Kreis','Rechts vor Links','Ich'],c:1},
+  {q:'Ampel aus. Wer hat Vorfahrt?',a:['Rechts vor Links','Links vor Rechts','Größere','Ich'],c:0},
+  {q:'Zeichen „Vorfahrt gewähren" — Sie müssen…',a:['Anhalten','Vorfahrt gewähren','Warten bis frei','Hupen'],c:1},
+  {q:'Rote Ampel + Grünpfeil-Schild. Was gilt?',a:['Nur nach Halt','Direkt fahren','Verboten','Nur LKW'],c:0},
+  {q:'Fußgänger am Zebrastreifen?',a:['Warten','Hupen','Vorbeifahren','Beschleunigen'],c:0},
+  {q:'Einsatzfahrzeug mit Blaulicht naht?',a:['Weiterfahren','Sofort Platz machen','Hupen','Rechts ran'],c:1},
+  {q:'Bus an Haltestelle mit Warnblinker?',a:['Überholen','Vorfahrt gewähren','Hupen','Nichts'],c:1}
+]);
+
+/* ============================================================
+   3. BLITZER-WARNUNG (Live — Deutschland)
+   ============================================================ */
+APPS['blitzer-warnung'] = {
+  name:'Blitzer Warnung', icon:'📸',
+  render: function(){
+    return '<div class="col">'+
+      '<div class="card" style="background:rgba(224,59,90,.12);border-color:#e03b5a"><b>📸 Blitzer-Warnungen</b><div class="dim sm">Für Deutschland empfehlen wir: Blitzer.de Pro, TomTom AmiGO, Waze</div></div>'+
+      '<div class="row"><input class="inp" id="bwCity" placeholder="Stadt / PLZ…" style="flex:1"><button class="btn primary" id="bwGo">🔍 Öffnen</button></div>'+
+      '<div class="card"><b>🗺️ Externe Karten-Apps (kostenlos)</b><div class="list" style="margin-top:8px">'+
+        '<a href="https://www.blitzer.de" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>🚨 Blitzer.de</b><span class="dim sm" style="margin-left:auto">Community-basiert</span></div></a>'+
+        '<a href="https://www.tomtom.com/de_de/navigation/" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>🗺️ TomTom AmiGO</b><span class="dim sm" style="margin-left:auto">Live</span></div></a>'+
+        '<a href="https://www.waze.com/de" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>🚗 Waze</b><span class="dim sm" style="margin-left:auto">Community</span></div></a>'+
+        '<a href="https://www.adac.de/reise-freizeit/verkehr/" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>🏆 ADAC Verkehr</b><span class="dim sm" style="margin-left:auto">Offiziell</span></div></a>'+
+      '</div></div>'+
+      '<div class="card" style="background:rgba(255,176,58,.08);border-color:#ffb03a"><b>⚠️ Rechtliches</b><div class="dim sm" style="margin-top:6px">In Deutschland sind Radarwarner-Geräte im Auto <b>verboten</b> (§ 23 StVO). App-Warnungen sind inzwischen erlaubt, solange sie nicht aktiv vor Blitzern „warnen". Bei Verstoß: 75 € + 1 Punkt.</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#bwGo').onclick = function(){
+      var city = win.querySelector('#bwCity').value.trim();
+      if(!city){ toast('Stadt eingeben'); return; }
+      window.open('https://www.google.com/maps/search/blitzer+'+encodeURIComponent(city), '_blank');
+    };
+  }
+};
+
+/* ============================================================
+   4. STAU-WARNUNG (Live — Autobahn API)
+   ============================================================ */
+APPS['stau-warnung'] = {
+  name:'Stau Warnung', icon:'🚗',
+  render: function(){
+    return '<div class="col">'+
+      '<div class="card"><b>🚗 Live-Stau (Deutschland)</b><div class="dim sm">Aktuelle Verkehrslage — Autobahn API</div></div>'+
+      '<button class="btn primary" id="swLoad" style="width:100%">🔄 Jetzt laden</button>'+
+      '<div id="swOut" class="col"><div class="empty">Klick „Jetzt laden"</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#swLoad').onclick = function(){
+      var out = win.querySelector('#swOut');
+      out.innerHTML = '<div class="empty">Lade Staudaten…</div>';
+      fetch('https://verkehr.autobahn.de/o/autobahn/')
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          var roads = (j.roads || []).slice(0, 20);
+          out.innerHTML = '<div class="card"><b>🛣️ Verfügbare Autobahnen</b><div class="dim sm">Klick für Details</div></div>'+
+            roads.map(function(road){
+              return '<div class="item" style="cursor:pointer" data-road="'+road+'"><b>'+esc(road)+'</b><span class="dim sm" style="margin-left:auto">Details →</span></div>';
+            }).join('');
+          win.querySelectorAll('[data-road]').forEach(function(el2){
+            el2.onclick = function(){ loadRoad(el2.dataset.road, out); };
+          });
+        })
+        .catch(function(){ out.innerHTML = '<div class="empty">API nicht erreichbar — versuche „Baustelle" oder „Polizei"</div>'; });
+    };
+    function loadRoad(road, out){
+      out.innerHTML = '<div class="empty">Lade '+road+'…</div>';
+      fetch('https://verkehr.autobahn.de/o/autobahn/'+road+'/services/warning')
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          var ws = j.warning || [];
+          if(!ws.length){ out.innerHTML = '<div class="card center"><b>✅ '+road+'</b><div class="dim sm">Keine aktuellen Warnungen</div></div>'; return; }
+          out.innerHTML = '<div class="card center"><b>⚠️ '+road+' — '+ws.length+' Warnungen</b></div>'+
+            ws.slice(0, 30).map(function(w){
+              var title = (w.title || 'Warnung');
+              var sub = (w.subtitle || '');
+              return '<div class="card"><b>'+esc(title)+'</b>'+(sub?'<div class="dim sm" style="margin-top:4px">'+esc(sub)+'</div>':'')+'</div>';
+            }).join('');
+        })
+        .catch(function(){ out.innerHTML = '<div class="empty">Fehler beim Laden</div>'; });
+    }
+  }
+};
+
+/* ============================================================
+   5. BAUSTELLEN (Autobahn API)
+   ============================================================ */
+APPS['baustelle-warnung'] = {
+  name:'Baustelle Warnung', icon:'🚧',
+  render: function(){
+    return '<div class="col">'+
+      '<div class="card"><b>🚧 Baustellen (Deutschland)</b><div class="dim sm">Live von der Autobahn API</div></div>'+
+      '<div class="row"><input class="inp" id="bwRoad" placeholder="z. B. A1, A3, A9…" value="A1" style="flex:1"><button class="btn primary" id="bwGo">🔍 Suchen</button></div>'+
+      '<div id="bwOut" class="col"><div class="empty">Autobahn eingeben und suchen</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#bwGo').onclick = function(){
+      var road = win.querySelector('#bwRoad').value.trim().toUpperCase();
+      var out = win.querySelector('#bwOut');
+      if(!road){ toast('Autobahn angeben (A1, A3…)'); return; }
+      out.innerHTML = '<div class="empty">Lade '+road+'…</div>';
+      fetch('https://verkehr.autobahn.de/o/autobahn/'+road+'/services/roadworks')
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          var ws = j.roadworks || [];
+          if(!ws.length){ out.innerHTML = '<div class="card center"><b>✅ '+road+'</b><div class="dim sm">Keine aktuellen Baustellen</div></div>'; return; }
+          out.innerHTML = '<div class="card center"><b>🚧 '+road+' — '+ws.length+' Baustellen</b></div>'+
+            ws.slice(0, 30).map(function(w){
+              return '<div class="card"><b>'+esc(w.title || 'Baustelle')+'</b>'+
+                (w.subtitle?'<div class="dim sm" style="margin-top:4px">'+esc(w.subtitle)+'</div>':'')+
+                (w.description?'<div class="dim sm" style="margin-top:4px;line-height:1.5">'+esc(w.description.slice(0,200))+'</div>':'')+
+              '</div>';
+            }).join('');
+        })
+        .catch(function(){ out.innerHTML = '<div class="empty">Fehler beim Laden</div>'; });
+    };
+    win.querySelector('#bwGo').click();
+  }
+};
+
+/* ============================================================
+   6. NINA WARNUNGEN (Bundesamt für Bevölkerungsschutz)
+   ============================================================ */
+APPS['nina-warnungen'] = {
+  name:'NINA Warnungen', icon:'🚨',
+  render: function(){
+    return '<div class="col">'+
+      '<div class="card" style="background:rgba(224,59,90,.12);border-color:#e03b5a"><b>🚨 NINA — Bundeswarnungen</b><div class="dim sm">Unwetter, Großschadenslagen, Bevölkerungsschutz</div></div>'+
+      '<button class="btn primary" id="ninaLoad" style="width:100%">🔄 Warnungen laden</button>'+
+      '<div id="ninaOut" class="col"><div class="empty">Klick „Warnungen laden"</div></div>'+
+      '<div class="card"><b>🔗 Direkt zur NINA-Website</b><a href="https://nina.api.proxy.bund.dev/api31/dashboard/" target="_blank" style="color:var(--c1);text-decoration:none;font-size:12px">→ NINA Dashboard öffnen</a></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#ninaLoad').onclick = function(){
+      var out = win.querySelector('#ninaOut');
+      out.innerHTML = '<div class="empty">Lade NINA-Warnungen…</div>';
+      // NINA API über öffentlichen Proxy
+      fetch('https://nina.api.proxy.bund.dev/api31/dashboard/')
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          var items = [];
+          for(var k in j){ if(j[k] && j[k].i) items.push(j[k].i); }
+          if(!items.length){ out.innerHTML = '<div class="card center"><b>✅ Aktuell keine Warnungen</b></div>'; return; }
+          out.innerHTML = '<div class="card center"><b>⚠️ '+items.length+' Warnungen aktiv</b></div>'+
+            items.slice(0, 25).map(function(w){
+              var sev = w.severity || 'Unknown';
+              var col = sev==='Severe'||sev==='Extreme'?'#ff6b88':sev==='Moderate'?'#ffb03a':'#4de88a';
+              return '<div class="card" style="border-color:'+col+'"><div class="row between"><b style="color:'+col+'">'+esc(w.headline || 'Warnung')+'</b><span class="dim sm">'+esc(sev)+'</span></div>'+
+                (w.description?'<div class="dim sm" style="margin-top:6px;line-height:1.5">'+esc(w.description.slice(0,200))+'</div>':'')+
+              '</div>';
+            }).join('');
+        })
+        .catch(function(){ out.innerHTML = '<div class="empty">NINA API nicht erreichbar — besuche nina.api.proxy.bund.dev direkt</div>'; });
+    };
+  }
+};
+
+/* ============================================================
+   7. POLIZEI-MELDUNGEN
+   ============================================================ */
+APPS['polizei-warnung'] = {
+  name:'Polizei-Meldungen', icon:'🚔',
+  render: function(){
+    return '<div class="col">'+
+      '<div class="card"><b>🚔 Polizei-Meldungen</b><div class="dim sm">Offizielle Polizeipressestellen der Länder</div></div>'+
+      '<div class="list">'+
+        '<a href="https://www.polizei.de" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>🚔 Polizei.de</b><span class="dim sm" style="margin-left:auto">Bund</span></div></a>'+
+        '<a href="https://www.polizei.bayern.de" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>Bayern</b></div></a>'+
+        '<a href="https://www.polizei.nrw" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>NRW</b></div></a>'+
+        '<a href="https://www.polizei.bwl.de" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>Baden-Württemberg</b></div></a>'+
+        '<a href="https://www.polizei.hessen.de" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>Hessen</b></div></a>'+
+        '<a href="https://www.polizei.niedersachsen.de" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>Niedersachsen</b></div></a>'+
+        '<a href="https://www.polizei.sachsen.de" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>Sachsen</b></div></a>'+
+      '</div>'+
+      '<div class="card"><b>📞 Notruf</b>'+
+        '<a href="tel:110" style="text-decoration:none;color:inherit"><div class="item" style="margin-top:8px"><b>🚔 110</b><span class="dim sm" style="margin-left:auto">Polizei</span></div></a>'+
+        '<a href="tel:112" style="text-decoration:none;color:inherit"><div class="item"><b>🚑 112</b><span class="dim sm" style="margin-left:auto">Rettung / Feuer</span></div></a>'+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* ============================================================
+   8. UNFALL-WARNUNG (Autobahn API + Hinweis)
+   ============================================================ */
+APPS['unfall-warnung'] = {
+  name:'Unfall Warnung', icon:'🚨',
+  render: function(){
+    return '<div class="col">'+
+      '<div class="card"><b>🚨 Unfall-Warnungen</b><div class="dim sm">Aktuelle Verkehrsmeldungen auf Autobahnen</div></div>'+
+      '<div class="row"><input class="inp" id="uwRoad" placeholder="A1, A3, A9…" value="A1" style="flex:1"><button class="btn primary" id="uwGo">🔍 Suchen</button></div>'+
+      '<div id="uwOut" class="col"><div class="empty">Autobahn angeben</div></div>'+
+      '<div class="card" style="background:rgba(224,59,90,.1)"><b>🚑 Bei Unfall selbst</b><div class="dim sm" style="margin-top:6px">1. Warnblinker + Warndreieck<br>2. Warnweste anziehen<br>3. Erste Hilfe (112)<br>4. Unfallstelle absichern</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#uwGo').onclick = function(){
+      var road = win.querySelector('#uwRoad').value.trim().toUpperCase();
+      var out = win.querySelector('#uwOut');
+      if(!road){ toast('Autobahn angeben'); return; }
+      out.innerHTML = '<div class="empty">Lade '+road+'…</div>';
+      fetch('https://verkehr.autobahn.de/o/autobahn/'+road+'/services/warning')
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          var ws = (j.warning || []).filter(function(w){ return /unfall|crash/i.test(w.title || ''); });
+          if(!ws.length){ out.innerHTML = '<div class="card center"><b>✅ Keine Unfälle auf '+road+' gemeldet</b><div class="dim sm">Stand: '+new Date().toLocaleTimeString('de-DE')+'</div></div>'; return; }
+          out.innerHTML = '<div class="card center" style="border-color:#ff6b88"><b>⚠️ '+ws.length+' Unfall-Meldungen auf '+road+'</b></div>'+
+            ws.map(function(w){ return '<div class="card" style="border-color:#ff6b88"><b>'+esc(w.title)+'</b>'+(w.subtitle?'<div class="dim sm" style="margin-top:4px">'+esc(w.subtitle)+'</div>':'')+'</div>'; }).join('');
+        })
+        .catch(function(){ out.innerHTML = '<div class="empty">Fehler</div>'; });
+    };
+    win.querySelector('#uwGo').click();
+  }
+};
+
+/* ============================================================
+   9. PUNKTE-RECHNER (Fahreignungsregister)
+   ============================================================ */
+APPS['punkte-rechner'] = {
+  name:'Punkte-Rechner', icon:'📋',
+  render: function(){
+    return '<div class="col">'+
+      '<div class="card"><b>📋 Punkte in Flensburg</b><div class="dim sm">Klick auf ein Vergehen, um Punkte hinzuzufügen.</div></div>'+
+      '<div id="prL" class="col"></div>'+
+      '<div class="card center"><div class="dim">Aktueller Stand</div><div class="big2" id="prTotal">0 Punkte</div><div id="prInfo" class="dim sm"></div></div>'+
+      '<button class="btn danger" id="prReset">🗑 Zurücksetzen</button>'+
+      '<div class="card"><b>📊 Regeln</b><div class="dim sm" style="margin-top:6px">• 1-3 Punkte: Verwarnung<br>• 4-5 Punkte: Verwarnung mit Hinweis<br>• 6-7 Punkte: Verwarnung mit Seminarsempfehlung<br>• 8 Punkte: Führerschein weg!</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var vergehen = [
+      ['🚗 Zu schnell (bis 20 km/h)', 1],
+      ['🚗 Zu schnell (21-25 km/h)', 1],
+      ['🚗 Zu schnell (26-30 km/h)', 2],
+      ['🚗 Zu schnell (über 31 km/h)', 2],
+      ['🚦 Rotlicht (einfach)', 2],
+      ['🚦 Rotlicht mit Gefährdung', 3],
+      ['🚧 Überholverbot missachtet', 2],
+      ['📱 Handy am Steuer', 1],
+      ['🍺 Alkohol (>0,5‰)', 3],
+      ['💊 Drogen am Steuer', 3],
+      ['🚗 Unfall mit Sachschaden', 2],
+      ['🚶 Unfall mit Personenschaden', 3],
+      ['🛑 Fahrerflucht', 3]
+    ];
+    var total = store.get('flensburg_points', 0);
+    function render(){
+      var L = win.querySelector('#prL');
+      L.innerHTML = vergehen.map(function(v, i){
+        return '<div class="item"><span style="flex:1">'+v[0]+'</span><b style="color:#ff9db1">'+v[1]+' P</b><button class="btn sm primary" data-i="'+i+'" style="margin-left:8px">+</button></div>';
+      }).join('');
+      win.querySelectorAll('#prL [data-i]').forEach(function(b){
+        b.onclick = function(){
+          total += vergehen[parseInt(b.dataset.i)][1];
+          store.set('flensburg_points', total);
+          render();
+        };
+      });
+      win.querySelector('#prTotal').textContent = total + ' Punkte';
+      win.querySelector('#prTotal').style.color = total>=8 ? '#ff6b88' : total>=4 ? '#ffb03a' : '#4de88a';
+      var info = '';
+      if(total>=8) info = '⚠️ Führerschein weg!';
+      else if(total>=6) info = 'Verwarnung mit Seminarsempfehlung';
+      else if(total>=4) info = 'Verwarnung mit Hinweis';
+      else if(total>=1) info = 'Verwarnung';
+      else info = '✅ Sauber';
+      win.querySelector('#prInfo').textContent = info;
+    }
+    win.querySelector('#prReset').onclick = function(){
+      total = 0;
+      store.set('flensburg_points', 0);
+      render();
+      toast('Zurückgesetzt');
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   10. FAHRPHYSIK
+   ============================================================ */
+APPS['fahrphysik'] = {
+  name:'Fahrphysik', icon:'⚡',
+  render: function(){
+    return '<div class="col">'+
+      '<div class="card"><b>⚡ Brems- und Anhalteweg</b></div>'+
+      '<label class="lbl">Geschwindigkeit (km/h)</label>'+
+      '<input class="inp" id="fpV" type="number" value="50">'+
+      '<label class="lbl">Straßenverhältnisse</label>'+
+      '<select class="inp" id="fpS">'+
+        '<option value="0.8">Trocken (μ = 0,8)</option>'+
+        '<option value="0.4">Nass (μ = 0,4)</option>'+
+        '<option value="0.2">Schnee (μ = 0,2)</option>'+
+        '<option value="0.1">Eis (μ = 0,1)</option>'+
+      '</select>'+
+      '<button class="btn primary" id="fpGo">▶ Berechnen</button>'+
+      '<div id="fpO" class="col"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#fpGo').onclick = function(){
+      var v = parseFloat(win.querySelector('#fpV').value) || 50;
+      var mu = parseFloat(win.querySelector('#fpS').value);
+      var react = 1;
+      var vms = v / 3.6;
+      var rw = vms * react;
+      var bw = (vms * vms) / (2 * 9.81 * mu);
+      var aw = rw + bw;
+      win.querySelector('#fpO').innerHTML =
+        '<div class="card center"><div class="dim">Reaktionsweg (1 s)</div><div class="big2">'+rw.toFixed(1)+' m</div></div>'+
+        '<div class="card center"><div class="dim">Bremsweg</div><div class="big2" style="color:#ffb03a">'+bw.toFixed(1)+' m</div></div>'+
+        '<div class="card center"><div class="dim">Anhalteweg</div><div class="big2" style="color:#ff6b88">'+aw.toFixed(1)+' m</div></div>'+
+        '<div class="card"><b>📏 Faustregel</b><div class="dim sm" style="margin-top:6px">50 km/h ≈ 40 m Anhalteweg<br>100 km/h ≈ 130 m Anhalteweg<br>Bei doppelter Geschwindigkeit: 4× Bremsweg!</div></div>';
+    };
+    win.querySelector('#fpGo').click();
+  }
+};
+
+/* ============================================================
+   11. ERSTE HILFE
+   ============================================================ */
+APPS['erste-hilfe'] = {
+  name:'Erste Hilfe', icon:'🚑',
+  render: function(){
+    var tips = [
+      ['🩸','Starke Blutung','Wunde mit sauberem Tuch abdecken, kräftig drücken. Druckverband anlegen. Notruf 112.'],
+      ['😵','Bewusstlosigkeit','Atmung prüfen (Kopf nackenwärts). Bei normaler Atmung: stabile Seitenlage. Bei keiner Atmung: sofort 112 + Herzdruckmassage.'],
+      ['🔥','Verbrennung','Mit kaltem Wasser (ca. 20 °C) für 10 Min kühlen. Kleidung an der Wunde lassen. Keine Hausmittel.'],
+      ['🦴','Knochenbruch','Gliedmaße ruhig halten, nicht selbst richten. Kühlen, lagern, 112.'],
+      ['😮‍💨','Ersticken','Heimlich-Manöver: 5× kräftig zwischen Schulterblätter schlagen. Bei Bewusstlosigkeit: 112 + Herzdruckmassage.'],
+      ['😰','Schock','Flach lagern, warm halten, beruhigen. Bei Bewusstlosigkeit: Seitenlage. 112.'],
+      ['🐝','Insektenstich','Kühlen, Stachel entfernen. Bei Allergie (Atemnot, Schwellung): 112 + Adrenalin-Autoinjektor.'],
+      ['💊','Vergiftung','Nichts zu trinken geben! Giftnotruf: 030 19240. Notruf 112.'],
+      ['🌡️','Hitzschlag','Kühl lagern, in Schatten bringen, kühle Wickel. Bei Bewusstlosigkeit: 112.'],
+      ['⚡','Stromunfall','ERST Netzstecker ziehen. NIEMALS direkt berühren. Danach Atmung prüfen und 112.']
+    ];
+    return '<div class="col">'+
+      '<div class="card" style="background:rgba(224,59,90,.12);border-color:#e03b5a"><b>🚑 Erste-Hilfe-Anleitung</b><div class="dim sm">Notruf: <b style="color:#ff6b88">112</b></div></div>'+
+      '<div class="list">'+tips.map(function(t){ return '<div class="card"><div class="row"><span style="font-size:28px;min-width:40px">'+t[0]+'</span><div style="flex:1"><b>'+esc(t[1])+'</b></div></div><div class="dim sm" style="margin-top:6px;line-height:1.6">'+esc(t[2])+'</div></div>'; }).join('')+'</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* ============================================================
+   12. FÜHRERSCHEIN-KLASSEN
+   ============================================================ */
+APPS['fuehrerschein-klassen'] = {
+  name:'Führerschein-Klassen', icon:'🪪',
+  render: function(){
+    var klassen = [
+      ['AM','Kleinkraftrad, Mofa','ab 15 Jahren','25 km/h max, 50 cm³'],
+      ['A1','Leichtkraftrad','ab 16 Jahren','125 cm³, 11 kW, max 80 km/h'],
+      ['A2','Mittelschweres Motorrad','ab 18 Jahren','bis 35 kW, max 0,2 kW/kg'],
+      ['A','Motorrad unbeschränkt','ab 24 J. (direkt)','unbegrenzte Leistung'],
+      ['B','PKW bis 3,5 t','ab 18 Jahren','bis 8 Sitze, Anhänger bis 750 kg'],
+      ['BE','PKW mit Anhänger','ab 18 Jahren','Anhänger über 750 kg'],
+      ['B96','PKW + schwerer Anhänger','ab 18 Jahren','bis 4,25 t Gesamt'],
+      ['C1','LKW bis 7,5 t','ab 18 Jahren',''],
+      ['C','LKW über 3,5 t','ab 21 Jahren',''],
+      ['D1','Kleinbus bis 16 Sitze','ab 21 Jahren',''],
+      ['D','Bus über 8 Sitze','ab 24 Jahren',''],
+      ['L','Landwirtschaftliche Zugmaschine','ab 16 Jahren',''],
+      ['T','Zugmaschinen bis 40 km/h','ab 16 Jahren','']
+    ];
+    return '<div class="col">'+
+      '<div class="card"><b>🪪 Führerschein-Klassen</b></div>'+
+      '<input class="inp" id="fkQ" placeholder="Klasse oder Fahrzeug suchen…">'+
+      '<div id="fkL" class="col" style="max-height:65vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var klassen = [
+      ['AM','Kleinkraftrad, Mofa','ab 15 Jahren','25 km/h max, 50 cm³'],
+      ['A1','Leichtkraftrad','ab 16 Jahren','125 cm³, 11 kW, max 80 km/h'],
+      ['A2','Mittelschweres Motorrad','ab 18 Jahren','bis 35 kW, max 0,2 kW/kg'],
+      ['A','Motorrad unbeschränkt','ab 24 J. (direkt)','unbegrenzte Leistung'],
+      ['B','PKW bis 3,5 t','ab 18 Jahren','bis 8 Sitze, Anhänger bis 750 kg'],
+      ['BE','PKW mit Anhänger','ab 18 Jahren','Anhänger über 750 kg'],
+      ['B96','PKW + schwerer Anhänger','ab 18 Jahren','bis 4,25 t Gesamt'],
+      ['C1','LKW bis 7,5 t','ab 18 Jahren',''],
+      ['C','LKW über 3,5 t','ab 21 Jahren',''],
+      ['D1','Kleinbus bis 16 Sitze','ab 21 Jahren',''],
+      ['D','Bus über 8 Sitze','ab 24 Jahren',''],
+      ['L','Landwirtschaftliche Zugmaschine','ab 16 Jahren',''],
+      ['T','Zugmaschinen bis 40 km/h','ab 16 Jahren','']
+    ];
+    var Q = win.querySelector('#fkQ'), L = win.querySelector('#fkL');
+    function r(){
+      var q = Q.value.toLowerCase();
+      var f = q ? klassen.filter(function(k){ return k[0].toLowerCase().indexOf(q)>=0 || k[1].toLowerCase().indexOf(q)>=0; }) : klassen;
+      L.innerHTML = f.map(function(k){
+        return '<div class="card"><div class="row"><b style="color:var(--c1);font-size:22px;min-width:50px">'+k[0]+'</b><div style="flex:1"><div>'+esc(k[1])+'</div><div class="dim sm">'+esc(k[2])+'</div></div></div>'+(k[3]?'<div class="dim sm" style="margin-top:6px">'+esc(k[3])+'</div>':'')+'</div>';
+      }).join('') || '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput = r; r();
+  }
+};
+
+/* ============================================================
+   FERTIG
+   ============================================================ */
+console.log('%c📦 Block 3 geladen — Fahrschule & Verkehr','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('Aktive Apps:', Object.keys(APPS).length);
+
+setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click(); }, 150);
+
+})();
+</script>
 </body>
 </html>
