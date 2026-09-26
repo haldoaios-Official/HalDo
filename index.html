@@ -11758,5 +11758,640 @@ APPS['flexbox-play'] = {
 console.log('%c🚀 HalDo Apps v138 geladen (18 Apps)','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v139 · Apps Pack 16 (H/O/R/S/M/B/G/C)
+     18 neue funktionierende Apps
+     ============================================================ -->
+<script>
+(function(){
+'use strict';
+if(!window.HalDo || !window.HalDo.apps){ return; }
+
+const APPS = window.HalDo.apps;
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = ()=>Math.random().toString(36).slice(2,10);
+const fmt = n => (Math.round(n*100)/100).toLocaleString('de-DE');
+const toast = window.HalDo.toast || ((m)=>console.log('[toast]',m));
+const store = {
+  key: k => 'haldo_'+k+'_v1',
+  get(k,d){ try{ const v=localStorage.getItem(this.key(k)); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(this.key(k), JSON.stringify(v)); }catch(e){} }
+};
+const rnd = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const shuffle = a=>[...a].sort(()=>Math.random()-.5);
+
+function makeQuiz(title, icon, questions){
+  return { name: title, icon,
+    render(){ return '<div class="col center" style="max-width:520px;margin:0 auto">'+
+      '<div class="row between" style="width:100%"><span class="dim" id="qzP">1 / '+questions.length+'</span><span class="dim">Punkte: <b id="qzS">0</b></span></div>'+
+      '<div class="card center big2" id="qzQ" style="min-height:80px;display:flex;align-items:center;justify-content:center;width:100%"></div>'+
+      '<div id="qzA" class="col" style="width:100%"></div>'+
+      '<button class="btn" id="qzR" style="margin-top:6px">🔄 Neu</button></div>'; },
+    init(win){
+      let i=0, score=0, order=shuffle(questions);
+      const Q=$('#qzQ',win), A=$('#qzA',win), P=$('#qzP',win), S=$('#qzS',win);
+      function draw(){
+        if(i>=order.length){
+          Q.textContent = score===order.length?'🎉 Perfekt!':(score>=order.length*0.7?'👍 Gut gemacht!':'Weiter üben!');
+          A.innerHTML = '<div class="card center big2" style="width:100%">'+score+' / '+order.length+'</div>';
+          P.textContent = order.length+' / '+order.length; return;
+        }
+        const q=order[i]; Q.textContent=q.q; P.textContent=(i+1)+' / '+order.length; S.textContent=score;
+        A.innerHTML = q.a.map((a,j)=>'<button class="btn" data-j="'+j+'" style="width:100%;text-align:left">'+esc(a)+'</button>').join('');
+        A.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+          const j=parseInt(b.dataset.j);
+          if(j===q.correct){ score++; b.style.background='rgba(77,232,138,.35)'; b.style.borderColor='#4de88a'; }
+          else{ b.style.background='rgba(224,59,90,.35)'; b.style.borderColor='#e03b5a';
+            const c=A.querySelector('[data-j="'+q.correct+'"]'); if(c){ c.style.background='rgba(77,232,138,.35)'; c.style.borderColor='#4de88a'; } }
+          A.querySelectorAll('button').forEach(x=>x.disabled=true);
+          setTimeout(()=>{ i++; draw(); }, 850);
+        });
+      }
+      draw();
+      $('#qzR',win).onclick=()=>{ i=0; score=0; order=shuffle(questions); draw(); };
+    }
+  };
+}
+
+/* ============ H · HalDo World ============ */
+APPS['haldo-news'] = {
+  name:'HalDo News', icon:'📰',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>📰 Kuratierte Themen-Feeds</b></div>'+
+    '<div class="row" id="hn1Tabs"></div>'+
+    '<div id="hn1L" class="col"></div>'+
+  '</div>'; },
+  init(win){
+    const TOPICS = [['tech','💻 Technologie'],['science','🔬 Wissenschaft'],['world','🌍 Welt'],['business','💼 Wirtschaft']];
+    let cur='tech';
+    $('#hn1Tabs',win).innerHTML = TOPICS.map(t=>'<button class="btn sm'+(t[0]===cur?' primary':'')+'" data-t="'+t[0]+'">'+t[1]+'</button>').join('');
+    $$('#hn1Tabs button',win).forEach(b=>b.onclick=()=>{ cur=b.dataset.t; load(); });
+    async function load(){
+      $$('#hn1Tabs button',win).forEach(b=>b.classList.toggle('primary', b.dataset.t===cur));
+      const L=$('#hn1L',win);
+      L.innerHTML = '<div class="empty">Lade '+cur+'…</div>';
+      try{
+        const r = await fetch('https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent('https://news.google.com/rss/headlines/section/topic/'+cur.toUpperCase()+'?hl=de&gl=DE&ceid=DE:de'));
+        const j = await r.json();
+        if(!j.items){ L.innerHTML='<div class="empty">Keine News</div>'; return; }
+        L.innerHTML = j.items.slice(0,15).map(it=>'<a href="'+esc(it.link)+'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="card"><b>'+esc(it.title)+'</b><div class="dim sm" style="margin-top:6px">'+esc((it.pubDate||'').slice(0,16))+'</div></div></a>').join('');
+      }catch(e){ L.innerHTML='<div class="empty">Fehler: '+esc(e.message)+'</div>'; }
+    }
+    load();
+  }
+};
+
+APPS['haldo-wallet-pro'] = {
+  name:'HalDo Wallet Pro', icon:'💎',
+  render(){ return '<div class="col">'+
+    '<div class="card center" style="background:linear-gradient(135deg,rgba(0,229,255,.18),rgba(180,120,255,.12))"><div class="dim">Guthaben</div><div class="big" id="hw2B">0</div><div class="dim sm">HalDo Credits</div></div>'+
+    '<div class="row"><input class="inp" id="hw2V" type="number" placeholder="Menge" style="flex:1"><input class="inp" id="hw2N" placeholder="Notiz" style="flex:1"><button class="btn primary" id="hw2P">+ Einzahlen</button><button class="btn danger" id="hw2M">− Ausgeben</button></div>'+
+    '<div class="row"><button class="btn" data-r="10">+10</button><button class="btn" data-r="50">+50</button><button class="btn" data-r="100">+100</button><button class="btn" data-r="500">+500</button></div>'+
+    '<div class="card"><b>Verlauf</b><div class="list" id="hw2L" style="margin-top:6px"></div></div>'+
+  '</div>'; },
+  init(win){
+    let bal = store.get('wallet_bal2', 0);
+    let tx = store.get('wallet_tx2', []);
+    function render(){
+      $('#hw2B',win).textContent = fmt(bal);
+      $('#hw2L',win).innerHTML = tx.length ? tx.slice(0,20).map(t=>'<div class="item"><b>'+esc(t.n)+'</b><span class="dim sm">'+new Date(t.ts).toLocaleDateString('de-DE')+'</span><span style="margin-left:auto;color:'+(t.v>0?'#4de88a':'#ff9db1')+'">'+(t.v>0?'+':'')+fmt(t.v)+'</span></div>').join('') : '<div class="empty">Keine Transaktionen</div>';
+    }
+    function add(v, n){
+      bal += v; tx.unshift({n, v, ts:Date.now()});
+      store.set('wallet_bal2', bal); store.set('wallet_tx2', tx.slice(0,100)); render();
+    }
+    $('#hw2P',win).onclick=()=>{ const v=parseFloat($('#hw2V',win).value); if(!v||v<=0) return; add(v, $('#hw2N',win).value.trim()||'Einzahlung'); $('#hw2V',win).value=''; $('#hw2N',win).value=''; };
+    $('#hw2M',win).onclick=()=>{ const v=parseFloat($('#hw2V',win).value); if(!v||v<=0) return; if(v>bal) return toast('Nicht genug'); add(-v, $('#hw2N',win).value.trim()||'Ausgabe'); $('#hw2V',win).value=''; $('#hw2N',win).value=''; };
+    win.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{ add(parseInt(b.dataset.r), 'Einzahlung'); });
+    render();
+  }
+};
+
+APPS['haldo-games-hub'] = {
+  name:'HalDo Games Hub', icon:'🎮',
+  render(){ return '<div class="col">'+
+    '<div class="card" style="background:linear-gradient(135deg,rgba(0,229,255,.14),rgba(180,120,255,.1))"><div style="text-align:center;font-size:44px">🎮</div><div class="big2" style="text-align:center">Games Hub</div><div class="dim sm" style="text-align:center">Alle Spiele + Highscores</div></div>'+
+    '<div id="hg2L" class="grid"></div>'+
+  '</div>'; },
+  init(win){
+    const games = ['snake','memory','tictactoe','spiel2048','galgen','simon','reaktion','ssp','tippen','memory','vm2g'].filter(id=>APPS[id]);
+    const uniq = [...new Set(games)];
+    $('#hg2L',win).innerHTML = uniq.map(id=>{
+      const a=APPS[id];
+      return '<div class="app ready" data-id="'+id+'"><div class="ic">'+a.icon+'</div><div class="nm">'+esc(a.name)+'</div></div>';
+    }).join('');
+    $$('#hg2L .app',win).forEach(el2=>el2.onclick=()=>window.HalDo.open(el2.dataset.id));
+  }
+};
+
+/* ============ O · Online ============ */
+APPS['email-compose'] = {
+  name:'E-Mail Compose', icon:'✉️',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="ec1T" placeholder="An (E-Mail)…" style="flex:1"><input class="inp" id="ec1C" placeholder="CC" style="flex:1"></div>'+
+    '<input class="inp" id="ec1S" placeholder="Betreff…">'+
+    '<textarea class="ta" id="ec1B" placeholder="Nachricht…" style="min-height:200px">Hallo,\n\n\n\nMit freundlichen Grüßen</textarea>'+
+    '<div class="row"><button class="btn primary" id="ec1Send">📤 Senden (Mail-App)</button><button class="btn" id="ec1Save">💾 Entwurf</button><button class="btn" id="ec1Copy">📋 Body</button></div>'+
+    '<div id="ec1L" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#ec1L',win);
+    const all=()=>store.get('drafts',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.map(x=>'<div class="card" data-id="'+x.id+'"><div class="row between"><b>✉️ '+esc(x.t||'(kein Empfänger)')+'</b><span class="dim sm">'+new Date(x.ts).toLocaleString('de-DE')+'</span><span class="x" data-id="'+x.id+'">✕</span></div><div class="dim sm" style="margin-top:4px">'+esc(x.s||'(kein Betreff)')+'</div></div>').join('') : '<div class="empty">Keine Entwürfe</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=(e)=>{ e.stopPropagation(); store.set('drafts', all().filter(d=>d.id!==el2.dataset.id)); render(); });
+      L.querySelectorAll('.card').forEach(el2=>el2.onclick=(e)=>{ if(e.target.classList.contains('x')) return; const d=all().find(x=>x.id===el2.dataset.id); if(d){ $('#ec1T',win).value=d.t||''; $('#ec1C',win).value=d.c||''; $('#ec1S',win).value=d.s||''; $('#ec1B',win).value=d.b||''; } });
+    }
+    $('#ec1Send',win).onclick=()=>{
+      const t=$('#ec1T',win).value.trim(); if(!t) return toast('Empfänger fehlt');
+      const cc=$('#ec1C',win).value.trim();
+      const url = 'mailto:'+encodeURIComponent(t)+'?subject='+encodeURIComponent($('#ec1S',win).value)+'&body='+encodeURIComponent($('#ec1B',win).value)+(cc?'&cc='+encodeURIComponent(cc):'');
+      window.location.href = url;
+    };
+    $('#ec1Save',win).onclick=()=>{
+      const t=$('#ec1T',win).value.trim(), s=$('#ec1S',win).value.trim(), b=$('#ec1B',win).value;
+      if(!t && !s && !b) return;
+      const arr=all(); arr.unshift({id:uid(), t, c:$('#ec1C',win).value.trim(), s, b, ts:Date.now()}); store.set('drafts', arr.slice(0,30));
+      render(); toast('Entwurf gespeichert');
+    };
+    $('#ec1Copy',win).onclick=()=>{ navigator.clipboard?.writeText($('#ec1B',win).value); toast('Kopiert'); };
+    render();
+  }
+};
+
+APPS['chat-raeume'] = {
+  name:'Chat Räume', icon:'💬',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>💬 Lokale Chat-Räume</b><div class="dim sm">Nachrichten bleiben nur auf diesem Gerät.</div></div>'+
+    '<div class="row" id="cr1R"></div>'+
+    '<div id="cr1M" style="min-height:200px;max-height:40vh;overflow-y:auto;background:rgba(0,0,0,.2);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px"></div>'+
+    '<div class="row"><input class="inp" id="cr1I" placeholder="Nachricht…" style="flex:1"><button class="btn primary" id="cr1S">Senden</button></div>'+
+  '</div>'; },
+  init(win){
+    const ROOMS = ['Allgemein','Projekte','Ideen','Small Talk'];
+    let cur = store.get('chat_room_cur', ROOMS[0]);
+    $('#cr1R',win).innerHTML = ROOMS.map(r=>'<button class="btn sm'+(r===cur?' primary':'')+'" data-r="'+r+'">'+r+'</button>').join('');
+    $$('#cr1R button',win).forEach(b=>b.onclick=()=>{ cur=b.dataset.r; store.set('chat_room_cur', cur); render(); });
+    const all=()=>store.get('chat_rooms',{});
+    function render(){
+      $$('#cr1R button',win).forEach(b=>b.classList.toggle('primary', b.dataset.r===cur));
+      const d = all(); const msgs = d[cur]||[];
+      $('#cr1M',win).innerHTML = msgs.length ? msgs.map(m=>'<div style="align-self:flex-end;max-width:80%;background:linear-gradient(135deg,var(--c1),var(--c2));color:#fff;padding:8px 12px;border-radius:12px;font-size:13px;border-bottom-right-radius:3px"><div>'+esc(m.t)+'</div><div style="font-size:10px;opacity:.7;margin-top:3px">'+new Date(m.ts).toLocaleTimeString('de-DE')+'</div></div>').join('') : '<div class="empty">Noch keine Nachrichten in '+cur+'</div>';
+      const M = $('#cr1M',win); M.scrollTop = M.scrollHeight;
+    }
+    $('#cr1S',win).onclick=()=>{
+      const t=$('#cr1I',win).value.trim(); if(!t) return;
+      const d=all(); if(!d[cur]) d[cur]=[];
+      d[cur].push({t, ts:Date.now()});
+      store.set('chat_rooms', d); $('#cr1I',win).value=''; render();
+    };
+    $('#cr1I',win).addEventListener('keydown',e=>{ if(e.key==='Enter') $('#cr1S',win).click(); });
+    render();
+  }
+};
+
+APPS['link-saver'] = {
+  name:'Link Saver', icon:'🔗',
+  render(){ return '<div class="col">'+
+    '<div class="row"><input class="inp" id="ls1U" placeholder="URL…" style="flex:2"><input class="inp" id="ls1T" placeholder="Notiz" style="flex:1"><button class="btn primary" id="ls1A">+</button></div>'+
+    '<input class="inp" id="ls1Q" placeholder="🔍 Suchen…">'+
+    '<div id="ls1L" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#ls1L',win);
+    const all=()=>store.get('saved_links',[]);
+    function render(){
+      const q=$('#ls1Q',win).value.toLowerCase();
+      const a=all().filter(x=>!q||x.u.toLowerCase().includes(q)||(x.t||'').toLowerCase().includes(q));
+      L.innerHTML = a.length ? a.map(x=>'<div class="card"><div class="row between"><b>🔗 '+esc(x.u.slice(0,60))+'</b><span class="x" data-id="'+x.id+'">✕</span></div>'+(x.t?'<div class="dim sm" style="margin-top:4px">'+esc(x.t)+'</div>':'')+'<div class="row" style="margin-top:6px"><a href="'+esc(x.u)+'" target="_blank" rel="noopener" class="btn sm primary" style="text-decoration:none">↗ Öffnen</a><button class="btn sm" data-c="'+esc(x.u)+'">📋</button></div></div>').join('') : '<div class="empty">Keine Links</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=()=>{ store.set('saved_links', all().filter(x=>x.id!==el2.dataset.id)); render(); });
+      L.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{ navigator.clipboard?.writeText(b.dataset.c); toast('Kopiert'); });
+    }
+    $('#ls1A',win).onclick=()=>{
+      const u=$('#ls1U',win).value.trim(); if(!u) return;
+      const arr=all(); arr.unshift({id:uid(), u, t:$('#ls1T',win).value.trim(), ts:Date.now()}); store.set('saved_links', arr.slice(0,100));
+      $('#ls1U',win).value=''; $('#ls1T',win).value=''; render();
+    };
+    $('#ls1Q',win).oninput=render;
+    render();
+  }
+};
+
+/* ============ R · Sicherheit ============ */
+APPS['sicherheits-audit'] = {
+  name:'Sicherheits-Audit', icon:'🛡️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🛡️ Sicherheits-Check</b></div>'+
+    '<button class="btn primary" id="sa1Go">▶ Audit starten</button>'+
+    '<div id="sa1O" class="col"></div>'+
+  '</div>'; },
+  init(win){
+    $('#sa1Go',win).onclick=()=>{
+      const checks = [];
+      const pass = (ok, t, info)=>({ok, t, info});
+      checks.push(pass(navigator.onLine, 'Verbindung', navigator.onLine?'✅ Online':'❌ Offline'));
+      checks.push(pass(window.isSecureContext, 'HTTPS', window.isSecureContext?'✅ Verschlüsselt':'⚠️ HTTP (unsicher)'));
+      checks.push(pass(!!navigator.cookieEnabled, 'Cookies', navigator.cookieEnabled?'✅ Aktiviert':'❌ Deaktiviert'));
+      let items = 0; try{ items = Object.keys(localStorage).length; }catch(e){}
+      checks.push(pass(items<200, 'Lokaler Speicher', items+' Einträge'));
+      checks.push(pass(!!crypto.subtle, 'Web Crypto API', crypto.subtle?'✅ Verfügbar':'❌ Fehlt'));
+      checks.push(pass(navigator.serviceWorker != null, 'Service Worker', navigator.serviceWorker?'✅ Unterstützt':'❌ Fehlt'));
+      checks.push(pass('Notification' in window, 'Benachrichtigungen', 'Notification' in window?'✅ Verfügbar':'❌ Fehlt'));
+      const passed = checks.filter(c=>c.ok).length;
+      const score = Math.round(passed/checks.length*100);
+      const col = score>=80?'#4de88a':(score>=60?'#ffb03a':'#ff6b88');
+      $('#sa1O',win).innerHTML = '<div class="card center"><div class="dim">Sicherheits-Score</div><div class="big2" style="color:'+col+'">'+score+'%</div><div class="dim sm">'+passed+' / '+checks.length+' bestanden</div></div>'+
+        checks.map(c=>'<div class="card"><div class="row between"><b>'+(c.ok?'✅':'⚠️')+' '+esc(c.t)+'</b><span class="dim sm">'+esc(c.info)+'</span></div></div>').join('');
+    };
+    $('#sa1Go',win).click();
+  }
+};
+
+APPS['email-checker'] = {
+  name:'E-Mail Checker', icon:'📧',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>📧 E-Mail Format prüfen</b></div>'+
+    '<input class="inp" id="emc1I" placeholder="name@beispiel.de">'+
+    '<div id="emc1O"></div>'+
+    '<div class="card"><b>💡 Bekannte Wegwerf-Domains</b><div class="dim sm" style="margin-top:6px">mailinator.com, 10minutemail.com, guerrillamail.com, tempmail.com, throwaway.email</div></div>'+
+  '</div>'; },
+  init(win){
+    $('#emc1I',win).oninput=()=>{
+      const v = $('#emc1I',win).value.trim();
+      const out = $('#emc1O',win);
+      if(!v){ out.innerHTML=''; return; }
+      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const valid = re.test(v);
+      const domain = v.split('@')[1] || '';
+      const disposable = ['mailinator.com','10minutemail.com','guerrillamail.com','tempmail.com','throwaway.email'].includes(domain.toLowerCase());
+      out.innerHTML = '<div class="card center" style="margin-top:8px"><div class="big2" style="color:'+(valid?'#4de88a':'#ff6b88')+'">'+(valid?'✅ Gültig':'❌ Ungültig')+'</div>'+
+        (valid?'<div class="dim sm" style="margin-top:6px">Domain: '+esc(domain)+'</div>':'')+
+        (disposable?'<div style="color:#ffb03a;margin-top:6px">⚠️ Wegwerf-Adresse</div>':'')+'</div>';
+    };
+  }
+};
+
+APPS['notfall-plan'] = {
+  name:'Notfall-Plan', icon:'🚨',
+  render(){ return '<div class="col">'+
+    '<div class="card" style="background:rgba(224,59,90,.15);border-color:#e03b5a"><b>🚨 Notfall-Nummern</b></div>'+
+    '<div class="list">'+
+      '<a href="tel:112" style="text-decoration:none;color:inherit"><div class="item"><b>🚑 112</b><span class="dim sm" style="margin-left:auto">Rettung / Feuer</span></div></a>'+
+      '<a href="tel:110" style="text-decoration:none;color:inherit"><div class="item"><b>🚔 110</b><span class="dim sm" style="margin-left:auto">Polizei</span></div></a>'+
+      '<a href="tel:116116" style="text-decoration:none;color:inherit"><div class="item"><b>🔒 116 116</b><span class="dim sm" style="margin-left:auto">Karten-Sperrhotline</span></div></a>'+
+      '<a href="tel:08001110111" style="text-decoration:none;color:inherit"><div class="item"><b>💊 0800 111 0 111</b><span class="dim sm" style="margin-left:auto">Ärztl. Bereitschaft</span></div></a>'+
+      '<a href="tel:08001110222" style="text-decoration:none;color:inherit"><div class="item"><b>☠️ 030 19240</b><span class="dim sm" style="margin-left:auto">Giftnotruf Berlin</span></div></a>'+
+    '</div>'+
+    '<div class="card"><b>📝 Notfall-Kontakte</b></div>'+
+    '<div class="row"><input class="inp" id="np1N" placeholder="Name" style="flex:1"><input class="inp" id="np1P" placeholder="Telefon" style="flex:1"><input class="inp" id="np1R" placeholder="Beziehung" style="width:130px"><button class="btn primary" id="np1A">+</button></div>'+
+    '<div id="np1L" class="list"></div>'+
+    '<div class="card"><b>📋 Wichtige Infos</b><textarea class="ta" id="np1I" placeholder="Allergien, Blutgruppe, Medikamente…" style="min-height:80px"></textarea><button class="btn primary" id="np1S" style="margin-top:8px">💾 Speichern</button></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#np1L',win);
+    const all=()=>store.get('emergency_contacts',[]);
+    function render(){
+      const a=all();
+      L.innerHTML = a.length ? a.map(c=>'<a href="tel:'+esc(c.p)+'" style="text-decoration:none;color:inherit"><div class="item"><b>'+esc(c.n)+'</b><span class="dim sm">'+esc(c.r||'')+'</span><span class="dim sm" style="margin-left:auto">'+esc(c.p)+' 📞</span><span class="x" data-id="'+c.id+'">✕</span></div></a>').join('') : '<div class="empty">Keine Kontakte</div>';
+      L.querySelectorAll('.x').forEach(el2=>el2.onclick=(e)=>{ e.preventDefault(); e.stopPropagation(); store.set('emergency_contacts', all().filter(c=>c.id!==el2.dataset.id)); render(); });
+    }
+    $('#np1A',win).onclick=()=>{
+      const n=$('#np1N',win).value.trim(), p=$('#np1P',win).value.trim();
+      if(!n||!p) return;
+      const arr=all(); arr.push({id:uid(), n, p, r:$('#np1R',win).value.trim()}); store.set('emergency_contacts', arr);
+      $('#np1N',win).value=''; $('#np1P',win).value=''; $('#np1R',win).value=''; render();
+    };
+    $('#np1I',win).value = store.get('emergency_info', '');
+    $('#np1S',win).onclick=()=>{ store.set('emergency_info', $('#np1I',win).value); toast('Gespeichert'); };
+    render();
+  }
+};
+
+/* ============ S · System ============ */
+APPS['autostart'] = {
+  name:'Autostart Manager', icon:'⚙️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>⚙️ Apps beim Start</b><div class="dim sm">Markiere Apps die beim Laden von HalDo automatisch geöffnet werden.</div></div>'+
+    '<input class="inp" id="as2Q" placeholder="🔍 Suchen…">'+
+    '<div id="as2L" class="list"></div>'+
+  '</div>'; },
+  init(win){
+    const L=$('#as2L',win);
+    const autostart = ()=>store.get('autostart_apps',[]);
+    function render(){
+      const q=$('#as2Q',win).value.toLowerCase();
+      const ids = Object.keys(APPS).filter(id=>(!q||(APPS[id].name||'').toLowerCase().includes(q)));
+      const enabled = autostart();
+      L.innerHTML = ids.slice(0,40).map(id=>'<div class="item"><input type="checkbox" data-id="'+id+'" '+(enabled.includes(id)?'checked':'')+'><b>'+esc(APPS[id].name)+'</b></div>').join('');
+      L.querySelectorAll('input').forEach(c=>c.onchange=()=>{
+        const a = autostart();
+        if(c.checked){ if(!a.includes(c.dataset.id)) a.push(c.dataset.id); }
+        else{ const i=a.indexOf(c.dataset.id); if(i>=0) a.splice(i,1); }
+        store.set('autostart_apps', a);
+      });
+    }
+    $('#as2Q',win).oninput=render;
+    render();
+  }
+};
+
+APPS['benachrichtigungen'] = {
+  name:'Benachrichtigungen', icon:'🔔',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🔔 Benachrichtigungen</b></div>'+
+    '<div class="row"><button class="btn primary" id="bn2R">🔔 Erlauben anfragen</button><button class="btn" id="bn2T">🧪 Test senden</button></div>'+
+    '<div class="card" id="bn2S"><span class="dim sm">Status: –</span></div>'+
+    '<div class="card"><b>📋 Deine Erinnerungen</b>'+
+      '<div class="row" style="margin-top:8px"><input class="inp" id="bn2T2" placeholder="Was?" style="flex:1"><input class="inp" id="bn2M" type="number" placeholder="Nach X Min" style="width:120px"><button class="btn primary" id="bn2A">+</button></div>'+
+      '<div id="bn2L" class="list" style="margin-top:8px"></div>'+
+    '</div>'+
+  '</div>'; },
+  init(win){
+    function updStatus(){
+      const s = 'Notification' in window ? Notification.permission : 'nicht unterstützt';
+      $('#bn2S',win).innerHTML = 'Status: <b style="color:'+(s==='granted'?'#4de88a':s==='denied'?'#ff6b88':'#ffb03a')+'">'+s+'</b>';
+    }
+    $('#bn2R',win).onclick=async()=>{
+      if(!('Notification' in window)) return toast('Nicht unterstützt');
+      try{ await Notification.requestPermission(); updStatus(); }catch(e){ toast('Fehler'); }
+    };
+    $('#bn2T',win).onclick=()=>{
+      if(!('Notification' in window)) return toast('Nicht unterstützt');
+      if(Notification.permission!=='granted') return toast('Erst erlauben');
+      new Notification('HalDo Test 🔔', {body:'Wenn du das siehst, funktioniert es!', icon:''});
+    };
+    const all=()=>store.get('notifications_schedule',[]);
+    function render(){
+      const a=all();
+      $('#bn2L',win).innerHTML = a.length ? a.map(n=>'<div class="item"><b>🔔 '+esc(n.t)+'</b><span class="dim sm">'+new Date(n.at).toLocaleString('de-DE')+'</span><span class="x" data-id="'+n.id+'">✕</span></div>').join('') : '<div class="empty">Keine geplant</div>';
+      $$('#bn2L .x',win).forEach(el2=>el2.onclick=()=>{ store.set('notifications_schedule', all().filter(n=>n.id!==el2.dataset.id)); render(); });
+    }
+    $('#bn2A',win).onclick=()=>{
+      const t=$('#bn2T2',win).value.trim(), m=parseInt($('#bn2M',win).value);
+      if(!t||!m) return;
+      if(!('Notification' in window) || Notification.permission!=='granted') return toast('Erst Benachrichtigung erlauben');
+      const at = Date.now() + m*60000;
+      const arr=all(); arr.push({id:uid(), t, at}); store.set('notifications_schedule', arr); render();
+      setTimeout(()=>{ try{ new Notification('⏰ '+t, {body:'Erinnerung von HalDo'}); }catch(e){} }, m*60000);
+      toast('Erinnerung in '+m+' min');
+    };
+    updStatus(); render();
+  }
+};
+
+APPS['papierkorb-pro'] = {
+  name:'Papierkorb Pro', icon:'🗑️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🗑️ Papierkorb</b><div class="dim sm">Zeigt gelöschte HalDo-Daten (Backup vor dem Löschen).</div></div>'+
+    '<button class="btn primary" id="pk2B">💾 Backup erstellen vor dem Leeren</button>'+
+    '<div id="pk2L" class="list"></div>'+
+    '<button class="btn danger" id="pk2Clr">🗑 Alle HalDo-Daten löschen</button>'+
+  '</div>'; },
+  init(win){
+    const L=$('#pk2L',win);
+    function render(){
+      const keys = [];
+      for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.startsWith('haldo_')) keys.push({k, size:(localStorage.getItem(k)||'').length}); }
+      L.innerHTML = keys.length ? '<div class="card center">Gesamt: <b>'+keys.length+'</b> Einträge · <b>'+(keys.reduce((s,x)=>s+x.size,0)/1024).toFixed(1)+' KB</b></div>'+
+        keys.map(x=>'<div class="item"><b>'+esc(x.k.replace('haldo_','').replace('_v1','').replace(/_/g,' '))+'</b><span class="dim sm" style="margin-left:auto">'+(x.size/1024).toFixed(1)+' KB</span><button class="btn sm danger" data-k="'+esc(x.k)+'">🗑</button></div>').join('')
+        : '<div class="empty">Papierkorb leer</div>';
+      L.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{ if(confirm('Löschen: '+b.dataset.k+'?')){ localStorage.removeItem(b.dataset.k); render(); } });
+    }
+    $('#pk2B',win).onclick=()=>{
+      const data={}; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.startsWith('haldo_')) data[k]=localStorage.getItem(k); }
+      const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='haldo-backup-'+Date.now()+'.json'; a.click();
+      toast('Backup erstellt');
+    };
+    $('#pk2Clr',win).onclick=()=>{
+      if(!confirm('Wirklich ALLE HalDo-Daten löschen?')) return;
+      for(let i=localStorage.length-1;i>=0;i--){ const k=localStorage.key(i); if(k&&k.startsWith('haldo_')) localStorage.removeItem(k); }
+      toast('Alle Daten gelöscht'); setTimeout(()=>location.reload(), 800);
+    };
+    render();
+  }
+};
+
+/* ============ M · Medien ============ */
+APPS['gif-player'] = {
+  name:'GIF Player', icon:'🎞️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🎞️ GIFs anzeigen</b></div>'+
+    '<input type="file" id="gp1F" accept="image/gif,image/*" multiple class="inp">'+
+    '<div id="gp1G" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:10px"></div>'+
+  '</div>'; },
+  init(win){
+    const G=$('#gp1G',win);
+    $('#gp1F',win).onchange=(e)=>{
+      [...e.target.files].forEach(f=>{
+        const url = URL.createObjectURL(f);
+        const img = document.createElement('img');
+        img.src = url; img.style.cssText='width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:1.5px solid var(--line);cursor:pointer';
+        img.onclick = ()=>{ const w=window.open('','_blank'); if(w) w.document.write('<img src="'+url+'" style="max-width:100%">'); };
+        G.prepend(img);
+      });
+    };
+  }
+};
+
+APPS['podcast-player'] = {
+  name:'Podcast Player', icon:'🎙️',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🎙️ Beliebteste Podcasts</b></div>'+
+    '<div class="list" id="pp1L"></div>'+
+  '</div>'; },
+  init(win){
+    const pods = [
+      ['Fest & Flauschig','Comedy','https://open.spotify.com/show/1LLaTFOR2pZ1sLZ2XlJTIq'],
+      ['Gemischtes Hack','Comedy','https://open.spotify.com/show/2OtG5hOFDDLvTpoLom3z4v'],
+      ['Lage der Nation','Politik','https://lagedernation.org/'],
+      ['Zeit Verbrechen','True Crime','https://www.zeit.de/serie/verbrechen'],
+      ['SWR2 Wissen','Bildung','https://www.swr.de/swr2/wissen/podcast'],
+      ['Einfach Tasty','Kochen','https://einfach-tasty.de/'],
+      ['Psychologie to go','Psychologie','https://www.psychologie-to-go.de/'],
+      ['Zeitsprung','Geschichte','https://www.zeitsprung.fm/']
+    ];
+    $('#pp1L',win).innerHTML = pods.map(p=>'<a href="'+p[2]+'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>'+esc(p[0])+'</b><span class="dim sm" style="margin-left:auto">'+esc(p[1])+'</span></div></a>').join('');
+  }
+};
+
+/* ============ B · Bildung ============ */
+APPS['sport-quiz'] = makeQuiz('Sport Quiz','⚽',[
+  {q:'Wie viele Spieler hat eine Fußballmannschaft?', a:['9','10','11','12'], correct:2},
+  {q:'Wie oft findet die WM statt?', a:['Alle 2 Jahre','Alle 3 Jahre','Alle 4 Jahre','Alle 5 Jahre'], correct:2},
+  {q:'Welcher Sport hat einen "Birdie"?', a:['Tennis','Golf','Basketball','Cricket'], correct:1},
+  {q:'Wie lang ist ein Marathon?', a:['40 km','42,195 km','45 km','50 km'], correct:1},
+  {q:'Wie viele Ringe hat das Olympia-Logo?', a:['4','5','6','7'], correct:1},
+  {q:'In welchem Land wurde Basketball erfunden?', a:['Deutschland','USA','Kanada','Frankreich'], correct:1},
+  {q:'Wie heißt der höchste Tennis-Wettbewerb?', a:['Grand Slam','Master Cup','Olympia','Wimbledon Cup'], correct:0},
+  {q:'Wie viele Punkte gibt ein Touchdown im American Football?', a:['3','6','7','9'], correct:1},
+  {q:'Wie hoch hängt ein Basketballkorb?', a:['3,05 m','3,50 m','4,00 m','2,50 m'], correct:0},
+  {q:'Wer hat die meisten olympischen Goldmedaillen?', a:['Usain Bolt','Michael Phelps','Carl Lewis','Simone Biles'], correct:1},
+  {q:'Wie lang ist ein Olympisches Schwimmbecken?', a:['25 m','50 m','75 m','100 m'], correct:1},
+  {q:'Aus welchem Land kommt Fußball?', a:['Brasilien','England','Deutschland','Italien'], correct:1}
+]);
+
+APPS['musik-quiz'] = makeQuiz('Musik Quiz','🎵',[
+  {q:'Wie viele Töne hat die Tonleiter?', a:['5','7','8','12'], correct:1},
+  {q:'Wer komponierte "Für Elise"?', a:['Mozart','Beethoven','Bach','Chopin'], correct:1},
+  {q:'Wie viele Saiten hat eine Standard-Gitarre?', a:['4','5','6','7'], correct:2},
+  {q:'Wer sang "Bohemian Rhapsody"?', a:['The Beatles','Queen','Led Zeppelin','Pink Floyd'], correct:1},
+  {q:'Was ist ein Forte in der Musik?', a:['Laut','Leise','Schnell','Langsam'], correct:0},
+  {q:'Wie viele Tasten hat ein Klavier (Standard)?', a:['66','76','88','100'], correct:2},
+  {q:'Wer war "The King of Pop"?', a:['Elvis','Michael Jackson','Prince','James Brown'], correct:1},
+  {q:'Wie viele Saiten hat eine Violine?', a:['3','4','5','6'], correct:1},
+  {q:'Was bedeutet "A cappella"?', a:['Mit Orchester','Ohne Instrumente','Schnell','Laut'], correct:1},
+  {q:'Aus welchem Land kommt Reggae?', a:['Jamaika','Kuba','Brasilien','Afrika'], correct:0},
+  {q:'Wer schrieb "Die Zauberflöte"?', a:['Mozart','Beethoven','Bach','Wagner'], correct:0},
+  {q:'Was ist ein Metronom?', a:['Instrument','Taktgeber','Notenpapier','Lautsprecher'], correct:1}
+]);
+
+APPS['hauptstaedte-europa'] = makeQuiz('Hauptstädte Europa','🏛️',[
+  {q:'Hauptstadt von Deutschland?', a:['München','Berlin','Hamburg','Frankfurt'], correct:1},
+  {q:'Hauptstadt von Frankreich?', a:['Lyon','Paris','Marseille','Nizza'], correct:1},
+  {q:'Hauptstadt von Italien?', a:['Mailand','Rom','Neapel','Venedig'], correct:1},
+  {q:'Hauptstadt von Spanien?', a:['Barcelona','Madrid','Sevilla','Valencia'], correct:1},
+  {q:'Hauptstadt von Portugal?', a:['Porto','Lissabon','Coimbra','Braga'], correct:1},
+  {q:'Hauptstadt von Niederlande?', a:['Den Haag','Amsterdam','Rotterdam','Utrecht'], correct:1},
+  {q:'Hauptstadt von Belgien?', a:['Antwerpen','Brüssel','Gent','Lüttich'], correct:1},
+  {q:'Hauptstadt von Österreich?', a:['Salzburg','Wien','Graz','Linz'], correct:1},
+  {q:'Hauptstadt von Schweiz?', a:['Zürich','Bern','Genf','Basel'], correct:1},
+  {q:'Hauptstadt von Polen?', a:['Krakau','Warschau','Danzig','Posen'], correct:1},
+  {q:'Hauptstadt von Griechenland?', a:['Thessaloniki','Athen','Patras','Kreta'], correct:1},
+  {q:'Hauptstadt von Irland?', a:['Cork','Dublin','Galway','Limerick'], correct:1},
+  {q:'Hauptstadt von Schweden?', a:['Göteborg','Stockholm','Malmö','Uppsala'], correct:1},
+  {q:'Hauptstadt von Norwegen?', a:['Bergen','Oslo','Trondheim','Stavanger'], correct:1},
+  {q:'Hauptstadt von Finnland?', a:['Tampere','Helsinki','Turku','Espoo'], correct:1}
+]);
+
+APPS['bundeslaender-quiz'] = makeQuiz('Bundesländer','🗺️',[
+  {q:'Wie viele Bundesländer hat Deutschland?', a:['14','15','16','17'], correct:2},
+  {q:'Was ist das größte Bundesland (Fläche)?', a:['Bayern','NRW','Baden-Württemberg','Niedersachsen'], correct:0},
+  {q:'Was ist das kleinste Bundesland?', a:['Saarland','Hamburg','Bremen','Berlin'], correct:2},
+  {q:'Hauptstadt von Bayern?', a:['Nürnberg','München','Augsburg','Regensburg'], correct:1},
+  {q:'Hauptstadt von NRW?', a:['Köln','Düsseldorf','Dortmund','Essen'], correct:1},
+  {q:'Hauptstadt von Baden-Württemberg?', a:['Stuttgart','Mannheim','Freiburg','Heidelberg'], correct:0},
+  {q:'Hauptstadt von Niedersachsen?', a:['Hannover','Braunschweig','Osnabrück','Oldenburg'], correct:0},
+  {q:'Hauptstadt von Sachsen?', a:['Leipzig','Dresden','Chemnitz','Zwickau'], correct:1},
+  {q:'Welches Bundesland hat die meisten Einwohner?', a:['Bayern','NRW','Baden-Württemberg','Berlin'], correct:1},
+  {q:'Wie viele Stadtstaaten gibt es?', a:['2','3','4','5'], correct:1},
+  {q:'Hauptstadt von Hessen?', a:['Frankfurt','Wiesbaden','Kassel','Darmstadt'], correct:1},
+  {q:'Hauptstadt von Thüringen?', a:['Jena','Erfurt','Weimar','Gera'], correct:1}
+]);
+
+/* ============ G · Zuhause ============ */
+APPS['gewuerz-lexikon'] = {
+  name:'Gewürz-Lexikon', icon:'🌿',
+  render(){ return '<div class="col">'+
+    '<input class="inp" id="gl2Q" placeholder="Gewürz suchen…">'+
+    '<div id="gl2L" class="col" style="max-height:65vh;overflow-y:auto"></div>'+
+  '</div>'; },
+  init(win){
+    const data = [
+      ['🧂','Salz','Universell','Verstärkt Aromen, konserviert'],
+      ['⚫','Pfeffer','Universell','Scharf, aus Pfefferbeeren'],
+      ['🌶️','Paprika','Ungarn/Mexiko','Süß bis scharf, viel Vitamin C'],
+      ['🟡','Kurkuma','Indien','Gelb, entzündungshemmend, Curcumin'],
+      ['🔴','Chili','Mexiko/Asien','Scharf, Capsaicin'],
+      ['🌿','Basilikum','Mittelmeer','Süßlich, für Tomaten & Pasta'],
+      ['🌱','Oregano','Mittelmeer','Pizza, mediterrane Küche'],
+      ['🌾','Thymian','Mittelmeer','Erdig, für Fleisch & Kartoffeln'],
+      ['🌿','Rosmarin','Mittelmeer','Nadelig, für Lamm & Kartoffeln'],
+      ['🍃','Petersilie','Europa','Frisch, für Salate & Suppen'],
+      ['🌱','Koriander','Asien/Mexiko','Frisch-seifig, für Currys & Salsa'],
+      ['🟤','Zimt','Sri Lanka','Süß, für Gebäck & Kaffee'],
+      ['🟡','Kardamom','Indien','Aromatisch, für Kaffee & Curry'],
+      ['🟤','Muskat','Indonesien','Würzig-süß, für Kartoffeln'],
+      ['🟡','Ingwer','Asien','Scharf, entzündungshemmend'],
+      ['⚪','Knoblauch','Weltweit','Würzig, antibakteriell'],
+      ['🌰','Kümmel','Europa/Asien','Erdig, für Brot & Kohl'],
+      ['🟢','Kreuzkümmel','Naher Osten','Warm, für Curry & Chili'],
+      ['🌿','Estragon','Europa','Anisartig, für Essig & Fleisch'],
+      ['🌱','Dill','Europa','Frisch, für Gurken & Fisch']
+    ];
+    const L=$('#gl2L',win), Q=$('#gl2Q',win);
+    function render(){
+      const q=Q.value.toLowerCase();
+      const f=q?data.filter(d=>d[1].toLowerCase().includes(q)||d[4].toLowerCase().includes(q)):data;
+      L.innerHTML = f.map(d=>'<div class="card"><div class="row"><span style="font-size:32px">'+d[0]+'</span><div><b>'+d[1]+'</b><div class="dim sm">'+d[2]+'</div></div></div><div class="dim sm" style="margin-top:6px">'+esc(d[3])+'</div></div>').join('') || '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput=render; render();
+  }
+};
+
+APPS['kochrezepte-basic'] = {
+  name:'Kochrezepte', icon:'🍳',
+  render(){ return '<div class="col">'+
+    '<input class="inp" id="kb2Q" placeholder="Rezept suchen…">'+
+    '<div id="kb2L" class="col" style="max-height:70vh;overflow-y:auto"></div>'+
+  '</div>'; },
+  init(win){
+    const rec = [
+      ['🍝','Spaghetti Bolognese','30 min · 4 Portionen','Hackfleisch anbraten, Zwiebeln + Knoblauch, Tomaten dazu, 20 min köcheln. Nudeln kochen, mit Sauce servieren.'],
+      ['🍕','Pizza Margherita','90 min · 2 Pizzen','Teig: Mehl, Wasser, Hefe, Salz. 1h gehen. Tomatensauce, Mozzarella, Basilikum. 250°C, 10 min.'],
+      ['🍳','Rührei','5 min · 1 Portion','Eier verquirlen, Salz, Butter in Pfanne. Bei niedriger Hitze rühren bis cremig.'],
+      ['🥗','Caesar Salad','15 min · 2 Portionen','Römersalat, Croutons, Parmesan. Dressing: Eigelb, Anchovis, Zitrone, Öl, Senf.'],
+      ['🍜','Ramen','45 min · 2 Portionen','Brühe: Hühnerbrühe, Miso, Sojasauce, Ingwer. Nudeln, Ei, Frühlingszwiebeln.'],
+      ['🍔','Burger','25 min · 2 Burger','Rinderhack formen, würzen, 3 min pro Seite. Brötchen toasten, Salat, Tomate, Käse, Sauce.'],
+      ['🍰','Schokoladenkuchen','60 min · 8 Stück','200g Schokolade + 200g Butter schmelzen. 4 Eier, 200g Zucker, 200g Mehl. 175°C, 40 min.'],
+      ['🥞','Pfannkuchen','20 min · 4 Portionen','250g Mehl, 2 Eier, 500ml Milch, Prise Salz. In Pfanne goldbraun backen.'],
+      ['🍜','Gemüsesuppe','30 min · 4 Portionen','Zwiebeln, Karotten, Sellerie anschwitzen. Brühe, Kartoffeln, 20 min köcheln.'],
+      ['🥗','Griechischer Salat','10 min · 2 Portionen','Tomaten, Gurken, Oliven, Feta, Zwiebeln. Olivenöl + Oregano + Zitrone.'],
+      ['🍲','Linsensuppe','40 min · 4 Portionen','Linsen, Zwiebeln, Karotten, Sellerie, Brühe. 30 min köcheln, mit Essig abschmecken.'],
+      ['🥪','Club Sandwich','15 min · 2 Stück','Toast, Hähnchen, Speck, Ei, Salat, Tomate, Mayo. Schichten, halbieren.']
+    ];
+    const L=$('#kb2L',win), Q=$('#kb2Q',win);
+    function render(){
+      const q=Q.value.toLowerCase();
+      const f=q?rec.filter(r=>r[1].toLowerCase().includes(q)||r[3].toLowerCase().includes(q)):rec;
+      L.innerHTML = f.map(r=>'<div class="card"><div class="row"><span style="font-size:32px">'+r[0]+'</span><div><b>'+esc(r[1])+'</b><div class="dim sm">'+esc(r[2])+'</div></div></div><div class="dim sm" style="margin-top:8px;line-height:1.6">'+esc(r[3])+'</div></div>').join('') || '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput=render; render();
+  }
+};
+
+/* ============ C · Fahrschule ============ */
+APPS['kfz-zulassung'] = {
+  name:'KFZ-Zulassung', icon:'🚗',
+  render(){ return '<div class="col">'+
+    '<div class="card"><b>🚗 Auto an-/abmelden</b></div>'+
+    '<div id="kz1L" class="col"></div>'+
+  '</div>'; },
+  init(win){
+    const steps = [
+      ['📝','Anmeldung — was du brauchst','• Personalausweis/Reisepass<br>• eVB-Nummer (Versicherung)<br>• Fahrzeugpapiere (ZB I + ZB II)<br>• TÜV-Bescheinigung<br>• SEPA-Mandat für KFZ-Steuer<br>• Ggf. Vollmacht'],
+      ['💰','Kosten (ca.)','• Zulassung: 26-30 €<br>• Wunschkennzeichen: +10-13 €<br>• Feinstaubplakette: 6 €<br>• Abmeldung: 15-20 €'],
+      ['💻','Online-Anmeldung','Über i-Kfz Portal (z.B. zulassung.de, Kroschke, oder direkt beim Straßenverkehrsamt). Seit 2023 durchgängig digital möglich mit Ausweis + PIN.'],
+      ['📍','Straßenverkehrsamt','Öffnungszeiten meist: Mo-Fr 8-16 Uhr. Termin online buchen! Wartezeit oft 2-4 Wochen.'],
+      ['🔖','Kennzeichen reservieren','Kann 30-90 Tage reserviert werden. Bei Online-Zulassung direkt bestellen.'],
+      ['📋','Abmeldung','• Kennzeichen abmontieren lassen<br>• Zulassungsbescheinigung Teil I mitnehmen<br>• Online: i-Kfz Abmeldung möglich, Siegel selbst entfernen'],
+      ['🛡️','Versicherung','eVB-Nummer (7-stellig) bei jeder Versicherung erhältlich. Wird automatisch an die Zulassungsstelle übermittelt.'],
+      ['🔧','TÜV / HU','Alle 2 Jahre (Neuwagen: 3 Jahre). Kosten: 130-150 €. Bei Nicht-Bestehen: Nachprüfung in 1 Monat.']
+    ];
+    $('#kz1L',win).innerHTML = steps.map(s=>'<div class="card"><b>'+s[0]+' '+s[1]+'</b><div class="dim sm" style="margin-top:6px;line-height:1.7">'+s[2]+'</div></div>').join('');
+  }
+};
+
+APPS['fuehrerschein-plus'] = makeQuiz('Führerschein Plus','🚦',[
+  {q:'Wie schnell darf man innerorts maximal fahren?', a:['30 km/h','40 km/h','50 km/h','60 km/h'], correct:2},
+  {q:'Wie schnell auf Landstraßen (außerorts, ohne Beschilderung)?', a:['70','80','90','100'], correct:3},
+  {q:'Ab welcher Promille-Grenze ist Fahren verboten (Probezeit)?', a:['0,0‰','0,1‰','0,3‰','0,5‰'], correct:0},
+  {q:'Wie tief muss das Reifenprofil mindestens sein?', a:['1,0 mm','1,6 mm','2,0 mm','2,5 mm'], correct:1},
+  {q:'Wie viel Abstand zur Kreuzung beim Parken?', a:['3 m','5 m','8 m','10 m'], correct:1},
+  {q:'Wann darf man Nebelschlussleuchte anmachen?', a:['Bei Regen','Bei Sicht < 50 m','Bei Nacht','Immer'], correct:1},
+  {q:'Was gilt an einem Zebrastreifen?', a:['Fußgänger haben Vorrang','Radfahrer haben Vorrang','Autos haben Vorrang','Egal'], correct:0},
+  {q:'Wie lange gilt die Probezeit?', a:['1 Jahr','2 Jahre','3 Jahre','5 Jahre'], correct:1},
+  {q:'Ab welcher Blutalkoholkonzentration ist Fahren verboten?', a:['0,3‰','0,5‰','0,8‰','1,0‰'], correct:1},
+  {q:'Wie weit vor einem Bahnübergang muss man Abstand halten?', a:['5 m','10 m','15 m','20 m'], correct:2},
+  {q:'Wofür ist eine grüne Plakette?', a:['Schnellstraße','Umweltzone','Autobahn','Ausland'], correct:1},
+  {q:'Was bedeutet ein Dreieck-Schild mit rotem Rand?', a:['Vorfahrt','Gefahr/Achtung','Vorschrift','Verbot'], correct:1}
+]);
+
+console.log('%c🚀 HalDo Apps v139 geladen (18 Apps)','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+})();
+</script>
 </body>
 </html>
