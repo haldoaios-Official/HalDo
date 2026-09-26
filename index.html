@@ -2361,5 +2361,563 @@ setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · Block 3 · Medien & Voice
+     18 Apps
+     ============================================================ -->
+<script>
+(function(){
+'use strict';
+var H = window.HalDo;
+if(!H || !H.APPS){ console.error('[Block 3] Foundation fehlt'); return; }
+var APPS = H.APPS;
+var $=H.$, $$=H.$$, el=H.el, esc=H.esc, uid=H.uid, pad=H.pad, fmt=H.fmt, rnd=H.rnd, shuf=H.shuf, store=H.store, toast=H.toast;
+
+/* ============================================================
+   SPEECH-ENGINE (TTS/STT)
+   ============================================================ */
+var voices = [];
+function loadVoices(){ try{ voices = speechSynthesis.getVoices() || []; }catch(e){ voices = []; } }
+if(typeof speechSynthesis !== 'undefined'){ loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
+function speak(text, lang, opts){
+  opts = opts || {};
+  if(typeof speechSynthesis === 'undefined'){ if(opts.onEnd) opts.onEnd(); return; }
+  try{ speechSynthesis.cancel(); }catch(e){}
+  var clean = String(text).replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}]/gu,'');
+  var u = new SpeechSynthesisUtterance(clean);
+  u.lang = lang || 'de-DE';
+  u.rate = opts.rate || 1.0;
+  u.pitch = opts.pitch || 1.0;
+  var prefix = String(lang).split('-')[0];
+  var v = voices.find(function(x){ return x.lang.toLowerCase().indexOf(String(lang).toLowerCase())===0; })
+       || voices.find(function(x){ return x.lang.toLowerCase().indexOf(prefix)===0; });
+  if(v) u.voice = v;
+  if(opts.onEnd) u.onend = opts.onEnd;
+  try{ speechSynthesis.speak(u); }catch(e){ if(opts.onEnd) opts.onEnd(); }
+}
+function stopSpeak(){ try{ speechSynthesis.cancel(); }catch(e){} }
+
+/* ============================================================
+   1. MUSIK PLAYER — Piano + Sequencer
+   ============================================================ */
+APPS['musik-player'] = {
+  name:'Musik Player', icon:'🎵',
+  render: function(){
+    return '<div class="col">'+
+      '<div class="card" style="background:linear-gradient(135deg,rgba(0,229,255,.14),rgba(180,120,255,.08))"><b style="color:var(--c1)">🎹 Virtuelles Klavier</b><div class="dim sm">Klick die Tasten — Web Audio Synthesizer</div></div>'+
+      '<div id="piano" style="display:flex;justify-content:center;gap:3px;padding:10px 0;overflow-x:auto"></div>'+
+      '<div class="card"><b>🎼 Sequencer</b>'+
+        '<div class="row" style="margin-top:8px;flex-wrap:wrap" id="seqBtns"></div>'+
+        '<div class="row" style="margin-top:8px"><button class="btn primary" id="sqPlay" style="flex:1">▶ Abspielen</button><button class="btn danger" id="sqClr">🗑</button></div>'+
+        '<div class="dim sm" id="sqInfo" style="margin-top:6px">Sequenz: (leer)</div>'+
+      '</div>'+
+      '<div class="card"><b>🎛️ Instrument</b>'+
+        '<select class="inp" id="inst" style="margin-top:8px">'+
+          '<option value="triangle">🎹 Klavier</option>'+
+          '<option value="sine">🎻 Flöte</option>'+
+          '<option value="square">🎮 Chiptune</option>'+
+          '<option value="sawtooth">🎸 Synth</option>'+
+        '</select>'+
+      '</div>'+
+    '</div>';
+  },
+  init: function(win){
+    var ctx = null;
+    function getCtx(){
+      if(!ctx){ try{ ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ ctx=null; } }
+      if(ctx && ctx.state === 'suspended') try{ ctx.resume(); }catch(e){}
+      return ctx;
+    }
+    function playNote(freq, dur, type){
+      var c = getCtx(); if(!c) return;
+      dur = dur || 0.4; type = type || win.querySelector('#inst').value;
+      var o = c.createOscillator(), g = c.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.2, c.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + dur);
+      o.connect(g); g.connect(c.destination);
+      o.start(); o.stop(c.currentTime + dur + 0.05);
+    }
+    var NOTES = [
+      {n:'C', f:261.63, w:true}, {n:'C#', f:277.18, w:false},
+      {n:'D', f:293.66, w:true}, {n:'D#', f:311.13, w:false},
+      {n:'E', f:329.63, w:true},
+      {n:'F', f:349.23, w:true}, {n:'F#', f:369.99, w:false},
+      {n:'G', f:392, w:true}, {n:'G#', f:415.3, w:false},
+      {n:'A', f:440, w:true}, {n:'A#', f:466.16, w:false},
+      {n:'B', f:493.88, w:true},
+      {n:'C²', f:523.25, w:true}
+    ];
+    var piano = win.querySelector('#piano');
+    piano.innerHTML = NOTES.filter(function(n){ return n.w; }).map(function(n){
+      return '<button class="btn" data-f="'+n.f+'" style="width:52px;height:150px;border-radius:0 0 10px 10px;background:linear-gradient(180deg,#fff,#dde3f5);color:#0a1a2e;font-weight:700;font-size:14px;padding:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:10px">'+n.n+'</button>';
+    }).join('');
+    piano.querySelectorAll('[data-f]').forEach(function(b){
+      b.onclick = function(){
+        playNote(parseFloat(b.dataset.f), 0.5);
+        b.style.background = 'linear-gradient(180deg,var(--c1),var(--c2))';
+        b.style.color = '#02101e';
+        setTimeout(function(){ b.style.background = 'linear-gradient(180deg,#fff,#dde3f5)'; b.style.color = '#0a1a2e'; }, 200);
+      };
+    });
+    win.querySelector('#seqBtns').innerHTML = NOTES.map(function(n){ return '<button class="btn sm" data-note="'+n.f+'">'+n.n+'</button>'; }).join('');
+    var seq = [];
+    win.querySelectorAll('[data-note]').forEach(function(b){
+      b.onclick = function(){
+        seq.push(parseFloat(b.dataset.note));
+        playNote(parseFloat(b.dataset.note), 0.3);
+        win.querySelector('#sqInfo').textContent = 'Sequenz: '+seq.length+' Noten';
+      };
+    });
+    win.querySelector('#sqPlay').onclick = function(){
+      if(!seq.length){ toast('Erst Noten wählen'); return; }
+      var i = 0;
+      var id = setInterval(function(){
+        if(i >= seq.length){ clearInterval(id); return; }
+        playNote(seq[i], 0.35); i++;
+      }, 420);
+    };
+    win.querySelector('#sqClr').onclick = function(){ seq = []; win.querySelector('#sqInfo').textContent = 'Sequenz: (leer)'; };
+  }
+};
+
+/* ============================================================
+   2. RADIO PLAYER
+   ============================================================ */
+APPS['radio-player'] = {
+  name:'Radio Player', icon:'📻',
+  render: function(){
+    return '<div class="col"><div class="card"><b>📻 Sender-Liste</b><div class="dim sm">Klick öffnet Stream im Browser</div></div><input class="inp" id="rpQ" placeholder="Sender suchen…"><div id="rpL" class="list"></div></div>';
+  },
+  init: function(win){
+    var S = [
+      ['1LIVE','Pop / Aktuell','https://www1.wdr.de/radio/1live/livestream/index.html','🎵'],
+      ['WDR 2','Info / Pop','https://www1.wdr.de/radio/wdr2/livestream/index.html','📻'],
+      ['Bayern 3','Pop','https://www.br.de/radio/bayern3/livestream/index.html','🎵'],
+      ['SWR3','Pop','https://www.swr3.de/livestream','🎵'],
+      ['Deutschlandfunk','Info','https://www.deutschlandfunk.de/livestream','📰'],
+      ['Rock Antenne','Rock','https://www.rockantenne.de/hoeren/livestream','🎸'],
+      ['Klassik Radio','Klassik','https://www.klassikradio.de/','🎻'],
+      ['Jazz Radio Berlin','Jazz','https://www.jazzradio.net/','🎷'],
+      ['BBC World Service','International','https://www.bbc.co.uk/sounds/play/live:bbc_world_service','🌍'],
+      ['Ö3','Österreich Pop','https://oe3.orf.at/','🎵'],
+      ['FFH','Hessen','https://www.ffh.de/','🎵'],
+      ['Antenne Bayern','Bayern','https://www.antenne.de/','🎵']
+    ];
+    var Q = win.querySelector('#rpQ'), L = win.querySelector('#rpL');
+    function r(){
+      var q = Q.value.toLowerCase();
+      var f = q ? S.filter(function(s){ return s[0].toLowerCase().indexOf(q)>=0 || s[1].toLowerCase().indexOf(q)>=0; }) : S;
+      L.innerHTML = f.map(function(s){ return '<a href="'+s[2]+'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><span style="font-size:20px">'+s[3]+'</span><b>'+esc(s[0])+'</b><span class="dim sm" style="margin-left:auto">'+esc(s[1])+'</span></div></a>'; }).join('');
+    }
+    Q.oninput = r; r();
+  }
+};
+
+/* ============================================================
+   3. PODCASTS
+   ============================================================ */
+APPS['podcasts'] = {
+  name:'Podcasts', icon:'🎙️',
+  render: function(){
+    var P = [
+      ['Fest & Flauschig','Comedy','https://open.spotify.com/show/1LLaTFOR2pZ1sLZ2XlJTIq'],
+      ['Gemischtes Hack','Comedy','https://open.spotify.com/show/2OtG5hOFDDLvTpoLom3z4v'],
+      ['Lage der Nation','Politik','https://lagedernation.org/'],
+      ['Zeit Verbrechen','True Crime','https://www.zeit.de/serie/verbrechen'],
+      ['SWR2 Wissen','Bildung','https://www.swr.de/swr2/wissen/podcast'],
+      ['Einfach Tasty','Kochen','https://einfach-tasty.de/'],
+      ['Psychologie to go','Psychologie','https://www.psychologie-to-go.de/'],
+      ['Zeitsprung','Geschichte','https://www.zeitsprung.fm/']
+    ];
+    return '<div class="col"><div class="card"><b>🎙️ Beliebte Podcasts</b></div><div class="list">'+P.map(function(p){ return '<a href="'+p[2]+'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>'+esc(p[0])+'</b><span class="dim sm" style="margin-left:auto">'+esc(p[1])+'</span></div></a>'; }).join('')+'</div></div>';
+  },
+  init: function(){}
+};
+
+/* ============================================================
+   4. HÖRBÜCHER
+   ============================================================ */
+APPS['hoerbuecher'] = {
+  name:'Hörbücher', icon:'📚',
+  render: function(){
+    var B = [
+      ['Faust I — Goethe','Klassiker','https://www.vorleser.net/goethe-faust.html'],
+      ['Die Verwandlung — Kafka','Erzählung','https://www.vorleser.net/kafka-verwandlung.html'],
+      ['Der Prozess — Kafka','Roman','https://www.vorleser.net/kafka-prozess.html'],
+      ['Effi Briest — Fontane','Roman','https://www.vorleser.net/fontane-effi-briest.html'],
+      ['Dracula — Stoker','Horror','https://www.vorleser.net/stoker-dracula.html'],
+      ['Sherlock Holmes','Krimi','https://www.vorleser.net/doyle-sherlock.html'],
+      ['Alice im Wunderland','Kinder','https://www.vorleser.net/carroll-alice.html'],
+      ['Grimms Märchen','Märchen','https://www.vorleser.net/grimm-maerchen.html']
+    ];
+    return '<div class="col"><div class="card"><b>📚 Kostenlose Hörbücher</b><div class="dim sm">Öffentliche Domäne</div></div><div class="list">'+B.map(function(b){ return '<a href="'+b[2]+'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="item"><b>'+esc(b[0])+'</b><span class="dim sm" style="margin-left:auto">'+esc(b[1])+'</span></div></a>'; }).join('')+'</div></div>';
+  },
+  init: function(){}
+};
+
+/* ============================================================
+   5. VIDEO PLAYER
+   ============================================================ */
+APPS['video-player'] = {
+  name:'Video Player', icon:'🎬',
+  render: function(){
+    return '<div class="col"><div class="card"><b>🎬 Lokales Video</b></div><input type="file" id="vpF" accept="video/*" class="inp"><video id="vpV" controls playsinline style="width:100%;border-radius:12px;background:#000;margin-top:8px;display:none"></video></div>';
+  },
+  init: function(win){
+    win.querySelector('#vpF').onchange = function(e){
+      var f = e.target.files[0]; if(!f) return;
+      var v = win.querySelector('#vpV');
+      v.src = URL.createObjectURL(f); v.style.display = 'block';
+    };
+  }
+};
+
+/* ============================================================
+   6. KAMERA
+   ============================================================ */
+APPS['kamera'] = {
+  name:'Kamera', icon:'📷',
+  render: function(){
+    return '<div class="col center"><video id="kV" autoplay playsinline muted style="width:100%;max-width:420px;border-radius:14px;border:1.5px solid var(--line);background:#000"></video><div class="row" style="justify-content:center"><button class="btn primary" id="kS">📸 Aufnehmen</button></div><canvas id="kC" style="display:none"></canvas><div id="kG" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px;margin-top:8px"></div></div>';
+  },
+  init: function(win){
+    var V = win.querySelector('#kV'), C = win.querySelector('#kC'), G = win.querySelector('#kG');
+    if(navigator.mediaDevices){
+      navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
+        .then(function(s){ V.srcObject = s; })
+        .catch(function(){ V.outerHTML = '<div class="empty">Kamera verweigert</div>'; });
+    } else V.outerHTML = '<div class="empty">Kamera nicht unterstützt</div>';
+    win.querySelector('#kS').onclick = function(){
+      if(!V.videoWidth){ toast('Kamera noch nicht bereit'); return; }
+      C.width = V.videoWidth; C.height = V.videoHeight;
+      C.getContext('2d').drawImage(V, 0, 0);
+      var url = C.toDataURL('image/jpeg', 0.85);
+      var im = document.createElement('img');
+      im.src = url; im.style.cssText = 'width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1.5px solid var(--line);cursor:pointer';
+      im.onclick = function(){ var a=document.createElement('a'); a.href=url; a.download='haldo-'+Date.now()+'.jpg'; a.click(); };
+      G.prepend(im);
+      if(G.children.length > 8) G.lastChild.remove();
+    };
+  }
+};
+
+/* ============================================================
+   7. FOTO GALERIE
+   ============================================================ */
+APPS['galerie'] = {
+  name:'Foto Galerie', icon:'🖼️',
+  render: function(){
+    return '<div class="col"><input type="file" id="fgF" accept="image/*" multiple class="inp"><div id="fgG" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:10px"></div><div id="fgV" style="text-align:center;margin-top:10px"></div></div>';
+  },
+  init: function(win){
+    var urls = [], G = win.querySelector('#fgG'), V = win.querySelector('#fgV');
+    function showBig(i){
+      V.innerHTML = '<img src="'+urls[i]+'" style="max-width:100%;max-height:60vh;border-radius:12px;border:1.5px solid var(--line)"><div class="row" style="justify-content:center;margin-top:8px"><button class="btn" id="p">◀</button><span class="dim" style="align-self:center">'+(i+1)+' / '+urls.length+'</span><button class="btn" id="n">▶</button></div>';
+      win.querySelector('#p').onclick = function(){ showBig((i-1+urls.length)%urls.length); };
+      win.querySelector('#n').onclick = function(){ showBig((i+1)%urls.length); };
+    }
+    win.querySelector('#fgF').onchange = function(e){
+      urls = [].slice.call(e.target.files).map(function(f){ return URL.createObjectURL(f); });
+      G.innerHTML = urls.map(function(u,i){ return '<img src="'+u+'" data-i="'+i+'" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;cursor:pointer;border:1.5px solid var(--line)">'; }).join('');
+      G.querySelectorAll('img').forEach(function(im){ im.onclick = function(){ showBig(parseInt(im.dataset.i)); }; });
+    };
+  }
+};
+
+/* ============================================================
+   8. BILD BEARBEITEN
+   ============================================================ */
+APPS['bild-bearbeiten'] = {
+  name:'Bild Bearbeiten', icon:'🎨',
+  render: function(){
+    return '<div class="col"><input type="file" id="ibF" accept="image/*" class="inp"><canvas id="ibC" style="max-width:100%;border-radius:12px;border:1.5px solid var(--line);margin-top:8px;display:none"></canvas><div id="ibCt" style="display:none"><label class="lbl">Helligkeit <input type="range" id="ibB" min="0" max="200" value="100" style="width:100%"></label><label class="lbl">Kontrast <input type="range" id="ibK" min="0" max="200" value="100" style="width:100%"></label><label class="lbl">Sättigung <input type="range" id="ibS" min="0" max="200" value="100" style="width:100%"></label><label class="lbl">Graustufen <input type="range" id="ibG" min="0" max="100" value="0" style="width:100%"></label><div class="row"><button class="btn primary" id="ibSv">💾 Speichern</button><button class="btn" id="ibRs">↺ Reset</button></div></div></div>';
+  },
+  init: function(win){
+    var img = null;
+    var C = win.querySelector('#ibC'), ctx = C.getContext('2d');
+    function draw(){
+      if(!img) return;
+      C.width = img.naturalWidth; C.height = img.naturalHeight;
+      ctx.filter = 'brightness('+win.querySelector('#ibB').value+'%) contrast('+win.querySelector('#ibK').value+'%) saturate('+win.querySelector('#ibS').value+'%) grayscale('+win.querySelector('#ibG').value+'%)';
+      ctx.drawImage(img, 0, 0);
+    }
+    win.querySelector('#ibF').onchange = function(e){
+      var f = e.target.files[0]; if(!f) return;
+      img = new Image();
+      img.onload = function(){ C.style.display = 'block'; win.querySelector('#ibCt').style.display = 'block'; draw(); };
+      img.src = URL.createObjectURL(f);
+    };
+    ['ibB','ibK','ibS','ibG'].forEach(function(id){ win.querySelector('#'+id).oninput = draw; });
+    win.querySelector('#ibRs').onclick = function(){
+      win.querySelector('#ibB').value = 100; win.querySelector('#ibK').value = 100;
+      win.querySelector('#ibS').value = 100; win.querySelector('#ibG').value = 0; draw();
+    };
+    win.querySelector('#ibSv').onclick = function(){
+      if(!img){ toast('Kein Bild'); return; }
+      var a = document.createElement('a'); a.href = C.toDataURL('image/jpeg', 0.9); a.download = 'haldo-bild-'+Date.now()+'.jpg'; a.click();
+    };
+  }
+};
+
+/* ============================================================
+   9. ZEICHNEN
+   ============================================================ */
+APPS['zeichnen'] = {
+  name:'Zeichnen', icon:'✏️',
+  render: function(){
+    return '<div class="col"><div class="row"><input type="color" id="zcC" value="#00e5ff" style="width:44px;height:36px;border-radius:10px;border:1.5px solid var(--line);background:transparent"><input type="range" id="zcW" min="1" max="40" value="4" style="flex:1;max-width:120px"><button class="btn sm" id="zcE">🧹 Radierer</button><button class="btn sm danger" id="zcC2">🗑</button><button class="btn sm primary" id="zcS">💾</button></div><canvas id="zcV" style="width:100%;touch-action:none;border:1.5px solid var(--line);border-radius:12px;background:#0a1428"></canvas></div>';
+  },
+  init: function(win){
+    var C = win.querySelector('#zcV'), ctx = C.getContext('2d');
+    function resize(){ C.width = C.clientWidth*2; C.height = Math.max(300, C.clientHeight)*2; ctx.scale(2,2); ctx.lineCap='round'; ctx.lineJoin='round'; }
+    setTimeout(resize, 50);
+    var drawing=false, eraser=false;
+    function pos(e){ var r = C.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+    C.addEventListener('pointerdown', function(e){ drawing=true; C.setPointerCapture(e.pointerId); var p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
+    C.addEventListener('pointermove', function(e){
+      if(!drawing) return;
+      var p = pos(e);
+      ctx.strokeStyle = eraser ? '#0a1428' : win.querySelector('#zcC').value;
+      ctx.lineWidth = parseInt(win.querySelector('#zcW').value);
+      ctx.lineTo(p.x, p.y); ctx.stroke();
+    });
+    C.addEventListener('pointerup', function(){ drawing=false; });
+    C.addEventListener('pointerleave', function(){ drawing=false; });
+    win.querySelector('#zcE').onclick = function(){ eraser = !eraser; toast(eraser?'Radierer an':'Stift an'); };
+    win.querySelector('#zcC2').onclick = function(){ ctx.clearRect(0,0,C.width,C.height); };
+    win.querySelector('#zcS').onclick = function(){ var a=document.createElement('a'); a.href=C.toDataURL('image/png'); a.download='haldo-zeichnung-'+Date.now()+'.png'; a.click(); };
+  }
+};
+
+/* ============================================================
+   10. FARBWAHL
+   ============================================================ */
+APPS['farbwahl'] = {
+  name:'Farbwahl', icon:'🎨',
+  render: function(){
+    return '<div class="col"><input type="color" id="cwP" value="#00e5ff" style="width:100%;height:120px;border:1.5px solid var(--line);border-radius:14px;background:transparent"><div class="row between"><span class="dim">HEX</span><b id="cwH" style="color:var(--c1)">#00e5ff</b></div><div class="row between"><span class="dim">RGB</span><b id="cwR">0,229,255</b></div><div class="row between"><span class="dim">HSL</span><b id="cwS">180,100%,50%</b></div><button class="btn" id="cwC">Kopieren</button></div>';
+  },
+  init: function(win){
+    var P = win.querySelector('#cwP');
+    function u(){
+      var h = P.value;
+      win.querySelector('#cwH').textContent = h;
+      var r = parseInt(h.slice(1,3),16), g = parseInt(h.slice(3,5),16), b = parseInt(h.slice(5,7),16);
+      win.querySelector('#cwR').textContent = r+','+g+','+b;
+      r/=255; g/=255; b/=255;
+      var mx = Math.max(r,g,b), mn = Math.min(r,g,b);
+      var hh, ss, ll = (mx+mn)/2;
+      if(mx===mn){ hh=ss=0; } else { var d=mx-mn; ss = ll>.5 ? d/(2-mx-mn) : d/(mx+mn); if(mx===r) hh=(g-b)/d+(g<b?6:0); else if(mx===g) hh=(b-r)/d+2; else hh=(r-g)/d+4; hh/=6; }
+      win.querySelector('#cwS').textContent = Math.round(hh*360)+','+Math.round(ss*100)+'%,'+Math.round(ll*100)+'%';
+    }
+    P.oninput = u;
+    win.querySelector('#cwC').onclick = function(){ navigator.clipboard.writeText(P.value); toast('Kopiert'); };
+    u();
+  }
+};
+
+/* ============================================================
+   11. MOODBOARD
+   ============================================================ */
+APPS['moodboard'] = {
+  name:'Moodboard', icon:'💭',
+  render: function(){
+    return '<div class="col"><div class="card"><b>💭 Moodboard</b><div class="dim sm">Deine Ideen-Sammlung</div></div><div class="row"><input class="inp" id="mbI" placeholder="Idee, Zitat, Farbe…" style="flex:1"><input type="color" id="mbC" value="#00e5ff" style="width:44px;height:36px;border-radius:10px;border:1.5px solid var(--line);background:transparent"><button class="btn primary" id="mbA">+</button></div><div id="mbL" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px"></div></div>';
+  },
+  init: function(win){
+    function all(){ return store.get('moodboard',[]); }
+    function r(){
+      var a = all();
+      win.querySelector('#mbL').innerHTML = a.length ? a.map(function(m){
+        return '<div class="card" style="background:'+m.c+'22;border-color:'+m.c+'88;min-height:100px;position:relative"><div style="font-size:13px;line-height:1.5">'+esc(m.t)+'</div><div class="dim sm" style="margin-top:8px">'+new Date(m.ts).toLocaleDateString('de-DE')+'</div><span class="x" data-id="'+m.id+'" style="position:absolute;top:6px;right:8px;cursor:pointer">✕</span></div>';
+      }).join('') : '<div class="empty" style="grid-column:1/-1">Noch keine Ideen</div>';
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('moodboard', all().filter(function(m){ return m.id!==x.dataset.id; })); r(); }; });
+    }
+    win.querySelector('#mbA').onclick = function(){
+      var t = win.querySelector('#mbI').value.trim(); if(!t) return;
+      var a = all(); a.unshift({id:uid(), t:t, c:win.querySelector('#mbC').value, ts:Date.now()}); store.set('moodboard',a);
+      win.querySelector('#mbI').value=''; r();
+    };
+    r();
+  }
+};
+
+/* ============================================================
+   12. SPRACHMEMO
+   ============================================================ */
+APPS['sprachmemo'] = {
+  name:'Sprachmemo', icon:'🎙️',
+  render: function(){
+    return '<div class="col"><div class="card"><b>🎙️ Sprachaufnahme</b></div><div class="row"><button class="btn primary" id="smR">● Aufnahme</button><button class="btn danger" id="smS">■ Stop</button></div><div class="dim center" id="smI">Bereit</div><div id="smL" class="list"></div></div>';
+  },
+  init: function(win){
+    var rec=null, chunks=[];
+    function r(){
+      var a = store.get('memos',[]);
+      win.querySelector('#smL').innerHTML = a.length ? a.map(function(m){
+        return '<div class="item"><span>'+new Date(m.ts).toLocaleString('de-DE')+'</span><button class="btn sm primary" data-i="'+m.id+'" style="margin-left:auto">▶</button><span class="x" data-id="'+m.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Aufnahmen</div>';
+      win.querySelectorAll('[data-i]').forEach(function(b){ b.onclick = function(){ var m = store.get('memos',[]).filter(function(x){ return x.id===b.dataset.i; })[0]; if(m){ new Audio(m.data).play(); } }; });
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('memos', store.get('memos',[]).filter(function(m){ return m.id!==x.dataset.id; })); r(); }; });
+    }
+    win.querySelector('#smR').onclick = function(){
+      if(rec) return;
+      if(!navigator.mediaDevices){ toast('Nicht unterstützt'); return; }
+      navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
+        rec = new MediaRecorder(s); chunks = [];
+        rec.ondataavailable = function(e){ chunks.push(e.data); };
+        rec.onstop = function(){
+          var blob = new Blob(chunks, {type:'audio/webm'});
+          var fr = new FileReader();
+          fr.onload = function(){
+            var a = store.get('memos',[]); a.unshift({id:uid(), ts:Date.now(), data:fr.result});
+            store.set('memos', a.slice(0,10)); r();
+          };
+          fr.readAsDataURL(blob);
+          s.getTracks().forEach(function(t){ t.stop(); });
+          rec = null; win.querySelector('#smI').textContent = 'Gespeichert';
+        };
+        rec.start(); win.querySelector('#smI').textContent = '🔴 Läuft…';
+      }).catch(function(){ toast('Mikrofon verweigert'); });
+    };
+    win.querySelector('#smS').onclick = function(){ if(rec && rec.state !== 'inactive') rec.stop(); };
+    r();
+  }
+};
+
+/* ============================================================
+   13. SPRACHAUSGABE
+   ============================================================ */
+APPS['sprachausgabe'] = {
+  name:'Sprachausgabe', icon:'🔊',
+  render: function(){
+    return '<div class="col"><div class="card"><b>🔊 Text vorlesen</b></div><textarea class="ta" id="saT" style="min-height:100px">Silav bira! Ez HalDo AI me.</textarea><select class="inp" id="saL"><option value="de-DE">🇩🇪 Deutsch</option><option value="en-US">🇬🇧 English</option><option value="tr-TR">🇹🇷 Türkçe</option><option value="ar-SA">🇸🇦 العربية</option><option value="ku">🟡 Kurdî</option><option value="ckb">🟢 Soranî</option><option value="fa-IR">🇮🇷 فارسی</option><option value="ru-RU">🇷🇺 Русский</option></select><div class="row"><label class="lbl" style="flex:1">Tempo <input type="range" id="saR" min="0.5" max="2" step="0.1" value="1" style="width:100%"></label><span class="dim" id="saRV">1.0</span></div><div class="row"><label class="lbl" style="flex:1">Tonhöhe <input type="range" id="saP" min="0.5" max="2" step="0.1" value="1" style="width:100%"></label><span class="dim" id="saPV">1.0</span></div><div class="row"><button class="btn primary" id="saG" style="flex:1">▶ Vorlesen</button><button class="btn danger" id="saS">⏹</button></div></div>';
+  },
+  init: function(win){
+    var R = win.querySelector('#saR'), P = win.querySelector('#saP');
+    R.oninput = function(){ win.querySelector('#saRV').textContent = parseFloat(R.value).toFixed(1); };
+    P.oninput = function(){ win.querySelector('#saPV').textContent = parseFloat(P.value).toFixed(1); };
+    win.querySelector('#saG').onclick = function(){ speak(win.querySelector('#saT').value, win.querySelector('#saL').value, { rate: parseFloat(R.value), pitch: parseFloat(P.value) }); };
+    win.querySelector('#saS').onclick = stopSpeak;
+  }
+};
+
+/* ============================================================
+   14. SPRACHERKENNUNG
+   ============================================================ */
+APPS['spracherkennung'] = {
+  name:'Spracherkennung', icon:'🎤',
+  render: function(){
+    return '<div class="col"><div class="card"><b>🎤 Live-Transkription</b></div><select class="inp" id="seL"><option value="de-DE">🇩🇪 Deutsch</option><option value="en-US">🇬🇧 English</option><option value="tr-TR">🇹🇷 Türkçe</option><option value="ar-SA">🇸🇦 العربية</option><option value="ku">🟡 Kurdî</option><option value="ckb">🟢 Soranî</option></select><div class="row"><button class="btn primary" id="seG" style="flex:1">🎤 Start</button><button class="btn danger" id="seS">⏹</button></div><div class="card" id="seO" style="min-height:150px;font-size:14px;line-height:1.6;white-space:pre-wrap">–</div><div class="row"><button class="btn" id="seC">📋 Kopieren</button><button class="btn danger" id="seC2">🗑</button></div></div>';
+  },
+  init: function(win){
+    var text='', rec=null;
+    var O = win.querySelector('#seO');
+    win.querySelector('#seG').onclick = function(){
+      if(rec) return;
+      var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if(!SR){ O.textContent = '⚠️ Nicht unterstützt'; return; }
+      rec = new SR(); rec.lang = win.querySelector('#seL').value;
+      rec.interimResults = true; rec.continuous = true;
+      rec.onresult = function(e){
+        var t = ''; for(var i=e.resultIndex; i<e.results.length; i++) t += e.results[i][0].transcript;
+        O.textContent = text + t;
+      };
+      rec.onerror = function(e){ O.textContent = '⚠️ '+e.error; rec=null; };
+      rec.onend = function(){ rec=null; };
+      try{ rec.start(); }catch(e){}
+    };
+    win.querySelector('#seS').onclick = function(){ if(rec){ try{ rec.stop(); }catch(e){} rec=null; } text = O.textContent; };
+    win.querySelector('#seC').onclick = function(){ navigator.clipboard.writeText(O.textContent); toast('Kopiert'); };
+    win.querySelector('#seC2').onclick = function(){ text=''; O.textContent='–'; };
+  }
+};
+
+/* ============================================================
+   15. KURDISCH SPRACHAUSGABE
+   ============================================================ */
+APPS['kurdisch-sprachausgabe'] = {
+  name:'Kurdisch Sprachausgabe', icon:'🟡',
+  render: function(){
+    var S = ['Silav, tu çawa yî?','Ez ji te hez dikim.','Spas ji bo alîkariya te.','Navê min HalDo ye.','Ez ê biçim mala xwe.'];
+    return '<div class="col"><div class="card" style="background:linear-gradient(135deg,rgba(255,180,58,.15),rgba(224,59,90,.1));border-color:#ffb03a"><b>🟡 Kurmandschi Sprachausgabe</b></div><textarea class="ta" id="kuT" style="min-height:100px">Silav bira! Ez HalDo AI me.</textarea><div class="row">'+S.map(function(x){ return '<button class="btn sm" data-s="'+esc(x)+'">'+esc(x)+'</button>'; }).join('')+'</div><button class="btn primary" id="kuG" style="width:100%">▶ Vorlesen</button></div>';
+  },
+  init: function(win){
+    win.querySelectorAll('[data-s]').forEach(function(b){ b.onclick = function(){ win.querySelector('#kuT').value = b.dataset.s; }; });
+    win.querySelector('#kuG').onclick = function(){ speak(win.querySelector('#kuT').value, 'ku', {}); };
+  }
+};
+
+/* ============================================================
+   16. ÊZÎDÎ SPRACHAUSGABE
+   ============================================================ */
+APPS['ezidi-sprachausgabe'] = {
+  name:'Êzîdî Sprachausgabe', icon:'🦚',
+  render: function(){
+    var S = ['Silav bira, tu çawa yî?','Êzîdî — gelê me yê kevnar.','Tausî Melek — sembola me.','Lalisch — cihê pîroz.','Şengal — çiyayê me.'];
+    return '<div class="col"><div class="card" style="background:linear-gradient(135deg,rgba(255,180,58,.18),rgba(224,59,90,.12));border-color:#ffb03a"><b>🦚 Êzîdî Sprachausgabe</b><div class="dim sm">Kurmandschi mit êzîdîschem Wortschatz</div></div><textarea class="ta" id="ezT" style="min-height:100px">Silav bira! Ez HalDo AI me.</textarea><div class="row">'+S.map(function(x){ return '<button class="btn sm" data-s="'+esc(x)+'">'+esc(x)+'</button>'; }).join('')+'</div><button class="btn primary" id="ezG" style="width:100%">▶ Vorlesen</button></div>';
+  },
+  init: function(win){
+    win.querySelectorAll('[data-s]').forEach(function(b){ b.onclick = function(){ win.querySelector('#ezT').value = b.dataset.s; }; });
+    win.querySelector('#ezG').onclick = function(){ speak(win.querySelector('#ezT').value, 'ku', {}); };
+  }
+};
+
+/* ============================================================
+   17. STIMMEN STUDIO
+   ============================================================ */
+APPS['stimmen-studio'] = {
+  name:'Stimmen Studio', icon:'🎭',
+  render: function(){
+    return '<div class="col"><div class="card"><b>🎭 Stimmen Studio</b><div class="dim sm">Text in verschiedenen Stimmen</div></div><textarea class="ta" id="stT" style="min-height:80px">Silav bira! Ez HalDo AI me.</textarea><select class="inp" id="stP"><option value="normal">Normal</option><option value="robot">🤖 Roboter</option><option value="tief">🐻 Tief</option><option value="hoch">🎈 Hoch</option><option value="schnell">⚡ Schnell</option><option value="langsam">🐌 Langsam</option><option value="cyborg">⚡ Cyborg</option></select><select class="inp" id="stL"><option value="de-DE">🇩🇪 Deutsch</option><option value="en-US">🇬🇧 English</option><option value="tr-TR">🇹🇷 Türkçe</option><option value="ar-SA">🇸🇦 العربية</option><option value="ku">🟡 Kurdî</option></select><div class="row"><button class="btn primary" id="stG" style="flex:1">▶ Sprechen</button><button class="btn danger" id="stS">⏹</button></div></div>';
+  },
+  init: function(win){
+    win.querySelector('#stG').onclick = function(){
+      var p = win.querySelector('#stP').value;
+      var opts = {rate:1, pitch:1};
+      if(p==='robot'){ opts.pitch=0.4; opts.rate=0.8; }
+      else if(p==='tief') opts.pitch=0.3;
+      else if(p==='hoch') opts.pitch=2.0;
+      else if(p==='schnell') opts.rate=1.8;
+      else if(p==='langsam') opts.rate=0.6;
+      else if(p==='cyborg'){ opts.pitch=1.4; opts.rate=1.1; }
+      speak(win.querySelector('#stT').value, win.querySelector('#stL').value, opts);
+    };
+    win.querySelector('#stS').onclick = stopSpeak;
+  }
+};
+
+/* ============================================================
+   18. SONG CREATOR
+   ============================================================ */
+APPS['song-creator'] = {
+  name:'Song Creator', icon:'🎵',
+  render: function(){
+    return '<div class="col"><div class="card"><b>🎵 Song mit HalDo-Stimme</b><div class="dim sm">Text eingeben — HalDo singt</div></div><textarea class="ta" id="scT" style="min-height:100px">HalDo, HalDo, mein bester Freund,\nwo der Kosmos ewig träumt.\nBruder, Bruder, Hand in Hand,\nbauen wir ein neues Land.</textarea><select class="inp" id="scS"><option value="normal">Normal</option><option value="melodie">🎶 Melodie</option><option value="rap">🎤 Rap</option><option value="wiegenlied">🌙 Wiegenlied</option></select><select class="inp" id="scL"><option value="de-DE">🇩🇪 Deutsch</option><option value="en-US">🇬🇧 English</option><option value="tr-TR">🇹🇷 Türkçe</option><option value="ar-SA">🇸🇦 العربية</option><option value="ku">🟡 Kurdî</option><option value="ckb">🟢 Soranî</option></select><div class="row"><button class="btn primary" id="scG" style="flex:1;padding:14px">▶ Song singen</button><button class="btn danger" id="scS2">⏹</button></div></div>';
+  },
+  init: function(win){
+    win.querySelector('#scG').onclick = function(){
+      var s = win.querySelector('#scS').value;
+      var opts = {rate:1, pitch:1.1};
+      if(s==='melodie'){ opts.pitch=1.3; opts.rate=0.9; }
+      else if(s==='rap'){ opts.pitch=0.9; opts.rate=1.4; }
+      else if(s==='wiegenlied'){ opts.pitch=1.2; opts.rate=0.7; }
+      speak(win.querySelector('#scT').value, win.querySelector('#scL').value, opts);
+    };
+    win.querySelector('#scS2').onclick = stopSpeak;
+  }
+};
+
+/* ============================================================
+   FERTIG
+   ============================================================ */
+console.log('%c📦 Block 3 geladen — Medien & Voice','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('Aktive Apps:', Object.keys(APPS).length);
+
+setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click(); }, 150);
+
+})();
+</script>
 </body>
 </html>
