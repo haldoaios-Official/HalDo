@@ -10577,5 +10577,47 @@ setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click
 
 })();
 </script>
+APPS['memory'] = {
+  name:'Memory', icon:'🃏',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v10-header"><div class="v10-h1">🃏 Memory</div><div class="dim sm">Finde die Paare</div></div>'+
+      '<div class="row between"><span class="dim sm">Züge: <b id="v10-memM">0</b></span><button class="btn sm primary" id="v10-memR">🔄 Neu</button></div>'+
+      '<div id="v10-memG" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var emojis = ['🐶','🐱','🦊','🐼','🦁','🐯','🐸','🐵'];
+    var cards = emojis.concat(emojis).sort(function(){ return Math.random()-0.5; });
+    var flipped = [], matched = 0, moves = 0, lock = false;
+    function render(){
+      win.querySelector('#v10-memG').innerHTML = cards.map(function(c, i){
+        var isFlipped = flipped.indexOf(i) >= 0 || c._done;
+        return '<div class="v10-tile" data-i="'+i+'" style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:32px;cursor:pointer;background:'+(isFlipped?'linear-gradient(135deg,rgba(0,229,255,.15),rgba(180,120,255,.1))':'rgba(255,255,255,.04)')+'">'+(isFlipped?c:'?')+'</div>';
+      }).join('');
+      win.querySelector('#v10-memM').textContent = moves;
+      win.querySelectorAll('[data-i]').forEach(function(el){
+        el.onclick = function(){
+          if(lock) return;
+          var i = parseInt(el.dataset.i);
+          if(flipped.indexOf(i) >= 0 || cards[i]._done) return;
+          flipped.push(i);
+          if(flipped.length === 2){
+            moves++;
+            var a = cards[flipped[0]], b = cards[flipped[1]];
+            if(a === b){ a._done = true; b._done = true; matched++; flipped = []; render(); if(matched === 8) toast('🎉 Gewonnen in '+moves+' Zügen!'); }
+            else { lock = true; setTimeout(function(){ flipped = []; lock = false; render(); }, 800); }
+          }
+          render();
+        };
+      });
+    }
+    win.querySelector('#v10-memR').onclick = function(){
+      cards = emojis.concat(emojis).sort(function(){ return Math.random()-0.5; });
+      flipped = []; matched = 0; moves = 0; lock = false; render();
+    };
+    render();
+  }
+};
 </body>
 </html>
