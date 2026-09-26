@@ -9070,5 +9070,745 @@ setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v8 · Universität & Zuhause · 18 Apps
+     ============================================================ -->
+<style id="v8-style">
+@keyframes v8-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes v8-glow{0%,100%{opacity:.6}50%{opacity:1}}
+.v8-card{
+  padding:16px;border-radius:16px;
+  background:linear-gradient(150deg,rgba(20,30,60,.65),rgba(10,16,40,.82));
+  border:1px solid rgba(120,180,255,.14);
+  box-shadow:0 4px 20px rgba(0,0,0,.3);
+  animation:v8-fade .3s;transition:.18s;
+}
+.v8-card:hover{border-color:rgba(0,229,255,.28);box-shadow:0 8px 28px rgba(0,80,160,.22);transform:translateY(-2px)}
+.v8-header{
+  padding:20px;border-radius:20px;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,rgba(0,229,255,.14),rgba(180,120,255,.1));
+  border:1px solid rgba(0,229,255,.22);
+  box-shadow:0 8px 32px rgba(0,80,160,.2),inset 0 1px 0 rgba(255,255,255,.08);
+}
+.v8-h1{
+  font-size:22px;font-weight:800;letter-spacing:-.3px;margin:0 0 4px;
+  background:linear-gradient(135deg,#fff,var(--c1));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.v8-input{
+  width:100%;padding:10px 12px;border-radius:11px;
+  background:rgba(0,20,50,.5);border:1px solid rgba(120,180,255,.18);
+  color:var(--txt);outline:none;font-size:13px;font-family:inherit;
+}
+.v8-input:focus{border-color:var(--c1);box-shadow:0 0 0 3px rgba(0,229,255,.12)}
+.v8-stat{
+  padding:14px;border-radius:14px;text-align:center;
+  background:linear-gradient(150deg,rgba(0,229,255,.08),rgba(20,30,60,.4));
+  border:1px solid rgba(0,229,255,.18);
+}
+.v8-stat .v{font-size:22px;font-weight:800;color:var(--c1);letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.v8-stat .l{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.v8-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);transition:.15s}
+.v8-row:hover{background:rgba(0,229,255,.05);border-color:rgba(0,229,255,.2)}
+.v8-row .x{cursor:pointer;color:var(--dim);padding:2px 6px;border-radius:6px}
+.v8-row .x:hover{background:rgba(224,59,90,.2);color:#ff9db1}
+.v8-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.3);color:var(--c1)}
+.v8-chip.on{background:linear-gradient(135deg,var(--c1),var(--c2));color:#02101e;border-color:var(--c1);box-shadow:0 0 10px rgba(0,229,255,.4)}
+.v8-bar{height:8px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden}
+.v8-bar > i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--c1),var(--c3));box-shadow:0 0 8px rgba(0,229,255,.5);transition:width .4s}
+.v8-day{
+  padding:10px;border-radius:12px;
+  background:linear-gradient(150deg,rgba(0,229,255,.06),rgba(20,30,60,.4));
+  border:1px solid rgba(120,180,255,.14);min-height:100px;
+}
+.v8-day.today{border-color:rgba(0,229,255,.4);box-shadow:0 0 16px rgba(0,229,255,.15)}
+.v8-day .dn{font-size:11px;font-weight:700;color:var(--c1);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.v8-item{
+  padding:6px 8px;border-radius:8px;background:rgba(0,229,255,.08);
+  border-left:2px solid var(--c1);margin-bottom:5px;font-size:11.5px;
+}
+</style>
+
+<script>
+(function(){
+'use strict';
+var H = window.HalDo;
+if(!H || !H.APPS){ console.error('[v8] Foundation fehlt'); return; }
+var APPS = H.APPS;
+var $=H.$, $$=H.$$, el=H.el, esc=H.esc, uid=H.uid, rnd=H.rnd, store=H.store, toast=H.toast;
+
+/* ============================================================
+   1 · STUNDENPLAN
+   ============================================================ */
+APPS['stundenplan'] = {
+  name:'Stundenplan', icon:'📚',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v8-header"><div class="v8-h1">📚 Stundenplan</div><div class="dim sm">Deine Vorlesungen der Woche</div></div>'+
+      '<div class="row"><select class="v8-input" id="v8-spD" style="width:auto"><option>Mo</option><option>Di</option><option>Mi</option><option>Do</option><option>Fr</option><option>Sa</option></select><input class="v8-input" id="v8-spT" type="time" value="09:00" style="width:auto"><input class="v8-input" id="v8-spN" placeholder="Fach / Raum" style="flex:1"><button class="btn primary" id="v8-spA">+</button></div>'+
+      '<div id="v8-spL" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('timetable3',[]); }
+    var DAYS = ['Mo','Di','Mi','Do','Fr','Sa'];
+    function render(){
+      var a = all();
+      var today = new Date().getDay();
+      var todayIdx = today === 0 ? 6 : today - 1;
+      win.querySelector('#v8-spL').innerHTML = DAYS.map(function(d, i){
+        var items = a.filter(function(x){ return x.d === d; }).sort(function(x,y){ return x.t.localeCompare(y.t); });
+        return '<div class="v8-day'+(i === todayIdx ? ' today' : '')+'">'+
+          '<div class="dn">'+d+(i === todayIdx ? ' · heute' : '')+'</div>'+
+          (items.length ? items.map(function(x){
+            return '<div class="v8-item"><b>'+esc(x.t)+'</b> '+esc(x.n)+'<span class="x" data-id="'+x.id+'" style="float:right;cursor:pointer;opacity:.5">✕</span></div>';
+          }).join('') : '<div class="dim sm" style="opacity:.5;font-size:11px">frei</div>')+
+        '</div>';
+      }).join('');
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('timetable3', all().filter(function(v){ return v.id !== x.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v8-spA').onclick = function(){
+      var d = win.querySelector('#v8-spD').value, t = win.querySelector('#v8-spT').value, n = win.querySelector('#v8-spN').value.trim();
+      if(!n) return;
+      var a = all(); a.push({id:uid(), d:d, t:t, n:n}); store.set('timetable3', a);
+      win.querySelector('#v8-spN').value = ''; render();
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   2 · NOTENVERWALTUNG
+   ============================================================ */
+APPS['noten'] = {
+  name:'Notenverwaltung', icon:'🎓',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v8-header"><div class="v8-h1">🎓 Notenverwaltung</div><div class="dim sm">Dein Notendurchschnitt (ECTS-gewichtet)</div></div>'+
+      '<div class="row"><input class="v8-input" id="v8-ntF" placeholder="Fach…" style="flex:1"><input class="v8-input" id="v8-ntN" type="number" min="1" max="6" step="0.25" placeholder="Note" style="width:90px"><input class="v8-input" id="v8-ntC" type="number" min="1" max="30" placeholder="ECTS" value="5" style="width:80px"><button class="btn primary" id="v8-ntA">+</button></div>'+
+      '<div id="v8-ntL" class="col" style="gap:6px"></div>'+
+      '<div class="v8-stat"><div class="v" id="v8-ntS">–</div><div class="l">Gewichteter Ø</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('grades3',[]); }
+    function render(){
+      var a = all();
+      win.querySelector('#v8-ntL').innerHTML = a.length ? a.map(function(g){
+        var col = g.n <= 2 ? '#4de88a' : g.n <= 3 ? '#ffb03a' : '#ff6b88';
+        return '<div class="v8-row"><b style="flex:1">'+esc(g.f)+'</b><span class="dim">'+g.c+' ECTS</span><b style="color:'+col+';font-weight:700">'+g.n+'</b><span class="x" data-id="'+g.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Noten</div>';
+      var totalC = a.reduce(function(s,g){ return s + g.c; }, 0);
+      var avg = totalC ? a.reduce(function(s,g){ return s + g.c*g.n; }, 0) / totalC : null;
+      win.querySelector('#v8-ntS').textContent = avg !== null ? 'Ø ' + avg.toFixed(2) : '–';
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('grades3', all().filter(function(g){ return g.id !== x.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v8-ntA').onclick = function(){
+      var f = win.querySelector('#v8-ntF').value.trim(), n = parseFloat(win.querySelector('#v8-ntN').value), c = parseInt(win.querySelector('#v8-ntC').value)||5;
+      if(!f || isNaN(n)) return;
+      var a = all(); a.push({id:uid(), f:f, n:n, c:c}); store.set('grades3', a);
+      win.querySelector('#v8-ntF').value = ''; win.querySelector('#v8-ntN').value = ''; render();
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   3 · SEMESTERPLANER
+   ============================================================ */
+APPS['semesterplaner'] = {
+  name:'Semesterplaner', icon:'📆',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v8-header"><div class="v8-h1">📆 Semesterplaner</div><div class="dim sm">Abgabetermine & Prüfungen</div></div>'+
+      '<div class="row"><input class="v8-input" id="v8-smT" placeholder="Aufgabe (Hausarbeit XY)…" style="flex:1"><input class="v8-input" id="v8-smD" type="date" style="width:auto"><button class="btn primary" id="v8-smA">+</button></div>'+
+      '<div id="v8-smL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('semesterplan3',[]); }
+    function render(){
+      var a = all().sort(function(x,y){ return x.d.localeCompare(y.d); });
+      var today = new Date();
+      win.querySelector('#v8-smL').innerHTML = a.length ? a.map(function(x){
+        var tage = Math.ceil((new Date(x.d) - today) / 86400000);
+        var col = tage < 0 ? '#6b8bb8' : tage <= 3 ? '#ff6b88' : tage <= 14 ? '#ffb03a' : '#4de88a';
+        var info = tage < 0 ? Math.abs(tage) + ' Tage her' : tage === 0 ? 'Heute!' : tage === 1 ? 'Morgen' : 'in ' + tage + ' Tagen';
+        return '<div class="v8-card" style="padding:12px 14px;border-color:'+col+'44">'+
+          '<div class="row between"><b>'+esc(x.t)+'</b><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>'+
+          '<div class="dim sm" style="margin-top:6px;color:'+col+';font-weight:600">'+info+'</div>'+
+          '<div class="dim sm">📆 '+new Date(x.d).toLocaleDateString('de-DE')+'</div>'+
+        '</div>';
+      }).join('') : '<div class="empty">Keine Termine</div>';
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('semesterplan3', all().filter(function(t){ return t.id !== x.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v8-smA').onclick = function(){
+      var t = win.querySelector('#v8-smT').value.trim(), d = win.querySelector('#v8-smD').value;
+      if(!t || !d) return;
+      var a = all(); a.push({id:uid(), t:t, d:d}); store.set('semesterplan3', a);
+      win.querySelector('#v8-smT').value = ''; render();
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   4 · VORLESUNGEN
+   ============================================================ */
+APPS['vorlesungen'] = {
+  name:'Vorlesungen', icon:'🎓',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v8-header"><div class="v8-h1">🎓 Vorlesungen</div><div class="dim sm">Deine Kurse mit Dozenten</div></div>'+
+      '<div class="row"><input class="v8-input" id="v8-vlN" placeholder="Vorlesung…" style="flex:1"><input class="v8-input" id="v8-vlD" placeholder="Dozent" style="width:140px"><input class="v8-input" id="v8-vlZ" placeholder="Zeit" style="width:90px"><button class="btn primary" id="v8-vlA">+</button></div>'+
+      '<div id="v8-vlL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('lectures3',[]); }
+    function render(){
+      var a = all();
+      win.querySelector('#v8-vlL').innerHTML = a.length ? a.map(function(v){
+        return '<div class="v8-card" style="padding:12px 14px"><div class="row between"><b>📖 '+esc(v.n)+'</b><span class="x" data-id="'+v.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div><div class="dim sm" style="margin-top:6px">👤 '+esc(v.d||'—')+' · 🕐 '+esc(v.z||'—')+'</div></div>';
+      }).join('') : '<div class="empty">Keine Vorlesungen</div>';
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('lectures3', all().filter(function(v){ return v.id !== x.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v8-vlA').onclick = function(){
+      var n = win.querySelector('#v8-vlN').value.trim(); if(!n) return;
+      var a = all(); a.push({id:uid(), n:n, d:win.querySelector('#v8-vlD').value.trim(), z:win.querySelector('#v8-vlZ').value.trim()}); store.set('lectures3', a);
+      ['v8-vlN','v8-vlD','v8-vlZ'].forEach(function(id){ win.querySelector('#'+id).value = ''; });
+      render();
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   5 · SKRIPTE
+   ============================================================ */
+APPS['skripte'] = {
+  name:'Skripte', icon:'📄',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v8-header"><div class="v8-h1">📄 Skripte</div><div class="dim sm">Notizen zu Vorlesungen</div></div>'+
+      '<div class="row"><input class="v8-input" id="v8-skN" placeholder="Titel…" style="flex:1"><input class="v8-input" id="v8-skF" placeholder="Fach" style="width:120px"><button class="btn primary" id="v8-skA">💾</button></div>'+
+      '<textarea class="ta" id="v8-skB" style="min-height:120px" placeholder="Inhalt / Zusammenfassung…"></textarea>'+
+      '<div id="v8-skL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('scripts3',[]); }
+    function render(){
+      var a = all();
+      win.querySelector('#v8-skL').innerHTML = a.length ? a.slice(0,10).map(function(s){
+        return '<div class="v8-card" style="padding:12px 14px"><div class="row between"><b>📄 '+esc(s.n)+'</b><span class="chip" style="font-size:10px;color:var(--c1)">'+esc(s.f||'')+'</span><span class="x" data-id="'+s.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div><div class="dim sm" style="margin-top:6px;white-space:pre-wrap">'+esc(s.b.slice(0,120))+'…</div></div>';
+      }).join('') : '<div class="empty">Keine Skripte</div>';
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('scripts3', all().filter(function(s){ return s.id !== x.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v8-skA').onclick = function(){
+      var n = win.querySelector('#v8-skN').value.trim(); if(!n) return;
+      var a = all(); a.unshift({id:uid(), n:n, f:win.querySelector('#v8-skF').value.trim(), b:win.querySelector('#v8-skB').value, ts:Date.now()});
+      store.set('scripts3', a);
+      win.querySelector('#v8-skN').value = ''; win.querySelector('#v8-skB').value = '';
+      render(); toast('✅ Gespeichert');
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   6 · ÜBUNGEN
+   ============================================================ */
+APPS['uebungen'] = {
+  name:'Übungen', icon:'📝',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v8-header"><div class="v8-h1">📝 Übungsblätter</div><div class="dim sm">Abgabetermine im Blick</div></div>'+
+      '<div class="row"><input class="v8-input" id="v8-ubT" placeholder="Übungsblatt…" style="flex:1"><input class="v8-input" id="v8-ubF" placeholder="Fach" style="width:110px"><input class="v8-input" id="v8-ubD" type="date" style="width:auto"><button class="btn primary" id="v8-ubA">+</button></div>'+
+      '<div id="v8-ubL" class="col" style="gap:6px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('exercises3',[]); }
+    function render(){
+      var a = all().sort(function(x,y){ return (x.d||'').localeCompare(y.d||''); });
+      var today = new Date().toISOString().slice(0,10);
+      win.querySelector('#v8-ubL').innerHTML = a.length ? a.map(function(e){
+        var tage = e.d ? Math.ceil((new Date(e.d) - new Date(today)) / 86400000) : null;
+        var col = tage === null ? 'var(--dim)' : tage < 0 ? '#6b8bb8' : tage <= 2 ? '#ff6b88' : tage <= 7 ? '#ffb03a' : '#4de88a';
+        var info = tage === null ? '–' : tage < 0 ? 'verpasst' : tage === 0 ? 'heute!' : tage === 1 ? 'morgen' : 'in ' + tage + ' T';
+        return '<div class="v8-row"><input type="checkbox" data-id="'+e.id+'" '+(e.done?'checked':'')+'><b style="flex:1;'+(e.done?'text-decoration:line-through;opacity:.5':'')+'">'+esc(e.t)+'</b><span class="dim sm">'+esc(e.f||'')+'</span><span style="color:'+col+';font-weight:600;font-size:11px">'+info+'</span><span class="x" data-id="'+e.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Übungen</div>';
+      win.querySelectorAll('input[type=checkbox]').forEach(function(c){ c.onchange = function(){ var arr = all(); var x = arr.find(function(e){ return e.id === c.dataset.id; }); if(x){ x.done = c.checked; store.set('exercises3', arr); render(); } }; });
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('exercises3', all().filter(function(e){ return e.id !== x.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v8-ubA').onclick = function(){
+      var t = win.querySelector('#v8-ubT').value.trim(); if(!t) return;
+      var a = all(); a.push({id:uid(), t:t, f:win.querySelector('#v8-ubF').value.trim(), d:win.querySelector('#v8-ubD').value, done:false});
+      store.set('exercises3', a);
+      ['v8-ubT','v8-ubF','v8-ubD'].forEach(function(id){ win.querySelector('#'+id).value = ''; });
+      render();
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   7 · BAFÖG RECHNER
+   ============================================================ */
+APPS['bafoeg'] = {
+  name:'Bafög Rechner', icon:'💶',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v8-header"><div class="v8-h1">💶 Bafög-Rechner</div><div class="dim sm">Höchstsatz 2025: 992 € (Schätzung)</div></div>'+
+      '<label class="lbl">Wohnsituation</label>'+
+      '<select class="v8-input" id="v8-bgW"><option value="855">Bei Eltern wohnend</option><option value="992" selected>Eigene Wohnung</option></select>'+
+      '<label class="lbl" style="margin-top:8px">Eigenes Einkommen (€/Monat)</label>'+
+      '<input class="v8-input" id="v8-bgE" type="number" value="0">'+
+      '<label class="lbl" style="margin-top:8px">Einkommen Eltern (€/Monat)</label>'+
+      '<input class="v8-input" id="v8-bgP" type="number" value="2000">'+
+      '<label class="lbl" style="margin-top:8px">Vermögen (€)</label>'+
+      '<input class="v8-input" id="v8-bgV" type="number" value="0">'+
+      '<button class="btn primary" id="v8-bgG">▶ Berechnen</button>'+
+      '<div class="v8-stat"><div class="v" id="v8-bgO">–</div><div class="l" id="v8-bgInfo"></div></div>'+
+      '<div class="dim sm center">⚠️ Nur Schätzung. Verbindlich: bafoeg-digital.de</div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v8-bgG').onclick = function(){
+      var max = parseFloat(win.querySelector('#v8-bgW').value);
+      var own = parseFloat(win.querySelector('#v8-bgE').value)||0;
+      var par = parseFloat(win.querySelector('#v8-bgP').value)||0;
+      var cap = parseFloat(win.querySelector('#v8-bgV').value)||0;
+      var bedarf = max;
+      bedarf -= Math.max(0, own - 100) * 0.5;
+      var parAnr = Math.max(0, par - 2415) * 0.5;
+      bedarf -= parAnr;
+      if(cap > 15000) bedarf -= Math.min(500, (cap - 15000) * 0.01);
+      bedarf = Math.max(0, Math.min(max, bedarf));
+      win.querySelector('#v8-bgO').textContent = H.fmt(bedarf) + ' €';
+      win.querySelector('#v8-bgInfo').textContent = 'Höchstsatz ' + max + ' € minus Anrechnung';
+    };
+    win.querySelector('#v8-bgG').click();
+  }
+};
+
+/* ============================================================
+   8 · LITERATURVERWALTUNG
+   ============================================================ */
+APPS['literatur'] = {
+  name:'Literatur', icon:'📚',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v8-header"><div class="v8-h1">📚 Literaturverwaltung</div><div class="dim sm">Bücher & Quellen verwalten</div></div>'+
+      '<div class="row"><input class="v8-input" id="v8-ltA" placeholder="Autor…" style="flex:1"><input class="v8-input" id="v8-ltT" placeholder="Titel…" style="flex:2"><input class="v8-input" id="v8-ltY" type="number" placeholder="Jahr" style="width:80px"><button class="btn primary" id="v8-ltAdd">+</button></div>'+
+      '<input class="v8-input" id="v8-ltQ" placeholder="🔍 Suchen…">'+
+      '<div id="v8-ltL" class="col" style="gap:8px"></div>'+
+      '<button class="btn" id="v8-ltEx">📋 BibTeX exportieren</button>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('literature3',[]); }
+    function render(){
+      var q = win.querySelector('#v8-ltQ').value.toLowerCase();
+      var a = all().filter(function(x){ return !q || x.t.toLowerCase().indexOf(q) >= 0 || x.a.toLowerCase().indexOf(q) >= 0; });
+      win.querySelector('#v8-ltL').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v8-card" style="padding:12px 14px"><div class="row between"><b>📖 '+esc(x.t)+'</b><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div><div class="dim sm" style="margin-top:4px">'+esc(x.a)+' ('+x.y+')</div></div>';
+      }).join('') : '<div class="empty">Keine Literatur</div>';
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('literature3', all().filter(function(v){ return v.id !== x.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v8-ltAdd').onclick = function(){
+      var a = win.querySelector('#v8-ltA').value.trim(), t = win.querySelector('#v8-ltT').value.trim(), y = win.querySelector('#v8-ltY').value;
+      if(!a || !t) return;
+      var arr = all(); arr.push({id:uid(), a:a, t:t, y:y}); store.set('literature3', arr);
+      ['v8-ltA','v8-ltT','v8-ltY'].forEach(function(id){ win.querySelector('#'+id).value = ''; });
+      render();
+    };
+    win.querySelector('#v8-ltQ').oninput = render;
+    win.querySelector('#v8-ltEx').onclick = function(){
+      var arr = all();
+      var bib = arr.map(function(x){
+        var key = x.a.split(',')[0].toLowerCase().replace(/[^a-z]/g,'') + x.y;
+        return '@book{' + key + ',\n  author = {' + x.a + '},\n  title = {' + x.t + '},\n  year = {' + x.y + '}\n}';
+      }).join('\n\n');
+      navigator.clipboard.writeText(bib).then(function(){ toast('BibTeX kopiert'); });
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   9 · HAUSHALTSPLAN
+   ============================================================ */
+APPS['haushalt'] = {
+  name:'Haushaltsplan', icon:'🏠',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v8-header"><div class="v8-h1">🏠 Haushaltsplan</div><div class="dim sm">Aufgaben im Haushalt</div></div>'+
+      '<div class="row"><input class="v8-input" id="v8-hhN" placeholder="Aufgabe…" style="flex:1"><select class="v8-input" id="v8-hhT" style="width:auto"><option>täglich</option><option>wöchentlich</option><option>monatlich</option></select><button class="btn primary" id="v8-hhA">+</button></div>'+
+      '<div id="v8-hhL" class="col" style="gap:6px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('household3',[]); }
+    var today = new Date().toISOString().slice(0,10);
+    function render(){
+      var a = all();
+      win.querySelector('#v8-hhL').innerHTML = a.length ? a.map(function(h){
+        var done = (h.done||[]).indexOf(today) >= 0;
+        return '<div class="v8-row"><input type="checkbox" data-id="'+h.id+'" '+(done?'checked':'')+'><b style="flex:1;'+(done?'text-decoration:line-through;opacity:.5':'')+'">'+esc(h.n)+'</b><span class="dim sm">'+esc(h.t)+'</span><span class="x" data-id="'+h.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Aufgaben</div>';
+      win.querySelectorAll('input[type=checkbox]').forEach(function(c){ c.onchange = function(){
+        var arr = all(); var h = arr.find(function(x){ return x.id === c.dataset.id; }); if(!h) return;
+        h.done = h.done || [];
+        if(h.done.indexOf(today) >= 0) h.done = h.done.filter(function(x){ return x !== today; });
+        else h.done.push(today);
+        store.set('household3', arr); render();
+      }; });
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('household3', all().filter(function(h){ return h.id !== x.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v8-hhA').onclick = function(){
+      var n = win.querySelector('#v8-hhN').value.trim(); if(!n) return;
+      var a = all(); a.push({id:uid(), n:n, t:win.querySelector('#v8-hhT').value, done:[]}); store.set('household3', a);
+      win.querySelector('#v8-hhN').value = ''; render();
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   10 · KÜHLSCHRANK
+   ============================================================ */
+APPS['kuehlschrank'] = {
+  name:'Kühlschrank', icon:'🥛',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v8-header"><div class="v8-h1">🥛 Kühlschrank</div><div class="dim sm">Was ist drin & was läuft ab?</div></div>'+
+      '<div class="row"><input class="v8-input" id="v8-ksN" placeholder="Lebensmittel…" style="flex:1"><input class="v8-input" id="v8-ksM" placeholder="Menge" style="width:90px"><input class="v8-input" id="v8-ksD" type="date" style="width:auto"><button class="btn primary" id="v8-ksA">+</button></div>'+
+      '<div id="v8-ksL" class="col" style="gap:6px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('fridge3',[]); }
+    function render(){
+      var a = all().sort(function(x,y){ return (x.d||'').localeCompare(y.d||''); });
+      var today = new Date().toISOString().slice(0,10);
+      win.querySelector('#v8-ksL').innerHTML = a.length ? a.map(function(x){
+        var tage = x.d ? Math.ceil((new Date(x.d) - new Date(today)) / 86400000) : null;
+        var warn = '';
+        if(tage !== null){
+          if(tage < 0) warn = '<span style="color:#ff6b88;margin-left:8px;font-weight:600">abgelaufen</span>';
+          else if(tage <= 2) warn = '<span style="color:#ffb03a;margin-left:8px;font-weight:600">bald ('+tage+' T)</span>';
+          else warn = '<span class="dim sm" style="margin-left:8px">'+tage+' T</span>';
+        }
+        return '<div class="v8-row"><b style="flex:1">'+esc(x.n)+'</b><span class="dim">'+esc(x.m||'')+'</span>'+warn+'<span class="x" data-id="'+x.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Kühlschrank leer</div>';
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('fridge3', all().filter(function(v){ return v.id !== x.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v8-ksA').onclick = function(){
+      var n = win.querySelector('#v8-ksN').value.trim(); if(!n) return;
+      var a = all(); a.push({id:uid(), n:n, m:win.querySelector('#v8-ksM').value.trim(), d:win.querySelector('#v8-ksD').value||null});
+      store.set('fridge3', a);
+      ['v8-ksN','v8-ksM','v8-ksD'].forEach(function(id){ win.querySelector('#'+id).value = ''; });
+      render();
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   11 · VORRATSKAMMER
+   ============================================================ */
+APPS['vorrat'] = {
+  name:'Vorrat', icon:'🥫',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v8-header"><div class="v8-h1">🥫 Vorratskammer</div><div class="dim sm">Was hast du auf Lager?</div></div>'+
+      '<div class="row"><input class="v8-input" id="v8-vrN" placeholder="Artikel…" style="flex:1"><input class="v8-input" id="v8-vrM" type="number" placeholder="Menge" value="1" style="width:90px"><button class="btn primary" id="v8-vrA">+</button></div>'+
+      '<div id="v8-vrL" class="col" style="gap:6px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('pantry3',[]); }
+    function render(){
+      var a = all();
+      win.querySelector('#v8-vrL').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v8-row"><b style="flex:1">'+esc(x.n)+'</b><span class="dim">'+x.m+' Stk.</span><button class="btn sm" data-inc="'+x.id+'">+</button><button class="btn sm" data-dec="'+x.id+'">−</button><span class="x" data-id="'+x.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Vorrat leer</div>';
+      win.querySelectorAll('[data-inc]').forEach(function(b){ b.onclick = function(){ var arr = all(); var it = arr.find(function(x){ return x.id === b.dataset.inc; }); if(it){ it.m++; store.set('pantry3', arr); render(); } }; });
+      win.querySelectorAll('[data-dec]').forEach(function(b){ b.onclick = function(){ var arr = all(); var it = arr.find(function(x){ return x.id === b.dataset.dec; }); if(it && it.m > 0){ it.m--; store.set('pantry3', arr); render(); } }; });
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('pantry3', all().filter(function(v){ return v.id !== x.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v8-vrA').onclick = function(){
+      var n = win.querySelector('#v8-vrN').value.trim(); if(!n) return;
+      var a = all(); a.push({id:uid(), n:n, m:parseInt(win.querySelector('#v8-vrM').value)||1});
+      store.set('pantry3', a);
+      win.querySelector('#v8-vrN').value = ''; render();
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   12 · HAUSTIERE
+   ============================================================ */
+APPS['haustiere'] = {
+  name:'Haustiere', icon:'🐾',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v8-header"><div class="v8-h1">🐾 Haustiere</div><div class="dim sm">Futter, Spaziergang, Arzt</div></div>'+
+      '<div class="row"><input class="v8-input" id="v8-htN" placeholder="Name / Aktion…" style="flex:1"><select class="v8-input" id="v8-htT" style="width:auto"><option>Futter</option><option>Wasser</option><option>Spaziergang</option><option>Tierarzt</option><option>Spielzeit</option><option>Medikament</option></select><button class="btn primary" id="v8-htA">+</button></div>'+
+      '<div id="v8-htL" class="col" style="gap:6px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('pets3',[]); }
+    function render(){
+      var a = all();
+      win.querySelector('#v8-htL').innerHTML = a.length ? a.slice(0,30).map(function(x){
+        return '<div class="v8-row"><b>'+esc(x.t)+'</b><span style="flex:1">'+esc(x.n)+'</span><span class="dim sm">'+new Date(x.ts).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</span><span class="x" data-id="'+x.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Noch nichts eingetragen</div>';
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('pets3', all().filter(function(v){ return v.id !== x.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v8-htA').onclick = function(){
+      var n = win.querySelector('#v8-htN').value.trim(); if(!n) return;
+      var a = all(); a.unshift({id:uid(), t:win.querySelector('#v8-htT').value, n:n, ts:Date.now()});
+      store.set('pets3', a.slice(0,100));
+      win.querySelector('#v8-htN').value = ''; render();
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   13 · PFLANZEN
+   ============================================================ */
+APPS['pflanzen'] = {
+  name:'Pflanzen', icon:'🌱',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v8-header"><div class="v8-h1">🌱 Pflanzen</div><div class="dim sm">Gieß-Erinnerungen</div></div>'+
+      '<div class="row"><input class="v8-input" id="v8-pfN" placeholder="Pflanze…" style="flex:1"><input class="v8-input" id="v8-pfT" type="number" placeholder="Alle X Tage" value="3" style="width:120px"><button class="btn primary" id="v8-pfA">+</button></div>'+
+      '<div id="v8-pfL" class="col" style="gap:6px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('plants3',[]); }
+    function render(){
+      var a = all();
+      var today = new Date();
+      win.querySelector('#v8-pfL').innerHTML = a.length ? a.map(function(p){
+        var last = p.last ? new Date(p.last) : null;
+        var days = last ? Math.floor((today - last) / 86400000) : 999;
+        var due = days >= p.t;
+        var info = last ? (days === 0 ? 'heute gegossen' : 'vor ' + days + ' T') : 'nie gegossen';
+        return '<div class="v8-row" style="'+(due ? 'border-color:#4de88a;background:rgba(77,232,138,.06)' : '')+'"><button class="btn sm '+(due ? 'primary' : '')+'" data-id="'+p.id+'">💧</button><b style="flex:1">'+esc(p.n)+'</b><span class="dim sm">'+info+'</span><span class="dim sm">alle '+p.t+' T</span><span class="x" data-id="'+p.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Pflanzen</div>';
+      win.querySelectorAll('button[data-id]').forEach(function(b){ b.onclick = function(){
+        var arr = all(); var p = arr.find(function(x){ return x.id === b.dataset.id; }); if(!p) return;
+        p.last = new Date().toISOString().slice(0,10);
+        store.set('plants3', arr); render(); toast('💧 ' + p.n + ' gegossen');
+      }; });
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('plants3', all().filter(function(p){ return p.id !== x.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v8-pfA').onclick = function(){
+      var n = win.querySelector('#v8-pfN').value.trim(); if(!n) return;
+      var a = all(); a.push({id:uid(), n:n, t:parseInt(win.querySelector('#v8-pfT').value)||3, last:null});
+      store.set('plants3', a);
+      win.querySelector('#v8-pfN').value = ''; render();
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   14 · GARTEN
+   ============================================================ */
+APPS['garten'] = {
+  name:'Garten', icon:'🌻',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v8-header"><div class="v8-h1">🌻 Garten-Kalender</div><div class="dim sm">Was wann im Garten zu tun ist</div></div>'+
+      '<div class="row" id="v8-gnT">'+
+        '<button class="v8-chip on" data-s="spring">🌸 Frühling</button>'+
+        '<button class="v8-chip" data-s="summer">☀️ Sommer</button>'+
+        '<button class="v8-chip" data-s="autumn">🍂 Herbst</button>'+
+        '<button class="v8-chip" data-s="winter">❄️ Winter</button>'+
+      '</div>'+
+      '<div id="v8-gnL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = {
+      spring: [['🌱','Aussaat','Tomaten, Paprika, Kräuter im Haus vorziehen.'],['✂️','Rasenschnitt','Erster Rasenmähen ab März.'],['🌸','Blumenzwiebeln','Tulpen, Narzissen setzen.'],['🌳','Bäume pflanzen','Obstbäume und Sträucher.']],
+      summer: [['💧','Gießen','Morgens oder abends, nicht mittags.'],['🌿','Unkraut','Regelmäßig jäten.'],['🌾','Hecke schneiden','Juni und September.'],['🍅','Ernte','Tomaten, Gurken, Beeren.']],
+      autumn: [['🍂','Laub','Harken und kompostieren.'],['🌰','Zwiebeln','Tulpen und Narzissen fürs Frühjahr.'],['🌳','Baumschnitt','Nach dem Laubfall.'],['🍁','Teich winterfest','Pumpe reinigen.']],
+      winter: [['❄️','Frostschutz','Pflanzen abdecken.'],['🌹','Rosenschnitt','Im Februar.'],['🐦','Vögel füttern','Vogelfutter bereitstellen.'],['📋','Planung','Nächste Saison planen.']]
+    };
+    var cur = 'spring';
+    function show(s){
+      cur = s;
+      win.querySelectorAll('#v8-gnT [data-s]').forEach(function(b){ b.classList.toggle('on', b.dataset.s === s); });
+      win.querySelector('#v8-gnL').innerHTML = D[s].map(function(x){
+        return '<div class="v8-card" style="padding:12px 14px"><div class="row"><div style="font-size:28px;line-height:1">'+x[0]+'</div><div style="flex:1"><b>'+esc(x[1])+'</b><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div></div></div>';
+      }).join('');
+    }
+    win.querySelectorAll('#v8-gnT [data-s]').forEach(function(b){ b.onclick = function(){ show(b.dataset.s); }; });
+    show(cur);
+  }
+};
+
+/* ============================================================
+   15 · FAMILIENKALENDER
+   ============================================================ */
+APPS['familienkalender'] = {
+  name:'Familienkalender', icon:'📅',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v8-header"><div class="v8-h1">📅 Familienkalender</div><div class="dim sm">Termine für die ganze Familie</div></div>'+
+      '<div class="row"><input class="v8-input" id="v8-fk2T" placeholder="Termin…" style="flex:1"><select class="v8-input" id="v8-fk2W" style="width:auto"><option>👨 Papa</option><option>👩 Mama</option><option>👦 Sohn</option><option>👧 Tochter</option><option>👨‍👩‍👧 Alle</option></select><input class="v8-input" id="v8-fk2D" type="date" style="width:auto"><button class="btn primary" id="v8-fk2A">+</button></div>'+
+      '<div id="v8-fk2L" class="col" style="gap:6px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('familycal3',[]); }
+    function render(){
+      var a = all().sort(function(x,y){ return x.d.localeCompare(y.d); });
+      var today = new Date().toISOString().slice(0,10);
+      win.querySelector('#v8-fk2L').innerHTML = a.length ? a.map(function(x){
+        var tage = Math.ceil((new Date(x.d) - new Date(today)) / 86400000);
+        var col = tage < 0 ? '#6b8bb8' : tage <= 2 ? '#ff6b88' : tage <= 7 ? '#ffb03a' : '#4de88a';
+        var info = tage < 0 ? 'Vergangen' : tage === 0 ? 'Heute!' : tage === 1 ? 'Morgen' : 'in ' + tage + ' T';
+        return '<div class="v8-row"><b>'+esc(x.w)+'</b><span style="flex:1">'+esc(x.t)+'</span><span class="dim sm">'+new Date(x.d).toLocaleDateString('de-DE')+'</span><span style="color:'+col+';font-weight:600;font-size:11px">'+info+'</span><span class="x" data-id="'+x.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Termine</div>';
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('familycal3', all().filter(function(v){ return v.id !== x.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v8-fk2A').onclick = function(){
+      var t = win.querySelector('#v8-fk2T').value.trim(), d = win.querySelector('#v8-fk2D').value;
+      if(!t || !d) return;
+      var a = all(); a.push({id:uid(), t:t, w:win.querySelector('#v8-fk2W').value, d:d});
+      store.set('familienkalender3' /* typo fix */, a); store.set('familycal3', a);
+      win.querySelector('#v8-fk2T').value = ''; win.querySelector('#v8-fk2D').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   16 · KINDERBETREUUNG
+   ============================================================ */
+APPS['kinderbetreuung'] = {
+  name:'Kinderbetreuung', icon:'👶',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v8-header"><div class="v8-h1">👶 Kinderbetreuung</div><div class="dim sm">Flasche, Wickeln, Schlaf</div></div>'+
+      '<div class="row"><input class="v8-input" id="v8-kb2N" placeholder="Kind…" style="flex:1"><select class="v8-input" id="v8-kb2T" style="width:auto"><option>Flasche</option><option>Wickeln</option><option>Schlaf</option><option>Spielzeit</option><option>Kindergarten</option><option>Arzt</option></select><input class="v8-input" id="v8-kb2Z" type="time" style="width:auto"><button class="btn primary" id="v8-kb2A">+</button></div>'+
+      '<div id="v8-kb2L" class="col" style="gap:6px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('kids3',[]); }
+    var today = new Date().toISOString().slice(0,10);
+    function render(){
+      var a = all().filter(function(x){ return x.d === today; });
+      var stats = {};
+      a.forEach(function(x){ stats[x.t] = (stats[x.t]||0)+1; });
+      var statsStr = Object.keys(stats).map(function(k){ return stats[k] + '× ' + k; }).join(' · ') || 'Heute noch nichts';
+      win.querySelector('#v8-kb2L').innerHTML = '<div class="v8-stat" style="margin-bottom:8px"><div class="v" style="font-size:13px;font-weight:600">'+statsStr+'</div><div class="l">Heute</div></div>'+
+        (all().slice(0,20).map(function(x){
+          return '<div class="v8-row"><b>'+esc(x.n)+'</b><span style="flex:1">'+esc(x.t)+'</span><span class="dim sm">'+esc(x.z||'')+'</span><span class="x" data-id="'+x.id+'">✕</span></div>';
+        }).join('') || '<div class="empty">Noch nichts eingetragen</div>');
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('kids3', all().filter(function(v){ return v.id !== x.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v8-kb2A').onclick = function(){
+      var n = win.querySelector('#v8-kb2N').value.trim(); if(!n) return;
+      var a = all(); a.unshift({id:uid(), n:n, t:win.querySelector('#v8-kb2T').value, z:win.querySelector('#v8-kb2Z').value||new Date().toTimeString().slice(0,5), d:today, ts:Date.now()});
+      store.set('kids3', a);
+      win.querySelector('#v8-kb2N').value = ''; render();
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   17 · RENOVIERUNG
+   ============================================================ */
+APPS['renovierung'] = {
+  name:'Renovierung', icon:'🔨',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v8-header"><div class="v8-h1">🔨 Renovierung</div><div class="dim sm">Projekte & Budget im Blick</div></div>'+
+      '<div class="row"><input class="v8-input" id="v8-rvN" placeholder="Arbeit (Wände streichen)…" style="flex:1"><input class="v8-input" id="v8-rvB" type="number" step="0.01" placeholder="Budget €" style="width:110px"><button class="btn primary" id="v8-rvA">+</button></div>'+
+      '<div id="v8-rvL" class="col" style="gap:6px"></div>'+
+      '<div class="row"><div class="v8-stat" style="flex:1"><div class="v">€ <span id="v8-rvS">0</span></div><div class="l">Budget gesamt</div></div><div class="v8-stat" style="flex:1"><div class="v">€ <span id="v8-rvD">0</span></div><div class="l">Erledigt</div></div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('renovation3',[]); }
+    function render(){
+      var a = all();
+      win.querySelector('#v8-rvL').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v8-row"><input type="checkbox" data-id="'+x.id+'" '+(x.done?'checked':'')+'><b style="flex:1;'+(x.done?'text-decoration:line-through;opacity:.5':'')+'">'+esc(x.n)+'</b><span class="dim">'+H.fmt(x.b)+' €</span><span class="x" data-id="'+x.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Aufgaben</div>';
+      win.querySelector('#v8-rvS').textContent = H.fmt(a.reduce(function(s,x){ return s + x.b; },0));
+      win.querySelector('#v8-rvD').textContent = H.fmt(a.filter(function(x){ return x.done; }).reduce(function(s,x){ return s + x.b; },0));
+      win.querySelectorAll('input[type=checkbox]').forEach(function(c){ c.onchange = function(){ var arr = all(); var x = arr.find(function(e){ return e.id === c.dataset.id; }); if(x){ x.done = c.checked; store.set('renovation3', arr); render(); } }; });
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('renovation3', all().filter(function(v){ return v.id !== x.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v8-rvA').onclick = function(){
+      var n = win.querySelector('#v8-rvN').value.trim(); if(!n) return;
+      var b = parseFloat(win.querySelector('#v8-rvB').value)||0;
+      var a = all(); a.push({id:uid(), n:n, b:b, done:false});
+      store.set('renovation3', a);
+      win.querySelector('#v8-rvN').value = ''; win.querySelector('#v8-rvB').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   18 · SMART HOME
+   ============================================================ */
+APPS['smart-home'] = {
+  name:'Smart Home', icon:'🏠',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v8-header"><div class="v8-h1">🏠 Smart Home</div><div class="dim sm">Virtuelle Geräte (Demo)</div></div>'+
+      '<div id="v8-sh2L" class="col" style="gap:8px"></div>'+
+      '<button class="btn primary" id="v8-sh2A">+ Gerät hinzufügen</button>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('smarthome3',[
+      {id:uid(), n:'💡 Wohnzimmer Licht', on:false},
+      {id:uid(), n:'📺 TV', on:false},
+      {id:uid(), n:'🌡️ Heizung', on:false},
+      {id:uid(), n:'☕ Kaffeemaschine', on:false}
+    ]); }
+    function render(){
+      var a = all();
+      win.querySelector('#v8-sh2L').innerHTML = a.map(function(d){
+        return '<div class="v8-card" style="padding:12px 14px"><div class="row between"><b>'+esc(d.n)+'</b><div><button class="btn sm '+(d.on ? 'primary' : '')+'" data-tog="'+d.id+'">'+(d.on ? 'AN' : 'AUS')+'</button><span class="x" data-id="'+d.id+'" style="margin-left:8px;cursor:pointer;color:var(--dim)">✕</span></div></div></div>';
+      }).join('');
+      win.querySelectorAll('[data-tog]').forEach(function(b){ b.onclick = function(){ var arr = all(); var x = arr.find(function(d){ return d.id === b.dataset.tog; }); if(x){ x.on = !x.on; store.set('smarthome3', arr); render(); } }; });
+      win.querySelectorAll('.x').forEach(function(x){ x.onclick = function(){ store.set('smarthome3', all().filter(function(d){ return d.id !== x.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v8-sh2A').onclick = function(){
+      var n = prompt('Gerätename (mit Emoji)?'); if(!n) return;
+      var a = all(); a.push({id:uid(), n:n, on:false}); store.set('smarthome3', a); render();
+    };
+    render();
+  }
+};
+
+console.log('%c📦 v8 geladen — Uni & Zuhause · 18 Apps','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('Aktive Apps:', Object.keys(APPS).length);
+
+setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click(); }, 150);
+
+})();
+</script>
 </body>
 </html>
