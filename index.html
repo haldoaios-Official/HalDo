@@ -12832,5 +12832,598 @@ setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v14 · Finanzen & Business · 10 Apps
+     ============================================================ -->
+<style id="v14-style">
+.v14-budget-bar{height:10px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:6px}
+.v14-budget-bar > i{display:block;height:100%;transition:width .4s;border-radius:999px}
+.v14-coin{display:flex;align-items:center;gap:10px;padding:12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(120,180,255,.14);transition:.15s}
+.v14-coin:hover{border-color:rgba(0,229,255,.3)}
+.v14-coin .ic{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#02101e;flex-shrink:0}
+.v14-todo{padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px;transition:.15s}
+.v14-todo.q1{border-left:4px solid #e03b5a}
+.v14-todo.q2{border-left:4px solid #ffb03a}
+.v14-todo.q3{border-left:4px solid #4de88a}
+.v14-todo.q4{border-left:4px solid #6b8bb8}
+.v14-todo.done{opacity:.5}
+.v14-todo.done b{text-decoration:line-through}
+.v14-pomo{width:220px;height:220px;margin:16px auto;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--c1);background:radial-gradient(circle,rgba(0,229,255,.12),transparent 70%);border:4px solid rgba(0,229,255,.3);transition:.3s}
+.v14-pomo.work{border-color:#e03b5a;background:radial-gradient(circle,rgba(224,59,90,.15),transparent 70%)}
+.v14-pomo.brk{border-color:#4de88a;background:radial-gradient(circle,rgba(77,232,138,.15),transparent 70%)}
+.v14-card-preview{background:#fff;color:#000;padding:20px;border-radius:12px;font-family:sans-serif;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.v14-card-preview .nm{font-size:20px;font-weight:800;color:#0a1028}
+.v14-card-preview .sub{font-size:12px;color:#555;margin-top:4px}
+.v14-card-preview .div{height:2px;background:linear-gradient(90deg,#00e5ff,#b478ff);margin:12px 0}
+.v14-card-preview .row2{display:flex;justify-content:space-between;font-size:11px;text-align:left;margin-top:6px}
+.v14-inv{padding:12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);margin-bottom:8px;font-family:monospace;font-size:12px;line-height:1.6}
+</style>
+
+<script>
+(function(){
+'use strict';
+var H = window.HalDo;
+if(!H || !H.APPS){ console.error('[v14] Foundation fehlt'); return; }
+var APPS = H.APPS;
+var esc=H.esc, uid=H.uid, store=H.store, toast=H.toast;
+
+/* ============================================================
+   1 · BUDGET-TRACKER
+   ============================================================ */
+APPS['budget'] = {
+  name:'Budget-Tracker', icon:'💰',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💰 Budget-Tracker</div><div class="dim sm">Monatliche Ausgaben im Griff</div></div>'+
+      '<div class="row"><input class="v9-input" id="v14-bM" type="number" placeholder="Monatsbudget €" value="1500" style="flex:1"><button class="btn primary" id="v14-bSet">Setzen</button></div>'+
+      '<div class="row"><input class="v9-input" id="v14-bT" placeholder="Ausgabe…" style="flex:1"><input class="v9-input" id="v14-bB" type="number" placeholder="€" style="width:90px"><select class="v9-input" id="v14-bK" style="width:auto"><option>🍔 Essen</option><option>🚗 Auto</option><option>🏠 Wohnen</option><option>🎮 Freizeit</option><option>👕 Kleidung</option><option>💊 Gesundheit</option><option>📱 Abos</option><option>❓ Sonstiges</option></select><button class="btn primary" id="v14-bA">+</button></div>'+
+      '<div class="v9-stat"><div class="v" id="v14-bO">0 € / 1500 €</div><div class="l">Ausgegeben diesen Monat</div><div class="v14-budget-bar"><i id="v14-bB2" style="width:0;background:#4de88a"></i></div></div>'+
+      '<div id="v14-bL" class="col" style="gap:6px;max-height:45vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var MK = new Date().toISOString().slice(0,7);
+    function all(){ return store.get('budget14',[]).filter(function(x){ return x.d.startsWith(MK); }); }
+    function budget(){ return parseInt(store.get('budget_limit',1500)); }
+    function render(){
+      var a = all(), b = budget();
+      var total = a.reduce(function(s,x){ return s + x.b; }, 0);
+      var pct = Math.min(100, total/b*100);
+      var col = pct < 70 ? '#4de88a' : pct < 95 ? '#ffb03a' : '#ff6b88';
+      win.querySelector('#v14-bO').textContent = total.toFixed(0) + ' € / ' + b + ' €';
+      win.querySelector('#v14-bB2').style.width = pct + '%';
+      win.querySelector('#v14-bB2').style.background = col;
+      win.querySelector('#v14-bL').innerHTML = a.length ? a.slice().reverse().map(function(x){
+        return '<div class="v9-row"><span style="font-size:18px">'+esc(x.k.split(' ')[0])+'</span><b style="flex:1">'+esc(x.t)+'</b><span class="dim sm">'+new Date(x.d).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})+'</span><b style="color:var(--c1)">'+x.b.toFixed(0)+' €</b><span class="x" data-id="'+x.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Ausgaben diesen Monat</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('budget14', store.get('budget14',[]).filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v14-bSet').onclick = function(){ store.set('budget_limit', parseInt(win.querySelector('#v14-bM').value)||1500); render(); };
+    win.querySelector('#v14-bA').onclick = function(){
+      var t = win.querySelector('#v14-bT').value.trim(), b = parseFloat(win.querySelector('#v14-bB').value);
+      if(!t || isNaN(b)) return;
+      var a = store.get('budget14',[]);
+      a.push({id:uid(), t:t, b:b, k:win.querySelector('#v14-bK').value, d:new Date().toISOString().slice(0,10)});
+      store.set('budget14', a);
+      win.querySelector('#v14-bT').value = ''; win.querySelector('#v14-bB').value = '';
+      render();
+    };
+    win.querySelector('#v14-bM').value = budget();
+    render();
+  }
+};
+
+/* ============================================================
+   2 · KRYPTO-KURSE LIVE
+   ============================================================ */
+APPS['krypto'] = {
+  name:'Krypto Live', icon:'₿',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">₿ Krypto-Kurse Live</div><div class="dim sm">Echte Kurse von CoinGecko</div></div>'+
+      '<button class="btn primary" id="v14-kR">🔄 Aktualisieren</button>'+
+      '<div id="v14-kL" class="col" style="gap:8px"></div>'+
+      '<div class="dim sm center">💡 Kurse alle 60 Sek. automatisch</div>'+
+    '</div>';
+  },
+  init: function(win){
+    var COINS = [
+      ['BTC','Bitcoin','₿','#f7931a'],
+      ['ETH','Ethereum','Ξ','#627eea'],
+      ['BNB','BNB','B','#f0b90b'],
+      ['SOL','Solana','◎','#14f195'],
+      ['XRP','Ripple','X','#23292f'],
+      ['ADA','Cardano','₳','#0033ad'],
+      ['DOGE','Dogecoin','Ð','#c2a633'],
+      ['DOT','Polkadot','●','#e6007a'],
+      ['MATIC','Polygon','⬡','#8247e5'],
+      ['LTC','Litecoin','Ł','#345d9d']
+    ];
+    var int = null;
+    function load(){
+      var L = win.querySelector('#v14-kL');
+      if(!L.innerHTML) L.innerHTML = '<div class="empty">Lade Kurse…</div>';
+      fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,binancecoin,solana,ripple,cardano,dogecoin,polkadot,matic-network,litecoin&vs_currencies=eur&include_24hr_change=true')
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          var map = {
+            BTC:'bitcoin', ETH:'ethereum', BNB:'binancecoin', SOL:'solana', XRP:'ripple',
+            ADA:'cardano', DOGE:'dogecoin', DOT:'polkadot', MATIC:'matic-network', LTC:'litecoin'
+          };
+          L.innerHTML = COINS.map(function(c){
+            var d = j[map[c[0]]] || {};
+            var p = d.eur || 0;
+            var ch = d.eur_24h_change || 0;
+            var col = ch >= 0 ? '#4de88a' : '#ff6b88';
+            var arrow = ch >= 0 ? '▲' : '▼';
+            return '<div class="v14-coin"><div class="ic" style="background:'+c[3]+'">'+c[2]+'</div><div style="flex:1"><b>'+c[0]+'</b><div class="dim sm">'+esc(c[1])+'</div></div><div style="text-align:right"><b style="color:var(--c1)">'+H.fmt(p)+' €</b><div style="color:'+col+';font-size:11px;font-weight:700">'+arrow+' '+ch.toFixed(2)+'%</div></div></div>';
+          }).join('');
+        })
+        .catch(function(){ L.innerHTML = '<div class="empty">❌ API-Limit erreicht – warte 1 Min und versuche erneut</div>'; });
+    }
+    win.querySelector('#v14-kR').onclick = load;
+    load();
+    int = setInterval(load, 60000);
+    win.addEventListener('remove', function(){ clearInterval(int); });
+  }
+};
+
+/* ============================================================
+   3 · SPARZIEL-RECHNER
+   ============================================================ */
+APPS['sparziel'] = {
+  name:'Sparziel', icon:'🎯',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎯 Sparziel-Rechner</div><div class="dim sm">Wie lange bis zum Ziel?</div></div>'+
+      '<input class="v9-input" id="v14-sN" placeholder="Was willst du kaufen?" value="Neues Handy">'+
+      '<div class="row"><input class="v9-input" id="v14-sZ" type="number" placeholder="Ziel €" value="800" style="flex:1"><input class="v9-input" id="v14-sM" type="number" placeholder="Startkapital €" value="0" style="flex:1"></div>'+
+      '<div class="row"><input class="v9-input" id="v14-sS" type="number" placeholder="€ pro Monat" value="50" style="flex:1"><input class="v9-input" id="v14-sI" type="number" placeholder="Zinsen % p.a." value="2" step="0.1" style="width:120px"></div>'+
+      '<button class="btn primary" id="v14-sGo">▶ Berechnen</button>'+
+      '<div class="v9-stat"><div class="v" id="v14-sO">–</div><div class="l" id="v14-sL">Monate</div></div>'+
+      '<div class="v9-card"><b>📊 Details</b><div class="dim sm" style="margin-top:6px" id="v14-sD">–</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v14-sGo').onclick = function(){
+      var name = win.querySelector('#v14-sN').value.trim() || 'Ziel';
+      var goal = parseFloat(win.querySelector('#v14-sZ').value) || 0;
+      var start = parseFloat(win.querySelector('#v14-sM').value) || 0;
+      var m = parseFloat(win.querySelector('#v14-sS').value) || 0;
+      var r = (parseFloat(win.querySelector('#v14-sI').value) || 0) / 100 / 12;
+      if(goal <= start || m <= 0) return toast('Prüfe deine Eingaben');
+      var bal = start, months = 0;
+      while(bal < goal && months < 1200){
+        bal = bal * (1 + r) + m;
+        months++;
+      }
+      var years = Math.floor(months / 12);
+      var rest = months % 12;
+      var txt = years > 0 ? years + ' J ' + rest + ' M' : months + ' Monate';
+      win.querySelector('#v14-sO').textContent = txt;
+      win.querySelector('#v14-sL').textContent = 'Ziel: ' + goal.toFixed(0) + ' € (' + name + ')';
+      var eingezahlt = start + m * months;
+      var zinsen = bal - eingezahlt;
+      win.querySelector('#v14-sD').innerHTML = '• Eingezahlt: <b>' + eingezahlt.toFixed(0) + ' €</b><br>• Zinsen: <b>' + zinsen.toFixed(2) + ' €</b><br>• Gesamt: <b>' + bal.toFixed(2) + ' €</b><br>• Erreicht: ' + new Date(Date.now() + months*30*86400000).toLocaleDateString('de-DE');
+    };
+    win.querySelector('#v14-sGo').click();
+  }
+};
+
+/* ============================================================
+   4 · ZINSRECHNER
+   ============================================================ */
+APPS['zins'] = {
+  name:'Zinsrechner', icon:'📈',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📈 Zinsrechner</div><div class="dim sm">Zinseszins & Tagesgeld</div></div>'+
+      '<input class="v9-input" id="v14-zK" type="number" placeholder="Startkapital €" value="1000">'+
+      '<input class="v9-input" id="v14-zZ" type="number" placeholder="Zinssatz % p.a." value="4" step="0.1">'+
+      '<input class="v9-input" id="v14-zJ" type="number" placeholder="Laufzeit Jahre" value="10">'+
+      '<select class="v9-input" id="v14-zT"><option value="12">📅 monatlich</option><option value="4">📆 vierteljährlich</option><option value="1">📇 jährlich</option></select>'+
+      '<button class="btn primary" id="v14-zGo">▶ Berechnen</button>'+
+      '<div class="row"><div class="v9-stat" style="flex:1"><div class="v" id="v14-zO">–</div><div class="l">Endkapital</div></div><div class="v9-stat" style="flex:1"><div class="v" id="v14-zG">–</div><div class="l">Gewinn</div></div></div>'+
+      '<div class="v9-card"><b>📊 Verlauf</b><div id="v14-zL" style="margin-top:8px;font-size:12px;font-family:monospace;line-height:1.7"></div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v14-zGo').onclick = function(){
+      var k = parseFloat(win.querySelector('#v14-zK').value) || 0;
+      var z = (parseFloat(win.querySelector('#v14-zZ').value) || 0) / 100;
+      var j = parseInt(win.querySelector('#v14-zJ').value) || 0;
+      var t = parseInt(win.querySelector('#v14-zT').value);
+      var n = j * t;
+      var rate = z / t;
+      var end = k * Math.pow(1 + rate, n);
+      win.querySelector('#v14-zO').textContent = end.toFixed(2) + ' €';
+      win.querySelector('#v14-zG').textContent = (end - k).toFixed(2) + ' €';
+      var lines = [];
+      for(var y=1; y<=j; y++){
+        var val = k * Math.pow(1 + rate, y*t);
+        lines.push('Jahr ' + y.toString().padStart(2) + ' → ' + val.toFixed(2) + ' €');
+      }
+      win.querySelector('#v14-zL').innerHTML = lines.join('<br>');
+    };
+    win.querySelector('#v14-zGo').click();
+  }
+};
+
+/* ============================================================
+   5 · RECHNUNGS-GENERATOR
+   ============================================================ */
+APPS['rechnung'] = {
+  name:'Rechnung', icon:'🧾',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🧾 Rechnungs-Generator</div><div class="dim sm">Einfache Rechnung erstellen + drucken</div></div>'+
+      '<input class="v9-input" id="v14-rF" placeholder="Firmenname" value="HalDo Webdesign">'+
+      '<input class="v9-input" id="v14-rA" placeholder="Kunde (Name, Adresse)" value="Max Mustermann">'+
+      '<div class="row"><input class="v9-input" id="v14-rN" placeholder="Rechnungs-Nr." value="2024-001" style="flex:1"><input class="v9-input" id="v14-rD" type="date" style="width:auto"></div>'+
+      '<div id="v14-rItems" class="col" style="gap:6px"></div>'+
+      '<div class="row"><input class="v9-input" id="v14-rIt" placeholder="Position…" style="flex:1"><input class="v9-input" id="v14-rIp" type="number" placeholder="€" style="width:80px"><input class="v9-input" id="v14-rIq" type="number" placeholder="Menge" value="1" style="width:70px"><button class="btn primary" id="v14-rAdd">+</button></div>'+
+      '<div class="v9-stat"><div class="v" id="v14-rT">0,00 €</div><div class="l">Gesamt (inkl. 19 % MwSt.)</div></div>'+
+      '<button class="btn primary" id="v14-rPrint">🖨 Drucken</button>'+
+      '<div id="v14-rPreview"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var items = [];
+    win.querySelector('#v14-rD').value = new Date().toISOString().slice(0,10);
+    function render(){
+      win.querySelector('#v14-rItems').innerHTML = items.length ? items.map(function(x, i){
+        return '<div class="v9-row"><b style="flex:1">'+esc(x.t)+'</b><span class="dim sm">'+x.q+'× '+x.p.toFixed(2)+' €</span><b style="color:var(--c1)">'+(x.p*x.q).toFixed(2)+' €</b><span class="x" data-i="'+i+'">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Positionen</div>';
+      var net = items.reduce(function(s,x){ return s + x.p*x.q; }, 0);
+      var total = net * 1.19;
+      win.querySelector('#v14-rT').textContent = total.toFixed(2).replace('.', ',') + ' €';
+      win.querySelectorAll('[data-i]').forEach(function(b){ b.onclick = function(){ items.splice(parseInt(b.dataset.i), 1); render(); }; });
+    }
+    win.querySelector('#v14-rAdd').onclick = function(){
+      var t = win.querySelector('#v14-rIt').value.trim();
+      var p = parseFloat(win.querySelector('#v14-rIp').value);
+      var q = parseInt(win.querySelector('#v14-rIq').value) || 1;
+      if(!t || isNaN(p)) return;
+      items.push({t:t, p:p, q:q});
+      win.querySelector('#v14-rIt').value = ''; win.querySelector('#v14-rIp').value = '';
+      render();
+    };
+    win.querySelector('#v14-rPrint').onclick = function(){
+      var f = win.querySelector('#v14-rF').value;
+      var a = win.querySelector('#v14-rA').value;
+      var n = win.querySelector('#v14-rN').value;
+      var d = win.querySelector('#v14-rD').value;
+      var net = items.reduce(function(s,x){ return s + x.p*x.q; }, 0);
+      var mwst = net * 0.19;
+      var total = net + mwst;
+      var html = '<html><head><title>Rechnung '+esc(n)+'</title><style>body{font-family:sans-serif;padding:40px;color:#000}h1{color:#00b3cc}table{width:100%;border-collapse:collapse;margin:20px 0}th,td{border-bottom:1px solid #ccc;padding:10px;text-align:left}th{background:#f0f0f0}.tot{text-align:right;font-size:18px;font-weight:800;margin-top:20px}</style></head><body>'+
+        '<h1>🧾 Rechnung '+esc(n)+'</h1>'+
+        '<p><b>'+esc(f)+'</b><br>Rechnungsdatum: '+new Date(d).toLocaleDateString('de-DE')+'</p>'+
+        '<p><b>Kunde:</b><br>'+esc(a)+'</p>'+
+        '<table><tr><th>Position</th><th>Menge</th><th>Preis</th><th>Summe</th></tr>'+
+        items.map(function(x){ return '<tr><td>'+esc(x.t)+'</td><td>'+x.q+'</td><td>'+x.p.toFixed(2)+' €</td><td>'+(x.p*x.q).toFixed(2)+' €</td></tr>'; }).join('')+
+        '</table>'+
+        '<p style="text-align:right">Netto: '+net.toFixed(2)+' €<br>MwSt. 19%: '+mwst.toFixed(2)+' €</p>'+
+        '<div class="tot">Gesamt: '+total.toFixed(2)+' €</div>'+
+        '<p style="margin-top:40px;font-size:12px;color:#666">Zahlbar innerhalb 14 Tagen. Vielen Dank für Ihren Auftrag!</p>'+
+        '</body></html>';
+      var w = window.open('', '_blank');
+      if(!w) return toast('Popup blockiert');
+      w.document.write(html);
+      w.document.close();
+      setTimeout(function(){ w.print(); }, 500);
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   6 · TO-DO EISENHOWER
+   ============================================================ */
+APPS['todo-eisenhower'] = {
+  name:'To-Do Eisenhower', icon:'📋',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📋 To-Do Eisenhower</div><div class="dim sm">Wichtig vs. Dringend</div></div>'+
+      '<div class="row"><input class="v9-input" id="v14-tT" placeholder="Aufgabe…" style="flex:1"><select class="v9-input" id="v14-tQ" style="width:auto"><option value="q1">🔴 Sofort (wichtig + dringend)</option><option value="q2">🟠 Planen (wichtig)</option><option value="q3">🟢 Delegieren (dringend)</option><option value="q4">⚪ Später (weder)</option></select><button class="btn primary" id="v14-tA">+</button></div>'+
+      '<div id="v14-tL" class="col" style="gap:6px;max-height:55vh;overflow-y:auto"></div>'+
+      '<div class="v9-card"><b>📊 Eisenhower-Matrix</b><div class="dim sm" style="margin-top:6px">🔴 Sofort erledigen · 🟠 Termin planen · 🟢 An jemanden geben · ⚪ Irgendwann</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('todo_eisen',[]); }
+    function render(){
+      var a = all();
+      var order = {q1:0, q2:1, q3:2, q4:3};
+      a.sort(function(x,y){ return order[x.q] - order[y.q]; });
+      win.querySelector('#v14-tL').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v14-todo '+x.q+(x.done?' done':'')+'"><input type="checkbox" data-id="'+x.id+'" '+(x.done?'checked':'')+'><b style="flex:1">'+esc(x.t)+'</b><span class="x" data-id="'+x.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Aufgaben</div>';
+      win.querySelectorAll('input[type=checkbox]').forEach(function(c){ c.onchange = function(){ var arr = all(); var x = arr.find(function(v){ return v.id === c.dataset.id; }); if(x){ x.done = c.checked; store.set('todo_eisen', arr); render(); } }; });
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('todo_eisen', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v14-tA').onclick = function(){
+      var t = win.querySelector('#v14-tT').value.trim(); if(!t) return;
+      var a = all(); a.push({id:uid(), t:t, q:win.querySelector('#v14-tQ').value, done:false});
+      store.set('todo_eisen', a);
+      win.querySelector('#v14-tT').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   7 · POMODORO
+   ============================================================ */
+APPS['pomodoro'] = {
+  name:'Pomodoro', icon:'🍅',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🍅 Pomodoro-Timer</div><div class="dim sm">25 Min Arbeit · 5 Min Pause</div></div>'+
+      '<div class="v14-pomo" id="v14-pD">25:00</div>'+
+      '<div style="text-align:center;font-size:14px;font-weight:700;color:var(--dim)" id="v14-pL">Bereit</div>'+
+      '<div class="row" id="v14-pSet"><button class="v9-chip on" data-w="25" data-b="5">25 / 5 (Standard)</button><button class="v9-chip" data-w="50" data-b="10">50 / 10</button><button class="v9-chip" data-w="15" data-b="3">15 / 3</button></div>'+
+      '<div class="row"><button class="btn primary" id="v14-pStart" style="flex:1">▶ Start</button><button class="btn" id="v14-pReset" style="flex:1">🔄 Reset</button></div>'+
+      '<div class="v9-stat"><div class="v" id="v14-pC">0</div><div class="l">Pomodoros heute</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var work = 25, brk = 5, secs = 25*60, running = false, mode = 'work', int = null;
+    var today = new Date().toISOString().slice(0,10);
+    var D = win.querySelector('#v14-pD'), L = win.querySelector('#v14-pL'), C = win.querySelector('#v14-pC');
+    function count(){ var d = store.get('pomo14',{}); return d.date === today ? d.n||0 : 0; }
+    function render(){
+      var m = Math.floor(secs/60), s = secs%60;
+      D.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+      D.classList.toggle('work', running && mode === 'work');
+      D.classList.toggle('brk', running && mode === 'brk');
+      L.textContent = !running ? 'Bereit' : mode === 'work' ? '🎯 Arbeiten' : '☕ Pause';
+      C.textContent = count();
+    }
+    function beep(){ try{ var A = new (window.AudioContext||window.webkitAudioContext)(); var o = A.createOscillator(), g = A.createGain(); o.connect(g); g.connect(A.destination); o.frequency.value = 800; g.gain.value = 0.2; o.start(); o.stop(A.currentTime+0.4); }catch(e){} }
+    function tick(){
+      if(secs > 0){ secs--; render(); return; }
+      beep();
+      if(mode === 'work'){
+        var d = store.get('pomo14',{});
+        var n = d.date === today ? (d.n||0) + 1 : 1;
+        store.set('pomo14',{date:today, n:n});
+        mode = 'brk'; secs = brk * 60;
+        toast('☕ Pause!');
+      } else {
+        mode = 'work'; secs = work * 60;
+        toast('🎯 Arbeit!');
+      }
+      render();
+    }
+    function stop(){ running = false; clearInterval(int); render(); win.querySelector('#v14-pStart').textContent = '▶ Weiter'; }
+    win.querySelector('#v14-pStart').onclick = function(){
+      if(running){ stop(); return; }
+      running = true; win.querySelector('#v14-pStart').textContent = '⏸ Pause';
+      int = setInterval(tick, 1000); render();
+    };
+    win.querySelector('#v14-pReset').onclick = function(){
+      stop(); running = false; mode = 'work'; secs = work*60;
+      win.querySelector('#v14-pStart').textContent = '▶ Start';
+      render();
+    };
+    win.querySelectorAll('#v14-pSet [data-w]').forEach(function(b){
+      b.onclick = function(){
+        work = parseInt(b.dataset.w); brk = parseInt(b.dataset.b);
+        win.querySelectorAll('#v14-pSet [data-w]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        stop(); running = false; mode = 'work'; secs = work * 60;
+        win.querySelector('#v14-pStart').textContent = '▶ Start';
+        render();
+      };
+    });
+    win.addEventListener('remove', function(){ clearInterval(int); });
+    render();
+  }
+};
+
+/* ============================================================
+   8 · VISITENKARTE
+   ============================================================ */
+APPS['visitenkarte'] = {
+  name:'Visitenkarte', icon:'💼',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💼 Visitenkarten-Designer</div><div class="dim sm">Schnelle digitale Karte</div></div>'+
+      '<input class="v9-input" id="v14-vN" placeholder="Name" value="HalDo">'+
+      '<input class="v9-input" id="v14-vT" placeholder="Beruf / Titel" value="Entwickler">'+
+      '<input class="v9-input" id="v14-vM" placeholder="E-Mail" value="kontakt@haldo.ai">'+
+      '<input class="v9-input" id="v14-vP" placeholder="Telefon" value="+49 123 456789">'+
+      '<input class="v9-input" id="v14-vW" placeholder="Website" value="haldoaios-official.github.io/HalDo">'+
+      '<div class="row"><input type="color" id="v14-vC" value="#00e5ff" style="flex:1;height:44px;border-radius:10px;border:1px solid rgba(120,180,255,.3);background:transparent;cursor:pointer"><input class="v9-input" id="v14-vE" placeholder="Emoji" value="🦚" style="width:80px"></div>'+
+      '<div class="v14-card-preview" id="v14-vCard"></div>'+
+      '<button class="btn primary" id="v14-vS">📥 Als Bild speichern</button>'+
+    '</div>';
+  },
+  init: function(win){
+    function render(){
+      var n = win.querySelector('#v14-vN').value, t = win.querySelector('#v14-vT').value;
+      var m = win.querySelector('#v14-vM').value, p = win.querySelector('#v14-vP').value, w = win.querySelector('#v14-vW').value;
+      var e = win.querySelector('#v14-vE').value;
+      var c = win.querySelector('#v14-vC').value;
+      win.querySelector('#v14-vCard').innerHTML =
+        '<div style="font-size:38px">'+esc(e)+'</div>'+
+        '<div class="nm">'+esc(n)+'</div>'+
+        '<div class="sub" style="color:'+c+'">'+esc(t)+'</div>'+
+        '<div class="div"></div>'+
+        '<div class="row2"><b>📧 E-Mail:</b><span>'+esc(m)+'</span></div>'+
+        '<div class="row2"><b>📞 Telefon:</b><span>'+esc(p)+'</span></div>'+
+        '<div class="row2"><b>🌐 Web:</b><span>'+esc(w)+'</span></div>';
+    }
+    win.querySelectorAll('input').forEach(function(el){ el.oninput = render; });
+    win.querySelector('#v14-vS').onclick = function(){
+      var n = win.querySelector('#v14-vN').value, t = win.querySelector('#v14-vT').value;
+      var m = win.querySelector('#v14-vM').value, p = win.querySelector('#v14-vP').value, w = win.querySelector('#v14-vW').value;
+      var e = win.querySelector('#v14-vE').value, c = win.querySelector('#v14-vC').value;
+      var cv = document.createElement('canvas');
+      cv.width = 1050; cv.height = 600;
+      var ctx = cv.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,1050,600);
+      ctx.fillStyle = c; ctx.fillRect(0,0,1050,20);
+      ctx.textAlign = 'center';
+      ctx.font = '72px serif'; ctx.fillText(e, 525, 140);
+      ctx.fillStyle = '#0a1028'; ctx.font = 'bold 48px sans-serif'; ctx.fillText(n, 525, 220);
+      ctx.fillStyle = c; ctx.font = '500 26px sans-serif'; ctx.fillText(t, 525, 260);
+      ctx.strokeStyle = c; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(300, 290); ctx.lineTo(750, 290); ctx.stroke();
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#333'; ctx.font = '500 20px sans-serif';
+      ctx.fillText('📧  ' + m, 300, 360);
+      ctx.fillText('📞  ' + p, 300, 400);
+      ctx.fillText('🌐  ' + w, 300, 440);
+      var a = document.createElement('a');
+      a.download = 'visitenkarte-' + Date.now() + '.png';
+      a.href = cv.toDataURL('image/png');
+      a.click();
+      toast('✅ Gespeichert');
+    };
+    render();
+  }
+};
+
+/* ============================================================
+   9 · ZEIT-TRACKER
+   ============================================================ */
+APPS['zeittracker'] = {
+  name:'Zeit-Tracker', icon:'⏳',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">⏳ Zeit-Tracker</div><div class="dim sm">Arbeitszeit & Projekte erfassen</div></div>'+
+      '<div class="row"><input class="v9-input" id="v14-ztN" placeholder="Tätigkeit (Meeting, Programmieren…)" style="flex:1"><button class="btn primary" id="v14-ztStart">▶ Start</button></div>'+
+      '<div class="v9-stat"><div class="v" id="v14-ztT">00:00:00</div><div class="l" id="v14-ztL">Nichts läuft</div></div>'+
+      '<div class="row"><button class="btn primary" id="v14-ztStop" style="flex:1" disabled>⏸ Stop & Speichern</button><button class="btn" id="v14-ztReset" style="flex:1">🔄 Neu</button></div>'+
+      '<div class="v9-card"><b>📊 Heute</b><div class="dim sm" style="margin-top:6px" id="v14-ztSum">Noch nichts erfasst</div></div>'+
+      '<div id="v14-ztList" class="col" style="gap:6px;max-height:35vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var start = 0, int = null, running = false;
+    var today = new Date().toISOString().slice(0,10);
+    function entries(){ return store.get('timetrack14',[]).filter(function(x){ return x.d === today; }); }
+    function render(){
+      var a = entries();
+      var total = a.reduce(function(s,x){ return s + x.sec; }, 0);
+      var h = Math.floor(total/3600), m = Math.floor((total%3600)/60), s = total%60;
+      win.querySelector('#v14-ztSum').innerHTML = '• Gesamt: <b>' + h + 'h ' + m + 'm</b><br>• Einträge: <b>' + a.length + '</b>';
+      win.querySelector('#v14-ztList').innerHTML = a.slice().reverse().map(function(x){
+        var h2 = Math.floor(x.sec/3600), m2 = Math.floor((x.sec%3600)/60);
+        return '<div class="v9-row"><b style="flex:1">'+esc(x.n)+'</b><span class="dim sm">'+h2+'h '+m2+'m</span><span class="x" data-id="'+x.id+'">✕</span></div>';
+      }).join('') || '<div class="empty">Noch nichts erfasst</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('timetrack14', store.get('timetrack14',[]).filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    function tick(){
+      var e = Math.floor((Date.now() - start) / 1000);
+      var h = Math.floor(e/3600), m = Math.floor((e%3600)/60), s = e%60;
+      win.querySelector('#v14-ztT').textContent = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+    }
+    win.querySelector('#v14-ztStart').onclick = function(){
+      var n = win.querySelector('#v14-ztN').value.trim();
+      if(!n) return toast('Tätigkeit eingeben');
+      if(running) return;
+      running = true; start = Date.now(); int = setInterval(tick, 1000);
+      win.querySelector('#v14-ztL').textContent = '▶ ' + n;
+      win.querySelector('#v14-ztStart').disabled = true;
+      win.querySelector('#v14-ztStop').disabled = false;
+    };
+    win.querySelector('#v14-ztStop').onclick = function(){
+      if(!running) return;
+      var n = win.querySelector('#v14-ztN').value.trim();
+      var sec = Math.floor((Date.now() - start) / 1000);
+      clearInterval(int); running = false;
+      var a = store.get('timetrack14',[]);
+      a.push({id:uid(), n:n, sec:sec, d:today, ts:Date.now()});
+      store.set('timetrack14', a.slice(0,500));
+      win.querySelector('#v14-ztT').textContent = '00:00:00';
+      win.querySelector('#v14-ztL').textContent = 'Nichts läuft';
+      win.querySelector('#v14-ztStart').disabled = false;
+      win.querySelector('#v14-ztStop').disabled = true;
+      win.querySelector('#v14-ztN').value = '';
+      render(); toast('✅ ' + Math.floor(sec/60) + ' Min gespeichert');
+    };
+    win.querySelector('#v14-ztReset').onclick = function(){ clearInterval(int); running = false; win.querySelector('#v14-ztT').textContent = '00:00:00'; win.querySelector('#v14-ztL').textContent = 'Nichts läuft'; win.querySelector('#v14-ztStart').disabled = false; win.querySelector('#v14-ztStop').disabled = true; };
+    render();
+  }
+};
+
+/* ============================================================
+   10 · KALENDER-EXPORT (.ics)
+   ============================================================ */
+APPS['kalender-export'] = {
+  name:'Kalender-Export', icon:'📅',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📅 Kalender-Export (.ics)</div><div class="dim sm">Termine in Apple/Google/Outlook importieren</div></div>'+
+      '<input class="v9-input" id="v14-kT" placeholder="Termin-Titel">'+
+      '<input class="v9-input" id="v14-kO" placeholder="Ort (optional)">'+
+      '<textarea class="ta" id="v14-kB" style="min-height:60px" placeholder="Beschreibung (optional)"></textarea>'+
+      '<div class="row"><input class="v9-input" id="v14-kS" type="datetime-local" style="flex:1"><input class="v9-input" id="v14-kE" type="datetime-local" style="flex:1"></div>'+
+      '<button class="btn primary" id="v14-kA">+ Termin hinzufügen</button>'+
+      '<div id="v14-kL" class="col" style="gap:6px;max-height:35vh;overflow-y:auto"></div>'+
+      '<button class="btn primary" id="v14-kD">📥 .ics-Datei herunterladen</button>'+
+    '</div>';
+  },
+  init: function(win){
+    var now = new Date();
+    now.setMinutes(now.getMinutes() + 60);
+    var iso = now.toISOString().slice(0,16);
+    win.querySelector('#v14-kS').value = iso;
+    var later = new Date(now.getTime() + 3600000);
+    win.querySelector('#v14-kE').value = later.toISOString().slice(0,16);
+    function all(){ return store.get('cal14',[]); }
+    function render(){
+      var a = all();
+      win.querySelector('#v14-kL').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v9-row"><b style="flex:1">'+esc(x.t)+'</b><span class="dim sm">'+new Date(x.s).toLocaleString('de-DE')+'</span><span class="x" data-id="'+x.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Termine</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('cal14', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v14-kA').onclick = function(){
+      var t = win.querySelector('#v14-kT').value.trim();
+      var s = win.querySelector('#v14-kS').value, e = win.querySelector('#v14-kE').value;
+      if(!t || !s || !e) return toast('Titel + Start + Ende');
+      var a = all(); a.push({id:uid(), t:t, o:win.querySelector('#v14-kO').value, b:win.querySelector('#v14-kB').value, s:s, e:e});
+      store.set('cal14', a);
+      win.querySelector('#v14-kT').value = ''; win.querySelector('#v14-kO').value = ''; win.querySelector('#v14-kB').value = '';
+      render(); toast('✅ Hinzugefügt');
+    };
+    win.querySelector('#v14-kD').onclick = function(){
+      var a = all();
+      if(!a.length) return toast('Keine Termine');
+      function icsDate(d){ return d.replace(/[-:]/g,'').replace('T','T') + '00'; }
+      var ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//HalDo//DE\r\nCALSCALE:GREGORIAN\r\n';
+      a.forEach(function(x){
+        ics += 'BEGIN:VEVENT\r\n';
+        ics += 'UID:' + x.id + '@haldo\r\n';
+        ics += 'DTSTAMP:' + icsDate(new Date().toISOString().slice(0,16)) + '\r\n';
+        ics += 'DTSTART:' + icsDate(x.s) + '\r\n';
+        ics += 'DTEND:' + icsDate(x.e) + '\r\n';
+        ics += 'SUMMARY:' + x.t + '\r\n';
+        if(x.o) ics += 'LOCATION:' + x.o + '\r\n';
+        if(x.b) ics += 'DESCRIPTION:' + x.b.replace(/\n/g,'\\n') + '\r\n';
+        ics += 'END:VEVENT\r\n';
+      });
+      ics += 'END:VCALENDAR\r\n';
+      var blob = new Blob([ics], {type:'text/calendar'});
+      var url = URL.createObjectURL(blob);
+      var a2 = document.createElement('a');
+      a2.href = url; a2.download = 'haldo-termin-' + Date.now() + '.ics';
+      a2.click(); URL.revokeObjectURL(url);
+      toast('📥 .ics heruntergeladen');
+    };
+    render();
+  }
+};
+
+console.log('%c📦 v14 geladen — Finanzen & Business · 10 Apps','background:linear-gradient(90deg,#4de88a,#ffb03a);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('Aktive Apps:', Object.keys(APPS).length);
+
+setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click(); }, 150);
+
+})();
+</script>
 </body>
 </html>
