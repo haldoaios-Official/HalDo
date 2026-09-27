@@ -17927,5 +17927,735 @@ setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v20 · Sport & Fitness · 20 Apps
+     ============================================================ -->
+<style id="v20-style">
+.v20-card{padding:14px;border-radius:14px;background:linear-gradient(150deg,rgba(20,30,60,.65),rgba(10,16,40,.82));border:1px solid rgba(120,180,255,.14);margin-bottom:8px}
+.v20-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);cursor:pointer;transition:.15s}
+.v20-row:hover{background:rgba(0,229,255,.05);border-color:rgba(0,229,255,.2)}
+.v20-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.3);color:var(--c1);cursor:pointer;transition:.15s}
+.v20-chip.on{background:linear-gradient(135deg,var(--c1),var(--c2));color:#02101e;border-color:var(--c1)}
+.v20-emoji{font-size:56px;text-align:center;padding:12px}
+.v20-timer{font-family:monospace;font-size:64px;font-weight:800;color:var(--c1);text-align:center;padding:20px;letter-spacing:2px;text-shadow:0 0 20px rgba(0,229,255,.4)}
+.v20-work{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.v20-work > div{padding:14px;border-radius:12px;background:linear-gradient(150deg,rgba(0,229,255,.08),rgba(20,30,60,.4));border:1px solid rgba(0,229,255,.18);cursor:pointer;transition:.15s}
+.v20-work > div:hover{transform:translateY(-2px);border-color:var(--c1)}
+.v20-step{padding:14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(120,180,255,.14);margin-bottom:6px;display:flex;gap:12px;align-items:center}
+.v20-step.on{background:linear-gradient(90deg,rgba(0,229,255,.15),transparent);border-color:var(--c1)}
+.v20-step .n{width:32px;height:32px;border-radius:50%;background:rgba(0,229,255,.15);color:var(--c1);display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0}
+.v20-set{display:flex;gap:6px;align-items:center;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:10px;margin-bottom:4px;font-family:monospace;font-size:13px}
+.v20-set .lbl{color:var(--dim);width:80px}
+</style>
+
+<script>
+(function(){
+'use strict';
+var H = window.HalDo;
+if(!H || !H.APPS){ console.error('[v20] Foundation fehlt'); return; }
+var APPS = H.APPS;
+var esc=H.esc, uid=H.uid, store=H.store, toast=H.toast;
+
+/* 1 · WORKOUT-TIMER */
+APPS['workout-timer'] = {
+  name:'Workout-Timer', icon:'⏱️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">⏱️ Workout-Timer</div><div class="dim sm">Intervall-Training mit Beep</div></div>'+
+      '<div class="v20-timer" id="v20-wtD">00:30</div>'+
+      '<div style="text-align:center;font-size:14px;font-weight:700;color:var(--dim)" id="v20-wtM">Bereit</div>'+
+      '<div class="row"><input class="v9-input" id="v20-wtW" type="number" placeholder="Arbeit Sek" value="30" style="flex:1"><input class="v9-input" id="v20-wtR" type="number" placeholder="Pause Sek" value="15" style="flex:1"><input class="v9-input" id="v20-wtS" type="number" placeholder="Runden" value="8" style="flex:1"></div>'+
+      '<div class="row"><button class="btn primary" id="v20-wtGo" style="flex:1">▶ Start</button><button class="btn" id="v20-wtStop" style="flex:1">⏹ Stop</button></div>'+
+      '<div class="v9-stat"><div class="v" id="v20-wtC">0 / 0</div><div class="l">Runden</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var running = false, timer = null, sec = 30, curRound = 1, totalRounds = 8, mode = 'work', workSec = 30, restSec = 15;
+    var A = null;
+    function beep(freq){
+      try{ if(!A) A = new (window.AudioContext||window.webkitAudioContext)(); var o = A.createOscillator(), g = A.createGain(); o.connect(g); g.connect(A.destination); o.frequency.value = freq||880; g.gain.value = 0.2; o.start(); o.stop(A.currentTime+0.2); }catch(e){}
+    }
+    function fmt(s){ var m = Math.floor(s/60); var ss = s%60; return String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0'); }
+    function tick(){
+      if(sec <= 0){
+        if(mode === 'work'){
+          mode = 'rest'; sec = restSec;
+          win.querySelector('#v20-wtM').textContent = '☕ PAUSE';
+          win.querySelector('#v20-wtM').style.color = '#4de88a';
+          beep(600);
+        } else {
+          curRound++;
+          if(curRound > totalRounds){ stop(); win.querySelector('#v20-wtM').textContent = '🏁 FERTIG'; return; }
+          mode = 'work'; sec = workSec;
+          win.querySelector('#v20-wtM').textContent = '💪 ARBEIT Runde ' + curRound;
+          win.querySelector('#v20-wtM').style.color = '#ff6b88';
+          beep(900);
+        }
+        win.querySelector('#v20-wtC').textContent = curRound + ' / ' + totalRounds;
+      }
+      win.querySelector('#v20-wtD').textContent = fmt(sec);
+      sec--;
+    }
+    function stop(){ running = false; clearInterval(timer); win.querySelector('#v20-wtGo').textContent = '▶ Start'; }
+    win.querySelector('#v20-wtGo').onclick = function(){
+      if(running){ stop(); return; }
+      workSec = parseInt(win.querySelector('#v20-wtW').value)||30;
+      restSec = parseInt(win.querySelector('#v20-wtR').value)||15;
+      totalRounds = parseInt(win.querySelector('#v20-wtS').value)||8;
+      sec = workSec; mode = 'work'; curRound = 1; running = true;
+      win.querySelector('#v20-wtC').textContent = '1 / ' + totalRounds;
+      win.querySelector('#v20-wtM').textContent = '💪 ARBEIT';
+      win.querySelector('#v20-wtM').style.color = '#ff6b88';
+      win.querySelector('#v20-wtGo').textContent = '⏸ Pause';
+      timer = setInterval(tick, 1000);
+    };
+    win.querySelector('#v20-wtStop').onclick = function(){ stop(); win.querySelector('#v20-wtM').textContent = 'Gestoppt'; };
+  }
+};
+
+/* 2 · ÜBUNGS-DATENBANK */
+APPS['uebungen-pro'] = {
+  name:'Übungs-Datenbank', icon:'💪',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💪 Übungs-Datenbank</div><div class="dim sm">Krafttraining-Anleitungen</div></div>'+
+      '<input class="v9-input" id="v20-ubQ" placeholder="🔍 Übung suchen…">'+
+      '<div class="row" id="v20-ubT" style="flex-wrap:wrap"><button class="v20-chip on" data-m="alle">Alle</button><button class="v20-chip" data-m="brust">Brust</button><button class="v20-chip" data-m="rücken">Rücken</button><button class="v20-chip" data-m="beine">Beine</button><button class="v20-chip" data-m="arme">Arme</button><button class="v20-chip" data-m="bauch">Bauch</button></div>'+
+      '<div id="v20-ubL" class="col" style="gap:6px;max-height:65vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['brust','Bench Press (Bankdrücken)','Langhantel · 3×8-12 · Brust, Trizeps, Schulter'],
+      ['brust','Push-Ups (Liegestütze)','Eigengewicht · 3×15-20 · Brust, Trizeps'],
+      ['brust','Dumbbell Flys','Kurzhantel · 3×10-12 · Brust-Innenseite'],
+      ['brust','Dips','Eigengewicht · 3×8-12 · Brust unten, Trizeps'],
+      ['rücken','Klimmzüge','Eigengewicht · 3×5-10 · Latissimus'],
+      ['rücken','Kreuzheben','Langhantel · 3×5 · unterer Rücken, Beine'],
+      ['rücken','Rudern','Langhantel · 3×8-12 · Rücken-Mitte'],
+      ['rücken','Latziehen','Kabelzug · 3×10-12 · Latissimus'],
+      ['beine','Kniebeuge (Squat)','Langhantel · 3×8-10 · Beine, Gesäß'],
+      ['beine','Ausfallschritte','Kurzhantel · 3×10 je Seite · Beine, Gesäß'],
+      ['beine','Beinpresse','Maschine · 3×12 · Quadrizeps'],
+      ['beine','Wadenheben','Maschine · 3×15 · Waden'],
+      ['arme','Bizeps-Curls','Kurzhantel · 3×10-12 · Bizeps'],
+      ['arme','Trizeps-Drücken','Kabelzug · 3×10-12 · Trizeps'],
+      ['arme','Hammer-Curls','Kurzhantel · 3×10 · Bizeps, Brachialis'],
+      ['arme','Trizeps-Kickbacks','Kurzhantel · 3×12 · Trizeps'],
+      ['bauch','Crunches','Eigengewicht · 3×20 · oberer Bauch'],
+      ['bauch','Plank','Eigengewicht · 3×60 Sek · Rumpf'],
+      ['bauch','Beinheben','Eigengewicht · 3×15 · unterer Bauch'],
+      ['bauch','Russian Twist','Gewicht · 3×20 · schräge Bauchmuskeln']
+    ];
+    var cur = 'alle', Q = win.querySelector('#v20-ubQ');
+    function render(){
+      var q = Q.value.toLowerCase();
+      var f = D.filter(function(x){
+        if(cur !== 'alle' && x[0] !== cur) return false;
+        if(!q) return true;
+        return x[1].toLowerCase().indexOf(q) >= 0;
+      });
+      win.querySelector('#v20-ubL').innerHTML = f.map(function(x){
+        return '<div class="v20-card"><div class="row between"><b>💪 '+esc(x[1])+'</b><span class="dim sm">'+esc(x[0])+'</span></div><div class="dim sm" style="margin-top:6px">'+esc(x[2])+'</div></div>';
+      }).join('') || '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput = render;
+    win.querySelectorAll('#v20-ubT [data-m]').forEach(function(b){ b.onclick = function(){ cur = b.dataset.m; win.querySelectorAll('#v20-ubT [data-m]').forEach(function(x){ x.classList.toggle('on', x === b); }); render(); }; });
+    render();
+  }
+};
+
+/* 3 · TRAININGS-TAGEBUCH */
+APPS['training-log'] = {
+  name:'Trainings-Tagebuch', icon:'📓',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📓 Trainings-Tagebuch</div><div class="dim sm">Sätze & Gewichte</div></div>'+
+      '<div class="row"><input class="v9-input" id="v20-tlN" placeholder="Übung" style="flex:1"><input class="v9-input" id="v20-tlS" type="number" placeholder="Sätze" value="3" style="width:70px"><input class="v9-input" id="v20-tlR" type="number" placeholder="Wdh" value="10" style="width:70px"><input class="v9-input" id="v20-tlG" type="number" placeholder="kg" value="20" style="width:70px"><button class="btn primary" id="v20-tlA">+</button></div>'+
+      '<div id="v20-tlL" class="col" style="gap:6px;max-height:60vh;overflow-y:auto"></div>'+
+      '<div class="v9-stat"><div class="v" id="v20-tlT">0 kg</div><div class="l">Gesamt heute</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var today = new Date().toISOString().slice(0,10);
+    function all(){ return store.get('training20',[]).filter(function(x){ return x.d === today; }); }
+    function render(){
+      var a = all();
+      var total = a.reduce(function(s,x){ return s + x.s * x.r * x.g; }, 0);
+      win.querySelector('#v20-tlT').textContent = total.toLocaleString('de-DE') + ' kg';
+      win.querySelector('#v20-tlL').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v20-set"><span class="lbl">'+esc(x.n)+'</span><span>'+x.s+'×'+x.r+' @ '+x.g+' kg</span><span class="dim" style="margin-left:auto">Vol: '+(x.s*x.r*x.g).toLocaleString('de-DE')+' kg</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim);margin-left:10px">✕</span></div>';
+      }).join('') : '<div class="empty">Noch nichts heute</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('training20', store.get('training20',[]).filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v20-tlA').onclick = function(){
+      var n = win.querySelector('#v20-tlN').value.trim(); if(!n) return;
+      var a = store.get('training20',[]);
+      a.unshift({id:uid(), n:n, s:parseInt(win.querySelector('#v20-tlS').value)||3, r:parseInt(win.querySelector('#v20-tlR').value)||10, g:parseFloat(win.querySelector('#v20-tlG').value)||0, d:today, ts:Date.now()});
+      store.set('training20', a.slice(0,500));
+      win.querySelector('#v20-tlN').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* 4 · LAUF-TRACKER */
+APPS['lauf-tracker'] = {
+  name:'Lauf-Tracker', icon:'🏃',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🏃 Lauf-Tracker</div><div class="dim sm">Distanz & Pace</div></div>'+
+      '<div class="row"><input class="v9-input" id="v20-ltD" type="number" placeholder="Distanz km" step="0.01" value="5" style="flex:1"><input class="v9-input" id="v20-ltM" type="number" placeholder="Minuten" value="30" style="flex:1"><input class="v9-input" id="v20-ltS" type="number" placeholder="Sek" value="0" style="width:70px"><button class="btn primary" id="v20-ltA">+</button></div>'+
+      '<div class="v9-stat"><div class="v" id="v20-ltP">–</div><div class="l">Pace / km</div></div>'+
+      '<div id="v20-ltL" class="col" style="gap:6px;max-height:55vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('lauf20',[]); }
+    function render(){
+      var a = all();
+      win.querySelector('#v20-ltL').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v20-row"><b style="flex:1">'+x.d+' km</b><span class="dim sm">'+Math.floor(x.min)+':'+String(x.sec).padStart(2,'0')+' Min</span><span style="color:var(--c1);font-weight:700">'+x.pace+' /km</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Noch keine Läufe</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('lauf20', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v20-ltA').onclick = function(){
+      var d = parseFloat(win.querySelector('#v20-ltD').value)||0;
+      var m = parseInt(win.querySelector('#v20-ltM').value)||0;
+      var s = parseInt(win.querySelector('#v20-ltS').value)||0;
+      if(!d) return;
+      var totalMin = m + s/60;
+      var paceMin = totalMin / d;
+      var pm = Math.floor(paceMin), ps = Math.round((paceMin - pm) * 60);
+      var pace = pm + ':' + String(ps).padStart(2,'0');
+      win.querySelector('#v20-ltP').textContent = pace;
+      var a = all();
+      a.unshift({id:uid(), d:d, min:m, sec:s, pace:pace, ts:Date.now()});
+      store.set('lauf20', a.slice(0,100));
+      render();
+    };
+    render();
+  }
+};
+
+/* 5 · SCHRITT-CHALLENGE */
+APPS['schritt-challenge'] = {
+  name:'Schritt-Challenge', icon:'👟',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">👟 Schritt-Challenge</div><div class="dim sm">Wochen-Ziel verfolgen</div></div>'+
+      '<div class="v9-stat"><div class="v" id="v20-scT">0 / 70000</div><div class="l">Diese Woche</div></div>'+
+      '<div class="row"><input class="v9-input" id="v20-scI" type="number" placeholder="Schritte heute hinzufügen" value="5000" style="flex:1"><button class="btn primary" id="v20-scA">+</button></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px" id="v20-scG"></div>'+
+      '<button class="btn" id="v20-scR" style="margin-top:8px">🔄 Woche zurücksetzen</button>'+
+    '</div>';
+  },
+  init: function(win){
+    function getWeek(){ var d = store.get('schritte20', {}); return d; }
+    function setWeek(d){ store.set('schritte20', d); render(); }
+    function dayIdx(){ var i = new Date().getDay(); return i === 0 ? 6 : i-1; }
+    function render(){
+      var d = getWeek();
+      var total = Object.values(d).reduce(function(a,b){ return a+b; }, 0);
+      win.querySelector('#v20-scT').textContent = total.toLocaleString('de-DE') + ' / 70000';
+      var D = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+      var today = dayIdx();
+      win.querySelector('#v20-scG').innerHTML = D.map(function(l, i){
+        var v = d[i] || 0;
+        var pct = Math.min(100, v/10000*100);
+        return '<div style="text-align:center;padding:8px 4px;border-radius:8px;background:'+(i === today ? 'rgba(0,229,255,.15)' : 'rgba(255,255,255,.03)')+';border:1px solid '+(i === today ? 'var(--c1)' : 'rgba(255,255,255,.08)')+'"><div style="font-size:10px;font-weight:700">'+l+'</div><div style="font-size:11px;margin-top:4px;color:var(--c1)">'+v.toLocaleString('de-DE')+'</div><div style="height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:4px"><div style="height:100%;width:'+pct+'%;background:var(--c1);border-radius:2px"></div></div></div>';
+      }).join('');
+    }
+    win.querySelector('#v20-scA').onclick = function(){
+      var v = parseInt(win.querySelector('#v20-scI').value)||0;
+      var d = getWeek();
+      var i = dayIdx();
+      d[i] = (d[i]||0) + v;
+      setWeek(d);
+    };
+    win.querySelector('#v20-scR').onclick = function(){ setWeek({}); };
+    render();
+  }
+};
+
+/* 6 · DEHN-ÜBUNGEN */
+APPS['dehnen'] = {
+  name:'Dehn-Übungen', icon:'🤸',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🤸 Dehn-Übungen</div><div class="dim sm">Routine für Beweglichkeit</div></div>'+
+      '<div class="row" id="v20-dhT"><button class="v20-chip on" data-t="morgen">🌅 Morgen</button><button class="v20-chip" data-t="abend">🌙 Abend</button><button class="v20-chip" data-t="sport">💪 Vor Sport</button><button class="v20-chip" data-t="büro">💺 Büro</button></div>'+
+      '<div id="v20-dhL"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = {
+      morgen: ['Nackenkreisen 10× je Seite','Schulterkreisen 10×','Seitliche Dehnung 30 Sek je Seite','Vorbeuge 30 Sek','Katze-Kuh 10×'],
+      abend: ['Sitzende Vorbeuge 60 Sek','Beindehnung 30 Sek je Seite','Hüftöffner 45 Sek je Seite','Brustdehnung 30 Sek','Kindhaltung 60 Sek'],
+      sport: ['Armkreisen 20×','Beinschwünge 15× je Bein','Ausfallschritt-Dehnung 30 Sek','Hampelmann 30 Sek','Hüftkreisen 10× je Seite'],
+      'büro': ['Nacken beugen 5× je Seite','Schulter hochziehen 10×','Handgelenk kreisen 10×','Sitzende Rückendrehung 20 Sek je Seite','Aufstehen + Strecken']
+    };
+    var cur = 'morgen';
+    function show(){
+      win.querySelector('#v20-dhL').innerHTML = D[cur].map(function(s, i){
+        return '<div class="v20-step"><div class="n">'+(i+1)+'</div><span style="flex:1">'+esc(s)+'</span></div>';
+      }).join('');
+    }
+    win.querySelectorAll('#v20-dhT [data-t]').forEach(function(b){ b.onclick = function(){ cur = b.dataset.t; win.querySelectorAll('#v20-dhT [data-t]').forEach(function(x){ x.classList.toggle('on', x === b); }); show(); }; });
+    show();
+  }
+};
+
+/* 7 · LAUF-ROUTEN-TIPPS */
+APPS['lauf-routen'] = {
+  name:'Lauf-Routen-Tipps', icon:'🗺️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🗺️ Lauf-Routen-Tipps</div><div class="dim sm">Orte für gute Läufe</div></div>'+
+      '<div class="row"><input class="v9-input" id="v20-lrO" placeholder="Stadt / Ort eingeben…" value="Berlin" style="flex:1"><button class="btn primary" id="v20-lrGo">🔍 Karte</button></div>'+
+      '<div class="v9-card"><b>🎯 Kriterien für gute Laufrouten</b><div class="dim sm" style="margin-top:6px;line-height:1.7">• Wenig Verkehr<br>• Beleuchtung bei Nachtläufen<br>• Wasserstellen<br>• Abwechslung (Park, Fluss)<br>• Weicher Untergrund wenn möglich</div></div>'+
+      '<div class="v20-card"><b>🚶 Beliebte Strecken</b><div class="dim sm" style="margin-top:6px;line-height:1.7">• Park-Runden (flach, gut für Intervalle)<br>• Flussufer (gleichmäßig, schön)<br>• Waldwege (weich, Naturnähe)<br>• Hügel (Intervall-Training)<br>• Stadionrunde (maßbar, flach)</div></div>'+
+      '<div class="v20-card"><b>📱 Apps für Routen</b><div class="dim sm" style="margin-top:6px">• Strava · Komoot · Runtastic · Nike Run Club</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v20-lrGo').onclick = function(){
+      var o = win.querySelector('#v20-lrO').value.trim() || 'Berlin';
+      window.open('https://www.openstreetmap.org/search?query=' + encodeURIComponent('Laufstrecke ' + o), '_blank');
+    };
+  }
+};
+
+/* 8 · HIIT-WORKOUTS */
+APPS['hiit'] = {
+  name:'HIIT-Workouts', icon:'🔥',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🔥 HIIT-Workouts</div><div class="dim sm">Hochintensives Intervall-Training</div></div>'+
+      '<div id="v20-hiL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['7-Min HIIT','7 Min','7 Übungen × 30 Sek','Hampelmann · Liegestütze · Kniebeuge · Sit-Ups · Dips · Plank · Ausfallschritte'],
+      ['Tabata 4 Min','4 Min','8 × (20 Sek Arbeit / 10 Sek Pause)','1 Übung · Max-Intensität'],
+      ['20-Min Fatburn','20 Min','5 Runden × 4 Min','Burpees · Mountain Climbers · Jumping Jacks · Squats · Plank'],
+      ['Killer HIIT','30 Min','10 Runden × 3 Min','3 Übungen × 45 Sek / 15 Pause'],
+      ['Beginner HIIT','15 Min','5 Runden × 3 Min','Step-Touch · Squats · Marching · Knee Lifts']
+    ];
+    win.querySelector('#v20-hiL').innerHTML = D.map(function(x){
+      return '<div class="v20-card"><div class="row between"><b>🔥 '+esc(x[0])+'</b><span style="color:var(--c1);font-weight:700;font-size:11px">'+esc(x[1])+'</span></div><div class="dim sm" style="margin-top:6px;line-height:1.6"><b>⏱ Aufbau:</b> '+esc(x[2])+'<br><b>💪 Übungen:</b> '+esc(x[3])+'</div></div>';
+    }).join('');
+  }
+};
+
+/* 9 · MUSKELAUFBAU-TIPPS */
+APPS['muskel-tipps'] = {
+  name:'Muskelaufbau-Tipps', icon:'💪',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💪 Muskelaufbau-Tipps</div><div class="dim sm">Ernährung & Training</div></div>'+
+      '<div id="v20-mkL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['🎯','Progressive Überlastung','Wöchentlich mehr Gewicht, mehr Wdh oder mehr Sätze.'],
+      ['💪','RIR 1-3','Wiederholungen in Reserve – nicht bis zum Muskelversagen trainieren.'],
+      ['⏱','Volumen','8-15 Sätze pro Muskelgruppe pro Woche.'],
+      ['🥩','Protein','1,6-2,2 g pro kg Körpergewicht täglich.'],
+      ['🍚','Kalorienüberschuss','+300-500 kcal über Bedarf.'],
+      ['😴','Schlaf','7-9 Stunden · wichtig für Regeneration.'],
+      ['💧','Wasser','3 L am Tag · für Muskelaufbau essenziell.'],
+      ['🚶','Aktive Erholung','Spazierengehen, leichtes Schwimmen an Ruhetagen.'],
+      ['📈','Periodisierung','Alle 6-8 Wochen Deload-Woche mit 50% Volumen.'],
+      ['🧠','Mind-Muscle','Fokus auf die Zielmuskulatur beim Training.']
+    ];
+    win.querySelector('#v20-mkL').innerHTML = D.map(function(x){
+      return '<div class="v20-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:6px">'+esc(x[2])+'</div></div>';
+    }).join('');
+  }
+};
+
+/* 10 · YOGA-POSEN */
+APPS['yoga'] = {
+  name:'Yoga-Posen', icon:'🧘',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🧘 Yoga-Posen</div><div class="dim sm">Klassische Asanas</div></div>'+
+      '<div class="row" id="v20-ygT"><button class="v20-chip on" data-l="1">Anfänger</button><button class="v20-chip" data-l="2">Mittel</button><button class="v20-chip" data-l="3">Fortgeschritten</button></div>'+
+      '<div id="v20-ygL" class="col" style="gap:6px;max-height:65vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      [1,'🧘','Berg (Tadasana)','Stehen · Füße zusammen · Arme lang · 30 Sek'],
+      [1,'🐕','Herabschauender Hund','Hände + Füße am Boden · Po nach oben · 1 Min'],
+      [1,'🐈','Katze-Kuh','Vierfüßler · Rücken rund / hohl · 10×'],
+      [1,'🧒','Kindhaltung (Balasana)','Knie · Stirn am Boden · Arme nach vorn · 1-3 Min'],
+      [1,'💺','Sitzende Vorbeuge','Beine lang · nach vorn beugen · 1 Min'],
+      [2,'🌲','Baum (Vrksasana)','Ein Bein angewinkelt · Hände über Kopf · 30 Sek je Seite'],
+      [2,'🦅','Krieger I (Virabhadrasana I)','Ausfallschritt · Arme hoch · 30-60 Sek je Seite'],
+      [2,'🦁','Krieger II','Ausfallschritt · Arme seitlich · 30-60 Sek je Seite'],
+      [2,'🐍','Kobra (Bhujangasana)','Bauchlage · Oberkörper hoch · 30 Sek'],
+      [2,'🦋','Schmetterling (Baddha Konasana)','Sitzend · Füße zusammen · 1-2 Min'],
+      [3,'🕊️','Taube (Kapotasana)','Sitzend · Bein nach hinten · 1 Min je Seite'],
+      [3,'🐫','Kamel (Ustrasana)','Kniend · Rücken beugen · Hände zu Fersen · 30 Sek'],
+      [3,'🦂','Schulterstand (Sarvangasana)','Auf Schultern stehen · Beine hoch · 1-3 Min'],
+      [3,'🦅','Krähe (Bakasana)','Hände am Boden · Knie auf Ellenbogen · balancieren'],
+      [3,'😇','Rad (Chakrasana)','Rückenlage · Hände + Füße am Boden · Brust hoch']
+    ];
+    var cur = 1;
+    function show(){
+      win.querySelector('#v20-ygL').innerHTML = D.filter(function(x){ return x[0] === cur; }).map(function(x){
+        return '<div class="v20-card"><div class="row between"><b>'+x[1]+' '+esc(x[2])+'</b></div><div class="dim sm" style="margin-top:6px">'+esc(x[3])+'</div></div>';
+      }).join('');
+    }
+    win.querySelectorAll('#v20-ygT [data-l]').forEach(function(b){ b.onclick = function(){ cur = parseInt(b.dataset.l); win.querySelectorAll('#v20-ygT [data-l]').forEach(function(x){ x.classList.toggle('on', x === b); }); show(); }; });
+    show();
+  }
+};
+
+/* 11 · BOX-TRAINING */
+APPS['boxen'] = {
+  name:'Box-Training', icon:'🥊',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🥊 Box-Training</div><div class="dim sm">Kombinationen & Technik</div></div>'+
+      '<div id="v20-bxL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['1️⃣','Jab','Führhand gerade · schnell · zurückziehen'],
+      ['2️⃣','Cross','Schlaghand gerade · Hüfte drehen · Power'],
+      ['3️⃣','Hook','Seitwärts-Schlag · Ellbogen 90° · Kopf nicht ducken'],
+      ['4️⃣','Uppercut','Von unten nach oben · Kinn treffen'],
+      ['5️⃣','Jab-Cross','1-2-Kombi · häufigste Kombi'],
+      ['6️⃣','Jab-Cross-Hook','1-2-3 · Klassiker'],
+      ['7️⃣','Doppel-Jab-Cross','1-1-2 · Druck aufbauen'],
+      ['8️⃣','Body-Head','Tiefer Schlag + Kopfschlag'],
+      ['9️⃣','Slip + Counter','Ausweichen + Konter'],
+      ['🔟','Footwork','Vor/zurück/seitlich · immer in Bewegung']
+    ];
+    win.querySelector('#v20-bxL').innerHTML = D.map(function(x){
+      return '<div class="v20-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:6px">'+esc(x[2])+'</div></div>';
+    }).join('');
+  }
+};
+
+/* 12 · SCHWIMM-TRACKER */
+APPS['schwimmen'] = {
+  name:'Schwimm-Tracker', icon:'🏊',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🏊 Schwimm-Tracker</div><div class="dim sm">Bahnen & Stil</div></div>'+
+      '<div class="row"><input class="v9-input" id="v20-scB" type="number" placeholder="Bahnen" value="30" style="flex:1"><select class="v9-input" id="v20-scS" style="width:auto"><option>Freistil</option><option>Brust</option><option>Rücken</option><option>Schmetterling</option></select><button class="btn primary" id="v20-scA">+</button></div>'+
+      '<div class="v9-stat"><div class="v" id="v20-scT">0 m</div><div class="l">Gesamt heute</div></div>'+
+      '<div id="v20-scL" class="col" style="gap:6px;max-height:55vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var today = new Date().toISOString().slice(0,10);
+    function all(){ return store.get('swim20',[]).filter(function(x){ return x.d === today; }); }
+    function render(){
+      var a = all();
+      var total = a.reduce(function(s,x){ return s + x.m; }, 0);
+      win.querySelector('#v20-scT').textContent = total.toLocaleString('de-DE') + ' m';
+      win.querySelector('#v20-scL').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v20-row"><b style="flex:1">'+esc(x.s)+'</b><span class="dim sm">'+x.b+' Bahnen</span><span style="color:var(--c1);font-weight:700">'+x.m+' m</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Noch keine Einträge</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('swim20', store.get('swim20',[]).filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v20-scA').onclick = function(){
+      var b = parseInt(win.querySelector('#v20-scB').value)||0;
+      if(!b) return;
+      var a = store.get('swim20',[]);
+      a.unshift({id:uid(), b:b, s:win.querySelector('#v20-scS').value, m:b*25, d:today, ts:Date.now()});
+      store.set('swim20', a.slice(0,200));
+      render();
+    };
+    render();
+  }
+};
+
+/* 13 · RAD-TRACKER */
+APPS['rad-tracking'] = {
+  name:'Rad-Tracker', icon:'🚴',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🚴 Rad-Tracker</div><div class="dim sm">Strecken mit Höhenmetern</div></div>'+
+      '<div class="row"><input class="v9-input" id="v20-rdD" type="number" placeholder="km" value="20" style="flex:1"><input class="v9-input" id="v20-rdH" type="number" placeholder="Höhenmeter" value="200" style="flex:1"><input class="v9-input" id="v20-rdM" type="number" placeholder="Minuten" value="60" style="flex:1"><button class="btn primary" id="v20-rdA">+</button></div>'+
+      '<div class="v9-stat"><div class="v" id="v20-rdT">0 km</div><div class="l">Gesamt diese Woche</div></div>'+
+      '<div id="v20-rdL" class="col" style="gap:6px;max-height:55vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    var wk = startOfWeek.toISOString().slice(0,10);
+    function all(){ return store.get('bike20',[]).filter(function(x){ return x.d >= wk; }); }
+    function render(){
+      var a = all();
+      var total = a.reduce(function(s,x){ return s + x.km; }, 0);
+      win.querySelector('#v20-rdT').textContent = total.toFixed(1) + ' km';
+      win.querySelector('#v20-rdL').innerHTML = a.length ? a.map(function(x){
+        var h = Math.floor(x.min/60), m = x.min%60;
+        return '<div class="v20-row"><b style="flex:1">'+x.km+' km</b><span class="dim sm">⛰ '+x.hm+' m</span><span class="dim sm">'+h+'h'+m+'m</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Fahrten diese Woche</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('bike20', store.get('bike20',[]).filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v20-rdA').onclick = function(){
+      var km = parseFloat(win.querySelector('#v20-rdD').value)||0; if(!km) return;
+      var a = store.get('bike20',[]);
+      a.unshift({id:uid(), km:km, hm:parseInt(win.querySelector('#v20-rdH').value)||0, min:parseInt(win.querySelector('#v20-rdM').value)||0, d:new Date().toISOString().slice(0,10), ts:Date.now()});
+      store.set('bike20', a.slice(0,200));
+      render();
+    };
+    render();
+  }
+};
+
+/* 14 · KRAFT-STANDARDS */
+APPS['kraft-standards'] = {
+  name:'Kraft-Standards', icon:'🏋️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🏋️ Kraft-Standards</div><div class="dim sm">Benchmark für Kraftübungen</div></div>'+
+      '<div class="row"><input class="v9-input" id="v20-ksG" type="number" placeholder="Körpergewicht kg" value="80" style="flex:1"><select class="v9-input" id="v20-ksX" style="width:auto"><option value="m">Mann</option><option value="w">Frau</option></select><button class="btn primary" id="v20-ksGo">▶</button></div>'+
+      '<div id="v20-ksL" class="col" style="gap:6px;max-height:60vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v20-ksGo').onclick = function(){
+      var bw = parseFloat(win.querySelector('#v20-ksG').value)||80;
+      var g = win.querySelector('#v20-ksX').value;
+      var factor = g === 'm' ? 1 : 0.75;
+      var D = [
+        ['Bench Press', bw*1, bw*0.75, bw*1.25],
+        ['Squat', bw*1.25, bw*1, bw*1.75],
+        ['Deadlift', bw*1.5, bw*1.25, bw*2],
+        ['Overhead Press', bw*0.6, bw*0.45, bw*0.8],
+        ['Barbell Row', bw*0.9, bw*0.7, bw*1.1]
+      ];
+      win.querySelector('#v20-ksL').innerHTML = D.map(function(x){
+        return '<div class="v20-card"><b>'+esc(x[0])+'</b><div class="dim sm" style="margin-top:6px;line-height:1.7">🥉 Anfänger: <b>'+(x[1]*factor).toFixed(0)+' kg</b><br>🥈 Fortgeschritten: <b>'+(x[2]*factor).toFixed(0)+' kg</b><br>🥇 Elite: <b>'+(x[3]*factor).toFixed(0)+' kg</b></div></div>';
+      }).join('');
+    };
+    win.querySelector('#v20-ksGo').click();
+  }
+};
+
+/* 15 · REGENERATIONS-TIPPS */
+APPS['regeneration'] = {
+  name:'Regenerations-Tipps', icon:'🛌',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🛌 Regenerations-Tipps</div><div class="dim sm">Besser erholen nach dem Sport</div></div>'+
+      '<div id="v20-rgL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['😴','Schlaf','7-9 Stunden · wichtigste Regeneration'],
+      ['💧','Wasser','+500 ml pro Stunde Sport'],
+      ['🥩','Protein','20-30 g nach dem Training'],
+      ['🍌','Kohlenhydrate','Innerhalb 1 Std nach Belastung'],
+      ['🧘','Cool-Down','5-10 Min leichtes Auslaufen'],
+      ['🧊','Kaltes Wasser','10-15 °C · 5-10 Min · gegen Muskelkater'],
+      ['♨️','Sauna','Nach dem Sport · Muskelentspannung'],
+      ['💆','Massage','Lockert Verspannungen'],
+      ['📅','Ruhetag','1-2× pro Woche keine intensive Belastung'],
+      ['🚶','Aktive Erholung','Spaziergang, leichtes Radfahren']
+    ];
+    win.querySelector('#v20-rgL').innerHTML = D.map(function(x){
+      return '<div class="v20-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+    }).join('');
+  }
+};
+
+/* 16 · FUSSBALL-TIPPS */
+APPS['fussball'] = {
+  name:'Fußball-Tipps', icon:'⚽',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">⚽ Fußball-Tipps</div><div class="dim sm">Technik & Taktik</div></div>'+
+      '<div id="v20-fbL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['⚽','Ballannahme','Innenseite Fuß · Fuß gibt nach'],
+      ['🎯','Passgenauigkeit','Innenseite · nicht mit Spitze'],
+      ['🎨','Dribbling','Ball nah am Fuß · Kopf hoch'],
+      ['💥','Schusstechnik','Innenspann · Körper über Ball'],
+      ['🦵','Flanke','Bogenlampe · Innenrist'],
+      ['🧠','Spielübersicht','Kopf hoch · vor Pass schauen'],
+      ['🏃','Laufwege','Freilaufen ohne Ball'],
+      ['🥅','Torwart','Immer vor dem Stürmer sein'],
+      ['⚡','Pressing','Gegner unter Druck setzen'],
+      ['🔄','Umschalten','Nach Ballverlust sofort zurück']
+    ];
+    win.querySelector('#v20-fbL').innerHTML = D.map(function(x){
+      return '<div class="v20-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+    }).join('');
+  }
+};
+
+/* 17 · FITNESS-ALTER */
+APPS['fitness-alter'] = {
+  name:'Fitness-Alter', icon:'📊',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📊 Fitness-Alter</div><div class="dim sm">Selbsttest basierend auf 5 Faktoren</div></div>'+
+      '<div class="row"><input class="v9-input" id="v20-faA" type="number" placeholder="Alter" value="30" style="flex:1"><select class="v9-input" id="v20-faX" style="width:auto"><option value="m">M</option><option value="w">W</option></select></div>'+
+      '<div id="v20-faQ" class="col" style="gap:8px"></div>'+
+      '<button class="btn primary" id="v20-faGo">▶ Berechnen</button>'+
+      '<div class="v9-stat"><div class="v" id="v20-faO">–</div><div class="l">Fitness-Alter</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var Q = [
+      ['Sport pro Woche', ['0×','1-2×','3-4×','5+×']],
+      ['Ausdauer (30 Min joggen)', ['Kaum','Schwer','Mittel','Leicht']],
+      ['Kraft (10 Liegestütze)', ['0-3','4-7','8-12','13+']],
+      ['Beweglichkeit (Vorbeuge)', ['Knie','Waden','Boden','Handflächen']],
+      ['Schlaf pro Nacht', ['<6h','6-7h','7-8h','8+h']]
+    ];
+    win.querySelector('#v20-faQ').innerHTML = Q.map(function(q, i){
+      return '<div class="v20-card"><b>'+esc(q[0])+'</b><div class="row" style="margin-top:6px;flex-wrap:wrap;gap:6px">'+q[1].map(function(o){
+        return '<button class="v20-chip" data-q="'+i+'" data-v="'+o+'">'+esc(o)+'</button>';
+      }).join('')+'</div></div>';
+    }).join('');
+    var sel = {};
+    win.querySelectorAll('[data-q]').forEach(function(b){
+      b.onclick = function(){
+        sel[b.dataset.q] = b.dataset.v;
+        win.querySelectorAll('[data-q="'+b.dataset.q+'"]').forEach(function(x){ x.classList.toggle('on', x === b); });
+      };
+    });
+    win.querySelector('#v20-faGo').onclick = function(){
+      var age = parseInt(win.querySelector('#v20-faA').value)||30;
+      var score = 0, count = 0;
+      Object.keys(sel).forEach(function(k){
+        var i = win.querySelector('#v20-faQ').querySelectorAll('[data-q="'+k+'"]');
+        var idx = Array.from(i).findIndex(function(x){ return x.dataset.v === sel[k]; });
+        if(idx >= 0){ score += idx; count++; }
+      });
+      if(!count) return toast('Bitte alle Fragen beantworten');
+      var avg = score / count;
+      var result = age - (avg - 1.5) * 5;
+      win.querySelector('#v20-faO').textContent = Math.round(result) + ' Jahre';
+    };
+  }
+};
+
+/* 18 · MARATHON-PLAN */
+APPS['marathon'] = {
+  name:'Marathon-Plan', icon:'🏅',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🏅 Marathon-Plan</div><div class="dim sm">16-Wochen-Vorbereitung</div></div>'+
+      '<div class="row"><input class="v9-input" id="v20-mrW" type="number" placeholder="Aktuelle Wochen-km" value="30" style="flex:1"><select class="v9-input" id="v20-mrZ" style="width:auto"><option value="4:30">4:30 h Ziel</option><option value="4:00">4:00 h Ziel</option><option value="3:30">3:30 h Ziel</option><option value="3:00">3:00 h Ziel</option></select></div>'+
+      '<button class="btn primary" id="v20-mrGo">▶ Plan anzeigen</button>'+
+      '<div id="v20-mrL"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v20-mrGo').onclick = function(){
+      var cur = parseInt(win.querySelector('#v20-mrW').value)||30;
+      var target = win.querySelector('#v20-mrZ').value;
+      var peak = Math.round(cur * 2);
+      var plan = [];
+      for(var w = 1; w <= 16; w++){
+        var km;
+        if(w <= 4) km = cur + (w-1) * Math.round((peak-cur)*0.15);
+        else if(w <= 12) km = cur + Math.round((peak-cur) * ((w-4)/8));
+        else if(w === 13) km = Math.round(peak * 0.7);
+        else if(w === 14) km = Math.round(peak * 0.85);
+        else if(w === 15) km = Math.round(peak * 0.5);
+        else km = 42;
+        plan.push({w:w, km:km});
+      }
+      win.querySelector('#v20-mrL').innerHTML = '<div class="v20-card"><b>🏅 Ziel: '+target+' h</b><div class="dim sm" style="margin-top:8px;line-height:1.9">' + plan.map(function(p){
+        return 'Woche '+p.w.toString().padStart(2)+' → <b>'+p.km+' km</b>';
+      }).join('<br>') + '</div></div>';
+    };
+    win.querySelector('#v20-mrGo').click();
+  }
+};
+
+/* 19 · SPORT-VERLETZUNGEN */
+APPS['sport-verletzung'] = {
+  name:'Sport-Verletzungen', icon:'🩹',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🩹 Sport-Verletzungen</div><div class="dim sm">Erste Hilfe & Vorbeugung</div></div>'+
+      '<div class="v20-card" style="background:rgba(224,59,90,.1);border-color:#e03b5a"><b>🚨 Bei schweren Verletzungen: 112 anrufen</b></div>'+
+      '<div id="v20-svL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['🦵','Verstauchung','PECH-Regel: Pause · Eis · Compression · Hochlagern · 20 Min alle 2 Std'],
+      ['💪','Muskelzerrung','Sofort Pause · Eis · kein Wärmen · Arzt bei starkem Schmerz'],
+      ['🦴','Knochenbruch','Nicht bewegen · stabilisieren · 112 rufen'],
+      ['🩸','Schnittwunde','Sauber machen · Druckverband · Tetanus-Impfung prüfen'],
+      ['⚽','Prellung','Eis · kühlen · nicht massieren'],
+      ['🦶','Umknicken','Hochlagern · kühlen · Bandage'],
+      ['🧠','Gehirnerschütterung','Sofort Pause · Arzt · kein Sport für Wochen'],
+      ['🔥','Muskelkater','Wärme · leichte Bewegung · 2-3 Tage'],
+      ['🦵','Achillessehne','Pause · Arzt · Physio · langsamer Aufbau'],
+      ['🤕','Knie (Meniskus)','Sofort Arzt · oft OP nötig']
+    ];
+    win.querySelector('#v20-svL').innerHTML = D.map(function(x){
+      return '<div class="v20-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:6px">'+esc(x[2])+'</div></div>';
+    }).join('');
+  }
+};
+
+/* 20 · SPORT-MOTIVATION */
+APPS['sport-motivation'] = {
+  name:'Sport-Motivation', icon:'🔥',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🔥 Sport-Motivation</div><div class="dim sm">Durchhalten!</div></div>'+
+      '<div class="v20-card" style="min-height:120px;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:16px;line-height:1.7;font-style:italic" id="v20-moL">Klicke "Neu" für einen Motivationsspruch.</div>'+
+      '<button class="btn primary" id="v20-moN" style="width:100%">🔄 Neuer Spruch</button>'+
+    '</div>';
+  },
+  init: function(win){
+    var S = [
+      'Der Schmerz von heute ist die Kraft von morgen.',
+      'Du musst nicht perfekt sein. Du musst nur besser sein als gestern.',
+      'Erfolg ist die Summe kleiner Anstrengungen.',
+      'Der beste Zeitpunkt war gestern. Der zweite ist jetzt.',
+      'Disziplin ist die Brücke zwischen Zielen und Erfolg.',
+      'Motivation bringt dich in Gang, Gewohnheit hält dich in Bewegung.',
+      'Wenn du müde bist, lerne weiter. Nicht aufhören.',
+      'Der Körper schafft es, wenn der Kopf es zulässt.',
+      'Jeder Schritt zählt. Auch der langsame.',
+      'Erst wenn du aufhörst, hast du verloren.'
+    ];
+    var last = -1;
+    function pick(){
+      var i = Math.floor(Math.random()*S.length);
+      if(i === last) i = (i+1)%S.length;
+      last = i;
+      win.querySelector('#v20-moL').textContent = '„' + S[i] + '"';
+    }
+    win.querySelector('#v20-moN').onclick = pick;
+    pick();
+  }
+};
+
+console.log('%c📦 v20 geladen — Sport & Fitness · 20 Apps','background:linear-gradient(90deg,#ff6b88,#4de88a);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('Aktive Apps:', Object.keys(APPS).length);
+
+setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click(); }, 150);
+
+})();
+</script>
 </body>
 </html>
