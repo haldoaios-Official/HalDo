@@ -36135,5 +36135,388 @@ setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v47 · App-Directory & Einstellungen · 3 Apps
+     ============================================================ -->
+<style id="v47-style">
+.v47-search{width:100%;padding:16px 18px;border-radius:14px;background:linear-gradient(150deg,rgba(0,229,255,.1),rgba(20,30,60,.5));border:2px solid rgba(0,229,255,.3);color:var(--txt);outline:none;font-size:15px;font-family:inherit;font-weight:500}
+.v47-search:focus{border-color:var(--c1);box-shadow:0 0 0 4px rgba(0,229,255,.15)}
+.v47-cat{padding:10px 14px;border-radius:12px;background:linear-gradient(150deg,rgba(0,229,255,.08),rgba(20,30,60,.4));border:1px solid rgba(0,229,255,.2);margin-top:16px;margin-bottom:8px;font-weight:800;font-size:14px;color:var(--c1);letter-spacing:.5px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.v47-cat:hover{background:linear-gradient(150deg,rgba(0,229,255,.15),rgba(20,30,60,.5))}
+.v47-app{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);margin-bottom:6px;cursor:pointer;transition:.15s}
+.v47-app:hover{background:rgba(0,229,255,.08);border-color:var(--c1);transform:translateX(4px)}
+.v47-app .ic{width:44px;height:44px;border-radius:10px;background:linear-gradient(150deg,rgba(0,229,255,.15),rgba(180,120,255,.1));border:1px solid rgba(0,229,255,.25);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.v47-app .nm{font-weight:700;font-size:14px;color:var(--txt)}
+.v47-app .sub{font-size:11px;color:var(--dim);margin-top:2px}
+.v47-app .arrow{margin-left:auto;color:var(--c1);font-size:18px;opacity:.6}
+.v47-stat{padding:14px;border-radius:14px;text-align:center;background:linear-gradient(150deg,rgba(0,229,255,.08),rgba(20,30,60,.4));border:1px solid rgba(0,229,255,.18)}
+.v47-stat .v{font-size:26px;font-weight:800;color:var(--c1);font-variant-numeric:tabular-nums}
+.v47-stat .l{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-top:6px}
+.v47-set-row{display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);margin-bottom:8px}
+.v47-set-row .lbl{flex:1;font-weight:600;font-size:13px}
+.v47-set-row .desc{font-size:11px;color:var(--dim);margin-top:2px;font-weight:400}
+.v47-switch{width:50px;height:28px;border-radius:999px;background:rgba(255,255,255,.1);position:relative;cursor:pointer;transition:.2s;flex-shrink:0}
+.v47-switch::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.2s}
+.v47-switch.on{background:linear-gradient(135deg,var(--c1),var(--c2))}
+.v47-switch.on::after{left:25px}
+.v47-preview{padding:14px;border-radius:12px;background:rgba(0,20,50,.5);border:1px solid rgba(120,180,255,.18);text-align:center;margin-top:8px}
+.v47-preview .big{font-size:32px;font-weight:800;color:var(--c1);margin:8px 0}
+</style>
+
+<script>
+(function(){
+'use strict';
+var H = window.HalDo;
+if(!H || !H.APPS){ console.error('[v47] Foundation fehlt'); return; }
+var APPS = H.APPS;
+var esc=H.esc, uid=H.uid, store=H.store, toast=H.toast;
+
+/* ============================================================
+   1 · APP-DIRECTORY (ALLE APPS IN EINER LISTE)
+   ============================================================ */
+APPS['app-directory'] = {
+  name:'📚 Alle Apps A-Z', icon:'📚',
+  render: function(){
+    var total = Object.keys(APPS).length;
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📚 App-Directory</div><div class="dim sm">Alle Apps an einem Ort · durchsuchbar</div></div>'+
+      '<div class="row"><div class="v47-stat" style="flex:1"><div class="v" id="v47-dirTotal">'+total+'</div><div class="l">Apps geladen</div></div></div>'+
+      '<input class="v47-search" id="v47-dirSearch" placeholder="🔍 App suchen (z.B. Rechner, Yoga, Krypto)…">'+
+      '<div class="row" id="v47-dirSort" style="flex-wrap:wrap;gap:6px">'+
+        '<button class="v9-chip on" data-sort="name">🔤 Name</button>'+
+        '<button class="v9-chip" data-sort="icon">🎨 Icon</button>'+
+        '<button class="v9-chip" data-sort="new">🆕 Neueste</button>'+
+        '<button class="v9-chip" data-sort="old">📜 Älteste</button>'+
+      '</div>'+
+      '<div id="v47-dirList" class="col" style="gap:4px;max-height:70vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var Q = win.querySelector('#v47-dirSearch');
+    var sortMode = 'name';
+    
+    function getAllApps(){
+      var ids = Object.keys(APPS);
+      return ids.map(function(id, i){
+        var app = APPS[id];
+        return {
+          id: id,
+          name: app.name || id,
+          icon: app.icon || '📱',
+          index: i
+        };
+      });
+    }
+    
+    function render(){
+      var list = getAllApps();
+      var q = (Q.value || '').toLowerCase().trim();
+      
+      if(q){
+        list = list.filter(function(a){
+          return a.name.toLowerCase().indexOf(q) >= 0 || a.id.toLowerCase().indexOf(q) >= 0;
+        });
+      }
+      
+      // Sortieren
+      if(sortMode === 'name'){
+        list.sort(function(a,b){ return a.name.localeCompare(b.name); });
+      } else if(sortMode === 'icon'){
+        list.sort(function(a,b){ return a.icon.localeCompare(b.icon); });
+      } else if(sortMode === 'new'){
+        list.sort(function(a,b){ return b.index - a.index; });
+      } else if(sortMode === 'old'){
+        list.sort(function(a,b){ return a.index - b.index; });
+      }
+      
+      var total = Object.keys(APPS).length;
+      win.querySelector('#v47-dirTotal').textContent = q ? (list.length + ' / ' + total) : total;
+      
+      if(!list.length){
+        win.querySelector('#v47-dirList').innerHTML = '<div class="empty">Keine App gefunden für "'+esc(q)+'"</div>';
+        return;
+      }
+      
+      // Nach Anfangsbuchstaben gruppieren (nur wenn keine Suche)
+      if(!q && sortMode === 'name'){
+        var groups = {};
+        list.forEach(function(a){
+          var k = a.name.charAt(0).toUpperCase();
+          if(k === '📚' || k === '🔤' || k === '🎨' || k === '🆕' || k === '📜' || k === '🔍' || k === '🧠' || k === '💼' || k === '🌍') k = '🎯';
+          if(!groups[k]) groups[k] = [];
+          groups[k].push(a);
+        });
+        var html = '';
+        Object.keys(groups).sort().forEach(function(k){
+          html += '<div class="v47-cat"><span>'+k+'</span><span style="font-weight:400;font-size:11px;color:var(--dim)">'+groups[k].length+' Apps</span></div>';
+          groups[k].forEach(function(a){
+            html += renderApp(a);
+          });
+        });
+        win.querySelector('#v47-dirList').innerHTML = html;
+      } else {
+        win.querySelector('#v47-dirList').innerHTML = list.map(renderApp).join('');
+      }
+      
+      // Klick auf App → öffnen
+      win.querySelectorAll('#v47-dirList .v47-app').forEach(function(el){
+        el.onclick = function(){
+          var id = el.dataset.appid;
+          if(typeof window.HalDo.openWin === 'function'){
+            window.HalDo.openWin(id);
+          } else {
+            // Fallback: über WM öffnen
+            var evt = new CustomEvent('haldo-open', {detail: {id: id}});
+            document.dispatchEvent(evt);
+          }
+          toast('📱 ' + el.querySelector('.nm').textContent);
+        };
+      });
+    }
+    
+    function renderApp(a){
+      return '<div class="v47-app" data-appid="'+esc(a.id)+'">'+
+        '<div class="ic">'+esc(a.icon)+'</div>'+
+        '<div style="flex:1"><div class="nm">'+esc(a.name)+'</div><div class="sub">'+esc(a.id)+'</div></div>'+
+        '<div class="arrow">›</div>'+
+      '</div>';
+    }
+    
+    Q.oninput = render;
+    
+    win.querySelectorAll('#v47-dirSort [data-sort]').forEach(function(b){
+      b.onclick = function(){
+        sortMode = b.dataset.sort;
+        win.querySelectorAll('#v47-dirSort [data-sort]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        render();
+      };
+    });
+    
+    render();
+  }
+};
+
+/* ============================================================
+   2 · EINSTELLUNGEN
+   ============================================================ */
+APPS['einstellungen'] = {
+  name:'⚙️ Einstellungen', icon:'⚙️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">⚙️ Einstellungen</div><div class="dim sm">HalDo anpassen</div></div>'+
+      
+      '<div class="v47-cat">🎨 Darstellung</div>'+
+      '<div class="v47-set-row"><div style="flex:1"><div class="lbl">🌙 Animationen</div><div class="desc">Ein-/Ausblenden-Effekte</div></div><div class="v47-switch on" data-set="anim"></div></div>'+
+      '<div class="v47-set-row"><div style="flex:1"><div class="lbl">✨ Glow-Effekte</div><div class="desc">Leuchtende Schatten</div></div><div class="v47-switch on" data-set="glow"></div></div>'+
+      '<div class="v47-set-row"><div style="flex:1"><div class="lbl">🎯 Kompakt-Modus</div><div class="desc">Weniger Abstände</div></div><div class="v47-switch" data-set="compact"></div></div>'+
+      '<div class="v47-set-row"><div style="flex:1"><div class="lbl">🎨 Farbschema</div><div class="desc">Akzentfarbe</div></div>'+
+        '<select id="v47-accent" class="v9-input" style="width:auto"><option value="#00e5ff">🔵 Cyan</option><option value="#b478ff">🟣 Lila</option><option value="#4de88a">🟢 Grün</option><option value="#ff6b88">🔴 Rot</option><option value="#ffd84a">🟡 Gold</option></select>'+
+      '</div>'+
+      
+      '<div class="v47-cat">🔊 Verhalten</div>'+
+      '<div class="v47-set-row"><div style="flex:1"><div class="lbl">🔔 Sounds</div><div class="desc">Bei Klicks/Timern</div></div><div class="v47-switch on" data-set="sounds"></div></div>'+
+      '<div class="v47-set-row"><div style="flex:1"><div class="lbl">💾 Auto-Speichern</div><div class="desc">Daten automatisch sichern</div></div><div class="v47-switch on" data-set="autosave"></div></div>'+
+      '<div class="v47-set-row"><div style="flex:1"><div class="lbl">🌐 Offline-Modus</div><div class="desc">Keine Internet-Anfragen</div></div><div class="v47-switch" data-set="offline"></div></div>'+
+      
+      '<div class="v47-cat">👁️ Live-Vorschau</div>'+
+      '<div class="v47-preview">'+
+        '<div class="dim sm">So sieht deine Oberfläche aus</div>'+
+        '<div class="big" id="v47-prevText">HalDo AI OS</div>'+
+        '<div class="dim sm" id="v47-prevInfo">Akzent: Cyan · Animationen an</div>'+
+      '</div>'+
+      
+      '<div class="v47-cat">🦚 Über HalDo</div>'+
+      '<div class="row"><div class="v47-stat" style="flex:1"><div class="v" id="v47-setTotal">'+Object.keys(APPS).length+'</div><div class="l">Apps</div></div><div class="v47-stat" style="flex:1"><div class="v">47</div><div class="l">Version</div></div></div>'+
+      '<div class="v47-set-row" style="justify-content:center"><div style="text-align:center"><div class="lbl">💙 Made for HalDo</div><div class="desc">Êzîdî û Kurdî 🦚</div></div></div>'+
+      
+      '<div class="v47-cat">🗑️ Daten</div>'+
+      '<button class="btn" id="v47-clearCache" style="width:100%;background:rgba(224,59,90,.15);border-color:#e03b5a;color:#ff9db1">🗑 Alle HalDo-Daten löschen</button>'+
+      '<div class="dim sm center" style="margin-top:6px">Achtung: Alle gespeicherten Einträge werden gelöscht</div>'+
+    '</div>';
+  },
+  init: function(win){
+    var settings = store.get('haldo_settings', {
+      anim: true, glow: true, compact: false, sounds: true, autosave: true, offline: false, accent: '#00e5ff'
+    });
+    
+    function save(){
+      store.set('haldo_settings', settings);
+      applySettings();
+      updatePreview();
+    }
+    
+    function applySettings(){
+      var root = document.documentElement;
+      if(settings.accent) root.style.setProperty('--c1', settings.accent);
+      if(settings.compact){
+        document.body.style.fontSize = '13px';
+      } else {
+        document.body.style.fontSize = '';
+      }
+    }
+    
+    function updatePreview(){
+      win.querySelector('#v47-prevText').style.color = settings.accent || 'var(--c1)';
+      var info = 'Akzent: ' + 
+        (settings.accent === '#00e5ff' ? 'Cyan' : 
+         settings.accent === '#b478ff' ? 'Lila' : 
+         settings.accent === '#4de88a' ? 'Grün' : 
+         settings.accent === '#ff6b88' ? 'Rot' : 'Gold');
+      info += ' · Animationen ' + (settings.anim ? 'an' : 'aus');
+      win.querySelector('#v47-prevInfo').textContent = info;
+    }
+    
+    // Switches
+    win.querySelectorAll('.v47-switch[data-set]').forEach(function(sw){
+      var key = sw.dataset.set;
+      if(settings[key]) sw.classList.add('on');
+      else sw.classList.remove('on');
+      
+      sw.onclick = function(){
+        sw.classList.toggle('on');
+        settings[key] = sw.classList.contains('on');
+        save();
+        toast((settings[key] ? '✅ ' : '⭕ ') + key);
+      };
+    });
+    
+    // Akzentfarbe
+    var accentSel = win.querySelector('#v47-accent');
+    if(accentSel){
+      accentSel.value = settings.accent || '#00e5ff';
+      accentSel.onchange = function(){
+        settings.accent = accentSel.value;
+        save();
+        toast('🎨 ' + settings.accent);
+      };
+    }
+    
+    // Daten löschen
+    var clearBtn = win.querySelector('#v47-clearCache');
+    if(clearBtn){
+      clearBtn.onclick = function(){
+        if(!confirm('Alle HalDo-Daten löschen? Kann nicht rückgängig gemacht werden!')) return;
+        var keys = [];
+        for(var i=0; i<localStorage.length; i++){
+          var k = localStorage.key(i);
+          if(k && k.indexOf('haldo_') === 0) keys.push(k);
+        }
+        keys.forEach(function(k){ localStorage.removeItem(k); });
+        toast('🗑 ' + keys.length + ' Einträge gelöscht');
+        setTimeout(function(){ location.reload(); }, 1500);
+      };
+    }
+    
+    win.querySelector('#v47-setTotal').textContent = Object.keys(APPS).length;
+    applySettings();
+    updatePreview();
+  }
+};
+
+/* ============================================================
+   3 · SCHNELLZUGRIFF (Favoriten + Zuletzt)
+   ============================================================ */
+APPS['schnellzugriff'] = {
+  name:'⭐ Schnellzugriff', icon:'⭐',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">⭐ Schnellzugriff</div><div class="dim sm">Favoriten & zuletzt verwendet</div></div>'+
+      
+      '<div class="v47-cat">⭐ Favoriten</div>'+
+      '<div class="row"><select class="v9-input" id="v47-favAdd" style="flex:1"></select><button class="btn primary" id="v47-favAddBtn">+ Hinzufügen</button></div>'+
+      '<div id="v47-favList" class="col" style="gap:4px;max-height:35vh;overflow-y:auto"></div>'+
+      
+      '<div class="v47-cat">🕐 Zuletzt geöffnet</div>'+
+      '<div id="v47-recentList" class="col" style="gap:4px;max-height:35vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function getAllApps(){
+      return Object.keys(APPS).map(function(id){
+        var app = APPS[id];
+        return {id: id, name: app.name || id, icon: app.icon || '📱'};
+      }).sort(function(a,b){ return a.name.localeCompare(b.name); });
+    }
+    
+    function getFavs(){ return store.get('haldo_favs', []); }
+    function getRecent(){ return store.get('haldo_recent', []); }
+    
+    function render(){
+      var list = getAllApps();
+      
+      // Favoriten-Dropdown füllen
+      var sel = win.querySelector('#v47-favAdd');
+      sel.innerHTML = '<option value="">— App wählen —</option>' + list.map(function(a){
+        return '<option value="'+esc(a.id)+'">'+esc(a.icon)+' '+esc(a.name)+'</option>';
+      }).join('');
+      
+      // Favoriten anzeigen
+      var favs = getFavs();
+      var favApps = favs.map(function(id){ return list.find(function(a){ return a.id === id; }); }).filter(Boolean);
+      win.querySelector('#v47-favList').innerHTML = favApps.length ? favApps.map(function(a){
+        return '<div class="v47-app" data-appid="'+esc(a.id)+'">'+
+          '<div class="ic">'+esc(a.icon)+'</div>'+
+          '<div style="flex:1"><div class="nm">'+esc(a.name)+'</div></div>'+
+          '<button class="btn sm" data-remove="'+esc(a.id)+'" style="background:rgba(224,59,90,.15);color:#ff9db1">✕</button>'+
+        '</div>';
+      }).join('') : '<div class="empty">Noch keine Favoriten · wähle oben eine App</div>';
+      
+      // Zuletzt
+      var recent = getRecent().slice(0, 12);
+      var recentApps = recent.map(function(r){
+        var a = list.find(function(x){ return x.id === r.id; });
+        return a ? {app: a, ts: r.ts} : null;
+      }).filter(Boolean);
+      win.querySelector('#v47-recentList').innerHTML = recentApps.length ? recentApps.map(function(r){
+        return '<div class="v47-app" data-appid="'+esc(r.app.id)+'">'+
+          '<div class="ic">'+esc(r.app.icon)+'</div>'+
+          '<div style="flex:1"><div class="nm">'+esc(r.app.name)+'</div><div class="sub">'+new Date(r.ts).toLocaleString('de-DE')+'</div></div>'+
+          '<div class="arrow">›</div>'+
+        '</div>';
+      }).join('') : '<div class="empty">Öffne Apps, um sie hier zu sehen</div>';
+      
+      // Klick auf App
+      win.querySelectorAll('#v47-favList .v47-app, #v47-recentList .v47-app').forEach(function(el){
+        el.onclick = function(e){
+          if(e.target.dataset.remove){
+            var rem = e.target.dataset.remove;
+            var newFavs = getFavs().filter(function(x){ return x !== rem; });
+            store.set('haldo_favs', newFavs);
+            render();
+            toast('⭐ Entfernt');
+            return;
+          }
+          var id = el.dataset.appid;
+          if(typeof window.HalDo.openWin === 'function'){
+            window.HalDo.openWin(id);
+          }
+        };
+      });
+    }
+    
+    win.querySelector('#v47-favAddBtn').onclick = function(){
+      var sel = win.querySelector('#v47-favAdd');
+      var id = sel.value;
+      if(!id) return toast('Wähle eine App');
+      var favs = getFavs();
+      if(favs.indexOf(id) >= 0) return toast('⭐ Schon in Favoriten');
+      favs.push(id);
+      store.set('haldo_favs', favs);
+      render();
+      toast('⭐ Hinzugefügt');
+    };
+    
+    render();
+  }
+};
+
+console.log('%c📦 v47 geladen — App-Directory & Einstellungen · 3 Apps','background:linear-gradient(90deg,#00e5ff,#ffd84a);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('📚 App-Directory · ⚙️ Einstellungen · ⭐ Schnellzugriff');
+console.log('Aktive Apps:', Object.keys(APPS).length);
+
+setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click(); }, 150);
+
+})();
+</script>
 </body>
 </html>
