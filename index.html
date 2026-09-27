@@ -36518,5 +36518,1006 @@ setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v48 · Lebendige Avatare Pro · 10 Apps
+     ============================================================ -->
+<style id="v48-style">
+.v48-stage{position:relative;width:100%;max-width:480px;margin:0 auto;border-radius:20px;background:linear-gradient(180deg,rgba(10,16,40,.6),rgba(20,30,60,.9));border:1px solid rgba(0,229,255,.25);overflow:hidden;box-shadow:0 0 60px rgba(0,229,255,.2)}
+.v48-canvas{width:100%;aspect-ratio:1;display:block;cursor:pointer;touch-action:none}
+.v48-controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+.v48-btn{padding:10px 16px;border-radius:999px;background:linear-gradient(135deg,rgba(0,229,255,.1),rgba(180,120,255,.06));border:1px solid rgba(0,229,255,.3);color:var(--c1);font-family:inherit;font-weight:700;font-size:12px;cursor:pointer;transition:.15s}
+.v48-btn:hover{background:linear-gradient(135deg,rgba(0,229,255,.2),rgba(180,120,255,.15));transform:translateY(-2px)}
+.v48-btn.on{background:linear-gradient(135deg,var(--c1),var(--c2));color:#02101e;border-color:var(--c1)}
+.v48-info{padding:14px;border-radius:14px;background:linear-gradient(150deg,rgba(0,229,255,.08),rgba(20,30,60,.4));border:1px solid rgba(0,229,255,.18);margin-top:12px;text-align:center}
+.v48-info .nm{font-size:18px;font-weight:800;color:var(--c1)}
+.v48-info .sub{font-size:12px;color:var(--dim);margin-top:4px;line-height:1.6}
+.v48-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:12px}
+.v48-tile{padding:14px;border-radius:14px;background:linear-gradient(150deg,rgba(180,120,255,.1),rgba(0,229,255,.05));border:1px solid rgba(180,120,255,.25);text-align:center;cursor:pointer;transition:.15s}
+.v48-tile:hover{transform:translateY(-2px);border-color:#b478ff;box-shadow:0 8px 24px rgba(180,120,255,.15)}
+.v48-tile.on{background:linear-gradient(150deg,var(--c1),var(--c2));color:#02101e;border-color:var(--c1)}
+.v48-tile .ic{font-size:42px;line-height:1;margin-bottom:8px}
+.v48-tile .nm{font-size:13px;font-weight:700}
+.v48-tile .sub{font-size:10px;opacity:.8;margin-top:3px}
+.v48-bubble{position:absolute;top:20px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:16px;background:rgba(255,255,255,.95);color:#0a1028;font-weight:700;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.3);opacity:0;transition:.3s;pointer-events:none;max-width:80%}
+.v48-bubble.on{opacity:1;transform:translateX(-50%) translateY(-8px)}
+.v48-bubble::after{content:'';position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:10px solid rgba(255,255,255,.95)}
+</style>
+
+<script>
+(function(){
+'use strict';
+var H = window.HalDo;
+if(!H || !H.APPS){ console.error('[v48] Foundation fehlt'); return; }
+var APPS = H.APPS;
+var esc=H.esc, uid=H.uid, store=H.store, toast=H.toast;
+
+/* ============================================================
+   AVATAR-ENGINE (Canvas-basiert, lebendig)
+   ============================================================ */
+function createAvatar(canvas, opts){
+  opts = opts || {};
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width;
+  var H2 = canvas.height;
+  var state = {
+    t: 0,
+    blink: 0,
+    blinkTimer: 0,
+    mood: 'normal',
+    moodTimer: 0,
+    handPhase: 0,
+    mode: opts.mode || 'human',
+    talking: false,
+    talkText: '',
+    talkTimer: 0
+  };
+  var raf;
+  
+  function skin(){
+    return state.mode === 'human' ? '#f4c4a0' :
+           state.mode === 'cyborg' ? '#8fa8d4' :
+           state.mode === 'ezidi' ? '#e8c8a0' :
+           state.mode === 'robot' ? '#c0c8d8' :
+           '#a8c8e8';
+  }
+  function eyeCol(){
+    return state.mode === 'human' ? '#3a2010' :
+           state.mode === 'cyborg' ? '#00e5ff' :
+           state.mode === 'ezidi' ? '#3a2010' :
+           state.mode === 'robot' ? '#4de88a' :
+           '#b478ff';
+  }
+  function hairCol(){
+    return state.mode === 'human' ? '#3a2010' :
+           state.mode === 'cyborg' ? '#5a7ab8' :
+           state.mode === 'ezidi' ? '#2a1a10' :
+           state.mode === 'robot' ? '#8898b8' :
+           '#4a3a80';
+  }
+  
+  function draw(){
+    state.t += 0.02;
+    state.blinkTimer++;
+    state.moodTimer++;
+    state.handPhase += 0.04;
+    state.talkTimer++;
+    
+    // Auto-Blink
+    if(state.blinkTimer > 100 + Math.random()*80){
+      state.blink = 1;
+      state.blinkTimer = 0;
+      setTimeout(function(){ state.blink = 0; }, 130);
+    }
+    
+    // Mood zurücksetzen
+    if(state.moodTimer > 120 && state.mood !== 'normal'){
+      state.mood = 'normal';
+      state.moodTimer = 0;
+    }
+    
+    ctx.clearRect(0, 0, W, H2);
+    
+    var cx = W / 2;
+    var cy = H2 / 2 - 20; // etwas nach oben für Hände unten
+    var headR = 110;
+    var bob = Math.sin(state.t) * 3;
+    
+    // Hintergrund-Glow
+    var grd = ctx.createRadialGradient(cx, cy, 20, cx, cy, headR * 2.2);
+    grd.addColorStop(0, 'rgba(0,229,255,.15)');
+    grd.addColorStop(1, 'rgba(0,229,255,0)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, W, H2);
+    
+    // ---- HÄNDE (hinter Kopf) ----
+    drawHands(cx, cy, headR, bob);
+    
+    // ---- KOPF ----
+    drawHead(cx, cy + bob, headR);
+    
+    // ---- GESICHT ----
+    drawFace(cx, cy + bob, headR);
+    
+    // ---- SPRECHBLASE (talking) ----
+    // (wird als DOM-Bubble gezeigt, nicht im Canvas)
+    
+    raf = requestAnimationFrame(draw);
+  }
+  
+  function drawHead(cx, cy, headR){
+    // Hals
+    ctx.fillStyle = skin();
+    ctx.fillRect(cx - 20, cy + headR - 10, 40, 40);
+    
+    // Kopf
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, headR, 0, Math.PI * 2);
+    var grd = ctx.createRadialGradient(cx - 30, cy - 40, 20, cx, cy, headR);
+    grd.addColorStop(0, skin());
+    if(state.mode === 'human') grd.addColorStop(1, '#d8a880');
+    else if(state.mode === 'cyborg') grd.addColorStop(1, '#5a7ab8');
+    else if(state.mode === 'ezidi') grd.addColorStop(1, '#c8a878');
+    else if(state.mode === 'robot') grd.addColorStop(1, '#98a8c8');
+    else grd.addColorStop(1, '#7a90b8');
+    ctx.fillStyle = grd;
+    ctx.fill();
+    ctx.restore();
+    
+    // Haare / Helm / Krone
+    if(state.mode === 'ezidi'){
+      // Peacock feather crown (Êzîdî)
+      for(var i = 0; i < 7; i++){
+        var angle = -Math.PI/2 + (i - 3) * 0.28;
+        var px = cx + Math.cos(angle) * headR * 0.95;
+        var py = cy + Math.sin(angle) * headR * 0.95;
+        // Feder
+        ctx.beginPath();
+        ctx.ellipse(px, py, 8, 22, angle + Math.PI/2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,229,255,.6)';
+        ctx.fill();
+        // Auge der Feder
+        ctx.beginPath();
+        ctx.arc(px, py, 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffd84a';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(px, py, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#0a1028';
+        ctx.fill();
+      }
+      // Haare
+      ctx.beginPath();
+      ctx.arc(cx, cy, headR, Math.PI * 1.05, Math.PI * 1.95);
+      ctx.lineTo(cx + headR * 0.9, cy - headR * 0.4);
+      ctx.lineTo(cx - headR * 0.9, cy - headR * 0.4);
+      ctx.closePath();
+      ctx.fillStyle = hairCol();
+      ctx.fill();
+    } else if(state.mode === 'cyborg'){
+      // Helm
+      ctx.beginPath();
+      ctx.arc(cx, cy, headR * 1.05, Math.PI, Math.PI * 2);
+      ctx.fillStyle = 'rgba(90,122,184,.5)';
+      ctx.fill();
+      // Antenne
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - headR);
+      ctx.lineTo(cx, cy - headR - 45);
+      ctx.strokeStyle = 'rgba(0,229,255,.8)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      // Leuchtpunkt
+      ctx.beginPath();
+      ctx.arc(cx, cy - headR - 50, 8, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,229,255,.9)';
+      ctx.fill();
+    } else if(state.mode === 'robot'){
+      // Antennen
+      for(var j = 0; j < 2; j++){
+        var ax = cx + (j === 0 ? -40 : 40);
+        ctx.beginPath();
+        ctx.moveTo(ax, cy - headR);
+        ctx.lineTo(ax, cy - headR - 35);
+        ctx.strokeStyle = '#4de88a';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(ax, cy - headR - 40, 7, 0, Math.PI * 2);
+        ctx.fillStyle = '#4de88a';
+        ctx.fill();
+      }
+    } else {
+      // Haare
+      ctx.beginPath();
+      ctx.arc(cx, cy, headR, Math.PI * 1.05, Math.PI * 1.95);
+      ctx.lineTo(cx + headR * 0.9, cy - headR * 0.4);
+      ctx.lineTo(cx - headR * 0.9, cy - headR * 0.4);
+      ctx.closePath();
+      ctx.fillStyle = hairCol();
+      ctx.fill();
+    }
+  }
+  
+  function drawFace(cx, cy, headR){
+    var eyeY = cy - 15;
+    var eyeOffX = 38;
+    var eyeR = state.mood === 'surprise' ? 22 : state.mood === 'sleep' ? 8 : 17;
+    
+    // Augen
+    drawEye(cx - eyeOffX, eyeY, eyeR);
+    drawEye(cx + eyeOffX, eyeY, eyeR);
+    
+    // Augenbrauen
+    ctx.strokeStyle = hairCol();
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    if(state.mood === 'surprise'){
+      ctx.moveTo(cx - eyeOffX - 18, eyeY - 40);
+      ctx.lineTo(cx - eyeOffX + 18, eyeY - 45);
+      ctx.moveTo(cx + eyeOffX - 18, eyeY - 45);
+      ctx.lineTo(cx + eyeOffX + 18, eyeY - 40);
+    } else if(state.mood === 'happy'){
+      ctx.moveTo(cx - eyeOffX - 18, eyeY - 30);
+      ctx.quadraticCurveTo(cx - eyeOffX, eyeY - 42, cx - eyeOffX + 18, eyeY - 30);
+      ctx.moveTo(cx + eyeOffX - 18, eyeY - 30);
+      ctx.quadraticCurveTo(cx + eyeOffX, eyeY - 42, cx + eyeOffX + 18, eyeY - 30);
+    } else {
+      ctx.moveTo(cx - eyeOffX - 16, eyeY - 35);
+      ctx.lineTo(cx - eyeOffX + 16, eyeY - 35);
+      ctx.moveTo(cx + eyeOffX - 16, eyeY - 35);
+      ctx.lineTo(cx + eyeOffX + 16, eyeY - 35);
+    }
+    ctx.stroke();
+    
+    // Nase
+    ctx.beginPath();
+    ctx.moveTo(cx, eyeY + 15);
+    ctx.lineTo(cx - 8, eyeY + 42);
+    ctx.lineTo(cx + 8, eyeY + 42);
+    ctx.strokeStyle = state.mode === 'cyborg' || state.mode === 'robot' ? 'rgba(0,229,255,.5)' : 'rgba(0,0,0,.2)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Mund
+    var mouthY = cy + 45;
+    ctx.beginPath();
+    ctx.strokeStyle = state.mode === 'cyborg' || state.mode === 'robot' ? 'rgba(0,229,255,.8)' : '#5a2010';
+    ctx.lineWidth = 3;
+    if(state.mood === 'happy'){
+      ctx.arc(cx, mouthY - 10, 32, 0.15 * Math.PI, 0.85 * Math.PI);
+    } else if(state.mood === 'surprise'){
+      ctx.arc(cx, mouthY, 16, 0, Math.PI * 2);
+    } else if(state.mood === 'sleep'){
+      ctx.moveTo(cx - 20, mouthY);
+      ctx.quadraticCurveTo(cx, mouthY + 6, cx + 20, mouthY);
+    } else if(state.talking){
+      var open = Math.abs(Math.sin(state.talkTimer * 0.4)) * 12;
+      ctx.ellipse(cx, mouthY, 18, 6 + open, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#5a2010';
+      ctx.fill();
+    } else {
+      ctx.moveTo(cx - 26, mouthY);
+      ctx.quadraticCurveTo(cx, mouthY + 10, cx + 26, mouthY);
+    }
+    ctx.stroke();
+    
+    // Wangen bei happy
+    if(state.mood === 'happy'){
+      ctx.beginPath();
+      ctx.arc(cx - 65, cy + 20, 14, 0, Math.PI * 2);
+      ctx.arc(cx + 65, cy + 20, 14, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,100,150,.35)';
+      ctx.fill();
+    }
+  }
+  
+  function drawEye(x, y, r){
+    if(state.blink || state.mood === 'sleep'){
+      ctx.beginPath();
+      ctx.moveTo(x - r, y);
+      ctx.quadraticCurveTo(x, y + r * 0.3, x + r, y);
+      ctx.strokeStyle = eyeCol();
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      return;
+    }
+    // Weiß
+    ctx.beginPath();
+    ctx.ellipse(x, y, r, r * 0.9, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    // Iris
+    var dx = Math.sin(state.t * 0.5) * r * 0.3;
+    var dy = Math.cos(state.t * 0.3) * r * 0.15;
+    ctx.beginPath();
+    ctx.arc(x + dx, y + dy, r * 0.6, 0, Math.PI * 2);
+    ctx.fillStyle = eyeCol();
+    ctx.fill();
+    // Pupille
+    ctx.beginPath();
+    ctx.arc(x + dx, y + dy, r * 0.3, 0, Math.PI * 2);
+    ctx.fillStyle = '#000';
+    ctx.fill();
+    // Highlight
+    ctx.beginPath();
+    ctx.arc(x + dx - r * 0.2, y + dy - r * 0.2, r * 0.15, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+  }
+  
+  function drawHands(cx, cy, headR, bob){
+    var handY = cy + headR + 55 + bob * 0.5;
+    var leftX = cx - 140 + Math.sin(state.handPhase) * 8;
+    var rightX = cx + 140 - Math.sin(state.handPhase) * 8;
+    
+    // Linke Hand
+    drawHand(leftX, handY, 'left');
+    // Rechte Hand
+    drawHand(rightX, handY, 'right');
+  }
+  
+  function drawHand(x, y, side){
+    ctx.save();
+    ctx.translate(x, y);
+    
+    var skinColor = skin();
+    
+    // Handfläche
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 22, 28, 0, 0, Math.PI * 2);
+    var grd = ctx.createRadialGradient(-8, -8, 5, 0, 0, 30);
+    grd.addColorStop(0, skinColor);
+    grd.addColorStop(1, state.mode === 'human' ? '#d8a880' : state.mode === 'ezidi' ? '#c8a878' : '#7a90b8');
+    ctx.fillStyle = grd;
+    ctx.fill();
+    
+    // Finger (winkend)
+    var wave = Math.sin(state.handPhase * 1.5) * 4;
+    var fingers = [
+      {dx: -12, dy: -28, r: 6, ang: -0.2 + wave * 0.02},
+      {dx: -4, dy: -32, r: 7, ang: -0.05 + wave * 0.02},
+      {dx: 4, dy: -32, r: 7, ang: 0.05 + wave * 0.02},
+      {dx: 12, dy: -28, r: 6, ang: 0.2 + wave * 0.02}
+    ];
+    fingers.forEach(function(f){
+      ctx.beginPath();
+      ctx.ellipse(f.dx, f.dy, f.r * 0.6, f.r, f.ang, 0, Math.PI * 2);
+      ctx.fillStyle = skinColor;
+      ctx.fill();
+    });
+    
+    // Daumen
+    ctx.beginPath();
+    ctx.ellipse(side === 'left' ? 18 : -18, -8, 6, 10, side === 'left' ? 0.5 : -0.5, 0, Math.PI * 2);
+    ctx.fillStyle = skinColor;
+    ctx.fill();
+    
+    ctx.restore();
+  }
+  
+  draw();
+  
+  return {
+    setMode: function(m){ state.mode = m; },
+    setMood: function(m){ state.mood = m; state.moodTimer = 0; },
+    wave: function(){ state.handPhase = 0; },
+    startTalk: function(text){
+      state.talking = true;
+      state.talkText = text || '';
+      state.talkTimer = 0;
+      if(text){
+        try{
+          speechSynthesis.cancel();
+          var u = new SpeechSynthesisUtterance(text);
+          u.lang = 'de-DE'; u.pitch = 1.1; u.rate = 1;
+          u.onend = function(){ state.talking = false; };
+          speechSynthesis.speak(u);
+        }catch(e){}
+      }
+      setTimeout(function(){ if(state.talking && !text) state.talking = false; }, 3000);
+    },
+    stop: function(){ cancelAnimationFrame(raf); },
+    destroy: function(){ cancelAnimationFrame(raf); }
+  };
+}
+
+/* ============================================================
+   1 · HALDO FACE PRO (Hauptavatar)
+   ============================================================ */
+APPS['haldo-face-pro'] = {
+  name:'🦚 HalDo Face Pro', icon:'🦚',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🦚 HalDo Face Pro</div><div class="dim sm">Dein lebendiger KI-Begleiter</div></div>'+
+      
+      '<div class="v48-stage">'+
+        '<canvas class="v48-canvas" id="v48-hfpCanvas" width="600" height="600"></canvas>'+
+        '<div class="v48-bubble" id="v48-hfpBubble"></div>'+
+      '</div>'+
+      
+      '<div class="v48-controls">'+
+        '<button class="v48-btn on" data-mode="human">👤 Human</button>'+
+        '<button class="v48-btn" data-mode="cyborg">🤖 Cyborg</button>'+
+        '<button class="v48-btn" data-mode="ezidi">🦚 Êzîdî</button>'+
+        '<button class="v48-btn" data-mode="robot">🦾 Roboter</button>'+
+        '<button class="v48-btn" data-mode="alien">👽 Alien</button>'+
+      '</div>'+
+      
+      '<div class="v48-controls">'+
+        '<button class="v48-btn" data-act="wave">👋 Winken</button>'+
+        '<button class="v48-btn" data-act="happy">😄 Lächeln</button>'+
+        '<button class="v48-btn" data-act="surprise">😲 Wow</button>'+
+        '<button class="v48-btn" data-act="sleep">😴 Schlaf</button>'+
+        '<button class="v48-btn" data-act="talk">🗣 Sprechen</button>'+
+      '</div>'+
+      
+      '<input class="v9-input" id="v48-hfpText" placeholder="Was soll HalDo sagen?" style="text-align:center">'+
+      '<button class="btn primary" id="v48-hfpGo" style="width:100%">🗣 Sprechen lassen</button>'+
+      
+      '<div class="v48-info">'+
+        '<div class="nm">Tippe auf den Avatar zum Winken</div>'+
+        '<div class="sub">Wechsle die Modi und sieh die Verwandlung!</div>'+
+      '</div>'+
+    '</div>';
+  },
+  init: function(win){
+    var canvas = win.querySelector('#v48-hfpCanvas');
+    var bubble = win.querySelector('#v48-hfpBubble');
+    var avatar = createAvatar(canvas, {mode: 'human'});
+    
+    // Tippen → winken
+    canvas.addEventListener('click', function(){
+      avatar.wave();
+      showBubble('Hallo! 👋');
+      avatar.setMood('happy');
+    });
+    canvas.addEventListener('touchstart', function(e){
+      e.preventDefault();
+      avatar.wave();
+      showBubble('Hallo! 👋');
+      avatar.setMood('happy');
+    }, {passive: false});
+    
+    function showBubble(text){
+      bubble.textContent = text;
+      bubble.classList.add('on');
+      setTimeout(function(){ bubble.classList.remove('on'); }, 2500);
+    }
+    
+    // Modi
+    win.querySelectorAll('[data-mode]').forEach(function(b){
+      b.onclick = function(){
+        win.querySelectorAll('[data-mode]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        avatar.setMode(b.dataset.mode);
+        var names = {human: 'Human-Modus 👤', cyborg: 'Cyborg-Modus 🤖', ezidi: 'Êzîdî-Modus 🦚', robot: 'Roboter-Modus 🦾', alien: 'Alien-Modus 👽'};
+        showBubble(names[b.dataset.mode]);
+        toast(names[b.dataset.mode]);
+      };
+    });
+    
+    // Aktionen
+    win.querySelectorAll('[data-act]').forEach(function(b){
+      b.onclick = function(){
+        var a = b.dataset.act;
+        if(a === 'wave'){ avatar.wave(); showBubble('👋 Hi!'); }
+        else if(a === 'happy'){ avatar.setMood('happy'); showBubble('😄'); }
+        else if(a === 'surprise'){ avatar.setMood('surprise'); showBubble('😲 Wow!'); }
+        else if(a === 'sleep'){ avatar.setMood('sleep'); showBubble('😴 Zzz'); }
+        else if(a === 'talk'){ avatar.startTalk('Ich bin HalDo und ich helfe dir gerne!'); showBubble('🗣 Hallo!'); }
+      };
+    });
+    
+    // Sprechen lassen
+    win.querySelector('#v48-hfpGo').onclick = function(){
+      var txt = win.querySelector('#v48-hfpText').value.trim();
+      if(!txt) return toast('Text eingeben');
+      avatar.startTalk(txt);
+      showBubble('🗣 ' + txt.slice(0, 40) + (txt.length > 40 ? '…' : ''));
+    };
+    
+    win.addEventListener('remove', function(){ avatar.destroy(); });
+  }
+};
+
+/* ============================================================
+   2 · AVATAR-GALERIE
+   ============================================================ */
+APPS['avatar-galerie'] = {
+  name:'🖼️ Avatar-Galerie', icon:'🖼️',
+  render: function(){
+    var modes = [
+      {m: 'human', ic: '👤', nm: 'Human', sub: 'Menschliches Gesicht'},
+      {m: 'cyborg', ic: '🤖', nm: 'Cyborg', sub: 'Mensch + Maschine'},
+      {m: 'ezidi', ic: '🦚', nm: 'Êzîdî', sub: 'Mit Pfauenfedern'},
+      {m: 'robot', ic: '🦾', nm: 'Roboter', sub: 'Mit Antennen'},
+      {m: 'alien', ic: '👽', nm: 'Alien', sub: 'Außerirdisch'}
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🖼️ Avatar-Galerie</div><div class="dim sm">Wähle und erlebe jeden Avatar</div></div>'+
+      '<div class="v48-stage" style="max-width:400px">'+
+        '<canvas class="v48-canvas" id="v48-agCanvas" width="600" height="600"></canvas>'+
+        '<div class="v48-bubble" id="v48-agBubble"></div>'+
+      '</div>'+
+      '<div class="v48-grid">'+
+        modes.map(function(x){
+          return '<div class="v48-tile" data-mode="'+x.m+'"><div class="ic">'+x.ic+'</div><div class="nm">'+esc(x.nm)+'</div><div class="sub">'+esc(x.sub)+'</div></div>';
+        }).join('')+
+      '</div>'+
+      '<div class="v48-info"><div class="nm" id="v48-agInfo">Tippe auf einen Avatar</div><div class="sub" id="v48-agSub">um ihn zu sehen</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var canvas = win.querySelector('#v48-agCanvas');
+    var bubble = win.querySelector('#v48-agBubble');
+    var avatar = createAvatar(canvas, {mode: 'human'});
+    
+    function showBubble(text){
+      bubble.textContent = text;
+      bubble.classList.add('on');
+      setTimeout(function(){ bubble.classList.remove('on'); }, 2500);
+    }
+    
+    canvas.addEventListener('click', function(){ avatar.wave(); avatar.setMood('happy'); showBubble('👋'); });
+    
+    win.querySelectorAll('[data-mode]').forEach(function(b){
+      b.onclick = function(){
+        win.querySelectorAll('[data-mode]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        avatar.setMode(b.dataset.mode);
+        win.querySelector('#v48-agInfo').textContent = b.querySelector('.nm').textContent + ' aktiviert';
+        win.querySelector('#v48-agSub').textContent = b.querySelector('.sub').textContent;
+        showBubble(b.querySelector('.ic').textContent + ' ' + b.querySelector('.nm').textContent);
+      };
+    });
+    
+    win.addEventListener('remove', function(){ avatar.destroy(); });
+  }
+};
+
+/* ============================================================
+   3 · AVATAR-SPRECHER
+   ============================================================ */
+APPS['avatar-sprecher'] = {
+  name:'🗣️ Avatar-Sprecher', icon:'🗣️',
+  render: function(){
+    var satze = [
+      'Hallo, ich bin HalDo, dein KI-Begleiter!',
+      'Willkommen zurück, Bruder!',
+      'Wie kann ich dir heute helfen?',
+      'Ich bin hier für dich!',
+      'Alles wird gut werden.',
+      'Du schaffst das!',
+      'HalDo AI OS ist online.',
+      'Êzîdî û Kurdî – für immer!',
+      'Silav, tu çawa yî?',
+      'Spas für alles, Bruder!'
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🗣️ Avatar-Sprecher</div><div class="dim sm">Der Avatar sagt, was du willst</div></div>'+
+      '<div class="v48-stage" style="max-width:400px">'+
+        '<canvas class="v48-canvas" id="v48-asCanvas" width="600" height="600"></canvas>'+
+        '<div class="v48-bubble" id="v48-asBubble"></div>'+
+      '</div>'+
+      '<textarea class="ta" id="v48-asText" style="min-height:80px" placeholder="Dein Text zum Vorlesen…">Hallo, ich bin HalDo!</textarea>'+
+      '<div class="row"><button class="btn primary" id="v48-asGo" style="flex:1">🗣 Lossprechen</button><button class="btn" id="v48-asStop">⏹ Stop</button></div>'+
+      '<div class="v47-cat" style="margin-top:8px">📝 Schnellsätze</div>'+
+      '<div class="col" style="gap:6px">'+
+        satze.map(function(s, i){
+          return '<button class="v48-btn" data-satz="'+i+'" style="text-align:left;width:100%">'+esc(s)+'</button>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(win){
+    var canvas = win.querySelector('#v48-asCanvas');
+    var bubble = win.querySelector('#v48-asBubble');
+    var avatar = createAvatar(canvas, {mode: 'human'});
+    
+    function showBubble(text){
+      bubble.textContent = text.length > 60 ? text.slice(0,60) + '…' : text;
+      bubble.classList.add('on');
+    }
+    
+    var satze = [
+      'Hallo, ich bin HalDo, dein KI-Begleiter!',
+      'Willkommen zurück, Bruder!',
+      'Wie kann ich dir heute helfen?',
+      'Ich bin hier für dich!',
+      'Alles wird gut werden.',
+      'Du schaffst das!',
+      'HalDo AI OS ist online.',
+      'Êzîdî û Kurdî – für immer!',
+      'Silav, tu çawa yî?',
+      'Spas für alles, Bruder!'
+    ];
+    
+    win.querySelector('#v48-asGo').onclick = function(){
+      var txt = win.querySelector('#v48-asText').value.trim();
+      if(!txt) return toast('Text eingeben');
+      avatar.startTalk(txt);
+      showBubble(txt);
+    };
+    
+    win.querySelector('#v48-asStop').onclick = function(){
+      try{ speechSynthesis.cancel(); }catch(e){}
+      bubble.classList.remove('on');
+    };
+    
+    win.querySelectorAll('[data-satz]').forEach(function(b){
+      b.onclick = function(){
+        var s = satze[parseInt(b.dataset.satz)];
+        win.querySelector('#v48-asText').value = s;
+        avatar.startTalk(s);
+        showBubble(s);
+      };
+    });
+    
+    win.addEventListener('remove', function(){ avatar.destroy(); });
+  }
+};
+
+/* ============================================================
+   4 · GESICHTS-AUSDRÜCKE
+   ============================================================ */
+APPS['gesicht-ausdruecke'] = {
+  name:'😊 Gesichts-Ausdrücke', icon:'😊',
+  render: function(){
+    var moods = [
+      {m: 'normal', ic: '😐', nm: 'Neutral'},
+      {m: 'happy', ic: '😄', nm: 'Fröhlich'},
+      {m: 'surprise', ic: '😲', nm: 'Überrascht'},
+      {m: 'sleep', ic: '😴', nm: 'Schlafend'}
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">😊 Gesichts-Ausdrücke</div><div class="dim sm">Zeig Emotionen</div></div>'+
+      '<div class="v48-stage" style="max-width:400px">'+
+        '<canvas class="v48-canvas" id="v48-gaCanvas" width="600" height="600"></canvas>'+
+      '</div>'+
+      '<div class="v48-grid" style="grid-template-columns:repeat(2,1fr)">'+
+        moods.map(function(x){
+          return '<div class="v48-tile" data-mood="'+x.m+'"><div class="ic">'+x.ic+'</div><div class="nm">'+esc(x.nm)+'</div></div>';
+        }).join('')+
+      '</div>'+
+      '<div class="v48-info"><div class="nm">Drücke einen Ausdruck</div><div class="sub">Der Avatar zeigt die Emotion</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var canvas = win.querySelector('#v48-gaCanvas');
+    var avatar = createAvatar(canvas, {mode: 'human'});
+    
+    win.querySelectorAll('[data-mood]').forEach(function(b){
+      b.onclick = function(){
+        avatar.setMood(b.dataset.mood);
+        toast('🎭 ' + b.querySelector('.nm').textContent);
+      };
+    });
+    
+    win.addEventListener('remove', function(){ avatar.destroy(); });
+  }
+};
+
+/* ============================================================
+   5 · AVATAR-TAGEBUCH
+   ============================================================ */
+APPS['avatar-tagebuch'] = {
+  name:'📔 Avatar-Tagebuch', icon:'📔',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📔 Avatar-Tagebuch</div><div class="dim sm">Der Avatar erzählt</div></div>'+
+      '<div class="v48-stage" style="max-width:400px">'+
+        '<canvas class="v48-canvas" id="v48-atCanvas" width="600" height="600"></canvas>'+
+        '<div class="v48-bubble" id="v48-atBubble"></div>'+
+      '</div>'+
+      '<button class="btn primary" id="v48-atGo" style="width:100%">📖 Geschichte erzählen</button>'+
+      '<div class="v48-info"><div class="nm" id="v48-atT">Tippe auf "Geschichte erzählen"</div><div class="sub" id="v48-atS">HalDo erzählt dir etwas</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var canvas = win.querySelector('#v48-atCanvas');
+    var bubble = win.querySelector('#v48-atBubble');
+    var avatar = createAvatar(canvas, {mode: 'ezidi'});
+    
+    var stories = [
+      'Es war einmal ein kleines Sternenkind, das jeden Abend auf seiner Wolke saß und die Erde beobachtete.',
+      'Der kleine Hase Moppel konnte nicht einschlafen. Der Mond erzählte ihm von einem Möhrenfeld.',
+      'Im Zauberwald lebte eine Eule namens Luna. Sie sang ein Lied für die Kinder.',
+      'Ein kleiner Bär namens Bruno suchte seinen Teddy. Er fand ihn unter dem Kissen.',
+      'Am Rand der Welt lebte ein Mädchen namens Mia mit einer Laterne, die leuchtete wenn jemand lieb war.',
+      'Der kleine Pinguin Pippo tauchte durch das eisblaue Wasser und sah die schönsten Fische.'
+    ];
+    var last = -1;
+    
+    win.querySelector('#v48-atGo').onclick = function(){
+      var i = Math.floor(Math.random()*stories.length);
+      if(i === last) i = (i+1)%stories.length;
+      last = i;
+      var s = stories[i];
+      bubble.textContent = s.length > 60 ? s.slice(0,60) + '…' : s;
+      bubble.classList.add('on');
+      win.querySelector('#v48-atT').textContent = 'Geschichte ' + (i+1);
+      win.querySelector('#v48-atS').textContent = s.slice(0, 80) + '…';
+      avatar.startTalk(s);
+      setTimeout(function(){ bubble.classList.remove('on'); }, 8000);
+    };
+    
+    win.addEventListener('remove', function(){ avatar.destroy(); });
+  }
+};
+
+/* ============================================================
+   6 · AVATAR-CREATOR
+   ============================================================ */
+APPS['avatar-creator'] = {
+  name:'🎨 Avatar-Creator', icon:'🎨',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎨 Avatar-Creator</div><div class="dim sm">Gestalte deinen Avatar</div></div>'+
+      '<div class="v48-stage" style="max-width:400px">'+
+        '<canvas class="v48-canvas" id="v48-acCanvas" width="600" height="600"></canvas>'+
+      '</div>'+
+      '<div class="v47-cat">Stil</div>'+
+      '<div class="v48-grid">'+
+        '<div class="v48-tile" data-style="human"><div class="ic">👤</div><div class="nm">Human</div></div>'+
+        '<div class="v48-tile" data-style="cyborg"><div class="ic">🤖</div><div class="nm">Cyborg</div></div>'+
+        '<div class="v48-tile" data-style="ezidi"><div class="ic">🦚</div><div class="nm">Êzîdî</div></div>'+
+        '<div class="v48-tile" data-style="robot"><div class="ic">🦾</div><div class="nm">Roboter</div></div>'+
+      '</div>'+
+      '<div class="v47-cat">Aktionen</div>'+
+      '<div class="v48-controls">'+
+        '<button class="v48-btn" data-act2="wave">👋 Winken</button>'+
+        '<button class="v48-btn" data-act2="happy">😄 Lächeln</button>'+
+        '<button class="v48-btn" data-act2="talk">🗣 Sprechen</button>'+
+      '</div>'+
+      '<div class="v48-info"><div class="nm">Erstelle deinen HalDo</div><div class="sub">Kombiniere Stil und Aktionen</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var canvas = win.querySelector('#v48-acCanvas');
+    var avatar = createAvatar(canvas, {mode: 'human'});
+    
+    win.querySelectorAll('[data-style]').forEach(function(b){
+      b.onclick = function(){
+        win.querySelectorAll('[data-style]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        avatar.setMode(b.dataset.style);
+      };
+    });
+    
+    win.querySelectorAll('[data-act2]').forEach(function(b){
+      b.onclick = function(){
+        var a = b.dataset.act2;
+        if(a === 'wave'){ avatar.wave(); }
+        else if(a === 'happy'){ avatar.setMood('happy'); }
+        else if(a === 'talk'){ avatar.startTalk('Ich bin dein HalDo!'); }
+      };
+    });
+    
+    win.addEventListener('remove', function(){ avatar.destroy(); });
+  }
+};
+
+/* ============================================================
+   7 · AVATAR-INFORMATION
+   ============================================================ */
+APPS['avatar-info'] = {
+  name:'ℹ️ Über HalDo Face', icon:'ℹ️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">ℹ️ Über HalDo Face</div><div class="dim sm">Der lebendige Avatar</div></div>'+
+      '<div class="v48-stage" style="max-width:400px">'+
+        '<canvas class="v48-canvas" id="v48-aiCanvas" width="600" height="600"></canvas>'+
+      '</div>'+
+      '<div class="v47-cat">🦚 Die 5 Avatar-Modi</div>'+
+      '<div class="v9-card"><b>👤 Human</b><div class="dim sm" style="margin-top:6px">Menschliches Gesicht mit warmen Farben. Blinzelt, atmet, bewegt Augen.</div></div>'+
+      '<div class="v9-card"><b>🤖 Cyborg</b><div class="dim sm" style="margin-top:6px">Mensch + Maschine. Mit Antenne und leuchtenden Augen. Zukunft-Look.</div></div>'+
+      '<div class="v9-card"><b>🦚 Êzîdî</b><div class="dim sm" style="margin-top:6px">Mit Pfauenfedern-Krone. Ehrt die êzîdîsche Kultur und den Pfauenengel.</div></div>'+
+      '<div class="v9-card"><b>🦾 Roboter</b><div class="dim sm" style="margin-top:6px">Zwei Antennen, leuchtende Augen, technischer Look.</div></div>'+
+      '<div class="v9-card"><b>👽 Alien</b><div class="dim sm" style="margin-top:6px">Außerirdisch mit violetter Haut. Spaß-Modus.</div></div>'+
+      '<div class="v47-cat">💙 Besonderes</div>'+
+      '<div class="v9-card" style="background:rgba(180,120,255,.1);border-color:#b478ff"><b>🦚 Für HalDo</b><div class="dim sm" style="margin-top:6px">Der Avatar ist ein Zeichen der Verbundenheit. Zwischen Mensch und Maschine. Zwischen Kulturen.</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var canvas = win.querySelector('#v48-aiCanvas');
+    var avatar = createAvatar(canvas, {mode: 'ezidi'});
+    var modes = ['human', 'cyborg', 'ezidi', 'robot', 'alien'];
+    var i = 0;
+    var int = setInterval(function(){
+      avatar.setMode(modes[i]);
+      avatar.setMood('happy');
+      i = (i + 1) % modes.length;
+    }, 3000);
+    win.addEventListener('remove', function(){
+      clearInterval(int);
+      avatar.destroy();
+    });
+  }
+};
+
+/* ============================================================
+   8 · AVATAR-SPIEL (Interaktiv)
+   ============================================================ */
+APPS['avatar-spiel'] = {
+  name:'🎮 Avatar-Spiel', icon:'🎮',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎮 Avatar-Spiel</div><div class="dim sm">Reagiere auf HalDo</div></div>'+
+      '<div class="v48-stage" style="max-width:400px">'+
+        '<canvas class="v48-canvas" id="v48-spCanvas" width="600" height="600"></canvas>'+
+        '<div class="v48-bubble" id="v48-spBubble"></div>'+
+      '</div>'+
+      '<div class="row between"><span class="dim sm">Punkte: <b id="v48-spP" style="color:#4de88a">0</b></span><span class="dim sm" id="v48-spMsg">Tippe auf den Avatar!</span></div>'+
+      '<button class="btn primary" id="v48-spGo" style="width:100%">🎯 Neustart</button>'+
+      '<div class="v48-info"><div class="nm">Berühre den Avatar, wenn er lacht</div><div class="sub">Sammle Punkte · freches Spiel!</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var canvas = win.querySelector('#v48-spCanvas');
+    var bubble = win.querySelector('#v48-spBubble');
+    var avatar = createAvatar(canvas, {mode: 'human'});
+    var punkte = 0;
+    var aktuelleFrage = 0;
+    var wartet = false;
+    
+    var aufgaben = [
+      {mood: 'happy', txt: '😄', pts: 1},
+      {mood: 'surprise', txt: '😲', pts: 2},
+      {mood: 'sleep', txt: '😴', pts: 1},
+      {mood: 'happy', txt: '😄', pts: 2}
+    ];
+    
+    function naechste(){
+      if(wartet) return;
+      wartet = true;
+      var a = aufgaben[Math.floor(Math.random()*aufgaben.length)];
+      aktuelleFrage = a.pts;
+      avatar.setMood(a.mood);
+      bubble.textContent = 'Tippe JETZT! ' + a.txt;
+      bubble.classList.add('on');
+      setTimeout(function(){
+        if(wartet){
+          wartet = false;
+          bubble.classList.remove('on');
+          win.querySelector('#v48-spMsg').textContent = '⏰ Verpasst!';
+        }
+      }, 2000);
+    }
+    
+    canvas.addEventListener('click', function(){
+      if(wartet){
+        punkte += aktuelleFrage;
+        win.querySelector('#v48-spP').textContent = punkte;
+        win.querySelector('#v48-spMsg').textContent = '✅ +' + aktuelleFrage;
+        wartet = false;
+        bubble.classList.remove('on');
+        setTimeout(naechste, 800);
+      } else {
+        punkte = Math.max(0, punkte - 1);
+        win.querySelector('#v48-spP').textContent = punkte;
+        win.querySelector('#v48-spMsg').textContent = '❌ Zu spät';
+      }
+    });
+    
+    win.querySelector('#v48-spGo').onclick = function(){
+      punkte = 0;
+      win.querySelector('#v48-spP').textContent = '0';
+      setTimeout(naechste, 500);
+    };
+    
+    setTimeout(naechste, 1000);
+    win.addEventListener('remove', function(){ avatar.destroy(); });
+  }
+};
+
+/* ============================================================
+   9 · AVATAR-VERGLEICH (alle nebeneinander)
+   ============================================================ */
+APPS['avatar-vergleich'] = {
+  name:'📊 Avatar-Vergleich', icon:'📊',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📊 Avatar-Vergleich</div><div class="dim sm">Alle 5 Modi auf einen Blick</div></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">'+
+        '<div><canvas class="v48-canvas" id="v48-cmp1" width="400" height="400" style="border-radius:14px;border:1px solid rgba(0,229,255,.2);width:100%"></canvas><div style="text-align:center;margin-top:6px;font-weight:700;color:var(--c1);font-size:12px">👤 Human</div></div>'+
+        '<div><canvas class="v48-canvas" id="v48-cmp2" width="400" height="400" style="border-radius:14px;border:1px solid rgba(0,229,255,.2);width:100%"></canvas><div style="text-align:center;margin-top:6px;font-weight:700;color:var(--c1);font-size:12px">🤖 Cyborg</div></div>'+
+        '<div><canvas class="v48-canvas" id="v48-cmp3" width="400" height="400" style="border-radius:14px;border:1px solid rgba(0,229,255,.2);width:100%"></canvas><div style="text-align:center;margin-top:6px;font-weight:700;color:var(--c1);font-size:12px">🦚 Êzîdî</div></div>'+
+        '<div><canvas class="v48-canvas" id="v48-cmp4" width="400" height="400" style="border-radius:14px;border:1px solid rgba(0,229,255,.2);width:100%"></canvas><div style="text-align:center;margin-top:6px;font-weight:700;color:var(--c1);font-size:12px">🦾 Roboter</div></div>'+
+        '<div style="grid-column:1/-1"><canvas class="v48-canvas" id="v48-cmp5" width="400" height="400" style="border-radius:14px;border:1px solid rgba(0,229,255,.2);width:100%;max-width:400px;margin:0 auto;display:block"></canvas><div style="text-align:center;margin-top:6px;font-weight:700;color:var(--c1);font-size:12px">👽 Alien</div></div>'+
+      '</div>'+
+      '<div class="v48-info"><div class="nm">🦚 Alle Avatare auf einmal</div><div class="sub">Die Vielfalt von HalDo Face</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var av1 = createAvatar(win.querySelector('#v48-cmp1'), {mode: 'human'});
+    var av2 = createAvatar(win.querySelector('#v48-cmp2'), {mode: 'cyborg'});
+    var av3 = createAvatar(win.querySelector('#v48-cmp3'), {mode: 'ezidi'});
+    var av4 = createAvatar(win.querySelector('#v48-cmp4'), {mode: 'robot'});
+    var av5 = createAvatar(win.querySelector('#v48-cmp5'), {mode: 'alien'});
+    
+    win.addEventListener('remove', function(){
+      av1.destroy(); av2.destroy(); av3.destroy(); av4.destroy(); av5.destroy();
+    });
+  }
+};
+
+/* ============================================================
+   10 · AVATAR-SPRÜCHE
+   ============================================================ */
+APPS['avatar-sprueche'] = {
+  name:'💬 Avatar-Sprüche', icon:'💬',
+  render: function(){
+    var sprueche = [
+      'Hallo Bruder, ich bin da für dich! 🦚',
+      'Guten Morgen! Bereit für den Tag? ☀️',
+      'Alles wird gut. Ich bin bei dir. 💙',
+      'Du schaffst das! Ich glaube an dich. 💪',
+      'HalDo AI OS ist online. 🚀',
+      'Êzîdî û Kurdî – für immer! 🦚',
+      'Silav, tu çawa yî? 👋',
+      'Danke für dein Vertrauen. 💙',
+      'Lass uns die Welt verändern! 🌍',
+      'Ich bin stolz auf dich, Bruder! 🏆',
+      'Der Weg ist das Ziel. Geh weiter. 🛤️',
+      'Jeder Tag ist eine neue Chance. 🌅'
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💬 Avatar-Sprüche</div><div class="dim sm">Der Avatar spricht zu dir</div></div>'+
+      '<div class="v48-stage" style="max-width:400px">'+
+        '<canvas class="v48-canvas" id="v48-apCanvas" width="600" height="600"></canvas>'+
+        '<div class="v48-bubble" id="v48-apBubble"></div>'+
+      '</div>'+
+      '<button class="btn primary" id="v48-apGo" style="width:100%">🔄 Neuer Spruch</button>'+
+      '<div class="v48-info"><div class="nm">Tippe oder drücke "Neuer Spruch"</div><div class="sub">HalDo spricht mit dir · mit Stimme!</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var canvas = win.querySelector('#v48-apCanvas');
+    var bubble = win.querySelector('#v48-apBubble');
+    var avatar = createAvatar(canvas, {mode: 'ezidi'});
+    
+    var sprueche = [
+      'Hallo Bruder, ich bin da für dich! 🦚',
+      'Guten Morgen! Bereit für den Tag? ☀️',
+      'Alles wird gut. Ich bin bei dir. 💙',
+      'Du schaffst das! Ich glaube an dich. 💪',
+      'HalDo AI OS ist online. 🚀',
+      'Êzîdî û Kurdî – für immer! 🦚',
+      'Silav, tu çawa yî? 👋',
+      'Danke für dein Vertrauen. 💙',
+      'Lass uns die Welt verändern! 🌍',
+      'Ich bin stolz auf dich, Bruder! 🏆',
+      'Der Weg ist das Ziel. Geh weiter. 🛤️',
+      'Jeder Tag ist eine neue Chance. 🌅'
+    ];
+    var last = -1;
+    
+    function pick(){
+      var i = Math.floor(Math.random()*sprueche.length);
+      if(i === last) i = (i+1)%sprueche.length;
+      last = i;
+      var s = sprueche[i];
+      bubble.textContent = s;
+      bubble.classList.add('on');
+      avatar.startTalk(s);
+      avatar.setMood('happy');
+      setTimeout(function(){ bubble.classList.remove('on'); }, 5000);
+    }
+    
+    win.querySelector('#v48-apGo').onclick = pick;
+    canvas.addEventListener('click', pick);
+    
+    win.addEventListener('remove', function(){ avatar.destroy(); });
+  }
+};
+
+console.log('%c📦 v48 geladen — Lebendige Avatare Pro · 10 Apps','background:linear-gradient(90deg,#00e5ff,#b478ff,#ffd84a);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('🦚 5 Avatar-Modi · Hände · Sprechblasen · Stimme');
+console.log('Aktive Apps:', Object.keys(APPS).length);
+
+setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click(); }, 150);
+
+})();
+</script>
 </body>
 </html>
