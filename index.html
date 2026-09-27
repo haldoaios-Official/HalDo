@@ -16091,5 +16091,1117 @@ setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v18 · Musik & Kunst · 20 Apps
+     ============================================================ -->
+<style id="v18-style">
+.v18-card{padding:14px;border-radius:14px;background:linear-gradient(150deg,rgba(20,30,60,.65),rgba(10,16,40,.82));border:1px solid rgba(120,180,255,.14);margin-bottom:8px}
+.v18-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);cursor:pointer;transition:.15s}
+.v18-row:hover{background:rgba(0,229,255,.05);border-color:rgba(0,229,255,.2)}
+.v18-canvas{width:100%;aspect-ratio:1;max-width:400px;margin:0 auto;border-radius:14px;border:1px solid rgba(120,180,255,.2);background:#0a1028;display:block;cursor:crosshair;touch-action:none}
+.v18-palette{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin-top:8px}
+.v18-swatch{aspect-ratio:1;border-radius:8px;cursor:pointer;border:2px solid transparent;transition:.15s}
+.v18-swatch:hover{transform:scale(1.1)}
+.v18-swatch.on{border-color:#fff;box-shadow:0 0 12px currentColor}
+.v18-piano{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin-top:8px}
+.v18-key{aspect-ratio:1/2;border-radius:6px;background:linear-gradient(180deg,#fff,#ddd);cursor:pointer;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;font-size:11px;font-weight:700;color:#333;user-select:none;transition:.1s;box-shadow:0 4px 8px rgba(0,0,0,.4)}
+.v18-key:hover{background:linear-gradient(180deg,#fff,#bbb)}
+.v18-key:active,.v18-key.on{background:linear-gradient(180deg,var(--c1),var(--c2));color:#02101e;transform:translateY(2px)}
+.v18-key.black{background:linear-gradient(180deg,#333,#111);color:#fff}
+.v18-key.black:hover{background:linear-gradient(180deg,#555,#222)}
+.v18-mt{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:8px}
+.v18-mt-btn{padding:14px 4px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(120,180,255,.14);cursor:pointer;text-align:center;font-weight:700;font-size:12px;font-family:inherit;color:var(--txt);transition:.15s}
+.v18-mt-btn:hover{background:rgba(0,229,255,.1);border-color:var(--c1)}
+.v18-color-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.v18-shape-btn{padding:8px 12px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(120,180,255,.14);cursor:pointer;font-family:inherit;color:var(--txt);font-size:12px;transition:.15s}
+.v18-shape-btn.on{background:linear-gradient(135deg,var(--c1),var(--c2));color:#02101e;border-color:var(--c1)}
+.v18-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.v18-gallery > div{aspect-ratio:1;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:38px;cursor:pointer;border:1px solid rgba(120,180,255,.14);transition:.15s;background:linear-gradient(135deg,var(--bg1),var(--bg2))}
+.v18-gallery > div:hover{transform:scale(1.05);border-color:var(--c1)}
+</style>
+
+<script>
+(function(){
+'use strict';
+var H = window.HalDo;
+if(!H || !H.APPS){ console.error('[v18] Foundation fehlt'); return; }
+var APPS = H.APPS;
+var esc=H.esc, uid=H.uid, store=H.store, toast=H.toast;
+
+/* 1 · ZEICHEN-PAD */
+APPS['zeichenpad'] = {
+  name:'Zeichen-Pad', icon:'🎨',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎨 Zeichen-Pad</div><div class="dim sm">Digital malen auf dem Touchscreen</div></div>'+
+      '<canvas class="v18-canvas" id="v18-zk" width="600" height="600"></canvas>'+
+      '<div class="v18-palette" id="v18-zkP"></div>'+
+      '<div class="row" style="flex-wrap:wrap;gap:6px">'+
+        '<button class="v18-shape-btn on" data-w="2">✏️ Dünn</button>'+
+        '<button class="v18-shape-btn" data-w="6">✏️ Mittel</button>'+
+        '<button class="v18-shape-btn" data-w="14">✏️ Dick</button>'+
+        '<button class="v18-shape-btn" data-w="30">✏️ XXL</button>'+
+        '<button class="v18-shape-btn" id="v18-zkErase">🧽 Radieren</button>'+
+      '</div>'+
+      '<div class="row"><button class="btn" id="v18-zkClear" style="flex:1">🗑 Leeren</button><button class="btn primary" id="v18-zkSave" style="flex:1">💾 Speichern</button></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var cv = win.querySelector('#v18-zk'), ctx = cv.getContext('2d');
+    ctx.fillStyle = '#0a1028'; ctx.fillRect(0,0,600,600);
+    var drawing = false, lastX = 0, lastY = 0, color = '#00e5ff', width = 2, erase = false;
+    var COLORS = ['#00e5ff','#b478ff','#ff6b88','#4de88a','#ffb03a','#ffd84a','#ffffff','#000000'];
+    win.querySelector('#v18-zkP').innerHTML = COLORS.map(function(c, i){
+      return '<div class="v18-swatch'+(i===0?' on':'')+'" data-c="'+c+'" style="background:'+c+';color:'+c+'"></div>';
+    }).join('');
+    win.querySelectorAll('.v18-swatch').forEach(function(s){
+      s.onclick = function(){
+        color = s.dataset.c; erase = false;
+        win.querySelectorAll('.v18-swatch').forEach(function(x){ x.classList.toggle('on', x === s); });
+      };
+    });
+    win.querySelectorAll('[data-w]').forEach(function(b){
+      b.onclick = function(){
+        width = parseInt(b.dataset.w);
+        win.querySelectorAll('[data-w]').forEach(function(x){ x.classList.toggle('on', x === b); });
+      };
+    });
+    win.querySelector('#v18-zkErase').onclick = function(){ erase = !erase; win.querySelector('#v18-zkErase').style.background = erase ? 'linear-gradient(135deg,var(--c1),var(--c2))' : ''; };
+    function pos(e){
+      var rect = cv.getBoundingClientRect();
+      var x, y;
+      if(e.touches){ x = e.touches[0].clientX; y = e.touches[0].clientY; }
+      else { x = e.clientX; y = e.clientY; }
+      return { x: (x - rect.left) * cv.width / rect.width, y: (y - rect.top) * cv.height / rect.height };
+    }
+    function start(e){ e.preventDefault(); drawing = true; var p = pos(e); lastX = p.x; lastY = p.y; }
+    function move(e){
+      if(!drawing) return;
+      e.preventDefault();
+      var p = pos(e);
+      ctx.beginPath();
+      ctx.strokeStyle = erase ? '#0a1028' : color;
+      ctx.lineWidth = erase ? width * 3 : width;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      lastX = p.x; lastY = p.y;
+    }
+    function stop(){ drawing = false; }
+    cv.addEventListener('mousedown', start); cv.addEventListener('mousemove', move); cv.addEventListener('mouseup', stop);
+    cv.addEventListener('touchstart', start, {passive:false}); cv.addEventListener('touchmove', move, {passive:false}); cv.addEventListener('touchend', stop);
+    win.querySelector('#v18-zkClear').onclick = function(){ ctx.fillStyle = '#0a1028'; ctx.fillRect(0,0,600,600); };
+    win.querySelector('#v18-zkSave').onclick = function(){
+      var a = document.createElement('a');
+      a.download = 'haldo-zeichnung-' + Date.now() + '.png';
+      a.href = cv.toDataURL('image/png');
+      a.click(); toast('✅ Gespeichert');
+    };
+  }
+};
+
+/* 2 · MUSIK-KLÄVIER */
+APPS['klavier'] = {
+  name:'Klavier', icon:'🎹',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎹 Klavier</div><div class="dim sm">Klick/Tippe die Tasten</div></div>'+
+      '<div style="font-size:52px;text-align:center;padding:14px;min-height:80px" id="v18-klD">🎼</div>'+
+      '<div class="v18-piano" id="v18-klK"></div>'+
+      '<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:8px">'+
+        '<button class="v18-shape-btn" data-song="birthday">🎂 Happy Birthday</button>'+
+        '<button class="v18-shape-btn" data-song="jingle">🎄 Jingle Bells</button>'+
+        '<button class="v18-shape-btn" data-song="bruder">🎵 Bruder Jakob</button>'+
+        '<button class="v18-shape-btn" data-song="ester">🐰 Alle meine Entchen</button>'+
+        '<button class="v18-shape-btn" data-song="moon">🌙 Der Mond ist aufgegangen</button>'+
+      '</div>'+
+    '</div>';
+  },
+  init: function(win){
+    var NOTES = [
+      {n:'C', f:261.63, black:false},
+      {n:'C#', f:277.18, black:true},
+      {n:'D', f:293.66, black:false},
+      {n:'D#', f:311.13, black:true},
+      {n:'E', f:329.63, black:false},
+      {n:'F', f:349.23, black:false},
+      {n:'F#', f:369.99, black:true},
+      {n:'G', f:392.00, black:false}
+    ];
+    var A = null;
+    function playNote(freq){
+      try{
+        if(!A) A = new (window.AudioContext || window.webkitAudioContext)();
+        var o = A.createOscillator(), g = A.createGain();
+        o.type = 'sine';
+        o.frequency.value = freq;
+        g.gain.setValueAtTime(0.25, A.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, A.currentTime + 0.6);
+        o.connect(g); g.connect(A.destination);
+        o.start(A.currentTime);
+        o.stop(A.currentTime + 0.6);
+      }catch(e){}
+    }
+    win.querySelector('#v18-klK').innerHTML = NOTES.map(function(n, i){
+      return '<div class="v18-key'+(n.black?' black':'')+'" data-i="'+i+'">'+n.n+'</div>';
+    }).join('');
+    win.querySelectorAll('.v18-key').forEach(function(k){
+      k.onclick = function(){
+        var n = NOTES[parseInt(k.dataset.i)];
+        playNote(n.f);
+        k.classList.add('on');
+        win.querySelector('#v18-klD').textContent = '🎵 ' + n.n;
+        setTimeout(function(){ k.classList.remove('on'); }, 200);
+      };
+    });
+    var SONGS = {
+      birthday: [0,0,2,0,5,4, 0,0,2,0,7,5, 0,0,4,3,5,4,2, 3,3,5,4,5,4,2],
+      jingle:   [4,4,4,4,4,4,4,4,4,4,4,2,4,4,4,4,4,4,4,4],
+      bruder:   [0,2,4,0, 0,2,4,0, 4,5,4,2,0],
+      ester:    [0,2,4,5,6,7,4, 0,2,4,5,6,7,4],
+      moon:     [4,5,6,5, 4,4,5,4, 2,4,5,3, 0,2,4]
+    };
+    win.querySelectorAll('[data-song]').forEach(function(b){
+      b.onclick = function(){
+        var s = SONGS[b.dataset.song];
+        if(!s) return;
+        var i = 0;
+        var int = setInterval(function(){
+          if(i >= s.length){ clearInterval(int); return; }
+          var n = NOTES[s[i]];
+          if(n){ playNote(n.f); win.querySelector('#v18-klD').textContent = '🎵 ' + n.n; }
+          i++;
+        }, 400);
+      };
+    });
+  }
+};
+
+/* 3 · TROMMEL-PAD */
+APPS['trommel'] = {
+  name:'Drum-Pad', icon:'🥁',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🥁 Drum-Pad</div><div class="dim sm">Beat produzieren</div></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'+
+        ['Kick','Snare','HiHat','Clap','Tom','Crash','Ride','Cow','Shaker'].map(function(n, i){
+          return '<button class="v18-shape-btn" data-d="'+i+'" style="padding:32px 8px;font-size:14px;font-weight:800">'+n+'</button>';
+        }).join('')+
+      '</div>'+
+      '<div class="v9-card"><b>💡 Tipp</b><div class="dim sm" style="margin-top:6px">Klick schnell hintereinander → Beat! Nutze Kopfhörer für besten Sound.</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var A = null;
+    function getA(){ if(!A) A = new (window.AudioContext || window.webkitAudioContext)(); return A; }
+    function kick(){
+      var a = getA();
+      var o = a.createOscillator(), g = a.createGain();
+      o.frequency.setValueAtTime(150, a.currentTime);
+      o.frequency.exponentialRampToValueAtTime(50, a.currentTime + 0.15);
+      g.gain.setValueAtTime(0.6, a.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.15);
+      o.connect(g); g.connect(a.destination);
+      o.start(a.currentTime); o.stop(a.currentTime + 0.15);
+    }
+    function noise(dur, freq){
+      var a = getA();
+      var buf = a.createBuffer(1, a.sampleRate * dur, a.sampleRate);
+      var data = buf.getChannelData(0);
+      for(var i=0;i<data.length;i++) data[i] = Math.random()*2-1;
+      var s = a.createBufferSource(); s.buffer = buf;
+      var f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq;
+      var g = a.createGain(); g.gain.setValueAtTime(0.4, a.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + dur);
+      s.connect(f); f.connect(g); g.connect(a.destination);
+      s.start(); s.stop(a.currentTime + dur);
+    }
+    win.querySelectorAll('[data-d]').forEach(function(b){
+      b.onclick = function(){
+        var i = parseInt(b.dataset.d);
+        if(i === 0) kick();
+        else if(i === 1) noise(0.2, 800);
+        else if(i === 2) noise(0.08, 8000);
+        else if(i === 3) noise(0.15, 1500);
+        else if(i === 4) noise(0.3, 200);
+        else if(i === 5) noise(0.5, 3000);
+        else if(i === 6) noise(0.4, 5000);
+        else if(i === 7) noise(0.25, 400);
+        else noise(0.1, 6000);
+        b.style.background = 'linear-gradient(135deg,var(--c1),var(--c2))';
+        setTimeout(function(){ b.style.background = ''; }, 100);
+      };
+    });
+  }
+};
+
+/* 4 · BEAT-MAKER */
+APPS['beat-maker'] = {
+  name:'Beat-Maker', icon:'🎛️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎛️ Beat-Maker</div><div class="dim sm">16-Step-Sequencer</div></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px" id="v18-bmG"></div>'+
+      '<div class="row" style="margin-top:8px"><button class="btn primary" id="v18-bmPlay" style="flex:1">▶ Play</button><button class="btn" id="v18-bmClear" style="flex:1">🗑 Clear</button></div>'+
+      '<div class="v9-stat"><div class="v" id="v18-bmB">120</div><div class="l">BPM</div></div>'+
+      '<input type="range" min="60" max="200" value="120" id="v18-bmBPM" style="width:100%;accent-color:var(--c1)">'+
+    '</div>';
+  },
+  init: function(win){
+    var ROWS = ['Kick','Snare','HiHat','Clap'];
+    var grid = [];
+    for(var r=0;r<4;r++) grid.push(new Array(16).fill(false));
+    var curStep = -1, playing = false, timer = null, bpm = 120;
+    function render(){
+      win.querySelector('#v18-bmG').innerHTML = ROWS.map(function(row, r){
+        return '<div style="font-size:10px;font-weight:700;color:var(--c1)">'+row+'</div>' + grid[r].map(function(on, i){
+          return '<div data-r="'+r+'" data-i="'+i+'" style="aspect-ratio:1;border-radius:6px;cursor:pointer;border:1px solid rgba(120,180,255,.2);background:'+(on?'linear-gradient(135deg,var(--c1),var(--c2))':'rgba(255,255,255,.03)')+';transition:.1s"></div>';
+        }).join('');
+      }).join('') + '<div style="font-size:9px;color:var(--dim)">Step→</div>' + [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15].map(function(i){ return '<div style="font-size:9px;text-align:center;color:var(--dim)">'+(i+1)+'</div>'; }).join('');
+      win.querySelectorAll('[data-r]').forEach(function(b){
+        b.onclick = function(){
+          var r = parseInt(b.dataset.r), i = parseInt(b.dataset.i);
+          grid[r][i] = !grid[r][i];
+          render();
+        };
+      });
+    }
+    var A = null;
+    function getA(){ if(!A) A = new (window.AudioContext || window.webkitAudioContext)(); return A; }
+    function playSound(row){
+      var a = getA();
+      if(row === 0){
+        var o = a.createOscillator(), g = a.createGain();
+        o.frequency.setValueAtTime(150, a.currentTime);
+        o.frequency.exponentialRampToValueAtTime(50, a.currentTime + 0.1);
+        g.gain.setValueAtTime(0.5, a.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.1);
+        o.connect(g); g.connect(a.destination);
+        o.start(); o.stop(a.currentTime + 0.1);
+      } else {
+        var dur = row === 2 ? 0.05 : 0.15;
+        var freq = row === 1 ? 800 : row === 2 ? 8000 : 1500;
+        var buf = a.createBuffer(1, a.sampleRate * dur, a.sampleRate);
+        var data = buf.getChannelData(0);
+        for(var i=0;i<data.length;i++) data[i] = Math.random()*2-1;
+        var s = a.createBufferSource(); s.buffer = buf;
+        var f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq;
+        var g = a.createGain(); g.gain.setValueAtTime(0.3, a.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + dur);
+        s.connect(f); f.connect(g); g.connect(a.destination);
+        s.start(); s.stop(a.currentTime + dur);
+      }
+    }
+    function step(){
+      curStep = (curStep + 1) % 16;
+      for(var r=0;r<4;r++){ if(grid[r][curStep]) playSound(r); }
+    }
+    win.querySelector('#v18-bmPlay').onclick = function(){
+      if(playing){ clearInterval(timer); playing = false; win.querySelector('#v18-bmPlay').textContent = '▶ Play'; return; }
+      playing = true; win.querySelector('#v18-bmPlay').textContent = '⏸ Stop';
+      var interval = 60000 / bpm / 4;
+      timer = setInterval(step, interval);
+    };
+    win.querySelector('#v18-bmClear').onclick = function(){ for(var r=0;r<4;r++) grid[r] = new Array(16).fill(false); render(); };
+    win.querySelector('#v18-bmBPM').oninput = function(){
+      bpm = parseInt(this.value);
+      win.querySelector('#v18-bmB').textContent = bpm;
+      if(playing){ clearInterval(timer); timer = setInterval(step, 60000/bpm/4); }
+    };
+    render();
+  }
+};
+
+/* 5 · METRONOM */
+APPS['metronom'] = {
+  name:'Metronom', icon:'⏱️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">⏱️ Metronom</div><div class="dim sm">Takt halten beim Üben</div></div>'+
+      '<div style="font-size:64px;text-align:center;font-weight:800;color:var(--c1);padding:16px;font-variant-numeric:tabular-nums" id="v18-mtD">120</div>'+
+      '<div style="text-align:center;font-size:22px;font-weight:700;color:var(--dim)" id="v18-mtB">●</div>'+
+      '<input type="range" min="40" max="220" value="120" id="v18-mtS" style="width:100%;accent-color:var(--c1)">'+
+      '<div class="row" id="v18-mtT">'+
+        '<button class="v18-shape-btn" data-t="2">2/4</button>'+
+        '<button class="v18-shape-btn" data-t="3">3/4</button>'+
+        '<button class="v18-shape-btn on" data-t="4">4/4</button>'+
+        '<button class="v18-shape-btn" data-t="6">6/8</button>'+
+      '</div>'+
+      '<button class="btn primary" id="v18-mtPlay" style="width:100%;margin-top:8px">▶ Start</button>'+
+    '</div>';
+  },
+  init: function(win){
+    var bpm = 120, playing = false, timer = null, count = 0, beats = 4;
+    var A = null;
+    function tick(){
+      try{
+        if(!A) A = new (window.AudioContext || window.webkitAudioContext)();
+        var o = A.createOscillator(), g = A.createGain();
+        o.frequency.value = count === 0 ? 1200 : 800;
+        g.gain.setValueAtTime(0.3, A.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, A.currentTime + 0.05);
+        o.connect(g); g.connect(A.destination);
+        o.start(); o.stop(A.currentTime + 0.05);
+      }catch(e){}
+      win.querySelector('#v18-mtB').textContent = count === 0 ? '🔴' : '●';
+      count = (count + 1) % beats;
+    }
+    win.querySelector('#v18-mtS').oninput = function(){
+      bpm = parseInt(this.value);
+      win.querySelector('#v18-mtD').textContent = bpm;
+      if(playing){ clearInterval(timer); timer = setInterval(tick, 60000/bpm); }
+    };
+    win.querySelectorAll('#v18-mtT [data-t]').forEach(function(b){
+      b.onclick = function(){
+        beats = parseInt(b.dataset.t);
+        win.querySelectorAll('#v18-mtT [data-t]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        count = 0;
+      };
+    });
+    win.querySelector('#v18-mtPlay').onclick = function(){
+      if(playing){ clearInterval(timer); playing = false; win.querySelector('#v18-mtPlay').textContent = '▶ Start'; return; }
+      playing = true; count = 0;
+      win.querySelector('#v18-mtPlay').textContent = '⏸ Stop';
+      timer = setInterval(tick, 60000/bpm);
+      tick();
+    };
+  }
+};
+
+/* 6 · STIMMUNGS-GENERATOR (Musik) */
+APPS['musik-mood'] = {
+  name:'Musik-Mood', icon:'🎵',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎵 Musik-Mood-Generator</div><div class="dim sm">Welche Musik passt zu deiner Stimmung?</div></div>'+
+      '<div class="v16-mood" id="v18-mmM">'+
+        '<button data-m="1">😢</button><button data-m="2">😕</button><button data-m="3">😐</button><button data-m="4">🙂</button><button data-m="5">😄</button>'+
+      '</div>'+
+      '<div id="v18-mmL" class="col" style="gap:8px;margin-top:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var MOOD = {
+      1: {t:'Melancholisch', g:['Sad Piano','Emo Rock','Traurige Klassik','Blues','Lo-Fi'], e:'💙'},
+      2: {t:'Nachdenklich', g:['Ambient','Indie Folk','Downtempo','Jazz','Klassik'], e:'🌧️'},
+      3: {t:'Neutral', g:['Pop','Chillout','Akustik','Easy Listening','Soul'], e:'🎧'},
+      4: {t:'Gut gelaunt', g:['Pop Hits','Funk','Disco','Rock','R&B'], e:'😊'},
+      5: {t:'Euphorisch', g:['Dance','EDM','House','Hip-Hop','Party Hits'], e:'🎉'}
+    };
+    function show(m){
+      var d = MOOD[m];
+      win.querySelector('#v18-mmL').innerHTML = '<div class="v18-card" style="text-align:center"><div style="font-size:52px">'+d.e+'</div><b style="font-size:18px;display:block;margin-top:8px;color:var(--c1)">'+d.t+'</b></div>'+
+        d.g.map(function(g){
+          return '<a href="https://www.youtube.com/results?search_query='+encodeURIComponent(g + ' playlist')+'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="v18-row"><span style="font-size:18px">🎵</span><b style="flex:1">'+esc(g)+'</b><span class="dim sm">auf YouTube →</span></div></a>';
+        }).join('');
+    }
+    win.querySelectorAll('#v18-mmM button').forEach(function(b){
+      b.onclick = function(){
+        win.querySelectorAll('#v18-mmM button').forEach(function(x){ x.classList.toggle('on', x === b); });
+        show(parseInt(b.dataset.m));
+      };
+    });
+    win.querySelectorAll('#v18-mmM button')[3].click();
+  }
+};
+
+/* 7 · FARBEN-MISCHER */
+APPS['farb-mischer'] = {
+  name:'Farben-Mischer', icon:'🎨',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎨 Farben-Mischer</div><div class="dim sm">RGB & Hex-Farben erzeugen</div></div>'+
+      '<div style="height:120px;border-radius:14px;border:1px solid rgba(120,180,255,.2)" id="v18-fmV"></div>'+
+      '<div class="row" style="gap:8px;flex-direction:column">'+
+        '<label style="font-size:12px">🔴 Rot: <b id="v18-fmR" style="color:var(--c1)">255</b></label>'+
+        '<input type="range" min="0" max="255" value="255" id="v18-fmR2" style="width:100%;accent-color:#ff6b88">'+
+        '<label style="font-size:12px">🟢 Grün: <b id="v18-fmG" style="color:var(--c1)">100</b></label>'+
+        '<input type="range" min="0" max="255" value="100" id="v18-fmG2" style="width:100%;accent-color:#4de88a">'+
+        '<label style="font-size:12px">🔵 Blau: <b id="v18-fmB" style="color:var(--c1)">200</b></label>'+
+        '<input type="range" min="0" max="255" value="200" id="v18-fmB2" style="width:100%;accent-color:#4a90e0">'+
+      '</div>'+
+      '<div class="v9-stat"><div class="v" id="v18-fmHex">#FF64C8</div><div class="l">Hex-Code</div></div>'+
+      '<button class="btn primary" id="v18-fmCopy" style="width:100%">📋 Hex kopieren</button>'+
+    '</div>';
+  },
+  init: function(win){
+    function upd(){
+      var r = parseInt(win.querySelector('#v18-fmR2').value);
+      var g = parseInt(win.querySelector('#v18-fmG2').value);
+      var b = parseInt(win.querySelector('#v18-fmB2').value);
+      var hex = '#' + [r,g,b].map(function(x){ return x.toString(16).padStart(2,'0'); }).join('').toUpperCase();
+      win.querySelector('#v18-fmV').style.background = 'rgb('+r+','+g+','+b+')';
+      win.querySelector('#v18-fmR').textContent = r;
+      win.querySelector('#v18-fmG').textContent = g;
+      win.querySelector('#v18-fmB').textContent = b;
+      win.querySelector('#v18-fmHex').textContent = hex;
+    }
+    ['#v18-fmR2','#v18-fmG2','#v18-fmB2'].forEach(function(s){ win.querySelector(s).oninput = upd; });
+    win.querySelector('#v18-fmCopy').onclick = function(){
+      var hex = win.querySelector('#v18-fmHex').textContent;
+      if(navigator.clipboard) navigator.clipboard.writeText(hex).then(function(){ toast('📋 ' + hex); });
+    };
+    upd();
+  }
+};
+
+/* 8 · EMOJI-KUNST */
+APPS['emoji-kunst'] = {
+  name:'Emoji-Kunst', icon:'😀',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">😀 Emoji-Kunst</div><div class="dim sm">Bilder aus Emojis</div></div>'+
+      '<div style="padding:14px;background:rgba(0,20,50,.5);border-radius:12px;font-family:monospace;font-size:18px;line-height:1;white-space:pre;overflow:auto;text-align:center" id="v18-ekV"></div>'+
+      '<div class="row" id="v18-ekT" style="flex-wrap:wrap;gap:6px">'+
+        '<button class="v18-shape-btn on" data-t="herz">❤️ Herz</button>'+
+        '<button class="v18-shape-btn" data-t="stern">⭐ Stern</button>'+
+        '<button class="v18-shape-btn" data-t="katze">🐱 Katze</button>'+
+        '<button class="v18-shape-btn" data-t="blume">🌸 Blume</button>'+
+        '<button class="v18-shape-btn" data-t="sonne">☀️ Sonne</button>'+
+      '</div>'+
+      '<button class="btn primary" id="v18-ekCopy" style="width:100%">📋 Kopieren</button>'+
+    '</div>';
+  },
+  init: function(win){
+    var ART = {
+      herz: [
+        ' ❤️❤️   ❤️❤️ ',
+        '❤️❤️❤️❤️❤️❤️❤️',
+        '❤️❤️❤️❤️❤️❤️❤️',
+        ' ❤️❤️❤️❤️❤️ ',
+        '  ❤️❤️❤️  ',
+        '   ❤️   '
+      ],
+      stern: [
+        '    ⭐    ',
+        '   ⭐⭐⭐   ',
+        ' ⭐⭐⭐⭐⭐ ',
+        '⭐⭐⭐⭐⭐⭐⭐',
+        '  ⭐⭐⭐  ',
+        ' ⭐   ⭐ '
+      ],
+      katze: [
+        ' 🐱     🐱 ',
+        '🐱🐱   🐱🐱',
+        '🐱🐱🐱🐱🐱🐱',
+        '🐱  🐱  🐱',
+        ' 🐱 🐱🐱 🐱'
+      ],
+      blume: [
+        '   🌸🌸🌸   ',
+        ' 🌸🌸🌸🌸🌸 ',
+        '🌸🌸🌸🌸🌸🌸',
+        '🌸🌸🌸🌸🌸🌸',
+        ' 🌸🌸🌸🌸🌸 ',
+        '   🌸🌸🌸   '
+      ],
+      sonne: [
+        '   ☀️☀️☀️   ',
+        ' ☀️☀️☀️☀️☀️ ',
+        '☀️☀️☀️☀️☀️☀️',
+        ' ☀️☀️☀️☀️☀️ ',
+        '   ☀️☀️☀️   ',
+        '   ⬇️⬇️⬇️   '
+      ]
+    };
+    function show(t){
+      win.querySelector('#v18-ekV').textContent = ART[t].join('\n');
+    }
+    win.querySelectorAll('[data-t]').forEach(function(b){
+      b.onclick = function(){
+        win.querySelectorAll('[data-t]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        show(b.dataset.t);
+      };
+    });
+    win.querySelector('#v18-ekCopy').onclick = function(){
+      var t = win.querySelector('#v18-ekV').textContent;
+      if(navigator.clipboard) navigator.clipboard.writeText(t).then(function(){ toast('📋 Kopiert'); });
+    };
+    show('herz');
+  }
+};
+
+/* 9 · FARB-VERLAUF */
+APPS['farbverlauf'] = {
+  name:'Farb-Verlauf', icon:'🌈',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🌈 CSS-Farb-Verlauf</div><div class="dim sm">Gradient-Generator</div></div>'+
+      '<div id="v18-fvV" style="height:180px;border-radius:14px;border:1px solid rgba(120,180,255,.2)"></div>'+
+      '<div class="row"><input type="color" id="v18-fvC1" value="#00e5ff" style="flex:1;height:44px;border-radius:10px;border:1px solid rgba(120,180,255,.3);background:transparent;cursor:pointer"><input type="color" id="v18-fvC2" value="#b478ff" style="flex:1;height:44px;border-radius:10px;border:1px solid rgba(120,180,255,.3);background:transparent;cursor:pointer"></div>'+
+      '<div class="row"><select class="v9-input" id="v18-fvD" style="flex:1"><option value="90deg">→ Horizontal</option><option value="180deg">↓ Vertikal</option><option value="135deg">↘ Diagonal</option><option value="45deg">↗ Diagonal</option><option value="0deg">↑ Aufwärts</option></select></div>'+
+      '<div class="row" style="flex-wrap:wrap;gap:6px">'+
+        '<button class="v18-shape-btn" data-p="0">0%</button>'+
+        '<button class="v18-shape-btn on" data-p="50">50%</button>'+
+        '<button class="v18-shape-btn" data-p="100">100%</button>'+
+      '</div>'+
+      '<div style="padding:12px;background:rgba(0,20,50,.5);border-radius:12px;font-family:monospace;font-size:12px;color:var(--c1);word-break:break-all" id="v18-fvCode"></div>'+
+      '<button class="btn primary" id="v18-fvCopy" style="width:100%">📋 CSS kopieren</button>'+
+    '</div>';
+  },
+  init: function(win){
+    var pos = '50%';
+    function upd(){
+      var c1 = win.querySelector('#v18-fvC1').value;
+      var c2 = win.querySelector('#v18-fvC2').value;
+      var d = win.querySelector('#v18-fvD').value;
+      var css = 'linear-gradient('+d+', '+c1+' 0%, '+c2+' '+pos+')';
+      win.querySelector('#v18-fvV').style.background = css;
+      win.querySelector('#v18-fvCode').textContent = 'background: ' + css + ';';
+    }
+    ['#v18-fvC1','#v18-fvC2','#v18-fvD'].forEach(function(s){ win.querySelector(s).oninput = upd; win.querySelector(s).onchange = upd; });
+    win.querySelectorAll('[data-p]').forEach(function(b){
+      b.onclick = function(){
+        pos = b.dataset.p + '%';
+        win.querySelectorAll('[data-p]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        upd();
+      };
+    });
+    win.querySelector('#v18-fvCopy').onclick = function(){
+      var t = win.querySelector('#v18-fvCode').textContent;
+      if(navigator.clipboard) navigator.clipboard.writeText(t).then(function(){ toast('📋 Kopiert'); });
+    };
+    upd();
+  }
+};
+
+/* 10 · BILD-MOSAIK */
+APPS['mosaik'] = {
+  name:'Bild-Mosaik', icon:'🔲',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🔲 Bild-Mosaik</div><div class="dim sm">Kunst mit farbigen Kacheln</div></div>'+
+      '<div id="v18-mzG" style="display:grid;grid-template-columns:repeat(10,1fr);gap:2px;max-width:400px;margin:0 auto"></div>'+
+      '<div class="row"><button class="btn primary" id="v18-mzNew" style="flex:1">🎲 Neu</button><button class="btn" id="v18-mzSave" style="flex:1">💾</button></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function gen(){
+      var COLS = ['#00e5ff','#b478ff','#ff6b88','#4de88a','#ffb03a','#ffd84a','#4a90e0','#2a3a80'];
+      var html = '';
+      for(var i=0;i<100;i++){
+        var c = COLS[Math.floor(Math.random()*COLS.length)];
+        html += '<div style="aspect-ratio:1;background:'+c+';border-radius:2px;cursor:pointer;transition:.15s"></div>';
+      }
+      win.querySelector('#v18-mzG').innerHTML = html;
+      win.querySelectorAll('#v18-mzG > div').forEach(function(el){
+        el.onclick = function(){
+          var COLS = ['#00e5ff','#b478ff','#ff6b88','#4de88a','#ffb03a','#ffd84a','#4a90e0','#2a3a80'];
+          el.style.background = COLS[Math.floor(Math.random()*COLS.length)];
+        };
+      });
+    }
+    win.querySelector('#v18-mzNew').onclick = gen;
+    win.querySelector('#v18-mzSave').onclick = function(){ toast('💾 Nutze Screenshot zum Speichern'); };
+    gen();
+  }
+};
+
+/* 11 · MEME-MAKER */
+APPS['meme-maker'] = {
+  name:'Meme-Maker', icon:'😂',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">😂 Meme-Maker</div><div class="dim sm">Einfacher Meme-Text auf Bild</div></div>'+
+      '<input class="v9-input" id="v18-mmT" placeholder="Oberer Text…" value="WENN DER CODE LÄUFT">'+
+      '<input class="v9-input" id="v18-mmB" placeholder="Unterer Text…" value="ENDLICH!">'+
+      '<select class="v9-input" id="v18-mmI"><option value="1">🐱 Katze</option><option value="2">🐶 Hund</option><option value="3">🦆 Ente</option><option value="4">🐸 Frosch</option><option value="5">💻 Computer</option><option value="6">🤖 Roboter</option></select>'+
+      '<canvas class="v18-canvas" id="v18-mmC" width="500" height="500"></canvas>'+
+      '<button class="btn primary" id="v18-mmSave" style="width:100%">💾 Als PNG speichern</button>'+
+    '</div>';
+  },
+  init: function(win){
+    var cv = win.querySelector('#v18-mmC'), ctx = cv.getContext('2d');
+    function draw(){
+      ctx.fillStyle = '#1a2050'; ctx.fillRect(0,0,500,500);
+      for(var i=0;i<40;i++){
+        ctx.fillStyle = 'rgba(0,229,255,'+(0.05 + Math.random()*0.15)+')';
+        ctx.fillRect(Math.random()*500, Math.random()*500, 3, 3);
+      }
+      var emoji = win.querySelector('#v18-mmI').value;
+      var emojis = {'1':'🐱','2':'🐶','3':'🦆','4':'🐸','5':'💻','6':'🤖'};
+      ctx.font = '200px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(emojis[emoji], 250, 340);
+      ctx.font = 'bold 40px sans-serif';
+      ctx.fillStyle = '#fff';
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 4;
+      var t = win.querySelector('#v18-mmT').value.toUpperCase();
+      var b = win.querySelector('#v18-mmB').value.toUpperCase();
+      ctx.textAlign = 'center';
+      ctx.strokeText(t, 250, 60);
+      ctx.fillText(t, 250, 60);
+      ctx.strokeText(b, 250, 470);
+      ctx.fillText(b, 250, 470);
+    }
+    ['#v18-mmT','#v18-mmB','#v18-mmI'].forEach(function(s){ var el = win.querySelector(s); el.oninput = draw; el.onchange = draw; });
+    win.querySelector('#v18-mmSave').onclick = function(){
+      var a = document.createElement('a');
+      a.download = 'haldo-meme-' + Date.now() + '.png';
+      a.href = cv.toDataURL('image/png');
+      a.click();
+      toast('✅ Gespeichert');
+    };
+    draw();
+  }
+};
+
+/* 12 · KUNST-GALERIE */
+APPS['kunstgalerie'] = {
+  name:'Kunst-Galerie', icon:'🖼️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🖼️ Kunst-Galerie</div><div class="dim sm">Berühmte Gemälde & Künstler</div></div>'+
+      '<div class="v18-gallery" id="v18-kgG"></div>'+
+      '<div id="v18-kgD" class="v18-card" style="display:none"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['🌻','Sonnenblumen','Vincent van Gogh','1888','Öl auf Leinwand','Van Gogh Museum, Amsterdam'],
+      ['👩','Mona Lisa','Leonardo da Vinci','1503-1519','Öl auf Pappelholz','Louvre, Paris'],
+      ['🌌','Sternennacht','Vincent van Gogh','1889','Öl auf Leinwand','MoMA, New York'],
+      ['🎨','Der Schrei','Edvard Munch','1893','Tempera','Nationalgalerie, Oslo'],
+      ['💋','Der Kuss','Gustav Klimt','1907-08','Öl + Gold','Belvedere, Wien'],
+      ['💃','Guernica','Pablo Picasso','1937','Öl auf Leinwand','Reina Sofía, Madrid'],
+      ['🐘','Die Geburt der Venus','Sandro Botticelli','ca. 1485','Tempera','Uffizien, Florenz'],
+      ['🌊','Die große Welle','Hokusai','1831','Holzschnitt','MET, New York'],
+      ['😱','Das Mädchen mit dem Perlenohrring','Johannes Vermeer','1665','Öl','Mauritshuis, Den Haag'],
+      ['🚣','Das Mittagessen der Ruderer','Pierre-Auguste Renoir','1881','Öl','Phillips Collection'],
+      ['🌳','Die Geburt','Marc Chagall','1912','Öl','MoMA, New York'],
+      ['🌸','Wasserlilien','Claude Monet','1919','Öl','Diverse Museen']
+    ];
+    win.querySelector('#v18-kgG').innerHTML = D.map(function(x, i){
+      return '<div data-i="'+i+'" style="--bg1:rgba(0,229,255,.15);--bg2:rgba(180,120,255,.1)">'+x[0]+'</div>';
+    }).join('');
+    win.querySelectorAll('#v18-kgG > div').forEach(function(el){
+      el.onclick = function(){
+        var x = D[parseInt(el.dataset.i)];
+        var d = win.querySelector('#v18-kgD');
+        d.style.display = 'block';
+        d.innerHTML = '<div style="font-size:52px;text-align:center">'+x[0]+'</div><b style="display:block;font-size:17px;color:var(--c1);text-align:center;margin-top:6px">'+esc(x[1])+'</b><div class="dim sm" style="margin-top:10px;line-height:1.8"><b>👨‍🎨 Künstler:</b> '+esc(x[2])+'<br><b>📅 Jahr:</b> '+esc(x[3])+'<br><b>🖌 Technik:</b> '+esc(x[4])+'<br><b>🏛 Ort:</b> '+esc(x[5])+'</div>';
+      };
+    });
+  }
+};
+
+/* 13 · SPRÜCHE-BILDER */
+APPS['spruch-bilder'] = {
+  name:'Spruch-Bilder', icon:'💬',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💬 Spruch-Bilder</div><div class="dim sm">Dein Spruch auf schönem Hintergrund</div></div>'+
+      '<textarea class="ta" id="v18-sbT" style="min-height:60px" placeholder="Dein Spruch…">Der Weg ist das Ziel.</textarea>'+
+      '<input class="v9-input" id="v18-sbA" placeholder="Autor (optional)" value="Konfuzius">'+
+      '<div class="row" id="v18-sbG"><button class="v18-shape-btn on" data-g="1">🌅 Sonnenuntergang</button><button class="v18-shape-btn" data-g="2">🌌 Nacht</button><button class="v18-shape-btn" data-g="3">🌊 Meer</button><button class="v18-shape-btn" data-g="4">🌲 Wald</button></div>'+
+      '<canvas class="v18-canvas" id="v18-sbC" width="600" height="600"></canvas>'+
+      '<button class="btn primary" id="v18-sbSave" style="width:100%">💾 Speichern</button>'+
+    '</div>';
+  },
+  init: function(win){
+    var cv = win.querySelector('#v18-sbC'), ctx = cv.getContext('2d');
+    var grad = 1;
+    function draw(){
+      var g;
+      if(grad === 1){ g = ctx.createLinearGradient(0,0,0,600); g.addColorStop(0,'#ff6b88'); g.addColorStop(0.5,'#ffb03a'); g.addColorStop(1,'#4a2050'); }
+      else if(grad === 2){ g = ctx.createLinearGradient(0,0,0,600); g.addColorStop(0,'#050515'); g.addColorStop(0.5,'#1a2050'); g.addColorStop(1,'#3a2050'); }
+      else if(grad === 3){ g = ctx.createLinearGradient(0,0,0,600); g.addColorStop(0,'#00e5ff'); g.addColorStop(0.5,'#4a90e0'); g.addColorStop(1,'#0a2050'); }
+      else { g = ctx.createLinearGradient(0,0,0,600); g.addColorStop(0,'#4de88a'); g.addColorStop(0.5,'#2a5a3a'); g.addColorStop(1,'#0a2050'); }
+      ctx.fillStyle = g; ctx.fillRect(0,0,600,600);
+      if(grad === 2){
+        for(var i=0;i<60;i++){
+          ctx.fillStyle = 'rgba(255,255,255,'+(0.3 + Math.random()*0.7)+')';
+          ctx.beginPath();
+          ctx.arc(Math.random()*600, Math.random()*500, 1+Math.random()*2, 0, Math.PI*2);
+          ctx.fill();
+        }
+      }
+      var t = win.querySelector('#v18-sbT').value;
+      var a = win.querySelector('#v18-sbA').value;
+      ctx.font = 'bold 42px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = 'rgba(0,0,0,.6)';
+      ctx.shadowBlur = 12;
+      var lines = t.split('\n');
+      var y = 280 - (lines.length-1) * 26;
+      lines.forEach(function(l){ ctx.fillText(l, 300, y); y += 52; });
+      if(a){
+        ctx.font = 'italic 24px serif';
+        ctx.fillText('— ' + a, 300, 420);
+      }
+      ctx.shadowBlur = 0;
+    }
+    ['#v18-sbT','#v18-sbA'].forEach(function(s){ win.querySelector(s).oninput = draw; });
+    win.querySelectorAll('[data-g]').forEach(function(b){
+      b.onclick = function(){
+        grad = parseInt(b.dataset.g);
+        win.querySelectorAll('[data-g]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        draw();
+      };
+    });
+    win.querySelector('#v18-sbSave').onclick = function(){
+      var a = document.createElement('a');
+      a.download = 'haldo-spruch-' + Date.now() + '.png';
+      a.href = cv.toDataURL('image/png');
+      a.click();
+      toast('✅ Gespeichert');
+    };
+    draw();
+  }
+};
+
+/* 14 · SKIZZEN-BLOCK */
+APPS['skizzen'] = {
+  name:'Skizzen-Block', icon:'✏️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">✏️ Skizzen-Block</div><div class="dim sm">Schnelle Skizzen auf Karo</div></div>'+
+      '<canvas class="v18-canvas" id="v18-skC" width="600" height="600" style="background:#fff"></canvas>'+
+      '<div class="row"><button class="btn primary" id="v18-skCl" style="flex:1">🗑 Neu</button><button class="btn" id="v18-skDl" style="flex:1">💾 Speichern</button></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var cv = win.querySelector('#v18-skC'), ctx = cv.getContext('2d');
+    function grid(){
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,600,600);
+      ctx.strokeStyle = '#e5e5e5'; ctx.lineWidth = 1;
+      for(var i=0;i<600;i+=30){
+        ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,600); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(600,i); ctx.stroke();
+      }
+    }
+    grid();
+    var drawing = false, lx = 0, ly = 0;
+    function pos(e){
+      var r = cv.getBoundingClientRect();
+      var x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+      var y = (e.touches ? e.touches[0].clientY : e.clientY) - r.top;
+      return { x: x * cv.width / r.width, y: y * cv.height / r.height };
+    }
+    function start(e){ e.preventDefault(); drawing = true; var p = pos(e); lx = p.x; ly = p.y; }
+    function move(e){
+      if(!drawing) return;
+      e.preventDefault();
+      var p = pos(e);
+      ctx.beginPath(); ctx.strokeStyle = '#1a2050'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+      ctx.moveTo(lx, ly); ctx.lineTo(p.x, p.y); ctx.stroke();
+      lx = p.x; ly = p.y;
+    }
+    function stop(){ drawing = false; }
+    cv.addEventListener('mousedown', start); cv.addEventListener('mousemove', move); cv.addEventListener('mouseup', stop);
+    cv.addEventListener('touchstart', start, {passive:false}); cv.addEventListener('touchmove', move, {passive:false}); cv.addEventListener('touchend', stop);
+    win.querySelector('#v18-skCl').onclick = grid;
+    win.querySelector('#v18-skDl').onclick = function(){
+      var a = document.createElement('a');
+      a.download = 'haldo-skizze-' + Date.now() + '.png';
+      a.href = cv.toDataURL('image/png');
+      a.click();
+    };
+  }
+};
+
+/* 15 · POESIE-GENERATOR */
+APPS['poesie'] = {
+  name:'Poesie-Generator', icon:'📜',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📜 Poesie-Generator</div><div class="dim sm">Kleine Gedichte aus Stichworten</div></div>'+
+      '<input class="v9-input" id="v18-poT" placeholder="Thema (Liebe, Natur, Freundschaft, Reise, Zeit)…" value="Freundschaft">'+
+      '<button class="btn primary" id="v18-poGo">✨ Gedicht erzeugen</button>'+
+      '<div class="v18-card" id="v18-poV" style="font-family:serif;font-size:16px;line-height:1.9;white-space:pre-wrap;text-align:center;font-style:italic;min-height:200px">Klicke auf "Gedicht erzeugen"</div>'+
+      '<button class="btn" id="v18-poCopy">📋 Kopieren</button>'+
+    '</div>';
+  },
+  init: function(win){
+    var P = {
+      freundschaft: [
+        'Gemeinsam gehen wir den Weg,\nder oft so steinig scheint.\nDoch einer trägt des anderen Last,\nso sind wir niemals allein.',
+        'Ein Freund ist wie ein helles Licht,\ndas in der Dunkelheit uns führt.\nEin Wort, ein Blick, ein Lächeln nur –\nund schon sind wir berührt.'
+      ],
+      liebe: [
+        'Dein Blick, er streift mich leise,\nwie Morgenlicht im Tal.\nMein Herz schlägt deine Weise,\nund alles wird egal.',
+        'Ich trage dich in meinen Träumen,\nwo Zeit und Raum vergeht.\nUnd wenn die Sterne schweigen,\nbleibt nur, was ewig steht.'
+      ],
+      natur: [
+        'Der Wind streicht durch die Wälder,\ndie Blätter tanzen sacht.\nDer Mond gießt Silber auf die Felder,\nund alles ist erwacht.',
+        'Im Frühling blüht die Hoffnung,\nim Sommer glüht die Zeit,\nim Herbst weht die Erinnerung,\nim Winter fällt das Kleid.'
+      ],
+      reise: [
+        'Ein Rucksack, eine Karte,\nein Herz voller Mut.\nDie Straße ruft uns leise,\nund jedes Ziel tut gut.',
+        'Wir wandern durch die Ferne,\nwo Fremdes uns umarmt.\nUnd jeder Schritt erzählt uns:\nDie Welt ist nicht nur arm.'
+      ],
+      zeit: [
+        'Die Stunden fließen leise,\nwie Wasser durch die Hand.\nWir greifen und wir halten –\nund lassen doch den Sand.',
+        'Was gestern noch ein Morgen war,\nist heute schon vorbei.\nDrum lebe jeden Augenblick\nund bleibe dir getreu.'
+      ]
+    };
+    win.querySelector('#v18-poGo').onclick = function(){
+      var t = win.querySelector('#v18-poT').value.trim().toLowerCase();
+      if(!P[t]){
+        return toast('Thema nicht gefunden. Versuche: Liebe, Natur, Freundschaft, Reise, Zeit');
+      }
+      var arr = P[t];
+      var i = Math.floor(Math.random()*arr.length);
+      win.querySelector('#v18-poV').textContent = arr[i];
+    };
+    win.querySelector('#v18-poCopy').onclick = function(){
+      var t = win.querySelector('#v18-poV').textContent;
+      if(navigator.clipboard) navigator.clipboard.writeText(t).then(function(){ toast('📋 Kopiert'); });
+    };
+  }
+};
+
+/* 16 · BILD-FILTER */
+APPS['bild-filter'] = {
+  name:'Bild-Filter', icon:'📸',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📸 Bild-Filter</div><div class="dim sm">Einfache Bildbearbeitung</div></div>'+
+      '<div class="row"><input type="file" id="v18-bfU" accept="image/*" style="display:none"><button class="btn primary" id="v18-bfBtn" style="flex:1">📁 Bild laden</button></div>'+
+      '<canvas class="v18-canvas" id="v18-bfC" width="600" height="600"></canvas>'+
+      '<div class="row" id="v18-bfT" style="flex-wrap:wrap;gap:6px">'+
+        '<button class="v18-shape-btn on" data-f="none">🖼 Original</button>'+
+        '<button class="v18-shape-btn" data-f="gray">⬛ Grau</button>'+
+        '<button class="v18-shape-btn" data-f="sepia">🟫 Sepia</button>'+
+        '<button class="v18-shape-btn" data-f="invert">🔄 Invert</button>'+
+        '<button class="v18-shape-btn" data-f="blur">💨 Weich</button>'+
+        '<button class="v18-shape-btn" data-f="bright">☀️ Hell</button>'+
+        '<button class="v18-shape-btn" data-f="contrast">🌗 Kontrast</button>'+
+      '</div>'+
+      '<button class="btn primary" id="v18-bfSave" style="width:100%">💾 Speichern</button>'+
+    '</div>';
+  },
+  init: function(win){
+    var cv = win.querySelector('#v18-bfC'), ctx = cv.getContext('2d');
+    var img = null, filter = 'none';
+    function draw(){
+      ctx.clearRect(0,0,600,600);
+      if(!img){
+        ctx.fillStyle = '#0a1028'; ctx.fillRect(0,0,600,600);
+        ctx.fillStyle = '#8fa8d4'; ctx.font = '20px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('Bild laden zum Starten', 300, 300);
+        return;
+      }
+      var filters = {
+        none:'none', gray:'grayscale(100%)', sepia:'sepia(100%)', invert:'invert(100%)',
+        blur:'blur(4px)', bright:'brightness(1.5)', contrast:'contrast(1.8)'
+      };
+      ctx.filter = filters[filter] || 'none';
+      var scale = Math.min(600/img.width, 600/img.height);
+      var w = img.width * scale, h = img.height * scale;
+      ctx.drawImage(img, (600-w)/2, (600-h)/2, w, h);
+      ctx.filter = 'none';
+    }
+    win.querySelector('#v18-bfBtn').onclick = function(){ win.querySelector('#v18-bfU').click(); };
+    win.querySelector('#v18-bfU').onchange = function(e){
+      var f = e.target.files[0]; if(!f) return;
+      var reader = new FileReader();
+      reader.onload = function(ev){
+        img = new Image();
+        img.onload = draw;
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(f);
+    };
+    win.querySelectorAll('[data-f]').forEach(function(b){
+      b.onclick = function(){
+        filter = b.dataset.f;
+        win.querySelectorAll('[data-f]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        draw();
+      };
+    });
+    win.querySelector('#v18-bfSave').onclick = function(){
+      if(!img) return toast('Erst Bild laden');
+      var a = document.createElement('a');
+      a.download = 'haldo-bild-' + Date.now() + '.png';
+      a.href = cv.toDataURL('image/png');
+      a.click();
+    };
+    draw();
+  }
+};
+
+/* 17 · TANZ-MOVES */
+APPS['tanz-moves'] = {
+  name:'Tanz-Moves', icon:'💃',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💃 Tanz-Moves</div><div class="dim sm">Einfache Tanze für jede Party</div></div>'+
+      '<div id="v18-tmL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['🕺','Macarena','Klassiker · 8er-Sequenz · leicht zu lernen'],
+      ['🇰🇷','Gangnam Style','K-Pop Hit · Pferdereiten-Geste'],
+      ['🥳','Floss','Fortnite-Tanz · Arme vor/zurück'],
+      ['🦈','Baby Shark','Für Kinder · Hände als Flossen'],
+      ['🎵','Cotton Eye Joe','Country · Line Dance'],
+      ['✨','Y.M.C.A.','Village People · Arme als Buchstaben'],
+      ['🎤','Cha Cha Slide','Anweisungen folgen'],
+      ['🤠','Achy Breaky Heart','Country Line Dance'],
+      ['🎶','Time Warp','Rocky Horror · Schritte'],
+      ['💃','Salsa Basics','2 Schritte + Drehung'],
+      ['🕺','Walzer','Klassisch · 3/4 Takt'],
+      ['🔥','Hip-Hop Top Rock','Street Dance Basic']
+    ];
+    win.querySelector('#v18-tmL').innerHTML = D.map(function(x){
+      return '<a href="https://www.youtube.com/results?search_query='+encodeURIComponent(x[1]+' Tanz Tutorial')+'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="v18-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b><span class="dim sm">Tutorial →</span></div><div class="dim sm" style="margin-top:6px">'+esc(x[2])+'</div></div></a>';
+    }).join('');
+  }
+};
+
+/* 18 · FOTO-KOLLAGE */
+APPS['foto-kollage'] = {
+  name:'Foto-Kollage', icon:'📷',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📷 Foto-Kollage</div><div class="dim sm">Bilder als Collage anordnen</div></div>'+
+      '<div class="row"><input type="file" id="v18-fkU" accept="image/*" multiple style="display:none"><button class="btn primary" id="v18-fkBtn" style="flex:1">📁 Bilder laden (max 4)</button></div>'+
+      '<canvas class="v18-canvas" id="v18-fkC" width="600" height="600"></canvas>'+
+      '<div class="row" id="v18-fkT"><button class="v18-shape-btn on" data-l="2x2">2×2 Grid</button><button class="v18-shape-btn" data-l="1x2">1×2</button><button class="v18-shape-btn" data-l="2x1">2×1</button></div>'+
+      '<button class="btn primary" id="v18-fkSave" style="width:100%">💾 Speichern</button>'+
+    '</div>';
+  },
+  init: function(win){
+    var cv = win.querySelector('#v18-fkC'), ctx = cv.getContext('2d');
+    var imgs = [], layout = '2x2';
+    function draw(){
+      ctx.fillStyle = '#0a1028'; ctx.fillRect(0,0,600,600);
+      if(!imgs.length){
+        ctx.fillStyle = '#8fa8d4'; ctx.font = '20px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('Bilder laden zum Starten', 300, 300);
+        return;
+      }
+      if(layout === '2x2'){
+        var cells = [[0,0,300,300],[300,0,300,300],[0,300,300,300],[300,300,300,300]];
+        imgs.slice(0,4).forEach(function(img, i){
+          var c = cells[i];
+          ctx.drawImage(img, c[0], c[1], c[2], c[3]);
+        });
+      } else if(layout === '1x2'){
+        if(imgs[0]) ctx.drawImage(imgs[0], 0, 0, 600, 300);
+        if(imgs[1]) ctx.drawImage(imgs[1], 0, 300, 600, 300);
+      } else {
+        if(imgs[0]) ctx.drawImage(imgs[0], 0, 0, 300, 600);
+        if(imgs[1]) ctx.drawImage(imgs[1], 300, 0, 300, 600);
+      }
+    }
+    win.querySelector('#v18-fkBtn').onclick = function(){ win.querySelector('#v18-fkU').click(); };
+    win.querySelector('#v18-fkU').onchange = function(e){
+      imgs = [];
+      var files = Array.from(e.target.files).slice(0,4);
+      var loaded = 0;
+      files.forEach(function(f){
+        var reader = new FileReader();
+        reader.onload = function(ev){
+          var img = new Image();
+          img.onload = function(){
+            imgs.push(img);
+            loaded++;
+            if(loaded === files.length){
+              // Sortieren in Reihenfolge
+              imgs.sort(function(a,b){ return 0; });
+              draw();
+            }
+          };
+          img.src = ev.target.result;
+        };
+        reader.readAsDataURL(f);
+      });
+    };
+    win.querySelectorAll('[data-l]').forEach(function(b){
+      b.onclick = function(){
+        layout = b.dataset.l;
+        win.querySelectorAll('[data-l]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        draw();
+      };
+    });
+    win.querySelector('#v18-fkSave').onclick = function(){
+      if(!imgs.length) return toast('Erst Bilder laden');
+      var a = document.createElement('a');
+      a.download = 'haldo-kollage-' + Date.now() + '.png';
+      a.href = cv.toDataURL('image/png');
+      a.click();
+    };
+    draw();
+  }
+};
+
+/* 19 · MUSIK-NOTEN-LERNER */
+APPS['noten-lerner'] = {
+  name:'Noten-Lerner', icon:'🎼',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎼 Noten-Lerner</div><div class="dim sm">Notenwerte & Pausen</div></div>'+
+      '<div id="v18-nlL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['𝅝','Ganze Note','4 Schläge','Leerer Kopf ohne Hals'],
+      ['𝅗𝅥','Halbe Note','2 Schläge','Leerer Kopf mit Hals'],
+      ['♩','Viertelnote','1 Schlag','Gefüllter Kopf mit Hals'],
+      ['♪','Achtelnote','½ Schlag','Ein Fähnchen'],
+      ['♫','Zwei Achtel','1 Schlag','Zwei verbunden'],
+      ['♬','Sechzehntel','¼ Schlag','Zwei Fähnchen'],
+      ['𝄽','Viertelpause','1 Schlag Ruhe','—'],
+      ['𝄾','Achtelpause','½ Schlag Ruhe','—']
+    ];
+    win.querySelector('#v18-nlL').innerHTML = D.map(function(x){
+      return '<div class="v18-card"><div class="row between"><b style="font-size:28px">'+x[0]+'</b><span class="dim sm">'+esc(x[2])+'</span></div><div style="margin-top:6px"><b>'+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[3])+'</div></div>';
+    }).join('');
+  }
+};
+
+/* 20 · KREATIV-IDEEN */
+APPS['kreativ-ideen'] = {
+  name:'Kreativ-Ideen', icon:'💡',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💡 Kreativ-Ideen</div><div class="dim sm">Inspiration für jede Gelegenheit</div></div>'+
+      '<div class="row" id="v18-kiT">'+
+        '<button class="v18-shape-btn on" data-c="malen">🎨 Malen</button>'+
+        '<button class="v18-shape-btn" data-c="basteln">✂️ Basteln</button>'+
+        '<button class="v18-shape-btn" data-c="schreiben">✍️ Schreiben</button>'+
+        '<button class="v18-shape-btn" data-c="foto">📷 Foto</button>'+
+      '</div>'+
+      '<div id="v18-kiL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = {
+      malen: ['Landschaft mit Aquarell','Selbstporträt in Kohle','Abstrakte Farbflächen','Stilleben mit Obst','Akt-Zeichnung','Mandala mit Filzstiften'],
+      basteln: ['Origami-Kranich falten','Selbstgemachte Kerzen','Freundschaftsarmbänder','Bilderrahmen aus Holz','Mosaik aus Scherben','Vogelhaus bauen'],
+      schreiben: ['Kurzgeschichte in 100 Wörtern','Gedicht über deine Heimat','Brief an dein jüngeres Ich','Haiku-Sammlung','Reisetagebuch','Tagebuch einer Woche'],
+      foto: ['Goldene Stunde einfangen','Schwarz-Weiß-Porträt','Spiegelungen im Wasser','Makro von Blumen','Street Photography','Langzeitbelichtung bei Nacht']
+    };
+    function show(c){
+      win.querySelector('#v18-kiL').innerHTML = D[c].map(function(x){
+        return '<div class="v18-row"><span>💡</span><b style="flex:1">'+esc(x)+'</b></div>';
+      }).join('');
+    }
+    win.querySelectorAll('[data-c]').forEach(function(b){
+      b.onclick = function(){
+        win.querySelectorAll('[data-c]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        show(b.dataset.c);
+      };
+    });
+    show('malen');
+  }
+};
+
+console.log('%c📦 v18 geladen — Musik & Kunst · 20 Apps','background:linear-gradient(90deg,#ff6b88,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('Aktive Apps:', Object.keys(APPS).length);
+
+setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click(); }, 150);
+
+})();
+</script>
 </body>
 </html>
