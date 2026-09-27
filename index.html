@@ -23960,5 +23960,693 @@ setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v29 · Hobbys & Freizeit · 20 Apps
+     ============================================================ -->
+<style id="v29-style">
+.v29-card{padding:14px;border-radius:14px;background:linear-gradient(150deg,rgba(20,30,60,.65),rgba(10,16,40,.82));border:1px solid rgba(120,180,255,.14);margin-bottom:8px}
+.v29-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);transition:.15s}
+.v29-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.3);color:var(--c1);cursor:pointer;transition:.15s}
+.v29-chip.on{background:linear-gradient(135deg,var(--c1),var(--c2));color:#02101e;border-color:var(--c1)}
+.v29-tile{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(120,180,255,.14);cursor:pointer;font-size:38px;transition:.15s;padding:8px}
+.v29-tile:hover{background:rgba(0,229,255,.1);border-color:var(--c1);transform:scale(1.03)}
+.v29-tile .l{font-size:10px;margin-top:6px;color:var(--dim)}
+.v29-emoji{font-size:56px;text-align:center;padding:12px}
+.v29-puzzle{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:300px;margin:0 auto}
+.v29-puzzle > div{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:10px;background:linear-gradient(135deg,rgba(0,229,255,.15),rgba(180,120,255,.1));border:1px solid rgba(0,229,255,.3);font-size:28px;font-weight:800;color:var(--c1);cursor:pointer;transition:.15s;user-select:none}
+.v29-puzzle > div:hover{background:rgba(0,229,255,.25);transform:scale(1.05)}
+</style>
+
+<script>
+(function(){
+'use strict';
+var H = window.HalDo;
+if(!H || !H.APPS){ console.error('[v29] Foundation fehlt'); return; }
+var APPS = H.APPS;
+var esc=H.esc, uid=H.uid, store=H.store, toast=H.toast;
+
+/* 1 · ANGELN */
+APPS['angeln'] = {
+  name:'Angeln', icon:'🎣',
+  render: function(){
+    var D = [
+      ['🐟','Karpfen','Süßwasser','Mais, Boilies','15-30 kg'],
+      ['🐟','Hecht','Süßwasser','Köderfisch, Spinner','1,5 m'],
+      ['🐟','Zander','Süßwasser','Gummifisch','80 cm'],
+      ['🐟','Forelle','Bach/Forellensee','Fliege, Spinner','60 cm'],
+      ['🐟','Aal','Fluss/See','Wurm, Köderfisch','1,5 m'],
+      ['🐟','Barsch','See','Wurm, Spinner','50 cm'],
+      ['🐟','Wels','Fluss','Köderfisch','2,5 m'],
+      ['🐟','Schleie','Teich','Wurm, Mais','50 cm']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎣 Angeln</div><div class="dim sm">Fischarten & Köder</div></div>'+
+      '<div class="v29-emoji">🎣</div>'+
+      '<div class="col" style="gap:6px;max-height:65vh;overflow-y:auto">'+
+        D.map(function(x){
+          return '<div class="v29-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b><span class="dim sm">'+esc(x[4])+'</span></div><div class="dim sm" style="margin-top:4px">🌊 '+esc(x[2])+' · 🪱 '+esc(x[3])+'</div></div>';
+        }).join('')+
+      '</div>'+
+      '<div class="v29-card" style="background:rgba(255,176,58,.08);border-color:#ffb03a"><b>📋 Angelschein</b><div class="dim sm" style="margin-top:6px">In Deutschland: Fischerprüfung nötig! Ohne Schein: bis 5.000 € Strafe.</div></div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 2 · BRIEFMARKEN */
+APPS['briefmarken'] = {
+  name:'Briefmarken', icon:'📮',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📮 Briefmarken-Sammlung</div><div class="dim sm">Deine Schätze verwalten</div></div>'+
+      '<div class="row"><input class="v9-input" id="v29-bmN" placeholder="Land · Motiv · Jahr" style="flex:1"><input class="v9-input" id="v29-bmW" type="number" placeholder="Wert €" step="0.01" style="width:100px"><button class="btn primary" id="v29-bmA">+</button></div>'+
+      '<div class="v9-stat"><div class="v" id="v29-bmT">0 €</div><div class="l">Gesamtwert</div></div>'+
+      '<div id="v29-bmL" class="col" style="gap:6px;max-height:55vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('stamps29',[]); }
+    function render(){
+      var a = all();
+      var total = a.reduce(function(s,x){ return s + (x.w||0); }, 0);
+      win.querySelector('#v29-bmT').textContent = total.toFixed(2) + ' €';
+      win.querySelector('#v29-bmL').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v29-row"><span style="font-size:20px">📮</span><b style="flex:1">'+esc(x.n)+'</b><span style="color:var(--c1);font-weight:700">'+x.w.toFixed(2)+' €</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Noch keine Marken</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('stamps29', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v29-bmA').onclick = function(){
+      var n = win.querySelector('#v29-bmN').value.trim();
+      if(!n) return;
+      var a = all(); a.push({id:uid(), n:n, w:parseFloat(win.querySelector('#v29-bmW').value)||0});
+      store.set('stamps29', a);
+      win.querySelector('#v29-bmN').value = '';
+      win.querySelector('#v29-bmW').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* 3 · MÜNZEN */
+APPS['muenzen'] = {
+  name:'Münzen-Sammlung', icon:'🪙',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🪙 Münzen-Sammlung</div><div class="dim sm">Deine numismatische Sammlung</div></div>'+
+      '<div class="row"><input class="v9-input" id="v29-mzN" placeholder="Land · Nominal · Jahr" style="flex:1"><input class="v9-input" id="v29-mzW" type="number" placeholder="Wert €" step="0.01" style="width:100px"><select class="v9-input" id="v29-mzK" style="width:auto"><option>🟡 Gold</option><option>⚪ Silber</option><option>🔴 Kupfer</option><option>🟤 Bronze</option><option>🌍 Andere</option></select><button class="btn primary" id="v29-mzA">+</button></div>'+
+      '<div class="v9-stat"><div class="v" id="v29-mzT">0 €</div><div class="l">Gesamtwert</div></div>'+
+      '<div id="v29-mzL" class="col" style="gap:6px;max-height:55vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('coins29',[]); }
+    function render(){
+      var a = all();
+      var total = a.reduce(function(s,x){ return s + (x.w||0); }, 0);
+      win.querySelector('#v29-mzT').textContent = total.toFixed(2) + ' €';
+      win.querySelector('#v29-mzL').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v29-row"><span style="font-size:20px">'+x.k.split(' ')[0]+'</span><b style="flex:1">'+esc(x.n)+'</b><span class="dim sm">'+esc(x.k.split(' ')[1]||'')+'</span><span style="color:var(--c1);font-weight:700">'+x.w.toFixed(2)+' €</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Noch keine Münzen</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('coins29', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v29-mzA').onclick = function(){
+      var n = win.querySelector('#v29-mzN').value.trim();
+      if(!n) return;
+      var a = all(); a.push({id:uid(), n:n, w:parseFloat(win.querySelector('#v29-mzW').value)||0, k:win.querySelector('#v29-mzK').value});
+      store.set('coins29', a);
+      win.querySelector('#v29-mzN').value = '';
+      win.querySelector('#v29-mzW').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* 4 · MODELLBAU */
+APPS['modellbau'] = {
+  name:'Modellbau', icon:'✈️',
+  render: function(){
+    var D = [
+      ['✈️','Flugzeuge','1:72, 1:48, 1:32','Revell, Tamiya, Airfix'],
+      ['🚗','Autos','1:24, 1:18','Revell, Tamiya'],
+      ['🚢','Schiffe','1:350, 1:700','Revell, Trumpeter'],
+      ['🚂','Eisenbahn','H0, N, Z','Märklin, Roco'],
+      ['🏰','Dioramen','Jede Größe','Selbst gestalten'],
+      ['🐉','Figuren','1:35, 1:16','Games Workshop'],
+      ['🏎️','RC-Modelle','1:10, 1:8','Tamiya, Traxxas'],
+      ['🚁','Helikopter','1:48, 1:35','Revell']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">✈️ Modellbau</div><div class="dim sm">Bauen, kleben, bemalen</div></div>'+
+      '<div class="col" style="gap:6px;max-height:70vh;overflow-y:auto">'+
+        D.map(function(x){
+          return '<div class="v29-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b><span class="dim sm">'+esc(x[2])+'</span></div><div class="dim sm" style="margin-top:4px">🏷 '+esc(x[3])+'</div></div>';
+        }).join('')+
+      '</div>'+
+      '<div class="v29-card"><b>💡 Tipps</b><div class="dim sm" style="margin-top:6px;line-height:1.6">• Werkzeug: Feile, Skalpell, Pinzette<br>• Kleber: Plastik-Kleber, Sekundenkleber<br>• Farben: Acryl oder Email<br>• Airbrush für Profis<br>• Geduld ist alles!</div></div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 5 · HÄKELN & STRICKEN */
+APPS['haekeln'] = {
+  name:'Häkeln & Stricken', icon:'🧶',
+  render: function(){
+    var D = [
+      ['🧶','Luftmaschen','Häkeln','Grundlage · Kette aus Maschen'],
+      ['🧶','Feste Maschen','Häkeln','Dichtes Muster'],
+      ['🧶','Stäbchen','Häkeln','Höhere Maschen'],
+      ['🧶','Rechte Maschen','Stricken','Klassisch'],
+      ['🧶','Linke Maschen','Stricken','Glatt rechts/links'],
+      ['🧶','Rundstricken','Stricken','Socken, Mützen'],
+      ['🧶','Zopfmuster','Stricken','Zöpfe · erfordert Zusatznadel'],
+      ['🧶','Amigurumi','Häkeln','Kleine Figuren']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🧶 Häkeln & Stricken</div><div class="dim sm">Handarbeitstechniken</div></div>'+
+      '<div class="v29-emoji">🧶</div>'+
+      '<div class="col" style="gap:6px;max-height:70vh;overflow-y:auto">'+
+        D.map(function(x){
+          return '<div class="v29-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b><span class="dim sm">'+esc(x[2])+'</span></div><div class="dim sm" style="margin-top:4px">'+esc(x[3])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 6 · FOTOGRAFIE-TIPPS */
+APPS['fotografie'] = {
+  name:'Fotografie-Tipps', icon:'📸',
+  render: function(){
+    var D = [
+      ['☀️','Goldene Stunde','1 Std nach Sonnenaufgang / vor Untergang'],
+      ['🔺','Drittel-Regel','Motiv auf Schnittpunkte setzen'],
+      ['📐','Perspektive','Von unten/oben fotografieren'],
+      ['💡','Licht','Seitenlicht = Schatten · bestes Porträt-Licht'],
+      ['🎯','Fokus','Augen scharf bei Porträts'],
+      ['📷','Blende','f/1.8 = viel Licht + Bokeh · f/16 = alles scharf'],
+      ['⚡','ISO','Hoch = rauschend · niedrig = sauber'],
+      ['⏱','Belichtungszeit','1/1000 = Bewegung einfrieren'],
+      ['🌅','Gegenlicht','Für Silhouetten'],
+      ['🌃','Nacht','Stativ + lange Belichtung'],
+      ['📱','Handy','Wischgeste für Belichtung'],
+      ['✂️','Bildschnitt','Weniger ist mehr']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📸 Fotografie-Tipps</div><div class="dim sm">Besser fotografieren</div></div>'+
+      '<div class="col" style="gap:6px;max-height:70vh;overflow-y:auto">'+
+        D.map(function(x){
+          return '<div class="v29-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 7 · GEOCACHING */
+APPS['geocaching'] = {
+  name:'Geocaching', icon:'🔍',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🔍 Geocaching</div><div class="dim sm">Schatzsuche mit GPS</div></div>'+
+      '<div class="v29-card"><b>🌍 Was ist Geocaching?</b><div class="dim sm" style="margin-top:6px;line-height:1.7">Weltweite Schatzsuche mit GPS. Millionen Verstecke (Caches) warten darauf, gefunden zu werden. Logbuch unterschreiben, wieder verstecken.</div></div>'+
+      '<div class="v29-card"><b>📦 Cache-Typen</b><div class="dim sm" style="margin-top:6px;line-height:1.7">• Traditional (einfach)<br>• Multi-Cache (mehrere Stationen)<br>• Mystery (Rätsel lösen)<br>• Earth (geologische Orte)<br>• Virtual (nur Fotos)<br>• Letterbox (mit Stempel)</div></div>'+
+      '<div class="v29-card"><b>🎒 Was mitnehmen</b><div class="dim sm" style="margin-top:6px;line-height:1.7">• Handy mit App<br>• Stift<br>• Tauschgegenstände<br>• Taschenlampe<br>• Handschuhe</div></div>'+
+      '<div class="v29-card"><b>📱 Apps</b><div class="dim sm" style="margin-top:6px">• Geocaching.com (offiziell)<br>• c:geo (Android)<br>• Cachebot</div></div>'+
+      '<div class="v29-card" style="background:rgba(77,232,138,.08);border-color:#4de88a"><b>💡 Regel Nr. 1</b><div class="dim sm" style="margin-top:6px">"Take something, leave something" – und immer wieder genau so verstecken, wie du ihn gefunden hast.</div></div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 8 · PUZZLE-SPIEL */
+APPS['puzzle-spiel'] = {
+  name:'Puzzle-Spiel', icon:'🧩',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🧩 Puzzle-Spiel</div><div class="dim sm">Schiebepuzzle · 3×3</div></div>'+
+      '<div class="row between"><span class="dim sm">Züge: <b id="v29-pzM" style="color:var(--c1)">0</b></span><button class="btn sm primary" id="v29-pzR">🔄 Neu</button></div>'+
+      '<div class="v29-puzzle" id="v29-pzB"></div>'+
+      '<div class="v29-card"><b>💡 Ziel</b><div class="dim sm" style="margin-top:6px">Sortiere die Zahlen 1-8 in Reihenfolge. Das leere Feld ist zum Schieben da.</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var tiles, moves;
+    function solved(){
+      for(var i=0;i<8;i++) if(tiles[i] !== i+1) return false;
+      return tiles[8] === 0;
+    }
+    function render(){
+      win.querySelector('#v29-pzM').textContent = moves;
+      win.querySelector('#v29-pzB').innerHTML = tiles.map(function(v, i){
+        return '<div data-i="'+i+'">'+(v === 0 ? '' : v)+'</div>';
+      }).join('');
+      win.querySelectorAll('[data-i]').forEach(function(el){
+        el.onclick = function(){
+          var i = parseInt(el.dataset.i);
+          var empty = tiles.indexOf(0);
+          var r1 = Math.floor(i/3), c1 = i%3, r2 = Math.floor(empty/3), c2 = empty%3;
+          if(Math.abs(r1-r2) + Math.abs(c1-c2) === 1){
+            var t = tiles[i]; tiles[i] = tiles[empty]; tiles[empty] = t;
+            moves++;
+            render();
+            if(solved()) setTimeout(function(){ toast('🎉 Gelöst in ' + moves + ' Zügen!'); }, 300);
+          }
+        };
+      });
+    }
+    function newGame(){
+      tiles = [1,2,3,4,5,6,7,8,0];
+      for(var i=0;i<100;i++){
+        var empty = tiles.indexOf(0);
+        var neighbors = [];
+        var r = Math.floor(empty/3), c = empty%3;
+        if(r > 0) neighbors.push(empty - 3);
+        if(r < 2) neighbors.push(empty + 3);
+        if(c > 0) neighbors.push(empty - 1);
+        if(c < 2) neighbors.push(empty + 1);
+        var swap = neighbors[Math.floor(Math.random()*neighbors.length)];
+        var t = tiles[empty]; tiles[empty] = tiles[swap]; tiles[swap] = t;
+      }
+      moves = 0;
+      render();
+    }
+    win.querySelector('#v29-pzR').onclick = newGame;
+    newGame();
+  }
+};
+
+/* 9 · BRETTSPIELE */
+APPS['brettspiele'] = {
+  name:'Brettspiele', icon:'🎲',
+  render: function(){
+    var D = [
+      ['♟️','Schach','2','Strategie · 1500 Jahre alt'],
+      ['♚','Dame','2','Strategie · schnell'],
+      ['🎲','Backgammon','2','Glück + Strategie'],
+      ['🎯','Mensch ärgere Dich','2-4','Klassiker'],
+      ['🏰','Siedler von Catan','3-4','Aufbauspiel'],
+      ['🚂','Zug um Zug','2-5','Eisenbahn-Aufbau'],
+      ['🐺','Werwolf','5-20','Kommunikation'],
+      ['🎭','Activity','4-16','Pantomime'],
+      ['🌍','Risiko','2-6','Welteroberung'],
+      ['🏆','Monopoly','2-8','Klassiker'],
+      ['🎨','Dixit','3-6','Kreativ'],
+      ['🔍','Cluedo','2-6','Detektiv']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎲 Brettspiele</div><div class="dim sm">Klassiker für jeden Abend</div></div>'+
+      '<div class="col" style="gap:6px;max-height:70vh;overflow-y:auto">'+
+        D.map(function(x){
+          return '<div class="v29-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b><span class="dim sm">👥 '+esc(x[2])+'</span></div><div class="dim sm" style="margin-top:4px">'+esc(x[3])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 10 · KARTENSPIELE */
+APPS['kartenspiele'] = {
+  name:'Kartenspiele', icon:'🃏',
+  render: function(){
+    var D = [
+      ['🃏','Mau-Mau','2-6','Klassiker für Kinder'],
+      ['🃏','Skat','3','Deutscher Klassiker'],
+      ['🃏','Poker','2-10','Glück + Strategie'],
+      ['🃏','Bridge','4','Denksport'],
+      ['🃏','Rommé','2-6','Familienklassiker'],
+      ['🃏','Uno','2-10','Einfach + Spaß'],
+      ['🃏','Doppelkopf','4','Deutsch'],
+      ['🃏','Watten','4','Bayern/Tirol'],
+      ['🃏','Schwimmen','2-6','Knacken & Tauschen'],
+      ['🃏','Bohnanza','2-7','Handelsspiel']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🃏 Kartenspiele</div><div class="dim sm">Beliebte Klassiker</div></div>'+
+      '<div class="col" style="gap:6px;max-height:70vh;overflow-y:auto">'+
+        D.map(function(x){
+          return '<div class="v29-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b><span class="dim sm">👥 '+esc(x[2])+'</span></div><div class="dim sm" style="margin-top:4px">'+esc(x[3])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 11 · ZIMMERPFLANZEN */
+APPS['zimmerpflanzen'] = {
+  name:'Zimmerpflanzen', icon:'🪴',
+  render: function(){
+    var D = [
+      ['🌿','Monstera','Wenig','Indirekt','Alle 1-2 Wochen'],
+      ['🌿','Ficus','Wenig','Indirekt','Alle 1-2 Wochen'],
+      ['🌿','Bogenhanf','Sehr wenig','Egal','Alle 3-4 Wochen'],
+      ['🌿','Efeu','Mittel','Halbschatten','Alle 1 Woche'],
+      ['🌿','Aloe Vera','Sehr wenig','Viel Sonne','Alle 3 Wochen'],
+      ['🌿','Orchidee','Wenig','Indirekt','Alle 1 Woche (tauchen)'],
+      ['🌿','Grünlilie','Mittel','Indirekt','Alle 1 Woche'],
+      ['🌿','Kaktus','Sehr wenig','Viel Sonne','Alle 3-4 Wochen'],
+      ['🌿','Basilikum','Viel','Sonne','Täglich!'],
+      ['🌿','Farne','Viel','Halbschatten','Alle 2-3 Tage']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🪴 Zimmerpflanzen</div><div class="dim sm">Gießen & Pflege</div></div>'+
+      '<div class="v29-emoji">🪴</div>'+
+      '<div class="col" style="gap:6px;max-height:70vh;overflow-y:auto">'+
+        D.map(function(x){
+          return '<div class="v29-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b><span class="dim sm">💧 '+esc(x[2])+'</span></div><div class="dim sm" style="margin-top:4px">☀️ '+esc(x[3])+'<br>⏰ '+esc(x[4])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 12 · AQUARIUM */
+APPS['aquarium'] = {
+  name:'Aquarium', icon:'🐠',
+  render: function(){
+    var D = [
+      ['🐠','Süßwasser','Einfach','Neon, Guppy, Skalar'],
+      ['🐠','Meerwasser','Anspruchsvoll','Clownfisch, Doktorfisch'],
+      ['🐠','Kaltwasser','Mittel','Goldfisch, Koi'],
+      ['🐠','Brackwasser','Mittel','Mollys, Guppys'],
+      ['🦐','Garnelen','Mittel','Red Fire, Amano'],
+      ['🐌','Schnecken','Einfach','Posthorn, Turmdeckelschnecke'],
+      ['🦀','Krabben','Anspruchsvoll','Rote Mangrovenkrabbe'],
+      ['🐢','Schildkröten','Anspruchsvoll','Wasserschildkröten']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🐠 Aquarium</div><div class="dim sm">Fische & Pflege</div></div>'+
+      '<div class="v29-emoji">🐠</div>'+
+      '<div class="col" style="gap:6px;max-height:70vh;overflow-y:auto">'+
+        D.map(function(x){
+          return '<div class="v29-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b><span class="dim sm">'+esc(x[2])+'</span></div><div class="dim sm" style="margin-top:4px">🐟 '+esc(x[3])+'</div></div>';
+        }).join('')+
+      '</div>'+
+      '<div class="v29-card"><b>💡 Grundlagen</b><div class="dim sm" style="margin-top:6px;line-height:1.6">• Filter · Heizung · Licht<br>• Wasserwechsel 1× pro Woche (10-30%)<br>• Erst 4 Wochen einfahren lassen!<br>• Nitrit/Nitrat testen<br>• Nicht zu viele Fische</div></div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 13 · STERNSCHNUPPEN-KALENDER */
+APPS['sternschnuppen'] = {
+  name:'Sternschnuppen', icon:'🌠',
+  render: function(){
+    var D = [
+      ['🌠','Quadrantiden','3.-4. Januar','ca. 40 Meteore/h'],
+      ['🌠','Lyriden','22.-23. April','ca. 18 Meteore/h'],
+      ['🌠','Eta Aquariiden','5.-6. Mai','ca. 20 Meteore/h'],
+      ['🌠','Perseiden','12.-13. August','ca. 100 Meteore/h ⭐'],
+      ['🌠','Orioniden','21.-22. Oktober','ca. 20 Meteore/h'],
+      ['🌠','Leoniden','17.-18. November','ca. 15 Meteore/h'],
+      ['🌠','Geminiden','13.-14. Dezember','ca. 120 Meteore/h ⭐'],
+      ['🌠','Ursiden','22.-23. Dezember','ca. 10 Meteore/h']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🌠 Sternschnuppen-Kalender</div><div class="dim sm">Wann lohnt sich der Blick?</div></div>'+
+      '<div class="col" style="gap:6px">'+
+        D.map(function(x){
+          return '<div class="v29-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b><span class="dim sm">'+esc(x[2])+'</span></div><div class="dim sm" style="margin-top:4px">💫 '+esc(x[3])+'</div></div>';
+        }).join('')+
+      '</div>'+
+      '<div class="v29-card" style="background:rgba(255,216,74,.08);border-color:#ffd84a"><b>💡 Beste Zeit</b><div class="dim sm" style="margin-top:6px">Nach Mitternacht bis kurz vor Sonnenaufgang · weg von Stadtlichtern · kein Mond.</div></div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 14 · STEINE & MINERALIEN */
+APPS['mineralien'] = {
+  name:'Steine & Mineralien', icon:'💎',
+  render: function(){
+    var D = [
+      ['💎','Diamant','C (Kohlenstoff)','10 Mohs','Brillant'],
+      ['💎','Rubin','Al₂O₃ (Korund)','9 Mohs','Rot'],
+      ['💎','Saphir','Al₂O₃ (Korund)','9 Mohs','Blau'],
+      ['💎','Smaragd','Beryll','7,5-8','Grün'],
+      ['💎','Amethyst','Quarz','7','Violett'],
+      ['💎','Bergkristall','Quarz','7','Klar'],
+      ['💎','Topas','Al₂SiO₄','8','Gelb/Blau'],
+      ['💎','Turmalin','Komplex','7-7,5','Mehrfarbig'],
+      ['💎','Granat','Verschiedene','6,5-7,5','Rot/Orange'],
+      ['💎','Opal','SiO₂·nH₂O','5,5-6,5','Schimmernd'],
+      ['💎','Pyrit','FeS₂','6-6,5','Goldglanz (Katzengold)'],
+      ['💎','Magnetit','Fe₃O₄','5,5-6,5','Magnetisch']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💎 Steine & Mineralien</div><div class="dim sm">Härte & Eigenschaften</div></div>'+
+      '<div class="col" style="gap:6px;max-height:70vh;overflow-y:auto">'+
+        D.map(function(x){
+          return '<div class="v29-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b><span class="dim sm">⚙️ '+esc(x[3])+'</span></div><div class="dim sm" style="margin-top:4px">🧪 '+esc(x[2])+'<br>🎨 '+esc(x[4])+'</div></div>';
+        }).join('')+
+      '</div>'+
+      '<div class="v29-card"><b>📏 Mohs-Skala</b><div class="dim sm" style="margin-top:6px">1 Talk · 2 Gips · 3 Calcit · 4 Fluorit · 5 Apatit · 6 Feldspat · 7 Quarz · 8 Topas · 9 Korund · 10 Diamant</div></div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 15 · GEIGERZÄHLER-WISSEN */
+APPS['radioaktivitaet'] = {
+  name:'Radioaktivität', icon:'☢️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">☢️ Radioaktivität</div><div class="dim sm">Strahlung verstehen</div></div>'+
+      '<div class="v29-card"><b>📊 Einheiten</b><div class="dim sm" style="margin-top:6px;line-height:1.7">• Becquerel (Bq) · Zerfälle pro Sek<br>• Sievert (Sv) · biologische Wirkung<br>• Gray (Gy) · Energiedosis</div></div>'+
+      '<div class="v29-card"><b>🌍 Natürliche Strahlung</b><div class="dim sm" style="margin-top:6px;line-height:1.7">• Weltweit Ø: 2,4 mSv/Jahr<br>• Deutschland: 2,1 mSv/Jahr<br>• Flug München-NY: 0,05 mSv<br>• Röntgen Thorax: 0,02 mSv<br>• CT Abdomen: 10 mSv</div></div>'+
+      '<div class="v29-card"><b>⚠️ Grenzwerte</b><div class="dim sm" style="margin-top:6px;line-height:1.7">• Berufliche: 20 mSv/Jahr<br>• Bevölkerung: 1 mSv/Jahr<br>• Radon zuhause: 300 Bq/m³ (neu: 100 Bq/m³)<br>• Ab 100 mSv: akute Strahlenkrankheit</div></div>'+
+      '<div class="v29-card" style="background:rgba(77,232,138,.08);border-color:#4de88a"><b>✅ Beruhigend</b><div class="dim sm" style="margin-top:6px">Unser Körper kann natürliche Strahlung gut verkraften. Vieles ist nur Panikmache.</div></div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 16 · TAGEBUCH / JOURNALING */
+APPS['tagebuch'] = {
+  name:'Tagebuch', icon:'📔',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📔 Tagebuch</div><div class="dim sm">Deine Gedanken täglich</div></div>'+
+      '<input class="v9-input" id="v29-tgD" type="date">'+
+      '<input class="v9-input" id="v29-tgT" placeholder="Titel (z.B. Ein guter Tag)">'+
+      '<textarea class="ta" id="v29-tgB" style="min-height:180px" placeholder="Was ist heute passiert?"></textarea>'+
+      '<button class="btn primary" id="v29-tgA">💾 Speichern</button>'+
+      '<div class="v9-stat"><div class="v" id="v29-tgC">0</div><div class="l">Einträge</div></div>'+
+      '<div id="v29-tgL" class="col" style="gap:6px;max-height:40vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v29-tgD').value = new Date().toISOString().slice(0,10);
+    function all(){ return store.get('diary29',[]); }
+    function render(){
+      var a = all();
+      win.querySelector('#v29-tgC').textContent = a.length;
+      win.querySelector('#v29-tgL').innerHTML = a.length ? a.slice(0,20).map(function(x){
+        return '<div class="v29-card"><div class="row between"><b>📅 '+new Date(x.d).toLocaleDateString('de-DE')+'</b><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div><b style="display:block;margin-top:4px;color:var(--c1)">'+esc(x.t)+'</b><div class="dim sm" style="margin-top:6px;white-space:pre-wrap;line-height:1.6">'+esc(x.b.slice(0,200))+'</div></div>';
+      }).join('') : '<div class="empty">Noch keine Einträge</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('diary29', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v29-tgA').onclick = function(){
+      var t = win.querySelector('#v29-tgT').value.trim();
+      var b = win.querySelector('#v29-tgB').value;
+      if(!t || !b) return toast('Titel + Text');
+      var a = all();
+      a.unshift({id:uid(), d:win.querySelector('#v29-tgD').value, t:t, b:b, ts:Date.now()});
+      store.set('diary29', a.slice(0,500));
+      win.querySelector('#v29-tgT').value = ''; win.querySelector('#v29-tgB').value = '';
+      render(); toast('✅ Tagebuch gespeichert');
+    };
+    render();
+  }
+};
+
+/* 17 · WITZE-SAMMLUNG */
+APPS['witze-pro'] = {
+  name:'Witze Pro', icon:'😂',
+  render: function(){
+    var D = [
+      'Was macht ein Clown im Büro? — Faxen.',
+      'Treffen sich zwei Jäger. Beide tot.',
+      'Warum können Geister so schlecht lügen? — Man sieht durch sie hindurch.',
+      'Sagt ein Zahn zum anderen: "Wir haben heute aber viel zu beißen!"',
+      'Was ist der Unterschied zwischen einer Pizza und einem Elefanten? — Die Pizza passt in den Ofen.',
+      'Zwei Kaffeebohnen unterhalten sich. Sagt die eine: "Ich bin so müde." Sagt die andere: "Dann lass uns zum Filter gehen."',
+      'Was sitzt auf einem Baum und ruft "Aha"? — Ein Uhu mit Sprachfehler.',
+      'Wie nennt man einen Bumerang, der nicht zurückkommt? — Stock.',
+      'Treffen sich zwei Kerzen. "Na, machst du heute noch was?" "Nein, ich bin total ausgebrannt."',
+      'Was macht eine Wolke, wenn sie jemanden mag? — Sie regnet ihm Blumen.',
+      'Was ist orange und läuft durch den Wald? — Eine Wanderine.',
+      'Was macht ein Pirat auf einem Segelflugzeug? — Kaperfahrt in der Luft.',
+      'Treffen sich zwei Kängurus. "Was machst du so?" "Ich hüpfe." "Ich auch!"',
+      'Warum hat der Mathematiker immer einen Kuchen dabei? — Weil er π mag.',
+      'Sitzen zwei Kürbisse auf einer Bank. Sagt der eine: "Ich bin so leer." Sagt der andere: "Ich auch, lass uns zu Halloween gehen!"'
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">😂 Witze Pro</div><div class="dim sm">15 flache Kalauer</div></div>'+
+      '<div class="v29-card" id="v29-wzB" style="min-height:140px;font-size:15px;line-height:1.7;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px">Klick auf "Neu"</div>'+
+      '<button class="btn primary" id="v29-wzN" style="width:100%">🔄 Neuer Witz</button>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      'Was macht ein Clown im Büro? — Faxen.',
+      'Treffen sich zwei Jäger. Beide tot.',
+      'Warum können Geister so schlecht lügen? — Man sieht durch sie hindurch.',
+      'Sagt ein Zahn zum anderen: "Wir haben heute aber viel zu beißen!"',
+      'Was ist der Unterschied zwischen einer Pizza und einem Elefanten? — Die Pizza passt in den Ofen.',
+      'Zwei Kaffeebohnen unterhalten sich. Sagt die eine: "Ich bin so müde." Sagt die andere: "Dann lass uns zum Filter gehen."',
+      'Was sitzt auf einem Baum und ruft "Aha"? — Ein Uhu mit Sprachfehler.',
+      'Wie nennt man einen Bumerang, der nicht zurückkommt? — Stock.',
+      'Treffen sich zwei Kerzen. "Na, machst du heute noch was?" "Nein, ich bin total ausgebrannt."',
+      'Was macht eine Wolke, wenn sie jemanden mag? — Sie regnet ihm Blumen.',
+      'Was ist orange und läuft durch den Wald? — Eine Wanderine.',
+      'Was macht ein Pirat auf einem Segelflugzeug? — Kaperfahrt in der Luft.',
+      'Treffen sich zwei Kängurus. "Was machst du so?" "Ich hüpfe." "Ich auch!"',
+      'Warum hat der Mathematiker immer einen Kuchen dabei? — Weil er π mag.',
+      'Sitzen zwei Kürbisse auf einer Bank. Sagt der eine: "Ich bin so leer." Sagt der andere: "Ich auch, lass uns zu Halloween gehen!"'
+    ];
+    var last = -1;
+    function pick(){
+      var i = Math.floor(Math.random()*D.length);
+      if(i === last) i = (i+1)%D.length;
+      last = i;
+      win.querySelector('#v29-wzB').textContent = D[i];
+    }
+    win.querySelector('#v29-wzN').onclick = pick;
+    pick();
+  }
+};
+
+/* 18 · RÄTSEL */
+APPS['raetsel'] = {
+  name:'Rätsel', icon:'🧠',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🧠 Rätsel des Tages</div><div class="dim sm">Knobeln & nachdenken</div></div>'+
+      '<div class="v29-card" id="v29-rtB" style="min-height:140px;font-size:15px;line-height:1.7;padding:20px">Klick "Neu" für ein Rätsel</div>'+
+      '<div class="row"><button class="btn primary" id="v29-rtN" style="flex:1">🔄 Neu</button><button class="btn" id="v29-rtS" style="flex:1">💡 Lösung</button></div>'+
+      '<div class="v29-card" id="v29-rtL" style="display:none"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['Was ist größer, wenn man es umdreht?','Die Zahl 6 wird zu 9.'],
+      ['Was läuft und hat keine Beine?','Der Fluss.'],
+      ['Je mehr man davon wegnimmt, desto größer wird es. Was ist das?','Ein Loch.'],
+      ['Was kann man nicht sehen, aber fühlen?','Den Wind.'],
+      ['Was hat Zähne, kann aber nicht beißen?','Der Kamm.'],
+      ['Was hat einen Kopf, aber keinen Hals?','Das Streichholz.'],
+      ['Was geht über Flüsse, ohne nass zu werden?','Die Brücke.'],
+      ['Was hat ein Auge, kann aber nicht sehen?','Die Nadel.'],
+      ['Was kann man hören, aber nicht sehen?','Den Ton.'],
+      ['Was steigt auf, ohne zu fliegen?','Der Rauch.'],
+      ['Was ist schwer, aber man kann es nicht heben?','Das Herz.'],
+      ['Was hat viele Blätter, ist aber kein Baum?','Das Buch.'],
+      ['Was kann man brechen, ohne es anzufassen?','Ein Versprechen.'],
+      ['Was geht morgens auf vier, mittags auf zwei, abends auf drei?','Der Mensch (Baby, Erwachsener, Alter mit Stock).'],
+      ['Was kann man teilen, ohne dass es kleiner wird?','Die Freude.']
+    ];
+    var last = -1;
+    function pick(){
+      var i = Math.floor(Math.random()*D.length);
+      if(i === last) i = (i+1)%D.length;
+      last = i;
+      win.querySelector('#v29-rtB').textContent = '❓ ' + D[i][0];
+      win.querySelector('#v29-rtL').textContent = '💡 ' + D[i][1];
+      win.querySelector('#v29-rtL').style.display = 'none';
+    }
+    win.querySelector('#v29-rtN').onclick = pick;
+    win.querySelector('#v29-rtS').onclick = function(){ win.querySelector('#v29-rtL').style.display = 'block'; };
+    pick();
+  }
+};
+
+/* 19 · SONNTAGS-AKTIVITÄTEN */
+APPS['sonntag'] = {
+  name:'Sonntags-Ideen', icon:'☕',
+  render: function(){
+    var D = [
+      ['🥐','Brunch','Mit Familie oder Freunden'],
+      ['🚶','Spaziergang','Park oder Wald'],
+      ['📚','Lesen','Buch oder Zeitung'],
+      ['🎨','Museum','Neue Ausstellung besuchen'],
+      ['🎬','Kino','Neuer Film'],
+      ['🍳','Rezept ausprobieren','Neues Gericht kochen'],
+      ['🧩','Puzzle','Gemütlich zuhause'],
+      ['📞','Familie anrufen','Oma, Opa, Eltern'],
+      ['🎵','Konzert','Kleine Sessions'],
+      ['🛒','Flohmarkt','Stöbern & feilschen'],
+      ['🚴','Radtour','In die Natur'],
+      ['🛌','Nickerchen','Energie tanken'],
+      ['💆','Wellness','Bad, Maske, Entspannung'],
+      ['🎲','Brettspiele','Mit Freunden'],
+      ['🌅','Sonnenuntergang','Aussichtspunkt suchen']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">☕ Sonntags-Ideen</div><div class="dim sm">Was tun am freien Tag?</div></div>'+
+      '<div class="col" style="gap:6px;max-height:70vh;overflow-y:auto">'+
+        D.map(function(x){
+          return '<div class="v29-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 20 · LESE-LISTE */
+APPS['leseliste'] = {
+  name:'Lese-Liste', icon:'📚',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📚 Lese-Liste</div><div class="dim sm">Bücher tracken</div></div>'+
+      '<div class="row"><input class="v9-input" id="v29-lsT" placeholder="Buch-Titel" style="flex:1"><input class="v9-input" id="v29-lsA" placeholder="Autor" style="flex:1"><select class="v9-input" id="v29-lsS" style="width:auto"><option>📖 Lese gerade</option><option>📚 Will lesen</option><option>✅ Gelesen</option></select><button class="btn primary" id="v29-lsAdd">+</button></div>'+
+      '<div class="v9-stat"><div class="v" id="v29-lsC">0 / 0</div><div class="l">Gelesen</div></div>'+
+      '<div id="v29-lsL" class="col" style="gap:6px;max-height:60vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('books29',[]); }
+    function render(){
+      var a = all();
+      var done = a.filter(function(x){ return x.s.indexOf('✅') >= 0; }).length;
+      win.querySelector('#v29-lsC').textContent = done + ' / ' + a.length;
+      var grouped = {'📖 Lese gerade': [], '📚 Will lesen': [], '✅ Gelesen': []};
+      a.forEach(function(x){ if(grouped[x.s]) grouped[x.s].push(x); });
+      win.querySelector('#v29-lsL').innerHTML = Object.keys(grouped).map(function(k){
+        if(!grouped[k].length) return '';
+        return '<div style="font-size:11px;font-weight:700;color:var(--c1);margin-top:8px">'+k+'</div>' + grouped[k].map(function(x){
+          return '<div class="v29-row"><b style="flex:1">'+esc(x.t)+'</b><span class="dim sm">'+esc(x.a)+'</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+        }).join('');
+      }).join('');
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('books29', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v29-lsAdd').onclick = function(){
+      var t = win.querySelector('#v29-lsT').value.trim();
+      var a2 = win.querySelector('#v29-lsA').value.trim();
+      if(!t) return;
+      var a = all(); a.push({id:uid(), t:t, a:a2, s:win.querySelector('#v29-lsS').value});
+      store.set('books29', a);
+      win.querySelector('#v29-lsT').value = ''; win.querySelector('#v29-lsA').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+console.log('%c📦 v29 geladen — Hobbys & Freizeit · 20 Apps','background:linear-gradient(90deg,#4de88a,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('Aktive Apps:', Object.keys(APPS).length);
+
+setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click(); }, 150);
+
+})();
+</script>
 </body>
 </html>
