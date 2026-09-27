@@ -20617,5 +20617,667 @@ setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v24 · Business & Karriere · 20 Apps
+     ============================================================ -->
+<style id="v24-style">
+.v24-card{padding:14px;border-radius:14px;background:linear-gradient(150deg,rgba(20,30,60,.65),rgba(10,16,40,.82));border:1px solid rgba(120,180,255,.14);margin-bottom:8px}
+.v24-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);transition:.15s}
+.v24-row:hover{background:rgba(0,229,255,.05);border-color:rgba(0,229,255,.2)}
+.v24-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.3);color:var(--c1);cursor:pointer;transition:.15s}
+.v24-chip.on{background:linear-gradient(135deg,var(--c1),var(--c2));color:#02101e;border-color:var(--c1)}
+.v24-badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(77,232,138,.15);border:1px solid rgba(77,232,138,.4);color:#4de88a}
+.v24-badge.orange{background:rgba(255,176,58,.15);border-color:rgba(255,176,58,.4);color:#ffb03a}
+.v24-badge.red{background:rgba(224,59,90,.15);border-color:rgba(224,59,90,.4);color:#ff9db1}
+.v24-badge.purple{background:rgba(180,120,255,.15);border-color:rgba(180,120,255,.4);color:#b478ff}
+.v24-emoji{font-size:56px;text-align:center;padding:12px}
+</style>
+
+<script>
+(function(){
+'use strict';
+var H = window.HalDo;
+if(!H || !H.APPS){ console.error('[v24] Foundation fehlt'); return; }
+var APPS = H.APPS;
+var esc=H.esc, uid=H.uid, store=H.store, toast=H.toast;
+
+/* 1 · BEWERBUNGS-TRACKER */
+APPS['bewerbung-tracker'] = {
+  name:'Bewerbungs-Tracker', icon:'📨',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📨 Bewerbungs-Tracker</div><div class="dim sm">Alle Bewerbungen im Blick</div></div>'+
+      '<div class="row"><input class="v9-input" id="v24-btF" placeholder="Firma" style="flex:1"><input class="v9-input" id="v24-btS" placeholder="Stelle" style="flex:1"><select class="v9-input" id="v24-btSt" style="width:auto"><option>📝 Entwurf</option><option>📤 Gesendet</option><option>👀 Gelesen</option><option>📞 Interview</option><option>✅ Angebot</option><option>❌ Absage</option></select><button class="btn primary" id="v24-btA">+</button></div>'+
+      '<div id="v24-btL" class="col" style="gap:6px;max-height:60vh;overflow-y:auto"></div>'+
+      '<div class="row"><div class="v9-stat" style="flex:1"><div class="v" id="v24-btC">0</div><div class="l">Gesamt</div></div><div class="v9-stat" style="flex:1"><div class="v" id="v24-btI">0</div><div class="l">Interviews</div></div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('bewerbung24',[]); }
+    function render(){
+      var a = all();
+      var interviews = a.filter(function(x){ return x.st.indexOf('Interview') >= 0 || x.st.indexOf('Angebot') >= 0; }).length;
+      win.querySelector('#v24-btC').textContent = a.length;
+      win.querySelector('#v24-btI').textContent = interviews;
+      win.querySelector('#v24-btL').innerHTML = a.length ? a.map(function(x){
+        var cls = x.st.indexOf('Absage')>=0 ? 'red' : x.st.indexOf('Angebot')>=0 ? '' : x.st.indexOf('Interview')>=0 ? 'purple' : 'orange';
+        return '<div class="v24-row"><span class="v24-badge '+cls+'">'+esc(x.st.split(' ')[0])+'</span><div style="flex:1"><b>'+esc(x.f)+'</b><div class="dim sm">'+esc(x.s)+'</div></div><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Noch keine Bewerbungen</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('bewerbung24', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v24-btA').onclick = function(){
+      var f = win.querySelector('#v24-btF').value.trim();
+      var s = win.querySelector('#v24-btS').value.trim();
+      if(!f || !s) return toast('Firma + Stelle');
+      var a = all(); a.unshift({id:uid(), f:f, s:s, st:win.querySelector('#v24-btSt').value, ts:Date.now()});
+      store.set('bewerbung24', a);
+      win.querySelector('#v24-btF').value = ''; win.querySelector('#v24-btS').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* 2 · LEBENSLAUF-BUILDER */
+APPS['lebenslauf'] = {
+  name:'Lebenslauf-Builder', icon:'📄',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📄 Lebenslauf-Builder</div><div class="dim sm">Basis-Daten eingeben + exportieren</div></div>'+
+      '<input class="v9-input" id="v24-lvN" placeholder="Name" value="">'+
+      '<input class="v9-input" id="v24-lvE" placeholder="E-Mail" value="">'+
+      '<input class="v9-input" id="v24-lvT" placeholder="Telefon" value="">'+
+      '<input class="v9-input" id="v24-lvA" placeholder="Adresse" value="">'+
+      '<textarea class="ta" id="v24-lvB" style="min-height:80px" placeholder="Berufserfahrung (pro Zeile ein Eintrag)"></textarea>'+
+      '<textarea class="ta" id="v24-lvS" style="min-height:60px" placeholder="Ausbildung (pro Zeile ein Eintrag)"></textarea>'+
+      '<textarea class="ta" id="v24-lvK" style="min-height:60px" placeholder="Kenntnisse (durch Komma getrennt)"></textarea>'+
+      '<button class="btn primary" id="v24-lvD">🖨 Vorschau + Drucken</button>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v24-lvD').onclick = function(){
+      var n = win.querySelector('#v24-lvN').value;
+      var e = win.querySelector('#v24-lvE').value;
+      var t = win.querySelector('#v24-lvT').value;
+      var a = win.querySelector('#v24-lvA').value;
+      var b = win.querySelector('#v24-lvB').value;
+      var s = win.querySelector('#v24-lvS').value;
+      var k = win.querySelector('#v24-lvK').value;
+      var html = '<html><head><title>Lebenslauf</title><style>body{font-family:Arial,sans-serif;padding:40px;color:#000;max-width:800px;margin:0 auto}h1{color:#00b3cc;border-bottom:3px solid #00b3cc;padding-bottom:10px}h2{color:#333;margin-top:30px;border-bottom:1px solid #ccc;padding-bottom:5px}ul{line-height:1.7}</style></head><body>'+
+        '<h1>'+esc(n||'Name')+'</h1>'+
+        '<p>'+esc(e)+' · '+esc(t)+' · '+esc(a)+'</p>'+
+        '<h2>💼 Berufserfahrung</h2><ul>'+b.split('\n').filter(Boolean).map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('')+'</ul>'+
+        '<h2>🎓 Ausbildung</h2><ul>'+s.split('\n').filter(Boolean).map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('')+'</ul>'+
+        '<h2>🛠 Kenntnisse</h2><p>'+esc(k)+'</p>'+
+        '</body></html>';
+      var w = window.open('', '_blank');
+      if(!w) return toast('Popup blockiert');
+      w.document.write(html);
+      w.document.close();
+      setTimeout(function(){ w.print(); }, 500);
+    };
+  }
+};
+
+/* 3 · ANSCHREIBEN-VORLAGEN */
+APPS['anschreiben'] = {
+  name:'Anschreiben-Vorlagen', icon:'✍️',
+  render: function(){
+    var D = [
+      ['💼','Klassisch','Sehr geehrte Damen und Herren,\n\nmit großem Interesse habe ich Ihre Ausschreibung gelesen. Als [Beruf] mit [X] Jahren Erfahrung bringe ich genau die Qualifikationen mit, die Sie suchen.\n\nIn meiner letzten Position bei [Firma] habe ich [Erfolg]. Diese Erfahrung möchte ich nun gerne in Ihr Team einbringen.\n\nÜber ein persönliches Gespräch freue ich mich sehr.\n\nMit freundlichen Grüßen,\n[Name]'],
+      ['⚡','Kurz & Knackig','Hallo [Name],\n\nIhre Stellenausschreibung als [Beruf] passt perfekt zu meinem Profil. Kurz zu mir: [1-2 Sätze Erfolge].\n\nIch würde mich freuen, in einem kurzen Gespräch mehr zu erfahren.\n\nBeste Grüße,\n[Name]'],
+      ['🎨','Kreativ','Liebe [Firma],\n\nals ich Ihre Anzeige sah, wusste ich sofort: Das passt! Warum? Weil ich [Leidenschaft für X] lebe und bereits [konkreter Erfolg] erreicht habe.\n\nLassen Sie uns sprechen – gerne auch spontan.\n\nHerzliche Grüße,\n[Name]'],
+      ['🚀','Karrierewechsel','Sehr geehrte/r [Name],\n\nnach [X] Jahren in [alte Branche] wage ich bewusst den Schritt in [neue Branche]. Meine bisherigen Erfahrungen in [Skills] sind direkt übertragbar.\n\nIch bringe Neugier, Lernbereitschaft und [Kompetenz] mit.\n\nViele Grüße,\n[Name]']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">✍️ Anschreiben-Vorlagen</div><div class="dim sm">4 Stile zum Kopieren</div></div>'+
+      '<div id="v24-anL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['💼','Klassisch','Sehr geehrte Damen und Herren,\n\nmit großem Interesse habe ich Ihre Ausschreibung gelesen. Als [Beruf] mit [X] Jahren Erfahrung bringe ich genau die Qualifikationen mit, die Sie suchen.\n\nIn meiner letzten Position bei [Firma] habe ich [Erfolg]. Diese Erfahrung möchte ich nun gerne in Ihr Team einbringen.\n\nÜber ein persönliches Gespräch freue ich mich sehr.\n\nMit freundlichen Grüßen,\n[Name]'],
+      ['⚡','Kurz & Knackig','Hallo [Name],\n\nIhre Stellenausschreibung als [Beruf] passt perfekt zu meinem Profil. Kurz zu mir: [1-2 Sätze Erfolge].\n\nIch würde mich freuen, in einem kurzen Gespräch mehr zu erfahren.\n\nBeste Grüße,\n[Name]'],
+      ['🎨','Kreativ','Liebe [Firma],\n\nals ich Ihre Anzeige sah, wusste ich sofort: Das passt! Warum? Weil ich [Leidenschaft für X] lebe und bereits [konkreter Erfolg] erreicht habe.\n\nLassen Sie uns sprechen – gerne auch spontan.\n\nHerzliche Grüße,\n[Name]'],
+      ['🚀','Karrierewechsel','Sehr geehrte/r [Name],\n\nnach [X] Jahren in [alte Branche] wage ich bewusst den Schritt in [neue Branche]. Meine bisherigen Erfahrungen in [Skills] sind direkt übertragbar.\n\nIch bringe Neugier, Lernbereitschaft und [Kompetenz] mit.\n\nViele Grüße,\n[Name]']
+    ];
+    win.querySelector('#v24-anL').innerHTML = D.map(function(x){
+      return '<details class="v24-card"><summary style="cursor:pointer;font-weight:800"><span style="font-size:22px">'+x[0]+'</span> '+esc(x[1])+'</summary><div class="dim sm" style="margin-top:10px;white-space:pre-wrap;line-height:1.7;font-family:monospace;font-size:12px;padding:10px;background:rgba(0,20,50,.4);border-radius:8px">'+esc(x[2])+'</div><button class="btn sm" data-copy="'+x[1]+'" style="margin-top:8px">📋 Kopieren</button></details>';
+    }).join('');
+    win.querySelectorAll('[data-copy]').forEach(function(b){
+      b.onclick = function(){
+        var t = win.querySelectorAll('details')[Array.from(win.querySelectorAll('[data-copy]')).indexOf(b)].querySelector('.dim').textContent;
+        if(navigator.clipboard) navigator.clipboard.writeText(t).then(function(){ toast('📋 Kopiert'); });
+      };
+    });
+  }
+};
+
+/* 4 · INTERVIEW-TIPPS */
+APPS['interview'] = {
+  name:'Interview-Tipps', icon:'🎤',
+  render: function(){
+    var D = [
+      ['❓','Erzählen Sie von sich','2-3 Min · Kindheit/Jugend/Ausbildung/Beruf/Beweggrund'],
+      ['💪','Stärken','3 Stärken mit Beispielen untermauern'],
+      ['⚠️','Schwächen','Ehrlich + Lernbereitschaft zeigen'],
+      ['🎯','Warum diese Firma?','Konkrete Recherche zeigen'],
+      ['🚀','Wo sehen Sie sich in 5 Jahren?','Realistisch + Ambition'],
+      ['💰','Gehaltsvorstellung','Recherche vorher · Range nennen'],
+      ['🏆','Größter Erfolg','STAR-Methode (Situation-Task-Action-Result)'],
+      ['😰','Konflikt mit Kollegen','Lösungsorientiert antworten'],
+      ['📚','Warum sollten wir SIE nehmen?','Zusammenfassung Ihrer Stärken'],
+      ['🤔','Haben Sie Fragen?','IMMER ja · 2-3 gute Fragen vorbereiten']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎤 Interview-Tipps</div><div class="dim sm">Die häufigsten Fragen</div></div>'+
+      '<div class="col" style="gap:6px">'+
+        D.map(function(x){
+          return '<div class="v24-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:6px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 5 · GEHALTSVERHANDLUNG */
+APPS['gehalt'] = {
+  name:'Gehaltsverhandlung', icon:'💰',
+  render: function(){
+    var D = [
+      ['📊','Recherche','Gehalt.de, Stepstone, Glassdoor · Marktwert kennen'],
+      ['🎯','Range nennen','Nicht Einzelzahl · "zwischen X und Y"'],
+      ['⏰','Timing','Nach erfolgreichem Projekt / Jahresgespräch'],
+      ['💼','Argumente','Erfolge, Mehrverantwortung, Marktwert'],
+      ['🤝','Win-Win','Was bietet die Firma? Was du bringst'],
+      ['🚫','Nie drohen','Nie mit Kündigung drohen (außer Ernst)'],
+      ['🧘','Ruhig bleiben','Schweigen aushalten nach Zahl'],
+      ['📝','Schriftlich','Ergebnisse per Mail bestätigen lassen'],
+      ['⏸️','Bedenkzeit','"Ich überlege es mir bis morgen"'],
+      ['🔁','Nachverhandeln','Bei ausbleibendem Erfolg: in 6 Monaten wieder']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💰 Gehaltsverhandlung</div><div class="dim sm">So holst du mehr raus</div></div>'+
+      '<div class="col" style="gap:6px">'+
+        D.map(function(x){
+          return '<div class="v24-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+      '<div class="v24-card" style="background:rgba(255,176,58,.08);border-color:#ffb03a"><b>💡 Faustregel</b><div class="dim sm" style="margin-top:6px">+10-15 % fordern · realistisch bleiben</div></div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 6 · ARBEITSZEIT-RECHNER */
+APPS['arbeitszeit'] = {
+  name:'Arbeitszeit-Rechner', icon:'⏰',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">⏰ Arbeitszeit-Rechner</div><div class="dim sm">Wochenstunden & Überstunden</div></div>'+
+      '<div class="row"><input class="v9-input" id="v24-azP" type="number" placeholder="Std/Woche (Vertrag)" value="40" style="flex:1"><input class="v9-input" id="v24-azI" type="number" placeholder="Std/Woche (Ist)" value="45" style="flex:1"></div>'+
+      '<button class="btn primary" id="v24-azGo">▶ Berechnen</button>'+
+      '<div class="row"><div class="v9-stat" style="flex:1"><div class="v" id="v24-azW">–</div><div class="l">Std/Woche</div></div><div class="v9-stat" style="flex:1"><div class="v" id="v24-azM">–</div><div class="l">Std/Monat</div></div></div>'+
+      '<div class="v9-stat"><div class="v" id="v24-azY">–</div><div class="l">Std/Jahr</div></div>'+
+      '<div class="v24-card" id="v24-azInfo" style="margin-top:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v24-azGo').onclick = function(){
+      var p = parseFloat(win.querySelector('#v24-azP').value)||40;
+      var i = parseFloat(win.querySelector('#v24-azI').value)||40;
+      var wo = i;
+      var mo = i * 4.33;
+      var yr = i * 52;
+      win.querySelector('#v24-azW').textContent = wo.toFixed(1) + ' h';
+      win.querySelector('#v24-azM').textContent = mo.toFixed(1) + ' h';
+      win.querySelector('#v24-azY').textContent = yr.toFixed(0) + ' h';
+      var diff = i - p;
+      var info;
+      if(diff > 0) info = '🚨 Überstunden: <b>+' + diff.toFixed(1) + ' h/Woche</b> · '+ (diff*4.33).toFixed(0) +' h/Monat · '+ (diff*52).toFixed(0) +' h/Jahr';
+      else if(diff < 0) info = '✅ Weniger als Vertrag: <b>' + diff.toFixed(1) + ' h/Woche</b>';
+      else info = '✅ Genau nach Vertrag';
+      win.querySelector('#v24-azInfo').innerHTML = info;
+    };
+    win.querySelector('#v24-azGo').click();
+  }
+};
+
+/* 7 · URLAUBSTAGE-RECHNER */
+APPS['urlaubstage'] = {
+  name:'Urlaubstage-Rechner', icon:'🏖️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🏖️ Urlaubstage-Rechner</div><div class="dim sm">Gesetzlich & vertraglich</div></div>'+
+      '<div class="row"><select class="v9-input" id="v24-utT" style="flex:1"><option value="5">5-Tage-Woche</option><option value="6">6-Tage-Woche</option></select><input class="v9-input" id="v24-utV" type="number" placeholder="Vertragl. Tage" value="30" style="flex:1"></div>'+
+      '<div class="row"><input class="v9-input" id="v24-utM" type="number" placeholder="Monate im Jahr" value="12" style="flex:1"><input class="v9-input" id="v24-utG" type="number" placeholder="Genommene Tage" value="0" style="flex:1"></div>'+
+      '<button class="btn primary" id="v24-utGo">▶ Berechnen</button>'+
+      '<div class="row"><div class="v9-stat" style="flex:1"><div class="v" id="v24-utO1">–</div><div class="l">Anspruch</div></div><div class="v9-stat" style="flex:1"><div class="v" id="v24-utO2">–</div><div class="l">Resturlaub</div></div></div>'+
+      '<div class="v24-card"><b>📋 Gesetzlich (BUrlG)</b><div class="dim sm" style="margin-top:6px;line-height:1.7">• Mindestens 24 Werktage (4 Wochen)<br>• Bei 5-Tage-Woche: 20 Arbeitstage<br>• Vertrag kann mehr gewähren<br>• Bei Teilzeit: anteilig<br>• Verfall: 31.03. des Folgejahres</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v24-utGo').onclick = function(){
+      var t = parseInt(win.querySelector('#v24-utT').value);
+      var v = parseInt(win.querySelector('#v24-utV').value)||30;
+      var m = parseInt(win.querySelector('#v24-utM').value)||12;
+      var g = parseInt(win.querySelector('#v24-utG').value)||0;
+      var anspruch = Math.round(v * m / 12 * 10) / 10;
+      win.querySelector('#v24-utO1').textContent = anspruch + ' Tage';
+      win.querySelector('#v24-utO2').textContent = Math.max(0, anspruch - g) + ' Tage';
+    };
+    win.querySelector('#v24-utGo').click();
+  }
+};
+
+/* 8 · KÜNDIGUNG-VORLAGE */
+APPS['kuendigung'] = {
+  name:'Kündigung-Vorlage', icon:'📝',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📝 Kündigung-Vorlage</div><div class="dim sm">Arbeitgeber-Kündigung erstellen</div></div>'+
+      '<input class="v9-input" id="v24-kdN" placeholder="Dein Name" value="">'+
+      '<input class="v9-input" id="v24-kdA" placeholder="Deine Adresse" value="">'+
+      '<input class="v9-input" id="v24-kdF" placeholder="Firma" value="">'+
+      '<input class="v9-input" id="v24-kdD" type="date">'+
+      '<button class="btn primary" id="v24-kdG">📄 Vorschau + Drucken</button>'+
+      '<div class="v24-card" style="background:rgba(224,59,90,.1);border-color:#e03b5a"><b>⚠️ Wichtig</b><div class="dim sm" style="margin-top:6px;line-height:1.7">• Schriftlich + Unterschrift<br>• Per Einschreiben oder persönlich mit Empfang<br>• Kündigungsfrist beachten!<br>• 3 Monate zum Monatsende bei gesetzl. Standard<br>• Kopie für dich behalten</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v24-kdG').onclick = function(){
+      var n = win.querySelector('#v24-kdN').value || '[Dein Name]';
+      var a = win.querySelector('#v24-kdA').value || '[Deine Adresse]';
+      var f = win.querySelector('#v24-kdF').value || '[Firma]';
+      var d = win.querySelector('#v24-kdD').value || new Date().toISOString().slice(0,10);
+      var html = '<html><head><title>Kündigung</title><style>body{font-family:Arial,sans-serif;padding:40px;max-width:800px;margin:0 auto;line-height:1.7;color:#000}h1{font-size:18px}</style></head><body>'+
+        '<p>'+esc(n)+'<br>'+esc(a)+'</p>'+
+        '<p style="text-align:right">'+new Date(d).toLocaleDateString('de-DE')+'</p>'+
+        '<p style="margin-top:60px">'+esc(f)+'<br>Personalabteilung</p>'+
+        '<h1 style="margin-top:60px">Kündigung meines Arbeitsverhältnisses</h1>'+
+        '<p>Sehr geehrte Damen und Herren,</p>'+
+        '<p>hiermit kündige ich mein Arbeitsverhältnis fristgerecht zum nächstmöglichen Zeitpunkt.</p>'+
+        '<p>Ich bedanke mich für die Zusammenarbeit und bitte um eine schriftliche Bestätigung des Kündigungstermins.</p>'+
+        '<p style="margin-top:80px">Mit freundlichen Grüßen,</p>'+
+        '<p style="margin-top:60px">_______________________<br>'+esc(n)+'</p>'+
+        '</body></html>';
+      var w = window.open('', '_blank');
+      if(!w) return toast('Popup blockiert');
+      w.document.write(html);
+      w.document.close();
+      setTimeout(function(){ w.print(); }, 500);
+    };
+  }
+};
+
+/* 9 · ZEUGNIS-ANALYSE */
+APPS['zeugnis'] = {
+  name:'Zeugnis-Analyse', icon:'📋',
+  render: function(){
+    var D = [
+      ['⭐','"stets zu unserer vollsten Zufriedenheit"','Sehr gut (1)'],
+      ['⭐','"stets zu unserer vollen Zufriedenheit"','Gut (2)'],
+      ['⭐','"zu unserer vollen Zufriedenheit"','Befriedigend (3)'],
+      ['⭐','"zu unserer Zufriedenheit"','Ausreichend (4)'],
+      ['⭐','"stets einwandfrei"','Sehr gut'],
+      ['⭐','"einwandfrei"','Gut'],
+      ['⚠️','"hat sich bemüht"','Schlecht (5)'],
+      ['⚠️','"war bemüht"','Schlecht'],
+      ['⚠️','"hat Kenntnisse"','Mangelhaft (6)'],
+      ['⚠️','"zeigte Verständnis"','Mangelhaft'],
+      ['✅','"hervorragend"','Sehr gut'],
+      ['✅','"sehr gut"','Sehr gut'],
+      ['✅','"gut"','Gut'],
+      ['✅','"zufriedenstellend"','Befriedigend'],
+      ['🚫','"im Großen und Ganzen"','Einschränkung']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📋 Zeugnis-Analyse</div><div class="dim sm">Was die Formulierungen bedeuten</div></div>'+
+      '<input class="v9-input" id="v24-zgQ" placeholder="🔍 Phrase suchen…">'+
+      '<div id="v24-zgL" class="col" style="gap:6px;max-height:70vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['⭐','stets zu unserer vollsten Zufriedenheit','Sehr gut (1)'],
+      ['⭐','stets zu unserer vollen Zufriedenheit','Gut (2)'],
+      ['⭐','zu unserer vollen Zufriedenheit','Befriedigend (3)'],
+      ['⭐','zu unserer Zufriedenheit','Ausreichend (4)'],
+      ['⭐','stets einwandfrei','Sehr gut'],
+      ['⭐','einwandfrei','Gut'],
+      ['⚠️','hat sich bemüht','Schlecht (5)'],
+      ['⚠️','war bemüht','Schlecht'],
+      ['⚠️','hat Kenntnisse','Mangelhaft (6)'],
+      ['⚠️','zeigte Verständnis','Mangelhaft'],
+      ['✅','hervorragend','Sehr gut'],
+      ['✅','sehr gut','Sehr gut'],
+      ['✅','gut','Gut'],
+      ['✅','zufriedenstellend','Befriedigend'],
+      ['🚫','im Großen und Ganzen','Einschränkung'],
+      ['🚫','im Rahmen seiner Möglichkeiten','Einschränkung'],
+      ['🚫','nach anfänglichen Schwierigkeiten','Negativ'],
+      ['🚫','war stets pünktlich','Nur Pünktlichkeit – sonst nichts']
+    ];
+    var Q = win.querySelector('#v24-zgQ');
+    function render(){
+      var q = Q.value.toLowerCase();
+      var f = D.filter(function(x){ return !q || x[1].toLowerCase().indexOf(q) >= 0; });
+      win.querySelector('#v24-zgL').innerHTML = f.map(function(x){
+        return '<div class="v24-card"><div class="row between"><b>'+x[0]+' "'+esc(x[1])+'"</b></div><div class="dim sm" style="margin-top:6px">Bedeutet: <b style="color:var(--c1)">'+esc(x[2])+'</b></div></div>';
+      }).join('') || '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput = render; render();
+  }
+};
+
+/* 10 · LINKEDIN-TIPPS */
+APPS['linkedin'] = {
+  name:'LinkedIn-Tipps', icon:'💼',
+  render: function(){
+    var D = [
+      ['📸','Professionelles Foto','Freundlich lächeln · neutraler Hintergrund'],
+      ['📝','Headline','Nicht nur Jobtitel · Nutzen formulieren'],
+      ['💬','About-Section','Erste Person · Story · was du löst'],
+      ['🏆','Erfolge','Konkrete Zahlen: Umsatz, Projekte'],
+      ['🔗','Skills','Top 3 deiner Kernkompetenzen'],
+      ['📅','Regelmäßig posten','1-2× pro Woche · Mehrwert bieten'],
+      ['🤝','Vernetzen','Notiz schreiben beim Anfragen'],
+      ['💬','Kommentieren','Bei Top-Influencern sichtbar werden'],
+      ['📊','Analytics','Wer schaut dein Profil?'],
+      ['🎯','Zielgruppe','Klar definieren · wer soll dich finden?']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💼 LinkedIn-Tipps</div><div class="dim sm">Profil optimieren</div></div>'+
+      '<div class="col" style="gap:6px">'+
+        D.map(function(x){
+          return '<div class="v24-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 11 · NETWORKING */
+APPS['networking'] = {
+  name:'Networking', icon:'🤝',
+  render: function(){
+    var D = [
+      ['🎯','Ziel setzen','Was willst du erreichen? Kontakte, Job, Wissen'],
+      ['📇','Visitenkarten','Aktuell halten · auch digital'],
+      ['💬','Gespräch starten','Mit konkretem Kompliment/Bezug'],
+      ['👂','Zuhören','Mehr fragen als reden'],
+      ['🔗','Folgen','LinkedIn/Email nach dem Treffen'],
+      ['📅','Nachfassen','Nach 2 Wochen: kurze Nachricht'],
+      ['🎁','Geben','Hilfe anbieten – nicht nur nehmen'],
+      ['📚','Gemeinsame Interessen','Sport, Hobby, Fachthema'],
+      ['🎤','Events','Konferenzen, Meetups, Stammtische'],
+      ['💾','CRM','Notizen zu Kontakten führen']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🤝 Networking</div><div class="dim sm">Kontakte richtig aufbauen</div></div>'+
+      '<div class="col" style="gap:6px">'+
+        D.map(function(x){
+          return '<div class="v24-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 12 · SELBSTSTÄNDIG-RECHNER */
+APPS['selbststaendig'] = {
+  name:'Selbstständig-Rechner', icon:'🚀',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🚀 Selbstständig-Rechner</div><div class="dim sm">Was musst du verdienen?</div></div>'+
+      '<input class="v9-input" id="v24-ssZ" type="number" placeholder="Wunsch-Netto €/Monat" value="3000">'+
+      '<div class="row"><input class="v9-input" id="v24-ssK" type="number" placeholder="Krankenkasse €/Monat" value="400" style="flex:1"><input class="v9-input" id="v24-ssS" type="number" placeholder="Steuern %" value="30" style="flex:1"></div>'+
+      '<input class="v9-input" id="v24-ssB" type="number" placeholder="Betriebskosten €/Monat" value="500">'+
+      '<button class="btn primary" id="v24-ssGo">▶ Berechnen</button>'+
+      '<div class="v9-stat"><div class="v" id="v24-ssO">–</div><div class="l">Umsatz nötig / Monat</div></div>'+
+      '<div class="v9-stat"><div class="v" id="v24-ssY">–</div><div class="l">Umsatz nötig / Jahr</div></div>'+
+      '<div class="v24-card"><b>💡 Faustregeln</b><div class="dim sm" style="margin-top:6px;line-height:1.7">• 3-6 Monate Rücklage bilden<br>• Kleinunternehmer-Grenze: 22.000 €/Jahr<br>• Umsatzsteuer ab 22.000 €<br>• Krankenkasse freiwillig gesetzlich ~ 200-500 €</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v24-ssGo').onclick = function(){
+      var z = parseFloat(win.querySelector('#v24-ssZ').value)||3000;
+      var k = parseFloat(win.querySelector('#v24-ssK').value)||400;
+      var s = parseFloat(win.querySelector('#v24-ssS').value)||30;
+      var b = parseFloat(win.querySelector('#v24-ssB').value)||500;
+      var vorSteuer = z + k + b;
+      var umsatz = vorSteuer / (1 - s/100);
+      win.querySelector('#v24-ssO').textContent = umsatz.toFixed(0) + ' €';
+      win.querySelector('#v24-ssY').textContent = (umsatz * 12).toFixed(0) + ' €';
+    };
+    win.querySelector('#v24-ssGo').click();
+  }
+};
+
+/* 13 · KLEINUNTERNEHMER */
+APPS['kleinunternehmer'] = {
+  name:'Kleinunternehmer', icon:'📊',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📊 Kleinunternehmer</div><div class="dim sm">§19 UStG · Voraussetzungen</div></div>'+
+      '<div class="v24-card"><b>✅ Wer ist Kleinunternehmer?</b><div class="dim sm" style="margin-top:6px;line-height:1.7">• Umsatz unter 22.000 € (2024: 25.000 €)<br>• Im Folgejahr unter 100.000 €<br>• Keine Umsatzsteuer ausweisen<br>• Kein Vorsteuerabzug</div></div>'+
+      '<div class="v24-card"><b>📋 Pflichten</b><div class="dim sm" style="margin-top:6px;line-height:1.7">• Gewerbeanmeldung<br>• Steuernummer beantragen<br>• Einnahmen-Überschuss-Rechnung<br>• Jährliche Einkommensteuer<br>• Anmeldung beim Finanzamt</div></div>'+
+      '<div class="v24-card"><b>⚠️ Fallstricke</b><div class="dim sm" style="margin-top:6px;line-height:1.7">• Überschreiten der Grenze: Sofort USt-pflichtig<br>• Rechnung muss Hinweis enthalten: "Kein Steuerausweis aufgrund §19 UStG"<br>• Krankenkasse: freiwillig gesetzlich oder privat</div></div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 14 · STEUER-TIPPS */
+APPS['steuer-tipps'] = {
+  name:'Steuer-Tipps', icon:'💼',
+  render: function(){
+    var D = [
+      ['🏠','Homeoffice-Pauschale','6 €/Tag · max. 1.260 €/Jahr'],
+      ['💻','Arbeitsmittel','Laptop, Bürostuhl, Schreibtisch absetzbar'],
+      ['📚','Fachliteratur','Bücher, Zeitschriften, Kurse'],
+      ['🚗','Fahrtkosten','0,30 €/km Entfernungspauschale'],
+      ['🧾','Bewerbungskosten','Porto, Fotos, Fahrten, Kleidung'],
+      ['📱','Telefon/Internet','Anteilige Kosten (ca. 20%)'],
+      ['💊','Krankheitskosten','Arzt, Medikamente, Brille'],
+      ['🎁','Spenden','Bis 20% vom Einkommen'],
+      ['🏠','Haushaltsnahe Dienstleistungen','20% · max. 4.000 €'],
+      ['👶','Kinderbetreuung','2/3 der Kosten · max. 4.000 €'],
+      ['🎓','Weiterbildung','Direkt absetzbar wenn beruflich'],
+      ['✈️','Dienstreisen','Hotel, Verpflegung, Fahrt'],
+      ['💰','Handwerkerleistungen','20% · max. 1.200 €'],
+      ['🌱','Öko-Bonus','Solar, Wärmedämmung']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💼 Steuer-Tipps</div><div class="dim sm">Was kann ich absetzen?</div></div>'+
+      '<div class="col" style="gap:6px">'+
+        D.map(function(x){
+          return '<div class="v24-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+      '<div class="v24-card" style="background:rgba(255,176,58,.08);border-color:#ffb03a"><b>💡 Tipp</b><div class="dim sm" style="margin-top:6px">Belege 10 Jahre aufbewahren · Steuer-App wie Taxfix, WISO</div></div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 15 · MEETING-EFFIZIENZ */
+APPS['meeting'] = {
+  name:'Meeting-Effizienz', icon:'📅',
+  render: function(){
+    var D = [
+      ['🎯','Agenda vorher','Punkte + Zeitrahmen verschicken'],
+      ['⏱','Dauer begrenzen','15-30 Min Standard · nicht 60'],
+      ['👥','Nur nötige Leute','Weniger Teilnehmer = produktiver'],
+      ['📝','Protokoll','Wer macht was bis wann?'],
+      ['📵','Kein Handy','Fokus auf Meeting'],
+      ['🎤','Kamera an','Bei Remote-Meetings'],
+      ['✋','Klare Rollen','Moderator · Zeitnehmer · Protokollant'],
+      ['❌','Absagen','Wenn ohne Meeting lösbar → absagen'],
+      ['⏰','Pünktlich anfangen','Auch wenn nicht alle da sind'],
+      ['✅','Ergebnis','Action Items am Ende zusammenfassen']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📅 Meeting-Effizienz</div><div class="dim sm">Kürzer & produktiver</div></div>'+
+      '<div class="col" style="gap:6px">'+
+        D.map(function(x){
+          return '<div class="v24-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 16 · E-MAIL-ETIKETTE */
+APPS['email-etikette'] = {
+  name:'E-Mail-Etikette', icon:'📧',
+  render: function(){
+    var D = [
+      ['💬','Betreff klar','Aktion + Kontext: "Angebot XY – Rückmeldung bis Freitag"'],
+      ['👤','Anrede korrekt','Sehr geehrte/r Frau/Herr Dr. XY'],
+      ['📝','Kurz halten','Max 5-7 Sätze · keine Romane'],
+      ['🎯','Ein Thema','Pro Mail nur 1 Anliegen'],
+      ['📎','Anhänge benennen','Nicht "Dokument.pdf" sondern "Angebot_2024.pdf"'],
+      ['⏰','Antwortzeit','24-48 Std · sofort bei wichtig'],
+      ['🙏','Freundlich','Bitte/Danke · keine Vorwürfe'],
+      ['👥','CC sparsam','Nur wer informiert werden muss'],
+      ['🔁','Antwort-Historie','Nur relevante Teile zitieren'],
+      ['🚫','Großschreibung','KEIN SHOUTING!'],
+      ['📅','Termine','Nicht "morgen" sondern "Di 15.10. 10:00"'],
+      ['✍️','Grußformel','Mit freundlichen Grüßen / Beste Grüße']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📧 E-Mail-Etikette</div><div class="dim sm">Professionell schreiben</div></div>'+
+      '<div class="col" style="gap:6px">'+
+        D.map(function(x){
+          return '<div class="v24-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 17 · ZEITMANAGEMENT */
+APPS['zeitmanagement'] = {
+  name:'Zeitmanagement', icon:'⏰',
+  render: function(){
+    var D = [
+      ['🍅','Pomodoro','25 Min Arbeit · 5 Min Pause'],
+      ['🔺','Eisenhower-Matrix','Wichtig vs. Dringend'],
+      ['🍽','Eat the Frog','Schwerste Aufgabe zuerst'],
+      ['📋','To-Do-Liste','Max 5 wichtige Punkte'],
+      ['⏰','Time-Blocking','Kalender für alle Aufgaben'],
+      ['🎯','1-3-5 Regel','1 große · 3 mittlere · 5 kleine Aufgaben/Tag'],
+      ['📵','Deep Work','2-4 Std ohne Ablenkung'],
+      ['🗓','Wochenplanung','Sonntag: Woche planen'],
+      ['✅','2-Minuten-Regel','Wenn unter 2 Min → sofort erledigen'],
+      ['📊','Parkinson\'s Law','Aufgabe füllt Zeit · Deadlines setzen']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">⏰ Zeitmanagement</div><div class="dim sm">Methoden für mehr Produktivität</div></div>'+
+      '<div class="col" style="gap:6px">'+
+        D.map(function(x){
+          return '<div class="v24-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 18 · PRÄSENTATIONS-TIPPS */
+APPS['praesentation'] = {
+  name:'Präsentations-Tipps', icon:'🎤',
+  render: function(){
+    var D = [
+      ['🎯','1 Kernbotschaft','Nicht 10 Botschaften pro Slide'],
+      ['📊','Wenig Text','Stichpunkte · keine Absätze'],
+      ['🖼️','Visuell','Bilder statt Textwüsten'],
+      ['🔤','Große Schrift','Mind. 24 pt'],
+      ['🎨','Kontrast','Hell auf dunkel oder umgekehrt'],
+      ['⏱️','Timing','Pro Slide 1-2 Min'],
+      ['👁','Augenkontakt','Blick schweifen lassen'],
+      ['🗣','Üben','Laut proben · vor dem Spiegel'],
+      ['📝','Handout','Nach der Präsentation verteilen'],
+      ['🎬','Story','Anfang · Mitte · Ende'],
+      ['❓','Fragen','Zeit für Diskussion einplanen'],
+      ['🚫','Kein "Ähm"','Pausen sind besser als Füllwörter']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎤 Präsentations-Tipps</div><div class="dim sm">Überzeugen vor Publikum</div></div>'+
+      '<div class="col" style="gap:6px">'+
+        D.map(function(x){
+          return '<div class="v24-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 19 · VERHANDLUNGS-TIPPS */
+APPS['verhandlung'] = {
+  name:'Verhandlungs-Tipps', icon:'🤝',
+  render: function(){
+    var D = [
+      ['🎯','BATNA','Beste Alternative kennen · wenn Verhandlung scheitert'],
+      ['📊','ZOPA','Zone möglicher Einigung finden'],
+      ['🧠','Vorbereitung','Zahlen, Fakten, Argumente'],
+      ['🚫','Nicht zuerst nennen','Gegenüber soll Zahl nennen'],
+      ['🙅','Ankern','Bei eigener Zahl: hoch einsteigen'],
+      ['🤐','Schweigen','Nach Zahl: nichts sagen'],
+      ['⚖️','Win-Win','Beide sollen gewinnen'],
+      ['🎁','Extras','Nicht nur Geld verhandeln'],
+      ['⏰','Timing','Am Ende der Verhandlung festhalten'],
+      ['📝','Schriftlich','Ergebnis sofort schriftlich bestätigen']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🤝 Verhandlungs-Tipps</div><div class="dim sm">So bekommst du was du willst</div></div>'+
+      '<div class="col" style="gap:6px">'+
+        D.map(function(x){
+          return '<div class="v24-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 20 · KARRIERE-ROADMAP */
+APPS['karriere-roadmap'] = {
+  name:'Karriere-Roadmap', icon:'🗺️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🗺️ Karriere-Roadmap</div><div class="dim sm">Wo willst du in 5 Jahren sein?</div></div>'+
+      '<div id="v24-krL"></div>'+
+      '<div class="v24-card"><b>💡 Meilensteine</b><div class="dim sm" style="margin-top:6px;line-height:1.7">• Skills aufbauen<br>• Netzwerk erweitern<br>• Sichtbarkeit erhöhen<br>• Führungsverantwortung<br>• Gehalt steigern<br>• Work-Life-Balance</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['🎯','Jahr 1','Basis-Skills ausbauen · Netzwerk aufbauen'],
+      ['📈','Jahr 2','Projekte übernehmen · Sichtbarkeit erhöhen'],
+      ['⭐','Jahr 3','Senior-Level erreichen · Mentoring'],
+      ['🏆','Jahr 4','Führungsrolle anstreben · Strategie'],
+      ['🚀','Jahr 5','Expert-Level · Branchen-Sichtbarkeit']
+    ];
+    win.querySelector('#v24-krL').innerHTML = D.map(function(x){
+      return '<div class="v24-card" style="border-left:4px solid var(--c1)"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:6px">'+esc(x[2])+'</div></div>';
+    }).join('');
+  }
+};
+
+console.log('%c📦 v24 geladen — Business & Karriere · 20 Apps','background:linear-gradient(90deg,#b478ff,#00e5ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('Aktive Apps:', Object.keys(APPS).length);
+
+setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click(); }, 150);
+
+})();
+</script>
 </body>
 </html>
