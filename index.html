@@ -15323,5 +15323,773 @@ setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v17 · Familie & Kinder · 20 Apps
+     ============================================================ -->
+<style id="v17-style">
+.v17-card{padding:14px;border-radius:14px;background:linear-gradient(150deg,rgba(20,30,60,.65),rgba(10,16,40,.82));border:1px solid rgba(120,180,255,.14);margin-bottom:8px}
+.v17-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);cursor:pointer;transition:.15s}
+.v17-row:hover{background:rgba(0,229,255,.05);border-color:rgba(0,229,255,.2)}
+.v17-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.3);color:var(--c1);cursor:pointer;transition:.15s}
+.v17-chip.on{background:linear-gradient(135deg,var(--c1),var(--c2));color:#02101e;border-color:var(--c1)}
+.v17-cake{font-size:52px;text-align:center;padding:16px;background:radial-gradient(circle,rgba(255,176,58,.15),transparent 70%);border-radius:16px;margin:8px 0}
+.v17-story{padding:16px;background:linear-gradient(150deg,rgba(180,120,255,.1),rgba(0,229,255,.06));border-radius:16px;border:1px solid rgba(180,120,255,.25);font-size:15px;line-height:1.7;min-height:160px}
+.v17-song{font-family:monospace;font-size:13px;line-height:1.7;padding:12px;background:rgba(0,20,50,.5);border-radius:12px;border:1px solid rgba(120,180,255,.15)}
+.v17-kid-tile{padding:14px;border-radius:14px;background:linear-gradient(150deg,rgba(255,176,58,.1),rgba(255,107,136,.06));border:1px solid rgba(255,176,58,.25);text-align:center;cursor:pointer;transition:.15s}
+.v17-kid-tile:hover{transform:translateY(-2px);border-color:rgba(255,176,58,.5)}
+.v17-size{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.v17-size > div{text-align:center;padding:12px 6px;background:rgba(255,255,255,.03);border-radius:10px;border:1px solid rgba(120,180,255,.14)}
+.v17-size .n{font-size:16px;font-weight:800;color:var(--c1)}
+.v17-size .l{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.v17-idea{padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(120,180,255,.14);margin-bottom:6px}
+.v17-idea b{color:var(--c1)}
+</style>
+
+<script>
+(function(){
+'use strict';
+var H = window.HalDo;
+if(!H || !H.APPS){ console.error('[v17] Foundation fehlt'); return; }
+var APPS = H.APPS;
+var esc=H.esc, uid=H.uid, store=H.store, toast=H.toast;
+
+/* 1 · KINDERGEBURTSTAG-PLANER */
+APPS['kindergeburtstag'] = {
+  name:'Kindergeburtstag', icon:'🎂',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎂 Kindergeburtstag-Planer</div><div class="dim sm">Alles für den großen Tag</div></div>'+
+      '<div class="v17-cake">🎂🎈🎁</div>'+
+      '<input class="v9-input" id="v17-kbN" placeholder="Kind (Name)">'+
+      '<div class="row"><input class="v9-input" id="v17-kbA" type="number" placeholder="Alter" value="6" style="width:80px"><input class="v9-input" id="v17-kbD" type="date" style="flex:1"><input class="v9-input" id="v17-kbG" type="number" placeholder="Gäste" value="8" style="width:80px"><button class="btn primary" id="v17-kbAdd">+</button></div>'+
+      '<div id="v17-kbL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('bday17',[]); }
+    function render(){
+      var a = all().sort(function(x,y){ return x.d.localeCompare(y.d); });
+      var today = new Date();
+      win.querySelector('#v17-kbL').innerHTML = a.length ? a.map(function(x){
+        var d = Math.ceil((new Date(x.d) - today) / 86400000);
+        var info = d < 0 ? 'vergangen' : d === 0 ? 'HEUTE!' : d === 1 ? 'morgen' : 'in ' + d + ' Tagen';
+        var col = d < 0 ? 'var(--dim)' : d <= 7 ? '#ff6b88' : d <= 30 ? '#ffb03a' : '#4de88a';
+        return '<div class="v17-card" style="border-color:'+col+'44"><div class="row between"><b>🎉 '+esc(x.n)+' wird '+x.a+'</b><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div><div class="dim sm" style="margin-top:6px">📅 '+new Date(x.d).toLocaleDateString('de-DE')+' · 👥 '+x.g+' Gäste</div><div style="color:'+col+';font-weight:600;font-size:12px;margin-top:4px">'+info+'</div></div>';
+      }).join('') : '<div class="empty">Keine Geburtstage geplant</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('bday17', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v17-kbAdd').onclick = function(){
+      var n = win.querySelector('#v17-kbN').value.trim();
+      var d = win.querySelector('#v17-kbD').value;
+      if(!n || !d) return toast('Name + Datum');
+      var a = all();
+      a.push({id:uid(), n:n, a:parseInt(win.querySelector('#v17-kbA').value)||6, d:d, g:parseInt(win.querySelector('#v17-kbG').value)||8});
+      store.set('bday17', a);
+      win.querySelector('#v17-kbN').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* 2 · KINDERLIEDER */
+APPS['kinderlieder'] = {
+  name:'Kinderlieder', icon:'🎵',
+  render: function(){
+    var L = [
+      ['🎵','Alle meine Entchen','Alle meine Entchen schwimmen auf dem See, schwimmen auf dem See, Köpfchen in das Wasser, Schwänzchen in die Höh.'],
+      ['🐰','Häschen in der Grube','Häschen in der Grube saß und schlief, saß und schlief. Armes Häschen, bist du krank, dass du nicht mehr hüpfen kannst?'],
+      ['⭐','ABC, die Katze lief im Schnee','ABC, die Katze lief im Schnee. Und als sie dann nach Hause kam, da hatt\' sie weiße Stiefel an.'],
+      ['🐦','Vogelhochzeit','Ein Vogel wollte Hochzeit machen in dem grünen Walde. Fidiralala, fidiralala, fidiralalalala.'],
+      ['🌙','Der Mond ist aufgegangen','Der Mond ist aufgegangen, die goldnen Sternlein prangen am Himmel hell und klar.'],
+      ['🐘','Es tanzt ein Bi-Ba-Butzemann','Es tanzt ein Bi-Ba-Butzemann in unserm Haus herum, didum. Er rüttelt sich, er schüttelt sich.'],
+      ['🎄','Ihr Kinderlein kommet','Ihr Kinderlein kommet, o kommet doch all, zur Krippe her kommet in Bethlehems Stall.'],
+      ['🌊','La-le-lu','La-le-lu, nur der Mann im Mond schaut zu, wenn die kleinen Babys schlafen, drum schlaf auch du.'],
+      ['🐐','Weißt du wieviel Sternlein stehen','Weißt du, wieviel Sternlein stehen an dem blauen Himmelszelt?'],
+      ['🎈','Backe backe Kuchen','Backe, backe Kuchen, der Bäcker hat gerufen. Wer will guten Kuchen backen, der muss haben sieben Sachen.']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎵 Kinderlieder</div><div class="dim sm">Klassische Lieder mit Text</div></div>'+
+      '<input class="v9-input" id="v17-klQ" placeholder="🔍 Lied suchen…">'+
+      '<div id="v17-klL" class="col" style="gap:6px;max-height:65vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var L = [
+      ['🎵','Alle meine Entchen','Alle meine Entchen schwimmen auf dem See, schwimmen auf dem See, Köpfchen in das Wasser, Schwänzchen in die Höh.'],
+      ['🐰','Häschen in der Grube','Häschen in der Grube saß und schlief, saß und schlief. Armes Häschen, bist du krank, dass du nicht mehr hüpfen kannst?'],
+      ['⭐','ABC, die Katze lief im Schnee','ABC, die Katze lief im Schnee. Und als sie dann nach Hause kam, da hatt\' sie weiße Stiefel an.'],
+      ['🐦','Vogelhochzeit','Ein Vogel wollte Hochzeit machen in dem grünen Walde. Fidiralala, fidiralala, fidiralalalala.'],
+      ['🌙','Der Mond ist aufgegangen','Der Mond ist aufgegangen, die goldnen Sternlein prangen am Himmel hell und klar.'],
+      ['🐘','Es tanzt ein Bi-Ba-Butzemann','Es tanzt ein Bi-Ba-Butzemann in unserm Haus herum, didum. Er rüttelt sich, er schüttelt sich.'],
+      ['🎄','Ihr Kinderlein kommet','Ihr Kinderlein kommet, o kommet doch all, zur Krippe her kommet in Bethlehems Stall.'],
+      ['🌊','La-le-lu','La-le-lu, nur der Mann im Mond schaut zu, wenn die kleinen Babys schlafen, drum schlaf auch du.'],
+      ['🐐','Weißt du wieviel Sternlein stehen','Weißt du, wieviel Sternlein stehen an dem blauen Himmelszelt?'],
+      ['🎈','Backe backe Kuchen','Backe, backe Kuchen, der Bäcker hat gerufen. Wer will guten Kuchen backen, der muss haben sieben Sachen.']
+    ];
+    var Q = win.querySelector('#v17-klQ');
+    function render(){
+      var q = Q.value.toLowerCase();
+      var f = L.filter(function(x){ return !q || (x[1]+' '+x[2]).toLowerCase().indexOf(q) >= 0; });
+      win.querySelector('#v17-klL').innerHTML = f.map(function(x){
+        return '<details class="v17-card"><summary style="cursor:pointer;font-weight:800"><span style="font-size:22px">'+x[0]+'</span> '+esc(x[1])+'</summary><div class="v17-song" style="margin-top:10px">'+esc(x[2])+'</div></details>';
+      }).join('') || '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput = render; render();
+  }
+};
+
+/* 3 · GUTENACHT-GESCHICHTEN */
+APPS['gute-nacht'] = {
+  name:'Gute-Nacht-Geschichten', icon:'🌙',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🌙 Gute-Nacht-Geschichten</div><div class="dim sm">Kurze Einschlaf-Geschichten</div></div>'+
+      '<div class="v17-story" id="v17-gnS">Klicke "Neue Geschichte" für eine Einschlaf-Geschichte.</div>'+
+      '<div class="row"><button class="btn primary" id="v17-gnN" style="flex:1">✨ Neue Geschichte</button><button class="btn" id="v17-gnV">🔊 Vorlesen</button></div>'+
+      '<div class="v9-card"><b>💡 Tipp</b><div class="dim sm" style="margin-top:6px">Lies mit ruhiger Stimme · gedämpftes Licht · ca. 5 Min</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var S = [
+      'Es war einmal ein kleines Sternenkind, das jeden Abend auf seiner Wolke saß und die Erde beobachtete. Eines Tages sah es einen kleinen Jungen, der nicht einschlafen konnte. Das Sternenkind schickte einen Glitzerstaub hinunter, und der Junge träumte von einer Reise zu den Sternen. Gute Nacht, kleiner Träumer.',
+      'Der kleine Hase Moppel konnte nicht einschlafen. Er ging zum Mond und fragte: "Mond, warum kann ich nicht schlafen?" Der Mond lächelte und sagte: "Weil du noch eine Geschichte brauchst." Und so erzählte der Mond von einem Hasen, der das größte Möhrenfeld der Welt fand. Moppel schlief lächelnd ein.',
+      'Im Zauberwald lebte eine kleine Eule namens Luna. Jeden Abend flog sie zu den Kindern und sang ein leises Lied. "Schlaf ein, schlaf ein, die Sterne wachen über dich." Wer das Lied hörte, träumte von fliegenden Federn und warmen Nestern.',
+      'Ein kleiner Bär namens Bruno hatte seinen Teddy verloren. Er suchte überall: im Wald, am Fluss, auf der Wiese. Als es dunkel wurde, fand er ihn unter seinem Kissen. "Du warst ja die ganze Zeit hier!", lachte Bruno. Und beide kuschelten sich ins Bett.',
+      'Am Rand der Welt, wo die Sonne schlafen geht, lebte ein kleines Mädchen namens Mia. Sie hatte eine Laterne, die nur dann leuchtete, wenn jemand lieb war. Jede Nacht flog sie über die Erde und sammelte Lächeln ein. So wurde ihre Laterne immer heller.',
+      'Der kleine Pinguin Pippo lebte am Südpol. Er war traurig, weil er nicht fliegen konnte wie die Vögel. Seine Mama sagte: "Du kannst tauchen wie ein Vogel fliegt!" Und Pippo tauchte durch das eisblaue Wasser und sah die schönsten Fische der Welt.',
+      'Es war einmal eine kleine Wolke, die nicht regnen wollte. Sie wollte lieber Zuckerwatte regnen lassen. Die Kinder tanzten im Garten und fingen süße Flocken. Als die Wolke müde wurde, schlief sie hinter dem Regenbogen ein.'
+    ];
+    var last = -1;
+    function pick(){
+      var i = Math.floor(Math.random()*S.length);
+      if(i === last) i = (i+1)%S.length;
+      last = i;
+      win.querySelector('#v17-gnS').textContent = S[i];
+    }
+    win.querySelector('#v17-gnN').onclick = pick;
+    win.querySelector('#v17-gnV').onclick = function(){
+      var t = win.querySelector('#v17-gnS').textContent;
+      try{
+        speechSynthesis.cancel();
+        var u = new SpeechSynthesisUtterance(t);
+        u.lang = 'de-DE'; u.rate = 0.9;
+        speechSynthesis.speak(u);
+      }catch(e){}
+    };
+    pick();
+  }
+};
+
+/* 4 · KINDERMODE-GRÖSSEN */
+APPS['kindermode'] = {
+  name:'Kindermode-Größen', icon:'👕',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">👕 Kindermode-Größen</div><div class="dim sm">Welche Größe passt?</div></div>'+
+      '<input class="v9-input" id="v17-kmQ" type="number" placeholder="Alter in Jahren…" value="5">'+
+      '<button class="btn primary" id="v17-kmGo">▶ Größe anzeigen</button>'+
+      '<div id="v17-kmL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var T = [
+      {a:0, g:'50/56', s:'Neugeborene', sc:'16-17', w:'3-4 kg'},
+      {a:1, g:'62/68', s:'1-3 Monate', sc:'17-18', w:'4-5 kg'},
+      {a:2, g:'74/80', s:'4-6 Monate', sc:'19-20', w:'6-8 kg'},
+      {a:3, g:'86/92', s:'1-2 Jahre', sc:'21-22', w:'10-12 kg'},
+      {a:4, g:'98/104', s:'2-4 Jahre', sc:'23-24', w:'13-16 kg'},
+      {a:5, g:'110/116', s:'4-6 Jahre', sc:'25-26', w:'17-20 kg'},
+      {a:7, g:'122/128', s:'6-8 Jahre', sc:'28-29', w:'22-27 kg'},
+      {a:9, g:'134/140', s:'8-10 Jahre', sc:'31-32', w:'28-33 kg'},
+      {a:11, g:'146/152', s:'10-12 Jahre', sc:'34-36', w:'34-42 kg'},
+      {a:13, g:'158/164', s:'12-14 Jahre', sc:'37-39', w:'43-52 kg'}
+    ];
+    win.querySelector('#v17-kmGo').onclick = function(){
+      var a = parseFloat(win.querySelector('#v17-kmQ').value) || 0;
+      var match = T[0];
+      for(var i=0;i<T.length;i++){ if(a >= T[i].a) match = T[i]; }
+      win.querySelector('#v17-kmL').innerHTML =
+        '<div class="v17-card" style="text-align:center"><div style="font-size:36px">👕</div><b style="font-size:22px;color:var(--c1)">'+match.g+'</b><div class="dim sm">'+match.s+'</div></div>'+
+        '<div class="v17-size"><div><div class="n">'+match.sc+'</div><div class="l">Schuhe EU</div></div><div><div class="n">'+match.w+'</div><div class="l">Gewicht</div></div><div><div class="n">'+match.a+' J</div><div class="l">Alter</div></div></div>'+
+        '<div class="v9-card" style="margin-top:8px"><div class="dim sm">💡 Immer anprobieren – Kinder wachsen unterschiedlich schnell.</div></div>';
+    };
+    win.querySelector('#v17-kmGo').click();
+  }
+};
+
+/* 5 · LERN-SPIELE KIDS */
+APPS['lern-kids'] = {
+  name:'Lern-Spiele Kids', icon:'🎓',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎓 Lern-Spiele Kids</div><div class="dim sm">Rechnen · Farben · Formen</div></div>'+
+      '<div class="row" id="v17-lkT"><button class="v17-chip on" data-t="math">➕ Rechnen</button><button class="v17-chip" data-t="colors">🎨 Farben</button><button class="v17-chip" data-t="shapes">⬛ Formen</button></div>'+
+      '<div class="v17-story" id="v17-lkQ" style="min-height:100px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;text-align:center"></div>'+
+      '<div id="v17-lkA" class="row" style="flex-wrap:wrap;gap:8px"></div>'+
+      '<div class="v9-stat"><div class="v" id="v17-lkS">0 / 0</div><div class="l">Richtig</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var cur = 'math', score = 0, total = 0;
+    function newQ(){
+      win.querySelector('#v17-lkS').textContent = score + ' / ' + total;
+      var q, opts, ansIdx;
+      if(cur === 'math'){
+        var a = Math.floor(Math.random()*10) + 1;
+        var b = Math.floor(Math.random()*10) + 1;
+        q = a + ' + ' + b + ' = ?';
+        ansIdx = a + b;
+        opts = [ansIdx];
+        while(opts.length < 4){
+          var n = ansIdx + Math.floor(Math.random()*9) - 4;
+          if(n !== ansIdx && n > 0 && opts.indexOf(n) < 0) opts.push(n);
+        }
+      } else if(cur === 'colors'){
+        var C = [
+          ['🔴','Rot','#e03b5a'],['🟢','Grün','#4de88a'],['🔵','Blau','#00e5ff'],
+          ['🟡','Gelb','#ffd84a'],['🟣','Lila','#b478ff'],['🟠','Orange','#ffb03a']
+        ];
+        var pick = C[Math.floor(Math.random()*C.length)];
+        q = 'Welche Farbe hat '+pick[0]+' ?';
+        ansIdx = pick[1];
+        opts = [ansIdx];
+        while(opts.length < 4){
+          var c = C[Math.floor(Math.random()*C.length)][1];
+          if(opts.indexOf(c) < 0) opts.push(c);
+        }
+      } else {
+        var S = [
+          ['⭕','Kreis'],['⬛','Quadrat'],['🔺','Dreieck'],['⭐','Stern'],
+          ['❤️','Herz'],['⚪','Kugel']
+        ];
+        var sp = S[Math.floor(Math.random()*S.length)];
+        q = 'Was ist '+sp[0]+' ?';
+        ansIdx = sp[1];
+        opts = [ansIdx];
+        while(opts.length < 4){
+          var s = S[Math.floor(Math.random()*S.length)][1];
+          if(opts.indexOf(s) < 0) opts.push(s);
+        }
+      }
+      opts.sort(function(){ return Math.random()-.5; });
+      win.querySelector('#v17-lkQ').textContent = q;
+      win.querySelector('#v17-lkA').innerHTML = opts.map(function(o, i){
+        return '<button class="v17-chip" style="font-size:18px;padding:14px 20px" data-v="'+esc(String(o))+'">'+esc(String(o))+'</button>';
+      }).join('');
+      win.querySelectorAll('#v17-lkA button').forEach(function(b){
+        b.onclick = function(){
+          total++;
+          if(b.dataset.v === String(ansIdx)){ b.style.background = '#4de88a'; b.style.color = '#02101e'; score++; toast('🎉 Richtig!'); }
+          else { b.style.background = '#e03b5a'; toast('❌ Versuch nochmal'); }
+          win.querySelector('#v17-lkS').textContent = score + ' / ' + total;
+          setTimeout(newQ, 900);
+        };
+      });
+    }
+    win.querySelectorAll('#v17-lkT [data-t]').forEach(function(b){
+      b.onclick = function(){
+        cur = b.dataset.t;
+        win.querySelectorAll('#v17-lkT [data-t]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        newQ();
+      };
+    });
+    newQ();
+  }
+};
+
+/* 6 · SCHULAUFGABEN-TRACKER */
+APPS['hausaufgaben-kids'] = {
+  name:'Hausaufgaben-Tracker', icon:'📚',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📚 Hausaufgaben-Tracker</div><div class="dim sm">Pro Kind · pro Fach</div></div>'+
+      '<div class="row"><input class="v9-input" id="v17-haK" placeholder="Kind" style="width:100px"><input class="v9-input" id="v17-haF" placeholder="Fach" style="flex:1"><input class="v9-input" id="v17-haD" placeholder="Aufgabe" style="flex:2"><input class="v9-input" id="v17-haB" type="date" style="width:auto"><button class="btn primary" id="v17-haAdd">+</button></div>'+
+      '<div id="v17-haL" class="col" style="gap:6px;max-height:60vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('hw17',[]); }
+    function render(){
+      var a = all();
+      var today = new Date().toISOString().slice(0,10);
+      win.querySelector('#v17-haL').innerHTML = a.length ? a.map(function(x){
+        var tage = Math.ceil((new Date(x.d) - new Date(today)) / 86400000);
+        var col = tage < 0 ? '#6b8bb8' : tage <= 1 ? '#ff6b88' : tage <= 3 ? '#ffb03a' : '#4de88a';
+        return '<div class="v17-row"><input type="checkbox" data-id="'+x.id+'" '+(x.done?'checked':'')+'><div style="flex:1"><b>'+esc(x.f)+'</b><span class="dim sm"> · '+esc(x.t)+'</span><div class="dim sm" style="margin-top:2px">👦 '+esc(x.k)+' · 📅 '+new Date(x.d).toLocaleDateString('de-DE')+'</div></div><span style="color:'+col+';font-weight:700;font-size:11px">'+(tage<0?'verpasst':'in '+tage+' T')+'</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Aufgaben</div>';
+      win.querySelectorAll('input[type=checkbox]').forEach(function(c){ c.onchange = function(){ var arr = all(); var x = arr.find(function(v){ return v.id === c.dataset.id; }); if(x){ x.done = c.checked; store.set('hw17', arr); render(); } }; });
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('hw17', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v17-haAdd').onclick = function(){
+      var k = win.querySelector('#v17-haK').value.trim();
+      var f = win.querySelector('#v17-haF').value.trim();
+      var t = win.querySelector('#v17-haD').value.trim();
+      var d = win.querySelector('#v17-haB').value;
+      if(!f || !t || !d) return toast('Fach + Aufgabe + Datum');
+      var a = all(); a.push({id:uid(), k:k||'Kind', f:f, t:t, d:d, done:false});
+      store.set('hw17', a);
+      ['v17-haF','v17-haD','v17-haB'].forEach(function(id){ win.querySelector('#'+id).value = ''; });
+      render();
+    };
+    render();
+  }
+};
+
+/* 7 · TASCHENGELD-RECHNER */
+APPS['taschengeld'] = {
+  name:'Taschengeld-Rechner', icon:'💰',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💰 Taschengeld-Rechner</div><div class="dim sm">Wie viel ist altersgerecht?</div></div>'+
+      '<input class="v9-input" id="v17-tgA" type="number" placeholder="Alter des Kindes" value="8">'+
+      '<button class="btn primary" id="v17-tgGo">▶ Empfehlung anzeigen</button>'+
+      '<div id="v17-tgL"></div>'+
+      '<div class="v17-card"><b>💡 Empfehlungen (Jugendamt-Standard)</b><div class="dim sm" style="margin-top:6px;line-height:1.7">• Unter 6 J: 0,50-1 €/Woche<br>• 6-7 J: 1,50-2 €/Woche<br>• 8-9 J: 2-3 €/Woche<br>• 10-11 J: 12-15 €/Monat<br>• 12-13 J: 18-22 €/Monat<br>• 14-15 J: 25-30 €/Monat<br>• 16-17 J: 35-45 €/Monat<br>• 18 J: 60-70 €/Monat</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v17-tgGo').onclick = function(){
+      var a = parseInt(win.querySelector('#v17-tgA').value) || 8;
+      var r;
+      if(a < 6) r = ['0,50 - 1 €', 'pro Woche'];
+      else if(a <= 7) r = ['1,50 - 2 €', 'pro Woche'];
+      else if(a <= 9) r = ['2 - 3 €', 'pro Woche'];
+      else if(a <= 11) r = ['12 - 15 €', 'pro Monat'];
+      else if(a <= 13) r = ['18 - 22 €', 'pro Monat'];
+      else if(a <= 15) r = ['25 - 30 €', 'pro Monat'];
+      else if(a <= 17) r = ['35 - 45 €', 'pro Monat'];
+      else r = ['60 - 70 €', 'pro Monat'];
+      win.querySelector('#v17-tgL').innerHTML = '<div class="v9-stat"><div class="v" style="font-size:28px">'+r[0]+'</div><div class="l">'+r[1]+'</div></div>';
+    };
+    win.querySelector('#v17-tgGo').click();
+  }
+};
+
+/* 8 · KINDERGARTEN-TERMINE */
+APPS['kiga-termine'] = {
+  name:'Kiga-Termine', icon:'🧸',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🧸 Kindergarten-Termine</div><div class="dim sm">Alles im Blick</div></div>'+
+      '<div class="row"><input class="v9-input" id="v17-ktT" placeholder="Termin" style="flex:1"><select class="v9-input" id="v17-ktK" style="width:auto"><option>🏫 Kita</option><option>👨‍👩‍👧 Elternabend</option><option>🎨 Basteln</option><option>🚌 Ausflug</option><option>🎉 Fest</option></select><input class="v9-input" id="v17-ktD" type="date" style="width:auto"><button class="btn primary" id="v17-ktAdd">+</button></div>'+
+      '<div id="v17-ktL" class="col" style="gap:6px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('kiga17',[]); }
+    function render(){
+      var a = all().sort(function(x,y){ return x.d.localeCompare(y.d); });
+      var today = new Date().toISOString().slice(0,10);
+      win.querySelector('#v17-ktL').innerHTML = a.length ? a.map(function(x){
+        var tage = Math.ceil((new Date(x.d) - new Date(today)) / 86400000);
+        return '<div class="v17-row"><b>'+esc(x.k)+'</b><span style="flex:1">'+esc(x.t)+'</span><span class="dim sm">'+new Date(x.d).toLocaleDateString('de-DE')+'</span><span style="color:var(--c1);font-size:11px;font-weight:700">'+(tage<0?'vorbei':tage===0?'HEUTE':'in '+tage+' T')+'</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Termine</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('kiga17', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v17-ktAdd').onclick = function(){
+      var t = win.querySelector('#v17-ktT').value.trim();
+      var d = win.querySelector('#v17-ktD').value;
+      if(!t || !d) return;
+      var a = all(); a.push({id:uid(), t:t, k:win.querySelector('#v17-ktK').value, d:d}); store.set('kiga17', a);
+      win.querySelector('#v17-ktT').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* 9 · IMPFKALENDER KIDS */
+APPS['impf-kids'] = {
+  name:'Impfkalender Kids', icon:'💉',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💉 Impfkalender Kids</div><div class="dim sm">STIKO-Empfehlungen nach Alter</div></div>'+
+      '<div id="v17-ikL" class="col" style="gap:8px"></div>'+
+      '<div class="v17-card" style="background:rgba(255,176,58,.08);border-color:#ffb03a"><b>⚠️ Hinweis</b><div class="dim sm" style="margin-top:6px">Immer den Kinderarzt fragen! Individuelle Anpassung möglich.</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['👶','Geburt','Hepatitis B (1. Dosis)'],
+      ['📅','2 Monate','Rotaviren (1), DTPa-IPV-Hib-HepB (1), Pneumokokken (1)'],
+      ['📅','3 Monate','Rotaviren (2), DTPa-IPV-Hib-HepB (2), Pneumokokken (2)'],
+      ['📅','4 Monate','Rotaviren (3), DTPa-IPV-Hib-HepB (3), Pneumokokken (3)'],
+      ['📅','11 Monate','DTPa-IPV-Hib-HepB (4), Pneumokokken (4)'],
+      ['📅','12 Monate','Masern-Mumps-Röteln (1), Varizellen (1), MenC (1)'],
+      ['📅','15 Monate','Masern-Mumps-Röteln (2), Varizellen (2)'],
+      ['🧒','5-6 Jahre','DTPa (Auffrischung), Masern (Nachholen)'],
+      ['🧒','9-14 Jahre','HPV (Mädchen + Jungen)'],
+      ['🧑','9-17 Jahre','Tdap-IPV (Auffrischung)']
+    ];
+    win.querySelector('#v17-ikL').innerHTML = D.map(function(x){
+      return '<div class="v17-row"><span style="font-size:22px">'+x[0]+'</span><b style="min-width:100px">'+esc(x[1])+'</b><span style="flex:1;font-size:12px">'+esc(x[2])+'</span></div>';
+    }).join('');
+  }
+};
+
+/* 10 · SPIELE DRINNEN */
+APPS['spiele-drinnen'] = {
+  name:'Spiele drinnen', icon:'🎲',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎲 Spiele für Drinnen</div><div class="dim sm">Ideen für Regentage</div></div>'+
+      '<div id="v17-sdL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['🏰','Burg aus Decken','Kissen und Decken · Kinder bauen ihr eigenes Versteck · 30+ Min'],
+      ['🎭','Theater','Verklamottet euch · spielt eine Szene vor · Kreativität fördern'],
+      ['🎨','Malen nach Zahlen','Ausmalbilder ausdrucken oder selbst zeichnen'],
+      ['🧩','Puzzle','Gemeinsam 100-500 Teile puzzeln'],
+      ['🎲','Mensch ärgere Dich','Klassiker · 2-4 Spieler · Geduld lernen'],
+      ['🃏','Mau-Mau','Kartenspiel für Kinder ab 5'],
+      ['📚','Vorlese-Nachmittag','Geschichten gemeinsam lesen'],
+      ['🧸','Kuscheltier-Party','Rollenspiele mit Kuscheltieren'],
+      ['🍪','Backen','Kekse mit Kindern backen'],
+      ['🎯','Indoor-Bowling','Plastikflaschen + Softball']
+    ];
+    win.querySelector('#v17-sdL').innerHTML = D.map(function(x){
+      return '<div class="v17-idea"><b>'+x[0]+' '+esc(x[1])+'</b><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+    }).join('');
+  }
+};
+
+/* 11 · SPIELE DRAUSSEN */
+APPS['spiele-draussen'] = {
+  name:'Spiele draußen', icon:'🏞️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🏞️ Spiele für Draußen</div><div class="dim sm">Bewegung & frische Luft</div></div>'+
+      '<div id="v17-srL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['🏃','Fangen','Klassisches Fang-Spiel · ab 3 J · tob dich aus'],
+      ['🙈','Verstecken','Spannend für jedes Alter · im Park oder Garten'],
+      ['⚽','Fußball','2-22 Spieler · fördert Teamgeist'],
+      ['🏀','Basketball','Korb aufhängen · 20-30 Min Power'],
+      ['🪁','Drachen steigen','Bei Wind · Herbst-Klassiker'],
+      ['🌳','Klettern','Im Kletterpark oder auf Bäume'],
+      ['🚴','Radfahren','Sicherheit: Helm! · Strecke planen'],
+      ['🏰','Sandburg bauen','Am Strand oder Sandkasten'],
+      ['🎯','Boccia','Kugeln zur Zielkugel · ab 4 J'],
+      ['🍃','Blätter sammeln','Herbst-Aktivität + Basteln']
+    ];
+    win.querySelector('#v17-srL').innerHTML = D.map(function(x){
+      return '<div class="v17-idea"><b>'+x[0]+' '+esc(x[1])+'</b><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+    }).join('');
+  }
+};
+
+/* 12 · SCHULTÜTE-PLANER */
+APPS['schultuete'] = {
+  name:'Schultüten-Planer', icon:'🎒',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎒 Schultüten-Planer</div><div class="dim sm">Was kommt in die Tüte?</div></div>'+
+      '<div class="row"><input class="v9-input" id="v17-stI" placeholder="Idee (z.B. Stifte-Set)" style="flex:1"><select class="v9-input" id="v17-stK" style="width:auto"><option>🍬 Süßes</option><option>✏️ Schule</option><option>🧸 Spielzeug</option><option>📚 Bücher</option><option>🎨 Kreativ</option></select><button class="btn primary" id="v17-stAdd">+</button></div>'+
+      '<div class="v9-stat"><div class="v" id="v17-stC">0</div><div class="l">Ideen gesammelt</div></div>'+
+      '<div id="v17-stL" class="col" style="gap:6px;max-height:60vh;overflow-y:auto"></div>'+
+      '<div class="v17-card"><b>💡 Klassiker</b><div class="dim sm" style="margin-top:6px">• Stifte-Set + Spitzer<br>• Freundebuch<br>• Kleine Überraschungen<br>• Gummibärchen<br>• Mini-Puzzle<br>• Trinkflasche</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('schultute17',[]); }
+    function render(){
+      var a = all();
+      win.querySelector('#v17-stC').textContent = a.length;
+      win.querySelector('#v17-stL').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v17-row"><span>'+esc(x.k.split(' ')[0])+'</span><b style="flex:1">'+esc(x.i)+'</b><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Noch nichts gesammelt</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('schultute17', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v17-stAdd').onclick = function(){
+      var i = win.querySelector('#v17-stI').value.trim(); if(!i) return;
+      var a = all(); a.push({id:uid(), i:i, k:win.querySelector('#v17-stK').value});
+      store.set('schultute17', a);
+      win.querySelector('#v17-stI').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* 13 · ELTERN-SPRECHTAG */
+APPS['elternsprechtag'] = {
+  name:'Elternsprechtag', icon:'👨‍👩‍👧',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">👨‍👩‍👧 Elternsprechtag</div><div class="dim sm">Fragen vorbereiten</div></div>'+
+      '<div class="row"><input class="v9-input" id="v17-esT" placeholder="Frage (z.B. Mathe-Note)" style="flex:1"><select class="v9-input" id="v17-esL" style="width:auto"><option>📚 Fach</option><option>👥 Sozial</option><option>📝 Note</option><option>🎯 Förderung</option></select><button class="btn primary" id="v17-esAdd">+</button></div>'+
+      '<div id="v17-esL2" class="col" style="gap:6px;max-height:65vh;overflow-y:auto"></div>'+
+      '<div class="v17-card"><b>💡 Gute Fragen</b><div class="dim sm" style="margin-top:6px">• Wie ist mein Kind im Unterricht?<br>• Wo sind Stärken/Schwächen?<br>• Was können wir Zuhause tun?<br>• Wie ist die Klassengemeinschaft?<br>• Gibt es Förderbedarf?</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('esp17',[]); }
+    function render(){
+      var a = all();
+      win.querySelector('#v17-esL2').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v17-row"><input type="checkbox" data-id="'+x.id+'" '+(x.done?'checked':'')+'><span>'+esc(x.k.split(' ')[0])+'</span><span style="flex:1;'+(x.done?'text-decoration:line-through;opacity:.5':'')+'">'+esc(x.t)+'</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Noch keine Fragen</div>';
+      win.querySelectorAll('input[type=checkbox]').forEach(function(c){ c.onchange = function(){ var arr = all(); var x = arr.find(function(v){ return v.id === c.dataset.id; }); if(x){ x.done = c.checked; store.set('esp17', arr); render(); } }; });
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('esp17', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v17-esAdd').onclick = function(){
+      var t = win.querySelector('#v17-esT').value.trim(); if(!t) return;
+      var a = all(); a.push({id:uid(), t:t, k:win.querySelector('#v17-esL').value, done:false});
+      store.set('esp17', a);
+      win.querySelector('#v17-esT').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* 14 · FERIEN-PLANER */
+APPS['ferien-planer'] = {
+  name:'Ferien-Planer', icon:'🏖️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🏖️ Ferien-Planer</div><div class="dim sm">Kinder-Ferien organisieren</div></div>'+
+      '<div class="row"><input class="v9-input" id="v17-fpT" placeholder="Aktivität (z.B. Schwimmbad)" style="flex:1"><input class="v9-input" id="v17-fpD" type="date" style="width:auto"><button class="btn primary" id="v17-fpAdd">+</button></div>'+
+      '<div id="v17-fpL" class="col" style="gap:6px;max-height:65vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('ferien17',[]); }
+    function render(){
+      var a = all().sort(function(x,y){ return x.d.localeCompare(y.d); });
+      win.querySelector('#v17-fpL').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v17-row"><input type="checkbox" data-id="'+x.id+'" '+(x.done?'checked':'')+'><b style="flex:1;'+(x.done?'text-decoration:line-through;opacity:.5':'')+'">'+esc(x.t)+'</b><span class="dim sm">'+new Date(x.d).toLocaleDateString('de-DE')+'</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Noch keine Aktivitäten</div>';
+      win.querySelectorAll('input[type=checkbox]').forEach(function(c){ c.onchange = function(){ var arr = all(); var x = arr.find(function(v){ return v.id === c.dataset.id; }); if(x){ x.done = c.checked; store.set('ferien17', arr); render(); } }; });
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('ferien17', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v17-fpAdd').onclick = function(){
+      var t = win.querySelector('#v17-fpT').value.trim();
+      var d = win.querySelector('#v17-fpD').value;
+      if(!t || !d) return;
+      var a = all(); a.push({id:uid(), t:t, d:d, done:false}); store.set('ferien17', a);
+      win.querySelector('#v17-fpT').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* 15 · BABYSITTER-INFO */
+APPS['babysitter'] = {
+  name:'Babysitter-Info', icon:'👶',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">👶 Babysitter-Info</div><div class="dim sm">Wichtige Infos für die Betreuung</div></div>'+
+      '<input class="v9-input" id="v17-bsK" placeholder="Kind (Name, Alter)">'+
+      '<input class="v9-input" id="v17-bsE" placeholder="Notfall-Kontakt (Eltern, Nummer)">'+
+      '<input class="v9-input" id="v17-bsA" placeholder="Arzt (Name, Nummer)">'+
+      '<textarea class="ta" id="v17-bsB" style="min-height:100px" placeholder="Allergien, Medikamente, Rituale, Schlafenszeit…"></textarea>'+
+      '<button class="btn primary" id="v17-bsS">💾 Speichern</button>'+
+      '<div id="v17-bsL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('babs17',[]); }
+    function render(){
+      var a = all();
+      win.querySelector('#v17-bsL').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v17-card"><div class="row between"><b>👶 '+esc(x.k)+'</b><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div><div class="dim sm" style="margin-top:6px;line-height:1.7">📞 Eltern: <b>'+esc(x.e)+'</b><br>🩺 Arzt: <b>'+esc(x.a||'—')+'</b></div>'+(x.b?'<div class="dim sm" style="margin-top:8px;padding:8px;background:rgba(0,229,255,.06);border-radius:8px;white-space:pre-wrap">'+esc(x.b)+'</div>':'')+'</div>';
+      }).join('') : '<div class="empty">Noch keine Infos</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('babs17', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v17-bsS').onclick = function(){
+      var k = win.querySelector('#v17-bsK').value.trim();
+      var e = win.querySelector('#v17-bsE').value.trim();
+      if(!k || !e) return toast('Kind + Notfall-Kontakt');
+      var a = all();
+      a.unshift({id:uid(), k:k, e:e, a:win.querySelector('#v17-bsA').value.trim(), b:win.querySelector('#v17-bsB').value});
+      store.set('babs17', a.slice(0,10));
+      ['v17-bsK','v17-bsE','v17-bsA','v17-bsB'].forEach(function(id){ win.querySelector('#'+id).value = ''; });
+      render(); toast('✅ Gespeichert');
+    };
+    render();
+  }
+};
+
+/* 16 · KINDER-ARZT-NOTIZEN */
+APPS['kinderarzt'] = {
+  name:'Kinder-Arzt-Notizen', icon:'🩺',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🩺 Kinder-Arzt-Notizen</div><div class="dim sm">Diagnosen & Behandlungen</div></div>'+
+      '<div class="row"><input class="v9-input" id="v17-kaK" placeholder="Kind" style="width:100px"><input class="v9-input" id="v17-kaD" type="date" style="width:auto"><input class="v9-input" id="v17-kaT" placeholder="Grund / Diagnose" style="flex:1"><button class="btn primary" id="v17-kaAdd">+</button></div>'+
+      '<textarea class="ta" id="v17-kaB" style="min-height:80px" placeholder="Notizen: Medikamente, Anweisungen…"></textarea>'+
+      '<div id="v17-kaL" class="col" style="gap:6px;max-height:50vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('kidoc17',[]); }
+    function render(){
+      var a = all().sort(function(x,y){ return y.d.localeCompare(x.d); });
+      win.querySelector('#v17-kaL').innerHTML = a.length ? a.map(function(x){
+        return '<details class="v17-card"><summary style="cursor:pointer"><b>👶 '+esc(x.k)+'</b> · '+esc(x.t)+' <span class="dim sm">('+new Date(x.d).toLocaleDateString('de-DE')+')</span></summary>'+(x.b?'<div class="dim sm" style="margin-top:8px;white-space:pre-wrap;line-height:1.6">'+esc(x.b)+'</div>':'')+'<button class="btn sm" data-del="'+x.id+'" style="margin-top:8px">🗑 Löschen</button></details>';
+      }).join('') : '<div class="empty">Keine Einträge</div>';
+      win.querySelectorAll('[data-del]').forEach(function(el){ el.onclick = function(){ store.set('kidoc17', all().filter(function(v){ return v.id !== el.dataset.del; })); render(); }; });
+    }
+    win.querySelector('#v17-kaAdd').onclick = function(){
+      var t = win.querySelector('#v17-kaT').value.trim();
+      var d = win.querySelector('#v17-kaD').value;
+      if(!t || !d) return toast('Grund + Datum');
+      var a = all();
+      a.push({id:uid(), k:win.querySelector('#v17-kaK').value.trim()||'Kind', t:t, d:d, b:win.querySelector('#v17-kaB').value});
+      store.set('kidoc17', a.slice(0,100));
+      ['v17-kaT','v17-kaB'].forEach(function(id){ win.querySelector('#'+id).value = ''; });
+      render();
+    };
+    render();
+  }
+};
+
+/* 17 · FAMILIEN-RAT */
+APPS['familien-rat'] = {
+  name:'Familien-Rat', icon:'👨‍👩‍👧‍👦',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">👨‍👩‍👧‍👦 Familien-Rat</div><div class="dim sm">Themen & Beschlüsse</div></div>'+
+      '<div class="row"><input class="v9-input" id="v17-frT" placeholder="Thema (z.B. Urlaub)" style="flex:1"><select class="v9-input" id="v17-frK" style="width:auto"><option>📋 Beschluss</option><option>💡 Idee</option><option>❓ Diskussion</option><option>✅ To-Do</option></select><button class="btn primary" id="v17-frAdd">+</button></div>'+
+      '<textarea class="ta" id="v17-frB" style="min-height:80px" placeholder="Details / Ergebnis…"></textarea>'+
+      '<div id="v17-frL" class="col" style="gap:6px;max-height:55vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('frat17',[]); }
+    function render(){
+      var a = all().reverse();
+      win.querySelector('#v17-frL').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v17-card"><div class="row between"><b>'+esc(x.k.split(' ')[0])+' '+esc(x.t)+'</b><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>'+(x.b?'<div class="dim sm" style="margin-top:6px;white-space:pre-wrap;line-height:1.6">'+esc(x.b)+'</div>':'')+'<div class="dim sm" style="margin-top:6px;font-size:10px">'+new Date(x.ts).toLocaleString('de-DE')+'</div></div>';
+      }).join('') : '<div class="empty">Noch keine Themen</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('frat17', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v17-frAdd').onclick = function(){
+      var t = win.querySelector('#v17-frT').value.trim(); if(!t) return;
+      var a = all();
+      a.push({id:uid(), t:t, k:win.querySelector('#v17-frK').value, b:win.querySelector('#v17-frB').value, ts:Date.now()});
+      store.set('frat17', a.slice(0,100));
+      win.querySelector('#v17-frT').value = ''; win.querySelector('#v17-frB').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* 18 · KINDER-ANWESENHEIT */
+APPS['anwesenheit-kids'] = {
+  name:'Anwesenheit Kids', icon:'📋',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📋 Anwesenheit Kids</div><div class="dim sm">Wer ist wo? (Großeltern, Schule, Kita)</div></div>'+
+      '<div class="row"><input class="v9-input" id="v17-awK" placeholder="Kind" style="flex:1"><select class="v9-input" id="v17-awO" style="width:auto"><option>🏫 Schule</option><option>🧸 Kita</option><option>👵 Oma/Opa</option><option>🏠 Zuhause</option><option>🎨 Hobby</option><option>🚌 Unterwegs</option></select><button class="btn primary" id="v17-awAdd">+</button></div>'+
+      '<div id="v17-awL" class="col" style="gap:6px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('anwes17',{}); }
+    function render(){
+      var data = all();
+      var keys = Object.keys(data);
+      win.querySelector('#v17-awL').innerHTML = keys.length ? keys.map(function(k){
+        var d = data[k];
+        return '<div class="v17-row"><b>👦 '+esc(k)+'</b><span style="flex:1">'+esc(d.o)+'</span><span class="dim sm">'+new Date(d.ts).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+'</span></div>';
+      }).join('') : '<div class="empty">Noch keine Einträge</div>';
+    }
+    win.querySelector('#v17-awAdd').onclick = function(){
+      var k = win.querySelector('#v17-awK').value.trim(); if(!k) return;
+      var d = all();
+      d[k] = {o:win.querySelector('#v17-awO').value, ts:Date.now()};
+      store.set('anwes17', d);
+      win.querySelector('#v17-awK').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* 19 · FAMILIEN-KOCHBUCH */
+APPS['familien-kochbuch'] = {
+  name:'Familien-Kochbuch', icon:'👨‍🍳',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">👨‍🍳 Familien-Kochbuch</div><div class="dim sm">Rezepte für die ganze Familie</div></div>'+
+      '<input class="v9-input" id="v17-fkN" placeholder="Rezeptname">'+
+      '<div class="row"><input class="v9-input" id="v17-fkP" type="number" placeholder="Portionen" value="4" style="width:100px"><select class="v9-input" id="v17-fkK" style="flex:1"><option>🥗 Vegetarisch</option><option>🍖 Fleisch</option><option>🐟 Fisch</option><option>🍝 Pasta</option><option>🍰 Nachtisch</option><option>🥣 Frühstück</option></select></div>'+
+      '<textarea class="ta" id="v17-fkB" style="min-height:100px" placeholder="Zutaten & Zubereitung…"></textarea>'+
+      '<button class="btn primary" id="v17-fkS">💾 Speichern</button>'+
+      '<div id="v17-fkL" class="col" style="gap:6px;max-height:45vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('famkoch17',[]); }
+    function render(){
+      var a = all();
+      win.querySelector('#v17-fkL').innerHTML = a.length ? a.map(function(x){
+        return '<details class="v17-card"><summary style="cursor:pointer;font-weight:700"><span>'+esc(x.k.split(' ')[0])+' '+esc(x.n)+'</span> <span class="dim sm" style="float:right;font-weight:400;margin-right:20px">für '+x.p+' Pers.</span></summary><div class="dim sm" style="margin-top:8px;white-space:pre-wrap;line-height:1.6">'+esc(x.b)+'</div><button class="btn sm" data-del="'+x.id+'" style="margin-top:8px">🗑 Löschen</button></details>';
+      }).join('') : '<div class="empty">Noch keine Rezepte</div>';
+      win.querySelectorAll('[data-del]').forEach(function(el){ el.onclick = function(){ store.set('famkoch17', all().filter(function(v){ return v.id !== el.dataset.del; })); render(); }; });
+    }
+    win.querySelector('#v17-fkS').onclick = function(){
+      var n = win.querySelector('#v17-fkN').value.trim(); if(!n) return;
+      var a = all();
+      a.unshift({id:uid(), n:n, p:win.querySelector('#v17-fkP').value, k:win.querySelector('#v17-fkK').value, b:win.querySelector('#v17-fkB').value, ts:Date.now()});
+      store.set('famkoch17', a.slice(0,100));
+      win.querySelector('#v17-fkN').value = ''; win.querySelector('#v17-fkB').value = '';
+      render(); toast('✅ Gespeichert');
+    };
+    render();
+  }
+};
+
+/* 20 · FAMILIEN-CHRONIK */
+APPS['familien-chronik'] = {
+  name:'Familien-Chronik', icon:'📸',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📸 Familien-Chronik</div><div class="dim sm">Besondere Momente festhalten</div></div>'+
+      '<div class="row"><input class="v9-input" id="v17-fcT" placeholder="Ereignis (z.B. Umzug, 1. Schultag)" style="flex:1"><input class="v9-input" id="v17-fcD" type="date" style="width:auto"><button class="btn primary" id="v17-fcAdd">+</button></div>'+
+      '<textarea class="ta" id="v17-fcB" style="min-height:80px" placeholder="Erzähl was passiert ist…"></textarea>'+
+      '<div id="v17-fcL" class="col" style="gap:6px;max-height:55vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('fchron17',[]); }
+    function render(){
+      var a = all().sort(function(x,y){ return y.d.localeCompare(x.d); });
+      win.querySelector('#v17-fcL').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v17-card"><div class="row between"><b>📸 '+esc(x.t)+'</b><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div><div class="dim sm" style="margin-top:4px;font-size:11px">'+new Date(x.d).toLocaleDateString('de-DE')+'</div>'+(x.b?'<div class="dim sm" style="margin-top:6px;white-space:pre-wrap;line-height:1.6">'+esc(x.b)+'</div>':'')+'</div>';
+      }).join('') : '<div class="empty">Noch keine Momente</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('fchron17', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v17-fcAdd').onclick = function(){
+      var t = win.querySelector('#v17-fcT').value.trim();
+      var d = win.querySelector('#v17-fcD').value;
+      if(!t || !d) return toast('Ereignis + Datum');
+      var a = all();
+      a.push({id:uid(), t:t, d:d, b:win.querySelector('#v17-fcB').value});
+      store.set('fchron17', a.slice(0,200));
+      win.querySelector('#v17-fcT').value = ''; win.querySelector('#v17-fcB').value = '';
+      render(); toast('✅ Gespeichert');
+    };
+    render();
+  }
+};
+
+console.log('%c📦 v17 geladen — Familie & Kinder · 20 Apps','background:linear-gradient(90deg,#ff6b88,#ffb03a);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('Aktive Apps:', Object.keys(APPS).length);
+
+setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click(); }, 150);
+
+})();
+</script>
 </body>
 </html>
