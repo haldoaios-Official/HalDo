@@ -22576,5 +22576,804 @@ setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v27 · Psychologie & Selbsthilfe · 20 Apps
+     ============================================================ -->
+<style id="v27-style">
+.v27-card{padding:14px;border-radius:14px;background:linear-gradient(150deg,rgba(20,30,60,.65),rgba(10,16,40,.82));border:1px solid rgba(120,180,255,.14);margin-bottom:8px}
+.v27-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);transition:.15s}
+.v27-quote{padding:16px;background:linear-gradient(150deg,rgba(180,120,255,.1),rgba(0,229,255,.06));border-radius:16px;border:1px solid rgba(180,120,255,.25);font-size:15px;line-height:1.7;text-align:center;font-style:italic;min-height:120px;display:flex;align-items:center;justify-content:center}
+.v27-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.3);color:var(--c1);cursor:pointer;transition:.15s}
+.v27-chip.on{background:linear-gradient(135deg,var(--c1),var(--c2));color:#02101e;border-color:var(--c1)}
+.v27-mood{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}
+.v27-mood button{aspect-ratio:1;font-size:26px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(120,180,255,.14);cursor:pointer;transition:.15s}
+.v27-mood button:hover{transform:scale(1.08);border-color:var(--c1)}
+.v27-mood button.on{background:linear-gradient(135deg,rgba(0,229,255,.25),rgba(180,120,255,.2));border-color:var(--c1)}
+.v27-breath{width:200px;height:200px;margin:16px auto;border-radius:50%;background:radial-gradient(circle,rgba(180,120,255,.4),rgba(0,229,255,.1));border:3px solid var(--c1);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;transition:transform 4s cubic-bezier(.4,0,.2,1),background 4s;text-shadow:0 2px 6px rgba(0,0,0,.5)}
+.v27-scale{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}
+.v27-scale button{padding:12px 4px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(120,180,255,.14);color:var(--txt);font-family:inherit;font-weight:700;cursor:pointer;transition:.15s;font-size:12px}
+.v27-scale button.on{background:linear-gradient(135deg,var(--c1),var(--c2));color:#02101e;border-color:var(--c1)}
+.v27-bar{height:10px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:8px}
+.v27-bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--c1),var(--c2));border-radius:999px;transition:.6s}
+</style>
+
+<script>
+(function(){
+'use strict';
+var H = window.HalDo;
+if(!H || !H.APPS){ console.error('[v27] Foundation fehlt'); return; }
+var APPS = H.APPS;
+var esc=H.esc, uid=H.uid, store=H.store, toast=H.toast;
+
+/* 1 · BIG FIVE PERSÖNLICHKEITSTEST */
+APPS['big-five'] = {
+  name:'Big Five Test', icon:'🧬',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🧬 Big Five Persönlichkeitstest</div><div class="dim sm">5 Dimensionen · 20 Fragen</div></div>'+
+      '<div id="v27-bfQ" class="col" style="gap:8px"></div>'+
+      '<div class="row"><div class="v9-stat" style="flex:1"><div class="v" id="v27-bfN">0 / 20</div><div class="l">Fragen</div></div></div>'+
+      '<button class="btn primary" id="v27-bfGo" style="width:100%">▶ Auswerten</button>'+
+      '<div id="v27-bfL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var Q = [
+      ['O','Ich habe eine lebhafte Fantasie.'],
+      ['O','Ich mag neue Ideen und Konzepte.'],
+      ['O','Ich interessiere mich für Kunst und Kultur.'],
+      ['O','Ich denke über abstrakte Themen nach.'],
+      ['C','Ich erledige Aufgaben sofort.'],
+      ['C','Ich bin gut organisiert.'],
+      ['C','Ich halte meine Versprechen.'],
+      ['C','Ich arbeite gründlich und genau.'],
+      ['E','Ich gehe gerne auf Menschen zu.'],
+      ['E','Ich fühle mich in Gruppen wohl.'],
+      ['E','Ich bin gerne unter Leuten.'],
+      ['E','Ich rede viel und gerne.'],
+      ['A','Ich helfe anderen gerne.'],
+      ['A','Ich bin einfühlsam.'],
+      ['A','Ich vermeide Konflikte.'],
+      ['A','Ich vertraue Menschen.'],
+      ['N','Ich mache mir oft Sorgen.'],
+      ['N','Ich reagiere schnell gestresst.'],
+      ['N','Ich schwanke in meiner Stimmung.'],
+      ['N','Ich fühle mich oft unsicher.']
+    ];
+    var answers = {};
+    win.querySelector('#v27-bfQ').innerHTML = Q.map(function(q, i){
+      return '<div class="v27-card"><b style="font-size:13px">'+ (i+1) +'. '+esc(q[1])+'</b><div class="v27-scale">'+[1,2,3,4,5].map(function(v){
+        return '<button data-q="'+i+'" data-v="'+v+'">'+v+'</button>';
+      }).join('')+'</div></div>';
+    }).join('');
+    win.querySelectorAll('[data-q]').forEach(function(b){
+      b.onclick = function(){
+        answers[b.dataset.q] = parseInt(b.dataset.v);
+        win.querySelectorAll('[data-q="'+b.dataset.q+'"]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        win.querySelector('#v27-bfN').textContent = Object.keys(answers).length + ' / 20';
+      };
+    });
+    win.querySelector('#v27-bfGo').onclick = function(){
+      if(Object.keys(answers).length < 20) return toast('Bitte alle 20 Fragen');
+      var sum = {O:0, C:0, E:0, A:0, N:0};
+      var cnt = {O:0, C:0, E:0, A:0, N:0};
+      Object.keys(answers).forEach(function(k){
+        var dim = Q[parseInt(k)][0];
+        sum[dim] += answers[k]; cnt[dim]++;
+      });
+      var desc = {
+        O: ['Offenheit','Kreativität, Neugier, Ideenreichtum'],
+        C: ['Gewissenhaftigkeit','Organisation, Disziplin, Zielstrebigkeit'],
+        E: ['Extraversion','Geselligkeit, Energie aus Kontakten'],
+        A: ['Verträglichkeit','Empathie, Hilfsbereitschaft, Kooperation'],
+        N: ['Neurotizismus','Emotionale Stabilität (niedrig=stabil)']
+      };
+      win.querySelector('#v27-bfL').innerHTML = ['O','C','E','A','N'].map(function(dim){
+        var pct = Math.round(sum[dim] / cnt[dim] * 20);
+        return '<div class="v27-card"><b>'+esc(desc[dim][0])+' · '+pct+'%</b><div class="dim sm" style="margin-top:4px">'+esc(desc[dim][1])+'</div><div class="v27-bar"><i style="width:'+pct+'%"></i></div></div>';
+      }).join('');
+    };
+  }
+};
+
+/* 2 · MOOD-TRACKER */
+APPS['mood-tracking'] = {
+  name:'Mood-Tracker', icon:'😊',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">😊 Mood-Tracker</div><div class="dim sm">Stimmungstagebuch</div></div>'+
+      '<div class="v27-mood" id="v27-mtM">'+
+        '<button data-m="1">😢</button><button data-m="2">😕</button><button data-m="3">😐</button><button data-m="4">🙂</button><button data-m="5">😄</button>'+
+      '</div>'+
+      '<input class="v9-input" id="v27-mtN" placeholder="Notiz (optional)…">'+
+      '<button class="btn primary" id="v27-mtAdd">💾 Speichern</button>'+
+      '<div class="v9-stat"><div class="v" id="v27-mtAvg">–</div><div class="l">Ø letzte 7 Tage</div></div>'+
+      '<div id="v27-mtL" class="col" style="gap:6px;max-height:40vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var chosen = 0;
+    var EMO = {1:'😢',2:'😕',3:'😐',4:'🙂',5:'😄'};
+    function all(){ return store.get('mood27',[]); }
+    function render(){
+      var a = all();
+      var recent = a.slice(0,7);
+      if(recent.length){
+        var avg = recent.reduce(function(s,x){ return s + x.m; }, 0) / recent.length;
+        win.querySelector('#v27-mtAvg').textContent = avg.toFixed(1) + ' / 5';
+      }
+      win.querySelector('#v27-mtL').innerHTML = a.length ? a.slice(0,30).map(function(x){
+        return '<div class="v27-row"><span style="font-size:22px">'+EMO[x.m]+'</span><b style="flex:1">'+esc(x.n||'—')+'</b><span class="dim sm">'+new Date(x.ts).toLocaleDateString('de-DE')+'</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Einträge</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('mood27', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelectorAll('#v27-mtM button').forEach(function(b){
+      b.onclick = function(){
+        chosen = parseInt(b.dataset.m);
+        win.querySelectorAll('#v27-mtM button').forEach(function(x){ x.classList.toggle('on', x === b); });
+      };
+    });
+    win.querySelector('#v27-mtAdd').onclick = function(){
+      if(!chosen) return toast('Wähle Stimmung');
+      var a = all(); a.unshift({id:uid(), m:chosen, n:win.querySelector('#v27-mtN').value.trim(), ts:Date.now()});
+      store.set('mood27', a.slice(0,200));
+      win.querySelector('#v27-mtN').value = ''; chosen = 0;
+      win.querySelectorAll('#v27-mtM button').forEach(function(x){ x.classList.remove('on'); });
+      render(); toast('✅ Gespeichert');
+    };
+    render();
+  }
+};
+
+/* 3 · ATEM-GEFÜHRT */
+APPS['atem-gefuehrt'] = {
+  name:'Atem-Geführt', icon:'🧘',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🧘 Atem-Geführt</div><div class="dim sm">Box-Atmung 4-4-4-4</div></div>'+
+      '<div class="v27-breath" id="v27-agB">Bereit</div>'+
+      '<div style="text-align:center;font-size:14px;font-weight:700;color:var(--dim)" id="v27-agC">Runde 0 / 5</div>'+
+      '<div class="row"><button class="btn primary" id="v27-agS" style="flex:1">▶ Start</button><button class="btn" id="v27-agStop">⏹ Stop</button></div>'+
+      '<div class="v27-card"><b>📖 Box-Atmung</b><div class="dim sm" style="margin-top:6px;line-height:1.7">• 4 Sek einatmen<br>• 4 Sek halten<br>• 4 Sek ausatmen<br>• 4 Sek halten<br>• 5 Runden</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var running = false, timer = null, round = 0;
+    function beep(){ try{ var A = new (window.AudioContext||window.webkitAudioContext)(); var o = A.createOscillator(), g = A.createGain(); o.connect(g); g.connect(A.destination); o.frequency.value = 600; g.gain.value = 0.1; o.start(); o.stop(A.currentTime+0.1); }catch(e){} }
+    function run(){
+      if(!running) return;
+      var B = win.querySelector('#v27-agB');
+      if(round >= 5){ B.textContent = '✅ Fertig'; win.querySelector('#v27-agC').textContent = 'Gut gemacht!'; running = false; return; }
+      round++;
+      win.querySelector('#v27-agC').textContent = 'Runde ' + round + ' / 5';
+      var seq = [
+        {t:'Einatmen', color:'rgba(0,229,255,.5)', scale:1.3},
+        {t:'Halten', color:'rgba(180,120,255,.5)', scale:1.3},
+        {t:'Ausatmen', color:'rgba(77,232,138,.5)', scale:0.85},
+        {t:'Halten', color:'rgba(180,120,255,.5)', scale:0.85}
+      ];
+      var i = 0;
+      function step(){
+        if(!running) return;
+        if(i >= seq.length){ run(); return; }
+        var s = seq[i];
+        B.textContent = s.t;
+        B.style.transform = 'scale(' + s.scale + ')';
+        B.style.background = 'radial-gradient(circle, ' + s.color + ', rgba(0,229,255,.1))';
+        beep();
+        i++;
+        timer = setTimeout(step, 4000);
+      }
+      step();
+    }
+    win.querySelector('#v27-agS').onclick = function(){
+      if(running){ running = false; clearTimeout(timer); win.querySelector('#v27-agB').textContent = 'Gestoppt'; return; }
+      running = true; round = 0; run();
+    };
+    win.querySelector('#v27-agStop').onclick = function(){ running = false; clearTimeout(timer); win.querySelector('#v27-agB').textContent = 'Gestoppt'; win.querySelector('#v27-agB').style.transform = 'scale(1)'; };
+  }
+};
+
+/* 4 · STRESS-THERMOMETER */
+APPS['stress-thermo'] = {
+  name:'Stress-Thermometer', icon:'🌡️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🌡️ Stress-Thermometer</div><div class="dim sm">Wie gestresst bist du?</div></div>'+
+      '<div id="v27-stQ" class="col" style="gap:8px"></div>'+
+      '<button class="btn primary" id="v27-stGo" style="width:100%">▶ Auswerten</button>'+
+      '<div class="v9-stat"><div class="v" id="v27-stO">–</div><div class="l">Stress-Level</div></div>'+
+      '<div class="v27-bar"><i id="v27-stB" style="width:0"></i></div>'+
+      '<div class="v27-card"><b>💡 Empfehlung</b><div class="dim sm" id="v27-stT" style="margin-top:6px">–</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var Q = [
+      'Ich fühle mich gehetzt oder unter Zeitdruck.',
+      'Ich habe Schwierigkeiten einzuschlafen.',
+      'Ich reagiere gereizt auf Kleinigkeiten.',
+      'Ich fühle mich körperlich verspannt.',
+      'Ich habe Konzentrationsprobleme.',
+      'Ich habe das Gefühl, alles nicht zu schaffen.',
+      'Ich habe Kopfschmerzen oder Magenbeschwerden.',
+      'Ich vernachlässige Hobbys oder Freunde.'
+    ];
+    win.querySelector('#v27-stQ').innerHTML = Q.map(function(q, i){
+      return '<div class="v27-card"><b style="font-size:13px">'+esc(q)+'</b><div class="v27-scale">'+[0,1,2,3,4].map(function(v){
+        return '<button data-q="'+i+'" data-v="'+v+'">'+v+'</button>';
+      }).join('')+'</div></div>';
+    }).join('');
+    var ans = {};
+    win.querySelectorAll('[data-q]').forEach(function(b){
+      b.onclick = function(){
+        ans[b.dataset.q] = parseInt(b.dataset.v);
+        win.querySelectorAll('[data-q="'+b.dataset.q+'"]').forEach(function(x){ x.classList.toggle('on', x === b); });
+      };
+    });
+    win.querySelector('#v27-stGo').onclick = function(){
+      if(Object.keys(ans).length < Q.length) return toast('Bitte alle Fragen');
+      var total = 0;
+      Object.keys(ans).forEach(function(k){ total += ans[k]; });
+      var pct = Math.round(total / (Q.length * 4) * 100);
+      var label, tip, col;
+      if(pct < 25){ label = '🟢 Niedrig'; tip = 'Sehr gut! Behalte deine Balance bei.'; col = '#4de88a'; }
+      else if(pct < 50){ label = '🟡 Moderat'; tip = 'Achte auf Pausen · mehr Sport · ausreichend Schlaf.'; col = '#ffb03a'; }
+      else if(pct < 75){ label = '🟠 Hoch'; tip = 'Nimm dir bewusst Auszeiten. Rede mit jemandem. Gönn dir Ruhe.'; col = '#ff9db1'; }
+      else { label = '🔴 Sehr hoch'; tip = 'Bitte such dir Unterstützung – Freunde, Familie oder Arzt/Therapeut.'; col = '#e03b5a'; }
+      win.querySelector('#v27-stO').textContent = pct + '% · ' + label;
+      win.querySelector('#v27-stB').style.width = pct + '%';
+      win.querySelector('#v27-stB').style.background = col;
+      win.querySelector('#v27-stT').textContent = tip;
+    };
+  }
+};
+
+/* 5 · DANKBARKEITS-TAGEBUCH */
+APPS['dankbarkeit'] = {
+  name:'Dankbarkeits-Tagebuch', icon:'🙏',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🙏 Dankbarkeits-Tagebuch</div><div class="dim sm">3 Dinge täglich · bewiesen glücksfördernd</div></div>'+
+      '<input class="v9-input" id="v27-dk1" placeholder="1. Wofür bist du dankbar?" value="">'+
+      '<input class="v9-input" id="v27-dk2" placeholder="2. …" value="">'+
+      '<input class="v9-input" id="v27-dk3" placeholder="3. …" value="">'+
+      '<button class="btn primary" id="v27-dkA">💾 Speichern</button>'+
+      '<div class="v9-stat"><div class="v" id="v27-dkC">0</div><div class="l">Einträge gesamt</div></div>'+
+      '<div id="v27-dkL" class="col" style="gap:6px;max-height:45vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('dank27',[]); }
+    function render(){
+      var a = all();
+      win.querySelector('#v27-dkC').textContent = a.length;
+      win.querySelector('#v27-dkL').innerHTML = a.length ? a.slice(0,20).map(function(x){
+        return '<div class="v27-card"><div class="dim sm" style="font-size:11px">'+new Date(x.ts).toLocaleDateString('de-DE')+'</div><div style="margin-top:6px;line-height:1.7">1. '+esc(x.a)+'<br>2. '+esc(x.b)+'<br>3. '+esc(x.c)+'</div><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim);float:right">✕</span></div>';
+      }).join('') : '<div class="empty">Noch keine Einträge</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('dank27', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v27-dkA').onclick = function(){
+      var a1 = win.querySelector('#v27-dk1').value.trim();
+      var a2 = win.querySelector('#v27-dk2').value.trim();
+      var a3 = win.querySelector('#v27-dk3').value.trim();
+      if(!a1 || !a2 || !a3) return toast('Alle 3 Felder ausfüllen');
+      var a = all(); a.unshift({id:uid(), a:a1, b:a2, c:a3, ts:Date.now()});
+      store.set('dank27', a.slice(0,300));
+      ['v27-dk1','v27-dk2','v27-dk3'].forEach(function(id){ win.querySelector('#'+id).value = ''; });
+      render(); toast('🙏 Danke fürs Teilen');
+    };
+    render();
+  }
+};
+
+/* 6 · SELBSTWERT-STÄRKER */
+APPS['selbstwert'] = {
+  name:'Selbstwert-Stärker', icon:'💪',
+  render: function(){
+    var D = [
+      ['💯','Erfolge notieren','Schreib jeden Abend 1 Erfolg auf'],
+      ['🗣','Positiv sprechen','"Ich kann das" statt "Ich schaffe das nie"'],
+      ['🎯','Kleine Ziele','Erfolge machen Mut für Größeres'],
+      ['🧘','Selbstmitgefühl','Rede mit dir wie mit einem Freund'],
+      ['🙅','Nein sagen','Grenzen setzen ist Selbstrespekt'],
+      ['🎁','Selbst belohnen','Auch für kleine Dinge'],
+      ['📸','Spiegel-Übung','3 Dinge, die du an dir magst'],
+      ['🎨','Stärken-Liste','Was kannst du gut? Schreib 20 Dinge'],
+      ['💪','Körper','Bewegung stärkt Selbstbild'],
+      ['📚','Lernen','Jede neue Fähigkeit = mehr Selbstvertrauen'],
+      ['🤝','Support-Netz','Umgib dich mit Menschen, die dich stärken'],
+      ['🚫','Vergleiche','Nur mit deinem gestrigen Ich vergleichen']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💪 Selbstwert-Stärker</div><div class="dim sm">Übungen für mehr Selbstvertrauen</div></div>'+
+      '<div class="col" style="gap:6px">'+
+        D.map(function(x){
+          return '<div class="v27-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 7 · GEWOHNHEITS-TRACKER */
+APPS['gewohnheiten'] = {
+  name:'Gewohnheits-Tracker', icon:'📅',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📅 Gewohnheits-Tracker</div><div class="dim sm">21 Tage bis zur neuen Gewohnheit</div></div>'+
+      '<div class="row"><input class="v9-input" id="v27-ghN" placeholder="Neue Gewohnheit (z.B. 10 Min lesen)" style="flex:1"><button class="btn primary" id="v27-ghA">+</button></div>'+
+      '<div id="v27-ghL" class="col" style="gap:8px;max-height:60vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('habits27',[]); }
+    function today(){ return new Date().toISOString().slice(0,10); }
+    function render(){
+      var a = all();
+      var t = today();
+      win.querySelector('#v27-ghL').innerHTML = a.length ? a.map(function(h){
+        var checked = h.days.indexOf(t) >= 0;
+        var streak = 0;
+        var d = new Date();
+        while(true){
+          var dk = d.toISOString().slice(0,10);
+          if(h.days.indexOf(dk) >= 0){ streak++; d.setDate(d.getDate()-1); } else break;
+        }
+        return '<div class="v27-card"><div class="row between"><b>'+esc(h.n)+'</b><span style="color:var(--c1);font-weight:700">🔥 '+streak+' Tage</span></div><div class="row" style="margin-top:8px;gap:8px"><button class="btn '+(checked?'primary':'')+'" data-id="'+h.id+'">'+(checked?'✅ Heute erledigt':'⏺ Als erledigt markieren')+'</button><span class="x" data-del="'+h.id+'" style="cursor:pointer;color:var(--dim);padding:8px">✕</span></div><div class="dim sm" style="margin-top:6px;font-size:10px">Gesamt: '+h.days.length+' Tage</div></div>';
+      }).join('') : '<div class="empty">Noch keine Gewohnheit</div>';
+      win.querySelectorAll('[data-id]').forEach(function(b){
+        b.onclick = function(){
+          var arr = all();
+          var h = arr.find(function(x){ return x.id === b.dataset.id; });
+          if(!h) return;
+          if(h.days.indexOf(t) >= 0) h.days = h.days.filter(function(d){ return d !== t; });
+          else h.days.push(t);
+          store.set('habits27', arr);
+          render();
+        };
+      });
+      win.querySelectorAll('[data-del]').forEach(function(el){ el.onclick = function(){ store.set('habits27', all().filter(function(v){ return v.id !== el.dataset.del; })); render(); }; });
+    }
+    win.querySelector('#v27-ghA').onclick = function(){
+      var n = win.querySelector('#v27-ghN').value.trim();
+      if(!n) return;
+      var a = all(); a.push({id:uid(), n:n, days:[]});
+      store.set('habits27', a);
+      win.querySelector('#v27-ghN').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* 8 · KOMMUNIKATIONS-TIPPS */
+APPS['kommunikation'] = {
+  name:'Kommunikations-Tipps', icon:'💬',
+  render: function(){
+    var D = [
+      ['👂','Aktives Zuhören','Nicht unterbrechen · nachfragen'],
+      ['🎯','Ich-Botschaften','"Ich fühle..." statt "Du bist..."'],
+      ['❓','Offene Fragen','Wie, was, warum? statt Ja/Nein'],
+      ['🧘','Pausen','Nach wichtigen Punkten schweigen'],
+      ['👁','Augenkontakt','Nicht stieren, aber präsent sein'],
+      ['🔄','Spiegeln','"Habe ich richtig verstanden, dass…?"'],
+      ['💬','Konkret','Kein "immer" oder "nie"'],
+      ['🤝','Win-Win','Suchen was beiden nützt'],
+      ['😊','Wertschätzung','Danke sagen · Lob aussprechen'],
+      ['⏸','Zeit für Antwort','Nicht sofort kontern'],
+      ['📝','Nachfassen','Wichtige Punkte schriftlich'],
+      ['🚫','Keine Vorwürfe','Beschreibe Verhalten, nicht Person']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💬 Kommunikations-Tipps</div><div class="dim sm">Besser reden & zuhören</div></div>'+
+      '<div class="col" style="gap:6px">'+
+        D.map(function(x){
+          return '<div class="v27-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 9 · KONFLIKT-LÖSUNG */
+APPS['konflikt'] = {
+  name:'Konflikt-Lösung', icon:'🕊️',
+  render: function(){
+    var D = [
+      ['🧊','Erst beruhigen','Nicht in Wut reden · 10 Min Abstand'],
+      ['🎯','Sache, nicht Person','"Das Verhalten" nicht "du bist"'],
+      ['👂','Beide Seiten','Erst zuhören, dann sprechen'],
+      ['📝','Fakten','Beispiele statt Verallgemeinerungen'],
+      ['🔄','Perspektiv-Wechsel','Wie sieht es die andere Seite?'],
+      ['💡','Lösungen sammeln','Nicht Schuldige suchen'],
+      ['🤝','Kompromiss','Beide geben etwas'],
+      ['✍️','Vereinbarung','Schriftlich festhalten'],
+      ['⏰','Nachfassen','Nach 1-2 Wochen prüfen'],
+      ['🙏','Entschuldigung','Ernst gemeint, nicht "aber"'],
+      ['🚫','Nicht nachtragen','Vergangenheit ruhen lassen'],
+      ['💬','Dritter','Bei Blockade: Mediator']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🕊️ Konflikt-Lösung</div><div class="dim sm">Streit konstruktiv klären</div></div>'+
+      '<div class="col" style="gap:6px">'+
+        D.map(function(x){
+          return '<div class="v27-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 10 · SCHLAFHYGIENE */
+APPS['schlafhygiene'] = {
+  name:'Schlafhygiene', icon:'😴',
+  render: function(){
+    var D = [
+      ['⏰','Feste Zeiten','Immer gleich ins Bett & aufstehen'],
+      ['📱','Kein Bildschirm','1 Std vor dem Schlaf'],
+      ['☕','Kein Koffein','Ab 14 Uhr meiden'],
+      ['🍽','Kein schweres Essen','3 Std vor dem Schlaf'],
+      ['🏃','Sport','Aber nicht direkt vor dem Schlaf'],
+      ['🛌','Bett nur für Schlaf','Nicht im Bett arbeiten'],
+      ['🌡️','Kühles Zimmer','16-18 °C optimal'],
+      ['🌑','Dunkel','Verdunkelung oder Maske'],
+      ['🤫','Ruhig','Ohrstöpsel bei Bedarf'],
+      ['🧘','Entspannung','Lesen, Atmen, Meditation'],
+      ['📖','Ritual','Immer dieselbe Routine'],
+      ['🚫','Kein Alkohol','Stört Tiefschlaf']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">😴 Schlafhygiene</div><div class="dim sm">Besser schlafen</div></div>'+
+      '<div class="col" style="gap:6px">'+
+        D.map(function(x){
+          return '<div class="v27-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 11 · BURNOUT-CHECK */
+APPS['burnout'] = {
+  name:'Burnout-Check', icon:'🚨',
+  render: function(){
+    var D = [
+      ['😩','Ständige Erschöpfung','Auch nach Schlaf'],
+      ['❄️','Emotionale Kälte','Gefühle abstumpfen'],
+      ['😤','Reizbarkeit','Kleinigkeiten ärgern'],
+      ['🚫','Zynismus','"Bringt eh nichts"-Denken'],
+      ['📉','Leistungsabfall','Schwer konzentrieren'],
+      ['💔','Depression','Traurig, leer, hoffnungslos'],
+      ['🤒','Körperliche Symptome','Kopf, Magen, Rücken'],
+      ['🚪','Rückzug','Soziale Kontakte meiden'],
+      ['😰','Angst','Nicht mehr schaffen zu können'],
+      ['💊','Suchtmittel','Alkohol, Tabletten, Zigaretten']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🚨 Burnout-Check</div><div class="dim sm">Warnsignale erkennen</div></div>'+
+      '<div class="v27-card" style="background:rgba(224,59,90,.1);border-color:#e03b5a"><b>⚠️ Bei akuter Krise: 112 oder Telefonseelsorge 0800 111 0 111</b></div>'+
+      '<div class="col" style="gap:6px">'+
+        D.map(function(x){
+          return '<div class="v27-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+      '<div class="v27-card"><b>💡 Hilfe holen</b><div class="dim sm" style="margin-top:6px;line-height:1.7">• Hausarzt<br>• Psychotherapeut<br>• Telefonseelsorge: 0800 111 0 111<br>• Betriebsarzt<br>• Selbsthilfegruppen</div></div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 12 · MEDITATION */
+APPS['meditation'] = {
+  name:'Meditation', icon:'🧘‍♀️',
+  render: function(){
+    var D = [
+      ['🌅','Morgen-Meditation','5 Min · Fokus auf den Tag'],
+      ['🌙','Abend-Meditation','10 Min · Loslassen'],
+      ['💨','Atem-Meditation','10 Min · nur atmen'],
+      ['🌊','Body-Scan','15 Min · Körper wahrnehmen'],
+      ['🍃','Natur-Meditation','20 Min · draußen'],
+      ['💖','Metta (Liebe)','10 Min · Wohlwollen senden'],
+      ['🧠','Achtsamkeit','5 Min · was ist jetzt?'],
+      ['🚶','Geh-Meditation','10 Min · bewusst gehen'],
+      ['🎵','Klang-Meditation','10 Min · Klang folgen'],
+      ['🕯️','Kerzen-Meditation','5 Min · Flamme anschauen']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🧘‍♀️ Meditation</div><div class="dim sm">10 geführte Übungen</div></div>'+
+      '<div class="col" style="gap:6px">'+
+        D.map(function(x){
+          return '<div class="v27-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 13 · SMARTe ZIELE */
+APPS['smart-ziele'] = {
+  name:'SMARTe Ziele', icon:'🎯',
+  render: function(){
+    var D = [
+      ['S','Spezifisch','Genau definieren: WAS?'],
+      ['M','Messbar','Zahlen, Daten, Fakten'],
+      ['A','Attraktiv','Du willst es wirklich'],
+      ['R','Realistisch','Machbar mit deinen Mitteln'],
+      ['T','Terminiert','Konkretes Datum setzen']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎯 SMARTe Ziele</div><div class="dim sm">Ziele richtig formulieren</div></div>'+
+      '<div class="col" style="gap:8px">'+
+        D.map(function(x){
+          return '<div class="v27-card"><div class="row between"><b style="font-size:22px;color:var(--c1)">'+x[0]+'</b><b style="flex:1;text-align:left;margin-left:10px">'+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:6px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+      '<input class="v9-input" id="v27-smN" placeholder="Dein Ziel…">'+
+      '<button class="btn primary" id="v27-smGo">▶ Prüfen</button>'+
+      '<div class="v27-card" id="v27-smO">Gib ein Ziel ein</div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v27-smGo').onclick = function(){
+      var z = win.querySelector('#v27-smN').value.trim();
+      if(!z) return;
+      var tips = [];
+      if(z.length < 15) tips.push('🔍 Konkreter formulieren');
+      if(!/\d/.test(z)) tips.push('📊 Zahl/Datum ergänzen');
+      if(!/bis|am|datum|20\d\d|monat|woche|tag/i.test(z)) tips.push('⏰ Zeitrahmen setzen');
+      if(tips.length === 0) tips.push('✅ Sieht gut aus!');
+      win.querySelector('#v27-smO').innerHTML = '<b>Feedback:</b><br>'+tips.join('<br>');
+    };
+  }
+};
+
+/* 14 · TRAUER-BEGLEITER */
+APPS['trauer'] = {
+  name:'Trauer-Begleiter', icon:'🕊️',
+  render: function(){
+    var D = [
+      ['💔','Verlust verstehen','Trauer hat keine Regeln · 5 Phasen'],
+      ['😢','Weinen','Erlaubt · kein Zeichen von Schwäche'],
+      ['🕯️','Ritual','Kerze anzünden · Foto aufstellen'],
+      ['📖','Tagebuch','Gefühle aufschreiben'],
+      ['👥','Reden','Mit Freunden, Familie, Therapeut'],
+      ['🎵','Musik','Lieblingslied hören'],
+      ['🌳','Natur','Spaziergang tut gut'],
+      ['⏰','Zeit','Jeder trauert anders'],
+      ['😊','Erinnerungen','Schöne Momente bewahren'],
+      ['🚫','Keine Vergleiche','Jeder Verlust ist anders']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🕊️ Trauer-Begleiter</div><div class="dim sm">Wenn du jemanden verloren hast</div></div>'+
+      '<div class="v27-card" style="background:rgba(180,120,255,.1);border-color:#b478ff"><b>💙 Du bist nicht allein</b><div class="dim sm" style="margin-top:6px">Trauer braucht Zeit. Hilfe gibt es bei: Telefonseelsorge 0800 111 0 111</div></div>'+
+      '<div class="col" style="gap:6px">'+
+        D.map(function(x){
+          return '<div class="v27-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 15 · EMOTIONEN-LEXIKON */
+APPS['emotionen'] = {
+  name:'Emotionen-Lexikon', icon:'❤️',
+  render: function(){
+    var D = [
+      ['😊','Freude','Positiv · will teilen'],
+      ['😢','Trauer','Verlust · will Ruhe'],
+      ['😠','Wut','Grenzverletzung · will Grenze setzen'],
+      ['😨','Angst','Gefahr · will Schutz'],
+      ['🤢','Ekel','Ablehnung · will Distanz'],
+      ['😲','Überraschung','Unerwartet · will Orientierung'],
+      ['🥰','Liebe','Verbundenheit · will Nähe'],
+      ['😳','Scham','Sozial · will sich verstecken'],
+      ['😔','Schuld','Moral · will wiedergutmachen'],
+      ['😤','Stolz','Leistung · will anerkannt werden'],
+      ['🥱','Langeweile','Reizarmut · will Abwechslung'],
+      ['😌','Neugier','Wissensdurst · will erkunden'],
+      ['🤗','Dankbarkeit','Empfangen · will zurückgeben'],
+      ['😥','Hoffnung','Zukunft · will glauben'],
+      ['😌','Ruhe','Sicher · will bleiben']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">❤️ Emotionen-Lexikon</div><div class="dim sm">Was Gefühle uns sagen</div></div>'+
+      '<div class="col" style="gap:6px;max-height:70vh;overflow-y:auto">'+
+        D.map(function(x){
+          return '<div class="v27-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 16 · SOCIAL SKILLS */
+APPS['social-skills'] = {
+  name:'Social Skills', icon:'🤝',
+  render: function(){
+    var D = [
+      ['😊','Lächeln','Öffnet Türen'],
+      ['👋','Begrüßen','Augenkontakt + Name'],
+      ['💬','Small Talk','Wetter, Ort, Anlass'],
+      ['❓','Fragen stellen','Zeigt Interesse'],
+      ['👂','Zuhören','Nicht nur auf Antwort warten'],
+      ['🙏','Danke sagen','Kleinigkeit · großes Wirkung'],
+      ['🎁','Komplimente','Ehrlich und konkret'],
+      ['📅','Nachfassen','"Wie war dein Termin?"'],
+      ['🤝','Hilfe anbieten','Ohne Gegenleistung'],
+      ['🚪','Pünktlich','Respekt zeigen'],
+      ['📱','Handy weg','Volle Aufmerksamkeit'],
+      ['🌍','Offen sein','Andere Kulturen wertschätzen']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🤝 Social Skills</div><div class="dim sm">Besser mit Menschen umgehen</div></div>'+
+      '<div class="col" style="gap:6px">'+
+        D.map(function(x){
+          return '<div class="v27-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 17 · ANGST-BEWÄLTIGUNG */
+APPS['angst'] = {
+  name:'Angst-Bewältigung', icon:'🛡️',
+  render: function(){
+    var D = [
+      ['🌬','4-7-8-Atmung','Einatmen 4 · Halten 7 · Ausatmen 8'],
+      ['🖐','5-4-3-2-1','5 sehen · 4 hören · 3 fühlen · 2 riechen · 1 schmecken'],
+      ['🧊','Kaltes Wasser','Gesicht waschen · beruhigt'],
+      ['🚶','Bewegung','Spaziergang löst Anspannung'],
+      ['📝','Aufschreiben','Was genau macht Angst?'],
+      ['🎯','Realistisch','Was ist Wahrscheinlichkeit?'],
+      ['🧘','Akzeptanz','Angst darf da sein'],
+      ['👥','Reden','Mit jemandem teilen'],
+      ['📱','Ablenkung','Buch, Musik, Serie'],
+      ['⏰','Warten','Angst geht vorbei (meist 20 Min)'],
+      ['💊','Hausarzt','Bei häufiger Angst'],
+      ['🧠','Therapie','Kognitive Verhaltenstherapie']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🛡️ Angst-Bewältigung</div><div class="dim sm">Sofort-Hilfe bei Panik</div></div>'+
+      '<div class="v27-card" style="background:rgba(0,229,255,.1);border-color:var(--c1)"><b>💙 Bei Panikattacke: Du bist sicher. Es geht vorbei.</b></div>'+
+      '<div class="col" style="gap:6px">'+
+        D.map(function(x){
+          return '<div class="v27-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 18 · PSYCHOLOGIE-LEXIKON */
+APPS['psy-lexikon'] = {
+  name:'Psychologie-Lexikon', icon:'🧠',
+  render: function(){
+    var D = [
+      ['🧠','Kognitive Dissonanz','Widerspruch zwischen Denken und Handeln'],
+      ['🎭','Projektion','Eigene Gefühle auf andere übertragen'],
+      ['🔄','Konditionierung','Lernen durch Verknüpfung'],
+      ['💭','Sublimierung','Triebe in etwas Positives umwandeln'],
+      ['🚫','Verdrängung','Unangenehmes aus Bewusstsein schieben'],
+      ['🎯','Selbstwirksamkeit','Glaube an eigene Fähigkeit'],
+      ['🌟','Placebo','Erwartung beeinflusst Wirkung'],
+      ['🎪','Stockholm-Syndrom','Sympathie für Täter'],
+      ['🌀','Gruppenzwang','Anpassung an Gruppe'],
+      ['🎨','Big Five','5 Haupt-Persönlichkeits-Dimensionen'],
+      ['🪞','Spiegelneuronen','Mitfühlen durch Nachahmung'],
+      ['⏰','Zeitwahrnehmung','Zeit ist relativ im Erleben'],
+      ['💤','REM-Schlaf','Träume und Verarbeitung'],
+      ['🌱','Resilienz','Widerstandskraft'],
+      ['🎁','Belohnungs-System','Dopamin als Motivator']
+    ];
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🧠 Psychologie-Lexikon</div><div class="dim sm">Fachbegriffe einfach erklärt</div></div>'+
+      '<input class="v9-input" id="v27-pxQ" placeholder="🔍 Suchen…">'+
+      '<div id="v27-pxL" class="col" style="gap:6px;max-height:70vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['🧠','Kognitive Dissonanz','Widerspruch zwischen Denken und Handeln'],
+      ['🎭','Projektion','Eigene Gefühle auf andere übertragen'],
+      ['🔄','Konditionierung','Lernen durch Verknüpfung'],
+      ['💭','Sublimierung','Triebe in etwas Positives umwandeln'],
+      ['🚫','Verdrängung','Unangenehmes aus Bewusstsein schieben'],
+      ['🎯','Selbstwirksamkeit','Glaube an eigene Fähigkeit'],
+      ['🌟','Placebo','Erwartung beeinflusst Wirkung'],
+      ['🎪','Stockholm-Syndrom','Sympathie für Täter'],
+      ['🌀','Gruppenzwang','Anpassung an Gruppe'],
+      ['🎨','Big Five','5 Persönlichkeits-Dimensionen'],
+      ['🪞','Spiegelneuronen','Mitfühlen durch Nachahmung'],
+      ['⏰','Zeitwahrnehmung','Zeit ist relativ im Erleben'],
+      ['💤','REM-Schlaf','Träume und Verarbeitung'],
+      ['🌱','Resilienz','Widerstandskraft'],
+      ['🎁','Belohnungs-System','Dopamin als Motivator'],
+      ['🛡️','Abwehrmechanismen','Unbewusste Schutzmechanismen'],
+      ['🧩','Gestalt-Psychologie','Ganzes ist mehr als Summe'],
+      ['💡','Heuristik','Denkabkürzungen des Gehirns'],
+      ['🎯','Ankereffekt','Erste Zahl beeinflusst Urteil'],
+      ['🔄','Bestätigungsfehler','Nur das sehen was passt']
+    ];
+    var Q = win.querySelector('#v27-pxQ');
+    function render(){
+      var q = Q.value.toLowerCase();
+      var f = D.filter(function(x){ return !q || (x[1]+' '+x[2]).toLowerCase().indexOf(q) >= 0; });
+      win.querySelector('#v27-pxL').innerHTML = f.map(function(x){
+        return '<div class="v27-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[2])+'</div></div>';
+      }).join('') || '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput = render; render();
+  }
+};
+
+/* 19 · ACHTSAMKEIT 5-4-3-2-1 */
+APPS['achtsamkeit'] = {
+  name:'Achtsamkeit 5-4-3-2-1', icon:'🧘',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🧘 Achtsamkeit 5-4-3-2-1</div><div class="dim sm">Erdungs-Übung bei Panik/Stress</div></div>'+
+      '<div class="v27-card"><b>👁 5 Dinge SEHEN</b><div class="dim sm" style="margin-top:6px">Schau dich um – nenne 5 Dinge, die du siehst.</div></div>'+
+      '<div class="v27-card"><b>👂 4 Dinge HÖREN</b><div class="dim sm" style="margin-top:6px">Welche 4 Geräusche kannst du wahrnehmen?</div></div>'+
+      '<div class="v27-card"><b>🤚 3 Dinge FÜHLEN</b><div class="dim sm" style="margin-top:6px">Was berührt dich gerade? Kleidung, Stuhl, Luft?</div></div>'+
+      '<div class="v27-card"><b>👃 2 Dinge RIECHEN</b><div class="dim sm" style="margin-top:6px">Welche 2 Gerüche nimmst du wahr?</div></div>'+
+      '<div class="v27-card"><b>👅 1 Ding SCHMECKEN</b><div class="dim sm" style="margin-top:6px">Was schmeckst du gerade?</div></div>'+
+      '<div class="v27-card" style="background:rgba(77,232,138,.1);border-color:#4de88a;text-align:center"><b>✅ Du bist im JETZT</b><div class="dim sm" style="margin-top:6px">Diese Übung holt dich aus der Angst ins Hier und Jetzt.</div></div>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 20 · MOTIVATIONS-TAGEBUCH */
+APPS['motivation-tagebuch'] = {
+  name:'Motivations-Tagebuch', icon:'🔥',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🔥 Motivations-Tagebuch</div><div class="dim sm">Deine tägliche Motivation</div></div>'+
+      '<input class="v9-input" id="v27-moW" placeholder="Was motiviert dich heute?">'+
+      '<textarea class="ta" id="v27-moN" style="min-height:80px" placeholder="Warum ist das wichtig für dich?"></textarea>'+
+      '<button class="btn primary" id="v27-moA">💾 Speichern</button>'+
+      '<div class="v27-card" style="margin-top:8px"><b>💡 Täglich 3 Fragen</b><div class="dim sm" style="margin-top:6px;line-height:1.7">1. Was läuft heute gut?<br>2. Was ist der eine wichtige Schritt?<br>3. Wer oder was gibt mir Kraft?</div></div>'+
+      '<div id="v27-moL" class="col" style="gap:6px;max-height:40vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('motiv27',[]); }
+    function render(){
+      var a = all();
+      win.querySelector('#v27-moL').innerHTML = a.length ? a.slice(0,30).map(function(x){
+        return '<div class="v27-card"><b>🔥 '+esc(x.w)+'</b><div class="dim sm" style="margin-top:6px">'+esc(x.n)+'</div><div class="dim sm" style="margin-top:4px;font-size:10px">'+new Date(x.ts).toLocaleDateString('de-DE')+'</div><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim);float:right">✕</span></div>';
+      }).join('') : '<div class="empty">Noch keine Einträge</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('motiv27', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v27-moA').onclick = function(){
+      var w = win.querySelector('#v27-moW').value.trim();
+      if(!w) return;
+      var a = all(); a.unshift({id:uid(), w:w, n:win.querySelector('#v27-moN').value, ts:Date.now()});
+      store.set('motiv27', a.slice(0,200));
+      win.querySelector('#v27-moW').value = ''; win.querySelector('#v27-moN').value = '';
+      render(); toast('🔥 Gespeichert');
+    };
+    render();
+  }
+};
+
+console.log('%c📦 v27 geladen — Psychologie & Selbsthilfe · 20 Apps','background:linear-gradient(90deg,#b478ff,#00e5ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('Aktive Apps:', Object.keys(APPS).length);
+
+setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click(); }, 150);
+
+})();
+</script>
 </body>
 </html>
