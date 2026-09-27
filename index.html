@@ -14498,5 +14498,826 @@ APPS['haldo-face'] = {
 console.log('%c🦚 HalDo Face geladen','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v16 · Gesundheit & Wohlbefinden · 20 Apps
+     ============================================================ -->
+<style id="v16-style">
+.v16-ring{width:200px;height:200px;margin:12px auto;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;background:conic-gradient(var(--c1) 0deg, rgba(255,255,255,.06) 0deg)}
+.v16-ring::after{content:'';position:absolute;inset:12px;border-radius:50%;background:var(--bg)}
+.v16-ring > *{position:relative;z-index:1;text-align:center}
+.v16-ring .n{font-size:32px;font-weight:800;color:var(--c1)}
+.v16-ring .l{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
+.v16-mood{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}
+.v16-mood button{aspect-ratio:1;font-size:26px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(120,180,255,.14);cursor:pointer;transition:.15s}
+.v16-mood button:hover{transform:scale(1.08);border-color:var(--c1)}
+.v16-mood button.on{background:linear-gradient(135deg,rgba(0,229,255,.25),rgba(180,120,255,.2));border-color:var(--c1)}
+.v16-sleep-bar{height:32px;border-radius:8px;background:linear-gradient(90deg,#1a2050,#2a3a80,#5a7ac8,#ffd84a);position:relative;overflow:hidden;margin-top:8px}
+.v16-sleep-bar .mark{position:absolute;top:0;bottom:0;width:2px;background:#fff}
+.v16-food-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(120,180,255,.12);margin-bottom:6px}
+.v16-food-row .cal{font-weight:700;color:var(--c1);font-variant-numeric:tabular-nums}
+.v16-pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(0,229,255,.12);border:1px solid rgba(0,229,255,.3);color:var(--c1);margin:2px}
+.v16-pill.green{background:rgba(77,232,138,.12);border-color:rgba(77,232,138,.4);color:#4de88a}
+.v16-pill.red{background:rgba(224,59,90,.12);border-color:rgba(224,59,90,.4);color:#ff9db1}
+.v16-pill.orange{background:rgba(255,176,58,.12);border-color:rgba(255,176,58,.4);color:#ffb03a}
+.v16-step{height:44px;border-radius:10px;background:linear-gradient(90deg,rgba(0,229,255,.15),rgba(0,229,255,.05));display:flex;align-items:center;padding:0 12px;gap:10px;margin-bottom:6px;font-family:monospace;font-size:12px}
+</style>
+
+<script>
+(function(){
+'use strict';
+var H = window.HalDo;
+if(!H || !H.APPS){ console.error('[v16] Foundation fehlt'); return; }
+var APPS = H.APPS;
+var esc=H.esc, uid=H.uid, store=H.store, toast=H.toast;
+
+/* 1 · TRINKWASSER-ZIEL */
+APPS['trinkwasser'] = {
+  name:'Trinkwasser-Ziel', icon:'💧',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💧 Trinkwasser-Ziel</div><div class="dim sm">Tägliches Wasser-Tracking</div></div>'+
+      '<div class="v16-ring" id="v16-twR"><div><div class="n" id="v16-twN">0</div><div class="l">von 2000 ml</div></div></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'+
+        '<button class="v9-chip" data-add="150">+150</button>'+
+        '<button class="v9-chip" data-add="250">+250</button>'+
+        '<button class="v9-chip" data-add="500">+500</button>'+
+      '</div>'+
+      '<div class="row"><button class="btn primary" id="v16-twReset" style="flex:1">🔄 Reset</button></div>'+
+      '<div class="v9-card"><b>💡 Warum Wasser?</b><div class="dim sm" style="margin-top:6px">• 60 % des Körpers ist Wasser<br>• 2 L am Tag empfohlen<br>• Bei Sport & Hitze mehr</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var today = new Date().toISOString().slice(0,10);
+    function get(){ var d = store.get('water16',{}); return d.date === today ? d.ml||0 : 0; }
+    function set(v){ store.set('water16',{date:today, ml:Math.max(0,v)}); render(); }
+    function render(){
+      var ml = get();
+      var pct = Math.min(100, ml/2000*100);
+      win.querySelector('#v16-twN').textContent = ml;
+      win.querySelector('#v16-twR').style.background = 'conic-gradient(var(--c1) '+ (pct*3.6) +'deg, rgba(255,255,255,.06) 0deg)';
+    }
+    win.querySelectorAll('[data-add]').forEach(function(b){ b.onclick = function(){ set(get() + parseInt(b.dataset.add)); }; });
+    win.querySelector('#v16-twReset').onclick = function(){ set(0); };
+    render();
+  }
+};
+
+/* 2 · SCHLAF-TRACKER */
+APPS['schlaf'] = {
+  name:'Schlaf-Tracker', icon:'😴',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">😴 Schlaf-Tracker</div><div class="dim sm">7-9 Stunden sind optimal</div></div>'+
+      '<div class="row"><input class="v9-input" id="v16-slI" type="time" style="flex:1"><input class="v9-input" id="v16-slO" type="time" style="flex:1"><button class="btn primary" id="v16-slA">+</button></div>'+
+      '<div id="v16-slL" class="col" style="gap:6px;max-height:45vh;overflow-y:auto"></div>'+
+      '<div class="v9-card"><b>📊 Ø letzte 7 Nächte</b><div class="v9-stat" style="margin-top:8px"><div class="v" id="v16-slAvg">–</div><div class="l">Stunden</div></div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('sleep16',[]); }
+    function render(){
+      var a = all();
+      win.querySelector('#v16-slL').innerHTML = a.length ? a.slice(0,15).map(function(x){
+        return '<div class="v16-food-row"><b style="flex:1">'+new Date(x.ts).toLocaleDateString('de-DE')+'</b><span>'+x.start+' → '+x.end+'</span><span class="cal">'+x.h.toFixed(1)+' h</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Noch keine Einträge</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('sleep16', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+      var recent = a.slice(0,7);
+      if(recent.length){
+        var avg = recent.reduce(function(s,x){ return s + x.h; }, 0) / recent.length;
+        win.querySelector('#v16-slAvg').textContent = avg.toFixed(1) + ' h';
+      }
+    }
+    win.querySelector('#v16-slA').onclick = function(){
+      var i = win.querySelector('#v16-slI').value, o = win.querySelector('#v16-slO').value;
+      if(!i || !o) return;
+      var ih = parseInt(i.split(':')[0]), im = parseInt(i.split(':')[1]);
+      var oh = parseInt(o.split(':')[0]), om = parseInt(o.split(':')[1]);
+      var mins = (oh*60 + om) - (ih*60 + im);
+      if(mins < 0) mins += 24*60;
+      var a = all(); a.unshift({id:uid(), start:i, end:o, h:mins/60, ts:Date.now()});
+      store.set('sleep16', a.slice(0,100));
+      render();
+    };
+    render();
+  }
+};
+
+/* 3 · PULS-RECHNER */
+APPS['puls'] = {
+  name:'Puls-Rechner', icon:'💓',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💓 Puls-Rechner</div><div class="dim sm">Optimale Herzfrequenz beim Sport</div></div>'+
+      '<div class="row"><input class="v9-input" id="v16-plA" type="number" placeholder="Alter" value="30" style="flex:1"><select class="v9-input" id="v16-plG" style="width:auto"><option>m</option><option>w</option></select></div>'+
+      '<select class="v9-input" id="v16-plZ">'+
+        '<option value="0.5">🟢 Sehr leicht (50-60%)</option>'+
+        '<option value="0.6" selected>🔵 Leicht (60-70%)</option>'+
+        '<option value="0.7">🟡 Moderat (70-80%)</option>'+
+        '<option value="0.8">🟠 Intensiv (80-90%)</option>'+
+        '<option value="0.9">🔴 Maximal (90-100%)</option>'+
+      '</select>'+
+      '<button class="btn primary" id="v16-plGo">▶ Berechnen</button>'+
+      '<div class="v9-stat"><div class="v" id="v16-plO">–</div><div class="l">Zielpuls (Schläge/Min)</div></div>'+
+      '<div class="v9-card"><b>📊 Zonen</b><div class="dim sm" style="margin-top:6px" id="v16-plZ2">–</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v16-plGo').onclick = function(){
+      var a = parseInt(win.querySelector('#v16-plA').value)||30;
+      var hfmax = 220 - a;
+      var zone = parseFloat(win.querySelector('#v16-plZ').value);
+      var ziel = Math.round(hfmax * zone);
+      win.querySelector('#v16-plO').textContent = ziel + ' / min';
+      var z1 = Math.round(hfmax*0.5) + '-' + Math.round(hfmax*0.6);
+      var z2 = Math.round(hfmax*0.6) + '-' + Math.round(hfmax*0.7);
+      var z3 = Math.round(hfmax*0.7) + '-' + Math.round(hfmax*0.8);
+      var z4 = Math.round(hfmax*0.8) + '-' + Math.round(hfmax*0.9);
+      var z5 = Math.round(hfmax*0.9) + '-' + hfmax;
+      win.querySelector('#v16-plZ2').innerHTML = '🟢 ' + z1 + ' (Aufwärmen)<br>🔵 ' + z2 + ' (Fettverbrennung)<br>🟡 ' + z3 + ' (Ausdauer)<br>🟠 ' + z4 + ' (Intensiv)<br>🔴 ' + z5 + ' (Maximal)';
+    };
+    win.querySelector('#v16-plGo').click();
+  }
+};
+
+/* 4 · SCHRITTZÄHLER */
+APPS['schritte'] = {
+  name:'Schritt-Zähler', icon:'👟',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">👟 Schritt-Zähler</div><div class="dim sm">Ziel: 10.000 Schritte pro Tag</div></div>'+
+      '<div class="v16-ring" id="v16-szR"><div><div class="n" id="v16-szN">0</div><div class="l">von 10000</div></div></div>'+
+      '<div class="row"><input class="v9-input" id="v16-szI" type="number" placeholder="Schritte hinzufügen" style="flex:1"><button class="btn primary" id="v16-szA">+</button></div>'+
+      '<div class="row"><button class="v9-chip" data-s="1000">+1000</button><button class="v9-chip" data-s="2000">+2000</button><button class="v9-chip" data-s="5000">+5000</button><button class="v9-chip" data-s="reset">🔄</button></div>'+
+      '<div class="v9-card"><b>💡 Tipps</b><div class="dim sm" style="margin-top:6px">• 10.000 Schritte = ~7 km<br>• Treppe statt Aufzug<br>• 1 Station früher aussteigen<br>• Täglich spazieren</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var today = new Date().toISOString().slice(0,10);
+    function get(){ var d = store.get('steps16',{}); return d.date === today ? d.n||0 : 0; }
+    function set(v){ store.set('steps16',{date:today, n:Math.max(0,v)}); render(); }
+    function render(){
+      var n = get();
+      var pct = Math.min(100, n/10000*100);
+      win.querySelector('#v16-szN').textContent = n.toLocaleString('de-DE');
+      win.querySelector('#v16-szR').style.background = 'conic-gradient(var(--c1) '+ (pct*3.6) +'deg, rgba(255,255,255,.06) 0deg)';
+    }
+    win.querySelector('#v16-szA').onclick = function(){
+      var v = parseInt(win.querySelector('#v16-szI').value)||0;
+      if(v) { set(get() + v); win.querySelector('#v16-szI').value = ''; }
+    };
+    win.querySelectorAll('[data-s]').forEach(function(b){
+      b.onclick = function(){
+        if(b.dataset.s === 'reset'){ set(0); return; }
+        set(get() + parseInt(b.dataset.s));
+      };
+    });
+    render();
+  }
+};
+
+/* 5 · BLUTDRUCK-TAGEBUCH */
+APPS['blutdruck'] = {
+  name:'Blutdruck-Tagebuch', icon:'🩺',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🩺 Blutdruck-Tagebuch</div><div class="dim sm">Optimal: 120/80 mmHg</div></div>'+
+      '<div class="row"><input class="v9-input" id="v16-bdS" type="number" placeholder="Systole (oberer)" value="120" style="flex:1"><input class="v9-input" id="v16-bdD" type="number" placeholder="Diastole (unterer)" value="80" style="flex:1"><input class="v9-input" id="v16-bdP" type="number" placeholder="Puls" style="width:80px"><button class="btn primary" id="v16-bdA">+</button></div>'+
+      '<div id="v16-bdL" class="col" style="gap:6px;max-height:55vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('bp16',[]); }
+    function cat(s,d){
+      if(s<90||d<60) return ['Niedrig','orange'];
+      if(s<120&&d<80) return ['Optimal','green'];
+      if(s<130&&d<85) return ['Normal','green'];
+      if(s<140||d<90) return ['Hoch-normal','orange'];
+      if(s<160||d<100) return ['Hypertonie 1','red'];
+      return ['Hypertonie 2','red'];
+    }
+    function render(){
+      var a = all();
+      win.querySelector('#v16-bdL').innerHTML = a.length ? a.slice(0,30).map(function(x){
+        var c = cat(x.s, x.d);
+        return '<div class="v16-food-row"><b style="flex:1">'+new Date(x.ts).toLocaleDateString('de-DE')+'</b><span><b style="color:var(--c1)">'+x.s+'/'+x.d+'</b></span>'+(x.p?'<span class="dim sm">❤️ '+x.p+'</span>':'')+'<span class="v16-pill '+c[1]+'">'+c[0]+'</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Noch keine Messungen</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('bp16', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v16-bdA').onclick = function(){
+      var s = parseInt(win.querySelector('#v16-bdS').value);
+      var d = parseInt(win.querySelector('#v16-bdD').value);
+      var p = parseInt(win.querySelector('#v16-bdP').value) || null;
+      if(!s || !d) return toast('Systole + Diastole');
+      var a = all(); a.unshift({id:uid(), s:s, d:d, p:p, ts:Date.now()});
+      store.set('bp16', a.slice(0,200));
+      win.querySelector('#v16-bdP').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* 6 · KALORIEN-RECHNER */
+APPS['kalorien-rechner'] = {
+  name:'Kalorien-Rechner', icon:'🍎',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🍎 Kalorien-Rechner</div><div class="dim sm">Täglicher Bedarf + Mahlzeiten</div></div>'+
+      '<input class="v9-input" id="v16-klF" placeholder="Lebensmittel (z.B. Apfel)" style="flex:1">'+
+      '<div class="row"><input class="v9-input" id="v16-klM" type="number" placeholder="Menge (g)" value="100" style="flex:1"><button class="btn primary" id="v16-klA">+ Hinzufügen</button></div>'+
+      '<div class="v9-stat"><div class="v" id="v16-klT">0 kcal</div><div class="l">Heute gegessen</div></div>'+
+      '<div id="v16-klL" class="col" style="gap:6px;max-height:45vh;overflow-y:auto"></div>'+
+      '<details class="v9-card"><summary style="cursor:pointer;font-weight:700">📊 Grundumsatz berechnen</summary>'+
+        '<div class="row" style="margin-top:8px"><input class="v9-input" id="v16-klAge" type="number" placeholder="Alter" value="30" style="flex:1"><input class="v9-input" id="v16-klH" type="number" placeholder="Größe cm" value="175" style="flex:1"><input class="v9-input" id="v16-klW" type="number" placeholder="kg" value="75" style="flex:1"></div>'+
+        '<select class="v9-input" id="v16-klG" style="margin-top:8px"><option value="m">Mann</option><option value="w">Frau</option></select>'+
+        '<button class="btn primary" id="v16-klGo" style="width:100%;margin-top:8px">Berechnen</button>'+
+        '<div class="v9-stat" style="margin-top:8px"><div class="v" id="v16-klO">–</div><div class="l">Grundumsatz (kcal/Tag)</div></div>'+
+      '</details>'+
+    '</div>';
+  },
+  init: function(win){
+    // Kalorien pro 100g
+    var FOOD = {
+      'apfel':52,'banane':89,'brot':265,'reis':130,'nudeln':158,'kartoffel':77,
+      'hähnchen':165,'rindfleisch':250,'schwein':242,'fisch':206,'ei':155,
+      'milch':42,'joghurt':59,'käse':402,'butter':717,'schokolade':546,
+      'pizza':266,'burger':295,'pommes':312,'salat':15,'tomate':18,
+      'gurke':15,'karotte':41,'brokkoli':34,'spinat':23,'orange':47,
+      'kirsche':50,'erdbeere':32,'weintraube':69,'melone':34,'avocado':160,
+      'mandel':579,'walnuss':654,'erdnuss':567,'haferflocken':389,'müsli':471,
+      'cola':42,'bier':43,'wein':83,'kaffee':2,'tee':1
+    };
+    var today = new Date().toISOString().slice(0,10);
+    function all(){ return store.get('kcal16',[]).filter(function(x){ return x.d === today; }); }
+    function render(){
+      var a = all();
+      var total = a.reduce(function(s,x){ return s + x.kcal; }, 0);
+      win.querySelector('#v16-klT').textContent = total + ' kcal';
+      win.querySelector('#v16-klL').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v16-food-row"><b style="flex:1">'+esc(x.n)+'</b><span class="dim sm">'+x.g+' g</span><span class="cal">'+Math.round(x.kcal)+' kcal</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Noch nichts gegessen</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('kcal16', store.get('kcal16',[]).filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v16-klA').onclick = function(){
+      var n = win.querySelector('#v16-klF').value.trim().toLowerCase();
+      var g = parseInt(win.querySelector('#v16-klM').value) || 100;
+      if(!n) return toast('Lebensmittel eingeben');
+      var kcal100 = FOOD[n];
+      if(!kcal100){ return toast('Nicht gefunden: ' + n); }
+      var a = store.get('kcal16',[]);
+      a.unshift({id:uid(), n:n, g:g, kcal: kcal100*g/100, d:today, ts:Date.now()});
+      store.set('kcal16', a.slice(0,500));
+      win.querySelector('#v16-klF').value = '';
+      render();
+    };
+    win.querySelector('#v16-klGo').onclick = function(){
+      var age = parseInt(win.querySelector('#v16-klAge').value)||30;
+      var h = parseFloat(win.querySelector('#v16-klH').value)||175;
+      var w = parseFloat(win.querySelector('#v16-klW').value)||75;
+      var g = win.querySelector('#v16-klG').value;
+      var bmr = g === 'm' ? 10*w + 6.25*h - 5*age + 5 : 10*w + 6.25*h - 5*age - 161;
+      win.querySelector('#v16-klO').textContent = Math.round(bmr) + ' kcal';
+    };
+    render();
+  }
+};
+
+/* 7 · ALLERGIE-TAGEBUCH */
+APPS['allergie'] = {
+  name:'Allergie-Tagebuch', icon:'🤧',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🤧 Allergie-Tagebuch</div><div class="dim sm">Symptome & Auslöser</div></div>'+
+      '<div class="row"><input class="v9-input" id="v16-alT" placeholder="Auslöser / Symptom (z.B. Pollen)" style="flex:1"><select class="v9-input" id="v16-alS" style="width:auto"><option value="1">😊 Leicht</option><option value="2">😐 Mittel</option><option value="3">😣 Stark</option></select><button class="btn primary" id="v16-alA">+</button></div>'+
+      '<div id="v16-alL" class="col" style="gap:6px;max-height:55vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('allergy16',[]); }
+    function render(){
+      var a = all();
+      win.querySelector('#v16-alL').innerHTML = a.length ? a.slice(0,30).map(function(x){
+        var col = x.s == 3 ? 'red' : x.s == 2 ? 'orange' : 'green';
+        var emo = x.s == 3 ? '😣 Stark' : x.s == 2 ? '😐 Mittel' : '😊 Leicht';
+        return '<div class="v16-food-row"><b style="flex:1">'+esc(x.t)+'</b><span class="v16-pill '+col+'">'+emo+'</span><span class="dim sm">'+new Date(x.ts).toLocaleDateString('de-DE')+'</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Noch keine Einträge</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('allergy16', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v16-alA').onclick = function(){
+      var t = win.querySelector('#v16-alT').value.trim(); if(!t) return;
+      var a = all(); a.unshift({id:uid(), t:t, s:parseInt(win.querySelector('#v16-alS').value), ts:Date.now()});
+      store.set('allergy16', a.slice(0,200));
+      win.querySelector('#v16-alT').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* 8 · MEDIKAMENTEN-PLAN */
+APPS['medikamente'] = {
+  name:'Medikamenten-Plan', icon:'💊',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💊 Medikamenten-Plan</div><div class="dim sm">Einnahme-Erinnerungen</div></div>'+
+      '<input class="v9-input" id="v16-mdN" placeholder="Medikament (z.B. Ibuprofen)">'+
+      '<div class="row"><input class="v9-input" id="v16-mdD" placeholder="Dosis (z.B. 400mg)" style="flex:1"><input class="v9-input" id="v16-mdT" type="time" style="width:auto"><button class="btn primary" id="v16-mdA">+</button></div>'+
+      '<div id="v16-mdL" class="col" style="gap:6px;max-height:55vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('meds16',[]); }
+    var today = new Date().toISOString().slice(0,10);
+    function render(){
+      var a = all().sort(function(x,y){ return x.t.localeCompare(y.t); });
+      win.querySelector('#v16-mdL').innerHTML = a.length ? a.map(function(m){
+        var taken = m.done && m.done[today];
+        return '<div class="v16-food-row"><input type="checkbox" data-id="'+m.id+'" '+(taken?'checked':'')+'><div style="flex:1"><b>'+esc(m.n)+'</b><div class="dim sm">'+esc(m.d)+'</div></div><span class="v16-pill">🕐 '+esc(m.t)+'</span><span class="x" data-del="'+m.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Medikamente</div>';
+      win.querySelectorAll('input[type=checkbox]').forEach(function(c){
+        c.onchange = function(){
+          var arr = all();
+          var m = arr.find(function(x){ return x.id === c.dataset.id; });
+          if(!m) return;
+          m.done = m.done || {};
+          m.done[today] = c.checked;
+          store.set('meds16', arr);
+          render();
+        };
+      });
+      win.querySelectorAll('[data-del]').forEach(function(el){ el.onclick = function(){ store.set('meds16', all().filter(function(v){ return v.id !== el.dataset.del; })); render(); }; });
+    }
+    win.querySelector('#v16-mdA').onclick = function(){
+      var n = win.querySelector('#v16-mdN').value.trim(); if(!n) return;
+      var a = all(); a.push({id:uid(), n:n, d:win.querySelector('#v16-mdD').value.trim(), t:win.querySelector('#v16-mdT').value||'08:00', done:{}});
+      store.set('meds16', a);
+      win.querySelector('#v16-mdN').value = ''; win.querySelector('#v16-mdD').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* 9 · STIMMUNGSTAGEBUCH PRO */
+APPS['stimmung-pro'] = {
+  name:'Stimmung Pro', icon:'😊',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">😊 Stimmung Pro</div><div class="dim sm">Mit Notizen und Verlauf</div></div>'+
+      '<div class="v16-mood" id="v16-stM">'+
+        '<button data-m="1">😢</button><button data-m="2">😕</button><button data-m="3">😐</button><button data-m="4">🙂</button><button data-m="5">😄</button>'+
+      '</div>'+
+      '<input class="v9-input" id="v16-stN" placeholder="Was ist passiert?">'+
+      '<button class="btn primary" id="v16-stA">💾 Speichern</button>'+
+      '<div class="v9-stat"><div class="v" id="v16-stAvg">–</div><div class="l">Ø letzte 7</div></div>'+
+      '<div id="v16-stL" class="col" style="gap:6px;max-height:40vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var chosen = 0;
+    var EMO = {1:'😢',2:'😕',3:'😐',4:'🙂',5:'😄'};
+    function all(){ return store.get('moodpro16',[]); }
+    function render(){
+      var a = all();
+      var rec = a.slice(0,7);
+      if(rec.length){
+        var avg = rec.reduce(function(s,x){ return s + x.m; }, 0) / rec.length;
+        win.querySelector('#v16-stAvg').textContent = avg.toFixed(1) + ' / 5';
+      }
+      win.querySelector('#v16-stL').innerHTML = a.length ? a.slice(0,30).map(function(x){
+        return '<div class="v16-food-row"><span style="font-size:22px">'+EMO[x.m]+'</span><b style="flex:1">'+esc(x.n||'—')+'</b><span class="dim sm">'+new Date(x.ts).toLocaleDateString('de-DE')+'</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Einträge</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('moodpro16', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelectorAll('#v16-stM button').forEach(function(b){
+      b.onclick = function(){
+        chosen = parseInt(b.dataset.m);
+        win.querySelectorAll('#v16-stM button').forEach(function(x){ x.classList.toggle('on', x === b); });
+      };
+    });
+    win.querySelector('#v16-stA').onclick = function(){
+      if(!chosen) return toast('Stimmung wählen');
+      var a = all(); a.unshift({id:uid(), m:chosen, n:win.querySelector('#v16-stN').value.trim(), ts:Date.now()});
+      store.set('moodpro16', a.slice(0,200));
+      win.querySelector('#v16-stN').value = ''; chosen = 0;
+      win.querySelectorAll('#v16-stM button').forEach(function(x){ x.classList.remove('on'); });
+      render(); toast('✅ Gespeichert');
+    };
+    render();
+  }
+};
+
+/* 10 · ATEM-ÜBUNGEN PRO */
+APPS['atem-pro'] = {
+  name:'Atem Pro', icon:'🧘',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🧘 Atem Pro</div><div class="dim sm">4 Techniken zur Entspannung</div></div>'+
+      '<div class="row" id="v16-atT">'+
+        '<button class="v9-chip on" data-t="478">4-7-8</button>'+
+        '<button class="v9-chip" data-t="box">Box 4-4-4-4</button>'+
+        '<button class="v9-chip" data-t="wim">Wim Hof</button>'+
+        '<button class="v9-chip" data-t="coherent">5-5</button>'+
+      '</div>'+
+      '<div class="v16-ring" id="v16-atR"><div><div class="n" id="v16-atN">Bereit</div><div class="l" id="v16-atL">Start</div></div></div>'+
+      '<div class="row"><button class="btn primary" id="v16-atS" style="flex:1">▶ Start</button><button class="btn" id="v16-atStop">⏹ Stop</button></div>'+
+      '<div class="v9-card"><b>📖 Anleitung</b><div class="dim sm" style="margin-top:6px" id="v16-atD">Wähle eine Technik</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var TECHS = {
+      '478': {name:'4-7-8', desc:'4 Sek ein · 7 Sek halten · 8 Sek aus · Beruhigt'],
+      'box': {name:'Box 4-4-4-4', desc:'4 Sek ein · 4 halten · 4 aus · 4 halten · Fokus'],
+      'wim': {name:'Wim Hof', desc:'Schnelles Atmen 30× · dann halten · Energie'],
+      'coherent': {name:'5-5', desc:'5 Sek ein · 5 Sek aus · Herz-Kohärenz'}
+    };
+    var cur = '478', running = false, timer = null;
+    function ringSet(pct){ win.querySelector('#v16-atR').style.background = 'conic-gradient(var(--c1) '+ (pct*3.6) +'deg, rgba(255,255,255,.06) 0deg)'; }
+    function setLabel(n, l){ win.querySelector('#v16-atN').textContent = n; win.querySelector('#v16-atL').textContent = l; }
+    function runCycle(){
+      if(!running) return;
+      if(cur === '478'){
+        setLabel('4', 'Einatmen'); ringSet(0); setTimeout(function(){ ringSet(25); }, 10);
+        setTimeout(function(){ if(running) { setLabel('7', 'Halten'); } }, 4000);
+        setTimeout(function(){ if(running) { setLabel('8', 'Ausatmen'); } }, 11000);
+        timer = setTimeout(runCycle, 19000);
+      } else if(cur === 'box'){
+        setLabel('4', 'Einatmen'); ringSet(0); setTimeout(function(){ ringSet(25); }, 10);
+        setTimeout(function(){ if(running) setLabel('4', 'Halten'); }, 4000);
+        setTimeout(function(){ if(running) { setLabel('4', 'Ausatmen'); ringSet(0); } }, 8000);
+        setTimeout(function(){ if(running) setLabel('4', 'Halten'); }, 12000);
+        timer = setTimeout(runCycle, 16000);
+      } else if(cur === 'coherent'){
+        setLabel('5', 'Einatmen'); ringSet(0); setTimeout(function(){ ringSet(50); }, 10);
+        setTimeout(function(){ if(running) { setLabel('5', 'Ausatmen'); ringSet(0); } }, 5000);
+        timer = setTimeout(runCycle, 10000);
+      } else if(cur === 'wim'){
+        setLabel('30×', 'Schnell atmen');
+        timer = setTimeout(runCycle, 20000);
+      }
+    }
+    win.querySelectorAll('#v16-atT [data-t]').forEach(function(b){
+      b.onclick = function(){
+        cur = b.dataset.t;
+        win.querySelectorAll('#v16-atT [data-t]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        win.querySelector('#v16-atD').textContent = TECHS[cur].desc;
+      };
+    });
+    win.querySelector('#v16-atS').onclick = function(){
+      if(running) return;
+      running = true; runCycle();
+    };
+    win.querySelector('#v16-atStop').onclick = function(){ running = false; clearTimeout(timer); setLabel('Gestoppt', 'OK'); ringSet(0); };
+    win.querySelector('#v16-atD').textContent = TECHS[cur].desc;
+  }
+};
+
+/* 11 · VITAMIN-TRACKER */
+APPS['vitamine'] = {
+  name:'Vitamin-Tracker', icon:'🍊',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🍊 Vitamin-Tracker</div><div class="dim sm">Wichtige Vitamine & ihre Quellen</div></div>'+
+      '<div id="v16-vtL" class="col" style="gap:6px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['A','🥕','Sehen, Haut','Karotten, Süßkartoffel, Leber, Spinat'],
+      ['B1','🌾','Nerven, Energie','Vollkorn, Hülsenfrüchte, Schweinefleisch'],
+      ['B2','🥛','Haut, Augen','Milch, Käse, Eier, Fleisch'],
+      ['B3','🍗','Stoffwechsel','Fleisch, Fisch, Nüsse, Getreide'],
+      ['B5','🥑','Hormone','Avocado, Hülsenfrüchte, Eier'],
+      ['B6','🍌','Nerven','Banane, Fleisch, Fisch, Kartoffel'],
+      ['B7','🥚','Haare, Nägel','Eier, Nüsse, Haferflocken'],
+      ['B9','🥬','Zellteilung','Grünes Gemüse, Hülsenfrüchte'],
+      ['B12','🥩','Blutbildung','Fleisch, Fisch, Eier, Milch'],
+      ['C','🍊','Immunsystem','Zitrusfrüchte, Paprika, Brokkoli'],
+      ['D','☀️','Knochen','Sonne, Fisch, Eier, Pilze'],
+      ['E','🥜','Zellen','Nüsse, Samen, Pflanzenöle'],
+      ['K','🥬','Blutgerinnung','Grünes Gemüse, Kohl'],
+      ['K2','🧀','Knochen','Käse, Eier, fermentierte Soja']
+    ];
+    win.querySelector('#v16-vtL').innerHTML = D.map(function(x){
+      return '<div class="v16-food-row"><span style="font-size:20px;font-weight:800;color:var(--c1);width:44px;text-align:center">'+x[0]+'</span><span style="font-size:20px">'+x[1]+'</span><div style="flex:1"><b>'+esc(x[2])+'</b><div class="dim sm">'+esc(x[3])+'</div></div></div>';
+    }).join('');
+  }
+};
+
+/* 12 · SPORT-TAGEBUCH */
+APPS['sport-tagebuch'] = {
+  name:'Sport-Tagebuch', icon:'🏃',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🏃 Sport-Tagebuch</div><div class="dim sm">Aktivität & Kalorien</div></div>'+
+      '<div class="row"><select class="v9-input" id="v16-spA" style="flex:1"><option value="8">🚶 Gehen (8 kcal/min)</option><option value="10">🏃 Laufen (10)</option><option value="7">🚴 Rad (7)</option><option value="9">🏊 Schwimmen (9)</option><option value="6">🧘 Yoga (6)</option><option value="12">🥊 Boxen (12)</option><option value="11">🏋️ Kraft (11)</option></select><input class="v9-input" id="v16-spM" type="number" placeholder="Minuten" value="30" style="width:100px"><button class="btn primary" id="v16-spAdd">+</button></div>'+
+      '<div class="v9-stat"><div class="v" id="v16-spT">0 kcal</div><div class="l">Heute verbrannt</div></div>'+
+      '<div id="v16-spL" class="col" style="gap:6px;max-height:45vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var today = new Date().toISOString().slice(0,10);
+    function all(){ return store.get('sport16',[]).filter(function(x){ return x.d === today; }); }
+    function render(){
+      var a = all();
+      var total = a.reduce(function(s,x){ return s + x.kcal; }, 0);
+      win.querySelector('#v16-spT').textContent = total + ' kcal';
+      win.querySelector('#v16-spL').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v16-food-row"><b style="flex:1">'+esc(x.t)+'</b><span class="dim sm">'+x.m+' min</span><span class="cal">'+x.kcal+' kcal</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Noch keine Aktivität</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('sport16', store.get('sport16',[]).filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v16-spAdd').onclick = function(){
+      var sel = win.querySelector('#v16-spA');
+      var kcalPerMin = parseInt(sel.value);
+      var name = sel.options[sel.selectedIndex].text.split('(')[0].trim();
+      var m = parseInt(win.querySelector('#v16-spM').value)||30;
+      var a = store.get('sport16',[]);
+      a.unshift({id:uid(), t:name, m:m, kcal: kcalPerMin*m, d:today, ts:Date.now()});
+      store.set('sport16', a.slice(0,300));
+      render(); toast('✅ ' + (kcalPerMin*m) + ' kcal');
+    };
+    render();
+  }
+};
+
+/* 13 · BMI-FORTGESCHRITTEN */
+APPS['bmi-pro'] = {
+  name:'BMI Pro', icon:'⚖️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">⚖️ BMI Pro</div><div class="dim sm">Mit Idealgewicht und Taille</div></div>'+
+      '<div class="row"><input class="v9-input" id="v16-bmH" type="number" placeholder="Größe cm" value="175" style="flex:1"><input class="v9-input" id="v16-bmW" type="number" placeholder="Gewicht kg" value="75" style="flex:1"></div>'+
+      '<input class="v9-input" id="v16-bmT" type="number" placeholder="Taille (cm, optional)">'+
+      '<select class="v9-input" id="v16-bmG"><option value="m">Mann</option><option value="w">Frau</option></select>'+
+      '<button class="btn primary" id="v16-bmGo">▶ Berechnen</button>'+
+      '<div class="row"><div class="v9-stat" style="flex:1"><div class="v" id="v16-bmO">–</div><div class="l">BMI</div></div><div class="v9-stat" style="flex:1"><div class="v" id="v16-bmI">–</div><div class="l">Idealgewicht</div></div></div>'+
+      '<div class="v9-stat"><div class="v" id="v16-bmW2">–</div><div class="l" id="v16-bmCat">Kategorie</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v16-bmGo').onclick = function(){
+      var h = parseFloat(win.querySelector('#v16-bmH').value) / 100;
+      var w = parseFloat(win.querySelector('#v16-bmW').value);
+      var g = win.querySelector('#v16-bmG').value;
+      if(!h || !w) return;
+      var bmi = w / (h*h);
+      var ideal = g === 'm' ? 47 + 2.3 * ((h*100)/2.54 - 60) : 45.5 + 2.3 * ((h*100)/2.54 - 60);
+      win.querySelector('#v16-bmO').textContent = bmi.toFixed(1);
+      win.querySelector('#v16-bmI').textContent = Math.round(ideal) + ' kg';
+      var cat;
+      if(bmi < 18.5) cat = '⚠️ Untergewicht';
+      else if(bmi < 25) cat = '✅ Normal';
+      else if(bmi < 30) cat = '⚠️ Übergewicht';
+      else cat = '🚨 Adipositas';
+      win.querySelector('#v16-bmCat').textContent = cat;
+      win.querySelector('#v16-bmW2').textContent = cat;
+    };
+    win.querySelector('#v16-bmGo').click();
+  }
+};
+
+/* 14 · ZAHNARZT-TRACKER */
+APPS['zahnarzt'] = {
+  name:'Zahnarzt-Tracker', icon:'🦷',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🦷 Zahnarzt-Tracker</div><div class="dim sm">Kontrollen im Blick</div></div>'+
+      '<div class="row"><input class="v9-input" id="v16-znT" placeholder="Behandlung" style="flex:1"><input class="v9-input" id="v16-znD" type="date" style="width:auto"><button class="btn primary" id="v16-znA">+</button></div>'+
+      '<div id="v16-znL" class="col" style="gap:6px"></div>'+
+      '<div class="v9-card"><b>💡 Empfehlungen</b><div class="dim sm" style="margin-top:6px">• 2× im Jahr zur Kontrolle<br>• 2-3× täglich putzen (2 Min)<br>• Zahnseide täglich<br>• Alle 6 Mon. Zahnstein entfernen</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('dental16',[]); }
+    function render(){
+      var a = all().sort(function(x,y){ return x.d.localeCompare(y.d); });
+      var today = new Date();
+      win.querySelector('#v16-znL').innerHTML = a.length ? a.map(function(x){
+        var d = Math.ceil((new Date(x.d) - today) / 86400000);
+        var col = d < 0 ? 'green' : d <= 14 ? 'red' : d <= 60 ? 'orange' : '';
+        var info = d < 0 ? 'vergangen' : d === 0 ? 'heute!' : 'in ' + d + ' T';
+        return '<div class="v16-food-row"><b style="flex:1">'+esc(x.t)+'</b><span class="dim sm">'+new Date(x.d).toLocaleDateString('de-DE')+'</span><span class="v16-pill '+col+'">'+info+'</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Termine</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('dental16', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v16-znA').onclick = function(){
+      var t = win.querySelector('#v16-znT').value.trim();
+      var d = win.querySelector('#v16-znD').value;
+      if(!t || !d) return;
+      var a = all(); a.push({id:uid(), t:t, d:d}); store.set('dental16', a);
+      win.querySelector('#v16-znT').value = ''; win.querySelector('#v16-znD').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* 15 · IMPF-PASS */
+APPS['impfpass'] = {
+  name:'Impf-Pass', icon:'💉',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">💉 Impf-Pass</div><div class="dim sm">Impfungen dokumentieren</div></div>'+
+      '<div class="row"><input class="v9-input" id="v16-imN" placeholder="Impfung (z.B. Tetanus)" style="flex:1"><input class="v9-input" id="v16-imD" type="date" style="width:auto"><button class="btn primary" id="v16-imA">+</button></div>'+
+      '<div id="v16-imL" class="col" style="gap:6px;max-height:55vh;overflow-y:auto"></div>'+
+      '<details class="v9-card"><summary style="cursor:pointer;font-weight:700">📋 Standard-Impfungen (STIKO)</summary><div class="dim sm" style="margin-top:8px;line-height:1.7">• Tetanus: alle 10 Jahre<br>• Diphtherie: alle 10 Jahre<br>• Influenza: jährlich<br>• COVID-19: nach Empfehlung<br>• Masern: 2× im Kindesalter<br>• Hepatitis B: 3× Grundimmunisierung</div></details>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('vacc16',[]); }
+    function render(){
+      var a = all().sort(function(x,y){ return y.d.localeCompare(x.d); });
+      win.querySelector('#v16-imL').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v16-food-row"><span style="font-size:20px">💉</span><b style="flex:1">'+esc(x.n)+'</b><span class="dim sm">'+new Date(x.d).toLocaleDateString('de-DE')+'</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Impfungen erfasst</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('vacc16', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v16-imA').onclick = function(){
+      var n = win.querySelector('#v16-imN').value.trim();
+      var d = win.querySelector('#v16-imD').value;
+      if(!n || !d) return;
+      var a = all(); a.push({id:uid(), n:n, d:d}); store.set('vacc16', a);
+      win.querySelector('#v16-imN').value = ''; win.querySelector('#v16-imD').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* 16 · MENSTRUATIONS-KALENDER */
+APPS['zyklus'] = {
+  name:'Zyklus-Kalender', icon:'🌸',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🌸 Zyklus-Kalender</div><div class="dim sm">Periode & Fruchtbarkeit</div></div>'+
+      '<div class="row"><input class="v9-input" id="v16-zkL" type="number" placeholder="Ø Zyklus (Tage)" value="28" style="flex:1"><input class="v9-input" id="v16-zkD" type="date" style="width:auto"><button class="btn primary" id="v16-zkA">+</button></div>'+
+      '<div class="v9-stat"><div class="v" id="v16-zkN">–</div><div class="l" id="v16-zkInfo">Nächste Periode</div></div>'+
+      '<div id="v16-zkL2" class="col" style="gap:6px;max-height:50vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('cycle16',[]); }
+    function render(){
+      var a = all().sort(function(x,y){ return y.d.localeCompare(x.d); });
+      if(a.length){
+        var last = new Date(a[0].d);
+        var len = a[0].l || 28;
+        var next = new Date(last.getTime() + len*86400000);
+        win.querySelector('#v16-zkN').textContent = next.toLocaleDateString('de-DE');
+        var daysTo = Math.ceil((next - new Date()) / 86400000);
+        win.querySelector('#v16-zkInfo').textContent = 'in ' + daysTo + ' Tagen';
+      }
+      win.querySelector('#v16-zkL2').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v16-food-row"><span style="font-size:20px">🌸</span><b style="flex:1">Start</b><span class="dim sm">'+new Date(x.d).toLocaleDateString('de-DE')+'</span><span class="x" data-id="'+x.id+'" style="cursor:pointer;color:var(--dim)">✕</span></div>';
+      }).join('') : '<div class="empty">Noch keine Einträge</div>';
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('cycle16', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v16-zkA').onclick = function(){
+      var d = win.querySelector('#v16-zkD').value; if(!d) return;
+      var l = parseInt(win.querySelector('#v16-zkL').value) || 28;
+      var a = all(); a.push({id:uid(), d:d, l:l}); store.set('cycle16', a);
+      win.querySelector('#v16-zkD').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* 17 · GESUNDHEITS-CHECK */
+APPS['gesundheit-check'] = {
+  name:'Gesundheits-Check', icon:'✅',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">✅ Gesundheits-Check</div><div class="dim sm">Selbsttest · Lebensstil</div></div>'+
+      '<div id="v16-gcL" class="col" style="gap:6px"></div>'+
+      '<button class="btn primary" id="v16-gcGo">▶ Auswerten</button>'+
+      '<div class="v9-stat"><div class="v" id="v16-gcO">–</div><div class="l">Punkte</div></div>'+
+      '<div class="v9-card"><b>📊 Ergebnis</b><div class="dim sm" style="margin-top:6px" id="v16-gcMsg">–</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var Q = [
+      'Trinkst du mind. 1,5 L Wasser pro Tag?',
+      'Bewegst du dich mind. 30 Min pro Tag?',
+      'Schläfst du 7-9 Stunden pro Nacht?',
+      'Isst du 5 Portionen Obst/Gemüse?',
+      'Verzichtest du auf Rauchen?',
+      'Trinkst du max. 1 Glas Alkohol/Tag?',
+      'Hast du wenig Stress im Alltag?',
+      'Gehst du regelmäßig zum Arzt?',
+      'Fühlst du dich energiegeladen?',
+      'Isst du weniger als 2× Woche Fast Food?'
+    ];
+    win.querySelector('#v16-gcL').innerHTML = Q.map(function(q, i){
+      return '<label class="v16-food-row" style="cursor:pointer"><input type="checkbox" data-i="'+i+'"><span style="flex:1">'+esc(q)+'</span></label>';
+    }).join('');
+    win.querySelector('#v16-gcGo').onclick = function(){
+      var pts = 0;
+      win.querySelectorAll('input[type=checkbox]').forEach(function(c){ if(c.checked) pts++; });
+      win.querySelector('#v16-gcO').textContent = pts + ' / 10';
+      var msg;
+      if(pts >= 8) msg = '🏆 Sehr gesunder Lebensstil! Weiter so!';
+      else if(pts >= 6) msg = '👍 Gut! Ein paar Verbesserungen möglich.';
+      else if(pts >= 4) msg = '⚠️ Mittelmäßig. Bitte mehr auf dich achten.';
+      else msg = '🚨 Ungesund! Bitte Lebensstil überdenken.';
+      win.querySelector('#v16-gcMsg').textContent = msg;
+    };
+  }
+};
+
+/* 18 · AUGEN-TRAINING */
+APPS['augen-training'] = {
+  name:'Augen-Training', icon:'👁',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">👁 Augen-Training</div><div class="dim sm">20-20-20 Regel für Bildschirmarbeit</div></div>'+
+      '<div class="v9-card"><b>📋 Die 20-20-20 Regel</b><div class="dim sm" style="margin-top:6px">Alle 20 Minuten · 20 Sekunden · auf etwas 20 Meter entferntes schauen</div></div>'+
+      '<div class="row"><button class="btn primary" id="v16-au20" style="flex:1">▶ 20 Sek Pause</button><button class="btn" id="v16-au60">⏸ 60 Min Timer</button></div>'+
+      '<div class="v9-stat"><div class="v" id="v16-auT">20</div><div class="l">Sekunden</div></div>'+
+      '<div class="v9-card"><b>🎯 Übungen</b><div class="dim sm" style="margin-top:6px">1. Nah/Fern: Finger vor Nase · abwechselnd fixieren (10×)<br>2. Kreis: Augen 5× im Kreis<br>3. Blinzeln: 20× bewusst blinzeln<br>4. Palming: Hände warm reiben · Augen bedecken (30 Sek)</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var int;
+    win.querySelector('#v16-au20').onclick = function(){
+      var s = 20;
+      win.querySelector('#v16-auT').textContent = s;
+      clearInterval(int);
+      int = setInterval(function(){
+        s--;
+        win.querySelector('#v16-auT').textContent = s;
+        if(s <= 0){ clearInterval(int); toast('✅ Pause geschafft'); }
+      }, 1000);
+    };
+    win.querySelector('#v16-au60').onclick = function(){
+      toast('⏸ Timer läuft im Hintergrund');
+      var m = 60;
+      var i2 = setInterval(function(){
+        m--;
+        if(m <= 0){ clearInterval(i2); toast('👁 Zeit für 20-Sek-Pause'); }
+      }, 60000);
+    };
+  }
+};
+
+/* 19 · ERSTE-HILFE-KIDS */
+APPS['erste-hilfe-kids'] = {
+  name:'Erste Hilfe Kids', icon:'👶',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">👶 Erste Hilfe für Kinder</div><div class="dim sm">Sofort-Anleitung bei Notfällen</div></div>'+
+      '<div class="v9-card" style="background:rgba(224,59,90,.1);border-color:#e03b5a"><b>🚨 NOTRUF: 112</b></div>'+
+      '<details class="v9-card" open><summary style="cursor:pointer;font-weight:800">🫁 Atemnot / Verschlucken</summary><div class="dim sm" style="margin-top:8px;line-height:1.7">• Baby (<1): 5× Rücken · 5× Brustkorb<br>• Kind (>1): 5× Rücken · 5× Bauch<br>• Abwechseln bis Objekt raus<br>• 112 rufen</div></details>'+
+      '<details class="v9-card"><summary style="cursor:pointer;font-weight:800">🔥 Verbrennung</summary><div class="dim sm" style="margin-top:8px;line-height:1.7">• 10 Min lauwarm kühlen (max. 20 °C)<br>• Nichts öffnen (Blasen)<br>• Steril abdecken<br>• Arzt bei >Handfläche</div></details>'+
+      '<details class="v9-card"><summary style="cursor:pointer;font-weight:800">🤒 Fieber</summary><div class="dim sm" style="margin-top:8px;line-height:1.7">• >38,5 °C = Fieber<br>• >39,5 °C = hohes Fieber<br>• Wadenwickel (lauwarm)<br>• Arzt ab 3 Monate</div></details>'+
+      '<details class="v9-card"><summary style="cursor:pointer;font-weight:800">🩸 Sturz / Kopfverletzung</summary><div class="dim sm" style="margin-top:8px;line-height:1.7">• Bei Bewusstlosigkeit: 112<br>• Erbrechen: sofort Arzt<br>• Wache halten<br>• Keine Eigenmedikation</div></details>'+
+      '<details class="v9-card"><summary style="cursor:pointer;font-weight:800">☀️ Sonnenstich / Hitzschlag</summary><div class="dim sm" style="margin-top:8px;line-height:1.7">• Schatten, kühlen<br>• Kühle Getränke (Wasser)<br>• Bei Bewusstlosigkeit: 112<br>• Kopf hoch lagern</div></details>'+
+    '</div>';
+  },
+  init: function(){}
+};
+
+/* 20 · GESUNDHEITS-LOG */
+APPS['gesundheit-log'] = {
+  name:'Gesundheits-Log', icon:'📊',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📊 Gesundheits-Log</div><div class="dim sm">Übersicht aller Gesundheitsdaten</div></div>'+
+      '<div id="v16-glL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function getStats(){
+      var today = new Date().toISOString().slice(0,10);
+      var w = store.get('water16',{}); w = w.date === today ? w.ml||0 : 0;
+      var s = store.get('steps16',{}); s = s.date === today ? s.n||0 : 0;
+      var sl = store.get('sleep16',[]);
+      var slAvg = sl.length ? sl.slice(0,7).reduce(function(a,x){ return a + x.h; }, 0)/Math.min(7, sl.length) : 0;
+      var kcal = store.get('kcal16',[]).filter(function(x){ return x.d === today; }).reduce(function(a,x){ return a + x.kcal; }, 0);
+      var mood = store.get('moodpro16',[]);
+      var moodAvg = mood.length ? mood.slice(0,7).reduce(function(a,x){ return a + x.m; }, 0)/Math.min(7, mood.length) : 0;
+      return {w:w, s:s, slAvg:slAvg, kcal:kcal, moodAvg:moodAvg};
+    }
+    function render(){
+      var s = getStats();
+      win.querySelector('#v16-glL').innerHTML =
+        '<div class="v16-food-row"><span style="font-size:22px">💧</span><b style="flex:1">Wasser heute</b><span class="cal">'+s.w+' / 2000 ml</span></div>'+
+        '<div class="v16-food-row"><span style="font-size:22px">👟</span><b style="flex:1">Schritte heute</b><span class="cal">'+s.s.toLocaleString('de-DE')+' / 10000</span></div>'+
+        '<div class="v16-food-row"><span style="font-size:22px">😴</span><b style="flex:1">Ø Schlaf (7 Tage)</b><span class="cal">'+s.slAvg.toFixed(1)+' h</span></div>'+
+        '<div class="v16-food-row"><span style="font-size:22px">🍎</span><b style="flex:1">Kalorien heute</b><span class="cal">'+Math.round(s.kcal)+' kcal</span></div>'+
+        '<div class="v16-food-row"><span style="font-size:22px">😊</span><b style="flex:1">Ø Stimmung (7 T.)</b><span class="cal">'+s.moodAvg.toFixed(1)+' / 5</span></div>';
+    }
+    render();
+  }
+};
+
+console.log('%c📦 v16 geladen — Gesundheit & Wohlbefinden · 20 Apps','background:linear-gradient(90deg,#4de88a,#00e5ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('Aktive Apps:', Object.keys(APPS).length);
+
+setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click(); }, 150);
+
+})();
+</script>
 </body>
 </html>
