@@ -14226,5 +14226,277 @@ setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · HALDO FACE · Lebendiger Avatar
+     ============================================================ -->
+<style id="haldoface-style">
+.hf-wrap{position:relative;padding:20px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.hf-canvas{width:100%;max-width:340px;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 50% 40%,rgba(0,229,255,.08),rgba(0,20,50,.4));border:2px solid rgba(0,229,255,.3);box-shadow:0 0 60px rgba(0,229,255,.3),inset 0 0 60px rgba(0,229,255,.1)}
+.hf-modes{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.hf-mode{padding:8px 14px;border-radius:999px;background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.3);color:var(--c1);font-family:inherit;font-weight:700;font-size:12px;cursor:pointer;transition:.15s}
+.hf-mode.on{background:linear-gradient(135deg,var(--c1),var(--c2));color:#02101e;border-color:var(--c1);box-shadow:0 0 12px rgba(0,229,255,.5)}
+.hf-status{padding:12px 16px;border-radius:14px;background:linear-gradient(150deg,rgba(0,229,255,.1),rgba(180,120,255,.08));border:1px solid rgba(0,229,255,.2);text-align:center;font-weight:600;min-height:44px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.hf-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%;max-width:400px}
+.hf-action{padding:12px 4px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(120,180,255,.14);color:var(--txt);font-family:inherit;font-weight:600;font-size:11px;cursor:pointer;transition:.15s;text-align:center}
+.hf-action:hover{background:rgba(0,229,255,.1);border-color:var(--c1);transform:translateY(-2px)}
+</style>
+
+<script>
+(function(){
+'use strict';
+var H = window.HalDo;
+if(!H || !H.APPS){ console.error('[haldoface] Foundation fehlt'); return; }
+var APPS = H.APPS;
+var esc=H.esc, toast=H.toast;
+
+APPS['haldo-face'] = {
+  name:'HalDo Face', icon:'🦚',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🦚 HalDo Face</div><div class="dim sm">Dein lebendiger KI-Begleiter</div></div>'+
+      '<div class="hf-wrap">'+
+        '<canvas class="hf-canvas" id="hf-canvas" width="400" height="400"></canvas>'+
+        '<div class="hf-status" id="hf-status">Hallo, ich bin HalDo. Wie kann ich helfen?</div>'+
+        '<div class="hf-modes" id="hf-modes">'+
+          '<button class="hf-mode on" data-m="human">👤 Human</button>'+
+          '<button class="hf-mode" data-m="cyborg">🤖 Cyborg</button>'+
+          '<button class="hf-mode" data-m="peacock">🦚 Êzîdî</button>'+
+        '</div>'+
+        '<div class="hf-actions">'+
+          '<button class="hf-action" data-a="blink">👁 Blinzeln</button>'+
+          '<button class="hf-action" data-a="happy">😄 Lächeln</button>'+
+          '<button class="hf-action" data-a="surprise">😲 Wow</button>'+
+          '<button class="hf-action" data-a="sleep">😴 Schlaf</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  },
+  init: function(win){
+    var canvas = win.querySelector('#hf-canvas');
+    if(!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var W = 400, H2 = 400;
+    var mode = 'human';
+    var blinkState = 0;      // 0=offen, 1=halb, 2=zu
+    var blinkTimer = 0;
+    var mood = 'normal';     // normal, happy, surprise, sleep
+    var t = 0;
+
+    var raf;
+    function loop(){
+      t += 0.02;
+      ctx.clearRect(0,0,W,H2);
+
+      var cx = W/2, cy = H2/2 + 10;
+
+      var skin = mode === 'human' ? '#f4c4a0' : mode === 'cyborg' ? '#8fa8d4' : '#b478ff';
+      var eyeCol = mode === 'human' ? '#3a2010' : mode === 'cyborg' ? '#00e5ff' : '#ffd84a';
+      var hairCol = mode === 'human' ? '#3a2010' : mode === 'cyborg' ? '#5a7ab8' : '#00e5ff';
+      var glowCol = mode === 'human' ? 'rgba(0,229,255,.3)' : mode === 'cyborg' ? 'rgba(0,229,255,.5)' : 'rgba(180,120,255,.5)';
+
+      // Kopf
+      var headR = 120;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, headR, 0, Math.PI*2);
+      var grd = ctx.createRadialGradient(cx-30, cy-40, 20, cx, cy, headR);
+      grd.addColorStop(0, skin);
+      grd.addColorStop(1, mode === 'human' ? '#d8a880' : mode === 'cyborg' ? '#5a7ab8' : '#7a48c8');
+      ctx.fillStyle = grd;
+      ctx.fill();
+      ctx.restore();
+
+      // Haare / Helm
+      ctx.beginPath();
+      ctx.arc(cx, cy, headR, Math.PI*1.05, Math.PI*1.95);
+      ctx.lineTo(cx + headR*0.9, cy - headR*0.5);
+      ctx.lineTo(cx - headR*0.9, cy - headR*0.5);
+      ctx.closePath();
+      ctx.fillStyle = hairCol;
+      ctx.fill();
+
+      // Cyborg-Antenne
+      if(mode === 'cyborg'){
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - headR);
+        ctx.lineTo(cx, cy - headR - 40);
+        ctx.strokeStyle = glowCol;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx, cy - headR - 45, 8, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(0,229,255,.8)';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(cx - 40, cy - 60);
+        ctx.lineTo(cx + 40, cy - 60);
+        ctx.strokeStyle = 'rgba(0,229,255,.3)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
+      // Pfauenfedern (Êzîdî)
+      if(mode === 'peacock'){
+        for(var i=0;i<5;i++){
+          var angle = -Math.PI/2 + (i-2)*0.35;
+          var px = cx + Math.cos(angle)*headR*0.9;
+          var py = cy + Math.sin(angle)*headR*0.9;
+          ctx.beginPath();
+          ctx.arc(px, py, 12, 0, Math.PI*2);
+          ctx.fillStyle = 'rgba(0,229,255,.6)';
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(px, py, 6, 0, Math.PI*2);
+          ctx.fillStyle = '#ffd84a';
+          ctx.fill();
+        }
+      }
+
+      var bob = Math.sin(t) * 2;
+      var eyeY = cy - 20 + bob;
+      var eyeOffX = 40;
+      var eyeR = mood === 'surprise' ? 22 : mood === 'sleep' ? 12 : 18;
+
+      drawEye(ctx, cx - eyeOffX, eyeY, eyeR, eyeCol, mood === 'sleep' ? 'closed' : blinkState, t);
+      drawEye(ctx, cx + eyeOffX, eyeY, eyeR, eyeCol, mood === 'sleep' ? 'closed' : blinkState, t);
+
+      // Augenbrauen
+      ctx.strokeStyle = hairCol;
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      if(mood === 'surprise'){
+        ctx.moveTo(cx - eyeOffX - 18, eyeY - 40);
+        ctx.lineTo(cx - eyeOffX + 18, eyeY - 45);
+        ctx.moveTo(cx + eyeOffX - 18, eyeY - 45);
+        ctx.lineTo(cx + eyeOffX + 18, eyeY - 40);
+      } else if(mood === 'happy'){
+        ctx.moveTo(cx - eyeOffX - 18, eyeY - 30);
+        ctx.quadraticCurveTo(cx - eyeOffX, eyeY - 42, cx - eyeOffX + 18, eyeY - 30);
+        ctx.moveTo(cx + eyeOffX - 18, eyeY - 30);
+        ctx.quadraticCurveTo(cx + eyeOffX, eyeY - 42, cx + eyeOffX + 18, eyeY - 30);
+      } else {
+        ctx.moveTo(cx - eyeOffX - 18, eyeY - 35);
+        ctx.lineTo(cx - eyeOffX + 18, eyeY - 35);
+        ctx.moveTo(cx + eyeOffX - 18, eyeY - 35);
+        ctx.lineTo(cx + eyeOffX + 18, eyeY - 35);
+      }
+      ctx.stroke();
+
+      // Nase
+      ctx.beginPath();
+      ctx.moveTo(cx, eyeY + 20);
+      ctx.lineTo(cx - 8, eyeY + 45);
+      ctx.lineTo(cx + 8, eyeY + 45);
+      ctx.strokeStyle = mode === 'cyborg' ? 'rgba(0,229,255,.5)' : 'rgba(0,0,0,.2)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Mund
+      var mouthY = cy + 50 + bob;
+      ctx.beginPath();
+      if(mood === 'happy'){
+        ctx.arc(cx, mouthY - 10, 30, 0.2*Math.PI, 0.8*Math.PI);
+      } else if(mood === 'surprise'){
+        ctx.arc(cx, mouthY, 18, 0, Math.PI*2);
+      } else if(mood === 'sleep'){
+        ctx.moveTo(cx - 20, mouthY);
+        ctx.quadraticCurveTo(cx, mouthY + 8, cx + 20, mouthY);
+      } else {
+        ctx.moveTo(cx - 25, mouthY);
+        ctx.quadraticCurveTo(cx, mouthY + 12, cx + 25, mouthY);
+      }
+      ctx.strokeStyle = mode === 'cyborg' ? 'rgba(0,229,255,.7)' : '#5a2010';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Wangen
+      if(mood === 'happy'){
+        ctx.beginPath();
+        ctx.arc(cx - 65, cy + 25, 14, 0, Math.PI*2);
+        ctx.arc(cx + 65, cy + 25, 14, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(255,100,150,.4)';
+        ctx.fill();
+      }
+
+      // ✅ SAUBERE Blinzel-Logik
+      blinkTimer++;
+      if(blinkState === 0 && blinkTimer > 100 + Math.random()*80){
+        blinkTimer = 0;
+        blinkState = 1;   // zu
+        setTimeout(function(){
+          blinkState = 0; // offen
+        }, 130);
+      }
+
+      raf = requestAnimationFrame(loop);
+    }
+
+    function drawEye(ctx, x, y, r, col, state, t){
+      if(state === 'closed' || state >= 1){
+        ctx.beginPath();
+        ctx.moveTo(x - r, y);
+        ctx.quadraticCurveTo(x, y + r*0.3, x + r, y);
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        return;
+      }
+      ctx.beginPath();
+      ctx.ellipse(x, y, r, r*0.9, 0, 0, Math.PI*2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      var dx = Math.sin(t*0.5) * r*0.3;
+      var dy = Math.cos(t*0.3) * r*0.15;
+      ctx.beginPath();
+      ctx.arc(x + dx, y + dy, r*0.55, 0, Math.PI*2);
+      ctx.fillStyle = col;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x + dx, y + dy, r*0.28, 0, Math.PI*2);
+      ctx.fillStyle = '#000';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x + dx - r*0.2, y + dy - r*0.2, r*0.12, 0, Math.PI*2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+    }
+
+    function setMood(m){
+      mood = m;
+      setTimeout(function(){ mood = 'normal'; }, 2500);
+    }
+
+    win.querySelectorAll('[data-a]').forEach(function(b){
+      b.onclick = function(){
+        var a = b.dataset.a;
+        if(a === 'blink'){ blinkState = 1; setTimeout(function(){ blinkState = 0; }, 200); }
+        else if(a === 'happy') setMood('happy');
+        else if(a === 'surprise') setMood('surprise');
+        else if(a === 'sleep') setMood('sleep');
+      };
+    });
+
+    win.querySelectorAll('[data-m]').forEach(function(b){
+      b.onclick = function(){
+        mode = b.dataset.m;
+        win.querySelectorAll('[data-m]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        var s = win.querySelector('#hf-status');
+        if(mode === 'human') s.textContent = 'Ich bin im Human-Modus. Siehst du mein Gesicht?';
+        else if(mode === 'cyborg') s.textContent = 'Cyborg-Modus aktiviert. System online.';
+        else s.textContent = 'Êzîdî-Modus. Das Pfauenrad ist mein Symbol.';
+      };
+    });
+
+    win.addEventListener('remove', function(){ cancelAnimationFrame(raf); });
+
+    loop();
+  }
+};
+
+console.log('%c🦚 HalDo Face geladen','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+})();
+</script>
 </body>
 </html>
