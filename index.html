@@ -17203,5 +17203,729 @@ setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click
 
 })();
 </script>
+<!-- ============================================================
+     HalDo AI OS · v19 · Kochen & Genießen · 20 Apps
+     ============================================================ -->
+<style id="v19-style">
+.v19-card{padding:14px;border-radius:14px;background:linear-gradient(150deg,rgba(20,30,60,.65),rgba(10,16,40,.82));border:1px solid rgba(120,180,255,.14);margin-bottom:8px}
+.v19-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);cursor:pointer;transition:.15s}
+.v19-row:hover{background:rgba(0,229,255,.05);border-color:rgba(0,229,255,.2)}
+.v19-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.3);color:var(--c1);cursor:pointer;transition:.15s}
+.v19-chip.on{background:linear-gradient(135deg,var(--c1),var(--c2));color:#02101e;border-color:var(--c1)}
+.v19-emoji{font-size:48px;text-align:center;padding:12px}
+.v19-timer{font-family:monospace;font-size:64px;font-weight:800;color:var(--c1);text-align:center;padding:20px;letter-spacing:2px;text-shadow:0 0 20px rgba(0,229,255,.4)}
+.v19-cook-step{padding:14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(120,180,255,.14);margin-bottom:6px;display:flex;gap:12px;align-items:center;transition:.2s}
+.v19-cook-step.on{background:linear-gradient(90deg,rgba(0,229,255,.15),transparent);border-color:var(--c1)}
+.v19-cook-step .n{width:32px;height:32px;border-radius:50%;background:rgba(0,229,255,.15);color:var(--c1);display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0}
+.v19-mise{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.v19-mise > div{padding:12px 6px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(120,180,255,.14);text-align:center;cursor:pointer;transition:.15s}
+.v19-mise > div.on{background:linear-gradient(135deg,rgba(0,229,255,.2),rgba(180,120,255,.15));border-color:var(--c1)}
+</style>
+
+<script>
+(function(){
+'use strict';
+var H = window.HalDo;
+if(!H || !H.APPS){ console.error('[v19] Foundation fehlt'); return; }
+var APPS = H.APPS;
+var esc=H.esc, uid=H.uid, store=H.store, toast=H.toast;
+
+/* 1 · KOCH-TIMER PRO */
+APPS['koch-timer'] = {
+  name:'Koch-Timer Pro', icon:'⏲️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">⏲️ Koch-Timer Pro</div><div class="dim sm">Mehrere Timer gleichzeitig</div></div>'+
+      '<div class="v19-timer" id="v19-ktD">00:00</div>'+
+      '<div class="row"><input class="v9-input" id="v19-ktM" type="number" placeholder="Min." value="10" style="flex:1"><button class="btn primary" id="v19-ktAdd">+ Timer</button></div>'+
+      '<div id="v19-ktL" class="col" style="gap:6px;max-height:50vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var timers = [];
+    var lastTick = Date.now();
+    setInterval(function(){ tick(); }, 200);
+    function tick(){
+      var now = Date.now(), dt = (now - lastTick) / 1000;
+      lastTick = now;
+      var changed = false;
+      timers.forEach(function(t){
+        if(t.running && t.sec > 0){ t.sec -= dt; if(t.sec <= 0){ t.sec = 0; t.running = false; beep(); toast('⏰ ' + t.n); } changed = true; }
+      });
+      if(changed) render();
+    }
+    function beep(){ try{ var A = new (window.AudioContext||window.webkitAudioContext)(); var o = A.createOscillator(), g = A.createGain(); o.connect(g); g.connect(A.destination); o.frequency.value = 880; g.gain.value = 0.2; o.start(); o.stop(A.currentTime+0.3); }catch(e){} }
+    function fmt(s){ s = Math.max(0, Math.floor(s)); var m = Math.floor(s/60); var sec = s%60; return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0'); }
+    function render(){
+      win.querySelector('#v19-ktL').innerHTML = timers.length ? timers.map(function(t, i){
+        return '<div class="v19-row"><div class="v19-timer" style="font-size:22px;padding:0;flex:1;text-align:left">'+fmt(t.sec)+'</div><b style="flex:1">'+esc(t.n)+'</b><button class="btn sm" data-t="'+i+'">'+(t.running?'⏸':'▶')+'</button><button class="btn sm" data-r="'+i+'">🔄</button><span class="x" data-d="'+i+'">✕</span></div>';
+      }).join('') : '<div class="empty">Keine Timer</div>';
+      win.querySelectorAll('[data-t]').forEach(function(b){ b.onclick = function(){ timers[parseInt(b.dataset.t)].running = !timers[parseInt(b.dataset.t)].running; render(); }; });
+      win.querySelectorAll('[data-r]').forEach(function(b){ b.onclick = function(){ var t = timers[parseInt(b.dataset.r)]; t.sec = t.total; t.running = false; render(); }; });
+      win.querySelectorAll('[data-d]').forEach(function(b){ b.onclick = function(){ timers.splice(parseInt(b.dataset.d), 1); render(); }; });
+    }
+    win.querySelector('#v19-ktAdd').onclick = function(){
+      var m = parseFloat(win.querySelector('#v19-ktM').value) || 10;
+      var n = prompt('Name des Timers?', 'Timer ' + (timers.length+1));
+      if(!n) return;
+      timers.push({id:uid(), n:n, sec:m*60, total:m*60, running:true});
+      render();
+    };
+    render();
+  }
+};
+
+/* 2 · KOCHBUCH (100+ Rezepte) */
+APPS['kochbuch-pro'] = {
+  name:'Kochbuch Pro', icon:'📖',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📖 Kochbuch Pro</div><div class="dim sm">Klassiker der Küche</div></div>'+
+      '<input class="v9-input" id="v19-kbQ" placeholder="🔍 Rezept suchen…">'+
+      '<div class="row" id="v19-kbT" style="flex-wrap:wrap"><button class="v19-chip on" data-c="alle">Alle</button><button class="v19-chip" data-c="de">🇩🇪 Deutsch</button><button class="v19-chip" data-c="it">🇮🇹 Italienisch</button><button class="v19-chip" data-c="as">🇦🇿 Asiatisch</button><button class="v19-chip" data-c="or">🇹🇷 Orientalisch</button></div>'+
+      '<div id="v19-kbL" class="col" style="gap:6px;max-height:60vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var R = [
+      ['de','🍲','Linsensuppe','30 Min','4 Port.','Zwiebel, Linsen, Karotte, Kartoffel, Brühe, Lorbeer'],
+      ['de','🥨','Brezel','45 Min','6 Stk','Mehl, Hefe, Wasser, Salz, Natron'],
+      ['de','🥘','Rouladen','90 Min','4 Port.','Rindfleisch, Senf, Gurke, Speck, Zwiebel'],
+      ['de','🍰','Apfelstrudel','60 Min','8 Port.','Äpfel, Blätterteig, Rosinen, Zimt, Zucker'],
+      ['de','🍺','Schnitzel','30 Min','2 Port.','Schweinefleisch, Mehl, Ei, Semmelbrösel'],
+      ['de','🥗','Kartoffelsalat','40 Min','6 Port.','Kartoffeln, Gurken, Zwiebel, Brühe, Mayo'],
+      ['it','🍝','Spaghetti Carbonara','20 Min','4 Port.','Spaghetti, Ei, Pecorino, Guanciale, Pfeffer'],
+      ['it','🍕','Pizza Margherita','60 Min','2 Pizzen','Mehl, Hefe, Tomaten, Mozzarella, Basilikum'],
+      ['it','🍚','Risotto Milanese','40 Min','4 Port.','Reis, Safran, Brühe, Zwiebel, Parmesan'],
+      ['it','🍰','Tiramisu','30 Min','6 Port.','Mascarpone, Löffelbiskuits, Espresso, Eier'],
+      ['it','🍝','Lasagne','90 Min','8 Port.','Lasagneplatten, Hackfleisch, Béchamel, Käse'],
+      ['as','🍜','Ramen','60 Min','2 Port.','Nudeln, Brühe, Ei, Frühlingszwiebel, Miso'],
+      ['as','🍣','Sushi Maki','45 Min','4 Port.','Reis, Nori, Lachs, Gurke, Reisessig'],
+      ['as','🍛','Curry Chicken','40 Min','4 Port.','Hähnchen, Kokosmilch, Currypaste, Reis'],
+      ['as','🥟','Gyoza','60 Min','20 Stk','Teig, Schweinehack, Ingwer, Kohl, Soja'],
+      ['or','🍢','Döner Kebab','45 Min','4 Port.','Lamm, Pita, Salat, Knoblauchsauce'],
+      ['or','🥙','Falafel','40 Min','4 Port.','Kichererbsen, Zwiebel, Kreuzkümmel, Koriander'],
+      ['or','🍛','Kuzu Tandır','120 Min','4 Port.','Lamm, Joghurt, Tomaten, Paprika'],
+      ['or','🥗','Taboulé','20 Min','4 Port.','Bulgur, Petersilie, Tomate, Zitrone, Minze'],
+      ['or','🍢','Şiş Kebab','40 Min','4 Port.','Lammwürfel, Zwiebel, Paprika, Marinade']
+    ];
+    var cur = 'alle', Q = win.querySelector('#v19-kbQ');
+    function render(){
+      var q = Q.value.toLowerCase();
+      var f = R.filter(function(x){
+        if(cur !== 'alle' && x[0] !== cur) return false;
+        if(!q) return true;
+        return x[2].toLowerCase().indexOf(q) >= 0;
+      });
+      win.querySelector('#v19-kbL').innerHTML = f.map(function(x){
+        return '<details class="v19-card"><summary style="cursor:pointer"><span style="font-size:22px">'+x[1]+'</span> <b>'+esc(x[2])+'</b> <span class="dim sm">· '+x[3]+' · '+x[4]+'</span></summary><div class="dim sm" style="margin-top:8px;line-height:1.7"><b>🛒 Zutaten:</b><br>'+esc(x[5])+'</div></details>';
+      }).join('') || '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput = render;
+    win.querySelectorAll('#v19-kbT [data-c]').forEach(function(b){ b.onclick = function(){ cur = b.dataset.c; win.querySelectorAll('#v19-kbT [data-c]').forEach(function(x){ x.classList.toggle('on', x === b); }); render(); }; });
+    render();
+  }
+};
+
+/* 3 · EINKAUFSLISTE PRO */
+APPS['einkauf-pro'] = {
+  name:'Einkaufsliste Pro', icon:'🛒',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🛒 Einkaufsliste Pro</div><div class="dim sm">Mit Kategorien & Preisen</div></div>'+
+      '<div class="row"><input class="v9-input" id="v19-elN" placeholder="Artikel…" style="flex:1"><input class="v9-input" id="v19-elP" type="number" placeholder="€" step="0.01" style="width:80px"><select class="v9-input" id="v19-elK" style="width:auto"><option>🥗 Obst/Gemüse</option><option>🥩 Fleisch</option><option>🥛 Milch/Käse</option><option>🍞 Backwaren</option><option>🥤 Getränke</option><option>🧴 Haushalt</option><option>❓ Sonstiges</option></select><button class="btn primary" id="v19-elA">+</button></div>'+
+      '<div class="row between"><span class="dim sm">Gesamt: <b id="v19-elT" style="color:var(--c1)">0,00 €</b></span><button class="btn sm" id="v19-elC">🗑 Leeren</button></div>'+
+      '<div id="v19-elL" class="col" style="gap:4px;max-height:60vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('shopping19',[]); }
+    function render(){
+      var a = all();
+      var total = a.reduce(function(s,x){ return s + (x.p||0); }, 0);
+      win.querySelector('#v19-elT').textContent = total.toFixed(2).replace('.', ',') + ' €';
+      var grouped = {};
+      a.forEach(function(x){
+        var k = x.k.split(' ')[0];
+        grouped[k] = grouped[k] || [];
+        grouped[k].push(x);
+      });
+      win.querySelector('#v19-elL').innerHTML = Object.keys(grouped).length ? Object.keys(grouped).map(function(k){
+        return '<div style="font-size:11px;font-weight:700;color:var(--c1);margin-top:8px">'+k+'</div>'+grouped[k].map(function(x){
+          return '<div class="v19-row"><input type="checkbox" data-id="'+x.id+'" '+(x.done?'checked':'')+'><b style="flex:1;'+(x.done?'text-decoration:line-through;opacity:.5':'')+'">'+esc(x.n)+'</b><span class="dim sm">'+x.p.toFixed(2)+' €</span><span class="x" data-id="'+x.id+'">✕</span></div>';
+        }).join('');
+      }).join('') : '<div class="empty">Liste leer</div>';
+      win.querySelectorAll('input[type=checkbox]').forEach(function(c){ c.onchange = function(){ var arr = all(); var x = arr.find(function(v){ return v.id === c.dataset.id; }); if(x){ x.done = c.checked; store.set('shopping19', arr); render(); } }; });
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('shopping19', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v19-elA').onclick = function(){
+      var n = win.querySelector('#v19-elN').value.trim(); if(!n) return;
+      var p = parseFloat(win.querySelector('#v19-elP').value) || 0;
+      var a = all(); a.push({id:uid(), n:n, p:p, k:win.querySelector('#v19-elK').value, done:false});
+      store.set('shopping19', a);
+      win.querySelector('#v19-elN').value = ''; win.querySelector('#v19-elP').value = '';
+      render();
+    };
+    win.querySelector('#v19-elC').onclick = function(){ if(confirm('Liste wirklich leeren?')){ store.set('shopping19', []); render(); } };
+    render();
+  }
+};
+
+/* 4 · MASS-UMRECHNER KÜCHE */
+APPS['kochmasse'] = {
+  name:'Küchen-Maße', icon:'📏',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📏 Küchen-Maße</div><div class="dim sm">Tassen, EL, TL in Gramm</div></div>'+
+      '<div class="row"><input class="v9-input" id="v19-kmM" type="number" placeholder="Menge" value="1" style="flex:1"><select class="v9-input" id="v19-kmF" style="width:auto"><option>EL</option><option>TL</option><option>Tasse</option><option>ml</option><option>g</option></select></div>'+
+      '<input class="v9-input" id="v19-kmZ" placeholder="Zutat (Mehl, Zucker, Butter, Milch, Öl, Salz)…" value="Mehl">'+
+      '<button class="btn primary" id="v19-kmGo">▶ Umrechnen</button>'+
+      '<div class="v9-stat"><div class="v" id="v19-kmO">–</div><div class="l" id="v19-kmU">Ergebnis</div></div>'+
+      '<div class="v19-card"><b>📊 Referenz</b><div class="dim sm" style="margin-top:8px;line-height:1.9">🥄 1 EL = 15 ml<br>🥄 1 TL = 5 ml<br>☕ 1 Tasse = 200 ml<br>🧂 1 Prise = 0,5 g<br>🥄 1 EL Mehl ≈ 10 g<br>🥄 1 EL Zucker ≈ 15 g<br>🥄 1 EL Butter ≈ 15 g<br>🥄 1 EL Öl ≈ 13 g</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = {mehl:0.6, zucker:0.9, butter:0.9, milch:1.0, öl:0.85, salz:1.8, reis:0.85, haferflocken:0.5, kakao:0.5, honig:1.4};
+    win.querySelector('#v19-kmGo').onclick = function(){
+      var m = parseFloat(win.querySelector('#v19-kmM').value) || 0;
+      var f = win.querySelector('#v19-kmF').value;
+      var z = win.querySelector('#v19-kmZ').value.toLowerCase().trim();
+      var ml = f === 'EL' ? 15 * m : f === 'TL' ? 5 * m : f === 'Tasse' ? 200 * m : f === 'ml' ? m : 0;
+      var g = f === 'g' ? m : 0;
+      var factor = D[z] || 0.75;
+      var result = ml ? (ml * factor).toFixed(1) + ' g' : g ? (g / factor).toFixed(1) + ' ml' : '–';
+      win.querySelector('#v19-kmO').textContent = result;
+      win.querySelector('#v19-kmU').textContent = z ? 'Für ' + z : 'Ergebnis';
+    };
+    win.querySelector('#v19-kmGo').click();
+  };
+};
+
+/* 5 · BACKZUTATEN-RECHNER */
+APPS['backrechner'] = {
+  name:'Back-Zutaten-Rechner', icon:'🎂',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎂 Back-Zutaten-Rechner</div><div class="dim sm">Kuchen anpassen an Formgröße</div></div>'+
+      '<div class="row"><input class="v9-input" id="v19-bzV" type="number" placeholder="Original (cm)" value="20" style="flex:1"><span class="dim" style="align-self:center">→</span><input class="v9-input" id="v19-bzN" type="number" placeholder="Neue (cm)" value="26" style="flex:1"></div>'+
+      '<button class="btn primary" id="v19-bzGo">▶ Faktor berechnen</button>'+
+      '<div class="v9-stat"><div class="v" id="v19-bzO">–</div><div class="l">Faktor</div></div>'+
+      '<div id="v19-bzL"></div>'+
+      '<div class="v19-card" style="margin-top:8px"><b>💡 Standard-Rezept (20 cm Form)</b><div class="dim sm" style="margin-top:6px">250 g Mehl · 200 g Zucker · 200 g Butter · 4 Eier · 1 Pkg Backpulver · 1 Pkg Vanillezucker</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v19-bzGo').onclick = function(){
+      var v = parseFloat(win.querySelector('#v19-bzV').value);
+      var n = parseFloat(win.querySelector('#v19-bzN').value);
+      if(!v || !n) return;
+      var f = (n*n) / (v*v);
+      win.querySelector('#v19-bzO').textContent = f.toFixed(2) + '×';
+      var zutaten = ['250 g Mehl', '200 g Zucker', '200 g Butter', '4 Eier', '1 Pkg Backpulver'];
+      win.querySelector('#v19-bzL').innerHTML = '<div class="v19-card"><b>📋 Neue Mengen</b><div class="dim sm" style="margin-top:6px;line-height:1.9">' + zutaten.map(function(z){
+        var parts = z.match(/([\d.,]+)\s*(g|Pkg)?\s*(.+)/);
+        if(!parts) return z;
+        var num = parseFloat(parts[1].replace(',', '.'));
+        return (num * f).toFixed(1) + ' ' + (parts[2]||'') + ' ' + parts[3];
+      }).join('<br>') + '</div></div>';
+    };
+    win.querySelector('#v19-bzGo').click();
+  }
+};
+
+/* 6 · WEIN-BERATER */
+APPS['wein'] = {
+  name:'Wein-Berater', icon:'🍷',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🍷 Wein-Berater</div><div class="dim sm">Welcher Wein zu welchem Essen?</div></div>'+
+      '<div class="row" id="v19-wnT" style="flex-wrap:wrap">'+
+        '<button class="v19-chip on" data-c="fleisch">🥩 Fleisch</button>'+
+        '<button class="v19-chip" data-c="fisch">🐟 Fisch</button>'+
+        '<button class="v19-chip" data-c="pasta">🍝 Pasta</button>'+
+        '<button class="v19-chip" data-c="käse">🧀 Käse</button>'+
+        '<button class="v19-chip" data-c="dessert">🍰 Dessert</button>'+
+      '</div>'+
+      '<div id="v19-wnL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = {
+      fleisch: [['🍷','Rotwein','Cabernet Sauvignon','Kräftig zu Steak, Lamm'],['🍷','Rotwein','Merlot','Weich zu Rind, Wild'],['🍷','Rotwein','Syrah/Shiraz','Würzig zu BBQ'],['🍷','Rotwein','Malbec','Fruchtig zu Grill']],
+      fisch: [['🥂','Weißwein','Chardonnay','Butterig zu Lachs'],['🥂','Weißwein','Sauvignon Blanc','Frisch zu Sushi'],['🥂','Schaumwein','Champagner','Festlich zu Austern'],['🥂','Weißwein','Riesling','Fruchtig zu Forelle']],
+      pasta: [['🍷','Rotwein','Chianti','Klassiker zu Tomatensauce'],['🍷','Rotwein','Barbera','Zu Lasagne'],['🥂','Weißwein','Pinot Grigio','Zu Carbonara'],['🥂','Weißwein','Vermentino','Zu Meeresfrüchte-Pasta']],
+      'käse': [['🍷','Rotwein','Rioja','Zu Manchego'],['🍷','Rotwein','Portwein','Zu Blauschimmel'],['🥂','Weißwein','Sauternes','Zu Roquefort'],['🥂','Weißwein','Chablis','Zu Ziegenkäse']],
+      dessert: [['🥂','Dessertwein','Sauternes','Zu Foie Gras & Käse'],['🥂','Schaumwein','Prosecco','Zu Obstkuchen'],['🍷','Portwein','Tawny','Zu Schokolade'],['🥂','Eiswein','Riesling Eiswein','Zu fruchtigen Desserts']]
+    };
+    var cur = 'fleisch';
+    function show(){
+      win.querySelector('#v19-wnL').innerHTML = D[cur].map(function(x){
+        return '<div class="v19-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div style="margin-top:6px"><b style="color:var(--c1)">'+esc(x[2])+'</b></div><div class="dim sm" style="margin-top:4px">'+esc(x[3])+'</div></div>';
+      }).join('');
+    }
+    win.querySelectorAll('#v19-wnT [data-c]').forEach(function(b){ b.onclick = function(){ cur = b.dataset.c; win.querySelectorAll('#v19-wnT [data-c]').forEach(function(x){ x.classList.toggle('on', x === b); }); show(); }; });
+    show();
+  }
+};
+
+/* 7 · KAFFEE-RATGEBER */
+APPS['kaffee'] = {
+  name:'Kaffee-Ratgeber', icon:'☕',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">☕ Kaffee-Ratgeber</div><div class="dim sm">Zubereitung & Sorten</div></div>'+
+      '<div class="v19-emoji">☕</div>'+
+      '<div id="v19-kfL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['🇮🇹','Espresso','30 ml','Sehr stark','Espressomaschine','7 g · 25 Sek'],
+      ['🇮🇹','Cappuccino','150 ml','Mittel','Espresso + Milchschaum','7 g · 30+30 ml'],
+      ['🇫🇷','Café au Lait','200 ml','Mild','Filterkaffee + heiße Milch','15 g · 1:3'],
+      ['🇺🇸','Americano','150 ml','Mittel','Espresso + heißes Wasser','7 g · 30+120 ml'],
+      ['🇹🇷','Türkischer Mokka','60 ml','Sehr stark','Cezve','7 g · fein gemahlen'],
+      ['🇻🇳','Vietnamese Coffee','150 ml','Stark-süß','Phin-Filter + Kondensmilch','15 g · 4 Min'],
+      ['🇦🇹','Wiener Melange','200 ml','Mild','Espresso + geschäumte Milch','7 g · 30+150 ml'],
+      ['🇬🇷','Frappé','250 ml','Mittel','Instantkaffee + Eis','2 TL · 3 Min shake']
+    ];
+    win.querySelector('#v19-kfL').innerHTML = D.map(function(x){
+      return '<div class="v19-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b><span class="dim sm">'+esc(x[2])+'</span></div><div class="dim sm" style="margin-top:6px;line-height:1.6">📊 Stärke: <b>'+esc(x[3])+'</b><br>☕ Zubereitung: <b>'+esc(x[4])+'</b><br>⚖️ Menge: <b>'+esc(x[5])+'</b></div></div>';
+    }).join('');
+  }
+};
+
+/* 8 · TEE-RATGEBER */
+APPS['tee'] = {
+  name:'Tee-Ratgeber', icon:'🍵',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🍵 Tee-Ratgeber</div><div class="dim sm">Sorten & Ziehzeiten</div></div>'+
+      '<div id="v19-teL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['🍃','Grüner Tee','70-80 °C','2-3 Min','Frisch, grasig'],
+      ['🖤','Schwarzer Tee','95-100 °C','3-5 Min','Kräftig, malzig'],
+      ['🤍','Weißer Tee','75-85 °C','4-5 Min','Zart, blumig'],
+      ['🟡','Oolong','85-90 °C','3-4 Min','Blumig, komplex'],
+      ['🌿','Pfefferminz','100 °C','5-7 Min','Erfrischend, verdauungsfördernd'],
+      ['🍋','Kamille','100 °C','5-8 Min','Beruhigend, entzündungshemmend'],
+      ['🌹','Hagebutte','100 °C','8-10 Min','Vitamin C, fruchtig'],
+      ['🌱','Salbei','100 °C','5-7 Min','Halsentzündung'],
+      ['🎃','Rooibos','100 °C','5-8 Min','Koffeinfrei, mild'],
+      ['💜','Hibiskus','100 °C','5-7 Min','Rot, sauer, blutdruckregulierend']
+    ];
+    win.querySelector('#v19-teL').innerHTML = D.map(function(x){
+      return '<div class="v19-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b><span class="dim sm">'+esc(x[2])+'</span></div><div class="dim sm" style="margin-top:6px;line-height:1.6">⏱ Ziehen: <b>'+esc(x[3])+'</b><br>👅 Geschmack: <b>'+esc(x[4])+'</b></div></div>';
+    }).join('');
+  }
+};
+
+/* 9 · GEWÜRZ-LEXIKON */
+APPS['gewuerze'] = {
+  name:'Gewürz-Lexikon', icon:'🌿',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🌿 Gewürz-Lexikon</div><div class="dim sm">Gewürze & ihre Verwendung</div></div>'+
+      '<input class="v9-input" id="v19-gwQ" placeholder="🔍 Gewürz suchen…">'+
+      '<div id="v19-gwL" class="col" style="gap:6px;max-height:70vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['🌿','Basilikum','Italienisch','Tomatensauce, Pizza, Pesto'],
+      ['🌿','Oregano','Mediterran','Pizza, griechische Küche'],
+      ['🌿','Thymian','Mediterran','Fleisch, Suppen, Marinaden'],
+      ['🌿','Rosmarin','Mediterran','Lamm, Kartoffeln, Grillfleisch'],
+      ['🌿','Petersilie','Universal','Salate, Suppen, Fisch'],
+      ['🌿','Koriander','Asiatisch','Curry, Salsa, Salate'],
+      ['🟡','Kurkuma','Indisch','Currys, Reis, Gesundheit'],
+      ['🟠','Paprika','Universal','Gulasch, Würzmischungen'],
+      ['🔴','Chili','Scharf','Asiatisch, mexikanisch'],
+      ['⚫','Pfeffer','Universal','Würzen fast alles'],
+      ['🟤','Zimt','Süß','Kuchen, Kaffee, Glühwein'],
+      ['🟠','Ingwer','Asiatisch','Curry, Tee, Backwaren'],
+      ['🟤','Muskat','Backen','Kartoffeln, Béchamel, Weihnachten'],
+      ['🌱','Kümmel','Deutsch','Kohl, Gulasch, Käse'],
+      ['🌾','Kardamom','Orientalisch','Kaffee, Gebäck, Chai'],
+      ['⭐','Sternanis','Asiatisch','Pho, Glühwein, Gebäck'],
+      ['🟢','Lorbeer','Universal','Suppen, Eintöpfe'],
+      ['🔴','Safran','Exklusiv','Risotto, Paella'],
+      ['🌶️','Curry','Indisch','Viele Gerichte'],
+      ['⚫','Vanille','Süß','Desserts, Eis, Kuchen']
+    ];
+    var Q = win.querySelector('#v19-gwQ');
+    function render(){
+      var q = Q.value.toLowerCase();
+      var f = D.filter(function(x){ return !q || (x[1]+' '+x[3]).toLowerCase().indexOf(q) >= 0; });
+      win.querySelector('#v19-gwL').innerHTML = f.map(function(x){
+        return '<div class="v19-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b><span class="dim sm">'+esc(x[2])+'</span></div><div class="dim sm" style="margin-top:4px">'+esc(x[3])+'</div></div>';
+      }).join('') || '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput = render; render();
+  }
+};
+
+/* 10 · MISE EN PLACE */
+APPS['mise'] = {
+  name:'Mise en Place', icon:'🥣',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🥣 Mise en Place</div><div class="dim sm">Alles vorbereitet – wie ein Profi</div></div>'+
+      '<input class="v9-input" id="v19-meN" placeholder="Zutat / Arbeitsschritt">'+
+      '<button class="btn primary" id="v19-meA">+ Hinzufügen</button>'+
+      '<div class="v19-mise" id="v19-meG">'+
+        [['🔪','Schneiden'],['🥣','Abwiegen'],['🔥','Vorheizen'],['🧂','Würzen'],['🥚','Verquirlen'],['🧊','Kühlen'],['🥄','Rühren'],['⏲','Timer'],['🧽','Aufräumen']].map(function(x, i){
+          return '<div data-t="'+i+'"><div style="font-size:22px">'+x[0]+'</div><div style="font-size:10px;margin-top:4px">'+x[1]+'</div></div>';
+        }).join('')+
+      '</div>'+
+      '<div id="v19-meL" class="col" style="gap:6px;max-height:40vh;overflow-y:auto;margin-top:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var tasks = [];
+    function render(){
+      win.querySelector('#v19-meL').innerHTML = tasks.length ? tasks.map(function(t, i){
+        return '<div class="v19-row"><input type="checkbox" data-i="'+i+'" '+(t.done?'checked':'')+'><span style="flex:1;'+(t.done?'text-decoration:line-through;opacity:.5':'')+'">'+esc(t.n)+'</span><span class="x" data-i="'+i+'">✕</span></div>';
+      }).join('') : '<div class="empty">Noch nichts geplant</div>';
+      win.querySelectorAll('input[type=checkbox]').forEach(function(c){ c.onchange = function(){ tasks[parseInt(c.dataset.i)].done = c.checked; render(); }; });
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ tasks.splice(parseInt(el.dataset.i), 1); render(); }; });
+    }
+    win.querySelectorAll('#v19-meG > div').forEach(function(el){
+      el.onclick = function(){ el.classList.toggle('on'); };
+    });
+    win.querySelector('#v19-meA').onclick = function(){
+      var n = win.querySelector('#v19-meN').value.trim(); if(!n) return;
+      tasks.push({n:n, done:false});
+      win.querySelector('#v19-meN').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+/* 11 · BACK-TIMER */
+APPS['back-timer'] = {
+  name:'Back-Timer', icon:'⏱️',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">⏱️ Back-Timer</div><div class="dim sm">Backzeiten für Klassiker</div></div>'+
+      '<div id="v19-btL" class="col" style="gap:6px;max-height:60vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['🎂','Rührkuchen','180 °C','50-60 Min'],
+      ['🍪','Kekse','180 °C','10-12 Min'],
+      ['🍞','Brot','220 °C','45-60 Min'],
+      ['🥐','Croissants','200 °C','15-20 Min'],
+      ['🥧','Apfelkuchen','180 °C','50-60 Min'],
+      ['🥨','Brezeln','200 °C','15-20 Min'],
+      ['🍕','Pizza','250 °C','10-12 Min'],
+      ['🍰','Biskuit','180 °C','25-30 Min'],
+      ['🧁','Muffins','180 °C','20-25 Min'],
+      ['🍩','Donuts','180 °C','2 Min pro Seite']
+    ];
+    win.querySelector('#v19-btL').innerHTML = D.map(function(x){
+      return '<div class="v19-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b><span style="color:var(--c1);font-weight:700;font-size:11px">'+esc(x[3])+'</span></div><div class="dim sm" style="margin-top:4px">🌡 '+esc(x[2])+'</div></div>';
+    }).join('');
+  }
+};
+
+/* 12 · PIZZA-TEIG-RECHNER */
+APPS['pizza-teig'] = {
+  name:'Pizza-Teig-Rechner', icon:'🍕',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🍕 Pizza-Teig-Rechner</div><div class="dim sm">Perfekter Teig für jede Menge</div></div>'+
+      '<div class="row"><input class="v9-input" id="v19-ptP" type="number" placeholder="Pizzen" value="4" style="flex:1"><input class="v9-input" id="v19-ptG" type="number" placeholder="Gewicht g/Stk" value="250" style="flex:1"></div>'+
+      '<select class="v9-input" id="v19-ptT"><option value="0.6">💧 60% Hydration (klassisch)</option><option value="0.65">💧 65% (neapolitanisch)</option><option value="0.7">💧 70% (leicht)</option><option value="0.55">💧 55% (knusprig)</option></select>'+
+      '<button class="btn primary" id="v19-ptGo">▶ Berechnen</button>'+
+      '<div id="v19-ptL"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    win.querySelector('#v19-ptGo').onclick = function(){
+      var p = parseInt(win.querySelector('#v19-ptP').value) || 4;
+      var g = parseInt(win.querySelector('#v19-ptG').value) || 250;
+      var h = parseFloat(win.querySelector('#v19-ptT').value);
+      var total = p * g;
+      var salt = total * 0.025;
+      var yeast = total * 0.002;
+      var flour = total / (1 + h);
+      var water = flour * h;
+      win.querySelector('#v19-ptL').innerHTML = '<div class="v19-card"><b>📋 Zutaten für '+p+' Pizzen à '+g+' g</b><div class="dim sm" style="margin-top:8px;line-height:2">🌾 Mehl: <b style="color:var(--c1)">'+flour.toFixed(0)+' g</b><br>💧 Wasser: <b style="color:var(--c1)">'+water.toFixed(0)+' g</b><br>🧂 Salz: <b style="color:var(--c1)">'+salt.toFixed(1)+' g</b><br>🫧 Hefe: <b style="color:var(--c1)">'+yeast.toFixed(1)+' g</b><br>⚖️ Gesamt: <b>'+total.toFixed(0)+' g</b></div><div class="dim sm" style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.1)">⏱ Gehzeit: 24 h im Kühlschrank · dann 2 h Zimmertemperatur</div></div>';
+    };
+    win.querySelector('#v19-ptGo').click();
+  }
+};
+
+/* 13 · SUSHI-ANLEITUNG */
+APPS['sushi'] = {
+  name:'Sushi-Anleitung', icon:'🍣',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🍣 Sushi-Anleitung</div><div class="dim sm">Schritt für Schritt</div></div>'+
+      '<div class="row" id="v19-suT"><button class="v19-chip on" data-t="maki">🍣 Maki</button><button class="v19-chip" data-t="nigiri">🍣 Nigiri</button><button class="v19-chip" data-t="uramaki">🍣 Uramaki</button></div>'+
+      '<div id="v19-suL"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = {
+      maki: ['Reis kochen (Sushi-Reis + Reisessig)', 'Nori-Blatt auf Bambusmatte legen', 'Reis dünn verteilen (1 cm)', 'Füllung in die Mitte legen', 'Rollen mit der Matte', 'Mit scharfem Messer schneiden', 'Mit Sojasauce & Wasabi servieren'],
+      nigiri: ['Reis zu ovalen Bällchen formen (ca. 20 g)', 'Fisch in dünne Scheiben schneiden', 'Fisch auf Reis legen', 'Mit etwas Wasabi bestreichen', 'Optional mit Nori-Streifen binden'],
+      uramaki: ['Nori auf Matte, Reis AUF das Nori', 'Füllung in die Mitte', 'Rollen mit Matte', 'Mit Sesam bestreuen', 'Innen nach außen drehen', 'Schneiden & servieren']
+    };
+    var cur = 'maki';
+    function show(){
+      win.querySelector('#v19-suL').innerHTML = D[cur].map(function(s, i){
+        return '<div class="v19-cook-step"><div class="n">'+(i+1)+'</div><span style="flex:1">'+esc(s)+'</span></div>';
+      }).join('');
+    }
+    win.querySelectorAll('#v19-suT [data-t]').forEach(function(b){ b.onclick = function(){ cur = b.dataset.t; win.querySelectorAll('#v19-suT [data-t]').forEach(function(x){ x.classList.toggle('on', x === b); }); show(); }; });
+    show();
+  }
+};
+
+/* 14 · COCKTAIL-RATGEBER */
+APPS['cocktails'] = {
+  name:'Cocktails', icon:'🍸',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🍸 Cocktail-Rezepte</div><div class="dim sm">Die Klassiker</div></div>'+
+      '<div id="v19-ckL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['🍸','Martini','Gin, Wermut (5:1), Olive oder Zitronenzeste'],
+      ['🍸','Mojito','Weißer Rum, Limette, Minze, Zucker, Soda'],
+      ['🍸','Margarita','Tequila, Cointreau, Limettensaft, Salzrand'],
+      ['🍸','Cosmopolitan','Wodka, Cointreau, Cranberry, Limette'],
+      ['🥂','Aperol Spritz','Aperol, Prosecco, Soda (3:2:1)'],
+      ['🥂','Negroni','Gin, Campari, roter Wermut (1:1:1)'],
+      ['🍸','Old Fashioned','Whiskey, Zucker, Bitters, Orangenschale'],
+      ['🍸','Whiskey Sour','Whiskey, Zitronensaft, Zucker, Eiweiß'],
+      ['🥃','Manhattan','Whiskey, süßer Wermut, Bitters'],
+      ['🍹','Piña Colada','Rum, Kokosmilch, Ananassaft'],
+      ['🍸','Daiquiri','Weißer Rum, Limette, Zuckersirup'],
+      ['🥂','Mimosa','Prosecco, Orangensaft (1:1)']
+    ];
+    win.querySelector('#v19-ckL').innerHTML = D.map(function(x){
+      return '<div class="v19-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:6px">'+esc(x[2])+'</div></div>';
+    }).join('');
+  }
+};
+
+/* 15 · SMOOTHIE-RATGEBER */
+APPS['smoothies'] = {
+  name:'Smoothie-Rezepte', icon:'🥤',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🥤 Smoothie-Rezepte</div><div class="dim sm">Gesund & schnell</div></div>'+
+      '<div id="v19-smL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['🍓','Erdbeer-Banane','Erdbeeren, Banane, Joghurt, Honig','Vitamin C'],
+      ['🥬','Grüner Detox','Spinat, Apfel, Ingwer, Zitrone','Entgiftung'],
+      ['🥭','Tropical','Mango, Ananas, Kokosmilch','Immunsystem'],
+      ['🫐','Beeren-Mix','Heidelbeeren, Himbeeren, Banane','Antioxidantien'],
+      ['🥕','Karotte-Orange','Karotte, Orange, Ingwer','Vitamin A'],
+      ['🍫','Protein-Schoko','Banane, Kakao, Erdnussbutter, Haferflocken','Protein'],
+      ['🥑','Grüner Power','Avocado, Spinat, Gurke, Limette','Gesunde Fette'],
+      ['🍑','Pfirsich-Joghurt','Pfirsich, Joghurt, Haferflocken, Zimt','Ballaststoffe']
+    ];
+    win.querySelector('#v19-smL').innerHTML = D.map(function(x){
+      return '<div class="v19-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b><span class="dim sm">'+esc(x[3])+'</span></div><div class="dim sm" style="margin-top:6px">🛒 '+esc(x[2])+'</div></div>';
+    }).join('');
+  }
+};
+
+/* 16 · LEBENSMITTEL-LAGERUNG */
+APPS['lagerung'] = {
+  name:'Lebensmittel-Lagerung', icon:'🥬',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🥬 Lebensmittel-Lagerung</div><div class="dim sm">Was gehört wohin?</div></div>'+
+      '<input class="v9-input" id="v19-lgQ" placeholder="🔍 Lebensmittel suchen…">'+
+      '<div id="v19-lgL" class="col" style="gap:6px;max-height:70vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['🍎','Äpfel','Kühlschrank','Gemüsefach','2-3 Wochen'],
+      ['🍌','Bananen','Zimmertemperatur','Nicht in Kühlschrank','4-7 Tage'],
+      ['🍅','Tomaten','Zimmertemperatur','Nicht in Kühlschrank','1 Woche'],
+      ['🥔','Kartoffeln','Keller','Dunkel, kühl','mehrere Wochen'],
+      ['🧅','Zwiebeln','Keller','Trocken, dunkel','Wochen'],
+      ['🥕','Karotten','Kühlschrank','Gemüsefach','2-3 Wochen'],
+      ['🥬','Salat','Kühlschrank','Gemüsefach','3-5 Tage'],
+      ['🥛','Milch','Kühlschrank','Mitte','5-7 Tage'],
+      ['🥩','Fleisch','Kühlschrank','Untere Ebene','1-3 Tage'],
+      ['🐟','Fisch','Kühlschrank','Kälteste Zone','1-2 Tage'],
+      ['🥚','Eier','Kühlschrank','Tür nicht','3-4 Wochen'],
+      ['🍞','Brot','Zimmertemperatur','Brotkasten','3-5 Tage'],
+      ['🧄','Knoblauch','Keller','Trocken','Wochen'],
+      ['🌶️','Paprika','Kühlschrank','Gemüsefach','1-2 Wochen'],
+      ['🍓','Erdbeeren','Kühlschrank','Nicht waschen','2-3 Tage'],
+      ['🥑','Avocado','Zimmertemperatur','Reif → Kühlschrank','3-5 Tage'],
+      ['🍋','Zitrone','Zimmertemperatur','Kühlschrank = länger','2-3 Wochen'],
+      ['🧀','Käse','Kühlschrank','Wachspapier','1-4 Wochen']
+    ];
+    var Q = win.querySelector('#v19-lgQ');
+    function render(){
+      var q = Q.value.toLowerCase();
+      var f = D.filter(function(x){ return !q || (x[1]+' '+x[2]).toLowerCase().indexOf(q) >= 0; });
+      win.querySelector('#v19-lgL').innerHTML = f.map(function(x){
+        return '<div class="v19-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b><span style="color:var(--c1);font-size:11px;font-weight:700">'+esc(x[4])+'</span></div><div class="dim sm" style="margin-top:6px;line-height:1.6">📍 <b>'+esc(x[2])+'</b> · '+esc(x[3])+'</div></div>';
+      }).join('') || '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput = render; render();
+  }
+};
+
+/* 17 · NÄHRWERTE-TABELLE */
+APPS['naehrwerte'] = {
+  name:'Nährwerte', icon:'📊',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">📊 Nährwerte</div><div class="dim sm">Pro 100 g · Kalorien & Makros</div></div>'+
+      '<input class="v9-input" id="v19-nwQ" placeholder="🔍 Lebensmittel suchen…">'+
+      '<div id="v19-nwL" class="col" style="gap:6px;max-height:70vh;overflow-y:auto"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['🍎','Apfel',52,'0,3 g','14 g','0,2 g'],
+      ['🍌','Banane',89,'1,1 g','23 g','0,3 g'],
+      ['🍞','Weißbrot',265,'9 g','49 g','3,2 g'],
+      ['🍚','Reis (gekocht)',130,'2,7 g','28 g','0,3 g'],
+      ['🍝','Pasta (gekocht)',158,'5,8 g','31 g','0,9 g'],
+      ['🥔','Kartoffel (gekocht)',77,'2 g','17 g','0,1 g'],
+      ['🍗','Hähnchenbrust',165,'31 g','0 g','3,6 g'],
+      ['🥩','Rindfleisch',250,'26 g','0 g','15 g'],
+      ['🐟','Lachs',206,'22 g','0 g','13 g'],
+      ['🥚','Ei',155,'13 g','1,1 g','11 g'],
+      ['🥛','Milch (3,5%)',64,'3,3 g','4,8 g','3,6 g'],
+      ['🧀','Gouda',356,'25 g','2,2 g','27 g'],
+      ['🥜','Erdnüsse',567,'26 g','16 g','49 g'],
+      ['🥑','Avocado',160,'2 g','9 g','15 g'],
+      ['🥦','Brokkoli',34,'2,8 g','7 g','0,4 g'],
+      ['🍫','Schokolade (70%)',598,'7,8 g','46 g','43 g'],
+      ['🍕','Pizza Margherita',266,'11 g','33 g','10 g'],
+      ['🍔','Cheeseburger',295,'17 g','24 g','14 g'],
+      ['🍟','Pommes',312,'3,4 g','41 g','15 g'],
+      ['🍦','Eiscreme',207,'3,5 g','24 g','11 g']
+    ];
+    var Q = win.querySelector('#v19-nwQ');
+    function render(){
+      var q = Q.value.toLowerCase();
+      var f = D.filter(function(x){ return !q || x[1].toLowerCase().indexOf(q) >= 0; });
+      win.querySelector('#v19-nwL').innerHTML = f.map(function(x){
+        return '<div class="v19-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b><span style="color:var(--c1);font-weight:800">'+x[2]+' kcal</span></div><div class="dim sm" style="margin-top:6px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px"><span>🥩 '+esc(x[3])+'</span><span>🍞 '+esc(x[4])+'</span><span>🧈 '+esc(x[5])+'</span></div></div>';
+      }).join('') || '<div class="empty">Nichts gefunden</div>';
+    }
+    Q.oninput = render; render();
+  }
+};
+
+/* 18 · DIÄT-PLANER */
+APPS['diaet'] = {
+  name:'Diät-Planer', icon:'🥗',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🥗 Diät-Planer</div><div class="dim sm">Einfache Diät-Typen</div></div>'+
+      '<div class="row" id="v19-dtT"><button class="v19-chip on" data-d="med">🌊 Mediterran</button><button class="v19-chip" data-d="low">📉 Low Carb</button><button class="v19-chip" data-d="veg">🥬 Vegetarisch</button><button class="v19-chip" data-d="kf">🚫 Keto</button></div>'+
+      '<div id="v19-dtL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = {
+      med: {n:'Mediterrane Diät', p:'Fisch, Olivenöl, Gemüse, Nüsse, Vollkorn', a:'Entzündungshemmend, Herz-Kreislauf', v:'Reich an Omega-3, Antioxidantien'},
+      low: {n:'Low Carb', p:'Fleisch, Fisch, Eier, Gemüse, wenig Kohlenhydrate', a:'Gewichtsabnahme, Blutzucker-Stabilisierung', v:'Unter 100 g Kohlenhydrate/Tag'},
+      veg: {n:'Vegetarisch', p:'Gemüse, Obst, Hülsenfrüchte, Milchprodukte', a:'Umweltfreundlich, vielfältig', v:'Kein Fleisch/Fisch'},
+      kf: {n:'Keto', p:'Fett, Eiweiß, sehr wenig Kohlenhydrate', a:'Schnelle Gewichtsabnahme', v:'Unter 20 g Kohlenhydrate/Tag · ärztlich begleiten!'}
+    };
+    var cur = 'med';
+    function show(){
+      var d = D[cur];
+      win.querySelector('#v19-dtL').innerHTML = '<div class="v19-card"><b style="color:var(--c1);font-size:16px">'+esc(d.n)+'</b><div class="dim sm" style="margin-top:8px;line-height:1.7"><b>🍽 Erlaubt:</b> '+esc(d.p)+'<br><b>🎯 Vorteil:</b> '+esc(d.a)+'<br><b>💡 Besonderheit:</b> '+esc(d.v)+'</div></div>';
+    }
+    win.querySelectorAll('#v19-dtT [data-d]').forEach(function(b){ b.onclick = function(){ cur = b.dataset.d; win.querySelectorAll('#v19-dtT [data-d]').forEach(function(x){ x.classList.toggle('on', x === b); }); show(); }; });
+    show();
+  }
+};
+
+/* 19 · TISCH-DEKO */
+APPS['tischdeko'] = {
+  name:'Tisch-Deko', icon:'🌸',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🌸 Tisch-Deko-Ideen</div><div class="dim sm">Für jede Gelegenheit</div></div>'+
+      '<div id="v19-tdL" class="col" style="gap:8px"></div>'+
+    '</div>';
+  },
+  init: function(win){
+    var D = [
+      ['🎄','Weihnachten','Tannenzweige, rote Kerzen, Zimtstangen, Orangen mit Nelken'],
+      ['🌷','Frühling','Tulpen, Pastellfarben, Ostereier, frische Zweige'],
+      ['🎃','Halloween','Kürbisse, Lichter, schwarze Kerzen, Spinnennetz-Deko'],
+      ['🌹','Hochzeit','Weiße Blumen, Spitze, Kerzen, Efeu-Ranken'],
+      ['🎂','Geburtstag','Konfetti, Ballons, Foto-Girlanden, bunte Servietten'],
+      ['🕌','Ramadan','Datenspeisen, Laternen, Gold-Akzente, Gebetsketten'],
+      ['🍂','Herbst','Kürbisse, Laub, warme Erdtöne, Kürbiskerne'],
+      ['🇹🇷','Türkisch','Bunte Teller, Kupfertassen, Teppich, Lammfell'],
+      ['🦚','Êzîdî','Weiße Tischdecke, Pfauenfeder, Granatapfel, Kerzen']
+    ];
+    win.querySelector('#v19-tdL').innerHTML = D.map(function(x){
+      return '<div class="v19-card"><div class="row between"><b>'+x[0]+' '+esc(x[1])+'</b></div><div class="dim sm" style="margin-top:6px">'+esc(x[2])+'</div></div>';
+    }).join('');
+  }
+};
+
+/* 20 · GASTGEBER-PLANER */
+APPS['gastgeber'] = {
+  name:'Gastgeber-Planer', icon:'🎉',
+  render: function(){
+    return '<div class="col" style="gap:12px">'+
+      '<div class="v9-header"><div class="v9-h1">🎉 Gastgeber-Planer</div><div class="dim sm">Alles für den perfekten Abend</div></div>'+
+      '<div class="row"><input class="v9-input" id="v19-gpA" placeholder="Aufgabe (z.B. Einladungen senden)" style="flex:1"><input class="v9-input" id="v19-gpD" type="date" style="width:auto"><button class="btn primary" id="v19-gpAdd">+</button></div>'+
+      '<div id="v19-gpL" class="col" style="gap:6px;max-height:60vh;overflow-y:auto"></div>'+
+      '<div class="v19-card"><b>💡 Checkliste</b><div class="dim sm" style="margin-top:6px">• Gästezahl & Allergien<br>• Menü planen<br>• Getränke kühlen<br>• Musik-Playlist<br>• Kerzen/Deko<br>• Platzreservierung</div></div>'+
+    '</div>';
+  },
+  init: function(win){
+    function all(){ return store.get('gastgeber19',[]); }
+    function render(){
+      var a = all().sort(function(x,y){ return x.d.localeCompare(y.d); });
+      win.querySelector('#v19-gpL').innerHTML = a.length ? a.map(function(x){
+        return '<div class="v19-row"><input type="checkbox" data-id="'+x.id+'" '+(x.done?'checked':'')+'><b style="flex:1;'+(x.done?'text-decoration:line-through;opacity:.5':'')+'">'+esc(x.t)+'</b><span class="dim sm">'+new Date(x.d).toLocaleDateString('de-DE')+'</span><span class="x" data-id="'+x.id+'">✕</span></div>';
+      }).join('') : '<div class="empty">Noch nichts geplant</div>';
+      win.querySelectorAll('input[type=checkbox]').forEach(function(c){ c.onchange = function(){ var arr = all(); var x = arr.find(function(v){ return v.id === c.dataset.id; }); if(x){ x.done = c.checked; store.set('gastgeber19', arr); render(); } }; });
+      win.querySelectorAll('.x').forEach(function(el){ el.onclick = function(){ store.set('gastgeber19', all().filter(function(v){ return v.id !== el.dataset.id; })); render(); }; });
+    }
+    win.querySelector('#v19-gpAdd').onclick = function(){
+      var t = win.querySelector('#v19-gpA').value.trim();
+      var d = win.querySelector('#v19-gpD').value;
+      if(!t || !d) return;
+      var a = all(); a.push({id:uid(), t:t, d:d, done:false}); store.set('gastgeber19', a);
+      win.querySelector('#v19-gpA').value = '';
+      render();
+    };
+    render();
+  }
+};
+
+console.log('%c📦 v19 geladen — Kochen & Genießen · 20 Apps','background:linear-gradient(90deg,#ffb03a,#ff6b88);color:#fff;padding:4px 10px;border-radius:6px;font-weight:800');
+console.log('Aktive Apps:', Object.keys(APPS).length);
+
+setTimeout(function(){ var l = document.querySelector('#logoBtn'); if(l) l.click(); }, 150);
+
+})();
+</script>
 </body>
 </html>
