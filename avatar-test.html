@@ -315,14 +315,7 @@
     <div class="row" style="margin-top:8px;">
       <label>Modell</label>
       <select id="aiModel">
-        <option value="gemini-3.8-flash">Gemini 3.8 Flash (neueste)</option>
-        <option value="gemini-3.7-flash">Gemini 3.7 Flash</option>
-        <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
-        <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
-        <option value="gemini-3.8-flash-lite">Gemini 3.8 Flash-Lite (günstig)</option>
-        <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite</option>
-        <option value="gemini-2.5-flash">Gemini 2.5 Flash (älter)</option>
-        <option value="gemini-2.0-flash">Gemini 2.0 Flash (älter)</option>
+        <option value="">Wird geladen…</option>
       </select>
     </div>
     <div class="row">
@@ -401,7 +394,7 @@
     ringsOn: true, trackingOn: true, blinkOn: true,
     emotion: "neutral",
     voiceRate: 1.0, voicePitch: 1.0, voiceName: "",
-    apiKey: "", aiModel: "gemini-3.8-flash", autoSpeak: true,
+    apiKey: "", aiModel: "", autoSpeak: true,
     chatHistory: []
   };
   const state = Object.assign({}, defaults);
@@ -951,16 +944,66 @@
     state.apiKey = e.target.value.trim();
     saveState();
     updateAIStatus();
+    // Wenn Key geändert → Modelle neu laden
+    if (state.apiKey.length > 20) {
+      loadAvailableModels();
+    }
   });
 
   const aiModelEl = document.getElementById("aiModel");
-  // Sicherstellen, dass das gespeicherte Modell noch existiert, sonst Fallback
-  const validModels = ["gemini-3.8-flash","gemini-3.7-flash","gemini-3.6-flash","gemini-3.5-flash","gemini-3.8-flash-lite","gemini-3.1-flash-lite","gemini-2.5-flash","gemini-2.0-flash"];
-  if (!validModels.includes(state.aiModel)) {
-    state.aiModel = "gemini-3.8-flash";
-    saveState();
+
+  async function loadAvailableModels() {
+    if (!state.apiKey) {
+      aiModelEl.innerHTML = "<option value=\"\">(kein API-Key)</option>";
+      return;
+    }
+    aiModelEl.innerHTML = "<option value=\"\">Lade Modelle…</option>";
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(state.apiKey)}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        aiModelEl.innerHTML = "<option value=\"\">(Fehler beim Laden)</option>";
+        return;
+      }
+      const data = await res.json();
+      // Nur Modelle mit "generateContent"
+      const models = (data.models || []).filter(m =>
+        m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent")
+      );
+      if (!models.length) {
+        aiModelEl.innerHTML = "<option value=\"\">(keine Modelle gefunden)</option>";
+        return;
+      }
+      aiModelEl.innerHTML = "";
+      // Deutsche Namen aus dem Modell-Namen extrahieren
+      models.forEach(m => {
+        const shortName = m.name.replace("models/", "");
+        const opt = document.createElement("option");
+        opt.value = shortName;
+        opt.textContent = shortName;
+        if (state.aiModel === shortName) opt.selected = true;
+        aiModelEl.appendChild(opt);
+      });
+      // Wenn gespeichertes Modell nicht dabei → erstes wählen
+      if (!models.find(m => m.name.replace("models/","") === state.aiModel)) {
+        const first = models[0].name.replace("models/", "");
+        state.aiModel = first;
+        aiModelEl.value = first;
+        saveState();
+      }
+    } catch (e) {
+      aiModelEl.innerHTML = "<option value=\"\">(Netzwerkfehler)</option>";
+      console.warn(e);
+    }
   }
-  aiModelEl.value = state.aiModel;
+
+  // Beim Start: Wenn Key vorhanden, Modelle laden
+  if (state.apiKey) {
+    loadAvailableModels();
+  } else {
+    aiModelEl.innerHTML = "<option value=\"\">Trag erst den API-Key ein</option>";
+  }
+
   aiModelEl.addEventListener("change", (e) => {
     state.aiModel = e.target.value;
     saveState();
@@ -1037,10 +1080,10 @@
   // ==================== GEMINI ====================
   async function askGemini(userText) {
     if (!state.apiKey) throw new Error("Kein API-Key. Trag ihn oben rechts ein (aistudio.google.com/apikey).");
+    if (!state.aiModel) throw new Error("Kein Modell gewählt. Lade die Seite neu oder trag einen API-Key ein.");
     const model = state.aiModel;
     const sys = "Du bist HalDo, ein freundlicher, warmer, intelligenter Assistent. Antworte natürlich, hilfsbereit, kurz und auf Deutsch, außer der Nutzer schreibt in einer anderen Sprache. Sei persönlich und menschlich.";
     const contents = [];
-    // letzte 10 Nachrichten
     const hist = state.chatHistory.slice(-11, -1);
     hist.forEach(m => {
       contents.push({
@@ -1110,7 +1153,6 @@
   async function handleUserMessage(text) {
     addMessage("user", text);
 
-    // Lokale Antwort?
     const local = localReply(text);
     if (!state.apiKey) {
       if (local) {
@@ -1127,7 +1169,6 @@
       return;
     }
 
-    // Mit KI
     showTyping();
     document.getElementById("status").textContent = "🤖 denke nach…";
     try {
@@ -1145,7 +1186,6 @@
     }
   }
 
-  // Enter drücken
   chatInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       const v = chatInput.value.trim();
@@ -1157,7 +1197,6 @@
     if (v) { chatInput.value = ""; handleUserMessage(v); }
   });
 
-  // Quick-Buttons
   document.querySelectorAll(".quick").forEach(btn => {
     btn.addEventListener("click", () => {
       const q = btn.dataset.q;
