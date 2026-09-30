@@ -2,262 +2,690 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Avatar Test 3 · HalDo 3D Gesicht</title>
+<title>HalDo Avatar · Ich-Version</title>
 <style>
-  body { margin: 0; overflow: hidden; background: #050810; font-family: system-ui, sans-serif; color: #00d4ff; }
-  #status { position: fixed; top: 20px; left: 20px; background: rgba(0,212,255,0.15); border: 1px solid #00d4ff; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; box-shadow: 0 0 20px rgba(0,212,255,0.4); z-index: 100; }
-  #hint { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.3); padding: 10px 20px; border-radius: 20px; font-size: 12px; color: #7a8ba8; z-index: 100; }
+  body { margin: 0; overflow: hidden; background: #050810; font-family: system-ui, -apple-system, sans-serif; color: #e6f0ff; }
+  #canvas-wrap { position: fixed; inset: 0; }
+  #panel {
+    position: fixed; top: 20px; right: 20px;
+    width: 280px; max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    background: rgba(10, 15, 28, 0.92);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 14px;
+    padding: 16px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 212, 255, 0.1);
+    font-size: 13px;
+    z-index: 100;
+  }
+  #panel::-webkit-scrollbar { width: 6px; }
+  #panel::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.3); border-radius: 3px; }
+  #panel h3 {
+    margin: 0 0 14px 0;
+    font-size: 14px;
+    color: #00d4ff;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #panel h3::before {
+    content: "";
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #00d4ff;
+    box-shadow: 0 0 10px #00d4ff;
+  }
+  .group {
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .group-title {
+    font-size: 11px;
+    color: #7a8ba8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 0;
+  }
+  .row label {
+    font-size: 12.5px;
+    color: #a8b8d0;
+    flex: 1;
+  }
+  input[type="color"] {
+    width: 40px; height: 28px;
+    border: 1px solid rgba(0,212,255,0.3);
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    padding: 2px;
+  }
+  input[type="range"] {
+    width: 110px;
+    accent-color: #00d4ff;
+  }
+  input[type="checkbox"] {
+    width: 18px; height: 18px;
+    accent-color: #00d4ff;
+    cursor: pointer;
+  }
+  .val {
+    font-size: 11px;
+    color: #00d4ff;
+    font-weight: 600;
+    min-width: 32px;
+    text-align: right;
+  }
+  #status {
+    position: fixed;
+    top: 20px; left: 20px;
+    background: rgba(0, 212, 255, 0.15);
+    border: 1px solid #00d4ff;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+    z-index: 100;
+  }
+  #hint {
+    position: fixed;
+    bottom: 20px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 12px;
+    color: #7a8ba8;
+    z-index: 100;
+  }
+  .reset-btn {
+    width: 100%;
+    padding: 9px;
+    margin-top: 10px;
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    color: #ef4444;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .reset-btn:hover { background: rgba(239, 68, 68, 0.25); }
+  @media (max-width: 700px) {
+    #panel { width: 240px; top: 10px; right: 10px; padding: 12px; font-size: 12px; }
+    #status { padding: 8px 12px; font-size: 11.5px; top: 10px; left: 10px; }
+  }
 </style>
 </head>
 <body>
-<div id="status">✅ Schritt 3 · 3D-Gesicht geladen</div>
-<div id="hint">👀 Beweg die Maus — Kopf und Augen folgen dir</div>
+
+<div id="canvas-wrap"></div>
+<div id="status">🦚 HalDo · Ich-Avatar</div>
+<div id="hint">👀 Beweg die Maus · Rechts Einstellungen</div>
+
+<div id="panel">
+  <h3>Avatar-Studio</h3>
+
+  <div class="group">
+    <div class="group-title">💇 Haare</div>
+    <div class="row"><label>Haarfarbe</label><input type="color" id="hairColor" value="#1a1410"></div>
+    <div class="row"><label>Frisur-Stil</label>
+      <select id="hairStyle" style="background:#0f1524;color:#e6f0ff;border:1px solid rgba(0,212,255,.3);border-radius:6px;padding:4px 8px;font-family:inherit;font-size:12px;">
+        <option value="curly" selected>Lockig (ich)</option>
+        <option value="straight">Glatt</option>
+        <option value="short">Kurz</option>
+        <option value="bald">Glatze</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="group-title">🧔 Bart</div>
+    <div class="row"><label>Bart an</label><input type="checkbox" id="beardOn" checked></div>
+    <div class="row"><label>Bartfarbe</label><input type="color" id="beardColor" value="#3a2a1a"></div>
+    <div class="row"><label>Grau-Anteil</label><input type="range" id="beardGray" min="0" max="100" value="55"><span class="val" id="beardGrayVal">55%</span></div>
+    <div class="row"><label>Schnurrbart</label><input type="checkbox" id="mustacheOn" checked></div>
+  </div>
+
+  <div class="group">
+    <div class="group-title">🎨 Haut & Augen</div>
+    <div class="row"><label>Hautfarbe</label><input type="color" id="skinColor" value="#c99a72"></div>
+    <div class="row"><label>Augenfarbe</label><input type="color" id="eyeColor" value="#4a3220"></div>
+    <div class="row"><label>Augenbrauen</label><input type="checkbox" id="browsOn" checked></div>
+  </div>
+
+  <div class="group">
+    <div class="group-title">👕 Kleidung</div>
+    <div class="row"><label>Shirt-Farbe</label><input type="color" id="shirtColor" value="#0a0a0a"></div>
+  </div>
+
+  <div class="group">
+    <div class="group-title">✨ Effekte</div>
+    <div class="row"><label>Hologramm-Ringe</label><input type="checkbox" id="ringsOn" checked></div>
+    <div class="row"><label>Augen-Tracking</label><input type="checkbox" id="trackingOn" checked></div>
+  </div>
+
+  <button class="reset-btn" id="resetBtn">↺ Alles zurücksetzen</button>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script>
-if (typeof THREE === "undefined") {
-  document.getElementById("status").textContent = "❌ Three.js nicht geladen";
-} else {
+// ============================================================
+// HalDo AI OS · 3D-Avatar (Ich-Version)
+// ============================================================
+(function() {
+  "use strict";
 
-  // ============ 1. SZENE ============
+  if (typeof THREE === "undefined") {
+    document.getElementById("status").textContent = "❌ Three.js nicht geladen";
+    return;
+  }
+
+  // ============ EINSTELLUNGEN ============
+  const defaults = {
+    hairColor: "#1a1410",
+    hairStyle: "curly",
+    beardOn: true,
+    beardColor: "#3a2a1a",
+    beardGray: 55,
+    mustacheOn: true,
+    skinColor: "#c99a72",
+    eyeColor: "#4a3220",
+    browsOn: true,
+    shirtColor: "#0a0a0a",
+    ringsOn: true,
+    trackingOn: true
+  };
+
+  const state = Object.assign({}, defaults);
+  // Aus localStorage laden
+  try {
+    const saved = localStorage.getItem("haldo_avatar_settings");
+    if (saved) Object.assign(state, JSON.parse(saved));
+  } catch(e) {}
+
+  function saveState() {
+    try { localStorage.setItem("haldo_avatar_settings", JSON.stringify(state)); } catch(e) {}
+  }
+
+  // ============ SZENE ============
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.set(0, 0, 6);
+  camera.position.set(0, 0.1, 5.5);
   camera.lookAt(0, 0, 0);
+
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setClearColor(0x050810, 1);
-  document.body.appendChild(renderer.domElement);
+  document.getElementById("canvas-wrap").appendChild(renderer.domElement);
 
-  // ============ 2. LICHT ============
-  const light1 = new THREE.DirectionalLight(0xffffff, 1.1);
+  // ============ LICHT ============
+  const light1 = new THREE.DirectionalLight(0xfff4e6, 1.15);
   light1.position.set(3, 4, 5);
   scene.add(light1);
-  const light2 = new THREE.PointLight(0x00d4ff, 1.5, 15);
+
+  const light2 = new THREE.PointLight(0x00d4ff, 1.2, 15);
   light2.position.set(-4, 1, 2);
   scene.add(light2);
-  const light3 = new THREE.PointLight(0x7c3aed, 1.2, 15);
+
+  const light3 = new THREE.PointLight(0x7c3aed, 1.0, 15);
   light3.position.set(4, -2, -2);
   scene.add(light3);
-  const ambient = new THREE.AmbientLight(0x404060, 0.8);
+
+  const ambient = new THREE.AmbientLight(0x606580, 0.9);
   scene.add(ambient);
 
-  // ============ 3. MATERIALIEN ============
-  const skinMat = new THREE.MeshPhongMaterial({ color: 0xe8c19c, shininess: 30, specular: 0x555555 });
-  const hairMat = new THREE.MeshPhongMaterial({ color: 0x3d2415, shininess: 80, specular: 0x222222 });
-  const lipMat = new THREE.MeshPhongMaterial({ color: 0xb54a4a, shininess: 90, specular: 0x444444 });
+  // ============ MATERIALIEN ============
+  const skinMat = new THREE.MeshPhongMaterial({ color: state.skinColor, shininess: 25, specular: 0x333333 });
+  const hairMat = new THREE.MeshPhongMaterial({ color: state.hairColor, shininess: 60, specular: 0x222222 });
+  const beardMat = new THREE.MeshPhongMaterial({ color: state.beardColor, shininess: 20, specular: 0x111111 });
+  const grayBeardMat = new THREE.MeshPhongMaterial({ color: 0xb8b8b8, shininess: 15, specular: 0x222222 });
+  const lipMat = new THREE.MeshPhongMaterial({ color: 0xa85050, shininess: 60, specular: 0x333333 });
   const eyeWhiteMat = new THREE.MeshPhongMaterial({ color: 0xfbfaf8, shininess: 100, specular: 0xffffff });
-  const irisMat = new THREE.MeshPhongMaterial({ color: 0x4a7ba8, shininess: 120, specular: 0xffffff });
+  const irisMat = new THREE.MeshPhongMaterial({ color: state.eyeColor, shininess: 120, specular: 0xffffff });
   const pupilMat = new THREE.MeshPhongMaterial({ color: 0x0a0a0a });
-  const ringMat1 = new THREE.MeshBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.5 });
-  const ringMat2 = new THREE.MeshBasicMaterial({ color: 0x7c3aed, transparent: true, opacity: 0.5 });
+  const browMat = new THREE.MeshPhongMaterial({ color: 0x1a1410, shininess: 30 });
+  const shirtMat = new THREE.MeshPhongMaterial({ color: state.shirtColor, shininess: 15, specular: 0x111111 });
+  const ringMat1 = new THREE.MeshBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.45 });
+  const ringMat2 = new THREE.MeshBasicMaterial({ color: 0x7c3aed, transparent: true, opacity: 0.45 });
 
-  // ============ 4. KOPF + GESICHT ============
+  // ============ GRUPPEN ============
   const headGroup = new THREE.Group();
   scene.add(headGroup);
 
-  // --- Kopf (Kugel, oval) ---
-  const headGeo = new THREE.SphereGeometry(1, 64, 64);
-  const head = new THREE.Mesh(headGeo, skinMat);
-  head.scale.set(0.85, 1.05, 0.9);
-  headGroup.add(head);
-
-  // --- HALS ---
-  const neckGeo = new THREE.CylinderGeometry(0.28, 0.32, 0.6, 32);
+  // ============ HALS ============
+  const neckGeo = new THREE.CylinderGeometry(0.32, 0.38, 0.55, 32);
   const neck = new THREE.Mesh(neckGeo, skinMat);
-  neck.position.set(0, -1.05, 0);
+  neck.position.set(0, -1.05, 0.02);
   headGroup.add(neck);
 
-  // --- SCHULTERN ---
-  const shoulderGeo = new THREE.SphereGeometry(0.9, 32, 32);
-  const shoulder = new THREE.Mesh(shoulderGeo, skinMat);
-  shoulder.scale.set(1.4, 0.5, 0.8);
-  shoulder.position.set(0, -1.5, 0);
+  // ============ SCHULTERN / SHIRT ============
+  const shoulderGeo = new THREE.SphereGeometry(1.0, 32, 32);
+  const shoulder = new THREE.Mesh(shoulderGeo, shirtMat);
+  shoulder.scale.set(1.55, 0.55, 0.85);
+  shoulder.position.set(0, -1.55, 0);
   headGroup.add(shoulder);
 
-  // --- HAARE (hinten) ---
-  const hairBackGeo = new THREE.SphereGeometry(1.05, 32, 32);
-  const hairBack = new THREE.Mesh(hairBackGeo, hairMat);
-  hairBack.scale.set(0.9, 1.05, 0.95);
-  hairBack.position.set(0, 0.05, -0.08);
-  headGroup.add(hairBack);
+  // Kragen
+  const collarGeo = new THREE.TorusGeometry(0.38, 0.06, 16, 40);
+  const collar = new THREE.Mesh(collarGeo, shirtMat);
+  collar.rotation.x = Math.PI * 0.5;
+  collar.position.set(0, -1.3, 0);
+  headGroup.add(collar);
 
-  // --- HAARE (vorne / Pony) ---
-  const hairFrontGeo = new THREE.SphereGeometry(1.02, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.45);
-  const hairFront = new THREE.Mesh(hairFrontGeo, hairMat);
-  hairFront.scale.set(0.88, 1.0, 0.92);
-  hairFront.position.set(0, 0.1, 0.02);
-  headGroup.add(hairFront);
+  // ============ KOPF ============
+  // Etwas runder (wie deine Gesichtsform)
+  const headGeo = new THREE.SphereGeometry(1, 64, 64);
+  const head = new THREE.Mesh(headGeo, skinMat);
+  head.scale.set(0.98, 1.08, 0.92);
+  headGroup.add(head);
 
-  // --- HAARE (Seitensträhnen) ---
-  const strandGeo = new THREE.CylinderGeometry(0.08, 0.06, 0.7, 12);
-  const strandL = new THREE.Mesh(strandGeo, hairMat);
-  strandL.position.set(-0.85, -0.2, 0.1);
-  strandL.rotation.z = 0.15;
-  headGroup.add(strandL);
+  // ============ WANGEN (leichter rötlicher Akzent) ============
+  const cheekMat = new THREE.MeshPhongMaterial({ color: 0xd88070, transparent: true, opacity: 0.35 });
+  const cheekGeo = new THREE.SphereGeometry(0.22, 16, 16);
+  const cheekL = new THREE.Mesh(cheekGeo, cheekMat);
+  cheekL.scale.set(1, 0.7, 0.3);
+  cheekL.position.set(-0.5, -0.05, 0.72);
+  headGroup.add(cheekL);
+  const cheekR = new THREE.Mesh(cheekGeo, cheekMat);
+  cheekR.scale.set(1, 0.7, 0.3);
+  cheekR.position.set(0.5, -0.05, 0.72);
+  headGroup.add(cheekR);
 
-  const strandR = new THREE.Mesh(strandGeo, hairMat);
-  strandR.position.set(0.85, -0.2, 0.1);
-  strandR.rotation.z = -0.15;
-  headGroup.add(strandR);
+  // ============ AUGEN ============
+  const eyeY = 0.12;
+  const eyeX = 0.34;
+  const eyeZ = 0.82;
 
-  // --- OHREN ---
-  const earGeo = new THREE.SphereGeometry(0.13, 32, 32);
-  const earL = new THREE.Mesh(earGeo, skinMat);
-  earL.scale.set(0.5, 0.9, 0.4);
-  earL.position.set(-0.82, 0, 0);
-  headGroup.add(earL);
+  const leftEye = new THREE.Group();
+  const rightEye = new THREE.Group();
 
-  const earR = new THREE.Mesh(earGeo, skinMat);
-  earR.scale.set(0.5, 0.9, 0.4);
-  earR.position.set(0.82, 0, 0);
-  headGroup.add(earR);
-
-  // --- NASE ---
-  const noseGeo = new THREE.SphereGeometry(0.1, 32, 32);
-  const nose = new THREE.Mesh(noseGeo, skinMat);
-  nose.scale.set(0.6, 0.8, 1.2);
-  nose.position.set(0, -0.05, 0.85);
-  headGroup.add(nose);
-
-  // Nasenlöcher
-  const nostrilGeo = new THREE.SphereGeometry(0.025, 16, 16);
-  const nostrilL = new THREE.Mesh(nostrilGeo, new THREE.MeshPhongMaterial({ color: 0x3a1a10 }));
-  nostrilL.position.set(-0.06, -0.1, 0.92);
-  headGroup.add(nostrilL);
-  const nostrilR = new THREE.Mesh(nostrilGeo, new THREE.MeshPhongMaterial({ color: 0x3a1a10 }));
-  nostrilR.position.set(0.06, -0.1, 0.92);
-  headGroup.add(nostrilR);
-
-  // --- LIPPEN ---
-  const upperLipGeo = new THREE.SphereGeometry(0.11, 32, 32);
-  const upperLip = new THREE.Mesh(upperLipGeo, lipMat);
-  upperLip.scale.set(1.3, 0.35, 0.5);
-  upperLip.position.set(0, -0.38, 0.85);
-  headGroup.add(upperLip);
-
-  const lowerLipGeo = new THREE.SphereGeometry(0.1, 32, 32);
-  const lowerLip = new THREE.Mesh(lowerLipGeo, lipMat);
-  lowerLip.scale.set(1.2, 0.4, 0.5);
-  lowerLip.position.set(0, -0.5, 0.85);
-  headGroup.add(lowerLip);
-
-  // --- AUGEN ---
-  const eyeY = 0.15;
-  const eyeX = 0.32;
-  const eyeZ = 0.78;
-
-  function createEye(offsetX) {
-    const g = new THREE.Group();
-    // Augapfel
-    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.13, 32, 32), eyeWhiteMat);
-    g.add(ball);
-    // Iris
-    const iris = new THREE.Mesh(new THREE.SphereGeometry(0.075, 32, 32), irisMat);
-    iris.position.z = 0.095;
+  function buildEye(group) {
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.135, 32, 32), eyeWhiteMat);
+    group.add(ball);
+    const iris = new THREE.Mesh(new THREE.SphereGeometry(0.08, 32, 32), irisMat);
+    iris.position.z = 0.1;
     iris.scale.z = 0.4;
-    g.add(iris);
-    // Pupille
-    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.035, 32, 32), pupilMat);
-    pupil.position.z = 0.12;
+    group.add(iris);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.04, 32, 32), pupilMat);
+    pupil.position.z = 0.125;
     pupil.scale.z = 0.5;
-    g.add(pupil);
-    // Glanz
-    const shine = new THREE.Mesh(new THREE.SphereGeometry(0.018, 16, 16), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-    shine.position.set(-0.03, 0.03, 0.14);
-    g.add(shine);
-    g.position.set(offsetX, eyeY, eyeZ);
-    return g;
+    group.add(pupil);
+    const shine = new THREE.Mesh(new THREE.SphereGeometry(0.02, 16, 16), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    shine.position.set(-0.035, 0.035, 0.145);
+    group.add(shine);
   }
 
-  const leftEye = createEye(-eyeX);
-  const rightEye = createEye(eyeX);
-  headGroup.add(leftEye);
-  headGroup.add(rightEye);
+  buildEye(leftEye);
+  buildEye(rightEye);
+  leftEye.position.set(-eyeX, eyeY, eyeZ);
+  rightEye.position.set(eyeX, eyeY, eyeZ);
+  headGroup.add(leftEye, rightEye);
 
-  // --- AUGENBRAUEN ---
-  const browGeo = new THREE.BoxGeometry(0.3, 0.045, 0.06);
-  const browMat = new THREE.MeshPhongMaterial({ color: 0x3d2415 });
+  // ============ AUGENBRAUEN (dick wie deine) ============
+  const browGroup = new THREE.Group();
+  const browGeo = new THREE.BoxGeometry(0.36, 0.075, 0.09);
   const browL = new THREE.Mesh(browGeo, browMat);
-  browL.position.set(-0.32, 0.33, 0.85);
-  browL.rotation.z = -0.1;
-  headGroup.add(browL);
+  browL.position.set(-0.34, 0.36, 0.86);
+  browL.rotation.z = -0.12;
+  browGroup.add(browL);
   const browR = new THREE.Mesh(browGeo, browMat);
-  browR.position.set(0.32, 0.33, 0.85);
-  browR.rotation.z = 0.1;
-  headGroup.add(browR);
+  browR.position.set(0.34, 0.36, 0.86);
+  browR.rotation.z = 0.12;
+  browGroup.add(browR);
+  headGroup.add(browGroup);
 
-  // ============ 5. HOLOGRAMM-RINGE ============
+  // ============ NASE ============
+  const noseGroup = new THREE.Group();
+  const noseGeo = new THREE.SphereGeometry(0.11, 32, 32);
+  const nose = new THREE.Mesh(noseGeo, skinMat);
+  nose.scale.set(0.75, 0.9, 1.3);
+  nose.position.set(0, -0.05, 0.88);
+  noseGroup.add(nose);
+
+  const nostrilMat = new THREE.MeshPhongMaterial({ color: 0x3a1a10 });
+  const nostrilGeo = new THREE.SphereGeometry(0.028, 16, 16);
+  const nostrilL = new THREE.Mesh(nostrilGeo, nostrilMat);
+  nostrilL.position.set(-0.07, -0.12, 0.94);
+  noseGroup.add(nostrilL);
+  const nostrilR = new THREE.Mesh(nostrilGeo, nostrilMat);
+  nostrilR.position.set(0.07, -0.12, 0.94);
+  noseGroup.add(nostrilR);
+  headGroup.add(noseGroup);
+
+  // ============ LIPPEN ============
+  const upperLip = new THREE.Mesh(new THREE.SphereGeometry(0.12, 32, 32), lipMat);
+  upperLip.scale.set(1.35, 0.35, 0.5);
+  upperLip.position.set(0, -0.42, 0.86);
+  headGroup.add(upperLip);
+
+  const lowerLip = new THREE.Mesh(new THREE.SphereGeometry(0.11, 32, 32), lipMat);
+  lowerLip.scale.set(1.25, 0.42, 0.5);
+  lowerLip.position.set(0, -0.54, 0.86);
+  headGroup.add(lowerLip);
+
+  // ============ OHREN ============
+  const earGeo = new THREE.SphereGeometry(0.14, 32, 32);
+  const earL = new THREE.Mesh(earGeo, skinMat);
+  earL.scale.set(0.5, 0.95, 0.4);
+  earL.position.set(-0.94, -0.02, 0);
+  headGroup.add(earL);
+  const earR = new THREE.Mesh(earGeo, skinMat);
+  earR.scale.set(0.5, 0.95, 0.4);
+  earR.position.set(0.94, -0.02, 0);
+  headGroup.add(earR);
+
+  // ============ HAARE ============
+  const hairGroup = new THREE.Group();
+  headGroup.add(hairGroup);
+
+  function buildHair(style) {
+    // Alte Haare entfernen
+    while (hairGroup.children.length) hairGroup.remove(hairGroup.children[0]);
+
+    const hairColor = state.hairColor;
+    hairMat.color.set(hairColor);
+
+    if (style === "bald") return;
+
+    if (style === "curly") {
+      // Locken — viele kleine Kugeln oben (wie deine Haare)
+      const baseBack = new THREE.Mesh(new THREE.SphereGeometry(1.06, 32, 32), hairMat);
+      baseBack.scale.set(1.02, 1.05, 0.98);
+      baseBack.position.set(0, 0.08, -0.05);
+      hairGroup.add(baseBack);
+
+      // Locken-Kugeln oben
+      const curls = [
+        [-0.5, 0.75, 0.55], [0.5, 0.75, 0.55], [0, 0.85, 0.6],
+        [-0.35, 0.9, 0.4], [0.35, 0.9, 0.4], [0, 1.0, 0.2],
+        [-0.6, 0.55, 0.35], [0.6, 0.55, 0.35],
+        [-0.75, 0.4, 0.1], [0.75, 0.4, 0.1],
+        [-0.55, 0.75, -0.1], [0.55, 0.75, -0.1],
+        [0, 0.9, -0.15]
+      ];
+      curls.forEach(([x, y, z]) => {
+        const curl = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), hairMat);
+        curl.position.set(x, y, z);
+        hairGroup.add(curl);
+      });
+
+      // Seitensträhnen
+      const sideGeo = new THREE.CylinderGeometry(0.12, 0.09, 0.6, 12);
+      const sideL = new THREE.Mesh(sideGeo, hairMat);
+      sideL.position.set(-0.88, -0.1, 0.15);
+      sideL.rotation.z = 0.2;
+      hairGroup.add(sideL);
+      const sideR = new THREE.Mesh(sideGeo, hairMat);
+      sideR.position.set(0.88, -0.1, 0.15);
+      sideR.rotation.z = -0.2;
+      hairGroup.add(sideR);
+
+    } else if (style === "straight") {
+      const back = new THREE.Mesh(new THREE.SphereGeometry(1.06, 32, 32), hairMat);
+      back.scale.set(1.0, 1.05, 1.0);
+      back.position.set(0, 0.1, -0.05);
+      hairGroup.add(back);
+      const front = new THREE.Mesh(new THREE.SphereGeometry(1.04, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.42), hairMat);
+      front.position.set(0, 0.15, 0.05);
+      hairGroup.add(front);
+
+    } else if (style === "short") {
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(1.06, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.55), hairMat);
+      cap.position.set(0, 0.1, 0);
+      hairGroup.add(cap);
+    }
+  }
+
+  buildHair(state.hairStyle);
+
+  // ============ BART ============
+  const beardGroup = new THREE.Group();
+  headGroup.add(beardGroup);
+
+  function buildBeard() {
+    while (beardGroup.children.length) beardGroup.remove(beardGroup.children[0]);
+    if (!state.beardOn) return;
+
+    // Bart-Substrat (dunkelbraun)
+    const beardBase = new THREE.Mesh(new THREE.SphereGeometry(0.95, 32, 32), beardMat);
+    beardBase.scale.set(1.05, 1.0, 0.95);
+    beardBase.position.set(0, -0.35, 0);
+    // Nur den unteren Teil des Gesichts zeigen → mit Skalierung
+    beardBase.scale.y = 0.85;
+    beardGroup.add(beardBase);
+
+    // Grau-Anteil
+    const grayAmt = state.beardGray / 100;
+    if (grayAmt > 0) {
+      // Kleine graue Punkte im Bart
+      for (let i = 0; i < 25; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const r = 0.85 + Math.random() * 0.15;
+        const x = Math.sin(angle) * r * 0.7;
+        const y = -0.4 + Math.random() * 0.5;
+        const z = Math.cos(angle) * r * 0.75;
+        if (z < 0.3) continue; // nur vorne
+
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), grayBeardMat);
+        dot.position.set(x, y, z);
+        dot.scale.setScalar(0.6 + Math.random() * 0.5);
+        beardGroup.add(dot);
+      }
+    }
+
+    // Koteletten (Seiten)
+    const sideburnGeo = new THREE.SphereGeometry(0.13, 16, 16);
+    const sbL = new THREE.Mesh(sideburnGeo, beardMat);
+    sbL.scale.set(0.6, 1.4, 0.7);
+    sbL.position.set(-0.78, -0.2, 0.35);
+    beardGroup.add(sbL);
+    const sbR = new THREE.Mesh(sideburnGeo, beardMat);
+    sbR.scale.set(0.6, 1.4, 0.7);
+    sbR.position.set(0.78, -0.2, 0.35);
+    beardGroup.add(sbR);
+
+    // Kinn-Bart (verlängert)
+    const chinBeard = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), beardMat);
+    chinBeard.scale.set(1.1, 1.3, 0.7);
+    chinBeard.position.set(0, -0.75, 0.6);
+    beardGroup.add(chinBeard);
+
+    // Schnurrbart
+    if (state.mustacheOn) {
+      const musGeo = new THREE.SphereGeometry(0.14, 32, 32);
+      const mus = new THREE.Mesh(musGeo, beardMat);
+      mus.scale.set(1.5, 0.5, 0.6);
+      mus.position.set(0, -0.36, 0.9);
+      beardGroup.add(mus);
+    }
+  }
+
+  buildBeard();
+
+  // ============ HOLOGRAMM-RINGE ============
   const ringGroup = new THREE.Group();
   scene.add(ringGroup);
 
-  function createRing(radius, mat, tubeRadius) {
-    const geo = new THREE.TorusGeometry(radius, tubeRadius, 16, 100);
+  function createRing(radius, mat, tube) {
+    const geo = new THREE.TorusGeometry(radius, tube, 16, 100);
     return new THREE.Mesh(geo, mat);
   }
 
-  const ring1 = createRing(2.2, ringMat1, 0.012);
+  const ring1 = createRing(2.3, ringMat1, 0.012);
   ring1.rotation.x = Math.PI * 0.5;
   ringGroup.add(ring1);
-
-  const ring2 = createRing(2.5, ringMat2, 0.009);
+  const ring2 = createRing(2.6, ringMat2, 0.009);
   ring2.rotation.x = Math.PI * 0.5;
   ringGroup.add(ring2);
+  const ring3 = createRing(2.9, ringMat1, 0.006);
+  ring3.rotation.x = Math.PI * 0.5;
+  ringGroup.add(ring3);
 
-  // ============ 6. MAUS-TRACKING ============
-  let mouseX = 0;
-  let mouseY = 0;
-
+  // ============ MAUS-TRACKING ============
+  let mouseX = 0, mouseY = 0;
   document.addEventListener("mousemove", (e) => {
     mouseX = (e.clientX / window.innerWidth) * 2 - 1;
     mouseY = -((e.clientY / window.innerHeight) * 2 - 1);
   });
 
-  // ============ 7. RESIZE ============
+  // ============ RESIZE ============
   window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  // ============ 8. ANIMATION ============
+  // ============ ANIMATION ============
   let t = 0;
-
   function animate() {
     requestAnimationFrame(animate);
     t += 0.016;
 
     // Atmung
-    headGroup.position.y = Math.sin(t * 1.2) * 0.05;
+    headGroup.position.y = Math.sin(t * 1.1) * 0.04;
 
-    // Kopf dreht in Richtung Maus
-    headGroup.rotation.y = mouseX * 0.25;
-    headGroup.rotation.x = -mouseY * 0.15;
+    if (state.trackingOn) {
+      // Kopf dreht in Richtung Maus
+      headGroup.rotation.y += ((mouseX * 0.25) - headGroup.rotation.y) * 0.08;
+      headGroup.rotation.x += ((-mouseY * 0.15) - headGroup.rotation.x) * 0.08;
 
-    // Augen folgen der Maus
-    const eyeTargetX = mouseX * 0.06;
-    const eyeTargetY = mouseY * 0.05;
+      // Augen folgen
+      const eyeTargetX = mouseX * 0.06;
+      const eyeTargetY = mouseY * 0.05;
+      leftEye.position.x = -eyeX + eyeTargetX;
+      rightEye.position.x = eyeX + eyeTargetX;
+      leftEye.position.y = eyeY + eyeTargetY;
+      rightEye.position.y = eyeY + eyeTargetY;
+      leftEye.lookAt(mouseX * 3, mouseY * 3, 5);
+      rightEye.lookAt(mouseX * 3, mouseY * 3, 5);
+    } else {
+      headGroup.rotation.y += (0 - headGroup.rotation.y) * 0.08;
+      headGroup.rotation.x += (0 - headGroup.rotation.x) * 0.08;
+    }
 
-    leftEye.position.x = -eyeX + eyeTargetX;
-    rightEye.position.x = eyeX + eyeTargetX;
-    leftEye.position.y = eyeY + eyeTargetY;
-    rightEye.position.y = eyeY + eyeTargetY;
-
-    leftEye.lookAt(mouseX * 3, mouseY * 3, 5);
-    rightEye.lookAt(mouseX * 3, mouseY * 3, 5);
-
-    // Ringe rotieren
-    ringGroup.rotation.y += 0.003;
-    ring1.rotation.z += 0.008;
-    ring2.rotation.z -= 0.005;
+    // Ringe
+    if (state.ringsOn) {
+      ringGroup.visible = true;
+      ringGroup.rotation.y += 0.003;
+      ring1.rotation.z += 0.008;
+      ring2.rotation.z -= 0.005;
+      ring3.rotation.z += 0.006;
+    } else {
+      ringGroup.visible = false;
+    }
 
     renderer.render(scene, camera);
   }
-
   animate();
-}
+
+  // ============ UI-BINDINGS ============
+  function bindColor(id, key, updateFn) {
+    const el = document.getElementById(id);
+    el.value = state[key];
+    el.addEventListener("input", (e) => {
+      state[key] = e.target.value;
+      saveState();
+      updateFn(e.target.value);
+    });
+  }
+
+  function bindCheckbox(id, key, updateFn) {
+    const el = document.getElementById(id);
+    el.checked = state[key];
+    el.addEventListener("change", (e) => {
+      state[key] = e.target.checked;
+      saveState();
+      updateFn(e.target.checked);
+    });
+  }
+
+  function bindRange(id, valId, key, updateFn) {
+    const el = document.getElementById(id);
+    const valEl = document.getElementById(valId);
+    el.value = state[key];
+    valEl.textContent = state[key] + "%";
+    el.addEventListener("input", (e) => {
+      state[key] = parseInt(e.target.value);
+      valEl.textContent = state[key] + "%";
+      saveState();
+      updateFn(state[key]);
+    });
+  }
+
+  bindColor("hairColor", "hairColor", (v) => { hairMat.color.set(v); });
+  bindColor("beardColor", "beardColor", (v) => { beardMat.color.set(v); });
+  bindColor("skinColor", "skinColor", (v) => { skinMat.color.set(v); });
+  bindColor("eyeColor", "eyeColor", (v) => { irisMat.color.set(v); });
+  bindColor("shirtColor", "shirtColor", (v) => { shirtMat.color.set(v); });
+
+  bindCheckbox("beardOn", "beardOn", () => buildBeard());
+  bindCheckbox("mustacheOn", "mustacheOn", () => buildBeard());
+  bindCheckbox("browsOn", "browsOn", (v) => { browGroup.visible = v; });
+  bindCheckbox("ringsOn", "ringsOn", () => {});
+  bindCheckbox("trackingOn", "trackingOn", () => {});
+
+  bindRange("beardGray", "beardGrayVal", "beardGray", () => buildBeard());
+
+  document.getElementById("hairStyle").value = state.hairStyle;
+  document.getElementById("hairStyle").addEventListener("change", (e) => {
+    state.hairStyle = e.target.value;
+    saveState();
+    buildHair(state.hairStyle);
+  });
+
+  // Bart initial sichtbar/anpassen
+  browGroup.visible = state.browsOn;
+
+  // Reset-Button
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    Object.assign(state, defaults);
+    saveState();
+    // Alle UI zurücksetzen
+    document.getElementById("hairColor").value = defaults.hairColor;
+    document.getElementById("hairStyle").value = defaults.hairStyle;
+    document.getElementById("beardOn").checked = defaults.beardOn;
+    document.getElementById("beardColor").value = defaults.beardColor;
+    document.getElementById("beardGray").value = defaults.beardGray;
+    document.getElementById("beardGrayVal").textContent = defaults.beardGray + "%";
+    document.getElementById("mustacheOn").checked = defaults.mustacheOn;
+    document.getElementById("skinColor").value = defaults.skinColor;
+    document.getElementById("eyeColor").value = defaults.eyeColor;
+    document.getElementById("browsOn").checked = defaults.browsOn;
+    document.getElementById("shirtColor").value = defaults.shirtColor;
+    document.getElementById("ringsOn").checked = defaults.ringsOn;
+    document.getElementById("trackingOn").checked = defaults.trackingOn;
+    // 3D aktualisieren
+    hairMat.color.set(defaults.hairColor);
+    beardMat.color.set(defaults.beardColor);
+    skinMat.color.set(defaults.skinColor);
+    irisMat.color.set(defaults.eyeColor);
+    shirtMat.color.set(defaults.shirtColor);
+    browGroup.visible = defaults.browsOn;
+    buildHair(defaults.hairStyle);
+    buildBeard();
+  });
+
+  console.log("🦚 HalDo Avatar geladen");
+})();
 </script>
 </body>
 </html>
