@@ -2,246 +2,328 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>HalDo Avatar · Sprechen & Emotionen</title>
+<title>HalDo Avatar · Chat mit KI</title>
 <style>
-  body { margin: 0; overflow: hidden; background: #050810; font-family: system-ui, -apple-system, sans-serif; color: #e6f0ff; }
-  #canvas-wrap { position: fixed; inset: 0; }
+  body { margin: 0; overflow: hidden; background: #050810; font-family: system-ui, -apple-system, sans-serif; color: #e6f0ff; height: 100vh; }
+  #canvas-wrap { position: fixed; inset: 0; z-index: 0; }
+
+  /* ===== CHAT PANEL (links) ===== */
+  #chatPanel {
+    position: fixed;
+    top: 20px; left: 20px;
+    width: 360px;
+    max-height: calc(100vh - 40px);
+    background: rgba(10, 15, 28, 0.92);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 16px;
+    display: flex; flex-direction: column;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 212, 255, 0.1);
+    z-index: 100;
+    overflow: hidden;
+  }
+  #chatHeader {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(0,212,255,0.15);
+    display: flex; align-items: center; gap: 10px;
+    background: linear-gradient(135deg, rgba(0,212,255,0.08), rgba(124,58,237,0.08));
+  }
+  #chatHeader .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #22c55e; box-shadow: 0 0 10px #22c55e;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  #chatHeader h2 {
+    margin: 0; font-size: 13.5px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: #00d4ff;
+  }
+  #chatHeader .badge {
+    margin-left: auto;
+    font-size: 10px; padding: 3px 8px;
+    border-radius: 10px;
+    background: rgba(0,212,255,0.15);
+    color: #00d4ff;
+    border: 1px solid rgba(0,212,255,0.3);
+    font-weight: 700;
+  }
+
+  #chatLog {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex; flex-direction: column;
+    gap: 10px;
+    min-height: 200px;
+    max-height: calc(100vh - 320px);
+  }
+  #chatLog::-webkit-scrollbar { width: 6px; }
+  #chatLog::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.3); border-radius: 3px; }
+
+  .msg {
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    max-width: 88%;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    animation: fadeIn .25s ease;
+  }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+  .msg.user {
+    align-self: flex-end;
+    background: linear-gradient(135deg, rgba(0,212,255,0.22), rgba(124,58,237,0.22));
+    border: 1px solid rgba(0,212,255,0.35);
+  }
+  .msg.bot {
+    align-self: flex-start;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .msg.sys {
+    align-self: center;
+    font-size: 11.5px;
+    color: #7a8ba8;
+    background: transparent;
+    padding: 4px;
+    text-align: center;
+  }
+  .msg .who {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: #7a8ba8; margin-bottom: 4px;
+  }
+  .msg.user .who { color: #00d4ff; }
+
+  .typing {
+    display: flex; gap: 4px;
+    padding: 12px 16px;
+    align-self: flex-start;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+  }
+  .typing span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #00d4ff;
+    animation: bounce 1.4s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce {
+    0%,60%,100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+  }
+
+  #chatInputWrap {
+    padding: 12px;
+    border-top: 1px solid rgba(0,212,255,0.15);
+    display: flex; gap: 8px;
+    background: rgba(0,0,0,0.2);
+  }
+  #chatInput {
+    flex: 1;
+    background: #0f1524;
+    border: 1px solid rgba(0,212,255,0.2);
+    color: #e6f0ff;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13.5px;
+    outline: none;
+  }
+  #chatInput:focus { border-color: #00d4ff; box-shadow: 0 0 0 3px rgba(0,212,255,0.1); }
+  #micBtn, #sendBtn {
+    width: 42px; height: 42px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all .15s;
+    flex-shrink: 0;
+  }
+  #micBtn {
+    background: rgba(0,212,255,0.15);
+    border: 1px solid rgba(0,212,255,0.3);
+    color: #00d4ff;
+  }
+  #micBtn:hover { background: rgba(0,212,255,0.25); }
+  #micBtn.listening {
+    background: linear-gradient(135deg, #ef4444, #f97316);
+    color: #fff;
+    animation: micPulse 1s infinite;
+  }
+  @keyframes micPulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+    50% { box-shadow: 0 0 0 10px rgba(239,68,68,0); }
+  }
+  #sendBtn {
+    background: linear-gradient(135deg, #00d4ff, #7c3aed);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(0,212,255,0.3);
+  }
+  #sendBtn:hover { box-shadow: 0 6px 24px rgba(0,212,255,0.5); }
+
+  /* ===== QUICK BUTTONS ===== */
+  #quickBar {
+    padding: 8px 12px;
+    display: flex; gap: 6px; flex-wrap: wrap;
+    border-top: 1px solid rgba(0,212,255,0.1);
+    background: rgba(0,0,0,0.15);
+  }
+  .quick {
+    font-size: 11px;
+    padding: 5px 10px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #a8b8d0;
+    border-radius: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .15s;
+  }
+  .quick:hover { background: rgba(0,212,255,0.15); color: #e6f0ff; border-color: rgba(0,212,255,0.4); }
+
+  /* ===== SETTINGS PANEL (rechts) ===== */
   #panel {
     position: fixed; top: 20px; right: 20px;
-    width: 300px; max-height: calc(100vh - 40px);
+    width: 280px; max-height: calc(100vh - 40px);
     overflow-y: auto;
     background: rgba(10, 15, 28, 0.92);
     border: 1px solid rgba(0, 212, 255, 0.3);
     border-radius: 14px;
     padding: 16px;
     backdrop-filter: blur(20px);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 212, 255, 0.1);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
     font-size: 13px;
     z-index: 100;
   }
-  #panel::-webkit-scrollbar { width: 6px; }
+  #panel::-webkit-scrollbar { width: 5px; }
   #panel::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.3); border-radius: 3px; }
   #panel h3 {
-    margin: 0 0 14px 0;
-    font-size: 14px;
-    color: #00d4ff;
-    letter-spacing: 1.5px;
+    margin: 0 0 14px 0; font-size: 13px;
+    color: #00d4ff; letter-spacing: 1.5px;
     text-transform: uppercase;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    display: flex; align-items: center; gap: 8px;
   }
   #panel h3::before {
-    content: "";
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: #00d4ff;
+    content: ""; width: 8px; height: 8px;
+    border-radius: 50%; background: #00d4ff;
     box-shadow: 0 0 10px #00d4ff;
   }
-  .group {
-    margin-bottom: 16px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-  }
+  .group { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
   .group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
   .group-title {
-    font-size: 11px;
-    color: #7a8ba8;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 10px;
-    font-weight: 600;
+    font-size: 10.5px; color: #7a8ba8;
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 8px; font-weight: 700;
   }
   .row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 6px 0;
+    display: flex; align-items: center;
+    justify-content: space-between; gap: 10px; padding: 5px 0;
   }
-  .row label {
-    font-size: 12.5px;
-    color: #a8b8d0;
-    flex: 1;
-  }
-  input[type="color"] {
-    width: 40px; height: 28px;
-    border: 1px solid rgba(0,212,255,0.3);
-    border-radius: 6px;
-    background: transparent;
-    cursor: pointer;
-    padding: 2px;
-  }
-  input[type="range"] { width: 110px; accent-color: #00d4ff; }
-  input[type="checkbox"] { width: 18px; height: 18px; accent-color: #00d4ff; cursor: pointer; }
+  .row label { font-size: 12px; color: #a8b8d0; flex: 1; }
+  input[type="color"] { width: 38px; height: 26px; border: 1px solid rgba(0,212,255,0.3); border-radius: 6px; background: transparent; cursor: pointer; padding: 2px; }
+  input[type="range"] { width: 100px; accent-color: #00d4ff; }
+  input[type="checkbox"] { width: 16px; height: 16px; accent-color: #00d4ff; cursor: pointer; }
   select {
-    background: #0f1524;
-    color: #e6f0ff;
+    background: #0f1524; color: #e6f0ff;
     border: 1px solid rgba(0,212,255,.3);
-    border-radius: 6px;
-    padding: 5px 8px;
+    border-radius: 6px; padding: 5px 8px;
+    font-family: inherit; font-size: 11.5px;
+    outline: none; cursor: pointer;
+    max-width: 140px;
+  }
+  .val { font-size: 10.5px; color: #00d4ff; font-weight: 700; min-width: 30px; text-align: right; }
+  .keyInput {
+    width: 100%;
+    background: #0f1524;
+    border: 1px solid rgba(0,212,255,0.3);
+    color: #e6f0ff;
+    padding: 7px 10px;
+    border-radius: 8px;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 11.5px;
     outline: none;
-    cursor: pointer;
+    margin-top: 6px;
   }
-  .val {
-    font-size: 11px;
-    color: #00d4ff;
-    font-weight: 600;
-    min-width: 32px;
-    text-align: right;
-  }
+  .keyInput:focus { border-color: #00d4ff; }
+  .hint { font-size: 10.5px; color: #7a8ba8; line-height: 1.4; margin-top: 4px; }
+
   #status {
-    position: fixed;
-    top: 20px; left: 20px;
+    position: fixed; bottom: 20px; left: 50%;
+    transform: translateX(-50%);
     background: rgba(0, 212, 255, 0.15);
     border: 1px solid #00d4ff;
-    padding: 10px 16px;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 600;
-    box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
-    z-index: 100;
-  }
-  #hint {
-    position: fixed;
-    bottom: 20px; left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 212, 255, 0.1);
-    border: 1px solid rgba(0, 212, 255, 0.3);
     padding: 8px 18px;
     border-radius: 20px;
     font-size: 12px;
-    color: #7a8ba8;
+    font-weight: 600;
+    color: #00d4ff;
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
     z-index: 100;
+    transition: all .2s;
   }
-  .reset-btn {
-    width: 100%;
-    padding: 9px;
-    margin-top: 10px;
-    background: rgba(239, 68, 68, 0.15);
-    border: 1px solid rgba(239, 68, 68, 0.5);
-    color: #ef4444;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 12.5px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all .15s;
-  }
-  .reset-btn:hover { background: rgba(239, 68, 68, 0.25); }
+  #status.speaking { border-color: #ec4899; color: #ec4899; background: rgba(236,72,153,0.15); }
+  #status.listening { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,0.15); }
 
-  .speak-box {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  @media (max-width: 900px) {
+    #panel { display: none; }
+    #chatPanel { width: 300px; }
   }
-  .speak-box textarea {
-    width: 100%;
-    min-height: 60px;
-    background: #0f1524;
-    color: #e6f0ff;
-    border: 1px solid rgba(0,212,255,.3);
-    border-radius: 8px;
-    padding: 8px 10px;
-    font-family: inherit;
-    font-size: 12.5px;
-    resize: vertical;
-    outline: none;
-  }
-  .speak-box textarea:focus { border-color: #00d4ff; }
-  .speak-btn {
-    width: 100%;
-    padding: 10px;
-    background: linear-gradient(135deg, #00d4ff, #7c3aed);
-    border: none;
-    color: #fff;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all .15s;
-    box-shadow: 0 4px 16px rgba(0,212,255,.25);
-  }
-  .speak-btn:hover { box-shadow: 0 6px 24px rgba(0,212,255,.4); }
-  .speak-btn:active { transform: scale(0.98); }
-
-  .emotion-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-  }
-  .emotion-btn {
-    padding: 8px 4px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    color: #e6f0ff;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 18px;
-    cursor: pointer;
-    transition: all .15s;
-    line-height: 1.2;
-  }
-  .emotion-btn:hover { background: rgba(0,212,255,.15); border-color: rgba(0,212,255,.4); }
-  .emotion-btn.active {
-    background: linear-gradient(135deg, rgba(0,212,255,.3), rgba(124,58,237,.3));
-    border-color: #00d4ff;
-    box-shadow: 0 0 12px rgba(0,212,255,.4);
-  }
-  .emotion-btn small {
-    display: block;
-    font-size: 9px;
-    color: #7a8ba8;
-    margin-top: 2px;
-    letter-spacing: 0.3px;
-  }
-  @media (max-width: 700px) {
-    #panel { width: 250px; top: 10px; right: 10px; padding: 12px; font-size: 12px; }
-    #status { padding: 8px 12px; font-size: 11.5px; top: 10px; left: 10px; }
+  @media (max-width: 600px) {
+    #chatPanel { width: calc(100vw - 40px); left: 20px; top: auto; bottom: 20px; max-height: 60vh; }
   }
 </style>
 </head>
 <body>
 
 <div id="canvas-wrap"></div>
-<div id="status">🦚 HalDo · Sprechen & Emotionen</div>
-<div id="hint">👀 Beweg die Maus · Sprich mit mir rechts</div>
 
+<!-- ===== CHAT ===== -->
+<div id="chatPanel">
+  <div id="chatHeader">
+    <span class="dot"></span>
+    <h2>HalDo Chat</h2>
+    <span class="badge" id="aiStatus">kein Key</span>
+  </div>
+  <div id="chatLog"></div>
+  <div id="quickBar">
+    <button class="quick" data-q="Hallo! Wie geht es dir?">👋 Hallo</button>
+    <button class="quick" data-q="Wie spät ist es?">🕐 Zeit</button>
+    <button class="quick" data-q="Erzähl mir einen Witz!">😂 Witz</button>
+    <button class="quick" data-q="Was kannst du alles?">💡 Fähigkeiten</button>
+    <button class="quick" data-q="Gib mir eine kreative Idee für heute.">✨ Idee</button>
+  </div>
+  <div id="chatInputWrap">
+    <button id="micBtn" title="Spracheingabe">🎙️</button>
+    <input id="chatInput" type="text" placeholder="Schreib mir was…" autocomplete="off">
+    <button id="sendBtn" title="Senden">➤</button>
+  </div>
+</div>
+
+<!-- ===== SETTINGS ===== -->
 <div id="panel">
   <h3>Avatar-Studio</h3>
 
   <div class="group">
-    <div class="group-title">💬 Sprechen</div>
-    <div class="speak-box">
-      <textarea id="speakText" placeholder="Schreib was ich sagen soll...">Hallo Bruder! Ich bin HalDo. Wie kann ich dir helfen?</textarea>
-      <button class="speak-btn" id="speakBtn">🔊 Sprechen</button>
-      <button class="speak-btn" id="stopBtn" style="background: rgba(239,68,68,.2); border: 1px solid rgba(239,68,68,.5); color:#ef4444; box-shadow: none;">⏹️ Stopp</button>
+    <div class="group-title">🤖 KI & Gemini</div>
+    <input class="keyInput" id="apiKey" type="password" placeholder="Gemini API-Key (AIza…)">
+    <div class="hint">Kostenlos auf <b>aistudio.google.com/apikey</b> — Key bleibt lokal.</div>
+    <div class="row" style="margin-top:8px;">
+      <label>Modell</label>
+      <select id="aiModel">
+        <option value="gemini-1.5-flash">Flash 1.5</option>
+        <option value="gemini-1.5-pro">Pro 1.5</option>
+        <option value="gemini-2.0-flash">Flash 2.0</option>
+      </select>
     </div>
-  </div>
-
-  <div class="group">
-    <div class="group-title">😊 Emotion</div>
-    <div class="emotion-grid" id="emotionGrid">
-      <button class="emotion-btn active" data-emotion="neutral">😐<small>Neutral</small></button>
-      <button class="emotion-btn" data-emotion="happy">😊<small>Freundlich</small></button>
-      <button class="emotion-btn" data-emotion="surprised">😲<small>Überrascht</small></button>
-      <button class="emotion-btn" data-emotion="thinking">🤔<small>Nachdenklich</small></button>
-      <button class="emotion-btn" data-emotion="sad">😢<small>Traurig</small></button>
-      <button class="emotion-btn" data-emotion="angry">😠<small>Wütend</small></button>
+    <div class="row">
+      <label>Auto-Vorlesen</label>
+      <input type="checkbox" id="autoSpeak" checked>
     </div>
-  </div>
-
-  <div class="group">
-    <div class="group-title">🎙️ Stimme</div>
-    <div class="row"><label>Stimme</label>
-      <select id="voiceSelect" style="max-width: 160px;"></select>
-    </div>
-    <div class="row"><label>Geschwindigkeit</label><input type="range" id="voiceRate" min="0.5" max="2" step="0.1" value="1"><span class="val" id="voiceRateVal">1.0</span></div>
-    <div class="row"><label>Tonhöhe</label><input type="range" id="voicePitch" min="0.5" max="2" step="0.1" value="1"><span class="val" id="voicePitchVal">1.0</span></div>
-    <div class="row"><label>Lautstärke</label><input type="range" id="voiceVol" min="0" max="1" step="0.1" value="1"><span class="val" id="voiceVolVal">1.0</span></div>
   </div>
 
   <div class="group">
@@ -249,7 +331,7 @@
     <div class="row"><label>Haarfarbe</label><input type="color" id="hairColor" value="#1a1410"></div>
     <div class="row"><label>Frisur</label>
       <select id="hairStyle">
-        <option value="curly" selected>Lockig (ich)</option>
+        <option value="curly" selected>Lockig</option>
         <option value="straight">Glatt</option>
         <option value="short">Kurz</option>
         <option value="bald">Glatze</option>
@@ -278,14 +360,21 @@
   </div>
 
   <div class="group">
-    <div class="group-title">✨ Effekte</div>
-    <div class="row"><label>Hologramm-Ringe</label><input type="checkbox" id="ringsOn" checked></div>
-    <div class="row"><label>Augen-Tracking</label><input type="checkbox" id="trackingOn" checked></div>
-    <div class="row"><label>Auto-Blinzeln</label><input type="checkbox" id="blinkOn" checked></div>
+    <div class="group-title">🎙️ Stimme</div>
+    <div class="row"><label>Stimme</label><select id="voiceSelect"></select></div>
+    <div class="row"><label>Tempo</label><input type="range" id="voiceRate" min="0.5" max="2" step="0.1" value="1"><span class="val" id="voiceRateVal">1.0</span></div>
+    <div class="row"><label>Tonhöhe</label><input type="range" id="voicePitch" min="0.5" max="2" step="0.1" value="1"><span class="val" id="voicePitchVal">1.0</span></div>
   </div>
 
-  <button class="reset-btn" id="resetBtn">↺ Alles zurücksetzen</button>
+  <div class="group">
+    <div class="group-title">✨ Effekte</div>
+    <div class="row"><label>Holo-Ringe</label><input type="checkbox" id="ringsOn" checked></div>
+    <div class="row"><label>Maus-Tracking</label><input type="checkbox" id="trackingOn" checked></div>
+    <div class="row"><label>Auto-Blinzeln</label><input type="checkbox" id="blinkOn" checked></div>
+  </div>
 </div>
+
+<div id="status">🦚 Bereit</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
@@ -298,39 +387,29 @@
     return;
   }
 
-  // ============ EINSTELLUNGEN ============
+  // ==================== STATE ====================
   const defaults = {
-    hairColor: "#1a1410",
-    hairStyle: "curly",
-    beardOn: true,
-    beardColor: "#3a2a1a",
-    beardGray: 55,
-    mustacheOn: true,
-    skinColor: "#c99a72",
-    eyeColor: "#4a3220",
-    browsOn: true,
+    hairColor: "#1a1410", hairStyle: "curly",
+    beardOn: true, beardColor: "#3a2a1a", beardGray: 55, mustacheOn: true,
+    skinColor: "#c99a72", eyeColor: "#4a3220", browsOn: true,
     shirtColor: "#0a0a0a",
-    ringsOn: true,
-    trackingOn: true,
-    blinkOn: true,
+    ringsOn: true, trackingOn: true, blinkOn: true,
     emotion: "neutral",
-    voiceRate: 1.0,
-    voicePitch: 1.0,
-    voiceVol: 1.0,
-    voiceName: ""
+    voiceRate: 1.0, voicePitch: 1.0, voiceName: "",
+    apiKey: "", aiModel: "gemini-1.5-flash", autoSpeak: true,
+    chatHistory: []
   };
-
   const state = Object.assign({}, defaults);
   try {
-    const saved = localStorage.getItem("haldo_avatar_settings_v5");
+    const saved = localStorage.getItem("haldo_avatar_settings_v6");
     if (saved) Object.assign(state, JSON.parse(saved));
   } catch(e) {}
 
   function saveState() {
-    try { localStorage.setItem("haldo_avatar_settings_v5", JSON.stringify(state)); } catch(e) {}
+    try { localStorage.setItem("haldo_avatar_settings_v6", JSON.stringify(state)); } catch(e) {}
   }
 
-  // ============ SZENE ============
+  // ==================== SZENE ====================
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.set(0, 0.1, 5.5);
@@ -342,22 +421,19 @@
   renderer.setClearColor(0x050810, 1);
   document.getElementById("canvas-wrap").appendChild(renderer.domElement);
 
-  // ============ LICHT ============
-  scene.add(new THREE.DirectionalLight(0xfff4e6, 1.15).translateX(3).translateY(4).translateZ(5));
-  scene.add(new THREE.AmbientLight(0x606580, 0.9));
+  // LICHT
+  const dirLight = new THREE.DirectionalLight(0xfff4e6, 1.15);
+  dirLight.position.set(3, 4, 5);
+  scene.add(dirLight);
   const cyanLight = new THREE.PointLight(0x00d4ff, 1.2, 15);
   cyanLight.position.set(-4, 1, 2);
   scene.add(cyanLight);
   const purpLight = new THREE.PointLight(0x7c3aed, 1.0, 15);
   purpLight.position.set(4, -2, -2);
   scene.add(purpLight);
+  scene.add(new THREE.AmbientLight(0x606580, 0.9));
 
-  // Fix: DirectionalLight korrekt setzen
-  const dirLight = new THREE.DirectionalLight(0xfff4e6, 1.15);
-  dirLight.position.set(3, 4, 5);
-  scene.add(dirLight);
-
-  // ============ MATERIALIEN ============
+  // MATERIALIEN
   const skinMat = new THREE.MeshPhongMaterial({ color: state.skinColor, shininess: 25, specular: 0x333333 });
   const hairMat = new THREE.MeshPhongMaterial({ color: state.hairColor, shininess: 60, specular: 0x222222 });
   const beardMat = new THREE.MeshPhongMaterial({ color: state.beardColor, shininess: 20, specular: 0x111111 });
@@ -371,16 +447,16 @@
   const ringMat1 = new THREE.MeshBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.45 });
   const ringMat2 = new THREE.MeshBasicMaterial({ color: 0x7c3aed, transparent: true, opacity: 0.45 });
 
-  // ============ GRUPPEN ============
+  // ==================== AUFBAU ====================
   const headGroup = new THREE.Group();
   scene.add(headGroup);
 
-  // ============ HALS ============
+  // Hals
   const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 0.55, 32), skinMat);
   neck.position.set(0, -1.05, 0.02);
   headGroup.add(neck);
 
-  // ============ SCHULTERN ============
+  // Schultern
   const shoulder = new THREE.Mesh(new THREE.SphereGeometry(1.0, 32, 32), shirtMat);
   shoulder.scale.set(1.55, 0.55, 0.85);
   shoulder.position.set(0, -1.55, 0);
@@ -391,12 +467,12 @@
   collar.position.set(0, -1.3, 0);
   headGroup.add(collar);
 
-  // ============ KOPF ============
+  // Kopf
   const head = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 64), skinMat);
   head.scale.set(0.98, 1.08, 0.92);
   headGroup.add(head);
 
-  // Wangen-Röte
+  // Wangen
   const cheekMat = new THREE.MeshPhongMaterial({ color: 0xd88070, transparent: true, opacity: 0.35 });
   const cheekGeo = new THREE.SphereGeometry(0.22, 16, 16);
   const cheekL = new THREE.Mesh(cheekGeo, cheekMat);
@@ -408,11 +484,10 @@
   cheekR.position.set(0.5, -0.05, 0.72);
   headGroup.add(cheekR);
 
-  // ============ AUGEN ============
+  // Augen
   const eyeY = 0.12, eyeX = 0.34, eyeZ = 0.82;
   const leftEye = new THREE.Group();
   const rightEye = new THREE.Group();
-
   function buildEye(g) {
     g.add(new THREE.Mesh(new THREE.SphereGeometry(0.135, 32, 32), eyeWhiteMat));
     const iris = new THREE.Mesh(new THREE.SphereGeometry(0.08, 32, 32), irisMat);
@@ -427,7 +502,7 @@
   rightEye.position.set(eyeX, eyeY, eyeZ);
   headGroup.add(leftEye, rightEye);
 
-  // Augenlider (für Blinzeln)
+  // Lider
   const lidMat = new THREE.MeshPhongMaterial({ color: state.skinColor });
   const lidGeo = new THREE.SphereGeometry(0.14, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.5);
   const lidL = new THREE.Mesh(lidGeo, lidMat);
@@ -440,7 +515,7 @@
   lidR.scale.set(1, 0.01, 1);
   headGroup.add(lidL, lidR);
 
-  // ============ AUGENBRAUEN ============
+  // Augenbrauen
   const browGroup = new THREE.Group();
   const browGeo = new THREE.BoxGeometry(0.36, 0.075, 0.09);
   const browL = new THREE.Mesh(browGeo, browMat);
@@ -454,7 +529,7 @@
   headGroup.add(browGroup);
   browGroup.visible = state.browsOn;
 
-  // ============ NASE ============
+  // Nase
   const nose = new THREE.Mesh(new THREE.SphereGeometry(0.11, 32, 32), skinMat);
   nose.scale.set(0.75, 0.9, 1.3);
   nose.position.set(0, -0.05, 0.88);
@@ -468,33 +543,25 @@
   nostrilR.position.set(0.07, -0.12, 0.94);
   headGroup.add(nostrilR);
 
-  // ============ MUND (animierbar!) ============
-  // Wir bauen den Mund in einer eigenen Gruppe, damit wir ihn öffnen können
+  // Mund
   const mouthGroup = new THREE.Group();
   mouthGroup.position.set(0, -0.48, 0.86);
   headGroup.add(mouthGroup);
-
   const upperLip = new THREE.Mesh(new THREE.SphereGeometry(0.12, 32, 32), lipMat);
   upperLip.scale.set(1.35, 0.35, 0.5);
   upperLip.position.set(0, 0.06, 0);
   mouthGroup.add(upperLip);
-
   const lowerLip = new THREE.Mesh(new THREE.SphereGeometry(0.11, 32, 32), lipMat);
   lowerLip.scale.set(1.25, 0.42, 0.5);
   lowerLip.position.set(0, -0.08, 0);
   mouthGroup.add(lowerLip);
-
-  // Mund-Innenraum (dunkel, sichtbar wenn Mund offen)
-  const mouthInner = new THREE.Mesh(
-    new THREE.SphereGeometry(0.1, 16, 16),
-    new THREE.MeshPhongMaterial({ color: 0x2a0808 })
-  );
+  const mouthInner = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), new THREE.MeshPhongMaterial({ color: 0x2a0808 }));
   mouthInner.scale.set(1.1, 0.4, 0.4);
   mouthInner.position.set(0, -0.02, -0.02);
   mouthInner.visible = false;
   mouthGroup.add(mouthInner);
 
-  // ============ OHREN ============
+  // Ohren
   const earGeo = new THREE.SphereGeometry(0.14, 32, 32);
   const earL = new THREE.Mesh(earGeo, skinMat);
   earL.scale.set(0.5, 0.95, 0.4);
@@ -505,22 +572,18 @@
   earR.position.set(0.94, -0.02, 0);
   headGroup.add(earR);
 
-  // ============ HAARE ============
+  // Haare
   const hairGroup = new THREE.Group();
   headGroup.add(hairGroup);
-
   function buildHair(style) {
     while (hairGroup.children.length) hairGroup.remove(hairGroup.children[0]);
     hairMat.color.set(state.hairColor);
-
     if (style === "bald") return;
-
     if (style === "curly") {
       const baseBack = new THREE.Mesh(new THREE.SphereGeometry(1.06, 32, 32), hairMat);
       baseBack.scale.set(1.02, 1.05, 0.98);
       baseBack.position.set(0, 0.08, -0.05);
       hairGroup.add(baseBack);
-
       const curls = [
         [-0.5, 0.75, 0.55], [0.5, 0.75, 0.55], [0, 0.85, 0.6],
         [-0.35, 0.9, 0.4], [0.35, 0.9, 0.4], [0, 1.0, 0.2],
@@ -534,7 +597,6 @@
         curl.position.set(x, y, z);
         hairGroup.add(curl);
       });
-
       const sideGeo = new THREE.CylinderGeometry(0.12, 0.09, 0.6, 12);
       const sideL = new THREE.Mesh(sideGeo, hairMat);
       sideL.position.set(-0.88, -0.1, 0.15);
@@ -544,7 +606,6 @@
       sideR.position.set(0.88, -0.1, 0.15);
       sideR.rotation.z = -0.2;
       hairGroup.add(sideR);
-
     } else if (style === "straight") {
       const back = new THREE.Mesh(new THREE.SphereGeometry(1.06, 32, 32), hairMat);
       back.scale.set(1.0, 1.05, 1.0);
@@ -553,7 +614,6 @@
       const front = new THREE.Mesh(new THREE.SphereGeometry(1.04, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.42), hairMat);
       front.position.set(0, 0.15, 0.05);
       hairGroup.add(front);
-
     } else if (style === "short") {
       const cap = new THREE.Mesh(new THREE.SphereGeometry(1.06, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.55), hairMat);
       cap.position.set(0, 0.1, 0);
@@ -562,19 +622,16 @@
   }
   buildHair(state.hairStyle);
 
-  // ============ BART ============
+  // Bart
   const beardGroup = new THREE.Group();
   headGroup.add(beardGroup);
-
   function buildBeard() {
     while (beardGroup.children.length) beardGroup.remove(beardGroup.children[0]);
     if (!state.beardOn) return;
-
     const beardBase = new THREE.Mesh(new THREE.SphereGeometry(0.95, 32, 32), beardMat);
     beardBase.scale.set(1.05, 0.85, 0.95);
     beardBase.position.set(0, -0.35, 0);
     beardGroup.add(beardBase);
-
     const grayAmt = state.beardGray / 100;
     if (grayAmt > 0) {
       const dotCount = Math.floor(grayAmt * 30);
@@ -591,7 +648,6 @@
         beardGroup.add(dot);
       }
     }
-
     const sideburnGeo = new THREE.SphereGeometry(0.13, 16, 16);
     const sbL = new THREE.Mesh(sideburnGeo, beardMat);
     sbL.scale.set(0.6, 1.4, 0.7);
@@ -601,12 +657,10 @@
     sbR.scale.set(0.6, 1.4, 0.7);
     sbR.position.set(0.78, -0.2, 0.35);
     beardGroup.add(sbR);
-
     const chinBeard = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), beardMat);
     chinBeard.scale.set(1.1, 1.3, 0.7);
     chinBeard.position.set(0, -0.75, 0.6);
     beardGroup.add(chinBeard);
-
     if (state.mustacheOn) {
       const mus = new THREE.Mesh(new THREE.SphereGeometry(0.14, 32, 32), beardMat);
       mus.scale.set(1.5, 0.5, 0.6);
@@ -616,10 +670,9 @@
   }
   buildBeard();
 
-  // ============ RINGE ============
+  // Ringe
   const ringGroup = new THREE.Group();
   scene.add(ringGroup);
-
   function createRing(radius, mat, tube) {
     return new THREE.Mesh(new THREE.TorusGeometry(radius, tube, 16, 100), mat);
   }
@@ -633,36 +686,34 @@
   ring3.rotation.x = Math.PI * 0.5;
   ringGroup.add(ring3);
 
-  // ============ MAUS-TRACKING ============
+  // Maus-Tracking
   let mouseX = 0, mouseY = 0;
   document.addEventListener("mousemove", (e) => {
     mouseX = (e.clientX / window.innerWidth) * 2 - 1;
     mouseY = -((e.clientY / window.innerHeight) * 2 - 1);
   });
 
-  // ============ RESIZE ============
+  // Resize
   window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  // ============ EMOTION SYSTEM ============
-  // Zielwerte, die smooth animiert werden
+  // ==================== EMOTION SYSTEM ====================
   const emotionTargets = {
-    neutral:   { browL: 0.36, browR: 0.36, browLz: -0.12, browRz: 0.12, mouthY: -0.48, mouthCurve: 0, mouthOpen: 0 },
-    happy:     { browL: 0.38, browR: 0.38, browLz: -0.18, browRz: 0.18, mouthY: -0.47, mouthCurve: 1, mouthOpen: 0 },
-    surprised: { browL: 0.42, browR: 0.42, browLz: -0.05, browRz: 0.05, mouthY: -0.48, mouthCurve: 0, mouthOpen: 0.6 },
-    thinking:  { browL: 0.35, browR: 0.34, browLz: -0.20, browRz: 0.10, mouthY: -0.48, mouthCurve: 0.2, mouthOpen: 0 },
-    sad:       { browL: 0.36, browR: 0.36, browLz:  0.05, browRz: -0.05, mouthY: -0.50, mouthCurve: -0.6, mouthOpen: 0 },
-    angry:     { browL: 0.34, browR: 0.34, browLz: -0.25, browRz: 0.25, mouthY: -0.48, mouthCurve: -0.3, mouthOpen: 0 }
+    neutral:   { browL: 0.36, browR: 0.36, browLz: -0.12, browRz: 0.12, mouthY: -0.48, mouthCurve: 0 },
+    happy:     { browL: 0.38, browR: 0.38, browLz: -0.18, browRz: 0.18, mouthY: -0.47, mouthCurve: 1 },
+    surprised: { browL: 0.42, browR: 0.42, browLz: -0.05, browRz: 0.05, mouthY: -0.48, mouthCurve: 0 },
+    thinking:  { browL: 0.35, browR: 0.34, browLz: -0.20, browRz: 0.10, mouthY: -0.48, mouthCurve: 0.2 },
+    sad:       { browL: 0.36, browR: 0.36, browLz:  0.05, browRz: -0.05, mouthY: -0.50, mouthCurve: -0.6 },
+    angry:     { browL: 0.34, browR: 0.34, browLz: -0.25, browRz: 0.25, mouthY: -0.48, mouthCurve: -0.3 }
   };
-
   const currentBrow = { L: 0.36, R: 0.36, Lz: -0.12, Rz: 0.12 };
-  let currentMouthOpen = 0; // Wird beim Sprechen animiert
+  let currentMouthOpen = 0;
   let targetMouthOpen = 0;
 
-  // ============ TTS ============
+  // ==================== TTS ====================
   const synth = window.speechSynthesis;
   let voices = [];
   let speaking = false;
@@ -672,7 +723,6 @@
     voices = synth.getVoices();
     const select = document.getElementById("voiceSelect");
     select.innerHTML = "";
-    // Deutsche Stimmen zuerst
     const de = voices.filter(v => v.lang.startsWith("de"));
     const others = voices.filter(v => !v.lang.startsWith("de"));
     [...de, ...others].forEach(v => {
@@ -682,54 +732,42 @@
       if (state.voiceName && v.name === state.voiceName) opt.selected = true;
       select.appendChild(opt);
     });
-    // Falls nichts gesetzt, erste deutsche wählen
     if (!state.voiceName && de.length) {
       state.voiceName = de[0].name;
       select.value = de[0].name;
       saveState();
     }
   }
-
   if (synth) {
     loadVoices();
     synth.onvoiceschanged = loadVoices;
   }
 
   function speak(text) {
-    if (!synth) { alert("Sprachausgabe nicht unterstützt"); return; }
+    if (!synth) return;
     synth.cancel();
     const u = new SpeechSynthesisUtterance(text);
     const v = voices.find(x => x.name === state.voiceName);
     if (v) u.voice = v;
     u.rate = state.voiceRate;
     u.pitch = state.voicePitch;
-    u.volume = state.voiceVol;
-
-    // Mund öffnet sich während des Sprechens
     u.onstart = () => {
       speaking = true;
       document.getElementById("status").textContent = "🔊 HalDo spricht…";
-      // Mund zufällig öffnen/schließen — synchron zum Text
+      document.getElementById("status").className = "speaking";
       speakInterval = setInterval(() => {
-        targetMouthOpen = 0.3 + Math.random() * 0.7;
-        setTimeout(() => { targetMouthOpen = 0.1 + Math.random() * 0.3; }, 80);
-      }, 120);
+        targetMouthOpen = 0.4 + Math.random() * 0.6;
+        setTimeout(() => { targetMouthOpen = 0.15 + Math.random() * 0.3; }, 70);
+      }, 110);
     };
-
     u.onend = () => {
       speaking = false;
       targetMouthOpen = 0;
       if (speakInterval) { clearInterval(speakInterval); speakInterval = null; }
-      document.getElementById("status").textContent = "🦚 HalDo · Sprechen & Emotionen";
+      document.getElementById("status").textContent = "🦚 Bereit";
+      document.getElementById("status").className = "";
     };
-
-    u.onerror = () => {
-      speaking = false;
-      targetMouthOpen = 0;
-      if (speakInterval) { clearInterval(speakInterval); speakInterval = null; }
-      document.getElementById("status").textContent = "🦚 HalDo · Sprechen & Emotionen";
-    };
-
+    u.onerror = u.onend;
     synth.speak(u);
   }
 
@@ -738,29 +776,26 @@
     speaking = false;
     targetMouthOpen = 0;
     if (speakInterval) { clearInterval(speakInterval); speakInterval = null; }
-    document.getElementById("status").textContent = "🦚 HalDo · Sprechen & Emotionen";
+    document.getElementById("status").textContent = "🦚 Bereit";
+    document.getElementById("status").className = "";
   }
 
-  // ============ BLINZELN ============
+  // ==================== BLINZELN ====================
   let blinkTimer = 0;
   let nextBlink = 100 + Math.random() * 150;
-  let blinkProgress = 1; // 1 = offen, 0 = zu
+  let blinkProgress = 1;
 
-  // ============ ANIMATION ============
+  // ==================== ANIMATION ====================
   let t = 0;
-
   function animate() {
     requestAnimationFrame(animate);
     t += 0.016;
 
-    // Atmung
     headGroup.position.y = Math.sin(t * 1.1) * 0.04;
 
-    // Kopf-Tracking
     if (state.trackingOn) {
       headGroup.rotation.y += ((mouseX * 0.25) - headGroup.rotation.y) * 0.08;
       headGroup.rotation.x += ((-mouseY * 0.15) - headGroup.rotation.x) * 0.08;
-
       const eTargetX = mouseX * 0.06;
       const eTargetY = mouseY * 0.05;
       leftEye.position.x = -eyeX + eTargetX;
@@ -769,8 +804,6 @@
       rightEye.position.y = eyeY + eTargetY;
       leftEye.lookAt(mouseX * 3, mouseY * 3, 5);
       rightEye.lookAt(mouseX * 3, mouseY * 3, 5);
-
-      // Lider folgen Augen
       lidL.position.x = leftEye.position.x;
       lidL.position.y = leftEye.position.y;
       lidR.position.x = rightEye.position.x;
@@ -780,13 +813,12 @@
       headGroup.rotation.x += (0 - headGroup.rotation.x) * 0.08;
     }
 
-    // === Blinzeln ===
+    // Blinzeln
     if (state.blinkOn && !speaking) {
       blinkTimer++;
       if (blinkTimer > nextBlink) {
         blinkProgress = Math.max(0, blinkProgress - 0.15);
         if (blinkProgress <= 0) {
-          // Auge geschlossen — halte kurz, dann öffnen
           blinkTimer = 0;
           nextBlink = 100 + Math.random() * 200;
           setTimeout(() => { blinkProgress = 1; }, 80);
@@ -797,41 +829,31 @@
     } else {
       blinkProgress = Math.min(1, blinkProgress + 0.1);
     }
-
     const lidScale = Math.max(0.01, 1 - blinkProgress);
     lidL.scale.y = lidScale;
     lidR.scale.y = lidScale;
 
-    // === Emotionen ===
+    // Emotionen
     const emo = emotionTargets[state.emotion] || emotionTargets.neutral;
     currentBrow.L += (emo.browL - currentBrow.L) * 0.1;
     currentBrow.R += (emo.browR - currentBrow.R) * 0.1;
     currentBrow.Lz += (emo.browLz - currentBrow.Lz) * 0.1;
     currentBrow.Rz += (emo.browRz - currentBrow.Rz) * 0.1;
-
     browL.position.y = currentBrow.L;
     browR.position.y = currentBrow.R;
     browL.rotation.z = currentBrow.Lz;
     browR.rotation.z = currentBrow.Rz;
-
-    // Mund-Y Position (Emotion)
     mouthGroup.position.y += (emo.mouthY - mouthGroup.position.y) * 0.1;
-
-    // Mund-Wölbung (Emotion)
     const curve = emo.mouthCurve;
     upperLip.position.y = 0.06 + curve * 0.02;
     lowerLip.position.y = -0.08 - curve * 0.02;
 
-    // Mund-offen (Sprechen) — überlagert Emotion
-    const targetOpen = speaking ? Math.max(targetMouthOpen, 0) : (emo.mouthOpen || 0);
-    currentMouthOpen += (targetOpen - currentMouthOpen) * 0.25;
+    // Mund-offen
+    currentMouthOpen += (targetMouthOpen - currentMouthOpen) * 0.25;
     mouthGroup.scale.y = 1 + currentMouthOpen * 0.9;
-
-    // Mund-Inneres sichtbar bei offenem Mund
     mouthInner.visible = currentMouthOpen > 0.15;
     mouthInner.position.y = -0.02 - currentMouthOpen * 0.03;
 
-    // === Ringe ===
     if (state.ringsOn) {
       ringGroup.visible = true;
       ringGroup.rotation.y += 0.003;
@@ -846,7 +868,7 @@
   }
   animate();
 
-  // ============ UI-BINDINGS ============
+  // ==================== UI BINDINGS ====================
   function bindColor(id, key, updateFn) {
     const el = document.getElementById(id);
     el.value = state[key];
@@ -862,10 +884,10 @@
     el.addEventListener("change", (e) => {
       state[key] = e.target.checked;
       saveState();
-      updateFn(e.target.checked);
+      if (updateFn) updateFn(e.target.checked);
     });
   }
-  function bindRange(id, valId, key, updateFn) {
+  function bindRange(id, valId, key) {
     const el = document.getElementById(id);
     const valEl = document.getElementById(valId);
     el.value = state[key];
@@ -874,22 +896,22 @@
       state[key] = parseFloat(e.target.value);
       valEl.textContent = state[key].toFixed(1);
       saveState();
-      if (updateFn) updateFn(state[key]);
     });
   }
 
-  bindColor("hairColor", "hairColor", (v) => hairMat.color.set(v));
-  bindColor("beardColor", "beardColor", (v) => beardMat.color.set(v));
-  bindColor("skinColor", "skinColor", (v) => { skinMat.color.set(v); lidMat.color.set(v); });
-  bindColor("eyeColor", "eyeColor", (v) => irisMat.color.set(v));
-  bindColor("shirtColor", "shirtColor", (v) => shirtMat.color.set(v));
+  bindColor("hairColor", "hairColor", v => hairMat.color.set(v));
+  bindColor("beardColor", "beardColor", v => beardMat.color.set(v));
+  bindColor("skinColor", "skinColor", v => { skinMat.color.set(v); lidMat.color.set(v); });
+  bindColor("eyeColor", "eyeColor", v => irisMat.color.set(v));
+  bindColor("shirtColor", "shirtColor", v => shirtMat.color.set(v));
 
   bindCheckbox("beardOn", "beardOn", () => buildBeard());
   bindCheckbox("mustacheOn", "mustacheOn", () => buildBeard());
-  bindCheckbox("browsOn", "browsOn", (v) => { browGroup.visible = v; });
-  bindCheckbox("ringsOn", "ringsOn", () => {});
-  bindCheckbox("trackingOn", "trackingOn", () => {});
-  bindCheckbox("blinkOn", "blinkOn", () => {});
+  bindCheckbox("browsOn", "browsOn", v => { browGroup.visible = v; });
+  bindCheckbox("ringsOn", "ringsOn");
+  bindCheckbox("trackingOn", "trackingOn");
+  bindCheckbox("blinkOn", "blinkOn");
+  bindCheckbox("autoSpeak", "autoSpeak");
 
   const grayEl = document.getElementById("beardGray");
   const grayVal = document.getElementById("beardGrayVal");
@@ -910,45 +932,278 @@
     buildHair(state.hairStyle);
   });
 
-  // Voice Select
-  const voiceSelect = document.getElementById("voiceSelect");
-  voiceSelect.addEventListener("change", (e) => {
+  document.getElementById("voiceSelect").addEventListener("change", (e) => {
     state.voiceName = e.target.value;
     saveState();
   });
-
   bindRange("voiceRate", "voiceRateVal", "voiceRate");
   bindRange("voicePitch", "voicePitchVal", "voicePitch");
-  bindRange("voiceVol", "voiceVolVal", "voiceVol");
 
-  // Emotions
-  document.querySelectorAll(".emotion-btn").forEach(btn => {
-    if (btn.dataset.emotion === state.emotion) btn.classList.add("active");
-    else btn.classList.remove("active");
-    btn.addEventListener("click", () => {
-      state.emotion = btn.dataset.emotion;
+  // API-Key
+  const apiKeyEl = document.getElementById("apiKey");
+  apiKeyEl.value = state.apiKey;
+  apiKeyEl.addEventListener("input", (e) => {
+    state.apiKey = e.target.value.trim();
+    saveState();
+    updateAIStatus();
+  });
+
+  const aiModelEl = document.getElementById("aiModel");
+  aiModelEl.value = state.aiModel;
+  aiModelEl.addEventListener("change", (e) => {
+    state.aiModel = e.target.value;
+    saveState();
+  });
+
+  function updateAIStatus() {
+    const badge = document.getElementById("aiStatus");
+    if (state.apiKey) {
+      badge.textContent = "KI aktiv";
+      badge.style.background = "rgba(34,197,94,0.15)";
+      badge.style.color = "#22c55e";
+      badge.style.borderColor = "#22c55e";
+    } else {
+      badge.textContent = "kein Key";
+      badge.style.background = "rgba(0,212,255,0.15)";
+      badge.style.color = "#00d4ff";
+      badge.style.borderColor = "rgba(0,212,255,0.3)";
+    }
+  }
+  updateAIStatus();
+
+  // ==================== CHAT ====================
+  const chatLog = document.getElementById("chatLog");
+  const chatInput = document.getElementById("chatInput");
+  const sendBtn = document.getElementById("sendBtn");
+  const micBtn = document.getElementById("micBtn");
+
+  function addMessage(role, text, save) {
+    if (save !== false) {
+      state.chatHistory.push({ role, text, ts: Date.now() });
+      if (state.chatHistory.length > 100) state.chatHistory.shift();
       saveState();
-      document.querySelectorAll(".emotion-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
+    }
+    const el = document.createElement("div");
+    el.className = "msg " + role;
+    if (role !== "sys") {
+      const who = document.createElement("div");
+      who.className = "who";
+      who.textContent = role === "user" ? "Du" : "HalDo";
+      el.appendChild(who);
+    }
+    el.appendChild(document.createTextNode(text));
+    chatLog.appendChild(el);
+    chatLog.scrollTop = chatLog.scrollHeight;
+    return el;
+  }
+
+  function showTyping() {
+    const el = document.createElement("div");
+    el.className = "typing";
+    el.id = "typingInd";
+    el.innerHTML = "<span></span><span></span><span></span>";
+    chatLog.appendChild(el);
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+  function hideTyping() {
+    const el = document.getElementById("typingInd");
+    if (el) el.remove();
+  }
+
+  // Beim Laden: History wiederherstellen
+  if (state.chatHistory.length) {
+    state.chatHistory.forEach(m => addMessage(m.role, m.text, false));
+  } else {
+    addMessage("bot",
+      "Hallo Bruder! Ich bin HalDo 🦚 — dein persönlicher Assistent. " +
+      (state.apiKey
+        ? "Frag mich alles — ich antworte dir!"
+        : "Trag oben rechts deinen Gemini API-Key ein, dann kann ich richtig antworten!"),
+      false
+    );
+  }
+
+  // ==================== GEMINI ====================
+  async function askGemini(userText) {
+    if (!state.apiKey) throw new Error("Kein API-Key. Trag ihn oben rechts ein (aistudio.google.com/apikey).");
+    const model = state.aiModel;
+    const sys = "Du bist HalDo, ein freundlicher, warmer, intelligenter Assistent. Antworte natürlich, hilfsbereit, kurz und auf Deutsch, außer der Nutzer schreibt in einer anderen Sprache. Sei persönlich und menschlich.";
+    const contents = [];
+    // letzte 10 Nachrichten
+    const hist = state.chatHistory.slice(-11, -1);
+    hist.forEach(m => {
+      contents.push({
+        role: m.role === "user" ? "user" : "model",
+        parts: [{ text: m.text }]
+      });
+    });
+    contents.push({ role: "user", parts: [{ text: userText }] });
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(state.apiKey)}`;
+    const body = { contents, generationConfig: { temperature: 0.8, maxOutputTokens: 500 } };
+    if (sys) body.systemInstruction = { parts: [{ text: sys }] };
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error("Gemini Fehler " + res.status + ": " + err.slice(0, 200));
+    }
+    const data = await res.json();
+    const txt = data?.candidates?.[0]?.content?.parts?.map(p => p.text).filter(Boolean).join("\n");
+    return (txt || "(keine Antwort)").trim();
+  }
+
+  // Lokale Schnellantworten (ohne KI-Key)
+  function localReply(text) {
+    const lower = text.toLowerCase().trim();
+    if (/^(hallo|hi|hey|servus|merhaba|silav|guten (morgen|tag|abend))/.test(lower)) {
+      const h = new Date().getHours();
+      const greet = h < 6 ? "Gute Nacht" : h < 12 ? "Guten Morgen" : h < 18 ? "Guten Tag" : "Guten Abend";
+      return greet + " Bruder! Wie kann ich dir helfen?";
+    }
+    if (/uhrzeit|wie spät/.test(lower)) {
+      return "Es ist " + new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " Uhr.";
+    }
+    if (/datum|welcher tag/.test(lower)) {
+      return "Heute ist " + new Date().toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }) + ".";
+    }
+    if (/witz|lustig/.test(lower)) {
+      const witze = [
+        "Warum können Geister so schlecht lügen? Weil man durch sie hindurchsieht! 👻",
+        "Was macht ein Clown im Büro? Faxen! 🤡",
+        "Wie nennt man einen Bumerang, der nicht zurückkommt? Stock. 🪃"
+      ];
+      return witze[Math.floor(Math.random() * witze.length)];
+    }
+    if (/was kannst du|fähigkeit|hilfe/.test(lower)) {
+      return "Ich kann: mit dir reden, Uhrzeit & Datum sagen, Witze erzählen. Mit API-Key: Fragen beantworten, Texte schreiben, Ideen geben, übersetzen — fast alles! 🦚";
+    }
+    return null;
+  }
+
+  // Emotion aus Antwort ableiten
+  function detectEmotion(text) {
+    const l = text.toLowerCase();
+    if (/\?|wirklich|unglaublich|echt|staun/.test(l)) return "surprised";
+    if (/haha|lach|witz|freu|toll|super|schön/.test(l)) return "happy";
+    if (/sorry|traurig|leider|schade/.test(l)) return "sad";
+    if (/wütend|ärger|sauer|nerv/.test(l)) return "angry";
+    if (/denk|überleg|vielleicht|hmm/.test(l)) return "thinking";
+    return "neutral";
+  }
+
+  async function handleUserMessage(text) {
+    addMessage("user", text);
+
+    // Lokale Antwort?
+    const local = localReply(text);
+    if (!state.apiKey) {
+      if (local) {
+        setTimeout(() => {
+          addMessage("bot", local);
+          if (state.autoSpeak) speak(local);
+          state.emotion = detectEmotion(local);
+        }, 400);
+      } else {
+        setTimeout(() => {
+          addMessage("bot", "Ich habe noch keinen API-Key. Trag oben rechts deinen Gemini-Key ein (aistudio.google.com/apikey) — dann kann ich richtig antworten!");
+        }, 400);
+      }
+      return;
+    }
+
+    // Mit KI
+    showTyping();
+    document.getElementById("status").textContent = "🤖 denke nach…";
+    try {
+      const reply = await askGemini(text);
+      hideTyping();
+      addMessage("bot", reply);
+      state.emotion = detectEmotion(reply);
+      if (state.autoSpeak) speak(reply);
+      document.getElementById("status").textContent = "🦚 Bereit";
+    } catch (e) {
+      hideTyping();
+      addMessage("sys", "⚠️ " + e.message);
+      document.getElementById("status").textContent = "⚠️ Fehler";
+      console.warn(e);
+    }
+  }
+
+  // Enter drücken
+  chatInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      const v = chatInput.value.trim();
+      if (v) { chatInput.value = ""; handleUserMessage(v); }
+    }
+  });
+  sendBtn.addEventListener("click", () => {
+    const v = chatInput.value.trim();
+    if (v) { chatInput.value = ""; handleUserMessage(v); }
+  });
+
+  // Quick-Buttons
+  document.querySelectorAll(".quick").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const q = btn.dataset.q;
+      handleUserMessage(q);
     });
   });
 
-  // Speak
-  document.getElementById("speakBtn").addEventListener("click", () => {
-    const text = document.getElementById("speakText").value.trim();
-    if (text) speak(text);
-  });
-  document.getElementById("stopBtn").addEventListener("click", stopSpeak);
+  // ==================== SPRACHEINGABE ====================
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec = null;
+  let isListening = false;
 
-  // Reset
-  document.getElementById("resetBtn").addEventListener("click", () => {
-    Object.assign(state, defaults);
-    saveState();
-    location.reload();
+  if (SpeechRec) {
+    rec = new SpeechRec();
+    rec.lang = "de-DE";
+    rec.interimResults = false;
+    rec.continuous = false;
+    rec.onresult = (e) => {
+      const txt = e.results[0][0].transcript;
+      chatInput.value = txt;
+      handleUserMessage(txt);
+      chatInput.value = "";
+    };
+    rec.onend = () => {
+      isListening = false;
+      micBtn.classList.remove("listening");
+      document.getElementById("status").textContent = "🦚 Bereit";
+      document.getElementById("status").className = "";
+    };
+    rec.onerror = (e) => {
+      isListening = false;
+      micBtn.classList.remove("listening");
+      document.getElementById("status").textContent = "⚠️ " + e.error;
+    };
+  }
+
+  micBtn.addEventListener("click", () => {
+    if (!rec) {
+      alert("Spracheingabe wird von deinem Browser nicht unterstützt. Nutze Chrome oder Edge.");
+      return;
+    }
+    if (isListening) {
+      rec.stop();
+      return;
+    }
+    try {
+      rec.start();
+      isListening = true;
+      micBtn.classList.add("listening");
+      document.getElementById("status").textContent = "🎙️ Ich höre zu…";
+      document.getElementById("status").className = "listening";
+    } catch (e) {
+      console.warn(e);
+    }
   });
 
-  console.log("🦚 HalDo Avatar v5 · Sprechen + Emotionen geladen");
-  console.log("💡 Tipp: Klick '🔊 Sprechen' oder tippe deinen Text ein!");
+  console.log("🦚 HalDo Avatar v6 · Chat + KI bereit");
 })();
 </script>
 </body>
