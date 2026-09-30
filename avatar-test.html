@@ -2,13 +2,13 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>HalDo Avatar · Ich-Version</title>
+<title>HalDo Avatar · Sprechen & Emotionen</title>
 <style>
   body { margin: 0; overflow: hidden; background: #050810; font-family: system-ui, -apple-system, sans-serif; color: #e6f0ff; }
   #canvas-wrap { position: fixed; inset: 0; }
   #panel {
     position: fixed; top: 20px; right: 20px;
-    width: 280px; max-height: calc(100vh - 40px);
+    width: 300px; max-height: calc(100vh - 40px);
     overflow-y: auto;
     background: rgba(10, 15, 28, 0.92);
     border: 1px solid rgba(0, 212, 255, 0.3);
@@ -72,13 +72,17 @@
     cursor: pointer;
     padding: 2px;
   }
-  input[type="range"] {
-    width: 110px;
-    accent-color: #00d4ff;
-  }
-  input[type="checkbox"] {
-    width: 18px; height: 18px;
-    accent-color: #00d4ff;
+  input[type="range"] { width: 110px; accent-color: #00d4ff; }
+  input[type="checkbox"] { width: 18px; height: 18px; accent-color: #00d4ff; cursor: pointer; }
+  select {
+    background: #0f1524;
+    color: #e6f0ff;
+    border: 1px solid rgba(0,212,255,.3);
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-family: inherit;
+    font-size: 12px;
+    outline: none;
     cursor: pointer;
   }
   .val {
@@ -127,8 +131,75 @@
     transition: all .15s;
   }
   .reset-btn:hover { background: rgba(239, 68, 68, 0.25); }
+
+  .speak-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .speak-box textarea {
+    width: 100%;
+    min-height: 60px;
+    background: #0f1524;
+    color: #e6f0ff;
+    border: 1px solid rgba(0,212,255,.3);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 12.5px;
+    resize: vertical;
+    outline: none;
+  }
+  .speak-box textarea:focus { border-color: #00d4ff; }
+  .speak-btn {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, #00d4ff, #7c3aed);
+    border: none;
+    color: #fff;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    box-shadow: 0 4px 16px rgba(0,212,255,.25);
+  }
+  .speak-btn:hover { box-shadow: 0 6px 24px rgba(0,212,255,.4); }
+  .speak-btn:active { transform: scale(0.98); }
+
+  .emotion-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .emotion-btn {
+    padding: 8px 4px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #e6f0ff;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all .15s;
+    line-height: 1.2;
+  }
+  .emotion-btn:hover { background: rgba(0,212,255,.15); border-color: rgba(0,212,255,.4); }
+  .emotion-btn.active {
+    background: linear-gradient(135deg, rgba(0,212,255,.3), rgba(124,58,237,.3));
+    border-color: #00d4ff;
+    box-shadow: 0 0 12px rgba(0,212,255,.4);
+  }
+  .emotion-btn small {
+    display: block;
+    font-size: 9px;
+    color: #7a8ba8;
+    margin-top: 2px;
+    letter-spacing: 0.3px;
+  }
   @media (max-width: 700px) {
-    #panel { width: 240px; top: 10px; right: 10px; padding: 12px; font-size: 12px; }
+    #panel { width: 250px; top: 10px; right: 10px; padding: 12px; font-size: 12px; }
     #status { padding: 8px 12px; font-size: 11.5px; top: 10px; left: 10px; }
   }
 </style>
@@ -136,17 +207,48 @@
 <body>
 
 <div id="canvas-wrap"></div>
-<div id="status">🦚 HalDo · Ich-Avatar</div>
-<div id="hint">👀 Beweg die Maus · Rechts Einstellungen</div>
+<div id="status">🦚 HalDo · Sprechen & Emotionen</div>
+<div id="hint">👀 Beweg die Maus · Sprich mit mir rechts</div>
 
 <div id="panel">
   <h3>Avatar-Studio</h3>
 
   <div class="group">
+    <div class="group-title">💬 Sprechen</div>
+    <div class="speak-box">
+      <textarea id="speakText" placeholder="Schreib was ich sagen soll...">Hallo Bruder! Ich bin HalDo. Wie kann ich dir helfen?</textarea>
+      <button class="speak-btn" id="speakBtn">🔊 Sprechen</button>
+      <button class="speak-btn" id="stopBtn" style="background: rgba(239,68,68,.2); border: 1px solid rgba(239,68,68,.5); color:#ef4444; box-shadow: none;">⏹️ Stopp</button>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="group-title">😊 Emotion</div>
+    <div class="emotion-grid" id="emotionGrid">
+      <button class="emotion-btn active" data-emotion="neutral">😐<small>Neutral</small></button>
+      <button class="emotion-btn" data-emotion="happy">😊<small>Freundlich</small></button>
+      <button class="emotion-btn" data-emotion="surprised">😲<small>Überrascht</small></button>
+      <button class="emotion-btn" data-emotion="thinking">🤔<small>Nachdenklich</small></button>
+      <button class="emotion-btn" data-emotion="sad">😢<small>Traurig</small></button>
+      <button class="emotion-btn" data-emotion="angry">😠<small>Wütend</small></button>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="group-title">🎙️ Stimme</div>
+    <div class="row"><label>Stimme</label>
+      <select id="voiceSelect" style="max-width: 160px;"></select>
+    </div>
+    <div class="row"><label>Geschwindigkeit</label><input type="range" id="voiceRate" min="0.5" max="2" step="0.1" value="1"><span class="val" id="voiceRateVal">1.0</span></div>
+    <div class="row"><label>Tonhöhe</label><input type="range" id="voicePitch" min="0.5" max="2" step="0.1" value="1"><span class="val" id="voicePitchVal">1.0</span></div>
+    <div class="row"><label>Lautstärke</label><input type="range" id="voiceVol" min="0" max="1" step="0.1" value="1"><span class="val" id="voiceVolVal">1.0</span></div>
+  </div>
+
+  <div class="group">
     <div class="group-title">💇 Haare</div>
     <div class="row"><label>Haarfarbe</label><input type="color" id="hairColor" value="#1a1410"></div>
-    <div class="row"><label>Frisur-Stil</label>
-      <select id="hairStyle" style="background:#0f1524;color:#e6f0ff;border:1px solid rgba(0,212,255,.3);border-radius:6px;padding:4px 8px;font-family:inherit;font-size:12px;">
+    <div class="row"><label>Frisur</label>
+      <select id="hairStyle">
         <option value="curly" selected>Lockig (ich)</option>
         <option value="straight">Glatt</option>
         <option value="short">Kurz</option>
@@ -172,13 +274,14 @@
 
   <div class="group">
     <div class="group-title">👕 Kleidung</div>
-    <div class="row"><label>Shirt-Farbe</label><input type="color" id="shirtColor" value="#0a0a0a"></div>
+    <div class="row"><label>Shirt</label><input type="color" id="shirtColor" value="#0a0a0a"></div>
   </div>
 
   <div class="group">
     <div class="group-title">✨ Effekte</div>
     <div class="row"><label>Hologramm-Ringe</label><input type="checkbox" id="ringsOn" checked></div>
     <div class="row"><label>Augen-Tracking</label><input type="checkbox" id="trackingOn" checked></div>
+    <div class="row"><label>Auto-Blinzeln</label><input type="checkbox" id="blinkOn" checked></div>
   </div>
 
   <button class="reset-btn" id="resetBtn">↺ Alles zurücksetzen</button>
@@ -187,9 +290,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script>
-// ============================================================
-// HalDo AI OS · 3D-Avatar (Ich-Version)
-// ============================================================
 (function() {
   "use strict";
 
@@ -211,18 +311,23 @@
     browsOn: true,
     shirtColor: "#0a0a0a",
     ringsOn: true,
-    trackingOn: true
+    trackingOn: true,
+    blinkOn: true,
+    emotion: "neutral",
+    voiceRate: 1.0,
+    voicePitch: 1.0,
+    voiceVol: 1.0,
+    voiceName: ""
   };
 
   const state = Object.assign({}, defaults);
-  // Aus localStorage laden
   try {
-    const saved = localStorage.getItem("haldo_avatar_settings");
+    const saved = localStorage.getItem("haldo_avatar_settings_v5");
     if (saved) Object.assign(state, JSON.parse(saved));
   } catch(e) {}
 
   function saveState() {
-    try { localStorage.setItem("haldo_avatar_settings", JSON.stringify(state)); } catch(e) {}
+    try { localStorage.setItem("haldo_avatar_settings_v5", JSON.stringify(state)); } catch(e) {}
   }
 
   // ============ SZENE ============
@@ -238,20 +343,19 @@
   document.getElementById("canvas-wrap").appendChild(renderer.domElement);
 
   // ============ LICHT ============
-  const light1 = new THREE.DirectionalLight(0xfff4e6, 1.15);
-  light1.position.set(3, 4, 5);
-  scene.add(light1);
+  scene.add(new THREE.DirectionalLight(0xfff4e6, 1.15).translateX(3).translateY(4).translateZ(5));
+  scene.add(new THREE.AmbientLight(0x606580, 0.9));
+  const cyanLight = new THREE.PointLight(0x00d4ff, 1.2, 15);
+  cyanLight.position.set(-4, 1, 2);
+  scene.add(cyanLight);
+  const purpLight = new THREE.PointLight(0x7c3aed, 1.0, 15);
+  purpLight.position.set(4, -2, -2);
+  scene.add(purpLight);
 
-  const light2 = new THREE.PointLight(0x00d4ff, 1.2, 15);
-  light2.position.set(-4, 1, 2);
-  scene.add(light2);
-
-  const light3 = new THREE.PointLight(0x7c3aed, 1.0, 15);
-  light3.position.set(4, -2, -2);
-  scene.add(light3);
-
-  const ambient = new THREE.AmbientLight(0x606580, 0.9);
-  scene.add(ambient);
+  // Fix: DirectionalLight korrekt setzen
+  const dirLight = new THREE.DirectionalLight(0xfff4e6, 1.15);
+  dirLight.position.set(3, 4, 5);
+  scene.add(dirLight);
 
   // ============ MATERIALIEN ============
   const skinMat = new THREE.MeshPhongMaterial({ color: state.skinColor, shininess: 25, specular: 0x333333 });
@@ -272,33 +376,27 @@
   scene.add(headGroup);
 
   // ============ HALS ============
-  const neckGeo = new THREE.CylinderGeometry(0.32, 0.38, 0.55, 32);
-  const neck = new THREE.Mesh(neckGeo, skinMat);
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 0.55, 32), skinMat);
   neck.position.set(0, -1.05, 0.02);
   headGroup.add(neck);
 
-  // ============ SCHULTERN / SHIRT ============
-  const shoulderGeo = new THREE.SphereGeometry(1.0, 32, 32);
-  const shoulder = new THREE.Mesh(shoulderGeo, shirtMat);
+  // ============ SCHULTERN ============
+  const shoulder = new THREE.Mesh(new THREE.SphereGeometry(1.0, 32, 32), shirtMat);
   shoulder.scale.set(1.55, 0.55, 0.85);
   shoulder.position.set(0, -1.55, 0);
   headGroup.add(shoulder);
 
-  // Kragen
-  const collarGeo = new THREE.TorusGeometry(0.38, 0.06, 16, 40);
-  const collar = new THREE.Mesh(collarGeo, shirtMat);
+  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.06, 16, 40), shirtMat);
   collar.rotation.x = Math.PI * 0.5;
   collar.position.set(0, -1.3, 0);
   headGroup.add(collar);
 
   // ============ KOPF ============
-  // Etwas runder (wie deine Gesichtsform)
-  const headGeo = new THREE.SphereGeometry(1, 64, 64);
-  const head = new THREE.Mesh(headGeo, skinMat);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 64), skinMat);
   head.scale.set(0.98, 1.08, 0.92);
   headGroup.add(head);
 
-  // ============ WANGEN (leichter rötlicher Akzent) ============
+  // Wangen-Röte
   const cheekMat = new THREE.MeshPhongMaterial({ color: 0xd88070, transparent: true, opacity: 0.35 });
   const cheekGeo = new THREE.SphereGeometry(0.22, 16, 16);
   const cheekL = new THREE.Mesh(cheekGeo, cheekMat);
@@ -311,36 +409,38 @@
   headGroup.add(cheekR);
 
   // ============ AUGEN ============
-  const eyeY = 0.12;
-  const eyeX = 0.34;
-  const eyeZ = 0.82;
-
+  const eyeY = 0.12, eyeX = 0.34, eyeZ = 0.82;
   const leftEye = new THREE.Group();
   const rightEye = new THREE.Group();
 
-  function buildEye(group) {
-    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.135, 32, 32), eyeWhiteMat);
-    group.add(ball);
+  function buildEye(g) {
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(0.135, 32, 32), eyeWhiteMat));
     const iris = new THREE.Mesh(new THREE.SphereGeometry(0.08, 32, 32), irisMat);
-    iris.position.z = 0.1;
-    iris.scale.z = 0.4;
-    group.add(iris);
+    iris.position.z = 0.1; iris.scale.z = 0.4; g.add(iris);
     const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.04, 32, 32), pupilMat);
-    pupil.position.z = 0.125;
-    pupil.scale.z = 0.5;
-    group.add(pupil);
+    pupil.position.z = 0.125; pupil.scale.z = 0.5; g.add(pupil);
     const shine = new THREE.Mesh(new THREE.SphereGeometry(0.02, 16, 16), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-    shine.position.set(-0.035, 0.035, 0.145);
-    group.add(shine);
+    shine.position.set(-0.035, 0.035, 0.145); g.add(shine);
   }
-
-  buildEye(leftEye);
-  buildEye(rightEye);
+  buildEye(leftEye); buildEye(rightEye);
   leftEye.position.set(-eyeX, eyeY, eyeZ);
   rightEye.position.set(eyeX, eyeY, eyeZ);
   headGroup.add(leftEye, rightEye);
 
-  // ============ AUGENBRAUEN (dick wie deine) ============
+  // Augenlider (für Blinzeln)
+  const lidMat = new THREE.MeshPhongMaterial({ color: state.skinColor });
+  const lidGeo = new THREE.SphereGeometry(0.14, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.5);
+  const lidL = new THREE.Mesh(lidGeo, lidMat);
+  const lidR = new THREE.Mesh(lidGeo, lidMat);
+  lidL.position.set(-eyeX, eyeY, eyeZ);
+  lidR.position.set(eyeX, eyeY, eyeZ);
+  lidL.rotation.x = Math.PI;
+  lidR.rotation.x = Math.PI;
+  lidL.scale.set(1, 0.01, 1);
+  lidR.scale.set(1, 0.01, 1);
+  headGroup.add(lidL, lidR);
+
+  // ============ AUGENBRAUEN ============
   const browGroup = new THREE.Group();
   const browGeo = new THREE.BoxGeometry(0.36, 0.075, 0.09);
   const browL = new THREE.Mesh(browGeo, browMat);
@@ -352,35 +452,47 @@
   browR.rotation.z = 0.12;
   browGroup.add(browR);
   headGroup.add(browGroup);
+  browGroup.visible = state.browsOn;
 
   // ============ NASE ============
-  const noseGroup = new THREE.Group();
-  const noseGeo = new THREE.SphereGeometry(0.11, 32, 32);
-  const nose = new THREE.Mesh(noseGeo, skinMat);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.11, 32, 32), skinMat);
   nose.scale.set(0.75, 0.9, 1.3);
   nose.position.set(0, -0.05, 0.88);
-  noseGroup.add(nose);
-
+  headGroup.add(nose);
   const nostrilMat = new THREE.MeshPhongMaterial({ color: 0x3a1a10 });
   const nostrilGeo = new THREE.SphereGeometry(0.028, 16, 16);
   const nostrilL = new THREE.Mesh(nostrilGeo, nostrilMat);
   nostrilL.position.set(-0.07, -0.12, 0.94);
-  noseGroup.add(nostrilL);
+  headGroup.add(nostrilL);
   const nostrilR = new THREE.Mesh(nostrilGeo, nostrilMat);
   nostrilR.position.set(0.07, -0.12, 0.94);
-  noseGroup.add(nostrilR);
-  headGroup.add(noseGroup);
+  headGroup.add(nostrilR);
 
-  // ============ LIPPEN ============
+  // ============ MUND (animierbar!) ============
+  // Wir bauen den Mund in einer eigenen Gruppe, damit wir ihn öffnen können
+  const mouthGroup = new THREE.Group();
+  mouthGroup.position.set(0, -0.48, 0.86);
+  headGroup.add(mouthGroup);
+
   const upperLip = new THREE.Mesh(new THREE.SphereGeometry(0.12, 32, 32), lipMat);
   upperLip.scale.set(1.35, 0.35, 0.5);
-  upperLip.position.set(0, -0.42, 0.86);
-  headGroup.add(upperLip);
+  upperLip.position.set(0, 0.06, 0);
+  mouthGroup.add(upperLip);
 
   const lowerLip = new THREE.Mesh(new THREE.SphereGeometry(0.11, 32, 32), lipMat);
   lowerLip.scale.set(1.25, 0.42, 0.5);
-  lowerLip.position.set(0, -0.54, 0.86);
-  headGroup.add(lowerLip);
+  lowerLip.position.set(0, -0.08, 0);
+  mouthGroup.add(lowerLip);
+
+  // Mund-Innenraum (dunkel, sichtbar wenn Mund offen)
+  const mouthInner = new THREE.Mesh(
+    new THREE.SphereGeometry(0.1, 16, 16),
+    new THREE.MeshPhongMaterial({ color: 0x2a0808 })
+  );
+  mouthInner.scale.set(1.1, 0.4, 0.4);
+  mouthInner.position.set(0, -0.02, -0.02);
+  mouthInner.visible = false;
+  mouthGroup.add(mouthInner);
 
   // ============ OHREN ============
   const earGeo = new THREE.SphereGeometry(0.14, 32, 32);
@@ -398,22 +510,17 @@
   headGroup.add(hairGroup);
 
   function buildHair(style) {
-    // Alte Haare entfernen
     while (hairGroup.children.length) hairGroup.remove(hairGroup.children[0]);
-
-    const hairColor = state.hairColor;
-    hairMat.color.set(hairColor);
+    hairMat.color.set(state.hairColor);
 
     if (style === "bald") return;
 
     if (style === "curly") {
-      // Locken — viele kleine Kugeln oben (wie deine Haare)
       const baseBack = new THREE.Mesh(new THREE.SphereGeometry(1.06, 32, 32), hairMat);
       baseBack.scale.set(1.02, 1.05, 0.98);
       baseBack.position.set(0, 0.08, -0.05);
       hairGroup.add(baseBack);
 
-      // Locken-Kugeln oben
       const curls = [
         [-0.5, 0.75, 0.55], [0.5, 0.75, 0.55], [0, 0.85, 0.6],
         [-0.35, 0.9, 0.4], [0.35, 0.9, 0.4], [0, 1.0, 0.2],
@@ -428,7 +535,6 @@
         hairGroup.add(curl);
       });
 
-      // Seitensträhnen
       const sideGeo = new THREE.CylinderGeometry(0.12, 0.09, 0.6, 12);
       const sideL = new THREE.Mesh(sideGeo, hairMat);
       sideL.position.set(-0.88, -0.1, 0.15);
@@ -454,7 +560,6 @@
       hairGroup.add(cap);
     }
   }
-
   buildHair(state.hairStyle);
 
   // ============ BART ============
@@ -465,26 +570,21 @@
     while (beardGroup.children.length) beardGroup.remove(beardGroup.children[0]);
     if (!state.beardOn) return;
 
-    // Bart-Substrat (dunkelbraun)
     const beardBase = new THREE.Mesh(new THREE.SphereGeometry(0.95, 32, 32), beardMat);
-    beardBase.scale.set(1.05, 1.0, 0.95);
+    beardBase.scale.set(1.05, 0.85, 0.95);
     beardBase.position.set(0, -0.35, 0);
-    // Nur den unteren Teil des Gesichts zeigen → mit Skalierung
-    beardBase.scale.y = 0.85;
     beardGroup.add(beardBase);
 
-    // Grau-Anteil
     const grayAmt = state.beardGray / 100;
     if (grayAmt > 0) {
-      // Kleine graue Punkte im Bart
-      for (let i = 0; i < 25; i++) {
+      const dotCount = Math.floor(grayAmt * 30);
+      for (let i = 0; i < dotCount; i++) {
         const angle = Math.random() * Math.PI * 2;
         const r = 0.85 + Math.random() * 0.15;
         const x = Math.sin(angle) * r * 0.7;
         const y = -0.4 + Math.random() * 0.5;
         const z = Math.cos(angle) * r * 0.75;
-        if (z < 0.3) continue; // nur vorne
-
+        if (z < 0.3) continue;
         const dot = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), grayBeardMat);
         dot.position.set(x, y, z);
         dot.scale.setScalar(0.6 + Math.random() * 0.5);
@@ -492,7 +592,6 @@
       }
     }
 
-    // Koteletten (Seiten)
     const sideburnGeo = new THREE.SphereGeometry(0.13, 16, 16);
     const sbL = new THREE.Mesh(sideburnGeo, beardMat);
     sbL.scale.set(0.6, 1.4, 0.7);
@@ -503,33 +602,27 @@
     sbR.position.set(0.78, -0.2, 0.35);
     beardGroup.add(sbR);
 
-    // Kinn-Bart (verlängert)
     const chinBeard = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), beardMat);
     chinBeard.scale.set(1.1, 1.3, 0.7);
     chinBeard.position.set(0, -0.75, 0.6);
     beardGroup.add(chinBeard);
 
-    // Schnurrbart
     if (state.mustacheOn) {
-      const musGeo = new THREE.SphereGeometry(0.14, 32, 32);
-      const mus = new THREE.Mesh(musGeo, beardMat);
+      const mus = new THREE.Mesh(new THREE.SphereGeometry(0.14, 32, 32), beardMat);
       mus.scale.set(1.5, 0.5, 0.6);
       mus.position.set(0, -0.36, 0.9);
       beardGroup.add(mus);
     }
   }
-
   buildBeard();
 
-  // ============ HOLOGRAMM-RINGE ============
+  // ============ RINGE ============
   const ringGroup = new THREE.Group();
   scene.add(ringGroup);
 
   function createRing(radius, mat, tube) {
-    const geo = new THREE.TorusGeometry(radius, tube, 16, 100);
-    return new THREE.Mesh(geo, mat);
+    return new THREE.Mesh(new THREE.TorusGeometry(radius, tube, 16, 100), mat);
   }
-
   const ring1 = createRing(2.3, ringMat1, 0.012);
   ring1.rotation.x = Math.PI * 0.5;
   ringGroup.add(ring1);
@@ -554,8 +647,108 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
+  // ============ EMOTION SYSTEM ============
+  // Zielwerte, die smooth animiert werden
+  const emotionTargets = {
+    neutral:   { browL: 0.36, browR: 0.36, browLz: -0.12, browRz: 0.12, mouthY: -0.48, mouthCurve: 0, mouthOpen: 0 },
+    happy:     { browL: 0.38, browR: 0.38, browLz: -0.18, browRz: 0.18, mouthY: -0.47, mouthCurve: 1, mouthOpen: 0 },
+    surprised: { browL: 0.42, browR: 0.42, browLz: -0.05, browRz: 0.05, mouthY: -0.48, mouthCurve: 0, mouthOpen: 0.6 },
+    thinking:  { browL: 0.35, browR: 0.34, browLz: -0.20, browRz: 0.10, mouthY: -0.48, mouthCurve: 0.2, mouthOpen: 0 },
+    sad:       { browL: 0.36, browR: 0.36, browLz:  0.05, browRz: -0.05, mouthY: -0.50, mouthCurve: -0.6, mouthOpen: 0 },
+    angry:     { browL: 0.34, browR: 0.34, browLz: -0.25, browRz: 0.25, mouthY: -0.48, mouthCurve: -0.3, mouthOpen: 0 }
+  };
+
+  const currentBrow = { L: 0.36, R: 0.36, Lz: -0.12, Rz: 0.12 };
+  let currentMouthOpen = 0; // Wird beim Sprechen animiert
+  let targetMouthOpen = 0;
+
+  // ============ TTS ============
+  const synth = window.speechSynthesis;
+  let voices = [];
+  let speaking = false;
+  let speakInterval = null;
+
+  function loadVoices() {
+    voices = synth.getVoices();
+    const select = document.getElementById("voiceSelect");
+    select.innerHTML = "";
+    // Deutsche Stimmen zuerst
+    const de = voices.filter(v => v.lang.startsWith("de"));
+    const others = voices.filter(v => !v.lang.startsWith("de"));
+    [...de, ...others].forEach(v => {
+      const opt = document.createElement("option");
+      opt.value = v.name;
+      opt.textContent = v.name + " (" + v.lang + ")";
+      if (state.voiceName && v.name === state.voiceName) opt.selected = true;
+      select.appendChild(opt);
+    });
+    // Falls nichts gesetzt, erste deutsche wählen
+    if (!state.voiceName && de.length) {
+      state.voiceName = de[0].name;
+      select.value = de[0].name;
+      saveState();
+    }
+  }
+
+  if (synth) {
+    loadVoices();
+    synth.onvoiceschanged = loadVoices;
+  }
+
+  function speak(text) {
+    if (!synth) { alert("Sprachausgabe nicht unterstützt"); return; }
+    synth.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const v = voices.find(x => x.name === state.voiceName);
+    if (v) u.voice = v;
+    u.rate = state.voiceRate;
+    u.pitch = state.voicePitch;
+    u.volume = state.voiceVol;
+
+    // Mund öffnet sich während des Sprechens
+    u.onstart = () => {
+      speaking = true;
+      document.getElementById("status").textContent = "🔊 HalDo spricht…";
+      // Mund zufällig öffnen/schließen — synchron zum Text
+      speakInterval = setInterval(() => {
+        targetMouthOpen = 0.3 + Math.random() * 0.7;
+        setTimeout(() => { targetMouthOpen = 0.1 + Math.random() * 0.3; }, 80);
+      }, 120);
+    };
+
+    u.onend = () => {
+      speaking = false;
+      targetMouthOpen = 0;
+      if (speakInterval) { clearInterval(speakInterval); speakInterval = null; }
+      document.getElementById("status").textContent = "🦚 HalDo · Sprechen & Emotionen";
+    };
+
+    u.onerror = () => {
+      speaking = false;
+      targetMouthOpen = 0;
+      if (speakInterval) { clearInterval(speakInterval); speakInterval = null; }
+      document.getElementById("status").textContent = "🦚 HalDo · Sprechen & Emotionen";
+    };
+
+    synth.speak(u);
+  }
+
+  function stopSpeak() {
+    if (synth) synth.cancel();
+    speaking = false;
+    targetMouthOpen = 0;
+    if (speakInterval) { clearInterval(speakInterval); speakInterval = null; }
+    document.getElementById("status").textContent = "🦚 HalDo · Sprechen & Emotionen";
+  }
+
+  // ============ BLINZELN ============
+  let blinkTimer = 0;
+  let nextBlink = 100 + Math.random() * 150;
+  let blinkProgress = 1; // 1 = offen, 0 = zu
+
   // ============ ANIMATION ============
   let t = 0;
+
   function animate() {
     requestAnimationFrame(animate);
     t += 0.016;
@@ -563,26 +756,82 @@
     // Atmung
     headGroup.position.y = Math.sin(t * 1.1) * 0.04;
 
+    // Kopf-Tracking
     if (state.trackingOn) {
-      // Kopf dreht in Richtung Maus
       headGroup.rotation.y += ((mouseX * 0.25) - headGroup.rotation.y) * 0.08;
       headGroup.rotation.x += ((-mouseY * 0.15) - headGroup.rotation.x) * 0.08;
 
-      // Augen folgen
-      const eyeTargetX = mouseX * 0.06;
-      const eyeTargetY = mouseY * 0.05;
-      leftEye.position.x = -eyeX + eyeTargetX;
-      rightEye.position.x = eyeX + eyeTargetX;
-      leftEye.position.y = eyeY + eyeTargetY;
-      rightEye.position.y = eyeY + eyeTargetY;
+      const eTargetX = mouseX * 0.06;
+      const eTargetY = mouseY * 0.05;
+      leftEye.position.x = -eyeX + eTargetX;
+      rightEye.position.x = eyeX + eTargetX;
+      leftEye.position.y = eyeY + eTargetY;
+      rightEye.position.y = eyeY + eTargetY;
       leftEye.lookAt(mouseX * 3, mouseY * 3, 5);
       rightEye.lookAt(mouseX * 3, mouseY * 3, 5);
+
+      // Lider folgen Augen
+      lidL.position.x = leftEye.position.x;
+      lidL.position.y = leftEye.position.y;
+      lidR.position.x = rightEye.position.x;
+      lidR.position.y = rightEye.position.y;
     } else {
       headGroup.rotation.y += (0 - headGroup.rotation.y) * 0.08;
       headGroup.rotation.x += (0 - headGroup.rotation.x) * 0.08;
     }
 
-    // Ringe
+    // === Blinzeln ===
+    if (state.blinkOn && !speaking) {
+      blinkTimer++;
+      if (blinkTimer > nextBlink) {
+        blinkProgress = Math.max(0, blinkProgress - 0.15);
+        if (blinkProgress <= 0) {
+          // Auge geschlossen — halte kurz, dann öffnen
+          blinkTimer = 0;
+          nextBlink = 100 + Math.random() * 200;
+          setTimeout(() => { blinkProgress = 1; }, 80);
+        }
+      } else {
+        blinkProgress = Math.min(1, blinkProgress + 0.1);
+      }
+    } else {
+      blinkProgress = Math.min(1, blinkProgress + 0.1);
+    }
+
+    const lidScale = Math.max(0.01, 1 - blinkProgress);
+    lidL.scale.y = lidScale;
+    lidR.scale.y = lidScale;
+
+    // === Emotionen ===
+    const emo = emotionTargets[state.emotion] || emotionTargets.neutral;
+    currentBrow.L += (emo.browL - currentBrow.L) * 0.1;
+    currentBrow.R += (emo.browR - currentBrow.R) * 0.1;
+    currentBrow.Lz += (emo.browLz - currentBrow.Lz) * 0.1;
+    currentBrow.Rz += (emo.browRz - currentBrow.Rz) * 0.1;
+
+    browL.position.y = currentBrow.L;
+    browR.position.y = currentBrow.R;
+    browL.rotation.z = currentBrow.Lz;
+    browR.rotation.z = currentBrow.Rz;
+
+    // Mund-Y Position (Emotion)
+    mouthGroup.position.y += (emo.mouthY - mouthGroup.position.y) * 0.1;
+
+    // Mund-Wölbung (Emotion)
+    const curve = emo.mouthCurve;
+    upperLip.position.y = 0.06 + curve * 0.02;
+    lowerLip.position.y = -0.08 - curve * 0.02;
+
+    // Mund-offen (Sprechen) — überlagert Emotion
+    const targetOpen = speaking ? Math.max(targetMouthOpen, 0) : (emo.mouthOpen || 0);
+    currentMouthOpen += (targetOpen - currentMouthOpen) * 0.25;
+    mouthGroup.scale.y = 1 + currentMouthOpen * 0.9;
+
+    // Mund-Inneres sichtbar bei offenem Mund
+    mouthInner.visible = currentMouthOpen > 0.15;
+    mouthInner.position.y = -0.02 - currentMouthOpen * 0.03;
+
+    // === Ringe ===
     if (state.ringsOn) {
       ringGroup.visible = true;
       ringGroup.rotation.y += 0.003;
@@ -607,7 +856,6 @@
       updateFn(e.target.value);
     });
   }
-
   function bindCheckbox(id, key, updateFn) {
     const el = document.getElementById(id);
     el.checked = state[key];
@@ -617,74 +865,90 @@
       updateFn(e.target.checked);
     });
   }
-
   function bindRange(id, valId, key, updateFn) {
     const el = document.getElementById(id);
     const valEl = document.getElementById(valId);
     el.value = state[key];
-    valEl.textContent = state[key] + "%";
+    valEl.textContent = Number(state[key]).toFixed(1);
     el.addEventListener("input", (e) => {
-      state[key] = parseInt(e.target.value);
-      valEl.textContent = state[key] + "%";
+      state[key] = parseFloat(e.target.value);
+      valEl.textContent = state[key].toFixed(1);
       saveState();
-      updateFn(state[key]);
+      if (updateFn) updateFn(state[key]);
     });
   }
 
-  bindColor("hairColor", "hairColor", (v) => { hairMat.color.set(v); });
-  bindColor("beardColor", "beardColor", (v) => { beardMat.color.set(v); });
-  bindColor("skinColor", "skinColor", (v) => { skinMat.color.set(v); });
-  bindColor("eyeColor", "eyeColor", (v) => { irisMat.color.set(v); });
-  bindColor("shirtColor", "shirtColor", (v) => { shirtMat.color.set(v); });
+  bindColor("hairColor", "hairColor", (v) => hairMat.color.set(v));
+  bindColor("beardColor", "beardColor", (v) => beardMat.color.set(v));
+  bindColor("skinColor", "skinColor", (v) => { skinMat.color.set(v); lidMat.color.set(v); });
+  bindColor("eyeColor", "eyeColor", (v) => irisMat.color.set(v));
+  bindColor("shirtColor", "shirtColor", (v) => shirtMat.color.set(v));
 
   bindCheckbox("beardOn", "beardOn", () => buildBeard());
   bindCheckbox("mustacheOn", "mustacheOn", () => buildBeard());
   bindCheckbox("browsOn", "browsOn", (v) => { browGroup.visible = v; });
   bindCheckbox("ringsOn", "ringsOn", () => {});
   bindCheckbox("trackingOn", "trackingOn", () => {});
+  bindCheckbox("blinkOn", "blinkOn", () => {});
 
-  bindRange("beardGray", "beardGrayVal", "beardGray", () => buildBeard());
+  const grayEl = document.getElementById("beardGray");
+  const grayVal = document.getElementById("beardGrayVal");
+  grayEl.value = state.beardGray;
+  grayVal.textContent = state.beardGray + "%";
+  grayEl.addEventListener("input", (e) => {
+    state.beardGray = parseInt(e.target.value);
+    grayVal.textContent = state.beardGray + "%";
+    saveState();
+    buildBeard();
+  });
 
-  document.getElementById("hairStyle").value = state.hairStyle;
-  document.getElementById("hairStyle").addEventListener("change", (e) => {
+  const hairStyleEl = document.getElementById("hairStyle");
+  hairStyleEl.value = state.hairStyle;
+  hairStyleEl.addEventListener("change", (e) => {
     state.hairStyle = e.target.value;
     saveState();
     buildHair(state.hairStyle);
   });
 
-  // Bart initial sichtbar/anpassen
-  browGroup.visible = state.browsOn;
+  // Voice Select
+  const voiceSelect = document.getElementById("voiceSelect");
+  voiceSelect.addEventListener("change", (e) => {
+    state.voiceName = e.target.value;
+    saveState();
+  });
 
-  // Reset-Button
+  bindRange("voiceRate", "voiceRateVal", "voiceRate");
+  bindRange("voicePitch", "voicePitchVal", "voicePitch");
+  bindRange("voiceVol", "voiceVolVal", "voiceVol");
+
+  // Emotions
+  document.querySelectorAll(".emotion-btn").forEach(btn => {
+    if (btn.dataset.emotion === state.emotion) btn.classList.add("active");
+    else btn.classList.remove("active");
+    btn.addEventListener("click", () => {
+      state.emotion = btn.dataset.emotion;
+      saveState();
+      document.querySelectorAll(".emotion-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  });
+
+  // Speak
+  document.getElementById("speakBtn").addEventListener("click", () => {
+    const text = document.getElementById("speakText").value.trim();
+    if (text) speak(text);
+  });
+  document.getElementById("stopBtn").addEventListener("click", stopSpeak);
+
+  // Reset
   document.getElementById("resetBtn").addEventListener("click", () => {
     Object.assign(state, defaults);
     saveState();
-    // Alle UI zurücksetzen
-    document.getElementById("hairColor").value = defaults.hairColor;
-    document.getElementById("hairStyle").value = defaults.hairStyle;
-    document.getElementById("beardOn").checked = defaults.beardOn;
-    document.getElementById("beardColor").value = defaults.beardColor;
-    document.getElementById("beardGray").value = defaults.beardGray;
-    document.getElementById("beardGrayVal").textContent = defaults.beardGray + "%";
-    document.getElementById("mustacheOn").checked = defaults.mustacheOn;
-    document.getElementById("skinColor").value = defaults.skinColor;
-    document.getElementById("eyeColor").value = defaults.eyeColor;
-    document.getElementById("browsOn").checked = defaults.browsOn;
-    document.getElementById("shirtColor").value = defaults.shirtColor;
-    document.getElementById("ringsOn").checked = defaults.ringsOn;
-    document.getElementById("trackingOn").checked = defaults.trackingOn;
-    // 3D aktualisieren
-    hairMat.color.set(defaults.hairColor);
-    beardMat.color.set(defaults.beardColor);
-    skinMat.color.set(defaults.skinColor);
-    irisMat.color.set(defaults.eyeColor);
-    shirtMat.color.set(defaults.shirtColor);
-    browGroup.visible = defaults.browsOn;
-    buildHair(defaults.hairStyle);
-    buildBeard();
+    location.reload();
   });
 
-  console.log("🦚 HalDo Avatar geladen");
+  console.log("🦚 HalDo Avatar v5 · Sprechen + Emotionen geladen");
+  console.log("💡 Tipp: Klick '🔊 Sprechen' oder tippe deinen Text ein!");
 })();
 </script>
 </body>
