@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Three.js Test · HalDo</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: #050810;
+    font-family: system-ui, -apple-system, sans-serif;
+    color: #00d4ff;
+  }
+  #status {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(0, 212, 255, 0.15);
+    border: 1px solid #00d4ff;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+    z-index: 100;
+  }
+</style>
+</head>
+<body>
+
+<div id="status">⏳ Lade Three.js…</div>
+
+<!-- Three.js wird aus dem Internet geladen -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+// Prüfen ob Three.js geladen wurde
+if (typeof THREE === "undefined") {
+  document.getElementById("status").textContent = "❌ Three.js konnte nicht geladen werden";
+} else {
+  document.getElementById("status").textContent = "✅ Three.js läuft!";
+
+  // 1. Szene erstellen
+  const scene = new THREE.Scene();
+
+  // 2. Kamera (das "Auge" durch das wir schauen)
+  const camera = new THREE.PerspectiveCamera(
+    50,                                    // Blickwinkel
+    window.innerWidth / window.innerHeight,// Seitenverhältnis
+    0.1,                                   // Nah-Grenze
+    1000                                   // Fern-Grenze
+  );
+  camera.position.z = 5;
+
+  // 3. Renderer (malt die Szene)
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x050810);
+  document.body.appendChild(renderer.domElement);
+
+  // 4. Kugel erstellen (unser Test-Objekt)
+  const geometry = new THREE.SphereGeometry(1.2, 64, 64);
+  const material = new THREE.MeshPhongMaterial({
+    color: 0x00d4ff,
+    emissive: 0x00384a,
+    shininess: 100
+  });
+  const sphere = new THREE.Mesh(geometry, material);
+  scene.add(sphere);
+
+  // 5. Licht (damit die Kugel leuchtet und Schatten hat)
+  const light1 = new THREE.PointLight(0x00d4ff, 2, 20);
+  light1.position.set(5, 5, 5);
+  scene.add(light1);
+
+  const light2 = new THREE.PointLight(0x7c3aed, 2, 20);
+  light2.position.set(-5, -5, 5);
+  scene.add(light2);
+
+  const ambient = new THREE.AmbientLight(0x404060);
+  scene.add(ambient);
+
+  // 6. Fenstergröße anpassen
+  window.addEventListener("resize", () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // 7. Animations-Schleife (läuft 60x pro Sekunde)
+  let t = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    t += 0.01;
+
+    // Kugel dreht sich
+    sphere.rotation.y += 0.005;
+    sphere.rotation.x += 0.002;
+
+    // Kugel schwebt leicht auf und ab
+    sphere.position.y = Math.sin(t) * 0.3;
+
+    renderer.render(scene, camera);
+  }
+  animate();
+}
+</script>
+</body>
+</html>
