@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>HalDo Avatar · Chat mit KI</title>
+<title>HalDo Avatar · Mit Bild-Erstellung</title>
 <style>
   body { margin: 0; overflow: hidden; background: #050810; font-family: system-ui, -apple-system, sans-serif; color: #e6f0ff; height: 100vh; }
   #canvas-wrap { position: fixed; inset: 0; z-index: 0; }
@@ -11,7 +11,7 @@
   #chatPanel {
     position: fixed;
     top: 20px; left: 20px;
-    width: 360px;
+    width: 380px;
     max-height: calc(100vh - 40px);
     background: rgba(10, 15, 28, 0.92);
     border: 1px solid rgba(0, 212, 255, 0.3);
@@ -23,7 +23,7 @@
     overflow: hidden;
   }
   #chatHeader {
-    padding: 14px 16px;
+    padding: 12px 16px;
     border-bottom: 1px solid rgba(0,212,255,0.15);
     display: flex; align-items: center; gap: 10px;
     background: linear-gradient(135deg, rgba(0,212,255,0.08), rgba(124,58,237,0.08));
@@ -35,7 +35,7 @@
   }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
   #chatHeader h2 {
-    margin: 0; font-size: 13.5px; font-weight: 700;
+    margin: 0; font-size: 13px; font-weight: 700;
     letter-spacing: 1px; text-transform: uppercase;
     color: #00d4ff;
   }
@@ -49,6 +49,37 @@
     font-weight: 700;
   }
 
+  /* ===== TABS ===== */
+  #tabs {
+    display: flex; gap: 3px;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(0,212,255,0.1);
+    background: rgba(0,0,0,0.2);
+  }
+  .tab {
+    flex: 1;
+    padding: 7px 10px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: #7a8ba8;
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .tab:hover { color: #e6f0ff; background: rgba(255,255,255,0.04); }
+  .tab.active {
+    background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(124,58,237,0.2));
+    border-color: rgba(0,212,255,0.4);
+    color: #e6f0ff;
+  }
+
+  /* ===== CHAT TAB ===== */
+  #chatTab, #imageTab { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+  #chatTab.hidden, #imageTab.hidden { display: none; }
+
   #chatLog {
     flex: 1;
     overflow-y: auto;
@@ -56,7 +87,6 @@
     display: flex; flex-direction: column;
     gap: 10px;
     min-height: 200px;
-    max-height: calc(100vh - 320px);
   }
   #chatLog::-webkit-scrollbar { width: 6px; }
   #chatLog::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.3); border-radius: 3px; }
@@ -64,7 +94,7 @@
   .msg {
     padding: 10px 14px;
     border-radius: 12px;
-    font-size: 13.5px;
+    font-size: 13px;
     line-height: 1.5;
     max-width: 88%;
     word-wrap: break-word;
@@ -84,7 +114,7 @@
   }
   .msg.sys {
     align-self: center;
-    font-size: 11.5px;
+    font-size: 11px;
     color: #7a8ba8;
     background: transparent;
     padding: 4px;
@@ -117,13 +147,13 @@
     30% { transform: translateY(-6px); opacity: 1; }
   }
 
-  #chatInputWrap {
+  .input-row {
     padding: 12px;
     border-top: 1px solid rgba(0,212,255,0.15);
     display: flex; gap: 8px;
     background: rgba(0,0,0,0.2);
   }
-  #chatInput {
+  .input-row input {
     flex: 1;
     background: #0f1524;
     border: 1px solid rgba(0,212,255,0.2);
@@ -131,11 +161,11 @@
     padding: 10px 14px;
     border-radius: 10px;
     font-family: inherit;
-    font-size: 13.5px;
+    font-size: 13px;
     outline: none;
   }
-  #chatInput:focus { border-color: #00d4ff; box-shadow: 0 0 0 3px rgba(0,212,255,0.1); }
-  #micBtn, #sendBtn {
+  .input-row input:focus { border-color: #00d4ff; box-shadow: 0 0 0 3px rgba(0,212,255,0.1); }
+  .input-row button {
     width: 42px; height: 42px;
     border-radius: 10px;
     border: none;
@@ -149,7 +179,6 @@
     border: 1px solid rgba(0,212,255,0.3);
     color: #00d4ff;
   }
-  #micBtn:hover { background: rgba(0,212,255,0.25); }
   #micBtn.listening {
     background: linear-gradient(135deg, #ef4444, #f97316);
     color: #fff;
@@ -164,93 +193,226 @@
     color: #fff;
     box-shadow: 0 4px 16px rgba(0,212,255,0.3);
   }
-  #sendBtn:hover { box-shadow: 0 6px 24px rgba(0,212,255,0.5); }
 
-  /* ===== QUICK BUTTONS ===== */
-  #quickBar {
-    padding: 8px 12px;
-    display: flex; gap: 6px; flex-wrap: wrap;
-    border-top: 1px solid rgba(0,212,255,0.1);
-    background: rgba(0,0,0,0.15);
+  /* ===== BILD-ERSTELLUNG TAB ===== */
+  #imageTab {
+    padding: 0;
   }
-  .quick {
+  #imageForm {
+    padding: 14px;
+    border-bottom: 1px solid rgba(0,212,255,0.1);
+  }
+  #imageForm label {
+    display: block;
     font-size: 11px;
-    padding: 5px 10px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
-    color: #a8b8d0;
-    border-radius: 14px;
-    cursor: pointer;
+    color: #7a8ba8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  #imageForm input[type="password"],
+  #imageForm input[type="text"],
+  #imageForm textarea,
+  #imageForm select {
+    width: 100%;
+    background: #0f1524;
+    border: 1px solid rgba(0,212,255,0.3);
+    color: #e6f0ff;
+    padding: 9px 12px;
+    border-radius: 9px;
     font-family: inherit;
+    font-size: 12.5px;
+    outline: none;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+  }
+  #imageForm input:focus, #imageForm textarea:focus, #imageForm select:focus {
+    border-color: #00d4ff;
+    box-shadow: 0 0 0 3px rgba(0,212,255,0.1);
+  }
+  #imageForm textarea {
+    resize: vertical;
+    min-height: 60px;
+    font-size: 13px;
+  }
+  #imageForm select {
+    cursor: pointer;
+  }
+  #imageGoBtn {
+    width: 100%;
+    padding: 11px;
+    background: linear-gradient(135deg, #00d4ff, #7c3aed);
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0,212,255,0.3);
     transition: all .15s;
   }
-  .quick:hover { background: rgba(0,212,255,0.15); color: #e6f0ff; border-color: rgba(0,212,255,0.4); }
+  #imageGoBtn:hover { box-shadow: 0 6px 24px rgba(0,212,255,0.5); }
+  #imageGoBtn:disabled {
+    opacity: 0.5;
+    cursor: wait;
+  }
+
+  #imageResults {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+  }
+  #imageResults::-webkit-scrollbar { width: 6px; }
+  #imageResults::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.3); border-radius: 3px; }
+
+  .image-card {
+    margin-bottom: 12px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(0,212,255,0.2);
+    background: rgba(255,255,255,0.03);
+    animation: fadeIn .3s ease;
+  }
+  .image-card img {
+    width: 100%;
+    display: block;
+  }
+  .image-card .info {
+    padding: 8px 12px;
+    font-size: 11px;
+    color: #7a8ba8;
+    background: rgba(0,0,0,0.3);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .image-card .info .prompt-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .image-card .info a {
+    color: #00d4ff;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .image-card .info a:hover { text-decoration: underline; }
+
+  .image-loading {
+    padding: 40px 20px;
+    text-align: center;
+    color: #00d4ff;
+    font-size: 13px;
+    background: rgba(0,212,255,0.05);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    border: 1px dashed rgba(0,212,255,0.3);
+  }
+  .image-loading .spinner {
+    display: inline-block;
+    width: 24px; height: 24px;
+    border: 3px solid rgba(0,212,255,0.2);
+    border-top-color: #00d4ff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 10px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .image-error {
+    padding: 14px;
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.4);
+    border-radius: 10px;
+    color: #ef4444;
+    font-size: 12px;
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+
+  .key-hint {
+    font-size: 10.5px;
+    color: #7a8ba8;
+    line-height: 1.4;
+    margin-top: -6px;
+    margin-bottom: 10px;
+  }
+  .key-hint a {
+    color: #00d4ff;
+    text-decoration: none;
+  }
+  .key-hint a:hover { text-decoration: underline; }
 
   /* ===== SETTINGS PANEL (rechts) ===== */
   #panel {
     position: fixed; top: 20px; right: 20px;
-    width: 280px; max-height: calc(100vh - 40px);
+    width: 260px; max-height: calc(100vh - 40px);
     overflow-y: auto;
     background: rgba(10, 15, 28, 0.92);
     border: 1px solid rgba(0, 212, 255, 0.3);
     border-radius: 14px;
-    padding: 16px;
+    padding: 14px;
     backdrop-filter: blur(20px);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-    font-size: 13px;
+    font-size: 12px;
     z-index: 100;
   }
   #panel::-webkit-scrollbar { width: 5px; }
   #panel::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.3); border-radius: 3px; }
   #panel h3 {
-    margin: 0 0 14px 0; font-size: 13px;
+    margin: 0 0 12px 0; font-size: 12px;
     color: #00d4ff; letter-spacing: 1.5px;
     text-transform: uppercase;
     display: flex; align-items: center; gap: 8px;
   }
   #panel h3::before {
-    content: ""; width: 8px; height: 8px;
+    content: ""; width: 7px; height: 7px;
     border-radius: 50%; background: #00d4ff;
     box-shadow: 0 0 10px #00d4ff;
   }
-  .group { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .group { margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
   .group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
   .group-title {
-    font-size: 10.5px; color: #7a8ba8;
+    font-size: 10px; color: #7a8ba8;
     text-transform: uppercase; letter-spacing: 1px;
     margin-bottom: 8px; font-weight: 700;
   }
   .row {
     display: flex; align-items: center;
-    justify-content: space-between; gap: 10px; padding: 5px 0;
+    justify-content: space-between; gap: 10px; padding: 4px 0;
   }
-  .row label { font-size: 12px; color: #a8b8d0; flex: 1; }
-  input[type="color"] { width: 38px; height: 26px; border: 1px solid rgba(0,212,255,0.3); border-radius: 6px; background: transparent; cursor: pointer; padding: 2px; }
-  input[type="range"] { width: 100px; accent-color: #00d4ff; }
+  .row label { font-size: 11.5px; color: #a8b8d0; flex: 1; }
+  input[type="color"] { width: 34px; height: 24px; border: 1px solid rgba(0,212,255,0.3); border-radius: 6px; background: transparent; cursor: pointer; padding: 2px; }
+  input[type="range"] { width: 90px; accent-color: #00d4ff; }
   input[type="checkbox"] { width: 16px; height: 16px; accent-color: #00d4ff; cursor: pointer; }
   select {
     background: #0f1524; color: #e6f0ff;
     border: 1px solid rgba(0,212,255,.3);
-    border-radius: 6px; padding: 5px 8px;
-    font-family: inherit; font-size: 11.5px;
+    border-radius: 6px; padding: 4px 7px;
+    font-family: inherit; font-size: 11px;
     outline: none; cursor: pointer;
-    max-width: 140px;
+    max-width: 130px;
   }
-  .val { font-size: 10.5px; color: #00d4ff; font-weight: 700; min-width: 30px; text-align: right; }
+  .val { font-size: 10px; color: #00d4ff; font-weight: 700; min-width: 28px; text-align: right; }
   .keyInput {
     width: 100%;
     background: #0f1524;
     border: 1px solid rgba(0,212,255,0.3);
     color: #e6f0ff;
-    padding: 7px 10px;
+    padding: 6px 9px;
     border-radius: 8px;
     font-family: inherit;
-    font-size: 11.5px;
+    font-size: 11px;
     outline: none;
-    margin-top: 6px;
+    margin-top: 5px;
+    box-sizing: border-box;
   }
   .keyInput:focus { border-color: #00d4ff; }
-  .hint { font-size: 10.5px; color: #7a8ba8; line-height: 1.4; margin-top: 4px; }
+  .hint { font-size: 10px; color: #7a8ba8; line-height: 1.4; margin-top: 4px; }
 
   #status {
     position: fixed; bottom: 20px; left: 50%;
@@ -268,13 +430,11 @@
   }
   #status.speaking { border-color: #ec4899; color: #ec4899; background: rgba(236,72,153,0.15); }
   #status.listening { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,0.15); }
+  #status.generating { border-color: #f5c542; color: #f5c542; background: rgba(245,197,66,0.15); }
 
   @media (max-width: 900px) {
     #panel { display: none; }
-    #chatPanel { width: 300px; }
-  }
-  @media (max-width: 600px) {
-    #chatPanel { width: calc(100vw - 40px); left: 20px; top: auto; bottom: 20px; max-height: 60vh; }
+    #chatPanel { width: 320px; }
   }
 </style>
 </head>
@@ -282,25 +442,54 @@
 
 <div id="canvas-wrap"></div>
 
-<!-- ===== CHAT ===== -->
+<!-- ===== CHAT + BILD PANEL ===== -->
 <div id="chatPanel">
   <div id="chatHeader">
     <span class="dot"></span>
-    <h2>HalDo Chat</h2>
+    <h2>HalDo</h2>
     <span class="badge" id="aiStatus">kein Key</span>
   </div>
-  <div id="chatLog"></div>
-  <div id="quickBar">
-    <button class="quick" data-q="Hallo! Wie geht es dir?">👋 Hallo</button>
-    <button class="quick" data-q="Wie spät ist es?">🕐 Zeit</button>
-    <button class="quick" data-q="Erzähl mir einen Witz!">😂 Witz</button>
-    <button class="quick" data-q="Was kannst du alles?">💡 Fähigkeiten</button>
-    <button class="quick" data-q="Gib mir eine kreative Idee für heute.">✨ Idee</button>
+
+  <!-- TABS -->
+  <div id="tabs">
+    <button class="tab active" data-tab="chatTab">💬 Chat</button>
+    <button class="tab" data-tab="imageTab">🎨 Bild erstellen</button>
   </div>
-  <div id="chatInputWrap">
-    <button id="micBtn" title="Spracheingabe">🎙️</button>
-    <input id="chatInput" type="text" placeholder="Schreib mir was…" autocomplete="off">
-    <button id="sendBtn" title="Senden">➤</button>
+
+  <!-- CHAT TAB -->
+  <div id="chatTab">
+    <div id="chatLog"></div>
+    <div class="input-row">
+      <button id="micBtn" title="Spracheingabe">🎙️</button>
+      <input id="chatInput" type="text" placeholder="Schreib mir was…" autocomplete="off">
+      <button id="sendBtn" title="Senden">➤</button>
+    </div>
+  </div>
+
+  <!-- BILD TAB -->
+  <div id="imageTab" class="hidden">
+    <div id="imageForm">
+      <label for="pollKey">Pollinations API-Key</label>
+      <input type="password" id="pollKey" placeholder="sk_… (einmal eintragen)">
+      <div class="key-hint">
+        Key holen auf <a href="https://enter.pollinations.ai/keys" target="_blank">enter.pollinations.ai/keys</a> — bleibt lokal in deinem Browser gespeichert.
+      </div>
+
+      <label for="imagePrompt">Was soll ich zeichnen?</label>
+      <textarea id="imagePrompt" placeholder="z.B. Ein brauner Bär im Wald, sonniger Tag, fotorealistisch"></textarea>
+
+      <label for="imageModel">Modell</label>
+      <select id="imageModel">
+        <option value="black-forest-labs/flux.1-schnell" selected>Flux 1 Schnell (empfohlen)</option>
+        <option value="black-forest-labs/flux.2-pro">Flux 2 Pro (hohe Qualität)</option>
+        <option value="black-forest-labs/flux.2-flex">Flux 2 Flex</option>
+        <option value="openai/gpt-image-1-mini">GPT Image 1 Mini</option>
+        <option value="google/gemini-2.5-flash-image">Gemini 2.5 Flash Image</option>
+      </select>
+
+      <button id="imageGoBtn">🎨 Erstellen</button>
+    </div>
+    <div id="imageResults"></div>
   </div>
 </div>
 
@@ -311,12 +500,10 @@
   <div class="group">
     <div class="group-title">🤖 KI & Gemini</div>
     <input class="keyInput" id="apiKey" type="password" placeholder="Gemini API-Key (AIza…)">
-    <div class="hint">Kostenlos auf <b>aistudio.google.com/apikey</b> — Key bleibt lokal.</div>
-    <div class="row" style="margin-top:8px;">
+    <div class="hint">Kostenlos auf <b>aistudio.google.com/apikey</b></div>
+    <div class="row" style="margin-top:6px;">
       <label>Modell</label>
-      <select id="aiModel">
-        <option value="">Wird geladen…</option>
-      </select>
+      <select id="aiModel"><option value="">wird geladen…</option></select>
     </div>
     <div class="row">
       <label>Auto-Vorlesen</label>
@@ -326,8 +513,8 @@
 
   <div class="group">
     <div class="group-title">💇 Haare</div>
-    <div class="row"><label>Haarfarbe</label><input type="color" id="hairColor" value="#1a1410"></div>
-    <div class="row"><label>Frisur</label>
+    <div class="row"><label>Farbe</label><input type="color" id="hairColor" value="#1a1410"></div>
+    <div class="row"><label>Stil</label>
       <select id="hairStyle">
         <option value="curly" selected>Lockig</option>
         <option value="straight">Glatt</option>
@@ -339,17 +526,17 @@
 
   <div class="group">
     <div class="group-title">🧔 Bart</div>
-    <div class="row"><label>Bart an</label><input type="checkbox" id="beardOn" checked></div>
-    <div class="row"><label>Bartfarbe</label><input type="color" id="beardColor" value="#3a2a1a"></div>
-    <div class="row"><label>Grau-Anteil</label><input type="range" id="beardGray" min="0" max="100" value="55"><span class="val" id="beardGrayVal">55%</span></div>
-    <div class="row"><label>Schnurrbart</label><input type="checkbox" id="mustacheOn" checked></div>
+    <div class="row"><label>An</label><input type="checkbox" id="beardOn" checked></div>
+    <div class="row"><label>Farbe</label><input type="color" id="beardColor" value="#3a2a1a"></div>
+    <div class="row"><label>Grau</label><input type="range" id="beardGray" min="0" max="100" value="55"><span class="val" id="beardGrayVal">55%</span></div>
+    <div class="row"><label>Schnauzer</label><input type="checkbox" id="mustacheOn" checked></div>
   </div>
 
   <div class="group">
     <div class="group-title">🎨 Haut & Augen</div>
-    <div class="row"><label>Hautfarbe</label><input type="color" id="skinColor" value="#c99a72"></div>
-    <div class="row"><label>Augenfarbe</label><input type="color" id="eyeColor" value="#4a3220"></div>
-    <div class="row"><label>Augenbrauen</label><input type="checkbox" id="browsOn" checked></div>
+    <div class="row"><label>Haut</label><input type="color" id="skinColor" value="#c99a72"></div>
+    <div class="row"><label>Augen</label><input type="color" id="eyeColor" value="#4a3220"></div>
+    <div class="row"><label>Brauen</label><input type="checkbox" id="browsOn" checked></div>
   </div>
 
   <div class="group">
@@ -366,9 +553,9 @@
 
   <div class="group">
     <div class="group-title">✨ Effekte</div>
-    <div class="row"><label>Holo-Ringe</label><input type="checkbox" id="ringsOn" checked></div>
-    <div class="row"><label>Maus-Tracking</label><input type="checkbox" id="trackingOn" checked></div>
-    <div class="row"><label>Auto-Blinzeln</label><input type="checkbox" id="blinkOn" checked></div>
+    <div class="row"><label>Ringe</label><input type="checkbox" id="ringsOn" checked></div>
+    <div class="row"><label>Tracking</label><input type="checkbox" id="trackingOn" checked></div>
+    <div class="row"><label>Blinzeln</label><input type="checkbox" id="blinkOn" checked></div>
   </div>
 </div>
 
@@ -395,16 +582,17 @@
     emotion: "neutral",
     voiceRate: 1.0, voicePitch: 1.0, voiceName: "",
     apiKey: "", aiModel: "", autoSpeak: true,
+    pollKey: "", imageModel: "black-forest-labs/flux.1-schnell",
     chatHistory: []
   };
   const state = Object.assign({}, defaults);
   try {
-    const saved = localStorage.getItem("haldo_avatar_settings_v6");
+    const saved = localStorage.getItem("haldo_avatar_settings_v7");
     if (saved) Object.assign(state, JSON.parse(saved));
   } catch(e) {}
 
   function saveState() {
-    try { localStorage.setItem("haldo_avatar_settings_v6", JSON.stringify(state)); } catch(e) {}
+    try { localStorage.setItem("haldo_avatar_settings_v7", JSON.stringify(state)); } catch(e) {}
   }
 
   // ==================== SZENE ====================
@@ -449,12 +637,10 @@
   const headGroup = new THREE.Group();
   scene.add(headGroup);
 
-  // Hals
   const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 0.55, 32), skinMat);
   neck.position.set(0, -1.05, 0.02);
   headGroup.add(neck);
 
-  // Schultern
   const shoulder = new THREE.Mesh(new THREE.SphereGeometry(1.0, 32, 32), shirtMat);
   shoulder.scale.set(1.55, 0.55, 0.85);
   shoulder.position.set(0, -1.55, 0);
@@ -465,12 +651,10 @@
   collar.position.set(0, -1.3, 0);
   headGroup.add(collar);
 
-  // Kopf
   const head = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 64), skinMat);
   head.scale.set(0.98, 1.08, 0.92);
   headGroup.add(head);
 
-  // Wangen
   const cheekMat = new THREE.MeshPhongMaterial({ color: 0xd88070, transparent: true, opacity: 0.35 });
   const cheekGeo = new THREE.SphereGeometry(0.22, 16, 16);
   const cheekL = new THREE.Mesh(cheekGeo, cheekMat);
@@ -482,7 +666,6 @@
   cheekR.position.set(0.5, -0.05, 0.72);
   headGroup.add(cheekR);
 
-  // Augen
   const eyeY = 0.12, eyeX = 0.34, eyeZ = 0.82;
   const leftEye = new THREE.Group();
   const rightEye = new THREE.Group();
@@ -500,7 +683,6 @@
   rightEye.position.set(eyeX, eyeY, eyeZ);
   headGroup.add(leftEye, rightEye);
 
-  // Lider
   const lidMat = new THREE.MeshPhongMaterial({ color: state.skinColor });
   const lidGeo = new THREE.SphereGeometry(0.14, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.5);
   const lidL = new THREE.Mesh(lidGeo, lidMat);
@@ -513,7 +695,6 @@
   lidR.scale.set(1, 0.01, 1);
   headGroup.add(lidL, lidR);
 
-  // Augenbrauen
   const browGroup = new THREE.Group();
   const browGeo = new THREE.BoxGeometry(0.36, 0.075, 0.09);
   const browL = new THREE.Mesh(browGeo, browMat);
@@ -527,7 +708,6 @@
   headGroup.add(browGroup);
   browGroup.visible = state.browsOn;
 
-  // Nase
   const nose = new THREE.Mesh(new THREE.SphereGeometry(0.11, 32, 32), skinMat);
   nose.scale.set(0.75, 0.9, 1.3);
   nose.position.set(0, -0.05, 0.88);
@@ -541,7 +721,6 @@
   nostrilR.position.set(0.07, -0.12, 0.94);
   headGroup.add(nostrilR);
 
-  // Mund
   const mouthGroup = new THREE.Group();
   mouthGroup.position.set(0, -0.48, 0.86);
   headGroup.add(mouthGroup);
@@ -559,7 +738,6 @@
   mouthInner.visible = false;
   mouthGroup.add(mouthInner);
 
-  // Ohren
   const earGeo = new THREE.SphereGeometry(0.14, 32, 32);
   const earL = new THREE.Mesh(earGeo, skinMat);
   earL.scale.set(0.5, 0.95, 0.4);
@@ -570,7 +748,6 @@
   earR.position.set(0.94, -0.02, 0);
   headGroup.add(earR);
 
-  // Haare
   const hairGroup = new THREE.Group();
   headGroup.add(hairGroup);
   function buildHair(style) {
@@ -620,7 +797,6 @@
   }
   buildHair(state.hairStyle);
 
-  // Bart
   const beardGroup = new THREE.Group();
   headGroup.add(beardGroup);
   function buildBeard() {
@@ -668,7 +844,6 @@
   }
   buildBeard();
 
-  // Ringe
   const ringGroup = new THREE.Group();
   scene.add(ringGroup);
   function createRing(radius, mat, tube) {
@@ -684,14 +859,12 @@
   ring3.rotation.x = Math.PI * 0.5;
   ringGroup.add(ring3);
 
-  // Maus-Tracking
   let mouseX = 0, mouseY = 0;
   document.addEventListener("mousemove", (e) => {
     mouseX = (e.clientX / window.innerWidth) * 2 - 1;
     mouseY = -((e.clientY / window.innerHeight) * 2 - 1);
   });
 
-  // Resize
   window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -769,21 +942,10 @@
     synth.speak(u);
   }
 
-  function stopSpeak() {
-    if (synth) synth.cancel();
-    speaking = false;
-    targetMouthOpen = 0;
-    if (speakInterval) { clearInterval(speakInterval); speakInterval = null; }
-    document.getElementById("status").textContent = "🦚 Bereit";
-    document.getElementById("status").className = "";
-  }
-
-  // ==================== BLINZELN ====================
   let blinkTimer = 0;
   let nextBlink = 100 + Math.random() * 150;
   let blinkProgress = 1;
 
-  // ==================== ANIMATION ====================
   let t = 0;
   function animate() {
     requestAnimationFrame(animate);
@@ -811,7 +973,6 @@
       headGroup.rotation.x += (0 - headGroup.rotation.x) * 0.08;
     }
 
-    // Blinzeln
     if (state.blinkOn && !speaking) {
       blinkTimer++;
       if (blinkTimer > nextBlink) {
@@ -831,7 +992,6 @@
     lidL.scale.y = lidScale;
     lidR.scale.y = lidScale;
 
-    // Emotionen
     const emo = emotionTargets[state.emotion] || emotionTargets.neutral;
     currentBrow.L += (emo.browL - currentBrow.L) * 0.1;
     currentBrow.R += (emo.browR - currentBrow.R) * 0.1;
@@ -846,7 +1006,6 @@
     upperLip.position.y = 0.06 + curve * 0.02;
     lowerLip.position.y = -0.08 - curve * 0.02;
 
-    // Mund-offen
     currentMouthOpen += (targetMouthOpen - currentMouthOpen) * 0.25;
     mouthGroup.scale.y = 1 + currentMouthOpen * 0.9;
     mouthInner.visible = currentMouthOpen > 0.15;
@@ -865,6 +1024,17 @@
     renderer.render(scene, camera);
   }
   animate();
+
+  // ==================== TABS ====================
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById("chatTab").classList.add("hidden");
+      document.getElementById("imageTab").classList.add("hidden");
+      document.getElementById(tab.dataset.tab).classList.remove("hidden");
+    });
+  });
 
   // ==================== UI BINDINGS ====================
   function bindColor(id, key, updateFn) {
@@ -937,45 +1107,51 @@
   bindRange("voiceRate", "voiceRateVal", "voiceRate");
   bindRange("voicePitch", "voicePitchVal", "voicePitch");
 
-  // API-Key
+  // ==================== POLLINATIONS API KEY ====================
+  const pollKeyEl = document.getElementById("pollKey");
+  pollKeyEl.value = state.pollKey;
+  pollKeyEl.addEventListener("input", (e) => {
+    state.pollKey = e.target.value.trim();
+    saveState();
+  });
+
+  const imageModelEl = document.getElementById("imageModel");
+  imageModelEl.value = state.imageModel;
+  imageModelEl.addEventListener("change", (e) => {
+    state.imageModel = e.target.value;
+    saveState();
+  });
+
+  // ==================== GEMINI ====================
   const apiKeyEl = document.getElementById("apiKey");
   apiKeyEl.value = state.apiKey;
   apiKeyEl.addEventListener("input", (e) => {
     state.apiKey = e.target.value.trim();
     saveState();
     updateAIStatus();
-    // Wenn Key geändert → Modelle neu laden
-    if (state.apiKey.length > 20) {
-      loadAvailableModels();
-    }
+    if (state.apiKey.length > 20) loadAvailableModels();
   });
 
   const aiModelEl = document.getElementById("aiModel");
+  const validModels = ["gemini-2.5-flash","gemini-2.5-flash-lite","gemini-2.0-flash","gemini-3.5-flash","gemini-3.7-flash","gemini-3.8-flash"];
+  if (!validModels.includes(state.aiModel) && state.aiModel) state.aiModel = "gemini-2.5-flash";
 
   async function loadAvailableModels() {
     if (!state.apiKey) {
-      aiModelEl.innerHTML = "<option value=\"\">(kein API-Key)</option>";
+      aiModelEl.innerHTML = "<option value=\"\">(kein Key)</option>";
       return;
     }
-    aiModelEl.innerHTML = "<option value=\"\">Lade Modelle…</option>";
+    aiModelEl.innerHTML = "<option value=\"\">lade…</option>";
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(state.apiKey)}`;
       const res = await fetch(url);
-      if (!res.ok) {
-        aiModelEl.innerHTML = "<option value=\"\">(Fehler beim Laden)</option>";
-        return;
-      }
+      if (!res.ok) { aiModelEl.innerHTML = "<option value=\"\">(Fehler)</option>"; return; }
       const data = await res.json();
-      // Nur Modelle mit "generateContent"
       const models = (data.models || []).filter(m =>
         m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent")
       );
-      if (!models.length) {
-        aiModelEl.innerHTML = "<option value=\"\">(keine Modelle gefunden)</option>";
-        return;
-      }
+      if (!models.length) { aiModelEl.innerHTML = "<option value=\"\">(keine)</option>"; return; }
       aiModelEl.innerHTML = "";
-      // Deutsche Namen aus dem Modell-Namen extrahieren
       models.forEach(m => {
         const shortName = m.name.replace("models/", "");
         const opt = document.createElement("option");
@@ -984,7 +1160,6 @@
         if (state.aiModel === shortName) opt.selected = true;
         aiModelEl.appendChild(opt);
       });
-      // Wenn gespeichertes Modell nicht dabei → erstes wählen
       if (!models.find(m => m.name.replace("models/","") === state.aiModel)) {
         const first = models[0].name.replace("models/", "");
         state.aiModel = first;
@@ -993,17 +1168,10 @@
       }
     } catch (e) {
       aiModelEl.innerHTML = "<option value=\"\">(Netzwerkfehler)</option>";
-      console.warn(e);
     }
   }
-
-  // Beim Start: Wenn Key vorhanden, Modelle laden
-  if (state.apiKey) {
-    loadAvailableModels();
-  } else {
-    aiModelEl.innerHTML = "<option value=\"\">Trag erst den API-Key ein</option>";
-  }
-
+  if (state.apiKey) loadAvailableModels();
+  else aiModelEl.innerHTML = "<option value=\"\">Trag Key ein</option>";
   aiModelEl.addEventListener("change", (e) => {
     state.aiModel = e.target.value;
     saveState();
@@ -1064,54 +1232,38 @@
     if (el) el.remove();
   }
 
-  // Beim Laden: History wiederherstellen
   if (state.chatHistory.length) {
     state.chatHistory.forEach(m => addMessage(m.role, m.text, false));
   } else {
     addMessage("bot",
       "Hallo Bruder! Ich bin HalDo 🦚 — dein persönlicher Assistent. " +
-      (state.apiKey
-        ? "Frag mich alles — ich antworte dir!"
-        : "Trag oben rechts deinen Gemini API-Key ein, dann kann ich richtig antworten!"),
+      "Chatte mit mir, oder wechsle oben zu 🎨 Bild erstellen!",
       false
     );
   }
 
-  // ==================== GEMINI ====================
   async function askGemini(userText) {
-    if (!state.apiKey) throw new Error("Kein API-Key. Trag ihn oben rechts ein (aistudio.google.com/apikey).");
-    if (!state.aiModel) throw new Error("Kein Modell gewählt. Lade die Seite neu oder trag einen API-Key ein.");
+    if (!state.apiKey) throw new Error("Kein API-Key.");
+    if (!state.aiModel) throw new Error("Kein Modell.");
     const model = state.aiModel;
-    const sys = "Du bist HalDo, ein freundlicher, warmer, intelligenter Assistent. Antworte natürlich, hilfsbereit, kurz und auf Deutsch, außer der Nutzer schreibt in einer anderen Sprache. Sei persönlich und menschlich.";
+    const sys = "Du bist HalDo, ein freundlicher, warmer, intelligenter Assistent. Antworte natürlich, kurz und auf Deutsch.";
     const contents = [];
     const hist = state.chatHistory.slice(-11, -1);
     hist.forEach(m => {
-      contents.push({
-        role: m.role === "user" ? "user" : "model",
-        parts: [{ text: m.text }]
-      });
+      contents.push({ role: m.role === "user" ? "user" : "model", parts: [{ text: m.text }] });
     });
     contents.push({ role: "user", parts: [{ text: userText }] });
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(state.apiKey)}`;
     const body = { contents, generationConfig: { temperature: 0.8, maxOutputTokens: 500 } };
     if (sys) body.systemInstruction = { parts: [{ text: sys }] };
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error("Gemini Fehler " + res.status + ": " + err.slice(0, 200));
-    }
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (!res.ok) { const err = await res.text(); throw new Error("Gemini " + res.status + ": " + err.slice(0, 180)); }
     const data = await res.json();
     const txt = data?.candidates?.[0]?.content?.parts?.map(p => p.text).filter(Boolean).join("\n");
     return (txt || "(keine Antwort)").trim();
   }
 
-  // Lokale Schnellantworten (ohne KI-Key)
   function localReply(text) {
     const lower = text.toLowerCase().trim();
     if (/^(hallo|hi|hey|servus|merhaba|silav|guten (morgen|tag|abend))/.test(lower)) {
@@ -1119,58 +1271,39 @@
       const greet = h < 6 ? "Gute Nacht" : h < 12 ? "Guten Morgen" : h < 18 ? "Guten Tag" : "Guten Abend";
       return greet + " Bruder! Wie kann ich dir helfen?";
     }
-    if (/uhrzeit|wie spät/.test(lower)) {
-      return "Es ist " + new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " Uhr.";
-    }
-    if (/datum|welcher tag/.test(lower)) {
-      return "Heute ist " + new Date().toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }) + ".";
-    }
+    if (/uhrzeit|wie spät/.test(lower)) return "Es ist " + new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " Uhr.";
+    if (/datum|welcher tag/.test(lower)) return "Heute ist " + new Date().toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }) + ".";
     if (/witz|lustig/.test(lower)) {
-      const witze = [
-        "Warum können Geister so schlecht lügen? Weil man durch sie hindurchsieht! 👻",
-        "Was macht ein Clown im Büro? Faxen! 🤡",
-        "Wie nennt man einen Bumerang, der nicht zurückkommt? Stock. 🪃"
-      ];
+      const witze = ["Warum können Geister so schlecht lügen? Weil man durch sie hindurchsieht! 👻", "Was macht ein Clown im Büro? Faxen! 🤡", "Wie nennt man einen Bumerang, der nicht zurückkommt? Stock. 🪃"];
       return witze[Math.floor(Math.random() * witze.length)];
     }
-    if (/was kannst du|fähigkeit|hilfe/.test(lower)) {
-      return "Ich kann: mit dir reden, Uhrzeit & Datum sagen, Witze erzählen. Mit API-Key: Fragen beantworten, Texte schreiben, Ideen geben, übersetzen — fast alles! 🦚";
-    }
+    if (/was kannst du|fähigkeit|hilfe/.test(lower)) return "Ich kann: chatten, Bilder erstellen, Uhrzeit, Witze. Frag mich was! 🦚";
     return null;
   }
 
-  // Emotion aus Antwort ableiten
   function detectEmotion(text) {
     const l = text.toLowerCase();
-    if (/\?|wirklich|unglaublich|echt|staun/.test(l)) return "surprised";
+    if (/\?|wirklich|unglaublich|staun/.test(l)) return "surprised";
     if (/haha|lach|witz|freu|toll|super|schön/.test(l)) return "happy";
-    if (/sorry|traurig|leider|schade/.test(l)) return "sad";
-    if (/wütend|ärger|sauer|nerv/.test(l)) return "angry";
-    if (/denk|überleg|vielleicht|hmm/.test(l)) return "thinking";
+    if (/sorry|traurig|leider/.test(l)) return "sad";
+    if (/wütend|ärger|sauer/.test(l)) return "angry";
+    if (/denk|überleg|vielleicht/.test(l)) return "thinking";
     return "neutral";
   }
 
   async function handleUserMessage(text) {
     addMessage("user", text);
-
     const local = localReply(text);
     if (!state.apiKey) {
       if (local) {
-        setTimeout(() => {
-          addMessage("bot", local);
-          if (state.autoSpeak) speak(local);
-          state.emotion = detectEmotion(local);
-        }, 400);
+        setTimeout(() => { addMessage("bot", local); if (state.autoSpeak) speak(local); state.emotion = detectEmotion(local); }, 400);
       } else {
-        setTimeout(() => {
-          addMessage("bot", "Ich habe noch keinen API-Key. Trag oben rechts deinen Gemini-Key ein (aistudio.google.com/apikey) — dann kann ich richtig antworten!");
-        }, 400);
+        setTimeout(() => addMessage("bot", "Ich habe noch keinen Gemini-Key. Trag ihn rechts oben ein."), 400);
       }
       return;
     }
-
     showTyping();
-    document.getElementById("status").textContent = "🤖 denke nach…";
+    document.getElementById("status").textContent = "🤖 denke…";
     try {
       const reply = await askGemini(text);
       hideTyping();
@@ -1182,33 +1315,21 @@
       hideTyping();
       addMessage("sys", "⚠️ " + e.message);
       document.getElementById("status").textContent = "⚠️ Fehler";
-      console.warn(e);
     }
   }
 
   chatInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      const v = chatInput.value.trim();
-      if (v) { chatInput.value = ""; handleUserMessage(v); }
-    }
+    if (e.key === "Enter") { const v = chatInput.value.trim(); if (v) { chatInput.value = ""; handleUserMessage(v); } }
   });
   sendBtn.addEventListener("click", () => {
     const v = chatInput.value.trim();
     if (v) { chatInput.value = ""; handleUserMessage(v); }
   });
 
-  document.querySelectorAll(".quick").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const q = btn.dataset.q;
-      handleUserMessage(q);
-    });
-  });
-
   // ==================== SPRACHEINGABE ====================
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   let rec = null;
   let isListening = false;
-
   if (SpeechRec) {
     rec = new SpeechRec();
     rec.lang = "de-DE";
@@ -1216,45 +1337,123 @@
     rec.continuous = false;
     rec.onresult = (e) => {
       const txt = e.results[0][0].transcript;
-      chatInput.value = txt;
       handleUserMessage(txt);
-      chatInput.value = "";
     };
-    rec.onend = () => {
-      isListening = false;
-      micBtn.classList.remove("listening");
-      document.getElementById("status").textContent = "🦚 Bereit";
-      document.getElementById("status").className = "";
-    };
-    rec.onerror = (e) => {
-      isListening = false;
-      micBtn.classList.remove("listening");
-      document.getElementById("status").textContent = "⚠️ " + e.error;
-    };
+    rec.onend = () => { isListening = false; micBtn.classList.remove("listening"); document.getElementById("status").textContent = "🦚 Bereit"; document.getElementById("status").className = ""; };
+    rec.onerror = () => { isListening = false; micBtn.classList.remove("listening"); };
   }
-
   micBtn.addEventListener("click", () => {
-    if (!rec) {
-      alert("Spracheingabe wird von deinem Browser nicht unterstützt. Nutze Chrome oder Edge.");
-      return;
-    }
-    if (isListening) {
-      rec.stop();
-      return;
-    }
+    if (!rec) { alert("Spracheingabe nur in Chrome/Edge."); return; }
+    if (isListening) { rec.stop(); return; }
     try {
-      rec.start();
-      isListening = true;
+      rec.start(); isListening = true;
       micBtn.classList.add("listening");
       document.getElementById("status").textContent = "🎙️ Ich höre zu…";
       document.getElementById("status").className = "listening";
-    } catch (e) {
-      console.warn(e);
-    }
+    } catch(e) {}
   });
 
-  console.log("🦚 HalDo Avatar v6 · Chat + KI bereit");
-  console.log("📌 Aktuelles Modell:", state.aiModel);
+  // ==================== BILD-ERSTELLUNG ====================
+  const imagePrompt = document.getElementById("imagePrompt");
+  const imageGoBtn = document.getElementById("imageGoBtn");
+  const imageResults = document.getElementById("imageResults");
+
+  async function generateImage() {
+    const prompt = imagePrompt.value.trim();
+    const key = state.pollKey;
+    const model = state.imageModel;
+
+    if (!prompt) { alert("Schreib erst, was ich zeichnen soll!"); return; }
+    if (!key) { alert("Trag erst deinen Pollinations-Key oben ein (sk_…)"); return; }
+
+    imageGoBtn.disabled = true;
+    imageGoBtn.textContent = "⏳ Wird erstellt…";
+    document.getElementById("status").textContent = "🎨 Bild wird erstellt…";
+    document.getElementById("status").className = "generating";
+
+    const loading = document.createElement("div");
+    loading.className = "image-loading";
+    loading.innerHTML = "<div class=\"spinner\"></div><br>Erstelle Bild: „" + prompt + "“";
+    imageResults.prepend(loading);
+
+    const encodedPrompt = encodeURIComponent(prompt);
+    const url = `https://gen.pollinations.ai/image/${encodedPrompt}?model=${encodeURIComponent(model)}&width=1024&height=1024&nologo=true&key=${encodeURIComponent(key)}`;
+
+    // Wir laden das Bild und zeigen es an
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+
+    const timeout = setTimeout(() => {
+      loading.remove();
+      imageGoBtn.disabled = false;
+      imageGoBtn.textContent = "🎨 Erstellen";
+      document.getElementById("status").textContent = "⚠️ Zeitüberschreitung";
+      document.getElementById("status").className = "";
+      const err = document.createElement("div");
+      err.className = "image-error";
+      err.textContent = "❌ Zu lange gedauert. Das Modell ist vielleicht überlastet. Versuch es nochmal oder wähle ein anderes Modell.";
+      imageResults.prepend(err);
+    }, 60000);
+
+    img.onload = () => {
+      clearTimeout(timeout);
+      loading.remove();
+      const card = document.createElement("div");
+      card.className = "image-card";
+      const imgClone = document.createElement("img");
+      imgClone.src = url;
+      card.appendChild(imgClone);
+      const info = document.createElement("div");
+      info.className = "info";
+      const pt = document.createElement("span");
+      pt.className = "prompt-text";
+      pt.textContent = prompt;
+      const dl = document.createElement("a");
+      dl.href = url; dl.download = "haldo-image-" + Date.now() + ".jpg"; dl.target = "_blank";
+      dl.textContent = "⬇️ Öffnen";
+      info.appendChild(pt); info.appendChild(dl);
+      card.appendChild(info);
+      imageResults.prepend(card);
+
+      imageGoBtn.disabled = false;
+      imageGoBtn.textContent = "🎨 Erstellen";
+      document.getElementById("status").textContent = "✅ Fertig!";
+      document.getElementById("status").className = "";
+      setTimeout(() => {
+        if (document.getElementById("status").textContent === "✅ Fertig!") {
+          document.getElementById("status").textContent = "🦚 Bereit";
+        }
+      }, 2000);
+    };
+
+    img.onerror = () => {
+      clearTimeout(timeout);
+      loading.remove();
+      imageGoBtn.disabled = false;
+      imageGoBtn.textContent = "🎨 Erstellen";
+      document.getElementById("status").textContent = "⚠️ Fehler";
+      document.getElementById("status").className = "";
+
+      const err = document.createElement("div");
+      err.className = "image-error";
+      err.innerHTML = "❌ Bild konnte nicht erstellt werden.<br><br>" +
+        "<b>Mögliche Gründe:</b><br>" +
+        "• Key ungültig oder abgelaufen → <a href=\"https://enter.pollinations.ai/keys\" target=\"_blank\" style=\"color:#00d4ff\">neuen Key holen</a><br>" +
+        "• Kein Pollen-Guthaben → auf enter.pollinations.ai prüfen<br>" +
+        "• Modell überlastet → anderes Modell probieren<br>" +
+        "• Zu viele Anfragen → 30 Sek. warten";
+      imageResults.prepend(err);
+    };
+
+    img.src = url;
+  }
+
+  imageGoBtn.addEventListener("click", generateImage);
+  imagePrompt.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) generateImage();
+  });
+
+  console.log("🦚 HalDo Avatar v7 · Mit Bild-Erstellung");
 })();
 </script>
 </body>
