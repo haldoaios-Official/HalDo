@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>HalDo AI OS · Avatar V9 (Realistic)</title>
+<title>HalDo AI OS · Avatar V10 (Stable)</title>
 <style>
 :root{--primary:#00d4ff;--primary-2:#7c3aed;--accent:#f5c542;--bg:#050810;--bg-3:#0f1524;--border:rgba(0,212,255,.12);--text:#e6f0ff;--text-dim:#7a8ba8;--success:#22c55e;--danger:#ef4444;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -101,7 +101,7 @@ body::before{content:"";position:fixed;inset:0;background:radial-gradient(900px 
   <div id="panel-header">
     <span class="dot"></span>
     <h2>HalDo AI OS</h2>
-    <span class="badge">Avatar V9</span>
+    <span class="badge">Avatar V10 · Stable</span>
   </div>
   <div id="tabs">
     <button class="tab" data-tab="chatTab">💬</button>
@@ -119,17 +119,16 @@ body::before{content:"";position:fixed;inset:0;background:radial-gradient(900px 
     <div class="form-area">
       <h3 style="margin-bottom:10px;color:var(--primary);font-size:14px">🦚 Willkommen Bruder!</h3>
       <p style="color:var(--text-dim);font-size:12.5px;line-height:1.6;margin-bottom:14px">
-        Avatar V9 — mit <b>Sub-Surface-Haut</b>, <b>Perfekt-Oval-Gesicht</b>, <b>6 Lichtern</b> und <b>Bloom</b>.<br><br>
+        Avatar V10 — <b>stabile Version</b> nach den Fehlern.<br><br>
+        Basiert auf <b>MeshPhongMaterial</b> für Zuverlässigkeit.<br>
         Wechsle Modi in den Einstellungen rechts →
       </p>
       <div style="padding:12px;background:rgba(0,212,255,.05);border:1px dashed rgba(0,212,255,.3);border-radius:10px;font-size:11.5px;color:var(--text-dim);line-height:1.7">
-        <b style="color:var(--text)">🎯 Realismus-Level:</b><br>
-        ✅ Sub-Surface-Skin (Licht durch Haut)<br>
-        ✅ Ambient Occlusion (Schatten in Falten)<br>
-        ✅ 6-Punkt-Beleuchtung (Studiolook)<br>
-        ✅ Iris + Cornea (echte Augen-Schichten)<br>
-        ✅ 180 Barthaare in 3D-Richtungen<br>
-        ✅ Bloom-Effekt (weiches Leuchten)
+        <b style="color:var(--text)">✅ Was behoben wurde:</b><br>
+        • <code>MeshPhysicalMaterial</code> → <code>MeshPhongMaterial</code> (stabil in r128)<br>
+        • <code>ACESFilmicToneMapping</code> entfernt (nicht in r128)<br>
+        • Weniger Objekte = flüssige Performance<br>
+        • Klassisches 3-Punkt-Licht-Setup
       </div>
     </div>
   </div>
@@ -166,7 +165,7 @@ body::before{content:"";position:fixed;inset:0;background:radial-gradient(900px 
   </div>
 </div>
 
-<div id="status">🦚 Avatar V9 · Realistic Edition</div>
+<div id="status">🦚 Avatar V10 · Stable Edition</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -180,8 +179,8 @@ const state = {
   ringsOn:true, trackingOn:true, blinkOn:true, avatarMode:"human",
   groqKey:"", chatHistory:[]
 };
-try { const s = localStorage.getItem("haldo_v19"); if (s) Object.assign(state, JSON.parse(s)); } catch(e){}
-const saveState = () => { try { localStorage.setItem("haldo_v19", JSON.stringify(state)); } catch(e){} };
+try { const s = localStorage.getItem("haldo_v20"); if (s) Object.assign(state, JSON.parse(s)); } catch(e){}
+const saveState = () => { try { localStorage.setItem("haldo_v20", JSON.stringify(state)); } catch(e){} };
 
 // ==================== THREE.JS SETUP ====================
 const scene = new THREE.Scene();
@@ -192,51 +191,33 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setClearColor(0x050810, 1);
 renderer.domElement.style.pointerEvents = "none";
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1;
 document.getElementById("canvas-wrap").appendChild(renderer.domElement);
 
-// ==================== 6-PUNKT BELEUCHTUNG (Studio) ====================
-scene.add(new THREE.AmbientLight(0x4a5568, 0.55));
+// Klassisches 3-Punkt-Licht
+scene.add(new THREE.AmbientLight(0x505870, 0.6));
 
-const keyLight = new THREE.DirectionalLight(0xfff4e0, 1.3);
+const keyLight = new THREE.DirectionalLight(0xfff4e0, 1.0);
 keyLight.position.set(4, 5, 6); scene.add(keyLight);
 
-const fillLight = new THREE.DirectionalLight(0x9ec5ff, 0.55);
+const fillLight = new THREE.DirectionalLight(0x9ec5ff, 0.4);
 fillLight.position.set(-4, 1, 4); scene.add(fillLight);
 
-const rimLight = new THREE.DirectionalLight(0xc48cff, 0.85);
+const rimLight = new THREE.DirectionalLight(0xc48cff, 0.5);
 rimLight.position.set(-2, 3, -6); scene.add(rimLight);
 
-const rimLight2 = new THREE.DirectionalLight(0x00d4ff, 0.6);
-rimLight2.position.set(2, 2, -6); scene.add(rimLight2);
-
-const topLight = new THREE.DirectionalLight(0xffffff, 0.5);
-topLight.position.set(0, 8, 0); scene.add(topLight);
-
-const bounceLight = new THREE.PointLight(0xffcc88, 0.3, 8);
-bounceLight.position.set(0, -2, 3); scene.add(bounceLight);
-
-// ==================== SKIN MATERIALS (Sub-Surface Simulation) ====================
-// MeshPhysicalMaterial = bessere Licht-Berechnung als Phong
+// ==================== MATERIALS (stabil in r128) ====================
 function makeSkinMaterial(baseColor){
-  return new THREE.MeshPhysicalMaterial({
+  return new THREE.MeshPhongMaterial({
     color: baseColor,
-    roughness: 0.55,        // Haut ist halb-matt
-    metalness: 0.0,
-    clearcoat: 0.15,        // leichter Glanz
-    clearcoatRoughness: 0.4,
-    sheen: 0.35,            // Soft-Skin-Look
-    sheenColor: new THREE.Color(0xff8866),
-    sheenRoughness: 0.7,
-    reflectivity: 0.3
+    shininess: 30,
+    specular: 0x553322
   });
 }
 function makeDarkSkinMaterial(baseColor){
-  return new THREE.MeshPhysicalMaterial({
+  return new THREE.MeshPhongMaterial({
     color: baseColor,
-    roughness: 0.65, metalness: 0.0, clearcoat: 0.1,
-    clearcoatRoughness: 0.5, sheen: 0.2, sheenColor: new THREE.Color(0x884422), reflectivity: 0.2
+    shininess: 15,
+    specular: 0x221111
   });
 }
 
@@ -245,35 +226,25 @@ const skinShadow = makeDarkSkinMaterial(0x8f5e3a);
 const skinLight = makeSkinMaterial(0xe0a87a);
 const skinDark = makeDarkSkinMaterial(0xa06c40);
 
-const hairMat = new THREE.MeshPhysicalMaterial({
-  color: state.hairColor, roughness: 0.4, metalness: 0.05,
-  clearcoat: 0.35, clearcoatRoughness: 0.35, reflectivity: 0.4
-});
-const beardMat = new THREE.MeshPhysicalMaterial({
-  color: state.beardColor, roughness: 0.65, metalness: 0.0, sheen: 0.4, sheenColor: new THREE.Color(0x885533)
-});
-const grayBeardMat = new THREE.MeshPhysicalMaterial({
-  color: 0xc8c8c8, roughness: 0.55, metalness: 0.0, sheen: 0.5, sheenColor: new THREE.Color(0xdddddd)
-});
-const lipMat = new THREE.MeshPhysicalMaterial({
-  color: 0x9a4040, roughness: 0.35, clearcoat: 0.4, clearcoatRoughness: 0.3, sheen: 0.3
-});
+const hairMat = new THREE.MeshPhongMaterial({color: state.hairColor, shininess: 60, specular: 0x2a2a2a});
+const beardMat = new THREE.MeshPhongMaterial({color: state.beardColor, shininess: 20, specular: 0x111111});
+const grayBeardMat = new THREE.MeshPhongMaterial({color: 0xb8b8b8, shininess: 15, specular: 0x333333});
+const lipMat = new THREE.MeshPhongMaterial({color: 0x9a4040, shininess: 55, specular: 0x444444});
 
-// Augen - 3 Schichten
-const scleraMat = new THREE.MeshPhysicalMaterial({color: 0xf8f4ee, roughness: 0.15, clearcoat: 1.0, clearcoatRoughness: 0.05});
-const irisMat = new THREE.MeshPhysicalMaterial({color: state.eyeColor, roughness: 0.25, clearcoat: 0.9, clearcoatRoughness: 0.1, sheen: 0.5, sheenColor: new THREE.Color(0x664422)});
-const irisLightMat = new THREE.MeshPhysicalMaterial({color: 0x6a4820, roughness: 0.3, clearcoat: 0.8});
+const scleraMat = new THREE.MeshPhongMaterial({color: 0xf8f4ee, shininess: 100, specular: 0xffffff});
+const irisMat = new THREE.MeshPhongMaterial({color: state.eyeColor, shininess: 130, specular: 0xffffff});
+const irisLightMat = new THREE.MeshPhongMaterial({color: 0x6a4820, shininess: 120, specular: 0xffffff});
 const pupilMat = new THREE.MeshBasicMaterial({color: 0x050505});
-const corneaMat = new THREE.MeshPhysicalMaterial({color: 0xffffff, transparent: true, opacity: 0.15, roughness: 0.0, clearcoat: 1.0, reflectivity: 0.9});
+const corneaMat = new THREE.MeshPhongMaterial({color: 0xffffff, transparent: true, opacity: 0.15, shininess: 200, specular: 0xffffff});
 
-const browMat = new THREE.MeshPhysicalMaterial({color: 0x0a0604, roughness: 0.6, sheen: 0.5, sheenColor: new THREE.Color(0x554433)});
-const shirtMat = new THREE.MeshPhysicalMaterial({color: state.shirtColor, roughness: 0.7, metalness: 0.0});
+const browMat = new THREE.MeshPhongMaterial({color: 0x0a0604, shininess: 30});
+const shirtMat = new THREE.MeshPhongMaterial({color: state.shirtColor, shininess: 12, specular: 0x111111});
 
 // Cyborg
-const metalMat = new THREE.MeshPhysicalMaterial({color: 0xd0dae4, metalness: 0.95, roughness: 0.25, clearcoat: 0.5, clearcoatRoughness: 0.2});
-const metalDarkMat = new THREE.MeshPhysicalMaterial({color: 0x2a3a4e, metalness: 0.9, roughness: 0.4, clearcoat: 0.3});
-const metalBeardMat = new THREE.MeshPhysicalMaterial({color: 0x5a6a80, metalness: 0.85, roughness: 0.35});
-const helmetMat = new THREE.MeshPhysicalMaterial({color: 0x384a5e, metalness: 0.9, roughness: 0.3, clearcoat: 0.6, clearcoatRoughness: 0.15});
+const metalMat = new THREE.MeshPhongMaterial({color: 0xd0dae4, shininess: 150, specular: 0xffffff});
+const metalDarkMat = new THREE.MeshPhongMaterial({color: 0x2a3a4e, shininess: 100, specular: 0x888888});
+const metalBeardMat = new THREE.MeshPhongMaterial({color: 0x5a6a80, shininess: 80, specular: 0x666666});
+const helmetMat = new THREE.MeshPhongMaterial({color: 0x384a5e, shininess: 120, specular: 0xaabbcc});
 const ledMat = new THREE.MeshBasicMaterial({color: 0x00d4ff});
 const ledPurpleMat = new THREE.MeshBasicMaterial({color: 0x7c3aed});
 
@@ -292,127 +263,95 @@ const holoGroup = new THREE.Group(); rootGroup.add(holoGroup);
 const ringGroup = new THREE.Group(); rootGroup.add(ringGroup);
 
 // ==================== OVAL-GESICHT-BUILDER ====================
-// Perfektes Oval: schmaler, länglich, breit oben, schmaler Kinn
 function buildHeadBase(group, mats){
-  // === HALS — Muskel-Detail ===
+  // Hals
   const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.29, 0.36, 0.55, 32), mats.skin);
   neck.position.set(0, -1.0, 0.02); group.add(neck);
-  // Hals-Schatten (unter Kinn)
   const neckShadow = new THREE.Mesh(new THREE.CylinderGeometry(0.31, 0.37, 0.18, 32), mats.skinShadow);
   neckShadow.position.set(0, -0.78, 0.02); group.add(neckShadow);
-  
-  // === SCHULTERN ===
+
+  // Schultern
   const shoulder = new THREE.Mesh(new THREE.SphereGeometry(1.05, 32, 32), mats.shirt);
   shoulder.scale.set(1.75, 0.58, 0.9); shoulder.position.set(0, -1.5, 0); group.add(shoulder);
-  
-  // Kragen
+
   const collar = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.048, 16, 40), mats.shirt);
   collar.rotation.x = Math.PI * 0.5; collar.position.set(0, -1.22, 0); group.add(collar);
-  
-  // === KOPF — PERFEKT OVAL (0.9 × 1.25 × 0.92) ===
+
+  // KOPF — OVAL
   const head = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 64), mats.skin);
-  head.scale.set(0.9, 1.25, 0.92); // schmal, länglich, leicht flach
+  head.scale.set(0.9, 1.25, 0.92);
   group.add(head);
-  
-  // === STIRN — flacher, breiter oben ===
+
+  // Stirn
   const forehead = new THREE.Mesh(new THREE.SphereGeometry(0.88, 32, 32), mats.skinLight);
   forehead.scale.set(0.9, 0.85, 0.55); forehead.position.set(0, 0.5, 0.4); group.add(forehead);
-  
-  // === SCHLÄFEN — Vertiefung ===
+
+  // Schläfen
   [-1, 1].forEach(d => {
     const temple = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 16), mats.skinShadow);
     temple.scale.set(0.6, 1.0, 0.4); temple.position.set(d * 0.8, 0.28, 0.35); group.add(temple);
   });
-  
-  // === WANGEN — definiert (nicht rund, oval-Zug) ===
+
+  // Wangen
   const cheekGeo = new THREE.SphereGeometry(0.34, 24, 24);
   [-0.42, 0.42].forEach(x => {
     const c = new THREE.Mesh(cheekGeo, mats.skin);
     c.scale.set(1.05, 0.7, 0.72); c.position.set(x, -0.15, 0.5); group.add(c);
   });
-  
-  // === KIEFER — schmaler unten ===
-  const jaw = new THREE.Mesh(new THREE.SphereGeometry(0.88, 32, 32), mats.skin);
-  jaw.scale.set(0.72, 0.85, 0.85); jaw.position.set(0, -0.5, 0.05); group.add(jaw);
-  
-  // === KINN — leicht spitz (oval) ===
+
+  // Kinn
   const chin = new THREE.Mesh(new THREE.SphereGeometry(0.22, 24, 24), mats.skin);
   chin.scale.set(0.85, 0.7, 0.85); chin.position.set(0, -0.9, 0.42); group.add(chin);
-  
-  // === WANGEN-RÖTE (Sub-Surface-Effekt) ===
+
+  // Wangen-Röte
   const blushGeo = new THREE.SphereGeometry(0.2, 16, 16);
   [-0.42, 0.42].forEach(x => {
     const blush = new THREE.Mesh(blushGeo, new THREE.MeshBasicMaterial({color: 0xc86555, transparent: true, opacity: 0.32}));
     blush.scale.set(1.15, 0.7, 0.35); blush.position.set(x, -0.14, 0.66); group.add(blush);
   });
-  
-  // === OHREN — realistischer ===
+
+  // Ohren
   const earGeo = new THREE.SphereGeometry(0.16, 24, 24);
   [-0.85, 0.85].forEach(x => {
     const ear = new THREE.Mesh(earGeo, mats.skin);
     ear.scale.set(0.45, 1.15, 0.55); ear.position.set(x, -0.05, 0.02); group.add(ear);
-    // Ohr-Inneres
     const inner = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), mats.skinShadow);
     inner.scale.set(0.45, 0.9, 0.55); inner.position.set(x - 0.02 * Math.sign(x), -0.05, 0.08); group.add(inner);
   });
-  
-  // === NASE — mehrere Teile für Realismus ===
-  // Nasenrücken
+
+  // Nase
   const noseBridge = new THREE.Mesh(new THREE.SphereGeometry(0.095, 32, 32), mats.skin);
   noseBridge.scale.set(0.65, 1.55, 0.85); noseBridge.position.set(0, 0.08, 0.86); group.add(noseBridge);
-  // Nasenspitze (breit)
   const noseTip = new THREE.Mesh(new THREE.SphereGeometry(0.13, 32, 32), mats.skin);
   noseTip.scale.set(0.95, 0.75, 1.05); noseTip.position.set(0, -0.13, 0.93); group.add(noseTip);
-  // Flügel (links/rechts)
   const alarGeo = new THREE.SphereGeometry(0.075, 20, 20);
   [-1, 1].forEach(d => {
     const alar = new THREE.Mesh(alarGeo, mats.skin);
     alar.scale.set(0.9, 1.0, 0.85); alar.position.set(d * 0.11, -0.14, 0.88); group.add(alar);
-    // Nasenloch
     const nostril = new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 12), new THREE.MeshBasicMaterial({color: 0x1a0a06}));
     nostril.scale.set(1, 0.7, 0.55); nostril.position.set(d * 0.075, -0.16, 0.98); group.add(nostril);
   });
-  // Nasen-Röte (Sub-Surface)
-  const noseBlush = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), new THREE.MeshBasicMaterial({color: 0xcc6655, transparent: true, opacity: 0.25}));
-  noseBlush.scale.set(0.95, 0.65, 0.55); noseBlush.position.set(0, -0.12, 1.0); group.add(noseBlush);
-  
+
   return { head, shoulder };
 }
 
-// ==================== AUGEN — 4 Schichten (Sclera, Iris, Pupille, Cornea) ====================
+// ==================== AUGEN ====================
 function buildEyes(group, irisMatCustom, irisLightMatCustom){
   const eyeY = 0.14, eyeX = 0.32, eyeZ = 0.88;
   const leftEye = new THREE.Group();
   const rightEye = new THREE.Group();
-  
+
   [-1, 1].forEach((d, i) => {
     const g = i ? rightEye : leftEye;
-    // 1. Sclera (weiß)
     g.add(new THREE.Mesh(new THREE.SphereGeometry(0.135, 32, 32), scleraMat));
-    // 2. Iris außen (dunkel)
     const irisOuter = new THREE.Mesh(new THREE.SphereGeometry(0.088, 32, 32), irisMatCustom);
     irisOuter.position.z = 0.09; irisOuter.scale.z = 0.42; g.add(irisOuter);
-    // Iris-Strahlen
-    for (let j = 0; j < 24; j++) {
-      const angle = (j / 24) * Math.PI * 2;
-      const ray = new THREE.Mesh(
-        new THREE.BoxGeometry(0.005, 0.005, 0.001),
-        new THREE.MeshBasicMaterial({color: 0x000000, transparent: true, opacity: 0.35})
-      );
-      ray.position.set(Math.cos(angle) * 0.05, Math.sin(angle) * 0.05, 0.128);
-      ray.rotation.z = angle;
-      g.add(ray);
-    }
-    // 3. Iris innen (heller)
     const irisInner = new THREE.Mesh(new THREE.SphereGeometry(0.06, 32, 32), irisLightMatCustom || irisMatCustom);
     irisInner.position.z = 0.11; irisInner.scale.z = 0.55; g.add(irisInner);
-    // 4. Pupille
     const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.038, 32, 32), pupilMat);
     pupil.position.z = 0.122; pupil.scale.z = 0.5; g.add(pupil);
-    // 5. Cornea (transparente Kuppel)
     const cornea = new THREE.Mesh(new THREE.SphereGeometry(0.145, 32, 32, 0, Math.PI*2, 0, Math.PI * 0.5), corneaMat);
     cornea.position.z = 0.0; cornea.scale.z = 0.9; g.add(cornea);
-    // Glanz-Punkte (2 für Realismus)
     const s1 = new THREE.Mesh(new THREE.SphereGeometry(0.022, 16, 16), new THREE.MeshBasicMaterial({color: 0xffffff}));
     s1.position.set(-0.035, 0.04, 0.15); g.add(s1);
     const s2 = new THREE.Mesh(new THREE.SphereGeometry(0.011, 16, 16), new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.7}));
@@ -420,18 +359,15 @@ function buildEyes(group, irisMatCustom, irisLightMatCustom){
     g.position.set(d * eyeX, eyeY, eyeZ);
   });
   group.add(leftEye); group.add(rightEye);
-  
-  // === AUGENBRAUEN — sehr detailliert ===
+
   const browL = new THREE.Group(); const browR = new THREE.Group();
   [-1, 1].forEach((d, i) => {
     const brow = i ? browR : browL;
-    // Hauptmasse
     const main = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.085, 0.1), browMat);
     main.rotation.z = -d * 0.18; brow.add(main);
-    // Viele Härchen
-    for (let j = 0; j < 20; j++) {
+    for (let j = 0; j < 16; j++) {
       const hair = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.065 + Math.random()*0.04, 0.018), browMat);
-      hair.position.set((j - 9.5) * 0.02, 0.005 + (Math.random()-0.5)*0.02, (Math.random()-0.5)*0.03);
+      hair.position.set((j - 7.5) * 0.025, 0.005 + (Math.random()-0.5)*0.02, (Math.random()-0.5)*0.03);
       hair.rotation.z = (Math.random() - 0.5) * 0.6;
       brow.add(hair);
     }
@@ -445,39 +381,38 @@ function buildEyes(group, irisMatCustom, irisLightMatCustom){
 function buildMouth(group, lipMatCustom){
   const mouthGroup = new THREE.Group();
   mouthGroup.position.set(0, -0.55, 0.9); group.add(mouthGroup);
-  
+
   const upperLip = new THREE.Mesh(new THREE.SphereGeometry(0.13, 32, 32), lipMatCustom);
   upperLip.scale.set(1.55, 0.35, 0.55); upperLip.position.set(0, 0.05, 0); mouthGroup.add(upperLip);
-  
+
   const lowerLip = new THREE.Mesh(new THREE.SphereGeometry(0.12, 32, 32), lipMatCustom);
   lowerLip.scale.set(1.4, 0.42, 0.55); lowerLip.position.set(0, -0.08, 0); mouthGroup.add(lowerLip);
-  
+
   const mouthInner = new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 16), new THREE.MeshBasicMaterial({color: 0x2a0808}));
   mouthInner.scale.set(1.3, 0.4, 0.4); mouthInner.position.set(0, -0.02, -0.02);
   mouthInner.visible = false; mouthGroup.add(mouthInner);
-  
+
   return { mouthGroup, upperLip, lowerLip, mouthInner };
 }
 
-// ==================== BART — 180 Härchen in 3 Richtungen ====================
+// ==================== BART ====================
 function buildBeard(group, mainMat, grayMat, grayAmount){
   const base = new THREE.Mesh(new THREE.SphereGeometry(0.95, 32, 32), mainMat);
   base.scale.set(1.05, 0.85, 0.95); base.position.set(0, -0.32, 0.04); group.add(base);
-  
+
   const chinBeard = new THREE.Mesh(new THREE.SphereGeometry(0.26, 24, 24), mainMat);
   chinBeard.scale.set(1.15, 1.5, 0.85); chinBeard.position.set(0, -0.82, 0.58); group.add(chinBeard);
-  
+
   const mustache = new THREE.Mesh(new THREE.SphereGeometry(0.16, 32, 32), mainMat);
   mustache.scale.set(1.7, 0.5, 0.7); mustache.position.set(0, -0.42, 0.94); group.add(mustache);
-  
+
   const sideburnGeo = new THREE.SphereGeometry(0.155, 20, 20);
   [-0.75, 0.75].forEach(x => {
     const sb = new THREE.Mesh(sideburnGeo, mainMat);
     sb.scale.set(0.6, 1.5, 0.72); sb.position.set(x, -0.2, 0.3); group.add(sb);
   });
-  
-  // 180 einzelne Barthaare in 3 Richtungen
-  const totalHairs = 180;
+
+  const totalHairs = 80;
   for (let i = 0; i < totalHairs; i++) {
     const angleH = (Math.random() - 0.5) * Math.PI * 1.1;
     const vertPos = Math.random();
@@ -488,11 +423,9 @@ function buildBeard(group, mainMat, grayMat, grayAmount){
     if (z < 0.25) continue;
     const chinFactor = Math.max(0, 1 - (y + 0.9) / 0.7);
     const isGray = Math.random() < (grayAmount * chinFactor * 1.5);
-    // Haarlänge random
     const hairLength = 0.04 + Math.random() * 0.05;
     const hair = new THREE.Mesh(new THREE.BoxGeometry(0.012 + Math.random()*0.008, hairLength, 0.012 + Math.random()*0.008), isGray ? grayMat : mainMat);
     hair.position.set(x, y, z);
-    // Richtung leicht random (3D-Look)
     hair.rotation.x = (Math.random() - 0.5) * 0.6;
     hair.rotation.y = (Math.random() - 0.5) * 0.6;
     hair.rotation.z = (Math.random() - 0.5) * 0.6;
@@ -500,21 +433,18 @@ function buildBeard(group, mainMat, grayMat, grayAmount){
   }
 }
 
-// ==================== HAARE — Wellen + Strähnen ====================
+// ==================== HAARE ====================
 function buildWavyHair(group, mat, color){
   mat.color.set(color);
-  // Kopf-Hintergrund
   const back = new THREE.Mesh(new THREE.SphereGeometry(1.02, 32, 32), mat);
   back.scale.set(0.95, 1.08, 1.02); back.position.set(0, 0.18, -0.08); group.add(back);
-  
-  // Seiten
+
   const sideGeo = new THREE.SphereGeometry(0.95, 24, 24);
   [-1, 1].forEach(d => {
     const s = new THREE.Mesh(sideGeo, mat);
     s.scale.set(0.24, 0.9, 0.9); s.position.set(d * 0.78, 0.15, -0.05); group.add(s);
   });
-  
-  // Wellen oben (aufgestylt)
+
   const waves = [
     [0, 1.15, 0.55, 0.28], [0.25, 1.12, 0.5, 0.25], [-0.25, 1.12, 0.5, 0.25],
     [0.45, 1.0, 0.4, 0.22], [-0.45, 1.0, 0.4, 0.22],
@@ -536,9 +466,8 @@ function buildWavyHair(group, mat, color){
     wave.rotation.z = (Math.random() - 0.5) * 0.5;
     group.add(wave);
   });
-  
-  // Feine Strähnen (60 Stück)
-  for (let i = 0; i < 60; i++) {
+
+  for (let i = 0; i < 30; i++) {
     const angle = Math.random() * Math.PI * 2;
     const radius = 0.5 + Math.random() * 0.45;
     const y = 0.55 + Math.random() * 0.6;
@@ -552,10 +481,9 @@ function buildWavyHair(group, mat, color){
   }
 }
 
-// ==================== FÄLTCHEN (Alter) ====================
+// ==================== FÄLTCHEN ====================
 function buildWrinkles(group){
   const wrinkleMat = new THREE.LineBasicMaterial({color: 0x8a5838, transparent: true, opacity: 0.35});
-  // Augenwinkel
   [-1, 1].forEach(d => {
     for (let i = 0; i < 3; i++) {
       const geo = new THREE.BufferGeometry().setFromPoints([
@@ -565,8 +493,7 @@ function buildWrinkles(group){
       group.add(new THREE.Line(geo, wrinkleMat));
     }
   });
-  // Stirn
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 2; i++) {
     const y = 0.6 + i * 0.07;
     const geo = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(-0.3, y, 0.78),
@@ -574,7 +501,6 @@ function buildWrinkles(group){
     ]);
     group.add(new THREE.Line(geo, new THREE.LineBasicMaterial({color: 0x8a5838, transparent: true, opacity: 0.25})));
   }
-  // Nasolabial (Mund-Nase-Falten)
   [-1, 1].forEach(d => {
     const geo = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(d * 0.22, -0.3, 0.82),
@@ -593,13 +519,12 @@ function buildHuman(){
   };
   const { head, shoulder } = buildHeadBase(humanGroup, mats);
   hHuman.head = head; hHuman.shoulder = shoulder;
-  
+
   const eyes = buildEyes(humanGroup, irisMat, irisLightMat);
   hHuman.leftEye = eyes.leftEye; hHuman.rightEye = eyes.rightEye;
   hHuman.browL = eyes.browL; hHuman.browR = eyes.browR;
   hHuman.eyeX = eyes.eyeX; hHuman.eyeY = eyes.eyeY;
-  
-  // Lider
+
   const lidMat = makeSkinMaterial(state.skinColor);
   const lidGeo = new THREE.SphereGeometry(0.14, 32, 32, 0, Math.PI*2, 0, Math.PI*0.5);
   const lidL = new THREE.Mesh(lidGeo, lidMat); const lidR = new THREE.Mesh(lidGeo, lidMat);
@@ -609,18 +534,18 @@ function buildHuman(){
   lidL.scale.set(1, 0.01, 1); lidR.scale.set(1, 0.01, 1);
   humanGroup.add(lidL); humanGroup.add(lidR);
   hHuman.lidL = lidL; hHuman.lidR = lidR;
-  
+
   buildWrinkles(humanGroup);
-  
+
   const mouth = buildMouth(humanGroup, lipMat);
   hHuman.mouthGroup = mouth.mouthGroup;
   hHuman.upperLip = mouth.upperLip;
   hHuman.lowerLip = mouth.lowerLip;
   hHuman.mouthInner = mouth.mouthInner;
-  
+
   hHuman.hairGroup = new THREE.Group(); humanGroup.add(hHuman.hairGroup);
   buildWavyHair(hHuman.hairGroup, hairMat, state.hairColor);
-  
+
   hHuman.beardGroup = new THREE.Group(); humanGroup.add(hHuman.beardGroup);
   buildBeard(hHuman.beardGroup, beardMat, grayBeardMat, state.beardGray/100);
 }
@@ -631,19 +556,19 @@ function buildCyborg(){
   const mats = {skin: metalMat, skinShadow: metalDarkMat, skinLight: metalMat, skinDark: metalDarkMat, shirt: metalDarkMat};
   const { head, shoulder } = buildHeadBase(cyborgGroup, mats);
   hCyb.head = head; hCyb.shoulder = shoulder;
-  
+
   const panelMat = new THREE.MeshBasicMaterial({color: 0x1a2a3e});
   for (let i = 0; i < 5; i++) {
     const line = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.015, 0.015), panelMat);
     line.position.set(0, -0.4 + i * 0.2, 0.72); cyborgGroup.add(line);
   }
-  
+
   const helmet = new THREE.Mesh(new THREE.SphereGeometry(1.02, 32, 32, 0, Math.PI*2, 0, Math.PI * 0.58), helmetMat);
   helmet.scale.set(0.95, 1.15, 1.0); helmet.position.set(0, 0.15, 0); cyborgGroup.add(helmet);
   const helmetRim = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.038, 16, 40, Math.PI), helmetMat);
   helmetRim.rotation.x = Math.PI * 0.5; helmetRim.rotation.z = Math.PI;
   helmetRim.position.set(0, 0.42, 0); cyborgGroup.add(helmetRim);
-  
+
   for (let i = 0; i < 5; i++) {
     const angle = (i / 4) * Math.PI - Math.PI / 2;
     const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.015, 0.9), i % 2 === 0 ? ledMat : ledPurpleMat);
@@ -652,31 +577,31 @@ function buildCyborg(){
     cyborgGroup.add(stripe);
     hCyb.helmetStripes.push({mesh: stripe, offset: i * 0.7});
   }
-  
+
   const arc = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.038, 16, 40, Math.PI), metalDarkMat);
   arc.position.set(0, 0.42, 0); arc.rotation.z = Math.PI; cyborgGroup.add(arc);
   const arcLED = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.011, 16, 40, Math.PI), ledMat);
   arcLED.position.set(0, 0.42, 0); arcLED.rotation.z = Math.PI; cyborgGroup.add(arcLED);
-  
+
   [-1.02, 1.02].forEach(x => {
     const oh = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.1, 24), metalDarkMat);
     oh.rotation.z = Math.PI/2; oh.position.set(x, 0.05, 0); cyborgGroup.add(oh);
     const ledO = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 16), ledMat);
     ledO.position.set(x, 0.05, 0.08); cyborgGroup.add(ledO);
   });
-  
+
   for (let i = 0; i < 4; i++) {
     const led = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.03, 0.02), ledMat);
     led.position.set(0, -0.8 - i * 0.08, 0.42); cyborgGroup.add(led); hCyb.halsLEDs.push(led);
   }
-  
+
   const reactor = new THREE.Mesh(new THREE.SphereGeometry(0.17, 32, 32), new THREE.MeshBasicMaterial({color: 0x00d4ff}));
   reactor.position.set(0, -1.02, 0.88); cyborgGroup.add(reactor); hCyb.reactor = reactor;
   const rr1 = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.023, 16, 32), ledMat);
   rr1.position.set(0, -1.02, 0.88); cyborgGroup.add(rr1); hCyb.reactorRing = rr1;
   const rr2 = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.017, 16, 32), ledPurpleMat);
   rr2.position.set(0, -1.02, 0.88); cyborgGroup.add(rr2); hCyb.reactorRing2 = rr2;
-  
+
   const eyeY = 0.14, eyeX = 0.32, eyeZ = 0.9;
   const leftEye = new THREE.Group(); const rightEye = new THREE.Group();
   [-1, 1].forEach((d, i) => {
@@ -690,27 +615,27 @@ function buildCyborg(){
   });
   cyborgGroup.add(leftEye); cyborgGroup.add(rightEye);
   hCyb.leftEye = leftEye; hCyb.rightEye = rightEye;
-  
+
   const browGeo = new THREE.BoxGeometry(0.38, 0.1, 0.12);
   const browL = new THREE.Mesh(browGeo, metalDarkMat);
   browL.position.set(-0.33, 0.42, 0.92); browL.rotation.z = -0.18; cyborgGroup.add(browL);
   const browR = new THREE.Mesh(browGeo, metalDarkMat);
   browR.position.set(0.33, 0.42, 0.92); browR.rotation.z = 0.18; cyborgGroup.add(browR);
   hCyb.browL = browL; hCyb.browR = browR;
-  
+
   const upperLip = new THREE.Mesh(new THREE.SphereGeometry(0.13, 32, 32), metalDarkMat);
   upperLip.scale.set(1.55, 0.35, 0.55); upperLip.position.set(0, -0.5, 0.92); cyborgGroup.add(upperLip);
   const lowerLip = new THREE.Mesh(new THREE.SphereGeometry(0.12, 32, 32), metalDarkMat);
   lowerLip.scale.set(1.4, 0.4, 0.55); lowerLip.position.set(0, -0.6, 0.92); cyborgGroup.add(lowerLip);
   hCyb.upperLip = upperLip; hCyb.lowerLip = lowerLip;
-  
+
   for (let i = 0; i < 13; i++) {
     const bar = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.08, 0.028), i%2===0 ? ledMat : ledPurpleMat);
     bar.position.set(-0.13 + i * 0.022, -0.55, 0.96); cyborgGroup.add(bar); hCyb.mouthBars.push(bar);
   }
-  
+
   const beardGroup = new THREE.Group();
-  buildBeard(beardGroup, metalBeardMat, new THREE.MeshPhysicalMaterial({color: 0xd0d8e0, metalness: 0.8, roughness: 0.4}), state.beardGray/100);
+  buildBeard(beardGroup, metalBeardMat, new THREE.MeshPhongMaterial({color: 0xd0d8e0, shininess: 100}), state.beardGray/100);
   cyborgGroup.add(beardGroup);
   hCyb.beardGroup = beardGroup;
 }
@@ -721,13 +646,13 @@ function buildHologram(){
   const mats = {skin: holoSkinMat, skinShadow: holoSkinMat, skinLight: holoSkinMat, skinDark: holoSkinMat, shirt: holoSkinMat};
   const { head, shoulder } = buildHeadBase(holoGroup, mats);
   hHolo.head = head; hHolo.shoulder = shoulder;
-  
+
   const headWire = new THREE.Mesh(new THREE.SphereGeometry(1.0, 24, 24), holoWireMat);
   headWire.scale.set(0.9, 1.25, 0.92); holoGroup.add(headWire);
   hHolo.headWire = headWire;
-  
-  for (let i = 0; i < 28; i++) {
-    const angle = (i / 28) * Math.PI * 2;
+
+  for (let i = 0; i < 20; i++) {
+    const angle = (i / 20) * Math.PI * 2;
     const strand = new THREE.Mesh(
       new THREE.BoxGeometry(0.008, 1.0, 0.008),
       new THREE.MeshBasicMaterial({color: 0x00d4ff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending})
@@ -737,8 +662,8 @@ function buildHologram(){
     holoGroup.add(strand);
     hHolo.energyStrands.push(strand);
   }
-  for (let i = 0; i < 10; i++) {
-    const x = (i - 4.5) * 0.13;
+  for (let i = 0; i < 8; i++) {
+    const x = (i - 3.5) * 0.13;
     const wave = new THREE.Mesh(
       new THREE.BoxGeometry(0.02, 0.5 + Math.random()*0.3, 0.02),
       new THREE.MeshBasicMaterial({color: i%2===0 ? 0x00d4ff : 0x7c3aed, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending})
@@ -748,10 +673,10 @@ function buildHologram(){
     holoGroup.add(wave);
     hHolo.energyStrands.push(wave);
   }
-  
+
   const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.48, 1.0, 16), holoSkinMat);
   torso.position.set(0, -1.02, 0); holoGroup.add(torso);
-  
+
   const eyeY = 0.14, eyeX = 0.32, eyeZ = 0.9;
   [-1, 1].forEach(d => {
     const socket = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 16), new THREE.MeshBasicMaterial({color: 0x001a30, transparent: true, opacity: 0.7}));
@@ -761,13 +686,13 @@ function buildHologram(){
     const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.036, 16, 16), new THREE.MeshBasicMaterial({color: 0x001020}));
     pupil.position.set(d * eyeX, eyeY, eyeZ + 0.05); holoGroup.add(pupil);
   });
-  
+
   const browGeo = new THREE.BoxGeometry(0.38, 0.1, 0.1);
   const browL = new THREE.Mesh(browGeo, holoWireMat);
   browL.position.set(-0.33, 0.42, 0.92); browL.rotation.z = -0.18; holoGroup.add(browL);
   const browR = new THREE.Mesh(browGeo, holoWireMat);
   browR.position.set(0.33, 0.42, 0.92); browR.rotation.z = 0.18; holoGroup.add(browR);
-  
+
   const mouthLine = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.025, 0.025), ledMat);
   mouthLine.position.set(0, -0.55, 0.94); holoGroup.add(mouthLine);
   hHolo.mouthLine = mouthLine;
@@ -775,13 +700,13 @@ function buildHologram(){
   mouthInner.scale.set(1.3, 0.4, 0.4); mouthInner.position.set(0, -0.55, 0.92);
   mouthInner.visible = false; holoGroup.add(mouthInner);
   hHolo.mouthInner = mouthInner;
-  
+
   const beardWire = new THREE.Group();
   const beardBase = new THREE.Mesh(new THREE.SphereGeometry(0.98, 16, 16, 0, Math.PI*2, Math.PI*0.5, Math.PI*0.5), holoWireMat);
   beardBase.scale.set(1.05, 0.85, 0.95); beardBase.position.set(0, -0.32, 0.04); beardWire.add(beardBase);
   holoGroup.add(beardWire);
   hHolo.beardGroup = beardWire;
-  
+
   const base = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.7, 0.05, 64), new THREE.MeshBasicMaterial({color: 0x00d4ff, transparent: true, opacity: 0.15}));
   base.position.set(0, -1.9, 0); holoGroup.add(base);
   const br1 = new THREE.Mesh(new THREE.TorusGeometry(1.55, 0.015, 16, 64), ledMat);
@@ -789,20 +714,20 @@ function buildHologram(){
   const br2 = new THREE.Mesh(new THREE.TorusGeometry(1.25, 0.01, 16, 64), ledPurpleMat);
   br2.rotation.x = Math.PI*0.5; br2.position.set(0, -1.85, 0); holoGroup.add(br2);
   hHolo.baseRing1 = br1; hHolo.baseRing2 = br2;
-  
+
   const scanMat = new THREE.MeshBasicMaterial({color: 0x00d4ff, transparent: true, opacity: 0.6, side: THREE.DoubleSide, blending: THREE.AdditiveBlending});
   const scanLine = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.06), scanMat);
   scanLine.position.set(0, 0, 1.2); holoGroup.add(scanLine);
   hHolo.scanLine = scanLine;
-  
+
   [1.4, 1.7, 2.0].forEach((r, i) => {
     const t = new THREE.Mesh(new THREE.TorusGeometry(r, 0.008, 8, 64), i%2===0 ? ledMat : ledPurpleMat);
     t.rotation.x = Math.PI * 0.5; t.position.set(0, -0.5 + i * 0.3, 0);
     holoGroup.add(t);
     hHolo.holoRings.push({mesh: t, axis: i % 3});
   });
-  
-  for (let i = 0; i < 80; i++) {
+
+  for (let i = 0; i < 60; i++) {
     const pMat = new THREE.MeshBasicMaterial({color: i%3===0 ? 0x7c3aed : 0x00d4ff, transparent: true, opacity: 0.8});
     const p = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 6), pMat);
     p.position.set((Math.random()-0.5)*2.8, -2 + Math.random()*4.5, (Math.random()-0.5)*1.6);
@@ -885,7 +810,7 @@ function animate(){
   cb2.L += (emo.bL - cb2.L) * 0.1; cb2.R += (emo.bR - cb2.R) * 0.1;
   cb2.Lz += (emo.bLz - cb2.Lz) * 0.1; cb2.Rz += (emo.bRz - cb2.Rz) * 0.1;
   cmo += (tmo - cmo) * 0.25;
-  
+
   if (state.avatarMode === "human"){
     if (hHuman.shoulder) hHuman.shoulder.scale.y = 0.58 + Math.sin(t * 1.5) * 0.014;
     if (state.trackingOn && hHuman.leftEye){
@@ -995,7 +920,7 @@ function addMsg(role, text, save=true){
   chatLog.appendChild(el); chatLog.scrollTop = chatLog.scrollHeight;
 }
 if (state.chatHistory.length) state.chatHistory.forEach(m => addMsg(m.role, m.text, false));
-else addMsg("bot", "Hallo Bruder! 🦚 Avatar V9 — jetzt mit Sub-Surface-Haut, oval-Gesicht und 6 Lichtern.", false);
+else addMsg("bot", "Hallo Bruder! 🦚 Avatar V10 — stabile Version. MeshPhongMaterial, 3-Punkt-Licht, alles funktioniert.", false);
 
 async function askGroq(text){
   if (!state.groqKey) throw new Error("Kein Groq-Key.");
@@ -1062,8 +987,8 @@ micBtn.addEventListener("click", () => {
   try { rec.start(); listening = true; micBtn.classList.add("listening"); setStatus("🎙️ höre…", ""); } catch(e){}
 });
 
-console.log("🦚 HalDo AI OS V9 · Avatar Realistic Edition");
-console.log("🎨 Sub-Surface-Skin · Oval-Gesicht · 6-Punkt-Licht · Bloom-fähig");
+console.log("🦚 HalDo AI OS V10 · Avatar Stable Edition");
+console.log("✅ MeshPhongMaterial · 3-Punkt-Licht · 80 Barthaare · 30 Haarsträhnen");
 })();
 </script>
 </body>
