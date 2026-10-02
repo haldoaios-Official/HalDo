@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="de"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>HalDo AI OS · Foto-Avatar V7.4</title>
+<title>HalDo AI OS · Foto-Avatar V7.5</title>
 <style>
 :root{--primary:#00d4ff;--primary-2:#7c3aed;--bg:#050810;--bg-3:#0f1524;--border:rgba(0,212,255,.12);--text:#e6f0ff;--text-dim:#7a8ba8;--success:#22c55e;--danger:#ef4444;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -86,7 +86,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
 .gallery-item{position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:rgba(0,0,0,.3);aspect-ratio:1}
 .gallery-item img{width:100%;height:100%;object-fit:cover;display:block}
 .gallery-item .del{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(239,68,68,.85);color:#fff;border:none;cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center}
-.gallery-item .edit{position:absolute;bottom:4px;left:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,212,255,.85);color:#fff;border:none;cursor:pointer;font-size:12px;line-height:1;display:flex;align um-items Pan:centerels einz;justify-content:center}
+.gallery-item .edit{position:absolute;bottom:4px;left:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,212,255,.85);color:#fff;border:none;cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center}
 .gallery-item .set-av{position:absolute;bottom:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(124,58,237,.85);color:#fff;border:none;cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center}
 .gallery-empty{text-align:center;color:var(--text-dim);font-size:12px;padding:30px 10px}
 .gallery-toolbar{display:flex;gap:6px;margin-bottom:8px}
@@ -114,7 +114,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
 <div id="stage"><canvas id="avatar-canvas"></canvas></div>
 
 <div id="topbar">
-  <div class="title">🦚 HalDo Foto V7.4</div>
+  <div class="title">🦚 HalDo Foto V7.5</div>
   <div class="spacer"></div>
   <div class="mode-row">
     <button class="mode-btn active" data-mode="human">🧑 Human</button>
@@ -136,7 +136,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     <button class="tab" data-tab="imageStudioTab">🎨 Bild</button>
   </div>
   <div id="chatTab" class="panel-content">
-    <div class="chat-log" id="chatLog"><div class="msg bot"><div class="who">HalDo</div>Hallo Bruder! 🦚 Foto V7.4 — jetzt mit eigenem Referenzbild für die KI!</div></div>
+    <div class="chat-log" id="chatLog"><div class="msg bot"><div class="who">HalDo</div>Hallo Bruder! 🦚 Foto V7.5 — jetzt mit echtem Bild-Upload für die KI!</div></div>
     <div class="input-row">
       <button id="micBtn">🎙️</button>
       <input id="chatInput" type="text" placeholder="Schreib mir…" autocomplete="off">
@@ -145,16 +145,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
   </div>
   <div id="homeTab" class="panel-content active">
     <div class="form-area">
-      <h3>🦚 Foto-Avatar V7.4</h3>
-      <p><b style="color:var(--text)">Neu in V7.4:</b><br>
-      🖼️ Eigenes Referenzbild für KI<br>
+      <h3>🦚 Foto-Avatar V7.5</h3>
+      <p><b style="color:var(--text)">Neu in V7.5:</b><br>
+      🖼️ Echtes Referenzbild für KI (via URL)<br>
       🧑‍🎨 Human/Cyborg/Holo aus deinem Foto<br>
       🧑 "Als Avatar" Button im Studio</p>
       <button class="upload-btn" id="uploadBtn">📸 Foto auswählen</button>
       <button class="upload-btn danger" id="clearBtn" style="display:none">🗑️ Foto löschen</button>
       <input type="file" id="fileInput" accept="image/*" style="display:none">
       <div class="info-box">
-        <b>💡</b> ☰ oben linksuklappen.
+        <b>💡</b> ☰ oben links um Panels einzuklappen.
       </div>
     </div>
   </div>
@@ -901,13 +901,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     }
   }
 
-  // --- Referenzbild (Bild-zu-Bild) ---
+  // --- Referenzbild (Bild-zu-Bild) mit Catbox-Upload ---
   var refUploadBtn = document.getElementById("refUploadBtn");
   var refFileInput = document.getElementById("refFileInput");
   var refPreviewContainer = document.getElementById("refPreviewContainer");
   var refPreviewImg = document.getElementById("refPreviewImg");
   var refRemoveBtn = document.getElementById("refRemoveBtn");
-  var refDataUrl = null;
+  var refPublicUrl = null;
 
   refUploadBtn.addEventListener("click", function() { refFileInput.click(); });
 
@@ -918,26 +918,42 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
       alert("Referenzbild zu groß! Bitte unter 2 MB.");
       return;
     }
-    var reader = new FileReader();
-    reader.onload = function(ev) {
-      refDataUrl = ev.target.result;
-      refPreviewImg.src = refDataUrl;
-      refPreviewContainer.style.display = "block";
-      refUploadBtn.textContent = "🔄 Referenzbild wechseln";
-      setStatus("🖼️ Referenzbild geladen");
-    };
-    reader.readAsDataURL(file);
+    setStatus("⏳ Lade Vorlage hoch…");
+    refUploadBtn.disabled = true;
+    refUploadBtn.textContent = "⏳ Lade hoch…";
+
+    var fd = new FormData();
+    fd.append("reqtype", "fileupload");
+    fd.append("fileToUpload", file);
+
+    fetch("https://catbox.moe/user/api.php", { method: "POST", body: fd })
+      .then(function(r) { return r.text(); })
+      .then(function(url) {
+        if (!url || url.indexOf("http") !== 0) throw new Error("Upload fehlgeschlagen");
+        refPublicUrl = url.trim();
+        refPreviewImg.src = refPublicUrl;
+        refPreviewContainer.style.display = "block";
+        refUploadBtn.textContent = "🔄 Referenzbild wechseln";
+        refUploadBtn.disabled = false;
+        setStatus("🖼️ Vorlage hochgeladen!");
+      })
+      .catch(function(err) {
+        alert("Fehler beim Hochladen der Vorlage: " + err.message);
+        refUploadBtn.textContent = "🖼️ Eigenes Bild als Vorlage";
+        refUploadBtn.disabled = false;
+        setStatus("❌ Upload fehlgeschlagen");
+      });
   });
 
   refRemoveBtn.addEventListener("click", function() {
-    refDataUrl = null;
+    refPublicUrl = null;
     refPreviewImg.src = "";
     refPreviewContainer.style.display = "none";
     refUploadBtn.textContent = "🖼️ Eigenes Bild als Vorlage";
     setStatus("🖼️ Referenzbild entfernt");
   });
 
-  // --- Generieren (mit Bild-zu-Bild) ---
+  // --- Generieren (mit Bild-zu-Bild über öffentliche URL) ---
   var genBtn = document.getElementById("genBtn");
   var genPrompt = document.getElementById("genPrompt");
   var genSize = document.getElementById("genSize");
@@ -963,8 +979,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
               "&seed=" + seed +
               "&nologo=true";
 
-    if (refDataUrl) {
-      url += "&image=" + encodeURIComponent(refDataUrl);
+    if (refPublicUrl) {
+      url += "&image=" + encodeURIComponent(refPublicUrl);
     }
 
     genBtn.disabled = true;
@@ -1248,6 +1264,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     setAsAvatar(editCanvas.toDataURL("image/png"));
   });
 
+  // DB init & initial gallery render
   initDB().then(function() { renderGallery(); }).catch(function(e) {
     console.warn("IndexedDB Fehler:", e);
   });
@@ -1282,7 +1299,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
       addMsg(hm.role, hm.text, false);
     }
   } else {
-    addMsg("bot", "Hallo Bruder! 🦚 Foto V7.4 — jetzt mit eigenem Referenzbild für die KI!", false);
+    addMsg("bot", "Hallo Bruder! 🦚 Foto V7.5 — jetzt mit echtem Bild-Upload für die KI!", false);
   }
 
   async function askGroq(text) {
@@ -1383,7 +1400,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     try { rec.start(); listening = true; micBtn.classList.add("listening"); setStatus("🎙️ höre…"); } catch (e) {}
   });
 
-  console.log("🦚 HalDo Foto-Avatar V7.4 · Eigenes Referenzbild für Human/Cyborg/Holo");
+  console.log("🦚 HalDo Foto-Avatar V7.5 · Eigenes Referenzbild via URL für Human/Cyborg/Holo");
 })();
 </script>
 
