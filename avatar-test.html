@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="de"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>HalDo AI OS · Foto-Avatar V7.3</title>
+<title>HalDo AI OS · Foto-Avatar V7.4</title>
 <style>
 :root{--primary:#00d4ff;--primary-2:#7c3aed;--bg:#050810;--bg-3:#0f1524;--border:rgba(0,212,255,.12);--text:#e6f0ff;--text-dim:#7a8ba8;--success:#22c55e;--danger:#ef4444;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -101,6 +101,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
 .slider-group{margin-top:8px}
 .slider-group label{display:block;font-size:10.5px;color:var(--text-dim);margin-bottom:3px}
 .slider-group input[type="range"]{width:100%;accent-color:var(--primary)}
+/* Referenzbild im Generieren-Tab */
+.ref-preview{display:flex;align-items:center;gap:8px;padding:8px;background:rgba(0,212,255,.05);border:1px dashed rgba(0,212,255,.3);border-radius:8px;margin-top:4px}
+.ref-preview img{width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--border)}
+.ref-preview .ref-info{flex:1;font-size:10.5px;color:var(--text-dim);line-height:1.3}
+.ref-preview .ref-info b{color:var(--text)}
+.ref-preview .ref-remove{width:24px;height:24px;border-radius:50%;background:rgba(239,68,68,.85);color:#fff;border:none;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
 </style>
 </head>
 <body>
@@ -108,7 +114,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
 <div id="stage"><canvas id="avatar-canvas"></canvas></div>
 
 <div id="topbar">
-  <div class="title">🦚 HalDo Foto V7.3</div>
+  <div class="title">🦚 HalDo Foto V7.4</div>
   <div class="spacer"></div>
   <div class="mode-row">
     <button class="mode-btn active" data-mode="human">🧑 Human</button>
@@ -130,7 +136,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     <button class="tab" data-tab="imageStudioTab">🎨 Bild</button>
   </div>
   <div id="chatTab" class="panel-content">
-    <div class="chat-log" id="chatLog"><div class="msg bot"><div class="who">HalDo</div>Hallo Bruder! 🦚 Foto V7.3 — lebendiger und perfekt für dein neues Bild!</div></div>
+    <div class="chat-log" id="chatLog"><div class="msg bot"><div class="who">HalDo</div>Hallo Bruder! 🦚 Foto V7.4 — jetzt mit eigenem Referenzbild für die KI!</div></div>
     <div class="input-row">
       <button id="micBtn">🎙️</button>
       <input id="chatInput" type="text" placeholder="Schreib mir…" autocomplete="off">
@@ -139,10 +145,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
   </div>
   <div id="homeTab" class="panel-content active">
     <div class="form-area">
-      <h3>🦚 Foto-Avatar V7.3</h3>
-      <p><b style="color:var(--text)">Neu in V7.3:</b><br>
-      ✨ Lebendigere Animationen<br>
-      🤖 Perfekte Overlays für dein Foto<br>
+      <h3>🦚 Foto-Avatar V7.4</h3>
+      <p><b style="color:var(--text)">Neu in V7.4:</b><br>
+      🖼️ Eigenes Referenzbild für KI<br>
+      🧑‍🎨 Human/Cyborg/Holo aus deinem Foto<br>
       🧑 "Als Avatar" Button im Studio</p>
       <button class="upload-btn" id="uploadBtn">📸 Foto auswählen</button>
       <button class="upload-btn danger" id="clearBtn" style="display:none">🗑️ Foto löschen</button>
@@ -162,7 +168,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     <!-- GENERIEREN -->
     <div id="genPane" class="studio-pane active">
       <div class="gen-form">
-        <textarea id="genPrompt" placeholder="Beschreibe dein Bild… (z.B. 'Ein cyberpunk Roboter in Neonlicht')"></textarea>
+        <textarea id="genPrompt" placeholder="Beschreibe dein Bild… (z.B. 'Mach mich zum Cyborg')"></textarea>
         <div class="row2">
           <select id="genSize">
             <option value="512x512">512×512</option>
@@ -171,8 +177,21 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
           </select>
           <select id="genModel">
             <option value="flux">Flux</option>
-            <option value="turbo">Turbo</option>
+            <option value="nanobanana" selected>Nano Banana</option>
           </select>
+        </div>
+        <!-- Referenzbild-Upload -->
+        <button class="upload-btn" id="refUploadBtn" style="background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.4);color:#a78bfa;box-shadow:none;">🖼️ Eigenes Bild als Vorlage</button>
+        <input type="file" id="refFileInput" accept="image/*" style="display:none">
+        <div id="refPreviewContainer" style="display:none;">
+          <div class="ref-preview">
+            <img id="refPreviewImg" src="" alt="Vorlage">
+            <div class="ref-info">
+              <b>Vorlage aktiv</b><br>
+              Wird als Grundlage für die Generierung verwendet.
+            </div>
+            <button class="ref-remove" id="refRemoveBtn">✕</button>
+          </div>
         </div>
         <button class="gen-btn" id="genBtn">🎨 Bild generieren</button>
       </div>
@@ -347,10 +366,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     var W = canvas.width, H = canvas.height;
     ctx.clearRect(0, 0, W, H);
 
-    // Lebendiger: Atmung + Idle-Sway (sanftes Schweben)
     var breath = state.breathOn ? Math.sin(t * 1.1) * 0.010 : 0;
-    var idleSwayX = Math.sin(t * 0.5) * 0.018; // Etwas stärkeres seitliches Schweben
-    var idleSwayY = Math.cos(t * 0.7) * 0.012; // Etwas stärkeres vertikales Schweben
+    var idleSwayX = Math.sin(t * 0.5) * 0.018;
+    var idleSwayY = Math.cos(t * 0.7) * 0.012;
     
     var tiltX = state.trackingOn ? mouseX * 0.025 : 0;
     speakGlow += (targetGlow - speakGlow) * 0.12;
@@ -368,7 +386,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     ctx.fillRect(0, 0, W, H);
 
     ctx.save();
-    // Neue Position durch Idle-Sway
     ctx.translate(cx + (idleSwayX * W), cy + (idleSwayY * H));
     ctx.rotate(tiltX);
     ctx.scale(scale, scale);
@@ -376,14 +393,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     var filterStr = "";
     var globalAlpha = 1;
     if (state.avatarMode === "human") {
-      // Human: Weicher, natürlicher Look
       filterStr = "contrast(1.08) saturate(1.05) brightness(1.02)";
     } else if (state.avatarMode === "cyborg") {
-      // Cyborg: Metallisch, kühl, kontrastreich
       filterStr = "grayscale(0.85) saturate(1.5) contrast(1.4) brightness(0.9) hue-rotate(190deg)";
       globalAlpha = 0.98;
     } else if (state.avatarMode === "hologram") {
-      // Holo: Cyan-stichig, sehr hell, transparent
       filterStr = "hue-rotate(175deg) saturate(3) brightness(1.4) contrast(1.1)";
       globalAlpha = 0.75;
     }
@@ -414,7 +428,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     } else if (state.avatarMode === "hologram" && faceLoaded) {
       drawHoloOverlay(W, H);
     } else if (state.avatarMode === "human" && faceLoaded) {
-      // Human: Vignette etwas weicher
       var vg = ctx.createRadialGradient(cx, cy, W * 0.4, cx, cy, W * 0.7);
       vg.addColorStop(0, "rgba(0,0,0,0)");
       vg.addColorStop(1, "rgba(0,0,0,0.3)");
@@ -444,10 +457,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
   // ==================== CYBORG ====================
   function drawCyborgOverlay(W, H) {
     var cx = W / 2;
-    var headTopY = H * 0.15; // Leicht nach oben korrigiert
-    var headWidth = W * 0.32; // Breiter für das nähere Gesicht
+    var headTopY = H * 0.15;
+    var headWidth = W * 0.32;
 
-    // Headset-Bogen
     ctx.save();
     ctx.strokeStyle = "rgba(0,212,255,0.95)";
     ctx.lineWidth = W * 0.014;
@@ -467,10 +479,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     ctx.restore();
 
     var dirs = [-1, 1];
-    var earY = H * 0.34; // Leicht nach unten
-    var earX = W * 0.30; // Leicht nach innen
+    var earY = H * 0.34;
+    var earX = W * 0.30;
 
-    // Ohren-Sensoren
     for (var i = 0; i < dirs.length; i++) {
       var ex = cx + dirs[i] * earX;
       var ey = earY;
@@ -494,10 +505,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
       ctx.restore();
     }
 
-    var eyeY = H * 0.34; // An die Augen angepasst
-    var eyeDX = W * 0.12; // Abstand der Augen
+    var eyeY = H * 0.34;
+    var eyeDX = W * 0.12;
 
-    // LED-Augen
     for (var j = 0; j < dirs.length; j++) {
       var ex2 = cx + dirs[j] * eyeDX;
       var pulse2 = 0.8 + Math.sin(t * 4.5 + (dirs[j] + 1)) * 0.2;
@@ -526,7 +536,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
       ctx.restore();
     }
 
-    // Scan-Strahl über die Augen
     ctx.save();
     ctx.strokeStyle = "rgba(0,212,255,0.6)";
     ctx.lineWidth = W * 0.002;
@@ -539,7 +548,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     ctx.stroke();
     ctx.restore();
 
-    // Stirn-Linien
     ctx.save();
     ctx.strokeStyle = "rgba(0,212,255,0.30)";
     ctx.lineWidth = W * 0.0015;
@@ -554,8 +562,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     }
     ctx.restore();
 
-    // Brust-Reaktor
-    var reactorY = H * 0.78; // Etwas tiefer, da das Gesicht näher ist
+    var reactorY = H * 0.78;
     var pulse3 = 1 + Math.sin(t * 3) * 0.15;
     var rR = W * 0.045 * pulse3;
 
@@ -594,13 +601,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
   // ==================== HOLO ====================
   function drawHoloOverlay(W, H) {
     var cx = W / 2, cy = H / 2;
-    var flicker = 0.9 + Math.random() * 0.1; // Leichtes Flimmern
+    var flicker = 0.9 + Math.random() * 0.1;
 
-    // Cyan-Schleier
     ctx.fillStyle = "rgba(0,212,255," + (0.12 * flicker) + ")";
     ctx.fillRect(0, 0, W, H);
 
-    // Scan-Linien
     if (state.scanlinesOn) {
       ctx.save();
       ctx.fillStyle = "rgba(0,212,255," + (0.22 * flicker) + ")";
@@ -618,7 +623,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
       ctx.restore();
     }
 
-    // Vertikaler Scan-Balken (Haupt)
     var scanY = (Math.sin(t * 0.7) * 0.5 + 0.5) * H;
     var grad = ctx.createLinearGradient(0, scanY - H * 0.08, 0, scanY + H * 0.08);
     grad.addColorStop(0, "rgba(0,212,255,0)");
@@ -627,7 +631,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     ctx.fillStyle = grad;
     ctx.fillRect(0, scanY - H * 0.08, W, H * 0.16);
 
-    // Sekundärer Scan-Balken (Lila)
     var scanY2 = (Math.sin(-t * 1.1) * 0.5 + 0.5) * H;
     var grad2 = ctx.createLinearGradient(0, scanY2 - H * 0.04, 0, scanY2 + H * 0.04);
     grad2.addColorStop(0, "rgba(124,58,237,0)");
@@ -636,7 +639,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     ctx.fillStyle = grad2;
     ctx.fillRect(0, scanY2 - H * 0.04, W, H * 0.08);
 
-    // Boden-Ringe
     var baseY = H * 0.92;
     for (var i = 0; i < 4; i++) {
       var rx = W * (0.45 - i * 0.08);
@@ -653,7 +655,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
       ctx.restore();
     }
 
-    // HUD-Ecken
     var pulse4 = 0.7 + Math.sin(t * 1.5) * 0.3;
     ctx.save();
     ctx.strokeStyle = "rgba(0,212,255," + (pulse4 * flicker) + ")";
@@ -677,7 +678,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     }
     ctx.restore();
 
-    // HUD-Rahmen
     ctx.save();
     ctx.strokeStyle = "rgba(0,212,255," + (0.35 * pulse4 * flicker) + ")";
     ctx.lineWidth = W * 0.002;
@@ -689,7 +689,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
 
   draw();
 
-  // ==================== FOTO UPLOAD ====================
+  // ==================== FOTO UPLOAD (Avatar) ====================
   var uploadBtn = document.getElementById("uploadBtn");
   var clearBtn = document.getElementById("clearBtn");
   var fileInput = document.getElementById("fileInput");
@@ -786,7 +786,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
         var panes = document.querySelectorAll(".panel-content");
         for (var k2 = 0; k2 < panes.length; k2++) { panes[k2].classList.remove("active"); }
         document.getElementById(tab.dataset.tab).classList.add("active");
-        // Foto ausblenden wenn Studio
         if (tab.dataset.tab === "imageStudioTab") {
           document.getElementById("stage").style.opacity = "0";
           document.getElementById("stage").style.pointerEvents = "none";
@@ -886,7 +885,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
           resizeCanvas();
           updateButtons();
           setStatus("🦚 Als Avatar gesetzt!");
-          // Wechsle zur Home-Ansicht, um den Avatar zu sehen
           document.querySelectorAll("#tabs .tab").forEach(function(t){t.classList.remove("active")});
           document.querySelectorAll(".panel-content").forEach(function(p){p.classList.remove("active")});
           document.getElementById("homeTab").classList.add("active");
@@ -903,7 +901,43 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     }
   }
 
-  // --- Generieren ---
+  // --- Referenzbild (Bild-zu-Bild) ---
+  var refUploadBtn = document.getElementById("refUploadBtn");
+  var refFileInput = document.getElementById("refFileInput");
+  var refPreviewContainer = document.getElementById("refPreviewContainer");
+  var refPreviewImg = document.getElementById("refPreviewImg");
+  var refRemoveBtn = document.getElementById("refRemoveBtn");
+  var refDataUrl = null;
+
+  refUploadBtn.addEventListener("click", function() { refFileInput.click(); });
+
+  refFileInput.addEventListener("change", function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Referenzbild zu groß! Bitte unter 2 MB.");
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      refDataUrl = ev.target.result;
+      refPreviewImg.src = refDataUrl;
+      refPreviewContainer.style.display = "block";
+      refUploadBtn.textContent = "🔄 Referenzbild wechseln";
+      setStatus("🖼️ Referenzbild geladen");
+    };
+    reader.readAsDataURL(file);
+  });
+
+  refRemoveBtn.addEventListener("click", function() {
+    refDataUrl = null;
+    refPreviewImg.src = "";
+    refPreviewContainer.style.display = "none";
+    refUploadBtn.textContent = "🖼️ Eigenes Bild als Vorlage";
+    setStatus("🖼️ Referenzbild entfernt");
+  });
+
+  // --- Generieren (mit Bild-zu-Bild) ---
   var genBtn = document.getElementById("genBtn");
   var genPrompt = document.getElementById("genPrompt");
   var genSize = document.getElementById("genSize");
@@ -921,12 +955,20 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     var size = genSize.value;
     var model = genModel.value;
     var seed = Math.floor(Math.random() * 999999);
+
+    // Basis-URL
     var url = "https://image.pollinations.ai/prompt/" + encodeURIComponent(prompt) +
               "?width=" + size.split("x")[0] +
               "&height=" + size.split("x")[1] +
               "&model=" + model +
               "&seed=" + seed +
               "&nologo=true";
+
+    // Bild-zu-Bild: Referenzbild als Data-URL anhängen
+    if (refDataUrl) {
+      url += "&image=" + encodeURIComponent(refDataUrl);
+    }
+
     genBtn.disabled = true;
     genBtn.textContent = "⏳ Generiere…";
     genPreview.innerHTML = "⏳ Bild wird generiert… (kann ein paar Sekunden dauern)";
@@ -1244,7 +1286,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
       addMsg(hm.role, hm.text, false);
     }
   } else {
-    addMsg("bot", "Hallo Bruder! 🦚 Foto V7.3 — lebendiger und perfekt für dein neues Bild!", false);
+    addMsg("bot", "Hallo Bruder! 🦚 Foto V7.4 — jetzt mit eigenem Referenzbild für die KI!", false);
   }
 
   async function askGroq(text) {
@@ -1345,7 +1387,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     try { rec.start(); listening = true; micBtn.classList.add("listening"); setStatus("🎙️ höre…"); } catch (e) {}
   });
 
-  console.log("🦚 HalDo Foto-Avatar V7.3 · Lebendiger + Bild Studio mit 'Als Avatar'");
+  console.log("🦚 HalDo Foto-Avatar V7.4 · Eigenes Referenzbild für Human/Cyborg/Holo");
 })();
 </script>
 
