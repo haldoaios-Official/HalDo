@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="de"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>HalDo AI OS · Foto-Avatar V8.2 Cloud</title>
+<title>HalDo AI OS · Foto-Avatar V8.3 Cloud</title>
 <style>
 :root{--primary:#00d4ff;--primary-2:#7c3aed;--bg:#050810;--bg-3:#0f1524;--border:rgba(0,212,255,.12);--text:#e6f0ff;--text-dim:#7a8ba8;--success:#22c55e;--danger:#ef4444;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -115,7 +115,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
 <div id="stage"><canvas id="avatar-canvas"></canvas></div>
 
 <div id="topbar">
-  <div class="title">🦚 HalDo V8.2 Cloud</div>
+  <div class="title">🦚 HalDo V8.3 Cloud</div>
   <div class="spacer"></div>
   <div class="mode-row">
     <button class="mode-btn active" data-mode="human">🧑 Human</button>
@@ -148,12 +148,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
   </div>
   <div id="homeTab" class="panel-content active">
     <div class="form-area">
-      <h3>☁️ HalDo Cloud V8.2</h3>
-      <p><b style="color:var(--text)">Neu in V8.2:</b><br>
-      🔧 Groq-400 Fehler behoben<br>
-      👄 Realistischere Mundbewegung (dunkler Mund)<br>
-      👁️ Augen-Saccades (Bewegung)<br>
-      🧍‍♂️ Körper-Atmung & Nicken</p>
+      <h3>☁️ HalDo Cloud V8.3</h3>
+      <p><b style="color:var(--text)">Neu in V8.3:</b><br>
+      ✅ Groq-Fix (aktuelle Modelle)<br>
+      ✅ JSONBin-Fix (stabile Cloud)<br>
+      👄 Realistische Mundbewegung<br>
+      👁️ Augen-Saccades & Körper-Atmung</p>
       <button class="upload-btn" id="uploadBtn">📸 Foto auswählen</button>
       <button class="upload-btn danger" id="clearBtn" style="display:none">🗑️ Foto löschen</button>
       <button class="upload-btn cloud" id="cloudSyncBtn">☁️ Jetzt mit Cloud synchronisieren</button>
@@ -267,10 +267,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
 
   // ==================== HALDO CLOUD (JSONBin) ====================
   var CLOUD_KEY = "$2a$10$M700HtNnimFFAF9jELImwOevAXcu2Jc.RkAAlA32blj/jkE3B1VDO";
-  var CLOUD_BIN_NAME = "haldo-cloud-v82";
-  var cloudBinId = null;
+  var CLOUD_BIN_ID = null;
+  var CLOUD_BIN_NAME = "haldo-cloud-v83";
   var cloudSyncTimer = null;
   var cloudReady = false;
+
+  // Lade gespeicherte Bin-ID aus localStorage
+  try {
+    CLOUD_BIN_ID = localStorage.getItem("haldo_bin_id") || null;
+  } catch(e) {}
 
   function setCloudStatus(text, cls) {
     var el = document.getElementById("cloudStatus");
@@ -281,36 +286,37 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
   }
 
   function cloudHeaders() {
-    return { "Content-Type": "application/json", "X-Master-Key": CLOUD_KEY, "X-Bin-Name": CLOUD_BIN_NAME };
+    var h = { "Content-Type": "application/json", "X-Master-Key": CLOUD_KEY };
+    if (CLOUD_BIN_NAME) h["X-Bin-Name"] = CLOUD_BIN_NAME;
+    return h;
   }
 
   async function cloudInit() {
     setCloudStatus("verbinde…", "syncing");
     try {
-      var listResp = await fetch("https://api.jsonbin.io/v3/b?name=" + CLOUD_BIN_NAME, { headers: { "X-Master-Key": CLOUD_KEY } });
-      var listData = await listResp.json();
-      if (listData && listData.length > 0) {
-        cloudBinId = listData[0].record ? listData[0].record.id : listData[0].id;
-        if (!cloudBinId && listData[0].id) cloudBinId = listData[0].id;
+      // Wenn wir eine Bin-ID haben, direkt laden
+      if (CLOUD_BIN_ID) {
+        cloudReady = true;
+        setCloudStatus("verbunden ✓");
+        await cloudPull();
+        return;
       }
-      if (!cloudBinId) {
-        var empty = { chatHistory: [], settings: {}, ts: Date.now() };
-        var createResp = await fetch("https://api.jsonbin.io/v3/b", {
-          method: "POST",
-          headers: cloudHeaders(),
-          body: JSON.stringify(empty)
-        });
-        var createData = await createResp.json();
-        if (createData && createData.metadata && createData.metadata.id) {
-          cloudBinId = createData.metadata.id;
-        }
-      }
-      if (cloudBinId) {
+      // Sonst: neue Bin erstellen
+      var empty = { chatHistory: [], settings: {}, ts: Date.now() };
+      var createResp = await fetch("https://api.jsonbin.io/v3/b", {
+        method: "POST",
+        headers: cloudHeaders(),
+        body: JSON.stringify(empty)
+      });
+      var createData = await createResp.json();
+      if (createData && createData.metadata && createData.metadata.id) {
+        CLOUD_BIN_ID = createData.metadata.id;
+        try { localStorage.setItem("haldo_bin_id", CLOUD_BIN_ID); } catch(e) {}
         cloudReady = true;
         setCloudStatus("verbunden ✓");
         await cloudPull();
       } else {
-        setCloudStatus("Fehler: keine Bin-ID", "error");
+        setCloudStatus("Fehler: keine Bin-ID erhalten", "error");
       }
     } catch (e) {
       setCloudStatus("Fehler: " + e.message, "error");
@@ -319,10 +325,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
   }
 
   async function cloudPull() {
-    if (!cloudBinId) return;
+    if (!CLOUD_BIN_ID) return;
     setCloudStatus("lade…", "syncing");
     try {
-      var resp = await fetch("https://api.jsonbin.io/v3/b/" + cloudBinId + "/latest", { headers: { "X-Master-Key": CLOUD_KEY } });
+      var resp = await fetch("https://api.jsonbin.io/v3/b/" + CLOUD_BIN_ID + "/latest", {
+        headers: { "X-Master-Key": CLOUD_KEY }
+      });
       var data = await resp.json();
       var rec = data.record || {};
       if (rec.chatHistory && Array.isArray(rec.chatHistory)) {
@@ -344,7 +352,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
   }
 
   async function cloudPush() {
-    if (!cloudBinId || !cloudReady) return;
+    if (!CLOUD_BIN_ID || !cloudReady) return;
     setCloudStatus("speichere…", "syncing");
     try {
       var payload = {
@@ -361,7 +369,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
         },
         ts: Date.now()
       };
-      await fetch("https://api.jsonbin.io/v3/b/" + cloudBinId, {
+      await fetch("https://api.jsonbin.io/v3/b/" + CLOUD_BIN_ID, {
         method: "PUT",
         headers: cloudHeaders(),
         body: JSON.stringify(payload)
@@ -412,7 +420,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
         addMsg(hm.role, hm.text, false);
       }
     } else {
-      addMsg("bot", "Hallo Bruder! 🦚 V8.2 Cloud — bereit für lebendige Unterhaltungen!", false);
+      addMsg("bot", "Hallo Bruder! 🦚 V8.3 Cloud — bereit für lebendige Unterhaltungen!", false);
     }
     ["breathOn","trackingOn","particlesOn","scanlinesOn","talkingOn","blinkingOn","saccadesOn"].forEach(function(id){
       var el = document.getElementById(id);
@@ -496,7 +504,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
       if (blinkAmount > 0) { blinkAmount -= 0.2; if (blinkAmount < 0) blinkAmount = 0; }
     } else blinkAmount = 0;
 
-    // Saccades (Augenbewegung)
+    // Saccades
     if (state.saccadesOn) {
       if (Math.random() < 0.02) eyeShiftTarget = (Math.random() - 0.5) * 0.015;
       eyeShift += (eyeShiftTarget - eyeShift) * 0.1;
@@ -532,7 +540,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     ctx.globalAlpha = globalAlpha;
 
     if (faceLoaded) {
-      // Kiefer & Mund
       if (state.talkingOn && speakLevel > 0.02 && faceImg.width > 0) {
         var mouthPixelY = faceImg.height * MOUTH_LINE;
         var jawOffsetPx = (speakLevel * 0.03) * H;
@@ -557,14 +564,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
         ctx.drawImage(faceImg, -W/2, -H/2, W, H);
       }
 
-      // Blinzeln + Saccades
       if ((state.blinkingOn && blinkAmount > 0) || (state.saccadesOn && eyeShift !== 0)) {
         ctx.save();
         ctx.filter = "none";
         var eyeY = -H/2 + H * EYE_LINE;
         var eyeXOffset = eyeShift * W;
         
-        // Blinzeln Schatten
         if (state.blinkingOn && blinkAmount > 0) {
           var grad = ctx.createLinearGradient(0, eyeY - H * 0.03, 0, eyeY + H * 0.03);
           grad.addColorStop(0, "rgba(0,0,0,0)");
@@ -574,7 +579,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
           ctx.fillRect(-W/2 + W * 0.05 + eyeXOffset, eyeY - H * 0.03, W * 0.9, H * 0.06);
         }
         
-        // Saccades (leichte Verschiebung der Augen)
         if (state.saccadesOn && Math.abs(eyeShift) > 0.001) {
           var saccGrad = ctx.createLinearGradient(0, eyeY - H * 0.02, 0, eyeY + H * 0.02);
           saccGrad.addColorStop(0, "rgba(0,0,0,0)");
@@ -1293,8 +1297,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     }
     contents.push({ role: "user", content: text });
     
-    // Modell-Fallback für mehr Stabilität
-    var models = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "mixtral-8x7b-32768"];
+    // Modell-Fallback: Nur aktuelle Modelle (Stand 2026)
+    var models = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"];
     var lastError = null;
     
     for (var mi = 0; mi < models.length; mi++) {
@@ -1397,12 +1401,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
       addMsg(state.chatHistory[hi2].role, state.chatHistory[hi2].text, false);
     }
   } else {
-    addMsg("bot", "Hallo Bruder! 🦚 V8.2 Cloud — bereit für lebendige Unterhaltungen!", false);
+    addMsg("bot", "Hallo Bruder! 🦚 V8.3 Cloud — bereit für lebendige Unterhaltungen!", false);
   }
 
   cloudInit();
 
-  console.log("🦚 HalDo Foto-Avatar V8.2 Cloud · Lebendig mit Sprechen, Blinzeln & Saccades");
+  console.log("🦚 HalDo Foto-Avatar V8.3 Cloud · Lebendig mit Sprechen, Blinzeln & Saccades");
 })();
 </script>
 
