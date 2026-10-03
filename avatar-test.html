@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="de"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>HalDo AI OS · Foto-Avatar V8.1 Cloud</title>
+<title>HalDo AI OS · Foto-Avatar V8.2 Cloud</title>
 <style>
 :root{--primary:#00d4ff;--primary-2:#7c3aed;--bg:#050810;--bg-3:#0f1524;--border:rgba(0,212,255,.12);--text:#e6f0ff;--text-dim:#7a8ba8;--success:#22c55e;--danger:#ef4444;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -115,7 +115,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
 <div id="stage"><canvas id="avatar-canvas"></canvas></div>
 
 <div id="topbar">
-  <div class="title">🦚 HalDo V8.1 Cloud</div>
+  <div class="title">🦚 HalDo V8.2 Cloud</div>
   <div class="spacer"></div>
   <div class="mode-row">
     <button class="mode-btn active" data-mode="human">🧑 Human</button>
@@ -148,12 +148,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
   </div>
   <div id="homeTab" class="panel-content active">
     <div class="form-area">
-      <h3>☁️ HalDo Cloud V8.1</h3>
-      <p><b style="color:var(--text)">Neu in V8.1:</b><br>
-      🔧 Groq-Key wird jetzt gespeichert<br>
-      👄 Realistischere Mundbewegung<br>
-      👁️ Schnelleres, natürlicheres Blinzeln<br>
-      ☁️ Chats & Einstellungen in der Cloud</p>
+      <h3>☁️ HalDo Cloud V8.2</h3>
+      <p><b style="color:var(--text)">Neu in V8.2:</b><br>
+      🔧 Groq-400 Fehler behoben<br>
+      👄 Realistischere Mundbewegung (dunkler Mund)<br>
+      👁️ Augen-Saccades (Bewegung)<br>
+      🧍‍♂️ Körper-Atmung & Nicken</p>
       <button class="upload-btn" id="uploadBtn">📸 Foto auswählen</button>
       <button class="upload-btn danger" id="clearBtn" style="display:none">🗑️ Foto löschen</button>
       <button class="upload-btn cloud" id="cloudSyncBtn">☁️ Jetzt mit Cloud synchronisieren</button>
@@ -251,6 +251,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     <div class="group-title">🗣️ Lebendigkeit</div>
     <div class="row"><label>Sprechen</label><input type="checkbox" id="talkingOn" checked></div>
     <div class="row"><label>Blinzeln</label><input type="checkbox" id="blinkingOn" checked></div>
+    <div class="row"><label>Saccades (Augen)</label><input type="checkbox" id="saccadesOn" checked></div>
   </div>
   <div class="group">
     <div class="group-title">🔑 API Key</div>
@@ -266,7 +267,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
 
   // ==================== HALDO CLOUD (JSONBin) ====================
   var CLOUD_KEY = "$2a$10$M700HtNnimFFAF9jELImwOevAXcu2Jc.RkAAlA32blj/jkE3B1VDO";
-  var CLOUD_BIN_NAME = "haldo-cloud-v81";
+  var CLOUD_BIN_NAME = "haldo-cloud-v82";
   var cloudBinId = null;
   var cloudSyncTimer = null;
   var cloudReady = false;
@@ -355,7 +356,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
           particlesOn: state.particlesOn,
           scanlinesOn: state.scanlinesOn,
           talkingOn: state.talkingOn,
-          blinkingOn: state.blinkingOn
+          blinkingOn: state.blinkingOn,
+          saccadesOn: state.saccadesOn
         },
         ts: Date.now()
       };
@@ -384,6 +386,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     scanlinesOn: true,
     talkingOn: true,
     blinkingOn: true,
+    saccadesOn: true,
     groqKey: "",
     chatHistory: [],
     photoData: null
@@ -409,9 +412,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
         addMsg(hm.role, hm.text, false);
       }
     } else {
-      addMsg("bot", "Hallo Bruder! 🦚 V8.1 Cloud — verbunden mit der HalDo Cloud!", false);
+      addMsg("bot", "Hallo Bruder! 🦚 V8.2 Cloud — bereit für lebendige Unterhaltungen!", false);
     }
-    ["breathOn","trackingOn","particlesOn","scanlinesOn","talkingOn","blinkingOn"].forEach(function(id){
+    ["breathOn","trackingOn","particlesOn","scanlinesOn","talkingOn","blinkingOn","saccadesOn"].forEach(function(id){
       var el = document.getElementById(id);
       if (el) el.checked = state[id];
     });
@@ -443,6 +446,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
   var t = 0, speakGlow = 0, targetGlow = 0;
   var isSpeaking = false, speakLevel = 0, speakTarget = 0;
   var blinkAmount = 0, blinkTimer = 90, headBob = 0;
+  var eyeShift = 0, eyeShiftTarget = 0;
   var MOUTH_LINE = 0.62, EYE_LINE = 0.38;
 
   var particles = [];
@@ -476,7 +480,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     var W = canvas.width, H = canvas.height;
     ctx.clearRect(0, 0, W, H);
 
-    // Sprech-Animation: Mund öffnet sich
+    // Sprechen
     if (isSpeaking && state.talkingOn) speakTarget = 0.15 + Math.random() * 0.85;
     else speakTarget = 0;
     speakLevel += (speakTarget - speakLevel) * 0.3;
@@ -485,12 +489,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     var headBobTarget = (isSpeaking && state.talkingOn) ? Math.sin(t * 8) * 0.005 : 0;
     headBob += (headBobTarget - headBob) * 0.15;
 
-    // Blinzeln: Natürlicheres Timing
+    // Blinzeln
     if (state.blinkingOn) {
       blinkTimer -= 1;
       if (blinkTimer <= 0) { blinkAmount = 1; blinkTimer = 100 + Math.random() * 150; }
       if (blinkAmount > 0) { blinkAmount -= 0.2; if (blinkAmount < 0) blinkAmount = 0; }
     } else blinkAmount = 0;
+
+    // Saccades (Augenbewegung)
+    if (state.saccadesOn) {
+      if (Math.random() < 0.02) eyeShiftTarget = (Math.random() - 0.5) * 0.015;
+      eyeShift += (eyeShiftTarget - eyeShift) * 0.1;
+    } else eyeShift = 0;
 
     var breath = state.breathOn ? Math.sin(t * 1.1) * 0.010 : 0;
     var idleSwayX = Math.sin(t * 0.5) * 0.018;
@@ -522,45 +532,57 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     ctx.globalAlpha = globalAlpha;
 
     if (faceLoaded) {
-      // Sprech-Animation: Kiefer verschieben + dunkler Mund
+      // Kiefer & Mund
       if (state.talkingOn && speakLevel > 0.02 && faceImg.width > 0) {
         var mouthPixelY = faceImg.height * MOUTH_LINE;
         var jawOffsetPx = (speakLevel * 0.03) * H;
         
-        // Oberer Teil
         ctx.drawImage(faceImg, 0, 0, faceImg.width, mouthPixelY, -W/2, -H/2, W, H * MOUTH_LINE);
         
-        // Dunkler Mund (simuliert Mundhöhle)
         var mouthCenterX = cx;
-        var mouthCenterY = -H/2 + H * MOUTH_LINE + (H * 0.02);
-        var mouthWidth = W * 0.06 * (0.8 + speakLevel * 0.4);
-        var mouthHeight = H * 0.04 * (0.5 + speakLevel * 0.5);
+        var mouthCenterY = -H/2 + H * MOUTH_LINE + (H * 0.015);
+        var mouthWidth = W * 0.05 * (0.7 + speakLevel * 0.6);
+        var mouthHeight = H * 0.04 * (0.3 + speakLevel * 0.7);
         ctx.save();
         ctx.filter = "none";
-        ctx.fillStyle = "rgba(0,0,0," + (0.6 * speakLevel) + ")";
+        ctx.fillStyle = "rgba(0,0,0," + (0.7 * speakLevel) + ")";
         ctx.beginPath();
         ctx.ellipse(mouthCenterX, mouthCenterY, mouthWidth, mouthHeight, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
 
-        // Unterer Teil (Kiefer)
         ctx.drawImage(faceImg, 0, mouthPixelY, faceImg.width, faceImg.height - mouthPixelY,
           -W/2, -H/2 + H * MOUTH_LINE + jawOffsetPx, W, H * (1 - MOUTH_LINE) + jawOffsetPx);
       } else {
         ctx.drawImage(faceImg, -W/2, -H/2, W, H);
       }
 
-      // Blinzeln: Weicher, natürlicher Schatten
-      if (state.blinkingOn && blinkAmount > 0) {
+      // Blinzeln + Saccades
+      if ((state.blinkingOn && blinkAmount > 0) || (state.saccadesOn && eyeShift !== 0)) {
         ctx.save();
         ctx.filter = "none";
         var eyeY = -H/2 + H * EYE_LINE;
-        var grad = ctx.createLinearGradient(0, eyeY - H * 0.03, 0, eyeY + H * 0.03);
-        grad.addColorStop(0, "rgba(0,0,0,0)");
-        grad.addColorStop(0.5, "rgba(0,0,0," + (blinkAmount * 0.8) + ")");
-        grad.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.fillStyle = grad;
-        ctx.fillRect(-W/2 + W * 0.05, eyeY - H * 0.03, W * 0.9, H * 0.06);
+        var eyeXOffset = eyeShift * W;
+        
+        // Blinzeln Schatten
+        if (state.blinkingOn && blinkAmount > 0) {
+          var grad = ctx.createLinearGradient(0, eyeY - H * 0.03, 0, eyeY + H * 0.03);
+          grad.addColorStop(0, "rgba(0,0,0,0)");
+          grad.addColorStop(0.5, "rgba(0,0,0," + (blinkAmount * 0.85) + ")");
+          grad.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = grad;
+          ctx.fillRect(-W/2 + W * 0.05 + eyeXOffset, eyeY - H * 0.03, W * 0.9, H * 0.06);
+        }
+        
+        // Saccades (leichte Verschiebung der Augen)
+        if (state.saccadesOn && Math.abs(eyeShift) > 0.001) {
+          var saccGrad = ctx.createLinearGradient(0, eyeY - H * 0.02, 0, eyeY + H * 0.02);
+          saccGrad.addColorStop(0, "rgba(0,0,0,0)");
+          saccGrad.addColorStop(0.5, "rgba(0,0,0,0.15)");
+          saccGrad.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = saccGrad;
+          ctx.fillRect(-W/2 + W * 0.05 + eyeXOffset, eyeY - H * 0.02, W * 0.9, H * 0.04);
+        }
         ctx.restore();
       }
     } else {
@@ -826,8 +848,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
   bindCheck("scanlinesOn", "scanlinesOn");
   bindCheck("talkingOn", "talkingOn");
   bindCheck("blinkingOn", "blinkingOn");
+  bindCheck("saccadesOn", "saccadesOn");
 
-  // GROQ KEY SAVING (FIX)
   var groqKeyInput = document.getElementById("groqKey");
   groqKeyInput.value = state.groqKey || "";
   groqKeyInput.addEventListener("input", function(e) {
@@ -1264,17 +1286,36 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     var contents = [];
     var slice = state.chatHistory.slice(-11, -1);
     for (var i = 0; i < slice.length; i++) {
-      contents.push({ role: slice[i].role === "user" ? "user" : "model", content: slice[i].text });
+      // WICHTIG: Nur user und bot (assistant) senden, keine sys Nachrichten!
+      if (slice[i].role === 'user' || slice[i].role === 'bot') {
+        contents.push({ role: slice[i].role === "user" ? "user" : "assistant", content: slice[i].text });
+      }
     }
     contents.push({ role: "user", content: text });
-    var r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + state.groqKey.trim() },
-      body: JSON.stringify({ model: "llama-3.3-70b-versatile", messages: contents, temperature: 0.8, max_tokens: 500 })
-    });
-    if (!r.ok) throw new Error("Groq " + r.status);
-    var d = await r.json();
-    return ((d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || "").trim();
+    
+    // Modell-Fallback für mehr Stabilität
+    var models = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "mixtral-8x7b-32768"];
+    var lastError = null;
+    
+    for (var mi = 0; mi < models.length; mi++) {
+      try {
+        var r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + state.groqKey.trim() },
+          body: JSON.stringify({ model: models[mi], messages: contents, temperature: 0.8, max_tokens: 500 })
+        });
+        if (r.ok) {
+          var d = await r.json();
+          return ((d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || "").trim();
+        } else {
+          var errData = await r.text();
+          lastError = "Groq " + r.status + ": " + errData.substring(0, 80);
+        }
+      } catch (e) {
+        lastError = e.message;
+      }
+    }
+    throw new Error(lastError || "Alle Modelle fehlgeschlagen");
   }
 
   function localReply(text) {
@@ -1356,12 +1397,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
       addMsg(state.chatHistory[hi2].role, state.chatHistory[hi2].text, false);
     }
   } else {
-    addMsg("bot", "Hallo Bruder! 🦚 V8.1 Cloud — verbunden mit der HalDo Cloud!", false);
+    addMsg("bot", "Hallo Bruder! 🦚 V8.2 Cloud — bereit für lebendige Unterhaltungen!", false);
   }
 
   cloudInit();
 
-  console.log("🦚 HalDo Foto-Avatar V8.1 Cloud · Lebendig mit Sprechen & Blinzeln");
+  console.log("🦚 HalDo Foto-Avatar V8.2 Cloud · Lebendig mit Sprechen, Blinzeln & Saccades");
 })();
 </script>
 
