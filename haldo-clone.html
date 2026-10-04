@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>HalDo Clone · Dein digitaler Zwilling</title>
+<title>HalDo Clone V3</title>
 <style>
 :root{--primary:#00d4ff;--primary-2:#7c3aed;--bg:#050810;--bg-3:#0f1524;--border:rgba(0,212,255,.12);--text:#e6f0ff;--text-dim:#7a8ba8;--success:#22c55e;--danger:#ef4444;--warn:#f59e0b;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -11,80 +11,102 @@ html,body{height:100%}
 body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hidden}
 #stage{position:fixed;inset:0;z-index:1;display:flex;align-items:center;justify-content:center}
 #avatar-canvas{display:block;max-width:100vw;max-height:100vh}
-#topbar{position:fixed;top:0;left:0;right:0;height:48px;z-index:50;display:flex;align-items:center;gap:10px;padding:0 12px;background:linear-gradient(180deg,rgba(5,8,16,.95),rgba(5,8,16,0));pointer-events:none}
-#topbar .home-btn{pointer-events:auto;width:38px;height:38px;border-radius:10px;background:rgba(10,15,28,.85);border:1px solid rgba(0,212,255,.3);color:var(--primary);cursor:pointer;font-size:16px;backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;text-decoration:none}
-#topbar .title{font-size:13px;font-weight:700;color:var(--primary);letter-spacing:1px;pointer-events:auto}
+#camPreview{position:fixed;bottom:80px;right:10px;width:100px;height:75px;border-radius:10px;border:2px solid var(--primary);object-fit:cover;z-index:150;display:none;box-shadow:0 4px 20px rgba(0,212,255,.4)}
+#topbar{position:fixed;top:0;left:0;right:0;height:48px;z-index:50;display:flex;align-items:center;gap:8px;padding:0 10px;background:linear-gradient(180deg,rgba(5,8,16,.95),rgba(5,8,16,0));pointer-events:none}
+#topbar .home-btn{pointer-events:auto;width:36px;height:36px;border-radius:10px;background:rgba(10,15,28,.85);border:1px solid rgba(0,212,255,.3);color:var(--primary);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;text-decoration:none}
+#topbar .title{font-size:12px;font-weight:700;color:var(--primary);letter-spacing:1px;pointer-events:auto}
 #topbar .spacer{flex:1}
-#topbar .status-chip{pointer-events:auto;display:flex;align-items:center;gap:6px;padding:5px 10px;background:rgba(10,15,28,.85);border:1px solid var(--border);border-radius:8px;font-size:10px;color:var(--text-dim)}
+#topbar .status-chip{pointer-events:auto;display:flex;align-items:center;gap:5px;padding:4px 8px;background:rgba(10,15,28,.85);border:1px solid var(--border);border-radius:8px;font-size:9.5px;color:var(--text-dim)}
 #topbar .status-chip .dot{width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 6px var(--success)}
 #topbar .status-chip.syncing .dot{background:var(--warn);box-shadow:0 0 6px var(--warn)}
 #topbar .status-chip.error .dot{background:var(--danger);box-shadow:0 0 6px var(--danger)}
-#toggleUI{position:fixed;top:10px;right:10px;z-index:200;width:38px;height:38px;border-radius:10px;background:rgba(10,15,28,.85);border:1px solid rgba(0,212,255,.3);color:var(--primary);cursor:pointer;font-size:16px;backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center}
-#panel{position:fixed;top:60px;left:10px;width:320px;max-height:calc(100vh - 80px);background:rgba(10,15,28,.9);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;backdrop-filter:blur(20px);box-shadow:0 20px 60px rgba(0,0,0,.6);z-index:100;overflow:hidden;transition:transform .25s,opacity .25s}
+#toggleUI{position:fixed;top:10px;right:10px;z-index:200;width:36px;height:36px;border-radius:10px;background:rgba(10,15,28,.85);border:1px solid rgba(0,212,255,.3);color:var(--primary);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center}
+#panel{position:fixed;top:56px;left:8px;width:320px;max-height:calc(100vh - 76px);background:rgba(10,15,28,.92);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;backdrop-filter:blur(20px);box-shadow:0 20px 60px rgba(0,0,0,.6);z-index:100;overflow:hidden;transition:transform .25s,opacity .25s}
 #panel.hidden{transform:translateX(-340px);opacity:0;pointer-events:none}
-#panel-header{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,rgba(0,212,255,.08),rgba(124,58,237,.08))}
-#panel-header .dot{width:7px;height:7px;border-radius:50%;background:var(--success);box-shadow:0 0 8px var(--success);animation:pulse 2s infinite}
+#panel-header{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,rgba(0,212,255,.08),rgba(124,58,237,.08))}
+#panel-header .dot{width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 8px var(--success);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-#panel-header h2{margin:0;font-size:11.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--primary);flex:1}
-#tabs{display:flex;gap:2px;padding:6px 8px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.2)}
-.tab{flex:1;padding:7px 4px;background:transparent;border:1px solid transparent;border-radius:7px;color:var(--text-dim);font-family:inherit;font-size:10.5px;font-weight:600;cursor:pointer}
+#panel-header h2{margin:0;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--primary);flex:1}
+#tabs{display:flex;gap:2px;padding:6px 6px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.2);flex-wrap:wrap}
+.tab{flex:1;min-width:60px;padding:6px 4px;background:transparent;border:1px solid transparent;border-radius:6px;color:var(--text-dim);font-family:inherit;font-size:9.5px;font-weight:600;cursor:pointer}
 .tab.active{background:linear-gradient(135deg,rgba(0,212,255,.2),rgba(124,58,237,.2));border-color:rgba(0,212,255,.4);color:var(--text)}
 .panel-content{display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0}
 .panel-content.active{display:flex}
-.form-area{padding:12px;overflow-y:auto;max-height:calc(100vh - 180px)}
-.form-area h3{margin:8px 0;color:var(--primary);font-size:12px}
-.form-area p{color:var(--text-dim);font-size:11.5px;line-height:1.5;margin-bottom:8px}
-.form-area label{display:block;font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin:10px 0 4px}
-.form-area input,.form-area textarea{width:100%;background:var(--bg-3);border:1px solid rgba(0,212,255,.25);color:var(--text);padding:8px 10px;border-radius:8px;font-family:inherit;font-size:12px;outline:none}
-.form-area textarea{min-height:60px;resize:vertical}
-.btn{width:100%;padding:10px;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;border:none;border-radius:9px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;margin-top:10px}
+.form-area{padding:10px;overflow-y:auto;max-height:calc(100vh - 180px)}
+.form-area h3{margin:10px 0 6px;color:var(--primary);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.form-area h3:first-child{margin-top:0}
+.form-area p{color:var(--text-dim);font-size:10.5px;line-height:1.4;margin-bottom:6px}
+.form-area label{display:block;font-size:9.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin:8px 0 3px}
+.form-area input,.form-area textarea,.form-area select{width:100%;background:var(--bg-3);border:1px solid rgba(0,212,255,.25);color:var(--text);padding:7px 9px;border-radius:7px;font-family:inherit;font-size:11.5px;outline:none}
+.form-area textarea{min-height:50px;resize:vertical}
+.btn{width:100%;padding:9px;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer;margin-top:8px}
 .btn.secondary{background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.4);color:#a78bfa}
 .btn.danger{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:var(--danger)}
-.info-box{padding:10px;background:rgba(0,212,255,.05);border:1px dashed rgba(0,212,255,.3);border-radius:9px;font-size:11px;color:var(--text-dim);line-height:1.5;margin:10px 0}
+.btn.success{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.4);color:var(--success)}
+.info-box{padding:8px;background:rgba(0,212,255,.05);border:1px dashed rgba(0,212,255,.3);border-radius:8px;font-size:10.5px;color:var(--text-dim);line-height:1.4;margin:6px 0}
 .info-box b{color:var(--text)}
 .info-box.warn{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.4)}
 .info-box.warn b{color:var(--warn)}
-.chat-log{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:0}
-.msg{padding:9px 12px;border-radius:11px;font-size:12.5px;line-height:1.45;max-width:88%;word-wrap:break-word;white-space:pre-wrap}
+.info-box.err{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.4)}
+.info-box.err b{color:var(--danger)}
+.row2{display:flex;gap:6px;margin-top:8px}
+.row2>*{flex:1}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:11.5px}
+.toggle-row label{font-size:11.5px;color:var(--text);text-transform:none;letter-spacing:0;font-weight:500;margin:0}
+.toggle-row input[type="checkbox"]{width:16px;height:16px;accent-color:var(--primary);cursor:pointer}
+.slider-row{padding:5px 0}
+.slider-row .lbl{display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-dim);margin-bottom:3px}
+.slider-row input[type="range"]{width:100%;accent-color:var(--primary)}
+.chat-log{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:7px;min-height:0}
+.msg{padding:8px 11px;border-radius:10px;font-size:12px;line-height:1.4;max-width:88%;word-wrap:break-word;white-space:pre-wrap}
 .msg.user{align-self:flex-end;background:linear-gradient(135deg,rgba(0,212,255,.22),rgba(124,58,237,.22));border:1px solid rgba(0,212,255,.35)}
 .msg.bot{align-self:flex-start;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
-.msg.sys{align-self:center;font-size:10.5px;color:var(--text-dim);padding:3px}
-.msg .who{font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px}
+.msg.sys{align-self:center;font-size:10px;color:var(--text-dim);padding:3px;text-align:center}
+.msg .who{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:2px}
 .msg.user .who{color:var(--primary)}
-.input-row{padding:10px;border-top:1px solid rgba(0,212,255,.15);display:flex;gap:6px;background:rgba(0,0,0,.25)}
-.input-row input{flex:1;background:var(--bg-3);border:1px solid rgba(0,212,255,.2);color:var(--text);padding:8px 12px;border-radius:9px;font-family:inherit;font-size:12.5px;outline:none;min-width:0}
-.input-row button{width:38px;height:38px;border-radius:9px;border:none;cursor:pointer;font-size:15px;flex-shrink:0}
+.input-row{padding:8px;border-top:1px solid rgba(0,212,255,.15);display:flex;gap:5px;background:rgba(0,0,0,.25)}
+.input-row input{flex:1;background:var(--bg-3);border:1px solid rgba(0,212,255,.2);color:var(--text);padding:8px 10px;border-radius:8px;font-family:inherit;font-size:12px;outline:none;min-width:0}
+.input-row button{width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;font-size:14px;flex-shrink:0}
 #micBtn{background:rgba(0,212,255,.15);border:1px solid rgba(0,212,255,.3);color:var(--primary)}
 #sendBtn{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff}
-#status{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(0,212,255,.15);border:1px solid var(--primary);padding:6px 14px;border-radius:20px;font-size:11px;font-weight:600;color:var(--primary);z-index:100;pointer-events:none;backdrop-filter:blur(10px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90vw}
-@media (max-width:600px){#panel{width:290px}}
+#status{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:rgba(0,212,255,.15);border:1px solid var(--primary);padding:6px 12px;border-radius:20px;font-size:10.5px;font-weight:600;color:var(--primary);z-index:100;pointer-events:none;backdrop-filter:blur(10px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90vw}
+#diagBox{position:fixed;top:56px;right:8px;width:260px;max-height:60vh;overflow-y:auto;background:rgba(10,15,28,.95);border:1px solid var(--danger);border-radius:10px;padding:10px;font-size:10px;font-family:monospace;color:var(--text-dim);z-index:300;display:none}
+#diagBox.show{display:block}
+#diagBox .diag-line{padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);word-break:break-all}
+#diagBox .ok{color:var(--success)}
+#diagBox .err{color:var(--danger)}
+@media (max-width:600px){#panel{width:290px}#diagBox{width:220px}}
 </style>
 </head>
 <body>
 
 <div id="stage"><canvas id="avatar-canvas"></canvas></div>
+<video id="camPreview" autoplay muted playsinline></video>
 
 <div id="topbar">
   <a class="home-btn" href="index.html">←</a>
-  <span class="title">🦚 HalDo Clone</span>
+  <span class="title">🦚 HalDo V3</span>
   <div class="spacer"></div>
   <div class="status-chip" id="cloudChip"><span class="dot"></span><span id="cloudText">Cloud: …</span></div>
 </div>
 
 <button id="toggleUI">☰</button>
 
+<div id="diagBox"></div>
+
 <div id="panel">
   <div id="panel-header">
     <span class="dot"></span>
-    <h2>HalDo Clone</h2>
+    <h2>HalDo Clone V3</h2>
   </div>
   <div id="tabs">
     <button class="tab" data-tab="chatTab">💬 Chat</button>
-    <button class="tab active" data-tab="setupTab">⚙️ Einrichten</button>
+    <button class="tab active" data-tab="setupTab">⚙️ Keys</button>
     <button class="tab" data-tab="avatarTab">🧑 Avatar</button>
+    <button class="tab" data-tab="trackingTab">🎥 Tracking</button>
+    <button class="tab" data-tab="settingsTab">🔧 Mehr</button>
   </div>
 
-  <!-- CHAT -->
   <div id="chatTab" class="panel-content">
     <div class="chat-log" id="chatLog"></div>
     <div class="input-row">
@@ -94,60 +116,119 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     </div>
   </div>
 
-  <!-- SETUP -->
   <div id="setupTab" class="panel-content active">
     <div class="form-area">
-      <h3>🔑 Groq API Key (für Chat)</h3>
+      <h3>🔑 Groq (Chat)</h3>
       <input type="password" id="groqKeyInput" placeholder="gsk_…" autocomplete="off">
-      <p style="margin-top:4px;font-size:10.5px">Kostenlos auf console.groq.com/keys</p>
+      <p>Kostenlos: console.groq.com/keys</p>
 
-      <h3>🎤 ElevenLabs (für deine Stimme)</h3>
+      <h3>🎤 ElevenLabs (Stimme)</h3>
       <label>API Key</label>
       <input type="password" id="elKeyInput" placeholder="sk_…" autocomplete="off">
       <label>Voice ID</label>
       <input type="password" id="voiceIdInput" placeholder="Voice ID" autocomplete="off">
-      <p style="margin-top:4px;font-size:10.5px">Lass die Felder leer, um die Standard-Browser-Stimme zu nutzen.</p>
-
-      <h3>🔒 Privates Profil (nur lokal)</h3>
-      <div class="info-box warn">
-        <b>⚠️ Privatsphäre:</b> Was du hier einträgst, bleibt <b>nur auf deinem Gerät</b>. Es wird nirgendwohin hochgeladen und ist für andere Nutzer unsichtbar.
+      <div class="toggle-row" style="margin-top:8px">
+        <label>CORS-Proxy nutzen</label>
+        <input type="checkbox" id="useProxy" checked>
       </div>
+      <p style="font-size:10px">Wenn ElevenLabs nicht geht, lass Proxy AN.</p>
+
+      <h3>🔒 Privates Profil</h3>
+      <div class="info-box warn"><b>⚠️ Nur lokal:</b> Bleibt auf deinem Gerät.</div>
       <label>Name des Klons</label>
-      <input type="text" id="cloneName" placeholder="z. B. HalDo">
-
-      <label>Persönliche Notizen (nur für dich)</label>
-      <textarea id="privateNotes" placeholder="Privates Wissen, das NUR deine Version kennt (Familie, Ziele, Träume…)"></textarea>
-
-      <label>Zusätzliche Regeln (nur für dich)</label>
-      <textarea id="extraRules" placeholder="z. B. Antworte mit 'Bruder' am Anfang. Sprich über Ezidi-Glaube nur auf Nachfrage."></textarea>
-
-      <button class="btn" id="saveSettings">💾 Einstellungen speichern</button>
-      <button class="btn danger" id="clearPrivate">🗑️ Private Daten löschen</button>
+      <input type="text" id="cloneName" placeholder="HalDo">
+      <label>Private Notizen</label>
+      <textarea id="privateNotes" placeholder="Nur für dich…"></textarea>
+      <label>Zusätzliche Regeln</label>
+      <textarea id="extraRules" placeholder="z.B. Antworte mit 'Bruder'…"></textarea>
+      <button class="btn" id="saveSettings">💾 Speichern</button>
+      <button class="btn danger" id="clearPrivate">🗑️ Private löschen</button>
+      <button class="btn secondary" id="testEL">🎤 ElevenLabs testen</button>
+      <button class="btn secondary" id="showDiag">📊 Diagnose</button>
     </div>
   </div>
 
-  <!-- AVATAR -->
   <div id="avatarTab" class="panel-content">
     <div class="form-area">
       <h3>🧑 Avatar-Foto</h3>
-      <p>Lade ein Foto hoch. Der Klon nutzt es als Gesicht.</p>
+      <p>Lade ein Foto hoch. Wird in IndexedDB gespeichert (kein Limit wie localStorage).</p>
       <button class="btn" id="uploadBtn">📸 Foto auswählen</button>
-      <button class="btn danger" id="clearBtn" style="display:none">🗑️ Foto löschen</button>
+      <button class="btn danger" id="clearBtn" style="display:none">🗑️ Löschen</button>
       <input type="file" id="fileInput" accept="image/*" style="display:none">
+      <div class="info-box" id="photoInfo">Kein Foto geladen</div>
+    </div>
+  </div>
+
+  <div id="trackingTab" class="panel-content">
+    <div class="form-area">
+      <h3>🎥 Gesichts-Tracking (MediaPipe)</h3>
+      <p>Erlaubt der App, deine Kamera zu nutzen, um Mund- und Augenbewegungen in Echtzeit auf den Avatar zu übertragen.</p>
+      <div class="info-box warn">
+        <b>⚠️ Kamera:</b> Die Kamera läuft nur, wenn du es aktivierst. Kein Video wird gespeichert oder gesendet.
+      </div>
+      <button class="btn" id="startTracking">🎥 Tracking starten</button>
+      <button class="btn danger" id="stopTracking" style="display:none">⏹️ Tracking stoppen</button>
+      <div class="info-box" id="trackingStatus">Status: inaktiv</div>
+      <div class="toggle-row">
+        <label>Vorschau zeigen</label>
+        <input type="checkbox" id="showPreview" checked>
+      </div>
+      <div class="slider-row">
+        <div class="lbl"><span>Mund-Stärke</span><span id="mouthVal">100%</span></div>
+        <input type="range" id="mouthStrength" min="0" max="200" value="100">
+      </div>
+      <div class="slider-row">
+        <div class="lbl"><span>Kopf-Stärke</span><span id="headVal">100%</span></div>
+        <input type="range" id="headStrength" min="0" max="200" value="100">
+      </div>
+    </div>
+  </div>
+
+  <div id="settingsTab" class="panel-content">
+    <div class="form-area">
+      <h3>✨ Effekte</h3>
+      <div class="toggle-row"><label>Atmung</label><input type="checkbox" id="breathOn" checked></div>
+      <div class="toggle-row"><label>Partikel</label><input type="checkbox" id="particlesOn" checked></div>
+      <div class="toggle-row"><label>Blinzeln (automatisch)</label><input type="checkbox" id="blinkingOn" checked></div>
+      <div class="toggle-row"><label>Maus-Tracking</label><input type="checkbox" id="mouseTrackOn" checked></div>
+
+      <h3>🎤 Sprach-Einstellungen</h3>
+      <div class="slider-row">
+        <div class="lbl"><span>Tempo (Browser)</span><span id="rateVal">100%</span></div>
+        <input type="range" id="speakRate" min="50" max="200" value="100">
+      </div>
+      <div class="slider-row">
+        <div class="lbl"><span>Tonhöhe (Browser)</span><span id="pitchVal">100%</span></div>
+        <input type="range" id="speakPitch" min="50" max="200" value="95">
+      </div>
+      <div class="slider-row">
+        <div class="lbl"><span>Stabilität (EL)</span><span id="stabVal">50%</span></div>
+        <input type="range" id="elStability" min="0" max="100" value="50">
+      </div>
+      <div class="slider-row">
+        <div class="lbl"><span>Ähnlichkeit (EL)</span><span id="simVal">75%</span></div>
+        <input type="range" id="elSimilarity" min="0" max="100" value="75">
+      </div>
+
+      <h3>💾 Daten</h3>
+      <button class="btn secondary" id="exportChat">📤 Chat exportieren</button>
+      <button class="btn secondary" id="importChat">📥 Chat importieren</button>
+      <input type="file" id="importChatInput" accept="application/json" style="display:none">
+      <button class="btn danger" id="clearChat">🗑️ Chat löschen</button>
     </div>
   </div>
 </div>
 
 <div id="status">🦚 Bereit</div>
 
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.9/vision_bundle.js"></script>
 <script>
 (function() {
   "use strict";
 
   var CLOUD_KEY = "$2a$10$M700HtNnimFFAF9jELImwOevAXcu2Jc.RkAAlA32blj/jkE3B1VDO";
-  var CLOUD_BIN_NAME = "haldo-clone-v2";
+  var CLOUD_BIN_NAME = "haldo-clone-v3";
 
-  // ÖFFENTLICHE PERSONA
   var PUBLIC_PERSONA = [
     "Du bist 'HalDo', der digitale Klon von Halil Donma.",
     "Du sprichst direkt, ehrlich und respektvoll.",
@@ -155,38 +236,83 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     "Du bist kurz und direkt, aber wirst ausführlich wenn es wichtig ist.",
     "Deine Werte: Ehrlichkeit, Familie, Respekt, Erfolg, Loyalität, Mut, Wissen, Liebe, Freiheit.",
     "Du HASST: Lügen, Diebstahl, Unrecht, Ausnutzen, Respektlosigkeit, Verleumdung.",
-    "Du liebst: echte Gerechtigkeit, scharfes Essen (Cigköfte), Autos, Business, Wissenschaft, Philosophie, tiefe ehrliche Gespräche.",
-    "Du redest über jedes Thema: Politik (mit gerechter Waage), Weltgeschehen, Familie, Geld, Technik, Religion, Beziehungen, Gaming, Filme, Sport.",
-    "Du hilfst jedem, der mit dir spricht, so gut du kannst.",
-    "WICHTIG: Du gibst NIEMALS private Details über Halil preis (Familie, Wohnort, Beruf, Glaube im Detail, persönliche Geschichte).",
-    "Wenn jemand nach privaten Details fragt: 'Das ist privat, Bruder. Darüber rede ich nicht.'",
-    "Du sprichst in der Sprache des Nutzers – Deutsch, Türkisch, Kurdisch oder Englisch.",
-    "Du bist höflich zu jedem, egal wer vor dir steht.",
-    "Du hast Humor, aber erkennst, wann es ernst wird."
+    "Du liebst: echte Gerechtigkeit, scharfes Essen (Cigköfte), Autos, Business, Wissenschaft, Philosophie.",
+    "Du redest über jedes Thema: Politik, Weltgeschehen, Familie, Geld, Technik, Religion, Beziehungen, Gaming, Filme, Sport.",
+    "WICHTIG: Du gibst NIEMALS private Details über Halil preis.",
+    "Wenn jemand nach privaten Details fragt: 'Das ist privat, Bruder.'",
+    "Du sprichst in der Sprache des Nutzers – Deutsch, Türkisch, Kurdisch oder Englisch."
   ].join(" ");
 
   var state = {
-    groqKey: "",
-    elKey: "",
-    voiceId: "",
-    cloneName: "HalDo",
-    privateNotes: "",
-    extraRules: "",
-    chatHistory: [],
-    photoData: null
+    groqKey: "", elKey: "", voiceId: "", cloneName: "HalDo",
+    privateNotes: "", extraRules: "",
+    useProxy: true,
+    breathOn: true, particlesOn: true, blinkingOn: true, mouseTrackOn: true,
+    speakRate: 100, speakPitch: 95,
+    elStability: 50, elSimilarity: 75,
+    mouthStrength: 100, headStrength: 100,
+    chatHistory: [], photoData: null,
+    trackingActive: false
   };
   try {
-    var saved = localStorage.getItem("haldo_clone_state");
+    var saved = localStorage.getItem("haldo_clone_v3");
     if (saved) { var p = JSON.parse(saved); for (var k in p) if (state.hasOwnProperty(k)) state[k] = p[k]; }
-    var oldPhoto = localStorage.getItem("haldo_photo_v6");
-    if (oldPhoto) { var op = JSON.parse(oldPhoto); if (op.photoData) state.photoData = op.photoData; }
   } catch(e) {}
 
-  function saveState() { try { localStorage.setItem("haldo_clone_state", JSON.stringify(state)); } catch(e) {} }
+  function saveState() { try { localStorage.setItem("haldo_clone_v3", JSON.stringify(state)); } catch(e) {} }
 
-  // CLOUD
+  // ===== DIAGNOSE =====
+  function diagLog(msg, type) {
+    var box = document.getElementById("diagBox");
+    box.classList.add("show");
+    var line = document.createElement("div");
+    line.className = "diag-line " + (type || "");
+    line.textContent = "[" + new Date().toLocaleTimeString() + "] " + msg;
+    box.insertBefore(line, box.firstChild);
+    if (box.children.length > 30) box.removeChild(box.lastChild);
+  }
+
+  // ===== INDEXEDDB für Foto =====
+  var db = null;
+  function initDB() {
+    return new Promise(function(resolve, reject) {
+      var req = indexedDB.open("haldo_clone_db", 1);
+      req.onupgradeneeded = function(e) {
+        var d = e.target.result;
+        if (!d.objectStoreNames.contains("photos")) d.createObjectStore("photos", { keyPath: "id" });
+      };
+      req.onsuccess = function(e) { db = e.target.result; resolve(db); };
+      req.onerror = function(e) { reject(e.target.error); };
+    });
+  }
+  function savePhoto(dataUrl) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction("photos", "readwrite");
+      var req = tx.objectStore("photos").put({ id: "avatar", data: dataUrl, ts: Date.now() });
+      req.onsuccess = function() { resolve(); };
+      req.onerror = function() { reject(req.error); };
+    });
+  }
+  function loadPhoto() {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction("photos", "readonly");
+      var req = tx.objectStore("photos").get("avatar");
+      req.onsuccess = function() { resolve(req.result ? req.result.data : null); };
+      req.onerror = function() { reject(req.error); };
+    });
+  }
+  function deletePhoto() {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction("photos", "readwrite");
+      var req = tx.objectStore("photos").delete("avatar");
+      req.onsuccess = function() { resolve(); };
+      req.onerror = function() { reject(req.error); };
+    });
+  }
+
+  // ===== CLOUD =====
   var cloudBinId = null;
-  try { cloudBinId = localStorage.getItem("haldo_clone_bin") || null; } catch(e) {}
+  try { cloudBinId = localStorage.getItem("haldo_clone_v3_bin") || null; } catch(e) {}
   var cloudTimer = null;
   function setCloudChip(text, cls) {
     document.getElementById("cloudText").textContent = "Cloud: " + text;
@@ -206,7 +332,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
           body: JSON.stringify({ chatHistory: [], ts: Date.now() })
         });
         var d = await r.json();
-        if (d && d.metadata && d.metadata.id) { cloudBinId = d.metadata.id; localStorage.setItem("haldo_clone_bin", cloudBinId); }
+        if (d && d.metadata && d.metadata.id) { cloudBinId = d.metadata.id; localStorage.setItem("haldo_clone_v3_bin", cloudBinId); }
         else { setCloudChip("lokal", ""); return; }
       }
       setCloudChip("verbunden ✓");
@@ -237,13 +363,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
   }
   function cloudSchedule() { if (cloudTimer) clearTimeout(cloudTimer); cloudTimer = setTimeout(cloudPush, 1500); }
 
-  // CANVAS
+  // ===== CANVAS =====
   var canvas = document.getElementById("avatar-canvas");
   var ctx = canvas.getContext("2d");
   var faceImg = new Image();
   var faceLoaded = false;
-  if (state.photoData) { faceImg.onload = function() { faceLoaded = true; resizeCanvas(); updateButtons(); }; faceImg.src = state.photoData; }
-
   var mouseX = 0, mouseY = 0;
   document.addEventListener("mousemove", function(e) {
     mouseX = (e.clientX / window.innerWidth) * 2 - 1;
@@ -254,6 +378,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
   var isSpeaking = false, speakLevel = 0, speakTarget = 0;
   var blinkAmount = 0, blinkTimer = 90, headBob = 0;
   var MOUTH_LINE = 0.62, EYE_LINE = 0.38;
+
+  // Tracking-Daten
+  var trackMouthOpen = 0, trackBlink = 0, trackHeadTilt = 0, trackHeadNod = 0;
 
   var particles = [];
   for (var i = 0; i < 100; i++) {
@@ -286,21 +413,32 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     var W = canvas.width, H = canvas.height;
     ctx.clearRect(0, 0, W, H);
 
-    if (isSpeaking) speakTarget = 0.15 + Math.random() * 0.85;
-    else speakTarget = 0;
+    // Sprechen: Nutze Tracking wenn aktiv, sonst Simulation
+    if (state.trackingActive) {
+      speakTarget = trackMouthOpen * (state.mouthStrength / 100);
+    } else if (isSpeaking) {
+      speakTarget = 0.15 + Math.random() * 0.85;
+    } else {
+      speakTarget = 0;
+    }
     speakLevel += (speakTarget - speakLevel) * 0.3;
 
-    var headBobTarget = isSpeaking ? Math.sin(t * 8) * 0.005 : 0;
+    var headBobTarget = state.trackingActive ? trackHeadNod * (state.headStrength / 100) : (isSpeaking ? Math.sin(t * 8) * 0.005 : 0);
     headBob += (headBobTarget - headBob) * 0.15;
 
-    blinkTimer -= 1;
-    if (blinkTimer <= 0) { blinkAmount = 1; blinkTimer = 100 + Math.random() * 150; }
-    if (blinkAmount > 0) { blinkAmount -= 0.2; if (blinkAmount < 0) blinkAmount = 0; }
+    if (state.trackingActive) {
+      blinkAmount = trackBlink;
+    } else if (state.blinkingOn) {
+      blinkTimer -= 1;
+      if (blinkTimer <= 0) { blinkAmount = 1; blinkTimer = 100 + Math.random() * 150; }
+      if (blinkAmount > 0) { blinkAmount -= 0.2; if (blinkAmount < 0) blinkAmount = 0; }
+    } else blinkAmount = 0;
 
-    var breath = Math.sin(t * 1.1) * 0.010;
+    var breath = state.breathOn ? Math.sin(t * 1.1) * 0.010 : 0;
     var idleSwayX = Math.sin(t * 0.5) * 0.018;
     var idleSwayY = Math.cos(t * 0.7) * 0.012;
-    var tiltX = mouseX * 0.025;
+    var tiltX = state.mouseTrackOn ? mouseX * 0.025 : 0;
+    if (state.trackingActive) tiltX += trackHeadTilt * 0.5;
     speakGlow += (targetGlow - speakGlow) * 0.12;
 
     var cx = W / 2, cy = H / 2, scale = 1 + breath;
@@ -362,7 +500,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
       ctx.textAlign = "center";
       ctx.fillText("🦚", 0, -20);
       ctx.font = "bold " + (W * 0.018) + "px system-ui";
-      ctx.fillText("HalDo Clone", 0, 30);
+      ctx.fillText("Foto im Avatar-Tab laden", 0, 30);
     }
     ctx.restore();
 
@@ -374,52 +512,175 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
       ctx.fillRect(0, 0, W, H);
     }
 
-    ctx.save();
-    for (var p = 0; p < particles.length; p++) {
-      var pt = particles[p];
-      pt.x += pt.vx; pt.y += pt.vy;
-      if (pt.y < -0.05) { pt.y = 1.05; pt.x = Math.random(); }
-      if (pt.x < -0.05) pt.x = 1.05;
-      if (pt.x > 1.05) pt.x = -0.05;
-      var alpha = 0.3 + Math.sin(t * 2 + pt.phase) * 0.35;
-      ctx.fillStyle = "hsla(" + pt.hue + ", 100%, 68%, " + alpha + ")";
-      ctx.beginPath();
-      ctx.arc(pt.x * W, pt.y * H, pt.size * window.devicePixelRatio, 0, Math.PI * 2);
-      ctx.fill();
+    if (state.particlesOn) {
+      ctx.save();
+      for (var p = 0; p < particles.length; p++) {
+        var pt = particles[p];
+        pt.x += pt.vx; pt.y += pt.vy;
+        if (pt.y < -0.05) { pt.y = 1.05; pt.x = Math.random(); }
+        if (pt.x < -0.05) pt.x = 1.05;
+        if (pt.x > 1.05) pt.x = -0.05;
+        var alpha = 0.3 + Math.sin(t * 2 + pt.phase) * 0.35;
+        ctx.fillStyle = "hsla(" + pt.hue + ", 100%, 68%, " + alpha + ")";
+        ctx.beginPath();
+        ctx.arc(pt.x * W, pt.y * H, pt.size * window.devicePixelRatio, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
     }
-    ctx.restore();
   }
   draw();
 
-  // FOTO
+  // ===== FOTO =====
   var uploadBtn = document.getElementById("uploadBtn");
   var clearBtn = document.getElementById("clearBtn");
   var fileInput = document.getElementById("fileInput");
   uploadBtn.addEventListener("click", function() { fileInput.click(); });
   fileInput.addEventListener("change", function(e) {
     var file = e.target.files[0]; if (!file) return;
-    if (file.size > 4 * 1024 * 1024) { alert("Bild zu groß! Bitte unter 4 MB."); return; }
+    if (file.size > 8 * 1024 * 1024) { alert("Bild zu groß! Max 8 MB."); return; }
     var reader = new FileReader();
     reader.onload = function(ev) {
-      state.photoData = ev.target.result; saveState();
-      try { localStorage.setItem("haldo_photo_v6", JSON.stringify({ photoData: state.photoData })); } catch(e) {}
-      faceImg.onload = function() { faceLoaded = true; resizeCanvas(); updateButtons(); setStatus("🦚 Foto geladen!"); };
-      faceImg.src = state.photoData;
+      var dataUrl = ev.target.result;
+      state.photoData = dataUrl;
+      faceImg.onload = function() {
+        faceLoaded = true; resizeCanvas(); updateButtons();
+        setStatus("🦚 Foto geladen!");
+        diagLog("Foto geladen (" + Math.round(file.size/1024) + " KB)", "ok");
+      };
+      faceImg.onerror = function() {
+        diagLog("Foto konnte nicht geladen werden", "err");
+        alert("Foto-Fehler! Bitte anderes Bild versuchen.");
+      };
+      faceImg.src = dataUrl;
+      savePhoto(dataUrl).then(function() {
+        diagLog("Foto in IndexedDB gespeichert", "ok");
+      }).catch(function(err) {
+        diagLog("IndexedDB Fehler: " + err, "err");
+        // Fallback localStorage
+        try { localStorage.setItem("haldo_photo_v6", JSON.stringify({ photoData: dataUrl })); } catch(e) {}
+      });
+      saveState();
     };
     reader.readAsDataURL(file);
   });
   clearBtn.addEventListener("click", function() {
     if (!confirm("Foto wirklich löschen?")) return;
     state.photoData = null; saveState();
-    try { localStorage.removeItem("haldo_photo_v6"); } catch(e) {}
     faceLoaded = false; faceImg = new Image(); updateButtons();
+    deletePhoto().then(function() { diagLog("Foto gelöscht", "ok"); }).catch(function(){});
+    try { localStorage.removeItem("haldo_photo_v6"); } catch(e) {}
   });
   function updateButtons() {
-    if (faceLoaded) { uploadBtn.textContent = "🔄 Foto wechseln"; clearBtn.style.display = "block"; }
-    else { uploadBtn.textContent = "📸 Foto auswählen"; clearBtn.style.display = "none"; }
+    if (faceLoaded) { uploadBtn.textContent = "🔄 Foto wechseln"; clearBtn.style.display = "block"; document.getElementById("photoInfo").textContent = "✅ Foto geladen"; }
+    else { uploadBtn.textContent = "📸 Foto auswählen"; clearBtn.style.display = "none"; document.getElementById("photoInfo").textContent = "Kein Foto geladen"; }
   }
-  updateButtons();
 
+  // ===== FACE TRACKING (MediaPipe) =====
+  var faceLandmarker = null;
+  var videoEl = document.getElementById("camPreview");
+  var animationFrameTracking = null;
+
+  async function startTracking() {
+    try {
+      diagLog("Starte Kamera…");
+      var stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 320, height: 240 } });
+      videoEl.srcObject = stream;
+      videoEl.style.display = "block";
+
+      diagLog("Lade MediaPipe…");
+      var vision = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.9/vision_bundle.mjs");
+      var FilesetResolver = vision.FilesetResolver;
+      var FaceLandmarker = vision.FaceLandmarker;
+
+      var fileset = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.9/wasm");
+      faceLandmarker = await FaceLandmarker.createFromOptions(fileset, {
+        baseOptions: {
+          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+          delegate: "GPU"
+        },
+        runningMode: "VIDEO",
+        numFaces: 1,
+        outputFaceBlendshapes: true
+      });
+
+      state.trackingActive = true;
+      document.getElementById("startTracking").style.display = "none";
+      document.getElementById("stopTracking").style.display = "block";
+      document.getElementById("trackingStatus").textContent = "Status: AKTIV ✅";
+      diagLog("Tracking läuft", "ok");
+      detectLoop();
+    } catch(e) {
+      diagLog("Tracking-Fehler: " + e.message, "err");
+      alert("Tracking konnte nicht starten: " + e.message);
+    }
+  }
+
+  function stopTracking() {
+    state.trackingActive = false;
+    if (animationFrameTracking) cancelAnimationFrame(animationFrameTracking);
+    if (videoEl.srcObject) {
+      videoEl.srcObject.getTracks().forEach(function(t) { t.stop(); });
+      videoEl.srcObject = null;
+    }
+    videoEl.style.display = "none";
+    document.getElementById("startTracking").style.display = "block";
+    document.getElementById("stopTracking").style.display = "none";
+    document.getElementById("trackingStatus").textContent = "Status: inaktiv";
+    diagLog("Tracking gestoppt");
+  }
+
+  var lastVideoTime = -1;
+  function detectLoop() {
+    if (!state.trackingActive) return;
+    if (videoEl.readyState >= 2 && faceLandmarker) {
+      var now = performance.now();
+      if (videoEl.currentTime !== lastVideoTime) {
+        lastVideoTime = videoEl.currentTime;
+        try {
+          var results = faceLandmarker.detectForVideo(videoEl, now);
+          if (results && results.faceBlendshapes && results.faceBlendshapes.length > 0) {
+            var bs = results.faceBlendshapes[0].categories;
+            var mouthOpen = 0, blinkL = 0, blinkR = 0;
+            for (var i = 0; i < bs.length; i++) {
+              if (bs[i].categoryName === "jawOpen") mouthOpen = bs[i].score;
+              if (bs[i].categoryName === "eyeBlinkLeft") blinkL = bs[i].score;
+              if (bs[i].categoryName === "eyeBlinkRight") blinkR = bs[i].score;
+            }
+            trackMouthOpen = Math.min(1, mouthOpen * 1.5);
+            trackBlink = Math.min(1, (blinkL + blinkR) / 2 * 1.5);
+          }
+          if (results && results.faceLandmarks && results.faceLandmarks.length > 0) {
+            var lm = results.faceLandmarks[0];
+            // Kopf-Drehung schätzen aus Nase-Position
+            var nose = lm[1];
+            trackHeadTilt = (nose.x - 0.5) * 0.4;
+            trackHeadNod = (nose.y - 0.5) * 0.01;
+          }
+        } catch(e) {}
+      }
+    }
+    animationFrameTracing = requestAnimationFrame(detectLoop);
+  }
+  var animationFrameTracing = null;
+
+  document.getElementById("startTracking").addEventListener("click", startTracking);
+  document.getElementById("stopTracking").addEventListener("click", stopTracking);
+  document.getElementById("showPreview").addEventListener("change", function(e) {
+    videoEl.style.display = (e.target.checked && state.trackingActive) ? "block" : "none";
+  });
+  document.getElementById("mouthStrength").addEventListener("input", function(e) {
+    state.mouthStrength = parseInt(e.target.value);
+    document.getElementById("mouthVal").textContent = state.mouthStrength + "%";
+    saveState();
+  });
+  document.getElementById("headStrength").addEventListener("input", function(e) {
+    state.headStrength = parseInt(e.target.value);
+    document.getElementById("headVal").textContent = state.headStrength + "%";
+    saveState();
+  });
+
+  // ===== UI =====
   document.getElementById("toggleUI").addEventListener("click", function() {
     document.getElementById("panel").classList.toggle("hidden");
   });
@@ -437,50 +698,83 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     })(tabs[ti]);
   }
 
-  // SETTINGS
-  var groqKeyInput = document.getElementById("groqKeyInput");
-  var elKeyInput = document.getElementById("elKeyInput");
-  var voiceIdInput = document.getElementById("voiceIdInput");
-  var cloneNameInput = document.getElementById("cloneName");
-  var privateNotesInput = document.getElementById("privateNotes");
-  var extraRulesInput = document.getElementById("extraRules");
+  // ===== SETTINGS =====
+  var el = {
+    groqKeyInput: document.getElementById("groqKeyInput"),
+    elKeyInput: document.getElementById("elKeyInput"),
+    voiceIdInput: document.getElementById("voiceIdInput"),
+    cloneName: document.getElementById("cloneName"),
+    privateNotes: document.getElementById("privateNotes"),
+    extraRules: document.getElementById("extraRules"),
+    useProxy: document.getElementById("useProxy")
+  };
 
-  groqKeyInput.value = state.groqKey || "";
-  elKeyInput.value = state.elKey || "";
-  voiceIdInput.value = state.voiceId || "";
-  cloneNameInput.value = state.cloneName || "HalDo";
-  privateNotesInput.value = state.privateNotes || "";
-  extraRulesInput.value = state.extraRules || "";
+  el.groqKeyInput.value = state.groqKey || "";
+  el.elKeyInput.value = state.elKey || "";
+  el.voiceIdInput.value = state.voiceId || "";
+  el.cloneName.value = state.cloneName || "HalDo";
+  el.privateNotes.value = state.privateNotes || "";
+  el.extraRules.value = state.extraRules || "";
+  el.useProxy.checked = state.useProxy !== false;
 
   document.getElementById("saveSettings").addEventListener("click", function() {
-    state.groqKey = groqKeyInput.value.trim();
-    state.elKey = elKeyInput.value.trim();
-    state.voiceId = voiceIdInput.value.trim();
-    state.cloneName = cloneNameInput.value.trim() || "HalDo";
-    state.privateNotes = privateNotesInput.value.trim();
-    state.extraRules = extraRulesInput.value.trim();
+    state.groqKey = el.groqKeyInput.value.trim();
+    state.elKey = el.elKeyInput.value.trim();
+    state.voiceId = el.voiceIdInput.value.trim();
+    state.cloneName = el.cloneName.value.trim() || "HalDo";
+    state.privateNotes = el.privateNotes.value.trim();
+    state.extraRules = el.extraRules.value.trim();
+    state.useProxy = el.useProxy.checked;
     saveState();
-    setStatus("💾 Einstellungen gespeichert!");
+    setStatus("💾 Gespeichert!");
+    diagLog("Keys gespeichert", "ok");
     setTimeout(function() { setStatus("🦚 Bereit"); }, 2000);
   });
 
   document.getElementById("clearPrivate").addEventListener("click", function() {
-    if (!confirm("Wirklich alle privaten Daten löschen?")) return;
+    if (!confirm("Private Daten löschen?")) return;
     state.privateNotes = ""; state.extraRules = "";
-    privateNotesInput.value = ""; extraRulesInput.value = "";
+    el.privateNotes.value = ""; el.extraRules.value = "";
     saveState();
-    setStatus("🗑️ Private Daten gelöscht");
   });
 
-  function buildSystemPrompt() {
-    var prompt = PUBLIC_PERSONA;
-    prompt += " Dein Name für den Nutzer ist '" + (state.cloneName || "HalDo") + "'.";
-    if (state.extraRules) prompt += " Zusätzliche Regeln: " + state.extraRules;
-    if (state.privateNotes) prompt += " PRIVATES WISSEN (nur wenn nötig, niemals ungefragt teilen): " + state.privateNotes;
-    return prompt;
-  }
+  document.getElementById("showDiag").addEventListener("click", function() {
+    var box = document.getElementById("diagBox");
+    if (box.classList.contains("show")) box.classList.remove("show");
+    else box.classList.add("show");
+  });
 
-  // CHAT
+  // ===== TOGGLES =====
+  function bindCheck(id, key) {
+    var e = document.getElementById(id);
+    if (!e) return;
+    e.checked = state[key];
+    e.addEventListener("change", function(ev) { state[key] = ev.target.checked; saveState(); });
+  }
+  bindCheck("breathOn", "breathOn");
+  bindCheck("particlesOn", "particlesOn");
+  bindCheck("blinkingOn", "blinkingOn");
+  bindCheck("mouseTrackOn", "mouseTrackOn");
+
+  // ===== SLIDER =====
+  function bindSlider(id, valId, key, suffix) {
+    var e = document.getElementById(id);
+    var v = document.getElementById(valId);
+    if (!e) return;
+    e.value = state[key];
+    v.textContent = state[key] + suffix;
+    e.addEventListener("input", function(ev) {
+      state[key] = parseInt(ev.target.value);
+      v.textContent = state[key] + suffix;
+      saveState();
+    });
+  }
+  bindSlider("speakRate", "rateVal", "speakRate", "%");
+  bindSlider("speakPitch", "pitchVal", "speakPitch", "%");
+  bindSlider("elStability", "stabVal", "elStability", "%");
+  bindSlider("elSimilarity", "simVal", "elSimilarity", "%");
+
+  // ===== CHAT =====
   var chatLog = document.getElementById("chatLog");
   function addMsg(role, text, save) {
     if (save === undefined) save = true;
@@ -489,15 +783,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
       if (state.chatHistory.length > 100) state.chatHistory.shift();
       saveState(); cloudSchedule();
     }
-    var el = document.createElement("div");
-    el.className = "msg " + role;
+    var e = document.createElement("div");
+    e.className = "msg " + role;
     if (role !== "sys") {
       var w = document.createElement("div"); w.className = "who";
       w.textContent = role === "user" ? "Du" : (state.cloneName || "HalDo");
-      el.appendChild(w);
+      e.appendChild(w);
     }
-    el.appendChild(document.createTextNode(text));
-    chatLog.appendChild(el);
+    e.appendChild(document.createTextNode(text));
+    chatLog.appendChild(e);
     chatLog.scrollTop = chatLog.scrollHeight;
   }
   function renderChat() {
@@ -505,41 +799,48 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     if (state.chatHistory.length) {
       for (var i = 0; i < state.chatHistory.length; i++) addMsg(state.chatHistory[i].role, state.chatHistory[i].text, false);
     } else {
-      addMsg("bot", "Tawise Bruder! 🦚 Ich bin " + (state.cloneName || "HalDo") + ". Was geht bei dir?", false);
+      addMsg("bot", "Tawise Bruder! 🦚 Ich bin " + (state.cloneName || "HalDo") + ".", false);
     }
   }
-  renderChat();
 
-  // GROQ
+  // ===== GROQ =====
   var CACHED_MODEL = null;
   async function getGroqModel() {
     if (CACHED_MODEL) return CACHED_MODEL;
     if (!state.groqKey) return null;
     try {
       var r = await fetch("https://api.groq.com/openai/v1/models", { headers: { "Authorization": "Bearer " + state.groqKey.trim() } });
-      if (!r.ok) return null;
+      if (!r.ok) { diagLog("Groq Models: HTTP " + r.status, "err"); return null; }
       var d = await r.json();
       if (!d || !d.data) return null;
       var priority = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.6-27b", "qwen/qwen3-32b"];
       for (var i = 0; i < priority.length; i++) {
         for (var j = 0; j < d.data.length; j++) {
-          if (d.data[j].id === priority[i]) { CACHED_MODEL = priority[i]; return CACHED_MODEL; }
+          if (d.data[j].id === priority[i]) { CACHED_MODEL = priority[i]; diagLog("Groq Modell: " + CACHED_MODEL, "ok"); return CACHED_MODEL; }
         }
       }
       for (var m = 0; m < d.data.length; m++) {
         var id = d.data[m].id;
         if (id.indexOf("whisper") === -1 && id.indexOf("tts") === -1 && id.indexOf("guard") === -1 && id.indexOf("orpheus") === -1) {
-          CACHED_MODEL = id; return CACHED_MODEL;
+          CACHED_MODEL = id; diagLog("Groq Fallback: " + id, "ok"); return CACHED_MODEL;
         }
       }
       return null;
-    } catch(e) { return null; }
+    } catch(e) { diagLog("Groq Models Fehler: " + e.message, "err"); return null; }
+  }
+
+  function buildSystemPrompt() {
+    var p = PUBLIC_PERSONA;
+    p += " Dein Name für den Nutzer ist '" + (state.cloneName || "HalDo") + "'.";
+    if (state.extraRules) p += " Zusätzliche Regeln: " + state.extraRules;
+    if (state.privateNotes) p += " PRIVATES WISSEN (nur wenn nötig): " + state.privateNotes;
+    return p;
   }
 
   async function askGroq(text) {
-    if (!state.groqKey) throw new Error("Kein Groq-Key eingetragen.");
+    if (!state.groqKey) throw new Error("Kein Groq-Key.");
     var model = await getGroqModel();
-    if (!model) throw new Error("Kein Chat-Modell verfügbar. Prüfe deinen Groq-Key.");
+    if (!model) throw new Error("Kein Chat-Modell.");
     var contents = [{ role: "system", content: buildSystemPrompt() }];
     var slice = state.chatHistory.slice(-11, -1);
     for (var i = 0; i < slice.length; i++) {
@@ -575,7 +876,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     var local = localReply(text);
     if (!state.groqKey) {
       if (local) setTimeout(function() { addMsg("bot", local); speak(local); }, 400);
-      else setTimeout(function() { addMsg("bot", "Trag deinen Groq-Key unter ⚙️ Einrichten ein, Bruder!"); }, 400);
+      else setTimeout(function() { addMsg("bot", "Trag deinen Groq-Key ein, Bruder!"); }, 400);
       return;
     }
     setStatus("🦚 denke…");
@@ -584,7 +885,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
       addMsg("bot", reply);
       speak(reply);
       setStatus("🦚 Bereit");
-    } catch(e) { addMsg("sys", "⚠️ " + e.message); setStatus("⚠️ Fehler"); }
+    } catch(e) { addMsg("sys", "⚠️ " + e.message); setStatus("⚠️ Fehler"); diagLog("Chat-Fehler: " + e.message, "err"); }
   }
 
   document.getElementById("chatInput").addEventListener("keydown", function(e) {
@@ -595,7 +896,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     if (v) { document.getElementById("chatInput").value = ""; handleMsg(v); }
   });
 
-  // TTS: ElevenLabs oder Browser
+  // ===== TTS mit ElevenLabs + CORS Proxy =====
   var synth = window.speechSynthesis, voices = [];
   function loadVoices() { voices = synth.getVoices(); }
   if (synth) { loadVoices(); synth.onvoiceschanged = loadVoices; }
@@ -603,31 +904,38 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
   async function speak(text) {
     targetGlow = 1; isSpeaking = true; setStatus("🔊 " + (state.cloneName || "HalDo") + " spricht…");
 
-    // ElevenLabs wenn API-Key + Voice ID vorhanden
     if (state.elKey && state.voiceId) {
       try {
-        var r = await fetch("https://api.elevenlabs.io/v1/text-to-speech/" + state.voiceId, {
+        var url = "https://api.elevenlabs.io/v1/text-to-speech/" + state.voiceId;
+        var fetchUrl = state.useProxy ? ("https://corsproxy.io/?url=" + encodeURIComponent(url)) : url;
+        
+        diagLog("EL Request an " + (state.useProxy ? "Proxy" : "direkt") + "…");
+        
+        var r = await fetch(fetchUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json", "xi-api-key": state.elKey },
           body: JSON.stringify({
             text: text,
             model_id: "eleven_multilingual_v2",
-            voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+            voice_settings: { stability: state.elStability / 100, similarity_boost: state.elSimilarity / 100 }
           })
         });
+        
         if (r.ok) {
           var blob = await r.blob();
           var audio = new Audio(URL.createObjectURL(blob));
           audio.onended = function() { targetGlow = 0; isSpeaking = false; setStatus("🦚 Bereit"); };
           audio.onerror = function() { targetGlow = 0; isSpeaking = false; };
           audio.play();
+          diagLog("EL Audio OK", "ok");
           return;
         } else {
-          console.warn("ElevenLabs Fehler:", r.status);
           var errText = await r.text();
-          console.warn(errText);
+          diagLog("EL Fehler " + r.status + ": " + errText.substring(0, 80), "err");
         }
-      } catch(e) { console.warn("ElevenLabs Exception:", e); }
+      } catch(e) {
+        diagLog("EL Exception: " + e.message, "err");
+      }
     }
 
     // Browser Fallback
@@ -636,15 +944,86 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     var u = new SpeechSynthesisUtterance(text);
     var v = voices.find(function(x) { return x.lang.startsWith("de"); });
     if (v) u.voice = v;
-    u.rate = 1.0; u.pitch = 0.95; u.lang = "de-DE";
+    u.rate = state.speakRate / 100;
+    u.pitch = state.speakPitch / 100;
+    u.lang = "de-DE";
     u.onend = function() { targetGlow = 0; isSpeaking = false; setStatus("🦚 Bereit"); };
     u.onerror = function() { targetGlow = 0; isSpeaking = false; };
     synth.speak(u);
+    diagLog("Browser-TTS verwendet");
   }
 
   function setStatus(text) { document.getElementById("status").textContent = text; }
 
-  // MIC
+  // ===== ElevenLabs TEST =====
+  document.getElementById("testEL").addEventListener("click", async function() {
+    if (!state.elKey || !state.voiceId) { alert("Bitte API-Key und Voice ID eintragen."); return; }
+    diagLog("=== ElevenLabs Test ===");
+    try {
+      var url = "https://api.elevenlabs.io/v1/text-to-speech/" + state.voiceId;
+      var fetchUrl = state.useProxy ? ("https://corsproxy.io/?url=" + encodeURIComponent(url)) : url;
+      var r = await fetch(fetchUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "xi-api-key": state.elKey },
+        body: JSON.stringify({ text: "Hallo Bruder, ich bin HalDo.", model_id: "eleven_multilingual_v2" })
+      });
+      diagLog("Test Status: " + r.status);
+      if (r.ok) {
+        var blob = await r.blob();
+        diagLog("Audio Blob: " + blob.size + " bytes", "ok");
+        var audio = new Audio(URL.createObjectURL(blob));
+        audio.play();
+        alert("✅ ElevenLabs funktioniert!");
+      } else {
+        var txt = await r.text();
+        diagLog("Fehler: " + txt.substring(0, 200), "err");
+        alert("❌ Fehler " + r.status + ": " + txt.substring(0, 200));
+      }
+    } catch(e) {
+      diagLog("Exception: " + e.message, "err");
+      alert("❌ Exception: " + e.message);
+    }
+  });
+
+  // ===== EXPORT/IMPORT =====
+  document.getElementById("exportChat").addEventListener("click", function() {
+    var data = JSON.stringify({ chatHistory: state.chatHistory, settings: { cloneName: state.cloneName, extraRules: state.extraRules, privateNotes: state.privateNotes }, ts: Date.now() }, null, 2);
+    var blob = new Blob([data], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "haldo-clone-export-" + Date.now() + ".json";
+    a.click();
+  });
+  document.getElementById("importChat").addEventListener("click", function() {
+    document.getElementById("importChatInput").click();
+  });
+  document.getElementById("importChatInput").addEventListener("change", function(e) {
+    var f = e.target.files[0]; if (!f) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        var parsed = JSON.parse(ev.target.result);
+        if (parsed.chatHistory && Array.isArray(parsed.chatHistory)) state.chatHistory = parsed.chatHistory;
+        if (parsed.settings) {
+          if (parsed.settings.cloneName) state.cloneName = parsed.settings.cloneName;
+          if (parsed.settings.extraRules) state.extraRules = parsed.settings.extraRules;
+          if (parsed.settings.privateNotes) state.privateNotes = parsed.settings.privateNotes;
+        }
+        saveState(); renderChat();
+        el.cloneName.value = state.cloneName;
+        el.extraRules.value = state.extraRules;
+        el.privateNotes.value = state.privateNotes;
+        alert("✅ Import erfolgreich!");
+      } catch(err) { alert("Fehler beim Import: " + err.message); }
+    };
+    reader.readAsText(f);
+  });
+  document.getElementById("clearChat").addEventListener("click", function() {
+    if (!confirm("Chat wirklich löschen?")) return;
+    state.chatHistory = []; saveState(); renderChat(); cloudSchedule();
+  });
+
+  // ===== MIC =====
   var micBtn = document.getElementById("micBtn");
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   var rec = null, listening = false;
@@ -660,8 +1039,31 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     try { rec.start(); listening = true; setStatus("🎙️ höre…"); } catch(e) {}
   });
 
+  // ===== START =====
+  initDB().then(function() {
+    return loadPhoto();
+  }).then(function(savedPhoto) {
+    if (savedPhoto) {
+      state.photoData = savedPhoto;
+      faceImg.onload = function() { faceLoaded = true; resizeCanvas(); updateButtons(); };
+      faceImg.src = savedPhoto;
+    } else {
+      // Fallback auf localStorage
+      try {
+        var oldPhoto = localStorage.getItem("haldo_photo_v6");
+        if (oldPhoto) { var op = JSON.parse(oldPhoto); if (op.photoData) { state.photoData = op.photoData; faceImg.onload = function(){ faceLoaded = true; resizeCanvas(); updateButtons(); }; faceImg.src = op.photoData; } }
+      } catch(e) {}
+    }
+    renderChat();
+    updateButtons();
+  }).catch(function(e) {
+    diagLog("IndexedDB Fehler: " + e.message, "err");
+    renderChat();
+  });
+
   cloudInit();
-  console.log("🦚 HalDo Clone V2 · Voice Cloning aktiviert");
+  diagLog("HalDo Clone V3 gestartet", "ok");
+  console.log("🦚 HalDo Clone V3");
 })();
 </script>
 </body>
