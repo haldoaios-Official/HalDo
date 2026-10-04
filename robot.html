@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>HalDo AI OS · Roboter</title>
+<style>
+:root{--primary:#00d4ff;--primary-2:#7c3aed;--bg:#050810;--bg-3:#0f1524;--border:rgba(0,212,255,.12);--text:#e6f0ff;--text-dim:#7a8ba8;--success:#22c55e;--danger:#ef4444;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hidden}
+#stage{position:fixed;inset:0;z-index:1;display:flex;align-items:center;justify-content:center}
+#avatar-canvas{display:block;max-width:100vw;max-height:100vh}
+#topbar{position:fixed;top:0;left:0;right:0;height:48px;z-index:50;display:flex;align-items:center;gap:10px;padding:0 12px;background:linear-gradient(180deg,rgba(5,8,16,.95),rgba(5,8,16,0));pointer-events:none}
+#topbar .home-btn{pointer-events:auto;width:38px;height:38px;border-radius:10px;background:rgba(10,15,28,.85);border:1px solid rgba(0,212,255,.3);color:var(--primary);cursor:pointer;font-size:16px;backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;text-decoration:none}
+#topbar .home-btn:hover{background:rgba(0,212,255,.2)}
+#topbar .title{font-size:13px;font-weight:700;color:var(--primary);letter-spacing:1px;pointer-events:auto}
+#topbar .spacer{flex:1}
+#topbar .status-chip{pointer-events:auto;display:flex;align-items:center;gap:6px;padding:5px 10px;background:rgba(10,15,28,.85);border:1px solid var(--border);border-radius:8px;font-size:10px;color:var(--text-dim)}
+#topbar .status-chip .dot{width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 6px var(--success)}
+#topbar .status-chip.syncing .dot{background:#f59e0b;box-shadow:0 0 6px #f59e0b}
+#topbar .status-chip.error .dot{background:var(--danger);box-shadow:0 0 6px var(--danger)}
+#toggleUI{position:fixed;top:10px;right:10px;z-index:200;width:38px;height:38px;border-radius:10px;background:rgba(10,15,28,.85);border:1px solid rgba(0,212,255,.3);color:var(--primary);cursor:pointer;font-size:16px;backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center}
+#toggleUI:hover{background:rgba(0,212,255,.2)}
+#panel{position:fixed;top:60px;left:10px;width:300px;max-height:calc(100vh - 80px);background:rgba(10,15,28,.88);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;backdrop-filter:blur(20px);box-shadow:0 20px 60px rgba(0,0,0,.6);z-index:100;overflow:hidden;transition:transform .25s,opacity .25s}
+#panel.hidden{transform:translateX(-320px);opacity:0;pointer-events:none}
+#panel-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,rgba(0,212,255,.08),rgba(124,58,237,.08))}
+#panel-header .dot{width:7px;height:7px;border-radius:50%;background:var(--success);box-shadow:0 0 8px var(--success);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+#panel-header h2{margin:0;font-size:11.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--primary)}
+#tabs{display:flex;gap:2px;padding:6px 8px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.2)}
+.tab{flex:1;padding:6px 4px;background:transparent;border:1px solid transparent;border-radius:7px;color:var(--text-dim);font-family:inherit;font-size:10.5px;font-weight:600;cursor:pointer}
+.tab.active{background:linear-gradient(135deg,rgba(0,212,255,.2),rgba(124,58,237,.2));border-color:rgba(0,212,255,.4);color:var(--text)}
+.panel-content{display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0}
+.panel-content.active{display:flex}
+.form-area{padding:12px;overflow-y:auto;max-height:60vh}
+.form-area h3{margin-bottom:8px;color:var(--primary);font-size:13px}
+.form-area p{color:var(--text-dim);font-size:11.5px;line-height:1.5;margin-bottom:6px}
+.upload-btn{width:100%;padding:11px;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;border:none;border-radius:9px;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;margin-top:8px;transition:all .15s}
+.upload-btn:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(0,212,255,.5)}
+.upload-btn.danger{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:var(--danger);box-shadow:none}
+.info-box{padding:10px;background:rgba(0,212,255,.05);border:1px dashed rgba(0,212,255,.3);border-radius:9px;font-size:11px;color:var(--text-dim);line-height:1.5;margin-top:8px}
+.info-box b{color:var(--text)}
+.chat-log{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:0}
+.msg{padding:9px 12px;border-radius:11px;font-size:12.5px;line-height:1.45;max-width:88%;word-wrap:break-word;white-space:pre-wrap}
+.msg.user{align-self:flex-end;background:linear-gradient(135deg,rgba(0,212,255,.22),rgba(124,58,237,.22));border:1px solid rgba(0,212,255,.35)}
+.msg.bot{align-self:flex-start;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+.msg.sys{align-self:center;font-size:10.5px;color:var(--text-dim);padding:3px}
+.msg .who{font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px}
+.msg.user .who{color:var(--primary)}
+.input-row{padding:10px;border-top:1px solid rgba(0,212,255,.15);display:flex;gap:6px;background:rgba(0,0,0,.25)}
+.input-row input{flex:1;background:var(--bg-3);border:1px solid rgba(0,212,255,.2);color:var(--text);padding:8px 12px;border-radius:9px;font-family:inherit;font-size:12.5px;outline:none;min-width:0}
+.input-row button{width:38px;height:38px;border-radius:9px;border:none;cursor:pointer;font-size:15px;flex-shrink:0}
+#micBtn{background:rgba(0,212,255,.15);border:1px solid rgba(0,212,255,.3);color:var(--primary)}
+#sendBtn{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff}
+#settings{position:fixed;top:60px;right:10px;width:210px;max-height:calc(100vh - 80px);overflow-y:auto;background:rgba(10,15,28,.88);border:1px solid var(--border);border-radius:14px;padding:12px;backdrop-filter:blur(20px);font-size:11.5px;z-index:100;transition:transform .25s,opacity .25s}
+#settings.hidden{transform:translateX(230px);opacity:0;pointer-events:none}
+#settings h3{margin:0 0 10px;font-size:10.5px;color:var(--primary);letter-spacing:1.5px;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+#settings h3::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--primary);box-shadow:0 0 8px var(--primary)}
+.group{margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.06)}
+.group:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.group-title{font-size:9.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-weight:700}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0}
+.row label{font-size:11px;color:var(--text-dim);flex:1}
+.row input[type="checkbox"]{width:15px;height:15px;accent-color:var(--primary);cursor:pointer}
+#status{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(0,212,255,.15);border:1px solid var(--primary);padding:6px 14px;border-radius:20px;font-size:11px;font-weight:600;color:var(--primary);z-index:100;pointer-events:none;backdrop-filter:blur(10px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90vw}
+@media (max-width:600px){#panel{width:280px}#settings{width:180px}}
+</style>
+</head>
+<body>
+
+<div id="stage"><canvas id="avatar-canvas"></canvas></div>
+
+<div id="topbar">
+  <a class="home-btn" href="index.html" title="Zurück zum Home">←</a>
+  <span class="title">🤖 Roboter</span>
+  <div class="spacer"></div>
+  <div class="status-chip" id="cloudChip"><span class="dot"></span><span id="cloudText">Cloud: …</span></div>
+</div>
+
+<button id="toggleUI" title="Panels ein-/ausblenden">☰</button>
+
+<div id="panel">
+  <div id="panel-header">
+    <span class="dot"></span>
+    <h2>Roboter-Modus</h2>
+  </div>
+  <div id="tabs">
+    <button class="tab active" data-tab="homeTab">🏠 Avatar</button>
+    <button class="tab" data-tab="chatTab">💬 Chat</button>
+  </div>
+  <div id="homeTab" class="panel-content active">
+    <div class="form-area">
+      <h3>🤖 Roboter-Avatar</h3>
+      <p>Dein Foto wird in einen metallischen Roboter verwandelt. LED-Augen, Headset-Bogen und Sensoren pulsieren.</p>
+      <button class="upload-btn" id="uploadBtn">📸 Foto auswählen</button>
+      <button class="upload-btn danger" id="clearBtn" style="display:none">🗑️ Foto löschen</button>
+      <input type="file" id="fileInput" accept="image/*" style="display:none">
+      <div class="info-box">
+        <b>💡 Tipp:</b> Für den besten Roboter-Look ein frontales Porträt ohne starke Schatten verwenden.
+      </div>
+    </div>
+  </div>
+  <div id="chatTab" class="panel-content">
+    <div class="chat-log" id="chatLog"></div>
+    <div class="input-row">
+      <button id="micBtn">🎙️</button>
+      <input id="chatInput" type="text" placeholder="Schreib mir…" autocomplete="off">
+      <button id="sendBtn">➤</button>
+    </div>
+  </div>
+</div>
+
+<div id="settings">
+  <h3>Einstellungen</h3>
+  <div class="group">
+    <div class="group-title">✨ Effekte</div>
+    <div class="row"><label>Atmung</label><input type="checkbox" id="breathOn" checked></div>
+    <div class="row"><label>Tracking</label><input type="checkbox" id="trackingOn" checked></div>
+    <div class="row"><label>Partikel</label><input type="checkbox" id="particlesOn" checked></div>
+    <div class="row"><label>Scan-Linien</label><input type="checkbox" id="scanlinesOn" checked></div>
+    <div class="row"><label>LED-Augen</label><input type="checkbox" id="ledEyesOn" checked></div>
+    <div class="row"><label>Antenne</label><input type="checkbox" id="antennaOn" checked></div>
+  </div>
+  <div class="group">
+    <div class="group-title">🗣️ Lebendigkeit</div>
+    <div class="row"><label>Sprechen</label><input type="checkbox" id="talkingOn" checked></div>
+    <div class="row"><label>Blinzeln</label><input type="checkbox" id="blinkingOn" checked></div>
+  </div>
+</div>
+
+<div id="status">🦚 Bereit</div>
+
+<script>
+(function() {
+  "use strict";
+
+  var CLOUD_KEY = "$2a$10$M700HtNnimFFAF9jELImwOevAXcu2Jc.RkAAlA32blj/jkE3B1VDO";
+  var CLOUD_BIN_NAME = "haldo-cloud-v9";
+
+  var state = {
+    breathOn: true, trackingOn: true, particlesOn: true, scanlinesOn: true,
+    ledEyesOn: true, antennaOn: true, talkingOn: true, blinkingOn: true,
+    groqKey: "", chatHistory: [], photoData: null
+  };
+  try {
+    var saved = localStorage.getItem("haldo_v9_state");
+    if (saved) { var p = JSON.parse(saved); for (var k in p) if (state.hasOwnProperty(k)) state[k] = p[k]; }
+    var oldPhoto = localStorage.getItem("haldo_photo_v6");
+    if (oldPhoto) { var op = JSON.parse(oldPhoto); if (op.photoData) state.photoData = op.photoData; }
+  } catch(e) {}
+
+  function saveState() { try { localStorage.setItem("haldo_v9_state", JSON.stringify(state)); } catch(e) {} }
+
+  // CLOUD
+  var cloudBinId = null;
+  try { cloudBinId = localStorage.getItem("haldo_v9_bin") || null; } catch(e) {}
+  var cloudTimer = null;
+  function setCloudChip(text, cls) {
+    document.getElementById("cloudText").textContent = "Cloud: " + text;
+    document.getElementById("cloudChip").className = "status-chip" + (cls ? " " + cls : "");
+  }
+  function cloudHeaders() {
+    var h = { "Content-Type": "application/json", "X-Master-Key": CLOUD_KEY };
+    if (CLOUD_BIN_NAME) h["X-Bin-Name"] = CLOUD_BIN_NAME;
+    return h;
+  }
+  async function cloudInit() {
+    setCloudChip("verbinde…", "syncing");
+    try {
+      if (!cloudBinId) {
+        var r = await fetch("https://api.jsonbin.io/v3/b", {
+          method: "POST", headers: cloudHeaders(),
+          body: JSON.stringify({ chatHistory: [], settings: {}, ts: Date.now() })
+        });
+        var d = await r.json();
+        if (d && d.metadata && d.metadata.id) { cloudBinId = d.metadata.id; localStorage.setItem("haldo_v9_bin", cloudBinId); }
+        else { setCloudChip("Fehler", "error"); return; }
+      }
+      setCloudChip("verbunden ✓");
+      await cloudPull();
+    } catch(e) { setCloudChip("Fehler", "error"); }
+  }
+  async function cloudPull() {
+    if (!cloudBinId) return;
+    setCloudChip("lade…", "syncing");
+    try {
+      var r = await fetch("https://api.jsonbin.io/v3/b/" + cloudBinId + "/latest", { headers: { "X-Master-Key": CLOUD_KEY } });
+      var d = await r.json();
+      var rec = d.record || {};
+      if (rec.chatHistory && Array.isArray(rec.chatHistory)) state.chatHistory = rec.chatHistory;
+      if (rec.settings && rec.settings.groqKey) state.groqKey = rec.settings.groqKey;
+      saveState(); renderChat(); setCloudChip("synchron ✓");
+    } catch(e) { setCloudChip("Fehler", "error"); }
+  }
+  async function cloudPush() {
+    if (!cloudBinId) return;
+    setCloudChip("speichere…", "syncing");
+    try {
+      await fetch("https://api.jsonbin.io/v3/b/" + cloudBinId, {
+        method: "PUT", headers: cloudHeaders(),
+        body: JSON.stringify({ chatHistory: state.chatHistory.slice(-50), settings: { groqKey: state.groqKey }, ts: Date.now() })
+      });
+      setCloudChip("synchron ✓");
+    } catch(e) { setCloudChip("Fehler", "error"); }
+  }
+  function cloudSchedule() { if (cloudTimer) clearTimeout(cloudTimer); cloudTimer = setTimeout(cloudPush, 1500); }
+
+  // CANVAS
+  var canvas = document.getElementById("avatar-canvas");
+  var ctx = canvas.getContext("2d");
+  var faceImg = new Image();
+  var faceLoaded = false;
+  if (state.photoData) { faceImg.onload = function() { faceLoaded = true; resizeCanvas(); updateButtons(); }; faceImg.src = state.photoData; }
+
+  var mouseX = 0, mouseY = 0;
+  document.addEventListener("mousemove", function(e) {
+    mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+    mouseY = -((e.clientY / window.innerHeight) * 2 - 1);
+  });
+
+  var t = 0, speakGlow = 0, targetGlow = 0;
+  var isSpeaking = false, speakLevel = 0, speakTarget = 0;
+  var blinkAmount = 0, blinkTimer = 90, headBob = 0;
+  var MOUTH_LINE = 0.62, EYE_LINE = 0.38;
+
+  var particles = [];
+  for (var i = 0; i < 100; i++) {
+    particles.push({
+      x: Math.random(), y: Math.random(),
+      vx: (Math.random() - 0.5) * 0.0005, vy: -0.0004 - Math.random() * 0.001,
+      size: 1.2 + Math.random() * 2.6, hue: Math.random() < 0.5 ? 190 : 270,
+      phase: Math.random() * Math.PI * 2
+    });
+  }
+
+  function resizeCanvas() {
+    var maxW = window.innerWidth, maxH = window.innerHeight;
+    var w = maxW, h = maxH;
+    if (faceLoaded && faceImg.width > 0) {
+      var ratio = faceImg.width / faceImg.height;
+      if (maxW / ratio <= maxH) { w = maxW; h = maxW / ratio; }
+      else { h = maxH; w = maxH * ratio; }
+    }
+    canvas.width = w * window.devicePixelRatio;
+    canvas.height = h * window.devicePixelRatio;
+    canvas.style.width = w + "px";
+    canvas.style.height = h + "px";
+  }
+  window.addEventListener("resize", resizeCanvas);
+
+  function draw() {
+    requestAnimationFrame(draw);
+    t += 0.016;
+    var W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    if (isSpeaking && state.talkingOn) speakTarget = 0.15 + Math.random() * 0.85;
+    else speakTarget = 0;
+    speakLevel += (speakTarget - speakLevel) * 0.3;
+
+    var headBobTarget = (isSpeaking && state.talkingOn) ? Math.sin(t * 8) * 0.005 : 0;
+    headBob += (headBobTarget - headBob) * 0.15;
+
+    if (state.blinkingOn) {
+      blinkTimer -= 1;
+      if (blinkTimer <= 0) { blinkAmount = 1; blinkTimer = 80 + Math.random() * 120; }
+      if (blinkAmount > 0) { blinkAmount -= 0.25; if (blinkAmount < 0) blinkAmount = 0; }
+    } else blinkAmount = 0;
+
+    var breath = state.breathOn ? Math.sin(t * 1.1) * 0.010 : 0;
+    var idleSwayX = Math.sin(t * 0.5) * 0.018;
+    var idleSwayY = Math.cos(t * 0.7) * 0.012;
+    var tiltX = state.trackingOn ? mouseX * 0.025 : 0;
+    speakGlow += (targetGlow - speakGlow) * 0.12;
+
+    var cx = W / 2, cy = H / 2, scale = 1 + breath;
+    var glowIntensity = 0.3 + speakGlow * 0.5;
+    var radial = ctx.createRadialGradient(cx, cy, W * 0.1, cx, cy, W * 0.6);
+    radial.addColorStop(0, "rgba(0,212,255,0)");
+    radial.addColorStop(0.65, "rgba(0,212,255," + glowIntensity + ")");
+    radial.addColorStop(1, "rgba(0,212,255,0)");
+    ctx.fillStyle = radial;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.save();
+    ctx.translate(cx + (idleSwayX * W), cy + (idleSwayY * H) + (headBob * H));
+    ctx.rotate(tiltX);
+    ctx.scale(scale, scale);
+
+    // METALLISCHER ROBOTER-FILTER
+    ctx.filter = "grayscale(0.85) saturate(1.6) contrast(1.5) brightness(0.85) hue-rotate(190deg)";
+    ctx.globalAlpha = 0.98;
+
+    if (faceLoaded) {
+      if (state.talkingOn && speakLevel > 0.02 && faceImg.width > 0) {
+        var mouthPixelY = faceImg.height * MOUTH_LINE;
+        var jawOffsetPx = (speakLevel * 0.025) * H;
+        ctx.drawImage(faceImg, 0, 0, faceImg.width, mouthPixelY, -W/2, -H/2, W, H * MOUTH_LINE);
+        var mouthCenterX = cx;
+        var mouthCenterY = -H/2 + H * MOUTH_LINE + (H * 0.015);
+        var mouthWidth = W * 0.05 * (0.7 + speakLevel * 0.6);
+        var mouthHeight = H * 0.04 * (0.3 + speakLevel * 0.7);
+        ctx.save();
+        ctx.filter = "none";
+        ctx.fillStyle = "rgba(0,0,0," + (0.8 * speakLevel) + ")";
+        ctx.beginPath();
+        ctx.ellipse(mouthCenterX, mouthCenterY, mouthWidth, mouthHeight, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        ctx.drawImage(faceImg, 0, mouthPixelY, faceImg.width, faceImg.height - mouthPixelY,
+          -W/2, -H/2 + H * MOUTH_LINE + jawOffsetPx, W, H * (1 - MOUTH_LINE) + jawOffsetPx);
+      } else {
+        ctx.drawImage(faceImg, -W/2, -H/2, W, H);
+      }
+    } else {
+      ctx.filter = "none";
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "rgba(15,21,36,0.6)";
+      ctx.beginPath();
+      ctx.arc(0, 0, Math.min(W, H) * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#00d4ff";
+      ctx.font = "bold " + (W * 0.04) + "px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText("🤖", 0, -20);
+      ctx.font = "bold " + (W * 0.018) + "px system-ui";
+      ctx.fillText("Foto auswählen", 0, 30);
+    }
+    ctx.restore();
+
+    if (faceLoaded) {
+      // HEAD-SET BOGEN
+      var headTopY = H * 0.15, headWidth = W * 0.32;
+      ctx.save();
+      ctx.strokeStyle = "rgba(0,212,255,0.95)";
+      ctx.lineWidth = W * 0.014;
+      ctx.shadowColor = "#00d4ff";
+      ctx.shadowBlur = 40;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.arc(cx, headTopY + H * 0.10, headWidth, Math.PI * 1.05, Math.PI * 1.95);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(124,58,237,0.75)";
+      ctx.lineWidth = W * 0.005;
+      ctx.shadowColor = "#7c3aed";
+      ctx.shadowBlur = 25;
+      ctx.beginPath();
+      ctx.arc(cx, headTopY + H * 0.10, headWidth * 0.94, Math.PI * 1.10, Math.PI * 1.90);
+      ctx.stroke();
+      ctx.restore();
+
+      // ANTENNE
+      if (state.antennaOn) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(0,212,255,0.9)";
+        ctx.lineWidth = W * 0.004;
+        ctx.shadowColor = "#00d4ff";
+        ctx.shadowBlur = 25;
+        ctx.beginPath();
+        ctx.moveTo(cx, headTopY + H * 0.06);
+        ctx.lineTo(cx, headTopY - H * 0.04);
+        ctx.stroke();
+        var antennaPulse = 0.7 + Math.sin(t * 4) * 0.3;
+        ctx.fillStyle = "rgba(0,212,255," + antennaPulse + ")";
+        ctx.beginPath();
+        ctx.arc(cx, headTopY - H * 0.05, W * 0.012, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // OHR-SENSOREN
+      var dirs = [-1, 1];
+      for (var i = 0; i < 2; i++) {
+        var ex = cx + dirs[i] * W * 0.30, ey = H * 0.34;
+        var pulse = 0.75 + Math.sin(t * 5 + i * 1.7) * 0.25;
+        ctx.save();
+        ctx.strokeStyle = "rgba(0,212,255," + pulse + ")";
+        ctx.lineWidth = W * 0.008;
+        ctx.shadowColor = "#00d4ff";
+        ctx.shadowBlur = 40;
+        ctx.beginPath(); ctx.arc(ex, ey, W * 0.028, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(ex, ey, W * 0.017, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = "rgba(0,212,255," + pulse + ")";
+        ctx.beginPath(); ctx.arc(ex, ey, W * 0.008, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+
+      // LED-AUGEN
+      if (state.ledEyesOn) {
+        var eyeY = H * 0.34, eyeDX = W * 0.12;
+        for (var j = 0; j < 2; j++) {
+          var ex2 = cx + dirs[j] * eyeDX;
+          var pulse2 = 0.8 + Math.sin(t * 4.5 + j) * 0.2;
+          ctx.save();
+          ctx.shadowColor = "#00d4ff";
+          ctx.shadowBlur = 60 * pulse2;
+          ctx.fillStyle = "rgba(0,212,255," + (0.35 * pulse2) + ")";
+          ctx.beginPath(); ctx.arc(ex2, eyeY, W * 0.042, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = "rgba(0,212,255," + (0.95 * pulse2) + ")";
+          ctx.lineWidth = W * 0.004;
+          ctx.beginPath(); ctx.arc(ex2, eyeY, W * 0.032, 0, Math.PI * 2); ctx.stroke();
+          ctx.fillStyle = "rgba(0,212,255," + (0.95 * pulse2) + ")";
+          ctx.beginPath(); ctx.arc(ex2, eyeY, W * 0.020, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "rgba(255,255,255," + pulse2 + ")";
+          ctx.beginPath(); ctx.arc(ex2, eyeY, W * 0.010, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        }
+        // Scan-Strahl
+        ctx.save();
+        ctx.strokeStyle = "rgba(0,212,255,0.6)";
+        ctx.lineWidth = W * 0.002;
+        ctx.shadowColor = "#00d4ff";
+        ctx.shadowBlur = 15;
+        var scanEyeY = eyeY + Math.sin(t * 2) * (H * 0.015);
+        ctx.beginPath();
+        ctx.moveTo(cx - W * 0.25, scanEyeY);
+        ctx.lineTo(cx + W * 0.25, scanEyeY);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Stirn-Linien
+      ctx.save();
+      ctx.strokeStyle = "rgba(0,212,255,0.30)";
+      ctx.lineWidth = W * 0.0015;
+      ctx.shadowColor = "#00d4ff";
+      ctx.shadowBlur = 6;
+      for (var li = 0; li < 3; li++) {
+        var ly = H * (0.10 + li * 0.05);
+        ctx.beginPath(); ctx.moveTo(cx - W * 0.20, ly); ctx.lineTo(cx + W * 0.20, ly); ctx.stroke();
+      }
+      ctx.restore();
+
+      // BRUST-REAKTOR
+      var reactorY = H * 0.78, pulse3 = 1 + Math.sin(t * 3) * 0.15, rR = W * 0.045 * pulse3;
+      ctx.save();
+      ctx.shadowColor = "#00d4ff"; ctx.shadowBlur = 80;
+      ctx.fillStyle = "rgba(0,212,255,0.35)";
+      ctx.beginPath(); ctx.arc(cx, reactorY, rR * 1.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#00d4ff"; ctx.shadowBlur = 60;
+      ctx.beginPath(); ctx.arc(cx, reactorY, rR, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.98)"; ctx.shadowBlur = 40;
+      ctx.beginPath(); ctx.arc(cx, reactorY, rR * 0.40, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "rgba(124,58,237,1)";
+      ctx.lineWidth = W * 0.008;
+      ctx.shadowColor = "#7c3aed"; ctx.shadowBlur = 35;
+      ctx.beginPath(); ctx.arc(cx, reactorY, rR * 1.8, t * 0.9, t * 0.9 + Math.PI * 1.4); ctx.stroke();
+      ctx.strokeStyle = "rgba(0,212,255,1)";
+      ctx.shadowColor = "#00d4ff";
+      ctx.beginPath(); ctx.arc(cx, reactorY, rR * 2.1, -t * 0.6, -t * 0.6 + Math.PI * 0.8); ctx.stroke();
+      ctx.restore();
+    }
+
+    // Partikel
+    if (state.particlesOn) {
+      ctx.save();
+      for (var p = 0; p < particles.length; p++) {
+        var pt = particles[p];
+        pt.x += pt.vx; pt.y += pt.vy;
+        if (pt.y < -0.05) { pt.y = 1.05; pt.x = Math.random(); }
+        if (pt.x < -0.05) pt.x = 1.05;
+        if (pt.x > 1.05) pt.x = -0.05;
+        var alpha = 0.3 + Math.sin(t * 2 + pt.phase) * 0.35;
+        ctx.fillStyle = "hsla(" + pt.hue + ", 100%, 68%, " + alpha + ")";
+        ctx.beginPath();
+        ctx.arc(pt.x * W, pt.y * H, pt.size * window.devicePixelRatio, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  draw();
+
+  // FOTO UPLOAD
+  var uploadBtn = document.getElementById("uploadBtn");
+  var clearBtn = document.getElementById("clearBtn");
+  var fileInput = document.getElementById("fileInput");
+  uploadBtn.addEventListener("click", function() { fileInput.click(); });
+  fileInput.addEventListener("change", function(e) {
+    var file = e.target.files[0]; if (!file) return;
+    if (file.size > 4 * 1024 * 1024) { alert("Bild zu groß! Bitte unter 4 MB."); return; }
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      state.photoData = ev.target.result; saveState();
+      try { localStorage.setItem("haldo_photo_v6", JSON.stringify({ photoData: state.photoData })); } catch(e) {}
+      faceImg.onload = function() { faceLoaded = true; resizeCanvas(); updateButtons(); setStatus("🤖 Roboter geladen!"); };
+      faceImg.src = state.photoData;
+    };
+    reader.readAsDataURL(file);
+  });
+  clearBtn.addEventListener("click", function() {
+    if (!confirm("Foto wirklich löschen?")) return;
+    state.photoData = null; saveState();
+    try { localStorage.removeItem("haldo_photo_v6"); } catch(e) {}
+    faceLoaded = false; faceImg = new Image(); updateButtons(); setStatus("🤖 Foto gelöscht");
+  });
+  function updateButtons() {
+    if (faceLoaded) { uploadBtn.textContent = "🔄 Foto wechseln"; clearBtn.style.display = "block"; }
+    else { uploadBtn.textContent = "📸 Foto auswählen"; clearBtn.style.display = "none"; }
+  }
+  updateButtons();
+
+  document.getElementById("toggleUI").addEventListener("click", function() {
+    document.getElementById("panel").classList.toggle("hidden");
+    document.getElementById("settings").classList.toggle("hidden");
+  });
+
+  var tabs = document.querySelectorAll("#tabs .tab");
+  for (var ti = 0; ti < tabs.length; ti++) {
+    (function(tab) {
+      tab.addEventListener("click", function() {
+        for (var k = 0; k < tabs.length; k++) tabs[k].classList.remove("active");
+        tab.classList.add("active");
+        var panes = document.querySelectorAll(".panel-content");
+        for (var k2 = 0; k2 < panes.length; k2++) panes[k2].classList.remove("active");
+        document.getElementById(tab.dataset.tab).classList.add("active");
+      });
+    })(tabs[ti]);
+  }
+
+  function bindCheck(id, key) {
+    var el = document.getElementById(id);
+    el.checked = state[key];
+    el.addEventListener("change", function(e) { state[key] = e.target.checked; saveState(); cloudSchedule(); });
+  }
+  bindCheck("breathOn", "breathOn");
+  bindCheck("trackingOn", "trackingOn");
+  bindCheck("particlesOn", "particlesOn");
+  bindCheck("scanlinesOn", "scanlinesOn");
+  bindCheck("ledEyesOn", "ledEyesOn");
+  bindCheck("antennaOn", "antennaOn");
+  bindCheck("talkingOn", "talkingOn");
+  bindCheck("blinkingOn", "blinkingOn");
+
+  // CHAT
+  var chatLog = document.getElementById("chatLog");
+  function addMsg(role, text, save) {
+    if (save === undefined) save = true;
+    if (save) {
+      state.chatHistory.push({ role: role, text: text, ts: Date.now() });
+      if (state.chatHistory.length > 100) state.chatHistory.shift();
+      saveState(); cloudSchedule();
+    }
+    var el = document.createElement("div");
+    el.className = "msg " + role;
+    if (role !== "sys") {
+      var w = document.createElement("div"); w.className = "who";
+      w.textContent = role === "user" ? "Du" : "HalDo";
+      el.appendChild(w);
+    }
+    el.appendChild(document.createTextNode(text));
+    chatLog.appendChild(el);
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+  function renderChat() {
+    chatLog.innerHTML = "";
+    if (state.chatHistory.length) {
+      for (var i = 0; i < state.chatHistory.length; i++) addMsg(state.chatHistory[i].role, state.chatHistory[i].text, false);
+    } else {
+      addMsg("bot", "Hallo Bruder! 🤖 Ich bin der Roboter-Modus. Lade ein Foto hoch oder schreib mir!", false);
+    }
+  }
+  renderChat();
+
+  var CACHED_MODEL = null;
+  async function getGroqModel() {
+    if (CACHED_MODEL) return CACHED_MODEL;
+    if (!state.groqKey) return null;
+    try {
+      var r = await fetch("https://api.groq.com/openai/v1/models", { headers: { "Authorization": "Bearer " + state.groqKey.trim() } });
+      if (!r.ok) return null;
+      var d = await r.json();
+      if (!d || !d.data) return null;
+      var priority = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.6-27b", "qwen/qwen3-32b"];
+      for (var i = 0; i < priority.length; i++) {
+        for (var j = 0; j < d.data.length; j++) {
+          if (d.data[j].id === priority[i]) { CACHED_MODEL = priority[i]; return CACHED_MODEL; }
+        }
+      }
+      for (var m = 0; m < d.data.length; m++) {
+        var id = d.data[m].id;
+        if (id.indexOf("whisper") === -1 && id.indexOf("tts") === -1 && id.indexOf("guard") === -1 && id.indexOf("orpheus") === -1) {
+          CACHED_MODEL = id; return CACHED_MODEL;
+        }
+      }
+      return null;
+    } catch(e) { return null; }
+  }
+  async function askGroq(text) {
+    if (!state.groqKey) throw new Error("Kein Groq-Key.");
+    var model = await getGroqModel();
+    if (!model) throw new Error("Kein Chat-Modell verfügbar.");
+    var contents = [];
+    var slice = state.chatHistory.slice(-11, -1);
+    for (var i = 0; i < slice.length; i++) {
+      if (slice[i].role === "user" || slice[i].role === "bot") {
+        contents.push({ role: slice[i].role === "user" ? "user" : "assistant", content: slice[i].text });
+      }
+    }
+    contents.push({ role: "user", content: text });
+    var r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + state.groqKey.trim() },
+      body: JSON.stringify({ model: model, messages: contents, temperature: 0.8, max_tokens: 500 })
+    });
+    if (!r.ok) {
+      var errText = await r.text();
+      throw new Error("Groq " + r.status + ": " + errText.substring(0, 100));
+    }
+    var d = await r.json();
+    return ((d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || "").trim();
+  }
+  function localReply(text) {
+    var l = text.toLowerCase().trim();
+    if (/^(hallo|hi|hey|servus|merhaba|silav|guten)/.test(l)) {
+      var h = new Date().getHours();
+      return (h < 6 ? "Gute Nacht" : h < 12 ? "Guten Morgen" : h < 18 ? "Guten Tag" : "Guten Abend") + " Bruder!";
+    }
+    return null;
+  }
+  async function handleMsg(text) {
+    addMsg("user", text);
+    var local = localReply(text);
+    if (!state.groqKey) {
+      if (local) setTimeout(function() { addMsg("bot", local); speak(local); }, 400);
+      else setTimeout(function() { addMsg("bot", "Trag deinen Groq-Key im Home-Dashboard ein, Bruder!"); }, 400);
+      return;
+    }
+    setStatus("🤖 denke…");
+    try {
+      var reply = await askGroq(text);
+      addMsg("bot", reply); speak(reply); setStatus("🦚 Bereit");
+    } catch(e) { addMsg("sys", "⚠️ " + e.message); setStatus("⚠️ Fehler"); }
+  }
+  document.getElementById("chatInput").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") { var v = this.value.trim(); if (v) { this.value = ""; handleMsg(v); } }
+  });
+  document.getElementById("sendBtn").addEventListener("click", function() {
+    var v = document.getElementById("chatInput").value.trim();
+    if (v) { document.getElementById("chatInput").value = ""; handleMsg(v); }
+  });
+
+  // TTS
+  var synth = window.speechSynthesis, voices = [];
+  function loadVoices() { voices = synth.getVoices(); }
+  if (synth) { loadVoices(); synth.onvoiceschanged = loadVoices; }
+  function speak(text) {
+    if (!synth) return;
+    synth.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    var v = voices.find(function(x) { return x.lang.startsWith("de"); });
+    if (v) u.voice = v;
+    u.rate = 1.0; u.pitch = 0.9; u.lang = "de-DE";
+    u.onstart = function() { targetGlow = 1; isSpeaking = true; setStatus("🔊 spricht…"); };
+    u.onend = function() { targetGlow = 0; isSpeaking = false; setStatus("🦚 Bereit"); };
+    u.onerror = function() { targetGlow = 0; isSpeaking = false; };
+    synth.speak(u);
+  }
+  function setStatus(text) { document.getElementById("status").textContent = text; }
+
+  // MIC
+  var micBtn = document.getElementById("micBtn");
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var rec = null, listening = false;
+  if (SR) {
+    rec = new SR(); rec.lang = "de-DE"; rec.interimResults = false;
+    rec.onresult = function(e) { handleMsg(e.results[0][0].transcript); };
+    rec.onend = function() { listening = false; micBtn.classList.remove("listening"); setStatus("🦚 Bereit"); };
+    rec.onerror = function() { listening = false; micBtn.classList.remove("listening"); };
+  }
+  micBtn.addEventListener("click", function() {
+    if (!rec) return alert("Nur Chrome/Edge.");
+    if (listening) { rec.stop(); return; }
+    try { rec.start(); listening = true; micBtn.classList.add("listening"); setStatus("🎙️ höre…"); } catch(e) {}
+  });
+
+  cloudInit();
+  console.log("🦚 HalDo AI OS · Roboter-Modul geladen");
+})();
+</script>
+</body>
+</html>
