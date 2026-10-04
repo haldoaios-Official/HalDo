@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="de"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>HalDo AI OS · Foto-Avatar V8.4 Cloud</title>
+<title>HalDo AI OS · Foto-Avatar V8.5 Cloud</title>
 <style>
 :root{--primary:#00d4ff;--primary-2:#7c3aed;--bg:#050810;--bg-3:#0f1524;--border:rgba(0,212,255,.12);--text:#e6f0ff;--text-dim:#7a8ba8;--success:#22c55e;--danger:#ef4444;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -115,7 +115,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
 <div id="stage"><canvas id="avatar-canvas"></canvas></div>
 
 <div id="topbar">
-  <div class="title">🦚 HalDo V8.4 Cloud</div>
+  <div class="title">🦚 HalDo V8.5 Cloud</div>
   <div class="spacer"></div>
   <div class="mode-row">
     <button class="mode-btn active" data-mode="human">🧑 Human</button>
@@ -148,9 +148,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
   </div>
   <div id="homeTab" class="panel-content active">
     <div class="form-area">
-      <h3>☁️ HalDo Cloud V8.4</h3>
-      <p><b style="color:var(--text)">Neu in V8.4:</b><br>
-      ✅ Groq-Fix (neue Modelle: GPT-OSS & Qwen)<br>
+      <h3>☁️ HalDo Cloud V8.5</h3>
+      <p><b style="color:var(--text)">Neu in V8.5:</b><br>
+      ✅ Dynamische Groq-Modelle (keine 404 mehr)<br>
       ✅ JSONBin-Fix (stabile Cloud)<br>
       👄 Realistische Mundbewegung<br>
       👁️ Augen-Saccades & Körper-Atmung</p>
@@ -268,7 +268,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
   // ==================== HALDO CLOUD (JSONBin) ====================
   var CLOUD_KEY = "$2a$10$M700HtNnimFFAF9jELImwOevAXcu2Jc.RkAAlA32blj/jkE3B1VDO";
   var CLOUD_BIN_ID = null;
-  var CLOUD_BIN_NAME = "haldo-cloud-v84";
+  var CLOUD_BIN_NAME = "haldo-cloud-v85";
   var cloudSyncTimer = null;
   var cloudReady = false;
 
@@ -417,7 +417,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
         addMsg(hm.role, hm.text, false);
       }
     } else {
-      addMsg("bot", "Hallo Bruder! 🦚 V8.4 Cloud — bereit für lebendige Unterhaltungen!", false);
+      addMsg("bot", "Hallo Bruder! 🦚 V8.5 Cloud — dynamische Groq-Modelle!", false);
     }
     ["breathOn","trackingOn","particlesOn","scanlinesOn","talkingOn","blinkingOn","saccadesOn"].forEach(function(id){
       var el = document.getElementById(id);
@@ -560,7 +560,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
         var eyeXOffset = eyeShift * W;
         if (state.blinkingOn && blinkAmount > 0) {
           var grad = ctx.createLinearGradient(0, eyeY - H * 0.03, 0, eyeY + H * 0.03);
-          grad.addColorStop(0, "rgba(0,0, ctx0,0)");
+          grad.addColorStop(0, "rgba(0,0,0,0)");
           grad.addColorStop(0.5, "rgba(0,0,0," + (blinkAmount * 0.85) + ")");
           grad.addColorStop(1, "rgba(0,0,0,0)");
           ctx.fillStyle = grad;
@@ -588,7 +588,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
       ctx.textAlign = "center";
       ctx.fillText("📸", 0, -20);
       ctx.font = "bold " + (W * 0.018) + "px system-ui";
-     .fillText("Foto auswählen", 0, 30);
+      ctx.fillText("Foto auswählen", 0, 30);
     }
     ctx.restore();
 
@@ -1272,6 +1272,25 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
+  async function getAvailableGroqModel() {
+    try {
+      var r = await fetch("https://api.groq.com/openai/v1/models", {
+        headers: { "Authorization": "Bearer " + state.groqKey.trim() }
+      });
+      if (!r.ok) return null;
+      var d = await r.json();
+      if (!d || !d.data || !d.data.length) return null;
+      // Nimm das erste Modell, das nicht "whisper" oder "tts" ist
+      for (var i = 0; i < d.data.length; i++) {
+        var id = d.data[i].id;
+        if (id.indexOf("whisper") === -1 && id.indexOf("tts") === -1) {
+          return id;
+        }
+      }
+      return d.data[0].id;
+    } catch (e) { return null; }
+  }
+
   async function askGroq(text) {
     if (!state.groqKey) throw new Error("Kein Groq-Key.");
     var contents = [];
@@ -1283,33 +1302,20 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
     }
     contents.push({ role: "user", content: text });
     
-    // AKTUELLE GROQ-MODELLE (Stand 2026): GPT-OSS und Qwen
-    var models = [
-      "openai/gpt-oss-120b",      // Groqs primäre Empfehlung
-      "qwen/qwen3.6-27b",         // Schnelle Alternative
-      "openai/gpt-oss-20b"        // Kompakter Fallback
-    ];
-    var lastError = null;
+    var model = await getAvailableGroqModel();
+    if (!model) throw new Error("Kein verfügbares Groq-Modell gefunden. Prüfe deinen API-Key.");
     
-    for (var mi = 0; mi < models.length; mi++) {
-      try {
-        var r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + state.groqKey.trim() },
-          body: JSON.stringify({ model: models[mi], messages: contents, temperature: 0.8, max_tokens: 500 })
-        });
-        if (r.ok) {
-          var d = await r.json();
-          return ((d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || "").trim();
-        } else {
-          var errData = await r.text();
-          lastError = "Groq " + r.status + ": " + errData.substring(0, 80);
-        }
-      } catch (e) {
-        lastError = e.message;
-      }
+    var r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + state.groqKey.trim() },
+      body: JSON.stringify({ model: model, messages: contents, temperature: 0.8, max_tokens: 500 })
+    });
+    if (!r.ok) {
+      var errData = await r.text();
+      throw new Error("Groq " + r.status + ": " + errData.substring(0, 100));
     }
-    throw new Error(lastError || "Alle Modelle fehlgeschlagen");
+    var d = await r.json();
+    return ((d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || "").trim();
   }
 
   function localReply(text) {
@@ -1391,12 +1397,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hid
       addMsg(state.chatHistory[hi2].role, state.chatHistory[hi2].text, false);
     }
   } else {
-    addMsg("bot", "Hallo Bruder! 🦚 V8.4 Cloud — bereit für lebendige Unterhaltungen!", false);
+    addMsg("bot", "Hallo Bruder! 🦚 V8.5 Cloud — dynamische Groq-Modelle!", false);
   }
 
   cloudInit();
 
-  console.log("🦚 HalDo Foto-Avatar V8.4 Cloud · Neue Groq-Modelle + lebendige Animationen");
+  console.log("🦚 HalDo Foto-Avatar V8.5 Cloud · Dynamische Groq-Modelle");
 })();
 </script>
 
