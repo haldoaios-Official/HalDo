@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>HalDo AI OS · Bild Studio</title>
+<style>
+:root{--primary:#00d4ff;--primary-2:#7c3aed;--bg:#050810;--bg-3:#0f1524;--border:rgba(0,212,255,.12);--text:#e6f0ff;--text-dim:#7a8ba8;--success:#22c55e;--danger:#ef4444;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:hidden;padding:14px;padding-bottom:90px}
+.bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(circle at 20% 20%,rgba(0,212,255,.08),transparent 50%),radial-gradient(circle at 80% 80%,rgba(124,58,237,.08),transparent 50%)}
+.topbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.topbar .home-btn{width:38px;height:38px;border-radius:10px;background:rgba(10,15,28,.85);border:1px solid rgba(0,212,255,.3);color:var(--primary);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;text-decoration:none;flex-shrink:0}
+.topbar .home-btn:hover{background:rgba(0,212,255,.2)}
+.topbar h1{font-size:16px;font-weight:800;color:var(--primary);letter-spacing:.5px}
+.topbar .spacer{flex:1}
+.status-chip{display:flex;align-items:center;gap:6px;padding:5px 10px;background:rgba(10,15,28,.85);border:1px solid var(--border);border-radius:8px;font-size:10px;color:var(--text-dim)}
+.status-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--success);box-shadow:0 0 6px var(--success)}
+.status-chip.syncing .dot{background:#f59e0b;box-shadow:0 0 6px #f59e0b}
+.status-chip.error .dot{background:var(--danger);box-shadow:0 0 6px var(--danger)}
+.tabs{display:flex;gap:3px;padding:6px;background:rgba(10,15,28,.7);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;max-width:500px}
+.tab{flex:1;padding:9px 8px;background:transparent;border:1px solid transparent;border-radius:8px;color:var(--text-dim);font-family:inherit;font-size:11.5px;font-weight:600;cursor:pointer;transition:all .15s}
+.tab.active{background:linear-gradient(135deg,rgba(0,212,255,.25),rgba(124,58,237,.25));border-color:rgba(0,212,255,.4);color:var(--text)}
+.pane{display:none;flex-direction:column;gap:14px}
+.pane.active{display:flex}
+.card{padding:16px;background:rgba(10,15,28,.75);border:1px solid var(--border);border-radius:12px;backdrop-filter:blur(10px)}
+.card h3{margin-bottom:10px;font-size:13px;color:var(--primary);display:flex;align-items:center;gap:6px}
+.card h3::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--primary);box-shadow:0 0 8px var(--primary)}
+label{display:block;font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:5px;margin-top:8px}
+input[type="text"],textarea,select{width:100%;background:var(--bg-3);border:1px solid rgba(0,212,255,.25);color:var(--text);padding:10px 12px;border-radius:9px;font-family:inherit;font-size:12.5px;outline:none;resize:vertical}
+textarea{min-height:70px}
+select{cursor:pointer}
+.btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;border:none;border-radius:9px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;margin-top:8px}
+.btn:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(0,212,255,.4)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn.secondary{background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.4);color:#a78bfa;box-shadow:none}
+.btn.danger{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:var(--danger);box-shadow:none}
+.btn.success{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.4);color:var(--success);box-shadow:none}
+.btn.primary-outline{background:rgba(0,212,255,.15);border:1px solid rgba(0,212,255,.4);color:var(--primary);box-shadow:none}
+.row2{display:flex;gap:8px;margin-top:8px}
+.row2>*{flex:1}
+.row3{display:flex;gap:6px;margin-top:8px}
+.row3>*{flex:1}
+.row3 .btn,.row2 .btn{margin-top:0}
+.preview{margin-top:12px;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:rgba(0,0,0,.3);min-height:140px;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:12px;text-align:center;padding:24px}
+.preview img,.preview canvas{width:100%;display:block;border-radius:8px}
+.actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.actions button{flex:1;min-width:80px;padding:9px;border-radius:8px;border:none;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer}
+.ref-preview{display:flex;align-items:center;gap:10px;padding:10px;background:rgba(0,212,255,.05);border:1px dashed rgba(0,212,255,.3);border-radius:10px;margin-top:8px}
+.ref-preview img{width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid var(--border)}
+.ref-preview .info{flex:1;font-size:11px;color:var(--text-dim);line-height:1.4}
+.ref-preview .info b{color:var(--text)}
+.ref-preview .rm{width:26px;height:26px;border-radius:50%;background:rgba(239,68,68,.85);color:#fff;border:none;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center}
+.slider-wrap{margin-top:10px}
+.slider-wrap .lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);margin-bottom:4px}
+.slider-wrap input[type="range"]{width:100%;accent-color:var(--primary)}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.gal-item{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:rgba(0,0,0,.3);aspect-ratio:1}
+.gal-item img{width:100%;height:100%;object-fit:cover;display:block}
+.gal-item .btn-icon{position:absolute;width:26px;height:26px;border-radius:50%;color:#fff;border:none;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.gal-item .del{top:6px;right:6px;background:rgba(239,68,68,.9)}
+.gal-item .edit{top:6px;left:6px;background:rgba(0,212,255,.9)}
+.gal-item .use{bottom:6px;right:6px;background:rgba(124,58,237,.9)}
+.gal-empty{text-align:center;color:var(--text-dim);font-size:12px;padding:40px 14px;grid-column:1/-1}
+#status{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(0,212,255,.15);border:1px solid var(--primary);padding:7px 16px;border-radius:20px;font-size:11.5px;font-weight:600;color:var(--primary);z-index:100;pointer-events:none;backdrop-filter:blur(10px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:92vw}
+@media (max-width:600px){body{padding:10px;padding-bottom:80px}.tabs{max-width:none}.card{padding:12px}}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+
+<div class="topbar">
+  <a class="home-btn" href="index.html" title="Zurück zum Home">←</a>
+  <h1>🎨 Bild Studio</h1>
+  <div class="spacer"></div>
+  <div class="status-chip" id="cloudChip"><span class="dot"></span><span id="cloudText">Cloud: …</span></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-pane="genPane">✨ Generieren</button>
+  <button class="tab" data-pane="editPane">✏️ Bearbeiten</button>
+  <button class="tab" data-pane="galleryPane">🖼️ Galerie</button>
+</div>
+
+<!-- GENERIEREN -->
+<div id="genPane" class="pane active">
+  <div class="card">
+    <h3>Bild generieren</h3>
+    <label>Beschreibung (Prompt)</label>
+    <textarea id="genPrompt" placeholder="z.B. Ein cyberpunk Roboter in Neonlicht, ultra-detailed, 8k"></textarea>
+    <div class="row2">
+      <div>
+        <label>Größe</label>
+        <select id="genSize">
+          <option value="512x512">512×512</option>
+          <option value="768x768">768×768</option>
+          <option value="1024x1024" selected>1024×1024</option>
+        </select>
+      </div>
+      <div>
+        <label>Modell</label>
+        <select id="genModel">
+          <option value="flux">Flux</option>
+          <option value="nanobanana" selected>Nano Banana</option>
+          <option value="turbo">Turbo</option>
+        </select>
+      </div>
+    </div>
+    <label style="margin-top:14px">Eigenes Foto als Vorlage (Bild-zu-Bild)</label>
+    <button class="btn secondary" id="refUploadBtn">🖼️ Eigenes Bild als Vorlage</button>
+    <input type="file" id="refFileInput" accept="image/*" style="display:none">
+    <div id="refPreviewContainer" style="display:none;">
+      <div class="ref-preview">
+        <img id="refPreviewImg" src="" alt="Vorlage">
+        <div class="info"><b>Vorlage aktiv</b><br>Wird als Grundlage für die KI verwendet.</div>
+        <button class="rm" id="refRemoveBtn">✕</button>
+      </div>
+    </div>
+    <button class="btn" id="genBtn">🎨 Bild generieren</button>
+    <div class="preview" id="genPreview">Dein generiertes Bild erscheint hier</div>
+    <div class="actions" id="genActions" style="display:none;">
+      <button class="btn success" id="genSave">💾 In Galerie</button>
+      <button class="btn primary-outline" id="genDl">⬇️ Download</button>
+    </div>
+  </div>
+</div>
+
+<!-- BEARBEITEN -->
+<div id="editPane" class="pane">
+  <div class="card">
+    <h3>Bild bearbeiten</h3>
+    <div class="row3">
+      <button class="btn primary-outline" id="editLoad">📂 Laden</button>
+      <button class="btn primary-outline" id="editRotate">🔄 Drehen</button>
+      <button class="btn primary-outline" id="editFlip">↔️ Spiegeln</button>
+    </div>
+    <input type="file" id="editFileInput" accept="image/*" style="display:none">
+    <div class="slider-wrap">
+      <div class="lbl"><span>Helligkeit</span><span id="brVal">100%</span></div>
+      <input type="range" id="editBrightness" min="0" max="200" value="100">
+    </div>
+    <div class="slider-wrap">
+      <div class="lbl"><span>Kontrast</span><span id="ctVal">100%</span></div>
+      <input type="range" id="editContrast" min="0" max="200" value="100">
+    </div>
+    <div class="slider-wrap">
+      <div class="lbl"><span>Sättigung</span><span id="stVal">100%</span></div>
+      <input type="range" id="editSaturate" min="0" max="200" value="100">
+    </div>
+    <div class="row3">
+      <button class="btn primary-outline" id="editGrayscale">⬛ Grau</button>
+      <button class="btn primary-outline" id="editSepia">🟤 Sepia</button>
+      <button class="btn primary-outline" id="editInvert">🔲 Invert</button>
+    </div>
+    <div class="preview" id="editorPreview"><div class="editor-empty">Lade ein Bild zum Bearbeiten</div></div>
+    <div class="actions" id="editActions" style="display:none;">
+      <button class="btn success" id="editSave">💾 Speichern</button>
+      <button class="btn primary-outline" id="editDl">⬇️ Download</button>
+    </div>
+  </div>
+</div>
+
+<!-- GALERIE -->
+<div id="galleryPane" class="pane">
+  <div class="card">
+    <h3>Deine Galerie</h3>
+    <div class="row2">
+      <button class="btn primary-outline" id="galleryRefresh">🔄 Aktualisieren</button>
+      <button class="btn primary-outline" id="galleryExport">📤 Export</button>
+    </div>
+    <div class="row2">
+      <button class="btn primary-outline" id="galleryImport">📥 Import</button>
+      <button class="btn danger" id="galleryClear">🗑️ Alle löschen</button>
+    </div>
+    <input type="file" id="galleryImportInput" accept="application/json" style="display:none">
+    <div style="margin-top:14px" class="gallery" id="galleryGrid"></div>
+  </div>
+</div>
+
+<div id="status">🦚 Bereit</div>
+
+<script>
+(function() {
+  "use strict";
+
+  var CLOUD_KEY = "$2a$10$M700HtNnimFFAF9jELImwOevAXcu2Jc.RkAAlA32blj/jkE3B1VDO";
+  var CLOUD_BIN_NAME = "haldo-cloud-v9";
+  var cloudBinId = null;
+  try { cloudBinId = localStorage.getItem("haldo_v9_bin") || null; } catch(e) {}
+  var cloudTimer = null;
+
+  function setCloudChip(text, cls) {
+    document.getElementById("cloudText").textContent = "Cloud: " + text;
+    document.getElementById("cloudChip").className = "status-chip" + (cls ? " " + cls : "");
+  }
+  function cloudHeaders() {
+    var h = { "Content-Type": "application/json", "X-Master-Key": CLOUD_KEY };
+    if (CLOUD_BIN_NAME) h["X-Bin-Name"] = CLOUD_BIN_NAME;
+    return h;
+  }
+  function cloudInit() {
+    setCloudChip("verbunden ✓");
+    // Cloud hier nur passiv – Galerie ist lokal in IndexedDB
+  }
+
+  function setStatus(text) { document.getElementById("status").textContent = text; }
+
+  // ===== TABS =====
+  var tabs = document.querySelectorAll(".tab");
+  for (var ti = 0; ti < tabs.length; ti++) {
+    (function(tab) {
+      tab.addEventListener("click", function() {
+        for (var k = 0; k < tabs.length; k++) tabs[k].classList.remove("active");
+        tab.classList.add("active");
+        var panes = document.querySelectorAll(".pane");
+        for (var k2 = 0; k2 < panes.length; k2++) panes[k2].classList.remove("active");
+        document.getElementById(tab.dataset.pane).classList.add("active");
+      });
+    })(tabs[ti]);
+  }
+
+  // ===== INDEXEDDB =====
+  var db = null, DB_NAME = "haldo_gallery", DB_STORE = "images";
+  function initDB() {
+    return new Promise(function(resolve, reject) {
+      var req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = function(e) {
+        var d = e.target.result;
+        if (!d.objectStoreNames.contains(DB_STORE)) d.createObjectStore(DB_STORE, { keyPath: "id", autoIncrement: true });
+      };
+      req.onsuccess = function(e) { db = e.target.result; resolve(db); };
+      req.onerror = function(e) { reject(e.target.error); };
+    });
+  }
+  function saveImage(dataUrl, prompt) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(DB_STORE, "readwrite");
+      var req = tx.objectStore(DB_STORE).add({ data: dataUrl, prompt: prompt || "", ts: Date.now() });
+      req.onsuccess = function() { resolve(req.result); };
+      req.onerror = function() { reject(req.error); };
+    });
+  }
+  function getAllImages() {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(DB_STORE, "readonly");
+      var req = tx.objectStore(DB_STORE).getAll();
+      req.onsuccess = function() { resolve(req.result); };
+      req.onerror = function() { reject(req.error); };
+    });
+  }
+  function deleteImage(id) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(DB_STORE, "readwrite");
+      var req = tx.objectStore(DB_STORE).delete(id);
+      req.onsuccess = function() { resolve(); };
+      req.onerror = function() { reject(req.error); };
+    });
+  }
+  function clearAllImages() {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(DB_STORE, "readwrite");
+      var req = tx.objectStore(DB_STORE).clear();
+      req.onsuccess = function() { resolve(); };
+      req.onerror = function() { reject(req.error); };
+    });
+  }
+
+  // ===== GENERIEREN =====
+  var genPrompt = document.getElementById("genPrompt");
+  var genSize = document.getElementById("genSize");
+  var genModel = document.getElementById("genModel");
+  var genPreview = document.getElementById("genPreview");
+  var genActions = document.getElementById("genActions");
+  var genBtn = document.getElementById("genBtn");
+  var currentGenUrl = null;
+  var refPublicUrl = null;
+
+  // Referenzbild-Upload via Catbox
+  var refUploadBtn = document.getElementById("refUploadBtn");
+  var refFileInput = document.getElementById("refFileInput");
+  var refPreviewContainer = document.getElementById("refPreviewContainer");
+  var refPreviewImg = document.getElementById("refPreviewImg");
+  var refRemoveBtn = document.getElementById("refRemoveBtn");
+
+  refUploadBtn.addEventListener("click", function() { refFileInput.click(); });
+  refFileInput.addEventListener("change", function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { alert("Referenzbild zu groß! Bitte unter 2 MB."); return; }
+    setStatus("⏳ Lade Vorlage hoch…");
+    refUploadBtn.disabled = true;
+    refUploadBtn.textContent = "⏳ Lade hoch…";
+    var fd = new FormData();
+    fd.append("reqtype", "fileupload");
+    fd.append("fileToUpload", file);
+    fetch("https://catbox.moe/user/api.php", { method: "POST", body: fd })
+      .then(function(r) { return r.text(); })
+      .then(function(url) {
+        if (!url || url.indexOf("http") !== 0) throw new Error("Upload fehlgeschlagen");
+        refPublicUrl = url.trim();
+        refPreviewImg.src = refPublicUrl;
+        refPreviewContainer.style.display = "block";
+        refUploadBtn.textContent = "🔄 Referenzbild wechseln";
+        refUploadBtn.disabled = false;
+        setStatus("🖼️ Vorlage hochgeladen!");
+      })
+      .catch(function(err) {
+        alert("Fehler: " + err.message);
+        refUploadBtn.textContent = "🖼️ Eigenes Bild als Vorlage";
+        refUploadBtn.disabled = false;
+        setStatus("❌ Upload fehlgeschlagen");
+      });
+  });
+  refRemoveBtn.addEventListener("click", function() {
+    refPublicUrl = null;
+    refPreviewImg.src = "";
+    refPreviewContainer.style.display = "none";
+    refUploadBtn.textContent = "🖼️ Eigenes Bild als Vorlage";
+  });
+
+  genBtn.addEventListener("click", function() {
+    var prompt = genPrompt.value.trim();
+    if (!prompt) { alert("Bitte eine Beschreibung eingeben!"); return; }
+    var size = genSize.value, model = genModel.value, seed = Math.floor(Math.random() * 999999);
+    var url = "https://image.pollinations.ai/prompt/" + encodeURIComponent(prompt) +
+              "?width=" + size.split("x")[0] + "&height=" + size.split("x")[1] +
+              "&model=" + model + "&seed=" + seed + "&nologo=true";
+    if (refPublicUrl) url += "&image=" + encodeURIComponent(refPublicUrl);
+    genBtn.disabled = true;
+    genBtn.textContent = "⏳ Generiere…";
+    genPreview.innerHTML = "⏳ Bild wird generiert… (kann ein paar Sekunden dauern)";
+    genActions.style.display = "none";
+    var img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = function() {
+      genPreview.innerHTML = "";
+      genPreview.appendChild(img);
+      currentGenUrl = url;
+      genActions.style.display = "flex";
+      genBtn.disabled = false;
+      genBtn.textContent = "🎨 Bild generieren";
+      setStatus("🎨 Bild fertig!");
+    };
+    img.onerror = function() {
+      genPreview.innerHTML = "❌ Fehler beim Laden. Bitte nochmal versuchen.";
+      genBtn.disabled = false;
+      genBtn.textContent = "🎨 Bild generieren";
+      setStatus("❌ Fehler");
+    };
+    img.src = url;
+  });
+
+  document.getElementById("genSave").addEventListener("click", async function() {
+    if (!currentGenUrl) return;
+    try {
+      var resp = await fetch(currentGenUrl);
+      var blob = await resp.blob();
+      var reader = new FileReader();
+      reader.onload = async function(ev) {
+        await saveImage(ev.target.result, genPrompt.value.trim());
+        setStatus("💾 In Galerie gespeichert!");
+      };
+      reader.readAsDataURL(blob);
+    } catch(e) {
+      await saveImage(currentGenUrl, genPrompt.value.trim());
+      setStatus("💾 In Galerie gespeichert!");
+    }
+  });
+
+  document.getElementById("genDl").addEventListener("click", async function() {
+    if (!currentGenUrl) return;
+    try {
+      var resp = await fetch(currentGenUrl);
+      var blob = await resp.blob();
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = "haldo-image-" + Date.now() + ".png"; a.click();
+      URL.revokeObjectURL(url);
+      setStatus("⬇️ Download gestartet");
+    } catch(e) { window.open(currentGenUrl, "_blank"); }
+  });
+
+  // ===== EDITOR =====
+  var editImg = new Image(), editLoaded = false, editCanvas = null;
+  var editBrightness = document.getElementById("editBrightness");
+  var editContrast = document.getElementById("editContrast");
+  var editSaturate = document.getElementById("editSaturate");
+  var editorPreview = document.getElementById("editorPreview");
+
+  function renderEditor() {
+    if (!editLoaded) return;
+    editorPreview.innerHTML = "";
+    editCanvas = document.createElement("canvas");
+    editCanvas.width = editImg.naturalWidth;
+    editCanvas.height = editImg.naturalHeight;
+    var ectx = editCanvas.getContext("2d");
+    ectx.filter = "brightness(" + (editBrightness.value/100) + ") contrast(" + (editContrast.value/100) + ") saturate(" + (editSaturate.value/100) + ")";
+    ectx.drawImage(editImg, 0, 0);
+    editorPreview.appendChild(editCanvas);
+    document.getElementById("brVal").textContent = editBrightness.value + "%";
+    document.getElementById("ctVal").textContent = editContrast.value + "%";
+    document.getElementById("stVal").textContent = editSaturate.value + "%";
+  }
+
+  document.getElementById("editLoad").addEventListener("click", function() { document.getElementById("editFileInput").click(); });
+  document.getElementById("editFileInput").addEventListener("change", function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      editImg.onload = function() {
+        editLoaded = true; editCanvas = null;
+        editorPreview.innerHTML = ""; renderEditor();
+        document.getElementById("editActions").style.display = "flex";
+        setStatus("✏️ Bild geladen");
+      };
+      editImg.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById("editRotate").addEventListener("click", function() {
+    if (!editLoaded) return;
+    var tmp = document.createElement("canvas");
+    tmp.width = editImg.height; tmp.height = editImg.width;
+    var c = tmp.getContext("2d");
+    c.translate(tmp.width/2, tmp.height/2); c.rotate(Math.PI/2);
+    c.drawImage(editImg, -editImg.width/2, -editImg.height/2);
+    editImg.src = tmp.toDataURL(); editCanvas = null;
+    editImg.onload = function() { renderEditor(); };
+  });
+
+  document.getElementById("editFlip").addEventListener("click", function() {
+    if (!editLoaded) return;
+    var tmp = document.createElement("canvas");
+    tmp.width = editImg.width; tmp.height = editImg.height;
+    var c = tmp.getContext("2d");
+    c.translate(tmp.width, 0); c.scale(-1, 1); c.drawImage(editImg, 0, 0);
+    editImg.src = tmp.toDataURL(); editCanvas = null;
+    editImg.onload = function() { renderEditor(); };
+  });
+
+  [editBrightness, editContrast, editSaturate].forEach(function(el) {
+    el.addEventListener("input", renderEditor);
+  });
+
+  document.getElementById("editGrayscale").addEventListener("click", function() { if (editLoaded) { editSaturate.value = 0; renderEditor(); } });
+  document.getElementById("editSepia").addEventListener("click", function() { if (editLoaded) { editSaturate.value = 50; editBrightness.value = 110; renderEditor(); } });
+  document.getElementById("editInvert").addEventListener("click", function() { if (editLoaded) { editSaturate.value = 100; editContrast.value = 150; editBrightness.value = 90; renderEditor(); } });
+
+  document.getElementById("editSave").addEventListener("click", async function() {
+    if (!editCanvas) return;
+    await saveImage(editCanvas.toDataURL("image/png"), "Bearbeitet");
+    setStatus("💾 In Galerie gespeichert!");
+  });
+  document.getElementById("editDl").addEventListener("click", function() {
+    if (!editCanvas) return;
+    var a = document.createElement("a");
+    a.href = editCanvas.toDataURL("image/png");
+    a.download = "haldo-edited-" + Date.now() + ".png"; a.click();
+  });
+
+  // ===== GALERIE =====
+  var galleryGrid = document.getElementById("galleryGrid");
+
+  async function renderGallery() {
+    try {
+      var images = await getAllImages();
+      galleryGrid.innerHTML = "";
+      if (!images.length) {
+        galleryGrid.innerHTML = '<div class="gal-empty">🖼️ Noch keine Bilder gespeichert.</div>';
+        return;
+      }
+      images.reverse().forEach(function(img) {
+        var div = document.createElement("div");
+        div.className = "gal-item";
+        var el = document.createElement("img");
+        el.src = img.data; el.alt = img.prompt || "Bild";
+        var del = document.createElement("button");
+        del.className = "btn-icon del"; del.textContent = "✕";
+        del.addEventListener("click", async function() {
+          if (confirm("Bild löschen?")) { await deleteImage(img.id); renderGallery(); }
+        });
+        var edit = document.createElement("button");
+        edit.className = "btn-icon edit"; edit.textContent = "✏️";
+        edit.addEventListener("click", function() {
+          editImg.onload = function() {
+            editLoaded = true; editCanvas = null;
+            document.querySelectorAll(".tab").forEach(function(t){t.classList.remove("active")});
+            document.querySelectorAll(".pane").forEach(function(p){p.classList.remove("active")});
+            document.getElementById("editPane").classList.add("active");
+            document.querySelector("[data-pane='editPane']").classList.add("active");
+            editorPreview.innerHTML = ""; renderEditor();
+            document.getElementById("editActions").style.display = "flex";
+            setStatus("✏️ Bild geladen");
+          };
+          editImg.src = img.data;
+        });
+        var use = document.createElement("button");
+        use.className = "btn-icon use"; use.textContent = "🧑";
+        use.title = "Als Avatar verwenden (im Home-Modul)";
+        use.addEventListener("click", function() {
+          try {
+            localStorage.setItem("haldo_photo_v6", JSON.stringify({ photoData: img.data }));
+            setStatus("🧑 Als Avatar gespeichert! Öffne ein Avatar-Modul.");
+          } catch(e) { alert("Fehler beim Speichern."); }
+        });
+        div.appendChild(el); div.appendChild(del); div.appendChild(edit); div.appendChild(use);
+        galleryGrid.appendChild(div);
+      });
+    } catch(e) {
+      galleryGrid.innerHTML = '<div class="gal-empty">❌ Fehler beim Laden.</div>';
+    }
+  }
+
+  document.getElementById("galleryRefresh").addEventListener("click", renderGallery);
+  document.getElementById("galleryClear").addEventListener("click", async function() {
+    if (!confirm("Wirklich ALLE Bilder löschen?")) return;
+    await clearAllImages();
+    renderGallery();
+    setStatus("🗑️ Galerie geleert");
+  });
+
+  document.getElementById("galleryExport").addEventListener("click", async function() {
+    var images = await getAllImages();
+    var data = JSON.stringify({ images: images, ts: Date.now() }, null, 2);
+    var blob = new Blob([data], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = "haldo-gallery-export-" + Date.now() + ".json"; a.click();
+    URL.revokeObjectURL(url);
+    setStatus("📤 Export gestartet");
+  });
+
+  var galleryImportInput = document.getElementById("galleryImportInput");
+  document.getElementById("galleryImport").addEventListener("click", function() { galleryImportInput.click(); });
+  galleryImportInput.addEventListener("change", function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = async function(ev) {
+      try {
+        var parsed = JSON.parse(ev.target.result);
+        var images = parsed.images || parsed;
+        if (!Array.isArray(images)) throw new Error("Ungültiges Format");
+        for (var i = 0; i < images.length; i++) {
+          if (images[i].data) await saveImage(images[i].data, images[i].prompt || "Importiert");
+        }
+        renderGallery();
+        setStatus("📥 " + images.length + " Bilder importiert!");
+      } catch(err) { alert("Fehler beim Import: " + err.message); }
+    };
+    reader.readAsText(file);
+  });
+
+  // ===== START =====
+  initDB().then(function() { renderGallery(); }).catch(function(e) {
+    console.warn("DB-Fehler:", e);
+    setStatus("⚠️ Speicher-Fehler");
+  });
+
+  console.log("🦚 HalDo AI OS · Bild Studio geladen");
+})();
+</script>
+</body>
+</html>
