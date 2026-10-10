@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>HalDo Musik Studio V10</title>
+<title>HalDo Musik Studio V11</title>
 <style>
 :root{--primary:#00d4ff;--primary-2:#7c3aed;--bg:#050810;--bg-3:#0f1524;--border:rgba(0,212,255,.12);--border-hi:rgba(0,212,255,.4);--text:#e6f0ff;--text-dim:#7a8ba8;--success:#22c55e;--danger:#ef4444;--warn:#f59e0b;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -29,7 +29,7 @@ label{display:block;font-size:10px;color:var(--text-dim);text-transform:uppercas
 input,textarea,select{width:100%;background:var(--bg-3);border:1px solid rgba(0,212,255,.25);color:var(--text);padding:10px 12px;border-radius:8px;font-family:inherit;font-size:12px;outline:none}
 textarea{min-height:70px;resize:vertical}
 .upload-zone{padding:30px 16px;border:2px dashed rgba(0,212,255,.4);border-radius:12px;text-align:center;cursor:pointer;transition:.2s;background:rgba(0,212,255,.03)}
-.upload-zone:hover,.upload-zone.drag{background:rgba(0,212,255,.1);border-color:var(--primary)}
+.upload-zone:hover{background:rgba(0,212,255,.1);border-color:var(--primary)}
 .upload-zone .icon{font-size:38px;margin-bottom:8px}
 .upload-zone .lbl{font-size:13px;font-weight:700;margin-bottom:4px}
 .upload-zone .sub{font-size:11px;color:var(--text-dim)}
@@ -67,6 +67,7 @@ textarea{min-height:70px;resize:vertical}
 .btn{padding:10px 16px;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;width:100%;margin-top:10px}
 .btn.secondary{background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.5);color:#b39dff}
 .btn.danger{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.45);color:#ff8080}
+.btn.success{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.5);color:#4ade80}
 .btn.small{padding:6px 10px;font-size:10.5px;width:auto}
 .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .info{padding:10px 12px;background:rgba(0,212,255,.06);border:1px dashed rgba(0,212,255,.3);border-radius:8px;font-size:11px;color:var(--text-dim);line-height:1.5;margin:8px 0}
@@ -92,6 +93,8 @@ textarea{min-height:70px;resize:vertical}
 .key-status{font-size:10.5px;padding:3px 8px;border-radius:6px;margin-left:6px;font-weight:700}
 .key-status.ok{background:rgba(34,197,94,.2);color:#4ade80}
 .key-status.bad{background:rgba(239,68,68,.2);color:#ff8080}
+.composer-info{font-size:11px;color:var(--text-dim);line-height:1.6;margin-top:8px}
+.progress-note{display:inline-block;padding:2px 6px;background:rgba(0,212,255,.15);border-radius:4px;margin:2px;font-size:10.5px}
 @media (max-width:600px){body{padding:10px}.player-bar{padding:10px}.tab{padding:8px 10px;font-size:11px}}
 </style>
 </head>
@@ -100,7 +103,7 @@ textarea{min-height:70px;resize:vertical}
 
 <div id="topbar">
   <a class="home" href="index.html">←</a>
-  <h1>🎵 Musik Studio V10</h1>
+  <h1>🎵 Musik Studio V11</h1>
   <div class="spacer"></div>
   <div class="chip"><span class="dot"></span><span id="trackCount">0</span></div>
 </div>
@@ -108,13 +111,12 @@ textarea{min-height:70px;resize:vertical}
 <div class="tabs">
   <button class="tab active" data-pane="pPlayer">🎧 Player</button>
   <button class="tab" data-pane="pUpload">📥 Upload</button>
-  <button class="tab" data-pane="pAi">🤖 KI-Musik</button>
+  <button class="tab" data-pane="pCompose">🎹 Komponist</button>
   <button class="tab" data-pane="pLyrics">✍️ Songtext</button>
   <button class="tab" data-pane="pKaraoke">🎤 Karaoke</button>
   <button class="tab" data-pane="pEq">🎚️ EQ</button>
   <button class="tab" data-pane="pTrim">✂️ Trim</button>
   <button class="tab" data-pane="pVoice">🗣️ Stimme</button>
-  <button class="tab" data-pane="pKeys">🔑 Keys</button>
   <button class="tab" data-pane="pSettings">⚙️ Extras</button>
 </div>
 
@@ -144,135 +146,123 @@ textarea{min-height:70px;resize:vertical}
     <div class="upload-zone" id="uploadZone">
       <div class="icon">🎵</div>
       <div class="lbl">Tippe hier oder ziehe Dateien hierher</div>
-      <div class="sub">MP3, WAV, OGG, M4A, FLAC — max 50 MB</div>
+      <div class="sub">MP3, WAV, OGG, M4A — max 50 MB</div>
     </div>
     <input type="file" id="fileInput" accept="audio/*" multiple style="display:none">
   </div>
 </div>
 
-<!-- KI-MUSIK -->
-<div id="pAi" class="pane">
+<!-- KOMPONIST (NEU) -->
+<div id="pCompose" class="pane">
   <div class="card">
-    <h3>🤖 KI-Musik generieren</h3>
-    <p style="font-size:11.5px;color:var(--text-dim);margin-bottom:10px">Beschreibe deinen Song — die KI erstellt Musik. (Benötigt Pollinations API-Key)</p>
-    <label>Beschreibung (Stil, Stimmung, Instrumente)</label>
-    <textarea id="aiPrompt" placeholder="z.B. 'Ein trauriger Song über Frieden, akustische Gitarre, langsam'"></textarea>
+    <h3>🎹 Lokaler Komponist</h3>
+    <p class="composer-info">Diese Engine erzeugt Musik direkt im Browser — kostenlos, ohne Key, ohne Internet. Wähle Tonart, Stil und Struktur, dann generiert er einen kompletten Song.</p>
+  </div>
 
-    <div class="select-row"><label>Sprache</label>
-      <select id="aiLang">
-        <option value="de">🇩🇪 Deutsch</option>
-        <option value="en" selected>🇬🇧 Englisch</option>
-        <option value="tr">🇹🇷 Türkisch</option>
-        <option value="ar">🇸🇦 Arabisch</option>
-        <option value="fa">🇮🇷 Persisch</option>
-        <option value="ku">🟨 Kurdisch (Kurmanji)</option>
-        <option value="ckb">🟨 Kurdisch (Sorani)</option>
-        <option value="yaz">🟨 Ezidi</option>
-        <option value="ru">🇷🇺 Russisch</option>
-        <option value="fr">🇫🇷 Französisch</option>
-        <option value="es">🇪🇸 Spanisch</option>
-        <option value="it">🇮🇹 Italienisch</option>
-        <option value="pt">🇵🇹 Portugiesisch</option>
-        <option value="nl">🇳🇱 Niederländisch</option>
-        <option value="pl">🇵🇱 Polnisch</option>
-        <option value="el">🇬🇷 Griechisch</option>
-        <option value="sv">🇸🇪 Schwedisch</option>
-        <option value="no">🇳🇴 Norwegisch</option>
-        <option value="fi">🇫🇮 Finnisch</option>
-        <option value="da">🇩🇰 Dänisch</option>
-        <option value="cs">🇨🇿 Tschechisch</option>
-        <option value="hu">🇭🇺 Ungarisch</option>
-        <option value="ro">🇷🇴 Rumänisch</option>
-        <option value="bg">🇧🇬 Bulgarisch</option>
-        <option value="sr">🇷🇸 Serbisch</option>
-        <option value="hr">🇭🇷 Kroatisch</option>
-        <option value="uk">🇺🇦 Ukrainisch</option>
-        <option value="he">🇮🇱 Hebräisch</option>
-        <option value="hi">🇮🇳 Hindi</option>
-        <option value="bn">🇧🇩 Bengalisch</option>
-        <option value="ta">🇮🇳 Tamil</option>
-        <option value="ur">🇵🇰 Urdu</option>
-        <option value="zh">🇨🇳 Chinesisch</option>
-        <option value="ja">🇯🇵 Japanisch</option>
-        <option value="ko">🇰🇷 Koreanisch</option>
-        <option value="th">🇹🇭 Thai</option>
-        <option value="vi">🇻🇳 Vietnamesisch</option>
-        <option value="id">🇮🇩 Indonesisch</option>
-        <option value="ms">🇲🇾 Malaiisch</option>
-        <option value="tl">🇵🇭 Filipino</option>
-        <option value="sw">🇰🇪 Swahili</option>
-        <option value="am">🇪🇹 Amharisch</option>
-        <option value="yo">🇳🇬 Yoruba</option>
-        <option value="ha">🇳🇬 Hausa</option>
+  <div class="card">
+    <h3>🎼 Musikalische Grundeinstellungen</h3>
+    <div class="select-row"><label>Tonart</label>
+      <select id="cKey">
+        <option value="C">C-Dur / a-Moll</option>
+        <option value="D">D-Dur / h-Moll</option>
+        <option value="E">E-Dur / cis-Moll</option>
+        <option value="F">F-Dur / d-Moll</option>
+        <option value="G" selected>G-Dur / e-Moll</option>
+        <option value="A">A-Dur / fis-Moll</option>
+        <option value="Bb">B-Dur / g-Moll</option>
+        <option value="Eb">Es-Dur / c-Moll</option>
       </select>
     </div>
-
-    <div class="select-row"><label>Dauer</label>
-      <select id="aiDuration">
-        <option value="30">30 Sekunden</option>
-        <option value="60">1 Minute</option>
-        <option value="120">2 Minuten</option>
-        <option value="180" selected>3 Minuten</option>
-        <option value="240">4 Minuten</option>
-        <option value="300">5 Minuten</option>
-        <option value="360">6 Minuten</option>
-        <option value="420">7 Minuten</option>
-        <option value="480">8 Minuten</option>
-        <option value="540">9 Minuten</option>
-        <option value="600">10 Minuten</option>
+    <div class="select-row"><label>Modus</label>
+      <select id="cMode">
+        <option value="major" selected>Dur (fröhlich)</option>
+        <option value="minor">Moll (traurig)</option>
+        <option value="dorian">Dorisch</option>
+        <option value="mixolydian">Mixolydisch</option>
       </select>
     </div>
-
-    <div class="select-row"><label>Musikstil</label>
-      <select id="aiStyle">
-        <option value="">— Standard —</option>
-        <optgroup label="🌍 Weltmusik">
-          <option value="ezidi qewl religious hymn">🟨 Ezidi Qewl (Hymne)</option>
-          <option value="kurdish folk stran">🟨 Kurdisch Folk (Stran)</option>
-          <option value="kurdish zozan shepherd song">🟨 Kurdisch Zozan</option>
-          <option value="turkish arabesk">🇹🇷 Türk Arabesk</option>
-          <option value="turkish anadolu rock">🇹🇷 Anadolu Rock</option>
-          <option value="turkish sufi">🇹🇷 Sufi</option>
-          <option value="arabic maqam">🇸🇦 Arabisch Maqam</option>
-          <option value="persian traditional">🇮🇷 Persisch Traditionell</option>
-        </optgroup>
-        <optgroup label="🌏 Asiatisch">
-          <option value="j-pop anime">🇯🇵 J-Pop</option>
-          <option value="k-pop">🇰🇷 K-Pop</option>
-          <option value="c-pop">🇨🇳 C-Pop</option>
-          <option value="bollywood">🇮🇳 Bollywood</option>
-          <option value="gamelan">🇮🇩 Gamelan</option>
-          <option value="thai pop">🇹🇭 Thai Pop</option>
-        </optgroup>
-        <optgroup label="🌎 Europäisch">
-          <option value="flamenco">🇪🇸 Flamenco</option>
-          <option value="fado">🇵🇹 Fado</option>
-          <option value="chanson française">🇫🇷 Chanson</option>
-          <option value="celtic folk">🇮🇪 Celtic</option>
-          <option value="german schlager">🇩🇪 Schlager</option>
-          <option value="italian opera">🇮🇹 Oper</option>
-          <option value="russian romance">🇷🇺 Romantik</option>
-        </optgroup>
-        <optgroup label="🎵 Modern">
-          <option value="pop">Pop</option>
-          <option value="rock">Rock</option>
-          <option value="hip-hop">Hip-Hop</option>
-          <option value="electronic edm">EDM</option>
-          <option value="lofi">Lo-Fi</option>
-          <option value="jazz">Jazz</option>
-          <option value="classical">Klassik</option>
-          <option value="r&b">R&B</option>
-          <option value="country">Country</option>
-          <option value="reggae">Reggae</option>
-          <option value="metal">Metal</option>
-        </optgroup>
+    <div class="select-row"><label>Tempo (BPM)</label>
+      <select id="cTempo">
+        <option value="60">60 (sehr langsam)</option>
+        <option value="80">80 (langsam)</option>
+        <option value="100" selected>100 (mittel)</option>
+        <option value="120">120 (schnell)</option>
+        <option value="140">140 (sehr schnell)</option>
+        <option value="160">160 (Tanz)</option>
       </select>
     </div>
+    <div class="select-row"><label>Struktur</label>
+      <select id="cStructure">
+        <option value="verse-chorus">Strophe - Refrain - Strophe - Refrain</option>
+        <option value="full" selected>Intro - Str - Ref - Str - Ref - Bridge - Ref</option>
+        <option value="short">Intro - Strophe - Refrain - Outro</option>
+        <option value="loop">Loop (4x Refrain)</option>
+        <option value="ballad">Ballade (Intro - Str - Ref - Outro)</option>
+      </select>
+    </div>
+  </div>
 
-    <div class="toggle"><label>🎤 Mit Gesang</label><input type="checkbox" id="aiVocal" checked></div>
-    <button class="btn" id="aiGenerate">🎵 Song generieren</button>
-    <div class="info" id="aiStatus" style="display:none"></div>
-    <div id="aiResult" style="margin-top:10px"></div>
+  <div class="card">
+    <h3>🎸 Stil & Instrumente</h3>
+    <div class="select-row"><label>Stil</label>
+      <select id="cStyle">
+        <option value="pop" selected>Pop</option>
+        <option value="rock">Rock</option>
+        <option value="jazz">Jazz</option>
+        <option value="lofi">Lo-Fi</option>
+        <option value="edm">EDM</option>
+        <option value="classical">Klassik</option>
+        <option value="epic">Epic / Cinematic</option>
+        <option value="kurdish">🟨 Kurdisch Folk (Stran)</option>
+        <option value="turkish">🇹🇷 Türk Arabesk</option>
+        <option value="ezidi">🟨 Ezidi Qewl</option>
+      </select>
+    </div>
+    <div class="toggle"><label>🎹 Klavier</label><input type="checkbox" id="cPiano" checked></div>
+    <div class="toggle"><label>🎸 Gitarre</label><input type="checkbox" id="cGuitar" checked></div>
+    <div class="toggle"><label>🎻 Streicher</label><input type="checkbox" id="cStrings" checked></div>
+    <div class="toggle"><label>🎺 Bläser</label><input type="checkbox" id="cBrass"></div>
+    <div class="toggle"><label>🎵 Bass</label><input type="checkbox" id="cBass" checked></div>
+    <div class="toggle"><label>🥁 Schlagzeug</label><input type="checkbox" id="cDrums" checked></div>
+    <div class="toggle"><label>🎼 Arpeggios</label><input type="checkbox" id="cArp" checked></div>
+  </div>
+
+  <div class="card">
+    <h3>🎛️ Akkord-Fortschritt</h3>
+    <div class="select-row"><label>Progression</label>
+      <select id="cProg">
+        <option value="I-V-vi-IV" selected>I - V - vi - IV (Pop, fröhlich)</option>
+        <option value="vi-IV-I-V">vi - IV - I - V (emotional)</option>
+        <option value="I-IV-V-I">I - IV - V - I (Klassik)</option>
+        <option value="ii-V-I">ii - V - I (Jazz)</option>
+        <option value="I-vi-IV-V">I - vi - IV - V (50er Ballade)</option>
+        <option value="i-VI-III-VII">i - VI - III - VII (episch)</option>
+        <option value="I-V-vi-iii-IV-I-IV-V">Kanon-Progression</option>
+      </select>
+    </div>
+    <div class="slider-row">
+      <div class="lbl">Melodie-Dichte</div>
+      <input type="range" id="cDensity" min="1" max="8" value="4">
+      <div class="val" id="cDensityV">4</div>
+    </div>
+    <div class="slider-row">
+      <div class="lbl">Komplexität</div>
+      <input type="range" id="cComplexity" min="0" max="100" value="50">
+      <div class="val" id="cComplexityV">50%</div>
+    </div>
+    <div class="slider-row">
+      <div class="lbl">Gesamtlautstärke</div>
+      <input type="range" id="cVolume" min="0" max="100" value="70">
+      <div class="val" id="cVolumeV">70%</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🎬 Generieren</h3>
+    <button class="btn" id="cGenerate">🎵 Song komponieren</button>
+    <div class="info" id="cStatus" style="display:none"></div>
+    <div id="cResult" style="margin-top:10px"></div>
+    <div id="cPreview" class="composer-info" style="margin-top:10px"></div>
   </div>
 </div>
 
@@ -282,7 +272,6 @@ textarea{min-height:70px;resize:vertical}
     <h3>✍️ Songtext schreiben</h3>
     <label>Thema</label>
     <input type="text" id="lyricTopic" placeholder="z.B. 'Frieden in Kurdistan'">
-
     <div class="select-row"><label>Sprache</label>
       <select id="lyricLang">
         <option value="Deutsch" selected>🇩🇪 Deutsch</option>
@@ -293,53 +282,25 @@ textarea{min-height:70px;resize:vertical}
         <option value="Kurdisch (Kurmanji)">🟨 Kurdisch (Kurmanji)</option>
         <option value="Kurdisch (Sorani)">🟨 Kurdisch (Sorani)</option>
         <option value="Ezidi">🟨 Ezidi</option>
-        <option value="Französisch">🇫🇷 Französisch</option>
-        <option value="Spanisch">🇪🇸 Spanisch</option>
-        <option value="Italienisch">🇮🇹 Italienisch</option>
-        <option value="Russisch">🇷🇺 Russisch</option>
-        <option value="Griechisch">🇬🇷 Griechisch</option>
-        <option value="Hindi">🇮🇳 Hindi</option>
-        <option value="Chinesisch">🇨🇳 Chinesisch</option>
-        <option value="Japanisch">🇯🇵 Japanisch</option>
-        <option value="Koreanisch">🇰🇷 Koreanisch</option>
-        <option value="Hebräisch">🇮🇱 Hebräisch</option>
-        <option value="Swahili">🇰🇪 Swahili</option>
       </select>
     </div>
-
     <div class="select-row"><label>Stil</label>
       <select id="lyricStyle">
-        <option value="Pop">Pop</option>
-        <option value="Ballade">Ballade</option>
-        <option value="Rap">Rap</option>
-        <option value="Rock">Rock</option>
-        <option value="Folk">Folk</option>
-        <option value="Liebeslied">Liebeslied</option>
-        <option value="Qewl (religiöse Hymne)">🟨 Qewl (Ezidi)</option>
+        <option value="Pop">Pop</option><option value="Ballade">Ballade</option>
+        <option value="Rap">Rap</option><option value="Rock">Rock</option>
         <option value="Stran (kurdisches Volkslied)">🟨 Stran</option>
-        <option value="Arabesk">🇹🇷 Arabesk</option>
-        <option value="Ghasel (persisch)">🇮🇷 Ghasel</option>
-        <option value="Bollywood">🇮🇳 Bollywood</option>
       </select>
     </div>
-
     <div class="select-row"><label>Stimmung</label>
       <select id="lyricMood">
-        <option value="fröhlich">Fröhlich</option>
-        <option value="traurig">Traurig</option>
-        <option value="romantisch">Romantisch</option>
-        <option value="kämpferisch">Kämpferisch</option>
-        <option value="nachdenklich">Nachdenklich</option>
+        <option value="fröhlich">Fröhlich</option><option value="traurig">Traurig</option>
+        <option value="romantisch">Romantisch</option><option value="kämpferisch">Kämpferisch</option>
         <option value="hoffnungsvoll" selected>Hoffnungsvoll</option>
-        <option value="spirituell">Spirituell</option>
-        <option value="feierlich">Feierlich</option>
       </select>
     </div>
-
     <button class="btn" id="lyricGenerate">✍️ Songtext generieren</button>
     <div class="info" id="lyricStatus" style="display:none"></div>
     <div id="lyricResult" style="margin-top:10px;white-space:pre-wrap;font-size:12.5px;line-height:1.7"></div>
-    <button class="btn secondary" id="lyricUse" style="display:none">🎵 Für KI-Musik verwenden</button>
   </div>
 </div>
 
@@ -376,18 +337,9 @@ textarea{min-height:70px;resize:vertical}
       <button class="btn secondary small" data-preset="bass">🔊 Bass</button>
       <button class="btn secondary small" data-preset="vocal">🎤 Vocal</button>
       <button class="btn secondary small" data-preset="rock">🎸 Rock</button>
-      <button class="btn secondary small" data-preset="pop">🎵 Pop</button>
       <button class="btn secondary small" data-preset="jazz">🎷 Jazz</button>
       <button class="btn secondary small" data-preset="classical">🎻 Klassik</button>
-      <button class="btn secondary small" data-preset="electronic">🎛️ EDM</button>
     </div>
-  </div>
-  <div class="card">
-    <h3>🎛️ Effekte</h3>
-    <div class="toggle"><label>3D-Surround</label><input type="checkbox" id="fxSurround"></div>
-    <div class="toggle"><label>Hall (Reverb)</label><input type="checkbox" id="fxReverb"></div>
-    <div class="toggle"><label>Echo</label><input type="checkbox" id="fxEcho"></div>
-    <div class="toggle"><label>Verzerrung</label><input type="checkbox" id="fxDistortion"></div>
   </div>
 </div>
 
@@ -397,13 +349,7 @@ textarea{min-height:70px;resize:vertical}
     <h3>✂️ Trim (Zuschneiden)</h3>
     <div class="slider-row"><div class="lbl">Start</div><input type="range" id="trimStart" min="0" max="100" value="0"><div class="val" id="trimStartV">0:00</div></div>
     <div class="slider-row"><div class="lbl">Ende</div><input type="range" id="trimEnd" min="0" max="100" value="100"><div class="val" id="trimEndV">--:--</div></div>
-    <div class="select-row"><label>Qualität</label><select id="trimQuality"><option value="high">Hoch</option><option value="med" selected>Mittel</option><option value="low">Niedrig</option></select></div>
     <button class="btn" id="trimExport">💾 Ausschnitt exportieren</button>
-  </div>
-  <div class="card">
-    <h3>🔁 Fade-Effekte</h3>
-    <div class="slider-row"><div class="lbl">Fade-In</div><input type="range" id="fadeIn" min="0" max="10" value="0"><div class="val" id="fadeInV">0s</div></div>
-    <div class="slider-row"><div class="lbl">Fade-Out</div><input type="range" id="fadeOut" min="0" max="10" value="0"><div class="val" id="fadeOutV">0s</div></div>
   </div>
 </div>
 
@@ -412,25 +358,13 @@ textarea{min-height:70px;resize:vertical}
   <div class="card">
     <h3>🗣️ Text zu Sprache</h3>
     <label>Text</label>
-    <textarea id="ttsText" placeholder="Schreibe hier deinen Text…">Hallo Bruder, willkommen bei HalDo.</textarea>
+    <textarea id="ttsText">Hallo Bruder, willkommen bei HalDo.</textarea>
     <div class="select-row"><label>Sprache</label>
       <select id="ttsLang">
         <option value="de-DE" selected>🇩🇪 Deutsch</option>
         <option value="en-US">🇬🇧 Englisch</option>
         <option value="tr-TR">🇹🇷 Türkisch</option>
         <option value="ar-SA">🇸🇦 Arabisch</option>
-        <option value="fa-IR">🇮🇷 Persisch</option>
-        <option value="ku">🟨 Kurdisch (Kurmanji)</option>
-        <option value="ckb">🟨 Kurdisch (Sorani)</option>
-        <option value="yaz">🟨 Ezidi</option>
-        <option value="ru-RU">🇷🇺 Russisch</option>
-        <option value="fr-FR">🇫🇷 Französisch</option>
-        <option value="es-ES">🇪🇸 Spanisch</option>
-        <option value="it-IT">🇮🇹 Italienisch</option>
-        <option value="hi-IN">🇮🇳 Hindi</option>
-        <option value="zh-CN">🇨🇳 Chinesisch</option>
-        <option value="ja-JP">🇯🇵 Japanisch</option>
-        <option value="ko-KR">🇰🇷 Koreanisch</option>
       </select>
     </div>
     <div class="select-row"><label>Stimme</label><select id="ttsVoice"><option value="">Standard</option></select></div>
@@ -438,54 +372,13 @@ textarea{min-height:70px;resize:vertical}
     <div class="slider-row"><div class="lbl">Tempo</div><input type="range" id="ttsRate" min="50" max="200" value="100"><div class="val" id="ttsRateV">100%</div></div>
     <button class="btn" id="ttsSpeak">🔊 Sprechen</button>
     <button class="btn secondary" id="ttsStop">⏹️ Stop</button>
-    <div class="info"><b>ℹ️ Hinweis:</b> Kurdisch und Ezidi werden über spezialisierte APIs unterstützt (Key erforderlich).</div>
   </div>
 </div>
 
-<!-- KEYS -->
-<div id="pKeys" class="pane">
-  <div class="card">
-    <h3>🔑 API Keys</h3>
-    <div class="info">
-      Alle Keys werden <b>nur auf deinem Gerät</b> gespeichert (localStorage). Sie werden nie an Dritte gesendet.
-    </div>
-
-    <label>Pollinations API Key <span id="pollStatus" class="key-status bad">Nicht gesetzt</span></label>
-    <input type="password" id="keyPoll" placeholder="pk_… oder sk_…" autocomplete="off">
-    <p style="font-size:10px;color:var(--text-dim);margin-top:4px">Kostenlos auf <b>enter.pollinations.ai/keys</b> (für KI-Musik)</p>
-
-    <label>Groq API Key <span id="groqStatus" class="key-status bad">Nicht gesetzt</span></label>
-    <input type="password" id="keyGroq" placeholder="gsk_…" autocomplete="off">
-    <p style="font-size:10px;color:var(--text-dim);margin-top:4px">Kostenlos auf <b>console.groq.com/keys</b> (für Songtexte)</p>
-
-    <label>ElevenLabs API Key <span id="elevenStatus" class="key-status bad">Nicht gesetzt</span></label>
-    <input type="password" id="keyEleven" placeholder="sk_…" autocomplete="off">
-    <p style="font-size:10px;color:var(--text-dim);margin-top:4px">Für deine geklonte Stimme (elevenlabs.io)</p>
-
-    <label>ElevenLabs Voice ID</label>
-    <input type="text" id="keyVoice" placeholder="zcF1DZzEkcYBq33PqIkO" autocomplete="off">
-    <p style="font-size:10px;color:var(--text-dim);margin-top:4px">Deine HalDo-Stimme. Standard: zcF1DZzEkcYBq33PqIkO</p>
-
-    <label>Kurdish TTS API Key (optional)</label>
-    <input type="password" id="keyKurdish" placeholder="optional…" autocomplete="off">
-    <p style="font-size:10px;color:var(--text-dim);margin-top:4px">Für Kurdisch & Ezidi Sprachausgabe</p>
-
-    <button class="btn" id="saveKeys" style="margin-top:20px">💾 Alle Keys speichern</button>
-    <button class="btn secondary" id="testGroq">🎤 Groq testen</button>
-    <button class="btn secondary" id="testEleven">🔊 ElevenLabs testen</button>
-    <button class="btn danger" id="clearKeys">🗑️ Alle Keys löschen</button>
-  </div>
-
-  <div class="card">
-    <h3>📊 Status</h3>
-    <div class="info" id="keyInfo">Keys werden geladen…</div>
-  </div>
-</div>
-
-<!-- EXTRAS -->
+<!-- SETTINGS -->
 <div id="pSettings" class="pane">
   <div class="card">
-    <h3>🎨 Theme-Farbe</h3>
+    <h3>🎨 Theme</h3>
     <div class="color-grid" id="themeColors">
       <button data-color="#00d4ff" style="background:#00d4ff" class="active"></button>
       <button data-color="#a78bfa" style="background:#a78bfa"></button>
@@ -496,34 +389,28 @@ textarea{min-height:70px;resize:vertical}
     </div>
   </div>
   <div class="card">
-    <h3>🎯 Visualizer-Modus</h3>
+    <h3>🎯 Visualizer</h3>
     <div class="mode-grid" id="vizModes">
       <button data-vizmode="bars" class="active">📊 Bars</button>
       <button data-vizmode="wave">〰️ Wave</button>
       <button data-vizmode="circle">⭕ Kreis</button>
-      <button data-vizmode="particles">✨ Partikel</button>
       <button data-vizmode="spectrum">🌈 Spektrum</button>
       <button data-vizmode="off">⬛ Aus</button>
     </div>
   </div>
   <div class="card">
-    <h3>⚙️ Wiedergabe</h3>
-    <div class="select-row"><label>Tempo</label>
-      <select id="playSpeed">
-        <option value="0.5">0.5x</option><option value="0.75">0.75x</option>
-        <option value="1" selected>1x</option><option value="1.25">1.25x</option>
-        <option value="1.5">1.5x</option><option value="2">2x</option>
-      </select>
-    </div>
-    <div class="toggle"><label>Auto-Play nächstes</label><input type="checkbox" id="playAuto" checked></div>
+    <h3>🔑 Externe Keys (optional)</h3>
+    <div class="info">Diese Keys sind <b>optional</b> — nur für den Songtext-Generator (Groq) und deine eigene Stimme (ElevenLabs).</div>
+    <label>Groq API Key (Songtext)</label>
+    <input type="password" id="keyGroq" placeholder="gsk_…" autocomplete="off">
+    <label>ElevenLabs API Key (Stimme)</label>
+    <input type="password" id="keyEleven" placeholder="sk_…" autocomplete="off">
+    <label>ElevenLabs Voice ID</label>
+    <input type="text" id="keyVoice" placeholder="zcF1DZzEkcYBq33PqIkO" autocomplete="off">
+    <button class="btn" id="saveKeys">💾 Keys speichern</button>
   </div>
   <div class="card">
     <h3>💾 Daten</h3>
-    <div class="btn-row">
-      <button class="btn secondary" id="exportPlaylist">📤 Playlist Export</button>
-      <button class="btn secondary" id="importPlaylist">📥 Playlist Import</button>
-      <input type="file" id="importPlaylistFile" accept="application/json" style="display:none">
-    </div>
     <button class="btn danger" id="resetAll">⚠️ Alles zurücksetzen</button>
   </div>
 </div>
@@ -560,7 +447,7 @@ textarea{min-height:70px;resize:vertical}
 (function() {
   "use strict";
 
-  var DB_NAME = "haldo_music_v10";
+  var DB_NAME = "haldo_music_v11";
   var db = null;
   var audioCtx = null, analyser = null, gainNode = null, sourceNode = null;
   var eqFilters = [], fxNodes = { reverb: null, delay: null, distortion: null };
@@ -580,87 +467,6 @@ textarea{min-height:70px;resize:vertical}
   function showStatus(t) { var s = el("status"); s.textContent = t; s.classList.add("show"); clearTimeout(s._t); s._t = setTimeout(function() { s.classList.remove("show"); }, 3000); }
   function fmtTime(s) { if (!s || isNaN(s) || !isFinite(s)) return "0:00"; var m = Math.floor(s/60), sec = Math.floor(s%60); return m + ":" + (sec < 10 ? "0" : "") + sec; }
   function esc(s) { return String(s).replace(/[&<>"']/g, function(c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
-
-  // ===== KEY MANAGEMENT =====
-  var KEYS = {
-    poll: localStorage.getItem("haldo_poll_key") || "",
-    groq: localStorage.getItem("haldo_groq_key") || "",
-    eleven: localStorage.getItem("haldo_eleven_key") || "",
-    voice: localStorage.getItem("haldo_voice_id") || "zcF1DZzEkcYBq33PqIkO",
-    kurdish: localStorage.getItem("haldo_kurdish_key") || ""
-  };
-
-  function updateKeyStatus() {
-    var ps = el("pollStatus");
-    var gs = el("groqStatus");
-    var es = el("elevenStatus");
-    if (KEYS.poll) { ps.textContent = "✅ Gesetzt"; ps.className = "key-status ok"; }
-    else { ps.textContent = "Nicht gesetzt"; ps.className = "key-status bad"; }
-    if (KEYS.groq) { gs.textContent = "✅ Gesetzt"; gs.className = "key-status ok"; }
-    else { gs.textContent = "Nicht gesetzt"; gs.className = "key-status bad"; }
-    if (KEYS.eleven) { es.textContent = "✅ Gesetzt"; es.className = "key-status ok"; }
-    else { es.textContent = "Nicht gesetzt"; es.className = "key-status bad"; }
-
-    el("keyInfo").innerHTML = "<b>Status:</b><br>Pollinations: " + (KEYS.poll ? "✅" : "❌") + "<br>Groq: " + (KEYS.groq ? "✅" : "❌") + "<br>ElevenLabs: " + (KEYS.eleven ? "✅" : "❌") + "<br>Voice ID: " + (KEYS.voice || "—") + "<br>Kurdish: " + (KEYS.kurdish ? "✅" : "❌");
-  }
-
-  el("keyPoll").value = KEYS.poll;
-  el("keyGroq").value = KEYS.groq;
-  el("keyEleven").value = KEYS.eleven;
-  el("keyVoice").value = KEYS.voice;
-  el("keyKurdish").value = KEYS.kurdish;
-  updateKeyStatus();
-
-  el("saveKeys").addEventListener("click", function() {
-    KEYS.poll = el("keyPoll").value.trim();
-    KEYS.groq = el("keyGroq").value.trim();
-    KEYS.eleven = el("keyEleven").value.trim();
-    KEYS.voice = el("keyVoice").value.trim() || "zcF1DZzEkcYBq33PqIkO";
-    KEYS.kurdish = el("keyKurdish").value.trim();
-    try {
-      localStorage.setItem("haldo_poll_key", KEYS.poll);
-      localStorage.setItem("haldo_groq_key", KEYS.groq);
-      localStorage.setItem("haldo_eleven_key", KEYS.eleven);
-      localStorage.setItem("haldo_voice_id", KEYS.voice);
-      localStorage.setItem("haldo_kurdish_key", KEYS.kurdish);
-    } catch(e) {}
-    updateKeyStatus();
-    showStatus("💾 Keys gespeichert!");
-  });
-
-  el("clearKeys").addEventListener("click", function() {
-    if (!confirm("Alle Keys löschen?")) return;
-    KEYS.poll = ""; KEYS.groq = ""; KEYS.eleven = ""; KEYS.voice = "zcF1DZzEkcYBq33PqIkO"; KEYS.kurdish = "";
-    try {
-      localStorage.removeItem("haldo_poll_key");
-      localStorage.removeItem("haldo_groq_key");
-      localStorage.removeItem("haldo_eleven_key");
-      localStorage.removeItem("haldo_voice_id");
-      localStorage.removeItem("haldo_kurdish_key");
-    } catch(e) {}
-    el("keyPoll").value = ""; el("keyGroq").value = ""; el("keyEleven").value = ""; el("keyVoice").value = KEYS.voice; el("keyKurdish").value = "";
-    updateKeyStatus();
-    showStatus("🗑️ Keys gelöscht");
-  });
-
-  el("testGroq").addEventListener("click", async function() {
-    if (!KEYS.groq) { alert("Groq-Key fehlt"); return; }
-    try {
-      var r = await fetch("https://api.groq.com/openai/v1/models", { headers: { "Authorization": "Bearer " + KEYS.groq } });
-      if (r.ok) { alert("✅ Groq funktioniert!"); showStatus("✅ Groq OK"); }
-      else { alert("❌ Groq Fehler: " + r.status); }
-    } catch(e) { alert("❌ " + e.message); }
-  });
-
-  el("testEleven").addEventListener("click", async function() {
-    if (!KEYS.eleven || !KEYS.voice) { alert("ElevenLabs Key oder Voice ID fehlt"); return; }
-    try {
-      var url = "https://haldo-voice.haldoaios.workers.dev/?url=" + encodeURIComponent("https://api.elevenlabs.io/v1/text-to-speech/" + KEYS.voice) + "&key=" + encodeURIComponent(KEYS.eleven);
-      var r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: "Test.", model_id: "eleven_multilingual_v2" }) });
-      if (r.ok) { var b = await r.blob(); new Audio(URL.createObjectURL(b)).play(); alert("✅ ElevenLabs OK!"); }
-      else { var t = await r.text(); alert("❌ " + r.status + ": " + t.substring(0,150)); }
-    } catch(e) { alert("❌ " + e.message); }
-  });
 
   // ===== DB =====
   function dbInit() { return new Promise(function(res, rej) { var r = indexedDB.open(DB_NAME, 1); r.onupgradeneeded = function(e) { var d = e.target.result; if (!d.objectStoreNames.contains("tracks")) d.createObjectStore("tracks", { keyPath: "id", autoIncrement: true }); }; r.onsuccess = function(e) { db = e.target.result; res(); }; r.onerror = function(e) { rej(e.target.error); }; }); }
@@ -684,50 +490,18 @@ textarea{min-height:70px;resize:vertical}
         f.type = types[i]; f.frequency.value = freqs[i]; f.Q.value = 1;
         prev.connect(f); prev = f; eqFilters.push(f);
       }
-      var reverb = audioCtx.createConvolver();
-      reverb.buffer = makeImpulse(audioCtx, 2, 2);
-      reverb.connect(prev); fxNodes.reverb = reverb;
-      var delay = audioCtx.createDelay(2);
-      delay.delayTime.value = 0.3;
-      var fb = audioCtx.createGain(); fb.gain.value = 0.35;
-      delay.connect(fb); fb.connect(delay); delay.connect(prev); fxNodes.delay = delay;
-      var dist = audioCtx.createWaveShaper();
-      dist.curve = makeDistortion(20);
-      dist.connect(prev); fxNodes.distortion = dist;
       gainNode = audioCtx.createGain();
       analyser = audioCtx.createAnalyser();
       analyser.fftSize = 256;
       prev.connect(gainNode); gainNode.connect(analyser); analyser.connect(audioCtx.destination);
     } catch(e) { console.warn("Audio:", e); }
   }
-  function makeImpulse(ctx, dur, decay) { var sr = ctx.sampleRate; var len = sr * dur; var buf = ctx.createBuffer(2, len, sr); for (var ch = 0; ch < 2; ch++) { var d = buf.getChannelData(ch); for (var i = 0; i < len; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/len, decay); } return buf; }
-  function makeDistortion(amount) { var n = 44100, c = new Float32Array(n), deg = Math.PI/180; for (var i = 0; i < n; i++) { var x = i*2/n - 1; c[i] = (3+amount)*x*20*deg/(Math.PI+amount*Math.abs(x)); } return c; }
 
   function applyEQ() {
     if (!eqFilters.length) return;
     for (var i = 0; i < 8; i++) { var v = parseInt(el("eq" + (i+1)).value); eqFilters[i].gain.value = v; el("eq" + (i+1) + "V").textContent = v + "dB"; }
   }
   for (var e = 1; e <= 8; e++) { (function(n){ el("eq"+n).addEventListener("input", applyEQ); })(e); }
-  var presets = {
-    flat: [0,0,0,0,0,0,0,0], bass: [12,10,6,2,0,-1,2,4], vocal: [-4,-2,0,4,6,4,2,0],
-    rock: [6,4,-1,-2,1,4,5,4], pop: [-1,2,4,4,2,0,-1,-1], jazz: [3,2,1,2,-1,-1,2,3],
-    classical: [4,3,2,1,-1,-1,2,4], electronic: [6,5,2,0,-2,2,4,5]
-  };
-  document.querySelectorAll("[data-preset]").forEach(function(b) {
-    b.addEventListener("click", function() {
-      var p = presets[b.dataset.preset];
-      for (var i = 0; i < 8; i++) el("eq" + (i+1)).value = p[i];
-      applyEQ();
-    });
-  });
-  function applyFx() {
-    var s = el("fxSurround").checked, rv = el("fxReverb").checked, ec = el("fxEcho").checked, di = el("fxDistortion").checked;
-    if (analyser) analyser.channelCount = s ? 6 : 2;
-    if (fxNodes.reverb && sourceNode) { try { sourceNode.disconnect(fxNodes.reverb); } catch(e) {} if (rv) try { sourceNode.connect(fxNodes.reverb); } catch(e) {} }
-    if (fxNodes.delay && sourceNode) { try { sourceNode.disconnect(fxNodes.delay); } catch(e) {} if (ec) try { sourceNode.connect(fxNodes.delay); } catch(e) {} }
-    if (fxNodes.distortion && sourceNode) { try { sourceNode.disconnect(fxNodes.distortion); } catch(e) {} if (di) try { sourceNode.connect(fxNodes.distortion); } catch(e) {} }
-  }
-  ["fxSurround", "fxReverb", "fxEcho", "fxDistortion"].forEach(function(id) { el(id).addEventListener("change", applyFx); });
 
   // ===== VISUALIZER =====
   var vizCanvas = el("visualizer");
@@ -767,18 +541,6 @@ textarea{min-height:70px;resize:vertical}
         vizCtx.moveTo(cx + Math.cos(ang)*rb, cy + Math.sin(ang)*rb);
         vizCtx.lineTo(cx + Math.cos(ang)*r, cy + Math.sin(ang)*r);
         vizCtx.stroke();
-      }
-    } else if (vizMode === "particles") {
-      var avg = 0; for (var a = 0; a < dataArr.length; a++) avg += dataArr[a]; avg /= dataArr.length;
-      for (var pi = 0; pi < vizParts.length; pi++) {
-        var p = vizParts[pi];
-        p.x += p.vx; p.y += p.vy;
-        if (p.x < 0 || p.x > 1) p.vx *= -1;
-        if (p.y < 0 || p.y > 1) p.vy *= -1;
-        vizCtx.fillStyle = "hsla(" + (190 + pi*3) + ",100%,68%,0.8)";
-        vizCtx.beginPath();
-        vizCtx.arc(p.x*W, p.y*H, p.s*(0.7 + avg/200)*window.devicePixelRatio, 0, Math.PI*2);
-        vizCtx.fill();
       }
     }
   }
@@ -845,7 +607,7 @@ textarea{min-height:70px;resize:vertical}
     var t = tracks[i];
     audioEl.src = t.data;
     audioEl.volume = parseInt(el("pVol").value) / 100;
-    audioEl.playbackRate = parseFloat(el("playSpeed").value);
+    audioEl.playbackRate = parseFloat(el("playSpeed").value || 1);
     setupAudioGraph();
     if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
     audioEl.play().then(function() {
@@ -853,8 +615,6 @@ textarea{min-height:70px;resize:vertical}
       el("pPlay").textContent = "⏸️";
       el("pName").textContent = t.name;
       el("pFav").textContent = t.fav ? "⭐" : "☆";
-      trimStartPct = 0; trimEndPct = 100;
-      el("trimStart").value = 0; el("trimEnd").value = 100;
       renderPlaylist();
     }).catch(function(err) { showStatus("❌ " + err.message); });
   }
@@ -894,11 +654,8 @@ textarea{min-height:70px;resize:vertical}
   audioEl.addEventListener("ended", function() {
     if (loopMode === 2) { audioEl.currentTime = 0; audioEl.play(); return; }
     if (loopMode === 1) { playTrack(currentIdx); return; }
-    if (el("playAuto").checked) {
-      if (shuffleOn) playTrack(Math.floor(Math.random() * tracks.length));
-      else if (currentIdx + 1 < tracks.length) playTrack(currentIdx + 1);
-      else { stopAll(); currentIdx = -1; renderPlaylist(); }
-    }
+    if (currentIdx + 1 < tracks.length) playTrack(currentIdx + 1);
+    else { stopAll(); currentIdx = -1; renderPlaylist(); }
   });
   el("pProg").addEventListener("click", function(e) {
     if (!audioEl.duration) return;
@@ -906,7 +663,6 @@ textarea{min-height:70px;resize:vertical}
     audioEl.currentTime = ((e.clientX - rect.left) / rect.width) * audioEl.duration;
   });
   el("pVol").addEventListener("input", function() { audioEl.volume = parseInt(this.value) / 100; el("pVolV").textContent = this.value + "%"; });
-
   el("playlistShuffle").addEventListener("click", function() { shuffleOn = !shuffleOn; this.textContent = "🔀 Shuffle: " + (shuffleOn ? "AN" : "Aus"); });
   el("playlistLoop").addEventListener("click", function() { loopMode = (loopMode + 1) % 3; this.textContent = "🔁 Loop: " + (loopMode === 0 ? "Aus" : loopMode === 1 ? "Alle" : "Einzeln"); });
   el("playlistFav").addEventListener("click", function() { favOnly = !favOnly; this.textContent = "⭐ " + (favOnly ? "Alle zeigen" : "Nur Favoriten"); renderPlaylist(); });
@@ -923,33 +679,365 @@ textarea{min-height:70px;resize:vertical}
     await dbClear(); tracks = []; currentIdx = -1; stopAll(); playerBar.classList.remove("show"); renderPlaylist();
   });
 
-  // ===== TRIM =====
-  el("trimStart").addEventListener("input", function() { var v = parseInt(this.value); if (v > parseInt(el("trimEnd").value)) { this.value = el("trimEnd").value; v = parseInt(this.value); } trimStartPct = v; el("trimStartV").textContent = fmtTime((v/100) * (audioEl.duration || 0)); });
-  el("trimEnd").addEventListener("input", function() { var v = parseInt(this.value); if (v < parseInt(el("trimStart").value)) { this.value = el("trimStart").value; v = parseInt(this.value); } trimEndPct = v; el("trimEndV").textContent = fmtTime((v/100) * (audioEl.duration || 0)); });
-  audioEl.addEventListener("loadedmetadata", function() { el("trimEndV").textContent = fmtTime(audioEl.duration); });
-  el("fadeIn").addEventListener("input", function() { el("fadeInV").textContent = this.value + "s"; });
-  el("fadeOut").addEventListener("input", function() { el("fadeOutV").textContent = this.value + "s"; });
-  el("trimExport").addEventListener("click", async function() {
-    if (currentIdx < 0 || !audioEl.duration) { alert("Zuerst Track abspielen"); return; }
-    var dur = audioEl.duration;
-    var start = (trimStartPct/100) * dur, end = (trimEndPct/100) * dur;
-    if (end - start < 0.5) { alert("Zu kurz"); return; }
-    showStatus("⏳ Exportiere…");
+  // ===== LOKALE MUSIK-ENGINE =====
+  var NOTE_FREQ = {};
+  (function() {
+    var names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+    for (var oct = 0; oct <= 8; oct++) {
+      for (var i = 0; i < 12; i++) {
+        var n = names[i] + oct;
+        NOTE_FREQ[n] = 440 * Math.pow(2, (oct * 12 + i - 57) / 12);
+      }
+    }
+  })();
+
+  function noteFreq(note) { return NOTE_FREQ[note] || 440; }
+
+  var SCALES = {
+    major: [0, 2, 4, 5, 7, 9, 11],
+    minor: [0, 2, 3, 5, 7, 8, 10],
+    dorian: [0, 2, 3, 5, 7, 9, 10],
+    mixolydian: [0, 2, 4, 5, 7, 9, 10]
+  };
+
+  var KEY_ROOT = { "C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5, "F#": 6, "G": 7, "G#": 8, "A": 9, "A#": 10, "B": 11,
+    "Bb": 10, "Eb": 3, "Ab": 8, "Db": 1, "Gb": 6 };
+
+  function midiToName(m) {
+    var names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+    return names[m % 12] + (Math.floor(m / 12) - 1);
+  }
+
+  function getScaleNotes(rootMidi, mode) {
+    var intervals = SCALES[mode] || SCALES.major;
+    return intervals.map(function(i) { return rootMidi + i; });
+  }
+
+  function chordFromDegree(scale, degree, numNotes) {
+    numNotes = numNotes || 3;
+    var chord = [];
+    for (var i = 0; i < numNotes; i++) {
+      chord.push(scale[(degree + i * 2) % scale.length] + Math.floor((degree + i * 2) / scale.length) * 12);
+    }
+    return chord;
+  }
+
+  // Akkord-Progressionen als Stufen (0-basiert: I=0, ii=1, iii=2, IV=3, V=4, vi=5, vii=6)
+  var PROGRESSIONS = {
+    "I-V-vi-IV": [0, 4, 5, 3],
+    "vi-IV-I-V": [5, 3, 0, 4],
+    "I-IV-V-I": [0, 3, 4, 0],
+    "ii-V-I": [1, 4, 0, 0],
+    "I-vi-IV-V": [0, 5, 3, 4],
+    "i-VI-III-VII": [0, 5, 2, 6],
+    "I-V-vi-iii-IV-I-IV-V": [0, 4, 5, 2, 3, 0, 3, 4]
+  };
+
+  var STRUCTURES = {
+    "verse-chorus": ["verse","chorus","verse","chorus"],
+    "full": ["intro","verse","chorus","verse","chorus","bridge","chorus"],
+    "short": ["intro","verse","chorus","outro"],
+    "loop": ["chorus","chorus","chorus","chorus"],
+    "ballad": ["intro","verse","chorus","outro"]
+  };
+
+  var STYLE_PARAMS = {
+    pop:       { wave: "triangle", drums: 1.0, bassAmp: 0.25, chordAmp: 0.12, melAmp: 0.10, arpAmp: 0.06, reverb: 0.2, notes: 3 },
+    rock:      { wave: "sawtooth", drums: 1.2, bassAmp: 0.30, chordAmp: 0.10, melAmp: 0.12, arpAmp: 0.05, reverb: 0.15, notes: 3 },
+    jazz:      { wave: "sine",     drums: 0.8, bassAmp: 0.20, chordAmp: 0.14, melAmp: 0.10, arpAmp: 0.08, reverb: 0.3,  notes: 4 },
+    lofi:      { wave: "sine",     drums: 0.6, bassAmp: 0.22, chordAmp: 0.13, melAmp: 0.08, arpAmp: 0.04, reverb: 0.4,  notes: 3 },
+    edm:       { wave: "square",   drums: 1.3, bassAmp: 0.32, chordAmp: 0.10, melAmp: 0.14, arpAmp: 0.10, reverb: 0.15, notes: 3 },
+    classical: { wave: "triangle", drums: 0.0, bassAmp: 0.15, chordAmp: 0.14, melAmp: 0.12, arpAmp: 0.08, reverb: 0.3,  notes: 3 },
+    epic:      { wave: "sawtooth", drums: 1.1, bassAmp: 0.35, chordAmp: 0.15, melAmp: 0.14, arpAmp: 0.06, reverb: 0.4,  notes: 3 },
+    kurdish:   { wave: "triangle", drums: 0.7, bassAmp: 0.20, chordAmp: 0.10, melAmp: 0.16, arpAmp: 0.10, reverb: 0.25, notes: 3 },
+    turkish:   { wave: "sawtooth", drums: 0.9, bassAmp: 0.22, chordAmp: 0.11, melAmp: 0.14, arpAmp: 0.08, reverb: 0.25, notes: 3 },
+    ezidi:     { wave: "sine",     drums: 0.5, bassAmp: 0.18, chordAmp: 0.10, melAmp: 0.18, arpAmp: 0.12, reverb: 0.35, notes: 3 }
+  };
+
+  var composeAudioCtx = null;
+  var composedBuffer = null;
+  var composedDuration = 0;
+
+  function setupComposeAudio() {
+    if (composeAudioCtx) return composeAudioCtx;
+    composeAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return composeAudioCtx;
+  }
+
+  // Synth-Helfer: einfacher Ton mit Envelope
+  function playTone(ctx, dest, freq, startTime, duration, amp, wave, attack, release) {
+    var osc = ctx.createOscillator();
+    var g = ctx.createGain();
+    osc.type = wave;
+    osc.frequency.value = freq;
+    g.gain.setValueAtTime(0, startTime);
+    g.gain.linearRampToValueAtTime(amp, startTime + (attack || 0.02));
+    g.gain.setValueAtTime(amp, startTime + duration - (release || 0.05));
+    g.gain.linearRampToValueAtTime(0.0001, startTime + duration);
+    osc.connect(g);
+    g.connect(dest);
+    osc.start(startTime);
+    osc.stop(startTime + duration + 0.05);
+  }
+
+  // Kick-Drum: Sinus mit Pitch-Drop
+  function playKick(ctx, dest, startTime, amp) {
+    var osc = ctx.createOscillator();
+    var g = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(150, startTime);
+    osc.frequency.exponentialRampToValueAtTime(45, startTime + 0.12);
+    g.gain.setValueAtTime(amp, startTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.25);
+    osc.connect(g); g.connect(dest);
+    osc.start(startTime); osc.stop(startTime + 0.3);
+  }
+
+  // Snare: Rauschen
+  function playSnare(ctx, dest, startTime, amp) {
+    var bufferSize = ctx.sampleRate * 0.15;
+    var buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    var data = buffer.getChannelData(0);
+    for (var i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 3);
+    var src = ctx.createBufferSource();
+    src.buffer = buffer;
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(amp, startTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.15);
+    var filter = ctx.createBiquadFilter();
+    filter.type = "highpass";
+    filter.frequency.value = 1500;
+    src.connect(filter); filter.connect(g); g.connect(dest);
+    src.start(startTime); src.stop(startTime + 0.2);
+  }
+
+  // Hi-Hat: kurzes Rauschen
+  function playHat(ctx, dest, startTime, amp) {
+    var bufferSize = ctx.sampleRate * 0.05;
+    var buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    var data = buffer.getChannelData(0);
+    for (var i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2);
+    var src = ctx.createBufferSource();
+    src.buffer = buffer;
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(amp, startTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.05);
+    var filter = ctx.createBiquadFilter();
+    filter.type = "highpass";
+    filter.frequency.value = 6000;
+    src.connect(filter); filter.connect(g); g.connect(dest);
+    src.start(startTime); src.stop(startTime + 0.1);
+  }
+
+  // Kompletter Song
+  async function composeSong() {
     try {
-      var t = tracks[currentIdx];
-      var resp = await fetch(t.data); var buf = await resp.arrayBuffer();
-      var sr = el("trimQuality").value === "high" ? 44100 : (el("trimQuality").value === "med" ? 22050 : 11025);
-      var ctx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, Math.ceil((end-start)*sr), sr);
-      var src = ctx.createBufferSource();
-      var ab = await ctx.decodeAudioData(buf.slice(0));
-      src.buffer = ab; src.connect(ctx.destination); src.start(0, start, end-start);
-      var rend = await ctx.startRendering();
-      var wav = audioBufferToWav(rend);
-      var a = document.createElement("a");
-      a.href = URL.createObjectURL(wav); a.download = t.name + "-trim.wav"; a.click();
-      showStatus("💾 Export fertig");
-    } catch(e) { showStatus("❌ " + e.message); }
-  });
+      el("cStatus").style.display = "block";
+      el("cStatus").textContent = "⏳ Komponiere Song… (das kann 1–2 Minuten dauern)";
+      el("cResult").innerHTML = "";
+      el("cPreview").innerHTML = "";
+
+      var ctx = setupComposeAudio();
+      if (ctx.state === "suspended") ctx.resume();
+
+      var key = el("cKey").value;
+      var mode = el("cMode").value;
+      var tempo = parseInt(el("cTempo").value);
+      var structure = STRUCTURES[el("cStructure").value] || STRUCTURES["full"];
+      var style = el("cStyle").value;
+      var prog = PROGRESSIONS[el("cProg").value] || PROGRESSIONS["I-V-vi-IV"];
+      var density = parseInt(el("cDensity").value);
+      var complexity = parseInt(el("cComplexity").value) / 100;
+      var masterVol = parseInt(el("cVolume").value) / 100;
+
+      var sp = STYLE_PARAMS[style] || STYLE_PARAMS.pop;
+      var rootMidi = 60 + (KEY_ROOT[key] || 0);
+      var scaleNotes = getScaleNotes(rootMidi, mode);
+
+      var beatDur = 60 / tempo; // Sekunden pro Beat
+      var barDur = beatDur * 4;  // 4/4-Takt
+      var totalBars = 0;
+      structure.forEach(function(sec) {
+        if (sec === "intro" || sec === "outro") totalBars += 4;
+        else if (sec === "bridge") totalBars += 8;
+        else totalBars += 8;
+      });
+      var totalDur = totalBars * barDur + 2;
+
+      // OfflineAudioContext für Rendering
+      var OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      var offCtx = new OAC(2, Math.ceil(totalDur * 44100), 44100);
+      var masterGain = offCtx.createGain();
+      masterGain.gain.value = 1.0;
+      masterGain.connect(offCtx.destination);
+
+      // Hall-Effekt (Convolver)
+      var reverb = offCtx.createConvolver();
+      var revBuf = offCtx.createBuffer(2, Math.floor(offCtx.sampleRate * 1.5), offCtx.sampleRate);
+      for (var rc = 0; rc < 2; rc++) {
+        var rd = revBuf.getChannelData(rc);
+        for (var ri = 0; ri < rd.length; ri++) rd[ri] = (Math.random() * 2 - 1) * Math.pow(1 - ri / rd.length, 2.5);
+      }
+      reverb.buffer = revBuf;
+      var reverbGain = offCtx.createGain();
+      reverbGain.gain.value = sp.reverb;
+      reverb.connect(reverbGain);
+      reverbGain.connect(masterGain);
+
+      var dryGain = offCtx.createGain();
+      dryGain.gain.value = 1 - sp.reverb * 0.4;
+      dryGain.connect(masterGain);
+
+      // Struktur durchgehen
+      var t = 0;
+      var previewHTML = "<b>🎼 Song-Struktur:</b><br>";
+
+      structure.forEach(function(section, secIdx) {
+        var bars = (section === "intro" || section === "outro") ? 4 : (section === "bridge" ? 8 : 8);
+        previewHTML += "• " + section.charAt(0).toUpperCase() + section.slice(1) + " (" + bars + " Takte)<br>";
+
+        var sectionAmp = 1.0;
+        if (section === "intro") sectionAmp = 0.6;
+        if (section === "outro") sectionAmp = 0.5;
+        if (section === "bridge") sectionAmp = 0.85;
+
+        for (var bar = 0; bar < bars; bar++) {
+          var chordIdx = prog[bar % prog.length];
+          var chordNotes = chordFromDegree(scaleNotes, chordIdx, sp.notes);
+          var barStart = t;
+          var sectionFilter = section === "chorus" ? 1.0 : (section === "intro" || section === "outro" ? 0.55 : 0.85);
+
+          // Akkorde: auf jedem Beat 1 und 3 (oder 4x, wenn dichte hoch)
+          var chordHits = density >= 6 ? 4 : 2;
+          for (var c = 0; c < chordHits; c++) {
+            var chordTime = barStart + c * (barDur / chordHits);
+            chordNotes.forEach(function(n, ni) {
+              if (Math.random() > 0.85 - complexity * 0.3) {
+                playTone(offCtx, dryGain, noteFreq(midiToName(n)), chordTime, barDur / chordHits * 0.9,
+                  sp.chordAmp * sectionFilter * sectionAmp * (1 - ni * 0.15), sp.wave, 0.05, 0.3);
+                playTone(offCtx, reverb, noteFreq(midiToName(n)), chordTime, barDur / chordHits * 0.9,
+                  sp.chordAmp * sectionFilter * sectionAmp * 0.5, sp.wave, 0.05, 0.3);
+              }
+            });
+          }
+
+          // Bass: auf jedem Beat 1 und 3
+          var bassNote = chordNotes[0] - 24;
+          playTone(offCtx, dryGain, noteFreq(midiToName(bassNote)), barStart, barDur * 0.45, sp.bassAmp * sectionFilter * sectionAmp, "triangle", 0.01, 0.15);
+          playTone(offCtx, dryGain, noteFreq(midiToName(bassNote)), barStart + barDur * 0.5, barDur * 0.4, sp.bassAmp * sectionFilter * sectionAmp * 0.9, "triangle", 0.01, 0.15);
+
+          // Melodie: zufällig aus Skala
+          var melNotes = density * 2;
+          for (var m = 0; m < melNotes; m++) {
+            if (Math.random() > 0.5 - complexity * 0.3) {
+              var melTime = barStart + m * (barDur / melNotes);
+              var noteIdx = Math.floor(Math.random() * scaleNotes.length);
+              var octShift = Math.random() < 0.3 ? 12 : 0;
+              var melNote = scaleNotes[noteIdx] + octShift;
+              var dur = (barDur / melNotes) * (0.3 + Math.random() * 0.4);
+              playTone(offCtx, dryGain, noteFreq(midiToName(melNote)), melTime, dur, sp.melAmp * sectionFilter * sectionAmp, sp.wave, 0.03, 0.1);
+              playTone(offCtx, reverb, noteFreq(midiToName(melNote)), melTime, dur, sp.melAmp * sectionFilter * sectionAmp * 0.4, sp.wave, 0.03, 0.1);
+            }
+          }
+
+          // Arpeggio
+          if (el("cArp").checked && section !== "intro" && section !== "outro") {
+            var arpNotes = 8;
+            for (var a = 0; a < arpNotes; a++) {
+              var arpTime = barStart + a * (barDur / arpNotes);
+              var arpNote = chordNotes[a % chordNotes.length] + 12;
+              playTone(offCtx, dryGain, noteFreq(midiToName(arpNote)), arpTime, barDur / arpNotes * 0.8, sp.arpAmp * sectionFilter * sectionAmp, "triangle", 0.01, 0.08);
+            }
+          }
+
+          // Drums
+          if (el("cDrums").checked && sp.drums > 0) {
+            var dAmp = sp.drums * sectionFilter * sectionAmp * 0.5;
+            // Kick auf 1 und 3
+            playKick(offCtx, dryGain, barStart, 0.6 * dAmp);
+            playKick(offCtx, dryGain, barStart + barDur * 0.5, 0.5 * dAmp);
+            // Snare auf 2 und 4
+            if (section === "chorus" || section === "bridge") {
+              playSnare(offCtx, dryGain, barStart + barDur * 0.25, 0.4 * dAmp);
+              playSnare(offCtx, dryGain, barStart + barDur * 0.75, 0.4 * dAmp);
+            }
+            // Hi-Hats auf jedem Achtel
+            for (var h = 0; h < 8; h++) {
+              playHat(offCtx, dryGain, barStart + h * (barDur / 8), 0.15 * dAmp);
+            }
+          }
+        }
+        t += bars * barDur;
+      });
+
+      el("cPreview").innerHTML = previewHTML;
+
+      // Rendern
+      var renderedBuffer = await offCtx.startRendering();
+      composedBuffer = renderedBuffer;
+      composedDuration = renderedBuffer.duration;
+
+      // In WAV umwandeln und im Player abspielen
+      var wavBlob = audioBufferToWav(renderedBuffer);
+      var dataUrl = await new Promise(function(res) {
+        var reader = new FileReader();
+        reader.onload = function(ev) { res(ev.target.result); };
+        reader.readAsDataURL(wavBlob);
+      });
+
+      // Track erstellen und zur Playlist hinzufügen
+      var trackName = "Komposition · " + key + " " + mode + " · " + style + " · " + tempo + " BPM";
+      var trackData = {
+        name: trackName,
+        type: "audio/wav",
+        size: wavBlob.size,
+        data: dataUrl,
+        ts: Date.now(),
+        fav: false
+      };
+      var id = await dbAdd(trackData);
+      trackData.id = id;
+      tracks.push(trackData);
+      renderPlaylist();
+
+      // Direkt abspielen
+      playTrack(tracks.length - 1);
+
+      el("cStatus").textContent = "✅ Song fertig! (" + Math.round(composedDuration) + " Sekunden) — er läuft jetzt im Player.";
+      el("cStatus").className = "info ok";
+      el("cResult").innerHTML = '<div class="info ok"><b>✅ Fertig!</b> Song ist in der Playlist gespeichert und läuft im Player.</div>' +
+        '<div class="btn-row"><button class="btn secondary" id="cDownload">⬇️ Als WAV herunterladen</button><button class="btn secondary" id="cRegen">🔄 Neu komponieren</button></div>';
+
+      el("cDownload").addEventListener("click", function() {
+        var a = document.createElement("a");
+        a.href = dataUrl;
+        a.download = "haldo-komposition-" + Date.now() + ".wav";
+        a.click();
+      });
+      el("cRegen").addEventListener("click", composeSong);
+
+      showStatus("🎵 Song komponiert!");
+    } catch(e) {
+      console.error(e);
+      el("cStatus").textContent = "❌ Fehler: " + e.message;
+      el("cStatus").className = "info warn";
+    }
+  }
+
+  el("cGenerate").addEventListener("click", composeSong);
+
+  // Preview-Text der aktuellen Einstellungen
+  function updateComposerPreview() {
+    var key = el("cKey").value;
+    var mode = el("cMode").value;
+    var style = el("cStyle").value;
+    var tempo = el("cTempo").value;
+    el("cPreview").innerHTML = "<b>⚙️ Aktuelle Einstellungen:</b><br>Tonart: " + key + " " + mode + " · Tempo: " + tempo + " BPM · Stil: " + style;
+  }
+  ["cKey","cMode","cStyle","cTempo"].forEach(function(id) { el(id).addEventListener("change", updateComposerPreview); });
+  updateComposerPreview();
+
+  // ===== WAV-HELFER =====
   function audioBufferToWav(buffer) {
     var nCh = buffer.numberOfChannels, len = buffer.length, sr = buffer.sampleRate;
     var bps = 2, ba = nCh*bps, br = sr*ba, ds = len*ba;
@@ -965,66 +1053,39 @@ textarea{min-height:70px;resize:vertical}
     return new Blob([ab], { type: "audio/wav" });
   }
 
-  // ===== KI-MUSIK (Pollinations.AI) V10 =====
-  async function genMusic(prompt, lyrics, lang, dur, inst) {
-    showStatus("⏳ Sende an KI…");
+  // ===== TRIM =====
+  el("trimStart").addEventListener("input", function() { var v = parseInt(this.value); if (v > parseInt(el("trimEnd").value)) { this.value = el("trimEnd").value; v = parseInt(this.value); } trimStartPct = v; el("trimStartV").textContent = fmtTime((v/100) * (audioEl.duration || 0)); });
+  el("trimEnd").addEventListener("input", function() { var v = parseInt(this.value); if (v < parseInt(el("trimStart").value)) { this.value = el("trimStart").value; v = parseInt(this.value); } trimEndPct = v; el("trimEndV").textContent = fmtTime((v/100) * (audioEl.duration || 0)); });
+  audioEl.addEventListener("loadedmetadata", function() { el("trimEndV").textContent = fmtTime(audioEl.duration); });
+  el("trimExport").addEventListener("click", async function() {
+    if (currentIdx < 0 || !audioEl.duration) { alert("Zuerst Track abspielen"); return; }
+    var dur = audioEl.duration;
+    var start = (trimStartPct/100) * dur, end = (trimEndPct/100) * dur;
+    if (end - start < 0.5) { alert("Zu kurz"); return; }
+    showStatus("⏳ Exportiere…");
     try {
-      if (!KEYS.poll) throw new Error("Pollinations API Key fehlt. Trage ihn im Tab 🔑 Keys ein.");
-      var style = el("aiStyle").value;
-      var fullPrompt = prompt + (style ? ", " + style : "");
-      var langStr = inst ? "" : (", " + lang);
-      var encodedPrompt = encodeURIComponent(fullPrompt + langStr);
-      var url = "https://gen.pollinations.ai/audio/" + encodedPrompt + "?duration=" + (parseInt(dur) || 180) + "&model=elevenmusic&key=" + encodeURIComponent(KEYS.poll);
-
-      var r = await fetch(url);
-      if (!r.ok) {
-        var errText = await r.text();
-        throw new Error("HTTP " + r.status + ": " + errText.substring(0, 200));
-      }
-
-      var blob = await r.blob();
-      if (blob.size === 0) throw new Error("Leere Audio-Antwort erhalten");
-
-      var reader = new FileReader();
-      return new Promise(function(resolve) {
-        reader.onload = function(ev) { resolve(ev.target.result); };
-        reader.readAsDataURL(blob);
-      });
-    } catch(e) {
-      console.warn(e);
-      return { error: e.message };
-    }
-  }
-
-  el("aiGenerate").addEventListener("click", async function() {
-    var p = el("aiPrompt").value.trim();
-    if (!p) { showStatus("⚠️ Beschreibung eingeben"); return; }
-
-    var lyrics = lastLyrics || "";
-    var vocal = el("aiVocal").checked;
-    el("aiStatus").style.display = "block";
-    el("aiStatus").textContent = "⏳ Song wird generiert… (kann 2–5 Minuten dauern)";
-    el("aiResult").innerHTML = "";
-
-    var result = await genMusic(p, lyrics, el("aiLang").value, el("aiDuration").value, !vocal);
-
-    if (result && result.error) {
-      el("aiStatus").textContent = "❌ Fehler: " + result.error;
-    } else if (result) {
-      el("aiStatus").textContent = "✅ Song fertig!";
-      el("aiResult").innerHTML = '<audio controls src="' + result + '" style="width:100%;margin-top:10px"></audio><div class="btn-row"><a class="btn" href="' + result + '" download="haldo-song.mp3" style="text-decoration:none;text-align:center">⬇️ Download</a></div>';
-    } else {
-      el("aiStatus").textContent = "❌ Fehlgeschlagen – versuche es später erneut.";
-    }
+      var t = tracks[currentIdx];
+      var resp = await fetch(t.data); var buf = await resp.arrayBuffer();
+      var ctx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, Math.ceil((end-start)*44100), 44100);
+      var src = ctx.createBufferSource();
+      var ab = await ctx.decodeAudioData(buf.slice(0));
+      src.buffer = ab; src.connect(ctx.destination); src.start(0, start, end-start);
+      var rend = await ctx.startRendering();
+      var wav = audioBufferToWav(rend);
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(wav); a.download = t.name + "-trim.wav"; a.click();
+      showStatus("💾 Export fertig");
+    } catch(e) { showStatus("❌ " + e.message); }
   });
 
   // ===== SONGTEXT (Groq) =====
   async function genLyrics(topic, lang, style, mood) {
-    if (!KEYS.groq) throw new Error("Kein Groq-Key. Trage ihn im Tab 🔑 Keys ein.");
+    var KEY = localStorage.getItem("haldo_groq_key") || "";
+    if (!KEY) throw new Error("Kein Groq-Key. Trage ihn im Tab ⚙️ Extras ein.");
     var prompt = "Schreibe einen Songtext auf " + lang + " im Stil: " + style + ". Thema: " + topic + ". Stimmung: " + mood + ". Format: [Verse 1], [Chorus], [Verse 2], [Bridge], [Chorus]. Nur den Text, keine Erklärungen.";
     var r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + KEYS.groq },
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + KEY },
       body: JSON.stringify({ model: "openai/gpt-oss-120b", messages: [{ role: "user", content: prompt }], temperature: 0.9, max_tokens: 1000 })
     });
     if (!r.ok) throw new Error("Groq " + r.status);
@@ -1034,20 +1095,13 @@ textarea{min-height:70px;resize:vertical}
   el("lyricGenerate").addEventListener("click", async function() {
     var topic = el("lyricTopic").value.trim(); if (!topic) { showStatus("⚠️ Thema eingeben"); return; }
     el("lyricStatus").style.display = "block"; el("lyricStatus").textContent = "⏳ Schreibe Songtext…";
-    el("lyricResult").textContent = ""; el("lyricUse").style.display = "none";
+    el("lyricResult").textContent = "";
     try {
       var l = await genLyrics(topic, el("lyricLang").value, el("lyricStyle").value, el("lyricMood").value);
       lastLyrics = l;
       el("lyricResult").textContent = l;
       el("lyricStatus").textContent = "✅ Fertig!";
-      el("lyricUse").style.display = "block";
     } catch(e) { el("lyricStatus").textContent = "❌ " + e.message; }
-  });
-  el("lyricUse").addEventListener("click", function() {
-    if (!lastLyrics) return;
-    el("aiPrompt").value = lastLyrics;
-    document.querySelector('.tab[data-pane="pAi"]').click();
-    showStatus("🎵 Text übernommen!");
   });
 
   // ===== KARAOKE =====
@@ -1087,50 +1141,36 @@ textarea{min-height:70px;resize:vertical}
   el("ttsRate").addEventListener("input", function() { el("ttsRateV").textContent = this.value + "%"; });
   el("ttsSpeak").addEventListener("click", function() {
     var text = el("ttsText").value.trim(); if (!text) return;
-    var lang = el("ttsLang").value;
     if (!synth) { showStatus("❌ TTS nicht verfügbar"); return; }
     synth.cancel();
     var u = new SpeechSynthesisUtterance(text);
     var uri = el("ttsVoice").value;
     if (uri) { for (var i = 0; i < voices.length; i++) if (voices[i].voiceURI === uri) { u.voice = voices[i]; break; } }
-    else { var m = voices.filter(function(v) { return v.lang && v.lang.startsWith(lang.substring(0,2)); }); if (m.length) u.voice = m[0]; }
+    else { var m = voices.filter(function(v) { return v.lang && v.lang.startsWith(el("ttsLang").value.substring(0,2)); }); if (m.length) u.voice = m[0]; }
     u.pitch = parseInt(el("ttsPitch").value) / 100;
     u.rate = parseInt(el("ttsRate").value) / 100;
-    u.lang = lang;
+    u.lang = el("ttsLang").value;
     synth.speak(u);
     showStatus("🔊 Spreche…");
   });
   el("ttsStop").addEventListener("click", function() { if (synth) synth.cancel(); showStatus("⏹️ Stop"); });
 
-  // ===== EXTRAS =====
-  el("playSpeed").addEventListener("change", function() { audioEl.playbackRate = parseFloat(this.value); });
+  // ===== KEYS + SETTINGS =====
   document.querySelectorAll("#themeColors button").forEach(function(b) {
     b.addEventListener("click", function() {
       document.documentElement.style.setProperty("--primary", b.dataset.color);
       document.querySelectorAll("#themeColors button").forEach(function(x) { x.classList.remove("active"); });
       b.classList.add("active");
-      try { localStorage.setItem("haldo_music_theme", b.dataset.color); } catch(e) {}
     });
   });
-  try { var st = localStorage.getItem("haldo_music_theme"); if (st) { document.documentElement.style.setProperty("--primary", st); document.querySelectorAll("#themeColors button").forEach(function(x) { if (x.dataset.color === st) x.classList.add("active"); else x.classList.remove("active"); }); } } catch(e) {}
-  el("exportPlaylist").addEventListener("click", function() {
-    var data = JSON.stringify({ tracks: tracks.map(function(t) { return { name: t.name, type: t.type, size: t.size, data: t.data, fav: t.fav }; }), ts: Date.now() });
-    var b = new Blob([data], { type: "application/json" });
-    var a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "haldo-music-" + Date.now() + ".json"; a.click();
-  });
-  el("importPlaylist").addEventListener("click", function() { el("importPlaylistFile").click(); });
-  el("importPlaylistFile").addEventListener("change", function(e) {
-    var f = e.target.files[0]; if (!f) return;
-    var r = new FileReader();
-    r.onload = async function(ev) {
-      try {
-        var p = JSON.parse(ev.target.result);
-        if (!p.tracks) throw new Error("Ungültiges Format");
-        for (var i = 0; i < p.tracks.length; i++) { var t = p.tracks[i]; var id = await dbAdd({ name: t.name, type: t.type, size: t.size, data: t.data, ts: Date.now(), fav: t.fav || false }); t.id = id; tracks.push(t); }
-        renderPlaylist();
-      } catch(err) { alert("Fehler: " + err.message); }
-    };
-    r.readAsText(f);
+  el("keyGroq").value = localStorage.getItem("haldo_groq_key") || "";
+  el("keyEleven").value = localStorage.getItem("haldo_eleven_key") || "";
+  el("keyVoice").value = localStorage.getItem("haldo_voice_id") || "zcF1DZzEkcYBq33PqIkO";
+  el("saveKeys").addEventListener("click", function() {
+    localStorage.setItem("haldo_groq_key", el("keyGroq").value.trim());
+    localStorage.setItem("haldo_eleven_key", el("keyEleven").value.trim());
+    localStorage.setItem("haldo_voice_id", el("keyVoice").value.trim() || "zcF1DZzEkcYBq33PqIkO");
+    showStatus("💾 Keys gespeichert!");
   });
   el("resetAll").addEventListener("click", function() { if (!confirm("Alles zurücksetzen?")) return; indexedDB.deleteDatabase(DB_NAME); location.reload(); });
 
@@ -1146,10 +1186,10 @@ textarea{min-height:70px;resize:vertical}
 
   // ===== START =====
   dbInit().then(dbAll).then(function(list) {
-    tracks = list; renderPlaylist(); applyEQ();
+    tracks = list; renderPlaylist();
   }).catch(function(e) { console.warn(e); });
 
-  console.log("🎵 HalDo Musik Studio V10 · Pollinations Key Support");
+  console.log("🎵 HalDo Musik Studio V11 · Lokale Kompositions-Engine");
 })();
 </script>
 </body>
