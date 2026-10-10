@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>HalDo Musik Studio V9</title>
+<title>HalDo Musik Studio V10</title>
 <style>
 :root{--primary:#00d4ff;--primary-2:#7c3aed;--bg:#050810;--bg-3:#0f1524;--border:rgba(0,212,255,.12);--border-hi:rgba(0,212,255,.4);--text:#e6f0ff;--text-dim:#7a8ba8;--success:#22c55e;--danger:#ef4444;--warn:#f59e0b;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -100,7 +100,7 @@ textarea{min-height:70px;resize:vertical}
 
 <div id="topbar">
   <a class="home" href="index.html">←</a>
-  <h1>🎵 Musik Studio V9</h1>
+  <h1>🎵 Musik Studio V10</h1>
   <div class="spacer"></div>
   <div class="chip"><span class="dot"></span><span id="trackCount">0</span></div>
 </div>
@@ -154,7 +154,7 @@ textarea{min-height:70px;resize:vertical}
 <div id="pAi" class="pane">
   <div class="card">
     <h3>🤖 KI-Musik generieren</h3>
-    <p style="font-size:11.5px;color:var(--text-dim);margin-bottom:10px">Beschreibe deinen Song — die KI erstellt Musik. (Kostenlos via Pollinations.AI)</p>
+    <p style="font-size:11.5px;color:var(--text-dim);margin-bottom:10px">Beschreibe deinen Song — die KI erstellt Musik. (Benötigt Pollinations API-Key)</p>
     <label>Beschreibung (Stil, Stimmung, Instrumente)</label>
     <textarea id="aiPrompt" placeholder="z.B. 'Ein trauriger Song über Frieden, akustische Gitarre, langsam'"></textarea>
 
@@ -450,6 +450,10 @@ textarea{min-height:70px;resize:vertical}
       Alle Keys werden <b>nur auf deinem Gerät</b> gespeichert (localStorage). Sie werden nie an Dritte gesendet.
     </div>
 
+    <label>Pollinations API Key <span id="pollStatus" class="key-status bad">Nicht gesetzt</span></label>
+    <input type="password" id="keyPoll" placeholder="pk_… oder sk_…" autocomplete="off">
+    <p style="font-size:10px;color:var(--text-dim);margin-top:4px">Kostenlos auf <b>enter.pollinations.ai/keys</b> (für KI-Musik)</p>
+
     <label>Groq API Key <span id="groqStatus" class="key-status bad">Nicht gesetzt</span></label>
     <input type="password" id="keyGroq" placeholder="gsk_…" autocomplete="off">
     <p style="font-size:10px;color:var(--text-dim);margin-top:4px">Kostenlos auf <b>console.groq.com/keys</b> (für Songtexte)</p>
@@ -556,7 +560,7 @@ textarea{min-height:70px;resize:vertical}
 (function() {
   "use strict";
 
-  var DB_NAME = "haldo_music_v9";
+  var DB_NAME = "haldo_music_v10";
   var db = null;
   var audioCtx = null, analyser = null, gainNode = null, sourceNode = null;
   var eqFilters = [], fxNodes = { reverb: null, delay: null, distortion: null };
@@ -579,6 +583,7 @@ textarea{min-height:70px;resize:vertical}
 
   // ===== KEY MANAGEMENT =====
   var KEYS = {
+    poll: localStorage.getItem("haldo_poll_key") || "",
     groq: localStorage.getItem("haldo_groq_key") || "",
     eleven: localStorage.getItem("haldo_eleven_key") || "",
     voice: localStorage.getItem("haldo_voice_id") || "zcF1DZzEkcYBq33PqIkO",
@@ -586,16 +591,20 @@ textarea{min-height:70px;resize:vertical}
   };
 
   function updateKeyStatus() {
+    var ps = el("pollStatus");
     var gs = el("groqStatus");
     var es = el("elevenStatus");
+    if (KEYS.poll) { ps.textContent = "✅ Gesetzt"; ps.className = "key-status ok"; }
+    else { ps.textContent = "Nicht gesetzt"; ps.className = "key-status bad"; }
     if (KEYS.groq) { gs.textContent = "✅ Gesetzt"; gs.className = "key-status ok"; }
     else { gs.textContent = "Nicht gesetzt"; gs.className = "key-status bad"; }
     if (KEYS.eleven) { es.textContent = "✅ Gesetzt"; es.className = "key-status ok"; }
     else { es.textContent = "Nicht gesetzt"; es.className = "key-status bad"; }
 
-    el("keyInfo").innerHTML = "<b>Status:</b><br>Groq: " + (KEYS.groq ? "✅" : "❌") + "<br>ElevenLabs: " + (KEYS.eleven ? "✅" : "❌") + "<br>Voice ID: " + (KEYS.voice || "—") + "<br>Kurdish: " + (KEYS.kurdish ? "✅" : "❌");
+    el("keyInfo").innerHTML = "<b>Status:</b><br>Pollinations: " + (KEYS.poll ? "✅" : "❌") + "<br>Groq: " + (KEYS.groq ? "✅" : "❌") + "<br>ElevenLabs: " + (KEYS.eleven ? "✅" : "❌") + "<br>Voice ID: " + (KEYS.voice || "—") + "<br>Kurdish: " + (KEYS.kurdish ? "✅" : "❌");
   }
 
+  el("keyPoll").value = KEYS.poll;
   el("keyGroq").value = KEYS.groq;
   el("keyEleven").value = KEYS.eleven;
   el("keyVoice").value = KEYS.voice;
@@ -603,11 +612,13 @@ textarea{min-height:70px;resize:vertical}
   updateKeyStatus();
 
   el("saveKeys").addEventListener("click", function() {
+    KEYS.poll = el("keyPoll").value.trim();
     KEYS.groq = el("keyGroq").value.trim();
     KEYS.eleven = el("keyEleven").value.trim();
     KEYS.voice = el("keyVoice").value.trim() || "zcF1DZzEkcYBq33PqIkO";
     KEYS.kurdish = el("keyKurdish").value.trim();
     try {
+      localStorage.setItem("haldo_poll_key", KEYS.poll);
       localStorage.setItem("haldo_groq_key", KEYS.groq);
       localStorage.setItem("haldo_eleven_key", KEYS.eleven);
       localStorage.setItem("haldo_voice_id", KEYS.voice);
@@ -619,14 +630,15 @@ textarea{min-height:70px;resize:vertical}
 
   el("clearKeys").addEventListener("click", function() {
     if (!confirm("Alle Keys löschen?")) return;
-    KEYS.groq = ""; KEYS.eleven = ""; KEYS.voice = "zcF1DZzEkcYBq33PqIkO"; KEYS.kurdish = "";
+    KEYS.poll = ""; KEYS.groq = ""; KEYS.eleven = ""; KEYS.voice = "zcF1DZzEkcYBq33PqIkO"; KEYS.kurdish = "";
     try {
+      localStorage.removeItem("haldo_poll_key");
       localStorage.removeItem("haldo_groq_key");
       localStorage.removeItem("haldo_eleven_key");
       localStorage.removeItem("haldo_voice_id");
       localStorage.removeItem("haldo_kurdish_key");
     } catch(e) {}
-    el("keyGroq").value = ""; el("keyEleven").value = ""; el("keyVoice").value = KEYS.voice; el("keyKurdish").value = "";
+    el("keyPoll").value = ""; el("keyGroq").value = ""; el("keyEleven").value = ""; el("keyVoice").value = KEYS.voice; el("keyKurdish").value = "";
     updateKeyStatus();
     showStatus("🗑️ Keys gelöscht");
   });
@@ -953,29 +965,26 @@ textarea{min-height:70px;resize:vertical}
     return new Blob([ab], { type: "audio/wav" });
   }
 
-  // ===== KI-MUSIK (Pollinations.AI) V9 =====
+  // ===== KI-MUSIK (Pollinations.AI) V10 =====
   async function genMusic(prompt, lyrics, lang, dur, inst) {
     showStatus("⏳ Sende an KI…");
     try {
-      // Pollinations.AI - GET /audio/{text}
-      // Wir kombinieren Prompt, Sprache und Dauer
+      if (!KEYS.poll) throw new Error("Pollinations API Key fehlt. Trage ihn im Tab 🔑 Keys ein.");
       var style = el("aiStyle").value;
       var fullPrompt = prompt + (style ? ", " + style : "");
       var langStr = inst ? "" : (", " + lang);
       var encodedPrompt = encodeURIComponent(fullPrompt + langStr);
-      var url = "https://gen.pollinations.ai/audio/" + encodedPrompt + "?duration=" + (parseInt(dur) || 180) + "&model=elevenmusic";
-      
-      // Da es ein GET-Request ist, holen wir das Audio direkt als Blob
+      var url = "https://gen.pollinations.ai/audio/" + encodedPrompt + "?duration=" + (parseInt(dur) || 180) + "&model=elevenmusic&key=" + encodeURIComponent(KEYS.poll);
+
       var r = await fetch(url);
       if (!r.ok) {
         var errText = await r.text();
         throw new Error("HTTP " + r.status + ": " + errText.substring(0, 200));
       }
-      
+
       var blob = await r.blob();
       if (blob.size === 0) throw new Error("Leere Audio-Antwort erhalten");
-      
-      // Blob in eine Data-URL umwandeln, damit der Player sie abspielen kann
+
       var reader = new FileReader();
       return new Promise(function(resolve) {
         reader.onload = function(ev) { resolve(ev.target.result); };
@@ -1140,7 +1149,7 @@ textarea{min-height:70px;resize:vertical}
     tracks = list; renderPlaylist(); applyEQ();
   }).catch(function(e) { console.warn(e); });
 
-  console.log("🎵 HalDo Musik Studio V9 · Pollinations.AI integriert");
+  console.log("🎵 HalDo Musik Studio V10 · Pollinations Key Support");
 })();
 </script>
 </body>
