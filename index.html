@@ -4726,5 +4726,590 @@ console.log("[HalDo Recherche] ✅ Modul geladen und registriert.");
 })();
 </script>
 <!-- ============ ENDE HALDO RECHERCHE APP ============ -->
+<!-- ============================================================
+     HALDO ÜBERSETZER APP — DROP-IN MODUL
+     Einfach vor </body> einfügen. Nach Reload ist alles aktiv.
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Übersetzer] window.HalDo fehlt.");return;}
+
+var H=window.HalDo;
+var Storage=H.Storage;
+var AppLauncher=H.AppLauncher;
+var APP_PLAN=H.APP_PLAN;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+function select(id,cur,opts){var h='<select id="'+id+'">';opts.forEach(function(o){h+='<option value="'+esc(o[0])+'"'+(String(o[0])===String(cur)?" selected":"")+'>'+esc(o[1])+'</option>';});return h+'</select>';}
+
+function trInjectStyles(){
+  if(document.getElementById("trStyles"))return;
+  var s=document.createElement("style");
+  s.id="trStyles";
+  s.textContent=".tr-lang-row{display:flex;gap:6px;align-items:center;margin-bottom:10px}.tr-lang-row select{flex:1;background:var(--bg-3);border:1px solid var(--border);color:var(--text);padding:10px 11px;border-radius:9px;font-family:inherit;font-size:12px;outline:none;font-weight:700}.tr-swap{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,rgba(0,212,255,.2),rgba(124,58,237,.2));border:1px solid var(--border-hi);color:var(--primary);cursor:pointer;font-size:18px;flex-shrink:0}.tr-textarea{width:100%;min-height:130px;background:var(--bg-3);border:1px solid rgba(0,212,255,.22);color:var(--text);padding:12px;border-radius:11px;font-family:inherit;font-size:13px;line-height:1.55;outline:none;resize:vertical}.tr-output{min-height:130px;background:linear-gradient(180deg,rgba(0,212,255,.06),rgba(124,58,237,.06));border:1px solid var(--border-hi);border-radius:11px;padding:12px;font-size:13px;line-height:1.55;color:var(--text);white-space:pre-wrap;word-break:break-word}.tr-action-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}.tr-quick-lang{display:flex;gap:5px;overflow-x:auto;padding-bottom:5px;margin-bottom:8px}.tr-quick-lang::-webkit-scrollbar{display:none}.tr-quick-lang button{padding:6px 11px;background:var(--bg-3);border:1px solid var(--border);border-radius:13px;color:var(--text-dim);font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap}.tr-quick-lang button.active{background:linear-gradient(135deg,rgba(0,212,255,.28),rgba(124,58,237,.28));border-color:var(--border-hi);color:var(--text)}.tr-history-item{padding:10px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:5px;cursor:pointer}.tr-history-item:hover{border-color:var(--primary)}.tr-history-item .src{font-size:10px;color:var(--text-mute);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}.tr-history-item .in{font-size:11.5px;color:var(--text-dim);margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.tr-history-item .out{font-size:12.5px;font-weight:700;color:var(--primary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.tr-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}.tr-phrase{padding:11px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:6px}.tr-phrase .de{font-size:11px;color:var(--text-mute);font-weight:700;margin-bottom:4px}.tr-phrase .tr{font-size:13px;font-weight:700;color:var(--primary);margin-bottom:3px}.tr-phrase .rom{font-size:10px;color:var(--text-dim);font-style:italic}.tr-phrase .spk{float:right;background:rgba(0,212,255,.15);border:1px solid rgba(0,212,255,.4);color:var(--primary);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px}.tr-ai-box{padding:12px;background:rgba(168,85,247,.08);border:1px dashed rgba(168,85,247,.4);border-radius:11px;margin-top:8px;font-size:11.5px;line-height:1.6;color:var(--text)}.tr-ai-box .lbl{font-size:9.5px;color:#c084fc;text-transform:uppercase;letter-spacing:1px;font-weight:800;margin-bottom:5px}.tr-alphabet{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:8px}.tr-letter{padding:8px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;text-align:center;font-size:15px;font-weight:800;color:var(--primary);cursor:pointer}.tr-letter:hover{border-color:#4ade80;color:#4ade80}.tr-letter .snd{display:block;font-size:9px;color:var(--text-mute);font-weight:600;margin-top:2px}";
+  document.head.appendChild(s);
+}
+
+/* ============ Sprachen ============ */
+var TR_LANGS=[
+  {c:"auto",n:"🌐 Auto-Erkennen"},
+  {c:"de",n:"🇩🇪 Deutsch"},
+  {c:"en",n:"🇬🇧 English"},
+  {c:"tr",n:"🇹🇷 Türkçe"},
+  {c:"ku",n:"🟨 Kurdî (Kurmanji)"},
+  {c:"ckb",n:"🟨 کوردی (Sorani)"},
+  {c:"ar",n:"🇸🇦 العربية"},
+  {c:"fa",n:"🇮🇷 فارسی"},
+  {c:"ru",n:"🇷🇺 Русский"},
+  {c:"fr",n:"🇫🇷 Français"},
+  {c:"es",n:"🇪🇸 Español"},
+  {c:"it",n:"🇮🇹 Italiano"},
+  {c:"pt",n:"🇵🇹 Português"},
+  {c:"nl",n:"🇳🇱 Nederlands"},
+  {c:"pl",n:"🇵🇱 Polski"},
+  {c:"el",n:"🇬🇷 Ελληνικά"},
+  {c:"zh",n:"🇨🇳 中文"},
+  {c:"ja",n:"🇯🇵 日本語"},
+  {c:"ko",n:"🇰🇷 한국어"},
+  {c:"hi",n:"🇮🇳 हिन्दी"},
+  {c:"ur",n:"🇵🇰 اردو"},
+  {c:"he",n:"🇮🇱 עברית"},
+  {c:"sv",n:"🇸🇪 Svenska"},
+  {c:"no",n:"🇳🇴 Norsk"},
+  {c:"da",n:"🇩🇰 Dansk"},
+  {c:"fi",n:"🇫🇮 Suomi"}
+];
+
+var TR_LANGNAME={auto:"Auto",de:"Deutsch",en:"English",tr:"Türkçe",ku:"Kurdî",ckb:"کوردی",ar:"العربية",fa:"فارسی",ru:"Русский",fr:"Français",es:"Español",it:"Italiano",pt:"Português",nl:"Nederlands",pl:"Polski",el:"Ελληνικά",zh:"中文",ja:"日本語",ko:"한국어",hi:"हिन्दी",ur:"اردو",he:"עברית",sv:"Svenska",no:"Norsk",da:"Dansk",fi:"Suomi"};
+
+/* ============ Phrasebook ============ */
+var TR_PHRASES={
+  de:[
+    {d:"Hallo",t:"Hallo",r:""},
+    {d:"Guten Morgen",t:"Guten Morgen",r:""},
+    {d:"Wie geht es dir?",t:"Wie geht es dir?",r:""},
+    {d:"Danke",t:"Danke",r:""},
+    {d:"Bitte",t:"Bitte",r:""},
+    {d:"Entschuldigung",t:"Entschuldigung",r:""},
+    {d:"Ich heiße …",t:"Ich heiße …",r:""},
+    {d:"Wo ist die Toilette?",t:"Wo ist die Toilette?",r:""},
+    {d:"Wie viel kostet das?",t:"Wie viel kostet das?",r:""},
+    {d:"Ich verstehe nicht",t:"Ich verstehe nicht",r:""}
+  ],
+  en:[
+    {d:"Hallo",t:"Hello",r:"hel-oh"},
+    {d:"Guten Morgen",t:"Good morning",r:"gud mor-ning"},
+    {d:"Wie geht es dir?",t:"How are you?",r:"hau ar ju"},
+    {d:"Danke",t:"Thank you",r:"thänk ju"},
+    {d:"Bitte",t:"Please",r:"plihs"},
+    {d:"Entschuldigung",t:"Excuse me",r:"eks-kjuhs mih"},
+    {d:"Ich heiße …",t:"My name is …",r:"mai nehm is"},
+    {d:"Wo ist die Toilette?",t:"Where is the toilet?",r:"wär is de toi-let"},
+    {d:"Wie viel kostet das?",t:"How much does it cost?",r:"hau mattsch das it kost"},
+    {d:"Ich verstehe nicht",t:"I don't understand",r:"ai dont an-der-ständ"}
+  ],
+  tr:[
+    {d:"Hallo",t:"Merhaba",r:"mär-haba"},
+    {d:"Guten Morgen",t:"Günaydın",r:"gün-aj-dön"},
+    {d:"Wie geht es dir?",t:"Nasılsın?",r:"na-söl-sön"},
+    {d:"Danke",t:"Teşekkürler",r:"teschek-kür-lär"},
+    {d:"Bitte",t:"Lütfen",r:"lüt-fän"},
+    {d:"Entschuldigung",t:"Affedersiniz",r:"af-fe-der-si-nis"},
+    {d:"Ich heiße …",t:"Benim adım …",r:"be-nim a-döm"},
+    {d:"Wo ist die Toilette?",t:"Tuvalet nerede?",r:"tu-wa-let ne-re-de"},
+    {d:"Wie viel kostet das?",t:"Bu ne kadar?",r:"bu ne ka-dar"},
+    {d:"Ich verstehe nicht",t:"Anlamıyorum",r:"an-la-mö-yo-rum"}
+  ],
+  ku:[
+    {d:"Hallo",t:"Silav",r:"si-law"},
+    {d:"Guten Morgen",t:"Beyanî baş",r:"be-ja-ni basch"},
+    {d:"Wie geht es dir?",t:"Tu çawa yî?",r:"tu tscha-wa ji"},
+    {d:"Danke",t:"Spas",r:"spas"},
+    {d:"Bitte",t:"Ji kerema xwe",r:"dschi ke-re-ma chwe"},
+    {d:"Entschuldigung",t:"Bibore",r:"bi-bo-re"},
+    {d:"Ich heiße …",t:"Navê min … ye",r:"na-we min … je"},
+    {d:"Wo ist die Toilette?",t:"Tuvalet li ku ye?",r:"tu-wa-let li ku je"},
+    {d:"Wie viel kostet das?",t:"Ev bi çend e?",r:"ew bi tschend e"},
+    {d:"Ich verstehe nicht",t:"Ez fêm nakim",r:"es fem na-kim"},
+    {d:"Ich liebe dich",t:"Ez te hez dikim",r:"es te hes di-kim"},
+    {d:"Willkommen",t:"Bi xêr hatî",r:"bi cher ha-ti"},
+    {d:"Guten Abend",t:"Êvar baş",r:"e-war basch"},
+    {d:"Ja",t:"Erê",r:"e-re"},
+    {d:"Nein",t:"Na",r:"na"}
+  ],
+  ckb:[
+    {d:"Hallo",t:"سڵاو",r:"silaw"},
+    {d:"Guten Morgen",t:"بەیانیت باش",r:"beyanit bash"},
+    {d:"Wie geht es dir?",t:"چۆنی؟",r:"choni"},
+    {d:"Danke",t:"سوپاس",r:"supas"},
+    {d:"Bitte",t:"تکایە",r:"tkaye"},
+    {d:"Entschuldigung",t:"ببوورە",r:"bbuura"},
+    {d:"Ich heiße …",t:"ناوم … ە",r:"nawm … a"},
+    {d:"Wo ist die Toilette?",t:"تەوالێت لە کوێیە؟",r:"tewalet le kweya"},
+    {d:"Wie viel kostet das?",t:"ئەمە بە چەندە؟",r:"eme be chenda"},
+    {d:"Ich verstehe nicht",t:"تێناگەم",r:"tenagem"},
+    {d:"Ich liebe dich",t:"خۆشم دەوێی",r:"khoshm dewey"},
+    {d:"Willkommen",t:"بەخێربێی",r:"bekhayrbey"}
+  ],
+  ar:[
+    {d:"Hallo",t:"مرحبا",r:"marhaba"},
+    {d:"Guten Morgen",t:"صباح الخير",r:"sabah al-khair"},
+    {d:"Wie geht es dir?",t:"كيف حالك؟",r:"kaifa halak"},
+    {d:"Danke",t:"شكرا",r:"schukran"},
+    {d:"Bitte",t:"من فضلك",r:"min fadlik"},
+    {d:"Entschuldigung",t:"عفوا",r:"afwan"},
+    {d:"Ich heiße …",t:"اسمي …",r:"ismi …"},
+    {d:"Wo ist die Toilette?",t:"أين الحمام؟",r:"aina al-hammam"},
+    {d:"Wie viel kostet das?",t:"كم هذا؟",r:"kam hadha"},
+    {d:"Ich verstehe nicht",t:"لا أفهم",r:"la afham"},
+    {d:"Ich liebe dich",t:"أحبك",r:"uhibbuk"},
+    {d:"Willkommen",t:"أهلا وسهلا",r:"ahlan wa sahlan"}
+  ],
+  fa:[
+    {d:"Hallo",t:"سلام",r:"salam"},
+    {d:"Guten Morgen",t:"صبح بخیر",r:"sobh bekheir"},
+    {d:"Wie geht es dir?",t:"چطوری؟",r:"chetóri"},
+    {d:"Danke",t:"ممنون",r:"mamnun"},
+    {d:"Bitte",t:"لطفا",r:"lotfan"},
+    {d:"Entschuldigung",t:"ببخشید",r:"bebakhshid"},
+    {d:"Ich heiße …",t:"اسم من … است",r:"esm-e man … ast"},
+    {d:"Wo ist die Toilette?",t:"توالت کجاست؟",r:"towalet kojast"},
+    {d:"Wie viel kostet das?",t:"قیمتش چنده؟",r:"gheymatesh chande"},
+    {d:"Ich verstehe nicht",t:"نمی‌فهمم",r:"nemi-fahmam"}
+  ],
+  ru:[
+    {d:"Hallo",t:"Привет",r:"pri-wjet"},
+    {d:"Guten Morgen",t:"Доброе утро",r:"dob-ra-je ut-ra"},
+    {d:"Wie geht es dir?",t:"Как дела?",r:"kak dje-la"},
+    {d:"Danke",t:"Спасибо",r:"spa-si-ba"},
+    {d:"Bitte",t:"Пожалуйста",r:"pa-scha-lus-ta"},
+    {d:"Entschuldigung",t:"Извините",r:"is-wi-ni-tje"},
+    {d:"Ich heiße …",t:"Меня зовут …",r:"mje-nja sa-wut"},
+    {d:"Wo ist die Toilette?",t:"Где туалет?",r:"gdje tu-a-ljet"},
+    {d:"Wie viel kostet das?",t:"Сколько стоит?",r:"skol-ka sto-it"},
+    {d:"Ich verstehe nicht",t:"Я не понимаю",r:"ja nje pa-ni-ma-ju"}
+  ],
+  fr:[
+    {d:"Hallo",t:"Bonjour",r:"bon-schur"},
+    {d:"Guten Morgen",t:"Bonjour",r:"bon-schur"},
+    {d:"Wie geht es dir?",t:"Comment ça va?",r:"ko-mang sa wa"},
+    {d:"Danke",t:"Merci",r:"mer-si"},
+    {d:"Bitte",t:"S'il vous plaît",r:"sil wu plä"},
+    {d:"Entschuldigung",t:"Excusez-moi",r:"eks-kü-se mwa"},
+    {d:"Ich heiße …",t:"Je m'appelle …",r:"schö ma-pel"},
+    {d:"Wo ist die Toilette?",t:"Où sont les toilettes?",r:"u song le twa-let"},
+    {d:"Wie viel kostet das?",t:"Combien ça coûte?",r:"kom-bjeng sa kut"},
+    {d:"Ich verstehe nicht",t:"Je ne comprends pas",r:"schö nö kom-prang pa"}
+  ],
+  es:[
+    {d:"Hallo",t:"Hola",r:"o-la"},
+    {d:"Guten Morgen",t:"Buenos días",r:"bwe-nos di-as"},
+    {d:"Wie geht es dir?",t:"¿Cómo estás?",r:"ko-mo es-tas"},
+    {d:"Danke",t:"Gracias",r:"gra-sias"},
+    {d:"Bitte",t:"Por favor",r:"por fa-wor"},
+    {d:"Entschuldigung",t:"Perdón",r:"per-don"},
+    {d:"Ich heiße …",t:"Me llamo …",r:"me ja-mo"},
+    {d:"Wo ist die Toilette?",t:"¿Dónde está el baño?",r:"don-de es-ta el ba-njo"},
+    {d:"Wie viel kostet das?",t:"¿Cuánto cuesta?",r:"kwan-to kwes-ta"},
+    {d:"Ich verstehe nicht",t:"No entiendo",r:"no en-tjen-do"}
+  ],
+  it:[
+    {d:"Hallo",t:"Ciao",r:"tscha-o"},
+    {d:"Guten Morgen",t:"Buongiorno",r:"bwon-dschor-no"},
+    {d:"Wie geht es dir?",t:"Come stai?",r:"ko-me stai"},
+    {d:"Danke",t:"Grazie",r:"gra-tsie"},
+    {d:"Bitte",t:"Per favore",r:"per fa-wo-re"},
+    {d:"Entschuldigung",t:"Scusi",r:"sku-si"},
+    {d:"Ich heiße …",t:"Mi chiamo …",r:"mi kja-mo"},
+    {d:"Wo ist die Toilette?",t:"Dov'è il bagno?",r:"do-we il ba-njo"},
+    {d:"Wie viel kostet das?",t:"Quanto costa?",r:"kwan-to kos-ta"},
+    {d:"Ich verstehe nicht",t:"Non capisco",r:"non ka-pis-ko"}
+  ]
+};
+
+/* ============ Alphabete ============ */
+var TR_ALPHABETS={
+  ar:{n:"Arabisch",letters:[["ا","alif"],["ب","ba"],["ت","ta"],["ث","tha"],["ج","jim"],["ح","ha"],["خ","kha"],["د","dal"],["ذ","dhal"],["ر","ra"],["ز","zay"],["س","sin"],["ش","shin"],["ص","sad"],["ض","dad"],["ط","ta"],["ظ","dha"],["ع","ain"],["غ","ghain"],["ف","fa"],["ق","qaf"],["ك","kaf"],["ل","lam"],["م","mim"],["ن","nun"],["ه","ha"],["و","waw"],["ي","ya"]]},
+  ru:{n:"Kyrillisch",letters:[["А","A"],["Б","B"],["В","W"],["Г","G"],["Д","D"],["Е","Je"],["Ж","Sch"],["З","S"],["И","I"],["Й","J"],["К","K"],["Л","L"],["М","M"],["Н","N"],["О","O"],["П","P"],["Р","R"],["С","S"],["Т","T"],["У","U"],["Ф","F"],["Х","Ch"],["Ц","Z"],["Ч","Tsch"],["Ш","Sch"],["Щ","Schtsch"],["Ы","Y"],["Э","E"],["Ю","Ju"],["Я","Ja"]]},
+  el:{n:"Griechisch",letters:[["Α","Alpha"],["Β","Beta"],["Γ","Gamma"],["Δ","Delta"],["Ε","Epsilon"],["Ζ","Zeta"],["Η","Eta"],["Θ","Theta"],["Ι","Iota"],["Κ","Kappa"],["Λ","Lambda"],["Μ","My"],["Ν","Ny"],["Ξ","Xi"],["Ο","Omikron"],["Π","Pi"],["Ρ","Rho"],["Σ","Sigma"],["Τ","Tau"],["Υ","Ypsilon"],["Φ","Phi"],["Χ","Chi"],["Ψ","Psi"],["Ω","Omega"]]}
+};
+
+/* ============ App ============ */
+var AppUebersetzer={
+  tab:"translate",
+  _from:"auto",_to:"en",_input:"",_output:"",_aiResult:null,
+
+  getHistory:function(){return Storage.get("tr_history",[]);},
+  saveHistory:function(a){Storage.set("tr_history",a);},
+  getFavs:function(){return Storage.get("tr_favs",[]);},
+  saveFavs:function(a){Storage.set("tr_favs",a);},
+
+  render:function(){
+    trInjectStyles();
+    var vp=document.getElementById("appViewport");
+    var tabs=[
+      {k:"translate",n:"🌐 Übersetzen"},
+      {k:"phrasebook",n:"📖 Phrasebook"},
+      {k:"alphabet",n:"🔤 Alphabete"},
+      {k:"history",n:"🕐 Verlauf"},
+      {k:"favs",n:"⭐ Favoriten"}
+    ];
+    var self=this;
+    var th=tabs.map(function(t){return '<button class="ms-tab'+(self.tab===t.k?" active":"")+'" data-tr-tab="'+t.k+'">'+t.n+'</button>';}).join("");
+    vp.innerHTML='<div class="ms-tabs">'+th+'</div><div id="trContent"></div>';
+    vp.querySelectorAll("[data-tr-tab]").forEach(function(b){b.addEventListener("click",function(){self.tab=b.dataset.trTab;self.render();});});
+    this.renderTab();
+  },
+
+  renderTab:function(){
+    var el=document.getElementById("trContent");if(!el)return;
+    var t=this.tab;
+    if(t==="translate")this.renderTranslate(el);
+    else if(t==="phrasebook")this.renderPhrasebook(el);
+    else if(t==="alphabet")this.renderAlphabet(el);
+    else if(t==="history")this.renderHistory(el);
+    else if(t==="favs")this.renderFavs(el);
+  },
+
+  renderTranslate:function(el){
+    var self=this;
+    var quickLangs=["en","tr","ku","ckb","ar","fa","ru","fr","es","de"].map(function(c){
+      var lang=null;TR_LANGS.forEach(function(l){if(l.c===c)lang=l;});
+      if(!lang)return "";
+      return '<button class="'+(self._to===c?"active":"")+'" data-tr-ql="'+c+'">'+lang.n.split(" ")[0]+' '+TR_LANGNAME[c]+'</button>';
+    }).join("");
+
+    el.innerHTML='<div class="card">'
+      +'<div class="tr-lang-row">'
+      +select("tr_from",this._from,TR_LANGS.map(function(l){return [l.c,l.n];}))
+      +'<button class="tr-swap" id="tr_swap">⇄</button>'
+      +select("tr_to",this._to,TR_LANGS.filter(function(l){return l.c!=="auto";}).map(function(l){return [l.c,l.n];}))
+      +'</div>'
+      +'<div class="tr-quick-lang">'+quickLangs+'</div>'
+      +'<textarea class="tr-textarea" id="tr_input" placeholder="Text eingeben…">'+esc(this._input)+'</textarea>'
+      +'<div class="tr-action-row">'
+      +'<button class="btn" id="tr_btn_go">🌐 Übersetzen</button>'
+      +'<button class="btn secondary small" id="tr_btn_mic">🎤</button>'
+      +'<button class="btn secondary small" id="tr_btn_clear">🗑️</button>'
+      +'<button class="btn secondary small" id="tr_btn_paste">📋</button>'
+      +'<button class="btn warn small" id="tr_btn_ai">✨ KI</button>'
+      +'</div>'
+      +'<div class="tr-output" id="tr_output" style="margin-top:10px">'+(this._output||'<span style="color:var(--text-mute);font-size:11.5px">Übersetzung erscheint hier…</span>')+'</div>'
+      +(this._output?'<div class="tr-action-row">'
+        +'<button class="btn success small" id="tr_btn_copy">📋 Kopieren</button>'
+        +'<button class="btn secondary small" id="tr_btn_speak">🔊 Vorlesen</button>'
+        +'<button class="btn secondary small" id="tr_btn_fav">⭐ Merken</button>'
+        +'<button class="btn secondary small" id="tr_btn_swap_txt">⇄ Als Eingabe</button>'
+        +'</div>':'')
+      +(this._aiResult?'<div class="tr-ai-box"><div class="lbl">🤖 KI-Antwort</div>'+esc(this._aiResult)+'</div>':'')
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>💡 Tipp</h3></div>'
+      +'<div class="info-box">💡 Nutzt <b>MyMemory API</b> (kostenlos, kein Key). Für bessere Qualität → ✨ KI mit Groq-Key.</div></div>';
+
+    document.getElementById("tr_btn_go").addEventListener("click",function(){self.translate();});
+    document.getElementById("tr_input").addEventListener("input",function(){self._input=this.value;});
+    document.getElementById("tr_input").addEventListener("keydown",function(e){if(e.key==="Enter"&&(e.ctrlKey||e.metaKey))self.translate();});
+    document.getElementById("tr_btn_clear").addEventListener("click",function(){self._input="";self._output="";self._aiResult=null;self.renderTab();});
+    document.getElementById("tr_btn_mic").addEventListener("click",function(){self.micInput();});
+    document.getElementById("tr_btn_ai").addEventListener("click",function(){self.aiTranslate();});
+
+    document.getElementById("tr_btn_paste").addEventListener("click",function(){
+      if(navigator.clipboard)navigator.clipboard.readText().then(function(t){self._input=t;document.getElementById("tr_input").value=t;toast("📋 Eingefügt","ok");}).catch(function(){toast("⚠️ Kein Zugriff","err");});
+    });
+
+    var fromSel=document.getElementById("tr_from");
+    fromSel.addEventListener("change",function(){self._from=fromSel.value;});
+    var toSel=document.getElementById("tr_to");
+    toSel.addEventListener("change",function(){self._to=toSel.value;});
+
+    document.getElementById("tr_swap").addEventListener("click",function(){
+      if(self._from==="auto")return toast("⚠️ Auto kann nicht getauscht werden","err");
+      var f=self._from;self._from=self._to;self._to=f;
+      var t=self._input;self._input=self._output;self._output=t;
+      self.renderTab();
+    });
+
+    el.querySelectorAll("[data-tr-ql]").forEach(function(b){
+      b.addEventListener("click",function(){
+        self._to=b.dataset.trQl;
+        if(self._from===self._to)self._from="de";
+        self.renderTab();
+      });
+    });
+
+    if(this._output){
+      document.getElementById("tr_btn_copy").addEventListener("click",function(){
+        if(navigator.clipboard)navigator.clipboard.writeText(self._output).then(function(){toast("📋 Kopiert","ok");});
+      });
+      document.getElementById("tr_btn_speak").addEventListener("click",function(){
+        self.speak(self._output,self._to);
+      });
+      document.getElementById("tr_btn_fav").addEventListener("click",function(){
+        var arr=self.getFavs();
+        arr.push({id:"f_"+Date.now(),from:self._from,to:self._to,input:self._input,output:self._output,t:Date.now()});
+        self.saveFavs(arr);
+        toast("⭐ Gespeichert","ok");
+      });
+      document.getElementById("tr_btn_swap_txt").addEventListener("click",function(){
+        self._input=self._output;self._output="";
+        var f=self._from;self._from=self._to;self._to=f==="auto"?"de":f;
+        self.renderTab();
+      });
+    }
+  },
+
+  speak:function(text,langCode){
+    if(!window.speechSynthesis)return;
+    try{
+      speechSynthesis.cancel();
+      var u=new SpeechSynthesisUtterance(text);
+      var voiceMap={de:"de-DE",en:"en-US",tr:"tr-TR",ar:"ar-SA",ru:"ru-RU",fr:"fr-FR",es:"es-ES",it:"it-IT",fa:"fa-IR",ku:"ku",ckb:"ckb",zh:"zh-CN",ja:"ja-JP",ko:"ko-KR",hi:"hi-IN"};
+      u.lang=voiceMap[langCode]||langCode;
+      speechSynthesis.speak(u);
+    }catch(e){}
+  },
+
+  micInput:function(){
+    var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR)return toast("⚠️ Kein Mikrofon-Support","err");
+    var self=this;
+    var rec=new SR();
+    rec.lang=this._from==="auto"?"de-DE":(this._from==="de"?"de-DE":this._from);
+    toast("🎤 Sprich jetzt…");
+    rec.onresult=function(e){
+      self._input=e.results[0][0].transcript;
+      var inp=document.getElementById("tr_input");
+      if(inp)inp.value=self._input;
+      self.translate();
+    };
+    rec.onerror=function(){toast("❌ Mikrofon-Fehler","err");};
+    rec.start();
+  },
+
+  translate:function(){
+    var self=this;
+    var text=val("tr_input").trim()||this._input.trim();
+    if(!text){toast("⚠️ Text fehlt","err");return;}
+    this._input=text;
+    var from=this._from==="auto"?"de":this._from;
+    var to=this._to;
+    if(from===to){to=from==="en"?"de":"en";this._to=to;}
+    var out=document.getElementById("tr_output");
+    if(out)out.innerHTML='<span style="color:var(--text-mute);font-size:11.5px">⏳ Übersetze…</span>';
+    var url="https://api.mymemory.translated.net/get?q="+encodeURIComponent(text)+"&langpair="+from+"|"+to;
+    fetch(url).then(function(r){return r.json();}).then(function(d){
+      if(d.responseData&&d.responseData.translatedText){
+        var res=d.responseData.translatedText;
+        self._output=res;
+        self.pushHistory(text,res,from,to);
+        self.renderTab();
+      }else{
+        throw new Error("Keine Antwort");
+      }
+    }).catch(function(e){
+      toast("❌ Übersetzung fehlgeschlagen — probiere ✨ KI","err");
+      if(out)out.innerHTML='<span style="color:#ff8080;font-size:11.5px">Fehler: '+esc(e.message)+'</span>';
+    });
+  },
+
+  aiTranslate:function(){
+    var self=this;
+    var text=val("tr_input").trim()||this._input.trim();
+    if(!text)return toast("⚠️ Text fehlt","err");
+    var ai=H.Settings.get("ai");
+    if(!ai.groqKey)return toast("⚠️ Kein Groq-Key (Settings → 🧠 KI & Keys)","err");
+    var from=this._from==="auto"?"(automatisch erkennen)":TR_LANGNAME[this._from];
+    var to=TR_LANGNAME[this._to];
+    var out=document.getElementById("tr_output");
+    if(out)out.innerHTML='<span style="color:var(--text-mute);font-size:11.5px">✨ KI übersetzt…</span>';
+    fetch("https://api.groq.com/openai/v1/chat/completions",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+ai.groqKey},
+      body:JSON.stringify({
+        model:ai.model,
+        messages:[
+          {role:"system",content:"Du bist ein professioneller Übersetzer. Übersetze den Text von "+from+" nach "+to+". Antworte NUR mit der Übersetzung, ohne Erklärung."},
+          {role:"user",content:text}
+        ],
+        max_tokens:800,
+        temperature:0.3
+      })
+    }).then(function(r){return r.json();}).then(function(d){
+      if(!d.choices||!d.choices[0])throw new Error("KI-Fehler");
+      var res=d.choices[0].message.content.trim();
+      self._output=res;
+      self.pushHistory(text,res,self._from==="auto"?"auto":self._from,self._to,"ai");
+      self.renderTab();
+    }).catch(function(e){
+      toast("❌ "+e.message,"err");
+      if(out)out.innerHTML='<span style="color:#ff8080;font-size:11.5px">Fehler: '+esc(e.message)+'</span>';
+    });
+  },
+
+  pushHistory:function(input,output,from,to,engine){
+    var arr=this.getHistory();
+    arr.unshift({
+      id:"h_"+Date.now(),
+      input:input,output:output,
+      from:from,to:to,
+      engine:engine||"mymemory",
+      t:Date.now()
+    });
+    if(arr.length>100)arr=arr.slice(0,100);
+    this.saveHistory(arr);
+  },
+
+  renderPhrasebook:function(el){
+    var self=this;
+    var cur=this._phraseLang||"ku";
+    var langOpts=Object.keys(TR_PHRASES).map(function(c){return [c,TR_LANGNAME[c]||c];});
+    var phrases=TR_PHRASES[cur]||[];
+    var listHtml=phrases.length?phrases.map(function(p){
+      return '<div class="tr-phrase"><button class="spk" data-tr-spk="'+esc(p.t)+'_'+cur+'">🔊</button>'
+        +'<div class="de">🇩🇪 '+esc(p.d)+'</div>'
+        +'<div class="tr" dir="'+(cur==="ar"||cur==="ckb"||cur==="fa"?"rtl":"ltr")+'">'+esc(p.t)+'</div>'
+        +(p.r?'<div class="rom">['+esc(p.r)+']</div>':'')
+        +'</div>';
+    }).join(""):'<div class="tr-empty">Keine Phrasen für diese Sprache.</div>';
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>📖 Phrasebook</h3></div>'
+      +'<div class="field"><label>Sprache</label>'+select("tr_ph_lang",cur,langOpts)+'</div>'
+      +'<div class="info-box">💡 Klick auf 🔊, um die Aussprache zu hören.</div>'
+      +listHtml+'</div>';
+
+    document.getElementById("tr_ph_lang").addEventListener("change",function(){
+      self._phraseLang=this.value;self.renderTab();
+    });
+    el.querySelectorAll("[data-tr-spk]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var parts=b.dataset.trSpk.split("_");
+        var lc=parts.pop();
+        var text=parts.join("_");
+        self.speak(text,lc);
+      });
+    });
+  },
+
+  renderAlphabet:function(el){
+    var self=this;
+    var cur=this._alphaLang||"ar";
+    var opts=Object.keys(TR_ALPHABETS).map(function(c){return [c,TR_ALPHABETS[c].n];});
+    var alpha=TR_ALPHABETS[cur];
+    var lettersHtml=alpha.letters.map(function(l){
+      return '<div class="tr-letter" data-tr-letter="'+esc(l[0])+'" data-tr-lang="'+cur+'">'+esc(l[0])+'<span class="snd">'+esc(l[1])+'</span></div>';
+    }).join("");
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🔤 Alphabete</h3></div>'
+      +'<div class="field"><label>Alphabet</label>'+select("tr_al",cur,opts)+'</div>'
+      +'<div class="tr-alphabet">'+lettersHtml+'</div>'
+      +'<div class="info-box" style="margin-top:10px">💡 Klick auf einen Buchstaben, um ihn vorlesen zu lassen.</div></div>';
+    document.getElementById("tr_al").addEventListener("change",function(){
+      self._alphaLang=this.value;self.renderTab();
+    });
+    el.querySelectorAll("[data-tr-letter]").forEach(function(b){
+      b.addEventListener("click",function(){
+        self.speak(b.dataset.trLetter,b.dataset.trLang);
+      });
+    });
+  },
+
+  renderHistory:function(el){
+    var self=this;
+    var arr=this.getHistory();
+    var listHtml=arr.length?arr.slice(0,50).map(function(h){
+      var f=TR_LANGNAME[h.from]||h.from;
+      var t=TR_LANGNAME[h.to]||h.to;
+      return '<div class="tr-history-item" data-tr-hist="'+h.id+'"><div class="src">'+(h.engine==="ai"?"✨ KI":"🌐")+' '+esc(f)+' → '+esc(t)+' · '+new Date(h.t).toLocaleString("de-DE")+'</div>'
+        +'<div class="in">'+esc(h.input)+'</div>'
+        +'<div class="out">'+esc(h.output)+'</div></div>';
+    }).join(""):'<div class="tr-empty">Keine Übersetzungen.</div>';
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🕐 Verlauf ('+arr.length+')</h3></div>'
+      +'<div class="btn-row"><button class="btn danger small" id="tr_hist_clear">🗑️ Löschen</button><button class="btn secondary small" id="tr_hist_export">📤 Export</button></div>'
+      +listHtml+'</div>';
+
+    el.querySelectorAll("[data-tr-hist]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var id=b.dataset.trHist;
+        var h=null;arr.forEach(function(x){if(x.id===id)h=x;});
+        if(!h)return;
+        self._input=h.input;self._output=h.output;self._from=h.from;self._to=h.to;
+        self.tab="translate";self.render();
+      });
+    });
+    document.getElementById("tr_hist_clear").addEventListener("click",function(){
+      if(!confirm("Verlauf löschen?"))return;
+      self.saveHistory([]);self.renderTab();
+    });
+    document.getElementById("tr_hist_export").addEventListener("click",function(){
+      var out="HALDO ÜBERSETZUNGS-VERLAUF\n"+new Date().toLocaleString("de-DE")+"\n\n";
+      arr.forEach(function(h){
+        out+="=== "+(TR_LANGNAME[h.from]||h.from)+" → "+(TR_LANGNAME[h.to]||h.to)+" ===\n";
+        out+=new Date(h.t).toLocaleString("de-DE")+"\n\n";
+        out+="Eingabe:   "+h.input+"\n";
+        out+="Ausgabe:   "+h.output+"\n\n";
+      });
+      var blob=new Blob([out],{type:"text/plain;charset=utf-8"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="uebersetzungen.txt";a.click();
+      toast("📤","ok");
+    });
+  },
+
+  renderFavs:function(el){
+    var self=this;
+    var arr=this.getFavs();
+    var listHtml=arr.length?arr.map(function(f){
+      var fr=TR_LANGNAME[f.from]||f.from;
+      var to=TR_LANGNAME[f.to]||f.to;
+      return '<div class="tr-history-item"><div class="src">⭐ '+esc(fr)+' → '+esc(to)+'</div>'
+        +'<div class="in">'+esc(f.input)+'</div>'
+        +'<div class="out">'+esc(f.output)+'</div>'
+        +'<div class="btn-row" style="margin-top:6px"><button class="btn secondary small" data-tr-fav-open="'+f.id+'">✏️ Öffnen</button><button class="btn danger small" data-tr-fav-rm="'+f.id+'">🗑️</button></div></div>';
+    }).join(""):'<div class="tr-empty">Keine Favoriten. Klick ⭐ bei einer Übersetzung.</div>';
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>⭐ Favoriten ('+arr.length+')</h3></div>'+listHtml+'</div>';
+
+    el.querySelectorAll("[data-tr-fav-rm]").forEach(function(b){
+      b.addEventListener("click",function(){
+        self.saveFavs(self.getFavs().filter(function(x){return x.id!==b.dataset.trFavRm;}));
+        self.renderTab();
+      });
+    });
+    el.querySelectorAll("[data-tr-fav-open]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var id=b.dataset.trFavOpen;
+        var f=null;arr.forEach(function(x){if(x.id===id)f=x;});
+        if(!f)return;
+        self._input=f.input;self._output=f.output;self._from=f.from;self._to=f.to;
+        self.tab="translate";self.render();
+      });
+    });
+  }
+};
+
+/* ============ Auto-Register ============ */
+if(AppLauncher&&AppLauncher.registry){
+  AppLauncher.registry.uebersetzer=AppUebersetzer;
+}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){
+    if(a.id==="uebersetzer"){a.prio=1;a.installed=true;a.cat="Wissen";found=true;}
+  });
+  if(!found){
+    APP_PLAN.unshift({id:"uebersetzer",name:"Übersetzer",icon:"🌐",cat:"Wissen",prio:1,installed:true});
+  }
+}
+setTimeout(function(){
+  var btn=document.getElementById("btnFilterAll");
+  if(btn)btn.click();
+},1800);
+
+console.log("[HalDo Übersetzer] ✅ Modul geladen und registriert.");
+})();
+</script>
+<!-- ============ ENDE HALDO ÜBERSETZER APP ============ -->
 </body>
 </html>
