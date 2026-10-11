@@ -5311,5 +5311,644 @@ console.log("[HalDo Übersetzer] ✅ Modul geladen und registriert.");
 })();
 </script>
 <!-- ============ ENDE HALDO ÜBERSETZER APP ============ -->
+<!-- ============================================================
+     HALDO PASSWORT-SAFE APP — DROP-IN MODUL
+     Einfach vor </body> einfügen. Nach Reload ist alles aktiv.
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Passwort-Safe] window.HalDo fehlt.");return;}
+
+var H=window.HalDo;
+var Storage=H.Storage;
+var AppLauncher=H.AppLauncher;
+var APP_PLAN=H.APP_PLAN;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+function select(id,cur,opts){var h='<select id="'+id+'">';opts.forEach(function(o){h+='<option value="'+esc(o[0])+'"'+(String(o[0])===String(cur)?" selected":"")+'>'+esc(o[1])+'</option>';});return h+'</select>';}
+
+/* ============ Crypto (XOR + Base64 — einfach, für Demo) ============ */
+var Crypto={
+  encrypt:function(plain,password){
+    if(!plain)return "";
+    if(!password)return btoa(unescape(encodeURIComponent(plain)));
+    var key=password;
+    var out="";
+    for(var i=0;i<plain.length;i++){
+      var k=key.charCodeAt(i%key.length);
+      out+=String.fromCharCode(plain.charCodeAt(i)^k);
+    }
+    return "ENC:"+btoa(unescape(encodeURIComponent(out)));
+  },
+  decrypt:function(cipher,password){
+    if(!cipher)return "";
+    try{
+      if(cipher.indexOf("ENC:")===0){
+        cipher=cipher.substring(4);
+        var raw=decodeURIComponent(escape(atob(cipher)));
+        if(!password)return "[🔒 Passwort nötig]";
+        var key=password;
+        var out="";
+        for(var i=0;i<raw.length;i++){
+          var k=key.charCodeAt(i%key.length);
+          out+=String.fromCharCode(raw.charCodeAt(i)^k);
+        }
+        return out;
+      }
+      return decodeURIComponent(escape(atob(cipher)));
+    }catch(e){return "[❌ Fehler beim Entschlüsseln]";}
+  }
+};
+
+/* ============ Styles ============ */
+function pwInjectStyles(){
+  if(document.getElementById("pwStyles"))return;
+  var s=document.createElement("style");
+  s.id="pwStyles";
+  s.textContent=".pw-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(239,68,68,.18),rgba(124,58,237,.18));border:1px solid rgba(239,68,68,.4);text-align:center;margin-bottom:12px}.pw-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.pw-hero .val{font-size:38px;font-weight:900;color:#ff8080;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.pw-hero .sub{font-size:10.5px;color:var(--text-mute)}.pw-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}.pw-stat{padding:9px 5px;border-radius:11px;text-align:center;border:1px solid var(--border);background:linear-gradient(180deg,var(--bg-4),var(--bg-3))}.pw-stat .i{font-size:14px;margin-bottom:2px}.pw-stat .v{font-size:14px;font-weight:800;color:#ff8080;font-family:ui-monospace,monospace;line-height:1}.pw-stat .l{font-size:8px;color:var(--text-mute);text-transform:uppercase;font-weight:700;margin-top:2px}.pw-item{display:flex;align-items:center;gap:10px;padding:11px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:10px;margin-top:6px;cursor:pointer;transition:.15s}.pw-item:hover{border-color:var(--primary)}.pw-item .ico{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:rgba(0,212,255,.12)}.pw-item .body{flex:1;min-width:0}.pw-item .body .n{font-size:12px;font-weight:800}.pw-item .body .u{font-size:10px;color:var(--text-mute);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pw-item .body .strength{margin-top:3px;height:3px;background:rgba(0,0,0,.35);border-radius:2px;overflow:hidden;max-width:120px}.pw-item .body .strength .fill{height:100%;border-radius:2px}.pw-cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}.pw-cat{padding:10px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;text-align:center;cursor:pointer}.pw-cat.active{border-color:var(--primary);background:rgba(0,212,255,.12)}.pw-cat .i{font-size:18px;margin-bottom:3px}.pw-cat .n{font-size:9px;font-weight:800}.pw-cat .c{font-size:8px;color:var(--text-mute);margin-top:1px}.pw-detail{padding:14px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:11px;margin-top:10px}.pw-detail .row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg-4);border:1px solid var(--border);border-radius:9px;margin-top:6px}.pw-detail .row .lbl{font-size:9.5px;color:var(--text-mute);text-transform:uppercase;letter-spacing:.6px;font-weight:800;min-width:70px}.pw-detail .row .val{flex:1;font-family:ui-monospace,monospace;font-size:12px;font-weight:700;word-break:break-all;color:var(--text)}.pw-detail .row .action{width:32px;height:32px;border-radius:8px;background:rgba(0,212,255,.12);border:1px solid rgba(0,212,255,.3);color:var(--primary);cursor:pointer;font-size:13px;flex-shrink:0;display:flex;align-items:center;justify-content:center}.pw-detail .row .action:hover{background:rgba(0,212,255,.25)}.pw-input{width:100%;background:var(--bg-3);border:1px solid rgba(0,212,255,.22);color:var(--text);padding:10px 12px;border-radius:9px;font-family:inherit;font-size:12px;outline:none}.pw-lock-screen{padding:40px 20px;text-align:center}.pw-lock-screen .ico{font-size:60px;margin-bottom:12px}.pw-lock-screen h3{font-size:14px;color:var(--primary);font-weight:800;margin-bottom:6px}.pw-lock-screen p{font-size:11px;color:var(--text-dim);margin-bottom:16px;line-height:1.5}.pw-search{width:100%;background:var(--bg-3);border:1px solid var(--border);color:var(--text);padding:10px 13px;border-radius:9px;font-family:inherit;font-size:12px;outline:none;margin-bottom:8px}.pw-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}.pw-gen{display:flex;gap:6px;margin-top:8px}.pw-gen input[type=range]{flex:1;accent-color:var(--primary)}.pw-gen .val{font-size:11px;font-weight:800;color:var(--primary);font-family:ui-monospace,monospace;min-width:30px;text-align:right}.pw-gen-output{padding:12px;background:var(--bg-3);border:1px dashed rgba(0,212,255,.4);border-radius:9px;font-family:ui-monospace,monospace;font-size:14px;font-weight:700;color:#4ade80;text-align:center;word-break:break-all;margin:8px 0;min-height:44px}.pw-strength-bar{height:8px;background:rgba(0,0,0,.35);border-radius:4px;overflow:hidden;margin:8px 0}.pw-strength-bar .fill{height:100%;border-radius:4px;transition:width .3s}.pw-check{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);padding:6px 0}.pw-check .dot{width:18px;height:18px;border-radius:50%;background:var(--bg-3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px}.pw-check.ok .dot{background:linear-gradient(135deg,#22c55e,#10b981);border-color:#22c55e;color:#fff}.pw-check.ok{color:#4ade80}.pw-tag{padding:9px 11px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:5px;display:flex;align-items:center;gap:8px}.pw-tag .n{flex:1;font-size:11.5px;font-weight:700}.pw-tag .del{padding:3px 8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#ff8080;border-radius:5px;cursor:pointer;font-size:9px}";
+  document.head.appendChild(s);
+}
+
+/* ============ Kategorien ============ */
+var PW_CATS={
+  sozial:{n:"Sozial",i:"💬",c:"#3b82f6"},
+  email:{n:"E-Mail",i:"✉️",c:"#0ea5e9"},
+  banking:{n:"Banking",i:"🏦",c:"#22c55e"},
+  shopping:{n:"Shopping",i:"🛒",c:"#f59e0b"},
+  arbeit:{n:"Arbeit",i:"💼",c:"#a855f7"},
+  gaming:{n:"Gaming",i:"🎮",c:"#ef4444"},
+  streaming:{n:"Streaming",i:"🎬",c:"#ec4899"},
+  wlan:{n:"WLAN",i:"📶",c:"#06b6d4"},
+  behoerden:{n:"Behörden",i:"🏛️",c:"#f97316"},
+  medizin:{n:"Medizin",i:"🩺",c:"#10b981"},
+  sonstiges:{n:"Sonstiges",i:"🔑",c:"#94a3b8"}
+};
+
+/* ============ Passwort-Generator ============ */
+var PW_Generator={
+  chars:{
+    lower:"abcdefghijklmnopqrstuvwxyz",
+    upper:"ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+    digits:"0123456789",
+    symbols:"!@#$%^&*()-_=+[]{};:,.<>?/|~"
+  },
+  generate:function(len,opts){
+    opts=opts||{lower:true,upper:true,digits:true,symbols:true};
+    var pool="";
+    if(opts.lower)pool+=this.chars.lower;
+    if(opts.upper)pool+=this.chars.upper;
+    if(opts.digits)pool+=this.chars.digits;
+    if(opts.symbols)pool+=this.chars.symbols;
+    if(!pool)pool=this.chars.lower+this.chars.digits;
+    var out="";
+    var arr=new Uint32Array(len);
+    if(window.crypto&&window.crypto.getRandomValues){
+      window.crypto.getRandomValues(arr);
+    }else{
+      for(var i=0;i<len;i++)arr[i]=Math.floor(Math.random()*0xFFFFFFFF);
+    }
+    for(var i=0;i<len;i++)out+=pool[arr[i]%pool.length];
+    return out;
+  },
+  /* Einfache Passwort-Stärke-Berechnung */
+  strength:function(pw){
+    if(!pw)return {score:0,label:"Leer",color:"#888",checks:{len:false,lower:false,upper:false,digit:false,sym:false}};
+    var checks={
+      len:pw.length>=12,
+      lower:/[a-z]/.test(pw),
+      upper:/[A-Z]/.test(pw),
+      digit:/[0-9]/.test(pw),
+      sym:/[^A-Za-z0-9]/.test(pw)
+    };
+    var score=0;
+    if(pw.length>=8)score++;
+    if(pw.length>=12)score++;
+    if(pw.length>=16)score++;
+    if(checks.lower&&checks.upper)score++;
+    if(checks.digit)score++;
+    if(checks.sym)score++;
+    if(score>5)score=5;
+    var labels=["Sehr schwach","Schwach","Mittel","Gut","Stark","Sehr stark"];
+    var colors=["#ef4444","#f97316","#f59e0b","#eab308","#22c55e","#10b981"];
+    return {score:score,label:labels[score],color:colors[score],checks:checks};
+  },
+  estimateCrackTime:function(pw){
+    if(!pw)return "0 Sekunden";
+    var pool=0;
+    if(/[a-z]/.test(pw))pool+=26;
+    if(/[A-Z]/.test(pw))pool+=26;
+    if(/[0-9]/.test(pw))pool+=10;
+    if(/[^A-Za-z0-9]/.test(pw))pool+=30;
+    if(!pool)pool=1;
+    /* Angenommen: 10 Milliarden Versuche pro Sekunde */
+    var combos=Math.pow(pool,pw.length);
+    var sec=combos/(1e10*2);
+    if(sec<60)return Math.round(sec)+" Sekunden";
+    if(sec<3600)return Math.round(sec/60)+" Minuten";
+    if(sec<86400)return Math.round(sec/3600)+" Stunden";
+    if(sec<2592000)return Math.round(sec/86400)+" Tage";
+    if(sec<31536000)return Math.round(sec/2592000)+" Monate";
+    var years=sec/31536000;
+    if(years<1000)return Math.round(years)+" Jahre";
+    if(years<1e6)return Math.round(years/1000)+" Tausend Jahre";
+    if(years<1e9)return Math.round(years/1e6)+" Millionen Jahre";
+    return Math.round(years/1e9)+" Milliarden Jahre";
+  }
+};
+
+/* ============ App ============ */
+var AppPasswort={
+  tab:"vault",_cat:"all",_q:"",_master:"",_unlocked:false,
+
+  getVault:function(){return Storage.get("pw_vault",[]);},
+  saveVault:function(a){Storage.set("pw_vault",a);},
+  getMaster:function(){return Storage.get("pw_master","");},
+  saveMaster:function(m){Storage.set("pw_master",m);},
+  getTags:function(){return Storage.get("pw_tags",[]);},
+  saveTags:function(a){Storage.set("pw_tags",a);},
+  getGeneratorSettings:function(){return Storage.get("pw_gen",{len:20,lower:true,upper:true,digits:true,symbols:true});},
+  saveGeneratorSettings:function(o){Storage.set("pw_gen",o);},
+
+  checkMaster:function(){
+    var stored=this.getMaster();
+    if(!stored)return true;
+    return stored===this._master;
+  },
+
+  render:function(){
+    pwInjectStyles();
+    var vp=document.getElementById("appViewport");
+    if(!this._unlocked && this.getMaster()){
+      this.renderLock(vp);
+      return;
+    }
+    var tabs=[
+      {k:"vault",n:"🔐 Tresor"},
+      {k:"new",n:"➕ Neu"},
+      {k:"generator",n:"🎲 Generator"},
+      {k:"checker",n:"🔍 Prüfer"},
+      {k:"settings",n:"⚙️ Einst."}
+    ];
+    var self=this;
+    var th=tabs.map(function(t){return '<button class="ms-tab'+(self.tab===t.k?" active":"")+'" data-pw-tab="'+t.k+'">'+t.n+'</button>';}).join("");
+    vp.innerHTML='<div class="ms-tabs">'+th+'</div><div id="pwContent"></div>';
+    vp.querySelectorAll("[data-pw-tab]").forEach(function(b){b.addEventListener("click",function(){self.tab=b.dataset.pwTab;self.render();});});
+    this.renderTab();
+  },
+
+  renderLock:function(vp){
+    var self=this;
+    vp.innerHTML='<div class="pw-lock-screen"><div class="ico">🔐</div>'
+      +'<h3>Tresor gesperrt</h3>'
+      +'<p>Gib dein Master-Passwort ein, um auf deine Passwörter zuzugreifen.</p>'
+      +'<div class="field" style="max-width:320px;margin:0 auto"><input type="password" class="pw-input" id="pw_master_input" placeholder="Master-Passwort" autocomplete="off"></div>'
+      +'<button class="btn success full" id="pw_unlock" style="max-width:320px;margin:10px auto">🔓 Entsperren</button>'
+      +'<div class="info-box warn" style="max-width:380px;margin:16px auto">⚠️ Ohne Master-Passwort kein Zugriff. Es gibt keine Wiederherstellung.</div></div>';
+    document.getElementById("pw_unlock").addEventListener("click",function(){
+      var v=val("pw_master_input");
+      if(!v)return toast("⚠️ Passwort eingeben","err");
+      if(v===self.getMaster()){
+        self._master=v;self._unlocked=true;toast("✅ Entsperrt","ok");self.render();
+      }else{
+        toast("❌ Falsches Passwort","err");
+      }
+    });
+    document.getElementById("pw_master_input").addEventListener("keydown",function(e){
+      if(e.key==="Enter")document.getElementById("pw_unlock").click();
+    });
+  },
+
+  renderTab:function(){
+    var el=document.getElementById("pwContent");if(!el)return;
+    var t=this.tab;
+    if(t==="vault")this.renderVault(el);
+    else if(t==="new")this.renderNew(el);
+    else if(t==="generator")this.renderGenerator(el);
+    else if(t==="checker")this.renderChecker(el);
+    else if(t==="settings")this.renderSettings(el);
+  },
+
+  renderVault:function(el){
+    var self=this;
+    var all=this.getVault();
+    var filter=this._cat;
+    var shown=all.slice().sort(function(a,b){return b.t-a.t;});
+    if(filter!=="all")shown=shown.filter(function(x){return x.cat===filter;});
+    if(this._q){
+      var q=this._q.toLowerCase();
+      shown=shown.filter(function(x){
+        return x.name.toLowerCase().indexOf(q)>=0 ||
+               (x.user||"").toLowerCase().indexOf(q)>=0 ||
+               (x.url||"").toLowerCase().indexOf(q)>=0;
+      });
+    }
+
+    var weakCount=0,strongCount=0;
+    all.forEach(function(x){
+      var s=PW_Generator.strength(Crypto.decrypt(x.pw,self._master));
+      if(s.score>=4)strongCount++;
+      else if(s.score<=2)weakCount++;
+    });
+
+    var catCards='<div class="pw-cat'+("all"===filter?" active":"")+'" data-pw-cat="all"><div class="i">🔐</div><div class="n">Alle</div><div class="c">'+all.length+'</div></div>'
+      +Object.keys(PW_CATS).map(function(k){
+        var c=PW_CATS[k];
+        var count=all.filter(function(x){return x.cat===k;}).length;
+        if(count===0)return "";
+        return '<div class="pw-cat'+(k===filter?" active":"")+'" data-pw-cat="'+k+'"><div class="i">'+c.i+'</div><div class="n">'+c.n+'</div><div class="c">'+count+'</div></div>';
+      }).join("");
+
+    var listHtml=shown.length?shown.map(function(p){
+      var c=PW_CATS[p.cat]||PW_CATS.sonstiges;
+      var realPw=Crypto.decrypt(p.pw,self._master);
+      var s=PW_Generator.strength(realPw);
+      return '<div class="pw-item" data-pw-open="'+p.id+'">'
+        +'<div class="ico" style="background:'+c.c+'22;color:'+c.c+'">'+c.i+'</div>'
+        +'<div class="body"><div class="n">'+esc(p.name)+'</div><div class="u">'+(p.user?esc(p.user):"Kein Benutzer")+(p.url?' · '+esc(p.url.replace(/^https?:\/\//,"").substring(0,25)):"")+'</div>'
+        +'<div class="strength"><div class="fill" style="width:'+(s.score*20)+'%;background:'+s.color+'"></div></div>'
+        +'</div>'
+        +'<div style="font-size:20px;color:var(--text-mute)">›</div></div>';
+    }).join(""):'<div class="pw-empty">Tresor leer. Füge dein erstes Passwort hinzu!</div>';
+
+    el.innerHTML='<div class="pw-hero"><div class="lbl">Passwörter gespeichert</div><div class="val">'+all.length+'</div><div class="sub">'+strongCount+' stark · '+weakCount+' schwach</div></div>'
+      +'<div class="pw-stats">'
+      +'<div class="pw-stat"><div class="i">🔐</div><div class="v">'+all.length+'</div><div class="l">Gesamt</div></div>'
+      +'<div class="pw-stat"><div class="i">💪</div><div class="v">'+strongCount+'</div><div class="l">Stark</div></div>'
+      +'<div class="pw-stat"><div class="i">⚠️</div><div class="v">'+weakCount+'</div><div class="l">Schwach</div></div>'
+      +'<div class="pw-stat"><div class="i">🏷️</div><div class="v">'+Object.keys(PW_CATS).filter(function(k){return all.some(function(x){return x.cat===k;});}).length+'</div><div class="l">Kateg.</div></div>'
+      +'</div>'
+      +'<div class="card"><input type="text" class="pw-search" id="pw_search" placeholder="🔍 Suchen…" value="'+esc(this._q)+'">'
+      +'<button class="btn success full" id="pw_goto_new" style="margin-top:6px">➕ Neuer Eintrag</button></div>'
+      +'<div class="card"><div class="card-h"><h3>📂 Kategorien</h3></div><div class="pw-cat-grid">'+catCards+'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>🔐 '+shown.length+' Einträge</h3></div>'+listHtml+'</div>'
+      +'<div id="pw_detail"></div>';
+
+    var s=document.getElementById("pw_search");
+    s.addEventListener("input",function(){self._q=s.value;clearTimeout(self._t);self._t=setTimeout(function(){self.renderTab();},250);});
+    document.getElementById("pw_goto_new").addEventListener("click",function(){self.tab="new";self.render();});
+    el.querySelectorAll("[data-pw-cat]").forEach(function(b){
+      b.addEventListener("click",function(){self._cat=b.dataset.pwCat;self.renderTab();});
+    });
+    el.querySelectorAll("[data-pw-open]").forEach(function(c){
+      c.addEventListener("click",function(){self.showEntry(c.dataset.pwOpen);});
+    });
+  },
+
+  showEntry:function(id){
+    var self=this;
+    var e=null;this.getVault().forEach(function(x){if(x.id===id)e=x;});
+    if(!e)return;
+    var det=document.getElementById("pw_detail");if(!det)return;
+    var c=PW_CATS[e.cat]||PW_CATS.sonstiges;
+    var realPw=Crypto.decrypt(e.pw,this._master);
+    var s=PW_Generator.strength(realPw);
+    var crack=PW_Generator.estimateCrackTime(realPw);
+    det.innerHTML='<div class="pw-detail">'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">'
+      +'<span style="font-size:9px;padding:3px 8px;background:'+c.c+'22;color:'+c.c+';border-radius:5px;font-weight:700">'+c.i+' '+c.n+'</span>'
+      +'<span style="font-size:9px;padding:3px 8px;background:'+s.color+'22;color:'+s.color+';border-radius:5px;font-weight:700">'+s.label+'</span>'
+      +'</div>'
+      +'<h4 style="font-size:15px;font-weight:800;color:#ff8080;margin-bottom:8px">'+esc(e.name)+'</h4>'
+      +'<div class="row"><span class="lbl">Benutzer</span><span class="val" id="pw_user_view">'+esc(e.user||"—")+'</span>'
+      +(e.user?'<button class="action" data-pw-copy="'+esc(e.user)+'">📋</button>':'')
+      +'</div>'
+      +'<div class="row"><span class="lbl">Passwort</span><span class="val" id="pw_pw_view">••••••••</span>'
+      +'<button class="action" id="pw_pw_toggle">👁️</button>'
+      +'<button class="action" data-pw-copy="'+esc(realPw)+'">📋</button>'
+      +'</div>'
+      +(e.url?'<div class="row"><span class="lbl">URL</span><span class="val"><a href="'+esc(e.url)+'" target="_blank" style="color:var(--primary);text-decoration:none">'+esc(e.url)+'</a></span></div>':'')
+      +(e.notes?'<div class="row"><span class="lbl">Notizen</span><span class="val" style="font-family:inherit;font-size:11.5px">'+esc(e.notes)+'</span></div>':'')
+      +'<div class="row"><span class="lbl">Sicherheit</span><span class="val" style="color:'+s.color+'">'+s.label+' — Knackzeit: '+crack+'</span></div>'
+      +'<div class="row"><span class="lbl">Erstellt</span><span class="val">'+new Date(e.t).toLocaleString("de-DE")+'</span></div>'
+      +'<div class="btn-row" style="margin-top:10px">'
+      +'<button class="btn secondary" id="pw_edit">✏️ Bearbeiten</button>'
+      +'<button class="btn secondary" id="pw_close">✕ Schließen</button>'
+      +'<button class="btn danger" id="pw_delete">🗑️ Löschen</button>'
+      +'</div></div>';
+    det.scrollIntoView({behavior:"smooth",block:"nearest"});
+
+    var pwView=document.getElementById("pw_pw_view");
+    var toggle=document.getElementById("pw_pw_toggle");
+    toggle.addEventListener("click",function(){
+      if(pwView.textContent==="••••••••"){pwView.textContent=realPw;toggle.textContent="🙈";}
+      else{pwView.textContent="••••••••";toggle.textContent="👁️";}
+    });
+    det.querySelectorAll("[data-pw-copy]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var v=b.dataset.pwCopy;
+        if(navigator.clipboard)navigator.clipboard.writeText(v).then(function(){toast("📋 Kopiert","ok");});
+      });
+    });
+    document.getElementById("pw_close").addEventListener("click",function(){det.innerHTML="";});
+    document.getElementById("pw_delete").addEventListener("click",function(){
+      if(!confirm("Eintrag löschen?"))return;
+      self.saveVault(self.getVault().filter(function(x){return x.id!==id;}));
+      toast("🗑️","ok");det.innerHTML="";self.renderTab();
+    });
+    document.getElementById("pw_edit").addEventListener("click",function(){
+      self._editId=id;self.tab="new";self.render();
+    });
+  },
+
+  renderNew:function(el){
+    var self=this;
+    var editId=this._editId;
+    var editEntry=null;
+    if(editId){this.getVault().forEach(function(x){if(x.id===editId)editEntry=x;});}
+    var cur={
+      name:editEntry?editEntry.name:"",
+      cat:editEntry?editEntry.cat:"sozial",
+      user:editEntry?editEntry.user:"",
+      pw:editEntry?Crypto.decrypt(editEntry.pw,this._master):"",
+      url:editEntry?editEntry.url:"",
+      notes:editEntry?editEntry.notes:""
+    };
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>'+(editId?"✏️ Bearbeiten":"➕ Neuer Eintrag")+'</h3></div>'
+      +'<div class="field"><label>Name *</label><input type="text" class="pw-input" id="pw_nm" value="'+esc(cur.name)+'" placeholder="z.B. Instagram"></div>'
+      +'<div class="field"><label>Kategorie</label>'+select("pw_ct",cur.cat,Object.keys(PW_CATS).map(function(k){return [k,PW_CATS[k].i+" "+PW_CATS[k].n];}))+'</div>'
+      +'<div class="field"><label>Benutzername</label><input type="text" class="pw-input" id="pw_us" value="'+esc(cur.user)+'" placeholder="benutzer@mail.com"></div>'
+      +'<div class="field"><label>Passwort *</label><input type="text" class="pw-input" id="pw_pw" value="'+esc(cur.pw)+'" placeholder="••••••••"></div>'
+      +'<div class="pw-gen-output" id="pw_gen_field" style="font-size:11.5px;padding:9px;display:none"></div>'
+      +'<div class="pw-gen"><input type="range" id="pw_gen_len" min="8" max="40" value="20"><span class="val" id="pw_gen_v">20</span></div>'
+      +'<div class="btn-row"><button class="btn secondary small" id="pw_use_gen">🎲 Generieren</button><button class="btn secondary small" id="pw_gen_copy">📋</button></div>'
+      +'<div class="field" style="margin-top:10px"><label>URL / App</label><input type="text" class="pw-input" id="pw_url" value="'+esc(cur.url||"")+'" placeholder="https://…"></div>'
+      +'<div class="field"><label>Notizen</label><textarea class="pw-input" id="pw_nt" placeholder="Sicherheitsfrage, PIN…" style="min-height:80px">'+esc(cur.notes||"")+'</textarea></div>'
+      +'<button class="btn success full" id="pw_save">💾 Speichern</button>'
+      +'<button class="btn secondary full" id="pw_cancel" style="margin-top:6px">✕ Abbrechen</button></div>'
+      +'<div class="info-box">💡 Passwörter werden mit deinem Master-Passwort verschlüsselt gespeichert.</div>';
+
+    var range=document.getElementById("pw_gen_len");
+    var rangeV=document.getElementById("pw_gen_v");
+    var genField=document.getElementById("pw_gen_field");
+    range.addEventListener("input",function(){rangeV.textContent=range.value;});
+    document.getElementById("pw_use_gen").addEventListener("click",function(){
+      var pw=PW_Generator.generate(parseInt(range.value));
+      document.getElementById("pw_pw").value=pw;
+      genField.style.display="block";
+      genField.textContent=pw;
+    });
+    document.getElementById("pw_gen_copy").addEventListener("click",function(){
+      var pw=genField.textContent||document.getElementById("pw_pw").value;
+      if(!pw)return toast("⚠️ Erst generieren","err");
+      if(navigator.clipboard)navigator.clipboard.writeText(pw).then(function(){toast("📋","ok");});
+    });
+
+    document.getElementById("pw_save").addEventListener("click",function(){
+      var name=val("pw_nm").trim();
+      var pw=val("pw_pw").trim();
+      if(!name)return toast("⚠️ Name fehlt","err");
+      if(!pw)return toast("⚠️ Passwort fehlt","err");
+      var entry={
+        id:editId||"p_"+Date.now(),
+        name:name,
+        cat:val("pw_ct"),
+        user:val("pw_us").trim(),
+        pw:Crypto.encrypt(pw,self._master||null),
+        url:val("pw_url").trim(),
+        notes:val("pw_nt").trim(),
+        t:editId?(editEntry?editEntry.t:Date.now()):Date.now()
+      };
+      var arr=self.getVault();
+      if(editId){
+        arr.forEach(function(x,i){if(x.id===editId)arr[i]=entry;});
+      }else{
+        arr.push(entry);
+      }
+      self.saveVault(arr);
+      toast("💾 Gespeichert","ok");
+      self._editId=null;
+      self.tab="vault";self.render();
+    });
+    document.getElementById("pw_cancel").addEventListener("click",function(){
+      self._editId=null;self.tab="vault";self.render();
+    });
+  },
+
+  renderGenerator:function(el){
+    var self=this;
+    var s=this.getGeneratorSettings();
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🎲 Passwort-Generator</h3></div>'
+      +'<div class="pw-gen-output" id="pw_gen_out" style="font-size:16px">Klick auf Generieren</div>'
+      +'<div class="pw-gen"><input type="range" id="pw_g_len" min="8" max="64" value="'+s.len+'"><span class="val" id="pw_g_len_v">'+s.len+'</span></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px">'
+      +'<div class="pw-check'+(s.lower?" ok":"")+'" data-pw-opt="lower"><div class="dot">'+(s.lower?"✓":"")+'</div>Kleinbuchstaben (a-z)</div>'
+      +'<div class="pw-check'+(s.upper?" ok":"")+'" data-pw-opt="upper"><div class="dot">'+(s.upper?"✓":"")+'</div>Großbuchstaben (A-Z)</div>'
+      +'<div class="pw-check'+(s.digits?" ok":"")+'" data-pw-opt="digits"><div class="dot">'+(s.digits?"✓":"")+'</div>Zahlen (0-9)</div>'
+      +'<div class="pw-check'+(s.symbols?" ok":"")+'" data-pw-opt="symbols"><div class="dot">'+(s.symbols?"✓":"")+'</div>Sonderzeichen (!@#)</div>'
+      +'</div>'
+      +'<div class="strength-info" id="pw_g_strength" style="margin-top:10px"></div>'
+      +'<div class="pw-strength-bar"><div class="fill" id="pw_g_bar" style="width:0%"></div></div>'
+      +'<div style="font-size:10.5px;color:var(--text-mute);text-align:center;margin-top:5px" id="pw_g_info">Klick auf Generieren</div>'
+      +'<div class="btn-row" style="margin-top:12px"><button class="btn success full" id="pw_g_gen">🎲 Generieren</button></div>'
+      +'<div class="btn-row"><button class="btn secondary small" id="pw_g_copy">📋 Kopieren</button><button class="btn secondary small" id="pw_g_use">💾 Als Eintrag</button></div>'
+      +'</div>';
+
+    var range=document.getElementById("pw_g_len");
+    var rv=document.getElementById("pw_g_len_v");
+    range.addEventListener("input",function(){rv.textContent=range.value;s.len=parseInt(range.value);self.saveGeneratorSettings(s);});
+
+    el.querySelectorAll("[data-pw-opt]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var k=b.dataset.pwOpt;
+        s[k]=!s[k];
+        self.saveGeneratorSettings(s);
+        self.renderTab();
+      });
+    });
+
+    function doGen(){
+      var pw=PW_Generator.generate(parseInt(range.value),s);
+      document.getElementById("pw_gen_out").textContent=pw;
+      var st=PW_Generator.strength(pw);
+      document.getElementById("pw_g_bar").style.width=(st.score*20)+"%";
+      document.getElementById("pw_g_bar").style.background=st.color;
+      document.getElementById("pw_g_info").textContent=st.label+" · Knackzeit: "+PW_Generator.estimateCrackTime(pw);
+    }
+    document.getElementById("pw_g_gen").addEventListener("click",doGen);
+    document.getElementById("pw_g_copy").addEventListener("click",function(){
+      var pw=document.getElementById("pw_gen_out").textContent;
+      if(pw==="Klick auf Generieren")return toast("⚠️ Erst generieren","err");
+      if(navigator.clipboard)navigator.clipboard.writeText(pw).then(function(){toast("📋 Kopiert","ok");});
+    });
+    document.getElementById("pw_g_use").addEventListener("click",function(){
+      var pw=document.getElementById("pw_gen_out").textContent;
+      if(pw==="Klick auf Generieren")return toast("⚠️ Erst generieren","err");
+      self.tab="new";self.render();
+      setTimeout(function(){
+        var el2=document.getElementById("pw_pw");
+        if(el2)el2.value=pw;
+      },50);
+    });
+    doGen();
+  },
+
+  renderChecker:function(el){
+    var self=this;
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🔍 Passwort-Prüfer</h3></div>'
+      +'<div class="field"><label>Passwort eingeben</label><input type="text" class="pw-input" id="pw_chk" placeholder="Teste dein Passwort…"></div>'
+      +'<div id="pw_chk_result"></div></div>'
+      +'<div class="info-box">💡 Alles lokal. Nichts wird gesendet.</div>';
+
+    var inp=document.getElementById("pw_chk");
+    inp.addEventListener("input",function(){
+      var pw=inp.value;
+      var st=PW_Generator.strength(pw);
+      var crack=PW_Generator.estimateCrackTime(pw);
+      var checks=st.checks;
+      var html='<div style="padding:14px;background:var(--bg-3);border:1px solid var(--border);border-radius:11px;margin-top:8px">'
+        +'<div style="font-size:22px;font-weight:900;color:'+st.color+';text-align:center;font-family:ui-monospace,monospace;margin-bottom:8px">'+st.label+'</div>'
+        +'<div class="pw-strength-bar"><div class="fill" style="width:'+(st.score*20)+'%;background:'+st.color+'"></div></div>'
+        +'<div style="font-size:11px;color:var(--text-dim);text-align:center;margin:8px 0">Knackzeit: <b style="color:'+st.color+'">'+crack+'</b></div>'
+        +'<div class="pw-check'+(checks.len?" ok":"")+'"><div class="dot">'+(checks.len?"✓":"✕")+'</div>Mindestens 12 Zeichen</div>'
+        +'<div class="pw-check'+(checks.lower?" ok":"")+'"><div class="dot">'+(checks.lower?"✓":"✕")+'</div>Kleinbuchstaben (a-z)</div>'
+        +'<div class="pw-check'+(checks.upper?" ok":"")+'"><div class="dot">'+(checks.upper?"✓":"✕")+'</div>Großbuchstaben (A-Z)</div>'
+        +'<div class="pw-check'+(checks.digit?" ok":"")+'"><div class="dot">'+(checks.digit?"✓":"✕")+'</div>Zahlen (0-9)</div>'
+        +'<div class="pw-check'+(checks.sym?" ok":"")+'"><div class="dot">'+(checks.sym?"✓":"✕")+'</div>Sonderzeichen (!@#)</div>'
+        +'</div>';
+      document.getElementById("pw_chk_result").innerHTML=html;
+    });
+  },
+
+  renderSettings:function(el){
+    var self=this;
+    var hasMaster=!!this.getMaster();
+    var all=this.getVault();
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🔐 Master-Passwort</h3></div>'
+      +(hasMaster
+        ?'<div class="info-box ok">✅ Master-Passwort gesetzt. Tresor ist verschlüsselt.</div>'
+        +'<button class="btn warn full" id="pw_change_master">🔄 Master-Passwort ändern</button>'
+        +'<button class="btn danger full" id="pw_remove_master" style="margin-top:6px">🔓 Master entfernen (unsicher!)</button>'
+        :'<div class="info-box warn">⚠️ Noch kein Master-Passwort. Deine Passwörter sind unverschlüsselt.</div>'
+        +'<div class="field"><label>Neues Master-Passwort</label><input type="password" class="pw-input" id="pw_new_master" placeholder="Mind. 8 Zeichen"></div>'
+        +'<div class="field"><label>Bestätigen</label><input type="password" class="pw-input" id="pw_new_master2" placeholder="Nochmal"></div>'
+        +'<button class="btn success full" id="pw_set_master">🔐 Master setzen</button>')
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>📊 Tresor-Info</h3></div>'
+      +'<div class="stat-line"><span class="k">Einträge</span><span class="v">'+all.length+'</span></div>'
+      +'<div class="stat-line"><span class="k">Verschlüsselt</span><span class="v">'+(hasMaster?"✅ Ja":"❌ Nein")+'</span></div>'
+      +'<div class="stat-line"><span class="k">Kategorien aktiv</span><span class="v">'+Object.keys(PW_CATS).filter(function(k){return all.some(function(x){return x.cat===k;});}).length+'</span></div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>💾 Backup</h3></div>'
+      +'<button class="btn success full" id="pw_export">📤 Tresor exportieren (JSON)</button>'
+      +'<div class="field" style="margin-top:10px"><label>Import JSON</label><textarea class="pw-input" id="pw_import_txt" style="min-height:100px" placeholder=\'{"vault":[…]}\'></textarea></div>'
+      +'<button class="btn secondary full" id="pw_import">📥 Importieren</button>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>💥 Gefahrenzone</h3></div>'
+      +'<button class="btn danger full" id="pw_wipe">🗑️ ALLES löschen</button>'
+      +'</div>'
+      +'<div class="info-box warn">⚠️ Diese App speichert lokal (localStorage). Für Bank-/Kritische Passwörter: <b>echte Passwort-Manager</b> (Bitwarden, KeePassXC) verwenden!</div>';
+
+    if(hasMaster){
+      document.getElementById("pw_change_master").addEventListener("click",function(){
+        var old=prompt("Aktuelles Master-Passwort:");
+        if(old===null)return;
+        if(old!==self.getMaster())return toast("❌ Falsch","err");
+        var nw=prompt("Neues Master-Passwort (mind. 8 Zeichen):");
+        if(!nw||nw.length<8)return toast("⚠️ Zu kurz","err");
+        var nw2=prompt("Neues Master-Passwort nochmal:");
+        if(nw!==nw2)return toast("❌ Nicht gleich","err");
+        /* Alle Einträge neu verschlüsseln */
+        var oldMaster=self.getMaster();
+        var arr=self.getVault();
+        arr.forEach(function(x){
+          var real=Crypto.decrypt(x.pw,oldMaster);
+          x.pw=Crypto.encrypt(real,nw);
+        });
+        self.saveVault(arr);
+        self.saveMaster(nw);
+        self._master=nw;
+        toast("🔄 Master geändert","ok");
+        self.renderTab();
+      });
+      document.getElementById("pw_remove_master").addEventListener("click",function(){
+        if(!confirm("Master-Passwort entfernen? Alle Einträge werden unverschlüsselt!"))return;
+        var oldMaster=self.getMaster();
+        var arr=self.getVault();
+        arr.forEach(function(x){
+          var real=Crypto.decrypt(x.pw,oldMaster);
+          x.pw=Crypto.encrypt(real,null);
+        });
+        self.saveVault(arr);
+        self.saveMaster("");
+        self._master="";
+        self._unlocked=true;
+        toast("🔓 Master entfernt","warn");
+        self.renderTab();
+      });
+    }else{
+      document.getElementById("pw_set_master").addEventListener("click",function(){
+        var m=val("pw_new_master");
+        var m2=val("pw_new_master2");
+        if(!m||m.length<8)return toast("⚠️ Mind. 8 Zeichen","err");
+        if(m!==m2)return toast("❌ Nicht gleich","err");
+        /* Vorhandene Einträge verschlüsseln */
+        var arr=self.getVault();
+        arr.forEach(function(x){
+          var real=Crypto.decrypt(x.pw,null);
+          x.pw=Crypto.encrypt(real,m);
+        });
+        self.saveVault(arr);
+        self.saveMaster(m);
+        self._master=m;
+        self._unlocked=true;
+        toast("🔐 Master gesetzt","ok");
+        self.renderTab();
+      });
+    }
+
+    document.getElementById("pw_export").addEventListener("click",function(){
+      var data={vault:self.getVault(),encrypted:!!self.getMaster(),exported:new Date().toISOString()};
+      var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="passwort_tresor_backup.json";a.click();
+      toast("📤 Backup heruntergeladen","ok");
+    });
+
+    document.getElementById("pw_import").addEventListener("click",function(){
+      try{
+        var data=JSON.parse(val("pw_import_txt"));
+        if(!data.vault||!Array.isArray(data.vault))throw new Error("Ungültig");
+        if(!confirm("Wirklich "+data.vault.length+" Einträge importieren? Aktuelle werden überschrieben!"))return;
+        self.saveVault(data.vault);
+        toast("📥 Importiert","ok");
+        self.renderTab();
+      }catch(e){toast("❌ "+e.message,"err");}
+    });
+
+    document.getElementById("pw_wipe").addEventListener("click",function(){
+      if(!confirm("Wirklich ALLES löschen? Nicht umkehrbar!"))return;
+      if(!confirm("Sicher? Alle Passwörter weg!"))return;
+      self.saveVault([]);
+      toast("🗑️ Alles gelöscht","err");
+      self.renderTab();
+    });
+  }
+};
+
+/* ============ Auto-Register ============ */
+if(AppLauncher&&AppLauncher.registry){
+  AppLauncher.registry.passwort=AppPasswort;
+}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){
+    if(a.id==="passwort"){a.prio=1;a.installed=true;a.cat="Sicherheit";found=true;}
+  });
+  if(!found){
+    APP_PLAN.unshift({id:"passwort",name:"Passwort-Safe",icon:"🔐",cat:"Sicherheit",prio:1,installed:true});
+  }
+}
+setTimeout(function(){
+  var btn=document.getElementById("btnFilterAll");
+  if(btn)btn.click();
+},1800);
+
+console.log("[HalDo Passwort-Safe] ✅ Modul geladen und registriert.");
+})();
+</script>
+<!-- ============ ENDE HALDO PASSWORT-SAFE APP ============ -->
 </body>
 </html>
