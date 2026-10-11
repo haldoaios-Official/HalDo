@@ -6412,5 +6412,2245 @@ console.log("[HalDo Kontakte] ✅ Modul geladen und registriert.");
 })();
 </script>
 <!-- ============ ENDE HALDO KONTAKTE APP ============ -->
+<!-- ============================================================
+     HALDO ÜBERSETZER V2 — DROP-IN MODUL
+     Ersetzt die alte Version. Ezidi + mehr Alphabete + mehr Sprachen.
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Übersetzer v2] window.HalDo fehlt.");return;}
+
+var H=window.HalDo;
+var Storage=H.Storage;
+var AppLauncher=H.AppLauncher;
+var APP_PLAN=H.APP_PLAN;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+function select(id,cur,opts){var h='<select id="'+id+'">';opts.forEach(function(o){h+='<option value="'+esc(o[0])+'"'+(String(o[0])===String(cur)?" selected":"")+'>'+esc(o[1])+'</option>';});return h+'</select>';}
+
+function tr2InjectStyles(){
+  if(document.getElementById("tr2Styles"))return;
+  var s=document.createElement("style");
+  s.id="tr2Styles";
+  s.textContent=".tr2-lang-row{display:flex;gap:6px;align-items:center;margin-bottom:10px}.tr2-lang-row select{flex:1;background:var(--bg-3);border:1px solid var(--border);color:var(--text);padding:10px 11px;border-radius:9px;font-family:inherit;font-size:12px;outline:none;font-weight:700}.tr2-swap{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,rgba(0,212,255,.2),rgba(124,58,237,.2));border:1px solid var(--border-hi);color:var(--primary);cursor:pointer;font-size:18px;flex-shrink:0}.tr2-textarea{width:100%;min-height:130px;background:var(--bg-3);border:1px solid rgba(0,212,255,.22);color:var(--text);padding:12px;border-radius:11px;font-family:inherit;font-size:13px;line-height:1.55;outline:none;resize:vertical}.tr2-output{min-height:130px;background:linear-gradient(180deg,rgba(0,212,255,.06),rgba(124,58,237,.06));border:1px solid var(--border-hi);border-radius:11px;padding:12px;font-size:13px;line-height:1.55;color:var(--text);white-space:pre-wrap;word-break:break-word}.tr2-action-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}.tr2-quick-lang{display:flex;gap:5px;overflow-x:auto;padding-bottom:5px;margin-bottom:8px}.tr2-quick-lang::-webkit-scrollbar{display:none}.tr2-quick-lang button{padding:6px 11px;background:var(--bg-3);border:1px solid var(--border);border-radius:13px;color:var(--text-dim);font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap}.tr2-quick-lang button.active{background:linear-gradient(135deg,rgba(0,212,255,.28),rgba(124,58,237,.28));border-color:var(--border-hi);color:var(--text)}.tr2-quick-lang button.ez{border-color:rgba(239,68,68,.5);color:#ff8080}.tr2-quick-lang button.ez.active{background:linear-gradient(135deg,rgba(239,68,68,.3),rgba(245,158,11,.3));color:#fff;border-color:#fbbf24}.tr2-history-item{padding:10px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:5px;cursor:pointer}.tr2-history-item:hover{border-color:var(--primary)}.tr2-history-item .src{font-size:10px;color:var(--text-mute);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}.tr2-history-item .in{font-size:11.5px;color:var(--text-dim);margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.tr2-history-item .out{font-size:12.5px;font-weight:700;color:var(--primary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.tr2-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}.tr2-phrase{padding:11px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:6px}.tr2-phrase .de{font-size:11px;color:var(--text-mute);font-weight:700;margin-bottom:4px}.tr2-phrase .tr{font-size:14px;font-weight:800;color:var(--primary);margin-bottom:3px}.tr2-phrase .rom{font-size:10px;color:var(--text-dim);font-style:italic}.tr2-phrase .spk{float:right;background:rgba(0,212,255,.15);border:1px solid rgba(0,212,255,.4);color:var(--primary);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px}.tr2-phrase .cat-badge{display:inline-block;font-size:8.5px;padding:2px 6px;background:rgba(168,85,247,.15);color:#c084fc;border-radius:5px;font-weight:800;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}.tr2-alphabet{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:8px}.tr2-letter{padding:8px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;text-align:center;font-size:16px;font-weight:800;color:var(--primary);cursor:pointer;transition:.15s}.tr2-letter:hover{border-color:#4ade80;color:#4ade80;transform:scale(1.05)}.tr2-letter .snd{display:block;font-size:8.5px;color:var(--text-mute);font-weight:600;margin-top:2px}.tr2-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(239,68,68,.15),rgba(245,158,11,.15));border:1px solid rgba(245,158,11,.4);text-align:center;margin-bottom:12px}.tr2-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.tr2-hero .val{font-size:30px;font-weight:900;color:#fbbf24;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.tr2-hero .sub{font-size:10.5px;color:var(--text-mute)}.tr2-ai-box{padding:12px;background:rgba(168,85,247,.08);border:1px dashed rgba(168,85,247,.4);border-radius:11px;margin-top:8px;font-size:11.5px;line-height:1.6;color:var(--text)}.tr2-ai-box .lbl{font-size:9.5px;color:#c084fc;text-transform:uppercase;letter-spacing:1px;font-weight:800;margin-bottom:5px}.tr2-ezidi-banner{padding:14px;border-radius:11px;background:linear-gradient(135deg,rgba(239,68,68,.18),rgba(245,158,11,.18));border:1px solid rgba(251,191,36,.4);margin-bottom:12px;text-align:center}.tr2-ezidi-banner .peacock{font-size:38px;margin-bottom:4px}.tr2-ezidi-banner .title{font-size:14px;font-weight:900;color:#fbbf24;letter-spacing:.5px}.tr2-ezidi-banner .sub{font-size:10.5px;color:var(--text-dim);margin-top:2px}.tr2-tip-row{padding:10px 12px;background:rgba(251,191,36,.06);border-left:3px solid #fbbf24;border-radius:9px;margin-top:6px;font-size:11px;line-height:1.5;color:var(--text-dim)}.tr2-tip-row b{color:#fbbf24}";
+  document.head.appendChild(s);
+}
+
+/* ============ Sprachen (v2 — mit Ezidi) ============ */
+var TR2_LANGS=[
+  {c:"auto",n:"🌐 Auto-Erkennen"},
+  {c:"de",n:"🇩🇪 Deutsch"},
+  {c:"en",n:"🇬🇧 English"},
+  {c:"tr",n:"🇹🇷 Türkçe"},
+  {c:"ez",n:"🦚 Êzidî (Ezidi)"},
+  {c:"ku",n:"🟨 Kurdî (Kurmanji)"},
+  {c:"ckb",n:"🟨 کوردی (Sorani)"},
+  {c:"ar",n:"🇸🇦 العربية"},
+  {c:"fa",n:"🇮🇷 فارسی"},
+  {c:"ru",n:"🇷🇺 Русский"},
+  {c:"fr",n:"🇫🇷 Français"},
+  {c:"es",n:"🇪🇸 Español"},
+  {c:"it",n:"🇮🇹 Italiano"},
+  {c:"pt",n:"🇵🇹 Português"},
+  {c:"nl",n:"🇳🇱 Nederlands"},
+  {c:"pl",n:"🇵🇱 Polski"},
+  {c:"el",n:"🇬🇷 Ελληνικά"},
+  {c:"he",n:"🇮🇱 עברית"},
+  {c:"hy",n:"🇦🇲 Հայերեն"},
+  {c:"zh",n:"🇨🇳 中文"},
+  {c:"ja",n:"🇯🇵 日本語"},
+  {c:"ko",n:"🇰🇷 한국어"},
+  {c:"hi",n:"🇮🇳 हिन्दी"},
+  {c:"ur",n:"🇵🇰 اردو"},
+  {c:"sv",n:"🇸🇪 Svenska"},
+  {c:"no",n:"🇳🇴 Norsk"},
+  {c:"da",n:"🇩🇰 Dansk"},
+  {c:"fi",n:"🇫🇮 Suomi"},
+  {c:"ro",n:"🇷🇴 Română"},
+  {c:"bg",n:"🇧🇬 Български"},
+  {c:"uk",n:"🇺🇦 Українська"},
+  {c:"az",n:"🇦🇿 Azərbaycan"}
+];
+
+var TR2_LANGNAME={auto:"Auto",de:"Deutsch",en:"English",tr:"Türkçe",ez:"Êzidî",ku:"Kurdî",ckb:"کوردی",ar:"العربية",fa:"فارسی",ru:"Русский",fr:"Français",es:"Español",it:"Italiano",pt:"Português",nl:"Nederlands",pl:"Polski",el:"Ελληνικά",he:"עברית",hy:"Հայերեն",zh:"中文",ja:"日本語",ko:"한국어",hi:"हिन्दी",ur:"اردو",sv:"Svenska",no:"Norsk",da:"Dansk",fi:"Suomi",ro:"Română",bg:"Български",uk:"Українська",az:"Azərbaycan"};
+
+/* ============ Phrasebook (v2 — mit Ezidi) ============ */
+var TR2_PHRASES={
+  de:[
+    {cat:"gruss",d:"Hallo",t:"Hallo",r:""},
+    {cat:"gruss",d:"Guten Morgen",t:"Guten Morgen",r:""},
+    {cat:"gruss",d:"Guten Abend",t:"Guten Abend",r:""},
+    {cat:"gruss",d:"Wie geht es dir?",t:"Wie geht es dir?",r:""},
+    {cat:"gruss",d:"Danke",t:"Danke",r:""},
+    {cat:"gruss",d:"Bitte",t:"Bitte",r:""},
+    {cat:"gruss",d:"Entschuldigung",t:"Entschuldigung",r:""},
+    {cat:"gruss",d:"Ich heiße …",t:"Ich heiße …",r:""},
+    {cat:"reise",d:"Wo ist die Toilette?",t:"Wo ist die Toilette?",r:""},
+    {cat:"reise",d:"Wie viel kostet das?",t:"Wie viel kostet das?",r:""},
+    {cat:"reise",d:"Ich verstehe nicht",t:"Ich verstehe nicht",r:""}
+  ],
+  en:[
+    {cat:"gruss",d:"Hallo",t:"Hello",r:"hel-oh"},
+    {cat:"gruss",d:"Guten Morgen",t:"Good morning",r:"gud mor-ning"},
+    {cat:"gruss",d:"Guten Abend",t:"Good evening",r:"gud ihv-ning"},
+    {cat:"gruss",d:"Wie geht es dir?",t:"How are you?",r:"hau ar ju"},
+    {cat:"gruss",d:"Danke",t:"Thank you",r:"thänk ju"},
+    {cat:"gruss",d:"Bitte",t:"Please",r:"plihs"},
+    {cat:"gruss",d:"Entschuldigung",t:"Excuse me",r:"eks-kjuhs mih"},
+    {cat:"gruss",d:"Ich heiße …",t:"My name is …",r:"mai nehm is"},
+    {cat:"reise",d:"Wo ist die Toilette?",t:"Where is the toilet?",r:"wär is de toi-let"},
+    {cat:"reise",d:"Wie viel kostet das?",t:"How much does it cost?",r:"hau mattsch das it kost"},
+    {cat:"reise",d:"Ich verstehe nicht",t:"I don't understand",r:"ai dont an-der-ständ"}
+  ],
+  tr:[
+    {cat:"gruss",d:"Hallo",t:"Merhaba",r:"mär-haba"},
+    {cat:"gruss",d:"Guten Morgen",t:"Günaydın",r:"gün-aj-dön"},
+    {cat:"gruss",d:"Guten Abend",t:"İyi akşamlar",r:"iji ak-scham-lar"},
+    {cat:"gruss",d:"Wie geht es dir?",t:"Nasılsın?",r:"na-söl-sön"},
+    {cat:"gruss",d:"Danke",t:"Teşekkürler",r:"teschek-kür-lär"},
+    {cat:"gruss",d:"Bitte",t:"Lütfen",r:"lüt-fän"},
+    {cat:"gruss",d:"Entschuldigung",t:"Affedersiniz",r:"af-fe-der-si-nis"},
+    {cat:"gruss",d:"Ich heiße …",t:"Benim adım …",r:"be-nim a-döm"},
+    {cat:"reise",d:"Wo ist die Toilette?",t:"Tuvalet nerede?",r:"tu-wa-let ne-re-de"},
+    {cat:"reise",d:"Wie viel kostet das?",t:"Bu ne kadar?",r:"bu ne ka-dar"},
+    {cat:"reise",d:"Ich verstehe nicht",t:"Anlamıyorum",r:"an-la-mö-yo-rum"}
+  ],
+  /* ====== ÊZIDÎ — EZIDI ====== */
+  ez:[
+    {cat:"gruss",d:"Hallo / Friede sei mit dir",t:"Silav",r:"si-law"},
+    {cat:"gruss",d:"Friede sei mit dir (Antwort)",t:"Silav li te be",r:"si-law li te be"},
+    {cat:"gruss",d:"Guten Morgen",t:"Beyanî baş",r:"be-ja-ni basch"},
+    {cat:"gruss",d:"Guten Abend",t:"Êvar baş",r:"e-war basch"},
+    {cat:"gruss",d:"Gute Nacht",t:"Şev baş",r:"schew basch"},
+    {cat:"gruss",d:"Wie geht es dir?",t:"Tu çawa yî?",r:"tu tscha-wa ji"},
+    {cat:"gruss",d:"Mir geht es gut",t:"Ez baş im",r:"es basch im"},
+    {cat:"gruss",d:"Danke",t:"Spas",r:"spas"},
+    {cat:"gruss",d:"Danke (Ezidi-Variante)",t:"Spas xwedê",r:"spas chwe-de"},
+    {cat:"gruss",d:"Bitte",t:"Ji kerema xwe",r:"dschi ke-re-ma chwe"},
+    {cat:"gruss",d:"Entschuldigung",t:"Bibore",r:"bi-bo-re"},
+    {cat:"gruss",d:"Willkommen",t:"Bi xêr hatî",r:"bi cher ha-ti"},
+    {cat:"gruss",d:"Ich heiße …",t:"Navê min … ye",r:"na-we min … je"},
+    {cat:"gruss",d:"Ich bin Ezidi",t:"Ez êzidî me",r:"es e-si-di me"},
+    {cat:"gruss",d:"Ja",t:"Erê",r:"e-re"},
+    {cat:"gruss",d:"Nein",t:"Na",r:"na"},
+    {cat:"gruss",d:"Auf Wiedersehen",t:"Xatirê te",r:"cha-ti-re te"},
+    {cat:"religion",d:"Peacock Angel (Engel)",t:"Tawûsî Melek",r:"ta-wu-si me-lek"},
+    {cat:"religion",d:"Gott",t:"Xwedê",r:"chwe-de"},
+    {cat:"religion",d:"Gebet",t:"Nimêj",r:"ni-mesch"},
+    {cat:"religion",d:"Fasten",t:"Rojî",r:"ro-schi"},
+    {cat:"religion",d:"Wallfahrt (Lalisch)",t:"Ziyaret",r:"si-ja-ret"},
+    {cat:"kultur",d:"Wir sind alle Eziden",t:"Em hemî êzidî ne",r:"em he-mi e-si-di ne"},
+    {cat:"kultur",d:"Die Eziden sind ein Volk",t:"Êzidî gelek in",r:"e-si-di ge-lek in"},
+    {cat:"reise",d:"Wo ist die Toilette?",t:"Tuvalet li ku ye?",r:"tu-wa-let li ku je"},
+    {cat:"reise",d:"Wie viel kostet das?",t:"Ev bi çend e?",r:"ew bi tschend e"},
+    {cat:"reise",d:"Ich verstehe nicht",t:"Ez fêm nakim",r:"es fem na-kim"},
+    {cat:"reise",d:"Sprichst du Kurdisch?",t:"Tu bi kurdî dizanî?",r:"tu bi kur-di di-za-ni"},
+    {cat:"kultur",d:"Ich liebe dich",t:"Ez te hez dikim",r:"es te hes di-kim"},
+    {cat:"kultur",d:"Meine Familie",t:"Malbata min",r:"mal-ba-ta min"}
+  ],
+  ku:[
+    {cat:"gruss",d:"Hallo",t:"Silav",r:"si-law"},
+    {cat:"gruss",d:"Guten Morgen",t:"Beyanî baş",r:"be-ja-ni basch"},
+    {cat:"gruss",d:"Guten Abend",t:"Êvar baş",r:"e-war basch"},
+    {cat:"gruss",d:"Wie geht es dir?",t:"Tu çawa yî?",r:"tu tscha-wa ji"},
+    {cat:"gruss",d:"Danke",t:"Spas",r:"spas"},
+    {cat:"gruss",d:"Bitte",t:"Ji kerema xwe",r:"dschi ke-re-ma chwe"},
+    {cat:"gruss",d:"Entschuldigung",t:"Bibore",r:"bi-bo-re"},
+    {cat:"gruss",d:"Ich heiße …",t:"Navê min … ye",r:"na-we min … je"},
+    {cat:"reise",d:"Wo ist die Toilette?",t:"Tuvalet li ku ye?",r:"tu-wa-let li ku je"},
+    {cat:"reise",d:"Wie viel kostet das?",t:"Ev bi çend e?",r:"ew bi tschend e"},
+    {cat:"reise",d:"Ich verstehe nicht",t:"Ez fêm nakim",r:"es fem na-kim"},
+    {cat:"kultur",d:"Ich liebe dich",t:"Ez te hez dikim",r:"es te hes di-kim"},
+    {cat:"kultur",d:"Willkommen",t:"Bi xêr hatî",r:"bi cher ha-ti"}
+  ],
+  ckb:[
+    {cat:"gruss",d:"Hallo",t:"سڵاو",r:"silaw"},
+    {cat:"gruss",d:"Guten Morgen",t:"بەیانیت باش",r:"beyanit bash"},
+    {cat:"gruss",d:"Wie geht es dir?",t:"چۆنی؟",r:"choni"},
+    {cat:"gruss",d:"Danke",t:"سوپاس",r:"supas"},
+    {cat:"gruss",d:"Bitte",t:"تکایە",r:"tkaye"},
+    {cat:"gruss",d:"Entschuldigung",t:"ببوورە",r:"bbuura"},
+    {cat:"gruss",d:"Ich heiße …",t:"ناوم … ە",r:"nawm … a"},
+    {cat:"reise",d:"Wo ist die Toilette?",t:"تەوالێت لە کوێیە؟",r:"tewalet le kweya"},
+    {cat:"reise",d:"Wie viel kostet das?",t:"ئەمە بە چەندە؟",r:"eme be chenda"},
+    {cat:"reise",d:"Ich verstehe nicht",t:"تێناگەم",r:"tenagem"},
+    {cat:"kultur",d:"Ich liebe dich",t:"خۆشم دەوێی",r:"khoshm dewey"},
+    {cat:"kultur",d:"Willkommen",t:"بەخێربێی",r:"bekhayrbey"}
+  ],
+  ar:[
+    {cat:"gruss",d:"Hallo / Friede",t:"السلام عليكم",r:"as-salamu alaikum"},
+    {cat:"gruss",d:"Guten Morgen",t:"صباح الخير",r:"sabah al-khair"},
+    {cat:"gruss",d:"Guten Abend",t:"مساء الخير",r:"masa al-khair"},
+    {cat:"gruss",d:"Wie geht es dir?",t:"كيف حالك؟",r:"kaifa halak"},
+    {cat:"gruss",d:"Danke",t:"شكرا",r:"schukran"},
+    {cat:"gruss",d:"Bitte",t:"من فضلك",r:"min fadlik"},
+    {cat:"gruss",d:"Entschuldigung",t:"عفوا",r:"afwan"},
+    {cat:"gruss",d:"Ich heiße …",t:"اسمي …",r:"ismi …"},
+    {cat:"reise",d:"Wo ist die Toilette?",t:"أين الحمام؟",r:"aina al-hammam"},
+    {cat:"reise",d:"Wie viel kostet das?",t:"كم هذا؟",r:"kam hadha"},
+    {cat:"reise",d:"Ich verstehe nicht",t:"لا أفهم",r:"la afham"},
+    {cat:"kultur",d:"Ich liebe dich",t:"أحبك",r:"uhibbuk"},
+    {cat:"kultur",d:"Willkommen",t:"أهلا وسهلا",r:"ahlan wa sahlan"}
+  ],
+  fa:[
+    {cat:"gruss",d:"Hallo",t:"سلام",r:"salam"},
+    {cat:"gruss",d:"Guten Morgen",t:"صبح بخیر",r:"sobh bekheir"},
+    {cat:"gruss",d:"Wie geht es dir?",t:"چطوری؟",r:"chetóri"},
+    {cat:"gruss",d:"Danke",t:"ممنون",r:"mamnun"},
+    {cat:"gruss",d:"Bitte",t:"لطفا",r:"lotfan"},
+    {cat:"gruss",d:"Entschuldigung",t:"ببخشید",r:"bebakhshid"},
+    {cat:"gruss",d:"Ich heiße …",t:"اسم من … است",r:"esm-e man … ast"},
+    {cat:"reise",d:"Wo ist die Toilette?",t:"توالت کجاست؟",r:"towalet kojast"},
+    {cat:"reise",d:"Wie viel kostet das?",t:"قیمتش چنده؟",r:"gheymatesh chande"},
+    {cat:"reise",d:"Ich verstehe nicht",t:"نمی‌فهمم",r:"nemi-fahmam"}
+  ],
+  ru:[
+    {cat:"gruss",d:"Hallo",t:"Привет",r:"pri-wjet"},
+    {cat:"gruss",d:"Guten Morgen",t:"Доброе утро",r:"dob-ra-je ut-ra"},
+    {cat:"gruss",d:"Wie geht es dir?",t:"Как дела?",r:"kak dje-la"},
+    {cat:"gruss",d:"Danke",t:"Спасибо",r:"spa-si-ba"},
+    {cat:"gruss",d:"Bitte",t:"Пожалуйста",r:"pa-scha-lus-ta"},
+    {cat:"gruss",d:"Entschuldigung",t:"Извините",r:"is-wi-ni-tje"},
+    {cat:"gruss",d:"Ich heiße …",t:"Меня зовут …",r:"mje-nja sa-wut"},
+    {cat:"reise",d:"Wo ist die Toilette?",t:"Где туалет?",r:"gdje tu-a-ljet"},
+    {cat:"reise",d:"Wie viel kostet das?",t:"Сколько стоит?",r:"skol-ka sto-it"},
+    {cat:"reise",d:"Ich verstehe nicht",t:"Я не понимаю",r:"ja nje pa-ni-ma-ju"}
+  ],
+  fr:[
+    {cat:"gruss",d:"Hallo",t:"Bonjour",r:"bon-schur"},
+    {cat:"gruss",d:"Guten Abend",t:"Bonsoir",r:"bon-swahr"},
+    {cat:"gruss",d:"Wie geht es dir?",t:"Comment ça va?",r:"ko-mang sa wa"},
+    {cat:"gruss",d:"Danke",t:"Merci",r:"mer-si"},
+    {cat:"gruss",d:"Bitte",t:"S'il vous plaît",r:"sil wu plä"},
+    {cat:"gruss",d:"Entschuldigung",t:"Excusez-moi",r:"eks-kü-se mwa"},
+    {cat:"gruss",d:"Ich heiße …",t:"Je m'appelle …",r:"schö ma-pel"},
+    {cat:"reise",d:"Wo ist die Toilette?",t:"Où sont les toilettes?",r:"u song le twa-let"},
+    {cat:"reise",d:"Wie viel kostet das?",t:"Combien ça coûte?",r:"kom-bjeng sa kut"},
+    {cat:"reise",d:"Ich verstehe nicht",t:"Je ne comprends pas",r:"schö nö kom-prang pa"}
+  ],
+  es:[
+    {cat:"gruss",d:"Hallo",t:"Hola",r:"o-la"},
+    {cat:"gruss",d:"Guten Morgen",t:"Buenos días",r:"bwe-nos di-as"},
+    {cat:"gruss",d:"Wie geht es dir?",t:"¿Cómo estás?",r:"ko-mo es-tas"},
+    {cat:"gruss",d:"Danke",t:"Gracias",r:"gra-sias"},
+    {cat:"gruss",d:"Bitte",t:"Por favor",r:"por fa-wor"},
+    {cat:"gruss",d:"Entschuldigung",t:"Perdón",r:"per-don"},
+    {cat:"gruss",d:"Ich heiße …",t:"Me llamo …",r:"me ja-mo"},
+    {cat:"reise",d:"Wo ist die Toilette?",t:"¿Dónde está el baño?",r:"don-de es-ta el ba-njo"},
+    {cat:"reise",d:"Wie viel kostet das?",t:"¿Cuánto cuesta?",r:"kwan-to kwes-ta"},
+    {cat:"reise",d:"Ich verstehe nicht",t:"No entiendo",r:"no en-tjen-do"}
+  ],
+  it:[
+    {cat:"gruss",d:"Hallo",t:"Ciao",r:"tscha-o"},
+    {cat:"gruss",d:"Guten Morgen",t:"Buongiorno",r:"bwon-dschor-no"},
+    {cat:"gruss",d:"Wie geht es dir?",t:"Come stai?",r:"ko-me stai"},
+    {cat:"gruss",d:"Danke",t:"Grazie",r:"gra-tsie"},
+    {cat:"gruss",d:"Bitte",t:"Per favore",r:"per fa-wo-re"},
+    {cat:"gruss",d:"Entschuldigung",t:"Scusi",r:"sku-si"},
+    {cat:"gruss",d:"Ich heiße …",t:"Mi chiamo …",r:"mi kja-mo"},
+    {cat:"reise",d:"Wo ist die Toilette?",t:"Dov'è il bagno?",r:"do-we il ba-njo"},
+    {cat:"reise",d:"Wie viel kostet das?",t:"Quanto costa?",r:"kwan-to kos-ta"},
+    {cat:"reise",d:"Ich verstehe nicht",t:"Non capisco",r:"non ka-pis-ko"}
+  ]
+};
+
+/* ============ Alphabete (v2 — mit Ezidi) ============ */
+var TR2_ALPHABETS={
+  ez_latin:{
+    n:"🦚 Ezidi (Latin)",
+    intro:"Die Ezidi verwenden heute die kurdische Latin-Schrift (Kurmanji). Historisch gab es eine eigene Schrift 'Mushaf Reş' (Schwarzes Buch) mit 33 Buchstaben.",
+    letters:[
+      ["A a","a"],["B b","be"],["C c","tsche"],["Ç ç","tsche"],["D d","de"],["E e","e"],["Ê ê","e (lang)"],["F f","fe"],["G g","ge"],["H h","he"],["I i","i (kurz)"],["Î î","i (lang)"],["J j","sche"],["K k","ke"],["L l","le"],["M m","me"],["N n","ne"],["O o","o"],["P p","pe"],["Q q","qa"],["R r","re"],["S s","se"],["Ş ş","sche"],["T t","te"],["U u","u"],["Û û","u (lang)"],["V v","we"],["W w","we (weich)"],["X x","ch (rau)"],["Y y","je"],["Z z","ze"]
+    ]
+  },
+  ez_secret:{
+    n:"🔮 Ezidi Mushaf Reş (traditionell)",
+    intro:"Die traditionelle Ezidi-Schrift 'Mushaf Reş' (Schwarzes Buch). Heute nicht mehr im Alltag verwendet, aber kulturell heilig. Die Zeichen sind stark stilisiert — hier eine Annäherung.",
+    letters:[
+      ["◈","Zeichen 1"],["◇","Zeichen 2"],["❖","Zeichen 3"],["✦","Zeichen 4"],["✧","Zeichen 5"],["✩","Zeichen 6"],["✪","Zeichen 7"],["✫","Zeichen 8"],["✬","Zeichen 9"],["✭","Zeichen 10"],["✮","Zeichen 11"],["✯","Zeichen 12"],["✰","Zeichen 13"],["⭐","Zeichen 14"],["🌟","Zeichen 15"],["✨","Zeichen 16"]
+    ]
+  },
+  ar:{
+    n:"🇸🇦 Arabisch",
+    intro:"28 Buchstaben, rechts nach links geschrieben. Ezidi verwenden auch die arabische Schrift in alten Manuskripten.",
+    letters:[
+      ["ا","alif"],["ب","ba"],["ت","ta"],["ث","tha"],["ج","jim"],["ح","ha"],["خ","kha"],["د","dal"],["ذ","dhal"],["ر","ra"],["ز","zay"],["س","sin"],["ش","shin"],["ص","sad"],["ض","dad"],["ط","ta"],["ظ","dha"],["ع","ain"],["غ","ghain"],["ف","fa"],["ق","qaf"],["ك","kaf"],["ل","lam"],["م","mim"],["ن","nun"],["ه","ha"],["و","waw"],["ي","ya"]
+    ]
+  },
+  ru:{
+    n:"🇷🇺 Kyrillisch",
+    intro:"33 Buchstaben. Verwendet in Russisch, Bulgarisch, Ukrainisch.",
+    letters:[
+      ["А","A"],["Б","B"],["В","W"],["Г","G"],["Д","D"],["Е","Je"],["Ж","Sch"],["З","S"],["И","I"],["Й","J"],["К","K"],["Л","L"],["М","M"],["Н","N"],["О","O"],["П","P"],["Р","R"],["С","S"],["Т","T"],["У","U"],["Ф","F"],["Х","Ch"],["Ц","Z"],["Ч","Tsch"],["Ш","Sch"],["Щ","Schtsch"],["Ы","Y"],["Э","E"],["Ю","Ju"],["Я","Ja"]
+    ]
+  },
+  el:{
+    n:"🇬🇷 Griechisch",
+    intro:"24 Buchstaben. Ältestes noch verwendetes Alphabet Europas.",
+    letters:[
+      ["Α","Alpha"],["Β","Beta"],["Γ","Gamma"],["Δ","Delta"],["Ε","Epsilon"],["Ζ","Zeta"],["Η","Eta"],["Θ","Theta"],["Ι","Iota"],["Κ","Kappa"],["Λ","Lambda"],["Μ","My"],["Ν","Ny"],["Ξ","Xi"],["Ο","Omikron"],["Π","Pi"],["Ρ","Rho"],["Σ","Sigma"],["Τ","Tau"],["Υ","Ypsilon"],["Φ","Phi"],["Χ","Chi"],["Ψ","Psi"],["Ω","Omega"]
+    ]
+  },
+  he:{
+    n:"🇮🇱 Hebräisch",
+    intro:"22 Buchstaben, rechts nach links.",
+    letters:[
+      ["א","Alef"],["ב","Bet"],["ג","Gimel"],["ד","Dalet"],["ה","He"],["ו","Waw"],["ז","Zajin"],["ח","Chet"],["ט","Tet"],["י","Jod"],["כ","Kaf"],["ל","Lamed"],["מ","Mem"],["נ","Nun"],["ס","Samech"],["ע","Ajin"],["פ","Pe"],["צ","Zade"],["ק","Kuf"],["ר","Resch"],["ש","Schin"],["ת","Taw"]
+    ]
+  },
+  hy:{
+    n:"🇦🇲 Armenisch",
+    intro:"38 Buchstaben, eigene Schrift seit 405 n.Chr.",
+    letters:[
+      ["Ա","A"],["Բ","B"],["Գ","G"],["Դ","D"],["Ե","E"],["Զ","S"],["Է","E"],["Ը","Y"],["Թ","T"],["Ժ","Sch"],["Ի","I"],["Լ","L"],["Խ","Ch"],["Ծ","Z"],["Կ","K"],["Հ","H"],["Ձ","Ds"],["Ղ","Gh"],["Ճ","Tsch"],["Մ","M"],["Յ","J"],["Ն","N"],["Շ","Sch"],["Ո","Wo"],["Չ","Tsch"],["Պ","P"],["Ջ","Dsch"],["Ռ","R"],["Ս","S"],["Վ","W"],["Տ","T"],["Ր","R"],["Ց","Z"],["Ւ","U"],["Փ","P"],["Ք","K"],["Օ","O"],["Ֆ","F"]
+    ]
+  }
+};
+
+/* ============ App ============ */
+var AppUebersetzer2={
+  tab:"translate",
+  _from:"auto",_to:"ez",_input:"",_output:"",_aiResult:null,_phraseLang:"ez",_phraseCat:"all",_alphaLang:"ez_latin",
+
+  getHistory:function(){return Storage.get("tr_history",[]);},
+  saveHistory:function(a){Storage.set("tr_history",a);},
+  getFavs:function(){return Storage.get("tr_favs",[]);},
+  saveFavs:function(a){Storage.set("tr_favs",a);},
+
+  render:function(){
+    tr2InjectStyles();
+    var vp=document.getElementById("appViewport");
+    var tabs=[
+      {k:"translate",n:"🌐 Übersetzen"},
+      {k:"ezidi",n:"🦚 Ezidi"},
+      {k:"phrasebook",n:"📖 Phrasebook"},
+      {k:"alphabet",n:"🔤 Alphabete"},
+      {k:"history",n:"🕐 Verlauf"},
+      {k:"favs",n:"⭐ Favs"}
+    ];
+    var self=this;
+    var th=tabs.map(function(t){return '<button class="ms-tab'+(self.tab===t.k?" active":"")+'" data-tr2-tab="'+t.k+'">'+t.n+'</button>';}).join("");
+    vp.innerHTML='<div class="ms-tabs">'+th+'</div><div id="tr2Content"></div>';
+    vp.querySelectorAll("[data-tr2-tab]").forEach(function(b){b.addEventListener("click",function(){self.tab=b.dataset.tr2Tab;self.render();});});
+    this.renderTab();
+  },
+
+  renderTab:function(){
+    var el=document.getElementById("tr2Content");if(!el)return;
+    var t=this.tab;
+    if(t==="translate")this.renderTranslate(el);
+    else if(t==="ezidi")this.renderEzidi(el);
+    else if(t==="phrasebook")this.renderPhrasebook(el);
+    else if(t==="alphabet")this.renderAlphabet(el);
+    else if(t==="history")this.renderHistory(el);
+    else if(t==="favs")this.renderFavs(el);
+  },
+
+  renderEzidi:function(el){
+    var self=this;
+    var phrases=TR2_PHRASES.ez||[];
+    var listHtml=phrases.map(function(p){
+      var catLabels={gruss:"👋 Gruß",reise:"🧳 Reise",kultur:"🎭 Kultur",religion:"🦚 Religion"};
+      return '<div class="tr2-phrase"><button class="spk" data-tr2-spk="'+esc(p.t)+'_ez">🔊</button>'
+        +(p.cat?'<span class="cat-badge">'+(catLabels[p.cat]||p.cat)+'</span>':'')
+        +'<div class="de">🇩🇪 '+esc(p.d)+'</div>'
+        +'<div class="tr">'+esc(p.t)+'</div>'
+        +(p.r?'<div class="rom">['+esc(p.r)+']</div>':'')
+        +'</div>';
+    }).join("");
+
+    el.innerHTML='<div class="tr2-ezidi-banner">'
+      +'<div class="peacock">🦚</div>'
+      +'<div class="title">Êzidî — Die Sprache der Eziden</div>'
+      +'<div class="sub">Eine kurdische Variante (Kurmanji), gesprochen von den Êzidî in Irak, Syrien, Türkei, Armenien und der Diaspora.</div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>🦚 Ezidi-Phrasen ('+phrases.length+')</h3></div>'
+      +'<div class="info-box ok">💡 Klick auf 🔊, um die Aussprache zu hören. Die Lautschrift hilft beim Lesen.</div>'
+      +listHtml+'</div>'
+      +'<div class="card"><div class="card-h"><h3>🦚 Über die Eziden</h3></div>'
+      +'<div class="tr2-tip-row"><b>Tawûsî Melek</b> — Der Pfauengel, zentrale Figur der ezidischen Religion</div>'
+      +'<div class="tr2-tip-row"><b>Lalisch</b> — Das Hauptheiligtum im Irak (Ninive-Ebene)</div>'
+      +'<div class="tr2-tip-row"><b>Mushaf Reş</b> — Das „Schwarze Buch", heilige Schrift der Eziden</div>'
+      +'<div class="tr2-tip-row"><b>Çarşema Sor</b> — Das Neujahrsfest (Mittwoch im April)</div>'
+      +'<div class="tr2-tip-row"><b>Êzidî</b> — Selbstbezeichnung, bedeutet „Anhänger Gottes"</div>'
+      +'<div class="tr2-tip-row"><b>Gott:</b> Xwedê · <b>Gebet:</b> Nimêj · <b>Fasten:</b> Rojî</div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>🔤 Ezidi-Alphabet</h3></div>'
+      +'<div class="info-box">Siehe Tab <b>🔤 Alphabete</b> → wähle „Ezidi (Latin)" oder „Mushaf Reş".</div>'
+      +'<button class="btn success full" id="tr2_goto_alpha">🔤 Alphabet öffnen</button>'
+      +'</div>';
+
+    el.querySelectorAll("[data-tr2-spk]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var parts=b.dataset.tr2Spk.split("_");
+        var lc=parts.pop();
+        var text=parts.join("_");
+        self.speak(text,lc);
+      });
+    });
+    document.getElementById("tr2_goto_alpha").addEventListener("click",function(){
+      self._alphaLang="ez_latin";self.tab="alphabet";self.render();
+    });
+  },
+
+  renderTranslate:function(el){
+    var self=this;
+    var quickLangs=["ez","en","tr","ku","ckb","ar","fa","ru","fr","es","de"];
+    var quickHtml=quickLangs.map(function(c){
+      var lang=null;TR2_LANGS.forEach(function(l){if(l.c===c)lang=l;});
+      if(!lang)return "";
+      var cls="";
+      if(c==="ez")cls="ez";
+      if(self._to===c)cls+=" active";
+      var short=lang.n.split(" ")[0];
+      return '<button class="'+cls+'" data-tr2-ql="'+c+'">'+short+' '+TR2_LANGNAME[c]+'</button>';
+    }).join("");
+
+    el.innerHTML='<div class="card">'
+      +'<div class="tr2-lang-row">'
+      +select("tr2_from",this._from,TR2_LANGS.map(function(l){return [l.c,l.n];}))
+      +'<button class="tr2-swap" id="tr2_swap">⇄</button>'
+      +select("tr2_to",this._to,TR2_LANGS.filter(function(l){return l.c!=="auto";}).map(function(l){return [l.c,l.n];}))
+      +'</div>'
+      +'<div class="tr2-quick-lang">'+quickHtml+'</div>'
+      +'<textarea class="tr2-textarea" id="tr2_input" placeholder="Text eingeben…">'+esc(this._input)+'</textarea>'
+      +'<div class="tr2-action-row">'
+      +'<button class="btn" id="tr2_btn_go">🌐 Übersetzen</button>'
+      +'<button class="btn secondary small" id="tr2_btn_mic">🎤</button>'
+      +'<button class="btn secondary small" id="tr2_btn_clear">🗑️</button>'
+      +'<button class="btn secondary small" id="tr2_btn_paste">📋</button>'
+      +'<button class="btn warn small" id="tr2_btn_ai">✨ KI</button>'
+      +'</div>'
+      +'<div class="tr2-output" id="tr2_output" style="margin-top:10px">'+(this._output||'<span style="color:var(--text-mute);font-size:11.5px">Übersetzung erscheint hier…</span>')+'</div>'
+      +(this._output?'<div class="tr2-action-row">'
+        +'<button class="btn success small" id="tr2_btn_copy">📋 Kopieren</button>'
+        +'<button class="btn secondary small" id="tr2_btn_speak">🔊 Vorlesen</button>'
+        +'<button class="btn secondary small" id="tr2_btn_fav">⭐ Merken</button>'
+        +'<button class="btn secondary small" id="tr2_btn_swap_txt">⇄ Als Eingabe</button>'
+        +'</div>':'')
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>💡 Info</h3></div>'
+      +'<div class="info-box">🌐 Nutzt <b>MyMemory API</b> (kostenlos). Für Ezidi/Kurdisch: oft besser über <b>✨ KI</b> (Groq-Key in Settings).</div></div>';
+
+    document.getElementById("tr2_btn_go").addEventListener("click",function(){self.translate();});
+    document.getElementById("tr2_input").addEventListener("input",function(){self._input=this.value;});
+    document.getElementById("tr2_input").addEventListener("keydown",function(e){if(e.key==="Enter"&&(e.ctrlKey||e.metaKey))self.translate();});
+    document.getElementById("tr2_btn_clear").addEventListener("click",function(){self._input="";self._output="";self._aiResult=null;self.renderTab();});
+    document.getElementById("tr2_btn_mic").addEventListener("click",function(){self.micInput();});
+    document.getElementById("tr2_btn_ai").addEventListener("click",function(){self.aiTranslate();});
+    document.getElementById("tr2_btn_paste").addEventListener("click",function(){
+      if(navigator.clipboard)navigator.clipboard.readText().then(function(t){self._input=t;document.getElementById("tr2_input").value=t;toast("📋 Eingefügt","ok");}).catch(function(){toast("⚠️ Kein Zugriff","err");});
+    });
+    var fromSel=document.getElementById("tr2_from");
+    fromSel.addEventListener("change",function(){self._from=fromSel.value;});
+    var toSel=document.getElementById("tr2_to");
+    toSel.addEventListener("change",function(){self._to=toSel.value;});
+    document.getElementById("tr2_swap").addEventListener("click",function(){
+      if(self._from==="auto")return toast("⚠️ Auto kann nicht getauscht werden","err");
+      var f=self._from;self._from=self._to;self._to=f;
+      var t=self._input;self._input=self._output;self._output=t;
+      self.renderTab();
+    });
+    el.querySelectorAll("[data-tr2-ql]").forEach(function(b){
+      b.addEventListener("click",function(){
+        self._to=b.dataset.tr2Ql;
+        if(self._from===self._to)self._from="de";
+        self.renderTab();
+      });
+    });
+    if(this._output){
+      document.getElementById("tr2_btn_copy").addEventListener("click",function(){
+        if(navigator.clipboard)navigator.clipboard.writeText(self._output).then(function(){toast("📋 Kopiert","ok");});
+      });
+      document.getElementById("tr2_btn_speak").addEventListener("click",function(){self.speak(self._output,self._to);});
+      document.getElementById("tr2_btn_fav").addEventListener("click",function(){
+        var arr=self.getFavs();
+        arr.push({id:"f_"+Date.now(),from:self._from,to:self._to,input:self._input,output:self._output,t:Date.now()});
+        self.saveFavs(arr);
+        toast("⭐ Gespeichert","ok");
+      });
+      document.getElementById("tr2_btn_swap_txt").addEventListener("click",function(){
+        self._input=self._output;self._output="";
+        var f=self._from;self._from=self._to;self._to=f==="auto"?"de":f;
+        self.renderTab();
+      });
+    }
+  },
+
+  speak:function(text,langCode){
+    if(!window.speechSynthesis)return;
+    try{
+      speechSynthesis.cancel();
+      var u=new SpeechSynthesisUtterance(text);
+      var voiceMap={de:"de-DE",en:"en-US",tr:"tr-TR",ar:"ar-SA",ru:"ru-RU",fr:"fr-FR",es:"es-ES",it:"it-IT",fa:"fa-IR",ku:"ku",ckb:"ckb",ez:"ku",he:"he-IL",hy:"hy-AM",zh:"zh-CN",ja:"ja-JP",ko:"ko-KR",hi:"hi-IN",ur:"ur-PK",pt:"pt-PT",nl:"nl-NL",pl:"pl-PL",el:"el-GR"};
+      u.lang=voiceMap[langCode]||langCode;
+      speechSynthesis.speak(u);
+    }catch(e){}
+  },
+
+  micInput:function(){
+    var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR)return toast("⚠️ Kein Mikrofon-Support","err");
+    var self=this;
+    var rec=new SR();
+    rec.lang=this._from==="auto"?"de-DE":(this._from==="de"?"de-DE":this._from);
+    toast("🎤 Sprich jetzt…");
+    rec.onresult=function(e){
+      self._input=e.results[0][0].transcript;
+      var inp=document.getElementById("tr2_input");
+      if(inp)inp.value=self._input;
+      self.translate();
+    };
+    rec.onerror=function(){toast("❌ Mikrofon-Fehler","err");};
+    rec.start();
+  },
+
+  translate:function(){
+    var self=this;
+    var text=val("tr2_input").trim()||this._input.trim();
+    if(!text){toast("⚠️ Text fehlt","err");return;}
+    this._input=text;
+    var from=this._from==="auto"?"de":this._from;
+    var to=this._to;
+    if(from===to){to=from==="en"?"de":"en";this._to=to;}
+    var out=document.getElementById("tr2_output");
+    if(out)out.innerHTML='<span style="color:var(--text-mute);font-size:11.5px">⏳ Übersetze…</span>';
+    /* Ezidi/Kurdisch fallen auf Kurmanji zurück (ku) bei MyMemory */
+    var apiFrom=from==="ez"?"ku":from;
+    var apiTo=to==="ez"?"ku":to;
+    var url="https://api.mymemory.translated.net/get?q="+encodeURIComponent(text)+"&langpair="+apiFrom+"|"+apiTo;
+    fetch(url).then(function(r){return r.json();}).then(function(d){
+      if(d.responseData&&d.responseData.translatedText){
+        var res=d.responseData.translatedText;
+        self._output=res;
+        self.pushHistory(text,res,from,to);
+        self.renderTab();
+      }else throw new Error("Keine Antwort");
+    }).catch(function(e){
+      toast("❌ Fehlgeschlagen — probiere ✨ KI","err");
+      if(out)out.innerHTML='<span style="color:#ff8080;font-size:11.5px">Fehler: '+esc(e.message)+'</span>';
+    });
+  },
+
+  aiTranslate:function(){
+    var self=this;
+    var text=val("tr2_input").trim()||this._input.trim();
+    if(!text)return toast("⚠️ Text fehlt","err");
+    var ai=H.Settings.get("ai");
+    if(!ai.groqKey)return toast("⚠️ Kein Groq-Key (Settings → 🧠 KI & Keys)","err");
+    var from=this._from==="auto"?"(automatisch erkennen)":TR2_LANGNAME[this._from];
+    var to=TR2_LANGNAME[this._to];
+    var langNote="";
+    if(this._to==="ez")langNote=" (Ezidi ist eine kurdische Variante/Kurmanji. Nutze gerne die Ezidi-spezifischen Begriffe wie Tawûsî Melek, Xwedê, Lalisch, etc.)";
+    var out=document.getElementById("tr2_output");
+    if(out)out.innerHTML='<span style="color:var(--text-mute);font-size:11.5px">✨ KI übersetzt…</span>';
+    fetch("https://api.groq.com/openai/v1/chat/completions",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+ai.groqKey},
+      body:JSON.stringify({
+        model:ai.model,
+        messages:[
+          {role:"system",content:"Du bist ein professioneller Übersetzer. Übersetze den Text von "+from+" nach "+to+langNote+". Antworte NUR mit der Übersetzung, ohne Erklärung."},
+          {role:"user",content:text}
+        ],
+        max_tokens:900,
+        temperature:0.3
+      })
+    }).then(function(r){return r.json();}).then(function(d){
+      if(!d.choices||!d.choices[0])throw new Error("KI-Fehler");
+      var res=d.choices[0].message.content.trim();
+      self._output=res;
+      self.pushHistory(text,res,self._from==="auto"?"auto":self._from,self._to,"ai");
+      self.renderTab();
+    }).catch(function(e){
+      toast("❌ "+e.message,"err");
+      if(out)out.innerHTML='<span style="color:#ff8080;font-size:11.5px">Fehler: '+esc(e.message)+'</span>';
+    });
+  },
+
+  pushHistory:function(input,output,from,to,engine){
+    var arr=this.getHistory();
+    arr.unshift({id:"h_"+Date.now(),input:input,output:output,from:from,to:to,engine:engine||"mymemory",t:Date.now()});
+    if(arr.length>100)arr=arr.slice(0,100);
+    this.saveHistory(arr);
+  },
+
+  renderPhrasebook:function(el){
+    var self=this;
+    var cur=this._phraseLang||"ez";
+    var langOpts=Object.keys(TR2_PHRASES).map(function(c){return [c,TR2_LANGNAME[c]||c];});
+    var phrases=TR2_PHRASES[cur]||[];
+    var catFilter=this._phraseCat||"all";
+    var cats={all:{n:"Alle",i:"📖"}};
+    phrases.forEach(function(p){if(p.cat&&!cats[p.cat])cats[p.cat]={n:p.cat,i:""};});
+    var filtered=phrases.filter(function(p){return catFilter==="all"||p.cat===catFilter;});
+    var catLabels={gruss:"👋 Gruß",reise:"🧳 Reise",kultur:"🎭 Kultur",religion:"🦚 Religion"};
+    var catHtml=Object.keys(cats).map(function(k){
+      return '<button class="btn '+(k===catFilter?"":"secondary")+' small" data-tr2-pc="'+k+'">'+(catLabels[k]||cats[k].n)+'</button>';
+    }).join("");
+    var listHtml=filtered.length?filtered.map(function(p){
+      return '<div class="tr2-phrase"><button class="spk" data-tr2-spk="'+esc(p.t)+'_'+cur+'">🔊</button>'
+        +(p.cat?'<span class="cat-badge">'+(catLabels[p.cat]||p.cat)+'</span>':'')
+        +'<div class="de">🇩🇪 '+esc(p.d)+'</div>'
+        +'<div class="tr" dir="'+(cur==="ar"||cur==="ckb"||cur==="fa"?"rtl":"ltr")+'">'+esc(p.t)+'</div>'
+        +(p.r?'<div class="rom">['+esc(p.r)+']</div>':'')
+        +'</div>';
+    }).join(""):'<div class="tr2-empty">Keine Phrasen.</div>';
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>📖 Phrasebook</h3></div>'
+      +'<div class="field"><label>Sprache</label>'+select("tr2_ph_lang",cur,langOpts)+'</div>'
+      +'<div class="btn-row" style="margin-bottom:8px">'+catHtml+'</div>'
+      +listHtml+'</div>';
+
+    document.getElementById("tr2_ph_lang").addEventListener("change",function(){
+      self._phraseLang=this.value;self.renderTab();
+    });
+    el.querySelectorAll("[data-tr2-pc]").forEach(function(b){
+      b.addEventListener("click",function(){self._phraseCat=b.dataset.tr2Pc;self.renderTab();});
+    });
+    el.querySelectorAll("[data-tr2-spk]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var parts=b.dataset.tr2Spk.split("_");
+        var lc=parts.pop();
+        var text=parts.join("_");
+        self.speak(text,lc);
+      });
+    });
+  },
+
+  renderAlphabet:function(el){
+    var self=this;
+    var cur=this._alphaLang||"ez_latin";
+    var opts=Object.keys(TR2_ALPHABETS).map(function(c){return [c,TR2_ALPHABETS[c].n];});
+    var alpha=TR2_ALPHABETS[cur];
+    var lettersHtml=alpha.letters.map(function(l){
+      return '<div class="tr2-letter" data-tr2-letter="'+esc(l[0])+'" data-tr2-lang="'+cur+'">'+esc(l[0])+'<span class="snd">'+esc(l[1])+'</span></div>';
+    }).join("");
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🔤 Alphabete</h3></div>'
+      +'<div class="field"><label>Alphabet wählen</label>'+select("tr2_al",cur,opts)+'</div>'
+      +'<div class="info-box">'+esc(alpha.intro)+'</div>'
+      +'<div class="tr2-alphabet">'+lettersHtml+'</div>'
+      +'<div class="info-box ok" style="margin-top:10px">💡 Klick auf einen Buchstaben zum Vorlesen.</div></div>';
+    document.getElementById("tr2_al").addEventListener("change",function(){
+      self._alphaLang=this.value;self.renderTab();
+    });
+    el.querySelectorAll("[data-tr2-letter]").forEach(function(b){
+      b.addEventListener("click",function(){
+        self.speak(b.dataset.tr2Letter,b.dataset.tr2Lang);
+      });
+    });
+  },
+
+  renderHistory:function(el){
+    var self=this;
+    var arr=this.getHistory();
+    var listHtml=arr.length?arr.slice(0,50).map(function(h){
+      var f=TR2_LANGNAME[h.from]||h.from;
+      var t=TR2_LANGNAME[h.to]||h.to;
+      return '<div class="tr2-history-item" data-tr2-hist="'+h.id+'"><div class="src">'+(h.engine==="ai"?"✨ KI":"🌐")+' '+esc(f)+' → '+esc(t)+' · '+new Date(h.t).toLocaleString("de-DE")+'</div>'
+        +'<div class="in">'+esc(h.input)+'</div>'
+        +'<div class="out">'+esc(h.output)+'</div></div>';
+    }).join(""):'<div class="tr2-empty">Keine Übersetzungen.</div>';
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🕐 Verlauf ('+arr.length+')</h3></div>'
+      +'<div class="btn-row"><button class="btn danger small" id="tr2_hist_clear">🗑️ Löschen</button><button class="btn secondary small" id="tr2_hist_export">📤 Export</button></div>'
+      +listHtml+'</div>';
+
+    el.querySelectorAll("[data-tr2-hist]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var id=b.dataset.tr2Hist;
+        var h=null;arr.forEach(function(x){if(x.id===id)h=x;});
+        if(!h)return;
+        self._input=h.input;self._output=h.output;self._from=h.from;self._to=h.to;
+        self.tab="translate";self.render();
+      });
+    });
+    document.getElementById("tr2_hist_clear").addEventListener("click",function(){
+      if(!confirm("Verlauf löschen?"))return;
+      self.saveHistory([]);self.renderTab();
+    });
+    document.getElementById("tr2_hist_export").addEventListener("click",function(){
+      var out="HALDO ÜBERSETZUNGS-VERLAUF\n"+new Date().toLocaleString("de-DE")+"\n\n";
+      arr.forEach(function(h){
+        out+="=== "+(TR2_LANGNAME[h.from]||h.from)+" → "+(TR2_LANGNAME[h.to]||h.to)+" ===\n";
+        out+=new Date(h.t).toLocaleString("de-DE")+"\n\n";
+        out+="Eingabe:   "+h.input+"\n";
+        out+="Ausgabe:   "+h.output+"\n\n";
+      });
+      var blob=new Blob([out],{type:"text/plain;charset=utf-8"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="uebersetzungen.txt";a.click();
+      toast("📤","ok");
+    });
+  },
+
+  renderFavs:function(el){
+    var self=this;
+    var arr=this.getFavs();
+    var listHtml=arr.length?arr.map(function(f){
+      var fr=TR2_LANGNAME[f.from]||f.from;
+      var to=TR2_LANGNAME[f.to]||f.to;
+      return '<div class="tr2-history-item"><div class="src">⭐ '+esc(fr)+' → '+esc(to)+'</div>'
+        +'<div class="in">'+esc(f.input)+'</div>'
+        +'<div class="out">'+esc(f.output)+'</div>'
+        +'<div class="btn-row" style="margin-top:6px"><button class="btn secondary small" data-tr2-fav-open="'+f.id+'">✏️ Öffnen</button><button class="btn danger small" data-tr2-fav-rm="'+f.id+'">🗑️</button></div></div>';
+    }).join(""):'<div class="tr2-empty">Keine Favoriten.</div>';
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>⭐ Favoriten ('+arr.length+')</h3></div>'+listHtml+'</div>';
+
+    el.querySelectorAll("[data-tr2-fav-rm]").forEach(function(b){
+      b.addEventListener("click",function(){
+        self.saveFavs(self.getFavs().filter(function(x){return x.id!==b.dataset.tr2FavRm;}));
+        self.renderTab();
+      });
+    });
+    el.querySelectorAll("[data-tr2-fav-open]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var id=b.dataset.tr2FavOpen;
+        var f=null;arr.forEach(function(x){if(x.id===id)f=x;});
+        if(!f)return;
+        self._input=f.input;self._output=f.output;self._from=f.from;self._to=f.to;
+        self.tab="translate";self.render();
+      });
+    });
+  }
+};
+
+/* ============ Auto-Register (überschreibt alte Version) ============ */
+if(AppLauncher&&AppLauncher.registry){
+  AppLauncher.registry.uebersetzer=AppUebersetzer2;
+}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){
+    if(a.id==="uebersetzer"){a.prio=1;a.installed=true;a.cat="Wissen";a.name="Übersetzer";a.icon="🌐";found=true;}
+  });
+  if(!found){
+    APP_PLAN.unshift({id:"uebersetzer",name:"Übersetzer",icon:"🌐",cat:"Wissen",prio:1,installed:true});
+  }
+}
+setTimeout(function(){
+  var btn=document.getElementById("btnFilterAll");
+  if(btn)btn.click();
+},1800);
+
+console.log("[HalDo Übersetzer v2] 🦚 Ezidi + 32 Sprachen + 8 Alphabete geladen.");
+})();
+</script>
+<!-- ============ ENDE HALDO ÜBERSETZER V2 ============ -->
+<!-- ============================================================
+     HALDO VERKEHR V2 — GPS + Simulator + Sprachansage + Banner
+     Einfach vor </body> einfügen (überschreibt alte Version).
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Verkehr v2] window.HalDo fehlt.");return;}
+
+var H=window.HalDo;
+var Storage=H.Storage;
+var AppLauncher=H.AppLauncher;
+var APP_PLAN=H.APP_PLAN;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+function select(id,cur,opts){var h='<select id="'+id+'">';opts.forEach(function(o){h+='<option value="'+esc(o[0])+'"'+(String(o[0])===String(cur)?" selected":"")+'>'+esc(o[1])+'</option>';});return h+'</select>';}
+
+/* Beep-Generator */
+var Beep2={ctx:null,
+  init:function(){if(!this.ctx)try{this.ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}},
+  play:function(freq,dur,count,type){this.init();if(!this.ctx)return;count=count||1;var c=this.ctx;var t=c.currentTime;for(var i=0;i<count;i++){var o=c.createOscillator();var g=c.createGain();o.connect(g);g.connect(c.destination);o.type=type||"square";o.frequency.value=freq;g.gain.setValueAtTime(0,t+i*0.22);g.gain.linearRampToValueAtTime(0.3,t+i*0.22+0.02);g.gain.exponentialRampToValueAtTime(0.001,t+i*0.22+dur);o.start(t+i*0.22);o.stop(t+i*0.22+dur+0.02);}},
+  warning:function(){this.play(880,0.18,2);},
+  danger:function(){this.play(1400,0.12,3);},
+  info:function(){this.play(660,0.15,1);},
+  success:function(){this.play(880,0.1,1);this.play(1200,0.15,1);}
+};
+
+/* Voice via speechSynthesis */
+function speak2(text,urgent){
+  if(!window.speechSynthesis)return;
+  try{
+    speechSynthesis.cancel();
+    var u=new SpeechSynthesisUtterance(text);
+    u.lang="de-DE";
+    u.rate=1.0;
+    u.pitch=urgent?1.15:1.0;
+    u.volume=1.0;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+/* Warnungstypen */
+var TR_TYPES={
+  blitzer:{n:"Blitzer",i:"📸",level:"danger",voice:"Achtung! Blitzer!"},
+  blitzer_mobil:{n:"Mobiler Blitzer",i:"📸",level:"danger",voice:"Achtung! Mobiler Blitzer!"},
+  stau:{n:"Stau",i:"🚗",level:"warn",voice:"Achtung! Stau!"},
+  baustelle:{n:"Baustelle",i:"🚧",level:"warn",voice:"Achtung! Baustelle!"},
+  unfall:{n:"Unfall",i:"⚠️",level:"danger",voice:"Achtung! Unfall!"},
+  ampel:{n:"Ampel defekt",i:"🚦",level:"info",voice:"Ampel ausgefallen"},
+  fussgaenger:{n:"Fußgänger",i:"🚶",level:"warn",voice:"Achtung! Fußgänger!"},
+  verbot:{n:"Verbot",i:"⛔",level:"danger",voice:"Achtung! Verbot!"},
+  glueheis:{n:"Glatteis",i:"❄️",level:"danger",voice:"Achtung! Glatteis!"},
+  nebel:{n:"Nebel",i:"🌫️",level:"warn",voice:"Achtung! Nebel!"},
+  tier:{n:"Wildwechsel",i:"🦌",level:"danger",voice:"Achtung! Wildwechsel!"},
+  gefahr:{n:"Gefahr",i:"❗",level:"danger",voice:"Achtung! Gefahr!"}
+};
+
+/* Haupt-Engine */
+var TrafficV2={
+  mode:"sim", /* sim | gps | stop */
+  pos:{lat:null,lng:null},
+  simSpeed:80, /* km/h */
+  lastAnnounced:{},
+  watchId:null,
+  simTimer:null,
+  settings:null,
+
+  loadSettings:function(){
+    var d={thresholds:[2000,1500,1000,800,500,200,0],voice:true,sound:true,banner:true,vibrate:true,perType:{}};
+    var s=Storage.get("tr2_settings",{});
+    this.settings=Object.assign({},d,s);
+    /* Default perType */
+    Object.keys(TR_TYPES).forEach(function(k){
+      if(!TrafficV2.settings.perType[k]){
+        TrafficV2.settings.perType[k]={enabled:true,voice:true,sound:true,thresholds:null};
+      }
+    });
+    return this.settings;
+  },
+  saveSettings:function(){
+    Storage.set("tr2_settings",this.settings);
+  },
+
+  getItems:function(){return Storage.get("tr2_items",[]);},
+  saveItems:function(a){Storage.set("tr2_items",a);},
+
+  /* Haversine — Distanz in Metern */
+  dist:function(lat1,lng1,lat2,lng2){
+    var R=6371000;
+    var dLat=(lat2-lat1)*Math.PI/180;
+    var dLng=(lng2-lng1)*Math.PI/180;
+    var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+    var c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+    return R*c;
+  },
+
+  /* Alle Items nach Distanz neu berechnen */
+  recompute:function(){
+    var self=this;
+    var items=this.getItems();
+    items.forEach(function(it){
+      if(it.lat==null||self.pos.lat==null){it.dist=null;return;}
+      it.dist=self.dist(self.pos.lat,self.pos.lng,it.lat,it.lng);
+    });
+    this.saveItems(items);
+  },
+
+  /* Hauptcheck — wird bei jeder Positionsänderung aufgerufen */
+  check:function(){
+    if(this.mode==="stop")return;
+    var self=this;
+    var cfg=this.settings;
+    var items=this.getItems();
+    var now=Date.now();
+
+    /* Sortiert nach Distanz */
+    items.sort(function(a,b){return (a.dist||9999999)-(b.dist||9999999);});
+
+    items.forEach(function(it){
+      if(it.dist==null||it.dist<0||it.dist>25000)return;
+      var t=TR_TYPES[it.type]||TR_TYPES.gefahr;
+      var per=cfg.perType[it.type]||{enabled:true,voice:true,sound:true,thresholds:null};
+      if(!per.enabled)return;
+      var thresholds=per.thresholds||cfg.thresholds;
+      /* Sortiert absteigend */
+      var sorted=thresholds.slice().sort(function(a,b){return b-a;});
+      for(var i=0;i<sorted.length;i++){
+        var th=sorted[i];
+        var key=it.id+"_"+th;
+        /* Sind wir zwischen dieser und der nächsten Schwelle? */
+        var next=0;
+        if(i<sorted.length-1)next=sorted[i+1];
+        if(it.dist<=th&&it.dist>next){
+          if(!self.lastAnnounced[key]){
+            self.lastAnnounced[key]=now;
+            var distText=th===0?("in "+Math.round(it.dist)+" m"):(th>=1000?(th/1000).toFixed(th%1000===0?0:1)+" km":th+" m");
+            var voiceText=th===0?t.voice+" Jetzt!":("In "+distText+". "+t.voice);
+            if(cfg.voice&&per.voice)speak2(voiceText,t.level==="danger");
+            if(cfg.sound&&per.sound){
+              if(t.level==="danger")Beep2.danger();
+              else if(t.level==="warn")Beep2.warning();
+              else Beep2.info();
+            }
+            if(cfg.banner){
+              self.showBanner(t.level,t.i,t.n+" — "+(it.location||""),distText,5000);
+            }
+            if(cfg.vibrate&&navigator.vibrate){
+              if(t.level==="danger")navigator.vibrate([200,100,200,100,200]);
+              else navigator.vibrate([200,100,200]);
+            }
+          }
+          break;
+        }
+      }
+    });
+
+    /* Cleanup: Meldungen die weit weg sind zurücksetzen */
+    Object.keys(this.lastAnnounced).forEach(function(k){
+      if(now-self.lastAnnounced[k]>60000)delete self.lastAnnounced[k];
+    });
+  },
+
+  showBanner:function(level,ico,txt,dist,dur){
+    var b=document.getElementById("alertBanner");
+    if(!b)return;
+    document.getElementById("alertIco").textContent=ico||"⚠️";
+    document.getElementById("alertTxt").textContent=txt||"";
+    document.getElementById("alertDist").textContent=dist||"";
+    b.className="show "+level;
+    clearTimeout(b._t2);
+    b._t2=setTimeout(function(){b.classList.remove("show");},dur||5000);
+  },
+
+  startGPS:function(){
+    var self=this;
+    if(!navigator.geolocation){
+      toast("❌ Kein GPS verfügbar","err");
+      return false;
+    }
+    if(this.watchId!=null){
+      navigator.geolocation.clearWatch(this.watchId);
+      this.watchId=null;
+    }
+    this.mode="gps";
+    this.watchId=navigator.geolocation.watchPosition(function(pos){
+      self.pos.lat=pos.coords.latitude;
+      self.pos.lng=pos.coords.longitude;
+      self.recompute();
+      self.check();
+      /* UI-Update */
+      var el=document.getElementById("tr2_gps_info");
+      if(el){
+        el.innerHTML='<div class="info-box ok">📍 <b>GPS aktiv</b> · Genauigkeit: '+Math.round(pos.coords.accuracy)+' m · Geschw.: '+(pos.coords.speed?Math.round(pos.coords.speed*3.6):"–")+' km/h</div>';
+      }
+    },function(err){
+      toast("❌ GPS-Fehler: "+err.message,"err");
+      self.mode="stop";
+    },{enableHighAccuracy:true,maximumAge:1000,timeout:15000});
+    return true;
+  },
+
+  stopGPS:function(){
+    if(this.watchId!=null){
+      navigator.geolocation.clearWatch(this.watchId);
+      this.watchId=null;
+    }
+    if(this.simTimer){clearInterval(this.simTimer);this.simTimer=null;}
+    this.mode="stop";
+  },
+
+  startSim:function(){
+    var self=this;
+    this.stopGPS();
+    this.mode="sim";
+    /* Auto-Position falls keine gesetzt */
+    if(this.pos.lat==null){
+      this.pos.lat=52.5200;this.pos.lng=13.4050;
+    }
+    var lastT=Date.now();
+    this.simTimer=setInterval(function(){
+      var now=Date.now();
+      var dt=(now-lastT)/1000; /* Sekunden */
+      lastT=now;
+      var meters=self.simSpeed*1000/3600*dt;
+      /* Finde nächstes Item in Richtung */
+      var items=self.getItems();
+      var target=null,best=9999999;
+      items.forEach(function(it){
+        if(it.lat==null)return;
+        var d=self.dist(self.pos.lat,self.pos.lng,it.lat,it.lng);
+        if(d<best&&d>0){best=d;target=it;}
+      });
+      if(target){
+        /* Bewege linear in Richtung Ziel */
+        var totalD=self.dist(self.pos.lat,self.pos.lng,target.lat,target.lng);
+        if(totalD>1){
+          var frac=Math.min(1,meters/totalD);
+          self.pos.lat=self.pos.lat+(target.lat-self.pos.lat)*frac;
+          self.pos.lng=self.pos.lng+(target.lng-self.pos.lng)*frac;
+        }
+      }
+      self.recompute();
+      self.check();
+      var el=document.getElementById("tr2_gps_info");
+      if(el){
+        el.innerHTML='<div class="info-box ok">🚗 <b>Simulator läuft</b> · '+self.simSpeed+' km/h · Pos.: '+self.pos.lat.toFixed(4)+', '+self.pos.lng.toFixed(4)+'</div>';
+      }
+    },1000);
+  }
+};
+
+/* ============ UI ============ */
+function tr2InjectStyles(){
+  if(document.getElementById("tr2v2Styles"))return;
+  var s=document.createElement("style");
+  s.id="tr2v2Styles";
+  s.textContent=".tv2-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(239,68,68,.18),rgba(245,158,11,.18));border:1px solid rgba(239,68,68,.4);text-align:center;margin-bottom:12px}.tv2-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.tv2-hero .val{font-size:38px;font-weight:900;color:#ff8080;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.tv2-hero .sub{font-size:10.5px;color:var(--text-mute)}.tv2-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}.tv2-stat{padding:9px 5px;border-radius:11px;text-align:center;border:1px solid var(--border);background:linear-gradient(180deg,var(--bg-4),var(--bg-3))}.tv2-stat .i{font-size:14px;margin-bottom:2px}.tv2-stat .v{font-size:14px;font-weight:800;color:#ff8080;font-family:ui-monospace,monospace;line-height:1}.tv2-stat .l{font-size:8px;color:var(--text-mute);text-transform:uppercase;font-weight:700;margin-top:2px}.tv2-item{display:flex;align-items:center;gap:10px;padding:11px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:10px;margin-top:6px;border-left:3px solid var(--border)}.tv2-item.blitzer{border-left-color:#ef4444}.tv2-item.blitzer_mobil{border-left-color:#ef4444}.tv2-item.stau{border-left-color:#f59e0b}.tv2-item.baustelle{border-left-color:#f59e0b}.tv2-item.unfall{border-left-color:#ef4444}.tv2-item.ampel{border-left-color:#22c55e}.tv2-item.fussgaenger{border-left-color:#f59e0b}.tv2-item.verbot{border-left-color:#ef4444}.tv2-item.glueheis{border-left-color:#22d3ee}.tv2-item.nebel{border-left-color:#94a3b8}.tv2-item.tier{border-left-color:#a855f7}.tv2-item.gefahr{border-left-color:#ef4444}.tv2-item .ico{font-size:22px;flex-shrink:0}.tv2-item .body{flex:1;min-width:0}.tv2-item .body .t{font-size:12px;font-weight:800}.tv2-item .body .d{font-size:10px;color:var(--text-mute);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap}.tv2-item .body .d .badge{padding:1px 6px;background:rgba(0,212,255,.15);color:var(--primary);border-radius:4px;font-weight:700}.tv2-item .body .d .badge.gps{background:rgba(34,197,94,.15);color:#4ade80}.tv2-item .dist{font-size:12px;font-weight:800;color:var(--primary);font-family:ui-monospace,monospace;margin-right:6px}.tv2-item .del{padding:5px 8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#ff8080;border-radius:6px;cursor:pointer;font-size:10px}.tv2-cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}.tv2-cat{padding:10px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;text-align:center;cursor:pointer;transition:.15s}.tv2-cat:hover{border-color:var(--primary)}.tv2-cat.active{border-color:var(--primary);background:rgba(0,212,255,.12)}.tv2-cat .i{font-size:20px;margin-bottom:3px}.tv2-cat .n{font-size:9px;font-weight:800}.tv2-cat .c{font-size:8px;color:var(--text-mute);margin-top:1px}.tv2-input{width:100%;background:var(--bg-3);border:1px solid rgba(0,212,255,.22);color:var(--text);padding:10px 12px;border-radius:9px;font-family:inherit;font-size:12px;outline:none}.tv2-thresh-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;margin:8px 0}.tv2-thresh{padding:8px 10px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:6px;font-size:11px}.tv2-thresh input[type=checkbox]{accent-color:var(--primary);width:16px;height:16px}.tv2-thresh .n{font-weight:700;font-family:ui-monospace,monospace}.tv2-thresh .u{color:var(--text-mute);font-size:10px;margin-left:auto}.tv2-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}.tv2-map{aspect-ratio:1;background:linear-gradient(180deg,#0a2540,#050810);border:1px solid var(--border);border-radius:11px;position:relative;overflow:hidden}.tv2-map .pos{position:absolute;width:14px;height:14px;background:#4ade80;border:3px solid #fff;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 15px #4ade80;z-index:3}.tv2-map .item{position:absolute;font-size:18px;transform:translate(-50%,-50%);z-index:2;filter:drop-shadow(0 0 6px rgba(0,0,0,.8))}.tv2-map .grid-line{position:absolute;background:rgba(0,212,255,.06)}.tv2-mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}.tv2-mode-btn{padding:12px 6px;background:var(--bg-3);border:1px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;transition:.15s}.tv2-mode-btn.active{border-color:var(--primary);background:linear-gradient(135deg,rgba(0,212,255,.2),rgba(124,58,237,.2))}.tv2-mode-btn .i{font-size:22px;margin-bottom:4px}.tv2-mode-btn .n{font-size:10.5px;font-weight:800}.tv2-pertype{padding:10px 12px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:6px}.tv2-pertype .h{display:flex;align-items:center;gap:8px;cursor:pointer}.tv2-pertype .h .i{font-size:18px}.tv2-pertype .h .n{flex:1;font-size:11.5px;font-weight:800}.tv2-pertype .h .sw{width:36px;height:20px;background:var(--bg-4);border:1px solid var(--border);border-radius:10px;position:relative;flex-shrink:0}.tv2-pertype .h .sw::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;background:var(--text-mute);border-radius:50%;transition:.2s}.tv2-pertype .h .sw.on{background:rgba(34,197,94,.25);border-color:#22c55e}.tv2-pertype .h .sw.on::after{left:18px;background:#4ade80}.tv2-pertype .body{display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}.tv2-pertype.open .body{display:block}";
+  document.head.appendChild(s);
+}
+
+var AppVerkehr2={
+  tab:"warn",_mode:"stop",
+
+  render:function(){
+    tr2InjectStyles();
+    TrafficV2.loadSettings();
+    var vp=document.getElementById("appViewport");
+    var tabs=[
+      {k:"warn",n:"🗺️ Warnungen"},
+      {k:"add",n:"➕ Neu"},
+      {k:"sim",n:"🚗 Modus"},
+      {k:"settings",n:"⚙️ Einst."},
+      {k:"types",n:"🔧 Pro Typ"}
+    ];
+    var self=this;
+    var th=tabs.map(function(t){return '<button class="ms-tab'+(self.tab===t.k?" active":"")+'" data-tv2-tab="'+t.k+'">'+t.n+'</button>';}).join("");
+    vp.innerHTML='<div class="ms-tabs">'+th+'</div><div id="tv2Content"></div>';
+    vp.querySelectorAll("[data-tv2-tab]").forEach(function(b){b.addEventListener("click",function(){self.tab=b.dataset.tv2Tab;self.render();});});
+    this.renderTab();
+  },
+
+  renderTab:function(){
+    var el=document.getElementById("tv2Content");if(!el)return;
+    var t=this.tab;
+    if(t==="warn")this.renderWarn(el);
+    else if(t==="add")this.renderAdd(el);
+    else if(t==="sim")this.renderSim(el);
+    else if(t==="settings")this.renderSettings(el);
+    else if(t==="types")this.renderTypes(el);
+  },
+
+  renderWarn:function(el){
+    var self=this;
+    var items=TrafficV2.getItems().slice().sort(function(a,b){return (a.dist||9999999)-(b.dist||9999999);});
+    var withGps=items.filter(function(x){return x.lat!=null;}).length;
+    var t=TrafficV2.settings;
+
+    var listHtml=items.length?items.map(function(it){
+      var def=TR_TYPES[it.type]||TR_TYPES.gefahr;
+      var distTxt="—";
+      if(it.dist!=null)distTxt=it.dist>=1000?(it.dist/1000).toFixed(2)+" km":Math.round(it.dist)+" m";
+      var gpsBadge=it.lat!=null?'<span class="badge gps">📍 GPS</span>':'<span class="badge">📌 Manuell</span>';
+      return '<div class="tv2-item '+it.type+'">'
+        +'<span class="ico">'+def.i+'</span>'
+        +'<div class="body"><div class="t">'+esc(def.n)+' — '+esc(it.location||"")+'</div>'
+        +'<div class="d">'+gpsBadge+'<span>'+new Date(it.t).toLocaleString("de-DE")+'</span></div>'
+        +'</div>'
+        +'<div class="dist">'+distTxt+'</div>'
+        +'<button class="del" data-tv2-rm="'+it.id+'">🗑️</button>'
+        +'</div>';
+    }).join(""):'<div class="tv2-empty">Keine Warnungen. Leg deine erste an!</div>';
+
+    el.innerHTML='<div class="tv2-hero"><div class="lbl">Aktive Warnungen</div><div class="val">'+items.length+'</div><div class="sub">'+withGps+' mit GPS · Modus: '+self._modeName()+'</div></div>'
+      +'<div class="tv2-stats">'
+      +'<div class="tv2-stat"><div class="i">📸</div><div class="v">'+items.filter(function(x){return x.type.indexOf("blitzer")>=0;}).length+'</div><div class="l">Blitzer</div></div>'
+      +'<div class="tv2-stat"><div class="i">🚧</div><div class="v">'+items.filter(function(x){return x.type==="baustelle";}).length+'</div><div class="l">Bau</div></div>'
+      +'<div class="tv2-stat"><div class="i">🚗</div><div class="v">'+items.filter(function(x){return x.type==="stau";}).length+'</div><div class="l">Stau</div></div>'
+      +'<div class="tv2-stat"><div class="i">⚠️</div><div class="v">'+items.filter(function(x){return x.type==="unfall"||x.type==="gefahr";}).length+'</div><div class="l">Gefahr</div></div>'
+      +'</div>'
+      +'<div id="tr2_gps_info">'+(TrafficV2.mode==="gps"?'<div class="info-box ok">📍 GPS aktiv</div>':TrafficV2.mode==="sim"?'<div class="info-box ok">🚗 Simulator läuft</div>':'<div class="info-box">📍 Modus gestoppt</div>')+'</div>'
+      +'<div class="card"><div class="card-h"><h3>🗺️ Karte</h3></div>'
+      +self.renderMap()
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>📋 Meldungen ('+items.length+')</h3></div>'
+      +listHtml
+      +'</div>'
+      +'<div class="card"><div class="btn-row">'
+      +'<button class="btn '+(TrafficV2.mode==="gps"?"success":"secondary")+'" id="tv2_start_gps">📍 GPS</button>'
+      +'<button class="btn '+(TrafficV2.mode==="sim"?"warn":"secondary")+'" id="tv2_start_sim">🚗 Simulator</button>'
+      +'<button class="btn danger" id="tv2_stop">⏸️ Stopp</button>'
+      +'<button class="btn secondary" id="tv2_reset">🔄 Reset</button>'
+      +'</div></div>';
+
+    document.getElementById("tv2_start_gps").addEventListener("click",function(){
+      if(TrafficV2.startGPS()){self._mode="gps";toast("📍 GPS aktiv","ok");self.renderTab();}
+    });
+    document.getElementById("tv2_start_sim").addEventListener("click",function(){
+      TrafficV2.startSim();self._mode="sim";toast("🚗 Simulator läuft","ok");self.renderTab();
+    });
+    document.getElementById("tv2_stop").addEventListener("click",function(){
+      TrafficV2.stopGPS();self._mode="stop";toast("⏸️","ok");self.renderTab();
+    });
+    document.getElementById("tv2_reset").addEventListener("click",function(){
+      TrafficV2.lastAnnounced={};toast("🔄","ok");
+    });
+    el.querySelectorAll("[data-tv2-rm]").forEach(function(b){
+      b.addEventListener("click",function(){
+        if(!confirm("Löschen?"))return;
+        TrafficV2.saveItems(TrafficV2.getItems().filter(function(x){return x.id!==b.dataset.tv2Rm;}));
+        self.renderTab();
+      });
+    });
+  },
+
+  _modeName:function(){
+    var m=TrafficV2.mode;
+    if(m==="gps")return "📍 GPS";
+    if(m==="sim")return "🚗 Simulator";
+    return "⏸️ Gestoppt";
+  },
+
+  renderMap:function(){
+    var self=this;
+    var items=TrafficV2.getItems().filter(function(x){return x.lat!=null;});
+    if(!TrafficV2.pos.lat){
+      if(items.length){
+        /* Auto-fit */
+        var lats=items.map(function(x){return x.lat;});
+        var lngs=items.map(function(x){return x.lng;});
+        TrafficV2.pos.lat=lats.reduce(function(a,b){return a+b;},0)/lats.length;
+        TrafficV2.pos.lng=lngs.reduce(function(a,b){return a+b;},0)/lngs.length;
+      }else{
+        return '<div class="tv2-empty">Keine GPS-Daten. Füge Meldungen mit Koordinaten hinzu.</div>';
+      }
+    }
+    var center=TrafficV2.pos;
+    var all=[{lat:center.lat,lng:center.lng}].concat(items);
+    var minLat=Math.min.apply(null,all.map(function(x){return x.lat;}));
+    var maxLat=Math.max.apply(null,all.map(function(x){return x.lat;}));
+    var minLng=Math.min.apply(null,all.map(function(x){return x.lng;}));
+    var maxLng=Math.max.apply(null,all.map(function(x){return x.lng;}));
+    var spanLat=Math.max(maxLat-minLat,0.005);
+    var spanLng=Math.max(maxLng-minLng,0.005);
+    function toXY(lat,lng){
+      var x=((lng-minLng)/spanLng)*100;
+      var y=100-((lat-minLat)/spanLat)*100;
+      return {x:x,y:y};
+    }
+    var posXY=toXY(center.lat,center.lng);
+    var html='<div class="tv2-map">';
+    /* Grid */
+    for(var i=1;i<5;i++){
+      html+='<div class="grid-line" style="left:'+(i*20)+'%;top:0;width:1px;height:100%"></div>';
+      html+='<div class="grid-line" style="top:'+(i*20)+'%;left:0;height:1px;width:100%"></div>';
+    }
+    items.forEach(function(it){
+      var xy=toXY(it.lat,it.lng);
+      var def=TR_TYPES[it.type]||TR_TYPES.gefahr;
+      html+='<div class="item" style="left:'+xy.x+'%;top:'+xy.y+'%" title="'+esc(it.location||"")+'">'+def.i+'</div>';
+    });
+    html+='<div class="pos" style="left:'+posXY.x+'%;top:'+posXY.y+'%"></div>';
+    html+='</div>';
+    html+='<div style="font-size:9.5px;color:var(--text-mute);text-align:center;margin-top:6px">🟢 Position · '+items.length+' Meldungen</div>';
+    return html;
+  },
+
+  renderAdd:function(el){
+    var self=this;
+    var typeOpts=Object.keys(TR_TYPES).map(function(k){return [k,TR_TYPES[k].i+" "+TR_TYPES[k].n];});
+    el.innerHTML='<div class="card"><div class="card-h"><h3>➕ Neue Warnung</h3></div>'
+      +'<div class="field"><label>Typ</label>'+select("tv2_t",typeOpts[0][0],typeOpts)+'</div>'
+      +'<div class="field"><label>Ort / Beschreibung</label><input type="text" class="tv2-input" id="tv2_loc" placeholder="B10 Ausfahrt 5"></div>'
+      +'<div class="field"><label>Koordinaten (optional)</label>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
+      +'<input type="number" step="0.000001" class="tv2-input" id="tv2_lat" placeholder="Breite (z.B. 52.52)">'
+      +'<input type="number" step="0.000001" class="tv2-input" id="tv2_lng" placeholder="Länge (z.B. 13.40)">'
+      +'</div></div>'
+      +'<div class="btn-row" style="margin-top:6px">'
+      +'<button class="btn secondary small" id="tv2_use_gps">📍 Aktuelle Position</button>'
+      +'<button class="btn secondary small" id="tv2_map_pick">🗺️ Karte (Google)</button>'
+      +'</div>'
+      +'<button class="btn success full" id="tv2_add_btn" style="margin-top:12px">➕ Meldung speichern</button>'
+      +'<div class="info-box warn" style="margin-top:10px">⚠️ Blitzerwarnung in DE während der Fahrt ist verboten (§23 StVO). Nutzung auf eigene Verantwortung.</div></div>'
+      +'<div class="card"><div class="card-h"><h3>⚡ Schnell-Meldungen</h3></div>'
+      +'<div class="tv2-cat-grid">'
+      +Object.keys(TR_TYPES).slice(0,9).map(function(k){
+        return '<div class="tv2-cat" data-tv2-quick="'+k+'"><div class="i">'+TR_TYPES[k].i+'</div><div class="n">'+TR_TYPES[k].n+'</div></div>';
+      }).join("")
+      +'</div>'
+      +'<div class="info-box">💡 Klick auf einen Typ → fügt sofort an aktueller Position ein.</div></div>';
+
+    document.getElementById("tv2_add_btn").addEventListener("click",function(){
+      var loc=val("tv2_loc").trim();
+      if(!loc)return toast("⚠️ Ort fehlt","err");
+      var lat=parseFloat(val("tv2_lat"));
+      var lng=parseFloat(val("tv2_lng"));
+      var item={id:"t2_"+Date.now(),type:val("tv2_t"),location:loc,lat:isNaN(lat)?null:lat,lng:isNaN(lng)?null:lng,t:Date.now()};
+      var arr=TrafficV2.getItems();
+      arr.push(item);
+      TrafficV2.saveItems(arr);
+      toast("📌 Gespeichert","ok");
+      TrafficV2.recompute();
+      self.tab="warn";self.render();
+    });
+    document.getElementById("tv2_use_gps").addEventListener("click",function(){
+      if(!navigator.geolocation)return toast("❌ Kein GPS","err");
+      toast("📍 Position holen…");
+      navigator.geolocation.getCurrentPosition(function(pos){
+        document.getElementById("tv2_lat").value=pos.coords.latitude.toFixed(6);
+        document.getElementById("tv2_lng").value=pos.coords.longitude.toFixed(6);
+        toast("✅ Position gesetzt","ok");
+      },function(err){toast("❌ "+err.message,"err");},{enableHighAccuracy:true,timeout:10000});
+    });
+    document.getElementById("tv2_map_pick").addEventListener("click",function(){
+      window.open("https://www.google.com/maps","_blank");
+    });
+    el.querySelectorAll("[data-tv2-quick]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var k=b.dataset.tv2Quick;
+        if(!navigator.geolocation)return toast("❌ Kein GPS","err");
+        toast("📍 Position holen…");
+        navigator.geolocation.getCurrentPosition(function(pos){
+          var arr=TrafficV2.getItems();
+          arr.push({
+            id:"t2_"+Date.now(),
+            type:k,
+            location:"Schnell-Meldung "+(TR_TYPES[k]?TR_TYPES[k].n:k),
+            lat:pos.coords.latitude,
+            lng:pos.coords.longitude,
+            t:Date.now()
+          });
+          TrafficV2.saveItems(arr);
+          toast("📌 "+TR_TYPES[k].n+" erfasst","ok");
+          self.tab="warn";self.render();
+        },function(err){toast("❌ "+err.message,"err");},{enableHighAccuracy:true,timeout:10000});
+      });
+    });
+  },
+
+  renderSim:function(el){
+    var self=this;
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🚗 Fahrmodus</h3></div>'
+      +'<div class="tv2-mode-grid">'
+      +'<div class="tv2-mode-btn '+(TrafficV2.mode==="stop"?"active":"")+'" data-tv2-mode="stop"><div class="i">⏸️</div><div class="n">Stopp</div></div>'
+      +'<div class="tv2-mode-btn '+(TrafficV2.mode==="gps"?"active":"")+'" data-tv2-mode="gps"><div class="i">📍</div><div class="n">GPS Live</div></div>'
+      +'<div class="tv2-mode-btn '+(TrafficV2.mode==="sim"?"active":"")+'" data-tv2-mode="sim"><div class="i">🎮</div><div class="n">Simulator</div></div>'
+      +'</div>'
+      +'<div id="tr2_gps_info"></div>'
+      +'<div class="field" style="margin-top:10px"><label>Simulator-Geschwindigkeit: <span id="tv2_spd_v">'+TrafficV2.simSpeed+' km/h</span></label>'
+      +'<input type="range" id="tv2_spd" min="10" max="200" step="10" value="'+TrafficV2.simSpeed+'" style="width:100%">'
+      +'</div>'
+      +'<div class="field" style="margin-top:10px"><label>Manuelle Position setzen</label>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
+      +'<input type="number" step="0.000001" class="tv2-input" id="tv2_sim_lat" value="'+(TrafficV2.pos.lat||"")+'" placeholder="Lat">'
+      +'<input type="number" step="0.000001" class="tv2-input" id="tv2_sim_lng" value="'+(TrafficV2.pos.lng||"")+'" placeholder="Lng">'
+      +'</div></div>'
+      +'<button class="btn secondary full" id="tv2_set_pos">📍 Position setzen</button>'
+      +'<button class="btn warn full" id="tv2_sim_jump" style="margin-top:8px">⏩ Direkt zu nächster Warnung (500m davor)</button>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>🧪 Vorschau-Trigger</h3></div>'
+      +'<div class="info-box">💡 Überspringe Test — löse Warnung direkt aus.</div>'
+      +'<button class="btn warn full" id="tv2_preview">🔔 Beispiel-Warnung auslösen</button>'
+      +'</div>';
+
+    el.querySelectorAll("[data-tv2-mode]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var m=b.dataset.tv2Mode;
+        if(m==="stop")TrafficV2.stopGPS();
+        else if(m==="gps")TrafficV2.startGPS();
+        else if(m==="sim")TrafficV2.startSim();
+        self.renderTab();
+      });
+    });
+    document.getElementById("tv2_spd").addEventListener("input",function(){
+      TrafficV2.simSpeed=parseInt(this.value);
+      document.getElementById("tv2_spd_v").textContent=this.value+" km/h";
+    });
+    document.getElementById("tv2_set_pos").addEventListener("click",function(){
+      var lat=parseFloat(val("tv2_sim_lat"));
+      var lng=parseFloat(val("tv2_sim_lng"));
+      if(isNaN(lat)||isNaN(lng))return toast("⚠️ Koordinaten fehlen","err");
+      TrafficV2.pos.lat=lat;TrafficV2.pos.lng=lng;
+      TrafficV2.recompute();
+      toast("📍 Position gesetzt","ok");
+      self.renderTab();
+    });
+    document.getElementById("tv2_sim_jump").addEventListener("click",function(){
+      var items=TrafficV2.getItems().filter(function(x){return x.lat!=null;});
+      if(!items.length)return toast("⚠️ Keine GPS-Meldungen","err");
+      var best=null,bestD=9999999;
+      items.forEach(function(it){
+        var d=TrafficV2.dist(TrafficV2.pos.lat,TrafficV2.pos.lng,it.lat,it.lng);
+        if(d<bestD){bestD=d;best=it;}
+      });
+      if(!best)return;
+      /* Positioniere 500m vor dem Ziel */
+      var frac=Math.max(0,(bestD-500)/bestD);
+      TrafficV2.pos.lat=TrafficV2.pos.lat+(best.lat-TrafficV2.pos.lat)*frac;
+      TrafficV2.pos.lng=TrafficV2.pos.lng+(best.lng-TrafficV2.pos.lng)*frac;
+      TrafficV2.recompute();
+      TrafficV2.check();
+      toast("⏩ Positioniert","ok");
+      self.renderTab();
+    });
+    document.getElementById("tv2_preview").addEventListener("click",function(){
+      var t=TR_TYPES.blitzer;
+      speak2("In 200 Metern. "+t.voice,true);
+      Beep2.danger();
+      TrafficV2.showBanner("danger","📸","Blitzer — Testmeldung","200 m",6000);
+    });
+  },
+
+  renderSettings:function(el){
+    var self=this;
+    var s=TrafficV2.settings;
+    el.innerHTML='<div class="card"><div class="card-h"><h3>⚙️ Globale Einstellungen</h3></div>'
+      +'<div class="toggle-row"><div class="txt"><div class="t">🔊 Sprachansage</div><div class="d">Sagt Warnungen vor</div></div><div class="switch'+(s.voice?" on":"")+'" data-tv2-tog="voice"></div></div>'
+      +'<div class="toggle-row"><div class="txt"><div class="t">🔔 Pieps-Töne</div><div class="d">Akustische Warnung</div></div><div class="switch'+(s.sound?" on":"")+'" data-tv2-tog="sound"></div></div>'
+      +'<div class="toggle-row"><div class="txt"><div class="t">📢 Screen-Banner</div><div class="d">Große Anzeige oben</div></div><div class="switch'+(s.banner?" on":"")+'" data-tv2-tog="banner"></div></div>'
+      +'<div class="toggle-row"><div class="txt"><div class="t">📳 Vibration</div><div class="d">Nur Handy</div></div><div class="switch'+(s.vibrate?" on":"")+'" data-tv2-tog="vibrate"></div></div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>📏 Distanz-Schwellen (global)</h3></div>'
+      +'<div class="info-box">Diese Werte gelten für alle Typen, außer du überschreibst sie unter "🔧 Pro Typ".</div>'
+      +'<div class="tv2-thresh-grid">'
+      +s.thresholds.map(function(th,i){
+        return '<label class="tv2-thresh"><input type="checkbox" data-tv2-th="'+i+'" '+(th>0?"checked":"")+'><span class="n">'+(th>=1000?(th/1000)+"km":th+"m")+'</span><span class="u">'+(th>0?"an":"Punkt")+'</span></label>';
+      }).join("")
+      +'</div>'
+      +'<div class="field"><label>Eigene Distanzen (Komma-getrennt, Meter)</label>'
+      +'<input type="text" class="tv2-input" id="tv2_custom_th" value="'+s.thresholds.join(",")+'" placeholder="2000,1500,1000,800,500,200,0"></div>'
+      +'<button class="btn success full" id="tv2_save_th">💾 Distanzen speichern</button>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>💾 Daten</h3></div>'
+      +'<div class="btn-row">'
+      +'<button class="btn danger small" id="tv2_clear_all">🗑️ Alle Meldungen löschen</button>'
+      +'<button class="btn secondary small" id="tv2_reset_settings">🔄 Einstellungen zurücksetzen</button>'
+      +'</div></div>';
+
+    el.querySelectorAll("[data-tv2-tog]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var k=b.dataset.tv2Tog;
+        TrafficV2.settings[k]=!TrafficV2.settings[k];
+        TrafficV2.saveSettings();
+        b.classList.toggle("on");
+      });
+    });
+    el.querySelectorAll("[data-tv2-th]").forEach(function(c){
+      c.addEventListener("change",function(){
+        var idx=parseInt(c.dataset.tv2Th);
+        var cur=TrafficV2.settings.thresholds[idx];
+        if(cur>0&&!c.checked)TrafficV2.settings.thresholds[idx]=0;
+        if(cur===0&&c.checked){
+          /* Default wiederherstellen */
+          var defaults=[2000,1500,1000,800,500,200,0];
+          TrafficV2.settings.thresholds[idx]=defaults[idx]||500;
+        }
+        TrafficV2.saveSettings();
+        self.renderTab();
+      });
+    });
+    document.getElementById("tv2_save_th").addEventListener("click",function(){
+      var arr=val("tv2_custom_th").split(",").map(function(x){return parseInt(x.trim());}).filter(function(x){return !isNaN(x)&&x>=0;});
+      if(!arr.length)return toast("⚠️ Ungültig","err");
+      arr.sort(function(a,b){return b-a;});
+      TrafficV2.settings.thresholds=arr;
+      TrafficV2.saveSettings();
+      TrafficV2.lastAnnounced={};
+      toast("💾 Distanzen gespeichert","ok");
+      self.renderTab();
+    });
+    document.getElementById("tv2_clear_all").addEventListener("click",function(){
+      if(!confirm("Alle Meldungen löschen?"))return;
+      TrafficV2.saveItems([]);toast("🗑️","ok");self.renderTab();
+    });
+    document.getElementById("tv2_reset_settings").addEventListener("click",function(){
+      if(!confirm("Einstellungen zurücksetzen?"))return;
+      Storage.set("tr2_settings",{});
+      TrafficV2.loadSettings();
+      toast("🔄","ok");self.renderTab();
+    });
+  },
+
+  renderTypes:function(el){
+    var self=this;
+    var s=TrafficV2.settings;
+    var html='<div class="card"><div class="card-h"><h3>🔧 Pro Warnungstyp</h3></div>'
+      +'<div class="info-box">Aktiviere/deaktiviere einzelne Typen und passe Distanzen einzeln an.</div>';
+    Object.keys(TR_TYPES).forEach(function(k){
+      var def=TR_TYPES[k];
+      var per=s.perType[k]||{enabled:true,voice:true,sound:true,thresholds:null};
+      html+='<div class="tv2-pertype" data-tv2-pt="'+k+'"><div class="h"><span class="i">'+def.i+'</span><span class="n">'+def.n+'</span><div class="sw'+(per.enabled?" on":"")+'" data-tv2-pt-tog="'+k+'"></div></div>'
+        +'<div class="body">'
+        +'<div class="toggle-row" style="padding:6px 0"><div class="txt"><div class="t">🔊 Sprache</div></div><div class="switch'+(per.voice?" on":"")+'" data-tv2-pt-voice="'+k+'"></div></div>'
+        +'<div class="toggle-row" style="padding:6px 0"><div class="txt"><div class="t">🔔 Ton</div></div><div class="switch'+(per.sound?" on":"")+'" data-tv2-pt-sound="'+k+'"></div></div>'
+        +'<div class="field" style="margin-top:6px"><label>Eigene Distanzen (leer = global)</label><input type="text" class="tv2-input" data-tv2-pt-th="'+k+'" value="'+(per.thresholds?per.thresholds.join(","):"")+'" placeholder="z.B. 500,300,100"></div>'
+        +'</div></div>';
+    });
+    html+='</div><button class="btn success full" id="tv2_pt_save">💾 Pro-Typ speichern</button>';
+    el.innerHTML=html;
+
+    el.querySelectorAll(".tv2-pertype .h").forEach(function(h){
+      h.addEventListener("click",function(e){
+        if(e.target.closest("[data-tv2-pt-tog]"))return;
+        h.parentElement.classList.toggle("open");
+      });
+    });
+    el.querySelectorAll("[data-tv2-pt-tog]").forEach(function(b){
+      b.addEventListener("click",function(e){
+        e.stopPropagation();
+        var k=b.dataset.tv2PtTog;
+        s.perType[k].enabled=!s.perType[k].enabled;
+        b.classList.toggle("on");
+      });
+    });
+    el.querySelectorAll("[data-tv2-pt-voice]").forEach(function(b){
+      b.addEventListener("click",function(){var k=b.dataset.tv2PtVoice;s.perType[k].voice=!s.perType[k].voice;b.classList.toggle("on");});
+    });
+    el.querySelectorAll("[data-tv2-pt-sound]").forEach(function(b){
+      b.addEventListener("click",function(){var k=b.dataset.tv2PtSound;s.perType[k].sound=!s.perType[k].sound;b.classList.toggle("on");});
+    });
+    document.getElementById("tv2_pt_save").addEventListener("click",function(){
+      el.querySelectorAll("[data-tv2-pt-th]").forEach(function(inp){
+        var k=inp.dataset.tv2PtTh;
+        var v=inp.value.trim();
+        if(!v){s.perType[k].thresholds=null;return;}
+        var arr=v.split(",").map(function(x){return parseInt(x.trim());}).filter(function(x){return !isNaN(x)&&x>=0;});
+        arr.sort(function(a,b){return b-a;});
+        s.perType[k].thresholds=arr;
+      });
+      TrafficV2.saveSettings();
+      TrafficV2.lastAnnounced={};
+      toast("💾 Pro-Typ gespeichert","ok");
+    });
+  }
+};
+
+/* ============ Auto-Register ============ */
+if(AppLauncher&&AppLauncher.registry){
+  AppLauncher.registry.verkehr=AppVerkehr2;
+}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){
+    if(a.id==="verkehr"){a.prio=1;a.installed=true;a.cat="Fahrzeug";a.name="Verkehr";found=true;}
+  });
+  if(!found){
+    APP_PLAN.unshift({id:"verkehr",name:"Verkehr",icon:"🚦",cat:"Fahrzeug",prio:1,installed:true});
+  }
+}
+setTimeout(function(){
+  var btn=document.getElementById("btnFilterAll");
+  if(btn)btn.click();
+},1800);
+
+console.log("[HalDo Verkehr v2] 🚦 GPS + Simulator + Sprachansage + Schwellen geladen.");
+})();
+</script>
+<!-- ============ ENDE HALDO VERKEHR V2 ============ -->
+<!-- ============================================================
+     HALDO DOKUMENT-EDITOR V2 — KI + Drucken/PDF + Vorlagen
+     Einfach vor </body> einfügen (überschreibt alte Version).
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Dokument v2] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+
+function dkStyles(){if(document.getElementById("dkV2Styles"))return;var s=document.createElement("style");s.id="dkV2Styles";
+s.textContent=".dk-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(168,85,247,.18),rgba(59,130,246,.18));border:1px solid rgba(168,85,247,.4);text-align:center;margin-bottom:12px}.dk-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.dk-hero .val{font-size:38px;font-weight:900;color:#c084fc;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.dk-hero .sub{font-size:10.5px;color:var(--text-mute)}.dk-toolbar{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}.dk-toolbar button{padding:7px 11px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-dim);font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer}.dk-toolbar button:hover{border-color:var(--primary);color:var(--primary)}.dk-title{width:100%;background:var(--bg-3);border:1px solid var(--border);color:var(--text);padding:11px 13px;border-radius:9px;font-family:inherit;font-size:15px;font-weight:800;outline:none;margin-bottom:8px}.dk-body{width:100%;min-height:340px;background:var(--bg-3);border:1px solid var(--border);color:var(--text);padding:14px;border-radius:9px;font-family:inherit;font-size:13px;line-height:1.7;outline:none;resize:vertical}.dk-tmpl-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:8px 0}.dk-tmpl{padding:12px 10px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;cursor:pointer;text-align:center;font-size:10.5px;font-weight:700;transition:.15s}.dk-tmpl:hover{border-color:#c084fc;background:rgba(168,85,247,.08)}.dk-tmpl .i{font-size:22px;margin-bottom:4px;display:block}.dk-tmpl .d{font-size:9px;color:var(--text-mute);margin-top:3px}.dk-item{display:flex;align-items:center;gap:10px;padding:11px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:5px;cursor:pointer;transition:.15s}.dk-item:hover{border-color:#c084fc;background:rgba(168,85,247,.05)}.dk-item .i{font-size:20px}.dk-item .body{flex:1;min-width:0}.dk-item .body .n{font-size:11.5px;font-weight:800}.dk-item .body .d{font-size:9.5px;color:var(--text-mute);margin-top:2px}.dk-item .time{font-size:9.5px;color:var(--text-mute);font-weight:700}.dk-item .del{padding:5px 8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#ff8080;border-radius:5px;cursor:pointer;font-size:9px}.dk-ai-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}.dk-ai-btn{padding:7px 11px;background:rgba(168,85,247,.15);border:1px solid rgba(168,85,247,.5);color:#c084fc;border-radius:8px;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;transition:.15s}.dk-ai-btn:hover{background:rgba(168,85,247,.3)}.dk-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}.dk-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}.dk-stat{padding:9px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;text-align:center}.dk-stat .v{font-size:15px;font-weight:800;color:#c084fc;font-family:ui-monospace,monospace;line-height:1}.dk-stat .l{font-size:8px;color:var(--text-mute);text-transform:uppercase;font-weight:700;margin-top:3px}";document.head.appendChild(s);}
+
+var DK_TEMPLATES=[
+  {n:"Brief",i:"✉️",d:"Formeller Brief",b:"[Absender]\nName\nStraße\nPLZ Ort\n\n[Empfänger]\nName\nStraße\nPLZ Ort\n\nOrt, den [Datum]\n\nBetreff: [Betreff]\n\nSehr geehrte Damen und Herren,\n\n[Text]\n\nMit freundlichen Grüßen\n\n\n[Unterschrift]\nName"},
+  {n:"Lebenslauf",i:"📋",d:"CV strukturiert",b:"LEBENSLAUF\n\n━━━ Persönliche Daten ━━━\nName: \nGeburtsdatum: \nGeburtsort: \nAdresse: \nTelefon: \nE-Mail: \n\n━━━ Berufserfahrung ━━━\n[Datum von-bis] · [Position]\n[Firma] · [Ort]\nAufgaben:\n• \n• \n\n━━━ Ausbildung ━━━\n[Datum] · [Abschluss]\n[Schule/Universität]\n\n━━━ Kenntnisse ━━━\nSprachen: \nEDV: \nFührerschein: \n\nOrt, Datum, Unterschrift"},
+  {n:"Rechnung",i:"💰",d:"Rechnung mit MwSt.",b:"RECHNUNG\n\nRechnungsnummer: [XXXX]\nRechnungsdatum: [Datum]\nLeistungsdatum: [Datum]\n\nRechnungssteller:\n[Firma]\n[Adresse]\n[USt-ID]\n\nRechnungsempfänger:\n[Kunde]\n[Adresse]\n\n━━━ Positionen ━━━\nPos. | Beschreibung | Menge | Einzel | Gesamt\n1.   | [Position]   | 1     | [€]    | [€]\n2.   | [Position]   | 1     | [€]    | [€]\n\n━━━ Summe ━━━\nZwischensumme:       [€]\nzzgl. 19% MwSt.:     [€]\nGesamtbetrag:        [€]\n\nZahlungsziel: 14 Tage netto\nBankverbindung:\nIBAN: [IBAN]\nBIC:  [BIC]"},
+  {n:"Kündigung",i:"📤",d:"Fristgerechte Kündigung",b:"[Dein Name]\n[Deine Adresse]\n\n[Empfänger]\n[Adresse]\n\nOrt, den [Datum]\n\nKündigung meines Vertrags Nr. [XXX]\n\nSehr geehrte Damen und Herren,\n\nhiermit kündige ich fristgerecht zum nächstmöglichen Zeitpunkt meinen Vertrag mit der Nummer [XXX].\n\nBitte bestätigen Sie mir den Erhalt der Kündigung sowie das Beendigungsdatum schriftlich.\n\nMit freundlichen Grüßen\n\n\n[Unterschrift]\n[Dein Name]"},
+  {n:"Bewerbung",i:"💼",d:"Anschreiben",b:"[Dein Name]\n[Adresse]\n[Telefon] · [E-Mail]\n\n[Unternehmen]\n[Ansprechpartner]\n[Adresse]\n\nOrt, den [Datum]\n\nBewerbung als [Position] – Referenz [Nr.]\n\nSehr geehrte/r Frau/Herr [Name],\n\nmit großem Interesse habe ich Ihre Stellenausschreibung gelesen. Die beschriebenen Aufgaben entsprechen genau meinem Profil.\n\n[Absatz 1: Motivation]\n\n[Absatz 2: Qualifikationen]\n\n[Absatz 3: warum dieses Unternehmen]\n\nIch freue mich auf ein persönliches Gespräch.\n\nMit freundlichen Grüßen\n\n\n[Unterschrift]\n[Dein Name]\n\nAnlagen:\n• Lebenslauf\n• Zeugnisse\n• Zertifikate"},
+  {n:"Notiz",i:"📝",d:"Freie Notiz",b:"Notiz vom [Datum]\n\n━━━ Thema ━━━\n\n[Notiz]\n\n━━━ Zusammenfassung ━━━\n\n• \n\n━━━ Nächste Schritte ━━━\n\n☐ \n☐ "},
+  {n:"Protokoll",i:"📊",d:"Besprechungsprotokoll",b:"PROTOKOLL\n\nDatum: [Datum]\nZeit: [Zeit von-bis]\nOrt: [Ort]\nAnwesend: [Namen]\nProtokoll: [Name]\n\n━━━ Tagesordnung ━━━\n1. \n2. \n3. \n\n━━━ Beschlüsse ━━━\n1. \n2. \n\n━━━ Aufgaben ━━━\n☐ [Aufgabe] – [Verantwortlich] – [Frist]\n☐ \n\n━━━ Nächster Termin ━━━\n[Datum]"},
+  {n:"Angebot",i:"📋",d:"Geschäftliches Angebot",b:"ANGEBOT\n\nAngebotsnummer: [XXX]\nDatum: [Datum]\nGültig bis: [Datum]\n\nAn:\n[Kunde]\n\nVon:\n[Firma]\n\n━━━ Leistungen ━━━\nPos. | Leistung | Menge | Einzelpreis | Gesamt\n1.   | [Leistung]| 1    | [€]         | [€]\n\n━━━ Summe ━━━\nZwischensumme:        [€]\nzzgl. 19% MwSt.:      [€]\nGesamtbetrag:         [€]\n\nZahlungsbedingungen: [z.B. 14 Tage netto]\nLieferzeit: [z.B. 4 Wochen]"}
+];
+
+var AppDokumente2={
+  tab:"list",current:null,
+
+  getDocs:function(){return Storage.get("dk2_docs",[]);},
+  saveDocs:function(a){Storage.set("dk2_docs",a);},
+
+  render:function(){
+    dkStyles();
+    var vp=document.getElementById("appViewport");
+    var tabs=[
+      {k:"list",n:"📁 Dokumente"},
+      {k:"editor",n:"✏️ Editor"},
+      {k:"templates",n:"📋 Vorlagen"}
+    ];
+    var self=this;
+    var th=tabs.map(function(t){return '<button class="ms-tab'+(self.tab===t.k?" active":"")+'" data-dk-tab="'+t.k+'">'+t.n+'</button>';}).join("");
+    vp.innerHTML='<div class="ms-tabs">'+th+'</div><div id="dkContent"></div>';
+    vp.querySelectorAll("[data-dk-tab]").forEach(function(b){b.addEventListener("click",function(){self.tab=b.dataset.dkTab;self.render();});});
+    this.renderTab();
+  },
+
+  renderTab:function(){
+    var el=document.getElementById("dkContent");if(!el)return;
+    var t=this.tab;
+    if(t==="list")this.renderList(el);
+    else if(t==="editor")this.renderEditor(el);
+    else if(t==="templates")this.renderTemplates(el);
+  },
+
+  renderList:function(el){
+    var self=this;
+    var docs=this.getDocs().slice().sort(function(a,b){return b.t-a.t;});
+    var totalWords=0;
+    docs.forEach(function(d){totalWords+=(d.body||"").split(/\s+/).filter(Boolean).length;});
+    var list=docs.length?docs.map(function(d){
+      return '<div class="dk-item" data-dk-open="'+d.id+'"><span class="i">📄</span>'
+        +'<div class="body"><div class="n">'+esc(d.title||"Unbenannt")+'</div><div class="d">'+((d.body||"").split(/\s+/).filter(Boolean).length)+' Wörter</div></div>'
+        +'<div class="time">'+new Date(d.t).toLocaleDateString("de-DE")+'</div>'
+        +'<button class="del" data-dk-rm="'+d.id+'">🗑️</button></div>';
+    }).join(""):'<div class="dk-empty">Keine Dokumente. Leg dein erstes an!</div>';
+
+    el.innerHTML='<div class="dk-hero"><div class="lbl">Dokumente gesamt</div><div class="val">'+docs.length+'</div><div class="sub">'+totalWords.toLocaleString("de-DE")+' Wörter</div></div>'
+      +'<div class="card"><div class="card-h"><h3>📁 Meine Dokumente</h3></div>'
+      +'<div class="dk-toolbar"><button id="dk_new">➕ Neu</button><button id="dk_from_tmpl">📋 Aus Vorlage</button></div>'
+      +list+'</div>';
+
+    document.getElementById("dk_new").addEventListener("click",function(){
+      self.current=null;self.tab="editor";self.render();
+    });
+    document.getElementById("dk_from_tmpl").addEventListener("click",function(){self.tab="templates";self.render();});
+    el.querySelectorAll("[data-dk-open]").forEach(function(b){
+      b.addEventListener("click",function(e){
+        if(e.target.closest("[data-dk-rm]"))return;
+        var id=b.dataset.dkOpen;
+        var d=null;self.getDocs().forEach(function(x){if(x.id===id)d=x;});
+        if(!d)return;
+        self.current=d;self.tab="editor";self.render();
+      });
+    });
+    el.querySelectorAll("[data-dk-rm]").forEach(function(b){
+      b.addEventListener("click",function(e){
+        e.stopPropagation();
+        if(!confirm("Dokument löschen?"))return;
+        self.saveDocs(self.getDocs().filter(function(x){return x.id!==b.dataset.dkRm;}));
+        self.renderTab();
+      });
+    });
+  },
+
+  renderEditor:function(el){
+    var self=this;
+    var cur=this.current||{title:"",body:""};
+    el.innerHTML='<div class="card"><div class="dk-toolbar">'
+      +'<button id="dk_back">← Zurück</button>'
+      +'<button id="dk_save">💾 Speichern</button>'
+      +'<button id="dk_print">🖨️ Drucken / PDF</button>'
+      +'<button id="dk_export">⬇️ .txt</button>'
+      +'<button id="dk_md">⬇️ .md</button>'
+      +'<button id="dk_email">✉️ Als E-Mail</button>'
+      +'<button id="dk_copy">📋 Kopieren</button>'
+      +'<button class="dk-ai-btn" id="dk_ai_improve">✨ KI verbessern</button>'
+      +'<button class="dk-ai-btn" id="dk_ai_summary">📋 Zusammenfassen</button>'
+      +'<button class="dk-ai-btn" id="dk_ai_expand">📝 Erweitern</button>'
+      +'<button class="dk-ai-btn" id="dk_ai_fix">✅ Rechtschreibung</button>'
+      +'<button class="dk-ai-btn" id="dk_ai_list">🔹 Stichpunkte</button>'
+      +'<button class="dk-ai-btn" id="dk_ai_formal">🎩 Formell</button>'
+      +'</div>'
+      +'<input type="text" class="dk-title" id="dk_title" value="'+esc(cur.title||"")+'" placeholder="Dokumenttitel…">'
+      +'<textarea class="dk-body" id="dk_body" placeholder="Schreibe hier dein Dokument…">'+esc(cur.body||"")+'</textarea>'
+      +'<div class="dk-stats" style="margin-top:10px">'
+      +'<div class="dk-stat"><div class="v" id="dk_wc">0</div><div class="l">Wörter</div></div>'
+      +'<div class="dk-stat"><div class="v" id="dk_cc">0</div><div class="l">Zeichen</div></div>'
+      +'<div class="dk-stat"><div class="v" id="dk_pc">0</div><div class="l">Absätze</div></div>'
+      +'<div class="dk-stat"><div class="v" id="dk_rc">0</div><div class="l">Lesezeit</div></div>'
+      +'</div></div>';
+
+    var body=document.getElementById("dk_body");
+    var title=document.getElementById("dk_title");
+    function updateStats(){
+      var t=body.value;
+      var words=t.split(/\s+/).filter(Boolean).length;
+      var chars=t.length;
+      var paras=t.split(/\n\n+/).filter(Boolean).length;
+      var min=Math.ceil(words/200);
+      document.getElementById("dk_wc").textContent=words;
+      document.getElementById("dk_cc").textContent=chars;
+      document.getElementById("dk_pc").textContent=paras;
+      document.getElementById("dk_rc").textContent=min+" min";
+    }
+    body.addEventListener("input",updateStats);
+    updateStats();
+
+    document.getElementById("dk_back").addEventListener("click",function(){self.tab="list";self.render();});
+    document.getElementById("dk_save").addEventListener("click",function(){self.saveDoc();});
+    document.getElementById("dk_print").addEventListener("click",function(){
+      var w=window.open("","_blank");
+      var title=val("dk_title")||"Dokument";
+      var body=val("dk_body");
+      w.document.write('<!DOCTYPE html><html><head><title>'+esc(title)+'</title><style>body{font-family:Arial,sans-serif;padding:60px;max-width:800px;margin:auto;line-height:1.7;color:#000}h1{color:#222;border-bottom:2px solid #333;padding-bottom:10px}pre{white-space:pre-wrap;font-family:Arial;font-size:14px;line-height:1.7}@media print{body{padding:20px}}</style></head><body><h1>'+esc(title)+'</h1><pre>'+esc(body)+'</pre></body></html>');
+      w.document.close();setTimeout(function(){w.print();},400);
+      toast("🖨️ Druckdialog geöffnet","ok");
+    });
+    document.getElementById("dk_export").addEventListener("click",function(){
+      var title=val("dk_title")||"dokument";
+      var blob=new Blob([val("dk_body")],{type:"text/plain;charset=utf-8"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=title.replace(/[^a-zA-Z0-9äöüÄÖÜß]/g,"_")+".txt";a.click();
+      toast("⬇️ .txt exportiert","ok");
+    });
+    document.getElementById("dk_md").addEventListener("click",function(){
+      var title=val("dk_title")||"dokument";
+      var md="# "+title+"\n\n"+val("dk_body");
+      var blob=new Blob([md],{type:"text/markdown;charset=utf-8"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=title.replace(/[^a-zA-Z0-9äöüÄÖÜß]/g,"_")+".md";a.click();
+      toast("⬇️ .md exportiert","ok");
+    });
+    document.getElementById("dk_email").addEventListener("click",function(){
+      window.location.href="mailto:?subject="+encodeURIComponent(val("dk_title"))+"&body="+encodeURIComponent(val("dk_body"));
+    });
+    document.getElementById("dk_copy").addEventListener("click",function(){
+      if(navigator.clipboard)navigator.clipboard.writeText(val("dk_body")).then(function(){toast("📋 Kopiert","ok");});
+    });
+    ["improve","summary","expand","fix","list","formal"].forEach(function(a){
+      var b=document.getElementById("dk_ai_"+a);
+      if(b)b.addEventListener("click",function(){self.aiAction(a);});
+    });
+  },
+
+  saveDoc:function(){
+    var title=val("dk_title").trim()||"Unbenannt";
+    var body=val("dk_body");
+    var id=this.current?this.current.id:"d_"+Date.now();
+    var docs=this.getDocs();
+    var idx=-1;docs.forEach(function(x,i){if(x.id===id)idx=i;});
+    var entry={id:id,title:title,body:body,t:Date.now()};
+    if(idx>=0)docs[idx]=entry;else docs.push(entry);
+    this.saveDocs(docs);
+    this.current=entry;
+    toast("💾 Gespeichert","ok");
+  },
+
+  aiAction:function(action){
+    var self=this;
+    var body=val("dk_body").trim();
+    if(!body)return toast("⚠️ Dokument leer","err");
+    var ai=H.Settings.get("ai");
+    if(!ai.groqKey)return toast("⚠️ Kein Groq-Key","err");
+    var prompts={
+      improve:"Verbessere diesen Text (Stil, Klarheit, Ausdruck), behalte Sinn bei. Antworte NUR mit dem verbesserten Text:\n\n",
+      summary:"Fasse diesen Text in 3-5 Sätzen zusammen. Antworte NUR mit der Zusammenfassung:\n\n",
+      expand:"Erweitere diesen Text mit sinnvollen Details. Antworte NUR mit dem erweiterten Text:\n\n",
+      fix:"Korrigiere Rechtschreibung und Grammatik. Antworte NUR mit dem korrigierten Text:\n\n",
+      list:"Wandle in übersichtliche Stichpunkte um. Antworte NUR mit der Liste:\n\n",
+      formal:"Formuliere diesen Text formell und höflich. Antworte NUR mit dem neuen Text:\n\n"
+    };
+    toast("⏳ KI arbeitet…");
+    fetch("https://api.groq.com/openai/v1/chat/completions",{
+      method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+ai.groqKey},
+      body:JSON.stringify({model:ai.model,messages:[{role:"system",content:"Du bist ein professioneller Text-Assistent. Antworte NUR mit dem Ergebnis."},{role:"user",content:prompts[action]+body}],max_tokens:2000,temperature:0.4})
+    }).then(function(r){return r.json();}).then(function(d){
+      if(!d.choices||!d.choices[0])throw new Error("KI-Fehler");
+      document.getElementById("dk_body").value=d.choices[0].message.content.trim();
+      toast("✅ Fertig — jetzt speichern!","ok");
+    }).catch(function(e){toast("❌ "+e.message,"err");});
+  },
+
+  renderTemplates:function(el){
+    var self=this;
+    el.innerHTML='<div class="card"><div class="card-h"><h3>📋 Vorlagen</h3></div>'
+      +'<div class="info-box">Klick auf eine Vorlage → sie wird als neues Dokument geöffnet.</div>'
+      +'<div class="dk-tmpl-grid">'
+      +DK_TEMPLATES.map(function(t,i){return '<div class="dk-tmpl" data-dk-tmpl="'+i+'"><span class="i">'+t.i+'</span>'+t.n+'<span class="d">'+t.d+'</span></div>';}).join("")
+      +'</div></div>';
+    el.querySelectorAll("[data-dk-tmpl]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=DK_TEMPLATES[parseInt(b.dataset.dkTmpl)];
+        self.current=null;
+        setTimeout(function(){
+          self.tab="editor";self.render();
+          setTimeout(function(){
+            document.getElementById("dk_title").value=t.n+" — "+new Date().toLocaleDateString("de-DE");
+            document.getElementById("dk_body").value=t.b;
+            self.saveDoc();
+          },50);
+        },50);
+      });
+    });
+  }
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.dokumente=AppDokumente2;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="dokumente"){a.prio=1;a.installed=true;a.cat="Produktivität";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"dokumente",name:"Dokumente",icon:"📄",cat:"Produktivität",prio:1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Dokument-Editor v2] 📄 KI + PDF + Vorlagen geladen.");
+})();
+</script>
+<!-- ============================================================
+     HALDO SPRACHNOTIZEN — DROP-IN MODUL
+     Einfach vor </body> einfügen. Nach Reload ist alles aktiv.
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Sprachnotizen] window.HalDo fehlt.");return;}
+
+var H=window.HalDo;
+var Storage=H.Storage;
+var AppLauncher=H.AppLauncher;
+var APP_PLAN=H.APP_PLAN;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+function select(id,cur,opts){var h='<select id="'+id+'">';opts.forEach(function(o){h+='<option value="'+esc(o[0])+'"'+(String(o[0])===String(cur)?" selected":"")+'>'+esc(o[1])+'</option>';});return h+'</select>';}
+function fmtDur(s){if(!s||isNaN(s))s=0;s=Math.round(s);var m=Math.floor(s/60),sec=s%60;return m+":"+(sec<10?"0":"")+sec;}
+
+function snInjectStyles(){
+  if(document.getElementById("snStyles"))return;
+  var s=document.createElement("style");
+  s.id="snStyles";
+  s.textContent=".sn-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(239,68,68,.18),rgba(168,85,247,.18));border:1px solid rgba(239,68,68,.4);text-align:center;margin-bottom:12px}.sn-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.sn-hero .val{font-size:38px;font-weight:900;color:#ff8080;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.sn-hero .sub{font-size:10.5px;color:var(--text-mute)}.sn-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}.sn-stat{padding:9px 5px;border-radius:11px;text-align:center;border:1px solid var(--border);background:linear-gradient(180deg,var(--bg-4),var(--bg-3))}.sn-stat .i{font-size:14px;margin-bottom:2px}.sn-stat .v{font-size:14px;font-weight:800;color:#ff8080;font-family:ui-monospace,monospace;line-height:1}.sn-stat .l{font-size:8px;color:var(--text-mute);text-transform:uppercase;font-weight:700;margin-top:2px}.sn-rec{width:140px;height:140px;border-radius:50%;margin:16px auto;background:linear-gradient(135deg,#ef4444,#a855f7);border:none;color:#fff;font-size:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 40px rgba(239,68,68,.5);transition:.2s;position:relative}.sn-rec:hover{transform:scale(1.05)}.sn-rec.recording{animation:snPulse 1.2s ease-in-out infinite;background:linear-gradient(135deg,#dc2626,#ef4444)}@keyframes snPulse{0%,100%{box-shadow:0 10px 40px rgba(239,68,68,.5),0 0 0 0 rgba(239,68,68,.7)}50%{box-shadow:0 10px 40px rgba(239,68,68,.7),0 0 0 30px rgba(239,68,68,0)}}.sn-rec-info{text-align:center;margin-bottom:10px}.sn-rec-info .time{font-size:36px;font-weight:900;color:#ff8080;font-family:ui-monospace,monospace;line-height:1}.sn-rec-info .lbl{font-size:10px;color:var(--text-mute);text-transform:uppercase;letter-spacing:1.2px;font-weight:700;margin-top:6px}.sn-wave{display:flex;align-items:center;justify-content:center;gap:3px;height:60px;margin:12px 0;padding:0 10px}.sn-wave .bar{width:4px;border-radius:2px;background:linear-gradient(180deg,#ef4444,#a855f7);transition:height .08s}.sn-item{display:flex;align-items:center;gap:10px;padding:11px;background:var(--bg-3);border:1px solid var(--border);border-radius:10px;margin-top:6px;transition:.15s}.sn-item:hover{border-color:#ff8080}.sn-item.playing{border-color:#4ade80;background:rgba(34,197,94,.06)}.sn-item .play{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#a855f7);border:none;color:#fff;font-size:17px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}.sn-item.playing .play{background:linear-gradient(135deg,#22c55e,#10b981)}.sn-item .body{flex:1;min-width:0}.sn-item .body .n{font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sn-item .body .meta{font-size:9.5px;color:var(--text-mute);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap}.sn-item .body .meta .badge{padding:1px 6px;background:rgba(168,85,247,.15);color:#c084fc;border-radius:4px;font-weight:700}.sn-item .body .transcript{font-size:10px;color:var(--text-dim);margin-top:3px;font-style:italic;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.sn-item .dur{font-size:11px;font-weight:800;color:#ff8080;font-family:ui-monospace,monospace;flex-shrink:0}.sn-item .del{padding:5px 8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#ff8080;border-radius:6px;cursor:pointer;font-size:10px}.sn-search{width:100%;background:var(--bg-3);border:1px solid var(--border);color:var(--text);padding:10px 13px;border-radius:9px;font-family:inherit;font-size:12px;outline:none;margin-bottom:8px}.sn-input{width:100%;background:var(--bg-3);border:1px solid rgba(0,212,255,.22);color:var(--text);padding:10px 12px;border-radius:9px;font-family:inherit;font-size:12px;outline:none}.sn-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}.sn-player{position:sticky;bottom:0;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:12px;padding:12px;margin-top:10px;display:flex;align-items:center;gap:10px;z-index:5}.sn-player .play-btn{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#10b981);border:none;color:#fff;font-size:17px;cursor:pointer;flex-shrink:0}.sn-player .body{flex:1;min-width:0}.sn-player .body .n{font-size:11.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sn-player .body .track{height:5px;background:rgba(0,0,0,.35);border-radius:3px;overflow:hidden;margin-top:5px;cursor:pointer}.sn-player .body .track .fill{height:100%;background:linear-gradient(90deg,#22c55e,#00d4ff);border-radius:3px;transition:width .15s}.sn-player .body .t-time{display:flex;justify-content:space-between;font-size:9px;color:var(--text-mute);font-family:ui-monospace,monospace;margin-top:3px}.sn-permission{padding:14px;background:rgba(245,158,11,.08);border:1px dashed rgba(245,158,11,.4);border-radius:11px;color:#fbbf24;font-size:11.5px;line-height:1.5;text-align:center;margin:10px 0}.sn-tag-grid{display:flex;gap:4px;flex-wrap:wrap;margin:8px 0}.sn-tag{padding:5px 11px;background:var(--bg-3);border:1px solid var(--border);border-radius:14px;color:var(--text-dim);font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer}.sn-tag.active{background:rgba(168,85,247,.2);border-color:#a855f7;color:#c084fc}";
+  document.head.appendChild(s);
+}
+
+var SN_TAGS=[
+  {id:"idee",n:"💡 Idee"},
+  {id:"todo",n:"✅ Aufgabe"},
+  {id:"termin",n:"📅 Termin"},
+  {id:"einkauf",n:"🛒 Einkauf"},
+  {id:"wichtig",n:"⭐ Wichtig"},
+  {id:"privat",n:"🏠 Privat"},
+  {id:"arbeit",n:"💼 Arbeit"},
+  {id:"sonstiges",n:"📝 Sonstiges"}
+];
+
+var AppSprachnotizen={
+  tab:"rec",
+  recorder:null,
+  chunks:[],
+  stream:null,
+  startTime:0,
+  timerInterval:null,
+  elapsed:0,
+  _playingId:null,
+  _audio:null,
+  _q:"",
+  _tag:"all",
+
+  getNotes:function(){return Storage.get("sn_notes",[]);},
+  saveNotes:function(a){Storage.set("sn_notes",a);},
+
+  render:function(){
+    snInjectStyles();
+    var vp=document.getElementById("appViewport");
+    var notes=this.getNotes();
+    var totalDur=0;
+    notes.forEach(function(n){totalDur+=n.dur||0;});
+    var tabs=[
+      {k:"rec",n:"🎙️ Aufnehmen"},
+      {k:"list",n:"📚 Meine Notizen"},
+      {k:"stats",n:"📊 Statistik"}
+    ];
+    var self=this;
+    var th=tabs.map(function(t){return '<button class="ms-tab'+(self.tab===t.k?" active":"")+'" data-sn-tab="'+t.k+'">'+t.n+'</button>';}).join("");
+    vp.innerHTML='<div class="ms-tabs">'+th+'</div><div id="snContent"></div>';
+    vp.querySelectorAll("[data-sn-tab]").forEach(function(b){b.addEventListener("click",function(){self.tab=b.dataset.snTab;self.render();});});
+    this.renderTab();
+  },
+
+  renderTab:function(){
+    var el=document.getElementById("snContent");if(!el)return;
+    var t=this.tab;
+    if(t==="rec")this.renderRec(el);
+    else if(t==="list")this.renderList(el);
+    else if(t==="stats")this.renderStats(el);
+  },
+
+  renderRec:function(el){
+    var self=this;
+    var supported=!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)&&typeof MediaRecorder!=="undefined";
+    var waveBars="";
+    for(var i=0;i<40;i++)waveBars+='<div class="bar" data-bar="'+i+'" style="height:8px"></div>';
+
+    var perm=supported?'':'<div class="sn-permission">⚠️ Dein Browser unterstützt keine Audio-Aufnahme.<br>Nutze Chrome, Firefox oder Safari aktuell.</div>';
+
+    el.innerHTML='<div class="sn-hero"><div class="lbl">Sprachnotizen</div><div class="val">'+this.getNotes().length+'</div><div class="sub">Schnell aufnehmen · transkribieren · wiederfinden</div></div>'
+      +perm
+      +'<div class="card">'
+      +'<div class="sn-rec-info"><div class="time" id="sn_time">0:00</div><div class="lbl">Aufnahmezeit</div></div>'
+      +'<div class="sn-wave">'+waveBars+'</div>'
+      +'<div style="text-align:center"><button class="sn-rec" id="sn_rec_btn" '+(!supported?"disabled":"")+'>🎙️</button></div>'
+      +'<div style="text-align:center;font-size:11px;color:var(--text-mute);margin-top:6px" id="sn_rec_hint">Klick zum Starten</div>'
+      +'<div id="sn_rec_actions" style="display:none;margin-top:12px">'
+      +'<div class="field"><label>Titel</label><input type="text" class="sn-input" id="sn_new_title" placeholder="z.B. Meeting-Idee"></div>'
+      +'<div class="field"><label>Tag</label><div class="sn-tag-grid">'
+      +SN_TAGS.map(function(t){return '<div class="sn-tag" data-sn-newtag="'+t.id+'">'+t.n+'</div>';}).join("")
+      +'</div></div>'
+      +'<div class="field"><label>Transkript (optional)</label><textarea class="sn-input" id="sn_new_transcript" placeholder="Wird nach Aufnahme eingefügt…" style="min-height:80px"></textarea></div>'
+      +'<button class="btn success full" id="sn_save">💾 Notiz speichern</button>'
+      +'<button class="btn danger full" id="sn_discard" style="margin-top:6px">🗑️ Verwerfen</button>'
+      +'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>⏱️ Letzte Aufnahmen</h3></div>'
+      +this.renderRecent()
+      +'</div>';
+
+    this._newTag="sonstiges";
+    el.querySelectorAll("[data-sn-newtag]").forEach(function(b){
+      b.addEventListener("click",function(){
+        el.querySelectorAll("[data-sn-newtag]").forEach(function(x){x.classList.remove("active");});
+        b.classList.add("active");
+        self._newTag=b.dataset.snNewtag;
+      });
+    });
+
+    var btn=document.getElementById("sn_rec_btn");
+    if(btn&&supported)btn.addEventListener("click",function(){self.toggleRecording();});
+    var save=document.getElementById("sn_save");
+    if(save)save.addEventListener("click",function(){self.saveRecording();});
+    var disc=document.getElementById("sn_discard");
+    if(disc)disc.addEventListener("click",function(){self.discardRecording();});
+  },
+
+  renderRecent:function(){
+    var notes=this.getNotes().slice().sort(function(a,b){return b.t-a.t;}).slice(0,3);
+    if(!notes.length)return '<div class="sn-empty">Noch keine Aufnahmen.</div>';
+    return notes.map(function(n){
+      return '<div class="sn-item" style="cursor:pointer" data-sn-open="'+n.id+'"><div class="play">▶️</div><div class="body"><div class="n">'+esc(n.title)+'</div><div class="meta"><span class="badge">'+(SN_TAGS.find(function(t){return t.id===n.tag;})||{n:"📝"}).n+'</span><span>'+new Date(n.t).toLocaleString("de-DE")+'</span></div></div><div class="dur">'+fmtDur(n.dur)+'</div></div>';
+    }).join("");
+  },
+
+  toggleRecording:function(){
+    if(this.recorder&&this.recorder.state==="recording")this.stopRecording();
+    else this.startRecording();
+  },
+
+  startRecording:function(){
+    var self=this;
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+      toast("❌ Kein Mikrofon-Support","err");
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
+      self.stream=s;
+      self.chunks=[];
+      try{
+        self.recorder=new MediaRecorder(s);
+      }catch(e){toast("❌ Recorder-Fehler","err");return;}
+      self.recorder.ondataavailable=function(e){if(e.data.size>0)self.chunks.push(e.data);};
+      self.recorder.onstop=function(){
+        self.recorderBlob=new Blob(self.chunks,{type:"audio/webm"});
+        self.showRecorded();
+      };
+      self.recorder.start();
+      self.startTime=Date.now();
+      self.elapsed=0;
+      var btn=document.getElementById("sn_rec_btn");
+      if(btn){btn.classList.add("recording");btn.textContent="⏹️";}
+      var hint=document.getElementById("sn_rec_hint");
+      if(hint)hint.textContent="🔴 Aufnahme läuft…";
+      var actions=document.getElementById("sn_rec_actions");
+      if(actions)actions.style.display="none";
+      self.timerInterval=setInterval(function(){
+        self.elapsed=Math.floor((Date.now()-self.startTime)/1000);
+        var t=document.getElementById("sn_time");
+        if(t)t.textContent=fmtDur(self.elapsed);
+        self.animateWave();
+      },100);
+    }).catch(function(e){toast("❌ "+e.message,"err");});
+  },
+
+  animateWave:function(){
+    var bars=document.querySelectorAll(".sn-wave .bar");
+    if(!bars.length)return;
+    var t=Date.now()/100;
+    bars.forEach(function(b,i){
+      var h=8+Math.abs(Math.sin(t+i*0.3))*40+Math.random()*6;
+      b.style.height=h+"px";
+    });
+  },
+
+  stopRecording:function(){
+    var self=this;
+    if(this.timerInterval){clearInterval(this.timerInterval);this.timerInterval=null;}
+    if(this.stream){this.stream.getTracks().forEach(function(t){t.stop();});this.stream=null;}
+    if(this.recorder&&this.recorder.state!=="inactive")this.recorder.stop();
+    var btn=document.getElementById("sn_rec_btn");
+    if(btn){btn.classList.remove("recording");btn.textContent="🎙️";}
+    var hint=document.getElementById("sn_rec_hint");
+    if(hint)hint.textContent="Verarbeitung…";
+    /* Stop wave animation */
+    document.querySelectorAll(".sn-wave .bar").forEach(function(b){b.style.height="8px";});
+  },
+
+  showRecorded:function(){
+    var self=this;
+    var hint=document.getElementById("sn_rec_hint");
+    if(hint)hint.textContent="✅ Aufnahme bereit";
+    var actions=document.getElementById("sn_rec_actions");
+    if(actions)actions.style.display="block";
+    /* Auto-Titel */
+    var title=document.getElementById("sn_new_title");
+    if(title&&!title.value)title.value="Aufnahme "+new Date().toLocaleString("de-DE",{hour:"2-digit",minute:"2-digit"});
+    /* Auto-Transcribe versuchen */
+    this.tryTranscribe();
+  },
+
+  tryTranscribe:function(){
+    var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR)return;
+    /* Transkription ist nicht möglich während Aufnahme (müsste parallel laufen) — wir bieten Button */
+    var t=document.getElementById("sn_new_transcript");
+    if(t&&!t.value)t.placeholder="🎤 Nutze Spracheingabe-Button zum Transkribieren";
+  },
+
+  discardRecording:function(){
+    this.recorderBlob=null;
+    var actions=document.getElementById("sn_rec_actions");
+    if(actions)actions.style.display="none";
+    var hint=document.getElementById("sn_rec_hint");
+    if(hint)hint.textContent="Klick zum Starten";
+    var t=document.getElementById("sn_time");
+    if(t)t.textContent="0:00";
+    var title=document.getElementById("sn_new_title");
+    if(title)title.value="";
+    var tr=document.getElementById("sn_new_transcript");
+    if(tr)tr.value="";
+    toast("🗑️ Verworfen");
+  },
+
+  saveRecording:function(){
+    var self=this;
+    if(!this.recorderBlob)return toast("⚠️ Keine Aufnahme","err");
+    var title=val("sn_new_title").trim()||"Aufnahme "+new Date().toLocaleString("de-DE");
+    var tag=this._newTag||"sonstiges";
+    var transcript=val("sn_new_transcript").trim();
+
+    /* Base64 speichern (Achtung: localStorage-Limit) */
+    var reader=new FileReader();
+    reader.onload=function(){
+      var dataUrl=reader.result;
+      var sizeKB=Math.round(dataUrl.length/1024);
+      if(sizeKB>800){
+        /* Zu groß für localStorage — wir speichern nur URL und Info */
+        toast("⚠️ Aufnahme zu groß (>800KB) — wird nicht dauerhaft gespeichert","err");
+      }
+      var arr=self.getNotes();
+      var obj={
+        id:"sn_"+Date.now(),
+        title:title,
+        tag:tag,
+        dur:self.elapsed,
+        transcript:transcript,
+        data:sizeKB<=800?dataUrl:null,
+        size:sizeKB,
+        t:Date.now()
+      };
+      arr.unshift(obj);
+      self.saveNotes(arr);
+      toast("💾 Gespeichert"+(sizeKB>800?" (ohne Audio)":""),"ok");
+      self.discardRecording();
+      self.tab="list";self.render();
+    };
+    reader.readAsDataURL(this.recorderBlob);
+  },
+
+  renderList:function(el){
+    var self=this;
+    var all=this.getNotes();
+    var q=this._q||"";
+    var tag=this._tag||"all";
+    var shown=all.slice();
+    if(tag!=="all")shown=shown.filter(function(n){return n.tag===tag;});
+    if(q){
+      var lq=q.toLowerCase();
+      shown=shown.filter(function(n){
+        return (n.title||"").toLowerCase().indexOf(lq)>=0 ||
+               (n.transcript||"").toLowerCase().indexOf(lq)>=0;
+      });
+    }
+    shown.sort(function(a,b){return b.t-a.t;});
+    var listHtml=shown.length?shown.map(function(n){
+      var tagObj=SN_TAGS.find(function(t){return t.id===n.tag;})||{n:"📝"};
+      var isPlaying=self._playingId===n.id;
+      return '<div class="sn-item'+(isPlaying?" playing":"")+'" data-sn-item="'+n.id+'">'
+        +'<button class="play" data-sn-play="'+n.id+'">'+(isPlaying?"⏸️":"▶️")+'</button>'
+        +'<div class="body">'
+        +'<div class="n">'+esc(n.title)+'</div>'
+        +'<div class="meta"><span class="badge">'+tagObj.n+'</span><span>'+new Date(n.t).toLocaleString("de-DE")+'</span>'+(n.size?'<span>'+n.size+' KB</span>':'')+'</div>'
+        +(n.transcript?'<div class="transcript">'+esc(n.transcript.substring(0,120))+'</div>':'')
+        +'</div>'
+        +'<div class="dur">'+fmtDur(n.dur)+'</div>'
+        +'<button class="del" data-sn-rm="'+n.id+'">🗑️</button>'
+        +'</div>';
+    }).join(""):'<div class="sn-empty">Keine Notizen gefunden.</div>';
+
+    var tagsHtml='<div class="sn-tag'+(tag==="all"?" active":"")+'" data-sn-tag="all">📚 Alle ('+all.length+')</div>'
+      +SN_TAGS.map(function(t){
+        var count=all.filter(function(n){return n.tag===t.id;}).length;
+        return '<div class="sn-tag'+(tag===t.id?" active":"")+'" data-sn-tag="'+t.id+'">'+t.n+(count?" ("+count+")":"")+'</div>';
+      }).join("");
+
+    el.innerHTML='<div class="card"><input type="text" class="sn-search" id="sn_search" placeholder="🔍 Suchen in Titel + Transkript…" value="'+esc(q)+'">'
+      +'<div class="sn-tag-grid">'+tagsHtml+'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>📚 Notizen ('+shown.length+')</h3></div>'
+      +listHtml
+      +'</div>'
+      +'<div id="sn_player_box"></div>'
+      +'<div id="sn_edit_box"></div>';
+
+    var s=document.getElementById("sn_search");
+    s.addEventListener("input",function(){self._q=s.value;clearTimeout(self._t);self._t=setTimeout(function(){self.renderTab();},250);});
+    el.querySelectorAll("[data-sn-tag]").forEach(function(b){
+      b.addEventListener("click",function(){self._tag=b.dataset.snTag;self.renderTab();});
+    });
+    el.querySelectorAll("[data-sn-play]").forEach(function(b){
+      b.addEventListener("click",function(e){e.stopPropagation();self.play(b.dataset.snPlay);});
+    });
+    el.querySelectorAll("[data-sn-rm]").forEach(function(b){
+      b.addEventListener("click",function(e){
+        e.stopPropagation();
+        if(!confirm("Notiz löschen?"))return;
+        if(self._playingId===b.dataset.snRm)self.stopPlayback();
+        self.saveNotes(self.getNotes().filter(function(x){return x.id!==b.dataset.snRm;}));
+        self.renderTab();
+      });
+    });
+    el.querySelectorAll("[data-sn-item]").forEach(function(item){
+      item.addEventListener("click",function(e){
+        if(e.target.closest("[data-sn-play]")||e.target.closest("[data-sn-rm]"))return;
+        self.openEditor(item.dataset.snItem);
+      });
+    });
+    if(self._playingId)self.renderPlayer();
+  },
+
+  play:function(id){
+    var self=this;
+    if(this._playingId===id){this.stopPlayback();return;}
+    var note=null;this.getNotes().forEach(function(n){if(n.id===id)note=n;});
+    if(!note)return;
+    if(!note.data){
+      /* Keine Audio-Datei → Editor öffnen */
+      this.openEditor(id);
+      return;
+    }
+    if(this._audio){this._audio.pause();this._audio=null;}
+    var a=new Audio(note.data);
+    this._audio=a;
+    this._playingId=id;
+    a.addEventListener("ended",function(){self.stopPlayback();});
+    a.addEventListener("timeupdate",function(){
+      var fill=document.getElementById("sn_player_fill");
+      var t1=document.getElementById("sn_player_t1");
+      var t2=document.getElementById("sn_player_t2");
+      if(fill)fill.style.width=(a.currentTime/a.duration*100)+"%";
+      if(t1)t1.textContent=fmtDur(a.currentTime);
+      if(t2)t2.textContent=fmtDur(a.duration);
+    });
+    a.play().then(function(){self.renderTab();}).catch(function(e){toast("❌ "+e.message,"err");self.stopPlayback();});
+  },
+
+  stopPlayback:function(){
+    if(this._audio){this._audio.pause();this._audio=null;}
+    this._playingId=null;
+    this.renderTab();
+  },
+
+  renderPlayer:function(){
+    var el=document.getElementById("sn_player_box");if(!el)return;
+    var note=null;this.getNotes().forEach(function(n){if(n.id===this._playingId)note=n;},this);
+    if(!note)return;
+    var self=this;
+    el.innerHTML='<div class="sn-player">'
+      +'<button class="play-btn" id="sn_player_tog">⏸️</button>'
+      +'<div class="body"><div class="n">'+esc(note.title)+'</div>'
+      +'<div class="track" id="sn_player_track"><div class="fill" id="sn_player_fill" style="width:0%"></div></div>'
+      +'<div class="t-time"><span id="sn_player_t1">0:00</span><span id="sn_player_t2">'+fmtDur(note.dur)+'</span></div></div>'
+      +'<button class="del" id="sn_player_stop" style="padding:5px 8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#ff8080;border-radius:6px;cursor:pointer;font-size:10px">✕</button>'
+      +'</div>';
+    document.getElementById("sn_player_tog").addEventListener("click",function(){
+      if(self._audio){
+        if(self._audio.paused){self._audio.play();this.textContent="⏸️";}
+        else{self._audio.pause();this.textContent="▶️";}
+      }
+    });
+    document.getElementById("sn_player_stop").addEventListener("click",function(){self.stopPlayback();});
+    document.getElementById("sn_player_track").addEventListener("click",function(e){
+      if(!self._audio||!self._audio.duration)return;
+      var rect=this.getBoundingClientRect();
+      var pct=(e.clientX-rect.left)/rect.width;
+      self._audio.currentTime=pct*self._audio.duration;
+    });
+  },
+
+  openEditor:function(id){
+    var self=this;
+    var note=null;this.getNotes().forEach(function(n){if(n.id===id)note=n;});
+    if(!note)return;
+    var el=document.getElementById("sn_edit_box");if(!el)return;
+    el.innerHTML='<div class="card"><div class="card-h"><h3>✏️ Bearbeiten</h3></div>'
+      +'<div class="field"><label>Titel</label><input type="text" class="sn-input" id="sn_edit_title" value="'+esc(note.title)+'"></div>'
+      +'<div class="field"><label>Tag</label>'+select("sn_edit_tag",note.tag,SN_TAGS.map(function(t){return [t.id,t.n];}))+'</div>'
+      +'<div class="field"><label>Transkript</label><textarea class="sn-input" id="sn_edit_transcript" style="min-height:100px">'+esc(note.transcript||"")+'</textarea></div>'
+      +'<div class="btn-row">'
+      +'<button class="btn success small" id="sn_edit_save">💾 Speichern</button>'
+      +'<button class="btn secondary small" id="sn_edit_transcribe">🎤 Transkribieren</button>'
+      +'<button class="btn secondary small" id="sn_edit_copy">📋 Kopieren</button>'
+      +'<button class="btn secondary small" id="sn_edit_ai">✨ KI verbessern</button>'
+      +'<button class="btn secondary small" id="sn_edit_close">✕ Schließen</button>'
+      +'</div></div>';
+    document.getElementById("sn_edit_save").addEventListener("click",function(){
+      var arr=self.getNotes();
+      arr.forEach(function(n){
+        if(n.id===id){
+          n.title=val("sn_edit_title").trim()||n.title;
+          n.tag=val("sn_edit_tag");
+          n.transcript=val("sn_edit_transcript");
+        }
+      });
+      self.saveNotes(arr);toast("💾","ok");self.renderTab();
+    });
+    document.getElementById("sn_edit_transcribe").addEventListener("click",function(){
+      self.transcribeTo("sn_edit_transcript");
+    });
+    document.getElementById("sn_edit_copy").addEventListener("click",function(){
+      var t=val("sn_edit_transcript");
+      if(!t)return toast("⚠️ Leer","err");
+      if(navigator.clipboard)navigator.clipboard.writeText(t).then(function(){toast("📋 Kopiert","ok");});
+    });
+    document.getElementById("sn_edit_ai").addEventListener("click",function(){
+      var t=val("sn_edit_transcript").trim();
+      if(!t)return toast("⚠️ Kein Transkript","err");
+      var ai=H.Settings.get("ai");
+      if(!ai.groqKey)return toast("⚠️ Kein Groq-Key","err");
+      toast("⏳ KI verbessert…");
+      fetch("https://api.groq.com/openai/v1/chat/completions",{
+        method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+ai.groqKey},
+        body:JSON.stringify({model:ai.model,messages:[{role:"user",content:"Verbessere dieses Transkript einer Sprachnotiz: saubere Sätze, korrekte Rechtschreibung, keine Wiederholungen. Behalte den Inhalt. Antworte NUR mit dem verbesserten Text:\n\n"+t}],max_tokens:1500})
+      }).then(function(r){return r.json();}).then(function(d){
+        if(!d.choices||!d.choices[0])throw new Error("KI-Fehler");
+        document.getElementById("sn_edit_transcript").value=d.choices[0].message.content.trim();
+        toast("✅ Fertig — speichern!","ok");
+      }).catch(function(e){toast("❌ "+e.message,"err");});
+    });
+    document.getElementById("sn_edit_close").addEventListener("click",function(){el.innerHTML="";});
+  },
+
+  transcribeTo:function(targetId){
+    var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR)return toast("⚠️ Kein Mikrofon-Support","err");
+    var self=this;
+    var rec=new SR();
+    rec.lang="de-DE";
+    rec.continuous=true;
+    rec.interimResults=true;
+    toast("🎤 Sprich jetzt — Aufnahme läuft");
+    var finalText="";
+    rec.onresult=function(e){
+      var interim="";
+      for(var i=e.resultIndex;i<e.results.length;i++){
+        if(e.results[i].isFinal)finalText+=e.results[i][0].transcript+" ";
+        else interim+=e.results[i][0].transcript;
+      }
+      var t=document.getElementById(targetId);
+      if(t)t.value=(finalText+interim).trim();
+    };
+    rec.onerror=function(e){
+      toast("❌ "+e.error,"err");
+    };
+    rec.onend=function(){
+      toast("✅ Transkription beendet","ok");
+    };
+    rec.start();
+    /* Nach 30 Sekunden automatisch stoppen */
+    setTimeout(function(){try{rec.stop();}catch(e){}},30000);
+  },
+
+  renderStats:function(el){
+    var all=this.getNotes();
+    var totalDur=0,totalSize=0,withTranscript=0;
+    var tagCount={};
+    all.forEach(function(n){
+      totalDur+=n.dur||0;
+      totalSize+=n.size||0;
+      if(n.transcript&&n.transcript.trim())withTranscript++;
+      tagCount[n.tag]=(tagCount[n.tag]||0)+1;
+    });
+    var avg=all.length?Math.round(totalDur/all.length):0;
+    var topTags=Object.keys(tagCount).sort(function(a,b){return tagCount[b]-tagCount[a];});
+    var maxCount=topTags.length?tagCount[topTags[0]]:1;
+
+    var tagHtml=topTags.length?topTags.map(function(k){
+      var t=SN_TAGS.find(function(x){return x.id===k;})||{n:"📝"};
+      var pct=Math.round(tagCount[k]/maxCount*100);
+      return '<div style="padding:8px 11px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:5px">'
+        +'<div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;margin-bottom:4px"><span>'+t.n+'</span><span style="color:#c084fc;font-family:ui-monospace,monospace">'+tagCount[k]+'</span></div>'
+        +'<div style="height:4px;background:rgba(0,0,0,.35);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#ef4444,#a855f7);border-radius:2px"></div></div>'
+        +'</div>';
+    }).join(""):'<div class="sn-empty">Keine Tags verteilt.</div>';
+
+    el.innerHTML='<div class="sn-hero"><div class="lbl">Sprachnotizen gesamt</div><div class="val">'+all.length+'</div><div class="sub">'+fmtDur(totalDur)+' Gesamtdauer · Ø '+fmtDur(avg)+'</div></div>'
+      +'<div class="sn-stats">'
+      +'<div class="sn-stat"><div class="i">🎙️</div><div class="v">'+all.length+'</div><div class="l">Notizen</div></div>'
+      +'<div class="sn-stat"><div class="i">⏱️</div><div class="v">'+fmtDur(totalDur)+'</div><div class="l">Gesamt</div></div>'
+      +'<div class="sn-stat"><div class="i">📝</div><div class="v">'+withTranscript+'</div><div class="l">M. Text</div></div>'
+      +'<div class="sn-stat"><div class="i">💾</div><div class="v">'+Math.round(totalSize/1024*10)/10+'</div><div class="l">MB</div></div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>🏷️ Tags</h3></div>'+tagHtml+'</div>'
+      +'<div class="card"><div class="card-h"><h3>📤 Export</h3></div>'
+      +'<button class="btn secondary full" id="sn_export_json">📤 Alle Notizen (JSON)</button>'
+      +'<button class="btn secondary full" id="sn_export_txt" style="margin-top:6px">📄 Transkripte (.txt)</button>'
+      +'<button class="btn danger full" id="sn_clear_all" style="margin-top:6px">🗑️ Alle löschen</button>'
+      +'</div>';
+
+    document.getElementById("sn_export_json").addEventListener("click",function(){
+      var data=all.map(function(n){return {title:n.title,tag:n.tag,dur:n.dur,transcript:n.transcript,t:new Date(n.t).toISOString()};});
+      var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="sprachnotizen.json";a.click();
+      toast("📤","ok");
+    });
+    document.getElementById("sn_export_txt").addEventListener("click",function(){
+      var out="HALDO SPRACHNOTIZEN — TRANSKRIPTE\n"+new Date().toLocaleString("de-DE")+"\n\n";
+      all.slice().sort(function(a,b){return b.t-a.t;}).forEach(function(n){
+        out+="━━━ "+n.title+" ━━━\n";
+        out+=new Date(n.t).toLocaleString("de-DE")+" · Dauer: "+fmtDur(n.dur)+"\n\n";
+        out+=(n.transcript||"[kein Transkript]")+"\n\n";
+      });
+      var blob=new Blob([out],{type:"text/plain;charset=utf-8"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="transkripte.txt";a.click();
+      toast("📄","ok");
+    });
+    document.getElementById("sn_clear_all").addEventListener("click",function(){
+      if(!confirm("Wirklich ALLE Sprachnotizen löschen?"))return;
+      if(!confirm("Sicher? Nicht rückgängig zu machen!"))return;
+      Storage.set("sn_notes",[]);toast("🗑️","ok");AppSprachnotizen.render();
+    });
+  }
+};
+
+/* ============ Auto-Register ============ */
+if(AppLauncher&&AppLauncher.registry){
+  AppLauncher.registry.sprachnotizen=AppSprachnotizen;
+}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){
+    if(a.id==="sprachnotizen"){a.prio=1;a.installed=true;a.cat="Medien";found=true;}
+  });
+  if(!found){
+    APP_PLAN.unshift({id:"sprachnotizen",name:"Sprachnotizen",icon:"🎙️",cat:"Medien",prio:1,installed:true});
+  }
+}
+setTimeout(function(){
+  var btn=document.getElementById("btnFilterAll");
+  if(btn)btn.click();
+},1800);
+
+console.log("[HalDo Sprachnotizen] 🎙️ Aufnehmen + Player + Transkription geladen.");
+})();
+</script>
+<!-- ============ ENDE HALDO SPRACHNOTIZEN ============ -->
 </body>
 </html>
