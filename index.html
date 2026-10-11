@@ -3357,5 +3357,433 @@ console.log("[HalDo Kochbuch] ✅ Modul geladen und registriert.");
 })();
 </script>
 <!-- ============ ENDE HALDO KOCHBUCH APP ============ -->
+<!-- ============================================================
+     HALDO HABITS APP — DROP-IN MODUL
+     Einfach vor </body> einfügen. Nach Reload ist alles aktiv.
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Habits] window.HalDo fehlt.");return;}
+
+var H=window.HalDo;
+var Storage=H.Storage;
+var AppLauncher=H.AppLauncher;
+var APP_PLAN=H.APP_PLAN;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+function select(id,cur,opts){var h='<select id="'+id+'">';opts.forEach(function(o){h+='<option value="'+esc(o[0])+'"'+(String(o[0])===String(cur)?" selected":"")+'>'+esc(o[1])+'</option>';});return h+'</select>';}
+function dateKey(d){d=d||new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function addDays(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x;}
+
+function hbInjectStyles(){
+  if(document.getElementById("hbStyles"))return;
+  var s=document.createElement("style");
+  s.id="hbStyles";
+  s.textContent=".hb-hero{padding:22px 16px;border-radius:14px;background:linear-gradient(135deg,rgba(34,197,94,.18),rgba(0,212,255,.18));border:1px solid rgba(34,197,94,.4);text-align:center;margin-bottom:12px}.hb-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.hb-hero .val{font-size:44px;font-weight:900;color:#4ade80;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.hb-hero .sub{font-size:10.5px;color:var(--text-mute)}.hb-habit{padding:13px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:11px;margin-top:8px}.hb-habit .top{display:flex;align-items:center;gap:10px;margin-bottom:8px}.hb-habit .top .ico{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}.hb-habit .top .txt{flex:1;min-width:0}.hb-habit .top .txt .n{font-size:12.5px;font-weight:800}.hb-habit .top .txt .m{font-size:9.5px;color:var(--text-mute);margin-top:2px}.hb-habit .top .chk{width:44px;height:44px;border-radius:50%;background:var(--bg-3);border:2px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;transition:.2s}.hb-habit .top .chk:hover{border-color:var(--primary);transform:scale(1.08)}.hb-habit .top .chk.done{background:linear-gradient(135deg,#22c55e,#10b981);border-color:#22c55e;color:#fff;box-shadow:0 0 20px rgba(34,197,94,.5)}.hb-habit .days{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:8px}.hb-day{padding:6px 2px;border-radius:6px;text-align:center;font-size:8.5px;font-weight:800;background:var(--bg-3);border:1px solid var(--border);color:var(--text-mute);cursor:pointer;position:relative}.hb-day.done{background:linear-gradient(135deg,#22c55e,#10b981);color:#fff;border-color:#22c55e}.hb-day.today{border-color:#fbbf24;border-width:2px}.hb-day.partial{background:linear-gradient(135deg,rgba(34,197,94,.5),rgba(16,185,129,.5));color:#fff;border-color:rgba(34,197,94,.7)}.hb-day .d{font-size:7.5px;margin-top:1px;opacity:.7}.hb-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}.hb-stat{padding:8px 4px;border-radius:9px;background:var(--bg-3);border:1px solid var(--border);text-align:center}.hb-stat .v{font-size:15px;font-weight:800;color:#4ade80;font-family:ui-monospace,monospace;line-height:1}.hb-stat .l{font-size:8px;color:var(--text-mute);text-transform:uppercase;font-weight:700;margin-top:2px}.streak-fire{display:inline-block;font-size:11px;padding:2px 7px;background:linear-gradient(135deg,rgba(239,68,68,.25),rgba(245,158,11,.25));color:#fbbf24;border-radius:5px;font-weight:800;margin-left:4px}.hb-icon-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin:8px 0}.hb-icon-btn{padding:8px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;cursor:pointer;text-align:center;font-size:20px;transition:.15s}.hb-icon-btn:hover{border-color:#4ade80}.hb-icon-btn.active{border-color:#4ade80;background:rgba(34,197,94,.15)}.hb-color-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin:8px 0}.hb-color-dot{width:100%;aspect-ratio:1;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:.15s}.hb-color-dot.active{border-color:#fff;box-shadow:0 0 0 2px var(--primary)}.hb-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin:8px 0}.hb-cal-head{font-size:8.5px;text-align:center;color:var(--text-mute);font-weight:800;padding:3px 0}.hb-cal-day{aspect-ratio:1;border-radius:5px;background:var(--bg-3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;cursor:pointer;position:relative;color:var(--text-dim)}.hb-cal-day.done{background:linear-gradient(135deg,#22c55e,#10b981);color:#fff;border-color:#22c55e}.hb-cal-day.empty{background:transparent;border:1px dashed rgba(255,255,255,.06);cursor:default}.hb-cal-day.today{border-color:#fbbf24;border-width:2px;font-weight:900}.hb-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}.hb-progress{height:6px;background:rgba(0,0,0,.35);border-radius:3px;overflow:hidden;margin-top:6px}.hb-progress .fill{height:100%;background:linear-gradient(90deg,#22c55e,#00d4ff);border-radius:3px;transition:width .3s}";
+  document.head.appendChild(s);
+}
+
+/* ============ Vorlagen ============ */
+var HB_TEMPLATES=[
+  {n:"Wasser trinken",i:"💧",c:"#0ea5e9",goal:8},
+  {n:"Sport / Workout",i:"🏋️",c:"#ef4444",goal:1},
+  {n:"Lesen",i:"📖",c:"#a855f7",goal:1},
+  {n:"Meditation",i:"🧘",c:"#8b5cf6",goal:1},
+  {n:"Spazieren",i:"🚶",c:"#22c55e",goal:1},
+  {n:"Vitamin nehmen",i:"💊",c:"#f59e0b",goal:1},
+  {n:"Tagebuch",i:"📔",c:"#3b82f6",goal:1},
+  {n:"Früh aufstehen",i:"🌅",c:"#fbbf24",goal:1},
+  {n:"Früh schlafen",i:"🌙",c:"#6366f1",goal:1},
+  {n:"Kein Zucker",i:"🚫",c:"#ef4444",goal:1},
+  {n:"Gesund essen",i:"🥗",c:"#10b981",goal:1},
+  {n:"Zähne putzen",i:"🦷",c:"#06b6d4",goal:2},
+  {n:"Dehnübungen",i:"🤸",c:"#ec4899",goal:1},
+  {n:"Duschen",i:"🚿",c:"#0ea5e9",goal:1},
+  {n:"Sprachen lernen",i:"🗣️",c:"#a855f7",goal:1},
+  {n:"Code üben",i:"💻",c:"#22c55e",goal:1},
+  {n:"Aufräumen",i:"🧹",c:"#f59e0b",goal:1},
+  {n:"Kochen",i:"🍳",c:"#f97316",goal:1},
+  {n:"Beten / Spirituell",i:"🙏",c:"#8b5cf6",goal:1},
+  {n:"Musik üben",i:"🎵",c:"#ec4899",goal:1}
+];
+var HB_ICONS=["💧","🏋️","📖","🧘","🚶","💊","📔","🌅","🌙","🚫","🥗","🦷","🤸","🚿","🗣️","💻","🧹","🍳","🙏","🎵","⭐","🔥","💪","✅","🎯","⏰","📚","🍎","☀️","🎨","🎮","🐕","🌱","💰","🧠","❤️","✨","🎉","🎸","🧴"];
+var HB_COLORS=["#22c55e","#4ade80","#10b981","#0ea5e9","#00d4ff","#3b82f6","#6366f1","#8b5cf6","#a855f7","#ec4899","#f43f5e","#ef4444","#f97316","#f59e0b","#eab308","#fbbf24"];
+
+/* ============ App ============ */
+var AppHabits={
+  tab:"today",_new:{icon:"✅",color:"#22c55e"},
+
+  getHabits:function(){return Storage.get("hb_habits",[]);},
+  saveHabits:function(a){Storage.set("hb_habits",a);},
+  getLog:function(){return Storage.get("hb_log",{});},
+  saveLog:function(o){Storage.set("hb_log",o);},
+
+  /* ---- Log: {habitId: {dateKey: count}} ---- */
+  isDone:function(habitId,dk){
+    var log=this.getLog();
+    return log[habitId]&&log[habitId][dk]?(log[habitId][dk]>0):false;
+  },
+  getCount:function(habitId,dk){
+    var log=this.getLog();
+    if(!log[habitId]||!log[habitId][dk])return 0;
+    return log[habitId][dk];
+  },
+  toggle:function(habitId,dk){
+    var log=this.getLog();
+    if(!log[habitId])log[habitId]={};
+    if(log[habitId][dk]&&log[habitId][dk]>0)delete log[habitId][dk];
+    else log[habitId][dk]=1;
+    this.saveLog(log);
+  },
+  increment:function(habitId,dk){
+    var log=this.getLog();
+    if(!log[habitId])log[habitId]={};
+    log[habitId][dk]=(log[habitId][dk]||0)+1;
+    this.saveLog(log);
+  },
+
+  /* ---- Streak ---- */
+  getStreak:function(habitId){
+    var streak=0;
+    var d=new Date();
+    /* Wenn heute nicht erledigt, morgen prüfen wir ab gestern */
+    if(!this.isDone(habitId,dateKey(d)))d=addDays(d,-1);
+    for(var i=0;i<365;i++){
+      if(this.isDone(habitId,dateKey(d))){streak++;d=addDays(d,-1);}
+      else break;
+    }
+    return streak;
+  },
+  getBestStreak:function(habitId){
+    var log=this.getLog()[habitId]||{};
+    var dates=Object.keys(log).filter(function(k){return log[k]>0;}).sort();
+    var best=0,cur=0,prev=null;
+    dates.forEach(function(dk){
+      if(prev){
+        var diff=Math.round((new Date(dk)-new Date(prev))/86400000);
+        if(diff===1)cur++;else cur=1;
+      }else cur=1;
+      if(cur>best)best=cur;
+      prev=dk;
+    });
+    return best;
+  },
+
+  todayDone:function(){
+    var h=this.getHabits();
+    var dk=dateKey();
+    var done=0;
+    h.forEach(function(x){if(AppHabits.isDone(x.id,dk))done++;});
+    return {done:done,total:h.length};
+  },
+
+  /* ---- Render ---- */
+  render:function(){
+    hbInjectStyles();
+    var vp=document.getElementById("appViewport");
+    var tabs=[
+      {k:"today",n:"✅ Heute"},
+      {k:"habits",n:"📋 Alle"},
+      {k:"stats",n:"📊 Statistik"},
+      {k:"calendar",n:"📅 Kalender"},
+      {k:"new",n:"➕ Neu"}
+    ];
+    var self=this;
+    var th=tabs.map(function(t){return '<button class="ms-tab'+(self.tab===t.k?" active":"")+'" data-hb-tab="'+t.k+'">'+t.n+'</button>';}).join("");
+    vp.innerHTML='<div class="ms-tabs">'+th+'</div><div id="hbContent"></div>';
+    vp.querySelectorAll("[data-hb-tab]").forEach(function(b){b.addEventListener("click",function(){self.tab=b.dataset.hbTab;self.render();});});
+    this.renderTab();
+  },
+
+  renderTab:function(){
+    var el=document.getElementById("hbContent");if(!el)return;
+    var t=this.tab;
+    if(t==="today")this.renderToday(el);
+    else if(t==="habits")this.renderAll(el);
+    else if(t==="stats")this.renderStats(el);
+    else if(t==="calendar")this.renderCalendar(el);
+    else if(t==="new")this.renderNew(el);
+  },
+
+  renderToday:function(el){
+    var self=this;
+    var habits=this.getHabits();
+    var dk=dateKey();
+    var stats=this.todayDone();
+    var pct=stats.total?Math.round(stats.done/stats.total*100):0;
+
+    var habitsHtml=habits.length?habits.map(function(h){
+      var isDone=self.isDone(h.id,dk);
+      var streak=self.getStreak(h.id);
+      /* Letzte 7 Tage */
+      var week=[];
+      for(var i=6;i>=0;i--){
+        var d=addDays(new Date(),-i);
+        var d2=dateKey(d);
+        week.push({key:d2,done:self.isDone(h.id,d2),today:d2===dk,label:["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()]});
+      }
+      var weekHtml=week.map(function(w){
+        return '<div class="hb-day'+(w.done?" done":"")+(w.today?" today":"")+'" data-hb-tog-day="'+h.id+'_'+w.key+'">'+(w.done?"✓":"")+'<div class="d">'+w.label+'</div></div>';
+      }).join("");
+      return '<div class="hb-habit"><div class="top">'
+        +'<div class="ico" style="background:'+h.color+'22;color:'+h.color+'">'+h.icon+'</div>'
+        +'<div class="txt"><div class="n">'+esc(h.n)+(streak>0?'<span class="streak-fire">🔥 '+streak+'</span>':'')+'</div><div class="m">'+self.countTotal(h.id)+'× erledigt gesamt · Beste Serie: '+self.getBestStreak(h.id)+'</div></div>'
+        +'<div class="chk'+(isDone?" done":"")+'" data-hb-tog="'+h.id+'">'+(isDone?"✓":h.icon)+'</div>'
+        +'</div>'
+        +'<div class="days">'+weekHtml+'</div></div>';
+    }).join(""):'<div class="hb-empty">Noch keine Habits. Leg dein erstes an!</div>';
+
+    el.innerHTML='<div class="hb-hero"><div class="lbl">Heute erledigt</div><div class="val">'+stats.done+'<span style="font-size:22px;color:var(--text-mute)">/'+stats.total+'</span></div><div class="sub">'+pct+'% · '+new Date().toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"})+'</div>'
+      +'<div class="hb-progress" style="margin-top:12px;height:8px"><div class="fill" style="width:'+pct+'%"></div></div></div>'
+      +'<div class="card"><div class="card-h"><h3>✅ Meine Habits</h3></div>'+habitsHtml+'</div>'
+      +(habits.length?'':'<div class="card"><div class="card-h"><h3>🚀 Schnellstart</h3></div><div class="info-box">Klick unten, um Vorlagen direkt zu übernehmen.</div><div class="btn-row"><button class="btn success" id="hb_quick_templates">📋 Vorlagen ansehen</button></div></div>');
+
+    el.querySelectorAll("[data-hb-tog]").forEach(function(c){
+      c.addEventListener("click",function(){
+        var id=c.dataset.hbTog;
+        self.toggle(id,dk);
+        var h=null;habits.forEach(function(x){if(x.id===id)h=x;});
+        if(h&&self.isDone(id,dk))toast("✅ "+h.n,"ok");
+        else toast("↩️ Rückgängig");
+        self.renderTab();
+      });
+    });
+    el.querySelectorAll("[data-hb-tog-day]").forEach(function(d){
+      d.addEventListener("click",function(e){
+        e.stopPropagation();
+        var parts=d.dataset.hbTogDay.split("_");
+        /* habitId kann ein "_" enthalten, daher: alles außer letztes Element = id, letztes = date */
+        var dk2=parts.pop();
+        var id=parts.join("_");
+        self.toggle(id,dk2);
+        self.renderTab();
+      });
+    });
+    var q=document.getElementById("hb_quick_templates");
+    if(q)q.addEventListener("click",function(){self.tab="new";self.render();});
+  },
+
+  countTotal:function(habitId){
+    var log=this.getLog()[habitId]||{};
+    var n=0;Object.keys(log).forEach(function(k){if(log[k]>0)n++;});
+    return n;
+  },
+
+  renderAll:function(el){
+    var self=this;
+    var habits=this.getHabits();
+    var dk=dateKey();
+    var listHtml=habits.length?habits.map(function(h){
+      var streak=self.getStreak(h.id);
+      var total=self.countTotal(h.id);
+      return '<div class="app-list-item"><span class="ico" style="font-size:20px">'+h.icon+'</span><div class="txt"><div class="t">'+esc(h.n)+(streak>0?' 🔥'+streak:'')+'</div><div class="d">'+total+'× gesamt · Ziel: '+h.goal+'×/Tag</div></div><button class="del" data-hb-rm="'+h.id+'">🗑️</button></div>';
+    }).join(""):'<div class="hb-empty">Keine Habits.</div>';
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>📋 Alle Habits ('+habits.length+')</h3></div>'
+      +'<div class="btn-row"><button class="btn success small" id="hb_goto_new">➕ Neu</button><button class="btn secondary small" id="hb_sort">🔤 Alphabetisch</button></div>'
+      +'<div class="app-list">'+listHtml+'</div></div>';
+
+    el.querySelectorAll("[data-hb-rm]").forEach(function(b){
+      b.addEventListener("click",function(e){
+        e.stopPropagation();if(!confirm("Habit löschen?"))return;
+        var id=b.dataset.hbRm;
+        self.saveHabits(self.getHabits().filter(function(x){return x.id!==id;}));
+        var log=self.getLog();delete log[id];self.saveLog(log);
+        toast("🗑️ Gelöscht");self.renderTab();
+      });
+    });
+    document.getElementById("hb_goto_new").addEventListener("click",function(){self.tab="new";self.render();});
+    document.getElementById("hb_sort").addEventListener("click",function(){
+      var arr=self.getHabits().slice().sort(function(a,b){return a.n.localeCompare(b.n);});
+      self.saveHabits(arr);self.renderTab();
+    });
+  },
+
+  renderStats:function(el){
+    var self=this;
+    var habits=this.getHabits();
+    var log=this.getLog();
+    var totalDone=0,totalPossible=0;
+    var habitStats=habits.map(function(h){
+      var total=self.countTotal(h.id);
+      var best=self.getBestStreak(h.id);
+      var cur=self.getStreak(h.id);
+      totalDone+=total;
+      return {h:h,total:total,best:best,cur:cur};
+    });
+    var last30Count=0;
+    for(var i=0;i<30;i++){
+      var dk=dateKey(addDays(new Date(),-i));
+      habits.forEach(function(h){if(self.isDone(h.id,dk))last30Count++;});
+    }
+    var perDayAvg=habits.length?(last30Count/30).toFixed(1):0;
+
+    var listHtml=habitStats.map(function(s){
+      var pct=s.total?Math.min(100,Math.round(s.total/30*100)):0;
+      return '<div style="padding:11px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:6px;border-left:3px solid '+s.h.color+'">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:11.5px;font-weight:800">'+s.h.icon+' '+esc(s.h.n)+'</div><div style="font-size:10.5px;font-weight:800;color:'+s.h.color+';font-family:ui-monospace,monospace">'+s.total+'×</div></div>'
+        +'<div class="hb-stats" style="margin-top:4px"><div class="hb-stat"><div class="v">'+s.cur+'</div><div class="l">Aktuell</div></div><div class="hb-stat"><div class="v">'+s.best+'</div><div class="l">Best</div></div><div class="hb-stat"><div class="v">'+Math.round(s.total/Math.max(1,30)*100)+'%</div><div class="l">30T</div></div></div>'
+        +'</div>';
+    }).join("");
+
+    el.innerHTML='<div class="hb-hero"><div class="lbl">Alle Habits gesamt</div><div class="val">'+totalDone+'</div><div class="sub">'+habits.length+' Habits · Ø '+perDayAvg+'/Tag</div></div>'
+      +'<div class="card"><div class="card-h"><h3>📊 Pro Habit</h3></div>'+listHtml+'</div>'
+      +'<div class="card"><div class="card-h"><h3>📤 Export</h3></div>'
+      +'<button class="btn secondary full" id="hb_export">📤 Als JSON exportieren</button>'
+      +'<button class="btn secondary full" id="hb_report" style="margin-top:6px">📄 Textbericht</button></div>';
+
+    document.getElementById("hb_export").addEventListener("click",function(){
+      var data={habits:self.getHabits(),log:self.getLog()};
+      var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="habits_"+dateKey()+".json";a.click();
+      toast("📤","ok");
+    });
+    document.getElementById("hb_report").addEventListener("click",function(){
+      var out="HALDO HABITS REPORT\n"+new Date().toLocaleString("de-DE")+"\n\n";
+      out+="Habits gesamt: "+habits.length+"\n";
+      out+="Erledigungen gesamt: "+totalDone+"\n";
+      out+="Ø pro Tag (30T): "+perDayAvg+"\n\n";
+      out+="PRO HABIT:\n";
+      habitStats.forEach(function(s){
+        out+=s.h.icon+" "+s.h.n+": "+s.total+"× · Aktuelle Serie "+s.cur+" · Beste Serie "+s.best+"\n";
+      });
+      var blob=new Blob([out],{type:"text/plain;charset=utf-8"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="habits_report.txt";a.click();
+      toast("📄","ok");
+    });
+  },
+
+  renderCalendar:function(el){
+    var self=this;
+    var habits=this.getHabits();
+    var _month=this._month||new Date();
+    var y=_month.getFullYear(),m=_month.getMonth();
+    var monthName=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"][m];
+    var first=new Date(y,m,1);
+    var lastDay=new Date(y,m+1,0).getDate();
+    var startDow=(first.getDay()+6)%7; /* Mo = 0 */
+    var log=this.getLog();
+
+    var head=["Mo","Di","Mi","Do","Fr","Sa","So"].map(function(d){return '<div class="hb-cal-head">'+d+'</div>';}).join("");
+    var cells="";
+    for(var i=0;i<startDow;i++)cells+='<div class="hb-cal-day empty"></div>';
+    var today=dateKey();
+    for(var d=1;d<=lastDay;d++){
+      var dk=y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+      var doneCount=0;
+      habits.forEach(function(h){if(log[h.id]&&log[h.id][dk]>0)doneCount++;});
+      var done=doneCount>0;
+      cells+='<div class="hb-cal-day'+(done?" done":"")+(dk===today?" today":"")+'" title="'+doneCount+' Habits">'+d+'</div>';
+    }
+
+    var selHabit=this._calHabit||(habits[0]?habits[0].id:null);
+    var habitRows="";
+    if(selHabit){
+      var h=null;habits.forEach(function(x){if(x.id===selHabit)h=x;});
+      if(h){
+        var hLog=log[h.id]||{};
+        var monthDone=0;
+        for(var d2=1;d2<=lastDay;d2++){
+          var k=y+"-"+String(m+1).padStart(2,"0")+"-"+String(d2).padStart(2,"0");
+          if(hLog[k]>0)monthDone++;
+        }
+        habitRows='<div class="info-box"><b>'+h.icon+' '+esc(h.n)+'</b> — '+monthDone+'× in '+monthName+'</div>';
+      }
+    }
+    var habitSelectOpts=habits.map(function(h){return [h.id,h.icon+" "+h.n];});
+    var selHtml=habits.length?'<div class="field"><label>Habit-Ansicht</label>'+select("hb_cal_habit",selHabit,habitSelectOpts)+'</div>':'';
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>📅 '+monthName+' '+y+'</h3></div>'
+      +'<div class="btn-row"><button class="btn secondary small" id="hb_prev">← Zurück</button><button class="btn secondary small" id="hb_next">Weiter →</button><button class="btn secondary small" id="hb_now">Heute</button></div>'
+      +'<div class="hb-cal" style="margin-top:10px">'+head+cells+'</div></div>'
+      +(habits.length?'<div class="card"><div class="card-h"><h3>🔍 Einzelansicht</h3></div>'+selHtml+habitRows+'</div>':'<div class="hb-empty">Erst Habits anlegen.</div>');
+
+    document.getElementById("hb_prev").addEventListener("click",function(){
+      self._month=new Date(y,m-1,1);self.renderTab();
+    });
+    document.getElementById("hb_next").addEventListener("click",function(){
+      self._month=new Date(y,m+1,1);self.renderTab();
+    });
+    document.getElementById("hb_now").addEventListener("click",function(){
+      self._month=new Date();self.renderTab();
+    });
+    var cs=document.getElementById("hb_cal_habit");
+    if(cs)cs.addEventListener("change",function(){self._calHabit=cs.value;self.renderTab();});
+  },
+
+  renderNew:function(el){
+    var self=this;
+    var cur=this._new;
+    var templatesHtml=HB_TEMPLATES.map(function(t,i){
+      return '<div class="app-list-item" data-hb-tpl="'+i+'"><span class="ico" style="font-size:20px">'+t.i+'</span><div class="txt"><div class="t">'+esc(t.n)+'</div><div class="d">Ziel: '+t.goal+'×/Tag</div></div><span style="color:var(--text-mute)">›</span></div>';
+    }).join("");
+    var iconsHtml=HB_ICONS.map(function(ic){
+      return '<div class="hb-icon-btn'+(cur.icon===ic?" active":"")+'" data-hb-ic="'+ic+'">'+ic+'</div>';
+    }).join("");
+    var colorsHtml=HB_COLORS.map(function(c){
+      return '<div class="hb-color-dot'+(cur.color===c?" active":"")+'" data-hb-col="'+c+'" style="background:'+c+'"></div>';
+    }).join("");
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>➕ Neues Habit</h3></div>'
+      +'<div class="field"><label>Name</label><input type="text" id="hb_new_n" placeholder="z.B. Wasser trinken"></div>'
+      +'<div class="field"><label>Ziel pro Tag</label><input type="number" id="hb_new_goal" value="1" min="1" max="50"></div>'
+      +'<div class="field"><label>Icon</label><div class="hb-icon-grid">'+iconsHtml+'</div></div>'
+      +'<div class="field"><label>Farbe</label><div class="hb-color-grid">'+colorsHtml+'</div></div>'
+      +'<button class="btn success full" id="hb_create">➕ Habit anlegen</button></div>'
+      +'<div class="card"><div class="card-h"><h3>⚡ Vorlagen</h3></div><div class="info-box">Klick auf eine Vorlage, um sie sofort zu übernehmen.</div><div class="app-list">'+templatesHtml+'</div></div>';
+
+    el.querySelectorAll("[data-hb-ic]").forEach(function(b){
+      b.addEventListener("click",function(){cur.icon=b.dataset.hbIc;self.renderTab();});
+    });
+    el.querySelectorAll("[data-hb-col]").forEach(function(b){
+      b.addEventListener("click",function(){cur.color=b.dataset.hbCol;self.renderTab();});
+    });
+    el.querySelectorAll("[data-hb-tpl]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=HB_TEMPLATES[parseInt(b.dataset.hbTpl)];
+        var arr=self.getHabits();
+        if(arr.some(function(x){return x.n===t.n;}))return toast("⚠️ Gibt es schon","err");
+        arr.push({id:"h_"+Date.now(),n:t.n,i:t.i,c:t.c,goal:t.goal,icon:t.i,color:t.c,created:Date.now()});
+        self.saveHabits(arr);toast("✅ "+t.n+" angelegt","ok");self.tab="today";self.render();
+      });
+    });
+    document.getElementById("hb_create").addEventListener("click",function(){
+      var n=val("hb_new_n").trim();if(!n)return toast("⚠️ Name fehlt","err");
+      var goal=parseInt(val("hb_new_goal"))||1;
+      var arr=self.getHabits();
+      arr.push({id:"h_"+Date.now(),n:n,i:cur.icon,c:cur.color,icon:cur.icon,color:cur.color,goal:goal,created:Date.now()});
+      self.saveHabits(arr);
+      toast("✅ Habit angelegt","ok");
+      self._new={icon:"✅",color:"#22c55e"};
+      self.tab="today";self.render();
+    });
+  }
+};
+
+/* ============ Auto-Register ============ */
+if(AppLauncher&&AppLauncher.registry){
+  AppLauncher.registry.habits=AppHabits;
+}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){
+    if(a.id==="habits"){a.prio=1;a.installed=true;a.cat="Produktivität";found=true;}
+  });
+  if(!found){
+    APP_PLAN.unshift({id:"habits",name:"Habits",icon:"🎯",cat:"Produktivität",prio:1,installed:true});
+  }
+}
+setTimeout(function(){
+  var btn=document.getElementById("btnFilterAll");
+  if(btn)btn.click();
+},1800);
+
+console.log("[HalDo Habits] ✅ Modul geladen und registriert.");
+})();
+</script>
+<!-- ============ ENDE HALDO HABITS APP ============ -->
 </body>
 </html>
