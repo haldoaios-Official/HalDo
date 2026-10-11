@@ -2225,10 +2225,466 @@ var AppTimer={interval:null,remaining:0,running:false,total:0,
   start:function(){if(this.running||this.remaining<=0)return;this.running=true;var self=this;this.interval=setInterval(function(){self.remaining--;self.renderBig();if(self.remaining<=0){self.pause();toast("⏰","ok");speak("Zeit abgelaufen");Beep.warning();}},1000);},
   pause:function(){this.running=false;if(this.interval)clearInterval(this.interval);this.interval=null;}
 };
+<script>
+/* ============================================================
+   FINANZEN — AppModul
+   ============================================================ */
+function finInjectStyles(){
+  if(document.getElementById("finStyles"))return;
+  var s=document.createElement("style");
+  s.id="finStyles";
+  s.textContent=".fn-balance{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(0,212,255,.15));border:1px solid var(--border-hi);text-align:center;margin-bottom:12px}.fn-balance .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.fn-balance .val{font-size:34px;font-weight:900;font-family:ui-monospace,monospace;color:var(--primary);margin:6px 0;line-height:1}.fn-balance .sub{font-size:10px;color:var(--text-mute)}.fn-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}.fn-stat{padding:11px 6px;border-radius:11px;text-align:center;border:1px solid var(--border);background:linear-gradient(180deg,var(--bg-4),var(--bg-3))}.fn-stat .v{font-size:14px;font-weight:800;font-family:ui-monospace,monospace;line-height:1}.fn-stat .l{font-size:8.5px;color:var(--text-dim);text-transform:uppercase;font-weight:700;margin-top:3px}.fn-stat.inc{border-color:rgba(34,197,94,.4)}.fn-stat.inc .v{color:#4ade80}.fn-stat.exp{border-color:rgba(239,68,68,.4)}.fn-stat.exp .v{color:#ff8080}.fn-stat.bal{border-color:rgba(0,212,255,.4)}.fn-stat.bal .v{color:var(--primary)}.fn-chart{display:flex;align-items:flex-end;gap:6px;height:130px;padding:8px;background:var(--bg-3);border-radius:11px;border:1px solid var(--border);margin:8px 0}.fn-chart-col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:2px;height:100%}.fn-chart-bars{display:flex;gap:1px;align-items:flex-end;height:100%;width:100%;justify-content:center}.fn-bar{width:44%;min-height:2px;border-radius:3px 3px 0 0;transition:.3s}.fn-bar.inc{background:linear-gradient(180deg,#4ade80,#22c55e)}.fn-bar.exp{background:linear-gradient(180deg,#ff8080,#ef4444)}.fn-chart-lbl{font-size:8.5px;color:var(--text-mute);font-weight:700;text-transform:uppercase}.fn-cat-row{display:flex;align-items:center;gap:9px;padding:9px 11px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:5px}.fn-cat-row .ico{font-size:17px;flex-shrink:0}.fn-cat-row .body{flex:1;min-width:0}.fn-cat-row .body .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;gap:6px}.fn-cat-row .body .top .n{font-size:11.5px;font-weight:700}.fn-cat-row .body .top .a{font-size:11px;font-weight:800;font-family:ui-monospace,monospace;color:var(--text)}.fn-bar-track{height:6px;background:rgba(0,0,0,.35);border-radius:4px;overflow:hidden}.fn-bar-fill{height:100%;border-radius:4px;transition:width .3s}.fn-goal{padding:12px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:11px;margin-top:8px}.fn-goal .h{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}.fn-goal .h .n{font-size:12.5px;font-weight:800}.fn-goal .h .a{font-size:10.5px;color:var(--primary);font-weight:800;font-family:ui-monospace,monospace}.fn-goal .bar{height:10px;background:rgba(0,0,0,.35);border-radius:5px;overflow:hidden;margin-bottom:6px}.fn-goal .bar .fill{height:100%;background:linear-gradient(90deg,var(--success),var(--primary));border-radius:5px;transition:width .3s}.fn-goal .meta{display:flex;justify-content:space-between;font-size:9.5px;color:var(--text-mute);margin-bottom:8px}.fn-type-toggle{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}.fn-type-btn{padding:11px;border-radius:9px;border:1px solid var(--border);background:var(--bg-3);color:var(--text-dim);font-family:inherit;font-size:12px;font-weight:800;cursor:pointer}.fn-type-btn.active.inc{background:rgba(34,197,94,.18);border-color:#22c55e;color:#4ade80}.fn-type-btn.active.exp{background:rgba(239,68,68,.18);border-color:#ef4444;color:#ff8080}.fn-row{display:flex;gap:6px;align-items:center;padding:9px 11px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:5px}.fn-row .ico{font-size:16px}.fn-row .txt{flex:1;min-width:0}.fn-row .txt .t{font-size:11.5px;font-weight:700}.fn-row .txt .d{font-size:9.5px;color:var(--text-mute);margin-top:2px}.fn-row .amt{font-size:12px;font-weight:800;font-family:ui-monospace,monospace}.fn-row .amt.in{color:#4ade80}.fn-row .amt.out{color:#ff8080}.fn-fix-item{padding:10px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:6px}.fn-fix-item .h{display:flex;justify-content:space-between;align-items:center;gap:8px}.fn-fix-item .h .n{font-size:11.5px;font-weight:800}.fn-fix-item .h .a{font-size:11px;font-weight:800;font-family:ui-monospace,monospace;color:var(--primary)}.fn-fix-item .meta{font-size:9.5px;color:var(--text-mute);margin-top:4px}.fn-empty{padding:20px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}";
+  document.head.appendChild(s);
+}
 
+var FinanzData={
+  cats:{
+    einnahmen:[
+      {id:"gehalt",n:"Gehalt",i:"💼",c:"#22c55e"},
+      {id:"bonus",n:"Bonus",i:"🎁",c:"#4ade80"},
+      {id:"geschenk",n:"Geschenk",i:"🎀",c:"#86efac"},
+      {id:"zinsen",n:"Zinsen",i:"🏦",c:"#10b981"},
+      {id:"verkauf",n:"Verkauf",i:"🏷️",c:"#6ee7b7"},
+      {id:"sonst_ein",n:"Sonstige",i:"➕",c:"#a7f3d0"}
+    ],
+    ausgaben:[
+      {id:"wohnen",n:"Wohnen",i:"🏠",c:"#f59e0b"},
+      {id:"lebensmittel",n:"Lebensmittel",i:"🛒",c:"#f97316"},
+      {id:"transport",n:"Transport",i:"🚗",c:"#ef4444"},
+      {id:"freizeit",n:"Freizeit",i:"🎉",c:"#a855f7"},
+      {id:"gesundheit",n:"Gesundheit",i:"🩺",c:"#ec4899"},
+      {id:"kleidung",n:"Kleidung",i:"👕",c:"#06b6d4"},
+      {id:"restaurant",n:"Restaurant",i:"🍔",c:"#eab308"},
+      {id:"abo",n:"Abos",i:"📱",c:"#8b5cf6"},
+      {id:"bildung",n:"Bildung",i:"📚",c:"#3b82f6"},
+      {id:"technik",n:"Technik",i:"💻",c:"#0ea5e9"},
+      {id:"sparen",n:"Sparen",i:"🐖",c:"#10b981"},
+      {id:"sonst_aus",n:"Sonstige",i:"➖",c:"#94a3b8"}
+    ]
+  },
+  find:function(id){var r=null;this.cats.einnahmen.concat(this.cats.ausgaben).forEach(function(c){if(c.id===id)r=c;});return r||{id:"?",n:"?",i:"❓",c:"#888"};},
+  catOpts:function(type){return this.cats[type==="in"?"einnahmen":"ausgaben"].map(function(c){return [c.id,c.i+" "+c.n];});}
+};
+
+function fmtEuro(n){
+  if(n===undefined||n===null||isNaN(n))n=0;
+  var neg=n<0;var abs=Math.abs(n).toFixed(2);
+  var parts=abs.split(".");
+  var intp=parts[0].replace(/\B(?=(\d{3})+(?!\d))/g,".");
+  return (neg?"-":"")+intp+","+parts[1]+" €";
+}
+function fnMonthKey(d){d=d||new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");}
+function fnMonthLabel(k){var p=k.split("-");var m=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];return m[parseInt(p[1],10)-1]+" "+p[0].substring(2);}
+function fnToday(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+
+var AppFinanzen={
+  tab:"dash",
+  draft:{type:"out",cat:"lebensmittel"},
+
+  getTrans:function(){return Storage.get("fin_trans",[]);},
+  saveTrans:function(a){Storage.set("fin_trans",a);},
+  getBudgets:function(){return Storage.get("fin_budgets",{});},
+  saveBudgets:function(o){Storage.set("fin_budgets",o);},
+  getGoals:function(){return Storage.get("fin_goals",[]);},
+  saveGoals:function(a){Storage.set("fin_goals",a);},
+  getFix:function(){return Storage.get("fin_fix",[]);},
+  saveFix:function(a){Storage.set("fin_fix",a);},
+
+  calcMonth:function(mk){
+    var t=this.getTrans();var inc=0,exp=0;
+    t.forEach(function(x){if(x.date.substring(0,7)!==mk)return;if(x.type==="in")inc+=x.amount;else exp+=x.amount;});
+    return {inc:inc,exp:exp,bal:inc-exp};
+  },
+  calcTotal:function(){
+    var t=this.getTrans();var b=0;
+    t.forEach(function(x){b+=(x.type==="in"?x.amount:-x.amount);});
+    return b;
+  },
+  lastMonths:function(n){
+    var arr=[];var d=new Date();
+    for(var i=n-1;i>=0;i--){
+      var m=new Date(d.getFullYear(),d.getMonth()-i,1);
+      arr.push(fnMonthKey(m));
+    }
+    return arr;
+  },
+  catSpent:function(catId,mk){
+    var t=this.getTrans();var s=0;
+    t.forEach(function(x){if(x.type!=="out")return;if(x.cat!==catId)return;if(x.date.substring(0,7)!==mk)return;s+=x.amount;});
+    return s;
+  },
+
+  render:function(){
+    finInjectStyles();
+    var vp=document.getElementById("appViewport");
+    var tabs=[
+      {k:"dash",n:"📊 Dashboard"},
+      {k:"trans",n:"💳 Buchungen"},
+      {k:"budget",n:"🎯 Budgets"},
+      {k:"goals",n:"🐖 Sparziele"},
+      {k:"fix",n:"🔁 Fixkosten"},
+      {k:"report",n:"📈 Bericht"}
+    ];
+    var self=this;
+    var th=tabs.map(function(t){return '<button class="ms-tab'+(self.tab===t.k?" active":"")+'" data-fn-tab="'+t.k+'">'+t.n+'</button>';}).join("");
+    vp.innerHTML='<div class="ms-tabs">'+th+'</div><div id="fnContent"></div>';
+    vp.querySelectorAll("[data-fn-tab]").forEach(function(b){b.addEventListener("click",function(){self.tab=b.dataset.fnTab;self.render();});});
+    this.renderTab();
+    AIHelper.attachAll(vp);
+  },
+
+  renderTab:function(){
+    var el=document.getElementById("fnContent");if(!el)return;
+    var t=this.tab;
+    if(t==="dash")this.renderDash(el);
+    else if(t==="trans")this.renderTrans(el);
+    else if(t==="budget")this.renderBudget(el);
+    else if(t==="goals")this.renderGoals(el);
+    else if(t==="fix")this.renderFix(el);
+    else if(t==="report")this.renderReport(el);
+  },
+
+  renderDash:function(el){
+    var mk=fnMonthKey();
+    var m=this.calcMonth(mk);
+    var total=this.calcTotal();
+    var months=this.lastMonths(6);
+    var maxVal=1;
+    var monthData=months.map(function(k){var r=AppFinanzen.calcMonth(k);var v=Math.max(r.inc,r.exp);if(v>maxVal)maxVal=v;return{k:k,r:r};});
+    var chartHtml='<div class="fn-chart">'+monthData.map(function(md){
+      var hi=Math.round(md.r.inc/maxVal*100);var he=Math.round(md.r.exp/maxVal*100);
+      return '<div class="fn-chart-col"><div class="fn-chart-bars"><div class="fn-bar inc" style="height:'+Math.max(2,hi)+'%"></div><div class="fn-bar exp" style="height:'+Math.max(2,he)+'%"></div></div><div class="fn-chart-lbl">'+fnMonthLabel(md.k).substring(0,3)+'</div></div>';
+    }).join("")+'</div>';
+    var catTotals={};
+    this.getTrans().forEach(function(x){
+      if(x.type!=="out")return;if(x.date.substring(0,7)!==mk)return;
+      catTotals[x.cat]=(catTotals[x.cat]||0)+x.amount;
+    });
+    var topCats=Object.keys(catTotals).map(function(k){return {id:k,sum:catTotals[k]};});
+    topCats.sort(function(a,b){return b.sum-a.sum;});
+    topCats=topCats.slice(0,5);
+    var maxCat=topCats.length?topCats[0].sum:1;
+    var catHtml=topCats.length?topCats.map(function(c){
+      var cat=FinanzData.find(c.id);
+      var pct=Math.round(c.sum/maxCat*100);
+      return '<div class="fn-cat-row"><span class="ico">'+cat.i+'</span><div class="body"><div class="top"><span class="n">'+esc(cat.n)+'</span><span class="a" style="color:'+cat.c+'">'+fmtEuro(c.sum)+'</span></div><div class="fn-bar-track"><div class="fn-bar-fill" style="width:'+pct+'%;background:'+cat.c+'"></div></div></div></div>';
+    }).join(""):'<div class="fn-empty">Keine Ausgaben diesen Monat.</div>';
+    var recent=this.getTrans().slice().sort(function(a,b){return b.date.localeCompare(a.date)||b.t-a.t;}).slice(0,6);
+    var recHtml=recent.length?recent.map(function(x){
+      var cat=FinanzData.find(x.cat);
+      var sign=x.type==="in"?"+":"−";
+      return '<div class="fn-row"><span class="ico">'+cat.i+'</span><div class="txt"><div class="t">'+esc(x.desc||cat.n)+'</div><div class="d">'+esc(cat.n)+' · '+x.date.split("-").reverse().join(".")+'</div></div><span class="amt '+(x.type==="in"?"in":"out")+'">'+sign+' '+fmtEuro(x.amount)+'</span></div>';
+    }).join(""):'<div class="fn-empty">Noch keine Buchungen.</div>';
+
+    el.innerHTML='<div class="fn-balance"><div class="lbl">Gesamt-Guthaben</div><div class="val">'+fmtEuro(total)+'</div><div class="sub">'+this.getTrans().length+' Buchungen gesamt</div></div>'
+      +'<div class="fn-stats"><div class="fn-stat inc"><div class="v">'+fmtEuro(m.inc)+'</div><div class="l">Einnahmen</div></div>'
+      +'<div class="fn-stat exp"><div class="v">'+fmtEuro(m.exp)+'</div><div class="l">Ausgaben</div></div>'
+      +'<div class="fn-stat bal"><div class="v">'+fmtEuro(m.bal)+'</div><div class="l">Saldo</div></div></div>'
+      +'<div class="card"><div class="card-h"><h3>📈 Letzte 6 Monate</h3></div>'+chartHtml
+      +'<div style="display:flex;gap:12px;font-size:10px;color:var(--text-dim);justify-content:center"><span>🟩 Einnahmen</span><span>🟥 Ausgaben</span></div></div>'
+      +'<div class="card"><div class="card-h"><h3>🏆 Top Kategorien</h3></div>'+catHtml+'</div>'
+      +'<div class="card"><div class="card-h"><h3>💳 Letzte Buchungen</h3></div>'+recHtml
+      +'<button class="btn success full" id="fn_quick_add" style="margin-top:10px">➕ Neue Buchung</button></div>';
+    var q=document.getElementById("fn_quick_add");
+    if(q)q.addEventListener("click",function(){AppFinanzen.tab="trans";AppFinanzen.render();});
+  },
+
+  renderTrans:function(el){
+    var self=this;
+    var type=this.draft.type||"out";
+    var cat=this.draft.cat||(type==="in"?"gehalt":"lebensmittel");
+    var catOpts=FinanzData.catOpts(type);
+    var trans=this.getTrans().slice().sort(function(a,b){return b.date.localeCompare(a.date)||b.t-a.t;});
+    var filtered=trans.slice(0,60);
+    var listHtml=filtered.length?filtered.map(function(x,i){
+      var c=FinanzData.find(x.cat);
+      var sign=x.type==="in"?"+":"−";
+      return '<div class="fn-row" data-fn-del="'+esc(x.id)+'"><span class="ico">'+c.i+'</span><div class="txt"><div class="t">'+esc(x.desc||c.n)+'</div><div class="d">'+esc(c.n)+' · '+x.date.split("-").reverse().join(".")+'</div></div><span class="amt '+(x.type==="in"?"in":"out")+'">'+sign+' '+fmtEuro(x.amount)+'</span><button class="del" style="padding:5px 9px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#ff8080;border-radius:6px;cursor:pointer;font-size:10px;margin-left:6px">🗑️</button></div>';
+    }).join(""):'<div class="fn-empty">Keine Buchungen.</div>';
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>➕ Neue Buchung</h3></div>'
+      +'<div class="fn-type-toggle">'
+      +'<button class="fn-type-btn inc'+(type==="in"?" active":"")+'" data-fn-type="in">📥 Einnahme</button>'
+      +'<button class="fn-type-btn exp'+(type==="out"?" active":"")+'" data-fn-type="out">📤 Ausgabe</button>'
+      +'</div>'
+      +'<div class="field"><label>Betrag (€)</label><input type="number" id="fn_amt" step="0.01" placeholder="0,00"></div>'
+      +'<div class="field"><label>Kategorie</label>'+select("fn_cat",cat,catOpts)+'</div>'
+      +'<div class="field"><label>Beschreibung</label><input type="text" id="fn_desc" data-ai placeholder="z.B. Wocheneinkauf"></div>'
+      +'<div class="field"><label>Datum</label><input type="date" id="fn_date" value="'+fnToday()+'"></div>'
+      +'<button class="btn success full" id="fn_add">💾 Buchung speichern</button></div>'
+      +'<div class="card"><div class="card-h"><h3>💳 Buchungen ('+trans.length+')</h3></div>'
+      +'<div class="btn-row"><button class="btn secondary small" id="fn_export_csv">⬇️ CSV</button><button class="btn danger small" id="fn_clear_all">🗑️ Alles</button></div>'
+      +'<div id="fn_list">'+listHtml+'</div></div>';
+
+    el.querySelectorAll("[data-fn-type]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=b.dataset.fnType;
+        self.draft.type=t;
+        self.draft.cat=(t==="in"?"gehalt":"lebensmittel");
+        self.renderTab();
+      });
+    });
+    var cs=document.getElementById("fn_cat");
+    if(cs)cs.addEventListener("change",function(){self.draft.cat=cs.value;});
+
+    document.getElementById("fn_add").addEventListener("click",function(){
+      var amt=parseFloat(String(val("fn_amt")).replace(",","."));
+      if(isNaN(amt)||amt<=0)return toast("⚠️ Betrag fehlt","err");
+      var d=val("fn_date")||fnToday();
+      var t=self.draft.type;
+      var c=val("fn_cat");
+      var desc=val("fn_desc").trim();
+      var arr=self.getTrans();
+      arr.push({id:"t_"+Date.now()+"_"+Math.random().toString(36).slice(2,6),type:t,cat:c,amount:Math.round(amt*100)/100,desc:desc,date:d,t:Date.now()});
+      self.saveTrans(arr);
+      toast((t==="in"?"📥 +":"📤 −")+fmtEuro(amt),"ok");
+      self.renderTab();
+    });
+
+    el.querySelectorAll("[data-fn-del]").forEach(function(row){
+      var delBtn=row.querySelector(".del");
+      delBtn.addEventListener("click",function(e){
+        e.stopPropagation();
+        var id=row.dataset.fnDel;
+        if(!confirm("Buchung löschen?"))return;
+        self.saveTrans(self.getTrans().filter(function(x){return x.id!==id;}));
+        toast("🗑️ Gelöscht","ok");
+        self.renderTab();
+      });
+    });
+
+    document.getElementById("fn_export_csv").addEventListener("click",function(){
+      var rows=[["Datum","Typ","Kategorie","Beschreibung","Betrag"]];
+      trans.forEach(function(x){
+        var c=FinanzData.find(x.cat);
+        rows.push([x.date,x.type==="in"?"Einnahme":"Ausgabe",c.n,(x.desc||"").replace(/;/g,","),x.amount.toFixed(2).replace(".",",")]);
+      });
+      var csv=rows.map(function(r){return r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(";");}).join("\n");
+      var blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="finanzen_"+fnToday()+".csv";a.click();
+      toast("⬇️ CSV","ok");
+    });
+
+    document.getElementById("fn_clear_all").addEventListener("click",function(){
+      if(!confirm("Wirklich ALLE Buchungen löschen?"))return;
+      self.saveTrans([]);toast("🗑️","ok");self.renderTab();
+    });
+
+    AIHelper.attachAll(el);
+  },
+
+  renderBudget:function(el){
+    var self=this;
+    var budgets=this.getBudgets();
+    var mk=fnMonthKey();
+    var cats=FinanzData.cats.ausgaben;
+    var totalBudget=0,totalSpent=0;
+    cats.forEach(function(c){
+      var b=budgets[c.id]||0;totalBudget+=b;
+      var s=self.catSpent(c.id,mk);totalSpent+=s;
+    });
+    var html='<div class="card"><div class="card-h"><h3>🎯 Monatsbudget '+fnMonthLabel(mk)+'</h3></div>'
+      +'<div class="fn-stats"><div class="fn-stat bal"><div class="v">'+fmtEuro(totalBudget)+'</div><div class="l">Budget</div></div>'
+      +'<div class="fn-stat exp"><div class="v">'+fmtEuro(totalSpent)+'</div><div class="l">Ausgegeben</div></div>'
+      +'<div class="fn-stat '+(totalBudget-totalSpent>=0?"inc":"exp")+'"><div class="v">'+fmtEuro(totalBudget-totalSpent)+'</div><div class="l">Rest</div></div></div></div>'
+      +'<div class="card"><div class="card-h"><h3>📊 Pro Kategorie</h3></div>';
+
+    cats.forEach(function(c){
+      var b=budgets[c.id]||0;
+      var s=self.catSpent(c.id,mk);
+      var pct=b>0?Math.min(100,Math.round(s/b*100)):0;
+      var over=b>0&&s>b;
+      var barColor=over?"#ef4444":(pct>80?"#f59e0b":c.c);
+      html+='<div class="fn-cat-row"><span class="ico">'+c.i+'</span><div class="body">'
+        +'<div class="top"><span class="n">'+esc(c.n)+'</span><span class="a" style="color:'+barColor+'">'+fmtEuro(s)+(b>0?' / '+fmtEuro(b):'')+'</span></div>'
+        +'<div class="fn-bar-track"><div class="fn-bar-fill" style="width:'+pct+'%;background:'+barColor+'"></div></div>'
+        +'<div style="display:flex;gap:5px;margin-top:6px;align-items:center">'
+        +'<input type="number" step="0.01" placeholder="Budget €" value="'+(budgets[c.id]||"")+'" data-fn-bud="'+c.id+'" style="flex:1;background:var(--bg-4);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:10.5px;outline:none;font-family:inherit">'
+        +'</div></div></div>';
+    });
+    html+='</div>';
+    el.innerHTML=html;
+
+    el.querySelectorAll("[data-fn-bud]").forEach(function(inp){
+      inp.addEventListener("change",function(){
+        var id=inp.dataset.fnBud;
+        var v=parseFloat(String(inp.value).replace(",","."));
+        var b=self.getBudgets();
+        if(isNaN(v)||v<=0)delete b[id];else b[id]=Math.round(v*100)/100;
+        self.saveBudgets(b);
+        toast("💾 Budget gespeichert","ok");
+        self.renderTab();
+      });
+    });
+  },
+
+  renderGoals:function(el){
+    var self=this;
+    var goals=this.getGoals();
+    var listHtml=goals.length?goals.map(function(g){
+      var pct=g.target>0?Math.min(100,Math.round(g.saved/g.target*100)):0;
+      var remaining=Math.max(0,g.target-g.saved);
+      return '<div class="fn-goal"><div class="h"><div class="n">'+esc(g.name)+'</div><div class="a">'+pct+'%</div></div>'
+        +'<div class="bar"><div class="fill" style="width:'+pct+'%"></div></div>'
+        +'<div class="meta"><span>'+fmtEuro(g.saved)+' von '+fmtEuro(g.target)+'</span><span>Noch '+fmtEuro(remaining)+'</span></div>'
+        +'<div style="display:flex;gap:5px"><input type="number" step="0.01" placeholder="Betrag einzahlen" id="fn_goal_amt_'+g.id+'" style="flex:1;background:var(--bg-4);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:7px;font-size:11px;outline:none;font-family:inherit">'
+        +'<button class="btn success small" data-fn-goal-add="'+g.id+'">💰 Einzahlen</button>'
+        +'<button class="btn danger small" data-fn-goal-del="'+g.id+'">🗑️</button></div></div>';
+    }).join(""):'<div class="fn-empty">Noch keine Sparziele. Leg eins an!</div>';
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🐖 Neues Sparziel</h3></div>'
+      +'<div class="field"><label>Name</label><input type="text" id="fn_goal_name" data-ai placeholder="z.B. Urlaub"></div>'
+      +'<div class="field"><label>Zielbetrag (€)</label><input type="number" id="fn_goal_target" step="0.01" placeholder="1000"></div>'
+      +'<div class="field"><label>Startkapital (€)</label><input type="number" id="fn_goal_start" step="0.01" placeholder="0"></div>'
+      +'<button class="btn success full" id="fn_goal_create">➕ Sparziel anlegen</button></div>'
+      +'<div class="card"><div class="card-h"><h3>📋 Deine Ziele ('+goals.length+')</h3></div>'+listHtml+'</div>';
+
+    document.getElementById("fn_goal_create").addEventListener("click",function(){
+      var n=val("fn_goal_name").trim();if(!n)return toast("⚠️ Name fehlt","err");
+      var tgt=parseFloat(String(val("fn_goal_target")).replace(",","."));
+      if(isNaN(tgt)||tgt<=0)return toast("⚠️ Zielbetrag fehlt","err");
+      var start=parseFloat(String(val("fn_goal_start")).replace(",","."))||0;
+      var arr=self.getGoals();
+      arr.push({id:"g_"+Date.now(),name:n,target:Math.round(tgt*100)/100,saved:Math.round(start*100)/100,t:Date.now()});
+      self.saveGoals(arr);toast("🐖 Sparziel angelegt","ok");self.renderTab();
+    });
+
+    el.querySelectorAll("[data-fn-goal-add]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var id=b.dataset.fnGoalAdd;
+        var inp=document.getElementById("fn_goal_amt_"+id);
+        var amt=parseFloat(String(inp.value).replace(",","."));
+        if(isNaN(amt)||amt<=0)return toast("⚠️ Betrag","err");
+        var arr=self.getGoals();
+        arr.forEach(function(g){if(g.id===id)g.saved=Math.round((g.saved+amt)*100)/100;});
+        self.saveGoals(arr);
+        var t=FnReg?0:0;
+        toast("💰 +"+fmtEuro(amt),"ok");
+        self.renderTab();
+      });
+    });
+
+    el.querySelectorAll("[data-fn-goal-del]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var id=b.dataset.fnGoalDel;
+        if(!confirm("Sparziel löschen?"))return;
+        self.saveGoals(self.getGoals().filter(function(g){return g.id!==id;}));
+        toast("🗑️","ok");self.renderTab();
+      });
+    });
+
+    AIHelper.attachAll(el);
+  },
+
+  renderFix:function(el){
+    var self=this;
+    var fix=this.getFix();
+    var mk=fnMonthKey();
+    var listHtml=fix.length?fix.map(function(f){
+      var c=FinanzData.find(f.cat);
+      var lastText=f.lastRun?("Zuletzt: "+f.lastRun):"Noch nie gebucht";
+      return '<div class="fn-fix-item"><div class="h"><div class="n">'+c.i+' '+esc(f.name)+'</div><div class="a">'+fmtEuro(f.amount)+'</div></div>'
+        +'<div class="meta">'+esc(c.n)+' · Tag '+f.day+' im Monat · '+lastText+'</div>'
+        +'<div style="display:flex;gap:5px;margin-top:8px">'
+        +'<button class="btn success small" data-fn-fix-run="'+f.id+'">▶️ Jetzt buchen</button>'
+        +'<button class="btn danger small" data-fn-fix-del="'+f.id+'">🗑️</button></div></div>';
+    }).join(""):'<div class="fn-empty">Keine Fixkosten erfasst.</div>';
+
+    var totalFix=0;fix.forEach(function(f){totalFix+=f.amount;});
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🔁 Neue Fixkosten</h3></div>'
+      +'<div class="field"><label>Name</label><input type="text" id="fn_fix_name" data-ai placeholder="z.B. Miete"></div>'
+      +'<div class="field"><label>Betrag (€)</label><input type="number" id="fn_fix_amt" step="0.01" placeholder="0,00"></div>'
+      +'<div class="field"><label>Kategorie</label>'+select("fn_fix_cat","wohnen",FinanzData.catOpts("out"))+'</div>'
+      +'<div class="field"><label>Tag im Monat</label><input type="number" id="fn_fix_day" min="1" max="31" value="1"></div>'
+      +'<button class="btn success full" id="fn_fix_add">➕ Fixkosten anlegen</button>'
+      +'<div class="info-box" style="margin-top:10px"><b>📌 Summe Fixkosten:</b> '+fmtEuro(totalFix)+' / Monat</div></div>'
+      +'<div class="card"><div class="card-h"><h3>📋 Deine Fixkosten ('+fix.length+')</h3></div>'+listHtml+'</div>';
+
+    document.getElementById("fn_fix_add").addEventListener("click",function(){
+      var n=val("fn_fix_name").trim();if(!n)return toast("⚠️ Name fehlt","err");
+      var amt=parseFloat(String(val("fn_fix_amt")).replace(",","."));
+      if(isNaN(amt)||amt<=0)return toast("⚠️ Betrag fehlt","err");
+      var day=parseInt(val("fn_fix_day"))||1;if(day<1)day=1;if(day>31)day=31;
+      var arr=self.getFix();
+      arr.push({id:"f_"+Date.now(),name:n,amount:Math.round(amt*100)/100,cat:val("fn_fix_cat"),day:day,lastRun:""});
+      self.saveFix(arr);toast("🔁 Fixkosten angelegt","ok");self.renderTab();
+    });
+
+    el.querySelectorAll("[data-fn-fix-run]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var id=b.dataset.fnFixRun;
+        var arr=self.getFix();
+        var f=null;arr.forEach(function(x){if(x.id===id)f=x;});
+        if(!f)return;
+        var t=self.getTrans();
+        t.push({id:"t_"+Date.now(),type:"out",cat:f.cat,amount:f.amount,desc:f.name,date:fnToday(),t:Date.now()});
+        self.saveTrans(t);
+        f.lastRun=fnToday();
+        self.saveFix(arr);
+        toast("▶️ Gebucht: "+fmtEuro(f.amount),"ok");
+        self.renderTab();
+      });
+    });
+
+    el.querySelectorAll("[data-fn-fix-del]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var id=b.dataset.fnFixDel;
+        if(!confirm("Fixkosten löschen?"))return;
+        self.saveFix(self.getFix().filter(function(f){return f.id!==id;}));
+        toast("🗑️","ok");self.renderTab();
+      });
+    });
+
+    AIHelper.attachAll(el);
+  },
+
+  renderReport:function(el){
+    var months=this.lastMonths(6);
+    var data=months.map(function(k){return {k:k,r:AppFinanzen.calcMonth(k)};});
+    var maxVal=1;data.forEach(function(d){var v=Math.max(d.r.inc,d.r.exp);if(v>maxVal)maxVal=v;});
+    var sumInc=0,sumExp=0;
+    data.forEach(function(d){sumInc+=d.r.inc;sumExp+=d.r.exp;});
+    var avgInc=sumInc/6,avgExp=sumExp/6;
+    var bigChart='<div class="fn-chart" style="height:200px">'+data.map(function(d){
+      var hi=Math.round(d.r.inc/maxVal*100);var he=Math.round(d.r.exp/maxVal*100);
+      return '<div class="fn-chart-col"><div class="fn-chart-bars"><div class="fn-bar inc" style="height:'+Math.max(2,hi)+'%"></div><div class="fn-bar exp" style="height:'+Math.max(2,he)+'%"></div></div><div class="fn-chart-lbl">'+fnMonthLabel(d.k)+'</div></div>';
+    }).join("")+'</div>';
+
+    var tableRows=data.slice().reverse().map(function(d){
+      var bal=d.r.bal;
+      return '<tr><td>'+fnMonthLabel(d.k)+'</td><td class="norm" style="text-align:right">+'+fmtEuro(d.r.inc)+'</td><td style="text-align:right;color:#ff8080">−'+fmtEuro(d.r.exp)+'</td><td style="text-align:right;color:'+(bal>=0?"#4ade80":"#ff8080")+';font-weight:800">'+fmtEuro(bal)+'</td></tr>';
+    }).join("");
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>📈 6-Monats-Übersicht</h3></div>'+bigChart
+      +'<div style="display:flex;gap:12px;font-size:10px;color:var(--text-dim);justify-content:center;margin-top:6px"><span>🟩 Einnahmen</span><span>🟥 Ausgaben</span></div></div>'
+      +'<div class="card"><div class="card-h"><h3>📊 Durchschnitt</h3></div>'
+      +'<div class="fn-stats"><div class="fn-stat inc"><div class="v">'+fmtEuro(avgInc)+'</div><div class="l">Ø Ein.</div></div>'
+      +'<div class="fn-stat exp"><div class="v">'+fmtEuro(avgExp)+'</div><div class="l">Ø Aus.</div></div>'
+      +'<div class="fn-stat '+(avgInc-avgExp>=0?"bal":"exp")+'"><div class="v">'+fmtEuro(avgInc-avgExp)+'</div><div class="l">Ø Saldo</div></div></div></div>'
+      +'<div class="card"><div class="card-h"><h3>📋 Monat für Monat</h3></div>'
+      +'<table class="lab-table"><thead><tr><th>Monat</th><th style="text-align:right">Einnahmen</th><th style="text-align:right">Ausgaben</th><th style="text-align:right">Saldo</th></tr></thead><tbody>'+tableRows+'</tbody></table></div>'
+      +'<div class="card"><div class="card-h"><h3>📤 Export</h3></div>'
+      +'<div class="btn-row"><button class="btn secondary full" id="fn_report_txt">📄 Bericht als .txt</button></div></div>';
+
+    document.getElementById("fn_report_txt").addEventListener("click",function(){
+      var out="HALDO FINANZBERICHT\n"+new Date().toLocaleString("de-DE")+"\n\n";
+      out+="Gesamt-Guthaben: "+fmtEuro(AppFinanzen.calcTotal())+"\n\n";
+      out+="MONAT FÜR MONAT:\n";
+      data.slice().reverse().forEach(function(d){
+        out+=fnMonthLabel(d.k)+": +"+fmtEuro(d.r.inc)+" / -"+fmtEuro(d.r.exp)+" = "+fmtEuro(d.r.bal)+"\n";
+      });
+      out+="\nØ Einnahmen: "+fmtEuro(avgInc)+"\nØ Ausgaben: "+fmtEuro(avgExp)+"\nØ Saldo:   "+fmtEuro(avgInc-avgExp)+"\n";
+      var blob=new Blob([out],{type:"text/plain;charset=utf-8"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="finanzbericht_"+fnToday()+".txt";a.click();
+      toast("📄 Bericht gespeichert","ok");
+    });
+  }
+};
+</script>
 /* ====== LAUNCHER ====== */
 var AppLauncher={current:null,
-  registry:{health:AppHealth,verkehr:AppVerkehr,fahrschule:AppFahrschule,auto:AppAuto,wetter:AppWetter,musikstudio:MusikStudio,dokumente:AppDokumente,email:AppEmail,chat:AppChat,phone:AppPhone,video:AppVideo,notizen:AppNotizen,kalender:AppKalender,rechner:AppRechner,timer:AppTimer},
+  registry:{health:AppHealth,verkehr:AppVerkehr,fahrschule:AppFahrschule,auto:AppAuto,wetter:AppWetter,musikstudio:MusikStudio,dokumente:AppDokumente,email:AppEmail,chat:AppChat,phone:AppPhone,video:AppVideo,notizen:AppNotizen,kalender:AppKalender,rechner:AppRechner,timer:AppTimer,finanzen:AppFinanzen},
   open:function(id){
     var app=this.registry[id];
     var meta=null;
@@ -2524,5 +2980,462 @@ try{
 window.HalDo={Storage:Storage,Settings:Settings,Router:Router,AppLauncher:AppLauncher,Chat:Chat,Avatar:Avatar,TrafficEngine:TrafficEngine,AIHelper:AIHelper,LangEngine:LangEngine,APP_PLAN:APP_PLAN,HealthData:HealthData,AnatomyData:AnatomyData};
 })();
 </script>
+<!-- ============================================================
+     HALDO FINANZEN APP — DROP-IN MODUL
+     Einfach vor </body> einfügen. Nach Reload ist alles aktiv.
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+
+if(!window.HalDo){console.error("[HalDo Finanzen] window.HalDo nicht gefunden.");return;}
+
+var H=window.HalDo;
+var Storage=H.Storage;
+var AIHelper=H.AIHelper;
+var AppLauncher=H.AppLauncher;
+var APP_PLAN=H.APP_PLAN;
+
+/* ---------- Mini-Helpers (lokal, weil nicht global exponiert) ---------- */
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function select(id,cur,opts){var h='<select id="'+id+'">';opts.forEach(function(o){h+='<option value="'+esc(o[0])+'"'+(String(o[0])===String(cur)?" selected":"")+'>'+esc(o[1])+'</option>';});return h+'</select>';}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+function fmtEuro(n){if(n===undefined||n===null||isNaN(n))n=0;var neg=n<0;var abs=Math.abs(n).toFixed(2);var p=abs.split(".");var i=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,".");return(neg?"-":"")+i+","+p[1]+" €";}
+function fnMonthKey(d){d=d||new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");}
+function fnMonthLabel(k){var p=k.split("-");var m=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];return m[parseInt(p[1],10)-1]+" "+p[0].substring(2);}
+function fnToday(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+
+/* ---------- Styles ---------- */
+function finInjectStyles(){
+  if(document.getElementById("finStyles"))return;
+  var s=document.createElement("style");
+  s.id="finStyles";
+  s.textContent=".fn-balance{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(0,212,255,.15));border:1px solid var(--border-hi);text-align:center;margin-bottom:12px}.fn-balance .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.fn-balance .val{font-size:34px;font-weight:900;font-family:ui-monospace,monospace;color:var(--primary);margin:6px 0;line-height:1}.fn-balance .sub{font-size:10px;color:var(--text-mute)}.fn-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}.fn-stat{padding:11px 6px;border-radius:11px;text-align:center;border:1px solid var(--border);background:linear-gradient(180deg,var(--bg-4),var(--bg-3))}.fn-stat .v{font-size:14px;font-weight:800;font-family:ui-monospace,monospace;line-height:1}.fn-stat .l{font-size:8.5px;color:var(--text-dim);text-transform:uppercase;font-weight:700;margin-top:3px}.fn-stat.inc{border-color:rgba(34,197,94,.4)}.fn-stat.inc .v{color:#4ade80}.fn-stat.exp{border-color:rgba(239,68,68,.4)}.fn-stat.exp .v{color:#ff8080}.fn-stat.bal{border-color:rgba(0,212,255,.4)}.fn-stat.bal .v{color:var(--primary)}.fn-chart{display:flex;align-items:flex-end;gap:6px;height:130px;padding:8px;background:var(--bg-3);border-radius:11px;border:1px solid var(--border);margin:8px 0}.fn-chart-col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:2px;height:100%}.fn-chart-bars{display:flex;gap:1px;align-items:flex-end;height:100%;width:100%;justify-content:center}.fn-bar{width:44%;min-height:2px;border-radius:3px 3px 0 0;transition:.3s}.fn-bar.inc{background:linear-gradient(180deg,#4ade80,#22c55e)}.fn-bar.exp{background:linear-gradient(180deg,#ff8080,#ef4444)}.fn-chart-lbl{font-size:8.5px;color:var(--text-mute);font-weight:700;text-transform:uppercase}.fn-cat-row{display:flex;align-items:center;gap:9px;padding:9px 11px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:5px}.fn-cat-row .ico{font-size:17px;flex-shrink:0}.fn-cat-row .body{flex:1;min-width:0}.fn-cat-row .body .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;gap:6px}.fn-cat-row .body .top .n{font-size:11.5px;font-weight:700}.fn-cat-row .body .top .a{font-size:11px;font-weight:800;font-family:ui-monospace,monospace;color:var(--text)}.fn-bar-track{height:6px;background:rgba(0,0,0,.35);border-radius:4px;overflow:hidden}.fn-bar-fill{height:100%;border-radius:4px;transition:width .3s}.fn-goal{padding:12px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:11px;margin-top:8px}.fn-goal .h{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}.fn-goal .h .n{font-size:12.5px;font-weight:800}.fn-goal .h .a{font-size:10.5px;color:var(--primary);font-weight:800;font-family:ui-monospace,monospace}.fn-goal .bar{height:10px;background:rgba(0,0,0,.35);border-radius:5px;overflow:hidden;margin-bottom:6px}.fn-goal .bar .fill{height:100%;background:linear-gradient(90deg,var(--success),var(--primary));border-radius:5px;transition:width .3s}.fn-goal .meta{display:flex;justify-content:space-between;font-size:9.5px;color:var(--text-mute);margin-bottom:8px}.fn-type-toggle{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}.fn-type-btn{padding:11px;border-radius:9px;border:1px solid var(--border);background:var(--bg-3);color:var(--text-dim);font-family:inherit;font-size:12px;font-weight:800;cursor:pointer}.fn-type-btn.active.inc{background:rgba(34,197,94,.18);border-color:#22c55e;color:#4ade80}.fn-type-btn.active.exp{background:rgba(239,68,68,.18);border-color:#ef4444;color:#ff8080}.fn-row{display:flex;gap:6px;align-items:center;padding:9px 11px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:5px}.fn-row .ico{font-size:16px}.fn-row .txt{flex:1;min-width:0}.fn-row .txt .t{font-size:11.5px;font-weight:700}.fn-row .txt .d{font-size:9.5px;color:var(--text-mute);margin-top:2px}.fn-row .amt{font-size:12px;font-weight:800;font-family:ui-monospace,monospace}.fn-row .amt.in{color:#4ade80}.fn-row .amt.out{color:#ff8080}.fn-fix-item{padding:10px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:6px}.fn-fix-item .h{display:flex;justify-content:space-between;align-items:center;gap:8px}.fn-fix-item .h .n{font-size:11.5px;font-weight:800}.fn-fix-item .h .a{font-size:11px;font-weight:800;font-family:ui-monospace,monospace;color:var(--primary)}.fn-fix-item .meta{font-size:9.5px;color:var(--text-mute);margin-top:4px}.fn-empty{padding:20px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}";
+  document.head.appendChild(s);
+}
+
+/* ---------- Kategorien ---------- */
+var FinanzData={
+  cats:{
+    einnahmen:[
+      {id:"gehalt",n:"Gehalt",i:"💼",c:"#22c55e"},
+      {id:"bonus",n:"Bonus",i:"🎁",c:"#4ade80"},
+      {id:"geschenk",n:"Geschenk",i:"🎀",c:"#86efac"},
+      {id:"zinsen",n:"Zinsen",i:"🏦",c:"#10b981"},
+      {id:"verkauf",n:"Verkauf",i:"🏷️",c:"#6ee7b7"},
+      {id:"sonst_ein",n:"Sonstige",i:"➕",c:"#a7f3d0"}
+    ],
+    ausgaben:[
+      {id:"wohnen",n:"Wohnen",i:"🏠",c:"#f59e0b"},
+      {id:"lebensmittel",n:"Lebensmittel",i:"🛒",c:"#f97316"},
+      {id:"transport",n:"Transport",i:"🚗",c:"#ef4444"},
+      {id:"freizeit",n:"Freizeit",i:"🎉",c:"#a855f7"},
+      {id:"gesundheit",n:"Gesundheit",i:"🩺",c:"#ec4899"},
+      {id:"kleidung",n:"Kleidung",i:"👕",c:"#06b6d4"},
+      {id:"restaurant",n:"Restaurant",i:"🍔",c:"#eab308"},
+      {id:"abo",n:"Abos",i:"📱",c:"#8b5cf6"},
+      {id:"bildung",n:"Bildung",i:"📚",c:"#3b82f6"},
+      {id:"technik",n:"Technik",i:"💻",c:"#0ea5e9"},
+      {id:"sparen",n:"Sparen",i:"🐖",c:"#10b981"},
+      {id:"sonst_aus",n:"Sonstige",i:"➖",c:"#94a3b8"}
+    ]
+  },
+  find:function(id){var r=null;this.cats.einnahmen.concat(this.cats.ausgaben).forEach(function(c){if(c.id===id)r=c;});return r||{id:"?",n:"?",i:"❓",c:"#888"};},
+  catOpts:function(type){return this.cats[type==="in"?"einnahmen":"ausgaben"].map(function(c){return [c.id,c.i+" "+c.n];});}
+};
+
+/* ---------- App ---------- */
+var AppFinanzen={
+  tab:"dash",
+  draft:{type:"out",cat:"lebensmittel"},
+
+  getTrans:function(){return Storage.get("fin_trans",[]);},
+  saveTrans:function(a){Storage.set("fin_trans",a);},
+  getBudgets:function(){return Storage.get("fin_budgets",{});},
+  saveBudgets:function(o){Storage.set("fin_budgets",o);},
+  getGoals:function(){return Storage.get("fin_goals",[]);},
+  saveGoals:function(a){Storage.set("fin_goals",a);},
+  getFix:function(){return Storage.get("fin_fix",[]);},
+  saveFix:function(a){Storage.set("fin_fix",a);},
+
+  calcMonth:function(mk){var t=this.getTrans(),inc=0,exp=0;t.forEach(function(x){if(x.date.substring(0,7)!==mk)return;if(x.type==="in")inc+=x.amount;else exp+=x.amount;});return{inc:inc,exp:exp,bal:inc-exp};},
+  calcTotal:function(){var t=this.getTrans(),b=0;t.forEach(function(x){b+=(x.type==="in"?x.amount:-x.amount);});return b;},
+  lastMonths:function(n){var arr=[],d=new Date();for(var i=n-1;i>=0;i--){var m=new Date(d.getFullYear(),d.getMonth()-i,1);arr.push(fnMonthKey(m));}return arr;},
+  catSpent:function(catId,mk){var t=this.getTrans(),s=0;t.forEach(function(x){if(x.type!=="out")return;if(x.cat!==catId)return;if(x.date.substring(0,7)!==mk)return;s+=x.amount;});return s;},
+
+  render:function(){
+    finInjectStyles();
+    var vp=document.getElementById("appViewport");
+    var tabs=[{k:"dash",n:"📊 Dashboard"},{k:"trans",n:"💳 Buchungen"},{k:"budget",n:"🎯 Budgets"},{k:"goals",n:"🐖 Sparziele"},{k:"fix",n:"🔁 Fixkosten"},{k:"report",n:"📈 Bericht"}];
+    var self=this;
+    var th=tabs.map(function(t){return '<button class="ms-tab'+(self.tab===t.k?" active":"")+'" data-fn-tab="'+t.k+'">'+t.n+'</button>';}).join("");
+    vp.innerHTML='<div class="ms-tabs">'+th+'</div><div id="fnContent"></div>';
+    vp.querySelectorAll("[data-fn-tab]").forEach(function(b){b.addEventListener("click",function(){self.tab=b.dataset.fnTab;self.render();});});
+    this.renderTab();
+    if(AIHelper&&AIHelper.attachAll)AIHelper.attachAll(vp);
+  },
+
+  renderTab:function(){
+    var el=document.getElementById("fnContent");if(!el)return;
+    var t=this.tab;
+    if(t==="dash")this.renderDash(el);
+    else if(t==="trans")this.renderTrans(el);
+    else if(t==="budget")this.renderBudget(el);
+    else if(t==="goals")this.renderGoals(el);
+    else if(t==="fix")this.renderFix(el);
+    else if(t==="report")this.renderReport(el);
+  },
+
+  renderDash:function(el){
+    var mk=fnMonthKey();
+    var m=this.calcMonth(mk);
+    var total=this.calcTotal();
+    var months=this.lastMonths(6);
+    var maxVal=1;
+    var monthData=months.map(function(k){var r=AppFinanzen.calcMonth(k);var v=Math.max(r.inc,r.exp);if(v>maxVal)maxVal=v;return{k:k,r:r};});
+    var chartHtml='<div class="fn-chart">'+monthData.map(function(md){
+      var hi=Math.round(md.r.inc/maxVal*100);var he=Math.round(md.r.exp/maxVal*100);
+      return '<div class="fn-chart-col"><div class="fn-chart-bars"><div class="fn-bar inc" style="height:'+Math.max(2,hi)+'%"></div><div class="fn-bar exp" style="height:'+Math.max(2,he)+'%"></div></div><div class="fn-chart-lbl">'+fnMonthLabel(md.k).substring(0,3)+'</div></div>';
+    }).join("")+'</div>';
+    var catTotals={};
+    this.getTrans().forEach(function(x){if(x.type!=="out")return;if(x.date.substring(0,7)!==mk)return;catTotals[x.cat]=(catTotals[x.cat]||0)+x.amount;});
+    var topCats=Object.keys(catTotals).map(function(k){return{id:k,sum:catTotals[k]};});
+    topCats.sort(function(a,b){return b.sum-a.sum;});
+    topCats=topCats.slice(0,5);
+    var maxCat=topCats.length?topCats[0].sum:1;
+    var catHtml=topCats.length?topCats.map(function(c){
+      var cat=FinanzData.find(c.id);
+      var pct=Math.round(c.sum/maxCat*100);
+      return '<div class="fn-cat-row"><span class="ico">'+cat.i+'</span><div class="body"><div class="top"><span class="n">'+esc(cat.n)+'</span><span class="a" style="color:'+cat.c+'">'+fmtEuro(c.sum)+'</span></div><div class="fn-bar-track"><div class="fn-bar-fill" style="width:'+pct+'%;background:'+cat.c+'"></div></div></div></div>';
+    }).join(""):'<div class="fn-empty">Keine Ausgaben diesen Monat.</div>';
+    var recent=this.getTrans().slice().sort(function(a,b){return b.date.localeCompare(a.date)||b.t-a.t;}).slice(0,6);
+    var recHtml=recent.length?recent.map(function(x){
+      var cat=FinanzData.find(x.cat);
+      var sign=x.type==="in"?"+":"−";
+      return '<div class="fn-row"><span class="ico">'+cat.i+'</span><div class="txt"><div class="t">'+esc(x.desc||cat.n)+'</div><div class="d">'+esc(cat.n)+' · '+x.date.split("-").reverse().join(".")+'</div></div><span class="amt '+(x.type==="in"?"in":"out")+'">'+sign+' '+fmtEuro(x.amount)+'</span></div>';
+    }).join(""):'<div class="fn-empty">Noch keine Buchungen.</div>';
+
+    el.innerHTML='<div class="fn-balance"><div class="lbl">Gesamt-Guthaben</div><div class="val">'+fmtEuro(total)+'</div><div class="sub">'+this.getTrans().length+' Buchungen gesamt</div></div>'
+      +'<div class="fn-stats"><div class="fn-stat inc"><div class="v">'+fmtEuro(m.inc)+'</div><div class="l">Einnahmen</div></div>'
+      +'<div class="fn-stat exp"><div class="v">'+fmtEuro(m.exp)+'</div><div class="l">Ausgaben</div></div>'
+      +'<div class="fn-stat bal"><div class="v">'+fmtEuro(m.bal)+'</div><div class="l">Saldo</div></div></div>'
+      +'<div class="card"><div class="card-h"><h3>📈 Letzte 6 Monate</h3></div>'+chartHtml
+      +'<div style="display:flex;gap:12px;font-size:10px;color:var(--text-dim);justify-content:center"><span>🟩 Einnahmen</span><span>🟥 Ausgaben</span></div></div>'
+      +'<div class="card"><div class="card-h"><h3>🏆 Top Kategorien</h3></div>'+catHtml+'</div>'
+      +'<div class="card"><div class="card-h"><h3>💳 Letzte Buchungen</h3></div>'+recHtml
+      +'<button class="btn success full" id="fn_quick_add" style="margin-top:10px">➕ Neue Buchung</button></div>';
+    var q=document.getElementById("fn_quick_add");
+    if(q)q.addEventListener("click",function(){AppFinanzen.tab="trans";AppFinanzen.render();});
+  },
+
+  renderTrans:function(el){
+    var self=this;
+    var type=this.draft.type||"out";
+    var cat=this.draft.cat||(type==="in"?"gehalt":"lebensmittel");
+    var catOpts=FinanzData.catOpts(type);
+    var trans=this.getTrans().slice().sort(function(a,b){return b.date.localeCompare(a.date)||b.t-a.t;});
+    var filtered=trans.slice(0,60);
+    var listHtml=filtered.length?filtered.map(function(x){
+      var c=FinanzData.find(x.cat);
+      var sign=x.type==="in"?"+":"−";
+      return '<div class="fn-row" data-fn-del="'+esc(x.id)+'"><span class="ico">'+c.i+'</span><div class="txt"><div class="t">'+esc(x.desc||c.n)+'</div><div class="d">'+esc(c.n)+' · '+x.date.split("-").reverse().join(".")+'</div></div><span class="amt '+(x.type==="in"?"in":"out")+'">'+sign+' '+fmtEuro(x.amount)+'</span><button class="del" style="padding:5px 9px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#ff8080;border-radius:6px;cursor:pointer;font-size:10px;margin-left:6px">🗑️</button></div>';
+    }).join(""):'<div class="fn-empty">Keine Buchungen.</div>';
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>➕ Neue Buchung</h3></div>'
+      +'<div class="fn-type-toggle">'
+      +'<button class="fn-type-btn inc'+(type==="in"?" active":"")+'" data-fn-type="in">📥 Einnahme</button>'
+      +'<button class="fn-type-btn exp'+(type==="out"?" active":"")+'" data-fn-type="out">📤 Ausgabe</button>'
+      +'</div>'
+      +'<div class="field"><label>Betrag (€)</label><input type="number" id="fn_amt" step="0.01" placeholder="0,00"></div>'
+      +'<div class="field"><label>Kategorie</label>'+select("fn_cat",cat,catOpts)+'</div>'
+      +'<div class="field"><label>Beschreibung</label><input type="text" id="fn_desc" data-ai placeholder="z.B. Wocheneinkauf"></div>'
+      +'<div class="field"><label>Datum</label><input type="date" id="fn_date" value="'+fnToday()+'"></div>'
+      +'<button class="btn success full" id="fn_add">💾 Buchung speichern</button></div>'
+      +'<div class="card"><div class="card-h"><h3>💳 Buchungen ('+trans.length+')</h3></div>'
+      +'<div class="btn-row"><button class="btn secondary small" id="fn_export_csv">⬇️ CSV</button><button class="btn danger small" id="fn_clear_all">🗑️ Alles</button></div>'
+      +'<div id="fn_list">'+listHtml+'</div></div>';
+
+    el.querySelectorAll("[data-fn-type]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=b.dataset.fnType;
+        self.draft.type=t;
+        self.draft.cat=(t==="in"?"gehalt":"lebensmittel");
+        self.renderTab();
+      });
+    });
+    var cs=document.getElementById("fn_cat");
+    if(cs)cs.addEventListener("change",function(){self.draft.cat=cs.value;});
+
+    document.getElementById("fn_add").addEventListener("click",function(){
+      var amt=parseFloat(String(val("fn_amt")).replace(",","."));
+      if(isNaN(amt)||amt<=0)return toast("⚠️ Betrag fehlt","err");
+      var d=val("fn_date")||fnToday();
+      var t=self.draft.type;
+      var c=val("fn_cat");
+      var desc=val("fn_desc").trim();
+      var arr=self.getTrans();
+      arr.push({id:"t_"+Date.now()+"_"+Math.random().toString(36).slice(2,6),type:t,cat:c,amount:Math.round(amt*100)/100,desc:desc,date:d,t:Date.now()});
+      self.saveTrans(arr);
+      toast((t==="in"?"📥 +":"📤 −")+fmtEuro(amt),"ok");
+      self.renderTab();
+    });
+
+    el.querySelectorAll("[data-fn-del]").forEach(function(row){
+      var delBtn=row.querySelector(".del");
+      delBtn.addEventListener("click",function(e){
+        e.stopPropagation();
+        var id=row.dataset.fnDel;
+        if(!confirm("Buchung löschen?"))return;
+        self.saveTrans(self.getTrans().filter(function(x){return x.id!==id;}));
+        toast("🗑️ Gelöscht","ok");
+        self.renderTab();
+      });
+    });
+
+    document.getElementById("fn_export_csv").addEventListener("click",function(){
+      var rows=[["Datum","Typ","Kategorie","Beschreibung","Betrag"]];
+      trans.forEach(function(x){
+        var c=FinanzData.find(x.cat);
+        rows.push([x.date,x.type==="in"?"Einnahme":"Ausgabe",c.n,(x.desc||"").replace(/;/g,","),x.amount.toFixed(2).replace(".",",")]);
+      });
+      var csv=rows.map(function(r){return r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(";");}).join("\n");
+      var blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="finanzen_"+fnToday()+".csv";a.click();
+      toast("⬇️ CSV","ok");
+    });
+
+    document.getElementById("fn_clear_all").addEventListener("click",function(){
+      if(!confirm("Wirklich ALLE Buchungen löschen?"))return;
+      self.saveTrans([]);toast("🗑️","ok");self.renderTab();
+    });
+
+    if(AIHelper&&AIHelper.attachAll)AIHelper.attachAll(el);
+  },
+
+  renderBudget:function(el){
+    var self=this;
+    var budgets=this.getBudgets();
+    var mk=fnMonthKey();
+    var cats=FinanzData.cats.ausgaben;
+    var totalBudget=0,totalSpent=0;
+    cats.forEach(function(c){var b=budgets[c.id]||0;totalBudget+=b;var s=self.catSpent(c.id,mk);totalSpent+=s;});
+    var html='<div class="card"><div class="card-h"><h3>🎯 Monatsbudget '+fnMonthLabel(mk)+'</h3></div>'
+      +'<div class="fn-stats"><div class="fn-stat bal"><div class="v">'+fmtEuro(totalBudget)+'</div><div class="l">Budget</div></div>'
+      +'<div class="fn-stat exp"><div class="v">'+fmtEuro(totalSpent)+'</div><div class="l">Ausgegeben</div></div>'
+      +'<div class="fn-stat '+(totalBudget-totalSpent>=0?"inc":"exp")+'"><div class="v">'+fmtEuro(totalBudget-totalSpent)+'</div><div class="l">Rest</div></div></div></div>'
+      +'<div class="card"><div class="card-h"><h3>📊 Pro Kategorie</h3></div>';
+    cats.forEach(function(c){
+      var b=budgets[c.id]||0;
+      var s=self.catSpent(c.id,mk);
+      var pct=b>0?Math.min(100,Math.round(s/b*100)):0;
+      var over=b>0&&s>b;
+      var barColor=over?"#ef4444":(pct>80?"#f59e0b":c.c);
+      html+='<div class="fn-cat-row"><span class="ico">'+c.i+'</span><div class="body">'
+        +'<div class="top"><span class="n">'+esc(c.n)+'</span><span class="a" style="color:'+barColor+'">'+fmtEuro(s)+(b>0?' / '+fmtEuro(b):'')+'</span></div>'
+        +'<div class="fn-bar-track"><div class="fn-bar-fill" style="width:'+pct+'%;background:'+barColor+'"></div></div>'
+        +'<div style="display:flex;gap:5px;margin-top:6px;align-items:center">'
+        +'<input type="number" step="0.01" placeholder="Budget €" value="'+(budgets[c.id]||"")+'" data-fn-bud="'+c.id+'" style="flex:1;background:var(--bg-4);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:10.5px;outline:none;font-family:inherit">'
+        +'</div></div></div>';
+    });
+    html+='</div>';
+    el.innerHTML=html;
+    el.querySelectorAll("[data-fn-bud]").forEach(function(inp){
+      inp.addEventListener("change",function(){
+        var id=inp.dataset.fnBud;
+        var v=parseFloat(String(inp.value).replace(",","."));
+        var b=self.getBudgets();
+        if(isNaN(v)||v<=0)delete b[id];else b[id]=Math.round(v*100)/100;
+        self.saveBudgets(b);
+        toast("💾 Budget gespeichert","ok");
+        self.renderTab();
+      });
+    });
+  },
+
+  renderGoals:function(el){
+    var self=this;
+    var goals=this.getGoals();
+    var listHtml=goals.length?goals.map(function(g){
+      var pct=g.target>0?Math.min(100,Math.round(g.saved/g.target*100)):0;
+      var remaining=Math.max(0,g.target-g.saved);
+      return '<div class="fn-goal"><div class="h"><div class="n">'+esc(g.name)+'</div><div class="a">'+pct+'%</div></div>'
+        +'<div class="bar"><div class="fill" style="width:'+pct+'%"></div></div>'
+        +'<div class="meta"><span>'+fmtEuro(g.saved)+' von '+fmtEuro(g.target)+'</span><span>Noch '+fmtEuro(remaining)+'</span></div>'
+        +'<div style="display:flex;gap:5px"><input type="number" step="0.01" placeholder="Betrag einzahlen" id="fn_goal_amt_'+g.id+'" style="flex:1;background:var(--bg-4);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:7px;font-size:11px;outline:none;font-family:inherit">'
+        +'<button class="btn success small" data-fn-goal-add="'+g.id+'">💰 Einzahlen</button>'
+        +'<button class="btn danger small" data-fn-goal-del="'+g.id+'">🗑️</button></div></div>';
+    }).join(""):'<div class="fn-empty">Noch keine Sparziele. Leg eins an!</div>';
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🐖 Neues Sparziel</h3></div>'
+      +'<div class="field"><label>Name</label><input type="text" id="fn_goal_name" data-ai placeholder="z.B. Urlaub"></div>'
+      +'<div class="field"><label>Zielbetrag (€)</label><input type="number" id="fn_goal_target" step="0.01" placeholder="1000"></div>'
+      +'<div class="field"><label>Startkapital (€)</label><input type="number" id="fn_goal_start" step="0.01" placeholder="0"></div>'
+      +'<button class="btn success full" id="fn_goal_create">➕ Sparziel anlegen</button></div>'
+      +'<div class="card"><div class="card-h"><h3>📋 Deine Ziele ('+goals.length+')</h3></div>'+listHtml+'</div>';
+
+    document.getElementById("fn_goal_create").addEventListener("click",function(){
+      var n=val("fn_goal_name").trim();if(!n)return toast("⚠️ Name fehlt","err");
+      var tgt=parseFloat(String(val("fn_goal_target")).replace(",","."));
+      if(isNaN(tgt)||tgt<=0)return toast("⚠️ Zielbetrag fehlt","err");
+      var start=parseFloat(String(val("fn_goal_start")).replace(",","."))||0;
+      var arr=self.getGoals();
+      arr.push({id:"g_"+Date.now(),name:n,target:Math.round(tgt*100)/100,saved:Math.round(start*100)/100,t:Date.now()});
+      self.saveGoals(arr);toast("🐖 Sparziel angelegt","ok");self.renderTab();
+    });
+
+    el.querySelectorAll("[data-fn-goal-add]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var id=b.dataset.fnGoalAdd;
+        var inp=document.getElementById("fn_goal_amt_"+id);
+        var amt=parseFloat(String(inp.value).replace(",","."));
+        if(isNaN(amt)||amt<=0)return toast("⚠️ Betrag","err");
+        var arr=self.getGoals();
+        arr.forEach(function(g){if(g.id===id)g.saved=Math.round((g.saved+amt)*100)/100;});
+        self.saveGoals(arr);
+        toast("💰 +"+fmtEuro(amt),"ok");
+        self.renderTab();
+      });
+    });
+
+    el.querySelectorAll("[data-fn-goal-del]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var id=b.dataset.fnGoalDel;
+        if(!confirm("Sparziel löschen?"))return;
+        self.saveGoals(self.getGoals().filter(function(g){return g.id!==id;}));
+        toast("🗑️","ok");self.renderTab();
+      });
+    });
+
+    if(AIHelper&&AIHelper.attachAll)AIHelper.attachAll(el);
+  },
+
+  renderFix:function(el){
+    var self=this;
+    var fix=this.getFix();
+    var listHtml=fix.length?fix.map(function(f){
+      var c=FinanzData.find(f.cat);
+      var lastText=f.lastRun?("Zuletzt: "+f.lastRun):"Noch nie gebucht";
+      return '<div class="fn-fix-item"><div class="h"><div class="n">'+c.i+' '+esc(f.name)+'</div><div class="a">'+fmtEuro(f.amount)+'</div></div>'
+        +'<div class="meta">'+esc(c.n)+' · Tag '+f.day+' im Monat · '+lastText+'</div>'
+        +'<div style="display:flex;gap:5px;margin-top:8px">'
+        +'<button class="btn success small" data-fn-fix-run="'+f.id+'">▶️ Jetzt buchen</button>'
+        +'<button class="btn danger small" data-fn-fix-del="'+f.id+'">🗑️</button></div></div>';
+    }).join(""):'<div class="fn-empty">Keine Fixkosten erfasst.</div>';
+    var totalFix=0;fix.forEach(function(f){totalFix+=f.amount;});
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🔁 Neue Fixkosten</h3></div>'
+      +'<div class="field"><label>Name</label><input type="text" id="fn_fix_name" data-ai placeholder="z.B. Miete"></div>'
+      +'<div class="field"><label>Betrag (€)</label><input type="number" id="fn_fix_amt" step="0.01" placeholder="0,00"></div>'
+      +'<div class="field"><label>Kategorie</label>'+select("fn_fix_cat","wohnen",FinanzData.catOpts("out"))+'</div>'
+      +'<div class="field"><label>Tag im Monat</label><input type="number" id="fn_fix_day" min="1" max="31" value="1"></div>'
+      +'<button class="btn success full" id="fn_fix_add">➕ Fixkosten anlegen</button>'
+      +'<div class="info-box" style="margin-top:10px"><b>📌 Summe Fixkosten:</b> '+fmtEuro(totalFix)+' / Monat</div></div>'
+      +'<div class="card"><div class="card-h"><h3>📋 Deine Fixkosten ('+fix.length+')</h3></div>'+listHtml+'</div>';
+
+    document.getElementById("fn_fix_add").addEventListener("click",function(){
+      var n=val("fn_fix_name").trim();if(!n)return toast("⚠️ Name fehlt","err");
+      var amt=parseFloat(String(val("fn_fix_amt")).replace(",","."));
+      if(isNaN(amt)||amt<=0)return toast("⚠️ Betrag fehlt","err");
+      var day=parseInt(val("fn_fix_day"))||1;if(day<1)day=1;if(day>31)day=31;
+      var arr=self.getFix();
+      arr.push({id:"f_"+Date.now(),name:n,amount:Math.round(amt*100)/100,cat:val("fn_fix_cat"),day:day,lastRun:""});
+      self.saveFix(arr);toast("🔁 Fixkosten angelegt","ok");self.renderTab();
+    });
+
+    el.querySelectorAll("[data-fn-fix-run]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var id=b.dataset.fnFixRun;
+        var arr=self.getFix();
+        var f=null;arr.forEach(function(x){if(x.id===id)f=x;});
+        if(!f)return;
+        var t=self.getTrans();
+        t.push({id:"t_"+Date.now(),type:"out",cat:f.cat,amount:f.amount,desc:f.name,date:fnToday(),t:Date.now()});
+        self.saveTrans(t);
+        f.lastRun=fnToday();
+        self.saveFix(arr);
+        toast("▶️ Gebucht: "+fmtEuro(f.amount),"ok");
+        self.renderTab();
+      });
+    });
+
+    el.querySelectorAll("[data-fn-fix-del]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var id=b.dataset.fnFixDel;
+        if(!confirm("Fixkosten löschen?"))return;
+        self.saveFix(self.getFix().filter(function(f){return f.id!==id;}));
+        toast("🗑️","ok");self.renderTab();
+      });
+    });
+
+    if(AIHelper&&AIHelper.attachAll)AIHelper.attachAll(el);
+  },
+
+  renderReport:function(el){
+    var months=this.lastMonths(6);
+    var data=months.map(function(k){return{k:k,r:AppFinanzen.calcMonth(k)};});
+    var maxVal=1;data.forEach(function(d){var v=Math.max(d.r.inc,d.r.exp);if(v>maxVal)maxVal=v;});
+    var sumInc=0,sumExp=0;data.forEach(function(d){sumInc+=d.r.inc;sumExp+=d.r.exp;});
+    var avgInc=sumInc/6,avgExp=sumExp/6;
+    var bigChart='<div class="fn-chart" style="height:200px">'+data.map(function(d){
+      var hi=Math.round(d.r.inc/maxVal*100);var he=Math.round(d.r.exp/maxVal*100);
+      return '<div class="fn-chart-col"><div class="fn-chart-bars"><div class="fn-bar inc" style="height:'+Math.max(2,hi)+'%"></div><div class="fn-bar exp" style="height:'+Math.max(2,he)+'%"></div></div><div class="fn-chart-lbl">'+fnMonthLabel(d.k)+'</div></div>';
+    }).join("")+'</div>';
+    var tableRows=data.slice().reverse().map(function(d){
+      var bal=d.r.bal;
+      return '<tr><td>'+fnMonthLabel(d.k)+'</td><td class="norm" style="text-align:right">+'+fmtEuro(d.r.inc)+'</td><td style="text-align:right;color:#ff8080">−'+fmtEuro(d.r.exp)+'</td><td style="text-align:right;color:'+(bal>=0?"#4ade80":"#ff8080")+';font-weight:800">'+fmtEuro(bal)+'</td></tr>';
+    }).join("");
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>📈 6-Monats-Übersicht</h3></div>'+bigChart
+      +'<div style="display:flex;gap:12px;font-size:10px;color:var(--text-dim);justify-content:center;margin-top:6px"><span>🟩 Einnahmen</span><span>🟥 Ausgaben</span></div></div>'
+      +'<div class="card"><div class="card-h"><h3>📊 Durchschnitt</h3></div>'
+      +'<div class="fn-stats"><div class="fn-stat inc"><div class="v">'+fmtEuro(avgInc)+'</div><div class="l">Ø Ein.</div></div>'
+      +'<div class="fn-stat exp"><div class="v">'+fmtEuro(avgExp)+'</div><div class="l">Ø Aus.</div></div>'
+      +'<div class="fn-stat '+(avgInc-avgExp>=0?"bal":"exp")+'"><div class="v">'+fmtEuro(avgInc-avgExp)+'</div><div class="l">Ø Saldo</div></div></div></div>'
+      +'<div class="card"><div class="card-h"><h3>📋 Monat für Monat</h3></div>'
+      +'<table class="lab-table"><thead><tr><th>Monat</th><th style="text-align:right">Einnahmen</th><th style="text-align:right">Ausgaben</th><th style="text-align:right">Saldo</th></tr></thead><tbody>'+tableRows+'</tbody></table></div>'
+      +'<div class="card"><div class="card-h"><h3>📤 Export</h3></div>'
+      +'<div class="btn-row"><button class="btn secondary full" id="fn_report_txt">📄 Bericht als .txt</button></div></div>';
+
+    document.getElementById("fn_report_txt").addEventListener("click",function(){
+      var out="HALDO FINANZBERICHT\n"+new Date().toLocaleString("de-DE")+"\n\n";
+      out+="Gesamt-Guthaben: "+fmtEuro(AppFinanzen.calcTotal())+"\n\n";
+      out+="MONAT FÜR MONAT:\n";
+      data.slice().reverse().forEach(function(d){
+        out+=fnMonthLabel(d.k)+": +"+fmtEuro(d.r.inc)+" / -"+fmtEuro(d.r.exp)+" = "+fmtEuro(d.r.bal)+"\n";
+      });
+      out+="\nØ Einnahmen: "+fmtEuro(avgInc)+"\nØ Ausgaben: "+fmtEuro(avgExp)+"\nØ Saldo:   "+fmtEuro(avgInc-avgExp)+"\n";
+      var blob=new Blob([out],{type:"text/plain;charset=utf-8"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="finanzbericht_"+fnToday()+".txt";a.click();
+      toast("📄 Bericht gespeichert","ok");
+    });
+  }
+};
+
+/* ---------- AUTO-REGISTER: alles automatisch einbauen ---------- */
+if(AppLauncher&&AppLauncher.registry){
+  AppLauncher.registry.finanzen=AppFinanzen;
+}
+
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){
+    if(a.id==="finanzen"){a.prio=1;a.installed=true;a.cat="Finanzen";a.name="Finanzen";a.icon="💰";found=true;}
+  });
+  if(!found){
+    APP_PLAN.unshift({id:"finanzen",name:"Finanzen",icon:"💰",cat:"Finanzen",prio:1,installed:true});
+  }
+}
+
+/* Nach 1.8s die App-Liste neu rendern, falls sie schon sichtbar ist */
+setTimeout(function(){
+  var btn=document.getElementById("btnFilterAll");
+  if(btn)btn.click();
+},1800);
+
+console.log("[HalDo Finanzen] ✅ Modul geladen und registriert.");
+})();
+</script>
+<!-- ============ ENDE HALDO FINANZEN APP ============ -->
 </body>
 </html>
