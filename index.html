@@ -5950,5 +5950,467 @@ console.log("[HalDo Passwort-Safe] ✅ Modul geladen und registriert.");
 })();
 </script>
 <!-- ============ ENDE HALDO PASSWORT-SAFE APP ============ -->
+<!-- ============================================================
+     HALDO KONTAKTE APP — DROP-IN MODUL
+     Einfach vor </body> einfügen. Nach Reload ist alles aktiv.
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Kontakte] window.HalDo fehlt.");return;}
+
+var H=window.HalDo;
+var Storage=H.Storage;
+var AppLauncher=H.AppLauncher;
+var APP_PLAN=H.APP_PLAN;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+function select(id,cur,opts){var h='<select id="'+id+'">';opts.forEach(function(o){h+='<option value="'+esc(o[0])+'"'+(String(o[0])===String(cur)?" selected":"")+'>'+esc(o[1])+'</option>';});return h+'</select>';}
+
+function ktInjectStyles(){
+  if(document.getElementById("ktStyles"))return;
+  var s=document.createElement("style");
+  s.id="ktStyles";
+  s.textContent=".kt-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(34,197,94,.18),rgba(0,212,255,.18));border:1px solid rgba(34,197,94,.4);text-align:center;margin-bottom:12px}.kt-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.kt-hero .val{font-size:38px;font-weight:900;color:#4ade80;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.kt-hero .sub{font-size:10.5px;color:var(--text-mute)}.kt-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}.kt-stat{padding:9px 5px;border-radius:11px;text-align:center;border:1px solid var(--border);background:linear-gradient(180deg,var(--bg-4),var(--bg-3))}.kt-stat .i{font-size:14px;margin-bottom:2px}.kt-stat .v{font-size:14px;font-weight:800;color:#4ade80;font-family:ui-monospace,monospace;line-height:1}.kt-stat .l{font-size:8px;color:var(--text-mute);text-transform:uppercase;font-weight:700;margin-top:2px}.kt-search{width:100%;background:var(--bg-3);border:1px solid var(--border);color:var(--text);padding:10px 13px;border-radius:9px;font-family:inherit;font-size:12px;outline:none;margin-bottom:8px}.kt-item{display:flex;align-items:center;gap:10px;padding:11px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:10px;margin-top:6px;cursor:pointer;transition:.15s}.kt-item:hover{border-color:#4ade80}.kt-item .av{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;flex-shrink:0;color:#fff}.kt-item .body{flex:1;min-width:0}.kt-item .body .n{font-size:12.5px;font-weight:800}.kt-item .body .m{font-size:10px;color:var(--text-mute);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kt-item .fav{font-size:15px}.kt-letter-head{font-size:13px;font-weight:900;color:var(--primary);text-transform:uppercase;letter-spacing:2px;padding:10px 4px 4px;border-bottom:1px solid var(--border);margin-bottom:4px}.kt-detail{padding:14px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:11px;margin-top:10px}.kt-detail .big-av{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:900;color:#fff;margin:0 auto 10px}.kt-detail h4{font-size:16px;font-weight:800;color:#4ade80;text-align:center;margin-bottom:3px}.kt-detail .sub{font-size:11px;color:var(--text-dim);text-align:center;margin-bottom:12px}.kt-detail .row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg-4);border:1px solid var(--border);border-radius:9px;margin-top:6px}.kt-detail .row .lbl{font-size:9.5px;color:var(--text-mute);text-transform:uppercase;letter-spacing:.6px;font-weight:800;min-width:70px}.kt-detail .row .v{flex:1;font-size:11.5px;font-weight:700;word-break:break-all}.kt-detail .row .act{width:32px;height:32px;border-radius:8px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#4ade80;cursor:pointer;font-size:13px;flex-shrink:0;display:flex;align-items:center;justify-content:center;text-decoration:none}.kt-detail .row .act:hover{background:rgba(34,197,94,.25)}.kt-detail .quick-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0}.kt-detail .quick-btn{padding:12px 6px;border-radius:11px;text-align:center;cursor:pointer;text-decoration:none;font-size:10px;font-weight:700;color:#fff;transition:.15s}.kt-detail .quick-btn:hover{transform:scale(1.05)}.kt-detail .quick-btn .i{font-size:20px;display:block;margin-bottom:4px}.kt-cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}.kt-cat{padding:10px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;text-align:center;cursor:pointer}.kt-cat.active{border-color:#4ade80;background:rgba(34,197,94,.12)}.kt-cat .i{font-size:18px;margin-bottom:3px}.kt-cat .n{font-size:9px;font-weight:800}.kt-cat .c{font-size:8px;color:var(--text-mute);margin-top:1px}.kt-input{width:100%;background:var(--bg-3);border:1px solid rgba(0,212,255,.22);color:var(--text);padding:10px 12px;border-radius:9px;font-family:inherit;font-size:12px;outline:none}.kt-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}.kt-import-box{padding:12px;background:rgba(0,212,255,.06);border:1px dashed rgba(0,212,255,.35);border-radius:11px;font-size:11px;line-height:1.6;color:var(--text-dim)}.kt-alphabet{display:flex;flex-wrap:wrap;gap:3px;margin:8px 0}.kt-al-btn{padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-3);color:var(--text-dim);font-family:inherit;font-size:11px;font-weight:800;cursor:pointer}.kt-al-btn.active{border-color:#4ade80;background:rgba(34,197,94,.15);color:#4ade80}.kt-al-btn:disabled{opacity:.3}";
+  document.head.appendChild(s);
+}
+
+/* ============ Farben für Avatare ============ */
+var KT_COLORS=["#ef4444","#f97316","#f59e0b","#eab308","#22c55e","#10b981","#14b8a6","#06b6d4","#0ea5e9","#3b82f6","#6366f1","#8b5cf6","#a855f7","#ec4899","#f43f5e","#84cc16"];
+
+/* ============ Kategorien ============ */
+var KT_CATS={
+  familie:{n:"Familie",i:"👨‍👩‍👧",c:"#ef4444"},
+  freunde:{n:"Freunde",i:"👫",c:"#f97316"},
+  arbeit:{n:"Arbeit",i:"💼",c:"#3b82f6"},
+  schule:{n:"Schule",i:"🎓",c:"#8b5cf6"},
+  aerzte:{n:"Ärzte",i:"🩺",c:"#22c55e"},
+  notfall:{n:"Notfall",i:"🚨",c:"#ef4444"},
+  handwerk:{n:"Handwerk",i:"🔧",c:"#f59e0b"},
+  geschaeft:{n:"Geschäftlich",i:"🏢",c:"#0ea5e9"},
+  sonstiges:{n:"Sonstiges",i:"👤",c:"#94a3b8"}
+};
+
+/* ============ App ============ */
+var AppKontakte={
+  tab:"list",_q:"",_cat:"all",_letter:null,
+
+  getContacts:function(){return Storage.get("kt_contacts",[]);},
+  saveContacts:function(a){Storage.set("kt_contacts",a);},
+  getFavs:function(){return Storage.get("kt_favs",[]);},
+  saveFavs:function(a){Storage.set("kt_favs",a);},
+
+  getInitials:function(name){
+    if(!name)return "?";
+    var parts=name.trim().split(/\s+/);
+    if(parts.length===1)return parts[0].substring(0,2).toUpperCase();
+    return (parts[0][0]+parts[parts.length-1][0]).toUpperCase();
+  },
+  getColor:function(name){
+    var h=0;for(var i=0;i<name.length;i++){h=(h*31+name.charCodeAt(i))>>>0;}
+    return KT_COLORS[h%KT_COLORS.length];
+  },
+  getLetter:function(name){
+    if(!name)return "#";
+    var l=name.trim().charAt(0).toUpperCase();
+    if(l.match(/[A-ZÄÖÜ]/))return l;
+    return "#";
+  },
+
+  render:function(){
+    ktInjectStyles();
+    var vp=document.getElementById("appViewport");
+    var tabs=[
+      {k:"list",n:"👥 Alle"},
+      {k:"favs",n:"⭐ Favoriten"},
+      {k:"new",n:"➕ Neu"},
+      {k:"import",n:"📥 Import"}
+    ];
+    var self=this;
+    var th=tabs.map(function(t){return '<button class="ms-tab'+(self.tab===t.k?" active":"")+'" data-kt-tab="'+t.k+'">'+t.n+'</button>';}).join("");
+    vp.innerHTML='<div class="ms-tabs">'+th+'</div><div id="ktContent"></div>';
+    vp.querySelectorAll("[data-kt-tab]").forEach(function(b){b.addEventListener("click",function(){self.tab=b.dataset.ktTab;self.render();});});
+    this.renderTab();
+  },
+
+  renderTab:function(){
+    var el=document.getElementById("ktContent");if(!el)return;
+    var t=this.tab;
+    if(t==="list")this.renderList(el);
+    else if(t==="favs")this.renderFavs(el);
+    else if(t==="new")this.renderNew(el);
+    else if(t==="import")this.renderImport(el);
+  },
+
+  renderList:function(el){
+    var self=this;
+    var all=this.getContacts();
+    var favs=this.getFavs();
+    var filter=this._cat;
+    var shown=all.slice();
+    if(filter!=="all")shown=shown.filter(function(x){return x.cat===filter;});
+    if(this._q){
+      var q=this._q.toLowerCase();
+      shown=shown.filter(function(x){
+        return x.name.toLowerCase().indexOf(q)>=0 ||
+               (x.phone||"").indexOf(q)>=0 ||
+               (x.email||"").toLowerCase().indexOf(q)>=0;
+      });
+    }
+    shown.sort(function(a,b){return a.name.localeCompare(b.name,"de");});
+
+    /* Buchstaben gruppieren */
+    var groups={};
+    shown.forEach(function(c){
+      var l=self.getLetter(c.name);
+      if(!groups[l])groups[l]=[];
+      groups[l].push(c);
+    });
+    var letters=Object.keys(groups).sort();
+
+    var listHtml=letters.length?letters.map(function(l){
+      return '<div class="kt-letter-head">'+l+'</div>'
+        +groups[l].map(function(c){
+          var color=self.getColor(c.name);
+          var isFav=favs.indexOf(c.id)>=0;
+          var cat=KT_CATS[c.cat]||KT_CATS.sonstiges;
+          return '<div class="kt-item" data-kt-open="'+c.id+'">'
+            +'<div class="av" style="background:'+color+'">'+self.getInitials(c.name)+'</div>'
+            +'<div class="body"><div class="n">'+esc(c.name)+(isFav?' ⭐':'')+'</div>'
+            +'<div class="m">'+cat.i+' '+cat.n+(c.phone?' · '+esc(c.phone):'')+(c.email?' · '+esc(c.email):'')+'</div></div>'
+            +'<div style="color:var(--text-mute);font-size:18px">›</div></div>';
+        }).join("");
+    }).join(""):'<div class="kt-empty">Keine Kontakte. Leg deinen ersten an!</div>';
+
+    var stats={total:all.length,favs:favs.length,familie:all.filter(function(x){return x.cat==="familie";}).length,notfall:all.filter(function(x){return x.cat==="notfall";}).length};
+
+    var catCards='<div class="kt-cat'+("all"===filter?" active":"")+'" data-kt-cat="all"><div class="i">👥</div><div class="n">Alle</div><div class="c">'+all.length+'</div></div>'
+      +Object.keys(KT_CATS).map(function(k){
+        var c=KT_CATS[k];
+        var count=all.filter(function(x){return x.cat===k;}).length;
+        if(count===0)return "";
+        return '<div class="kt-cat'+(k===filter?" active":"")+'" data-kt-cat="'+k+'"><div class="i">'+c.i+'</div><div class="n">'+c.n+'</div><div class="c">'+count+'</div></div>';
+      }).join("");
+
+    el.innerHTML='<div class="kt-hero"><div class="lbl">Kontakte gesamt</div><div class="val">'+all.length+'</div><div class="sub">'+favs.length+' Favoriten · '+stats.familie+' Familie · '+stats.notfall+' Notfall</div></div>'
+      +'<div class="kt-stats">'
+      +'<div class="kt-stat"><div class="i">👥</div><div class="v">'+all.length+'</div><div class="l">Gesamt</div></div>'
+      +'<div class="kt-stat"><div class="i">⭐</div><div class="v">'+favs.length+'</div><div class="l">Favs</div></div>'
+      +'<div class="kt-stat"><div class="i">👨‍👩‍👧</div><div class="v">'+stats.familie+'</div><div class="l">Familie</div></div>'
+      +'<div class="kt-stat"><div class="i">🚨</div><div class="v">'+stats.notfall+'</div><div class="l">Notfall</div></div>'
+      +'</div>'
+      +'<div class="card"><input type="text" class="kt-search" id="kt_search" placeholder="🔍 Name, Telefon, E-Mail…" value="'+esc(this._q)+'">'
+      +'<button class="btn success full" id="kt_goto_new" style="margin-top:6px">➕ Neuer Kontakt</button></div>'
+      +'<div class="card"><div class="card-h"><h3>📂 Kategorien</h3></div><div class="kt-cat-grid">'+catCards+'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>👥 '+shown.length+' Kontakte</h3></div>'+listHtml+'</div>'
+      +'<div id="kt_detail"></div>';
+
+    var s=document.getElementById("kt_search");
+    s.addEventListener("input",function(){self._q=s.value;clearTimeout(self._t);self._t=setTimeout(function(){self.renderTab();},250);});
+    document.getElementById("kt_goto_new").addEventListener("click",function(){self.tab="new";self.render();});
+    el.querySelectorAll("[data-kt-cat]").forEach(function(b){
+      b.addEventListener("click",function(){self._cat=b.dataset.ktCat;self.renderTab();});
+    });
+    el.querySelectorAll("[data-kt-open]").forEach(function(c){
+      c.addEventListener("click",function(){self.showContact(c.dataset.ktOpen);});
+    });
+  },
+
+  showContact:function(id){
+    var self=this;
+    var c=null;this.getContacts().forEach(function(x){if(x.id===id)c=x;});
+    if(!c)return;
+    var det=document.getElementById("kt_detail");if(!det)return;
+    var cat=KT_CATS[c.cat]||KT_CATS.sonstiges;
+    var color=this.getColor(c.name);
+    var isFav=this.getFavs().indexOf(id)>=0;
+
+    var quickActions=[];
+    if(c.phone){
+      quickActions.push({i:"📞",n:"Anruf",href:"tel:"+c.phone,color:"#22c55e"});
+      quickActions.push({i:"💬",n:"SMS",href:"sms:"+c.phone,color:"#3b82f6"});
+      quickActions.push({i:"📱",n:"WhatsApp",href:"https://wa.me/"+c.phone.replace(/[^0-9]/g,""),color:"#10b981"});
+    }
+    if(c.email)quickActions.push({i:"✉️",n:"E-Mail",href:"mailto:"+c.email,color:"#f59e0b"});
+
+    var quickHtml=quickActions.length?'<div class="quick-row">'+quickActions.map(function(a){
+      return '<a class="quick-btn" style="background:'+a.color+'22;color:'+a.color+';border:1px solid '+a.color+'55" href="'+esc(a.href)+'" target="_blank"><span class="i">'+a.i+'</span>'+a.n+'</a>';
+    }).join("")+'</div>':'';
+
+    det.innerHTML='<div class="kt-detail">'
+      +'<div class="big-av" style="background:'+color+'">'+this.getInitials(c.name)+'</div>'
+      +'<h4>'+esc(c.name)+'</h4>'
+      +'<div class="sub">'+cat.i+' '+cat.n+(c.company?' · '+esc(c.company):'')+'</div>'
+      +quickHtml
+      +(c.phone?'<div class="row"><span class="lbl">📞 Telefon</span><span class="v">'+esc(c.phone)+'</span><a class="act" href="tel:'+esc(c.phone)+'">📞</a></div>':'')
+      +(c.email?'<div class="row"><span class="lbl">✉️ E-Mail</span><span class="v">'+esc(c.email)+'</span><a class="act" href="mailto:'+esc(c.email)+'">✉️</a></div>':'')
+      +(c.address?'<div class="row"><span class="lbl">📍 Adresse</span><span class="v">'+esc(c.address)+'</span><a class="act" href="https://maps.google.com/?q='+encodeURIComponent(c.address)+'" target="_blank">🗺️</a></div>':'')
+      +(c.birthday?'<div class="row"><span class="lbl">🎂 Geburtstag</span><span class="v">'+esc(c.birthday)+'</span></div>':'')
+      +(c.company?'<div class="row"><span class="lbl">🏢 Firma</span><span class="v">'+esc(c.company)+'</span></div>':'')
+      +(c.notes?'<div class="row"><span class="lbl">📝 Notizen</span><span class="v" style="font-family:inherit">'+esc(c.notes)+'</span></div>':'')
+      +'<div class="btn-row" style="margin-top:10px">'
+      +'<button class="btn '+(isFav?"warn":"secondary")+'" id="kt_fav_tog">'+(isFav?"⭐ Favorit":"☆ Merken")+'</button>'
+      +'<button class="btn secondary" id="kt_edit">✏️ Bearbeiten</button>'
+      +'<button class="btn secondary" id="kt_share">📤 Teilen</button>'
+      +'<button class="btn danger" id="kt_delete">🗑️</button>'
+      +'<button class="btn secondary" id="kt_close">✕</button>'
+      +'</div></div>';
+    det.scrollIntoView({behavior:"smooth",block:"nearest"});
+
+    document.getElementById("kt_fav_tog").addEventListener("click",function(){
+      var f=self.getFavs();
+      var i=f.indexOf(id);
+      if(i>=0){f.splice(i,1);toast("☆ Entfernt");}
+      else{f.push(id);toast("⭐ Favorit","ok");}
+      self.saveFavs(f);
+      self.showContact(id);
+    });
+
+    document.getElementById("kt_edit").addEventListener("click",function(){
+      self._editId=id;self.tab="new";self.render();
+    });
+
+    document.getElementById("kt_share").addEventListener("click",function(){
+      var txt="Kontakt: "+c.name+"\n";
+      if(c.phone)txt+="📞 "+c.phone+"\n";
+      if(c.email)txt+="✉️ "+c.email+"\n";
+      if(c.address)txt+="📍 "+c.address+"\n";
+      if(navigator.share){
+        navigator.share({title:c.name,text:txt}).catch(function(){});
+      }else if(navigator.clipboard){
+        navigator.clipboard.writeText(txt).then(function(){toast("📋 In Zwischenablage kopiert","ok");});
+      }
+    });
+
+    document.getElementById("kt_delete").addEventListener("click",function(){
+      if(!confirm("Kontakt löschen?"))return;
+      self.saveContacts(self.getContacts().filter(function(x){return x.id!==id;}));
+      var f=self.getFavs();var i=f.indexOf(id);if(i>=0)f.splice(i,1);self.saveFavs(f);
+      toast("🗑️","ok");det.innerHTML="";self.renderTab();
+    });
+
+    document.getElementById("kt_close").addEventListener("click",function(){det.innerHTML="";});
+  },
+
+  renderFavs:function(el){
+    var self=this;
+    var all=this.getContacts();
+    var favs=this.getFavs();
+    var favContacts=all.filter(function(c){return favs.indexOf(c.id)>=0;});
+    var listHtml=favContacts.length?favContacts.map(function(c){
+      var color=self.getColor(c.name);
+      var cat=KT_CATS[c.cat]||KT_CATS.sonstiges;
+      return '<div class="kt-item" data-kt-open="'+c.id+'">'
+        +'<div class="av" style="background:'+color+'">'+self.getInitials(c.name)+'</div>'
+        +'<div class="body"><div class="n">⭐ '+esc(c.name)+'</div>'
+        +'<div class="m">'+cat.i+' '+cat.n+(c.phone?' · '+esc(c.phone):'')+'</div></div>'
+        +'<div style="color:var(--text-mute);font-size:18px">›</div></div>';
+    }).join(""):'<div class="kt-empty">Noch keine Favoriten. Klick ☆ bei einem Kontakt.</div>';
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>⭐ Deine Favoriten ('+favContacts.length+')</h3></div>'+listHtml+'</div>'
+      +'<div id="kt_detail"></div>';
+
+    el.querySelectorAll("[data-kt-open]").forEach(function(c){
+      c.addEventListener("click",function(){self.showContact(c.dataset.ktOpen);});
+    });
+  },
+
+  renderNew:function(el){
+    var self=this;
+    var editId=this._editId;
+    var edit=null;
+    if(editId){this.getContacts().forEach(function(x){if(x.id===editId)edit=x;});}
+    var cur=edit||{name:"",cat:"freunde",phone:"",email:"",address:"",birthday:"",company:"",notes:""};
+    var isNotfall=cur.cat==="notfall";
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>'+(editId?"✏️ Bearbeiten":"➕ Neuer Kontakt")+'</h3></div>'
+      +'<div class="field"><label>Name *</label><input type="text" class="kt-input" id="kt_n" value="'+esc(cur.name)+'" placeholder="Vor- und Nachname"></div>'
+      +'<div class="field"><label>Kategorie</label>'+select("kt_c",cur.cat,Object.keys(KT_CATS).map(function(k){return [k,KT_CATS[k].i+" "+KT_CATS[k].n];}))+'</div>'
+      +'<div class="field"><label>📞 Telefon</label><input type="tel" class="kt-input" id="kt_p" value="'+esc(cur.phone)+'" placeholder="+49 123 456789"></div>'
+      +'<div class="field"><label>✉️ E-Mail</label><input type="email" class="kt-input" id="kt_e" value="'+esc(cur.email)+'" placeholder="name@mail.com"></div>'
+      +'<div class="field"><label>📍 Adresse</label><input type="text" class="kt-input" id="kt_a" value="'+esc(cur.address)+'" placeholder="Straße, PLZ, Ort"></div>'
+      +'<div class="field"><label>🎂 Geburtstag</label><input type="text" class="kt-input" id="kt_b" value="'+esc(cur.birthday)+'" placeholder="TT.MM.JJJJ"></div>'
+      +'<div class="field"><label>🏢 Firma / Position</label><input type="text" class="kt-input" id="kt_co" value="'+esc(cur.company)+'" placeholder="Firma (optional)"></div>'
+      +'<div class="field"><label>📝 Notizen</label><textarea class="kt-input" id="kt_no" placeholder="Hobbys, Treffen, Notizen…" style="min-height:80px">'+esc(cur.notes)+'</textarea></div>'
+      +'<button class="btn success full" id="kt_save">💾 Speichern</button>'
+      +'<button class="btn secondary full" id="kt_cancel" style="margin-top:6px">✕ Abbrechen</button></div>';
+
+    document.getElementById("kt_save").addEventListener("click",function(){
+      var n=val("kt_n").trim();if(!n)return toast("⚠️ Name fehlt","err");
+      var entry={
+        id:editId||"k_"+Date.now(),
+        name:n,
+        cat:val("kt_c"),
+        phone:val("kt_p").trim(),
+        email:val("kt_e").trim(),
+        address:val("kt_a").trim(),
+        birthday:val("kt_b").trim(),
+        company:val("kt_co").trim(),
+        notes:val("kt_no").trim(),
+        t:editId?(edit?edit.t:Date.now()):Date.now()
+      };
+      var arr=self.getContacts();
+      if(editId){arr.forEach(function(x,i){if(x.id===editId)arr[i]=entry;});}
+      else arr.push(entry);
+      self.saveContacts(arr);
+      toast("💾 Gespeichert","ok");
+      self._editId=null;
+      self.tab="list";self.render();
+    });
+    document.getElementById("kt_cancel").addEventListener("click",function(){
+      self._editId=null;self.tab="list";self.render();
+    });
+  },
+
+  renderImport:function(el){
+    var self=this;
+    el.innerHTML='<div class="card"><div class="card-h"><h3>📥 Kontakte importieren</h3></div>'
+      +'<div class="kt-import-box">'
+      +'<b>📱 Optionen:</b><br>'
+      +'• <b>vCard (.vcf)</b> — aus iPhone, Android, Outlook exportiert<br>'
+      +'• <b>CSV</b> — aus Excel/Google Contacts<br><br>'
+      +'<b>iPhone:</b> Kontakte → Teilen → vCard exportieren<br>'
+      +'<b>Android:</b> Kontakte → Exportieren → .vcf<br>'
+      +'<b>Google:</b> contacts.google.com → Exportieren'
+      +'</div>'
+      +'<div class="field" style="margin-top:12px"><label>vCard / CSV Inhalt</label><textarea class="kt-input" id="kt_imp_txt" style="min-height:180px" placeholder="BEGIN:VCARD&#10;VERSION:3.0&#10;FN:Max Mustermann&#10;TEL:+49 123 456789&#10;EMAIL:max@mail.com&#10;END:VCARD&#10;&#10;ODER CSV:&#10;Name,Telefon,E-Mail&#10;Max Mustermann,+49...,max@..."></textarea></div>'
+      +'<div class="btn-row"><button class="btn success" id="kt_imp_do">📥 Importieren</button><button class="btn secondary" id="kt_imp_demo">🧪 Demo laden</button></div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>📤 Kontakte exportieren</h3></div>'
+      +'<button class="btn success full" id="kt_exp_vcf">📤 Als vCard (.vcf) exportieren</button>'
+      +'<button class="btn secondary full" id="kt_exp_csv" style="margin-top:6px">📤 Als CSV exportieren</button>'
+      +'</div>';
+
+    document.getElementById("kt_imp_do").addEventListener("click",function(){
+      var txt=val("kt_imp_txt").trim();
+      if(!txt)return toast("⚠️ Kein Inhalt","err");
+      self.parseAndImport(txt);
+    });
+    document.getElementById("kt_imp_demo").addEventListener("click",function(){
+      document.getElementById("kt_imp_txt").value="BEGIN:VCARD\nVERSION:3.0\nFN:Max Mustermann\nTEL:+49 123 456789\nEMAIL:max@mail.com\nEND:VCARD\n\nBEGIN:VCARD\nVERSION:3.0\nFN:Anna Schmidt\nTEL:+49 987 654321\nEMAIL:anna@mail.com\nEND:VCARD";
+    });
+
+    document.getElementById("kt_exp_vcf").addEventListener("click",function(){
+      var arr=self.getContacts();
+      if(!arr.length)return toast("⚠️ Keine Kontakte","err");
+      var out="";
+      arr.forEach(function(c){
+        out+="BEGIN:VCARD\nVERSION:3.0\n";
+        out+="FN:"+c.name+"\n";
+        if(c.phone)out+="TEL:"+c.phone+"\n";
+        if(c.email)out+="EMAIL:"+c.email+"\n";
+        if(c.address)out+="ADR:;;"+c.address+"\n";
+        if(c.company)out+="ORG:"+c.company+"\n";
+        if(c.birthday)out+="BDAY:"+c.birthday+"\n";
+        if(c.notes)out+="NOTE:"+c.notes+"\n";
+        out+="END:VCARD\n\n";
+      });
+      var blob=new Blob([out],{type:"text/vcard;charset=utf-8"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="kontakte.vcf";a.click();
+      toast("📤 vCard exportiert","ok");
+    });
+
+    document.getElementById("kt_exp_csv").addEventListener("click",function(){
+      var arr=self.getContacts();
+      if(!arr.length)return toast("⚠️ Keine Kontakte","err");
+      var csv="Name,Telefon,E-Mail,Adresse,Geburtstag,Firma,Kategorie,Notizen\n";
+      arr.forEach(function(c){
+        var cat=KT_CATS[c.cat]||KT_CATS.sonstiges;
+        csv+='"'+[c.name,c.phone||"",c.email||"",c.address||"",c.birthday||"",c.company||"",cat.n,c.notes||""].map(function(v){return String(v).replace(/"/g,'""');}).join('","')+'"\n';
+      });
+      var blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="kontakte.csv";a.click();
+      toast("📤 CSV exportiert","ok");
+    });
+  },
+
+  parseAndImport:function(txt){
+    var self=this;
+    var imported=0;
+    var contacts=this.getContacts();
+    /* vCard */
+    if(txt.indexOf("BEGIN:VCARD")>=0){
+      var cards=txt.split(/BEGIN:VCARD/i).slice(1);
+      cards.forEach(function(card){
+        var name="",phone="",email="",address="",company="",birthday="",notes="";
+        card.split(/\r?\n/).forEach(function(line){
+          var m;
+          if((m=line.match(/^FN[^:]*:(.+)/i)))name=m[1].trim();
+          else if((m=line.match(/^N[^:]*:(.+)/i))&&!name){
+            var parts=m[1].split(";");
+            name=(parts[1]||"")+" "+(parts[0]||"");
+            name=name.trim();
+          }
+          else if((m=line.match(/^TEL[^:]*:(.+)/i))&&!phone)phone=m[1].trim();
+          else if((m=line.match(/^EMAIL[^:]*:(.+)/i))&&!email)email=m[1].trim();
+          else if((m=line.match(/^ADR[^:]*:(.+)/i))&&!address){
+            address=m[1].split(";").filter(Boolean).join(" ").trim();
+          }
+          else if((m=line.match(/^ORG[^:]*:(.+)/i))&&!company)company=m[1].trim();
+          else if((m=line.match(/^BDAY[^:]*:(.+)/i))&&!birthday)birthday=m[1].trim();
+          else if((m=line.match(/^NOTE[^:]*:(.+)/i))&&!notes)notes=m[1].trim();
+        });
+        if(name){
+          contacts.push({id:"k_"+Date.now()+"_"+Math.random().toString(36).slice(2,6),name:name,cat:"sonstiges",phone:phone,email:email,address:address,company:company,birthday:birthday,notes:notes,t:Date.now()});
+          imported++;
+        }
+      });
+    }
+    /* CSV */
+    else if(txt.indexOf(",")>=0){
+      var lines=txt.split(/\r?\n/).filter(function(l){return l.trim();});
+      var header=lines[0].split(",").map(function(h){return h.replace(/^"|"$/g,"").trim().toLowerCase();});
+      var nameIdx=header.findIndex(function(h){return h.indexOf("name")>=0;});
+      var phoneIdx=header.findIndex(function(h){return h.indexOf("tel")>=0||h.indexOf("phone")>=0||h.indexOf("handy")>=0;});
+      var emailIdx=header.findIndex(function(h){return h.indexOf("mail")>=0;});
+      if(nameIdx<0)nameIdx=0;
+      for(var i=1;i<lines.length;i++){
+        var parts=lines[i].match(/("([^"]|"")*"|[^,]*)(,|$)/g)||[];
+        parts=parts.map(function(p){return p.replace(/,$/,"").replace(/^"|"$/g,"").replace(/""/g,'"').trim();});
+        var name=parts[nameIdx]||"";
+        if(!name)continue;
+        contacts.push({
+          id:"k_"+Date.now()+"_"+i+"_"+Math.random().toString(36).slice(2,6),
+          name:name,
+          cat:"sonstiges",
+          phone:phoneIdx>=0?parts[phoneIdx]||"":"",
+          email:emailIdx>=0?parts[emailIdx]||"":"",
+          address:"",company:"",birthday:"",notes:"",
+          t:Date.now()
+        });
+        imported++;
+      }
+    }
+    if(!imported)return toast("⚠️ Keine Kontakte erkannt","err");
+    this.saveContacts(contacts);
+    toast("📥 "+imported+" Kontakte importiert","ok");
+    this.tab="list";this.render();
+  }
+};
+
+/* ============ Auto-Register ============ */
+if(AppLauncher&&AppLauncher.registry){
+  AppLauncher.registry.kontakte=AppKontakte;
+}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){
+    if(a.id==="kontakte"){a.prio=1;a.installed=true;a.cat="Kommunikation";found=true;}
+  });
+  if(!found){
+    APP_PLAN.unshift({id:"kontakte",name:"Kontakte",icon:"👥",cat:"Kommunikation",prio:1,installed:true});
+  }
+}
+setTimeout(function(){
+  var btn=document.getElementById("btnFilterAll");
+  if(btn)btn.click();
+},1800);
+
+console.log("[HalDo Kontakte] ✅ Modul geladen und registriert.");
+})();
+</script>
+<!-- ============ ENDE HALDO KONTAKTE APP ============ -->
 </body>
 </html>
