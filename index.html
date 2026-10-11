@@ -13650,5 +13650,718 @@ setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click
 console.log("[HalDo Weltzeiten] 🌍 "+WZ_CITIES.length+" Städte geladen.");
 })();
 </script>
+<!-- ============================================================
+     HALDO STOPPUHR — Stoppuhr + Rundenzeiten
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Stoppuhr] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+
+function swStyles(){if(document.getElementById("swStyles"))return;var s=document.createElement("style");s.id="swStyles";
+s.textContent=".sw-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(34,197,94,.18),rgba(0,212,255,.18));border:1px solid rgba(34,197,94,.4);text-align:center;margin-bottom:12px}.sw-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.sw-hero .val{font-size:38px;font-weight:900;color:#4ade80;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.sw-hero .sub{font-size:10.5px;color:var(--text-mute)}.sw-timer{font-size:64px;font-weight:900;color:#4ade80;font-family:ui-monospace,monospace;text-align:center;padding:26px 12px;background:linear-gradient(180deg,rgba(34,197,94,.06),rgba(0,212,255,.06));border:2px solid rgba(34,197,94,.4);border-radius:16px;letter-spacing:2px;line-height:1;text-shadow:0 0 30px rgba(34,197,94,.4);margin:10px 0;word-break:break-all}.sw-timer.paused{color:#fbbf24;border-color:rgba(251,191,36,.4);text-shadow:0 0 30px rgba(251,191,36,.4)}.sw-timer .ms{font-size:36px;color:#22c55e;opacity:.85}.sw-btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.sw-btn{padding:18px;border:none;border-radius:12px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;transition:.15s}.sw-btn:hover{transform:scale(1.02)}.sw-btn.start{background:linear-gradient(135deg,#22c55e,#10b981);color:#fff;box-shadow:0 8px 25px rgba(34,197,94,.4)}.sw-btn.stop{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;box-shadow:0 8px 25px rgba(239,68,68,.4)}.sw-btn.lap{background:linear-gradient(135deg,#00d4ff,#0ea5e9);color:#fff;box-shadow:0 8px 25px rgba(0,212,255,.4)}.sw-btn.reset{background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff}.sw-btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}.sw-btn .i{display:block;font-size:26px;margin-bottom:3px}.sw-lap{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:5px;font-family:ui-monospace,monospace}.sw-lap .n{font-weight:800;color:var(--text-dim);font-size:11px;letter-spacing:1px}.sw-lap .t{color:#4ade80;font-weight:800;font-size:14px}.sw-lap .d{color:var(--text-mute);font-size:10.5px;margin-left:8px}.sw-lap.best{border-color:rgba(34,197,94,.5);background:linear-gradient(90deg,rgba(34,197,94,.08),transparent)}.sw-lap.worst{border-color:rgba(239,68,68,.5);background:linear-gradient(90deg,rgba(239,68,68,.06),transparent)}.sw-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}.sw-bt-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}";document.head.appendChild(s);}
+
+var AppStoppuhr={
+  _startTime:0,_elapsed:0,_running:false,_paused:false,_laps:[],
+  _interval:null,
+
+  render:function(){
+    swStyles();
+    var vp=document.getElementById("appViewport");
+    var self=this;
+    var t=this._elapsed;
+    var h=Math.floor(t/3600000);
+    var m=Math.floor((t%3600000)/60000);
+    var s=Math.floor((t%60000)/1000);
+    var cs=Math.floor((t%1000)/10);
+    var hh=h>0?String(h).padStart(2,"0")+":":"";
+    var timeStr=hh+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
+    var msStr="."+String(cs).padStart(2,"0");
+
+    var lapHtml="";
+    if(this._laps.length){
+      var best=Infinity,worst=0,sum=0;
+      this._laps.forEach(function(l){if(l.delta<best)best=l.delta;if(l.delta>worst)worst=l.delta;sum+=l.delta;});
+      var avg=sum/this._laps.length;
+      lapHtml=this._laps.map(function(l,idx){
+        var cls="";
+        if(l.delta===best&&self._laps.length>1)cls=" best";
+        else if(l.delta===worst&&self._laps.length>1)cls=" worst";
+        return '<div class="sw-lap'+cls+'"><span class="n">#'+(idx+1)+(cls===" best"?" ⭐":cls===" worst"?" 🐌":"")+'</span><span class="t">'+self.fmt(l.total)+'</span><span class="d">+'+self.fmt(l.delta)+'</span></div>';
+      }).reverse().join("");
+      lapHtml='<div class="card"><div class="card-h"><h3>🏁 Runden ('+this._laps.length+')</h3></div>'
+        +'<div class="sw-lap" style="border-color:rgba(0,212,255,.4)"><span class="n">📊 Ø</span><span class="t" style="color:#00d4ff">'+this.fmt(avg)+'</span><span class="d">⭐ '+this.fmt(best)+' · 🐌 '+this.fmt(worst)+'</span></div>'
+        +lapHtml+'</div>';
+    }
+
+    vp.innerHTML='<div class="sw-hero"><div class="lbl">Stoppuhr</div><div class="val">'+this._laps.length+'</div><div class="sub">'+(this._running?"🟢 Läuft":this._paused?"⏸️ Pausiert":"⏹️ Bereit")+'</div></div>'
+      +'<div class="card"><div class="sw-timer'+(this._paused?" paused":"")+'" id="sw_timer">'+timeStr+'<span class="ms">'+msStr+'</span></div>'
+      +'<div class="sw-btn-row">'
+      +(this._running?'<button class="sw-btn stop" id="sw_stop"><span class="i">⏸️</span>Stopp</button>'
+        :(this._paused?'<button class="sw-btn start" id="sw_resume"><span class="i">▶️</span>Weiter</button>'
+          :'<button class="sw-btn start" id="sw_start"><span class="i">▶️</span>Start</button>'))
+      +'<button class="sw-btn lap" id="sw_lap" '+(this._running?"":"disabled")+'><span class="i">🏁</span>Runde</button>'
+      +'</div>'
+      +'<div class="sw-btn-row">'
+      +'<button class="sw-btn reset" id="sw_reset" style="grid-column:span 2"><span class="i">🔄</span>Zurücksetzen</button>'
+      +'</div></div>'
+      +lapHtml
+      +'<div class="card"><div class="card-h"><h3>💾 Export</h3></div>'
+      +'<div class="sw-bt-row">'
+      +'<button class="btn secondary small" id="sw_copy">📋 Runden kopieren</button>'
+      +'<button class="btn secondary small" id="sw_save">💾 Speichern</button>'
+      +'</div></div>';
+
+    if(this._running){
+      document.getElementById("sw_stop").addEventListener("click",function(){self.pause();});
+    }else if(this._paused){
+      document.getElementById("sw_resume").addEventListener("click",function(){self.resume();});
+    }else{
+      document.getElementById("sw_start").addEventListener("click",function(){self.start();});
+    }
+    document.getElementById("sw_lap").addEventListener("click",function(){self.lap();});
+    document.getElementById("sw_reset").addEventListener("click",function(){self.reset();});
+    var cp=document.getElementById("sw_copy");
+    if(cp)cp.addEventListener("click",function(){
+      if(!self._laps.length)return toast("⚠️ Keine Runden","err");
+      var txt="Runden:\n"+self._laps.map(function(l,i){return "#"+(i+1)+": "+self.fmt(l.total)+" (+"+self.fmt(l.delta)+")";}).join("\n");
+      if(navigator.clipboard)navigator.clipboard.writeText(txt).then(function(){toast("📋 Kopiert","ok");});
+    });
+    var sv=document.getElementById("sw_save");
+    if(sv)sv.addEventListener("click",function(){
+      if(!self._laps.length)return toast("⚠️ Keine Runden","err");
+      var arr=Storage.get("sw_sessions",[]);
+      arr.unshift({id:"s_"+Date.now(),laps:self._laps.slice(),total:self._elapsed,t:Date.now()});
+      if(arr.length>20)arr=arr.slice(0,20);
+      Storage.set("sw_sessions",arr);
+      toast("💾 Session gespeichert","ok");
+    });
+  },
+
+  start:function(){
+    this._startTime=Date.now()-this._elapsed;
+    this._running=true;this._paused=false;
+    this.render();
+    this.tick();
+  },
+  pause:function(){
+    this._running=false;this._paused=true;
+    if(this._interval)clearInterval(this._interval);
+    this.render();
+  },
+  resume:function(){
+    this._startTime=Date.now()-this._elapsed;
+    this._running=true;this._paused=false;
+    this.render();
+    this.tick();
+  },
+  reset:function(){
+    if(!confirm("Stoppuhr zurücksetzen?"))return;
+    this._elapsed=0;this._startTime=0;
+    this._running=false;this._paused=false;
+    this._laps=[];
+    if(this._interval)clearInterval(this._interval);
+    this.render();
+  },
+  lap:function(){
+    if(!this._running)return;
+    var total=this._elapsed;
+    var prev=this._laps.length?this._laps[this._laps.length-1].total:0;
+    this._laps.push({total:total,delta:total-prev});
+    this.render();
+  },
+  tick:function(){
+    var self=this;
+    if(this._interval)clearInterval(this._interval);
+    this._interval=setInterval(function(){
+      if(!self._running)return;
+      self._elapsed=Date.now()-self._startTime;
+      var t=self._elapsed;
+      var h=Math.floor(t/3600000);
+      var m=Math.floor((t%3600000)/60000);
+      var s=Math.floor((t%60000)/1000);
+      var cs=Math.floor((t%1000)/10);
+      var hh=h>0?String(h).padStart(2,"0")+":":"";
+      var str=hh+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")+'<span class="ms">.'+String(cs).padStart(2,"0")+'</span>';
+      var el=document.getElementById("sw_timer");
+      if(el)el.innerHTML=str;
+    },50);
+  },
+  fmt:function(ms){
+    var t=ms;
+    var h=Math.floor(t/3600000);
+    var m=Math.floor((t%3600000)/60000);
+    var s=Math.floor((t%60000)/1000);
+    var cs=Math.floor((t%1000)/10);
+    var hh=h>0?String(h).padStart(2,"0")+":":"";
+    return hh+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")+"."+String(cs).padStart(2,"0");
+  },
+  pause_interval:function(){if(this._interval)clearInterval(this._interval);this._interval=null;}
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.stoppuhr=AppStoppuhr;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="stoppuhr"){a.prio=1;a.installed=true;a.cat="Werkzeuge";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"stoppuhr",name:"Stoppuhr",icon:"⏱️",cat="Werkzeuge",prio:1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Stoppuhr] ⏱️ Runden + Export geladen.");
+})();
+</script>
+<!-- ============================================================
+     HALDO KOMPASS — Digitale Kompass-Anzeige
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Kompass] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+
+function kpStyles(){if(document.getElementById("kpStyles"))return;var s=document.createElement("style");s.id="kpStyles";
+s.textContent=".kp-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(245,158,11,.2),rgba(239,68,68,.18));border:1px solid rgba(245,158,11,.4);text-align:center;margin-bottom:12px}.kp-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.kp-hero .val{font-size:38px;font-weight:900;color:#fbbf24;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.kp-hero .sub{font-size:10.5px;color:var(--text-mute)}.kp-compass{position:relative;width:100%;max-width:340px;aspect-ratio:1;margin:12px auto;background:radial-gradient(circle,rgba(30,58,138,.35),rgba(0,0,0,.85));border-radius:50%;border:3px solid rgba(245,158,11,.5);box-shadow:0 0 50px rgba(245,158,11,.3),inset 0 0 50px rgba(0,0,0,.6);overflow:hidden}.kp-compass .mark{position:absolute;left:50%;top:8%;transform:translateX(-50%);width:3px;height:16px;background:rgba(255,255,255,.4);border-radius:2px}.kp-compass .cardinal{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:24px;font-weight:900;color:#fff;text-shadow:0 0 10px rgba(0,0,0,.9);transition:transform .3s;transform-origin:center center;pointer-events:none}.kp-compass .cardinal.N{transform:translate(-50%,-50%) translateY(-42%);color:#ef4444;font-size:30px}.kp-compass .cardinal.S{transform:translate(-50%,-50%) translateY(42%)}.kp-compass .cardinal.E{transform:translate(-50%,-50%) translateX(42%)}.kp-compass .cardinal.W{transform:translate(-50%,-50%) translateX(-42%)}.kp-compass .cardinal.NE{transform:translate(-50%,-50%) translate(30%,-30%);font-size:18px;color:#fbbf24}.kp-compass .cardinal.NW{transform:translate(-50%,-50%) translate(-30%,-30%);font-size:18px;color:#fbbf24}.kp-compass .cardinal.SE{transform:translate(-50%,-50%) translate(30%,30%);font-size:18px;color:#fbbf24}.kp-compass .cardinal.SW{transform:translate(-50%,-50%) translate(-30%,30%);font-size:18px;color:#fbbf24}.kp-needle{position:absolute;left:50%;top:50%;width:0;height:0;transform-origin:center center;transition:transform .15s ease-out;z-index:2}.kp-needle .north{width:6px;height:120px;background:linear-gradient(180deg,#ef4444,#dc2626);position:absolute;left:-3px;top:-120px;border-radius:3px 3px 0 0;box-shadow:0 0 15px rgba(239,68,68,.7)}.kp-needle .south{width:6px;height:120px;background:linear-gradient(180deg,#06b6d4,#0ea5e9);position:absolute;left:-3px;top:0;border-radius:0 0 3px 3px;box-shadow:0 0 15px rgba(6,182,212,.7)}.kp-center-dot{position:absolute;left:50%;top:50%;width:18px;height:18px;background:radial-gradient(circle,#fbbf24,#f59e0b);border:3px solid #fff;border-radius:50%;transform:translate(-50%,-50%);z-index:3;box-shadow:0 0 15px rgba(251,191,36,.8)}.kp-degrees{text-align:center;font-size:52px;font-weight:900;color:#fbbf24;font-family:ui-monospace,monospace;line-height:1;margin:10px 0;text-shadow:0 0 25px rgba(251,191,36,.5)}.kp-direction{text-align:center;font-size:15px;font-weight:800;color:#c084fc;text-transform:uppercase;letter-spacing:3px;margin-bottom:14px}.kp-info{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.kp-info-card{padding:10px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;text-align:center}.kp-info-card .v{font-size:15px;font-weight:900;color:#00d4ff;font-family:ui-monospace,monospace}.kp-info-card .l{font-size:9px;color:var(--text-mute);text-transform:uppercase;font-weight:700;margin-top:3px}.kp-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11.5px;border:1px dashed var(--border);border-radius:9px;margin-top:8px;line-height:1.6}.kp-btn-row{display:flex;gap:6px;margin-top:8px}.kp-legend{padding:11px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;font-size:11.5px;line-height:1.7;color:var(--text-dim)}.kp-legend b{color:#fbbf24}";document.head.appendChild(s);}
+
+var AppKompass={
+  _heading:0,_watchId:null,_active:false,
+  _alpha:null,_beta:null,_gamma:null,
+  _handler:null,
+
+  render:function(){
+    kpStyles();
+    var vp=document.getElementById("appViewport");
+    var self=this;
+    var dirName=this.dirName(this._heading);
+
+    var compassHtml='<div class="kp-compass" id="kp_compass">'
+      +'<div class="mark" style="transform:translateX(-50%) rotate(0deg)"></div>'
+      +'<div class="cardinal N">N</div>'
+      +'<div class="cardinal E">E</div>'
+      +'<div class="cardinal S">S</div>'
+      +'<div class="cardinal W">W</div>'
+      +'<div class="cardinal NE">NE</div>'
+      +'<div class="cardinal NW">NW</div>'
+      +'<div class="cardinal SE">SE</div>'
+      +'<div class="cardinal SW">SW</div>'
+      +'<div class="kp-needle" id="kp_needle" style="transform:translate(-50%,-50%) rotate('+(-this._heading)+'deg)">'
+      +'<div class="north"></div>'
+      +'<div class="south"></div>'
+      +'</div>'
+      +'<div class="kp-center-dot"></div>'
+      +'</div>';
+
+    vp.innerHTML='<div class="kp-hero"><div class="lbl">Kompass</div><div class="val">'+(this._active?"🟢":"⏹️")+'</div><div class="sub">'+(this._active?"Sensor aktiv":"Zum Starten klicken")+'</div></div>'
+      +'<div class="card">'
+      +compassHtml
+      +'<div class="kp-degrees" id="kp_deg">'+Math.round(this._heading)+'°</div>'
+      +'<div class="kp-direction" id="kp_dir">'+dirName+'</div>'
+      +'<div class="kp-info">'
+      +'<div class="kp-info-card"><div class="v" id="kp_alpha">—</div><div class="l">Rotation</div></div>'
+      +'<div class="kp-info-card"><div class="v" id="kp_beta">—</div><div class="l">Neigung</div></div>'
+      +'<div class="kp-info-card"><div class="v" id="kp_gamma">—</div><div class="l">Roll</div></div>'
+      +'</div>'
+      +'</div>'
+      +'<div class="card"><div class="kp-btn-row">'
+      +(this._active
+        ?'<button class="btn danger full" id="kp_stop">⏹️ Stoppen</button>'
+        :'<button class="btn success full" id="kp_start">▶️ Kompass starten</button>')
+      +'</div>'
+      +'<button class="btn secondary full" id="kp_gps" style="margin-top:6px">📍 GPS-Peilung (falls Kompass nicht geht)</button>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>ℹ️ Legende</h3></div>'
+      +'<div class="kp-legend">'
+      +'<b>N</b> Norden (0°) · <b>NO</b> Nordost (45°) · <b>O</b> Osten (90°) · <b>SO</b> Südost (135°)<br>'
+      +'<b>S</b> Süden (180°) · <b>SW</b> Südwest (225°) · <b>W</b> Westen (270°) · <b>NW</b> Nordwest (315°)'
+      +'</div>'
+      +'</div>'
+      +'<div class="kp-empty" id="kp_hint" style="'+(this._active?"display:none":"")+'">'
+      +'💡 <b>iOS:</b> Sensor wird automatisch aktiviert.<br>'
+      +'<b>Android:</b> Beim ersten Klick Sensor-Erlaubnis geben.'
+      +'</div>';
+
+    var startBtn=document.getElementById("kp_start");
+    if(startBtn)startBtn.addEventListener("click",function(){self.start();});
+    var stopBtn=document.getElementById("kp_stop");
+    if(stopBtn)stopBtn.addEventListener("click",function(){self.stop();});
+    document.getElementById("kp_gps").addEventListener("click",function(){self.getGPS();});
+  },
+
+  start:function(){
+    var self=this;
+    this._active=true;
+    this.render();
+    /* iOS 13+ braucht Permission */
+    if(typeof DeviceOrientationEvent!=="undefined"&&typeof DeviceOrientationEvent.requestPermission==="function"){
+      DeviceOrientationEvent.requestPermission().then(function(state){
+        if(state==="granted")self.attach();
+        else{
+          toast("❌ Sensor-Erlaubnis verweigert","err");
+          self._active=false;self.render();
+        }
+      }).catch(function(e){
+        toast("❌ "+e.message,"err");
+        self._active=false;self.render();
+      });
+    }else{
+      this.attach();
+    }
+  },
+
+  attach:function(){
+    var self=this;
+    this.detach();
+    this._handler=function(e){
+      var heading=null;
+      if(e.webkitCompassHeading!=null){
+        heading=e.webkitCompassHeading;
+      }else if(e.alpha!=null){
+        heading=360-e.alpha;
+      }
+      if(heading!=null){
+        self._heading=((heading%360)+360)%360;
+        self.updateUI();
+      }
+      self._alpha=e.alpha!=null?Math.round(e.alpha):null;
+      self._beta=e.beta!=null?Math.round(e.beta):null;
+      self._gamma=e.gamma!=null?Math.round(e.gamma):null;
+      var el;
+      if((el=document.getElementById("kp_alpha")))el.textContent=self._alpha!=null?self._alpha+"°":"—";
+      if((el=document.getElementById("kp_beta")))el.textContent=self._beta!=null?self._beta+"°":"—";
+      if((el=document.getElementById("kp_gamma")))el.textContent=self._gamma!=null?self._gamma+"°":"—";
+    };
+    window.addEventListener("deviceorientationabsolute",this._handler,true);
+    window.addEventListener("deviceorientation",this._handler,true);
+    toast("🧭 Sensor aktiv","ok");
+  },
+
+  detach:function(){
+    if(this._handler){
+      window.removeEventListener("deviceorientationabsolute",this._handler,true);
+      window.removeEventListener("deviceorientation",this._handler,true);
+      this._handler=null;
+    }
+  },
+
+  stop:function(){
+    this.detach();
+    this._active=false;
+    this.render();
+    toast("⏹️ Gestoppt","ok");
+  },
+
+  updateUI:function(){
+    var el;
+    if((el=document.getElementById("kp_deg")))el.textContent=Math.round(this._heading)+"°";
+    if((el=document.getElementById("kp_dir")))el.textContent=this.dirName(this._heading);
+    if((el=document.getElementById("kp_needle")))el.style.transform="translate(-50%,-50%) rotate("+(-this._heading)+"deg)";
+  },
+
+  dirName:function(deg){
+    var names=["N","NNO","NO","ONO","O","OSO","SO","SSO","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+    var idx=Math.round(((deg%360)+360)%360/22.5)%16;
+    return names[idx];
+  },
+
+  getGPS:function(){
+    var self=this;
+    if(!navigator.geolocation)return toast("❌ Kein GPS","err");
+    if(!this._lastPos){
+      toast("📍 Erst Position holen…");
+      navigator.geolocation.getCurrentPosition(function(p){
+        self._lastPos=p.coords;
+        toast("📍 Position gespeichert. Nun 10m laufen und erneut klicken.","ok");
+      },function(e){toast("❌ "+e.message,"err");},{enableHighAccuracy:true});
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(function(p){
+      var lat1=self._lastPos.latitude,lng1=self._lastPos.longitude;
+      var lat2=p.coords.latitude,lng2=p.coords.longitude;
+      var dLng=(lng2-lng1)*Math.PI/180;
+      var la1=lat1*Math.PI/180,la2=lat2*Math.PI/180;
+      var y=Math.sin(dLng)*Math.cos(la2);
+      var x=Math.cos(la1)*Math.sin(la2)-Math.sin(la1)*Math.cos(la2)*Math.cos(dLng);
+      var brng=Math.atan2(y,x)*180/Math.PI;
+      brng=(brng+360)%360;
+      self._heading=brng;
+      self._lastPos=p.coords;
+      self.updateUI();
+      toast("📍 Peilung: "+Math.round(brng)+"° "+self.dirName(brng),"ok");
+    },function(e){toast("❌ "+e.message,"err");},{enableHighAccuracy:true});
+  },
+
+  pause:function(){this.detach();}
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.kompass=AppKompass;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="kompass"){a.prio=1;a.installed=true;a.cat="Werkzeuge";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"kompass",name:"Kompass",icon:"🧭",cat:"Werkzeuge",prio:1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Kompass] 🧭 Sensor + GPS-Peilung geladen.");
+})();
+</script>
+<!-- ============================================================
+     HALDO TASCHENLAMPE — Kamera-Blitz als Licht
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Taschenlampe] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+
+function tlStyles(){if(document.getElementById("tlStyles"))return;var s=document.createElement("style");s.id="tlStyles";
+s.textContent=".tl-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(251,191,36,.2),rgba(245,158,11,.18));border:1px solid rgba(251,191,36,.4);text-align:center;margin-bottom:12px}.tl-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.tl-hero .val{font-size:38px;font-weight:900;color:#fbbf24;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.tl-hero .sub{font-size:10.5px;color:var(--text-mute)}.tl-screen{position:relative;background:#000;border-radius:16px;margin:10px 0;padding:60px 20px;text-align:center;transition:background .3s}.tl-screen.on{background:radial-gradient(circle,#fef3c7 0%,#fbbf24 40%,#000 100%);box-shadow:0 0 80px rgba(251,191,36,.6)}.tl-screen.off{background:#0a0a0a;box-shadow:inset 0 0 40px rgba(0,0,0,.9)}.tl-icon{font-size:100px;line-height:1;filter:drop-shadow(0 0 20px rgba(0,0,0,.5));transition:.3s}.tl-screen.on .tl-icon{filter:drop-shadow(0 0 30px #fff)}.tl-status{margin-top:14px;font-size:14px;font-weight:800;text-transform:uppercase;letter-spacing:2px}.tl-screen.on .tl-status{color:#92400e}.tl-screen.off .tl-status{color:var(--text-mute)}.tl-main-btn{padding:26px;border:none;border-radius:16px;font-family:inherit;font-size:16px;font-weight:900;cursor:pointer;width:100%;transition:.15s;text-transform:uppercase;letter-spacing:2px}.tl-main-btn.off{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#1f2937;box-shadow:0 8px 30px rgba(251,191,36,.5)}.tl-main-btn.on{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;box-shadow:0 8px 30px rgba(239,68,68,.5)}.tl-main-btn:hover{transform:scale(1.02)}.tl-main-btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}.tl-modes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}.tl-mode{padding:11px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;text-align:center;cursor:pointer;font-size:9.5px;font-weight:700;transition:.15s}.tl-mode:hover{border-color:#fbbf24}.tl-mode.active{border-color:#fbbf24;background:rgba(251,191,36,.15);color:#fbbf24}.tl-mode .i{font-size:18px;display:block;margin-bottom:3px}.tl-strobe-info{padding:10px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.4);border-radius:9px;font-size:11px;color:#ff8080;margin-top:8px;line-height:1.5;display:none}.tl-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11.5px;border:1px dashed var(--border);border-radius:9px;margin-top:8px;line-height:1.6}.tl-white-screen{position:fixed;inset:0;background:#fff;z-index:9999;display:none;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}.tl-white-screen.show{display:flex}.tl-white-screen .txt{color:#333;font-size:16px;font-weight:800;position:absolute;bottom:40px;letter-spacing:2px;text-transform:uppercase}";document.head.appendChild(s);}
+
+var AppTaschenlampe={
+  _on:false,_track:null,_mode:"torch",_strobeInterval:null,_batterySaver:false,
+
+  render:function(){
+    tlStyles();
+    var vp=document.getElementById("appViewport");
+    var self=this;
+    vp.innerHTML='<div class="tl-hero"><div class="lbl">Taschenlampe</div><div class="val">'+(this._on?"💡":"🔦")+'</div><div class="sub">'+(this._on?"Leuchtet":"Aus")+'</div></div>'
+      +'<div class="card">'
+      +'<div class="tl-screen '+(this._on?"on":"off")+'" id="tl_screen">'
+      +'<div class="tl-icon">'+(this._on?"💡":"🔦")+'</div>'
+      +'<div class="tl-status">'+(this._on?"AN":"AUS")+'</div>'
+      +'</div>'
+      +'<button class="tl-main-btn '+(this._on?"on":"off")+'" id="tl_toggle">'+(this._on?"⏹️ Ausschalten":"▶️ Einschalten")+'</button>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>🎨 Modus</h3></div>'
+      +'<div class="tl-modes">'
+      +'<div class="tl-mode'+(this._mode==="torch"?" active":"")+'" data-tl-mode="torch"><div class="i">🔦</div>Blitz</div>'
+      +'<div class="tl-mode'+(this._mode==="screen"?" active":"")+'" data-tl-mode="screen"><div class="i">📱</div>Bildschirm</div>'
+      +'<div class="tl-mode'+(this._mode==="strobe"?" active":"")+'" data-tl-mode="strobe"><div class="i">⚡</div>Strobe</div>'
+      +'<div class="tl-mode'+(this._mode==="sos"?" active":"")+'" data-tl-mode="sos"><div class="i">🆘</div>SOS</div>'
+      +'</div>'
+      +'<div class="tl-strobe-info" id="tl_strobe_info" style="'+(this._mode==="strobe"||this._mode==="sos"?"display:block":"")+'">'+(this._mode==="sos"?"🆘 SOS-Morsezeichen: ··· ——— ··· (wiederholt)":this._mode==="strobe"?"⚡ Strobe-Modus: Blitzt 10× pro Sekunde — bei Epilepsie NICHT verwenden!":"")+'</div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>ℹ️ Info</h3></div>'
+      +'<div class="tl-empty">💡 Diese App nutzt deine Kamera-Taschenlampe (LED) wenn verfügbar.<br>Sonst wird der Bildschirm als Notlicht genutzt.</div>'
+      +'</div>'
+      +'<div class="tl-white-screen" id="tl_white"><div class="txt" style="top:40px">Klick zum Schließen</div></div>';
+
+    document.getElementById("tl_toggle").addEventListener("click",function(){self.toggle();});
+    var ws=document.getElementById("tl_white");
+    ws.addEventListener("click",function(){ws.classList.remove("show");});
+    vp.querySelectorAll("[data-tl-mode]").forEach(function(b){
+      b.addEventListener("click",function(){
+        if(self._on)self.stopLights();
+        self._mode=b.dataset.tlMode;
+        self.render();
+        if(self._on)self.startLights();
+      });
+    });
+  },
+
+  toggle:function(){
+    if(this._on)this.stopLights();
+    else this.startLights();
+    this._on=!this._on;
+    this.render();
+  },
+
+  startLights:function(){
+    var self=this;
+    if(this._mode==="torch"||this._mode==="strobe"||this._mode==="sos"){
+      this.startTorch();
+    }else if(this._mode==="screen"){
+      this.startScreen();
+    }
+  },
+
+  stopLights:function(){
+    this.stopTorch();
+    var ws=document.getElementById("tl_white");
+    if(ws)ws.classList.remove("show");
+    if(this._strobeInterval){clearInterval(this._strobeInterval);this._strobeInterval=null;}
+  },
+
+  startTorch:function(){
+    var self=this;
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+      toast("⚠️ Kamera nicht verfügbar — nutze Bildschirm-Modus","err");
+      this._mode="screen";
+      this.startScreen();
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}}).then(function(stream){
+      self._track=stream.getVideoTracks()[0];
+      var caps=self._track.getCapabilities?self._track.getCapabilities():{};
+      if(!caps.torch){
+        toast("⚠️ Kein LED-Blitz — nutze Bildschirm-Modus","err");
+        self._mode="screen";
+        self.startScreen();
+        return;
+      }
+      if(self._mode==="torch"){
+        self._track.applyConstraints({advanced:[{torch:true}]}).then(function(){
+          toast("💡 LED an","ok");
+        }).catch(function(){toast("❌ Blitz-Fehler","err");});
+      }else if(self._mode==="strobe"){
+        var on=true;
+        self._strobeInterval=setInterval(function(){
+          self._track.applyConstraints({advanced:[{torch:on}]}).catch(function(){});
+          on=!on;
+        },100);
+      }else if(self._mode==="sos"){
+        /* Morse: ... --- ... = 3 short, 3 long, 3 short */
+        var seq=[200,200,200,200,200,600,600,600,600,600,600,200,200,200,200,200,1400];
+        var i=0;
+        var run=function(){
+          if(!self._on||self._mode!=="sos")return;
+          var t=seq[i];
+          var isLight=i%2===0;
+          if(isLight)self._track.applyConstraints({advanced:[{torch:true}]}).catch(function(){});
+          else self._track.applyConstraints({advanced:[{torch:false}]}).catch(function(){});
+          i=(i+1)%seq.length;
+          setTimeout(run,t);
+        };
+        run();
+      }
+    }).catch(function(e){toast("❌ "+e.message,"err");});
+  },
+
+  stopTorch:function(){
+    if(this._track){
+      try{this._track.applyConstraints({advanced:[{torch:false}]});}catch(e){}
+      try{this._track.stop();}catch(e){}
+      this._track=null;
+    }
+  },
+
+  startScreen:function(){
+    var ws=document.getElementById("tl_white");
+    if(ws)ws.classList.add("show");
+  }
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.taschenlampe=AppTaschenlampe;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="taschenlampe"){a.prio=1;a.installed=true;a.cat="Werkzeuge";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"taschenlampe",name:"Taschenlampe",icon:"🔦",cat="Werkzeuge",prio=1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Taschenlampe] 🔦 LED + Strobe + SOS geladen.");
+})();
+</script>
+<!-- ============================================================
+     HALDO METRONOM — BPM mit Ticken
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Metronom] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+
+function mtStyles(){if(document.getElementById("mtStyles"))return;var s=document.createElement("style");s.id="mtStyles";
+s.textContent=".mt-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(168,85,247,.2),rgba(0,212,255,.18));border:1px solid rgba(168,85,247,.4);text-align:center;margin-bottom:12px}.mt-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.mt-hero .val{font-size:38px;font-weight:900;color:#c084fc;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.mt-hero .sub{font-size:10.5px;color:var(--text-mute)}.mt-display{position:relative;width:100%;max-width:340px;aspect-ratio:1;margin:12px auto;background:radial-gradient(circle,rgba(168,85,247,.15),rgba(0,0,0,.6));border-radius:50%;border:3px solid rgba(168,85,247,.4);box-shadow:0 0 40px rgba(168,85,247,.3);display:flex;align-items:center;justify-content:center;flex-direction:column}.mt-display .beat-dot{position:absolute;left:50%;top:50%;transform-origin:center;display:flex;align-items:center;justify-content:center}.mt-display .beat-dot .dot{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);transition:.1s}.mt-display .beat-dot .dot.first{background:linear-gradient(135deg,#ef4444,#dc2626);border:2px solid #fff;box-shadow:0 0 20px rgba(239,68,68,.6)}.mt-display .beat-dot .dot.active{transform:scale(1.6);box-shadow:0 0 25px currentColor}.mt-display .bpm-center{position:absolute;text-align:center}.mt-display .bpm-center .bpm{font-size:56px;font-weight:900;color:#c084fc;font-family:ui-monospace,monospace;line-height:1;text-shadow:0 0 30px rgba(168,85,247,.6)}.mt-display .bpm-center .lbl{font-size:12px;color:var(--text-mute);text-transform:uppercase;letter-spacing:3px;font-weight:800;margin-top:4px}.mt-btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.mt-btn{padding:20px;border:none;border-radius:14px;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;transition:.15s}.mt-btn:hover{transform:scale(1.02)}.mt-btn.start{background:linear-gradient(135deg,#22c55e,#10b981);color:#fff;box-shadow:0 8px 25px rgba(34,197,94,.4)}.mt-btn.stop{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;box-shadow:0 8px 25px rgba(239,68,68,.4)}.mt-slider{width:100%;accent-color:#c084fc;margin:6px 0}.mt-tempo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}.mt-tempo{padding:10px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;text-align:center;font-size:10px;font-weight:700;cursor:pointer;transition:.15s}.mt-tempo:hover{border-color:#c084fc}.mt-tempo.active{border-color:#c084fc;background:rgba(168,85,247,.12);color:#c084fc}.mt-tempo .b{font-size:14px;font-weight:900;font-family:ui-monospace,monospace;display:block}.mt-tempo .n{font-size:9px;color:var(--text-mute);margin-top:2px}.mt-beats-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin:8px 0}.mt-beat-btn{padding:12px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;text-align:center;font-size:14px;font-weight:900;color:var(--text-dim);cursor:pointer;transition:.15s;font-family:ui-monospace,monospace}.mt-beat-btn.active{border-color:#c084fc;background:rgba(168,85,247,.15);color:#c084fc}.mt-info{padding:9px 12px;background:rgba(168,85,247,.06);border:1px dashed rgba(168,85,247,.35);border-radius:9px;font-size:10.5px;color:var(--text-dim);line-height:1.6;margin:8px 0}.mt-tap-btn{padding:14px;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#1f2937;border:none;border-radius:12px;font-family:inherit;font-size:14px;font-weight:900;cursor:pointer;width:100%;text-transform:uppercase;letter-spacing:2px;margin-top:6px}";document.head.appendChild(s);}
+
+var MT_TEMPOS=[
+  {bpm:40,n:"Largo",i:"🐢"},
+  {bpm:60,n:"Larghetto",i:"🚶"},
+  {bpm:76,n:"Adagio",i:"🌊"},
+  {bpm:108,n:"Andante",i:"🚶‍♂️"},
+  {bpm:120,n:"Allegro",i:"🏃"},
+  {bpm:168,n:"Presto",i:"💨"},
+  {bpm:180,n:"Prestissimo",i:"⚡"},
+  {bpm:200,n:"Extrem",i:"🔥"},
+  {bpm:240,n:"Sehr schnell",i:"🚀"}
+];
+
+var AppMetronom={
+  _bpm:120,_beats:4,_currentBeat:0,_on:false,_interval:null,
+  _audioCtx:null,_tapTimes:[],
+
+  render:function(){
+    mtStyles();
+    var vp=document.getElementById("appViewport");
+    var self=this;
+    var beatsHtml="";
+    for(var i=0;i<this._beats;i++){
+      var angle=(-90+i*360/this._beats)*Math.PI/180;
+      var r=42;
+      var x=50+r*Math.cos(angle);
+      var y=50+r*Math.sin(angle);
+      beatsHtml+='<div class="beat-dot" style="left:'+x+'%;top:'+y+'%;transform:translate(-50%,-50%)"><div class="dot'+(i===0?" first":"")+'" data-mt-beat="'+i+'"></div></div>';
+    }
+
+    var beatsNumHtml="";
+    for(var j=1;j<=6;j++){
+      beatsNumHtml+='<div class="mt-beat-btn'+(this._beats===j?" active":"")+'" data-mt-beatnum="'+j+'">'+j+'</div>';
+    }
+
+    var temposHtml=MT_TEMPOS.map(function(t){
+      return '<div class="mt-tempo'+(self._bpm===t.bpm?" active":"")+'" data-mt-tempo="'+t.bpm+'"><span class="b">'+t.bpm+'</span><span class="n">'+t.n+'</span></div>';
+    }).join("");
+
+    vp.innerHTML='<div class="mt-hero"><div class="lbl">Metronom</div><div class="val">'+this._bpm+'</div><div class="sub">BPM · '+this._beats+'/4 Takt</div></div>'
+      +'<div class="card">'
+      +'<div class="mt-display" id="mt_display">'
+      +beatsHtml
+      +'<div class="bpm-center"><div class="bpm" id="mt_bpm_show">'+this._bpm+'</div><div class="lbl">BPM</div></div>'
+      +'</div>'
+      +'<div class="mt-btn-row">'
+      +(this._on?'<button class="mt-btn stop" id="mt_stop">⏹️ Stopp</button>':'<button class="mt-btn start" id="mt_start">▶️ Start</button>')
+      +'<button class="mt-btn stop" id="mt_tap" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#1f2937">👆 Tap</button>'
+      +'</div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>⚙️ BPM einstellen</h3></div>'
+      +'<input type="range" class="mt-slider" id="mt_bpm" min="30" max="300" value="'+this._bpm+'">'
+      +'<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-mute);font-weight:700"><span>30</span><span>165</span><span>300</span></div>'
+      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:10px">'
+      +'<button class="btn secondary small" data-mt-step="-10">-10</button>'
+      +'<button class="btn secondary small" data-mt-step="-1">-1</button>'
+      +'<button class="btn secondary small" data-mt-step="+1">+1</button>'
+      +'<button class="btn secondary small" data-mt-step="+10">+10</button>'
+      +'</div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>🎵 Tempo</h3></div><div class="mt-tempo-grid">'+temposHtml+'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>🥁 Taktart</h3></div><div class="mt-beats-grid">'+beatsNumHtml+'</div>'
+      +'<div class="mt-info">💡 <b>4/4</b> = Standard (Pop, Rock) · <b>3/4</b> = Walzer · <b>6/8</b> = R&B · <b>2/4</b> = Marsch</div>'
+      +'</div>';
+
+    if(this._on){document.getElementById("mt_stop").addEventListener("click",function(){self.stop();});}
+    else{document.getElementById("mt_start").addEventListener("click",function(){self.start();});}
+    document.getElementById("mt_tap").addEventListener("click",function(){self.tap();});
+    var bpmInp=document.getElementById("mt_bpm");
+    bpmInp.addEventListener("input",function(){self.setBPM(parseInt(this.value));});
+    vp.querySelectorAll("[data-mt-step]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var d=parseInt(b.dataset.mtStep);
+        self.setBPM(Math.max(30,Math.min(300,self._bpm+d)));
+        self.render();
+      });
+    });
+    vp.querySelectorAll("[data-mt-tempo]").forEach(function(b){
+      b.addEventListener("click",function(){
+        self.setBPM(parseInt(b.dataset.mtTempo));
+        self.render();
+      });
+    });
+    vp.querySelectorAll("[data-mt-beatnum]").forEach(function(b){
+      b.addEventListener("click",function(){
+        self._beats=parseInt(b.dataset.mtBeatnum);
+        self._currentBeat=0;
+        self.render();
+        if(self._on){self.stop();self.start();}
+      });
+    });
+  },
+
+  setBPM:function(bpm){
+    this._bpm=Math.max(30,Math.min(300,bpm));
+    var el=document.getElementById("mt_bpm_show");
+    if(el)el.textContent=this._bpm;
+    if(this._on){
+      this.stop();
+      this.start();
+    }
+  },
+
+  tap:function(){
+    var now=Date.now();
+    this._tapTimes=this._tapTimes.filter(function(t){return now-t<3000;});
+    this._tapTimes.push(now);
+    if(this._tapTimes.length>=2){
+      var intervals=[];
+      for(var i=1;i<this._tapTimes.length;i++)intervals.push(this._tapTimes[i]-this._tapTimes[i-1]);
+      var avg=intervals.reduce(function(a,b){return a+b;},0)/intervals.length;
+      var bpm=Math.round(60000/avg);
+      if(bpm>=30&&bpm<=300){
+        this.setBPM(bpm);
+        this.render();
+        toast("👆 "+bpm+" BPM","ok");
+      }
+    }else{
+      toast("👆 Weiter tippen…");
+    }
+  },
+
+  start:function(){
+    if(this._on)return;
+    this._on=true;
+    this._currentBeat=0;
+    this._audioCtx=this._audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    if(this._audioCtx.state==="suspended")this._audioCtx.resume();
+    this.tick();
+    this.render();
+  },
+
+  stop:function(){
+    this._on=false;
+    if(this._interval){clearInterval(this._interval);this._interval=null;}
+    /* Alle Dots zurücksetzen */
+    document.querySelectorAll("[data-mt-beat]").forEach(function(d){d.classList.remove("active");});
+    this.render();
+  },
+
+  tick:function(){
+    var self=this;
+    var interval=60000/this._bpm;
+    var play=function(){
+      if(!self._on)return;
+      var beat=self._currentBeat;
+      var dot=document.querySelector('[data-mt-beat="'+beat+'"]');
+      if(dot){
+        dot.classList.add("active");
+        setTimeout(function(){dot.classList.remove("active");},80);
+      }
+      self.beep(beat===0?1200:880,beat===0?0.15:0.08);
+      /* Vibration */
+      if(navigator.vibrate){
+        try{navigator.vibrate(beat===0?60:25);}catch(e){}
+      }
+      self._currentBeat=(beat+1)%self._beats;
+    };
+    play();
+    this._interval=setInterval(play,interval);
+  },
+
+  beep:function(freq,dur){
+    try{
+      var ctx=this._audioCtx;
+      if(!ctx)return;
+      var o=ctx.createOscillator();
+      var g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type="sine";
+      o.frequency.value=freq;
+      g.gain.setValueAtTime(0,ctx.currentTime);
+      g.gain.linearRampToValueAtTime(0.4,ctx.currentTime+0.005);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+      o.start(ctx.currentTime);
+      o.stop(ctx.currentTime+dur+0.02);
+    }catch(e){}
+  },
+
+  pause:function(){this.stop();}
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.metronom=AppMetronom;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="metronom"){a.prio=1;a.installed=true;a.cat="Werkzeuge";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"metronom",name:"Metronom",icon:"🎼",cat="Werkzeuge",prio:1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Metronom] 🎼 BPM + Tap + Taktarten geladen.");
+})();
+</script>
 </body>
 </html>
