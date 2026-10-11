@@ -4220,5 +4220,511 @@ console.log("[HalDo Einkauf] ✅ Modul geladen und registriert.");
 })();
 </script>
 <!-- ============ ENDE HALDO EINKAUF APP ============ -->
+<!-- ============================================================
+     HALDO RECHERCHE APP — DROP-IN MODUL
+     Einfach vor </body> einfügen. Nach Reload ist alles aktiv.
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Recherche] window.HalDo fehlt.");return;}
+
+var H=window.HalDo;
+var Storage=H.Storage;
+var AppLauncher=H.AppLauncher;
+var APP_PLAN=H.APP_PLAN;
+var AIHelper=H.AIHelper;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+function select(id,cur,opts){var h='<select id="'+id+'">';opts.forEach(function(o){h+='<option value="'+esc(o[0])+'"'+(String(o[0])===String(cur)?" selected":"")+'>'+esc(o[1])+'</option>';});return h+'</select>';}
+
+function rcInjectStyles(){
+  if(document.getElementById("rcStyles"))return;
+  var s=document.createElement("style");
+  s.id="rcStyles";
+  s.textContent=".rc-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(168,85,247,.18),rgba(0,212,255,.18));border:1px solid rgba(168,85,247,.4);text-align:center;margin-bottom:12px}.rc-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.rc-hero .val{font-size:38px;font-weight:900;color:#c084fc;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.rc-hero .sub{font-size:10.5px;color:var(--text-mute)}.rc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}.rc-stat{padding:9px 5px;border-radius:11px;text-align:center;border:1px solid var(--border);background:linear-gradient(180deg,var(--bg-4),var(--bg-3))}.rc-stat .i{font-size:14px;margin-bottom:2px}.rc-stat .v{font-size:14px;font-weight:800;color:#c084fc;font-family:ui-monospace,monospace;line-height:1}.rc-stat .l{font-size:8px;color:var(--text-mute);text-transform:uppercase;font-weight:700;margin-top:2px}.rc-card{padding:12px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:11px;margin-top:8px;cursor:pointer;transition:.15s}.rc-card:hover{border-color:#a855f7;background:rgba(168,85,247,.05)}.rc-card .top{display:flex;align-items:center;gap:8px;margin-bottom:6px}.rc-card .top .tag{font-size:9px;padding:2px 7px;border-radius:5px;font-weight:700;background:rgba(168,85,247,.2);color:#c084fc;text-transform:uppercase;letter-spacing:.5px}.rc-card .top .fav{font-size:14px;cursor:pointer;margin-left:auto}.rc-card .title{font-size:12.5px;font-weight:800;color:var(--text);margin-bottom:4px}.rc-card .preview{font-size:10.5px;color:var(--text-dim);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.rc-card .meta{font-size:9px;color:var(--text-mute);margin-top:6px;display:flex;gap:8px;flex-wrap:wrap}.rc-card .meta span{display:flex;align-items:center;gap:3px}.rc-detail{padding:14px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:11px;margin-top:10px}.rc-detail h4{font-size:15px;font-weight:800;color:#c084fc;margin-bottom:6px}.rc-detail h5{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;font-weight:800;margin:10px 0 4px}.rc-detail p{font-size:11.5px;line-height:1.6}.rc-detail ul{margin-left:16px;font-size:11.5px;line-height:1.7}.rc-detail textarea{width:100%;background:var(--bg-4);border:1px solid var(--border);color:var(--text);padding:10px;border-radius:9px;font-family:inherit;font-size:11.5px;line-height:1.6;outline:none;resize:vertical;min-height:80px}.rc-search{width:100%;background:var(--bg-3);border:1px solid var(--border);color:var(--text);padding:10px 13px;border-radius:9px;font-family:inherit;font-size:12px;outline:none;margin-bottom:8px}.rc-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}.rc-cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}.rc-cat-card{padding:11px 6px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;transition:.15s}.rc-cat-card:hover{border-color:#a855f7}.rc-cat-card.active{border-color:#a855f7;background:rgba(168,85,247,.12)}.rc-cat-card .i{font-size:20px;margin-bottom:3px}.rc-cat-card .n{font-size:9.5px;font-weight:800}.rc-cat-card .c{font-size:8px;color:var(--text-mute);margin-top:2px;font-weight:700}.rc-source{padding:10px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:5px}.rc-source .s-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}.rc-source .s-top .type{font-size:9px;padding:2px 7px;background:rgba(0,212,255,.15);color:var(--primary);border-radius:5px;font-weight:700}.rc-source .s-top .del{padding:3px 7px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#ff8080;border-radius:5px;cursor:pointer;font-size:9px}.rc-source .s-title{font-size:11.5px;font-weight:700}.rc-source .s-url{font-size:10px;color:var(--primary);word-break:break-all;margin-top:2px}.rc-quote{padding:12px;background:rgba(168,85,247,.06);border-left:3px solid #a855f7;border-radius:9px;margin-top:6px;font-style:italic;font-size:11.5px;line-height:1.6}.rc-quote .author{font-size:10px;color:var(--text-mute);margin-top:6px;font-style:normal;font-weight:700}.rc-ai-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}.rc-ai-btn{padding:7px 11px;background:rgba(168,85,247,.15);border:1px solid rgba(168,85,247,.5);color:#c084fc;border-radius:8px;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer}.rc-ai-btn:hover{background:rgba(168,85,247,.3)}.rc-task{display:flex;align-items:center;gap:8px;padding:8px 11px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:5px}.rc-task .chk{width:22px;height:22px;border-radius:6px;background:var(--bg-4);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}.rc-task .chk.on{background:linear-gradient(135deg,#22c55e,#10b981);border-color:#22c55e;color:#fff}.rc-task.done .n{text-decoration:line-through;opacity:.5}.rc-task .n{flex:1;font-size:11.5px;font-weight:600}.rc-task .del{padding:3px 7px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#ff8080;border-radius:5px;cursor:pointer;font-size:9px}";
+  document.head.appendChild(s);
+}
+
+/* ============ Kategorien ============ */
+var RC_CATS={
+  allgemein:{n:"Allgemein",i:"📌",c:"#a855f7"},
+  wissenschaft:{n:"Wissenschaft",i:"🔬",c:"#22c55e"},
+  geschichte:{n:"Geschichte",i:"🏛️",c:"#f59e0b"},
+  technik:{n:"Technik",i:"💻",c:"#0ea5e9"},
+  gesundheit:{n:"Gesundheit",i:"🩺",c:"#ec4899"},
+  finanzen:{n:"Finanzen",i:"💰",c:"#10b981"},
+  recht:{n:"Recht",i:"⚖️",c:"#ef4444"},
+  bildung:{n:"Bildung",i:"🎓",c:"#3b82f6"},
+  kultur:{n:"Kultur",i:"🎭",c:"#8b5cf6"},
+  reise:{n:"Reise",i:"✈️",c:"#06b6d4"},
+  kochen:{n:"Kochen",i:"🍳",c:"#f97316"},
+  sport:{n:"Sport",i:"🏋️",c:"#ef4444"},
+  auto:{n:"Auto",i:"🚗",c:"#6366f1"},
+  sonstiges:{n:"Sonstiges",i:"📦",c:"#94a3b8"}
+};
+
+/* ============ App ============ */
+var AppRecherche={
+  tab:"list",_cat:"all",_q:"",
+  _draft:{cat:"allgemein",sources:[],quotes:[],tasks:[]},
+
+  getProjects:function(){return Storage.get("rc_projects",[]);},
+  saveProjects:function(a){Storage.set("rc_projects",a);},
+
+  render:function(){
+    rcInjectStyles();
+    var vp=document.getElementById("appViewport");
+    var tabs=[
+      {k:"list",n:"📚 Sammlung"},
+      {k:"new",n:"➕ Neu"},
+      {k:"quick",n:"⚡ Schnell-Notiz"},
+      {k:"stats",n:"📊 Statistik"}
+    ];
+    var self=this;
+    var th=tabs.map(function(t){return '<button class="ms-tab'+(self.tab===t.k?" active":"")+'" data-rc-tab="'+t.k+'">'+t.n+'</button>';}).join("");
+    vp.innerHTML='<div class="ms-tabs">'+th+'</div><div id="rcContent"></div>';
+    vp.querySelectorAll("[data-rc-tab]").forEach(function(b){b.addEventListener("click",function(){self.tab=b.dataset.rcTab;self.render();});});
+    this.renderTab();
+  },
+
+  renderTab:function(){
+    var el=document.getElementById("rcContent");if(!el)return;
+    var t=this.tab;
+    if(t==="list")this.renderList(el);
+    else if(t==="new")this.renderNew(el);
+    else if(t==="quick")this.renderQuick(el);
+    else if(t==="stats")this.renderStats(el);
+  },
+
+  renderList:function(el){
+    var self=this;
+    var all=this.getProjects();
+    var filter=this._cat;
+    var shown=all.slice().sort(function(a,b){return b.t-a.t;});
+    if(filter!=="all")shown=shown.filter(function(x){return x.cat===filter;});
+    if(this._q){
+      var q=this._q.toLowerCase();
+      shown=shown.filter(function(x){
+        return x.title.toLowerCase().indexOf(q)>=0 ||
+               (x.notes||"").toLowerCase().indexOf(q)>=0 ||
+               (x.tags||[]).some(function(t){return t.toLowerCase().indexOf(q)>=0;});
+      });
+    }
+
+    var favCount=all.filter(function(x){return x.fav;}).length;
+
+    var catsHtml='<div class="rc-cat-card'+("all"===filter?" active":"")+'" data-rc-c="all"><div class="i">📚</div><div class="n">Alle</div><div class="c">'+all.length+'</div></div>'
+      +Object.keys(RC_CATS).map(function(k){
+        var c=RC_CATS[k];
+        var count=all.filter(function(x){return x.cat===k;}).length;
+        if(count===0)return "";
+        return '<div class="rc-cat-card'+(k===filter?" active":"")+'" data-rc-c="'+k+'"><div class="i">'+c.i+'</div><div class="n">'+c.n+'</div><div class="c">'+count+'</div></div>';
+      }).join("");
+
+    var listHtml=shown.length?shown.map(function(p){
+      var c=RC_CATS[p.cat]||RC_CATS.allgemein;
+      var preview=(p.notes||"").substring(0,120)||"Keine Notizen";
+      var srcCount=(p.sources||[]).length;
+      var quoteCount=(p.quotes||[]).length;
+      return '<div class="rc-card" data-rc-open="'+p.id+'">'
+        +'<div class="top"><span class="tag">'+c.i+' '+c.n+'</span><span class="fav" data-rc-fav="'+p.id+'">'+(p.fav?"⭐":"☆")+'</span></div>'
+        +'<div class="title">'+esc(p.title)+'</div>'
+        +'<div class="preview">'+esc(preview)+'</div>'
+        +'<div class="meta">'
+        +(srcCount?'<span>🔗 '+srcCount+' Quellen</span>':'')
+        +(quoteCount?'<span>💬 '+quoteCount+' Zitate</span>':'')
+        +'<span>📅 '+new Date(p.t).toLocaleDateString("de-DE")+'</span>'
+        +'</div></div>';
+    }).join(""):'<div class="rc-empty">Keine Einträge. Leg mit ➕ deine erste Recherche an!</div>';
+
+    el.innerHTML='<div class="rc-hero"><div class="lbl">Recherche-Sammlung</div><div class="val">'+all.length+'</div><div class="sub">'+favCount+' Favoriten · '+Object.keys(RC_CATS).filter(function(k){return all.some(function(x){return x.cat===k;});}).length+' Kategorien aktiv</div></div>'
+      +'<div class="card"><input type="text" class="rc-search" id="rc_search" placeholder="🔍 Suche nach Titel, Notiz oder Tag…" value="'+esc(this._q)+'"></div>'
+      +'<div class="card"><div class="card-h"><h3>🏷️ Kategorien</h3></div><div class="rc-cat-grid">'+catsHtml+'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>📚 '+shown.length+' Einträge</h3></div>'+listHtml+'</div>'
+      +'<div id="rc_detail"></div>';
+
+    var s=document.getElementById("rc_search");
+    s.addEventListener("input",function(){
+      self._q=s.value;
+      clearTimeout(self._t);
+      self._t=setTimeout(function(){self.renderTab();},250);
+    });
+    el.querySelectorAll("[data-rc-c]").forEach(function(b){
+      b.addEventListener("click",function(){self._cat=b.dataset.rcC;self.renderTab();});
+    });
+    el.querySelectorAll("[data-rc-fav]").forEach(function(b){
+      b.addEventListener("click",function(e){
+        e.stopPropagation();
+        var id=b.dataset.rcFav;
+        var arr=self.getProjects();
+        arr.forEach(function(x){if(x.id===id)x.fav=!x.fav;});
+        self.saveProjects(arr);self.renderTab();
+      });
+    });
+    el.querySelectorAll("[data-rc-open]").forEach(function(c){
+      c.addEventListener("click",function(){self.showProject(c.dataset.rcOpen);});
+    });
+  },
+
+  showProject:function(id){
+    var self=this;
+    var p=null;this.getProjects().forEach(function(x){if(x.id===id)p=x;});
+    if(!p)return;
+    var det=document.getElementById("rc_detail");
+    if(!det)return;
+    var c=RC_CATS[p.cat]||RC_CATS.allgemein;
+    var srcHtml=(p.sources||[]).length?p.sources.map(function(s,i){
+      var icon=s.type==="url"?"🌐":s.type==="book"?"📖":s.type==="video"?"🎥":s.type==="article"?"📰":"📌";
+      return '<div class="rc-source"><div class="s-top"><span class="type">'+icon+' '+esc(s.type||"url")+'</span><button class="del" data-rc-src-rm="'+i+'">🗑️</button></div>'
+        +'<div class="s-title">'+esc(s.title||"(kein Titel)")+'</div>'
+        +(s.url?'<div class="s-url">'+esc(s.url)+'</div>':'')
+        +(s.note?'<div style="font-size:10px;color:var(--text-mute);margin-top:4px">'+esc(s.note)+'</div>':'')
+        +'</div>';
+    }).join(""):'<div class="rc-empty">Keine Quellen.</div>';
+    var quoteHtml=(p.quotes||[]).length?p.quotes.map(function(q,i){
+      return '<div class="rc-quote">"'+esc(q.text)+'"'+(q.author?'<div class="author">— '+esc(q.author)+'</div>':'')+'<button class="del" data-rc-quote-rm="'+i+'" style="margin-top:6px;padding:3px 7px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#ff8080;border-radius:5px;cursor:pointer;font-size:9px">🗑️</button></div>';
+    }).join(""):'<div class="rc-empty">Keine Zitate.</div>';
+    var taskHtml=(p.tasks||[]).length?p.tasks.map(function(t,i){
+      return '<div class="rc-task'+(t.done?" done":"")+'"><div class="chk'+(t.done?" on":"")+'" data-rc-task-tog="'+i+'">'+(t.done?"✓":"")+'</div><div class="n">'+esc(t.n)+'</div><button class="del" data-rc-task-rm="'+i+'">🗑️</button></div>';
+    }).join(""):'<div class="rc-empty">Keine Aufgaben.</div>';
+
+    det.innerHTML='<div class="rc-detail">'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">'
+      +'<span class="tag" style="font-size:9px;padding:3px 8px;background:rgba(168,85,247,.15);color:#c084fc;border-radius:5px;font-weight:700">'+c.i+' '+c.n+'</span>'
+      +'<span class="tag" style="font-size:9px;padding:3px 8px;background:rgba(0,212,255,.12);color:var(--primary);border-radius:5px;font-weight:700">📅 '+new Date(p.t).toLocaleDateString("de-DE")+'</span>'
+      +'</div>'
+      +'<h4>'+esc(p.title)+'</h4>'
+      +'<h5>📝 Notizen</h5><textarea id="rc_notes_edit" data-rc-notes="'+p.id+'">'+esc(p.notes||"")+'</textarea>'
+      +'<div class="rc-ai-row">'
+      +'<button class="rc-ai-btn" data-rc-ai="summary">📋 Zusammenfassen</button>'
+      +'<button class="rc-ai-btn" data-rc-ai="expand">✨ Erweitern</button>'
+      +'<button class="rc-ai-btn" data-rc-ai="improve">✅ Verbessern</button>'
+      +'<button class="rc-ai-btn" data-rc-ai="list">🔹 Stichpunkte</button>'
+      +'</div>'
+      +'<h5>🔗 Quellen ('+(p.sources||[]).length+')</h5>'+srcHtml
+      +'<div class="field" style="margin-top:8px"><input type="text" id="rc_src_title" placeholder="Titel"></div>'
+      +'<div class="field"><input type="text" id="rc_src_url" placeholder="URL (optional)"></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="field">'+select("rc_src_type","url",[["url","🌐 URL"],["book","📖 Buch"],["video","🎥 Video"],["article","📰 Artikel"]])+'</div>'
+      +'<button class="btn success small" id="rc_src_add" style="align-self:end;margin-bottom:12px">➕ Quelle</button></div>'
+      +'<h5>💬 Zitate ('+(p.quotes||[]).length+')</h5>'+quoteHtml
+      +'<div class="field" style="margin-top:8px"><textarea id="rc_quote_text" placeholder="Zitat…" style="min-height:60px"></textarea></div>'
+      +'<div class="field"><input type="text" id="rc_quote_author" placeholder="Autor"></div>'
+      +'<button class="btn success small full" id="rc_quote_add">➕ Zitat</button>'
+      +'<h5>✓ Aufgaben ('+(p.tasks||[]).length+')</h5>'+taskHtml
+      +'<div class="field" style="margin-top:8px"><input type="text" id="rc_task_new" placeholder="Neue Aufgabe…"></div>'
+      +'<button class="btn success small full" id="rc_task_add">➕ Aufgabe</button>'
+      +'<h5>🎨 Tags</h5>'
+      +'<div class="field"><input type="text" id="rc_tags_edit" value="'+esc((p.tags||[]).join(", "))+'" placeholder="tag1, tag2, tag3"></div>'
+      +'<button class="btn success small full" id="rc_tags_save">💾 Tags speichern</button>'
+      +'<div class="btn-row" style="margin-top:12px">'
+      +'<button class="btn secondary" id="rc_close">✕ Schließen</button>'
+      +'<button class="btn secondary" id="rc_export">📤 Export</button>'
+      +'<button class="btn danger" id="rc_delete">🗑️ Löschen</button>'
+      +'</div></div>';
+    det.scrollIntoView({behavior:"smooth",block:"nearest"});
+
+    var notes=det.querySelector("#rc_notes_edit");
+    notes.addEventListener("input",function(){
+      clearTimeout(self._nt);
+      self._nt=setTimeout(function(){
+        var arr=self.getProjects();
+        arr.forEach(function(x){if(x.id===p.id)x.notes=notes.value;});
+        self.saveProjects(arr);
+      },400);
+    });
+
+    det.querySelectorAll("[data-rc-ai]").forEach(function(b){
+      b.addEventListener("click",function(){self.runAI(p.id,b.dataset.rcAi);});
+    });
+
+    det.querySelectorAll("[data-rc-src-rm]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var i=parseInt(b.dataset.rcSrcRm);
+        var arr=self.getProjects();
+        arr.forEach(function(x){if(x.id===p.id)x.sources.splice(i,1);});
+        self.saveProjects(arr);self.showProject(p.id);
+      });
+    });
+    document.getElementById("rc_src_add").addEventListener("click",function(){
+      var t=val("rc_src_title").trim();if(!t)return toast("⚠️ Titel fehlt","err");
+      var arr=self.getProjects();
+      arr.forEach(function(x){
+        if(x.id===p.id){
+          if(!x.sources)x.sources=[];
+          x.sources.push({title:t,url:val("rc_src_url").trim(),type:val("rc_src_type"),note:""});
+        }
+      });
+      self.saveProjects(arr);toast("🔗","ok");self.showProject(p.id);
+    });
+
+    det.querySelectorAll("[data-rc-quote-rm]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var i=parseInt(b.dataset.rcQuoteRm);
+        var arr=self.getProjects();
+        arr.forEach(function(x){if(x.id===p.id)x.quotes.splice(i,1);});
+        self.saveProjects(arr);self.showProject(p.id);
+      });
+    });
+    document.getElementById("rc_quote_add").addEventListener("click",function(){
+      var t=val("rc_quote_text").trim();if(!t)return toast("⚠️ Zitat fehlt","err");
+      var arr=self.getProjects();
+      arr.forEach(function(x){
+        if(x.id===p.id){
+          if(!x.quotes)x.quotes=[];
+          x.quotes.push({text:t,author:val("rc_quote_author").trim()});
+        }
+      });
+      self.saveProjects(arr);toast("💬","ok");self.showProject(p.id);
+    });
+
+    det.querySelectorAll("[data-rc-task-tog]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var i=parseInt(b.dataset.rcTaskTog);
+        var arr=self.getProjects();
+        arr.forEach(function(x){if(x.id===p.id)x.tasks[i].done=!x.tasks[i].done;});
+        self.saveProjects(arr);self.showProject(p.id);
+      });
+    });
+    det.querySelectorAll("[data-rc-task-rm]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var i=parseInt(b.dataset.rcTaskRm);
+        var arr=self.getProjects();
+        arr.forEach(function(x){if(x.id===p.id)x.tasks.splice(i,1);});
+        self.saveProjects(arr);self.showProject(p.id);
+      });
+    });
+    document.getElementById("rc_task_add").addEventListener("click",function(){
+      var t=val("rc_task_new").trim();if(!t)return toast("⚠️ Aufgabe fehlt","err");
+      var arr=self.getProjects();
+      arr.forEach(function(x){
+        if(x.id===p.id){
+          if(!x.tasks)x.tasks=[];
+          x.tasks.push({n:t,done:false});
+        }
+      });
+      self.saveProjects(arr);toast("✓","ok");self.showProject(p.id);
+    });
+
+    document.getElementById("rc_tags_save").addEventListener("click",function(){
+      var tags=val("rc_tags_edit").split(",").map(function(x){return x.trim();}).filter(Boolean);
+      var arr=self.getProjects();
+      arr.forEach(function(x){if(x.id===p.id)x.tags=tags;});
+      self.saveProjects(arr);toast("🎨","ok");
+    });
+
+    document.getElementById("rc_close").addEventListener("click",function(){det.innerHTML="";});
+    document.getElementById("rc_export").addEventListener("click",function(){
+      var out="# "+p.title+"\n\n";
+      out+="Kategorie: "+(RC_CATS[p.cat]?RC_CATS[p.cat].n:p.cat)+"\n";
+      out+="Datum: "+new Date(p.t).toLocaleString("de-DE")+"\n\n";
+      out+="## Notizen\n"+(p.notes||"")+"\n\n";
+      if((p.sources||[]).length){out+="## Quellen\n";p.sources.forEach(function(s){out+="• "+(s.title||"")+(s.url?" — "+s.url:"")+"\n";});out+="\n";}
+      if((p.quotes||[]).length){out+="## Zitate\n";p.quotes.forEach(function(q){out+='» "'+q.text+'"'+(q.author?" — "+q.author:"")+"\n";});out+="\n";}
+      if((p.tasks||[]).length){out+="## Aufgaben\n";p.tasks.forEach(function(t){out+="["+(t.done?"x":" ")+"] "+t.n+"\n";});}
+      var blob=new Blob([out],{type:"text/markdown;charset=utf-8"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="recherche_"+p.id+".md";a.click();
+      toast("📤 Exportiert","ok");
+    });
+    document.getElementById("rc_delete").addEventListener("click",function(){
+      if(!confirm("Recherche löschen?"))return;
+      self.saveProjects(self.getProjects().filter(function(x){return x.id!==p.id;}));
+      toast("🗑️","ok");det.innerHTML="";self.renderTab();
+    });
+  },
+
+  runAI:function(projectId,action){
+    var self=this;
+    var p=null;this.getProjects().forEach(function(x){if(x.id===projectId)p=x;});
+    if(!p)return;
+    var text=(p.notes||"").trim();
+    if(!text)return toast("⚠️ Notizen leer","err");
+    var prompts={
+      summary:"Fasse diesen Recherche-Text in 3-5 Sätzen zusammen. Antworte NUR mit der Zusammenfassung:\n\n",
+      expand:"Erweitere diesen Text mit wichtigen Details und Informationen. Antworte NUR mit dem erweiterten Text:\n\n",
+      improve:"Verbessere diesen Text (Grammatik, Stil, Klarheit). Antworte NUR mit dem verbesserten Text:\n\n",
+      list:"Wandle in klare Stichpunkte um. Antworte NUR mit der Stichpunktliste:\n\n"
+    };
+    var ai=H.Settings.get("ai");
+    if(!ai.groqKey)return toast("⚠️ Kein Groq-Key (Settings → 🧠 KI & Keys)","err");
+    toast("⏳ KI arbeitet…");
+    fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+ai.groqKey},body:JSON.stringify({model:ai.model,messages:[{role:"user",content:(prompts[action]||prompts.improve)+text}],max_tokens:1200})})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(!d.choices||!d.choices[0])throw new Error("KI-Fehler");
+        var res=d.choices[0].message.content.trim();
+        var arr=self.getProjects();
+        arr.forEach(function(x){if(x.id===projectId)x.notes=res;});
+        self.saveProjects(arr);
+        toast("✅ Fertig","ok");
+        self.showProject(projectId);
+      }).catch(function(e){toast("❌ "+e.message,"err");});
+  },
+
+  renderNew:function(el){
+    var self=this;
+    var d=this._draft;
+    el.innerHTML='<div class="card"><div class="card-h"><h3>➕ Neue Recherche</h3></div>'
+      +'<div class="field"><label>Titel</label><input type="text" id="rc_new_title" data-ai placeholder="z.B. Geschichte der Kurden"></div>'
+      +'<div class="field"><label>Kategorie</label>'+select("rc_new_cat",d.cat,Object.keys(RC_CATS).map(function(k){return [k,RC_CATS[k].i+" "+RC_CATS[k].n];}))+'</div>'
+      +'<div class="field"><label>Notizen / Inhalt</label><textarea id="rc_new_notes" data-ai placeholder="Was möchtest du festhalten?&#10;&#10;Hier kannst du Recherche-Notizen sammeln…" style="min-height:200px"></textarea></div>'
+      +'<div class="field"><label>Tags (Komma-getrennt)</label><input type="text" id="rc_new_tags" placeholder="geschichte, kurden, mesopotamien"></div>'
+      +'<button class="btn success full" id="rc_new_save">💾 Recherche speichern</button>'
+      +'<div class="info-box">💡 Du kannst später Quellen, Zitate und Aufgaben hinzufügen.</div></div>';
+
+    document.getElementById("rc_new_save").addEventListener("click",function(){
+      var t=val("rc_new_title").trim();if(!t)return toast("⚠️ Titel fehlt","err");
+      var tags=val("rc_new_tags").split(",").map(function(x){return x.trim();}).filter(Boolean);
+      var arr=self.getProjects();
+      arr.push({
+        id:"r_"+Date.now(),
+        title:t,
+        cat:val("rc_new_cat"),
+        notes:val("rc_new_notes"),
+        tags:tags,
+        sources:[],
+        quotes:[],
+        tasks:[],
+        fav:false,
+        t:Date.now()
+      });
+      self.saveProjects(arr);
+      toast("💾 Recherche gespeichert","ok");
+      self.tab="list";self.render();
+    });
+
+    if(AIHelper&&AIHelper.attachAll)AIHelper.attachAll(el);
+  },
+
+  renderQuick:function(el){
+    var self=this;
+    el.innerHTML='<div class="card"><div class="card-h"><h3>⚡ Schnell-Notiz</h3></div>'
+      +'<div class="info-box">Für spontane Ideen und Fundstücke. Wird als Recherche gespeichert.</div>'
+      +'<div class="field"><textarea id="rc_qk" placeholder="Schnell reinschreiben…&#10;&#10;Wird automatisch mit Datum als Titel gespeichert." style="min-height:200px" data-ai></textarea></div>'
+      +'<button class="btn success full" id="rc_qk_save">💾 Speichern</button></div>'
+      +'<div class="card"><div class="card-h"><h3>🕐 Letzte Schnell-Notizen</h3></div><div id="rc_qk_list"></div></div>';
+    var btn=document.getElementById("rc_qk_save");
+    btn.addEventListener("click",function(){
+      var t=val("rc_qk").trim();if(!t)return toast("⚠️ Leer","err");
+      var title=t.substring(0,50)+(t.length>50?"…":"");
+      var arr=self.getProjects();
+      arr.push({
+        id:"r_"+Date.now(),
+        title:title,
+        cat:"allgemein",
+        notes:t,
+        tags:[],
+        sources:[],
+        quotes:[],
+        tasks:[],
+        fav:false,
+        t:Date.now()
+      });
+      self.saveProjects(arr);
+      toast("⚡ Gespeichert","ok");
+      self.renderTab();
+    });
+    var recent=this.getProjects().slice().sort(function(a,b){return b.t-a.t;}).slice(0,5);
+    var listEl=document.getElementById("rc_qk_list");
+    if(!recent.length)listEl.innerHTML='<div class="rc-empty">Noch keine.</div>';
+    else recent.forEach(function(p){
+      var d=document.createElement("div");d.className="app-list-item";
+      d.innerHTML='<span class="ico">📌</span><div class="txt"><div class="t">'+esc(p.title)+'</div><div class="d">'+new Date(p.t).toLocaleString("de-DE")+'</div></div>';
+      d.addEventListener("click",function(){self.tab="list";self.render();setTimeout(function(){self.showProject(p.id);},100);});
+      listEl.appendChild(d);
+    });
+    if(AIHelper&&AIHelper.attachAll)AIHelper.attachAll(el);
+  },
+
+  renderStats:function(el){
+    var all=this.getProjects();
+    var totalSources=0,totalQuotes=0,totalTasks=0,totalDoneTasks=0,totalWords=0;
+    var catCount={};
+    var tagCount={};
+    all.forEach(function(p){
+      totalSources+=(p.sources||[]).length;
+      totalQuotes+=(p.quotes||[]).length;
+      totalTasks+=(p.tasks||[]).length;
+      totalDoneTasks+=(p.tasks||[]).filter(function(t){return t.done;}).length;
+      totalWords+=(p.notes||"").split(/\s+/).filter(Boolean).length;
+      catCount[p.cat]=(catCount[p.cat]||0)+1;
+      (p.tags||[]).forEach(function(t){tagCount[t]=(tagCount[t]||0)+1;});
+    });
+
+    var topCats=Object.keys(catCount).sort(function(a,b){return catCount[b]-catCount[a];});
+    var catHtml=topCats.length?topCats.map(function(k){
+      var c=RC_CATS[k]||RC_CATS.allgemein;
+      return '<div class="app-list-item"><span class="ico">'+c.i+'</span><div class="txt"><div class="t">'+c.n+'</div><div class="d">'+catCount[k]+' Einträge</div></div></div>';
+    }).join(""):'<div class="rc-empty">Keine Daten.</div>';
+
+    var topTags=Object.keys(tagCount).sort(function(a,b){return tagCount[b]-tagCount[a];}).slice(0,20);
+    var tagsHtml=topTags.length?topTags.map(function(t){
+      var size=Math.max(10,Math.min(20,10+tagCount[t]*2));
+      return '<span style="display:inline-block;padding:4px 10px;background:rgba(168,85,247,.15);color:#c084fc;border-radius:12px;font-size:'+size+'px;font-weight:700;margin:3px">'+esc(t)+' <span style="opacity:.6;font-size:9px">'+tagCount[t]+'</span></span>';
+    }).join(""):'<div class="rc-empty">Keine Tags.</div>';
+
+    var favs=all.filter(function(x){return x.fav;}).length;
+
+    el.innerHTML='<div class="rc-hero"><div class="lbl">Recherche gesamt</div><div class="val">'+all.length+'</div><div class="sub">'+totalWords.toLocaleString("de-DE")+' Wörter · '+favs+' Favoriten</div></div>'
+      +'<div class="rc-stats">'
+      +'<div class="rc-stat"><div class="i">🔗</div><div class="v">'+totalSources+'</div><div class="l">Quellen</div></div>'
+      +'<div class="rc-stat"><div class="i">💬</div><div class="v">'+totalQuotes+'</div><div class="l">Zitate</div></div>'
+      +'<div class="rc-stat"><div class="i">✓</div><div class="v">'+totalDoneTasks+'/'+totalTasks+'</div><div class="l">Aufgaben</div></div>'
+      +'<div class="rc-stat"><div class="i">📁</div><div class="v">'+topCats.length+'</div><div class="l">Kategorien</div></div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>📁 Nach Kategorie</h3></div>'+catHtml+'</div>'
+      +'<div class="card"><div class="card-h"><h3>🎨 Tag-Wolke</h3></div><div style="text-align:center;padding:8px 0">'+tagsHtml+'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>📤 Export</h3></div>'
+      +'<button class="btn secondary full" id="rc_export_all">📤 Alle Recherchen (JSON)</button>'
+      +'<button class="btn secondary full" id="rc_export_md" style="margin-top:6px">📄 Gesamt-Bericht (.md)</button></div>';
+
+    document.getElementById("rc_export_all").addEventListener("click",function(){
+      var blob=new Blob([JSON.stringify(all,null,2)],{type:"application/json"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="recherche_export.json";a.click();
+      toast("📤","ok");
+    });
+    document.getElementById("rc_export_md").addEventListener("click",function(){
+      var out="# Meine Recherche-Sammlung\n\nDatum: "+new Date().toLocaleString("de-DE")+"\n\nEinträge: "+all.length+"\n\n---\n\n";
+      all.slice().sort(function(a,b){return b.t-a.t;}).forEach(function(p){
+        var c=RC_CATS[p.cat]||RC_CATS.allgemein;
+        out+="## "+c.i+" "+p.title+"\n\n";
+        out+="**Datum:** "+new Date(p.t).toLocaleString("de-DE")+"\n\n";
+        if((p.tags||[]).length)out+="**Tags:** "+p.tags.join(", ")+"\n\n";
+        out+="### Notizen\n\n"+(p.notes||"")+"\n\n";
+        if((p.sources||[]).length){out+="### Quellen\n\n";p.sources.forEach(function(s){out+="- "+(s.title||"")+(s.url?" ["+s.url+"]":"")+"\n";});out+="\n";}
+        if((p.quotes||[]).length){out+="### Zitate\n\n";p.quotes.forEach(function(q){out+="> "+q.text+(q.author?"\n> — "+q.author:"")+"\n\n";});}
+        out+="---\n\n";
+      });
+      var blob=new Blob([out],{type:"text/markdown;charset=utf-8"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="recherche_bericht.md";a.click();
+      toast("📄","ok");
+    });
+  }
+};
+
+/* ============ Auto-Register ============ */
+if(AppLauncher&&AppLauncher.registry){
+  AppLauncher.registry.recherche=AppRecherche;
+}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){
+    if(a.id==="recherche"){a.prio=1;a.installed=true;a.cat="Wissen";found=true;}
+  });
+  if(!found){
+    APP_PLAN.unshift({id:"recherche",name:"Recherche",icon:"🔍",cat:"Wissen",prio:1,installed:true});
+  }
+}
+setTimeout(function(){
+  var btn=document.getElementById("btnFilterAll");
+  if(btn)btn.click();
+},1800);
+
+console.log("[HalDo Recherche] ✅ Modul geladen und registriert.");
+})();
+</script>
+<!-- ============ ENDE HALDO RECHERCHE APP ============ -->
 </body>
 </html>
