@@ -10603,5 +10603,867 @@ setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click
 console.log("[HalDo Podcast] 🎙️ 8 Vorschläge + RSS + Player geladen.");
 })();
 </script>
+<!-- ============================================================
+     HALDO LÄNDER — Länderlexikon mit Suche, Fakten, Flaggen
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Länder] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+
+function ldStyles(){if(document.getElementById("ldStyles"))return;var s=document.createElement("style");s.id="ldStyles";
+s.textContent=".ld-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(34,197,94,.18),rgba(0,212,255,.18));border:1px solid rgba(34,197,94,.4);text-align:center;margin-bottom:12px}.ld-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.ld-hero .val{font-size:38px;font-weight:900;color:#4ade80;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.ld-hero .sub{font-size:10.5px;color:var(--text-mute)}.ld-search{width:100%;background:var(--bg-3);border:1px solid var(--border);color:var(--text);padding:11px 14px;border-radius:9px;font-family:inherit;font-size:12.5px;outline:none;margin-bottom:8px}.ld-region-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:8px 0}.ld-region{padding:10px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;text-align:center;font-size:10px;font-weight:700;cursor:pointer;transition:.15s}.ld-region:hover{border-color:#4ade80}.ld-region.active{border-color:#4ade80;background:rgba(34,197,94,.12);color:#4ade80}.ld-region .i{font-size:18px;display:block;margin-bottom:3px}.ld-card{display:flex;align-items:center;gap:10px;padding:11px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:10px;margin-top:5px;cursor:pointer;transition:.15s}.ld-card:hover{border-color:#4ade80;background:rgba(34,197,94,.05)}.ld-card .flag{font-size:32px;flex-shrink:0;line-height:1}.ld-card .body{flex:1;min-width:0}.ld-card .body .n{font-size:12.5px;font-weight:800}.ld-card .body .m{font-size:10px;color:var(--text-mute);margin-top:2px}.ld-card .arrow{font-size:16px;color:var(--text-mute)}.ld-detail{padding:14px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:11px;margin-top:10px}.ld-detail .head{display:flex;align-items:center;gap:14px;margin-bottom:10px}.ld-detail .head .flag{font-size:52px;line-height:1}.ld-detail .head h4{font-size:16px;font-weight:900;color:#4ade80;margin-bottom:3px}.ld-detail .head .sub{font-size:11px;color:var(--text-dim)}.ld-detail h5{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;font-weight:800;margin:10px 0 4px}.ld-detail p{font-size:11.5px;line-height:1.65}.ld-fact{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:11.5px}.ld-fact .k{color:var(--text-dim);font-weight:700}.ld-fact .v{color:var(--text);font-weight:600;text-align:right;max-width:60%}.ld-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}";document.head.appendChild(s);}
+
+var LD_REGIONS=[
+  {id:"europe",n:"Europa",i:"🏰"},
+  {id:"asia",n:"Asien",i:"🏯"},
+  {id:"africa",n:"Afrika",i:"🌍"},
+  {id:"america_n",n:"Nordamerika",i:"🌎"},
+  {id:"america_s",n:"Südamerika",i:"🌎"},
+  {id:"oceania",n:"Ozeanien",i:"🏝️"}
+];
+
+var LD_COUNTRIES=[
+  /* Europa */
+  {n:"Deutschland",flag:"🇩🇪",region:"europe",capital:"Berlin",pop:"84 Mio.",area:"357.022 km²",lang:"Deutsch",curr:"Euro",desc:"Größte Volkswirtschaft Europas, 16 Bundesländer, bekannt für Autos, Bier, Präzision und Mittelstand."},
+  {n:"Österreich",flag:"🇦🇹",region:"europe",capital:"Wien",pop:"9 Mio.",area:"83.879 km²",lang:"Deutsch",curr:"Euro",desc:"Alpenrepublik, Wiege der klassischen Musik (Mozart, Beethoven), Kaffeehauskultur."},
+  {n:"Schweiz",flag:"🇨🇭",region:"europe",capital:"Bern",pop:"8,8 Mio.",area:"41.285 km²",lang:"Deutsch/Franz/Italienisch/Rätoromanisch",curr:"CHF",desc:"Neutral, Banken und Uhren, Alpen, Käse, Schokolade, 4 Sprachen."},
+  {n:"Frankreich",flag:"🇫🇷",region:"europe",capital:"Paris",pop:"68 Mio.",area:"551.695 km²",lang:"Französisch",curr:"Euro",desc:"Kultur, Küche, Mode, Eiffelturm, Wein, Revolution. Größtes Land der EU."},
+  {n:"Italien",flag:"🇮🇹",region:"europe",capital:"Rom",pop:"59 Mio.",area:"301.340 km²",lang:"Italienisch",curr:"Euro",desc:"Pizza, Pasta, Renaissance, Vatikan, Kolosseum, Ferrari."},
+  {n:"Spanien",flag:"🇪🇸",region:"europe",capital:"Madrid",pop:"48 Mio.",area:"505.990 km²",lang:"Spanisch",curr:"Euro",desc:"Flamenco, Tapas, Stierkampf, Sagrada Família, Balearen."},
+  {n:"Großbritannien",flag:"🇬🇧",region:"europe",capital:"London",pop:"68 Mio.",area:"243.610 km²",lang:"Englisch",curr:"Pfund",desc:"Wiege der industriellen Revolution, Big Ben, Königshaus, Brexit."},
+  {n:"Niederlande",flag:"🇳🇱",region:"europe",capital:"Amsterdam",pop:"17 Mio.",area:"41.543 km²",lang:"Niederländisch",curr:"Euro",desc:"Tulpen, Windmühlen, Fahrräder, Grachten, Königshaus."},
+  {n:"Polen",flag:"🇵🇱",region:"europe",capital:"Warschau",pop:"38 Mio.",area:"312.696 km²",lang:"Polnisch",curr:"Złoty",desc:"Reiches Kultur- und Industrieerbe, Warschauer Altstadt (UNESCO), Johannes Paul II."},
+  {n:"Schweden",flag:"🇸🇪",region:"europe",capital:"Stockholm",pop:"10,5 Mio.",area:"450.295 km²",lang:"Schwedisch",curr:"Krone",desc:"IKEA, Volvo, ABBA, Mitternachtssonne, Sozialstaat, Polarlicht."},
+  {n:"Norwegen",flag:"🇳🇴",region:"europe",capital:"Oslo",pop:"5,4 Mio.",area:"385.207 km²",lang:"Norwegisch",curr:"Krone",desc:"Fjorde, Öl, Lachs, Mitternachtssonne, Wikinger-Erbe."},
+  {n:"Griechenland",flag:"🇬🇷",region:"europe",capital:"Athen",pop:"10,7 Mio.",area:"131.957 km²",lang:"Griechisch",curr:"Euro",desc:"Wiege der Demokratie, Philosophie, Olympischen Spiele, Akropolis."},
+  {n:"Portugal",flag:"🇵🇹",region:"europe",capital:"Lissabon",pop:"10,3 Mio.",area:"92.090 km²",lang:"Portugiesisch",curr:"Euro",desc:"Seefahrer-Nation, Portwein, Fado, Cristiano Ronaldo."},
+  {n:"Irland",flag:"🇮🇪",region:"europe",capital:"Dublin",pop:"5,1 Mio.",area:"70.273 km²",lang:"Englisch/Irisch",curr:"Euro",desc:"Grüne Insel, Guinness, Keltische Kultur, U2."},
+  {n:"Ungarn",flag:"🇭🇺",region:"europe",capital:"Budapest",pop:"9,7 Mio.",area:"93.028 km²",lang:"Ungarisch",curr:"Forint",desc:"Thermalbäder, Gulasch, Donau, Parlament, Paprika."},
+  /* Asien */
+  {n:"Türkei",flag:"🇹🇷",region:"asia",capital:"Ankara",pop:"85 Mio.",area:"783.562 km²",lang:"Türkisch",curr:"Lira",desc:"Brücke zwischen Europa und Asien, Hagia Sophia, Istanbul, Kebab, Kaffee-Kultur."},
+  {n:"Irak",flag:"🇮🇶",region:"asia",capital:"Bagdad",pop:"42 Mio.",area:"438.317 km²",lang:"Arabisch/Kurdisch",curr:"Irakischer Dinar",desc:"Mesopotamien — Wiege der Zivilisation, Babylon, heiliger Lalisch der Ezidi."},
+  {n:"Syrien",flag:"🇸🇾",region:"asia",capital:"Damaskus",pop:"18 Mio.",area:"185.180 km²",lang:"Arabisch",curr:"Syrisches Pfund",desc:"Damaskus — eine der ältesten Städte der Welt, Aleppo, Palmyra."},
+  {n:"Iran",flag:"🇮🇷",region:"asia",capital:"Teheran",pop:"87 Mio.",area:"1.648.195 km²",lang:"Persisch",curr:"Rial",desc:"Persisches Reich, Teppiche, Safran, Dichter Hafis und Rumi."},
+  {n:"China",flag:"🇨🇳",region:"asia",capital:"Peking",pop:"1,4 Mrd.",area:"9.596.961 km²",lang:"Mandarin",curr:"Renminbi",desc:"Älteste Zivilisation, Große Mauer, Seidenstraße, Drache, Tai-Chi."},
+  {n:"Japan",flag:"🇯🇵",region:"asia",capital:"Tokio",pop:"125 Mio.",area:"377.975 km²",lang:"Japanisch",curr:"Yen",desc:"Sushi, Anime, Kirschblüten, Samurai, Shinto, Technologie."},
+  {n:"Indien",flag:"🇮🇳",region:"asia",capital:"Neu-Delhi",pop:"1,4 Mrd.",area:"3.287.263 km²",lang:"Hindi/Englisch u.v.m.",curr:"Rupie",desc:"Taj Mahal, Bollywood, Yoga, Ayurveda, 22 Amtssprachen."},
+  {n:"Südkorea",flag:"🇰🇷",region:"asia",capital:"Seoul",pop:"51 Mio.",area:"100.210 km²",lang:"Koreanisch",curr:"Won",desc:"K-Pop, Kimchi, Samsung, Hightech-Nation, Tee-Kultur."},
+  {n:"Thailand",flag:"🇹🇭",region:"asia",capital:"Bangkok",pop:"71 Mio.",area:"513.120 km²",lang:"Thai",curr:"Baht",desc:"Tempel, Buddha-Statuen, Streetfood, Elefanten, Thai-Massage."},
+  {n:"Vietnam",flag:"🇻🇳",region:"asia",capital:"Hanoi",pop:"99 Mio.",area:"331.212 km²",lang:"Vietnamesisch",curr:"Dong",desc:"Reisfelder, Halong-Bucht, Pho-Suppe, Kaffee, Kriegsgeschichte."},
+  {n:"Pakistan",flag:"🇵🇰",region:"asia",capital:"Islamabad",pop:"235 Mio.",area:"881.913 km²",lang:"Urdu/Englisch",curr:"Rupie",desc:"K2 (zweitgrößter Berg), Mughal-Erbe, Cricket, Gewürze."},
+  {n:"Saudi-Arabien",flag:"🇸🇦",region:"asia",capital:"Riad",pop:"36 Mio.",area:"2.149.690 km²",lang:"Arabisch",curr:"Riyal",desc:"Mekka und Medina (heiligste Stätten des Islam), Öl, Wüste."},
+  {n:"Israel",flag:"🇮🇱",region:"asia",capital:"Jerusalem",pop:"9,8 Mio.",area:"20.770 km²",lang:"Hebräisch",curr:"Schekel",desc:"Heilige Städte, Hightech-Startup-Nation, Klagemauer, Totes Meer."},
+  {n:"Armenien",flag:"🇦🇲",region:"asia",capital:"Eriwan",pop:"3 Mio.",area:"29.743 km²",lang:"Armenisch",curr:"Dram",desc:"Ältestes christliches Volk, Berg Ararat, eigene Schrift seit 405 n.Chr."},
+  {n:"Aserbaidschan",flag:"🇦🇿",region:"asia",capital:"Baku",pop:"10 Mio.",area:"86.600 km²",lang:"Aserbaidschanisch",curr:"Manat",desc:"Feuerland (Yanar Dag), Kaspisches Meer, Teppiche, Öl."},
+  /* Afrika */
+  {n:"Ägypten",flag:"🇪🇬",region:"africa",capital:"Kairo",pop:"110 Mio.",area:"1.001.450 km²",lang:"Arabisch",curr:"Ägyptisches Pfund",desc:"Pyramiden, Sphinx, Pharaonen, Nil, Hieroglyphen — 5000 Jahre Zivilisation."},
+  {n:"Marokko",flag:"🇲🇦",region:"africa",capital:"Rabat",pop:"37 Mio.",area:"446.550 km²",lang:"Arabisch/Berberisch",curr:"Dirham",desc:"Marrakesch, Sahara, Atlas-Gebirge, Tajine, Lederkunst."},
+  {n:"Südafrika",flag:"🇿🇦",region:"africa",capital:"Pretoria",pop:"60 Mio.",area:"1.219.090 km²",lang:"Zulu/Englisch u.v.m.",curr:"Rand",desc:"Regenbogennation, Nelson Mandela, 11 Amtssprachen, Kap der Guten Hoffnung."},
+  {n:"Nigeria",flag:"🇳🇬",region:"africa",capital:"Abuja",pop:"220 Mio.",area:"923.768 km²",lang:"Englisch",curr:"Naira",desc:"Bevölkerungsreichstes Land Afrikas, Öl, Nollywood (2. größte Filmindustrie)."},
+  {n:"Kenia",flag:"🇰🇪",region:"africa",capital:"Nairobi",pop:"55 Mio.",area:"580.367 km²",lang:"Swahili/Englisch",curr:"Schilling",desc:"Safaris, Massai, Kilimandscharo-Nähe, Marathon-Läufer."},
+  {n:"Äthiopien",flag:"🇪🇹",region:"africa",capital:"Addis Abeba",pop:"120 Mio.",area:"1.104.300 km²",lang:"Amharisch",curr:"Birr",desc:"Einziges Land Afrikas ohne Kolonisierung, Kaffee-Ursprung, Lucy (3,2 Mio. Jahre alt)."},
+  /* Nordamerika */
+  {n:"USA",flag:"🇺🇸",region:"america_n",capital:"Washington D.C.",pop:"335 Mio.",area:"9.833.517 km²",lang:"Englisch",curr:"US-Dollar",desc:"50 Staaten, Silicon Valley, Hollywood, Supermacht, Nationalparks, Kulturenschmelztiegel."},
+  {n:"Kanada",flag:"🇨🇦",region:"america_n",capital:"Ottawa",pop:"39 Mio.",area:"9.984.670 km²",lang:"Englisch/Französisch",curr:"Kanadischer Dollar",desc:"Zweitgrößtes Land, Ahorn, Eishockey, Rockies, Bilingual."},
+  {n:"Mexiko",flag:"🇲🇽",region:"america_n",capital:"Mexiko-Stadt",pop:"130 Mio.",area:"1.964.375 km²",lang:"Spanisch",curr:"Peso",desc:"Azteken, Maya, Tacos, Tequila, Mariachi, Pyramiden von Chichén Itzá."},
+  {n:"Kuba",flag:"🇨🇺",region:"america_n",capital:"Havanna",pop:"11 Mio.",area:"109.884 km²",lang:"Spanisch",curr:"Peso",desc:"Zigarren, Rum, Salsa, Oldtimer, Revolution, Hemingway."},
+  /* Südamerika */
+  {n:"Brasilien",flag:"🇧🇷",region:"america_s",capital:"Brasília",pop:"215 Mio.",area:"8.515.767 km²",lang:"Portugiesisch",curr:"Real",desc:"Amazonas, Karneval, Samba, Fußball, Christusstatue, 5. größtes Land."},
+  {n:"Argentinien",flag:"🇦🇷",region:"america_s",capital:"Buenos Aires",pop:"46 Mio.",area:"2.780.400 km²",lang:"Spanisch",curr:"Peso",desc:"Tango, Steaks, Wein, Patagonien, Maradona, Messi."},
+  {n:"Peru",flag:"🇵🇪",region:"america_s",capital:"Lima",pop:"34 Mio.",area:"1.285.216 km²",lang:"Spanisch/Quechua",curr:"Sol",desc:"Inka-Reich, Machu Picchu, Kartoffeln (4000 Sorten), Alpakas."},
+  {n:"Kolumbien",flag:"🇨🇴",region:"america_s",capital:"Bogotá",pop:"52 Mio.",area:"1.141.748 km²",lang:"Spanisch",curr:"Peso",desc:"Kaffee, Shakira, Naturvielfalt, Karibik, Anden, Amazonas."},
+  {n:"Chile",flag:"🇨🇱",region:"america_s",capital:"Santiago",pop:"19 Mio.",area:"756.102 km²",lang:"Spanisch",curr:"Peso",desc:"Längstes Land (4300 km), Atacama-Wüste, Wein, Osterinsel."},
+  /* Ozeanien */
+  {n:"Australien",flag:"🇦🇺",region:"oceania",capital:"Canberra",pop:"26 Mio.",area:"7.692.024 km²",lang:"Englisch",curr:"Australischer Dollar",desc:"Kängurus, Koalas, Great Barrier Reef, Uluru, Aborigines (65.000 Jahre Kultur)."},
+  {n:"Neuseeland",flag:"🇳🇿",region:"oceania",capital:"Wellington",pop:"5,2 Mio.",area:"268.021 km²",lang:"Englisch/Maori",curr:"Neuseeland-Dollar",desc:"Herr der Ringe-Drehorte, Kiwis, Maori, Rugby, atemberaubende Landschaft."}
+];
+
+var AppLaender={
+  tab:"list",_q:"",_region:"all",
+
+  render:function(){
+    ldStyles();
+    var vp=document.getElementById("appViewport");
+    vp.innerHTML='<div id="ldContent"></div>';
+    this.renderContent();
+  },
+
+  renderContent:function(){
+    var el=document.getElementById("ldContent");if(!el)return;
+    var self=this;
+    var region=this._region;
+    var q=this._q;
+    var list=LD_COUNTRIES.slice();
+    if(region!=="all")list=list.filter(function(c){return c.region===region;});
+    if(q){
+      var lq=q.toLowerCase();
+      list=list.filter(function(c){
+        return c.n.toLowerCase().indexOf(lq)>=0 ||
+               c.capital.toLowerCase().indexOf(lq)>=0 ||
+               c.lang.toLowerCase().indexOf(lq)>=0;
+      });
+    }
+    list.sort(function(a,b){return a.n.localeCompare(b.n,"de");});
+
+    var regionHtml='<div class="ld-region'+("all"===region?" active":"")+'" data-ld-region="all"><span class="i">🌍</span>Alle</div>'
+      +LD_REGIONS.map(function(r){
+        var count=LD_COUNTRIES.filter(function(c){return c.region===r.id;}).length;
+        return '<div class="ld-region'+(region===r.id?" active":"")+'" data-ld-region="'+r.id+'"><span class="i">'+r.i+'</span>'+r.n+' ('+count+')</div>';
+      }).join("");
+
+    var listHtml=list.length?list.map(function(c){
+      return '<div class="ld-card" data-ld-open="'+esc(c.n)+'"><span class="flag">'+c.flag+'</span>'
+        +'<div class="body"><div class="n">'+esc(c.n)+'</div><div class="m">🏛️ '+esc(c.capital)+' · 👥 '+esc(c.pop)+'</div></div>'
+        +'<span class="arrow">›</span></div>';
+    }).join(""):'<div class="ld-empty">Keine Länder gefunden.</div>';
+
+    el.innerHTML='<div class="ld-hero"><div class="lbl">Länder-Lexikon</div><div class="val">'+LD_COUNTRIES.length+'</div><div class="sub">6 Kontinente · Suche & Filter</div></div>'
+      +'<div class="card"><input type="text" class="ld-search" id="ld_search" placeholder="🔍 Suche Land, Hauptstadt, Sprache…" value="'+esc(q)+'"></div>'
+      +'<div class="card"><div class="card-h"><h3>🌍 Regionen</h3></div><div class="ld-region-grid">'+regionHtml+'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>📖 '+list.length+' Länder</h3></div>'+listHtml+'</div>'
+      +'<div id="ld_detail"></div>';
+
+    document.getElementById("ld_search").addEventListener("input",function(){
+      self._q=this.value;
+      clearTimeout(self._t);
+      self._t=setTimeout(function(){self.renderContent();},250);
+    });
+    el.querySelectorAll("[data-ld-region]").forEach(function(b){
+      b.addEventListener("click",function(){self._region=b.dataset.ldRegion;self.renderContent();});
+    });
+    el.querySelectorAll("[data-ld-open]").forEach(function(b){
+      b.addEventListener("click",function(){self.showCountry(b.dataset.ldOpen);});
+    });
+  },
+
+  showCountry:function(name){
+    var c=null;LD_COUNTRIES.forEach(function(x){if(x.n===name)c=x;});
+    if(!c)return;
+    var det=document.getElementById("ld_detail");if(!det)return;
+    var region=LD_REGIONS.find(function(r){return r.id===c.region;})||{n:c.region,i:"🌍"};
+    det.innerHTML='<div class="ld-detail">'
+      +'<div class="head"><span class="flag">'+c.flag+'</span>'
+      +'<div><h4>'+esc(c.n)+'</h4><div class="sub">'+region.i+' '+region.n+'</div></div></div>'
+      +'<div class="ld-fact"><span class="k">🏛️ Hauptstadt</span><span class="v">'+esc(c.capital)+'</span></div>'
+      +'<div class="ld-fact"><span class="k">👥 Bevölkerung</span><span class="v">'+esc(c.pop)+'</span></div>'
+      +'<div class="ld-fact"><span class="k">📐 Fläche</span><span class="v">'+esc(c.area)+'</span></div>'
+      +'<div class="ld-fact"><span class="k">🗣️ Sprache</span><span class="v">'+esc(c.lang)+'</span></div>'
+      +'<div class="ld-fact"><span class="k">💰 Währung</span><span class="v">'+esc(c.curr)+'</span></div>'
+      +'<h5>📖 Über das Land</h5><p>'+esc(c.desc)+'</p>'
+      +'<button class="btn secondary small" id="ld_close" style="margin-top:10px">✕ Schließen</button>'
+      +'</div>';
+    det.scrollIntoView({behavior:"smooth",block:"nearest"});
+    document.getElementById("ld_close").addEventListener("click",function(){det.innerHTML="";});
+  }
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.laender=AppLaender;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="laender"){a.prio=1;a.installed=true;a.cat="Wissen";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"laender",name:"Länder",icon:"🌍",cat:"Wissen",prio:1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Länder] 🌍 "+LD_COUNTRIES.length+" Länder geladen.");
+})();
+</script>
+<!-- ============================================================
+     HALDO EDELSTEINE — Lexikon mit Bildern, Fakten, Wissenswertem
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Edelsteine] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+
+function edStyles(){if(document.getElementById("edStyles"))return;var s=document.createElement("style");s.id="edStyles";
+s.textContent=".ed-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(6,182,212,.18),rgba(236,72,153,.18));border:1px solid rgba(6,182,212,.4);text-align:center;margin-bottom:12px}.ed-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.ed-hero .val{font-size:38px;font-weight:900;color:#22d3ee;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.ed-hero .sub{font-size:10.5px;color:var(--text-mute)}.ed-search{width:100%;background:var(--bg-3);border:1px solid var(--border);color:var(--text);padding:11px 14px;border-radius:9px;font-family:inherit;font-size:12.5px;outline:none;margin-bottom:8px}.ed-cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:8px 0}.ed-cat{padding:10px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;text-align:center;font-size:10px;font-weight:700;cursor:pointer;transition:.15s}.ed-cat:hover{border-color:#22d3ee}.ed-cat.active{border-color:#22d3ee;background:rgba(6,182,212,.12);color:#22d3ee}.ed-cat .i{font-size:18px;display:block;margin-bottom:3px}.ed-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px}.ed-card{padding:11px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:.15s;text-align:center}.ed-card:hover{border-color:#22d3ee;transform:translateY(-2px)}.ed-card .gem{width:50px;height:50px;border-radius:50%;margin:0 auto 6px;box-shadow:0 0 20px rgba(0,0,0,.5),inset 0 0 15px rgba(255,255,255,.3)}.ed-card .n{font-size:11.5px;font-weight:800;line-height:1.2}.ed-card .h{font-size:8.5px;color:var(--text-mute);margin-top:3px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}.ed-detail{padding:14px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:11px;margin-top:10px}.ed-detail .head{display:flex;align-items:center;gap:14px;margin-bottom:10px}.ed-detail .head .gem-big{width:70px;height:70px;border-radius:50%;box-shadow:0 0 30px rgba(0,0,0,.6),inset 0 0 20px rgba(255,255,255,.3)}.ed-detail .head h4{font-size:16px;font-weight:900;color:#22d3ee;margin-bottom:3px}.ed-detail .head .sub{font-size:11px;color:var(--text-dim)}.ed-detail h5{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;font-weight:800;margin:10px 0 4px}.ed-detail p{font-size:11.5px;line-height:1.65}.ed-fact{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:11.5px}.ed-fact .k{color:var(--text-dim);font-weight:700}.ed-fact .v{color:var(--text);font-weight:600;text-align:right;max-width:60%}.ed-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}";document.head.appendChild(s);}
+
+/* Edelsteine mit Farbverlauf für Visualisierung */
+var ED_GEMS=[
+  {n:"Diamant",c:["#e0f7ff","#87ceeb","#ffffff","#b0e0e6"],hard:"10 Mohs",color:"Farblos",formula:"C",found:"Südafrika, Russland, Botswana, Kanada",desc:"Der härteste natürliche Stoff. Besteht aus reinem Kohlenstoff, entsteht 150-200 km tief unter der Erde. Symbol für Ewigkeit und Liebe. 4C: Carat, Color, Clarity, Cut.",value:"1 Karat ≈ 5.000-30.000 €",category:"kristall"},
+  {n:"Rubin",c:["#ff1744","#c62828","#e53935","#ff5252"],hard:"9 Mohs",color:"Rot",formula:"Al₂O₃ (Chrom)",found:"Myanmar, Sri Lanka, Thailand, Tansania",desc:"Roter Korund — die Farbe kommt vom Chrom. 'Stein der Liebe und Leidenschaft'. In Myanmar 'Pigeon Blood' mit 5 Mio. €/Karat.",value:"1 Karat ≈ 500-50.000 €",category:"edel"},
+  {n:"Saphir",c:["#1565c0","#0d47a1","#1e88e5","#42a5f5"],hard:"9 Mohs",color:"Blau (auch gelb, rosa)",formula:"Al₂O₃ (Eisen/Titan)",found:"Sri Lanka, Kaschmir, Myanmar, Australien",desc:"Blauer Korund. Königlicher Stein — Prinzessin Diana's Verlobungsring. Padparadscha (rosa-orange) ist besonders selten.",value:"1 Karat ≈ 300-30.000 €",category:"edel"},
+  {n:"Smaragd",c:["#1b5e20","#2e7d32","#388e3c","#43a047"],hard:"7,5-8 Mohs",color:"Grün",formula:"Be₃Al₂(SiO₃)₆",found:"Kolumbien, Sambia, Brasilien, Afghanistan",desc:"Grüner Beryll. Der teuerste Edelstein pro Karat. Kleopatra liebte ihn. Perfekte Steine sind extrem selten (meist 'Jardin' Einschlüsse).",value:"1 Karat ≈ 500-100.000 €",category:"edel"},
+  {n:"Amethyst",c:["#6a1b9a","#8e24aa","#ab47bc","#ce93d8"],hard:"7 Mohs",color:"Violett",formula:"SiO₂ (Eisen)",found:"Brasilien, Uruguay, Madagaskar, Sambia",desc:"Violetter Quarz. Antikes Griechenland: Schutz vor Trunkenheit. Häufig und erschwinglich, aber Spitzenqualität wird teuer.",value:"1 Karat ≈ 5-200 €",category:"kristall"},
+  {n:"Topas",c:["#ffb300","#ff8f00","#ffa726","#ffcc80"],hard:"8 Mohs",color:"Gelb, blau, rosa",formula:"Al₂SiO₄(F,OH)₂",found:"Brasilien, Pakistan, Russland, Nigeria",desc:"Kommt in vielen Farben. 'Imperial Topas' (gold-orange) ist sehr wertvoll. Blauer Topas ist meist behandelt (bestrahlt).",value:"1 Karat ≈ 20-3.000 €",category:"edel"},
+  {n:"Opal",c:["#eceff1","#cfd8dc","#b0bec5","#90a4ae"],hard:"5,5-6,5 Mohs",color:"Vielfarbig schillernd",formula:"SiO₂·nH₂O",found:"Australien (95 %), Mexiko, Äthiopien",desc:"Enthält 3-10 % Wasser. Zeigt 'Play of Color' durch Lichtbeugung. Australischer 'Black Opal' ist am wertvollsten.",value:"1 Karat ≈ 100-10.000 €",category:"spezial"},
+  {n:"Türkis",c:["#26c6da","#00bcd4","#4dd0e1","#80deea"],hard:"5-6 Mohs",color:"Türkisblau",formula:"CuAl₆(PO₄)₄(OH)₈·4H₂O",found:"Iran, USA, Mexiko, Tibet",desc:"Seit 5000 v.Chr. verwendet. Schutzstein in vielen Kulturen. Farbe kommt vom Kupfer. Empfindlich gegen Säuren.",value:"1 Karat ≈ 10-500 €",category:"spezial"},
+  {n:"Granat",c:["#b71c1c","#8e0000","#d32f2f","#e57373"],hard:"6,5-7,5 Mohs",color:"Rot, grün, orange",formula:"X₃Y₂(SiO₄)₃",found:"Indien, Sri Lanka, Afrika, Russland",desc:"Familie mit vielen Varianten. Roter Granat war im Mittelalter der 'Karwinkelstein'. Tsavorit (grün) sehr wertvoll.",value:"1 Karat ≈ 30-2.000 €",category:"edel"},
+  {n:"Aquamarin",c:["#00acc1","#0097a7","#26c6da","#4dd0e1"],hard:"7,5-8 Mohs",color:"Hellblau",formula:"Be₃Al₂(Si₆O₁₈)",found:"Brasilien, Madagaskar, Pakistan, Nigeria",desc:"'Wasser des Meeres' — Namensgeber. Blasser Bruder des Smaragds. Santa Maria (Brasilien) sind die besten.",value:"1 Karat ≈ 30-2.500 €",category:"edel"},
+  {n:"Peridot",c:["#827717","#9e9d24","#afb42b","#c0ca33"],hard:"6,5-7 Mohs",color:"Olivgrün",formula:"(Mg,Fe)₂SiO₄",found:"Ägypten, Myanmar, USA, Pakistan",desc:"Einer der ältesten bekannten Edelsteine. Kleopatra liebte ihn. Entsteht in Magma und wird auch in Meteoriten gefunden!",value:"1 Karat ≈ 30-500 €",category:"edel"},
+  {n:"Zirkon",c:["#e3f2fd","#bbdefb","#90caf9","#64b5f6"],hard:"6,5-7,5 Mohs",color:"Farblos, blau, rot",formula:"ZrSiO₄",found:"Kambodscha, Sri Lanka, Australien, Myanmar",desc:"Nicht zu verwechseln mit 'Zirkonia' (Labor). Natürlicher Zirkon ist älter als die Erde (4,4 Mrd. Jahre in Australien gefunden).",value:"1 Karat ≈ 20-500 €",category:"kristall"},
+  {n:"Bernstein",c:["#ff6f00","#e65100","#ff8f00","#ffa000"],hard:"2-2,5 Mohs",color:"Goldgelb bis rot",formula:"C₁₀H₁₆O (Harz)",found:"Ostsee, Dominikanische Rep., Myanmar",desc:"Versteinertes Harz — kein Mineral, sondern organisch. Oft Insekten-Einschlüsse (wie im 'Jurassic Park'). 40-260 Mio. Jahre alt.",value:"1 Karat ≈ 5-500 €",category:"organisch"},
+  {n:"Perle",c:["#f5f5f5","#e0e0e0","#eeeeee","#fafafa"],hard:"2,5-4,5 Mohs",color:"Weiß, rosa, schwarz",formula:"CaCO₃ + Conchiolin",found:"Japan, China, Australien, Franz. Polynesien",desc:"Einziger Edelstein aus einem Lebewesen. Entsteht in Muscheln. Süßwasserperlen sind günstiger, Tahiti-Perlen (schwarz) wertvoll.",value:"1 Perle ≈ 5-10.000 €",category:"organisch"},
+  {n:"Lapislazuli",c:["#0d47a1","#1565c0","#1976d2","#283593"],hard:"5-6 Mohs",color:"Ultramarinblau",formula:"(Na,Ca)₈(AlSiO₄)₆(S,SO₄)",found:"Afghanistan (Badakhshan), Chile, Russland",desc:"'Stein des Himmels'. Wurde zu Pulver gemahlen für Ultramarin-Farbe (teurer als Gold im Mittelalter). In Tutanchamuns Maske.",value:"1 Karat ≈ 1-50 €",category:"spezial"},
+  {n:"Mondstein",c:["#f5f5f5","#e1f5fe","#b3e5fc","#e3f2fd"],hard:"6-6,5 Mohs",color:"Milchig, blau schimmernd",formula:"(Na,K)AlSi₃O₈",found:"Sri Lanka, Indien, Madagaskar, Myanmar",desc:"Zeigt blauen 'Adulareszenz'-Schimmer. In Indien heilig. Gilt als Stein der Liebe und Intuition, verbunden mit Mondzyklen.",value:"1 Karat ≈ 10-300 €",category:"kristall"},
+  {n:"Turmalin",c:["#00838f","#00695c","#004d40","#1b5e20"],hard:"7-7,5 Mohs",color:"Alle Farben!",formula:"komplex (Bor-Silikat)",found:"Brasilien, Sri Lanka, Afrika, Afghanistan",desc:"'Regenbogen-Edelstein' — kommt in fast allen Farben vor. Manche Steine zeigen 2-3 Farben gleichzeitig (Watermelon-Turmalin).",value:"1 Karat ≈ 30-3.000 €",category:"edel"}
+];
+
+var ED_CATS=[
+  {id:"all",n:"Alle",i:"💎"},
+  {id:"edel",n:"Klassisch",i:"👑"},
+  {id:"kristall",n:"Kristalle",i:"🔮"},
+  {id:"spezial",n:"Spezial",i:"✨"},
+  {id:"organisch",n:"Organisch",i:"🐚"}
+];
+
+var AppEdelsteine={
+  tab:"list",_q:"",_cat:"all",
+
+  render:function(){
+    edStyles();
+    var vp=document.getElementById("appViewport");
+    vp.innerHTML='<div id="edContent"></div>';
+    this.renderContent();
+  },
+
+  gradient:function(colors){
+    return "radial-gradient(circle at 35% 35%,"+colors[2]+","+colors[0]+" 60%,"+colors[3]+")";
+  },
+
+  renderContent:function(){
+    var el=document.getElementById("edContent");if(!el)return;
+    var self=this;
+    var cat=this._cat;
+    var q=this._q;
+    var list=ED_GEMS.slice();
+    if(cat!=="all")list=list.filter(function(g){return g.category===cat;});
+    if(q){
+      var lq=q.toLowerCase();
+      list=list.filter(function(g){
+        return g.n.toLowerCase().indexOf(lq)>=0 ||
+               g.color.toLowerCase().indexOf(lq)>=0 ||
+               g.found.toLowerCase().indexOf(lq)>=0;
+      });
+    }
+
+    var catHtml=ED_CATS.map(function(c){
+      var count=c.id==="all"?ED_GEMS.length:ED_GEMS.filter(function(g){return g.category===c.id;}).length;
+      return '<div class="ed-cat'+(cat===c.id?" active":"")+'" data-ed-cat="'+c.id+'"><span class="i">'+c.i+'</span>'+c.n+' ('+count+')</div>';
+    }).join("");
+
+    var listHtml=list.length?list.map(function(g){
+      return '<div class="ed-card" data-ed-open="'+esc(g.n)+'">'
+        +'<div class="gem" style="background:'+self.gradient(g.c)+'"></div>'
+        +'<div class="n">'+esc(g.n)+'</div>'
+        +'<div class="h">'+esc(g.color)+'</div>'
+        +'</div>';
+    }).join(""):'<div class="ed-empty">Keine Edelsteine gefunden.</div>';
+
+    el.innerHTML='<div class="ed-hero"><div class="lbl">Edelstein-Lexikon</div><div class="val">'+ED_GEMS.length+'</div><div class="sub">Klassisch, Kristalle, Organisch</div></div>'
+      +'<div class="card"><input type="text" class="ed-search" id="ed_search" placeholder="🔍 Suche Edelstein, Farbe, Fundort…" value="'+esc(q)+'"></div>'
+      +'<div class="card"><div class="card-h"><h3>💎 Kategorien</h3></div><div class="ed-cat-grid">'+catHtml+'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>💎 '+list.length+' Steine</h3></div><div class="ed-grid">'+listHtml+'</div></div>'
+      +'<div id="ed_detail"></div>';
+
+    document.getElementById("ed_search").addEventListener("input",function(){
+      self._q=this.value;
+      clearTimeout(self._t);
+      self._t=setTimeout(function(){self.renderContent();},250);
+    });
+    el.querySelectorAll("[data-ed-cat]").forEach(function(b){
+      b.addEventListener("click",function(){self._cat=b.dataset.edCat;self.renderContent();});
+    });
+    el.querySelectorAll("[data-ed-open]").forEach(function(b){
+      b.addEventListener("click",function(){self.showGem(b.dataset.edOpen);});
+    });
+  },
+
+  showGem:function(name){
+    var g=null;ED_GEMS.forEach(function(x){if(x.n===name)g=x;});
+    if(!g)return;
+    var det=document.getElementById("ed_detail");if(!det)return;
+    var self=this;
+    det.innerHTML='<div class="ed-detail">'
+      +'<div class="head"><div class="gem-big" style="background:'+self.gradient(g.c)+'"></div>'
+      +'<div><h4>'+esc(g.n)+'</h4><div class="sub">'+esc(g.color)+'</div></div></div>'
+      +'<div class="ed-fact"><span class="k">🔬 Härte</span><span class="v">'+esc(g.hard)+'</span></div>'
+      +'<div class="ed-fact"><span class="k">⚗️ Formel</span><span class="v">'+esc(g.formula)+'</span></div>'
+      +'<div class="ed-fact"><span class="k">📍 Fundorte</span><span class="v">'+esc(g.found)+'</span></div>'
+      +'<div class="ed-fact"><span class="k">💎 Wert</span><span class="v">'+esc(g.value)+'</span></div>'
+      +'<h5>📖 Beschreibung</h5><p>'+esc(g.desc)+'</p>'
+      +'<button class="btn secondary small" id="ed_close" style="margin-top:10px">✕ Schließen</button>'
+      +'</div>';
+    det.scrollIntoView({behavior:"smooth",block:"nearest"});
+    document.getElementById("ed_close").addEventListener("click",function(){det.innerHTML="";});
+  }
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.edelsteine=AppEdelsteine;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="edelsteine"){a.prio=1;a.installed=true;a.cat="Wissen";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"edelsteine",name:"Edelsteine",icon:"💎",cat:"Wissen",prio:1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Edelsteine] 💎 "+ED_GEMS.length+" Edelsteine geladen.");
+})();
+</script>
+<!-- ============================================================
+     HALDO GREIFVÖGEL — Adler, Falken, Eulen, Bussarde
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Greifvögel] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+
+function gvStyles(){if(document.getElementById("gvStyles"))return;var s=document.createElement("style");s.id="gvStyles";
+s.textContent=".gv-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(245,158,11,.18),rgba(120,53,15,.18));border:1px solid rgba(245,158,11,.4);text-align:center;margin-bottom:12px}.gv-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.gv-hero .val{font-size:38px;font-weight:900;color:#fbbf24;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.gv-hero .sub{font-size:10.5px;color:var(--text-mute)}.gv-search{width:100%;background:var(--bg-3);border:1px solid var(--border);color:var(--text);padding:11px 14px;border-radius:9px;font-family:inherit;font-size:12.5px;outline:none;margin-bottom:8px}.gv-cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:8px 0}.gv-cat{padding:10px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;text-align:center;font-size:10px;font-weight:700;cursor:pointer;transition:.15s}.gv-cat:hover{border-color:#fbbf24}.gv-cat.active{border-color:#fbbf24;background:rgba(245,158,11,.12);color:#fbbf24}.gv-cat .i{font-size:18px;display:block;margin-bottom:3px}.gv-card{display:flex;gap:10px;padding:11px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:10px;margin-top:5px;cursor:pointer;transition:.15s}.gv-card:hover{border-color:#fbbf24;background:rgba(245,158,11,.05)}.gv-card .bird{font-size:32px;flex-shrink:0}.gv-card .body{flex:1;min-width:0}.gv-card .body .n{font-size:12.5px;font-weight:800}.gv-card .body .s{font-size:10.5px;color:var(--text-mute);font-style:italic;margin-top:1px}.gv-card .body .m{font-size:10px;color:var(--text-dim);margin-top:3px}.gv-detail{padding:14px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:11px;margin-top:10px}.gv-detail .head{display:flex;align-items:center;gap:14px;margin-bottom:10px}.gv-detail .head .bird{font-size:56px}.gv-detail .head h4{font-size:16px;font-weight:900;color:#fbbf24;margin-bottom:3px}.gv-detail .head .s{font-size:11px;color:var(--text-dim);font-style:italic}.gv-detail h5{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;font-weight:800;margin:10px 0 4px}.gv-detail p{font-size:11.5px;line-height:1.65}.gv-fact{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:11.5px}.gv-fact .k{color:var(--text-dim);font-weight:700}.gv-fact .v{color:var(--text);font-weight:600;text-align:right;max-width:60%}.gv-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}";document.head.appendChild(s);}
+
+var GV_BIRDS=[
+  /* Adler */
+  {n:"Steinadler",s:"Aquila chrysaetos",e:"🦅",cat:"adler",size:"75-90 cm · 2,3 m Flügel",weight:"3-7 kg",speed:"240 km/h Sturzflug",range:"Europa, Asien, Nordamerika",food:"Hasen, Murmeltiere, Vögel",desc:"König der Alpen. Nutzt Aufwinde, baut Nester an unzugänglichen Felswänden. In der Heraldik und Mythologie zentral. Paarung hält ein Leben lang.",special:"Sieht Beute aus 3 km Höhe"},
+  {n:"Weißkopfseeadler",s:"Haliaeetus leucocephalus",e:"🦅",cat:"adler",size:"70-100 cm · 2 m",weight:"3-6 kg",speed:"120 km/h",range:"Nordamerika",food:"Fische (75 %), Wasservögel",desc:"Wahrzeichen der USA. Zählt zu den Fischeradlern. 1963 fast ausgestorben (500 Brutpaare), heute 300.000+. Symbol für Freiheit und Stärke.",special:"Greift Fische direkt aus dem Wasser"},
+  {n:"Seeadler",s:"Haliaeetus albicilla",e:"🦅",cat:"adler",size:"70-90 cm · 2,4 m",weight:"4-7 kg",speed:"100 km/h",range:"Europa, Nordasien",food:"Fische, Wasservögel, Aas",desc:"Größter einheimischer Greifvogel Europas. Wappen von Deutschland (Bundesadler). Braucht große Gewässer. Wiederansiedlung nach DDT-Verbot erfolgreich.",special:"Kann 30 Jahre alt werden"},
+  {n:"Steppenadler",s:"Aquila nipalensis",e:"🦅",cat:"adler",size:"70-85 cm · 2,2 m",weight:"2,5-5 kg",speed:"80 km/h",range:"Osteuropa, Zentralasien",food:"Ziesel, Kleinsäuger",desc:"Lebt in offenen Steppen. Wandert im Winter bis nach Afrika. Einer der Adler, die von Falknern in Kasachstan für Jagd auf Füchse eingesetzt werden.",special:"Wandert bis 8.000 km im Jahr"},
+  /* Falken */
+  {n:"Wanderfalke",s:"Falco peregrinus",e:"🦅",cat:"falke",size:"35-50 cm · 1 m",weight:"0,5-1,5 kg",speed:"380 km/h",range:"Weltweit",food:"Vögel (Tauben, Stare)",desc:"Das schnellste Tier der Welt — bis 380 km/h im Sturzflug! Lebensräume von Arktis bis Australien. Wurde als 'Sportfalke' in arabischen Emiraten verehrt.",special:"380 km/h — schnellster Vogel"},
+  {n:"Turmfalke",s:"Falco tinnunculus",e:"🦅",cat:"falke",size:"32-38 cm · 80 cm",weight:"0,15-0,25 kg",speed:"60 km/h",range:"Europa, Asien, Afrika",food:"Mäuse, Insekten",desc:"Häufigster einheimischer Greifvogel. Bekannt für 'Rüttelflug' — bleibt in der Luft stehen, um Beute zu erspähen. Brütet in Kirchtürmen und Hochhäusern.",special:"Kann 1.000 Mäuse pro Jahr fangen"},
+  {n:"Gerfalke",s:"Falco rusticolus",e:"🦅",cat:"falke",size:"50-60 cm · 1,3 m",weight:"1-2 kg",speed:"300 km/h",range:"Arktis, Skandinavien",food:"Schneehühner, Hasen",desc:"Größter Falke. In der Arktis beheimatet. Lieblingsvogel arabischer Falkner — ein guter Gerfalke kostet 100.000+ €. Symbol für Status und Tradition.",special:"Kostet bis 200.000 €"},
+  {n:"Rotfußfalke",s:"Falco vespertinus",e:"🦅",cat:"falke",size:"28-34 cm · 70 cm",weight:"0,15 kg",speed:"70 km/h",range:"Osteuropa → Afrika",food:"Insekten (Libellen, Heuschrecken)",desc:"Eleganter kleiner Falke mit auffallend roten Beinen und Unterschwanz. Brütet in Kolonien. Zieht im Winter bis nach Südafrika.",special:"Brütet oft in Krähennestern"},
+  /* Eulen */
+  {n:"Uhu",s:"Bubo bubo",e:"🦉",cat:"eule",size:"60-75 cm · 1,8 m",weight:"2-4 kg",speed:"50 km/h",range:"Europa, Asien",food:"Kaninchen, Igel, Vögel",desc:"Größte Eule der Welt. 'Adler der Nacht'. Auffallend orange Augen, Federohren. In Deutschland streng geschützt — ca. 2.500 Brutpaare.",special:"Kann 60 Jahre alt werden"},
+  {n:"Waldkauz",s:"Strix aluco",e:"🦉",cat:"eule",size:"37-43 cm · 1 m",weight:"0,4-0,8 kg",speed:"40 km/h",range:"Europa, Westasien",food:"Mäuse, kleine Vögel, Käfer",desc:"Häufigste Wald-Eule Mitteleuropas. Bekanntester Eulenruf ('Huu-huuu'). Perfektes Gehör — jagt in völliger Dunkelheit.",special:"Hört eine Maus unter 40 cm Schnee"},
+  {n:"Schleiereule",s:"Tyto alba",e:"🦉",cat:"eule",size:"33-39 cm · 90 cm",weight:"0,25-0,4 kg",speed:"40 km/h",range:"Weltweit außer Antarktis",food:"Wühlmäuse, Insekten",desc:"Auffallend herzförmiges Gesicht mit weißem Schleier. Brütet in Scheunen und Kirchtürmen. Fast lautloser Flug durch spezielle Federstruktur.",special:"Fliegt nahezu lautlos"},
+  {n:"Schnee-Eule",s:"Bubo scandiacus",e:"🦉",cat:"eule",size:"53-65 cm · 1,5 m",weight:"1,5-3 kg",speed:"60 km/h",range:"Arktis",food:"Lemminge, Vögel",desc:"Symbol der Harry-Potter-Reihe ('Hedwig'). Weißes Federkleid zur Tarnung. Männchen fast rein weiß, Weibchen mit schwarzen Punkten.",special:"Kann Temperatur -50 °C trotzen"},
+  /* Bussarde */
+  {n:"Mäusebussard",s:"Buteo buteo",e:"🦅",cat:"bussard",size:"46-58 cm · 1,3 m",weight:"0,6-1,3 kg",speed:"50 km/h",range:"Europa, Asien",food:"Feldmäuse, Kaninchen, Regenwürmer",desc:"Häufigster Greifvogel Europas. Kreist oft an Autobahnen über Böschungen. Federkleid variiert stark (dunkel- bis hellbraun).",special:"Nutzt Thermik zum Kreisen"},
+  {n:"Roter Milan",s:"Milvus milvus",e:"🦅",cat:"bussard",size:"60-70 cm · 1,6 m",weight:"0,8-1,5 kg",speed:"60 km/h",range:"Europa (Deutschland ist Hauptverbreitung!)",food:"Aas, Fische, Kleintiere",desc:"Markanter gegabelter Schwanz. Deutschland hat 50 % des Weltbestands! Wappen von Kaledonien. Segelt elegant über Feldern.",special:"50 % des Weltbestands lebt in DE"},
+  {n:"Schwarzmilan",s:"Milvus migrans",e:"🦅",cat:"bussard",size:"55-60 cm · 1,5 m",weight:"0,6-1,2 kg",speed:"60 km/h",range:"Europa, Asien, Australien",food:"Fische, Aas, Kleintiere",desc:"Weltweit verbreitet — auch in Australien und Indien. Zieht im Winter bis Afrika. Häufig an Flüssen und Seen zu sehen.",special:"Kommt auf allen Kontinenten außer Amerika vor"},
+  {n:"Habicht",s:"Accipiter gentilis",e:"🦅",cat:"bussard",size:"49-64 cm · 1,2 m",weight:"0,5-1,5 kg",speed:"60 km/h",range:"Europa, Asien, Nordamerika",food:"Tauben, Krähen, Eichhörnchen",desc:"Geschickter Jäger mit kurzen, breiten Flügeln. Fliegt flink zwischen Bäumen hindurch. Weibchen deutlich größer als Männchen (umgekehrter Geschlechtsdimorphismus).",special:"Wendigster Greifvogel im Wald"},
+  /* Spezialisten */
+  {n:"Fischadler",s:"Pandion haliaetus",e:"🦅",cat:"spezial",size:"55-70 cm · 1,8 m",weight:"1-2 kg",speed:"80 km/h",range:"Weltweit",food:"Fische (99 %)",desc:"Einzige Art der Familie Pandionidae. Stürzt sich mit den Füßen voran ins Wasser und packt Fische mit den Zehen. Wendet den Fang aerodynamisch im Flug.",special:"Fängt Fische bis 2 kg Gewicht"},
+  {n:"Sekretär",s:"Sagittarius serpentarius",e:"🦅",cat:"spezial",size:"130 cm · 2 m",weight:"3-4 kg",speed:"60 km/h",range:"Afrika (Subsahara)",food:"Schlangen, Eidechsen, Insekten",desc:"Sieht aus wie ein Mix aus Adler und Storch. Tötet Schlangen mit Fußtritten. Einziger Vertreter der Familie Sagittariidae. Wappen von Südafrika.",special:"Tritt Schlangen mit 5-facher Kraft"},
+  {n:"Kondor",s:"Vultur gryphus",e:"🦅",cat:"spezial",size:"100-130 cm · 3,2 m",weight:"11-15 kg",speed:"80 km/h",range:"Südamerika (Anden)",food:"Aas",desc:"Größter flugfähiger Landvogel der Welt. Spannweite 3,2 Meter. Lebt in 5.000 m Höhe in den Anden. Heiliges Tier der Inka. In Gefahr durch Bleivergiftung.",special:"3,2 m Spannweite — Rekord"},
+  {n:"Bartgeier",s:"Gypaetus barbatus",e:"🦅",cat:"spezial",size:"100-125 cm · 2,8 m",weight:"5-7 kg",speed:"80 km/h",range:"Europa, Asien, Afrika",food:"Knochen (85 %)",desc:"Einziger Vogel, der sich fast nur von Knochen ernährt. Lässt große Knochen aus großer Höhe fallen, um sie zu zertrümmern. 2021 in Deutschland wiederangesiedelt.",special:"Frisst Knochen bis 25 cm Länge"}
+];
+
+var GV_CATS=[
+  {id:"all",n:"Alle",i:"🦅"},
+  {id:"adler",n:"Adler",i:"👑"},
+  {id:"falke",n:"Falken",i:"⚡"},
+  {id:"eule",n:"Eulen",i:"🦉"},
+  {id:"bussard",n:"Bussarde",i:"🍃"},
+  {id:"spezial",n:"Spezial",i:"⭐"}
+];
+
+var AppGreifvoegel={
+  tab:"list",_q:"",_cat:"all",
+
+  render:function(){
+    gvStyles();
+    var vp=document.getElementById("appViewport");
+    vp.innerHTML='<div id="gvContent"></div>';
+    this.renderContent();
+  },
+
+  renderContent:function(){
+    var el=document.getElementById("gvContent");if(!el)return;
+    var self=this;
+    var cat=this._cat;
+    var q=this._q;
+    var list=GV_BIRDS.slice();
+    if(cat!=="all")list=list.filter(function(b){return b.cat===cat;});
+    if(q){
+      var lq=q.toLowerCase();
+      list=list.filter(function(b){
+        return b.n.toLowerCase().indexOf(lq)>=0 ||
+               b.s.toLowerCase().indexOf(lq)>=0 ||
+               b.range.toLowerCase().indexOf(lq)>=0;
+      });
+    }
+
+    var catHtml=GV_CATS.map(function(c){
+      var count=c.id==="all"?GV_BIRDS.length:GV_BIRDS.filter(function(b){return b.cat===c.id;}).length;
+      return '<div class="gv-cat'+(cat===c.id?" active":"")+'" data-gv-cat="'+c.id+'"><span class="i">'+c.i+'</span>'+c.n+' ('+count+')</div>';
+    }).join("");
+
+    var listHtml=list.length?list.map(function(b){
+      return '<div class="gv-card" data-gv-open="'+esc(b.n)+'"><div class="bird">'+b.e+'</div>'
+        +'<div class="body"><div class="n">'+esc(b.n)+'</div><div class="s">'+esc(b.s)+'</div>'
+        +'<div class="m">📐 '+esc(b.size)+' · 🌍 '+esc(b.range.split(",")[0])+'</div></div></div>';
+    }).join(""):'<div class="gv-empty">Keine Vögel gefunden.</div>';
+
+    el.innerHTML='<div class="gv-hero"><div class="lbl">Greifvögel</div><div class="val">'+GV_BIRDS.length+'</div><div class="sub">Adler · Falken · Eulen · Bussarde · Spezialisten</div></div>'
+      +'<div class="card"><input type="text" class="gv-search" id="gv_search" placeholder="🔍 Suche Name, Art, Verbreitung…" value="'+esc(q)+'"></div>'
+      +'<div class="card"><div class="card-h"><h3>🦅 Kategorien</h3></div><div class="gv-cat-grid">'+catHtml+'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>🦅 '+list.length+' Vögel</h3></div>'+listHtml+'</div>'
+      +'<div id="gv_detail"></div>';
+
+    document.getElementById("gv_search").addEventListener("input",function(){
+      self._q=this.value;
+      clearTimeout(self._t);
+      self._t=setTimeout(function(){self.renderContent();},250);
+    });
+    el.querySelectorAll("[data-gv-cat]").forEach(function(b){
+      b.addEventListener("click",function(){self._cat=b.dataset.gvCat;self.renderContent();});
+    });
+    el.querySelectorAll("[data-gv-open]").forEach(function(b){
+      b.addEventListener("click",function(){self.showBird(b.dataset.gvOpen);});
+    });
+  },
+
+  showBird:function(name){
+    var b=null;GV_BIRDS.forEach(function(x){if(x.n===name)b=x;});
+    if(!b)return;
+    var det=document.getElementById("gv_detail");if(!det)return;
+    det.innerHTML='<div class="gv-detail">'
+      +'<div class="head"><div class="bird">'+b.e+'</div>'
+      +'<div><h4>'+esc(b.n)+'</h4><div class="s">'+esc(b.s)+'</div></div></div>'
+      +'<div class="gv-fact"><span class="k">📐 Größe</span><span class="v">'+esc(b.size)+'</span></div>'
+      +'<div class="gv-fact"><span class="k">⚖️ Gewicht</span><span class="v">'+esc(b.weight)+'</span></div>'
+      +'<div class="gv-fact"><span class="k">💨 Geschw.</span><span class="v">'+esc(b.speed)+'</span></div>'
+      +'<div class="gv-fact"><span class="k">🌍 Verbreitung</span><span class="v">'+esc(b.range)+'</span></div>'
+      +'<div class="gv-fact"><span class="k">🍖 Nahrung</span><span class="v">'+esc(b.food)+'</span></div>'
+      +'<h5>📖 Beschreibung</h5><p>'+esc(b.desc)+'</p>'
+      +'<h5>⭐ Besonderheit</h5><p style="color:#fbbf24;font-weight:700">'+esc(b.special)+'</p>'
+      +'<button class="btn secondary small" id="gv_close" style="margin-top:10px">✕ Schließen</button>'
+      +'</div>';
+    det.scrollIntoView({behavior:"smooth",block:"nearest"});
+    document.getElementById("gv_close").addEventListener("click",function(){det.innerHTML="";});
+  }
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.greifvoegel=AppGreifvoegel;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="greifvoegel"){a.prio=1;a.installed=true;a.cat="Wissen";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"greifvoegel",name:"Greifvögel",icon:"🦅",cat:"Wissen",prio=1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Greifvögel] 🦅 "+GV_BIRDS.length+" Vögel geladen.");
+})();
+</script>
+<!-- ============================================================
+     HALDO BLUMEN — Lexikon mit Suche & Kategorien
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Blumen] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+
+function blStyles(){if(document.getElementById("blStyles"))return;var s=document.createElement("style");s.id="blStyles";
+s.textContent=".bl-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(236,72,153,.18),rgba(34,197,94,.18));border:1px solid rgba(236,72,153,.4);text-align:center;margin-bottom:12px}.bl-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.bl-hero .val{font-size:38px;font-weight:900;color:#ec4899;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.bl-hero .sub{font-size:10.5px;color:var(--text-mute)}.bl-search{width:100%;background:var(--bg-3);border:1px solid var(--border);color:var(--text);padding:11px 14px;border-radius:9px;font-family:inherit;font-size:12.5px;outline:none;margin-bottom:8px}.bl-cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:8px 0}.bl-cat{padding:10px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;text-align:center;font-size:10px;font-weight:700;cursor:pointer;transition:.15s}.bl-cat:hover{border-color:#ec4899}.bl-cat.active{border-color:#ec4899;background:rgba(236,72,153,.12);color:#ec4899}.bl-cat .i{font-size:18px;display:block;margin-bottom:3px}.bl-card{display:flex;gap:10px;padding:11px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:10px;margin-top:5px;cursor:pointer;transition:.15s}.bl-card:hover{border-color:#ec4899;background:rgba(236,72,153,.05)}.bl-card .flower{font-size:32px;flex-shrink:0}.bl-card .body{flex:1;min-width:0}.bl-card .body .n{font-size:12.5px;font-weight:800}.bl-card .body .s{font-size:10.5px;color:var(--text-mute);font-style:italic;margin-top:1px}.bl-card .body .m{font-size:10px;color:var(--text-dim);margin-top:3px}.bl-detail{padding:14px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:11px;margin-top:10px}.bl-detail .head{display:flex;align-items:center;gap:14px;margin-bottom:10px}.bl-detail .head .flower{font-size:56px}.bl-detail .head h4{font-size:16px;font-weight:900;color:#ec4899;margin-bottom:3px}.bl-detail .head .s{font-size:11px;color:var(--text-dim);font-style:italic}.bl-detail h5{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;font-weight:800;margin:10px 0 4px}.bl-detail p{font-size:11.5px;line-height:1.65}.bl-fact{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:11.5px}.bl-fact .k{color:var(--text-dim);font-weight:700}.bl-fact .v{color:var(--text);font-weight:600;text-align:right;max-width:60%}.bl-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}";document.head.appendChild(s);}
+
+var BL_FLOWERS=[
+  /* Wildblumen */
+  {n:"Klatschmohn",s:"Papaver rhoeas",e:"🌺",cat:"wild",color:"Rot",size:"30-80 cm",bloom:"Mai-August",range:"Europa, Asien, Nordafrika",desc:"Leuchtend rote Blütenblätter mit schwarzem Zentrum. Symbol für Erinnerung an Gefallene (Remembrance Day). Wächst auf Feldern und Brachland.",toxic:"Leicht giftig",care:"Anspruchslos · sonnig",meaning:"Schlaf, Trost, Erinnerung"},
+  {n:"Kornblume",s:"Centaurea cyanus",e:"💙",cat:"wild",color:"Blau",size:"30-80 cm",bloom:"Juni-September",range:"Europa",desc:"Blaue Blüten in Körbchen. Wuchs früher massenhaft in Kornfeldern, heute durch Herbizide stark zurückgegangen. Symbol der preußischen Königin Luise.",toxic:"Ungiftig",care:"Trocken, sonnig",meaning:"Treue, Zartheit"},
+  {n:"Gänseblümchen",s:"Bellis perennis",e:"🌼",cat:"wild",color:"Weiß mit gelb",size:"5-15 cm",bloom:"März-November",range:"Europa, Asien",desc:"Kleines Blümchen auf Wiesen. Wird für Liebesorakel ('er liebt mich, er liebt mich nicht') genutzt. Essbar und heilkräftig.",toxic:"Ungiftig",care:"Rasen, Wiese",meaning:"Unschuld, Liebe"},
+  {n:"Löwenzahn",s:"Taraxacum officinale",e:"🌼",cat:"wild",color:"Gelb",size:"10-30 cm",bloom:"März-Juni",range:"Weltweit",desc:"Allgegenwärtige Wiesenblume. Junge Blätter essbar (Salat), Wurzel als Kaffee-Ersatz, Blüten für Sirup. Pusteblume mit Fallschirm-Samen.",toxic:"Ungiftig",care:"Wiese, Garten",meaning:"Wünsche, Freiheit"},
+  {n:"Vergissmeinnicht",s:"Myosotis",e:"💙",cat:"wild",color:"Blau",size:"10-40 cm",bloom:"April-Juni",range:"Europa, Neuseeland",desc:"Winzige himmelblaue Blüten. Symbol der Erinnerung und ewigen Liebe. In der deutschen Romantik oft verwendet.",toxic:"Leicht giftig",care:"Halbschatten, feucht",meaning:"Erinnerung, Treue"},
+  {n:"Sonnenblume",s:"Helianthus annuus",e:"🌻",cat:"wild",color:"Gelb",size:"1-3 m",bloom:"Juli-September",range:"Südamerika → Weltweit",desc:"Riesige gelbe Blüte, wendet sich jung zur Sonne (Heliotropismus). Liefert hochwertiges Speiseöl. Symbol für Optimismus und Sommer.",toxic:"Ungiftig",care:"Sonnig, nährstoffreich",meaning:"Hoffnung, Wärme"},
+  {n:"Kornrade",s:"Agrostemma githago",e:"💜",cat:"wild",color:"Violett-rosa",size:"50-100 cm",bloom:"Juni-Juli",range:"Europa",desc:"Früher häufige Ackerblume, heute selten. Enthält Saponine, war giftig für Mehl. Wunderschöne Wildblume für Naturgärten.",toxic:"Giftig",care:"Ackerrand, sonnig",meaning:"Liebe, Zauber"},
+  /* Gartenblumen */
+  {n:"Rose",s:"Rosa",e:"🌹",cat:"garten",color:"Rot, rosa, weiß, gelb",size:"30 cm - 3 m",bloom:"Mai-September (mehrmals)",range:"Asien, Europa",desc:"Königin der Blumen. Über 30.000 Sorten. Symbol der Liebe und Romantik. Duftstoffe aus Damaszener Rose für Parfüms. Dornen zum Schutz.",toxic:"Ungiftig (Blüten essbar)",care:"Sonnig, geschnitten, gedüngt",meaning:"Liebe, Leidenschaft"},
+  {n:"Tulpe",s:"Tulipa",e:"🌷",cat:"garten",color:"Alle Farben",size:"20-70 cm",bloom:"März-Mai",range:"Zentralasien → Niederlande",desc:"Früher in Persien begehrt, heute Symbol der Niederlande. Tulpenmanie 1637 war erste Spekulationsblase der Geschichte — eine Tulpe = ein Haus.",toxic:"Zwiebel giftig",care:"Sonnig, gut durchlässig",meaning:"Vollkommene Liebe"},
+  {n:"Narzisse",s:"Narcissus",e:"🌼",cat:"garten",color:"Gelb, weiß",size:"20-60 cm",bloom:"März-Mai",range:"Europa, Nordafrika",desc:"Frühlingsblüher mit trompetenförmiger Blüte. Symbol für Ostern und Neubeginn. Zwiebel giftig — Vorsicht bei Haustieren.",toxic:"Giftig",care:"Sonnig, Zwiebel im Herbst",meaning:"Neubeginn, Ostern"},
+  {n:"Pfingstrose",s:"Paeonia",e:"🌸",cat:"garten",color:"Rosa, rot, weiß",size:"60-100 cm",bloom:"Mai-Juni",range:"Asien, Europa",desc:"Üppige, volle Blüten mit verführerischem Duft. In China als 'Blume des Reichtums' verehrt. Symbol für Hochzeit (25. Jahrestag).",toxic:"Leicht giftig",care:"Sonnig, nährstoffreich",meaning:"Reichtum, Glück"},
+  {n:"Dahlie",s:"Dahlia",e:"🌺",cat:"garten",color:"Alle außer blau",size:"30-150 cm",bloom:"Juli-Oktober",range:"Mexiko → Weltweit",desc:"Blume mit unzähligen Varianten. Nationalblume Mexikos. Blüten bis 30 cm Durchmesser. Knollen nicht winterhart — graben im Herbst.",toxic:"Ungiftig",care:"Sonnig, mäßig feucht",meaning:"Würde, Verbundenheit"},
+  {n:"Hortensie",s:"Hydrangea",e:"💐",cat:"garten",color:"Rosa, blau, weiß, lila",size:"1-2 m",bloom:"Juni-September",range:"Asien, Amerika",desc:"Riesige Blütenbälle. Farbe hängt vom Boden-pH ab: sauer = blau, kalkhaltig = rosa. Symbol der Dankbarkeit.",toxic:"Leicht giftig",care:"Halbschatten, feucht",meaning:"Dankbarkeit, Herzlichkeit"},
+  {n:"Geranie",s:"Pelargonium",e:"🌺",cat:"garten",color:"Rot, rosa, weiß",size:"20-60 cm",bloom:"Mai-Oktober",range:"Südafrika",desc:"Klassischer Balkonkasten-Star. Ätherische Öle in Blättern vertreiben Mücken. Pflegeleicht und blühfreudig bis Frost.",toxic:"Leicht giftig",care:"Sonnig, regelmäßig gießen",meaning:"Zuneigung"},
+  {n:"Lavendel",s:"Lavandula",e:"💜",cat:"garten",color:"Violett",size:"30-100 cm",bloom:"Juni-August",range:"Mittelmeerraum",desc:"Duftende mediterrane Pflanze. Beruhigende Wirkung, wird für Seifen und Parfüm verwendet. Zieht Bienen und Schmetterlinge an.",toxic:"Ungiftig",care:"Sonnig, trocken, kalkhaltig",meaning:"Ruhe, Entspannung"},
+  /* Exoten */
+  {n:"Orchidee",s:"Orchidaceae",e:"🌸",cat:"exoten",color:"Alle Farben",size:"1 cm - 3 m",bloom:"Je nach Art",range:"Weltweit (Tropen)",desc:"Familie mit 28.000 Arten. Manche leben von Luft (Epiphyten). Vanille ist eine Orchidee. Symbol für Luxus und Eleganz.",toxic:"Meist ungiftig",care:"Indirektes Licht, hohe Luftfeuchte",meaning:"Eleganz, Vollkommenheit"},
+  {n:"Hibiskus",s:"Hibiscus",e:"🌺",cat:"exoten",color:"Rot, rosa, gelb, weiß",size:"1-3 m",bloom:"Juni-September",range:"Tropen & Subtropen",desc:"Riesige Blüten mit langem Stempel. Nationalblume von Hawaii (gelb) und Malaysia (rot). Hibiskustee aus Kelchblättern.",toxic:"Ungiftig",care:"Sonnig, warm, viel Wasser",meaning:"Zarte Schönheit"},
+  {n:"Flamingo-Blume",s:"Anthurium",e:"🌺",cat:"exoten",color:"Rot, rosa, weiß",size:"40-80 cm",bloom:"Ganzjährig (Zimmer)",range:"Südamerika",desc:"Herzförmige Hochblätter mit Stempel-Kolben. Beliebt als Zimmerpflanze und Schnittblume. Symbol für Gastfreundschaft.",toxic:"Giftig",care:"Halbschatten, hohe Feuchte",meaning:"Gastfreundschaft"},
+  {n:"Strelitzie",s:"Strelitzia reginae",e:"🌺",cat:"exoten",color:"Orange-Blau",size:"1-2 m",bloom:"Ganzjährig (Zimmer)",range:"Südafrika",desc:"'Paradiesvogelblume' — Blüte sieht aus wie ein Vogelkopf. Nationalblume von Madeira. Bestäubt durch Nektarvögel.",toxic:"Leicht giftig",care:"Sonnig, warm, mäßig Wasser",meaning:"Freiheit, Paradies"},
+  /* Heilpflanzen */
+  {n:"Kamille",s:"Matricaria chamomilla",e:"🌼",cat:"heil",color:"Weiß-gelb",size:"15-50 cm",bloom:"Mai-August",range:"Europa, Asien",desc:"Klassische Heilpflanze. Entzündungshemmend, beruhigend, krampflösend. Kamillentee bei Magen-Darm-Beschwerden und Erkältung.",toxic:"Ungiftig",care:"Sonnig, mager",meaning:"Heilung, Ruhe"},
+  {n:"Ringelblume",s:"Calendula officinalis",e:"🌼",cat:"heil",color:"Orange-gelb",size:"30-60 cm",bloom:"Juni-Oktober",range:"Mittelmeerraum",desc:"Heilpflanze für Salben und Tinkturen. Wundheilung, Hautpflege, entzündungshemmend. Auch essbar (Blütenblätter im Salat).",toxic:"Ungiftig",care:"Sonnig, mäßig",meaning:"Heilung, Trost"},
+  {n:"Echinacea",s:"Echinacea purpurea",e:"💜",cat:"heil",color:"Violett",size:"60-100 cm",bloom:"Juli-September",range:"Nordamerika",desc:"Sonnenhut. Stärkt das Immunsystem, oft bei Erkältung. Ursprünglich von Indianern genutzt. Wurzel und Kraut medizinisch.",toxic:"Ungiftig",care:"Sonnig, durchlässig",meaning:"Stärke, Immunität"},
+  {n:"Rosmarin",s:"Salvia rosmarinus",e:"🌿",cat:"heil",color:"Blau-lila",size:"50-150 cm",bloom:"März-Mai",range:"Mittelmeerraum",desc:"Immergrüne Heil- und Gewürzpflanze. Duft steigert Konzentration und Gedächtnis (Studien belegen). Für Lamm, Kartoffeln, Focaccia.",toxic:"Ungiftig",care:"Sonnig, trocken",meaning:"Erinnerung, Treue"},
+  {n:"Salbei",s:"Salvia officinalis",e:"🌿",cat:"heil",color:"Violett",size:"30-70 cm",bloom:"Mai-Juli",range:"Mittelmeerraum",desc:"Heilpflanze für Hals und Rachen (Gurgellösung). Klassisches Gewürz für Fleisch und Butter. Name von 'salvare' = heilen.",toxic:"Ungiftig",care:"Sonnig, trocken",meaning:"Weisheit, Gesundheit"},
+  /* Besondere */
+  {n:"Edelweiß",s:"Leontopodium nivale",e:"🌼",cat:"spezial",color:"Weiß-filzig",size:"5-20 cm",bloom:"Juli-September",range:"Alpen, Pyrenäen, Karpaten",desc:"Alpenblume über 1.800 m. Filzige Behaarung schützt vor UV und Kälte. Symbol für Alpen, Reinheit, Tapferkeit. Stark geschützt!",toxic:"Ungiftig",care:"Felsig, alpin",meaning:"Reinheit, Mut"},
+  {n:"Seerose",s:"Nymphaea",e:"🪷",cat:"spezial",color:"Weiß, rosa, gelb",size:"Blätter bis 30 cm",bloom:"Juni-September",range:"Weltweit",desc:"Wasserpflanze mit schwebenden Blüten. Wurzel im Schlamm, Blüte an der Oberfläche — buddhistisches Symbol der Erleuchtung.",toxic:"Leicht giftig",care:"Teich, sonnig",meaning:"Reinheit, Erleuchtung"},
+  {n:"Lotus",s:"Nelumbo nucifera",e:"🪷",cat:"spezial",color:"Rosa, weiß",size:"Blätter bis 60 cm",bloom:"Juli-August",range:"Asien, Australien",desc:"Heilige Blume des Buddhismus und Hinduismus. Lotuseffekt: Blätter bleiben durch Mikrostruktur sauber (Bionik-Vorbild). Essbare Wurzeln.",toxic:"Ungiftig",care:"Teich, warm",meaning:"Erleuchtung, Reinheit"},
+  {n:"Kaktusblüte",s:"Cactaceae",e:"🌵",cat:"spezial",color:"Rot, gelb, rosa",size:"1 cm - 15 m",bloom:"Frühling (kurz)",range:"Amerika",desc:"Manche Kakteen blühen nur einmal pro Jahr, für wenige Stunden/Nächte. 'Queen of the Night' blüht in einer einzigen Nacht.",toxic:"Dornen",care:"Sonnig, sparsam gießen",meaning:"Kurz, aber prachtvoll"},
+  {n:"Passionsblume",s:"Passiflora",e:"🌺",cat:"spezial",color:"Weiß-violett",size:"Kletternd 3-10 m",bloom:"Juni-September",range:"Südamerika",desc:"Auffällige Blüte mit Symbolik: 10 Blütenblätter = 10 Apostel (ohne Petrus & Judas), 5 Staubblätter = 5 Wunden Jesu. Beruhigende Wirkung.",toxic:"Leicht giftig",care:"Sonnig, Rankhilfe",meaning:"Leidenschaft Christi"}
+];
+
+var BL_CATS=[
+  {id:"all",n:"Alle",i:"🌸"},
+  {id:"wild",n:"Wildblumen",i:"🌿"},
+  {id:"garten",n:"Garten",i:"🌷"},
+  {id:"exoten",n:"Exoten",i:"🌺"},
+  {id:"heil",n:"Heilpflanzen",i:"🌱"},
+  {id:"spezial",n:"Spezial",i:"⭐"}
+];
+
+var AppBlumen={
+  tab:"list",_q:"",_cat:"all",
+
+  render:function(){
+    blStyles();
+    var vp=document.getElementById("appViewport");
+    vp.innerHTML='<div id="blContent"></div>';
+    this.renderContent();
+  },
+
+  renderContent:function(){
+    var el=document.getElementById("blContent");if(!el)return;
+    var self=this;
+    var cat=this._cat,q=this._q;
+    var list=BL_FLOWERS.slice();
+    if(cat!=="all")list=list.filter(function(b){return b.cat===cat;});
+    if(q){
+      var lq=q.toLowerCase();
+      list=list.filter(function(b){
+        return b.n.toLowerCase().indexOf(lq)>=0||b.s.toLowerCase().indexOf(lq)>=0||b.color.toLowerCase().indexOf(lq)>=0;
+      });
+    }
+    var catHtml=BL_CATS.map(function(c){
+      var count=c.id==="all"?BL_FLOWERS.length:BL_FLOWERS.filter(function(b){return b.cat===c.id;}).length;
+      return '<div class="bl-cat'+(cat===c.id?" active":"")+'" data-bl-cat="'+c.id+'"><span class="i">'+c.i+'</span>'+c.n+' ('+count+')</div>';
+    }).join("");
+    var listHtml=list.length?list.map(function(b){
+      return '<div class="bl-card" data-bl-open="'+esc(b.n)+'"><div class="flower">'+b.e+'</div>'
+        +'<div class="body"><div class="n">'+esc(b.n)+'</div><div class="s">'+esc(b.s)+'</div>'
+        +'<div class="m">🎨 '+esc(b.color)+' · 📅 '+esc(b.bloom.split(" ")[0])+'</div></div></div>';
+    }).join(""):'<div class="bl-empty">Keine Blumen gefunden.</div>';
+
+    el.innerHTML='<div class="bl-hero"><div class="lbl">Blumen-Lexikon</div><div class="val">'+BL_FLOWERS.length+'</div><div class="sub">Wild · Garten · Exoten · Heil · Spezial</div></div>'
+      +'<div class="card"><input type="text" class="bl-search" id="bl_search" placeholder="🔍 Suche Name, Farbe, Art…" value="'+esc(q)+'"></div>'
+      +'<div class="card"><div class="card-h"><h3>🌸 Kategorien</h3></div><div class="bl-cat-grid">'+catHtml+'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>🌸 '+list.length+' Blumen</h3></div>'+listHtml+'</div>'
+      +'<div id="bl_detail"></div>';
+
+    document.getElementById("bl_search").addEventListener("input",function(){
+      self._q=this.value;clearTimeout(self._t);
+      self._t=setTimeout(function(){self.renderContent();},250);
+    });
+    el.querySelectorAll("[data-bl-cat]").forEach(function(b){
+      b.addEventListener("click",function(){self._cat=b.dataset.blCat;self.renderContent();});
+    });
+    el.querySelectorAll("[data-bl-open]").forEach(function(b){
+      b.addEventListener("click",function(){self.showFlower(b.dataset.blOpen);});
+    });
+  },
+
+  showFlower:function(name){
+    var b=null;BL_FLOWERS.forEach(function(x){if(x.n===name)b=x;});
+    if(!b)return;
+    var det=document.getElementById("bl_detail");if(!det)return;
+    det.innerHTML='<div class="bl-detail">'
+      +'<div class="head"><div class="flower">'+b.e+'</div><div><h4>'+esc(b.n)+'</h4><div class="s">'+esc(b.s)+'</div></div></div>'
+      +'<div class="bl-fact"><span class="k">🎨 Farbe</span><span class="v">'+esc(b.color)+'</span></div>'
+      +'<div class="bl-fact"><span class="k">📐 Größe</span><span class="v">'+esc(b.size)+'</span></div>'
+      +'<div class="bl-fact"><span class="k">📅 Blüte</span><span class="v">'+esc(b.bloom)+'</span></div>'
+      +'<div class="bl-fact"><span class="k">🌍 Verbreitung</span><span class="v">'+esc(b.range)+'</span></div>'
+      +'<div class="bl-fact"><span class="k">☠️ Giftig?</span><span class="v">'+esc(b.toxic)+'</span></div>'
+      +'<div class="bl-fact"><span class="k">🌱 Pflege</span><span class="v">'+esc(b.care)+'</span></div>'
+      +'<div class="bl-fact"><span class="k">💭 Bedeutung</span><span class="v">'+esc(b.meaning)+'</span></div>'
+      +'<h5>📖 Beschreibung</h5><p>'+esc(b.desc)+'</p>'
+      +'<button class="btn secondary small" id="bl_close" style="margin-top:10px">✕ Schließen</button>'
+      +'</div>';
+    det.scrollIntoView({behavior:"smooth",block:"nearest"});
+    document.getElementById("bl_close").addEventListener("click",function(){det.innerHTML="";});
+  }
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.blumen=AppBlumen;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="blumen"){a.prio=1;a.installed=true;a.cat="Wissen";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"blumen",name:"Blumen",icon:"🌺",cat:"Wissen",prio:1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Blumen] 🌺 "+BL_FLOWERS.length+" Blumen geladen.");
+})();
+</script>
+<!-- ============================================================
+     HALDO PILZE — Speisepilze + Giftpilze mit Warnungen
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Pilze] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+
+function pzStyles(){if(document.getElementById("pzStyles"))return;var s=document.createElement("style");s.id="pzStyles";
+s.textContent=".pz-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(139,69,19,.25),rgba(34,197,94,.18));border:1px solid rgba(139,69,19,.5);text-align:center;margin-bottom:12px}.pz-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.pz-hero .val{font-size:38px;font-weight:900;color:#a3e635;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.pz-hero .sub{font-size:10.5px;color:var(--text-mute)}.pz-warn{padding:11px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.5);border-radius:9px;font-size:11px;color:#ff8080;line-height:1.55;margin-bottom:8px}.pz-warn b{color:#ff5050}.pz-search{width:100%;background:var(--bg-3);border:1px solid var(--border);color:var(--text);padding:11px 14px;border-radius:9px;font-family:inherit;font-size:12.5px;outline:none;margin-bottom:8px}.pz-cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:8px 0}.pz-cat{padding:10px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;text-align:center;font-size:10px;font-weight:700;cursor:pointer;transition:.15s}.pz-cat:hover{border-color:#a3e635}.pz-cat.active{border-color:#a3e635;background:rgba(163,230,53,.12);color:#a3e635}.pz-cat .i{font-size:18px;display:block;margin-bottom:3px}.pz-card{display:flex;gap:10px;padding:11px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:10px;margin-top:5px;cursor:pointer;transition:.15s;position:relative}.pz-card:hover{border-color:#a3e635}.pz-card.poison{border-left:4px solid #ef4444}.pz-card.safe{border-left:4px solid #22c55e}.pz-card .mush{font-size:32px;flex-shrink:0}.pz-card .body{flex:1;min-width:0}.pz-card .body .n{font-size:12.5px;font-weight:800}.pz-card .body .s{font-size:10.5px;color:var(--text-mute);font-style:italic;margin-top:1px}.pz-card .body .m{font-size:10px;color:var(--text-dim);margin-top:3px}.pz-card .safe-badge,.pz-card .poison-badge{position:absolute;top:6px;right:6px;font-size:8.5px;font-weight:800;padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.5px}.pz-card .safe-badge{background:rgba(34,197,94,.2);color:#4ade80}.pz-card .poison-badge{background:rgba(239,68,68,.2);color:#ff8080}.pz-detail{padding:14px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:11px;margin-top:10px}.pz-detail .head{display:flex;align-items:center;gap:14px;margin-bottom:10px}.pz-detail .head .mush{font-size:56px}.pz-detail .head h4{font-size:16px;font-weight:900;color:#a3e635;margin-bottom:3px}.pz-detail .head .s{font-size:11px;color:var(--text-dim);font-style:italic}.pz-detail h5{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;font-weight:800;margin:10px 0 4px}.pz-detail p{font-size:11.5px;line-height:1.65}.pz-fact{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:11.5px}.pz-fact .k{color:var(--text-dim);font-weight:700}.pz-fact .v{color:var(--text);font-weight:600;text-align:right;max-width:60%}.pz-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}";document.head.appendChild(s);}
+
+var PZ_MUSHROOMS=[
+  /* Speisepilze */
+  {n:"Steinpilz",s:"Boletus edulis",e:"🍄",cat:"speise",safe:true,season:"Juni-November",habitat:"Nadel- und Laubwälder",size:"Hut 8-25 cm",cap:"Braun, halbkugelig bis polsterförmig",stem:"Dick, weißlich mit Netzmuster",flesh:"Weiß, fest, verfärbt nicht",edible:"Ausgezeichnet",confusion:"Gallenröhrling (bitter), Schönfußröhrling (giftig)",desc:"König der Speisepilze. Nussiger Geschmack, festes Fleisch. Wächst in Symbiose mit Bäumen. Oft in größeren Gruppen.",value:"Marktwert sehr hoch"},
+  {n:"Pfifferling",s:"Cantharellus cibarius",e:"🍄",cat:"speise",safe:true,season:"Juni-Oktober",habitat:"Laub- und Nadelwälder",size:"Hut 3-10 cm",cap:"Dottergelb, trichterförmig, gewellt",stem:"Gelb, spitz zulaufend",flesh:"Gelb, fest, Aprikosenduft",edible:"Ausgezeichnet",confusion:"Falscher Pfifferling (giftig), Ölbaumpilz",desc:"Klassischer Speisepilz mit pfeffrigem, fruchtigem Aroma. Enthält Vitamin D und Antioxidantien. Nicht waschen — nur abbürsten.",value:"Marktwert hoch"},
+  {n:"Braunkappe",s:"Xerocomus badius",e:"🍄",cat:"speise",safe:true,season:"August-November",habitat:"Nadelwälder (Fichte/Kiefer)",size:"Hut 5-15 cm",cap:"Kastanienbraun, samtig",stem:"Zylindrisch, gelblich",flesh:"Weiß, bläulich verfärbend",edible:"Gut",confusion:"Steinpilz (essbar), Gallenröhrling",desc:"Wertvoller Speisepilz. Fleisch verfärbt sich beim Anschneiden bläulich — nicht schädlich. Sehr aromatisch.",value:"Mittel-hoch"},
+  {n:"Maronenröhrling",s:"Imleria badia",e:"🍄",cat:"speise",safe:true,season:"August-Oktober",habitat:"Nadelwälder",size:"Hut 5-12 cm",cap:"Kastanienbraun, glatt",stem:"Zylindrisch",flesh:"Hellgelb, bläulich verfärbend",edible:"Sehr gut",confusion:"Steinpilz, Gallenröhrling",desc:"Ähnlich Braunkappe. Fester, aromatischer Pilz. Oft in Massen — bis Oktober letzter Speisepilz.",value:"Mittel"},
+  {n:"Austernseitling",s:"Pleurotus ostreatus",e:"🍄",cat:"speise",safe:true,season:"Oktober-März",habitat:"Laubbäume (Buche), Zucht",size:"Hut 5-15 cm",cap:"Muschelförmig, grau-braun",stem:"Kurzer Seitenstiel",flesh:"Weiß, fest",edible:"Ausgezeichnet",confusion:"Ohrförmiger Seitling, Zwitterling",desc:"Wächst in Büscheln an Buchenstämmen. Mild-aromatisch. Auch im Supermarkt — einfach zu züchten. Enthält Lovastatin (Cholesterin).",value:"Zucht leicht"},
+  {n:"Shiitake",s:"Lentinula edodes",e:"🍄",cat:"speise",safe:true,season:"Ganzjährig (Zucht)",habitat:"Asien, Zucht auf Holz",size:"Hut 5-12 cm",cap:"Braun, rissig (Blumenmuster)",stem:"Fest, weißlich",flesh:"Fest, aromatisch",edible:"Ausgezeichnet",confusion:"—",desc:"Zweitwichtigster Speisepilz der Welt. Umami-Geschmack, wird in Asien als Heilpilz geschätzt (Lentinan). Getrocknet noch aromatischer.",value:"Marktwert hoch"},
+  {n:"Champignon",s:"Agaricus bisporus",e:"🍄",cat:"speise",safe:true,season:"Ganzjährig (Zucht)",habitat:"Zucht, Wiesen",size:"Hut 3-12 cm",cap:"Weiß, halbkugelig",stem:"Zylindrisch, Ring",flesh:"Fest, weiß",edible:"Ausgezeichnet",confusion:"Giftchampignon (Karbol-Champignon) — sehr giftig!",desc:"Häufigster Speisepilz. Braun = Champignon (Portobello), weiß = Zuchtchampignon. Rohe können roh gegessen werden (in Scheiben).",value:"Günstig, überall"},
+  {n:"Kräuterseitling",s:"Pleurotus eryngii",e:"🍄",cat:"speise",safe:true,season:"Ganzjährig (Zucht)",habitat:"Zucht (Mittelmeer/Asien)",size:"Hut 5-15 cm",cap:"Grau-braun, dickfleischig",stem:"Dick, weiß",flesh:"Fest, bissfest",edible:"Ausgezeichnet",confusion:"—",desc:"Edelpilz mit festem Fleisch. Perfekt zum Grillen — zerfällt nicht. Mild, leicht nussig. Immer mehr in Supermärkten.",value:"Mittel"},
+  {n:"Totentrompete",s:"Craterellus cornucopioides",e:"🍄",cat:"speise",safe:true,season:"August-Oktober",habitat:"Laubwälder (Buche)",size:"Hut 3-8 cm",cap:"Trichterförmig, grau-schwarz",stem:"Verschmilzt mit Hut",flesh:"Dünn, brüchig",edible:"Sehr gut (getrocknet)",confusion:"Graue Kraterelle, giftige Häublinge",desc:"Dunkle Trompete. Frisch unscheinbar, getrocknet intensiv-aromatisch — einer der besten Würzpilze. Enthält Vitamin D.",value:"Hoch (getrocknet)"},
+  /* Giftpilze */
+  {n:"Grüner Knollenblätterpilz",s:"Amanita phalloides",e:"💀",cat:"gift",safe:false,season:"Juli-Oktober",habitat:"Laubwälder (Eiche, Buche)",size:"Hut 5-15 cm",cap:"Olivgrün, leicht schuppig",stem:"Weiß, mit Knolle und Ring",flesh:"Weiß, süßlich",edible:"TÖDLICH GIFTIG!",confusion:"Champignon (weiß), Täublinge (grün)",desc:"Verantwortlich für 90 % aller Pilzvergiftungen mit Todesfolge. 50 g reichen zum Tod. Symptome erst nach 6-24 h — dann ist es meist zu spät.",value:"☠️ SOFORT Giftnotruf: 0800 111 2222"},
+  {n:"Fliegenpilz",s:"Amanita muscaria",e:"🍄",cat:"gift",safe:false,season:"August-November",habitat:"Birken, Fichten, Kiefern",size:"Hut 8-20 cm",cap:"Rot mit weißen Punkten",stem:"Weiß mit Ring und Knolle",flesh:"Weiß",edible:"Giftig (psychoaktiv)",confusion:"Kaiserling (essbar)",desc:"Der klassische Märchenpilz. Enthält Muscarin und Ibotensäure. Verwirrung, Halluzinationen, Krämpfe. Kein Todesfall in DE bekannt — aber niemals probieren!",value:"Giftig"},
+  {n:"Spitzkegeliger Knollenblätterpilz",s:"Amanita virosa",e:"💀",cat:"gift",safe:false,season:"Juli-Oktober",habitat:"Nadelwälder",size:"Hut 4-10 cm",cap:"Reinweiß, kegelig",stem:"Weiß, mit Ring und Knolle",flesh:"Weiß, süßlich",edible:"TÖDLICH GIFTIG!",confusion:"Champignon, Speisepilze",desc:"Weißer Knollenblätterpilz — eng verwandt mit dem grünen. Genauso tödlich. Amantin zerstört Leberzellen. 1 Hut kann tödlich sein.",value:"☠️ SOFORT 112!"},
+  {n:"Gifthäubling",s:"Galerina marginata",e:"💀",cat:"gift",safe:false,season:"August-November",habitat:"Nadelholzstümpfe",size:"Hut 2-6 cm",cap:"Honigbraun, glatt",stem:"Braun, Ring",flesh:"Braun",edible:"TÖDLICH GIFTIG!",confusion:"Hallimasch (essbar), Stockschwämmchen",desc:"Sieht harmlos aus, ist aber tödlich. Gleiche Amatoxine wie Knollenblätterpilz. Wächst auf Holz. Jährlich Todesfälle durch Verwechslung mit Stockschwämmchen.",value:"☠️ Tödlich"},
+  {n:"Satansröhrling",s:"Rubroboletus satanas",e:"😈",cat:"gift",safe:false,season:"Juni-September",habitat:"Kalkhaltige Laubwälder",size:"Hut 10-25 cm",cap:"Hellgrau-oliv, dickfleischig",stem:"Rot mit Netz",flesh:"Hellgelb, bläulich verfärbend",edible:"Giftig",confusion:"Steinpilz, Netzstieliger Hexenröhrling",desc:"Der 'böse Bruder' des Steinpilzes. Starke Magen-Darm-Beschwerden mit Erbrechen und Durchfall. Röhrlinge mit roten Poren sind meist verdächtig.",value:"Giftig"},
+  {n:"Karbol-Champignon",s:"Agaricus xanthodermus",e:"🍄",cat:"gift",safe:false,season:"Juni-September",habitat:"Wiesen, Gärten, Parks",size:"Hut 5-15 cm",cap:"Weiß, gilbend beim Anfassen",stem:"Weiß, mit Ring, gilbend an Basis",flesh:"Weiß, gilbend, Karbol-Geruch",edible:"Giftig (starke Beschwerden)",confusion:"Champignon (essbar)",desc:"Sieht aus wie ein Champignon, stinkt aber nach Tinte/Karbol. Fleisch wird gelb beim Anfassen. Starke Übelkeit und Durchfall.",value:"Giftig"},
+  {n:"Gallenröhrling",s:"Tylopilus felleus",e:"🍄",cat:"gift",safe:false,season:"Juni-Oktober",habitat:"Nadelwälder",size:"Hut 5-15 cm",cap:"Braun, halbkugelig",stem:"Braun mit dunklem Netz",flesh:"Weiß, rosa verfärbend",edible:"Ungenießbar (extrem bitter)",confusion:"Steinpilz (essbar)",desc:"Der klassische 'Steinpilz-Verwechsler'. Roh giftig, gekocht nur ungenießbar bitter. Netz am Stiel ist dunkelbraun (bei Steinpilz weiß). Bitter-Test: Speichel wird bitter.",value:"Nicht giftig, aber ungenießbar"},
+  {n:"Frühlingsknollenblätterpilz",s:"Amanita verna",e:"💀",cat:"gift",safe:false,season:"April-Juni",habitat:"Laubwälder",size:"Hut 4-10 cm",cap:"Reinweiß, glatt",stem:"Weiß, mit Ring und Knolle",flesh:"Weiß, süßlich",edible:"TÖDLICH GIFTIG!",confusion:"Champignon, essbare Wiesenpilze",desc:"Weißer Frühlings-Knollenblätterpilz. Gleiche tödliche Wirkung wie der grüne. Saison im Frühling wenn andere Pilze selten sind.",value:"☠️ Tödlich"},
+  /* Heilpilze */
+  {n:"Maitake",s:"Grifola frondosa",e:"🍄",cat:"heil",safe:true,season:"August-Oktober",habitat:"Eichenstämme (Asien/EU)",size:"Büschel bis 50 cm",cap:"Grau-braun, fächerförmig",stem:"Mehrere kurze Stiele",flesh:"Weiß, fest",edible:"Ausgezeichnet",confusion:"Klapperschwamm (essbar)",desc:"'Tanzender Pilz' — in Japan hoch geschätzt. Stärkt Immunsystem, reguliert Blutzucker. Riesige Büschel bis 20 kg!",value:"Sehr wertvoll"},
+  {n:"Schmetterlingstramete",s:"Trametes versicolor",e:"🍄",cat:"heil",safe:true,season:"Ganzjährig",habitat:"Laubholz (Buche)",size:"2-8 cm breit",cap:"Bunt geringelt (wie Schmetterling)",stem:"Kein Stiel",flesh:"Zäh, ledrig",edible:"Nicht als Speisepilz (zu hart)",confusion:"—",desc:"Heilpilz in der Krebstherapie (PSK, Krestin). Auch Türkenbund-Tramete. Als Tee oder Extrakt genutzt. Wunderschön geringelt.",value:"Heilpilz"},
+  {n:"Reishi",s:"Ganoderma lucidum",e:"🍄",cat:"heil",safe:true,season:"Ganzjährig (Zucht)",habitat:"Laubholz (Asien, EU)",size:"5-20 cm",cap:"Rotbraun, lackiert",stem:"Seitlicher Stiel",flesh:"Holzig, zäh",edible:"Heiltee (nicht essbar)",confusion:"—",desc:"'Pilz der Unsterblichkeit'. In China 2.000 Jahre Medizingeschichte. Stärkt Immunsystem, beruhigt. Als Tee oder Kapseln.",value:"Heilpilz"}
+];
+
+var PZ_CATS=[
+  {id:"all",n:"Alle",i:"🍄"},
+  {id:"speise",n:"Speisepilze",i:"✅"},
+  {id:"gift",n:"Giftpilze",i:"☠️"},
+  {id:"heil",n:"Heilpilze",i:"💊"}
+];
+
+var AppPilze={
+  tab:"list",_q:"",_cat:"all",
+
+  render:function(){
+    pzStyles();
+    var vp=document.getElementById("appViewport");
+    vp.innerHTML='<div id="pzContent"></div>';
+    this.renderContent();
+  },
+
+  renderContent:function(){
+    var el=document.getElementById("pzContent");if(!el)return;
+    var self=this;
+    var cat=this._cat,q=this._q;
+    var list=PZ_MUSHROOMS.slice();
+    if(cat!=="all")list=list.filter(function(m){return m.cat===cat;});
+    if(q){
+      var lq=q.toLowerCase();
+      list=list.filter(function(m){
+        return m.n.toLowerCase().indexOf(lq)>=0||m.s.toLowerCase().indexOf(lq)>=0||m.habitat.toLowerCase().indexOf(lq)>=0;
+      });
+    }
+    var catHtml=PZ_CATS.map(function(c){
+      var count=c.id==="all"?PZ_MUSHROOMS.length:PZ_MUSHROOMS.filter(function(m){return m.cat===c.id;}).length;
+      return '<div class="pz-cat'+(cat===c.id?" active":"")+'" data-pz-cat="'+c.id+'"><span class="i">'+c.i+'</span>'+c.n+' ('+count+')</div>';
+    }).join("");
+    var listHtml=list.length?list.map(function(m){
+      return '<div class="pz-card '+(m.safe?"safe":"poison")+'" data-pz-open="'+esc(m.n)+'">'
+        +'<span class="'+(m.safe?"safe-badge":"poison-badge")+'">'+(m.safe?"✓ Safe":"☠ Gift")+'</span>'
+        +'<div class="mush">'+m.e+'</div>'
+        +'<div class="body"><div class="n">'+esc(m.n)+'</div><div class="s">'+esc(m.s)+'</div>'
+        +'<div class="m">📅 '+esc(m.season)+'</div></div></div>';
+    }).join(""):'<div class="pz-empty">Keine Pilze gefunden.</div>';
+
+    el.innerHTML='<div class="pz-hero"><div class="lbl">Pilz-Lexikon</div><div class="val">'+PZ_MUSHROOMS.length+'</div><div class="sub">'+(PZ_MUSHROOMS.filter(function(m){return m.safe;}).length)+' essbar · '+(PZ_MUSHROOMS.filter(function(m){return !m.safe;}).length)+' giftig</div></div>'
+      +'<div class="pz-warn">⚠️ <b>Warnung:</b> Diese App ersetzt KEINE Pilzberatung. Für Speisepilze: Pilzsachverständigen fragen! Bei Verdacht auf Vergiftung sofort <b>112</b> oder Giftnotruf <b>0800 111 2222</b>.</div>'
+      +'<div class="card"><input type="text" class="pz-search" id="pz_search" placeholder="🔍 Suche Name, Art, Fundort…" value="'+esc(q)+'"></div>'
+      +'<div class="card"><div class="card-h"><h3>🍄 Kategorien</h3></div><div class="pz-cat-grid">'+catHtml+'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>🍄 '+list.length+' Pilze</h3></div>'+listHtml+'</div>'
+      +'<div id="pz_detail"></div>';
+
+    document.getElementById("pz_search").addEventListener("input",function(){
+      self._q=this.value;clearTimeout(self._t);
+      self._t=setTimeout(function(){self.renderContent();},250);
+    });
+    el.querySelectorAll("[data-pz-cat]").forEach(function(b){
+      b.addEventListener("click",function(){self._cat=b.dataset.pzCat;self.renderContent();});
+    });
+    el.querySelectorAll("[data-pz-open]").forEach(function(b){
+      b.addEventListener("click",function(){self.showMushroom(b.dataset.pzOpen);});
+    });
+  },
+
+  showMushroom:function(name){
+    var m=null;PZ_MUSHROOMS.forEach(function(x){if(x.n===name)m=x;});
+    if(!m)return;
+    var det=document.getElementById("pz_detail");if(!det)return;
+    det.innerHTML='<div class="pz-detail">'
+      +'<div class="head"><div class="mush">'+m.e+'</div><div><h4>'+esc(m.n)+'</h4><div class="s">'+esc(m.s)+'</div></div></div>'
+      +'<div class="pz-fact"><span class="k">'+(m.safe?"✅ Essbar":"☠️ Giftig")+'</span><span class="v">'+esc(m.edible)+'</span></div>'
+      +'<div class="pz-fact"><span class="k">📅 Saison</span><span class="v">'+esc(m.season)+'</span></div>'
+      +'<div class="pz-fact"><span class="k">🌳 Fundort</span><span class="v">'+esc(m.habitat)+'</span></div>'
+      +'<div class="pz-fact"><span class="k">📐 Größe</span><span class="v">'+esc(m.size)+'</span></div>'
+      +'<h5>🍄 Hut</h5><p>'+esc(m.cap)+'</p>'
+      +'<h5>🦵 Stiel</h5><p>'+esc(m.stem)+'</p>'
+      +'<h5>🥩 Fleisch</h5><p>'+esc(m.flesh)+'</p>'
+      +'<h5>⚠️ Verwechslungsgefahr</h5><p style="color:#fbbf24">'+esc(m.confusion)+'</p>'
+      +'<h5>📖 Beschreibung</h5><p>'+esc(m.desc)+'</p>'
+      +'<button class="btn secondary small" id="pz_close" style="margin-top:10px">✕ Schließen</button>'
+      +'</div>';
+    det.scrollIntoView({behavior:"smooth",block:"nearest"});
+    document.getElementById("pz_close").addEventListener("click",function(){det.innerHTML="";});
+  }
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.pilze=AppPilze;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="pilze"){a.prio=1;a.installed=true;a.cat="Wissen";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"pilze",name:"Pilze",icon:"🍄",cat:"Wissen",prio:1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Pilze] 🍄 "+PZ_MUSHROOMS.length+" Pilze geladen.");
+})();
+</script>
+<!-- ============================================================
+     HALDO ASTRONOMIE — Planeten, Sterne, Galaxien, deep sky
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Astronomie] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+
+function asStyles(){if(document.getElementById("asStyles"))return;var s=document.createElement("style");s.id="asStyles";
+s.textContent=".as-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(30,58,138,.35),rgba(168,85,247,.25));border:1px solid rgba(139,92,246,.5);text-align:center;margin-bottom:12px;position:relative;overflow:hidden}.as-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(1px 1px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 60% 70%,#fff,transparent),radial-gradient(1px 1px at 80% 20%,#fff,transparent),radial-gradient(1px 1px at 30% 80%,#fff,transparent),radial-gradient(2px 2px at 45% 45%,#fff,transparent);opacity:.6}.as-hero > *{position:relative}.as-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.as-hero .val{font-size:38px;font-weight:900;color:#c084fc;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.as-hero .sub{font-size:10.5px;color:var(--text-mute)}.as-search{width:100%;background:var(--bg-3);border:1px solid var(--border);color:var(--text);padding:11px 14px;border-radius:9px;font-family:inherit;font-size:12.5px;outline:none;margin-bottom:8px}.as-cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:8px 0}.as-cat{padding:10px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;text-align:center;font-size:10px;font-weight:700;cursor:pointer;transition:.15s}.as-cat:hover{border-color:#c084fc}.as-cat.active{border-color:#c084fc;background:rgba(168,85,247,.12);color:#c084fc}.as-cat .i{font-size:18px;display:block;margin-bottom:3px}.as-card{display:flex;gap:10px;padding:11px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:10px;margin-top:5px;cursor:pointer;transition:.15s}.as-card:hover{border-color:#c084fc;background:rgba(168,85,247,.05)}.as-card .obj{font-size:32px;flex-shrink:0}.as-card .body{flex:1;min-width:0}.as-card .body .n{font-size:12.5px;font-weight:800}.as-card .body .s{font-size:10.5px;color:var(--text-mute);font-style:italic;margin-top:1px}.as-card .body .m{font-size:10px;color:var(--text-dim);margin-top:3px}.as-detail{padding:14px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:11px;margin-top:10px}.as-detail .head{display:flex;align-items:center;gap:14px;margin-bottom:10px}.as-detail .head .obj{font-size:56px}.as-detail .head h4{font-size:16px;font-weight:900;color:#c084fc;margin-bottom:3px}.as-detail .head .s{font-size:11px;color:var(--text-dim);font-style:italic}.as-detail h5{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;font-weight:800;margin:10px 0 4px}.as-detail p{font-size:11.5px;line-height:1.65}.as-fact{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:11.5px}.as-fact .k{color:var(--text-dim);font-weight:700}.as-fact .v{color:var(--text);font-weight:600;text-align:right;max-width:60%}.as-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}";document.head.appendChild(s);}
+
+var AS_OBJECTS=[
+  /* Planeten */
+  {n:"Sonne",s:"Sol",e:"☀️",cat:"planet",type:"Gelber Zwergstern",dist:"149,6 Mio. km",size:"1.392.700 km Durchmesser",temp:"5.500 °C Oberfläche · 15 Mio. °C Kern",desc:"Unser Zentralgestirn. 99,86 % der Masse des Sonnensystems. Energie durch Kernfusion: 600 Mio. Tonnen Wasserstoff pro Sekunde. Erwärmt und beleuchtet die Erde.",fact:"In der Sonne würden 1,3 Mio. Erden Platz finden."},
+  {n:"Merkur",s:"Mercury",e:"🌑",cat:"planet",type:"Gesteinsplanet",dist:"57,9 Mio. km",size:"4.879 km",temp:"-180 bis +430 °C",desc:"Kleinster Planet, keine Atmosphäre. Größter Temperaturunterschied aller Planeten. Ein Tag dauert 59 Erdtage, ein Jahr 88 Tage.",fact:"Sonne geht dort 2× auf pro Tag."},
+  {n:"Venus",s:"Venus",e:"♀️",cat:"planet",type:"Gesteinsplanet",dist:"108,2 Mio. km",size:"12.104 km",temp:"464 °C",desc:"Heißester Planet — Treibhauseffekt durch CO₂-Atmosphäre. Erddrilling (Größe). Dreht sich rückwärts! Wird auch 'Morgen-/Abendstern' genannt.",fact:"Atmosphärendruck wie 900 m unter Wasser."},
+  {n:"Erde",s:"Terra",e:"🌍",cat:"planet",type:"Gesteinsplanet",dist:"149,6 Mio. km (1 AE)",size:"12.742 km",temp:"-89 bis +58 °C (Ø 15 °C)",desc:"Unser Zuhause. Einziger bekannter Planet mit Leben. 71 % Wasser, 29 % Land. Atmosphäre aus 78 % Stickstoff, 21 % Sauerstoff.",fact:"Einziger Planet, nicht nach Gott benannt."},
+  {n:"Mars",s:"Mars",e:"🔴",cat:"planet",type:"Gesteinsplanet",dist:"227,9 Mio. km",size:"6.779 km",temp:"-140 bis +20 °C",desc:"Der rote Planet — Eisenoxid im Boden. Größter Vulkan (Olympus Mons, 22 km) und tiefster Canyon (Valles Marineris, 4.000 km) im Sonnensystem. Ziel bemannter Missionen.",fact:"Olympus Mons ist 3× höher als Mount Everest."},
+  {n:"Jupiter",s:"Jupiter",e:"🪐",cat:"planet",type:"Gasriese",dist:"778,5 Mio. km",size:"139.820 km",temp:"-108 °C",desc:"Größter Planet. 318 Erdmassen. 'Großer Roter Fleck' — Sturm seit 350 Jahren. 95 Monde. Schützt Erde vor Asteroiden.",fact:"Könnte alle anderen Planeten 2,5× aufnehmen."},
+  {n:"Saturn",s:"Saturnus",e:"🪐",cat:"planet",type:"Gasriese",dist:"1,43 Mrd. km",size:"116.460 km",temp:"-139 °C",desc:"Berühmt für sein Ringsystem aus Eis und Gestein. 146 Monde. Dichte geringer als Wasser — würde auf Wasser schwimmen!",fact:"Ringe sind nur ~10 m dick."},
+  {n:"Uranus",s:"Uranus",e:"🔵",cat:"planet",type:"Eisriese",dist:"2,87 Mrd. km",size:"50.724 km",temp:"-197 °C",desc:"Rollt auf der Seite (98° Neigung). Kältester Planet. Von William Herschel 1781 entdeckt — erster 'moderner' Planet.",fact:"Ein Uranus-Jahr = 84 Erdjahre."},
+  {n:"Neptun",s:"Neptunus",e:"🔵",cat:"planet",type:"Eisriese",dist:"4,5 Mrd. km",size:"49.244 km",temp:"-201 °C",desc:"Weitester Planet. Stürme mit 2.100 km/h — schnellste im Sonnensystem. 1846 durch Mathematik vorhergesagt, dann gefunden.",fact:"Seit Entdeckung erst 1× um die Sonne."},
+  {n:"Pluto",s:"Pluto",e:"⚪",cat:"planet",type:"Zwergplanet",dist:"5,9 Mrd. km",size:"2.376 km",temp:"-229 °C",desc:"1930 entdeckt, 2006 zum Zwergplanet herabgestuft. 5 Monde, größter ist Charon. New Horizons 2015 — erstaunliche Bilder.",fact:"Pluto-Jahr = 248 Erdjahre."},
+  /* Monde */
+  {n:"Mond",s:"Luna",e:"🌙",cat:"mond",type:"Erdmond",dist:"384.400 km",size:"3.474 km",temp:"-160 bis +120 °C",desc:"Einziger natürlicher Satellit der Erde. Verantwortlich für Gezeiten. 1969 erste bemannte Landung. Entstand durch Kollision mit Theia vor 4,5 Mrd. Jahren.",fact:"Entfernt sich 3,8 cm pro Jahr von der Erde."},
+  {n:"Europa",s:"Europa (Jupitermond)",e:"🧊",cat:"mond",type:"Eismond",dist:"670 Mio. km",size:"3.122 km",temp:"-170 °C",desc:"Unter der Eisoberfläche ein Ozean mit flüssigem Wasser — vielleicht 2× so viel wie auf der Erde. Hauptkandidat für außerirdisches Leben.",fact:"Glatteste Oberfläche im Sonnensystem."},
+  {n:"Titan",s:"Titan (Saturnmond)",e:"🟠",cat:"mond",type:"Größter Saturnmond",dist:"1,43 Mrd. km",size:"5.150 km",temp:"-179 °C",desc:"Einziger Mond mit dichter Atmosphäre. Flüssige Methan-Seen und -Flüsse. Größer als Merkur. Huygens-Landung 2005.",fact:"Organische Moleküle — Bausteine des Lebens."},
+  {n:"Io",s:"Io (Jupitermond)",e:"🌋",cat:"mond",type:"Vulkanmond",dist:"778 Mio. km",size:"3.643 km",temp:"-143 °C",desc:"Vulkanischster Körper im Sonnensystem. Über 400 aktive Vulkane, Ausbrüche bis 500 km Höhe. Gezeitenkräfte Jupiters erhitzen das Innere.",fact:"Oberfläche ändert sich täglich."},
+  /* Sterne */
+  {n:"Sirius",s:"α Canis Majoris",e:"✨",cat:"stern",type:"Weißer Hauptreihenstern",dist:"8,6 Lichtjahre",size:"2,06 Sonnenmassen",temp:"9.940 °C",desc:"Hellster Stern am Nachthimmel. Doppelsternsystem (Sirius A + Sirius B = Weißer Zwerg). Im Alten Ägypten markierte sein Aufgang die Nilflut.",fact:"Sirius B so dicht, ein TLöffel = 5 Tonnen."},
+  {n:"Beteigeuze",s:"α Orionis",e:"🔴",cat:"stern",type:"Roter Überriese",dist:"~640 Lichtjahre",size:"~900 Sonnenradien",temp:"3.500 °C",desc:"Schulter des Orion. 1.400× größer als die Sonne. Wird in ~100.000 Jahren als Supernova explodieren. Beim Ausbruch 2019-2020 verlor er Staub — wurde dunkler.",fact:"Würde bis zur Jupiterbahn reichen."},
+  {n:"Alpha Centauri",s:"α Centauri",e:"✨",cat:"stern",type:"Doppelsystem + Proxima",dist:"4,4 Lichtjahre",size:"1,1 + 0,9 Sonnenmassen",temp:"5.800 / 5.200 K",desc:"Nächstes Sternsystem. Dreifachsystem: Alpha Cen A, B und Proxima Centauri. Proxima umkreist A/B in 500.000 Jahren. Hat erdgroßen Planeten in habitabler Zone!",fact:"Ziel der Breakthrough Starshot-Mission."},
+  {n:"Polaris",s:"α Ursae Minoris",e:"🌟",cat:"stern",type:"Cepheide (Pulsar)",dist:"~430 Lichtjahre",size:"~46 Sonnenradien",temp:"6.000 °C",desc:"Nordstern. Steht fast genau über dem Nordpol — seit Jahrhunderten Navigationshilfe. Ein Cepheid — seine Helligkeit pulsiert in 4 Tagen.",fact:"In 13.000 Jahren wird Wega Nordstern sein."},
+  {n:"Wega",s:"α Lyrae",e:"💫",cat:"stern",type:"Weißer Hauptreihenstern",dist:"25 Lichtjahre",size:"2,1 Sonnenmassen",temp:"9.600 °C",desc:"Hellster Stern im Sternbild Leier. War Nordstern vor 12.000 Jahren, wird es in 13.000 Jahren wieder sein. Erster Stern, der fotografiert wurde (1850).",fact:"Hat Staubscheibe — mögliche Planeten."},
+  /* Galaxien & Nebel */
+  {n:"Milchstraße",s:"Via Lactea",e:"🌌",cat:"galaxie",type:"Balkenspiralgalaxie",dist:"—",size:"100.000 Lj Durchmesser",temp:"—",desc:"Unsere Heimatgalaxie. 200-400 Mrd. Sterne. Sonne braucht 225 Mio. Jahre für einen Umlauf. Zentrum: supermassives Schwarzes Loch (Sagittarius A*, 4 Mio. Sonnenmassen).",fact:"Kollision mit Andromeda in 4 Mrd. Jahren."},
+  {n:"Andromeda",s:"M31",e:"🌌",cat:"galaxie",type:"Spiralgalaxie",dist:"2,5 Mio. Lichtjahre",size:"220.000 Lj Durchmesser",temp:"—",desc:"Nächste große Galaxie. Mit bloßem Auge sichtbar! 1 Billion Sterne. Bewegt sich auf uns zu — Kollision in 4,5 Mrd. Jahren.",fact:"Sichtbar als milchiger Fleck."},
+  {n:"Orionnebel",s:"M42",e:"🌌",cat:"galaxie",type:"Emissionsnebel",dist:"1.344 Lichtjahre",size:"24 Lichtjahre",temp:"10.000 °C",desc:"Geburtsstätte neuer Sterne. 3.000 junge Sterne im Inneren. Sichtbar mit bloßem Auge als 'Stern' im Schwert des Orion.",fact:"Ein der aktivsten Sternentstehungsgebiete."},
+  {n:"Krebsnebel",s:"M1",e:"🌌",cat:"galaxie",type:"Supernova-Überrest",dist:"6.500 Lichtjahre",size:"11 Lichtjahre",temp:"—",desc:"Überrest der Supernova von 1054 n.Chr. — von chinesischen Astronomen dokumentiert. Zentral: Pulsar, der 30× pro Sekunde rotiert.",fact:"Tagsüber damals sichtbar!"},
+  /* Schwarze Löcher, Besonderes */
+  {n:"Schwarzes Loch",s:"Sagittarius A*",e:"⚫",cat:"spezial",type:"Supermassives SL",dist:"26.000 Lichtjahre",size:"4 Mio. Sonnenmassen",temp:"—",desc:"Im Zentrum der Milchstraße. 2022 erstes Foto veröffentlicht. Verschlingt alles, was zu nah kommt — sogar Licht. Event Horizon = Punkt ohne Rückkehr.",fact:"Nur 27.000 Lj von uns entfernt."},
+  {n:"Sonne vs. Erde Größe",s:"—",e:"⚖️",cat:"spezial",type:"Vergleich",dist:"—",size:"1,3 Mio. Erden passen",temp:"—",desc:"Die Sonne macht 99,86 % der Masse des Sonnensystems aus. Alle Planeten zusammen = 0,14 %. Die Sonne ist 109× so groß wie die Erde.",fact:"Masse in Sonnen: 330.000 Erden"},
+  {n:"Voyager 1",s:"—",e:"🛰️",cat:"spezial",type:"Raumsonde",dist:"24,5 Mrd. km (2025)",size:"825 kg",temp:"—",desc:"Weiteste menschliche Objekt. 1977 gestartet, 2012 in interstellaren Raum eingetreten. Trägt die goldene Schallplatte mit Botschaften der Menschheit.",fact:"Signallaufzeit: 22,5 Stunden."}
+];
+
+var AS_CATS=[
+  {id:"all",n:"Alle",i:"🌟"},
+  {id:"planet",n:"Planeten",i:"🪐"},
+  {id:"mond",n:"Monde",i:"🌙"},
+  {id:"stern",n:"Sterne",i:"✨"},
+  {id:"galaxie",n:"Galaxien",i:"🌌"},
+  {id:"spezial",n:"Besonderes",i:"⭐"}
+];
+
+var AppAstronomie={
+  tab:"list",_q:"",_cat:"all",
+
+  render:function(){
+    asStyles();
+    var vp=document.getElementById("appViewport");
+    vp.innerHTML='<div id="asContent"></div>';
+    this.renderContent();
+  },
+
+  renderContent:function(){
+    var el=document.getElementById("asContent");if(!el)return;
+    var self=this;
+    var cat=this._cat,q=this._q;
+    var list=AS_OBJECTS.slice();
+    if(cat!=="all")list=list.filter(function(o){return o.cat===cat;});
+    if(q){
+      var lq=q.toLowerCase();
+      list=list.filter(function(o){
+        return o.n.toLowerCase().indexOf(lq)>=0||o.s.toLowerCase().indexOf(lq)>=0||o.type.toLowerCase().indexOf(lq)>=0;
+      });
+    }
+    var catHtml=AS_CATS.map(function(c){
+      var count=c.id==="all"?AS_OBJECTS.length:AS_OBJECTS.filter(function(o){return o.cat===c.id;}).length;
+      return '<div class="as-cat'+(cat===c.id?" active":"")+'" data-as-cat="'+c.id+'"><span class="i">'+c.i+'</span>'+c.n+' ('+count+')</div>';
+    }).join("");
+    var listHtml=list.length?list.map(function(o){
+      return '<div class="as-card" data-as-open="'+esc(o.n)+'"><div class="obj">'+o.e+'</div>'
+        +'<div class="body"><div class="n">'+esc(o.n)+'</div><div class="s">'+esc(o.s)+'</div>'
+        +'<div class="m">📏 '+esc(o.dist)+' · '+esc(o.type)+'</div></div></div>';
+    }).join(""):'<div class="as-empty">Keine Objekte gefunden.</div>';
+
+    el.innerHTML='<div class="as-hero"><div class="lbl">Astronomie</div><div class="val">'+AS_OBJECTS.length+'</div><div class="sub">Planeten · Sterne · Galaxien · Deep Sky</div></div>'
+      +'<div class="card"><input type="text" class="as-search" id="as_search" placeholder="🔍 Suche Name, Typ, Entfernung…" value="'+esc(q)+'"></div>'
+      +'<div class="card"><div class="card-h"><h3>🌟 Kategorien</h3></div><div class="as-cat-grid">'+catHtml+'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>🌟 '+list.length+' Objekte</h3></div>'+listHtml+'</div>'
+      +'<div id="as_detail"></div>';
+
+    document.getElementById("as_search").addEventListener("input",function(){
+      self._q=this.value;clearTimeout(self._t);
+      self._t=setTimeout(function(){self.renderContent();},250);
+    });
+    el.querySelectorAll("[data-as-cat]").forEach(function(b){
+      b.addEventListener("click",function(){self._cat=b.dataset.asCat;self.renderContent();});
+    });
+    el.querySelectorAll("[data-as-open]").forEach(function(b){
+      b.addEventListener("click",function(){self.showObject(b.dataset.asOpen);});
+    });
+  },
+
+  showObject:function(name){
+    var o=null;AS_OBJECTS.forEach(function(x){if(x.n===name)o=x;});
+    if(!o)return;
+    var det=document.getElementById("as_detail");if(!det)return;
+    det.innerHTML='<div class="as-detail">'
+      +'<div class="head"><div class="obj">'+o.e+'</div><div><h4>'+esc(o.n)+'</h4><div class="s">'+esc(o.s)+'</div></div></div>'
+      +'<div class="as-fact"><span class="k">🏷️ Typ</span><span class="v">'+esc(o.type)+'</span></div>'
+      +'<div class="as-fact"><span class="k">📏 Entfernung</span><span class="v">'+esc(o.dist)+'</span></div>'
+      +'<div class="as-fact"><span class="k">📐 Größe</span><span class="v">'+esc(o.size)+'</span></div>'
+      +'<div class="as-fact"><span class="k">🌡️ Temperatur</span><span class="v">'+esc(o.temp)+'</span></div>'
+      +'<h5>📖 Beschreibung</h5><p>'+esc(o.desc)+'</p>'
+      +'<h5>⭐ Besonderheit</h5><p style="color:#c084fc;font-weight:700">'+esc(o.fact)+'</p>'
+      +'<button class="btn secondary small" id="as_close" style="margin-top:10px">✕ Schließen</button>'
+      +'</div>';
+    det.scrollIntoView({behavior:"smooth",block:"nearest"});
+    document.getElementById("as_close").addEventListener("click",function(){det.innerHTML="";});
+  }
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.astronomie=AppAstronomie;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="astronomie"){a.prio=1;a.installed=true;a.cat="Wissen";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"astronomie",name:"Astronomie",icon:"🌌",cat:"Wissen",prio:1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Astronomie] 🌌 "+AS_OBJECTS.length+" Objekte geladen.");
+})();
+</script>
 </body>
 </html>
