@@ -467,7 +467,61 @@ body.app-open #avatarWidget,body.app-open #bottomnav{display:none!important}
 <script>
 (function(){
 "use strict";
+/* ===== SPRACH-ENGINE ===== */
+var LANG_DATA={
+  de:{name:"Deutsch",flag:"🇩🇪",rtl:false,voice:"de-DE"},
+  en:{name:"English",flag:"🇬🇧",rtl:false,voice:"en-US"},
+  tr:{name:"Türkçe",flag:"🇹🇷",rtl:false,voice:"tr-TR"},
+  ku_km:{name:"Kurdî (Kurmancî)",flag:"🟨",rtl:false,voice:"ku"},
+  ku_sr:{name:"Kurdî (Soranî)",flag:"🟨",rtl:true,voice:"ckb"},
+  ez:{name:"Êzidî",flag:"🦚",rtl:false,voice:"ku"},
+  ar:{name:"العربية",flag:"🇸🇦",rtl:true,voice:"ar-SA"},
+  fa:{name:"فارسی",flag:"🇮🇷",rtl:true,voice:"fa-IR"}
+};
 
+var VOICES={
+  haldo_f:{id:"haldo_f",name:"HalDo Female",icon:"👩",desc:"Standard weiblich"},
+  haldo_m:{id:"haldo_m",name:"HalDo Male",icon:"👨",desc:"Standard männlich"},
+  haldo_cyb:{id:"haldo_cyb",name:"HalDo Cyborg",icon:"🤖",desc:"Roboter-Stil"},
+  own:{id:"own",name:"Meine Stimme",icon:"🎤",desc:"Eigene Klon-Stimme"},
+  system:{id:"system",name:"System-Stimme",icon:"🔊",desc:"Browser-Standard"}
+};
+
+var LangEngine={
+  current:"de",
+  voices:{global:"system",perApp:{}},
+  t:function(key,fallback){
+    // sehr einfache Übersetzungs-Funktion - Fallback = key
+    return fallback||key;
+  },
+  voiceFor:function(appId){
+    return this.voices.perApp[appId]||this.voices.global;
+  },
+  setAppVoice:function(appId,voiceId){
+    this.voices.perApp[appId]=voiceId;
+    Storage.set("lang_voices",this.voices);
+    toast("🎤 Stimme für "+appId+" gesetzt","ok");
+  },
+  setGlobalVoice:function(voiceId){
+    this.voices.global=voiceId;
+    Storage.set("lang_voices",this.voices);
+    toast("🎤 Globale Stimme gesetzt","ok");
+  },
+  load:function(){
+    var saved=Storage.get("lang_voices");
+    if(saved)this.voices=saved;
+    var cur=Storage.get("lang_current");
+    if(cur)this.current=cur;
+  },
+  set:function(code){
+    this.current=code;
+    Storage.set("lang_current",code);
+    var ld=LANG_DATA[code];
+    if(ld&&ld.rtl)document.body.setAttribute("dir","rtl");
+    else document.body.removeAttribute("dir");
+    toast("🌍 "+(ld?ld.name:code),"ok");
+  }
+};
 var Storage={prefix:"haldo_v32_",
   get:function(k,f){try{var r=localStorage.getItem(this.prefix+k);if(r===null)return f;return JSON.parse(r);}catch(e){return f;}},
   set:function(k,v){try{localStorage.setItem(this.prefix+k,JSON.stringify(v));return true;}catch(e){return false;}},
@@ -1050,7 +1104,89 @@ var HealthData={
     {t:"Schock",s:["112 rufen","Flach hinlegen, Beine hoch","Warm halten","Beruhigen","Nichts zu trinken geben"]}
   ]
 };
-
+var AnatomyData={
+  organs:{
+    gehirn:{name:"Gehirn",icon:"🧠",system:"Nervensystem",pos:"kopf",
+      desc:"Zentrales Steuerorgan des Körpers. Steuert Denken, Bewegung, Atmung, Gefühle.",
+      func:["Denken & Gedächtnis","Bewegung steuern","Sinne verarbeiten","Hormone regeln"],
+      diseases:["Schlaganfall","Migräne","Epilepsie","Demenz","Hirntumor","Meningitis"],
+      doc:"Neurologe / Neurochirurg",
+      meds:["Triptane (Migräne)","Antikonvulsiva (Epilepsie)","Thrombolytika (Schlaganfall)","Donepezil (Demenz)"],
+      science:"Das Gehirn hat ca. 86 Milliarden Neuronen. Es verbraucht 20% des Sauerstoffs, wiegt nur 2% des Körpers."},
+    herz:{name:"Herz",icon:"❤️",system:"Herz-Kreislauf",pos:"brust",
+      desc:"Muskelpumpe, die Blut durch den gesamten Körper pumpt.",
+      func:["Blut pumpen (~5 L/min)","Sauerstoff verteilen","Hormone transportieren"],
+      diseases:["Herzinfarkt","Herzinsuffizienz","Arrhythmie","Herzklappenfehler","Koronare Herzkrankheit"],
+      doc:"Kardiologe",
+      meds:["Beta-Blocker","ACE-Hemmer","Statine","Diuretika","Antikoagulantien"],
+      science:"Das Herz schlägt ~100.000× pro Tag, ~2,5 Milliarden Mal im Leben."},
+    lunge:{name:"Lunge",icon:"🫁",system:"Atmung",pos:"brust",
+      desc:"Atmungsorgan, das Sauerstoff aufnimmt und CO₂ abgibt.",
+      func:["O₂-Aufnahme","CO₂-Abgabe","pH-Regulation"],
+      diseases:["Asthma","COPD","Lungenentzündung","Lungenkrebs","Tuberkulose","Lungenembolie"],
+      doc:"Pneumologe",
+      meds:["Bronchodilatatoren","Kortikosteroide","Antibiotika","Sauerstoff"],
+      science:"Die Lunge hat ~300 Mio. Alveolen. Fläche = ca. 70-100 m² (Tennisplatz)."},
+    leber:{name:"Leber",icon:"🫀",system:"Verdauung & Stoffwechsel",pos:"bauch",
+      desc:"Zentrales Stoffwechselorgan, entgiftet und produziert Galle.",
+      func:["Entgiftung","Galleproduktion","Eiweiß-Synthese","Glykogenspeicher"],
+      diseases:["Hepatitis A/B/C","Fettleber","Zirrhose","Leberkrebs","Gallensteine"],
+      doc:"Hepatologe / Gastroenterologe",
+      meds:["Antivirale","Ursodeoxycholsäure","Interferon"],
+      science:"Die Leber ist das einzige Organ, das sich teilweise regenerieren kann."},
+    niere:{name:"Niere",icon:"🫘",system:"Harnsystem",pos:"bauch",
+      desc:"Filtert Blut, bildet Urin, reguliert Blutdruck und Elektrolyte.",
+      func:["Blut filtern","Urin bilden","Blutdruck regeln","Hormone (Erythropoetin)"],
+      diseases:["Nierensteine","Niereninsuffizienz","Pyelonephritis","Nierenkrebs"],
+      doc:"Nephrologe / Urologe",
+      meds:["Diuretika","ACE-Hemmer","Antibiotika"],
+      science:"Beide Nieren filtern täglich ~180 Liter Blut zu ~1,5 L Urin."},
+    magen:{name:"Magen",icon:"🫃",system:"Verdauung",pos:"bauch",
+      desc:"Speichert und zersetzt Nahrung mit Magensäure und Enzymen.",
+      func:["Nahrung speichern","Protein verdauen","Keime abtöten"],
+      diseases:["Gastritis","Ulkus","Magenkrebs","Reflux"],
+      doc:"Gastroenterologe",
+      meds:["PPI (Omeprazol)","Antazida","H2-Blocker","Antibiotika"],
+      science:"Magensaft ist so sauer (pH 1-2), dass er Metall auflösen könnte – Schleim schützt."},
+    darm:{name:"Darm",icon:"🫄",system:"Verdauung",pos:"bauch",
+      desc:"Aufnahme von Nährstoffen und Wasser, Immunabwehr.",
+      func:["Nährstoffe aufnehmen","Wasser aufnehmen","Immunabwehr","Darmflora"],
+      diseases:["Morbus Crohn","Colitis ulcerosa","Reizdarm","Darmkrebs","Divertikulitis"],
+      doc:"Gastroenterologe",
+      meds:["Mesalazin","Kortikosteroide","Biologika","Probiotika"],
+      science:"Der Darm ist ~7,5 m lang und beherbergt ~100 Billionen Bakterien."},
+    pankreas:{name:"Bauchspeicheldrüse",icon:"🟡",system:"Verdauung & Hormone",pos:"bauch",
+      desc:"Produziert Verdauungsenzyme und Insulin.",
+      func:["Enzyme produzieren","Insulin (BZ senken)","Glukagon (BZ heben)"],
+      diseases:["Pankreatitis","Diabetes","Pankreaskrebs","Zysten"],
+      doc:"Gastroenterologe / Endokrinologe",
+      meds:["Insulin","Enzyme","Schmerzmittel"],
+      science:"Das Pankreas produziert täglich ~1,5 L Verdauungssaft."},
+    schilddruese:{name:"Schilddrüse",icon:"🦋",system:"Hormone",pos:"hals",
+      desc:"Reguliert Stoffwechsel über Hormone T3/T4.",
+      func:["T3/T4 produzieren","Stoffwechsel steuern","Wachstum"],
+      diseases:["Hypothyreose","Hyperthyreose","Knoten","Hashimoto","Basedow"],
+      doc:"Endokrinologe",
+      meds:["L-Thyroxin","Thiamazol","Radiojod"],
+      science:"Schmetterlingsförmig, ~20 g schwer, speichert Jod."},
+    milz:{name:"Milz",icon:"🩸",system:"Immunsystem",pos:"bauch",
+      desc:"Filtert Blut, bildet Immunzellen.",
+      func:["Alte Blutzellen abbauen","Lymphozyten bilden","Blutspeicher"],
+      diseases:["Splenomegalie","Ruptur","Hypersplenismus"],
+      doc:"Hämatologe",
+      meds:["–"],
+      science:"Kann notfalls entfernt werden – andere Organe übernehmen die Funktion."}
+  },
+  systems:{
+    nerven:{name:"Nervensystem",icon:"⚡",organs:["gehirn"]},
+    kreislauf:{name:"Herz-Kreislauf",icon:"❤️",organs:["herz"]},
+    atmung:{name:"Atmung",icon:"🫁",organs:["lunge"]},
+    verdauung:{name:"Verdauung",icon:"🍽️",organs:["leber","magen","darm","pankreas"]},
+    harn:{name:"Harnsystem",icon:"💧",organs:["niere"]},
+    hormone:{name:"Hormone",icon:"🧬",organs:["schilddruese","pankreas"]},
+    immun:{name:"Immunsystem",icon:"🛡️",organs:["milz"]}
+  }
+};
 var AppHealth={
   tab:"overview",
   render:function(){
@@ -1307,7 +1443,335 @@ var AppHealth={
     AIHelper.attachAll(el);
   }
 };
-
+var AppHealth={
+  tab:"overview",
+  render:function(){
+    var vp=document.getElementById("appViewport");
+    var tabs=[
+      {k:"overview",n:"📊 Übersicht"},
+      {k:"anatomie",n:"🧍 Anatomie"},
+      {k:"arztbuch",n:"📖 Arztbuch"},
+      {k:"lexikon",n:"🔍 Lexikon A-Z"},
+      {k:"erste",n:"🚑 Erste Hilfe"},
+      {k:"arzt",n:"👨‍⚕️ Meine Ärzte"},
+      {k:"meds",n:"💊 Medikamente"},
+      {k:"symptome",n:"📝 Symptome"},
+      {k:"notfall",n:"🚨 Notfall"}
+    ];
+    var tabHtml="";
+    for(var i=0;i<tabs.length;i++){
+      tabHtml+='<button class="ms-tab'+(this.tab===tabs[i].k?" active":"")+'" data-h-tab="'+tabs[i].k+'">'+tabs[i].n+'</button>';
+    }
+    vp.innerHTML='<div class="ms-tabs">'+tabHtml+'</div><div id="hContent"></div>';
+    var self=this;
+    document.querySelectorAll("[data-h-tab]").forEach(function(b){
+      b.addEventListener("click",function(){self.tab=b.dataset.hTab;self.render();});
+    });
+    this.renderTab();
+    AIHelper.attachAll(vp);
+  },
+  renderTab:function(){
+    var el=document.getElementById("hContent");if(!el)return;
+    if(this.tab==="overview")this.renderOverview(el);
+    else if(this.tab==="anatomie")this.renderAnatomie(el);
+    else if(this.tab==="arztbuch")this.renderArztbuch(el);
+    else if(this.tab==="lexikon")this.renderLexikon(el);
+    else if(this.tab==="erste")this.renderErste(el);
+    else if(this.tab==="arzt")this.renderArzt(el);
+    else if(this.tab==="meds")this.renderMeds(el);
+    else if(this.tab==="symptome")this.renderSymptome(el);
+    else if(this.tab==="notfall")this.renderNotfall(el);
+  },
+  renderOverview:function(el){
+    var pulses=Storage.get("health_pulse",[]);
+    var lastPulse=pulses.length?pulses[pulses.length-1].v:0;
+    var meds=Storage.get("health_meds",[]);
+    var syms=Storage.get("health_symptoms",[]);
+    var organCount=Object.keys(AnatomyData.organs).length;
+    el.innerHTML=''
+      +'<div class="card"><div class="card-h"><h3>🩺 Gesundheitsübersicht</h3></div>'
+      +'<div class="health-stat"><div class="v">'+(lastPulse||"--")+'</div><div class="l">Puls bpm</div></div>'
+      +'<div class="vital-row"><input type="number" id="h_pulse_new" placeholder="Puls eingeben" min="30" max="220"><button class="btn success small" id="h_pulse_save">💾</button></div>'
+      +'<div class="fk-stats">'
+      +'<div class="fk-stat"><div class="v">'+organCount+'</div><div class="l">Organe</div></div>'
+      +'<div class="fk-stat"><div class="v">'+meds.length+'</div><div class="l">Medikamente</div></div>'
+      +'<div class="fk-stat"><div class="v">'+syms.length+'</div><div class="l">Symptome</div></div>'
+      +'<div class="fk-stat"><div class="v">'+Object.keys(HealthData.lexikon).length+'</div><div class="l">A-Z</div></div>'
+      +'</div>'
+      +'<div class="info-box warn">⚠️ Diese App ersetzt keinen Arzt. Bei akuten Beschwerden: 112.</div>'
+      +'</div>';
+    var sb=document.getElementById("h_pulse_save");
+    if(sb)sb.addEventListener("click",function(){
+      var v=parseInt(val("h_pulse_new"));
+      if(!v||v<30||v>220)return toast("⚠️ 30-220","err");
+      var p=Storage.get("health_pulse",[]);p.push({v:v,t:Date.now()});Storage.set("health_pulse",p);
+      AppHealth.render();toast("💓 Gespeichert","ok");
+    });
+  },
+  renderAnatomie:function(el){
+    var self=this;
+    var organKeys=Object.keys(AnatomyData.organs);
+    el.innerHTML=''
+      +'<div class="card"><div class="card-h"><h3>🧍 Menschliche Anatomie</h3></div>'
+      +'<div class="info-box">Klicke auf ein Organ für medizinische Details.</div>'
+      +'<div class="body-map">'
+      +'<svg class="body-svg" viewBox="0 0 240 500" style="max-width:320px">'
+      // Kopf
+      +'<ellipse cx="120" cy="50" rx="32" ry="40" class="body-region" data-organ="gehirn"/>'
+      +'<text x="120" y="55" text-anchor="middle" font-size="20" pointer-events="none">🧠</text>'
+      // Hals
+      +'<rect x="105" y="90" width="30" height="25" rx="6" fill="rgba(0,212,255,.1)" stroke="rgba(0,212,255,.4)" stroke-width="1"/>'
+      +'<ellipse cx="120" cy="105" rx="10" ry="10" class="body-region" data-organ="schilddruese"/>'
+      // Brust (Herz, Lunge)
+      +'<rect x="65" y="115" width="110" height="105" rx="14" class="body-region" data-organ="lunge"/>'
+      +'<ellipse cx="105" cy="165" rx="16" ry="18" class="body-region" data-organ="herz" style="fill:rgba(239,68,68,.3);stroke:#ef4444"/>'
+      +'<text x="105" y="172" text-anchor="middle" font-size="16" pointer-events="none">❤️</text>'
+      // Bauch
+      +'<rect x="70" y="220" width="100" height="80" rx="12" class="body-region" data-organ="leber" style="fill:rgba(139,69,19,.3)"/>'
+      +'<circle cx="90" cy="260" r="14" class="body-region" data-organ="magen" style="fill:rgba(255,165,0,.3)"/>'
+      +'<ellipse cx="140" cy="245" rx="12" ry="18" class="body-region" data-organ="pankreas" style="fill:rgba(255,215,0,.4)"/>'
+      +'<ellipse cx="105" cy="280" rx="14" ry="10" class="body-region" data-organ="milz" style="fill:rgba(220,20,60,.3)"/>'
+      // Nieren
+      +'<ellipse cx="60" cy="270" rx="10" ry="18" class="body-region" data-organ="niere"/>'
+      +'<ellipse cx="180" cy="270" rx="10" ry="18" class="body-region" data-organ="niere"/>'
+      // Darm
+      +'<rect x="80" y="300" width="80" height="60" rx="10" class="body-region" data-organ="darm"/>'
+      // Beine/Arme outline
+      +'<rect x="40" y="115" width="22" height="140" rx="11" fill="rgba(0,212,255,.08)"/>'
+      +'<rect x="178" y="115" width="22" height="140" rx="11" fill="rgba(0,212,255,.08)"/>'
+      +'<rect x="90" y="365" width="25" height="120" rx="12" fill="rgba(0,212,255,.08)"/>'
+      +'<rect x="125" y="365" width="25" height="120" rx="12" fill="rgba(0,212,255,.08)"/>'
+      +'</svg>'
+      +'</div>'
+      +'<div class="app-list" style="margin-top:10px">'
+      +organKeys.map(function(k){
+        var o=AnatomyData.organs[k];
+        return '<div class="app-list-item" data-open-organ="'+k+'"><span class="ico">'+o.icon+'</span><div class="txt"><div class="t">'+o.name+'</div><div class="d">'+o.system+'</div></div><span class="arrow" style="color:var(--text-mute)">›</span></div>';
+      }).join("")
+      +'</div>'
+      +'</div>'
+      +'<div id="hOrganDetail"></div>';
+    // Click SVG
+    el.querySelectorAll("[data-organ]").forEach(function(r){
+      r.addEventListener("click",function(){self.showOrgan(r.dataset.organ);});
+    });
+    // Click Liste
+    el.querySelectorAll("[data-open-organ]").forEach(function(r){
+      r.addEventListener("click",function(){self.showOrgan(r.dataset.openOrgan);});
+    });
+  },
+  showOrgan:function(key){
+    var o=AnatomyData.organs[key];if(!o)return;
+    var det=document.getElementById("hOrganDetail");
+    if(!det)return;
+    var funcs=o.func.map(function(f){return '<li>'+esc(f)+'</li>';}).join("");
+    var dis=o.diseases.map(function(d){return '<li>'+esc(d)+'</li>';}).join("");
+    var meds=o.meds.map(function(m){return '<li>'+esc(m)+'</li>';}).join("");
+    det.innerHTML='<div class="lex-detail">'
+      +'<h4>'+o.icon+' '+o.name+'</h4>'
+      +'<p style="color:var(--text-dim);font-size:10.5px;margin-bottom:8px"><b>System:</b> '+esc(o.system)+'</p>'
+      +'<h5>📋 Beschreibung</h5><p>'+esc(o.desc)+'</p>'
+      +'<h5>⚙️ Funktionen</h5><ul>'+funcs+'</ul>'
+      +'<h5>🦠 Krankheiten</h5><ul>'+dis+'</ul>'
+      +'<h5>👨‍⚕️ Facharzt</h5><p>'+esc(o.doc)+'</p>'
+      +'<h5>💊 Medikamente</h5><ul>'+meds+'</ul>'
+      +'<h5>🔬 Wissenschaft</h5><p>'+esc(o.science)+'</p>'
+      +'<div class="btn-row" style="margin-top:10px">'
+      +'<button class="btn secondary small" id="orgSpeak">🔊 Vorlesen</button>'
+      +'<button class="btn success small" id="orgAsk">🧠 HalDo fragen</button>'
+      +'</div>'
+      +'</div>';
+    det.scrollIntoView({behavior:"smooth",block:"nearest"});
+    var sp=document.getElementById("orgSpeak");
+    if(sp)sp.addEventListener("click",function(){
+      speak(o.name+". "+o.desc+" Funktionen: "+o.func.join(", ")+". Krankheiten: "+o.diseases.join(", "));
+    });
+    var aq=document.getElementById("orgAsk");
+    if(aq)aq.addEventListener("click",function(){
+      document.getElementById("chatPanel").classList.add("show");
+      if(!Chat.history.length)Chat.addBot("Hallo! Frag mich zu "+o.name+".");
+      setTimeout(function(){Chat.send("Erzähl mir medizinisch alles über "+o.name);},200);
+    });
+  },
+  renderArztbuch:function(el){
+    var self=this;
+    var sysKeys=Object.keys(AnatomyData.systems);
+    el.innerHTML=''
+      +'<div class="card"><div class="card-h"><h3>📖 Medizinisches Arztbuch</h3></div>'
+      +'<div class="info-box">Wähle ein System, um alle zugehörigen Organe zu sehen.</div>'
+      +'<div class="fk-cat">'
+      +sysKeys.map(function(k){
+        var s=AnatomyData.systems[k];
+        return '<div class="fk-cat-card" data-sys="'+k+'"><div class="i">'+s.icon+'</div><div class="n">'+s.name+'</div><div class="d">'+s.organs.length+' Organ(e)</div></div>';
+      }).join("")
+      +'</div>'
+      +'<div id="hSysDetail"></div>'
+      +'</div>';
+    el.querySelectorAll("[data-sys]").forEach(function(c){
+      c.addEventListener("click",function(){
+        var s=AnatomyData.systems[c.dataset.sys];
+        if(!s)return;
+        var html='<div class="lex-detail"><h4>'+s.icon+' '+s.name+'</h4>';
+        s.organs.forEach(function(ok){
+          var o=AnatomyData.organs[ok];if(!o)return;
+          html+='<div style="padding:10px;background:var(--bg-4);border-radius:8px;margin:6px 0;border-left:3px solid var(--primary)">';
+          html+='<div style="font-weight:800;color:var(--primary);font-size:12px;margin-bottom:4px">'+o.icon+' '+o.name+'</div>';
+          html+='<div style="font-size:10.5px;color:var(--text-dim);margin-bottom:4px">'+esc(o.desc)+'</div>';
+          html+='<div style="font-size:10px;color:var(--text-mute)"><b>Krankheiten:</b> '+o.diseases.slice(0,4).join(", ")+'</div>';
+          html+='<div style="font-size:10px;color:var(--text-mute);margin-top:3px"><b>Arzt:</b> '+esc(o.doc)+'</div>';
+          html+='</div>';
+        });
+        html+='</div>';
+        document.getElementById("hSysDetail").innerHTML=html;
+      });
+    });
+  },
+  renderLexikon:function(el){
+    var letters="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    var has={};
+    Object.keys(HealthData.lexikon).forEach(function(l){has[l]=true;});
+    var navHtml=letters.map(function(l){return '<button class="a2z-letter" data-letter="'+l+'" '+(has[l]?"":"disabled")+'>'+l+'</button>';}).join("");
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🔍 Krankheiten A-Z</h3></div><div class="a2z-nav">'+navHtml+'</div><div class="field" style="margin-top:10px"><input type="text" id="hSearch" placeholder="Suchen…"></div><div id="hLexList"></div></div>';
+    el.querySelectorAll("[data-letter]").forEach(function(b){
+      b.addEventListener("click",function(){
+        el.querySelectorAll("[data-letter]").forEach(function(x){x.classList.remove("active");});
+        b.classList.add("active");
+        AppHealth.renderLexList(HealthData.lexikon[b.dataset.letter]||[]);
+      });
+    });
+    var s=document.getElementById("hSearch");
+    if(s)s.addEventListener("input",function(){
+      var q=s.value.toLowerCase().trim();
+      if(!q){document.getElementById("hLexList").innerHTML="";return;}
+      var all=[];
+      Object.keys(HealthData.lexikon).forEach(function(l){all=all.concat(HealthData.lexikon[l]);});
+      var found=all.filter(function(x){return x.t.toLowerCase().indexOf(q)>=0;});
+      AppHealth.renderLexList(found);
+    });
+  },
+  renderLexList:function(list){
+    var el=document.getElementById("hLexList");if(!el)return;
+    if(!list.length){el.innerHTML='<div class="info-box">Keine Einträge.</div>';return;}
+    el.innerHTML=list.map(function(x,i){return '<div class="lex-entry" data-lex="'+i+'"><div class="h">'+esc(x.t)+'</div><div class="s">'+esc(x.s)+'</div></div>';}).join("");
+    el.querySelectorAll("[data-lex]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var x=list[parseInt(b.dataset.lex)];
+        el.querySelectorAll(".lex-detail").forEach(function(d){d.remove();});
+        var d=document.createElement("div");d.className="lex-detail";
+        d.innerHTML='<h4>'+esc(x.t)+'</h4><h5>Art</h5><p>'+esc(x.s)+'</p><h5>Symptome</h5><p>'+esc(x.sym)+'</p><h5>Was tun?</h5><p>'+esc(x.doc)+'</p>';
+        b.parentNode.insertBefore(d,b.nextSibling);
+      });
+    });
+  },
+  renderErste:function(el){
+    var html=HealthData.ersteHilfe.map(function(g){
+      var steps=g.s.map(function(s,j){return '<div class="first-aid-step"><div class="n">'+(j+1)+'</div><div class="t">'+esc(s)+'</div></div>';}).join("");
+      return '<div style="margin-bottom:12px"><div style="font-size:12.5px;font-weight:800;color:var(--primary);margin-bottom:6px">'+esc(g.t)+'</div>'+steps+'</div>';
+    }).join("");
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🚑 Erste-Hilfe</h3></div>'+html+'</div>'
+      +'<div class="card"><div class="card-h"><h3>⚠️ Wichtig</h3></div>'
+      +'<div class="info-box warn"><b>Rettung:</b> 112<br><b>Bereitschaft:</b> 116117<br><b>Giftnotruf:</b> 0800 111 2222<br><b>Erst absichern!</b></div></div>';
+  },
+  renderArzt:function(el){
+    var docs=Storage.get("health_doctors",[]);
+    el.innerHTML='<div class="card"><div class="card-h"><h3>👨‍⚕️ Arzt hinzufügen</h3></div>'
+      +'<div class="field"><input type="text" id="doc_name" placeholder="Name"></div>'
+      +'<div class="field"><input type="text" id="doc_fach" placeholder="Fachrichtung"></div>'
+      +'<div class="field"><input type="tel" id="doc_tel" placeholder="Telefon"></div>'
+      +'<div class="field"><input type="text" id="doc_adr" placeholder="Adresse"></div>'
+      +'<button class="btn success full" id="doc_add">➕ Speichern</button>'
+      +'<div class="app-list" id="doc_list"></div></div>';
+    document.getElementById("doc_add").addEventListener("click",function(){
+      var n=val("doc_name").trim();if(!n)return toast("⚠️ Name fehlt","err");
+      var arr=Storage.get("health_doctors",[]);
+      arr.push({id:"d_"+Date.now(),name:n,fach:val("doc_fach"),tel:val("doc_tel"),adr:val("doc_adr")});
+      Storage.set("health_doctors",arr);AppHealth.renderTab();toast("👨‍⚕️ Gespeichert","ok");
+    });
+    var listEl=document.getElementById("doc_list");
+    if(!docs.length){listEl.innerHTML='<div class="info-box">Keine Ärzte.</div>';return;}
+    docs.forEach(function(d){
+      var div=document.createElement("div");div.className="app-list-item";
+      var phoneBtn=d.tel?'<a href="tel:'+esc(d.tel)+'" style="text-decoration:none"><button class="del" style="background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.4);color:#4ade80">📞</button></a>':'';
+      div.innerHTML='<span class="ico">👨‍⚕️</span><div class="txt"><div class="t">'+esc(d.name)+'</div><div class="d">'+esc(d.fach||"")+(d.tel?" · "+esc(d.tel):"")+'</div></div>'+phoneBtn+'<button class="del del2">🗑️</button>';
+      var delBtn=div.querySelector(".del2");
+      if(delBtn)delBtn.addEventListener("click",function(e){e.stopPropagation();if(!confirm("Löschen?"))return;Storage.set("health_doctors",Storage.get("health_doctors",[]).filter(function(x){return x.id!==d.id;}));AppHealth.renderTab();});
+      listEl.appendChild(div);
+    });
+  },
+  renderMeds:function(el){
+    var meds=Storage.get("health_meds",[]);
+    el.innerHTML='<div class="card"><div class="card-h"><h3>💊 Medikament</h3></div>'
+      +'<div class="field"><input type="text" id="h_med_name" placeholder="Name"></div>'
+      +'<div class="field"><input type="text" id="h_med_dose" placeholder="Dosis"></div>'
+      +'<div class="field"><input type="text" id="h_med_time" placeholder="Uhrzeit"></div>'
+      +'<button class="btn success full" id="h_med_add">➕ Speichern</button>'
+      +'<div class="app-list" id="h_med_list"></div></div>';
+    document.getElementById("h_med_add").addEventListener("click",function(){
+      var n=val("h_med_name").trim();if(!n)return toast("⚠️ Name fehlt","err");
+      var arr=Storage.get("health_meds",[]);
+      arr.push({id:"m_"+Date.now(),name:n,dose:val("h_med_dose"),time:val("h_med_time")});
+      Storage.set("health_meds",arr);AppHealth.renderTab();toast("💊 Gespeichert","ok");
+    });
+    var listEl=document.getElementById("h_med_list");
+    if(!meds.length){listEl.innerHTML='<div class="info-box">Keine Medikamente.</div>';return;}
+    meds.forEach(function(m){
+      var d=document.createElement("div");d.className="app-list-item";
+      d.innerHTML='<span class="ico">💊</span><div class="txt"><div class="t">'+esc(m.name)+'</div><div class="d">'+esc(m.dose||"-")+' · '+(m.time||"")+'</div></div><button class="del">🗑️</button>';
+      d.querySelector(".del").addEventListener("click",function(e){e.stopPropagation();Storage.set("health_meds",Storage.get("health_meds",[]).filter(function(x){return x.id!==m.id;}));AppHealth.renderTab();});
+      listEl.appendChild(d);
+    });
+  },
+  renderSymptome:function(el){
+    var syms=Storage.get("health_symptoms",[]);
+    el.innerHTML='<div class="card"><div class="card-h"><h3>📝 Symptom</h3></div>'
+      +'<div class="field"><input type="text" id="h_sym" placeholder="Symptom"></div>'
+      +'<div class="field"><select id="h_sym_sev"><option value="1">😊 Leicht</option><option value="2" selected>😐 Mittel</option><option value="3">😣 Stark</option></select></div>'
+      +'<div class="field"><textarea id="h_sym_note" data-ai placeholder="Notiz"></textarea></div>'
+      +'<button class="btn success full" id="h_sym_add">➕ Speichern</button>'
+      +'<div class="app-list" id="h_sym_list"></div></div>';
+    document.getElementById("h_sym_add").addEventListener("click",function(){
+      var s=val("h_sym").trim();if(!s)return toast("⚠️ Symptom fehlt","err");
+      var arr=Storage.get("health_symptoms",[]);
+      arr.push({id:"s_"+Date.now(),name:s,severity:parseInt(val("h_sym_sev")),note:val("h_sym_note"),t:Date.now()});
+      Storage.set("health_symptoms",arr);AppHealth.renderTab();toast("📝 Gespeichert","ok");
+    });
+    var listEl=document.getElementById("h_sym_list");
+    if(!syms.length){listEl.innerHTML='<div class="info-box">Keine Symptome.</div>';return;}
+    syms.sort(function(a,b){return b.t-a.t;});
+    syms.forEach(function(s){
+      var icons=["","😊","😐","😣"];
+      var d=document.createElement("div");d.className="app-list-item";
+      d.innerHTML='<span class="ico">'+(icons[s.severity]||"😐")+'</span><div class="txt"><div class="t">'+esc(s.name)+'</div><div class="d">'+new Date(s.t).toLocaleString("de-DE")+(s.note?" · "+esc(s.note):"")+'</div></div><button class="del">🗑️</button>';
+      d.querySelector(".del").addEventListener("click",function(e){e.stopPropagation();Storage.set("health_symptoms",Storage.get("health_symptoms",[]).filter(function(x){return x.id!==s.id;}));AppHealth.renderTab();});
+      listEl.appendChild(d);
+    });
+    AIHelper.attachAll(el);
+  },
+  renderNotfall:function(el){
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🚨 Notfallnummern</h3></div>'
+      +'<div class="emergency-grid">'
+      +'<a class="emergency-btn" href="tel:112"><span class="n">112</span>Notruf</a>'
+      +'<a class="emergency-btn" href="tel:116117"><span class="n">116117</span>Bereitschaft</a>'
+      +'<a class="emergency-btn" href="tel:110"><span class="n">110</span>Polizei</a>'
+      +'<a class="emergency-btn" href="tel:08001112222"><span class="n">0800 111 2222</span>Giftnotruf</a>'
+      +'<a class="emergency-btn" href="tel:08001110444"><span class="n">0800 111 0 444</span>Elterntelefon</a>'
+      +'<a class="emergency-btn" href="tel:08001110111"><span class="n">0800 111 0 111</span>Seelsorge</a>'
+      +'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>📋 Notfall-Pass</h3></div>'
+      +'<div class="field"><label>Name</label><input type="text" id="np_name" value="'+esc(Storage.get("np_name",""))+'"></div>'
+      +'<div class="field"><label>Geburtsdatum</label><input type="date" id="np_dob" value="'+esc(Storage.get("np_dob",""))+'"></div>'
+      +'<div class="field"><label>Blutgruppe</label><input type="text" id="np_blood" value="'+esc(Storage.get("np_blood",""))+'"></div>'
+      +'<div class="field"><label>Allergien</label><textarea id="np_allergies" data-ai>'+esc(Storage.get("np_allergies",""))+'</textarea></div>'
+      +'<div class="field"><label>Medikamente</label><textarea id="np_meds" data-ai>'+esc(Storage.get("np_meds",""))+'</textarea></div>'
+      +'<div class="field"><label>Notfallkontakt</label><input type="text" id="np_contact" value="'+esc(Storage.get("np_contact",""))+'"></div>'
+      +'<button class="btn success full" id="np_save">💾 Notfall-Pass speichern</button></div>';
+    document.getElementById("np_save").addEventListener("click",function(){
+      ["name","dob","blood","allergies","meds","contact"].forEach(function(k){Storage.set("np_"+k,val("np_"+k));});
+      toast("💾 Gespeichert","ok");
+    });
+    AIHelper.attachAll(el);
+  }
+};
 var AppAuto={
   render:function(){
     var vp=document.getElementById("appViewport");
@@ -2108,7 +2572,234 @@ try{
     setTimeout(initAfterBoot,50);
   }else boot();
 }catch(e){boot();}
-
+var AppEmail={
+  tab:"inbox",
+  state:{compose:{to:"",cc:"",subject:"",body:""}},
+  render:function(){
+    var vp=document.getElementById("appViewport");
+    var account=Storage.get("email_account",{address:"Halil@haldo.ai",name:"Halil"});
+    var tabs=[
+      {k:"inbox",n:"📥 Posteingang"},
+      {k:"compose",n:"✏️ Verfassen"},
+      {k:"drafts",n:"📝 Entwürfe"},
+      {k:"sent",n:"📤 Gesendet"},
+      {k:"contacts",n:"👥 Kontakte"},
+      {k:"account",n:"⚙️ Konto"}
+    ];
+    var tabHtml="";
+    for(var i=0;i<tabs.length;i++){
+      tabHtml+='<button class="ms-tab'+(this.tab===tabs[i].k?" active":"")+'" data-em-tab="'+tabs[i].k+'">'+tabs[i].n+'</button>';
+    }
+    vp.innerHTML='<div class="ms-tabs">'+tabHtml+'</div>'
+      +'<div class="info-box"><b>📧 '+esc(account.address)+'</b> · '+esc(account.name)+'</div>'
+      +'<div id="emContent"></div>';
+    var self=this;
+    document.querySelectorAll("[data-em-tab]").forEach(function(b){
+      b.addEventListener("click",function(){self.tab=b.dataset.emTab;self.render();});
+    });
+    this.renderTab();
+    AIHelper.attachAll(vp);
+  },
+  renderTab:function(){
+    var el=document.getElementById("emContent");if(!el)return;
+    if(this.tab==="inbox")this.renderInbox(el);
+    else if(this.tab==="compose")this.renderCompose(el);
+    else if(this.tab==="drafts")this.renderList(el,"drafts","📝 Entwürfe");
+    else if(this.tab==="sent")this.renderList(el,"sent","📤 Gesendet");
+    else if(this.tab==="contacts")this.renderContacts(el);
+    else if(this.tab==="account")this.renderAccount(el);
+  },
+  renderInbox:function(el){
+    var inbox=Storage.get("em_inbox",[
+      {id:"w1",from:"welcome@haldo.ai",subject:"Willkommen bei HalDo Mail",body:"Hallo Halil,\n\ndein Konto Halil@haldo.ai ist aktiv.\n\nViel Spaß!\nDein HalDo Team",t:Date.now()-86400000,read:false},
+      {id:"w2",from:"support@haldo.ai",subject:"Erste Schritte",body:"Tipps:\n- Verfassen\n- Entwürfe\n- Kontakte\n- Vorlagen",t:Date.now()-3600000,read:false}
+    ]);
+    el.innerHTML='<div class="card"><div class="card-h"><h3>📥 Posteingang ('+inbox.length+')</h3></div>'
+      +'<div class="btn-row"><button class="btn secondary small" id="inbox_refresh">🔄 Aktualisieren</button></div>'
+      +'<div class="app-list" id="inbox_list"></div></div>';
+    var listEl=document.getElementById("inbox_list");
+    if(!inbox.length){listEl.innerHTML='<div class="info-box">Posteingang leer.</div>';return;}
+    inbox.sort(function(a,b){return b.t-a.t;});
+    inbox.forEach(function(m){
+      var d=document.createElement("div");d.className="app-list-item";
+      d.innerHTML='<span class="ico">'+(m.read?"📭":"📬")+'</span><div class="txt"><div class="t">'+esc(m.subject)+'</div><div class="d">'+esc(m.from)+' · '+new Date(m.t).toLocaleString("de-DE")+'</div></div>';
+      d.addEventListener("click",function(){
+        m.read=true;
+        var arr=Storage.get("em_inbox",[]);
+        if(arr.length){for(var i=0;i<arr.length;i++){if(arr[i].id===m.id)arr[i].read=true;}Storage.set("em_inbox",arr);}
+        document.getElementById("emContent").innerHTML=
+          '<div class="card"><div class="card-h"><h3>📧 '+esc(m.subject)+'</h3></div>'
+          +'<div class="info-box"><b>Von:</b> '+esc(m.from)+'<br><b>Datum:</b> '+new Date(m.t).toLocaleString("de-DE")+'</div>'
+          +'<div style="white-space:pre-wrap;font-size:12px;line-height:1.7;padding:12px;background:var(--bg-3);border-radius:9px">'+esc(m.body)+'</div>'
+          +'<div class="btn-row" style="margin-top:10px">'
+          +'<button class="btn secondary" id="em_reply">↩️ Antworten</button>'
+          +'<button class="btn secondary" id="em_forward">↪️ Weiterleiten</button>'
+          +'<button class="btn danger" id="em_del">🗑️ Löschen</button>'
+          +'<button class="btn secondary" id="em_back">← Zurück</button>'
+          +'</div></div>';
+        document.getElementById("em_back").addEventListener("click",function(){AppEmail.render();});
+        document.getElementById("em_reply").addEventListener("click",function(){
+          AppEmail.tab="compose";
+          AppEmail.state.compose={to:m.from,cc:"",subject:"Re: "+m.subject,body:"\n\n--- Ursprüngliche Nachricht ---\n"+m.body};
+          AppEmail.render();
+        });
+        document.getElementById("em_forward").addEventListener("click",function(){
+          AppEmail.tab="compose";
+          AppEmail.state.compose={to:"",cc:"",subject:"Fwd: "+m.subject,body:"\n\n--- Weitergeleitete Nachricht ---\nVon: "+m.from+"\n"+m.body};
+          AppEmail.render();
+        });
+        document.getElementById("em_del").addEventListener("click",function(){
+          if(!confirm("Löschen?"))return;
+          var arr=Storage.get("em_inbox",[]).filter(function(x){return x.id!==m.id;});
+          Storage.set("em_inbox",arr);
+          AppEmail.render();
+        });
+      });
+      listEl.appendChild(d);
+    });
+    var rf=document.getElementById("inbox_refresh");
+    if(rf)rf.addEventListener("click",function(){AppEmail.render();toast("🔄 Aktualisiert","ok");});
+  },
+  renderCompose:function(el){
+    var c=this.state.compose;
+    el.innerHTML='<div class="card"><div class="card-h"><h3>✏️ Neue E-Mail</h3></div>'
+      +'<div class="field"><label>An</label><input type="email" id="em_to" value="'+esc(c.to)+'" placeholder="empfaenger@example.com"></div>'
+      +'<div class="field"><label>CC</label><input type="email" id="em_cc" value="'+esc(c.cc)+'" placeholder="optional"></div>'
+      +'<div class="field"><label>Betreff</label><input type="text" id="em_subject" value="'+esc(c.subject)+'" placeholder="Betreff…"></div>'
+      +'<div class="field"><label>Nachricht</label><textarea id="em_body" data-ai style="min-height:220px" placeholder="Schreib deine Nachricht…">'+esc(c.body)+'</textarea></div>'
+      +'<div class="doc-toolbar">'
+      +'<button class="btn success" id="em_send">📤 Senden</button>'
+      +'<button class="btn secondary" id="em_draft">💾 Entwurf</button>'
+      +'<button class="btn secondary" id="em_copy">📋 Kopieren</button>'
+      +'<button class="btn secondary" id="em_print">🖨️ Drucken</button>'
+      +'<button class="btn secondary" id="em_clear">🗑️ Leeren</button>'
+      +'</div>'
+      +'<div class="field" style="margin-top:10px"><label>Vorlagen</label>'
+      +'<div class="template-grid" id="em_temps"></div></div>'
+      +'</div>';
+    var self=this;
+    function saveState(){
+      self.state.compose={to:val("em_to"),cc:val("em_cc"),subject:val("em_subject"),body:val("em_body")};
+    }
+    document.getElementById("em_send").addEventListener("click",function(){
+      saveState();
+      var to=val("em_to");
+      if(!to)return toast("⚠️ Empfänger fehlt","err");
+      // In Gesendet speichern
+      var sent=Storage.get("em_sent",[]);
+      sent.push({id:"s_"+Date.now(),to:to,cc:val("em_cc"),subject:val("em_subject"),body:val("em_body"),t:Date.now()});
+      Storage.set("em_sent",sent);
+      // mailto öffnen
+      window.location.href="mailto:"+encodeURIComponent(to)+"?subject="+encodeURIComponent(val("em_subject"))+"&body="+encodeURIComponent(val("em_body"));
+      toast("📤 Gesendet (in Gesendet gespeichert)","ok");
+      self.state.compose={to:"",cc:"",subject:"",body:""};
+    });
+    document.getElementById("em_draft").addEventListener("click",function(){
+      saveState();
+      var drafts=Storage.get("em_drafts",[]);
+      drafts.push({id:"d_"+Date.now(),to:val("em_to"),cc:val("em_cc"),subject:val("em_subject"),body:val("em_body"),t:Date.now()});
+      Storage.set("em_drafts",drafts);
+      toast("💾 Entwurf gespeichert","ok");
+      self.state.compose={to:"",cc:"",subject:"",body:""};
+      self.render();
+    });
+    document.getElementById("em_copy").addEventListener("click",function(){
+      if(navigator.clipboard)navigator.clipboard.writeText(val("em_body")).then(function(){toast("📋 Kopiert","ok");});
+    });
+    document.getElementById("em_print").addEventListener("click",function(){
+      var w=window.open("","_blank");
+      w.document.write('<html><head><title>'+esc(val("em_subject"))+'</title></head><body style="font-family:Arial;padding:30px"><h2>'+esc(val("em_subject"))+'</h2><p><b>An:</b> '+esc(val("em_to"))+'</p><hr><pre style="white-space:pre-wrap;font-family:Arial">'+esc(val("em_body"))+'</pre></body></html>');
+      w.document.close();
+      setTimeout(function(){w.print();},300);
+    });
+    document.getElementById("em_clear").addEventListener("click",function(){
+      if(!confirm("Leeren?"))return;
+      self.state.compose={to:"",cc:"",subject:"",body:""};
+      self.render();
+    });
+    // Templates
+    var temps=[
+      {n:"Termin",i:"📅",s:"Terminanfrage",b:"Sehr geehrte Damen und Herren,\n\nich möchte einen Termin vereinbaren.\n\nMit freundlichen Grüßen\n[Name]"},
+      {n:"Anfrage",i:"❓",s:"Anfrage",b:"Sehr geehrte Damen und Herren,\n\nich habe eine Frage:\n\n\n\nMit freundlichen Grüßen\n[Name]"},
+      {n:"Bewerbung",i:"💼",s:"Bewerbung",b:"Sehr geehrte Damen und Herren,\n\nmit großem Interesse bewerbe ich mich.\n\nMit freundlichen Grüßen\n[Name]"},
+      {n:"Kündigung",i:"📤",s:"Kündigung",b:"Sehr geehrte Damen und Herren,\n\nhiermit kündige ich fristgerecht.\n\nMit freundlichen Grüßen\n[Name]"}
+    ];
+    var tel=document.getElementById("em_temps");
+    tel.innerHTML=temps.map(function(t,i){return '<div class="template-card" data-etemp="'+i+'"><span class="i">'+t.i+'</span>'+t.n+'</div>';}).join("");
+    tel.querySelectorAll("[data-etemp]").forEach(function(card){
+      card.addEventListener("click",function(){
+        var t=temps[parseInt(card.dataset.etemp)];
+        document.getElementById("em_subject").value=t.s;
+        document.getElementById("em_body").value=t.b;
+      });
+    });
+    AIHelper.attachAll(el);
+  },
+  renderList:function(el,key,title){
+    var arr=Storage.get("em_"+key,[]);
+    arr.sort(function(a,b){return b.t-a.t;});
+    el.innerHTML='<div class="card"><div class="card-h"><h3>'+title+' ('+arr.length+')</h3></div><div class="app-list" id="em_list_'+key+'"></div></div>';
+    var listEl=document.getElementById("em_list_"+key);
+    if(!arr.length){listEl.innerHTML='<div class="info-box">Leer.</div>';return;}
+    var self=this;
+    arr.forEach(function(m){
+      var d=document.createElement("div");d.className="app-list-item";
+      d.innerHTML='<span class="ico">✉️</span><div class="txt"><div class="t">'+esc(m.subject||"(kein Betreff)")+'</div><div class="d">'+esc(m.to||"-")+' · '+new Date(m.t).toLocaleString("de-DE")+'</div></div><button class="del">🗑️</button>';
+      d.querySelector(".del").addEventListener("click",function(e){e.stopPropagation();if(!confirm("Löschen?"))return;Storage.set("em_"+key,Storage.get("em_"+key,[]).filter(function(x){return x.id!==m.id;}));self.render();});
+      d.addEventListener("click",function(){
+        self.tab="compose";
+        self.state.compose={to:m.to,cc:m.cc||"",subject:m.subject,body:m.body};
+        self.render();
+      });
+      listEl.appendChild(d);
+    });
+  },
+  renderContacts:function(el){
+    var contacts=Storage.get("em_contacts",[]);
+    el.innerHTML='<div class="card"><div class="card-h"><h3>👥 Kontakt hinzufügen</h3></div>'
+      +'<div class="field"><input type="text" id="ct_name" placeholder="Name"></div>'
+      +'<div class="field"><input type="email" id="ct_email" placeholder="E-Mail"></div>'
+      +'<div class="field"><input type="tel" id="ct_tel" placeholder="Telefon (optional)"></div>'
+      +'<button class="btn success full" id="ct_add">➕ Speichern</button>'
+      +'<div class="app-list" id="ct_list"></div></div>';
+    document.getElementById("ct_add").addEventListener("click",function(){
+      var n=val("ct_name").trim(),em=val("ct_email").trim();
+      if(!n||!em)return toast("⚠️ Name + E-Mail","err");
+      var arr=Storage.get("em_contacts",[]);
+      arr.push({id:"c_"+Date.now(),name:n,email:em,tel:val("ct_tel")});
+      Storage.set("em_contacts",arr);AppEmail.render();toast("👥 Gespeichert","ok");
+    });
+    var listEl=document.getElementById("ct_list");
+    if(!contacts.length){listEl.innerHTML='<div class="info-box">Keine Kontakte.</div>';return;}
+    contacts.forEach(function(c){
+      var d=document.createElement("div");d.className="app-list-item";
+      d.innerHTML='<span class="ico">👤</span><div class="txt"><div class="t">'+esc(c.name)+'</div><div class="d">'+esc(c.email)+(c.tel?" · "+esc(c.tel):"")+'</div></div><button class="del">🗑️</button>';
+      d.querySelector(".del").addEventListener("click",function(e){e.stopPropagation();Storage.set("em_contacts",Storage.get("em_contacts",[]).filter(function(x){return x.id!==c.id;}));AppEmail.render();});
+      d.addEventListener("click",function(){
+        AppEmail.tab="compose";
+        AppEmail.state.compose={to:c.email,cc:"",subject:"",body:""};
+        AppEmail.render();
+      });
+      listEl.appendChild(d);
+    });
+  },
+  renderAccount:function(el){
+    var a=Storage.get("email_account",{address:"Halil@haldo.ai",name:"Halil",signature:"Mit freundlichen Grüßen\nHalil"});
+    el.innerHTML='<div class="card"><div class="card-h"><h3>⚙️ E-Mail-Konto</h3></div>'
+      +'<div class="field"><label>E-Mail-Adresse</label><input type="text" id="acc_addr" value="'+esc(a.address)+'"></div>'
+      +'<div class="field"><label>Anzeigename</label><input type="text" id="acc_name" value="'+esc(a.name)+'"></div>'
+      +'<div class="field"><label>Signatur</label><textarea id="acc_sig" data-ai>'+esc(a.signature||"")+'</textarea></div>'
+      +'<button class="btn success full" id="acc_save">💾 Speichern</button>'
+      +'<div class="info-box">💡 Dies ist ein lokaler E-Mail-Client. Der Versand erfolgt per <b>mailto:</b> über dein echtes E-Mail-Programm (Outlook, Gmail, etc.).</div>'
+      +'<div class="info-box warn">⚠️ Kein echter SMTP-Server. Für echten Versand müsstest du einen Backend-Service anbinden.</div>'
+      +'</div>';
+    document.getElementById("acc_save").addEventListener("click",function(){
+      Storage.set("email_account",{address:val("acc_addr"),name:val("acc_name"),signature:val("acc_sig")});
+      toast("💾 Konto gespeichert","ok");AppEmail.render();
+    });
+    AIHelper.attachAll(el);
+  }
+};
 window.HalDo={Storage:Storage,Settings:Settings,Router:Router,AppLauncher:AppLauncher,Chat:Chat,Avatar:Avatar,TrafficEngine:TrafficEngine,AIHelper:AIHelper,APP_PLAN:APP_PLAN};
 })();
 </script>
