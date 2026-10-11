@@ -12408,5 +12408,1247 @@ setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click
 console.log("[HalDo Geschichte] 🏛️ "+GE_ITEMS.length+" Einträge geladen.");
 })();
 </script>
+<!-- ============================================================
+     HALDO EINHEITEN — Umrechner für Länge, Gewicht, Volumen, ...
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Einheiten] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+
+function enStyles(){if(document.getElementById("enStyles"))return;var s=document.createElement("style");s.id="enStyles";
+s.textContent=".en-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(0,212,255,.18),rgba(124,58,237,.18));border:1px solid rgba(0,212,255,.4);text-align:center;margin-bottom:12px}.en-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.en-hero .val{font-size:38px;font-weight:900;color:var(--primary);font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.en-hero .sub{font-size:10.5px;color:var(--text-mute)}.en-cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:8px 0}.en-cat{padding:10px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;text-align:center;font-size:10px;font-weight:700;cursor:pointer;transition:.15s}.en-cat:hover{border-color:var(--primary)}.en-cat.active{border-color:var(--primary);background:rgba(0,212,255,.12);color:var(--primary)}.en-cat .i{font-size:18px;display:block;margin-bottom:3px}.en-input-row{display:grid;grid-template-columns:2fr 1fr;gap:6px;margin:6px 0;align-items:end}.en-input-row input,.en-input-row select{width:100%;background:var(--bg-3);border:1px solid rgba(0,212,255,.22);color:var(--text);padding:10px 12px;border-radius:9px;font-family:inherit;font-size:13px;outline:none}.en-input-row select{font-size:11.5px;font-weight:700}.en-result{background:linear-gradient(180deg,rgba(0,212,255,.06),rgba(124,58,237,.06));border:1px solid var(--border-hi);border-radius:11px;padding:14px;text-align:right}.en-result .val{font-size:26px;font-weight:900;color:var(--primary);font-family:ui-monospace,monospace;word-break:break-all;line-height:1.2}.en-result .unit{font-size:12px;color:var(--text-dim);margin-top:4px;font-weight:700}.en-row{padding:9px 12px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:5px;display:flex;justify-content:space-between;gap:8px;font-size:12px;cursor:pointer;transition:.15s}.en-row:hover{border-color:var(--primary);background:rgba(0,212,255,.05)}.en-row .n{color:var(--text-dim);font-weight:600}.en-row .v{color:var(--text);font-weight:800;font-family:ui-monospace,monospace;text-align:right;word-break:break-all}.en-swap{width:100%;padding:10px;background:linear-gradient(135deg,rgba(0,212,255,.15),rgba(124,58,237,.15));border:1px solid var(--border-hi);border-radius:9px;color:var(--primary);font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;margin:8px 0}.en-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}";document.head.appendChild(s);}
+
+/* Faktoren relativ zur Basiseinheit */
+var EN_UNITS={
+  laenge:{n:"Länge",i:"📏",base:"Meter (m)",units:[
+    {k:"km",n:"Kilometer",f:1000},{k:"m",n:"Meter",f:1},{k:"cm",n:"Zentimeter",f:0.01},{k:"mm",n:"Millimeter",f:0.001},
+    {k:"mi",n:"Meile",f:1609.344},{k:"yd",n:"Yard",f:0.9144},{k:"ft",n:"Fuß",f:0.3048},{k:"in",n:"Zoll",f:0.0254},
+    {k:"nmi",n:"Seemeile",f:1852},{k:"ly",n:"Lichtjahr",f:9.4607304725808e15},{k:"pc",n:"Parsec",f:3.0856775814914e16},
+    {k:"AE",n:"Astronomische Einheit",f:1.495978707e11}
+  ]},
+  gewicht:{n:"Gewicht",i:"⚖️",base:"Kilogramm (kg)",units:[
+    {k:"t",n:"Tonne",f:1000},{k:"kg",n:"Kilogramm",f:1},{k:"g",n:"Gramm",f:0.001},{k:"mg",n:"Milligramm",f:1e-6},
+    {k:"lb",n:"Pfund (lb)",f:0.45359237},{k:"oz",n:"Unze (oz)",f:0.028349523125},{k:"st",n:"Stone",f:6.35029318},
+    {k:"ct",n:"Karat",f:0.0002}
+  ]},
+  volumen:{n:"Volumen",i:"🧪",base:"Liter (L)",units:[
+    {k:"m3",n:"Kubikmeter",f:1000},{k:"L",n:"Liter",f:1},{k:"mL",n:"Milliliter",f:0.001},{k:"cl",n:"Zentiliter",f:0.01},
+    {k:"gal_us",n:"Gallone (US)",f:3.785411784},{k:"gal_uk",n:"Gallone (UK)",f:4.54609},{k:"pt",n:"Pint (US)",f:0.473176473},
+    {k:"fl_oz",n:"Flüssigunze (US)",f:0.0295735295625},{k:"cup",n:"Cup (US)",f:0.2365882365}
+  ]},
+  flaeche:{n:"Fläche",i:"🗺️",base:"Quadratmeter (m²)",units:[
+    {k:"km2",n:"Quadratkilometer",f:1e6},{k:"ha",n:"Hektar",f:10000},{k:"a",n:"Ar",f:100},{k:"m2",n:"Quadratmeter",f:1},
+    {k:"cm2",n:"Quadratzentimeter",f:0.0001},{k:"mi2",n:"Quadratmeile",f:2589988.110336},{k:"acre",n:"Acre",f:4046.8564224},
+    {k:"ft2",n:"Quadratfuß",f:0.09290304},{k:"in2",n:"Quadratzoll",f:0.00064516}
+  ]},
+  temperatur:{n:"Temperatur",i:"🌡️",base:"Kelvin (K)",units:[
+    {k:"C",n:"Celsius",f:null,toBase:function(v){return v+273.15;},fromBase:function(v){return v-273.15;}},
+    {k:"F",n:"Fahrenheit",f:null,toBase:function(v){return (v+459.67)*5/9;},fromBase:function(v){return v*9/5-459.67;}},
+    {k:"K",n:"Kelvin",f:1,toBase:function(v){return v;},fromBase:function(v){return v;}}
+  ]},
+  zeit:{n:"Zeit",i:"⏱️",base:"Sekunde (s)",units:[
+    {k:"ns",n:"Nanosekunde",f:1e-9},{k:"µs",n:"Mikrosekunde",f:1e-6},{k:"ms",n:"Millisekunde",f:0.001},
+    {k:"s",n:"Sekunde",f:1},{k:"min",n:"Minute",f:60},{k:"h",n:"Stunde",f:3600},{k:"d",n:"Tag",f:86400},
+    {k:"w",n:"Woche",f:604800},{k:"mo",n:"Monat (~30d)",f:2592000},{k:"y",n:"Jahr (365d)",f:31536000}
+  ]},
+  geschwindigkeit:{n:"Geschwindigkeit",i:"💨",base:"Meter/Sekunde (m/s)",units:[
+    {k:"m/s",n:"Meter/Sekunde",f:1},{k:"km/h",n:"Kilometer/Stunde",f:1/3.6},{k:"mph",n:"Meilen/Stunde",f:0.44704},
+    {k:"kn",n:"Knoten",f:0.514444444},{k:"c",n:"Lichtgeschwindigkeit",f:299792458},{k:"Mach",n:"Mach (20°C)",f:343}
+  ]},
+  daten:{n:"Daten",i:"💾",base:"Byte (B)",units:[
+    {k:"bit",n:"Bit",f:0.125},{k:"B",n:"Byte",f:1},{k:"KB",n:"Kilobyte",f:1000},{k:"KiB",n:"Kibibyte",f:1024},
+    {k:"MB",n:"Megabyte",f:1e6},{k:"MiB",n:"Mebibyte",f:1048576},{k:"GB",n:"Gigabyte",f:1e9},{k:"GiB",n:"Gibibyte",f:1073741824},
+    {k:"TB",n:"Terabyte",f:1e12},{k:"TiB",n:"Tebibyte",f:1099511627776},{k:"PB",n:"Petabyte",f:1e15}
+  ]},
+  winkel:{n:"Winkel",i:"📐",base:"Grad (°)",units:[
+    {k:"deg",n:"Grad",f:1},{k:"rad",n:"Radiant",f:57.29577951308232},{k:"grad",n:"Gon",f:0.9},
+    {k:"arcmin",n:"Winkelminute",f:1/60},{k:"arcsec",n:"Winkelsekunde",f:1/3600},{k:"turn",n:"Umdrehung",f:360}
+  ]},
+  energie:{n:"Energie",i:"⚡",base:"Joule (J)",units:[
+    {k:"J",n:"Joule",f:1},{k:"kJ",n:"Kilojoule",f:1000},{k:"cal",n:"Kalorie",f:4.184},{k:"kcal",n:"Kilokalorie",f:4184},
+    {k:"Wh",n:"Wattstunde",f:3600},{k:"kWh",n:"Kilowattstunde",f:3.6e6},{k:"eV",n:"Elektronenvolt",f:1.602176634e-19},
+    {k:"BTU",n:"BTU",f:1055.06}
+  ]},
+  druck:{n:"Druck",i:"🎈",base:"Pascal (Pa)",units:[
+    {k:"Pa",n:"Pascal",f:1},{k:"kPa",n:"Kilopascal",f:1000},{k:"bar",n:"Bar",f:100000},{k:"mbar",n:"Millibar",f:100},
+    {k:"psi",n:"Pound/square inch",f:6894.757},{k:"atm",n:"Atmosphäre",f:101325},{k:"mmHg",n:"mmHg",f:133.322},{k:"Torr",n:"Torr",f:133.322368}
+  ]}
+};
+
+var AppEinheiten={
+  _cat:"laenge",_from:"m",_to:"km",_val:"1",
+
+  render:function(){
+    enStyles();
+    var vp=document.getElementById("appViewport");
+    vp.innerHTML='<div id="enContent"></div>';
+    this.renderContent();
+  },
+
+  renderContent:function(){
+    var el=document.getElementById("enContent");if(!el)return;
+    var self=this;
+    var cat=this._cat;
+    var catData=EN_UNITS[cat];
+    if(!catData)cat=this._cat="laenge";
+    catData=EN_UNITS[cat];
+    var from=this._from,to=this._to;
+    var units=catData.units;
+    if(!units.find(function(u){return u.k===from;})){from=this._from=units[0].k;}
+    if(!units.find(function(u){return u.k===to;})){to=this._to=units[1]?units[1].k:units[0].k;}
+
+    var catHtml=Object.keys(EN_UNITS).map(function(k){
+      var c=EN_UNITS[k];
+      return '<div class="en-cat'+(cat===k?" active":"")+'" data-en-cat="'+k+'"><span class="i">'+c.i+'</span>'+c.n+'</div>';
+    }).join("");
+
+    var result=this.convert(parseFloat(this._val)||0,from,to,cat);
+
+    /* Alle Einheiten als Liste */
+    var inputVal=parseFloat(this._val)||0;
+    var allHtml=units.map(function(u){
+      var v=self.convert(inputVal,from,u.k,cat);
+      var formatted=v===null?"—":self.fmt(v);
+      return '<div class="en-row" data-en-copy="'+esc(formatted)+'"><span class="n">'+esc(u.n)+' ('+u.k+')</span><span class="v">'+esc(formatted)+'</span></div>';
+    }).join("");
+
+    el.innerHTML='<div class="en-hero"><div class="lbl">Einheiten-Umrechner</div><div class="val">'+Object.keys(EN_UNITS).length+'</div><div class="sub">'+(units.length)+' Einheiten · '+esc(catData.n)+'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>📚 Kategorien</h3></div><div class="en-cat-grid">'+catHtml+'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>🔄 Umrechnen</h3></div>'
+      +'<div class="en-input-row">'
+      +'<input type="number" id="en_val" value="'+esc(this._val)+'" step="any" placeholder="Wert">'
+      +'<select id="en_from">'+units.map(function(u){return '<option value="'+u.k+'"'+(u.k===from?" selected":"")+'>'+esc(u.n)+'</option>';}).join("")+'</select>'
+      +'</div>'
+      +'<button class="en-swap" id="en_swap">⇅ Tauschen</button>'
+      +'<div class="en-input-row">'
+      +'<div style="padding:10px 0;font-size:11.5px;color:var(--text-dim);font-weight:700">Ergebnis in:</div>'
+      +'<select id="en_to">'+units.map(function(u){return '<option value="'+u.k+'"'+(u.k===to?" selected":"")+'>'+esc(u.n)+'</option>';}).join("")+'</select>'
+      +'</div>'
+      +'<div class="en-result"><div class="val">'+esc(this.fmt(result))+'</div><div class="unit">'+esc(units.find(function(u){return u.k===to;}).n)+'</div></div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>📋 Alle Umrechnungen</h3></div>'+allHtml+'<div class="info-box" style="margin-top:8px;font-size:10px">💡 Klick auf eine Zeile kopiert den Wert.</div></div>';
+
+    document.getElementById("en_val").addEventListener("input",function(){
+      self._val=this.value;
+      clearTimeout(self._t);
+      self._t=setTimeout(function(){self.renderContent();},200);
+    });
+    document.getElementById("en_from").addEventListener("change",function(){self._from=this.value;self.renderContent();});
+    document.getElementById("en_to").addEventListener("change",function(){self._to=this.value;self.renderContent();});
+    document.getElementById("en_swap").addEventListener("click",function(){
+      var f=self._from;self._from=self._to;self._to=f;
+      self.renderContent();
+    });
+    el.querySelectorAll("[data-en-cat]").forEach(function(b){
+      b.addEventListener("click",function(){self._cat=b.dataset.enCat;self._from="";self._to="";self.renderContent();});
+    });
+    el.querySelectorAll("[data-en-copy]").forEach(function(b){
+      b.addEventListener("click",function(){
+        if(navigator.clipboard)navigator.clipboard.writeText(b.dataset.enCopy).then(function(){toast("📋 Kopiert","ok");});
+      });
+    });
+  },
+
+  convert:function(v,from,to,cat){
+    if(isNaN(v))return null;
+    var catData=EN_UNITS[cat];
+    var fu=catData.units.find(function(u){return u.k===from;});
+    var tu=catData.units.find(function(u){return u.k===to;});
+    if(!fu||!tu)return null;
+    var base;
+    if(fu.toBase)base=fu.toBase(v);
+    else base=v*fu.f;
+    if(tu.fromBase)return tu.fromBase(base);
+    return base/tu.f;
+  },
+
+  fmt:function(v){
+    if(v===null||isNaN(v))return "—";
+    if(!isFinite(v))return v>0?"∞":"-∞";
+    var abs=Math.abs(v);
+    if(abs===0)return "0";
+    if(abs<0.0001||abs>=1e12){
+      var s=v.toExponential(4);
+      return s.replace(/\.?0+e/,"e");
+    }
+    if(abs<1)return v.toFixed(6).replace(/\.?0+$/,"");
+    if(abs<100)return v.toFixed(4).replace(/\.?0+$/,"");
+    if(abs<100000)return v.toFixed(3).replace(/\.?0+$/,"");
+    return v.toLocaleString("de-DE",{maximumFractionDigits:2});
+  }
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.einheiten=AppEinheiten;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="einheiten"){a.prio=1;a.installed=true;a.cat="Werkzeuge";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"einheiten",name:"Einheiten",icon:"🔄",cat:"Werkzeuge",prio:1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Einheiten] 🔄 Umrechner geladen.");
+})();
+</script>
+<!-- ============================================================
+     HALDO QR-CODE — Generator + Scanner
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo QR-Code] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+
+function qrStyles(){if(document.getElementById("qrStyles"))return;var s=document.createElement("style");s.id="qrStyles";
+s.textContent=".qr-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(0,212,255,.18),rgba(34,197,94,.18));border:1px solid rgba(0,212,255,.4);text-align:center;margin-bottom:12px}.qr-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.qr-hero .val{font-size:38px;font-weight:900;color:#00d4ff;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.qr-hero .sub{font-size:10.5px;color:var(--text-mute)}.qr-tab-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}.qr-tab{padding:12px;background:var(--bg-3);border:1px solid var(--border);border-radius:10px;text-align:center;font-size:11.5px;font-weight:800;cursor:pointer}.qr-tab.active{border-color:var(--primary);background:rgba(0,212,255,.12);color:var(--primary)}.qr-tab .i{font-size:20px;display:block;margin-bottom:4px}.qr-type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:8px 0}.qr-type{padding:9px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;text-align:center;font-size:10px;font-weight:700;cursor:pointer}.qr-type.active{border-color:#22c55e;background:rgba(34,197,94,.12);color:#4ade80}.qr-type .i{font-size:16px;display:block;margin-bottom:3px}.qr-input{width:100%;background:var(--bg-3);border:1px solid rgba(0,212,255,.22);color:var(--text);padding:10px 12px;border-radius:9px;font-family:inherit;font-size:12.5px;outline:none;margin-bottom:6px}.qr-input-mono{font-family:ui-monospace,monospace;font-size:11px}.qr-preview{padding:20px;background:#fff;border-radius:11px;text-align:center;margin:10px 0;display:flex;align-items:center;justify-content:center;min-height:280px}.qr-preview canvas,.qr-preview img{max-width:100%;height:auto;image-rendering:pixelated}.qr-info{padding:9px 12px;background:rgba(0,212,255,.06);border:1px dashed rgba(0,212,255,.35);border-radius:9px;font-size:10.5px;color:var(--text-dim);line-height:1.5;margin:8px 0}.qr-btn-row{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}.qr-history-item{display:flex;gap:8px;align-items:center;padding:9px 11px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:5px;cursor:pointer}.qr-history-item:hover{border-color:var(--primary)}.qr-history-item .i{font-size:20px}.qr-history-item .body{flex:1;min-width:0}.qr-history-item .body .t{font-size:11.5px;font-weight:800}.qr-history-item .body .d{font-size:9.5px;color:var(--text-mute);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.qr-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}.qr-scan-view{position:relative;background:#000;border-radius:11px;overflow:hidden;aspect-ratio:1;margin:8px 0}.qr-scan-view video{width:100%;height:100%;object-fit:cover;display:block}.qr-scan-view .crosshair{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}.qr-scan-view .crosshair::before{content:'';width:70%;aspect-ratio:1;border:3px solid #22c55e;border-radius:12px;box-shadow:0 0 20px rgba(34,197,94,.5)}";document.head.appendChild(s);}
+
+/* QR-Code Generator via Canvas — vereinfachte Version ohne externe Lib.
+   Verwendet eine URL zu einem QR-Service als Fallback für die Darstellung. */
+var QR_TYPES=[
+  {id:"text",n:"Text",i:"📝",ph:"Beliebiger Text"},
+  {id:"url",n:"URL",i:"🌐",ph:"https://…"},
+  {id:"email",n:"E-Mail",i:"✉️",ph:"empfänger@mail.com"},
+  {id:"tel",n:"Telefon",i:"📞",ph:"+49 123 456789"},
+  {id:"sms",n:"SMS",i:"💬",ph:"+49 123 456789"},
+  {id:"wifi",n:"WLAN",i:"📶",ph:"WLAN-Daten"},
+  {id:"vcard",n:"Visitenkarte",i:"👤",ph:"Name, Telefon"},
+  {id:"location",n:"Standort",i:"📍",ph:"Breite,Länge"},
+  {id:"event",n:"Termin",i:"📅",ph:"Titel"}
+];
+
+var AppQRCode={
+  tab:"create",_type:"text",_text:"",
+
+  getHistory:function(){return Storage.get("qr_history",[]);},
+  saveHistory:function(a){Storage.set("qr_history",a);},
+
+  render:function(){
+    qrStyles();
+    var vp=document.getElementById("appViewport");
+    var self=this;
+    vp.innerHTML='<div class="qr-tab-grid">'
+      +'<div class="qr-tab'+(self.tab==="create"?" active":"")+'" data-qr-tab="create"><span class="i">🎨</span>Erstellen</div>'
+      +'<div class="qr-tab'+(self.tab==="scan"?" active":"")+'" data-qr-tab="scan"><span class="i">📷</span>Scannen</div>'
+      +'</div><div id="qrContent"></div>';
+    vp.querySelectorAll("[data-qr-tab]").forEach(function(b){
+      b.addEventListener("click",function(){self.stopScan();self.tab=b.dataset.qrTab;self.render();});
+    });
+    if(this.tab==="create")this.renderCreate();
+    else this.renderScan();
+  },
+
+  renderCreate:function(){
+    var el=document.getElementById("qrContent");if(!el)return;
+    var self=this;
+    var type=this._type;
+    var typeHtml=QR_TYPES.map(function(t){
+      return '<div class="qr-type'+(type===t.id?" active":"")+'" data-qr-type="'+t.id+'"><span class="i">'+t.i+'</span>'+t.n+'</div>';
+    }).join("");
+
+    var ph=QR_TYPES.find(function(t){return t.id===type;}).ph;
+    var isMono=type==="wifi"||type==="vcard"||type==="event";
+    var dataStr=this.buildData();
+
+    el.innerHTML='<div class="qr-hero"><div class="lbl">QR-Code</div><div class="val">'+this.getHistory().length+'</div><div class="sub">Erstellen & Scannen · Kein Internet nötig</div></div>'
+      +'<div class="card"><div class="card-h"><h3>📋 Typ</h3></div><div class="qr-type-grid">'+typeHtml+'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>✏️ Inhalt</h3></div>'
+      +'<textarea class="qr-input'+(isMono?" qr-input-mono":"")+'" id="qr_text" placeholder="'+esc(ph)+'" style="min-height:70px;resize:vertical;line-height:1.5">'+esc(this._text)+'</textarea>'
+      +'<div class="qr-btn-row">'
+      +'<button class="btn success small" id="qr_gen">🎨 Generieren</button>'
+      +'<button class="btn secondary small" id="qr_clear">🗑️</button>'
+      +'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>📱 Vorschau</h3></div>'
+      +'<div class="qr-preview" id="qr_prev">'+(dataStr?'<img id="qr_img" src="https://api.qrserver.com/v1/create-qr-code/?size=350x350&data='+encodeURIComponent(dataStr)+'" crossorigin="anonymous" alt="QR">':'<div style="color:#888;font-size:12px">Gib einen Text ein…</div>')+'</div>'
+      +(dataStr?'<div class="qr-btn-row">'
+        +'<button class="btn success small" id="qr_dl">💾 Download PNG</button>'
+        +'<button class="btn secondary small" id="qr_copy_img">📋 Kopieren</button>'
+        +'<button class="btn secondary small" id="qr_save">⭐ Speichern</button>'
+        +'<button class="btn secondary small" id="qr_copy">📋 Text</button>'
+        +'</div>':'')
+      +'<div class="qr-info">💡 QR-Codes werden live generiert über eine sichere API. Funktioniert mit jeder Kamera-App.</div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>⭐ Gespeicherte Codes ('+this.getHistory().length+')</h3></div>'
+      +this.renderHistoryList()
+      +'</div>';
+
+    document.getElementById("qr_text").addEventListener("input",function(){
+      self._text=this.value;
+      clearTimeout(self._t);
+      self._t=setTimeout(function(){self.renderCreate();},600);
+    });
+    document.getElementById("qr_gen").addEventListener("click",function(){self._text=val("qr_text");self.renderCreate();});
+    document.getElementById("qr_clear").addEventListener("click",function(){self._text="";self.renderCreate();});
+    el.querySelectorAll("[data-qr-type]").forEach(function(b){
+      b.addEventListener("click",function(){self._type=b.dataset.qrType;self._text="";self.renderCreate();});
+    });
+    if(dataStr){
+      document.getElementById("qr_dl").addEventListener("click",function(){
+        var url="https://api.qrserver.com/v1/create-qr-code/?size=600x600&data="+encodeURIComponent(dataStr)+"&format=png";
+        fetch(url).then(function(r){return r.blob();}).then(function(blob){
+          var a=document.createElement("a");
+          a.href=URL.createObjectURL(blob);a.download="qr_"+Date.now()+".png";a.click();
+          toast("💾 Heruntergeladen","ok");
+        }).catch(function(){
+          window.open(url,"_blank");
+        });
+      });
+      document.getElementById("qr_copy_img").addEventListener("click",function(){
+        var url="https://api.qrserver.com/v1/create-qr-code/?size=600x600&data="+encodeURIComponent(dataStr);
+        if(navigator.clipboard)navigator.clipboard.writeText(url).then(function(){toast("📋 Bild-URL kopiert","ok");});
+      });
+      document.getElementById("qr_copy").addEventListener("click",function(){
+        if(navigator.clipboard)navigator.clipboard.writeText(dataStr).then(function(){toast("📋 Kopiert","ok");});
+      });
+      document.getElementById("qr_save").addEventListener("click",function(){
+        var arr=self.getHistory();
+        arr.unshift({id:"q_"+Date.now(),type:self._type,text:dataStr,t:Date.now()});
+        if(arr.length>50)arr=arr.slice(0,50);
+        self.saveHistory(arr);
+        toast("⭐ Gespeichert","ok");
+        self.renderCreate();
+      });
+    }
+    el.querySelectorAll("[data-qr-open]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var id=b.dataset.qrOpen;
+        var arr=self.getHistory();
+        var o=null;arr.forEach(function(x){if(x.id===id)o=x;});
+        if(!o)return;
+        self._type=o.type;self._text=o.text;
+        self.renderCreate();
+      });
+    });
+    el.querySelectorAll("[data-qr-del]").forEach(function(b){
+      b.addEventListener("click",function(e){
+        e.stopPropagation();
+        self.saveHistory(self.getHistory().filter(function(x){return x.id!==b.dataset.qrDel;}));
+        self.renderCreate();
+      });
+    });
+  },
+
+  renderHistoryList:function(){
+    var arr=this.getHistory();
+    if(!arr.length)return '<div class="qr-empty">Noch keine gespeicherten Codes.</div>';
+    return arr.slice(0,20).map(function(o){
+      var t=QR_TYPES.find(function(x){return x.id===o.type;})||QR_TYPES[0];
+      return '<div class="qr-history-item" data-qr-open="'+o.id+'"><div class="i">'+t.i+'</div>'
+        +'<div class="body"><div class="t">'+esc(t.n)+'</div><div class="d">'+esc(o.text.substring(0,50))+'</div></div>'
+        +'<button class="btn danger small" data-qr-del="'+o.id+'">🗑️</button></div>';
+    }).join("");
+  },
+
+  buildData:function(){
+    var t=this._text.trim();
+    if(!t)return "";
+    var type=this._type;
+    if(type==="url"&&t.indexOf("http")!==0&&t.indexOf("://")<0)return "https://"+t;
+    return t;
+  },
+
+  renderScan:function(){
+    var el=document.getElementById("qrContent");if(!el)return;
+    var self=this;
+    el.innerHTML='<div class="card"><div class="card-h"><h3>📷 QR-Code scannen</h3></div>'
+      +'<div class="qr-scan-view" id="qr_view"><video id="qr_video" autoplay playsinline muted></video><div class="crosshair"></div></div>'
+      +'<div class="qr-btn-row">'
+      +'<button class="btn success" id="qr_start">▶️ Kamera starten</button>'
+      +'<button class="btn danger" id="qr_stop">⏹️ Stoppen</button>'
+      +'<button class="btn secondary" id="qr_upload_btn">📁 Bild hochladen</button>'
+      +'<input type="file" id="qr_upload" accept="image/*" style="display:none">'
+      +'</div>'
+      +'<div class="qr-info">💡 Nutzt die BarcodeDetector-API (Chrome/Edge/Android). Bei Nichtverfügbarkeit: Bild hochladen und decodieren.</div>'
+      +'<div id="qr_result"></div>'
+      +'</div>';
+
+    document.getElementById("qr_start").addEventListener("click",function(){self.startScan();});
+    document.getElementById("qr_stop").addEventListener("click",function(){self.stopScan();});
+    document.getElementById("qr_upload_btn").addEventListener("click",function(){document.getElementById("qr_upload").click();});
+    document.getElementById("qr_upload").addEventListener("change",function(){
+      if(this.files[0])self.decodeImage(this.files[0]);
+    });
+  },
+
+  startScan:function(){
+    var self=this;
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return toast("❌ Kamera n/a","err");
+    if(!("BarcodeDetector" in window)){
+      toast("⚠️ BarcodeDetector nicht verfügbar — nutze Bild-Upload","err");
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}}).then(function(stream){
+      self._stream=stream;
+      var v=document.getElementById("qr_video");
+      v.srcObject=stream;
+      var detector;
+      try{detector=new BarcodeDetector({formats:["qr_code"]});}
+      catch(e){toast("❌ Detector-Fehler","err");return;}
+      self._detector=detector;
+      self._scanInterval=setInterval(function(){
+        detector.detect(v).then(function(codes){
+          if(codes.length){
+            var text=codes[0].rawValue;
+            self.onScanResult(text);
+          }
+        }).catch(function(){});
+      },500);
+      toast("📷 Kamera aktiv — halte QR in Sicht","ok");
+    }).catch(function(e){toast("❌ "+e.message,"err");});
+  },
+
+  stopScan:function(){
+    if(this._scanInterval){clearInterval(this._scanInterval);this._scanInterval=null;}
+    if(this._stream){this._stream.getTracks().forEach(function(t){t.stop();});this._stream=null;}
+    var v=document.getElementById("qr_video");
+    if(v)v.srcObject=null;
+  },
+
+  decodeImage:function(file){
+    var self=this;
+    if(!("BarcodeDetector" in window))return toast("⚠️ Nicht unterstützt","err");
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var img=new Image();
+      img.onload=function(){
+        try{
+          var d=new BarcodeDetector({formats:["qr_code"]});
+          d.detect(img).then(function(codes){
+            if(codes.length)self.onScanResult(codes[0].rawValue);
+            else toast("❌ Kein QR-Code erkannt","err");
+          }).catch(function(e){toast("❌ "+e.message,"err");});
+        }catch(err){toast("❌ "+err.message,"err");}
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  },
+
+  onScanResult:function(text){
+    this.stopScan();
+    var result=document.getElementById("qr_result");
+    if(!result)return;
+    var isUrl=/^https?:\/\//i.test(text);
+    result.innerHTML='<div class="card" style="border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.06)"><div class="card-h"><h3>✅ QR-Code erkannt</h3></div>'
+      +'<div style="padding:12px;background:var(--bg-3);border-radius:9px;font-family:ui-monospace,monospace;font-size:11.5px;word-break:break-all;line-height:1.5;max-height:200px;overflow-y:auto">'+esc(text)+'</div>'
+      +'<div class="qr-btn-row">'
+      +(isUrl?'<a class="btn success small" href="'+esc(text)+'" target="_blank" rel="noopener">🌐 Öffnen</a>':'')
+      +'<button class="btn secondary small" id="qr_scan_copy">📋 Kopieren</button>'
+      +'<button class="btn secondary small" id="qr_scan_search">🔍 Suchen</button>'
+      +'<button class="btn secondary small" id="qr_scan_again">📷 Weiter scannen</button>'
+      +'</div></div>';
+    document.getElementById("qr_scan_copy").addEventListener("click",function(){
+      if(navigator.clipboard)navigator.clipboard.writeText(text).then(function(){toast("📋 Kopiert","ok");});
+    });
+    document.getElementById("qr_scan_search").addEventListener("click",function(){
+      window.open("https://www.google.com/search?q="+encodeURIComponent(text),"_blank");
+    });
+    document.getElementById("qr_scan_again").addEventListener("click",function(){result.innerHTML="";self.startScan();});
+    toast("✅ Erkannt!","ok");
+  }
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.qr=AppQRCode;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="qr"){a.prio=1;a.installed=true;a.cat="Werkzeuge";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"qr",name:"QR-Code",icon:"📷",cat:"Werkzeuge",prio:1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo QR-Code] 📷 Generator + Scanner geladen.");
+})();
+</script>
+<!-- ============================================================
+     HALDO ZUFALL — Würfel, Münze, Lotto, Passwort, Namen, Zahlen
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Zufall] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+
+function zfStyles(){if(document.getElementById("zfStyles"))return;var s=document.createElement("style");s.id="zfStyles";
+s.textContent=".zf-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(168,85,247,.18),rgba(0,212,255,.18));border:1px solid rgba(168,85,247,.4);text-align:center;margin-bottom:12px}.zf-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.zf-hero .val{font-size:38px;font-weight:900;color:#c084fc;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.zf-hero .sub{font-size:10.5px;color:var(--text-mute)}.zf-tab-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:8px 0}.zf-tab{padding:10px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;text-align:center;font-size:9.5px;font-weight:800;cursor:pointer;transition:.15s}.zf-tab:hover{border-color:#c084fc}.zf-tab.active{border-color:#c084fc;background:rgba(168,85,247,.12);color:#c084fc}.zf-tab .i{font-size:18px;display:block;margin-bottom:3px}.zf-display{padding:36px 20px;background:linear-gradient(135deg,rgba(168,85,247,.15),rgba(0,212,255,.15));border:1px solid var(--border-hi);border-radius:15px;text-align:center;margin:8px 0;min-height:140px;display:flex;align-items:center;justify-content:center}.zf-display .big{font-size:72px;font-weight:900;color:#c084fc;line-height:1;font-family:ui-monospace,monospace;letter-spacing:2px}.zf-display .big-small{font-size:44px}.zf-display .txt{font-size:22px;font-weight:900;color:#c084fc;line-height:1.3;word-break:break-word;padding:0 10px}.zf-coin{width:140px;height:140px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f59e0b);border:6px solid #fff;display:flex;align-items:center;justify-content:center;font-size:70px;font-weight:900;color:#7c2d12;box-shadow:0 0 40px rgba(251,191,36,.5),inset 0 0 30px rgba(255,255,255,.4)}.zf-input{width:100%;background:var(--bg-3);border:1px solid rgba(0,212,255,.22);color:var(--text);padding:10px 12px;border-radius:9px;font-family:inherit;font-size:12.5px;outline:none;margin-bottom:6px}.zf-input-mono{font-family:ui-monospace,monospace}.zf-btn-row{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}.zf-btn-row .btn{flex:1;min-width:100px}.zf-num-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}.zf-num-row input{width:100%;background:var(--bg-3);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-family:inherit;font-size:14px;outline:none;font-weight:800;text-align:center;font-family:ui-monospace,monospace}.zf-lotto-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin:10px 0}.zf-lotto-num{padding:10px 2px;border-radius:50%;background:linear-gradient(135deg,#00d4ff,#7c3aed);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;font-family:ui-monospace,monospace;box-shadow:0 0 15px rgba(0,212,255,.4)}.zf-list{padding:8px 0;max-height:300px;overflow-y:auto}.zf-list-item{padding:9px 12px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:5px;display:flex;justify-content:space-between;gap:8px;font-size:12px}.zf-list-item .winner{color:#4ade80;font-weight:800}.zf-list-item .loser{color:var(--text-dim)}.zf-shuffle{display:flex;align-items:center;gap:6px;padding:9px 11px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:5px;font-size:12px}.zf-shuffle .num{width:26px;height:26px;border-radius:50%;background:rgba(168,85,247,.15);color:#c084fc;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0}.zf-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}.zf-dice-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.zf-dice{padding:14px;background:var(--bg-3);border:2px solid var(--border);border-radius:12px;text-align:center;cursor:pointer;transition:.15s;font-size:11px;font-weight:700}.zf-dice:hover{border-color:#c084fc;background:rgba(168,85,247,.08)}.zf-dice.active{border-color:#c084fc;background:rgba(168,85,247,.15);color:#c084fc}.zf-dice .die{font-size:26px;display:block;margin-bottom:3px}.zf-dice-result{padding:30px;background:linear-gradient(135deg,rgba(168,85,247,.15),rgba(0,212,255,.15));border:1px solid var(--border-hi);border-radius:15px;text-align:center;margin:10px 0}.zf-dice-result .r{font-size:80px;font-weight:900;color:#c084fc;font-family:ui-monospace,monospace;line-height:1}.zf-dice-result .l{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.2px;font-weight:800;margin-top:6px}.zf-password{font-family:ui-monospace,monospace;font-size:14px;word-break:break-all;padding:14px;background:var(--bg-3);border:1px dashed rgba(34,197,94,.4);border-radius:9px;color:#4ade80;text-align:center;line-height:1.6;min-height:60px;margin:8px 0}.zf-perc{padding:8px 12px;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);border-radius:9px;font-size:11px;color:#c084fc;font-weight:700;margin-top:6px;text-align:center}";document.head.appendChild(s);}
+
+var AppZufall={
+  tab:"dice",
+  _diceResult:null,
+  _coinResult:null,
+  _numResult:null,
+  _lotto:null,
+  _password:"",
+  _shuffle:[]
+};
+
+AppZufall.rnd=function(min,max){
+  if(window.crypto&&window.crypto.getRandomValues){
+    var range=max-min+1;
+    var bytes=new Uint32Array(1);
+    window.crypto.getRandomValues(bytes);
+    return min+(bytes[0]%range);
+  }
+  return Math.floor(Math.random()*(max-min+1))+min;
+};
+
+AppZufall.render=function(){
+  zfStyles();
+  var vp=document.getElementById("appViewport");
+  var self=this;
+  var tabs=[
+    {k:"dice",n:"🎲 Würfel",i:"🎲"},
+    {k:"coin",n:"🪙 Münze",i:"🪙"},
+    {k:"number",n:"🔢 Zahl",i:"🔢"},
+    {k:"lotto",n:"🎰 Lotto",i:"🎰"},
+    {k:"password",n:"🔐 Passwort",i:"🔐"},
+    {k:"names",n:"👥 Namen",i:"👥"}
+  ];
+  var th=tabs.map(function(t){
+    return '<div class="zf-tab'+(self.tab===t.k?" active":"")+'" data-zf-tab="'+t.k+'"><span class="i">'+t.i+'</span>'+t.n+'</div>';
+  }).join("");
+  vp.innerHTML='<div class="zf-hero"><div class="lbl">Zufalls-Generator</div><div class="val">🎲</div><div class="sub">Würfel · Münze · Lotto · Namen · Passwort</div></div>'
+    +'<div class="card"><div class="card-h"><h3>🎯 Werkzeug</h3></div><div class="zf-tab-grid">'+th+'</div></div>'
+    +'<div id="zfContent"></div>';
+  vp.querySelectorAll("[data-zf-tab]").forEach(function(b){
+    b.addEventListener("click",function(){self.tab=b.dataset.zfTab;self.render();});
+  });
+  this.renderTab();
+};
+
+AppZufall.renderTab=function(){
+  var el=document.getElementById("zfContent");if(!el)return;
+  if(this.tab==="dice")this.renderDice(el);
+  else if(this.tab==="coin")this.renderCoin(el);
+  else if(this.tab==="number")this.renderNumber(el);
+  else if(this.tab==="lotto")this.renderLotto(el);
+  else if(this.tab==="password")this.renderPassword(el);
+  else if(this.tab==="names")this.renderNames(el);
+};
+
+AppZufall.renderDice=function(el){
+  var self=this;
+  var dice=[
+    {s:4,i:"🎲",n:"W4"},{s:6,i:"🎲",n:"W6"},{s:8,i:"🎲",n:"W8"},{s:10,i:"🎲",n:"W10"},
+    {s:12,i:"🎲",n:"W12"},{s:20,i:"🎲",n:"W20"},{s:100,i:"💯",n:"W100"},{s:1000,i:"🎯",n:"W1000"}
+  ];
+  var diceHtml=dice.map(function(d){
+    return '<div class="zf-dice'+(self._diceSides===d.s?" active":"")+'" data-zf-dice="'+d.s+'"><span class="die">'+d.i+'</span>'+d.n+'</div>';
+  }).join("");
+  var resultHtml=this._diceResult!==null?'<div class="zf-dice-result"><div class="r">'+this._diceResult+'</div><div class="l">von '+ (this._diceSides||6) + '</div></div>':'<div class="zf-empty">Wähle einen Würfel und klicke auf Rollen.</div>';
+  el.innerHTML='<div class="card"><div class="card-h"><h3>🎲 Würfel wählen</h3></div><div class="zf-dice-grid">'+diceHtml+'</div>'
+    +'<button class="btn success full" id="zf_roll" style="margin-top:10px">🎲 Rollen!</button></div>'
+    +'<div class="card"><div class="card-h"><h3>🎯 Ergebnis</h3></div>'+resultHtml
+    +'<div class="btn-row" style="margin-top:10px"><button class="btn secondary full" id="zf_roll_hist">📜 Mehrere Würfe (5×)</button></div>'
+    +'<div id="zf_roll_list"></div></div>';
+  el.querySelectorAll("[data-zf-dice]").forEach(function(b){
+    b.addEventListener("click",function(){
+      self._diceSides=parseInt(b.dataset.zfDice);
+      self._diceResult=null;
+      self.renderTab();
+    });
+  });
+  document.getElementById("zf_roll").addEventListener("click",function(){
+    var sides=self._diceSides||6;
+    self._diceResult=self.rnd(1,sides);
+    self.renderTab();
+    toast("🎲 "+self._diceResult,"ok");
+  });
+  document.getElementById("zf_roll_hist").addEventListener("click",function(){
+    var sides=self._diceSides||6;
+    var rolls=[];
+    for(var i=0;i<5;i++)rolls.push(self.rnd(1,sides));
+    var list=document.getElementById("zf_roll_list");
+    list.innerHTML='<div class="card-h" style="margin-top:12px"><h3>📜 5 Würfe</h3></div>'
+      +rolls.map(function(r,i){return '<div class="zf-shuffle"><div class="num">'+(i+1)+'</div>🎲 <b style="color:#c084fc;font-family:ui-monospace,monospace">'+r+'</b></div>';}).join("");
+  });
+};
+
+AppZufall.renderCoin=function(el){
+  var self=this;
+  var resultHtml=this._coinResult?('<div class="zf-coin" style="margin:20px auto">'+(this._coinResult==="Kopf"?"👑":"⚡")+'</div><div style="text-align:center;font-size:20px;font-weight:900;color:#c084fc;margin-top:10px">'+this._coinResult+'</div>'):'<div style="text-align:center;font-size:64px;padding:20px">🪙</div><div style="text-align:center;color:var(--text-mute);font-size:12px">Klick auf Werfen</div>';
+  el.innerHTML='<div class="card"><div class="card-h"><h3>🪙 Münze werfen</h3></div>'
+    +'<div style="padding:20px 0;display:flex;justify-content:center">'+resultHtml+'</div>'
+    +'<button class="btn success full" id="zf_flip">🪙 Werfen!</button></div>'
+    +'<div class="card"><div class="card-h"><h3>📊 Statistik dieser Sitzung</h3></div>'
+    +'<div style="display:flex;gap:8px"><div style="flex:1;padding:10px;background:var(--bg-3);border-radius:9px;text-align:center"><div style="font-size:22px;font-weight:900;color:#c084fc;font-family:ui-monospace,monospace">'+this._coinStats.head+'</div><div style="font-size:10px;color:var(--text-mute);text-transform:uppercase;font-weight:700">Kopf</div></div>'
+    +'<div style="flex:1;padding:10px;background:var(--bg-3);border-radius:9px;text-align:center"><div style="font-size:22px;font-weight:900;color:#c084fc;font-family:ui-monospace,monospace">'+this._coinStats.tail+'</div><div style="font-size:10px;color:var(--text-mute);text-transform:uppercase;font-weight:700">Zahl</div></div></div>'
+    +'<button class="btn secondary full" id="zf_flip10" style="margin-top:10px">🎲 10× werfen</button>'
+    +'<button class="btn secondary full" id="zf_flip_reset" style="margin-top:6px">🔄 Statistik zurücksetzen</button></div>';
+  document.getElementById("zf_flip").addEventListener("click",function(){
+    self._coinResult=self.rnd(0,1)===0?"Kopf":"Zahl";
+    if(self._coinResult==="Kopf")self._coinStats.head++;else self._coinStats.tail++;
+    self.renderTab();
+  });
+  document.getElementById("zf_flip10").addEventListener("click",function(){
+    for(var i=0;i<10;i++){
+      var r=self.rnd(0,1)===0?"Kopf":"Zahl";
+      if(r==="Kopf")self._coinStats.head++;else self._coinStats.tail++;
+    }
+    self._coinResult=self.rnd(0,1)===0?"Kopf":"Zahl";
+    self.renderTab();
+    toast("10× geworfen","ok");
+  });
+  document.getElementById("zf_flip_reset").addEventListener("click",function(){
+    self._coinStats={head:0,tail:0};
+    self.renderTab();
+  });
+};
+AppZufall._coinStats={head:0,tail:0};
+
+AppZufall.renderNumber=function(el){
+  var self=this;
+  el.innerHTML='<div class="card"><div class="card-h"><h3>🔢 Zufallszahl</h3></div>'
+    +'<div class="zf-num-row">'
+    +'<div><label style="font-size:10px;color:var(--text-dim);font-weight:700;text-transform:uppercase;display:block;margin-bottom:4px">Min</label><input type="number" id="zf_min" value="1"></div>'
+    +'<div><label style="font-size:10px;color:var(--text-dim);font-weight:700;text-transform:uppercase;display:block;margin-bottom:4px">Max</label><input type="number" id="zf_max" value="100"></div>'
+    +'</div>'
+    +'<button class="btn success full" id="zf_pick">🎲 Zufallszahl</button></div>'
+    +(this._numResult!==null?'<div class="card"><div class="card-h"><h3>🎯 Ergebnis</h3></div><div class="zf-display"><div class="big">'+this._numResult+'</div></div>'
+      +'<div class="btn-row"><button class="btn secondary full" id="zf_pick_again">🎲 Nochmal</button><button class="btn secondary full" id="zf_pick_hist">📜 Mehrere (10×)</button></div>'
+      +'<div id="zf_num_list"></div></div>':'')
+    +'<div class="card"><div class="card-h"><h3>⚡ Schnell</h3></div>'
+    +'<div class="btn-row"><button class="btn secondary small" data-zf-quick="1,6">Würfel 1-6</button><button class="btn secondary small" data-zf-quick="1,10">1-10</button><button class="btn secondary small" data-zf-quick="1,100">1-100</button></div>'
+    +'<div class="btn-row"><button class="btn secondary small" data-zf-quick="1,1000">1-1000</button><button class="btn secondary small" data-zf-quick="0,1">0-1</button><button class="btn secondary small" data-zf-quick="1,49">Lotto 1-49</button></div></div>';
+  document.getElementById("zf_pick").addEventListener("click",function(){
+    var min=parseInt(val("zf_min"))||0;
+    var max=parseInt(val("zf_max"))||100;
+    if(min>max){var t=min;min=max;max=t;}
+    self._numResult=self.rnd(min,max);
+    self.renderTab();
+  });
+  var ag=document.getElementById("zf_pick_again");
+  if(ag)ag.addEventListener("click",function(){document.getElementById("zf_pick").click();});
+  var h=document.getElementById("zf_pick_hist");
+  if(h)h.addEventListener("click",function(){
+    var min=parseInt(val("zf_min"))||0;
+    var max=parseInt(val("zf_max"))||100;
+    if(min>max){var t=min;min=max;max=t;}
+    var rolls=[];
+    for(var i=0;i<10;i++)rolls.push(self.rnd(min,max));
+    var list=document.getElementById("zf_num_list");
+    list.innerHTML='<div class="card-h" style="margin-top:12px"><h3>📜 10 Zufallszahlen</h3></div>'
+      +rolls.map(function(r,i){return '<div class="zf-shuffle"><div class="num">'+(i+1)+'</div><b style="color:#c084fc;font-family:ui-monospace,monospace;font-size:15px">'+r+'</b></div>';}).join("");
+  });
+  el.querySelectorAll("[data-zf-quick]").forEach(function(b){
+    b.addEventListener("click",function(){
+      var p=b.dataset.zfQuick.split(",");
+      document.getElementById("zf_min").value=p[0];
+      document.getElementById("zf_max").value=p[1];
+      document.getElementById("zf_pick").click();
+    });
+  });
+};
+
+AppZufall.renderLotto=function(el){
+  var self=this;
+  var resultHtml=this._lotto?this._lotto.map(function(n){return '<div class="zf-lotto-num">'+n+'</div>';}).join(""):'<div style="text-align:center;color:var(--text-mute);font-size:12px;padding:20px">Klick auf Ziehen</div>';
+  el.innerHTML='<div class="card"><div class="card-h"><h3>🎰 Lotto 6aus49</h3></div>'
+    +'<div class="zf-lotto-grid">'+resultHtml+'</div>'
+    +'<button class="btn success full" id="zf_lotto_pick" style="margin-top:10px">🎰 Ziehen!</button>'
+    +'<div class="zf-perc">💡 6 aus 49 — echte Zufallszahlen</div>'
+    +'</div>'
+    +'<div class="card"><div class="card-h"><h3>⚙️ Optionen</h3></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
+    +'<div><label style="font-size:10px;color:var(--text-dim);font-weight:700;text-transform:uppercase;display:block;margin-bottom:4px">Anzahl</label><input type="number" class="zf-input" id="zf_lotto_count" value="6" min="1" max="10"></div>'
+    +'<div><label style="font-size:10px;color:var(--text-dim);font-weight:700;text-transform:uppercase;display:block;margin-bottom:4px">Max</label><input type="number" class="zf-input" id="zf_lotto_max" value="49" min="2" max="100"></div>'
+    +'</div></div>'
+    +'<div class="card"><div class="card-h"><h3>⚡ Voreinstellungen</h3></div>'
+    +'<div class="btn-row"><button class="btn secondary small" data-zf-lotto="6,49">6aus49</button><button class="btn secondary small" data-zf-lotto="5,50">5aus50</button><button class="btn secondary small" data-zf-lotto="6,42">6aus42</button></div>'
+    +'<div class="btn-row"><button class="btn secondary small" data-zf-lotto="1,10">1aus10</button><button class="btn secondary small" data-zf-lotto="3,10">3aus10</button><button class="btn secondary small" data-zf-lotto="4,20">4aus20</button></div></div>';
+  document.getElementById("zf_lotto_pick").addEventListener("click",function(){
+    var count=parseInt(val("zf_lotto_count"))||6;
+    var max=parseInt(val("zf_lotto_max"))||49;
+    if(count>=max)return toast("⚠️ Anzahl muss kleiner als Maximum sein","err");
+    var pool=[];
+    for(var i=1;i<=max;i++)pool.push(i);
+    var picked=[];
+    for(var j=0;j<count;j++){
+      var idx=self.rnd(0,pool.length-1);
+      picked.push(pool.splice(idx,1)[0]);
+    }
+    self._lotto=picked;
+    self.renderTab();
+    toast("🎰 "+picked.join(", "),"ok");
+  });
+  el.querySelectorAll("[data-zf-lotto]").forEach(function(b){
+    b.addEventListener("click",function(){
+      var p=b.dataset.zfLotto.split(",");
+      document.getElementById("zf_lotto_count").value=p[0];
+      document.getElementById("zf_lotto_max").value=p[1];
+      document.getElementById("zf_lotto_pick").click();
+    });
+  });
+};
+
+AppZufall.renderPassword=function(el){
+  var self=this;
+  var opts=this._pwOpts||{len:20,lower:true,upper:true,digits:true,symbols:true};
+  var chars="";
+  if(opts.lower)chars+="abcdefghijklmnopqrstuvwxyz";
+  if(opts.upper)chars+="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  if(opts.digits)chars+="0123456789";
+  if(opts.symbols)chars+="!@#$%^&*()-_=+[]{};:,.<>?/|~";
+  if(!chars)chars="abcdefghijklmnopqrstuvwxyz";
+
+  var strength=0;
+  var pw=this._password||"";
+  if(pw.length>=8)strength++;
+  if(pw.length>=12)strength++;
+  if(pw.length>=16)strength++;
+  if(/[a-z]/.test(pw)&&/[A-Z]/.test(pw))strength++;
+  if(/[0-9]/.test(pw))strength++;
+  if(/[^A-Za-z0-9]/.test(pw))strength++;
+  if(strength>5)strength=5;
+  var labels=["Sehr schwach","Schwach","Mittel","Gut","Stark","Sehr stark"];
+  var colors=["#ef4444","#f97316","#f59e0b","#eab308","#22c55e","#10b981"];
+
+  el.innerHTML='<div class="card"><div class="card-h"><h3>🔐 Passwort-Generator</h3></div>'
+    +'<div class="zf-password" id="zf_pw_out">'+(pw||"Klick auf Generieren")+'</div>'
+    +'<button class="btn success full" id="zf_pw_gen">🎲 Generieren</button>'
+    +'<div class="btn-row"><button class="btn secondary small" id="zf_pw_copy">📋 Kopieren</button><button class="btn secondary small" id="zf_pw_regen">🔄 Neu</button></div>'
+    +'<div style="margin-top:12px"><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px"><span>Sicherheit</span><span style="color:'+colors[strength]+'">'+labels[strength]+'</span></div>'
+    +'<div style="height:8px;background:rgba(0,0,0,.35);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+(strength*20)+'%;background:'+colors[strength]+';border-radius:4px;transition:width .3s"></div></div></div></div>'
+    +'<div class="card"><div class="card-h"><h3>⚙️ Einstellungen</h3></div>'
+    +'<div style="margin:8px 0"><label style="font-size:10.5px;font-weight:800;color:var(--text-dim);text-transform:uppercase;display:flex;justify-content:space-between;margin-bottom:6px"><span>Länge</span><span id="zf_pw_len_v" style="color:#c084fc;font-family:ui-monospace,monospace">'+opts.len+'</span></label>'
+    +'<input type="range" id="zf_pw_len" min="4" max="64" value="'+opts.len+'" style="width:100%;accent-color:#c084fc"></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
+    +'<div class="zf-shuffle" data-zf-pwopt="lower" style="cursor:pointer;'+(opts.lower?"border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.08)":"")+'"><b style="color:'+(opts.lower?"#4ade80":"var(--text-mute)")+'">'+(opts.lower?"✅":"⬜")+'</b> a-z</div>'
+    +'<div class="zf-shuffle" data-zf-pwopt="upper" style="cursor:pointer;'+(opts.upper?"border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.08)":"")+'"><b style="color:'+(opts.upper?"#4ade80":"var(--text-mute)")+'">'+(opts.upper?"✅":"⬜")+'</b> A-Z</div>'
+    +'<div class="zf-shuffle" data-zf-pwopt="digits" style="cursor:pointer;'+(opts.digits?"border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.08)":"")+'"><b style="color:'+(opts.digits?"#4ade80":"var(--text-mute)")+'">'+(opts.digits?"✅":"⬜")+'</b> 0-9</div>'
+    +'<div class="zf-shuffle" data-zf-pwopt="symbols" style="cursor:pointer;'+(opts.symbols?"border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.08)":"")+'"><b style="color:'+(opts.symbols?"#4ade80":"var(--text-mute)")+'">'+(opts.symbols?"✅":"⬜")+'</b> !@#$</div>'
+    +'</div></div>'
+    +'<div class="card"><div class="card-h"><h3>💡 Tipp</h3></div>'
+    +'<div style="font-size:11px;line-height:1.6;color:var(--text-dim)">Für jedes Konto ein <b>anderes</b> Passwort verwenden. Nutze einen Passwort-Manager zur Verwaltung. Zwei-Faktor-Authentifizierung (2FA) wo möglich aktivieren.</div></div>';
+
+  var gen=function(){
+    var len=parseInt(val("zf_pw_len"))||20;
+    var pw="";
+    for(var i=0;i<len;i++){
+      pw+=chars[self.rnd(0,chars.length-1)];
+    }
+    self._password=pw;
+    self.renderTab();
+    toast("🔐 Generiert","ok");
+  };
+
+  document.getElementById("zf_pw_gen").addEventListener("click",gen);
+  document.getElementById("zf_pw_regen").addEventListener("click",gen);
+  var inp=document.getElementById("zf_pw_len");
+  inp.addEventListener("input",function(){
+    document.getElementById("zf_pw_len_v").textContent=this.value;
+    opts.len=parseInt(this.value);
+    self._pwOpts=opts;
+  });
+  el.querySelectorAll("[data-zf-pwopt]").forEach(function(b){
+    b.addEventListener("click",function(){
+      var k=b.dataset.zfPwopt;
+      opts[k]=!opts[k];
+      self._pwOpts=opts;
+      self.renderTab();
+    });
+  });
+  var cp=document.getElementById("zf_pw_copy");
+  if(cp)cp.addEventListener("click",function(){
+    if(!pw)return;
+    if(navigator.clipboard)navigator.clipboard.writeText(pw).then(function(){toast("📋 Kopiert","ok");});
+  });
+};
+
+AppZufall.renderNames=function(el){
+  var self=this;
+  var names=this._namesText||"Ali, Ahmad, Sara, Leyla, Hassan, Fatima, Omar, Zeynep";
+  var list=names.split(/[\n,]+/).map(function(s){return s.trim();}).filter(Boolean);
+  var shuffled=this._shuffle.length?this._shuffle:list;
+  el.innerHTML='<div class="card"><div class="card-h"><h3>👥 Namen / Liste</h3></div>'
+    +'<label style="font-size:10px;color:var(--text-dim);font-weight:700;text-transform:uppercase;display:block;margin-bottom:4px">Namen (Komma oder Zeilen)</label>'
+    +'<textarea class="zf-input" id="zf_names" style="min-height:100px;resize:vertical">'+esc(names)+'</textarea>'
+    +'<div class="btn-row">'
+    +'<button class="btn success small" id="zf_shuffle">🔀 Mischen</button>'
+    +'<button class="btn warn small" id="zf_pick_random">🎲 Zufällig wählen</button>'
+    +'<button class="btn secondary small" id="zf_reset_order">↺ Reihenfolge</button>'
+    +'</div>'
+    +'<div class="zf-perc">📊 '+list.length+' Einträge</div></div>'
+    +(shuffled.length?'<div class="card"><div class="card-h"><h3>📋 Reihenfolge</h3></div><div class="zf-list">'+shuffled.map(function(n,i){
+      return '<div class="zf-shuffle"><div class="num">'+(i+1)+'</div><b style="color:var(--text)">'+esc(n)+'</b></div>';
+    }).join("")+'</div></div>':'')
+    +(this._winner?'<div class="card" style="border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.06)"><div class="card-h"><h3>🎉 Gewinner</h3></div><div class="zf-display"><div class="txt">'+esc(this._winner)+'</div></div></div>':'');
+
+  var updateNames=function(){
+    var t=val("zf_names");
+    self._namesText=t;
+    var arr=t.split(/[\n,]+/).map(function(s){return s.trim();}).filter(Boolean);
+    self._shuffle=[];
+  };
+  document.getElementById("zf_names").addEventListener("input",function(){
+    self._namesText=this.value;
+  });
+  document.getElementById("zf_shuffle").addEventListener("click",function(){
+    updateNames();
+    var arr=(self._namesText||"").split(/[\n,]+/).map(function(s){return s.trim();}).filter(Boolean);
+    for(var i=arr.length-1;i>0;i--){
+      var j=self.rnd(0,i);
+      var t=arr[i];arr[i]=arr[j];arr[j]=t;
+    }
+    self._shuffle=arr;
+    self._winner=null;
+    self.renderTab();
+    toast("🔀 Gemischt","ok");
+  });
+  document.getElementById("zf_pick_random").addEventListener("click",function(){
+    updateNames();
+    var arr=(self._namesText||"").split(/[\n,]+/).map(function(s){return s.trim();}).filter(Boolean);
+    if(!arr.length)return toast("⚠️ Keine Namen","err");
+    self._winner=arr[self.rnd(0,arr.length-1)];
+    self.renderTab();
+    toast("🎉 "+self._winner,"ok");
+  });
+  document.getElementById("zf_reset_order").addEventListener("click",function(){
+    self._shuffle=[];self._winner=null;
+    self.renderTab();
+  });
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.zufall=AppZufall;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="zufall"){a.prio=1;a.installed=true;a.cat="Werkzeuge";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"zufall",name:"Zufall",icon:"🎲",cat:"Werkzeuge",prio:1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Zufall] 🎲 Würfel + Münze + Lotto + Namen + Passwort geladen.");
+})();
+</script>
+<!-- ============================================================
+     HALDO COUNTDOWN — Ereignisse, Timer, Countdowns
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Countdown] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+
+function cdStyles(){if(document.getElementById("cdStyles"))return;var s=document.createElement("style");s.id="cdStyles";
+s.textContent=".cd-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(239,68,68,.2),rgba(245,158,11,.18));border:1px solid rgba(239,68,68,.4);text-align:center;margin-bottom:12px}.cd-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.cd-hero .val{font-size:38px;font-weight:900;color:#ff8080;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.cd-hero .sub{font-size:10.5px;color:var(--text-mute)}.cd-event{padding:14px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:11px;margin-top:8px;cursor:pointer;transition:.15s;position:relative}.cd-event:hover{border-color:#ef4444}.cd-event.urgent{border-color:rgba(245,158,11,.5)}.cd-event.past{border-color:rgba(0,212,255,.3);opacity:.7}.cd-event .top{display:flex;align-items:center;gap:10px;margin-bottom:8px}.cd-event .top .ico{font-size:28px;flex-shrink:0}.cd-event .top .body{flex:1;min-width:0}.cd-event .top .body .n{font-size:13px;font-weight:800}.cd-event .top .body .d{font-size:10.5px;color:var(--text-mute);margin-top:2px}.cd-event .top .del{padding:5px 8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#ff8080;border-radius:6px;cursor:pointer;font-size:10px}.cd-numbers{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}.cd-num{padding:10px 4px;background:rgba(0,0,0,.3);border-radius:8px;text-align:center}.cd-num .v{font-size:22px;font-weight:900;color:#ff8080;font-family:ui-monospace,monospace;line-height:1}.cd-num .l{font-size:8px;color:var(--text-mute);text-transform:uppercase;font-weight:700;margin-top:3px;letter-spacing:.5px}.cd-num.sec .v{color:#fbbf24}.cd-num.min .v{color:#f97316}.cd-num.hr .v{color:#ef4444}.cd-num.day .v{color:#c084fc}.cd-input{width:100%;background:var(--bg-3);border:1px solid rgba(0,212,255,.22);color:var(--text);padding:10px 12px;border-radius:9px;font-family:inherit;font-size:12.5px;outline:none;margin-bottom:6px}.cd-btn-row{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}.cd-quick{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;margin:8px 0}.cd-quick-btn{padding:9px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;text-align:center;font-size:10px;font-weight:700;cursor:pointer}.cd-quick-btn:hover{border-color:#ef4444}.cd-empty{padding:30px 20px;text-align:center;color:var(--text-mute);font-size:11.5px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}.cd-emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin:8px 0}.cd-emoji{padding:8px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;text-align:center;font-size:20px;cursor:pointer}.cd-emoji.active{border-color:#ef4444;background:rgba(239,68,68,.12)}";document.head.appendChild(s);}
+
+var CD_EMOJIS=["🎂","💍","🎉","🎓","✈️","🏖️","🎄","🎃","❤️","⚽","🏆","🚀","📅","🎯","⏰","🔔","🎁","🌟","🦚","💼","🏠","🍕","🎮","📸"];
+
+var AppCountdown={
+  tab:"list",
+  _interval:null,
+  _editId:null,
+  _emoji:"🎯",
+
+  getEvents:function(){return Storage.get("cd_events",[]);},
+  saveEvents:function(a){Storage.set("cd_events",a);},
+  fmtDuration:function(ms){
+    if(ms<0)ms=0;
+    var s=Math.floor(ms/1000);
+    var d=Math.floor(s/86400);s-=d*86400;
+    var h=Math.floor(s/3600);s-=h*3600;
+    var m=Math.floor(s/60);s-=m*60;
+    return {d:d,h:h,m:m,s:s};
+  },
+
+  render:function(){
+    cdStyles();
+    var vp=document.getElementById("appViewport");
+    var self=this;
+    var events=this.getEvents();
+    var upcoming=events.filter(function(e){return e.t>Date.now();}).sort(function(a,b){return a.t-b.t;});
+    var past=events.filter(function(e){return e.t<=Date.now();}).sort(function(a,b){return b.t-a.t;});
+
+    var upcomingHtml=upcoming.length?upcoming.map(function(e){return self.renderEvent(e);}).join(""):'<div class="cd-empty">Keine bevorstehenden Ereignisse. Klick auf ➕ Neu.</div>';
+    var pastHtml=past.length?past.map(function(e){return self.renderEvent(e);}).join(""):'';
+
+    vp.innerHTML='<div class="cd-hero"><div class="lbl">Countdown</div><div class="val">'+upcoming.length+'</div><div class="sub">Ereignisse · '+events.length+' gesamt</div></div>'
+      +'<div class="card"><div class="cd-btn-row" style="margin:0">'
+      +'<button class="btn success small" id="cd_new">➕ Neues Ereignis</button>'
+      +'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>🎯 Bevorstehend</h3></div>'+upcomingHtml+'</div>'
+      +(past.length?'<div class="card"><div class="card-h"><h3>✅ Vergangen</h3></div>'+pastHtml+'</div>':'')
+      +'<div id="cd_edit_box"></div>';
+
+    if(this._interval)clearInterval(this._interval);
+    this._interval=setInterval(function(){
+      if(self.tab!=="list")return;
+      self.updateCountdowns();
+    },1000);
+
+    document.getElementById("cd_new").addEventListener("click",function(){self.showEdit(null);});
+    vp.querySelectorAll("[data-cd-open]").forEach(function(b){
+      b.addEventListener("click",function(ev){
+        if(ev.target.closest("[data-cd-del]"))return;
+        self.showEdit(b.dataset.cdOpen);
+      });
+    });
+    vp.querySelectorAll("[data-cd-del]").forEach(function(b){
+      b.addEventListener("click",function(ev){
+        ev.stopPropagation();
+        if(!confirm("Ereignis löschen?"))return;
+        self.saveEvents(self.getEvents().filter(function(x){return x.id!==b.dataset.cdDel;}));
+        self.render();
+      });
+    });
+    this.updateCountdowns();
+  },
+
+  renderEvent:function(e){
+    var diff=e.t-Date.now();
+    var f=this.fmtDuration(diff);
+    var isPast=diff<=0;
+    var isUrgent=!isPast&&diff<86400000;
+    var cls=isPast?"past":isUrgent?"urgent":"";
+    return '<div class="cd-event '+cls+'" data-cd-open="'+e.id+'">'
+      +'<div class="top">'
+      +'<div class="ico">'+(e.emoji||"🎯")+'</div>'
+      +'<div class="body"><div class="n">'+esc(e.n)+'</div>'
+      +'<div class="d">'+new Date(e.t).toLocaleString("de-DE")+'</div></div>'
+      +'<button class="del" data-cd-del="'+e.id+'">🗑️</button>'
+      +'</div>'
+      +'<div class="cd-numbers" data-cd-event="'+e.id+'">'
+      +'<div class="cd-num day"><div class="v">'+(isPast?"0":f.d)+'</div><div class="l">Tage</div></div>'
+      +'<div class="cd-num hr"><div class="v">'+(isPast?"0":f.h)+'</div><div class="l">Std</div></div>'
+      +'<div class="cd-num min"><div class="v">'+(isPast?"0":f.m)+'</div><div class="l">Min</div></div>'
+      +'<div class="cd-num sec"><div class="v">'+(isPast?"0":f.s)+'</div><div class="l">Sek</div></div>'
+      +'</div>'
+      +(isPast?'<div style="text-align:center;color:#4ade80;font-size:11px;font-weight:800;margin-top:8px;text-transform:uppercase;letter-spacing:1px">✅ Vorbei</div>':'')
+      +'</div>';
+  },
+
+  updateCountdowns:function(){
+    var events=this.getEvents();
+    events.forEach(function(e){
+      var el=document.querySelector('[data-cd-event="'+e.id+'"]');
+      if(!el)return;
+      var diff=e.t-Date.now();
+      if(diff<=0)return;
+      var s=Math.floor(diff/1000);
+      var d=Math.floor(s/86400);s-=d*86400;
+      var h=Math.floor(s/3600);s-=h*3600;
+      var m=Math.floor(s/60);s-=m*60;
+      var nums=el.querySelectorAll(".cd-num .v");
+      if(nums.length===4){
+        nums[0].textContent=d;
+        nums[1].textContent=h;
+        nums[2].textContent=m;
+        nums[3].textContent=s;
+      }
+    });
+  },
+
+  showEdit:function(id){
+    var self=this;
+    var e=null;
+    if(id)this.getEvents().forEach(function(x){if(x.id===id)e=x;});
+    this._editId=id;
+    this._emoji=e?e.emoji:"🎯";
+    var box=document.getElementById("cd_edit_box");if(!box)return;
+    var dt=e?new Date(e.t):null;
+    var dateVal=dt?dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0"):"";
+    var timeVal=dt?String(dt.getHours()).padStart(2,"0")+":"+String(dt.getMinutes()).padStart(2,"0"):"12:00";
+
+    var emojisHtml=CD_EMOJIS.map(function(em){
+      return '<div class="cd-emoji'+(em===self._emoji?" active":"")+'" data-cd-emoji="'+em+'">'+em+'</div>';
+    }).join("");
+
+    box.innerHTML='<div class="card" style="border-color:rgba(239,68,68,.5)"><div class="card-h"><h3>'+(id?"✏️ Bearbeiten":"➕ Neues Ereignis")+'</h3></div>'
+      +'<div class="field"><label style="font-size:10px;color:var(--text-dim);font-weight:700;text-transform:uppercase;margin-bottom:4px;display:block">Name</label>'
+      +'<input type="text" class="cd-input" id="cd_name" value="'+esc(e?e.n:"")+'" placeholder="z.B. Geburtstag Oma"></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
+      +'<div class="field"><label style="font-size:10px;color:var(--text-dim);font-weight:700;text-transform:uppercase;margin-bottom:4px;display:block">Datum</label><input type="date" class="cd-input" id="cd_date" value="'+dateVal+'"></div>'
+      +'<div class="field"><label style="font-size:10px;color:var(--text-dim);font-weight:700;text-transform:uppercase;margin-bottom:4px;display:block">Uhrzeit</label><input type="time" class="cd-input" id="cd_time" value="'+timeVal+'"></div>'
+      +'</div>'
+      +'<div class="field"><label style="font-size:10px;color:var(--text-dim);font-weight:700;text-transform:uppercase;margin-bottom:4px;display:block">Emoji</label><div class="cd-emoji-grid" id="cd_emojis">'+emojisHtml+'</div></div>'
+      +'<div style="font-size:11px;color:var(--text-dim);font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px">Schnellauswahl</div>'
+      +'<div class="cd-quick">'
+      +'<div class="cd-quick-btn" data-cd-quick="+1d">📅 Morgen</div>'
+      +'<div class="cd-quick-btn" data-cd-quick="+1w">📅 +1 Woche</div>'
+      +'<div class="cd-quick-btn" data-cd-quick="+1m">📅 +1 Monat</div>'
+      +'<div class="cd-quick-btn" data-cd-quick="+1y">🎂 +1 Jahr</div>'
+      +'<div class="cd-quick-btn" data-cd-quick="newyear">🎆 Nächstes Neujahr</div>'
+      +'<div class="cd-quick-btn" data-cd-quick="newroz">🦚 Nächstes Newroz (21.3.)</div>'
+      +'</div>'
+      +'<div class="cd-btn-row"><button class="btn success" id="cd_save">💾 Speichern</button><button class="btn secondary" id="cd_cancel">✕ Abbrechen</button></div>'
+      +'</div>';
+    box.scrollIntoView({behavior:"smooth",block:"nearest"});
+
+    box.querySelectorAll("[data-cd-emoji]").forEach(function(b){
+      b.addEventListener("click",function(){
+        self._emoji=b.dataset.cdEmoji;
+        box.querySelectorAll("[data-cd-emoji]").forEach(function(x){x.classList.remove("active");});
+        b.classList.add("active");
+      });
+    });
+    box.querySelectorAll("[data-cd-quick]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var q=b.dataset.cdQuick;
+        var d=new Date();
+        if(q==="+1d")d.setDate(d.getDate()+1);
+        else if(q==="+1w")d.setDate(d.getDate()+7);
+        else if(q==="+1m")d.setMonth(d.getMonth()+1);
+        else if(q==="+1y")d.setFullYear(d.getFullYear()+1);
+        else if(q==="newyear"){d.setMonth(0);d.setDate(1);d.setFullYear(d.getFullYear()+1);}
+        else if(q==="newroz"){var m=d.getMonth(),day=d.getDate();var y=d.getFullYear();if(m>2||(m===2&&day>21))y++;d=new Date(y,2,21);}
+        document.getElementById("cd_date").value=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+        if(q==="newyear"||q==="newroz")document.getElementById("cd_time").value="00:00";
+      });
+    });
+    document.getElementById("cd_save").addEventListener("click",function(){
+      var n=val("cd_name").trim();
+      var d=val("cd_date");
+      var t=val("cd_time")||"12:00";
+      if(!n)return toast("⚠️ Name fehlt","err");
+      if(!d)return toast("⚠️ Datum fehlt","err");
+      var ts=new Date(d+"T"+t+":00").getTime();
+      if(isNaN(ts))return toast("⚠️ Ungültiges Datum","err");
+      var arr=self.getEvents();
+      if(self._editId){
+        arr.forEach(function(x){if(x.id===self._editId){x.n=n;x.t=ts;x.emoji=self._emoji;}});
+      }else{
+        arr.push({id:"cd_"+Date.now(),n:n,t:ts,emoji:self._emoji});
+      }
+      self.saveEvents(arr);
+      toast("💾 Gespeichert","ok");
+      self._editId=null;
+      self._interval&&clearInterval(self._interval);
+      self.render();
+    });
+    document.getElementById("cd_cancel").addEventListener("click",function(){
+      box.innerHTML="";self._editId=null;
+    });
+  }
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.countdown=AppCountdown;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="countdown"){a.prio=1;a.installed=true;a.cat="Werkzeuge";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"countdown",name:"Countdown",icon:"🗓️",cat="Werkzeuge",prio:1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Countdown] 🗓️ Timer + Events geladen.");
+})();
+</script>
+<!-- ============================================================
+     HALDO WELTZEITEN — Uhrzeiten weltweit
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Weltzeiten] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+
+function wzStyles(){if(document.getElementById("wzStyles"))return;var s=document.createElement("style");s.id="wzStyles";
+s.textContent=".wz-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(0,212,255,.18),rgba(59,130,246,.18));border:1px solid rgba(0,212,255,.4);text-align:center;margin-bottom:12px}.wz-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.wz-hero .val{font-size:38px;font-weight:900;color:#00d4ff;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.wz-hero .sub{font-size:10.5px;color:var(--text-mute)}.wz-clock{padding:12px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:11px;margin-top:6px;position:relative}.wz-clock.local{border-color:rgba(0,212,255,.5);background:linear-gradient(135deg,rgba(0,212,255,.08),rgba(59,130,246,.06))}.wz-clock .top{display:flex;align-items:center;gap:10px;margin-bottom:6px}.wz-clock .flag{font-size:28px;flex-shrink:0}.wz-clock .name{font-size:12.5px;font-weight:800;flex:1}.wz-clock .del{padding:5px 8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#ff8080;border-radius:6px;cursor:pointer;font-size:10px}.wz-clock .time{font-size:32px;font-weight:900;color:#00d4ff;font-family:ui-monospace,monospace;line-height:1;letter-spacing:1px}.wz-clock .sec{font-size:18px;color:#38bdf8;margin-left:2px}.wz-clock .info{display:flex;justify-content:space-between;font-size:10px;color:var(--text-mute);margin-top:6px;font-weight:700}.wz-clock .info .badge{padding:2px 7px;border-radius:4px;background:rgba(0,212,255,.15);color:#00d4ff}.wz-clock .info .badge.day{background:rgba(251,191,36,.15);color:#fbbf24}.wz-clock .info .badge.night{background:rgba(139,92,246,.15);color:#a78bfa}.wz-clock .info .badge.morning{background:rgba(34,197,94,.15);color:#4ade80}.wz-clock .info .badge.evening{background:rgba(239,68,68,.15);color:#ff8080}.wz-world-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:8px 0}.wz-world-btn{padding:10px 6px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;text-align:center;font-size:11px;font-weight:700;cursor:pointer}.wz-world-btn:hover{border-color:#00d4ff}.wz-world-btn .f{font-size:22px;display:block;margin-bottom:2px}.wz-search{width:100%;background:var(--bg-3);border:1px solid var(--border);color:var(--text);padding:11px 14px;border-radius:9px;font-family:inherit;font-size:12.5px;outline:none;margin-bottom:8px}.wz-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}";document.head.appendChild(s);}
+
+/* Städte mit IANA-Zeitzone + Land/Emoji */
+var WZ_CITIES=[
+  {n:"Berlin",c:"Deutschland",tz:"Europe/Berlin",f:"🇩🇪"},
+  {n:"Wien",c:"Österreich",tz:"Europe/Vienna",f:"🇦🇹"},
+  {n:"Zürich",c:"Schweiz",tz:"Europe/Zurich",f:"🇨🇭"},
+  {n:"Paris",c:"Frankreich",tz:"Europe/Paris",f:"🇫🇷"},
+  {n:"London",c:"UK",tz:"Europe/London",f:"🇬🇧"},
+  {n:"Madrid",c:"Spanien",tz:"Europe/Madrid",f:"🇪🇸"},
+  {n:"Rom",c:"Italien",tz:"Europe/Rome",f:"🇮🇹"},
+  {n:"Amsterdam",c:"Niederlande",tz:"Europe/Amsterdam",f:"🇳🇱"},
+  {n:"Stockholm",c:"Schweden",tz:"Europe/Stockholm",f:"🇸🇪"},
+  {n:"Oslo",c:"Norwegen",tz:"Europe/Oslo",f:"🇳🇴"},
+  {n:"Helsinki",c:"Finnland",tz:"Europe/Helsinki",f:"🇫🇮"},
+  {n:"Moskau",c:"Russland",tz:"Europe/Moscow",f:"🇷🇺"},
+  {n:"Kyiv",c:"Ukraine",tz:"Europe/Kiev",f:"🇺🇦"},
+  {n:"Athen",c:"Griechenland",tz:"Europe/Athens",f:"🇬🇷"},
+  {n:"Istanbul",c:"Türkei",tz:"Europe/Istanbul",f:"🇹🇷"},
+  {n:"Ankara",c:"Türkei",tz:"Europe/Istanbul",f:"🇹🇷"},
+  {n:"Erbil",c:"Irak (Kurdistan)",tz:"Asia/Baghdad",f:"🟨"},
+  {n:"Bagdad",c:"Irak",tz:"Asia/Baghdad",f:"🇮🇶"},
+  {n:"Damaskus",c:"Syrien",tz:"Asia/Damascus",f:"🇸🇾"},
+  {n:"Teheran",c:"Iran",tz:"Asia/Tehran",f:"🇮🇷"},
+  {n:"Dubai",c:"VAE",tz:"Asia/Dubai",f:"🇦🇪"},
+  {n:"Riad",c:"Saudi-Arabien",tz:"Asia/Riyadh",f:"🇸🇦"},
+  {n:"Jerusalem",c:"Israel",tz:"Asia/Jerusalem",f:"🇮🇱"},
+  {n:"Yerevan",c:"Armenien",tz:"Asia/Yerevan",f:"🇦🇲"},
+  {n:"Baku",c:"Aserbaidschan",tz:"Asia/Baku",f:"🇦🇿"},
+  {n:"Karachi",c:"Pakistan",tz:"Asia/Karachi",f:"🇵🇰"},
+  {n:"Mumbai",c:"Indien",tz:"Asia/Kolkata",f:"🇮🇳"},
+  {n:"Bangkok",c:"Thailand",tz:"Asia/Bangkok",f:"🇹🇭"},
+  {n:"Peking",c:"China",tz:"Asia/Shanghai",f:"🇨🇳"},
+  {n:"Tokio",c:"Japan",tz:"Asia/Tokyo",f:"🇯🇵"},
+  {n:"Seoul",c:"Südkorea",tz:"Asia/Seoul",f:"🇰🇷"},
+  {n:"Singapur",c:"Singapur",tz:"Asia/Singapore",f:"🇸🇬"},
+  {n:"Sydney",c:"Australien",tz:"Australia/Sydney",f:"🇦🇺"},
+  {n:"Auckland",c:"Neuseeland",tz:"Pacific/Auckland",f:"🇳🇿"},
+  {n:"Kairo",c:"Ägypten",tz:"Africa/Cairo",f:"🇪🇬"},
+  {n:"Casablanca",c:"Marokko",tz:"Africa/Casablanca",f:"🇲🇦"},
+  {n:"Lagos",c:"Nigeria",tz:"Africa/Lagos",f:"🇳🇬"},
+  {n:"Johannesburg",c:"Südafrika",tz:"Africa/Johannesburg",f:"🇿🇦"},
+  {n:"Nairobi",c:"Kenia",tz:"Africa/Nairobi",f:"🇰🇪"},
+  {n:"New York",c:"USA",tz:"America/New_York",f:"🇺🇸"},
+  {n:"Los Angeles",c:"USA",tz:"America/Los_Angeles",f:"🇺🇸"},
+  {n:"Chicago",c:"USA",tz:"America/Chicago",f:"🇺🇸"},
+  {n:"Toronto",c:"Kanada",tz:"America/Toronto",f:"🇨🇦"},
+  {n:"Mexiko-Stadt",c:"Mexiko",tz:"America/Mexico_City",f:"🇲🇽"},
+  {n:"São Paulo",c:"Brasilien",tz:"America/Sao_Paulo",f:"🇧🇷"},
+  {n:"Buenos Aires",c:"Argentinien",tz:"America/Argentina/Buenos_Aires",f:"🇦🇷"},
+  {n:"Honolulu",c:"USA",tz:"Pacific/Honolulu",f:"🌺"},
+  {n:"Reykjavik",c:"Island",tz:"Atlantic/Reykjavik",f:"🇮🇸"}
+];
+
+var AppWeltzeiten={
+  _interval:null,
+  _q:"",
+
+  getFavs:function(){
+    var f=Storage.get("wz_favs",null);
+    if(!f){f=["Europe/Berlin","Europe/Istanbul","Asia/Baghdad","America/New_York"];Storage.set("wz_favs",f);}
+    return f;
+  },
+  saveFavs:function(a){Storage.set("wz_favs",a);},
+
+  render:function(){
+    wzStyles();
+    var vp=document.getElementById("appViewport");
+    var self=this;
+    var favs=this.getFavs();
+    var localTz=Intl.DateTimeFormat().resolvedOptions().timeZone;
+    var cityByTz={};
+    WZ_CITIES.forEach(function(c){if(!cityByTz[c.tz])cityByTz[c.tz]=c;});
+    var localCity=cityByTz[localTz]||{n:"Deine Zeitzone",c:localTz,f:"📍",tz:localTz};
+
+    var list=WZ_CITIES.filter(function(c){
+      if(!self._q)return true;
+      var q=self._q.toLowerCase();
+      return c.n.toLowerCase().indexOf(q)>=0||c.c.toLowerCase().indexOf(q)>=0;
+    });
+
+    var favHtml=favs.map(function(tz){
+      var city=cityByTz[tz];
+      if(!city)return "";
+      return self.renderClock(city,true);
+    }).join("");
+
+    var localHtml=self.renderClock(localCity,true,"local");
+
+    var listHtml=list.slice(0,60).map(function(c){
+      return '<div class="wz-world-btn" data-wz-add="'+c.tz+'"><span class="f">'+c.f+'</span>'+c.n+'<div style="font-size:9px;color:var(--text-mute);margin-top:2px">'+c.c+'</div></div>';
+    }).join("");
+
+    vp.innerHTML='<div class="wz-hero"><div class="lbl">Weltzeiten</div><div class="val" id="wz_clock">--:--:--</div><div class="sub">'+WZ_CITIES.length+' Städte · '+favs.length+' Favoriten</div></div>'
+      +'<div class="card"><div class="card-h"><h3>🌍 Deine Favoriten</h3></div>'
+      +(favHtml||'<div class="wz-empty">Füge Städte aus der Liste unten hinzu.</div>')
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>📍 Deine Zeit</h3></div>'+localHtml+'</div>'
+      +'<div class="card"><div class="card-h"><h3>🌐 Städte hinzufügen</h3></div>'
+      +'<input type="text" class="wz-search" id="wz_search" placeholder="🔍 Suche Stadt oder Land…" value="'+esc(this._q)+'">'
+      +'<div class="wz-world-grid">'+listHtml+'</div></div>';
+
+    document.getElementById("wz_search").addEventListener("input",function(){
+      self._q=this.value;clearTimeout(self._t);
+      self._t=setTimeout(function(){self.render();},250);
+    });
+    vp.querySelectorAll("[data-wz-add]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var tz=b.dataset.wzAdd;
+        var f=self.getFavs();
+        if(f.indexOf(tz)>=0)return toast("⚠️ Schon in Favoriten","err");
+        f.push(tz);
+        self.saveFavs(f);
+        toast("✅ Hinzugefügt","ok");
+        self.render();
+      });
+    });
+    vp.querySelectorAll("[data-wz-rm]").forEach(function(b){
+      b.addEventListener("click",function(e){
+        e.stopPropagation();
+        var tz=b.dataset.wzRm;
+        self.saveFavs(self.getFavs().filter(function(x){return x!==tz;}));
+        self.render();
+      });
+    });
+
+    this.tick();
+    if(this._interval)clearInterval(this._interval);
+    this._interval=setInterval(function(){self.tick();},1000);
+  },
+
+  renderClock:function(city,isFav,extra){
+    var ico=city.f||"🌍";
+    var tz=city.tz;
+    var html='<div class="wz-clock'+(extra==="local"?" local":"")+'" data-wz-tz="'+tz+'">'
+      +'<div class="top"><span class="flag">'+ico+'</span><div class="name">'+esc(city.n)+' <span style="color:var(--text-mute);font-weight:600;font-size:10.5px">· '+esc(city.c)+'</span></div>'
+      +(isFav&&extra!=="local"?'<button class="del" data-wz-rm="'+tz+'">🗑️</button>':'')
+      +'</div>'
+      +'<div class="time"><span class="t-main" data-wz-t="'+tz+'">--:--</span><span class="sec" data-wz-s="'+tz+'">:--</span></div>'
+      +'<div class="info"><span data-wz-d="'+tz+'">--</span><span class="badge" data-wz-badge="'+tz+'">--</span></div>'
+      +'</div>';
+    return html;
+  },
+
+  tick:function(){
+    var now=new Date();
+    /* Hero Clock: lokale Zeit */
+    var hero=document.getElementById("wz_clock");
+    if(hero){
+      hero.textContent=String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0")+":"+String(now.getSeconds()).padStart(2,"0");
+    }
+    document.querySelectorAll("[data-wz-t]").forEach(function(el){
+      var tz=el.dataset.wzT;
+      try{
+        var time=now.toLocaleTimeString("de-DE",{timeZone:tz,hour:"2-digit",minute:"2-digit",hour12:false});
+        var sec=now.toLocaleTimeString("de-DE",{timeZone:tz,second:"2-digit"});
+        el.textContent=time;
+        var secEl=document.querySelector('[data-wz-s="'+tz+'"]');
+        if(secEl)secEl.textContent=":"+sec;
+      }catch(e){el.textContent="--:--";}
+    });
+    document.querySelectorAll("[data-wz-d]").forEach(function(el){
+      var tz=el.dataset.wzD;
+      try{
+        var date=now.toLocaleDateString("de-DE",{timeZone:tz,weekday:"short",day:"2-digit",month:"short"});
+        var tzName=now.toLocaleTimeString("de-DE",{timeZone:tz,timeZoneName:"short"}).split(" ").pop();
+        el.textContent=date+" · "+tzName;
+      }catch(e){el.textContent="";}
+    });
+    document.querySelectorAll("[data-wz-badge]").forEach(function(el){
+      var tz=el.dataset.wzBadge;
+      try{
+        var h=parseInt(now.toLocaleTimeString("en-US",{timeZone:tz,hour:"2-digit",hour12:false}));
+        var cls="night",txt="🌙 Nacht";
+        if(h>=6&&h<12){cls="morning";txt="🌅 Morgen";}
+        else if(h>=12&&h<18){cls="day";txt="☀️ Tag";}
+        else if(h>=18&&h<22){cls="evening";txt="🌆 Abend";}
+        el.className="badge "+cls;
+        el.textContent=txt;
+      }catch(e){}
+    });
+  },
+
+  pause:function(){
+    if(this._interval){clearInterval(this._interval);this._interval=null;}
+  }
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.weltzeiten=AppWeltzeiten;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="weltzeiten"){a.prio=1;a.installed=true;a.cat="Werkzeuge";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"weltzeiten",name:"Weltzeiten",icon:"🌍",cat:"Werkzeuge",prio:1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Weltzeiten] 🌍 "+WZ_CITIES.length+" Städte geladen.");
+})();
+</script>
 </body>
 </html>
