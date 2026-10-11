@@ -8652,5 +8652,1956 @@ console.log("[HalDo Sprachnotizen] 🎙️ Aufnehmen + Player + Transkription ge
 })();
 </script>
 <!-- ============ ENDE HALDO SPRACHNOTIZEN ============ -->
+<!-- ============================================================
+     HALDO PIXEL-ART — Zeichnen auf Grid mit Farbpalette
+     Einfach vor </body> einfügen.
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Pixel-Art] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+
+function paStyles(){if(document.getElementById("paStyles"))return;var s=document.createElement("style");s.id="paStyles";
+s.textContent=".pa-canvas-wrap{background:linear-gradient(180deg,#1e293b,#0f172a);border:1px solid var(--border);border-radius:11px;padding:10px;text-align:center;margin:8px 0;display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:300px}.pa-canvas-wrap canvas{max-width:100%;max-height:400px;image-rendering:pixelated;border-radius:4px;background:#fff;cursor:crosshair;touch-action:none;box-shadow:0 0 30px rgba(0,0,0,.5)}.pa-size-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:8px 0}.pa-size{padding:8px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;text-align:center;font-size:10px;font-weight:800;cursor:pointer;transition:.15s}.pa-size.active{border-color:var(--primary);background:rgba(0,212,255,.12);color:var(--primary)}.pa-color{width:100%;aspect-ratio:1;border-radius:5px;cursor:pointer;border:2px solid transparent;transition:.12s}.pa-color:hover{transform:scale(1.1)}.pa-color.active{border-color:#fff;box-shadow:0 0 0 2px #00d4ff;transform:scale(1.08)}.pa-palette{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin:8px 0}.pa-tool-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:8px 0}.pa-tool{padding:8px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;text-align:center;font-size:9px;font-weight:700;cursor:pointer;transition:.15s}.pa-tool.active{border-color:var(--primary);background:rgba(0,212,255,.15);color:var(--primary)}.pa-tool .i{font-size:16px;display:block;margin-bottom:2px}.pa-btn-row{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}.pa-color-picker{display:flex;align-items:center;gap:6px;margin:6px 0}.pa-color-picker input[type=color]{width:48px;height:38px;background:none;border:1px solid var(--border);border-radius:8px;cursor:pointer}.pa-info{padding:8px 11px;background:rgba(0,212,255,.08);border:1px dashed rgba(0,212,255,.35);border-radius:8px;font-size:10.5px;color:var(--text-dim);line-height:1.5;margin:6px 0}.pa-grid-overlay{display:none}.pa-preset-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:8px 0}.pa-preset{padding:8px 5px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;text-align:center;font-size:9px;font-weight:700;cursor:pointer}.pa-preset:hover{border-color:#a855f7}.pa-preset .i{font-size:16px;display:block;margin-bottom:3px}";document.head.appendChild(s);}
+
+var PA_PALETTE=["#000000","#ffffff","#7f7f7f","#c0c0c0","#ef4444","#dc2626","#f97316","#f59e0b","#eab308","#84cc16","#22c55e","#10b981","#14b8a6","#06b6d4","#0ea5e9","#3b82f6","#6366f1","#8b5cf6","#a855f7","#d946ef","#ec4899","#f43f5e","#78350f","#92400e","#a16207","#65a30d","#15803d","#0f766e","#0e7490","#1e40af"];
+
+var AppPixelArt={
+  _canvas:null,_ctx:null,
+  _size:32,
+  _tool:"pen",
+  _color:"#000000",
+  _drawing:false,
+  _lastX:0,_lastY:0,
+  _history:[],
+  _histIdx:-1,
+
+  render:function(){
+    paStyles();
+    var vp=document.getElementById("appViewport");
+    var el=document.createElement("div");
+    el.id="paRoot";
+    vp.innerHTML="";
+    vp.appendChild(el);
+
+    var self=this;
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🎨 Pixel-Art</h3></div>'
+      +'<div class="pa-info">💡 Zeichne pixelweise. Klick + Ziehen für Linien.</div>'
+      +'<div class="pa-size-grid" id="pa_sizes">'
+      +[16,32,48,64,96,128].map(function(s){return '<div class="pa-size'+(self._size===s?" active":"")+'" data-pa-size="'+s+'">'+s+'×'+s+'</div>';}).join("")
+      +'</div>'
+      +'<div class="pa-canvas-wrap"><canvas id="pa_canvas" width="400" height="400"></canvas></div>'
+      +'<div class="pa-tool-grid">'
+      +'<div class="pa-tool'+(self._tool==="pen"?" active":"")+'" data-pa-tool="pen"><div class="i">🖌️</div>Pinsel</div>'
+      +'<div class="pa-tool'+(self._tool==="eraser"?" active":"")+'" data-pa-tool="eraser"><div class="i">🧽</div>Radierer</div>'
+      +'<div class="pa-tool'+(self._tool==="fill"?" active":"")+'" data-pa-tool="fill"><div class="i">🪣</div>Füllen</div>'
+      +'<div class="pa-tool'+(self._tool==="picker"?" active":"")+'" data-pa-tool="picker"><div class="i">💧</div>Pipette</div>'
+      +'<div class="pa-tool'+(self._tool==="line"?" active":"")+'" data-pa-tool="line"><div class="i">📏</div>Linie</div>'
+      +'</div>'
+      +'<div class="pa-color-picker"><label style="flex:1;font-size:10.5px;font-weight:700">Aktuelle Farbe</label><input type="color" id="pa_color_pick" value="'+self._color+'"><span id="pa_hex" style="font-family:ui-monospace,monospace;font-size:11px;font-weight:800">'+self._color.toUpperCase()+'</span></div>'
+      +'<div class="pa-btn-row">'
+      +'<button class="btn success small" id="pa_export_png">💾 PNG</button>'
+      +'<button class="btn secondary small" id="pa_undo">↶ Undo</button>'
+      +'<button class="btn secondary small" id="pa_redo">↷ Redo</button>'
+      +'<button class="btn secondary small" id="pa_clear">🗑️ Neu</button>'
+      +'<button class="btn warn small" id="pa_fillbg">🎨 HG</button>'
+      +'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>🎨 Palette</h3></div>'
+      +'<div class="pa-palette" id="pa_palette"></div>'
+      +'<button class="btn secondary full" id="pa_random_color" style="margin-top:8px">🎲 Zufallsfarbe</button></div>'
+      +'<div class="card"><div class="card-h"><h3>📐 Vorlagen</h3></div>'
+      +'<div class="pa-preset-grid">'
+      +'<div class="pa-preset" data-pa-preset="checker"><div class="i">🏁</div>Schach</div>'
+      +'<div class="pa-preset" data-pa-preset="stripes"><div class="i">📏</div>Streifen</div>'
+      +'<div class="pa-preset" data-pa-preset="rainbow"><div class="i">🌈</div>Regenbogen</div>'
+      +'<div class="pa-preset" data-pa-preset="smiley"><div class="i">😊</div>Smiley</div>'
+      +'<div class="pa-preset" data-pa-preset="heart"><div class="i">❤️</div>Herz</div>'
+      +'<div class="pa-preset" data-pa-preset="star"><div class="i">⭐</div>Stern</div>'
+      +'<div class="pa-preset" data-pa-preset="tree"><div class="i">🌳</div>Baum</div>'
+      +'<div class="pa-preset" data-pa-preset="mushroom"><div class="i">🍄</div>Pilz</div>'
+      +'</div></div>';
+
+    this.initCanvas();
+    this.renderPalette(el);
+
+    el.querySelectorAll("[data-pa-size]").forEach(function(b){
+      b.addEventListener("click",function(){
+        if(!confirm("Canvas-Größe ändern? Zeichnung wird gelöscht."))return;
+        self._size=parseInt(b.dataset.paSize);
+        self.render();
+      });
+    });
+    el.querySelectorAll("[data-pa-tool]").forEach(function(b){
+      b.addEventListener("click",function(){
+        self._tool=b.dataset.paTool;
+        self.render();
+      });
+    });
+    el.querySelectorAll("[data-pa-preset]").forEach(function(b){
+      b.addEventListener("click",function(){self.preset(b.dataset.paPreset);});
+    });
+    document.getElementById("pa_color_pick").addEventListener("input",function(){
+      self._color=this.value;
+      document.getElementById("pa_hex").textContent=this.value.toUpperCase();
+      self.renderPalette(el);
+    });
+    document.getElementById("pa_random_color").addEventListener("click",function(){
+      var c=PA_PALETTE[Math.floor(Math.random()*PA_PALETTE.length)];
+      self._color=c;
+      document.getElementById("pa_color_pick").value=c;
+      document.getElementById("pa_hex").textContent=c.toUpperCase();
+      self.renderPalette(el);
+    });
+    document.getElementById("pa_export_png").addEventListener("click",function(){self.exportPNG();});
+    document.getElementById("pa_undo").addEventListener("click",function(){self.undo();});
+    document.getElementById("pa_redo").addEventListener("click",function(){self.redo();});
+    document.getElementById("pa_clear").addEventListener("click",function(){
+      if(!confirm("Zeichnung löschen?"))return;
+      var ctx=self._ctx,c=self._canvas;
+      ctx.fillStyle="#ffffff";ctx.fillRect(0,0,c.width,c.height);
+      self.pushHistory();toast("🗑️","ok");
+    });
+    document.getElementById("pa_fillbg").addEventListener("click",function(){
+      var ctx=self._ctx,c=self._canvas;
+      ctx.fillStyle=self._color;ctx.fillRect(0,0,c.width,c.height);
+      self.pushHistory();toast("🎨","ok");
+    });
+  },
+
+  initCanvas:function(){
+    var c=document.getElementById("pa_canvas");if(!c)return;
+    this._canvas=c;
+    this._ctx=c.getContext("2d");
+    /* Size to square px (each cell = 12 px) */
+    var px=Math.min(500,this._size*12);
+    c.width=this._size;c.height=this._size;
+    c.style.width=px+"px";c.style.height=px+"px";
+    c.style.imageRendering="pixelated";
+    var ctx=this._ctx;
+    ctx.fillStyle="#ffffff";
+    ctx.fillRect(0,0,c.width,c.height);
+    this._history=[];this._histIdx=-1;
+    this.pushHistory();
+    this.bindEvents();
+  },
+
+  bindEvents:function(){
+    var self=this;
+    var c=this._canvas;
+    if(!c)return;
+    var drawing=false;
+    function getPos(e){
+      var rect=c.getBoundingClientRect();
+      var cx=(e.touches?e.touches[0].clientX:e.clientX)-rect.left;
+      var cy=(e.touches?e.touches[0].clientY:e.clientY)-rect.top;
+      var x=Math.floor(cx*(c.width/rect.width));
+      var y=Math.floor(cy*(c.height/rect.height));
+      if(x<0)x=0;if(x>=c.width)x=c.width-1;
+      if(y<0)y=0;if(y>=c.height)y=c.height-1;
+      return {x:x,y:y};
+    }
+    function start(e){
+      e.preventDefault();
+      var p=getPos(e);
+      if(self._tool==="fill"){
+        self.bucketFill(p.x,p.y);
+        self.pushHistory();
+        return;
+      }
+      if(self._tool==="picker"){
+        var data=self._ctx.getImageData(p.x,p.y,1,1).data;
+        var hex="#"+[data[0],data[1],data[2]].map(function(n){return ("0"+n.toString(16)).slice(-2);}).join("");
+        self._color=hex;
+        var inp=document.getElementById("pa_color_pick");
+        if(inp){inp.value=hex;document.getElementById("pa_hex").textContent=hex.toUpperCase();}
+        var root=document.getElementById("paRoot");
+        if(root)self.renderPalette(root);
+        toast("💧 "+hex.toUpperCase(),"ok");
+        return;
+      }
+      drawing=true;
+      self._lastX=p.x;self._lastY=p.y;
+      self.drawPixel(p.x,p.y);
+    }
+    function move(e){
+      if(!drawing)return;
+      e.preventDefault();
+      var p=getPos(e);
+      if(self._tool==="line"){
+        /* Preview-Linie: nicht gut für Pixel — wir zeichnen direkt */
+      }
+      self.drawLine(self._lastX,self._lastY,p.x,p.y);
+      self._lastX=p.x;self._lastY=p.y;
+    }
+    function end(e){
+      if(!drawing)return;
+      drawing=false;
+      self.pushHistory();
+    }
+    c.addEventListener("mousedown",start);
+    c.addEventListener("mousemove",move);
+    c.addEventListener("mouseup",end);
+    c.addEventListener("mouseleave",end);
+    c.addEventListener("touchstart",start,{passive:false});
+    c.addEventListener("touchmove",move,{passive:false});
+    c.addEventListener("touchend",end);
+  },
+
+  drawPixel:function(x,y){
+    var ctx=this._ctx;
+    ctx.fillStyle=this._tool==="eraser"?"#ffffff":this._color;
+    ctx.fillRect(x,y,1,1);
+  },
+  drawLine:function(x0,y0,x1,y1){
+    var dx=Math.abs(x1-x0),dy=Math.abs(y1-y0);
+    var sx=x0<x1?1:-1,sy=y0<y1?1:-1;
+    var err=dx-dy;
+    while(true){
+      this.drawPixel(x0,y0);
+      if(x0===x1&&y0===y1)break;
+      var e2=2*err;
+      if(e2>-dy){err-=dy;x0+=sx;}
+      if(e2<dx){err+=dx;y0+=sy;}
+    }
+  },
+
+  bucketFill:function(x,y){
+    var c=this._canvas,ctx=this._ctx;
+    var imgData=ctx.getImageData(0,0,c.width,c.height);
+    var data=imgData.data;
+    var idx=(y*c.width+x)*4;
+    var targetR=data[idx],targetG=data[idx+1],targetB=data[idx+2];
+    var fillColor=this.hexToRgb(this._tool==="eraser"?"#ffffff":this._color);
+    if(targetR===fillColor.r&&targetG===fillColor.g&&targetB===fillColor.b)return;
+    var stack=[[x,y]];
+    var visited={};
+    while(stack.length){
+      var p=stack.pop();
+      var px=p[0],py=p[1];
+      if(px<0||py<0||px>=c.width||py>=c.height)continue;
+      var key=px+","+py;
+      if(visited[key])continue;
+      visited[key]=1;
+      var i=(py*c.width+px)*4;
+      if(Math.abs(data[i]-targetR)>10||Math.abs(data[i+1]-targetG)>10||Math.abs(data[i+2]-targetB)>10)continue;
+      data[i]=fillColor.r;data[i+1]=fillColor.g;data[i+2]=fillColor.b;data[i+3]=255;
+      stack.push([px+1,py]);stack.push([px-1,py]);stack.push([px,py+1]);stack.push([px,py-1]);
+    }
+    ctx.putImageData(imgData,0,0);
+  },
+
+  hexToRgb:function(hex){
+    hex=hex.replace("#","");
+    if(hex.length===3)hex=hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+    return {r:parseInt(hex.substr(0,2),16),g:parseInt(hex.substr(2,2),16),b:parseInt(hex.substr(4,2),16)};
+  },
+
+  renderPalette:function(root){
+    var el=root.querySelector("#pa_palette");if(!el)return;
+    var self=this;
+    el.innerHTML=PA_PALETTE.map(function(c){
+      var active=c===self._color?" active":"";
+      return '<div class="pa-color'+active+'" data-pa-c="'+c+'" style="background:'+c+'"></div>';
+    }).join("");
+    el.querySelectorAll("[data-pa-c]").forEach(function(b){
+      b.addEventListener("click",function(){
+        self._color=b.dataset.paC;
+        var inp=document.getElementById("pa_color_pick");
+        if(inp)inp.value=self._color;
+        var h=document.getElementById("pa_hex");
+        if(h)h.textContent=self._color.toUpperCase();
+        root.querySelectorAll(".pa-color").forEach(function(x){x.classList.remove("active");});
+        b.classList.add("active");
+      });
+    });
+  },
+
+  pushHistory:function(){
+    var c=this._canvas;if(!c)return;
+    try{
+      var url=c.toDataURL();
+      this._history=this._history.slice(0,this._histIdx+1);
+      this._history.push(url);
+      this._histIdx=this._history.length-1;
+      if(this._history.length>30){this._history.shift();this._histIdx--;}
+    }catch(e){}
+  },
+  undo:function(){
+    if(this._histIdx<=0)return toast("⚠️ Kein Undo","err");
+    this._histIdx--;this.restore();
+  },
+  redo:function(){
+    if(this._histIdx>=this._history.length-1)return toast("⚠️ Kein Redo","err");
+    this._histIdx++;this.restore();
+  },
+  restore:function(){
+    var self=this,c=this._canvas,ctx=this._ctx;
+    var img=new Image();
+    img.onload=function(){
+      ctx.clearRect(0,0,c.width,c.height);
+      ctx.drawImage(img,0,0,c.width,c.height);
+    };
+    img.src=this._history[this._histIdx];
+  },
+
+  preset:function(kind){
+    var c=this._canvas,ctx=this._ctx;
+    if(!c)return;
+    var n=c.width;
+    ctx.fillStyle="#ffffff";ctx.fillRect(0,0,n,n);
+    if(kind==="checker"){
+      for(var y=0;y<n;y++)for(var x=0;x<n;x++){
+        ctx.fillStyle=((x+y)%2)?"#000000":"#ffffff";
+        ctx.fillRect(x,y,1,1);
+      }
+    }else if(kind==="stripes"){
+      for(var i=0;i<n;i++){
+        ctx.fillStyle=(i%4===0)?"#ef4444":"#fbbf24";
+        ctx.fillRect(0,i,n,1);
+      }
+    }else if(kind==="rainbow"){
+      for(var i=0;i<n;i++){
+        var hue=i/n*360;
+        ctx.fillStyle="hsl("+hue+",90%,55%)";
+        ctx.fillRect(0,i,n,1);
+      }
+    }else if(kind==="smiley"){
+      ctx.fillStyle="#fbbf24";ctx.beginPath();ctx.arc(n/2,n/2,n*0.4,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#000";
+      ctx.beginPath();ctx.arc(n*0.35,n*0.4,n*0.05,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(n*0.65,n*0.4,n*0.05,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle="#000";ctx.lineWidth=n*0.04;ctx.lineCap="round";
+      ctx.beginPath();ctx.arc(n/2,n/2,n*0.25,0.2,Math.PI-0.2);ctx.stroke();
+    }else if(kind==="heart"){
+      ctx.fillStyle="#ef4444";
+      for(var y=0;y<n;y++)for(var x=0;x<n;x++){
+        var nx=(x/n-0.5)*2.5,ny=-(y/n-0.5)*2.5+0.5;
+        var v=Math.pow(nx*nx+ny*ny-1,3)-nx*nx*Math.pow(ny,3);
+        if(v<0)ctx.fillRect(x,y,1,1);
+      }
+    }else if(kind==="star"){
+      ctx.fillStyle="#fbbf24";
+      var cx=n/2,cy=n/2,R=n*0.4,r=n*0.18,spikes=5;
+      ctx.beginPath();
+      for(var i=0;i<spikes*2;i++){
+        var ang=(Math.PI/spikes)*i-Math.PI/2;
+        var rad=(i%2===0)?R:r;
+        var x=cx+Math.cos(ang)*rad,y=cy+Math.sin(ang)*rad;
+        if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+      }
+      ctx.closePath();ctx.fill();
+    }else if(kind==="tree"){
+      ctx.fillStyle="#78350f";
+      ctx.fillRect(n/2-2,n*0.6,4,n*0.3);
+      ctx.fillStyle="#22c55e";
+      for(var i=0;i<3;i++){
+        var w=n*(0.15+i*0.12),h=n*0.15;
+        ctx.beginPath();
+        ctx.moveTo(n/2,n*0.15+i*h*0.9);
+        ctx.lineTo(n/2-w,n*0.15+i*h*0.9+h);
+        ctx.lineTo(n/2+w,n*0.15+i*h*0.9+h);
+        ctx.closePath();ctx.fill();
+      }
+    }else if(kind==="mushroom"){
+      ctx.fillStyle="#ef4444";
+      ctx.beginPath();ctx.arc(n/2,n*0.4,n*0.3,Math.PI,0);ctx.fill();
+      ctx.fillStyle="#fff";
+      ctx.beginPath();ctx.arc(n*0.4,n*0.35,n*0.05,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(n*0.6,n*0.35,n*0.06,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(n*0.5,n*0.28,n*0.04,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#f5deb3";
+      ctx.fillRect(n*0.4,n*0.4,n*0.2,n*0.35);
+    }
+    this.pushHistory();
+    toast("📐 "+kind,"ok");
+  },
+
+  exportPNG:function(){
+    if(!this._canvas)return;
+    try{
+      var url=this._canvas.toDataURL("image/png");
+      var a=document.createElement("a");
+      a.href=url;a.download="haldo_pixelart_"+this._size+"x"+this._size+"_"+Date.now()+".png";a.click();
+      toast("💾 PNG exportiert","ok");
+    }catch(e){toast("❌ "+e.message,"err");}
+  }
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.pixelart=AppPixelArt;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="pixelart"){a.prio=1;a.installed=true;a.cat="Kreativ";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"pixelart",name:"Pixel-Art",icon:"🎨",cat:"Kreativ",prio:1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Pixel-Art] 🎨 Grid-Zeichnen + Füllen + Presets geladen.");
+})();
+</script>
+<!-- ============================================================
+     HALDO STORY-KI — Geschichten, Märchen, Dialoge generieren
+     Einfach vor </body> einfügen.
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Story-KI] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+
+function skStyles(){if(document.getElementById("skStyles"))return;var s=document.createElement("style");s.id="skStyles";
+s.textContent=".sk-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(168,85,247,.18),rgba(239,68,68,.18));border:1px solid rgba(168,85,247,.4);text-align:center;margin-bottom:12px}.sk-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.sk-hero .val{font-size:38px;font-weight:900;color:#c084fc;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.sk-hero .sub{font-size:10.5px;color:var(--text-mute)}.sk-input{width:100%;background:var(--bg-3);border:1px solid rgba(0,212,255,.22);color:var(--text);padding:10px 12px;border-radius:9px;font-family:inherit;font-size:12px;outline:none}.sk-textarea{width:100%;min-height:100px;background:var(--bg-3);border:1px solid rgba(0,212,255,.22);color:var(--text);padding:12px;border-radius:9px;font-family:inherit;font-size:12.5px;line-height:1.6;outline:none;resize:vertical}.sk-textarea.output{min-height:300px;background:linear-gradient(180deg,rgba(168,85,247,.06),rgba(239,68,68,.06));border-color:rgba(168,85,247,.4);white-space:pre-wrap;font-family:Georgia,serif;font-size:14px;line-height:1.8}.sk-preset-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:8px 0}.sk-preset{padding:12px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:10px;cursor:pointer;text-align:center;font-size:11px;font-weight:700;transition:.15s}.sk-preset:hover{border-color:#c084fc;background:rgba(168,85,247,.08)}.sk-preset.active{border-color:#c084fc;background:rgba(168,85,247,.15)}.sk-preset .i{font-size:24px;margin-bottom:4px;display:block}.sk-preset .d{font-size:9px;color:var(--text-mute);margin-top:2px}.sk-tag-grid{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0}.sk-tag{padding:5px 11px;background:var(--bg-3);border:1px solid var(--border);border-radius:14px;color:var(--text-dim);font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;transition:.15s}.sk-tag.active{background:rgba(168,85,247,.2);border-color:#a855f7;color:#c084fc}.sk-item{padding:11px;background:var(--bg-3);border:1px solid var(--border);border-radius:10px;margin-top:5px;cursor:pointer;transition:.15s}.sk-item:hover{border-color:#c084fc}.sk-item .h{font-size:12px;font-weight:800;color:#c084fc;margin-bottom:3px}.sk-item .d{font-size:10px;color:var(--text-mute)}.sk-empty{padding:30px 20px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}";document.head.appendChild(s);}
+
+var SK_PRESETS=[
+  {id:"maerchen",n:"Märchen",i:"🧚",d:"Es war einmal…",prompt:"Schreibe ein klassisches Märchen mit Prinzessin, Prüfung und Happy End. Stil: Brüder Grimm."},
+  {id:"abenteuer",n:"Abenteuer",i:"⚔️",d:"Spannende Reise",prompt:"Schreibe eine spannende Abenteuergeschichte mit einem Helden, Gefahren und Schätzen."},
+  {id:"krimi",n:"Krimi",i:"🔍",d:"Mord & Detektiv",prompt:"Schreibe einen kurzen Krimi mit einem Detektiv, einem Verbrechen und einer überraschenden Wendung."},
+  {id:"sci-fi",n:"Sci-Fi",i:"🚀",d:"Zukunft & Technik",prompt:"Schreibe eine Sci-Fi-Kurzgeschichte über KI, Roboter oder eine ferne Zukunft."},
+  {id:"liebe",n:"Liebesgeschichte",i:"💕",d:"Romantisch",prompt:"Schreibe eine kurze romantische Geschichte mit zwei Menschen und einer Begegnung."},
+  {id:"horror",n:"Horror",i:"👻",d:"Gruselig",prompt:"Schreibe eine gruselige Horror-Kurzgeschichte mit einer unerwarteten Wendung."},
+  {id:"kinder",n:"Kindergeschichte",i:"🐰",d:"Für Kinder",prompt:"Schreibe eine liebevolle Kindergeschichte mit einem Tier und einer wichtigen Lehre."},
+  {id:"kurdisch",n:"Kurdische Legende",i:"🦚",d:"Mythos & Kultur",prompt:"Schreibe eine Legende im Stil kurdischer/ezidischer Erzähltradition mit Tawûsî Melek, Berg Lalisch, Familientradition und Moral."},
+  {id:"traum",n:"Traumreise",i:"🌙",d:"Traumhaft",prompt:"Schreibe eine traumhafte Geschichte — surreale Bilder, philosophische Stimmung."},
+  {id:"fabel",n:"Fabel",i:"🦊",d:"Tiere als Menschen",prompt:"Schreibe eine Fabel mit sprechenden Tieren und einer Moral am Ende."}
+];
+
+var AppStoryKI={
+  tab:"new",
+  _preset:"maerchen",
+  _output:"",
+
+  getStories:function(){return Storage.get("sk_stories",[]);},
+  saveStories:function(a){Storage.set("sk_stories",a);},
+
+  render:function(){
+    skStyles();
+    var vp=document.getElementById("appViewport");
+    var tabs=[
+      {k:"new",n:"✨ Neu"},
+      {k:"library",n:"📚 Sammlung"},
+      {k:"stats",n:"📊 Statistik"}
+    ];
+    var self=this;
+    var th=tabs.map(function(t){return '<button class="ms-tab'+(self.tab===t.k?" active":"")+'" data-sk-tab="'+t.k+'">'+t.n+'</button>';}).join("");
+    vp.innerHTML='<div class="ms-tabs">'+th+'</div><div id="skContent"></div>';
+    vp.querySelectorAll("[data-sk-tab]").forEach(function(b){b.addEventListener("click",function(){self.tab=b.dataset.skTab;self.render();});});
+    this.renderTab();
+  },
+
+  renderTab:function(){
+    var el=document.getElementById("skContent");if(!el)return;
+    var t=this.tab;
+    if(t==="new")this.renderNew(el);
+    else if(t==="library")this.renderLibrary(el);
+    else if(t==="stats")this.renderStats(el);
+  },
+
+  renderNew:function(el){
+    var self=this;
+    var presetsHtml=SK_PRESETS.map(function(p){
+      return '<div class="sk-preset'+(self._preset===p.id?" active":"")+'" data-sk-preset="'+p.id+'"><span class="i">'+p.i+'</span>'+p.n+'<span class="d">'+p.d+'</span></div>';
+    }).join("");
+    var themeTags=["🏰 Mittelalter","🚀 Zukunft","🌲 Wald","🏙️ Großstadt","🦚 Kurdistan","🌊 Meer","🏜️ Wüste","🗻 Berge","🌌 Weltall","🏡 Dorf"];
+    var charTags=["👑 Prinzessin","⚔️ Ritter","🧙 Magier","🐉 Drache","👧 Kind","🧑 Bauer","🐺 Wolf","🦊 Fuchs","🤖 Roboter","👽 Alien"];
+    var moodTags=["😊 Fröhlich","😢 Traurig","😱 Spannend","🤔 Nachdenklich","😂 Lustig","💕 Romantisch","🌙 Verträumt","🔥 Dramatisch"];
+
+    el.innerHTML='<div class="sk-hero"><div class="lbl">Story-KI</div><div class="val">'+this.getStories().length+'</div><div class="sub">Geschichten · Märchen · Legenden</div></div>'
+      +'<div class="card"><div class="card-h"><h3>🎭 Genre</h3></div><div class="sk-preset-grid">'+presetsHtml+'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>🎨 Thema / Setting (optional)</h3></div>'
+      +'<div class="sk-tag-grid" id="sk_theme_tags">'+themeTags.map(function(t){return '<div class="sk-tag" data-sk-theme="'+esc(t)+'">'+t+'</div>';}).join("")+'</div>'
+      +'<div class="field"><input type="text" class="sk-input" id="sk_theme_custom" placeholder="Eigenes Setting…"></div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>👤 Charaktere (optional)</h3></div>'
+      +'<div class="sk-tag-grid" id="sk_char_tags">'+charTags.map(function(t){return '<div class="sk-tag" data-sk-char="'+esc(t)+'">'+t+'</div>';}).join("")+'</div>'
+      +'<div class="field"><input type="text" class="sk-input" id="sk_char_custom" placeholder="Eigene Charaktere…"></div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>💭 Stimmung</h3></div>'
+      +'<div class="sk-tag-grid" id="sk_mood_tags">'+moodTags.map(function(t){return '<div class="sk-tag" data-sk-mood="'+esc(t)+'">'+t+'</div>';}).join("")+'</div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>✏️ Eigene Idee / Details</h3></div>'
+      +'<div class="field"><textarea class="sk-textarea" id="sk_custom" placeholder="Beschreibe deine Idee…&#10;&#10;z.B. Ein junger Hirte aus den Bergen findet einen verletzten Peacock…"></textarea></div>'
+      +'<div class="field"><label>Länge</label><select class="sk-input" id="sk_length" style="background:var(--bg-3);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px"><option value="kurz">Kurz (200 Wörter)</option><option value="mittel" selected>Mittel (500 Wörter)</option><option value="lang">Lang (1000 Wörter)</option></select></div>'
+      +'<button class="btn success full" id="sk_generate">✨ Geschichte generieren</button>'
+      +'<button class="btn secondary full" id="sk_continue" style="margin-top:6px">▶️ Fortsetzen (letzte Geschichte)</button>'
+      +'</div>'
+      +'<div class="card" id="sk_output_wrap" style="display:'+(this._output?"block":"none")+'"><div class="card-h"><h3>📖 Ergebnis</h3></div>'
+      +'<textarea class="sk-textarea output" id="sk_output">'+esc(this._output)+'</textarea>'
+      +'<div class="btn-row">'
+      +'<button class="btn success small" id="sk_save">💾 Speichern</button>'
+      +'<button class="btn secondary small" id="sk_copy">📋 Kopieren</button>'
+      +'<button class="btn secondary small" id="sk_speak">🔊 Vorlesen</button>'
+      +'<button class="btn secondary small" id="sk_download">⬇️ .txt</button>'
+      +'<button class="btn secondary small" id="sk_print">🖨️ Drucken</button>'
+      +'</div></div>';
+
+    el.querySelectorAll("[data-sk-preset]").forEach(function(b){
+      b.addEventListener("click",function(){self._preset=b.dataset.skPreset;self.renderTab();});
+    });
+    el.querySelectorAll("[data-sk-theme]").forEach(function(b){
+      b.addEventListener("click",function(){
+        b.classList.toggle("active");
+      });
+    });
+    el.querySelectorAll("[data-sk-char]").forEach(function(b){
+      b.addEventListener("click",function(){
+        b.classList.toggle("active");
+      });
+    });
+    el.querySelectorAll("[data-sk-mood]").forEach(function(b){
+      b.addEventListener("click",function(){
+        b.classList.toggle("active");
+      });
+    });
+    document.getElementById("sk_generate").addEventListener("click",function(){self.generate(false);});
+    document.getElementById("sk_continue").addEventListener("click",function(){self.generate(true);});
+    var save=document.getElementById("sk_save");
+    if(save)save.addEventListener("click",function(){self.saveStory();});
+    var copy=document.getElementById("sk_copy");
+    if(copy)copy.addEventListener("click",function(){
+      if(navigator.clipboard)navigator.clipboard.writeText(val("sk_output")).then(function(){toast("📋 Kopiert","ok");});
+    });
+    var sp=document.getElementById("sk_speak");
+    if(sp)sp.addEventListener("click",function(){
+      if(window.speechSynthesis){
+        speechSynthesis.cancel();
+        var u=new SpeechSynthesisUtterance(val("sk_output"));
+        u.lang="de-DE";
+        speechSynthesis.speak(u);
+        toast("🔊","ok");
+      }
+    });
+    var dl=document.getElementById("sk_download");
+    if(dl)dl.addEventListener("click",function(){
+      var blob=new Blob([val("sk_output")],{type:"text/plain;charset=utf-8"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="haldo_story_"+Date.now()+".txt";a.click();
+    });
+    var pr=document.getElementById("sk_print");
+    if(pr)pr.addEventListener("click",function(){
+      var w=window.open("","_blank");
+      var t=SK_PRESETS.find(function(p){return p.id===self._preset;})||SK_PRESETS[0];
+      w.document.write('<!DOCTYPE html><html><head><title>'+esc(t.n)+'</title><style>body{font-family:Georgia,serif;padding:60px;max-width:700px;margin:auto;line-height:1.8;font-size:15px}h1{color:#333;border-bottom:2px solid #c084fc;padding-bottom:10px}pre{white-space:pre-wrap;font-family:Georgia;font-size:15px;line-height:1.8}</style></head><body><h1>'+esc(t.i+" "+t.n)+'</h1><pre>'+esc(val("sk_output"))+'</pre></body></html>');
+      w.document.close();setTimeout(function(){w.print();},400);
+    });
+  },
+
+  generate:function(continueMode){
+    var self=this;
+    var ai=H.Settings.get("ai");
+    if(!ai.groqKey)return toast("⚠️ Kein Groq-Key (Settings → 🧠 KI & Keys)","err");
+
+    var preset=SK_PRESETS.find(function(p){return p.id===self._preset;})||SK_PRESETS[0];
+    var themes=Array.prototype.slice.call(document.querySelectorAll("[data-sk-theme].active")).map(function(b){return b.dataset.skTheme;});
+    var chars=Array.prototype.slice.call(document.querySelectorAll("[data-sk-char].active")).map(function(b){return b.dataset.skChar;});
+    var moods=Array.prototype.slice.call(document.querySelectorAll("[data-sk-mood].active")).map(function(b){return b.dataset.skMood;});
+    var themeCustom=val("sk_theme_custom").trim();
+    var charCustom=val("sk_char_custom").trim();
+    var custom=val("sk_custom").trim();
+    var length=val("sk_length")||"mittel";
+    var words=length==="kurz"?200:length==="lang"?1000:500;
+
+    var parts=[preset.prompt];
+    if(themes.length||themeCustom)parts.push("Setting: "+(themes.concat(themeCustom?[themeCustom]:[]).join(", ")));
+    if(chars.length||charCustom)parts.push("Charaktere: "+(chars.concat(charCustom?[charCustom]:[]).join(", ")));
+    if(moods.length)parts.push("Stimmung: "+moods.join(", "));
+    if(custom)parts.push("Zusätzliche Idee: "+custom);
+    parts.push("Länge: etwa "+words+" Wörter.");
+
+    if(continueMode){
+      var last=self.getStories()[0];
+      if(!last)return toast("⚠️ Keine letzte Geschichte","err");
+      parts.push("\n\nSetze diese Geschichte fort:\n\n"+last.content);
+    }
+
+    var out=document.getElementById("sk_output");
+    if(out)out.value="⏳ KI schreibt…";
+    document.getElementById("sk_output_wrap").style.display="block";
+    toast("⏳ Generiere…");
+
+    fetch("https://api.groq.com/openai/v1/chat/completions",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+ai.groqKey},
+      body:JSON.stringify({
+        model:ai.model,
+        messages:[
+          {role:"system",content:"Du bist ein talentierter deutscher Schriftsteller. Schreibe atmosphärisch, mit lebendigen Bildern, guten Dialogen und einer klaren Struktur. Beginne mit einem Titel."},
+          {role:"user",content:parts.join("\n\n")}
+        ],
+        max_tokens:2500,
+        temperature:0.85
+      })
+    }).then(function(r){return r.json();}).then(function(d){
+      if(!d.choices||!d.choices[0])throw new Error(d.error?d.error.message:"KI-Fehler");
+      self._output=d.choices[0].message.content.trim();
+      var out=document.getElementById("sk_output");
+      if(out)out.value=self._output;
+      toast("✅ Fertig","ok");
+    }).catch(function(e){
+      toast("❌ "+e.message,"err");
+      var out=document.getElementById("sk_output");
+      if(out)out.value="Fehler: "+e.message;
+    });
+  },
+
+  saveStory:function(){
+    var content=val("sk_output").trim();
+    if(!content)return toast("⚠️ Keine Geschichte","err");
+    var preset=SK_PRESETS.find(function(p){return p.id===this._preset;},this)||SK_PRESETS[0];
+    var title=content.split("\n")[0].replace(/^#+\s*/,"").trim()||preset.n;
+    var arr=this.getStories();
+    arr.unshift({id:"st_"+Date.now(),title:title,preset:this._preset,content:content,t:Date.now()});
+    this.saveStories(arr);
+    toast("💾 Gespeichert","ok");
+  },
+
+  renderLibrary:function(el){
+    var self=this;
+    var arr=this.getStories();
+    var list=arr.length?arr.map(function(s){
+      var preset=SK_PRESETS.find(function(p){return p.id===s.preset;})||SK_PRESETS[0];
+      return '<div class="sk-item" data-sk-open="'+s.id+'">'
+        +'<div class="h">'+preset.i+' '+esc(s.title)+'</div>'
+        +'<div class="d">'+preset.n+' · '+new Date(s.t).toLocaleString("de-DE")+' · '+s.content.split(/\s+/).length+' Wörter</div>'
+        +'</div>';
+    }).join(""):'<div class="sk-empty">Keine Geschichten gespeichert.</div>';
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>📚 Sammlung ('+arr.length+')</h3></div>'
+      +'<div class="btn-row"><button class="btn danger small" id="sk_lib_clear">🗑️ Alle löschen</button><button class="btn secondary small" id="sk_lib_export">📤 Export</button></div>'
+      +list+'</div><div id="sk_reader"></div>';
+
+    el.querySelectorAll("[data-sk-open]").forEach(function(b){
+      b.addEventListener("click",function(){self.openStory(b.dataset.skOpen);});
+    });
+    document.getElementById("sk_lib_clear").addEventListener("click",function(){
+      if(!confirm("Alle Geschichten löschen?"))return;
+      self.saveStories([]);self.renderTab();
+    });
+    document.getElementById("sk_lib_export").addEventListener("click",function(){
+      var out="# Meine Geschichten\n\n"+arr.map(function(s){
+        return "## "+s.title+"\n\n"+s.content+"\n\n---\n\n";
+      }).join("");
+      var blob=new Blob([out],{type:"text/markdown;charset=utf-8"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="geschichten.md";a.click();
+      toast("📤","ok");
+    });
+  },
+
+  openStory:function(id){
+    var self=this;
+    var s=null;this.getStories().forEach(function(x){if(x.id===id)s=x;});
+    if(!s)return;
+    var preset=SK_PRESETS.find(function(p){return p.id===s.preset;})||SK_PRESETS[0];
+    var el=document.getElementById("sk_reader");
+    el.innerHTML='<div class="card"><div class="card-h"><h3>'+preset.i+' '+esc(s.title)+'</h3></div>'
+      +'<textarea class="sk-textarea output" id="sk_reader_body" style="min-height:400px">'+esc(s.content)+'</textarea>'
+      +'<div class="btn-row">'
+      +'<button class="btn success small" id="sk_reader_save">💾 Speichern</button>'
+      +'<button class="btn secondary small" id="sk_reader_copy">📋 Kopieren</button>'
+      +'<button class="btn secondary small" id="sk_reader_speak">🔊 Vorlesen</button>'
+      +'<button class="btn secondary small" id="sk_reader_dl">⬇️ .txt</button>'
+      +'<button class="btn danger small" id="sk_reader_rm">🗑️ Löschen</button>'
+      +'<button class="btn secondary small" id="sk_reader_close">✕</button>'
+      +'</div></div>';
+    el.scrollIntoView({behavior:"smooth",block:"nearest"});
+    document.getElementById("sk_reader_save").addEventListener("click",function(){
+      var arr=self.getStories();
+      arr.forEach(function(x){if(x.id===id)x.content=val("sk_reader_body");});
+      self.saveStories(arr);toast("💾","ok");
+    });
+    document.getElementById("sk_reader_copy").addEventListener("click",function(){
+      if(navigator.clipboard)navigator.clipboard.writeText(val("sk_reader_body")).then(function(){toast("📋","ok");});
+    });
+    document.getElementById("sk_reader_speak").addEventListener("click",function(){
+      if(window.speechSynthesis){
+        speechSynthesis.cancel();
+        var u=new SpeechSynthesisUtterance(val("sk_reader_body"));
+        u.lang="de-DE";speechSynthesis.speak(u);
+      }
+    });
+    document.getElementById("sk_reader_dl").addEventListener("click",function(){
+      var blob=new Blob([val("sk_reader_body")],{type:"text/plain;charset=utf-8"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=s.title.replace(/[^a-zA-Z0-9äöüÄÖÜß]/g,"_")+".txt";a.click();
+    });
+    document.getElementById("sk_reader_rm").addEventListener("click",function(){
+      if(!confirm("Geschichte löschen?"))return;
+      self.saveStories(self.getStories().filter(function(x){return x.id!==id;}));
+      el.innerHTML="";self.renderTab();
+    });
+    document.getElementById("sk_reader_close").addEventListener("click",function(){el.innerHTML="";});
+  },
+
+  renderStats:function(el){
+    var all=this.getStories();
+    var totalWords=0,byGenre={};
+    all.forEach(function(s){
+      totalWords+=s.content.split(/\s+/).length;
+      byGenre[s.preset]=(byGenre[s.preset]||0)+1;
+    });
+    var topGenre=Object.keys(byGenre).sort(function(a,b){return byGenre[b]-byGenre[a];}).slice(0,5);
+    var genreList=topGenre.length?topGenre.map(function(k){
+      var p=SK_PRESETS.find(function(x){return x.id===k;})||{n:k,i:"📖"};
+      return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="font-size:11.5px;font-weight:700">'+p.i+' '+p.n+'</span><span style="color:#c084fc;font-weight:800;font-family:ui-monospace,monospace">'+byGenre[k]+'</span></div>';
+    }).join(""):'<div class="sk-empty">Keine Daten.</div>';
+
+    el.innerHTML='<div class="sk-hero"><div class="lbl">Geschichten</div><div class="val">'+all.length+'</div><div class="sub">'+totalWords.toLocaleString("de-DE")+' Wörter geschrieben</div></div>'
+      +'<div class="card"><div class="card-h"><h3>🎭 Top Genres</h3></div>'+genreList+'</div>'
+      +'<div class="card"><div class="card-h"><h3>📊 Statistiken</h3></div>'
+      +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="font-size:11.5px;color:var(--text-dim)">Ø Wörter</span><span style="color:#c084fc;font-weight:800;font-family:ui-monospace,monospace">'+(all.length?Math.round(totalWords/all.length):0)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="font-size:11.5px;color:var(--text-dim)">Genres genutzt</span><span style="color:#c084fc;font-weight:800;font-family:ui-monospace,monospace">'+Object.keys(byGenre).length+'</span></div>'
+      +'</div>';
+  }
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.story=AppStoryKI;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="story"){a.prio=1;a.installed=true;a.cat="Kreativ";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"story",name:"Story-KI",icon:"📖",cat:"Kreativ",prio:1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Story-KI] 📖 10 Genres + KI-Generator geladen.");
+})();
+</script>
+<!-- ============================================================
+     HALDO VIDEO-EDITOR — Trimmen, Text, Filter, Frame-Export
+     Einfach vor </body> einfügen.
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Video-Editor] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+function fmtT(s){if(!s||isNaN(s))s=0;s=Math.round(s);var m=Math.floor(s/60),x=s%60;return m+":"+(x<10?"0":"")+x;}
+
+function veStyles(){if(document.getElementById("veStyles"))return;var s=document.createElement("style");s.id="veStyles";
+s.textContent=".ve-stage{background:#000;border-radius:11px;overflow:hidden;position:relative;margin:8px 0;aspect-ratio:16/9;border:1px solid var(--border)}.ve-stage video{width:100%;height:100%;object-fit:contain;display:block;background:#000}.ve-stage .overlay-text{position:absolute;left:50%;transform:translateX(-50%);font-weight:900;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.9);pointer-events:none;text-align:center;max-width:90%;word-break:break-word}.ve-upload{padding:40px 20px;text-align:center;color:var(--text-mute);font-size:11.5px;border:2px dashed var(--border-hi);border-radius:11px;margin:8px 0;cursor:pointer}.ve-upload:hover{border-color:#00d4ff;background:rgba(0,212,255,.05)}.ve-upload .i{font-size:44px;margin-bottom:8px;opacity:.8}.ve-timeline{padding:10px;background:var(--bg-3);border:1px solid var(--border);border-radius:11px;margin:8px 0}.ve-timeline .track{position:relative;height:36px;background:rgba(0,0,0,.35);border-radius:6px;overflow:hidden;cursor:pointer}.ve-timeline .range{position:absolute;top:0;bottom:0;background:linear-gradient(135deg,rgba(0,212,255,.35),rgba(124,58,237,.35));border-left:2px solid #00d4ff;border-right:2px solid #00d4ff}.ve-timeline .playhead{position:absolute;top:0;bottom:0;width:2px;background:#fbbf24;box-shadow:0 0 8px #fbbf24;pointer-events:none}.ve-timeline .info{display:flex;justify-content:space-between;font-size:10px;color:var(--text-mute);margin-top:6px;font-family:ui-monospace,monospace}.ve-slider-row{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:10.5px;font-weight:700}.ve-slider-row label{flex:1;color:var(--text-dim)}.ve-slider-row input{flex:2;accent-color:#00d4ff}.ve-slider-row .v{min-width:44px;text-align:right;color:#00d4ff;font-family:ui-monospace,monospace;font-weight:800}.ve-text-input{width:100%;background:var(--bg-3);border:1px solid rgba(0,212,255,.22);color:var(--text);padding:10px 12px;border-radius:9px;font-family:inherit;font-size:12px;outline:none}.ve-btn-row{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}.ve-tool-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:8px 0}.ve-tool{padding:8px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;text-align:center;font-size:9.5px;font-weight:700;cursor:pointer;transition:.15s}.ve-tool:hover{border-color:#00d4ff}.ve-tool.active{border-color:#00d4ff;background:rgba(0,212,255,.12);color:#00d4ff}.ve-tool .i{font-size:17px;display:block;margin-bottom:2px}.ve-empty{padding:40px 20px;text-align:center;color:var(--text-mute);font-size:11.5px;border:2px dashed var(--border-hi);border-radius:11px;margin:8px 0}.ve-info{padding:9px 12px;background:rgba(0,212,255,.08);border:1px dashed rgba(0,212,255,.35);border-radius:9px;font-size:10.5px;color:var(--text-dim);line-height:1.5;margin:8px 0}";document.head.appendChild(s);}
+
+var AppVideoEditor={
+  tab:"edit",
+  _file:null,_videoUrl:null,_videoEl:null,
+  _duration:0,_trimStart:0,_trimEnd:0,
+  _overlayText:"",_overlayPos:"bottom",_overlaySize:24,_overlayColor:"#ffffff",
+  _filter:"none",_speed:1,_volume:100,
+  _frames:[],
+
+  render:function(){
+    veStyles();
+    var vp=document.getElementById("appViewport");
+    var tabs=[{k:"edit",n:"🎬 Editor"},{k:"frames",n:"🖼️ Frames"},{k:"export",n:"📤 Export"}];
+    var self=this;
+    var th=tabs.map(function(t){return '<button class="ms-tab'+(self.tab===t.k?" active":"")+'" data-ve-tab="'+t.k+'">'+t.n+'</button>';}).join("");
+    vp.innerHTML='<div class="ms-tabs">'+th+'</div><div id="veContent"></div>';
+    vp.querySelectorAll("[data-ve-tab]").forEach(function(b){b.addEventListener("click",function(){self.tab=b.dataset.veTab;self.render();});});
+    this.renderTab();
+  },
+
+  renderTab:function(){
+    var el=document.getElementById("veContent");if(!el)return;
+    var t=this.tab;
+    if(t==="edit")this.renderEdit(el);
+    else if(t==="frames")this.renderFrames(el);
+    else if(t==="export")this.renderExport(el);
+  },
+
+  renderEdit:function(el){
+    var self=this;
+    if(!this._videoUrl){
+      el.innerHTML='<div class="ve-upload" id="ve_upload"><div class="i">🎬</div><div style="font-size:13px;font-weight:800;color:var(--text)">Video hochladen</div><div style="margin-top:6px">Klick hier oder zieh ein Video rein (MP4, WebM, MOV)</div><input type="file" id="ve_file" accept="video/*" style="display:none"></div>'
+        +'<div class="ve-info">💡 Video bleibt komplett lokal — wird nicht hochgeladen. Für WebM-Export nutzt der Browser die MediaRecorder-API.</div>'
+        +'<div class="ve-tool-grid">'
+        +'<div class="ve-tool" data-ve-t="cut"><div class="i">✂️</div>Trimmen</div>'
+        +'<div class="ve-tool" data-ve-t="text"><div class="i">📝</div>Text</div>'
+        +'<div class="ve-tool" data-ve-t="filter"><div class="i">🎨</div>Filter</div>'
+        +'<div class="ve-tool" data-ve-t="speed"><div class="i">⏩</div>Tempo</div>'
+        +'</div>';
+      var zone=document.getElementById("ve_upload");
+      zone.addEventListener("click",function(){document.getElementById("ve_file").click();});
+      zone.addEventListener("dragover",function(e){e.preventDefault();zone.style.borderColor="#00d4ff";});
+      zone.addEventListener("dragleave",function(){zone.style.borderColor="";});
+      zone.addEventListener("drop",function(e){e.preventDefault();if(e.dataTransfer.files[0])self.loadVideo(e.dataTransfer.files[0]);});
+      document.getElementById("ve_file").addEventListener("change",function(){if(this.files[0])self.loadVideo(this.files[0]);});
+      return;
+    }
+
+    var filters=["none","bw","sepia","warm","cold","vivid","faded"];
+    var filterLabels={none:"Original",bw:"SW",sepia:"Sepia",warm:"Warm",cold:"Kalt",vivid:"Vivid",faded:"Faded"};
+    var filterCSS={none:"",bw:"grayscale(100%)",sepia:"sepia(80%)",warm:"saturate(130%) hue-rotate(340deg)",cold:"saturate(110%) hue-rotate(200deg)",vivid:"saturate(180%) contrast(120%)",faded:"contrast(70%) brightness(110%) saturate(80%)"};
+
+    el.innerHTML='<div class="card">'
+      +'<div class="ve-stage" id="ve_stage">'
+      +'<video id="ve_video" src="'+this._videoUrl+'" controls playsinline></video>'
+      +(this._overlayText?'<div class="overlay-text" id="ve_ov_txt" style="'+this.posCSS()+';font-size:'+this._overlaySize+'px;color:'+this._overlayColor+'">'+esc(this._overlayText)+'</div>':'')
+      +'</div>'
+      +'<div class="ve-timeline"><div class="track" id="ve_track"><div class="range" id="ve_range" style="left:'+(this._trimStart/this._duration*100||0)+'%;right:'+(100-this._trimEnd/this._duration*100||100)+'%"></div><div class="playhead" id="ve_playhead" style="left:0%"></div></div>'
+      +'<div class="info"><span id="ve_t_start">Start: '+fmtT(this._trimStart)+'</span><span id="ve_t_cur">'+fmtT(0)+' / '+fmtT(this._duration)+'</span><span id="ve_t_end">Ende: '+fmtT(this._trimEnd)+'</span></div></div>'
+      +'<div class="ve-slider-row"><label>Trim Start</label><input type="range" id="ve_ts" min="0" max="'+this._duration+'" step="0.1" value="'+this._trimStart+'"><span class="v" id="ve_tsv">'+fmtT(this._trimStart)+'</span></div>'
+      +'<div class="ve-slider-row"><label>Trim Ende</label><input type="range" id="ve_te" min="0" max="'+this._duration+'" step="0.1" value="'+this._trimEnd+'"><span class="v" id="ve_tev">'+fmtT(this._trimEnd)+'</span></div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>🎬 Filter</h3></div><div class="ve-tool-grid">'
+      +filters.map(function(f){return '<div class="ve-tool'+(self._filter===f?" active":"")+'" data-ve-f="'+f+'"><div class="i">🎨</div>'+filterLabels[f]+'</div>';}).join("")
+      +'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>📝 Text-Overlay</h3></div>'
+      +'<div class="field"><input type="text" class="ve-text-input" id="ve_txt" placeholder="Text auf dem Video…" value="'+esc(this._overlayText)+'"></div>'
+      +'<div class="ve-tool-grid">'
+      +'<div class="ve-tool'+(self._overlayPos==="top"?" active":"")+'" data-ve-ovp="top"><div class="i">⬆️</div>Oben</div>'
+      +'<div class="ve-tool'+(self._overlayPos==="center"?" active":"")+'" data-ve-ovp="center"><div class="i">⬛</div>Mitte</div>'
+      +'<div class="ve-tool'+(self._overlayPos==="bottom"?" active":"")+'" data-ve-ovp="bottom"><div class="i">⬇️</div>Unten</div>'
+      +'</div>'
+      +'<div class="ve-slider-row"><label>Größe</label><input type="range" id="ve_ovs" min="12" max="72" value="'+this._overlaySize+'"><span class="v" id="ve_ovsv">'+this._overlaySize+'</span></div>'
+      +'<div style="display:flex;gap:8px;margin-top:6px"><label style="font-size:10.5px;font-weight:700;color:var(--text-dim);align-self:center">Farbe</label><input type="color" id="ve_ovc" value="'+this._overlayColor+'"></div>'
+      +'<button class="btn success full" id="ve_ov_apply" style="margin-top:10px">📝 Text anwenden</button>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>⏩ Wiedergabe</h3></div>'
+      +'<div class="ve-slider-row"><label>Tempo</label><input type="range" id="ve_sp" min="0.25" max="2" step="0.25" value="'+this._speed+'"><span class="v" id="ve_spv">'+this._speed+'x</span></div>'
+      +'<div class="ve-slider-row"><label>Lautstärke</label><input type="range" id="ve_vol" min="0" max="100" value="'+this._volume+'"><span class="v" id="ve_volv">'+this._volume+'%</span></div>'
+      +'<button class="btn secondary full" id="ve_preview_play" style="margin-top:8px">▶️ Vorschau starten</button>'
+      +'</div>'
+      +'<div class="ve-btn-row"><button class="btn secondary small" id="ve_new">📁 Neu laden</button><button class="btn success small" id="ve_export">📤 Exportieren</button></div>';
+
+    this._videoEl=document.getElementById("ve_video");
+    var v=this._videoEl;
+    v.style.filter=filterCSS[this._filter]||"";
+    v.playbackRate=this._speed;
+    v.volume=this._volume/100;
+    v.currentTime=this._trimStart;
+    v.addEventListener("timeupdate",function(){
+      var ph=document.getElementById("ve_playhead");
+      if(ph)ph.style.left=(v.currentTime/self._duration*100||0)+"%";
+      var cur=document.getElementById("ve_t_cur");
+      if(cur)cur.textContent=fmtT(v.currentTime)+" / "+fmtT(self._duration);
+      if(v.currentTime>=self._trimEnd&&v.currentTime>0)v.currentTime=self._trimStart;
+    });
+    v.addEventListener("loadedmetadata",function(){self._duration=v.duration;});
+    var track=document.getElementById("ve_track");
+    track.addEventListener("click",function(e){
+      var rect=this.getBoundingClientRect();
+      var pct=(e.clientX-rect.left)/rect.width;
+      v.currentTime=pct*self._duration;
+    });
+    document.getElementById("ve_ts").addEventListener("input",function(){
+      self._trimStart=parseFloat(this.value);
+      if(self._trimStart>=self._trimEnd)self._trimStart=self._trimEnd-0.5;
+      document.getElementById("ve_tsv").textContent=fmtT(self._trimStart);
+      document.getElementById("ve_t_start").textContent="Start: "+fmtT(self._trimStart);
+      self.updateRange();
+    });
+    document.getElementById("ve_te").addEventListener("input",function(){
+      self._trimEnd=parseFloat(this.value);
+      if(self._trimEnd<=self._trimStart)self._trimEnd=self._trimStart+0.5;
+      document.getElementById("ve_tev").textContent=fmtT(self._trimEnd);
+      document.getElementById("ve_t_end").textContent="Ende: "+fmtT(self._trimEnd);
+      self.updateRange();
+    });
+    el.querySelectorAll("[data-ve-f]").forEach(function(b){
+      b.addEventListener("click",function(){
+        self._filter=b.dataset.veF;
+        v.style.filter=filterCSS[self._filter]||"";
+        el.querySelectorAll("[data-ve-f]").forEach(function(x){x.classList.remove("active");});
+        b.classList.add("active");
+      });
+    });
+    el.querySelectorAll("[data-ve-ovp]").forEach(function(b){
+      b.addEventListener("click",function(){
+        self._overlayPos=b.dataset.veOvp;
+        var ov=document.getElementById("ve_ov_txt");
+        if(ov)ov.setAttribute("style",self.posCSS()+";font-size:"+self._overlaySize+"px;color:"+self._overlayColor);
+        el.querySelectorAll("[data-ve-ovp]").forEach(function(x){x.classList.remove("active");});
+        b.classList.add("active");
+      });
+    });
+    var ovs=document.getElementById("ve_ovs");
+    ovs.addEventListener("input",function(){self._overlaySize=parseInt(this.value);document.getElementById("ve_ovsv").textContent=this.value;});
+    document.getElementById("ve_ovc").addEventListener("input",function(){self._overlayColor=this.value;});
+    document.getElementById("ve_ov_apply").addEventListener("click",function(){
+      self._overlayText=val("ve_txt");
+      self.renderTab();
+      toast("📝 Text gesetzt","ok");
+    });
+    var sp=document.getElementById("ve_sp");
+    sp.addEventListener("input",function(){self._speed=parseFloat(this.value);document.getElementById("ve_spv").textContent=this.value+"x";v.playbackRate=self._speed;});
+    var vol=document.getElementById("ve_vol");
+    vol.addEventListener("input",function(){self._volume=parseInt(this.value);document.getElementById("ve_volv").textContent=this.value+"%";v.volume=self._volume/100;});
+    document.getElementById("ve_preview_play").addEventListener("click",function(){
+      v.currentTime=self._trimStart;v.play();
+    });
+    document.getElementById("ve_new").addEventListener("click",function(){
+      self._videoUrl=null;self._videoEl=null;self._file=null;self._frames=[];self.render();
+    });
+    document.getElementById("ve_export").addEventListener("click",function(){self.tab="export";self.render();});
+  },
+
+  posCSS:function(){
+    if(this._overlayPos==="top")return "top:8%";
+    if(this._overlayPos==="center")return "top:50%;transform:translate(-50%,-50%)";
+    return "bottom:8%";
+  },
+
+  updateRange:function(){
+    var r=document.getElementById("ve_range");
+    if(!r||!this._duration)return;
+    r.style.left=(this._trimStart/this._duration*100)+"%";
+    r.style.right=(100-this._trimEnd/this._duration*100)+"%";
+  },
+
+  loadVideo:function(file){
+    if(!file.type.startsWith("video/"))return toast("⚠️ Kein Video","err");
+    var self=this;
+    var url=URL.createObjectURL(file);
+    var v=document.createElement("video");
+    v.src=url;v.preload="metadata";
+    v.addEventListener("loadedmetadata",function(){
+      self._videoUrl=url;self._file=file;self._duration=v.duration;
+      self._trimStart=0;self._trimEnd=v.duration;
+      self.render();
+      toast("🎬 Video geladen","ok");
+    });
+    v.addEventListener("error",function(){toast("❌ Video-Fehler","err");});
+  },
+
+  renderFrames:function(el){
+    if(!this._videoEl){el.innerHTML='<div class="ve-empty">Erst Video laden.</div>';return;}
+    var self=this;
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🖼️ Frames exportieren</h3></div>'
+      +'<div class="ve-info">💡 Erzeugt Standbilder aus dem Video. Nutze sie als Thumbnail, Meme oder für Social Media.</div>'
+      +'<div class="ve-slider-row"><label>Anzahl Frames</label><input type="range" id="ve_fr_n" min="3" max="20" value="6"><span class="v" id="ve_fr_nv">6</span></div>'
+      +'<button class="btn success full" id="ve_fr_gen">🎬 Frames erzeugen</button></div>'
+      +'<div id="ve_fr_grid"></div>';
+
+    document.getElementById("ve_fr_n").addEventListener("input",function(){
+      document.getElementById("ve_fr_nv").textContent=this.value;
+    });
+    document.getElementById("ve_fr_gen").addEventListener("click",function(){self.captureFrames(parseInt(val("ve_fr_n")));});
+    this.showFrames();
+  },
+
+  captureFrames:function(n){
+    var self=this;
+    var v=this._videoEl;
+    if(!v)return;
+    var dur=this._duration;
+    var frames=this._frames||[];
+    frames=[];
+    var t=0;
+    var step=(this._trimEnd-this._trimStart)/n;
+    var idx=0;
+    function next(){
+      if(idx>=n){
+        self._frames=frames;
+        self.showFrames();
+        toast("✅ "+n+" Frames erzeugt","ok");
+        return;
+      }
+      var time=self._trimStart+idx*step;
+      v.currentTime=time;
+      var onSeeked=function(){
+        v.removeEventListener("seeked",onSeeked);
+        var c=document.createElement("canvas");
+        c.width=v.videoWidth||640;
+        c.height=v.videoHeight||360;
+        c.getContext("2d").drawImage(v,0,0,c.width,c.height);
+        var data=c.toDataURL("image/jpeg",0.75);
+        frames.push({t:time,data:data});
+        idx++;
+        next();
+      };
+      v.addEventListener("seeked",onSeeked);
+    }
+    next();
+  },
+
+  showFrames:function(){
+    var self=this;
+    var grid=document.getElementById("ve_fr_grid");if(!grid)return;
+    if(!this._frames||!this._frames.length){grid.innerHTML='<div class="ve-empty">Noch keine Frames.</div>';return;}
+    grid.innerHTML='<div class="card"><div class="card-h"><h3>🖼️ Frames ('+this._frames.length+')</h3></div>'
+      +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:8px">'
+      +this._frames.map(function(f,i){
+        return '<div style="position:relative;aspect-ratio:16/9;border-radius:8px;overflow:hidden;cursor:pointer;border:1px solid var(--border)" data-ve-frame="'+i+'"><img src="'+f.data+'" style="width:100%;height:100%;object-fit:cover;display:block"><span style="position:absolute;bottom:3px;left:4px;background:rgba(0,0,0,.7);color:#fff;font-size:8.5px;padding:1px 5px;border-radius:3px;font-weight:800;font-family:ui-monospace,monospace">'+fmtT(f.t)+'</span></div>';
+      }).join("")
+      +'</div></div>';
+    grid.querySelectorAll("[data-ve-frame]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var f=self._frames[parseInt(b.dataset.veFrame)];
+        if(!f)return;
+        var a=document.createElement("a");a.href=f.data;a.download="haldo_frame_"+fmtT(f.t).replace(":","-")+".jpg";a.click();
+        toast("💾 Frame gespeichert","ok");
+      });
+    });
+  },
+
+  renderExport:function(el){
+    if(!this._videoEl){el.innerHTML='<div class="ve-empty">Erst Video laden.</div>';return;}
+    var self=this;
+    el.innerHTML='<div class="card"><div class="card-h"><h3>📤 Video exportieren</h3></div>'
+      +'<div class="ve-info">💡 Der Export rendert das Video im Browser neu. Läuft während der Wiedergabe. Dauert so lange wie das Video lang ist.</div>'
+      +'<div class="ve-slider-row"><label>Trim Start</label><span class="v">'+fmtT(this._trimStart)+'</span></div>'
+      +'<div class="ve-slider-row"><label>Trim Ende</label><span class="v">'+fmtT(this._trimEnd)+'</span></div>'
+      +'<div class="ve-slider-row"><label>Dauer</label><span class="v">'+fmtT(this._trimEnd-this._trimStart)+'</span></div>'
+      +'<div class="ve-slider-row"><label>Filter</label><span class="v">'+this._filter+'</span></div>'
+      +'<div class="ve-slider-row"><label>Tempo</label><span class="v">'+this._speed+'x</span></div>'
+      +(this._overlayText?'<div class="ve-slider-row"><label>Text</label><span class="v" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(this._overlayText)+'</span></div>':'')
+      +'<button class="btn success full" id="ve_render" style="margin-top:10px">🎬 Video rendern & herunterladen</button>'
+      +'<button class="btn secondary full" id="ve_meta" style="margin-top:6px">📄 Metadaten exportieren (JSON)</button>'
+      +'</div>'
+      +'<div id="ve_progress" style="display:none" class="card"><div class="card-h"><h3>⏳ Rendering</h3></div><div id="ve_prog_txt" style="font-size:11px;color:var(--text-dim);margin-bottom:6px">Vorbereitung…</div><div style="height:8px;background:rgba(0,0,0,.35);border-radius:4px;overflow:hidden"><div id="ve_prog_bar" style="height:100%;width:0;background:linear-gradient(90deg,#00d4ff,#a855f7);transition:width .3s"></div></div></div>';
+
+    document.getElementById("ve_render").addEventListener("click",function(){self.renderVideo();});
+    document.getElementById("ve_meta").addEventListener("click",function(){
+      var meta={
+        file: self._file?self._file.name:"video",
+        duration: self._duration,
+        trimStart: self._trimStart,
+        trimEnd: self._trimEnd,
+        filter: self._filter,
+        speed: self._speed,
+        volume: self._volume,
+        overlayText: self._overlayText,
+        overlayPosition: self._overlayPos,
+        overlaySize: self._overlaySize,
+        overlayColor: self._overlayColor,
+        exported: new Date().toISOString()
+      };
+      var blob=new Blob([JSON.stringify(meta,null,2)],{type:"application/json"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="video_meta.json";a.click();
+      toast("📄 Metadaten exportiert","ok");
+    });
+  },
+
+  renderVideo:function(){
+    var self=this;
+    var v=this._videoEl;
+    if(!v)return;
+    /* Nutze canvas + MediaRecorder für Screen-Capture des Videos */
+    try{
+      var stream=v.captureStream?v.captureStream(30):null;
+      if(!stream){
+        toast("⚠️ captureStream nicht unterstützt","err");
+        return;
+      }
+      var chunks=[];
+      var recorder=new MediaRecorder(stream,{mimeType:"video/webm"});
+      recorder.ondataavailable=function(e){if(e.data.size>0)chunks.push(e.data);};
+      recorder.onstop=function(){
+        var blob=new Blob(chunks,{type:"video/webm"});
+        var url=URL.createObjectURL(blob);
+        var a=document.createElement("a");
+        a.href=url;a.download="haldo_video_"+Date.now()+".webm";a.click();
+        document.getElementById("ve_progress").style.display="none";
+        toast("✅ Video exportiert","ok");
+      };
+      document.getElementById("ve_progress").style.display="block";
+      v.currentTime=this._trimStart;
+      v.style.filter=(this._filter==="none"?"":self._getFilterCSS());
+      v.playbackRate=this._speed;
+      recorder.start();
+      v.play();
+      var dur=(this._trimEnd-this._trimStart)/this._speed;
+      var startTime=Date.now();
+      var iv=setInterval(function(){
+        var elapsed=(Date.now()-startTime)/1000;
+        var pct=Math.min(100,elapsed/dur*100);
+        var bar=document.getElementById("ve_prog_bar");
+        var txt=document.getElementById("ve_prog_txt");
+        if(bar)bar.style.width=pct+"%";
+        if(txt)txt.textContent="Rendering… "+Math.round(pct)+"% ("+fmtT(elapsed)+" / "+fmtT(dur)+")";
+        if(elapsed>=dur||v.currentTime>=self._trimEnd){
+          clearInterval(iv);
+          recorder.stop();
+          v.pause();
+        }
+      },100);
+    }catch(e){
+      toast("❌ "+e.message,"err");
+    }
+  },
+
+  _getFilterCSS:function(){
+    var m={none:"",bw:"grayscale(100%)",sepia:"sepia(80%)",warm:"saturate(130%) hue-rotate(340deg)",cold:"saturate(110%) hue-rotate(200deg)",vivid:"saturate(180%) contrast(120%)",faded:"contrast(70%) brightness(110%) saturate(80%)"};
+    return m[this._filter]||"";
+  }
+};
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.videoeditor=AppVideoEditor;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="videoeditor"){a.prio=1;a.installed=true;a.cat="Kreativ";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"videoeditor",name:"Video-Editor",icon:"🎬",cat:"Kreativ",prio:1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Video-Editor] 🎬 Trim + Filter + Text + Frames geladen.");
+})();
+</script>
+<!-- ============================================================
+     HALDO KUNST-KI — Bilder generieren aus Text (Pollinations.ai)
+     Einfach vor </body> einfügen. KEIN Key nötig!
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Kunst-KI] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+
+function kkStyles(){if(document.getElementById("kkStyles"))return;var s=document.createElement("style");s.id="kkStyles";
+s.textContent=".kk-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(168,85,247,.18),rgba(236,72,153,.18));border:1px solid rgba(168,85,247,.4);text-align:center;margin-bottom:12px}.kk-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.kk-hero .val{font-size:38px;font-weight:900;color:#c084fc;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.kk-hero .sub{font-size:10.5px;color:var(--text-mute)}.kk-preview{background:#000;border-radius:11px;overflow:hidden;aspect-ratio:1;margin:8px 0;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;position:relative}.kk-preview img{width:100%;height:100%;object-fit:cover;display:block}.kk-preview .placeholder{font-size:12px;color:var(--text-mute);text-align:center;padding:20px}.kk-preview .loading{position:absolute;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px}.kk-spinner{width:50px;height:50px;border:4px solid rgba(192,132,252,.2);border-top-color:#c084fc;border-radius:50%;animation:kkSpin 1s linear infinite}@keyframes kkSpin{to{transform:rotate(360deg)}}.kk-input{width:100%;background:var(--bg-3);border:1px solid rgba(0,212,255,.22);color:var(--text);padding:11px 13px;border-radius:9px;font-family:inherit;font-size:12.5px;outline:none;line-height:1.5;resize:vertical;min-height:80px}.kk-preset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:8px 0}.kk-preset{padding:9px 5px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:9px;text-align:center;font-size:10px;font-weight:700;cursor:pointer;transition:.15s}.kk-preset:hover{border-color:#c084fc}.kk-preset .i{font-size:20px;display:block;margin-bottom:3px}.kk-tag-grid{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0}.kk-tag{padding:6px 11px;background:var(--bg-3);border:1px solid var(--border);border-radius:14px;color:var(--text-dim);font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;transition:.15s}.kk-tag:hover{border-color:#c084fc}.kk-tag.active{background:rgba(168,85,247,.2);border-color:#a855f7;color:#c084fc}.kk-size-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:8px 0}.kk-size{padding:9px 4px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;text-align:center;font-size:9.5px;font-weight:800;cursor:pointer}.kk-size.active{border-color:#c084fc;background:rgba(168,85,247,.15);color:#c084fc}.kk-gallery{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px}.kk-gallery .item{aspect-ratio:1;border-radius:9px;overflow:hidden;background:#000;cursor:pointer;border:1px solid var(--border);position:relative}.kk-gallery .item img{width:100%;height:100%;object-fit:cover;display:block}.kk-gallery .item .p{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(0,0,0,.85),transparent);color:#fff;font-size:9px;padding:14px 6px 5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kk-empty{padding:30px 20px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}.kk-info{padding:9px 12px;background:rgba(168,85,247,.08);border:1px dashed rgba(168,85,247,.35);border-radius:9px;font-size:10.5px;color:var(--text-dim);line-height:1.5;margin:8px 0}.kk-btn-row{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}";document.head.appendChild(s);}
+
+var KK_STYLES=[
+  {id:"realistic",n:"Realistisch",i:"📷",e:"hyperrealistic, 8k, detailed, cinematic lighting"},
+  {id:"anime",n:"Anime",i:"🎌",e:"anime style, studio ghibli, vibrant colors, cel shaded"},
+  {id:"watercolor",n:"Aquarell",i:"🎨",e:"watercolor painting, soft colors, artistic, paper texture"},
+  {id:"oil",n:"Ölgemälde",i:"🖼️",e:"oil painting, impasto, rich colors, classical art"},
+  {id:"cyberpunk",n:"Cyberpunk",i:"🌃",e:"cyberpunk, neon lights, futuristic city, synthwave"},
+  {id:"fantasy",n:"Fantasy",i:"🐉",e:"fantasy art, epic, magical, dramatic, detailed"},
+  {id:"cartoon",n:"Cartoon",i:"🎭",e:"cartoon style, bold outlines, playful, colorful"},
+  {id:"pixel",n:"Pixel-Art",i:"👾",e:"pixel art, 16-bit, retro game style"},
+  {id:"3d",n:"3D Render",i:"🎮",e:"3D render, octane, blender, ray tracing"},
+  {id:"minimal",n:"Minimalistisch",i:"⚪",e:"minimalist, clean lines, simple, elegant"},
+  {id:"photo",n:"Foto",i:"📸",e:"photography, dslr, natural lighting, sharp focus"},
+  {id:"sketch",n:"Skizze",i:"✏️",e:"pencil sketch, graphite, hand-drawn, sketch style"}
+];
+
+var KK_PROMPTS=[
+  {n:"Peacock",i:"🦚",p:"a majestic peacock with iridescent feathers, sparkling"},
+  {n:"Lalisch",i:"🦚",p:"Lalisch temple in Iraq, Ezidi holy place, mountains, sunset"},
+  {n:"Drache",i:"🐉",p:"a fierce dragon flying over a mountain village, fire breath"},
+  {n:"Weltraum",i:"🌌",p:"a colorful nebula with a small astronaut floating peacefully"},
+  {n:"Katze",i:"🐱",p:"a cute cat astronaut on Mars surface"},
+  {n:"Stadt",i:"🏙️",p:"a futuristic Tokyo street at night, rain, neon"},
+  {n:"Blume",i:"🌸",p:"a single cherry blossom tree in bloom at sunrise"},
+  {n:"Wolf",i:"🐺",p:"a lone wolf howling at full moon on a cliff"},
+  {n:"Berg",i:"🏔️",p:"snow-capped mountain range with a lake reflection"},
+  {n:"Portrait",i:"👤",p:"portrait of a kurdish woman in traditional clothing, warm light"},
+  {n:"Essen",i:"🍕",p:"a delicious looking pizza fresh from the oven"},
+  {n:"Auto",i:"🏎️",p:"a sleek red sports car on a coastal road"}
+];
+
+var AppKunstKI={
+  tab:"create",
+  _image:null,
+  _loading:false,
+  _promptText:"",
+  _style:"realistic",
+  _size:"1024",
+  _seed:null,
+  _gallery:null,
+
+  getGallery:function(){return Storage.get("kk_gallery",[]);},
+  saveGallery:function(a){Storage.set("kk_gallery",a);},
+
+  render:function(){
+    kkStyles();
+    var vp=document.getElementById("appViewport");
+    var tabs=[{k:"create",n:"🎨 Erstellen"},{k:"gallery",n:"🖼️ Galerie"}];
+    var self=this;
+    var th=tabs.map(function(t){return '<button class="ms-tab'+(self.tab===t.k?" active":"")+'" data-kk-tab="'+t.k+'">'+t.n+'</button>';}).join("");
+    vp.innerHTML='<div class="ms-tabs">'+th+'</div><div id="kkContent"></div>';
+    vp.querySelectorAll("[data-kk-tab]").forEach(function(b){b.addEventListener("click",function(){self.tab=b.dataset.kkTab;self.render();});});
+    this.renderTab();
+  },
+
+  renderTab:function(){
+    var el=document.getElementById("kkContent");if(!el)return;
+    if(this.tab==="create")this.renderCreate(el);
+    else this.renderGallery(el);
+  },
+
+  renderCreate:function(el){
+    var self=this;
+    var styleOpts=KK_STYLES.map(function(s){
+      return '<div class="kk-preset'+(self._style===s.id?" active":"")+'" data-kk-style="'+s.id+'" style="'+(self._style===s.id?"border-color:#c084fc;background:rgba(168,85,247,.15)":"")+'"><span class="i">'+s.i+'</span>'+s.n+'</div>';
+    }).join("");
+    var promptsHtml=KK_PROMPTS.map(function(p){
+      return '<div class="kk-tag" data-kk-prompt="'+esc(p.p)+'">'+p.i+' '+p.n+'</div>';
+    }).join("");
+
+    el.innerHTML='<div class="kk-hero"><div class="lbl">Kunst-KI</div><div class="val">'+this.getGallery().length+'</div><div class="sub">Bilder aus Text · kostenlos · unbegrenzt</div></div>'
+      +'<div class="card"><div class="card-h"><h3>💬 Prompt beschreiben</h3></div>'
+      +'<div class="field"><textarea class="kk-input" id="kk_prompt" placeholder="Beschreibe dein Bild…&#10;&#10;z.B. Ein Peacock sitzt auf einem Felsen im Sonnenuntergang, episch, detailreich">'+esc(this._promptText)+'</textarea></div>'
+      +'<div style="font-size:10px;color:var(--text-mute);margin-bottom:6px">💡 Schnell-Prompts:</div>'
+      +'<div class="kk-tag-grid">'+promptsHtml+'</div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>🎨 Stil</h3></div>'
+      +'<div class="kk-preset-grid">'+styleOpts+'</div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>📐 Größe</h3></div>'
+      +'<div class="kk-size-grid">'
+      +["512","768","1024","1280"].map(function(s){
+        return '<div class="kk-size'+(self._size===s?" active":"")+'" data-kk-size="'+s+'">'+s+'px</div>';
+      }).join("")
+      +'</div>'
+      +'<div class="kk-info">🖼️ Nutzt <b>Pollinations.ai</b> — kostenlos, kein Key nötig. Die Generierung dauert ca. 3-10 Sek.</div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>🖼️ Vorschau</h3></div>'
+      +'<div class="kk-preview" id="kk_preview">'
+      +(this._image?'<img src="'+this._image+'" alt="">':'<div class="placeholder">Noch kein Bild<br><small>Klick auf „Generieren" unten</small></div>')
+      +'</div>'
+      +'<button class="btn success full" id="kk_gen" '+(this._loading?"disabled":"")+'>'+(this._loading?"⏳ Generiere…":"🎨 Bild generieren")+'</button>'
+      +(this._image?'<div class="kk-btn-row" style="margin-top:8px">'
+        +'<button class="btn secondary small" id="kk_save">💾 Speichern</button>'
+        +'<button class="btn secondary small" id="kk_dl">⬇️ Download</button>'
+        +'<button class="btn secondary small" id="kk_vary">🎲 Variante</button>'
+        +'<button class="btn secondary small" id="kk_new">🗑️ Neu</button>'
+        +'</div>':'')
+      +'</div>';
+
+    document.getElementById("kk_prompt").addEventListener("input",function(){self._promptText=this.value;});
+    el.querySelectorAll("[data-kk-style]").forEach(function(b){
+      b.addEventListener("click",function(){self._style=b.dataset.kkStyle;self.renderTab();});
+    });
+    el.querySelectorAll("[data-kk-size]").forEach(function(b){
+      b.addEventListener("click",function(){self._size=b.dataset.kkSize;self.renderTab();});
+    });
+    el.querySelectorAll("[data-kk-prompt]").forEach(function(b){
+      b.addEventListener("click",function(){
+        document.getElementById("kk_prompt").value=b.dataset.kkPrompt;
+        self._promptText=b.dataset.kkPrompt;
+      });
+    });
+    document.getElementById("kk_gen").addEventListener("click",function(){self.generate();});
+    var sv=document.getElementById("kk_save");
+    if(sv)sv.addEventListener("click",function(){self.saveImage();});
+    var dl=document.getElementById("kk_dl");
+    if(dl)dl.addEventListener("click",function(){
+      var a=document.createElement("a");a.href=self._image;a.download="haldo_kunst_"+Date.now()+".jpg";a.target="_blank";a.click();
+    });
+    var v=document.getElementById("kk_vary");
+    if(v)v.addEventListener("click",function(){self._seed=Date.now();self.generate();});
+    var n=document.getElementById("kk_new");
+    if(n)n.addEventListener("click",function(){self._image=null;self.renderTab();});
+  },
+
+  generate:function(){
+    var self=this;
+    var prompt=val("kk_prompt").trim()||this._promptText;
+    if(!prompt)return toast("⚠️ Prompt fehlt","err");
+    this._promptText=prompt;
+    this._loading=true;
+    this.renderTab();
+    var style=KK_STYLES.find(function(s){return s.id===self._style;})||KK_STYLES[0];
+    var enhanced=prompt+", "+style.e;
+    if(!this._seed)this._seed=Math.floor(Math.random()*1000000);
+    var size=parseInt(this._size)||1024;
+    var url="https://image.pollinations.ai/prompt/"+encodeURIComponent(enhanced)+"?width="+size+"&height="+size+"&seed="+this._seed+"&nologo=true";
+    var img=new Image();
+    var timeout=setTimeout(function(){
+      self._loading=false;
+      toast("⏱️ Timeout — nochmal versuchen","err");
+      self.renderTab();
+    },30000);
+    img.onload=function(){
+      clearTimeout(timeout);
+      self._image=url;
+      self._loading=false;
+      self.renderTab();
+      toast("✅ Bild fertig","ok");
+    };
+    img.onerror=function(){
+      clearTimeout(timeout);
+      self._loading=false;
+      self.renderTab();
+      toast("❌ Fehler beim Laden — Internet prüfen","err");
+    };
+    img.src=url;
+  },
+
+  saveImage:function(){
+    var self=this;
+    if(!this._image)return;
+    toast("💾 Speichere…");
+    /* Konvertiere zu Base64 via fetch */
+    fetch(this._image).then(function(r){return r.blob();}).then(function(blob){
+      var reader=new FileReader();
+      reader.onload=function(){
+        var data=reader.result;
+        var sizeKB=Math.round(data.length/1024);
+        if(sizeKB>900){toast("⚠️ Bild zu groß (max 900KB) — Download nutzen","err");return;}
+        var arr=self.getGallery();
+        arr.unshift({id:"ki_"+Date.now(),data:data,prompt:self._promptText,style:self._style,size:sizeKB,t:Date.now()});
+        if(arr.length>20)arr=arr.slice(0,20);
+        self.saveGallery(arr);
+        toast("💾 In Galerie gespeichert","ok");
+      };
+      reader.readAsDataURL(blob);
+    }).catch(function(e){toast("❌ "+e.message,"err");});
+  },
+
+  renderGallery:function(el){
+    var self=this;
+    var arr=this.getGallery();
+    var list=arr.length?arr.map(function(p){
+      var s=KK_STYLES.find(function(x){return x.id===p.style;})||KK_STYLES[0];
+      return '<div class="item" data-kk-open="'+p.id+'"><img src="'+p.data+'" alt=""><div class="p">'+s.i+' '+esc(p.prompt.substring(0,40))+'</div></div>';
+    }).join(""):'<div class="kk-empty">Noch keine Bilder gespeichert. Erstelle eins im Tab „Erstellen"!</div>';
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🖼️ Meine Kunst ('+arr.length+')</h3></div>'
+      +'<div class="kk-btn-row"><button class="btn danger small" id="kk_clear">🗑️ Alle löschen</button></div>'
+      +'<div class="kk-gallery">'+list+'</div></div>'
+      +'<div id="kk_big"></div>';
+
+    el.querySelectorAll("[data-kk-open]").forEach(function(b){
+      b.addEventListener("click",function(){self.viewImage(b.dataset.kkOpen);});
+    });
+    var c=document.getElementById("kk_clear");
+    if(c)c.addEventListener("click",function(){
+      if(!confirm("Wirklich alle Bilder löschen?"))return;
+      self.saveGallery([]);self.renderTab();
+    });
+  },
+
+  viewImage:function(id){
+    var self=this;
+    var p=null;this.getGallery().forEach(function(x){if(x.id===id)p=x;});
+    if(!p)return;
+    var el=document.getElementById("kk_big");
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🖼️ Bild</h3></div>'
+      +'<img src="'+p.data+'" style="width:100%;border-radius:11px;display:block">'
+      +'<div style="font-size:10.5px;color:var(--text-dim);margin-top:8px;padding:8px;background:var(--bg-3);border-radius:8px;line-height:1.5">'+esc(p.prompt)+'</div>'
+      +'<div style="font-size:10px;color:var(--text-mute);margin-top:4px">'+new Date(p.t).toLocaleString("de-DE")+' · '+p.size+' KB</div>'
+      +'<div class="kk-btn-row" style="margin-top:10px">'
+      +'<button class="btn success small" id="kk_v_dl">💾 Download</button>'
+      +'<button class="btn secondary small" id="kk_v_again">🔄 Neu generieren</button>'
+      +'<button class="btn danger small" id="kk_v_rm">🗑️ Löschen</button>'
+      +'<button class="btn secondary small" id="kk_v_close">✕</button>'
+      +'</div></div>';
+    el.scrollIntoView({behavior:"smooth",block:"nearest"});
+    document.getElementById("kk_v_dl").addEventListener("click",function(){
+      var a=document.createElement("a");a.href=p.data;a.download="haldo_kunst_"+p.id+".jpg";a.click();
+    });
+    document.getElementById("kk_v_again").addEventListener("click",function(){
+      self._promptText=p.prompt;self._style=p.style;self._seed=null;
+      self.tab="create";self.render();
+      setTimeout(function(){self.generate();},300);
+    });
+    document.getElementById("kk_v_rm").addEventListener("click",function(){
+      if(!confirm("Bild löschen?"))return;
+      self.saveGallery(self.getGallery().filter(function(x){return x.id!==id;}));
+      el.innerHTML="";self.renderTab();
+    });
+    document.getElementById("kk_v_close").addEventListener("click",function(){el.innerHTML="";});
+  }
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.kunst=AppKunstKI;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="kunst"){a.prio=1;a.installed=true;a.cat="Kreativ";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"kunst",name:"Kunst-KI",icon:"🖼️",cat:"Kreativ",prio:1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Kunst-KI] 🖼️ 12 Stile + 12 Prompts + Galerie geladen.");
+})();
+</script>
+<!-- ============================================================
+     HALDO RADIO — Live-Sender + eigene Streams
+     Einfach vor </body> einfügen.
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Radio] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+
+function rdStyles(){if(document.getElementById("rdStyles"))return;var s=document.createElement("style");s.id="rdStyles";
+s.textContent=".rd-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(0,212,255,.18),rgba(239,68,68,.18));border:1px solid rgba(0,212,255,.4);text-align:center;margin-bottom:12px}.rd-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.rd-hero .val{font-size:38px;font-weight:900;color:#00d4ff;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.rd-hero .sub{font-size:10.5px;color:var(--text-mute)}.rd-player{position:sticky;top:0;background:linear-gradient(135deg,rgba(0,212,255,.12),rgba(239,68,68,.12));border:1px solid var(--border-hi);border-radius:12px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;z-index:10}.rd-player .cover{width:52px;height:52px;border-radius:10px;background:linear-gradient(135deg,#00d4ff,#ef4444);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}.rd-player .body{flex:1;min-width:0}.rd-player .body .n{font-size:12.5px;font-weight:800;color:#00d4ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rd-player .body .s{font-size:9.5px;color:var(--text-mute);margin-top:2px}.rd-player .body .status{font-size:9px;margin-top:3px;font-weight:800;text-transform:uppercase;letter-spacing:.8px}.rd-player .body .status.playing{color:#4ade80}.rd-player .body .status.stopped{color:var(--text-mute)}.rd-player .btn{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#10b981);border:none;color:#fff;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}.rd-cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:8px 0}.rd-cat{padding:9px 5px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;text-align:center;font-size:10px;font-weight:700;cursor:pointer}.rd-cat.active{border-color:#00d4ff;background:rgba(0,212,255,.12);color:#00d4ff}.rd-cat .i{font-size:18px;display:block;margin-bottom:3px}.rd-station{display:flex;align-items:center;gap:10px;padding:11px;background:var(--bg-3);border:1px solid var(--border);border-radius:10px;margin-top:5px;cursor:pointer;transition:.15s}.rd-station:hover{border-color:#00d4ff;background:rgba(0,212,255,.05)}.rd-station.playing{border-color:#4ade80;background:rgba(34,197,94,.08)}.rd-station .logo{width:42px;height:42px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;background:linear-gradient(135deg,#00d4ff33,#ef444433)}.rd-station .body{flex:1;min-width:0}.rd-station .body .n{font-size:11.5px;font-weight:800}.rd-station .body .g{font-size:9.5px;color:var(--text-mute);margin-top:2px}.rd-station .body .tag{display:inline-block;font-size:8.5px;padding:1px 6px;background:rgba(0,212,255,.15);color:#00d4ff;border-radius:4px;margin-top:3px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}.rd-station .play{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#10b981);border:none;color:#fff;font-size:14px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}.rd-input{width:100%;background:var(--bg-3);border:1px solid rgba(0,212,255,.22);color:var(--text);padding:10px 12px;border-radius:9px;font-family:inherit;font-size:12px;outline:none}.rd-empty{padding:24px 14px;text-align:center;color:var(--text-mute);font-size:11px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}.rd-vol{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:11px;font-weight:700}.rd-vol input{flex:1;accent-color:#00d4ff}.rd-info{padding:9px 12px;background:rgba(0,212,255,.06);border:1px dashed rgba(0,212,255,.35);border-radius:9px;font-size:10.5px;color:var(--text-dim);line-height:1.5;margin:8px 0}";document.head.appendChild(s);}
+
+var RD_STATIONS=[
+  {id:"soma_groove",n:"SomaFM Groove Salad",g:"Chillout · Ambient",i:"🌿",cat:"chill",url:"https://ice2.somafm.com/groovesalad-128-mp3"},
+  {id:"soma_drone",n:"SomaFM Drone Zone",g:"Ambient · Atmospheric",i:"🌌",cat:"chill",url:"https://ice2.somafm.com/dronezone-128-mp3"},
+  {id:"soma_lush",n:"SomaFM Lush",g:"Vocal · Chill",i:"💜",cat:"chill",url:"https://ice2.somafm.com/lush-128-mp3"},
+  {id:"soma_boot",n:"SomaFM Boot Liquor",g:"Americana · Country",i:"🤠",cat:"country",url:"https://ice2.somafm.com/bootliquor-128-mp3"},
+  {id:"soma_indie",n:"SomaFM Indie Pop Rocks",g:"Indie · Pop",i:"🎸",cat:"pop",url:"https://ice2.somafm.com/indiepop-128-mp3"},
+  {id:"soma_secret",n:"SomaFM Secret Agent",g:"Lounge · Spy",i:"🕵️",cat:"chill",url:"https://ice2.somafm.com/secretagent-128-mp3"},
+  {id:"soma_defcon",n:"SomaFM DEF CON Radio",g:"Electronic · Hacker",i:"💻",cat:"electronic",url:"https://ice2.somafm.com/defcon-128-mp3"},
+  {id:"soma_deep",n:"SomaFM Deep Space One",g:"Deep Ambient",i:"🚀",cat:"chill",url:"https://ice2.somafm.com/deepspaceone-128-mp3"},
+  {id:"soma_metal",n:"SomaFM Metal Detector",g:"Metal · Rock",i:"🎸",cat:"rock",url:"https://ice2.somafm.com/metal-128-mp3"},
+  {id:"soma_u80s",n:"SomaFM Underground 80s",g:"Synth · 80s",i:"📼",cat:"pop",url:"https://ice2.somafm.com/u80s-128-mp3"},
+  {id:"soma_sf103",n:"SomaFM SF 10-33",g:"Field Recordings",i:"🎤",cat:"chill",url:"https://ice2.somafm.com/sf1033-128-mp3"},
+  {id:"soma_thistle",n:"SomaFM ThistleRadio",g:"Celtic · Folk",i:"🍀",cat:"world",url:"https://ice2.somafm.com/thistle-128-mp3"},
+  {id:"soma_folk",n:"SomaFM Folk Forward",g:"Folk · Acoustic",i:"🎻",cat:"world",url:"https://ice2.somafm.com/folkfwd-128-mp3"},
+  {id:"soma_bagel",n:"SomaFM Bagel Radio",g:"Indie · Alternative",i:"🎸",cat:"rock",url:"https://ice2.somafm.com/bagel-128-mp3"},
+  {id:"soma_7soul",n:"SomaFM Seven Inch Soul",g:"Vinyl · Soul",i:"💿",cat:"soul",url:"https://ice2.somafm.com/7soul-128-mp3"},
+  {id:"soma_covers",n:"SomaFM Covers",g:"Cover-Versionen",i:"🎤",cat:"pop",url:"https://ice2.somafm.com/covers-128-mp3"},
+  {id:"soma_illstreet",n:"SomaFM Ill Street Lounge",g:"Lounge · Vintage",i:"🍸",cat:"chill",url:"https://ice2.somafm.com/illstreet-128-mp3"},
+  {id:"soma_digitalis",n:"SomaFM Digitalis",g:"Indie · Electronic",i:"🎛️",cat:"electronic",url:"https://ice2.somafm.com/digitalis-128-mp3"}
+];
+
+var RD_CATS=[
+  {id:"all",n:"Alle",i:"🎵"},
+  {id:"chill",n:"Chillout",i:"🌿"},
+  {id:"electronic",n:"Elektro",i:"💻"},
+  {id:"rock",n:"Rock",i:"🎸"},
+  {id:"pop",n:"Pop",i:"🎤"},
+  {id:"country",n:"Country",i:"🤠"},
+  {id:"soul",n:"Soul",i:"💿"},
+  {id:"world",n:"World",i:"🌍"}
+];
+
+var AppRadio={
+  tab:"stations",
+  _audio:null,
+  _playing:null,
+  _volume:0.8,
+  _cat:"all",
+
+  getFavs:function(){return Storage.get("rd_favs",[]);},
+  saveFavs:function(a){Storage.set("rd_favs",a);},
+  getCustom:function(){return Storage.get("rd_custom",[]);},
+  saveCustom:function(a){Storage.set("rd_custom",a);},
+
+  render:function(){
+    rdStyles();
+    var vp=document.getElementById("appViewport");
+    var tabs=[{k:"stations",n:"📻 Sender"},{k:"custom",n:"➕ Eigene"}];
+    var self=this;
+    var th=tabs.map(function(t){return '<button class="ms-tab'+(self.tab===t.k?" active":"")+'" data-rd-tab="'+t.k+'">'+t.n+'</button>';}).join("");
+    var player=this._playing?this.renderPlayer():'';
+    vp.innerHTML=player+'<div class="ms-tabs">'+th+'</div><div id="rdContent"></div>';
+    vp.querySelectorAll("[data-rd-tab]").forEach(function(b){b.addEventListener("click",function(){self.tab=b.dataset.rdTab;self.render();});});
+    this.bindPlayer();
+    this.renderTab();
+  },
+
+  renderPlayer:function(){
+    var s=this._playing;
+    if(!s)return '';
+    return '<div class="rd-player">'
+      +'<div class="cover">'+s.i+'</div>'
+      +'<div class="body"><div class="n">'+esc(s.n)+'</div><div class="s">'+esc(s.g||"Live-Stream")+'</div><div class="status playing">🔴 Live — spielt</div></div>'
+      +'<button class="btn" id="rd_player_stop">⏹️</button>'
+      +'</div>';
+  },
+
+  bindPlayer:function(){
+    var self=this;
+    var stop=document.getElementById("rd_player_stop");
+    if(stop)stop.addEventListener("click",function(){self.stopPlay();});
+    var vol=document.getElementById("rd_volume");
+    if(vol)vol.addEventListener("input",function(){
+      self._volume=parseFloat(this.value)/100;
+      if(self._audio)self._audio.volume=self._volume;
+      var v=document.getElementById("rd_volume_v");
+      if(v)v.textContent=this.value+"%";
+    });
+  },
+
+  renderTab:function(){
+    var el=document.getElementById("rdContent");if(!el)return;
+    if(this.tab==="stations")this.renderStations(el);
+    else this.renderCustom(el);
+  },
+
+  renderStations:function(el){
+    var self=this;
+    var favs=this.getFavs();
+    var cat=this._cat;
+    var filtered=RD_STATIONS.filter(function(s){return cat==="all"||s.cat===cat;});
+    var favStations=RD_STATIONS.filter(function(s){return favs.indexOf(s.id)>=0;});
+
+    var catHtml=RD_CATS.map(function(c){
+      return '<div class="rd-cat'+(cat===c.id?" active":"")+'" data-rd-cat="'+c.id+'"><span class="i">'+c.i+'</span>'+c.n+'</div>';
+    }).join("");
+
+    var listHtml=filtered.map(function(s){
+      var isPlaying=self._playing&&self._playing.id===s.id;
+      var isFav=favs.indexOf(s.id)>=0;
+      return '<div class="rd-station'+(isPlaying?" playing":"")+'" data-rd-play="'+s.id+'">'
+        +'<div class="logo">'+s.i+'</div>'
+        +'<div class="body"><div class="n">'+esc(s.n)+'</div><div class="g">'+esc(s.g)+'</div><span class="tag">'+s.cat+'</span></div>'
+        +'<button class="play">'+(isPlaying?"⏸️":"▶️")+'</button>'
+        +'</div>';
+    }).join("");
+
+    el.innerHTML='<div class="rd-hero"><div class="lbl">Radio</div><div class="val">'+RD_STATIONS.length+'</div><div class="sub">'+favs.length+' Favoriten · Live-Streams kostenlos</div></div>'
+      +'<div class="card"><div class="card-h"><h3>📻 Kategorien</h3></div><div class="rd-cat-grid">'+catHtml+'</div></div>'
+      +(favStations.length?'<div class="card"><div class="card-h"><h3>⭐ Favoriten</h3></div>'+favStations.map(function(s){
+        var isPlaying=self._playing&&self._playing.id===s.id;
+        return '<div class="rd-station'+(isPlaying?" playing":"")+'" data-rd-play="'+s.id+'"><div class="logo">'+s.i+'</div><div class="body"><div class="n">'+esc(s.n)+'</div><div class="g">'+esc(s.g)+'</div></div><button class="play">'+(isPlaying?"⏸️":"▶️")+'</button></div>';
+      }).join("")+'</div>':'')
+      +'<div class="card"><div class="card-h"><h3>🌐 Alle Sender</h3></div>'
+      +'<div class="rd-vol">🔊 Lautstärke <input type="range" id="rd_volume" min="0" max="100" value="'+Math.round(this._volume*100)+'"><span id="rd_volume_v" style="font-family:ui-monospace,monospace;font-size:10px">'+Math.round(this._volume*100)+'%</span></div>'
+      +listHtml+'</div>'
+      +'<div class="rd-info">💡 Streams von <b>SomaFM</b> — werbefrei, kostenlos, unabhängig. Klick auf ⭐ neben Sendern für Favoriten.</div>';
+
+    el.querySelectorAll("[data-rd-cat]").forEach(function(b){
+      b.addEventListener("click",function(){self._cat=b.dataset.rdCat;self.renderTab();});
+    });
+    el.querySelectorAll("[data-rd-play]").forEach(function(b){
+      b.addEventListener("click",function(e){
+        if(e.target.closest(".play"))return;
+        var id=b.dataset.rdPlay;
+        var s=null;RD_STATIONS.forEach(function(x){if(x.id===id)s=x;});
+        if(!s)return;
+        if(self._playing&&self._playing.id===s.id){self.stopPlay();return;}
+        self.playStation(s);
+      });
+    });
+    el.querySelectorAll(".rd-station .play").forEach(function(b){
+      b.addEventListener("click",function(e){
+        e.stopPropagation();
+        var id=b.parentElement.dataset.rdPlay;
+        var s=null;RD_STATIONS.forEach(function(x){if(x.id===id)s=x;});
+        if(!s)return;
+        if(self._playing&&self._playing.id===s.id){self.stopPlay();return;}
+        self.playStation(s);
+      });
+    });
+    /* Add favorite button via long press / double click */
+    el.querySelectorAll("[data-rd-play]").forEach(function(b){
+      b.addEventListener("contextmenu",function(e){
+        e.preventDefault();
+        var id=b.dataset.rdPlay;
+        var f=self.getFavs();
+        var i=f.indexOf(id);
+        if(i>=0){f.splice(i,1);toast("☆ Entfernt");}
+        else{f.push(id);toast("⭐ Favorit","ok");}
+        self.saveFavs(f);self.renderTab();
+      });
+    });
+  },
+
+  playStation:function(s){
+    var self=this;
+    if(this._audio){this._audio.pause();this._audio=null;}
+    var a=new Audio(s.url);
+    a.volume=this._volume;
+    a.crossOrigin="anonymous";
+    a.addEventListener("error",function(){
+      toast("❌ Stream-Fehler: "+s.n,"err");
+    });
+    a.addEventListener("waiting",function(){toast("⏳ Lade Stream…");});
+    a.play().then(function(){
+      self._audio=a;
+      self._playing=s;
+      self.render();
+      toast("▶️ "+s.n,"ok");
+    }).catch(function(e){toast("❌ "+e.message,"err");});
+  },
+
+  stopPlay:function(){
+    if(this._audio){this._audio.pause();this._audio=null;}
+    this._playing=null;
+    this.render();
+    toast("⏹️","ok");
+  },
+
+  renderCustom:function(el){
+    var self=this;
+    var arr=this.getCustom();
+    var list=arr.length?arr.map(function(s){
+      var isPlaying=self._playing&&self._playing.id===s.id;
+      return '<div class="rd-station'+(isPlaying?" playing":"")+'" data-rd-cplay="'+s.id+'"><div class="logo">'+s.i+'</div><div class="body"><div class="n">'+esc(s.n)+'</div><div class="g" style="font-family:ui-monospace,monospace;font-size:9px">'+esc(s.url.substring(0,50))+'</div></div><button class="play">'+(isPlaying?"⏸️":"▶️")+'</button><button class="play" data-rd-crm="'+s.id+'" style="background:rgba(239,68,68,.3)">🗑️</button></div>';
+    }).join(""):'<div class="rd-empty">Keine eigenen Sender. Füge welche hinzu!</div>';
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>➕ Eigener Stream</h3></div>'
+      +'<div class="field"><label>Name</label><input type="text" class="rd-input" id="rd_cn" placeholder="z.B. Mein Lieblingssender"></div>'
+      +'<div class="field"><label>Stream-URL (MP3/AAC/OGG)</label><input type="text" class="rd-input" id="rd_cu" placeholder="https://…"></div>'
+      +'<div class="field"><label>Emoji / Icon</label><input type="text" class="rd-input" id="rd_ci" value="🎵" maxlength="2"></div>'
+      +'<button class="btn success full" id="rd_cadd">➕ Sender hinzufügen</button>'
+      +'<div class="rd-info">💡 Playlist-URLs (.m3u/.pls) funktionieren meist nicht direkt — nutze die direkte Stream-URL (oft .mp3/.aac am Ende).</div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>📻 Eigene Sender ('+arr.length+')</h3></div>'+list+'</div>';
+
+    document.getElementById("rd_cadd").addEventListener("click",function(){
+      var n=val("rd_cn").trim();var u=val("rd_cu").trim();
+      if(!n||!u)return toast("⚠️ Name + URL","err");
+      if(u.indexOf("http")!==0)return toast("⚠️ URL muss mit http beginnen","err");
+      var a=self.getCustom();
+      a.push({id:"rc_"+Date.now(),n:n,g:"Eigener Stream",i:val("rd_ci")||"🎵",cat:"custom",url:u});
+      self.saveCustom(a);toast("➕","ok");self.renderTab();
+    });
+    el.querySelectorAll("[data-rd-cplay]").forEach(function(b){
+      b.addEventListener("click",function(e){
+        if(e.target.closest("[data-rd-crm]")||e.target.closest(".play"))return;
+        var s=null;arr.forEach(function(x){if(x.id===b.dataset.rdCplay)s=x;});
+        if(!s)return;
+        if(self._playing&&self._playing.id===s.id){self.stopPlay();return;}
+        self.playStation(s);
+      });
+    });
+    el.querySelectorAll("[data-rd-crm]").forEach(function(b){
+      b.addEventListener("click",function(e){
+        e.stopPropagation();
+        if(self._playing&&self._playing.id===b.dataset.rdCrm)self.stopPlay();
+        self.saveCustom(self.getCustom().filter(function(x){return x.id!==b.dataset.rdCrm;}));
+        self.renderTab();
+      });
+    });
+  }
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.radio=AppRadio;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="radio"){a.prio=1;a.installed=true;a.cat="Medien";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"radio",name:"Radio",icon:"📻",cat:"Medien",prio:1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Radio] 📻 18 Sender + eigene Streams geladen.");
+})();
+</script>
+<!-- ============================================================
+     HALDO PODCAST — Podcasts verwalten + abspielen + RSS
+     Einfach vor </body> einfügen.
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Podcast] window.HalDo fehlt.");return;}
+var H=window.HalDo,Storage=H.Storage,AppLauncher=H.AppLauncher,APP_PLAN=H.APP_PLAN;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+function fmtD(s){s=Math.round(s||0);var h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h>0?h+"h "+m+"m":m+" min";}
+
+function pdStyles(){if(document.getElementById("pdStyles"))return;var s=document.createElement("style");s.id="pdStyles";
+s.textContent=".pd-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(139,92,246,.18),rgba(236,72,153,.18));border:1px solid rgba(139,92,246,.4);text-align:center;margin-bottom:12px}.pd-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.pd-hero .val{font-size:38px;font-weight:900;color:#a78bfa;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.pd-hero .sub{font-size:10.5px;color:var(--text-mute)}.pd-player{position:sticky;top:0;background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(236,72,153,.15));border:1px solid var(--border-hi);border-radius:12px;padding:12px 14px;margin-bottom:10px;z-index:10}.pd-player .row{display:flex;align-items:center;gap:12px;margin-bottom:8px}.pd-player .cover{width:52px;height:52px;border-radius:10px;background:linear-gradient(135deg,#8b5cf6,#ec4899);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}.pd-player .body{flex:1;min-width:0}.pd-player .body .n{font-size:12.5px;font-weight:800;color:#a78bfa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pd-player .body .s{font-size:10px;color:var(--text-mute);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pd-player .btn{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#ec4899);border:none;color:#fff;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}.pd-track{height:6px;background:rgba(0,0,0,.35);border-radius:3px;overflow:hidden;margin-top:6px;cursor:pointer}.pd-track .fill{height:100%;background:linear-gradient(90deg,#8b5cf6,#ec4899);border-radius:3px;transition:width .2s}.pd-time{display:flex;justify-content:space-between;font-size:9px;color:var(--text-mute);font-family:ui-monospace,monospace;margin-top:4px}.pd-feed{padding:12px;background:var(--bg-3);border:1px solid var(--border);border-radius:11px;margin-top:6px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:10px}.pd-feed:hover{border-color:#a78bfa}.pd-feed .cover{width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;background:linear-gradient(135deg,#8b5cf633,#ec489933)}.pd-feed .body{flex:1;min-width:0}.pd-feed .body .n{font-size:12px;font-weight:800}.pd-feed .body .g{font-size:10px;color:var(--text-mute);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pd-feed .body .count{display:inline-block;font-size:8.5px;padding:1px 6px;background:rgba(139,92,246,.2);color:#a78bfa;border-radius:4px;margin-top:3px;font-weight:800}.pd-feed .del{padding:5px 8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#ff8080;border-radius:6px;cursor:pointer;font-size:10px}.pd-ep{padding:10px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:5px;cursor:pointer;transition:.15s;display:flex;gap:10px;align-items:center}.pd-ep:hover{border-color:#a78bfa;background:rgba(139,92,246,.05)}.pd-ep.playing{border-color:#4ade80;background:rgba(34,197,94,.06)}.pd-ep .play{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#ec4899);border:none;color:#fff;font-size:14px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}.pd-ep .body{flex:1;min-width:0}.pd-ep .body .t{font-size:11.5px;font-weight:700;line-height:1.3}.pd-ep .body .meta{font-size:9.5px;color:var(--text-mute);margin-top:2px}.pd-input{width:100%;background:var(--bg-3);border:1px solid rgba(0,212,255,.22);color:var(--text);padding:10px 12px;border-radius:9px;font-family:inherit;font-size:12px;outline:none}.pd-empty{padding:30px 20px;text-align:center;color:var(--text-mute);font-size:11.5px;border:1px dashed var(--border);border-radius:9px;margin-top:8px}.pd-input-url{width:100%;background:var(--bg-3);border:1px solid rgba(0,212,255,.22);color:var(--text);padding:10px 12px;border-radius:9px;font-family:ui-monospace,monospace;font-size:11px;outline:none}.pd-info{padding:9px 12px;background:rgba(139,92,246,.06);border:1px dashed rgba(139,92,246,.35);border-radius:9px;font-size:10.5px;color:var(--text-dim);line-height:1.6;margin:8px 0}";document.head.appendChild(s);}
+
+/* ============ Vorgeschlagene Podcasts ============ -->
+var PD_SUGGESTIONS=[
+  {id:"p1",n:"Fest & Flauschig",g:"Böhmermann & Schulz",i:"🎙️",rss:"https://feeds.megaphone.fm/festundflauschig"},
+  {id:"p2",n:"Gemischtes Hack",g:"Felix Lobrecht & Tommi Schmitt",i:"🎤",rss:"https://feeds.megaphone.fm/gemischteshack"},
+  {id:"p3",n:"Zeit Verbrechen",g:"True Crime",i:"🔍",rss:"https://feeds.simplecast.com/KGpWMKQZ"},
+  {id:"p4",n:"Eine Stunde History",g:"Geschichte",i:"📚",rss:"https://podcasts.deutschlandfunknova.de/eine-stunde-history/feed.xml"},
+  {id:"p5",n:"Das Wissen",g:"SWR Wissen",i:"🧠",rss:"https://www.swr.de/~podcast/wissen/das-wissen-podcast-102.xml"},
+  {id:"p6",n:"Hotel Matze",g:"Matze Hielscher Interviews",i:"🎙️",rss:"https://feeds.megaphone.fm/HOTELMATZE"},
+  {id:"p7",n:"Festival of the Mind",g:"Wissenschaft",i:"🧪",rss:"https://podcast.festival-of-the-mind.de/rss"},
+  {id:"p8",n:"Apokalypse & Filterkaffee",g:"Micky Beisenherz",i:"☕",rss:"https://feeds.megaphone.fm/apokalypseundfilterkaffee"}
+];
+
+var AppPodcast={
+  tab:"feeds",
+  _audio:null,
+  _current:null,
+  _episodes:[],
+  _feed:null,
+  _speed:1,
+  _volume:0.9,
+
+  getSubs:function(){return Storage.get("pd_subs",[]);},
+  saveSubs:function(a){Storage.set("pd_subs",a);},
+  getCache:function(feedId){var c=Storage.get("pd_cache_"+feedId,[]);return c;},
+  saveCache:function(feedId,eps){try{Storage.set("pd_cache_"+feedId,eps.slice(0,30));}catch(e){}},
+
+  render:function(){
+    pdStyles();
+    var vp=document.getElementById("appViewport");
+    var tabs=[{k:"feeds",n:"📻 Meine Feeds"},{k:"discover",n:"🔍 Entdecken"},{k:"add",n:"➕ Hinzufügen"}];
+    var self=this;
+    var th=tabs.map(function(t){return '<button class="ms-tab'+(self.tab===t.k?" active":"")+'" data-pd-tab="'+t.k+'">'+t.n+'</button>';}).join("");
+    var player=this._current?this.renderPlayer():'';
+    vp.innerHTML=player+'<div class="ms-tabs">'+th+'</div><div id="pdContent"></div>';
+    vp.querySelectorAll("[data-pd-tab]").forEach(function(b){b.addEventListener("click",function(){self.tab=b.dataset.pdTab;self.render();});});
+    this.bindPlayer();
+    this.renderTab();
+  },
+
+  renderPlayer:function(){
+    var e=this._current;
+    if(!e)return '';
+    return '<div class="pd-player">'
+      +'<div class="row">'
+      +'<div class="cover">'+e.feedIcon+'</div>'
+      +'<div class="body"><div class="n">'+esc(e.title)+'</div><div class="s">'+esc(e.feedName)+'</div></div>'
+      +'<button class="btn" id="pd_stop">⏹️</button>'
+      +'</div>'
+      +'<div class="pd-track" id="pd_track"><div class="fill" id="pd_fill" style="width:0%"></div></div>'
+      +'<div class="pd-time"><span id="pd_t_cur">0:00</span><span id="pd_t_dur">'+fmtD(e.dur)+'</span></div>'
+      +'<div style="display:flex;gap:8px;align-items:center;margin-top:6px;font-size:10px;color:var(--text-mute)">'
+      +'<button class="btn secondary small" id="pd_back15">↺ 15s</button>'
+      +'<button class="btn secondary small" id="pd_fwd30">30s ↻</button>'
+      +'<button class="btn secondary small" id="pd_speed">'+this._speed+'x</button>'
+      +'<input type="range" id="pd_volume" min="0" max="100" value="'+Math.round(this._volume*100)+'" style="flex:1;accent-color:#a78bfa">'
+      +'</div>'
+      +'</div>';
+  },
+
+  bindPlayer:function(){
+    var self=this;
+    var stop=document.getElementById("pd_stop");
+    if(stop)stop.addEventListener("click",function(){self.stopPlay();});
+    var b15=document.getElementById("pd_back15");
+    if(b15)b15.addEventListener("click",function(){if(self._audio)self._audio.currentTime=Math.max(0,self._audio.currentTime-15);});
+    var f30=document.getElementById("pd_fwd30");
+    if(f30)f30.addEventListener("click",function(){if(self._audio)self._audio.currentTime+=30;});
+    var sp=document.getElementById("pd_speed");
+    if(sp)sp.addEventListener("click",function(){
+      self._speed=self._speed>=2?0.5:self._speed+0.5;
+      if(self._audio)self._audio.playbackRate=self._speed;
+      this.textContent=self._speed+"x";
+    });
+    var vol=document.getElementById("pd_volume");
+    if(vol)vol.addEventListener("input",function(){
+      self._volume=parseFloat(this.value)/100;
+      if(self._audio)self._audio.volume=self._volume;
+    });
+    var track=document.getElementById("pd_track");
+    if(track)track.addEventListener("click",function(e){
+      if(!self._audio||!self._audio.duration)return;
+      var rect=this.getBoundingClientRect();
+      var pct=(e.clientX-rect.left)/rect.width;
+      self._audio.currentTime=pct*self._audio.duration;
+    });
+  },
+
+  renderTab:function(){
+    var el=document.getElementById("pdContent");if(!el)return;
+    if(this.tab==="feeds")this.renderFeeds(el);
+    else if(this.tab==="discover")this.renderDiscover(el);
+    else this.renderAdd(el);
+  },
+
+  renderFeeds:function(el){
+    var self=this;
+    var subs=this.getSubs();
+    var list=subs.length?subs.map(function(s){
+      var cache=self.getCache(s.id);
+      return '<div class="pd-feed" data-pd-feed="'+s.id+'">'
+        +'<div class="cover">'+s.i+'</div>'
+        +'<div class="body"><div class="n">'+esc(s.n)+'</div><div class="g">'+esc(s.g||s.rss.substring(0,50))+'</div>'+(cache.length?'<span class="count">'+cache.length+' Folgen</span>':'')+'</div>'
+        +'<button class="del" data-pd-del="'+s.id+'">🗑️</button>'
+        +'</div>';
+    }).join(""):'<div class="pd-empty">Noch keine Podcasts abonniert.<br>Tippe auf <b>🔍 Entdecken</b> oder <b>➕ Hinzufügen</b>.</div>';
+
+    el.innerHTML='<div class="pd-hero"><div class="lbl">Podcast-Abos</div><div class="val">'+subs.length+'</div><div class="sub">Verwalte deine Podcasts</div></div>'
+      +'<div class="card"><div class="card-h"><h3>📻 Meine Abos</h3></div>'+list+'</div>'
+      +'<div id="pd_feed_view"></div>';
+
+    el.querySelectorAll("[data-pd-feed]").forEach(function(b){
+      b.addEventListener("click",function(e){
+        if(e.target.closest("[data-pd-del]"))return;
+        self.openFeed(b.dataset.pdFeed);
+      });
+    });
+    el.querySelectorAll("[data-pd-del]").forEach(function(b){
+      b.addEventListener("click",function(e){
+        e.stopPropagation();
+        if(!confirm("Podcast entfernen?"))return;
+        self.saveSubs(self.getSubs().filter(function(x){return x.id!==b.dataset.pdDel;}));
+        self.renderTab();
+      });
+    });
+  },
+
+  openFeed:function(id){
+    var self=this;
+    var feed=null;this.getSubs().forEach(function(x){if(x.id===id)feed=x;});
+    if(!feed)return;
+    var view=document.getElementById("pd_feed_view");if(!view)return;
+    var cache=this.getCache(id);
+    view.innerHTML='<div class="card"><div class="card-h"><h3>'+feed.i+' '+esc(feed.n)+'</h3></div>'
+      +'<div class="pd-info">'+esc(feed.g||"")+'</div>'
+      +'<button class="btn success full" id="pd_load_eps">🔄 Folgen laden</button>'
+      +'<div id="pd_eps" style="margin-top:10px">'+(cache.length?cache.map(function(ep){
+        return self.renderEp(ep,feed);
+      }).join(""):'<div class="pd-empty">Noch keine Folgen geladen. Klick „Folgen laden".</div>')+'</div>'
+      +'</div>';
+    view.scrollIntoView({behavior:"smooth",block:"nearest"});
+    document.getElementById("pd_load_eps").addEventListener("click",function(){self.loadFeed(feed);});
+    this.bindEpisodes(feed);
+  },
+
+  renderEp:function(ep,feed){
+    var self=this;
+    var isPlaying=this._current&&this._current.url===ep.url;
+    return '<div class="pd-ep'+(isPlaying?" playing":"")+'" data-pd-ep="'+esc(ep.url)+'">'
+      +'<button class="play">'+(isPlaying?"⏸️":"▶️")+'</button>'
+      +'<div class="body"><div class="t">'+esc(ep.title)+'</div>'
+      +'<div class="meta">'+(ep.date||"")+(ep.dur?' · '+fmtD(ep.dur):'')+'</div></div>'
+      +'</div>';
+  },
+
+  bindEpisodes:function(feed){
+    var self=this;
+    var vp=document.getElementById("appViewport");
+    vp.querySelectorAll("[data-pd-ep]").forEach(function(b){
+      b.addEventListener("click",function(e){
+        if(e.target.closest(".play"))return;
+        var url=b.dataset.pdEp;
+        if(self._current&&self._current.url===url){self.stopPlay();return;}
+        var cache=self.getCache(feed.id);
+        var ep=null;cache.forEach(function(x){if(x.url===url)ep=x;});
+        if(!ep)return;
+        self.playEpisode(ep,feed);
+      });
+    });
+    vp.querySelectorAll("[data-pd-ep] .play").forEach(function(b){
+      b.addEventListener("click",function(e){
+        e.stopPropagation();
+        var url=b.parentElement.dataset.pdEp;
+        if(self._current&&self._current.url===url){self.stopPlay();return;}
+        var cache=self.getCache(feed.id);
+        var ep=null;cache.forEach(function(x){if(x.url===url)ep=x;});
+        if(!ep)return;
+        self.playEpisode(ep,feed);
+      });
+    });
+  },
+
+  loadFeed:function(feed){
+    var self=this;
+    toast("⏳ Lade RSS-Feed…");
+    var url=feed.rss;
+    /* Nutze CORS-Proxy für RSS */
+    var proxyUrl="https://api.allorigins.win/raw?url="+encodeURIComponent(url);
+    fetch(proxyUrl).then(function(r){
+      if(!r.ok)throw new Error("HTTP "+r.status);
+      return r.text();
+    }).then(function(text){
+      var parser=new DOMParser();
+      var xml=parser.parseFromString(text,"text/xml");
+      var items=xml.querySelectorAll("item");
+      if(!items.length)items=xml.querySelectorAll("entry");
+      var episodes=[];
+      Array.prototype.slice.call(items).slice(0,30).forEach(function(it){
+        var title=(it.querySelector("title")||{}).textContent||"Folge";
+        var enclosure=it.querySelector("enclosure");
+        var url2=enclosure?enclosure.getAttribute("url"):"";
+        if(!url2){
+          var link=it.querySelector("link");
+          if(link){
+            var href=link.getAttribute("href")||link.textContent;
+            if(href&&(href.indexOf(".mp3")>=0||href.indexOf(".m4a")>=0||href.indexOf(".ogg")>=0))url2=href;
+          }
+        }
+        if(!url2)return;
+        var pubDate=(it.querySelector("pubDate")||it.querySelector("published")||{}).textContent||"";
+        var duration=0;
+        var dur=(it.querySelector("duration")||it.getElementsByTagName("itunes:duration")[0]);
+        if(dur&&dur.textContent){
+          var d=dur.textContent.trim();
+          if(d.indexOf(":")>=0){
+            var p=d.split(":").map(Number);
+            if(p.length===3)duration=p[0]*3600+p[1]*60+p[2];
+            else if(p.length===2)duration=p[0]*60+p[1];
+          }else duration=parseInt(d)||0;
+        }
+        episodes.push({title:title,url:url2,date:pubDate.substring(0,16),dur:duration});
+      });
+      if(!episodes.length)throw new Error("Keine Folgen gefunden");
+      self.saveCache(feed.id,episodes);
+      toast("✅ "+episodes.length+" Folgen geladen","ok");
+      self.openFeed(feed.id);
+    }).catch(function(e){
+      toast("❌ "+e.message+" — probiere andere URL oder anderen Podcast","err");
+    });
+  },
+
+  playEpisode:function(ep,feed){
+    var self=this;
+    if(this._audio){this._audio.pause();}
+    var a=new Audio(ep.url);
+    a.volume=this._volume;
+    a.playbackRate=this._speed;
+    a.addEventListener("timeupdate",function(){
+      var fill=document.getElementById("pd_fill");
+      if(fill&&a.duration)fill.style.width=(a.currentTime/a.duration*100)+"%";
+      var c=document.getElementById("pd_t_cur");
+      if(c)c.textContent=fmtD(a.currentTime);
+    });
+    a.addEventListener("loadedmetadata",function(){
+      var d=document.getElementById("pd_t_dur");
+      if(d)d.textContent=fmtD(a.duration);
+    });
+    a.addEventListener("ended",function(){self.stopPlay();});
+    a.play().then(function(){
+      self._audio=a;
+      self._current={title:ep.title,url:ep.url,feedName:feed.n,feedIcon:feed.i,dur:ep.dur||0};
+      self.render();
+      toast("▶️ "+ep.title.substring(0,40),"ok");
+    }).catch(function(e){toast("❌ "+e.message,"err");});
+  },
+
+  stopPlay:function(){
+    if(this._audio){this._audio.pause();this._audio=null;}
+    this._current=null;
+    this.render();
+  },
+
+  renderDiscover:function(el){
+    var self=this;
+    var subs=this.getSubs();
+    var subIds=subs.map(function(s){return s.id;});
+    var list=PD_SUGGESTIONS.map(function(s){
+      var subscribed=subIds.indexOf(s.id)>=0;
+      return '<div class="pd-feed">'
+        +'<div class="cover">'+s.i+'</div>'
+        +'<div class="body"><div class="n">'+esc(s.n)+'</div><div class="g">'+esc(s.g)+'</div></div>'
+        +'<button class="btn '+(subscribed?"secondary":"success")+' small" data-pd-sub="'+s.id+'">'+(subscribed?"✓ Abonniert":"+ Abonnieren")+'</button>'
+        +'</div>';
+    }).join("");
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🔍 Empfohlene Podcasts</h3></div>'
+      +'<div class="pd-info">💡 Klick auf „+ Abonnieren" — die neuesten Folgen werden automatisch geladen. Für RSS-Feeds wird ein CORS-Proxy genutzt.</div>'
+      +list+'</div>';
+
+    el.querySelectorAll("[data-pd-sub]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var id=b.dataset.pdSub;
+        var s=null;PD_SUGGESTIONS.forEach(function(x){if(x.id===id)s=x;});
+        if(!s)return;
+        var subs=self.getSubs();
+        if(subs.some(function(x){return x.id===s.id;}))return toast("⚠️ Bereits abonniert","err");
+        subs.push(s);self.saveSubs(subs);
+        toast("✅ Abonniert: "+s.n,"ok");
+        self.loadFeed(s);
+        self.renderTab();
+      });
+    });
+  },
+
+  renderAdd:function(el){
+    var self=this;
+    el.innerHTML='<div class="card"><div class="card-h"><h3>➕ Eigener Podcast</h3></div>'
+      +'<div class="field"><label>Name</label><input type="text" class="pd-input" id="pd_add_n" placeholder="z.B. Mein Podcast"></div>'
+      +'<div class="field"><label>Beschreibung</label><input type="text" class="pd-input" id="pd_add_g" placeholder="z.B. Über Technologie"></div>'
+      +'<div class="field"><label>RSS-Feed URL</label><input type="text" class="pd-input-url" id="pd_add_rss" placeholder="https://example.com/feed.xml"></div>'
+      +'<div class="field"><label>Emoji</label><input type="text" class="pd-input" id="pd_add_i" value="🎙️" maxlength="3" style="width:80px"></div>'
+      +'<button class="btn success full" id="pd_add_btn">➕ Abonnieren</button>'
+      +'<div class="pd-info">💡 Den RSS-Feed findest du auf der Webseite des Podcasts. Oft heißt der Link „RSS Feed" oder „Feed abonnieren".<br><br>Für Podbean/Anchor/Spotify-Exclusives gibt es keinen öffentlichen RSS-Feed.</div>'
+      +'</div>';
+
+    document.getElementById("pd_add_btn").addEventListener("click",function(){
+      var n=val("pd_add_n").trim();var rss=val("pd_add_rss").trim();
+      if(!n||!rss)return toast("⚠️ Name + RSS-URL","err");
+      if(rss.indexOf("http")!==0)return toast("⚠️ URL muss mit http beginnen","err");
+      var s={id:"pcu_"+Date.now(),n:n,g:val("pd_add_g")||rss.substring(0,50),i:val("pd_add_i")||"🎙️",rss:rss};
+      var subs=self.getSubs();
+      subs.push(s);
+      self.saveSubs(subs);
+      toast("➕ Abonniert","ok");
+      self.loadFeed(s);
+      self.tab="feeds";self.render();
+    });
+  }
+};
+
+if(AppLauncher&&AppLauncher.registry){AppLauncher.registry.podcast=AppPodcast;}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){if(a.id==="podcast"){a.prio=1;a.installed=true;a.cat="Medien";found=true;}});
+  if(!found)APP_PLAN.unshift({id:"podcast",name:"Podcast",icon:"🎙️",cat:"Medien",prio:1,installed:true});
+}
+setTimeout(function(){var b=document.getElementById("btnFilterAll");if(b)b.click();},1800);
+console.log("[HalDo Podcast] 🎙️ 8 Vorschläge + RSS + Player geladen.");
+})();
+</script>
 </body>
 </html>
