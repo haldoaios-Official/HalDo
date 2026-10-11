@@ -2834,5 +2834,528 @@ console.log("[HalDo Fitness] ✅ Modul geladen und registriert.");
 })();
 </script>
 <!-- ============ ENDE HALDO FITNESS APP ============ -->
+<!-- ============================================================
+     HALDO KOCHBUCH APP — DROP-IN MODUL
+     Einfach vor </body> einfügen. Nach Reload ist alles aktiv.
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Kochbuch] window.HalDo fehlt.");return;}
+
+var H=window.HalDo;
+var Storage=H.Storage;
+var AppLauncher=H.AppLauncher;
+var APP_PLAN=H.APP_PLAN;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+function select(id,cur,opts){var h='<select id="'+id+'">';opts.forEach(function(o){h+='<option value="'+esc(o[0])+'"'+(String(o[0])===String(cur)?" selected":"")+'>'+esc(o[1])+'</option>';});return h+'</select>';}
+
+function kbInjectStyles(){
+  if(document.getElementById("kbStyles"))return;
+  var s=document.createElement("style");
+  s.id="kbStyles";
+  s.textContent=".kb-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(245,158,11,.18),rgba(239,68,68,.18));border:1px solid rgba(245,158,11,.4);text-align:center;margin-bottom:12px}.kb-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.kb-hero .val{font-size:38px;font-weight:900;color:#fbbf24;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.kb-hero .sub{font-size:10.5px;color:var(--text-mute)}.kb-cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}.kb-cat-card{padding:14px 6px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:11px;text-align:center;cursor:pointer;transition:.15s}.kb-cat-card:hover{border-color:#fbbf24;background:rgba(245,158,11,.08)}.kb-cat-card.active{border-color:#fbbf24;background:rgba(245,158,11,.15)}.kb-cat-card .i{font-size:24px;margin-bottom:5px}.kb-cat-card .n{font-size:10.5px;font-weight:800}.kb-cat-card .c{font-size:8.5px;color:var(--text-mute);margin-top:2px}.recipe-card{padding:13px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:11px;margin-top:6px;cursor:pointer;transition:.15s}.recipe-card:hover{border-color:#fbbf24;background:rgba(245,158,11,.06)}.recipe-card .h{display:flex;align-items:center;gap:10px;margin-bottom:6px}.recipe-card .h .i{font-size:26px;flex-shrink:0}.recipe-card .h .txt{flex:1;min-width:0}.recipe-card .h .txt .n{font-size:12.5px;font-weight:800}.recipe-card .h .txt .m{font-size:9.5px;color:var(--text-mute);margin-top:2px}.recipe-card .h .fav{font-size:16px;cursor:pointer}.recipe-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.recipe-meta .tag{font-size:9px;padding:2px 7px;background:rgba(0,212,255,.12);color:var(--primary);border-radius:5px;font-weight:700}.recipe-meta .tag.hard{background:rgba(239,68,68,.15);color:#ff8080}.recipe-meta .tag.easy{background:rgba(34,197,94,.15);color:#4ade80}.recipe-detail{padding:14px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:11px;margin-top:10px}.recipe-detail h4{font-size:16px;font-weight:800;color:#fbbf24;margin-bottom:6px}.recipe-detail h5{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;font-weight:800;margin:10px 0 4px}.recipe-detail ul,.recipe-detail ol{margin-left:16px;font-size:11.5px;line-height:1.7}.recipe-detail li{margin-bottom:2px}.recipe-detail p{font-size:11.5px;line-height:1.6}.ingredient-row{display:flex;gap:6px;align-items:center;padding:8px 10px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;margin-top:5px}.ingredient-row .amt{font-size:11px;font-weight:800;color:#fbbf24;font-family:ui-monospace,monospace;min-width:60px}.ingredient-row .n{flex:1;font-size:11.5px;font-weight:600}.ingredient-row .chk{width:24px;height:24px;border-radius:6px;background:var(--bg-4);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px}.ingredient-row .chk.on{background:rgba(34,197,94,.25);border-color:var(--success);color:#4ade80}.step-row{display:flex;gap:9px;padding:10px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:6px}.step-row .n{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;font-size:12px}.step-row .t{font-size:11.5px;line-height:1.55}.step-row.done{opacity:.5}.step-row.done .n{background:linear-gradient(135deg,#4ade80,#22c55e)}.search-input{width:100%;background:var(--bg-3);border:1px solid var(--border);color:var(--text);padding:10px 13px;border-radius:9px;font-family:inherit;font-size:12px;outline:none;margin-bottom:8px}.shopping-item{display:flex;align-items:center;gap:8px;padding:9px 11px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:5px}.shopping-item .chk{width:24px;height:24px;border-radius:6px;background:var(--bg-4);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}.shopping-item .chk.on{background:rgba(34,197,94,.25);border-color:var(--success);color:#4ade80}.shopping-item .n{flex:1;font-size:11.5px;font-weight:600}.shopping-item.done .n{text-decoration:line-through;opacity:.5}.serving-btn{padding:6px 11px;border-radius:8px;border:1px solid var(--border);background:var(--bg-3);color:var(--text-dim);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer}.serving-btn.active{border-color:#fbbf24;background:rgba(245,158,11,.15);color:#fbbf24}";
+  document.head.appendChild(s);
+}
+
+/* ============ Rezept-Datenbank ============ */
+var KochData={
+  categories:{
+    fruehstueck:{n:"Frühstück",i:"🥐"},
+    hauptgericht:{n:"Hauptgericht",i:"🍽️"},
+    suppe:{n:"Suppe",i:"🍲"},
+    salat:{n:"Salat",i:"🥗"},
+    pasta:{n:"Pasta",i:"🍝"},
+    pizza:{n:"Pizza",i:"🍕"},
+    fleisch:{n:"Fleisch",i:"🥩"},
+    fisch:{n:"Fisch",i:"🐟"},
+    vegetarisch:{n:"Vegetarisch",i:"🥬"},
+    vegan:{n:"Vegan",i:"🌱"},
+    dessert:{n:"Dessert",i:"🍰"},
+    snack:{n:"Snack",i:"🍿"},
+    getraenk:{n:"Getränke",i:"🥤"},
+    orientalisch:{n:"Orientalisch",i:"🌯"},
+    kurdish:{n:"Kurdisch",i:"🟨"}
+  },
+  recipes:[
+    {id:"r_haferbrei",cat:"fruehstueck",n:"Haferbrei mit Beeren",i:"🥣",time:10,serv:1,diff:"easy",kcal:380,kcal100:85,
+     ing:[{a:"50 g",n:"Haferflocken"},{a:"300 ml",n:"Milch oder Hafermilch"},{a:"1 EL",n:"Honig"},{a:"100 g",n:"Beeren"},{a:"1 Prise",n:"Zimt"}],
+     steps:["Milch in Topf erhitzen","Haferflocken einrühren","5 Min bei mittlerer Hitze köcheln","In Schüssel geben","Mit Beeren, Honig und Zimt toppen"]},
+    {id:"r_omlett",cat:"fruehstueck",n:"Käse-Omelett",i:"🍳",time:8,serv:1,diff:"easy",kcal:320,kcal100:210,
+     ing:[{a:"3",n:"Eier"},{a:"30 g",n:"Geriebener Käse"},{a:"1 EL",n:"Butter"},{a:"1 Prise",n:"Salz, Pfeffer"},{a:"1 Zweig",n:"Petersilie"}],
+     steps:["Eier verquirlen, würzen","Butter in Pfanne schmelzen","Ei-Masse eingießen","Käse drauf verteilen","Zusammenklappen, garnieren"]},
+    {id:"r_pancakes",cat:"fruehstueck",n:"Amerikanische Pancakes",i:"🥞",time:20,serv:2,diff:"medium",kcal:520,kcal100:230,
+     ing:[{a:"150 g",n:"Mehl"},{a:"2",n:"Eier"},{a:"200 ml",n:"Milch"},{a:"2 TL",n:"Backpulver"},{a:"2 EL",n:"Zucker"},{a:"1 Prise",n:"Salz"},{a:"1 EL",n:"Butter"}],
+     steps:["Trockene Zutaten mischen","Eier und Milch dazu, glatt rühren","10 Min ruhen lassen","Butter in Pfanne, kleine Portionen backen","Wenden wenn Bläschen kommen"]},
+
+    {id:"r_spaghetti",cat:"pasta",n:"Spaghetti Bolognese",i:"🍝",time:45,serv:4,diff:"medium",kcal:620,kcal100:155,
+     ing:[{a:"500 g",n:"Spaghetti"},{a:"400 g",n:"Rinderhack"},{a:"1",n:"Zwiebel"},{a:"2",n:"Knoblauchzehen"},{a:"400 g",n:"Dosentomaten"},{a:"2 EL",n:"Tomatenmark"},{a:"1 TL",n:"Oregano"},{a:"1 Prise",n:"Salz, Pfeffer"}],
+     steps:["Zwiebel und Knoblauch würfeln","Hack anbraten bis braun","Zwiebeln und Knoblauch dazu","Tomatenmark einrühren, anrösten","Tomaten dazu, 20 Min köcheln","Spaghetti kochen","Mit Soße servieren"]},
+    {id:"r_carbonara",cat:"pasta",n:"Spaghetti Carbonara",i:"🥓",time:25,serv:2,diff:"medium",kcal:680,kcal100:180,
+     ing:[{a:"200 g",n:"Spaghetti"},{a:"100 g",n:"Guanciale"},{a:"2",n:"Eigelb"},{a:"1",n:"Ei"},{a:"50 g",n:"Pecorino"},{a:"1 Prise",n:"Schwarzer Pfeffer"}],
+     steps:["Wasser aufsetzen, salzen","Guanciale in Streifen schneiden","Knusprig auslassen","Eier mit Käse verrühren","Pasta al dente kochen","Alles vermischen (nicht erhitzen)","Pfeffer drüber"]},
+    {id:"r_lasagne",cat:"pasta",n:"Lasagne",i:"🧀",time:90,serv:6,diff:"hard",kcal:580,kcal100:145,
+     ing:[{a:"12",n:"Lasagneplatten"},{a:"500 g",n:"Hackfleisch"},{a:"700 g",n:"Passierte Tomaten"},{a:"500 ml",n:"Béchamel"},{a:"200 g",n:"Mozzarella"},{a:"1",n:"Zwiebel"},{a:"2",n:"Knoblauchzehen"}],
+     steps:["Hack mit Zwiebeln anbraten","Tomaten dazu, 20 Min köcheln","Schichten: Soße, Platten, Béchamel","Wiederholen bis Form voll","Mit Mozzarella abschließen","180°C, 35 Min backen","10 Min ruhen lassen"]},
+
+    {id:"r_margherita",cat:"pizza",n:"Pizza Margherita",i:"🍕",time:120,serv:2,diff:"medium",kcal:780,kcal100:265,
+     ing:[{a:"500 g",n:"Mehl"},{a:"7 g",n:"Trockenhefe"},{a:"325 ml",n:"Wasser"},{a:"1 TL",n:"Salz"},{a:"200 g",n:"Tomaten (San Marzano)"},{a:"200 g",n:"Mozzarella"},{a:"1 Handvoll",n:"Basilikum"},{a:"2 EL",n:"Olivenöl"}],
+     steps:["Mehl, Hefe, Wasser, Salz kneten","10 Min kneten, 1h gehen lassen","Teig in 2 Kugeln teilen","Auf 250°C vorheizen","Tomaten zerdrücken, würzen","Teig ausrollen, belegen","8-10 Min backen","Frisches Basilikum drauf"]},
+    {id:"r_calzone",cat:"pizza",n:"Calzone",i:"🥟",time:60,serv:2,diff:"medium",kcal:640,kcal100:210,
+     ing:[{a:"500 g",n:"Pizzateig"},{a:"200 g",n:"Ricotta"},{a:"100 g",n:"Salami"},{a:"100 g",n:"Mozzarella"},{a:"1",n:"Ei (zum Bestreichen)"}],
+     steps:["Teig ausrollen","Hälfte mit Füllung belegen","Zusammenklappen, Ränder drücken","Mit Ei bestreichen","200°C, 20 Min backen"]},
+
+    {id:"r_steak",cat:"fleisch",n:"Ribeye Steak",i:"🥩",time:15,serv:1,diff:"medium",kcal:550,kcal100:250,
+     ing:[{a:"300 g",n:"Ribeye"},{a:"1 EL",n:"Butter"},{a:"2",n:"Knoblauchzehen"},{a:"1 Zweig",n:"Rosmarin"},{a:"1 Prise",n:"Fleur de Sel"}],
+     steps:["Steak 30 Min vorher rausnehmen","Salzen auf beiden Seiten","Pfanne sehr heiß","3 Min pro Seite (medium)","Butter, Knoblauch, Rosmarin dazu","1 Min mit Butter übergießen","5 Min ruhen lassen"]},
+    {id:"r_haehnchen",cat:"fleisch",n:"Hähnchenbrust mit Kräutern",i:"🍗",time:25,serv:2,diff:"easy",kcal:380,kcal100:165,
+     ing:[{a:"400 g",n:"Hähnchenbrust"},{a:"2 EL",n:"Olivenöl"},{a:"2",n:"Knoblauchzehen"},{a:"1 TL",n:"Paprikapulver"},{a:"1 TL",n:"Thymian"},{a:"1 Prise",n:"Salz, Pfeffer"}],
+     steps:["Hähnchen waschen, trocken tupfen","Gewürze mit Öl mischen","Hähnchen marinieren","Pfanne heiß, 5 Min pro Seite","2 Min ruhen lassen"]},
+    {id:"r_gyros",cat:"fleisch",n:"Gyros-Pfanne",i:"🥙",time:30,serv:3,diff:"easy",kcal:520,kcal100:175,
+     ing:[{a:"500 g",n:"Schweinefleisch"},{a:"2 TL",n:"Gyros-Gewürz"},{a:"3 EL",n:"Olivenöl"},{a:"1",n:"Zwiebel"},{a:"1",n:"Paprika"},{a:"200 g",n:"Joghurt"},{a:"1",n:"Knoblauchzehe"}],
+     steps:["Fleisch in Streifen schneiden","Mit Gewürz und Öl marinieren","Zwiebel und Paprika anbraten","Fleisch dazu, scharf anbraten","Joghurt mit Knoblauch als Dip"]},
+
+    {id:"r_lachs",cat:"fisch",n:"Lachsfilet mit Zitrone",i:"🐟",time:20,serv:2,diff:"easy",kcal:420,kcal100:205,
+     ing:[{a:"2",n:"Lachsfilets (je 150g)"},{a:"1",n:"Zitrone"},{a:"2 EL",n:"Olivenöl"},{a:"1 Bund",n:"Dill"},{a:"1 Prise",n:"Salz, Pfeffer"}],
+     steps:["Backofen auf 200°C","Lachs trocken tupfen","Mit Öl, Salz, Pfeffer einreiben","Zitrone in Scheiben","Dill drüber","15 Min backen"]},
+    {id:"r_thunfisch",cat:"fisch",n:"Thunfisch-Pasta",i:"🐟",time:15,serv:2,diff:"easy",kcal:480,kcal100:160,
+     ing:[{a:"200 g",n:"Pasta"},{a:"1 Dose",n:"Thunfisch"},{a:"2",n:"Knoblauchzehen"},{a:"400 g",n:"Dosentomaten"},{a:"2 EL",n:"Olivenöl"},{a:"1 Prise",n:"Chili"}],
+     steps:["Pasta kochen","Knoblauch in Öl anbraten","Tomaten dazu, 5 Min","Thunfisch unterrühren","Pasta dazugeben, mischen"]},
+
+    {id:"r_gemuese_curry",cat:"vegetarisch",n:"Gemüse-Curry",i:"🍛",time:30,serv:3,diff:"easy",kcal:380,kcal100:105,
+     ing:[{a:"400 ml",n:"Kokosmilch"},{a:"2 EL",n:"Currypaste"},{a:"1",n:"Zwiebel"},{a:"2",n:"Karotten"},{a:"1",n:"Paprika"},{a:"200 g",n:"Brokkoli"},{a:"200 g",n:"Reis"}],
+     steps:["Zwiebel anbraten","Currypaste dazu","Gemüse anbraten","Kokosmilch dazu","15 Min köcheln","Reis kochen","Servieren"]},
+    {id:"r_ratatouille",cat:"vegetarisch",n:"Ratatouille",i:"🍆",time:45,serv:4,diff:"easy",kcal:180,kcal100:45,
+     ing:[{a:"1",n:"Aubergine"},{a:"2",n:"Zucchini"},{a:"2",n:"Paprika"},{a:"4",n:"Tomaten"},{a:"1",n:"Zwiebel"},{a:"3",n:"Knoblauchzehen"},{a:"3 EL",n:"Olivenöl"}],
+     steps:["Alle Gemüse würfeln","Zwiebel und Knoblauch anbraten","Gemüse nacheinander dazu","Kräuter dazu","30 Min köcheln lassen"]},
+
+    {id:"r_vegan_bowl",cat:"vegan",n:"Vegane Buddha Bowl",i:"🥗",time:25,serv:2,diff:"easy",kcal:460,kcal100:115,
+     ing:[{a:"200 g",n:"Quinoa"},{a:"1",n:"Süßkartoffel"},{a:"200 g",n:"Kichererbsen"},{a:"1",n:"Avocado"},{a:"100 g",n:"Spinat"},{a:"3 EL",n:"Tahini"},{a:"1",n:"Zitrone"}],
+     steps:["Quinoa kochen","Süßkartoffel würfeln, rösten","Kichererbsen anbraten","Alles in Schüssel anrichten","Tahini mit Zitrone als Dressing"]},
+    {id:"r_linsensuppe",cat:"vegan",n:"Linsensuppe",i:"🍲",time:40,serv:4,diff:"easy",kcal:280,kcal100:70,
+     ing:[{a:"250 g",n:"Rote Linsen"},{a:"1",n:"Zwiebel"},{a:"2",n:"Karotten"},{a:"2",n:"Knoblauchzehen"},{a:"1 TL",n:"Kreuzkümmel"},{a:"1 L",n:"Gemüsebrühe"},{a:"1 EL",n:"Olivenöl"}],
+     steps:["Zwiebel und Karotten anbraten","Knoblauch und Kreuzkümmel dazu","Linsen und Brühe","25 Min köcheln","Pürieren oder stückig lassen"]},
+
+    {id:"r_tomatensuppe",cat:"suppe",n:"Tomatensuppe",i:"🍅",time:30,serv:4,diff:"easy",kcal:180,kcal100:45,
+     ing:[{a:"800 g",n:"Tomaten"},{a:"1",n:"Zwiebel"},{a:"3",n:"Knoblauchzehen"},{a:"500 ml",n:"Gemüsebrühe"},{a:"2 EL",n:"Olivenöl"},{a:"1 Handvoll",n:"Basilikum"}],
+     steps:["Zwiebel und Knoblauch anbraten","Tomaten grob schneiden","Brühe dazu","20 Min köcheln","Pürieren","Basilikum drüber"]},
+    {id:"r_kichererbsen",cat:"suppe",n:"Kichererbsensuppe",i:"🥣",time:35,serv:4,diff:"easy",kcal:320,kcal100:80,
+     ing:[{a:"400 g",n:"Kichererbsen (Dose)"},{a:"1",n:"Zwiebel"},{a:"2",n:"Karotten"},{a:"2",n:"Knoblauchzehen"},{a:"1 TL",n:"Kreuzkümmel"},{a:"1 L",n:"Gemüsebrühe"}],
+     steps:["Gemüse anbraten","Gewürze dazu","Kichererbsen und Brühe","20 Min köcheln","Hälfte pürieren"]},
+
+    {id:"r_caesar",cat:"salat",n:"Caesar Salad",i:"🥗",time:15,serv:2,diff:"easy",kcal:340,kcal100:85,
+     ing:[{a:"1",n:"Römersalat"},{a:"50 g",n:"Parmesan"},{a:"100 g",n:"Croutons"},{a:"1",n:"Eigelb"},{a:"1 TL",n:"Dijon"},{a:"2",n:"Sardellen"},{a:"2 EL",n:"Olivenöl"}],
+     steps:["Salat waschen, zupfen","Dressing: Eigelb, Dijon, Sardellen, Öl","Alles vermengen","Parmesan und Croutons drauf"]},
+    {id:"r_griechisch",cat:"salat",n:"Griechischer Salat",i:"🥗",time:10,serv:2,diff:"easy",kcal:220,kcal100:55,
+     ing:[{a:"2",n:"Tomaten"},{a:"1",n:"Gurke"},{a:"1",n:"Rote Zwiebel"},{a:"100 g",n:"Feta"},{a:"10",n:"Oliven"},{a:"3 EL",n:"Olivenöl"},{a:"1 TL",n:"Oregano"}],
+     steps:["Tomaten und Gurke würfeln","Zwiebel in Ringe","Feta und Oliven dazu","Öl und Oregano drüber"]},
+
+    {id:"r_tiramisu",cat:"dessert",n:"Tiramisu",i:"🍰",time:240,serv:6,diff:"medium",kcal:420,kcal100:280,
+     ing:[{a:"500 g",n:"Mascarpone"},{a:"4",n:"Eier"},{a:"100 g",n:"Zucker"},{a:"300 g",n:"Löffelbiskuits"},{a:"300 ml",n:"Espresso"},{a:"2 EL",n:"Amaretto"},{a:"1 EL",n:"Kakaopulver"}],
+     steps:["Eigelb mit Zucker schaumig","Mascarpone unterrühren","Eiweiß steif schlagen, unterheben","Espresso mit Amaretto","Kekse eintauchen, Schicht legen","Creme drauf, wiederholen","4h kühlen, Kakao drüber"]},
+    {id:"r_panna",cat:"dessert",n:"Panna Cotta",i:"🍮",time:240,serv:4,diff:"medium",kcal:340,kcal100:225,
+     ing:[{a:"500 ml",n:"Sahne"},{a:"100 ml",n:"Milch"},{a:"80 g",n:"Zucker"},{a:"4",n:"Gelatineblätter"},{a:"1",n:"Vanilleschote"}],
+     steps:["Gelatine einweichen","Sahne, Milch, Zucker, Vanille erhitzen","Nicht kochen!","Gelatine ausdrücken, einrühren","In Förmchen gießen","4h kühlen"]},
+
+    {id:"r_bruschetta",cat:"snack",n:"Bruschetta",i:"🍞",time:15,serv:4,diff:"easy",kcal:180,kcal100:150,
+     ing:[{a:"8",n:"Baguettescheiben"},{a:"4",n:"Tomaten"},{a:"2",n:"Knoblauchzehen"},{a:"1 Handvoll",n:"Basilikum"},{a:"3 EL",n:"Olivenöl"}],
+     steps:["Baguette rösten","Knoblauch drüber reiben","Tomaten würfeln","Mit Öl und Basilikum mischen","Auf Brot geben"]},
+    {id:"r_guacamole",cat:"snack",n:"Guacamole",i:"🥑",time:10,serv:4,diff:"easy",kcal:180,kcal100:160,
+     ing:[{a:"2",n:"Avocados"},{a:"1",n:"Limette"},{a:"1",n:"Tomate"},{a:"1/2",n:"Zwiebel"},{a:"1",n:"Knoblauchzehe"},{a:"1 Prise",n:"Chili, Salz"}],
+     steps:["Avocado zerdrücken","Limettensaft dazu","Tomate, Zwiebel, Knoblauch fein hacken","Alles mischen","Mit Chips servieren"]},
+
+    {id:"r_smoothie",cat:"getraenk",n:"Beeren-Smoothie",i:"🥤",time:5,serv:1,diff:"easy",kcal:220,kcal100:55,
+     ing:[{a:"200 g",n:"Beeren (TK)"},{a:"1",n:"Banane"},{a:"200 ml",n:"Milch"},{a:"1 EL",n:"Honig"}],
+     steps:["Alles in Mixer","30 Sek mixen","In Glas gießen"]},
+    {id:"r_eistee",cat:"getraenk",n:"Pfirsich-Eistee",i:"🧊",time:10,serv:2,diff:"easy",kcal:120,kcal100:30,
+     ing:[{a:"2",n:"Schwarztee-Beutel"},{a:"500 ml",n:"Wasser"},{a:"2",n:"Pfirsiche"},{a:"2 EL",n:"Honig"},{a:"Eis"}],
+     steps:["Tee kochen, ziehen lassen","Honig einrühren","Pfirsiche in Scheiben","Alles in Kanne","Kalt stellen, Eis dazu"]},
+
+    {id:"r_kuerbissuppe",cat:"suppe",n:"Kürbissuppe",i:"🎃",time:35,serv:4,diff:"easy",kcal:220,kcal100:55,
+     ing:[{a:"800 g",n:"Hokkaido-Kürbis"},{a:"1",n:"Zwiebel"},{a:"2",n:"Knoblauchzehen"},{a:"1",n:"Ingwer (Stück)"},{a:"500 ml",n:"Gemüsebrühe"},{a:"200 ml",n:"Kokosmilch"}],
+     steps:["Kürbis würfeln (Hokkaido nicht schälen)","Zwiebel, Knoblauch, Ingwer anbraten","Kürbis dazu","Brühe aufgießen","20 Min köcheln","Pürieren","Kokosmilch dazu"]},
+
+    {id:"r_kebab",cat:"orientalisch",n:"Döner Kebab (selbst)",i:"🌯",time:60,serv:4,diff:"medium",kcal:620,kcal100:185,
+     ing:[{a:"600 g",n:"Lammfleisch"},{a:"2 TL",n:"Kreuzkümmel"},{a:"1 TL",n:"Paprikapulver"},{a:"1 TL",n:"Oregano"},{a:"2",n:"Zwiebeln"},{a:"4",n:"Fladenbrote"},{a:"200 g",n:"Joghurt"},{a:"2",n:"Tomaten"}],
+     steps:["Fleisch in dünne Scheiben schneiden","Gewürze mit Öl mischen, marinieren","2h ziehen lassen","Zwiebeln anbraten","Fleisch scharf anbraten","Fladenbrot füllen","Mit Joghurt und Gemüse toppen"]},
+    {id:"r_falafel",cat:"orientalisch",n:"Falafel",i:"🧆",time:40,serv:4,diff:"medium",kcal:340,kcal100:200,
+     ing:[{a:"400 g",n:"Kichererbsen (getrocknet, über Nacht)"},{a:"1",n:"Zwiebel"},{a:"3",n:"Knoblauchzehen"},{a:"1 Bund",n:"Petersilie"},{a:"1 TL",n:"Kreuzkümmel"},{a:"2 TL",n:"Mehl"},{a:"1 L",n:"Öl zum Frittieren"}],
+     steps:["Kichererbsen abtropfen (nicht kochen!)","Alles im Mixer grob mixen","Mehl dazu, 30 Min ruhen","Kugeln formen","Öl auf 170°C erhitzen","Frittieren 3-4 Min bis braun"]},
+    {id:"r_hummus",cat:"orientalisch",n:"Hummus",i:"🥣",time:10,serv:6,diff:"easy",kcal:180,kcal100:170,
+     ing:[{a:"400 g",n:"Kichererbsen (Dose)"},{a:"3 EL",n:"Tahini"},{a:"2",n:"Knoblauchzehen"},{a:"1",n:"Zitrone"},{a:"3 EL",n:"Olivenöl"},{a:"1 TL",n:"Kreuzkümmel"}],
+     steps:["Alles in Mixer","Nach und nach Wasser dazu","Cremig mixen (3-4 Min)","Mit Öl und Paprika garnieren"]},
+    {id:"r_shakshuka",cat:"orientalisch",n:"Shakshuka",i:"🍳",time:25,serv:2,diff:"easy",kcal:320,kcal100:110,
+     ing:[{a:"4",n:"Eier"},{a:"400 g",n:"Dosentomaten"},{a:"1",n:"Zwiebel"},{a:"2",n:"Paprika"},{a:"2",n:"Knoblauchzehen"},{a:"1 TL",n:"Kreuzkümmel"},{a:"1 TL",n:"Paprikapulver"},{a:"1 Prise",n:"Chili"}],
+     steps:["Zwiebel und Paprika anbraten","Knoblauch und Gewürze dazu","Tomaten dazu, 10 Min köcheln","Mulden für Eier machen","Eier reinbrechen","Deckel drauf, 6 Min stocken lassen"]},
+    {id:"r_baklava",cat:"orientalisch",n:"Baklava",i:"🍯",time:60,serv:12,diff:"medium",kcal:340,kcal100:380,
+     ing:[{a:"500 g",n:"Filoteig"},{a:"300 g",n:"Walnüsse"},{a:"200 g",n:"Butter"},{a:"200 g",n:"Zucker"},{a:"200 ml",n:"Wasser"},{a:"2 EL",n:"Honig"},{a:"1 TL",n:"Zimt"}],
+     steps:["Nüsse mahlen mit Zimt","Filoblätter schichten, buttern","Alle 3 Blätter Nüsse streuen","Oberste Schicht Butter","In Rauten schneiden","180°C, 30 Min backen","Sirup aus Zucker, Wasser, Honig kochen","Heiß über heißes Baklava gießen"]},
+    {id:"r_kubbe",cat:"kurdish",n:"Kubbe (Kubba)",i:"🥟",time:90,serv:6,diff:"hard",kcal:420,kcal100:210,
+     ing:[{a:"500 g",n:"Bulgur (fein)"},{a:"300 g",n:"Hackfleisch"},{a:"2",n:"Zwiebeln"},{a:"2 TL",n:"Baharat"},{a:"1 TL",n:"Zimt"},{a:"50 g",n:"Butter"},{a:"1 L",n:"Öl zum Frittieren"}],
+     steps:["Bulgur einweichen","Hack mit Zwiebeln und Gewürzen anbraten","Bulgur-Teig kneten","Kleine Kugeln formen, aushöhlen","Füllung rein, verschließen","Frittieren bis goldbraun"]},
+    {id:"r_dolma",cat:"kurdish",n:"Dolma (gefüllte Weinblätter)",i:"🌿",time:120,serv:6,diff:"hard",kcal:280,kcal100:140,
+     ing:[{a:"500 g",n:"Weinblätter"},{a:"300 g",n:"Reis"},{a:"300 g",n:"Hackfleisch"},{a:"1",n:"Zwiebel"},{a:"2 EL",n:"Tomatenmark"},{a:"1 Bund",n:"Petersilie"},{a:"1",n:"Zitrone"}],
+     steps:["Reis waschen","Mit Hack, Zwiebel, Tomatenmark mischen","Weinblätter 1 Min in heißes Wasser","Je 1 EL Füllung einrollen","In Topf schichten","Mit Wasser bedecken, Zitrone drauf","45 Min köcheln"]},
+    {id:"r_kufta",cat:"kurdish",n:"Kufta (Fleischbällchen)",i:"🍢",time:30,serv:4,diff:"easy",kcal:380,kcal100:220,
+     ing:[{a:"500 g",n:"Hackfleisch"},{a:"1",n:"Zwiebel"},{a:"2",n:"Knoblauchzehen"},{a:"1 Bund",n:"Petersilie"},{a:"1 TL",n:"Baharat"},{a:"2 EL",n:"Tomatenmark"}],
+     steps:["Zwiebel reiben, ausdrücken","Alles mischen","Kleine Bällchen formen","Grillen oder in Pfanne","Mit Fladenbrot und Joghurt servieren"]},
+    {id:"r_shirin",cat:"kurdish",n:"Shirin Plau (Reis mit Rosinen)",i:"🍚",time:45,serv:4,diff:"medium",kcal:520,kcal100:180,
+     ing:[{a:"400 g",n:"Basmatireis"},{a:"100 g",n:"Rosinen"},{a:"100 g",n:"Mandeln"},{a:"50 g",n:"Butter"},{a:"1 TL",n:"Kurkuma"},{a:"2 EL",n:"Zucker"},{a:"1 Prise",n:"Safran"}],
+     steps:["Reis waschen, einweichen","Reis in Salzwasser kochen","Abtropfen","Butter schmelzen, Kurkuma dazu","Reis unterschichten","Mit Rosinen und Mandeln garnieren"]}
+  ],
+  findById:function(id){var r=null;this.recipes.forEach(function(x){if(x.id===id)r=x;});return r;}
+};
+
+/* ============ App ============ */
+var AppKochbuch={
+  tab:"dash",_cat:"all",_q:"",_servMult:1,
+
+  getFavs:function(){return Storage.get("kb_favs",[]);},
+  saveFavs:function(a){Storage.set("kb_favs",a);},
+  getShopping:function(){return Storage.get("kb_shopping",[]);},
+  saveShopping:function(a){Storage.set("kb_shopping",a);},
+  getCustom:function(){return Storage.get("kb_custom",[]);},
+  saveCustom:function(a){Storage.set("kb_custom",a);},
+
+  allRecipes:function(){return KochData.recipes.concat(this.getCustom());},
+
+  render:function(){
+    kbInjectStyles();
+    var vp=document.getElementById("appViewport");
+    var tabs=[
+      {k:"dash",n:"📊 Start"},
+      {k:"recipes",n:"🍳 Rezepte"},
+      {k:"favs",n:"⭐ Favoriten"},
+      {k:"shopping",n:"🛒 Einkauf"},
+      {k:"add",n:"➕ Neu"}
+    ];
+    var self=this;
+    var th=tabs.map(function(t){return '<button class="ms-tab'+(self.tab===t.k?" active":"")+'" data-kb-tab="'+t.k+'">'+t.n+'</button>';}).join("");
+    vp.innerHTML='<div class="ms-tabs">'+th+'</div><div id="kbContent"></div>';
+    vp.querySelectorAll("[data-kb-tab]").forEach(function(b){b.addEventListener("click",function(){self.tab=b.dataset.kbTab;self.render();});});
+    this.renderTab();
+  },
+
+  renderTab:function(){
+    var el=document.getElementById("kbContent");if(!el)return;
+    var t=this.tab;
+    if(t==="dash")this.renderDash(el);
+    else if(t==="recipes")this.renderRecipes(el);
+    else if(t==="favs")this.renderFavs(el);
+    else if(t==="shopping")this.renderShopping(el);
+    else if(t==="add")this.renderAdd(el);
+  },
+
+  renderDash:function(el){
+    var self=this;
+    var all=this.allRecipes();
+    var total=all.length;
+    var favs=this.getFavs().length;
+    var shopping=this.getShopping().filter(function(s){return !s.done;}).length;
+    var random=all[Math.floor(Math.random()*all.length)];
+    var cats=Object.keys(KochData.categories);
+    var catCards=cats.slice(0,6).map(function(k){
+      var c=KochData.categories[k];
+      var count=all.filter(function(r){return r.cat===k;}).length;
+      return '<div class="kb-cat-card" data-kb-jump="'+k+'"><div class="i">'+c.i+'</div><div class="n">'+c.n+'</div><div class="c">'+count+'</div></div>';
+    }).join("");
+
+    el.innerHTML='<div class="kb-hero"><div class="lbl">Rezepte in deiner Sammlung</div><div class="val">'+total+'</div><div class="sub">'+favs+' Favoriten · '+shopping+' Artikel zu kaufen</div></div>'
+      +'<div class="card"><div class="card-h"><h3>✨ Rezept des Tages</h3></div>'
+      +'<div class="recipe-card" data-kb-open="'+random.id+'"><div class="h"><span class="i">'+random.i+'</span><div class="txt"><div class="n">'+esc(random.n)+'</div><div class="m">'+random.time+' Min · '+random.serv+' Pers. · '+random.kcal+' kcal</div></div><span class="fav">'+(this.getFavs().indexOf(random.id)>=0?"⭐":"☆")+'</span></div>'
+      +'<div class="recipe-meta"><span class="tag '+(random.diff==="easy"?"easy":random.diff==="hard"?"hard":"")+'">'+(random.diff==="easy"?"Einfach":random.diff==="hard"?"Schwer":"Mittel")+'</span><span class="tag">'+KochData.categories[random.cat].i+' '+KochData.categories[random.cat].n+'</span></div></div>'
+      +'<button class="btn success full" id="kb_new_random" style="margin-top:10px">🎲 Anderes Rezept</button></div>'
+      +'<div class="card"><div class="card-h"><h3>🍽️ Kategorien</h3></div><div class="kb-cat-grid">'+catCards+'</div>'
+      +'<button class="btn secondary full" id="kb_all_cats" style="margin-top:8px">📚 Alle Kategorien</button></div>'
+      +'<div class="card"><div class="card-h"><h3>⚡ Schnellzugriff</h3></div><div class="quick-grid">'
+      +'<div class="quick" data-kb-tab-q="recipes"><span class="ico">🍳</span><span class="lbl">Rezepte</span></div>'
+      +'<div class="quick" data-kb-tab-q="favs"><span class="ico">⭐</span><span class="lbl">Favoriten</span></div>'
+      +'<div class="quick" data-kb-tab-q="shopping"><span class="ico">🛒</span><span class="lbl">Einkauf</span></div>'
+      +'<div class="quick" data-kb-tab-q="add"><span class="ico">➕</span><span class="lbl">Neu</span></div>'
+      +'</div></div>';
+
+    document.getElementById("kb_new_random").addEventListener("click",function(){self.renderTab();});
+    document.getElementById("kb_all_cats").addEventListener("click",function(){self.tab="recipes";self._cat="all";self.render();});
+    el.querySelectorAll("[data-kb-jump]").forEach(function(b){
+      b.addEventListener("click",function(){self.tab="recipes";self._cat=b.dataset.kbJump;self.render();});
+    });
+    el.querySelectorAll("[data-kb-tab-q]").forEach(function(b){
+      b.addEventListener("click",function(){self.tab=b.dataset.kbTabQ;self.render();});
+    });
+    el.querySelectorAll("[data-kb-open]").forEach(function(c){
+      c.addEventListener("click",function(){self.showRecipe(c.dataset.kbOpen);});
+    });
+  },
+
+  renderRecipes:function(el){
+    var self=this;
+    var all=this.allRecipes();
+    var cats=Object.keys(KochData.categories);
+    var catCards=[{k:"all",n:"Alle",i:"🍽️"}].concat(cats.map(function(k){return {k:k,n:KochData.categories[k].n,i:KochData.categories[k].i};}));
+    var catHtml=catCards.map(function(c){
+      var count=c.k==="all"?all.length:all.filter(function(r){return r.cat===c.k;}).length;
+      if(count===0&&c.k!=="all")return "";
+      return '<div class="kb-cat-card'+(self._cat===c.k?" active":"")+'" data-kb-c="'+c.k+'"><div class="i">'+c.i+'</div><div class="n">'+c.n+'</div><div class="c">'+count+'</div></div>';
+    }).join("");
+    var filtered=all;
+    if(this._cat!=="all")filtered=filtered.filter(function(r){return r.cat===self._cat;});
+    if(this._q){
+      var q=this._q.toLowerCase();
+      filtered=filtered.filter(function(r){
+        if(r.n.toLowerCase().indexOf(q)>=0)return true;
+        var found=false;
+        r.ing.forEach(function(ig){if(ig.n.toLowerCase().indexOf(q)>=0)found=true;});
+        return found;
+      });
+    }
+
+    var listHtml=filtered.length?filtered.map(function(r){
+      var fav=self.getFavs().indexOf(r.id)>=0;
+      return '<div class="recipe-card" data-kb-open="'+r.id+'"><div class="h"><span class="i">'+r.i+'</span><div class="txt"><div class="n">'+esc(r.n)+'</div><div class="m">'+r.time+' Min · '+r.serv+' Pers. · '+r.kcal+' kcal</div></div><span class="fav" data-kb-fav="'+r.id+'">'+(fav?"⭐":"☆")+'</span></div>'
+        +'<div class="recipe-meta"><span class="tag '+(r.diff==="easy"?"easy":r.diff==="hard"?"hard":"")+'">'+(r.diff==="easy"?"Einfach":r.diff==="hard"?"Schwer":"Mittel")+'</span><span class="tag">'+KochData.categories[r.cat].i+' '+KochData.categories[r.cat].n+'</span></div></div>';
+    }).join(""):'<div class="info-box">Keine Rezepte gefunden.</div>';
+
+    el.innerHTML='<div class="card"><input type="text" class="search-input" id="kb_search" placeholder="🔍 Suche nach Name oder Zutat…" value="'+esc(this._q)+'"></div>'
+      +'<div class="card"><div class="card-h"><h3>🍽️ Kategorien</h3></div><div class="kb-cat-grid">'+catHtml+'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>📖 '+filtered.length+' Rezepte</h3></div>'+listHtml+'</div>'
+      +'<div id="kb_recipe_detail"></div>';
+
+    var search=document.getElementById("kb_search");
+    search.addEventListener("input",function(){
+      self._q=search.value;
+      clearTimeout(self._searchT);
+      self._searchT=setTimeout(function(){self.renderTab();},300);
+    });
+    el.querySelectorAll("[data-kb-c]").forEach(function(b){
+      b.addEventListener("click",function(){self._cat=b.dataset.kbC;self.renderTab();});
+    });
+    el.querySelectorAll("[data-kb-fav]").forEach(function(b){
+      b.addEventListener("click",function(e){e.stopPropagation();self.toggleFav(b.dataset.kbFav);self.renderTab();});
+    });
+    el.querySelectorAll("[data-kb-open]").forEach(function(c){
+      c.addEventListener("click",function(){self.showRecipe(c.dataset.kbOpen);});
+    });
+  },
+
+  renderFavs:function(el){
+    var self=this;
+    var favs=this.getFavs();
+    var all=this.allRecipes();
+    var favRecipes=all.filter(function(r){return favs.indexOf(r.id)>=0;});
+    var listHtml=favRecipes.length?favRecipes.map(function(r){
+      return '<div class="recipe-card" data-kb-open="'+r.id+'"><div class="h"><span class="i">'+r.i+'</span><div class="txt"><div class="n">'+esc(r.n)+'</div><div class="m">'+r.time+' Min · '+r.kcal+' kcal</div></div><span class="fav" data-kb-fav="'+r.id+'">⭐</span></div></div>';
+    }).join(""):'<div class="info-box">Noch keine Favoriten. Klick auf ☆ bei einem Rezept.</div>';
+    el.innerHTML='<div class="card"><div class="card-h"><h3>⭐ Deine Favoriten ('+favRecipes.length+')</h3></div>'+listHtml+'</div><div id="kb_recipe_detail"></div>';
+    el.querySelectorAll("[data-kb-fav]").forEach(function(b){
+      b.addEventListener("click",function(e){e.stopPropagation();self.toggleFav(b.dataset.kbFav);self.renderTab();});
+    });
+    el.querySelectorAll("[data-kb-open]").forEach(function(c){
+      c.addEventListener("click",function(){self.showRecipe(c.dataset.kbOpen);});
+    });
+  },
+
+  toggleFav:function(id){
+    var favs=this.getFavs();
+    var i=favs.indexOf(id);
+    if(i>=0){favs.splice(i,1);toast("☆ Entfernt");}
+    else{favs.push(id);toast("⭐ Favorit","ok");}
+    this.saveFavs(favs);
+  },
+
+  showRecipe:function(id){
+    var r=KochData.findById(id);
+    if(!r){
+      var custom=this.getCustom();
+      custom.forEach(function(x){if(x.id===id)r=x;});
+    }
+    if(!r)return;
+    var det=document.getElementById("kb_recipe_detail");
+    if(!det)return;
+    var self=this;
+    var fav=this.getFavs().indexOf(id)>=0;
+    var ingHtml=r.ing.map(function(ig,i){
+      return '<div class="ingredient-row"><span class="amt">'+esc(ig.a)+'</span><span class="n">'+esc(ig.n)+'</span></div>';
+    }).join("");
+    var stepsHtml=r.steps.map(function(s,i){
+      return '<div class="step-row" data-kb-step="'+i+'"><div class="n">'+(i+1)+'</div><div class="t">'+esc(s)+'</div></div>';
+    }).join("");
+    det.innerHTML='<div class="recipe-detail"><h4>'+r.i+' '+esc(r.n)+'</h4>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
+      +'<span class="tag easy" style="font-size:9px;padding:3px 8px;background:rgba(34,197,94,.15);color:#4ade80;border-radius:5px;font-weight:700">⏱️ '+r.time+' Min</span>'
+      +'<span class="tag" style="font-size:9px;padding:3px 8px;background:rgba(0,212,255,.12);color:var(--primary);border-radius:5px;font-weight:700">👥 '+r.serv+' Pers.</span>'
+      +'<span class="tag" style="font-size:9px;padding:3px 8px;background:rgba(245,158,11,.15);color:#fbbf24;border-radius:5px;font-weight:700">🔥 '+r.kcal+' kcal</span>'
+      +'</div>'
+      +'<h5>📝 Zutaten</h5>'+ingHtml
+      +'<h5>👨‍🍳 Zubereitung</h5>'+stepsHtml
+      +'<div class="btn-row" style="margin-top:12px">'
+      +'<button class="btn success" id="kb_add_shop">🛒 Zutaten zum Einkauf</button>'
+      +'<button class="btn '+(fav?"warn":"secondary")+'" id="kb_fav_btn">'+(fav?"⭐ Favorit":"☆ Merken")+'</button>'
+      +'<button class="btn secondary" id="kb_close_detail">✕ Schließen</button>'
+      +'</div></div>';
+    det.scrollIntoView({behavior:"smooth",block:"nearest"});
+    det.querySelectorAll("[data-kb-step]").forEach(function(s){
+      s.addEventListener("click",function(){s.classList.toggle("done");});
+    });
+    document.getElementById("kb_fav_btn").addEventListener("click",function(){self.toggleFav(id);self.showRecipe(id);});
+    document.getElementById("kb_close_detail").addEventListener("click",function(){det.innerHTML="";});
+    document.getElementById("kb_add_shop").addEventListener("click",function(){
+      var arr=self.getShopping();
+      r.ing.forEach(function(ig){
+        arr.push({id:"s_"+Date.now()+"_"+Math.random().toString(36).slice(2,6),a:ig.a,n:ig.n,done:false,from:r.n});
+      });
+      self.saveShopping(arr);
+      toast("🛒 "+r.ing.length+" Zutaten hinzugefügt","ok");
+    });
+  },
+
+  renderShopping:function(el){
+    var self=this;
+    var arr=this.getShopping();
+    var open=arr.filter(function(x){return !x.done;});
+    var done=arr.filter(function(x){return x.done;});
+    var grouped={};
+    open.forEach(function(x){
+      if(!grouped[x.from])grouped[x.from]=[];
+      grouped[x.from].push(x);
+    });
+    var listHtml=Object.keys(grouped).map(function(from){
+      return '<div style="margin-top:8px"><div style="font-size:10px;color:var(--text-mute);text-transform:uppercase;font-weight:800;letter-spacing:.8px;margin-bottom:4px">📖 '+esc(from)+'</div>'
+        +grouped[from].map(function(x){
+          return '<div class="shopping-item"><div class="chk" data-kb-shop-tog="'+x.id+'"></div><div class="n"><b style="color:#fbbf24;font-family:ui-monospace,monospace">'+esc(x.a)+'</b> '+esc(x.n)+'</div><button class="del" style="padding:4px 7px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#ff8080;border-radius:5px;cursor:pointer;font-size:9px" data-kb-shop-rm="'+x.id+'">🗑️</button></div>';
+        }).join("")+'</div>';
+    }).join("");
+    var doneHtml=done.length?done.map(function(x){
+      return '<div class="shopping-item done"><div class="chk on" data-kb-shop-tog="'+x.id+'">✓</div><div class="n">'+esc(x.a)+' '+esc(x.n)+'</div><button class="del" style="padding:4px 7px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#ff8080;border-radius:5px;cursor:pointer;font-size:9px" data-kb-shop-rm="'+x.id+'">🗑️</button></div>';
+    }).join(""):"";
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🛒 Einkaufsliste</h3></div>'
+      +'<div style="display:flex;gap:8px;font-size:10px;color:var(--text-dim);margin-bottom:8px"><span>🟡 '+open.length+' offen</span><span>🟢 '+done.length+' erledigt</span></div>'
+      +'<div class="field"><input type="text" id="kb_shop_n" placeholder="Artikel"></div>'
+      +'<button class="btn success full" id="kb_shop_add">➕ Hinzufügen</button>'
+      +'<div class="btn-row" style="margin-top:8px"><button class="btn secondary small" id="kb_shop_clear_done">🗑️ Erledigte löschen</button><button class="btn danger small" id="kb_shop_clear">🗑️ Alle löschen</button></div></div>'
+      +'<div class="card"><div class="card-h"><h3>📋 Liste</h3></div>'+(open.length?listHtml:'<div class="info-box">Liste leer.</div>')+(done.length?'<div style="margin-top:12px"><div style="font-size:10px;color:var(--text-mute);text-transform:uppercase;font-weight:800;letter-spacing:.8px;margin-bottom:4px">✅ Erledigt</div>'+doneHtml+'</div>':'')+'</div>';
+
+    document.getElementById("kb_shop_add").addEventListener("click",function(){
+      var n=val("kb_shop_n").trim();if(!n)return toast("⚠️ Artikel fehlt","err");
+      var a=self.getShopping();
+      a.push({id:"s_"+Date.now(),a:"",n:n,done:false,from:"Manuell"});
+      self.saveShopping(a);toast("🛒","ok");self.renderTab();
+    });
+    el.querySelectorAll("[data-kb-shop-tog]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var a=self.getShopping();
+        a.forEach(function(x){if(x.id===b.dataset.kbShopTog)x.done=!x.done;});
+        self.saveShopping(a);self.renderTab();
+      });
+    });
+    el.querySelectorAll("[data-kb-shop-rm]").forEach(function(b){
+      b.addEventListener("click",function(){
+        self.saveShopping(self.getShopping().filter(function(x){return x.id!==b.dataset.kbShopRm;}));
+        self.renderTab();
+      });
+    });
+    document.getElementById("kb_shop_clear_done").addEventListener("click",function(){
+      self.saveShopping(self.getShopping().filter(function(x){return !x.done;}));
+      toast("🗑️","ok");self.renderTab();
+    });
+    document.getElementById("kb_shop_clear").addEventListener("click",function(){
+      if(!confirm("Alle löschen?"))return;
+      self.saveShopping([]);self.renderTab();
+    });
+  },
+
+  renderAdd:function(el){
+    var self=this;
+    var cats=Object.keys(KochData.categories);
+    var catOpts=cats.map(function(k){return [k,KochData.categories[k].i+" "+KochData.categories[k].n];});
+    el.innerHTML='<div class="card"><div class="card-h"><h3>➕ Eigenes Rezept</h3></div>'
+      +'<div class="field"><label>Name</label><input type="text" id="kb_new_n" placeholder="z.B. Omas Suppe"></div>'
+      +'<div class="field"><label>Kategorie</label>'+select("kb_new_cat",cats[0],catOpts)+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">'
+      +'<div class="field"><label>⏱️ Min</label><input type="number" id="kb_new_time" value="30"></div>'
+      +'<div class="field"><label>👥 Pers.</label><input type="number" id="kb_new_serv" value="2"></div>'
+      +'<div class="field"><label>🔥 kcal</label><input type="number" id="kb_new_kcal" value="400"></div>'
+      +'</div>'
+      +'<div class="field"><label>Schwierigkeit</label>'+select("kb_new_diff","easy",[["easy","Einfach"],["medium","Mittel"],["hard","Schwer"]])+'</div>'
+      +'<div class="field"><label>Zutaten (eine pro Zeile, Format: Menge Name)</label><textarea id="kb_new_ing" placeholder="500 g Hackfleisch&#10;1 Zwiebel&#10;2 EL Öl"></textarea></div>'
+      +'<div class="field"><label>Zubereitung (ein Schritt pro Zeile)</label><textarea id="kb_new_steps" style="min-height:120px" placeholder="Zwiebel würfeln&#10;Hack anbraten&#10;20 Min köcheln"></textarea></div>'
+      +'<button class="btn success full" id="kb_new_save">💾 Rezept speichern</button></div>'
+      +'<div class="card"><div class="card-h"><h3>📚 Eigene Rezepte ('+this.getCustom().length+')</h3></div><div class="app-list" id="kb_custom_list"></div></div>';
+
+    document.getElementById("kb_new_save").addEventListener("click",function(){
+      var n=val("kb_new_n").trim();if(!n)return toast("⚠️ Name fehlt","err");
+      var ingLines=val("kb_new_ing").split("\n").filter(function(x){return x.trim();});
+      var ing=ingLines.map(function(l){
+        var m=l.trim().match(/^(\S+(?:\s+\S+)?)\s+(.+)$/);
+        if(m)return {a:m[1],n:m[2]};
+        return {a:"",n:l.trim()};
+      });
+      var steps=val("kb_new_steps").split("\n").filter(function(x){return x.trim();});
+      if(!ing.length||!steps.length)return toast("⚠️ Zutaten und Schritte fehlen","err");
+      var recipe={
+        id:"c_"+Date.now(),
+        cat:val("kb_new_cat"),
+        n:n,
+        i:KochData.categories[val("kb_new_cat")].i,
+        time:parseInt(val("kb_new_time"))||30,
+        serv:parseInt(val("kb_new_serv"))||2,
+        diff:val("kb_new_diff"),
+        kcal:parseInt(val("kb_new_kcal"))||400,
+        kcal100:0,
+        ing:ing,
+        steps:steps,
+        custom:true
+      };
+      var arr=self.getCustom();
+      arr.push(recipe);self.saveCustom(arr);
+      toast("💾 Rezept gespeichert","ok");
+      self.tab="recipes";self._cat=recipe.cat;self.render();
+    });
+    this.renderCustomList();
+  },
+  renderCustomList:function(){
+    var el=document.getElementById("kb_custom_list");if(!el)return;
+    var self=this;
+    var arr=this.getCustom();
+    if(!arr.length){el.innerHTML='<div class="info-box">Noch keine eigenen Rezepte.</div>';return;}
+    el.innerHTML="";
+    arr.forEach(function(r){
+      var d=document.createElement("div");d.className="app-list-item";
+      d.innerHTML='<span class="ico">'+r.i+'</span><div class="txt"><div class="t">'+esc(r.n)+'</div><div class="d">'+r.time+' Min · '+r.kcal+' kcal</div></div><button class="del">🗑️</button>';
+      d.querySelector(".del").addEventListener("click",function(e){
+        e.stopPropagation();if(!confirm("Rezept löschen?"))return;
+        self.saveCustom(self.getCustom().filter(function(x){return x.id!==r.id;}));
+        self.renderTab();
+      });
+      el.appendChild(d);
+    });
+  }
+};
+
+/* ============ Auto-Register ============ */
+if(AppLauncher&&AppLauncher.registry){
+  AppLauncher.registry.kochbuch=AppKochbuch;
+}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){
+    if(a.id==="kochbuch"){a.prio=1;a.installed=true;a.cat="Zuhause";found=true;}
+  });
+  if(!found){
+    APP_PLAN.unshift({id:"kochbuch",name:"Kochbuch",icon:"🍳",cat:"Zuhause",prio:1,installed:true});
+  }
+}
+setTimeout(function(){
+  var btn=document.getElementById("btnFilterAll");
+  if(btn)btn.click();
+},1800);
+
+console.log("[HalDo Kochbuch] ✅ Modul geladen und registriert.");
+})();
+</script>
+<!-- ============ ENDE HALDO KOCHBUCH APP ============ -->
 </body>
 </html>
