@@ -2190,5 +2190,649 @@ window.HalDo={Storage:Storage,Settings:Settings,Router:Router,AppLauncher:AppLau
 
 })();
 </script>
+<!-- ============================================================
+     HALDO FITNESS APP — DROP-IN MODUL
+     Einfach vor </body> einfügen. Nach Reload ist alles aktiv.
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Fitness] window.HalDo fehlt.");return;}
+
+var H=window.HalDo;
+var Storage=H.Storage;
+var AppLauncher=H.AppLauncher;
+var APP_PLAN=H.APP_PLAN;
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function val(id){var e=document.getElementById(id);return e?e.value:"";}
+function toast(m,t,d){var e=document.getElementById("toast");if(!e)return;e.textContent=m;e.className="show"+(t?" "+t:"");clearTimeout(e._t);e._t=setTimeout(function(){e.className="";},d||2400);}
+function select(id,cur,opts){var h='<select id="'+id+'">';opts.forEach(function(o){h+='<option value="'+esc(o[0])+'"'+(String(o[0])===String(cur)?" selected":"")+'>'+esc(o[1])+'</option>';});return h+'</select>';}
+function todayKey(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+
+/* ============ Styles ============ */
+function fitInjectStyles(){
+  if(document.getElementById("fitStyles"))return;
+  var s=document.createElement("style");
+  s.id="fitStyles";
+  s.textContent=".ft-hero{padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(239,68,68,.18),rgba(245,158,11,.18));border:1px solid rgba(245,158,11,.4);text-align:center;margin-bottom:12px}.ft-hero .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.ft-hero .val{font-size:42px;font-weight:900;color:#fbbf24;font-family:ui-monospace,monospace;line-height:1;margin:6px 0}.ft-hero .sub{font-size:10.5px;color:var(--text-mute)}.ft-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}.ft-stat{padding:10px 5px;border-radius:11px;text-align:center;border:1px solid var(--border);background:linear-gradient(180deg,var(--bg-4),var(--bg-3))}.ft-stat .i{font-size:15px;margin-bottom:3px}.ft-stat .v{font-size:15px;font-weight:800;color:#fbbf24;line-height:1;font-family:ui-monospace,monospace}.ft-stat .l{font-size:8.5px;color:var(--text-dim);text-transform:uppercase;font-weight:700;margin-top:3px}.ft-cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:8px 0}.ft-cat-card{padding:14px 10px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:11px;text-align:center;cursor:pointer;transition:.15s}.ft-cat-card:hover{border-color:#f59e0b;background:rgba(245,158,11,.08)}.ft-cat-card .i{font-size:26px;margin-bottom:5px}.ft-cat-card .n{font-size:11.5px;font-weight:800}.ft-cat-card .d{font-size:9px;color:var(--text-mute);margin-top:2px}.ex-row{display:flex;align-items:center;gap:10px;padding:11px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;margin-top:6px;cursor:pointer}.ex-row:hover{border-color:#f59e0b;background:rgba(245,158,11,.05)}.ex-row .i{font-size:20px;flex-shrink:0}.ex-row .txt{flex:1;min-width:0}.ex-row .txt .t{font-size:11.5px;font-weight:800}.ex-row .txt .d{font-size:9.5px;color:var(--text-mute);margin-top:2px}.ex-row .done{font-size:14px}.workout-card{padding:14px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border);border-radius:11px;margin-top:8px}.workout-card .h{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}.workout-card .h .n{font-size:12.5px;font-weight:800;color:var(--primary)}.workout-card .h .t{font-size:10px;color:var(--text-mute);font-family:ui-monospace,monospace}.set-row{display:flex;gap:5px;align-items:center;padding:8px 10px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;margin-top:5px}.set-row .n{font-size:10px;font-weight:800;color:var(--text-mute);width:22px}.set-row input{flex:1;background:var(--bg-4);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-family:inherit;font-size:11px;outline:none;min-width:0}.set-row .chk{width:28px;height:28px;border-radius:6px;background:var(--bg-4);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px}.set-row .chk.on{background:rgba(34,197,94,.25);border-color:var(--success);color:#4ade80}.rest-timer{padding:14px;background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(239,68,68,.15));border:1px solid rgba(245,158,11,.4);border-radius:11px;text-align:center;margin:8px 0}.rest-timer .v{font-size:36px;font-weight:900;color:#fbbf24;font-family:ui-monospace,monospace;line-height:1}.rest-timer .l{font-size:10px;color:var(--text-dim);text-transform:uppercase;font-weight:700;margin-top:4px}.macro-bar{display:flex;gap:5px;margin-top:8px}.macro{flex:1;padding:9px 5px;border-radius:9px;text-align:center;border:1px solid;background:rgba(0,0,0,.2)}.macro.p{border-color:rgba(59,130,246,.5)}.macro.p .v{color:#60a5fa}.macro.c{border-color:rgba(245,158,11,.5)}.macro.c .v{color:#fbbf24}.macro.f{border-color:rgba(168,85,247,.5)}.macro.f .v{color:#c084fc}.macro .v{font-size:14px;font-weight:800;font-family:ui-monospace,monospace}.macro .l{font-size:8.5px;color:var(--text-dim);text-transform:uppercase;font-weight:700;margin-top:2px}.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:8px 0}.week-day{padding:8px 2px;border-radius:8px;text-align:center;border:1px solid var(--border);background:var(--bg-3);font-size:9px;font-weight:800;color:var(--text-mute)}.week-day.done{background:rgba(34,197,94,.15);border-color:var(--success);color:#4ade80}.week-day.today{border-color:#fbbf24;background:rgba(245,158,11,.1);color:#fbbf24}.week-day .d{font-size:7.5px;margin-top:2px;opacity:.7}.progress-ring{width:140px;height:140px;margin:8px auto;position:relative}.progress-ring svg{width:100%;height:100%;transform:rotate(-90deg)}.progress-ring .track{fill:none;stroke:var(--bg-3);stroke-width:10}.progress-ring .fill{fill:none;stroke:url(#fitGrad);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .5s}.progress-ring .txt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:ui-monospace,monospace}.progress-ring .txt .v{font-size:26px;font-weight:900;color:#fbbf24}.progress-ring .txt .l{font-size:9px;color:var(--text-dim);text-transform:uppercase;font-weight:700}.exercise-detail{padding:14px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:11px;margin-top:10px}.exercise-detail h4{font-size:15px;font-weight:800;color:#fbbf24;margin-bottom:8px}.exercise-detail h5{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;font-weight:800;margin:10px 0 4px}.exercise-detail ul{margin-left:16px;font-size:11.5px;line-height:1.7}.exercise-detail p{font-size:11.5px;line-height:1.6}";
+  document.head.appendChild(s);
+}
+
+/* ============ Datenbank ============ */
+var FitData={
+  categories:{
+    brust:{n:"Brust",i:"💪",desc:"Push"},
+    ruecken:{n:"Rücken",i:"🔙",desc:"Pull"},
+    beine:{n:"Beine",i:"🦵",desc:"Legs"},
+    schultern:{n:"Schultern",i:"🤸",desc:"Shoulders"},
+    arme:{n:"Arme",i:"💪",desc:"Arms"},
+    bauch:{n:"Bauch",i:"🎯",desc:"Core"},
+    cardio:{n:"Cardio",i:"🏃",desc:"Herz"},
+    ganzkoerper:{n:"Ganzkörper",i:"🏋️",desc:"Full Body"}
+  },
+  exercises:{
+    brust:[
+      {id:"bankdruecken",n:"Bankdrücken",d:"Langhantel, Flachbank",mus:"Brust, Trizeps, Schulter",tip:"Ellbogen 45°, Schulterblätter zusammen",sets:[3,8]},
+      {id:"schraegbank",n:"Schrägbankdrücken",d:"Langhantel/Kurzhantel",mus:"Obere Brust",tip:"30° Winkel, kontrolliert ablassen",sets:[3,10]},
+      {id:"liegestuetze",n:"Liegestütze",d:"Eigengewicht",mus:"Brust, Trizeps",tip:"Körper gerade, tief runter",sets:[3,15]},
+      {id:"butterfly",n:"Butterfly",d:"Maschine",mus:"Brust innen",tip:"Leicht gebeugte Arme",sets:[3,12]},
+      {id:"dips",n:"Dips",d:"Parallelbarren",mus:"Untere Brust, Trizeps",tip:"Leicht vorgebeugt für Brust",sets:[3,10]}
+    ],
+    ruecken:[
+      {id:"kreuzheben",n:"Kreuzheben",d:"Langhantel",mus:"Rücken, Beine, Rumpf",tip:"Rücken gerade, Hüfte zurück",sets:[4,6]},
+      {id:"klimmzuege",n:"Klimmzüge",d:"Klimmzugstange",mus:"Latissimus, Bizeps",tip:"Schulterblätter aktivieren",sets:[3,8]},
+      {id:"rudern_lh",n:"Langhantelrudern",d:"Langhantel",mus:"Mittlerer Rücken",tip:"Vorgebeugt, Rücken gerade",sets:[3,10]},
+      {id:"rudern_kh",n:"Kurzhantelrudern",d:"Kurzhantel",mus:"Latissimus",tip:"Ellbogen nach hinten",sets:[3,10]},
+      {id:"latziehen",n:"Latziehen",d:"Maschine",mus:"Latissimus",tip:"Brust hoch, Kabel zur Brust",sets:[3,12]}
+    ],
+    beine:[
+      {id:"kniebeuge",n:"Kniebeugen",d:"Langhantel",mus:"Quadrizeps, Gesäß",tip:"Tief gehen, Knie über Fußspitzen",sets:[4,8]},
+      {id:"beinpresse",n:"Beinpresse",d:"Maschine",mus:"Quadrizeps",tip:"Nicht ganz durchstrecken",sets:[3,12]},
+      {id:"ausfallschritte",n:"Ausfallschritte",d:"Kurzhantel",mus:"Beine, Gesäß",tip:"Knie berührt fast Boden",sets:[3,12]},
+      {id:"rum_kreuzheben",n:"Rumänisches Kreuzheben",d:"Langhantel",mus:"Beinbeuger, Gesäß",tip:"Hüfte weit zurück",sets:[3,10]},
+      {id:"wadenheben",n:"Wadenheben",d:"Maschine",mus:"Waden",tip:"Volle Bewegung, oben halten",sets:[4,15]}
+    ],
+    schultern:[
+      {id:"schulterdruecken",n:"Schulterdrücken",d:"Kurzhantel/Langhantel",mus:"Schultern",tip:"Bauch anspannen, nicht hohlkreuzen",sets:[3,10]},
+      {id:"seitheben",n:"Seitheben",d:"Kurzhantel",mus:"Seitliche Schulter",tip:"Leicht gebeugte Arme",sets:[3,12]},
+      {id:"vorgebeugt",n:"Vorgebeugtes Seitheben",d:"Kurzhantel",mus:"Hintere Schulter",tip:"Stirn zur Bank",sets:[3,12]},
+      {id:"nackenheben",n:"Nackenheben",d:"Kurzhantel",mus:"Nacken",tip:"Langsam, kontrolliert",sets:[3,15]}
+    ],
+    arme:[
+      {id:"bizeps_curls",n:"Bizeps-Curls",d:"Kurzhantel",mus:"Bizeps",tip:"Ellbogen fixiert",sets:[3,12]},
+      {id:"hammer_curls",n:"Hammer-Curls",d:"Kurzhantel",mus:"Bizeps, Brachialis",tip:"Neutraler Griff",sets:[3,12]},
+      {id:"trizeps_pushdown",n:"Trizeps-Pushdown",d:"Kabel",mus:"Trizeps",tip:"Ellbogen am Körper",sets:[3,12]},
+      {id:"french_press",n:"French Press",d:"SZ-Stange",mus:"Trizeps lang",tip:"Ellbogen zeigen nach oben",sets:[3,10]}
+    ],
+    bauch:[
+      {id:"crunches",n:"Crunches",d:"Eigengewicht",mus:"Gerade Bauchmuskeln",tip:"Lendenwirbel am Boden",sets:[3,20]},
+      {id:"planke",n:"Planke",d:"Eigengewicht",mus:"Rumpf",tip:"Körper gerade, Bauch anspannen",sets:[3,60]},
+      {id:"beineheben",n:"Beineheben",d:"Hängen/Boden",mus:"Untere Bauchmuskeln",tip:"Langsam ablassen",sets:[3,12]},
+      {id:"russian_twist",n:"Russian Twist",d:"Gewicht",mus:"Schräge Bauchmuskeln",tip:"Rotation aus Rumpf",sets:[3,20]}
+    ],
+    cardio:[
+      {id:"laufen",n:"Laufen",d:"Outdoor/Laufband",mus:"Herz-Kreislauf",tip:"Gleichmäßiges Tempo",sets:[1,30]},
+      {id:"radfahren",n:"Radfahren",d:"Outdoor/Ergometer",mus:"Beine, Herz",tip:"Trittfrequenz 80-100",sets:[1,45]},
+      {id:"rudergeraet",n:"Rudergerät",d:"Maschine",mus:"Ganzkörper",tip:"Beine → Rumpf → Arme",sets:[1,20]},
+      {id:"springseil",n:"Springseil",d:"Seil",mus:"Waden, Herz",tip:"Leicht auf Fußballen",sets:[3,3]}
+    ],
+    ganzkoerper:[
+      {id:"burpees",n:"Burpees",d:"Eigengewicht",mus:"Ganzkörper",tip:"Explosiv, sauber",sets:[3,10]},
+      {id:"kettlebell_swing",n:"Kettlebell Swing",d:"Kettlebell",mus:"Rücken, Gesäß",tip:"Aus Hüfte, nicht Armen",sets:[4,15]},
+      {id:"battle_ropes",n:"Battle Ropes",d:"Seile",mus:"Schultern, Core",tip:"Wellen schnell und gleichmäßig",sets:[4,30]}
+    ]
+  },
+  workoutPlans:{
+    push:{n:"Push Day",i:"💪",ex:["bankdruecken","schraegbank","schulterdruecken","seitheben","trizeps_pushdown"]},
+    pull:{n:"Pull Day",i:"🔙",ex:["kreuzheben","klimmzuege","rudern_lh","hammer_curls","bizeps_curls"]},
+    legs:{n:"Leg Day",i:"🦵",ex:["kniebeuge","beinpresse","rum_kreuzheben","ausfallschritte","wadenheben"]},
+    full:{n:"Full Body",i:"🏋️",ex:["kniebeuge","bankdruecken","kreuzheben","klimmzuege","planke"]}
+  },
+  findEx:function(id){
+    var r=null;
+    Object.keys(this.exercises).forEach(function(cat){
+      FitData.exercises[cat].forEach(function(e){if(e.id===id)r=e;});
+    });
+    return r;
+  }
+};
+
+/* ============ App ============ */
+var AppFitness={
+  tab:"dash",
+  restTimer:null,restRemaining:0,
+
+  /* ---- Storage ---- */
+  getSessions:function(){return Storage.get("fit_sessions",[]);},
+  saveSessions:function(a){Storage.set("fit_sessions",a);},
+  getWeight:function(){return Storage.get("fit_weight",[]);},
+  saveWeight:function(a){Storage.set("fit_weight",a);},
+  getGoals:function(){return Storage.get("fit_goals",{schritte:10000,kalorien:2200,eiweiss:150,wasser:3});},
+  saveGoals:function(o){Storage.set("fit_goals",o);},
+  getTodayStats:function(){
+    var t=todayKey();
+    var s=this.getSessions().filter(function(x){return x.date===t;});
+    var kcal=0,dur=0,exCount=0;
+    s.forEach(function(x){kcal+=x.kcal||0;dur+=x.dur||0;exCount+=x.sets||0;});
+    var w=this.getWaterToday();
+    return {kcal:kcal,dur:dur,sets:exCount,sessions:s.length,water:w};
+  },
+  getWaterToday:function(){
+    var w=Storage.get("fit_water",{});
+    return w[todayKey()]||0;
+  },
+  addWater:function(glasses){
+    var w=Storage.get("fit_water",{});
+    w[todayKey()]=(w[todayKey()]||0)+glasses;
+    Storage.set("fit_water",w);
+  },
+  getWeek:function(){
+    var arr=[];
+    var today=new Date();
+    var dow=(today.getDay()+6)%7;
+    for(var i=0;i<7;i++){
+      var d=new Date(today);
+      d.setDate(today.getDate()-dow+i);
+      var k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+      var done=this.getSessions().some(function(x){return x.date===k;});
+      arr.push({d:["Mo","Di","Mi","Do","Fr","Sa","So"][i],date:k,done:done,today:k===todayKey()});
+    }
+    return arr;
+  },
+
+  /* ---- Render ---- */
+  render:function(){
+    fitInjectStyles();
+    var vp=document.getElementById("appViewport");
+    var tabs=[
+      {k:"dash",n:"📊 Dashboard"},
+      {k:"exercises",n:"🏋️ Übungen"},
+      {k:"plans",n:"📋 Pläne"},
+      {k:"log",n:"📝 Trainings"},
+      {k:"nutrition",n:"🍎 Ernährung"},
+      {k:"progress",n:"📈 Fortschritt"}
+    ];
+    var self=this;
+    var th=tabs.map(function(t){return '<button class="ms-tab'+(self.tab===t.k?" active":"")+'" data-ft-tab="'+t.k+'">'+t.n+'</button>';}).join("");
+    vp.innerHTML='<div class="ms-tabs">'+th+'</div><div id="ftContent"></div>';
+    vp.querySelectorAll("[data-ft-tab]").forEach(function(b){b.addEventListener("click",function(){self.tab=b.dataset.ftTab;self.render();});});
+    this.renderTab();
+  },
+
+  renderTab:function(){
+    var el=document.getElementById("ftContent");if(!el)return;
+    var t=this.tab;
+    if(t==="dash")this.renderDash(el);
+    else if(t==="exercises")this.renderExercises(el);
+    else if(t==="plans")this.renderPlans(el);
+    else if(t==="log")this.renderLog(el);
+    else if(t==="nutrition")this.renderNutrition(el);
+    else if(t==="progress")this.renderProgress(el);
+  },
+
+  renderDash:function(el){
+    var self=this;
+    var today=this.getTodayStats();
+    var goals=this.getGoals();
+    var week=this.getWeek();
+    var weekHtml=week.map(function(d){
+      var cls="week-day"+(d.done?" done":"")+(d.today?" today":"");
+      return '<div class="'+cls+'">'+d.d+'<div class="d">'+(d.done?"✅":"·")+'</div></div>';
+    }).join("");
+
+    var waterPct=Math.min(100,Math.round(today.water/goals.wasser*100));
+
+    el.innerHTML='<div class="ft-hero"><div class="lbl">Heute verbrannt</div><div class="val">'+today.kcal+'</div><div class="sub">kcal · '+today.dur+' min · '+today.sets+' Sätze</div></div>'
+      +'<div class="ft-stats">'
+      +'<div class="ft-stat"><div class="i">🔥</div><div class="v">'+today.kcal+'</div><div class="l">kcal</div></div>'
+      +'<div class="ft-stat"><div class="i">⏱️</div><div class="v">'+today.dur+'</div><div class="l">min</div></div>'
+      +'<div class="ft-stat"><div class="i">💪</div><div class="v">'+today.sets+'</div><div class="l">Sätze</div></div>'
+      +'<div class="ft-stat"><div class="i">🏋️</div><div class="v">'+today.sessions+'</div><div class="l">Workouts</div></div>'
+      +'</div>'
+      +'<div class="card"><div class="card-h"><h3>📅 Diese Woche</h3></div><div class="week-grid">'+weekHtml+'</div>'
+      +'<div class="btn-row" style="margin-top:10px"><button class="btn success" id="ft_quick_start">▶️ Training starten</button><button class="btn secondary" id="ft_quick_water">💧 Wasser +1</button></div></div>'
+      +'<div class="card"><div class="card-h"><h3>💧 Wasser heute</h3></div>'
+      +'<div style="font-size:28px;font-weight:900;color:#60a5fa;text-align:center;font-family:ui-monospace,monospace">'+today.water.toFixed(1)+' L</div>'
+      +'<div style="height:10px;background:rgba(0,0,0,.35);border-radius:5px;overflow:hidden;margin:8px 0"><div style="height:100%;width:'+waterPct+'%;background:linear-gradient(90deg,#0ea5e9,#00d4ff);border-radius:5px"></div></div>'
+      +'<div style="font-size:9.5px;color:var(--text-mute);text-align:center">Ziel: '+goals.wasser+' L · '+waterPct+'%</div>'
+      +'<div class="btn-row" style="margin-top:8px"><button class="btn secondary small" data-ft-water="0.25">+0,25</button><button class="btn secondary small" data-ft-water="0.5">+0,5</button><button class="btn secondary small" data-ft-water="1">+1</button></div></div>'
+      +'<div class="card"><div class="card-h"><h3>📊 Fortschritt</h3></div>'
+      +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">'
+      +'<div style="text-align:center"><div style="font-size:20px;font-weight:800;color:#fbbf24;font-family:ui-monospace,monospace">'+this.getSessions().length+'</div><div style="font-size:9px;color:var(--text-mute);text-transform:uppercase;font-weight:700">Workouts gesamt</div></div>'
+      +'<div style="text-align:center"><div style="font-size:20px;font-weight:800;color:#fbbf24;font-family:ui-monospace,monospace">'+this.totalKcal()+'</div><div style="font-size:9px;color:var(--text-mute);text-transform:uppercase;font-weight:700">kcal gesamt</div></div>'
+      +'</div></div>';
+
+    document.getElementById("ft_quick_start").addEventListener("click",function(){self.tab="log";self.render();});
+    document.getElementById("ft_quick_water").addEventListener("click",function(){self.addWater(0.25);toast("💧 +0,25 L","ok");self.renderTab();});
+    el.querySelectorAll("[data-ft-water]").forEach(function(b){
+      b.addEventListener("click",function(){
+        self.addWater(parseFloat(b.dataset.ftWater));
+        toast("💧 +"+b.dataset.ftWater+" L","ok");
+        self.renderTab();
+      });
+    });
+  },
+  totalKcal:function(){
+    var t=0;this.getSessions().forEach(function(s){t+=s.kcal||0;});
+    return t;
+  },
+
+  renderExercises:function(el){
+    var self=this;
+    var cats=Object.keys(FitData.categories);
+    var cat=this._cat||cats[0];
+    var catData=FitData.categories[cat];
+    var exercises=FitData.exercises[cat]||[];
+    var catCards=cats.map(function(k){
+      var c=FitData.categories[k];
+      return '<div class="ft-cat-card'+(k===cat?" ":"")+'" data-ft-cat="'+k+'" style="'+(k===cat?"border-color:#f59e0b;background:rgba(245,158,11,.08)":"")+'"><div class="i">'+c.i+'</div><div class="n">'+c.n+'</div><div class="d">'+c.desc+'</div></div>';
+    }).join("");
+    var exList=exercises.map(function(e){
+      var doneToday=Storage.get("fit_done_"+todayKey(),[]);
+      var isDone=doneToday.indexOf(e.id)>=0;
+      return '<div class="ex-row" data-ft-ex="'+e.id+'"><span class="i">'+catData.i+'</span><div class="txt"><div class="t">'+esc(e.n)+'</div><div class="d">'+esc(e.mus)+'</div></div><span class="done">'+(isDone?"✅":"›")+'</span></div>';
+    }).join("");
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🏋️ Übungen nach Muskelgruppe</h3></div><div class="ft-cat-grid">'+catCards+'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>'+catData.i+' '+catData.n+' — '+exercises.length+' Übungen</h3></div><div class="app-list">'+exList+'</div></div>'
+      +'<div id="ft_ex_detail"></div>';
+
+    el.querySelectorAll("[data-ft-cat]").forEach(function(b){
+      b.addEventListener("click",function(){self._cat=b.dataset.ftCat;self.renderTab();});
+    });
+    el.querySelectorAll("[data-ft-ex]").forEach(function(b){
+      b.addEventListener("click",function(){self.showExercise(b.dataset.ftEx);});
+    });
+  },
+
+  showExercise:function(id){
+    var e=FitData.findEx(id);if(!e)return;
+    var det=document.getElementById("ft_ex_detail");if(!det)return;
+    var doneToday=Storage.get("fit_done_"+todayKey(),[]);
+    var isDone=doneToday.indexOf(id)>=0;
+    det.innerHTML='<div class="exercise-detail"><h4>'+esc(e.n)+'</h4>'
+      +'<p style="color:var(--text-dim);font-size:10.5px;margin-bottom:8px"><b>Gerät:</b> '+esc(e.d)+'</p>'
+      +'<h5>💪 Beanspruchte Muskeln</h5><p>'+esc(e.mus)+'</p>'
+      +'<h5>💡 Ausführungstipp</h5><p>'+esc(e.tip)+'</p>'
+      +'<h5>🔢 Empfehlung</h5><p>'+e.sets[0]+' Sätze × '+e.sets[1]+' Wiederholungen</p>'
+      +'<div class="btn-row" style="margin-top:12px">'
+      +'<button class="btn success small" id="ft_ex_done">'+(isDone?"✅ Heute erledigt":"✓ Als erledigt markieren")+'</button>'
+      +'<button class="btn secondary small" id="ft_ex_add">➕ Zum Training hinzufügen</button>'
+      +'</div></div>';
+    det.scrollIntoView({behavior:"smooth",block:"nearest"});
+    document.getElementById("ft_ex_done").addEventListener("click",function(){
+      var arr=Storage.get("fit_done_"+todayKey(),[]);
+      var i=arr.indexOf(id);
+      if(i>=0)arr.splice(i,1);else arr.push(id);
+      Storage.set("fit_done_"+todayKey(),arr);
+      toast(i<0?"✅":"↩️","ok");
+      AppFitness.showExercise(id);
+    });
+    document.getElementById("ft_ex_add").addEventListener("click",function(){
+      var cur=Storage.get("fit_current",null);
+      if(!cur){cur={id:"w_"+Date.now(),date:todayKey(),ex:[],startTime:Date.now()};}
+      cur.ex.push({exId:id,sets:[{w:0,r:e.sets[1],done:false},{w:0,r:e.sets[1],done:false},{w:0,r:e.sets[1],done:false}]});
+      Storage.set("fit_current",cur);
+      toast("➕ Zum aktuellen Training hinzugefügt","ok");
+    });
+  },
+
+  renderPlans:function(el){
+    var self=this;
+    var plans=Object.keys(FitData.workoutPlans);
+    var plansHtml=plans.map(function(k){
+      var p=FitData.workoutPlans[k];
+      var exCount=p.ex.length;
+      return '<div class="ex-row" data-ft-plan="'+k+'"><span class="i">'+p.i+'</span><div class="txt"><div class="t">'+esc(p.n)+'</div><div class="d">'+exCount+' Übungen · '+p.ex.map(function(id){var e=FitData.findEx(id);return e?e.n:"";}).slice(0,2).join(", ")+'…</div></div><span style="color:var(--text-mute)">›</span></div>';
+    }).join("");
+    el.innerHTML='<div class="card"><div class="card-h"><h3>📋 Fertige Trainingspläne</h3></div><div class="app-list">'+plansHtml+'</div></div>'
+      +'<div id="ft_plan_detail"></div>';
+    el.querySelectorAll("[data-ft-plan]").forEach(function(b){
+      b.addEventListener("click",function(){self.showPlan(b.dataset.ftPlan);});
+    });
+  },
+  showPlan:function(k){
+    var p=FitData.workoutPlans[k];if(!p)return;
+    var det=document.getElementById("ft_plan_detail");if(!det)return;
+    var exHtml=p.ex.map(function(id){
+      var e=FitData.findEx(id);if(!e)return "";
+      return '<div style="padding:9px 11px;background:var(--bg-4);border-radius:8px;margin:5px 0;border-left:3px solid #f59e0b">'
+        +'<div style="font-weight:800;color:#fbbf24;font-size:12px">'+esc(e.n)+'</div>'
+        +'<div style="font-size:10px;color:var(--text-mute);margin-top:2px">'+e.sets[0]+' × '+e.sets[1]+' · '+esc(e.mus)+'</div></div>';
+    }).join("");
+    det.innerHTML='<div class="exercise-detail"><h4>'+p.i+' '+esc(p.n)+'</h4>'+exHtml
+      +'<div class="btn-row" style="margin-top:12px">'
+      +'<button class="btn success" id="ft_plan_start">▶️ Training starten</button>'
+      +'</div></div>';
+    det.scrollIntoView({behavior:"smooth",block:"nearest"});
+    document.getElementById("ft_plan_start").addEventListener("click",function(){
+      var cur={id:"w_"+Date.now(),date:todayKey(),name:p.n,ex:[],startTime:Date.now()};
+      p.ex.forEach(function(id){
+        var e=FitData.findEx(id);if(!e)return;
+        cur.ex.push({exId:id,sets:[{w:0,r:e.sets[1],done:false},{w:0,r:e.sets[1],done:false},{w:0,r:e.sets[1],done:false}]});
+      });
+      Storage.set("fit_current",cur);
+      toast("▶️ Training gestartet","ok");
+      AppFitness.tab="log";AppFitness.render();
+    });
+  },
+
+  renderLog:function(el){
+    var self=this;
+    var cur=Storage.get("fit_current",null);
+    var sessions=this.getSessions().slice().sort(function(a,b){return b.startTime-a.startTime;});
+
+    if(cur){
+      el.innerHTML='<div class="workout-card"><div class="h"><div class="n">▶️ '+(cur.name||"Training läuft")+'</div><div class="t">'+new Date(cur.startTime).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+'</div></div>'
+        +'<div id="ft_cur_ex"></div>'
+        +'<div class="btn-row" style="margin-top:10px">'
+        +'<button class="btn success" id="ft_finish">✅ Training beenden</button>'
+        +'<button class="btn danger" id="ft_cancel">🗑️ Verwerfen</button>'
+        +'</div></div>'
+        +'<div class="card"><div class="card-h"><h3>➕ Übung hinzufügen</h3></div><div class="field">'+select("ft_add_cat",Object.keys(FitData.categories)[0],Object.keys(FitData.categories).map(function(k){return [k,FitData.categories[k].i+" "+FitData.categories[k].n];}))+'</div><div class="field" id="ft_add_ex_wrap"></div><button class="btn success full" id="ft_add_btn">➕ Hinzufügen</button></div>'
+        +'<div class="card"><div class="card-h"><h3>📋 Bisherige Trainings ('+sessions.length+')</h3></div><div class="app-list" id="ft_hist"></div></div>';
+      this.renderCurrentEx();
+      this.updateAddExSelect();
+      document.getElementById("ft_add_cat").addEventListener("change",function(){self.updateAddExSelect();});
+      document.getElementById("ft_add_btn").addEventListener("click",function(){
+        var cat=val("ft_add_cat"),exId=val("ft_add_ex");
+        var e=FitData.findEx(exId);if(!e)return toast("⚠️ Übung fehlt","err");
+        cur.ex.push({exId:exId,sets:[{w:0,r:e.sets[1],done:false},{w:0,r:e.sets[1],done:false},{w:0,r:e.sets[1],done:false}]});
+        Storage.set("fit_current",cur);toast("➕","ok");self.renderTab();
+      });
+      document.getElementById("ft_finish").addEventListener("click",function(){self.finishWorkout();});
+      document.getElementById("ft_cancel").addEventListener("click",function(){
+        if(!confirm("Training verwerfen?"))return;
+        Storage.remove("fit_current");self.renderTab();
+      });
+    }else{
+      el.innerHTML='<div class="card"><div class="card-h"><h3>🏋️ Kein aktives Training</h3></div>'
+        +'<div class="info-box">Starte ein neues Training oder wähle einen Plan.</div>'
+        +'<button class="btn success full" id="ft_start_empty">➕ Freies Training starten</button></div>'
+        +'<div class="card"><div class="card-h"><h3>📋 Bisherige Trainings ('+sessions.length+')</h3></div><div class="app-list" id="ft_hist"></div></div>';
+      document.getElementById("ft_start_empty").addEventListener("click",function(){
+        var cur={id:"w_"+Date.now(),date:todayKey(),ex:[],startTime:Date.now()};
+        Storage.set("fit_current",cur);
+        self.renderTab();
+      });
+    }
+    this.renderHistory();
+  },
+
+  renderCurrentEx:function(){
+    var cur=Storage.get("fit_current",null);if(!cur)return;
+    var wrap=document.getElementById("ft_cur_ex");if(!wrap)return;
+    if(!cur.ex.length){wrap.innerHTML='<div class="info-box">Noch keine Übungen. Füge unten eine hinzu.</div>';return;}
+    var self=this;
+    wrap.innerHTML=cur.ex.map(function(item,idx){
+      var e=FitData.findEx(item.exId);if(!e)return "";
+      var setsHtml=item.sets.map(function(s,i){
+        return '<div class="set-row"><span class="n">'+(i+1)+'</span>'
+          +'<input type="number" placeholder="kg" value="'+(s.w||"")+'" data-ft-set-w="'+idx+'_'+i+'">'
+          +'<input type="number" placeholder="wdh" value="'+(s.r||"")+'" data-ft-set-r="'+idx+'_'+i+'">'
+          +'<div class="chk'+(s.done?" on":"")+'" data-ft-set-done="'+idx+'_'+i+'">'+(s.done?"✓":"")+'</div></div>';
+      }).join("");
+      return '<div style="padding:10px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.3);border-radius:9px;margin-top:6px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:11.5px;font-weight:800;color:#fbbf24">'+esc(e.n)+'</div><button class="del" style="padding:4px 8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#ff8080;border-radius:5px;cursor:pointer;font-size:9px" data-ft-rm-ex="'+idx+'">🗑️</button></div>'
+        +setsHtml
+        +'<button class="btn secondary small" style="margin-top:6px" data-ft-add-set="'+idx+'">+ Satz</button></div>';
+    }).join("");
+    wrap.querySelectorAll("[data-ft-set-w]").forEach(function(inp){
+      inp.addEventListener("change",function(){
+        var p=inp.dataset.ftSetW.split("_");var i=parseInt(p[0]),j=parseInt(p[1]);
+        var c=Storage.get("fit_current",null);c.ex[i].sets[j].w=parseFloat(inp.value)||0;Storage.set("fit_current",c);
+      });
+    });
+    wrap.querySelectorAll("[data-ft-set-r]").forEach(function(inp){
+      inp.addEventListener("change",function(){
+        var p=inp.dataset.ftSetR.split("_");var i=parseInt(p[0]),j=parseInt(p[1]);
+        var c=Storage.get("fit_current",null);c.ex[i].sets[j].r=parseInt(inp.value)||0;Storage.set("fit_current",c);
+      });
+    });
+    wrap.querySelectorAll("[data-ft-set-done]").forEach(function(el){
+      el.addEventListener("click",function(){
+        var p=el.dataset.ftSetDone.split("_");var i=parseInt(p[0]),j=parseInt(p[1]);
+        var c=Storage.get("fit_current",null);
+        c.ex[i].sets[j].done=!c.ex[i].sets[j].done;
+        Storage.set("fit_current",c);
+        if(c.ex[i].sets[j].done){AppFitness.startRest(90);}
+        self.renderCurrentEx();
+      });
+    });
+    wrap.querySelectorAll("[data-ft-rm-ex]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var i=parseInt(b.dataset.ftRmEx);
+        var c=Storage.get("fit_current",null);
+        c.ex.splice(i,1);Storage.set("fit_current",c);self.renderCurrentEx();
+      });
+    });
+    wrap.querySelectorAll("[data-ft-add-set]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var i=parseInt(b.dataset.ftAddSet);
+        var c=Storage.get("fit_current",null);
+        var last=c.ex[i].sets[c.ex[i].sets.length-1]||{w:0,r:10};
+        c.ex[i].sets.push({w:last.w,r:last.r,done:false});
+        Storage.set("fit_current",c);self.renderCurrentEx();
+      });
+    });
+  },
+  updateAddExSelect:function(){
+    var wrap=document.getElementById("ft_add_ex_wrap");if(!wrap)return;
+    var cat=val("ft_add_cat")||Object.keys(FitData.categories)[0];
+    var opts=(FitData.exercises[cat]||[]).map(function(e){return [e.id,e.n];});
+    wrap.innerHTML='<label>Übung</label>'+select("ft_add_ex",opts.length?opts[0][0]:"",opts);
+  },
+  startRest:function(sec){
+    if(this.restTimer)clearInterval(this.restTimer);
+    this.restRemaining=sec;
+    var self=this;
+    var banner=document.getElementById("ft_rest_banner");
+    if(!banner){
+      banner=document.createElement("div");
+      banner.id="ft_rest_banner";
+      banner.className="rest-timer";
+      var vp=document.getElementById("appViewport");
+      vp.insertBefore(banner,vp.firstChild);
+    }
+    var render=function(){
+      banner.innerHTML='<div class="v">'+String(Math.floor(self.restRemaining/60)).padStart(2,"0")+":"+String(self.restRemaining%60).padStart(2,"0")+'</div><div class="l">Pause</div><button class="btn danger small" style="margin-top:6px" id="ft_rest_skip">⏭️ Überspringen</button>';
+      var btn=document.getElementById("ft_rest_skip");
+      if(btn)btn.addEventListener("click",function(){self.stopRest();});
+    };
+    render();
+    this.restTimer=setInterval(function(){
+      self.restRemaining--;
+      if(self.restRemaining<=0){self.stopRest();toast("✅ Pause vorbei","ok");}
+      else render();
+    },1000);
+  },
+  stopRest:function(){
+    if(this.restTimer)clearInterval(this.restTimer);
+    this.restTimer=null;this.restRemaining=0;
+    var b=document.getElementById("ft_rest_banner");
+    if(b)b.remove();
+  },
+
+  finishWorkout:function(){
+    var cur=Storage.get("fit_current",null);if(!cur)return;
+    var totalSets=0,totalVol=0;
+    cur.ex.forEach(function(e){
+      e.sets.forEach(function(s){
+        if(s.done){totalSets++;totalVol+=(s.w||0)*(s.r||0);}
+      });
+    });
+    var dur=Math.round((Date.now()-cur.startTime)/60000);
+    var kcal=Math.round(totalSets*8+dur*3);
+    var sessions=this.getSessions();
+    sessions.push({id:cur.id,date:cur.date,name:cur.name||"Freies Training",ex:cur.ex,sets:totalSets,vol:totalVol,dur:dur,kcal:kcal,startTime:cur.startTime});
+    this.saveSessions(sessions);
+    Storage.remove("fit_current");
+    this.stopRest();
+    toast("✅ "+totalSets+" Sätze · "+kcal+" kcal","ok");
+    alert("🏋️ Training beendet!\n\nSätze: "+totalSets+"\nVolumen: "+totalVol+" kg\nDauer: "+dur+" min\nVerbrennung: "+kcal+" kcal");
+    this.renderTab();
+  },
+
+  renderHistory:function(){
+    var el=document.getElementById("ft_hist");if(!el)return;
+    var arr=this.getSessions().slice().sort(function(a,b){return b.startTime-a.startTime;});
+    if(!arr.length){el.innerHTML='<div class="info-box">Noch keine Trainings.</div>';return;}
+    var self=this;
+    el.innerHTML="";
+    arr.slice(0,30).forEach(function(s){
+      var d=document.createElement("div");d.className="app-list-item";
+      d.innerHTML='<span class="ico">💪</span><div class="txt"><div class="t">'+esc(s.name||"Training")+'</div><div class="d">'+s.date.split("-").reverse().join(".")+' · '+s.sets+' Sätze · '+s.dur+' min · '+s.kcal+' kcal</div></div><button class="del">🗑️</button>';
+      d.querySelector(".del").addEventListener("click",function(e){
+        e.stopPropagation();if(!confirm("Löschen?"))return;
+        self.saveSessions(self.getSessions().filter(function(x){return x.id!==s.id;}));
+        self.renderTab();
+      });
+      el.appendChild(d);
+    });
+  },
+
+  renderNutrition:function(el){
+    var self=this;
+    var goals=this.getGoals();
+    var n=Storage.get("fit_nutrition_"+todayKey(),{kcal:0,p:0,c:0,f:0,meals:[]});
+
+    var pPct=Math.min(100,Math.round(n.p/goals.eiweiss*100));
+    var cPct=Math.min(100,Math.round(n.kcal/goals.kalorien*100));
+
+    var mealsHtml=n.meals.length?n.meals.map(function(m,i){
+      return '<div class="set-row"><span class="n">'+(i+1)+'</span><div style="flex:1;font-size:11px;font-weight:700">'+esc(m.name)+'</div><span style="font-size:10px;color:var(--text-mute)">'+m.kcal+' kcal</span><button class="del" style="padding:4px 8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#ff8080;border-radius:5px;cursor:pointer;font-size:9px" data-ft-rm-meal="'+i+'">🗑️</button></div>';
+    }).join(""):'<div class="info-box">Keine Mahlzeiten erfasst.</div>';
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>🍎 Ernährung heute</h3></div>'
+      +'<div class="progress-ring"><svg viewBox="0 0 140 140"><defs><linearGradient id="fitGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#ef4444"/></linearGradient></defs><circle class="track" cx="70" cy="70" r="60"/><circle class="fill" cx="70" cy="70" r="60" stroke-dasharray="377" stroke-dashoffset="'+(377-377*cPct/100)+'"/></svg><div class="txt"><div class="v">'+n.kcal+'</div><div class="l">von '+goals.kalorien+' kcal</div></div></div>'
+      +'<div class="macro-bar">'
+      +'<div class="macro p"><div class="v">'+n.p+'g</div><div class="l">Eiweiß</div></div>'
+      +'<div class="macro c"><div class="v">'+n.c+'g</div><div class="l">Kohlenh.</div></div>'
+      +'<div class="macro f"><div class="v">'+n.f+'g</div><div class="l">Fett</div></div>'
+      +'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>➕ Mahlzeit hinzufügen</h3></div>'
+      +'<div class="field"><label>Name</label><input type="text" id="ft_meal_name" placeholder="z.B. Haferflocken"></div>'
+      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'
+      +'<div class="field"><label>kcal</label><input type="number" id="ft_meal_kcal" placeholder="0"></div>'
+      +'<div class="field"><label>P (g)</label><input type="number" id="ft_meal_p" placeholder="0"></div>'
+      +'<div class="field"><label>K (g)</label><input type="number" id="ft_meal_c" placeholder="0"></div>'
+      +'<div class="field"><label>F (g)</label><input type="number" id="ft_meal_f" placeholder="0"></div>'
+      +'</div>'
+      +'<button class="btn success full" id="ft_meal_add">➕ Speichern</button></div>'
+      +'<div class="card"><div class="card-h"><h3>📋 Mahlzeiten ('+n.meals.length+')</h3></div>'+mealsHtml+'</div>'
+      +'<div class="card"><div class="card-h"><h3>🎯 Ziele</h3></div>'
+      +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px">'
+      +'<div class="field"><label>Kalorien</label><input type="number" id="ft_goal_kcal" value="'+goals.kalorien+'"></div>'
+      +'<div class="field"><label>Eiweiß (g)</label><input type="number" id="ft_goal_p" value="'+goals.eiweiss+'"></div>'
+      +'<div class="field"><label>Wasser (L)</label><input type="number" id="ft_goal_w" step="0.5" value="'+goals.wasser+'"></div>'
+      +'<div class="field"><label>Schritte</label><input type="number" id="ft_goal_s" value="'+goals.schritte+'"></div>'
+      +'</div>'
+      +'<button class="btn success full" id="ft_goal_save">💾 Ziele speichern</button></div>';
+
+    document.getElementById("ft_meal_add").addEventListener("click",function(){
+      var name=val("ft_meal_name").trim();if(!name)return toast("⚠️ Name fehlt","err");
+      var meal={name:name,kcal:parseInt(val("ft_meal_kcal"))||0,p:parseInt(val("ft_meal_p"))||0,c:parseInt(val("ft_meal_c"))||0,f:parseInt(val("ft_meal_f"))||0};
+      n.meals.push(meal);
+      n.kcal+=meal.kcal;n.p+=meal.p;n.c+=meal.c;n.f+=meal.f;
+      Storage.set("fit_nutrition_"+todayKey(),n);
+      toast("🍎 "+meal.kcal+" kcal","ok");
+      self.renderTab();
+    });
+    el.querySelectorAll("[data-ft-rm-meal]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var i=parseInt(b.dataset.ftRmMeal);
+        var m=n.meals[i];
+        n.kcal-=m.kcal;n.p-=m.p;n.c-=m.c;n.f-=m.f;
+        n.meals.splice(i,1);
+        Storage.set("fit_nutrition_"+todayKey(),n);
+        self.renderTab();
+      });
+    });
+    document.getElementById("ft_goal_save").addEventListener("click",function(){
+      self.saveGoals({kalorien:parseInt(val("ft_goal_kcal"))||2200,eiweiss:parseInt(val("ft_goal_p"))||150,wasser:parseFloat(val("ft_goal_w"))||3,schritte:parseInt(val("ft_goal_s"))||10000});
+      toast("💾","ok");
+    });
+  },
+
+  renderProgress:function(el){
+    var self=this;
+    var weights=this.getWeight().slice().sort(function(a,b){return a.t-b.t;});
+    var sessions=this.getSessions();
+    var last30=sessions.filter(function(s){return (Date.now()-s.startTime)<30*86400000;});
+    var totalKcal=0,totalDur=0,totalSets=0;
+    sessions.forEach(function(s){totalKcal+=s.kcal||0;totalDur+=s.dur||0;totalSets+=s.sets||0;});
+
+    var wHtml=weights.length?weights.map(function(w,i){
+      return '<div class="set-row"><span class="n">'+(i+1)+'</span><div style="flex:1;font-size:11px;font-weight:700">'+w.weight+' kg</div><span style="font-size:10px;color:var(--text-mute)">'+w.date.split("-").reverse().join(".")+'</span></div>';
+    }).join(""):'<div class="info-box">Noch kein Gewicht erfasst.</div>';
+
+    var curW=weights.length?weights[weights.length-1].weight:null;
+    var startW=weights.length?weights[0].weight:null;
+    var diff=curW&&startW?curW-startW:null;
+
+    var chart='';
+    if(weights.length>=2){
+      var vals=weights.map(function(w){return w.weight;});
+      var min=Math.min.apply(null,vals),max=Math.max.apply(null,vals);
+      var range=max-min||1;
+      chart='<div style="display:flex;align-items:flex-end;gap:3px;height:120px;padding:8px;background:var(--bg-3);border-radius:11px;border:1px solid var(--border);margin:8px 0">'+weights.slice(-20).map(function(w){
+        var h=Math.round((w.weight-min)/range*80)+10;
+        return '<div style="flex:1;background:linear-gradient(180deg,#fbbf24,#f59e0b);height:'+h+'%;border-radius:3px 3px 0 0;min-height:4px" title="'+w.weight+'kg"></div>';
+      }).join("")+'</div>';
+    }
+
+    el.innerHTML='<div class="card"><div class="card-h"><h3>⚖️ Gewicht</h3></div>'
+      +(curW?'<div class="ft-hero" style="padding:14px"><div class="lbl">Aktuell</div><div class="val" style="font-size:32px">'+curW+' <span style="font-size:16px">kg</span></div>'+(diff!==null?'<div class="sub">'+(diff>=0?"+":"")+diff.toFixed(1)+' kg seit Start</div>':'')+'</div>':'')
+      +chart
+      +'<div class="field"><label>Neues Gewicht (kg)</label><input type="number" id="ft_w_val" step="0.1" placeholder="75.5"></div>'
+      +'<button class="btn success full" id="ft_w_add">➕ Erfassen</button>'
+      +'<div style="margin-top:10px">'+wHtml+'</div></div>'
+      +'<div class="card"><div class="card-h"><h3>📊 Statistiken</h3></div>'
+      +'<div class="ft-stats"><div class="ft-stat"><div class="i">🏋️</div><div class="v">'+sessions.length+'</div><div class="l">Workouts</div></div>'
+      +'<div class="ft-stat"><div class="i">🔥</div><div class="v">'+totalKcal+'</div><div class="l">kcal</div></div>'
+      +'<div class="ft-stat"><div class="i">⏱️</div><div class="v">'+totalDur+'</div><div class="l">min</div></div>'
+      +'<div class="ft-stat"><div class="i">💪</div><div class="v">'+totalSets+'</div><div class="l">Sätze</div></div></div>'
+      +'<div class="info-box">📈 Letzte 30 Tage: <b>'+last30.length+'</b> Workouts</div>'
+      +'<button class="btn secondary full" id="ft_export">📤 Alle Daten exportieren</button></div>';
+
+    document.getElementById("ft_w_add").addEventListener("click",function(){
+      var v=parseFloat(String(val("ft_w_val")).replace(",","."));
+      if(isNaN(v)||v<=0)return toast("⚠️ Gewicht fehlt","err");
+      var arr=self.getWeight();
+      arr.push({id:"w_"+Date.now(),weight:v,date:todayKey(),t:Date.now()});
+      self.saveWeight(arr);toast("⚖️","ok");self.renderTab();
+    });
+    document.getElementById("ft_export").addEventListener("click",function(){
+      var data={sessions:self.getSessions(),weight:self.getWeight(),goals:self.getGoals()};
+      var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="fitness_export_"+todayKey()+".json";a.click();
+      toast("📤","ok");
+    });
+  }
+};
+
+/* ============ Auto-Register ============ */
+if(AppLauncher&&AppLauncher.registry){
+  AppLauncher.registry.fitness=AppFitness;
+}
+if(APP_PLAN&&APP_PLAN.length){
+  var found=false;
+  APP_PLAN.forEach(function(a){
+    if(a.id==="fitness"){a.prio=1;a.installed=true;a.cat="Gesundheit";found=true;}
+  });
+  if(!found){
+    APP_PLAN.unshift({id:"fitness",name:"Fitness",icon:"🏋️",cat:"Gesundheit",prio:1,installed:true});
+  }
+}
+setTimeout(function(){
+  var btn=document.getElementById("btnFilterAll");
+  if(btn)btn.click();
+},1800);
+
+console.log("[HalDo Fitness] ✅ Modul geladen und registriert.");
+})();
+</script>
+<!-- ============ ENDE HALDO FITNESS APP ============ -->
 </body>
 </html>
