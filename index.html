@@ -3249,5 +3249,592 @@ console.log("🎮 HalDo Games-App registriert — 12 Spiele");
 })();
 </script>
 <!-- ============ ENDE HALDO GAMES-APP ============ -->
+<!-- ============================================================
+     HALDO LERNEN-APP v1 — Vokabeln, Formeln, Mathe, Noten, Chemie
+     Einfach vor </body> einfügen.
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Lernen] window.HalDo fehlt.");return;}
+
+var H=window.HalDo;
+var Storage=H.Storage;
+var Voice=H.Voice;
+var toast=H.toast;
+var esc=function(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});};
+function $(id){return document.getElementById(id);}
+
+/* ═══════════════ VOKABEL-DATENBANK ═══════════════ */
+var VOKABELN={
+  en:{name:"🇬🇧 Englisch",cards:[
+    {q:"hello",a:"hallo"},{q:"goodbye",a:"auf Wiedersehen"},{q:"thank you",a:"danke"},{q:"please",a:"bitte"},
+    {q:"yes",a:"ja"},{q:"no",a:"nein"},{q:"water",a:"wasser"},{q:"bread",a:"brot"},{q:"house",a:"haus"},
+    {q:"friend",a:"freund"},{q:"love",a:"liebe"},{q:"book",a:"buch"},{q:"to learn",a:"lernen"},
+    {q:"to speak",a:"sprechen"},{q:"morning",a:"morgen"},{q:"evening",a:"abend"},{q:"day",a:"tag"},
+    {q:"night",a:"nacht"},{q:"family",a:"familie"},{q:"mother",a:"mutter"},{q:"father",a:"vater"},
+    {q:"child",a:"kind"},{q:"work",a:"arbeit"},{q:"school",a:"schule"},{q:"teacher",a:"lehrer"}
+  ]},
+  tr:{name:"🇹🇷 Türkisch",cards:[
+    {q:"merhaba",a:"hallo"},{q:"teşekkürler",a:"danke"},{q:"lütfen",a:"bitte"},{q:"evet",a:"ja"},
+    {q:"hayır",a:"nein"},{q:"su",a:"wasser"},{q:"ekmek",a:"brot"},{q:"ev",a:"haus"},{q:"arkadaş",a:"freund"},
+    {q:"aşk",a:"liebe"},{q:"kitap",a:"buch"},{q:"öğrenmek",a:"lernen"},{q:"konuşmak",a:"sprechen"},
+    {q:"sabah",a:"morgen"},{q:"akşam",a:"abend"},{q:"gün",a:"tag"},{q:"gece",a:"nacht"},
+    {q:"aile",a:"familie"},{q:"anne",a:"mutter"},{q:"baba",a:"vater"},{q:"çocuk",a:"kind"},
+    {q:"iş",a:"arbeit"},{q:"okul",a:"schule"},{q:"öğretmen",a:"lehrer"},{q:"çay",a:"tee"}
+  ]},
+  ku:{name:"🟨 Kurdisch",cards:[
+    {q:"silav",a:"hallo"},{q:"spas",a:"danke"},{q:"ji kerema xwe",a:"bitte"},{q:"erê",a:"ja"},
+    {q:"na",a:"nein"},{q:"av",a:"wasser"},{q:"nan",a:"brot"},{q:"mal",a:"haus"},{q:"heval",a:"freund"},
+    {q:"evîn",a:"liebe"},{q:"pirtûk",a:"buch"},{q:"fêr bûn",a:"lernen"},{q:"axaftin",a:"sprechen"},
+    {q:"beyanî",a:"morgen"},{q:"êvar",a:"abend"},{q:"roj",a:"tag"},{q:"şev",a:"nacht"},
+    {q:"malbat",a:"familie"},{q:"dayik",a:"mutter"},{q:"bav",a:"vater"},{q:"zarok",a:"kind"},
+    {q:"kar",a:"arbeit"},{q:"dibistan",a:"schule"},{q:"mamoste",a:"lehrer"},{q:"çay",a:"tee"},
+    {q:"Tawûsî Melek",a:"pfauengel"},{q:"Xwedê",a:"gott"},{q:"Laliş",a:"heiliger ort"}
+  ]},
+  ez:{name:"🦚 Ezidi",cards:[
+    {q:"Silav",a:"hallo"},{q:"Beyanî baş",a:"guten morgen"},{q:"Êvar baş",a:"guten abend"},{q:"Şev baş",a:"gute nacht"},
+    {q:"Tu çawa yî?",a:"wie geht es dir?"},{q:"Ez baş im",a:"mir geht es gut"},{q:"Spas",a:"danke"},
+    {q:"Spas xwedê",a:"danke gott"},{q:"Bibore",a:"entschuldigung"},{q:"Bi xêr hatî",a:"willkommen"},
+    {q:"Ez êzidî me",a:"ich bin ezidi"},{q:"Xwedê",a:"gott"},{q:"Tawûsî Melek",a:"pfauengel"},
+    {q:"Laliş",a:"heiliger ort"},{q:"Nimêj",a:"gebet"},{q:"Rojî",a:"fasten"},{q:"Ziyaret",a:"wallfahrt"},
+    {q:"Xatirê te",a:"auf wiedersehen"},{q:"Erê",a:"ja"},{q:"Na",a:"nein"},{q:"Malbat",a:"familie"},
+    {q:"Dayik",a:"mutter"},{q:"Bav",a:"vater"},{q:"Zarok",a:"kind"},{q:"Mamoste",a:"lehrer"}
+  ]},
+  ar:{name:"🇸🇦 Arabisch",cards:[
+    {q:"مرحبا",a:"hallo"},{q:"شكرا",a:"danke"},{q:"من فضلك",a:"bitte"},{q:"نعم",a:"ja"},
+    {q:"لا",a:"nein"},{q:"ماء",a:"wasser"},{q:"خبز",a:"brot"},{q:"بيت",a:"haus"},
+    {q:"صديق",a:"freund"},{q:"حب",a:"liebe"},{q:"كتاب",a:"buch"},{q:"صباح",a:"morgen"},
+    {q:"مساء",a:"abend"},{q:"أهلا",a:"willkommen"},{q:"عائلة",a:"familie"},{q:"أم",a:"mutter"},
+    {q:"أب",a:"vater"},{q:"طفل",a:"kind"}
+  ]},
+  fr:{name:"🇫🇷 Französisch",cards:[
+    {q:"bonjour",a:"guten tag"},{q:"merci",a:"danke"},{q:"s'il vous plaît",a:"bitte"},{q:"oui",a:"ja"},
+    {q:"non",a:"nein"},{q:"eau",a:"wasser"},{q:"pain",a:"brot"},{q:"maison",a:"haus"},
+    {q:"ami",a:"freund"},{q:"amour",a:"liebe"},{q:"livre",a:"buch"},{q:"apprendre",a:"lernen"},
+    {q:"parler",a:"sprechen"},{q:"matin",a:"morgen"},{q:"soir",a:"abend"},{q:"famille",a:"familie"}
+  ]},
+  es:{name:"🇪🇸 Spanisch",cards:[
+    {q:"hola",a:"hallo"},{q:"gracias",a:"danke"},{q:"por favor",a:"bitte"},{q:"sí",a:"ja"},
+    {q:"no",a:"nein"},{q:"agua",a:"wasser"},{q:"pan",a:"brot"},{q:"casa",a:"haus"},
+    {q:"amigo",a:"freund"},{q:"amor",a:"liebe"},{q:"libro",a:"buch"},{q:"aprender",a:"lernen"},
+    {q:"hablar",a:"sprechen"},{q:"mañana",a:"morgen"},{q:"tarde",a:"abend"},{q:"familia",a:"familie"}
+  ]},
+  it:{name:"🇮🇹 Italienisch",cards:[
+    {q:"ciao",a:"hallo"},{q:"grazie",a:"danke"},{q:"per favore",a:"bitte"},{q:"sì",a:"ja"},
+    {q:"no",a:"nein"},{q:"acqua",a:"wasser"},{q:"pane",a:"brot"},{q:"casa",a:"haus"},
+    {q:"amico",a:"freund"},{q:"amore",a:"liebe"},{q:"libro",a:"buch"},{q:"imparare",a:"lernen"}
+  ]}
+};
+
+/* ═══════════════ FORMELN ═══════════════ */
+var FORMELN=[
+  {cat:"geometrie",n:"Fläche Rechteck",f:"A = a × b",d:"Fläche = Länge × Breite"},
+  {cat:"geometrie",n:"Fläche Kreis",f:"A = π × r²",d:"Fläche = Pi × Radius²"},
+  {cat:"geometrie",n:"Umfang Kreis",f:"U = 2 × π × r",d:"2 × Pi × Radius"},
+  {cat:"geometrie",n:"Volumen Würfel",f:"V = a³",d:"Kante hoch 3"},
+  {cat:"geometrie",n:"Volumen Kugel",f:"V = (4/3) × π × r³",d:"Kugelvolumen"},
+  {cat:"geometrie",n:"Satz Pythagoras",f:"a² + b² = c²",d:"In rechtwinkligen Dreiecken"},
+  {cat:"geometrie",n:"Fläche Dreieck",f:"A = (g × h) / 2",d:"Grundseite × Höhe ÷ 2"},
+  {cat:"geometrie",n:"Volumen Zylinder",f:"V = π × r² × h",d:"Grundfläche × Höhe"},
+  {cat:"algebra",n:"1. Binomische Formel",f:"(a + b)² = a² + 2ab + b²",d:"Plus-Formel"},
+  {cat:"algebra",n:"2. Binomische Formel",f:"(a - b)² = a² - 2ab + b²",d:"Minus-Formel"},
+  {cat:"algebra",n:"3. Binomische Formel",f:"(a + b)(a - b) = a² - b²",d:"Plus-Minus"},
+  {cat:"algebra",n:"Quadratische Gl.",f:"x = (-b ± √(b² - 4ac)) / 2a",d:"Mitternachtsformel"},
+  {cat:"algebra",n:"Prozentrechnung",f:"P = G × p / 100",d:"Prozentwert"},
+  {cat:"algebra",n:"Zinseszins",f:"K = K₀ × (1 + p/100)ⁿ",d:"Kapital nach n Jahren"},
+  {cat:"physik",n:"Geschwindigkeit",f:"v = s / t",d:"Weg ÷ Zeit"},
+  {cat:"physik",n:"Kraft (Newton)",f:"F = m × a",d:"Masse × Beschleunigung"},
+  {cat:"physik",n:"Energie (kin.)",f:"E = ½ × m × v²",d:"Kinetische Energie"},
+  {cat:"physik",n:"Energie (pot.)",f:"E = m × g × h",d:"Lageenergie"},
+  {cat:"physik",n:"Ohmsches Gesetz",f:"U = R × I",d:"Spannung = Widerstand × Strom"},
+  {cat:"physik",n:"Elektrische Leistung",f:"P = U × I",d:"Spannung × Strom"},
+  {cat:"physik",n:"Dichte",f:"ρ = m / V",d:"Masse ÷ Volumen"},
+  {cat:"chemie",n:"Molmasse",f:"n = m / M",d:"Stoffmenge"},
+  {cat:"chemie",n:"Ideale Gasgleichung",f:"p × V = n × R × T",d:"R ≈ 8,314"},
+  {cat:"chemie",n:"Konzentration",f:"c = n / V",d:"Stoffmenge ÷ Volumen"},
+  {cat:"chemie",n:"pH-Wert",f:"pH = -log₁₀[c(H⁺)]",d:"Säurestärke"}
+];
+
+/* ═══════════════ PERIODENSYSTEM ═══════════════ */
+var ELEMENTS=[
+  {n:1,s:"H",name:"Wasserstoff",g:"Nichtmetall",m:1.008},
+  {n:2,s:"He",name:"Helium",g:"Edelgas",m:4.003},
+  {n:3,s:"Li",name:"Lithium",g:"Alkalimetall",m:6.94},
+  {n:4,s:"Be",name:"Beryllium",g:"Erdalkalimetall",m:9.012},
+  {n:5,s:"B",name:"Bor",g:"Halbmetall",m:10.81},
+  {n:6,s:"C",name:"Kohlenstoff",g:"Nichtmetall",m:12.011},
+  {n:7,s:"N",name:"Stickstoff",g:"Nichtmetall",m:14.007},
+  {n:8,s:"O",name:"Sauerstoff",g:"Nichtmetall",m:15.999},
+  {n:9,s:"F",name:"Fluor",g:"Halogen",m:18.998},
+  {n:10,s:"Ne",name:"Neon",g:"Edelgas",m:20.180},
+  {n:11,s:"Na",name:"Natrium",g:"Alkalimetall",m:22.990},
+  {n:12,s:"Mg",name:"Magnesium",g:"Erdalkalimetall",m:24.305},
+  {n:13,s:"Al",name:"Aluminium",g:"Metall",m:26.982},
+  {n:14,s:"Si",name:"Silicium",g:"Halbmetall",m:28.086},
+  {n:15,s:"P",name:"Phosphor",g:"Nichtmetall",m:30.974},
+  {n:16,s:"S",name:"Schwefel",g:"Nichtmetall",m:32.06},
+  {n:17,s:"Cl",name:"Chlor",g:"Halogen",m:35.45},
+  {n:18,s:"Ar",name:"Argon",g:"Edelgas",m:39.948},
+  {n:19,s:"K",name:"Kalium",g:"Alkalimetall",m:39.098},
+  {n:20,s:"Ca",name:"Calcium",g:"Erdalkalimetall",m:40.078},
+  {n:26,s:"Fe",name:"Eisen",g:"Metall",m:55.845},
+  {n:29,s:"Cu",name:"Kupfer",g:"Metall",m:63.546},
+  {n:30,s:"Zn",name:"Zink",g:"Metall",m:65.38},
+  {n:47,s:"Ag",name:"Silber",g:"Metall",m:107.868},
+  {n:79,s:"Au",name:"Gold",g:"Metall",m:196.967},
+  {n:80,s:"Hg",name:"Quecksilber",g:"Metall",m:200.592},
+  {n:82,s:"Pb",name:"Blei",g:"Metall",m:207.2},
+  {n:92,s:"U",name:"Uran",g:"Actinid",m:238.029}
+];
+
+/* ═══════════════ LERNEN-APP ═══════════════ */
+var LernenApp={
+  _tab:"vokabeln",
+  _vokState:{deck:"en",cards:[],idx:0,flipped:false,correct:0,wrong:0,wrongCards:[]},
+  _mathState:{level:"easy",score:0,streak:0,task:null},
+  _customDecks:Storage.get("lernen_decks",[]),
+
+  render:function(el){
+    var self=this;
+    var tabs=[
+      {k:"vokabeln",i:"📚",n:"Vokabeln"},
+      {k:"math",i:"🧮",n:"Kopfrechnen"},
+      {k:"formeln",i:"📐",n:"Formeln"},
+      {k:"periodic",i:"⚗️",n:"Periodensystem"},
+      {k:"noten",i:"🎼",n:"Noten"}
+    ];
+    var tabsHtml=tabs.map(function(t){
+      return '<button class="tab'+(self._tab===t.k?" active":"")+'" data-lernen-tab="'+t.k+'">'+t.i+' '+t.n+'</button>';
+    }).join("");
+    el.innerHTML='<div class="tabs">'+tabsHtml+'</div><div id="lernenBody"></div>';
+    el.querySelectorAll("[data-lernen-tab]").forEach(function(b){
+      b.addEventListener("click",function(){self._tab=b.dataset.lernenTab;self.render(el);});
+    });
+    this.renderTab(el);
+  },
+
+  renderTab:function(el){
+    var body=el.querySelector("#lernenBody");
+    if(!body)return;
+    if(this._tab==="vokabeln")this.renderVokabeln(body);
+    else if(this._tab==="math")this.renderMath(body);
+    else if(this._tab==="formeln")this.renderFormeln(body);
+    else if(this._tab==="periodic")this.renderPeriodic(body);
+    else if(this._tab==="noten")this.renderNoten(body);
+  },
+
+  /* ═══ VOKABELN ═══ */
+  renderVokabeln:function(body){
+    var self=this;
+    var allDecks=Object.keys(VOKABELN).map(function(k){
+      return {id:k,n:VOKABELN[k].name,cards:VOKABELN[k].cards,builtin:true};
+    }).concat(this._customDecks.map(function(d,i){
+      return {id:"custom_"+i,n:"📝 "+d.name,cards:d.cards,builtin:false,idx:i};
+    }));
+    var s=this._vokState;
+    if(!s.cards.length&&s.deck){
+      var deck=allDecks.find(function(d){return d.id===s.deck;})||allDecks[0];
+      s.cards=deck.cards.slice().sort(function(){return Math.random()-0.5;});
+      s.idx=0;s.flipped=false;s.correct=0;s.wrong=0;s.wrongCards=[];
+    }
+    if(s.idx>=s.cards.length){
+      var total=s.correct+s.wrong;
+      var pct=total?Math.round(s.correct/total*100):0;
+      body.innerHTML='<div class="card" style="text-align:center;padding:30px 16px">'
+        +'<div style="font-size:60px;margin-bottom:10px">'+(pct>=80?"🏆":pct>=50?"👍":"📚")+'</div>'
+        +'<h3 style="font-size:18px;color:var(--p1);margin-bottom:6px">Runde beendet!</h3>'
+        +'<div style="font-size:26px;font-weight:900;color:var(--p1);margin:10px 0">'+pct+'%</div>'
+        +'<div style="font-size:12px;color:var(--text-dim);margin-bottom:14px">'+s.correct+'/'+total+' richtig</div>'
+        +(s.wrongCards.length?'<div style="text-align:left;margin-top:14px;padding:10px;background:rgba(239,68,68,.08);border-radius:10px"><div style="font-size:10px;color:var(--text-mute);font-weight:800;margin-bottom:6px">❌ Diese solltest du wiederholen:</div>'
+          +s.wrongCards.map(function(c){
+            return '<div style="font-size:11px;padding:4px 0;color:var(--text-dim)"><b style="color:#ff8080">'+esc(c.q)+'</b> → '+esc(c.a)+'</div>';
+          }).join("")+'</div>':'')
+        +'<button class="btn full" id="vk_again" style="margin-top:16px">🔄 Nochmal</button>'
+        +'<button class="btn sec full" id="vk_menu" style="margin-top:6px">📚 Anderes Deck</button>'
+        +'</div>';
+      $("vk_again").addEventListener("click",function(){
+        s.cards=[];s.idx=0;s.flipped=false;s.correct=0;s.wrong=0;s.wrongCards=[];
+        self.renderTab(body.parentElement);
+      });
+      $("vk_menu").addEventListener("click",function(){s.deck=null;s.cards=[];self.renderTab(body.parentElement);});
+      Voice.auto("Runde beendet. "+pct+" Prozent richtig.");
+      return;
+    }
+    if(!s.deck){
+      body.innerHTML='<div class="card"><h3>📚 Deck wählen</h3>'
+        +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">'
+        +allDecks.map(function(d){
+          return '<button class="btn sec" data-vk-deck="'+d.id+'" style="padding:14px 10px;display:flex;flex-direction:column;gap:4px;font-size:12px">'
+            +'<span style="font-size:14px;font-weight:800">'+d.n+'</span>'
+            +'<span style="font-size:10px;color:var(--text-mute)">'+d.cards.length+' Karten</span>'
+            +'</button>';
+        }).join("")
+        +'</div></div>'
+        +'<div class="card"><h3>➕ Eigenes Deck</h3>'
+        +'<div class="field"><label>Name</label><input type="text" id="vk_new_name" placeholder="z.B. Medizin"></div>'
+        +'<div class="field"><label>Karten (Frage = Antwort, eine pro Zeile)</label><textarea id="vk_new_cards" style="min-height:120px;font-family:ui-monospace;font-size:11.5px" placeholder="Haus = mal&#10;Baum = dar"></textarea></div>'
+        +'<button class="btn full" id="vk_new_save">💾 Deck speichern</button>'
+        +(this._customDecks.length?'<div style="margin-top:10px">'+this._customDecks.map(function(d,i){
+          return '<div style="display:flex;justify-content:space-between;padding:8px 11px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:5px;font-size:12px"><span>📝 '+esc(d.name)+'</span><button class="btn danger" data-vk-del="'+i+'" style="padding:4px 10px;font-size:10px">🗑️</button></div>';
+        }).join("")+'</div>':'')
+        +'</div>';
+      body.querySelectorAll("[data-vk-deck]").forEach(function(b){
+        b.addEventListener("click",function(){
+          s.deck=b.dataset.vkDeck;
+          var deck=allDecks.find(function(d){return d.id===s.deck;});
+          if(deck)s.cards=deck.cards.slice().sort(function(){return Math.random()-0.5;});
+          s.idx=0;s.flipped=false;s.correct=0;s.wrong=0;s.wrongCards=[];
+          self.renderTab(body.parentElement);
+        });
+      });
+      $("vk_new_save").addEventListener("click",function(){
+        var name=$("vk_new_name").value.trim();
+        var txt=$("vk_new_cards").value.trim();
+        if(!name||!txt)return toast("⚠️ Felder ausfüllen","err");
+        var cards=[];
+        txt.split("\n").forEach(function(line){
+          var parts=line.split("=");
+          if(parts.length>=2)cards.push({q:parts[0].trim(),a:parts.slice(1).join("=").trim()});
+        });
+        if(!cards.length)return toast("⚠️ Keine Karten erkannt","err");
+        self._customDecks.push({name:name,cards:cards});
+        Storage.set("lernen_decks",self._customDecks);
+        toast("💾 "+cards.length+" Karten gespeichert","ok");
+        self.renderTab(body.parentElement);
+      });
+      body.querySelectorAll("[data-vk-del]").forEach(function(b){
+        b.addEventListener("click",function(){
+          var idx=parseInt(b.dataset.vkDel);
+          self._customDecks.splice(idx,1);
+          Storage.set("lernen_decks",self._customDecks);
+          self.renderTab(body.parentElement);
+        });
+      });
+      return;
+    }
+    var c=s.cards[s.idx];
+    var total=s.correct+s.wrong;
+    var deck=allDecks.find(function(d){return d.id===s.deck;})||{n:"Deck"};
+    body.innerHTML='<div class="card">'
+      +'<div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-dim);font-weight:800;margin-bottom:10px">'
+      +'<span>'+deck.n+'</span><span>Frage '+(s.idx+1)+'/'+s.cards.length+' · ✅'+s.correct+' ❌'+s.wrong+'</span></div>'
+      +'<div style="padding:30px 16px;background:linear-gradient(135deg,rgba(0,229,255,.1),rgba(180,120,255,.1));border:1px solid var(--border-hi);border-radius:14px;text-align:center;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer" id="vk_card">'
+      +'<div style="font-size:10px;color:var(--text-mute);font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">'+(s.flipped?"Antwort":"Frage")+'</div>'
+      +'<div style="font-size:24px;font-weight:900;color:'+(s.flipped?"#4ade80":"var(--p1)")+';line-height:1.3;word-break:break-word">'+esc(s.flipped?c.a:c.q)+'</div>'
+      +(s.flipped?'':'<div style="font-size:11px;color:var(--text-mute);margin-top:10px">👆 Klick zum Umdrehen</div>')
+      +'</div>'
+      +(s.flipped?'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">'
+        +'<button class="btn" id="vk_ok">✅ Wusste ich</button>'
+        +'<button class="btn danger" id="vk_fail">❌ Nicht gewusst</button>'
+        +'</div>'
+        :'<button class="btn full" id="vk_flip" style="margin-top:10px">👆 Antwort zeigen</button>')
+      +'</div>';
+    var card=$("vk_card");
+    card.addEventListener("click",function(){
+      if(!s.flipped){s.flipped=true;self.renderTab(body.parentElement);}
+    });
+    var flip=$("vk_flip");
+    if(flip)flip.addEventListener("click",function(e){e.stopPropagation();s.flipped=true;self.renderTab(body.parentElement);});
+    var ok=$("vk_ok");
+    if(ok)ok.addEventListener("click",function(){
+      s.correct++;s.idx++;s.flipped=false;
+      Voice.auto(c.q+" ist "+c.a);
+      self.renderTab(body.parentElement);
+    });
+    var fail=$("vk_fail");
+    if(fail)fail.addEventListener("click",function(){
+      s.wrong++;s.wrongCards.push(c);s.idx++;s.flipped=false;
+      self.renderTab(body.parentElement);
+    });
+  },
+
+  /* ═══ KOPFRECHNEN ═══ */
+  renderMath:function(body){
+    var self=this;
+    var s=this._mathState;
+    if(!s.task)this.newMathTask();
+    var t=s.task;
+    var total=s.correct+s.wrong||0;
+    var pct=total?Math.round(s.correct/total*100):0;
+    body.innerHTML='<div class="card"><h3>🧮 Kopfrechnen</h3>'
+      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">'
+      +'<div style="padding:8px 4px;background:rgba(34,197,94,.1);border-radius:9px;text-align:center"><div style="font-size:16px;font-weight:900;color:#4ade80">'+s.correct+'</div><div style="font-size:9px;color:var(--text-mute);text-transform:uppercase;font-weight:800">Richtig</div></div>'
+      +'<div style="padding:8px 4px;background:rgba(239,68,68,.1);border-radius:9px;text-align:center"><div style="font-size:16px;font-weight:900;color:#ff8080">'+s.wrong+'</div><div style="font-size:9px;color:var(--text-mute);text-transform:uppercase;font-weight:800">Falsch</div></div>'
+      +'<div style="padding:8px 4px;background:rgba(251,191,36,.1);border-radius:9px;text-align:center"><div style="font-size:16px;font-weight:900;color:#fbbf24">'+s.streak+'</div><div style="font-size:9px;color:var(--text-mute);text-transform:uppercase;font-weight:800">Streak</div></div>'
+      +'<div style="padding:8px 4px;background:rgba(0,229,255,.1);border-radius:9px;text-align:center"><div style="font-size:16px;font-weight:900;color:var(--p1)">'+pct+'%</div><div style="font-size:9px;color:var(--text-mute);text-transform:uppercase;font-weight:800">Quote</div></div>'
+      +'</div>'
+      +'<div style="padding:30px 16px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border-hi);border-radius:14px;text-align:center;margin-bottom:10px">'
+      +'<div style="font-size:44px;font-weight:900;color:var(--p1);font-family:ui-monospace,monospace;letter-spacing:2px">'+t.a+' '+t.op+' '+t.b+' = ?</div>'
+      +'</div>'
+      +'<input type="text" id="math_input" inputmode="numeric" placeholder="Antwort" style="width:100%;text-align:center;padding:14px;font-size:22px;font-weight:900;font-family:ui-monospace;background:rgba(0,0,0,.3);border:1px solid var(--border-soft);border-radius:10px;color:var(--p1);outline:none;margin-bottom:8px">'
+      +'<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px">'
+      +[1,2,3,4,5,6,7,8,9,0].map(function(n){
+        return '<button class="btn sec" data-math-num="'+n+'" style="padding:12px;font-size:16px;font-weight:900;font-family:ui-monospace">'+n+'</button>';
+      }).join("")
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px">'
+      +'<button class="btn sec" id="math_del">⌫</button>'
+      +'<button class="btn" id="math_ok">✓ Prüfen</button>'
+      +'<button class="btn sec" id="math_neg">±</button>'
+      +'</div>'
+      +'</div>'
+      +'<div class="card"><h3>📊 Schwierigkeit</h3>'
+      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'
+      +[["easy","🙂","Leicht"],["mid","😐","Mittel"],["hard","😰","Schwer"],["insane","😈","Extrem"]].map(function(lv){
+        return '<button class="btn'+(s.level===lv[0]?"":" sec")+'" data-math-level="'+lv[0]+'" style="padding:12px 4px;font-size:11px"><div style="font-size:18px">'+lv[1]+'</div>'+lv[2]+'</button>';
+      }).join("")
+      +'</div></div>';
+    var input=$("math_input");
+    body.querySelectorAll("[data-math-num]").forEach(function(b){
+      b.addEventListener("click",function(){input.value+=b.dataset.mathNum;input.focus();});
+    });
+    $("math_del").addEventListener("click",function(){input.value=input.value.slice(0,-1);input.focus();});
+    $("math_neg").addEventListener("click",function(){
+      if(input.value.startsWith("-"))input.value=input.value.slice(1);
+      else input.value="-"+input.value;
+    });
+    input.addEventListener("keydown",function(e){
+      if(e.key==="Enter")checkMath();
+    });
+    $("math_ok").addEventListener("click",checkMath);
+    body.querySelectorAll("[data-math-level]").forEach(function(b){
+      b.addEventListener("click",function(){s.level=b.dataset.mathLevel;self.newMathTask();self.renderTab(body.parentElement);});
+    });
+    input.focus();
+    function checkMath(){
+      var val=parseFloat(input.value);
+      if(isNaN(val))return;
+      if(val===t.result){
+        s.correct++;s.streak++;
+        toast("✅ Richtig!","ok");
+        self.newMathTask();
+        self.renderTab(body.parentElement);
+      }else{
+        s.wrong++;s.streak=0;
+        toast("❌ Falsch! Antwort: "+t.result,"err");
+        input.value="";
+        input.focus();
+      }
+    }
+  },
+
+  newMathTask:function(){
+    var s=this._mathState;
+    var levels={easy:{max:10,ops:["+","-"]},mid:{max:50,ops:["+","-","×"]},hard:{max:200,ops:["+","-","×","÷"]},insane:{max:1000,ops:["+","-","×","÷"]}};
+    var L=levels[s.level]||levels.easy;
+    var op=L.ops[Math.floor(Math.random()*L.ops.length)];
+    var a,b,r;
+    if(op==="+"){
+      a=Math.floor(Math.random()*L.max)+1;
+      b=Math.floor(Math.random()*L.max)+1;
+      r=a+b;
+    }else if(op==="-"){
+      a=Math.floor(Math.random()*L.max)+1;
+      b=Math.floor(Math.random()*L.max)+1;
+      if(b>a){var t=a;a=b;b=t;}
+      r=a-b;
+    }else if(op==="×"){
+      var m=s.level==="easy"?10:s.level==="mid"?12:20;
+      a=Math.floor(Math.random()*m)+2;
+      b=Math.floor(Math.random()*m)+2;
+      r=a*b;
+    }else{
+      var m2=s.level==="easy"?10:s.level==="mid"?12:15;
+      b=Math.floor(Math.random()*m2)+2;
+      r=Math.floor(Math.random()*m2)+2;
+      a=b*r;
+    }
+    s.task={a:a,b:b,op:op,result:r};
+  },
+
+  /* ═══ FORMELN ═══ */
+  renderFormeln:function(body){
+    var self=this;
+    var cats={all:"Alle",geometrie:"📐 Geometrie",algebra:"× Algebra",physik:"⚛️ Physik",chemie:"🧪 Chemie"};
+    var cur=this._formelnCat||"all";
+    var list=FORMELN.filter(function(f){return cur==="all"||f.cat===cur;});
+    body.innerHTML='<div class="card"><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px">'
+      +Object.keys(cats).map(function(c){
+        return '<button class="btn'+(cur===c?"":" sec")+'" data-formeln-cat="'+c+'" style="padding:8px 4px;font-size:10px">'+cats[c]+'</button>';
+      }).join("")
+      +'</div></div>'
+      +'<div class="field"><input type="text" id="formeln_search" placeholder="🔍 Formel suchen…" value="'+esc(this._formelnSearch||"")+'"></div>'
+      +'<div>'
+      +list.filter(function(f){
+        if(!self._formelnSearch)return true;
+        var q=self._formelnSearch.toLowerCase();
+        return f.n.toLowerCase().indexOf(q)>=0||f.f.toLowerCase().indexOf(q)>=0||f.d.toLowerCase().indexOf(q)>=0;
+      }).map(function(f){
+        return '<div style="padding:12px;background:rgba(0,0,0,.2);border-radius:10px;margin-bottom:6px;cursor:pointer" data-formel="'+esc(f.n)+'">'
+          +'<div style="font-size:11px;font-weight:800;color:var(--p1);margin-bottom:6px">'+esc(f.n)+'</div>'
+          +'<div style="font-size:16px;font-weight:900;color:#fbbf24;font-family:Georgia,serif;text-align:center;padding:8px;background:rgba(0,0,0,.25);border-radius:6px">'+esc(f.f)+'</div>'
+          +'<div style="font-size:10.5px;color:var(--text-mute);margin-top:6px">'+esc(f.d)+'</div>'
+          +'</div>';
+      }).join("")
+      +'</div>';
+    body.querySelectorAll("[data-formeln-cat]").forEach(function(b){
+      b.addEventListener("click",function(){self._formelnCat=b.dataset.formelnCat;self.renderTab(body.parentElement);});
+    });
+    var search=$("formeln_search");
+    if(search)search.addEventListener("input",function(){
+      self._formelnSearch=this.value;
+      self.renderTab(body.parentElement);
+    });
+    body.querySelectorAll("[data-formel]").forEach(function(b){
+      b.addEventListener("click",function(){Voice.speak(b.dataset.formel);});
+    });
+  },
+
+  /* ═══ PERIODENSYSTEM ═══ */
+  renderPeriodic:function(body){
+    var self=this;
+    var q=this._periodicSearch||"";
+    var list=ELEMENTS.filter(function(e){
+      if(!q)return true;
+      var lq=q.toLowerCase();
+      return e.s.toLowerCase().indexOf(lq)>=0||e.name.toLowerCase().indexOf(lq)>=0||String(e.n)===lq;
+    });
+    body.innerHTML='<div class="card"><h3>⚗️ Periodensystem</h3>'
+      +'<input type="text" id="per_search" placeholder="🔍 Element suchen…" value="'+esc(q)+'" style="width:100%;padding:10px 12px;background:rgba(0,0,0,.3);border:1px solid var(--border-soft);border-radius:10px;color:var(--text);outline:none;margin-bottom:10px">'
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px">'
+      +list.map(function(e){
+        return '<button data-el="'+e.n+'" style="padding:10px 4px;background:linear-gradient(180deg,var(--bg-4),var(--bg-3));border:1px solid var(--border-soft);border-radius:8px;cursor:pointer;text-align:center;font-family:inherit;color:var(--text)">'
+          +'<div style="font-size:9px;color:var(--text-mute);font-weight:800">'+e.n+'</div>'
+          +'<div style="font-size:20px;font-weight:900;color:var(--p1);font-family:ui-monospace;line-height:1">'+e.s+'</div>'
+          +'<div style="font-size:9px;color:var(--text-dim);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(e.name)+'</div>'
+          +'</button>';
+      }).join("")
+      +'</div></div>';
+    var s=$("per_search");
+    if(s)s.addEventListener("input",function(){self._periodicSearch=this.value;self.renderTab(body.parentElement);});
+    body.querySelectorAll("[data-el]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var e=ELEMENTS.find(function(x){return String(x.n)===b.dataset.el;});
+        if(!e)return;
+        var html='<div style="position:fixed;inset:0;background:rgba(2,4,10,.85);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:80px 14px 14px;overflow-y:auto" id="elModal">'
+          +'<div style="width:100%;max-width:400px;background:var(--bg-card);backdrop-filter:blur(28px);border:var(--border);border-radius:var(--radius);padding:18px">'
+          +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">'
+          +'<div><div style="font-size:11px;color:var(--text-mute);font-weight:800">Element Nr. '+e.n+'</div>'
+          +'<div style="font-size:36px;font-weight:900;color:var(--p1);font-family:ui-monospace">'+e.s+'</div>'
+          +'<div style="font-size:16px;font-weight:800;margin-top:2px">'+esc(e.name)+'</div></div>'
+          +'<button id="elModalClose" style="width:38px;height:38px;border-radius:10px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.5);color:#ff8080;cursor:pointer;font-size:15px">✕</button>'
+          +'</div>'
+          +'<div style="display:grid;gap:6px;font-size:12px">'
+          +'<div style="display:flex;justify-content:space-between;padding:8px 10px;background:rgba(0,0,0,.2);border-radius:8px"><span style="color:var(--text-dim);font-weight:700">Ordnungszahl</span><b>'+e.n+'</b></div>'
+          +'<div style="display:flex;justify-content:space-between;padding:8px 10px;background:rgba(0,0,0,.2);border-radius:8px"><span style="color:var(--text-dim);font-weight:700">Atommasse</span><b>'+e.m+' u</b></div>'
+          +'<div style="display:flex;justify-content:space-between;padding:8px 10px;background:rgba(0,0,0,.2);border-radius:8px"><span style="color:var(--text-dim);font-weight:700">Gruppe</span><b>'+esc(e.g)+'</b></div>'
+          +'</div>'
+          +'<button class="btn full" id="elSpeak" style="margin-top:12px">🔊 Vorlesen</button>'
+          +'</div></div>';
+        var div=document.createElement("div");
+        div.innerHTML=html;
+        document.body.appendChild(div.firstChild);
+        $("elModalClose").addEventListener("click",function(){$("elModal").remove();});
+        $("el").addEventListener("click",function(){});
+        $("elSpeak").addEventListener("click",function(){Voice.speak(e.name+", Symbol "+e.s+", Ordnungszahl "+e.n);});
+        var m=$("elModal");
+        m.addEventListener("click",function(ev){if(ev.target===m)m.remove();});
+      });
+    });
+  },
+
+  /* ═══ NOTEN ═══ */
+  renderNoten:function(body){
+    var self=this;
+    var notes=[
+      {c:"C4",de:"c (mittleres)",pos:5},{c:"D4",de:"d",pos:4},{c:"E4",de:"e",pos:3},
+      {c:"F4",de:"f",pos:2},{c:"G4",de:"g",pos:1},{c:"A4",de:"a",pos:0},
+      {c:"B4",de:"h",pos:-1},{c:"C5",de:"c'",pos:-2},{c:"D5",de:"d'",pos:-3},
+      {c:"E5",de:"e'",pos:-4},{c:"F5",de:"f'",pos:-5},{c:"G5",de:"g'",pos:-6}
+    ];
+    var s=this._notenState||(this._notenState={score:0,total:0,current:null,mode:"read"});
+    if(!s.current)s.current=notes[Math.floor(Math.random()*notes.length)];
+    var n=s.current;
+
+    /* Notenzeile zeichnen */
+    var w=260,h=130,topLine=40,lineSpacing=14;
+    var cy=topLine+n.pos*lineSpacing/2;
+    var svg='<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;max-width:340px;display:block;margin:0 auto">';
+    for(var i=0;i<5;i++){
+      svg+='<line x1="30" y1="'+(topLine+i*lineSpacing)+'" x2="'+(w-30)+'" y2="'+(topLine+i*lineSpacing)+'" stroke="#333" stroke-width="1.5"/>';
+    }
+    svg+='<text x="52" y="'+(topLine+lineSpacing*3+8)+'" font-size="60" font-family="serif" fill="#333">𝄞</text>';
+    var x=170;
+    svg+='<ellipse cx="'+x+'" cy="'+cy+'" rx="8" ry="6" fill="#1f2937" transform="rotate(-20 '+x+' '+cy+')"/>';
+    var stemUp=cy>topLine+2*lineSpacing;
+    svg+='<line x1="'+(stemUp?x+7:x-7)+'" y1="'+cy+'" x2="'+(stemUp?x+7:x-7)+'" y2="'+(stemUp?cy-45:cy+45)+'" stroke="#1f2937" stroke-width="1.8"/>';
+    svg+='</svg>';
+
+    var answered=s.answered||false;
+    var options=notes.map(function(opt){
+      var cls="btn sec";
+      if(answered){
+        if(opt.c===n.c)cls="btn";
+        else if(opt.c===s.selected)cls="btn danger";
+      }
+      return '<button class="'+cls+'" data-note="'+opt.c+'" style="padding:10px 4px;font-size:13px;font-weight:900;font-family:Georgia,serif">'+opt.de+'</button>';
+    }).join("");
+
+    body.innerHTML='<div class="card"><h3>🎼 Noten lernen</h3>'
+      +'<div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-dim);font-weight:800;margin-bottom:10px">'
+      +'<span>Richtig: <b style="color:#4ade80">'+s.score+'</b></span>'
+      +'<span>Falsch: <b style="color:#ff8080">'+s.total+'</b></span></div>'
+      +'<div style="padding:16px 10px;background:linear-gradient(180deg,#fef3c7,#fde68a);border-radius:14px;margin-bottom:12px">'+svg+'</div>'
+      +'<div style="font-size:11px;color:var(--text-mute);text-align:center;margin-bottom:8px">👆 Welche Note ist das?</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'+options+'</div>'
+      +(answered?'<button class="btn full" id="noten_next" style="margin-top:10px">Weiter →</button>':'')
+      +'</div>';
+
+    body.querySelectorAll("[data-note]").forEach(function(b){
+      b.addEventListener("click",function(){
+        if(s.answered)return;
+        var chosen=b.dataset.note;
+        s.answered=true;s.selected=chosen;
+        if(chosen===n.c){s.score++;toast("✅ Richtig!","ok");Voice.speak(n.c);}
+        else{s.total++;toast("❌ Falsch — war "+n.de,"err");}
+        self.renderTab(body.parentElement);
+      });
+    });
+    var nx=$("noten_next");
+    if(nx)nx.addEventListener("click",function(){
+      s.current=notes[Math.floor(Math.random()*notes.length)];
+      s.answered=false;s.selected=null;
+      self.renderTab(body.parentElement);
+    });
+  }
+};
+
+/* ═══════════════ REGISTRIERUNG ═══════════════ */
+if(H.MODULES){H.MODULES.lernen=LernenApp;}
+if(H.APPS){
+  var existing=H.APPS.find(function(a){return a.id==="lernen";});
+  if(!existing){H.APPS.push({id:"lernen",ico:"📚",name:"Lernen",cat:"Lernen",desc:"Vokabeln · Formeln · Mathe · Chemie · Noten"});}
+  else{existing.name="Lernen";existing.desc="Vokabeln · Formeln · Mathe · Chemie";}
+}
+
+setTimeout(function(){
+  var sb=document.getElementById("sidebar");
+  if(sb){
+    var has=false;
+    sb.querySelectorAll("[data-open-app]").forEach(function(x){if(x.dataset.openApp==="lernen")has=true;});
+    if(!has){
+      var btn=document.createElement("button");
+      btn.className="item";btn.dataset.openApp="lernen";
+      btn.innerHTML='<span class="ico">📚</span><span class="lbl">Lernen</span>';
+      sb.appendChild(btn);
+      btn.addEventListener("click",function(){
+        H.Windows.open("lernen");
+        if(window.innerWidth<700)sb.classList.remove("open");
+      });
+    }
+  }
+  document.dispatchEvent(new Event("haldo-rerender"));
+},200);
+
+console.log("📚 HalDo Lernen-App registriert — Vokabeln, Formeln, Mathe, Chemie, Noten");
+})();
+</script>
+<!-- ============ ENDE HALDO LERNEN-APP ============ -->
 </body>
 </html>
