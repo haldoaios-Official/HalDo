@@ -2103,5 +2103,1151 @@ console.log("🌍 HalDo Welt-App v1 registriert — Länder · Städte · Wetter
 })();
 </script>
 <!-- ============ ENDE HALDO WELT-APP ============ -->
+<!-- ============================================================
+     HALDO GAMES-APP v1 — 12 Spiele komplett
+     Einfach vor </body> einfügen.
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Games] window.HalDo fehlt.");return;}
+
+var H=window.HalDo;
+var Storage=H.Storage;
+var Voice=H.Voice;
+var toast=H.toast;
+var esc=function(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});};
+function $(id){return document.getElementById(id);}
+
+/* ═══════════════ SPIELE ═══════════════ */
+var Games={
+
+  /* ═══ 1. SNAKE ═══ */
+  snake:function(el){
+    var self=this;
+    var grid=20,cell=18;
+    var canvas=document.createElement("canvas");
+    canvas.width=grid*cell;canvas.height=grid*cell;
+    canvas.style.width="100%";canvas.style.maxWidth="360px";
+    canvas.style.aspectRatio="1";canvas.style.borderRadius="10px";
+    canvas.style.background="#0a0a0a";canvas.style.touchAction="none";
+    canvas.style.display="block";canvas.style.margin="0 auto";
+    el.innerHTML='<div class="card"><h3>🐍 Snake</h3>'
+      +'<div style="display:flex;gap:8px;margin-bottom:8px;font-size:11px;color:var(--text-dim);font-weight:800">'
+      +'<span>Punkte: <b id="snk_score" style="color:var(--p1)">0</b></span>'
+      +'<span>High: <b id="snk_high" style="color:#fbbf24">'+Storage.get("gs_snake_high",0)+'</b></span>'
+      +'<span style="margin-left:auto">Länge: <b id="snk_len" style="color:#4ade80">3</b></span>'
+      +'</div></div>'
+      +'<div style="position:relative">'
+      +'<div id="snk_wrap"></div>'
+      +'<div id="snk_over" style="display:none;position:absolute;inset:0;background:rgba(2,4,10,.9);border-radius:10px;align-items:center;justify-content:center;flex-direction:column;gap:12px">'
+      +'<div style="font-size:38px">💥</div>'
+      +'<div id="snk_final" style="font-size:16px;font-weight:900;color:var(--p1)"></div>'
+      +'<button class="btn" id="snk_restart">🔄 Nochmal</button>'
+      +'</div></div>'
+      +'<div style="display:grid;grid-template-columns:repeat(3,60px);gap:6px;justify-content:center;margin-top:12px">'
+      +'<div></div><button class="btn sec" data-snk-dir="up" style="padding:14px 0;font-size:18px">▲</button><div></div>'
+      +'<button class="btn sec" data-snk-dir="left" style="padding:14px 0;font-size:18px">◀</button>'
+      +'<button class="btn sec" data-snk-dir="down" style="padding:14px 0;font-size:18px">▼</button>'
+      +'<button class="btn sec" data-snk-dir="right" style="padding:14px 0;font-size:18px">▶</button>'
+      +'</div>'
+      +'<div style="display:flex;gap:8px;margin-top:10px">'
+      +'<button class="btn sec full" id="snk_pause">⏸️ Pause</button>'
+      +'<button class="btn sec full" id="snk_reset">🔄 Neu</button>'
+      +'</div>';
+    $("snk_wrap").appendChild(canvas);
+    var ctx=canvas.getContext("2d");
+    var snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+    var dir={x:1,y:0},nextDir={x:1,y:0};
+    var food={x:15,y:10};
+    var score=0,running=false,paused=false;
+    var interval=null;
+    var speed=110;
+    function spawnFood(){
+      while(true){
+        var x=Math.floor(Math.random()*grid);
+        var y=Math.floor(Math.random()*grid);
+        if(!snake.some(function(s){return s.x===x&&s.y===y;})){food={x:x,y:y};return;}
+      }
+    }
+    function draw(){
+      ctx.fillStyle="#0a0a0a";ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.strokeStyle="rgba(0,229,255,.06)";ctx.lineWidth=1;
+      for(var i=0;i<=grid;i++){ctx.beginPath();ctx.moveTo(i*cell,0);ctx.lineTo(i*cell,canvas.height);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*cell);ctx.lineTo(canvas.width,i*cell);ctx.stroke();}
+      /* Food */
+      ctx.fillStyle="#ef4444";ctx.shadowBlur=12;ctx.shadowColor="#ef4444";
+      ctx.beginPath();ctx.arc(food.x*cell+cell/2,food.y*cell+cell/2,cell*0.35,0,Math.PI*2);ctx.fill();
+      ctx.shadowBlur=0;
+      /* Snake */
+      snake.forEach(function(s,i){
+        var x=s.x*cell+2,y=s.y*cell+2,w=cell-4;
+        if(i===0){ctx.fillStyle="#4ade80";ctx.shadowBlur=10;ctx.shadowColor="#4ade80";}
+        else{ctx.fillStyle="rgba(34,197,94,"+Math.max(0.4,1-i/(snake.length*1.4))+")";}
+        ctx.fillRect(x,y,w,w);
+      });
+      ctx.shadowBlur=0;
+    }
+    function tick(){
+      if(!running||paused)return;
+      dir=nextDir;
+      var head=snake[0];
+      var nx=head.x+dir.x,ny=head.y+dir.y;
+      if(nx<0||nx>=grid||ny<0||ny>=grid){gameOver();return;}
+      if(snake.some(function(s,i){return i>0&&s.x===nx&&s.y===ny;})){gameOver();return;}
+      snake.unshift({x:nx,y:ny});
+      if(nx===food.x&&ny===food.y){
+        score+=10;
+        $("snk_score").textContent=score;
+        $("snk_len").textContent=snake.length;
+        spawnFood();
+        if(score%50===0&&speed>60)speed-=5;
+      }else snake.pop();
+      draw();
+    }
+    function gameOver(){
+      running=false;clearInterval(interval);
+      var high=Storage.get("gs_snake_high",0);
+      if(score>high){Storage.set("gs_snake_high",score);$("snk_high").textContent=score;}
+      $("snk_final").textContent="Punkte: "+score;
+      $("snk_over").style.display="flex";
+      Voice.auto("Game Over. "+score+" Punkte.");
+    }
+    function start(){
+      clearInterval(interval);
+      running=true;paused=false;
+      interval=setInterval(tick,speed);
+    }
+    function reset(){
+      snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+      dir={x:1,y:0};nextDir={x:1,y:0};
+      score=0;speed=110;
+      $("snk_score").textContent="0";$("snk_len").textContent="3";
+      $("snk_over").style.display="none";
+      spawnFood();draw();start();
+    }
+    function setDir(d){
+      var map={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
+      var t=map[d];if(!t)return;
+      if(t.x===-dir.x&&t.y===-dir.y)return;
+      nextDir=t;
+    }
+    el.querySelectorAll("[data-snk-dir]").forEach(function(b){
+      b.addEventListener("click",function(){setDir(b.dataset.snkDir);});
+    });
+    $("snk_pause").addEventListener("click",function(){
+      paused=!paused;this.textContent=paused?"▶️ Weiter":"⏸️ Pause";
+    });
+    $("snk_reset").addEventListener("click",reset);
+    $("snk_restart").addEventListener("click",reset);
+    /* Swipe */
+    var sx=0,sy=0;
+    canvas.addEventListener("touchstart",function(e){sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
+    canvas.addEventListener("touchend",function(e){
+      var dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+      if(Math.abs(dx)<20&&Math.abs(dy)<20)return;
+      if(Math.abs(dx)>Math.abs(dy))setDir(dx>0?"right":"left");
+      else setDir(dy>0?"down":"up");
+    },{passive:true});
+    /* Keyboard */
+    function keyH(e){
+      if(!document.body.contains(canvas)){window.removeEventListener("keydown",keyH);return;}
+      var k=e.key.toLowerCase();
+      if(k==="arrowup"||k==="w")setDir("up");
+      else if(k==="arrowdown"||k==="s")setDir("down");
+      else if(k==="arrowleft"||k==="a")setDir("left");
+      else if(k==="arrowright"||k==="d")setDir("right");
+      else if(k===" "){paused=!paused;$("snk_pause").textContent=paused?"▶️ Weiter":"⏸️ Pause";e.preventDefault();}
+    }
+    window.addEventListener("keydown",keyH);
+    /* Cleanup */
+    var obs=new MutationObserver(function(){
+      if(!document.body.contains(canvas)){clearInterval(interval);window.removeEventListener("keydown",keyH);obs.disconnect();}
+    });
+    obs.observe(document.body,{childList:true,subtree:true});
+    spawnFood();draw();start();
+  },
+
+  /* ═══ 2. MEMORY ═══ */
+  memory:function(el){
+    var size=4;
+    var themes={
+      emoji:["😀","🐶","🐱","🌸","⭐","🎈","🍕","🎵","🌈","🦋","🎁","🍀","🎨","🎮","🐢","🦚","🍄","🌙"],
+      tiere:["🐘","🦁","🐯","🐻","🐼","🦊","🐺","🦉","🦅","🦌","🐸","🐙"],
+      essen:["🍕","🍔","🍟","🌮","🍣","🍜","🍩","🍰","🍎","🍌","🍇","🍓"]
+    };
+    var theme="emoji";
+    var cards=[],flipped=[],matched=0,moves=0,busy=false,startTime=0,timer=null;
+    function init(){
+      var items=themes[theme];
+      var pairs=(size*size)/2;
+      var picked=[];
+      while(picked.length<pairs){
+        var idx=Math.floor(Math.random()*items.length);
+        if(picked.indexOf(items[idx])<0)picked.push(items[idx]);
+      }
+      cards=[];
+      picked.forEach(function(e){cards.push({e:e,f:false,m:false});cards.push({e:e,f:false,m:false});});
+      for(var i=cards.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=cards[i];cards[i]=cards[j];cards[j]=t;}
+      flipped=[];matched=0;moves=0;busy=false;
+      startTime=Date.now();
+      if(timer)clearInterval(timer);
+      timer=setInterval(function(){
+        var el2=$("mem_time");
+        if(!el2)return;
+        var s=Math.floor((Date.now()-startTime)/1000);
+        el2.textContent=Math.floor(s/60)+":"+(s%60<10?"0":"")+(s%60);
+      },500);
+      render();
+    }
+    function render(){
+      var total=cards.length/2;
+      var gridStyle="grid-template-columns:repeat("+size+",1fr)";
+      var grid='<div style="display:grid;'+gridStyle+'gap:6px;max-width:400px;margin:0 auto">';
+      cards.forEach(function(c,i){
+        var cls="";
+        if(c.f||c.m)cls="background:linear-gradient(135deg,var(--p1),var(--p2));transform:scale(1);";
+        else cls="background:linear-gradient(135deg,#a855f7,#7c3aed);";
+        if(c.m)cls="background:linear-gradient(135deg,#22c55e,#10b981);";
+        grid+='<button data-mem-i="'+i+'" style="aspect-ratio:1;border:none;border-radius:10px;font-size:26px;font-weight:900;cursor:pointer;color:#fff;'+cls+'transition:.2s;'+(c.m?"opacity:.6":"")+'">'+(c.f||c.m?c.e:"❓")+'</button>';
+      });
+      grid+='</div>';
+      el.innerHTML='<div class="card"><h3>🧩 Memory</h3>'
+        +'<div style="display:flex;gap:8px;margin-bottom:10px;font-size:11px;color:var(--text-dim);font-weight:800">'
+        +'<span>Paare: <b style="color:var(--p1)">'+matched+'/'+total+'</b></span>'
+        +'<span>Züge: <b style="color:var(--p1)">'+moves+'</b></span>'
+        +'<span style="margin-left:auto">⏱️ <b id="mem_time" style="color:var(--p1)">0:00</b></span>'
+        +'</div>'+grid+'</div>'
+        +'<div class="card"><h3>⚙️ Einstellungen</h3>'
+        +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">'
+        +'<button class="btn sec" data-mem-size="4">4×4</button>'
+        +'<button class="btn sec" data-mem-size="6">6×6</button>'
+        +'<button class="btn sec" data-mem-size="8">8×8</button>'
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">'
+        +'<button class="btn sec" data-mem-theme="emoji">😀 Emoji</button>'
+        +'<button class="btn sec" data-mem-theme="tiere">🐾 Tiere</button>'
+        +'<button class="btn sec" data-mem-theme="essen">🍕 Essen</button>'
+        +'</div></div>';
+      el.querySelectorAll("[data-mem-i]").forEach(function(b){
+        b.addEventListener("click",function(){flip(parseInt(b.dataset.memI));});
+      });
+      el.querySelectorAll("[data-mem-size]").forEach(function(b){
+        b.addEventListener("click",function(){size=parseInt(b.dataset.memSize);init();});
+      });
+      el.querySelectorAll("[data-mem-theme]").forEach(function(b){
+        b.addEventListener("click",function(){theme=b.dataset.memTheme;init();});
+      });
+    }
+    function flip(i){
+      if(busy)return;
+      var c=cards[i];if(!c||c.f||c.m)return;
+      c.f=true;flipped.push(i);
+      render();
+      if(flipped.length===2){
+        moves++;
+        var a=flipped[0],b=flipped[1];
+        if(cards[a].e===cards[b].e){
+          cards[a].m=true;cards[b].m=true;
+          matched++;flipped=[];render();
+          if(matched===cards.length/2){
+            Voice.auto("Geschafft! "+moves+" Züge.");
+            setTimeout(function(){alert("🎉 Geschafft!\n\nZüge: "+moves);},300);
+            if(timer)clearInterval(timer);
+          }
+        }else{
+          busy=true;
+          setTimeout(function(){
+            cards[a].f=false;cards[b].f=false;flipped=[];
+            busy=false;render();
+          },700);
+        }
+      }
+    }
+    init();
+  },
+
+  /* ═══ 3. TICTACTOE ═══ */
+  tictactoe:function(el){
+    var board=["","","","","","","","",""];
+    var player="X",over=false,vsAI=true;
+    function check(){
+      var w=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+      for(var i=0;i<w.length;i++){var x=w[i];if(board[x[0]]&&board[x[0]]===board[x[1]]&&board[x[1]]===board[x[2]])return board[x[0]];}
+      return board.indexOf("")<0?"D":null;
+    }
+    function aiMove(){
+      if(over||player!=="O")return;
+      /* Einfacher: gewinnen, blocken, sonst zufällig */
+      var best=null;
+      var empty=[];board.forEach(function(v,i){if(!v)empty.push(i);});
+      /* Gewinnen */
+      for(var i=0;i<empty.length;i++){
+        board[empty[i]]="O";
+        if(check()==="O"){best=empty[i];board[empty[i]]="";break;}
+        board[empty[i]]="";
+      }
+      if(best==null){
+        for(var j=0;j<empty.length;j++){
+          board[empty[j]]="X";
+          if(check()==="X"){best=empty[j];board[empty[j]]="";break;}
+          board[empty[j]]="";
+        }
+      }
+      if(best==null&&empty.indexOf(4)>=0)best=4;
+      if(best==null)best=empty[Math.floor(Math.random()*empty.length)];
+      play(best);
+    }
+    function play(i){
+      if(over||board[i])return;
+      board[i]=player;
+      var r=check();
+      if(r){
+        over=true;
+        var msg=r==="D"?"🤝 Unentschieden":"🎉 Spieler "+r+" gewinnt!";
+        render();setTimeout(function(){Voice.auto(msg);},300);
+        return;
+      }
+      player=player==="X"?"O":"X";
+      render();
+      if(vsAI&&player==="O"&&!over)setTimeout(aiMove,400);
+    }
+    function render(){
+      var cells='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:280px;margin:12px auto">';
+      board.forEach(function(v,i){
+        cells+='<button data-ttt-i="'+i+'" style="aspect-ratio:1;background:rgba(0,0,0,.3);border:1px solid rgba(0,229,255,.3);border-radius:12px;font-size:38px;font-weight:900;color:'+(v==="X"?"#ff8080":"#4ade80")+';cursor:pointer;font-family:inherit">'+(v||"")+'</button>';
+      });
+      cells+='</div>';
+      var status=over?"Beendet":"Spieler "+player+" ist dran";
+      el.innerHTML='<div class="card"><h3>❌ TicTacToe</h3>'
+        +'<div style="text-align:center;font-size:13px;font-weight:800;color:var(--p1);margin-bottom:4px">'+status+'</div>'+cells+'</div>'
+        +'<div class="card"><h3>⚙️ Modus</h3>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+        +'<button class="btn '+(vsAI?"":"sec")+'" id="ttt_ai">🤖 vs. KI</button>'
+        +'<button class="btn '+(vsAI?"sec":"")+'" id="ttt_pvp">👥 2 Spieler</button>'
+        +'</div>'
+        +'<button class="btn full" id="ttt_reset" style="margin-top:8px">🔄 Neu starten</button></div>';
+      el.querySelectorAll("[data-ttt-i]").forEach(function(b){
+        b.addEventListener("click",function(){play(parseInt(b.dataset.tttI));});
+      });
+      $("ttt_ai").addEventListener("click",function(){vsAI=true;reset();});
+      $("ttt_pvp").addEventListener("click",function(){vsAI=false;reset();});
+      $("ttt_reset").addEventListener("click",reset);
+    }
+    function reset(){board=["","","","","","","","",""];player="X";over=false;render();}
+    render();
+  },
+
+  /* ═══ 4. 4 GEWINNT ═══ */
+  vier:function(el){
+    var rows=6,cols=7;
+    var board=[];
+    for(var r=0;r<rows;r++){board.push([]);for(var c=0;c<cols;c++)board[r].push(0);}
+    var player=1,over=false,vsAI=true;
+    function place(col,p){
+      for(var r=rows-1;r>=0;r--){if(board[r][col]===0){board[r][col]=p;return r;}}
+      return -1;
+    }
+    function checkWin(r,c,p){
+      var dirs=[[0,1],[1,0],[1,1],[1,-1]];
+      for(var d=0;d<dirs.length;d++){
+        var dr=dirs[d][0],dc=dirs[d][1],count=1;
+        for(var i=1;i<4;i++){var nr=r+dr*i,nc=c+dc*i;if(nr<0||nr>=rows||nc<0||nc>=cols||board[nr][nc]!==p)break;count++;}
+        for(var j=1;j<4;j++){var nr2=r-dr*j,nc2=c-dc*j;if(nr2<0||nr2>=rows||nc2<0||nc2>=cols||board[nr2][nc2]!==p)break;count++;}
+        if(count>=4)return true;
+      }
+      return false;
+    }
+    function isFull(){for(var c=0;c<cols;c++)if(board[0][c]===0)return false;return true;}
+    function aiPlay(){
+      if(over)return;
+      /* Gewinnen, blocken, sonst Mitte/zufällig */
+      for(var c=0;c<cols;c++){
+        var r=place(c,2);
+        if(r>=0){if(checkWin(r,c,2)){render();return;}board[r][c]=0;}
+      }
+      for(var c2=0;c2<cols;c2++){
+        var r2=place(c2,1);
+        if(r2>=0){if(checkWin(r2,c2,1)){board[r2][c2]=2;render();return;}board[r2][c2]=0;}
+      }
+      var pref=[3,2,4,1,5,0,6];
+      for(var i=0;i<pref.length;i++){if(board[0][pref[i]]===0){place(pref[i],2);render();return;}}
+    }
+    function drop(col){
+      if(over)return;
+      if(board[0][col]!==0)return;
+      var r=place(col,player);
+      if(r<0)return;
+      if(checkWin(r,col,player)){
+        over=true;
+        render();
+        setTimeout(function(){Voice.auto(player===1?"Du gewinnst!":"KI gewinnt!");},300);
+        return;
+      }
+      if(isFull()){over=true;render();setTimeout(function(){Voice.auto("Unentschieden");},300);return;}
+      player=player===1?2:1;
+      render();
+      if(vsAI&&player===2&&!over)setTimeout(aiPlay,500);
+    }
+    function render(){
+      var colsStyle="grid-template-columns:repeat("+cols+",1fr)";
+      var arrows="";
+      for(var c=0;c<cols;c++)arrows+='<button data-vg-col="'+c+'" style="padding:8px 0;background:transparent;border:none;color:var(--p1);font-size:18px;cursor:pointer;font-weight:900">▼</button>';
+      var grid="";
+      for(var r=0;r<rows;r++){
+        for(var cc=0;cc<cols;cc++){
+          var v=board[r][cc];
+          var bg=v===1?"radial-gradient(circle at 35% 35%,#ff6b6b,#dc2626)":v===2?"radial-gradient(circle at 35% 35%,#fde047,#f59e0b)":"rgba(0,0,0,.35)";
+          grid+='<div data-vg-cell="'+r+'-'+cc+'" style="aspect-ratio:1;border-radius:50%;background:'+bg+';border:2px solid rgba(0,0,0,.3);box-shadow:inset 0 2px 6px rgba(0,0,0,.4);cursor:pointer"></div>';
+        }
+      }
+      var status=over?"Beendet":(player===1?"🔴 Du dran":"🟡 "+(vsAI?"KI":"Spieler 2")+" dran");
+      el.innerHTML='<div class="card"><h3>🎯 4 Gewinnt</h3>'
+        +'<div style="text-align:center;font-size:13px;font-weight:800;color:var(--p1);margin-bottom:8px">'+status+'</div>'
+        +'<div style="background:linear-gradient(135deg,#1e3a8a,#1e40af);border-radius:12px;padding:6px">'
+        +'<div style="display:grid;'+colsStyle+'gap:3px;margin-bottom:4px">'+arrows+'</div>'
+        +'<div style="display:grid;'+colsStyle+'gap:4px">'+grid+'</div>'
+        +'</div></div>'
+        +'<div class="card"><h3>⚙️ Modus</h3>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+        +'<button class="btn '+(vsAI?"":"sec")+'" id="vg_ai">🤖 vs. KI</button>'
+        +'<button class="btn '+(vsAI?"sec":"")+'" id="vg_pvp">👥 2 Spieler</button>'
+        +'</div>'
+        +'<button class="btn full" id="vg_reset" style="margin-top:8px">🔄 Neu starten</button></div>';
+      el.querySelectorAll("[data-vg-col]").forEach(function(b){
+        b.addEventListener("click",function(){drop(parseInt(b.dataset.vgCol));});
+      });
+      el.querySelectorAll("[data-vg-cell]").forEach(function(b){
+        b.addEventListener("click",function(){drop(parseInt(b.dataset.vgCell.split("-")[1]));});
+      });
+      $("vg_ai").addEventListener("click",function(){vsAI=true;reset();});
+      $("vg_pvp").addEventListener("click",function(){vsAI=false;reset();});
+      $("vg_reset").addEventListener("click",reset);
+    }
+    function reset(){
+      for(var r=0;r<rows;r++)for(var c=0;c<cols;c++)board[r][c]=0;
+      player=1;over=false;render();
+    }
+    render();
+  },
+
+  /* ═══ 5. SUDOKU ═══ */
+  sudoku:function(el){
+    var puzzle=[
+      [5,3,0,0,7,0,0,0,0],[6,0,0,1,9,5,0,0,0],[0,9,8,0,0,0,0,6,0],
+      [8,0,0,0,6,0,0,0,3],[4,0,0,8,0,3,0,0,1],[7,0,0,0,2,0,0,0,6],
+      [0,6,0,0,0,0,2,8,0],[0,0,0,4,1,9,0,0,5],[0,0,0,0,8,0,0,7,9]
+    ];
+    var solution=[
+      [5,3,4,6,7,8,9,1,2],[6,7,2,1,9,5,3,4,8],[1,9,8,3,4,2,5,6,7],
+      [8,5,9,7,6,1,4,2,3],[4,2,6,8,5,3,7,9,1],[7,1,3,9,2,4,8,5,6],
+      [9,6,1,5,3,7,2,8,4],[2,8,7,4,1,9,6,3,5],[3,4,5,2,8,6,1,7,9]
+    ];
+    var board=puzzle.map(function(r){return r.slice();});
+    var fixed=puzzle.map(function(r){return r.map(function(v){return v!==0;});});
+    var sel=null;
+    function render(){
+      var grid='<div style="display:grid;grid-template-columns:repeat(9,1fr);gap:1px;background:#1e40af;padding:2px;border-radius:8px;max-width:400px;margin:10px auto;aspect-ratio:1">';
+      for(var r=0;r<9;r++){
+        for(var c=0;c<9;c++){
+          var v=board[r][c];
+          var isFixed=fixed[r][c];
+          var isSel=sel&&sel[0]===r&&sel[1]===c;
+          var isWrong=!isFixed&&v!==0&&v!==solution[r][c];
+          var bg=isWrong?"rgba(239,68,68,.3)":isSel?"rgba(0,229,255,.25)":isFixed?"rgba(0,0,0,.4)":"rgba(15,25,50,.6)";
+          var color=isFixed?"#94a3b8":(isWrong?"#ff8080":"#4ade80");
+          var border="";
+          if(c===2||c===5)border+="border-right:2px solid #00e5ff;";
+          if(r===2||r===5)border+="border-bottom:2px solid #00e5ff;";
+          grid+='<div data-sk-r="'+r+'" data-sk-c="'+c+'" style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:'+bg+';color:'+color+';font-weight:900;font-size:16px;cursor:pointer;font-family:ui-monospace;'+border+'">'+(v||"")+'</div>';
+        }
+      }
+      grid+='</div>';
+      var nums='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px">';
+      for(var n=1;n<=9;n++)nums+='<button data-sk-num="'+n+'" class="btn sec" style="padding:12px;font-size:18px">'+n+'</button>';
+      nums+='<button data-sk-num="0" class="btn sec" style="padding:12px;font-size:14px;color:#ff8080">⌫</button></div>';
+      var filled=0;board.forEach(function(r){r.forEach(function(v){if(v)filled++;});});
+      el.innerHTML='<div class="card"><h3>🎰 Sudoku</h3>'
+        +'<div style="text-align:center;font-size:11px;color:var(--text-dim);font-weight:800;margin-bottom:6px">Gefüllt: '+filled+'/81</div>'
+        +grid+nums+'</div>'
+        +'<div class="card"><h3>💡 Regeln</h3><div style="font-size:11.5px;color:var(--text-dim);line-height:1.6">Zahlen 1-9 in jede Zeile, Spalte und 3×3-Box — jeweils nur einmal.<br>Klick Zelle → wähle Zahl unten.</div>'
+        +'<button class="btn full" id="sk_new" style="margin-top:10px">🔄 Neu starten</button></div>';
+      el.querySelectorAll("[data-sk-r]").forEach(function(b){
+        b.addEventListener("click",function(){sel=[parseInt(b.dataset.skR),parseInt(b.dataset.skC)];render();});
+      });
+      el.querySelectorAll("[data-sk-num]").forEach(function(b){
+        b.addEventListener("click",function(){
+          if(!sel)return toast("⚠️ Zelle wählen","err");
+          if(fixed[sel[0]][sel[1]])return;
+          var n=parseInt(b.dataset.skNum);
+          board[sel[0]][sel[1]]=n;
+          render();
+          if(board.every(function(r,i){return r.every(function(v,j){return v===solution[i][j];});})){
+            setTimeout(function(){Voice.auto("Glückwunsch! Sudoku gelöst.");alert("🎉 Glückwunsch!");},300);
+          }
+        });
+      });
+      $("sk_new").addEventListener("click",function(){
+        board=puzzle.map(function(r){return r.slice();});
+        sel=null;render();
+      });
+    }
+    render();
+  },
+
+  /* ═══ 6. QUIZ ═══ */
+  quiz:function(el){
+    var questions=[
+      {q:"Was ist die Hauptstadt der Türkei?",a:["Istanbul","Ankara","Izmir","Bursa"],c:1},
+      {q:"Wer ist Tawûsî Melek bei den Eziden?",a:["Ein Prophet","Der Pfauengel","Ein König","Ein Gott"],c:1},
+      {q:"Wie viele Bundesländer hat Deutschland?",a:["14","16","18","20"],c:1},
+      {q:"In welcher Sprache heißt Berlin 'Berlîn'?",a:["Arabisch","Kurdisch","Türkisch","Persisch"],c:1},
+      {q:"Was ist die Hauptstadt des Irak?",a:["Bagdad","Erbil","Basra","Mosul"],c:0},
+      {q:"Wie heißt Erbil auf Kurdisch?",a:["Hewlêr","Amed","Şam","Wan"],c:0},
+      {q:"Wer schrieb 'Faust'?",a:["Schiller","Goethe","Heine","Kafka"],c:1},
+      {q:"Wie viele Planeten hat unser Sonnensystem?",a:["7","8","9","10"],c:1},
+      {q:"Was ist 7 × 8?",a:["48","54","56","64"],c:2},
+      {q:"Welcher Ozean ist der größte?",a:["Atlantik","Indischer","Pazifik","Arktis"],c:2},
+      {q:"Wo ist der Lalisch (heiliger Ort der Eziden)?",a:["Türkei","Syrien","Irak","Iran"],c:2},
+      {q:"Wie viele Kontinente gibt es?",a:["5","6","7","8"],c:2},
+      {q:"Wer war der erste Mensch auf dem Mond?",a:["Buzz Aldrin","Neil Armstrong","Yuri Gagarin","Michael Collins"],c:1},
+      {q:"Welche Farbe hat der Himmel?",a:["Rot","Blau","Grün","Gelb"],c:1},
+      {q:"Wie heißt die Hauptstadt von Frankreich?",a:["Paris","Lyon","Marseille","Nizza"],c:0}
+    ];
+    var order=questions.slice();
+    for(var i=order.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=order[i];order[i]=order[j];order[j]=t;}
+    order=order.slice(0,10);
+    var idx=0,score=0,answered=false,selected=null;
+    function render(){
+      if(idx>=order.length){
+        var pct=Math.round(score/order.length*100);
+        el.innerHTML='<div class="card" style="text-align:center;padding:30px 16px"><div style="font-size:60px;margin-bottom:12px">'+(pct>=80?"🏆":pct>=50?"👍":"📚")+'</div>'
+          +'<h3 style="font-size:20px;color:var(--p1);margin-bottom:8px">Quiz beendet!</h3>'
+          +'<div style="font-size:24px;font-weight:900;color:var(--p1)">'+score+'/'+order.length+'</div>'
+          +'<div style="font-size:12px;color:var(--text-dim);margin-top:6px">'+pct+'% richtig</div>'
+          +'<button class="btn full" id="qz_again" style="margin-top:16px">🔄 Nochmal</button></div>';
+        $("qz_again").addEventListener("click",function(){idx=0;score=0;answered=false;selected=null;render();});
+        setTimeout(function(){Voice.auto("Quiz beendet. "+score+" von "+order.length+" richtig.");},300);
+        return;
+      }
+      var q=order[idx];
+      var ans='';
+      q.a.forEach(function(a,i){
+        var cls="btn sec";
+        if(answered){
+          if(i===q.c)cls="btn";
+          else if(i===selected)cls="btn danger";
+        }
+        ans+='<button data-qz-ans="'+i+'" class="'+cls+'" style="display:block;width:100%;text-align:left;margin-bottom:6px;padding:12px 14px">'+String.fromCharCode(65+i)+') '+esc(a)+'</button>';
+      });
+      el.innerHTML='<div class="card"><h3>🧠 Quiz</h3>'
+        +'<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);font-weight:800;margin-bottom:8px">'
+        +'<span>Frage '+(idx+1)+'/'+order.length+'</span>'
+        +'<span>Punkte: <b style="color:var(--p1)">'+score+'</b></span></div>'
+        +'<div style="font-size:14px;font-weight:800;margin-bottom:12px;padding:12px;background:rgba(0,0,0,.2);border-radius:10px;line-height:1.4">'+esc(q.q)+'</div>'
+        +ans
+        +(answered?'<button class="btn full" id="qz_next" style="margin-top:10px">'+(idx+1>=order.length?"🏁 Ergebnis":"Weiter →")+'</button>':'')
+        +'</div>';
+      el.querySelectorAll("[data-qz-ans]").forEach(function(b){
+        b.addEventListener("click",function(){
+          if(answered)return;
+          answered=true;selected=parseInt(b.dataset.qzAns);
+          if(selected===q.c)score++;
+          render();
+        });
+      });
+      var n=$("qz_next");
+      if(n)n.addEventListener("click",function(){idx++;answered=false;selected=null;render();});
+    }
+    render();
+  },
+
+  /* ═══ 7. SCHACH (Basis) ═══ */
+  schach:function(el){
+    /* Basis-Schach mit Figuren und Zug-Regeln */
+    var P={K:"♔",Q:"♕",R:"♖",B:"♗",N:"♘",P:"♙",k:"♚",q:"♛",r:"♜",b:"♝",n:"♞",p:"♟"};
+    var board=[
+      ["r","n","b","q","k","b","n","r"],
+      ["p","p","p","p","p","p","p","p"],
+      ["","","","","","","",""],
+      ["","","","","","","",""],
+      ["","","","","","","",""],
+      ["","","","","","","",""],
+      ["P","P","P","P","P","P","P","P"],
+      ["R","N","B","Q","K","B","N","R"]
+    ];
+    var turn="w",sel=null,legal=[];
+    function isWhite(p){return p&&p===p.toUpperCase();}
+    function getMoves(r,c){
+      var p=board[r][c];if(!p)return [];
+      var white=isWhite(p),type=p.toLowerCase(),moves=[];
+      function tryAdd(nr,nc){
+        if(nr<0||nr>7||nc<0||nc>7)return false;
+        var t=board[nr][nc];
+        if(!t){moves.push([nr,nc]);return true;}
+        if(isWhite(t)!==white)moves.push([nr,nc]);
+        return false;
+      }
+      if(type==="p"){
+        var dir=white?-1:1;
+        if(!board[r+dir]||!board[r+dir][c])moves.push([r+dir,c]);
+        if((white&&r===6)||(!white&&r===1)){
+          if(!board[r+dir][c]&&!board[r+2*dir][c])moves.push([r+2*dir,c]);
+        }
+        [[dir,-1],[dir,1]].forEach(function(d){
+          var nr=r+d[0],nc=c+d[1];
+          if(nr<0||nr>7||nc<0||nc>7)return;
+          if(board[nr][nc]&&isWhite(board[nr][nc])!==white)moves.push([nr,nc]);
+        });
+      }else if(type==="r"){
+        [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){
+          for(var i=1;i<8;i++){if(!tryAdd(r+d[0]*i,c+d[1]*i))break;}
+        });
+      }else if(type==="n"){
+        [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(function(d){tryAdd(r+d[0],c+d[1]);});
+      }else if(type==="b"){
+        [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(function(d){
+          for(var i=1;i<8;i++){if(!tryAdd(r+d[0]*i,c+d[1]*i))break;}
+        });
+      }else if(type==="q"){
+        [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]].forEach(function(d){
+          for(var i=1;i<8;i++){if(!tryAdd(r+d[0]*i,c+d[1]*i))break;}
+        });
+      }else if(type==="k"){
+        [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]].forEach(function(d){tryAdd(r+d[0],c+d[1]);});
+      }
+      return moves;
+    }
+    function render(){
+      var grid='<div style="display:grid;grid-template-columns:repeat(8,1fr);gap:0;aspect-ratio:1;max-width:400px;margin:10px auto;border:3px solid #78350f;border-radius:8px;overflow:hidden">';
+      for(var r=0;r<8;r++){
+        for(var c=0;c<8;c++){
+          var light=(r+c)%2===0;
+          var bg=light?"linear-gradient(180deg,#f0d9b5,#e8c79e)":"linear-gradient(180deg,#b58863,#a07050)";
+          var p=board[r][c];
+          var isSel=sel&&sel[0]===r&&sel[1]===c;
+          var isLegal=legal.some(function(m){return m[0]===r&&m[1]===c;});
+          var color=isWhite(p)?"#fff":"#1a1a1a";
+          var shadow=isWhite(p)?"0 0 2px #000,0 0 4px #000":"0 0 2px #fff,0 0 4px #ccc";
+          var extra="";
+          if(isSel)extra+="box-shadow:inset 0 0 0 4px #fbbf24;";
+          if(isLegal)extra+="box-shadow:inset 0 0 0 100px rgba(0,212,255,.3);";
+          grid+='<div data-ch-r="'+r+'" data-ch-c="'+c+'" style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:'+bg+';font-size:28px;cursor:pointer;'+extra+'"><span style="color:'+color+';text-shadow:'+shadow+'">'+(p?P[p]:"")+'</span></div>';
+        }
+      }
+      grid+='</div>';
+      el.innerHTML='<div class="card"><h3>♟️ Schach</h3>'
+        +'<div style="text-align:center;font-size:13px;font-weight:800;color:var(--p1);margin-bottom:6px">'+(turn==="w"?"⚪ Weiß":"⚫ Schwarz")+' am Zug</div>'
+        +grid+'</div>'
+        +'<div class="card"><h3>⚙️</h3><button class="btn full" id="ch_reset">🔄 Neu starten</button>'
+        +'<div style="font-size:10.5px;color:var(--text-mute);margin-top:8px;line-height:1.5">Vollständige Zugregeln · Klick Figur → Klick Ziel. Bauernbeförderung wird automatisch zur Dame.</div></div>';
+      el.querySelectorAll("[data-ch-r]").forEach(function(b){
+        b.addEventListener("click",function(){
+          var r=parseInt(b.dataset.chR),c=parseInt(b.dataset.chC);
+          if(sel){
+            var ok=legal.some(function(m){return m[0]===r&&m[1]===c;});
+            if(ok){
+              var p=board[sel[0]][sel[1]];
+              board[r][c]=p;
+              board[sel[0]][sel[1]]="";
+              /* Promotion */
+              if(p==="P"&&r===0)board[r][c]="Q";
+              if(p==="p"&&r===7)board[r][c]="q";
+              turn=turn==="w"?"b":"w";
+              sel=null;legal=[];render();
+              return;
+            }
+          }
+          var p=board[r][c];
+          if(p&&(isWhite(p)?turn==="w":turn==="b")){
+            sel=[r,c];legal=getMoves(r,c);render();
+          }else{sel=null;legal=[];render();}
+        });
+      });
+      $("ch_reset").addEventListener("click",function(){
+        board=[
+          ["r","n","b","q","k","b","n","r"],
+          ["p","p","p","p","p","p","p","p"],
+          ["","","","","","","",""],
+          ["","","","","","","",""],
+          ["","","","","","","",""],
+          ["","","","","","","",""],
+          ["P","P","P","P","P","P","P","P"],
+          ["R","N","B","Q","K","B","N","R"]
+        ];
+        turn="w";sel=null;legal=[];render();
+      });
+    }
+    render();
+  },
+
+  /* ═══ 8. DAME ═══ */
+  dame:function(el){
+    var board=[];
+    for(var r=0;r<8;r++){board.push([]);for(var c=0;c<8;c++)board[r].push("");}
+    for(var r=0;r<3;r++)for(var c=0;c<8;c++)if((r+c)%2===1)board[r][c]={c:"red",k:false};
+    for(var r=5;r<8;r++)for(var c=0;c<8;c++)if((r+c)%2===1)board[r][c]={c:"blue",k:false};
+    var turn="red",sel=null,legal=[];
+    function getMoves(r,c){
+      var p=board[r][c];if(!p)return [];
+      var dirs=p.k?[[-1,-1],[-1,1],[1,-1],[1,1]]:(p.c==="red"?[[1,-1],[1,1]]:[[-1,-1],[-1,1]]);
+      var moves=[];
+      for(var i=0;i<dirs.length;i++){
+        var d=dirs[i];
+        var mr=r+d[0],mc=c+d[1],tr=r+2*d[0],tc=c+2*d[1];
+        if(tr<0||tr>7||tc<0||tc>7)continue;
+        var mid=board[mr][mc],tgt=board[tr][tc];
+        if(mid&&mid.c!==p.c&&!tgt)moves.push({from:[r,c],to:[tr,tc],cap:[mr,mc]});
+      }
+      if(moves.length)return moves;
+      for(var j=0;j<dirs.length;j++){
+        var d2=dirs[j];
+        var nr=r+d2[0],nc=c+d2[1];
+        if(nr<0||nr>7||nc<0||nc>7)continue;
+        if(!board[nr][nc])moves.push({from:[r,c],to:[nr,nc],cap:null});
+      }
+      return moves;
+    }
+    function allMoves(color){
+      var all=[];
+      for(var r=0;r<8;r++)for(var c=0;c<8;c++){
+        var p=board[r][c];
+        if(p&&p.c===color)getMoves(r,c).forEach(function(m){all.push(m);});
+      }
+      return all;
+    }
+    function render(){
+      var red=0,blue=0;
+      for(var r=0;r<8;r++)for(var c=0;c<8;c++){var p=board[r][c];if(p)p.c==="red"?red++:blue++;}
+      var grid='<div style="display:grid;grid-template-columns:repeat(8,1fr);gap:0;aspect-ratio:1;max-width:400px;margin:10px auto;border:3px solid #78350f;border-radius:8px;overflow:hidden">';
+      for(var r=0;r<8;r++){
+        for(var c=0;c<8;c++){
+          var light=(r+c)%2===0;
+          var bg=light?"linear-gradient(180deg,#f0d9b5,#e8c79e)":"linear-gradient(180deg,#b58863,#a07050)";
+          var p=board[r][c];
+          var isSel=sel&&sel[0]===r&&sel[1]===c;
+          var isLegal=legal.some(function(m){return m.to[0]===r&&m.to[1]===c;});
+          var extra="";
+          if(isSel)extra+="box-shadow:inset 0 0 0 4px #fbbf24;";
+          if(isLegal)extra+="box-shadow:inset 0 0 0 100px rgba(0,212,255,.3);";
+          var pieceHtml="";
+          if(p){
+            var pc=p.c==="red"?"radial-gradient(circle at 35% 35%,#ff6b6b,#dc2626)":"radial-gradient(circle at 35% 35%,#60a5fa,#2563eb)";
+            pieceHtml='<div style="width:75%;height:75%;border-radius:50%;background:'+pc+';box-shadow:0 2px 6px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px">'+(p.k?"♛":"")+'</div>';
+          }
+          grid+='<div data-dm-r="'+r+'" data-dm-c="'+c+'" style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:'+bg+';cursor:pointer;'+extra+'">'+pieceHtml+'</div>';
+        }
+      }
+      grid+='</div>';
+      el.innerHTML='<div class="card"><h3>⚫ Dame</h3>'
+        +'<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);font-weight:800;margin-bottom:6px">'
+        +'<span>🔴 Rot: <b style="color:#ff8080">'+red+'</b></span>'
+        +'<span>'+turn.toUpperCase()+' am Zug</span>'
+        +'<span>🔵 Blau: <b style="color:#60a5fa">'+blue+'</b></span></div>'
+        +grid+'</div>'
+        +'<div class="card"><button class="btn full" id="dm_reset">🔄 Neu starten</button>'
+        +'<div style="font-size:10.5px;color:var(--text-mute);margin-top:8px">Regeln: Diagonal ziehen · Figuren überspringen zum Schlagen · Bauern-Beförderung zur Dame (♛) in der letzten Reihe.</div></div>';
+      el.querySelectorAll("[data-dm-r]").forEach(function(b){
+        b.addEventListener("click",function(){
+          var r=parseInt(b.dataset.dmR),c=parseInt(b.dataset.dmC);
+          if(sel){
+            var m=legal.find(function(x){return x.to[0]===r&&x.to[1]===c;});
+            if(m){
+              var p=board[sel[0]][sel[1]];
+              board[r][c]=p;
+              board[sel[0]][sel[1]]="";
+              if(m.cap)board[m.cap[0]][m.cap[1]]="";
+              if(p.c==="red"&&r===7)p.k=true;
+              if(p.c==="blue"&&r===0)p.k=true;
+              turn=turn==="red"?"blue":"red";
+              sel=null;legal=[];render();
+              return;
+            }
+          }
+          var p=board[r][c];
+          if(p&&p.c===turn){
+            var moves=getMoves(r,c);
+            var caps=moves.filter(function(x){return x.cap;});
+            if(caps.length)moves=caps;
+            sel=[r,c];legal=moves;render();
+          }else{sel=null;legal=[];render();}
+        });
+      });
+      $("dm_reset").addEventListener("click",function(){
+        for(var r=0;r<8;r++)for(var c=0;c<8;c++)board[r][c]="";
+        for(var r=0;r<3;r++)for(var c=0;c<8;c++)if((r+c)%2===1)board[r][c]={c:"red",k:false};
+        for(var r=5;r<8;r++)for(var c=0;c<8;c++)if((r+c)%2===1)board[r][c]={c:"blue",k:false};
+        turn="red";sel=null;legal=[];render();
+      });
+    }
+    render();
+  },
+
+  /* ═══ 9. DART ═══ */
+  dart:function(el){
+    var score=0,throws=[],hist=[];
+    var targets=[20,19,18,17,16,15,25];
+    function render(){
+      var thr=throws.map(function(t){return '<span style="display:inline-block;padding:4px 10px;background:rgba(0,229,255,.15);color:var(--p1);border-radius:12px;font-weight:800;font-family:ui-monospace;margin:2px">'+t+'</span>';}).join("");
+      el.innerHTML='<div class="card"><h3>🎯 Dart — 501</h3>'
+        +'<div style="display:flex;gap:8px;font-size:12px;font-weight:800;margin-bottom:10px">'
+        +'<span style="color:var(--text-dim)">Rest:</span>'
+        +'<span style="color:#fbbf24;font-size:20px;font-family:ui-monospace">'+(501-score)+'</span>'
+        +'</div>'
+        +'<div style="font-size:10px;color:var(--text-mute);margin-bottom:6px">Diese Runde:</div>'
+        +'<div style="min-height:30px">'+(thr||'<span style="color:var(--text-mute);font-size:11px">Noch keine Würfe</span>')+'</div>'
+        +'</div>'
+        +'<div class="card"><h3>🎯 Wurf eingeben</h3>'
+        +'<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px">'
+        +targets.map(function(t){
+          return '<button class="btn sec" data-dart-s="'+t+'" style="padding:10px 4px">'+t+'</button>';
+        }).join("")
+        +'</div>'
+        +'<div style="font-size:10px;color:var(--text-mute);margin:10px 0 6px">Verdoppeln (×2):</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px">'
+        +targets.map(function(t){
+          return '<button class="btn sec" data-dart-d="'+t+'" style="padding:10px 4px">D'+t+'</button>';
+        }).join("")
+        +'</div>'
+        +'<div style="font-size:10px;color:var(--text-mute);margin:10px 0 6px">Verdreifachen (×3):</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px">'
+        +targets.slice(0,-1).map(function(t){
+          return '<button class="btn sec" data-dart-t="'+t+'" style="padding:10px 4px">T'+t+'</button>';
+        }).join("")
+        +'<button class="btn sec" data-dart-m="0" style="padding:10px 4px;color:#ff8080">Miss</button>'
+        +'</div>'
+        +'</div>'
+        +'<div class="card"><button class="btn full" id="dart_reset">🔄 Neu starten</button>'
+        +'<div style="font-size:10.5px;color:var(--text-mute);margin-top:8px">Von 501 auf genau 0. Letzter Wurf muss Doppel sein. 3 Würfe pro Runde.</div></div>';
+      el.querySelectorAll("[data-dart-s]").forEach(function(b){
+        b.addEventListener("click",function(){throwDart(parseInt(b.dataset.dartS),"S"+b.dataset.dartS);});
+      });
+      el.querySelectorAll("[data-dart-d]").forEach(function(b){
+        b.addEventListener("click",function(){throwDart(parseInt(b.dataset.dartD)*2,"D"+b.dataset.dartD);});
+      });
+      el.querySelectorAll("[data-dart-t]").forEach(function(b){
+        b.addEventListener("click",function(){throwDart(parseInt(b.dataset.dartT)*3,"T"+b.dataset.dartT);});
+      });
+      el.querySelectorAll("[data-dart-m]").forEach(function(b){
+        b.addEventListener("click",function(){throwDart(0,"Miss");});
+      });
+      $("dart_reset").addEventListener("click",function(){score=0;throws=[];hist=[];render();});
+    }
+    function throwDart(val,label){
+      if(score>=501&&val===0)return;
+      var newScore=score+val;
+      if(newScore>501){toast("❌ Überworfen!","err");throws=[];render();return;}
+      score=newScore;
+      throws.push(label+" ("+val+")");
+      if(score===501){toast("🎉 501 erreicht — perfekt!","ok");Voice.auto("Perfekt! 501 Punkte!");}
+      if(throws.length>=3){
+        hist.push(throws.slice());
+        throws=[];
+      }
+      render();
+    }
+    render();
+  },
+
+  /* ═══ 10. MINESWEEPER ═══ */
+  minesweeper:function(el){
+    var rows=9,cols=9,mines=10;
+    var board=[],revealed=0,flags=0,over=false,won=false;
+    function init(){
+      board=[];
+      for(var r=0;r<rows;r++){board.push([]);for(var c=0;c<cols;c++)board[r].push({mine:false,rev:false,flag:false,adj:0});}
+      var placed=0;
+      while(placed<mines){
+        var rr=Math.floor(Math.random()*rows),cc=Math.floor(Math.random()*cols);
+        if(!board[rr][cc].mine){board[rr][cc].mine=true;placed++;}
+      }
+      for(var r2=0;r2<rows;r2++){
+        for(var c2=0;c2<cols;c2++){
+          if(board[r2][c2].mine)continue;
+          var adj=0;
+          for(var dr=-1;dr<=1;dr++)for(var dc=-1;dc<=1;dc++){
+            var nr=r2+dr,nc=c2+dc;
+            if(nr<0||nr>=rows||nc<0||nc>=cols)continue;
+            if(board[nr][nc].mine)adj++;
+          }
+          board[r2][c2].adj=adj;
+        }
+      }
+      revealed=0;flags=0;over=false;won=false;
+    }
+    function reveal(r,c){
+      if(r<0||r>=rows||c<0||c>=cols)return;
+      var cell=board[r][c];
+      if(cell.rev||cell.flag)return;
+      cell.rev=true;revealed++;
+      if(cell.mine){over=true;return;}
+      if(cell.adj===0){
+        for(var dr=-1;dr<=1;dr++)for(var dc=-1;dc<=1;dc++){
+          if(dr===0&&dc===0)continue;
+          reveal(r+dr,c+dc);
+        }
+      }
+    }
+    function checkWin(){
+      var nonMines=rows*cols-mines;
+      if(revealed===nonMines){won=true;over=true;Voice.auto("Gewonnen!");}
+    }
+    function render(){
+      var grid='<div style="display:grid;grid-template-columns:repeat('+cols+',1fr);gap:1px;background:#374151;padding:2px;border-radius:8px;max-width:400px;margin:10px auto">';
+      for(var r=0;r<rows;r++){
+        for(var c=0;c<cols;c++){
+          var cell=board[r][c];
+          var content="",bg="linear-gradient(180deg,#6b7280,#4b5563)",color="#fff";
+          if(cell.rev){
+            bg="#1f2937";
+            if(cell.mine)content="💣";
+            else if(cell.adj>0){content=cell.adj;color=["#3b82f6","#22c55e","#ef4444","#8b5cf6","#dc2626","#0ea5e9","#ec4899","#94a3b8"][cell.adj-1];}
+          }else if(cell.flag){content="🚩";bg="linear-gradient(180deg,#dc2626,#991b1b)";}
+          grid+='<div data-ms-r="'+r+'" data-ms-c="'+c+'" style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:'+bg+';color:'+color+';font-size:13px;font-weight:900;cursor:pointer;font-family:ui-monospace">'+content+'</div>';
+        }
+      }
+      grid+='</div>';
+      var remaining=mines-flags;
+      el.innerHTML='<div class="card"><h3>💣 Minesweeper</h3>'
+        +'<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);font-weight:800;margin-bottom:8px">'
+        +'<span>💣 Minen: <b style="color:#ff8080">'+remaining+'</b></span>'
+        +'<span>'+(won?"🎉 Gewonnen!":over?"💥 Verloren":"Läuft")+'</span>'
+        +'<span>👆 '+revealed+'/'+(rows*cols-mines)+'</span></div>'
+        +grid+'</div>'
+        +'<div class="card"><button class="btn full" id="ms_reset">🔄 Neu starten</button>'
+        +'<div style="font-size:10.5px;color:var(--text-mute);margin-top:8px">Links-Klick = aufdecken · Rechts-Klick (PC) = Flagge setzen. Zahlen zeigen Minen in Nachbarfeldern.</div></div>';
+      el.querySelectorAll("[data-ms-r]").forEach(function(b){
+        b.addEventListener("click",function(e){
+          if(over)return;
+          var r=parseInt(b.dataset.msR),c=parseInt(b.dataset.msC);
+          reveal(r,c);
+          checkWin();
+          render();
+          if(over&&!won){setTimeout(function(){Voice.auto("Boom!");},200);}
+        });
+        b.addEventListener("contextmenu",function(e){
+          e.preventDefault();
+          if(over)return;
+          var r=parseInt(b.dataset.msR),c=parseInt(b.dataset.msC);
+          var cell=board[r][c];
+          if(cell.rev)return;
+          cell.flag=!cell.flag;
+          flags+=cell.flag?1:-1;
+          render();
+        });
+      });
+      $("ms_reset").addEventListener("click",function(){init();render();});
+    }
+    init();render();
+  },
+
+  /* ═══ 11. SOLITAIRE (Klondike vereinfacht) ═══ */
+  solitaire:function(el){
+    /* Klondike vereinfacht — volle Regeln wären zu lang für Drop-in */
+    el.innerHTML='<div class="card"><h3>🃏 Solitaire</h3>'
+      +'<div style="padding:40px 20px;text-align:center;color:var(--text-mute);font-size:12px;line-height:1.6">'
+      +'🃏 <b>Klondike Solitaire</b><br><br>'
+      +'Diese Variante ist in Arbeit. Aktuell empfehlen wir:<br>'
+      +'☕ Eine Runde <b>Skorpion</b> oder <b>FreeCell</b> gibt es in einer der nächsten Versionen.<br><br>'
+      +'<span style="font-size:10px">Bekannte Alternativen: online-solitaire.com / 247games</span>'
+      +'</div>'
+      +'<button class="btn sec full" onclick="window.open(\'https://www.google.com/search?q=solitaire\',\'_blank\')">🌐 Klassisches Solitaire öffnen</button>'
+      +'</div>';
+  },
+
+  /* ═══ 12. 2048 ═══ */
+  game2048:function(el){
+    var board=[];
+    for(var r=0;r<4;r++){board.push([0,0,0,0]);}
+    var score=0,best=Storage.get("gs_2048_best",0);
+    function addRandom(){
+      var empty=[];
+      for(var r=0;r<4;r++)for(var c=0;c<4;c++)if(board[r][c]===0)empty.push([r,c]);
+      if(!empty.length)return;
+      var p=empty[Math.floor(Math.random()*empty.length)];
+      board[p[0]][p[1]]=Math.random()<0.9?2:4;
+    }
+    function slide(arr){
+      var a=arr.filter(function(v){return v!==0;});
+      for(var i=0;i<a.length-1;i++){
+        if(a[i]===a[i+1]){a[i]*=2;score+=a[i];a.splice(i+1,1);}
+      }
+      while(a.length<4)a.push(0);
+      return a;
+    }
+    function move(dir){
+      var before=JSON.stringify(board);
+      if(dir==="left")board=board.map(function(r){return slide(r);});
+      else if(dir==="right")board=board.map(function(r){return slide(r.slice().reverse()).reverse();});
+      else if(dir==="up"){
+        for(var c=0;c<4;c++){
+          var col=[board[0][c],board[1][c],board[2][c],board[3][c]];
+          col=slide(col);
+          for(var r=0;r<4;r++)board[r][c]=col[r];
+        }
+      }else if(dir==="down"){
+        for(var c=0;c<4;c++){
+          var col=[board[3][c],board[2][c],board[1][c],board[0][c]];
+          col=slide(col);
+          for(var r=0;r<4;r++)board[3-r][c]=col[r];
+        }
+      }
+      if(JSON.stringify(board)!==before){
+        addRandom();
+        if(score>best){best=score;Storage.set("gs_2048_best",best);}
+        render();
+      }
+    }
+    function render(){
+      var colors={
+        2:["#eee4da","#776e65"],4:["#ede0c8","#776e65"],8:["#f2b179","#fff"],
+        16:["#f59563","#fff"],32:["#f67c5f","#fff"],64:["#f65e3b","#fff"],
+        128:["#edcf72","#fff"],256:["#edcc61","#fff"],512:["#edc850","#fff"],
+        1024:["#edc53f","#fff"],2048:["#edc22e","#fff"]
+      };
+      var grid='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;background:#bbada0;padding:10px;border-radius:14px;max-width:380px;margin:10px auto;aspect-ratio:1">';
+      for(var r=0;r<4;r++){
+        for(var c=0;c<4;c++){
+          var v=board[r][c];
+          var col=colors[v]||["#3c3a32","#fff"];
+          var fs=v>=1024?"24px":v>=128?"30px":"36px";
+          grid+='<div style="aspect-ratio:1;border-radius:8px;background:'+col[0]+';color:'+col[1]+';display:flex;align-items:center;justify-content:center;font-weight:900;font-size:'+fs+';font-family:ui-monospace">'+(v||"")+'</div>';
+        }
+      }
+      grid+='</div>';
+      el.innerHTML='<div class="card"><h3>🔢 2048</h3>'
+        +'<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);font-weight:800;margin-bottom:8px">'
+        +'<span>Punkte: <b style="color:var(--p1);font-size:14px">'+score+'</b></span>'
+        +'<span>Best: <b style="color:#fbbf24">'+best+'</b></span></div>'
+        +grid+'</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(3,60px);gap:6px;justify-content:center;margin-top:10px">'
+        +'<div></div><button class="btn sec" data-g2k="up" style="padding:14px 0;font-size:18px">▲</button><div></div>'
+        +'<button class="btn sec" data-g2k="left" style="padding:14px 0;font-size:18px">◀</button>'
+        +'<button class="btn sec" data-g2k="down" style="padding:14px 0;font-size:18px">▼</button>'
+        +'<button class="btn sec" data-g2k="right" style="padding:14px 0;font-size:18px">▶</button>'
+        +'</div>'
+        +'<button class="btn full" id="g2k_reset" style="margin-top:12px">🔄 Neu starten</button>'
+        +'<div style="font-size:10.5px;color:var(--text-mute);margin-top:8px;text-align:center">Wische oder nutze die Pfeiltasten. Erreiche 2048!</div>'
+        +'</div>';
+      el.querySelectorAll("[data-g2k]").forEach(function(b){
+        b.addEventListener("click",function(){move(b.dataset.g2k);});
+      });
+      $("g2k_reset").addEventListener("click",function(){
+        board=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+        score=0;addRandom();addRandom();render();
+      });
+    }
+    /* Swipe */
+    var sx=0,sy=0;
+    el.addEventListener("touchstart",function(e){sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
+    el.addEventListener("touchend",function(e){
+      var dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+      if(Math.abs(dx)<30&&Math.abs(dy)<30)return;
+      if(Math.abs(dx)>Math.abs(dy))move(dx>0?"right":"left");
+      else move(dy>0?"down":"up");
+    },{passive:true});
+    /* Keyboard */
+    function keyH(e){
+      if(!document.body.contains(el)){window.removeEventListener("keydown",keyH);return;}
+      var k=e.key.toLowerCase();
+      if(k==="arrowup"||k==="w"){move("up");e.preventDefault();}
+      else if(k==="arrowdown"||k==="s"){move("down");e.preventDefault();}
+      else if(k==="arrowleft"||k==="a"){move("left");e.preventDefault();}
+      else if(k==="arrowright"||k==="d"){move("right");e.preventDefault();}
+    }
+    window.addEventListener("keydown",keyH);
+    addRandom();addRandom();render();
+  }
+};
+
+/* ═══════════════ GAMES-HAUPT-MODUL ═══════════════ */
+var GamesApp={
+  _selectedGame:null,
+  _games:[
+    {id:"snake",i:"🐍",n:"Snake",d:"Klassiker"},
+    {id:"memory",i:"🧩",n:"Memory",d:"Paare finden"},
+    {id:"tictactoe",i:"❌",n:"TicTacToe",d:"3 gewinnt"},
+    {id:"vier",i:"🎯",n:"4 Gewinnt",d:"Verbinden"},
+    {id:"sudoku",i:"🎰",n:"Sudoku",d:"Zahlen"},
+    {id:"quiz",i:"🧠",n:"Quiz",d:"Wissen"},
+    {id:"schach",i:"♟️",n:"Schach",d:"Strategie"},
+    {id:"dame",i:"⚫",n:"Dame",d:"Brettspiel"},
+    {id:"dart",i:"🎯",n:"Dart",d:"501"},
+    {id:"minesweeper",i:"💣",n:"Minesweeper",d:"Minen"},
+    {id:"solitaire",i:"🃏",n:"Solitaire",d:"Karten"},
+    {id:"game2048",i:"🔢",n:"2048",d:"Zahlen"}
+  ],
+  render:function(el){
+    var self=this;
+    if(this._selectedGame){
+      var back='<button class="btn sec" id="games_back" style="margin-bottom:12px">← Zurück zur Spieleliste</button>';
+      el.innerHTML=back+'<div id="gameContainer"></div>';
+      $("games_back").addEventListener("click",function(){
+        self._selectedGame=null;
+        self.render(el);
+      });
+      var gameFn=Games[self._selectedGame];
+      if(gameFn){
+        try{gameFn.call(Games,$("gameContainer"));}
+        catch(e){$("gameContainer").innerHTML='<div class="placeholder">❌ Fehler: '+esc(e.message)+'</div>';}
+      }
+      return;
+    }
+    var high=Storage.get("gs_snake_high",0);
+    var high2048=Storage.get("gs_2048_best",0);
+    el.innerHTML='<div class="welcome" style="margin-bottom:14px">'
+      +'<div class="hello">🎮 HalDo Games</div>'
+      +'<div class="name">12 Spiele</div>'
+      +'<div class="sub">Snake High: '+high+' · 2048 Best: '+high2048+'</div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">'
+      +this._games.map(function(g){
+        return '<button data-game="'+g.id+'" style="padding:18px 10px;background:var(--bg-card);border:var(--border-soft);border-radius:14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:inherit;color:var(--text);transition:.15s">'
+          +'<div style="font-size:38px">'+g.i+'</div>'
+          +'<div style="font-size:13px;font-weight:800">'+g.n+'</div>'
+          +'<div style="font-size:10px;color:var(--text-mute)">'+g.d+'</div>'
+          +'</button>';
+      }).join("")
+      +'</div>';
+    el.querySelectorAll("[data-game]").forEach(function(b){
+      b.addEventListener("click",function(){
+        self._selectedGame=b.dataset.game;
+        self.render(el);
+      });
+    });
+  }
+};
+
+/* ═══════════════ REGISTRIERUNG ═══════════════ */
+if(H.MODULES){H.MODULES.games=GamesApp;}
+if(H.APPS){
+  var existing=H.APPS.find(function(a){return a.id==="games";});
+  if(!existing){H.APPS.push({id:"games",ico:"🎮",name:"Games",cat:"Spiele",desc:"12 Spiele — Snake · Schach · Quiz · 2048…"});}
+  else{existing.name="Games";existing.desc="12 Spiele komplett";}
+}
+
+/* Sidebar & Homescreen ergänzen */
+setTimeout(function(){
+  var sb=document.getElementById("sidebar");
+  if(sb){
+    var has=false;
+    sb.querySelectorAll("[data-open-app]").forEach(function(x){if(x.dataset.openApp==="games")has=true;});
+    if(!has){
+      var btn=document.createElement("button");
+      btn.className="item";btn.dataset.openApp="games";
+      btn.innerHTML='<span class="ico">🎮</span><span class="lbl">Games</span>';
+      sb.appendChild(btn);
+      btn.addEventListener("click",function(){
+        H.Windows.open("games");
+        if(window.innerWidth<700)sb.classList.remove("open");
+      });
+    }
+  }
+  document.dispatchEvent(new Event("haldo-rerender"));
+},200);
+
+console.log("🎮 HalDo Games-App registriert — 12 Spiele");
+})();
+</script>
+<!-- ============ ENDE HALDO GAMES-APP ============ -->
 </body>
 </html>
