@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#050810">
 <meta name="mobile-web-app-capable" content="yes">
-<title>HalDo AI OS v131</title>
+<title>HalDo AI OS v132</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='78' font-size='82'%3E🦚%3C/text%3E%3C/svg%3E">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -152,7 +152,6 @@ body.cyborg{--p1:#ff78c8;--p2:#b478ff;--p3:#ff5cae;--border:1.5px solid rgba(255
 .alpha-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
 .alpha-cell{padding:10px 4px;background:rgba(0,0,0,.2);border-radius:8px;text-align:center;border:1px solid rgba(0,229,255,.2);cursor:pointer}
 .alpha-cell .ch{font-size:18px;font-weight:900;color:var(--p1)}
-.alpha-cell .rm{font-size:8px;color:var(--text-mute);margin-top:2px}
 .alpha-cell:hover{background:rgba(0,229,255,.15)}
 @media(max-width:400px){.alpha-grid{grid-template-columns:repeat(5,1fr)}}
 </style>
@@ -160,10 +159,10 @@ body.cyborg{--p1:#ff78c8;--p2:#b478ff;--p3:#ff5cae;--border:1.5px solid rgba(255
 <body>
 
 <div id="bgLayer"><canvas id="bgCanvas"></canvas></div>
-<div class="hint" id="hint">☀️ Klick die Sonne · 🪐 Planeten = Apps · 🕐 Äußere Ringe = Uhr</div>
+<div class="hint" id="hint">☀️ Sonne = Chat · 🪐 Planeten = Apps · 🕐 3 äußere = Uhr</div>
 
 <header id="topbar">
-  <div class="logo" id="logoBtn"><span class="peacock">🦚</span><div class="txt"><span class="t1">HalDo</span><span class="t2">AI OS v131</span></div></div>
+  <div class="logo" id="logoBtn"><span class="peacock">🦚</span><div class="txt"><span class="t1">HalDo</span><span class="t2">AI OS v132</span></div></div>
   <div class="spacer"></div>
   <button class="icon-btn" id="sidebarBtn">☰</button>
   <button class="icon-btn" id="voiceBtn">🔊</button>
@@ -189,9 +188,8 @@ body.cyborg{--p1:#ff78c8;--p2:#b478ff;--p3:#ff5cae;--border:1.5px solid rgba(255
 (function(){
 "use strict";
 
-/* ══════════ STORAGE ══════════ */
 var S={
-  prefix:"haldo_v131_",
+  prefix:"haldo_v132_",
   get:function(k,f){try{var r=localStorage.getItem(this.prefix+k);return r===null?f:JSON.parse(r);}catch(e){return f;}},
   set:function(k,v){try{localStorage.setItem(this.prefix+k,JSON.stringify(v));return true;}catch(e){return false;}},
   remove:function(k){localStorage.removeItem(this.prefix+k);},
@@ -202,7 +200,6 @@ function $(id){return document.getElementById(id);}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
 function toast(msg,type){var t=$("toast");t.textContent=msg;t.className="show"+(type?" "+type:"");clearTimeout(t._t);t._t=setTimeout(function(){t.className="";},2400);}
 
-/* ══════════ SPRACHEN ══════════ */
 var LANGS={
   de:{name:"Deutsch",flag:"🇩🇪",rtl:false},ku:{name:"Kurdî",flag:"🟨",rtl:false},
   ez:{name:"Êzidî",flag:"🦚",rtl:false},ar:{name:"العربية",flag:"🇸🇦",rtl:true},
@@ -211,19 +208,17 @@ var LANGS={
   fr:{name:"Français",flag:"🇫🇷",rtl:false},es:{name:"Español",flag:"🇪🇸",rtl:false}
 };
 
-/* ══════════ APPS ══════════ */
 var APPS=[
   {id:"chat",ico:"💬",name:"Chat",cat:"KI",desc:"HalDo AI Chat",planet:null},
-  {id:"ezidi",ico:"🦚",name:"Êzidî",cat:"KI",desc:"Völker · Glaube · Mushaf Reş · Qewl",planet:{color:"#d8b478",glow:"rgba(216,180,120,.6)",size:12,ring:true,speed:0.5,rot:0.4,d:420}},
-  {id:"welt",ico:"🌍",name:"Welt",cat:"Wissen",desc:"Länder · Mesopotamien · Geschichte",planet:{color:"#4a8fd8",glow:"rgba(74,143,216,.6)",size:10,speed:0.7,rot:0.5,d:200,land:true}},
-  {id:"games",ico:"🎮",name:"Games",cat:"Spiele",desc:"Snake · TicTacToe · Memory · 2048",planet:{color:"#c1440e",glow:"rgba(193,68,14,.5)",size:7,speed:0.9,rot:0.6,d:280}},
-  {id:"lernen",ico:"📚",name:"Lernen",cat:"Lernen",desc:"Vokabeln · Ezidi · Formeln",planet:{color:"#c88b4a",glow:"rgba(200,139,74,.5)",size:13,speed:0.55,rot:0.45,d:340,bands:true}},
-  {id:"finanzen",ico:"💰",name:"Finanzen",cat:"Arbeit",desc:"Budget · Ausgaben",planet:{color:"#78c8d8",glow:"rgba(120,200,216,.5)",size:8,speed:0.8,rot:0.55,d:150}},
-  {id:"werkzeuge",ico:"⏱️",name:"Werkzeuge",cat:"Werkzeuge",desc:"Rechner · Timer · QR",planet:{color:"#a87c5a",glow:"rgba(168,124,90,.4)",size:5,speed:1.1,rot:0.8,d:110}},
-  {id:"system",ico:"⚙️",name:"System",cat:"System",desc:"Info · Backup",planet:{color:"#b8b8b8",size:6,speed:1.0,rot:0.7,d:130}}
+  {id:"ezidi",ico:"🦚",name:"Êzidî",cat:"KI",desc:"Völker · Glaube · Mushaf Reş · Qewl",planet:null},
+  {id:"welt",ico:"🌍",name:"Welt",cat:"Wissen",desc:"Länder · Mesopotamien · Geschichte",planet:null},
+  {id:"games",ico:"🎮",name:"Games",cat:"Spiele",desc:"Snake · TicTacToe · Quiz",planet:null},
+  {id:"lernen",ico:"📚",name:"Lernen",cat:"Lernen",desc:"Vokabeln · Ezidi · Formeln",planet:null},
+  {id:"finanzen",ico:"💰",name:"Finanzen",cat:"Arbeit",desc:"Budget · Ausgaben",planet:null},
+  {id:"werkzeuge",ico:"⏱️",name:"Werkzeuge",cat:"Werkzeuge",desc:"Rechner · Timer · QR",planet:null},
+  {id:"system",ico:"⚙️",name:"System",cat:"System",desc:"Info · Backup",planet:null}
 ];
 
-/* ══════════ VOICES ══════════ */
 var HALDO_VOICES=[
   {id:"haldo_ai",emoji:"🦚",name:"HalDo AI",desc:"Freundlich",pitch:1.05,rate:0.95,lang:"de-DE",engine:"system"},
   {id:"haldo_cyborg",emoji:"⚡",name:"Cyborg",desc:"Elektronisch",pitch:0.55,rate:0.85,lang:"de-DE",engine:"system"},
@@ -296,9 +291,6 @@ var Settings={
     var s=this._cache;
     document.body.classList.toggle("cyborg",!!s.cyborg);
     document.body.setAttribute("dir",(LANGS[s.lang]&&LANGS[s.lang].rtl)?"rtl":"ltr");
-    document.querySelectorAll("[data-theme]").forEach(function(t){t.classList.toggle("active",t.dataset.theme===s.theme);});
-    document.querySelectorAll("[data-lang]").forEach(function(t){t.classList.toggle("active",t.dataset.lang===s.lang);});
-    document.querySelectorAll("[data-voice-char]").forEach(function(t){t.classList.toggle("active",t.dataset.voiceChar===s.voiceChar);});
     var c=$("cyborgSw");if(c)c.classList.toggle("on",!!s.cyborg);
     var a=$("autoSpeakSw");if(a)a.classList.toggle("on",!!s.autoSpeak);
     var ck=$("clockSw");if(ck)ck.classList.toggle("on",!!s.clockOn);
@@ -308,113 +300,176 @@ var Settings={
   }
 };
 
-/* ══════════ BACKGROUND mit Uhr-Planeten ══════════ */
+/* ══════════ BACKGROUND v132 – realistische Planeten + schnell ══════════ */
 var BG=(function(){
   var canvas,ctx,w,h,animId;
-  var theme="kosmos",speedFactor=0.08;
+  var theme="kosmos",speedFactor=0.6;
   var clockOn=true;
-  var sunR=85,sunHover=false,sunPulse=0;
+  var sunR=90,sunHover=false,sunPulse=0;
+  
+  /* Realistische Planeten: Merkur, Venus, Erde, Mars, Jupiter, Saturn, Uranus, Neptun + 2 extras */
   var planets=[
-    {app:"werkzeuge",d:115,speed:1.4,size:5,colors:["#8b8075","#a89b8f","#4a4238"],rot:1.2,rotAngle:0},
-    {app:"finanzen",d:165,speed:1.1,size:9,colors:["#78c8d8","#9adde8","#58a8b8"],glow:"rgba(120,200,216,.4)",rot:0.9,rotAngle:0},
-    {app:"welt",d:220,speed:0.85,size:12,colors:["#4a8fd8","#2a6fa8","#4a8fd8"],glow:"rgba(74,143,216,.5)",hasLand:true,rot:0.8,rotAngle:0},
-    {app:"games",d:280,speed:0.65,size:8,colors:["#c1440e","#e05a1e","#8b2f08"],rot:1.0,rotAngle:0},
-    {app:"lernen",d:345,speed:0.5,size:15,colors:["#c88b4a","#e0b078","#a07048"],hasBands:true,rot:0.65,rotAngle:0},
-    {app:"ezidi",d:420,speed:0.4,size:14,colors:["#d8b478","#e8ca9a","#b89868"],hasRing:true,hasBands:true,rot:0.55,rotAngle:0},
-    {app:"system",d:495,speed:0.3,size:7,colors:["#b8b8b8","#d0d0d0","#909090"],rot:0.9,rotAngle:0},
-    {app:null,d:560,speed:0.22,size:8,colors:["#a080ff","#c0a0ff","#8060d0"],glow:"rgba(160,128,255,.4)",rot:0.7,rotAngle:0},
-    {app:null,d:625,speed:0.16,size:7,colors:["#ff78c8","#ff98d8","#d058a8"],glow:"rgba(255,120,200,.4)",rot:0.8,rotAngle:0},
-    {app:null,d:690,speed:0.12,size:8,colors:["#78ffc8","#98ffd8","#58d8a8"],glow:"rgba(120,255,200,.4)",rot:0.6,rotAngle:0}
+    {app:"werkzeuge",d:135,speed:2.2,size:10,type:"mercury",
+      colors:["#8a8078","#b0a89b","#5a5048"],rot:1.8,rotAngle:Math.random()*6.28},
+    {app:"finanzen",d:190,speed:1.7,size:16,type:"venus",glow:"rgba(232,200,140,.45)",
+      colors:["#e8c878","#f5e0a8","#b89858"],rot:1.3,rotAngle:Math.random()*6.28},
+    {app:"welt",d:255,speed:1.3,size:22,type:"earth",glow:"rgba(74,143,216,.55)",
+      colors:["#4a8fd8","#2a6fa8","#2a5f8a"],rot:1.0,rotAngle:Math.random()*6.28},
+    {app:"games",d:325,speed:1.0,size:15,type:"mars",
+      colors:["#c85832","#e07848","#8a3c1e"],rot:1.4,rotAngle:Math.random()*6.28},
+    {app:"lernen",d:410,speed:0.75,size:26,type:"jupiter",
+      colors:["#d8a868","#f0d8a8","#a87848"],hasBands:true,rot:0.9,rotAngle:Math.random()*6.28},
+    {app:"ezidi",d:500,speed:0.55,size:24,type:"saturn",
+      colors:["#e8d8a0","#f5e8c0","#c8b888"],hasRing:true,hasBands:true,rot:0.75,rotAngle:Math.random()*6.28},
+    {app:"system",d:585,speed:0.4,size:14,type:"uranus",glow:"rgba(168,216,224,.4)",
+      colors:["#a8d8e0","#c8e8f0","#88b8c0"],rot:1.3,rotAngle:Math.random()*6.28},
+    {app:null,d:660,speed:0.3,size:16,type:"neptune",glow:"rgba(74,92,216,.5)",
+      colors:["#4a5cd8","#6a7ce8","#2a3ca8"],rot:1.1,rotAngle:Math.random()*6.28},
+    {app:null,d:735,speed:0.22,size:13,glow:"rgba(160,128,255,.45)",
+      colors:["#a080ff","#c0a0ff","#8060d0"],rot:1.2,rotAngle:Math.random()*6.28},
+    {app:null,d:805,speed:0.16,size:14,glow:"rgba(255,120,200,.45)",
+      colors:["#ff78c8","#ff98d8","#d058a8"],rot:1.0,rotAngle:Math.random()*6.28}
   ];
-  /* Uhr-Planeten: 3 Zeiger (Sekunde, Minute, Stunde) */
+  
+  /* Uhr-Planeten: keine Linien! Nur die Planeten als Zeiger */
   var clockHands=[
-    {type:"second",d:750,size:5,color:"#ff4040",glow:"rgba(255,64,64,.6)"},
-    {type:"minute",d:810,size:6,color:"#40c4ff",glow:"rgba(64,196,255,.6)"},
-    {type:"hour",d:870,size:7,color:"#ffd54f",glow:"rgba(255,213,79,.6)"}
+    {type:"second",d:880,size:11,color:"#ff4040",glow:"rgba(255,64,64,.8)"},
+    {type:"minute",d:945,size:13,color:"#40c4ff",glow:"rgba(64,196,255,.8)"},
+    {type:"hour",d:1010,size:15,color:"#ffd54f",glow:"rgba(255,213,79,.8)"}
   ];
-  var angles=planets.map(function(_,i){return i*0.7;});
+  
+  /* Golden-Angle Spread – keine gleiche Linie */
+  var GOLD=2.399963;
+  var angles=planets.map(function(_,i){return (i*GOLD)%(Math.PI*2)+0.3;});
   var t=0,stars=[],sunScreenPos={x:0,y:0},planetScreenPos=[];
-  function initStars(){stars=[];for(var i=0;i<260;i++)stars.push({x:Math.random(),y:Math.random(),size:Math.random()*1.8+0.3,tw:Math.random()*Math.PI*2});}
+  
+  function initStars(){stars=[];for(var i=0;i<300;i++)stars.push({x:Math.random(),y:Math.random(),size:Math.random()*1.8+0.3,tw:Math.random()*Math.PI*2});}
   function resize(){w=canvas.width=window.innerWidth;h=canvas.height=window.innerHeight;}
+  
   function drawPlanet(x,y,r,pl){
-    if(pl.glow){var g=ctx.createRadialGradient(x,y,r*0.5,x,y,r*3);g.addColorStop(0,pl.glow);g.addColorStop(1,"transparent");ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r*3,0,Math.PI*2);ctx.fill();}
-    var grad=ctx.createRadialGradient(x-r*0.3,y-r*0.3,r*0.1,x,y,r);
-    grad.addColorStop(0,pl.colors[1]||pl.colors[0]);grad.addColorStop(0.5,pl.colors[0]);grad.addColorStop(1,pl.colors[2]||pl.colors[0]);
+    if(pl.glow){var g=ctx.createRadialGradient(x,y,r*0.4,x,y,r*3.2);g.addColorStop(0,pl.glow);g.addColorStop(1,"transparent");ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r*3.2,0,Math.PI*2);ctx.fill();}
+    var grad=ctx.createRadialGradient(x-r*0.35,y-r*0.35,r*0.05,x,y,r);
+    grad.addColorStop(0,pl.colors[1]||pl.colors[0]);
+    grad.addColorStop(0.55,pl.colors[0]);
+    grad.addColorStop(1,pl.colors[2]||pl.colors[0]);
     ctx.fillStyle=grad;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+    
+    /* Jupiter-Bänder */
     if(pl.hasBands){
-      ctx.save();ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.clip();ctx.translate(x,y);ctx.rotate(pl.rotAngle);
-      for(var b=-2;b<=2;b++){ctx.fillStyle=pl.colors[(b+2)%pl.colors.length];ctx.globalAlpha=0.4;ctx.fillRect(-r,b*r*0.35,r*2,r*0.15);}
+      ctx.save();ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.clip();
+      ctx.translate(x,y);ctx.rotate(pl.rotAngle);
+      for(var b=-3;b<=3;b++){
+        ctx.fillStyle=pl.colors[(b+3)%pl.colors.length];ctx.globalAlpha=0.45;
+        ctx.fillRect(-r*1.2,b*r*0.28,r*2.4,r*0.16);
+      }
+      /* Jupiter roter Fleck */
+      if(pl.type==="jupiter"){
+        ctx.globalAlpha=0.8;ctx.fillStyle="#c8503c";
+        ctx.beginPath();ctx.ellipse(-r*0.2,r*0.15,r*0.28,r*0.16,0,0,Math.PI*2);ctx.fill();
+      }
       ctx.globalAlpha=1;ctx.restore();
     }
-    if(pl.hasLand){
+    
+    /* Erde: Kontinente */
+    if(pl.type==="earth"){
       ctx.save();ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.clip();
       var rot=pl.rotAngle;
-      for(var k=0;k<4;k++){
-        var lx=x+Math.cos(rot+k*1.5)*r*0.5,ly=y+Math.sin(k*1.2)*r*0.4;
-        if(Math.cos(rot+k*1.5)<-0.2)continue;
-        ctx.fillStyle="rgba(60,140,80,.7)";ctx.beginPath();ctx.ellipse(lx,ly,r*0.3,r*0.2,rot+k,0,Math.PI*2);ctx.fill();
+      for(var k=0;k<5;k++){
+        var off=k*1.3+rot;
+        var lx=x+Math.cos(off)*r*0.55,ly=y+Math.sin(k*1.4)*r*0.45;
+        if(Math.cos(off)<-0.1)continue;
+        ctx.fillStyle=k%2?"rgba(72,152,88,.85)":"rgba(60,120,60,.75)";
+        ctx.beginPath();ctx.ellipse(lx,ly,r*0.28,r*0.22,off*0.7,0,Math.PI*2);ctx.fill();
       }
+      /* Polarkappe */
+      ctx.fillStyle="rgba(240,250,255,.9)";
+      ctx.beginPath();ctx.arc(x,y-r*0.9,r*0.35,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(x,y+r*0.9,r*0.3,0,Math.PI*2);ctx.fill();
       ctx.restore();
     }
+    
+    /* Mars: Polkappen */
+    if(pl.type==="mars"){
+      ctx.save();ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.clip();
+      ctx.fillStyle="rgba(255,240,230,.85)";
+      ctx.beginPath();ctx.arc(x,y-r*0.85,r*0.28,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(x,y+r*0.88,r*0.22,0,Math.PI*2);ctx.fill();
+      /* Dunkle Flecken */
+      ctx.fillStyle="rgba(120,50,30,.5)";
+      ctx.beginPath();ctx.ellipse(x-r*0.3,y+r*0.1,r*0.35,r*0.2,0,0,Math.PI*2);ctx.fill();
+      ctx.restore();
+    }
+    
+    /* Saturn-Ring */
     if(pl.hasRing){
       ctx.save();ctx.translate(x,y);ctx.rotate(-0.4);
-      ctx.strokeStyle="rgba(216,180,120,.6)";ctx.lineWidth=r*0.35;
-      ctx.beginPath();ctx.ellipse(0,0,r*1.8,r*0.5,0,0,Math.PI*2);ctx.stroke();
-      ctx.strokeStyle="rgba(240,216,160,.8)";ctx.lineWidth=r*0.15;
-      ctx.beginPath();ctx.ellipse(0,0,r*1.9,r*0.55,0,0,Math.PI*2);ctx.stroke();
+      var rg=ctx.createLinearGradient(-r*2,0,r*2,0);
+      rg.addColorStop(0,"rgba(232,216,160,.2)");
+      rg.addColorStop(0.5,"rgba(245,232,192,.75)");
+      rg.addColorStop(1,"rgba(200,184,136,.2)");
+      ctx.strokeStyle=rg;ctx.lineWidth=r*0.4;
+      ctx.beginPath();ctx.ellipse(0,0,r*1.85,r*0.52,0,0,Math.PI*2);ctx.stroke();
+      ctx.strokeStyle="rgba(255,244,212,.9)";ctx.lineWidth=r*0.12;
+      ctx.beginPath();ctx.ellipse(0,0,r*1.95,r*0.57,0,0,Math.PI*2);ctx.stroke();
       ctx.restore();
     }
-    ctx.fillStyle="rgba(255,255,255,.25)";ctx.beginPath();ctx.arc(x-r*0.35,y-r*0.35,r*0.2,0,Math.PI*2);ctx.fill();
+    
+    /* Highlight */
+    ctx.fillStyle="rgba(255,255,255,.35)";
+    ctx.beginPath();ctx.arc(x-r*0.4,y-r*0.4,r*0.22,0,Math.PI*2);ctx.fill();
   }
-  function drawClockHand(cx,cy,scale,hand,now){
+  
+  /* Uhr-Planeten OHNE Linien */
+  function drawClockPlanet(cx,cy,scale,hand,now){
     var ang;
     if(hand.type==="second")ang=(now.getSeconds()+now.getMilliseconds()/1000)/60*Math.PI*2-Math.PI/2;
     else if(hand.type==="minute")ang=(now.getMinutes()+now.getSeconds()/60)/60*Math.PI*2-Math.PI/2;
     else ang=((now.getHours()%12)+now.getMinutes()/60)/12*Math.PI*2-Math.PI/2;
     var orbitR=hand.d*scale;
-    /* Orbit-Ring */
-    ctx.strokeStyle="rgba(255,255,255,.08)";ctx.lineWidth=1;
+    /* dünner Orbit-Ring (kein Zeiger-Strich!) */
+    ctx.strokeStyle="rgba(255,255,255,.05)";ctx.lineWidth=1;
     ctx.beginPath();ctx.arc(cx,cy,orbitR,0,Math.PI*2);ctx.stroke();
-    /* Zeiger-Strich von Mitte nach Planet */
-    ctx.strokeStyle=hand.color+"55";ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(ang)*orbitR,cy+Math.sin(ang)*orbitR);ctx.stroke();
     /* Planet */
     var px=cx+Math.cos(ang)*orbitR,py=cy+Math.sin(ang)*orbitR;
-    var g=ctx.createRadialGradient(px,py,0,px,py,hand.size*scale*3);
+    var r=hand.size*scale;
+    var g=ctx.createRadialGradient(px,py,r*0.4,px,py,r*3.5);
     g.addColorStop(0,hand.glow);g.addColorStop(1,"transparent");
-    ctx.fillStyle=g;ctx.beginPath();ctx.arc(px,py,hand.size*scale*3,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle=hand.color;ctx.beginPath();ctx.arc(px,py,hand.size*scale,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle="rgba(255,255,255,.6)";ctx.beginPath();ctx.arc(px-hand.size*scale*0.3,py-hand.size*scale*0.3,hand.size*scale*0.35,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(px,py,r*3.5,0,Math.PI*2);ctx.fill();
+    var pg=ctx.createRadialGradient(px-r*0.3,py-r*0.3,r*0.1,px,py,r);
+    pg.addColorStop(0,"#fff");pg.addColorStop(0.4,hand.color);pg.addColorStop(1,"#000");
+    ctx.fillStyle=pg;ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="rgba(255,255,255,.5)";
+    ctx.beginPath();ctx.arc(px-r*0.3,py-r*0.3,r*0.3,0,Math.PI*2);ctx.fill();
   }
+  
   function drawKosmos(){
     ctx.fillStyle="#02040a";ctx.fillRect(0,0,w,h);
     for(var i=0;i<stars.length;i++){var s=stars[i],a=0.4+Math.sin(t*0.03+s.tw)*0.4;ctx.fillStyle="rgba(180,220,255,"+a+")";ctx.beginPath();ctx.arc(s.x*w,s.y*h,s.size,0,Math.PI*2);ctx.fill();}
-    var cx=w/2,cy=h/2,scale=Math.min(1.5,Math.max(0.42,Math.min(w,h)/1050));
+    var cx=w/2,cy=h/2,scale=Math.min(1.3,Math.max(0.35,Math.min(w,h)/1250));
     sunScreenPos={x:cx,y:cy,r:sunR*scale};
     var pulse=1+Math.sin(sunPulse)*0.05;
     var sr=sunR*scale*pulse;
-    var sg=ctx.createRadialGradient(cx,cy,0,cx,cy,sr*2.2);
-    sg.addColorStop(0,"#fffae0");sg.addColorStop(0.12,"#ffe080");sg.addColorStop(0.35,"#ffb030");
-    sg.addColorStop(0.6,"rgba(255,140,40,.4)");sg.addColorStop(1,"transparent");
-    ctx.fillStyle=sg;ctx.beginPath();ctx.arc(cx,cy,sr*2.2,0,Math.PI*2);ctx.fill();
+    var sg=ctx.createRadialGradient(cx,cy,0,cx,cy,sr*2.4);
+    sg.addColorStop(0,"#fffae0");sg.addColorStop(0.1,"#ffe080");sg.addColorStop(0.3,"#ffb030");
+    sg.addColorStop(0.55,"rgba(255,140,40,.4)");sg.addColorStop(1,"transparent");
+    ctx.fillStyle=sg;ctx.beginPath();ctx.arc(cx,cy,sr*2.4,0,Math.PI*2);ctx.fill();
     ctx.fillStyle="#ffe080";ctx.beginPath();ctx.arc(cx,cy,sr,0,Math.PI*2);ctx.fill();
     if(sunHover){ctx.strokeStyle="rgba(255,255,255,.6)";ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,sr*1.4,0,Math.PI*2);ctx.stroke();}
     sunPulse+=0.08;
     planetScreenPos=[];
     for(var p=0;p<planets.length;p++){
       var pl=planets[p],orbitR=pl.d*scale;
-      ctx.strokeStyle="rgba(0,229,255,.06)";ctx.lineWidth=1;
+      ctx.strokeStyle="rgba(0,229,255,.05)";ctx.lineWidth=1;
       ctx.beginPath();ctx.arc(cx,cy,orbitR,0,Math.PI*2);ctx.stroke();
       var px=cx+Math.cos(angles[p])*orbitR,py=cy+Math.sin(angles[p])*orbitR;
-      drawPlanet(px,py,pl.size*scale*0.85,pl);
-      planetScreenPos.push({x:px,y:py,r:pl.size*scale*0.85,app:pl.app});
-      angles[p]+=pl.speed*speedFactor*0.01;
-      pl.rotAngle+=pl.rot*speedFactor*0.025;
+      drawPlanet(px,py,pl.size*scale*0.9,pl);
+      planetScreenPos.push({x:px,y:py,r:pl.size*scale*0.9+6,app:pl.app});
+      angles[p]+=pl.speed*speedFactor*0.035;
+      pl.rotAngle+=pl.rot*speedFactor*0.04;
     }
-    /* Uhr-Planeten */
     if(clockOn){
       var now=new Date();
-      for(var ci=0;ci<clockHands.length;ci++)drawClockHand(cx,cy,scale,clockHands[ci],now);
+      for(var ci=0;ci<clockHands.length;ci++)drawClockPlanet(cx,cy,scale,clockHands[ci],now);
     }
     t+=1;
   }
@@ -429,12 +484,7 @@ var BG=(function(){
     g.addColorStop(0,"#6fa8dc");g.addColorStop(0.5,"#2c5f8a");g.addColorStop(1,"#0a2540");
     ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.fill();
     var rot=t*0.002*speedFactor;
-    for(var k=0;k<6;k++){
-      var ang=k*(Math.PI*2/6)+rot,dx=Math.cos(ang);
-      if(dx<-0.2)continue;
-      var px=cx+Math.sin(ang)*R*0.7,py=cy+(Math.sin(k*1.7)*0.3)*R,sz=R*0.15;
-      ctx.fillStyle="rgba(60,120,60,.7)";ctx.beginPath();ctx.ellipse(px,py,sz,sz*0.7,0,0,Math.PI*2);ctx.fill();
-    }
+    for(var k=0;k<6;k++){var ang=k*(Math.PI*2/6)+rot;if(Math.cos(ang)<-0.2)continue;var px=cx+Math.sin(ang)*R*0.7,py=cy+(Math.sin(k*1.7)*0.3)*R,sz=R*0.15;ctx.fillStyle="rgba(60,120,60,.7)";ctx.beginPath();ctx.ellipse(px,py,sz,sz*0.7,0,0,Math.PI*2);ctx.fill();}
     ctx.strokeStyle="rgba(100,180,255,.6)";ctx.lineWidth=2;ctx.shadowBlur=30;ctx.shadowColor="#4da8ff";ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;
     t+=1;
   }
@@ -454,28 +504,32 @@ var BG=(function(){
         var x=e.clientX-rect.left,y=e.clientY-rect.top;
         for(var i=0;i<planetScreenPos.length;i++){
           var p=planetScreenPos[i];var dx=x-p.x,dy=y-p.y;
-          if(dx*dx+dy*dy<=(p.r+14)*(p.r+14)){if(p.app)Windows.open(p.app);return;}
+          if(dx*dx+dy*dy<=p.r*p.r){if(p.app)Windows.open(p.app);return;}
         }
         if(theme==="kosmos"){
           var dx2=x-sunScreenPos.x,dy2=y-sunScreenPos.y;
-          if(dx2*dx2+dy2*dy2<=(sunScreenPos.r*1.6)*(sunScreenPos.r*1.6))Windows.open("chat");
+          if(dx2*dx2+dy2*dy2<=(sunScreenPos.r*1.7)*(sunScreenPos.r*1.7))Windows.open("chat");
         }
       });
       canvas.addEventListener("mousemove",function(e){
         var rect=canvas.getBoundingClientRect();
         var x=e.clientX-rect.left,y=e.clientY-rect.top;
         var hover=false;
-        if(theme==="kosmos"){var dx2=x-sunScreenPos.x,dy2=y-sunScreenPos.y;if(dx2*dx2+dy2*dy2<=(sunScreenPos.r*1.6)*(sunScreenPos.r*1.6))hover=true;}
-        for(var i=0;i<planetScreenPos.length;i++){var p=planetScreenPos[i];var dx=x-p.x,dy=y-p.y;if(dx*dx+dy*dy<=(p.r+14)*(p.r+14))hover=true;}
+        if(theme==="kosmos"){var dx2=x-sunScreenPos.x,dy2=y-sunScreenPos.y;if(dx2*dx2+dy2*dy2<=(sunScreenPos.r*1.7)*(sunScreenPos.r*1.7))hover=true;}
+        for(var i=0;i<planetScreenPos.length;i++){var p=planetScreenPos[i];var dx=x-p.x,dy=y-p.y;if(dx*dx+dy*dy<=p.r*p.r)hover=true;}
         sunHover=hover;canvas.style.cursor=hover?"pointer":"crosshair";
       });
       if(animId)cancelAnimationFrame(animId);loop();
     },
-    setTheme:function(th,spd,ck){theme=th;speedFactor=0.035+((spd||7)-1)*0.025;if(ck!==undefined)clockOn=ck;}
+    setTheme:function(th,spd,ck){
+      theme=th;
+      /* VIEL schneller als v131 */
+      speedFactor=0.1+((spd||7)-1)*0.09;
+      if(ck!==undefined)clockOn=ck;
+    }
   };
 })();
 
-/* ══════════ WINDOW MANAGER ══════════ */
 var Windows={
   zIndexBase:100,openCount:0,
   open:function(appId){
@@ -621,7 +675,7 @@ function renderSidebar(){
   sb.querySelectorAll("[data-open-app]").forEach(function(b){b.addEventListener("click",function(){Windows.open(b.dataset.openApp);if(window.innerWidth<700)sb.classList.remove("open");});});
   $("sbSettings").addEventListener("click",function(){renderSettingsPanel();$("settings").classList.add("show");sb.classList.remove("open");});
   $("sbVoice").addEventListener("click",function(){renderVoicePanel();$("voicePanel").classList.add("show");sb.classList.remove("open");});
-  $("sbAbout").addEventListener("click",function(){toast("🦚 HalDo AI OS v131 — von Bruder für Bruder","ok");});
+  $("sbAbout").addEventListener("click",function(){toast("🦚 HalDo AI OS v132 — von Bruder für Bruder","ok");});
 }
 
 function renderSettingsPanel(){
@@ -633,8 +687,8 @@ function renderSettingsPanel(){
     +'<div class="theme-card'+(s.theme==="erde"?" active":"")+'" data-theme="erde"><div class="preview erde"></div><div class="name">🌍 Erde</div></div>'
     +'<div class="theme-card'+(s.theme==="holo"?" active":"")+'" data-theme="holo"><div class="preview holo"></div><div class="name">🔵 Holo</div></div>'
     +'</div><div class="speed-row"><span>🐌</span><input type="range" id="globalSpeed" min="1" max="10" value="'+(s.planetSpeed||7)+'"><span class="sv" id="speedVal">'+(s.planetSpeed||7)+'×</span><span>🐇</span></div>'
-    +'<div style="font-size:10px;color:var(--text-mute);margin-top:4px;text-align:center">Planeten-Geschwindigkeit (1=langsam · 10=schnell)</div>'
-    +'<div class="row" style="margin-top:8px"><div class="lbl">🕐 Uhr-Planeten <small>Sekunde · Minute · Stunde als Zeiger</small></div><div class="sw'+(s.clockOn?" on":"")+'" id="clockSw"></div></div></div>'
+    +'<div style="font-size:10px;color:var(--text-mute);margin-top:4px;text-align:center">Planeten-Geschwindigkeit (1=langsam · 10=sehr schnell)</div>'
+    +'<div class="row" style="margin-top:8px"><div class="lbl">🕐 Uhr-Planeten <small>Sekunde · Minute · Stunde (ohne Zeiger)</small></div><div class="sw'+(s.clockOn?" on":"")+'" id="clockSw"></div></div></div>'
     +'<div class="group"><h3>🌐 Sprache</h3><div class="lang-grid">'
     +Object.keys(LANGS).map(function(k){return '<div class="lang-card'+(s.lang===k?" active":"")+'" data-lang="'+k+'"><span class="flag">'+LANGS[k].flag+'</span><div class="name">'+esc(LANGS[k].name)+'</div></div>';}).join("")
     +'</div></div>'
@@ -681,7 +735,6 @@ function renderVoicePanel(){
   var t=$("vpTest");if(t)t.addEventListener("click",function(){Voice.speak("Silav! Ich bin HalDo, dein Assistent.");});
 }
 
-/* ══════════ CHAT ══════════ */
 var Chat={
   history:[],
   responses:{
@@ -690,30 +743,20 @@ var Chat={
     "wie geht es dir":"Mir geht's super! Und dir? 😊",
     "was kannst du":"Ich kenne die Ezidi-Geschichte, alle 7 Engel, Mushaf Reş, Qewls, Mesopotamien, Sumerer, Akkader, Assyrer, Meder, Arya und vieles mehr. 💪",
     "eziden":"Die Eziden (Êzidî) sind eine kurdischsprachige Religionsgemeinschaft Mesopotamiens mit über 12.000 Jahren Kultur. Zentrum: Laliş. Oberster Engel: Tawûsî Melek. Heilige Schriften: Mushaf Reş & Kitêba Cilwe. 🦚",
-    "ezidi":"Die Eziden (Êzidî) — Anhänger Gottes, eines der ältesten Völker Mesopotamiens. Ihre Vorfahren: Sumerer, Akkader, Assyrer, Meder, Arya. 🦚",
-    "mushaf":"Mushaf Reş (Schwarzes Buch) ist eine der heiligen Schriften der Eziden. Beschreibt die Schöpfung: Gott erschuf die Weiße Perle, den Vogel Angar, und nach 40.000 Jahren den Pfauengel Tawûsî Melek. 🦚",
-    "mushaf reş":"Mushaf Reş — das Schwarze Buch. Heilige Schrift der Eziden. Beschreibt Schöpfung durch Tawûsî Melek und die 72 Genozide. 🦚",
-    "kiteba":"Kitêba Cilwe (Buch der Offenbarung) — neben Mushaf Reş die zweite heilige Schrift der Eziden. Kosmologische Lehren. 📖",
+    "ezidi":"Die Eziden (Êzidî) — Anhänger Gottes, eines der ältesten Völker Mesopotamiens. Vorfahren: Sumerer, Akkader, Assyrer, Meder, Arya. 🦚",
+    "mushaf":"Mushaf Reş (Schwarzes Buch) — heilige Schrift der Eziden. Beschreibt die Schöpfung: Gott erschuf die Weiße Perle, den Vogel Angar und nach 40.000 Jahren den Pfauengel Tawûsî Melek. 🦚",
     "tawusi":"Tawûsî Melek — der Pfauengel. Oberster der 7 Engel. Symbol der göttlichen Kraft. NICHT der Teufel. 🦚",
-    "tawûsî":"Tawûsî Melek — Pfauengel, Oberster der 7 Engel, Schöpfer und Herr der Welt. 🦚",
-    "engel":"Die 7 Engel der Eziden: Tawûsî Melek (Sonntag), Şêx Hesen (Montag), Şêx Şems (Dienstag), Şêx Abû Bekr (Mittwoch), Sajad-ad-Dîn (Donnerstag), Nasir-ad-Dîn (Freitag), Yadin (Samstag). 👼",
-    "qewl":"Qewls sind heilige Hymnen der Eziden, zu Musik rezitiert. Die wichtigsten: Qewlê Bê Elîf, Qewlê Mezin, Qewlê Şeqeserî, Dûʻa Mirazê. 🕊️",
+    "engel":"Die 7 Engel: Tawûsî Melek (So), Şêx Hesen (Mo), Şêx Şems (Di), Şêx Abû Bekr (Mi), Sajad-ad-Dîn (Do), Nasir-ad-Dîn (Fr), Yadin (Sa). 👼",
+    "qewl":"Qewls sind heilige Hymnen der Eziden. Die wichtigsten: Qewlê Bê Elîf, Qewlê Mezin, Qewlê Şeqeserî, Dûʻa Mirazê. 🕊️",
     "lalish":"Laliş ist das Hauptheiligtum der Eziden im Nordirak. Grab von Sheikh Adi ibn Musafir. Jährliche Wallfahrt im September. 🦚",
-    "çarşema":"Çarşema Sor (Roter Mittwoch) ist das ezidische Neujahrsfest im April. Eier färben, Gräberbesuch, Frühlingsbeginn. 🌸",
-    "ezidxan":"Êzîdxan bedeutet 'Land der Eziden' — historisches Siedlungsgebiet im Nordirak (Sindschar, Laliş). 🦚",
-    "kurdistan":"Kurdistan ist die Heimat der Kurden und Eziden. Die Kurden sind Nachfahren der Meder, Arya und Mesopotamier. ~40 Mio. Menschen. 🟨",
+    "kurdistan":"Kurdistan ist die Heimat der Kurden und Eziden. Die Kurden sind Nachfahren der Meder, Arya und Mesopotamier. 🟨",
     "kurden":"Die Kurden sind eines der ältesten Völker der Welt. Vorfahren: Sumerer, Akkader, Assyrer, Meder, Arya. 🟨",
-    "mesopotamien":"Mesopotamien (Zweistromland) — Wiege der Zivilisation zwischen Euphrat und Tigris. Hier entstanden Sumerer, Akkader, Babylonier, Assyrer. 🏛️",
+    "mesopotamien":"Mesopotamien (Zweistromland) — Wiege der Zivilisation zwischen Euphrat und Tigris. 🏛️",
     "sumerer":"Die Sumerer (ca. 4000 v. Chr.) erfanden die Keilschrift, das Rad und die ersten Städte: Ur, Uruk, Eridu. 📜",
-    "akkader":"Die Akkader (ca. 2300 v. Chr.) bildeten unter Sargon von Akkad das erste semitische Großreich Mesopotamiens. 🏛️",
-    "assyrer":"Die Assyrer (ca. 1300 v. Chr.) — mächtiges Reich in Nordmesopotamien. Hauptstadt Ninive. Erste Bibliothek der Welt (Assurbanipal). 📚",
-    "babylonier":"Die Babylonier (ca. 1800 v. Chr.) — Hammurapi schuf die erste Gesetzessammlung. Später Nebukadnezar II. mit den Hängenden Gärten. 🏛️",
-    "ary":"Die Arier (Arya) waren ein indo-iranisches Volk aus Zentralasien. Vermischten sich mit Medern und Persern. Vorfahren der Kurden. 🏛️",
-    "med":"Die Meder (ca. 700 v. Chr.) waren ein iranisches Volk, das mit den Persern das erste Reich gründete. Vorfahren der Kurden und Eziden. ⚔️",
-    "meder":"Die Meder (Med) — iranisches Volk, Vorfahren der Kurden und Eziden. ⚔️",
-    "danke":"Spas! 🦚",
-    "spas":"Bi xêr hatî! 🦚",
-    "göbekli":"Göbekli Tepe (ca. 10000 v. Chr.) in Anatolien — der älteste Tempel der Welt. Zeugnis der frühen Kulturen Mesopotamiens. 🏛️"
+    "akkader":"Die Akkader (ca. 2300 v. Chr.) — erstes semitisches Großreich unter Sargon von Akkad. 🏛️",
+    "assyrer":"Die Assyrer (ca. 1300 v. Chr.) — Hauptstadt Ninive. Erste Bibliothek der Welt. 📚",
+    "med":"Die Meder (ca. 700 v. Chr.) — iranisches Volk. Vorfahren der Kurden und Eziden. ⚔️",
+    "danke":"Spas! 🦚"
   },
   attach:function(el){
     this._el=el;
@@ -748,7 +791,7 @@ var Chat={
     var m=q.match(/^(übersetze|translate)\s+(.+)/);
     if(m){
       var word=m[2].replace(/[?.!]/g,"").trim();
-      var i18n={"hallo":{ez:"silav",ku:"silav",ar:"مرحبا"},"danke":{ez:"spas",ku:"spas",ar:"شكرا"},"wasser":{ez:"av",ku:"av",ar:"ماء"},"brot":{ez:"nan",ku:"nan",ar:"خبز"},"haus":{ez:"mal",ku:"mal",ar:"بيت"},"freund":{ez:"heval",ku:"heval",ar:"صديق"},"liebe":{ez:"evîn",ku:"evîn",ar:"حب"},"gott":{ez:"xwedê",ku:"xwedê",ar:"الله"},"willkommen":{ez:"bi xêr hatî",ku:"bi xêr hatî",ar:"أهلا"},"sonne":{ez:"roj",ku:"roj",ar:"شمس"},"mond":{ez:"heyv",ku:"heyv",ar:"قمر"}};
+      var i18n={"hallo":{ez:"silav",ku:"silav",ar:"مرحبا"},"danke":{ez:"spas",ku:"spas",ar:"شكرا"},"wasser":{ez:"av",ku:"av",ar:"ماء"},"brot":{ez:"nan",ku:"nan",ar:"خبز"},"haus":{ez:"mal",ku:"mal",ar:"بيت"},"freund":{ez:"heval",ku:"heval",ar:"صديق"},"liebe":{ez:"evîn",ku:"evîn",ar:"حب"},"gott":{ez:"xwedê",ku:"xwedê",ar:"الله"},"sonne":{ez:"roj",ku:"roj",ar:"شمس"},"mond":{ez:"heyv",ku:"heyv",ar:"قمر"}};
       if(i18n[word])return word+" auf Ezidi: 🦚 "+i18n[word].ez+"\nAuf Kurdisch: 🟨 "+i18n[word].ku+"\nAuf Arabisch: 🇸🇦 "+i18n[word].ar;
       return "Das Wort kenne ich nicht. Versuch: „übersetze wasser\"";
     }
@@ -765,7 +808,6 @@ var Chat={
   }
 };
 
-/* ══════════ MODULES ══════════ */
 var MODULES={};
 
 MODULES.chat={render:function(el){
@@ -781,7 +823,6 @@ MODULES.chat={render:function(el){
   Chat.attach(el);
 }};
 
-/* ══════════ EZIDI MEGA-APP ══════════ */
 MODULES.ezidi={render:function(el){
   var tab="phrase";
   
@@ -807,8 +848,6 @@ MODULES.ezidi={render:function(el){
     {cat:"🦚 Religion",de:"Neujahrsfest",ez:"Çarşema Sor",rom:"tschar-sche-ma sor"},
     {cat:"🦚 Religion",de:"Heilige Hymne",ez:"Qewl",rom:"qewl"},
     {cat:"🦚 Religion",de:"Engel",ez:"Melek",rom:"me-lek"},
-    {cat:"🦚 Religion",de:"Himmel",ez:"Ezman",rom:"es-man"},
-    {cat:"🦚 Religion",de:"Erde",ez:"Erd",rom:"erd"},
     {cat:"🟨 Kultur",de:"Wir sind alle Eziden",ez:"Em hemî êzidî ne",rom:"em he-mi e-si-di ne"},
     {cat:"🟨 Kultur",de:"Ich liebe dich",ez:"Ez te hez dikim",rom:"es te hes di-kim"},
     {cat:"🟨 Kultur",de:"Familie",ez:"Malbat",rom:"mal-bat"},
@@ -845,16 +884,16 @@ MODULES.ezidi={render:function(el){
     {n:"Beyt",d:"Religiöse Dichtung",desc:"Lehrreiche Gedichte, von Generation zu Generation weitergegeben. Vermitteln Moral, Geschichte und Glaubenswissen."},
     {n:"Tawûsî Melek",d:"Der Pfauengel",desc:"Oberster von 7 Engeln. Symbol der göttlichen Kraft. Der Schöpfer der materiellen Welt. NICHT der Teufel — dies ist eine falsche Anschuldigung."},
     {n:"Laliş",d:"Heiliges Tal",desc:"Hauptheiligtum der Eziden im Nordirak. Grab von Sheikh Adi ibn Musafir († 1162). Jährliche Wallfahrt im September. 7 mal um die Kaaba der Eziden laufen."},
-    {n:"Çarşema Sor",d:"Rotes Mittwochsfest",desc:"Ezidisches Neujahrsfest im April. Färben von Eiern, Grabbesuch, Frühlingsbeginn. Feier der Vollendung der Schöpfung."},
-    {n:"Êzidî",d:"Selbstbezeichnung",desc:"'Anhänger Gottes' — abgeleitet von yezdan/êz. Glaube an einen Gott, der die Welt durch 7 Engel regiert. Endogam (Heirat meist innerhalb)."},
-    {n:"72 Genozide",d:"Verfolgung",desc:"Laut Tradition 72 Verfolgungen in der Geschichte. Jüngster: 2014 Sindschar durch ISIS — über 5.000 Männer ermordet, 7.000 Frauen und Kinder versklavt."}
+    {n:"Çarşema Sor",d:"Rotes Mittwochsfest",desc:"Ezidisches Neujahrsfest im April. Färben von Eiern, Grabbesuch, Frühlingsbeginn."},
+    {n:"Êzidî",d:"Selbstbezeichnung",desc:"'Anhänger Gottes'. Glaube an einen Gott, der die Welt durch 7 Engel regiert."},
+    {n:"72 Genozide",d:"Verfolgung",desc:"Laut Tradition 72 Verfolgungen. Jüngster: 2014 Sindschar durch ISIS — über 5.000 Männer ermordet, 7.000 versklavt."}
   ];
   
   var QEWLS=[
-    {n:"Qewlê Bê Elîf",d:"Hymne von B und A",txt:"Qewlê Bê Elîf — 'Die Hymne vom B und A'. Sie ist die erste Hymne und erzählt vom Anfang der Schöpfung durch Tawûsî Melek. Sie wird zu Beginn jeder Versammlung rezitiert."},
-    {n:"Qewlê Mezin",d:"Die große Hymne",txt:"Die große Hymne. Erzählt die Schöpfungsgeschichte, das Wesen Gottes und Tawûsî Meleks. Sie ist grundlegend für das ezidische Glaubensverständnis."},
+    {n:"Qewlê Bê Elîf",d:"Hymne von B und A",txt:"Qewlê Bê Elîf — die erste Hymne. Erzählt vom Anfang der Schöpfung durch Tawûsî Melek. Sie wird zu Beginn jeder Versammlung rezitiert."},
+    {n:"Qewlê Mezin",d:"Die große Hymne",txt:"Die große Hymne erzählt die Schöpfungsgeschichte und das Wesen Gottes. Grundlegend für das ezidische Glaubensverständnis."},
     {n:"Qewlê Şeqeserî",d:"Hymne des Benehmens",txt:"Hymne über richtiges Benehmen, Sitten und Moral. Lehrt die Werte, die ein Ezidi leben soll."},
-    {n:"Dûʻa Mirazê",d:"Gebet der Wünsche",txt:"Das Gebet der Wünsche. Es wird gesprochen, wenn man Bitten an Gott richtet. Kurz und kraftvoll."},
+    {n:"Dûʻa Mirazê",d:"Gebet der Wünsche",txt:"Das Gebet der Wünsche. Wird gesprochen, wenn man Bitten an Gott richtet. Kurz und kraftvoll."},
     {n:"Qewlê Qendîla",d:"Hymne der Lichter",txt:"Hymne der Lichter. Bezieht sich auf die heiligen Lichter in Laliş und anderen Heiligtümern."},
     {n:"Qewlê Zebûnî Mekstîr",d:"Hymne vom Schiffbrüchigen",txt:"Hymne vom unglücklichen Schiffbrüchigen. Eine Parabel über Leid, Geduld und die rettende Kraft Tawûsî Meleks."},
     {n:"Sabah-Gebet",d:"Morgengebet",txt:"Das Morgengebet wird vor Sonnenaufgang gesprochen, mit Blick auf die Sonne. Der Ezidi wendet sich zur Sonne, denn sie ist Symbol Tawûsî Meleks."},
@@ -862,21 +901,21 @@ MODULES.ezidi={render:function(el){
   ];
   
   var ALTE_VOELKER=[
-    {y:"ca. 10000 v. Chr.",n:"Göbekli Tepe",d:"Ältester Tempel der Welt in Anatolien. Zeugnis der frühesten Kulturen Mesopotamiens. Erbaut von Jägern und Sammlern — lange vor den Sumerern."},
-    {y:"ca. 4000 v. Chr.",n:"Sumerer",d:"Erfanden die Keilschrift, das Rad, die ersten Städte (Ur, Uruk, Eridu), das Zahlensystem und die Astronomie. Sie gelten als erste Hochkultur der Welt. Vorfahren der späteren Mesopotamier."},
-    {y:"ca. 3000 v. Chr.",n:"Elamiter",d:"Altes Volk im Südwesten Irans (Elam). Sprachlich nicht-indogermanisch. Wichtiger früher Nachbar Mesopotamiens."},
-    {y:"ca. 2300 v. Chr.",n:"Akkader",d:"Semitisches Volk unter Sargon von Akkad. Erstes Großreich der Welt. Eroberten Sumer und vereinigten Mesopotamien. Sprache: Akkadisch."},
-    {y:"ca. 1800 v. Chr.",n:"Babylonier",d:"Amurriter-Dynastie. Hammurapi schuf die erste große Gesetzessammlung. Später Nebukadnezar II. mit den Hängenden Gärten (eines der 7 Weltwunder)."},
-    {y:"ca. 1500 v. Chr.",n:"Hurriter / Mitanni",d:"Indo-arisch beeinflusstes Volk in Nordmesopotamien. Wichtige Kultur zwischen Hethitern und Assyrern."},
-    {y:"ca. 1300 v. Chr.",n:"Assyrer",d:"Mächtiges Kriegsvolk in Nordmesopotamien. Hauptstadt Ninive. Erste Bibliothek der Welt (Assurbanipal). Ihr Reich fiel 612 v. Chr. an Babylon und Meder."},
-    {y:"ca. 700 v. Chr.",n:"Meder (Med)",d:"Indo-iranisches Volk im Iran. Gründer des ersten Medischen Reiches. Verbündet mit Babyloniern zerstörten sie das Assyrerreich. GELTEN ALS VORFAHREN DER KURDEN UND EZIDEN."},
-    {y:"ca. 600 v. Chr.",n:"Perser (Achämeniden)",d:"Kyros der Große, Dareios I. Größtes Reich der Antike — von Indien bis Griechenland. Die Perser übernahmen viel von den Medern."},
-    {y:"ca. 300 v. Chr.",n:"Arya (Arier)",d:"Indo-iranisches Volk aus Zentralasien. Sprachlich verwandt mit Medern und Persern. Ab ca. 2000 v. Chr. wanderten sie nach Iran und Indien."},
-    {y:"ca. 1000 n. Chr.",n:"Sheikh Adi ibn Musafir",d:"(† 1162) — Reformator der ezidischen Religion. Sein Grab in Laliş ist bis heute das Hauptheiligtum. Er vereinte die Lehren zu einer eigenständigen Religion."},
-    {y:"ca. 1200 n. Chr.",n:"Die Eziden als Volk",d:"Die Eziden entwickeln sich als eigenständige Religionsgemeinschaft. Nachfahren der Mesopotamier, Meder und Arya mit eigener Schrift, Sprache und Glaubenstradition."},
-    {y:"1915-1918",n:"Völkermord (72.)",d:"Osmanisches Reich. Massaker an Eziden, Armeniern, Assyrern. Millionen Tote. Viele Eziden flohen in den Irak, nach Syrien, in den Kaukasus."},
-    {y:"2014",n:"Sindschar-Massaker",d:"ISIS-Genozid an den Eziden. Über 5.000 Männer ermordet, 7.000 Frauen und Kinder versklavt. Über 400.000 flohen in die Berge. Flächendeckende Anerkennung als Völkermord."},
-    {y:"Heute",n:"Diaspora",d:"Größte Diaspora in Deutschland (ca. 200.000). Weitere in Armenien, Russland, USA, Kanada. Zentrum bleibt Laliş im Nordirak (Sindschar-Region)."}
+    {y:"ca. 10000 v. Chr.",n:"Göbekli Tepe",d:"Ältester Tempel der Welt in Anatolien. Zeugnis der frühesten Kulturen Mesopotamiens."},
+    {y:"ca. 4000 v. Chr.",n:"Sumerer",d:"Erfanden Keilschrift, Rad, erste Städte (Ur, Uruk, Eridu), Zahlensystem und Astronomie. Erste Hochkultur der Welt."},
+    {y:"ca. 3000 v. Chr.",n:"Elamiter",d:"Altes Volk im Südwesten Irans (Elam). Sprachlich nicht-indogermanisch."},
+    {y:"ca. 2300 v. Chr.",n:"Akkader",d:"Semitisches Volk unter Sargon von Akkad. Erstes Großreich der Welt. Sprache: Akkadisch."},
+    {y:"ca. 1800 v. Chr.",n:"Babylonier",d:"Hammurapi schuf die erste große Gesetzessammlung. Später Nebukadnezar II. mit den Hängenden Gärten."},
+    {y:"ca. 1500 v. Chr.",n:"Hurriter / Mitanni",d:"Indo-arisch beeinflusstes Volk in Nordmesopotamien."},
+    {y:"ca. 1300 v. Chr.",n:"Assyrer",d:"Mächtiges Kriegsvolk in Nordmesopotamien. Hauptstadt Ninive. Erste Bibliothek der Welt (Assurbanipal)."},
+    {y:"ca. 700 v. Chr.",n:"Meder (Med)",d:"Indo-iranisches Volk im Iran. Gründer des ersten Medischen Reiches. Gelten als Vorfahren der Kurden und Eziden."},
+    {y:"ca. 600 v. Chr.",n:"Perser (Achämeniden)",d:"Kyros der Große, Dareios I. Größtes Reich der Antike."},
+    {y:"ca. 300 v. Chr.",n:"Arya (Arier)",d:"Indo-iranisches Volk aus Zentralasien. Sprachlich verwandt mit Medern und Persern."},
+    {y:"ca. 1000 n. Chr.",n:"Sheikh Adi ibn Musafir",d:"(† 1162) Reformator der ezidischen Religion. Grab in Laliş ist das Hauptheiligtum."},
+    {y:"ca. 1200 n. Chr.",n:"Die Eziden als Volk",d:"Die Eziden entwickeln sich als eigenständige Religionsgemeinschaft. Nachfahren der Mesopotamier, Meder und Arya."},
+    {y:"1915-1918",n:"Völkermord (72.)",d:"Osmanisches Reich. Massaker an Eziden, Armeniern, Assyrern."},
+    {y:"2014",n:"Sindschar-Massaker",d:"ISIS-Genozid an den Eziden. Über 5.000 Männer ermordet, 7.000 versklavt."},
+    {y:"Heute",n:"Diaspora",d:"Größte Diaspora in Deutschland (ca. 200.000). Zentrum bleibt Laliş im Nordirak."}
   ];
   
   function build(){
@@ -892,26 +931,14 @@ MODULES.ezidi={render:function(el){
             }).join("")+'</div>';
         }).join("")+'</div>';
     } else if(tab==="alpha"){
-      body='<div class="card"><h3>🔤 Ezidi Klassisch (33 Zeichen)</h3>'
-        +'<div style="font-size:10.5px;color:var(--text-dim);margin-bottom:8px">Die klassische ezidische Schrift hat 33 Konsonanten. Geschrieben von rechts nach links. Verwendet für Kurmandschi (Nordkurdisch).</div>'
-        +'<div class="alpha-grid">'+EZIDI_CLASSIC.map(function(l){return '<div class="alpha-cell" data-ez-speak="'+l+'"><div class="ch">'+l+'</div></div>';}).join("")+'</div>'
-        +'</div>'
-        +'<div class="card"><h3>🔤 Ezidi Modern (42 Zeichen)</h3>'
-        +'<div style="font-size:10.5px;color:var(--text-dim);margin-bottom:8px">Erweitertes modernes Alphabet, eingeführt 2013. Mit Vokalen und diakritischen Zeichen. 2020 in Unicode 13.0 aufgenommen.</div>'
-        +'<div class="alpha-grid">'+EZIDI_MODERN.map(function(l){return '<div class="alpha-cell" data-ez-speak="'+l+'"><div class="ch">'+l+'</div></div>';}).join("")+'</div>'
-        +'</div>'
-        +'<div class="card"><h3>🇸🇦 Arabisch (Sorani)</h3>'
-        +'<div style="font-size:10.5px;color:var(--text-dim);margin-bottom:8px">Arabische Schrift, wie sie für Sorani-Kurdisch verwendet wird.</div>'
-        +'<div class="alpha-grid">'+ARABIC.map(function(l){return '<div class="alpha-cell" data-ez-speak="'+l+'"><div class="ch">'+l+'</div></div>';}).join("")+'</div>'
-        +'</div>'
-        +'<div class="card"><h3>🔮 Alte Symbole (vor-schriftlich)</h3>'
-        +'<div style="font-size:10.5px;color:var(--text-dim);margin-bottom:8px">Symbole aus der alten ezidischen Tradition und Mushaf Reş Zeichen.</div>'
-        +'<div class="alpha-grid">'+ANCIENT_SYMBOLS.map(function(l){return '<div class="alpha-cell"><div class="ch" style="color:#e8ca9a">'+l+'</div></div>';}).join("")+'</div>'
-        +'</div>';
+      body='<div class="card"><h3>🔤 Ezidi Klassisch (33 Zeichen)</h3><div class="alpha-grid">'+EZIDI_CLASSIC.map(function(l){return '<div class="alpha-cell" data-ez-speak="'+l+'"><div class="ch">'+l+'</div></div>';}).join("")+'</div></div>'
+        +'<div class="card"><h3>🔤 Ezidi Modern (42 Zeichen)</h3><div class="alpha-grid">'+EZIDI_MODERN.map(function(l){return '<div class="alpha-cell" data-ez-speak="'+l+'"><div class="ch">'+l+'</div></div>';}).join("")+'</div></div>'
+        +'<div class="card"><h3>🇸🇦 Arabisch (Sorani)</h3><div class="alpha-grid">'+ARABIC.map(function(l){return '<div class="alpha-cell" data-ez-speak="'+l+'"><div class="ch">'+l+'</div></div>';}).join("")+'</div></div>'
+        +'<div class="card"><h3>🔮 Alte Symbole</h3><div class="alpha-grid">'+ANCIENT_SYMBOLS.map(function(l){return '<div class="alpha-cell"><div class="ch" style="color:#e8ca9a">'+l+'</div></div>';}).join("")+'</div></div>';
     } else if(tab==="mushaf"){
       body='<div class="card"><h3>🦚 Mushaf Reş — Das Schwarze Buch</h3>'
         +'<div style="font-size:11.5px;line-height:1.7;color:var(--text-dim);padding:10px;background:rgba(216,180,120,.08);border-radius:10px;margin-bottom:12px;border-left:3px solid #d8b478">'
-        +'<b style="color:#e8ca9a">Schöpfungsgeschichte:</b><br>Am Anfang erschuf Gott die <b>Weiße Perle</b> aus seinem kostbarsten Wesen. Er erschuf einen Vogel namens <b>Angar</b>. Er setzte die Perle auf den Rücken des Vogels und wohnte <b>vierzigtausend Jahre</b> darauf. Am ersten Tag, <b>Sonntag</b>, erschuf Gott <b>Melek Anzazîl</b> — das ist <b>Tawûsî Melek</b>. Dann brach die Perle in vier Stücke, Wasser floss heraus und wurde zum Ozean. Tawûsî Melek stieg herab und wohnte im <b>Berg Laliş</b>.'
+        +'<b style="color:#e8ca9a">Schöpfungsgeschichte:</b><br>Am Anfang erschuf Gott die <b>Weiße Perle</b>. Er erschuf einen Vogel namens <b>Angar</b>. Er setzte die Perle auf den Rücken des Vogels und wohnte <b>vierzigtausend Jahre</b> darauf. Am ersten Tag, <b>Sonntag</b>, erschuf Gott <b>Melek Anzazîl</b> — das ist <b>Tawûsî Melek</b>. Dann brach die Perle in vier Stücke, Wasser floss heraus. Tawûsî Melek stieg herab und wohnte im <b>Berg Laliş</b>.'
         +'</div>'
         +MUSHAF.map(function(m){
           return '<div style="padding:14px;background:linear-gradient(135deg,rgba(180,120,255,.08),rgba(0,229,255,.08));border-radius:12px;margin-bottom:10px;border-left:3px solid var(--p3)"><div style="font-size:13px;font-weight:900;color:var(--p3)">'+esc(m.n)+'</div><div style="font-size:10.5px;color:#c084fc;font-weight:700;margin-top:2px">'+esc(m.d)+'</div><div style="font-size:11.5px;line-height:1.7;color:var(--text-dim);margin-top:8px">'+esc(m.desc)+'</div></div>';
@@ -919,36 +946,22 @@ MODULES.ezidi={render:function(el){
         +'</div>';
     } else if(tab==="engel"){
       body='<div class="card"><h3>👼 Die 7 Engel (Heft Sirr)</h3>'
-        +'<div style="font-size:11px;line-height:1.6;color:var(--text-dim);margin-bottom:12px;padding:10px;background:rgba(0,0,0,.2);border-radius:10px">Nach ezidischer Lehre regiert Gott die Welt durch <b>7 Engel</b>. Jeder Engel ist einem Wochentag zugeordnet und hat eine Aufgabe. <b>Tawûsî Melek</b> ist der Oberste.</div>'
+        +'<div style="font-size:11px;line-height:1.6;color:var(--text-dim);margin-bottom:12px;padding:10px;background:rgba(0,0,0,.2);border-radius:10px">Nach ezidischer Lehre regiert Gott die Welt durch <b>7 Engel</b>. Jeder Engel ist einem Wochentag zugeordnet. <b>Tawûsî Melek</b> ist der Oberste.</div>'
         +ENGEL.map(function(e){
           return '<div class="ez-engel"><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="font-size:28px">'+e.emoji+'</span><div><div class="n">'+esc(e.ez)+'</div><div style="font-size:10px;color:var(--text-mute)">'+esc(e.day)+'</div></div></div><div class="sub">📛 '+esc(e.name)+'</div><div class="d">'+esc(e.task)+'</div></div>';
-        }).join("")
-        +'</div>';
+        }).join("")+'</div>';
     } else if(tab==="qewl"){
       body='<div class="card"><h3>🕊️ Qewl — Heilige Hymnen & Gebete</h3>'
-        +'<div style="font-size:11px;line-height:1.65;color:var(--text-dim);margin-bottom:12px;padding:10px;background:rgba(180,120,255,.08);border-radius:10px;border-left:3px solid var(--p3)">Die <b>Qewls</b> (arab. qaul = Wort) sind heilige Gesänge der Eziden. Sie werden zu Musik rezitiert — bei Festen, Wallfahrten und Versammlungen. Sie sind eine zentrale Quelle ezidischen Wissens und werden von Generation zu Generation weitergegeben.</div>'
+        +'<div style="font-size:11px;line-height:1.65;color:var(--text-dim);margin-bottom:12px;padding:10px;background:rgba(180,120,255,.08);border-radius:10px;border-left:3px solid var(--p3)">Die <b>Qewls</b> sind heilige Gesänge der Eziden. Sie werden zu Musik rezitiert — bei Festen, Wallfahrten und Versammlungen.</div>'
         +QEWLS.map(function(q){
           return '<div class="ez-qewl"><div class="t">'+esc(q.n)+'</div><div class="tr">'+esc(q.d)+'</div><div class="txt">'+esc(q.txt)+'</div></div>';
-        }).join("")
-        +'</div>';
+        }).join("")+'</div>';
     } else if(tab==="geschichte"){
       body='<div class="card"><h3>🏛️ Geschichte von Anfang bis Heute</h3>'
-        +'<div style="font-size:11px;line-height:1.65;color:var(--text-dim);margin-bottom:12px;padding:10px;background:rgba(0,229,255,.08);border-radius:10px">Von Göbekli Tepe (10000 v. Chr.) über Sumerer, Akkader, Assyrer, Meder und Arya bis zu den heutigen Eziden und Kurden. Die Eziden sehen sich als Nachfahren der großen Völker Mesopotamiens.</div>'
+        +'<div style="font-size:11px;line-height:1.65;color:var(--text-dim);margin-bottom:12px;padding:10px;background:rgba(0,229,255,.08);border-radius:10px">Von Göbekli Tepe (10000 v. Chr.) über Sumerer, Akkader, Assyrer, Meder und Arya bis zu den heutigen Eziden.</div>'
         +ALTE_VOELKER.map(function(h){
           return '<div class="ez-timeline"><div class="y">📅 '+esc(h.y)+'</div><div class="n">'+esc(h.n)+'</div><div class="d">'+esc(h.d)+'</div></div>';
-        }).join("")
-        +'</div>'
-        +'<div class="card"><h3>🦚 Das ezidische Volk heute</h3>'
-        +'<div style="font-size:12px;line-height:1.8;color:var(--text-dim)">'
-        +'<p style="margin-bottom:8px"><b style="color:var(--p1)">Zahl:</b> ca. 800.000 – 1 Mio. weltweit</p>'
-        +'<p style="margin-bottom:8px"><b style="color:var(--p1)">Verbreitung:</b> Irak (Sindschar, Sheikhan), Syrien, Türkei, Armenien, Georgien, Deutschland (größte Diaspora)</p>'
-        +'<p style="margin-bottom:8px"><b style="color:var(--p1)">Sprache:</b> Kurmandschi (Nordkurdisch) — liturgisch auch Arabisch</p>'
-        +'<p style="margin-bottom:8px"><b style="color:var(--p1)">Vorfahren:</b> Sumerer, Akkader, Babylonier, Assyrer, Meder, Arya — eines der ältesten Völker Mesopotamiens</p>'
-        +'<p style="margin-bottom:8px"><b style="color:var(--p1)">Symbole:</b> Pfau (Tawûsî Melek), Sonne, Feuer, Laliş-Tal, Schwarzes Buch</p>'
-        +'<p style="margin-bottom:8px"><b style="color:var(--p1)">Heilige Orte:</b> Laliş (Irak), Sindschar-Berge, Sheikh Adi Grab</p>'
-        +'<p style="margin-bottom:8px"><b style="color:var(--p1)">Feste:</b> Çarşema Sor (April), Ziyaret nach Laliş (September)</p>'
-        +'<p><b style="color:var(--p1)">Verfolgung:</b> 72 Genozide — jüngster 2014 durch ISIS (Sindschar)</p>'
-        +'</div></div>';
+        }).join("")+'</div>';
     }
     el.innerHTML='<div class="tabs">'
       +'<button class="tab'+(tab==="phrase"?" active":"")+'" data-ezt="phrase">📖 Phrasen</button>'
@@ -964,62 +977,56 @@ MODULES.ezidi={render:function(el){
   build();
 }};
 
-/* ══════════ WELT ══════════ */
 MODULES.welt={render:function(el){
   var tab="countries";
   var COUNTRIES=[
-    {de:"Deutschland",ku:"Almanya",flag:"🇩🇪",cap:"Berlin",pop:84000000,curr:"EUR",cont:"Europa",tz:"Europe/Berlin"},
-    {de:"Türkei",ku:"Tirkiye",flag:"🇹🇷",cap:"Ankara",pop:85000000,curr:"TRY",cont:"Asien",tz:"Europe/Istanbul"},
-    {de:"Irak",ku:"Iraq",flag:"🇮🇶",cap:"Bagdad",pop:42000000,curr:"IQD",cont:"Asien",tz:"Asia/Baghdad"},
-    {de:"Syrien",ku:"Sûriye",flag:"🇸🇾",cap:"Damaskus",pop:18000000,curr:"SYP",cont:"Asien",tz:"Asia/Damascus"},
-    {de:"Iran",ku:"Îran",flag:"🇮🇷",cap:"Teheran",pop:87000000,curr:"IRR",cont:"Asien",tz:"Asia/Tehran"},
-    {de:"Frankreich",ku:"Fransa",flag:"🇫🇷",cap:"Paris",pop:68000000,curr:"EUR",cont:"Europa",tz:"Europe/Paris"},
-    {de:"Italien",ku:"Îtalya",flag:"🇮🇹",cap:"Rom",pop:59000000,curr:"EUR",cont:"Europa",tz:"Europe/Rome"},
-    {de:"Spanien",ku:"Spanya",flag:"🇪🇸",cap:"Madrid",pop:48000000,curr:"EUR",cont:"Europa",tz:"Europe/Madrid"},
-    {de:"Großbritannien",ku:"Brîtanya",flag:"🇬🇧",cap:"London",pop:68000000,curr:"GBP",cont:"Europa",tz:"Europe/London"},
-    {de:"Russland",ku:"Rûsya",flag:"🇷🇺",cap:"Moskau",pop:144000000,curr:"RUB",cont:"Europa/Asien",tz:"Europe/Moscow"},
-    {de:"China",ku:"Çîn",flag:"🇨🇳",cap:"Peking",pop:1400000000,curr:"CNY",cont:"Asien",tz:"Asia/Shanghai"},
-    {de:"Japan",ku:"Japonya",flag:"🇯🇵",cap:"Tokio",pop:125000000,curr:"JPY",cont:"Asien",tz:"Asia/Tokyo"},
-    {de:"Indien",ku:"Hindistan",flag:"🇮🇳",cap:"Neu-Delhi",pop:1400000000,curr:"INR",cont:"Asien",tz:"Asia/Kolkata"},
-    {de:"Saudi-Arabien",ku:"Erebistana Siûdî",flag:"🇸🇦",cap:"Riad",pop:36000000,curr:"SAR",cont:"Asien",tz:"Asia/Riyadh"},
-    {de:"Israel",ku:"Îsraîl",flag:"🇮🇱",cap:"Jerusalem",pop:9800000,curr:"ILS",cont:"Asien",tz:"Asia/Jerusalem"},
-    {de:"Armenien",ku:"Ermenistan",flag:"🇦🇲",cap:"Eriwan",pop:3000000,curr:"AMD",cont:"Asien",tz:"Asia/Yerevan"},
-    {de:"Aserbaidschan",ku:"Azerbaycan",flag:"🇦🇿",cap:"Baku",pop:10000000,curr:"AZN",cont:"Asien",tz:"Asia/Baku"},
-    {de:"Ägypten",ku:"Misir",flag:"🇪🇬",cap:"Kairo",pop:110000000,curr:"EGP",cont:"Afrika",tz:"Africa/Cairo"},
-    {de:"USA",ku:"DYA",flag:"🇺🇸",cap:"Washington D.C.",pop:335000000,curr:"USD",cont:"Nordamerika",tz:"America/New_York"},
-    {de:"Brasilien",ku:"Brezîlya",flag:"🇧🇷",cap:"Brasília",pop:215000000,curr:"BRL",cont:"Südamerika",tz:"America/Sao_Paulo"},
-    {de:"Australien",ku:"Awistralya",flag:"🇦🇺",cap:"Canberra",pop:26000000,curr:"AUD",cont:"Ozeanien",tz:"Australia/Sydney"}
+    {de:"Deutschland",ku:"Almanya",flag:"🇩🇪",cap:"Berlin",pop:84000000,curr:"EUR",cont:"Europa"},
+    {de:"Türkei",ku:"Tirkiye",flag:"🇹🇷",cap:"Ankara",pop:85000000,curr:"TRY",cont:"Asien"},
+    {de:"Irak",ku:"Iraq",flag:"🇮🇶",cap:"Bagdad",pop:42000000,curr:"IQD",cont:"Asien"},
+    {de:"Syrien",ku:"Sûriye",flag:"🇸🇾",cap:"Damaskus",pop:18000000,curr:"SYP",cont:"Asien"},
+    {de:"Iran",ku:"Îran",flag:"🇮🇷",cap:"Teheran",pop:87000000,curr:"IRR",cont:"Asien"},
+    {de:"Frankreich",ku:"Fransa",flag:"🇫🇷",cap:"Paris",pop:68000000,curr:"EUR",cont:"Europa"},
+    {de:"Italien",ku:"Îtalya",flag:"🇮🇹",cap:"Rom",pop:59000000,curr:"EUR",cont:"Europa"},
+    {de:"Spanien",ku:"Spanya",flag:"🇪🇸",cap:"Madrid",pop:48000000,curr:"EUR",cont:"Europa"},
+    {de:"Großbritannien",ku:"Brîtanya",flag:"🇬🇧",cap:"London",pop:68000000,curr:"GBP",cont:"Europa"},
+    {de:"Russland",ku:"Rûsya",flag:"🇷🇺",cap:"Moskau",pop:144000000,curr:"RUB",cont:"Europa/Asien"},
+    {de:"China",ku:"Çîn",flag:"🇨🇳",cap:"Peking",pop:1400000000,curr:"CNY",cont:"Asien"},
+    {de:"Japan",ku:"Japonya",flag:"🇯🇵",cap:"Tokio",pop:125000000,curr:"JPY",cont:"Asien"},
+    {de:"Indien",ku:"Hindistan",flag:"🇮🇳",cap:"Neu-Delhi",pop:1400000000,curr:"INR",cont:"Asien"},
+    {de:"Armenien",ku:"Ermenistan",flag:"🇦🇲",cap:"Eriwan",pop:3000000,curr:"AMD",cont:"Asien"},
+    {de:"Ägypten",ku:"Misir",flag:"🇪🇬",cap:"Kairo",pop:110000000,curr:"EGP",cont:"Afrika"},
+    {de:"USA",ku:"DYA",flag:"🇺🇸",cap:"Washington D.C.",pop:335000000,curr:"USD",cont:"Nordamerika"},
+    {de:"Brasilien",ku:"Brezîlya",flag:"🇧🇷",cap:"Brasília",pop:215000000,curr:"BRL",cont:"Südamerika"},
+    {de:"Australien",ku:"Awistralya",flag:"🇦🇺",cap:"Canberra",pop:26000000,curr:"AUD",cont:"Ozeanien"}
   ];
   var HIST=[
-    {y:"10000 v. Chr.",n:"Göbekli Tepe",d:"Ältester Tempel der Welt in Anatolien — nahe Mesopotamien."},
-    {y:"4000 v. Chr.",n:"Sumerer",d:"Erfanden Schrift, Rad und erste Städte. Ur, Uruk, Eridu."},
+    {y:"10000 v. Chr.",n:"Göbekli Tepe",d:"Ältester Tempel der Welt in Anatolien."},
+    {y:"4000 v. Chr.",n:"Sumerer",d:"Erfanden Schrift, Rad und erste Städte."},
     {y:"2300 v. Chr.",n:"Akkader",d:"Erstes semitisches Großreich unter Sargon."},
-    {y:"1800 v. Chr.",n:"Babylonier",d:"Hammurapi — erste Gesetzessammlung. Später Hängende Gärten."},
-    {y:"1300 v. Chr.",n:"Assyrer",d:"Nordmesopotamien. Ninive, erste Bibliothek (Assurbanipal)."},
-    {y:"700 v. Chr.",n:"Meder",d:"Iranisches Volk — Vorfahren der Kurden und Eziden."},
-    {y:"600 v. Chr.",n:"Perser",d:"Achämeniden: Kyros, Dareios — größtes Reich der Antike."},
-    {y:"300 v. Chr.",n:"Arya",d:"Indo-iranisch aus Zentralasien. Vermischten sich mit Medern."},
-    {y:"1000 n. Chr.",n:"Sheikh Adi",d:"Reformator der ezidischen Religion. Grab in Laliş."},
+    {y:"1800 v. Chr.",n:"Babylonier",d:"Hammurapi — erste Gesetzessammlung."},
+    {y:"1300 v. Chr.",n:"Assyrer",d:"Nordmesopotamien. Ninive, erste Bibliothek."},
+    {y:"700 v. Chr.",n:"Meder",d:"Iranisches Volk — Vorfahren der Kurden."},
+    {y:"600 v. Chr.",n:"Perser",d:"Achämeniden: Kyros, Dareios."},
+    {y:"300 v. Chr.",n:"Arya",d:"Indo-iranisch aus Zentralasien."},
+    {y:"1000 n. Chr.",n:"Sheikh Adi",d:"Reformator der ezidischen Religion."},
     {y:"1915-18",n:"Völkermord",d:"72. Genozid — Osmanisches Reich."},
-    {y:"2014",n:"Sindschar",d:"ISIS-Genozid an den Eziden. Über 5000 Tote, 7000 versklavt."}
+    {y:"2014",n:"Sindschar",d:"ISIS-Genozid an den Eziden."}
   ];
   function build(){
     var body='';
     if(tab==="countries"){
       var byCont={};COUNTRIES.forEach(function(c){if(!byCont[c.cont])byCont[c.cont]=[];byCont[c.cont].push(c);});
       body=Object.keys(byCont).map(function(cont){
-        return '<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:900;color:var(--p1);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">📍 '+esc(cont)+' ('+byCont[cont].length+')</div>'
+        return '<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:900;color:var(--p1);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">📍 '+esc(cont)+'</div>'
           +byCont[cont].map(function(c){
-            return '<div data-cty="'+esc(c.de)+'" style="padding:11px;background:rgba(0,0,0,.2);border-radius:10px;margin-bottom:5px;cursor:pointer;display:flex;gap:10px;align-items:center"><div style="font-size:28px">'+c.flag+'</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800">'+esc(c.de)+'</div><div style="font-size:11px;color:#c084fc;font-weight:700;margin-top:2px">🟨 '+esc(c.ku)+'</div><div style="font-size:10px;color:var(--text-mute);margin-top:2px">🏛️ '+esc(c.cap)+' · 👥 '+(c.pop/1000000).toFixed(1)+'M</div></div><div style="font-size:18px;color:var(--text-mute)">›</div></div>';
+            return '<div data-cty="'+esc(c.de)+'" style="padding:11px;background:rgba(0,0,0,.2);border-radius:10px;margin-bottom:5px;cursor:pointer;display:flex;gap:10px;align-items:center"><div style="font-size:28px">'+c.flag+'</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800">'+esc(c.de)+'</div><div style="font-size:11px;color:#c084fc;font-weight:700;margin-top:2px">🟨 '+esc(c.ku)+'</div><div style="font-size:10px;color:var(--text-mute);margin-top:2px">🏛️ '+esc(c.cap)+' · 👥 '+(c.pop/1000000).toFixed(1)+'M</div></div></div>';
           }).join("")+'</div>';
       }).join("");
     } else if(tab==="history"){
-      body='<div class="card"><h3>🏛️ Geschichte Mesopotamiens & Kurdistans</h3>'
-        +'<div style="font-size:11.5px;line-height:1.7;color:var(--text-dim);padding:10px;background:rgba(0,229,255,.08);border-radius:10px;margin-bottom:12px">Mesopotamien (Zweistromland) — Wiege der Zivilisation. Zwischen Euphrat und Tigris entstanden die ersten Hochkulturen der Menschheit.</div>'
+      body='<div class="card"><h3>🏛️ Mesopotamien & Kurdistan</h3>'
         +HIST.map(function(h){
           return '<div class="ez-timeline"><div class="y">📅 '+esc(h.y)+'</div><div class="n">'+esc(h.n)+'</div><div class="d">'+esc(h.d)+'</div></div>';
-        }).join("")
-        +'</div>';
+        }).join("")+'</div>';
     }
     el.innerHTML='<div class="tabs">'
       +'<button class="tab'+(tab==="countries"?" active":"")+'" data-wt="countries">🌍 Länder</button>'
@@ -1035,21 +1042,19 @@ MODULES.welt={render:function(el){
   build();
 }};
 
-/* ══════════ GAMES ══════════ */
 MODULES.games={render:function(el){
   var list=[{id:"snake",i:"🐍",n:"Snake"},{id:"tictactoe",i:"❌",n:"TicTacToe"},{id:"memory",i:"🧩",n:"Memory"},{id:"quiz",i:"🧠",n:"Ezidi-Quiz"},{id:"minesweeper",i:"💣",n:"Minesweeper"},{id:"game2048",i:"🔢",n:"2048"}];
   function showMenu(){
-    el.innerHTML='<div style="margin-bottom:14px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--p1)">🎮 HalDo Games</div><div style="font-size:11px;color:var(--text-mute);margin-top:4px">Snake High: '+S.get("gs_snake_high",0)+' · 2048 Best: '+S.get("gs_2048_best",0)+'</div></div>'
+    el.innerHTML='<div style="margin-bottom:14px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--p1)">🎮 HalDo Games</div></div>'
       +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">'
-      +list.map(function(g){return '<button data-g="'+g.id+'" style="padding:18px 10px;background:var(--bg-card);border:var(--border-soft);border-radius:14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:inherit;color:var(--text)"><div style="font-size:38px">'+g.i+'</div><div style="font-size:13px;font-weight:800">'+g.n+'</div></button>';}).join("")
-      +'</div>';
+      +list.map(function(g){return '<button data-g="'+g.id+'" style="padding:18px 10px;background:var(--bg-card);border:var(--border-soft);border-radius:14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:inherit;color:var(--text)"><div style="font-size:38px">'+g.i+'</div><div style="font-size:13px;font-weight:800">'+g.n+'</div></button>';}).join("")+'</div>';
     el.querySelectorAll("[data-g]").forEach(function(b){b.addEventListener("click",function(){startGame(b.dataset.g);});});
   }
   function backBtn(){return '<button class="btn sec" id="gBack" style="margin-bottom:10px">← Menü</button>';}
   function bindBack(){var b=$("gBack");if(b)b.addEventListener("click",showMenu);}
 
   function snake(){
-    el.innerHTML=backBtn()+'<div style="text-align:center"><div style="font-size:11px;color:var(--text-mute);margin-bottom:6px">Wischen / Pfeiltasten</div><canvas id="snakeC" width="300" height="300" style="background:#000;border:1px solid var(--p1);border-radius:10px;max-width:100%;touch-action:none"></canvas><div id="snakeInfo" style="font-size:13px;font-weight:800;color:var(--p1);margin-top:8px">Score: 0 · High: '+S.get("gs_snake_high",0)+'</div></div>';
+    el.innerHTML=backBtn()+'<div style="text-align:center"><canvas id="snakeC" width="300" height="300" style="background:#000;border:1px solid var(--p1);border-radius:10px;max-width:100%;touch-action:none"></canvas><div id="snakeInfo" style="font-size:13px;font-weight:800;color:var(--p1);margin-top:8px">Score: 0</div></div>';
     bindBack();
     var c=$("snakeC"),ctx=c.getContext("2d");var gs=15,size=300/gs;
     var snake=[{x:10,y:10}],dir={x:1,y:0},food={x:15,y:10},score=0,dead=false,iv;
@@ -1057,19 +1062,14 @@ MODULES.games={render:function(el){
     function tick(){
       if(dead)return;
       var h={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
-      if(h.x<0||h.y<0||h.x>=gs||h.y>=gs||snake.some(function(s){return s.x===h.x&&s.y===h.y;})){dead=true;var hi=S.get("gs_snake_high",0);if(score>hi)S.set("gs_snake_high",score);$("snakeInfo").textContent="💀 Game Over · Score: "+score+" · High: "+S.get("gs_snake_high",0);clearInterval(iv);return;}
+      if(h.x<0||h.y<0||h.x>=gs||h.y>=gs||snake.some(function(s){return s.x===h.x&&s.y===h.y;})){dead=true;var hi=S.get("gs_snake_high",0);if(score>hi)S.set("gs_snake_high",score);$("snakeInfo").textContent="💀 Game Over · Score: "+score;clearInterval(iv);return;}
       snake.unshift(h);
-      if(h.x===food.x&&h.y===food.y){score++;$("snakeInfo").textContent="Score: "+score+" · High: "+S.get("gs_snake_high",score);randFood();}else snake.pop();
+      if(h.x===food.x&&h.y===food.y){score++;randFood();}else snake.pop();
       draw();
     }
-    function draw(){
-      ctx.fillStyle="#000";ctx.fillRect(0,0,300,300);
-      ctx.fillStyle="#ef4444";ctx.fillRect(food.x*size+2,food.y*size+2,size-4,size-4);
-      snake.forEach(function(s,i){ctx.fillStyle=i===0?"#00e5ff":"#4da8ff";ctx.fillRect(s.x*size+1,s.y*size+1,size-2,size-2);});
-    }
+    function draw(){ctx.fillStyle="#000";ctx.fillRect(0,0,300,300);ctx.fillStyle="#ef4444";ctx.fillRect(food.x*size+2,food.y*size+2,size-4,size-4);snake.forEach(function(s,i){ctx.fillStyle=i===0?"#00e5ff":"#4da8ff";ctx.fillRect(s.x*size+1,s.y*size+1,size-2,size-2);});}
     randFood();draw();iv=setInterval(tick,140);
-    var kh=function(e){if(dead){document.removeEventListener("keydown",kh);return;}if(e.key==="ArrowUp"&&dir.y!==1)dir={x:0,y:-1};else if(e.key==="ArrowDown"&&dir.y!==-1)dir={x:0,y:1};else if(e.key==="ArrowLeft"&&dir.x!==1)dir={x:-1,y:0};else if(e.key==="ArrowRight"&&dir.x!==-1)dir={x:1,y:0};};
-    document.addEventListener("keydown",kh);
+    document.addEventListener("keydown",function h(e){if(e.key==="ArrowUp"&&dir.y!==1)dir={x:0,y:-1};else if(e.key==="ArrowDown"&&dir.y!==-1)dir={x:0,y:1};else if(e.key==="ArrowLeft"&&dir.x!==1)dir={x:-1,y:0};else if(e.key==="ArrowRight"&&dir.x!==-1)dir={x:1,y:0};});
     var tx=0,ty=0;
     c.addEventListener("touchstart",function(e){tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});
     c.addEventListener("touchend",function(e){var dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;if(Math.abs(dx)>Math.abs(dy)){if(dx>20&&dir.x!==-1)dir={x:1,y:0};else if(dx<-20&&dir.x!==1)dir={x:-1,y:0};}else{if(dy>20&&dir.y!==-1)dir={x:0,y:1};else if(dy<-20&&dir.y!==1)dir={x:0,y:-1};}},{passive:true});
@@ -1083,13 +1083,7 @@ MODULES.games={render:function(el){
         +b.map(function(v,i){return '<button data-tt="'+i+'" style="width:80px;height:80px;background:rgba(0,0,0,.3);border:2px solid var(--p1);border-radius:12px;font-size:36px;font-weight:900;color:var(--p1);cursor:pointer">'+v+'</button>';}).join("")
         +'</div><button class="btn sec" id="ttReset" style="margin-top:14px">🔄 Neu</button></div>';
       bindBack();
-      el.querySelectorAll("[data-tt]").forEach(function(x){x.addEventListener("click",function(){
-        var i=parseInt(x.dataset.tt);if(done||b[i])return;
-        b[i]=turn;var r=check();
-        if(r){done=true;if(r!=="draw")Voice.speak(r+" gewinnt!");}
-        else turn=turn==="X"?"O":"X";
-        render();
-      });});
+      el.querySelectorAll("[data-tt]").forEach(function(x){x.addEventListener("click",function(){var i=parseInt(x.dataset.tt);if(done||b[i])return;b[i]=turn;var r=check();if(r){done=true;}else turn=turn==="X"?"O":"X";render();});});
       $("ttReset").addEventListener("click",function(){b=["","","","","","","","",""];turn="X";done=false;render();});
     }
     render();
@@ -1104,17 +1098,7 @@ MODULES.games={render:function(el){
         +cards.map(function(c,i){var shown=flipped.indexOf(i)>=0||c==="✓";return '<button data-mem="'+i+'" style="aspect-ratio:1;background:'+(shown?"rgba(0,229,255,.15)":"rgba(0,0,0,.3)")+';border:2px solid var(--p1);border-radius:10px;font-size:28px;cursor:pointer">'+(shown?c:"❓")+'</button>';}).join("")
         +'</div></div>';
       bindBack();
-      el.querySelectorAll("[data-mem]").forEach(function(x){x.addEventListener("click",function(){
-        var i=parseInt(x.dataset.mem);if(locked||flipped.indexOf(i)>=0||cards[i]==="✓")return;
-        flipped.push(i);render();
-        if(flipped.length===2){
-          locked=true;
-          setTimeout(function(){
-            if(cards[flipped[0]]===cards[flipped[1]]){cards[flipped[0]]="✓";cards[flipped[1]]="✓";matched++;}
-            flipped=[];locked=false;render();
-          },800);
-        }
-      });});
+      el.querySelectorAll("[data-mem]").forEach(function(x){x.addEventListener("click",function(){var i=parseInt(x.dataset.mem);if(locked||flipped.indexOf(i)>=0||cards[i]==="✓")return;flipped.push(i);render();if(flipped.length===2){locked=true;setTimeout(function(){if(cards[flipped[0]]===cards[flipped[1]]){cards[flipped[0]]="✓";cards[flipped[1]]="✓";matched++;}flipped=[];locked=false;render();},800);}});});
     }
     render();
   }
@@ -1128,29 +1112,22 @@ MODULES.games={render:function(el){
       {q:"Wie viele Genozide an Eziden laut Tradition?",a:["12","42","72","100"],c:2},
       {q:"Hauptstadt der Assyrer?",a:["Ur","Ninive","Babylon","Uruk"],c:1},
       {q:"Was ist Laliş?",a:["Eine Stadt","Das Hauptheiligtum","Ein Berg","Ein Fluss"],c:1},
-      {q:"Welches Volk sind Vorfahren der Kurden?",a:["Römer","Meder","Griechen","Kelten"],c:1},
-      {q:"Wie viele Engel regieren die Welt nach ezidischer Lehre?",a:["3","5","7","12"],c:2},
-      {q:"Wann ist das ezidische Neujahrsfest?",a:["Januar","April","September","Dezember"],c:1}
+      {q:"Welches Volk sind Vorfahren der Kurden?",a:["Römer","Meder","Griechen","Kelten"],c:1}
     ];
     var idx=0,score=0;
     function render(){
       if(idx>=qs.length){
-        el.innerHTML=backBtn()+'<div style="text-align:center;padding:40px 20px"><div style="font-size:52px">🎉</div><div style="font-size:20px;font-weight:900;color:var(--p1);margin-top:14px">'+score+'/'+qs.length+'</div><div style="font-size:13px;color:var(--text-dim);margin-top:8px">'+(score===qs.length?"Perfekt, Bruder! 🦚":score>=qs.length/2?"Gut gemacht! 👍":"Versuch's nochmal!")+'</div><button class="btn" id="qAgain" style="margin-top:16px">🔄 Nochmal</button></div>';
+        el.innerHTML=backBtn()+'<div style="text-align:center;padding:40px 20px"><div style="font-size:52px">🎉</div><div style="font-size:20px;font-weight:900;color:var(--p1);margin-top:14px">'+score+'/'+qs.length+'</div><button class="btn" id="qAgain" style="margin-top:16px">🔄 Nochmal</button></div>';
         bindBack();
         $("qAgain").addEventListener("click",function(){idx=0;score=0;render();});
         return;
       }
       var q=qs[idx];
-      el.innerHTML=backBtn()+'<div style="text-align:center"><div style="font-size:10px;color:var(--text-mute);font-weight:800">Frage '+(idx+1)+'/'+qs.length+'</div><div style="font-size:15px;font-weight:900;color:var(--p1);margin:12px 0 18px;line-height:1.4">'+esc(q.q)+'</div><div style="display:flex;flex-direction:column;gap:8px;max-width:340px;margin:0 auto">'
+      el.innerHTML=backBtn()+'<div style="text-align:center"><div style="font-size:10px;color:var(--text-mute);font-weight:800">Frage '+(idx+1)+'/'+qs.length+'</div><div style="font-size:15px;font-weight:900;color:var(--p1);margin:12px 0 18px">'+esc(q.q)+'</div><div style="display:flex;flex-direction:column;gap:8px;max-width:340px;margin:0 auto">'
         +q.a.map(function(a,i){return '<button data-q="'+i+'" style="padding:14px;background:rgba(0,0,0,.3);border:2px solid var(--border-soft);border-radius:12px;font-size:13px;font-weight:800;color:var(--text);cursor:pointer;font-family:inherit">'+esc(a)+'</button>';}).join("")
         +'</div></div>';
       bindBack();
-      el.querySelectorAll("[data-q]").forEach(function(x){x.addEventListener("click",function(){
-        var i=parseInt(x.dataset.q);
-        if(i===q.c){score++;x.style.background="rgba(34,197,94,.3)";}
-        else{x.style.background="rgba(239,68,68,.3)";el.querySelector('[data-q="'+q.c+'"]').style.background="rgba(34,197,94,.3)";}
-        setTimeout(function(){idx++;render();},800);
-      });});
+      el.querySelectorAll("[data-q]").forEach(function(x){x.addEventListener("click",function(){var i=parseInt(x.dataset.q);if(i===q.c){score++;x.style.background="rgba(34,197,94,.3)";}else{x.style.background="rgba(239,68,68,.3)";el.querySelector('[data-q="'+q.c+'"]').style.background="rgba(34,197,94,.3)";}setTimeout(function(){idx++;render();},800);});});
     }
     render();
   }
@@ -1159,38 +1136,15 @@ MODULES.games={render:function(el){
     var sz=8,mines=10,grid=[],opened=[],flag=[],done=false,lost=false;
     for(var i=0;i<sz*sz;i++){grid.push(0);opened.push(false);flag.push(false);}
     var placed=0;while(placed<mines){var p=Math.floor(Math.random()*sz*sz);if(grid[p]!==-1){grid[p]=-1;placed++;}}
-    for(var i=0;i<sz*sz;i++){
-      if(grid[i]===-1)continue;var c=0;var x=i%sz,y=Math.floor(i/sz);
-      for(var dy=-1;dy<=1;dy++)for(var dx=-1;dx<=1;dx++){if(dx===0&&dy===0)continue;var nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=sz||ny>=sz)continue;if(grid[ny*sz+nx]===-1)c++;}
-      grid[i]=c;
-    }
-    function open(i){
-      if(opened[i]||flag[i])return;
-      opened[i]=true;
-      if(grid[i]===-1){lost=true;done=true;return;}
-      if(grid[i]===0){var x=i%sz,y=Math.floor(i/sz);
-        for(var dy=-1;dy<=1;dy++)for(var dx=-1;dx<=1;dx++){if(dx===0&&dy===0)continue;var nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=sz||ny>=sz)continue;open(ny*sz+nx);}
-      }
-    }
+    for(var i=0;i<sz*sz;i++){if(grid[i]===-1)continue;var c=0;var x=i%sz,y=Math.floor(i/sz);for(var dy=-1;dy<=1;dy++)for(var dx=-1;dx<=1;dx++){if(dx===0&&dy===0)continue;var nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=sz||ny>=sz)continue;if(grid[ny*sz+nx]===-1)c++;}grid[i]=c;}
+    function open(i){if(opened[i]||flag[i])return;opened[i]=true;if(grid[i]===-1){lost=true;done=true;return;}if(grid[i]===0){var x=i%sz,y=Math.floor(i/sz);for(var dy=-1;dy<=1;dy++)for(var dx=-1;dx<=1;dx++){if(dx===0&&dy===0)continue;var nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=sz||ny>=sz)continue;open(ny*sz+nx);}}}
     function render(){
       var win=!lost&&opened.filter(function(o,i){return o&&grid[i]!==-1;}).length===sz*sz-mines;
       el.innerHTML=backBtn()+'<div style="text-align:center"><div style="font-size:13px;font-weight:800;color:var(--p1);margin-bottom:10px">'+(lost?"💥 Verloren!":win?"🎉 Gewonnen!":"💣 "+mines+" Minen")+'</div><div style="display:grid;grid-template-columns:repeat(8,1fr);gap:2px;max-width:320px;margin:0 auto">'
-        +grid.map(function(v,i){
-          var show=opened[i]||lost;
-          var txt="";var col="rgba(0,0,0,.3)";
-          if(show){if(v===-1){txt="💣";col="rgba(239,68,68,.3)";}else if(v===0){txt="";col="rgba(0,229,255,.08)";}else{txt=v;col="rgba(0,229,255,.15)";}}
-          else if(flag[i])txt="🚩";
-          return '<button data-m="'+i+'" style="aspect-ratio:1;background:'+col+';border:1px solid rgba(0,229,255,.3);border-radius:4px;font-size:14px;font-weight:900;color:var(--p1);cursor:pointer;padding:0">'+txt+'</button>';
-        }).join("")
+        +grid.map(function(v,i){var show=opened[i]||lost;var txt="";var col="rgba(0,0,0,.3)";if(show){if(v===-1){txt="💣";col="rgba(239,68,68,.3)";}else if(v===0){txt="";col="rgba(0,229,255,.08)";}else{txt=v;col="rgba(0,229,255,.15)";}}else if(flag[i])txt="🚩";return '<button data-m="'+i+'" style="aspect-ratio:1;background:'+col+';border:1px solid rgba(0,229,255,.3);border-radius:4px;font-size:14px;font-weight:900;color:var(--p1);cursor:pointer;padding:0">'+txt+'</button>';}).join("")
         +'</div><button class="btn sec" id="mReset" style="margin-top:14px">🔄 Neu</button></div>';
       bindBack();
-      el.querySelectorAll("[data-m]").forEach(function(x){x.addEventListener("click",function(e){
-        if(done)return;var i=parseInt(x.dataset.m);
-        if(e.shiftKey||e.ctrlKey){if(!opened[i])flag[i]=!flag[i];render();return;}
-        open(i);
-        if(opened.filter(function(o,i){return o&&grid[i]!==-1;}).length===sz*sz-mines)done=true;
-        render();
-      });});
+      el.querySelectorAll("[data-m]").forEach(function(x){x.addEventListener("click",function(e){if(done)return;var i=parseInt(x.dataset.m);if(e.shiftKey||e.ctrlKey){if(!opened[i])flag[i]=!flag[i];render();return;}open(i);if(opened.filter(function(o,i){return o&&grid[i]!==-1;}).length===sz*sz-mines)done=true;render();});});
       $("mReset").addEventListener("click",function(){minesweeper();});
     }
     render();
@@ -1198,58 +1152,15 @@ MODULES.games={render:function(el){
 
   function game2048(){
     var grid=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],score=0;
-    function add(){var empty=[];for(var y=0;y<4;y++)for(var x=0;x<4;x++)if(grid[y][x]===0)empty.push([x,y]);
-      if(!empty.length)return;var p=empty[Math.floor(Math.random()*empty.length)];grid[p[1]][p[0]]=Math.random()<0.9?2:4;}
+    function add(){var empty=[];for(var y=0;y<4;y++)for(var x=0;x<4;x++)if(grid[y][x]===0)empty.push([x,y]);if(!empty.length)return;var p=empty[Math.floor(Math.random()*empty.length)];grid[p[1]][p[0]]=Math.random()<0.9?2:4;}
     add();add();
-    function move(dx,dy){
-      var moved=false;
-      for(var i=0;i<4;i++){
-        var line=[];
-        for(var j=0;j<4;j++){var x=dx?i:j,y=dy?i:j;
-          if(dx<0)x=3-x;if(dy<0)y=3-y;
-          var v=grid[y][x];if(v)line.push(v);
-        }
-        for(var k=0;k<line.length-1;k++){
-          if(line[k]===line[k+1]){line[k]*=2;score+=line[k];line.splice(k+1,1);}
-        }
-        while(line.length<4)line.push(0);
-        for(var j=0;j<4;j++){var x=dx?i:j,y=dy?i:j;
-          if(dx<0)x=3-x;if(dy<0)y=3-y;
-          if(grid[y][x]!==line[j])moved=true;
-          grid[y][x]=line[j];
-        }
-      }
-      if(moved)add();
-      return moved;
-    }
-    function render(){
-      var best=S.get("gs_2048_best",0);
-      if(score>best){S.set("gs_2048_best",score);best=score;}
-      var colors={0:"rgba(0,0,0,.2)",2:"#eee4da",4:"#ede0c8",8:"#f2b179",16:"#f59563",32:"#f67c5f",64:"#f65e3b",128:"#edcf72",256:"#edcc61",512:"#edc850",1024:"#edc53f",2048:"#edc22e"};
+    function move(dx,dy){var moved=false;for(var i=0;i<4;i++){var line=[];for(var j=0;j<4;j++){var x=dx?i:j,y=dy?i:j;if(dx<0)x=3-x;if(dy<0)y=3-y;var v=grid[y][x];if(v)line.push(v);}for(var k=0;k<line.length-1;k++){if(line[k]===line[k+1]){line[k]*=2;score+=line[k];line.splice(k+1,1);}}while(line.length<4)line.push(0);for(var j=0;j<4;j++){var x=dx?i:j,y=dy?i:j;if(dx<0)x=3-x;if(dy<0)y=3-y;if(grid[y][x]!==line[j])moved=true;grid[y][x]=line[j];}}if(moved)add();return moved;}
+    function render(){var best=S.get("gs_2048_best",0);if(score>best){S.set("gs_2048_best",score);best=score;}var colors={0:"rgba(0,0,0,.2)",2:"#eee4da",4:"#ede0c8",8:"#f2b179",16:"#f59563",32:"#f67c5f",64:"#f65e3b",128:"#edcf72",256:"#edcc61",512:"#edc850",1024:"#edc53f",2048:"#edc22e"};
       el.innerHTML=backBtn()+'<div style="text-align:center"><div style="font-size:13px;font-weight:800;color:var(--p1);margin-bottom:10px">Score: '+score+' · Best: '+best+'</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:320px;margin:0 auto;background:rgba(0,0,0,.3);padding:8px;border-radius:12px">'
         +grid.map(function(row){return row.map(function(v){return '<div style="aspect-ratio:1;background:'+(colors[v]||"#3c3a32")+';border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:'+(v<100?20:v<1000?16:13)+'px;font-weight:900;color:'+(v<8?"#776e65":"#fff")+'">'+(v||"")+'</div>';}).join("");}).join("")
-        +'</div><div style="margin-top:12px;font-size:11px;color:var(--text-mute)">Pfeiltasten / Wischen</div></div>';
-      bindBack();
-    }
+        +'</div><div style="margin-top:12px;font-size:11px;color:var(--text-mute)">Pfeiltasten / Wischen</div></div>';bindBack();}
     render();
-    var kh=function(e){
-      var m=false;
-      if(e.key==="ArrowLeft")m=move(-1,0);
-      else if(e.key==="ArrowRight")m=move(1,0);
-      else if(e.key==="ArrowUp")m=move(0,-1);
-      else if(e.key==="ArrowDown")m=move(0,1);
-      if(m)render();
-    };
-    document.addEventListener("keydown",kh);
-    var tx=0,ty=0;
-    el.addEventListener("touchstart",function(e){tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});
-    el.addEventListener("touchend",function(e){
-      var dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;
-      var m=false;
-      if(Math.abs(dx)>Math.abs(dy)){if(dx>20)m=move(1,0);else if(dx<-20)m=move(-1,0);}
-      else{if(dy>20)m=move(0,1);else if(dy<-20)m=move(0,-1);}
-      if(m)render();
-    },{passive:true});
+    document.addEventListener("keydown",function(e){var m=false;if(e.key==="ArrowLeft")m=move(-1,0);else if(e.key==="ArrowRight")m=move(1,0);else if(e.key==="ArrowUp")m=move(0,-1);else if(e.key==="ArrowDown")m=move(0,1);if(m)render();});
   }
 
   function startGame(id){
@@ -1263,66 +1174,36 @@ MODULES.games={render:function(el){
   showMenu();
 }};
 
-/* ══════════ LERNEN ══════════ */
 MODULES.lernen={render:function(el){
   var tab="vokabeln";
   var VOCAB=[
     {de:"Hallo",ez:"Silav"},{de:"Danke",ez:"Spas"},{de:"Wasser",ez:"Av"},{de:"Brot",ez:"Nan"},
     {de:"Haus",ez:"Mal"},{de:"Freund",ez:"Heval"},{de:"Liebe",ez:"Evîn"},{de:"Gott",ez:"Xwedê"},
     {de:"Familie",ez:"Malbat"},{de:"Mutter",ez:"Dayik"},{de:"Vater",ez:"Bav"},{de:"Kind",ez:"Zarok"},
-    {de:"Sonne",ez:"Roj"},{de:"Mond",ez:"Heyv"},{de:"Stern",ez:"Stêr"},{de:"Buch",ez:"Pirtûk"},
-    {de:"Stadt",ez:"Bajar"},{de:"Land",ez:"Welat"},{de:"Berg",ez:"Çiya"},{de:"Fluss",ez:"Çem"}
+    {de:"Sonne",ez:"Roj"},{de:"Mond",ez:"Heyv"},{de:"Stern",ez:"Stêr"},{de:"Buch",ez:"Pirtûk"}
   ];
   var FORMULAS=[
-    {n:"Kreisfläche",f:"A = π · r²"},{n:"Kreisumfang",f:"U = 2 · π · r"},
-    {n:"Pythagoras",f:"a² + b² = c²"},{n:"Fläche Rechteck",f:"A = a · b"},
-    {n:"Fläche Dreieck",f:"A = ½ · g · h"},{n:"Kugelvolumen",f:"V = 4/3 · π · r³"},
-    {n:"Geschwindigkeit",f:"v = s / t"},{n:"Kraft",f:"F = m · a"},
-    {n:"Energie",f:"E = m · c²"},{n:"Prozent",f:"p% = W / G"}
+    {n:"Kreisfläche",f:"A = π · r²"},{n:"Pythagoras",f:"a² + b² = c²"},{n:"Energie",f:"E = m · c²"}
   ];
   function build(){
     var body='';
     if(tab==="vokabeln"){
       body='<div class="card"><h3>🦚 Ezidi ↔ Deutsch Vokabeln</h3>'
-        +VOCAB.map(function(v){
-          return '<div data-voc="'+esc(v.ez)+'" style="padding:10px;background:rgba(0,0,0,.2);border-radius:10px;margin-bottom:5px;display:flex;justify-content:space-between;cursor:pointer;border-left:3px solid var(--p1)"><div><div style="font-size:10px;color:var(--text-mute);font-weight:700">'+esc(v.de)+'</div><div style="font-size:14px;font-weight:900;color:var(--p1)">'+esc(v.ez)+'</div></div><div style="font-size:18px">🔊</div></div>';
-        }).join("")+'</div>';
+        +VOCAB.map(function(v){return '<div data-voc="'+esc(v.ez)+'" style="padding:10px;background:rgba(0,0,0,.2);border-radius:10px;margin-bottom:5px;display:flex;justify-content:space-between;cursor:pointer;border-left:3px solid var(--p1)"><div><div style="font-size:10px;color:var(--text-mute);font-weight:700">'+esc(v.de)+'</div><div style="font-size:14px;font-weight:900;color:var(--p1)">'+esc(v.ez)+'</div></div><div style="font-size:18px">🔊</div></div>';}).join("")+'</div>';
     } else if(tab==="formeln"){
-      body='<div class="card"><h3>🧮 Mathe & Physik Formeln</h3>'
-        +FORMULAS.map(function(f){
-          return '<div style="padding:12px;background:rgba(0,0,0,.2);border-radius:10px;margin-bottom:6px;border-left:3px solid var(--p3)"><div style="font-size:10.5px;color:#c084fc;font-weight:700">'+esc(f.n)+'</div><div style="font-size:15px;font-weight:900;color:var(--p1);font-family:ui-monospace;margin-top:4px">'+esc(f.f)+'</div></div>';
-        }).join("")+'</div>';
-    } else if(tab==="rechner"){
-      body='<div class="card"><h3>🔢 Mathe-Rechner</h3>'
-        +'<div class="field"><label>Ausdruck (z.B. 2+3*4)</label><input type="text" id="calcIn" placeholder="2+3*4" style="font-family:ui-monospace;font-size:16px"></div>'
-        +'<button class="btn full" id="calcGo">= Berechnen</button>'
-        +'<div id="calcRes" style="margin-top:12px;padding:14px;background:rgba(0,229,255,.1);border-radius:10px;font-size:20px;font-weight:900;color:var(--p1);text-align:center;font-family:ui-monospace">—</div></div>';
+      body='<div class="card"><h3>🧮 Formeln</h3>'
+        +FORMULAS.map(function(f){return '<div style="padding:12px;background:rgba(0,0,0,.2);border-radius:10px;margin-bottom:6px;border-left:3px solid var(--p3)"><div style="font-size:10.5px;color:#c084fc;font-weight:700">'+esc(f.n)+'</div><div style="font-size:15px;font-weight:900;color:var(--p1);font-family:ui-monospace;margin-top:4px">'+esc(f.f)+'</div></div>';}).join("")+'</div>';
     }
     el.innerHTML='<div class="tabs">'
       +'<button class="tab'+(tab==="vokabeln"?" active":"")+'" data-lt="vokabeln">📖 Vokabeln</button>'
       +'<button class="tab'+(tab==="formeln"?" active":"")+'" data-lt="formeln">🧮 Formeln</button>'
-      +'<button class="tab'+(tab==="rechner"?" active":"")+'" data-lt="rechner">🔢 Rechner</button>'
       +'</div>'+body;
     el.querySelectorAll("[data-lt]").forEach(function(b){b.addEventListener("click",function(){tab=b.dataset.lt;build();});});
     el.querySelectorAll("[data-voc]").forEach(function(b){b.addEventListener("click",function(){Voice.speak(b.dataset.voc);});});
-    if(tab==="rechner"){
-      var inp=$("calcIn");
-      function go(){
-        try{
-          var v=inp.value.replace(/[^0-9+\-*/().,% ]/g,"");
-          v=v.replace(/,/g,".").replace(/%/g,"/100");
-          var r=Function('"use strict";return('+v+')')();
-          $("calcRes").textContent=String(r);
-        }catch(e){$("calcRes").textContent="❌ Fehler";}
-      }
-      $("calcGo").addEventListener("click",go);
-      inp.addEventListener("keydown",function(e){if(e.key==="Enter")go();});
-    }
   }
   build();
 }};
 
-/* ══════════ FINANZEN ══════════ */
 MODULES.finanzen={render:function(el){
   var items=S.get("fin_items",[]);
   function build(){
@@ -1340,26 +1221,18 @@ MODULES.finanzen={render:function(el){
       +'<div class="field"><label>Betrag (€)</label><input type="number" id="fiAmt" step="0.01" placeholder="0.00"></div>'
       +'<div style="display:flex;gap:8px"><button class="btn" id="fiIn" style="flex:1;background:linear-gradient(135deg,#22c55e,#10b981)">+ Einnahme</button><button class="btn danger" id="fiOut" style="flex:1">- Ausgabe</button></div></div>'
       +'<div class="card"><h3>📋 Buchungen ('+items.length+')</h3>'
-      +(items.length?items.slice().reverse().map(function(i,idx){
-        var ri=items.length-1-idx;
+      +(items.length?items.slice().reverse().map(function(i,idx){var ri=items.length-1-idx;
         return '<div style="padding:10px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:12px;font-weight:800">'+esc(i.desc)+'</div><div style="font-size:9px;color:var(--text-mute)">'+esc(i.date)+'</div></div><div style="display:flex;align-items:center;gap:8px"><div style="font-size:13px;font-weight:900;color:'+(i.type==="in"?"#4ade80":"#ff8080")+'">'+(i.type==="in"?"+":"-")+i.amount.toFixed(2)+'€</div><button data-fidel="'+ri+'" style="background:transparent;border:none;color:#ff8080;cursor:pointer">✕</button></div></div>';
-      }).join(""):'<div style="color:var(--text-mute);font-size:11px;text-align:center;padding:20px">Noch keine Buchungen</div>')
+      }).join(""):'<div style="color:var(--text-mute);font-size:11px;text-align:center;padding:20px">Keine Buchungen</div>')
       +'</div>';
     $("fiIn").addEventListener("click",function(){addItem("in");});
     $("fiOut").addEventListener("click",function(){addItem("out");});
     el.querySelectorAll("[data-fidel]").forEach(function(b){b.addEventListener("click",function(){items.splice(parseInt(b.dataset.fidel),1);S.set("fin_items",items);build();});});
   }
-  function addItem(type){
-    var d=$("fiDesc").value.trim()||(type==="in"?"Einnahme":"Ausgabe");
-    var a=parseFloat($("fiAmt").value);
-    if(isNaN(a)||a<=0)return;
-    items.push({desc:d,amount:a,type:type,date:new Date().toLocaleDateString("de-DE")});
-    S.set("fin_items",items);build();
-  }
+  function addItem(type){var d=$("fiDesc").value.trim()||(type==="in"?"Einnahme":"Ausgabe");var a=parseFloat($("fiAmt").value);if(isNaN(a)||a<=0)return;items.push({desc:d,amount:a,type:type,date:new Date().toLocaleDateString("de-DE")});S.set("fin_items",items);build();}
   build();
 }};
 
-/* ══════════ WERKZEUGE ══════════ */
 MODULES.werkzeuge={render:function(el){
   var tab="rechner";
   function build(){
@@ -1368,19 +1241,8 @@ MODULES.werkzeuge={render:function(el){
       body='<div class="card"><h3>🔢 Taschenrechner</h3>'
         +'<div style="background:rgba(0,0,0,.4);padding:14px;border-radius:10px;font-size:24px;font-weight:900;color:var(--p1);text-align:right;font-family:ui-monospace;min-height:50px;margin-bottom:10px" id="wrDisp">0</div>'
         +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'
-        +["7","8","9","/","4","5","6","*","1","2","3","-","0",".","=","+","C","(",")","⌫"].map(function(b){
-          return '<button data-wk="'+b+'" style="padding:14px;background:rgba(0,229,255,.1);border:var(--border-soft);border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;color:var(--p1)">'+b+'</button>';
-        }).join("")
+        +["7","8","9","/","4","5","6","*","1","2","3","-","0",".","=","+","C","(",")","⌫"].map(function(b){return '<button data-wk="'+b+'" style="padding:14px;background:rgba(0,229,255,.1);border:var(--border-soft);border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;color:var(--p1)">'+b+'</button>';}).join("")
         +'</div></div>';
-    } else if(tab==="timer"){
-      body='<div class="card"><h3>⏱️ Timer / Stoppuhr</h3>'
-        +'<div id="timerDisp" style="font-size:48px;font-weight:900;color:var(--p1);text-align:center;font-family:ui-monospace;padding:20px 0">00:00:00</div>'
-        +'<div style="display:flex;gap:8px"><button class="btn" id="tmStart" style="flex:1">▶ Start</button><button class="btn sec" id="tmReset" style="flex:1">🔄 Reset</button></div></div>';
-    } else if(tab==="qr"){
-      body='<div class="card"><h3>📱 QR-Code Generator</h3>'
-        +'<div class="field"><label>Text / URL</label><input type="text" id="qrIn" placeholder="https://..." value="https://"></div>'
-        +'<button class="btn full" id="qrGo">QR generieren</button>'
-        +'<div id="qrRes" style="margin-top:14px;text-align:center"></div></div>';
     } else if(tab==="notiz"){
       var notes=S.get("wk_notes","");
       body='<div class="card"><h3>📝 Notizen</h3><textarea id="noteIn" style="width:100%;min-height:280px;padding:12px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-family:inherit;font-size:13px;line-height:1.5;resize:vertical" placeholder="Schreib hier...">'+esc(notes)+'</textarea>'
@@ -1388,74 +1250,32 @@ MODULES.werkzeuge={render:function(el){
     }
     el.innerHTML='<div class="tabs">'
       +'<button class="tab'+(tab==="rechner"?" active":"")+'" data-wkt="rechner">🔢 Rechner</button>'
-      +'<button class="tab'+(tab==="timer"?" active":"")+'" data-wkt="timer">⏱️ Timer</button>'
-      +'<button class="tab'+(tab==="qr"?" active":"")+'" data-wkt="qr">📱 QR</button>'
       +'<button class="tab'+(tab==="notiz"?" active":"")+'" data-wkt="notiz">📝 Notizen</button>'
       +'</div>'+body;
     el.querySelectorAll("[data-wkt]").forEach(function(b){b.addEventListener("click",function(){tab=b.dataset.wkt;build();});});
     if(tab==="rechner"){
       var disp=$("wrDisp"),expr="";
-      el.querySelectorAll("[data-wk]").forEach(function(b){b.addEventListener("click",function(){
-        var v=b.dataset.wk;
-        if(v==="C"){expr="";disp.textContent="0";}
-        else if(v==="="){try{var r=Function('"use strict";return('+expr+')')();disp.textContent=r;expr=String(r);}catch(e){disp.textContent="❌";}}
-        else if(v==="⌫"){expr=expr.slice(0,-1);disp.textContent=expr||"0";}
-        else{expr+=v;disp.textContent=expr;}
-      });});
-    }
-    if(tab==="timer"){
-      var t0=0,iv=null;
-      function upd(){
-        var d=Date.now()-t0;
-        var ms=Math.floor(d%1000/10),s=Math.floor(d/1000)%60,m=Math.floor(d/60000);
-        $("timerDisp").textContent=String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")+":"+String(ms).padStart(2,"0");
-      }
-      $("tmStart").addEventListener("click",function(){
-        if(iv){clearInterval(iv);iv=null;this.textContent="▶ Start";}
-        else{t0=Date.now();iv=setInterval(upd,50);this.textContent="⏸ Stop";}
-      });
-      $("tmReset").addEventListener("click",function(){
-        if(iv){clearInterval(iv);iv=null;$("tmStart").textContent="▶ Start";}
-        $("timerDisp").textContent="00:00:00";
-      });
-    }
-    if(tab==="qr"){
-      $("qrGo").addEventListener("click",function(){
-        var txt=$("qrIn").value;if(!txt)return;
-        var url="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data="+encodeURIComponent(txt);
-        $("qrRes").innerHTML='<img src="'+url+'" style="border-radius:12px;border:3px solid var(--p1);max-width:220px" alt="QR">';
-      });
+      el.querySelectorAll("[data-wk]").forEach(function(b){b.addEventListener("click",function(){var v=b.dataset.wk;if(v==="C"){expr="";disp.textContent="0";}else if(v==="="){try{var r=Function('"use strict";return('+expr+')')();disp.textContent=r;expr=String(r);}catch(e){disp.textContent="❌";}}else if(v==="⌫"){expr=expr.slice(0,-1);disp.textContent=expr||"0";}else{expr+=v;disp.textContent=expr;}});});
     }
     if(tab==="notiz"){
-      $("noteSave").addEventListener("click",function(){
-        S.set("wk_notes",$("noteIn").value);toast("💾 Gespeichert","ok");
-      });
+      $("noteSave").addEventListener("click",function(){S.set("wk_notes",$("noteIn").value);toast("💾 Gespeichert","ok");});
     }
   }
   build();
 }};
 
-/* ══════════ SYSTEM ══════════ */
 MODULES.system={render:function(el){
   var size=S.keys().length;
   el.innerHTML='<div class="card"><h3>ℹ️ HalDo AI OS</h3>'
-    +'<div style="font-size:13px;line-height:2"><b style="color:var(--p1)">Version:</b> v131<br><b style="color:var(--p1)">Apps:</b> '+APPS.length+'<br><b style="color:var(--p1)">Speicher:</b> '+size+' Keys<br><b style="color:var(--p1)">Sprachen:</b> '+Object.keys(LANGS).length+'<br><b style="color:var(--p1)">Stimmen:</b> '+HALDO_VOICES.length+'</div></div>'
+    +'<div style="font-size:13px;line-height:2"><b style="color:var(--p1)">Version:</b> v132<br><b style="color:var(--p1)">Apps:</b> '+APPS.length+'<br><b style="color:var(--p1)">Speicher:</b> '+size+' Keys<br><b style="color:var(--p1)">Sprachen:</b> '+Object.keys(LANGS).length+'<br><b style="color:var(--p1)">Stimmen:</b> '+HALDO_VOICES.length+'</div></div>'
     +'<div class="card"><h3>💾 Datenverwaltung</h3>'
-    +'<button class="btn sec full" id="sysExp">📤 Alle Daten exportieren</button>'
+    +'<button class="btn sec full" id="sysExp">📤 Daten exportieren</button>'
     +'<button class="btn danger full" id="sysReset" style="margin-top:8px">🗑️ Alles zurücksetzen</button></div>'
-    +'<div class="card"><h3>🦚 Über HalDo</h3><div style="font-size:11.5px;line-height:1.7;color:var(--text-dim)">HalDo AI OS — eine universelle KI-Plattform mit Fokus auf Ezidi-Kultur, Mesopotamien-Geschichte und Mehrsprachigkeit.<br><br>Gebaut mit ❤️ für Bruder.</div></div>';
-  $("sysExp").addEventListener("click",function(){
-    var data={};S.keys().forEach(function(k){data[k]=S.get(k);});
-    var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-    var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="haldo_full_backup.json";a.click();
-  });
-  $("sysReset").addEventListener("click",function(){
-    if(!confirm("Wirklich alles zurücksetzen?"))return;
-    S.clearAll();location.reload();
-  });
+    +'<div class="card"><h3>🦚 Über HalDo</h3><div style="font-size:11.5px;line-height:1.7;color:var(--text-dim)">HalDo AI OS — universelle KI-Plattform mit Fokus auf Ezidi-Kultur und Mesopotamien-Geschichte.<br><br>Gebaut mit ❤️ für Bruder.</div></div>';
+  $("sysExp").addEventListener("click",function(){var data={};S.keys().forEach(function(k){data[k]=S.get(k);});var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="haldo_full_backup.json";a.click();});
+  $("sysReset").addEventListener("click",function(){if(!confirm("Wirklich alles zurücksetzen?"))return;S.clearAll();location.reload();});
 }};
 
-/* ══════════ INIT ══════════ */
 function init(){
   Settings.load();Settings.apply();
   Voice.load();
@@ -1465,26 +1285,17 @@ function init(){
   $("logoBtn").addEventListener("click",function(){Windows.open("chat");});
   $("sidebarBtn").addEventListener("click",function(){$("sidebar").classList.toggle("open");});
   $("voiceBtn").addEventListener("click",function(){renderVoicePanel();$("voicePanel").classList.add("show");});
-  $("themeToggle").addEventListener("click",function(){
-    var themes=["kosmos","erde","holo"];
-    var i=(themes.indexOf(Settings.get("theme"))+1)%themes.length;
-    Settings.set("theme",themes[i]);toast("🎨 "+themes[i],"ok");
-  });
+  $("themeToggle").addEventListener("click",function(){var themes=["kosmos","erde","holo"];var i=(themes.indexOf(Settings.get("theme"))+1)%themes.length;Settings.set("theme",themes[i]);toast("🎨 "+themes[i],"ok");});
   $("settingsBtn").addEventListener("click",function(){renderSettingsPanel();$("settings").classList.add("show");});
 
   $("bbChat").addEventListener("click",function(){Windows.open("chat");});
   $("bbVoice").addEventListener("click",function(){renderVoicePanel();$("voicePanel").classList.add("show");});
-  $("bbCyborg").addEventListener("click",function(){
-    Settings.set("cyborg",!Settings.get("cyborg"));
-    toast(Settings.get("cyborg")?"⚡ CYBORG aktiv":"🎨 Normal","ok");
-  });
+  $("bbCyborg").addEventListener("click",function(){Settings.set("cyborg",!Settings.get("cyborg"));toast(Settings.get("cyborg")?"⚡ CYBORG aktiv":"🎨 Normal","ok");});
 
   $("settingsClose").addEventListener("click",function(){$("settings").classList.remove("show");});
   $("appSetClose").addEventListener("click",function(){AppSettings.close();});
   $("voicePanelClose").addEventListener("click",function(){$("voicePanel").classList.remove("show");});
-  document.querySelectorAll(".modal").forEach(function(m){
-    m.addEventListener("click",function(e){if(e.target===m)m.classList.remove("show");});
-  });
+  document.querySelectorAll(".modal").forEach(function(m){m.addEventListener("click",function(e){if(e.target===m)m.classList.remove("show");});});
 
   setTimeout(function(){toast("🦚 Silav, "+Settings.get("userName")+"! Klick die Sonne oder einen Planeten","ok");},600);
 }
