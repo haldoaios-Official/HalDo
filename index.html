@@ -1468,5 +1468,640 @@ else boot();
 
 })();
 </script>
+<!-- ============================================================
+     HALDO WELT-APP v1 — Länder, Städte, Wetter, Zeiten, Währung
+     Einfach vor </body> einfügen.
+     ============================================================ -->
+<script>
+(function(){
+"use strict";
+if(!window.HalDo){console.error("[HalDo Welt] window.HalDo fehlt.");return;}
+
+var H=window.HalDo;
+var Storage=H.Storage;
+var Voice=H.Voice;
+var Settings=H.Settings;
+var toast=H.toast;
+var esc=function(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});};
+function $(id){return document.getElementById(id);}
+function fmtTime12(d){var h=d.getHours();var ampm=h>=12?"PM":"AM";h=h%12||12;return h+":"+String(d.getMinutes()).padStart(2,"0")+" "+ampm;}
+
+/* ══════════════ LÄNDER-DATENBANK (DE + KU + Flagge + Fakten) ══════════════ */
+var COUNTRIES=[
+  {de:"Deutschland",ku:"Almanya",flag:"🇩🇪",cap:"Berlin",capKu:"Berlîn",pop:84000000,area:357022,lang:"Deutsch",curr:"EUR",cont:"Europa",lat:52.52,lng:13.40,tz:"Europe/Berlin"},
+  {de:"Österreich",ku:"Awistirya",flag:"🇦🇹",cap:"Wien",capKu:"Viyana",pop:9100000,area:83879,lang:"Deutsch",curr:"EUR",cont:"Europa",lat:48.21,lng:16.37,tz:"Europe/Vienna"},
+  {de:"Schweiz",ku:"Swîsre",flag:"🇨🇭",cap:"Bern",capKu:"Bern",pop:8800000,area:41285,lang:"Deutsch/Französisch/Italienisch",curr:"CHF",cont:"Europa",lat:46.95,lng:7.45,tz:"Europe/Zurich"},
+  {de:"Türkei",ku:"Tirkiye",flag:"🇹🇷",cap:"Ankara",capKu:"Enqere",pop:85000000,area:783562,lang:"Türkisch",curr:"TRY",cont:"Asien/Europa",lat:39.93,lng:32.86,tz:"Europe/Istanbul"},
+  {de:"Irak",ku:"Iraq",flag:"🇮🇶",cap:"Bagdad",capKu:"Bexda",pop:42000000,area:438317,lang:"Arabisch/Kurdisch",curr:"IQD",cont:"Asien",lat:33.31,lng:44.36,tz:"Asia/Baghdad"},
+  {de:"Syrien",ku:"Sûriye",flag:"🇸🇾",cap:"Damaskus",capKu:"Şam",pop:18000000,area:185180,lang:"Arabisch",curr:"SYP",cont:"Asien",lat:33.51,lng:36.30,tz:"Asia/Damascus"},
+  {de:"Iran",ku:"Îran",flag:"🇮🇷",cap:"Teheran",capKu:"Tehran",pop:87000000,area:1648195,lang:"Persisch",curr:"IRR",cont:"Asien",lat:35.69,lng:51.39,tz:"Asia/Tehran"},
+  {de:"Frankreich",ku:"Fransa",flag:"🇫🇷",cap:"Paris",capKu:"Parîs",pop:68000000,area:551695,lang:"Französisch",curr:"EUR",cont:"Europa",lat:48.86,lng:2.35,tz:"Europe/Paris"},
+  {de:"Italien",ku:"Îtalya",flag:"🇮🇹",cap:"Rom",capKu:"Roma",pop:59000000,area:301340,lang:"Italienisch",curr:"EUR",cont:"Europa",lat:41.90,lng:12.50,tz:"Europe/Rome"},
+  {de:"Spanien",ku:"Spanya",flag:"🇪🇸",cap:"Madrid",capKu:"Madrid",pop:48000000,area:505990,lang:"Spanisch",curr:"EUR",cont:"Europa",lat:40.42,lng:-3.70,tz:"Europe/Madrid"},
+  {de:"Großbritannien",ku:"Brîtanya",flag:"🇬🇧",cap:"London",capKu:"London",pop:68000000,area:243610,lang:"Englisch",curr:"GBP",cont:"Europa",lat:51.51,lng:-0.13,tz:"Europe/London"},
+  {de:"Niederlande",ku:"Holenda",flag:"🇳🇱",cap:"Amsterdam",capKu:"Amsterdam",pop:17000000,area:41543,lang:"Niederländisch",curr:"EUR",cont:"Europa",lat:52.37,lng:4.90,tz:"Europe/Amsterdam"},
+  {de:"Polen",ku:"Polonya",flag:"🇵🇱",cap:"Warschau",capKu:"Warşova",pop:38000000,area:312696,lang:"Polnisch",curr:"PLN",cont:"Europa",lat:52.23,lng:21.01,tz:"Europe/Warsaw"},
+  {de:"Schweden",ku:"Swêd",flag:"🇸🇪",cap:"Stockholm",capKu:"Stokholm",pop:10500000,area:450295,lang:"Schwedisch",curr:"SEK",cont:"Europa",lat:59.33,lng:18.07,tz:"Europe/Stockholm"},
+  {de:"Norwegen",ku:"Norwêc",flag:"🇳🇴",cap:"Oslo",capKu:"Oslo",pop:5400000,area:385207,lang:"Norwegisch",curr:"NOK",cont:"Europa",lat:59.91,lng:10.75,tz:"Europe/Oslo"},
+  {de:"Griechenland",ku:"Yewnanistan",flag:"🇬🇷",cap:"Athen",capKu:"Atîna",pop:10700000,area:131957,lang:"Griechisch",curr:"EUR",cont:"Europa",lat:37.98,lng:23.73,tz:"Europe/Athens"},
+  {de:"Portugal",ku:"Portûgal",flag:"🇵🇹",cap:"Lissabon",capKu:"Lizbon",pop:10300000,area:92090,lang:"Portugiesisch",curr:"EUR",cont:"Europa",lat:38.72,lng:-9.14,tz:"Europe/Lisbon"},
+  {de:"Irland",ku:"Îrlanda",flag:"🇮🇪",cap:"Dublin",capKu:"Dublîn",pop:5100000,area:70273,lang:"Englisch/Irisch",curr:"EUR",cont:"Europa",lat:53.35,lng:-6.26,tz:"Europe/Dublin"},
+  {de:"Ungarn",ku:"Macaristan",flag:"🇭🇺",cap:"Budapest",capKu:"Budapeşt",pop:9700000,area:93028,lang:"Ungarisch",curr:"HUF",cont:"Europa",lat:47.50,lng:19.04,tz:"Europe/Budapest"},
+  {de:"Rumänien",ku:"Romanya",flag:"🇷🇴",cap:"Bukarest",capKu:"Bukreş",pop:19000000,area:238397,lang:"Rumänisch",curr:"RON",cont:"Europa",lat:44.43,lng:26.10,tz:"Europe/Bucharest"},
+  {de:"Bulgarien",ku:"Bulgaristan",flag:"🇧🇬",cap:"Sofia",capKu:"Sofya",pop:6900000,area:110879,lang:"Bulgarisch",curr:"BGN",cont:"Europa",lat:42.70,lng:23.32,tz:"Europe/Sofia"},
+  {de:"Ukraine",ku:"Ûkrayna",flag:"🇺🇦",cap:"Kyiv",capKu:"Kîev",pop:44000000,area:603550,lang:"Ukrainisch",curr:"UAH",cont:"Europa",lat:50.45,lng:30.52,tz:"Europe/Kyiv"},
+  {de:"Russland",ku:"Rûsya",flag:"🇷🇺",cap:"Moskau",capKu:"Moskova",pop:144000000,area:17098246,lang:"Russisch",curr:"RUB",cont:"Europa/Asien",lat:55.75,lng:37.62,tz:"Europe/Moscow"},
+  {de:"China",ku:"Çîn",flag:"🇨🇳",cap:"Peking",capKu:"Pekîn",pop:1400000000,area:9596961,lang:"Mandarin",curr:"CNY",cont:"Asien",lat:39.90,lng:116.41,tz:"Asia/Shanghai"},
+  {de:"Japan",ku:"Japonya",flag:"🇯🇵",cap:"Tokio",capKu:"Tokyo",pop:125000000,area:377975,lang:"Japanisch",curr:"JPY",cont:"Asien",lat:35.68,lng:139.69,tz:"Asia/Tokyo"},
+  {de:"Südkorea",ku:"Komara Korê",flag:"🇰🇷",cap:"Seoul",capKu:"Seûl",pop:51000000,area:100210,lang:"Koreanisch",curr:"KRW",cont:"Asien",lat:37.57,lng:126.98,tz:"Asia/Seoul"},
+  {de:"Indien",ku:"Hindistan",flag:"🇮🇳",cap:"Neu-Delhi",capKu:"Nû Delhî",pop:1400000000,area:3287263,lang:"Hindi/Englisch",curr:"INR",cont:"Asien",lat:28.61,lng:77.21,tz:"Asia/Kolkata"},
+  {de:"Pakistan",ku:"Pakistan",flag:"🇵🇰",cap:"Islamabad",capKu:"Îslamabad",pop:235000000,area:881913,lang:"Urdu/Englisch",curr:"PKR",cont:"Asien",lat:33.69,lng:73.05,tz:"Asia/Karachi"},
+  {de:"Thailand",ku:"Taylenda",flag:"🇹🇭",cap:"Bangkok",capKu:"Bangkok",pop:71000000,area:513120,lang:"Thai",curr:"THB",cont:"Asien",lat:13.76,lng:100.50,tz:"Asia/Bangkok"},
+  {de:"Vietnam",ku:"Vîetnam",flag:"🇻🇳",cap:"Hanoi",capKu:"Hanoi",pop:99000000,area:331212,lang:"Vietnamesisch",curr:"VND",cont:"Asien",lat:21.03,lng:105.85,tz:"Asia/Ho_Chi_Minh"},
+  {de:"Saudi-Arabien",ku:"Erebistana Siûdî",flag:"🇸🇦",cap:"Riad",capKu:"Riyad",pop:36000000,area:2149690,lang:"Arabisch",curr:"SAR",cont:"Asien",lat:24.71,lng:46.68,tz:"Asia/Riyadh"},
+  {de:"VAE",ku:"Mîrnişînên Erebî",flag:"🇦🇪",cap:"Abu Dhabi",capKu:"Abû Dhabî",pop:10000000,area:83600,lang:"Arabisch",curr:"AED",cont:"Asien",lat:24.45,lng:54.38,tz:"Asia/Dubai"},
+  {de:"Israel",ku:"Îsraîl",flag:"🇮🇱",cap:"Jerusalem",capKu:"Quds",pop:9800000,area:20770,lang:"Hebräisch",curr:"ILS",cont:"Asien",lat:31.78,lng:35.22,tz:"Asia/Jerusalem"},
+  {de:"Armenien",ku:"Ermenistan",flag:"🇦🇲",cap:"Eriwan",capKu:"Êrîvan",pop:3000000,area:29743,lang:"Armenisch",curr:"AMD",cont:"Asien",lat:40.18,lng:44.51,tz:"Asia/Yerevan"},
+  {de:"Aserbaidschan",ku:"Azerbaycan",flag:"🇦🇿",cap:"Baku",capKu:"Bakû",pop:10000000,area:86600,lang:"Aserbaidschanisch",curr:"AZN",cont:"Asien",lat:40.41,lng:49.87,tz:"Asia/Baku"},
+  {de:"Georgien",ku:"Gurcistan",flag:"🇬🇪",cap:"Tiflis",capKu:"Tiflîs",pop:3700000,area:69700,lang:"Georgisch",curr:"GEL",cont:"Asien",lat:41.72,lng:44.79,tz:"Asia/Tbilisi"},
+  {de:"Ägypten",ku:"Misir",flag:"🇪🇬",cap:"Kairo",capKu:"Qahîre",pop:110000000,area:1001450,lang:"Arabisch",curr:"EGP",cont:"Afrika",lat:30.04,lng:31.24,tz:"Africa/Cairo"},
+  {de:"Marokko",ku:"Maroko",flag:"🇲🇦",cap:"Rabat",capKu:"Rabat",pop:37000000,area:446550,lang:"Arabisch/Berberisch",curr:"MAD",cont:"Afrika",lat:34.02,lng:-6.84,tz:"Africa/Casablanca"},
+  {de:"Südafrika",ku:"Afrîkaya Başûr",flag:"🇿🇦",cap:"Pretoria",capKu:"Pretoria",pop:60000000,area:1219090,lang:"Zulu/Englisch/Afrikaans",curr:"ZAR",cont:"Afrika",lat:-25.75,lng:28.19,tz:"Africa/Johannesburg"},
+  {de:"Nigeria",ku:"Nîjerya",flag:"🇳🇬",cap:"Abuja",capKu:"Abûja",pop:220000000,area:923768,lang:"Englisch",curr:"NGN",cont:"Afrika",lat:9.06,lng:7.49,tz:"Africa/Lagos"},
+  {de:"Kenia",ku:"Kenya",flag:"🇰🇪",cap:"Nairobi",capKu:"Nayrobî",pop:55000000,area:580367,lang:"Swahili/Englisch",curr:"KES",cont:"Afrika",lat:-1.29,lng:36.82,tz:"Africa/Nairobi"},
+  {de:"Äthiopien",ku:"Etiyopya",flag:"🇪🇹",cap:"Addis Abeba",capKu:"Addis Abeba",pop:120000000,area:1104300,lang:"Amharisch",curr:"ETB",cont:"Afrika",lat:9.03,lng:38.74,tz:"Africa/Addis_Ababa"},
+  {de:"USA",ku:"DYA",flag:"🇺🇸",cap:"Washington D.C.",capKu:"Waşington",pop:335000000,area:9833517,lang:"Englisch",curr:"USD",cont:"Nordamerika",lat:38.90,lng:-77.04,tz:"America/New_York"},
+  {de:"Kanada",ku:"Kanada",flag:"🇨🇦",cap:"Ottawa",capKu:"Ottawa",pop:39000000,area:9984670,lang:"Englisch/Französisch",curr:"CAD",cont:"Nordamerika",lat:45.42,lng:-75.70,tz:"America/Toronto"},
+  {de:"Mexiko",ku:"Meksîka",flag:"🇲🇽",cap:"Mexiko-Stadt",capKu:"Meksîko Sîti",pop:130000000,area:1964375,lang:"Spanisch",curr:"MXN",cont:"Nordamerika",lat:19.43,lng:-99.13,tz:"America/Mexico_City"},
+  {de:"Kuba",ku:"Kûba",flag:"🇨🇺",cap:"Havanna",capKu:"Havana",pop:11000000,area:109884,lang:"Spanisch",curr:"CUP",cont:"Nordamerika",lat:23.11,lng:-82.37,tz:"America/Havana"},
+  {de:"Brasilien",ku:"Brezîlya",flag:"🇧🇷",cap:"Brasília",capKu:"Brazîlya",pop:215000000,area:8515767,lang:"Portugiesisch",curr:"BRL",cont:"Südamerika",lat:-15.78,lng:-47.93,tz:"America/Sao_Paulo"},
+  {de:"Argentinien",ku:"Arjantîn",flag:"🇦🇷",cap:"Buenos Aires",capKu:"Buenos Aires",pop:46000000,area:2780400,lang:"Spanisch",curr:"ARS",cont:"Südamerika",lat:-34.60,lng:-58.38,tz:"America/Argentina/Buenos_Aires"},
+  {de:"Peru",ku:"Perû",flag:"🇵🇪",cap:"Lima",capKu:"Lîma",pop:34000000,area:1285216,lang:"Spanisch/Quechua",curr:"PEN",cont:"Südamerika",lat:-12.05,lng:-77.04,tz:"America/Lima"},
+  {de:"Kolumbien",ku:"Kolombiya",flag:"🇨🇴",cap:"Bogotá",capKu:"Bogotá",pop:52000000,area:1141748,lang:"Spanisch",curr:"COP",cont:"Südamerika",lat:4.71,lng:-74.07,tz:"America/Bogota"},
+  {de:"Chile",ku:"Şîlî",flag:"🇨🇱",cap:"Santiago",capKu:"Santiago",pop:19000000,area:756102,lang:"Spanisch",curr:"CLP",cont:"Südamerika",lat:-33.45,lng:-70.67,tz:"America/Santiago"},
+  {de:"Australien",ku:"Awistralya",flag:"🇦🇺",cap:"Canberra",capKu:"Kanbera",pop:26000000,area:7692024,lang:"Englisch",curr:"AUD",cont:"Ozeanien",lat:-35.28,lng:149.13,tz:"Australia/Sydney"},
+  {de:"Neuseeland",ku:"Zelanda Nû",flag:"🇳🇿",cap:"Wellington",capKu:"Welîngton",pop:5200000,area:268021,lang:"Englisch/Maori",curr:"NZD",cont:"Ozeanien",lat:-41.29,lng:174.78,tz:"Pacific/Auckland"}
+];
+
+/* ══════════════ STÄDTE-DATENBANK (mit kurd. Namen + Koordinaten) ══════════════ */
+var CITIES=[
+  {de:"Berlin",ku:"Berlîn",flag:"🇩🇪",lat:52.52,lng:13.40,tz:"Europe/Berlin",country:"Almanya"},
+  {de:"Hamburg",ku:"Hamburg",flag:"🇩🇪",lat:53.55,lng:9.99,tz:"Europe/Berlin",country:"Almanya"},
+  {de:"München",ku:"Munîx",flag:"🇩🇪",lat:48.14,lng:11.58,tz:"Europe/Berlin",country:"Almanya"},
+  {de:"Köln",ku:"Koln",flag:"🇩🇪",lat:50.94,lng:6.96,tz:"Europe/Berlin",country:"Almanya"},
+  {de:"Frankfurt",ku:"Frankfurt",flag:"🇩🇪",lat:50.11,lng:8.68,tz:"Europe/Berlin",country:"Almanya"},
+  {de:"Stuttgart",ku:"Stuttgart",flag:"🇩🇪",lat:48.78,lng:9.18,tz:"Europe/Berlin",country:"Almanya"},
+  {de:"Wien",ku:"Viyana",flag:"🇦🇹",lat:48.21,lng:16.37,tz:"Europe/Vienna",country:"Awistirya"},
+  {de:"Zürich",ku:"Zurîx",flag:"🇨🇭",lat:47.38,lng:8.54,tz:"Europe/Zurich",country:"Swîsre"},
+  {de:"Istanbul",ku:"Stenbol",flag:"🇹🇷",lat:41.01,lng:28.98,tz:"Europe/Istanbul",country:"Tirkiye"},
+  {de:"Ankara",ku:"Enqere",flag:"🇹🇷",lat:39.93,lng:32.86,tz:"Europe/Istanbul",country:"Tirkiye"},
+  {de:"Izmir",ku:"Îzmîr",flag:"🇹🇷",lat:38.42,lng:27.14,tz:"Europe/Istanbul",country:"Tirkiye"},
+  {de:"Diyarbakır",ku:"Amed",flag:"🇹🇷",lat:37.91,lng:40.24,tz:"Europe/Istanbul",country:"Tirkiye"},
+  {de:"Van",ku:"Wan",flag:"🇹🇷",lat:38.49,lng:43.38,tz:"Europe/Istanbul",country:"Tirkiye"},
+  {de:"Mardin",ku:"Mêrdîn",flag:"🇹🇷",lat:37.31,lng:40.74,tz:"Europe/Istanbul",country:"Tirkiye"},
+  {de:"Şanlıurfa",ku:"Riha",flag:"🇹🇷",lat:37.16,lng:38.79,tz:"Europe/Istanbul",country:"Tirkiye"},
+  {de:"Erbil",ku:"Hewlêr",flag:"🇮🇶",lat:36.19,lng:44.01,tz:"Asia/Baghdad",country:"Iraq"},
+  {de:"Sulaymaniyah",ku:"Silêmanî",flag:"🇮🇶",lat:35.56,lng:45.43,tz:"Asia/Baghdad",country:"Iraq"},
+  {de:"Duhok",ku:"Dihok",flag:"🇮🇶",lat:36.87,lng:42.99,tz:"Asia/Baghdad",country:"Iraq"},
+  {de:"Kirkuk",ku:"Kerkûk",flag:"🇮🇶",lat:35.47,lng:44.39,tz:"Asia/Baghdad",country:"Iraq"},
+  {de:"Bagdad",ku:"Bexda",flag:"🇮🇶",lat:33.31,lng:44.36,tz:"Asia/Baghdad",country:"Iraq"},
+  {de:"Mosul",ku:"Mûsil",flag:"🇮🇶",lat:36.34,lng:43.13,tz:"Asia/Baghdad",country:"Iraq"},
+  {de:"Damaskus",ku:"Şam",flag:"🇸🇾",lat:33.51,lng:36.30,tz:"Asia/Damascus",country:"Sûriye"},
+  {de:"Aleppo",ku:"Heleb",flag:"🇸🇾",lat:36.20,lng:37.13,tz:"Asia/Damascus",country:"Sûriye"},
+  {de:"Qamishli",ku:"Qamişlo",flag:"🇸🇾",lat:37.05,lng:41.22,tz:"Asia/Damascus",country:"Sûriye"},
+  {de:"Teheran",ku:"Tehran",flag:"🇮🇷",lat:35.69,lng:51.39,tz:"Asia/Tehran",country:"Îran"},
+  {de:"Paris",ku:"Parîs",flag:"🇫🇷",lat:48.86,lng:2.35,tz:"Europe/Paris",country:"Fransa"},
+  {de:"London",ku:"London",flag:"🇬🇧",lat:51.51,lng:-0.13,tz:"Europe/London",country:"Brîtanya"},
+  {de:"Rom",ku:"Roma",flag:"🇮🇹",lat:41.90,lng:12.50,tz:"Europe/Rome",country:"Îtalya"},
+  {de:"Madrid",ku:"Madrid",flag:"🇪🇸",lat:40.42,lng:-3.70,tz:"Europe/Madrid",country:"Spanya"},
+  {de:"Amsterdam",ku:"Amsterdam",flag:"🇳🇱",lat:52.37,lng:4.90,tz:"Europe/Amsterdam",country:"Holenda"},
+  {de:"Moskau",ku:"Moskova",flag:"🇷🇺",lat:55.75,lng:37.62,tz:"Europe/Moscow",country:"Rûsya"},
+  {de:"Kairo",ku:"Qahîre",flag:"🇪🇬",lat:30.04,lng:31.24,tz:"Africa/Cairo",country:"Misir"},
+  {de:"New York",ku:"Nû York",flag:"🇺🇸",lat:40.71,lng:-74.01,tz:"America/New_York",country:"DYA"},
+  {de:"Los Angeles",ku:"Los Angeles",flag:"🇺🇸",lat:34.05,lng:-118.24,tz:"America/Los_Angeles",country:"DYA"},
+  {de:"Tokio",ku:"Tokyo",flag:"🇯🇵",lat:35.68,lng:139.69,tz:"Asia/Tokyo",country:"Japonya"},
+  {de:"Peking",ku:"Pekîn",flag:"🇨🇳",lat:39.90,lng:116.41,tz:"Asia/Shanghai",country:"Çîn"},
+  {de:"Sydney",ku:"Sidney",flag:"🇦🇺",lat:-33.87,lng:151.21,tz:"Australia/Sydney",country:"Awistralya"},
+  {de:"Dubai",ku:"Dubai",flag:"🇦🇪",lat:25.20,lng:55.27,tz:"Asia/Dubai",country:"Mîrnişînên Erebî"}
+];
+
+/* ══════════════ WELT-APP MODUL ══════════════ */
+var WeltApp={
+  _tab:"countries",
+  _search:"",
+  _selectedCountry:null,
+  _weatherCache:{},
+  _weatherCity:"Berlin",
+  _weatherData:null,
+  _currencyFrom:"EUR",
+  _currencyTo:"USD",
+  _currencyAmount:100,
+  _currencyData:null,
+  _clockInterval:null,
+  _favCities:Storage.get("welt_favs",["Berlin","Stenbol","Hewlêr","Nû York"]),
+
+  render:function(el){
+    var self=this;
+    var tabs=[
+      {k:"countries",i:"🌍",n:"Länder"},
+      {k:"cities",i:"🏙️",n:"Städte"},
+      {k:"weather",i:"🌤️",n:"Wetter"},
+      {k:"clock",i:"🕐",n:"Weltzeiten"},
+      {k:"currency",i:"💱",n:"Währung"}
+    ];
+    var tabsHtml=tabs.map(function(t){
+      return '<button class="tab'+(self._tab===t.k?" active":"")+'" data-welt-tab="'+t.k+'">'+t.i+' '+t.n+'</button>';
+    }).join("");
+    el.innerHTML='<div class="tabs">'+tabsHtml+'</div><div id="weltBody"></div>';
+    el.querySelectorAll("[data-welt-tab]").forEach(function(b){
+      b.addEventListener("click",function(){
+        self._tab=b.dataset.weltTab;
+        self.render(el);
+      });
+    });
+    this.renderTab(el);
+
+    /* Interval für Uhr */
+    if(this._clockInterval)clearInterval(this._clockInterval);
+    if(this._tab==="clock"){
+      this._clockInterval=setInterval(function(){self.tickClocks();},1000);
+    }
+  },
+
+  renderTab:function(el){
+    var body=el.querySelector("#weltBody");
+    if(!body)return;
+    if(this._tab==="countries")this.renderCountries(body);
+    else if(this._tab==="cities")this.renderCities(body);
+    else if(this._tab==="weather")this.renderWeather(body);
+    else if(this._tab==="clock")this.renderClock(body);
+    else if(this._tab==="currency")this.renderCurrency(body);
+  },
+
+  /* ═══ Länder ═══ */
+  renderCountries:function(body){
+    var self=this;
+    var q=this._search.toLowerCase();
+    var list=COUNTRIES.filter(function(c){
+      return !q||c.de.toLowerCase().indexOf(q)>=0||c.ku.toLowerCase().indexOf(q)>=0||c.cont.toLowerCase().indexOf(q)>=0;
+    });
+    var byCont={};
+    list.forEach(function(c){
+      if(!byCont[c.cont])byCont[c.cont]=[];
+      byCont[c.cont].push(c);
+    });
+    body.innerHTML='<div class="field"><input type="text" id="weltSearch" placeholder="🔍 Land suchen (DE / KU)…" value="'+esc(this._search)+'"></div>'
+      +'<div style="font-size:10px;color:var(--text-mute);margin-bottom:8px">'+list.length+' Länder · 🟨 = Kurdische Namen</div>'
+      +Object.keys(byCont).map(function(cont){
+        return '<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:900;color:var(--p1);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">📍 '+esc(cont)+' ('+byCont[cont].length+')</div>'
+          +byCont[cont].map(function(c){
+            return '<div data-country-id="'+esc(c.de)+'" style="padding:11px;background:rgba(0,0,0,.2);border-radius:10px;margin-bottom:5px;cursor:pointer;display:flex;gap:10px;align-items:center">'
+              +'<div style="font-size:28px">'+c.flag+'</div>'
+              +'<div style="flex:1;min-width:0">'
+              +'<div style="font-size:13px;font-weight:800">'+esc(c.de)+'</div>'
+              +'<div style="font-size:11px;color:#c084fc;font-weight:700;margin-top:2px">🟨 '+esc(c.ku)+'</div>'
+              +'<div style="font-size:10px;color:var(--text-mute);margin-top:2px">🏛️ '+esc(c.cap)+' · 👥 '+(c.pop/1000000).toFixed(1)+'M</div>'
+              +'</div>'
+              +'<div style="font-size:18px;color:var(--text-mute)">›</div></div>';
+          }).join("")
+          +'</div>';
+      }).join("");
+    var search=$("weltSearch");
+    if(search)search.addEventListener("input",function(){
+      self._search=this.value;
+      self.renderTab(body.parentElement);
+    });
+    body.querySelectorAll("[data-country-id]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var c=COUNTRIES.find(function(x){return x.de===b.dataset.countryId;});
+        if(c)self.showCountry(c);
+      });
+    });
+  },
+
+  showCountry:function(c){
+    var flagMap={};
+    var html='<div style="position:fixed;inset:0;background:rgba(2,4,10,.85);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:14px;padding-top:80px;overflow-y:auto" id="weltCountryModal">'
+      +'<div style="width:100%;max-width:520px;background:var(--bg-card);backdrop-filter:blur(28px);border:var(--border);border-radius:var(--radius);padding:18px">'
+      +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'
+      +'<div style="font-size:48px">'+c.flag+'</div>'
+      +'<div style="flex:1"><div style="font-size:17px;font-weight:900;color:var(--p1)">'+esc(c.de)+'</div>'
+      +'<div style="font-size:13px;color:#c084fc;font-weight:700;margin-top:2px">🟨 '+esc(c.ku)+'</div></div>'
+      +'<button id="weltCountryClose" style="width:38px;height:38px;border-radius:10px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.5);color:#ff8080;cursor:pointer;font-size:15px">✕</button>'
+      +'</div>'
+      +'<div style="display:grid;gap:6px;font-size:12px">'
+      +this.detailRow("🏛️ Hauptstadt", c.cap+" (🟨 "+c.capKu+")")
+      +this.detailRow("👥 Bevölkerung", (c.pop/1000000).toFixed(1)+" Mio.")
+      +this.detailRow("📐 Fläche", c.area.toLocaleString("de-DE")+" km²")
+      +this.detailRow("🗣️ Sprache", c.lang)
+      +this.detailRow("💰 Währung", c.curr)
+      +this.detailRow("🌍 Kontinent", c.cont)
+      +this.detailRow("🕐 Zeitzone", c.tz)
+      +this.detailRow("📍 Koordinaten", c.lat.toFixed(2)+"° N, "+c.lng.toFixed(2)+"° E")
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:14px">'
+      +'<button class="btn sec" data-action="speak">🔊 Vorlesen</button>'
+      +'<button class="btn sec" data-action="weather">🌤️ Wetter</button>'
+      +'<button class="btn sec" data-action="clock">🕐 Zeit</button>'
+      +'<button class="btn sec" data-action="map">🗺️ Karte</button>'
+      +'</div>'
+      +'</div></div>';
+    var div=document.createElement("div");
+    div.innerHTML=html;
+    document.body.appendChild(div.firstChild);
+    var modal=$("weltCountryModal");
+    $("weltCountryClose").addEventListener("click",function(){modal.remove();});
+    modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
+    modal.querySelectorAll("[data-action]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var a=b.dataset.action;
+        if(a==="speak"){
+          Voice.speak(c.de+". Kurdisch: "+c.ku+". Hauptstadt: "+c.cap+". Bevölkerung: "+(c.pop/1000000).toFixed(1)+" Millionen.");
+        }else if(a==="weather"){
+          modal.remove();
+          WeltApp._weatherCity=c.cap;
+          WeltApp._tab="weather";
+          var el=document.querySelector(".window[data-app='welt'] .wbody");
+          if(el)WeltApp.render(el);
+        }else if(a==="clock"){
+          modal.remove();
+          WeltApp._tab="clock";
+          var el2=document.querySelector(".window[data-app='welt'] .wbody");
+          if(el2)WeltApp.render(el2);
+        }else if(a==="map"){
+          window.open("https://www.google.com/maps/search/"+encodeURIComponent(c.de)," _blank");
+        }
+      });
+    });
+  },
+
+  detailRow:function(k,v){
+    return '<div style="display:flex;justify-content:space-between;padding:8px 10px;background:rgba(0,0,0,.2);border-radius:8px">'
+      +'<span style="color:var(--text-dim);font-weight:700">'+k+'</span>'
+      +'<span style="color:var(--text);font-weight:700;text-align:right;max-width:60%">'+esc(v)+'</span></div>';
+  },
+
+  /* ═══ Städte ═══ */
+  renderCities:function(body){
+    var self=this;
+    var q=this._search.toLowerCase();
+    var list=CITIES.filter(function(c){
+      return !q||c.de.toLowerCase().indexOf(q)>=0||c.ku.toLowerCase().indexOf(q)>=0||c.country.toLowerCase().indexOf(q)>=0;
+    });
+    body.innerHTML='<div class="field"><input type="text" id="weltSearch" placeholder="🔍 Stadt suchen…" value="'+esc(this._search)+'"></div>'
+      +'<div style="font-size:10px;color:var(--text-mute);margin-bottom:8px">'+list.length+' Städte</div>'
+      +list.map(function(c){
+        return '<div data-city-id="'+esc(c.de)+'" style="padding:11px;background:rgba(0,0,0,.2);border-radius:10px;margin-bottom:5px;cursor:pointer;display:flex;gap:10px;align-items:center">'
+          +'<div style="font-size:24px">'+c.flag+'</div>'
+          +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:13px;font-weight:800">'+esc(c.de)+'</div>'
+          +'<div style="font-size:11px;color:#c084fc;font-weight:700;margin-top:2px">🟨 '+esc(c.ku)+'</div>'
+          +'<div style="font-size:10px;color:var(--text-mute);margin-top:2px">📍 '+esc(c.country)+' · '+c.lat.toFixed(2)+', '+c.lng.toFixed(2)+'</div>'
+          +'</div>'
+          +'<button class="btn sec" style="padding:6px 10px;font-size:10px" data-fav="'+esc(c.de)+'">'+(self._favCities.indexOf(c.de)>=0?"⭐":"☆")+'</button>'
+          +'</div>';
+      }).join("");
+    var search=$("weltSearch");
+    if(search)search.addEventListener("input",function(){
+      self._search=this.value;
+      self.renderTab(body.parentElement);
+    });
+    body.querySelectorAll("[data-city-id]").forEach(function(b){
+      b.addEventListener("click",function(e){
+        if(e.target.dataset.fav)return;
+        var c=CITIES.find(function(x){return x.de===b.dataset.cityId;});
+        if(c)self.showCity(c);
+      });
+    });
+    body.querySelectorAll("[data-fav]").forEach(function(b){
+      b.addEventListener("click",function(e){
+        e.stopPropagation();
+        var id=b.dataset.fav;
+        var idx=self._favCities.indexOf(id);
+        if(idx>=0)self._favCities.splice(idx,1);
+        else self._favCities.push(id);
+        Storage.set("welt_favs",self._favCities);
+        self.renderTab(body.parentElement);
+      });
+    });
+  },
+
+  showCity:function(c){
+    /* Wetter laden */
+    var key="w_"+c.de;
+    var cached=this._weatherCache[key];
+    var body='<div style="position:fixed;inset:0;background:rgba(2,4,10,.85);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:14px;padding-top:80px;overflow-y:auto" id="weltCityModal">'
+      +'<div style="width:100%;max-width:520px;background:var(--bg-card);backdrop-filter:blur(28px);border:var(--border);border-radius:var(--radius);padding:18px">'
+      +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'
+      +'<div style="font-size:44px">'+c.flag+'</div>'
+      +'<div style="flex:1"><div style="font-size:17px;font-weight:900;color:var(--p1)">'+esc(c.de)+'</div>'
+      +'<div style="font-size:13px;color:#c084fc;font-weight:700;margin-top:2px">🟨 '+esc(c.ku)+'</div>'
+      +'<div style="font-size:10px;color:var(--text-mute);margin-top:2px">'+esc(c.country)+'</div></div>'
+      +'<button id="weltCityClose" style="width:38px;height:38px;border-radius:10px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.5);color:#ff8080;cursor:pointer;font-size:15px">✕</button>'
+      +'</div>'
+      +'<div id="weltCityWeather" style="padding:14px;background:linear-gradient(135deg,rgba(0,229,255,.1),rgba(180,120,255,.1));border-radius:12px;text-align:center;margin-bottom:10px;min-height:80px">'
+      +(cached?'<div style="font-size:34px">'+cached.icon+'</div><div style="font-size:28px;font-weight:900;color:var(--p1)">'+cached.temp+'°C</div><div style="font-size:11px;color:var(--text-dim);text-transform:capitalize">'+esc(cached.desc)+'</div>':'<div style="color:var(--text-mute);font-size:12px;padding:16px">⏳ Wetter wird geladen…</div>')
+      +'</div>'
+      +'<div style="display:grid;gap:6px;font-size:12px">'
+      +this.detailRow("📍 Koordinaten", c.lat.toFixed(4)+", "+c.lng.toFixed(4))
+      +this.detailRow("🕐 Zeitzone", c.tz)
+      +'<div style="display:flex;justify-content:space-between;padding:8px 10px;background:rgba(0,0,0,.2);border-radius:8px"><span style="color:var(--text-dim);font-weight:700">🕐 Aktuelle Zeit</span><span id="weltCityTime" style="color:var(--p1);font-weight:800;font-family:ui-monospace">--:--:--</span></div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:14px">'
+      +'<button class="btn sec" data-action="speak">🔊 Vorlesen</button>'
+      +'<button class="btn sec" data-action="weather">🌤️ Wetter-Tab</button>'
+      +'<button class="btn sec" data-action="map">🗺️ Karte</button>'
+      +'<button class="btn sec" data-action="navigate">🧭 Navigation</button>'
+      +'</div>'
+      +'</div></div>';
+    var div=document.createElement("div");
+    div.innerHTML=body;
+    document.body.appendChild(div.firstChild);
+    var modal=$("weltCityModal");
+    /* Zeit live */
+    var updateTime=function(){
+      try{
+        var t=new Date().toLocaleTimeString("de-DE",{timeZone:c.tz,hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false});
+        var el=$("weltCityTime");
+        if(el)el.textContent=t;
+      }catch(e){}
+    };
+    updateTime();
+    var iv=setInterval(function(){
+      if(!document.body.contains(modal)){clearInterval(iv);return;}
+      updateTime();
+    },1000);
+    $("weltCityClose").addEventListener("click",function(){modal.remove();clearInterval(iv);});
+    modal.addEventListener("click",function(e){if(e.target===modal){modal.remove();clearInterval(iv);}});
+
+    /* Wetter laden falls nicht cached */
+    if(!cached)this.loadWeather(c,function(data){
+      var el=$("weltCityWeather");
+      if(el)el.innerHTML='<div style="font-size:34px">'+data.icon+'</div><div style="font-size:28px;font-weight:900;color:var(--p1)">'+data.temp+'°C</div><div style="font-size:11px;color:var(--text-dim);text-transform:capitalize">'+esc(data.desc)+'</div>';
+    });
+
+    modal.querySelectorAll("[data-action]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var a=b.dataset.action;
+        if(a==="speak"){
+          Voice.speak(c.de+". Kurdisch: "+c.ku+". Land: "+c.country);
+        }else if(a==="weather"){
+          modal.remove();clearInterval(iv);
+          WeltApp._weatherCity=c.de;
+          WeltApp._tab="weather";
+          var el=document.querySelector(".window[data-app='welt'] .wbody");
+          if(el)WeltApp.render(el);
+        }else if(a==="map"){
+          window.open("https://www.google.com/maps?q="+c.lat+","+c.lng,"_blank");
+        }else if(a==="navigate"){
+          window.open("https://www.google.com/maps/dir/?api=1&destination="+c.lat+","+c.lng,"_blank");
+        }
+      });
+    });
+  },
+
+  loadWeather:function(city,cb){
+    var self=this;
+    var url="https://api.open-meteo.com/v1/forecast?latitude="+city.lat+"&longitude="+city.lng+"&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m&timezone=auto";
+    fetch(url).then(function(r){return r.json();}).then(function(d){
+      if(!d.current){cb(null);return;}
+      var code=d.current.weather_code;
+      var icon="🌤️";
+      if(code===0)icon="☀️";else if(code<=3)icon="⛅";else if(code<=48)icon="🌫️";
+      else if(code<=67)icon="🌧️";else if(code<=77)icon="❄️";else if(code<=82)icon="🌧️";
+      else if(code<=86)icon="❄️";else icon="⛈️";
+      var desc="Unbekannt";
+      if(code===0)desc="Klarer Himmel";else if(code<=3)desc="Teilweise bewölkt";
+      else if(code<=48)desc="Neblig";else if(code<=67)desc="Regnerisch";
+      else if(code<=77)desc="Schnee";else if(code<=82)desc="Schauer";
+      else if(code<=86)desc="Schneeschauer";else desc="Gewitter";
+      var data={temp:Math.round(d.current.temperature_2m),icon:icon,desc:desc,wind:Math.round(d.current.wind_speed_10m),humidity:d.current.relative_humidity_2m};
+      self._weatherCache["w_"+city.de]=data;
+      cb(data);
+    }).catch(function(){cb(null);});
+  },
+
+  /* ═══ Wetter-Tab ═══ */
+  renderWeather:function(body){
+    var self=this;
+    var cityName=this._weatherCity||"Berlin";
+    var city=CITIES.find(function(x){return x.de===cityName;})||CITIES[0];
+    var cached=this._weatherCache["w_"+city.de];
+    body.innerHTML='<div class="field"><label>Stadt wählen</label>'
+      +'<select id="weltWeatherCity">'
+      +CITIES.map(function(c){return '<option value="'+esc(c.de)+'"'+(c.de===cityName?" selected":"")+'>'+c.flag+' '+esc(c.de)+' (🟨 '+esc(c.ku)+')</option>';}).join("")
+      +'</select></div>'
+      +'<div id="weltWeatherCard" style="padding:20px;background:linear-gradient(135deg,rgba(0,229,255,.1),rgba(180,120,255,.1));border-radius:14px;text-align:center;margin-bottom:10px;min-height:140px">'
+      +(cached?'<div style="font-size:60px">'+cached.icon+'</div><div style="font-size:48px;font-weight:900;color:var(--p1)">'+cached.temp+'°C</div><div style="font-size:14px;color:var(--text-dim);text-transform:capitalize;margin-top:4px">'+esc(cached.desc)+'</div><div style="font-size:11px;color:var(--text-mute);margin-top:8px">💨 '+cached.wind+' km/h · 💧 '+cached.humidity+'%</div>':'<div style="color:var(--text-mute);padding:40px">⏳ Lade Wetter…</div>')
+      +'</div>'
+      +'<div class="btn-row" style="display:flex;gap:6px;margin-bottom:10px">'
+      +'<button class="btn sec" id="weltWeatherReload" style="flex:1">🔄 Aktualisieren</button>'
+      +'<button class="btn sec" id="weltWeatherSpeak" style="flex:1">🔊 Vorlesen</button>'
+      +'<button class="btn sec" id="weltWeatherMap" style="flex:1">🗺️ Karte</button>'
+      +'</div>'
+      +'<div style="font-size:11px;color:var(--text-mute);line-height:1.5;padding:10px;background:rgba(0,0,0,.2);border-radius:8px">'
+      +'💡 Wetter von <b>Open-Meteo</b> (kostenlos, kein Key). Koordinaten: '+city.lat.toFixed(2)+', '+city.lng.toFixed(2)+' · Zeitzone: '+esc(city.tz)
+      +'</div>';
+    var sel=$("weltWeatherCity");
+    if(sel)sel.addEventListener("change",function(){
+      self._weatherCity=this.value;
+      self.renderTab(body.parentElement);
+    });
+    var reload=$("weltWeatherReload");
+    if(reload)reload.addEventListener("click",function(){
+      delete self._weatherCache["w_"+city.de];
+      self.renderTab(body.parentElement);
+    });
+    var sp=$("weltWeatherSpeak");
+    if(sp)sp.addEventListener("click",function(){
+      var d=self._weatherCache["w_"+city.de];
+      if(!d)return;
+      Voice.speak("Wetter in "+city.de+": "+d.desc+", "+d.temp+" Grad Celsius, Wind "+d.wind+" Kilometer pro Stunde");
+    });
+    var mp=$("weltWeatherMap");
+    if(mp)mp.addEventListener("click",function(){
+      window.open("https://www.google.com/maps?q="+city.lat+","+city.lng,"_blank");
+    });
+    /* Laden */
+    this.loadWeather(city,function(data){
+      var card=$("weltWeatherCard");
+      if(!card)return;
+      if(!data){card.innerHTML='<div style="color:#ff8080;padding:20px">❌ Fehler beim Laden. Kein Internet?</div>';return;}
+      card.innerHTML='<div style="font-size:60px">'+data.icon+'</div><div style="font-size:48px;font-weight:900;color:var(--p1)">'+data.temp+'°C</div><div style="font-size:14px;color:var(--text-dim);text-transform:capitalize;margin-top:4px">'+esc(data.desc)+'</div><div style="font-size:11px;color:var(--text-mute);margin-top:8px">💨 '+data.wind+' km/h · 💧 '+data.humidity+'%</div>';
+    });
+  },
+
+  /* ═══ Weltzeiten ═══ */
+  renderClock:function(body){
+    var self=this;
+    var favs=this._favCities.map(function(id){
+      return CITIES.find(function(c){return c.de===id;})||null;
+    }).filter(Boolean);
+    body.innerHTML='<div style="font-size:10px;color:var(--text-mute);margin-bottom:8px">Live-Weltzeiten deiner Favoriten (⭐ in Städte-Tab)</div>'
+      +(favs.length?favs.map(function(c){
+        return '<div style="padding:14px;background:linear-gradient(135deg,rgba(0,229,255,.08),rgba(180,120,255,.08));border-radius:12px;margin-bottom:8px;display:flex;align-items:center;gap:12px">'
+          +'<div style="font-size:32px">'+c.flag+'</div>'
+          +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:14px;font-weight:800">'+esc(c.de)+'</div>'
+          +'<div style="font-size:11px;color:#c084fc;font-weight:700">🟨 '+esc(c.ku)+'</div>'
+          +'<div style="font-size:10px;color:var(--text-mute);margin-top:2px">'+esc(c.tz)+'</div>'
+          +'</div>'
+          +'<div style="text-align:right">'
+          +'<div data-clock-city="'+esc(c.de)+'" style="font-size:24px;font-weight:900;color:var(--p1);font-family:ui-monospace,monospace">--:--:--</div>'
+          +'<div data-clock-day="'+esc(c.de)+'" style="font-size:10px;color:var(--text-mute);margin-top:2px">—</div>'
+          +'</div>'
+          +'</div>';
+      }).join(""):'<div style="padding:40px;text-align:center;color:var(--text-mute)">Keine Favoriten.<br>Gehe zu <b>Städte</b> und markiere mit ⭐</div>')
+      +'<div style="font-size:10px;color:var(--text-mute);margin-top:14px;text-align:center">🕐 '+new Date().toLocaleString("de-DE")+'</div>';
+    this.tickClocks();
+  },
+
+  tickClocks:function(){
+    var now=new Date();
+    document.querySelectorAll("[data-clock-city]").forEach(function(el){
+      var cityName=el.dataset.clockCity;
+      var c=CITIES.find(function(x){return x.de===cityName;});
+      if(!c)return;
+      try{
+        var t=now.toLocaleTimeString("de-DE",{timeZone:c.tz,hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false});
+        el.textContent=t;
+        var dayEl=document.querySelector('[data-clock-day="'+cityName+'"]');
+        if(dayEl){
+          var d=now.toLocaleDateString("de-DE",{timeZone:c.tz,weekday:"short",day:"2-digit",month:"short"});
+          dayEl.textContent=d;
+        }
+      }catch(e){}
+    });
+  },
+
+  /* ═══ Währung ═══ */
+  renderCurrency:function(body){
+    var self=this;
+    var currencies=["EUR","USD","TRY","GBP","CHF","JPY","CNY","RUB","INR","SAR","AED","IQD","IRR","CAD","AUD"];
+    var symbols={EUR:"€",USD:"$",TRY:"₺",GBP:"£",CHF:"Fr",JPY:"¥",CNY:"¥",RUB:"₽",INR:"₹",SAR:"﷼",AED:"د.إ",IQD:"ع.د",IRR:"﷼",CAD:"C$",AUD:"A$"};
+    body.innerHTML='<div class="field"><label>Betrag</label><input type="number" id="weltCurrAmt" value="'+this._currencyAmount+'" step="1" inputmode="decimal"></div>'
+      +'<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:end;margin-bottom:12px">'
+      +'<div class="field" style="margin:0"><label>Von</label><select id="weltCurrFrom">'+currencies.map(function(c){return '<option value="'+c+'"'+(self._currencyFrom===c?" selected":"")+'>'+c+' '+(symbols[c]||"")+'</option>';}).join("")+'</select></div>'
+      +'<button class="btn sec" id="weltCurrSwap" style="height:42px;padding:0 12px">⇄</button>'
+      +'<div class="field" style="margin:0"><label>Nach</label><select id="weltCurrTo">'+currencies.map(function(c){return '<option value="'+c+'"'+(self._currencyTo===c?" selected":"")+'>'+c+' '+(symbols[c]||"")+'</option>';}).join("")+'</select></div>'
+      +'</div>'
+      +'<div id="weltCurrResult" style="padding:20px;background:linear-gradient(135deg,rgba(0,229,255,.1),rgba(180,120,255,.1));border-radius:14px;text-align:center;margin-bottom:10px;min-height:100px">'
+      +'<div style="color:var(--text-mute);padding:30px">⏳ Lade Kurs…</div>'
+      +'</div>'
+      +'<button class="btn sec full" id="weltCurrReload">🔄 Kurs aktualisieren</button>'
+      +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:10px" id="weltCurrQuick"></div>'
+      +'<div style="font-size:10px;color:var(--text-mute);margin-top:10px;text-align:center;padding:8px;background:rgba(0,0,0,.2);border-radius:8px">💱 Live-Kurse von <b>Frankfurter API</b> (kostenlos, kein Key)</div>';
+
+    var amtInput=$("weltCurrAmt");
+    if(amtInput)amtInput.addEventListener("input",function(){self._currencyAmount=parseFloat(this.value)||0;self.loadCurrency();});
+    var fromSel=$("weltCurrFrom");
+    if(fromSel)fromSel.addEventListener("change",function(){self._currencyFrom=this.value;self.loadCurrency();});
+    var toSel=$("weltCurrTo");
+    if(toSel)toSel.addEventListener("change",function(){self._currencyTo=this.value;self.loadCurrency();});
+    var swap=$("weltCurrSwap");
+    if(swap)swap.addEventListener("click",function(){var t=self._currencyFrom;self._currencyFrom=self._currencyTo;self._currencyTo=t;self.renderTab(body.parentElement);});
+    var reload=$("weltCurrReload");
+    if(reload)reload.addEventListener("click",function(){self._currencyData=null;self.loadCurrency();});
+
+    /* Quick-Choices */
+    var quick=$("weltCurrQuick");
+    if(quick){
+      var quickPairs=[["EUR","USD"],["EUR","TRY"],["USD","EUR"],["EUR","GBP"],["EUR","IQD"],["TRY","EUR"]];
+      quick.innerHTML=quickPairs.map(function(p){
+        return '<button class="btn sec" data-pair="'+p[0]+'-'+p[1]+'">'+p[0]+' → '+p[1]+'</button>';
+      }).join("");
+      quick.querySelectorAll("[data-pair]").forEach(function(b){
+        b.addEventListener("click",function(){
+          var parts=b.dataset.pair.split("-");
+          self._currencyFrom=parts[0];self._currencyTo=parts[1];
+          self.renderTab(body.parentElement);
+        });
+      });
+    }
+
+    this.loadCurrency();
+  },
+
+  loadCurrency:function(){
+    var self=this;
+    var from=this._currencyFrom,to=this._currencyTo,amt=this._currencyAmount;
+    var result=$("weltCurrResult");
+    if(!result)return;
+    var url="https://api.frankfurter.app/latest?from="+from+"&to="+to;
+    fetch(url).then(function(r){
+      if(!r.ok)throw new Error("HTTP "+r.status);
+      return r.json();
+    }).then(function(d){
+      if(!d.rates||!d.rates[to])throw new Error("Kein Kurs");
+      var rate=d.rates[to];
+      self._currencyData={rate:rate,date:d.date};
+      var converted=amt*rate;
+      var symbols={EUR:"€",USD:"$",TRY:"₺",GBP:"£",CHF:"Fr",JPY:"¥",CNY:"¥",RUB:"₽",INR:"₹",SAR:"﷼",AED:"د.إ",IQD:"ع.د",IRR:"﷼",CAD:"C$",AUD:"A$"};
+      result.innerHTML='<div style="font-size:12px;color:var(--text-dim)">'+amt.toFixed(2)+' '+from+' '+symbols[from]+'</div>'
+        +'<div style="font-size:36px;font-weight:900;color:var(--p1);margin:6px 0">'+converted.toFixed(2)+' '+symbols[to]+'</div>'
+        +'<div style="font-size:11px;color:var(--text-mute)">1 '+from+' = '+rate.toFixed(4)+' '+to+' · '+d.date+'</div>';
+    }).catch(function(e){
+      /* Fallback: USD als Basis */
+      fetch("https://api.frankfurter.app/latest?from=USD&to="+to).then(function(r){return r.json();}).then(function(d2){
+        if(d2.rates&&d2.rates[to]){
+          var rateUSD=d2.rates[to];
+          var converted=amt*(rateUSD/Math.max(0.01,rateUSD));
+          result.innerHTML='<div style="color:#fbbf24;padding:20px;font-size:12px">⚠️ '+e.message+'.<br>Versuch mit einer anderen Währung.</div>';
+        }else throw new Error("Keine Kurs-Daten");
+      }).catch(function(e2){
+        result.innerHTML='<div style="color:#ff8080;padding:20px;font-size:12px">❌ Fehler: '+esc(e.message)+'<br><br>Mögliche Ursache: Kein Internet oder zu viele Anfragen.</div>';
+      });
+    });
+  }
+};
+
+/* ══════════════ REGISTRIERUNG ══════════════ */
+if(H.MODULES){
+  H.MODULES.welt=WeltApp;
+}
+if(H.APPS){
+  var existing=H.APPS.find(function(a){return a.id==="welt";});
+  if(!existing){
+    H.APPS.push({id:"welt",ico:"🌍",name:"Welt",cat:"Wissen",desc:"Länder · Städte · Wetter · Zeiten · Währung"});
+  }
+}
+/* Homescreen neu rendern */
+setTimeout(function(){
+  var cat=document.getElementById("appCategories");
+  if(cat&&window.HalDo&&window.HalDo.APPS){
+    /* Trigger rerender über internen Aufruf */
+    var sidebar=document.getElementById("sidebar");
+    if(sidebar){
+      var oldItems=sidebar.querySelectorAll("[data-open-app]");
+      /* Füge neuen Sidebar-Eintrag hinzu wenn nicht vorhanden */
+      var has=false;
+      oldItems.forEach(function(x){if(x.dataset.openApp==="welt")has=true;});
+      if(!has){
+        var appsGroup=sidebar.querySelectorAll(".group")[1];
+        var btn=document.createElement("button");
+        btn.className="item";
+        btn.dataset.openApp="welt";
+        btn.innerHTML='<span class="ico">🌍</span><span class="lbl">Welt</span>';
+        if(appsGroup){
+          appsGroup.parentNode.insertBefore(btn,appsGroup.nextSibling);
+        }else{
+          sidebar.appendChild(btn);
+        }
+        btn.addEventListener("click",function(){
+          H.Windows.open("welt");
+          if(window.innerWidth<700)sidebar.classList.remove("open");
+        });
+      }
+    }
+    /* Homescreen neu rendern */
+    var evt=new Event("haldo-rerender");
+    document.dispatchEvent(evt);
+  }
+},200);
+
+console.log("🌍 HalDo Welt-App v1 registriert — Länder · Städte · Wetter · Zeiten · Währung");
+})();
+</script>
+<!-- ============ ENDE HALDO WELT-APP ============ -->
 </body>
 </html>
