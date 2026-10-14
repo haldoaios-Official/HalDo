@@ -1,11 +1,13 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — DESKTOP (v150c)
-   Menü links · Sidebar mit Drag&Drop-Sortierung
+   HALDO AI OS — DESKTOP (v150d)
+   Menü-Button FIX · Sidebar ohne Drag-Konflikt
    ═══════════════════════════════════════════════════════════ */
 
 window.HalDo = window.HalDo || {};
 HalDo.Desktop = (function(){
   "use strict";
+
+  var _sidebarBound = false;
 
   function initTopbar(){
     var logoBtn = document.getElementById("logoBtn");
@@ -17,13 +19,25 @@ HalDo.Desktop = (function(){
     if(logoBtn) logoBtn.addEventListener("click", function(){
       if(window.HalDo.Router) HalDo.Router.open("chat");
     });
-    if(sidebarBtn) sidebarBtn.addEventListener("click", function(){
-      var sb = document.getElementById("sidebar");
-      if(!sb) return;
-      var willOpen = !sb.classList.contains("open");
-      renderSidebar();
-      sb.classList.toggle("open", willOpen);
-    });
+
+    /* ═══ MENÜ-BUTTON — Klarer Klick-Handler ═══ */
+    if(sidebarBtn){
+      sidebarBtn.onclick = function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        var sb = document.getElementById("sidebar");
+        if(!sb) return;
+        var isOpen = sb.classList.contains("open");
+        if(!isOpen){
+          /* Beim Öffnen Sidebar neu rendern */
+          renderSidebar();
+          sb.classList.add("open");
+        } else {
+          sb.classList.remove("open");
+        }
+      };
+    }
+
     if(voiceBtn) voiceBtn.addEventListener("click", function(){
       if(window.HalDo.Voice && HalDo.Voice.openPanel) HalDo.Voice.openPanel();
     });
@@ -59,43 +73,31 @@ HalDo.Desktop = (function(){
     });
   }
 
-  /* ═══ SIDEBAR mit Drag&Drop ═══ */
   function renderSidebar(){
     var sb = document.getElementById("sidebar");
     if(!sb) return;
     if(!window.HalDo.Registry) return;
 
-    var appOrder = HalDo.Config.get("appOrder", null);
-    var allApps = HalDo.Registry.all().slice();
+    var allApps = HalDo.Registry.all().slice().sort(function(a, b){
+      return a.name.localeCompare(b.name, "de");
+    });
 
-    /* Wenn User eine eigene Reihenfolge gespeichert hat, nutze diese */
-    if(appOrder && Array.isArray(appOrder)){
-      var ordered = [];
-      appOrder.forEach(function(id){
-        var a = allApps.find(function(x){ return x.id === id; });
-        if(a) ordered.push(a);
-      });
-      allApps.forEach(function(a){
-        if(ordered.indexOf(a) < 0) ordered.push(a);
-      });
-      allApps = ordered;
-    } else {
-      allApps.sort(function(a, b){ return a.name.localeCompare(b.name, "de"); });
-    }
+    /* Notify-Master-Status */
+    var notifyOff = window.HalDo.Notify && !HalDo.Notify.get().master;
 
     var html = '<div class="group">⚙️ System-Menü</div>';
-    html += '<button class="item" id="sbChat"><span class="ico">💬</span><span class="lbl">Chat öffnen</span></button>';
-    html += '<button class="item" id="sbHaldoAI"><span class="ico">🦚</span><span class="lbl">HalDo AI</span></button>';
-    html += '<button class="item" id="sbSettings"><span class="ico">⚙️</span><span class="lbl">Einstellungen</span></button>';
-    html += '<button class="item" id="sbVoice"><span class="ico">🔊</span><span class="lbl">HalDoVoice</span></button>';
-    html += '<button class="item" id="sbBackup"><span class="ico">💾</span><span class="lbl">Backup</span></button>';
-    html += '<button class="item" id="sbAbout"><span class="ico">ℹ️</span><span class="lbl">Über HalDo</span></button>';
+    html += '<button class="item" data-sys="chat"><span class="ico">💬</span><span class="lbl">Chat öffnen</span></button>';
+    html += '<button class="item" data-sys="haldoai"><span class="ico">🦚</span><span class="lbl">HalDo AI</span></button>';
+    html += '<button class="item" data-sys="settings"><span class="ico">⚙️</span><span class="lbl">Einstellungen</span></button>';
+    html += '<button class="item" data-sys="voice"><span class="ico">🔊</span><span class="lbl">HalDoVoice</span></button>';
+    html += '<button class="item" data-sys="notify"><span class="ico">🔔</span><span class="lbl">Benachrichtigungen <div class="sub">' + (notifyOff ? "⏸ deaktiviert" : "✅ aktiv") + '</div></span></button>';
+    html += '<button class="item" data-sys="backup"><span class="ico">💾</span><span class="lbl">Backup</span></button>';
+    html += '<button class="item" data-sys="about"><span class="ico">ℹ️</span><span class="lbl">Über HalDo</span></button>';
     html += '<hr class="sep">';
-    html += '<div class="group">📱 Apps A–Z (' + allApps.length + ') · ziehen zum Sortieren</div>';
+    html += '<div class="group">📱 Apps A–Z (' + allApps.length + ')</div>';
 
     allApps.forEach(function(a){
-      html += '<button class="item" draggable="true" data-app-id="' + a.id + '" data-open-app="' + a.id + '">'
-        + '<span class="drag-handle">⋮⋮</span>'
+      html += '<button class="item" data-open-app="' + a.id + '">'
         + '<span class="ico">' + a.ico + '</span>'
         + '<span class="lbl">' + _esc(a.name)
         + '<div class="sub">' + _esc(a.desc) + '</div>'
@@ -104,119 +106,102 @@ HalDo.Desktop = (function(){
 
     sb.innerHTML = html;
 
-    /* Klick-Events */
+    /* ═══ App-Buttons — einfacher Klick ohne Drag-Konflikt ═══ */
     sb.querySelectorAll("[data-open-app]").forEach(function(b){
       b.addEventListener("click", function(e){
-        /* Wenn gerade gedraggt wurde, nicht öffnen */
-        if(sb._dragging) return;
-        if(window.HalDo.Router) HalDo.Router.open(b.dataset.openApp);
-        if(window.innerWidth < 700 && window.HalDo.Display){
-          HalDo.Display.setSidebarOpen(false);
-        }
-      });
-    });
-
-    /* Drag&Drop für Sortierung */
-    _setupDragDrop(sb);
-
-    var sbChat = document.getElementById("sbChat");
-    if(sbChat) sbChat.addEventListener("click", function(){
-      if(window.HalDo.Router) HalDo.Router.open("chat");
-      if(window.HalDo.Display) HalDo.Display.setSidebarOpen(false);
-    });
-    var sbAI = document.getElementById("sbHaldoAI");
-    if(sbAI) sbAI.addEventListener("click", function(){
-      if(window.HalDo.Router) HalDo.Router.open("haldoai");
-      if(window.HalDo.Display) HalDo.Display.setSidebarOpen(false);
-    });
-    var sbSet = document.getElementById("sbSettings");
-    if(sbSet) sbSet.addEventListener("click", function(){
-      _openSettings();
-      if(window.HalDo.Display) HalDo.Display.setSidebarOpen(false);
-    });
-    var sbVoice = document.getElementById("sbVoice");
-    if(sbVoice) sbVoice.addEventListener("click", function(){
-      if(window.HalDo.Voice && HalDo.Voice.openPanel) HalDo.Voice.openPanel();
-      if(window.HalDo.Display) HalDo.Display.setSidebarOpen(false);
-    });
-    var sbBackup = document.getElementById("sbBackup");
-    if(sbBackup) sbBackup.addEventListener("click", function(){
-      _doBackup();
-      if(window.HalDo.Display) HalDo.Display.setSidebarOpen(false);
-    });
-    var sbAbout = document.getElementById("sbAbout");
-    if(sbAbout) sbAbout.addEventListener("click", function(){
-      _toast("🦚 HalDo AI OS v150 — von Bruder für Bruder", "ok");
-    });
-  }
-
-  /* ═══ Drag&Drop Logik ═══ */
-  function _setupDragDrop(sb){
-    var dragEl = null;
-
-    sb.querySelectorAll("[data-app-id]").forEach(function(el){
-      el.addEventListener("dragstart", function(e){
-        dragEl = el;
-        sb._dragging = true;
-        el.classList.add("dragging");
-        try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", el.dataset.appId); } catch(err){}
-      });
-      el.addEventListener("dragend", function(){
-        el.classList.remove("dragging");
-        sb.querySelectorAll("[data-app-id]").forEach(function(x){ x.classList.remove("drag-over"); });
-        setTimeout(function(){ sb._dragging = false; }, 100);
-      });
-      el.addEventListener("dragover", function(e){
-        if(!dragEl || dragEl === el) return;
         e.preventDefault();
-        e.dataTransfer.dropEffect = "move";
-        el.classList.add("drag-over");
+        var appId = b.dataset.openApp;
+        /* Sidebar schließen */
+        sb.classList.remove("open");
+        /* App öffnen */
+        setTimeout(function(){
+          if(window.HalDo.Router){
+            HalDo.Router.open(appId).catch(function(err){
+              console.error("[Sidebar] App-Fehler:", err);
+            });
+          }
+        }, 100);
       });
-      el.addEventListener("dragleave", function(){
-        el.classList.remove("drag-over");
-      });
-      el.addEventListener("drop", function(e){
+    });
+
+    /* ═══ System-Buttons ═══ */
+    sb.querySelectorAll("[data-sys]").forEach(function(b){
+      b.addEventListener("click", function(e){
         e.preventDefault();
-        el.classList.remove("drag-over");
-        if(!dragEl || dragEl === el) return;
-        /* Elemente tauschen */
-        var parent = sb;
-        var items = Array.from(sb.querySelectorAll("[data-app-id]"));
-        var dragIdx = items.indexOf(dragEl);
-        var dropIdx = items.indexOf(el);
-        if(dragIdx < 0 || dropIdx < 0) return;
-        if(dragIdx < dropIdx){
-          parent.insertBefore(dragEl, el.nextSibling);
-        } else {
-          parent.insertBefore(dragEl, el);
-        }
-        _saveOrder();
+        var sys = b.dataset.sys;
+        sb.classList.remove("open");
+        setTimeout(function(){
+          if(sys === "chat" && window.HalDo.Router) HalDo.Router.open("chat");
+          else if(sys === "haldoai" && window.HalDo.Router) HalDo.Router.open("haldoai");
+          else if(sys === "settings") _openSettings();
+          else if(sys === "voice" && window.HalDo.Voice) HalDo.Voice.openPanel();
+          else if(sys === "notify") _openNotifySettings();
+          else if(sys === "backup") _doBackup();
+          else if(sys === "about") _toast("🦚 HalDo AI OS v150 — von Bruder für Bruder", "ok");
+        }, 100);
       });
     });
-
-    /* Touch-Support für Drag (vereinfacht) */
-    sb.querySelectorAll("[data-app-id] .drag-handle").forEach(function(handle){
-      handle.addEventListener("touchstart", function(e){
-        var el = handle.parentNode;
-        el.setAttribute("data-touch-drag", "1");
-        el.classList.add("dragging");
-        sb._dragging = true;
-      }, {passive: true});
-    });
   }
 
-  function _saveOrder(){
-    var sb = document.getElementById("sidebar");
-    if(!sb) return;
-    var order = [];
-    sb.querySelectorAll("[data-app-id]").forEach(function(el){
-      order.push(el.dataset.appId);
+  /* ═══ Notify-Settings Dialog ═══ */
+  function _openNotifySettings(){
+    if(!window.HalDo.Notify){ _toast("Notify nicht verfügbar", "err"); return; }
+    var n = HalDo.Notify.get();
+    var modal = document.getElementById("settings");
+    var body = document.getElementById("settingsBody");
+    var head = modal.querySelector("h2");
+    if(head) head.textContent = "🔔 Benachrichtigungen";
+    var catNames = { blitzer:"📷 Blitzer", stau:"🚗 Stau", unfall:"🚨 Unfall", baustelle:"👷 Baustelle", sperrung:"🚧 Sperrung", warnung:"⚠️ Warnung", info:"ℹ️ Info" };
+    var html = '<div class="group"><h3>Global</h3>'
+      + '<div class="row"><div class="lbl">Haupt-Schalter</div><div class="sw' + (n.master?" on":"") + '" data-nset="master"></div></div>'
+      + '<div class="row"><div class="lbl">🔊 Piepton</div><div class="sw' + (n.beep?" on":"") + '" data-nset="beep"></div></div>'
+      + '<div class="row"><div class="lbl">🎙️ Sprachansage</div><div class="sw' + (n.voice?" on":"") + '" data-nset="voice"></div></div>'
+      + '<div class="row"><div class="lbl">💬 System-Popup <small>Auch außerhalb der App</small></div><div class="sw' + (n.system?" on":"") + '" data-nset="system"></div></div>'
+      + '<div class="row"><div class="lbl">📳 Vibration</div><div class="sw' + (n.vibrate?" on":"") + '" data-nset="vibrate"></div></div>'
+      + '<button class="btn sec full" id="nPerm" style="margin-top:10px">🔔 System-Popup erlauben</button>'
+      + '<button class="btn full" id="nTest" style="margin-top:6px">🎵 Alle Beeps testen</button>'
+      + '</div>';
+    html += '<div class="group"><h3>Kategorien</h3>';
+    Object.keys(catNames).forEach(function(k){
+      var c = n.cats[k] || {};
+      html += '<div style="padding:10px;background:rgba(0,0,0,.2);border-radius:10px;margin-bottom:6px">'
+        + '<div style="font-size:12px;font-weight:900;color:var(--p1);margin-bottom:6px">' + catNames[k] + '</div>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">'
+        + '<div style="text-align:center"><div style="font-size:9px;color:var(--text-mute);margin-bottom:4px">🔊</div><div class="sw' + (c.beep?" on":"") + '" data-ncat="' + k + '" data-nkey="beep" style="margin:0 auto"></div></div>'
+        + '<div style="text-align:center"><div style="font-size:9px;color:var(--text-mute);margin-bottom:4px">🎙️</div><div class="sw' + (c.voice?" on":"") + '" data-ncat="' + k + '" data-nkey="voice" style="margin:0 auto"></div></div>'
+        + '<div style="text-align:center"><div style="font-size:9px;color:var(--text-mute);margin-bottom:4px">💬</div><div class="sw' + (c.system?" on":"") + '" data-ncat="' + k + '" data-nkey="system" style="margin:0 auto"></div></div>'
+        + '</div></div>';
     });
-    if(window.HalDo.Config) HalDo.Config.set("appOrder", order);
-    _toast("✅ Reihenfolge gespeichert", "ok");
+    html += '</div>';
+    body.innerHTML = html;
+
+    body.querySelectorAll("[data-nset]").forEach(function(el){
+      el.addEventListener("click", function(){
+        var k = el.dataset.nset;
+        var n2 = HalDo.Notify.get();
+        HalDo.Notify.set(k, !n2[k]);
+        el.classList.toggle("on");
+      });
+    });
+    body.querySelectorAll("[data-ncat]").forEach(function(el){
+      el.addEventListener("click", function(){
+        var c = el.dataset.ncat, k = el.dataset.nkey;
+        var n2 = HalDo.Notify.get();
+        var v = !(n2.cats[c] && n2.cats[c][k]);
+        HalDo.Notify.setCat(c, k, v);
+        el.classList.toggle("on", v);
+      });
+    });
+    var np = body.querySelector("#nPerm");
+    if(np) np.addEventListener("click", function(){
+      HalDo.Notify.requestPermission().then(function(p){ alert("Ergebnis: " + p); });
+    });
+    var nt = body.querySelector("#nTest");
+    if(nt) nt.addEventListener("click", function(){ HalDo.Notify.testAll(); });
+
+    modal.classList.add("show");
   }
 
-  /* ═══ Backup ═══ */
   function _doBackup(){
     try {
       var data = HalDo.Config.exportAll();
@@ -237,11 +222,12 @@ HalDo.Desktop = (function(){
     }
   }
 
-  /* ═══ Einstellungen ═══ */
   function _openSettings(){
     var modal = document.getElementById("settings");
     var body = document.getElementById("settingsBody");
     if(!modal || !body) return;
+    var head = modal.querySelector("h2");
+    if(head) head.textContent = "Allgemeine Einstellungen";
     var cfg = window.HalDo.Config.get();
     var LANG_LIST = (window.HalDo.Language) ? HalDo.Language.list() : [];
     var langHTML = LANG_LIST.map(function(l){
@@ -255,14 +241,14 @@ HalDo.Desktop = (function(){
       + '<div class="speed-row"><span>🐌</span><input type="range" id="globalSpeed" min="1" max="10" value="' + (cfg.planetSpeed||5) + '"><span class="sv" id="speedVal">' + (cfg.planetSpeed||5) + '×</span><span>🐇</span></div>'
       + '<div class="row" style="margin-top:8px"><div class="lbl">🕐 Uhr-Planeten</div><div class="sw' + (cfg.clockOn?" on":"") + '" id="clockSw"></div></div></div>'
       + '<div class="group"><h3>🌐 Sprache (' + LANG_LIST.length + ')</h3><div class="lang-grid">' + langHTML + '</div></div>'
-      + '<div class="group"><h3>⚡ CYBORG</h3><div class="row"><div class="lbl">Cyborg-Modus <small>Pink / Violett</small></div><div class="sw' + (cfg.cyborg?" on":"") + '" id="cyborgSw"></div></div></div>'
+      + '<div class="group"><h3>⚡ CYBORG</h3><div class="row"><div class="lbl">Cyborg-Modus</div><div class="sw' + (cfg.cyborg?" on":"") + '" id="cyborgSw"></div></div></div>'
       + '<div class="group"><h3>👤 Profil</h3><div class="row"><div class="lbl">Dein Name</div><input type="text" id="userNameInput" value="' + _esc(cfg.userName||"Bruder") + '"></div></div>'
+      + '<div class="group"><h3>🔔 Benachrichtigungen</h3><button class="btn full" id="openNotify">🔔 Benachrichtigungen verwalten</button></div>'
       + '<div class="group"><h3>🎙️ HalDoVoice</h3><button class="btn full" id="openVoicePanel">🔊 HalDoVoice öffnen</button></div>'
       + '<div class="group"><h3>🚦 API-Keys</h3>'
-      + '<div class="field"><label>OpenRouteService Key</label><input type="password" id="orsInput" placeholder="Key" value="' + _esc(HalDo.Config.get("orsKey","")) + '" autocomplete="new-password" name="ors"></div>'
-      + '<div class="field"><label>Tankerkönig Key</label><input type="password" id="tankerInput" placeholder="Key" value="' + _esc(HalDo.Config.get("tankerKey","")) + '" autocomplete="new-password" name="tanker"></div>'
+      + '<div class="field"><label>OpenRouteService</label><input type="password" id="orsInput" placeholder="Key" value="' + _esc(HalDo.Config.get("orsKey","")) + '" autocomplete="new-password" name="ors"></div>'
+      + '<div class="field"><label>Tankerkönig</label><input type="password" id="tankerInput" placeholder="Key" value="' + _esc(HalDo.Config.get("tankerKey","")) + '" autocomplete="new-password" name="tanker"></div>'
       + '<button class="btn sec full" id="vkSave">💾 Keys speichern</button></div>'
-      + '<div class="group"><h3>📱 Sidebar</h3><button class="btn sec full" id="resetOrder">🔄 App-Reihenfolge zurücksetzen</button></div>'
       + '<div class="group"><h3>💾 Daten</h3><button class="btn sec full" id="expBtn">📤 Backup</button><button class="btn danger full" id="resetBtn" style="margin-top:8px">🗑️ Alles zurücksetzen</button></div>';
 
     body.querySelectorAll("[data-theme]").forEach(function(el){
@@ -280,7 +266,7 @@ HalDo.Desktop = (function(){
           HalDo.Language.set(el.dataset.lang);
           body.querySelectorAll("[data-lang]").forEach(function(x){ x.classList.remove("active"); });
           el.classList.add("active");
-          _toast("🌐 " + (HalDo.Language.LANGS[el.dataset.lang].name), "ok");
+          _toast("🌐 " + HalDo.Language.LANGS[el.dataset.lang].name, "ok");
         }
       });
     });
@@ -307,6 +293,8 @@ HalDo.Desktop = (function(){
     });
     var ui = document.getElementById("userNameInput");
     if(ui) ui.addEventListener("input", function(){ HalDo.Config.set("userName", this.value); });
+    var on = document.getElementById("openNotify");
+    if(on) on.addEventListener("click", function(){ _openNotifySettings(); });
     var ov = document.getElementById("openVoicePanel");
     if(ov) ov.addEventListener("click", function(){
       modal.classList.remove("show");
@@ -317,12 +305,6 @@ HalDo.Desktop = (function(){
       HalDo.Config.set("orsKey", document.getElementById("orsInput").value.trim());
       HalDo.Config.set("tankerKey", document.getElementById("tankerInput").value.trim());
       _toast("💾 Keys gespeichert", "ok");
-    });
-    var ro = document.getElementById("resetOrder");
-    if(ro) ro.addEventListener("click", function(){
-      HalDo.Config.set("appOrder", null);
-      _toast("🔄 Reihenfolge zurückgesetzt", "ok");
-      renderSidebar();
     });
     var eb = document.getElementById("expBtn");
     if(eb) eb.addEventListener("click", _doBackup);
@@ -380,4 +362,4 @@ HalDo.Desktop = (function(){
   return { init: init, renderSidebar: renderSidebar };
 })();
 
-console.log("🦚 desktop.js geladen (v150c mit Drag&Drop-Sidebar)");
+console.log("🦚 desktop.js geladen (v150d Sidebar-Fix)");
