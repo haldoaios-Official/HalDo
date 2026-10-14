@@ -11,7 +11,17 @@ HalDo.WindowManager = (function(){
   var _zBase = 100;
   var _openCount = 0;
 
-  function _getDesktop(){ return document.getElementById("desktop"); }
+    function _getDesktop(){
+    var d = document.getElementById("desktop");
+    if(!d){
+      console.error("[WindowManager] #desktop fehlt!");
+      // Fallback: erstelle einen
+      d = document.createElement("div");
+      d.id = "desktop";
+      document.body.appendChild(d);
+    }
+    return d;
+  }
   function _getApp(appId){ return window.HalDo.Registry ? HalDo.Registry.get(appId) : null; }
 
   /* ─────────── Fenster erstellen ─────────── */
