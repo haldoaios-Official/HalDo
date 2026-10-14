@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — WINDOW MANAGER (v150)
+   HALDO AI OS — WINDOW MANAGER (v150b)
    Fenster · Drag · Resize · Focus · Maximize
    ═══════════════════════════════════════════════════════════ */
 
@@ -7,15 +7,14 @@ window.HalDo = window.HalDo || {};
 HalDo.WindowManager = (function(){
   "use strict";
 
-  var _windows = {};     /* { appId: HTMLElement } */
+  var _windows = {};
   var _zBase = 100;
   var _openCount = 0;
 
-    function _getDesktop(){
+  function _getDesktop(){
     var d = document.getElementById("desktop");
     if(!d){
-      console.error("[WindowManager] #desktop fehlt!");
-      // Fallback: erstelle einen
+      console.warn("[WindowManager] #desktop fehlt → erstelle neu");
       d = document.createElement("div");
       d.id = "desktop";
       document.body.appendChild(d);
@@ -24,16 +23,22 @@ HalDo.WindowManager = (function(){
   }
   function _getApp(appId){ return window.HalDo.Registry ? HalDo.Registry.get(appId) : null; }
 
-  /* ─────────── Fenster erstellen ─────────── */
+  /* ═══ Fenster erstellen ═══ */
   function create(appId){
     var desktop = _getDesktop();
-    if(!desktop){ console.warn("[WindowManager] #desktop fehlt"); return null; }
+    if(!desktop) return null;
 
     var existing = _windows[appId];
-    if(existing){ focus(appId); return existing.querySelector(".wbody"); }
+    if(existing){
+      focus(appId);
+      return existing.querySelector(".wbody");
+    }
 
     var app = _getApp(appId);
-    if(!app) return null;
+    if(!app){
+      console.warn("[WindowManager] App unbekannt: " + appId);
+      return null;
+    }
 
     var dRect = desktop.getBoundingClientRect();
     var isMobile = window.innerWidth < 600;
@@ -55,6 +60,7 @@ HalDo.WindowManager = (function(){
     win.style.left = cx + "px";
     win.style.top = cy + "px";
     win.style.zIndex = ++_zBase;
+    win.style.pointerEvents = "auto";
     _openCount++;
 
     win.innerHTML =
@@ -62,7 +68,7 @@ HalDo.WindowManager = (function(){
       +  '<span class="ico">' + (app.ico || "📦") + '</span>'
       +  '<span class="title">' + _esc(app.name) + '</span>'
       +  '<div class="wbtns">'
-      +    '<button class="wbtn voice" data-wbtn="voice" title="Stimme">🔊</button>'
+      +    '<button class="wbtn voice" data-wbtn="voice" title="HalDoVoice">🔊</button>'
       +    '<button class="wbtn set" data-wbtn="settings" title="Einstellungen">⚙️</button>'
       +    '<button class="wbtn max" data-wbtn="max" title="Maximieren">□</button>'
       +    '<button class="wbtn" data-wbtn="min" title="Minimieren">—</button>'
@@ -83,14 +89,13 @@ HalDo.WindowManager = (function(){
     return win.querySelector(".wbody");
   }
 
-  /* ─────────── Events binden ─────────── */
+  /* ═══ Events binden ═══ */
   function _bindWindow(win){
     var appId = win.dataset.app;
 
     win.addEventListener("mousedown", function(){ focus(appId); });
     win.addEventListener("touchstart", function(){ focus(appId); }, {passive:true});
 
-    /* Buttons */
     win.querySelectorAll("[data-wbtn]").forEach(function(btn){
       btn.addEventListener("click", function(e){
         e.stopPropagation();
@@ -98,12 +103,7 @@ HalDo.WindowManager = (function(){
         if(action === "close") close(appId);
         else if(action === "min") minimize(appId);
         else if(action === "max") maximize(appId);
-        else if(action === "settings") {
-          if(window.HalDo.Config && HalDo.Config.getApp) {
-            var app = _getApp(appId);
-            if(app) _openAppSettings(appId, app);
-          }
-        }
+        else if(action === "settings") _openAppSettings(appId);
         else if(action === "voice") {
           if(window.HalDo.Voice && HalDo.Voice.openPanel) HalDo.Voice.openPanel();
         }
@@ -115,6 +115,7 @@ HalDo.WindowManager = (function(){
     var drag = false, sx = 0, sy = 0, ox = 0, oy = 0;
     function startDrag(e){
       if(e.target.closest(".wbtn")) return;
+      if(win.classList.contains("maximized")) return;
       drag = true;
       var p = e.touches ? e.touches[0] : e;
       sx = p.clientX; sy = p.clientY;
@@ -174,7 +175,7 @@ HalDo.WindowManager = (function(){
     }
   }
 
-  /* ─────────── Focus ─────────── */
+  /* ═══ Focus ═══ */
   function focus(appId){
     Object.keys(_windows).forEach(function(id){
       _windows[id].classList.remove("focused");
@@ -187,19 +188,16 @@ HalDo.WindowManager = (function(){
     }
   }
 
-  /* ─────────── Minimize ─────────── */
   function minimize(appId){
     var w = _windows[appId];
     if(w) w.classList.add("minimized");
   }
 
-  /* ─────────── Maximize ─────────── */
   function maximize(appId){
     var w = _windows[appId];
     if(w) w.classList.toggle("maximized");
   }
 
-  /* ─────────── Close ─────────── */
   function close(appId){
     var w = _windows[appId];
     if(!w) return;
@@ -207,8 +205,9 @@ HalDo.WindowManager = (function(){
     delete _windows[appId];
 
     if(window.HalDo.Runtime && HalDo.Runtime.stop){
-      /* Runtime wird informiert (ohne Rekursion) */
+      try { HalDo.Runtime.stop(appId); } catch(e){}
     }
+
     if(Object.keys(_windows).length === 0){
       var hint = document.getElementById("hint");
       if(hint) hint.classList.remove("hide");
@@ -216,10 +215,13 @@ HalDo.WindowManager = (function(){
     if(window.HalDo.Kernel) HalDo.Kernel.log("⏹ Fenster geschlossen: " + appId);
   }
 
-  /* ─────────── App-Einstellungen Dialog ─────────── */
-  function _openAppSettings(appId, app){
+  /* ═══ App-Einstellungen ═══ */
+  function _openAppSettings(appId){
+    var app = _getApp(appId);
+    if(!app) return;
     var modal = document.getElementById("appSettings");
     if(!modal) return;
+
     var ico = document.getElementById("appSetIco");
     var title = document.getElementById("appSetTitle");
     var body = document.getElementById("appSetBody");
@@ -243,19 +245,19 @@ HalDo.WindowManager = (function(){
       '<div class="group"><h3>🎨 App-Farbe</h3>'
       + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'
       + colors.map(function(c){
-          return '<div data-acolor="'+c.k+'" style="padding:11px 6px;background:rgba(0,0,0,.25);border-radius:10px;border:2px solid '+(cur.color===c.k?"#fff":"transparent")+';cursor:pointer;text-align:center;font-size:10px;font-weight:800">'
-            + '<div style="height:22px;border-radius:6px;background:'+c.g+';margin-bottom:5px"></div>'
+          return '<div data-acolor="' + c.k + '" style="padding:11px 6px;background:rgba(0,0,0,.25);border-radius:10px;border:2px solid ' + (cur.color===c.k ? "#fff" : "transparent") + ';cursor:pointer;text-align:center;font-size:10px;font-weight:800">'
+            + '<div style="height:22px;border-radius:6px;background:' + c.g + ';margin-bottom:5px"></div>'
             + c.n
             + '</div>';
         }).join("")
       + '</div></div>'
-      + '<div class="group"><h3>🔊 Stimme für diese App</h3>'
+      + '<div class="group"><h3>🔊 HalDoVoice für diese App</h3>'
       + '<div class="voice-grid">'
       + voices.map(function(v){
-          return '<div class="voice-card'+(cur.voice===v.id?" active":"")+'" data-avoice="'+v.id+'">'
-            + '<span class="emoji">'+v.emoji+'</span>'
-            + '<div class="n">'+_esc(v.name)+'</div>'
-            + '<div class="d">'+_esc(v.desc)+'</div>'
+          return '<div class="voice-card' + (cur.voice===v.id ? " active" : "") + '" data-avoice="' + v.id + '">'
+            + '<span class="emoji">' + v.emoji + '</span>'
+            + '<div class="n">' + _esc(v.name) + '</div>'
+            + '<div class="d">' + _esc(v.desc) + '</div>'
             + '</div>';
         }).join("")
       + '</div></div>'
@@ -278,25 +280,25 @@ HalDo.WindowManager = (function(){
     });
     document.getElementById("asSave").addEventListener("click", function(){
       HalDo.Config.setApp(appId, cur);
-      toast("💾 Gespeichert");
+      _toast("💾 Gespeichert");
       modal.classList.remove("show");
     });
     document.getElementById("asReset").addEventListener("click", function(){
       HalDo.Config.setApp(appId, {color:"global", voice:""});
-      toast("🔄 Zurückgesetzt");
+      _toast("🔄 Zurückgesetzt");
       modal.classList.remove("show");
     });
 
     modal.classList.add("show");
   }
 
-  /* ─────────── Hilfsfunktionen ─────────── */
+  /* ═══ Helfer ═══ */
   function _esc(s){
     return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
       return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
     });
   }
-  function toast(msg, type){
+  function _toast(msg, type){
     var t = document.getElementById("toast");
     if(!t) return;
     t.textContent = msg;
@@ -305,7 +307,6 @@ HalDo.WindowManager = (function(){
     t._t = setTimeout(function(){ t.className = ""; }, 2400);
   }
 
-  /* ─────────── Info ─────────── */
   function list(){ return Object.keys(_windows); }
   function isOpen(appId){ return !!_windows[appId]; }
   function count(){ return Object.keys(_windows).length; }
@@ -331,4 +332,4 @@ HalDo.WindowManager = (function(){
   };
 })();
 
-console.log("🦚 window-manager.js geladen");
+console.log("🦚 window-manager.js geladen (v150b)");
