@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — VERKEHR APP (v150b)
-   Mit Notify Manager Integration
+   HALDO AI OS — VERKEHR APP (v150c)
+   Route · Warnungen · Blitzer · ÖPNV · Tanken · Laden ·
+   Fahrschule · Live-Warnung (GPS) · Benachrichtigungen
    ═══════════════════════════════════════════════════════════ */
 
 (function(){
@@ -22,6 +23,10 @@
     {f:"Wie verhalten Sie sich bei einem Unfall?", a:["Erste Hilfe","Weiterfahren","Hupen","Warnen"], c:0}
   ];
 
+  /* GPS Live-Watch-Variablen */
+  var _liveWatch = null;
+  var _liveTargets = [];
+
   function _esc(s){
     return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
       return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
@@ -35,6 +40,7 @@
     function build(){
       var body = "";
 
+      /* ═══ ROUTE ═══ */
       if(tab === "route"){
         body = '<div class="card"><h3>🗺️ Routenplaner</h3>'
           + '<div class="field"><label>Start</label><input type="text" id="vS" placeholder="Berlin"></div>'
@@ -47,6 +53,7 @@
           + '<button class="btn full" id="vGo">🗺️ Route berechnen</button>'
           + '<div id="vRes" style="margin-top:14px"></div></div>';
 
+      /* ═══ WARNUNGEN ═══ */
       } else if(tab === "warnungen"){
         body = '<div class="card"><h3>⚠️ Verkehrswarnungen</h3>'
           + '<div style="font-size:10.5px;color:var(--text-mute);margin-bottom:10px">Klick auf Warnung → Beep + Ansage + Popup</div>'
@@ -57,14 +64,17 @@
           + '<button class="btn sec full" id="wAll" style="margin-top:8px">🔔 Alle Warnungen mit Beep abspielen</button>'
           + '<div id="wRes" style="margin-top:12px"></div></div>';
 
+      /* ═══ BLITZER ═══ */
       } else if(tab === "blitzer"){
         body = '<div class="card"><h3>📷 Blitzer-Warnungen</h3>'
-          + '<div style="font-size:10.5px;color:var(--text-mute);margin-bottom:10px">Klick auf Blitzer → 2× Beep + Ansage + Popup</div>'
+          + '<div style="font-size:10.5px;color:var(--text-mute);margin-bottom:10px">Klick auf Blitzer → Beep + Ansage + Popup + Taschenlampe</div>'
           + '<button class="btn full" id="bzGo">🔄 Blitzer laden</button>'
           + '<button class="btn sec full" id="bzAll" style="margin-top:8px">🔔 Alle Blitzer warnen</button>'
+          + '<button class="btn sec full" id="bzLive" style="margin-top:8px">📡 Live-Überwachung starten</button>'
           + '<div id="bzRes" style="margin-top:12px"></div>'
           + '<div class="badge-info">⚠️ Bitte immer die Verkehrsregeln beachten.</div></div>';
 
+      /* ═══ ÖPNV ═══ */
       } else if(tab === "oepnv"){
         body = '<div class="card"><h3>🚆 ÖPNV Abfahrten</h3>'
           + '<div class="field"><label>Station</label><input type="text" id="vSt" placeholder="Berlin Alexanderplatz"></div>'
@@ -72,6 +82,7 @@
           + '<div id="vStL" style="margin-top:10px"></div>'
           + '<div id="vDepR" style="margin-top:14px"></div></div>';
 
+      /* ═══ TANKEN ═══ */
       } else if(tab === "tanken"){
         body = '<div class="card"><h3>⛽ Tankstellen-Preise</h3>'
           + '<div class="badge-info">Tankerkönig Key nötig (kostenlos)</div>'
@@ -79,6 +90,7 @@
           + '<button class="btn full" id="tkG">⛽ Preise laden</button>'
           + '<div id="tkR" style="margin-top:12px"></div></div>';
 
+      /* ═══ LADEN ═══ */
       } else if(tab === "laden"){
         body = '<div class="card"><h3>⚡ Ladesäulen (Open Charge Map)</h3>'
           + '<div class="field"><label>Breitengrad</label><input type="number" id="ocmLa" step="0.01" value="52.52"></div>'
@@ -87,6 +99,7 @@
           + '<button class="btn full" id="ocmG">⚡ Suchen</button>'
           + '<div id="ocmR" style="margin-top:12px"></div></div>';
 
+      /* ═══ FAHRSCHULE ═══ */
       } else if(tab === "fahrschule"){
         body = '<div class="card"><h3>🎓 Fahrschule — Theorie</h3>'
           + '<div style="font-size:10.5px;color:var(--text-mute);margin-bottom:10px">' + FS.length + ' Fragen</div>'
@@ -96,18 +109,65 @@
           + '<button class="btn sec" id="fsSt" style="flex:1">📊 Statistik</button>'
           + '</div><div id="fsSR" style="margin-top:10px"></div></div>';
 
-      } else if(tab === "notify"){
-        /* ═══ Benachrichtigungs-Einstellungen ═══ */
+      /* ═══ LIVE-WARNUNG ═══ */
+      } else if(tab === "live"){
+        var liveStatus = _liveWatch ? "🔴 Läuft" : "⚫ Gestoppt";
+        var liveColor = _liveWatch ? "#4ade80" : "var(--text-mute)";
+        var liveBg = _liveWatch ? "rgba(34,197,94,.15)" : "rgba(0,0,0,.2)";
+        body = '<div class="card"><h3>🚨 Live-Warnung (GPS)</h3>'
+          + '<div style="font-size:10.5px;color:var(--text-mute);margin-bottom:10px">Die App überwacht deine Position und warnt bei Annäherung an Ziele: 2km → 1km → 500m.</div>'
+          + '<div style="padding:14px;background:' + liveBg + ';border-radius:10px;text-align:center;margin-bottom:12px">'
+          + '<div style="font-size:12px;font-weight:800;color:' + liveColor + '">' + liveStatus + '</div>'
+          + '<div style="font-size:11px;color:var(--text-dim);margin-top:4px">' + _liveTargets.length + ' Ziele überwacht</div>'
+          + '</div>'
+          + '<button class="btn full" id="liveAdd">➕ Warnung hinzufügen (GPS)</button>'
+          + '<button class="btn sec full" id="liveDemo" style="margin-top:8px">🧪 Demo-Ziele in der Nähe</button>'
+          + '<button class="btn sec full" id="liveStop" style="margin-top:8px">⏹ Alle stoppen</button>'
+          + '<div id="liveList" style="margin-top:12px"></div>'
+          + '<div class="badge-info" style="margin-top:12px">💡 Bei Annäherung: Beep + Ansage + Taschenlampe + Popup + Vibration. Einstellbar in "🔔 Benachrichtigungen".</div>'
+          + '</div>';
+
+        setTimeout(function(){
+          var list = container.querySelector("#liveList");
+          if(list && _liveTargets.length){
+            var h = '<div class="card"><h3>📍 Aktive Warnungen (' + _liveTargets.length + ')</h3>';
+            _liveTargets.forEach(function(t, i){
+              h += '<div style="padding:10px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">'
+                + '<div><div style="font-size:12px;font-weight:800">' + _esc(t.title) + '</div>'
+                + '<div style="font-size:10px;color:var(--text-mute)">' + t.lat.toFixed(4) + ', ' + t.lng.toFixed(4) + '</div></div>'
+                + '<button data-liveDel="' + i + '" style="background:transparent;border:none;color:#ff8080;cursor:pointer;font-size:14px">✕</button>'
+                + '</div>';
+            });
+            h += '</div>';
+            list.innerHTML = h;
+            list.querySelectorAll("[data-liveDel]").forEach(function(el){
+              el.addEventListener("click", function(){
+                var i = parseInt(el.dataset.liveDel);
+                if(_liveTargets[i] && _liveTargets[i].watcher){
+                  try { _liveTargets[i].watcher.stop(); } catch(e){}
+                }
+                _liveTargets.splice(i, 1);
+                build();
+              });
+            });
+          }
+        }, 50);
+      }
+
+      /* ═══ BENACHRICHTIGUNGEN ═══ */
+      else if(tab === "notify"){
         var n = window.HalDo.Notify ? HalDo.Notify.get() : {};
         var cats = n.cats || {};
         var catNames = { blitzer:"📷 Blitzer", stau:"🚗 Stau", unfall:"🚨 Unfall", baustelle:"👷 Baustelle", sperrung:"🚧 Sperrung", warnung:"⚠️ Warnung", info:"ℹ️ Info" };
 
         body = '<div class="card"><h3>🔔 Benachrichtigungen — Global</h3>'
-          + '<div class="row"><div class="lbl">Haupt-Schalter <small>Alle Benachrichtigungen an/aus</small></div><div class="sw' + (n.master?" on":"") + '" data-nset="master"></div></div>'
+          + '<div class="row"><div class="lbl">Haupt-Schalter <small>Alle an/aus</small></div><div class="sw' + (n.master?" on":"") + '" data-nset="master"></div></div>'
           + '<div class="row"><div class="lbl">🔊 Piepton</div><div class="sw' + (n.beep?" on":"") + '" data-nset="beep"></div></div>'
           + '<div class="row"><div class="lbl">🎙️ Sprachansage</div><div class="sw' + (n.voice?" on":"") + '" data-nset="voice"></div></div>'
-          + '<div class="row"><div class="lbl">💬 System-Popup <small>Auch außerhalb der App</small></div><div class="sw' + (n.system?" on":"") + '" data-nset="system"></div></div>'
+          + '<div class="row"><div class="lbl">💬 System-Popup <small>Auch außerhalb App</small></div><div class="sw' + (n.system?" on":"") + '" data-nset="system"></div></div>'
           + '<div class="row"><div class="lbl">📳 Vibration</div><div class="sw' + (n.vibrate?" on":"") + '" data-nset="vibrate"></div></div>'
+          + '<div class="row"><div class="lbl">🔦 Taschenlampe blinkt <small>Bei Warnung</small></div><div class="sw' + (n.flashlight?" on":"") + '" data-nset="flashlight"></div></div>'
+          + '<div class="row"><div class="lbl">📡 GPS-Distanz-Warnung</div><div class="sw' + (n.distWarn?" on":"") + '" data-nset="distWarn"></div></div>'
           + '<div style="margin-top:10px"><label style="font-size:10px;color:var(--text-dim);text-transform:uppercase;font-weight:700;display:block;margin-bottom:4px">🔊 Lautstärke: <span id="volVal">' + Math.round((n.volume||0.5)*100) + '</span>%</label>'
           + '<input type="range" id="volSlider" min="0" max="100" value="' + Math.round((n.volume||0.5)*100) + '" style="width:100%;accent-color:var(--p1)"></div>'
           + '<div style="margin-top:10px"><label style="font-size:10px;color:var(--text-dim);text-transform:uppercase;font-weight:700;display:block;margin-bottom:4px">🎵 Beep-Stil</label>'
@@ -120,6 +180,10 @@
           + '<div style="display:flex;gap:8px;margin-top:12px">'
           + '<button class="btn" id="testAll" style="flex:1">🎵 Alle testen</button>'
           + '<button class="btn sec" id="permNotif" style="flex:1">🔔 Erlauben</button>'
+          + '</div>'
+          + '<div style="display:flex;gap:8px;margin-top:8px">'
+          + '<button class="btn sec" id="testFlash" style="flex:1">🔦 Lampe testen</button>'
+          + '<button class="btn sec" id="testVib" style="flex:1">📳 Vibration</button>'
           + '</div>'
           + '<div class="badge-info" style="margin-top:10px">' + (("Notification" in window) ? (Notification.permission === "granted" ? "✅ System-Popup erlaubt" : Notification.permission === "denied" ? "❌ System-Popup verweigert" : "⏸ System-Popup ausstehend") : "❌ Nicht unterstützt") + '</div>'
           + '</div>';
@@ -138,11 +202,13 @@
         body += '</div>';
       }
 
+      /* Tabs */
       container.innerHTML =
         '<div class="tabs">'
         + '<button class="tab' + (tab==="route"?" active":"") + '" data-vkt="route">🗺️ Route</button>'
         + '<button class="tab' + (tab==="warnungen"?" active":"") + '" data-vkt="warnungen">⚠️ Warnungen</button>'
         + '<button class="tab' + (tab==="blitzer"?" active":"") + '" data-vkt="blitzer">📷 Blitzer</button>'
+        + '<button class="tab' + (tab==="live"?" active":"") + '" data-vkt="live">🚨 Live</button>'
         + '<button class="tab' + (tab==="oepnv"?" active":"") + '" data-vkt="oepnv">🚆 ÖPNV</button>'
         + '<button class="tab' + (tab==="tanken"?" active":"") + '" data-vkt="tanken">⛽ Tanken</button>'
         + '<button class="tab' + (tab==="laden"?" active":"") + '" data-vkt="laden">⚡ Laden</button>'
@@ -150,6 +216,7 @@
         + '<button class="tab' + (tab==="notify"?" active":"") + '" data-vkt="notify">🔔 Benachrichtigungen</button>'
         + '</div>' + body;
 
+      /* Tab-Events */
       container.querySelectorAll("[data-vkt]").forEach(function(b){
         b.addEventListener("click", function(){
           tab = b.dataset.vkt;
@@ -158,7 +225,7 @@
         });
       });
 
-      /* ═══ Notify Settings Events ═══ */
+      /* ═══ Notify-Settings Events ═══ */
       container.querySelectorAll("[data-nset]").forEach(function(el){
         el.addEventListener("click", function(){
           var k = el.dataset.nset;
@@ -196,6 +263,14 @@
           alert("Ergebnis: " + p);
           build();
         });
+      });
+      var tf = container.querySelector("#testFlash");
+      if(tf) tf.addEventListener("click", function(){
+        window.HalDo.Notify.flashlightBlink(5);
+      });
+      var tv = container.querySelector("#testVib");
+      if(tv) tv.addEventListener("click", function(){
+        if(navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
       });
 
       /* ═══ Route ═══ */
@@ -304,12 +379,12 @@
           container.querySelector("#bzRes").innerHTML = '<div style="text-align:center;padding:14px">⏳ Lade…</div>';
           setTimeout(function(){
             lastBlitzer = [
-              {t:"📷 Fest", o:"A1 bei Hamburg", km:"12.3", l:"120"},
-              {t:"📷 Fest", o:"A3 bei Köln", km:"45.7", l:"100"},
-              {t:"🚗 Mobil", o:"B1 Berlin", km:"3.2", l:"50"},
-              {t:"📷 Fest", o:"A9 bei München", km:"89.1", l:"130"},
-              {t:"🚗 Mobil", o:"A2 bei Hannover", km:"23.5", l:"80"},
-              {t:"📷 Rotlicht", o:"Stuttgart", km:"5.8", l:"50"}
+              {t:"📷 Fest", o:"A1 bei Hamburg", km:"12.3", l:"120", lat:53.55, lng:9.99},
+              {t:"📷 Fest", o:"A3 bei Köln", km:"45.7", l:"100", lat:50.94, lng:6.96},
+              {t:"🚗 Mobil", o:"B1 Berlin", km:"3.2", l:"50", lat:52.52, lng:13.40},
+              {t:"📷 Fest", o:"A9 bei München", km:"89.1", l:"130", lat:48.14, lng:11.58},
+              {t:"🚗 Mobil", o:"A2 bei Hannover", km:"23.5", l:"80", lat:52.37, lng:9.73},
+              {t:"📷 Rotlicht", o:"Stuttgart", km:"5.8", l:"50", lat:48.78, lng:9.18}
             ].sort(function(){ return Math.random() - 0.5; });
             var h = '<div class="card"><h3>📷 Blitzer (' + lastBlitzer.length + ')</h3>';
             lastBlitzer.forEach(function(b, idx){
@@ -333,6 +408,80 @@
               window.HalDo.Notify.blitzer("Blitzer: " + b.o + ", Limit " + b.l + " km/h", { app: "verkehr" });
             }, i * 1200);
           });
+        });
+        container.querySelector("#bzLive").addEventListener("click", function(){
+          if(!lastBlitzer.length){ alert("Erst Blitzer laden"); return; }
+          if(!navigator.geolocation){ alert("GPS nicht verfügbar"); return; }
+          /* Alle Blitzer als Live-Ziele überwachen */
+          lastBlitzer.slice(0, 5).forEach(function(b){
+            var watcher = window.HalDo.Notify.warnAtDistance(b.lat, b.lng, {
+              title: "📷 Blitzer",
+              text: b.o + " · Limit " + b.l + " km/h",
+              cat: "blitzer",
+              app: "verkehr"
+            });
+            if(watcher) _liveTargets.push({ lat: b.lat, lng: b.lng, title: "📷 " + b.o, watcher: watcher });
+          });
+          tab = "live";
+          store.set("tab", tab);
+          if(window.HalDo.Notify) HalDo.Notify.info("📡 Live-Überwachung aktiv für " + Math.min(5, lastBlitzer.length) + " Blitzer", { app: "verkehr" });
+          build();
+        });
+      }
+
+      /* ═══ Live-Warnung ═══ */
+      if(tab === "live"){
+        container.querySelector("#liveAdd").addEventListener("click", function(){
+          if(!navigator.geolocation){ alert("GPS nicht verfügbar"); return; }
+          navigator.geolocation.getCurrentPosition(function(pos){
+            var lat = pos.coords.latitude + (Math.random() * 0.018 - 0.009);
+            var lng = pos.coords.longitude + (Math.random() * 0.018 - 0.009);
+            var watcher = window.HalDo.Notify.warnAtDistance(lat, lng, {
+              title: "📷 Blitzer",
+              text: "Nähere dich!",
+              cat: "blitzer",
+              app: "verkehr"
+            });
+            _liveTargets.push({ lat: lat, lng: lng, title: "📷 Blitzer #" + (_liveTargets.length + 1), watcher: watcher });
+            _liveWatch = true;
+            build();
+          }, function(e){
+            alert("GPS-Fehler: " + e.message);
+          }, { enableHighAccuracy: true });
+        });
+        container.querySelector("#liveDemo").addEventListener("click", function(){
+          if(!navigator.geolocation){ alert("GPS nicht verfügbar"); return; }
+          navigator.geolocation.getCurrentPosition(function(pos){
+            var demos = [
+              { title: "📷 Blitzer Demo 1", cat: "blitzer", off: 0.005 },
+              { title: "🚗 Stau Demo", cat: "stau", off: 0.008 },
+              { title: "🚨 Unfall Demo", cat: "unfall", off: 0.012 }
+            ];
+            demos.forEach(function(d){
+              var lat = pos.coords.latitude + d.off * Math.cos(Math.random() * 6.28);
+              var lng = pos.coords.longitude + d.off * Math.sin(Math.random() * 6.28);
+              var watcher = window.HalDo.Notify.warnAtDistance(lat, lng, {
+                title: d.title,
+                text: "Nähere dich!",
+                cat: d.cat,
+                app: "verkehr"
+              });
+              _liveTargets.push({ lat: lat, lng: lng, title: d.title, watcher: watcher });
+            });
+            _liveWatch = true;
+            if(window.HalDo.Notify) HalDo.Notify.info("🧪 3 Demo-Ziele überwacht", { app: "verkehr" });
+            build();
+          }, function(e){
+            alert("GPS-Fehler: " + e.message);
+          }, { enableHighAccuracy: true });
+        });
+        container.querySelector("#liveStop").addEventListener("click", function(){
+          _liveTargets.forEach(function(t){
+            if(t.watcher){ try { t.watcher.stop(); } catch(e){} }
+          });
+          _liveTargets = [];
+          _liveWatch = false;
+          build();
         });
       }
 
@@ -455,6 +604,10 @@
             var p = Math.round(fS / FS.length * 100);
             var ic = p >= 90 ? "🏆" : p >= 70 ? "🎉" : p >= 50 ? "👍" : "📚";
             container.querySelector("#fsQ").innerHTML = '<div style="text-align:center;padding:30px 20px"><div style="font-size:60px">' + ic + '</div><div style="font-size:32px;font-weight:900;color:var(--p1);margin-top:14px">' + fS + '/' + FS.length + '</div><div style="font-size:16px;color:var(--text-dim);margin-top:8px">' + p + '%</div></div>';
+            var hist = store.get("fsHist", []);
+            hist.push({ s: fS, t: FS.length });
+            if(hist.length > 20) hist.shift();
+            store.set("fsHist", hist);
             if(window.HalDo.Notify) HalDo.Notify.info("Fahrschule fertig: " + fS + " von " + FS.length, { app: "verkehr" });
             return;
           }
@@ -501,4 +654,4 @@
   else console.warn("verkehr.js: HalDoApp nicht verfügbar");
 })();
 
-console.log("🦚 verkehr.js geladen (v150b mit Notify)");
+console.log("🦚 verkehr.js geladen (v150c mit Live-Warnung)");
