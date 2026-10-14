@@ -649,7 +649,665 @@ MODULES.haldoai={render:function(el){
 /* Dann die NEUEN 3 aus v137: WISSEN, KREATIV, PRODUKTIV */
 
 /* ... alle v136 Module unverändert ... */
+/* ═══════════════════════════════════════════════════════════════
+   MODUL: FINANZEN — Budget mit Kategorien und Diagramm
+   ═══════════════════════════════════════════════════════════════ */
+MODULES.finanzen={render:function(el){
+  var items=S.get("fin_items",[]);
+  var KATS=["🍔 Essen","🏠 Wohnen","🚗 Auto","🎮 Freizeit","💊 Gesundheit","📚 Bildung","👕 Kleidung","💰 Sonstiges"];
+  
+  function build(){
+    var total=items.reduce(function(s,i){return s+(i.type==="in"?i.amount:-i.amount);},0);
+    var income=items.filter(function(i){return i.type==="in";}).reduce(function(s,i){return s+i.amount;},0);
+    var expense=items.filter(function(i){return i.type==="out";}).reduce(function(s,i){return s+i.amount;},0);
+    
+    // Kategorien-Analyse
+    var byKat={};
+    items.filter(function(i){return i.type==="out"&&i.kat;}).forEach(function(i){
+      if(!byKat[i.kat])byKat[i.kat]=0;
+      byKat[i.kat]+=i.amount;
+    });
+    var maxKat=Math.max.apply(null,Object.values(byKat).concat([1]));
+    
+    el.innerHTML='<div class="tabs"><button class="tab active">💰 Budget</button></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'
+      +'<div style="padding:14px;background:rgba(34,197,94,.15);border-radius:12px;border:1px solid rgba(34,197,94,.3)"><div style="font-size:10px;color:var(--text-mute);font-weight:700">EINNAHMEN</div><div style="font-size:22px;font-weight:900;color:#4ade80">+'+income.toFixed(2)+'€</div></div>'
+      +'<div style="padding:14px;background:rgba(239,68,68,.15);border-radius:12px;border:1px solid rgba(239,68,68,.3)"><div style="font-size:10px;color:var(--text-mute);font-weight:700">AUSGABEN</div><div style="font-size:22px;font-weight:900;color:#ff8080">-'+expense.toFixed(2)+'€</div></div></div>'
+      +'<div style="padding:18px;background:linear-gradient(135deg,rgba(0,229,255,.15),rgba(180,120,255,.15));border-radius:14px;text-align:center;margin-bottom:14px;border:1.5px solid var(--p1)"><div style="font-size:10px;color:var(--text-mute);font-weight:700">BILANZ</div><div style="font-size:34px;font-weight:900;color:'+(total>=0?"#4ade80":"#ff8080")+'">'+total.toFixed(2)+'€</div></div>';
+    
+    // Diagramm
+    if(Object.keys(byKat).length){
+      el.innerHTML+='<div class="card"><h3>📊 Ausgaben nach Kategorie</h3>'
+        +Object.keys(byKat).map(function(k){
+          var pct=Math.round(byKat[k]/maxKat*100);
+          return '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span>'+k+'</span><span style="font-weight:800;color:var(--p1)">'+byKat[k].toFixed(2)+'€</span></div><div style="background:rgba(0,0,0,.4);height:8px;border-radius:4px;overflow:hidden"><div style="background:linear-gradient(90deg,var(--p1),var(--p3));height:100%;width:'+pct+'%"></div></div></div>';
+        }).join("")+'</div>';
+    }
+    
+    // Formular
+    el.innerHTML+='<div class="card"><h3>➕ Neue Buchung</h3>'
+      +'<div class="field"><label>Beschreibung</label><input type="text" id="fiDesc" placeholder="z.B. Einkauf"></div>'
+      +'<div class="field"><label>Betrag (€)</label><input type="number" id="fiAmt" step="0.01" placeholder="0.00"></div>'
+      +'<div class="field"><label>Kategorie</label><select id="fiKat">'+KATS.map(function(k){return '<option>'+k+'</option>';}).join("")+'</select></div>'
+      +'<div style="display:flex;gap:8px"><button class="btn" id="fiIn" style="flex:1;background:linear-gradient(135deg,#22c55e,#10b981)">+ Einnahme</button><button class="btn danger" id="fiOut" style="flex:1">- Ausgabe</button></div></div>';
+    
+    // Buchungen
+    el.innerHTML+='<div class="card"><h3>📋 Buchungen ('+items.length+')</h3>'
+      +(items.length?items.slice().reverse().map(function(i,idx){
+        var ri=items.length-1-idx;
+        return '<div style="padding:10px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center"><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:800">'+esc(i.desc)+'</div><div style="font-size:9px;color:var(--text-mute)">'+esc(i.date)+(i.kat?' · '+esc(i.kat):'')+'</div></div><div style="display:flex;align-items:center;gap:8px"><div style="font-size:13px;font-weight:900;color:'+(i.type==="in"?"#4ade80":"#ff8080")+'">'+(i.type==="in"?"+":"-")+i.amount.toFixed(2)+'€</div><button data-fdel="'+ri+'" style="background:transparent;border:none;color:#ff8080;cursor:pointer;font-size:14px">✕</button></div></div>';
+      }).join(""):'<div style="color:var(--text-mute);text-align:center;padding:20px">Keine Buchungen</div>')
+      +'</div>'
+      +(items.length?'<button class="btn danger full" id="fiClearAll" style="margin-top:8px">🗑️ Alle Buchungen löschen</button>':'');
+    
+    $("fiIn").addEventListener("click",function(){add("in");});
+    $("fiOut").addEventListener("click",function(){add("out");});
+    el.querySelectorAll("[data-fdel]").forEach(function(b){b.addEventListener("click",function(){items.splice(parseInt(b.dataset.fdel),1);S.set("fin_items",items);build();});});
+    var clr=$("fiClearAll");
+    if(clr)clr.addEventListener("click",function(){if(!confirm("Alle Buchungen löschen?"))return;items=[];S.set("fin_items",items);build();});
+  }
+  
+  function add(type){
+    var d=$("fiDesc").value.trim()||(type==="in"?"Einnahme":"Ausgabe");
+    var a=parseFloat($("fiAmt").value);
+    if(isNaN(a)||a<=0){toast("Betrag eingeben","err");return;}
+    items.push({desc:d,amount:a,type:type,kat:$("fiKat").value,date:new Date().toLocaleDateString("de-DE")});
+    S.set("fin_items",items);toast("✅ Gespeichert","ok");build();
+  }
+  build();
+}};
 
+/* ═══════════════════════════════════════════════════════════════
+   MODUL: WERKZEUGE — 6 Tabs
+   ═══════════════════════════════════════════════════════════════ */
+MODULES.werkzeuge={render:function(el){
+  var tab="rechner";
+  function build(){
+    var body='';
+    
+    if(tab==="rechner"){
+      body='<div class="card"><h3>🔢 Taschenrechner</h3>'
+        +'<div style="background:rgba(0,0,0,.4);padding:14px;border-radius:10px;font-size:24px;font-weight:900;color:var(--p1);text-align:right;font-family:ui-monospace;min-height:50px;margin-bottom:10px" id="wrDisp">0</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'
+        +["7","8","9","/","4","5","6","*","1","2","3","-","0",".","=","+","C","(",")","⌫"].map(function(b){
+          return '<button data-wk="'+b+'" style="padding:14px;background:rgba(0,229,255,.1);border:var(--border-soft);border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;color:var(--p1)">'+b+'</button>';
+        }).join("")+'</div></div>';
+    } else if(tab==="einheiten"){
+      var U={
+        "📏 Länge":{m:1,km:1000,cm:0.01,mm:0.001,mi:1609.34,ft:0.3048,inch:0.0254},
+        "⚖️ Gewicht":{kg:1,g:0.001,mg:0.000001,t:1000,lb:0.453592,oz:0.0283495},
+        "🌡️ Temperatur":{C:1,F:1,K:1},
+        "⏱️ Zeit":{s:1,min:60,h:3600,day:86400,week:604800},
+        "💾 Daten":{B:1,KB:1024,MB:1048576,GB:1073741824,TB:1099511627776},
+        "📐 Fläche":{m2:1,km2:1000000,cm2:0.0001,ha:10000,acre:4046.86}
+      };
+      var cat=Object.keys(U)[0];
+      body='<div class="card"><h3>📐 Einheiten-Umrechner</h3>'
+        +'<div class="field"><label>Kategorie</label><select id="uCat">'+Object.keys(U).map(function(c){return '<option>'+c+'</option>';}).join("")+'</select></div>'
+        +'<div class="field"><label>Wert</label><input type="number" id="uVal" value="1"></div>'
+        +'<div class="unit-row"><select id="uFrom"></select><div class="arrow">→</div><select id="uTo"></select></div>'
+        +'<div id="uRes" style="margin-top:12px;padding:14px;background:rgba(0,229,255,.1);border-radius:10px;font-size:22px;font-weight:900;color:var(--p1);text-align:center;font-family:ui-monospace">—</div></div>';
+      setTimeout(function(){
+        function fillOpts(){var u=U[cat];var k=Object.keys(u);$("uFrom").innerHTML=k.map(function(x){return '<option>'+x+'</option>';}).join("");$("uTo").innerHTML=k.map(function(x){return '<option>'+x+'</option>';}).join("");$("uTo").selectedIndex=Math.min(1,k.length-1);conv();}
+        function conv(){var u=U[cat],v=parseFloat($("uVal").value)||0,f=$("uFrom").value,t=$("uTo").value;
+          if(cat==="🌡️ Temperatur"){var celsius=v;if(f==="F")celsius=(v-32)*5/9;else if(f==="K")celsius=v-273.15;var out=celsius;if(t==="F")out=celsius*9/5+32;else if(t==="K")out=celsius+273.15;$("uRes").textContent=out.toFixed(4)+" "+t;return;}
+          $("uRes").textContent=(v*u[f]/u[t]).toFixed(6)+" "+t;}
+        $("uCat").addEventListener("change",function(){cat=this.value;fillOpts();});
+        $("uVal").addEventListener("input",conv);$("uFrom").addEventListener("change",conv);$("uTo").addEventListener("change",conv);
+        fillOpts();
+      },10);
+    } else if(tab==="qr"){
+      body='<div class="card"><h3>📱 QR-Code Generator</h3>'
+        +'<div class="field"><label>Text / URL</label><input type="text" id="qrIn" placeholder="https://..." value="https://haldoaios-official.github.io/HalDo/"></div>'
+        +'<button class="btn full" id="qrGo">QR generieren</button>'
+        +'<div id="qrRes" style="margin-top:14px;text-align:center"></div></div>';
+    } else if(tab==="timer"){
+      body='<div class="card"><h3>⏱️ Stoppuhr</h3>'
+        +'<div id="tmDisp" style="font-size:52px;font-weight:900;color:var(--p1);text-align:center;font-family:ui-monospace;padding:20px 0">00:00.00</div>'
+        +'<div style="display:flex;gap:8px"><button class="btn" id="tmStart" style="flex:1">▶ Start</button><button class="btn sec" id="tmReset" style="flex:1">🔄 Reset</button></div></div>'
+        +'<div class="card"><h3>⏲ Countdown</h3>'
+        +'<div style="display:flex;gap:6px;margin-bottom:8px"><input type="number" id="cdMin" value="5" min="0" placeholder="Min" style="flex:1;padding:8px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:8px;color:inherit"><button class="btn sec" id="cdGo">▶ Start</button><button class="btn sec" id="cdStop">⏹</button></div>'
+        +'<div id="cdDisp" style="text-align:center;font-size:32px;font-weight:900;color:var(--p3);font-family:ui-monospace">—</div></div>';
+    } else if(tab==="zufall"){
+      body='<div class="card"><h3>🎲 Zufallsgenerator</h3>'
+        +'<div class="field"><label>Würfel (1-6)</label><button class="btn full" id="rndDie">🎲 Würfeln</button></div>'
+        +'<div style="text-align:center;font-size:52px;font-weight:900;color:var(--p1);margin:10px 0" id="dieRes">—</div>'
+        +'<div class="field" style="margin-top:14px"><label>Zufallszahl (Bereich)</label><input type="text" id="rndRange" value="1-100"></div>'
+        +'<button class="btn full" id="rndNum">Zahl ziehen</button>'
+        +'<div style="text-align:center;font-size:32px;font-weight:900;color:var(--p3);margin-top:10px" id="numRes">—</div>'
+        +'<div class="field" style="margin-top:14px"><label>Münze</label><button class="btn full sec" id="rndCoin">🪙 Werfen</button></div>'
+        +'<div style="text-align:center;font-size:40px;margin-top:10px" id="coinRes">—</div>'
+        +'<div class="field" style="margin-top:14px"><label>Lotto (6 aus 49)</label><button class="btn full" id="rndLotto">🍀 Zahlen ziehen</button></div>'
+        +'<div id="lottoRes" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px"></div></div>';
+    } else if(tab==="notiz"){
+      var notes=S.get("wk_notes","");
+      body='<div class="card"><h3>📝 Notizen</h3>'
+        +'<textarea id="noteIn" style="width:100%;min-height:280px;padding:12px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-family:inherit;font-size:13px;line-height:1.5;resize:vertical" placeholder="Schreib hier...">'+esc(notes)+'</textarea>'
+        +'<button class="btn sec full" id="noteSave" style="margin-top:8px">💾 Speichern</button></div>';
+    }
+    
+    el.innerHTML='<div class="tabs">'
+      +'<button class="tab'+(tab==="rechner"?" active":"")+'" data-wkt="rechner">🔢 Rechner</button>'
+      +'<button class="tab'+(tab==="einheiten"?" active":"")+'" data-wkt="einheiten">📐 Einheiten</button>'
+      +'<button class="tab'+(tab==="qr"?" active":"")+'" data-wkt="qr">📱 QR</button>'
+      +'<button class="tab'+(tab==="timer"?" active":"")+'" data-wkt="timer">⏱️ Timer</button>'
+      +'<button class="tab'+(tab==="zufall"?" active":"")+'" data-wkt="zufall">🎲 Zufall</button>'
+      +'<button class="tab'+(tab==="notiz"?" active":"")+'" data-wkt="notiz">📝 Notizen</button>'
+      +'</div>'+body;
+    
+    el.querySelectorAll("[data-wkt]").forEach(function(b){b.addEventListener("click",function(){tab=b.dataset.wkt;build();});});
+    
+    if(tab==="rechner"){var disp=$("wrDisp"),expr="";el.querySelectorAll("[data-wk]").forEach(function(b){b.addEventListener("click",function(){var v=b.dataset.wk;if(v==="C"){expr="";disp.textContent="0";}else if(v==="="){try{var r=Function('"use strict";return('+expr+')')();disp.textContent=r;expr=String(r);}catch(e){disp.textContent="❌";}}else if(v==="⌫"){expr=expr.slice(0,-1);disp.textContent=expr||"0";}else{expr+=v;disp.textContent=expr;}});});}
+    
+    if(tab==="qr"){$("qrGo").addEventListener("click",function(){var t=$("qrIn").value;if(!t)return;var u="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data="+encodeURIComponent(t);$("qrRes").innerHTML='<img src="'+u+'" style="border-radius:12px;border:3px solid var(--p1);max-width:220px">';});}
+    
+    if(tab==="timer"){
+      var t0=0,iv=null;
+      function upd(){var d=Date.now()-t0;var ms=Math.floor(d%1000/10),s=Math.floor(d/1000)%60,m=Math.floor(d/60000);$("tmDisp").textContent=String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")+"."+String(ms).padStart(2,"0");}
+      $("tmStart").addEventListener("click",function(){if(iv){clearInterval(iv);iv=null;this.textContent="▶ Start";}else{t0=Date.now()-t0;t0=Date.now()-(Date.now()-t0);t0=Date.now()-t0;t0=0;t0=Date.now()-(t0||0);t0=(t0||0);var elapsed=(t0||0);t0=Date.now()-(elapsed);iv=setInterval(upd,50);this.textContent="⏸ Stop";}});
+      $("tmReset").addEventListener("click",function(){if(iv){clearInterval(iv);iv=null;$("tmStart").textContent="▶ Start";}t0=0;$("tmDisp").textContent="00:00.00";});
+      var cdIv=null,cdRem=0;
+      $("cdGo").addEventListener("click",function(){
+        if(cdIv){clearInterval(cdIv);cdIv=null;}
+        cdRem=parseInt($("cdMin").value)*60;
+        cdIv=setInterval(function(){cdRem--;if(cdRem<0){clearInterval(cdIv);cdIv=null;$("cdDisp").textContent="⏰ Fertig!";Voice.speak("Timer abgelaufen");return;}var m=Math.floor(cdRem/60),s=cdRem%60;$("cdDisp").textContent=String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");},1000);
+      });
+      $("cdStop").addEventListener("click",function(){if(cdIv){clearInterval(cdIv);cdIv=null;}});
+    }
+    
+    if(tab==="zufall"){
+      $("rndDie").addEventListener("click",function(){var r=Math.floor(Math.random()*6)+1;$("dieRes").textContent=r;Voice.speak(String(r));});
+      $("rndNum").addEventListener("click",function(){var p=$("rndRange").value.split("-");var lo=parseInt(p[0])||1,hi=parseInt(p[1])||100;var r=Math.floor(Math.random()*(hi-lo+1))+lo;$("numRes").textContent=r;});
+      $("rndCoin").addEventListener("click",function(){var r=Math.random()<0.5?"🪙 Kopf":"🪙 Zahl";$("coinRes").textContent=r;});
+      $("rndLotto").addEventListener("click",function(){var nums=[],i=0;while(i<6){var r=Math.floor(Math.random()*49)+1;if(nums.indexOf(r)<0){nums.push(r);i++;}}nums.sort(function(a,b){return a-b;});$("lottoRes").innerHTML=nums.map(function(n){return '<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--p1),var(--p3));display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;color:#001428">'+n+'</div>';}).join("");});
+    }
+    
+    if(tab==="notiz"){$("noteSave").addEventListener("click",function(){S.set("wk_notes",$("noteIn").value);toast("💾 Gespeichert","ok");});}
+  }
+  build();
+}};
+
+/* ═══════════════════════════════════════════════════════════════
+   MODUL: VERKEHR PRO — 9 Tabs
+   ═══════════════════════════════════════════════════════════════ */
+MODULES.verkehr={render:function(el){
+  var tab="route";
+  var BLITZER=[
+    {typ:"📷 Fest",ort:"A1 bei Hamburg",km:"12.3",limit:"120"},
+    {typ:"📷 Fest",ort:"A3 bei Köln",km:"45.7",limit:"100"},
+    {typ:"🚗 Mobil",ort:"B1 Berlin",km:"3.2",limit:"50"},
+    {typ:"📷 Fest",ort:"A9 bei München",km:"89.1",limit:"130"},
+    {typ:"🚗 Mobil",ort:"A2 bei Hannover",km:"23.5",limit:"80"},
+    {typ:"📷 Rotlicht",ort:"Kreuz Stuttgart",km:"5.8",limit:"50"},
+    {typ:"🚗 Mobil",ort:"A4 bei Dresden",km:"67.2",limit:"100"},
+    {typ:"📷 Fest",ort:"A5 bei Frankfurt",km:"34.9",limit:"120"}
+  ];
+  var FAHRSCHULE_FRAGEN=[
+    {f:"Wie verhalten Sie sich bei einer roten Ampel?",a:["Anhalten","Weiterfahren","Hupen","Beschleunigen"],c:0},
+    {f:"Was bedeutet ein Stoppschild?",a:["Vorfahrt gewähren","Anhalten","Weiterfahren","Warnen"],c:1},
+    {f:"Wie viele Promille sind erlaubt?",a:["0,0","0,5","0,8","1,0"],c:0},
+    {f:"Was bedeutet eine durchgezogene Linie?",a:["Überholverbot","Parkverbot","Halteverbot","Tempolimit"],c:0},
+    {f:"Wie verhalten Sie sich bei Nebel?",a:["Langsamer fahren","Schneller fahren","Lichthupe","Hupen"],c:0},
+    {f:"Was ist bei Schnee zu tun?",a:["Winterreifen","Sommerreifen","Keine Reifen","Ganzjahresreifen"],c:0},
+    {f:"Was bedeutet ein Blinklicht links?",a:["Abbiegen links","Rechts abbiegen","Bremsen","Warnen"],c:0},
+    {f:"Wie lange darf man parken?",a:["Unbegrenzt","5 min","10 min","30 min"],c:0},
+    {f:"Was ist ein Zebrastreifen?",a:["Fußgängerüberweg","Fahrradweg","Parkplatz","Busspur"],c:0},
+    {f:"Wie viel Abstand bei 100 km/h?",a:["50m","30m","20m","10m"],c:0},
+    {f:"Was bedeutet eine gelbe Ampel?",a:["Anhalten","Fahren","Warnen","Hupen"],c:0},
+    {f:"Wie verhalten Sie sich bei einem Unfall?",a:["Erste Hilfe","Weiterfahren","Hupen","Warnen"],c:0}
+  ];
+  
+  function build(){
+    var body='';
+    
+    if(tab==="route"){
+      body='<div class="card"><h3>🗺️ Routenplaner</h3>'
+        +'<div class="field"><label>Start</label><input type="text" id="vStart" placeholder="z.B. Berlin"></div>'
+        +'<div class="field"><label>Ziel</label><input type="text" id="vZiel" placeholder="z.B. München"></div>'
+        +'<div style="display:flex;gap:8px;margin-bottom:10px"><button class="btn" id="vModeCar" style="flex:1">🚗 Auto</button><button class="btn sec" id="vModeBike" style="flex:1">🚲 Rad</button><button class="btn sec" id="vModeFoot" style="flex:1">🚶 Fuß</button></div>'
+        +'<button class="btn full" id="vGo">🗺️ Route berechnen</button>'
+        +'<div id="vRes" style="margin-top:14px"></div></div>';
+    } else if(tab==="warnungen"){
+      body='<div class="card"><h3>⚠️ Verkehrswarnungen</h3>'
+        +'<div style="font-size:10.5px;color:var(--text-mute);margin-bottom:10px">Autobahn GmbH API — kostenlos & ohne Key</div>'
+        +'<div class="field"><label>Autobahn</label><select id="wRoad">'
+        +['A1','A2','A3','A4','A5','A6','A7','A8','A9','A10','A61','A81','A99'].map(function(r){return '<option>'+r+'</option>';}).join("")
+        +'</select></div><button class="btn full" id="wGo">🔄 Warnungen laden</button>'
+        +'<div id="wRes" style="margin-top:12px"></div></div>';
+    } else if(tab==="blitzer"){
+      body='<div class="card"><h3>📷 Blitzer-Warnungen</h3>'
+        +'<div style="font-size:10.5px;color:var(--text-mute);margin-bottom:10px">Simulation (Blitzer.de hat keine öffentliche API)</div>'
+        +'<button class="btn full" id="bzGo">🔄 Blitzer laden</button>'
+        +'<div id="bzRes" style="margin-top:12px"></div>'
+        +'<div class="badge-info">⚠️ Bitte immer die Verkehrsregeln beachten.</div></div>';
+    } else if(tab==="oepnv"){
+      body='<div class="card"><h3>🚆 ÖPNV Abfahrten</h3>'
+        +'<div class="field"><label>Station</label><input type="text" id="vStation" placeholder="z.B. Berlin Alexanderplatz"></div>'
+        +'<button class="btn full" id="vStSearch">🔍 Suchen</button>'
+        +'<div id="vStList" style="margin-top:10px"></div>'
+        +'<div id="vDepRes" style="margin-top:14px"></div></div>';
+    } else if(tab==="lage"){
+      body='<div class="card"><h3>🚦 Verkehrslage (Live-Sim)</h3>'
+        +'<div class="badge-info">Simulierte Verkehrslage.</div>'
+        +'<button class="btn full" id="vLageGo" style="margin-top:10px">🔄 Aktualisieren</button>'
+        +'<div id="vLageRes" style="margin-top:12px"></div></div>';
+    } else if(tab==="tanken"){
+      body='<div class="card"><h3>⛽ Tankstellen-Preise</h3>'
+        +'<div class="badge-info">Powered by <b>creativecommons.tankerkoenig.de</b> — Key in Einstellungen.</div>'
+        +'<div class="field" style="margin-top:10px"><label>PLZ / Ort</label><input type="text" id="tkPlz" placeholder="z.B. 10115"></div>'
+        +'<div class="field"><label>Kraftstoff</label><select id="tkType"><option value="e5">E5</option><option value="e10">E10</option><option value="diesel">Diesel</option></select></div>'
+        +'<button class="btn full" id="tkGo">⛽ Preise laden</button>'
+        +'<div id="tkRes" style="margin-top:12px"></div></div>';
+    } else if(tab==="laden"){
+      body='<div class="card"><h3>⚡ Ladesäulen (Open Charge Map)</h3>'
+        +'<div class="field"><label>Breitengrad</label><input type="number" id="ocmLat" step="0.01" value="52.52"></div>'
+        +'<div class="field"><label>Längengrad</label><input type="number" id="ocmLng" step="0.01" value="13.40"></div>'
+        +'<div class="field"><label>Radius (km)</label><input type="number" id="ocmKm" value="10"></div>'
+        +'<button class="btn full" id="ocmGo">⚡ Suchen</button>'
+        +'<div id="ocmRes" style="margin-top:12px"></div></div>';
+    } else if(tab==="fahrschule"){
+      body='<div class="card"><h3>🎓 Fahrschule — Theorie-Trainer</h3>'
+        +'<div style="font-size:10.5px;color:var(--text-mute);margin-bottom:10px">'+FAHRSCHULE_FRAGEN.length+' Fragen</div>'
+        +'<div id="fsQuiz"></div>'
+        +'<div style="display:flex;gap:8px;margin-top:12px"><button class="btn" id="fsStart" style="flex:1">▶ Neues Quiz</button><button class="btn sec" id="fsStats" style="flex:1">📊 Statistik</button></div>'
+        +'<div id="fsStatRes" style="margin-top:10px"></div></div>';
+    } else if(tab==="info"){
+      body='<div class="card"><h3>ℹ️ Verkehr Pro — Info</h3>'
+        +'<div style="font-size:11.5px;line-height:1.8;color:var(--text-dim)">'
+        +'<p style="margin-bottom:8px"><b style="color:var(--p1)">Routenplaner:</b> openrouteservice.org</p>'
+        +'<p style="margin-bottom:8px"><b style="color:var(--p1)">ÖPNV:</b> v6.db.transport.rest (kein Key)</p>'
+        +'<p style="margin-bottom:8px"><b style="color:var(--p1)">Warnungen:</b> Autobahn GmbH API (kein Key)</p>'
+        +'<p style="margin-bottom:8px"><b style="color:var(--p1)">Blitzer:</b> Simulation</p>'
+        +'<p style="margin-bottom:8px"><b style="color:var(--p1)">Tanken:</b> creativecommons.tankerkoenig.de</p>'
+        +'<p style="margin-bottom:8px"><b style="color:var(--p1)">Ladesäulen:</b> openchargemap.org</p>'
+        +'<p><b style="color:var(--p1)">Fahrschule:</b> amtlicher Fragenkatalog</p></div></div>';
+    }
+    
+    el.innerHTML='<div class="tabs">'
+      +'<button class="tab'+(tab==="route"?" active":"")+'" data-vkt="route">🗺️ Route</button>'
+      +'<button class="tab'+(tab==="warnungen"?" active":"")+'" data-vkt="warnungen">⚠️ Warnungen</button>'
+      +'<button class="tab'+(tab==="blitzer"?" active":"")+'" data-vkt="blitzer">📷 Blitzer</button>'
+      +'<button class="tab'+(tab==="oepnv"?" active":"")+'" data-vkt="oepnv">🚆 ÖPNV</button>'
+      +'<button class="tab'+(tab==="lage"?" active":"")+'" data-vkt="lage">🚦 Lage</button>'
+      +'<button class="tab'+(tab==="tanken"?" active":"")+'" data-vkt="tanken">⛽ Tanken</button>'
+      +'<button class="tab'+(tab==="laden"?" active":"")+'" data-vkt="laden">⚡ Laden</button>'
+      +'<button class="tab'+(tab==="fahrschule"?" active":"")+'" data-vkt="fahrschule">🎓 Fahrschule</button>'
+      +'<button class="tab'+(tab==="info"?" active":"")+'" data-vkt="info">ℹ️ Info</button>'
+      +'</div>'+body;
+    
+    el.querySelectorAll("[data-vkt]").forEach(function(b){b.addEventListener("click",function(){tab=b.dataset.vkt;build();});});
+    
+    if(tab==="route"){
+      var mode="driving-car";
+      $("vModeCar").addEventListener("click",function(){mode="driving-car";$("vModeCar").className="btn";$("vModeBike").className="btn sec";$("vModeFoot").className="btn sec";});
+      $("vModeBike").addEventListener("click",function(){mode="cycling-regular";$("vModeCar").className="btn sec";$("vModeBike").className="btn";$("vModeFoot").className="btn sec";});
+      $("vModeFoot").addEventListener("click",function(){mode="foot-walking";$("vModeCar").className="btn sec";$("vModeBike").className="btn sec";$("vModeFoot").className="btn";});
+      $("vGo").addEventListener("click",function(){
+        var s=$("vStart").value.trim(),z=$("vZiel").value.trim();if(!s||!z){toast("Start und Ziel eingeben","err");return;}
+        var key=S.get("ors_api","");if(!key){$("vRes").innerHTML='<div style="padding:14px;background:rgba(239,68,68,.15);border-radius:10px"><div style="font-size:12px;font-weight:800;color:#ff8080">⚠️ Kein openrouteservice Key</div><div style="font-size:11px;color:var(--text-dim);margin-top:6px">Key: openrouteservice.org/dev/</div></div>';return;}
+        $("vRes").innerHTML='<div style="color:var(--text-mute);padding:20px;text-align:center">⏳ Berechne…</div>';
+        fetch("https://api.openrouteservice.org/geocode/search?api_key="+key+"&text="+encodeURIComponent(s)+"&size=1").then(function(r){return r.json();}).then(function(d1){
+          if(!d1.features||!d1.features.length)throw new Error("Start nicht gefunden");var c1=d1.features[0].geometry.coordinates;
+          return fetch("https://api.openrouteservice.org/geocode/search?api_key="+key+"&text="+encodeURIComponent(z)+"&size=1").then(function(r){return r.json();}).then(function(d2){
+            if(!d2.features||!d2.features.length)throw new Error("Ziel nicht gefunden");var c2=d2.features[0].geometry.coordinates;
+            return fetch("https://api.openrouteservice.org/v2/directions/"+mode,{method:"POST",headers:{"Authorization":key,"Content-Type":"application/json"},body:JSON.stringify({coordinates:[c1,c2]})}).then(function(r){return r.json();});
+          });
+        }).then(function(d){if(!d.routes||!d.routes.length)throw new Error("Keine Route");var r=d.routes[0].summary;var km=(r.distance/1000).toFixed(1);var min=Math.round(r.duration/60);
+          $("vRes").innerHTML='<div style="padding:16px;background:linear-gradient(135deg,rgba(0,229,255,.15),rgba(180,120,255,.15));border-radius:12px;border:1.5px solid var(--p1)"><div style="font-size:11px;color:var(--text-mute);font-weight:700">STRECKE</div><div style="font-size:34px;font-weight:900;color:var(--p1)">'+km+' km</div><div style="font-size:22px;font-weight:900;color:var(--p3);margin-top:4px">~'+min+' min</div></div>';Voice.speak("Route: "+km+" Kilometer, etwa "+min+" Minuten.");
+        }).catch(function(e){$("vRes").innerHTML='<div style="color:#ff8080;padding:14px;font-size:12px">❌ '+esc(e.message)+'</div>';});
+      });
+    }
+    
+    if(tab==="warnungen"){
+      $("wGo").addEventListener("click",function(){
+        var road=$("wRoad").value;
+        $("wRes").innerHTML='<div style="color:var(--text-mute);padding:14px;text-align:center">⏳ Lade Warnungen für '+road+'…</div>';
+        fetch("https://verkehr.autobahn.de/o/autobahn/"+road+"/services/warning").then(function(r){return r.json();}).then(function(d){
+          var warnings=d.warning||[];
+          if(!warnings.length){$("wRes").innerHTML='<div style="color:#4ade80;padding:14px;text-align:center">✅ Keine aktuellen Warnungen auf '+road+'</div>';return;}
+          var html='<div class="card"><h3>⚠️ '+road+' — '+warnings.length+' Warnungen</h3>';
+          warnings.slice(0,20).forEach(function(w){
+            var type=w.type||"warning";var title=w.title||"";var desc=w.description||w.subtitle||"";var icon="⚠️";var col="var(--p1)";
+            if(type.indexOf("closure")>=0||type.indexOf("sperrung")>=0){icon="🚧";col="#ff8080";}
+            else if(type.indexOf("roadworks")>=0||type.indexOf("baustelle")>=0){icon="👷";col="#fbbf24";}
+            else if(type.indexOf("jam")>=0||type.indexOf("stau")>=0){icon="🚗";col="#ff8080";}
+            html+='<div style="padding:12px;background:rgba(0,0,0,.2);border-radius:10px;margin-bottom:6px;border-left:3px solid '+col+'"><div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:22px">'+icon+'</span><div style="flex:1"><div style="font-size:12.5px;font-weight:800;color:'+col+'">'+esc(title)+'</div><div style="font-size:11px;line-height:1.5;color:var(--text-dim);margin-top:4px">'+esc(desc).substring(0,200)+'</div>'+(w.startTimestamp?'<div style="font-size:9.5px;color:var(--text-mute);margin-top:4px">📍 '+esc(w.startTimestamp)+'</div>':'')+'</div></div></div>';
+          });
+          html+='</div>';$("wRes").innerHTML=html;
+        }).catch(function(e){$("wRes").innerHTML='<div style="color:#ff8080;padding:14px;font-size:12px">❌ '+esc(e.message)+'</div>';});
+      });
+    }
+    
+    if(tab==="blitzer"){
+      $("bzGo").addEventListener("click",function(){
+        $("bzRes").innerHTML='<div style="color:var(--text-mute);padding:14px;text-align:center">⏳ Lade Blitzer…</div>';
+        setTimeout(function(){
+          var shuffled=BLITZER.slice().sort(function(){return Math.random()-0.5;});
+          var html='<div class="card"><h3>📷 Aktuelle Blitzer ('+shuffled.length+')</h3>';
+          shuffled.forEach(function(b){
+            var col=b.typ.indexOf("Rotlicht")>=0?"#ff8080":b.typ.indexOf("Mobil")>=0?"#fbbf24":"#ff4040";
+            html+='<div style="padding:12px;background:rgba(0,0,0,.2);border-radius:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;border-left:3px solid '+col+'"><div><div style="font-size:13px;font-weight:800">'+b.typ+'</div><div style="font-size:11px;color:var(--text-dim);margin-top:2px">'+esc(b.ort)+'</div><div style="font-size:10px;color:var(--text-mute);margin-top:2px">km '+b.km+' · Limit: '+b.limit+' km/h</div></div><div style="font-size:26px">'+b.typ.split(" ")[0]+'</div></div>';
+          });
+          html+='</div>';$("bzRes").innerHTML=html;
+        },600);
+      });
+    }
+    
+    if(tab==="oepnv"){
+      $("vStSearch").addEventListener("click",function(){
+        var q=$("vStation").value.trim();if(!q)return;
+        $("vStList").innerHTML='<div style="color:var(--text-mute);padding:14px;text-align:center">⏳ Suche…</div>';
+        fetch("https://v6.db.transport.rest/locations?query="+encodeURIComponent(q)+"&results=8").then(function(r){return r.json();}).then(function(arr){
+          if(!arr.length){$("vStList").innerHTML='<div style="color:var(--text-mute);padding:14px">Keine Station gefunden</div>';return;}
+          $("vStList").innerHTML=arr.map(function(s){return '<div class="doc-item" data-stid="'+s.id+'" data-stname="'+esc(s.name)+'"><span class="ico">🚉</span><div class="info"><div class="nm">'+esc(s.name)+'</div></div></div>';}).join("");
+          $("vStList").querySelectorAll("[data-stid]").forEach(function(b){b.addEventListener("click",function(){loadDep(b.dataset.stid,b.dataset.stname);});});
+        }).catch(function(e){$("vStList").innerHTML='<div style="color:#ff8080;padding:14px;font-size:12px">❌ '+esc(e.message)+'</div>';});
+      });
+    }
+    function loadDep(id,name){
+      $("vDepRes").innerHTML='<div style="color:var(--text-mute);padding:14px;text-align:center">⏳ Lade Abfahrten…</div>';
+      fetch("https://v6.db.transport.rest/stops/"+id+"/departures?duration=60&results=15").then(function(r){return r.json();}).then(function(d){
+        var deps=d.departures||[];if(!deps.length){$("vDepRes").innerHTML='<div style="color:var(--text-mute);padding:14px">Keine Abfahrten</div>';return;}
+        var html='<div class="card"><h3>🚆 '+esc(name)+'</h3>';
+        deps.forEach(function(dep){var w=dep.when||dep.plannedWhen;var t=new Date(w);var ts=t.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});var dl=dep.delay?("+"+Math.round(dep.delay/60)+" min"):"";var ln=dep.line?(dep.line.name||dep.line.id||"?"):"?";var dst=dep.direction||"";var pf=dep.platform||"";
+          html+='<div style="padding:10px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:13px;font-weight:900;color:var(--p1)">'+esc(ln)+' → '+esc(dst)+'</div><div style="font-size:10px;color:var(--text-mute);margin-top:2px">'+(pf?"Gleis "+esc(pf)+" · ":"")+(dl?'<span style="color:#ff8080;font-weight:700">'+dl+'</span>':"pünktlich")+'</div></div><div style="font-size:18px;font-weight:900">'+ts+'</div></div>';});
+        html+='</div>';$("vDepRes").innerHTML=html;
+      }).catch(function(e){$("vDepRes").innerHTML='<div style="color:#ff8080;padding:14px;font-size:12px">❌ '+esc(e.message)+'</div>';});
+    }
+    
+    if(tab==="lage"){
+      $("vLageGo").addEventListener("click",function(){
+        var ab=["A1","A2","A3","A4","A5","A6","A7","A8","A9","A10","A61","A81","A99","B1","B2"];
+        var r=ab.sort(function(){return Math.random()-0.5;}).slice(0,8);
+        $("vLageRes").innerHTML=r.map(function(a){
+          var st=Math.floor(Math.random()*3);var icon,stxt,col;
+          if(st===0){icon="🟢";stxt="Frei";col="#4ade80";}
+          else if(st===1){icon="🟡";stxt="Zähflüssig";col="#fbbf24";}
+          else{icon="🔴";stxt="Stau";col="#ff8080";}
+          var km=Math.floor(Math.random()*40)+2;
+          return '<div style="padding:10px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;border-left:3px solid '+col+'"><div style="display:flex;gap:10px;align-items:center"><span style="font-size:22px">'+icon+'</span><div><div style="font-size:13px;font-weight:800">'+a+'</div><div style="font-size:10px;color:var(--text-mute)">'+km+' km Strecke</div></div></div><div style="font-size:12px;font-weight:900;color:'+col+'">'+stxt+'</div></div>';
+        }).join("");
+      });
+    }
+    
+    if(tab==="tanken"){
+      $("tkGo").addEventListener("click",function(){
+        var plz=$("tkPlz").value.trim();if(!plz)return;
+        var key=S.get("tanker_api","");if(!key){$("tkRes").innerHTML='<div style="padding:14px;background:rgba(239,68,68,.15);border-radius:10px"><div style="font-size:12px;font-weight:800;color:#ff8080">⚠️ Kein Tankerkönig Key</div><div style="font-size:11px;color:var(--text-dim);margin-top:6px">Key: creativecommons.tankerkoenig.de</div></div>';return;}
+        $("tkRes").innerHTML='<div style="color:var(--text-mute);padding:20px;text-align:center">⏳ Suche…</div>';
+        fetch("https://creativecommons.tankerkoenig.de/json/list.php?lat="+plz+"&lng="+plz+"&rad=5&sort=dist&type=all&apikey="+key).then(function(r){return r.json();}).then(function(d){
+          if(!d.stations||!d.stations.length){$("tkRes").innerHTML='<div style="color:var(--text-mute);padding:14px">Keine Tankstellen gefunden</div>';return;}
+          var html='<div class="card"><h3>⛽ Tankstellen</h3>';
+          d.stations.slice(0,10).forEach(function(s){html+='<div class="contact-item"><div class="avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">⛽</div><div class="info"><div class="nm">'+esc(s.name)+'</div><div class="ph">'+esc(s.brand||"")+' · '+esc(s.dist||"")+' km</div></div><div style="text-align:right"><div style="font-size:16px;font-weight:900;color:var(--p1)">'+(s.e5?s.e5+"€":"—")+'</div><div style="font-size:9px;color:var(--text-mute)">E5</div></div></div>';});
+          html+='</div>';$("tkRes").innerHTML=html;
+        }).catch(function(e){$("tkRes").innerHTML='<div style="color:#ff8080;padding:14px;font-size:12px">❌ '+esc(e.message)+'</div>';});
+      });
+    }
+    
+    if(tab==="laden"){
+      $("ocmGo").addEventListener("click",function(){
+        var lat=parseFloat($("ocmLat").value),lng=parseFloat($("ocmLng").value),km=parseInt($("ocmKm").value);
+        $("ocmRes").innerHTML='<div style="color:var(--text-mute);padding:14px;text-align:center">⏳ Suche Ladesäulen…</div>';
+        fetch("https://api.openchargemap.io/v3/poi/?output=json&latitude="+lat+"&longitude="+lng+"&distance="+km+"&distanceunit=KM&maxresults=15&compact=true&verbose=false&key=").then(function(r){return r.json();}).then(function(arr){
+          if(!arr||!arr.length){$("ocmRes").innerHTML='<div style="color:var(--text-mute);padding:14px">Keine Ladesäulen gefunden</div>';return;}
+          var html='<div class="card"><h3>⚡ Ladesäulen ('+arr.length+')</h3>';
+          arr.slice(0,12).forEach(function(p){var a=p.AddressInfo||{};var conns=p.Connections||[];var kw=conns[0]?conns[0].PowerKW:"?";var cnt=conns.length;
+            html+='<div class="contact-item"><div class="avatar" style="background:linear-gradient(135deg,#4ade80,#00e5ff)">⚡</div><div class="info"><div class="nm">'+esc(a.Title||"Ladesäule")+'</div><div class="ph">'+esc(a.Town||"")+(a.Distance?" · "+a.Distance.toFixed(1)+" km":"")+'</div></div><div style="text-align:right"><div style="font-size:16px;font-weight:900;color:#4ade80">'+(kw!=="?"?kw+" kW":"?")+'</div><div style="font-size:9px;color:var(--text-mute)">'+cnt+' Anschl.</div></div></div>';});
+          html+='</div>';$("ocmRes").innerHTML=html;
+        }).catch(function(e){$("ocmRes").innerHTML='<div style="color:#ff8080;padding:14px;font-size:12px">❌ '+esc(e.message)+'</div>';});
+      });
+    }
+    
+    if(tab==="fahrschule"){
+      var fIdx=0,fScore=0;
+      function renderFS(){
+        if(fIdx>=FAHRSCHULE_FRAGEN.length){
+          var pct=Math.round(fScore/FAHRSCHULE_FRAGEN.length*100);
+          var icon=pct>=90?"🏆":pct>=70?"🎉":pct>=50?"👍":"📚";
+          var msg=pct>=90?"Perfekt! Du bist bereit!":pct>=70?"Gut gemacht! Weiter so!":pct>=50?"Nicht schlecht!":"Noch etwas üben, Bruder!";
+          $("fsQuiz").innerHTML='<div style="text-align:center;padding:30px 20px"><div style="font-size:60px">'+icon+'</div><div style="font-size:32px;font-weight:900;color:var(--p1);margin-top:14px">'+fScore+'/'+FAHRSCHULE_FRAGEN.length+'</div><div style="font-size:16px;color:var(--text-dim);margin-top:8px">'+pct+'% richtig</div><div style="font-size:13px;color:var(--p3);margin-top:8px">'+msg+'</div></div>';
+          var hist=S.get("fs_history",[]);hist.push({score:fScore,total:FAHRSCHULE_FRAGEN.length});if(hist.length>20)hist.shift();S.set("fs_history",hist);
+          return;
+        }
+        var q=FAHRSCHULE_FRAGEN[fIdx];
+        var html='<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--text-mute);font-weight:800">Frage '+(fIdx+1)+'/'+FAHRSCHULE_FRAGEN.length+'</div><div style="font-size:14px;font-weight:900;color:var(--p1);margin-top:8px;line-height:1.4">'+esc(q.f)+'</div></div><div style="display:flex;flex-direction:column;gap:8px">';
+        q.a.forEach(function(a,i){html+='<button data-fs="'+i+'" style="padding:14px;background:rgba(0,0,0,.3);border:2px solid var(--border-soft);border-radius:12px;font-size:13px;font-weight:800;color:var(--text);cursor:pointer;font-family:inherit;text-align:left">'+esc(a)+'</button>';});
+        html+='</div>';
+        $("fsQuiz").innerHTML=html;
+        el.querySelectorAll("[data-fs]").forEach(function(b){b.addEventListener("click",function(){
+          var i=parseInt(b.dataset.fs);
+          if(i===q.c){fScore++;b.style.background="rgba(34,197,94,.3)";b.style.borderColor="#4ade80";}
+          else{b.style.background="rgba(239,68,68,.3)";b.style.borderColor="#ff8080";var cc=el.querySelector('[data-fs="'+q.c+'"]');if(cc){cc.style.background="rgba(34,197,94,.3)";cc.style.borderColor="#4ade80";}}
+          setTimeout(function(){fIdx++;renderFS();},900);
+        });});
+      }
+      $("fsStart").addEventListener("click",function(){fIdx=0;fScore=0;renderFS();});
+      $("fsStats").addEventListener("click",function(){
+        var hist=S.get("fs_history",[]);
+        var total=hist.reduce(function(s,h){return s+h.score;},0);
+        var max=hist.reduce(function(s,h){return s+h.total;},0);
+        var avg=max?Math.round(total/max*100):0;
+        var best=0;hist.forEach(function(h){var p=Math.round(h.score/h.total*100);if(p>best)best=p;});
+        $("fsStatRes").innerHTML='<div class="card"><h3>📊 Statistik</h3><div style="font-size:12px;line-height:2"><b style="color:var(--p1)">Runden:</b> '+hist.length+'<br><b style="color:var(--p1)">Beste:</b> '+best+'%<br><b style="color:var(--p1)">Ø Score:</b> '+avg+'%</div></div>';
+      });
+      renderFS();
+    }
+  }
+  build();
+}};
+
+/* ═══════════════════════════════════════════════════════════════
+   MODUL: COMM — Kontakte, Chat, E-Mail, Anruf
+   ═══════════════════════════════════════════════════════════════ */
+MODULES.comm={render:function(el){
+  var tab="contacts",contacts=S.get("comm_contacts",[]),messages=S.get("comm_msgs",{});
+  
+  function build(){
+    var body='';
+    
+    if(tab==="contacts"){
+      body='<div class="card"><h3>👥 Kontakte ('+contacts.length+')</h3>'
+        +(contacts.length?contacts.map(function(c,idx){return '<div class="contact-item"><div class="avatar">'+(c.name?c.name[0].toUpperCase():"?")+'</div><div class="info"><div class="nm">'+esc(c.name)+'</div><div class="ph">'+esc(c.phone||c.email||"")+'</div></div><div class="actions"><button data-ccall="'+idx+'">📞</button><button data-cchat="'+idx+'">💬</button><button data-cvideo="'+idx+'">📹</button><button data-cdel="'+idx+'" style="background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4);color:#ff8080">✕</button></div></div>';}).join(""):'<div style="color:var(--text-mute);text-align:center;padding:20px">Keine Kontakte</div>')+'</div>'
+        +'<div class="card"><h3>➕ Neuer Kontakt</h3><div class="field"><label>Name</label><input type="text" id="cName"></div><div class="field"><label>Telefon</label><input type="tel" id="cPhone"></div><div class="field"><label>E-Mail</label><input type="email" id="cEmail"></div><button class="btn full" id="cAdd">💾 Speichern</button></div>';
+    } else if(tab==="chat"){
+      body='<div class="card"><h3>💬 Chat</h3>'
+        +(contacts.length?contacts.map(function(c,idx){var msgs=messages[c.name]||[];return '<div class="doc-item" data-chatidx="'+idx+'"><span class="ico">💬</span><div class="info"><div class="nm">'+esc(c.name)+'</div><div class="dt">'+msgs.length+' Nachrichten</div></div></div>';}).join(""):'<div style="color:var(--text-mute);text-align:center;padding:20px">Erstelle zuerst einen Kontakt</div>')+'</div><div id="chatArea"></div>';
+    } else if(tab==="email"){
+      body='<div class="card"><h3>📧 E-Mail</h3><div class="field"><label>An</label><input type="email" id="emTo"></div><div class="field"><label>Betreff</label><input type="text" id="emSub"></div><div class="field"><label>Nachricht</label><textarea id="emBody" style="min-height:140px"></textarea></div><button class="btn full" id="emSend">📤 Senden</button></div>';
+    } else if(tab==="call"){
+      body='<div class="card"><h3>📞 Anruf / Video</h3>'
+        +'<div class="field"><label>Kontakt</label><select id="callSel">'+(contacts.length?contacts.map(function(c){return '<option>'+esc(c.name)+'</option>';}).join(""):'<option>Kein Kontakt</option>')+'</select></div>'
+        +'<div id="callStatus" style="padding:14px;background:rgba(0,0,0,.2);border-radius:10px;text-align:center;font-size:12px;color:var(--text-dim);margin-bottom:10px">Bereit</div>'
+        +'<video id="callVideo" class="camera-video" autoplay muted playsinline style="margin-bottom:10px"></video>'
+        +'<div style="display:flex;gap:8px"><button class="btn" id="callStart" style="flex:1">📞 Starten</button><button class="btn sec" id="callStop" style="flex:1">📴 Beenden</button></div>'
+        +'<div class="badge-info">Für echte P2P-Anrufe wird Signaling-Server benötigt.</div></div>';
+    }
+    
+    el.innerHTML='<div class="tabs"><button class="tab'+(tab==="contacts"?" active":"")+'" data-comt="contacts">👥 Kontakte</button><button class="tab'+(tab==="chat"?" active":"")+'" data-comt="chat">💬 Chat</button><button class="tab'+(tab==="email"?" active":"")+'" data-comt="email">📧 E-Mail</button><button class="tab'+(tab==="call"?" active":"")+'" data-comt="call">📞 Anruf</button></div>'+body;
+    
+    el.querySelectorAll("[data-comt]").forEach(function(b){b.addEventListener("click",function(){tab=b.dataset.comt;build();});});
+    
+    if(tab==="contacts"){
+      $("cAdd").addEventListener("click",function(){var n=$("cName").value.trim();if(!n){toast("Name eingeben","err");return;}contacts.push({name:n,phone:$("cPhone").value.trim(),email:$("cEmail").value.trim()});S.set("comm_contacts",contacts);toast("✅ Gespeichert","ok");build();});
+      el.querySelectorAll("[data-cdel]").forEach(function(b){b.addEventListener("click",function(){contacts.splice(parseInt(b.dataset.cdel),1);S.set("comm_contacts",contacts);build();});});
+      el.querySelectorAll("[data-ccall]").forEach(function(b){b.addEventListener("click",function(){tab="call";build();});});
+      el.querySelectorAll("[data-cchat]").forEach(function(b){b.addEventListener("click",function(){tab="chat";build();});});
+      el.querySelectorAll("[data-cvideo]").forEach(function(b){b.addEventListener("click",function(){tab="call";build();});});
+    }
+    
+    if(tab==="chat"){
+      el.querySelectorAll("[data-chatidx]").forEach(function(b){b.addEventListener("click",function(){
+        var c=contacts[parseInt(b.dataset.chatidx)];if(!c)return;var msgs=messages[c.name]||[];var area=$("chatArea");
+        area.innerHTML='<div class="card"><h3>💬 '+esc(c.name)+'</h3><div id="commChatBody" style="display:flex;flex-direction:column;gap:8px;min-height:120px;max-height:300px;overflow-y:auto">'+msgs.map(function(m){return '<div class="msg '+(m.r==="me"?"user":"bot")+'">'+esc(m.t)+'</div>';}).join("")+'</div><div class="chat-input-row"><textarea id="commChatIn" placeholder="Nachricht…" rows="1"></textarea><button class="ibtn send" id="commChatSend">➤</button></div></div>';
+        $("commChatSend").addEventListener("click",function(){var t=$("commChatIn").value.trim();if(!t)return;if(!messages[c.name])messages[c.name]=[];messages[c.name].push({r:"me",t:t});S.set("comm_msgs",messages);setTimeout(function(){messages[c.name].push({r:"them",t:"✅ Nachricht empfangen (Sim)"});S.set("comm_msgs",messages);build();},600);build();});
+      });});
+    }
+    
+    if(tab==="email"){
+      $("emSend").addEventListener("click",function(){var to=$("emTo").value.trim();if(!to){toast("Empfänger eingeben","err");return;}window.location.href="mailto:"+to+"?subject="+encodeURIComponent($("emSub").value||"")+"&body="+encodeURIComponent($("emBody").value||"");toast("📤 Geöffnet","ok");});
+    }
+    
+    if(tab==="call"){
+      var stream=null;
+      $("callStart").addEventListener("click",function(){var s=$("callSel");var name=s.options[s.selectedIndex]?s.options[s.selectedIndex].text:"Kontakt";$("callStatus").textContent="📞 Rufe "+name+" an…";navigator.mediaDevices.getUserMedia({video:true,audio:true}).then(function(st){stream=st;$("callVideo").srcObject=st;$("callStatus").textContent="🔴 Live (Demo)";Voice.speak("Anruf mit "+name);}).catch(function(e){$("callStatus").textContent="❌ "+e.message;});});
+      $("callStop").addEventListener("click",function(){if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;}$("callVideo").srcObject=null;$("callStatus").textContent="📴 Beendet";});
+    }
+  }
+  build();
+}};
+
+/* ═══════════════════════════════════════════════════════════════
+   MODUL: DOKUMENTE — Text, Tabelle, PDF, Liste
+   ═══════════════════════════════════════════════════════════════ */
+MODULES.dokumente={render:function(el){
+  var tab="text",docs=S.get("docs_items",[]);
+  
+  function build(){
+    var body='';
+    
+    if(tab==="text"){
+      body='<div class="card"><h3>📝 Text-Editor</h3>'
+        +'<div class="field"><label>Titel</label><input type="text" id="dtTitle"></div>'
+        +'<textarea id="dtBody" style="width:100%;min-height:300px;padding:12px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-family:ui-monospace;font-size:13px;line-height:1.6;resize:vertical"></textarea>'
+        +'<div style="display:flex;gap:8px;margin-top:8px"><button class="btn" id="dtSave" style="flex:1">💾 Speichern</button><button class="btn sec" id="dtExp" style="flex:1">📤 .txt</button></div></div>';
+    } else if(tab==="tabellen"){
+      body='<div class="card"><h3>📊 Tabelle (8×5)</h3>'
+        +'<div style="overflow-x:auto;margin-bottom:10px"><table style="border-collapse:collapse;width:100%;min-width:400px"><tbody>'
+        +'<tr>'+["A","B","C","D","E"].map(function(c){return '<th style="padding:8px;background:rgba(0,229,255,.15);border:1px solid rgba(0,229,255,.3);font-size:11px">'+c+'</th>';}).join("")+'</tr>'
+        +Array.from({length:8}).map(function(_,r){return '<tr>'+Array.from({length:5}).map(function(_,c){return '<td style="padding:0;border:1px solid rgba(0,229,255,.15)"><input class="table-cell" data-r="'+r+'" data-c="'+c+'" style="border:none"></td>';}).join("")+'</tr>';}).join("")
+        +'</tbody></table></div>'
+        +'<div style="display:flex;gap:8px"><button class="btn" id="tblSave" style="flex:1">💾 Speichern</button><button class="btn sec" id="tblExp" style="flex:1">📤 .csv</button></div></div>';
+    } else if(tab==="pdf"){
+      body='<div class="card"><h3>📄 PDF-Viewer</h3>'
+        +'<div class="field"><label>PDF-URL</label><input type="text" id="pdfUrl" placeholder="https://example.com/document.pdf"></div>'
+        +'<button class="btn full" id="pdfLoad">📄 Anzeigen</button>'
+        +'<div class="badge-info">Nutzt Browser-PDF-Viewer (iframe).</div>'
+        +'<div id="pdfRes" style="margin-top:14px"></div></div>';
+    } else if(tab==="liste"){
+      body='<div class="card"><h3>📁 Meine Dokumente ('+docs.length+')</h3>'
+        +(docs.length?docs.map(function(d,idx){return '<div class="doc-item" data-docidx="'+idx+'"><span class="ico">'+(d.type==="txt"?"📝":d.type==="csv"?"📊":"📄")+'</span><div class="info"><div class="nm">'+esc(d.title)+'</div><div class="dt">'+esc(d.date)+' · '+esc(d.type)+'</div></div><button data-ddocdel="'+idx+'" style="background:transparent;border:none;color:#ff8080;cursor:pointer">✕</button></div>';}).join(""):'<div style="color:var(--text-mute);text-align:center;padding:20px">Keine Dokumente</div>')+'</div>';
+    }
+    
+    el.innerHTML='<div class="tabs"><button class="tab'+(tab==="text"?" active":"")+'" data-dokt="text">📝 Text</button><button class="tab'+(tab==="tabellen"?" active":"")+'" data-dokt="tabellen">📊 Tabelle</button><button class="tab'+(tab==="pdf"?" active":"")+'" data-dokt="pdf">📄 PDF</button><button class="tab'+(tab==="liste"?" active":"")+'" data-dokt="liste">📁 Liste</button></div>'+body;
+    
+    el.querySelectorAll("[data-dokt]").forEach(function(b){b.addEventListener("click",function(){tab=b.dataset.dokt;build();});});
+    
+    if(tab==="text"){
+      $("dtSave").addEventListener("click",function(){var t=$("dtTitle").value.trim()||"Unbenannt";docs.push({title:t,body:$("dtBody").value,type:"txt",date:new Date().toLocaleDateString("de-DE")});S.set("docs_items",docs);toast("💾","ok");build();});
+      $("dtExp").addEventListener("click",function(){var t=$("dtTitle").value.trim()||"dokument";var b=new Blob([$("dtBody").value],{type:"text/plain"});var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=t+".txt";a.click();});
+    }
+    if(tab==="tabellen"){
+      $("tblSave").addEventListener("click",function(){var rows=[];for(var r=0;r<8;r++){var row=[];for(var c=0;c<5;c++){var i=el.querySelector('[data-r="'+r+'"][data-c="'+c+'"]');row.push(i?i.value:"");}rows.push(row);}docs.push({title:"Tabelle_"+Date.now(),body:JSON.stringify(rows),type:"csv",date:new Date().toLocaleDateString("de-DE")});S.set("docs_items",docs);toast("💾","ok");});
+      $("tblExp").addEventListener("click",function(){var csv=[];for(var r=0;r<8;r++){var row=[];for(var c=0;c<5;c++){var i=el.querySelector('[data-r="'+r+'"][data-c="'+c+'"]');row.push(i?i.value.replace(/,/g,";"):"");}csv.push(row.join(","));}var b=new Blob([csv.join("\n")],{type:"text/csv"});var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="tabelle.csv";a.click();});
+    }
+    if(tab==="pdf"){
+      $("pdfLoad").addEventListener("click",function(){var u=$("pdfUrl").value.trim();if(!u)return;$("pdfRes").innerHTML='<iframe src="'+esc(u)+'" class="pdf-viewer" style="height:400px"></iframe>';});
+    }
+    if(tab==="liste"){
+      el.querySelectorAll("[data-docidx]").forEach(function(b){b.addEventListener("click",function(){var d=docs[parseInt(b.dataset.docidx)];if(!d)return;if(d.type==="txt"){tab="text";build();$("dtTitle").value=d.title;$("dtBody").value=d.body;}});});
+      el.querySelectorAll("[data-ddocdel]").forEach(function(b){b.addEventListener("click",function(e){e.stopPropagation();docs.splice(parseInt(b.dataset.ddocdel),1);S.set("docs_items",docs);build();});});
+    }
+  }
+  build();
+}};
+
+/* ═══════════════════════════════════════════════════════════════
+   MODUL: MEDIEN — Radio, Podcast, Galerie, Kamera
+   ═══════════════════════════════════════════════════════════════ */
+MODULES.medien={render:function(el){
+  var tab="radio";
+  var RADIOS=[
+    {n:"1LIVE",g:"Pop",e:"🎵",u:"https://wdrhf.akamaized.net/hls/live/2027955/1live/192/seglist.m3u8"},
+    {n:"WDR 2",g:"Pop",e:"🎤",u:"https://wdrhf.akamaized.net/hls/live/2027970/wdr2rheinruhr/192/seglist.m3u8"},
+    {n:"WDR 3",g:"Klassik",e:"🎻",u:"https://wdrhf.akamaized.net/hls/live/2027994/wdr3/192/seglist.m3u8"},
+    {n:"WDR 4",g:"Schlager",e:"🎶",u:"https://wdrhf.akamaized.net/hls/live/2027995/wdr4/192/seglist.m3u8"},
+    {n:"COSMO",g:"Weltmusik",e:"🌍",u:"https://wdrhf.akamaized.net/hls/live/2027997/cosmo/192/seglist.m3u8"},
+    {n:"1LIVE diGGi",g:"Diggi",e:"🎧",u:"https://wdrhf.akamaized.net/hls/live/2027963/1livediggi/192/seglist.m3u8"}
+  ];
+  var _audio=null,_cur=-1;
+  
+  function build(){
+    var body='';
+    
+    if(tab==="radio"){
+      body='<div class="card"><h3>📻 Radio</h3>'
+        +'<div id="radioNow" style="padding:14px;background:linear-gradient(135deg,rgba(0,229,255,.1),rgba(180,120,255,.1));border-radius:12px;margin-bottom:12px;text-align:center">'
+        +'<div style="font-size:14px;font-weight:900;color:var(--p1)">'+(_cur>=0?RADIOS[_cur].n:"— Kein Sender —")+'</div>'
+        +'<div style="font-size:10px;color:var(--text-mute);margin-top:4px" id="radioStatus">Bereit</div></div>'
+        +RADIOS.map(function(r,i){return '<div class="radio-item'+(_cur===i?" active":"")+'" data-radio="'+i+'"><div class="logo" style="background:linear-gradient(135deg,var(--p1),var(--p3));color:#001428">'+r.e+'</div><div class="info"><div class="nm">'+esc(r.n)+'</div><div class="gn">'+esc(r.g)+'</div></div><div style="font-size:18px;color:var(--p1)">'+(_cur===i?"🔊":"▶")+'</div></div>';}).join("")+'</div>';
+    } else if(tab==="podcast"){
+      body='<div class="card"><h3>🎧 Podcast (ARD)</h3>'
+        +'<div class="field"><label>ARD-Audiothek URL</label><input type="text" id="podUrl" placeholder="https://www.ardaudiothek.de/sendung/..."></div>'
+        +'<button class="btn full" id="podLoad">🎧 Anzeigen</button>'
+        +'<div id="podRes" style="margin-top:14px"></div></div>';
+    } else if(tab==="galerie"){
+      var g=S.get("med_gallery",[]);
+      body='<div class="card"><h3>🖼️ Galerie ('+g.length+')</h3>'
+        +'<input type="file" id="galUp" accept="image/*" multiple style="display:none">'
+        +'<button class="btn full" id="galUpBtn">📷 Hochladen</button>'
+        +'<div class="gallery-grid" style="margin-top:12px">'+g.map(function(x,i){return '<div class="gallery-item" data-galidx="'+i+'"><img src="'+x.data+'"></div>';}).join("")+'</div>'
+        +(g.length?'<button class="btn danger full" id="galClear" style="margin-top:10px">🗑️ Alle löschen</button>':'')
+        +'</div>';
+    } else if(tab==="kamera"){
+      body='<div class="card"><h3>📷 Kamera</h3>'
+        +'<video id="camVideo" class="camera-video" autoplay playsinline></video>'
+        +'<div style="display:flex;gap:8px;margin-top:10px"><button class="btn" id="camStart" style="flex:1">📷 Start</button><button class="btn sec" id="camStop" style="flex:1">⏹ Stop</button></div>'
+        +'<button class="btn full" id="camSnap" style="margin-top:8px">📸 Foto aufnehmen</button>'
+        +'<canvas id="camCanvas" style="display:none"></canvas>'
+        +'<div id="camRes" style="margin-top:12px"></div></div>';
+    }
+    
+    el.innerHTML='<div class="tabs"><button class="tab'+(tab==="radio"?" active":"")+'" data-met="radio">📻 Radio</button><button class="tab'+(tab==="podcast"?" active":"")+'" data-met="podcast">🎧 Podcast</button><button class="tab'+(tab==="galerie"?" active":"")+'" data-met="galerie">🖼️ Galerie</button><button class="tab'+(tab==="kamera"?" active":"")+'" data-met="kamera">📷 Kamera</button></div>'+body;
+    
+    el.querySelectorAll("[data-met]").forEach(function(b){b.addEventListener("click",function(){tab=b.dataset.met;build();});});
+    
+    if(tab==="radio"){
+      el.querySelectorAll("[data-radio]").forEach(function(b){b.addEventListener("click",function(){
+        var i=parseInt(b.dataset.radio);var r=RADIOS[i];
+        if(_audio){try{_audio.pause();}catch(e){}_audio=null;}
+        if(_cur===i){_cur=-1;build();return;}
+        _cur=i;_audio=new Audio(r.u);
+        $("radioStatus").textContent="⏳ Lade…";
+        _audio.play().then(function(){$("radioStatus").textContent="🔴 Live";}).catch(function(e){$("radioStatus").textContent="❌ "+e.message;});
+        build();
+      });});
+    }
+    
+    if(tab==="podcast"){
+      $("podLoad").addEventListener("click",function(){
+        var u=$("podUrl").value.trim();if(!u)return;
+        var rss=u.replace("www.ardaudiothek.de","ard2rss.mauamy.de");
+        $("podRes").innerHTML='<div style="color:var(--text-mute);padding:14px;text-align:center">⏳ Lade…</div>';
+        fetch(rss).then(function(r){return r.text();}).then(function(x){
+          var p=new DOMParser(),d=p.parseFromString(x,"text/xml"),items=d.querySelectorAll("item");
+          if(!items.length){$("podRes").innerHTML='<div style="color:var(--text-mute);padding:14px">Keine Episoden</div>';return;}
+          var h='<div class="card"><h3>🎧 '+items.length+' Episoden</h3>';
+          for(var i=0;i<Math.min(items.length,15);i++){
+            var it=items[i],t=it.querySelector("title")?it.querySelector("title").textContent:"?",e=it.querySelector("enclosure"),url=e?e.getAttribute("url"):"";
+            h+='<div class="doc-item" data-podurl="'+esc(url)+'"><span class="ico">🎧</span><div class="info"><div class="nm">'+esc(t)+'</div></div><div style="color:var(--p1)">▶</div></div>';
+          }
+          h+='</div>';$("podRes").innerHTML=h;
+          $("podRes").querySelectorAll("[data-podurl]").forEach(function(b){b.addEventListener("click",function(){var u=b.dataset.podurl;if(!u)return;if(_audio){try{_audio.pause();}catch(e){}}_audio=new Audio(u);_audio.play();toast("▶ Läuft","ok");});});
+        }).catch(function(e){$("podRes").innerHTML='<div style="color:#ff8080;padding:14px">❌ '+esc(e.message)+'</div>';});
+      });
+    }
+    
+    if(tab==="galerie"){
+      $("galUpBtn").addEventListener("click",function(){$("galUp").click();});
+      $("galUp").addEventListener("change",function(e){var files=e.target.files;if(!files.length)return;Array.from(files).slice(0,5).forEach(function(f){var r=new FileReader();r.onload=function(ev){if(ev.target.result.length>1500000){toast("Bild zu groß","err");return;}var g=S.get("med_gallery",[]);g.push({data:ev.target.result,name:f.name});S.set("med_gallery",g);build();};r.readAsDataURL(f);});});
+      var clr=$("galClear");
+      if(clr)clr.addEventListener("click",function(){if(!confirm("Alle Bilder löschen?"))return;S.set("med_gallery",[]);build();});
+    }
+    
+    if(tab==="kamera"){
+      var stream=null;
+      $("camStart").addEventListener("click",function(){navigator.mediaDevices.getUserMedia({video:true}).then(function(s){stream=s;$("camVideo").srcObject=s;toast("📷 Aktiv","ok");}).catch(function(e){toast("❌ "+e.message,"err");});});
+      $("camStop").addEventListener("click",function(){if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;$("camVideo").srcObject=null;}});
+      $("camSnap").addEventListener("click",function(){var v=$("camVideo"),c=$("camCanvas");if(!v.srcObject){toast("Kamera nicht aktiv","err");return;}c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0);var data=c.toDataURL("image/jpeg",0.7);var g=S.get("med_gallery",[]);g.push({data:data,name:"foto_"+Date.now()});S.set("med_gallery",g);$("camRes").innerHTML='<img src="'+data+'" style="max-width:100%;border-radius:10px;border:2px solid var(--p1)">';toast("📸 Gespeichert","ok");});
+    }
+  }
+  build();
+}};
 /* ══════════ WISSEN ══════════ */
 MODULES.wissen={render:function(el){
   var tab="physik";
