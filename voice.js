@@ -163,8 +163,8 @@ HalDo.Voice = (function(){
     if(char.engine === "eleven" && char.voiceId){
       if(_hasElevenKey()){
         return _speakElevenLabs(text, char).catch(function(err){
-          if(window.HalDo.Kernel) HalDo.Kernel.log("HalDoVoice: " + err.message + " → Fallback", "warn");
-          _toast("⚠️ " + err.message + " → Standard-Stimme", "err");
+          if(window.HalDo.Kernel) HalDo.Kernel.log("HalDoVoice: " + err.message + " → Fallback auf System-Stimme", "warn");
+          /* Ruhig auf System-Stimme zurückfallen, kein Fehler-Toast mehr */
           _speakSystem(text, CHARACTERS[0]);
         });
       } else {
