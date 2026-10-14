@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — INIT (v150) — VORLÄUFIG
-   Wird in späterer Runde durch finale Version ersetzt
+   HALDO AI OS — INIT (v150b)
+   Boot-Chain Start · Alle Services in richtiger Reihenfolge
    ═══════════════════════════════════════════════════════════ */
 
 (function(){
@@ -21,54 +21,60 @@
       HalDo.Kernel.log("Init: starte Boot-Chain…");
     }
 
-    /* Boot-Chain aus Kernel */
     if(HalDo.Kernel && HalDo.Kernel.boot){
       HalDo.Kernel.boot().then(function(ok){
         if(!ok){
           console.warn("[HalDo Init] Boot-Fehler — starte trotzdem");
         }
 
-        /* Alle Kern-Services starten (falls vorhanden) */
-        try { if(HalDo.Config && HalDo.Config.load)   HalDo.Config.load();     } catch(e){ console.warn("Config:", e.message); }
-        try { if(HalDo.Security && HalDo.Security.init) HalDo.Security.init(); } catch(e){ console.warn("Security:", e.message); }
-        try { if(HalDo.Storage && HalDo.Storage.init)   HalDo.Storage.init();   } catch(e){ console.warn("Storage:", e.message); }
-        try { if(HalDo.AppManager && HalDo.AppManager.init) HalDo.AppManager.init(); } catch(e){ console.warn("AppManager:", e.message); }
-        try { if(HalDo.Runtime && HalDo.Runtime.init)   HalDo.Runtime.init();   } catch(e){ console.warn("Runtime:", e.message); }
-        try { if(HalDo.Router && HalDo.Router.init)     HalDo.Router.init();    } catch(e){ console.warn("Router:", e.message); }
-        try { if(HalDo.Display && HalDo.Display.init)   HalDo.Display.init();   } catch(e){ console.warn("Display:", e.message); }
-        try { if(HalDo.WindowManager && HalDo.WindowManager.init) HalDo.WindowManager.init(); } catch(e){ console.warn("WindowManager:", e.message); }
-        try { if(HalDo.Desktop && HalDo.Desktop.init)   HalDo.Desktop.init();   } catch(e){ console.warn("Desktop:", e.message); }
-        try { if(HalDo.Voice && HalDo.Voice.init)       HalDo.Voice.init();     } catch(e){ console.warn("Voice:", e.message); }
-        try { if(HalDo.Language && HalDo.Language.init) HalDo.Language.init();  } catch(e){ console.warn("Language:", e.message); }
-        try { if(HalDo.Memory && HalDo.Memory.init)     HalDo.Memory.init();    } catch(e){ console.warn("Memory:", e.message); }
-        try { if(HalDo.AI && HalDo.AI.init)             HalDo.AI.init();        } catch(e){ console.warn("AI:", e.message); }
-        try { if(HalDo.Menu && HalDo.Menu.init)         HalDo.Menu.init();      } catch(e){ console.warn("Menu:", e.message); }
-        try { if(HalDo.CosmicWorld && HalDo.CosmicWorld.init) HalDo.CosmicWorld.init(); } catch(e){ console.warn("CosmicWorld:", e.message); }
+        /* WICHTIG: Reihenfolge — Config zuerst, dann Services, dann UI */
+        var order = [
+          ["Config",        function(){ if(HalDo.Config && HalDo.Config.load) HalDo.Config.load(); }],
+          ["Storage",       function(){ if(HalDo.Storage && HalDo.Storage.init) HalDo.Storage.init(); }],
+          ["Security",      function(){ if(HalDo.Security && HalDo.Security.init) HalDo.Security.init(); }],
+          ["AppManager",    function(){ if(HalDo.AppManager && HalDo.AppManager.init) HalDo.AppManager.init(); }],
+          ["Runtime",       function(){ if(HalDo.Runtime && HalDo.Runtime.init) HalDo.Runtime.init(); }],
+          ["Language",      function(){ if(HalDo.Language && HalDo.Language.init) HalDo.Language.init(); }],
+          ["Memory",        function(){ if(HalDo.Memory && HalDo.Memory.init) HalDo.Memory.init(); }],
+          ["Voice",         function(){ if(HalDo.Voice && HalDo.Voice.init) HalDo.Voice.init(); }],
+          ["AI",            function(){ if(HalDo.AI && HalDo.AI.init) HalDo.AI.init(); }],
+          ["Display",       function(){ if(HalDo.Display && HalDo.Display.init) HalDo.Display.init(); }],
+          ["Desktop",       function(){ if(HalDo.Desktop && HalDo.Desktop.init) HalDo.Desktop.init(); }],
+          ["WindowManager", function(){ if(HalDo.WindowManager && HalDo.WindowManager.init) HalDo.WindowManager.init(); }],
+          ["Menu",          function(){ if(HalDo.Menu && HalDo.Menu.init) HalDo.Menu.init(); }],
+          ["Router",        function(){ if(HalDo.Router && HalDo.Router.init) HalDo.Router.init(); }],
+          ["CosmicWorld",   function(){ if(HalDo.CosmicWorld && HalDo.CosmicWorld.init) HalDo.CosmicWorld.init(); }]
+        ];
 
-        /* Boot-Screen weg */
+        order.forEach(function(pair){
+          try {
+            pair[1]();
+          } catch(e){
+            console.warn("[HalDo Init] " + pair[0] + ": " + e.message);
+          }
+        });
+
+        /* Boot-Screen weg nach kurzer Verzögerung */
         setTimeout(function(){
           hideBootScreen();
           if(HalDo.Kernel) HalDo.Kernel.log("✅ Boot abgeschlossen");
 
-          /* Begrüßung */
           var name = (HalDo.Config && HalDo.Config.get) ? HalDo.Config.get("userName") : "Bruder";
           setTimeout(function(){
             var t = document.getElementById("toast");
             if(t){
               t.textContent = "🦚 Silav, " + name + "! Klick die Sonne oder einen Planeten";
               t.className = "show ok";
-              setTimeout(function(){ t.className = ""; }, 3000);
+              setTimeout(function(){ t.className = ""; }, 3500);
             }
-          }, 500);
-        }, 400);
+          }, 400);
+        }, 300);
       });
     } else {
-      /* Kein Kernel → trotzdem Boot-Screen weg */
-      setTimeout(hideBootScreen, 1000);
+      setTimeout(hideBootScreen, 800);
     }
   }
 
-  /* DOM fertig? */
   if(document.readyState === "loading"){
     document.addEventListener("DOMContentLoaded", start);
   } else {
@@ -76,4 +82,4 @@
   }
 })();
 
-console.log("🦚 init.js geladen (vorläufig)");
+console.log("🦚 init.js geladen (v150b)");
