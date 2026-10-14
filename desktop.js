@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — DESKTOP (v150b)
-   Mit verbesserter Sidebar — ALLE Apps A-Z
+   HALDO AI OS — DESKTOP (v150c)
+   Menü links · Sidebar mit Drag&Drop-Sortierung
    ═══════════════════════════════════════════════════════════ */
 
 window.HalDo = window.HalDo || {};
@@ -59,33 +59,43 @@ HalDo.Desktop = (function(){
     });
   }
 
-  /* ═══ SIDEBAR mit ALLEN Apps + Menüpunkten ═══ */
+  /* ═══ SIDEBAR mit Drag&Drop ═══ */
   function renderSidebar(){
     var sb = document.getElementById("sidebar");
     if(!sb) return;
     if(!window.HalDo.Registry) return;
 
-    var grouped = HalDo.Registry.groupedByCategory();
-    var catOrder = HalDo.Registry.categoryList();
+    var appOrder = HalDo.Config.get("appOrder", null);
+    var allApps = HalDo.Registry.all().slice();
+
+    /* Wenn User eine eigene Reihenfolge gespeichert hat, nutze diese */
+    if(appOrder && Array.isArray(appOrder)){
+      var ordered = [];
+      appOrder.forEach(function(id){
+        var a = allApps.find(function(x){ return x.id === id; });
+        if(a) ordered.push(a);
+      });
+      allApps.forEach(function(a){
+        if(ordered.indexOf(a) < 0) ordered.push(a);
+      });
+      allApps = ordered;
+    } else {
+      allApps.sort(function(a, b){ return a.name.localeCompare(b.name, "de"); });
+    }
 
     var html = '<div class="group">⚙️ System-Menü</div>';
     html += '<button class="item" id="sbChat"><span class="ico">💬</span><span class="lbl">Chat öffnen</span></button>';
     html += '<button class="item" id="sbHaldoAI"><span class="ico">🦚</span><span class="lbl">HalDo AI</span></button>';
     html += '<button class="item" id="sbSettings"><span class="ico">⚙️</span><span class="lbl">Einstellungen</span></button>';
     html += '<button class="item" id="sbVoice"><span class="ico">🔊</span><span class="lbl">HalDoVoice</span></button>';
-    html += '<button class="item" id="sbBackup"><span class="ico">💾</span><span class="lbl">Backup speichern</span></button>';
+    html += '<button class="item" id="sbBackup"><span class="ico">💾</span><span class="lbl">Backup</span></button>';
     html += '<button class="item" id="sbAbout"><span class="ico">ℹ️</span><span class="lbl">Über HalDo</span></button>';
     html += '<hr class="sep">';
-
-    html += '<div class="group">📱 Apps A–Z (' + HalDo.Registry.count() + ')</div>';
-
-    /* Alle Apps alphabetisch sortiert */
-    var allApps = HalDo.Registry.all().slice().sort(function(a, b){
-      return a.name.localeCompare(b.name, "de");
-    });
+    html += '<div class="group">📱 Apps A–Z (' + allApps.length + ') · ziehen zum Sortieren</div>';
 
     allApps.forEach(function(a){
-      html += '<button class="item" data-open-app="' + a.id + '">'
+      html += '<button class="item" draggable="true" data-app-id="' + a.id + '" data-open-app="' + a.id + '">'
+        + '<span class="drag-handle">⋮⋮</span>'
         + '<span class="ico">' + a.ico + '</span>'
         + '<span class="lbl">' + _esc(a.name)
         + '<div class="sub">' + _esc(a.desc) + '</div>'
@@ -94,9 +104,11 @@ HalDo.Desktop = (function(){
 
     sb.innerHTML = html;
 
-    /* Alle App-Buttons */
+    /* Klick-Events */
     sb.querySelectorAll("[data-open-app]").forEach(function(b){
-      b.addEventListener("click", function(){
+      b.addEventListener("click", function(e){
+        /* Wenn gerade gedraggt wurde, nicht öffnen */
+        if(sb._dragging) return;
         if(window.HalDo.Router) HalDo.Router.open(b.dataset.openApp);
         if(window.innerWidth < 700 && window.HalDo.Display){
           HalDo.Display.setSidebarOpen(false);
@@ -104,7 +116,9 @@ HalDo.Desktop = (function(){
       });
     });
 
-    /* System-Buttons */
+    /* Drag&Drop für Sortierung */
+    _setupDragDrop(sb);
+
     var sbChat = document.getElementById("sbChat");
     if(sbChat) sbChat.addEventListener("click", function(){
       if(window.HalDo.Router) HalDo.Router.open("chat");
@@ -136,6 +150,72 @@ HalDo.Desktop = (function(){
     });
   }
 
+  /* ═══ Drag&Drop Logik ═══ */
+  function _setupDragDrop(sb){
+    var dragEl = null;
+
+    sb.querySelectorAll("[data-app-id]").forEach(function(el){
+      el.addEventListener("dragstart", function(e){
+        dragEl = el;
+        sb._dragging = true;
+        el.classList.add("dragging");
+        try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", el.dataset.appId); } catch(err){}
+      });
+      el.addEventListener("dragend", function(){
+        el.classList.remove("dragging");
+        sb.querySelectorAll("[data-app-id]").forEach(function(x){ x.classList.remove("drag-over"); });
+        setTimeout(function(){ sb._dragging = false; }, 100);
+      });
+      el.addEventListener("dragover", function(e){
+        if(!dragEl || dragEl === el) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        el.classList.add("drag-over");
+      });
+      el.addEventListener("dragleave", function(){
+        el.classList.remove("drag-over");
+      });
+      el.addEventListener("drop", function(e){
+        e.preventDefault();
+        el.classList.remove("drag-over");
+        if(!dragEl || dragEl === el) return;
+        /* Elemente tauschen */
+        var parent = sb;
+        var items = Array.from(sb.querySelectorAll("[data-app-id]"));
+        var dragIdx = items.indexOf(dragEl);
+        var dropIdx = items.indexOf(el);
+        if(dragIdx < 0 || dropIdx < 0) return;
+        if(dragIdx < dropIdx){
+          parent.insertBefore(dragEl, el.nextSibling);
+        } else {
+          parent.insertBefore(dragEl, el);
+        }
+        _saveOrder();
+      });
+    });
+
+    /* Touch-Support für Drag (vereinfacht) */
+    sb.querySelectorAll("[data-app-id] .drag-handle").forEach(function(handle){
+      handle.addEventListener("touchstart", function(e){
+        var el = handle.parentNode;
+        el.setAttribute("data-touch-drag", "1");
+        el.classList.add("dragging");
+        sb._dragging = true;
+      }, {passive: true});
+    });
+  }
+
+  function _saveOrder(){
+    var sb = document.getElementById("sidebar");
+    if(!sb) return;
+    var order = [];
+    sb.querySelectorAll("[data-app-id]").forEach(function(el){
+      order.push(el.dataset.appId);
+    });
+    if(window.HalDo.Config) HalDo.Config.set("appOrder", order);
+    _toast("✅ Reihenfolge gespeichert", "ok");
+  }
+
   /* ═══ Backup ═══ */
   function _doBackup(){
     try {
@@ -162,45 +242,28 @@ HalDo.Desktop = (function(){
     var modal = document.getElementById("settings");
     var body = document.getElementById("settingsBody");
     if(!modal || !body) return;
-
     var cfg = window.HalDo.Config.get();
     var LANG_LIST = (window.HalDo.Language) ? HalDo.Language.list() : [];
-
     var langHTML = LANG_LIST.map(function(l){
-      return '<div class="lang-card' + (cfg.lang===l.id?" active":"") + '" data-lang="' + l.id + '">'
-        + '<span class="flag">' + l.flag + '</span>'
-        + '<div class="name">' + _esc(l.name) + '</div>'
-        + '</div>';
+      return '<div class="lang-card' + (cfg.lang===l.id?" active":"") + '" data-lang="' + l.id + '"><span class="flag">' + l.flag + '</span><div class="name">' + _esc(l.name) + '</div></div>';
     }).join("");
 
-    body.innerHTML =
-      '<div class="group"><h3>🌌 Hintergrund</h3>'
-      + '<div class="theme-grid">'
+    body.innerHTML = '<div class="group"><h3>🌌 Hintergrund</h3><div class="theme-grid">'
       + '<div class="theme-card' + (cfg.theme==="kosmos"?" active":"") + '" data-theme="kosmos"><div class="preview kosmos"></div><div class="name">🌌 Kosmos</div></div>'
       + '<div class="theme-card' + (cfg.theme==="erde"?" active":"") + '" data-theme="erde"><div class="preview erde"></div><div class="name">🌍 Erde</div></div>'
-      + '<div class="theme-card' + (cfg.theme==="holo"?" active":"") + '" data-theme="holo"><div class="preview holo"></div><div class="name">🔵 Holo</div></div>'
-      + '</div>'
+      + '<div class="theme-card' + (cfg.theme==="holo"?" active":"") + '" data-theme="holo"><div class="preview holo"></div><div class="name">🔵 Holo</div></div></div>'
       + '<div class="speed-row"><span>🐌</span><input type="range" id="globalSpeed" min="1" max="10" value="' + (cfg.planetSpeed||5) + '"><span class="sv" id="speedVal">' + (cfg.planetSpeed||5) + '×</span><span>🐇</span></div>'
-      + '<div class="row" style="margin-top:8px"><div class="lbl">🕐 Uhr-Planeten</div><div class="sw' + (cfg.clockOn?" on":"") + '" id="clockSw"></div></div>'
-      + '</div>'
-      + '<div class="group"><h3>🌐 Sprache (' + LANG_LIST.length + ')</h3>'
-      + '<div class="lang-grid" id="langGrid">' + langHTML + '</div>'
-      + '</div>'
+      + '<div class="row" style="margin-top:8px"><div class="lbl">🕐 Uhr-Planeten</div><div class="sw' + (cfg.clockOn?" on":"") + '" id="clockSw"></div></div></div>'
+      + '<div class="group"><h3>🌐 Sprache (' + LANG_LIST.length + ')</h3><div class="lang-grid">' + langHTML + '</div></div>'
       + '<div class="group"><h3>⚡ CYBORG</h3><div class="row"><div class="lbl">Cyborg-Modus <small>Pink / Violett</small></div><div class="sw' + (cfg.cyborg?" on":"") + '" id="cyborgSw"></div></div></div>'
       + '<div class="group"><h3>👤 Profil</h3><div class="row"><div class="lbl">Dein Name</div><input type="text" id="userNameInput" value="' + _esc(cfg.userName||"Bruder") + '"></div></div>'
-      + '<div class="group"><h3>🎙️ HalDoVoice</h3>'
-      + '<button class="btn full" id="openVoicePanel">🔊 HalDoVoice öffnen</button>'
-      + '<div class="badge-info">Dort kannst du ElevenLabs-Key + Stimmen verwalten.</div>'
-      + '</div>'
-      + '<div class="group"><h3>🚦 Verkehr-API-Keys</h3>'
+      + '<div class="group"><h3>🎙️ HalDoVoice</h3><button class="btn full" id="openVoicePanel">🔊 HalDoVoice öffnen</button></div>'
+      + '<div class="group"><h3>🚦 API-Keys</h3>'
       + '<div class="field"><label>OpenRouteService Key</label><input type="password" id="orsInput" placeholder="Key" value="' + _esc(HalDo.Config.get("orsKey","")) + '" autocomplete="new-password" name="ors"></div>'
       + '<div class="field"><label>Tankerkönig Key</label><input type="password" id="tankerInput" placeholder="Key" value="' + _esc(HalDo.Config.get("tankerKey","")) + '" autocomplete="new-password" name="tanker"></div>'
-      + '<button class="btn sec full" id="vkSave">💾 Keys speichern</button>'
-      + '</div>'
-      + '<div class="group"><h3>💾 Daten</h3>'
-      + '<button class="btn sec full" id="expBtn">📤 Backup exportieren</button>'
-      + '<button class="btn danger full" id="resetBtn" style="margin-top:8px">🗑️ Alles zurücksetzen</button>'
-      + '</div>';
+      + '<button class="btn sec full" id="vkSave">💾 Keys speichern</button></div>'
+      + '<div class="group"><h3>📱 Sidebar</h3><button class="btn sec full" id="resetOrder">🔄 App-Reihenfolge zurücksetzen</button></div>'
+      + '<div class="group"><h3>💾 Daten</h3><button class="btn sec full" id="expBtn">📤 Backup</button><button class="btn danger full" id="resetBtn" style="margin-top:8px">🗑️ Alles zurücksetzen</button></div>';
 
     body.querySelectorAll("[data-theme]").forEach(function(el){
       el.addEventListener("click", function(){
@@ -221,13 +284,11 @@ HalDo.Desktop = (function(){
         }
       });
     });
-
     var gs = document.getElementById("globalSpeed");
     if(gs) gs.addEventListener("input", function(){
       var v = parseInt(this.value);
       HalDo.Config.set("planetSpeed", v);
-      var sv = document.getElementById("speedVal");
-      if(sv) sv.textContent = v + "×";
+      var sv = document.getElementById("speedVal"); if(sv) sv.textContent = v + "×";
       if(window.HalDo.CosmicWorld) HalDo.CosmicWorld.setTheme(null, v, null);
     });
     var cs = document.getElementById("cyborgSw");
@@ -257,6 +318,12 @@ HalDo.Desktop = (function(){
       HalDo.Config.set("tankerKey", document.getElementById("tankerInput").value.trim());
       _toast("💾 Keys gespeichert", "ok");
     });
+    var ro = document.getElementById("resetOrder");
+    if(ro) ro.addEventListener("click", function(){
+      HalDo.Config.set("appOrder", null);
+      _toast("🔄 Reihenfolge zurückgesetzt", "ok");
+      renderSidebar();
+    });
     var eb = document.getElementById("expBtn");
     if(eb) eb.addEventListener("click", _doBackup);
     var rb = document.getElementById("resetBtn");
@@ -284,9 +351,7 @@ HalDo.Desktop = (function(){
       });
     });
     document.querySelectorAll(".modal").forEach(function(m){
-      m.addEventListener("click", function(e){
-        if(e.target === m) m.classList.remove("show");
-      });
+      m.addEventListener("click", function(e){ if(e.target === m) m.classList.remove("show"); });
     });
   }
 
@@ -315,4 +380,4 @@ HalDo.Desktop = (function(){
   return { init: init, renderSidebar: renderSidebar };
 })();
 
-console.log("🦚 desktop.js geladen (v150b mit voller Sidebar)");
+console.log("🦚 desktop.js geladen (v150c mit Drag&Drop-Sidebar)");
