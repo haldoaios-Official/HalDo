@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — AI CHAT (v151) · Lokaler Regel-Chat
+   HALDO AI OS — AI CHAT (v152) · Lokaler Regel-Chat
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -8,11 +8,10 @@
   function render(container, ctx){
     var store = ctx.store;
 
-    /* Regelbasierte Antworten */
     function answer(q){
       var s = q.toLowerCase();
       if(/hallo|hi|hey|servus/.test(s)) return "Hallo Bruder! 🦚 Wie kann ich helfen?";
-      if(/wie geht|wie läuft/.test(s)) return "Mir geht's super! Ich bin bereit für dich. 💙";
+      if(/wie geht|wie läuft/.test(s)) return "Mir geht es super! Ich bin bereit für dich. 💙";
       if(/wetter/.test(s)) return "Öffne die Wetter-App für Details. ☀️";
       if(/zeit|uhr/.test(s)) return "Es ist " + new Date().toLocaleTimeString("de-DE");
       if(/datum|tag/.test(s)) return "Heute ist " + new Date().toLocaleDateString("de-DE", {weekday:"long", day:"numeric", month:"long", year:"numeric"});
@@ -50,7 +49,7 @@
         + '<button class="btn" id="chatSend" style="padding:0 16px">➤</button>'
         + '</div>'
         + '<div style="display:flex;gap:6px;margin-top:8px;overflow-x:auto">'
-        + '<button class="btn sec" data-quick="Wie geht es dir?" style="font-size:10.5px;padding:6px 10px;white-space:nowrap">Wie geht's?</button>'
+        + '<button class="btn sec" data-quick="Wie geht es dir?" style="font-size:10.5px;padding:6px 10px;white-space:nowrap">Wie geht es dir?</button>'
         + '<button class="btn sec" data-quick="Motivation bitte" style="font-size:10.5px;padding:6px 10px;white-space:nowrap">Motivation</button>'
         + '<button class="btn sec" data-quick="Wie viel Wasser?" style="font-size:10.5px;padding:6px 10px;white-space:nowrap">Wasser</button>'
         + '<button class="btn sec" data-quick="Sport Tipp" style="font-size:10.5px;padding:6px 10px;white-space:nowrap">Sport</button>'
@@ -71,7 +70,6 @@
         store.set("history", history);
         inp.value = "";
 
-        /* Antwort */
         var reply = answer(txt);
         setTimeout(function(){
           history.push({ role: "ai", text: reply });
@@ -104,6 +102,6 @@
     build();
   }
 
-  HalDoApp("ai", { name: "AI Chat", icon: "🧠", render: render, category: "app" });
+  HalDoApp("ai", { name: "AI Chat", icon: "🧠", render: render, category: "kommunikation" });
   console.log("🦚 ai.js geladen");
 })();
