@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — APPS REGISTRY (v152)
-   Manifest · Registry · Installiert vs. Geplant
+   HALDO AI OS — APPS REGISTRY (v152.1)
+   Manifest · Registry · Fallback-Kategorie · Custom-Apps
    ═══════════════════════════════════════════════════════════ */
 
 (function(){
@@ -8,9 +8,6 @@
 
   if(!window.HalDo) window.HalDo = {};
 
-  /* ═══════════════════════════════════════════════════════════
-     MASTER-MANIFEST — Alle 44 Apps die es geben soll
-     ═══════════════════════════════════════════════════════════ */
   var MANIFEST = [
     /* ▸ SYSTEM */
     { id: "home",           name: "Home",           icon: "🏠", desc: "Dashboard mit Widgets", category: "system" },
@@ -43,11 +40,11 @@
     { id: "fitness",        name: "Fitness",        icon: "💪", desc: "Training · BMI · Wasser", category: "gesundheit" },
     { id: "gesundheit",     name: "Gesundheit",     icon: "🩺", desc: "Gesundheitstracking", category: "gesundheit" },
     { id: "stimmung",       name: "Stimmung",       icon: "😊", desc: "Mood-Tracker", category: "gesundheit" },
-    { id: "gewohnheiten",   name: "Gewohnheiten",   icon: "🔄", desc: "Habit-Tracker", category: "gesundheit", hidden: true },
+    { id: "gewohnheiten",   name: "Gewohnheiten",   icon: "🔄", desc: "Habit-Tracker", category: "gesundheit" },
 
     /* ▸ LIFESTYLE */
     { id: "kueche",         name: "Küche",          icon: "🍳", desc: "Rezepte & Einkauf", category: "lifestyle" },
-    { id: "zuhause",        name: "Zuhause",        icon: "🏠", desc: "Haushalt & Garten", category: "lifestyle" },
+    { id: "zuhause",        name: "Zuhause",        icon: "🏡", desc: "Haushalt & Garten", category: "lifestyle" },
     { id: "finanzen",       name: "Finanzen",       icon: "💰", desc: "Budget & Ausgaben", category: "lifestyle" },
     { id: "reisen",         name: "Reisen",         icon: "✈️", desc: "Reiseplanung", category: "lifestyle" },
     { id: "auto",           name: "Auto",           icon: "🚗", desc: "Fahrzeugverwaltung", category: "lifestyle" },
@@ -66,27 +63,29 @@
     { id: "spiele",         name: "Spiele",         icon: "🎮", desc: "Minispiele", category: "werkzeuge" }
   ];
 
+  /* KATEGORIEN — mit "app" als Fallback für unkategorisierte */
   var CATEGORIES = {
     system:          "⚙️ System",
     kommunikation:   "💬 Kommunikation",
     produktivitaet:  "📋 Produktivität",
     gesundheit:      "💪 Gesundheit",
     lifestyle:       "🌟 Lifestyle",
-    werkzeuge:       "🛠️ Werkzeuge"
+    werkzeuge:       "🛠️ Werkzeuge",
+    app:             "📦 Weitere Apps"
   };
 
-  /* ═══════════════════════════════════════════════════════════
-     REGISTRY (installierte Apps)
-     ═══════════════════════════════════════════════════════════ */
-  var REGISTRY = {};   /* id -> { id, name, icon, render, ... } */
+  var REGISTRY = {};
   var ORDER = [];
 
-  /* Manifest als Lookup */
   var MANIFEST_MAP = {};
   MANIFEST.forEach(function(m){ MANIFEST_MAP[m.id] = m; });
 
+  function prettify(id){
+    return id.charAt(0).toUpperCase() + id.slice(1);
+  }
+
   /* ═══════════════════════════════════════════════════════════
-     REGISTRIERUNG (von App-Dateien aufgerufen)
+     REGISTRIERUNG
      ═══════════════════════════════════════════════════════════ */
   function register(id, config){
     if(!id || !config || typeof config.render !== "function"){
@@ -97,7 +96,13 @@
     var manifest = MANIFEST_MAP[id] || {};
     var icon = config.icon || manifest.icon || "📦";
     var name = config.name || manifest.name || prettify(id);
-    var cat = config.category || manifest.category || "app";
+
+    /* WICHTIG: Manifest-Kategorie hat Priorität, dann config, dann "app" */
+    var cat = manifest.category || config.category || "app";
+
+    /* Falls Kategorie unbekannt → "app" */
+    if(!CATEGORIES[cat]) cat = "app";
+
     var desc = config.desc || manifest.desc || "";
 
     REGISTRY[id] = {
@@ -113,32 +118,30 @@
 
     if(ORDER.indexOf(id) === -1) ORDER.push(id);
 
-    /* Sidebar neu rendern falls schon da */
     if(HalDo.Shell && HalDo.Shell.renderSidebar){
       try { HalDo.Shell.renderSidebar(); } catch(e){}
     }
   }
 
-  function prettify(id){
-    return id.charAt(0).toUpperCase() + id.slice(1);
-  }
-
   /* ═══════════════════════════════════════════════════════════
-     LISTEN-FUNKTIONEN
+     LISTEN
      ═══════════════════════════════════════════════════════════ */
-
-  /* Nur installierte Apps */
   function listInstalled(includeHidden){
     return ORDER.map(function(id){ return REGISTRY[id]; })
       .filter(function(a){ return a && (includeHidden || !a.hidden); });
   }
 
-  /* ALLE Apps (installiert + geplant) */
+  /* ALLE Apps (Manifest + Custom-Registered, die nicht im Manifest sind) */
   function listAll(includeHidden){
-    return MANIFEST.map(function(m){
-      if(m.hidden && !includeHidden) return null;
+    var seen = {};
+    var result = [];
+
+    /* 1) Alle aus Manifest */
+    MANIFEST.forEach(function(m){
+      if(m.hidden && !includeHidden) return;
+      seen[m.id] = true;
       var installed = !!REGISTRY[m.id];
-      return {
+      result.push({
         id: m.id,
         name: m.name,
         icon: m.icon,
@@ -147,33 +150,44 @@
         hidden: !!m.hidden,
         installed: installed,
         render: installed ? REGISTRY[m.id].render : null
-      };
-    }).filter(Boolean);
+      });
+    });
+
+    /* 2) Custom-Apps die registriert aber nicht im Manifest sind */
+    ORDER.forEach(function(id){
+      if(seen[id]) return;
+      var a = REGISTRY[id];
+      if(a.hidden && !includeHidden) return;
+      result.push({
+        id: a.id,
+        name: a.name,
+        icon: a.icon,
+        desc: a.desc,
+        category: a.category || "app",
+        hidden: a.hidden,
+        installed: true,
+        render: a.render
+      });
+    });
+
+    return result;
   }
 
-  /* Nach Kategorie gruppiert */
   function listByCategory(includeHidden){
     var all = listAll(includeHidden);
     var groups = {};
     Object.keys(CATEGORIES).forEach(function(cat){ groups[cat] = []; });
     all.forEach(function(a){
-      if(!groups[a.category]) groups[a.category] = [];
-      groups[a.category].push(a);
+      var cat = a.category || "app";
+      if(!groups[cat]) groups[cat] = [];
+      groups[cat].push(a);
     });
     return groups;
   }
 
-  function get(id){
-    return REGISTRY[id] || null;
-  }
-
-  function has(id){
-    return !!REGISTRY[id];
-  }
-
-  function exists(id){
-    return !!MANIFEST_MAP[id];
-  }
+  function get(id){ return REGISTRY[id] || null; }
+  function has(id){ return !!REGISTRY[id]; }
+  function exists(id){ return !!MANIFEST_MAP[id]; }
 
   /* ═══════════════════════════════════════════════════════════
      ÖFFNEN
@@ -183,7 +197,6 @@
   function open(id){
     var app = REGISTRY[id];
     if(!app){
-      /* Prüfen ob bekannt aber nicht installiert */
       if(MANIFEST_MAP[id]){
         if(HalDo.Notify){
           HalDo.Notify.warn("⏳ " + MANIFEST_MAP[id].name + " ist noch nicht installiert", { app: "system", duration: 4000 });
@@ -197,7 +210,6 @@
     var content = document.getElementById("haldo-content");
     if(!content) return;
 
-    /* App-Theme aktivieren */
     if(window.HalDoTheme && HalDoTheme.applyForApp){
       HalDoTheme.applyForApp(id);
     }
@@ -235,9 +247,6 @@
 
   function current(){ return currentApp; }
 
-  /* ═══════════════════════════════════════════════════════════
-     GLOBAL API
-     ═══════════════════════════════════════════════════════════ */
   HalDo.Apps = {
     register: register,
     open: open,
@@ -245,12 +254,10 @@
     has: has,
     exists: exists,
     current: current,
-    /* Listen */
-    list: listInstalled,           /* Alte API — nur installierte */
+    list: listInstalled,
     listInstalled: listInstalled,
     listAll: listAll,
     listByCategory: listByCategory,
-    /* Metadaten */
     manifest: MANIFEST,
     categories: CATEGORIES,
     all: REGISTRY
@@ -258,5 +265,5 @@
 
   window.HalDoApp = register;
 
-  console.log("🦚 apps.js geladen — Manifest: " + MANIFEST.length + " Apps bekannt");
+  console.log("🦚 apps.js v152.1 geladen — " + MANIFEST.length + " Apps im Manifest");
 })();
