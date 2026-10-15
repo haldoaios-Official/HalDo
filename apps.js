@@ -1,121 +1,103 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — APPS REGISTRY (v152.1)
-   Manifest · Registry · Fallback-Kategorie · Custom-Apps
+   HALDO AI OS — APPS REGISTRY (v154)
+   Manifest · Registry · Farben · Kategorien
    ═══════════════════════════════════════════════════════════ */
 
 (function(){
   "use strict";
-
   if(!window.HalDo) window.HalDo = {};
 
   var MANIFEST = [
     /* ▸ SYSTEM */
-    { id: "home",           name: "Home",           icon: "🏠", desc: "Dashboard mit Widgets", category: "system" },
-    { id: "settings",       name: "Einstellungen",  icon: "⚙️", desc: "App-Konfiguration", category: "system" },
+    { id: "home",           name: "Home",           icon: "🏠", desc: "Dashboard", category: "system" },
+    { id: "settings",       name: "Einstellungen",  icon: "⚙️", desc: "Konfiguration", category: "system" },
     { id: "system-center",  name: "System-Center",  icon: "🖥️", desc: "Systemübersicht", category: "system" },
-    { id: "theme",          name: "Theme",          icon: "🎨", desc: "Farben & Themes", category: "system", hidden: true },
     { id: "update",         name: "Update",         icon: "🔄", desc: "Updates prüfen", category: "system" },
-    { id: "backup",         name: "Backup",         icon: "💾", desc: "Sichern & Wiederherstellen", category: "system" },
+    { id: "backup",         name: "Backup",         icon: "💾", desc: "Sichern", category: "system" },
     { id: "recovery",       name: "Recovery",       icon: "🚑", desc: "Notfall-Modus", category: "system" },
-    { id: "diagnostics",    name: "Diagnostics",    icon: "🩺", desc: "Systemdiagnose", category: "system" },
+    { id: "diagnostics",    name: "Diagnostics",    icon: "🩺", desc: "Diagnose", category: "system" },
 
     /* ▸ KOMMUNIKATION */
     { id: "chat",           name: "Chat",           icon: "💬", desc: "Nachrichten", category: "kommunikation" },
     { id: "ai",             name: "AI Chat",        icon: "🧠", desc: "KI-Assistent", category: "kommunikation" },
-    { id: "posteingang",    name: "Posteingang",    icon: "📬", desc: "E-Mails & Nachrichten", category: "kommunikation" },
+    { id: "posteingang",    name: "Posteingang",    icon: "📬", desc: "Nachrichten", category: "kommunikation" },
     { id: "kontakte",       name: "Kontakte",       icon: "👥", desc: "Adressbuch", category: "kommunikation" },
-    { id: "aufnahme",       name: "Aufnahme",       icon: "🎙️", desc: "Sprachnotizen & Diktat", category: "kommunikation" },
+    { id: "aufnahme",       name: "Aufnahme",       icon: "🎙️", desc: "Sprachnotizen", category: "kommunikation" },
 
     /* ▸ PRODUKTIVITÄT */
     { id: "tasks",          name: "Aufgaben",       icon: "✅", desc: "To-Do Liste", category: "produktivitaet" },
     { id: "notes",          name: "Notizen",        icon: "📝", desc: "Textnotizen", category: "produktivitaet" },
-    { id: "kalender",       name: "Kalender",       icon: "📅", desc: "Termine & Events", category: "produktivitaet" },
-    { id: "projekte",       name: "Projekte",       icon: "📊", desc: "Projektverwaltung", category: "produktivitaet" },
+    { id: "kalender",       name: "Kalender",       icon: "📅", desc: "Termine", category: "produktivitaet" },
+    { id: "projekte",       name: "Projekte",       icon: "📊", desc: "Projekte", category: "produktivitaet" },
     { id: "arbeitszeit",    name: "Arbeitszeit",    icon: "⏰", desc: "Zeiterfassung", category: "produktivitaet" },
-    { id: "dokumente",      name: "Dokumente",      icon: "📄", desc: "Dateien & Dokumente", category: "produktivitaet" },
+    { id: "dokumente",      name: "Dokumente",      icon: "📄", desc: "Dateien", category: "produktivitaet" },
     { id: "links",          name: "Links",          icon: "🔗", desc: "Bookmarks", category: "produktivitaet" },
-    { id: "passwort",       name: "Passwort",       icon: "🔐", desc: "Passwort-Manager", category: "produktivitaet" },
+    { id: "passwort",       name: "Passwort",       icon: "🔐", desc: "Passwort-Safe", category: "produktivitaet" },
 
-    /* ▸ GESUNDHEIT & FITNESS */
-    { id: "fitness",        name: "Fitness",        icon: "💪", desc: "Training · BMI · Wasser", category: "gesundheit" },
-    { id: "gesundheit",     name: "Gesundheit",     icon: "🩺", desc: "Gesundheitstracking", category: "gesundheit" },
+    /* ▸ GESUNDHEIT */
+    { id: "fitness",        name: "Fitness",        icon: "💪", desc: "Training · BMI", category: "gesundheit" },
+    { id: "gesundheit",     name: "Gesundheit",     icon: "🩺", desc: "Gesundheit", category: "gesundheit" },
     { id: "stimmung",       name: "Stimmung",       icon: "😊", desc: "Mood-Tracker", category: "gesundheit" },
-    { id: "gewohnheiten",   name: "Gewohnheiten",   icon: "🔄", desc: "Habit-Tracker", category: "gesundheit" },
+    { id: "gewohnheiten",   name: "Gewohnheiten",   icon: "🔄", desc: "Habits", category: "gesundheit" },
 
     /* ▸ LIFESTYLE */
-    { id: "kueche",         name: "Küche",          icon: "🍳", desc: "Rezepte & Einkauf", category: "lifestyle" },
-    { id: "zuhause",        name: "Zuhause",        icon: "🏡", desc: "Haushalt & Garten", category: "lifestyle" },
-    { id: "finanzen",       name: "Finanzen",       icon: "💰", desc: "Budget & Ausgaben", category: "lifestyle" },
-    { id: "reisen",         name: "Reisen",         icon: "✈️", desc: "Reiseplanung", category: "lifestyle" },
-    { id: "auto",           name: "Auto",           icon: "🚗", desc: "Fahrzeugverwaltung", category: "lifestyle" },
-    { id: "musik",          name: "Musik",          icon: "🎵", desc: "Playlists", category: "lifestyle" },
-    { id: "photos",         name: "Fotos",          icon: "📸", desc: "Fotogalerie", category: "lifestyle" },
+    { id: "kueche",         name: "Küche",          icon: "🍳", desc: "Rezepte", category: "lifestyle" },
+    { id: "zuhause",        name: "Zuhause",        icon: "🏡", desc: "Haushalt", category: "lifestyle" },
+    { id: "finanzen",       name: "Finanzen",       icon: "💰", desc: "Budget", category: "lifestyle" },
+    { id: "reisen",         name: "Reisen",         icon: "✈️", desc: "Reisen", category: "lifestyle" },
+    { id: "auto",           name: "Auto",           icon: "🚗", desc: "Fahrzeuge", category: "lifestyle" },
+    { id: "musik",          name: "Musik",          icon: "🎵", desc: "Musik", category: "lifestyle" },
+    { id: "photos",         name: "Fotos",          icon: "📸", desc: "Fotos", category: "lifestyle" },
 
     /* ▸ WERKZEUGE */
-    { id: "wetter",         name: "Wetter",         icon: "🌤️", desc: "Wettervorhersage", category: "werkzeuge" },
-    { id: "rechner",        name: "Rechner",        icon: "🧮", desc: "Taschenrechner", category: "werkzeuge" },
-    { id: "timer",          name: "Timer",          icon: "⏱️", desc: "Timer & Stoppuhr", category: "werkzeuge" },
-    { id: "uebersetzer",    name: "Übersetzer",     icon: "🌐", desc: "Sprachübersetzung", category: "werkzeuge" },
-    { id: "woerterbuch",    name: "Wörterbuch",     icon: "📖", desc: "Wörter nachschlagen", category: "werkzeuge" },
-    { id: "lerne",          name: "Lernen",         icon: "📚", desc: "Lernkarten & Quiz", category: "werkzeuge" },
-    { id: "notfall",        name: "Notfall",        icon: "🚨", desc: "Notfallkontakte", category: "werkzeuge" },
+    { id: "wetter",         name: "Wetter",         icon: "🌤️", desc: "Wetter", category: "werkzeuge" },
+    { id: "rechner",        name: "Rechner",        icon: "🧮", desc: "Rechner", category: "werkzeuge" },
+    { id: "timer",          name: "Timer",          icon: "⏱️", desc: "Timer", category: "werkzeuge" },
+    { id: "uebersetzer",    name: "Übersetzer",     icon: "🌐", desc: "Übersetzen", category: "werkzeuge" },
+    { id: "woerterbuch",    name: "Wörterbuch",     icon: "📖", desc: "Wörter", category: "werkzeuge" },
+    { id: "lerne",          name: "Lernen",         icon: "📚", desc: "Lernkarten", category: "werkzeuge" },
+    { id: "notfall",        name: "Notfall",        icon: "🚨", desc: "Notfall", category: "werkzeuge" },
     { id: "bewertung",      name: "Bewertung",      icon: "⭐", desc: "Bewertungen", category: "werkzeuge" },
-    { id: "spiele",         name: "Spiele",         icon: "🎮", desc: "Minispiele", category: "werkzeuge" }
+    { id: "spiele",         name: "Spiele",         icon: "🎮", desc: "Spiele", category: "werkzeuge" }
   ];
 
-  /* KATEGORIEN — mit "app" als Fallback für unkategorisierte */
+  /* KATEGORIEN mit Farben für Planeten */
   var CATEGORIES = {
-    system:          "⚙️ System",
-    kommunikation:   "💬 Kommunikation",
-    produktivitaet:  "📋 Produktivität",
-    gesundheit:      "💪 Gesundheit",
-    lifestyle:       "🌟 Lifestyle",
-    werkzeuge:       "🛠️ Werkzeuge",
-    app:             "📦 Weitere Apps"
+    system:          { name: "System",          icon: "⚙️", color: "#00e5ff", planet: "#4da8ff", size: 60 },
+    kommunikation:   { name: "Kommunikation",   icon: "💬", color: "#fbbf24", planet: "#f59e0b", size: 70 },
+    produktivitaet:  { name: "Produktivität",   icon: "📋", color: "#4ade80", planet: "#22c55e", size: 65 },
+    gesundheit:      { name: "Gesundheit",      icon: "💪", color: "#ff8080", planet: "#ef4444", size: 55 },
+    lifestyle:       { name: "Lifestyle",       icon: "🌟", color: "#b478ff", planet: "#a855f7", size: 75 },
+    werkzeuge:       { name: "Werkzeuge",       icon: "🛠️", color: "#2ee6c8", planet: "#14b8a6", size: 68 },
+    app:             { name: "Weitere",         icon: "📦", color: "#a8b0cc", planet: "#94a3b8", size: 60 }
   };
 
   var REGISTRY = {};
   var ORDER = [];
-
   var MANIFEST_MAP = {};
   MANIFEST.forEach(function(m){ MANIFEST_MAP[m.id] = m; });
 
-  function prettify(id){
-    return id.charAt(0).toUpperCase() + id.slice(1);
-  }
+  function prettify(id){ return id.charAt(0).toUpperCase() + id.slice(1); }
 
-  /* ═══════════════════════════════════════════════════════════
-     REGISTRIERUNG
-     ═══════════════════════════════════════════════════════════ */
   function register(id, config){
     if(!id || !config || typeof config.render !== "function"){
-      console.warn("HalDoApp: ungültige Registrierung", id);
+      console.warn("HalDoApp: ungültig", id);
       return;
     }
-
     var manifest = MANIFEST_MAP[id] || {};
     var icon = config.icon || manifest.icon || "📦";
     var name = config.name || manifest.name || prettify(id);
-
-    /* WICHTIG: Manifest-Kategorie hat Priorität, dann config, dann "app" */
     var cat = manifest.category || config.category || "app";
-
-    /* Falls Kategorie unbekannt → "app" */
     if(!CATEGORIES[cat]) cat = "app";
-
     var desc = config.desc || manifest.desc || "";
 
     REGISTRY[id] = {
-      id: id,
-      name: name,
-      icon: icon,
-      render: config.render,
+      id: id, name: name, icon: icon, render: config.render,
       desc: desc,
       hidden: config.hidden !== undefined ? config.hidden : !!manifest.hidden,
       category: cat,
       installed: true
     };
-
     if(ORDER.indexOf(id) === -1) ORDER.push(id);
 
     if(HalDo.Shell && HalDo.Shell.renderSidebar){
@@ -123,54 +105,35 @@
     }
   }
 
-  /* ═══════════════════════════════════════════════════════════
-     LISTEN
-     ═══════════════════════════════════════════════════════════ */
   function listInstalled(includeHidden){
     return ORDER.map(function(id){ return REGISTRY[id]; })
       .filter(function(a){ return a && (includeHidden || !a.hidden); });
   }
 
-  /* ALLE Apps (Manifest + Custom-Registered, die nicht im Manifest sind) */
   function listAll(includeHidden){
     var seen = {};
-    var result = [];
-
-    /* 1) Alle aus Manifest */
+    var out = [];
     MANIFEST.forEach(function(m){
       if(m.hidden && !includeHidden) return;
       seen[m.id] = true;
-      var installed = !!REGISTRY[m.id];
-      result.push({
-        id: m.id,
-        name: m.name,
-        icon: m.icon,
-        desc: m.desc,
-        category: m.category,
-        hidden: !!m.hidden,
-        installed: installed,
-        render: installed ? REGISTRY[m.id].render : null
+      out.push({
+        id: m.id, name: m.name, icon: m.icon, desc: m.desc,
+        category: m.category, hidden: !!m.hidden,
+        installed: !!REGISTRY[m.id],
+        render: REGISTRY[m.id] ? REGISTRY[m.id].render : null
       });
     });
-
-    /* 2) Custom-Apps die registriert aber nicht im Manifest sind */
     ORDER.forEach(function(id){
       if(seen[id]) return;
       var a = REGISTRY[id];
       if(a.hidden && !includeHidden) return;
-      result.push({
-        id: a.id,
-        name: a.name,
-        icon: a.icon,
-        desc: a.desc,
-        category: a.category || "app",
-        hidden: a.hidden,
-        installed: true,
-        render: a.render
+      out.push({
+        id: a.id, name: a.name, icon: a.icon, desc: a.desc,
+        category: a.category || "app", hidden: a.hidden,
+        installed: true, render: a.render
       });
     });
-
-    return result;
+    return out;
   }
 
   function listByCategory(includeHidden){
@@ -189,44 +152,32 @@
   function has(id){ return !!REGISTRY[id]; }
   function exists(id){ return !!MANIFEST_MAP[id]; }
 
-  /* ═══════════════════════════════════════════════════════════
-     ÖFFNEN
-     ═══════════════════════════════════════════════════════════ */
   var currentApp = null;
 
   function open(id){
     var app = REGISTRY[id];
     if(!app){
       if(MANIFEST_MAP[id]){
-        if(HalDo.Notify){
-          HalDo.Notify.warn("⏳ " + MANIFEST_MAP[id].name + " ist noch nicht installiert", { app: "system", duration: 4000 });
-        }
+        if(HalDo.Notify) HalDo.Notify.warn("⏳ " + MANIFEST_MAP[id].name + " nicht installiert", { app: "system", duration: 4000 });
       } else {
         if(HalDo.Notify) HalDo.Notify.error("App nicht gefunden: " + id, { app: "system" });
       }
       return;
     }
-
     var content = document.getElementById("haldo-content");
     if(!content) return;
-
     if(window.HalDoTheme && HalDoTheme.applyForApp){
       HalDoTheme.applyForApp(id);
     }
-
     content.innerHTML = "";
     content.scrollTop = 0;
-
     var titleEl = document.getElementById("haldo-title");
     if(titleEl) titleEl.textContent = app.icon + " " + app.name;
 
     var ctx = {
       store: HalDo.Store.scope(id),
-      appId: id,
-      app: app,
-      HalDo: HalDo
+      appId: id, app: app, HalDo: HalDo
     };
-
     try {
       app.render(content, ctx);
       currentApp = id;
@@ -235,10 +186,8 @@
     } catch(e){
       console.error("Render-Fehler " + id + ":", e);
       content.innerHTML = '<div class="card"><h3>❌ Fehler</h3>'
-        + '<div style="font-size:12px;color:#ff8080;word-break:break-word">' + String(e.message || e) + '</div>'
-        + '</div>';
+        + '<div style="font-size:12px;color:#ff8080;word-break:break-word">' + String(e.message || e) + '</div></div>';
     }
-
     var sb = document.getElementById("haldo-sidebar");
     var ov = document.getElementById("haldo-overlay");
     if(sb) sb.classList.remove("open");
@@ -250,20 +199,14 @@
   HalDo.Apps = {
     register: register,
     open: open,
-    get: get,
-    has: has,
-    exists: exists,
-    current: current,
-    list: listInstalled,
-    listInstalled: listInstalled,
-    listAll: listAll,
-    listByCategory: listByCategory,
-    manifest: MANIFEST,
-    categories: CATEGORIES,
+    get: get, has: has, exists: exists, current: current,
+    list: listInstalled, listInstalled: listInstalled,
+    listAll: listAll, listByCategory: listByCategory,
+    manifest: MANIFEST, categories: CATEGORIES,
     all: REGISTRY
   };
 
   window.HalDoApp = register;
 
-  console.log("🦚 apps.js v152.1 geladen — " + MANIFEST.length + " Apps im Manifest");
+  console.log("🦚 apps.js v154 geladen — " + MANIFEST.length + " Apps im Manifest");
 })();
