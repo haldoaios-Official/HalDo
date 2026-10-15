@@ -1,22 +1,33 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — HOME (v151) · Dashboard
+   HALDO AI OS — HOME (v152) · Dashboard + App-Übersicht
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
   if(!window.HalDo || !HalDo.Runtime) return;
 
   function render(container, ctx){
-    var store = ctx.store;
-
     function build(){
       var hour = new Date().getHours();
       var greet = hour < 6 ? "Gute Nacht" : hour < 12 ? "Guten Morgen" : hour < 18 ? "Guten Tag" : "Guten Abend";
       var userName = HalDo.Store.get("userName", "Bruder");
 
+      var installed = HalDo.Apps.listInstalled();
+      var all = HalDo.Apps.listAll();
+      var missing = all.length - installed.length;
+
       var body = '<div class="card" style="background:linear-gradient(135deg,rgba(0,229,255,.12),rgba(180,120,255,.12))">'
-        + '<div style="font-size:32px;font-weight:900;color:var(--p1)">' + greet + ', ' + _esc(userName) + '! 🦚</div>'
+        + '<div style="font-size:28px;font-weight:900;color:var(--p1)">' + greet + ', ' + _esc(userName) + '! 🦚</div>'
         + '<div style="font-size:12px;color:var(--text-dim);margin-top:6px">' + new Date().toLocaleDateString("de-DE", {weekday:"long", day:"numeric", month:"long"}) + '</div>'
         + '</div>';
+
+      /* App-Übersicht-Banner */
+      body += '<button data-showapps="1" style="width:100%;padding:18px;background:linear-gradient(135deg,rgba(0,229,255,.15),rgba(180,120,255,.15));border:1.5px solid var(--p1);border-radius:14px;cursor:pointer;color:inherit;font-family:inherit;text-align:left;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">'
+        + '<div>'
+        + '<div style="font-size:15px;font-weight:900;color:var(--p1)">📱 Alle Apps anzeigen</div>'
+        + '<div style="font-size:11px;color:var(--text-dim);margin-top:3px">' + installed.length + ' installiert · ' + missing + ' geplant · ' + all.length + ' gesamt</div>'
+        + '</div>'
+        + '<div style="font-size:22px;color:var(--p1)">›</div>'
+        + '</button>';
 
       /* Quick-Stats */
       var steps = (HalDo.Store.get("steps", {})[today()] || 0);
@@ -34,14 +45,14 @@
 
       /* Quick-Actions */
       body += '<div class="card"><h3>⚡ Schnellzugriff</h3>'
-        + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'
-        + quickAction("chat", "💬", "Chat")
-        + quickAction("fitness", "💪", "Fitness")
-        + quickAction("kueche", "🍳", "Küche")
-        + quickAction("aufnahme", "🎙️", "Aufnahme")
-        + quickAction("settings", "⚙️", "Settings")
-        + quickAction("system-center", "🖥️", "System")
-        + '</div></div>';
+        + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
+
+      var quick = ["chat", "fitness", "kueche", "aufnahme", "settings", "system-center"];
+      quick.forEach(function(id){
+        var app = HalDo.Apps.get(id);
+        if(app) body += quickAction(id, app.icon, app.name);
+      });
+      body += '</div></div>';
 
       /* Heutige Tasks */
       var todayTasks = tasks.filter(function(t){ return !t.done; }).slice(0, 5);
@@ -54,6 +65,13 @@
       }
 
       container.innerHTML = body;
+
+      container.querySelectorAll("[data-showapps]").forEach(function(el){
+        el.addEventListener("click", function(){
+          if(HalDo.Shell && HalDo.Shell.showAllApps) HalDo.Shell.showAllApps();
+        });
+      });
+
       container.querySelectorAll("[data-open]").forEach(function(el){
         el.addEventListener("click", function(){ HalDo.Apps.open(el.dataset.open); });
       });
@@ -80,6 +98,6 @@
     build();
   }
 
-  HalDoApp("home", { name: "Home", icon: "🏠", render: render, category: "app" });
+  HalDoApp("home", { name: "Home", icon: "🏠", render: render, category: "system" });
   console.log("🦚 home.js geladen");
 })();
