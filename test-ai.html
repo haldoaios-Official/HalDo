@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>HalDo AI Test</title>
+<title>HalDo AI Test v201</title>
 <style>
   body { background: #050810; color: #e8ecff; font-family: system-ui, sans-serif; padding: 20px; line-height: 1.6; max-width: 900px; margin: 0 auto; }
   h1 { color: #00e5ff; }
@@ -13,16 +13,22 @@
   input, textarea { padding: 10px; border-radius: 8px; border: 1px solid rgba(0,229,255,.3); background: rgba(0,0,0,.3); color: #e8ecff; font-size: 13px; width: 100%; box-sizing: border-box; font-family: inherit; }
   .result { background: rgba(0,229,255,.08); padding: 12px; border-radius: 8px; margin-top: 10px; font-family: monospace; font-size: 12px; white-space: pre-wrap; max-height: 300px; overflow-y: auto; border-left: 3px solid #00e5ff; }
   #status { color: #fbbf24; font-weight: 800; }
+  #modelInfo { color: #4ade80; font-size: 12px; margin-top: 6px; font-family: monospace; }
+  .bar { height: 10px; background: rgba(0,0,0,.4); border-radius: 5px; overflow: hidden; margin-top: 10px; display: none; }
+  .bar.show { display: block; }
+  .bar-fill { height: 100%; background: linear-gradient(90deg, #00e5ff, #b478ff); width: 0%; transition: width .3s; }
 </style>
 </head>
 <body>
 
-<h1>🧠 HalDo AI Service Test</h1>
+<h1>🧠 HalDo AI Test v201 (Auto-Fallback)</h1>
 <p>Status: <span id="status">Bereit</span></p>
+<div id="modelInfo"></div>
 
 <div class="test-box">
-  <h3>1. KI laden (einmalig ~40s)</h3>
+  <h3>1. KI laden (mit Auto-Fallback)</h3>
   <button id="btnInit">🚀 KI laden</button>
+  <div class="bar" id="progressBar"><div class="bar-fill" id="progressFill"></div></div>
   <div id="initResult" class="result" style="display:none"></div>
 </div>
 
@@ -48,14 +54,6 @@
   <div id="ideasResult" class="result" style="display:none"></div>
 </div>
 
-<div class="test-box">
-  <h3>5. Zusammenfassen 📝</h3>
-  <textarea id="sumText" rows="3" placeholder="Text zum Zusammenfassen...">HalDo AI OS ist ein lokales Betriebssystem im Browser. Es läuft komplett offline, ohne API-Keys. Die KI ist im Browser integriert und kann für viele Aufgaben genutzt werden.</textarea>
-  <button id="btnSum" style="margin-top: 8px;">📝 Zusammenfassen</button>
-  <div id="sumResult" class="result" style="display:none"></div>
-</div>
-
-<!-- Scripts laden -->
 <script src="runtime.js"></script>
 <script src="store.js"></script>
 <script src="notify.js"></script>
@@ -64,21 +62,30 @@
 
 <script>
 var status = document.getElementById("status");
+var progressBar = document.getElementById("progressBar");
+var progressFill = document.getElementById("progressFill");
 
 window.addEventListener("haldo:ai-progress", function(e){
-  status.textContent = "Lade: " + e.detail.progress + "%";
+  status.textContent = "Lade: " + e.detail.progress + "% — " + (e.detail.text || "").substring(0, 50);
+  progressFill.style.width = e.detail.progress + "%";
 });
 
 document.getElementById("btnInit").addEventListener("click", async function(){
   this.disabled = true;
-  status.textContent = "Lade KI...";
+  progressBar.classList.add("show");
+  status.textContent = "Initialisiere...";
   try {
-    await HalDo.AI.init();
+    await HalDo.AIEngine.init();
+    var model = HalDo.AIEngine.getCurrentModel();
+    var info = HalDo.AIEngine.models[model];
     status.textContent = "✅ KI bereit!";
+    document.getElementById("modelInfo").textContent = "Modell: " + (info ? info.name : model) + " · " + (info ? info.vram : "?");
     document.getElementById("initResult").style.display = "block";
-    document.getElementById("initResult").textContent = "Modell: " + HalDo.AIEngine.getCurrentModel();
+    document.getElementById("initResult").textContent = "✅ Erfolg!\nModell: " + model + "\nVRAM: " + (info ? info.vram : "?");
   } catch(e){
-    status.textContent = "❌ " + e.message;
+    status.textContent = "❌ Alle Modelle fehlgeschlagen";
+    document.getElementById("initResult").style.display = "block";
+    document.getElementById("initResult").textContent = "❌ " + e.message + "\n\nTipp: Versuche Chrome zu aktualisieren oder einen Neustart.";
   }
   this.disabled = false;
 });
@@ -112,11 +119,6 @@ document.getElementById("btnTranslate").addEventListener("click", function(){
 document.getElementById("btnIdeas").addEventListener("click", function(){
   var topic = document.getElementById("ideaTopic").value;
   run("btnIdeas", "ideasResult", function(){ return HalDo.AI.generateIdeas(topic); });
-});
-
-document.getElementById("btnSum").addEventListener("click", function(){
-  var txt = document.getElementById("sumText").value;
-  run("btnSum", "sumResult", function(){ return HalDo.AI.summarize(txt); });
 });
 </script>
 
