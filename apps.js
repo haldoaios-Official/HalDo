@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — APPS REGISTRY (v155)
-   Robuste Registrierung · Fallback wenn HalDo.Apps fehlt
+   HALDO AI OS — APPS REGISTRY (v156)
+   Ultra-robust · Wartet auf Registrierungen · Fallback-System
    ═══════════════════════════════════════════════════════════ */
 
 (function(){
@@ -24,6 +24,7 @@
     { id: "aufnahme",       name: "Aufnahme",       icon: "🎙️", desc: "Sprachnotizen", category: "kommunikation" },
     { id: "phone",          name: "Phone",          icon: "📞", desc: "Telefon-UI", category: "kommunikation" },
     { id: "videocall",      name: "VideoCall",      icon: "📹", desc: "Videoanrufe", category: "kommunikation" },
+    { id: "email",          name: "E-Mail",         icon: "📧", desc: "E-Mail-Client", category: "kommunikation" },
 
     { id: "tasks",          name: "Aufgaben",       icon: "✅", desc: "To-Do Liste", category: "produktivitaet" },
     { id: "notes",          name: "Notizen",        icon: "📝", desc: "Textnotizen", category: "produktivitaet" },
@@ -57,7 +58,8 @@
     { id: "lerne",          name: "Lernen",         icon: "📚", desc: "Lernkarten", category: "werkzeuge" },
     { id: "notfall",        name: "Notfall",        icon: "🚨", desc: "Notfall", category: "werkzeuge" },
     { id: "bewertung",      name: "Bewertung",      icon: "⭐", desc: "Bewertungen", category: "werkzeuge" },
-    { id: "spiele",         name: "Spiele",         icon: "🎮", desc: "Spiele", category: "werkzeuge" }
+    { id: "spiele",         name: "Spiele",         icon: "🎮", desc: "Spiele", category: "werkzeuge" },
+    { id: "sprachen",       name: "Sprachen",       icon: "🌍", desc: "Sprachen & Übersetzung", category: "werkzeuge" }
   ];
 
   var CATEGORIES = {
@@ -77,11 +79,19 @@
 
   function prettify(id){ return id.charAt(0).toUpperCase() + id.slice(1); }
 
+  /* ROBUST: Wartet bis HalDo.Store existiert */
   function register(id, config){
     if(!id || !config || typeof config.render !== "function"){
       console.warn("HalDoApp: ungültig", id);
       return;
     }
+
+    /* Sicherstellen, dass HalDo.Store existiert */
+    if(!HalDo.Store){
+      setTimeout(function(){ register(id, config); }, 50);
+      return;
+    }
+
     var manifest = MANIFEST_MAP[id] || {};
     var icon = config.icon || manifest.icon || "📦";
     var name = config.name || manifest.name || prettify(id);
@@ -98,9 +108,11 @@
     };
     if(ORDER.indexOf(id) === -1) ORDER.push(id);
 
+    /* Sidebar + Grid aktualisieren */
     if(HalDo.Shell && HalDo.Shell.renderSidebar){
       try { HalDo.Shell.renderSidebar(); } catch(e){}
     }
+    window.dispatchEvent(new CustomEvent("haldo:appregistered", { detail: { id: id } }));
   }
 
   function listInstalled(includeHidden){
@@ -205,5 +217,5 @@
 
   window.HalDoApp = register;
 
-  console.log("🦚 apps.js v155 geladen — " + MANIFEST.length + " Apps im Manifest");
+  console.log("🦚 apps.js v156 geladen — " + MANIFEST.length + " Apps im Manifest");
 })();
