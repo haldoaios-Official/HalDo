@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>HalDo KI-Test</title>
+<style>
+  body { background: #050810; color: #e8ecff; font-family: system-ui, sans-serif; padding: 20px; line-height: 1.6; }
+  h1 { color: #00e5ff; }
+  #log { background: rgba(0,0,0,.3); padding: 14px; border-radius: 10px; font-family: monospace; font-size: 12px; max-height: 400px; overflow-y: auto; margin: 20px 0; border: 1px solid rgba(0,229,255,.3); }
+  button { background: linear-gradient(135deg, #00e5ff, #b478ff); border: none; padding: 12px 20px; border-radius: 10px; color: #000; font-weight: 900; cursor: pointer; font-size: 14px; margin-right: 10px; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  input { padding: 12px; border-radius: 10px; border: 1px solid rgba(0,229,255,.3); background: rgba(0,0,0,.3); color: #e8ecff; font-size: 14px; width: 300px; }
+  #status { color: #fbbf24; font-weight: 800; }
+</style>
+</head>
+<body>
+
+<h1>🧠 HalDo KI-Engine Test</h1>
+<p>Status: <span id="status">Warte auf Aktion...</span></p>
+
+<div>
+  <button id="btnInit">1. KI-Modell laden</button>
+  <button id="btnChat" disabled>2. Chat testen</button>
+</div>
+
+<p style="margin-top: 20px;">Nachricht: <input type="text" id="inputMsg" value="Sag Hallo auf Kurdisch!"></p>
+
+<div id="log"></div>
+
+<!-- Lade erst die AI-Engine, dann den Test -->
+<script src="runtime.js"></script>
+<script src="store.js"></script>
+<script src="notify.js"></script>
+<script src="ai-engine.js"></script>
+
+<script>
+var log = document.getElementById("log");
+var status = document.getElementById("status");
+
+function addLog(msg, color){
+  var p = document.createElement("div");
+  p.textContent = "[" + new Date().toLocaleTimeString() + "] " + msg;
+  if(color) p.style.color = color;
+  log.appendChild(p);
+  log.scrollTop = log.scrollHeight;
+}
+
+/* Progress-Listener */
+window.addEventListener("haldo:ai-progress", function(e){
+  status.textContent = "Lade: " + e.detail.progress + "% — " + (e.detail.text || "");
+});
+
+document.getElementById("btnInit").addEventListener("click", async function(){
+  this.disabled = true;
+  addLog("Starte KI-Modell-Download...", "#fbbf24");
+
+  try {
+    await HalDo.AIEngine.init();
+    status.textContent = "✅ KI bereit!";
+    addLog("✅ KI-Engine ist bereit!", "#4ade80");
+    document.getElementById("btnChat").disabled = false;
+  } catch(e){
+    status.textContent = "❌ Fehler";
+    addLog("❌ Fehler: " + e.message, "#ff8080");
+    this.disabled = false;
+  }
+});
+
+document.getElementById("btnChat").addEventListener("click", async function(){
+  this.disabled = true;
+  var msg = document.getElementById("inputMsg").value;
+  addLog("👤 Du: " + msg, "#00e5ff");
+
+  try {
+    var result = await HalDo.AIEngine.chat([
+      { role: "system", content: "Du bist HalDo, ein freundlicher KI-Assistent." },
+      { role: "user", content: msg }
+    ]);
+    addLog("🦚 HalDo: " + result.content, "#b478ff");
+  } catch(e){
+    addLog("❌ Fehler: " + e.message, "#ff8080");
+  }
+  this.disabled = false;
+});
+</script>
+
+</body>
+</html>
