@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — EINSTELLUNGEN (v161)
-   Alle Sektionen · WLAN · Bluetooth · Anzeige · Stimme · etc.
+   HALDO AI OS — EINSTELLUNGEN (v171)
+   Alle Sektionen · Home-Stil · Avatar · Stimme · etc.
    ═══════════════════════════════════════════════════════════ */
 
 (function(){
@@ -13,7 +13,6 @@
     });
   }
 
-  /* Stimmen-Optionen */
   var VOICE_PRESETS = [
     { id: "mann",     name: "👨 Mann",         desc: "Tief, männlich",     rate: 0.9, pitch: 0.8 },
     { id: "frau",     name: "👩 Frau",         desc: "Klar, weiblich",     rate: 1.0, pitch: 1.2 },
@@ -53,6 +52,12 @@
       var carplayMode = HalDo.Store.get("carplayMode", false);
       var privacyLevel = HalDo.Store.get("privacyLevel", "mittel");
 
+      /* 🆕 HOME-STYLE + AVATAR */
+      var homeStyle = HalDo.Store.get("homeStyle", "solar");
+      var avatarVisible = HalDo.Store.get("avatarVisible", true);
+      var avatarFloating = HalDo.Store.get("avatarFloating", true);
+      var avatarMode = HalDo.Store.get("avatarMode", "human");
+
       var body = '';
 
       /* ═══════════════════════════════════════════════════════
@@ -61,16 +66,42 @@
       body += '<div class="card" style="background:linear-gradient(135deg,rgba(0,229,255,.1),rgba(180,120,255,.1))">'
         + '<div style="font-size:22px;font-weight:900;color:var(--p1)">⚙️ Einstellungen</div>'
         + '<div style="font-size:11.5px;color:var(--text-dim);margin-top:6px">'
-        + '<b>' + allApps.length + '</b> Apps installiert · v161'
+        + '<b>' + allApps.length + '</b> Apps installiert · v171'
         + '</div></div>';
+
+      /* ═══════════════════════════════════════════════════════
+         🆕 HOMESCREEN-STIL
+         ═══════════════════════════════════════════════════════ */
+      body += '<div class="card"><h3>🏠 Homescreen-Stil</h3>'
+        + '<div style="font-size:11px;color:var(--text-dim);margin-bottom:12px;line-height:1.6">'
+        + 'Wähle, wie der Startbildschirm aussehen soll.'
+        + '</div>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+        + homeStyleCard("solar", "🌌", "Sonnensystem", "Planeten kreisen um Sonne", homeStyle)
+        + homeStyleCard("dashboard", "📊", "Dashboard", "Klassisches Karten-Layout", homeStyle)
+        + homeStyleCard("combined", "🎨", "Kombi", "Sonne oben + Dashboard", homeStyle)
+        + homeStyleCard("grid", "📱", "Kacheln", "Einfache App-Kacheln", homeStyle)
+        + '</div></div>';
+
+      /* ═══════════════════════════════════════════════════════
+         🆕 AVATAR-WIDGET
+         ═══════════════════════════════════════════════════════ */
+      body += '<div class="card"><h3>🦚 Avatar-Widget</h3>'
+        + toggleRow("Avatar anzeigen", "avatarVisibleSet", avatarVisible)
+        + toggleRow("Schweben (Animation)", "avatarFloatingSet", avatarFloating)
+        + '<div class="field" style="margin-top:10px"><label>Avatar-Modus</label>'
+        + '<select id="avatarModeSel" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-size:13px">'
+        + '<option value="human"' + (avatarMode === "human" ? " selected" : "") + '>🧑 Human</option>'
+        + '<option value="cyborg"' + (avatarMode === "cyborg" ? " selected" : "") + '>🤖 Cyborg</option>'
+        + '<option value="hologram"' + (avatarMode === "hologram" ? " selected" : "") + '>✨ Hologram</option>'
+        + '</select></div></div>';
 
       /* ═══════════════════════════════════════════════════════
          ACCOUNT
          ═══════════════════════════════════════════════════════ */
       body += section("👤 Account", [
         row("Name", userName, "text", "userName"),
-        row("E-Mail", userEmail, "email", "userEmail"),
-        row("Passwort ändern", "••••••••", "text", "userPassword", "🔒")
+        row("E-Mail", userEmail, "email", "userEmail")
       ]);
 
       /* ═══════════════════════════════════════════════════════
@@ -93,11 +124,6 @@
       body += '<div class="card"><h3>☀️ Anzeige und Helligkeit</h3>'
         + sliderRow("Helligkeit", "displayBrightness", brightness, 20, 100, "%")
         + toggleRow("Automatische Helligkeit", "autoBrightness", autoBright)
-        + selectRow("🌙 Nachtmodus", "nightMode", HalDo.Store.get("nightMode", "aus"), [
-          { v: "aus", n: "Aus" },
-          { v: "auto", n: "Automatisch (Sonnenuntergang)" },
-          { v: "immer", n: "Immer an" }
-        ])
         + '</div>';
 
       /* ═══════════════════════════════════════════════════════
@@ -148,9 +174,7 @@
         + sliderRow("Tonhöhe", "voicePitch", voicePitch, 0.5, 2, "", 0.1)
         + sliderRow("Lautstärke", "voiceVolume", voiceVolume, 0, 1, "", 0.1)
         + '<button class="btn full" id="testVoice" style="margin-top:10px">🔊 Stimme testen</button>'
-        + '<div style="font-size:10.5px;color:var(--text-mute);margin-top:8px;line-height:1.5">'
-        + '💡 "Eigene Stimme" wird in zukünftigem Update verfügbar (Stimmen-Klon über Server).'
-        + '</div></div>';
+        + '</div>';
 
       /* ═══════════════════════════════════════════════════════
          MITTEILUNGEN
@@ -167,9 +191,7 @@
          ═══════════════════════════════════════════════════════ */
       body += '<div class="card"><h3>📶 WLAN</h3>'
         + toggleRow("WLAN aktiv", "wifi", wifi)
-        + '<div style="font-size:10.5px;color:var(--text-mute);margin-top:10px;line-height:1.5">'
-        + 'ℹ️ Browser kann WLAN nicht direkt steuern. Einstellungen sind nur UI-Simulation.'
-        + '</div></div>';
+        + '</div>';
 
       /* ═══════════════════════════════════════════════════════
          BLUETOOTH
@@ -184,9 +206,7 @@
       body += '<div class="card"><h3>🚗 HalDo Car</h3>'
         + toggleRow("🚗 HalDo Car Modus", "carMode", carMode)
         + toggleRow("🍎 HalDo CarPlay", "carplayMode", carplayMode)
-        + '<div style="font-size:10.5px;color:var(--text-mute);margin-top:10px;line-height:1.5">'
-        + 'Große Buttons, Sprachsteuerung, weniger Ablenkung beim Fahren.'
-        + '</div></div>';
+        + '</div>';
 
       /* ═══════════════════════════════════════════════════════
          SPEICHER
@@ -228,21 +248,17 @@
         ])
         + toggleRow("Analytics aktiv", "analyticsEnabled", HalDo.Store.get("analyticsEnabled", true))
         + toggleRow("Standort teilen", "locationShare", HalDo.Store.get("locationShare", false))
-        + '<div style="font-size:10.5px;color:var(--text-mute);margin-top:10px;line-height:1.5">'
-        + '✅ Alle Daten bleiben <b>lokal</b> auf deinem Gerät. Keine Übertragung an Server.'
-        + '</div></div>';
+        + '</div>';
 
       /* ═══════════════════════════════════════════════════════
          BEDINGUNGEN
          ═══════════════════════════════════════════════════════ */
       body += '<div class="card"><h3>📋 Bedingungen & Lizenzen</h3>'
         + '<div style="font-size:11.5px;color:var(--text-dim);line-height:1.7">'
-        + '<div style="padding:8px 0"><b>HalDo AI OS</b> — Version 161</div>'
+        + '<div style="padding:8px 0"><b>HalDo AI OS</b> — Version 171</div>'
         + '<div style="padding:8px 0">Lizenz: Persönliche Nutzung</div>'
         + '<div style="padding:8px 0">© 2026 HalDo AI</div>'
-        + '<div style="padding:8px 0;font-size:10.5px;color:var(--text-mute)">'
-        + 'Diese Software wird "wie besehen" bereitgestellt. Kein Anspruch auf Fehlerfreiheit.'
-        + '</div></div></div>';
+        + '</div></div>';
 
       /* ═══════════════════════════════════════════════════════
          HILFE
@@ -262,7 +278,7 @@
       allApps.forEach(function(a){
         body += '<div style="padding:8px 10px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">'
           + '<div style="font-size:12px;font-weight:800">' + _esc(a.icon) + ' ' + _esc(a.name) + '</div>'
-          + '<div style="font-size:10px;color:#4ade80">✅ v161</div>'
+          + '<div style="font-size:10px;color:#4ade80">✅ v171</div>'
           + '</div>';
       });
       body += '</div></div>';
@@ -274,8 +290,8 @@
         + '<div style="padding:24px;background:linear-gradient(135deg,rgba(0,229,255,.1),rgba(180,120,255,.1));border-radius:14px;text-align:center;border:1.5px solid var(--p1)">'
         + '<div style="font-size:64px">🦚</div>'
         + '<div style="font-size:22px;font-weight:900;color:var(--p1);margin-top:8px">HalDo AI OS</div>'
-        + '<div style="font-size:14px;font-weight:800;color:var(--p3);margin-top:4px">v161</div>'
-        + '<div style="font-size:10.5px;color:var(--text-mute);margin-top:6px">Fundament + Fenster-Manager</div>'
+        + '<div style="font-size:14px;font-weight:800;color:var(--p3);margin-top:4px">v171</div>'
+        + '<div style="font-size:10.5px;color:var(--text-mute);margin-top:6px">Musik-Studio · Avatar · Homescreen</div>'
         + '</div></div>';
 
       container.innerHTML = body;
@@ -284,11 +300,51 @@
          EVENT-BINDINGS
          ═══════════════════════════════════════════════════════ */
 
-      /* Toggles */
+      /* 🆕 Homescreen-Stil */
+      container.querySelectorAll("[data-homestyle]").forEach(function(el){
+        el.addEventListener("click", function(){
+          var id = el.getAttribute("data-homestyle");
+          HalDo.Store.set("homeStyle", id);
+          if(HalDo.Notify) HalDo.Notify.success("Homescreen: " + id, { app: "settings" });
+          build();
+        });
+      });
+
+      /* 🆕 Avatar */
+      var avVis = container.querySelector('[data-toggle="avatarVisibleSet"]');
+      if(avVis) avVis.addEventListener("click", function(e){
+        e.preventDefault();
+        var cur = HalDo.Store.get("avatarVisible", true);
+        HalDo.Store.set("avatarVisible", !cur);
+        if(window.HalDoAvatar){
+          if(!cur) HalDoAvatar.show();
+          else HalDoAvatar.hide();
+        }
+        build();
+      });
+
+      var avFloat = container.querySelector('[data-toggle="avatarFloatingSet"]');
+      if(avFloat) avFloat.addEventListener("click", function(e){
+        e.preventDefault();
+        var cur = HalDo.Store.get("avatarFloating", true);
+        HalDo.Store.set("avatarFloating", !cur);
+        if(window.HalDoAvatar) HalDoAvatar.setFloating(!cur);
+        build();
+      });
+
+      var avMode = container.querySelector("#avatarModeSel");
+      if(avMode) avMode.addEventListener("change", function(){
+        if(window.HalDoAvatar) HalDoAvatar.setMode(this.value);
+        if(HalDo.Notify) HalDo.Notify.success("Avatar: " + this.value, { app: "settings" });
+      });
+
+      /* Standard-Toggles */
       container.querySelectorAll("[data-toggle]").forEach(function(el){
         el.addEventListener("click", function(e){
           e.preventDefault();
           var key = el.getAttribute("data-toggle");
+          /* Home + Avatar sind schon abgedeckt, skip */
+          if(key === "avatarVisibleSet" || key === "avatarFloatingSet") return;
           var cur = HalDo.Store.get(key, false);
           HalDo.Store.set(key, !cur);
           build();
@@ -300,7 +356,7 @@
         el.addEventListener("change", function(){
           var key = el.getAttribute("data-input");
           HalDo.Store.set(key, el.value);
-          if(HalDo.Notify) HalDo.Notify.success("Gespeichert: " + key, { app: "settings" });
+          if(HalDo.Notify) HalDo.Notify.success("Gespeichert", { app: "settings" });
         });
       });
 
@@ -390,7 +446,7 @@
       /* Cache */
       var cc = container.querySelector("#clearCache");
       if(cc) cc.addEventListener("click", function(){
-        if(!confirm("Cache leeren? (Einstellungen bleiben)")) return;
+        if(!confirm("Cache leeren?")) return;
         if("caches" in window){
           caches.keys().then(function(names){
             names.forEach(function(n){ caches.delete(n); });
@@ -404,10 +460,10 @@
       if(ca) ca.addEventListener("click", function(){
         if(!confirm("ALLE Daten löschen? Nicht rückgängig machbar!")) return;
         if(!confirm("WIRKLICH ALLES löschen?")) return;
-        var keys = Object.keys(localStorage).filter(function(k){
+        var keys2 = Object.keys(localStorage).filter(function(k){
           return k.indexOf("haldo:") === 0;
         });
-        keys.forEach(function(k){ localStorage.removeItem(k); });
+        keys2.forEach(function(k){ localStorage.removeItem(k); });
         alert("Alle Daten gelöscht. Seite neu laden (F5).");
       });
 
@@ -425,9 +481,9 @@
       return '<div class="card"><h3>' + _esc(title) + '</h3>' + rows.join("") + '</div>';
     }
 
-    function row(label, value, type, key, icon){
+    function row(label, value, type, key){
       return '<div class="field">'
-        + '<label>' + (icon || "") + ' ' + _esc(label) + '</label>'
+        + '<label>' + _esc(label) + '</label>'
         + '<input type="' + type + '" value="' + _esc(value) + '" data-input="' + _esc(key) + '" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-size:13px">'
         + '</div>';
     }
@@ -459,9 +515,19 @@
         + '</div>';
     }
 
+    function homeStyleCard(id, icon, title, desc, current){
+      var sel = current === id;
+      return '<button type="button" data-homestyle="' + id + '" style="padding:12px;background:' + (sel ? "linear-gradient(135deg,rgba(0,229,255,.15),rgba(180,120,255,.15))" : "rgba(0,0,0,.2)") + ';border:1.5px solid ' + (sel ? "var(--p1)" : "var(--border-soft)") + ';border-radius:12px;cursor:pointer;color:inherit;font-family:inherit;text-align:left;position:relative">'
+        + '<div style="font-size:26px;margin-bottom:4px">' + icon + '</div>'
+        + '<div style="font-size:12px;font-weight:900;color:' + (sel ? "var(--p1)" : "var(--text)") + '">' + title + '</div>'
+        + '<div style="font-size:9.5px;color:var(--text-mute);margin-top:2px">' + desc + '</div>'
+        + (sel ? '<div style="position:absolute;top:8px;right:8px;font-size:11px">✅</div>' : '')
+        + '</button>';
+    }
+
     build();
   }
 
   HalDoApp("settings", { name: "Einstellungen", icon: "⚙️", render: render, category: "system" });
-  console.log("🦚 settings.js v161 geladen");
+  console.log("🦚 settings.js v171 geladen — Homescreen + Avatar");
 })();
