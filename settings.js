@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — SETTINGS APP (v151)
-   Allgemein · Theme · Stimme · Benachrichtigung · Daten · Über
+   HALDO AI OS — EINSTELLUNGEN (v161)
+   Alle Sektionen · WLAN · Bluetooth · Anzeige · Stimme · etc.
    ═══════════════════════════════════════════════════════════ */
 
 (function(){
@@ -13,400 +13,455 @@
     });
   }
 
+  /* Stimmen-Optionen */
+  var VOICE_PRESETS = [
+    { id: "mann",     name: "👨 Mann",         desc: "Tief, männlich",     rate: 0.9, pitch: 0.8 },
+    { id: "frau",     name: "👩 Frau",         desc: "Klar, weiblich",     rate: 1.0, pitch: 1.2 },
+    { id: "kind",     name: "🧒 Kind",         desc: "Jung, hoch",         rate: 1.1, pitch: 1.5 },
+    { id: "senior",   name: "👴 Senior",       desc: "Älter, langsam",     rate: 0.8, pitch: 0.7 },
+    { id: "ai",       name: "🤖 AI",           desc: "Neutral, digital",   rate: 1.0, pitch: 1.0 },
+    { id: "ki",       name: "🧠 KI",           desc: "Klar, intelligent",  rate: 1.05, pitch: 1.1 },
+    { id: "roboter",  name: "🦾 Roboter",      desc: "Metallisch, tief",   rate: 0.95, pitch: 0.6 },
+    { id: "cyborg",   name: "⚡ Cyborg",       desc: "Sci-Fi Mix",         rate: 1.0, pitch: 1.3 },
+    { id: "haldo",    name: "🦚 HalDo Voice",  desc: "Original HalDo",     rate: 1.0, pitch: 1.0 },
+    { id: "eigene",   name: "🎙️ Eigene Stimme", desc: "Klon (demnächst)",   rate: 1.0, pitch: 1.0 }
+  ];
+
   function render(container, ctx){
     var store = ctx.store;
-    var tab = store.get("tab", "allgemein");
 
     function build(){
-      var body = "";
+      var allApps = HalDo.Apps.listInstalled();
+      var allAppsAll = HalDo.Apps.listAll();
+      var userName = HalDo.Store.get("userName", "Bruder");
+      var userEmail = HalDo.Store.get("userEmail", "Halil@haldo.ai");
+      var theme = window.HalDoTheme ? HalDoTheme.get() : "peacock";
+      var lang = HalDo.Store.get("lang", "de");
+      var voiceEnabled = HalDo.Store.get("voiceEnabled", true);
+      var voicePreset = HalDo.Store.get("voicePreset", "haldo");
+      var voiceRate = HalDo.Store.get("voiceRate", 1);
+      var voicePitch = HalDo.Store.get("voicePitch", 1);
+      var voiceVolume = HalDo.Store.get("voiceVolume", 1);
+      var notifyEnabled = HalDo.Store.get("notifyEnabled", true);
+      var soundEnabled = HalDo.Store.get("soundEnabled", true);
+      var vibrateEnabled = HalDo.Store.get("vibrateEnabled", false);
+      var brightness = HalDo.Store.get("displayBrightness", 100);
+      var autoBright = HalDo.Store.get("autoBrightness", true);
+      var wifi = HalDo.Store.get("wifi", true);
+      var bluetooth = HalDo.Store.get("bluetooth", false);
+      var carMode = HalDo.Store.get("carMode", false);
+      var carplayMode = HalDo.Store.get("carplayMode", false);
+      var privacyLevel = HalDo.Store.get("privacyLevel", "mittel");
+
+      var body = '';
+
+      /* ═══════════════════════════════════════════════════════
+         HEADER
+         ═══════════════════════════════════════════════════════ */
+      body += '<div class="card" style="background:linear-gradient(135deg,rgba(0,229,255,.1),rgba(180,120,255,.1))">'
+        + '<div style="font-size:22px;font-weight:900;color:var(--p1)">⚙️ Einstellungen</div>'
+        + '<div style="font-size:11.5px;color:var(--text-dim);margin-top:6px">'
+        + '<b>' + allApps.length + '</b> Apps installiert · v161'
+        + '</div></div>';
+
+      /* ═══════════════════════════════════════════════════════
+         ACCOUNT
+         ═══════════════════════════════════════════════════════ */
+      body += section("👤 Account", [
+        row("Name", userName, "text", "userName"),
+        row("E-Mail", userEmail, "email", "userEmail"),
+        row("Passwort ändern", "••••••••", "text", "userPassword", "🔒")
+      ]);
 
       /* ═══════════════════════════════════════════════════════
          ALLGEMEIN
          ═══════════════════════════════════════════════════════ */
-      if(tab === "allgemein"){
-        var name = store.get("userName", "Bruder");
-        var lang = store.get("lang", "de");
-        var voiceOn = store.get("voiceEnabled", true);
-        var notifOn = store.get("notifyEnabled", true);
-        var soundOn = store.get("soundEnabled", true);
-
-        body = '<div class="card"><h3>👤 Profil</h3>'
-          + '<div class="field"><label>Dein Name</label>'
-          + '<input type="text" id="setName" value="' + _esc(name) + '" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-size:13px">'
-          + '</div></div>';
-
-        body += '<div class="card"><h3>🌍 Sprache</h3>'
-          + '<div class="field"><label>Bevorzugte Sprache</label>'
-          + '<select id="setLang" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-size:13px">'
-          + '<option value="de"' + (lang==="de"?" selected":"") + '>🇩🇪 Deutsch</option>'
-          + '<option value="en"' + (lang==="en"?" selected":"") + '>🇬🇧 English</option>'
-          + '<option value="tr"' + (lang==="tr"?" selected":"") + '>🇹🇷 Türkçe</option>'
-          + '<option value="ar"' + (lang==="ar"?" selected":"") + '>🇸🇦 العربية</option>'
-          + '</select></div></div>';
-
-        body += '<div class="card"><h3>⚡ Schnell-Toggles</h3>'
-          + toggleRow("voiceEnabled", "🔊 Sprachausgabe", voiceOn)
-          + toggleRow("notifyEnabled", "🔔 Benachrichtigungen", notifOn)
-          + toggleRow("soundEnabled", "🎵 Sound-Effekte", soundOn)
-          + '</div>';
-      }
+      body += section("⚙️ Allgemein", [
+        selectRow("🌍 Sprache", "lang", lang, [
+          { v: "de", n: "🇩🇪 Deutsch" },
+          { v: "en", n: "🇬🇧 English" },
+          { v: "ku", n: "🦚 Kurdisch (Kurmanci)" },
+          { v: "ckb", n: "🦚 Kurdisch (Sorani)" },
+          { v: "ar", n: "🇸🇦 العربية" },
+          { v: "tr", n: "🇹🇷 Türkçe" }
+        ])
+      ]);
 
       /* ═══════════════════════════════════════════════════════
-         THEME — VOLL INTEGRIERT
+         DISPLAY & HELLIGKEIT
          ═══════════════════════════════════════════════════════ */
-      else if(tab === "theme"){
-        var themeEngine = window.HalDoTheme;
-        var currentTheme = themeEngine ? themeEngine.get() : "peacock";
-        var themes = themeEngine ? themeEngine.themes : {};
-        var autoOn = themeEngine ? themeEngine.isAuto() : false;
+      body += '<div class="card"><h3>☀️ Anzeige und Helligkeit</h3>'
+        + sliderRow("Helligkeit", "displayBrightness", brightness, 20, 100, "%")
+        + toggleRow("Automatische Helligkeit", "autoBrightness", autoBright)
+        + selectRow("🌙 Nachtmodus", "nightMode", HalDo.Store.get("nightMode", "aus"), [
+          { v: "aus", n: "Aus" },
+          { v: "auto", n: "Automatisch (Sonnenuntergang)" },
+          { v: "immer", n: "Immer an" }
+        ])
+        + '</div>';
 
-        /* Header */
-        body = '<div class="card"><h3>🎨 Theme</h3>'
-          + '<div style="font-size:11.5px;color:var(--text-dim);line-height:1.6;margin-bottom:14px">'
-          + 'Wähle dein bevorzugtes Erscheinungsbild. Änderungen sind sofort sichtbar.'
-          + '</div>';
-
-        /* Auto-Switch Block */
-        body += '<div style="padding:14px;background:' + (autoOn ? "rgba(74,222,128,.1)" : "rgba(0,0,0,.2)") + ';border-radius:12px;margin-bottom:14px;border-left:3px solid ' + (autoOn ? "#4ade80" : "var(--text-mute)") + '">'
-          + '<div style="display:flex;justify-content:space-between;align-items:center">'
-          + '<div>'
-          + '<div style="font-size:13px;font-weight:900">🌗 Auto-Switch nach Uhrzeit</div>'
-          + '<div style="font-size:10.5px;color:var(--text-mute);margin-top:3px">Hell (06-20 Uhr) · Dunkel (20-06 Uhr)</div>'
+      /* ═══════════════════════════════════════════════════════
+         THEME
+         ═══════════════════════════════════════════════════════ */
+      var themeList = window.HalDoTheme ? HalDoTheme.list() : [];
+      var themeGrid = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
+      themeList.forEach(function(tid){
+        var t = HalDoTheme.themes[tid];
+        var isAct = tid === theme;
+        themeGrid += '<button type="button" data-set-theme="' + tid + '" style="padding:0;background:transparent;border:none;cursor:pointer;text-align:left">'
+          + '<div style="padding:10px;background:linear-gradient(135deg,' + t.colors["--bg"] + ',' + t.colors["--bg-2"] + ');border-radius:12px;border:2px solid ' + (isAct ? t.colors["--p1"] : "rgba(255,255,255,.1)") + ';position:relative">'
+          + '<div style="display:flex;gap:4px;margin-bottom:8px">'
+          + '<div style="width:14px;height:14px;border-radius:50%;background:' + t.colors["--p1"] + '"></div>'
+          + '<div style="width:14px;height:14px;border-radius:50%;background:' + t.colors["--p2"] + '"></div>'
+          + '<div style="width:14px;height:14px;border-radius:50%;background:' + t.colors["--p3"] + '"></div>'
           + '</div>'
-          + '<button id="themeAutoBtn" style="padding:8px 16px;border:none;border-radius:10px;font-weight:900;cursor:pointer;font-size:11px;background:' + (autoOn ? "linear-gradient(135deg,#4ade80,#00e5ff)" : "rgba(0,0,0,.4)") + ';color:' + (autoOn ? "#000" : "var(--text-dim)") + '">'
-          + (autoOn ? "AN" : "AUS")
-          + '</button></div></div>';
+          + '<div style="font-size:11px;font-weight:900;color:' + t.colors["--text"] + '">' + _esc(t.name) + '</div>'
+          + (isAct ? '<div style="position:absolute;top:6px;right:6px;font-size:12px">✅</div>' : '')
+          + '</div></button>';
+      });
+      themeGrid += '</div>';
 
-        /* Theme-Grid */
-        body += '<div style="font-size:10px;color:var(--text-mute);font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Verfügbare Themes (' + Object.keys(themes).length + ')</div>';
-        body += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px">';
-        Object.keys(themes).forEach(function(id){
-          var t = themes[id];
-          var isActive = id === currentTheme && !autoOn;
-          var c = t.colors;
-          body += '<button data-set-theme="' + id + '" style="padding:0;background:transparent;border:none;cursor:pointer;text-align:left">'
-            + '<div style="padding:10px;background:linear-gradient(135deg,' + c["--bg"] + ',' + c["--bg-2"] + ');border-radius:12px;border:2px solid ' + (isActive ? c["--p1"] : "rgba(255,255,255,.1)") + ';position:relative">'
-            + '<div style="display:flex;gap:4px;margin-bottom:8px">'
-            + '<div style="width:14px;height:14px;border-radius:50%;background:' + c["--p1"] + ';box-shadow:0 0 8px ' + c["--p1"] + '"></div>'
-            + '<div style="width:14px;height:14px;border-radius:50%;background:' + c["--p2"] + '"></div>'
-            + '<div style="width:14px;height:14px;border-radius:50%;background:' + c["--p3"] + '"></div>'
-            + '</div>'
-            + '<div style="font-size:11px;font-weight:900;color:' + c["--text"] + '">' + _esc(t.name) + '</div>'
-            + '<div style="font-size:9px;color:' + c["--text-mute"] + ';margin-top:2px">' + _esc(t.desc) + '</div>'
-            + (isActive ? '<div style="position:absolute;top:6px;right:6px;font-size:12px">✅</div>' : '')
-            + '</div></button>';
-        });
-        body += '</div>';
-
-        /* Custom Akzent */
-        body += '<div style="padding-top:14px;border-top:1px solid rgba(255,255,255,.08);margin-bottom:14px">'
-          + '<div style="font-size:11px;font-weight:900;color:var(--text);margin-bottom:8px">🎨 Eigene Akzentfarbe</div>'
-          + '<div style="display:flex;gap:8px">'
-          + '<input type="color" id="setAccent" value="' + (document.documentElement.style.getPropertyValue("--p1") || "#00e5ff") + '" style="width:60px;height:44px;border:1px solid var(--border-soft);border-radius:10px;background:transparent;cursor:pointer">'
-          + '<button class="btn" id="setAccentBtn" style="flex:1">Akzent anwenden</button>'
-          + '<button class="btn sec" id="setAccentReset" style="padding:12px 16px">Reset</button>'
-          + '</div></div>';
-        body += '</div>';
-
-        /* App-spezifische Themes */
-        body += '<div class="card"><h3>🎭 App-spezifische Themes</h3>'
-          + '<div style="font-size:11px;color:var(--text-dim);line-height:1.6;margin-bottom:14px">'
-          + 'Gib einzelnen Apps eine eigene Farbe. Beim Öffnen der App wird automatisch gewechselt.'
-          + '</div>';
-
-        var apps = (window.HalDo && HalDo.Apps && HalDo.Apps.list) ? HalDo.Apps.list() : [];
-        var appThemes = themeEngine ? themeEngine.getAppThemes() : {};
-
-        if(!apps.length){
-          body += '<div style="color:var(--text-mute);text-align:center;padding:14px;font-size:11px">Keine Apps registriert</div>';
-        } else {
-          apps.forEach(function(app){
-            var appId = app.id || app.name;
-            var appName = app.name || appId;
-            var appIcon = app.icon || "📦";
-            var currentAppTheme = appThemes[appId] || "";
-
-            body += '<div style="padding:10px;background:rgba(0,0,0,.2);border-radius:10px;margin-bottom:6px;display:flex;align-items:center;gap:10px">'
-              + '<div style="font-size:20px">' + _esc(appIcon) + '</div>'
-              + '<div style="flex:1;min-width:0">'
-              + '<div style="font-size:12px;font-weight:800;color:var(--p1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(appName) + '</div>'
-              + '</div>'
-              + '<select data-apptheme="' + _esc(appId) + '" style="padding:6px 8px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:8px;color:inherit;font-size:11px;cursor:pointer;max-width:130px">'
-              + '<option value="">— Standard —</option>';
-            Object.keys(themes).forEach(function(tid){
-              body += '<option value="' + tid + '"' + (currentAppTheme === tid ? " selected" : "") + '>' + _esc(themes[tid].name) + '</option>';
-            });
-            body += '</select></div>';
-          });
-        }
-        body += '</div>';
-      }
+      body += '<div class="card"><h3>🎨 Theme</h3>'
+        + '<div style="font-size:11px;color:var(--text-dim);margin-bottom:10px">Wähle dein Farbschema:</div>'
+        + themeGrid
+        + '<button class="btn sec full" id="openThemePanel" style="font-size:11px">🎨 Erweiterte Theme-Optionen</button>'
+        + '</div>';
 
       /* ═══════════════════════════════════════════════════════
          STIMME
          ═══════════════════════════════════════════════════════ */
-      else if(tab === "stimme"){
-        var voiceRate = store.get("voiceRate", 1);
-        var voicePitch = store.get("voicePitch", 1);
-        var voiceVolume = store.get("voiceVolume", 1);
+      var voiceGrid = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">';
+      VOICE_PRESETS.forEach(function(v){
+        var isAct = v.id === voicePreset;
+        voiceGrid += '<button type="button" data-voice-preset="' + v.id + '" style="padding:10px;background:' + (isAct ? "linear-gradient(135deg,rgba(0,229,255,.2),rgba(180,120,255,.2))" : "rgba(0,0,0,.2)") + ';border:1.5px solid ' + (isAct ? "var(--p1)" : "var(--border-soft)") + ';border-radius:10px;cursor:pointer;color:inherit;font-family:inherit;text-align:left">'
+          + '<div style="font-size:12px;font-weight:900;color:' + (isAct ? "var(--p1)" : "var(--text)") + '">' + v.name + '</div>'
+          + '<div style="font-size:9.5px;color:var(--text-mute);margin-top:2px">' + v.desc + '</div>'
+          + '</button>';
+      });
+      voiceGrid += '</div>';
 
-        body = '<div class="card"><h3>🔊 Stimme</h3>'
-          + '<div class="field"><label>Geschwindigkeit: <b id="rateVal">' + voiceRate + '</b></label>'
-          + '<input type="range" id="setRate" min="0.5" max="2" step="0.1" value="' + voiceRate + '" style="width:100%"></div>'
-          + '<div class="field"><label>Tonhöhe: <b id="pitchVal">' + voicePitch + '</b></label>'
-          + '<input type="range" id="setPitch" min="0.5" max="2" step="0.1" value="' + voicePitch + '" style="width:100%"></div>'
-          + '<div class="field"><label>Lautstärke: <b id="volVal">' + voiceVolume + '</b></label>'
-          + '<input type="range" id="setVol" min="0" max="1" step="0.1" value="' + voiceVolume + '" style="width:100%"></div>'
-          + '<button class="btn full" id="testVoice" style="margin-top:10px">🔊 Test-Stimme</button>'
-          + '</div>';
-      }
-
-      /* ═══════════════════════════════════════════════════════
-         BENACHRICHTIGUNGEN
-         ═══════════════════════════════════════════════════════ */
-      else if(tab === "notify"){
-        var notifOn = store.get("notifyEnabled", true);
-        var soundOn = store.get("soundEnabled", true);
-        var vibOn = store.get("vibrateEnabled", false);
-
-        body = '<div class="card"><h3>🔔 Benachrichtigungen</h3>'
-          + toggleRow("notifyEnabled", "🔔 In-App Benachrichtigungen", notifOn)
-          + toggleRow("soundEnabled", "🎵 Mit Sound", soundOn)
-          + toggleRow("vibrateEnabled", "📳 Vibration (mobil)", vibOn)
-          + '<button class="btn full" id="testNotify" style="margin-top:12px">🧪 Test-Benachrichtigung</button>'
-          + '</div>';
-      }
+      body += '<div class="card"><h3>🔊 Stimme</h3>'
+        + toggleRow("Sprachausgabe aktiv", "voiceEnabled", voiceEnabled)
+        + '<div style="font-size:11px;color:var(--text-dim);margin:14px 0 8px;font-weight:800">STIMMEN-PRESETS</div>'
+        + voiceGrid
+        + sliderRow("Geschwindigkeit", "voiceRate", voiceRate, 0.5, 2, "x", 0.1)
+        + sliderRow("Tonhöhe", "voicePitch", voicePitch, 0.5, 2, "", 0.1)
+        + sliderRow("Lautstärke", "voiceVolume", voiceVolume, 0, 1, "", 0.1)
+        + '<button class="btn full" id="testVoice" style="margin-top:10px">🔊 Stimme testen</button>'
+        + '<div style="font-size:10.5px;color:var(--text-mute);margin-top:8px;line-height:1.5">'
+        + '💡 "Eigene Stimme" wird in zukünftigem Update verfügbar (Stimmen-Klon über Server).'
+        + '</div></div>';
 
       /* ═══════════════════════════════════════════════════════
-         DATEN
+         MITTEILUNGEN
          ═══════════════════════════════════════════════════════ */
-      else if(tab === "daten"){
-        var keys = Object.keys(localStorage).filter(function(k){
-          return k.indexOf("haldo") === 0 || k.indexOf("HalDo") === 0;
-        });
-        var size = 0;
-        keys.forEach(function(k){ size += (localStorage.getItem(k) || "").length; });
+      body += '<div class="card"><h3>🔔 Mitteilungen</h3>'
+        + toggleRow("Benachrichtigungen", "notifyEnabled", notifyEnabled)
+        + toggleRow("Mit Sound", "soundEnabled", soundEnabled)
+        + toggleRow("Vibration (mobil)", "vibrateEnabled", vibrateEnabled)
+        + '<button class="btn sec full" id="testNotify" style="margin-top:10px">🧪 Test-Benachrichtigung</button>'
+        + '</div>';
 
-        body = '<div class="card"><h3>💾 Daten</h3>'
-          + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'
-          + '<div style="padding:12px;background:rgba(0,229,255,.1);border-radius:10px">'
-          + '<div style="font-size:10px;color:var(--text-mute);font-weight:700">EINTRÄGE</div>'
-          + '<div style="font-size:22px;font-weight:900;color:var(--p1)">' + keys.length + '</div>'
-          + '</div>'
-          + '<div style="padding:12px;background:rgba(180,120,255,.1);border-radius:10px">'
-          + '<div style="font-size:10px;color:var(--text-mute);font-weight:700">GRÖSSE</div>'
-          + '<div style="font-size:22px;font-weight:900;color:var(--p3)">' + (size > 1024 ? (size/1024).toFixed(1) + "KB" : size + "B") + '</div>'
-          + '</div></div>'
-          + '<div style="display:flex;flex-direction:column;gap:8px">'
-          + '<button class="btn full" id="goBackup">💾 Backup öffnen</button>'
-          + '<button class="btn sec full" id="goRecovery">🚑 Recovery öffnen</button>'
-          + '</div></div>';
-      }
+      /* ═══════════════════════════════════════════════════════
+         WLAN
+         ═══════════════════════════════════════════════════════ */
+      body += '<div class="card"><h3>📶 WLAN</h3>'
+        + toggleRow("WLAN aktiv", "wifi", wifi)
+        + '<div style="font-size:10.5px;color:var(--text-mute);margin-top:10px;line-height:1.5">'
+        + 'ℹ️ Browser kann WLAN nicht direkt steuern. Einstellungen sind nur UI-Simulation.'
+        + '</div></div>';
+
+      /* ═══════════════════════════════════════════════════════
+         BLUETOOTH
+         ═══════════════════════════════════════════════════════ */
+      body += '<div class="card"><h3>🔵 Bluetooth</h3>'
+        + toggleRow("Bluetooth aktiv", "bluetooth", bluetooth)
+        + '</div>';
+
+      /* ═══════════════════════════════════════════════════════
+         HALDO CAR / CARPLAY
+         ═══════════════════════════════════════════════════════ */
+      body += '<div class="card"><h3>🚗 HalDo Car</h3>'
+        + toggleRow("🚗 HalDo Car Modus", "carMode", carMode)
+        + toggleRow("🍎 HalDo CarPlay", "carplayMode", carplayMode)
+        + '<div style="font-size:10.5px;color:var(--text-mute);margin-top:10px;line-height:1.5">'
+        + 'Große Buttons, Sprachsteuerung, weniger Ablenkung beim Fahren.'
+        + '</div></div>';
+
+      /* ═══════════════════════════════════════════════════════
+         SPEICHER
+         ═══════════════════════════════════════════════════════ */
+      var totalStorage = 0;
+      var keys = Object.keys(localStorage).filter(function(k){
+        return k.indexOf("haldo:") === 0;
+      });
+      keys.forEach(function(k){
+        totalStorage += (localStorage.getItem(k) || "").length;
+      });
+      var sizeStr = totalStorage > 1024*1024
+        ? (totalStorage/1024/1024).toFixed(2) + " MB"
+        : (totalStorage/1024).toFixed(1) + " KB";
+
+      body += '<div class="card"><h3>💾 Speicher</h3>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'
+        + '<div style="padding:12px;background:rgba(0,229,255,.1);border-radius:10px">'
+        + '<div style="font-size:10px;color:var(--text-mute);font-weight:700">EINTRÄGE</div>'
+        + '<div style="font-size:20px;font-weight:900;color:var(--p1)">' + keys.length + '</div>'
+        + '</div>'
+        + '<div style="padding:12px;background:rgba(180,120,255,.1);border-radius:10px">'
+        + '<div style="font-size:10px;color:var(--text-mute);font-weight:700">GRÖSSE</div>'
+        + '<div style="font-size:20px;font-weight:900;color:var(--p3)">' + sizeStr + '</div>'
+        + '</div></div>'
+        + '<button class="btn full" id="exportData" style="margin-bottom:6px">📤 Daten exportieren (JSON)</button>'
+        + '<button class="btn sec full" id="clearCache" style="margin-bottom:6px">🧹 Cache leeren</button>'
+        + '<button class="btn danger full" id="clearAllData">🗑️ Alle Daten löschen</button>'
+        + '</div>';
+
+      /* ═══════════════════════════════════════════════════════
+         DATENSCHUTZ
+         ═══════════════════════════════════════════════════════ */
+      body += '<div class="card"><h3>🔒 Datenschutz</h3>'
+        + selectRow("Datenschutz-Level", "privacyLevel", privacyLevel, [
+          { v: "offen", n: "🟢 Offen (viele Features)" },
+          { v: "mittel", n: "🟡 Mittel (Standard)" },
+          { v: "streng", n: "🔴 Streng (nur nötigste)" }
+        ])
+        + toggleRow("Analytics aktiv", "analyticsEnabled", HalDo.Store.get("analyticsEnabled", true))
+        + toggleRow("Standort teilen", "locationShare", HalDo.Store.get("locationShare", false))
+        + '<div style="font-size:10.5px;color:var(--text-mute);margin-top:10px;line-height:1.5">'
+        + '✅ Alle Daten bleiben <b>lokal</b> auf deinem Gerät. Keine Übertragung an Server.'
+        + '</div></div>';
+
+      /* ═══════════════════════════════════════════════════════
+         BEDINGUNGEN
+         ═══════════════════════════════════════════════════════ */
+      body += '<div class="card"><h3>📋 Bedingungen & Lizenzen</h3>'
+        + '<div style="font-size:11.5px;color:var(--text-dim);line-height:1.7">'
+        + '<div style="padding:8px 0"><b>HalDo AI OS</b> — Version 161</div>'
+        + '<div style="padding:8px 0">Lizenz: Persönliche Nutzung</div>'
+        + '<div style="padding:8px 0">© 2026 HalDo AI</div>'
+        + '<div style="padding:8px 0;font-size:10.5px;color:var(--text-mute)">'
+        + 'Diese Software wird "wie besehen" bereitgestellt. Kein Anspruch auf Fehlerfreiheit.'
+        + '</div></div></div>';
+
+      /* ═══════════════════════════════════════════════════════
+         HILFE
+         ═══════════════════════════════════════════════════════ */
+      body += '<div class="card"><h3>❓ Hilfe</h3>'
+        + '<button class="btn sec full" style="margin-bottom:6px">📖 Benutzerhandbuch</button>'
+        + '<button class="btn sec full" style="margin-bottom:6px">🎓 Tutorial starten</button>'
+        + '<button class="btn sec full" style="margin-bottom:6px">💬 Feedback senden</button>'
+        + '<button class="btn sec full">📧 Kontakt: support@haldo.ai</button>'
+        + '</div>';
+
+      /* ═══════════════════════════════════════════════════════
+         APP-VERWALTUNG
+         ═══════════════════════════════════════════════════════ */
+      body += '<div class="card"><h3>📱 App-Verwaltung (' + allApps.length + ')</h3>'
+        + '<div style="max-height:300px;overflow-y:auto;padding-right:4px">';
+      allApps.forEach(function(a){
+        body += '<div style="padding:8px 10px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">'
+          + '<div style="font-size:12px;font-weight:800">' + _esc(a.icon) + ' ' + _esc(a.name) + '</div>'
+          + '<div style="font-size:10px;color:#4ade80">✅ v161</div>'
+          + '</div>';
+      });
+      body += '</div></div>';
 
       /* ═══════════════════════════════════════════════════════
          ÜBER
          ═══════════════════════════════════════════════════════ */
-      else if(tab === "ueber"){
-        body = '<div class="card">'
-          + '<div style="padding:24px;background:linear-gradient(135deg,rgba(0,229,255,.1),rgba(180,120,255,.1));border-radius:14px;text-align:center;border:1.5px solid var(--p1)">'
-          + '<div style="font-size:64px">🦚</div>'
-          + '<div style="font-size:24px;font-weight:900;color:var(--p1);margin-top:8px">HalDo AI OS</div>'
-          + '<div style="font-size:14px;font-weight:800;color:var(--p3);margin-top:4px">v151</div>'
-          + '<div style="font-size:10.5px;color:var(--text-mute);margin-top:6px">Alles auf einmal · 8 Themes</div>'
-          + '</div>'
-          + '<button class="btn full" id="openThemePanel" style="margin-top:14px">🎨 Theme-Panel öffnen</button>'
-          + '<button class="btn sec full" id="openSystem" style="margin-top:8px">🖥️ System-Center</button>'
-          + '</div>';
-      }
+      body += '<div class="card">'
+        + '<div style="padding:24px;background:linear-gradient(135deg,rgba(0,229,255,.1),rgba(180,120,255,.1));border-radius:14px;text-align:center;border:1.5px solid var(--p1)">'
+        + '<div style="font-size:64px">🦚</div>'
+        + '<div style="font-size:22px;font-weight:900;color:var(--p1);margin-top:8px">HalDo AI OS</div>'
+        + '<div style="font-size:14px;font-weight:800;color:var(--p3);margin-top:4px">v161</div>'
+        + '<div style="font-size:10.5px;color:var(--text-mute);margin-top:6px">Fundament + Fenster-Manager</div>'
+        + '</div></div>';
 
-      container.innerHTML =
-        '<div class="tabs">'
-        + '<button class="tab' + (tab==="allgemein"?" active":"") + '" data-st="allgemein">⚙️ Allgemein</button>'
-        + '<button class="tab' + (tab==="theme"?" active":"") + '" data-st="theme">🎨 Theme</button>'
-        + '<button class="tab' + (tab==="stimme"?" active":"") + '" data-st="stimme">🔊 Stimme</button>'
-        + '<button class="tab' + (tab==="notify"?" active":"") + '" data-st="notify">🔔 Benachrichtigung</button>'
-        + '<button class="tab' + (tab==="daten"?" active":"") + '" data-st="daten">💾 Daten</button>'
-        + '<button class="tab' + (tab==="ueber"?" active":"") + '" data-st="ueber">ℹ️ Über</button>'
-        + '</div>' + body;
+      container.innerHTML = body;
 
-      /* Tab-Wechsel */
-      container.querySelectorAll("[data-st]").forEach(function(b){
-        b.addEventListener("click", function(){
-          tab = b.dataset.st;
-          store.set("tab", tab);
+      /* ═══════════════════════════════════════════════════════
+         EVENT-BINDINGS
+         ═══════════════════════════════════════════════════════ */
+
+      /* Toggles */
+      container.querySelectorAll("[data-toggle]").forEach(function(el){
+        el.addEventListener("click", function(e){
+          e.preventDefault();
+          var key = el.getAttribute("data-toggle");
+          var cur = HalDo.Store.get(key, false);
+          HalDo.Store.set(key, !cur);
           build();
         });
       });
 
-      /* ═══ ALLGEMEIN Events ═══ */
-      if(tab === "allgemein"){
-        var nameInp = container.querySelector("#setName");
-        if(nameInp) nameInp.addEventListener("change", function(){
-          store.set("userName", this.value.trim() || "Bruder");
-          if(window.HalDo.Notify) HalDo.Notify.success("Name gespeichert", { app: "settings" });
+      /* Inputs */
+      container.querySelectorAll("[data-input]").forEach(function(el){
+        el.addEventListener("change", function(){
+          var key = el.getAttribute("data-input");
+          HalDo.Store.set(key, el.value);
+          if(HalDo.Notify) HalDo.Notify.success("Gespeichert: " + key, { app: "settings" });
         });
+      });
 
-        var langSel = container.querySelector("#setLang");
-        if(langSel) langSel.addEventListener("change", function(){
-          store.set("lang", this.value);
-          if(window.HalDo.Notify) HalDo.Notify.success("Sprache: " + this.value, { app: "settings" });
+      /* Selects */
+      container.querySelectorAll("[data-select]").forEach(function(el){
+        el.addEventListener("change", function(){
+          var key = el.getAttribute("data-select");
+          HalDo.Store.set(key, el.value);
+          if(key === "lang" && window.HalDo.i18n){
+            HalDo.i18n.setLang(el.value);
+          }
+          if(HalDo.Notify) HalDo.Notify.success("Gespeichert: " + el.value, { app: "settings" });
         });
+      });
 
-        /* Toggles */
-        ["voiceEnabled", "notifyEnabled", "soundEnabled"].forEach(function(key){
-          var el = container.querySelector('[data-toggle="' + key + '"]');
-          if(!el) return;
-          el.addEventListener("click", function(){
-            var cur = store.get(key, true);
-            store.set(key, !cur);
+      /* Slider */
+      container.querySelectorAll("[data-slider]").forEach(function(el){
+        el.addEventListener("input", function(){
+          var key = el.getAttribute("data-slider");
+          var val = parseFloat(el.value);
+          HalDo.Store.set(key, val);
+          var lbl = container.querySelector('[data-slider-label="' + key + '"]');
+          if(lbl) lbl.textContent = val + (el.getAttribute("data-unit") || "");
+        });
+      });
+
+      /* Theme */
+      container.querySelectorAll("[data-set-theme]").forEach(function(el){
+        el.addEventListener("click", function(e){
+          e.preventDefault();
+          var tid = el.getAttribute("data-set-theme");
+          if(window.HalDoTheme){
+            HalDoTheme.setAuto(false);
+            HalDoTheme.apply(tid);
+            if(HalDo.Notify) HalDo.Notify.success("Theme: " + tid, { app: "settings" });
             build();
-          });
+          }
         });
-      }
+      });
 
-      /* ═══ THEME Events ═══ */
-      if(tab === "theme"){
-        var themeEngine = window.HalDoTheme;
-
-        /* Theme-Auswahl */
-        container.querySelectorAll("[data-set-theme]").forEach(function(btn){
-          btn.addEventListener("click", function(){
-            var id = btn.dataset.setTheme;
-            if(themeEngine){
-              themeEngine.setAuto(false);
-              themeEngine.apply(id);
-              if(window.HalDo.Voice) HalDo.Voice.speak(themeEngine.themes[id].name.replace(/[^\w\sÄÖÜäöü]/g, "").trim() + " aktiviert");
-              if(window.HalDo.Notify) HalDo.Notify.success("Theme: " + themeEngine.themes[id].name, { app: "settings" });
-            }
-            build();
-          });
-        });
-
-        /* Auto-Switch Toggle */
-        var autoBtn = container.querySelector("#themeAutoBtn");
-        if(autoBtn) autoBtn.addEventListener("click", function(){
-          if(!themeEngine) return;
-          var newState = !themeEngine.isAuto();
-          themeEngine.setAuto(newState);
-          if(window.HalDo.Notify) HalDo.Notify.info(newState ? "Auto-Switch AN" : "Auto-Switch AUS", { app: "settings" });
+      /* Stimmen-Presets */
+      container.querySelectorAll("[data-voice-preset]").forEach(function(el){
+        el.addEventListener("click", function(){
+          var vid = el.getAttribute("data-voice-preset");
+          HalDo.Store.set("voicePreset", vid);
+          var preset = VOICE_PRESETS.find(function(v){ return v.id === vid; });
+          if(preset){
+            HalDo.Store.set("voiceRate", preset.rate);
+            HalDo.Store.set("voicePitch", preset.pitch);
+          }
+          if(HalDo.Notify) HalDo.Notify.success("Stimme: " + (preset ? preset.name : vid), { app: "settings" });
           build();
         });
+      });
 
-        /* Custom Akzent */
-        var acBtn = container.querySelector("#setAccentBtn");
-        if(acBtn) acBtn.addEventListener("click", function(){
-          var col = container.querySelector("#setAccent").value;
-          if(themeEngine) themeEngine.setAccent(col);
-          if(window.HalDo.Notify) HalDo.Notify.success("Akzent: " + col, { app: "settings" });
+      /* Test-Stimme */
+      var tv = container.querySelector("#testVoice");
+      if(tv) tv.addEventListener("click", function(){
+        if(HalDo.Voice){
+          var preset = VOICE_PRESETS.find(function(v){ return v.id === voicePreset; }) || VOICE_PRESETS[0];
+          HalDo.Voice.speak("Hallo Bruder! Ich bin " + preset.name + ". So klinge ich.");
+        }
+      });
+
+      /* Test-Notify */
+      var tn = container.querySelector("#testNotify");
+      if(tn) tn.addEventListener("click", function(){
+        if(HalDo.Notify) HalDo.Notify.info("Test-Benachrichtigung ✅", { app: "settings" });
+        if(HalDo.Store.get("vibrateEnabled", false) && navigator.vibrate) navigator.vibrate(200);
+      });
+
+      /* Export */
+      var exp = container.querySelector("#exportData");
+      if(exp) exp.addEventListener("click", function(){
+        var data = {};
+        Object.keys(localStorage).forEach(function(k){
+          if(k.indexOf("haldo:") === 0) data[k] = localStorage.getItem(k);
         });
+        var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "haldo-backup-" + new Date().toISOString().split("T")[0] + ".json";
+        a.click();
+        if(HalDo.Notify) HalDo.Notify.success("Backup erstellt", { app: "settings" });
+      });
 
-        var acRst = container.querySelector("#setAccentReset");
-        if(acRst) acRst.addEventListener("click", function(){
-          if(themeEngine) themeEngine.resetAccent();
-          if(window.HalDo.Notify) HalDo.Notify.info("Akzent zurückgesetzt", { app: "settings" });
-          build();
-        });
-
-        /* App-Themes */
-        container.querySelectorAll("[data-apptheme]").forEach(function(sel){
-          sel.addEventListener("change", function(){
-            var appId = sel.dataset.apptheme;
-            var themeId = sel.value || null;
-            if(themeEngine) themeEngine.setAppTheme(appId, themeId);
-            if(window.HalDo.Notify){
-              HalDo.Notify.success(themeId
-                ? "Theme für " + appId + ": " + themeEngine.themes[themeId].name
-                : "Theme für " + appId + " zurückgesetzt",
-                { app: "settings" }
-              );
-            }
+      /* Cache */
+      var cc = container.querySelector("#clearCache");
+      if(cc) cc.addEventListener("click", function(){
+        if(!confirm("Cache leeren? (Einstellungen bleiben)")) return;
+        if("caches" in window){
+          caches.keys().then(function(names){
+            names.forEach(function(n){ caches.delete(n); });
           });
-        });
-      }
+        }
+        if(HalDo.Notify) HalDo.Notify.success("Cache geleert", { app: "settings" });
+      });
 
-      /* ═══ STIMME Events ═══ */
-      if(tab === "stimme"){
-        var rate = container.querySelector("#setRate");
-        var pitch = container.querySelector("#setPitch");
-        var vol = container.querySelector("#setVol");
+      /* Clear All */
+      var ca = container.querySelector("#clearAllData");
+      if(ca) ca.addEventListener("click", function(){
+        if(!confirm("ALLE Daten löschen? Nicht rückgängig machbar!")) return;
+        if(!confirm("WIRKLICH ALLES löschen?")) return;
+        var keys = Object.keys(localStorage).filter(function(k){
+          return k.indexOf("haldo:") === 0;
+        });
+        keys.forEach(function(k){ localStorage.removeItem(k); });
+        alert("Alle Daten gelöscht. Seite neu laden (F5).");
+      });
 
-        if(rate) rate.addEventListener("input", function(){
-          store.set("voiceRate", parseFloat(this.value));
-          container.querySelector("#rateVal").textContent = this.value;
-        });
-        if(pitch) pitch.addEventListener("input", function(){
-          store.set("voicePitch", parseFloat(this.value));
-          container.querySelector("#pitchVal").textContent = this.value;
-        });
-        if(vol) vol.addEventListener("input", function(){
-          store.set("voiceVolume", parseFloat(this.value));
-          container.querySelector("#volVal").textContent = this.value;
-        });
-
-        var tv = container.querySelector("#testVoice");
-        if(tv) tv.addEventListener("click", function(){
-          if(window.HalDo.Voice) HalDo.Voice.speak("Hallo Bruder! So klinge ich.");
-        });
-      }
-
-      /* ═══ NOTIFY Events ═══ */
-      if(tab === "notify"){
-        ["notifyEnabled", "soundEnabled", "vibrateEnabled"].forEach(function(key){
-          var el = container.querySelector('[data-toggle="' + key + '"]');
-          if(!el) return;
-          el.addEventListener("click", function(){
-            var cur = store.get(key, key === "vibrateEnabled" ? false : true);
-            store.set(key, !cur);
-            build();
-          });
-        });
-
-        var tn = container.querySelector("#testNotify");
-        if(tn) tn.addEventListener("click", function(){
-          if(window.HalDo.Notify) HalDo.Notify.info("Test-Benachrichtigung ✓", { app: "settings" });
-          if(store.get("vibrateEnabled", false) && navigator.vibrate) navigator.vibrate(200);
-        });
-      }
-
-      /* ═══ DATEN Events ═══ */
-      if(tab === "daten"){
-        var gb = container.querySelector("#goBackup");
-        if(gb) gb.addEventListener("click", function(){
-          if(window.HalDo.Apps && HalDo.Apps.open) HalDo.Apps.open("backup");
-        });
-        var gr = container.querySelector("#goRecovery");
-        if(gr) gr.addEventListener("click", function(){
-          if(window.HalDo.Apps && HalDo.Apps.open) HalDo.Apps.open("recovery");
-        });
-      }
-
-      /* ═══ ÜBER Events ═══ */
-      if(tab === "ueber"){
-        var tp = container.querySelector("#openThemePanel");
-        if(tp) tp.addEventListener("click", function(){
-          if(window.HalDoTheme) HalDoTheme.open();
-        });
-        var sc = container.querySelector("#openSystem");
-        if(sc) sc.addEventListener("click", function(){
-          if(window.HalDo.Apps && HalDo.Apps.open) HalDo.Apps.open("system-center");
-        });
-      }
+      /* Theme-Panel */
+      var tp = container.querySelector("#openThemePanel");
+      if(tp) tp.addEventListener("click", function(){
+        if(window.HalDoTheme) HalDoTheme.open();
+      });
     }
 
-    /* Helper: Toggle-Zeile */
-    function toggleRow(key, label, on){
+    /* ═══════════════════════════════════════════════════════════
+       HELPER
+       ═══════════════════════════════════════════════════════════ */
+    function section(title, rows){
+      return '<div class="card"><h3>' + _esc(title) + '</h3>' + rows.join("") + '</div>';
+    }
+
+    function row(label, value, type, key, icon){
+      return '<div class="field">'
+        + '<label>' + (icon || "") + ' ' + _esc(label) + '</label>'
+        + '<input type="' + type + '" value="' + _esc(value) + '" data-input="' + _esc(key) + '" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-size:13px">'
+        + '</div>';
+    }
+
+    function toggleRow(label, key, on){
       return '<div style="padding:12px;background:rgba(0,0,0,.2);border-radius:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">'
         + '<div style="font-size:12.5px;font-weight:800">' + _esc(label) + '</div>'
-        + '<button data-toggle="' + key + '" style="padding:6px 14px;border:none;border-radius:8px;font-weight:900;cursor:pointer;font-size:11px;background:' + (on ? "linear-gradient(135deg,#4ade80,#00e5ff)" : "rgba(0,0,0,.4)") + ';color:' + (on ? "#000" : "var(--text-dim)") + '">'
-        + (on ? "AN" : "AUS") + '</button>'
+        + '<button type="button" data-toggle="' + _esc(key) + '" style="padding:6px 14px;border:none;border-radius:8px;font-weight:900;cursor:pointer;font-size:11px;background:' + (on ? "linear-gradient(135deg,#4ade80,#00e5ff)" : "rgba(0,0,0,.4)") + ';color:' + (on ? "#000" : "var(--text-dim)") + '">' + (on ? "AN" : "AUS") + '</button>'
+        + '</div>';
+    }
+
+    function selectRow(label, key, value, options){
+      var opts = options.map(function(o){
+        return '<option value="' + _esc(o.v) + '"' + (o.v === value ? " selected" : "") + '>' + _esc(o.n) + '</option>';
+      }).join("");
+      return '<div class="field">'
+        + '<label>' + _esc(label) + '</label>'
+        + '<select data-select="' + _esc(key) + '" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-size:13px">' + opts + '</select>'
+        + '</div>';
+    }
+
+    function sliderRow(label, key, value, min, max, unit, step){
+      return '<div class="field">'
+        + '<label style="display:flex;justify-content:space-between">'
+        + '<span>' + _esc(label) + '</span>'
+        + '<span data-slider-label="' + _esc(key) + '" style="color:var(--p1);font-weight:900">' + value + (unit || "") + '</span>'
+        + '</label>'
+        + '<input type="range" data-slider="' + _esc(key) + '" data-unit="' + (unit || "") + '" min="' + min + '" max="' + max + '" step="' + (step || 1) + '" value="' + value + '" style="width:100%">'
         + '</div>';
     }
 
     build();
   }
 
-  if(window.HalDoApp) HalDoApp("settings", { render: render });
-  else console.warn("settings.js: HalDoApp nicht verfügbar");
+  HalDoApp("settings", { name: "Einstellungen", icon: "⚙️", render: render, category: "system" });
+  console.log("🦚 settings.js v161 geladen");
 })();
-
-console.log("🦚 settings.js geladen");
