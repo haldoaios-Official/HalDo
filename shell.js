@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — SHELL (v162)
-   Sidebar A-Z · Sauberer Homescreen · Sonnensystem-Default
+   HALDO AI OS — SHELL (v171)
+   Sidebar A-Z · Homescreen-Auswahl · Welcome
    ═══════════════════════════════════════════════════════════ */
 
 (function(){
@@ -14,7 +14,7 @@
   }
 
   /* ═══════════════════════════════════════════════════════════
-     SIDEBAR (funktioniert bereits)
+     SIDEBAR
      ═══════════════════════════════════════════════════════════ */
   function renderSidebar(){
     var sb = document.getElementById("haldo-sidebar");
@@ -27,7 +27,6 @@
 
     var html = '';
 
-    /* HEADER */
     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.08)">'
       + '<div>'
       + '<div style="font-size:16px;font-weight:900;color:var(--p1)">🦚 HalDo AI OS</div>'
@@ -36,12 +35,10 @@
       + '<button id="haldoCloseSb" style="background:rgba(0,0,0,.3);border:none;color:var(--text-dim);width:32px;height:32px;border-radius:10px;cursor:pointer;font-size:14px">✕</button>'
       + '</div>';
 
-    /* SCHNELLZUGRIFF */
     html += '<div style="font-size:10px;color:var(--text-mute);font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:0 0 6px 4px">📌 Schnellzugriff</div>';
-    html += makeLink("home", "🏠", "Home (Sonnensystem)", current === "home");
+    html += makeLink("home", "🏠", "Home", current === "home");
     html += makeLink("settings", "⚙️", "Einstellungen", current === "settings");
 
-    /* ALLE KATEGORIEN */
     var catOrder = ["kommunikation", "produktivitaet", "gesundheit", "lifestyle", "werkzeuge", "system"];
 
     catOrder.forEach(function(catKey){
@@ -64,14 +61,12 @@
       });
     });
 
-    /* FOOTER */
     html += '<div style="margin-top:20px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08);text-align:center;font-size:10px;color:var(--text-mute)">'
-      + '🦚 HalDo AI OS v162'
+      + '🦚 HalDo AI OS v171'
       + '</div>';
 
     sb.innerHTML = html;
 
-    /* EVENTS */
     var cb = sb.querySelector("#haldoCloseSb");
     if(cb) cb.addEventListener("click", function(e){
       e.preventDefault(); e.stopPropagation(); closeSidebar();
@@ -106,87 +101,6 @@
   }
 
   /* ═══════════════════════════════════════════════════════════
-     SAUBERER HOMESCREEN — statt Chaos-Grid
-     ═══════════════════════════════════════════════════════════ */
-  function showWelcome(){
-    var content = document.getElementById("haldo-content");
-    if(!content) return;
-    if(HalDo.Apps.current()) return;
-
-    var installed = HalDo.Apps.listInstalled();
-    var all = HalDo.Apps.listAll();
-    var titleEl = document.getElementById("haldo-title");
-    if(titleEl) titleEl.textContent = "🦚 HalDo AI OS";
-
-    /* Sauberer Homescreen — nur Willkommen + 3 große Aktionen */
-    var body = '<div style="min-height:calc(100vh - 100px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px">'
-
-      /* Logo */
-      + '<div style="font-size:96px;line-height:1;margin-bottom:16px;filter:drop-shadow(0 0 40px rgba(0,229,255,.5))">🦚</div>'
-
-      /* Titel */
-      + '<div style="font-size:32px;font-weight:900;color:var(--p1);letter-spacing:2px;margin-bottom:6px">HALDO AI OS</div>'
-      + '<div style="font-size:12px;color:var(--text-mute);letter-spacing:3px;font-weight:800;margin-bottom:32px">VERSION 162</div>'
-
-      /* Stats */
-      + '<div style="display:flex;gap:20px;margin-bottom:32px">'
-      + '<div style="text-align:center">'
-      + '<div style="font-size:28px;font-weight:900;color:var(--p1)">' + installed.length + '</div>'
-      + '<div style="font-size:10px;color:var(--text-mute);text-transform:uppercase;letter-spacing:1px">Apps</div>'
-      + '</div>'
-      + '<div style="width:1px;background:rgba(255,255,255,.1)"></div>'
-      + '<div style="text-align:center">'
-      + '<div style="font-size:28px;font-weight:900;color:var(--p3)">8</div>'
-      + '<div style="font-size:10px;color:var(--text-mute);text-transform:uppercase;letter-spacing:1px">Themes</div>'
-      + '</div>'
-      + '<div style="width:1px;background:rgba(255,255,255,.1)"></div>'
-      + '<div style="text-align:center">'
-      + '<div style="font-size:28px;font-weight:900;color:#4ade80">6</div>'
-      + '<div style="font-size:10px;color:var(--text-mute);text-transform:uppercase;letter-spacing:1px">Sprachen</div>'
-      + '</div>'
-      + '</div>'
-
-      /* Große Aktion-Buttons */
-      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:480px;margin-bottom:20px">'
-      + bigBtn("home", "🌟", "Home / Sonnensystem", "Startseite öffnen")
-      + bigBtn("ai", "🧠", "AI Chat", "Mit KI sprechen")
-      + bigBtn("settings", "⚙️", "Einstellungen", "Alle Optionen")
-      + bigBtn("appstore", "🏪", "Alle Apps", "48 Apps durchsuchen")
-      + '</div>'
-
-      /* Hinweis */
-      + '<div style="font-size:11px;color:var(--text-mute);line-height:1.6;max-width:400px">'
-      + '💡 <b>☰ Menü</b> oben links öffnet die komplette App-Liste (A-Z nach Kategorie)'
-      + '</div>'
-
-      + '</div>';
-
-    content.innerHTML = body;
-    content.scrollTop = 0;
-
-    content.querySelectorAll("[data-open-app]").forEach(function(el){
-      el.addEventListener("click", function(e){
-        e.preventDefault(); e.stopPropagation();
-        HalDo.Apps.open(el.getAttribute("data-open-app"));
-      });
-    });
-  }
-
-  function bigBtn(id, icon, title, desc){
-    return '<button type="button" data-open-app="' + _esc(id) + '" style="'
-      + 'padding:20px 14px;'
-      + 'background:linear-gradient(135deg,rgba(0,229,255,.08),rgba(180,120,255,.08));'
-      + 'border:1.5px solid rgba(0,229,255,.2);'
-      + 'border-radius:16px;cursor:pointer;color:inherit;font-family:inherit;text-align:left;'
-      + 'transition:.2s;'
-      + '">'
-      + '<div style="font-size:36px;margin-bottom:8px">' + icon + '</div>'
-      + '<div style="font-size:13px;font-weight:900;color:var(--p1)">' + title + '</div>'
-      + '<div style="font-size:10.5px;color:var(--text-mute);margin-top:4px">' + desc + '</div>'
-      + '</button>';
-  }
-
-  /* ═══════════════════════════════════════════════════════════
      OPEN / CLOSE
      ═══════════════════════════════════════════════════════════ */
   function openSidebar(){
@@ -202,6 +116,61 @@
     var ov = document.getElementById("haldo-overlay");
     if(sb) sb.classList.remove("open");
     if(ov) ov.classList.remove("open");
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     APP-GRID (Kacheln)
+     ═══════════════════════════════════════════════════════════ */
+  function showAllAppsGrid(){
+    var content = document.getElementById("haldo-content");
+    if(!content) return;
+
+    var titleEl = document.getElementById("haldo-title");
+    if(titleEl) titleEl.textContent = "📱 Alle Apps";
+
+    var all = HalDo.Apps.listAll();
+    var installed = all.filter(function(a){ return a.installed; });
+    var byCat = HalDo.Apps.listByCategory();
+
+    var body = '<div class="card" style="background:linear-gradient(135deg,rgba(0,229,255,.1),rgba(180,120,255,.1))">'
+      + '<div style="font-size:20px;font-weight:900;color:var(--p1)">📱 Alle Apps</div>'
+      + '<div style="font-size:11.5px;color:var(--text-dim);margin-top:6px">'
+      + '<b style="color:#4ade80">' + installed.length + ' installiert</b> · ' + all.length + ' gesamt'
+      + '</div></div>';
+
+    var catOrder = ["kommunikation", "produktivitaet", "gesundheit", "lifestyle", "werkzeuge", "system"];
+    catOrder.forEach(function(catKey){
+      var cat = HalDo.Apps.categories[catKey];
+      var apps = byCat[catKey] ? byCat[catKey].filter(function(a){ return a.installed; }) : [];
+      if(!apps.length) return;
+      apps.sort(function(a, b){ return (a.name || "").localeCompare(b.name || "", "de"); });
+
+      body += '<div class="card"><h3 style="color:' + cat.color + '">' + cat.icon + ' ' + cat.name + ' <span style="font-size:10px;color:var(--text-mute)">(' + apps.length + ')</span></h3>'
+        + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px">';
+      apps.forEach(function(a){
+        body += '<button type="button" data-open-app="' + _esc(a.id) + '" style="padding:12px 8px;background:rgba(0,0,0,.2);border:1.5px solid ' + cat.color + '44;border-radius:12px;cursor:pointer;color:inherit;text-align:center;font-family:inherit;transition:.15s">'
+          + '<div style="font-size:26px">' + _esc(a.icon) + '</div>'
+          + '<div style="font-size:10.5px;font-weight:900;color:' + cat.color + ';margin-top:6px">' + _esc(a.name) + '</div>'
+          + '</button>';
+      });
+      body += '</div></div>';
+    });
+
+    content.innerHTML = body;
+    content.scrollTop = 0;
+    content.querySelectorAll("[data-open-app]").forEach(function(el){
+      el.addEventListener("click", function(e){
+        e.preventDefault();
+        HalDo.Apps.open(el.getAttribute("data-open-app"));
+      });
+    });
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     WELCOME (Kacheln Variante)
+     ═══════════════════════════════════════════════════════════ */
+  function showWelcome(){
+    showAllAppsGrid();
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -231,28 +200,41 @@
       if(e.key === "Escape") closeSidebar();
     });
 
-    /* Klick auf Titel → Sonnensystem als Default */
     var titleEl = document.getElementById("haldo-title");
     if(titleEl){
       titleEl.style.cursor = "pointer";
       titleEl.addEventListener("click", function(){
         if(window.HalDoDeskpane) HalDoDeskpane.closeAll();
-        if(HalDo.Apps.has("home")) HalDo.Apps.open("home");
-        else showWelcome();
+        var style = HalDo.Store.get("homeStyle", "solar");
+        if(style === "grid"){
+          showAllAppsGrid();
+        } else if(HalDo.Apps.has("home")){
+          HalDo.Apps.open("home");
+        } else {
+          showWelcome();
+        }
       });
     }
 
     renderSidebar();
 
     /* ═══════════════════════════════════════════════════════
-       WICHTIG: Direkt Sonnensystem als Home öffnen (statt Welcome-Grid!)
+       HOMESCREEN-AUSWAHL
        ═══════════════════════════════════════════════════════ */
     setTimeout(function(){
-      if(HalDo.Apps.has("home")){
-        /* Sonnensystem als Standard öffnen */
+      var style = HalDo.Store.get("homeStyle", "solar");
+
+      if(style === "solar" && HalDo.Apps.has("home")){
         HalDo.Apps.open("home");
+      } else if(style === "dashboard" && HalDo.Apps.has("home")){
+        HalDo.Apps.open("home");
+      } else if(style === "combined" && HalDo.Apps.has("home")){
+        HalDo.Apps.open("home");
+      } else if(style === "grid"){
+        showAllAppsGrid();
       } else {
-        showWelcome();
+        if(HalDo.Apps.has("home")) HalDo.Apps.open("home");
+        else showWelcome();
       }
     }, 300);
   }
@@ -262,7 +244,8 @@
     openSidebar: openSidebar,
     closeSidebar: closeSidebar,
     renderSidebar: renderSidebar,
-    welcome: showWelcome
+    welcome: showWelcome,
+    showAllApps: showAllAppsGrid
   };
 
   if(document.readyState === "loading"){
@@ -271,5 +254,5 @@
     setTimeout(init, 100);
   }
 
-  console.log("🦚 shell.js v162 geladen — Sonnensystem-Default aktiv");
+  console.log("🦚 shell.js v171 geladen — Homescreen-Auswahl aktiv");
 })();
