@@ -1,13 +1,17 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — APPS REGISTRY (v156)
-   Ultra-robust · Wartet auf Registrierungen · Fallback-System
+   HALDO AI OS — APPS REGISTRY (v160) · FUNDAMENT
+   Robuste Registrierung · Wartet auf Store · Manifest komplett
    ═══════════════════════════════════════════════════════════ */
 
 (function(){
   "use strict";
   if(!window.HalDo) window.HalDo = {};
 
+  /* ═══════════════════════════════════════════════════════════
+     MASTER-MANIFEST — Alle Apps die HalDo haben soll
+     ═══════════════════════════════════════════════════════════ */
   var MANIFEST = [
+    /* ▸ SYSTEM */
     { id: "home",           name: "Home",           icon: "🏠", desc: "Dashboard", category: "system" },
     { id: "settings",       name: "Einstellungen",  icon: "⚙️", desc: "Konfiguration", category: "system" },
     { id: "system-center",  name: "System-Center",  icon: "🖥️", desc: "Systemübersicht", category: "system" },
@@ -16,16 +20,19 @@
     { id: "recovery",       name: "Recovery",       icon: "🚑", desc: "Notfall-Modus", category: "system" },
     { id: "diagnostics",    name: "Diagnostics",    icon: "🩺", desc: "Diagnose", category: "system" },
     { id: "appstore",       name: "AppStore",       icon: "🏪", desc: "App-Verwaltung", category: "system" },
+    { id: "analytics",      name: "Analytics",      icon: "📊", desc: "Statistiken", category: "system" },
 
+    /* ▸ KOMMUNIKATION */
     { id: "chat",           name: "Chat",           icon: "💬", desc: "Nachrichten", category: "kommunikation" },
     { id: "ai",             name: "AI Chat",        icon: "🧠", desc: "KI-Assistent", category: "kommunikation" },
+    { id: "email",          name: "E-Mail",         icon: "📧", desc: "E-Mail-Client", category: "kommunikation" },
     { id: "posteingang",    name: "Posteingang",    icon: "📬", desc: "Nachrichten", category: "kommunikation" },
     { id: "kontakte",       name: "Kontakte",       icon: "👥", desc: "Adressbuch", category: "kommunikation" },
     { id: "aufnahme",       name: "Aufnahme",       icon: "🎙️", desc: "Sprachnotizen", category: "kommunikation" },
     { id: "phone",          name: "Phone",          icon: "📞", desc: "Telefon-UI", category: "kommunikation" },
     { id: "videocall",      name: "VideoCall",      icon: "📹", desc: "Videoanrufe", category: "kommunikation" },
-    { id: "email",          name: "E-Mail",         icon: "📧", desc: "E-Mail-Client", category: "kommunikation" },
 
+    /* ▸ PRODUKTIVITÄT */
     { id: "tasks",          name: "Aufgaben",       icon: "✅", desc: "To-Do Liste", category: "produktivitaet" },
     { id: "notes",          name: "Notizen",        icon: "📝", desc: "Textnotizen", category: "produktivitaet" },
     { id: "kalender",       name: "Kalender",       icon: "📅", desc: "Termine", category: "produktivitaet" },
@@ -35,11 +42,13 @@
     { id: "links",          name: "Links",          icon: "🔗", desc: "Bookmarks", category: "produktivitaet" },
     { id: "passwort",       name: "Passwort",       icon: "🔐", desc: "Passwort-Safe", category: "produktivitaet" },
 
+    /* ▸ GESUNDHEIT */
     { id: "fitness",        name: "Fitness",        icon: "💪", desc: "Training", category: "gesundheit" },
     { id: "gesundheit",     name: "Gesundheit",     icon: "🩺", desc: "Gesundheit", category: "gesundheit" },
     { id: "stimmung",       name: "Stimmung",       icon: "😊", desc: "Mood-Tracker", category: "gesundheit" },
     { id: "gewohnheiten",   name: "Gewohnheiten",   icon: "🔄", desc: "Habits", category: "gesundheit" },
 
+    /* ▸ LIFESTYLE */
     { id: "kueche",         name: "Küche",          icon: "🍳", desc: "Rezepte", category: "lifestyle" },
     { id: "zuhause",        name: "Zuhause",        icon: "🏡", desc: "Haushalt", category: "lifestyle" },
     { id: "finanzen",       name: "Finanzen",       icon: "💰", desc: "Budget", category: "lifestyle" },
@@ -50,6 +59,7 @@
     { id: "video",          name: "Video",          icon: "🎬", desc: "Videos", category: "lifestyle" },
     { id: "bild",           name: "Bild",           icon: "🎨", desc: "Bild-Bearbeitung", category: "lifestyle" },
 
+    /* ▸ WERKZEUGE */
     { id: "wetter",         name: "Wetter",         icon: "🌤️", desc: "Wetter", category: "werkzeuge" },
     { id: "rechner",        name: "Rechner",        icon: "🧮", desc: "Rechner", category: "werkzeuge" },
     { id: "timer",          name: "Timer",          icon: "⏱️", desc: "Timer", category: "werkzeuge" },
@@ -59,7 +69,7 @@
     { id: "notfall",        name: "Notfall",        icon: "🚨", desc: "Notfall", category: "werkzeuge" },
     { id: "bewertung",      name: "Bewertung",      icon: "⭐", desc: "Bewertungen", category: "werkzeuge" },
     { id: "spiele",         name: "Spiele",         icon: "🎮", desc: "Spiele", category: "werkzeuge" },
-    { id: "sprachen",       name: "Sprachen",       icon: "🌍", desc: "Sprachen & Übersetzung", category: "werkzeuge" }
+    { id: "sprachen",       name: "Sprachen",       icon: "🌍", desc: "Sprachen", category: "werkzeuge" }
   ];
 
   var CATEGORIES = {
@@ -79,16 +89,20 @@
 
   function prettify(id){ return id.charAt(0).toUpperCase() + id.slice(1); }
 
-  /* ROBUST: Wartet bis HalDo.Store existiert */
+  /* ═══════════════════════════════════════════════════════════
+     REGISTRIERUNG — robust, wartet auf Abhängigkeiten
+     ═══════════════════════════════════════════════════════════ */
+  var _pendingRegs = [];
+
   function register(id, config){
     if(!id || !config || typeof config.render !== "function"){
       console.warn("HalDoApp: ungültig", id);
       return;
     }
 
-    /* Sicherstellen, dass HalDo.Store existiert */
+    /* Wenn Store noch nicht bereit, in Queue */
     if(!HalDo.Store){
-      setTimeout(function(){ register(id, config); }, 50);
+      _pendingRegs.push({ id: id, config: config });
       return;
     }
 
@@ -108,13 +122,31 @@
     };
     if(ORDER.indexOf(id) === -1) ORDER.push(id);
 
-    /* Sidebar + Grid aktualisieren */
+    /* Shell informieren */
     if(HalDo.Shell && HalDo.Shell.renderSidebar){
       try { HalDo.Shell.renderSidebar(); } catch(e){}
     }
     window.dispatchEvent(new CustomEvent("haldo:appregistered", { detail: { id: id } }));
   }
 
+  /* Queue abarbeiten wenn Store verfügbar */
+  function flushQueue(){
+    if(!HalDo.Store) return;
+    if(!_pendingRegs.length) return;
+    var q = _pendingRegs.slice();
+    _pendingRegs = [];
+    q.forEach(function(item){ register(item.id, item.config); });
+  }
+
+  /* Watcher */
+  var flushTimer = setInterval(function(){
+    flushQueue();
+    if(!_pendingRegs.length) clearInterval(flushTimer);
+  }, 50);
+
+  /* ═══════════════════════════════════════════════════════════
+     LISTEN-FUNKTIONEN
+     ═══════════════════════════════════════════════════════════ */
   function listInstalled(includeHidden){
     return ORDER.map(function(id){ return REGISTRY[id]; })
       .filter(function(a){ return a && (includeHidden || !a.hidden); });
@@ -162,6 +194,9 @@
   function has(id){ return !!REGISTRY[id]; }
   function exists(id){ return !!MANIFEST_MAP[id]; }
 
+  /* ═══════════════════════════════════════════════════════════
+     ÖFFNEN — über Deskpane (falls vorhanden), sonst inline
+     ═══════════════════════════════════════════════════════════ */
   var currentApp = null;
 
   function open(id){
@@ -174,11 +209,24 @@
       }
       return;
     }
-    var content = document.getElementById("haldo-content");
-    if(!content) return;
+
+    /* App-Theme */
     if(window.HalDoTheme && HalDoTheme.applyForApp){
       HalDoTheme.applyForApp(id);
     }
+
+    /* Wenn Deskpane verfügbar → als Fenster öffnen */
+    if(window.HalDoDeskpane && HalDoDeskpane.open){
+      HalDoDeskpane.open(app);
+      currentApp = id;
+      try { localStorage.setItem("haldo:lastApp", id); } catch(e){}
+      window.dispatchEvent(new CustomEvent("haldo:appopen", { detail: { id: id } }));
+      return;
+    }
+
+    /* Fallback: inline (alte Methode) */
+    var content = document.getElementById("haldo-content");
+    if(!content) return;
     content.innerHTML = "";
     content.scrollTop = 0;
     var titleEl = document.getElementById("haldo-title");
@@ -198,6 +246,7 @@
       content.innerHTML = '<div class="card"><h3>❌ Fehler</h3>'
         + '<div style="font-size:12px;color:#ff8080;word-break:break-word">' + String(e.message || e) + '</div></div>';
     }
+
     var sb = document.getElementById("haldo-sidebar");
     var ov = document.getElementById("haldo-overlay");
     if(sb) sb.classList.remove("open");
@@ -217,5 +266,5 @@
 
   window.HalDoApp = register;
 
-  console.log("🦚 apps.js v156 geladen — " + MANIFEST.length + " Apps im Manifest");
+  console.log("🦚 apps.js v160 geladen — " + MANIFEST.length + " Apps im Manifest");
 })();
