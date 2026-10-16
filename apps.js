@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — APPS REGISTRY (v154)
-   Manifest · Registry · Farben · Kategorien
+   HALDO AI OS — APPS REGISTRY (v155)
+   Robuste Registrierung · Fallback wenn HalDo.Apps fehlt
    ═══════════════════════════════════════════════════════════ */
 
 (function(){
@@ -8,7 +8,6 @@
   if(!window.HalDo) window.HalDo = {};
 
   var MANIFEST = [
-    /* ▸ SYSTEM */
     { id: "home",           name: "Home",           icon: "🏠", desc: "Dashboard", category: "system" },
     { id: "settings",       name: "Einstellungen",  icon: "⚙️", desc: "Konfiguration", category: "system" },
     { id: "system-center",  name: "System-Center",  icon: "🖥️", desc: "Systemübersicht", category: "system" },
@@ -16,15 +15,16 @@
     { id: "backup",         name: "Backup",         icon: "💾", desc: "Sichern", category: "system" },
     { id: "recovery",       name: "Recovery",       icon: "🚑", desc: "Notfall-Modus", category: "system" },
     { id: "diagnostics",    name: "Diagnostics",    icon: "🩺", desc: "Diagnose", category: "system" },
+    { id: "appstore",       name: "AppStore",       icon: "🏪", desc: "App-Verwaltung", category: "system" },
 
-    /* ▸ KOMMUNIKATION */
     { id: "chat",           name: "Chat",           icon: "💬", desc: "Nachrichten", category: "kommunikation" },
     { id: "ai",             name: "AI Chat",        icon: "🧠", desc: "KI-Assistent", category: "kommunikation" },
     { id: "posteingang",    name: "Posteingang",    icon: "📬", desc: "Nachrichten", category: "kommunikation" },
     { id: "kontakte",       name: "Kontakte",       icon: "👥", desc: "Adressbuch", category: "kommunikation" },
     { id: "aufnahme",       name: "Aufnahme",       icon: "🎙️", desc: "Sprachnotizen", category: "kommunikation" },
+    { id: "phone",          name: "Phone",          icon: "📞", desc: "Telefon-UI", category: "kommunikation" },
+    { id: "videocall",      name: "VideoCall",      icon: "📹", desc: "Videoanrufe", category: "kommunikation" },
 
-    /* ▸ PRODUKTIVITÄT */
     { id: "tasks",          name: "Aufgaben",       icon: "✅", desc: "To-Do Liste", category: "produktivitaet" },
     { id: "notes",          name: "Notizen",        icon: "📝", desc: "Textnotizen", category: "produktivitaet" },
     { id: "kalender",       name: "Kalender",       icon: "📅", desc: "Termine", category: "produktivitaet" },
@@ -34,13 +34,11 @@
     { id: "links",          name: "Links",          icon: "🔗", desc: "Bookmarks", category: "produktivitaet" },
     { id: "passwort",       name: "Passwort",       icon: "🔐", desc: "Passwort-Safe", category: "produktivitaet" },
 
-    /* ▸ GESUNDHEIT */
-    { id: "fitness",        name: "Fitness",        icon: "💪", desc: "Training · BMI", category: "gesundheit" },
+    { id: "fitness",        name: "Fitness",        icon: "💪", desc: "Training", category: "gesundheit" },
     { id: "gesundheit",     name: "Gesundheit",     icon: "🩺", desc: "Gesundheit", category: "gesundheit" },
     { id: "stimmung",       name: "Stimmung",       icon: "😊", desc: "Mood-Tracker", category: "gesundheit" },
     { id: "gewohnheiten",   name: "Gewohnheiten",   icon: "🔄", desc: "Habits", category: "gesundheit" },
 
-    /* ▸ LIFESTYLE */
     { id: "kueche",         name: "Küche",          icon: "🍳", desc: "Rezepte", category: "lifestyle" },
     { id: "zuhause",        name: "Zuhause",        icon: "🏡", desc: "Haushalt", category: "lifestyle" },
     { id: "finanzen",       name: "Finanzen",       icon: "💰", desc: "Budget", category: "lifestyle" },
@@ -48,8 +46,9 @@
     { id: "auto",           name: "Auto",           icon: "🚗", desc: "Fahrzeuge", category: "lifestyle" },
     { id: "musik",          name: "Musik",          icon: "🎵", desc: "Musik", category: "lifestyle" },
     { id: "photos",         name: "Fotos",          icon: "📸", desc: "Fotos", category: "lifestyle" },
+    { id: "video",          name: "Video",          icon: "🎬", desc: "Videos", category: "lifestyle" },
+    { id: "bild",           name: "Bild",           icon: "🎨", desc: "Bild-Bearbeitung", category: "lifestyle" },
 
-    /* ▸ WERKZEUGE */
     { id: "wetter",         name: "Wetter",         icon: "🌤️", desc: "Wetter", category: "werkzeuge" },
     { id: "rechner",        name: "Rechner",        icon: "🧮", desc: "Rechner", category: "werkzeuge" },
     { id: "timer",          name: "Timer",          icon: "⏱️", desc: "Timer", category: "werkzeuge" },
@@ -61,7 +60,6 @@
     { id: "spiele",         name: "Spiele",         icon: "🎮", desc: "Spiele", category: "werkzeuge" }
   ];
 
-  /* KATEGORIEN mit Farben für Planeten */
   var CATEGORIES = {
     system:          { name: "System",          icon: "⚙️", color: "#00e5ff", planet: "#4da8ff", size: 60 },
     kommunikation:   { name: "Kommunikation",   icon: "💬", color: "#fbbf24", planet: "#f59e0b", size: 70 },
@@ -197,8 +195,7 @@
   function current(){ return currentApp; }
 
   HalDo.Apps = {
-    register: register,
-    open: open,
+    register: register, open: open,
     get: get, has: has, exists: exists, current: current,
     list: listInstalled, listInstalled: listInstalled,
     listAll: listAll, listByCategory: listByCategory,
@@ -208,5 +205,5 @@
 
   window.HalDoApp = register;
 
-  console.log("🦚 apps.js v154 geladen — " + MANIFEST.length + " Apps im Manifest");
+  console.log("🦚 apps.js v155 geladen — " + MANIFEST.length + " Apps im Manifest");
 })();
