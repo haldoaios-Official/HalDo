@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — SHELL (v154)
-   Sidebar · Menü · Navigation
+   HALDO AI OS — SHELL (v160)
+   Sidebar (ALLE Apps) · Welcome · App-Grid
    ═══════════════════════════════════════════════════════════ */
 
 (function(){
@@ -14,7 +14,7 @@
   }
 
   /* ═══════════════════════════════════════════════════════════
-     SIDEBAR
+     SIDEBAR — ALLE APPS nach Kategorie
      ═══════════════════════════════════════════════════════════ */
   function renderSidebar(){
     var sb = document.getElementById("haldo-sidebar");
@@ -23,51 +23,44 @@
     var installed = HalDo.Apps.listInstalled();
     var all = HalDo.Apps.listAll();
     var current = HalDo.Apps.current();
-    var missing = all.length - installed.length;
+    var byCat = HalDo.Apps.listByCategory();
 
-    var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.08)">'
+    var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.08)">'
       + '<div>'
       + '<div style="font-size:17px;font-weight:900;color:var(--p1)">🦚 HalDo AI OS</div>'
-      + '<div style="font-size:10px;color:var(--text-mute);margin-top:2px">' + installed.length + ' installiert' + (missing ? ' · ' + missing + ' geplant' : '') + '</div>'
+      + '<div style="font-size:10px;color:var(--text-mute);margin-top:2px">' + installed.length + ' / ' + all.length + ' Apps</div>'
       + '</div>'
       + '<button id="haldoCloseSb" style="background:rgba(0,0,0,.3);border:none;color:var(--text-dim);width:32px;height:32px;border-radius:10px;cursor:pointer;font-size:14px">✕</button>'
       + '</div>';
 
-    /* ▸ HOME */
-    html += sidebarLink({ id: "home", name: "Home", icon: "🏠", category: "system" }, current, true);
+    /* ▸ Schnellzugriff: Home + Einstellungen */
+    html += '<div style="font-size:10px;color:var(--text-mute);font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:0 0 6px 4px">Schnellzugriff</div>';
+    html += sidebarLink({ id: "home", name: "Home", icon: "🏠" }, current);
+    html += sidebarLink({ id: "settings", name: "Einstellungen", icon: "⚙️" }, current);
 
-    /* ▸ EINSTELLUNGEN (SEPARAT) */
-    html += '<div style="font-size:10px;color:var(--text-mute);font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:14px 0 6px 4px">⚙️ Einstellungen</div>';
-    ["settings", "theme-hidden", "system-center", "backup", "recovery", "diagnostics", "update"].forEach(function(id){
-      var a = HalDo.Apps.get(id);
-      if(a) html += sidebarLink(a, current);
-    });
-
-    /* ▸ APP-KATEGORIEN */
-    var byCat = HalDo.Apps.listByCategory();
-    var catKeys = Object.keys(HalDo.Apps.categories).filter(function(k){ return k !== "app"; });
-
-    catKeys.forEach(function(catKey){
+    /* ▸ Alle Kategorien (inkl. System) */
+    Object.keys(HalDo.Apps.categories).forEach(function(catKey){
+      if(catKey === "app") return;
       var cat = HalDo.Apps.categories[catKey];
-      var apps = byCat[catKey] ? byCat[catKey].filter(function(a){ return a.installed && a.category === catKey; }) : [];
-      /* Ohne system (oben schon) */
-      apps = apps.filter(function(a){ return a.category !== "system"; });
+      var apps = byCat[catKey] ? byCat[catKey].filter(function(a){ return a.installed; }) : [];
+      /* Bei system: Home + Settings raus (schon oben) */
+      if(catKey === "system"){
+        apps = apps.filter(function(a){ return a.id !== "home" && a.id !== "settings"; });
+      }
       if(!apps.length) return;
 
-      html += '<div style="font-size:10px;color:' + cat.color + ';font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:14px 0 6px 4px">' + cat.icon + ' ' + cat.name + '</div>';
+      html += '<div style="font-size:10px;color:' + cat.color + ';font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:14px 0 6px 4px">' + cat.icon + ' ' + cat.name + ' <span style="color:var(--text-mute);font-weight:600">(' + apps.length + ')</span></div>';
       apps.forEach(function(a){
         html += sidebarLink(a, current);
       });
     });
 
-    /* ▸ FOOTER */
     html += '<div style="margin-top:20px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08);text-align:center;font-size:10px;color:var(--text-mute)">'
-      + 'v154 · ' + installed.length + '/' + all.length + ' Apps'
+      + '🦚 HalDo AI OS v160'
       + '</div>';
 
     sb.innerHTML = html;
 
-    /* Events */
     var cb = sb.querySelector("#haldoCloseSb");
     if(cb) cb.addEventListener("click", closeSidebar);
 
@@ -79,18 +72,17 @@
     });
   }
 
-  function sidebarLink(a, current, isHome){
+  function sidebarLink(a, current){
     var isActive = a.id === current;
     return '<button data-app-open="' + _esc(a.id) + '" style="'
-      + 'width:100%;padding:10px 12px;'
+      + 'width:100%;padding:9px 12px;'
       + 'background:' + (isActive ? "linear-gradient(135deg,rgba(0,229,255,.15),rgba(180,120,255,.15))" : "transparent") + ';'
       + 'border:' + (isActive ? "1px solid var(--p1)" : "1px solid transparent") + ';'
       + 'border-radius:10px;cursor:pointer;text-align:left;'
       + 'display:flex;align-items:center;gap:10px;color:inherit;font-family:inherit;'
       + 'margin-bottom:2px;transition:.15s">'
-      + '<span style="font-size:17px">' + _esc(a.icon) + '</span>'
-      + '<span style="font-size:12.5px;font-weight:' + (isActive ? "900" : "700") + ';color:' + (isActive ? "var(--p1)" : "var(--text-dim)") + ';flex:1">' + _esc(a.name) + '</span>'
-      + (isActive ? '<span style="font-size:10px;color:var(--p1)">●</span>' : '')
+      + '<span style="font-size:16px">' + _esc(a.icon) + '</span>'
+      + '<span style="font-size:12.5px;font-weight:' + (isActive ? "900" : "700") + ';color:' + (isActive ? "var(--p1)" : "var(--text-dim)") + ';flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(a.name) + '</span>'
       + '</button>';
   }
 
@@ -110,44 +102,36 @@
   }
 
   /* ═══════════════════════════════════════════════════════════
-     APP-GRID (alle Apps)
+     WELCOME / HOME
      ═══════════════════════════════════════════════════════════ */
-  function showAllApps(){
+  function showWelcome(){
     var content = document.getElementById("haldo-content");
     if(!content) return;
-
-    if(window.HalDoTheme && HalDoTheme.apply){
-      HalDoTheme.apply(HalDoTheme.get(), { silent: true });
-    }
-
-    var titleEl = document.getElementById("haldo-title");
-    if(titleEl) titleEl.textContent = "📱 Alle Apps";
+    if(HalDo.Apps.current()) return;
 
     var all = HalDo.Apps.listAll();
     var installed = all.filter(function(a){ return a.installed; });
-    var missing = all.filter(function(a){ return !a.installed; });
     var byCat = HalDo.Apps.listByCategory();
+    var titleEl = document.getElementById("haldo-title");
+    if(titleEl) titleEl.textContent = "🦚 HalDo AI OS";
 
-    var body = '<div class="card" style="background:linear-gradient(135deg,rgba(0,229,255,.1),rgba(180,120,255,.1))">'
-      + '<div style="font-size:20px;font-weight:900;color:var(--p1)">📱 Alle Apps</div>'
-      + '<div style="font-size:11.5px;color:var(--text-dim);margin-top:6px">'
-      + '<b style="color:#4ade80">' + installed.length + ' installiert</b>'
-      + (missing.length ? ' · <b style="color:#fbbf24">' + missing.length + ' geplant</b>' : '')
-      + ' · ' + all.length + ' gesamt'
-      + '</div></div>';
+    var body = '<div class="card" style="background:linear-gradient(135deg,rgba(0,229,255,.12),rgba(180,120,255,.12));text-align:center">'
+      + '<div style="font-size:56px">🦚</div>'
+      + '<div style="font-size:20px;font-weight:900;color:var(--p1);margin-top:8px">Willkommen bei HalDo!</div>'
+      + '<div style="font-size:12px;color:var(--text-dim);margin-top:6px">' + installed.length + ' / ' + all.length + ' Apps installiert</div>'
+      + '</div>';
 
     Object.keys(HalDo.Apps.categories).forEach(function(catKey){
       var cat = HalDo.Apps.categories[catKey];
       var apps = byCat[catKey] ? byCat[catKey].filter(function(a){ return a.installed; }) : [];
       if(!apps.length) return;
 
-      body += '<div class="card"><h3 style="color:' + cat.color + '">' + cat.icon + ' ' + cat.name + ' <span style="font-size:10px;color:var(--text-mute);font-weight:700">(' + apps.length + ')</span></h3>';
-      body += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+      body += '<div class="card"><h3 style="color:' + cat.color + '">' + cat.icon + ' ' + cat.name + ' <span style="font-size:10px;color:var(--text-mute)">(' + apps.length + ')</span></h3>'
+        + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px">';
       apps.forEach(function(a){
-        body += '<button data-appopen="' + _esc(a.id) + '" style="padding:14px 12px;background:rgba(0,0,0,.2);border:1.5px solid ' + cat.color + '44;border-radius:12px;cursor:pointer;color:inherit;text-align:left;font-family:inherit">'
-          + '<div style="font-size:26px;margin-bottom:6px">' + _esc(a.icon) + '</div>'
-          + '<div style="font-size:12px;font-weight:900;color:' + cat.color + '">' + _esc(a.name) + '</div>'
-          + '<div style="font-size:9.5px;color:var(--text-mute);margin-top:2px">' + _esc(a.desc) + '</div>'
+        body += '<button data-appopen="' + _esc(a.id) + '" style="padding:12px 8px;background:rgba(0,0,0,.2);border:1.5px solid ' + cat.color + '44;border-radius:12px;cursor:pointer;color:inherit;text-align:center;font-family:inherit;transition:.15s">'
+          + '<div style="font-size:26px">' + _esc(a.icon) + '</div>'
+          + '<div style="font-size:10.5px;font-weight:900;color:' + cat.color + ';margin-top:6px">' + _esc(a.name) + '</div>'
           + '</button>';
       });
       body += '</div></div>';
@@ -155,11 +139,8 @@
 
     content.innerHTML = body;
     content.scrollTop = 0;
-
     content.querySelectorAll("[data-appopen]").forEach(function(el){
-      el.addEventListener("click", function(){
-        HalDo.Apps.open(el.dataset.appopen);
-      });
+      el.addEventListener("click", function(){ HalDo.Apps.open(el.dataset.appopen); });
     });
   }
 
@@ -183,25 +164,8 @@
       if(e.key === "Escape") closeSidebar();
     });
 
-    var titleEl = document.getElementById("haldo-title");
-    if(titleEl){
-      titleEl.style.cursor = "pointer";
-      titleEl.addEventListener("click", showAllApps);
-    }
-
     renderSidebar();
-
-    /* Letzte App oder Home */
-    var last = null;
-    try { last = localStorage.getItem("haldo:lastApp"); } catch(e){}
-
-    if(last && HalDo.Apps.has(last) && last !== "home"){
-      HalDo.Apps.open(last);
-    } else if(HalDo.Apps.has("home")){
-      HalDo.Apps.open("home");
-    } else {
-      showAllApps();
-    }
+    showWelcome();
   }
 
   HalDo.Shell = {
@@ -209,8 +173,7 @@
     openSidebar: openSidebar,
     closeSidebar: closeSidebar,
     renderSidebar: renderSidebar,
-    showAllApps: showAllApps,
-    welcome: showAllApps
+    welcome: showWelcome
   };
 
   if(document.readyState === "loading"){
@@ -219,5 +182,5 @@
     setTimeout(init, 100);
   }
 
-  console.log("🦚 shell.js v154 geladen");
+  console.log("🦚 shell.js v160 geladen");
 })();
