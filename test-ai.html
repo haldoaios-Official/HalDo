@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>HalDo AI Test</title>
+<style>
+  body { background: #050810; color: #e8ecff; font-family: system-ui, sans-serif; padding: 20px; line-height: 1.6; max-width: 900px; margin: 0 auto; }
+  h1 { color: #00e5ff; }
+  .test-box { background: rgba(0,0,0,.3); padding: 16px; border-radius: 12px; border: 1px solid rgba(0,229,255,.3); margin: 12px 0; }
+  .test-box h3 { color: #b478ff; margin-bottom: 10px; font-size: 14px; }
+  button { background: linear-gradient(135deg, #00e5ff, #b478ff); border: none; padding: 10px 16px; border-radius: 8px; color: #000; font-weight: 900; cursor: pointer; font-size: 12px; margin-right: 6px; margin-bottom: 6px; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  input, textarea { padding: 10px; border-radius: 8px; border: 1px solid rgba(0,229,255,.3); background: rgba(0,0,0,.3); color: #e8ecff; font-size: 13px; width: 100%; box-sizing: border-box; font-family: inherit; }
+  .result { background: rgba(0,229,255,.08); padding: 12px; border-radius: 8px; margin-top: 10px; font-family: monospace; font-size: 12px; white-space: pre-wrap; max-height: 300px; overflow-y: auto; border-left: 3px solid #00e5ff; }
+  #status { color: #fbbf24; font-weight: 800; }
+</style>
+</head>
+<body>
+
+<h1>🧠 HalDo AI Service Test</h1>
+<p>Status: <span id="status">Bereit</span></p>
+
+<div class="test-box">
+  <h3>1. KI laden (einmalig ~40s)</h3>
+  <button id="btnInit">🚀 KI laden</button>
+  <div id="initResult" class="result" style="display:none"></div>
+</div>
+
+<div class="test-box">
+  <h3>2. Songtext generieren 🎵</h3>
+  <input type="text" id="lyricTheme" value="Liebe und Heimweh" placeholder="Thema">
+  <button id="btnLyrics" style="margin-top: 8px;">✨ Songtext</button>
+  <div id="lyricsResult" class="result" style="display:none"></div>
+</div>
+
+<div class="test-box">
+  <h3>3. Übersetzen 🌍</h3>
+  <input type="text" id="transText" value="Guten Morgen, wie geht es dir?" placeholder="Text">
+  <input type="text" id="transLang" value="Kurdisch (Kurmanji)" style="margin-top: 6px;" placeholder="Zielsprache">
+  <button id="btnTranslate" style="margin-top: 8px;">🌐 Übersetzen</button>
+  <div id="translateResult" class="result" style="display:none"></div>
+</div>
+
+<div class="test-box">
+  <h3>4. Ideen generieren 💡</h3>
+  <input type="text" id="ideaTopic" value="Eine App für Kinder" placeholder="Thema">
+  <button id="btnIdeas" style="margin-top: 8px;">💡 5 Ideen</button>
+  <div id="ideasResult" class="result" style="display:none"></div>
+</div>
+
+<div class="test-box">
+  <h3>5. Zusammenfassen 📝</h3>
+  <textarea id="sumText" rows="3" placeholder="Text zum Zusammenfassen...">HalDo AI OS ist ein lokales Betriebssystem im Browser. Es läuft komplett offline, ohne API-Keys. Die KI ist im Browser integriert und kann für viele Aufgaben genutzt werden.</textarea>
+  <button id="btnSum" style="margin-top: 8px;">📝 Zusammenfassen</button>
+  <div id="sumResult" class="result" style="display:none"></div>
+</div>
+
+<!-- Scripts laden -->
+<script src="runtime.js"></script>
+<script src="store.js"></script>
+<script src="notify.js"></script>
+<script src="ai-engine.js"></script>
+<script src="haldo-ai.js"></script>
+
+<script>
+var status = document.getElementById("status");
+
+window.addEventListener("haldo:ai-progress", function(e){
+  status.textContent = "Lade: " + e.detail.progress + "%";
+});
+
+document.getElementById("btnInit").addEventListener("click", async function(){
+  this.disabled = true;
+  status.textContent = "Lade KI...";
+  try {
+    await HalDo.AI.init();
+    status.textContent = "✅ KI bereit!";
+    document.getElementById("initResult").style.display = "block";
+    document.getElementById("initResult").textContent = "Modell: " + HalDo.AIEngine.getCurrentModel();
+  } catch(e){
+    status.textContent = "❌ " + e.message;
+  }
+  this.disabled = false;
+});
+
+async function run(btnId, resultId, fn){
+  var btn = document.getElementById(btnId);
+  var res = document.getElementById(resultId);
+  btn.disabled = true;
+  res.style.display = "block";
+  res.textContent = "⏳ Generiere...";
+  try {
+    var out = await fn();
+    res.textContent = out;
+  } catch(e){
+    res.textContent = "❌ " + e.message;
+  }
+  btn.disabled = false;
+}
+
+document.getElementById("btnLyrics").addEventListener("click", function(){
+  var theme = document.getElementById("lyricTheme").value;
+  run("btnLyrics", "lyricsResult", function(){ return HalDo.AI.writeLyrics(theme, "Deutsch", "Pop", "nachdenklich"); });
+});
+
+document.getElementById("btnTranslate").addEventListener("click", function(){
+  var txt = document.getElementById("transText").value;
+  var lang = document.getElementById("transLang").value;
+  run("btnTranslate", "translateResult", function(){ return HalDo.AI.translate(txt, lang); });
+});
+
+document.getElementById("btnIdeas").addEventListener("click", function(){
+  var topic = document.getElementById("ideaTopic").value;
+  run("btnIdeas", "ideasResult", function(){ return HalDo.AI.generateIdeas(topic); });
+});
+
+document.getElementById("btnSum").addEventListener("click", function(){
+  var txt = document.getElementById("sumText").value;
+  run("btnSum", "sumResult", function(){ return HalDo.AI.summarize(txt); });
+});
+</script>
+
+</body>
+</html>
