@@ -1,73 +1,38 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — AI ENGINE (v201) · STABLE LOCAL BRAIN
-   WebLLM · Auto-Fallback · Intel iGPU safe · Keine API-Keys
+   HALDO AI OS — AI ENGINE (v202) · WASM/CPU FALLBACK
+   WebLLM (GPU) → wllama (CPU) · Automatischer Wechsel
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
   if(!window.HalDo) window.HalDo = {};
 
   /* ═══════════════════════════════════════════════════════════
-     MODELLE — Sortiert von KLEIN nach GROSS
-     Auto-Fallback: Wenn eins crasht → nächstkleineres
+     MODELL-KONFIGURATION
      ═══════════════════════════════════════════════════════════ */
   var MODELS = {
-    /* 🟢 TIER 1 — IMMER stabil (auch auf schwachen iGPUs) */
-    "SmolLM2-135M-Instruct-q0f16-MLC": {
-      name: "SmolLM2 135M",
-      desc: "Ultra-klein · läuft überall",
-      size: "~271 MB",
-      vram: "~300 MB",
-      tier: 1,
-      speed: "⚡⚡⚡⚡"
-    },
-    "SmolLM2-360M-Instruct-q4f16_1-MLC": {
-      name: "SmolLM2 360M",
-      desc: "Sehr klein · schnell",
-      size: "~400 MB",
-      vram: "~450 MB",
-      tier: 1,
-      speed: "⚡⚡⚡⚡"
-    },
+    /* GPU-Modelle (WebLLM) */
     "Qwen2.5-0.5B-Instruct-q4f16_1-MLC": {
-      name: "Qwen 2.5 0.5B",
-      desc: "Beste Balance · Standard",
+      name: "Qwen 2.5 0.5B (GPU)",
+      desc: "Schnell, aber braucht eine kompatible GPU",
       size: "~278 MB",
       vram: "~945 MB",
-      tier: 1,
+      type: "gpu",
       speed: "⚡⚡⚡"
     },
-
-    /* 🟡 TIER 2 — Mittel (braucht ~1-1.5 GB VRAM) */
-    "Llama-3.2-1B-Instruct-q4f16_1-MLC": {
-      name: "Llama 3.2 1B",
-      desc: "Gute Qualität · mittlere Hardware",
-      size: "~700 MB",
-      vram: "~880 MB",
-      tier: 2,
-      speed: "⚡⚡"
-    },
-
-    /* 🔴 TIER 3 — Groß (NUR für starke GPUs!) */
-    "Llama-3.2-3B-Instruct-q4f16_1-MLC": {
-      name: "Llama 3.2 3B",
-      desc: "Beste Qualität · braucht starke GPU",
-      size: "~2 GB",
-      vram: "~2.5 GB",
-      tier: 3,
+    /* CPU-Modelle (wllama) */
+    "Qwen2.5-0.5B-Instruct-GGUF": {
+      name: "Qwen 2.5 0.5B (CPU)",
+      desc: "Zuverlässig auf jedem Computer, auch ohne GPU",
+      size: "~400 MB",
+      ram: "~1-2 GB",
+      type: "cpu",
+      url: "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf",
       speed: "⚡"
     }
   };
 
-  /* ═══════════════════════════════════════════════════════════
-     AUTO-FALLBACK-KETTE (klein → groß)
-     ═══════════════════════════════════════════════════════════ */
-  var FALLBACK_CHAIN = [
-    "Qwen2.5-0.5B-Instruct-q4f16_1-MLC",       /* Standard */
-    "SmolLM2-360M-Instruct-q4f16_1-MLC",       /* Klein */
-    "SmolLM2-135M-Instruct-q0f16-MLC"          /* Ultra-klein */
-  ];
-
   var engine = null;
+  var engineType = null; // "gpu" oder "cpu"
   var isInitializing = false;
   var initPromise = null;
   var currentModelId = null;
@@ -76,198 +41,212 @@
      WEBGPU CHECK
      ═══════════════════════════════════════════════════════════ */
   function checkWebGPU(){
-    if(!navigator.gpu){
-      return { ok: false, reason: "WebGPU nicht verfügbar. Nutze Chrome/Edge 113+ oder Safari 26+" };
-    }
-    return { ok: true };
+    if(!navigator.gpu){ return false; }
+    return true;
   }
 
   /* ═══════════════════════════════════════════════════════════
-     CDN-LOADER
+     WEBLLM (GPU) — LADEN UND INITIALISIEREN
      ═══════════════════════════════════════════════════════════ */
   function loadWebLLM(){
     return new Promise(function(resolve, reject){
       if(window.webllm){ resolve(window.webllm); return; }
       import("https://esm.run/@mlc-ai/web-llm@0.2.82")
-        .then(function(module){
-          window.webllm = module;
-          console.log("✅ WebLLM-Modul geladen");
-          resolve(module);
-        })
-        .catch(function(err){
-          console.error("❌ WebLLM Import fehlgeschlagen:", err);
-          reject(new Error("WebLLM konnte nicht geladen werden."));
-        });
+        .then(function(module){ window.webllm = module; resolve(module); })
+        .catch(reject);
     });
   }
 
+  async function initWebLLM(modelId){
+    var webllm = await loadWebLLM();
+    var progressCallback = function(report){
+      var pct = Math.round((report.progress || 0) * 100);
+      window.dispatchEvent(new CustomEvent("haldo:ai-progress", {
+        detail: { progress: pct, text: report.text, engine: "gpu" }
+      }));
+    };
+    engine = await webllm.CreateMLCEngine(modelId, { initProgressCallback: progressCallback });
+    engineType = "gpu";
+    currentModelId = modelId;
+    return engine;
+  }
+
   /* ═══════════════════════════════════════════════════════════
-     INIT MIT AUTO-FALLBACK
+     WLLAMA (CPU) — LADEN UND INITIALISIEREN
+     ═══════════════════════════════════════════════════════════ */
+  function loadWllama(){
+    return new Promise(function(resolve, reject){
+      if(window.Wllama){ resolve(window.Wllama); return; }
+      // Lade wllama über CDN (ESM)
+      import("https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.0/esm/index.js")
+        .then(function(module){
+          window.Wllama = module.Wllama;
+          resolve(module.Wllama);
+        })
+        .catch(reject);
+    });
+  }
+
+  async function initWllama(modelId){
+    var Wllama = await loadWllama();
+    var modelInfo = MODELS[modelId];
+    if(!modelInfo || !modelInfo.url) throw new Error("Ungültiges CPU-Modell");
+
+    // wllama initialisieren (Single-Thread für maximale Stabilität)
+    var wllama = new Wllama({
+      "single-thread/wllama.wasm": "https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.0/wasm/single-thread/wllama.wasm"
+    });
+
+    // Modell von URL laden
+    await wllama.loadModelFromUrl(modelInfo.url, {
+      n_ctx: 2048, // Kontextgröße
+      progressCallback: function(p){
+        var pct = Math.round((p.loaded / p.total) * 100);
+        window.dispatchEvent(new CustomEvent("haldo:ai-progress", {
+          detail: { progress: pct, text: "Lade Modell...", engine: "cpu" }
+        }));
+      }
+    });
+
+    engine = wllama;
+    engineType = "cpu";
+    currentModelId = modelId;
+    return engine;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     HAUPT-INITIALISIERUNG (mit automatischem Fallback)
      ═══════════════════════════════════════════════════════════ */
   async function initEngine(preferredModel){
-    /* Wenn schon geladen → return */
-    if(engine && currentModelId === preferredModel){
-      return engine;
-    }
-
-    /* Wenn läuft → warte */
-    if(isInitializing && initPromise){
-      return initPromise;
-    }
+    if(engine) return engine;
+    if(isInitializing && initPromise) return initPromise;
 
     isInitializing = true;
-    var gpuCheck = checkWebGPU();
-    if(!gpuCheck.ok){
-      isInitializing = false;
-      throw new Error(gpuCheck.reason);
-    }
 
     initPromise = (async function(){
-      var webllm = await loadWebLLM();
-
-      /* Modell-Reihenfolge bestimmen */
-      var tryOrder = [];
-      if(preferredModel && MODELS[preferredModel]){
-        tryOrder.push(preferredModel);
-      }
-      /* Restliche Fallbacks hinzufügen (falls nicht schon drin) */
-      FALLBACK_CHAIN.forEach(function(m){
-        if(tryOrder.indexOf(m) === -1) tryOrder.push(m);
-      });
-
       var lastError = null;
 
-      /* Durch alle Modelle probieren */
-      for(var i = 0; i < tryOrder.length; i++){
-        var model = tryOrder[i];
-        console.log("🧠 Versuche Modell (" + (i + 1) + "/" + tryOrder.length + "): " + model);
-
-        if(HalDo.Notify){
-          HalDo.Notify.info("🧠 Lade " + (MODELS[model] ? MODELS[model].name : model) + "...", { app: "ai", duration: 5000 });
-        }
-
+      // 1. Versuch: WebGPU (wenn verfügbar und nicht explizit deaktiviert)
+      if(checkWebGPU() && !window.HalDo.Store.get("forceWasm", false)){
         try {
-          var progressCallback = function(report){
-            var pct = Math.round((report.progress || 0) * 100);
-            console.log("🧠 KI: " + pct + "% — " + (report.text || "Lade...").substring(0, 70));
-            window.dispatchEvent(new CustomEvent("haldo:ai-progress", {
-              detail: { progress: pct, text: report.text, model: model }
-            }));
-          };
-
-          /* Engine erstellen */
-          engine = await webllm.CreateMLCEngine(model, {
-            initProgressCallback: progressCallback
-          });
-
-          currentModelId = model;
-          HalDo.Store.set("aiModel", model);
-          console.log("✅ KI-Modell '" + model + "' geladen und bereit!");
-          if(HalDo.Notify){
-            HalDo.Notify.success("🧠 KI bereit: " + (MODELS[model] ? MODELS[model].name : model), { app: "ai", duration: 3000 });
-          }
-
+          console.log("🧠 Versuche WebGPU (schnell)...");
+          await initWebLLM(preferredModel || "Qwen2.5-0.5B-Instruct-q4f16_1-MLC");
+          console.log("✅ WebGPU-Modell geladen!");
+          if(HalDo.Notify) HalDo.Notify.success("🧠 KI (GPU) bereit!", { app: "ai" });
           isInitializing = false;
           return engine;
-
-        } catch(error){
-          lastError = error;
-          console.warn("⚠️ Modell '" + model + "' fehlgeschlagen:", error.message || error);
-          console.log("🔄 Fallback auf nächstkleineres Modell...");
-
-          /* Engine zurücksetzen für nächsten Versuch */
-          engine = null;
-          currentModelId = null;
-
-          /* Kurz warten vor nächstem Versuch */
-          await new Promise(function(r){ setTimeout(r, 1000); });
+        } catch(e) {
+          lastError = e;
+          console.warn("⚠️ WebGPU fehlgeschlagen:", e.message);
+          console.log("🔄 Wechsle zu CPU-Fallback (WASM)...");
+          engine = null; engineType = null; currentModelId = null;
         }
       }
 
-      /* Alle Modelle fehlgeschlagen */
-      isInitializing = false;
-      engine = null;
-      var errMsg = "Alle KI-Modelle fehlgeschlagen. " + (lastError ? lastError.message : "");
-      if(HalDo.Notify){
-        HalDo.Notify.error("❌ Kein Modell konnte geladen werden. Versuche Chrome zu aktualisieren.", { app: "ai", duration: 8000 });
+      // 2. Versuch: WASM/CPU (wllama)
+      try {
+        console.log("🧠 Lade CPU-Modell (WASM)... Das kann einen Moment dauern.");
+        if(HalDo.Notify) HalDo.Notify.info("🧠 Lade CPU-Modell (kann etwas dauern)...", { app: "ai", duration: 10000 });
+        await initWllama("Qwen2.5-0.5B-Instruct-GGUF");
+        console.log("✅ CPU-Modell geladen!");
+        if(HalDo.Notify) HalDo.Notify.success("🧠 KI (CPU) bereit! (Langsamer, aber stabil)", { app: "ai", duration: 5000 });
+        isInitializing = false;
+        return engine;
+      } catch(e) {
+        lastError = e;
+        console.error("❌ CPU-Modell fehlgeschlagen:", e.message);
+        isInitializing = false;
+        engine = null;
+        var errMsg = "Kein KI-Modell konnte geladen werden. " + (lastError ? lastError.message : "");
+        if(HalDo.Notify) HalDo.Notify.error("❌ " + errMsg, { app: "ai", duration: 8000 });
+        throw new Error(errMsg);
       }
-      throw new Error(errMsg);
     })();
 
     return initPromise;
   }
 
   /* ═══════════════════════════════════════════════════════════
-     CHAT
+     CHAT (funktioniert für beide Engines)
      ═══════════════════════════════════════════════════════════ */
   async function chat(messages, options){
     if(!engine) await initEngine();
     if(!engine) throw new Error("KI-Engine nicht initialisiert.");
 
     var opts = options || {};
-    var request = {
-      messages: messages,
-      temperature: opts.temperature !== undefined ? opts.temperature : 0.7,
-      max_tokens: opts.maxTokens || 1024,
-      stream: false
-    };
 
-    var reply = await engine.chat.completions.create(request);
-    return {
-      content: reply.choices[0].message.content,
-      usage: reply.usage || null
-    };
+    if(engineType === "gpu"){
+      // WebLLM-API
+      var reply = await engine.chat.completions.create({
+        messages: messages,
+        temperature: opts.temperature !== undefined ? opts.temperature : 0.7,
+        max_tokens: opts.maxTokens || 1024
+      });
+      return { content: reply.choices[0].message.content };
+    } else {
+      // wllama-API
+      // Prompt aus Nachrichten bauen (einfaches Format)
+      var prompt = messages.map(function(m){
+        if(m.role === "system") return "System: " + m.content;
+        if(m.role === "user") return "User: " + m.content;
+        if(m.role === "assistant") return "Assistant: " + m.content;
+        return m.content;
+      }).join("\n") + "\nAssistant:";
+
+      var result = await engine.createCompletion(prompt, {
+        nPredict: opts.maxTokens || 512,
+        temperature: opts.temperature !== undefined ? opts.temperature : 0.7,
+        top_k: 40,
+        top_p: 0.9,
+        repeat_penalty: 1.1
+      });
+      return { content: result.trim() };
+    }
   }
 
+  /* ═══════════════════════════════════════════════════════════
+     CHAT-STREAMING (für Live-Anzeige)
+     ═══════════════════════════════════════════════════════════ */
   async function chatStream(messages, onChunk, options){
     if(!engine) await initEngine();
     if(!engine) throw new Error("KI-Engine nicht initialisiert.");
 
     var opts = options || {};
-    var request = {
-      messages: messages,
-      temperature: opts.temperature !== undefined ? opts.temperature : 0.7,
-      max_tokens: opts.maxTokens || 1024,
-      stream: true
-    };
 
-    var chunks = await engine.chat.completions.create(request);
-    var fullText = "";
-
-    for await (var chunk of chunks){
-      var delta = chunk.choices[0] && chunk.choices[0].delta ? chunk.choices[0].delta.content || "" : "";
-      if(delta){
-        fullText += delta;
-        if(onChunk) onChunk(delta, fullText);
+    if(engineType === "gpu"){
+      // WebLLM-Streaming
+      var chunks = await engine.chat.completions.create({
+        messages: messages,
+        temperature: opts.temperature !== undefined ? opts.temperature : 0.7,
+        max_tokens: opts.maxTokens || 1024,
+        stream: true
+      });
+      var fullText = "";
+      for await (var chunk of chunks){
+        var delta = chunk.choices[0] && chunk.choices[0].delta ? chunk.choices[0].delta.content || "" : "";
+        if(delta){ fullText += delta; if(onChunk) onChunk(delta, fullText); }
       }
+      return { content: fullText };
+    } else {
+      // wllama-Streaming
+      var prompt = messages.map(function(m){
+        if(m.role === "system") return "System: " + m.content;
+        if(m.role === "user") return "User: " + m.content;
+        if(m.role === "assistant") return "Assistant: " + m.content;
+        return m.content;
+      }).join("\n") + "\nAssistant:";
+
+      var fullText2 = "";
+      var stream = await engine.createCompletion(prompt, {
+        nPredict: opts.maxTokens || 512,
+        temperature: opts.temperature !== undefined ? opts.temperature : 0.7,
+        onNewToken: function(token, piece){
+          fullText2 += piece;
+          if(onChunk) onChunk(piece, fullText2);
+        }
+      });
+      return { content: fullText2.trim() };
     }
-
-    return { content: fullText };
-  }
-
-  /* ═══════════════════════════════════════════════════════════
-     MODELL WECHSELN
-     ═══════════════════════════════════════════════════════════ */
-  async function switchModel(modelId){
-    if(currentModelId === modelId && engine) return true;
-    engine = null;
-    currentModelId = null;
-    isInitializing = false;
-    initPromise = null;
-    await initEngine(modelId);
-    return true;
-  }
-
-  /* ═══════════════════════════════════════════════════════════
-     UNLOAD
-     ═══════════════════════════════════════════════════════════ */
-  async function unload(){
-    if(engine && engine.unload){ try { await engine.unload(); } catch(e){} }
-    engine = null;
-    currentModelId = null;
-    isInitializing = false;
-    initPromise = null;
-    console.log("🧠 KI-Engine entladen");
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -277,21 +256,13 @@
     init: initEngine,
     chat: chat,
     chatStream: chatStream,
-    switchModel: switchModel,
-    unload: unload,
     models: MODELS,
-    fallbackChain: FALLBACK_CHAIN,
     isReady: function(){ return !!engine; },
     getEngine: function(){ return engine; },
+    getEngineType: function(){ return engineType; },
     getCurrentModel: function(){ return currentModelId; },
     checkWebGPU: checkWebGPU
   };
 
-  setTimeout(function(){
-    if(HalDo.Store && HalDo.Store.get("aiAutoLoad", false)){
-      initEngine().catch(function(e){ console.warn("KI Auto-Load:", e.message); });
-    }
-  }, 3000);
-
-  console.log("🦚 ai-engine.js v201 geladen — Auto-Fallback aktiv (Intel-safe)");
+  console.log("🦚 ai-engine.js v202 geladen — WASM/CPU Fallback aktiv");
 })();
