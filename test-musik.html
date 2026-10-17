@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>HalDo Profi-Musik-Test</title>
+<title>HalDo Einfach-Musik-Test</title>
 <style>
   body { background: #050810; color: #e8ecff; font-family: system-ui, sans-serif; padding: 20px; line-height: 1.6; max-width: 900px; margin: 0 auto; }
   h1 { color: #00e5ff; }
@@ -15,90 +15,97 @@
 </head>
 <body>
 
-<h1>🎤🎹 HalDo Profi-Musik-Test</h1>
+<h1>🎤🎹 HalDo Einfach-Musik-Test</h1>
 
 <div class="test-box">
-  <h3>1. Test: Echter Gesang (meSing.js)</h3>
-  <button id="btnTestSing">🎤 "Hallo HalDo" singen (auf einer Melodie)</button>
+  <h3>1. Test: Gesang mit der Browser-Stimme</h3>
+  <button id="btnTestSing">🎤 "Hallo HalDo" singen (mit Melodie)</button>
   <div id="logSing" class="result"></div>
 </div>
 
 <div class="test-box">
-  <h3>2. Test: Profi-Instrument (SpessaSynth)</h3>
-  <button id="btnTestInstrument">🎹 Hochwertiges Klavier spielen</button>
+  <h3>2. Test: Echtes Instrument (WebAudioFont)</h3>
+  <button id="btnTestInstrument">🎹 Klavier-Akkord spielen</button>
   <div id="logInstrument" class="result"></div>
 </div>
 
-<!-- SpessaSynth für Profi-Instrumente -->
-<script src="https://cdn.jsdelivr.net/npm/spessasynth_lib@3.26.20/dist/spessasynth_lib.min.js"></script>
-<!-- meSing.js für Gesang -->
-<script src="https://cdn.jsdelivr.net/npm/mespeak@1.0.0/mespeak.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/mesing@0.0.1/meSing.js"></script>
+<!-- WebAudioFont für Instrumente -->
+<script src="https://surikov.github.io/webaudiofont/npm/dist/WebAudioFontPlayer.js"></script>
+<script src="https://surikov.github.io/webaudiofontdata/sound/0250_SoundBlasterOld_sf2.js"></script>
 
 <script>
   var logSing = document.getElementById("logSing");
   var logInstrument = document.getElementById("logInstrument");
   var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-  // --- Test 1: Echter Gesang mit meSing.js ---
+  // --- Test 1: Gesang mit SpeechSynthesis ---
   document.getElementById("btnTestSing").addEventListener("click", async function() {
     if (audioCtx.state === "suspended") await audioCtx.resume();
-    logSing.textContent = "⏳ Lade Gesangs-Engine...";
+    logSing.textContent = "⏳ Starte Gesang...";
 
-    // meSing.js benötigt meSpeak
-    if (!window.meSpeak) {
-      logSing.textContent = "❌ meSpeak.js nicht geladen!";
+    if (!window.speechSynthesis) {
+      logSing.textContent = "❌ SpeechSynthesis nicht verfügbar!";
       return;
     }
 
-    try {
-      // Eine einfache Melodie (C4, E4, G4, C5)
-      var melody = [60, 64, 67, 72]; // MIDI-Noten
-      var lyrics = "Hal-lo Hal-Do"; // Text (Silben getrennt)
+    // Eine einfache Melodie (C4, E4, G4, C5)
+    var notes = [
+      { text: "Hal", pitch: 1.0, rate: 1.0 },
+      { text: "lo", pitch: 1.2, rate: 1.0 },
+      { text: "Hal", pitch: 1.4, rate: 1.0 },
+      { text: "Do", pitch: 1.6, rate: 1.0 }
+    ];
 
-      // meSing.js Funktion aufrufen
-      // Hinweis: Die genaue API kann variieren, hier eine gängige Methode
-      meSing(lyrics, melody, {
-        voice: "de",
-        pitch: 1.0,
-        speed: 1.0,
-        onEnd: function() {
-          logSing.textContent = "✅ Gesang beendet.";
-        }
-      });
-      logSing.textContent = "✅ Gesang wird abgespielt...";
+    // Spracheinstellungen
+    var utterance = new SpeechSynthesisUtterance("Hal-lo Hal-Do");
+    utterance.lang = "de-DE";
+    utterance.rate = 0.8; // Etwas langsamer für den Gesang
+    utterance.pitch = 1.0; // Start-Tonhöhe
 
-    } catch (e) {
-      logSing.textContent = "❌ Fehler: " + e.message;
-      console.error(e);
+    // Wir können die Tonhöhe während des Sprechens nicht direkt ändern.
+    // Stattdessen sprechen wir die Silben einzeln mit unterschiedlichen Tonhöhen.
+    // Das ist eine einfache Annäherung.
+    var i = 0;
+    function speakNext() {
+      if (i >= notes.length) {
+        logSing.textContent = "✅ Gesang beendet.";
+        return;
+      }
+      var note = notes[i];
+      var u = new SpeechSynthesisUtterance(note.text);
+      u.lang = "de-DE";
+      u.pitch = note.pitch;
+      u.rate = note.rate;
+      u.onend = function() {
+        i++;
+        speakNext();
+      };
+      speechSynthesis.speak(u);
     }
+    logSing.textContent = "🎤 Singe: Hal-lo Hal-Do...";
+    speakNext();
   });
 
-  // --- Test 2: Profi-Instrument mit SpessaSynth ---
+  // --- Test 2: Echtes Instrument mit WebAudioFont ---
   document.getElementById("btnTestInstrument").addEventListener("click", async function() {
     if (audioCtx.state === "suspended") await audioCtx.resume();
-    logInstrument.textContent = "⏳ Lade Profi-Instrument...";
+    logInstrument.textContent = "⏳ Lade Instrument...";
 
     try {
-      // SpessaSynth initialisieren
-      // Wir brauchen einen Soundfont. Für den Test laden wir einen kleinen integrierten.
-      // In der echten App werden wir einen hochwertigen Soundfont laden.
-      const synth = new SpessaSynth();
-      await synth.init(audioCtx);
+      if (!window.WebAudioFontPlayer || !window._tone_0250_SoundBlasterOld_sf2) {
+        throw new Error("WebAudioFont nicht geladen!");
+      }
+
+      var player = new WebAudioFontPlayer();
+      var instrument = _tone_0250_SoundBlasterOld_sf2;
+      player.loader.decodeAfterLoading(audioCtx, '_tone_0250_SoundBlasterOld_sf2');
 
       // Ein C-Dur Akkord (C4, E4, G4)
-      synth.noteOn(0, 60, 127); // Kanal 0, Note C4, Velocity max
-      synth.noteOn(0, 64, 127); // E4
-      synth.noteOn(0, 67, 127); // G4
+      player.queueWaveTable(audioCtx, audioCtx.destination, instrument, 0, 60, 1.5); // C4
+      player.queueWaveTable(audioCtx, audioCtx.destination, instrument, 0, 64, 1.5); // E4
+      player.queueWaveTable(audioCtx, audioCtx.destination, instrument, 0, 67, 1.5); // G4
 
-      logInstrument.textContent = "✅ Akkord gespielt! (SpessaSynth)";
-
-      // Nach 2 Sekunden stoppen
-      setTimeout(() => {
-        synth.noteOff(0, 60);
-        synth.noteOff(0, 64);
-        synth.noteOff(0, 67);
-      }, 2000);
+      logInstrument.textContent = "✅ Akkord gespielt! (Echtes Klavier-Sample)";
 
     } catch (e) {
       logInstrument.textContent = "❌ Fehler: " + e.message;
