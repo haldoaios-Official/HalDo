@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>HalDo Musik v2 Test</title>
+    <style>
+        body { background: #050810; color: #e8ecff; font-family: system-ui, sans-serif; padding: 20px; line-height: 1.6; max-width: 900px; margin: 0 auto; }
+        h1 { color: #00e5ff; }
+        .test-box { background: rgba(0,0,0,.3); padding: 16px; border-radius: 12px; border: 1px solid rgba(0,229,255,.3); margin: 12px 0; }
+        .test-box h3 { color: #b478ff; margin-bottom: 10px; font-size: 14px; }
+        button { background: linear-gradient(135deg, #00e5ff, #b478ff); border: none; padding: 10px 16px; border-radius: 8px; color: #000; font-weight: 900; cursor: pointer; font-size: 12px; margin-right: 6px; margin-bottom: 6px; }
+        button:disabled { opacity: .5; cursor: not-allowed; }
+        .result { background: rgba(0,0,0,.4); padding: 12px; border-radius: 8px; margin-top: 10px; font-family: monospace; font-size: 11px; max-height: 200px; overflow-y: auto; border-left: 3px solid #00e5ff; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+
+<h1>🎤🎹 HalDo Musik v2 Test</h1>
+
+<div class="test-box">
+    <h3>1. Test: Echtes Klavier (smplr)</h3>
+    <button id="btnTestPiano">🎹 Klavier-Akkord spielen</button>
+    <div id="logPiano" class="result"></div>
+</div>
+
+<div class="test-box">
+    <h3>2. Test: Echter Gesang (cantor-digitalis)</h3>
+    <button id="btnTestVoice">🎤 Vokal "A" singen</button>
+    <div id="logVoice" class="result"></div>
+</div>
+
+<!-- smplr (Instrumente) -->
+<script type="module">
+    import { SplendidGrandPiano } from "https://code4fukui.github.io/smplr/smplr.js";
+    window.SplendidGrandPiano = SplendidGrandPiano;
+    console.log("smplr geladen");
+</script>
+
+<!-- cantor-digitalis (Gesang) -->
+<script type="module">
+    import { Voice, generateSynthParams } from "https://cdn.jsdelivr.net/npm/cantor-digitalis@0.0.6/+esm";
+    window.CantorDigitalis = { Voice, generateSynthParams };
+    console.log("cantor-digitalis geladen");
+</script>
+
+<script>
+    var logPiano = document.getElementById("logPiano");
+    var logVoice = document.getElementById("logVoice");
+    var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // --- Test 1: smplr (Klavier) ---
+    document.getElementById("btnTestPiano").addEventListener("click", async function() {
+        if (audioCtx.state === "suspended") await audioCtx.resume();
+        logPiano.textContent = "⏳ Lade Klavier...";
+        try {
+            const piano = new SplendidGrandPiano(audioCtx);
+            await piano.loaded;
+            // C-Dur Akkord
+            piano.start({ note: "C4", time: 0, duration: 1.5 });
+            piano.start({ note: "E4", time: 0, duration: 1.5 });
+            piano.start({ note: "G4", time: 0, duration: 1.5 });
+            logPiano.textContent = "✅ Klavier-Akkord gespielt!";
+        } catch(e) {
+            logPiano.textContent = "❌ Fehler: " + e.message;
+        }
+    });
+
+    // --- Test 2: cantor-digitalis (Gesang) ---
+    document.getElementById("btnTestVoice").addEventListener("click", async function() {
+        if (audioCtx.state === "suspended") await audioCtx.resume();
+        logVoice.textContent = "⏳ Lade Gesangs-Engine...";
+        try {
+            if (!window.CantorDigitalis) throw new Error("cantor-digitalis nicht geladen");
+            const { Voice, generateSynthParams } = window.CantorDigitalis;
+            const params = {
+                pitch: 0.5, pitchOffset: 60, vocalEffort: 0.7,
+                vowelHeight: 0.8, vowelBackness: 0.5,
+                tenseness: 0.5, breathiness: 0.02, roughness: 0.01,
+                vocalTractSize: 0.3, isFalsetto: false
+            };
+            const synthParams = generateSynthParams(params);
+            const voice = await Voice.create(audioCtx, synthParams);
+            voice.out.connect(audioCtx.destination);
+            voice.start();
+            logVoice.textContent = "✅ Gesang (Vokal A) läuft!";
+            setTimeout(() => {
+                voice.stop();
+                logVoice.textContent = "✅ Gesang beendet.";
+            }, 2000);
+        } catch(e) {
+            logVoice.textContent = "❌ Fehler: " + e.message;
+        }
+    });
+</script>
+
+</body>
+</html>
