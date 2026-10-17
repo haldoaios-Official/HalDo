@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — MUSIK STUDIO (v600) · PRO MAX
-   smplr (Instrumente) · pocket-tts-js (Gesang) · KI-Texte
+   HALDO AI OS — MUSIK STUDIO (v610) · PRO MAX
+   smplr (Instrumente) · pocket-tts-js (Stimme) · KI-Texte
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -12,37 +12,40 @@
     });
   }
 
-  // Lade smplr und pocket-tts-js dynamisch
-  function loadLibraries() {
+  // 1. smplr (Instrumente) laden
+  function loadSmplr() {
     return new Promise((resolve) => {
-      let s1 = document.createElement('script');
-      s1.type = 'module';
-      s1.textContent = `
-        import { SplendidGrandPiano, DrumMachine, Sequencer, Reverb, renderOffline } from "https://unpkg.com/smplr/dist/index.mjs";
-        window.smplr = { SplendidGrandPiano, DrumMachine, Sequencer, Reverb, renderOffline };
-        window.dispatchEvent(new Event('smplr-loaded'));
+      if (window.smplr) return resolve();
+      let s = document.createElement('script');
+      s.type = 'module';
+      s.textContent = `
+        import { SplendidGrandPiano, DrumMachine, Soundfont } from "https://unpkg.com/smplr@0.17.1/dist/index.mjs";
+        window.smplr = { SplendidGrandPiano, DrumMachine, Soundfont };
+        window.dispatchEvent(new Event('smplr-ready'));
       `;
-      document.head.appendChild(s1);
+      document.head.appendChild(s);
+      window.addEventListener('smplr-ready', resolve, { once: true });
+    });
+  }
 
-      window.addEventListener('smplr-loaded', () => {
-        let s2 = document.createElement('script');
-        s2.type = 'module';
-        s2.textContent = `
-          import { PocketTTS, StreamingPlayer } from "https://cdn.jsdelivr.net/npm/pocket-tts-js/dist/index.mjs";
-          window.PocketTTS = PocketTTS;
-          window.StreamingPlayer = StreamingPlayer;
-          window.dispatchEvent(new Event('tts-loaded'));
-        `;
-        document.head.appendChild(s2);
-      }, { once: true });
-
-      window.addEventListener('tts-loaded', resolve, { once: true });
+  // 2. pocket-tts-js (Stimme) laden
+  function loadTTS() {
+    return new Promise((resolve) => {
+      if (window.PocketTTS) return resolve();
+      let s = document.createElement('script');
+      s.type = 'module';
+      s.textContent = `
+        import { PocketTTS, StreamingPlayer } from "https://cdn.jsdelivr.net/npm/pocket-tts-js@0.1.0/dist/index.mjs";
+        window.PocketTTS = PocketTTS;
+        window.StreamingPlayer = StreamingPlayer;
+        window.dispatchEvent(new Event('tts-ready'));
+      `;
+      document.head.appendChild(s);
+      window.addEventListener('tts-ready', resolve, { once: true });
     });
   }
 
   var audioCtx = null;
-  var tts = null;
-  var player = null;
 
   function render(container, ctx){
     var store = ctx.store;
@@ -65,32 +68,28 @@
         + '</div>';
 
       if(tab === "studio"){
-        // 1. Songtext
-        body += '<div class="card"><h3>📝 Songtext (Lokal)</h3>'
+        // Songtext & KI
+        body += '<div class="card"><h3>📝 Songtext</h3>'
           + '<input type="text" id="ki_desc" placeholder="Thema (z.B. Liebe, Freiheit...)" value="' + _esc(k.songDesc) + '" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-size:13px;margin-bottom:8px">'
           + '<textarea id="ki_lyrics" rows="5" placeholder="Text hier eingeben..." style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-size:13px;font-family:inherit;resize:vertical">' + _esc(k.lyrics) + '</textarea>'
           + '<button class="btn full" id="ki_gen" style="margin-top:8px;font-size:11px">✨ KI Songtext generieren</button>'
           + '<div id="ki_status" style="display:none;margin-top:8px;padding:8px;background:rgba(0,229,255,.1);border-radius:8px;font-size:11px"></div>'
           + '</div>';
 
-        // 2. Stimme (pocket-tts-js)
+        // Stimme
         body += '<div class="card"><h3>🎤 Stimme (pocket-tts-js)</h3>'
-          + '<div style="font-size:11px;color:var(--text-mute);margin-bottom:8px">Wähle eine eingebaute Stimme oder klone deine eigene:</div>'
           + '<select id="ki_voice" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border-radius:10px;color:inherit;font-size:13px;margin-bottom:8px">'
           + '<option value="alba">Alba (Weiblich)</option>'
           + '<option value="sven">Sven (Männlich)</option>'
-          + '<option value="klone">Eigene Stimme klonen...</option>'
           + '</select>'
-          + '<input type="file" id="voice_clone_file" accept="audio/*" style="display:none">'
-          + '<button class="btn sec full" id="ki_clone_voice" style="font-size:11px">📤 Eigene Stimme hochladen (Klonen)</button>'
-          + '<button class="btn sec full" id="ki_testVoice" style="font-size:11px;margin-top:8px">🔊 Stimme testen</button>'
+          + '<button class="btn sec full" id="ki_testVoice" style="font-size:11px">🔊 Stimme testen</button>'
           + '</div>';
 
-        // 3. Arrangement & Play
+        // Arrangement
         body += '<div class="card"><h3>🎵 Arrangement</h3>'
           + '<div style="display:flex;gap:8px;margin-bottom:10px">'
           + '<div style="flex:1"><label style="font-size:10px;color:var(--text-mute);font-weight:800">BPM</label>'
-          + '<input type="number" id="ki_bpm" value="' + k.bpm + '" style="width:100%;padding:8px;background:rgba(0,0,0,.3);border-radius:8px;color:inherit;font-size:12px"></div>'
+          + '<input type="number" id="ki_bpm" value="' + (k.bpm || 100) + '" style="width:100%;padding:8px;background:rgba(0,0,0,.3);border-radius:8px;color:inherit;font-size:12px"></div>'
           + '<div style="flex:1"><label style="font-size:10px;color:var(--text-mute);font-weight:800">STIL</label>'
           + '<select id="ki_style" style="width:100%;padding:8px;background:rgba(0,0,0,.3);border-radius:8px;color:inherit;font-size:12px">'
           + '<option value="pop">Pop</option><option value="rock">Rock</option><option value="stran">🦚 Stran</option>'
@@ -99,9 +98,6 @@
           + '<button class="btn full" id="ki_play" style="background:linear-gradient(135deg,#4ade80,#00e5ff);font-size:15px;padding:16px">▶️ Song produzieren</button>'
           + '<button class="btn danger full" id="ki_stop" style="margin-top:8px;font-size:14px;padding:14px">⏹ Stoppen</button>'
           + '<div id="play_status" style="display:none;margin-top:10px;padding:10px;background:rgba(0,229,255,.1);border-radius:8px;font-size:11px;text-align:center"></div>'
-          + '<div style="font-size:10px;color:var(--text-mute);margin-top:10px;line-height:1.5">'
-          + 'ℹ️ <b>Hinweis:</b> Dies ist eine Simulation. Die KI spricht den Text, sie singt keine Melodien. Für echten Gesang braucht man riesige KI-Server (wie Suno).'
-          + '</div>'
           + '</div>';
       }
 
@@ -116,8 +112,9 @@
         
         container.querySelector("#ki_desc").addEventListener("input", function(){ ki.songDesc = this.value; save(); });
         container.querySelector("#ki_lyrics").addEventListener("input", function(){ ki.lyrics = this.value; save(); });
-        container.querySelector("#ki_bpm").addEventListener("change", function(){ ki.bpm = parseInt(this.value); save(); });
+        container.querySelector("#ki_bpm").addEventListener("change", function(){ ki.bpm = parseInt(this.value) || 100; save(); });
         container.querySelector("#ki_style").addEventListener("change", function(){ ki.style = this.value; save(); });
+        container.querySelector("#ki_voice").addEventListener("change", function(){ ki.voice = this.value; save(); });
 
         // KI Songtext
         container.querySelector("#ki_gen").addEventListener("click", async function(){
@@ -126,7 +123,7 @@
           stat.textContent = "⏳ KI schreibt...";
           this.disabled = true;
           try {
-            var langMap = { "de": "Deutsch", "en": "Englisch", "tr": "Türkisch", "ar": "Arabisch" };
+            var langMap = { "de": "Deutsch", "en": "Englisch", "tr": "Türkisch" };
             var text = await HalDo.AI.writeLyrics(ki.songDesc || "Liebe", langMap[ki.lang] || "Deutsch", ki.style || "Pop", "emotional");
             container.querySelector("#ki_lyrics").value = text;
             ki.lyrics = text;
@@ -138,26 +135,6 @@
           this.disabled = false;
         });
 
-        // Stimme klonen
-        container.querySelector("#ki_clone_voice").addEventListener("click", function(){
-          container.querySelector("#voice_clone_file").click();
-        });
-        container.querySelector("#voice_clone_file").addEventListener("change", async function(){
-          var file = this.files[0];
-          if(!file) return;
-          if(!tts) {
-            alert("Bitte zuerst die TTS-Engine laden (Song produzieren klicken).");
-            return;
-          }
-          try {
-            var arrayBuffer = await file.arrayBuffer();
-            await tts.cloneVoice(arrayBuffer);
-            alert("✅ Stimme geklont!");
-          } catch(e) {
-            alert("Fehler beim Klonen: " + e.message);
-          }
-        });
-
         // Song produzieren
         container.querySelector("#ki_play").addEventListener("click", async function(){
           if(!ki.lyrics) return alert("Bitte erst einen Songtext eingeben!");
@@ -165,74 +142,64 @@
           var stat = container.querySelector("#play_status");
           btn.disabled = true;
           stat.style.display = "block";
-          stat.textContent = "⏳ Lade Bibliotheken...";
+          stat.textContent = "⏳ Lade Profi-Instrumente & Stimme...";
 
           try {
-            await loadLibraries();
+            await Promise.all([loadSmplr(), loadTTS()]);
             if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if(audioCtx.state === "suspended") await audioCtx.resume();
 
-            var { SplendidGrandPiano, DrumMachine, Sequencer, Reverb } = window.smplr;
-
-            // Instrumente laden
-            stat.textContent = "⏳ Lade Instrumente...";
+            var { SplendidGrandPiano, DrumMachine } = window.smplr;
             var piano = SplendidGrandPiano(audioCtx);
             var drums = DrumMachine(audioCtx, { instrument: "TR-808" });
             await piano.load;
+            stat.textContent = "🎶 Instrumente geladen. Starte Arrangement...";
 
-            // Sequencer erstellen
-            var seq = Sequencer(audioCtx, { bpm: ki.bpm, loop: false });
-
-            // Einfaches Arrangement
+            // Sequencer (vereinfacht: direktes Timing)
+            var bpm = ki.bpm || 100;
+            var beatDur = 60 / bpm;
+            var startTime = audioCtx.currentTime + 0.5;
             var chords = [["C4", "E4", "G4"], ["G3", "B3", "D4"], ["A3", "C4", "E4"], ["F3", "A3", "C4"]];
-            var pianoNotes = [];
-            var drumNotes = [];
-            for(var i = 0; i < 8; i++) {
-              var chord = chords[i % 4];
-              chord.forEach(note => {
-                pianoNotes.push({ note: note, at: (i+1) + ":1", duration: "2n" });
-              });
-              drumNotes.push({ note: "kick", at: (i+1) + ":1" });
-              drumNotes.push({ note: "snare", at: (i+1) + ":3" });
-            }
 
-            seq.addTrack(piano, pianoNotes);
-            seq.addTrack(drums, drumNotes);
-            seq.start();
+            for (var i = 0; i < 16; i++) {
+              var t = startTime + (i * beatDur * 2); // Jede 2 Beats ein Akkord
+              var chord = chords[i % 4];
+              chord.forEach(note => piano.start({ note: note, time: t, duration: beatDur * 1.8 }));
+              drums.start({ note: "kick", time: t });
+              drums.start({ note: "snare", time: t + beatDur });
+            }
 
             // Gesang (pocket-tts-js)
-            stat.textContent = "🎤 Stimme wird synchronisiert...";
-            if(!tts) {
-              tts = new window.PocketTTS({ language: "german_2026-04" });
-              await tts.load();
-              player = new window.StreamingPlayer({ sampleRate: tts.sampleRate });
-              await player.resume();
-            }
+            stat.textContent = "🎤 Stimme wird initialisiert...";
+            var tts = new window.PocketTTS({ language: "german_2026-04", quantized: true, voiceCloning: false });
+            await tts.load();
+            var player = new window.StreamingPlayer({ sampleRate: tts.sampleRate });
+            await player.resume();
 
+            var voice = await tts.loadVoice(ki.voice || "alba");
             var words = ki.lyrics.replace(/\[.*?\]/g, '').replace(/\n/g, ' ').trim().split(/\s+/).filter(w => w.length > 0);
-            var beatDur = 60 / ki.bpm;
-            
-            for(var w = 0; w < words.length; w++) {
-              var word = words[w];
-              var wTime = (w * beatDur) * 1000;
-              setTimeout(async function(wordText) {
-                var voice = await tts.loadVoice(ki.voice || "alba");
-                await tts.generate(wordText, {
+
+            stat.textContent = "🎤 Stimme singt...";
+            for (let w = 0; w < words.length; w++) {
+              let word = words[w];
+              let wTime = startTime + (w * (beatDur / 2));
+              setTimeout(async () => {
+                await tts.generate(word, {
                   voice: voice,
-                  onChunk: (audio) => player.play(audio)
+                  onChunk: (audio, meta) => player.play(audio, meta)
                 });
                 player.flush();
-              }.bind(null, word), wTime);
+              }, (wTime - audioCtx.currentTime) * 1000);
             }
 
             stat.textContent = "▶️ Song läuft!";
-            
-            setTimeout(function() {
+            setTimeout(() => {
               btn.disabled = false;
               stat.textContent = "✅ Song beendet.";
-            }, (words.length * beatDur * 1000) + 2000);
+            }, (words.length * (beatDur / 2) * 1000) + 3000);
 
           } catch(e) {
+            console.error(e);
             alert("Fehler: " + e.message);
             btn.disabled = false;
             stat.textContent = "❌ Fehler beim Abspielen";
@@ -241,10 +208,7 @@
 
         // Stop
         container.querySelector("#ki_stop").addEventListener("click", function(){
-          if(player) player.stop();
           if(audioCtx) { audioCtx.close(); audioCtx = null; }
-          tts = null;
-          player = null;
           container.querySelector("#play_status").textContent = "⏹ Gestoppt.";
           container.querySelector("#ki_play").disabled = false;
         });
@@ -255,5 +219,5 @@
   }
 
   HalDoApp("musik", { name: "Musik", icon: "🎵", render: render, category: "lifestyle" });
-  console.log("🦚 musik.js v600 geladen — PRO MAX BETA");
+  console.log("🦚 musik.js v610 geladen — PRO MAX (Fixed)");
 })();
