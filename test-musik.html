@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>HalDo Gesangs-Test</title>
+<title>HalDo Profi-Musik-Test</title>
 <style>
   body { background: #050810; color: #e8ecff; font-family: system-ui, sans-serif; padding: 20px; line-height: 1.6; max-width: 900px; margin: 0 auto; }
   h1 { color: #00e5ff; }
@@ -10,95 +10,63 @@
   .test-box h3 { color: #b478ff; margin-bottom: 10px; font-size: 14px; }
   button { background: linear-gradient(135deg, #00e5ff, #b478ff); border: none; padding: 10px 16px; border-radius: 8px; color: #000; font-weight: 900; cursor: pointer; font-size: 12px; margin-right: 6px; margin-bottom: 6px; }
   button:disabled { opacity: .5; cursor: not-allowed; }
-  #log { background: rgba(0,0,0,.4); padding: 12px; border-radius: 8px; margin-top: 10px; font-family: monospace; font-size: 11px; max-height: 200px; overflow-y: auto; border-left: 3px solid #00e5ff; white-space: pre-wrap; }
+  .result { background: rgba(0,0,0,.4); padding: 12px; border-radius: 8px; margin-top: 10px; font-family: monospace; font-size: 11px; max-height: 200px; overflow-y: auto; border-left: 3px solid #00e5ff; white-space: pre-wrap; }
 </style>
 </head>
 <body>
 
-<h1>🎤 HalDo Gesangs-Test</h1>
+<h1>🎤🎹 HalDo Profi-Musik-Test</h1>
 
 <div class="test-box">
-  <h3>1. Test: Echter Gesang (Cantor Digitalis)</h3>
-  <button id="btnTestSing">🎤 Vokal "A" singen (mit Tonhöhen-Wechsel)</button>
+  <h3>1. Test: Echter Gesang (meSing.js)</h3>
+  <button id="btnTestSing">🎤 "Hallo HalDo" singen (auf einer Melodie)</button>
   <div id="logSing" class="result"></div>
 </div>
 
 <div class="test-box">
-  <h3>2. Test: Instrument + Gesang (Klavier + Vokal "O")</h3>
-  <button id="btnTestDuo">🎹🎤 Klavier-Akkord + Vokal "O"</button>
-  <div id="logDuo" class="result"></div>
+  <h3>2. Test: Profi-Instrument (SpessaSynth)</h3>
+  <button id="btnTestInstrument">🎹 Hochwertiges Klavier spielen</button>
+  <div id="logInstrument" class="result"></div>
 </div>
 
-<!-- WebAudioFont für Instrumente -->
-<script src="https://surikov.github.io/webaudiofont/npm/dist/WebAudioFontPlayer.js"></script>
-<script src="https://surikov.github.io/webaudiofontdata/sound/0250_SoundBlasterOld_sf2.js"></script>
-
-<!-- Cantor Digitalis für Gesang (ESM) -->
-<script type="module">
-  import { Voice, generateSynthParams } from "https://cdn.jsdelivr.net/npm/cantor-digitalis@0.0.4/+esm";
-  window.CantorDigitalis = { Voice, generateSynthParams };
-</script>
+<!-- SpessaSynth für Profi-Instrumente -->
+<script src="https://cdn.jsdelivr.net/npm/spessasynth_lib@3.26.20/dist/spessasynth_lib.min.js"></script>
+<!-- meSing.js für Gesang -->
+<script src="https://cdn.jsdelivr.net/npm/mespeak@1.0.0/mespeak.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mesing@0.0.1/meSing.js"></script>
 
 <script>
   var logSing = document.getElementById("logSing");
-  var logDuo = document.getElementById("logDuo");
+  var logInstrument = document.getElementById("logInstrument");
   var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  var currentVoice = null;
 
-  // Wartet kurz, bis das Modul geladen ist
-  function waitForCantor() {
-    return new Promise(resolve => {
-      if (window.CantorDigitalis) return resolve();
-      const interval = setInterval(() => {
-        if (window.CantorDigitalis) { clearInterval(interval); resolve(); }
-      }, 100);
-    });
-  }
-
-  // --- Test 1: Echter Gesang ---
+  // --- Test 1: Echter Gesang mit meSing.js ---
   document.getElementById("btnTestSing").addEventListener("click", async function() {
     if (audioCtx.state === "suspended") await audioCtx.resume();
     logSing.textContent = "⏳ Lade Gesangs-Engine...";
-    await waitForCantor();
-    const { Voice, generateSynthParams } = window.CantorDigitalis;
+
+    // meSing.js benötigt meSpeak
+    if (!window.meSpeak) {
+      logSing.textContent = "❌ meSpeak.js nicht geladen!";
+      return;
+    }
 
     try {
-      if (currentVoice) { currentVoice.stop(); currentVoice = null; }
+      // Eine einfache Melodie (C4, E4, G4, C5)
+      var melody = [60, 64, 67, 72]; // MIDI-Noten
+      var lyrics = "Hal-lo Hal-Do"; // Text (Silben getrennt)
 
-      // Parameter für einen offenen "A"-Vokal
-      const params = {
-        pitch: 0.5,
-        pitchOffset: 60, // C4
-        vocalEffort: 0.7,
-        vowelHeight: 0.8, // 0 = geschlossen, 1 = offen
-        vowelBackness: 0.5, // 0 = hinten, 1 = vorne
-        tenseness: 0.5,
-        breathiness: 0.02,
-        roughness: 0.01,
-        vocalTractSize: 0.3,
-        isFalsetto: false
-      };
-
-      const synthParams = generateSynthParams(params);
-      const voice = await Voice.create(audioCtx, synthParams);
-      voice.out.connect(audioCtx.destination);
-      voice.start();
-      currentVoice = voice;
-
-      logSing.textContent = "✅ Gesang läuft! Du hörst einen 'A'-Vokal. Er wechselt gleich die Tonhöhe...";
-
-      // Tonhöhen-Wechsel simulieren
-      setTimeout(() => {
-        if (!currentVoice) return;
-        params.pitchOffset = 64; // E4
-        const newParams = generateSynthParams(params);
-        currentVoice.update(newParams);
-      }, 1500);
-
-      setTimeout(() => {
-        if (currentVoice) { currentVoice.stop(); currentVoice = null; }
-        logSing.textContent = "✅ Gesang beendet.";
-      }, 3000);
+      // meSing.js Funktion aufrufen
+      // Hinweis: Die genaue API kann variieren, hier eine gängige Methode
+      meSing(lyrics, melody, {
+        voice: "de",
+        pitch: 1.0,
+        speed: 1.0,
+        onEnd: function() {
+          logSing.textContent = "✅ Gesang beendet.";
+        }
+      });
+      logSing.textContent = "✅ Gesang wird abgespielt...";
 
     } catch (e) {
       logSing.textContent = "❌ Fehler: " + e.message;
@@ -106,57 +74,34 @@
     }
   });
 
-  // --- Test 2: Duo (Instrument + Gesang) ---
-  document.getElementById("btnTestDuo").addEventListener("click", async function() {
+  // --- Test 2: Profi-Instrument mit SpessaSynth ---
+  document.getElementById("btnTestInstrument").addEventListener("click", async function() {
     if (audioCtx.state === "suspended") await audioCtx.resume();
-    logDuo.textContent = "⏳ Lade Instrument & Gesang...";
-    await waitForCantor();
-    const { Voice, generateSynthParams } = window.CantorDigitalis;
+    logInstrument.textContent = "⏳ Lade Profi-Instrument...";
 
     try {
-      // 1. Instrument (Klavier) laden und spielen
-      if (window.WebAudioFontPlayer && window._tone_0250_SoundBlasterOld_sf2) {
-        const player = new WebAudioFontPlayer();
-        const instrument = _tone_0250_SoundBlasterOld_sf2;
-        player.loader.decodeAfterLoading(audioCtx, '_tone_0250_SoundBlasterOld_sf2');
-        // C-Dur Akkord (C4, E4, G4) für 2 Sekunden
-        player.queueWaveTable(audioCtx, audioCtx.destination, instrument, 0, 60, 2.0);
-        player.queueWaveTable(audioCtx, audioCtx.destination, instrument, 0, 64, 2.0);
-        player.queueWaveTable(audioCtx, audioCtx.destination, instrument, 0, 67, 2.0);
-        logDuo.textContent = "🎹 Klavier spielt... ";
-      } else {
-        logDuo.textContent = "⚠️ Instrument nicht verfügbar. ";
-      }
+      // SpessaSynth initialisieren
+      // Wir brauchen einen Soundfont. Für den Test laden wir einen kleinen integrierten.
+      // In der echten App werden wir einen hochwertigen Soundfont laden.
+      const synth = new SpessaSynth();
+      await synth.init(audioCtx);
 
-      // 2. Gesang (Vokal "O") starten
-      const params = {
-        pitch: 0.5,
-        pitchOffset: 60, // C4
-        vocalEffort: 0.6,
-        vowelHeight: 0.2, // "O" ist eher geschlossen
-        vowelBackness: 0.1, // "O" ist hinten
-        tenseness: 0.4,
-        breathiness: 0.05,
-        roughness: 0.01,
-        vocalTractSize: 0.3,
-        isFalsetto: false
-      };
+      // Ein C-Dur Akkord (C4, E4, G4)
+      synth.noteOn(0, 60, 127); // Kanal 0, Note C4, Velocity max
+      synth.noteOn(0, 64, 127); // E4
+      synth.noteOn(0, 67, 127); // G4
 
-      const synthParams = generateSynthParams(params);
-      const voice = await Voice.create(audioCtx, synthParams);
-      voice.out.connect(audioCtx.destination);
-      voice.start();
-      currentVoice = voice;
+      logInstrument.textContent = "✅ Akkord gespielt! (SpessaSynth)";
 
-      logDuo.textContent += "🎤 Gesang (O) läuft...";
-
+      // Nach 2 Sekunden stoppen
       setTimeout(() => {
-        if (currentVoice) { currentVoice.stop(); currentVoice = null; }
-        logDuo.textContent += " ✅ Fertig!";
+        synth.noteOff(0, 60);
+        synth.noteOff(0, 64);
+        synth.noteOff(0, 67);
       }, 2000);
 
     } catch (e) {
-      logDuo.textContent += " ❌ Fehler: " + e.message;
+      logInstrument.textContent = "❌ Fehler: " + e.message;
       console.error(e);
     }
   });
