@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>HalDo Musik-Test</title>
+<title>HalDo Gesangs-Test</title>
 <style>
   body { background: #050810; color: #e8ecff; font-family: system-ui, sans-serif; padding: 20px; line-height: 1.6; max-width: 900px; margin: 0 auto; }
   h1 { color: #00e5ff; }
@@ -15,63 +15,150 @@
 </head>
 <body>
 
-<h1>🎵 HalDo Musik-Test</h1>
+<h1>🎤 HalDo Gesangs-Test</h1>
 
 <div class="test-box">
-  <h3>1. Test: WebAudioFont (Echtes Instrument)</h3>
-  <button id="btnTestInstrument">🎹 Klavier-Ton spielen</button>
-  <div id="logInstrument" class="result"></div>
+  <h3>1. Test: Echter Gesang (Cantor Digitalis)</h3>
+  <button id="btnTestSing">🎤 Vokal "A" singen (mit Tonhöhen-Wechsel)</button>
+  <div id="logSing" class="result"></div>
 </div>
 
 <div class="test-box">
-  <h3>2. Test: meSpeak.js (Sprachsynthese)</h3>
-  <button id="btnTestSpeech">🗣️ "Hallo, ich bin HalDo" sprechen</button>
-  <div id="logSpeech" class="result"></div>
+  <h3>2. Test: Instrument + Gesang (Klavier + Vokal "O")</h3>
+  <button id="btnTestDuo">🎹🎤 Klavier-Akkord + Vokal "O"</button>
+  <div id="logDuo" class="result"></div>
 </div>
 
-<!-- Bibliotheken laden -->
+<!-- WebAudioFont für Instrumente -->
 <script src="https://surikov.github.io/webaudiofont/npm/dist/WebAudioFontPlayer.js"></script>
 <script src="https://surikov.github.io/webaudiofontdata/sound/0250_SoundBlasterOld_sf2.js"></script>
-<script src="https://www.masswerk.at/mespeak/mespeak.js"></script>
+
+<!-- Cantor Digitalis für Gesang (ESM) -->
+<script type="module">
+  import { Voice, generateSynthParams } from "https://cdn.jsdelivr.net/npm/cantor-digitalis@0.0.4/+esm";
+  window.CantorDigitalis = { Voice, generateSynthParams };
+</script>
 
 <script>
-  var logInst = document.getElementById("logInstrument");
-  var logSpeech = document.getElementById("logSpeech");
+  var logSing = document.getElementById("logSing");
+  var logDuo = document.getElementById("logDuo");
   var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  var currentVoice = null;
 
-  // --- Test 1: WebAudioFont ---
-  document.getElementById("btnTestInstrument").addEventListener("click", function() {
-    if(!window.WebAudioFontPlayer) {
-      logInst.textContent = "❌ WebAudioFontPlayer nicht geladen!";
-      return;
+  // Wartet kurz, bis das Modul geladen ist
+  function waitForCantor() {
+    return new Promise(resolve => {
+      if (window.CantorDigitalis) return resolve();
+      const interval = setInterval(() => {
+        if (window.CantorDigitalis) { clearInterval(interval); resolve(); }
+      }, 100);
+    });
+  }
+
+  // --- Test 1: Echter Gesang ---
+  document.getElementById("btnTestSing").addEventListener("click", async function() {
+    if (audioCtx.state === "suspended") await audioCtx.resume();
+    logSing.textContent = "⏳ Lade Gesangs-Engine...";
+    await waitForCantor();
+    const { Voice, generateSynthParams } = window.CantorDigitalis;
+
+    try {
+      if (currentVoice) { currentVoice.stop(); currentVoice = null; }
+
+      // Parameter für einen offenen "A"-Vokal
+      const params = {
+        pitch: 0.5,
+        pitchOffset: 60, // C4
+        vocalEffort: 0.7,
+        vowelHeight: 0.8, // 0 = geschlossen, 1 = offen
+        vowelBackness: 0.5, // 0 = hinten, 1 = vorne
+        tenseness: 0.5,
+        breathiness: 0.02,
+        roughness: 0.01,
+        vocalTractSize: 0.3,
+        isFalsetto: false
+      };
+
+      const synthParams = generateSynthParams(params);
+      const voice = await Voice.create(audioCtx, synthParams);
+      voice.out.connect(audioCtx.destination);
+      voice.start();
+      currentVoice = voice;
+
+      logSing.textContent = "✅ Gesang läuft! Du hörst einen 'A'-Vokal. Er wechselt gleich die Tonhöhe...";
+
+      // Tonhöhen-Wechsel simulieren
+      setTimeout(() => {
+        if (!currentVoice) return;
+        params.pitchOffset = 64; // E4
+        const newParams = generateSynthParams(params);
+        currentVoice.update(newParams);
+      }, 1500);
+
+      setTimeout(() => {
+        if (currentVoice) { currentVoice.stop(); currentVoice = null; }
+        logSing.textContent = "✅ Gesang beendet.";
+      }, 3000);
+
+    } catch (e) {
+      logSing.textContent = "❌ Fehler: " + e.message;
+      console.error(e);
     }
-    logInst.textContent = "⏳ Lade Instrument...";
-    var player = new WebAudioFontPlayer();
-    var instrument = _tone_0250_SoundBlasterOld_sf2; // Ein Klavier-Soundfont
-
-    player.loader.decodeAfterLoading(audioCtx, '_tone_0250_SoundBlasterOld_sf2');
-    // C4 (MIDI-Note 60) für 1 Sekunde spielen
-    player.queueWaveTable(audioCtx, audioCtx.destination, instrument, 0, 60, 1.0);
-    logInst.textContent = "✅ Klavier-Ton (C4) gespielt!";
   });
 
-  // --- Test 2: meSpeak.js ---
-  document.getElementById("btnTestSpeech").addEventListener("click", function() {
-    if(!window.meSpeak) {
-      logSpeech.textContent = "❌ meSpeak nicht geladen!";
-      return;
+  // --- Test 2: Duo (Instrument + Gesang) ---
+  document.getElementById("btnTestDuo").addEventListener("click", async function() {
+    if (audioCtx.state === "suspended") await audioCtx.resume();
+    logDuo.textContent = "⏳ Lade Instrument & Gesang...";
+    await waitForCantor();
+    const { Voice, generateSynthParams } = window.CantorDigitalis;
+
+    try {
+      // 1. Instrument (Klavier) laden und spielen
+      if (window.WebAudioFontPlayer && window._tone_0250_SoundBlasterOld_sf2) {
+        const player = new WebAudioFontPlayer();
+        const instrument = _tone_0250_SoundBlasterOld_sf2;
+        player.loader.decodeAfterLoading(audioCtx, '_tone_0250_SoundBlasterOld_sf2');
+        // C-Dur Akkord (C4, E4, G4) für 2 Sekunden
+        player.queueWaveTable(audioCtx, audioCtx.destination, instrument, 0, 60, 2.0);
+        player.queueWaveTable(audioCtx, audioCtx.destination, instrument, 0, 64, 2.0);
+        player.queueWaveTable(audioCtx, audioCtx.destination, instrument, 0, 67, 2.0);
+        logDuo.textContent = "🎹 Klavier spielt... ";
+      } else {
+        logDuo.textContent = "⚠️ Instrument nicht verfügbar. ";
+      }
+
+      // 2. Gesang (Vokal "O") starten
+      const params = {
+        pitch: 0.5,
+        pitchOffset: 60, // C4
+        vocalEffort: 0.6,
+        vowelHeight: 0.2, // "O" ist eher geschlossen
+        vowelBackness: 0.1, // "O" ist hinten
+        tenseness: 0.4,
+        breathiness: 0.05,
+        roughness: 0.01,
+        vocalTractSize: 0.3,
+        isFalsetto: false
+      };
+
+      const synthParams = generateSynthParams(params);
+      const voice = await Voice.create(audioCtx, synthParams);
+      voice.out.connect(audioCtx.destination);
+      voice.start();
+      currentVoice = voice;
+
+      logDuo.textContent += "🎤 Gesang (O) läuft...";
+
+      setTimeout(() => {
+        if (currentVoice) { currentVoice.stop(); currentVoice = null; }
+        logDuo.textContent += " ✅ Fertig!";
+      }, 2000);
+
+    } catch (e) {
+      logDuo.textContent += " ❌ Fehler: " + e.message;
+      console.error(e);
     }
-    logSpeech.textContent = "⏳ Versuche zu sprechen...";
-    meSpeak.speak("Hallo, ich bin HalDo", {
-      amplitude: 100,
-      wordgap: 0,
-      pitch: 50,
-      speed: 175,
-      voice: "de"
-    }, function(success, id) {
-      if(success) logSpeech.textContent = "✅ Sprachausgabe erfolgreich!";
-      else logSpeech.textContent = "❌ Sprachausgabe fehlgeschlagen.";
-    });
   });
 </script>
 
