@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — MUSIK STUDIO (v610) · PRO MAX
+   HALDO AI OS — MUSIK STUDIO (v620) · PRO MAX (Fixed CDN)
    smplr (Instrumente) · pocket-tts-js (Stimme) · KI-Texte
    ═══════════════════════════════════════════════════════════ */
 (function(){
@@ -12,15 +12,15 @@
     });
   }
 
-  // 1. smplr (Instrumente) laden
+  // 1. smplr (Instrumente) laden – Korrigierter Link
   function loadSmplr() {
     return new Promise((resolve) => {
       if (window.smplr) return resolve();
       let s = document.createElement('script');
       s.type = 'module';
       s.textContent = `
-        import { SplendidGrandPiano, DrumMachine, Soundfont } from "https://unpkg.com/smplr@0.17.1/dist/index.mjs";
-        window.smplr = { SplendidGrandPiano, DrumMachine, Soundfont };
+        import { SplendidGrandPiano, DrumMachine, Sequencer, Reverb, renderOffline } from "https://unpkg.com/smplr/dist/index.mjs";
+        window.smplr = { SplendidGrandPiano, DrumMachine, Sequencer, Reverb, renderOffline };
         window.dispatchEvent(new Event('smplr-ready'));
       `;
       document.head.appendChild(s);
@@ -28,14 +28,14 @@
     });
   }
 
-  // 2. pocket-tts-js (Stimme) laden
+  // 2. pocket-tts-js (Stimme) laden – Korrigierter Link
   function loadTTS() {
     return new Promise((resolve) => {
       if (window.PocketTTS) return resolve();
       let s = document.createElement('script');
       s.type = 'module';
       s.textContent = `
-        import { PocketTTS, StreamingPlayer } from "https://cdn.jsdelivr.net/npm/pocket-tts-js@0.1.0/dist/index.mjs";
+        import { PocketTTS, StreamingPlayer } from "https://cdn.jsdelivr.net/npm/pocket-tts-js/dist/index.mjs";
         window.PocketTTS = PocketTTS;
         window.StreamingPlayer = StreamingPlayer;
         window.dispatchEvent(new Event('tts-ready'));
@@ -61,6 +61,9 @@
 
     function build(){
       var k = ST.ki;
+      // WICHTIG: Standardwert für BPM setzen, falls undefined
+      if(!k.bpm) k.bpm = 100;
+
       var body = '';
 
       body += '<div class="tabs">'
@@ -68,7 +71,7 @@
         + '</div>';
 
       if(tab === "studio"){
-        // Songtext & KI
+        // Songtext
         body += '<div class="card"><h3>📝 Songtext</h3>'
           + '<input type="text" id="ki_desc" placeholder="Thema (z.B. Liebe, Freiheit...)" value="' + _esc(k.songDesc) + '" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-size:13px;margin-bottom:8px">'
           + '<textarea id="ki_lyrics" rows="5" placeholder="Text hier eingeben..." style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-size:13px;font-family:inherit;resize:vertical">' + _esc(k.lyrics) + '</textarea>'
@@ -89,7 +92,7 @@
         body += '<div class="card"><h3>🎵 Arrangement</h3>'
           + '<div style="display:flex;gap:8px;margin-bottom:10px">'
           + '<div style="flex:1"><label style="font-size:10px;color:var(--text-mute);font-weight:800">BPM</label>'
-          + '<input type="number" id="ki_bpm" value="' + (k.bpm || 100) + '" style="width:100%;padding:8px;background:rgba(0,0,0,.3);border-radius:8px;color:inherit;font-size:12px"></div>'
+          + '<input type="number" id="ki_bpm" value="' + k.bpm + '" style="width:100%;padding:8px;background:rgba(0,0,0,.3);border-radius:8px;color:inherit;font-size:12px"></div>'
           + '<div style="flex:1"><label style="font-size:10px;color:var(--text-mute);font-weight:800">STIL</label>'
           + '<select id="ki_style" style="width:100%;padding:8px;background:rgba(0,0,0,.3);border-radius:8px;color:inherit;font-size:12px">'
           + '<option value="pop">Pop</option><option value="rock">Rock</option><option value="stran">🦚 Stran</option>'
@@ -155,21 +158,21 @@
             await piano.load;
             stat.textContent = "🎶 Instrumente geladen. Starte Arrangement...";
 
-            // Sequencer (vereinfacht: direktes Timing)
+            // Sequencer
             var bpm = ki.bpm || 100;
             var beatDur = 60 / bpm;
             var startTime = audioCtx.currentTime + 0.5;
             var chords = [["C4", "E4", "G4"], ["G3", "B3", "D4"], ["A3", "C4", "E4"], ["F3", "A3", "C4"]];
 
             for (var i = 0; i < 16; i++) {
-              var t = startTime + (i * beatDur * 2); // Jede 2 Beats ein Akkord
+              var t = startTime + (i * beatDur * 2);
               var chord = chords[i % 4];
               chord.forEach(note => piano.start({ note: note, time: t, duration: beatDur * 1.8 }));
               drums.start({ note: "kick", time: t });
               drums.start({ note: "snare", time: t + beatDur });
             }
 
-            // Gesang (pocket-tts-js)
+            // Gesang
             stat.textContent = "🎤 Stimme wird initialisiert...";
             var tts = new window.PocketTTS({ language: "german_2026-04", quantized: true, voiceCloning: false });
             await tts.load();
@@ -219,5 +222,5 @@
   }
 
   HalDoApp("musik", { name: "Musik", icon: "🎵", render: render, category: "lifestyle" });
-  console.log("🦚 musik.js v610 geladen — PRO MAX (Fixed)");
+  console.log("🦚 musik.js v620 geladen — PRO MAX (Fixed CDN)");
 })();
