@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — MUSIK STUDIO (v900) · PRO MAX ULTIMATE
-   Multi-Track · Mixer · Effekte · KI (Magenta) · Gesang
+   HALDO AI OS — MUSIK STUDIO (v910) · FINAL STABLE
+   Auto-Unlock Audio · NaN-Schutz · Multi-Track
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -12,10 +12,34 @@
     });
   }
 
-  // --- 1. BIBLIOTHEKEN LADEN ---
+  // --- 1. AUTO-UNLOCK FÜR AUDIO (WICHTIG!) ---
+  // Browser blockieren Audio, bis der Nutzer einmal geklickt hat.
+  var _audioUnlocked = false;
+  function unlockAudio() {
+    if (_audioUnlocked) return;
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') {
+        ctx.resume().then(function() { _audioUnlocked = true; });
+      } else {
+        _audioUnlocked = true;
+      }
+      // Silent Buffer abspielen, um zu entsperren
+      var buf = ctx.createBuffer(1, 1, 22050);
+      var src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      src.start(0);
+    } catch(e) { console.warn("Audio Unlock Fehler:", e); }
+  }
+  // Bei jedem Klick entsperren
+  document.addEventListener('click', unlockAudio, { once: true });
+  document.addEventListener('touchstart', unlockAudio, { once: true });
+
+
+  // --- 2. BIBLIOTHEKEN LADEN ---
   function loadLibraries() {
     return new Promise(async (resolve) => {
-      // WebAudioFont (Instrumente)
       if(!window.WebAudioFontPlayer) {
         await new Promise(r => {
           let s = document.createElement('script');
@@ -24,180 +48,75 @@
           document.head.appendChild(s);
         });
       }
-      // Instrumenten-Samples laden
-      if(!window._tone_0250_SoundBlasterOld_sf2) {
-        await new Promise(r => {
-          let s = document.createElement('script');
-          s.src = "https://surikov.github.io/webaudiofontdata/sound/0250_SoundBlasterOld_sf2.js";
-          s.onload = r;
-          document.head.appendChild(s);
-        });
-      }
-      if(!window._tone_0330_SoundBlasterOld_sf2) {
-        await new Promise(r => {
-          let s = document.createElement('script');
-          s.src = "https://surikov.github.io/webaudiofontdata/sound/0330_SoundBlasterOld_sf2.js";
-          s.onload = r;
-          document.head.appendChild(s);
-        });
-      }
-      if(!window._tone_0120_SoundBlasterOld_sf2) {
-        await new Promise(r => {
-          let s = document.createElement('script');
-          s.src = "https://surikov.github.io/webaudiofontdata/sound/0120_SoundBlasterOld_sf2.js";
-          s.onload = r;
-          document.head.appendChild(s);
-        });
-      }
-
-      // Magenta.js (KI-Musik) - Optional, falls verfügbar
-      if(!window.mm) {
-        try {
-          await new Promise((r, reject) => {
+      const instruments = [
+        "https://surikov.github.io/webaudiofontdata/sound/0250_SoundBlasterOld_sf2.js",
+        "https://surikov.github.io/webaudiofontdata/sound/0330_SoundBlasterOld_sf2.js",
+        "https://surikov.github.io/webaudiofontdata/sound/0120_SoundBlasterOld_sf2.js"
+      ];
+      for (const url of instruments) {
+        const varName = url.match(/(\d+)_SoundBlasterOld_sf2\.js/)[1];
+        if (!window['_tone_' + varName + '_SoundBlasterOld_sf2']) {
+          await new Promise(r => {
             let s = document.createElement('script');
-            s.src = "https://cdn.jsdelivr.net/npm/@magenta/music@1.23.0/es6/core.js";
-            s.onload = () => {
-              let s2 = document.createElement('script');
-              s2.src = "https://cdn.jsdelivr.net/npm/@magenta/music@1.23.0/es6/music_rnn.js";
-              s2.onload = r;
-              s2.onerror = reject;
-              document.head.appendChild(s2);
-            };
-            s.onerror = reject;
+            s.src = url;
+            s.onload = r;
             document.head.appendChild(s);
           });
-        } catch(e) { console.warn("Magenta.js konnte nicht geladen werden (KI-Melodien deaktiviert)."); }
+        }
       }
-
-      // Cantor Digitalis (Gesang) - Optional
-      if(!window.CantorDigitalis) {
-        try {
-          await new Promise((r, reject) => {
-            let s = document.createElement('script');
-            s.type = 'module';
-            s.textContent = `
-              import { Voice, generateSynthParams } from "https://cdn.jsdelivr.net/npm/cantor-digitalis@0.0.6/+esm";
-              window.CantorDigitalis = { Voice, generateSynthParams };
-              window.dispatchEvent(new Event('cantor-ready'));
-            `;
-            document.head.appendChild(s);
-            window.addEventListener('cantor-ready', r, { once: true });
-          });
-        } catch(e) { console.warn("Cantor Digitalis konnte nicht geladen werden (Vokal-Gesang deaktiviert)."); }
-      }
-
       resolve();
     });
   }
 
-  // --- 2. AUDIO ENGINE (Multi-Track Architektur) ---
-  class AudioEngine {
-    constructor() {
-      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-      this.masterGain = this.ctx.createGain();
-      this.masterGain.connect(this.ctx.destination);
-
-      // Spuren (Tracks) mit eigenen GainNodes für den Mixer
-      this.tracks = {
-        piano:   { gain: this.ctx.createGain(), instrument: null },
-        bass:    { gain: this.ctx.createGain(), instrument: null },
-        strings: { gain: this.ctx.createGain(), instrument: null },
-        drums:   { gain: this.ctx.createGain(), instrument: null }
-      };
-      
-      for (let t in this.tracks) {
-        this.tracks[t].gain.connect(this.masterGain);
-        this.tracks[t].gain.gain.value = 0.8; // Standard-Lautstärke
-      }
-
-      // Effekte (Reverb, Delay)
-      this.reverb = this.ctx.createConvolver();
-      this.delay = this.ctx.createDelay(1.0);
-      this.delay.delayTime.value = 0.3;
-      this.fxGain = this.ctx.createGain();
-      this.fxGain.gain.value = 0.3;
-      
-      // Reverb-Impulsantwort (einfach)
-      this.reverb.buffer = this._createImpulseResponse(2.0, 0.5);
-      this.reverb.connect(this.fxGain);
-      this.delay.connect(this.fxGain);
-      this.fxGain.connect(this.masterGain);
-    }
-
-    _createImpulseResponse(duration, decay) {
-      let rate = this.ctx.sampleRate;
-      let length = rate * duration;
-      let impulse = this.ctx.createBuffer(2, length, rate);
-      for (let i = 0; i < 2; i++) {
-        let channel = impulse.getChannelData(i);
-        for (let j = 0; j < length; j++) {
-          channel[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / length, decay);
-        }
-      }
-      return impulse;
-    }
-
-    setTrackVolume(track, value) {
-      if (this.tracks[track]) {
-        this.tracks[track].gain.gain.value = Math.max(0, Math.min(1, value));
-      }
-    }
-
-    sendToReverb(track, amount) {
-      if (this.tracks[track]) {
-        let send = this.ctx.createGain();
-        send.gain.value = amount;
-        this.tracks[track].gain.connect(send);
-        send.connect(this.reverb);
-      }
-    }
-
-    sendToDelay(track, amount) {
-      if (this.tracks[track]) {
-        let send = this.ctx.createGain();
-        send.gain.value = amount;
-        this.tracks[track].gain.connect(send);
-        send.connect(this.delay);
-      }
-    }
-
-    playNote(track, midiNote, time, duration, velocity) {
-      if (this.tracks[track] && this.tracks[track].instrument) {
-        let player = new WebAudioFontPlayer();
-        player.queueWaveTable(this.ctx, this.tracks[track].gain, this.tracks[track].instrument, time, midiNote, duration, velocity);
-      }
-    }
-  }
 
   // --- 3. HAUPT-RENDER-FUNKTION ---
   function render(container, ctx){
     var store = ctx.store;
     var tab = store.get("tab", "studio");
 
+    var defaultKi = {
+      lyrics: "", songDesc: "", lang: "de", voiceURI: "", style: "pop", bpm: 100,
+      volPiano: 0.8, volBass: 0.6, volStrings: 0.4, volDrums: 0.7
+    };
+    var savedKi = store.get("ki", {});
     var ST = {
-      engine: null,
-      ki: store.get("ki", {
-        lyrics: "", songDesc: "", lang: "de", voiceURI: "", style: "pop", bpm: 100,
-        volPiano: 0.8, volBass: 0.6, volStrings: 0.4, volDrums: 0.7,
-        reverbAmount: 0.3, delayAmount: 0.2, melodyStyle: "pop"
-      })
+      ki: Object.assign({}, defaultKi, savedKi),
+      engine: null // Wird beim ersten Play initialisiert
     };
 
     function save(){ store.set("ki", ST.ki); }
 
     function initEngine() {
       if (!ST.engine) {
-        ST.engine = new AudioEngine();
-        // Instrumente zuweisen
-        if (window._tone_0250_SoundBlasterOld_sf2) ST.engine.tracks.piano.instrument = _tone_0250_SoundBlasterOld_sf2;
-        if (window._tone_0330_SoundBlasterOld_sf2) ST.engine.tracks.bass.instrument = _tone_0330_SoundBlasterOld_sf2;
-        if (window._tone_0120_SoundBlasterOld_sf2) ST.engine.tracks.strings.instrument = _tone_0120_SoundBlasterOld_sf2;
+        try {
+          ST.engine = {
+            ctx: new (window.AudioContext || window.webkitAudioContext)(),
+            masterGain: null,
+            tracks: {}
+          };
+          ST.engine.masterGain = ST.engine.ctx.createGain();
+          ST.engine.masterGain.connect(ST.engine.ctx.destination);
+          
+          ["piano", "bass", "strings", "drums"].forEach(t => {
+            ST.engine.tracks[t] = { gain: ST.engine.ctx.createGain() };
+            ST.engine.tracks[t].gain.connect(ST.engine.masterGain);
+            ST.engine.tracks[t].gain.gain.value = ST.ki["vol" + t.charAt(0).toUpperCase() + t.slice(1)] || 0.5;
+          });
+        } catch(e) {
+          console.error("Engine Init Fehler:", e);
+          return false;
+        }
       }
+      // Kontext wieder aufwecken
+      if (ST.engine.ctx.state === "suspended") {
+        ST.engine.ctx.resume();
+      }
+      return true;
     }
 
     function build(){
       var k = ST.ki;
-      if(!k.bpm) k.bpm = 100;
+      k.bpm = Math.max(40, Math.min(200, parseFloat(k.bpm) || 100));
 
       var body = '';
 
@@ -205,11 +124,10 @@
       body += '<div class="tabs">'
         + '<button class="tab' + (tab === "studio" ? " active" : "") + '" data-mtab="studio">🎛️ Studio</button>'
         + '<button class="tab' + (tab === "mixer" ? " active" : "") + '" data-mtab="mixer">🎚️ Mixer</button>'
-        + '<button class="tab' + (tab === "effects" ? " active" : "") + '" data-mtab="effects">✨ Effekte</button>'
         + '<button class="tab' + (tab === "voice" ? " active" : "") + '" data-mtab="voice">🎤 Gesang</button>'
         + '</div>';
 
-      /* ═══ 1. STUDIO (KI & Text & Play) ═══ */
+      /* ═══ 1. STUDIO ═══ */
       if(tab === "studio"){
         body += '<div class="card"><h3>📝 Songtext & KI</h3>'
           + '<input type="text" id="ki_desc" placeholder="Thema (z.B. Liebe, Heimweh...)" value="' + _esc(k.songDesc) + '" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-size:13px;margin-bottom:8px">'
@@ -225,13 +143,10 @@
           + '<option value="pop"' + (k.style==="pop"?" selected":"") + '>Pop</option>'
           + '<option value="rock"' + (k.style==="rock"?" selected":"") + '>Rock</option>'
           + '<option value="stran"' + (k.style==="stran"?" selected":"") + '>🦚 Stran</option>'
-          + '<option value="arabesk"' + (k.style==="arabesk"?" selected":"") + '>🇹🇷 Arabesk</option>'
-          + '<option value="edm"' + (k.style==="edm"?" selected":"") + '>EDM</option>'
           + '</select></div>'
           + '<div><label style="font-size:10px;color:var(--text-mute);font-weight:800">BPM</label>'
           + '<input type="number" id="ki_bpm" value="' + k.bpm + '" min="40" max="200" style="width:100%;padding:8px;background:rgba(0,0,0,.3);border-radius:8px;color:inherit;font-size:12px"></div>'
-          + '</div>'
-          + '</div>';
+          + '</div></div>';
 
         // Play-Button (sticky)
         body += '<div class="card" style="position:sticky;bottom:0;background:var(--bg-2);z-index:10;border-top:1px solid var(--border-soft);margin-bottom:0">'
@@ -245,24 +160,19 @@
 
       /* ═══ 2. MIXER ═══ */
       if(tab === "mixer"){
-        body += '<div class="card"><h3>🎚️ Mixer</h3>'
-          + '<div style="font-size:10.5px;color:var(--text-mute);margin-bottom:12px">Lautstärke der einzelnen Spuren anpassen:</div>'
-          + sliderRow("🎹 Klavier", "vol_piano", "v_piano", k.volPiano)
-          + sliderRow("🎸 Bass", "vol_bass", "v_bass", k.volBass)
-          + sliderRow("🎻 Streicher", "vol_strings", "v_strings", k.volStrings)
-          + sliderRow("🥁 Drums (Synth)", "vol_drums", "v_drums", k.volDrums)
-          + '</div>';
+        body += '<div class="card"><h3>🎚️ Mixer</h3>';
+        ["piano", "bass", "strings", "drums"].forEach(inst => {
+          body += sliderRow(
+            "🎹 " + inst.charAt(0).toUpperCase() + inst.slice(1),
+            "vol_" + inst,
+            "v_" + inst,
+            k["vol" + inst.charAt(0).toUpperCase() + inst.slice(1)]
+          );
+        });
+        body += '</div>';
       }
 
-      /* ═══ 3. EFFEKTE ═══ */
-      if(tab === "effects"){
-        body += '<div class="card"><h3>✨ Raum & Effekte</h3>'
-          + sliderRow("🏛️ Hall (Reverb)", "fx_reverb", "v_reverb", k.reverbAmount)
-          + sliderRow("📢 Echo (Delay)", "fx_delay", "v_delay", k.delayAmount)
-          + '</div>';
-      }
-
-      /* ═══ 4. GESANG ═══ */
+      /* ═══ 3. GESANG ═══ */
       if(tab === "voice"){
         body += '<div class="card"><h3>🎤 Sänger(in) wählen</h3>'
           + '<div style="font-size:11px;color:var(--text-mute);margin-bottom:8px">Wähle aus allen Stimmen deines Computers:</div>'
@@ -277,12 +187,12 @@
 
       container.innerHTML = body;
 
-      // Event-Listener für Tabs
+      // Tabs binden
       container.querySelectorAll("[data-mtab]").forEach(function(b){
         b.addEventListener("click", function(){ tab = b.dataset.mtab; store.set("tab", tab); build(); });
       });
 
-      // --- EVENT-BINDINGS ---
+      // Studio Events
       if(tab === "studio"){
         container.querySelector("#ki_desc").addEventListener("input", function(){ k.songDesc = this.value; save(); });
         container.querySelector("#ki_lyrics").addEventListener("input", function(){ k.lyrics = this.value; save(); });
@@ -292,11 +202,9 @@
           this.value = k.bpm; save(); 
         });
 
-        // KI Songtext
         container.querySelector("#ki_gen").addEventListener("click", async function(){
           var stat = container.querySelector("#ki_status");
-          stat.style.display = "block";
-          stat.textContent = "⏳ HalDo KI schreibt...";
+          stat.style.display = "block"; stat.textContent = "⏳ HalDo KI schreibt...";
           this.disabled = true;
           try {
             var langMap = { "de": "Deutsch", "en": "Englisch", "tr": "Türkisch", "ar": "Arabisch", "ku": "Kurdisch" };
@@ -307,151 +215,167 @@
           this.disabled = false;
         });
 
-        // Play
+        // --- PLAY BUTTON (Der wichtigste Teil) ---
         container.querySelector("#ki_play").addEventListener("click", async function(){
           if(!k.lyrics) return alert("Bitte erst einen Songtext eingeben!");
+          
           var btn = this;
           var stat = container.querySelector("#play_status");
           btn.disabled = true;
           stat.style.display = "block";
-          stat.textContent = "⏳ Lade Instrumente & Engine...";
+          stat.textContent = "⏳ Initialisiere Audio...";
 
           try {
+            // 1. Audio entsperren (falls noch nicht passiert)
+            unlockAudio();
+
+            // 2. Bibliotheken laden
             await loadLibraries();
-            initEngine();
-            if (ST.engine.ctx.state === "suspended") await ST.engine.ctx.resume();
-
-            // Mixer-Werte anwenden
-            ST.engine.setTrackVolume("piano", k.volPiano);
-            ST.engine.setTrackVolume("bass", k.volBass);
-            ST.engine.setTrackVolume("strings", k.volStrings);
-            ST.engine.setTrackVolume("drums", k.volDrums);
             
-            // Effekte anwenden
-            ST.engine.sendToReverb("piano", k.reverbAmount);
-            ST.engine.sendToDelay("strings", k.delayAmount);
+            // 3. Engine starten
+            if (!initEngine()) throw new Error("Audio-Engine konnte nicht gestartet werden.");
+            
+            // 4. Auf Resume warten
+            if (ST.engine.ctx.state === "suspended") {
+              await ST.engine.ctx.resume();
+            }
 
-            var bpm = k.bpm;
-            var beatDur = 60 / bpm;
-            var startTime = ST.engine.ctx.currentTime + 1.0; 
+            // 5. Mixer-Werte anwenden (mit NaN-Schutz)
+            ["piano", "bass", "strings", "drums"].forEach(inst => {
+              let val = Number(k["vol" + inst.charAt(0).toUpperCase() + inst.slice(1)]);
+              if (isNaN(val)) val = 0.5;
+              if (ST.engine.tracks[inst]) {
+                ST.engine.tracks[inst].gain.gain.value = Math.max(0, Math.min(1, val));
+              }
+            });
 
-            var chords = [[60, 64, 67], [55, 59, 62], [57, 60, 64], [53, 57, 60]];
-            stat.textContent = "🎶 Musik läuft...";
+            // 6. Song-Parameter berechnen
+            let bpm = parseFloat(k.bpm) || 100;
+            let beatDur = 60 / bpm;
+            
+            // WICHTIG: Startzeitpunkt in der ZUKUNFT (mind. 1 Sekunde Puffer)
+            let startTime = ST.engine.ctx.currentTime + 1.0;
+            let totalBeats = 32; // 8 Takte
+            let chords = [[60, 64, 67], [55, 59, 62], [57, 60, 64], [53, 57, 60]];
 
-            var totalBeats = 32; 
-            for(var i = 0; i < totalBeats; i++) {
-              var t = startTime + (i * beatDur);
-              if(t > ST.engine.ctx.currentTime) {
-                var chord = chords[Math.floor(i / 4) % 4];
-                
-                // Bass
-                ST.engine.playNote("bass", chord[0] - 24, t, beatDur * 0.9, 0.8);
-                
-                // Piano & Strings
-                if(i % 4 === 0 || i % 4 === 2) {
+            stat.textContent = "🎶 Musik wird geplant...";
+
+            // 7. Instrumental-Noten planen
+            let player = new WebAudioFontPlayer();
+            for (let i = 0; i < totalBeats; i++) {
+              let noteTime = startTime + (i * beatDur);
+              
+              // Sicherheitscheck: Nur planen, wenn Zeitpunkt in der Zukunft liegt
+              if (noteTime <= ST.engine.ctx.currentTime) continue;
+
+              let chord = chords[Math.floor(i / 4) % 4];
+
+              try {
+                // Bass (jeden Beat)
+                if (window._tone_0330_SoundBlasterOld_sf2) {
+                  player.queueWaveTable(ST.engine.ctx, ST.engine.tracks.bass.gain, 
+                    _tone_0330_SoundBlasterOld_sf2, noteTime, chord[0] - 24, beatDur * 0.9, 0.8);
+                }
+                // Piano & Strings (Beat 1 & 3)
+                if (i % 4 === 0 || i % 4 === 2) {
                   chord.forEach(n => {
-                    ST.engine.playNote("piano", n, t, beatDur * 1.8, 0.7);
-                    ST.engine.playNote("strings", n + 12, t, beatDur * 1.8, 0.5);
+                    if (window._tone_0250_SoundBlasterOld_sf2) {
+                      player.queueWaveTable(ST.engine.ctx, ST.engine.tracks.piano.gain, 
+                        _tone_0250_SoundBlasterOld_sf2, noteTime, n, beatDur * 1.8, 0.7);
+                    }
+                    if (window._tone_0120_SoundBlasterOld_sf2) {
+                      player.queueWaveTable(ST.engine.ctx, ST.engine.tracks.strings.gain, 
+                        _tone_0120_SoundBlasterOld_sf2, noteTime, n + 12, beatDur * 1.8, 0.5);
+                    }
                   });
                 }
-
-                // Einfache Drums (Kick & Snare)
-                if (i % 4 === 0) ST.engine.playNote("drums", 36, t, 0.1, 0.8); // Kick
-                if (i % 4 === 2) ST.engine.playNote("drums", 38, t, 0.1, 0.6); // Snare
+              } catch(err) {
+                console.warn("Fehler beim Planen von Note " + i + ":", err);
               }
             }
 
-            // Gesang (TTS)
             stat.textContent = "🎤 Stimme wird synchronisiert...";
-            var words = k.lyrics.replace(/\[.*?\]/g, '').replace(/\n/g, ' ').trim().split(/\s+/).filter(w => w.length > 0);
-            var voices = window.speechSynthesis.getVoices();
-            var selectedVoice = voices.find(v => v.voiceURI === k.voiceURI);
 
-            var wordsPerBeat = 2; 
-            var wordCount = Math.min(words.length, totalBeats * wordsPerBeat);
-            
-            for(var w = 0; w < wordCount; w++) {
-              var word = words[w];
-              var wTime = startTime + (w * (beatDur / wordsPerBeat));
-              var delay = Math.max(0, (wTime - ST.engine.ctx.currentTime) * 1000);
-              
-              setTimeout(function(wordText) {
-                var u = new SpeechSynthesisUtterance(wordText);
-                if(selectedVoice) u.voice = selectedVoice;
-                u.pitch = 1.0 + (Math.random() * 0.2); 
+            // 8. Gesang (TTS) planen
+            window.speechSynthesis.cancel(); // Alte Utterances löschen
+            let words = k.lyrics.replace(/\[.*?\]/g, '').replace(/\n/g, ' ').trim().split(/\s+/).filter(w => w.length > 0);
+            let voices = window.speechSynthesis.getVoices();
+            let selectedVoice = voices.find(v => v.voiceURI === k.voiceURI);
+
+            let wordsPerBeat = 2;
+            let wordCount = Math.min(words.length, totalBeats * wordsPerBeat);
+
+            for (let w = 0; w < wordCount; w++) {
+              let word = words[w];
+              let wordTime = startTime + (w * (beatDur / wordsPerBeat));
+              let delay = Math.max(0, (wordTime - ST.engine.ctx.currentTime) * 1000);
+
+              setTimeout(() => {
+                let u = new SpeechSynthesisUtterance(word);
+                if (selectedVoice) u.voice = selectedVoice;
+                u.pitch = 1.0 + (Math.random() * 0.2);
                 u.rate = 1.1;
                 window.speechSynthesis.speak(u);
-              }.bind(null, word), delay);
+              }, delay);
             }
 
             stat.textContent = "▶️ Song läuft!";
-            setTimeout(function() {
+            setTimeout(() => {
               btn.disabled = false;
               stat.textContent = "✅ Song beendet.";
             }, (totalBeats * beatDur * 1000) + 2000);
 
-          } catch(e) {
-            alert("Fehler: " + e.message);
+          } catch (e) {
+            console.error("Play-Fehler:", e);
             btn.disabled = false;
-            stat.textContent = "❌ Fehler beim Abspielen";
+            stat.textContent = "❌ " + e.message;
           }
         });
 
         container.querySelector("#ki_stop").addEventListener("click", function(){
           window.speechSynthesis.cancel();
-          if(ST.engine && ST.engine.ctx) { ST.engine.ctx.close(); ST.engine = null; }
+          if (ST.engine && ST.engine.ctx) {
+            ST.engine.ctx.close();
+            ST.engine = null;
+          }
           var stat = container.querySelector("#play_status");
-          if(stat) stat.textContent = "⏹ Gestoppt.";
+          if (stat) stat.textContent = "⏹ Gestoppt.";
           var btn = container.querySelector("#ki_play");
-          if(btn) btn.disabled = false;
+          if (btn) btn.disabled = false;
         });
       }
 
-      // Mixer & Effekte Events
-      ["piano", "bass", "strings", "drums"].forEach(inst => {
-        let slider = container.querySelector("#vol_" + inst);
-        let label = container.querySelector("#v_" + inst);
-        if(slider) {
-          slider.addEventListener("input", function() {
-            let val = this.value / 100;
-            k["vol" + inst.charAt(0).toUpperCase() + inst.slice(1)] = val;
-            label.textContent = this.value + "%";
-            if(ST.engine) ST.engine.setTrackVolume(inst, val);
-            save();
-          });
-        }
-      });
+      // Mixer Events
+      if (tab === "mixer") {
+        ["piano", "bass", "strings", "drums"].forEach(inst => {
+          let slider = container.querySelector("#vol_" + inst);
+          let label = container.querySelector("#v_" + inst);
+          if (slider) {
+            slider.addEventListener("input", function() {
+              let val = this.value / 100;
+              k["vol" + inst.charAt(0).toUpperCase() + inst.slice(1)] = val;
+              label.textContent = this.value + "%";
+              if (ST.engine && ST.engine.tracks[inst]) {
+                ST.engine.tracks[inst].gain.gain.value = val;
+              }
+              save();
+            });
+          }
+        });
+      }
 
-      ["reverb", "delay"].forEach(fx => {
-        let slider = container.querySelector("#fx_" + fx);
-        let label = container.querySelector("#v_" + fx);
-        if(slider) {
-          slider.addEventListener("input", function() {
-            let val = this.value / 100;
-            k[fx + "Amount"] = val;
-            label.textContent = this.value + "%";
-            // Effekt-Sends live aktualisieren (falls Engine läuft)
-            if(ST.engine) {
-              if(fx === "reverb") ST.engine.sendToReverb("piano", val);
-              if(fx === "delay") ST.engine.sendToDelay("strings", val);
-            }
-            save();
-          });
-        }
-      });
-
-      // Voice Tab Events
+      // Voice Events
       if(tab === "voice"){
         var voiceSelect = container.querySelector("#ki_voice");
         function populateVoices() {
           var voices = window.speechSynthesis.getVoices();
-          if(voices.length === 0) { setTimeout(populateVoices, 500); return; }
+          if (voices.length === 0) { setTimeout(populateVoices, 500); return; }
           voiceSelect.innerHTML = "";
-          voices.forEach(function(v){
+          voices.forEach(function(v) {
             var opt = document.createElement("option");
             opt.value = v.voiceURI;
             opt.textContent = v.name + " (" + v.lang + ")";
-            if(k.voiceURI === v.voiceURI) opt.selected = true;
+            if (k.voiceURI === v.voiceURI) opt.selected = true;
             voiceSelect.appendChild(opt);
           });
         }
@@ -462,7 +386,8 @@
         container.querySelector("#ki_testVoice").addEventListener("click", function(){
           var voices = window.speechSynthesis.getVoices();
           var selected = voices.find(v => v.voiceURI === k.voiceURI);
-          if(!selected) return alert("Bitte wähle zuerst eine Stimme aus!");
+          if (!selected) return alert("Bitte wähle zuerst eine Stimme aus!");
+          unlockAudio(); // Auch hier entsperren
           var u = new SpeechSynthesisUtterance("Hallo, so klinge ich.");
           u.voice = selected;
           window.speechSynthesis.speak(u);
@@ -472,9 +397,10 @@
 
     // Hilfsfunktion für Slider
     function sliderRow(label, id, labelId, value) {
+      let safeVal = Math.round((Number(value) || 0.5) * 100);
       return '<div style="margin-bottom:12px">'
-        + '<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800;margin-bottom:4px"><span>' + label + '</span><span id="' + labelId + '">' + Math.round(value*100) + '%</span></div>'
-        + '<input type="range" id="' + id + '" min="0" max="100" value="' + Math.round(value*100) + '" style="width:100%">'
+        + '<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800;margin-bottom:4px"><span>' + label + '</span><span id="' + labelId + '">' + safeVal + '%</span></div>'
+        + '<input type="range" id="' + id + '" min="0" max="100" value="' + safeVal + '" style="width:100%">'
         + '</div>';
     }
 
@@ -482,5 +408,5 @@
   }
 
   HalDoApp("musik", { name: "Musik", icon: "🎵", render: render, category: "lifestyle" });
-  console.log("🦚 musik.js v900 geladen — PRO MAX ULTIMATE");
+  console.log("🦚 musik.js v910 geladen — FINAL STABLE");
 })();
