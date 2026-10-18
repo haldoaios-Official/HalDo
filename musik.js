@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — MUSIK STUDIO (v1.0) · PRO MAX FOUNDATION
-   Tone.js (Timing/FX) · WebAudioFont (Instrumente) · KI & TTS
+   HALDO AI OS — MUSIK STUDIO (v2.0) · PRO MAX FOUNDATION
+   Tone.js · SpessaSynth · Vocal-Synth-Engine · KI
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -15,7 +15,7 @@
   // --- 1. BIBLIOTHEKEN LADEN ---
   function loadLibraries() {
     return new Promise(async (resolve) => {
-      // Tone.js laden
+      // Tone.js
       if (!window.Tone) {
         await new Promise(r => {
           let s = document.createElement('script');
@@ -24,38 +24,34 @@
           document.head.appendChild(s);
         });
       }
-      // WebAudioFont laden
-      if (!window.WebAudioFontPlayer) {
+      // SpessaSynth (für hochwertige Instrumente)
+      if (!window.SpessaSynth) {
         await new Promise(r => {
           let s = document.createElement('script');
-          s.src = "https://surikov.github.io/webaudiofont/npm/dist/WebAudioFontPlayer.js";
+          s.src = "https://cdn.jsdelivr.net/npm/spessasynth_lib@3.26.20/dist/spessasynth_lib.min.js";
           s.onload = r;
           document.head.appendChild(s);
         });
       }
-      // Instrumente laden (Klavier, Bass, Strings, Gitarre)
-      const instruments = [
-        "https://surikov.github.io/webaudiofontdata/sound/0250_SoundBlasterOld_sf2.js",
-        "https://surikov.github.io/webaudiofontdata/sound/0330_SoundBlasterOld_sf2.js",
-        "https://surikov.github.io/webaudiofontdata/sound/0120_SoundBlasterOld_sf2.js",
-        "https://surikov.github.io/webaudiofontdata/sound/0300_SoundBlasterOld_sf2.js"
-      ];
-      for (let url of instruments) {
-        const name = url.match(/(\d+)_SoundBlasterOld_sf2\.js/)[1];
-        if (!window['_tone_' + name + '_SoundBlasterOld_sf2']) {
-          await new Promise(r => {
-            let s = document.createElement('script');
-            s.src = url;
-            s.onload = r;
-            document.head.appendChild(s);
-          });
-        }
+      // Vocal-Synth-Engine (für echten Gesang)
+      if (!window.VocalSynthEngine) {
+        await new Promise(r => {
+          let s = document.createElement('script');
+          s.type = 'module';
+          s.textContent = `
+            import { VocalSynthEngine } from "https://cdn.jsdelivr.net/npm/@mcptoolshop/vocal-synth-engine@1.1.0/+esm";
+            window.VocalSynthEngine = VocalSynthEngine;
+            window.dispatchEvent(new Event('vocal-ready'));
+          `;
+          document.head.appendChild(s);
+          window.addEventListener('vocal-ready', r, { once: true });
+        });
       }
       resolve();
     });
   }
 
-  // --- 2. DATEN (Genres, Stimmungen, Stimmen) ---
+  // --- 2. DATEN (Genres, Stimmungen, Instrumente) ---
   const GENRES = [
     "Pop", "Rock", "EDM", "R&B", "Hip-Hop", "Jazz", "Blues", "Metal", "Punk", "Disco", "Dance",
     "Latin", "Reggae", "Country", "Folk", "Klassik", "Romantik", "Barock", "Oper",
@@ -67,6 +63,18 @@
     "Depressiv", "Slow", "Dark", "Episch", "Romantisch", "Melancholisch", "Energiegeladen", "Verträumt"
   ];
 
+  // Eine Auswahl an General MIDI Instrumenten (SpessaSynth nutzt GM-Programme)
+  const INSTRUMENTS = {
+    piano: { name: "Klavier", program: 0 },
+    guitar: { name: "Gitarre", program: 24 },
+    bass: { name: "Bass", program: 32 },
+    strings: { name: "Streicher", program: 48 },
+    flute: { name: "Flöte", program: 73 },
+    baglama: { name: "Bağlama", program: 105 }, // Annäherung
+    duduk: { name: "Duduk", program: 72 }, // Annäherung
+    drums: { name: "Drums", program: 0, isDrum: true }
+  };
+
   // --- 3. HAUPT-RENDER-FUNKTION ---
   function render(container, ctx){
     var store = ctx.store;
@@ -76,15 +84,16 @@
       genre: "Pop", mood: "Happy", bpm: 100, key: "C",
       lyrics: "", songDesc: "",
       voiceType: "female", voiceURI: "", vocalPitch: 1.0, vocalRate: 1.0,
+      selectedInstruments: ["piano", "bass", "strings"],
       trackVol: { piano: 0.8, bass: 0.6, strings: 0.5, guitar: 0.5 },
-      fxReverb: 0.3, fxDelay: 0.2, fxChorus: 0.0
+      fxReverb: 0.3, fxDelay: 0.2
     };
     var ST = {
       set: Object.assign({}, defaultSet, store.get("settings", {})),
-      isPlaying: false,
-      toneStarted: false
+      isPlaying: false
     };
     if (!ST.set.trackVol) ST.set.trackVol = defaultSet.trackVol;
+    if (!ST.set.selectedInstruments) ST.set.selectedInstruments = defaultSet.selectedInstruments;
 
     function save() { store.set("settings", ST.set); }
 
@@ -95,6 +104,7 @@
       // TABS
       body += '<div class="tabs" style="flex-wrap:wrap">'
         + '<button class="tab' + (tab === "studio" ? " active" : "") + '" data-mtab="studio">🎛️ Studio</button>'
+        + '<button class="tab' + (tab === "instruments" ? " active" : "") + '" data-mtab="instruments">🎹 Instrumente</button>'
         + '<button class="tab' + (tab === "mixer" ? " active" : "") + '" data-mtab="mixer">🎚️ Mixer</button>'
         + '<button class="tab' + (tab === "fx" ? " active" : "") + '" data-mtab="fx">✨ Effekte</button>'
         + '<button class="tab' + (tab === "voice" ? " active" : "") + '" data-mtab="voice">🎤 Gesang</button>'
@@ -109,7 +119,7 @@
           + '<div id="ki_status" style="display:none;margin-top:8px;padding:8px;background:rgba(0,229,255,.1);border-radius:8px;font-size:11px"></div>'
           + '</div>';
 
-        // Genre & Mood Auswahl
+        // Genre & Mood
         var genreOpts = GENRES.map(g => `<option value="${g}" ${s.genre===g?'selected':''}>${g}</option>`).join("");
         var moodOpts = MOODS.map(m => `<option value="${m}" ${s.mood===m?'selected':''}>${m}</option>`).join("");
 
@@ -140,25 +150,39 @@
           + '</div>';
       }
 
-      /* ═══════════ TAB 2: MIXER ═══════════ */
+      /* ═══════════ TAB 2: INSTRUMENTE ═══════════ */
+      if(tab === "instruments"){
+        body += '<div class="card"><h3>🎹 Instrumente auswählen</h3>'
+          + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
+        Object.keys(INSTRUMENTS).forEach(key => {
+          let inst = INSTRUMENTS[key];
+          let isSelected = s.selectedInstruments.includes(key);
+          body += '<button type="button" data-instr="' + key + '" style="padding:12px 4px;background:' + (isSelected ? "linear-gradient(135deg,rgba(0,229,255,.2),rgba(180,120,255,.2))" : "rgba(0,0,0,.2)") + ';border:1.5px solid ' + (isSelected ? "var(--p1)" : "var(--border-soft)") + ';border-radius:10px;cursor:pointer;color:inherit;font-family:inherit;text-align:center;font-size:11px;font-weight:800">'
+            + '<div style="font-size:20px;margin-bottom:4px">' + (inst.isDrum ? "🥁" : "🎵") + '</div>'
+            + inst.name
+            + '</button>';
+        });
+        body += '</div></div>';
+      }
+
+      /* ═══════════ TAB 3: MIXER ═══════════ */
       if(tab === "mixer"){
         body += '<div class="card"><h3>🎚️ Multi-Track Mixer</h3>';
-        ["piano", "bass", "strings", "guitar"].forEach(t => {
-          body += sliderRow("🎹 " + t.charAt(0).toUpperCase() + t.slice(1), "vol_" + t, s.trackVol[t]);
+        s.selectedInstruments.forEach(inst => {
+          body += sliderRow("🎹 " + (INSTRUMENTS[inst]?.name || inst), "vol_" + inst, s.trackVol[inst] || 0.5);
         });
         body += '</div>';
       }
 
-      /* ═══════════ TAB 3: EFFEKTE ═══════════ */
+      /* ═══════════ TAB 4: EFFEKTE ═══════════ */
       if(tab === "fx"){
         body += '<div class="card"><h3>✨ Raum & Effekte</h3>'
           + sliderRow("🏛️ Hall (Reverb)", "fx_reverb", s.fxReverb)
           + sliderRow("📢 Echo (Delay)", "fx_delay", s.fxDelay)
-          + sliderRow("🌊 Chorus", "fx_chorus", s.fxChorus)
           + '</div>';
       }
 
-      /* ═══════════ TAB 4: GESANG ═══════════ */
+      /* ═══════════ TAB 5: GESANG ═══════════ */
       if(tab === "voice"){
         body += '<div class="card"><h3>🎤 Vocal Studio</h3>'
           + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'
@@ -217,14 +241,28 @@
         container.querySelector("#stop_btn").addEventListener("click", stopPlayback);
       }
 
+      // Instrumente Tab
+      if (tab === "instruments") {
+        container.querySelectorAll("[data-instr]").forEach(b => {
+          b.addEventListener("click", () => {
+            let key = b.dataset.instr;
+            let idx = s.selectedInstruments.indexOf(key);
+            if (idx === -1) s.selectedInstruments.push(key);
+            else s.selectedInstruments.splice(idx, 1);
+            save(); build();
+          });
+        });
+      }
+
       // Mixer Tab
       if (tab === "mixer") {
-        ["piano", "bass", "strings", "guitar"].forEach(t => {
-          container.querySelector("#vol_" + t).addEventListener("input", function(){
-            let v = this.value / 100; s.trackVol[t] = v;
-            container.querySelector("#v_vol_" + t).textContent = this.value + "%";
-            if (ST.isPlaying && window._haldoTracks && window._haldoTracks[t]) {
-              window._haldoTracks[t].volume.value = Tone.gainToDb(v);
+        s.selectedInstruments.forEach(inst => {
+          let slider = container.querySelector("#vol_" + inst);
+          if (slider) slider.addEventListener("input", function(){
+            let v = this.value / 100; s.trackVol[inst] = v;
+            container.querySelector("#v_vol_" + inst).textContent = this.value + "%";
+            if (ST.isPlaying && window._haldoTracks && window._haldoTracks[inst]) {
+              window._haldoTracks[inst].volume.value = Tone.gainToDb(v);
             }
             save();
           });
@@ -241,11 +279,6 @@
         container.querySelector("#fx_delay").addEventListener("input", function(){
           s.fxDelay = this.value / 100; container.querySelector("#v_fx_delay").textContent = this.value + "%";
           if (window._haldoFX) window._haldoFX.delay.wet.value = s.fxDelay;
-          save();
-        });
-        container.querySelector("#fx_chorus").addEventListener("input", function(){
-          s.fxChorus = this.value / 100; container.querySelector("#v_fx_chorus").textContent = this.value + "%";
-          if (window._haldoFX) window._haldoFX.chorus.wet.value = s.fxChorus;
           save();
         });
       }
@@ -298,7 +331,7 @@
         + '</div>';
     }
 
-    // --- AUDIO ENGINE (Tone.js + WebAudioFont) ---
+    // --- AUDIO ENGINE (Tone.js + SpessaSynth + VocalSynthEngine) ---
     async function startPlayback() {
       if (!ST.set.lyrics) return alert("Bitte erst Songtext eingeben!");
       let btn = document.querySelector("#play_btn");
@@ -319,38 +352,30 @@
         const reverb = new Tone.Reverb({ decay: 2.5, wet: ST.set.fxReverb }).connect(masterGain);
         const delay = new Tone.FeedbackDelay("8n", 0.5).connect(masterGain);
         delay.wet.value = ST.set.fxDelay;
-        const chorus = new Tone.Chorus(4, 2.5, 0.5).connect(masterGain);
-        chorus.wet.value = ST.set.fxChorus;
-
-        window._haldoFX = { reverb, delay, chorus };
+        window._haldoFX = { reverb, delay };
 
         // Track Gains
-        const trackGains = {
-          piano: new Tone.Gain(ST.set.trackVol.piano).connect(reverb).connect(delay),
-          bass: new Tone.Gain(ST.set.trackVol.bass).connect(masterGain),
-          strings: new Tone.Gain(ST.set.trackVol.strings).connect(reverb),
-          guitar: new Tone.Gain(ST.set.trackVol.guitar).connect(chorus)
-        };
+        const trackGains = {};
+        ST.set.selectedInstruments.forEach(inst => {
+          trackGains[inst] = new Tone.Gain(ST.set.trackVol[inst] || 0.5).connect(reverb).connect(delay);
+        });
         window._haldoTracks = trackGains;
 
-        // Instrumente laden
-        const player = new WebAudioFontPlayer();
-        const instPiano = window._tone_0250_SoundBlasterOld_sf2;
-        const instBass = window._tone_0330_SoundBlasterOld_sf2;
-        const instStrings = window._tone_0120_SoundBlasterOld_sf2;
-        const instGuitar = window._tone_0300_SoundBlasterOld_sf2;
-
-        // Harmonik
+        // 1. Instrumente mit SpessaSynth (echte Soundfonts)
+        const synth = new SpessaSynth();
+        await synth.init(Tone.context);
+        
+        // 2. Harmonik
         let baseMidi = { "C": 60, "G": 55, "D": 62, "Am": 57, "Em": 52 }[ST.set.key] || 60;
         let isMinor = ST.set.key.includes("m");
         let chords = isMinor ? 
           [[0, 3, 7], [5, 8, 12], [3, 7, 10], [7, 10, 14]] : 
           [[0, 4, 7], [5, 9, 12], [7, 11, 14], [0, 4, 7]];
 
-        // Noten-Sequenz (8 Takte)
-        let totalBeats = 32;
+        let totalBeats = 32; // 8 Takte
         let beatDur = 60 / ST.set.bpm;
 
+        // 3. Noten planen
         for (let i = 0; i < totalBeats; i++) {
           let time = i * beatDur;
           let chordIdx = Math.floor(i / 4) % 4;
@@ -358,32 +383,40 @@
 
           Tone.Transport.schedule((t) => {
             try {
-              // Piano
-              if (instPiano && (i % 4 === 0 || i % 4 === 2)) {
-                chordNotes.forEach(n => player.queueWaveTable(Tone.context, trackGains.piano, instPiano, t, baseMidi + n + 12, beatDur * 1.8, 0.8));
+              // Piano / Akkord
+              if (ST.set.selectedInstruments.includes("piano") && (i % 4 === 0 || i % 4 === 2)) {
+                chordNotes.forEach(n => {
+                  synth.noteOn(0, baseMidi + n + 12, 100, t);
+                  synth.noteOff(0, baseMidi + n + 12, t + beatDur * 1.8);
+                });
               }
               // Bass
-              if (instBass) {
-                player.queueWaveTable(Tone.context, trackGains.bass, instBass, t, baseMidi + chordNotes[0] - 12, beatDur * 0.9, 0.9);
+              if (ST.set.selectedInstruments.includes("bass")) {
+                synth.noteOn(1, baseMidi + chordNotes[0] - 12, 100, t);
+                synth.noteOff(1, baseMidi + chordNotes[0] - 12, t + beatDur * 0.9);
               }
-              // Strings
-              if (instStrings && i % 4 === 0) {
-                chordNotes.forEach(n => player.queueWaveTable(Tone.context, trackGains.strings, instStrings, t, baseMidi + n, beatDur * 3.8, 0.6));
+              // Streicher
+              if (ST.set.selectedInstruments.includes("strings") && i % 4 === 0) {
+                chordNotes.forEach(n => {
+                  synth.noteOn(2, baseMidi + n, 80, t);
+                  synth.noteOff(2, baseMidi + n, t + beatDur * 3.8);
+                });
               }
-              // Gitarre
-              if (instGuitar && i % 2 === 1) {
-                player.queueWaveTable(Tone.context, trackGains.guitar, instGuitar, t, baseMidi + chordNotes[1] + 12, beatDur * 0.8, 0.7);
+              // Drums (falls ausgewählt)
+              if (ST.set.selectedInstruments.includes("drums")) {
+                if (i % 4 === 0) synth.noteOn(9, 36, 100, t); // Kick
+                if (i % 4 === 2) synth.noteOn(9, 38, 80, t); // Snare
               }
             } catch(e){}
           }, time);
         }
 
-        // Gesang planen
-        window.speechSynthesis.cancel();
-        if (ST.set.lyrics) {
+        // 4. Gesang mit VocalSynthEngine (echter Gesang)
+        if (window.VocalSynthEngine) {
+          let engine = new window.VocalSynthEngine();
+          await engine.init(Tone.context);
+          
           let words = ST.set.lyrics.replace(/\[.*?\]/g, '').replace(/\n/g, ' ').trim().split(/\s+/).filter(w => w.length > 0);
-          let voices = window.speechSynthesis.getVoices();
-          let selVoice = voices.find(v => v.voiceURI === ST.set.voiceURI);
           let wordsPerBeat = 2;
           let wordCount = Math.min(words.length, totalBeats * wordsPerBeat);
 
@@ -391,11 +424,17 @@
             let word = words[w];
             let time = w * (beatDur / wordsPerBeat);
             Tone.Transport.schedule((t) => {
-              let u = new SpeechSynthesisUtterance(word);
-              if (selVoice) u.voice = selVoice;
-              u.pitch = ST.set.vocalPitch || 1.0;
-              u.rate = ST.set.vocalRate || 1.0;
-              window.speechSynthesis.speak(u);
+              // Die Engine rendert den Gesang asynchron und spielt ihn ab
+              engine.sing(word, {
+                pitch: ST.set.vocalPitch || 1.0,
+                rate: ST.set.vocalRate || 1.0,
+                voice: ST.set.voiceType
+              }).then(audioBuffer => {
+                let source = Tone.context.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(masterGain);
+                source.start(t);
+              });
             }, time);
           }
         }
@@ -433,5 +472,5 @@
   }
 
   HalDoApp("musik", { name: "Musik", icon: "🎵", render: render, category: "lifestyle" });
-  console.log("🦚 musik.js v1.0 geladen — PRO MAX FOUNDATION (Tone.js)");
+  console.log("🦚 musik.js v2.0 geladen — PRO MAX FOUNDATION (Tone.js + SpessaSynth + Vocal)");
 })();
