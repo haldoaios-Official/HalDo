@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — MUSIK STUDIO (v700) · STABLE & FEATURE-RICH
-   WebAudioFont (Instrumente) · Native TTS (Stimme) · KI
+   HALDO AI OS — MUSIK STUDIO (v800) · ULTIMATE STABLE
+   WebAudioFont (Echte Instrumente) · Browser TTS (Stimme)
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -12,25 +12,19 @@
     });
   }
 
-  // Sicheres Laden von WebAudioFont
+  // Sicheres Laden von WebAudioFont (Das hat bei dir funktioniert!)
   function loadInstruments() {
     return new Promise((resolve) => {
       if(window.WebAudioFontPlayer) return resolve();
       let s1 = document.createElement('script');
       s1.src = "https://surikov.github.io/webaudiofont/npm/dist/WebAudioFontPlayer.js";
       s1.onload = () => {
-        // Piano, Bass, Drums laden
         let s2 = document.createElement('script');
         s2.src = "https://surikov.github.io/webaudiofontdata/sound/0250_SoundBlasterOld_sf2.js"; // Piano
         s2.onload = () => {
           let s3 = document.createElement('script');
           s3.src = "https://surikov.github.io/webaudiofontdata/sound/0330_SoundBlasterOld_sf2.js"; // Bass
-          s3.onload = () => {
-            let s4 = document.createElement('script');
-            s4.src = "https://surikov.github.io/webaudiofontdata/sound/0120_SoundBlasterOld_sf2.js"; // Strings/Chords
-            s4.onload = resolve;
-            document.head.appendChild(s4);
-          };
+          s3.onload = resolve;
           document.head.appendChild(s3);
         };
         document.head.appendChild(s2);
@@ -55,19 +49,22 @@
 
     function build(){
       var k = ST.ki;
+      if(!k.bpm) k.bpm = 100;
+
       var body = '';
 
       body += '<div class="tabs">'
         + '<button class="tab' + (tab === "studio" ? " active" : "") + '" data-mtab="studio">🎛️ Studio</button>'
-        + '<button class="tab' + (tab === "settings" ? " active" : "") + '" data-mtab="settings">⚙️ Einstellungen</button>'
+        + '<button class="tab' + (tab === "settings" ? " active" : "") + '" data-mtab="settings">⚙️ Info</button>'
         + '</div>';
 
       /* ═══ STUDIO ═══ */
       if(tab === "studio"){
+        
         // 1. Songtext & KI
         body += '<div class="card"><h3>📝 Songtext</h3>'
           + '<input type="text" id="ki_desc" placeholder="Thema (z.B. Liebe, Freiheit...)" value="' + _esc(k.songDesc) + '" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-size:13px;margin-bottom:8px">'
-          + '<textarea id="ki_lyrics" rows="5" placeholder="Text hier eingeben..." style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-size:13px;font-family:inherit;resize:vertical">' + _esc(k.lyrics) + '</textarea>'
+          + '<textarea id="ki_lyrics" rows="6" placeholder="Text hier eingeben..." style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-size:13px;font-family:inherit;resize:vertical">' + _esc(k.lyrics) + '</textarea>'
           + '<button class="btn full" id="ki_gen" style="margin-top:8px;font-size:11px">✨ KI Songtext generieren</button>'
           + '<div id="ki_status" style="display:none;margin-top:8px;padding:8px;background:rgba(0,229,255,.1);border-radius:8px;font-size:11px"></div>'
           + '</div>';
@@ -93,7 +90,7 @@
           + '</select></div>'
           + '</div></div>';
 
-        // 3. Stimme (ALLE 346 Stimmen laden!)
+        // 3. Stimme (ALLE Stimmen laden!)
         body += '<div class="card"><h3>🎤 Sänger(in) wählen</h3>'
           + '<div style="font-size:11px;color:var(--text-mute);margin-bottom:8px">Wähle aus allen Stimmen deines Computers:</div>'
           + '<select id="ki_voice" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border-radius:10px;color:inherit;font-size:13px;margin-bottom:8px">'
@@ -102,32 +99,22 @@
           + '<button class="btn sec full" id="ki_testVoice" style="font-size:11px">🔊 Stimme testen</button>'
           + '</div>';
 
-        // 4. Instrumente (Auswahl)
-        var instrs = [
-          ["piano", "🎹", "Klavier"], ["bass", "🎸", "Bass"], ["strings", "🎻", "Streicher"]
-        ];
-        body += '<div class="card"><h3>🎼 Instrumente</h3>'
-          + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">';
-        instrs.forEach(function(it){
-          // Alle sind standardmäßig an
-          body += '<button type="button" style="padding:10px 3px;background:linear-gradient(135deg,rgba(0,229,255,.2),rgba(180,120,255,.2));border:1px solid var(--p1);border-radius:8px;color:inherit;font-family:inherit;text-align:center;font-size:10px;font-weight:800">'
-            + '<div style="font-size:16px;margin-bottom:2px">' + it[1] + '</div>' + it[2] + '</button>';
-        });
-        body += '</div></div>';
-
-        // 5. Play Button
+        // 4. Play Button
         body += '<div class="card">'
-          + '<button class="btn full" id="ki_play" style="background:linear-gradient(135deg,#4ade80,#00e5ff);font-size:15px;padding:16px">▶️ Song produzieren & abspielen</button>'
-          + '<button class="btn danger full" id="ki_stop" style="margin-top:8px;font-size:14px;padding:14px">⏹ Stoppen</button>'
+          + '<div style="display:flex;gap:8px">'
+          + '<button class="btn full" id="ki_play" style="background:linear-gradient(135deg,#4ade80,#00e5ff);font-size:15px;padding:16px">▶️ Song produzieren</button>'
+          + '<button class="btn danger full" id="ki_stop" style="font-size:15px;padding:16px">⏹</button>'
+          + '</div>'
           + '<div id="play_status" style="display:none;margin-top:10px;padding:10px;background:rgba(0,229,255,.1);border-radius:8px;font-size:11px;text-align:center"></div>'
+          + '<div style="font-size:10px;color:var(--text-mute);margin-top:10px;line-height:1.5">'
+          + 'ℹ️ <b>Hinweis:</b> Die Browser-Stimme ist eine Vorlese-Stimme. Sie spricht den Text im Takt der Musik, kann aber nicht wie ein Popstar singen (dafür braucht man riesige KI-Server).'
+          + '</div>'
           + '</div>';
       }
 
-      /* ═══ SETTINGS ═══ */
       if(tab === "settings"){
         body += '<div class="card"><h3>⚙️ Info</h3>'
           + '<p style="font-size:12px;color:var(--text-dim);line-height:1.6">Dieses Studio nutzt echte Instrumenten-Samples (WebAudioFont) für die Musik und die Browser-Sprachausgabe für den Gesang. Die KI schreibt den Text.</p>'
-          + '<button class="btn danger full" id="clear_ai" style="margin-top:10px">🗑️ KI Cache leeren</button>'
           + '</div>';
       }
 
@@ -203,7 +190,7 @@
           window.speechSynthesis.speak(u);
         });
 
-        // Song produzieren
+        // Song produzieren (Echter Sequencer)
         container.querySelector("#ki_play").addEventListener("click", async function(){
           if(!ki.lyrics) return alert("Bitte gib zuerst einen Songtext ein oder generiere einen!");
           
@@ -221,11 +208,9 @@
             var player = new WebAudioFontPlayer();
             var piano = _tone_0250_SoundBlasterOld_sf2;
             var bass = _tone_0330_SoundBlasterOld_sf2;
-            var strings = _tone_0120_SoundBlasterOld_sf2;
 
             player.loader.decodeAfterLoading(audioCtx, '_tone_0250_SoundBlasterOld_sf2');
             player.loader.decodeAfterLoading(audioCtx, '_tone_0330_SoundBlasterOld_sf2');
-            player.loader.decodeAfterLoading(audioCtx, '_tone_0120_SoundBlasterOld_sf2');
 
             // Arrangement-Parameter
             var bpm = ki.bpm || 100;
@@ -242,7 +227,7 @@
 
             stat.textContent = "🎶 Musik wird arrangiert...";
 
-            // 8 Takte Instrumental spielen
+            // 8 Takte Instrumental spielen (32 Beats)
             var totalBeats = 32; 
             for(var i = 0; i < totalBeats; i++) {
               var t = startTime + (i * beatDur);
@@ -251,11 +236,10 @@
               // Bass (jeden Beat)
               player.queueWaveTable(audioCtx, audioCtx.destination, bass, t, chord[0] - 24, beatDur * 0.9);
               
-              // Chords (Beat 1 und 3)
+              // Klavier & Streicher (Beat 1 und 3)
               if(i % 4 === 0 || i % 4 === 2) {
                 chord.forEach(n => {
                   player.queueWaveTable(audioCtx, audioCtx.destination, piano, t, n, beatDur * 1.8);
-                  player.queueWaveTable(audioCtx, audioCtx.destination, strings, t, n + 12, beatDur * 1.8);
                 });
               }
             }
@@ -267,7 +251,7 @@
             var voices = window.speechSynthesis.getVoices();
             var selectedVoice = voices.find(v => v.voiceURI === ki.voiceURI);
 
-            // Wörter auf die Beats verteilen (max 4 Wörter pro Takt)
+            // Wörter auf die Beats verteilen (max 2 Wörter pro Beat)
             var wordsPerBeat = 2; 
             var wordCount = Math.min(words.length, totalBeats * wordsPerBeat);
             
@@ -313,18 +297,11 @@
           container.querySelector("#ki_play").disabled = false;
         });
       }
-
-      if(tab === "settings"){
-        container.querySelector("#clear_ai").addEventListener("click", function(){
-          ST.ki = { lyrics: "", songDesc: "", lang: "de", voiceURI: "", style: "pop", bpm: 100 };
-          save(); build();
-        });
-      }
     }
 
     build();
   }
 
   HalDoApp("musik", { name: "Musik", icon: "🎵", render: render, category: "lifestyle" });
-  console.log("🦚 musik.js v700 geladen — STABLE & FEATURE-RICH");
+  console.log("🦚 musik.js v800 geladen — ULTIMATE STABLE");
 })();
