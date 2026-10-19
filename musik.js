@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — MUSIK STUDIO (v3.0) · PRO MAX ULTIMATE
-   Tone.js + WebAudioFont · KI-Text-Editor · Voll ausgestattet
+   HALDO AI OS — MUSIK STUDIO (v4.0) · PRO MAX ULTIMATE
+   Tone.js + WebAudioFont (Duduk, Saz, etc.) · Auto-Composer
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -31,23 +31,21 @@
           document.head.appendChild(s);
         });
       }
-      // Eine breite Palette an Instrumenten laden
+      
+      // ERWEITERTE INSTRUMENTE (Duduk, Saz, Kaval, etc.)
       const instrumentLibs = [
-        "0250_SoundBlasterOld_sf2", // Acoustic Grand Piano
-        "0330_SoundBlasterOld_sf2", // Electric Bass (finger)
-        "0120_SoundBlasterOld_sf2", // String Ensemble 1
-        "0300_SoundBlasterOld_sf2", // Acoustic Guitar (nylon)
-        "0050_SoundBlasterOld_sf2", // Flute
-        "0400_SoundBlasterOld_sf2", // Brass Section
-        "0240_SoundBlasterOld_sf2", // Drawbar Organ
-        "0420_SoundBlasterOld_sf2", // Alto Sax
-        "0560_SoundBlasterOld_sf2", // Trumpet
-        "0730_SoundBlasterOld_sf2", // Piccolo
-        "1050_SoundBlasterOld_sf2", // Banjo
-        "1090_SoundBlasterOld_sf2", // Bagpipe
-        "1150_SoundBlasterOld_sf2", // Steel Drums
-        "1190_SoundBlasterOld_sf2", // Melodic Tom
-        "1200_SoundBlasterOld_sf2"  // Synth Drum
+        "0250_SoundBlasterOld_sf2", // Piano
+        "0330_SoundBlasterOld_sf2", // Bass
+        "0120_SoundBlasterOld_sf2", // Strings
+        "0300_SoundBlasterOld_sf2", // Gitarre
+        "0400_SoundBlasterOld_sf2", // Keman (Violine)
+        "0730_SoundBlasterOld_sf2", // Ney (Flöte)
+        "0680_SoundBlasterOld_sf2", // Duduk (Oboe)
+        "1040_SoundBlasterOld_sf2", // Bağlama / Saz (Sitar)
+        "0770_SoundBlasterOld_sf2", // Kaval (Shakuhachi)
+        "1070_SoundBlasterOld_sf2", // Kanun (Zither)
+        "0240_SoundBlasterOld_sf2", // Orgel
+        "0560_SoundBlasterOld_sf2"  // Trompete
       ];
       
       for (let name of instrumentLibs) {
@@ -56,7 +54,7 @@
             let s = document.createElement('script');
             s.src = `https://surikov.github.io/webaudiofontdata/sound/${name}.js`;
             s.onload = r;
-            s.onerror = r; // Ignorieren, falls eins fehlt
+            s.onerror = r;
             document.head.appendChild(s);
           });
         }
@@ -65,37 +63,33 @@
     });
   }
 
-  // --- 2. DATEN (Riesen-Auswahl) ---
+  // --- 2. DATEN ---
   const GENRES = [
     "Pop", "Rock", "EDM", "R&B", "Hip-Hop", "Jazz", "Blues", "Metal", "Punk", "Disco", "Dance",
     "Latin", "Reggae", "Country", "Folk", "Klassik", "Romantik", "Barock", "Oper",
     "Stran", "Helbest", "Dengbêj", "Arabesk", "Türkü", "Halay", "Orientale", "Türk Sanat Müziği", "Türk Halk Müziği",
-    "Cinematic", "Ambient", "Synthwave", "Lo-Fi", "Ezidi", "Kurdisch", "Asiatisch", "Indisch", "Chinesisch", "Japanisch", "Balkan", "Europäisch", "USA"
+    "Cinematic", "Ambient", "Synthwave", "Lo-Fi", "Ezidi", "Kurdisch", "Asiatisch", "Indisch", "Balkan", "Europäisch", "USA"
   ];
 
   const MOODS = [
     "Happy", "Hype", "Nostalgisch", "Cinematic", "Hard", "Lyrical", "Traurig", "Chill", 
     "Depressiv", "Slow", "Dark", "Episch", "Romantisch", "Melancholisch", "Energiegeladen", "Verträumt",
-    "Aggressiv", "Hoffnungsvoll", "Sehnsüchtig", "Feierlich", "Entspannt", "Motivierend", "Geheimnisvoll", "Verspielt"
+    "Aggressiv", "Hoffnungsvoll", "Sehnsüchtig", "Feierlich", "Entspannt", "Motivierend"
   ];
 
-  // General MIDI Instrumente mit deutschen Namen
   const INSTRUMENTS = {
     piano: { name: "Klavier", icon: "🎹", varName: "_tone_0250_SoundBlasterOld_sf2" },
+    guitar: { name: "Gitarre", icon: "🎸", varName: "_tone_0300_SoundBlasterOld_sf2" },
     bass: { name: "Bass", icon: "🎸", varName: "_tone_0330_SoundBlasterOld_sf2" },
     strings: { name: "Streicher", icon: "🎻", varName: "_tone_0120_SoundBlasterOld_sf2" },
-    guitar: { name: "Gitarre", icon: "🎸", varName: "_tone_0300_SoundBlasterOld_sf2" },
-    flute: { name: "Flöte", icon: "🪈", varName: "_tone_0050_SoundBlasterOld_sf2" },
-    brass: { name: "Bläser", icon: "🎺", varName: "_tone_0400_SoundBlasterOld_sf2" },
+    keman: { name: "Keman (Geige)", icon: "🎻", varName: "_tone_0400_SoundBlasterOld_sf2" },
+    ney: { name: "Ney (Flöte)", icon: "🪈", varName: "_tone_0730_SoundBlasterOld_sf2" },
+    duduk: { name: "Duduk", icon: "🎺", varName: "_tone_0680_SoundBlasterOld_sf2" },
+    saz: { name: "Bağlama / Saz", icon: "🪕", varName: "_tone_1040_SoundBlasterOld_sf2" },
+    kaval: { name: "Kaval", icon: "🪈", varName: "_tone_0770_SoundBlasterOld_sf2" },
+    kanun: { name: "Kanun", icon: "🎼", varName: "_tone_1070_SoundBlasterOld_sf2" },
     organ: { name: "Orgel", icon: "🎹", varName: "_tone_0240_SoundBlasterOld_sf2" },
-    sax: { name: "Saxophon", icon: "🎷", varName: "_tone_0420_SoundBlasterOld_sf2" },
-    trumpet: { name: "Trompete", icon: "🎺", varName: "_tone_0560_SoundBlasterOld_sf2" },
-    piccolo: { name: "Piccolo", icon: "🪈", varName: "_tone_0730_SoundBlasterOld_sf2" },
-    banjo: { name: "Banjo", icon: "🪕", varName: "_tone_1050_SoundBlasterOld_sf2" },
-    bagpipe: { name: "Dudelsack", icon: "🎺", varName: "_tone_1090_SoundBlasterOld_sf2" },
-    steelDrums: { name: "Steel Drums", icon: "🥁", varName: "_tone_1150_SoundBlasterOld_sf2" },
-    melodicTom: { name: "Melodic Tom", icon: "🥁", varName: "_tone_1190_SoundBlasterOld_sf2" },
-    synthDrum: { name: "Synth Drum", icon: "🥁", varName: "_tone_1200_SoundBlasterOld_sf2" }
+    brass: { name: "Bläser", icon: "🎺", varName: "_tone_0560_SoundBlasterOld_sf2" }
   };
 
   // --- 3. HAUPT-RENDER-FUNKTION ---
@@ -107,14 +101,13 @@
       genre: "Pop", mood: "Happy", bpm: 100, key: "C",
       lyrics: "", songDesc: "",
       voiceType: "female", voiceURI: "", vocalPitch: 1.0, vocalRate: 1.0,
-      selectedInstruments: ["piano", "bass", "strings", "drums"],
-      trackVol: { piano: 0.8, bass: 0.6, strings: 0.5, guitar: 0.5, flute: 0.5, brass: 0.5, organ: 0.5, sax: 0.5, trumpet: 0.5, piccolo: 0.5, banjo: 0.5, bagpipe: 0.5, steelDrums: 0.5, melodicTom: 0.5, synthDrum: 0.5, drums: 0.7 },
-      fxReverb: 0.3, fxDelay: 0.2, fxChorus: 0.0, fxDist: 0.0
+      selectedInstruments: ["piano", "bass", "saz", "duduk"], // Neue Defaults
+      trackVol: { piano: 0.8, bass: 0.6, strings: 0.5, guitar: 0.5, keman: 0.5, ney: 0.5, duduk: 0.6, saz: 0.7, kaval: 0.5, kanun: 0.5, organ: 0.5, brass: 0.5 },
+      fxReverb: 0.4, fxDelay: 0.2
     };
     var ST = {
       set: Object.assign({}, defaultSet, store.get("settings", {})),
-      isPlaying: false,
-      toneStarted: false
+      isPlaying: false
     };
     if (!ST.set.trackVol) ST.set.trackVol = defaultSet.trackVol;
     if (!ST.set.selectedInstruments) ST.set.selectedInstruments = defaultSet.selectedInstruments;
@@ -130,7 +123,6 @@
         + '<button class="tab' + (tab === "studio" ? " active" : "") + '" data-mtab="studio">🎛️ Studio</button>'
         + '<button class="tab' + (tab === "instruments" ? " active" : "") + '" data-mtab="instruments">🎹 Instrumente</button>'
         + '<button class="tab' + (tab === "mixer" ? " active" : "") + '" data-mtab="mixer">🎚️ Mixer</button>'
-        + '<button class="tab' + (tab === "fx" ? " active" : "") + '" data-mtab="fx">✨ Effekte</button>'
         + '<button class="tab' + (tab === "voice" ? " active" : "") + '" data-mtab="voice">🎤 Gesang</button>'
         + '</div>';
 
@@ -139,13 +131,10 @@
         body += '<div class="card"><h3>📝 Songtext & KI</h3>'
           + '<input type="text" id="ki_desc" placeholder="Thema (z.B. Liebe, Heimweh...)" value="' + _esc(s.songDesc) + '" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-size:13px;margin-bottom:8px">'
           + '<textarea id="ki_lyrics" rows="6" placeholder="Schreibe hier deinen Text..." style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-size:13px;font-family:inherit;resize:vertical">' + _esc(s.lyrics) + '</textarea>'
-          
-          // KI-Text-Editor Buttons
           + '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">'
           + '<button class="btn" id="ki_gen" style="flex:1;font-size:11px">✨ Generieren</button>'
           + '<button class="btn sec" id="ki_correct" style="flex:1;font-size:11px">✅ Korrigieren</button>'
           + '<button class="btn sec" id="ki_rewrite" style="flex:1;font-size:11px">🔄 Umformulieren</button>'
-          + '<button class="btn sec" id="ki_translate" style="flex:1;font-size:11px">🌍 Übersetzen</button>'
           + '</div>'
           + '<div id="ki_status" style="display:none;margin-top:8px;padding:8px;background:rgba(0,229,255,.1);border-radius:8px;font-size:11px"></div>'
           + '</div>';
@@ -167,10 +156,8 @@
           + '<select id="ki_key" style="width:100%;padding:8px;background:rgba(0,0,0,.3);border-radius:8px;color:inherit;font-size:12px">'
           + '<option value="C" '+ (s.key==="C"?"selected":"") +'>C-Dur</option>'
           + '<option value="G" '+ (s.key==="G"?"selected":"") +'>G-Dur</option>'
-          + '<option value="D" '+ (s.key==="D"?"selected":"") +'>D-Dur</option>'
           + '<option value="Am" '+ (s.key==="Am"?"selected":"") +'>A-Moll</option>'
           + '<option value="Em" '+ (s.key==="Em"?"selected":"") +'>E-Moll</option>'
-          + '<option value="Bm" '+ (s.key==="Bm"?"selected":"") +'>B-Moll</option>'
           + '</select></div>'
           + '</div></div>';
 
@@ -193,11 +180,6 @@
             + inst.name
             + '</button>';
         });
-        // Drums als Spezialfall
-        let isDrumSelected = s.selectedInstruments.includes("drums");
-        body += '<button type="button" data-instr="drums" style="padding:12px 4px;background:' + (isDrumSelected ? "linear-gradient(135deg,rgba(0,229,255,.2),rgba(180,120,255,.2))" : "rgba(0,0,0,.2)") + ';border:1.5px solid ' + (isDrumSelected ? "var(--p1)" : "var(--border-soft)") + ';border-radius:10px;cursor:pointer;color:inherit;font-family:inherit;text-align:center;font-size:11px;font-weight:800">'
-          + '<div style="font-size:20px;margin-bottom:4px">🥁</div>Drums</button>';
-
         body += '</div></div>';
       }
 
@@ -205,8 +187,8 @@
       if(tab === "mixer"){
         body += '<div class="card"><h3>🎚️ Multi-Track Mixer</h3>';
         s.selectedInstruments.forEach(inst => {
-          let name = inst === "drums" ? "Drums" : INSTRUMENTS[inst]?.name || inst;
-          body += sliderRow("🎹 " + name, "vol_" + inst, s.trackVol[inst] || 0.5);
+          let name = INSTRUMENTS[inst]?.name || inst;
+          body += sliderRow("🎵 " + name, "vol_" + inst, s.trackVol[inst] || 0.5);
         });
         if (s.selectedInstruments.length === 0) {
             body += '<div style="color:var(--text-mute);text-align:center;padding:20px">Wähle zuerst Instrumente aus!</div>';
@@ -214,17 +196,7 @@
         body += '</div>';
       }
 
-      /* ═══════════ TAB 4: EFFEKTE ═══════════ */
-      if(tab === "fx"){
-        body += '<div class="card"><h3>✨ Raum & Effekte</h3>'
-          + sliderRow("🏛️ Hall (Reverb)", "fx_reverb", s.fxReverb)
-          + sliderRow("📢 Echo (Delay)", "fx_delay", s.fxDelay)
-          + sliderRow("🌊 Chorus", "fx_chorus", s.fxChorus)
-          + sliderRow("⚡ Distortion", "fx_dist", s.fxDist)
-          + '</div>';
-      }
-
-      /* ═══════════ TAB 5: GESANG ═══════════ */
+      /* ═══════════ TAB 4: GESANG ═══════════ */
       if(tab === "voice"){
         body += '<div class="card"><h3>🎤 Vocal Studio</h3>'
           + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'
@@ -232,9 +204,6 @@
           + '<select id="voice_type" style="width:100%;padding:8px;background:rgba(0,0,0,.3);border-radius:8px;color:inherit;font-size:12px">'
           + '<option value="female" '+ (s.voiceType==="female"?"selected":"") +'>Weiblich (Sopran/Alt)</option>'
           + '<option value="male" '+ (s.voiceType==="male"?"selected":"") +'>Männlich (Tenor/Bass)</option>'
-          + '<option value="duet" '+ (s.voiceType==="duet"?"selected":"") +'>Duett (M/W)</option>'
-          + '<option value="choir" '+ (s.voiceType==="choir"?"selected":"") +'>Chor</option>'
-          + '<option value="own" '+ (s.voiceType==="own"?"selected":"") +'>Meine eigene Stimme (Klon)</option>'
           + '</select></div>'
           + '<div><label style="font-size:10px;color:var(--text-mute);font-weight:800">STIMME (System)</label>'
           + '<select id="ki_voice" style="width:100%;padding:8px;background:rgba(0,0,0,.3);border-radius:8px;color:inherit;font-size:12px">'
@@ -243,8 +212,9 @@
           + '</div>'
           + sliderRow("🎵 Gesangs-Tonhöhe", "voice_pitch", s.vocalPitch)
           + sliderRow("⏩ Gesangs-Tempo", "voice_rate", s.vocalRate)
-          + '<button class="btn sec full" id="ki_testVoice" style="font-size:11px;margin-top:8px">🔊 Stimme testen</button>'
-          + '</div>';
+          + '<div style="font-size:10px;color:var(--text-mute);margin-top:10px;line-height:1.5">'
+          + 'ℹ️ <b>Hinweis:</b> Die Browser-Stimme spricht den Text rhythmisch zur Musik. Für echten, melodiösen Gesang (wie bei Popstars) braucht man riesige KI-Server (z.B. Suno).'
+          + '</div></div>';
       }
 
       container.innerHTML = body;
@@ -266,7 +236,6 @@
           this.value = s.bpm; save(); 
         });
 
-        // KI-Text-Editor Funktionen
         container.querySelector("#ki_gen").addEventListener("click", async function(){
           var stat = container.querySelector("#ki_status");
           stat.style.display = "block"; stat.textContent = "⏳ HalDo KI schreibt...";
@@ -308,21 +277,6 @@
           this.disabled = false;
         });
 
-        container.querySelector("#ki_translate").addEventListener("click", async function(){
-          var stat = container.querySelector("#ki_status");
-          var text = container.querySelector("#ki_lyrics").value.trim();
-          if (!text) return alert("Kein Text zum Übersetzen!");
-          stat.style.display = "block"; stat.textContent = "⏳ KI übersetzt...";
-          this.disabled = true;
-          try {
-            // Beispiel: Übersetzung ins Englische (kann später dynamisch sein)
-            var translated = await HalDo.AI.translate(text, "Englisch");
-            container.querySelector("#ki_lyrics").value = translated;
-            s.lyrics = translated; save(); stat.textContent = "✅ Text übersetzt!";
-          } catch(e) { stat.textContent = "❌ " + e.message; }
-          this.disabled = false;
-        });
-
         container.querySelector("#play_btn").addEventListener("click", startPlayback);
         container.querySelector("#stop_btn").addEventListener("click", stopPlayback);
       }
@@ -355,24 +309,6 @@
         });
       }
 
-      // FX Tab
-      if (tab === "fx") {
-        ["reverb", "delay", "chorus", "dist"].forEach(fx => {
-          let slider = container.querySelector("#fx_" + fx);
-          if (slider) slider.addEventListener("input", function(){
-            s["fx" + fx.charAt(0).toUpperCase() + fx.slice(1)] = this.value / 100;
-            container.querySelector("#v_fx_" + fx).textContent = this.value + "%";
-            if (window._haldoFX) {
-              if (fx === "reverb") window._haldoFX.reverb.wet.value = s.fxReverb;
-              if (fx === "delay") window._haldoFX.delay.wet.value = s.fxDelay;
-              if (fx === "chorus") window._haldoFX.chorus.wet.value = s.fxChorus;
-              if (fx === "dist") window._haldoFX.dist.wet.value = s.fxDist;
-            }
-            save();
-          });
-        });
-      }
-
       // Voice Tab
       if (tab === "voice") {
         var voiceSelect = container.querySelector("#ki_voice");
@@ -397,17 +333,6 @@
         });
         container.querySelector("#voice_rate").addEventListener("input", function(){
           s.vocalRate = this.value / 100; container.querySelector("#v_voice_rate").textContent = this.value + "%"; save();
-        });
-
-        container.querySelector("#ki_testVoice").addEventListener("click", function(){
-          if(!window.Tone) return alert("Tone.js noch nicht geladen");
-          Tone.start();
-          let voices = window.speechSynthesis.getVoices();
-          let sel = voices.find(v => v.voiceURI === s.voiceURI);
-          if (!sel) return alert("Bitte wähle eine Stimme!");
-          let u = new SpeechSynthesisUtterance("Hallo, ich bin deine Sängerin.");
-          u.voice = sel; u.pitch = s.vocalPitch; u.rate = s.vocalRate;
-          window.speechSynthesis.speak(u);
         });
       }
     }
@@ -439,15 +364,12 @@
         Tone.Transport.cancel();
         Tone.Transport.bpm.value = ST.set.bpm;
 
-        // Master & FX Setup (mit Tone.js)
+        // Master & FX Setup
         const masterGain = new Tone.Gain(1).toDestination();
         
         const reverb = new Tone.Reverb({ decay: 2.5, wet: ST.set.fxReverb }).connect(masterGain);
         const delay = new Tone.FeedbackDelay("8n", 0.5).connect(masterGain); delay.wet.value = ST.set.fxDelay;
-        const chorus = new Tone.Chorus(4, 2.5, 0.5).connect(masterGain); chorus.wet.value = ST.set.fxChorus;
-        const dist = new Tone.Distortion(0.8).connect(masterGain); dist.wet.value = ST.set.fxDist;
-        
-        window._haldoFX = { reverb, delay, chorus, dist };
+        window._haldoFX = { reverb, delay };
 
         // Track Gains
         const trackGains = {};
@@ -456,20 +378,27 @@
         });
         window._haldoTracks = trackGains;
 
-        // Player initialisieren
+        // Player initialisieren & Dekodieren (WICHTIG: Verhindert den Absturz!)
         const player = new WebAudioFontPlayer();
+        ST.set.selectedInstruments.forEach(inst => {
+          let varName = INSTRUMENTS[inst].varName;
+          if (window[varName]) {
+            player.loader.decodeAfterLoading(Tone.context, varName);
+          }
+        });
 
         // Harmonik
-        let baseMidi = { "C": 60, "G": 55, "D": 62, "Am": 57, "Em": 52, "Bm": 59 }[ST.set.key] || 60;
+        let baseMidi = { "C": 60, "G": 55, "D": 62, "Am": 57, "Em": 52 }[ST.set.key] || 60;
         let isMinor = ST.set.key.includes("m");
+        // Akkordfolge: I - VI - III - VII (klingt epischer)
         let chords = isMinor ? 
-          [[0, 3, 7], [5, 8, 12], [3, 7, 10], [7, 10, 14]] : 
-          [[0, 4, 7], [5, 9, 12], [7, 11, 14], [0, 4, 7]];
+          [[0, 3, 7], [8, 12, 15], [3, 7, 10], [10, 14, 17]] : 
+          [[0, 4, 7], [9, 12, 16], [4, 7, 11], [7, 11, 14]];
 
         let totalBeats = 32;
         let beatDur = 60 / ST.set.bpm;
 
-        // Noten planen
+        // Noten planen (Auto-Composer)
         for (let i = 0; i < totalBeats; i++) {
           let time = i * beatDur;
           let chordIdx = Math.floor(i / 4) % 4;
@@ -477,36 +406,25 @@
 
           Tone.Transport.schedule((t) => {
             try {
-              // Piano (Akkord)
+              // Piano/Chords
               if (trackGains.piano && (i % 4 === 0 || i % 4 === 2)) {
                 chordNotes.forEach(n => {
-                  player.queueWaveTable(Tone.context, trackGains.piano, window._tone_0250_SoundBlasterOld_sf2, t, baseMidi + n + 12, beatDur * 1.8, 0.8);
+                  player.queueWaveTable(Tone.context, trackGains.piano, window._tone_0250_SoundBlasterOld_sf2, t, baseMidi + n + 12, beatDur * 1.8, 0.7);
                 });
               }
               // Bass
               if (trackGains.bass) {
                 player.queueWaveTable(Tone.context, trackGains.bass, window._tone_0330_SoundBlasterOld_sf2, t, baseMidi + chordNotes[0] - 12, beatDur * 0.9, 0.9);
               }
-              // Strings
-              if (trackGains.strings && i % 4 === 0) {
-                chordNotes.forEach(n => {
-                  player.queueWaveTable(Tone.context, trackGains.strings, window._tone_0120_SoundBlasterOld_sf2, t, baseMidi + n, beatDur * 3.8, 0.6);
-                });
-              }
-              // Gitarre
-              if (trackGains.guitar && i % 2 === 1) {
-                player.queueWaveTable(Tone.context, trackGains.guitar, window._tone_0300_SoundBlasterOld_sf2, t, baseMidi + chordNotes[1] + 12, beatDur * 0.8, 0.7);
-              }
-              // Flöte
-              if (trackGains.flute && i % 4 === 3) {
-                player.queueWaveTable(Tone.context, trackGains.flute, window._tone_0050_SoundBlasterOld_sf2, t, baseMidi + chordNotes[2] + 24, beatDur * 0.9, 0.5);
-              }
-              // Drums (vereinfacht)
-              if (trackGains.drums) {
-                if (i % 4 === 0) player.queueWaveTable(Tone.context, trackGains.drums, window._tone_0330_SoundBlasterOld_sf2, t, 36, 0.1, 0.8); // Kick
-                if (i % 4 === 2) player.queueWaveTable(Tone.context, trackGains.drums, window._tone_0330_SoundBlasterOld_sf2, t, 38, 0.1, 0.6); // Snare
-              }
-            } catch(e){ console.warn(e); }
+              // Saz / Duduk / Keman (Melodie-Instrumente spielen die Akkordtöne)
+              ["saz", "duduk", "keman", "ney", "kaval", "kanun", "guitar", "strings"].forEach(inst => {
+                if (trackGains[inst] && i % 2 === 1) { // Jeden 2. Beat eine Melodie-Note
+                  let randomNote = chordNotes[Math.floor(Math.random() * chordNotes.length)];
+                  let instVar = INSTRUMENTS[inst].varName;
+                  player.queueWaveTable(Tone.context, trackGains[inst], window[instVar], t, baseMidi + randomNote + 12, beatDur * 0.8, 0.6);
+                }
+              });
+            } catch(e){ console.warn("Scheduling Fehler:", e); }
           }, time);
         }
 
@@ -522,10 +440,14 @@
           for (let w = 0; w < wordCount; w++) {
             let word = words[w];
             let time = w * (beatDur / wordsPerBeat);
+            let notePitch = baseMidi + chords[Math.floor(w/4)%4][0] + 12; // Grundton des aktuellen Akkords
+            
             Tone.Transport.schedule((t) => {
               let u = new SpeechSynthesisUtterance(word);
               if (selVoice) u.voice = selVoice;
-              u.pitch = ST.set.vocalPitch || 1.0;
+              // Tonhöhe an die Note anpassen (MIDI 60 = 1.0)
+              let pitchMod = (notePitch - 60) * 0.05; 
+              u.pitch = (ST.set.vocalPitch || 1.0) + pitchMod;
               u.rate = ST.set.vocalRate || 1.0;
               window.speechSynthesis.speak(u);
             }, time);
@@ -565,5 +487,5 @@
   }
 
   HalDoApp("musik", { name: "Musik", icon: "🎵", render: render, category: "lifestyle" });
-  console.log("🦚 musik.js v3.0 geladen — PRO MAX ULTIMATE");
+  console.log("🦚 musik.js v4.0 geladen — PRO MAX ULTIMATE (Duduk/Saz integriert)");
 })();
