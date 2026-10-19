@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — MUSIK STUDIO (v6.0) · PRO MAX ULTIMATE
-   Native Audio · State-Cleanup · 12 Instrumente · KI
+   HALDO AI OS — MUSIK STUDIO (v7.0) · PRO MAX STABLE
+   Native Audio · Null-Safety · Melodic TTS · Multi-Instrument
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -24,6 +24,7 @@
         });
       }
       
+      // Erweiterte Instrumenten-Liste für Pro Max Feeling
       const instrumentLibs = [
         "0250_SoundBlasterOld_sf2", // Piano
         "0330_SoundBlasterOld_sf2", // Bass
@@ -58,12 +59,12 @@
   const GENRES = [
     "Pop", "Rock", "EDM", "R&B", "Hip-Hop", "Jazz", "Blues", "Metal", "Disco", "Dance",
     "Stran", "Helbest", "Dengbêj", "Arabesk", "Türkü", "Halay", "Orientale", "Türk Sanat Müziği", "Türk Halk Müziği",
-    "Cinematic", "Ambient", "Lo-Fi", "Ezidi", "Kurdisch"
+    "Cinematic", "Ambient", "Lo-Fi", "Ezidi", "Kurdisch", "Asiatisch", "Indisch", "Balkan"
   ];
 
   const MOODS = [
     "Happy", "Hype", "Nostalgisch", "Cinematic", "Hard", "Lyrical", "Traurig", "Chill", 
-    "Depressiv", "Slow", "Dark", "Episch", "Romantisch", "Melancholisch"
+    "Depressiv", "Slow", "Dark", "Episch", "Romantisch", "Melancholisch", "Energiegeladen"
   ];
 
   const INSTRUMENTS = {
@@ -71,10 +72,10 @@
     guitar: { name: "Gitarre", icon: "🎸", varName: "_tone_0300_SoundBlasterOld_sf2" },
     bass: { name: "Bass", icon: "🎸", varName: "_tone_0330_SoundBlasterOld_sf2" },
     strings: { name: "Streicher", icon: "🎻", varName: "_tone_0120_SoundBlasterOld_sf2" },
-    keman: { name: "Keman (Geige)", icon: "🎻", varName: "_tone_0400_SoundBlasterOld_sf2" },
-    ney: { name: "Ney (Flöte)", icon: "🪈", varName: "_tone_0730_SoundBlasterOld_sf2" },
+    keman: { name: "Keman", icon: "🎻", varName: "_tone_0400_SoundBlasterOld_sf2" },
+    ney: { name: "Ney", icon: "🪈", varName: "_tone_0730_SoundBlasterOld_sf2" },
     duduk: { name: "Duduk", icon: "🎺", varName: "_tone_0680_SoundBlasterOld_sf2" },
-    saz: { name: "Bağlama / Saz", icon: "🪕", varName: "_tone_1040_SoundBlasterOld_sf2" },
+    saz: { name: "Saz / Bağlama", icon: "🪕", varName: "_tone_1040_SoundBlasterOld_sf2" },
     kaval: { name: "Kaval", icon: "🪈", varName: "_tone_0770_SoundBlasterOld_sf2" },
     kanun: { name: "Kanun", icon: "🎼", varName: "_tone_1070_SoundBlasterOld_sf2" },
     organ: { name: "Orgel", icon: "🎹", varName: "_tone_0240_SoundBlasterOld_sf2" },
@@ -100,18 +101,15 @@
       isPlaying: false,
       audioCtx: null,
       player: null,
-      trackGains: {}
+      trackGains: {},
+      timeouts: [] // Track timeouts to clear them on stop
     };
 
-    // 🚨 BUGFIX: State bereinigen (verhindert den 'varName' Crash)
+    // State-Cleanup
     if (!ST.set.trackVol) ST.set.trackVol = defaultSet.trackVol;
     if (!ST.set.selectedInstruments) ST.set.selectedInstruments = defaultSet.selectedInstruments;
-    
-    // Filtere alle Instrumente heraus, die nicht in der INSTRUMENTS-Liste existieren
     ST.set.selectedInstruments = ST.set.selectedInstruments.filter(id => INSTRUMENTS[id]);
-    if (ST.set.selectedInstruments.length === 0) {
-      ST.set.selectedInstruments = ["piano", "bass", "saz"];
-    }
+    if (ST.set.selectedInstruments.length === 0) ST.set.selectedInstruments = ["piano", "bass"];
 
     function save() { store.set("settings", ST.set); }
 
@@ -352,6 +350,9 @@
       if (!ST.set.lyrics) return alert("Bitte erst Songtext eingeben!");
       if (ST.set.selectedInstruments.length === 0) return alert("Bitte wähle mindestens ein Instrument aus!");
       
+      // Stoppe zuerst alles, was noch läuft
+      stopPlayback();
+
       let btn = document.querySelector("#play_btn");
       let stat = document.querySelector("#play_status");
       btn.disabled = true; stat.style.display = "block"; stat.textContent = "⏳ Initialisiere Audio...";
@@ -360,27 +361,27 @@
         await loadLibraries();
         
         // 1. Nativen AudioContext erstellen
-        if (!ST.audioCtx) {
-          ST.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
+        ST.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (ST.audioCtx.state === "suspended") {
           await ST.audioCtx.resume();
         }
 
+        const currentCtx = ST.audioCtx; // Lokale Referenz für Timeouts
+
         // 2. Master & FX Setup (Nativ)
-        const masterGain = ST.audioCtx.createGain();
-        masterGain.connect(ST.audioCtx.destination);
+        const masterGain = currentCtx.createGain();
+        masterGain.connect(currentCtx.destination);
 
         // Einfacher Reverb (Convolver)
-        const reverb = ST.audioCtx.createConvolver();
-        const length = ST.audioCtx.sampleRate * 2.0;
-        const impulse = ST.audioCtx.createBuffer(2, length, ST.audioCtx.sampleRate);
+        const reverb = currentCtx.createConvolver();
+        const length = currentCtx.sampleRate * 2.0;
+        const impulse = currentCtx.createBuffer(2, length, currentCtx.sampleRate);
         for (let i = 0; i < 2; i++) {
           const channel = impulse.getChannelData(i);
           for (let j = 0; j < length; j++) channel[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / length, 2.0);
         }
         reverb.buffer = impulse;
-        const reverbGain = ST.audioCtx.createGain();
+        const reverbGain = currentCtx.createGain();
         reverbGain.gain.value = ST.set.fxReverb;
         reverb.connect(reverbGain);
         reverbGain.connect(masterGain);
@@ -388,7 +389,7 @@
         // 3. Track Gains erstellen
         ST.trackGains = {};
         ST.set.selectedInstruments.forEach(inst => {
-          let gain = ST.audioCtx.createGain();
+          let gain = currentCtx.createGain();
           gain.gain.value = ST.set.trackVol[inst] || 0.5;
           gain.connect(masterGain);
           gain.connect(reverb);
@@ -400,7 +401,7 @@
         ST.set.selectedInstruments.forEach(inst => {
           let varName = INSTRUMENTS[inst].varName;
           if (window[varName]) {
-            ST.player.loader.decodeAfterLoading(ST.audioCtx, varName);
+            ST.player.loader.decodeAfterLoading(currentCtx, varName);
           }
         });
 
@@ -413,40 +414,43 @@
 
         let totalBeats = 32;
         let beatDur = 60 / ST.set.bpm;
-        let startTime = ST.audioCtx.currentTime + 0.5;
+        let startTime = currentCtx.currentTime + 0.5;
 
         for (let i = 0; i < totalBeats; i++) {
           let time = startTime + (i * beatDur);
           let chordIdx = Math.floor(i / 4) % 4;
           let chordNotes = chords[chordIdx];
 
-          setTimeout(() => {
+          let timeoutId = setTimeout(() => {
+            if (!currentCtx || currentCtx.state === "closed") return; // Null-Safety
             try {
               // Piano
               if (ST.trackGains.piano && (i % 4 === 0 || i % 4 === 2)) {
                 chordNotes.forEach(n => {
-                  ST.player.queueWaveTable(ST.audioCtx, ST.trackGains.piano, window._tone_0250_SoundBlasterOld_sf2, time, baseMidi + n + 12, beatDur * 1.8, 0.8);
+                  ST.player.queueWaveTable(currentCtx, ST.trackGains.piano, window._tone_0250_SoundBlasterOld_sf2, time, baseMidi + n + 12, beatDur * 1.8, 0.8);
                 });
               }
               // Bass
               if (ST.trackGains.bass) {
-                ST.player.queueWaveTable(ST.audioCtx, ST.trackGains.bass, window._tone_0330_SoundBlasterOld_sf2, time, baseMidi + chordNotes[0] - 12, beatDur * 0.9, 0.9);
+                ST.player.queueWaveTable(currentCtx, ST.trackGains.bass, window._tone_0330_SoundBlasterOld_sf2, time, baseMidi + chordNotes[0] - 12, beatDur * 0.9, 0.9);
               }
-              // Melodie-Instrumente
+              // Melodie
               ["saz", "duduk", "keman", "ney", "kaval", "kanun", "guitar", "strings"].forEach(inst => {
                 if (ST.trackGains[inst] && i % 2 === 1) {
                   let randomNote = chordNotes[Math.floor(Math.random() * chordNotes.length)];
                   let instVar = INSTRUMENTS[inst].varName;
                   if (window[instVar]) {
-                    ST.player.queueWaveTable(ST.audioCtx, ST.trackGains[inst], window[instVar], time, baseMidi + randomNote + 12, beatDur * 0.8, 0.6);
+                    ST.player.queueWaveTable(currentCtx, ST.trackGains[inst], window[instVar], time, baseMidi + randomNote + 12, beatDur * 0.8, 0.6);
                   }
                 }
               });
             } catch(e){ console.warn("Scheduling Fehler:", e); }
-          }, (time - ST.audioCtx.currentTime) * 1000);
+          }, (time - currentCtx.currentTime) * 1000);
+          
+          ST.timeouts.push(timeoutId);
         }
 
-        // 6. Gesang planen
+        // 6. Gesang planen (Melodic TTS)
         window.speechSynthesis.cancel();
         if (ST.set.lyrics) {
           let words = ST.set.lyrics.replace(/\[.*?\]/g, '').replace(/\n/g, ' ').trim().split(/\s+/).filter(w => w.length > 0);
@@ -458,16 +462,23 @@
           for (let w = 0; w < wordCount; w++) {
             let word = words[w];
             let time = startTime + (w * (beatDur / wordsPerBeat));
-            let notePitch = baseMidi + chords[Math.floor(w/4)%4][0] + 12;
             
-            setTimeout(() => {
+            // Notenberechnung für TTS-Pitch
+            let chordIdx = Math.floor(w / 4) % 4;
+            let noteMidi = baseMidi + chords[chordIdx][0] + 12;
+            let pitchMod = (noteMidi - 60) * 0.05; 
+            let finalPitch = (ST.set.vocalPitch || 1.0) + pitchMod;
+            finalPitch = Math.max(0.5, Math.min(2.0, finalPitch)); // TTS-Pitch Limit
+            
+            let timeoutId = setTimeout(() => {
               let u = new SpeechSynthesisUtterance(word);
               if (selVoice) u.voice = selVoice;
-              let pitchMod = (notePitch - 60) * 0.05; 
-              u.pitch = (ST.set.vocalPitch || 1.0) + pitchMod;
+              u.pitch = finalPitch;
               u.rate = ST.set.vocalRate || 1.0;
               window.speechSynthesis.speak(u);
-            }, (time - ST.audioCtx.currentTime) * 1000);
+            }, (time - currentCtx.currentTime) * 1000);
+            
+            ST.timeouts.push(timeoutId);
           }
         }
 
@@ -475,12 +486,14 @@
         stat.textContent = "🎶 Song läuft...";
         btn.disabled = false;
 
-        setTimeout(() => {
+        let endTimeout = setTimeout(() => {
           if (ST.isPlaying) {
             stat.textContent = "✅ Song beendet.";
             ST.isPlaying = false;
           }
         }, (totalBeats * beatDur * 1000) + 2000);
+        
+        ST.timeouts.push(endTimeout);
 
       } catch(e) {
         btn.disabled = false; stat.textContent = "❌ " + e.message; console.error(e);
@@ -488,11 +501,19 @@
     }
 
     function stopPlayback() {
+      // Alle anstehenden Timeouts abbrechen
+      if (ST.timeouts) {
+        ST.timeouts.forEach(t => clearTimeout(t));
+        ST.timeouts = [];
+      }
+      
       window.speechSynthesis.cancel();
+      
       if (ST.audioCtx) {
-        ST.audioCtx.close();
+        try { ST.audioCtx.close(); } catch(e) {}
         ST.audioCtx = null;
       }
+      
       ST.isPlaying = false;
       let stat = document.querySelector("#play_status");
       if(stat) stat.textContent = "⏹ Gestoppt.";
@@ -504,5 +525,5 @@
   }
 
   HalDoApp("musik", { name: "Musik", icon: "🎵", render: render, category: "lifestyle" });
-  console.log("🦚 musik.js v6.0 geladen — PRO MAX ULTIMATE (State-Cleanup)");
+  console.log("🦚 musik.js v7.0 geladen — PRO MAX STABLE (Null-Safety)");
 })();
