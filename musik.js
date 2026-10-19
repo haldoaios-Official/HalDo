@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — MUSIK STUDIO (v2.5) · PRO MAX ULTIMATE
-   Tone.js + WebAudioFont · Riesen-Auswahl · Stabile Engine
+   HALDO AI OS — MUSIK STUDIO (v3.0) · PRO MAX ULTIMATE
+   Tone.js + WebAudioFont · KI-Text-Editor · Voll ausgestattet
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -15,7 +15,6 @@
   // --- 1. BIBLIOTHEKEN LADEN (Stabil) ---
   function loadLibraries() {
     return new Promise(async (resolve) => {
-      // Tone.js
       if (!window.Tone) {
         await new Promise(r => {
           let s = document.createElement('script');
@@ -24,7 +23,6 @@
           document.head.appendChild(s);
         });
       }
-      // WebAudioFont (Das hat bei dir funktioniert!)
       if (!window.WebAudioFontPlayer) {
         await new Promise(r => {
           let s = document.createElement('script');
@@ -33,18 +31,26 @@
           document.head.appendChild(s);
         });
       }
-      // Instrumente laden
-      const instruments = [
-        "0250_SoundBlasterOld_sf2", // Piano
-        "0330_SoundBlasterOld_sf2", // Bass
-        "0120_SoundBlasterOld_sf2", // Strings
-        "0300_SoundBlasterOld_sf2", // Guitar
+      // Eine breite Palette an Instrumenten laden
+      const instrumentLibs = [
+        "0250_SoundBlasterOld_sf2", // Acoustic Grand Piano
+        "0330_SoundBlasterOld_sf2", // Electric Bass (finger)
+        "0120_SoundBlasterOld_sf2", // String Ensemble 1
+        "0300_SoundBlasterOld_sf2", // Acoustic Guitar (nylon)
         "0050_SoundBlasterOld_sf2", // Flute
-        "0400_SoundBlasterOld_sf2", // Brass
-        "0240_SoundBlasterOld_sf2"  // Organ
+        "0400_SoundBlasterOld_sf2", // Brass Section
+        "0240_SoundBlasterOld_sf2", // Drawbar Organ
+        "0420_SoundBlasterOld_sf2", // Alto Sax
+        "0560_SoundBlasterOld_sf2", // Trumpet
+        "0730_SoundBlasterOld_sf2", // Piccolo
+        "1050_SoundBlasterOld_sf2", // Banjo
+        "1090_SoundBlasterOld_sf2", // Bagpipe
+        "1150_SoundBlasterOld_sf2", // Steel Drums
+        "1190_SoundBlasterOld_sf2", // Melodic Tom
+        "1200_SoundBlasterOld_sf2"  // Synth Drum
       ];
       
-      for (let name of instruments) {
+      for (let name of instrumentLibs) {
         if (!window['_tone_' + name]) {
           await new Promise(r => {
             let s = document.createElement('script');
@@ -64,15 +70,16 @@
     "Pop", "Rock", "EDM", "R&B", "Hip-Hop", "Jazz", "Blues", "Metal", "Punk", "Disco", "Dance",
     "Latin", "Reggae", "Country", "Folk", "Klassik", "Romantik", "Barock", "Oper",
     "Stran", "Helbest", "Dengbêj", "Arabesk", "Türkü", "Halay", "Orientale", "Türk Sanat Müziği", "Türk Halk Müziği",
-    "Cinematic", "Ambient", "Synthwave", "Lo-Fi"
+    "Cinematic", "Ambient", "Synthwave", "Lo-Fi", "Ezidi", "Kurdisch", "Asiatisch", "Indisch", "Chinesisch", "Japanisch", "Balkan", "Europäisch", "USA"
   ];
 
   const MOODS = [
     "Happy", "Hype", "Nostalgisch", "Cinematic", "Hard", "Lyrical", "Traurig", "Chill", 
     "Depressiv", "Slow", "Dark", "Episch", "Romantisch", "Melancholisch", "Energiegeladen", "Verträumt",
-    "Aggressiv", "Hoffnungsvoll", "Sehnsüchtig", "Feierlich"
+    "Aggressiv", "Hoffnungsvoll", "Sehnsüchtig", "Feierlich", "Entspannt", "Motivierend", "Geheimnisvoll", "Verspielt"
   ];
 
+  // General MIDI Instrumente mit deutschen Namen
   const INSTRUMENTS = {
     piano: { name: "Klavier", icon: "🎹", varName: "_tone_0250_SoundBlasterOld_sf2" },
     bass: { name: "Bass", icon: "🎸", varName: "_tone_0330_SoundBlasterOld_sf2" },
@@ -80,7 +87,15 @@
     guitar: { name: "Gitarre", icon: "🎸", varName: "_tone_0300_SoundBlasterOld_sf2" },
     flute: { name: "Flöte", icon: "🪈", varName: "_tone_0050_SoundBlasterOld_sf2" },
     brass: { name: "Bläser", icon: "🎺", varName: "_tone_0400_SoundBlasterOld_sf2" },
-    organ: { name: "Orgel", icon: "🎹", varName: "_tone_0240_SoundBlasterOld_sf2" }
+    organ: { name: "Orgel", icon: "🎹", varName: "_tone_0240_SoundBlasterOld_sf2" },
+    sax: { name: "Saxophon", icon: "🎷", varName: "_tone_0420_SoundBlasterOld_sf2" },
+    trumpet: { name: "Trompete", icon: "🎺", varName: "_tone_0560_SoundBlasterOld_sf2" },
+    piccolo: { name: "Piccolo", icon: "🪈", varName: "_tone_0730_SoundBlasterOld_sf2" },
+    banjo: { name: "Banjo", icon: "🪕", varName: "_tone_1050_SoundBlasterOld_sf2" },
+    bagpipe: { name: "Dudelsack", icon: "🎺", varName: "_tone_1090_SoundBlasterOld_sf2" },
+    steelDrums: { name: "Steel Drums", icon: "🥁", varName: "_tone_1150_SoundBlasterOld_sf2" },
+    melodicTom: { name: "Melodic Tom", icon: "🥁", varName: "_tone_1190_SoundBlasterOld_sf2" },
+    synthDrum: { name: "Synth Drum", icon: "🥁", varName: "_tone_1200_SoundBlasterOld_sf2" }
   };
 
   // --- 3. HAUPT-RENDER-FUNKTION ---
@@ -93,7 +108,7 @@
       lyrics: "", songDesc: "",
       voiceType: "female", voiceURI: "", vocalPitch: 1.0, vocalRate: 1.0,
       selectedInstruments: ["piano", "bass", "strings", "drums"],
-      trackVol: { piano: 0.8, bass: 0.6, strings: 0.5, guitar: 0.5, flute: 0.5, brass: 0.5, organ: 0.5, drums: 0.7 },
+      trackVol: { piano: 0.8, bass: 0.6, strings: 0.5, guitar: 0.5, flute: 0.5, brass: 0.5, organ: 0.5, sax: 0.5, trumpet: 0.5, piccolo: 0.5, banjo: 0.5, bagpipe: 0.5, steelDrums: 0.5, melodicTom: 0.5, synthDrum: 0.5, drums: 0.7 },
       fxReverb: 0.3, fxDelay: 0.2, fxChorus: 0.0, fxDist: 0.0
     };
     var ST = {
@@ -124,7 +139,14 @@
         body += '<div class="card"><h3>📝 Songtext & KI</h3>'
           + '<input type="text" id="ki_desc" placeholder="Thema (z.B. Liebe, Heimweh...)" value="' + _esc(s.songDesc) + '" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-size:13px;margin-bottom:8px">'
           + '<textarea id="ki_lyrics" rows="6" placeholder="Schreibe hier deinen Text..." style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:10px;color:inherit;font-size:13px;font-family:inherit;resize:vertical">' + _esc(s.lyrics) + '</textarea>'
-          + '<button class="btn full" id="ki_gen" style="margin-top:8px;font-size:11px">✨ KI Songtext generieren</button>'
+          
+          // KI-Text-Editor Buttons
+          + '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">'
+          + '<button class="btn" id="ki_gen" style="flex:1;font-size:11px">✨ Generieren</button>'
+          + '<button class="btn sec" id="ki_correct" style="flex:1;font-size:11px">✅ Korrigieren</button>'
+          + '<button class="btn sec" id="ki_rewrite" style="flex:1;font-size:11px">🔄 Umformulieren</button>'
+          + '<button class="btn sec" id="ki_translate" style="flex:1;font-size:11px">🌍 Übersetzen</button>'
+          + '</div>'
           + '<div id="ki_status" style="display:none;margin-top:8px;padding:8px;background:rgba(0,229,255,.1);border-radius:8px;font-size:11px"></div>'
           + '</div>';
 
@@ -244,6 +266,7 @@
           this.value = s.bpm; save(); 
         });
 
+        // KI-Text-Editor Funktionen
         container.querySelector("#ki_gen").addEventListener("click", async function(){
           var stat = container.querySelector("#ki_status");
           stat.style.display = "block"; stat.textContent = "⏳ HalDo KI schreibt...";
@@ -253,6 +276,49 @@
             var text = await HalDo.AI.writeLyrics(prompt, "Deutsch", s.genre, s.mood);
             container.querySelector("#ki_lyrics").value = text;
             s.lyrics = text; save(); stat.textContent = "✅ Text fertig!";
+          } catch(e) { stat.textContent = "❌ " + e.message; }
+          this.disabled = false;
+        });
+
+        container.querySelector("#ki_correct").addEventListener("click", async function(){
+          var stat = container.querySelector("#ki_status");
+          var text = container.querySelector("#ki_lyrics").value.trim();
+          if (!text) return alert("Kein Text zum Korrigieren!");
+          stat.style.display = "block"; stat.textContent = "⏳ KI korrigiert...";
+          this.disabled = true;
+          try {
+            var corrected = await HalDo.AI.correct(text);
+            container.querySelector("#ki_lyrics").value = corrected;
+            s.lyrics = corrected; save(); stat.textContent = "✅ Text korrigiert!";
+          } catch(e) { stat.textContent = "❌ " + e.message; }
+          this.disabled = false;
+        });
+
+        container.querySelector("#ki_rewrite").addEventListener("click", async function(){
+          var stat = container.querySelector("#ki_status");
+          var text = container.querySelector("#ki_lyrics").value.trim();
+          if (!text) return alert("Kein Text zum Umformulieren!");
+          stat.style.display = "block"; stat.textContent = "⏳ KI formuliert um...";
+          this.disabled = true;
+          try {
+            var rewritten = await HalDo.AI.rewrite(text, s.genre);
+            container.querySelector("#ki_lyrics").value = rewritten;
+            s.lyrics = rewritten; save(); stat.textContent = "✅ Text umformuliert!";
+          } catch(e) { stat.textContent = "❌ " + e.message; }
+          this.disabled = false;
+        });
+
+        container.querySelector("#ki_translate").addEventListener("click", async function(){
+          var stat = container.querySelector("#ki_status");
+          var text = container.querySelector("#ki_lyrics").value.trim();
+          if (!text) return alert("Kein Text zum Übersetzen!");
+          stat.style.display = "block"; stat.textContent = "⏳ KI übersetzt...";
+          this.disabled = true;
+          try {
+            // Beispiel: Übersetzung ins Englische (kann später dynamisch sein)
+            var translated = await HalDo.AI.translate(text, "Englisch");
+            container.querySelector("#ki_lyrics").value = translated;
+            s.lyrics = translated; save(); stat.textContent = "✅ Text übersetzt!";
           } catch(e) { stat.textContent = "❌ " + e.message; }
           this.disabled = false;
         });
@@ -499,5 +565,5 @@
   }
 
   HalDoApp("musik", { name: "Musik", icon: "🎵", render: render, category: "lifestyle" });
-  console.log("🦚 musik.js v2.5 geladen — PRO MAX ULTIMATE (Stable)");
+  console.log("🦚 musik.js v3.0 geladen — PRO MAX ULTIMATE");
 })();
