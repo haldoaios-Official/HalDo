@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — MUSIK STUDIO (v15.0) · PRO MAX DAW
-   Sequencer · Mixer · KI-Komponist · Export
+   HALDO AI OS — MUSIK STUDIO (v16.0) · PRO MAX EXTREME
+   Volles UI · Sequencer · Mixer · KI · TTS · Export
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -12,7 +12,7 @@
     });
   }
 
-  // --- 100% CRASH-SICHERE AUDIO-ENGINE ---
+  // --- 100% ABSTURZ-SICHERE AUDIO-ENGINE ---
   function safeTime(t) { return Math.max(0, t || 0); }
   function safeDur(d) { return Math.max(0.05, d || 0.05); }
 
@@ -20,11 +20,14 @@
     time = safeTime(time); dur = safeDur(dur); if (vol <= 0.001) return;
     var osc = ctx.createOscillator(), gain = ctx.createGain(), filt = ctx.createBiquadFilter();
     filt.type = "lowpass";
-    osc.type = type === "bass" ? "triangle" : (type === "lead" ? "sawtooth" : "sine");
     
+    // Instrumenten-Styles
     if(type === "piano") { osc.type = "triangle"; filt.frequency.value = 4000; }
-    if(type === "strings") { osc.type = "sawtooth"; filt.frequency.value = 2500; }
-    
+    else if(type === "strings") { osc.type = "sawtooth"; filt.frequency.value = 2500; }
+    else if(type === "bass") { osc.type = "triangle"; filt.frequency.value = 800; }
+    else if(type === "flute") { osc.type = "sine"; filt.frequency.value = 6000; }
+    else { osc.type = "sawtooth"; filt.frequency.value = 3500; }
+
     osc.frequency.value = freq;
     gain.gain.setValueAtTime(0.0001, time);
     gain.gain.linearRampToValueAtTime(vol, time + 0.02);
@@ -77,6 +80,8 @@
 
     // Der komplette Studio-Zustand
     var ST = {
+      projectName: "Mein Song",
+      genre: "kurdish",
       bpm: 110,
       grid: {
         drums: Array(16).fill(null).map(() => ({ kick: false, snare: false, hat: false })),
@@ -85,35 +90,43 @@
         lead:  Array(16).fill(false)
       },
       vol: { drums: 0.9, bass: 0.7, chords: 0.5, lead: 0.6 },
+      reverb: 0.3, delay: 0.2,
       lyrics: "",
       audioUrl: null
     };
 
-    var SCALE = [0, 2, 3, 5, 7, 8, 10, 12]; // A-Moll Pentatonik
-    var ROOT = 57; // A3
+    // Noten für die Melodie (A-Moll Pentatonik)
+    var SCALE = [57, 60, 62, 64, 67, 69, 72, 74]; 
 
     function build(){
       var body = '';
 
-      body += '<div class="tabs">'
+      body += '<div class="tabs" style="overflow-x:auto; flex-wrap:nowrap">'
         + '<button class="tab' + (tab === "studio" ? " active" : "") + '" data-mtab="studio">🎛️ Sequencer</button>'
         + '<button class="tab' + (tab === "mixer" ? " active" : "") + '" data-mtab="mixer">🎚️ Mixer</button>'
-        + '<button class="tab' + (tab === "ai" ? " active" : "") + '" data-mtab="ai">🤖 KI & Text</button>'
+        + '<button class="tab' + (tab === "ai" ? " active" : "") + '" data-mtab="ai">🤖 KI & Gesang</button>'
         + '</div>';
 
       /* ═══════════ TAB 1: SEQUENCER ═══════════ */
       if(tab === "studio"){
         body += '<div class="card" style="padding:10px; overflow-x:auto">'
           + '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">'
-          + '<div style="font-size:14px; font-weight:900; color:var(--p1)">🎹 16-Step Sequencer</div>'
+          + '<input type="text" id="projName" value="' + _esc(ST.projectName) + '" style="background:transparent; border:none; color:var(--p1); font-size:16px; font-weight:900; outline:none; width:150px">'
+          + '<div style="display:flex; gap:6px">'
           + '<input type="number" id="bpmInp" value="' + ST.bpm + '" style="width:60px; padding:5px; text-align:center; background:rgba(0,0,0,.3); border:1px solid var(--p1); border-radius:6px; color:#fff">'
-          + '</div>';
+          + '<select id="genreInp" style="padding:5px; background:rgba(0,0,0,.3); border:1px solid var(--p1); border-radius:6px; color:#fff; font-size:11px">'
+          + '<option value="pop"' + (ST.genre==="pop"?" selected":"") + '>Pop</option>'
+          + '<option value="kurdish"' + (ST.genre==="kurdish"?" selected":"") + '>Kurdisch</option>'
+          + '<option value="turkish"' + (ST.genre==="turkish"?" selected":"") + '>Türkisch</option>'
+          + '<option value="epic"' + (ST.genre==="epic"?" selected":"") + '>Epic</option>'
+          + '</select>'
+          + '</div></div>';
 
         // Gitter
         body += '<div style="display:grid; grid-template-columns:repeat(16, 1fr); gap:4px; min-width:400px">';
         
         // Drums
-        body += '<div style="grid-column:1/-1; font-size:10px; color:var(--text-mute); margin-top:8px">DRUMS</div>';
+        body += '<div style="grid-column:1/-1; font-size:10px; color:var(--text-mute); margin-top:8px; font-weight:900">DRUMS</div>';
         ['kick', 'snare', 'hat'].forEach(d => {
           for(let i=0; i<16; i++) {
             let active = ST.grid.drums[i][d];
@@ -123,19 +136,19 @@
         });
 
         // Bass
-        body += '<div style="grid-column:1/-1; font-size:10px; color:var(--text-mute); margin-top:8px">BASS</div>';
+        body += '<div style="grid-column:1/-1; font-size:10px; color:var(--text-mute); margin-top:8px; font-weight:900">BASS</div>';
         for(let i=0; i<16; i++) {
           body += '<button data-track="bass" data-idx="'+i+'" style="height:30px; background:' + (ST.grid.bass[i] ? "var(--p2)" : "rgba(0,0,0,.3)") + '; border:none; border-radius:4px; cursor:pointer"></button>';
         }
 
         // Chords
-        body += '<div style="grid-column:1/-1; font-size:10px; color:var(--text-mute); margin-top:8px">CHORDS</div>';
+        body += '<div style="grid-column:1/-1; font-size:10px; color:var(--text-mute); margin-top:8px; font-weight:900">CHORDS</div>';
         for(let i=0; i<16; i++) {
           body += '<button data-track="chords" data-idx="'+i+'" style="height:30px; background:' + (ST.grid.chords[i] ? "var(--p3)" : "rgba(0,0,0,.3)") + '; border:none; border-radius:4px; cursor:pointer"></button>';
         }
 
         // Lead
-        body += '<div style="grid-column:1/-1; font-size:10px; color:var(--text-mute); margin-top:8px">LEAD MELODY</div>';
+        body += '<div style="grid-column:1/-1; font-size:10px; color:var(--text-mute); margin-top:8px; font-weight:900">LEAD MELODY</div>';
         for(let i=0; i<16; i++) {
           body += '<button data-track="lead" data-idx="'+i+'" style="height:30px; background:' + (ST.grid.lead[i] ? "#4ade80" : "rgba(0,0,0,.3)") + '; border:none; border-radius:4px; cursor:pointer"></button>';
         }
@@ -143,8 +156,8 @@
         body += '</div></div>';
 
         body += '<div class="card" style="display:flex; gap:10px">'
-          + '<button class="btn sec" id="btnClear" style="flex:1">🗑️ Leeren</button>'
-          + '<button class="btn" id="btnPlay" style="flex:2; background:linear-gradient(135deg,#4ade80,#00e5ff); color:#000">▶️ Song abspielen</button>'
+          + '<button class="btn sec" id="btnClear" style="flex:1; font-size:11px">🗑️ Leeren</button>'
+          + '<button class="btn" id="btnPlay" style="flex:2; background:linear-gradient(135deg,#4ade80,#00e5ff); color:#000; font-size:14px">▶️ Song abspielen</button>'
           + '</div>';
       }
 
@@ -158,14 +171,32 @@
             + '</div>';
         });
         body += '</div>';
+
+        body += '<div class="card"><h3>✨ Effekte</h3>'
+          + '<div style="margin-bottom:12px">'
+          + '<div style="display:flex; justify-content:space-between; font-size:11px; font-weight:800; margin-bottom:4px"><span>🏛️ HALL (REVERB)</span><span id="lbl_rev">' + Math.round(ST.reverb*100) + '%</span></div>'
+          + '<input type="range" id="revInp" min="0" max="100" value="' + (ST.reverb*100) + '" style="width:100%">'
+          + '</div>'
+          + '<div style="margin-bottom:12px">'
+          + '<div style="display:flex; justify-content:space-between; font-size:11px; font-weight:800; margin-bottom:4px"><span>📢 ECHO (DELAY)</span><span id="lbl_del">' + Math.round(ST.delay*100) + '%</span></div>'
+          + '<input type="range" id="delInp" min="0" max="100" value="' + (ST.delay*100) + '" style="width:100%">'
+          + '</div>'
+          + '</div>';
       }
 
-      /* ═══════════ TAB 3: KI & TEXT ═══════════ */
+      /* ═══════════ TAB 3: KI & GESANG ═══════════ */
       if(tab === "ai"){
         body += '<div class="card"><h3>📝 Songtext & KI</h3>'
           + '<textarea id="lyricsInp" rows="5" placeholder="Schreibe deinen Text hier..." style="width:100%; padding:10px; background:rgba(0,0,0,.3); border:1px solid var(--border-soft); border-radius:10px; color:#fff">' + _esc(ST.lyrics) + '</textarea>'
           + '<button class="btn full" id="btnGenAI" style="margin-top:8px; background:var(--p1); color:#000">✨ KI generiert Beat & Text</button>'
-          + '<button class="btn sec full" id="btnSpeak" style="margin-top:8px">🗣️ Text vorlesen (TTS)</button>'
+          + '</div>';
+
+        body += '<div class="card"><h3>🎤 Gesang (Text-to-Speech)</h3>'
+          + '<div style="font-size:11px; color:var(--text-mute); margin-bottom:8px">Die Browser-Stimme liest den Text rhythmisch vor.</div>'
+          + '<select id="voiceInp" style="width:100%; padding:10px; background:rgba(0,0,0,.3); border-radius:10px; color:#fff; margin-bottom:10px">'
+          + '<option value="">Lade Stimmen...</option>'
+          + '</select>'
+          + '<button class="btn full" id="btnSpeak" style="background:var(--p3); color:#000">🗣️ Gesang starten</button>'
           + '</div>';
       }
 
@@ -184,7 +215,10 @@
       });
 
       if(tab === "studio"){
+        container.querySelector("#projName").addEventListener("input", function(){ ST.projectName = this.value; });
         container.querySelector("#bpmInp").addEventListener("change", function(){ ST.bpm = parseFloat(this.value) || 110; });
+        container.querySelector("#genreInp").addEventListener("change", function(){ ST.genre = this.value; });
+
         container.querySelectorAll("[data-drum]").forEach(btn => {
           btn.addEventListener("click", function() {
             ST.grid.drums[this.dataset.idx][this.dataset.drum] = !ST.grid.drums[this.dataset.idx][this.dataset.drum];
@@ -213,23 +247,39 @@
             container.querySelector("#lbl_" + t).textContent = this.value + "%";
           });
         });
+        container.querySelector("#revInp").addEventListener("input", function(){ ST.reverb = this.value/100; container.querySelector("#lbl_rev").textContent = this.value+"%"; });
+        container.querySelector("#delInp").addEventListener("input", function(){ ST.delay = this.value/100; container.querySelector("#lbl_del").textContent = this.value+"%"; });
       }
 
       if(tab === "ai"){
         container.querySelector("#lyricsInp").addEventListener("input", function(){ ST.lyrics = this.value; });
         
+        // Voice Select füllen
+        var voiceSelect = container.querySelector("#voiceInp");
+        function populateVoices() {
+          var voices = window.speechSynthesis.getVoices();
+          if (voices.length === 0) return setTimeout(populateVoices, 500);
+          voiceSelect.innerHTML = "";
+          voices.forEach(v => {
+            let opt = document.createElement("option");
+            opt.value = v.voiceURI; opt.textContent = v.name + " (" + v.lang + ")";
+            voiceSelect.appendChild(opt);
+          });
+        }
+        populateVoices();
+        window.speechSynthesis.onvoiceschanged = populateVoices;
+
         container.querySelector("#btnGenAI").addEventListener("click", async function() {
           this.disabled = true; this.textContent = "⏳ KI arbeitet...";
           try {
-            // 1. Text generieren (falls leer)
             if(!ST.lyrics) {
               var text = await HalDo.AI.writeLyrics("Ein episches Lied über Hoffnung", "Deutsch", "Pop", "emotional");
               ST.lyrics = text;
             }
-            // 2. Beat generieren (Algorithmisch)
+            // Kreativer Beat basierend auf Genre
             ST.grid.drums.forEach((d, i) => {
               d.kick = (i % 4 === 0);
-              d.snare = (i % 8 === 4);
+              d.snare = (ST.genre === "rock" ? i % 2 === 1 : i % 8 === 4);
               d.hat = (i % 2 === 0);
             });
             ST.grid.bass = Array(16).fill(false).map((_, i) => i % 4 === 0);
@@ -246,6 +296,8 @@
           if(!ST.lyrics) return alert("Kein Text vorhanden!");
           window.speechSynthesis.cancel();
           var u = new SpeechSynthesisUtterance(ST.lyrics);
+          var sel = window.speechSynthesis.getVoices().find(v => v.voiceURI === voiceSelect.value);
+          if (sel) u.voice = sel;
           u.lang = "de-DE"; u.rate = 1.0; u.pitch = 1.0;
           window.speechSynthesis.speak(u);
         });
@@ -253,7 +305,7 @@
 
       if(ST.audioUrl) {
         container.querySelector("#btnDownload").addEventListener("click", function() {
-          var a = document.createElement("a"); a.href = ST.audioUrl; a.download = "haldo-beat.wav"; a.click();
+          var a = document.createElement("a"); a.href = ST.audioUrl; a.download = "haldo-song.wav"; a.click();
         });
       }
     }
@@ -270,8 +322,16 @@
 
         var OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
         var offCtx = new OAC(2, Math.ceil(totalDur * 44100), 44100);
-        var master = offCtx.createGain(); master.gain.value = 0.8; master.connect(offCtx.destination);
         
+        // Master & FX
+        var master = offCtx.createGain(); master.gain.value = 0.8; master.connect(offCtx.destination);
+        var reverb = offCtx.createConvolver();
+        var revBuf = offCtx.createBuffer(2, Math.floor(offCtx.sampleRate * 1.5), offCtx.sampleRate);
+        for (var c = 0; c < 2; c++) { var d = revBuf.getChannelData(c); for (var i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/d.length, 2.0); }
+        reverb.buffer = revBuf;
+        var revGain = offCtx.createGain(); revGain.gain.value = ST.reverb;
+        reverb.connect(revGain); revGain.connect(master);
+
         var trackGains = {
           drums: offCtx.createGain(), bass: offCtx.createGain(),
           chords: offCtx.createGain(), lead: offCtx.createGain()
@@ -279,6 +339,7 @@
         Object.keys(trackGains).forEach(k => {
           trackGains[k].gain.value = ST.vol[k];
           trackGains[k].connect(master);
+          if(k === 'lead' || k === 'chords') trackGains[k].connect(reverb); // Nur Lead & Chords in den Hall
         });
 
         for(var loop = 0; loop < 2; loop++) {
@@ -286,22 +347,22 @@
             var time = (loop * 16 + i) * stepDur;
 
             // Drums
-            if(ST.grid.drums[i].kick) playDrum(offCtx, trackGains.drums, time, 0.8, "kick");
-            if(ST.grid.drums[i].snare) playDrum(offCtx, trackGains.drums, time, 0.6, "snare");
+            if(ST.grid.drums[i].kick) playDrum(offCtx, trackGains.drums, time, 0.9, "kick");
+            if(ST.grid.drums[i].snare) playDrum(offCtx, trackGains.drums, time, 0.7, "snare");
             if(ST.grid.drums[i].hat) playDrum(offCtx, trackGains.drums, time, 0.4, "hat");
 
-            // Bass
-            if(ST.grid.bass[i]) playNote(offCtx, trackGains.bass, 440 * Math.pow(2, (36 - 69)/12), time, stepDur * 2, 0.8, "bass"); // C2
+            // Bass (C2 / A2)
+            if(ST.grid.bass[i]) playNote(offCtx, trackGains.bass, 440 * Math.pow(2, (45 - 69)/12), time, stepDur * 2, 0.8, "bass");
 
-            // Chords
+            // Chords (A-Moll)
             if(ST.grid.chords[i]) {
               [57, 60, 64].forEach(n => playNote(offCtx, trackGains.chords, 440 * Math.pow(2, (n - 69)/12), time, stepDur * 4, 0.5, "strings"));
             }
 
-            // Lead
+            // Lead (Melodie)
             if(ST.grid.lead[i]) {
-              var note = ROOT + SCALE[i % SCALE.length];
-              playNote(offCtx, trackGains.lead, 440 * Math.pow(2, (note - 69)/12), time, stepDur * 2, 0.7, "lead");
+              var note = SCALE[i % SCALE.length];
+              playNote(offCtx, trackGains.lead, 440 * Math.pow(2, (note - 69)/12), time, stepDur * 2, 0.7, "piano");
             }
           }
         }
@@ -324,5 +385,5 @@
   }
 
   HalDoApp("musik", { name: "Musik", icon: "🎵", render: render, category: "lifestyle" });
-  console.log("🦚 musik.js v15.0 geladen — PRO MAX DAW");
+  console.log("🦚 musik.js v16.0 geladen — PRO MAX EXTREME");
 })();
