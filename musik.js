@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — MUSIK STUDIO (v8.0) · NATIVE PRO MAX
-   Pure Web Audio API · KI-Text · Synchronisierter Gesang
+   HALDO AI OS — MUSIK STUDIO (v9.0) · PRO MAX ULTIMATE
+   Native Audio (Old School) · KI · Synchronisierter Gesang
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -12,12 +12,7 @@
     });
   }
 
-  function fmtTime(s) {
-    if (!s || isNaN(s) || !isFinite(s)) return "0:00";
-    var m = Math.floor(s / 60), sec = Math.floor(s % 60);
-    return m + ":" + (sec < 10 ? "0" : "") + sec;
-  }
-
+  // --- NATIVE AUDIO SYNTHESE (Aus deiner alten Datei, sehr stabil!) ---
   var NOTE_FREQ = {};
   (function() {
     var names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
@@ -46,8 +41,8 @@
   var PROGRESSIONS = { "I-V-vi-IV": [0,4,5,3], "vi-IV-I-V": [5,3,0,4], "I-IV-V-I": [0,3,4,0], "i-VI-III-VII": [0,5,2,6] };
   var STRUCTURES = { "short": ["intro","verse","chorus","outro"], "full": ["intro","verse","chorus","verse","chorus","outro"], "loop": ["chorus","chorus","chorus","chorus"] };
 
-  // NATIVE AUDIO SYNTHESE (Aus deiner alten Datei adaptiert!)
   function playInstrument(ctx, dest, freq, startTime, dur, amp, type) {
+    if (startTime < 0) startTime = 0; // SICHERHEIT: Keine negativen Zeiten!
     var osc1 = ctx.createOscillator(), osc2 = ctx.createOscillator(), g = ctx.createGain(), filt = ctx.createBiquadFilter();
     filt.type = "lowpass"; filt.Q.value = 1;
     switch(type) {
@@ -67,9 +62,9 @@
     osc2.start(startTime); osc2.stop(startTime + dur + 0.05);
   }
 
-  function playKick(ctx, dest, t, amp) { var o = ctx.createOscillator(), g = ctx.createGain(); o.type = "sine"; o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.13); g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28); o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.35); }
-  function playSnare(ctx, dest, t, amp) { var bs = Math.floor(ctx.sampleRate * 0.2), buf = ctx.createBuffer(1, bs, ctx.sampleRate), d = buf.getChannelData(0); for (var i = 0; i < bs; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/bs, 3); var s = ctx.createBufferSource(); s.buffer = buf; var g = ctx.createGain(); g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2); var f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 1400; s.connect(f); f.connect(g); g.connect(dest); s.start(t); s.stop(t + 0.22); }
-  function playHat(ctx, dest, t, amp) { var bs = Math.floor(ctx.sampleRate * 0.06), buf = ctx.createBuffer(1, bs, ctx.sampleRate), d = buf.getChannelData(0); for (var i = 0; i < bs; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/bs, 2); var s = ctx.createBufferSource(); s.buffer = buf; var g = ctx.createGain(); g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07); var f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 7000; s.connect(f); f.connect(g); g.connect(dest); s.start(t); s.stop(t + 0.1); }
+  function playKick(ctx, dest, t, amp) { if (t < 0) t = 0; var o = ctx.createOscillator(), g = ctx.createGain(); o.type = "sine"; o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.13); g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28); o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.35); }
+  function playSnare(ctx, dest, t, amp) { if (t < 0) t = 0; var bs = Math.floor(ctx.sampleRate * 0.2), buf = ctx.createBuffer(1, bs, ctx.sampleRate), d = buf.getChannelData(0); for (var i = 0; i < bs; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/bs, 3); var s = ctx.createBufferSource(); s.buffer = buf; var g = ctx.createGain(); g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2); var f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 1400; s.connect(f); f.connect(g); g.connect(dest); s.start(t); s.stop(t + 0.22); }
+  function playHat(ctx, dest, t, amp) { if (t < 0) t = 0; var bs = Math.floor(ctx.sampleRate * 0.06), buf = ctx.createBuffer(1, bs, ctx.sampleRate), d = buf.getChannelData(0); for (var i = 0; i < bs; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/bs, 2); var s = ctx.createBufferSource(); s.buffer = buf; var g = ctx.createGain(); g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07); var f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 7000; s.connect(f); f.connect(g); g.connect(dest); s.start(t); s.stop(t + 0.1); }
 
   function audioBufferToWav(buffer) {
     var nCh = buffer.numberOfChannels, len = buffer.length, sr = buffer.sampleRate, bps = 2, ba = nCh*bps, br = sr*ba, ds = len*ba;
@@ -82,7 +77,6 @@
     return new Blob([ab], { type: "audio/wav" });
   }
 
-  // --- HAUPT-RENDER-FUNKTION ---
   function render(container, ctx){
     var store = ctx.store;
     var tab = store.get("tab", "studio");
@@ -341,13 +335,16 @@
           let pitchMod = (noteData.note - 60) * 0.05; 
           let finalPitch = Math.max(0.5, Math.min(2.0, 1.0 + pitchMod));
           
+          // WICHTIG: Negative Zeiten abfangen! (Das war der Bug)
+          let delay = Math.max(0, (noteData.time - 0.2) * 1000);
+          
           setTimeout(() => {
             let u = new SpeechSynthesisUtterance(word);
             if (selVoice) u.voice = selVoice;
             u.pitch = finalPitch;
             u.rate = 1.1; // Etwas schneller für Flow
             window.speechSynthesis.speak(u);
-          }, (noteData.time - 0.2) * 1000); // -0.2s Versatz für besseres Gefühl
+          }, delay);
         }
 
         stat.className = "info ok";
@@ -366,5 +363,5 @@
   }
 
   HalDoApp("musik", { name: "Musik", icon: "🎵", render: render, category: "lifestyle" });
-  console.log("🦚 musik.js v8.0 geladen — NATIVE PRO MAX");
+  console.log("🦚 musik.js v9.0 geladen — PRO MAX ULTIMATE (Bugfix)");
 })();
