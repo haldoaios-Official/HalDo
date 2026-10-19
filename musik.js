@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — MUSIK STUDIO (v4.0) · PRO MAX ULTIMATE
-   Tone.js + WebAudioFont (Duduk, Saz, etc.) · Auto-Composer
+   HALDO AI OS — MUSIK STUDIO (v5.0) · NATIVE AUDIO STABLE
+   Native AudioContext · WebAudioFont · KI-Text-Editor
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -12,17 +12,9 @@
     });
   }
 
-  // --- 1. BIBLIOTHEKEN LADEN (Stabil) ---
+  // --- 1. BIBLIOTHEKEN LADEN ---
   function loadLibraries() {
     return new Promise(async (resolve) => {
-      if (!window.Tone) {
-        await new Promise(r => {
-          let s = document.createElement('script');
-          s.src = "https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js";
-          s.onload = r;
-          document.head.appendChild(s);
-        });
-      }
       if (!window.WebAudioFontPlayer) {
         await new Promise(r => {
           let s = document.createElement('script');
@@ -32,7 +24,6 @@
         });
       }
       
-      // ERWEITERTE INSTRUMENTE (Duduk, Saz, Kaval, etc.)
       const instrumentLibs = [
         "0250_SoundBlasterOld_sf2", // Piano
         "0330_SoundBlasterOld_sf2", // Bass
@@ -101,13 +92,15 @@
       genre: "Pop", mood: "Happy", bpm: 100, key: "C",
       lyrics: "", songDesc: "",
       voiceType: "female", voiceURI: "", vocalPitch: 1.0, vocalRate: 1.0,
-      selectedInstruments: ["piano", "bass", "saz", "duduk"], // Neue Defaults
+      selectedInstruments: ["piano", "bass", "saz", "duduk"],
       trackVol: { piano: 0.8, bass: 0.6, strings: 0.5, guitar: 0.5, keman: 0.5, ney: 0.5, duduk: 0.6, saz: 0.7, kaval: 0.5, kanun: 0.5, organ: 0.5, brass: 0.5 },
       fxReverb: 0.4, fxDelay: 0.2
     };
     var ST = {
       set: Object.assign({}, defaultSet, store.get("settings", {})),
-      isPlaying: false
+      isPlaying: false,
+      audioCtx: null,
+      player: null
     };
     if (!ST.set.trackVol) ST.set.trackVol = defaultSet.trackVol;
     if (!ST.set.selectedInstruments) ST.set.selectedInstruments = defaultSet.selectedInstruments;
@@ -301,8 +294,8 @@
           if (slider) slider.addEventListener("input", function(){
             let v = this.value / 100; s.trackVol[inst] = v;
             container.querySelector("#v_vol_" + inst).textContent = this.value + "%";
-            if (ST.isPlaying && window._haldoTracks && window._haldoTracks[inst]) {
-              window._haldoTracks[inst].volume.value = Tone.gainToDb(v);
+            if (ST.isPlaying && ST.trackGains && ST.trackGains[inst]) {
+              ST.trackGains[inst].gain.value = v;
             }
             save();
           });
@@ -346,7 +339,7 @@
         + '</div>';
     }
 
-    // --- AUDIO ENGINE (Tone.js + WebAudioFont) ---
+    // --- AUDIO ENGINE (Native AudioContext) ---
     async function startPlayback() {
       if (!ST.set.lyrics) return alert("Bitte erst Songtext eingeben!");
       if (ST.set.selectedInstruments.length === 0) return alert("Bitte wähle mindestens ein Instrument aus!");
@@ -357,78 +350,102 @@
 
       try {
         await loadLibraries();
-        await Tone.start();
         
-        // Transport zurücksetzen
-        Tone.Transport.stop();
-        Tone.Transport.cancel();
-        Tone.Transport.bpm.value = ST.set.bpm;
+        // 1. Nativen AudioContext erstellen
+        if (!ST.audioCtx) {
+          ST.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (ST.audioCtx.state === "suspended") {
+          await ST.audioCtx.resume();
+        }
 
-        // Master & FX Setup
-        const masterGain = new Tone.Gain(1).toDestination();
-        
-        const reverb = new Tone.Reverb({ decay: 2.5, wet: ST.set.fxReverb }).connect(masterGain);
-        const delay = new Tone.FeedbackDelay("8n", 0.5).connect(masterGain); delay.wet.value = ST.set.fxDelay;
-        window._haldoFX = { reverb, delay };
+        // 2. Master & FX Setup (Nativ)
+        const masterGain = ST.audioCtx.createGain();
+        masterGain.connect(ST.audioCtx.destination);
 
-        // Track Gains
-        const trackGains = {};
+        // Einfacher Reverb (Convolver)
+        const reverb = ST.audioCtx.createConvolver();
+        // Einfache Impulsantwort generieren
+        const length = ST.audioCtx.sampleRate * 2.0;
+        const impulse = ST.audioCtx.createBuffer(2, length, ST.audioCtx.sampleRate);
+        for (let i = 0; i < 2; i++) {
+          const channel = impulse.getChannelData(i);
+          for (let j = 0; j < length; j++) channel[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / length, 2.0);
+        }
+        reverb.buffer = impulse;
+        const reverbGain = ST.audioCtx.createGain();
+        reverbGain.gain.value = ST.set.fxReverb;
+        reverb.connect(reverbGain);
+        reverbGain.connect(masterGain);
+
+        // Delay
+        const delay = ST.audioCtx.createDelay(1.0);
+        delay.delayTime.value = 0.3;
+        const delayGain = ST.audioCtx.createGain();
+        delayGain.gain.value = ST.set.fxDelay;
+        delay.connect(delayGain);
+        delayGain.connect(masterGain);
+
+        // 3. Track Gains erstellen
+        ST.trackGains = {};
         ST.set.selectedInstruments.forEach(inst => {
-          trackGains[inst] = new Tone.Gain(ST.set.trackVol[inst] || 0.5).connect(reverb).connect(masterGain);
+          let gain = ST.audioCtx.createGain();
+          gain.gain.value = ST.set.trackVol[inst] || 0.5;
+          gain.connect(masterGain);
+          gain.connect(reverb);
+          ST.trackGains[inst] = gain;
         });
-        window._haldoTracks = trackGains;
 
-        // Player initialisieren & Dekodieren (WICHTIG: Verhindert den Absturz!)
-        const player = new WebAudioFontPlayer();
+        // 4. Player initialisieren und Instrumente dekodieren
+        ST.player = new WebAudioFontPlayer();
         ST.set.selectedInstruments.forEach(inst => {
           let varName = INSTRUMENTS[inst].varName;
           if (window[varName]) {
-            player.loader.decodeAfterLoading(Tone.context, varName);
+            ST.player.loader.decodeAfterLoading(ST.audioCtx, varName);
           }
         });
 
-        // Harmonik
+        // 5. Noten planen (mit nativer Zeit)
         let baseMidi = { "C": 60, "G": 55, "D": 62, "Am": 57, "Em": 52 }[ST.set.key] || 60;
         let isMinor = ST.set.key.includes("m");
-        // Akkordfolge: I - VI - III - VII (klingt epischer)
         let chords = isMinor ? 
-          [[0, 3, 7], [8, 12, 15], [3, 7, 10], [10, 14, 17]] : 
-          [[0, 4, 7], [9, 12, 16], [4, 7, 11], [7, 11, 14]];
+          [[0, 3, 7], [5, 8, 12], [3, 7, 10], [7, 10, 14]] : 
+          [[0, 4, 7], [5, 9, 12], [7, 11, 14], [0, 4, 7]];
 
         let totalBeats = 32;
         let beatDur = 60 / ST.set.bpm;
+        let startTime = ST.audioCtx.currentTime + 0.5; // Kleiner Puffer
 
-        // Noten planen (Auto-Composer)
         for (let i = 0; i < totalBeats; i++) {
-          let time = i * beatDur;
+          let time = startTime + (i * beatDur);
           let chordIdx = Math.floor(i / 4) % 4;
           let chordNotes = chords[chordIdx];
 
-          Tone.Transport.schedule((t) => {
+          setTimeout(() => {
             try {
-              // Piano/Chords
-              if (trackGains.piano && (i % 4 === 0 || i % 4 === 2)) {
+              // Piano
+              if (ST.trackGains.piano && (i % 4 === 0 || i % 4 === 2)) {
                 chordNotes.forEach(n => {
-                  player.queueWaveTable(Tone.context, trackGains.piano, window._tone_0250_SoundBlasterOld_sf2, t, baseMidi + n + 12, beatDur * 1.8, 0.7);
+                  ST.player.queueWaveTable(ST.audioCtx, ST.trackGains.piano, window._tone_0250_SoundBlasterOld_sf2, time, baseMidi + n + 12, beatDur * 1.8, 0.8);
                 });
               }
               // Bass
-              if (trackGains.bass) {
-                player.queueWaveTable(Tone.context, trackGains.bass, window._tone_0330_SoundBlasterOld_sf2, t, baseMidi + chordNotes[0] - 12, beatDur * 0.9, 0.9);
+              if (ST.trackGains.bass) {
+                ST.player.queueWaveTable(ST.audioCtx, ST.trackGains.bass, window._tone_0330_SoundBlasterOld_sf2, time, baseMidi + chordNotes[0] - 12, beatDur * 0.9, 0.9);
               }
-              // Saz / Duduk / Keman (Melodie-Instrumente spielen die Akkordtöne)
+              // Saz / Duduk etc.
               ["saz", "duduk", "keman", "ney", "kaval", "kanun", "guitar", "strings"].forEach(inst => {
-                if (trackGains[inst] && i % 2 === 1) { // Jeden 2. Beat eine Melodie-Note
+                if (ST.trackGains[inst] && i % 2 === 1) {
                   let randomNote = chordNotes[Math.floor(Math.random() * chordNotes.length)];
                   let instVar = INSTRUMENTS[inst].varName;
-                  player.queueWaveTable(Tone.context, trackGains[inst], window[instVar], t, baseMidi + randomNote + 12, beatDur * 0.8, 0.6);
+                  ST.player.queueWaveTable(ST.audioCtx, ST.trackGains[inst], window[instVar], time, baseMidi + randomNote + 12, beatDur * 0.8, 0.6);
                 }
               });
             } catch(e){ console.warn("Scheduling Fehler:", e); }
-          }, time);
+          }, (time - ST.audioCtx.currentTime) * 1000);
         }
 
-        // Gesang planen
+        // 6. Gesang planen
         window.speechSynthesis.cancel();
         if (ST.set.lyrics) {
           let words = ST.set.lyrics.replace(/\[.*?\]/g, '').replace(/\n/g, ' ').trim().split(/\s+/).filter(w => w.length > 0);
@@ -439,31 +456,30 @@
 
           for (let w = 0; w < wordCount; w++) {
             let word = words[w];
-            let time = w * (beatDur / wordsPerBeat);
-            let notePitch = baseMidi + chords[Math.floor(w/4)%4][0] + 12; // Grundton des aktuellen Akkords
+            let time = startTime + (w * (beatDur / wordsPerBeat));
+            let notePitch = baseMidi + chords[Math.floor(w/4)%4][0] + 12;
             
-            Tone.Transport.schedule((t) => {
+            setTimeout(() => {
               let u = new SpeechSynthesisUtterance(word);
               if (selVoice) u.voice = selVoice;
-              // Tonhöhe an die Note anpassen (MIDI 60 = 1.0)
               let pitchMod = (notePitch - 60) * 0.05; 
               u.pitch = (ST.set.vocalPitch || 1.0) + pitchMod;
               u.rate = ST.set.vocalRate || 1.0;
               window.speechSynthesis.speak(u);
-            }, time);
+            }, (time - ST.audioCtx.currentTime) * 1000);
           }
         }
 
-        Tone.Transport.start("+0.1");
         ST.isPlaying = true;
         stat.textContent = "🎶 Song läuft...";
         btn.disabled = false;
 
-        Tone.Transport.schedule(() => {
-          stat.textContent = "✅ Song beendet.";
-          ST.isPlaying = false;
-          Tone.Transport.stop();
-        }, totalBeats * beatDur);
+        setTimeout(() => {
+          if (ST.isPlaying) {
+            stat.textContent = "✅ Song beendet.";
+            ST.isPlaying = false;
+          }
+        }, (totalBeats * beatDur * 1000) + 2000);
 
       } catch(e) {
         btn.disabled = false; stat.textContent = "❌ " + e.message; console.error(e);
@@ -471,11 +487,11 @@
     }
 
     function stopPlayback() {
-      if (window.Tone) {
-        Tone.Transport.stop();
-        Tone.Transport.cancel();
-      }
       window.speechSynthesis.cancel();
+      if (ST.audioCtx) {
+        ST.audioCtx.close();
+        ST.audioCtx = null;
+      }
       ST.isPlaying = false;
       let stat = document.querySelector("#play_status");
       if(stat) stat.textContent = "⏹ Gestoppt.";
@@ -487,5 +503,5 @@
   }
 
   HalDoApp("musik", { name: "Musik", icon: "🎵", render: render, category: "lifestyle" });
-  console.log("🦚 musik.js v4.0 geladen — PRO MAX ULTIMATE (Duduk/Saz integriert)");
+  console.log("🦚 musik.js v5.0 geladen — NATIVE AUDIO STABLE");
 })();
