@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — MUSIK STUDIO (v11.0) · PRO MAX FINAL
-   Native Audio (Old School) · KI · Synchronisierter Gesang
+   HALDO AI OS — MUSIK STUDIO (v12.0) · FULL UI & AUDIO ENGINE
+   Basierend auf dem originalen Musik-Studio-Code (HTML/JS)
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -12,7 +12,7 @@
     });
   }
 
-  // --- NATIVE AUDIO SYNTHESE (Aus deiner alten Datei, sehr stabil!) ---
+  // --- AUDIO ENGINE (Aus deiner alten Datei) ---
   var NOTE_FREQ = {};
   (function() {
     var names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
@@ -21,11 +21,7 @@
   function noteFreq(n) { return NOTE_FREQ[n] || 440; }
   function midiToName(m) { var n = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"]; return n[((m%12)+12)%12] + (Math.floor(m/12) - 1); }
 
-  var SCALES = {
-    major: [0,2,4,5,7,9,11], minor: [0,2,3,5,7,8,10],
-    dorian: [0,2,3,5,7,9,10], mixolydian: [0,2,4,5,7,9,10],
-    pentatonic: [0,2,4,7,9]
-  };
+  var SCALES = { major: [0,2,4,5,7,9,11], minor: [0,2,3,5,7,8,10], dorian: [0,2,3,5,7,9,10], mixolydian: [0,2,4,5,7,9,10], pentatonic: [0,2,4,7,9] };
   var KEY_ROOT = { "C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "Bb": 10 };
   function getScale(root, mode) { var iv = SCALES[mode] || SCALES.major; return iv.map(function(i) { return root + i; }); }
 
@@ -41,14 +37,9 @@
   var PROGRESSIONS = { "I-V-vi-IV": [0,4,5,3], "vi-IV-I-V": [5,3,0,4], "I-IV-V-I": [0,3,4,0], "i-VI-III-VII": [0,5,2,6] };
   var STRUCTURES = { "short": ["intro","verse","chorus","outro"], "full": ["intro","verse","chorus","verse","chorus","outro"], "loop": ["chorus","chorus","chorus","chorus"] };
 
-  // --- SICHERE ZEITBERECHNUNG ---
-  function safeTime(t) { return Math.max(0, t || 0); }
-  function safeDur(d) { return Math.max(0.1, d || 0.1); }
-
   function playInstrument(ctx, dest, freq, startTime, dur, amp, type) {
-    startTime = safeTime(startTime);
-    dur = safeDur(dur);
-    if (amp <= 0) return;
+    if (startTime < 0) startTime = 0;
+    if (dur <= 0) dur = 0.1;
     var osc1 = ctx.createOscillator(), osc2 = ctx.createOscillator(), g = ctx.createGain(), filt = ctx.createBiquadFilter();
     filt.type = "lowpass"; filt.Q.value = 1;
     switch(type) {
@@ -68,9 +59,9 @@
     osc2.start(startTime); osc2.stop(startTime + dur + 0.05);
   }
 
-  function playKick(ctx, dest, t, amp) { t = safeTime(t); var o = ctx.createOscillator(), g = ctx.createGain(); o.type = "sine"; o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.13); g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28); o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.35); }
-  function playSnare(ctx, dest, t, amp) { t = safeTime(t); var bs = Math.floor(ctx.sampleRate * 0.2), buf = ctx.createBuffer(1, bs, ctx.sampleRate), d = buf.getChannelData(0); for (var i = 0; i < bs; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/bs, 3); var s = ctx.createBufferSource(); s.buffer = buf; var g = ctx.createGain(); g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2); var f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 1400; s.connect(f); f.connect(g); g.connect(dest); s.start(t); s.stop(t + 0.22); }
-  function playHat(ctx, dest, t, amp) { t = safeTime(t); var bs = Math.floor(ctx.sampleRate * 0.06), buf = ctx.createBuffer(1, bs, ctx.sampleRate), d = buf.getChannelData(0); for (var i = 0; i < bs; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/bs, 2); var s = ctx.createBufferSource(); s.buffer = buf; var g = ctx.createGain(); g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07); var f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 7000; s.connect(f); f.connect(g); g.connect(dest); s.start(t); s.stop(t + 0.1); }
+  function playKick(ctx, dest, t, amp) { if (t < 0) t = 0; var o = ctx.createOscillator(), g = ctx.createGain(); o.type = "sine"; o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.13); g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28); o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.35); }
+  function playSnare(ctx, dest, t, amp) { if (t < 0) t = 0; var bs = Math.floor(ctx.sampleRate * 0.2), buf = ctx.createBuffer(1, bs, ctx.sampleRate), d = buf.getChannelData(0); for (var i = 0; i < bs; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/bs, 3); var s = ctx.createBufferSource(); s.buffer = buf; var g = ctx.createGain(); g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2); var f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 1400; s.connect(f); f.connect(g); g.connect(dest); s.start(t); s.stop(t + 0.22); }
+  function playHat(ctx, dest, t, amp) { if (t < 0) t = 0; var bs = Math.floor(ctx.sampleRate * 0.06), buf = ctx.createBuffer(1, bs, ctx.sampleRate), d = buf.getChannelData(0); for (var i = 0; i < bs; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/bs, 2); var s = ctx.createBufferSource(); s.buffer = buf; var g = ctx.createGain(); g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07); var f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 7000; s.connect(f); f.connect(g); g.connect(dest); s.start(t); s.stop(t + 0.1); }
 
   function audioBufferToWav(buffer) {
     var nCh = buffer.numberOfChannels, len = buffer.length, sr = buffer.sampleRate, bps = 2, ba = nCh*bps, br = sr*ba, ds = len*ba;
@@ -108,7 +99,7 @@
 
       body += '<div class="tabs">'
         + '<button class="tab' + (tab === "studio" ? " active" : "") + '" data-mtab="studio">🎛️ Studio</button>'
-        + '<button class="tab' + (tab === "voice" ? " active" : "") + '" data-mtab="voice">🎤 Gesang</button>'
+        + '<button class="tab' + (tab === "voice" ? " active" : "") + '" data-mtab="voice">🎤 Stimme</button>'
         + '</div>';
 
       if(tab === "studio"){
@@ -122,7 +113,7 @@
           + '<div id="ki_status" style="display:none;margin-top:8px;padding:8px;background:rgba(0,229,255,.1);border-radius:8px;font-size:11px"></div>'
           + '</div>';
 
-        body += '<div class="card"><h3>🎵 Musik-Stil & Stimmung</h3>'
+        body += '<div class="card"><h3>🎵 Musik-Stil & Arrangement</h3>'
           + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
           + '<div><label style="font-size:10px;color:var(--text-mute);font-weight:800">STIL</label>'
           + '<select id="mStyle" style="width:100%;padding:8px;background:rgba(0,0,0,.3);border-radius:8px;color:inherit;font-size:12px">'
@@ -136,25 +127,37 @@
           + '</select></div>'
           + '<div><label style="font-size:10px;color:var(--text-mute);font-weight:800">BPM</label>'
           + '<input type="number" id="mTempo" value="' + s.bpm + '" style="width:100%;padding:8px;background:rgba(0,0,0,.3);border-radius:8px;color:inherit;font-size:12px"></div>'
-          + '</div></div>';
+          + '</div>'
+          + '<div style="font-size:11px;color:var(--text-mute);margin-top:12px;line-height:1.6">'
+          + '🎸 <b>Instrumente:</b> Klavier, Gitarre, Streicher, Bass, Schlagzeug, Glocken (je nach Stil)<br>'
+          + '🎼 <b>Struktur:</b> Intro → Strophe → Refrain → Strophe → Refrain → Outro'
+          + '</div>'
+          + '</div>';
 
         body += '<div class="card" style="position:sticky;bottom:0;background:var(--bg-2);z-index:10;border-top:1px solid var(--border-soft);margin-bottom:0">'
-          + '<button class="btn full" id="mGenerate" style="background:linear-gradient(135deg,#4ade80,#00e5ff);font-size:15px;padding:14px">🎵 Song generieren & singen</button>'
+          + '<button class="btn full" id="mGenerate" style="background:linear-gradient(135deg,#4ade80,#00e5ff);font-size:15px;padding:14px">🎵 Instrumental generieren</button>'
+          + '<button class="btn sec full" id="mSpeakText" style="margin-top:8px;font-size:12px">🗣️ Text vorlesen (TTS)</button>'
           + '<div id="mStatus" style="display:none;margin-top:10px;padding:8px;background:rgba(0,229,255,.1);border-radius:8px;font-size:11px;text-align:center"></div>'
           + '</div>';
       }
 
       if(tab === "voice"){
         body += '<div class="card"><h3>🎤 Gesangs-Stimme (Browser TTS)</h3>'
-          + '<div style="font-size:11px;color:var(--text-mute);margin-bottom:8px">Wähle die Stimme, die den Text singen/sprechen soll:</div>'
+          + '<div style="font-size:11px;color:var(--text-mute);margin-bottom:8px">Wähle die Stimme, die den Text sprechen soll (wenn du auf "Text vorlesen" klickst):</div>'
           + '<select id="ki_voice" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border-radius:10px;color:inherit;font-size:13px;margin-bottom:12px">'
           + '<option value="">Lade Stimmen...</option>'
           + '</select>'
           + '<button class="btn sec full" id="ki_testVoice" style="font-size:11px">🔊 Stimme testen</button>'
           + '<div style="font-size:10.5px;color:var(--text-mute);margin-top:12px;line-height:1.5">'
-          + 'ℹ️ <b>Hinweis:</b> Die Browser-Stimme ist eine Vorlese-Stimme. Sie spricht den Text rhythmisch zur Musik. Für echten, melodiösen Gesang (wie bei Suno) braucht man riesige KI-Server.'
+          + 'ℹ️ <b>Hinweis:</b> Die Browser-Stimme ist eine Vorlese-Stimme. Sie kann nicht singen, sondern liest den Text vor.'
           + '</div></div>';
       }
+
+      // Der Audio-Player (Immer sichtbar, wenn Audio generiert wurde)
+      body += '<div id="playerContainer" style="display:none;margin-top:14px;padding:14px;background:var(--bg-3);border-radius:12px;border:1px solid var(--border-soft)">'
+        + '<div style="font-size:12px;font-weight:900;color:var(--p1);margin-bottom:8px">🎧 Dein generierter Song</div>'
+        + '<audio id="mainAudio" controls style="width:100%;border-radius:8px"></audio>'
+        + '</div>';
 
       container.innerHTML = body;
 
@@ -196,7 +199,19 @@
           this.disabled = false;
         });
 
-        container.querySelector("#mGenerate").addEventListener("click", generateAndPlaySong);
+        container.querySelector("#mGenerate").addEventListener("click", generateInstrumental);
+        
+        container.querySelector("#mSpeakText").addEventListener("click", function() {
+          if (!s.lyrics) return alert("Bitte erst Songtext eingeben!");
+          window.speechSynthesis.cancel();
+          var voices = window.speechSynthesis.getVoices();
+          var selVoice = voices.find(v => v.voiceURI === s.voiceURI);
+          var u = new SpeechSynthesisUtterance(s.lyrics);
+          if (selVoice) u.voice = selVoice;
+          u.pitch = 1.0;
+          u.rate = 1.0;
+          window.speechSynthesis.speak(u);
+        });
       }
 
       if (tab === "voice") {
@@ -228,11 +243,9 @@
       }
     }
 
-    // --- DIE GENERIERUNGS-MAGIE ---
-    async function generateAndPlaySong() {
+    // --- INSTRUMENTAL GENERIEREN ---
+    async function generateInstrumental() {
       var s = ST.set;
-      if (!s.lyrics) return alert("Bitte erst Songtext eingeben oder generieren!");
-
       let btn = document.querySelector("#mGenerate");
       let stat = document.querySelector("#mStatus");
       btn.disabled = true; stat.style.display = "block"; stat.className = "info"; stat.textContent = "⏳ Generiere WAV-Datei (30-60s)...";
@@ -243,7 +256,7 @@
         var structure = STRUCTURES.full;
         var progKey = sp.prog || "I-V-vi-IV";
         var prog = PROGRESSIONS[progKey] || PROGRESSIONS["I-V-vi-IV"];
-        var masterVol = 0.9; // Fix für sauberen Sound
+        var masterVol = 0.9; 
         var root = 57; // A-Moll Basis
         var scale = getScale(root, sp.mode || "minor");
 
@@ -266,7 +279,6 @@
         var dryGain = offCtx.createGain(); dryGain.gain.value = 1 - sp.reverb * 0.35; dryGain.connect(masterGain);
 
         var t = 0;
-        var allNotes = []; // Für Gesang speichern
 
         structure.forEach(function(section) {
           var bars = (section === "intro" || section === "outro") ? 4 : 8;
@@ -289,7 +301,7 @@
             playInstrument(offCtx, dryGain, noteFreq(midiToName(bn)), barStart, barDur * 0.45, 0.55 * sFil * sAmp, "bass"); 
             playInstrument(offCtx, dryGain, noteFreq(midiToName(bn)), barStart + barDur * 0.5, barDur * 0.4, 0.5 * sFil * sAmp, "bass"); 
             
-            // Melodie (Speichern für TTS Sync)
+            // Melodie
             for (var m = 0; m < 8; m++) { 
               var mt = barStart + m * (barDur / 8);
               var idx = (bar + m) % scale.length;
@@ -297,8 +309,6 @@
               var md = (barDur / 8) * (0.5 + ((bar + m) % 3) * 0.15); 
               playInstrument(offCtx, dryGain, noteFreq(midiToName(mn)), mt, md, 0.28 * sFil * sAmp, sp.melType); 
               playInstrument(offCtx, reverb, noteFreq(midiToName(mn)), mt, md, 0.12 * sFil * sAmp, sp.melType); 
-              
-              allNotes.push({ time: mt, note: mn });
             }
 
             // Drums
@@ -314,48 +324,21 @@
           t += bars * barDur;
         });
 
-        stat.textContent = "🎤 Rendering & Gesangs-Sync...";
+        stat.textContent = "🎧 Rendering...";
         var rendered = await offCtx.startRendering();
         var wav = audioBufferToWav(rendered);
         if (ST.audioUrl) URL.revokeObjectURL(ST.audioUrl);
         ST.audioUrl = URL.createObjectURL(wav);
         
-        // Audio abspielen
-        var audio = new Audio(ST.audioUrl);
-        audio.volume = 0.9;
-        audio.play();
-
-        // TTS mit Noten synchronisieren
-        window.speechSynthesis.cancel();
-        var words = s.lyrics.replace(/\[.*?\]/g, '').replace(/\n/g, ' ').trim().split(/\s+/).filter(w => w.length > 0);
-        var voices = window.speechSynthesis.getVoices();
-        var selVoice = voices.find(v => v.voiceURI === s.voiceURI);
-        
-        // Verteile die Wörter auf die generierten Noten
-        var wordCount = Math.min(words.length, allNotes.length);
-        for (let w = 0; w < wordCount; w++) {
-          let word = words[w];
-          let noteData = allNotes[w]; // Nutze die Melodie-Noten als Timing
-          
-          // Berechne Tonhöhe basierend auf der Note (MIDI 60 = 1.0)
-          let pitchMod = (noteData.note - 60) * 0.05; 
-          let finalPitch = Math.max(0.5, Math.min(2.0, 1.0 + pitchMod));
-          
-          // WICHTIG: Negative Zeiten abfangen!
-          let delay = Math.max(0, (noteData.time - 0.2) * 1000);
-          
-          setTimeout(() => {
-            let u = new SpeechSynthesisUtterance(word);
-            if (selVoice) u.voice = selVoice;
-            u.pitch = finalPitch;
-            u.rate = 1.1; // Etwas schneller für Flow
-            window.speechSynthesis.speak(u);
-          }, delay);
-        }
+        var playerContainer = document.querySelector("#playerContainer");
+        var audioPlayer = document.querySelector("#mainAudio");
+        playerContainer.style.display = "block";
+        audioPlayer.src = ST.audioUrl;
+        audioPlayer.play();
 
         stat.className = "info ok";
-        stat.textContent = "✅ Song läuft! (" + Math.round(rendered.duration) + "s)";
-        setTimeout(() => { btn.disabled = false; }, rendered.duration * 1000);
+        stat.textContent = "✅ Instrumental fertig! (" + Math.round(rendered.duration) + "s)";
+        btn.disabled = false;
 
       } catch(e) {
         console.error(e);
@@ -369,5 +352,5 @@
   }
 
   HalDoApp("musik", { name: "Musik", icon: "🎵", render: render, category: "lifestyle" });
-  console.log("🦚 musik.js v11.0 geladen — PRO MAX FINAL");
+  console.log("🦚 musik.js v12.0 geladen — FULL UI & AUDIO ENGINE");
 })();
