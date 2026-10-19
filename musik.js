@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — MUSIK STUDIO (v5.0) · NATIVE AUDIO STABLE
-   Native AudioContext · WebAudioFont · KI-Text-Editor
+   HALDO AI OS — MUSIK STUDIO (v6.0) · PRO MAX ULTIMATE
+   Native Audio · State-Cleanup · 12 Instrumente · KI
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -29,12 +29,12 @@
         "0330_SoundBlasterOld_sf2", // Bass
         "0120_SoundBlasterOld_sf2", // Strings
         "0300_SoundBlasterOld_sf2", // Gitarre
-        "0400_SoundBlasterOld_sf2", // Keman (Violine)
-        "0730_SoundBlasterOld_sf2", // Ney (Flöte)
-        "0680_SoundBlasterOld_sf2", // Duduk (Oboe)
-        "1040_SoundBlasterOld_sf2", // Bağlama / Saz (Sitar)
-        "0770_SoundBlasterOld_sf2", // Kaval (Shakuhachi)
-        "1070_SoundBlasterOld_sf2", // Kanun (Zither)
+        "0400_SoundBlasterOld_sf2", // Keman
+        "0730_SoundBlasterOld_sf2", // Ney
+        "0680_SoundBlasterOld_sf2", // Duduk
+        "1040_SoundBlasterOld_sf2", // Saz
+        "0770_SoundBlasterOld_sf2", // Kaval
+        "1070_SoundBlasterOld_sf2", // Kanun
         "0240_SoundBlasterOld_sf2", // Orgel
         "0560_SoundBlasterOld_sf2"  // Trompete
       ];
@@ -56,16 +56,14 @@
 
   // --- 2. DATEN ---
   const GENRES = [
-    "Pop", "Rock", "EDM", "R&B", "Hip-Hop", "Jazz", "Blues", "Metal", "Punk", "Disco", "Dance",
-    "Latin", "Reggae", "Country", "Folk", "Klassik", "Romantik", "Barock", "Oper",
+    "Pop", "Rock", "EDM", "R&B", "Hip-Hop", "Jazz", "Blues", "Metal", "Disco", "Dance",
     "Stran", "Helbest", "Dengbêj", "Arabesk", "Türkü", "Halay", "Orientale", "Türk Sanat Müziği", "Türk Halk Müziği",
-    "Cinematic", "Ambient", "Synthwave", "Lo-Fi", "Ezidi", "Kurdisch", "Asiatisch", "Indisch", "Balkan", "Europäisch", "USA"
+    "Cinematic", "Ambient", "Lo-Fi", "Ezidi", "Kurdisch"
   ];
 
   const MOODS = [
     "Happy", "Hype", "Nostalgisch", "Cinematic", "Hard", "Lyrical", "Traurig", "Chill", 
-    "Depressiv", "Slow", "Dark", "Episch", "Romantisch", "Melancholisch", "Energiegeladen", "Verträumt",
-    "Aggressiv", "Hoffnungsvoll", "Sehnsüchtig", "Feierlich", "Entspannt", "Motivierend"
+    "Depressiv", "Slow", "Dark", "Episch", "Romantisch", "Melancholisch"
   ];
 
   const INSTRUMENTS = {
@@ -80,7 +78,7 @@
     kaval: { name: "Kaval", icon: "🪈", varName: "_tone_0770_SoundBlasterOld_sf2" },
     kanun: { name: "Kanun", icon: "🎼", varName: "_tone_1070_SoundBlasterOld_sf2" },
     organ: { name: "Orgel", icon: "🎹", varName: "_tone_0240_SoundBlasterOld_sf2" },
-    brass: { name: "Bläser", icon: "🎺", varName: "_tone_0560_SoundBlasterOld_sf2" }
+    brass: { name: "Trompete", icon: "🎺", varName: "_tone_0560_SoundBlasterOld_sf2" }
   };
 
   // --- 3. HAUPT-RENDER-FUNKTION ---
@@ -94,16 +92,26 @@
       voiceType: "female", voiceURI: "", vocalPitch: 1.0, vocalRate: 1.0,
       selectedInstruments: ["piano", "bass", "saz", "duduk"],
       trackVol: { piano: 0.8, bass: 0.6, strings: 0.5, guitar: 0.5, keman: 0.5, ney: 0.5, duduk: 0.6, saz: 0.7, kaval: 0.5, kanun: 0.5, organ: 0.5, brass: 0.5 },
-      fxReverb: 0.4, fxDelay: 0.2
+      fxReverb: 0.4
     };
+    
     var ST = {
       set: Object.assign({}, defaultSet, store.get("settings", {})),
       isPlaying: false,
       audioCtx: null,
-      player: null
+      player: null,
+      trackGains: {}
     };
+
+    // 🚨 BUGFIX: State bereinigen (verhindert den 'varName' Crash)
     if (!ST.set.trackVol) ST.set.trackVol = defaultSet.trackVol;
     if (!ST.set.selectedInstruments) ST.set.selectedInstruments = defaultSet.selectedInstruments;
+    
+    // Filtere alle Instrumente heraus, die nicht in der INSTRUMENTS-Liste existieren
+    ST.set.selectedInstruments = ST.set.selectedInstruments.filter(id => INSTRUMENTS[id]);
+    if (ST.set.selectedInstruments.length === 0) {
+      ST.set.selectedInstruments = ["piano", "bass", "saz"];
+    }
 
     function save() { store.set("settings", ST.set); }
 
@@ -365,7 +373,6 @@
 
         // Einfacher Reverb (Convolver)
         const reverb = ST.audioCtx.createConvolver();
-        // Einfache Impulsantwort generieren
         const length = ST.audioCtx.sampleRate * 2.0;
         const impulse = ST.audioCtx.createBuffer(2, length, ST.audioCtx.sampleRate);
         for (let i = 0; i < 2; i++) {
@@ -377,14 +384,6 @@
         reverbGain.gain.value = ST.set.fxReverb;
         reverb.connect(reverbGain);
         reverbGain.connect(masterGain);
-
-        // Delay
-        const delay = ST.audioCtx.createDelay(1.0);
-        delay.delayTime.value = 0.3;
-        const delayGain = ST.audioCtx.createGain();
-        delayGain.gain.value = ST.set.fxDelay;
-        delay.connect(delayGain);
-        delayGain.connect(masterGain);
 
         // 3. Track Gains erstellen
         ST.trackGains = {};
@@ -414,7 +413,7 @@
 
         let totalBeats = 32;
         let beatDur = 60 / ST.set.bpm;
-        let startTime = ST.audioCtx.currentTime + 0.5; // Kleiner Puffer
+        let startTime = ST.audioCtx.currentTime + 0.5;
 
         for (let i = 0; i < totalBeats; i++) {
           let time = startTime + (i * beatDur);
@@ -433,12 +432,14 @@
               if (ST.trackGains.bass) {
                 ST.player.queueWaveTable(ST.audioCtx, ST.trackGains.bass, window._tone_0330_SoundBlasterOld_sf2, time, baseMidi + chordNotes[0] - 12, beatDur * 0.9, 0.9);
               }
-              // Saz / Duduk etc.
+              // Melodie-Instrumente
               ["saz", "duduk", "keman", "ney", "kaval", "kanun", "guitar", "strings"].forEach(inst => {
                 if (ST.trackGains[inst] && i % 2 === 1) {
                   let randomNote = chordNotes[Math.floor(Math.random() * chordNotes.length)];
                   let instVar = INSTRUMENTS[inst].varName;
-                  ST.player.queueWaveTable(ST.audioCtx, ST.trackGains[inst], window[instVar], time, baseMidi + randomNote + 12, beatDur * 0.8, 0.6);
+                  if (window[instVar]) {
+                    ST.player.queueWaveTable(ST.audioCtx, ST.trackGains[inst], window[instVar], time, baseMidi + randomNote + 12, beatDur * 0.8, 0.6);
+                  }
                 }
               });
             } catch(e){ console.warn("Scheduling Fehler:", e); }
@@ -503,5 +504,5 @@
   }
 
   HalDoApp("musik", { name: "Musik", icon: "🎵", render: render, category: "lifestyle" });
-  console.log("🦚 musik.js v5.0 geladen — NATIVE AUDIO STABLE");
+  console.log("🦚 musik.js v6.0 geladen — PRO MAX ULTIMATE (State-Cleanup)");
 })();
