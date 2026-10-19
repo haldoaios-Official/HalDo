@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — MUSIK STUDIO (v9.0) · PRO MAX ULTIMATE
-   Native Audio (Old School) · KI · Synchronisierter Gesang
+   HALDO AI OS — MUSIK STUDIO (v10.0) · PRO MAX FINAL
+   Native Audio (Bulletproof) · KI · Synchronisierter Gesang
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -12,7 +12,7 @@
     });
   }
 
-  // --- NATIVE AUDIO SYNTHESE (Aus deiner alten Datei, sehr stabil!) ---
+  // --- NATIVE AUDIO SYNTHESE (100% Stabil) ---
   var NOTE_FREQ = {};
   (function() {
     var names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
@@ -42,24 +42,81 @@
   var STRUCTURES = { "short": ["intro","verse","chorus","outro"], "full": ["intro","verse","chorus","verse","chorus","outro"], "loop": ["chorus","chorus","chorus","chorus"] };
 
   function playInstrument(ctx, dest, freq, startTime, dur, amp, type) {
-    if (startTime < 0) startTime = 0; // SICHERHEIT: Keine negativen Zeiten!
+    if (startTime < 0) startTime = 0;
+    if (dur <= 0) dur = 0.1;
+    
     var osc1 = ctx.createOscillator(), osc2 = ctx.createOscillator(), g = ctx.createGain(), filt = ctx.createBiquadFilter();
     filt.type = "lowpass"; filt.Q.value = 1;
+    
+    // HELPER: Garantiert positive Zeiten für alle Audio-Parameter
+    function t(offset) { return Math.max(0, startTime + offset); }
+
     switch(type) {
-      case "piano": osc1.type = "triangle"; osc2.type = "sine"; osc2.detune.value = 2; filt.frequency.value = 4000; g.gain.setValueAtTime(0.0001, startTime); g.gain.linearRampToValueAtTime(amp, startTime + 0.015); g.gain.exponentialRampToValueAtTime(amp * 0.3, startTime + dur * 0.4); g.gain.linearRampToValueAtTime(0.0001, startTime + dur); break;
-      case "guitar": osc1.type = "sawtooth"; osc2.type = "triangle"; osc2.detune.value = -5; filt.frequency.value = 2500; g.gain.setValueAtTime(0.0001, startTime); g.gain.linearRampToValueAtTime(amp, startTime + 0.008); g.gain.exponentialRampToValueAtTime(amp * 0.4, startTime + dur * 0.5); g.gain.linearRampToValueAtTime(0.0001, startTime + dur); break;
-      case "strings": osc1.type = "sawtooth"; osc2.type = "sawtooth"; osc2.detune.value = 8; filt.frequency.value = 3000; g.gain.setValueAtTime(0.0001, startTime); g.gain.linearRampToValueAtTime(amp, startTime + 0.35); g.gain.setValueAtTime(amp, startTime + dur - 0.25); g.gain.linearRampToValueAtTime(0.0001, startTime + dur); break;
-      case "bass": osc1.type = "triangle"; osc2.type = "sine"; filt.frequency.value = 800; g.gain.setValueAtTime(0.0001, startTime); g.gain.linearRampToValueAtTime(amp, startTime + 0.02); g.gain.setValueAtTime(amp * 0.9, startTime + dur - 0.1); g.gain.linearRampToValueAtTime(0.0001, startTime + dur); break;
-      case "synth": osc1.type = "square"; osc2.type = "sawtooth"; osc2.detune.value = 12; filt.frequency.value = 3500; filt.Q.value = 4; g.gain.setValueAtTime(0.0001, startTime); g.gain.linearRampToValueAtTime(amp, startTime + 0.05); g.gain.setValueAtTime(amp, startTime + dur - 0.15); g.gain.linearRampToValueAtTime(0.0001, startTime + dur); break;
-      case "bells": osc1.type = "sine"; osc2.type = "sine"; osc2.detune.value = 1200; filt.frequency.value = 8000; g.gain.setValueAtTime(0.0001, startTime); g.gain.linearRampToValueAtTime(amp, startTime + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, startTime + dur * 1.5); break;
-      case "flute": osc1.type = "sine"; osc2.type = "triangle"; osc2.detune.value = 5; filt.frequency.value = 6000; g.gain.setValueAtTime(0.0001, startTime); g.gain.linearRampToValueAtTime(amp, startTime + 0.08); g.gain.setValueAtTime(amp, startTime + dur - 0.1); g.gain.linearRampToValueAtTime(0.0001, startTime + dur); break;
-      case "brass": osc1.type = "sawtooth"; osc2.type = "square"; osc2.detune.value = 3; filt.frequency.value = 4500; filt.Q.value = 2; g.gain.setValueAtTime(0.0001, startTime); g.gain.linearRampToValueAtTime(amp, startTime + 0.06); g.gain.setValueAtTime(amp, startTime + dur - 0.1); g.gain.linearRampToValueAtTime(0.0001, startTime + dur); break;
-      default: osc1.type = "triangle"; filt.frequency.value = 4000; g.gain.setValueAtTime(0.0001, startTime); g.gain.linearRampToValueAtTime(amp, startTime + 0.02); g.gain.linearRampToValueAtTime(0.0001, startTime + dur);
+      case "piano": 
+        osc1.type = "triangle"; osc2.type = "sine"; osc2.detune.value = 2; filt.frequency.value = 4000; 
+        g.gain.setValueAtTime(0.0001, t(0)); 
+        g.gain.linearRampToValueAtTime(amp, t(0.015)); 
+        g.gain.exponentialRampToValueAtTime(amp * 0.3, t(dur * 0.4)); 
+        g.gain.linearRampToValueAtTime(0.0001, t(dur)); 
+        break;
+      case "guitar": 
+        osc1.type = "sawtooth"; osc2.type = "triangle"; osc2.detune.value = -5; filt.frequency.value = 2500; 
+        g.gain.setValueAtTime(0.0001, t(0)); 
+        g.gain.linearRampToValueAtTime(amp, t(0.008)); 
+        g.gain.exponentialRampToValueAtTime(amp * 0.4, t(dur * 0.5)); 
+        g.gain.linearRampToValueAtTime(0.0001, t(dur)); 
+        break;
+      case "strings": 
+        osc1.type = "sawtooth"; osc2.type = "sawtooth"; osc2.detune.value = 8; filt.frequency.value = 3000; 
+        g.gain.setValueAtTime(0.0001, t(0)); 
+        g.gain.linearRampToValueAtTime(amp, t(0.35)); 
+        g.gain.setValueAtTime(amp, t(dur - 0.25)); 
+        g.gain.linearRampToValueAtTime(0.0001, t(dur)); 
+        break;
+      case "bass": 
+        osc1.type = "triangle"; osc2.type = "sine"; filt.frequency.value = 800; 
+        g.gain.setValueAtTime(0.0001, t(0)); 
+        g.gain.linearRampToValueAtTime(amp, t(0.02)); 
+        g.gain.setValueAtTime(amp * 0.9, t(dur - 0.1)); 
+        g.gain.linearRampToValueAtTime(0.0001, t(dur)); 
+        break;
+      case "synth": 
+        osc1.type = "square"; osc2.type = "sawtooth"; osc2.detune.value = 12; filt.frequency.value = 3500; filt.Q.value = 4; 
+        g.gain.setValueAtTime(0.0001, t(0)); 
+        g.gain.linearRampToValueAtTime(amp, t(0.05)); 
+        g.gain.setValueAtTime(amp, t(dur - 0.15)); 
+        g.gain.linearRampToValueAtTime(0.0001, t(dur)); 
+        break;
+      case "bells": 
+        osc1.type = "sine"; osc2.type = "sine"; osc2.detune.value = 1200; filt.frequency.value = 8000; 
+        g.gain.setValueAtTime(0.0001, t(0)); 
+        g.gain.linearRampToValueAtTime(amp, t(0.005)); 
+        g.gain.exponentialRampToValueAtTime(0.0001, t(dur * 1.5)); 
+        break;
+      case "flute": 
+        osc1.type = "sine"; osc2.type = "triangle"; osc2.detune.value = 5; filt.frequency.value = 6000; 
+        g.gain.setValueAtTime(0.0001, t(0)); 
+        g.gain.linearRampToValueAtTime(amp, t(0.08)); 
+        g.gain.setValueAtTime(amp, t(dur - 0.1)); 
+        g.gain.linearRampToValueAtTime(0.0001, t(dur)); 
+        break;
+      case "brass": 
+        osc1.type = "sawtooth"; osc2.type = "square"; osc2.detune.value = 3; filt.frequency.value = 4500; filt.Q.value = 2; 
+        g.gain.setValueAtTime(0.0001, t(0)); 
+        g.gain.linearRampToValueAtTime(amp, t(0.06)); 
+        g.gain.setValueAtTime(amp, t(dur - 0.1)); 
+        g.gain.linearRampToValueAtTime(0.0001, t(dur)); 
+        break;
+      default: 
+        osc1.type = "triangle"; filt.frequency.value = 4000; 
+        g.gain.setValueAtTime(0.0001, t(0)); 
+        g.gain.linearRampToValueAtTime(amp, t(0.02)); 
+        g.gain.linearRampToValueAtTime(0.0001, t(dur));
     }
     osc1.frequency.value = freq; osc2.frequency.value = freq;
     osc1.connect(filt); osc2.connect(filt); filt.connect(g); g.connect(dest);
-    osc1.start(startTime); osc1.stop(startTime + dur + 0.05);
-    osc2.start(startTime); osc2.stop(startTime + dur + 0.05);
+    osc1.start(t(0)); osc1.stop(t(dur) + 0.05);
+    osc2.start(t(0)); osc2.stop(t(dur) + 0.05);
   }
 
   function playKick(ctx, dest, t, amp) { if (t < 0) t = 0; var o = ctx.createOscillator(), g = ctx.createGain(); o.type = "sine"; o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.13); g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28); o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.35); }
@@ -335,7 +392,7 @@
           let pitchMod = (noteData.note - 60) * 0.05; 
           let finalPitch = Math.max(0.5, Math.min(2.0, 1.0 + pitchMod));
           
-          // WICHTIG: Negative Zeiten abfangen! (Das war der Bug)
+          // WICHTIG: Negative Zeiten abfangen!
           let delay = Math.max(0, (noteData.time - 0.2) * 1000);
           
           setTimeout(() => {
@@ -363,5 +420,5 @@
   }
 
   HalDoApp("musik", { name: "Musik", icon: "🎵", render: render, category: "lifestyle" });
-  console.log("🦚 musik.js v9.0 geladen — PRO MAX ULTIMATE (Bugfix)");
+  console.log("🦚 musik.js v10.0 geladen — PRO MAX FINAL");
 })();
