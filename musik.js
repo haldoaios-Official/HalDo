@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — MUSIK STUDIO (v21.0) · ULTIMATE EDITION
-   Multi-Track · Mixer · Master-FX · KI · Vocal Synth · Export
+   HALDO AI OS — MUSIK STUDIO (v22.0) · ABSOLUTE MAXIMUM
+   Pro DAW Layout · Multi-Track · Vocal Synth · KI · Export
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -30,15 +30,12 @@
       masterGain = audioCtx.createGain(); masterGain.gain.value = 0.8;
       analyser = audioCtx.createAnalyser(); analyser.fftSize = 64;
       
-      // Reverb Setup
       masterReverb = audioCtx.createConvolver();
       var revBuf = audioCtx.createBuffer(2, Math.floor(audioCtx.sampleRate * 1.5), audioCtx.sampleRate);
       for (var c = 0; c < 2; c++) { var d = revBuf.getChannelData(c); for (var i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/d.length, 2.0); }
       masterReverb.buffer = revBuf;
       
-      // Delay Setup
-      masterDelay = audioCtx.createDelay(1.0);
-      masterDelay.delayTime.value = 0.25;
+      masterDelay = audioCtx.createDelay(1.0); masterDelay.delayTime.value = 0.25;
       var delayFb = audioCtx.createGain(); delayFb.gain.value = 0.3;
       masterDelay.connect(delayFb); delayFb.connect(masterDelay);
       
@@ -47,14 +44,16 @@
     if (audioCtx.state === "suspended") audioCtx.resume();
   }
 
-  function playKick(vol) { if(!audioCtx || vol<=0.001) return; var t=audioCtx.currentTime, o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type="sine"; o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(40,t+0.1); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.2); o.connect(g); g.connect(masterGain); o.start(t); o.stop(t+0.25); }
-  function playSnare(vol) { if(!audioCtx || vol<=0.001) return; var t=audioCtx.currentTime, bs=Math.floor(audioCtx.sampleRate*0.2), buf=audioCtx.createBuffer(1,bs,audioCtx.sampleRate), d=buf.getChannelData(0); for(var i=0;i<bs;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/bs,3); var s=audioCtx.createBufferSource(); s.buffer=buf; var g=audioCtx.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.15); var f=audioCtx.createBiquadFilter(); f.type="highpass"; f.frequency.value=1400; s.connect(f); f.connect(g); g.connect(masterGain); s.start(t); s.stop(t+0.2); }
-  function playHat(vol) { if(!audioCtx || vol<=0.001) return; var t=audioCtx.currentTime, bs=Math.floor(audioCtx.sampleRate*0.05), buf=audioCtx.createBuffer(1,bs,audioCtx.sampleRate), d=buf.getChannelData(0); for(var i=0;i<bs;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/bs,2); var s=audioCtx.createBufferSource(); s.buffer=buf; var g=audioCtx.createGain(); g.gain.setValueAtTime(vol*0.6,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.05); var f=audioCtx.createBiquadFilter(); f.type="highpass"; f.frequency.value=7000; s.connect(f); f.connect(g); g.connect(masterGain); s.start(t); s.stop(t+0.06); }
+  function playKick(vol) { if(!audioCtx || vol<=0.001) return; var t=Math.max(0,audioCtx.currentTime), o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type="sine"; o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(40,t+0.1); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.2); o.connect(g); g.connect(masterGain); o.start(t); o.stop(t+0.25); }
+  function playSnare(vol) { if(!audioCtx || vol<=0.001) return; var t=Math.max(0,audioCtx.currentTime), bs=Math.floor(audioCtx.sampleRate*0.2), buf=audioCtx.createBuffer(1,bs,audioCtx.sampleRate), d=buf.getChannelData(0); for(var i=0;i<bs;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/bs,3); var s=audioCtx.createBufferSource(); s.buffer=buf; var g=audioCtx.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.15); var f=audioCtx.createBiquadFilter(); f.type="highpass"; f.frequency.value=1400; s.connect(f); f.connect(g); g.connect(masterGain); s.start(t); s.stop(t+0.2); }
+  function playHat(vol) { if(!audioCtx || vol<=0.001) return; var t=Math.max(0,audioCtx.currentTime), bs=Math.floor(audioCtx.sampleRate*0.05), buf=audioCtx.createBuffer(1,bs,audioCtx.sampleRate), d=buf.getChannelData(0); for(var i=0;i<bs;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/bs,2); var s=audioCtx.createBufferSource(); s.buffer=buf; var g=audioCtx.createGain(); g.gain.setValueAtTime(vol*0.6,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.05); var f=audioCtx.createBiquadFilter(); f.type="highpass"; f.frequency.value=7000; s.connect(f); f.connect(g); g.connect(masterGain); s.start(t); s.stop(t+0.06); }
 
   function playNote(freq, dur, vol, type, pan) {
     if(!audioCtx || vol<=0.001) return;
-    var t=audioCtx.currentTime, endT=t+Math.max(0.1,dur);
+    var t=Math.max(0,audioCtx.currentTime), endT=t+Math.max(0.1,dur);
     var panner = audioCtx.createStereoPanner(); panner.pan.value = pan || 0;
+    panner.connect(masterGain);
+    if(type==="piano" || type==="saz") panner.connect(masterReverb);
     
     if(type === "vocal_a" || type === "vocal_o" || type === "vocal_e") {
         var osc=audioCtx.createOscillator(), gain=audioCtx.createGain(); osc.type="sawtooth"; osc.frequency.value=freq;
@@ -63,20 +62,18 @@
         osc.connect(fFilters[0]); osc.connect(fFilters[1]); osc.connect(fFilters[2]);
         fFilters.forEach(f=>f.connect(gain));
         gain.gain.setValueAtTime(0,t); gain.gain.linearRampToValueAtTime(vol*1.5,t+0.1); gain.gain.setValueAtTime(vol*1.5,endT-0.1); gain.gain.linearRampToValueAtTime(0,endT);
-        osc.connect(fFilters[0]); // dummy
         gain.connect(panner); osc.start(t); osc.stop(endT+0.1);
     } else {
         var o=audioCtx.createOscillator(), g=audioCtx.createGain(), f=audioCtx.createBiquadFilter(); f.type="lowpass";
         if(type==="piano") { o.type="triangle"; f.frequency.value=4000; }
         else if(type==="saz") { o.type="sawtooth"; f.frequency.value=2000; }
         else if(type==="duduk") { o.type="sine"; f.frequency.value=3000; }
+        else if(type==="keman") { o.type="sawtooth"; f.frequency.value=2500; }
         else { o.type="sawtooth"; f.frequency.value=3500; }
         o.frequency.value=freq;
         g.gain.setValueAtTime(0.001,t); g.gain.linearRampToValueAtTime(vol,t+0.05); g.gain.exponentialRampToValueAtTime(vol*0.4,t+dur*0.5); g.gain.linearRampToValueAtTime(0.001,endT);
         o.connect(f); f.connect(g); g.connect(panner); o.start(t); o.stop(endT+0.1);
     }
-    panner.connect(masterGain);
-    if(type==="piano" || type==="saz") panner.connect(masterReverb);
   }
 
   // --- UI RENDER ---
@@ -87,22 +84,21 @@
     var ST = {
       bpm: 110,
       masterRev: 0.2, masterDel: 0.1,
+      lyrics: "",
       tracks: {
-        kick: { grid: Array(16).fill(false), vol: 0.9, pan: 0 },
-        snare: { grid: Array(16).fill(false), vol: 0.7, pan: 0 },
-        hat: { grid: Array(16).fill(false), vol: 0.5, pan: 0 },
+        kick: { grid: Array(16).fill(false), vol: 0.9, pan: 0, inst: "kick" },
+        snare: { grid: Array(16).fill(false), vol: 0.7, pan: 0, inst: "snare" },
+        hat: { grid: Array(16).fill(false), vol: 0.5, pan: 0, inst: "hat" },
         bass: { grid: Array(16).fill(false), vol: 0.7, pan: 0, inst: "bass" },
         chords: { grid: Array(16).fill(false), vol: 0.4, pan: -0.2, inst: "strings" },
         lead: { grid: Array(16).fill(false), vol: 0.6, pan: 0.2, inst: "saz" },
         lead2: { grid: Array(16).fill(false), vol: 0.4, pan: -0.3, inst: "vocal_a" }
-      },
-      lyrics: ""
+      }
     };
 
-    // Save/Load
-    var saved = store.get("proj_pro_max", null);
+    var saved = store.get("proj_v22", null);
     if(saved) ST = Object.assign(ST, saved);
-    function save() { store.set("proj_pro_max", ST); }
+    function save() { store.set("proj_v22", ST); }
 
     var SCALE = [57, 60, 62, 64, 67, 69, 72, 74];
 
@@ -151,7 +147,7 @@
 
         body += renderRow("bass", "BASS", "var(--p2)");
         body += renderRow("chords", "CHORDS", "var(--p3)");
-        body += renderRow("lead", "LEAD (Saz/Duduk)", "#4ade80");
+        body += renderRow("lead", "LEAD (Melodie)", "#4ade80");
         body += renderRow("lead2", "LEAD 2 (Vocals)", "#f472b6");
 
         body += '</div></div>';
@@ -164,13 +160,25 @@
 
       /* ═══════════ TAB 2: MIXER ═══════════ */
       if(tab === "mixer"){
-        body += '<div class="card"><h3>🎚️ Track-Mixer</h3>';
+        body += '<div class="card"><h3>🎚️ Track-Mixer & Instrumente</h3>';
         Object.keys(ST.tracks).forEach(t => {
+          let trk = ST.tracks[t];
           body += '<div style="margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,.1)">'
-            + '<div style="font-size:11px; font-weight:900; color:var(--p1); margin-bottom:6px">' + t.toUpperCase() + '</div>'
+            + '<div style="display:flex; justify-content:space-between; margin-bottom:6px">'
+            + '<span style="font-size:11px; font-weight:900; color:var(--p1)">' + t.toUpperCase() + '</span>'
+            + (t !== "kick" && t !== "snare" && t !== "hat" ? 
+                '<select data-inst="'+t+'" style="background:rgba(0,0,0,.3); border:1px solid var(--p1); border-radius:4px; color:#fff; font-size:10px">'
+                + '<option value="saz"' + (trk.inst==="saz"?" selected":"") + '>Saz</option>'
+                + '<option value="duduk"' + (trk.inst==="duduk"?" selected":"") + '>Duduk</option>'
+                + '<option value="keman"' + (trk.inst==="keman"?" selected":"") + '>Keman</option>'
+                + '<option value="piano"' + (trk.inst==="piano"?" selected":"") + '>Klavier</option>'
+                + '<option value="vocal_a"' + (trk.inst==="vocal_a"?" selected":"") + '>Vocal (A)</option>'
+                + '<option value="vocal_o"' + (trk.inst==="vocal_o"?" selected":"") + '>Vocal (O)</option>'
+                + '</select>' : '')
+            + '</div>'
             + '<div style="display:flex; gap:10px; align-items:center">'
-            + '<span style="font-size:10px; width:20px">Vol</span><input type="range" data-vol="'+t+'" min="0" max="100" value="' + (ST.tracks[t].vol*100) + '" style="flex:1">'
-            + '<span style="font-size:10px; width:20px">Pan</span><input type="range" data-pan="'+t+'" min="-100" max="100" value="' + (ST.tracks[t].pan*100) + '" style="flex:1">'
+            + '<span style="font-size:10px; width:20px">Vol</span><input type="range" data-vol="'+t+'" min="0" max="100" value="' + (trk.vol*100) + '" style="flex:1">'
+            + '<span style="font-size:10px; width:20px">Pan</span><input type="range" data-pan="'+t+'" min="-100" max="100" value="' + (trk.pan*100) + '" style="flex:1">'
             + '</div></div>';
         });
         body += '</div>';
@@ -195,15 +203,6 @@
           + '<textarea id="lyrInp" rows="4" style="width:100%; padding:10px; background:rgba(0,0,0,.3); border:1px solid var(--border-soft); border-radius:10px; color:#fff">' + _esc(ST.lyrics) + '</textarea>'
           + '<button class="btn full" id="btnGenAI" style="margin-top:8px; background:var(--p1); color:#000">✨ KI Beat & Text</button>'
           + '</div>';
-
-        body += '<div class="card"><h3>🎤 Instrument für Lead</h3>'
-          + '<select id="leadInst" style="width:100%; padding:10px; background:rgba(0,0,0,.3); border-radius:10px; color:#fff">'
-          + '<option value="saz"' + (ST.tracks.lead.inst==="saz"?" selected":"") + '>Saz (Orientalisch)</option>'
-          + '<option value="duduk"' + (ST.tracks.lead.inst==="duduk"?" selected":"") + '>Duduk (Weich)</option>'
-          + '<option value="piano"' + (ST.tracks.lead.inst==="piano"?" selected":"") + '>Klavier</option>'
-          + '</select>'
-          + '<div style="font-size:10px; color:var(--text-mute); margin-top:8px">Lead 2 ist immer Vocal Synth (A).</div>'
-          + '</div>';
       }
 
       container.innerHTML = body;
@@ -215,7 +214,6 @@
       container.querySelector("#btnSave").addEventListener("click", function(){ save(); if(window.HalDo.Notify) HalDo.Notify.success("Gespeichert!"); });
 
       if(tab === "studio"){
-        // Visualizer
         var cvs = container.querySelector("#vizCanvas"), cCtx = cvs.getContext("2d");
         var vizData = new Uint8Array(32);
         function draw(){ if(!cvs) return; vizAnimId = requestAnimationFrame(draw); cCtx.clearRect(0,0,cvs.width,cvs.height); if(analyser && isPlaying){ analyser.getByteFrequencyData(vizData); let bw = (cvs.width/vizData.length)*2, x=0; for(let i=0;i<vizData.length;i++){ let h=(vizData[i]/255)*cvs.height; cCtx.fillStyle="var(--p1)"; cCtx.fillRect(x,cvs.height-h,bw/1.5,h); x+=bw; } } } draw();
@@ -240,6 +238,7 @@
       if(tab === "mixer"){
         container.querySelectorAll("[data-vol]").forEach(s => s.addEventListener("input", function(){ ST.tracks[this.dataset.vol].vol = this.value/100; save(); }));
         container.querySelectorAll("[data-pan]").forEach(s => s.addEventListener("input", function(){ ST.tracks[this.dataset.pan].pan = this.value/100; save(); }));
+        container.querySelectorAll("[data-inst]").forEach(s => s.addEventListener("change", function(){ ST.tracks[this.dataset.inst].inst = this.value; save(); }));
         
         container.querySelector("#revInp").addEventListener("input", function(){ ST.masterRev = this.value/100; container.querySelector("#lbl_rev").textContent = this.value+"%"; save(); });
         container.querySelector("#delInp").addEventListener("input", function(){ ST.masterDel = this.value/100; container.querySelector("#lbl_del").textContent = this.value+"%"; save(); });
@@ -249,7 +248,6 @@
 
       if(tab === "ai"){
         container.querySelector("#lyrInp").addEventListener("input", function(){ ST.lyrics = this.value; save(); });
-        container.querySelector("#leadInst").addEventListener("change", function(){ ST.tracks.lead.inst = this.value; save(); });
         
         container.querySelector("#btnGenAI").addEventListener("click", async function() {
           this.disabled = true; this.textContent = "⏳ KI arbeitet...";
@@ -284,9 +282,9 @@
           if(ST.tracks.snare.grid[currentStep]) playSnare(ST.tracks.snare.vol);
           if(ST.tracks.hat.grid[currentStep]) playHat(ST.tracks.hat.vol);
 
-          if(ST.tracks.bass.grid[currentStep]) playNote(440 * Math.pow(2, (45 - 69)/12), stepDur * 2, ST.tracks.bass.vol, "bass", ST.tracks.bass.pan);
+          if(ST.tracks.bass.grid[currentStep]) playNote(440 * Math.pow(2, (45 - 69)/12), stepDur * 2, ST.tracks.bass.vol, ST.tracks.bass.inst, ST.tracks.bass.pan);
           if(ST.tracks.chords.grid[currentStep]) {
-            [57, 60, 64].forEach(n => playNote(440 * Math.pow(2, (n - 69)/12), stepDur * 4, ST.tracks.chords.vol, "strings", ST.tracks.chords.pan));
+            [57, 60, 64].forEach(n => playNote(440 * Math.pow(2, (n - 69)/12), stepDur * 4, ST.tracks.chords.vol, ST.tracks.chords.inst, ST.tracks.chords.pan));
           }
           if(ST.tracks.lead.grid[currentStep]) {
             let note = SCALE[currentStep % SCALE.length];
@@ -294,7 +292,7 @@
           }
           if(ST.tracks.lead2.grid[currentStep]) {
             let note2 = SCALE[(currentStep + 2) % SCALE.length] + 12;
-            playNote(440 * Math.pow(2, (note2 - 69)/12), stepDur * 1.5, ST.tracks.lead2.vol, "vocal_a", ST.tracks.lead2.pan);
+            playNote(440 * Math.pow(2, (note2 - 69)/12), stepDur * 1.5, ST.tracks.lead2.vol, ST.tracks.lead2.inst, ST.tracks.lead2.pan);
           }
           currentStep = (currentStep + 1) % 16;
         }, stepDur * 1000);
@@ -325,11 +323,9 @@
         for(var i = 0; i < 16; i++) {
           var time = i * stepDur;
           
-          // Einfacher Offline-Kick/Snare/Hat
           if(ST.tracks.kick.grid[i]) { var o=offCtx.createOscillator(), g=offCtx.createGain(); o.type="sine"; o.frequency.setValueAtTime(150,time); o.frequency.exponentialRampToValueAtTime(40,time+0.1); g.gain.setValueAtTime(ST.tracks.kick.vol,time); g.gain.exponentialRampToValueAtTime(0.001,time+0.2); o.connect(g); g.connect(master); o.start(time); o.stop(time+0.25); }
           if(ST.tracks.snare.grid[i]) { var bs=Math.floor(offCtx.sampleRate*0.2), buf=offCtx.createBuffer(1,bs,offCtx.sampleRate), d=buf.getChannelData(0); for(var j=0;j<bs;j++) d[j]=(Math.random()*2-1)*Math.pow(1-j/bs,3); var s=offCtx.createBufferSource(); s.buffer=buf; var g=offCtx.createGain(); g.gain.setValueAtTime(ST.tracks.snare.vol,time); g.gain.exponentialRampToValueAtTime(0.001,time+0.15); s.connect(g); g.connect(master); s.start(time); s.stop(time+0.2); }
           
-          // Offline-Synth Noten
           var playOffNote = (freq, dur, vol) => { if(vol<=0.001)return; var o=offCtx.createOscillator(), g=offCtx.createGain(), f=offCtx.createBiquadFilter(); o.type="sawtooth"; f.type="lowpass"; f.frequency.value=3000; o.frequency.value=freq; g.gain.setValueAtTime(0.001,time); g.gain.linearRampToValueAtTime(vol,time+0.05); g.gain.linearRampToValueAtTime(0.001,time+dur); o.connect(f); f.connect(g); g.connect(master); o.start(time); o.stop(time+dur+0.1); };
 
           if(ST.tracks.bass.grid[i]) playOffNote(440 * Math.pow(2, (45 - 69)/12), stepDur * 2, ST.tracks.bass.vol);
@@ -349,5 +345,5 @@
   }
 
   HalDoApp("musik", { name: "Musik", icon: "🎵", render: render, category: "lifestyle" });
-  console.log("🦚 musik.js v21.0 geladen — ULTIMATE STUDIO");
+  console.log("🦚 musik.js v22.0 geladen — ABSOLUTE MAXIMUM");
 })();
