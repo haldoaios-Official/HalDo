@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — MUSIK STUDIO (v12.0) · FULL UI & AUDIO ENGINE
-   Basierend auf dem originalen Musik-Studio-Code (HTML/JS)
+   HALDO AI OS — MUSIK STUDIO (v13.0) · BULLETPROOF AUDIO
+   Native Audio (Crash-Safe) · KI · Pro Max UI
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -12,7 +12,7 @@
     });
   }
 
-  // --- AUDIO ENGINE (Aus deiner alten Datei) ---
+  // --- NATIVE AUDIO SYNTHESE (100% Absturz-Sicher!) ---
   var NOTE_FREQ = {};
   (function() {
     var names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
@@ -37,31 +37,90 @@
   var PROGRESSIONS = { "I-V-vi-IV": [0,4,5,3], "vi-IV-I-V": [5,3,0,4], "I-IV-V-I": [0,3,4,0], "i-VI-III-VII": [0,5,2,6] };
   var STRUCTURES = { "short": ["intro","verse","chorus","outro"], "full": ["intro","verse","chorus","verse","chorus","outro"], "loop": ["chorus","chorus","chorus","chorus"] };
 
+  // BULLETPROOF INSTRUMENT FUNCTION
   function playInstrument(ctx, dest, freq, startTime, dur, amp, type) {
-    if (startTime < 0) startTime = 0;
-    if (dur <= 0) dur = 0.1;
+    var t0 = Math.max(0, startTime);
+    var tEnd = Math.max(0.1, t0 + dur);
+    var tHalf = Math.max(0, t0 + dur * 0.5);
+    var tShort = Math.max(0, t0 + 0.015);
+
     var osc1 = ctx.createOscillator(), osc2 = ctx.createOscillator(), g = ctx.createGain(), filt = ctx.createBiquadFilter();
     filt.type = "lowpass"; filt.Q.value = 1;
+    
+    // Sicherheitscheck für Amplitude
+    if (amp <= 0.001) return; 
+
     switch(type) {
-      case "piano": osc1.type = "triangle"; osc2.type = "sine"; osc2.detune.value = 2; filt.frequency.value = 4000; g.gain.setValueAtTime(0.0001, startTime); g.gain.linearRampToValueAtTime(amp, startTime + 0.015); g.gain.exponentialRampToValueAtTime(amp * 0.3, startTime + dur * 0.4); g.gain.linearRampToValueAtTime(0.0001, startTime + dur); break;
-      case "guitar": osc1.type = "sawtooth"; osc2.type = "triangle"; osc2.detune.value = -5; filt.frequency.value = 2500; g.gain.setValueAtTime(0.0001, startTime); g.gain.linearRampToValueAtTime(amp, startTime + 0.008); g.gain.exponentialRampToValueAtTime(amp * 0.4, startTime + dur * 0.5); g.gain.linearRampToValueAtTime(0.0001, startTime + dur); break;
-      case "strings": osc1.type = "sawtooth"; osc2.type = "sawtooth"; osc2.detune.value = 8; filt.frequency.value = 3000; g.gain.setValueAtTime(0.0001, startTime); g.gain.linearRampToValueAtTime(amp, startTime + 0.35); g.gain.setValueAtTime(amp, startTime + dur - 0.25); g.gain.linearRampToValueAtTime(0.0001, startTime + dur); break;
-      case "bass": osc1.type = "triangle"; osc2.type = "sine"; filt.frequency.value = 800; g.gain.setValueAtTime(0.0001, startTime); g.gain.linearRampToValueAtTime(amp, startTime + 0.02); g.gain.setValueAtTime(amp * 0.9, startTime + dur - 0.1); g.gain.linearRampToValueAtTime(0.0001, startTime + dur); break;
-      case "synth": osc1.type = "square"; osc2.type = "sawtooth"; osc2.detune.value = 12; filt.frequency.value = 3500; filt.Q.value = 4; g.gain.setValueAtTime(0.0001, startTime); g.gain.linearRampToValueAtTime(amp, startTime + 0.05); g.gain.setValueAtTime(amp, startTime + dur - 0.15); g.gain.linearRampToValueAtTime(0.0001, startTime + dur); break;
-      case "bells": osc1.type = "sine"; osc2.type = "sine"; osc2.detune.value = 1200; filt.frequency.value = 8000; g.gain.setValueAtTime(0.0001, startTime); g.gain.linearRampToValueAtTime(amp, startTime + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, startTime + dur * 1.5); break;
-      case "flute": osc1.type = "sine"; osc2.type = "triangle"; osc2.detune.value = 5; filt.frequency.value = 6000; g.gain.setValueAtTime(0.0001, startTime); g.gain.linearRampToValueAtTime(amp, startTime + 0.08); g.gain.setValueAtTime(amp, startTime + dur - 0.1); g.gain.linearRampToValueAtTime(0.0001, startTime + dur); break;
-      case "brass": osc1.type = "sawtooth"; osc2.type = "square"; osc2.detune.value = 3; filt.frequency.value = 4500; filt.Q.value = 2; g.gain.setValueAtTime(0.0001, startTime); g.gain.linearRampToValueAtTime(amp, startTime + 0.06); g.gain.setValueAtTime(amp, startTime + dur - 0.1); g.gain.linearRampToValueAtTime(0.0001, startTime + dur); break;
-      default: osc1.type = "triangle"; filt.frequency.value = 4000; g.gain.setValueAtTime(0.0001, startTime); g.gain.linearRampToValueAtTime(amp, startTime + 0.02); g.gain.linearRampToValueAtTime(0.0001, startTime + dur);
+      case "piano": 
+        osc1.type = "triangle"; osc2.type = "sine"; osc2.detune.value = 2; filt.frequency.value = 4000; 
+        g.gain.setValueAtTime(0.0001, t0); 
+        g.gain.linearRampToValueAtTime(amp, tShort); 
+        g.gain.exponentialRampToValueAtTime(amp * 0.3, tHalf); 
+        g.gain.linearRampToValueAtTime(0.0001, tEnd); 
+        break;
+      case "guitar": 
+        osc1.type = "sawtooth"; osc2.type = "triangle"; osc2.detune.value = -5; filt.frequency.value = 2500; 
+        g.gain.setValueAtTime(0.0001, t0); 
+        g.gain.linearRampToValueAtTime(amp, tShort); 
+        g.gain.exponentialRampToValueAtTime(amp * 0.4, tHalf); 
+        g.gain.linearRampToValueAtTime(0.0001, tEnd); 
+        break;
+      case "strings": 
+        osc1.type = "sawtooth"; osc2.type = "sawtooth"; osc2.detune.value = 8; filt.frequency.value = 3000; 
+        g.gain.setValueAtTime(0.0001, t0); 
+        g.gain.linearRampToValueAtTime(amp, Math.max(0, t0 + 0.35)); 
+        g.gain.setValueAtTime(amp, Math.max(0, tEnd - 0.25)); 
+        g.gain.linearRampToValueAtTime(0.0001, tEnd); 
+        break;
+      case "bass": 
+        osc1.type = "triangle"; osc2.type = "sine"; filt.frequency.value = 800; 
+        g.gain.setValueAtTime(0.0001, t0); 
+        g.gain.linearRampToValueAtTime(amp, Math.max(0, t0 + 0.02)); 
+        g.gain.setValueAtTime(amp * 0.9, Math.max(0, tEnd - 0.1)); 
+        g.gain.linearRampToValueAtTime(0.0001, tEnd); 
+        break;
+      case "synth": 
+        osc1.type = "square"; osc2.type = "sawtooth"; osc2.detune.value = 12; filt.frequency.value = 3500; filt.Q.value = 4; 
+        g.gain.setValueAtTime(0.0001, t0); 
+        g.gain.linearRampToValueAtTime(amp, Math.max(0, t0 + 0.05)); 
+        g.gain.setValueAtTime(amp, Math.max(0, tEnd - 0.15)); 
+        g.gain.linearRampToValueAtTime(0.0001, tEnd); 
+        break;
+      case "bells": 
+        osc1.type = "sine"; osc2.type = "sine"; osc2.detune.value = 1200; filt.frequency.value = 8000; 
+        g.gain.setValueAtTime(0.0001, t0); 
+        g.gain.linearRampToValueAtTime(amp, Math.max(0, t0 + 0.005)); 
+        g.gain.exponentialRampToValueAtTime(0.0001, Math.max(0.1, tEnd * 1.5)); 
+        break;
+      case "flute": 
+        osc1.type = "sine"; osc2.type = "triangle"; osc2.detune.value = 5; filt.frequency.value = 6000; 
+        g.gain.setValueAtTime(0.0001, t0); 
+        g.gain.linearRampToValueAtTime(amp, Math.max(0, t0 + 0.08)); 
+        g.gain.setValueAtTime(amp, Math.max(0, tEnd - 0.1)); 
+        g.gain.linearRampToValueAtTime(0.0001, tEnd); 
+        break;
+      case "brass": 
+        osc1.type = "sawtooth"; osc2.type = "square"; osc2.detune.value = 3; filt.frequency.value = 4500; filt.Q.value = 2; 
+        g.gain.setValueAtTime(0.0001, t0); 
+        g.gain.linearRampToValueAtTime(amp, Math.max(0, t0 + 0.06)); 
+        g.gain.setValueAtTime(amp, Math.max(0, tEnd - 0.1)); 
+        g.gain.linearRampToValueAtTime(0.0001, tEnd); 
+        break;
+      default: 
+        osc1.type = "triangle"; filt.frequency.value = 4000; 
+        g.gain.setValueAtTime(0.0001, t0); 
+        g.gain.linearRampToValueAtTime(amp, Math.max(0, t0 + 0.02)); 
+        g.gain.linearRampToValueAtTime(0.0001, tEnd);
     }
     osc1.frequency.value = freq; osc2.frequency.value = freq;
     osc1.connect(filt); osc2.connect(filt); filt.connect(g); g.connect(dest);
-    osc1.start(startTime); osc1.stop(startTime + dur + 0.05);
-    osc2.start(startTime); osc2.stop(startTime + dur + 0.05);
+    osc1.start(t0); osc1.stop(tEnd + 0.05);
+    osc2.start(t0); osc2.stop(tEnd + 0.05);
   }
 
-  function playKick(ctx, dest, t, amp) { if (t < 0) t = 0; var o = ctx.createOscillator(), g = ctx.createGain(); o.type = "sine"; o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.13); g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28); o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.35); }
-  function playSnare(ctx, dest, t, amp) { if (t < 0) t = 0; var bs = Math.floor(ctx.sampleRate * 0.2), buf = ctx.createBuffer(1, bs, ctx.sampleRate), d = buf.getChannelData(0); for (var i = 0; i < bs; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/bs, 3); var s = ctx.createBufferSource(); s.buffer = buf; var g = ctx.createGain(); g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2); var f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 1400; s.connect(f); f.connect(g); g.connect(dest); s.start(t); s.stop(t + 0.22); }
-  function playHat(ctx, dest, t, amp) { if (t < 0) t = 0; var bs = Math.floor(ctx.sampleRate * 0.06), buf = ctx.createBuffer(1, bs, ctx.sampleRate), d = buf.getChannelData(0); for (var i = 0; i < bs; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/bs, 2); var s = ctx.createBufferSource(); s.buffer = buf; var g = ctx.createGain(); g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07); var f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 7000; s.connect(f); f.connect(g); g.connect(dest); s.start(t); s.stop(t + 0.1); }
+  function playKick(ctx, dest, t, amp) { t = Math.max(0, t); var o = ctx.createOscillator(), g = ctx.createGain(); o.type = "sine"; o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(45, Math.max(0.1, t + 0.13)); g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, Math.max(0.1, t + 0.28)); o.connect(g); g.connect(dest); o.start(t); o.stop(Math.max(0.1, t + 0.35)); }
+  function playSnare(ctx, dest, t, amp) { t = Math.max(0, t); var bs = Math.floor(ctx.sampleRate * 0.2), buf = ctx.createBuffer(1, bs, ctx.sampleRate), d = buf.getChannelData(0); for (var i = 0; i < bs; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/bs, 3); var s = ctx.createBufferSource(); s.buffer = buf; var g = ctx.createGain(); g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, Math.max(0.1, t + 0.2)); var f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 1400; s.connect(f); f.connect(g); g.connect(dest); s.start(t); s.stop(Math.max(0.1, t + 0.22)); }
+  function playHat(ctx, dest, t, amp) { t = Math.max(0, t); var bs = Math.floor(ctx.sampleRate * 0.06), buf = ctx.createBuffer(1, bs, ctx.sampleRate), d = buf.getChannelData(0); for (var i = 0; i < bs; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/bs, 2); var s = ctx.createBufferSource(); s.buffer = buf; var g = ctx.createGain(); g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, Math.max(0.1, t + 0.07)); var f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 7000; s.connect(f); f.connect(g); g.connect(dest); s.start(t); s.stop(Math.max(0.1, t + 0.1)); }
 
   function audioBufferToWav(buffer) {
     var nCh = buffer.numberOfChannels, len = buffer.length, sr = buffer.sampleRate, bps = 2, ba = nCh*bps, br = sr*ba, ds = len*ba;
@@ -128,10 +187,6 @@
           + '<div><label style="font-size:10px;color:var(--text-mute);font-weight:800">BPM</label>'
           + '<input type="number" id="mTempo" value="' + s.bpm + '" style="width:100%;padding:8px;background:rgba(0,0,0,.3);border-radius:8px;color:inherit;font-size:12px"></div>'
           + '</div>'
-          + '<div style="font-size:11px;color:var(--text-mute);margin-top:12px;line-height:1.6">'
-          + '🎸 <b>Instrumente:</b> Klavier, Gitarre, Streicher, Bass, Schlagzeug, Glocken (je nach Stil)<br>'
-          + '🎼 <b>Struktur:</b> Intro → Strophe → Refrain → Strophe → Refrain → Outro'
-          + '</div>'
           + '</div>';
 
         body += '<div class="card" style="position:sticky;bottom:0;background:var(--bg-2);z-index:10;border-top:1px solid var(--border-soft);margin-bottom:0">'
@@ -143,20 +198,19 @@
 
       if(tab === "voice"){
         body += '<div class="card"><h3>🎤 Gesangs-Stimme (Browser TTS)</h3>'
-          + '<div style="font-size:11px;color:var(--text-mute);margin-bottom:8px">Wähle die Stimme, die den Text sprechen soll (wenn du auf "Text vorlesen" klickst):</div>'
+          + '<div style="font-size:11px;color:var(--text-mute);margin-bottom:8px">Wähle die Stimme, die den Text sprechen soll:</div>'
           + '<select id="ki_voice" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border-radius:10px;color:inherit;font-size:13px;margin-bottom:12px">'
           + '<option value="">Lade Stimmen...</option>'
           + '</select>'
           + '<button class="btn sec full" id="ki_testVoice" style="font-size:11px">🔊 Stimme testen</button>'
-          + '<div style="font-size:10.5px;color:var(--text-mute);margin-top:12px;line-height:1.5">'
-          + 'ℹ️ <b>Hinweis:</b> Die Browser-Stimme ist eine Vorlese-Stimme. Sie kann nicht singen, sondern liest den Text vor.'
-          + '</div></div>';
+          + '</div>';
       }
 
       // Der Audio-Player (Immer sichtbar, wenn Audio generiert wurde)
       body += '<div id="playerContainer" style="display:none;margin-top:14px;padding:14px;background:var(--bg-3);border-radius:12px;border:1px solid var(--border-soft)">'
         + '<div style="font-size:12px;font-weight:900;color:var(--p1);margin-bottom:8px">🎧 Dein generierter Song</div>'
         + '<audio id="mainAudio" controls style="width:100%;border-radius:8px"></audio>'
+        + '<button class="btn sec full" id="downloadWav" style="margin-top:10px;font-size:11px">⬇️ WAV herunterladen</button>'
         + '</div>';
 
       container.innerHTML = body;
@@ -211,6 +265,14 @@
           u.pitch = 1.0;
           u.rate = 1.0;
           window.speechSynthesis.speak(u);
+        });
+
+        container.querySelector("#downloadWav").addEventListener("click", function(){
+          if(!ST.audioUrl) return;
+          var a = document.createElement("a");
+          a.href = ST.audioUrl;
+          a.download = "haldo-song-" + Date.now() + ".wav";
+          a.click();
         });
       }
 
@@ -352,5 +414,5 @@
   }
 
   HalDoApp("musik", { name: "Musik", icon: "🎵", render: render, category: "lifestyle" });
-  console.log("🦚 musik.js v12.0 geladen — FULL UI & AUDIO ENGINE");
+  console.log("🦚 musik.js v13.0 geladen — BULLETPROOF AUDIO");
 })();
