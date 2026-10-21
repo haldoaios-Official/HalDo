@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — VIDEOCALL (v156)
-   Videoanruf-UI · Kontakte · Verlauf · Einstellungen
+   HALDO AI OS — VIDEOCALL (v300)
+   Webcam-Preview · Anrufe · Favoriten
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -10,125 +10,107 @@
 
   function render(container, ctx){
     var store = ctx.store;
-    var tab = store.get("tab", "anrufen");
+    var tab = store.get("tab", "call");
+    var stream = null;
 
     function build(){
-      var body = "";
+      var body = '';
+      var calls = store.get("calls", []);
 
-      if(tab === "anrufen"){
-        var contacts = HalDo.Store ? HalDo.Store.get("kontakte:items", []) : [];
-        var recent = store.get("recent", []);
+      body += '<div class="tabs">'
+        + '<button class="tab' + (tab === "call" ? " active" : "") + '" data-vct="call">📹 Videoanruf</button>'
+        + '<button class="tab' + (tab === "history" ? " active" : "") + '" data-vct="history">📞 Verlauf</button>'
+        + '</div>';
 
-        body = '<div class="card">'
-          + '<div style="padding:30px;background:linear-gradient(135deg,rgba(0,229,255,.15),rgba(180,120,255,.15));border-radius:14px;text-align:center;border:1.5px solid var(--p1);margin-bottom:14px">'
-          + '<div style="font-size:64px">📹</div>'
-          + '<div style="font-size:16px;font-weight:900;color:var(--p1);margin-top:8px">Video-Anruf</div>'
-          + '<div style="font-size:11px;color:var(--text-mute);margin-top:4px">Wähle einen Kontakt zum Anrufen</div>'
-          + '</div>';
+      if(tab === "call"){
+        body += '<div class="card">'
+          + '<div style="position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:16/9;margin-bottom:12px">'
+          + '<video id="localVideo" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:block"></video>'
+          + '<div id="noCam" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-mute);background:rgba(0,0,0,.8)">'
+          + '<div style="font-size:48px">📷</div><div style="font-size:12px;margin-top:8px">Kamera starten</div>'
+          + '</div></div>';
 
-        if(recent.length){
-          body += '<div style="font-size:10px;color:var(--text-mute);font-weight:800;text-transform:uppercase;margin-bottom:6px">Zuletzt</div>';
-          recent.slice(0, 3).forEach(function(r){
-            body += '<div style="padding:10px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">'
-              + '<div><div style="font-size:12.5px;font-weight:800">📹 ' + _esc(r.name) + '</div>'
-              + '<div style="font-size:10px;color:var(--text-mute)">' + _esc(r.date) + '</div></div>'
-              + '<button data-vcall="' + _esc(r.name) + '" style="background:linear-gradient(135deg,#4ade80,#00e5ff);border:none;border-radius:6px;color:#000;cursor:pointer;padding:6px 12px;font-size:11px;font-weight:900">📹</button>'
-              + '</div>';
-          });
-        }
-
-        if(contacts.length){
-          body += '<div style="font-size:10px;color:var(--text-mute);font-weight:800;text-transform:uppercase;margin:14px 0 6px">Kontakte</div>';
-          contacts.forEach(function(c){
-            body += '<div style="padding:10px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">'
-              + '<div><div style="font-size:12.5px;font-weight:800">👤 ' + _esc(c.name) + '</div>'
-              + (c.phone ? '<div style="font-size:10.5px;color:var(--text-mute)">' + _esc(c.phone) + '</div>' : '') + '</div>'
-              + '<button data-vcall="' + _esc(c.name) + '" style="background:linear-gradient(135deg,#4ade80,#00e5ff);border:none;border-radius:6px;color:#000;cursor:pointer;padding:6px 12px;font-size:11px;font-weight:900">📹</button>'
-              + '</div>';
-          });
-        }
-        body += '</div>';
-      }
-
-      else if(tab === "verlauf"){
-        var hist = store.get("history", []);
-        body = '<div class="card"><h3>📹 Video-Anrufe (' + hist.length + ')</h3>';
-        if(!hist.length){
-          body += '<div style="color:var(--text-mute);text-align:center;padding:20px">Noch keine Anrufe</div>';
-        } else {
-          hist.slice().reverse().forEach(function(h){
-            var ri = hist.indexOf(h);
-            body += '<div style="padding:10px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">'
-              + '<div><div style="font-size:12.5px;font-weight:800">' + (h.type === "out" ? "📤" : "📥") + " " + _esc(h.name) + '</div>'
-              + '<div style="font-size:10px;color:var(--text-mute)">' + _esc(h.date) + (h.duration ? " · " + _esc(h.duration) : "") + '</div></div>'
-              + '<button data-vcall="' + _esc(h.name) + '" style="background:rgba(0,229,255,.15);border:none;border-radius:6px;color:var(--p1);cursor:pointer;padding:6px 10px;font-size:11px">📹</button>'
-              + '</div>';
-          });
-          body += '<button class="btn sec full" id="vcClear" style="margin-top:8px;font-size:11px">🗑️ Verlauf löschen</button>';
-        }
-        body += '</div>';
-      }
-
-      else if(tab === "settings"){
-        body = '<div class="card"><h3>⚙️ Einstellungen</h3>'
-          + '<div style="padding:12px;background:rgba(0,229,255,.08);border-radius:10px;margin-bottom:12px;border-left:3px solid var(--p1)">'
-          + '<div style="font-size:11.5px;color:var(--text-dim);line-height:1.5">'
-          + 'ℹ️ Dies ist eine <b>UI-Simulation</b>. Echte Videoanrufe brauchen WebRTC-Server.'
-          + '</div></div>'
-          + '<div style="padding:12px;background:rgba(0,0,0,.2);border-radius:10px">'
-          + '<div style="font-size:11px;color:var(--text-mute);font-weight:700">📹 ANRUFE</div>'
-          + '<div style="font-size:20px;font-weight:900;color:var(--p1)">' + store.get("history", []).length + '</div>'
+        body += '<div style="display:flex;gap:8px">'
+          + '<button class="btn full" id="btnStartCam" style="background:var(--p1);color:#000">📷 Kamera starten</button>'
+          + '<button class="btn danger" id="btnStopCam" style="width:80px">⏹</button>'
           + '</div>'
-          + '<button class="btn danger full" id="vcDel" style="margin-top:8px">🗑️ Alle Daten löschen</button>'
-          + '</div>';
+          
+          + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px">'
+          + '<button class="btn full" id="btnSimCall" style="background:linear-gradient(135deg,#4ade80,#00e5ff);color:#000">📞 Anruf starten</button>'
+          + '<button class="btn sec full" id="btnAddFav">+ Kontakt</button>'
+          + '</div></div>';
       }
 
-      container.innerHTML =
-        '<div class="tabs">'
-        + '<button class="tab' + (tab==="anrufen"?" active":"") + '" data-vct="anrufen">📹 Anrufen</button>'
-        + '<button class="tab' + (tab==="verlauf"?" active":"") + '" data-vct="verlauf">📞 Verlauf</button>'
-        + '<button class="tab' + (tab==="settings"?" active":"") + '" data-vct="settings">⚙️</button>'
-        + '</div>' + body;
+      if(tab === "history"){
+        body += '<div class="card"><h3>📞 Verlauf (' + calls.length + ')</h3>';
+        if(!calls.length) body += '<div style="color:var(--text-mute);text-align:center;padding:20px">Keine Anrufe</div>';
+        else {
+          calls.slice().reverse().forEach(function(c){
+            body += '<div style="padding:10px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">'
+              + '<div><div style="font-size:12.5px;font-weight:800">📹 ' + _esc(c.name) + '</div>'
+              + '<div style="font-size:10px;color:var(--text-mute)">' + _esc(c.date) + '</div></div>'
+              + '<button data-vcall="'+_esc(c.name)+'" style="background:linear-gradient(135deg,#4ade80,#00e5ff);border:none;border-radius:6px;color:#000;cursor:pointer;padding:6px 10px;font-size:11px;font-weight:900">📹</button>'
+              + '</div>';
+          });
+          body += '<button class="btn sec full" id="vClear" style="margin-top:10px">🗑️ Verlauf löschen</button>';
+        }
+        body += '</div>';
+      }
 
-      container.querySelectorAll("[data-vct]").forEach(function(b){
-        b.addEventListener("click", function(){
-          tab = b.dataset.vct; store.set("tab", tab); build();
-        });
+      container.innerHTML = body;
+
+      container.querySelectorAll("[data-vct]").forEach(b => {
+        b.addEventListener("click", function(){ tab = b.dataset.vct; store.set("tab", tab); build(); });
       });
 
-      if(tab === "anrufen" || tab === "verlauf"){
-        container.querySelectorAll("[data-vcall]").forEach(function(el){
+      if(tab === "call"){
+        var video = container.querySelector("#localVideo");
+        var noCam = container.querySelector("#noCam");
+        var btnStart = container.querySelector("#btnStartCam");
+        var btnStop = container.querySelector("#btnStopCam");
+
+        btnStart.addEventListener("click", async function(){
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+            noCam.style.display = "none";
+            if(HalDo.Notify) HalDo.Notify.success("Kamera gestartet");
+          } catch(e) {
+            alert("Kamera-Fehler: " + e.message);
+          }
+        });
+
+        btnStop.addEventListener("click", function(){
+          if(stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+          video.srcObject = null;
+          noCam.style.display = "flex";
+        });
+
+        container.querySelector("#btnSimCall").addEventListener("click", function(){
+          var n = prompt("Name des Kontakts:");
+          if(!n) return;
+          var c = store.get("calls", []); c.push({ name: n, type: "out", date: new Date().toLocaleString("de-DE") }); store.set("calls", c);
+          if(HalDo.Notify) HalDo.Notify.info("📹 Videoanruf zu " + n + " simuliert");
+          tab = "history"; store.set("tab", tab); build();
+        });
+
+        container.querySelector("#btnAddFav").addEventListener("click", function(){
+          var n = prompt("Name des Favoriten:");
+          if(!n) return;
+          var c = store.get("calls", []); c.push({ name: n, type: "fav", date: new Date().toLocaleString("de-DE") }); store.set("calls", c);
+          build();
+        });
+      }
+
+      if(tab === "history"){
+        container.querySelectorAll("[data-vcall]").forEach(el => {
           el.addEventListener("click", function(){
-            var name = el.dataset.vcall;
-            var hist2 = store.get("history", []);
-            hist2.push({ name: name, type: "out", date: new Date().toLocaleString("de-DE"), duration: "0:00" });
-            store.set("history", hist2);
-            var recent2 = store.get("recent", []);
-            recent2 = recent2.filter(function(r){ return r.name !== name; });
-            recent2.unshift({ name: name, date: new Date().toLocaleString("de-DE") });
-            store.set("recent", recent2.slice(0, 5));
-            if(HalDo.Notify) HalDo.Notify.info("📹 Video-Anruf zu " + name + " simuliert", { app: "videocall" });
-            build();
+            var n = el.dataset.vcall;
+            if(HalDo.Notify) HalDo.Notify.info("📹 Wähle " + n + "...");
           });
         });
-      }
-
-      if(tab === "verlauf"){
-        var clr = container.querySelector("#vcClear");
-        if(clr) clr.addEventListener("click", function(){
-          if(!confirm("Verlauf löschen?")) return;
-          store.set("history", []);
-          build();
-        });
-      }
-
-      if(tab === "settings"){
-        var del = container.querySelector("#vcDel");
-        if(del) del.addEventListener("click", function(){
-          if(!confirm("Alle Daten löschen?")) return;
-          store.set("history", []); store.set("recent", []);
-          build();
-        });
+        var clr = container.querySelector("#vClear");
+        if(clr) clr.addEventListener("click", function(){ if(confirm("Verlauf löschen?")) { store.set("calls", []); build(); } });
       }
     }
 
@@ -136,5 +118,5 @@
   }
 
   HalDoApp("videocall", { name: "VideoCall", icon: "📹", render: render, category: "kommunikation" });
-  console.log("🦚 videocall.js v156 geladen");
+  console.log("🦚 videocall.js v300 geladen — WEBCAM READY");
 })();
