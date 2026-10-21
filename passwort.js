@@ -1,7 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — PASSWORT (v153)
-   Passwort-Safe · Generator · Kategorien · Einstellungen
-   ⚠️ Hinweis: Lokal gespeichert — nicht für sensible Daten!
+   HALDO AI OS — PASSWORT (v300)
+   Kategorien · Generator · Stärke-Anzeige
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -9,251 +8,132 @@
 
   function _esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
 
-  function generatePassword(len, opts){
-    var chars = "";
-    if(opts.lower !== false) chars += "abcdefghijklmnopqrstuvwxyz";
-    if(opts.upper !== false) chars += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    if(opts.numbers !== false) chars += "0123456789";
-    if(opts.symbols) chars += "!@#$%^&*()_+-=[]{}|;:,.<>?";
-    if(!chars) chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  var CATS = ["🔐 Alle", "📱 Social", "🏦 Banking", "🛒 Shopping", "📧 E-Mail", "🎮 Gaming", "📦 Sonstige"];
+
+  function generate(len, upper, numbers, symbols) {
+    var chars = "abcdefghijklmnopqrstuvwxyz";
+    if(upper) chars += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    if(numbers) chars += "0123456789";
+    if(symbols) chars += "!@#$%^&*()_+-=[]{}|;:,.<>?";
     var pw = "";
-    for(var i = 0; i < len; i++) pw += chars.charAt(Math.floor(Math.random() * chars.length));
+    for(var i=0;i<len;i++) pw += chars.charAt(Math.floor(Math.random() * chars.length));
     return pw;
   }
 
-  function strength(pw){
+  function strength(pw) {
     var score = 0;
-    if(pw.length >= 8) score++;
-    if(pw.length >= 12) score++;
-    if(pw.length >= 16) score++;
-    if(/[a-z]/.test(pw)) score++;
-    if(/[A-Z]/.test(pw)) score++;
-    if(/[0-9]/.test(pw)) score++;
-    if(/[^a-zA-Z0-9]/.test(pw)) score++;
-    return Math.min(100, score * 15);
+    if(pw.length >= 8) score += 20;
+    if(pw.length >= 12) score += 20;
+    if(/[a-z]/.test(pw)) score += 15;
+    if(/[A-Z]/.test(pw)) score += 15;
+    if(/[0-9]/.test(pw)) score += 15;
+    if(/[^a-zA-Z0-9]/.test(pw)) score += 15;
+    return score;
   }
 
   function render(container, ctx){
     var store = ctx.store;
     var tab = store.get("tab", "safe");
+    var filter = store.get("filter", "🔐 Alle");
 
     function build(){
-      var body = "";
+      var body = '';
+      var items = store.get("items", []);
+
+      body += '<div class="tabs">'
+        + '<button class="tab' + (tab === "safe" ? " active" : "") + '" data-pwt="safe">🔐 Safe</button>'
+        + '<button class="tab' + (tab === "gen" ? " active" : "") + '" data-pwt="gen">🎲 Generator</button>'
+        + '</div>';
 
       if(tab === "safe"){
-        var items = store.get("items", []);
-        var revealed = store.get("revealed", {});
+        body += '<div class="card"><h3>🔐 Passwort-Safe</h3>'
+          + '<div style="display:flex;gap:6px;margin-bottom:10px">'
+          + '<select id="catF" style="flex:1;padding:8px;background:rgba(0,0,0,.3);border-radius:8px;color:#fff">'
+          + CATS.map(c => '<option value="'+c+'"'+(filter===c?' selected':'')+'>'+c+'</option>').join("")
+          + '</select>'
+          + '<button class="btn" id="pwNew" style="font-size:11px;padding:8px 12px">+ Neu</button>'
+          + '</div>';
 
-        body = '<div class="card">'
-          + '<div style="padding:12px;background:rgba(255,128,128,.1);border-radius:10px;margin-bottom:12px;border-left:3px solid #ff8080">'
-          + '<div style="font-size:11px;color:var(--text-dim);line-height:1.5">'
-          + '⚠️ <b>Wichtig:</b> Passwörter werden <b>unverschlüsselt lokal</b> gespeichert! Nicht für echte Geheimnisse nutzen.'
-          + '</div></div>'
-          + '<button class="btn full" id="pwNew" style="margin-bottom:10px">+ Neuer Eintrag</button>';
-
-        if(store.get("editing", false)){
-          body += '<div style="padding:12px;background:rgba(0,229,255,.08);border-radius:10px;margin-bottom:10px;border-left:3px solid var(--p1)">'
-            + '<input type="text" id="pwName" placeholder="Name (z.B. Gmail)" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:8px;color:inherit;font-size:13px;margin-bottom:6px">'
-            + '<input type="text" id="pwUser" placeholder="Benutzername" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:8px;color:inherit;font-size:13px;margin-bottom:6px">'
-            + '<div style="display:flex;gap:6px;margin-bottom:6px">'
-            + '<input type="text" id="pwPass" placeholder="Passwort" style="flex:1;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:8px;color:inherit;font-size:13px;font-family:monospace">'
-            + '<button class="btn sec" id="pwGen" style="padding:0 14px">🎲</button>'
-            + '</div>'
-            + '<input type="text" id="pwUrl" placeholder="URL (optional)" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:8px;color:inherit;font-size:13px;margin-bottom:6px">'
-            + '<input type="text" id="pwNotes" placeholder="Notizen" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:var(--border-soft);border-radius:8px;color:inherit;font-size:13px;margin-bottom:8px">'
-            + '<div style="display:flex;gap:6px">'
-            + '<button class="btn" id="pwSave" style="flex:1">💾 Speichern</button>'
-            + '<button class="btn sec" id="pwCancel">✕</button>'
-            + '</div></div>';
-        }
-
-        if(!items.length && !store.get("editing", false)){
-          body += '<div style="color:var(--text-mute);text-align:center;padding:20px;font-size:12px">Noch keine Einträge</div>';
-        } else {
-          items.forEach(function(it, i){
-            var isRevealed = revealed[i];
-            var st = strength(it.password);
+        var filtered = items.filter(i => filter === "🔐 Alle" || i.cat === filter);
+        if(!filtered.length) body += '<div style="color:var(--text-mute);text-align:center;padding:20px">Keine Einträge</div>';
+        else {
+          filtered.slice().reverse().forEach(function(item){
+            var ri = items.indexOf(item);
+            var st = strength(item.pw);
             var col = st >= 80 ? "#4ade80" : st >= 50 ? "#fbbf24" : "#ff8080";
-            body += '<div style="padding:12px;background:rgba(0,0,0,.2);border-radius:10px;margin-bottom:6px;border-left:3px solid ' + col + '">'
-              + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
-              + '<div style="flex:1;min-width:0">'
-              + '<div style="font-size:13px;font-weight:900;color:var(--p1)">🔐 ' + _esc(it.name) + '</div>'
-              + (it.user ? '<div style="font-size:11px;color:var(--text-dim);margin-top:2px">👤 ' + _esc(it.user) + '</div>' : '')
-              + '<div style="font-size:12px;color:var(--text-dim);font-family:monospace;margin-top:4px;word-break:break-all">' + (isRevealed ? _esc(it.password) : "••••••••••") + '</div>'
-              + '</div>'
-              + '<div style="display:flex;flex-direction:column;gap:4px">'
-              + '<button data-reveal="' + i + '" style="background:rgba(0,229,255,.15);border:none;border-radius:6px;color:var(--p1);cursor:pointer;padding:4px 8px;font-size:11px">' + (isRevealed ? "👁" : "👁️‍🗨️") + '</button>'
-              + '<button data-copy="' + i + '" style="background:rgba(74,222,128,.15);border:none;border-radius:6px;color:#4ade80;cursor:pointer;padding:4px 8px;font-size:11px">📋</button>'
-              + '<button data-pwdel="' + i + '" style="background:rgba(255,128,128,.15);border:none;border-radius:6px;color:#ff8080;cursor:pointer;padding:4px 8px;font-size:11px">✕</button>'
+            body += '<div style="padding:10px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:4px;border-left:3px solid '+col+'">'
+              + '<div style="display:flex;justify-content:space-between">'
+              + '<div><div style="font-size:12.5px;font-weight:900">' + _esc(item.name) + ' <span style="font-size:10px;color:var(--text-mute)">(' + _esc(item.cat) + ')</span></div>'
+              + '<div style="font-size:11px;color:var(--text-dim);font-family:monospace">' + _esc(item.pw) + '</div></div>'
+              + '<div style="display:flex;gap:4px">'
+              + '<button data-copy="'+ri+'" style="background:rgba(0,229,255,.15);border:none;border-radius:6px;color:var(--p1);cursor:pointer;padding:4px 8px">📋</button>'
+              + '<button data-del="'+ri+'" style="background:rgba(255,128,128,.15);border:none;border-radius:6px;color:#ff8080;cursor:pointer;padding:4px 8px">✕</button>'
               + '</div></div></div>';
           });
         }
         body += '</div>';
       }
 
-      else if(tab === "generator"){
-        var len = store.get("genLen", 16);
-        var opts = store.get("genOpts", { upper: true, lower: true, numbers: true, symbols: false });
-        var last = store.get("genLast", "");
-
-        body = '<div class="card"><h3>🎲 Passwort-Generator</h3>'
-          + '<div style="padding:16px;background:rgba(0,0,0,.3);border-radius:10px;text-align:center;margin-bottom:14px">'
-          + '<div id="genOut" style="font-size:16px;font-family:monospace;word-break:break-all;color:var(--p1);font-weight:900">' + _esc(last || "Klick auf Generieren") + '</div>'
-          + '</div>'
-          + '<div class="field"><label>Länge: <b id="genLenVal">' + len + '</b></label>'
-          + '<input type="range" id="genLen" min="6" max="64" value="' + len + '" style="width:100%"></div>'
+      if(tab === "gen"){
+        body += '<div class="card"><h3>🎲 Passwort-Generator</h3>'
+          + '<div id="genRes" style="padding:16px;background:rgba(0,0,0,.4);border-radius:10px;text-align:center;margin-bottom:12px;font-family:monospace;font-size:16px;font-weight:900;color:var(--p1);word-break:break-all">Klick auf Generieren</div>'
+          + '<div class="field"><label>Länge: <b id="genLenV">16</b></label><input type="range" id="genLen" min="8" max="64" value="16" style="width:100%"></div>'
           + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">'
-          + toggle("genUpper", "🔠 Großbuchstaben", opts.upper !== false)
-          + toggle("genLower", "🔡 Kleinbuchstaben", opts.lower !== false)
-          + toggle("genNumbers", "🔢 Zahlen", opts.numbers !== false)
-          + toggle("genSymbols", "✳️ Symbole", !!opts.symbols)
+          + '<label style="font-size:11px"><input type="checkbox" id="gUp" checked> Großbuchstaben</label>'
+          + '<label style="font-size:11px"><input type="checkbox" id="gNum" checked> Zahlen</label>'
+          + '<label style="font-size:11px"><input type="checkbox" id="gSym"> Symbole</label>'
           + '</div>'
-          + '<button class="btn full" id="genBtn">🎲 Generieren</button>'
-          + (last ? '<button class="btn sec full" id="genCopy" style="margin-top:8px">📋 Kopieren</button>' : '')
+          + '<button class="btn full" id="genGo" style="background:var(--p1);color:#000">Generieren</button>'
+          + '<button class="btn sec full" id="genCopy" style="margin-top:6px">📋 Kopieren</button>'
           + '</div>';
       }
 
-      else if(tab === "settings"){
-        body = '<div class="card"><h3>⚙️ Einstellungen</h3>'
-          + '<div style="padding:12px;background:rgba(0,0,0,.2);border-radius:10px">'
-          + '<div style="font-size:11px;color:var(--text-mute);font-weight:700">🔐 EINTRÄGE</div>'
-          + '<div style="font-size:22px;font-weight:900;color:var(--p1)">' + store.get("items", []).length + '</div>'
-          + '</div>'
-          + '<div style="padding:12px;background:rgba(255,128,128,.1);border-radius:10px;margin-top:10px;border-left:3px solid #ff8080">'
-          + '<div style="font-size:11px;color:var(--text-dim);line-height:1.5">'
-          + '⚠️ Für echte Passwörter: <b>Bitwarden, KeePassXC, 1Password</b> nutzen!'
-          + '</div></div>'
-          + '<button class="btn danger full" id="pwClear" style="margin-top:10px">🗑️ Alle löschen</button>'
-          + '</div>';
-      }
+      container.innerHTML = body;
 
-      container.innerHTML =
-        '<div class="tabs">'
-        + '<button class="tab' + (tab==="safe"?" active":"") + '" data-pwt="safe">🔐 Safe</button>'
-        + '<button class="tab' + (tab==="generator"?" active":"") + '" data-pwt="generator">🎲 Generator</button>'
-        + '<button class="tab' + (tab==="settings"?" active":"") + '" data-pwt="settings">⚙️</button>'
-        + '</div>' + body;
-
-      container.querySelectorAll("[data-pwt]").forEach(function(b){
-        b.addEventListener("click", function(){
-          tab = b.dataset.pwt; store.set("tab", tab); build();
-        });
+      container.querySelectorAll("[data-pwt]").forEach(b => {
+        b.addEventListener("click", function(){ tab = b.dataset.pwt; store.set("tab", tab); build(); });
       });
 
       if(tab === "safe"){
-        var nb = container.querySelector("#pwNew");
-        if(nb) nb.addEventListener("click", function(){
-          store.set("editing", true); build();
-        });
+        var sel = container.querySelector("#catF");
+        if(sel) sel.addEventListener("change", function(){ filter = this.value; store.set("filter", filter); build(); });
 
-        if(store.get("editing", false)){
-          var gen = container.querySelector("#pwGen");
-          if(gen) gen.addEventListener("click", function(){
-            container.querySelector("#pwPass").value = generatePassword(16, { upper: true, lower: true, numbers: true, symbols: true });
-          });
-          var save = container.querySelector("#pwSave");
-          if(save) save.addEventListener("click", function(){
-            var name = container.querySelector("#pwName").value.trim();
-            var pw = container.querySelector("#pwPass").value.trim();
-            if(!name || !pw){ alert("Name und Passwort sind Pflicht"); return; }
-            var items2 = store.get("items", []);
-            items2.push({
-              name: name,
-              user: container.querySelector("#pwUser").value.trim(),
-              password: pw,
-              url: container.querySelector("#pwUrl").value.trim(),
-              notes: container.querySelector("#pwNotes").value.trim(),
-              date: new Date().toLocaleString("de-DE")
-            });
-            store.set("items", items2);
-            store.set("editing", false);
-            if(HalDo.Notify) HalDo.Notify.success("Eintrag gespeichert", { app: "passwort" });
-            build();
-          });
-          var cancel = container.querySelector("#pwCancel");
-          if(cancel) cancel.addEventListener("click", function(){
-            store.set("editing", false); build();
-          });
-        }
-
-        container.querySelectorAll("[data-reveal]").forEach(function(el){
-          el.addEventListener("click", function(){
-            var r = store.get("revealed", {});
-            r[el.dataset.reveal] = !r[el.dataset.reveal];
-            store.set("revealed", r);
-            build();
-          });
+        container.querySelector("#pwNew").addEventListener("click", function(){
+          var n = prompt("Name (z.B. Gmail):"); if(!n) return;
+          var p = prompt("Passwort:"); if(!p) return;
+          var c = prompt("Kategorie:", "Sonstige");
+          var i = store.get("items", []); i.push({ name: n, pw: p, cat: c || "Sonstige", date: new Date().toLocaleString("de-DE") });
+          store.set("items", i); build();
         });
-        container.querySelectorAll("[data-copy]").forEach(function(el){
-          el.addEventListener("click", function(){
-            var it = store.get("items", [])[parseInt(el.dataset.copy)];
-            if(it && navigator.clipboard){
-              navigator.clipboard.writeText(it.password);
-              if(HalDo.Notify) HalDo.Notify.success("Passwort kopiert (30s)", { app: "passwort" });
-            }
-          });
-        });
-        container.querySelectorAll("[data-pwdel]").forEach(function(el){
-          el.addEventListener("click", function(){
-            if(!confirm("Eintrag löschen?")) return;
-            var items3 = store.get("items", []);
-            items3.splice(parseInt(el.dataset.pwdel), 1);
-            store.set("items", items3);
-            build();
-          });
-        });
+        container.querySelectorAll("[data-copy]").forEach(el => el.addEventListener("click", function(){
+          if(navigator.clipboard) navigator.clipboard.writeText(store.get("items",[])[parseInt(el.dataset.copy)].pw);
+          if(HalDo.Notify) HalDo.Notify.success("Kopiert!");
+        }));
+        container.querySelectorAll("[data-del]").forEach(el => el.addEventListener("click", function(){
+          if(!confirm("Löschen?")) return;
+          var i = store.get("items", []); i.splice(parseInt(el.dataset.del), 1); store.set("items", i); build();
+        }));
       }
 
-      if(tab === "generator"){
-        var lenInp = container.querySelector("#genLen");
-        if(lenInp) lenInp.addEventListener("input", function(){
-          store.set("genLen", parseInt(this.value));
-          container.querySelector("#genLenVal").textContent = this.value;
-        });
-        ["genUpper","genLower","genNumbers","genSymbols"].forEach(function(k){
-          var el = container.querySelector('[data-toggle="' + k + '"]');
-          if(el) el.addEventListener("click", function(){
-            var o = store.get("genOpts", { upper: true, lower: true, numbers: true, symbols: false });
-            var map = { genUpper: "upper", genLower: "lower", genNumbers: "numbers", genSymbols: "symbols" };
-            o[map[k]] = !o[map[k]];
-            store.set("genOpts", o);
-            build();
-          });
-        });
-        var genBtn = container.querySelector("#genBtn");
-        if(genBtn) genBtn.addEventListener("click", function(){
-          var len2 = store.get("genLen", 16);
-          var opts2 = store.get("genOpts", {});
-          var pw2 = generatePassword(len2, opts2);
-          store.set("genLast", pw2);
-          build();
-        });
-        var copyBtn = container.querySelector("#genCopy");
-        if(copyBtn) copyBtn.addEventListener("click", function(){
-          if(navigator.clipboard){
-            navigator.clipboard.writeText(store.get("genLast", ""));
-            if(HalDo.Notify) HalDo.Notify.success("Kopiert!", { app: "passwort" });
-          }
+      if(tab === "gen"){
+        var genRes = container.querySelector("#genRes");
+        var genLen = container.querySelector("#genLen");
+        genLen.addEventListener("input", function(){ container.querySelector("#genLenV").textContent = this.value; });
+        
+        var doGen = function() {
+          genRes.textContent = generate(parseInt(genLen.value), container.querySelector("#gUp").checked, container.querySelector("#gNum").checked, container.querySelector("#gSym").checked);
+        };
+        container.querySelector("#genGo").addEventListener("click", doGen);
+        container.querySelector("#genCopy").addEventListener("click", function(){
+          if(navigator.clipboard) navigator.clipboard.writeText(genRes.textContent);
+          if(HalDo.Notify) HalDo.Notify.success("Kopiert!");
         });
       }
-
-      if(tab === "settings"){
-        var clr = container.querySelector("#pwClear");
-        if(clr) clr.addEventListener("click", function(){
-          if(!confirm("ALLE Passwörter löschen?")) return;
-          store.set("items", []);
-          build();
-        });
-      }
-    }
-
-    function toggle(id, label, on){
-      return '<button data-toggle="' + id + '" style="padding:10px;background:' + (on ? "rgba(0,229,255,.15)" : "rgba(0,0,0,.2)") + ';border:1px solid ' + (on ? "var(--p1)" : "var(--border-soft)") + ';border-radius:8px;color:inherit;cursor:pointer;font-family:inherit;font-size:11px;font-weight:800;text-align:left">' + label + '</button>';
     }
 
     build();
   }
 
   HalDoApp("passwort", { name: "Passwort", icon: "🔐", render: render, category: "produktivitaet" });
-  console.log("🦚 passwort.js geladen");
+  console.log("🦚 passwort.js v300 geladen — KATEGORIEN & GENERATOR");
 })();
