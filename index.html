@@ -5,9 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <meta name="theme-color" content="#050810">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="HalDo AI OS">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="description" content="HalDo AI OS — Halil Donma App · KI-betriebenes Betriebssystem im Browser">
   <title>🦚 HalDo AI OS</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦚</text></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23050810'/><text x='50' y='50' text-anchor='middle' dominant-baseline='central' font-size='70'>🦚</text></svg>">
+  <link rel="manifest" href="manifest.json">
 
   <style>
     :root {
@@ -31,7 +36,7 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 3px; }
 
-    #haldo-root { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+    #haldo-root { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; position: relative; z-index: 1; }
     #haldo-header {
       padding: 10px 16px;
       display: flex; justify-content: space-between; align-items: center;
@@ -93,24 +98,79 @@
     }
     .tab.active { background: linear-gradient(135deg, var(--p1), var(--p3)); color: #000; border-color: transparent; }
 
+    /* ─── LOADER v2 ─── */
     #haldo-loader {
-      position: fixed; inset: 0; background: var(--bg);
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse at 50% 50%, #0a0f1a 0%, #050810 60%, #000 100%);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      z-index: 99999; transition: opacity .4s;
+      z-index: 99999; transition: opacity .4s; padding: 20px;
     }
     #haldo-loader.hide { opacity: 0; pointer-events: none; }
     #haldo-loader .logo { font-size: 72px; animation: haldoBounce 1.2s infinite; }
-    #haldo-loader .txt { margin-top: 16px; font-size: 13px; color: var(--text-mute); font-weight: 800; letter-spacing: 2px; }
+    #haldo-loader .title { margin-top: 8px; font-size: 22px; font-weight: 900; color: var(--p1); letter-spacing: 1px; }
+    #haldo-loader .subtitle { margin-top: 2px; font-size: 11px; color: var(--text-mute); letter-spacing: 3px; font-weight: 800; text-transform: uppercase; }
+    #haldo-loader .bar-wrap { margin-top: 24px; width: min(280px, 80vw); height: 4px; background: rgba(255,255,255,.08); border-radius: 2px; overflow: hidden; }
+    #haldo-loader .bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--p1), var(--p3)); border-radius: 2px; transition: width .2s; box-shadow: 0 0 12px var(--p1); }
+    #haldo-loader .status { margin-top: 14px; font-size: 10.5px; color: var(--text-mute); font-weight: 700; letter-spacing: .5px; min-height: 16px; text-align: center; max-width: 80vw; }
+    #haldo-loader .count { margin-top: 6px; font-size: 10px; color: var(--text-mute); opacity: .6; }
     @keyframes haldoBounce { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-12px) scale(1.05); } }
+
+    /* ─── MISSING APPS BANNER ─── */
+    #haldo-missing-banner {
+      position: fixed; bottom: max(20px, env(safe-area-inset-bottom, 0px) + 20px); left: 20px; right: 20px;
+      background: rgba(255,183,0,.15); border: 1px solid rgba(255,183,0,.4);
+      border-radius: 12px; padding: 12px 14px;
+      color: #ffd54f; font-size: 11.5px; font-weight: 700;
+      z-index: 9998; display: none; align-items: center; gap: 10px;
+      animation: haldoFadeIn .3s;
+    }
+    #haldo-missing-banner.show { display: flex; }
+    #haldo-missing-banner .x { margin-left: auto; background: transparent; border: none; color: #ffd54f; font-size: 16px; cursor: pointer; padding: 0; }
+    @keyframes haldoFadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ─── DIAGNOSTIC PANEL ─── */
+    #haldo-diag {
+      position: fixed; inset: 0; z-index: 100000;
+      background: rgba(5,8,16,.97);
+      padding: 20px; overflow-y: auto;
+      display: none;
+    }
+    #haldo-diag.show { display: block; }
+    #haldo-diag h2 { color: var(--p1); font-size: 18px; margin-bottom: 12px; }
+    #haldo-diag h3 { color: var(--text-dim); font-size: 13px; margin: 16px 0 6px; }
+    #haldo-diag pre { font-size: 10.5px; color: var(--text-mute); line-height: 1.6; font-family: monospace; white-space: pre-wrap; word-break: break-all; }
+    #haldo-diag .close { position: sticky; top: 0; float: right; background: var(--p1); color: #000; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 900; cursor: pointer; font-family: inherit; }
+    #haldo-diag .ok { color: #4ade80; }
+    #haldo-diag .fail { color: #ff8080; }
   </style>
 </head>
 <body>
 
+  <!-- LOADER -->
   <div id="haldo-loader">
     <div class="logo">🦚</div>
-    <div class="txt">HALDO AI OS LÄDT...</div>
+    <div class="title">HalDo AI OS</div>
+    <div class="subtitle">Halil Donma App</div>
+    <div class="bar-wrap"><div class="bar" id="haldo-bar"></div></div>
+    <div class="status" id="haldo-status">System startet...</div>
+    <div class="count" id="haldo-count">0 / 0</div>
   </div>
 
+  <!-- MISSING BANNER -->
+  <div id="haldo-missing-banner">
+    <span>⚠️</span>
+    <span id="haldo-missing-text">—</span>
+    <button class="x" id="haldo-missing-close">✕</button>
+  </div>
+
+  <!-- DIAGNOSTIC -->
+  <div id="haldo-diag">
+    <button class="close" id="haldo-diag-close">✕ Schließen</button>
+    <h2>🦚 HalDo Diagnostics</h2>
+    <div id="haldo-diag-content"></div>
+  </div>
+
+  <!-- APP -->
   <div id="haldo-overlay"></div>
   <nav id="haldo-sidebar"></nav>
 
@@ -118,7 +178,7 @@
     <header id="haldo-header">
       <button id="haldo-menu" style="background:transparent;border:none;color:var(--text);font-size:22px;cursor:pointer;padding:4px 8px">☰</button>
       <div id="haldo-title">🦚 HalDo AI OS</div>
-      <div style="width:32px"></div>
+      <button id="haldo-diag-btn" style="background:transparent;border:none;color:var(--text-mute);font-size:16px;cursor:pointer;padding:4px 8px" title="Diagnostics">⚙</button>
     </header>
     <main id="haldo-content"></main>
   </div>
@@ -127,71 +187,361 @@
   <div id="haldo-taskbar"></div>
 
   <script>
+  /* ═══════════════════════════════════════════════════════════
+     HALDO AI OS — BOOT v2.0
+     Vollständiger A-Z App-Plan · Graceful Fallback
+     ═══════════════════════════════════════════════════════════ */
   (function(){
+    "use strict";
+
+    /* ─── APP-MANIFEST (A-Z Plan) ───
+       Jede Zeile = eine Datei. Fehlende werden übersprungen + gemeldet.
+    */
     var SCRIPTS = [
-      /* CORE */
-      "runtime.js", "store.js", "voice.js", "notify.js", "theme.js", "apps.js",
-      /* KI-ENGINES */
+      /* ─── CORE ─── */
+      "runtime.js",
+      "store.js",
+      "voice.js",
+      "notify.js",
+      "theme.js",
+      "apps.js",
+
+      /* ─── KI-ENGINES ─── */
       "ai-engine.js",
       "haldo-ai.js",
-      /* DESKPANE + AVATAR + SHELL */
-      "deskpane.js", "avatar.js", "shell.js",
-      /* SYSTEM */
-      "settings.js", "system-center.js", "update.js", "backup.js", "recovery.js", "diagnostics.js", "appstore.js", "analytics.js",
-      /* KOMMUNIKATION */
-      "chat.js", "ai.js", "email.js", "posteingang.js", "kontakte.js", "aufnahme.js", "phone.js", "videocall.js",
-      /* PRODUKTIVITÄT */
-      "tasks.js", "notes.js", "kalender.js", "projekte.js", "arbeitszeit.js", "dokumente.js", "links.js", "passwort.js",
-      /* GESUNDHEIT */
-      "fitness.js", "gesundheit.js", "stimmung.js", "gewohnheiten.js",
-      /* LIFESTYLE */
-      "kueche.js", "zuhause.js", "finanzen.js", "reisen.js", "auto.js", "musik.js", "photos.js", "video.js", "bild.js",
-      /* WERKZEUGE */
-      "wetter.js", "rechner.js", "timer.js", "uebersetzer.js", "woerterbuch.js", "lerne.js", "notfall.js", "bewertung.js", "spiele.js", "sprachen.js",
-      /* I18N + VOICE */
-      "i18n.js", "voice-kurdisch.js",
-      /* HOME */
-      "home.js"
+
+      /* ─── DESKPANE · AVATAR · SHELL ─── */
+      "deskpane.js",
+      "avatar.js",
+      "shell.js",
+
+      /* ─── SYSTEM ─── */
+      "settings.js",
+      "system-center.js",
+      "update.js",
+      "backup.js",
+      "recovery.js",
+      "diagnostics.js",
+      "appstore.js",
+      "analytics.js",
+      "dashboard.js",
+
+      /* ─── KOMMUNIKATION ─── */
+      "chat.js",
+      "ai.js",
+      "email.js",
+      "posteingang.js",
+      "kontakte.js",
+      "aufnahme.js",
+      "phone.js",
+      "videocall.js",
+      "voicememos.js",
+
+      /* ─── PRODUKTIVITÄT ─── */
+      "tasks.js",
+      "todo.js",
+      "notes.js",
+      "kalender.js",
+      "projekte.js",
+      "arbeitszeit.js",
+      "dokumente.js",
+      "links.js",
+      "passwort.js",
+      "clipboard.js",
+      "filemanager.js",
+
+      /* ─── GESUNDHEIT ─── */
+      "fitness.js",
+      "gesundheit.js",
+      "stimmung.js",
+      "gewohnheiten.js",
+      "schlaf.js",
+      "atem.js",
+      "wasser.js",
+
+      /* ─── LIFESTYLE ─── */
+      "kueche.js",
+      "rezept.js",
+      "einkauf.js",
+      "zuhause.js",
+      "finanzen.js",
+      "reisen.js",
+      "auto.js",
+      "musik.js",
+      "photos.js",
+      "video.js",
+      "bild.js",
+
+      /* ─── WERKZEUGE ─── */
+      "wetter.js",
+      "rechner.js",
+      "wissenschaftlich.js",
+      "umrechner.js",
+      "waehrung.js",
+      "timer.js",
+      "pomodoro.js",
+      "uebersetzer.js",
+      "woerterbuch.js",
+      "vokabeln.js",
+      "flashcards.js",
+      "lerne.js",
+      "notfall.js",
+      "bewertung.js",
+      "spiele.js",
+      "sprachen.js",
+
+      /* ─── BILDUNG ─── */
+      "fahrschule.js",
+      "blitzer.js",
+      "periodensystem.js",
+      "mathe.js",
+      "geo-quiz.js",
+      "ezidi.js",
+      "wissen.js",
+
+      /* ─── UTILITIES ─── */
+      "qr.js",
+      "barcode.js",
+      "random.js",
+      "text-analyse.js",
+      "datum-rechner.js",
+      "netzwerk-info.js",
+      "geraete-info.js",
+      "weltuhr.js",
+      "kamera.js",
+      "spiegel.js",
+      "taschenlampe.js",
+      "lupe.js",
+
+      /* ─── FINANZEN ─── */
+      "kredit.js",
+      "bmi.js",
+      "statistik.js",
+      "labor.js",
+
+      /* ─── BÜCHER & MEDIEN ─── */
+      "bookmarks.js",
+      "leseliste.js",
+      "sticky-notes.js",
+
+      /* ─── HEATMAPS ─── */
+      "heatmap.js",
+
+      /* ─── I18N · VOICE ─── */
+      "i18n.js",
+      "voice-kurdisch.js",
+
+      /* ─── HOME (zuletzt) ─── */
+      "home.js",
+
+      /* ─── PATCHES (nach home.js) ─── */
+      "home-patch.js",
+
+      /* ─── SPLASH (ganz zuletzt) ─── */
+      "splash.js"
     ];
+
+    /* ─── Lade-Logik ─── */
+    var loaded = [];
+    var missing = [];
+    var failed = [];
 
     function loadScript(src){
       return new Promise(function(resolve){
+        // Duplikat-Check
+        if(window.__haldoLoadedScripts && window.__haldoLoadedScripts[src]){
+          resolve("cached");
+          return;
+        }
+        if(!window.__haldoLoadedScripts) window.__haldoLoadedScripts = {};
+
         var s = document.createElement("script");
         s.src = src;
         s.async = false;
-        s.onload = function(){ resolve(true); };
-        s.onerror = function(){ resolve(false); };
+        s.onload = function(){
+          window.__haldoLoadedScripts[src] = true;
+          resolve("ok");
+        };
+        s.onerror = function(){
+          resolve("fail");
+        };
         document.head.appendChild(s);
       });
     }
 
+    function updateProgress(current, total, label){
+      var bar = document.getElementById("haldo-bar");
+      var status = document.getElementById("haldo-status");
+      var count = document.getElementById("haldo-count");
+      if(bar) bar.style.width = Math.round((current / total) * 100) + "%";
+      if(status) status.textContent = label || "";
+      if(count) count.textContent = current + " / " + total;
+    }
+
+    /* ─── Boot ─── */
     (async function(){
-      for(var i = 0; i < SCRIPTS.length; i++){
-        await loadScript(SCRIPTS[i]);
+      var total = SCRIPTS.length;
+      updateProgress(0, total, "Initialisiere...");
+
+      for(var i = 0; i < total; i++){
+        var src = SCRIPTS[i];
+        updateProgress(i, total, "Lade: " + src);
+
+        var result = await loadScript(src);
+
+        if(result === "ok"){
+          loaded.push(src);
+        } else if(result === "fail"){
+          // File existiert nicht → das ist OK, wird gemeldet
+          missing.push(src);
+        }
+        // "cached" → schon geladen, ignorieren
+
+        // Micro-Yield damit Loader-UI aktualisieren kann
+        if(i % 5 === 0){
+          await new Promise(function(r){ setTimeout(r, 0); });
+        }
       }
 
+      updateProgress(total, total, "Starte System...");
+
+      // Loader ausblenden
       var loader = document.getElementById("haldo-loader");
       if(loader){
         setTimeout(function(){
           loader.classList.add("hide");
           setTimeout(function(){ loader.remove(); }, 500);
-        }, 400);
+        }, 300);
       }
 
+      // Shell initialisieren
       setTimeout(function(){
         if(window.HalDo && HalDo.Shell && HalDo.Shell.init){
-          try { HalDo.Shell.init(); } catch(e){ console.warn(e); }
+          try { HalDo.Shell.init(); } catch(e){ console.warn("[HalDo] Shell.init:", e); }
         }
       }, 200);
+
+      // Fehlende Apps melden
+      reportMissing();
+
+      // Console-Report
+      console.log("");
+      console.log("╔══════════════════════════════════════════╗");
+      console.log("║  🦚 HALDO AI OS — BOOT REPORT            ║");
+      console.log("╠══════════════════════════════════════════╣");
+      console.log("║  ✅ Geladen:  " + String(loaded.length).padStart(3, " ") + " Dateien              ║");
+      console.log("║  ⚠️  Fehlend: " + String(missing.length).padStart(3, " ") + " Dateien              ║");
+      console.log("╚══════════════════════════════════════════╝");
+      if(missing.length){
+        console.log("");
+        console.log("📋 FEHLENDE DATEIEN (in Ordner anlegen):");
+        missing.forEach(function(m){ console.log("  · " + m); });
+      }
+      console.log("");
     })();
 
+    /* ─── Missing-Report ─── */
+    function reportMissing(){
+      if(!missing.length) return;
+      var banner = document.getElementById("haldo-missing-banner");
+      var text = document.getElementById("haldo-missing-text");
+      if(!banner || !text) return;
+      text.textContent = missing.length + " Apps fehlen — zum Diagnose-Modus siehe ⚙-Button oben";
+      banner.classList.add("show");
+
+      document.getElementById("haldo-missing-close").addEventListener("click", function(){
+        banner.classList.remove("show");
+      });
+    }
+
+    /* ─── Diagnostics ─── */
+    function openDiagnostics(){
+      var panel = document.getElementById("haldo-diag");
+      var content = document.getElementById("haldo-diag-content");
+      if(!panel || !content) return;
+
+      var html = '';
+      html += '<h3>📊 Boot-Zusammenfassung</h3>';
+      html += '<pre>Geladen:  ' + loaded.length + ' Dateien ✅\n';
+      html += 'Fehlend:  ' + missing.length + ' Dateien ⚠️\n';
+      html += 'Runtime:  ' + (window.HalDo && HalDo.Runtime ? "aktiv" : "inaktiv") + '\n';
+      html += 'Apps:     ' + (window.HalDo && HalDo.Apps ? HalDo.Apps.listInstalled().length : 0) + '\n';
+      html += 'Home:     ' + (document.getElementById("haldoHomeRoot") ? "gerendert" : "nicht gerendert") + '\n';
+      html += 'Splash:   ' + (window.__haldoSplashDone ? "ausgeführt" : "nicht ausgeführt") + '</pre>';
+
+      if(missing.length){
+        html += '<h3>⚠️ Fehlende Dateien (' + missing.length + ')</h3>';
+        html += '<pre class="fail">';
+        missing.forEach(function(m){ html += "  · " + m + "\n"; });
+        html += '</pre>';
+      } else {
+        html += '<h3>✅ Alle Dateien vorhanden</h3>';
+      }
+
+      if(loaded.length){
+        html += '<h3>✅ Geladene Dateien (' + loaded.length + ')</h3>';
+        html += '<pre class="ok">';
+        loaded.forEach(function(l){ html += "  · " + l + "\n"; });
+        html += '</pre>';
+      }
+
+      content.innerHTML = html;
+      panel.classList.add("show");
+    }
+
+    document.addEventListener("DOMContentLoaded", function(){
+      var btn = document.getElementById("haldo-diag-btn");
+      if(btn) btn.addEventListener("click", openDiagnostics);
+
+      var closeBtn = document.getElementById("haldo-diag-close");
+      if(closeBtn) closeBtn.addEventListener("click", function(){
+        document.getElementById("haldo-diag").classList.remove("show");
+      });
+
+      // Sidebar-Menü (falls Shell.js sie nicht füllt)
+      var menu = document.getElementById("haldo-menu");
+      var sidebar = document.getElementById("haldo-sidebar");
+      var overlay = document.getElementById("haldo-overlay");
+      if(menu && sidebar && overlay){
+        menu.addEventListener("click", function(){
+          sidebar.classList.add("open");
+          overlay.classList.add("open");
+        });
+        overlay.addEventListener("click", function(){
+          sidebar.classList.remove("open");
+          overlay.classList.remove("open");
+        });
+      }
+    });
+
+    /* ─── Hard-Timeout: Loader nie länger als 20s ─── */
     setTimeout(function(){
       var loader = document.getElementById("haldo-loader");
       if(loader && !loader.classList.contains("hide")){
-        loader.classList.add("hide");
-        setTimeout(function(){ loader.remove(); }, 500);
+        var status = document.getElementById("haldo-status");
+        if(status) status.textContent = "⚠️ Timeout — starte mit verfügbaren Apps...";
+        setTimeout(function(){
+          loader.classList.add("hide");
+          setTimeout(function(){ loader.remove(); }, 500);
+        }, 800);
       }
-    }, 8000);
+    }, 20000);
+
+    /* ─── Globaler Error-Handler ─── */
+    window.addEventListener("error", function(e){
+      if(e && e.message && e.message.indexOf("Script error") === -1){
+        console.warn("[HalDo Boot] Fehler:", e.message, "bei", e.filename, ":", e.lineno);
+      }
+    });
+
+    /* ─── Service Worker (PWA) ─── */
+    if("serviceWorker" in navigator){
+      window.addEventListener("load", function(){
+        navigator.serviceWorker.register("sw.js").catch(function(){
+          // sw.js existiert noch nicht → kein Problem
+        });
+      });
+    }
   })();
   </script>
 
