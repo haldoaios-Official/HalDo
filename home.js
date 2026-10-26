@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — HOME (v180) · FULLSCREEN DESKTOP
+   HALDO AI OS — HOME (v181) · FULLSCREEN DESKTOP
    5 Designs: Solar · Grid · Focus · Nebula · Minimal
-   Desktop-Hintergrund · Apps öffnen als Fenster darüber
+   Home läuft als Hintergrund (kein Fenster) via home-patch.js
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -28,9 +28,9 @@
   function setDesign(d){ if(HalDo.Store && HalDo.Store.set) HalDo.Store.set("homeDesign", d); }
 
   function injectStyles(){
-    if(document.getElementById("haldoHomeV180")) return;
+    if(document.getElementById("haldoHomeV181")) return;
     var st = document.createElement("style");
-    st.id = "haldoHomeV180";
+    st.id = "haldoHomeV181";
     st.textContent = `
       #haldoHomeRoot{
         position:fixed;inset:0;z-index:50;
@@ -59,9 +59,6 @@
         transition:.15s;font-family:inherit;
       }
       .hm-btn:hover,.hm-btn:active{background:rgba(0,200,255,.28);transform:scale(1.06)}
-
-      /* Hero area */
-      .hm-hero{position:relative;width:100%}
 
       /* SOLAR */
       .hm-solar{position:relative;width:100%;height:calc(100vh - 70px);min-height:520px;overflow:hidden}
@@ -134,24 +131,9 @@
     return out;
   }
 
-  function render(container, ctx){
+  // Globale Render-Funktion (wird von home-patch.js aufgerufen)
+  window.__haldoHomeRender = function(root){
     injectStyles();
-
-    // Hide parent window if present + redirect to fullscreen root
-    try {
-      var win = container.closest && container.closest(".dp-window, .deskpane-window, .window, [data-win]");
-      if(win) win.style.display = "none";
-    } catch(e){}
-    try { container.innerHTML = ""; } catch(e){}
-
-    var root = document.getElementById("haldoHomeRoot");
-    if(!root){
-      root = document.createElement("div");
-      root.id = "haldoHomeRoot";
-      document.body.appendChild(root);
-    }
-    container = root;
-
     var modal = null;
 
     function greet(){
@@ -325,23 +307,23 @@
           +'</button>';
       });
       html += '</div></div>';
-      container.innerHTML = html;
+      root.innerHTML = html;
       bind();
     }
 
     function bind(){
-      container.querySelectorAll("[data-sun]").forEach(function(el){
+      root.querySelectorAll("[data-sun]").forEach(function(el){
         el.addEventListener("click", function(){
           if(HalDo.Apps.has("ai")) HalDo.Apps.open("ai");
         });
       });
-      container.querySelectorAll("[data-cat]").forEach(function(el){
+      root.querySelectorAll("[data-cat]").forEach(function(el){
         el.addEventListener("click", function(e){e.stopPropagation();categoryView(el.dataset.cat);});
       });
-      container.querySelectorAll("[data-appopen]").forEach(function(el){
+      root.querySelectorAll("[data-appopen]").forEach(function(el){
         el.addEventListener("click", function(){HalDo.Apps.open(el.dataset.appopen);});
       });
-      container.querySelectorAll("[data-act]").forEach(function(el){
+      root.querySelectorAll("[data-act]").forEach(function(el){
         el.addEventListener("click", function(){
           var a = el.dataset.act;
           if(a==="design"){modal="design";build();}
@@ -351,12 +333,12 @@
         });
       });
       if(modal==="design"){
-        container.querySelectorAll("[data-mclose]").forEach(function(el){
+        root.querySelectorAll("[data-mclose]").forEach(function(el){
           el.addEventListener("click", function(){modal=null;build();});
         });
-        var mx = container.querySelector(".hm-modal");
+        var mx = root.querySelector(".hm-modal");
         if(mx) mx.addEventListener("click", function(e){e.stopPropagation();});
-        container.querySelectorAll("[data-seldesign]").forEach(function(el){
+        root.querySelectorAll("[data-seldesign]").forEach(function(el){
           el.addEventListener("click", function(){setDesign(el.dataset.seldesign);modal=null;build();});
         });
       }
@@ -371,14 +353,39 @@
       else if(d==="nebula") html += nebula();
       else html += minimal();
       if(modal==="design") html += modalDesign(d);
-      container.innerHTML = html;
-      container.scrollTop = 0;
+      root.innerHTML = html;
+      root.scrollTop = 0;
       bind();
     }
 
     build();
+  };
+
+  // Globale Show-Funktion (vom Patch aufgerufen)
+  window.HalDoHomeShow = function(){
+    var root = document.getElementById("haldoHomeRoot");
+    if(!root){
+      root = document.createElement("div");
+      root.id = "haldoHomeRoot";
+      document.body.appendChild(root);
+    }
+    if(window.__haldoHomeRender) window.__haldoHomeRender(root);
+  };
+
+  // Fallback: Wenn home.js als normale App geöffnet wird (alter Weg),
+  // soll es trotzdem fullscreen rendern.
+  function render(container, ctx){
+    // Fenster verstecken, falls vorhanden
+    try {
+      var win = container.closest && container.closest(".haldo-win");
+      if(win) win.style.display = "none";
+    } catch(e){}
+    // Fullscreen rendern
+    window.HalDoHomeShow();
+    // Container leeren (damit kein Fenster-Inhalt sichtbar)
+    try { container.innerHTML = ""; } catch(e){}
   }
 
   HalDoApp("home", { name: "Home", icon: "🏠", render: render, category: "system" });
-  console.log("🦚 home.js v180 geladen — FULLSCREEN · 5 DESIGNS (Solar/Grid/Focus/Nebula/Minimal)");
+  console.log("🦚 home.js v181 geladen — FULLSCREEN · 5 DESIGNS · Home läuft als Hintergrund");
 })();
