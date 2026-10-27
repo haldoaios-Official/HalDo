@@ -1,12 +1,11 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — BLITZER v8.0 · ULTIMATE COCKPIT
-   Echter Tacho (Skala) · Goldene 3D-Pfeile · CarPlay-Ready
+   HALDO AI OS — BLITZER v9.0 · ECHTES AUTO COCKPIT
+   Echter Tacho (270°) · Extreme Töne · 3D Hologramm · KI
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
   if(!window.HalDo || !HalDo.Runtime) return;
 
-  /* ═══════════ KATEGORIEN ═══════════ */
   var CATS = [
     { id:"blitzer_fix",   icon:"📷", color:"#ff5555", type:"warn", name:{de:"Fester Blitzer",en:"Fixed Camera",tr:"Sabit Radar",ar:"رادار ثابت",ku:"Radarê Sabît",fr:"Radar fixe"}, voice:{de:"Achtung, Blitzer in {d}",en:"Warning, camera in {d}",tr:"Dikkat, radar {d}",ar:"تحذير رادار {d}",ku:"Hişyarî, radar li {d}",fr:"Attention, radar à {d}"} },
     { id:"blitzer_mobil", icon:"🚔", color:"#ff8844", type:"warn", name:{de:"Mobile Kontrolle",en:"Mobile Check",tr:"Mobil Kontrol",ar:"مراقبة متحركة",ku:"Kontrola Mobîl",fr:"Contrôle mobile"}, voice:{de:"Achtung, Kontrolle in {d}",en:"Warning, check in {d}",tr:"Dikkat, kontrol {d}",ar:"تحذير مراقبة {d}",ku:"Hişyarî, kontrol li {d}",fr:"Attention, contrôle à {d}"} },
@@ -23,7 +22,11 @@
   var LANGS = { de:{ name:"Deutsch", code:"de-DE" }, en:{ name:"English", code:"en-US" }, tr:{ name:"Türkçe", code:"tr-TR" }, ar:{ name:"العربية", code:"ar-SA" }, ku:{ name:"Kurdî (Ezidi)", code:"tr-TR" }, fr:{ name:"Français", code:"fr-FR" } };
 
   var DEFAULT_SETTINGS = { enabled: {}, lang:"de", voiceOn:true, beepOn:true, notifyOn:true, warnDist: 1000, sounds:{}, arrowStyle: "gold" };
-  CATS.forEach(function(c){ DEFAULT_SETTINGS.enabled[c.id] = true; DEFAULT_SETTINGS.sounds[c.id] = "medium"; });
+  CATS.forEach(function(c){ 
+    DEFAULT_SETTINGS.enabled[c.id] = true; 
+    // Blitzer und Unfall bekommen standardmäßig den extremen Ton
+    DEFAULT_SETTINGS.sounds[c.id] = (c.id.indexOf("blitzer") === 0 || c.id === "unfall") ? "extreme" : "medium"; 
+  });
 
   function _esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
   function haversine(lat1,lng1,lat2,lng2){ var R=6371000, dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180; var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2); return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); }
@@ -34,10 +37,18 @@
   function getAudio(){ if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return audioCtx; }
   function playBeep(pattern, vol){
     var ctx = getAudio(); if(!ctx) return; var now = ctx.currentTime;
-    var p = { urgent: [{f:880,t:0,d:0.1},{f:880,t:0.15,d:0.1}], alarm: [{f:1200,t:0,d:0.08},{f:1200,t:0.12,d:0.08}], chime: [{f:523,t:0,d:0.15},{f:659,t:0.15,d:0.15},{f:784,t:0.3,d:0.25}], low: [{f:440,t:0,d:0.2}] }[pattern] || [{f:440,t:0,d:0.2}];
+    // Extreme: 1800Hz, sehr schnell, sehr durchdringend
+    var p = { 
+      extreme: [{f:1800,t:0,d:0.05},{f:1800,t:0.08,d:0.05},{f:1800,t:0.16,d:0.05},{f:1800,t:0.24,d:0.05}],
+      urgent: [{f:880,t:0,d:0.1},{f:880,t:0.15,d:0.1}], 
+      alarm: [{f:1200,t:0,d:0.08},{f:1200,t:0.12,d:0.08}], 
+      chime: [{f:523,t:0,d:0.15},{f:659,t:0.15,d:0.15},{f:784,t:0.3,d:0.25}], 
+      low: [{f:440,t:0,d:0.2}] 
+    }[pattern] || [{f:440,t:0,d:0.2}];
+    
     p.forEach(function(b){
       var o = ctx.createOscillator(), g = ctx.createGain();
-      o.frequency.value = b.f; o.type = "sine";
+      o.frequency.value = b.f; o.type = "square"; // Square wave is sharper/more annoying
       g.gain.setValueAtTime(0, now+b.t); g.gain.linearRampToValueAtTime(vol, now+b.t+0.01); g.gain.exponentialRampToValueAtTime(0.001, now+b.t+b.d);
       o.connect(g).connect(ctx.destination); o.start(now+b.t); o.stop(now+b.t+b.d+0.02);
     });
@@ -50,6 +61,7 @@
     var trip = { active:false, startTime:0, distance:0, warnings:0 };
     var map = null, mapMarkers = [], triggered = {}, lastLimitFetch = 0, currentLimit = null;
     var poiCache = {}, routeData = null, targetPos = null;
+    var tfModel = null, cameraStream = null, visionLoop = null;
 
     function getSettings(){ var s = store.get("settings", {}); var m = JSON.parse(JSON.stringify(DEFAULT_SETTINGS)); Object.keys(s).forEach(function(k){ m[k] = s[k]; }); return m; }
     function saveSettings(s){ store.set("settings", s); }
@@ -66,7 +78,7 @@
       else if(view.screen === "list") screenList();
     }
 
-    /* ═══════════ COCKPIT (Echter Tacho & 3D) ═══════════ */
+    /* ═══════════ COCKPIT (Tacho & 3D) ═══════════ */
     function screenCockpit(){
       var s = getSettings();
       var speed = lastPos ? Math.round((lastPos.coords.speed||0)*3.6) : 0;
@@ -74,26 +86,31 @@
       
       var nextEvent = getNextEvent();
       
-      // Tacho Winkel (0 bis 240 km/h)
+      // Tacho: 0 bis 240 km/h, Winkel: 135° bis 405° (270° Sweep)
       var maxSpeed = 240;
-      var percent = Math.min(1, speed / maxSpeed);
-      var angle = -120 + (percent * 240); // -120deg bis +120deg
+      var startAngle = 135;
+      var endAngle = 405;
+      var currentAngle = startAngle + (Math.min(speed, maxSpeed) / maxSpeed) * (endAngle - startAngle);
 
-      // Tacho SVG Striche (0 bis 240 in 20er Schritten)
+      // Ticks generieren
       var ticks = "";
       for (var i = 0; i <= 240; i += 20) {
-        var tickAngle = -120 + (i / maxSpeed) * 240;
+        var angle = startAngle + (i / maxSpeed) * (endAngle - startAngle);
+        var rad = (angle - 90) * Math.PI / 180; // 0° ist oben
         var isMajor = i % 40 === 0;
-        var len = isMajor ? 15 : 8;
-        var x1 = 100 + 85 * Math.cos((tickAngle - 90) * Math.PI / 180);
-        var y1 = 100 + 85 * Math.sin((tickAngle - 90) * Math.PI / 180);
-        var x2 = 100 + (85 - len) * Math.cos((tickAngle - 90) * Math.PI / 180);
-        var y2 = 100 + (85 - len) * Math.sin((tickAngle - 90) * Math.PI / 180);
-        ticks += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${isMajor ? '#fff' : 'rgba(255,255,255,.4)'}" stroke-width="${isMajor ? 3 : 1.5}" />`;
+        var len = isMajor ? 12 : 6;
+        
+        var x1 = 100 + 75 * Math.cos(rad);
+        var y1 = 100 + 75 * Math.sin(rad);
+        var x2 = 100 + (75 - len) * Math.cos(rad);
+        var y2 = 100 + (75 - len) * Math.sin(rad);
+        
+        ticks += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${isMajor ? '#fff' : 'rgba(255,255,255,.3)'}" stroke-width="${isMajor ? 3 : 1.5}" />`;
+        
         if (isMajor) {
-          var tx = 100 + 70 * Math.cos((tickAngle - 90) * Math.PI / 180);
-          var ty = 100 + 70 * Math.sin((tickAngle - 90) * Math.PI / 180);
-          ticks += `<text x="${tx}" y="${ty}" fill="#fff" font-size="10" font-weight="900" text-anchor="middle" dominant-baseline="middle">${i}</text>`;
+          var tx = 100 + 60 * Math.cos(rad);
+          var ty = 100 + 60 * Math.sin(rad);
+          ticks += `<text x="${tx}" y="${ty}" fill="#fff" font-size="12" font-weight="900" text-anchor="middle" dominant-baseline="middle">${i}</text>`;
         }
       }
 
@@ -106,36 +123,34 @@
       }
 
       var arrowColor = s.arrowStyle === "gold" ? "#ffd700" : s.arrowStyle === "blue" ? "#4dd0e1" : "#ffffff";
-      var arrowGlow = s.arrowStyle === "gold" ? "rgba(255,215,0,.6)" : s.arrowStyle === "blue" ? "rgba(77,208,225,.6)" : "rgba(255,255,255,.6)";
+      var arrowGlow = s.arrowStyle === "gold" ? "rgba(255,215,0,.8)" : s.arrowStyle === "blue" ? "rgba(77,208,225,.8)" : "rgba(255,255,255,.8)";
 
       var css = `
         .cpt-wrap{position:relative;height:calc(100vh - 100px);min-height:600px;background:radial-gradient(ellipse at 50% 30%,#0a1220 0%,#050810 80%);border-radius:20px;padding:16px;display:flex;flex-direction:column;overflow:hidden;font-family:-apple-system,sans-serif;color:#fff}
         .cpt-top{display:flex;justify-content:space-between;z-index:10}
         .cpt-navbtn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;padding:10px 14px;border-radius:12px;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:6px}
         
-        .cpt-tacho{position:relative;width:280px;height:280px;margin:20px auto;display:flex;flex-direction:column;align-items:center;justify-content:center}
-        .svg-ring{position:absolute;top:0;left:0;width:100%;height:100%;transform:rotate(150deg)}
-        .svg-ring circle{fill:none;stroke-linecap:round}
-        .svg-ring .bg{stroke:rgba(255,255,255,.05);stroke-width:10}
-        .svg-ring .fg{stroke:${speed>180?'#ff5555':speed>140?'#ffd54f':'#4dd0e1'};stroke-width:10;stroke-dasharray:565;stroke-dashoffset:${565 - (percent * 565)};transition:stroke-dashoffset .2s ease-out}
+        /* Tacho Container */
+        .cpt-tacho{position:relative;width:300px;height:300px;margin:10px auto;display:flex;align-items:center;justify-content:center}
+        .tacho-bg{position:absolute;inset:0;background:radial-gradient(circle, rgba(10,18,32,1) 0%, rgba(5,8,16,1) 100%);border-radius:50%;border:2px solid rgba(77,208,225,.2);box-shadow:0 0 30px rgba(77,208,225,.1)}
         
-        /* Tacho Nadel */
-        .needle-container{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;transform:rotate(150deg)}
-        .needle{width:4px;height:100px;background:linear-gradient(to top, transparent, #ff5555);position:absolute;bottom:50%;transform-origin:bottom center;transform:rotate(${angle}deg);transition:transform .2s ease-out;filter:drop-shadow(0 0 5px #ff5555)}
-        .needle::after{content:"";position:absolute;bottom:-8px;left:-8px;width:20px;height:20px;background:#fff;border-radius:50%;box-shadow:0 0 10px #fff}
+        /* Nadel */
+        .needle-container{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform:rotate(${currentAngle}deg);transition:transform .2s cubic-bezier(0.4, 2.08, 0.55, 0.44)}
+        .needle{width:4px;height:120px;background:linear-gradient(to top, transparent 40%, #ff3333 40%, #ff3333 100%);position:absolute;bottom:50%;transform-origin:bottom center;border-radius:2px;box-shadow:0 0 10px #ff3333}
+        .needle-center{position:absolute;width:24px;height:24px;background:#111;border:3px solid #ff3333;border-radius:50%;z-index:2;box-shadow:0 0 15px #ff3333}
         
-        .cpt-speed{font-size:64px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;z-index:2;text-shadow:0 0 20px rgba(77,208,225,.5);margin-top:10px}
-        .cpt-unit{font-size:12px;color:#7fa5b8;font-weight:900;letter-spacing:3px;margin-top:2px;z-index:2}
+        .cpt-speed{font-size:56px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;z-index:3;text-shadow:0 0 15px rgba(255,255,255,.3);margin-top:40px}
+        .cpt-unit{font-size:11px;color:#7fa5b8;font-weight:900;letter-spacing:3px;margin-top:2px;z-index:3}
         
-        .cpt-limit{position:absolute;top:10px;right:10px;width:64px;height:64px;border-radius:50%;background:#fff;border:6px solid #ff3333;display:flex;align-items:center;justify-content:center;z-index:20}
+        .cpt-limit{position:absolute;top:20px;right:20px;width:64px;height:64px;border-radius:50%;background:#fff;border:6px solid #ff3333;display:flex;align-items:center;justify-content:center;z-index:20}
         .cpt-limit-num{font-size:24px;font-weight:900;color:#000}
         
-        /* 3D Hologramm Pfeil (Gold) */
-        .holo-container{perspective:800px;width:100%;height:160px;display:flex;align-items:center;justify-content:center;margin-top:10px;position:relative}
-        .holo-base{position:absolute;bottom:20px;width:200px;height:40px;background:radial-gradient(ellipse, ${arrowGlow} 0%, transparent 70%);filter:blur(10px);border-radius:50%}
-        .holo-arrow-box{position:relative;transform-style:preserve-3d;transform:rotateX(55deg) rotateZ(${nextEvent ? (nextEvent.modifier && nextEvent.modifier.indexOf('left') >= 0 ? -45 : nextEvent.modifier && nextEvent.modifier.indexOf('right') >= 0 ? 45 : 0) : 0}deg);animation:arrowFloat 2s infinite alternate}
-        .holo-svg{width:140px;height:auto;filter:drop-shadow(0 0 20px ${arrowGlow})}
-        @keyframes arrowFloat{0%{transform:rotateX(55deg) rotateZ(var(--rot,0deg)) translateZ(0)}100%{transform:rotateX(55deg) rotateZ(var(--rot,0deg)) translateZ(30px)}}
+        /* 3D Hologramm Pfeil */
+        .holo-container{perspective:800px;width:100%;height:140px;display:flex;align-items:center;justify-content:center;margin-top:5px;position:relative}
+        .holo-base{position:absolute;bottom:10px;width:200px;height:40px;background:radial-gradient(ellipse, ${arrowGlow} 0%, transparent 70%);filter:blur(8px);border-radius:50%}
+        .holo-arrow-box{position:relative;transform-style:preserve-3d;transform:rotateX(60deg) rotateZ(${nextEvent ? (nextEvent.modifier && nextEvent.modifier.indexOf('left') >= 0 ? -45 : nextEvent.modifier && nextEvent.modifier.indexOf('right') >= 0 ? 45 : 0) : 0}deg);animation:arrowFloat 1.5s infinite alternate}
+        .holo-svg{width:120px;height:auto;filter:drop-shadow(0 0 20px ${arrowGlow})}
+        @keyframes arrowFloat{0%{transform:rotateX(60deg) rotateZ(var(--rot,0deg)) translateZ(0)}100%{transform:rotateX(60deg) rotateZ(var(--rot,0deg)) translateZ(40px)}}
 
         .cpt-bottom{margin-top:auto;background:rgba(0,0,0,.5);backdrop-filter:blur(10px);border-radius:16px;padding:12px;border:1px solid rgba(255,255,255,.08);z-index:10}
         .cpt-stat{display:flex;justify-content:space-around;text-align:center;margin-bottom:8px}
@@ -156,7 +171,6 @@
         <button data-nav="settings" class="cpt-navbtn">⚙️</button>
       </div>`;
 
-      // Navigation ETA (Von -> Nach)
       if(nextEvent && nextEvent.type === "nav"){
         var arrowAngle = nextEvent.modifier && nextEvent.modifier.indexOf('left') >= 0 ? -45 : nextEvent.modifier && nextEvent.modifier.indexOf('right') >= 0 ? 45 : 0;
 
@@ -165,46 +179,45 @@
           <div style="text-align:right"><div style="font-size:10px;color:#7fa5b8">ANKUNFT</div><div style="font-size:14px;font-weight:900;color:#4dd0e1">${etaStr} (${remTimeStr})</div></div>
         </div>`;
 
-        // 3D Goldener Pfeil
         html += `<div class="holo-container">
           <div class="holo-base"></div>
           <div class="holo-arrow-box" style="--rot:${arrowAngle}deg">
             <svg class="holo-svg" viewBox="0 0 100 100">
               <defs>
-                <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
+                <linearGradient id="arrowGrad" x1="0" y1="0" x2="1" y2="1">
                   <stop offset="0%" stop-color="${arrowColor}"/>
-                  <stop offset="50%" stop-color="${arrowColor}"/>
-                  <stop offset="100%" stop-color="#b8860b"/>
+                  <stop offset="100%" stop-color="${arrowColor}"/>
                 </linearGradient>
               </defs>
-              <polygon points="50,5 90,50 65,50 65,95 35,95 35,50 10,50" fill="url(#goldGrad)" stroke="#fff" stroke-width="2"/>
+              <polygon points="50,5 90,50 65,50 65,95 35,95 35,50 10,50" fill="url(#arrowGrad)" stroke="#fff" stroke-width="2"/>
             </svg>
           </div>
         </div>
-        <div style="text-align:center;margin-top:-10px;z-index:10">
+        <div style="text-align:center;margin-top:-20px;z-index:10">
           <div style="font-size:15px;font-weight:900;color:${arrowColor};text-shadow:0 0 10px ${arrowGlow}">${_esc(nextEvent.instruction)}</div>
           <div style="font-size:12px;color:#fff;margin-top:2px">in ${fmtDist(nextEvent.distance)}</div>
         </div>`;
       } else {
-        html += `<div style="text-align:center;margin:20px 0;color:#7fa5b8;font-size:12px">Keine aktive Route.</div>`;
+        html += `<div style="text-align:center;margin:15px 0;color:#7fa5b8;font-size:12px">Keine aktive Route.</div>`;
       }
 
-      // SVG Tacho mit Skala
+      // Tacho
       html += `<div class="cpt-tacho">
         ${currentLimit !== null ? `<div class="cpt-limit"><div class="cpt-limit-num">${currentLimit === 0 ? "∞" : currentLimit}</div></div>` : ''}
-        <svg class="svg-ring" viewBox="0 0 200 200">
+        <div class="tacho-bg"></div>
+        <svg viewBox="0 0 200 200" style="position:absolute;inset:0;width:100%;height:100%;">
+          <path d="M 47 153 A 75 75 0 1 1 153 153" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="8" />
+          <path d="M 47 153 A 75 75 0 1 1 153 153" fill="none" stroke="${speed>180?'#ff5555':speed>140?'#ffd54f':'#4dd0e1'}" stroke-width="8" stroke-linecap="round" stroke-dasharray="353" stroke-dashoffset="${353 - (Math.min(speed,maxSpeed)/maxSpeed * 353)}" style="transition:stroke-dashoffset .2s" />
           ${ticks}
-          <circle class="bg" cx="100" cy="100" r="85"></circle>
-          <circle class="fg" cx="100" cy="100" r="85" style="stroke-dashoffset:${565 - (percent * 565)}"></circle>
         </svg>
         <div class="needle-container"><div class="needle"></div></div>
+        <div class="needle-center"></div>
         <div class="cpt-speed">${speed}</div>
         <div class="cpt-unit">KM/H</div>
       </div>`;
 
       var elapsedMin = trip.active ? Math.floor((Date.now() - trip.startTime) / 60000) : 0;
 
-      // Bottom Bar
       html += `<div class="cpt-bottom">
         <div class="cpt-stat">
           <div><span>${trip.distance.toFixed(1)} km</span><span>Strecke</span></div>
@@ -222,139 +235,87 @@
       fetchPOIsIfNeeded(); fetchSpeedLimitIfNeeded();
     }
 
-    /* ═══════════ REPARIERTE FUNKTIONEN ═══════════ */
-    function checkTriggers(pos){
-      var s = getSettings(), lat = pos.coords.latitude, lng = pos.coords.longitude;
-      var zones = [2000, 1000, 500, 200];
-      getWarnings().forEach(w => {
-        if(!s.enabled[w.cat]) return;
-        var d = haversine(lat, lng, w.lat, w.lng), cat = getCat(w.cat); if(!cat) return;
-        for(var i=0; i<zones.length; i++){
-          var key = w.id + "_z" + i;
-          if(d <= zones[i] && !triggered[key]){
-            triggered[key] = true; 
-            speakAlert(cat, d, s); 
-            trip.warnings++;
-            var wn = container.querySelector("#tripWarn"); if(wn) wn.textContent = trip.warnings;
-            break;
-          }
+    /* ═══════════ KI VISION (Wiederhergestellt) ═══════════ */
+    function screenVision(){
+      var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
+      <div class="card">
+        <h3>🤖 KI-Kamera (TensorFlow)</h3>
+        <div style="font-size:11px;color:var(--text-mute);margin-bottom:10px">Erkennt Autos, LKW, Personen in Echtzeit.</div>
+        <div style="position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center">
+          <video id="visionVideo" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:none"></video>
+          <canvas id="visionCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;display:none"></canvas>
+          <div id="visionPlaceholder" style="color:#aaa;text-align:center;padding:20px"><div style="font-size:44px">📷</div><div style="font-size:11px;margin-top:8px">Kamera starten</div></div>
+        </div>
+        <button class="btn full" id="visionStart" style="padding:14px;margin-top:10px;background:linear-gradient(135deg,#b478ff,#4dd0e1);color:#fff">📷 KI aktivieren</button>
+        <div id="visionStatus" style="text-align:center;font-size:11px;font-weight:900;color:#4ade80;margin-top:8px">Bereit</div>
+      </div>`;
+      container.innerHTML = html;
+      bindNav();
+      container.querySelector("#visionStart").addEventListener("click", startVision);
+    }
+
+    async function startVision(){
+      if(tfModel){ stopVision(); return; }
+      var status = document.getElementById("visionStatus");
+      status.textContent = "Lade KI-Modell...";
+      try {
+        if(!window.tf || !window.cocoSsd){
+          await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.2.0/dist/tf.min.js");
+          await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js");
         }
+        tfModel = await cocoSsd.load();
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+        var video = document.getElementById("visionVideo");
+        video.srcObject = cameraStream; video.style.display = "block";
+        document.getElementById("visionPlaceholder").style.display = "none";
+        document.getElementById("visionCanvas").style.display = "block";
+        document.getElementById("visionStart").textContent = "⏹ KI stoppen";
+        status.textContent = "🟢 Live - Analysiere...";
+        runVisionLoop();
+      } catch(e){ status.textContent = "❌ Fehler: " + e.message; }
+    }
+
+    function loadScript(src){
+      return new Promise((res, rej) => {
+        var s = document.createElement("script");
+        s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s);
       });
-      Object.keys(poiCache).forEach(id => {
-        var p = poiCache[id]; if(!p.cat || !s.enabled[p.cat]) return;
-        var d = haversine(lat, lng, p.lat, p.lng), key = "poi_" + id;
-        if(d < s.warnDist && !triggered[key]){ triggered[key] = true; speakAlert(getCat(p.cat), d, s); }
-        if(d > s.warnDist + 200) delete triggered[key];
-      });
     }
 
-    function fetchSpeedLimitIfNeeded(){
-      if(!lastPos || simTimer) return; 
-      var now = Date.now();
-      if(now - lastLimitFetch < 15000) return; 
-      lastLimitFetch = now;
-      var lat = lastPos.coords.latitude, lng = lastPos.coords.longitude;
+    async function runVisionLoop(){
+      if(!tfModel || !cameraStream) return;
+      var video = document.getElementById("visionVideo"), canvas = document.getElementById("visionCanvas");
+      if(!video || !canvas) return;
+      var ctx2d = canvas.getContext("2d");
+      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
       
-      fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(`[out:json];way(around:30,${lat},${lng})["highway"]["maxspeed"];out tags;`))
-        .then(r => r.json()).then(data => {
-          if(data.elements && data.elements.length > 0){
-            var ms = data.elements[0].tags.maxspeed;
-            if(ms === "none" || ms === "signals" || ms === "DE:urban") currentLimit = ms === "DE:urban" ? 50 : 0;
-            else { var num = parseInt(ms); currentLimit = isNaN(num) ? null : num; }
-          } else currentLimit = null;
-          
-          if(view.screen === "cockpit"){
-            var el = container.querySelector(".cpt-limit");
-            if(el){
-              el.style.display = currentLimit === null ? "none" : "flex";
-              el.innerHTML = `<div class="cpt-limit-num">${currentLimit === 0 ? "∞" : currentLimit}</div>`;
-            }
+      async function detect(){
+        if(!tfModel || !cameraStream) return;
+        var predictions = await tfModel.detect(video);
+        ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+        predictions.forEach(p => {
+          if(p.class === "car" || p.class === "truck" || p.class === "person" || p.class === "bicycle"){
+            var [x, y, w, h] = p.bbox;
+            ctx2d.strokeStyle = p.class === "person" ? "#ff5555" : "#4dd0e1";
+            ctx2d.lineWidth = 3; ctx2d.strokeRect(x, y, w, h);
+            ctx2d.fillStyle = p.class === "person" ? "#ff5555" : "#4dd0e1";
+            ctx2d.font = "16px sans-serif";
+            ctx2d.fillText(p.class.toUpperCase() + " " + Math.round(p.score * 100) + "%", x, y > 20 ? y - 5 : y + 20);
           }
-        }).catch(()=>{});
-    }
-
-    function fetchPOIsIfNeeded(){
-      if(!lastPos || simTimer) return;
-      var lat = lastPos.coords.latitude, lng = lastPos.coords.longitude;
-      var s = getSettings();
-      var enabled = CATS.filter(c => c.type === "poi" && s.enabled[c.id]);
-      if(!enabled.length) return;
-      var filter = enabled.map(c => `node(around:3000,${lat},${lng})[${c.osm}];`).join("");
-      fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(`[out:json];(${filter});out center 20;`))
-        .then(r => r.json()).then(data => {
-          if(!data.elements) return;
-          data.elements.forEach(el => {
-            if(!poiCache[el.id]){
-              poiCache[el.id] = { id: el.id, lat: el.lat, lng: el.lon, cat: guessCatFromTags(el.tags) };
-            }
-          });
-        }).catch(()=>{});
-    }
-
-    function guessCatFromTags(tags){
-      if(!tags) return null;
-      if(tags.amenity === "fuel") return "poi_fuel";
-      if(tags.highway === "rest_area") return "poi_rest";
-      if(tags.tourism === "hotel") return "poi_hotel";
-      if(tags.shop === "car_repair") return "poi_werkstatt";
-      return null;
-    }
-
-    /* ═══════════ SIMULATION & GEOLOCATION ═══════════ */
-    function startSimulation(){
-      if(simTimer) clearInterval(simTimer);
-      lastPos = { coords: { latitude: 51.1657, longitude: 10.4515, speed: 0 } }; 
-      trip = { active:true, startTime:Date.now(), distance:0, warnings:0 };
-      
-      simSpeed = 30;
-      simTimer = setInterval(() => {
-        simSpeed = Math.min(180, simSpeed + Math.random() * 15);
-        if(simSpeed > 150 && Math.random() > 0.8) simSpeed -= 40; // Zufälliges Bremsen
-        trip.distance += (simSpeed / 3600);
-        
-        // Simuliere Warnungen
-        if(Math.random() > 0.95){
-           var randomCat = CATS[Math.floor(Math.random()*CATS.length)];
-           speakAlert(randomCat, 500, getSettings());
-           trip.warnings++;
-        }
-
-        if(view.screen === "cockpit"){
-          var t = container.querySelector(".cpt-speed");
-          if(t) t.textContent = Math.round(simSpeed);
-          var d = container.querySelector("#tripDist");
-          if(d) d.textContent = trip.distance.toFixed(1) + " km";
-          var w = container.querySelector("#tripWarn");
-          if(w) w.textContent = trip.warnings;
-          build();
-        }
-      }, 1000);
-      build();
-    }
-
-    function startGeo(){
-      if(!navigator.geolocation) return;
-      if(geoWatch) navigator.geolocation.clearWatch(geoWatch);
-      geoWatch = navigator.geolocation.watchPosition(onPos, onErr, { enableHighAccuracy:true, maximumAge:3000, timeout:15000 });
-    }
-    function onPos(pos){
-      if(simTimer) return;
-      if(lastPos && trip.active){
-        var d = haversine(lastPos.coords.latitude, lastPos.coords.longitude, pos.coords.latitude, pos.coords.longitude);
-        if(d > 3 && d < 500) trip.distance += d / 1000;
+        });
+        if(cameraStream) visionLoop = requestAnimationFrame(detect);
       }
-      lastPos = pos;
-      checkTriggers(pos);
-      if(view.screen === "cockpit"){
-        var t = container.querySelector(".cpt-speed");
-        if(t) t.textContent = Math.round((pos.coords.speed||0)*3.6);
-        fetchPOIsIfNeeded(); fetchSpeedLimitIfNeeded();
-      }
-      if(view.screen === "map" && map) updateMapMarkers();
+      detect();
     }
-    function onErr(err){ console.warn("[Blitzer] GPS:", err.message); }
 
-    /* ═══════════ SETTINGS, NAV, MAP, LIST ═══════════ */
+    function stopVision(){
+      if(visionLoop) cancelAnimationFrame(visionLoop);
+      visionLoop = null;
+      if(cameraStream){ cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+      tfModel = null; screenVision();
+    }
+
+    /* ═══════════ SETTINGS & HILFSFUNKTIONEN ═══════════ */
     function screenSettings(){
       var s = getSettings();
       var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>`;
@@ -369,7 +330,8 @@
         html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">
           <span style="font-size:12px;font-weight:800">${c.icon} ${_esc(c.name.de)}</span>
           <select data-sound="${c.id}" style="background:rgba(0,0,0,.5);color:#fff;border:1px solid #444;border-radius:6px;padding:4px 8px;font-size:11px">
-            <option value="urgent" ${currentSound==='urgent'?'selected':''}>🚨 Dringend</option>
+            <option value="extreme" ${currentSound==='extreme'?'selected':''}>🚨 Extrem</option>
+            <option value="urgent" ${currentSound==='urgent'?'selected':''}>⚠️ Dringend</option>
             <option value="alarm" ${currentSound==='alarm'?'selected':''}>🔔 Alarm</option>
             <option value="chime" ${currentSound==='chime'?'selected':''}>🎵 Glocke</option>
             <option value="low" ${currentSound==='low'?'selected':''}>🕊️ Sanft</option>
@@ -540,9 +502,138 @@
       if(settings.vibrateOn && navigator.vibrate) navigator.vibrate([100,50,100]);
     }
 
+    function startSimulation(){
+      if(simTimer) clearInterval(simTimer);
+      lastPos = { coords: { latitude: 51.1657, longitude: 10.4515, speed: 0 } }; 
+      trip = { active:true, startTime:Date.now(), distance:0, warnings:0 };
+      
+      simSpeed = 30;
+      simTimer = setInterval(() => {
+        simSpeed = Math.min(180, simSpeed + Math.random() * 15);
+        if(simSpeed > 150 && Math.random() > 0.8) simSpeed -= 40; 
+        trip.distance += (simSpeed / 3600);
+        
+        if(Math.random() > 0.95){
+           var randomCat = CATS[Math.floor(Math.random()*CATS.length)];
+           speakAlert(randomCat, 500, getSettings());
+           trip.warnings++;
+        }
+
+        if(view.screen === "cockpit"){
+          var t = container.querySelector(".cpt-speed");
+          if(t) t.textContent = Math.round(simSpeed);
+          var d = container.querySelector("#tripDist");
+          if(d) d.textContent = trip.distance.toFixed(1) + " km";
+          var w = container.querySelector("#tripWarn");
+          if(w) w.textContent = trip.warnings;
+          build();
+        }
+      }, 1000);
+      build();
+    }
+
+    function startGeo(){
+      if(!navigator.geolocation) return;
+      if(geoWatch) navigator.geolocation.clearWatch(geoWatch);
+      geoWatch = navigator.geolocation.watchPosition(onPos, onErr, { enableHighAccuracy:true, maximumAge:3000, timeout:15000 });
+    }
+    function onPos(pos){
+      if(simTimer) return;
+      if(lastPos && trip.active){
+        var d = haversine(lastPos.coords.latitude, lastPos.coords.longitude, pos.coords.latitude, pos.coords.longitude);
+        if(d > 3 && d < 500) trip.distance += d / 1000;
+      }
+      lastPos = pos;
+      checkTriggers(pos);
+      if(view.screen === "cockpit"){
+        var t = container.querySelector(".cpt-speed");
+        if(t) t.textContent = Math.round((pos.coords.speed||0)*3.6);
+        fetchPOIsIfNeeded(); fetchSpeedLimitIfNeeded();
+      }
+      if(view.screen === "map" && map) updateMapMarkers();
+    }
+    function onErr(err){ console.warn("[Blitzer] GPS:", err.message); }
+
+    function checkTriggers(pos){
+      var s = getSettings(), lat = pos.coords.latitude, lng = pos.coords.longitude;
+      var zones = [2000, 1000, 500, 200];
+      getWarnings().forEach(w => {
+        if(!s.enabled[w.cat]) return;
+        var d = haversine(lat, lng, w.lat, w.lng), cat = getCat(w.cat); if(!cat) return;
+        for(var i=0; i<zones.length; i++){
+          var key = w.id + "_z" + i;
+          if(d <= zones[i] && !triggered[key]){
+            triggered[key] = true; 
+            speakAlert(cat, d, s); 
+            trip.warnings++;
+            var wn = container.querySelector("#tripWarn"); if(wn) wn.textContent = trip.warnings;
+            break;
+          }
+        }
+      });
+      Object.keys(poiCache).forEach(id => {
+        var p = poiCache[id]; if(!p.cat || !s.enabled[p.cat]) return;
+        var d = haversine(lat, lng, p.lat, p.lng), key = "poi_" + id;
+        if(d < s.warnDist && !triggered[key]){ triggered[key] = true; speakAlert(getCat(p.cat), d, s); }
+        if(d > s.warnDist + 200) delete triggered[key];
+      });
+    }
+
+    function fetchSpeedLimitIfNeeded(){
+      if(!lastPos || simTimer) return; 
+      var now = Date.now();
+      if(now - lastLimitFetch < 15000) return; 
+      lastLimitFetch = now;
+      var lat = lastPos.coords.latitude, lng = lastPos.coords.longitude;
+      
+      fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(`[out:json];way(around:30,${lat},${lng})["highway"]["maxspeed"];out tags;`))
+        .then(r => r.json()).then(data => {
+          if(data.elements && data.elements.length > 0){
+            var ms = data.elements[0].tags.maxspeed;
+            if(ms === "none" || ms === "signals" || ms === "DE:urban") currentLimit = ms === "DE:urban" ? 50 : 0;
+            else { var num = parseInt(ms); currentLimit = isNaN(num) ? null : num; }
+          } else currentLimit = null;
+          
+          if(view.screen === "cockpit"){
+            var el = container.querySelector(".cpt-limit");
+            if(el){
+              el.style.display = currentLimit === null ? "none" : "flex";
+              el.innerHTML = `<div class="cpt-limit-num">${currentLimit === 0 ? "∞" : currentLimit}</div>`;
+            }
+          }
+        }).catch(()=>{});
+    }
+
+    function fetchPOIsIfNeeded(){
+      if(!lastPos || simTimer) return;
+      var lat = lastPos.coords.latitude, lng = lastPos.coords.longitude;
+      var s = getSettings();
+      var enabled = CATS.filter(c => c.type === "poi" && s.enabled[c.id]);
+      if(!enabled.length) return;
+      var filter = enabled.map(c => `node(around:3000,${lat},${lng})[${c.osm}];`).join("");
+      fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(`[out:json];(${filter});out center 20;`))
+        .then(r => r.json()).then(data => {
+          if(!data.elements) return;
+          data.elements.forEach(el => {
+            if(!poiCache[el.id]){
+              poiCache[el.id] = { id: el.id, lat: el.lat, lng: el.lon, cat: guessCatFromTags(el.tags) };
+            }
+          });
+        }).catch(()=>{});
+    }
+
+    function guessCatFromTags(tags){
+      if(!tags) return null;
+      if(tags.amenity === "fuel") return "poi_fuel";
+      if(tags.highway === "rest_area") return "poi_rest";
+      if(tags.tourism === "hotel") return "poi_hotel";
+      if(tags.shop === "car_repair") return "poi_werkstatt";
+      return null;
+    }
+
     startGeo(); build();
   }
 
   HalDoApp("blitzer", { name: "Blitzer", icon: "⚠️", render: render, category: "werkzeuge" });
-  console.log("🦚 blitzer.js v8.0 geladen — Echter Tacho · Goldene 3D-Pfeile · CarPlay-Ready");
+  console.log("🦚 blitzer.js v9.0 geladen — Echter 270° Tacho · Extreme Töne · KI-Kamera");
 })();
