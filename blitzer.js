@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — BLITZER v5.0 · AI DRIVE COCKPIT
+   HALDO AI OS — BLITZER v5.1 · AI DRIVE COCKPIT (FIXED)
    TensorFlow.js (Toter Winkel) · Hologramm-Pfeile · GPS · POIs
    ═══════════════════════════════════════════════════════════ */
 (function(){
@@ -68,13 +68,22 @@
     function getCustomVoice(){ return store.get("customVoice", {}); }
     function getCat(id){ return CATS.find(function(c){ return c.id === id; }); }
 
+    // ═══════════ REPARIERTE BUILD-FUNKTION ═══════════
+    function build(){
+      if(view.screen === "cockpit") screenCockpit();
+      else if(view.screen === "map") screenMap();
+      else if(view.screen === "settings") screenSettings();
+      else if(view.screen === "nav") screenNav();
+      else if(view.screen === "vision") screenVision();
+      else if(view.screen === "list") screenList();
+    }
+
     /* ═══════════ COCKPIT SCREEN ═══════════ */
     function screenCockpit(){
       var s = getSettings();
       var speed = lastPos ? Math.round((lastPos.coords.speed||0)*3.6) : 0;
       var nextEvent = getNextEvent();
 
-      // CSS STYLES (Sauber in einem String!)
       var css = `
         .cpt-wrap{position:relative;height:calc(100vh - 100px);min-height:600px;background:radial-gradient(ellipse at 50% 30%,#0a1220 0%,#050810 80%);border-radius:20px;padding:16px;display:flex;flex-direction:column;overflow:hidden;font-family:-apple-system,sans-serif}
         .cpt-glow{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:500px;height:500px;background:radial-gradient(circle,rgba(77,208,225,.15) 0%,transparent 60%);pointer-events:none}
@@ -107,7 +116,6 @@
         <button data-nav="settings" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;padding:10px 14px;border-radius:12px;font-size:11px;font-weight:900;cursor:pointer">⚙️</button>
       </div>`;
 
-      // HOLOGRAMM NAVIGATION HINT
       if(nextEvent && nextEvent.type === "nav"){
         html += `<div style="margin-top:12px;padding:14px;background:linear-gradient(135deg,rgba(77,208,225,.15),rgba(180,120,255,.15));border:1px solid rgba(77,208,225,.4);border-radius:16px;display:flex;align-items:center;gap:12px;z-index:15">
           <div class="holo-arrow-container"><div class="holo-arrow">${nextEvent.arrow}</div></div>
@@ -228,7 +236,6 @@
             var [x, y, w, h] = p.bbox;
             var area = (w * h) / (canvas.width * canvas.height);
             
-            // Zeichne Box
             ctx2d.strokeStyle = p.class === "person" ? "#ff5555" : "#4dd0e1";
             ctx2d.lineWidth = 3;
             ctx2d.strokeRect(x, y, w, h);
@@ -236,15 +243,13 @@
             ctx2d.font = "16px sans-serif";
             ctx2d.fillText(p.class.toUpperCase() + " " + Math.round(p.score * 100) + "%", x, y > 20 ? y - 5 : y + 20);
 
-            // Toter Winkel Warnung (wenn links/rechts und groß)
-            if(area > 0.15){ // Objekt ist groß (nah)
+            if(area > 0.15){
               if(x + w/2 < canvas.width * 0.4) leftAlert = true;
               if(x + w/2 > canvas.width * 0.6) rightAlert = true;
             }
           }
         });
 
-        // Visuelle Warnung im Cockpit
         var blindL = document.getElementById("blindLeft");
         var blindR = document.getElementById("blindRight");
         if(blindL) blindL.classList.toggle("alert", leftAlert);
@@ -509,7 +514,7 @@
       });
     }
 
-    /* ═══════════ MAP & LIST (Sauber) ═══════════ */
+    /* ═══════════ MAP & LIST ═══════════ */
     function screenMap(){
       var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
       <div class="card" style="padding:0;overflow:hidden;height:calc(100vh - 200px);position:relative"><div id="blMap" style="width:100%;height:100%;background:#0a1220"></div></div>`;
@@ -635,5 +640,5 @@
   }
 
   HalDoApp("blitzer", { name: "Blitzer", icon: "⚠️", render: render, category: "werkzeuge" });
-  console.log("🦚 blitzer.js v5.0 geladen — Cockpit · Tempolimit · Navi · POIs · KI-Kamera (TensorFlow)");
+  console.log("🦚 blitzer.js v5.1 geladen — Cockpit · Tempolimit · Navi · POIs · KI-Kamera (FIXED)");
 })();
