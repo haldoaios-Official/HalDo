@@ -1,13 +1,24 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — HALDO BLITZER v14.0 (ULTIMATE PRO)
-   Bluetooth · Sprach-Navi · Tacho-Settings · Tankstellen-Preise
-   Restaurants · Taschenlampe · Neue Kategorien
+   HALDO AI OS — HALDO BLITZER v15.0 (PREMIUM GOLD)
+   Willkommens-Screen · Pfau-Animation · 24K Gold · HalDoVoice
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
   if(!window.HalDo || !HalDo.Runtime) return;
 
   var LOGO_URL = "logo.png";
+
+  var WELCOME = {
+    de:{title:"Willkommen in",author:"von Halil Donma",footer:"HalDo Blitzer a Halil Donma",enter:"Los geht's",ai:"HalDo AI präsentiert"},
+    en:{title:"Welcome to",author:"by Halil Donma",footer:"HalDo Blitzer by Halil Donma",enter:"Let's Go",ai:"Presented by HalDo AI"},
+    tr:{title:"Hoşgeldiniz",author:"Halil Donma tarafından",footer:"HalDo Blitzer - Halil Donma",enter:"Başla",ai:"HalDo AI tarafından"},
+    ar:{title:"مرحبًا بك في",author:"من هليل دونما",footer:"هالدو بليتزر من هليل دونما",enter:"هيا بنا",ai:"مقدمة من هالدو AI"},
+    ku:{title:"Bi xêr hatî",author:"ji hêla Halîl Donma",footer:"HalDo Blitzer ji Halîl Donma",enter:"Dest pê bike",ai:"HalDo AI pêşkêş dike"},
+    fr:{title:"Bienvenue dans",author:"par Halil Donma",footer:"HalDo Blitzer par Halil Donma",enter:"C'est parti",ai:"Présenté par HalDo AI"},
+    es:{title:"Bienvenido a",author:"por Halil Donma",footer:"HalDo Blitzer por Halil Donma",enter:"Vamos",ai:"Presentado por HalDo AI"},
+    it:{title:"Benvenuto in",author:"di Halil Donma",footer:"HalDo Blitzer di Halil Donma",enter:"Andiamo",ai:"Presentato da HalDo AI"},
+    ru:{title:"Добро пожаловать в",author:"от Халила Донма",footer:"HalDo Blitzer от Халила Донма",enter:"Поехали",ai:"Представлено HalDo AI"}
+  };
 
   var CATS = [
     { id:"blitzer_fix",   icon:"📷", color:"#ff5555", type:"warn", sound:"siren",  name:{de:"Fester Blitzer",en:"Fixed Camera",tr:"Sabit Radar",ar:"رادار ثابت",ku:"Radarê Sabît",fr:"Radar fixe",es:"Radar fijo",it:"Autovelox fisso",ru:"Стационарная камера"}, voice:{de:"Achtung, Blitzer in {d}",en:"Warning, camera in {d}",tr:"Dikkat, radar {d}",ar:"تحذير رادار {d}",ku:"Hişyarî, radar li {d}",fr:"Attention, radar à {d}",es:"Atención, radar en {d}",it:"Attenzione, autovelox a {d}",ru:"Внимание, камера через {d}"} },
@@ -30,11 +41,24 @@
     ru:{name:"Русский",code:"ru-RU"}
   };
 
+  var ARROW_COLORS = {
+    gold24k:{fill:"#ffd700", glow:"rgba(255,215,0,.9)", name:"🥇 24K Gold"},
+    gold:{fill:"#ffed4e", glow:"rgba(255,237,78,.9)", name:"✨ Hellgold"},
+    blue:{fill:"#4dd0e1", glow:"rgba(77,208,225,.8)", name:"💎 Cyan"},
+    white:{fill:"#ffffff", glow:"rgba(255,255,255,.8)", name:"⚪ Weiß"},
+    green:{fill:"#4ade80", glow:"rgba(74,222,128,.8)", name:"🟢 Neon-Grün"},
+    red:{fill:"#ff5555", glow:"rgba(255,85,85,.8)", name:"🔴 Rot"},
+    purple:{fill:"#b478ff", glow:"rgba(180,120,255,.8)", name:"🟣 Lila"},
+    orange:{fill:"#ff8844", glow:"rgba(255,136,68,.8)", name:"🟠 Orange"},
+    silver:{fill:"#e0e0e0", glow:"rgba(224,224,224,.8)", name:"🥈 Silber"},
+    pink:{fill:"#ff77aa", glow:"rgba(255,119,170,.8)", name:"🌸 Pink"}
+  };
+
   var DEFAULT_SETTINGS = {
     enabled:{}, lang:"de", voiceOn:true, navVoiceOn:true, beepOn:true, notifyOn:true,
-    warnDist:1000, sounds:{}, arrowColor:"gold", tachoColor:"#4dd0e1",
+    warnDist:1000, sounds:{}, arrowColor:"gold24k", tachoColor:"#ffd700",
     alarmDuration:5, offlineMode:false, flashOnWarning:false, globalMute:false,
-    tankerApiKey:"", btDeviceName:null
+    tankerApiKey:"", btDeviceName:null, useCustomVoice:false
   };
   CATS.forEach(c => { DEFAULT_SETTINGS.enabled[c.id]=true; DEFAULT_SETTINGS.sounds[c.id]=c.sound||"chime"; });
 
@@ -43,6 +67,26 @@
   function haversine(lat1,lng1,lat2,lng2){ var R=6371000, dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180; var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2); return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); }
   function fmtDist(m){ return m<1000 ? Math.round(m/10)*10+" m" : (m/1000).toFixed(1)+" km"; }
   function fmtTime(sec){ var h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60; return (h>0?h+"h ":"")+m+"m "+s+"s"; }
+
+  // ── APP ICON SVG (Warnschild mit Kamera) ─────────────────
+  function appIconSVG(size){
+    size = size || 60;
+    return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" style="display:inline-block;vertical-align:middle;filter:drop-shadow(0 4px 12px rgba(255,215,0,0.5))">
+      <defs>
+        <linearGradient id="iconGoldGrad${size}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ffe85e"/>
+          <stop offset="50%" stop-color="#ffd700"/>
+          <stop offset="100%" stop-color="#ffb300"/>
+        </linearGradient>
+      </defs>
+      <polygon points="50,6 95,92 5,92" fill="url(#iconGoldGrad${size})" stroke="#1a1a2e" stroke-width="4" stroke-linejoin="round"/>
+      <rect x="32" y="48" width="36" height="26" rx="3" fill="#1a1a2e" stroke="#fff" stroke-width="1.5"/>
+      <rect x="44" y="41" width="12" height="9" rx="1" fill="#1a1a2e" stroke="#fff" stroke-width="1.5"/>
+      <circle cx="50" cy="61" r="8" fill="#4dd0e1" stroke="#fff" stroke-width="1.5"/>
+      <circle cx="50" cy="61" r="3" fill="#fff"/>
+      <rect x="34" y="52" width="6" height="3" fill="#ffd700"/>
+    </svg>`;
+  }
 
   // ── AUDIO ENGINE ───────────────────────────────────────────
   var audioCtx = null;
@@ -132,7 +176,7 @@
     });
   }
 
-  // ── FLASHLIGHT (Torch) ─────────────────────────────────────
+  // ── FLASHLIGHT ─────────────────────────────────────────────
   var torchStream = null, torchTrack = null, torchTimer = null;
   async function setTorch(on){
     try {
@@ -158,30 +202,34 @@
     }, 250);
   }
 
-  // ── MAIN RENDER ────────────────────────────────────────────
+  // ═══════════════ MAIN RENDER ═══════════════
   function render(container, ctx){
     var store = ctx.store;
-    var view = { screen:"cockpit", settingsSub:null };
-    var geoWatch=null, lastPos=null, simTimer=null, simSpeed=0;
+    var view = { screen:"splash" };
+    var geoWatch=null, lastPos=null;
     var trip = { active:false, startTime:0, distance:0, warnings:0 };
     var map=null, mapMarkers=[], triggered={}, lastLimitFetch=0, currentLimit=null;
     var poiCache={}, routeData=null, targetPos=null;
     var tfModel=null, cameraStream=null, visionLoop=null;
     var weatherData=null, weatherPos=store.get("weatherPos",{x:20,y:60});
     var parkTimer=null, parkEndTime=0;
-    var fuelStations=[], fuelCache={}, restaurantCache={};
+    var fuelStations=[];
     var btDevice=null, btServer=null;
     var lastSpokenStep=null, lastSpokenDist=null;
+    var voiceRecorder=null, voiceChunks=[];
 
     function getSettings(){ var s=store.get("settings",{}); var m=JSON.parse(JSON.stringify(DEFAULT_SETTINGS)); Object.keys(s).forEach(function(k){ m[k]=s[k]; }); return m; }
     function saveSettings(s){ store.set("settings",s); }
     function getWarnings(){ return store.get("warnings",[]); }
     function saveWarnings(w){ store.set("warnings",w); }
     function getCat(id){ return CATS.find(function(c){ return c.id===id; }); }
+    function getCustomVoice(){ return store.get("customVoice",{}); }
+    function saveCustomVoice(v){ store.set("customVoice",v); }
 
     function build(){
       var sc = view.screen;
-      if(sc==="cockpit") screenCockpit();
+      if(sc==="splash") screenSplash();
+      else if(sc==="cockpit") screenCockpit();
       else if(sc==="map") screenMap();
       else if(sc==="settings") screenSettingsMenu();
       else if(sc==="settings_display") screenSettingsDisplay();
@@ -190,6 +238,7 @@
       else if(sc==="settings_lang") screenSettingsLang();
       else if(sc==="settings_bt") screenSettingsBT();
       else if(sc==="settings_flash") screenSettingsFlash();
+      else if(sc==="settings_voice") screenSettingsVoice();
       else if(sc==="settings_about") screenSettingsAbout();
       else if(sc==="nav") screenNav();
       else if(sc==="vision") screenVision();
@@ -197,14 +246,82 @@
       else if(sc==="report") screenReport();
       else if(sc==="park") screenPark();
       else if(sc==="fuel") screenFuel();
+      else if(sc==="restaurant") screenRestaurants();
+    }
+
+    // ═══════════════ SPLASH SCREEN ═══════════════
+    function screenSplash(){
+      var s = getSettings();
+      var w = WELCOME[s.lang] || WELCOME.de;
+      var css = `
+        .splash{position:fixed;inset:0;background:linear-gradient(to bottom,#0a0e2a 0%,#1a1a4e 30%,#2a1a5e 50%,#5a3a6a 70%,#8a5a3a 90%,#c88a4a 100%);overflow:hidden;z-index:99999;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff}
+        .splash-stars{position:absolute;inset:0;background-image:radial-gradient(1px 1px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 40% 70%,#fff,transparent),radial-gradient(1.5px 1.5px at 60% 20%,#fff,transparent),radial-gradient(1px 1px at 80% 50%,#fff,transparent),radial-gradient(1px 1px at 30% 85%,#fff,transparent),radial-gradient(1.5px 1.5px at 70% 40%,#fff,transparent),radial-gradient(1px 1px at 90% 80%,#fff,transparent);animation:twinkle 4s ease-in-out infinite alternate;pointer-events:none}
+        @keyframes twinkle{from{opacity:.4}to{opacity:1}}
+        .splash-ray{position:absolute;top:12%;left:50%;transform:translateX(-50%);width:340px;height:340px;z-index:1;animation:rayRotate 40s linear infinite;pointer-events:none}
+        .splash-ray::before{content:'';position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 0deg,rgba(255,215,0,.35) 8deg,transparent 16deg,transparent 28deg,rgba(255,215,0,.35) 36deg,transparent 44deg,transparent 56deg,rgba(255,215,0,.35) 64deg,transparent 72deg,transparent 84deg,rgba(255,215,0,.35) 92deg,transparent 100deg,transparent 112deg,rgba(255,215,0,.35) 120deg,transparent 128deg,transparent 140deg,rgba(255,215,0,.35) 148deg,transparent 156deg,transparent 168deg,rgba(255,215,0,.35) 176deg,transparent 184deg,transparent 196deg,rgba(255,215,0,.35) 204deg,transparent 212deg,transparent 224deg,rgba(255,215,0,.35) 232deg,transparent 240deg,transparent 252deg,rgba(255,215,0,.35) 260deg,transparent 268deg,transparent 280deg,rgba(255,215,0,.35) 288deg,transparent 296deg,transparent 308deg,rgba(255,215,0,.35) 316deg,transparent 324deg,transparent 336deg,rgba(255,215,0,.35) 344deg,transparent 352deg);border-radius:50%;filter:blur(2px)}
+        @keyframes rayRotate{to{transform:translateX(-50%) rotate(360deg)}}
+        .splash-sun{position:absolute;top:12%;left:50%;transform:translateX(-50%);width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,#fffce0 0%,#ffe85e 25%,#ffd700 50%,#ff9800 75%,#ff6f00 100%);box-shadow:0 0 80px #ffd700,0 0 160px #ff9800,0 0 240px rgba(255,152,0,.4);z-index:2;animation:sunPulse 3s ease-in-out infinite}
+        @keyframes sunPulse{0%,100%{box-shadow:0 0 80px #ffd700,0 0 160px #ff9800,0 0 240px rgba(255,152,0,.4);transform:translateX(-50%) scale(1)}50%{box-shadow:0 0 120px #ffd700,0 0 220px #ff9800,0 0 320px rgba(255,152,0,.6);transform:translateX(-50%) scale(1.08)}}
+        .splash-glow{position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);width:320px;height:320px;background:radial-gradient(circle,rgba(255,215,0,.5),rgba(180,120,255,.3) 35%,transparent 70%);border-radius:50%;filter:blur(40px);animation:glowPulse 2s ease-in-out infinite;z-index:3;pointer-events:none}
+        @keyframes glowPulse{0%,100%{opacity:.6;transform:translate(-50%,-50%) scale(1)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.3)}}
+        .splash-peacock{position:absolute;top:38%;left:50%;font-size:150px;line-height:1;transform:translate(-50%,-50%);z-index:5;filter:drop-shadow(0 0 30px rgba(255,215,0,.9)) drop-shadow(0 0 60px rgba(180,120,255,.6));animation:peacockFly 4s cubic-bezier(.4,0,.2,1) forwards;pointer-events:none}
+        @keyframes peacockFly{
+          0%{transform:translate(200%,-400%) scale(.15) rotate(-45deg);opacity:0}
+          15%{opacity:1}
+          35%{transform:translate(50%,-180%) scale(.5) rotate(-20deg);opacity:1}
+          55%{transform:translate(-50%,-60%) scale(.95) rotate(0deg);opacity:1}
+          62%{transform:translate(-50%,-50%) scale(1.25,.85) rotate(0deg)}
+          68%{transform:translate(-50%,-50%) scale(.85,1.25) rotate(0deg)}
+          74%{transform:translate(-50%,-50%) scale(1.15,.9) rotate(0deg)}
+          80%{transform:translate(-50%,-50%) scale(.95,1.1) rotate(0deg)}
+          86%{transform:translate(-50%,-50%) scale(1.08,.95) rotate(0deg)}
+          100%{transform:translate(-50%,-50%) scale(1) rotate(0deg)}
+        }
+        .splash-feather{position:absolute;font-size:20px;pointer-events:none;z-index:4;opacity:0;animation:featherFloat 5s ease-out infinite}
+        @keyframes featherFloat{0%{opacity:0;transform:translateY(0) rotate(0deg)}20%{opacity:.9}100%{opacity:0;transform:translateY(-200px) rotate(360deg)}}
+        .splash-content{position:absolute;bottom:12%;left:50%;transform:translateX(-50%);text-align:center;z-index:10;width:90%;max-width:440px;padding:0 16px}
+        .splash-ai{font-size:11px;letter-spacing:3px;color:#ffd700;font-weight:900;text-transform:uppercase;opacity:0;animation:fadeInUp .8s ease-out 2.4s forwards;text-shadow:0 0 15px rgba(255,215,0,.6)}
+        .splash-title{font-size:22px;font-weight:800;margin:6px 0;opacity:0;animation:fadeInUp .8s ease-out 2.8s forwards;color:#fff}
+        .splash-brand{font-size:46px;font-weight:900;margin:4px 0;background:linear-gradient(135deg,#ffe85e 0%,#ffd700 30%,#ffb300 60%,#ffe85e 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;background-size:200% 200%;animation:brandShimmer 3s ease-in-out infinite,fadeInUp .9s ease-out 3.2s forwards;text-shadow:0 0 40px rgba(255,215,0,.4);opacity:0;filter:drop-shadow(0 4px 12px rgba(255,215,0,.5));letter-spacing:1px}
+        @keyframes brandShimmer{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+        .splash-author{font-size:15px;color:#ffe85e;font-weight:800;margin:6px 0 16px;opacity:0;animation:fadeInUp .8s ease-out 3.6s forwards;text-shadow:0 0 15px rgba(255,215,0,.5)}
+        .splash-footer{font-size:12px;color:rgba(255,255,255,.7);letter-spacing:1px;margin-bottom:20px;opacity:0;animation:fadeInUp .8s ease-out 4s forwards}
+        .splash-btn{padding:16px 44px;background:linear-gradient(135deg,#ffd700 0%,#ff9800 50%,#ffd700 100%);background-size:200% 100%;color:#0a0e2a;border:none;border-radius:14px;font-weight:900;font-size:16px;cursor:pointer;opacity:0;animation:fadeInUp .8s ease-out 4.4s forwards,btnGlow 2s ease-in-out infinite 5s;font-family:inherit;letter-spacing:1px;box-shadow:0 8px 24px rgba(255,215,0,.4);transition:transform .15s}
+        .splash-btn:active{transform:scale(.96)}
+        @keyframes btnGlow{0%,100%{box-shadow:0 8px 24px rgba(255,215,0,.4)}50%{box-shadow:0 12px 40px rgba(255,215,0,.7)}}
+        @keyframes fadeInUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+        .splash-peacock-label{position:absolute;bottom:52%;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:4px;color:rgba(255,215,0,.7);font-weight:900;opacity:0;animation:fadeInUp .8s ease-out 2s forwards;text-transform:uppercase}
+      `;
+      var feathers = "";
+      for(var i=0;i<8;i++){
+        feathers += `<span class="splash-feather" style="left:${15+i*10}%;top:55%;animation-delay:${2+i*0.3}s">✨</span>`;
+      }
+      container.innerHTML = `<style>${css}</style>
+        <div class="splash">
+          <div class="splash-stars"></div>
+          <div class="splash-ray"></div>
+          <div class="splash-sun"></div>
+          <div class="splash-glow"></div>
+          ${feathers}
+          <div class="splash-peacock">🦚</div>
+          <div class="splash-peacock-label">Peacock · Tawisî</div>
+          <div class="splash-content">
+            <div class="splash-ai">${_esc(w.ai)}</div>
+            <div class="splash-title">${_esc(w.title)}</div>
+            <div class="splash-brand">HalDo Blitzer</div>
+            <div class="splash-author">${_esc(w.author)}</div>
+            <div class="splash-footer">${_esc(w.footer)}</div>
+            <button class="splash-btn" id="splashEnter">${_esc(w.enter)} →</button>
+          </div>
+        </div>`;
+      var enter = container.querySelector("#splashEnter");
+      if(enter) enter.addEventListener("click", function(){ view.screen="cockpit"; build(); });
     }
 
     // ═══════════════ COCKPIT ═══════════════
     function screenCockpit(){
       var s = getSettings();
       var speed = lastPos ? Math.round((lastPos.coords.speed||0)*3.6) : 0;
-      if(simTimer) speed = Math.round(simSpeed);
-
       var nextEvent = getNextEvent();
       var nearestWarning = getNearestWarning();
       var maxSpeed = 240, startAngle = 210, endAngle = 510;
@@ -226,17 +343,7 @@
         }
       }
 
-      var arrowColors = {
-        gold:{fill:"#ffd700",glow:"rgba(255,215,0,.8)"},
-        blue:{fill:"#4dd0e1",glow:"rgba(77,208,225,.8)"},
-        white:{fill:"#ffffff",glow:"rgba(255,255,255,.8)"},
-        green:{fill:"#4ade80",glow:"rgba(74,222,128,.8)"},
-        red:{fill:"#ff5555",glow:"rgba(255,85,85,.8)"},
-        purple:{fill:"#b478ff",glow:"rgba(180,120,255,.8)"},
-        orange:{fill:"#ff8844",glow:"rgba(255,136,68,.8)"}
-      };
-      var ac = arrowColors[s.arrowColor] || arrowColors.gold;
-
+      var ac = ARROW_COLORS[s.arrowColor] || ARROW_COLORS.gold24k;
       var etaStr="—", remTimeStr="—";
       if(routeData && routeData.totalTime){
         var eta = new Date(Date.now()+routeData.totalTime*1000);
@@ -245,41 +352,46 @@
       }
 
       var tachoColor = s.tachoColor;
+      var isGold = (s.arrowColor==="gold24k" || s.arrowColor==="gold");
+
       var css = `
-        .cpt-wrap{position:relative;height:calc(100vh - 100px);min-height:640px;background:radial-gradient(ellipse at 50% 30%,#0a1220 0%,#050810 80%);border-radius:20px;padding:16px;display:flex;flex-direction:column;overflow:hidden;font-family:-apple-system,sans-serif;color:#fff}
-        .cpt-top{display:flex;justify-content:space-between;z-index:10}
-        .cpt-navbtn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;padding:10px 14px;border-radius:12px;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:6px}
-        .cpt-tacho{position:relative;width:400px;height:400px;margin:8px auto;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .1s}
+        .cpt-wrap{position:relative;height:calc(100vh - 100px);min-height:680px;background:radial-gradient(ellipse at 50% 30%,#0a1220 0%,#050810 80%);border-radius:20px;padding:16px;display:flex;flex-direction:column;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;color:#fff}
+        .cpt-top{display:flex;justify-content:space-between;align-items:center;z-index:10}
+        .cpt-navbtn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;padding:10px 14px;border-radius:12px;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:6px;transition:.2s;font-family:inherit}
+        .cpt-navbtn:hover{background:rgba(255,215,0,.15);border-color:#ffd700}
+        .cpt-logo{width:52px;height:52px;border-radius:12px;object-fit:cover;border:2px solid ${tachoColor}88;box-shadow:0 0 20px ${tachoColor}55}
+        .cpt-tacho{position:relative;width:440px;height:440px;margin:6px auto;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .1s}
         .cpt-tacho:active{transform:scale(.98)}
-        .tacho-bg{position:absolute;inset:0;background:radial-gradient(circle,rgba(10,18,32,1) 0%,rgba(5,8,16,1) 100%);border-radius:50%;border:2px solid ${tachoColor}44;box-shadow:0 0 30px ${tachoColor}22,inset 0 0 20px rgba(0,0,0,.8)}
+        .tacho-bg{position:absolute;inset:0;background:radial-gradient(circle,rgba(10,18,32,1) 0%,rgba(5,8,16,1) 100%);border-radius:50%;border:3px solid ${tachoColor}55;box-shadow:0 0 40px ${tachoColor}33,inset 0 0 30px rgba(0,0,0,.85),inset 0 0 60px ${tachoColor}11}
         .needle-container{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform:rotate(${currentAngle}deg);transition:transform .3s cubic-bezier(.4,2.08,.55,.44)}
-        .needle{width:4px;height:155px;background:linear-gradient(to top,transparent 40%,#ff3333 40%,#ff3333 100%);position:absolute;bottom:50%;transform-origin:bottom center;border-radius:2px;box-shadow:0 0 12px #ff3333}
-        .needle-center{position:absolute;width:28px;height:28px;background:#111;border:4px solid #ff3333;border-radius:50%;z-index:2;box-shadow:0 0 20px #ff3333}
-        .inner-display{position:absolute;top:50%;left:50%;transform:translate(-50%,-30%);z-index:5;background:rgba(0,0,0,.55);border:1px solid ${tachoColor}55;border-radius:14px;padding:10px 14px;text-align:center;min-width:130px;backdrop-filter:blur(6px);box-shadow:0 0 20px ${tachoColor}33;cursor:pointer}
-        .inner-display .spd{font-size:36px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;text-shadow:0 0 12px ${tachoColor}}
-        .inner-display .unit{font-size:9px;color:#7fa5b8;font-weight:900;letter-spacing:2px;margin-top:2px}
-        .inner-display .wrn{margin-top:6px;font-size:10px;font-weight:900;padding:3px 8px;border-radius:10px;background:rgba(255,255,255,.08);white-space:nowrap}
-        .inner-display .hint{margin-top:6px;font-size:8px;color:#5a7a8a;letter-spacing:1px}
-        .cpt-limit{position:absolute;top:12px;right:12px;width:76px;height:76px;border-radius:50%;background:#fff;border:7px solid #ff3333;display:flex;align-items:center;justify-content:center;z-index:20;box-shadow:0 0 18px rgba(255,51,51,.6)}
-        .cpt-limit-num{font-size:28px;font-weight:900;color:#000}
+        .needle{width:4px;height:175px;background:linear-gradient(to top,transparent 40%,${isGold?'#ffd700':'#ff3333'} 40%,${isGold?'#ffd700':'#ff3333'} 100%);position:absolute;bottom:50%;transform-origin:bottom center;border-radius:2px;box-shadow:0 0 15px ${isGold?'#ffd700':'#ff3333'}}
+        .needle-center{position:absolute;width:32px;height:32px;background:#111;border:4px solid ${isGold?'#ffd700':'#ff3333'};border-radius:50%;z-index:2;box-shadow:0 0 25px ${isGold?'#ffd700':'#ff3333'}}
+        .inner-display{position:absolute;top:50%;left:50%;transform:translate(-50%,-30%);z-index:5;background:linear-gradient(135deg,rgba(20,30,50,.92) 0%,rgba(10,15,25,.96) 100%);backdrop-filter:blur(20px) saturate(180%);border:1.5px solid ${isGold?'rgba(255,215,0,.5)':'rgba(77,208,225,.4)'};border-radius:20px;padding:14px 22px;text-align:center;min-width:180px;box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.15),0 0 40px ${isGold?'rgba(255,215,0,.25)':'rgba(77,208,225,.2)'};cursor:pointer;transition:transform .15s}
+        .inner-display:active{transform:translate(-50%,-30%) scale(.97)}
+        .inner-display .spd{font-size:48px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;background:linear-gradient(180deg,${isGold?'#ffe85e 0%,#ffd700 50%,#ffb300 100%':'#4dd0e1 0%,#b478ff 100%'});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 15px ${isGold?'rgba(255,215,0,.6)':'rgba(77,208,225,.5)'})}
+        .inner-display .unit{font-size:10px;color:#7fa5b8;font-weight:900;letter-spacing:3px;margin-top:2px}
+        .inner-display .wrn{margin-top:8px;font-size:10px;font-weight:900;padding:4px 10px;border-radius:12px;background:rgba(255,255,255,.08);white-space:nowrap;display:inline-block;border:1px solid rgba(255,255,255,.1)}
+        .inner-display .hint{margin-top:8px;font-size:8px;color:#5a7a8a;letter-spacing:1.5px;font-weight:900}
+        .inner-display .divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);margin:8px 0}
+        .cpt-limit{position:absolute;top:8px;right:8px;width:82px;height:82px;border-radius:50%;background:#fff;border:8px solid #ff3333;display:flex;align-items:center;justify-content:center;z-index:20;box-shadow:0 0 22px rgba(255,51,51,.7)}
+        .cpt-limit-num{font-size:30px;font-weight:900;color:#000}
         .holo-container{perspective:800px;width:100%;height:130px;display:flex;align-items:center;justify-content:center;margin-top:0;position:relative}
-        .holo-base{position:absolute;bottom:0;width:200px;height:40px;background:radial-gradient(ellipse,${ac.glow} 0%,transparent 70%);filter:blur(8px);border-radius:50%}
+        .holo-base{position:absolute;bottom:0;width:220px;height:44px;background:radial-gradient(ellipse,${ac.glow} 0%,transparent 70%);filter:blur(10px);border-radius:50%}
         .holo-arrow-box{position:relative;transform-style:preserve-3d;transform:rotateX(60deg) rotateZ(var(--rot,0deg));animation:arrowFloat 1.5s infinite alternate}
-        .holo-svg{width:90px;height:auto;filter:drop-shadow(0 0 20px ${ac.glow})}
-        @keyframes arrowFloat{0%{transform:rotateX(60deg) rotateZ(var(--rot,0deg)) translateZ(0)}100%{transform:rotateX(60deg) rotateZ(var(--rot,0deg)) translateZ(30px)}}
+        .holo-svg{width:100px;height:auto;filter:drop-shadow(0 0 25px ${ac.glow}) ${isGold?'drop-shadow(0 0 12px rgba(255,237,78,.8))':''}}
+        @keyframes arrowFloat{0%{transform:rotateX(60deg) rotateZ(var(--rot,0deg)) translateZ(0)}100%{transform:rotateX(60deg) rotateZ(var(--rot,0deg)) translateZ(35px)}}
         .road-sign{position:absolute;top:-24px;left:50%;transform:translateX(-50%);background:#0066cc;border:2px solid #fff;border-radius:8px;padding:4px 12px;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,.5);z-index:10;white-space:nowrap}
         .road-sign .num{font-size:16px;font-weight:900;color:#fff;background:#0055aa;display:inline-block;padding:2px 6px;border-radius:4px;margin-bottom:2px}
         .road-sign .dest{font-size:11px;font-weight:800;color:#fff}
         .road-sign .action{font-size:9px;color:#e0e0e0}
-        .cpt-bottom{margin-top:auto;background:rgba(0,0,0,.5);backdrop-filter:blur(10px);border-radius:16px;padding:12px;border:1px solid rgba(255,255,255,.08);z-index:10}
-        .cpt-stat{display:flex;justify-content:space-around;text-align:center;margin-bottom:8px}
-        .cpt-stat div span:first-child{font-size:16px;font-weight:900;color:${tachoColor};display:block}
-        .cpt-stat div span:last-child{font-size:8px;color:#7fa5b8;font-weight:800;text-transform:uppercase}
+        .cpt-bottom{margin-top:auto;background:rgba(0,0,0,.55);backdrop-filter:blur(15px);border-radius:18px;padding:14px;border:1px solid rgba(255,215,0,.15);z-index:10}
+        .cpt-stat{display:flex;justify-content:space-around;text-align:center;margin-bottom:10px}
+        .cpt-stat div span:first-child{font-size:18px;font-weight:900;color:${tachoColor};display:block;text-shadow:0 0 12px ${tachoColor}66}
+        .cpt-stat div span:last-child{font-size:9px;color:#7fa5b8;font-weight:800;text-transform:uppercase;letter-spacing:1px}
         .cpt-btn{width:100%;padding:14px;border:none;border-radius:12px;font-weight:900;font-size:14px;cursor:pointer;font-family:inherit;transition:.2s}
         .cpt-btn.start{background:linear-gradient(135deg,#4ade80,#22c55e);color:#000}
         .cpt-btn.stop{background:#ff5555;color:#fff}
-        .weather-widget{position:absolute;z-index:100;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:8px 12px;font-size:11px;font-weight:800;display:flex;align-items:center;gap:8px;cursor:move;box-shadow:0 4px 15px rgba(0,0,0,.5);user-select:none;touch-action:none}
-        .cpt-logo{width:44px;height:44px;border-radius:10px;object-fit:cover;border:2px solid ${tachoColor}66;box-shadow:0 0 15px ${tachoColor}44}
+        .weather-widget{position:absolute;z-index:100;background:rgba(10,15,25,.85);backdrop-filter:blur(15px);border:1px solid rgba(255,215,0,.3);border-radius:14px;padding:10px 14px;font-size:11px;font-weight:800;display:flex;align-items:center;gap:10px;cursor:move;box-shadow:0 6px 20px rgba(0,0,0,.6);user-select:none;touch-action:none}
       `;
 
       var html = `<style>${css}</style><div class="cpt-wrap">
@@ -291,13 +403,14 @@
         </div>
         <div style="display:flex;gap:6px">
           <button data-nav="fuel" class="cpt-navbtn">⛽</button>
+          <button data-nav="restaurant" class="cpt-navbtn">🍴</button>
           <button data-nav="settings" class="cpt-navbtn">⚙️</button>
         </div>
       </div>`;
 
       if(weatherData){
         html += `<div id="weatherWidget" class="weather-widget" style="left:${weatherPos.x}px;top:${weatherPos.y}px">
-          <span style="font-size:18px">${weatherData.icon}</span>
+          <span style="font-size:20px">${weatherData.icon}</span>
           <div>
             <div>${weatherData.city||'Ort'} ${weatherData.temp}°C</div>
             <div style="font-size:9px;color:#aaa">${weatherData.desc} · ${weatherData.pressure} hPa</div>
@@ -310,7 +423,7 @@
         var roadName = nextEvent.instruction || "Straße";
         var roadNum = "", roadDest = roadName;
         if(roadName.match(/^[AB]\d+/)){ roadNum = roadName.split(" ")[0]; roadDest = roadName.substring(roadName.indexOf(" ")+1)||""; }
-        html += `<div style="margin-top:8px;padding:10px;background:rgba(77,208,225,.1);border:1px solid rgba(77,208,225,.3);border-radius:12px;display:flex;justify-content:space-between;align-items:center;z-index:10">
+        html += `<div style="margin-top:8px;padding:10px;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.3);border-radius:12px;display:flex;justify-content:space-between;align-items:center;z-index:10">
           <div><div style="font-size:10px;color:#7fa5b8">ROUTE AKTIV</div><div style="font-size:13px;font-weight:900;color:#fff">${_esc(routeData.targetName)}</div></div>
           <div style="text-align:right"><div style="font-size:10px;color:#7fa5b8">ANKUNFT</div><div style="font-size:14px;font-weight:900;color:${tachoColor}">${etaStr} (${remTimeStr})</div></div>
         </div>`;
@@ -318,14 +431,32 @@
           <div class="road-sign">${roadNum?`<div class="num">${roadNum}</div>`:''}<div class="dest">${_esc(roadDest)}</div><div class="action">in ${fmtDist(nextEvent.distance)}</div></div>
           <div class="holo-base"></div>
           <div class="holo-arrow-box" style="--rot:${arrowAngle}deg">
-            <svg class="holo-svg" viewBox="0 0 100 100"><polygon points="50,5 90,50 65,50 65,95 35,95 35,50 10,50" fill="${ac.fill}" stroke="#fff" stroke-width="2"/></svg>
+            <svg class="holo-svg" viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="arrowGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="${isGold?'#ffe85e':ac.fill}"/>
+                  <stop offset="50%" stop-color="${ac.fill}"/>
+                  <stop offset="100%" stop-color="${isGold?'#ffb300':ac.fill}"/>
+                </linearGradient>
+              </defs>
+              <polygon points="50,5 90,50 65,50 65,95 35,95 35,50 10,50" fill="url(#arrowGrad)" stroke="#fff" stroke-width="2"/>
+            </svg>
           </div>
         </div>`;
       } else {
         html += `<div class="holo-container" style="height:90px;margin-top:10px">
           <div class="holo-base"></div>
           <div class="holo-arrow-box" style="--rot:0deg">
-            <svg class="holo-svg" viewBox="0 0 100 100" style="width:60px"><polygon points="50,5 90,50 65,50 65,95 35,95 35,50 10,50" fill="${ac.fill}" stroke="#fff" stroke-width="2"/></svg>
+            <svg class="holo-svg" viewBox="0 0 100 100" style="width:65px">
+              <defs>
+                <linearGradient id="arrowGrad2" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="${isGold?'#ffe85e':ac.fill}"/>
+                  <stop offset="50%" stop-color="${ac.fill}"/>
+                  <stop offset="100%" stop-color="${isGold?'#ffb300':ac.fill}"/>
+                </linearGradient>
+              </defs>
+              <polygon points="50,5 90,50 65,50 65,95 35,95 35,50 10,50" fill="url(#arrowGrad2)" stroke="#fff" stroke-width="2"/>
+            </svg>
           </div>
         </div>`;
       }
@@ -335,7 +466,7 @@
         <div class="tacho-bg"></div>
         <svg viewBox="0 0 200 200" style="position:absolute;inset:0;width:100%;height:100%">
           <path d="M 39.3 156 A 75 75 0 1 1 160.7 156" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="8"/>
-          <path d="M 39.3 156 A 75 75 0 1 1 160.7 156" fill="none" stroke="${tachoColor}" stroke-width="8" stroke-linecap="round" stroke-dasharray="353" stroke-dashoffset="${353-(Math.min(speed,maxSpeed)/maxSpeed*353)}" style="transition:stroke-dashoffset .2s"/>
+          <path d="M 39.3 156 A 75 75 0 1 1 160.7 156" fill="none" stroke="${tachoColor}" stroke-width="8" stroke-linecap="round" stroke-dasharray="353" stroke-dashoffset="${353-(Math.min(speed,maxSpeed)/maxSpeed*353)}" style="transition:stroke-dashoffset .2s;filter:drop-shadow(0 0 6px ${tachoColor})"/>
           ${ticks}
         </svg>
         <div class="needle-container"><div class="needle"></div></div>
@@ -343,6 +474,7 @@
         <div class="inner-display">
           <div class="spd">${speed}</div>
           <div class="unit">KM/H</div>
+          <div class="divider"></div>
           ${nearestWarning?`<div class="wrn" style="color:${nearestWarning.color}">${nearestWarning.icon} in ${fmtDist(nearestWarning.dist)}</div>`:`<div class="wrn" style="color:#7fa5b8">Bereit</div>`}
           <div class="hint">⚙️ TIPPEN = EINSTELLUNGEN</div>
         </div>
@@ -359,7 +491,6 @@
           ${trip.active?`<button data-trip="stop" class="cpt-btn stop" style="flex:1">⏹ Fahrt beenden</button>`:`<button data-trip="start" class="cpt-btn start" style="flex:1">▶ Fahrt starten</button>`}
           <button data-nav="park" class="cpt-btn" style="flex:1;background:rgba(255,255,255,.1);color:#fff">🅿️ Parkuhr</button>
         </div>
-        ${!simTimer?`<button id="simBtn" class="cpt-btn" style="margin-top:8px;background:#ffd54f;color:#000;font-size:12px">🧪 Testfahrt simulieren</button>`:''}
       </div></div>`;
 
       container.innerHTML = html;
@@ -409,16 +540,15 @@
     }
 
     // ═══════════════ SETTINGS MENU ═══════════════
-    function backBtn(target){
-      return `<button data-nav="${target||'cockpit'}" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>`;
-    }
+    function backBtn(target){ return `<button data-nav="${target||'cockpit'}" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>`; }
     function screenSettingsMenu(){
       var s = getSettings();
       var html = backBtn('cockpit');
-      html += `<div class="card"><h3>⚙️ Einstellungen</h3>
+      html += `<div class="card"><h3 style="display:flex;align-items:center;gap:10px">${appIconSVG(32)} Einstellungen</h3>
         <div style="display:grid;gap:6px;margin-top:8px">
           <button data-nav="settings_display" class="menu-btn">🎨 Display & Tacho</button>
           <button data-nav="settings_sounds" class="menu-btn">🎵 Töne & Stimmen</button>
+          <button data-nav="settings_voice" class="menu-btn">🎙️ HalDoVoice (eigene Stimme)</button>
           <button data-nav="settings_nav" class="menu-btn">🗺️ Navigation</button>
           <button data-nav="settings_lang" class="menu-btn">🌍 Sprache</button>
           <button data-nav="settings_bt" class="menu-btn">📡 Bluetooth ${s.btDeviceName?`<span style="color:#4ade80">(✓ ${_esc(s.btDeviceName)})</span>`:''}</button>
@@ -426,7 +556,7 @@
           <button data-nav="settings_about" class="menu-btn">ℹ️ Über HalDo Blitzer</button>
         </div>
       </div>`;
-      html += `<style>.menu-btn{width:100%;padding:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#fff;font-size:13px;font-weight:800;text-align:left;cursor:pointer;font-family:inherit;display:flex;justify-content:space-between;align-items:center}.menu-btn:hover{background:rgba(77,208,225,.15);border-color:#4dd0e1}</style>`;
+      html += `<style>.menu-btn{width:100%;padding:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#fff;font-size:13px;font-weight:800;text-align:left;cursor:pointer;font-family:inherit;display:flex;justify-content:space-between;align-items:center;transition:.15s}.menu-btn:hover{background:rgba(255,215,0,.12);border-color:#ffd700}</style>`;
       container.innerHTML = html; bindNav();
     }
 
@@ -435,23 +565,24 @@
       var html = backBtn('settings');
       html += `<div class="card"><h3>🎨 Tacho-Design</h3>
         <div class="field"><label>Tacho-Farbe</label>
-          <div style="display:flex;gap:8px;margin-top:6px">
-            ${['#4dd0e1','#ff5555','#4ade80','#b478ff','#ffd700','#ff8844'].map(function(c){
-              return `<button data-color="${c}" style="flex:1;height:36px;background:${c};border:3px solid ${s.tachoColor===c?'#fff':'transparent'};border-radius:8px;cursor:pointer"></button>`;
+          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:6px">
+            ${['#ffd700','#4dd0e1','#ff5555','#4ade80','#b478ff','#ff8844'].map(function(c){
+              return `<button data-color="${c}" style="height:38px;background:${c};border:3px solid ${s.tachoColor===c?'#fff':'transparent'};border-radius:8px;cursor:pointer;box-shadow:0 0 12px ${c}88"></button>`;
             }).join("")}
           </div>
         </div>
-        <div class="field" style="margin-top:10px"><label>Pfeil-Farbe</label>
-          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
-            ${[['gold','#ffd700'],['blue','#4dd0e1'],['white','#ffffff'],['green','#4ade80'],['red','#ff5555'],['purple','#b478ff'],['orange','#ff8844']].map(function(a){
-              return `<button data-arrow="${a[0]}" style="flex:1;min-width:44px;height:36px;background:${a[1]};border:3px solid ${s.arrowColor===a[0]?'#fff':'transparent'};border-radius:8px;cursor:pointer"></button>`;
+        <div class="field" style="margin-top:12px"><label>Pfeil-Farbe (${ARROW_COLORS[s.arrowColor]?ARROW_COLORS[s.arrowColor].name:'24K Gold'})</label>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px">
+            ${Object.keys(ARROW_COLORS).map(function(k){
+              var a = ARROW_COLORS[k];
+              return `<button data-arrow="${k}" style="height:42px;background:linear-gradient(135deg,${a.fill},${a.fill}cc);border:3px solid ${s.arrowColor===k?'#fff':'transparent'};border-radius:8px;cursor:pointer;box-shadow:0 0 12px ${a.glow}" title="${a.name}"></button>`;
             }).join("")}
           </div>
         </div>
-        <div class="field" style="margin-top:10px"><label>Alarm-Dauer: <span id="durLbl">${s.alarmDuration}s</span></label>
+        <div class="field" style="margin-top:12px"><label>Alarm-Dauer: <span id="durLbl">${s.alarmDuration}s</span></label>
           <input type="range" id="setDuration" min="2" max="15" step="1" value="${s.alarmDuration}" style="width:100%">
         </div>
-        <div class="field" style="margin-top:10px"><label>Offline Modus</label>
+        <div class="field" style="margin-top:12px"><label>Offline Modus</label>
           <button id="toggleOffline" style="width:100%;padding:10px;background:${s.offlineMode?'rgba(255,128,128,.2)':'rgba(74,222,128,.2)'};border:1px solid ${s.offlineMode?'#ff8080':'#4ade80'};color:${s.offlineMode?'#ff8080':'#4ade80'};border-radius:8px;font-weight:900;font-size:12px;cursor:pointer">${s.offlineMode?'Offline (Karten aus)':'Online (Karten aktiv)'}</button>
         </div>
       </div>`;
@@ -471,7 +602,7 @@
     function screenSettingsSounds(){
       var s = getSettings();
       var soundOptions = [
-        {id:"siren",name:"🚨 Sirene"},{id:"siren2",name:"🚨 Sirene 2"},{id:"siren3",name:"🚨 Sirene 3 (tief)"},
+        {id:"siren",name:"🚨 Sirene"},{id:"siren2",name:"🚨 Sirene 2"},{id:"siren3",name:"🚨 Sirene 3"},
         {id:"long_alarm",name:"🔔 Feueralarm"},{id:"long_alarm2",name:"🔔 Feuer 2"},{id:"radar",name:"📡 Radar"},
         {id:"radar2",name:"📡 Radar 2"},{id:"urgent",name:"⚠️ Dringend"},{id:"extreme",name:"🔥 Extrem"},
         {id:"birds",name:"🐦 Vögel"},{id:"chime",name:"🎵 Glocke"},{id:"low",name:"🕊️ Sanft"}
@@ -480,7 +611,7 @@
       html += `<div class="card"><h3>🎵 Globale Töne</h3>
         <div style="display:flex;gap:6px;margin-top:6px">
           <button id="muteAll" style="flex:1;padding:12px;background:${s.globalMute?'rgba(255,85,85,.2)':'rgba(74,222,128,.2)'};border:1px solid ${s.globalMute?'#ff5555':'#4ade80'};color:${s.globalMute?'#ff5555':'#4ade80'};border-radius:8px;font-weight:900;font-size:12px;cursor:pointer">${s.globalMute?'🔇 ALLES STUMM':'🔊 TÖNE AN'}</button>
-          <button id="toggleVoice" style="flex:1;padding:12px;background:${s.voiceOn?'rgba(77,208,225,.2)':'rgba(255,85,85,.2)'};border:1px solid ${s.voiceOn?'#4dd0e1':'#ff5555'};color:${s.voiceOn?'#4dd0e1':'#ff5555'};border-radius:8px;font-weight:900;font-size:12px;cursor:pointer">${s.voiceOn?'🗣️ STIMME AN':'🔇 STIMME AUS'}</button>
+          <button id="toggleVoice" style="flex:1;padding:12px;background:${s.voiceOn?'rgba(255,215,0,.2)':'rgba(255,85,85,.2)'};border:1px solid ${s.voiceOn?'#ffd700':'#ff5555'};color:${s.voiceOn?'#ffd700':'#ff5555'};border-radius:8px;font-weight:900;font-size:12px;cursor:pointer">${s.voiceOn?'🗣️ STIMME AN':'🔇 STIMME AUS'}</button>
         </div>
       </div>`;
       html += `<div class="card"><h3>🚨 Alarm-Töne pro Kategorie</h3>`;
@@ -492,7 +623,7 @@
             <select data-sound="${c.id}" style="background:rgba(0,0,0,.5);color:#fff;border:1px solid #444;border-radius:6px;padding:4px 6px;font-size:10px;font-family:inherit">
               ${soundOptions.map(function(o){return `<option value="${o.id}" ${cur===o.id?'selected':''}>${o.name}</option>`;}).join("")}
             </select>
-            <button data-test="${c.id}" style="background:rgba(77,208,225,.15);border:1px solid rgba(77,208,225,.3);color:#4dd0e1;border-radius:6px;width:30px;cursor:pointer;font-size:12px">🔊</button>
+            <button data-test="${c.id}" style="background:rgba(255,215,0,.15);border:1px solid rgba(255,215,0,.3);color:#ffd700;border-radius:6px;width:30px;cursor:pointer;font-size:12px">🔊</button>
           </div>
         </div>`;
       });
@@ -506,6 +637,94 @@
       container.querySelectorAll("[data-test]").forEach(function(el){
         el.addEventListener("click", function(){ playBeep(s.sounds[el.dataset.test]||"chime", 0.8, s.alarmDuration); });
       });
+    }
+
+    // ═══════════════ HalDoVoice ═══════════════
+    function screenSettingsVoice(){
+      var s = getSettings();
+      var cv = getCustomVoice();
+      var html = backBtn('settings');
+      html += `<div class="card"><h3>🎙️ HalDoVoice</h3>
+        <p style="font-size:11px;color:#7fa5b8;margin-bottom:10px;line-height:1.6">
+          Nimm deine <b>eigene Stimme</b> für jede Warnung auf. Wenn du auf <b>🎙️ Aufnehmen</b> tippst, hast du 4 Sekunden Zeit zu sprechen.<br>
+          Beispiel: "Achtung, Blitzer voraus!"
+        </p>
+        <div style="padding:10px;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.3);border-radius:8px;margin-bottom:12px">
+          <button id="toggleCustomVoice" style="width:100%;padding:10px;background:${s.useCustomVoice?'rgba(255,215,0,.25)':'rgba(0,0,0,.3)'};border:1px solid ${s.useCustomVoice?'#ffd700':'#555'};color:${s.useCustomVoice?'#ffd700':'#aaa'};border-radius:8px;font-weight:900;font-size:13px;cursor:pointer">
+            ${s.useCustomVoice?'🎙️ HalDoVoice AKTIV':'🔇 HalDoVoice INAKTIV (nutzt TTS)'}
+          </button>
+        </div>
+        <div style="max-height:400px;overflow-y:auto">`;
+      CATS.forEach(function(c){
+        var hasVoice = !!cv[c.id];
+        html += `<div style="padding:10px;background:rgba(0,0,0,.3);border-radius:10px;margin-bottom:6px;border-left:3px solid ${c.color}">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:12px;font-weight:800">${c.icon} ${_esc(c.name.de)}</span>
+            <div style="display:flex;gap:4px">
+              ${hasVoice?`<button data-playvoice="${c.id}" style="background:rgba(74,222,128,.2);border:1px solid #4ade80;color:#4ade80;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer">▶️</button>
+              <button data-delvoice="${c.id}" style="background:rgba(255,85,85,.2);border:1px solid #ff5555;color:#ff5555;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer">🗑️</button>`:''}
+              <button data-recvoice="${c.id}" style="background:rgba(255,215,0,.2);border:1px solid #ffd700;color:#ffd700;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-weight:900">🎙️ Aufnehmen</button>
+            </div>
+          </div>
+          <div id="recStatus_${c.id}" style="font-size:10px;color:#7fa5b8;margin-top:4px">${hasVoice?'✅ Eigene Stimme vorhanden':'❌ Keine eigene Stimme'}</div>
+        </div>`;
+      });
+      html += `</div></div>`;
+      container.innerHTML = html; bindNav();
+
+      container.querySelector("#toggleCustomVoice").addEventListener("click", function(){
+        s.useCustomVoice=!s.useCustomVoice; saveSettings(s); screenSettingsVoice();
+      });
+
+      container.querySelectorAll("[data-recvoice]").forEach(function(el){
+        el.addEventListener("click", function(){ startVoiceRecording(el.dataset.recvoice); });
+      });
+      container.querySelectorAll("[data-playvoice]").forEach(function(el){
+        el.addEventListener("click", function(){
+          var cv = getCustomVoice();
+          if(cv[el.dataset.playvoice]) new Audio(cv[el.dataset.playvoice]).play().catch(function(){});
+        });
+      });
+      container.querySelectorAll("[data-delvoice]").forEach(function(el){
+        el.addEventListener("click", function(){
+          if(!confirm("Stimme löschen?")) return;
+          var cv = getCustomVoice(); delete cv[el.dataset.delvoice]; saveCustomVoice(cv); screenSettingsVoice();
+        });
+      });
+    }
+
+    async function startVoiceRecording(catId){
+      var status = document.getElementById("recStatus_"+catId);
+      try {
+        if(!navigator.mediaDevices || !window.MediaRecorder) throw new Error("MediaRecorder nicht verfügbar");
+        var stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+        voiceChunks = [];
+        var mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : (MediaRecorder.isTypeSupported("audio/mp4")?"audio/mp4":"");
+        voiceRecorder = mimeType ? new MediaRecorder(stream, {mimeType:mimeType}) : new MediaRecorder(stream);
+        voiceRecorder.ondataavailable = function(e){ if(e.data.size>0) voiceChunks.push(e.data); };
+        voiceRecorder.onstop = function(){
+          var blob = new Blob(voiceChunks, {type: voiceRecorder.mimeType || "audio/webm"});
+          var reader = new FileReader();
+          reader.onload = function(){
+            var cv = getCustomVoice();
+            cv[catId] = reader.result;
+            saveCustomVoice(cv);
+            stream.getTracks().forEach(function(t){ t.stop(); });
+            if(status) status.textContent = "✅ Stimme gespeichert!";
+            setTimeout(function(){ screenSettingsVoice(); }, 800);
+          };
+          reader.readAsDataURL(blob);
+        };
+        voiceRecorder.start();
+        if(status) status.textContent = "🔴 Aufnahme läuft... sprich jetzt! (4s)";
+        setTimeout(function(){
+          if(voiceRecorder && voiceRecorder.state === "recording"){
+            voiceRecorder.stop();
+          }
+        }, 4000);
+      } catch(e){
+        if(status) status.textContent = "❌ Fehler: " + e.message;
+      }
     }
 
     function screenSettingsNav(){
@@ -531,7 +750,7 @@
         screenSettingsNav();
       });
       container.querySelector("#warnDistRange").addEventListener("input", function(e){
-        s.warnDist=parseInt(e.target.value); container.querySelector("#wdLbl").textContent=s.warnDist+"m"; saveSettings(s);
+        s.warnDist=parseInt(e.target.value); container.querySelector("#warnDistLbl").textContent=s.warnDist+"m"; saveSettings(s);
       });
     }
 
@@ -542,7 +761,7 @@
         <select id="setLang" style="width:100%;padding:12px;background:rgba(0,0,0,.3);border:1px solid #444;border-radius:8px;color:#fff;font-size:14px">
         ${Object.keys(LANGS).map(function(k){ return `<option value="${k}" ${s.lang===k?"selected":""}>${LANGS[k].name}</option>`; }).join("")}
         </select>
-        <button id="testLang" style="width:100%;padding:12px;margin-top:10px;background:rgba(77,208,225,.2);border:1px solid #4dd0e1;color:#4dd0e1;border-radius:8px;font-weight:900;font-size:12px;cursor:pointer">🔊 Test-Sprache</button>
+        <button id="testLang" style="width:100%;padding:12px;margin-top:10px;background:rgba(255,215,0,.2);border:1px solid #ffd700;color:#ffd700;border-radius:8px;font-weight:900;font-size:12px;cursor:pointer">🔊 Test-Sprache</button>
       </div>`;
       container.innerHTML = html; bindNav();
       container.querySelector("#setLang").addEventListener("change", function(e){ s.lang=e.target.value; saveSettings(s); });
@@ -558,8 +777,8 @@
       var s = getSettings();
       var html = backBtn('settings');
       html += `<div class="card"><h3>📡 Bluetooth</h3>
-        <div style="font-size:11px;color:#7fa5b8;margin-bottom:10px">Verbinde dein Handy mit Auto, Lautsprecher, Headset oder anderen Geräten. (Web Bluetooth — funktioniert nur in Chrome/Edge auf Android & Desktop.)</div>
-        <button id="btScan" style="width:100%;padding:14px;background:linear-gradient(135deg,#4dd0e1,#b478ff);border:none;color:#000;border-radius:10px;font-weight:900;font-size:14px;cursor:pointer">🔍 Gerät suchen</button>
+        <div style="font-size:11px;color:#7fa5b8;margin-bottom:10px">Verbinde dein Handy mit Auto, Lautsprecher, Headset. (Web Bluetooth — Chrome/Edge auf Android & Desktop.)</div>
+        <button id="btScan" style="width:100%;padding:14px;background:linear-gradient(135deg,#ffd700,#ff9800);border:none;color:#000;border-radius:10px;font-weight:900;font-size:14px;cursor:pointer">🔍 Gerät suchen</button>
         <div id="btStatus" style="margin-top:12px;padding:10px;background:rgba(0,0,0,.3);border-radius:8px;font-size:12px;color:#7fa5b8">${s.btDeviceName?`✅ Verbunden: ${_esc(s.btDeviceName)}`:'❌ Nicht verbunden'}</div>
         ${s.btDeviceName?`<button id="btDisconnect" style="width:100%;padding:12px;margin-top:8px;background:rgba(255,85,85,.2);border:1px solid #ff5555;color:#ff5555;border-radius:8px;font-weight:900;font-size:12px;cursor:pointer">🔌 Trennen</button>`:''}
       </div>`;
@@ -570,7 +789,7 @@
         status.textContent = "🔍 Suche Geräte...";
         try {
           if(!navigator.bluetooth) throw new Error("Web Bluetooth nicht verfügbar (nutze Chrome/Edge auf Android)");
-          var device = await navigator.bluetooth.requestDevice({ acceptAllDevices:true, optionalServices:['battery_service','device_information','generic_access'] });
+          var device = await navigator.bluetooth.requestDevice({ acceptAllDevices:true });
           status.textContent = "⏳ Verbinde...";
           btServer = await device.gatt.connect();
           btDevice = device;
@@ -579,15 +798,13 @@
           status.textContent = "✅ Verbunden: " + s.btDeviceName;
           if(HalDo.Notify) HalDo.Notify.success("Bluetooth verbunden: " + s.btDeviceName);
           screenSettingsBT();
-        } catch(e){
-          status.textContent = "❌ " + e.message;
-        }
+        } catch(e){ status.textContent = "❌ " + e.message; }
       });
       var disc = container.querySelector("#btDisconnect");
       if(disc) disc.addEventListener("click", function(){
         if(btServer){ try{ btServer.disconnect(); }catch(e){} }
-        btServer = null; btDevice = null;
-        s.btDeviceName = null; saveSettings(s);
+        btServer=null; btDevice=null;
+        s.btDeviceName=null; saveSettings(s);
         screenSettingsBT();
       });
     }
@@ -598,32 +815,33 @@
       html += `<div class="card"><h3>💡 Taschenlampe</h3>
         <div style="font-size:11px;color:#7fa5b8;margin-bottom:10px">Wenn aktiviert, blinkt die Taschenlampe bei jeder Warnung (Blitzer, Unfall, etc.).</div>
         <button id="toggleFlash" style="width:100%;padding:14px;background:${s.flashOnWarning?'rgba(255,215,0,.2)':'rgba(255,255,255,.05)'};border:1px solid ${s.flashOnWarning?'#ffd700':'#555'};color:${s.flashOnWarning?'#ffd700':'#fff'};border-radius:10px;font-weight:900;font-size:14px;cursor:pointer">${s.flashOnWarning?'💡 BLINKEN AN':'💡 BLINKEN AUS'}</button>
-        <button id="testFlash" style="width:100%;padding:12px;margin-top:10px;background:rgba(77,208,225,.2);border:1px solid #4dd0e1;color:#4dd0e1;border-radius:8px;font-weight:900;font-size:12px;cursor:pointer">🔦 Taschenlampe testen (3x blinken)</button>
+        <button id="testFlash" style="width:100%;padding:12px;margin-top:10px;background:rgba(255,215,0,.2);border:1px solid #ffd700;color:#ffd700;border-radius:8px;font-weight:900;font-size:12px;cursor:pointer">🔦 Taschenlampe testen (3x blinken)</button>
       </div>`;
       container.innerHTML = html; bindNav();
-      container.querySelector("#toggleFlash").addEventListener("click", function(){
-        s.flashOnWarning=!s.flashOnWarning; saveSettings(s); screenSettingsFlash();
-      });
+      container.querySelector("#toggleFlash").addEventListener("click", function(){ s.flashOnWarning=!s.flashOnWarning; saveSettings(s); screenSettingsFlash(); });
       container.querySelector("#testFlash").addEventListener("click", function(){ blinkTorch(3); });
     }
 
     function screenSettingsAbout(){
       var html = backBtn('settings');
       html += `<div class="card" style="text-align:center">
-        <img src="${LOGO_URL}" style="width:80px;height:80px;border-radius:16px;margin:10px auto;display:block" onerror="this.style.display='none'">
-        <h3>🦚 HalDo Blitzer</h3>
-        <div style="font-size:12px;color:#7fa5b8;margin-top:6px">Version 14.0 (Ultimate Pro)</div>
-        <div style="font-size:11px;color:#7fa5b8;margin-top:12px;line-height:1.6">
-          📷 Blitzer-Warnungen<br>
+        <div style="margin:14px 0">${appIconSVG(100)}</div>
+        <h3 style="margin:6px 0">HalDo Blitzer</h3>
+        <div style="font-size:12px;color:#ffd700;margin-top:4px;font-weight:800">Version 15.0 · Premium Gold</div>
+        <div style="font-size:11px;color:#7fa5b8;margin-top:14px;line-height:1.8">
+          ⚠️ Blitzer-Warnungen in Echtzeit<br>
+          🦚 Willkommens-Animation<br>
+          🥇 24 Karat Gold Design<br>
+          🎙️ HalDoVoice (eigene Stimme)<br>
           🗣️ Sprach-Navigation<br>
           📡 Bluetooth<br>
           ⛽ Tankstellen-Preise<br>
           🍴 Restaurants<br>
           💡 Taschenlampe<br>
-          🌍 9 Sprachen<br>
-          🎵 12 Alarm-Töne
+          🌍 9 Sprachen · 12 Töne
         </div>
-        <div style="font-size:10px;color:#5a7a8a;margin-top:14px">Made with ❤️ für die Ezidi-Community</div>
+        <div style="font-size:11px;color:#ffd700;margin-top:20px;font-weight:900">von Halil Donma</div>
+        <div style="font-size:10px;color:#5a7a8a;margin-top:6px">Made with ❤️ for the Ezidi Community</div>
       </div>`;
       container.innerHTML = html; bindNav();
     }
@@ -661,9 +879,7 @@
       if(!s.notifyOn) return;
       if(!("Notification" in window) || Notification.permission!=="granted") return;
       try {
-        var title = "HalDo Blitzer: " + cat.name.de;
-        var body = "Achtung! In " + fmtDist(dist) + ".";
-        new Notification(title, { body: body, icon: LOGO_URL, badge: LOGO_URL });
+        new Notification("HalDo Blitzer: " + cat.name.de, { body: "Achtung! In " + fmtDist(dist) + ".", icon: LOGO_URL, badge: LOGO_URL });
       } catch(e){}
     }
 
@@ -691,6 +907,14 @@
 
     function speakAlert(cat, dist, settings){
       if(settings.globalMute) return;
+      var cv = getCustomVoice();
+      // HalDoVoice: eigene Stimme
+      if(settings.useCustomVoice && cv[cat.id]){
+        try { new Audio(cv[cat.id]).play().catch(function(){}); } catch(e){}
+        if(navigator.vibrate) navigator.vibrate([200,100,200]);
+        return;
+      }
+      // Standard: Beep + TTS
       if(settings.beepOn) playBeep(settings.sounds[cat.id]||"chime", 0.9, settings.alarmDuration);
       if(settings.voiceOn && window.speechSynthesis){
         var txt = (cat.voice[settings.lang]||cat.voice.de).replace("{d}", fmtDist(dist));
@@ -715,15 +939,15 @@
     function getTurnWord(modifier, lang){
       var mod = modifier||"";
       var words = {
-        de:{left:"links abbiegen",right:"rechts abbiegen",straight:"geradeaus",u:"wenden",slight_left:"leicht links",slight_right:"leicht rechts",sharp_left:"scharf links",sharp_right:"scharf rechts",arrive:"ankommen"},
-        en:{left:"turn left",right:"turn right",straight:"straight",u:"make u-turn",slight_left:"slight left",slight_right:"slight right",sharp_left:"sharp left",sharp_right:"sharp right",arrive:"arrive"},
-        tr:{left:"sola dön",right:"sağa dön",straight:"düz git",u:"u dönüşü",slight_left:"hafif sol",slight_right:"hafif sağ",sharp_left:"keskin sol",sharp_right:"keskin sağ",arrive:"varış"},
-        ar:{left:"انعطف يسارا",right:"انعطف يمينا",straight:"استمر",u:"استدر",slight_left:"يسار قليلا",slight_right:"يمين قليلا",sharp_left:"يسار حاد",sharp_right:"يمين حاد",arrive:"وصلت"},
-        ku:{left:"ber bi çepê ve bizivire",right:"ber bi rastê ve bizivire",straight:"rasterast",u:"zivirîn",slight_left:"hinek çep",slight_right:"hinek rast",sharp_left:"tûj çep",sharp_right:"tûj rast",arrive:"gihişt"},
-        fr:{left:"tourner à gauche",right:"tourner à droite",straight:"tout droit",u:"demi-tour",slight_left:"légèrement à gauche",slight_right:"légèrement à droite",sharp_left:"fortement à gauche",sharp_right:"fortement à droite",arrive:"arriver"},
-        es:{left:"gira a la izquierda",right:"gira a la derecha",straight:"recto",u:"da la vuelta",slight_left:"ligeramente a la izquierda",slight_right:"ligeramente a la derecha",sharp_left:"giro brusco a la izquierda",sharp_right:"giro brusco a la derecha",arrive:"llegar"},
-        it:{left:"gira a sinistra",right:"gira a destra",straight:"dritto",u:"inverti la marcia",slight_left:"leggermente a sinistra",slight_right:"leggermente a destra",sharp_left:"bruscamente a sinistra",sharp_right:"bruscamente a destra",arrive:"arrivare"},
-        ru:{left:"поверните налево",right:"поверните направо",straight:"прямо",u:"развернитесь",slight_left:"плавно налево",slight_right:"плавно направо",sharp_left:"резко налево",sharp_right:"резко направо",arrive:"прибытие"}
+        de:{left:"links abbiegen",right:"rechts abbiegen",straight:"geradeaus",u:"wenden",slight_left:"leicht links",slight_right:"leicht rechts",sharp_left:"scharf links",sharp_right:"scharf rechts"},
+        en:{left:"turn left",right:"turn right",straight:"straight",u:"make u-turn",slight_left:"slight left",slight_right:"slight right",sharp_left:"sharp left",sharp_right:"sharp right"},
+        tr:{left:"sola dön",right:"sağa dön",straight:"düz git",u:"u dönüşü",slight_left:"hafif sol",slight_right:"hafif sağ",sharp_left:"keskin sol",sharp_right:"keskin sağ"},
+        ar:{left:"انعطف يسارا",right:"انعطف يمينا",straight:"استمر",u:"استدر",slight_left:"يسار قليلا",slight_right:"يمين قليلا",sharp_left:"يسار حاد",sharp_right:"يمين حاد"},
+        ku:{left:"ber bi çepê ve bizivire",right:"ber bi rastê ve bizivire",straight:"rasterast",u:"zivirîn",slight_left:"hinek çep",slight_right:"hinek rast",sharp_left:"tûj çep",sharp_right:"tûj rast"},
+        fr:{left:"tourner à gauche",right:"tourner à droite",straight:"tout droit",u:"demi-tour",slight_left:"légèrement à gauche",slight_right:"légèrement à droite",sharp_left:"fortement à gauche",sharp_right:"fortement à droite"},
+        es:{left:"gira a la izquierda",right:"gira a la derecha",straight:"recto",u:"da la vuelta",slight_left:"ligeramente a la izquierda",slight_right:"ligeramente a la derecha",sharp_left:"giro brusco a la izquierda",sharp_right:"giro brusco a la derecha"},
+        it:{left:"gira a sinistra",right:"gira a destra",straight:"dritto",u:"inverti la marcia",slight_left:"leggermente a sinistra",slight_right:"leggermente a destra",sharp_left:"bruscamente a sinistra",sharp_right:"bruscamente a destra"},
+        ru:{left:"поверните налево",right:"поверните направо",straight:"прямо",u:"развернитесь",slight_left:"плавно налево",slight_right:"плавно направо",sharp_left:"резко налево",sharp_right:"резко направо"}
       };
       var dict = words[lang]||words.de;
       if(mod.indexOf("left")>=0 && mod.indexOf("slight")>=0) return dict.slight_left;
@@ -742,7 +966,6 @@
       if(!step) return;
       var stepKey = routeData.currentStep+"_"+routeData.targetName;
       if(stepKey===lastSpokenStep) return;
-
       if(step.distance < 300 && step.distance > 50){
         if(lastSpokenDist !== stepKey+"_300"){
           lastSpokenDist = stepKey+"_300";
@@ -753,15 +976,14 @@
       }
       if(step.distance < 50){
         lastSpokenStep = stepKey;
-        var s2 = getSettings();
-        speakNav(getTurnWord(step.maneuver.modifier, s2.lang));
+        speakNav(getTurnWord(step.maneuver.modifier, getSettings().lang));
         routeData.currentStep++;
       }
     }
 
     // ═══════════════ SPEED LIMIT ═══════════════
     function fetchSpeedLimitIfNeeded(){
-      if(!lastPos || simTimer || getSettings().offlineMode) return;
+      if(!lastPos || getSettings().offlineMode) return;
       var now = Date.now();
       if(now-lastLimitFetch<15000) return;
       lastLimitFetch = now;
@@ -783,9 +1005,9 @@
         }).catch(function(){});
     }
 
-    // ═══════════════ POIs (Fuel + Restaurants) ═══════════════
+    // ═══════════════ POIs ═══════════════
     function fetchPOIsIfNeeded(){
-      if(!lastPos || simTimer || getSettings().offlineMode) return;
+      if(!lastPos || getSettings().offlineMode) return;
       var lat=lastPos.coords.latitude, lng=lastPos.coords.longitude;
       var s = getSettings();
       var enabled = CATS.filter(function(c){ return c.type==="poi" && s.enabled[c.id]; });
@@ -808,19 +1030,19 @@
       return null;
     }
 
-    // ═══════════════ FUEL SCREEN ═══════════════
+    // ═══════════════ FUEL ═══════════════
     function screenFuel(){
       var s = getSettings();
       var html = backBtn('cockpit');
       html += `<div class="card"><h3>⛽ Tankstellen</h3>`;
       if(!s.tankerApiKey){
         html += `<div style="padding:10px;background:rgba(255,215,0,.1);border:1px solid #ffd700;border-radius:8px;margin-bottom:10px;font-size:11px;color:#ffd700">
-          💡 Für echte Preise: Tankerkönig API-Key in Einstellungen eintragen.<br>
+          💡 Für echte Preise: Tankerkönig API-Key eintragen.<br>
           Kostenlos auf <b>creativecommons.tankerkoenig.de</b>
         </div>
         <div class="field"><label>Tankerkönig API-Key</label>
           <input id="tankerKey" placeholder="API-Key einfügen..." value="${_esc(s.tankerApiKey)}" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:1px solid #444;border-radius:8px;color:#fff;font-size:12px">
-          <button id="saveTanker" style="width:100%;padding:10px;margin-top:6px;background:rgba(77,208,225,.2);border:1px solid #4dd0e1;color:#4dd0e1;border-radius:8px;font-weight:900;cursor:pointer">💾 Speichern</button>
+          <button id="saveTanker" style="width:100%;padding:10px;margin-top:6px;background:rgba(255,215,0,.2);border:1px solid #ffd700;color:#ffd700;border-radius:8px;font-weight:900;cursor:pointer">💾 Speichern</button>
         </div>`;
       } else if(!lastPos){
         html += `<div style="text-align:center;color:#7fa5b8;padding:20px">GPS wird gesucht...</div>`;
@@ -856,7 +1078,6 @@
       var r = container.querySelector("#refreshFuel");
       if(r) r.addEventListener("click", fetchFuelPrices);
     }
-
     function fetchFuelPrices(){
       var s = getSettings();
       if(!s.tankerApiKey || !lastPos) return;
@@ -864,7 +1085,7 @@
         .then(r=>r.json()).then(function(d){
           if(d.ok) fuelStations = d.stations;
           if(view.screen==="fuel") screenFuel();
-        }).catch(function(e){ console.warn("[Fuel]", e.message); });
+        }).catch(function(){});
     }
 
     // ═══════════════ RESTAURANTS ═══════════════
@@ -875,7 +1096,7 @@
         <div id="restList">`;
       var rest = Object.values(poiCache).filter(function(p){ return p.cat==="poi_rest"; });
       if(!rest.length){
-        html += `<div style="text-align:center;color:#7fa5b8;padding:15px">Keine Restaurants in der Nähe gefunden. Warte auf GPS...</div>`;
+        html += `<div style="text-align:center;color:#7fa5b8;padding:15px">Keine Restaurants in der Nähe. Warte auf GPS...</div>`;
       } else {
         rest.forEach(function(r){
           var d = lastPos ? haversine(lastPos.coords.latitude, lastPos.coords.longitude, r.lat, r.lng) : 0;
@@ -887,8 +1108,7 @@
           </div>`;
         });
       }
-      html += `</div></div>`;
-      container.innerHTML = html; bindNav();
+      html += `</div></div>`; container.innerHTML = html; bindNav();
     }
 
     // ═══════════════ MAP ═══════════════
@@ -918,7 +1138,7 @@
         mapMarkers.push(L.marker([w.lat,w.lng],{icon:icon}).addTo(map));
       });
       if(lastPos){
-        var uicon = L.divIcon({ html:`<div style="background:#4dd0e1;border:3px solid #fff;border-radius:50%;width:20px;height:20px;box-shadow:0 0 20px #4dd0e1"></div>`, className:"", iconSize:[20,20], iconAnchor:[10,10] });
+        var uicon = L.divIcon({ html:`<div style="background:#ffd700;border:3px solid #fff;border-radius:50%;width:20px;height:20px;box-shadow:0 0 20px #ffd700"></div>`, className:"", iconSize:[20,20], iconAnchor:[10,10] });
         mapMarkers.push(L.marker([lastPos.coords.latitude,lastPos.coords.longitude],{icon:uicon}).addTo(map));
         map.setView([lastPos.coords.latitude,lastPos.coords.longitude]);
       }
@@ -964,7 +1184,7 @@
       });
     }
 
-    // ═══════════════ NAV SCREEN ═══════════════
+    // ═══════════════ NAV ═══════════════
     function screenNav(){
       var hist = store.get("navHistory",[]);
       var favs = store.get("navFavorites",[]);
@@ -976,12 +1196,12 @@
           <input id="navCity" placeholder="z.B. 30159 Hannover" style="width:100%;padding:12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#fff;font-size:14px">
         </div>
         <div style="display:flex;gap:6px;margin-top:8px">
-          <button class="btn full" id="navGo" style="flex:1;padding:12px;background:linear-gradient(135deg,#4dd0e1,#b478ff);color:#000;font-weight:900;border:none;border-radius:10px;cursor:pointer">🔍 Route berechnen</button>
+          <button class="btn full" id="navGo" style="flex:1;padding:12px;background:linear-gradient(135deg,#ffd700,#ff9800);color:#000;font-weight:900;border:none;border-radius:10px;cursor:pointer">🔍 Route berechnen</button>
           <button id="navFav" style="padding:12px 16px;background:rgba(255,215,0,.2);border:1px solid #ffd700;color:#ffd700;border-radius:10px;font-size:18px;cursor:pointer">⭐</button>
         </div>
-        ${routeData?`<div style="margin-top:14px;padding:12px;background:rgba(77,208,225,.1);border:1px solid rgba(77,208,225,.3);border-radius:10px">
+        ${routeData?`<div style="margin-top:14px;padding:12px;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.3);border-radius:10px">
           <div style="display:flex;justify-content:space-between;align-items:center">
-            <div><div style="font-size:11px;color:#7fa5b8;font-weight:800">ROUTE AKTIV</div><div style="font-size:14px;font-weight:900;color:#4dd0e1;margin-top:4px">${fmtDist(routeData.totalDist)} · ${fmtTime(Math.round(routeData.totalTime))}</div></div>
+            <div><div style="font-size:11px;color:#7fa5b8;font-weight:800">ROUTE AKTIV</div><div style="font-size:14px;font-weight:900;color:#ffd700;margin-top:4px">${fmtDist(routeData.totalDist)} · ${fmtTime(Math.round(routeData.totalTime))}</div></div>
             <button id="navClear" style="background:rgba(255,128,128,.15);border:1px solid rgba(255,128,128,.3);color:#ff8080;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;font-weight:800">Beenden</button>
           </div>
         </div>`:""}
@@ -1043,7 +1263,7 @@
           if(!data || !data.length){ alert("Ziel nicht gefunden"); return; }
           targetPos = { lat:parseFloat(data[0].lat), lng:parseFloat(data[0].lon) };
           var addr = data[0].display_name.split(",")[0];
-          speakNav(`Navigation gestartet. Ziel: ${addr}.`);
+          speakNav("Navigation gestartet. Ziel: " + addr + ".");
           fetch(`https://router.project-osrm.org/route/v1/driving/${lastPos.coords.longitude},${lastPos.coords.latitude};${targetPos.lng},${targetPos.lat}?steps=true&geometries=geojson&overview=false`)
             .then(r=>r.json()).then(function(rdata){
               if(!rdata.routes || !rdata.routes.length){ alert("Route nicht gefunden"); return; }
@@ -1060,12 +1280,12 @@
       var now = Date.now();
       var remaining = parkEndTime>now ? Math.floor((parkEndTime-now)/1000) : 0;
       var html = backBtn('cockpit') + `<div class="card" style="text-align:center"><h3>🅿️ Parkuhr</h3>
-        <div style="font-size:56px;font-weight:900;color:${remaining>0?'#4dd0e1':'#ff5555'};margin:20px 0" id="parkTime">${fmtTime(remaining)}</div>
+        <div style="font-size:56px;font-weight:900;color:${remaining>0?'#ffd700':'#ff5555'};margin:20px 0;text-shadow:0 0 20px ${remaining>0?'rgba(255,215,0,.5)':'rgba(255,85,85,.5)'}" id="parkTime">${fmtTime(remaining)}</div>
         ${remaining===0 && parkEndTime>0?'<div style="color:#ff5555;font-weight:900">⏰ Zeit abgelaufen!</div>':''}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:20px">
-          <button onclick="window._parkAdd(15)" style="background:rgba(77,208,225,.2);border:1px solid #4dd0e1;color:#4dd0e1;padding:12px;border-radius:8px;font-weight:900;cursor:pointer">+ 15 Min</button>
-          <button onclick="window._parkAdd(30)" style="background:rgba(77,208,225,.2);border:1px solid #4dd0e1;color:#4dd0e1;padding:12px;border-radius:8px;font-weight:900;cursor:pointer">+ 30 Min</button>
-          <button onclick="window._parkAdd(60)" style="background:rgba(77,208,225,.2);border:1px solid #4dd0e1;color:#4dd0e1;padding:12px;border-radius:8px;font-weight:900;cursor:pointer">+ 1 Std</button>
+          <button onclick="window._parkAdd(15)" style="background:rgba(255,215,0,.2);border:1px solid #ffd700;color:#ffd700;padding:12px;border-radius:8px;font-weight:900;cursor:pointer">+ 15 Min</button>
+          <button onclick="window._parkAdd(30)" style="background:rgba(255,215,0,.2);border:1px solid #ffd700;color:#ffd700;padding:12px;border-radius:8px;font-weight:900;cursor:pointer">+ 30 Min</button>
+          <button onclick="window._parkAdd(60)" style="background:rgba(255,215,0,.2);border:1px solid #ffd700;color:#ffd700;padding:12px;border-radius:8px;font-weight:900;cursor:pointer">+ 1 Std</button>
           <button onclick="window._parkStop()" style="background:rgba(255,85,85,.2);border:1px solid #ff5555;color:#ff5555;padding:12px;border-radius:8px;font-weight:900;cursor:pointer">⏹ Stopp</button>
         </div>
       </div>`;
@@ -1081,7 +1301,7 @@
         var el = document.getElementById("parkTime"); if(!el) return;
         var rem = parkEndTime>Date.now() ? Math.floor((parkEndTime-Date.now())/1000) : 0;
         el.textContent = fmtTime(rem);
-        el.style.color = rem>0?'#4dd0e1':'#ff5555';
+        el.style.color = rem>0?'#ffd700':'#ff5555';
         if(rem===0 && parkEndTime>0){
           if(HalDo.Notify) HalDo.Notify.error("Parkzeit abgelaufen!");
           playBeep("urgent", 1.0, 5);
@@ -1161,7 +1381,7 @@
       tfModel = null; screenVision();
     }
 
-    // ═══════════════ NEXT EVENT / MANEUVER ═══════════════
+    // ═══════════════ NEXT EVENT ═══════════════
     function getNextEvent(){
       if(routeData && routeData.steps){
         for(var i=routeData.currentStep;i<routeData.steps.length;i++){
@@ -1174,33 +1394,6 @@
       return null;
     }
 
-    // ═══════════════ SIMULATION ═══════════════
-    function startSimulation(){
-      if(simTimer) clearInterval(simTimer);
-      lastPos = { coords:{ latitude:51.1657, longitude:10.4515, speed:0 } };
-      trip = { active:true, startTime:Date.now(), distance:0, warnings:0 };
-      simSpeed = 30;
-      simTimer = setInterval(function(){
-        simSpeed = Math.min(180, simSpeed + Math.random()*15);
-        if(simSpeed>150 && Math.random()>0.8) simSpeed -= 40;
-        trip.distance += (simSpeed/3600);
-        if(Math.random()>0.95){
-          var randomCat = CATS[Math.floor(Math.random()*CATS.length)];
-          speakAlert(randomCat, 500, getSettings());
-          sendPushNotification(randomCat, 500);
-          if(getSettings().flashOnWarning) blinkTorch(3);
-          trip.warnings++;
-        }
-        if(view.screen==="cockpit"){
-          var t = container.querySelector(".cpt-speed"); if(t) t.textContent = Math.round(simSpeed);
-          var d = container.querySelector("#tripDist"); if(d) d.textContent = trip.distance.toFixed(1)+" km";
-          var w = container.querySelector("#tripWarn"); if(w) w.textContent = trip.warnings;
-          build();
-        }
-      }, 1000);
-      build();
-    }
-
     // ═══════════════ GEO ═══════════════
     function startGeo(){
       if(!navigator.geolocation) return;
@@ -1208,7 +1401,6 @@
       geoWatch = navigator.geolocation.watchPosition(onPos, onErr, { enableHighAccuracy:true, maximumAge:3000, timeout:15000 });
     }
     function onPos(pos){
-      if(simTimer) return;
       if(lastPos && trip.active){
         var d = haversine(lastPos.coords.latitude, lastPos.coords.longitude, pos.coords.latitude, pos.coords.longitude);
         if(d>3 && d<500) trip.distance += d/1000;
@@ -1233,17 +1425,16 @@
       var tb = container.querySelector("[data-trip]");
       if(tb) tb.addEventListener("click", function(){
         if(tb.dataset.trip==="start"){ trip={active:true,startTime:Date.now(),distance:0,warnings:0}; if(HalDo.Notify) HalDo.Notify.success("Fahrt gestartet!"); }
-        else { trip.active=false; if(simTimer){ clearInterval(simTimer); simTimer=null; } if(HalDo.Notify) HalDo.Notify.info("Fahrt beendet: "+trip.distance.toFixed(1)+" km"); }
+        else { trip.active=false; if(HalDo.Notify) HalDo.Notify.info("Fahrt beendet: "+trip.distance.toFixed(1)+" km"); }
         build();
       });
-      var simBtn = container.querySelector("#simBtn");
-      if(simBtn) simBtn.addEventListener("click", startSimulation);
     }
 
     if("Notification" in window && Notification.permission==="default") Notification.requestPermission();
-    startGeo(); build();
+    startGeo();
+    build();
   }
 
   HalDoApp("blitzer", { name:"HalDo Blitzer", icon:"⚠️", render:render, category:"werkzeuge" });
-  console.log("🦚 blitzer.js v14.0 geladen — Bluetooth · Sprach-Navi · Tankstellen-Preise · Restaurants · Taschenlampe");
+  console.log("🦚 HalDo Blitzer v15.0 geladen — Premium Gold Edition mit Willkommens-Animation");
 })();
