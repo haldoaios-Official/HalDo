@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — HALDO BLITZER v13.0 (ULTIMATE)
-   Riesen-Tacho · 3D-Pfeile(Farben) · Schwebendes Wetter · Push
+   HALDO AI OS — HALDO BLITZER v14.0 (KING CLASS)
+   Logo · Riesen-Tacho · Schilder · Adress-Eingabe · Blitz-Licht
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -25,13 +25,16 @@
   };
 
   var DEFAULT_SETTINGS = { 
-    enabled: {}, lang:"de", voiceOn:true, beepOn:true, notifyOn:true, warnDist: 1000, sounds:{}, 
-    arrowColor: "gold", tachoColor: "#4dd0e1", alarmDuration: 5, offlineMode: false 
+    enabled: {}, lang:"de", voiceOn:true, beepOn:true, notifyOn:true, flashlightOn:true, warnDist: 1000, sounds:{}, 
+    arrowColor: "#ffd700", tachoColor: "#4dd0e1", alarmDuration: 5, offlineMode: false 
   };
   
+  // Standard-Töne laut Wunsch zuweisen
   CATS.forEach(function(c){ 
     DEFAULT_SETTINGS.enabled[c.id] = true; 
-    DEFAULT_SETTINGS.sounds[c.id] = (c.id.indexOf("blitzer") === 0 || c.id === "unfall") ? "siren" : "chime"; 
+    if(c.id === "ezidi") DEFAULT_SETTINGS.sounds[c.id] = "radar";
+    else if(c.id === "poi_rest") DEFAULT_SETTINGS.sounds[c.id] = "vogel";
+    else DEFAULT_SETTINGS.sounds[c.id] = "siren"; 
   });
 
   function _esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
@@ -86,6 +89,31 @@
       }
       return;
     }
+    if (pattern === "vogel") {
+      for(let i=0; i<5; i++){
+         let t = now + i * 0.3;
+         var o = ctx.createOscillator(), g = ctx.createGain();
+         o.type = "sine"; o.frequency.setValueAtTime(2000, t);
+         o.frequency.exponentialRampToValueAtTime(3000, t+0.1);
+         o.connect(g); g.connect(ctx.destination);
+         g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.02);
+         g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+         o.start(t); o.stop(t + 0.2);
+      }
+      return;
+    }
+    if (pattern === "extreme") {
+      for(let i=0; i<(duration/0.1); i++){
+         let t = now + i * 0.1;
+         var o = ctx.createOscillator(), g = ctx.createGain();
+         o.type = "square"; o.frequency.value = 3000;
+         o.connect(g); g.connect(ctx.destination);
+         g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.01);
+         g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+         o.start(t); o.stop(t + 0.06);
+      }
+      return;
+    }
     var p = { urgent: [{f:880,t:0,d:0.1},{f:880,t:0.15,d:0.1}], alarm: [{f:1200,t:0,d:0.08},{f:1200,t:0.12,d:0.08}], chime: [{f:523,t:0,d:0.15},{f:659,t:0.15,d:0.15},{f:784,t:0.3,d:0.25}], low: [{f:440,t:0,d:0.2}] }[pattern] || [{f:440,t:0,d:0.2}];
     p.forEach(function(b){
       var o = ctx.createOscillator(), g = ctx.createGain();
@@ -105,7 +133,7 @@
     var tfModel = null, cameraStream = null, visionLoop = null;
     var weatherData = null;
     var parkTimer = null, parkEndTime = 0;
-    var weatherPos = store.get("weatherPos", { x: 20, y: 60 }); // Default Position
+    var weatherPos = store.get("weatherPos", { x: 20, y: 80 });
 
     function getSettings(){ var s = store.get("settings", {}); var m = JSON.parse(JSON.stringify(DEFAULT_SETTINGS)); Object.keys(s).forEach(function(k){ m[k] = s[k]; }); return m; }
     function saveSettings(s){ store.set("settings", s); }
@@ -134,8 +162,8 @@
       var nearestWarning = getNearestWarning();
       
       var maxSpeed = 240;
-      var startAngle = 210; // 7 Uhr
-      var endAngle = 510;   // 5 Uhr
+      var startAngle = 210; 
+      var endAngle = 510;
       var currentAngle = startAngle + (Math.min(speed, maxSpeed) / maxSpeed) * (endAngle - startAngle);
 
       var ticks = "";
@@ -145,17 +173,17 @@
         var isMajor = i % 40 === 0;
         var len = isMajor ? 15 : 8;
         
-        var x1 = 100 + 75 * Math.cos(rad);
-        var y1 = 100 + 75 * Math.sin(rad);
-        var x2 = 100 + (75 - len) * Math.cos(rad);
-        var y2 = 100 + (75 - len) * Math.sin(rad);
+        var x1 = 100 + 85 * Math.cos(rad);
+        var y1 = 100 + 85 * Math.sin(rad);
+        var x2 = 100 + (85 - len) * Math.cos(rad);
+        var y2 = 100 + (85 - len) * Math.sin(rad);
         
         var tickColor = (i > 180) ? '#ff5555' : (isMajor ? '#fff' : 'rgba(255,255,255,.3)');
         ticks += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${tickColor}" stroke-width="${isMajor ? 3 : 1.5}" />`;
         
         if (isMajor) {
-          var tx = 100 + 60 * Math.cos(rad);
-          var ty = 100 + 60 * Math.sin(rad);
+          var tx = 100 + 70 * Math.cos(rad);
+          var ty = 100 + 70 * Math.sin(rad);
           ticks += `<text x="${tx}" y="${ty}" fill="${tickColor}" font-size="12" font-weight="900" text-anchor="middle" dominant-baseline="middle">${i}</text>`;
         }
       }
@@ -169,13 +197,8 @@
       }
 
       var tachoColor = s.tachoColor;
-      var arrowConfig = {
-        gold: { fill: "#ffd700", glow: "rgba(255,215,0,.8)" },
-        blue: { fill: "#4dd0e1", glow: "rgba(77,208,225,.8)" },
-        white: { fill: "#ffffff", glow: "rgba(255,255,255,.8)" },
-        green: { fill: "#4ade80", glow: "rgba(74,222,128,.8)" },
-        red: { fill: "#ff5555", glow: "rgba(255,85,85,.8)" }
-      }[s.arrowColor] || { fill: "#ffd700", glow: "rgba(255,215,0,.8)" };
+      var arrowColor = s.arrowColor;
+      var arrowGlow = arrowColor + "cc";
 
       var css = `
         .cpt-wrap{position:relative;height:calc(100vh - 100px);min-height:600px;background:radial-gradient(ellipse at 50% 30%,#0a1220 0%,#050810 80%);border-radius:20px;padding:16px;display:flex;flex-direction:column;overflow:hidden;font-family:-apple-system,sans-serif;color:#fff}
@@ -183,28 +206,32 @@
         .cpt-navbtn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;padding:10px 14px;border-radius:12px;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:6px}
         
         /* Tacho */
-        .cpt-tacho{position:relative;width:340px;height:340px;margin:10px auto;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .1s}
+        .cpt-tacho{position:relative;width:380px;height:380px;margin:10px auto;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .1s}
         .cpt-tacho:active{transform:scale(.98)}
         .tacho-bg{position:absolute;inset:0;background:radial-gradient(circle, rgba(10,18,32,1) 0%, rgba(5,8,16,1) 100%);border-radius:50%;border:2px solid ${tachoColor}44;box-shadow:0 0 30px ${tachoColor}22, inset 0 0 20px rgba(0,0,0,.8)}
         
         .needle-container{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform:rotate(${currentAngle}deg);transition:transform .3s cubic-bezier(0.4, 2.08, 0.55, 0.44)}
-        .needle{width:4px;height:135px;background:linear-gradient(to top, transparent 40%, #ff3333 40%, #ff3333 100%);position:absolute;bottom:50%;transform-origin:bottom center;border-radius:2px;box-shadow:0 0 12px #ff3333}
-        .needle-center{position:absolute;width:28px;height:28px;background:#111;border:4px solid #ff3333;border-radius:50%;z-index:2;box-shadow:0 0 20px #ff3333}
+        .needle{width:4px;height:150px;background:linear-gradient(to top, transparent 40%, #ff3333 40%, #ff3333 100%);position:absolute;bottom:50%;transform-origin:bottom center;border-radius:2px;box-shadow:0 0 12px #ff3333}
+        .needle-center{position:absolute;width:32px;height:32px;background:#111;border:4px solid #ff3333;border-radius:50%;z-index:2;box-shadow:0 0 20px #ff3333}
         
-        .cpt-center-display{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;z-index:3}
-        .cpt-speed{font-size:38px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;text-shadow:0 0 15px rgba(255,255,255,.3)}
-        .cpt-unit{font-size:9px;color:#7fa5b8;font-weight:900;letter-spacing:2px;margin-top:2px}
+        /* Center Display */
+        .cpt-center-display{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;z-index:3;background:rgba(0,0,0,.4);padding:10px 20px;border-radius:16px;border:1px solid rgba(255,255,255,.05)}
+        .cpt-speed{font-size:44px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;text-shadow:0 0 15px rgba(255,255,255,.3)}
+        .cpt-unit{font-size:10px;color:#7fa5b8;font-weight:900;letter-spacing:2px;margin-top:2px}
         
-        .cpt-warn-display{margin-top:6px;background:rgba(0,0,0,.6);padding:4px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.1);font-size:12px;font-weight:900;display:flex;align-items:center;gap:6px;white-space:nowrap}
+        .cpt-warn-display{margin-top:8px;font-size:12px;font-weight:900;display:flex;align-items:center;gap:6px;white-space:nowrap}
         
+        /* Logo */
+        .cpt-logo{width:36px;height:36px;border-radius:50%;margin-bottom:6px;box-shadow:0 0 15px ${tachoColor}aa}
+
         .cpt-limit{position:absolute;top:20px;right:20px;width:64px;height:64px;border-radius:50%;background:#fff;border:6px solid #ff3333;display:flex;align-items:center;justify-content:center;z-index:20;box-shadow:0 0 15px rgba(255,51,51,.5)}
         .cpt-limit-num{font-size:24px;font-weight:900;color:#000}
         
         /* 3D Arrow */
         .holo-container{perspective:800px;width:100%;height:140px;display:flex;align-items:center;justify-content:center;margin-top:0px;position:relative}
-        .holo-base{position:absolute;bottom:0px;width:200px;height:40px;background:radial-gradient(ellipse, ${arrowConfig.glow} 0%, transparent 70%);filter:blur(8px);border-radius:50%}
+        .holo-base{position:absolute;bottom:0px;width:200px;height:40px;background:radial-gradient(ellipse, ${arrowGlow} 0%, transparent 70%);filter:blur(8px);border-radius:50%}
         .holo-arrow-box{position:relative;transform-style:preserve-3d;transform:rotateX(60deg) rotateZ(${nextEvent ? (nextEvent.modifier && nextEvent.modifier.indexOf('left') >= 0 ? -45 : nextEvent.modifier && nextEvent.modifier.indexOf('right') >= 0 ? 45 : 0) : 0}deg);animation:arrowFloat 1.5s infinite alternate}
-        .holo-svg{width:90px;height:auto;filter:drop-shadow(0 0 20px ${arrowConfig.glow})}
+        .holo-svg{width:90px;height:auto;filter:drop-shadow(0 0 20px ${arrowGlow})}
         @keyframes arrowFloat{0%{transform:rotateX(60deg) rotateZ(var(--rot,0deg)) translateZ(0)}100%{transform:rotateX(60deg) rotateZ(var(--rot,0deg)) translateZ(30px)}}
 
         .road-sign{position:absolute;top:-30px;left:50%;transform:translateX(-50%);background:#0066cc;border:2px solid #fff;border-radius:8px;padding:4px 12px;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,.5);z-index:10;white-space:nowrap}
@@ -222,9 +249,13 @@
         
         /* Weather Widget */
         .weather-widget{position:absolute;z-index:100;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:8px 12px;font-size:11px;font-weight:800;display:flex;align-items:center;gap:8px;cursor:move;box-shadow:0 4px 15px rgba(0,0,0,.5);user-select:none}
+        
+        /* Flashlight Flash Effect */
+        #flashOverlay{position:fixed;inset:0;background:#fff;z-index:99999;pointer-events:none;opacity:0;transition:opacity .1s}
       `;
 
       var html = `<style>${css}</style><div class="cpt-wrap">
+      <div id="flashOverlay"></div>
       <div class="cpt-top">
         <div style="display:flex;gap:6px">
           <button data-nav="nav" class="cpt-navbtn" style="color:${tachoColor}">🧭 Route</button>
@@ -235,7 +266,6 @@
         </div>
       </div>`;
 
-      // Weather Widget
       if(weatherData){
         html += `<div id="weatherWidget" class="weather-widget" style="left:${weatherPos.x}px; top:${weatherPos.y}px">
           <span style="font-size:18px">${weatherData.icon}</span>
@@ -277,8 +307,8 @@
             <svg class="holo-svg" viewBox="0 0 100 100">
               <defs>
                 <linearGradient id="arrowGrad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stop-color="${arrowConfig.fill}"/>
-                  <stop offset="100%" stop-color="${arrowConfig.fill}"/>
+                  <stop offset="0%" stop-color="${arrowColor}"/>
+                  <stop offset="100%" stop-color="${arrowColor}"/>
                 </linearGradient>
               </defs>
               <polygon points="50,5 90,50 65,50 65,95 35,95 35,50 10,50" fill="url(#arrowGrad)" stroke="#fff" stroke-width="2"/>
@@ -286,15 +316,14 @@
           </div>
         </div>`;
       } else {
-        // Show default arrow if no route, so user always sees it
         html += `<div class="holo-container" style="height:100px;margin-top:20px">
           <div class="holo-base"></div>
           <div class="holo-arrow-box" style="--rot:0deg">
             <svg class="holo-svg" viewBox="0 0 100 100" style="width:70px">
               <defs>
                 <linearGradient id="arrowGrad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stop-color="${arrowConfig.fill}"/>
-                  <stop offset="100%" stop-color="${arrowConfig.fill}"/>
+                  <stop offset="0%" stop-color="${arrowColor}"/>
+                  <stop offset="100%" stop-color="${arrowColor}"/>
                 </linearGradient>
               </defs>
               <polygon points="50,5 90,50 65,50 65,95 35,95 35,50 10,50" fill="url(#arrowGrad)" stroke="#fff" stroke-width="2"/>
@@ -303,18 +332,21 @@
         </div>`;
       }
 
-      // Tacho
-      html += `<div class="cpt-tacho" onclick="this.closest('.cpt-wrap').dispatchEvent(new CustomEvent('open-settings'))">
+      // Tacho with big center click area
+      html += `<div class="cpt-tacho">
         ${currentLimit !== null ? `<div class="cpt-limit"><div class="cpt-limit-num">${currentLimit === 0 ? "∞" : currentLimit}</div></div>` : ''}
         <div class="tacho-bg"></div>
         <svg viewBox="0 0 200 200" style="position:absolute;inset:0;width:100%;height:100%;">
-          <path d="M 39.3 156 A 75 75 0 1 1 160.7 156" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="8" />
-          <path d="M 39.3 156 A 75 75 0 1 1 160.7 156" fill="none" stroke="${tachoColor}" stroke-width="8" stroke-linecap="round" stroke-dasharray="353" stroke-dashoffset="${353 - (Math.min(speed,maxSpeed)/maxSpeed * 353)}" style="transition:stroke-dashoffset .2s" />
+          <path d="M 39.3 156 A 85 85 0 1 1 160.7 156" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="8" />
+          <path d="M 39.3 156 A 85 85 0 1 1 160.7 156" fill="none" stroke="${tachoColor}" stroke-width="8" stroke-linecap="round" stroke-dasharray="403" stroke-dashoffset="${403 - (Math.min(speed,maxSpeed)/maxSpeed * 403)}" style="transition:stroke-dashoffset .2s" />
           ${ticks}
         </svg>
         <div class="needle-container"><div class="needle"></div></div>
         <div class="needle-center"></div>
-        <div class="cpt-center-display">
+        
+        <!-- INNER DISPLAY CLICKABLE -->
+        <div class="cpt-center-display" data-nav="settings">
+          <img src="logo.png" class="cpt-logo" onerror="this.style.display='none'">
           <div class="cpt-speed">${speed}</div>
           <div class="cpt-unit">KM/H</div>
           ${nearestWarning ? `<div class="cpt-warn-display" style="color:${nearestWarning.color}">${nearestWarning.icon} in ${fmtDist(nearestWarning.dist)}</div>` : ''}
@@ -341,10 +373,12 @@
       container.innerHTML = html;
       bindNav(); bindCockpit(); bindWeatherDrag();
       
-      container.querySelector('.cpt-wrap').addEventListener('open-settings', function() {
-          view.screen = "settings"; build();
+      // Explicitly handle center click
+      var center = container.querySelector(".cpt-center-display");
+      if(center) center.addEventListener("click", function(e) {
+        e.stopPropagation(); view.screen = "settings"; build();
       });
-      
+
       fetchPOIsIfNeeded(); fetchSpeedLimitIfNeeded();
       if(!weatherData) fetchWeather();
     }
@@ -358,7 +392,7 @@
             isDragging = true;
             startX = e.clientX; startY = e.clientY;
             startLeft = parseInt(w.style.left) || 20;
-            startTop = parseInt(w.style.top) || 60;
+            startTop = parseInt(w.style.top) || 80;
             w.setPointerCapture(e.pointerId);
         });
         
@@ -402,10 +436,13 @@
       var s = getSettings();
       var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>`;
       
-      html += `<div class="card"><h3>🏎️ Tacho-Design</h3>
+      html += `<div class="card"><h3>🏎️ Tacho & Warnungen</h3>
         <div class="field"><label>Alarm-Dauer (Sekunden)</label>
           <input type="range" id="setDuration" min="2" max="15" step="1" value="${s.alarmDuration}" style="width:100%">
           <div style="text-align:right;font-size:11px;font-weight:900;color:#4dd0e1;margin-top:2px" id="durLbl">${s.alarmDuration} Sekunden</div>
+        </div>
+        <div class="field" style="margin-top:10px"><label>Taschenlampe blinken bei Warnung</label>
+          <button id="toggleFlash" style="width:100%;padding:10px;background:${s.flashlightOn?'rgba(255,213,79,.2)':'rgba(0,0,0,.2)'};border:1px solid ${s.flashlightOn?'#ffd54f':'#444'};color:${s.flashlightOn?'#ffd54f':'#888'};border-radius:8px;font-weight:900;font-size:12px;cursor:pointer">${s.flashlightOn ? '✅ Aktiviert' : '❌ Deaktiviert'}</button>
         </div>
         <div class="field" style="margin-top:10px"><label>Tacho-Farbe</label>
           <div style="display:flex;gap:8px;margin-top:6px">
@@ -422,12 +459,9 @@
       </div>`;
 
       html += `<div class="card"><h3>🎨 Pfeil-Farbe</h3>
-        <div style="display:flex;gap:8px;margin-top:6px">
-            <button data-arrow="#ffd700" style="flex:1;height:36px;background:#ffd700;border:3px solid ${s.arrowColor==='gold'||s.arrowColor==='#ffd700'?'#fff':'transparent'};border-radius:8px;cursor:pointer"></button>
-            <button data-arrow="#4dd0e1" style="flex:1;height:36px;background:#4dd0e1;border:3px solid ${s.arrowColor==='blue'?'#fff':'transparent'};border-radius:8px;cursor:pointer"></button>
-            <button data-arrow="#ffffff" style="flex:1;height:36px;background:#fff;border:3px solid ${s.arrowColor==='white'?'#fff':'transparent'};border-radius:8px;cursor:pointer"></button>
-            <button data-arrow="#4ade80" style="flex:1;height:36px;background:#4ade80;border:3px solid ${s.arrowColor==='green'?'#fff':'transparent'};border-radius:8px;cursor:pointer"></button>
-            <button data-arrow="#ff5555" style="flex:1;height:36px;background:#ff5555;border:3px solid ${s.arrowColor==='red'?'#fff':'transparent'};border-radius:8px;cursor:pointer"></button>
+        <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
+            <input type="color" id="arrowColorPicker" value="${s.arrowColor}" style="width:50px;height:40px;border:none;border-radius:8px;cursor:pointer;background:transparent">
+            <span style="font-size:12px;font-weight:800;color:#aaa">Wähle eine Farbe für den 3D-Pfeil</span>
         </div>
       </div>`;
 
@@ -435,7 +469,7 @@
       var soundOptions = [
         { id:"siren", name:"🚨 Sirene" }, { id:"siren2", name:"🚨 Sirene 2" }, { id:"long_alarm", name:"🔔 Feueralarm" },
         { id:"long_alarm2", name:"🔔 Feuer 2" }, { id:"radar", name:"📡 Radar" }, { id:"radar2", name:"📡 Radar 2" },
-        { id:"urgent", name:"⚠️ Dringend" }, { id:"chime", name:"🎵 Glocke" }, { id:"low", name:"🕊️ Sanft" }
+        { id:"extreme", name:"⚡ Extrem" }, { id:"vogel", name:"🐦 Vögel" }, { id:"chime", name:"🎵 Glocke" }
       ];
 
       CATS.forEach(c => {
@@ -469,11 +503,12 @@
         el.addEventListener("click", function() { s.tachoColor = el.dataset.color; saveSettings(s); screenSettings(); });
       });
       
-      container.querySelectorAll("[data-arrow]").forEach(el => {
-        el.addEventListener("click", function() { 
-          s.arrowColor = el.dataset.arrow === '#ffd700' ? 'gold' : el.dataset.arrow === '#4dd0e1' ? 'blue' : el.dataset.arrow === '#ffffff' ? 'white' : el.dataset.arrow === '#4ade80' ? 'green' : 'red';
-          saveSettings(s); screenSettings(); 
-        });
+      container.querySelector("#arrowColorPicker").addEventListener("input", function(e) {
+        s.arrowColor = e.target.value; saveSettings(s);
+      });
+      
+      container.querySelector("#toggleFlash").addEventListener("click", function() {
+        s.flashlightOn = !s.flashlightOn; saveSettings(s); screenSettings();
       });
       
       container.querySelector("#toggleOffline").addEventListener("click", function() {
@@ -489,11 +524,10 @@
       });
     }
 
-    /* ═══════════ WETTER (Detailliert) ═══════════ */
+    /* ═══════════ WETTER ═══════════ */
     function fetchWeather(){
       if(!lastPos || getSettings().offlineMode) return;
       
-      // 1. Wetter von Open-Meteo
       fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lastPos.coords.latitude}&longitude=${lastPos.coords.longitude}&current_weather=true&hourly=surface_pressure`)
         .then(r => r.json()).then(data => {
           if(data.current_weather) {
@@ -507,7 +541,6 @@
             if(code >= 70 && code < 80) { icon = "🌧️"; desc = "Regen"; }
             if(code >= 80) { icon = "⛈️"; desc = "Gewitter"; }
             
-            // 2. Stadt-Name via Nominatim (Reverse Geocoding)
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lastPos.coords.latitude}&lon=${lastPos.coords.longitude}`)
               .then(res => res.json())
               .then(geo => {
@@ -522,17 +555,203 @@
         }).catch(()=>{});
     }
 
-    /* ═══════════ PUSH NOTIFICATIONS ═══════════ */
-    function sendPushNotification(cat, dist) {
-        if (!("Notification" in window) || Notification.permission !== "granted") return;
-        try {
-            var title = "HalDo Blitzer: " + cat.name.de;
-            var body = "Achtung! In " + fmtDist(dist) + ".";
-            new Notification(title, { body: body, icon: "https://haldoaios-official.github.io/HalDo/logo.png" });
-        } catch(e) {}
+    /* ═══════════ NAVIGATION (Adress-Eingabe) ═══════════ */
+    function screenNav(){
+      var hist = store.get("navHistory", []);
+      var favs = store.get("navFavorites", []);
+      
+      var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
+      <div class="card"><h3>🧭 Navigation</h3>
+      
+      <div class="field" style="display:flex;gap:6px;margin-bottom:6px">
+        <input id="navStreet" placeholder="Straße" style="flex:2;font-size:14px;padding:10px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff">
+        <input id="navNr" placeholder="Nr." style="flex:1;font-size:14px;padding:10px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff">
+      </div>
+      <div class="field" style="display:flex;gap:6px;margin-bottom:12px">
+        <input id="navZip" placeholder="PLZ" style="flex:1;font-size:14px;padding:10px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff">
+        <input id="navCity" placeholder="Stadt" style="flex:2;font-size:14px;padding:10px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff">
+      </div>
+
+      <div style="display:flex;gap:6px">
+        <button class="btn full" id="navGo" style="flex:1;padding:12px;background:linear-gradient(135deg,#4dd0e1,#b478ff);color:#000;font-weight:900;border:none;border-radius:10px;cursor:pointer">🔍 Route berechnen</button>
+        <button id="navFav" style="background:rgba(255,215,0,.2);border:1px solid #ffd700;color:#ffd700;border-radius:10px;width:44px;font-size:18px;cursor:pointer">⭐</button>
+      </div>
+      
+      ${routeData ? `<div style="margin-top:14px;padding:12px;background:rgba(77,208,225,.1);border:1px solid rgba(77,208,225,.3);border-radius:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><div style="font-size:11px;color:var(--text-mute);font-weight:800">ROUTE AKTIV</div><div style="font-size:14px;font-weight:900;color:#4dd0e1;margin-top:4px">${fmtDist(routeData.totalDist)}</div></div>
+          <button id="navClear" style="background:rgba(255,128,128,.15);border:1px solid rgba(255,128,128,.3);color:#ff8080;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;font-weight:800">Beenden</button>
+        </div>
+      </div>` : ""}</div>`;
+
+      if(favs.length){
+        html += `<div class="card"><h3>⭐ Favoriten</h3>`;
+        favs.forEach((f, i) => {
+          html += `<div style="display:flex;justify-content:space-between;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:4px">
+            <div style="font-size:12px;font-weight:800;cursor:pointer" onclick="document.getElementById('navStreet').value='${_esc(f.split(',')[0])}';document.getElementById('navCity').value='${_esc(f.split(',')[1] || '')}'">${_esc(f)}</div>
+            <button data-delfav="${i}" style="background:transparent;border:none;color:#ff8080;cursor:pointer">✕</button>
+          </div>`;
+        });
+        html += `</div>`;
+      }
+
+      if(hist.length){
+        html += `<div class="card"><h3>🕒 Verlauf</h3>`;
+        hist.slice(0, 5).forEach(h => {
+          html += `<div style="display:flex;justify-content:space-between;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:4px">
+            <div style="font-size:12px;font-weight:800;cursor:pointer" onclick="document.getElementById('navStreet').value='${_esc(h.addr.split(',')[0])}';document.getElementById('navCity').value='${_esc(h.addr.split(',')[1] || '')}'">${_esc(h.addr)}</div>
+            <div style="font-size:10px;color:var(--text-mute)">${h.date}</div>
+          </div>`;
+        });
+        html += `</div>`;
+      }
+
+      container.innerHTML = html; bindNav();
+      
+      container.querySelector("#navGo").addEventListener("click", function(){
+        var street = container.querySelector("#navStreet").value.trim();
+        var nr = container.querySelector("#navNr").value.trim();
+        var zip = container.querySelector("#navZip").value.trim();
+        var city = container.querySelector("#navCity").value.trim();
+        
+        var addr = (street + " " + nr).trim() + ", " + (zip + " " + city).trim();
+        if(!street && !city) return;
+        
+        hist.unshift({ addr: addr, date: new Date().toLocaleString("de-DE") });
+        store.set("navHistory", hist.slice(0, 20));
+        
+        if(!lastPos){ alert("GPS fehlt"); return; }
+        geocodeAndRoute(addr);
+      });
+
+      container.querySelector("#navFav").addEventListener("click", function(){
+        var street = container.querySelector("#navStreet").value.trim();
+        var city = container.querySelector("#navCity").value.trim();
+        var target = (street + ", " + city).trim().replace(/^,\s*/, '');
+        if(!target) return;
+        if(!favs.includes(target)){ favs.push(target); store.set("navFavorites", favs); screenNav(); }
+      });
+
+      container.querySelectorAll("[data-delfav]").forEach(el => {
+        el.addEventListener("click", () => {
+          favs.splice(parseInt(el.dataset.delfav), 1); store.set("navFavorites", favs); screenNav();
+        });
+      });
+      
+      var nc = container.querySelector("#navClear");
+      if(nc) nc.addEventListener("click", function(){ routeData = null; screenNav(); });
     }
 
-    // ... (Restlicher Code: checkTriggers, speakAlert, startGeo, buildMap, etc.)
+    function geocodeAndRoute(query){
+      fetch("https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(query) + "&limit=1")
+        .then(r => r.json()).then(data => {
+          if(!data || !data.length){ alert("Ziel nicht gefunden"); return; }
+          targetPos = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+          fetch(`https://router.project-osrm.org/route/v1/driving/${lastPos.coords.longitude},${lastPos.coords.latitude};${targetPos.lng},${targetPos.lat}?steps=true&geometries=geojson&overview=false`)
+            .then(r => r.json()).then(rdata => {
+              if(!rdata.routes || !rdata.routes.length){ alert("Route nicht gefunden"); return; }
+              routeData = { totalDist: rdata.routes[0].distance, totalTime: rdata.routes[0].duration, steps: rdata.routes[0].legs[0].steps, currentStep: 0, targetName: data[0].display_name.split(",")[0] };
+              if(HalDo.Notify) HalDo.Notify.success("Route berechnet: " + fmtDist(routeData.totalDist));
+              view.screen = "cockpit"; build();
+            }).catch(e => alert("Routing-Fehler: " + e.message));
+        }).catch(e => alert("Geocoding-Fehler: " + e.message));
+    }
+
+    /* ═══════════ PARKUHR & REPORT ═══════════ */
+    function screenPark(){
+      var now = Date.now();
+      var remaining = parkEndTime > now ? Math.floor((parkEndTime - now) / 1000) : 0;
+      
+      var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
+      <div class="card" style="text-align:center">
+        <h3>🅿️ Parkuhr</h3>
+        <div style="font-size:56px;font-weight:900;color:${remaining > 0 ? '#4dd0e1' : '#ff5555'};margin:20px 0" id="parkTime">${fmtTime(remaining)}</div>
+        ${remaining === 0 && parkEndTime > 0 ? '<div style="color:#ff5555;font-weight:900">⏰ Zeit abgelaufen!</div>' : ''}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:20px">
+          <button class="btn" onclick="window._parkAdd(15)" style="background:rgba(77,208,225,.2);border:1px solid #4dd0e1;color:#4dd0e1;padding:12px;border-radius:8px;font-weight:900">+ 15 Min</button>
+          <button class="btn" onclick="window._parkAdd(30)" style="background:rgba(77,208,225,.2);border:1px solid #4dd0e1;color:#4dd0e1;padding:12px;border-radius:8px;font-weight:900">+ 30 Min</button>
+          <button class="btn" onclick="window._parkAdd(60)" style="background:rgba(77,208,225,.2);border:1px solid #4dd0e1;color:#4dd0e1;padding:12px;border-radius:8px;font-weight:900">+ 1 Std</button>
+          <button class="btn" onclick="window._parkStop()" style="background:rgba(255,85,85,.2);border:1px solid #ff5555;color:#ff5555;padding:12px;border-radius:8px;font-weight:900">⏹ Stopp</button>
+        </div>
+      </div>`;
+      
+      container.innerHTML = html; bindNav();
+      
+      window._parkAdd = function(mins) {
+        parkEndTime = (parkEndTime > Date.now() ? parkEndTime : Date.now()) + mins * 60000;
+        if(parkTimer) clearInterval(parkTimer);
+        parkTimer = setInterval(updateParkUI, 1000);
+        updateParkUI();
+      };
+      
+      window._parkStop = function() {
+        parkEndTime = 0;
+        if(parkTimer) clearInterval(parkTimer);
+        updateParkUI();
+      };
+      
+      function updateParkUI() {
+        var el = document.getElementById("parkTime");
+        if(!el) return;
+        var rem = parkEndTime > Date.now() ? Math.floor((parkEndTime - Date.now()) / 1000) : 0;
+        el.textContent = fmtTime(rem);
+        el.style.color = rem > 0 ? '#4dd0e1' : '#ff5555';
+        if(rem === 0 && parkEndTime > 0) {
+           if(HalDo.Notify) HalDo.Notify.error("Parkzeit abgelaufen!");
+           playBeep("urgent", 1.0, 5);
+           parkEndTime = 0;
+        }
+      }
+      
+      if(parkTimer) clearInterval(parkTimer);
+      if(parkEndTime > Date.now()) parkTimer = setInterval(updateParkUI, 1000);
+    }
+
+    function screenReport(){
+      var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
+      <div class="card"><h3>➕ Warnung melden</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">`;
+      
+      CATS.forEach(c => {
+        html += `<button data-report="${c.id}" style="padding:14px;background:rgba(0,0,0,.2);border:1px solid ${c.color}44;border-radius:10px;color:inherit;font-family:inherit;text-align:center;cursor:pointer">
+          <div style="font-size:26px">${c.icon}</div>
+          <div style="font-size:10px;color:${c.color};margin-top:4px;font-weight:800">${_esc(c.name.de)}</div>
+        </button>`;
+      });
+      
+      html += `</div></div>`;
+      container.innerHTML = html; bindNav();
+      
+      container.querySelectorAll("[data-report]").forEach(el => {
+        el.addEventListener("click", function() {
+          if(!lastPos){ alert("GPS fehlt zum Melden"); return; }
+          var catId = el.dataset.report;
+          var warnings = getWarnings();
+          warnings.push({ id: "w"+Date.now(), cat: catId, lat: lastPos.coords.latitude, lng: lastPos.coords.longitude, created: Date.now() });
+          store.set("warnings", warnings);
+          if(HalDo.Notify) HalDo.Notify.success("Warnung gemeldet!");
+          view.screen = "cockpit"; build();
+        });
+      });
+    }
+
+    /* ═══════════ TRIGGER & PUSH & LIGHT ═══════════ */
+    function triggerFlashlight() {
+        var overlay = document.getElementById("flashOverlay");
+        if(!overlay) return;
+        var s = getSettings();
+        if(!s.flashlightOn) return;
+        
+        var count = 0;
+        var interval = setInterval(function() {
+            overlay.style.opacity = overlay.style.opacity === "1" ? "0" : "1";
+            count++;
+            if(count > 6) {
+                clearInterval(interval);
+                overlay.style.opacity = "0";
+            }
+        }, 150);
+    }
 
     function checkTriggers(pos){
       var s = getSettings(), lat = pos.coords.latitude, lng = pos.coords.longitude;
@@ -545,7 +764,8 @@
           if(d <= zones[i] && !triggered[key]){
             triggered[key] = true; 
             speakAlert(cat, d, s); 
-            sendPushNotification(cat, d); // Push senden
+            sendPushNotification(cat, d); 
+            triggerFlashlight();
             trip.warnings++;
             var wn = container.querySelector("#tripWarn"); if(wn) wn.textContent = trip.warnings;
             break;
@@ -567,6 +787,15 @@
         window.speechSynthesis.speak(u);
       }
       if(settings.vibrateOn && navigator.vibrate) navigator.vibrate([200,100,200]);
+    }
+
+    function sendPushNotification(cat, dist) {
+        if (!("Notification" in window) || Notification.permission !== "granted") return;
+        try {
+            var title = "HalDo Blitzer: " + cat.name.de;
+            var body = "Achtung! In " + fmtDist(dist) + ".";
+            new Notification(title, { body: body, icon: "logo.png" });
+        } catch(e) {}
     }
 
     function fetchSpeedLimitIfNeeded(){
@@ -711,168 +940,6 @@
       tfModel = null; screenVision();
     }
 
-    function screenNav(){
-      var hist = store.get("navHistory", []);
-      var favs = store.get("navFavorites", []);
-      
-      var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
-      <div class="card"><h3>🧭 Navigation</h3>
-      <div class="field"><label>Ziel eingeben</label>
-      <div style="display:flex;gap:6px">
-        <input id="navTarget" placeholder="Adresse..." style="flex:1;font-size:14px;padding:12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#fff">
-        <button id="navFav" style="background:rgba(255,215,0,.2);border:1px solid #ffd700;color:#ffd700;border-radius:10px;width:44px;font-size:18px;cursor:pointer">⭐</button>
-      </div></div>
-      <button class="btn full" id="navGo" style="padding:12px;margin-top:8px;background:linear-gradient(135deg,#4dd0e1,#b478ff);color:#000;font-weight:900;border:none;border-radius:10px;cursor:pointer">🔍 Route berechnen</button>
-      ${routeData ? `<div style="margin-top:14px;padding:12px;background:rgba(77,208,225,.1);border:1px solid rgba(77,208,225,.3);border-radius:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div><div style="font-size:11px;color:var(--text-mute);font-weight:800">ROUTE AKTIV</div><div style="font-size:14px;font-weight:900;color:#4dd0e1;margin-top:4px">${fmtDist(routeData.totalDist)}</div></div>
-          <button id="navClear" style="background:rgba(255,128,128,.15);border:1px solid rgba(255,128,128,.3);color:#ff8080;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;font-weight:800">Beenden</button>
-        </div>
-      </div>` : ""}</div>`;
-
-      if(favs.length){
-        html += `<div class="card"><h3>⭐ Favoriten</h3>`;
-        favs.forEach((f, i) => {
-          html += `<div style="display:flex;justify-content:space-between;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:4px">
-            <div style="font-size:12px;font-weight:800;cursor:pointer" onclick="document.getElementById('navTarget').value='${_esc(f)}'">${_esc(f)}</div>
-            <button data-delfav="${i}" style="background:transparent;border:none;color:#ff8080;cursor:pointer">✕</button>
-          </div>`;
-        });
-        html += `</div>`;
-      }
-
-      if(hist.length){
-        html += `<div class="card"><h3>🕒 Verlauf</h3>`;
-        hist.slice(0, 5).forEach(h => {
-          html += `<div style="display:flex;justify-content:space-between;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:4px">
-            <div style="font-size:12px;font-weight:800;cursor:pointer" onclick="document.getElementById('navTarget').value='${_esc(h.addr)}'">${_esc(h.addr)}</div>
-            <div style="font-size:10px;color:var(--text-mute)">${h.date}</div>
-          </div>`;
-        });
-        html += `</div>`;
-      }
-
-      container.innerHTML = html; bindNav();
-      
-      container.querySelector("#navGo").addEventListener("click", function(){
-        var target = container.querySelector("#navTarget").value.trim();
-        if(!target) return;
-        
-        hist.unshift({ addr: target, date: new Date().toLocaleString("de-DE") });
-        store.set("navHistory", hist.slice(0, 20));
-        
-        if(!lastPos){ alert("GPS fehlt"); return; }
-        geocodeAndRoute(target);
-      });
-
-      container.querySelector("#navFav").addEventListener("click", function(){
-        var target = container.querySelector("#navTarget").value.trim();
-        if(!target) return;
-        if(!favs.includes(target)){ favs.push(target); store.set("navFavorites", favs); screenNav(); }
-      });
-
-      container.querySelectorAll("[data-delfav]").forEach(el => {
-        el.addEventListener("click", () => {
-          favs.splice(parseInt(el.dataset.delfav), 1); store.set("navFavorites", favs); screenNav();
-        });
-      });
-      
-      var nc = container.querySelector("#navClear");
-      if(nc) nc.addEventListener("click", function(){ routeData = null; screenNav(); });
-    }
-
-    function geocodeAndRoute(query){
-      fetch("https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(query) + "&limit=1")
-        .then(r => r.json()).then(data => {
-          if(!data || !data.length){ alert("Ziel nicht gefunden"); return; }
-          targetPos = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-          fetch(`https://router.project-osrm.org/route/v1/driving/${lastPos.coords.longitude},${lastPos.coords.latitude};${targetPos.lng},${targetPos.lat}?steps=true&geometries=geojson&overview=false`)
-            .then(r => r.json()).then(rdata => {
-              if(!rdata.routes || !rdata.routes.length){ alert("Route nicht gefunden"); return; }
-              routeData = { totalDist: rdata.routes[0].distance, totalTime: rdata.routes[0].duration, steps: rdata.routes[0].legs[0].steps, currentStep: 0, targetName: data[0].display_name.split(",")[0] };
-              if(HalDo.Notify) HalDo.Notify.success("Route berechnet: " + fmtDist(routeData.totalDist));
-              view.screen = "cockpit"; build();
-            }).catch(e => alert("Routing-Fehler: " + e.message));
-        }).catch(e => alert("Geocoding-Fehler: " + e.message));
-    }
-
-    function screenPark(){
-      var now = Date.now();
-      var remaining = parkEndTime > now ? Math.floor((parkEndTime - now) / 1000) : 0;
-      
-      var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
-      <div class="card" style="text-align:center">
-        <h3>🅿️ Parkuhr</h3>
-        <div style="font-size:56px;font-weight:900;color:${remaining > 0 ? '#4dd0e1' : '#ff5555'};margin:20px 0" id="parkTime">${fmtTime(remaining)}</div>
-        ${remaining === 0 && parkEndTime > 0 ? '<div style="color:#ff5555;font-weight:900">⏰ Zeit abgelaufen!</div>' : ''}
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:20px">
-          <button class="btn" onclick="window._parkAdd(15)" style="background:rgba(77,208,225,.2);border:1px solid #4dd0e1;color:#4dd0e1;padding:12px;border-radius:8px;font-weight:900">+ 15 Min</button>
-          <button class="btn" onclick="window._parkAdd(30)" style="background:rgba(77,208,225,.2);border:1px solid #4dd0e1;color:#4dd0e1;padding:12px;border-radius:8px;font-weight:900">+ 30 Min</button>
-          <button class="btn" onclick="window._parkAdd(60)" style="background:rgba(77,208,225,.2);border:1px solid #4dd0e1;color:#4dd0e1;padding:12px;border-radius:8px;font-weight:900">+ 1 Std</button>
-          <button class="btn" onclick="window._parkStop()" style="background:rgba(255,85,85,.2);border:1px solid #ff5555;color:#ff5555;padding:12px;border-radius:8px;font-weight:900">⏹ Stopp</button>
-        </div>
-      </div>`;
-      
-      container.innerHTML = html; bindNav();
-      
-      window._parkAdd = function(mins) {
-        parkEndTime = (parkEndTime > Date.now() ? parkEndTime : Date.now()) + mins * 60000;
-        if(parkTimer) clearInterval(parkTimer);
-        parkTimer = setInterval(updateParkUI, 1000);
-        updateParkUI();
-      };
-      
-      window._parkStop = function() {
-        parkEndTime = 0;
-        if(parkTimer) clearInterval(parkTimer);
-        updateParkUI();
-      };
-      
-      function updateParkUI() {
-        var el = document.getElementById("parkTime");
-        if(!el) return;
-        var rem = parkEndTime > Date.now() ? Math.floor((parkEndTime - Date.now()) / 1000) : 0;
-        el.textContent = fmtTime(rem);
-        el.style.color = rem > 0 ? '#4dd0e1' : '#ff5555';
-        if(rem === 0 && parkEndTime > 0) {
-           if(HalDo.Notify) HalDo.Notify.error("Parkzeit abgelaufen!");
-           playBeep("urgent", 1.0, 5);
-           parkEndTime = 0;
-        }
-      }
-      
-      if(parkTimer) clearInterval(parkTimer);
-      if(parkEndTime > Date.now()) parkTimer = setInterval(updateParkUI, 1000);
-    }
-
-    function screenReport(){
-      var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
-      <div class="card"><h3>➕ Warnung melden</h3>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">`;
-      
-      CATS.forEach(c => {
-        html += `<button data-report="${c.id}" style="padding:14px;background:rgba(0,0,0,.2);border:1px solid ${c.color}44;border-radius:10px;color:inherit;font-family:inherit;text-align:center;cursor:pointer">
-          <div style="font-size:26px">${c.icon}</div>
-          <div style="font-size:10px;color:${c.color};margin-top:4px;font-weight:800">${_esc(c.name.de)}</div>
-        </button>`;
-      });
-      
-      html += `</div></div>`;
-      container.innerHTML = html; bindNav();
-      
-      container.querySelectorAll("[data-report]").forEach(el => {
-        el.addEventListener("click", function() {
-          if(!lastPos){ alert("GPS fehlt zum Melden"); return; }
-          var catId = el.dataset.report;
-          var warnings = getWarnings();
-          warnings.push({ id: "w"+Date.now(), cat: catId, lat: lastPos.coords.latitude, lng: lastPos.coords.longitude, created: Date.now() });
-          store.set("warnings", warnings);
-          if(HalDo.Notify) HalDo.Notify.success("Warnung gemeldet!");
-          view.screen = "cockpit"; build();
-        });
-      });
-    }
-
     function screenMap(){
       var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
       <div class="card" style="padding:0;overflow:hidden;height:calc(100vh - 200px);position:relative"><div id="blMap" style="width:100%;height:100%;background:#0a1220"></div></div>`;
@@ -946,6 +1013,7 @@
            var randomCat = CATS[Math.floor(Math.random()*CATS.length)];
            speakAlert(randomCat, 500, getSettings());
            sendPushNotification(randomCat, 500);
+           triggerFlashlight();
            trip.warnings++;
         }
 
@@ -1000,7 +1068,6 @@
       if(simBtn) simBtn.addEventListener("click", startSimulation);
     }
 
-    // Request Notification Permission on load
     if ("Notification" in window && Notification.permission === "default") {
         Notification.requestPermission();
     }
@@ -1009,5 +1076,5 @@
   }
 
   HalDoApp("blitzer", { name: "HalDo Blitzer", icon: "⚠️", render: render, category: "werkzeuge" });
-  console.log("🦚 blitzer.js v13.0 geladen — Riesen-Tacho · 3D-Pfeile(Farben) · Schwebendes Wetter · Push");
+  console.log("🦚 blitzer.js v14.0 geladen — Logo · Riesen-Tacho · Schilder · Adress-Eingabe · Blitz-Licht");
 })();
