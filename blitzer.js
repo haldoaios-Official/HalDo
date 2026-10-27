@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — HALDO BLITZER v11.0
+   HALDO AI OS — HALDO BLITZER v11.0 (FULL & FIXED)
    Autobahn-Schilder · Einstellbare Sirene · Tacho-Farben
    ═══════════════════════════════════════════════════════════ */
 (function(){
@@ -34,7 +34,7 @@
   function fmtDist(m){ return m<1000 ? Math.round(m/10)*10 + " m" : (m/1000).toFixed(1) + " km"; }
   function fmtTime(sec){ var h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60; return (h>0?h+"h ":"")+m+"m "+s+"s"; }
 
-  /* ═══════════ AUDIO ENGINE (Länger & Einstellbar) ═══════════ */
+  /* ═══════════ AUDIO ENGINE ═══════════ */
   var audioCtx = null;
   function getAudio(){ if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return audioCtx; }
   
@@ -48,7 +48,6 @@
       o.connect(g); g.connect(ctx.destination);
       o.frequency.setValueAtTime(800, now);
       
-      // Sirene loopen bis duration erreicht ist
       for (var t = 0; t < duration; t += 1.0) {
         o.frequency.linearRampToValueAtTime(1300, now + t + 0.5);
         o.frequency.linearRampToValueAtTime(800, now + t + 1.0);
@@ -63,7 +62,6 @@
     }
 
     if (pattern === "long_alarm") {
-      // Feueralarm loopen
       for (let i=0; i < (duration / 0.4); i++) {
         let t = now + (i * 0.4);
         var o = ctx.createOscillator(), g = ctx.createGain();
@@ -125,7 +123,7 @@
       else if(view.screen === "list") screenList();
     }
 
-    /* ═══════════ COCKPIT (Tacho & Autobahn-Schilder) ═══════════ */
+    /* ═══════════ COCKPIT ═══════════ */
     function screenCockpit(){
       var s = getSettings();
       var speed = lastPos ? Math.round((lastPos.coords.speed||0)*3.6) : 0;
@@ -176,7 +174,6 @@
         .cpt-top{display:flex;justify-content:space-between;z-index:10}
         .cpt-navbtn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;padding:10px 14px;border-radius:12px;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:6px}
         
-        /* Tacho */
         .cpt-tacho{position:relative;width:300px;height:300px;margin:10px auto;display:flex;align-items:center;justify-content:center}
         .tacho-bg{position:absolute;inset:0;background:radial-gradient(circle, rgba(10,18,32,1) 0%, rgba(5,8,16,1) 100%);border-radius:50%;border:2px solid ${tachoColor}44;box-shadow:0 0 30px ${tachoColor}22, inset 0 0 20px rgba(0,0,0,.8)}
         
@@ -191,14 +188,12 @@
         .cpt-limit{position:absolute;top:20px;right:20px;width:64px;height:64px;border-radius:50%;background:#fff;border:6px solid #ff3333;display:flex;align-items:center;justify-content:center;z-index:20;box-shadow:0 0 15px rgba(255,51,51,.5)}
         .cpt-limit-num{font-size:24px;font-weight:900;color:#000}
         
-        /* 3D Autobahn-Schild & Pfeil */
         .holo-container{perspective:800px;width:100%;height:160px;display:flex;align-items:center;justify-content:center;margin-top:5px;position:relative}
         .holo-base{position:absolute;bottom:0px;width:200px;height:40px;background:radial-gradient(ellipse, ${arrowGlow} 0%, transparent 70%);filter:blur(8px);border-radius:50%}
         .holo-arrow-box{position:relative;transform-style:preserve-3d;transform:rotateX(60deg) rotateZ(${nextEvent ? (nextEvent.modifier && nextEvent.modifier.indexOf('left') >= 0 ? -45 : nextEvent.modifier && nextEvent.modifier.indexOf('right') >= 0 ? 45 : 0) : 0}deg);animation:arrowFloat 1.5s infinite alternate}
         .holo-svg{width:100px;height:auto;filter:drop-shadow(0 0 20px ${arrowGlow})}
         @keyframes arrowFloat{0%{transform:rotateX(60deg) rotateZ(var(--rot,0deg)) translateZ(0)}100%{transform:rotateX(60deg) rotateZ(var(--rot,0deg)) translateZ(40px)}}
 
-        /* Road Sign */
         .road-sign{position:absolute;top:-40px;left:50%;transform:translateX(-50%);background:#0066cc;border:2px solid #fff;border-radius:8px;padding:6px 16px;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,.5);z-index:10;white-space:nowrap}
         .road-sign .num{font-size:18px;font-weight:900;color:#fff;background:#0055aa;display:inline-block;padding:2px 8px;border-radius:4px;margin-bottom:2px}
         .road-sign .dest{font-size:12px;font-weight:800;color:#fff}
@@ -226,18 +221,14 @@
       if(nextEvent && nextEvent.type === "nav"){
         var arrowAngle = nextEvent.modifier && nextEvent.modifier.indexOf('left') >= 0 ? -45 : nextEvent.modifier && nextEvent.modifier.indexOf('right') >= 0 ? 45 : 0;
         
-        // Erkenne ob es eine Autobahn (A) oder Bundesstraße (B) ist
         var roadName = nextEvent.instruction || "Straße";
-        var roadPrefix = "";
-        var roadDest = nextEvent.instruction;
         var roadNum = "";
+        var roadDest = roadName;
         
         if (roadName.indexOf("A") === 0 || roadName.match(/^A\d+/)) {
-            roadPrefix = "Autobahn";
             roadNum = roadName.split(" ")[0];
             roadDest = roadName.substring(roadName.indexOf(" ") + 1) || "";
         } else if (roadName.indexOf("B") === 0 || roadName.match(/^B\d+/)) {
-            roadPrefix = "Bundesstraße";
             roadNum = roadName.split(" ")[0];
             roadDest = roadName.substring(roadName.indexOf(" ") + 1) || "";
         }
@@ -270,7 +261,6 @@
         html += `<div style="text-align:center;margin:25px 0;color:#7fa5b8;font-size:12px">Keine aktive Route.</div>`;
       }
 
-      // Tacho
       html += `<div class="cpt-tacho">
         ${currentLimit !== null ? `<div class="cpt-limit"><div class="cpt-limit-num">${currentLimit === 0 ? "∞" : currentLimit}</div></div>` : ''}
         <div class="tacho-bg"></div>
@@ -306,12 +296,11 @@
       fetchPOIsIfNeeded(); fetchSpeedLimitIfNeeded();
     }
 
-    /* ═══════════ SETTINGS (Dauer, Farbe, Töne) ═══════════ */
+    /* ═══════════ SETTINGS ═══════════ */
     function screenSettings(){
       var s = getSettings();
       var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>`;
       
-      // Dauer & Farbe
       html += `<div class="card"><h3>🎨 Cockpit-Design</h3>
         <div class="field"><label>Alarm-Dauer (Sekunden)</label>
           <input type="range" id="setDuration" min="2" max="15" step="1" value="${s.alarmDuration}" style="width:100%">
@@ -327,12 +316,11 @@
         </div>
       </div>`;
 
-      // Töne
       html += `<div class="card"><h3>🎵 Alarm-Töne</h3>`;
       var soundOptions = [
-        { id:"siren", name:"🚨 Sirene (Polizei)" },
+        { id:"siren", name:"🚨 Sirene" },
         { id:"long_alarm", name:"🔔 Feueralarm" },
-        { id:"radar", name:"📡 Radar-Piepen" },
+        { id:"radar", name:"📡 Radar" },
         { id:"urgent", name:"⚠️ Dringend" },
         { id:"chime", name:"🎵 Glocke" },
         { id:"low", name:"🕊️ Sanft" }
@@ -389,33 +377,7 @@
       });
     }
 
-    /* ═══════════ TRIGGER & SPRECHEN ═══════════ */
-    function speakAlert(cat, dist, settings){
-      var cv = getCustomVoice();
-      
-      // Ton abspielen (mit einstellbarer Dauer)
-      if(settings.beepOn) {
-        playBeep(settings.sounds[cat.id] || "chime", 0.9, settings.alarmDuration);
-      }
-      
-      // Stimme gleichzeitig abspielen
-      if(cv[cat.id]){ 
-        new Audio(cv[cat.id]).play().catch(()=>{}); 
-      } else if(settings.voiceOn && window.speechSynthesis){
-        var txt = (cat.voice[settings.lang] || cat.voice.de).replace("{d}", fmtDist(dist));
-        window.speechSynthesis.cancel();
-        var u = new SpeechSynthesisUtterance(txt); u.lang = LANGS[settings.lang].code;
-        window.speechSynthesis.speak(u);
-      }
-      
-      if(settings.vibrateOn && navigator.vibrate) navigator.vibrate([200,100,200]);
-    }
-
-    /* ═══════════ MAP, NAV, LIST, KI ═══════════ */
-    // ... (Restlicher Code bleibt derselbe wie in v10.0, bitte unverändert lassen) ...
-
-    // HINWEIS: Ich habe die restlichen Funktionen (screenVision, screenNav, geocodeAndRoute, etc.) aus Platzgründen hier nicht wiederholt. Sie sind identisch mit v10.0.
-
+    /* ═══════════ LOGIK & TRIGGER ═══════════ */
     function checkTriggers(pos){
       var s = getSettings(), lat = pos.coords.latitude, lng = pos.coords.longitude;
       var zones = [2000, 1000, 500, 200];
@@ -441,7 +403,327 @@
       });
     }
 
-    // ... (Hier folgen fetchSpeedLimitIfNeeded, fetchPOIsIfNeeded, guessCatFromTags, getNextEvent, getManeuverIcon, startSimulation, startGeo, onPos, onErr, bindNav, bindCockpit, initMap, buildMap, updateMapMarkers)
+    function speakAlert(cat, dist, settings){
+      var cv = getCustomVoice();
+      if(settings.beepOn) {
+        playBeep(settings.sounds[cat.id] || "chime", 0.9, settings.alarmDuration);
+      }
+      if(cv[cat.id]){ 
+        new Audio(cv[cat.id]).play().catch(()=>{}); 
+      } else if(settings.voiceOn && window.speechSynthesis){
+        var txt = (cat.voice[settings.lang] || cat.voice.de).replace("{d}", fmtDist(dist));
+        window.speechSynthesis.cancel();
+        var u = new SpeechSynthesisUtterance(txt); u.lang = LANGS[settings.lang].code;
+        window.speechSynthesis.speak(u);
+      }
+      if(settings.vibrateOn && navigator.vibrate) navigator.vibrate([200,100,200]);
+    }
+
+    function fetchSpeedLimitIfNeeded(){
+      if(!lastPos || simTimer) return; 
+      var now = Date.now();
+      if(now - lastLimitFetch < 15000) return; 
+      lastLimitFetch = now;
+      var lat = lastPos.coords.latitude, lng = lastPos.coords.longitude;
+      
+      fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(`[out:json];way(around:30,${lat},${lng})["highway"]["maxspeed"];out tags;`))
+        .then(r => r.json()).then(data => {
+          if(data.elements && data.elements.length > 0){
+            var ms = data.elements[0].tags.maxspeed;
+            if(ms === "none" || ms === "signals" || ms === "DE:urban") currentLimit = ms === "DE:urban" ? 50 : 0;
+            else { var num = parseInt(ms); currentLimit = isNaN(num) ? null : num; }
+          } else currentLimit = null;
+          
+          if(view.screen === "cockpit"){
+            var el = container.querySelector(".cpt-limit");
+            if(el){
+              el.style.display = currentLimit === null ? "none" : "flex";
+              el.innerHTML = `<div class="cpt-limit-num">${currentLimit === 0 ? "∞" : currentLimit}</div>`;
+            }
+          }
+        }).catch(()=>{});
+    }
+
+    function fetchPOIsIfNeeded(){
+      if(!lastPos || simTimer) return;
+      var lat = lastPos.coords.latitude, lng = lastPos.coords.longitude;
+      var s = getSettings();
+      var enabled = CATS.filter(c => c.type === "poi" && s.enabled[c.id]);
+      if(!enabled.length) return;
+      var filter = enabled.map(c => `node(around:3000,${lat},${lng})[${c.osm}];`).join("");
+      fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(`[out:json];(${filter});out center 20;`))
+        .then(r => r.json()).then(data => {
+          if(!data.elements) return;
+          data.elements.forEach(el => {
+            if(!poiCache[el.id]){
+              poiCache[el.id] = { id: el.id, lat: el.lat, lng: el.lon, cat: guessCatFromTags(el.tags) };
+            }
+          });
+        }).catch(()=>{});
+    }
+
+    function guessCatFromTags(tags){
+      if(!tags) return null;
+      if(tags.amenity === "fuel") return "poi_fuel";
+      if(tags.highway === "rest_area") return "poi_rest";
+      return null;
+    }
+
+    function getNextEvent(){
+      if(routeData && routeData.steps){
+        for(var i = routeData.currentStep; i < routeData.steps.length; i++){
+          var st = routeData.steps[i];
+          if(st.maneuver && st.maneuver.type !== "depart"){
+            return { type:"nav", arrow:getManeuverIcon(st.maneuver), modifier:st.maneuver.modifier, instruction:st.name || st.maneuver.type, distance: st.distance };
+          }
+        }
+      }
+      return null;
+    }
+    function getManeuverIcon(m){ if(!m) return "⬆️"; if(m.type==="turn") return m.modifier && m.modifier.indexOf("left")>=0 ? "⬅️" : "➡️"; if(m.type==="arrive") return "🏁"; return "⬆️"; }
+
+    /* ═══════════ KI & NAVIGATION & MAP ═══════════ */
+    function screenVision(){
+      var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
+      <div class="card">
+        <h3>🤖 KI-Kamera (TensorFlow)</h3>
+        <div style="font-size:11px;color:var(--text-mute);margin-bottom:10px">Erkennt Autos, LKW, Personen in Echtzeit.</div>
+        <div style="position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center">
+          <video id="visionVideo" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:none"></video>
+          <canvas id="visionCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;display:none"></canvas>
+          <div id="visionPlaceholder" style="color:#aaa;text-align:center;padding:20px"><div style="font-size:44px">📷</div><div style="font-size:11px;margin-top:8px">Kamera starten</div></div>
+        </div>
+        <button class="btn full" id="visionStart" style="padding:14px;margin-top:10px;background:linear-gradient(135deg,#b478ff,#4dd0e1);color:#fff">📷 KI aktivieren</button>
+        <div id="visionStatus" style="text-align:center;font-size:11px;font-weight:900;color:#4ade80;margin-top:8px">Bereit</div>
+      </div>`;
+      container.innerHTML = html;
+      bindNav();
+      container.querySelector("#visionStart").addEventListener("click", startVision);
+    }
+
+    async function startVision(){
+      if(tfModel){ stopVision(); return; }
+      var status = document.getElementById("visionStatus");
+      status.textContent = "Lade KI-Modell...";
+      try {
+        if(!window.tf || !window.cocoSsd){
+          await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.2.0/dist/tf.min.js");
+          await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js");
+        }
+        tfModel = await cocoSsd.load();
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+        var video = document.getElementById("visionVideo");
+        video.srcObject = cameraStream; video.style.display = "block";
+        document.getElementById("visionPlaceholder").style.display = "none";
+        document.getElementById("visionCanvas").style.display = "block";
+        document.getElementById("visionStart").textContent = "⏹ KI stoppen";
+        status.textContent = "🟢 Live - Analysiere...";
+        runVisionLoop();
+      } catch(e){ status.textContent = "❌ Fehler: " + e.message; }
+    }
+
+    function loadScript(src){
+      return new Promise((res, rej) => {
+        var s = document.createElement("script");
+        s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s);
+      });
+    }
+
+    async function runVisionLoop(){
+      if(!tfModel || !cameraStream) return;
+      var video = document.getElementById("visionVideo"), canvas = document.getElementById("visionCanvas");
+      if(!video || !canvas) return;
+      var ctx2d = canvas.getContext("2d");
+      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+      
+      async function detect(){
+        if(!tfModel || !cameraStream) return;
+        var predictions = await tfModel.detect(video);
+        ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+        predictions.forEach(p => {
+          if(p.class === "car" || p.class === "truck" || p.class === "person" || p.class === "bicycle"){
+            var [x, y, w, h] = p.bbox;
+            ctx2d.strokeStyle = p.class === "person" ? "#ff5555" : "#4dd0e1";
+            ctx2d.lineWidth = 3; ctx2d.strokeRect(x, y, w, h);
+            ctx2d.fillStyle = p.class === "person" ? "#ff5555" : "#4dd0e1";
+            ctx2d.font = "16px sans-serif";
+            ctx2d.fillText(p.class.toUpperCase() + " " + Math.round(p.score * 100) + "%", x, y > 20 ? y - 5 : y + 20);
+          }
+        });
+        if(cameraStream) visionLoop = requestAnimationFrame(detect);
+      }
+      detect();
+    }
+
+    function stopVision(){
+      if(visionLoop) cancelAnimationFrame(visionLoop);
+      visionLoop = null;
+      if(cameraStream){ cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+      tfModel = null; screenVision();
+    }
+
+    function screenNav(){
+      var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
+      <div class="card"><h3>🧭 Navigation (Hologramm)</h3>
+      <div class="field"><label>Ziel eingeben</label><input id="navTarget" placeholder="z.B. Berlin, Alexanderplatz" style="font-size:14px;padding:12px;width:100%;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#fff"></div>
+      <button class="btn full" id="navGo" style="padding:12px;margin-top:8px;background:linear-gradient(135deg,#4dd0e1,#b478ff);color:#000;font-weight:900;border:none;border-radius:10px;cursor:pointer">🔍 Route berechnen</button>
+      ${routeData ? `<div style="margin-top:14px;padding:12px;background:rgba(77,208,225,.1);border:1px solid rgba(77,208,225,.3);border-radius:10px">
+        <div style="font-size:11px;color:var(--text-mute);font-weight:800">ROUTE AKTIV</div>
+        <div style="font-size:14px;font-weight:900;color:#4dd0e1;margin-top:4px">${fmtDist(routeData.totalDist)}</div>
+        <button id="navClear" style="margin-top:8px;background:rgba(255,128,128,.15);border:1px solid rgba(255,128,128,.3);color:#ff8080;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;font-weight:800">Route beenden</button>
+      </div>` : ""}</div>`;
+      container.innerHTML = html; bindNav();
+      container.querySelector("#navGo").addEventListener("click", function(){
+        var target = container.querySelector("#navTarget").value.trim();
+        if(!target || !lastPos) return;
+        geocodeAndRoute(target);
+      });
+      var nc = container.querySelector("#navClear");
+      if(nc) nc.addEventListener("click", function(){ routeData = null; screenNav(); });
+    }
+
+    function geocodeAndRoute(query){
+      fetch("https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(query) + "&limit=1")
+        .then(r => r.json()).then(data => {
+          if(!data || !data.length){ alert("Ziel nicht gefunden"); return; }
+          targetPos = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+          if(!lastPos){ alert("GPS fehlt"); return; }
+          fetch(`https://router.project-osrm.org/route/v1/driving/${lastPos.coords.longitude},${lastPos.coords.latitude};${targetPos.lng},${targetPos.lat}?steps=true&geometries=geojson&overview=false`)
+            .then(r => r.json()).then(rdata => {
+              if(!rdata.routes || !rdata.routes.length){ alert("Route nicht gefunden"); return; }
+              routeData = { totalDist: rdata.routes[0].distance, totalTime: rdata.routes[0].duration, steps: rdata.routes[0].legs[0].steps, currentStep: 0, targetName: data[0].display_name.split(",")[0] };
+              if(HalDo.Notify) HalDo.Notify.success("Route berechnet: " + fmtDist(routeData.totalDist));
+              view.screen = "cockpit"; build();
+            }).catch(e => alert("Routing-Fehler: " + e.message));
+        }).catch(e => alert("Geocoding-Fehler: " + e.message));
+    }
+
+    function screenMap(){
+      var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
+      <div class="card" style="padding:0;overflow:hidden;height:calc(100vh - 200px);position:relative"><div id="blMap" style="width:100%;height:100%;background:#0a1220"></div></div>`;
+      container.innerHTML = html; bindNav(); initMap();
+    }
+    function initMap(){
+      if(!document.getElementById("leaflet-css")){
+        var lc = document.createElement("link"); lc.id = "leaflet-css"; lc.rel = "stylesheet"; lc.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"; document.head.appendChild(lc);
+      }
+      if(window.L) return buildMap();
+      var s = document.createElement("script"); s.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"; s.onload = buildMap; document.head.appendChild(s);
+    }
+    function buildMap(){
+      var el = document.getElementById("blMap"); if(!el || !window.L) return; el.innerHTML = "";
+      var center = lastPos ? [lastPos.coords.latitude, lastPos.coords.longitude] : [51.1657, 10.4515];
+      map = L.map(el, { zoomControl:false }).setView(center, 14);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom:19 }).addTo(map);
+      updateMapMarkers();
+    }
+    function updateMapMarkers(){
+      if(!map) return; mapMarkers.forEach(m => map.removeLayer(m)); mapMarkers = [];
+      getWarnings().forEach(w => {
+        var cat = getCat(w.cat); if(!cat) return;
+        var icon = L.divIcon({ html:`<div style="background:${cat.color};border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid #fff">${cat.icon}</div>`, className:"", iconSize:[32,32], iconAnchor:[16,16] });
+        mapMarkers.push(L.marker([w.lat, w.lng], { icon:icon }).addTo(map));
+      });
+      if(lastPos){
+        var uicon = L.divIcon({ html:`<div style="background:#4dd0e1;border:3px solid #fff;border-radius:50%;width:20px;height:20px;box-shadow:0 0 20px #4dd0e1"></div>`, className:"", iconSize:[20,20], iconAnchor:[10,10] });
+        mapMarkers.push(L.marker([lastPos.coords.latitude, lastPos.coords.longitude], { icon:uicon }).addTo(map));
+        map.setView([lastPos.coords.latitude, lastPos.coords.longitude]);
+      }
+    }
+
+    function screenList(){
+      var warnings = getWarnings();
+      var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
+      <div class="card"><h3>📋 Gespeicherte Warnungen (${warnings.length})</h3>`;
+      if(!warnings.length){
+        html += `<div style="text-align:center;color:var(--text-mute);padding:20px;font-size:12px">Keine Warnungen gespeichert.</div>`;
+      } else {
+        warnings.slice().reverse().forEach(w => {
+          var c = getCat(w.cat) || CATS[0];
+          html += `<div style="padding:10px;background:rgba(0,0,0,.3);border-radius:10px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;border-left:3px solid ${c.color}">
+            <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:900">${c.icon} ${_esc(c.name.de)}</div>
+            <div style="font-size:10px;color:var(--text-mute)">${w.lat.toFixed(4)}, ${w.lng.toFixed(4)}</div></div>
+            <button data-del="${w.id}" style="background:rgba(255,128,128,.2);border:none;color:#ff8080;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer">✕</button>
+          </div>`;
+        });
+      }
+      html += `</div>`; container.innerHTML = html; bindNav();
+      container.querySelectorAll("[data-del]").forEach(el => {
+        el.addEventListener("click", () => {
+          if(!confirm("Löschen?")) return;
+          saveWarnings(getWarnings().filter(w => w.id !== el.dataset.del)); screenList();
+        });
+      });
+    }
+
+    /* ═══════════ SIMULATION & GEOLOCATION ═══════════ */
+    function startSimulation(){
+      if(simTimer) clearInterval(simTimer);
+      lastPos = { coords: { latitude: 51.1657, longitude: 10.4515, speed: 0 } }; 
+      trip = { active:true, startTime:Date.now(), distance:0, warnings:0 };
+      
+      simSpeed = 30;
+      simTimer = setInterval(() => {
+        simSpeed = Math.min(180, simSpeed + Math.random() * 15);
+        if(simSpeed > 150 && Math.random() > 0.8) simSpeed -= 40; 
+        trip.distance += (simSpeed / 3600);
+        
+        if(Math.random() > 0.95){
+           var randomCat = CATS[Math.floor(Math.random()*CATS.length)];
+           speakAlert(randomCat, 500, getSettings());
+           trip.warnings++;
+        }
+
+        if(view.screen === "cockpit"){
+          var t = container.querySelector(".cpt-speed");
+          if(t) t.textContent = Math.round(simSpeed);
+          var d = container.querySelector("#tripDist");
+          if(d) d.textContent = trip.distance.toFixed(1) + " km";
+          var w = container.querySelector("#tripWarn");
+          if(w) w.textContent = trip.warnings;
+          build();
+        }
+      }, 1000);
+      build();
+    }
+
+    function startGeo(){
+      if(!navigator.geolocation) return;
+      if(geoWatch) navigator.geolocation.clearWatch(geoWatch);
+      geoWatch = navigator.geolocation.watchPosition(onPos, onErr, { enableHighAccuracy:true, maximumAge:3000, timeout:15000 });
+    }
+    function onPos(pos){
+      if(simTimer) return;
+      if(lastPos && trip.active){
+        var d = haversine(lastPos.coords.latitude, lastPos.coords.longitude, pos.coords.latitude, pos.coords.longitude);
+        if(d > 3 && d < 500) trip.distance += d / 1000;
+      }
+      lastPos = pos;
+      checkTriggers(pos);
+      if(view.screen === "cockpit"){
+        var t = container.querySelector(".cpt-speed");
+        if(t) t.textContent = Math.round((pos.coords.speed||0)*3.6);
+        fetchPOIsIfNeeded(); fetchSpeedLimitIfNeeded();
+      }
+      if(view.screen === "map" && map) updateMapMarkers();
+    }
+    function onErr(err){ console.warn("[Blitzer] GPS:", err.message); }
+
+    function bindNav(){
+      container.querySelectorAll("[data-nav]").forEach(el => {
+        el.addEventListener("click", () => { view.screen = el.dataset.nav; build(); });
+      });
+    }
+    function bindCockpit(){
+      var tb = container.querySelector("[data-trip]");
+      if(tb) tb.addEventListener("click", () => {
+        if(tb.dataset.trip === "start"){ trip = { active:true, startTime:Date.now(), distance:0, warnings:0 }; if(HalDo.Notify) HalDo.Notify.success("Fahrt gestartet!"); }
+        else { trip.active = false; if(simTimer){ clearInterval(simTimer); simTimer = null; } if(HalDo.Notify) HalDo.Notify.info("Fahrt beendet: " + trip.distance.toFixed(1) + " km"); }
+        build();
+      });
+      var simBtn = container.querySelector("#simBtn");
+      if(simBtn) simBtn.addEventListener("click", startSimulation);
+    }
 
     startGeo(); build();
   }
