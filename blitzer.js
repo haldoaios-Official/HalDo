@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — HALDO BLITZER v11.0 (FULL & FIXED)
-   Autobahn-Schilder · Einstellbare Sirene · Tacho-Farben
+   HALDO AI OS — HALDO BLITZER v12.0 (ULTIMATE)
+   Tacho (7-5 Uhr) · Wetter · Navi-Verlauf · Parkuhr · Community
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -17,11 +17,16 @@
     { id:"poi_rest", icon:"🍴", color:"#ff8844", type:"poi", osm:"highway=rest_area", name:{de:"Raststätte",en:"Rest Area",tr:"Dinlenme",ar:"استراحة",ku:"Bêhnvedan",fr:"Repos"}, voice:{de:"Raststätte in {d}",en:"Rest area in {d}",tr:"Dinlenme {d}",ar:"استراحة {d}",ku:"Bêhnvedan li {d}",fr:"Repos à {d}"} }
   ];
 
-  var LANGS = { de:{ name:"Deutsch", code:"de-DE" }, en:{ name:"English", code:"en-US" }, tr:{ name:"Türkçe", code:"tr-TR" }, ar:{ name:"العربية", code:"ar-SA" }, ku:{ name:"Kurdî (Ezidi)", code:"tr-TR" }, fr:{ name:"Français", code:"fr-FR" } };
+  var LANGS = { 
+    de:{ name:"Deutsch", code:"de-DE" }, en:{ name:"English", code:"en-US" }, 
+    tr:{ name:"Türkçe", code:"tr-TR" }, ar:{ name:"العربية", code:"ar-SA" }, 
+    ku:{ name:"Kurdî (Ezidi)", code:"tr-TR" }, fr:{ name:"Français", code:"fr-FR" },
+    es:{ name:"Español", code:"es-ES" }, it:{ name:"Italiano", code:"it-IT" }
+  };
 
   var DEFAULT_SETTINGS = { 
     enabled: {}, lang:"de", voiceOn:true, beepOn:true, notifyOn:true, warnDist: 1000, sounds:{}, 
-    arrowStyle: "gold", tachoColor: "#4dd0e1", alarmDuration: 5 
+    arrowStyle: "gold", tachoColor: "#4dd0e1", tachoStyle: "sport", alarmDuration: 5, offlineMode: false 
   };
   
   CATS.forEach(function(c){ 
@@ -44,52 +49,40 @@
     
     if (pattern === "siren") {
       var o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = "sawtooth"; 
-      o.connect(g); g.connect(ctx.destination);
+      o.type = "sawtooth"; o.connect(g); g.connect(ctx.destination);
       o.frequency.setValueAtTime(800, now);
-      
       for (var t = 0; t < duration; t += 1.0) {
         o.frequency.linearRampToValueAtTime(1300, now + t + 0.5);
         o.frequency.linearRampToValueAtTime(800, now + t + 1.0);
       }
-      
-      g.gain.setValueAtTime(0, now);
-      g.gain.linearRampToValueAtTime(vol, now + 0.1);
-      g.gain.setValueAtTime(vol, now + duration - 0.2);
-      g.gain.linearRampToValueAtTime(0, now + duration);
-      o.start(now); o.stop(now + duration);
-      return;
+      g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(vol, now + 0.1);
+      g.gain.setValueAtTime(vol, now + duration - 0.2); g.gain.linearRampToValueAtTime(0, now + duration);
+      o.start(now); o.stop(now + duration); return;
     }
-
     if (pattern === "long_alarm") {
       for (let i=0; i < (duration / 0.4); i++) {
         let t = now + (i * 0.4);
         var o = ctx.createOscillator(), g = ctx.createGain();
         o.type = "square"; o.frequency.value = 1600;
         o.connect(g); g.connect(ctx.destination);
-        g.gain.setValueAtTime(0, t);
-        g.gain.linearRampToValueAtTime(vol, t + 0.05);
-        g.gain.setValueAtTime(vol, t + 0.25);
-        g.gain.linearRampToValueAtTime(0, t + 0.35);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.05);
+        g.gain.setValueAtTime(vol, t + 0.25); g.gain.linearRampToValueAtTime(0, t + 0.35);
         o.start(t); o.stop(t + 0.35);
       }
       return;
     }
-
     if (pattern === "radar") {
       for (let i=0; i < (duration / 0.15); i++) {
         let t = now + (i * 0.15);
         var o = ctx.createOscillator(), g = ctx.createGain();
         o.type = "sine"; o.frequency.value = 2200;
         o.connect(g); g.connect(ctx.destination);
-        g.gain.setValueAtTime(0, t);
-        g.gain.linearRampToValueAtTime(vol, t + 0.01);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.01);
         g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
         o.start(t); o.stop(t + 0.1);
       }
       return;
     }
-
     var p = { urgent: [{f:880,t:0,d:0.1},{f:880,t:0.15,d:0.1}], alarm: [{f:1200,t:0,d:0.08},{f:1200,t:0.12,d:0.08}], chime: [{f:523,t:0,d:0.15},{f:659,t:0.15,d:0.15},{f:784,t:0.3,d:0.25}], low: [{f:440,t:0,d:0.2}] }[pattern] || [{f:440,t:0,d:0.2}];
     p.forEach(function(b){
       var o = ctx.createOscillator(), g = ctx.createGain();
@@ -107,6 +100,8 @@
     var map = null, mapMarkers = [], triggered = {}, lastLimitFetch = 0, currentLimit = null;
     var poiCache = {}, routeData = null, targetPos = null;
     var tfModel = null, cameraStream = null, visionLoop = null;
+    var weatherData = null;
+    var parkTimer = null, parkEndTime = 0;
 
     function getSettings(){ var s = store.get("settings", {}); var m = JSON.parse(JSON.stringify(DEFAULT_SETTINGS)); Object.keys(s).forEach(function(k){ m[k] = s[k]; }); return m; }
     function saveSettings(s){ store.set("settings", s); }
@@ -121,6 +116,8 @@
       else if(view.screen === "nav") screenNav();
       else if(view.screen === "vision") screenVision();
       else if(view.screen === "list") screenList();
+      else if(view.screen === "report") screenReport();
+      else if(view.screen === "park") screenPark();
     }
 
     /* ═══════════ COCKPIT ═══════════ */
@@ -131,9 +128,10 @@
       
       var nextEvent = getNextEvent();
       
+      // Tacho: Startet bei 7 Uhr (210°) und endet bei 5 Uhr (510°)
       var maxSpeed = 240;
-      var startAngle = 135;
-      var endAngle = 405;
+      var startAngle = 210; 
+      var endAngle = 510;
       var currentAngle = startAngle + (Math.min(speed, maxSpeed) / maxSpeed) * (endAngle - startAngle);
 
       var ticks = "";
@@ -141,19 +139,21 @@
         var angle = startAngle + (i / maxSpeed) * (endAngle - startAngle);
         var rad = (angle - 90) * Math.PI / 180;
         var isMajor = i % 40 === 0;
-        var len = isMajor ? 12 : 6;
+        var len = isMajor ? 15 : 8;
         
         var x1 = 100 + 75 * Math.cos(rad);
         var y1 = 100 + 75 * Math.sin(rad);
         var x2 = 100 + (75 - len) * Math.cos(rad);
         var y2 = 100 + (75 - len) * Math.sin(rad);
         
-        ticks += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${isMajor ? '#fff' : 'rgba(255,255,255,.3)'}" stroke-width="${isMajor ? 3 : 1.5}" />`;
+        // Farbe für Redline (über 180 km/h)
+        var tickColor = (i > 180) ? '#ff5555' : (isMajor ? '#fff' : 'rgba(255,255,255,.3)');
+        ticks += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${tickColor}" stroke-width="${isMajor ? 3 : 1.5}" />`;
         
         if (isMajor) {
           var tx = 100 + 60 * Math.cos(rad);
           var ty = 100 + 60 * Math.sin(rad);
-          ticks += `<text x="${tx}" y="${ty}" fill="#fff" font-size="12" font-weight="900" text-anchor="middle" dominant-baseline="middle">${i}</text>`;
+          ticks += `<text x="${tx}" y="${ty}" fill="${tickColor}" font-size="12" font-weight="900" text-anchor="middle" dominant-baseline="middle">${i}</text>`;
         }
       }
 
@@ -174,7 +174,8 @@
         .cpt-top{display:flex;justify-content:space-between;z-index:10}
         .cpt-navbtn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;padding:10px 14px;border-radius:12px;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:6px}
         
-        .cpt-tacho{position:relative;width:300px;height:300px;margin:10px auto;display:flex;align-items:center;justify-content:center}
+        .cpt-tacho{position:relative;width:300px;height:300px;margin:10px auto;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .1s}
+        .cpt-tacho:active{transform:scale(.98)}
         .tacho-bg{position:absolute;inset:0;background:radial-gradient(circle, rgba(10,18,32,1) 0%, rgba(5,8,16,1) 100%);border-radius:50%;border:2px solid ${tachoColor}44;box-shadow:0 0 30px ${tachoColor}22, inset 0 0 20px rgba(0,0,0,.8)}
         
         .needle-container{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform:rotate(${currentAngle}deg);transition:transform .3s cubic-bezier(0.4, 2.08, 0.55, 0.44)}
@@ -212,10 +213,12 @@
       <div class="cpt-top">
         <div style="display:flex;gap:6px">
           <button data-nav="nav" class="cpt-navbtn" style="color:${tachoColor}">🧭 Route</button>
-          <button data-nav="vision" class="cpt-navbtn" style="color:#b478ff">🤖 KI</button>
-          <button data-nav="map" class="cpt-navbtn">🗺️</button>
+          <button data-nav="report" class="cpt-navbtn" style="color:#ff5555;font-weight:900">➕ Melden</button>
         </div>
-        <button data-nav="settings" class="cpt-navbtn">⚙️</button>
+        <div style="display:flex;gap:6px">
+          ${weatherData ? `<div style="background:rgba(255,255,255,.06);padding:10px 14px;border-radius:12px;font-size:11px;font-weight:900;display:flex;align-items:center;gap:6px">${weatherData.temp}°C ${weatherData.icon}</div>` : ''}
+          <button data-nav="settings" class="cpt-navbtn">⚙️</button>
+        </div>
       </div>`;
 
       if(nextEvent && nextEvent.type === "nav"){
@@ -261,12 +264,13 @@
         html += `<div style="text-align:center;margin:25px 0;color:#7fa5b8;font-size:12px">Keine aktive Route.</div>`;
       }
 
-      html += `<div class="cpt-tacho">
+      // Tacho
+      html += `<div class="cpt-tacho" onclick="this.closest('.cpt-wrap').dispatchEvent(new CustomEvent('open-settings'))">
         ${currentLimit !== null ? `<div class="cpt-limit"><div class="cpt-limit-num">${currentLimit === 0 ? "∞" : currentLimit}</div></div>` : ''}
         <div class="tacho-bg"></div>
         <svg viewBox="0 0 200 200" style="position:absolute;inset:0;width:100%;height:100%;">
-          <path d="M 47 153 A 75 75 0 1 1 153 153" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="8" />
-          <path d="M 47 153 A 75 75 0 1 1 153 153" fill="none" stroke="${tachoColor}" stroke-width="8" stroke-linecap="round" stroke-dasharray="353" stroke-dashoffset="${353 - (Math.min(speed,maxSpeed)/maxSpeed * 353)}" style="transition:stroke-dashoffset .2s" />
+          <path d="M 39.3 156 A 75 75 0 1 1 160.7 156" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="8" />
+          <path d="M 39.3 156 A 75 75 0 1 1 160.7 156" fill="none" stroke="${tachoColor}" stroke-width="8" stroke-linecap="round" stroke-dasharray="353" stroke-dashoffset="${353 - (Math.min(speed,maxSpeed)/maxSpeed * 353)}" style="transition:stroke-dashoffset .2s" />
           ${ticks}
         </svg>
         <div class="needle-container"><div class="needle"></div></div>
@@ -285,23 +289,32 @@
           <div><span>${elapsedMin} min</span><span>Zeit</span></div>
           <div><span>${trip.warnings}</span><span>Warnungen</span></div>
         </div>
-        ${trip.active 
-          ? `<button data-trip="stop" class="cpt-btn stop">⏹ Fahrt beenden</button>`
-          : `<button data-trip="start" class="cpt-btn start">▶ Fahrt starten</button>`}
-        <button id="simBtn" class="cpt-btn" style="margin-top:8px;background:#ffd54f;color:#000;font-size:12px">🧪 Testfahrt simulieren</button>
+        <div style="display:flex;gap:6px">
+          ${trip.active 
+            ? `<button data-trip="stop" class="cpt-btn stop" style="flex:1">⏹ Fahrt beenden</button>`
+            : `<button data-trip="start" class="cpt-btn start" style="flex:1">▶ Fahrt starten</button>`}
+          <button data-nav="park" class="cpt-btn" style="flex:1;background:rgba(255,255,255,.1);color:#fff">🅿️ Parkuhr</button>
+        </div>
+        ${!simTimer ? `<button id="simBtn" class="cpt-btn" style="margin-top:8px;background:#ffd54f;color:#000;font-size:12px">🧪 Testfahrt simulieren</button>` : ''}
       </div></div>`;
 
       container.innerHTML = html;
       bindNav(); bindCockpit();
+      
+      container.querySelector('.cpt-wrap').addEventListener('open-settings', function() {
+          view.screen = "settings"; build();
+      });
+      
       fetchPOIsIfNeeded(); fetchSpeedLimitIfNeeded();
+      if(!weatherData) fetchWeather();
     }
 
-    /* ═══════════ SETTINGS ═══════════ */
+    /* ═══════════ SETTINGS (Tacho & Sprache) ═══════════ */
     function screenSettings(){
       var s = getSettings();
       var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>`;
       
-      html += `<div class="card"><h3>🎨 Cockpit-Design</h3>
+      html += `<div class="card"><h3>🏎️ Tacho-Design</h3>
         <div class="field"><label>Alarm-Dauer (Sekunden)</label>
           <input type="range" id="setDuration" min="2" max="15" step="1" value="${s.alarmDuration}" style="width:100%">
           <div style="text-align:right;font-size:11px;font-weight:900;color:#4dd0e1;margin-top:2px" id="durLbl">${s.alarmDuration} Sekunden</div>
@@ -312,18 +325,19 @@
             <button data-color="#ff5555" style="flex:1;height:36px;background:#ff5555;border:3px solid ${s.tachoColor==='#ff5555'?'#fff':'transparent'};border-radius:8px;cursor:pointer"></button>
             <button data-color="#4ade80" style="flex:1;height:36px;background:#4ade80;border:3px solid ${s.tachoColor==='#4ade80'?'#fff':'transparent'};border-radius:8px;cursor:pointer"></button>
             <button data-color="#b478ff" style="flex:1;height:36px;background:#b478ff;border:3px solid ${s.tachoColor==='#b478ff'?'#fff':'transparent'};border-radius:8px;cursor:pointer"></button>
+            <button data-color="#ffd700" style="flex:1;height:36px;background:#ffd700;border:3px solid ${s.tachoColor==='#ffd700'?'#fff':'transparent'};border-radius:8px;cursor:pointer"></button>
           </div>
+        </div>
+        <div class="field" style="margin-top:10px"><label>Offline Modus</label>
+          <button id="toggleOffline" style="width:100%;padding:10px;background:${s.offlineMode?'rgba(255,128,128,.2)':'rgba(74,222,128,.2)'};border:1px solid ${s.offlineMode?'#ff8080':'#4ade80'};color:${s.offlineMode?'#ff8080':'#4ade80'};border-radius:8px;font-weight:900;font-size:12px;cursor:pointer">${s.offlineMode ? 'Offline (Karten aus)' : 'Online (Karten aktiv)'}</button>
         </div>
       </div>`;
 
       html += `<div class="card"><h3>🎵 Alarm-Töne</h3>`;
       var soundOptions = [
-        { id:"siren", name:"🚨 Sirene" },
-        { id:"long_alarm", name:"🔔 Feueralarm" },
-        { id:"radar", name:"📡 Radar" },
-        { id:"urgent", name:"⚠️ Dringend" },
-        { id:"chime", name:"🎵 Glocke" },
-        { id:"low", name:"🕊️ Sanft" }
+        { id:"siren", name:"🚨 Sirene" }, { id:"long_alarm", name:"🔔 Feueralarm" },
+        { id:"radar", name:"📡 Radar" }, { id:"urgent", name:"⚠️ Dringend" },
+        { id:"chime", name:"🎵 Glocke" }, { id:"low", name:"🕊️ Sanft" }
       ];
 
       CATS.forEach(c => {
@@ -354,30 +368,206 @@
       });
 
       container.querySelectorAll("[data-color]").forEach(el => {
-        el.addEventListener("click", function() {
-          s.tachoColor = el.dataset.color;
-          saveSettings(s); screenSettings();
-        });
+        el.addEventListener("click", function() { s.tachoColor = el.dataset.color; saveSettings(s); screenSettings(); });
+      });
+      
+      container.querySelector("#toggleOffline").addEventListener("click", function() {
+        s.offlineMode = !s.offlineMode; saveSettings(s); screenSettings();
       });
 
       container.querySelector("#setLang").addEventListener("change", e => { s.lang = e.target.value; saveSettings(s); });
-      
       container.querySelectorAll("[data-sound]").forEach(el => {
-        el.addEventListener("change", e => {
-          s.sounds[el.dataset.sound] = e.target.value;
-          saveSettings(s);
+        el.addEventListener("change", e => { s.sounds[el.dataset.sound] = e.target.value; saveSettings(s); });
+      });
+      container.querySelectorAll("[data-test]").forEach(el => {
+        el.addEventListener("click", function() { playBeep(s.sounds[el.dataset.test] || "chime", 0.8, s.alarmDuration); });
+      });
+    }
+
+    /* ═══════════ NAVIGATION MIT VERLAUF & FAVORITEN ═══════════ */
+    function screenNav(){
+      var hist = store.get("navHistory", []);
+      var favs = store.get("navFavorites", []);
+      
+      var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
+      <div class="card"><h3>🧭 Navigation</h3>
+      <div class="field"><label>Ziel eingeben</label>
+      <div style="display:flex;gap:6px">
+        <input id="navTarget" placeholder="Adresse..." style="flex:1;font-size:14px;padding:12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#fff">
+        <button id="navFav" style="background:rgba(255,215,0,.2);border:1px solid #ffd700;color:#ffd700;border-radius:10px;width:44px;font-size:18px;cursor:pointer">⭐</button>
+      </div></div>
+      <button class="btn full" id="navGo" style="padding:12px;margin-top:8px;background:linear-gradient(135deg,#4dd0e1,#b478ff);color:#000;font-weight:900;border:none;border-radius:10px;cursor:pointer">🔍 Route berechnen</button>
+      ${routeData ? `<div style="margin-top:14px;padding:12px;background:rgba(77,208,225,.1);border:1px solid rgba(77,208,225,.3);border-radius:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><div style="font-size:11px;color:var(--text-mute);font-weight:800">ROUTE AKTIV</div><div style="font-size:14px;font-weight:900;color:#4dd0e1;margin-top:4px">${fmtDist(routeData.totalDist)}</div></div>
+          <button id="navClear" style="background:rgba(255,128,128,.15);border:1px solid rgba(255,128,128,.3);color:#ff8080;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;font-weight:800">Beenden</button>
+        </div>
+      </div>` : ""}</div>`;
+
+      if(favs.length){
+        html += `<div class="card"><h3>⭐ Favoriten</h3>`;
+        favs.forEach((f, i) => {
+          html += `<div style="display:flex;justify-content:space-between;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:4px">
+            <div style="font-size:12px;font-weight:800;cursor:pointer" onclick="document.getElementById('navTarget').value='${_esc(f)}'">${_esc(f)}</div>
+            <button data-delfav="${i}" style="background:transparent;border:none;color:#ff8080;cursor:pointer">✕</button>
+          </div>`;
         });
+        html += `</div>`;
+      }
+
+      if(hist.length){
+        html += `<div class="card"><h3>🕒 Verlauf</h3>`;
+        hist.slice(0, 5).forEach(h => {
+          html += `<div style="display:flex;justify-content:space-between;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:4px">
+            <div style="font-size:12px;font-weight:800;cursor:pointer" onclick="document.getElementById('navTarget').value='${_esc(h.addr)}'">${_esc(h.addr)}</div>
+            <div style="font-size:10px;color:var(--text-mute)">${h.date}</div>
+          </div>`;
+        });
+        html += `</div>`;
+      }
+
+      container.innerHTML = html; bindNav();
+      
+      container.querySelector("#navGo").addEventListener("click", function(){
+        var target = container.querySelector("#navTarget").value.trim();
+        if(!target) return;
+        
+        // Save to history
+        hist.unshift({ addr: target, date: new Date().toLocaleString("de-DE") });
+        store.set("navHistory", hist.slice(0, 20));
+        
+        if(!lastPos){ alert("GPS fehlt"); return; }
+        geocodeAndRoute(target);
       });
 
-      container.querySelectorAll("[data-test]").forEach(el => {
+      container.querySelector("#navFav").addEventListener("click", function(){
+        var target = container.querySelector("#navTarget").value.trim();
+        if(!target) return;
+        if(!favs.includes(target)){ favs.push(target); store.set("navFavorites", favs); screenNav(); }
+      });
+
+      container.querySelectorAll("[data-delfav]").forEach(el => {
+        el.addEventListener("click", () => {
+          favs.splice(parseInt(el.dataset.delfav), 1); store.set("navFavorites", favs); screenNav();
+        });
+      });
+      
+      var nc = container.querySelector("#navClear");
+      if(nc) nc.addEventListener("click", function(){ routeData = null; screenNav(); });
+    }
+
+    function geocodeAndRoute(query){
+      fetch("https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(query) + "&limit=1")
+        .then(r => r.json()).then(data => {
+          if(!data || !data.length){ alert("Ziel nicht gefunden"); return; }
+          targetPos = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+          fetch(`https://router.project-osrm.org/route/v1/driving/${lastPos.coords.longitude},${lastPos.coords.latitude};${targetPos.lng},${targetPos.lat}?steps=true&geometries=geojson&overview=false`)
+            .then(r => r.json()).then(rdata => {
+              if(!rdata.routes || !rdata.routes.length){ alert("Route nicht gefunden"); return; }
+              routeData = { totalDist: rdata.routes[0].distance, totalTime: rdata.routes[0].duration, steps: rdata.routes[0].legs[0].steps, currentStep: 0, targetName: data[0].display_name.split(",")[0] };
+              if(HalDo.Notify) HalDo.Notify.success("Route berechnet: " + fmtDist(routeData.totalDist));
+              view.screen = "cockpit"; build();
+            }).catch(e => alert("Routing-Fehler: " + e.message));
+        }).catch(e => alert("Geocoding-Fehler: " + e.message));
+    }
+
+    /* ═══════════ PARKUHR & MELDEN ═══════════ */
+    function screenPark(){
+      var now = Date.now();
+      var remaining = parkEndTime > now ? Math.floor((parkEndTime - now) / 1000) : 0;
+      
+      var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
+      <div class="card" style="text-align:center">
+        <h3>🅿️ Parkuhr</h3>
+        <div style="font-size:56px;font-weight:900;color:${remaining > 0 ? '#4dd0e1' : '#ff5555'};margin:20px 0" id="parkTime">${fmtTime(remaining)}</div>
+        ${remaining === 0 && parkEndTime > 0 ? '<div style="color:#ff5555;font-weight:900">⏰ Zeit abgelaufen!</div>' : ''}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:20px">
+          <button class="btn" onclick="window._parkAdd(15)" style="background:rgba(77,208,225,.2);border:1px solid #4dd0e1;color:#4dd0e1;padding:12px;border-radius:8px;font-weight:900">+ 15 Min</button>
+          <button class="btn" onclick="window._parkAdd(30)" style="background:rgba(77,208,225,.2);border:1px solid #4dd0e1;color:#4dd0e1;padding:12px;border-radius:8px;font-weight:900">+ 30 Min</button>
+          <button class="btn" onclick="window._parkAdd(60)" style="background:rgba(77,208,225,.2);border:1px solid #4dd0e1;color:#4dd0e1;padding:12px;border-radius:8px;font-weight:900">+ 1 Std</button>
+          <button class="btn" onclick="window._parkStop()" style="background:rgba(255,85,85,.2);border:1px solid #ff5555;color:#ff5555;padding:12px;border-radius:8px;font-weight:900">⏹ Stopp</button>
+        </div>
+      </div>`;
+      
+      container.innerHTML = html; bindNav();
+      
+      window._parkAdd = function(mins) {
+        parkEndTime = (parkEndTime > Date.now() ? parkEndTime : Date.now()) + mins * 60000;
+        if(parkTimer) clearInterval(parkTimer);
+        parkTimer = setInterval(updateParkUI, 1000);
+        updateParkUI();
+      };
+      
+      window._parkStop = function() {
+        parkEndTime = 0;
+        if(parkTimer) clearInterval(parkTimer);
+        updateParkUI();
+      };
+      
+      function updateParkUI() {
+        var el = document.getElementById("parkTime");
+        if(!el) return;
+        var rem = parkEndTime > Date.now() ? Math.floor((parkEndTime - Date.now()) / 1000) : 0;
+        el.textContent = fmtTime(rem);
+        el.style.color = rem > 0 ? '#4dd0e1' : '#ff5555';
+        if(rem === 0 && parkEndTime > 0) {
+           if(HalDo.Notify) HalDo.Notify.error("Parkzeit abgelaufen!");
+           playBeep("urgent", 1.0, 5);
+           parkEndTime = 0;
+        }
+      }
+      
+      if(parkTimer) clearInterval(parkTimer);
+      if(parkEndTime > Date.now()) parkTimer = setInterval(updateParkUI, 1000);
+    }
+
+    function screenReport(){
+      var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
+      <div class="card"><h3>➕ Warnung melden</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">`;
+      
+      CATS.forEach(c => {
+        html += `<button data-report="${c.id}" style="padding:14px;background:rgba(0,0,0,.2);border:1px solid ${c.color}44;border-radius:10px;color:inherit;font-family:inherit;text-align:center;cursor:pointer">
+          <div style="font-size:26px">${c.icon}</div>
+          <div style="font-size:10px;color:${c.color};margin-top:4px;font-weight:800">${_esc(c.name.de)}</div>
+        </button>`;
+      });
+      
+      html += `</div></div>`;
+      container.innerHTML = html; bindNav();
+      
+      container.querySelectorAll("[data-report]").forEach(el => {
         el.addEventListener("click", function() {
-          var sound = s.sounds[el.dataset.test] || "chime";
-          playBeep(sound, 0.8, s.alarmDuration);
+          if(!lastPos){ alert("GPS fehlt zum Melden"); return; }
+          var catId = el.dataset.report;
+          var warnings = getWarnings();
+          warnings.push({ id: "w"+Date.now(), cat: catId, lat: lastPos.coords.latitude, lng: lastPos.coords.longitude, created: Date.now() });
+          store.set("warnings", warnings);
+          if(HalDo.Notify) HalDo.Notify.success("Warnung gemeldet!");
+          view.screen = "cockpit"; build();
         });
       });
     }
 
-    /* ═══════════ LOGIK & TRIGGER ═══════════ */
+    /* ═══════════ WETTER & HILFSFUNKTIONEN ═══════════ */
+    function fetchWeather(){
+      if(!lastPos || getSettings().offlineMode) return;
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lastPos.coords.latitude}&longitude=${lastPos.coords.longitude}&current_weather=true`)
+        .then(r => r.json()).then(data => {
+          if(data.current_weather) {
+            var temp = Math.round(data.current_weather.temperature);
+            var code = data.current_weather.weathercode;
+            var icon = "☀️";
+            if(code > 0 && code < 4) icon = "🌤️";
+            if(code >= 4 && code < 70) icon = "☁️";
+            if(code >= 70 && code < 80) icon = "🌧️";
+            if(code >= 80) icon = "⛈️";
+            weatherData = { temp, icon };
+            if(view.screen === "cockpit") build();
+          }
+        }).catch(()=>{});
+    }
+
     function checkTriggers(pos){
       var s = getSettings(), lat = pos.coords.latitude, lng = pos.coords.longitude;
       var zones = [2000, 1000, 500, 200];
@@ -405,9 +595,8 @@
 
     function speakAlert(cat, dist, settings){
       var cv = getCustomVoice();
-      if(settings.beepOn) {
-        playBeep(settings.sounds[cat.id] || "chime", 0.9, settings.alarmDuration);
-      }
+      if(settings.beepOn) playBeep(settings.sounds[cat.id] || "chime", 0.9, settings.alarmDuration);
+      
       if(cv[cat.id]){ 
         new Audio(cv[cat.id]).play().catch(()=>{}); 
       } else if(settings.voiceOn && window.speechSynthesis){
@@ -420,7 +609,7 @@
     }
 
     function fetchSpeedLimitIfNeeded(){
-      if(!lastPos || simTimer) return; 
+      if(!lastPos || simTimer || getSettings().offlineMode) return; 
       var now = Date.now();
       if(now - lastLimitFetch < 15000) return; 
       lastLimitFetch = now;
@@ -445,7 +634,7 @@
     }
 
     function fetchPOIsIfNeeded(){
-      if(!lastPos || simTimer) return;
+      if(!lastPos || simTimer || getSettings().offlineMode) return;
       var lat = lastPos.coords.latitude, lng = lastPos.coords.longitude;
       var s = getSettings();
       var enabled = CATS.filter(c => c.type === "poi" && s.enabled[c.id]);
@@ -482,7 +671,6 @@
     }
     function getManeuverIcon(m){ if(!m) return "⬆️"; if(m.type==="turn") return m.modifier && m.modifier.indexOf("left")>=0 ? "⬅️" : "➡️"; if(m.type==="arrive") return "🏁"; return "⬆️"; }
 
-    /* ═══════════ KI & NAVIGATION & MAP ═══════════ */
     function screenVision(){
       var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
       <div class="card">
@@ -562,42 +750,6 @@
       tfModel = null; screenVision();
     }
 
-    function screenNav(){
-      var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
-      <div class="card"><h3>🧭 Navigation (Hologramm)</h3>
-      <div class="field"><label>Ziel eingeben</label><input id="navTarget" placeholder="z.B. Berlin, Alexanderplatz" style="font-size:14px;padding:12px;width:100%;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#fff"></div>
-      <button class="btn full" id="navGo" style="padding:12px;margin-top:8px;background:linear-gradient(135deg,#4dd0e1,#b478ff);color:#000;font-weight:900;border:none;border-radius:10px;cursor:pointer">🔍 Route berechnen</button>
-      ${routeData ? `<div style="margin-top:14px;padding:12px;background:rgba(77,208,225,.1);border:1px solid rgba(77,208,225,.3);border-radius:10px">
-        <div style="font-size:11px;color:var(--text-mute);font-weight:800">ROUTE AKTIV</div>
-        <div style="font-size:14px;font-weight:900;color:#4dd0e1;margin-top:4px">${fmtDist(routeData.totalDist)}</div>
-        <button id="navClear" style="margin-top:8px;background:rgba(255,128,128,.15);border:1px solid rgba(255,128,128,.3);color:#ff8080;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;font-weight:800">Route beenden</button>
-      </div>` : ""}</div>`;
-      container.innerHTML = html; bindNav();
-      container.querySelector("#navGo").addEventListener("click", function(){
-        var target = container.querySelector("#navTarget").value.trim();
-        if(!target || !lastPos) return;
-        geocodeAndRoute(target);
-      });
-      var nc = container.querySelector("#navClear");
-      if(nc) nc.addEventListener("click", function(){ routeData = null; screenNav(); });
-    }
-
-    function geocodeAndRoute(query){
-      fetch("https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(query) + "&limit=1")
-        .then(r => r.json()).then(data => {
-          if(!data || !data.length){ alert("Ziel nicht gefunden"); return; }
-          targetPos = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-          if(!lastPos){ alert("GPS fehlt"); return; }
-          fetch(`https://router.project-osrm.org/route/v1/driving/${lastPos.coords.longitude},${lastPos.coords.latitude};${targetPos.lng},${targetPos.lat}?steps=true&geometries=geojson&overview=false`)
-            .then(r => r.json()).then(rdata => {
-              if(!rdata.routes || !rdata.routes.length){ alert("Route nicht gefunden"); return; }
-              routeData = { totalDist: rdata.routes[0].distance, totalTime: rdata.routes[0].duration, steps: rdata.routes[0].legs[0].steps, currentStep: 0, targetName: data[0].display_name.split(",")[0] };
-              if(HalDo.Notify) HalDo.Notify.success("Route berechnet: " + fmtDist(routeData.totalDist));
-              view.screen = "cockpit"; build();
-            }).catch(e => alert("Routing-Fehler: " + e.message));
-        }).catch(e => alert("Geocoding-Fehler: " + e.message));
-    }
-
     function screenMap(){
       var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
       <div class="card" style="padding:0;overflow:hidden;height:calc(100vh - 200px);position:relative"><div id="blMap" style="width:100%;height:100%;background:#0a1220"></div></div>`;
@@ -656,7 +808,6 @@
       });
     }
 
-    /* ═══════════ SIMULATION & GEOLOCATION ═══════════ */
     function startSimulation(){
       if(simTimer) clearInterval(simTimer);
       lastPos = { coords: { latitude: 51.1657, longitude: 10.4515, speed: 0 } }; 
@@ -729,5 +880,5 @@
   }
 
   HalDoApp("blitzer", { name: "HalDo Blitzer", icon: "⚠️", render: render, category: "werkzeuge" });
-  console.log("🦚 blitzer.js v11.0 geladen — Autobahn-Schilder · Einstellbare Sirene · Tacho-Farben");
+  console.log("🦚 blitzer.js v12.0 geladen — Tacho(7-5) · Wetter · Navi-Verlauf · Parkuhr · Community");
 })();
