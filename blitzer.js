@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — BLITZER v9.0 · ECHTES AUTO COCKPIT
-   Echter Tacho (270°) · Extreme Töne · 3D Hologramm · KI
+   HALDO AI OS — BLITZER v10.0 · ULTIMATE ALARM COCKPIT
+   Sirenen-Alarm · 6 Sound-Profile · Fixes Layout · KI
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -15,17 +15,17 @@
     { id:"ezidi", icon:"🦚", color:"#ffd700", type:"warn", name:{de:"Ezidi-Zentrum",en:"Ezidi Center",tr:"Ezidi Merkezi",ar:"مركز إيزيدي",ku:"Navenda Êzîdî",fr:"Centre Ezidi"}, voice:{de:"Ezidi-Zentrum in {d}",en:"Ezidi center in {d}",tr:"Ezidi merkezi {d}",ar:"مركز إيزيدي {d}",ku:"Navenda Êzîdî li {d}",fr:"Centre Ezidi à {d}"} },
     { id:"poi_fuel", icon:"⛽", color:"#66cc66", type:"poi", osm:"amenity=fuel", name:{de:"Tankstelle",en:"Gas Station",tr:"Benzinlik",ar:"محطة وقود",ku:"Benzîngeh",fr:"Station"}, voice:{de:"Tankstelle in {d}",en:"Gas station in {d}",tr:"Benzinlik {d}",ar:"محطة وقود {d}",ku:"Benzîngeh li {d}",fr:"Station à {d}"} },
     { id:"poi_rest", icon:"🍴", color:"#ff8844", type:"poi", osm:"highway=rest_area", name:{de:"Raststätte",en:"Rest Area",tr:"Dinlenme",ar:"استراحة",ku:"Bêhnvedan",fr:"Repos"}, voice:{de:"Raststätte in {d}",en:"Rest area in {d}",tr:"Dinlenme {d}",ar:"استراحة {d}",ku:"Bêhnvedan li {d}",fr:"Repos à {d}"} },
-    { id:"poi_hotel", icon:"🏨", color:"#4da8ff", type:"poi", osm:"tourism=hotel", name:{de:"Hotel",en:"Hotel",tr:"Otel",ar:"فندق",ku:"Otel",fr:"Hôtel"}, voice:{de:"Hotel in {d}",en:"Hotel in {d}",tr:"Otel {d}",ar:"فندق {d}",ku:"Otel li {d}",fr:"Hôtel à {d}"} },
-    { id:"poi_werkstatt", icon:"🔧", color:"#b478ff", type:"poi", osm:"shop=car_repair", name:{de:"Werkstatt",en:"Repair",tr:"Tamirci",ar:"ورشة",ku:"Tamîrxane",fr:"Garage"}, voice:{de:"Werkstatt in {d}",en:"Repair in {d}",tr:"Tamirci {d}",ar:"ورشة {d}",ku:"Tamîrxane li {d}",fr:"Garage à {d}"} }
+    { id:"poi_hotel", icon:"🏨", color:"#4da8ff", type:"poi", osm:"tourism=hotel", name:{de:"Hotel",en:"Hotel",tr:"Otel",ar:"فندق",ku:"Otel",fr:"Hôtel"}, voice:{de:"Hotel in {d}",en:"Hotel in {d}",tr:"Otel {d}",ar:"فندق {d}",ku:"Otel li {d}",fr:"Hôtel à {d}"} }
   ];
 
   var LANGS = { de:{ name:"Deutsch", code:"de-DE" }, en:{ name:"English", code:"en-US" }, tr:{ name:"Türkçe", code:"tr-TR" }, ar:{ name:"العربية", code:"ar-SA" }, ku:{ name:"Kurdî (Ezidi)", code:"tr-TR" }, fr:{ name:"Français", code:"fr-FR" } };
 
   var DEFAULT_SETTINGS = { enabled: {}, lang:"de", voiceOn:true, beepOn:true, notifyOn:true, warnDist: 1000, sounds:{}, arrowStyle: "gold" };
+  
   CATS.forEach(function(c){ 
     DEFAULT_SETTINGS.enabled[c.id] = true; 
-    // Blitzer und Unfall bekommen standardmäßig den extremen Ton
-    DEFAULT_SETTINGS.sounds[c.id] = (c.id.indexOf("blitzer") === 0 || c.id === "unfall") ? "extreme" : "medium"; 
+    // Blitzer und Unfall bekommen standardmäßig den Sirenen-Alarm
+    DEFAULT_SETTINGS.sounds[c.id] = (c.id.indexOf("blitzer") === 0 || c.id === "unfall") ? "siren" : "chime"; 
   });
 
   function _esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
@@ -33,13 +33,65 @@
   function fmtDist(m){ return m<1000 ? Math.round(m/10)*10 + " m" : (m/1000).toFixed(1) + " km"; }
   function fmtTime(sec){ var h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60; return (h>0?h+"h ":"")+m+"m "+s+"s"; }
 
+  /* ═══════════ EXTREME AUDIO ENGINE ═══════════ */
   var audioCtx = null;
   function getAudio(){ if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return audioCtx; }
+  
   function playBeep(pattern, vol){
-    var ctx = getAudio(); if(!ctx) return; var now = ctx.currentTime;
-    // Extreme: 1800Hz, sehr schnell, sehr durchdringend
+    var ctx = getAudio(); if(!ctx) return; 
+    var now = ctx.currentTime;
+    
+    if (pattern === "siren") {
+      // Echte Polizei-Sirene (2.5 Sekunden)
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = "sawtooth"; 
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.setValueAtTime(800, now);
+      o.frequency.linearRampToValueAtTime(1300, now + 0.5);
+      o.frequency.linearRampToValueAtTime(800, now + 1.0);
+      o.frequency.linearRampToValueAtTime(1300, now + 1.5);
+      o.frequency.linearRampToValueAtTime(800, now + 2.0);
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(vol, now + 0.1);
+      g.gain.setValueAtTime(vol, now + 2.0);
+      g.gain.linearRampToValueAtTime(0, now + 2.5);
+      o.start(now); o.stop(now + 2.5);
+      return;
+    }
+
+    if (pattern === "long_alarm") {
+      // Langes Feueralarm-Klingeln (3 Sekunden)
+      for (let i=0; i<6; i++) {
+        let t = now + (i * 0.4);
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = "square"; o.frequency.value = 1600;
+        o.connect(g); g.connect(ctx.destination);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol, t + 0.05);
+        g.gain.setValueAtTime(vol, t + 0.25);
+        g.gain.linearRampToValueAtTime(0, t + 0.35);
+        o.start(t); o.stop(t + 0.35);
+      }
+      return;
+    }
+
+    if (pattern === "radar") {
+      // Extrem hohes Radar-Piepen (1.5 Sekunden)
+      for (let i=0; i<8; i++) {
+        let t = now + (i * 0.15);
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = "sine"; o.frequency.value = 2200;
+        o.connect(g); g.connect(ctx.destination);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol, t + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+        o.start(t); o.stop(t + 0.1);
+      }
+      return;
+    }
+
+    // Fallback für andere Töne
     var p = { 
-      extreme: [{f:1800,t:0,d:0.05},{f:1800,t:0.08,d:0.05},{f:1800,t:0.16,d:0.05},{f:1800,t:0.24,d:0.05}],
       urgent: [{f:880,t:0,d:0.1},{f:880,t:0.15,d:0.1}], 
       alarm: [{f:1200,t:0,d:0.08},{f:1200,t:0.12,d:0.08}], 
       chime: [{f:523,t:0,d:0.15},{f:659,t:0.15,d:0.15},{f:784,t:0.3,d:0.25}], 
@@ -48,7 +100,7 @@
     
     p.forEach(function(b){
       var o = ctx.createOscillator(), g = ctx.createGain();
-      o.frequency.value = b.f; o.type = "square"; // Square wave is sharper/more annoying
+      o.frequency.value = b.f; o.type = "sine";
       g.gain.setValueAtTime(0, now+b.t); g.gain.linearRampToValueAtTime(vol, now+b.t+0.01); g.gain.exponentialRampToValueAtTime(0.001, now+b.t+b.d);
       o.connect(g).connect(ctx.destination); o.start(now+b.t); o.stop(now+b.t+b.d+0.02);
     });
@@ -78,7 +130,7 @@
       else if(view.screen === "list") screenList();
     }
 
-    /* ═══════════ COCKPIT (Tacho & 3D) ═══════════ */
+    /* ═══════════ COCKPIT (AUTO TACHO) ═══════════ */
     function screenCockpit(){
       var s = getSettings();
       var speed = lastPos ? Math.round((lastPos.coords.speed||0)*3.6) : 0;
@@ -86,17 +138,15 @@
       
       var nextEvent = getNextEvent();
       
-      // Tacho: 0 bis 240 km/h, Winkel: 135° bis 405° (270° Sweep)
       var maxSpeed = 240;
       var startAngle = 135;
       var endAngle = 405;
       var currentAngle = startAngle + (Math.min(speed, maxSpeed) / maxSpeed) * (endAngle - startAngle);
 
-      // Ticks generieren
       var ticks = "";
       for (var i = 0; i <= 240; i += 20) {
         var angle = startAngle + (i / maxSpeed) * (endAngle - startAngle);
-        var rad = (angle - 90) * Math.PI / 180; // 0° ist oben
+        var rad = (angle - 90) * Math.PI / 180;
         var isMajor = i % 40 === 0;
         var len = isMajor ? 12 : 6;
         
@@ -130,19 +180,21 @@
         .cpt-top{display:flex;justify-content:space-between;z-index:10}
         .cpt-navbtn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;padding:10px 14px;border-radius:12px;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:6px}
         
-        /* Tacho Container */
+        /* Modern Tacho Container */
         .cpt-tacho{position:relative;width:300px;height:300px;margin:10px auto;display:flex;align-items:center;justify-content:center}
-        .tacho-bg{position:absolute;inset:0;background:radial-gradient(circle, rgba(10,18,32,1) 0%, rgba(5,8,16,1) 100%);border-radius:50%;border:2px solid rgba(77,208,225,.2);box-shadow:0 0 30px rgba(77,208,225,.1)}
+        .tacho-bg{position:absolute;inset:0;background:radial-gradient(circle, rgba(10,18,32,1) 0%, rgba(5,8,16,1) 100%);border-radius:50%;border:2px solid rgba(77,208,225,.2);box-shadow:0 0 30px rgba(77,208,225,.1), inset 0 0 20px rgba(0,0,0,.8)}
         
         /* Nadel */
-        .needle-container{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform:rotate(${currentAngle}deg);transition:transform .2s cubic-bezier(0.4, 2.08, 0.55, 0.44)}
-        .needle{width:4px;height:120px;background:linear-gradient(to top, transparent 40%, #ff3333 40%, #ff3333 100%);position:absolute;bottom:50%;transform-origin:bottom center;border-radius:2px;box-shadow:0 0 10px #ff3333}
-        .needle-center{position:absolute;width:24px;height:24px;background:#111;border:3px solid #ff3333;border-radius:50%;z-index:2;box-shadow:0 0 15px #ff3333}
+        .needle-container{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform:rotate(${currentAngle}deg);transition:transform .3s cubic-bezier(0.4, 2.08, 0.55, 0.44)}
+        .needle{width:4px;height:120px;background:linear-gradient(to top, transparent 40%, #ff3333 40%, #ff3333 100%);position:absolute;bottom:50%;transform-origin:bottom center;border-radius:2px;box-shadow:0 0 12px #ff3333}
+        .needle-center{position:absolute;width:28px;height:28px;background:#111;border:4px solid #ff3333;border-radius:50%;z-index:2;box-shadow:0 0 20px #ff3333}
         
-        .cpt-speed{font-size:56px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;z-index:3;text-shadow:0 0 15px rgba(255,255,255,.3);margin-top:40px}
-        .cpt-unit{font-size:11px;color:#7fa5b8;font-weight:900;letter-spacing:3px;margin-top:2px;z-index:3}
+        /* Digital Speed */
+        .cpt-speed-box{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);text-align:center;z-index:3;background:rgba(0,0,0,.6);padding:6px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.1);box-shadow:0 4px 10px rgba(0,0,0,.5)}
+        .cpt-speed{font-size:38px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;text-shadow:0 0 15px rgba(255,255,255,.3)}
+        .cpt-unit{font-size:9px;color:#7fa5b8;font-weight:900;letter-spacing:2px;margin-top:2px}
         
-        .cpt-limit{position:absolute;top:20px;right:20px;width:64px;height:64px;border-radius:50%;background:#fff;border:6px solid #ff3333;display:flex;align-items:center;justify-content:center;z-index:20}
+        .cpt-limit{position:absolute;top:20px;right:20px;width:64px;height:64px;border-radius:50%;background:#fff;border:6px solid #ff3333;display:flex;align-items:center;justify-content:center;z-index:20;box-shadow:0 0 15px rgba(255,51,51,.5)}
         .cpt-limit-num{font-size:24px;font-weight:900;color:#000}
         
         /* 3D Hologramm Pfeil */
@@ -212,8 +264,10 @@
         </svg>
         <div class="needle-container"><div class="needle"></div></div>
         <div class="needle-center"></div>
-        <div class="cpt-speed">${speed}</div>
-        <div class="cpt-unit">KM/H</div>
+        <div class="cpt-speed-box">
+          <div class="cpt-speed">${speed}</div>
+          <div class="cpt-unit">KM/H</div>
+        </div>
       </div>`;
 
       var elapsedMin = trip.active ? Math.floor((Date.now() - trip.startTime) / 60000) : 0;
@@ -235,7 +289,167 @@
       fetchPOIsIfNeeded(); fetchSpeedLimitIfNeeded();
     }
 
-    /* ═══════════ KI VISION (Wiederhergestellt) ═══════════ */
+    /* ═══════════ SETTINGS (Sirenen-Auswahl) ═══════════ */
+    function screenSettings(){
+      var s = getSettings();
+      var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>`;
+      
+      html += `<div class="card"><h3>🔔 Front-Display Warnungen</h3>
+        <button id="reqNotify" style="width:100%;padding:12px;background:${Notification.permission==="granted"?'rgba(74,222,128,.2)':'rgba(255,255,255,.1)'};border:1px solid ${Notification.permission==="granted"?'#4ade80':'#fff'};color:${Notification.permission==="granted"?'#4ade80':'#fff'};border-radius:8px;font-weight:900;font-size:12px;cursor:pointer">${Notification.permission==="granted"?'✅ Push aktiviert':'⚠️ Push aktivieren'}</button>
+      </div>`;
+
+      html += `<div class="card"><h3>🎵 Alarm-Töne</h3>
+        <div style="font-size:10.5px;color:var(--text-mute);margin-bottom:10px">Wähle den Alarm-Ton für jede Warnung. Klicke auf 🔊, um ihn zu testen.</div>`;
+      
+      var soundOptions = [
+        { id:"siren", name:"🚨 Sirene (Polizei)" },
+        { id:"long_alarm", name:"🔔 Feueralarm" },
+        { id:"radar", name:"📡 Radar-Piepen" },
+        { id:"urgent", name:"⚠️ Dringend" },
+        { id:"chime", name:"🎵 Glocke" },
+        { id:"low", name:"🕊️ Sanft" }
+      ];
+
+      CATS.forEach(c => {
+        var currentSound = s.sounds[c.id] || "chime";
+        html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+          <span style="font-size:12px;font-weight:800;flex:1">${c.icon} ${_esc(c.name.de)}</span>
+          <div style="display:flex;gap:6px">
+            <select data-sound="${c.id}" style="background:rgba(0,0,0,.5);color:#fff;border:1px solid #444;border-radius:6px;padding:6px 8px;font-size:11px;font-family:inherit">
+              ${soundOptions.map(o => `<option value="${o.id}" ${currentSound===o.id?'selected':''}>${o.name}</option>`).join("")}
+            </select>
+            <button data-test="${c.id}" style="background:rgba(77,208,225,.15);border:1px solid rgba(77,208,225,.3);color:#4dd0e1;border-radius:6px;width:32px;cursor:pointer;font-size:14px">🔊</button>
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+
+      html += `<div class="card"><h3>🎨 Pfeil-Stil</h3>
+        <select id="arrowStyle" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:1px solid #444;border-radius:8px;color:#fff">
+          <option value="gold" ${s.arrowStyle==='gold'?'selected':''}>🥇 Gold (Standard)</option>
+          <option value="blue" ${s.arrowStyle==='blue'?'selected':''}>🔵 Neon Blau</option>
+          <option value="white" ${s.arrowStyle==='white'?'selected':''}>⚪ Klassisch Weiß</option>
+        </select></div>`;
+
+      html += `<div class="card"><h3>🌍 Sprache</h3>
+        <select id="setLang" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:1px solid #444;border-radius:8px;color:#fff">
+        ${Object.keys(LANGS).map(k => `<option value="${k}" ${s.lang===k?"selected":""}>${LANGS[k].name}</option>`).join("")}
+        </select></div>`;
+
+      container.innerHTML = html; bindNav();
+      
+      container.querySelector("#reqNotify").addEventListener("click", function(){ Notification.requestPermission().then(p => { if(p==="granted") screenSettings(); }); });
+      container.querySelector("#setLang").addEventListener("change", e => { s.lang = e.target.value; saveSettings(s); });
+      container.querySelector("#arrowStyle").addEventListener("change", e => { s.arrowStyle = e.target.value; saveSettings(s); });
+      
+      container.querySelectorAll("[data-sound]").forEach(el => {
+        el.addEventListener("change", e => {
+          s.sounds[el.dataset.sound] = e.target.value;
+          saveSettings(s);
+        });
+      });
+
+      container.querySelectorAll("[data-test]").forEach(el => {
+        el.addEventListener("click", function() {
+          var catId = el.dataset.test;
+          var sound = s.sounds[catId] || "chime";
+          playBeep(sound, 0.8);
+        });
+      });
+    }
+
+    /* ═══════════ HILFSFUNKTIONEN ═══════════ */
+    function checkTriggers(pos){
+      var s = getSettings(), lat = pos.coords.latitude, lng = pos.coords.longitude;
+      var zones = [2000, 1000, 500, 200];
+      getWarnings().forEach(w => {
+        if(!s.enabled[w.cat]) return;
+        var d = haversine(lat, lng, w.lat, w.lng), cat = getCat(w.cat); if(!cat) return;
+        for(var i=0; i<zones.length; i++){
+          var key = w.id + "_z" + i;
+          if(d <= zones[i] && !triggered[key]){
+            triggered[key] = true; 
+            speakAlert(cat, d, s); 
+            trip.warnings++;
+            var wn = container.querySelector("#tripWarn"); if(wn) wn.textContent = trip.warnings;
+            break;
+          }
+        }
+      });
+      Object.keys(poiCache).forEach(id => {
+        var p = poiCache[id]; if(!p.cat || !s.enabled[p.cat]) return;
+        var d = haversine(lat, lng, p.lat, p.lng), key = "poi_" + id;
+        if(d < s.warnDist && !triggered[key]){ triggered[key] = true; speakAlert(getCat(p.cat), d, s); }
+        if(d > s.warnDist + 200) delete triggered[key];
+      });
+    }
+
+    function fetchSpeedLimitIfNeeded(){
+      if(!lastPos || simTimer) return; 
+      var now = Date.now();
+      if(now - lastLimitFetch < 15000) return; 
+      lastLimitFetch = now;
+      var lat = lastPos.coords.latitude, lng = lastPos.coords.longitude;
+      
+      fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(`[out:json];way(around:30,${lat},${lng})["highway"]["maxspeed"];out tags;`))
+        .then(r => r.json()).then(data => {
+          if(data.elements && data.elements.length > 0){
+            var ms = data.elements[0].tags.maxspeed;
+            if(ms === "none" || ms === "signals" || ms === "DE:urban") currentLimit = ms === "DE:urban" ? 50 : 0;
+            else { var num = parseInt(ms); currentLimit = isNaN(num) ? null : num; }
+          } else currentLimit = null;
+          
+          if(view.screen === "cockpit"){
+            var el = container.querySelector(".cpt-limit");
+            if(el){
+              el.style.display = currentLimit === null ? "none" : "flex";
+              el.innerHTML = `<div class="cpt-limit-num">${currentLimit === 0 ? "∞" : currentLimit}</div>`;
+            }
+          }
+        }).catch(()=>{});
+    }
+
+    function fetchPOIsIfNeeded(){
+      if(!lastPos || simTimer) return;
+      var lat = lastPos.coords.latitude, lng = lastPos.coords.longitude;
+      var s = getSettings();
+      var enabled = CATS.filter(c => c.type === "poi" && s.enabled[c.id]);
+      if(!enabled.length) return;
+      var filter = enabled.map(c => `node(around:3000,${lat},${lng})[${c.osm}];`).join("");
+      fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(`[out:json];(${filter});out center 20;`))
+        .then(r => r.json()).then(data => {
+          if(!data.elements) return;
+          data.elements.forEach(el => {
+            if(!poiCache[el.id]){
+              poiCache[el.id] = { id: el.id, lat: el.lat, lng: el.lon, cat: guessCatFromTags(el.tags) };
+            }
+          });
+        }).catch(()=>{});
+    }
+
+    function guessCatFromTags(tags){
+      if(!tags) return null;
+      if(tags.amenity === "fuel") return "poi_fuel";
+      if(tags.highway === "rest_area") return "poi_rest";
+      if(tags.tourism === "hotel") return "poi_hotel";
+      if(tags.shop === "car_repair") return "poi_werkstatt";
+      return null;
+    }
+
+    function getNextEvent(){
+      if(routeData && routeData.steps){
+        for(var i = routeData.currentStep; i < routeData.steps.length; i++){
+          var st = routeData.steps[i];
+          if(st.maneuver && st.maneuver.type !== "depart"){
+            return { type:"nav", arrow:getManeuverIcon(st.maneuver), modifier:st.maneuver.modifier, instruction:st.name || st.maneuver.type, distance: st.distance };
+          }
+        }
+      }
+      return null;
+    }
+    function getManeuverIcon(m){ if(!m) return "⬆️"; if(m.type==="turn") return m.modifier && m.modifier.indexOf("left")>=0 ? "⬅️" : "➡️"; if(m.type==="arrive") return "🏁"; return "⬆️"; }
+
+    /* ═══════════ KI & NAVIGATION ═══════════ */
     function screenVision(){
       var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
       <div class="card">
@@ -314,70 +528,6 @@
       if(cameraStream){ cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
       tfModel = null; screenVision();
     }
-
-    /* ═══════════ SETTINGS & HILFSFUNKTIONEN ═══════════ */
-    function screenSettings(){
-      var s = getSettings();
-      var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>`;
-      
-      html += `<div class="card"><h3>🔔 Front-Display Warnungen</h3>
-        <button id="reqNotify" style="width:100%;padding:12px;background:${Notification.permission==="granted"?'rgba(74,222,128,.2)':'rgba(255,255,255,.1)'};border:1px solid ${Notification.permission==="granted"?'#4ade80':'#fff'};color:${Notification.permission==="granted"?'#4ade80':'#fff'};border-radius:8px;font-weight:900;font-size:12px;cursor:pointer">${Notification.permission==="granted"?'✅ Push aktiviert':'⚠️ Push aktivieren'}</button>
-      </div>`;
-
-      html += `<div class="card"><h3>🎵 Töne pro Warnung</h3>`;
-      CATS.forEach(c => {
-        var currentSound = s.sounds[c.id] || "medium";
-        html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">
-          <span style="font-size:12px;font-weight:800">${c.icon} ${_esc(c.name.de)}</span>
-          <select data-sound="${c.id}" style="background:rgba(0,0,0,.5);color:#fff;border:1px solid #444;border-radius:6px;padding:4px 8px;font-size:11px">
-            <option value="extreme" ${currentSound==='extreme'?'selected':''}>🚨 Extrem</option>
-            <option value="urgent" ${currentSound==='urgent'?'selected':''}>⚠️ Dringend</option>
-            <option value="alarm" ${currentSound==='alarm'?'selected':''}>🔔 Alarm</option>
-            <option value="chime" ${currentSound==='chime'?'selected':''}>🎵 Glocke</option>
-            <option value="low" ${currentSound==='low'?'selected':''}>🕊️ Sanft</option>
-          </select>
-        </div>`;
-      });
-      html += `</div>`;
-
-      html += `<div class="card"><h3>🎨 Pfeil-Stil</h3>
-        <select id="arrowStyle" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:1px solid #444;border-radius:8px;color:#fff">
-          <option value="gold" ${s.arrowStyle==='gold'?'selected':''}>🥇 Gold (Standard)</option>
-          <option value="blue" ${s.arrowStyle==='blue'?'selected':''}>🔵 Neon Blau</option>
-          <option value="white" ${s.arrowStyle==='white'?'selected':''}>⚪ Klassisch Weiß</option>
-        </select></div>`;
-
-      html += `<div class="card"><h3>🌍 Sprache</h3>
-        <select id="setLang" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:1px solid #444;border-radius:8px;color:#fff">
-        ${Object.keys(LANGS).map(k => `<option value="${k}" ${s.lang===k?"selected":""}>${LANGS[k].name}</option>`).join("")}
-        </select></div>`;
-
-      container.innerHTML = html; bindNav();
-      
-      container.querySelector("#reqNotify").addEventListener("click", function(){ Notification.requestPermission().then(p => { if(p==="granted") screenSettings(); }); });
-      container.querySelector("#setLang").addEventListener("change", e => { s.lang = e.target.value; saveSettings(s); });
-      container.querySelector("#arrowStyle").addEventListener("change", e => { s.arrowStyle = e.target.value; saveSettings(s); });
-      
-      container.querySelectorAll("[data-sound]").forEach(el => {
-        el.addEventListener("change", e => {
-          s.sounds[el.dataset.sound] = e.target.value;
-          saveSettings(s); playBeep(e.target.value, 0.5);
-        });
-      });
-    }
-
-    function getNextEvent(){
-      if(routeData && routeData.steps){
-        for(var i = routeData.currentStep; i < routeData.steps.length; i++){
-          var st = routeData.steps[i];
-          if(st.maneuver && st.maneuver.type !== "depart"){
-            return { type:"nav", arrow:getManeuverIcon(st.maneuver), modifier:st.maneuver.modifier, instruction:st.name || st.maneuver.type, distance: st.distance };
-          }
-        }
-      }
-      return null;
-    }
-    function getManeuverIcon(m){ if(!m) return "⬆️"; if(m.type==="turn") return m.modifier && m.modifier.indexOf("left")>=0 ? "⬅️" : "➡️"; if(m.type==="arrive") return "🏁"; return "⬆️"; }
 
     function screenNav(){
       var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
@@ -498,7 +648,7 @@
         var u = new SpeechSynthesisUtterance(txt); u.lang = LANGS[settings.lang].code;
         window.speechSynthesis.speak(u);
       }
-      if(settings.beepOn) playBeep(settings.sounds[cat.id] || "medium", 0.8);
+      if(settings.beepOn) playBeep(settings.sounds[cat.id] || "chime", 0.9); // Lauter
       if(settings.vibrateOn && navigator.vibrate) navigator.vibrate([100,50,100]);
     }
 
@@ -554,86 +704,9 @@
     }
     function onErr(err){ console.warn("[Blitzer] GPS:", err.message); }
 
-    function checkTriggers(pos){
-      var s = getSettings(), lat = pos.coords.latitude, lng = pos.coords.longitude;
-      var zones = [2000, 1000, 500, 200];
-      getWarnings().forEach(w => {
-        if(!s.enabled[w.cat]) return;
-        var d = haversine(lat, lng, w.lat, w.lng), cat = getCat(w.cat); if(!cat) return;
-        for(var i=0; i<zones.length; i++){
-          var key = w.id + "_z" + i;
-          if(d <= zones[i] && !triggered[key]){
-            triggered[key] = true; 
-            speakAlert(cat, d, s); 
-            trip.warnings++;
-            var wn = container.querySelector("#tripWarn"); if(wn) wn.textContent = trip.warnings;
-            break;
-          }
-        }
-      });
-      Object.keys(poiCache).forEach(id => {
-        var p = poiCache[id]; if(!p.cat || !s.enabled[p.cat]) return;
-        var d = haversine(lat, lng, p.lat, p.lng), key = "poi_" + id;
-        if(d < s.warnDist && !triggered[key]){ triggered[key] = true; speakAlert(getCat(p.cat), d, s); }
-        if(d > s.warnDist + 200) delete triggered[key];
-      });
-    }
-
-    function fetchSpeedLimitIfNeeded(){
-      if(!lastPos || simTimer) return; 
-      var now = Date.now();
-      if(now - lastLimitFetch < 15000) return; 
-      lastLimitFetch = now;
-      var lat = lastPos.coords.latitude, lng = lastPos.coords.longitude;
-      
-      fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(`[out:json];way(around:30,${lat},${lng})["highway"]["maxspeed"];out tags;`))
-        .then(r => r.json()).then(data => {
-          if(data.elements && data.elements.length > 0){
-            var ms = data.elements[0].tags.maxspeed;
-            if(ms === "none" || ms === "signals" || ms === "DE:urban") currentLimit = ms === "DE:urban" ? 50 : 0;
-            else { var num = parseInt(ms); currentLimit = isNaN(num) ? null : num; }
-          } else currentLimit = null;
-          
-          if(view.screen === "cockpit"){
-            var el = container.querySelector(".cpt-limit");
-            if(el){
-              el.style.display = currentLimit === null ? "none" : "flex";
-              el.innerHTML = `<div class="cpt-limit-num">${currentLimit === 0 ? "∞" : currentLimit}</div>`;
-            }
-          }
-        }).catch(()=>{});
-    }
-
-    function fetchPOIsIfNeeded(){
-      if(!lastPos || simTimer) return;
-      var lat = lastPos.coords.latitude, lng = lastPos.coords.longitude;
-      var s = getSettings();
-      var enabled = CATS.filter(c => c.type === "poi" && s.enabled[c.id]);
-      if(!enabled.length) return;
-      var filter = enabled.map(c => `node(around:3000,${lat},${lng})[${c.osm}];`).join("");
-      fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(`[out:json];(${filter});out center 20;`))
-        .then(r => r.json()).then(data => {
-          if(!data.elements) return;
-          data.elements.forEach(el => {
-            if(!poiCache[el.id]){
-              poiCache[el.id] = { id: el.id, lat: el.lat, lng: el.lon, cat: guessCatFromTags(el.tags) };
-            }
-          });
-        }).catch(()=>{});
-    }
-
-    function guessCatFromTags(tags){
-      if(!tags) return null;
-      if(tags.amenity === "fuel") return "poi_fuel";
-      if(tags.highway === "rest_area") return "poi_rest";
-      if(tags.tourism === "hotel") return "poi_hotel";
-      if(tags.shop === "car_repair") return "poi_werkstatt";
-      return null;
-    }
-
     startGeo(); build();
   }
 
   HalDoApp("blitzer", { name: "Blitzer", icon: "⚠️", render: render, category: "werkzeuge" });
-  console.log("🦚 blitzer.js v9.0 geladen — Echter 270° Tacho · Extreme Töne · KI-Kamera");
+  console.log("🦚 blitzer.js v10.0 geladen — Sirenen-Alarm · 6 Töne · Fixes Layout · KI");
 })();
