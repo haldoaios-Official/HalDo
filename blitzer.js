@@ -1,12 +1,12 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — BLITZER v7.0 · ULTIMATE AUTO COCKPIT
-   SVG Tacho (Nadel) · 3D LED Hologramm · Navigation mit ETA
-   Push-Notifications · Custom Töne · KI-Kamera · POIs
+   HALDO AI OS — BLITZER v8.0 · ULTIMATE COCKPIT
+   Echter Tacho (Skala) · Goldene 3D-Pfeile · CarPlay-Ready
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
   if(!window.HalDo || !HalDo.Runtime) return;
 
+  /* ═══════════ KATEGORIEN ═══════════ */
   var CATS = [
     { id:"blitzer_fix",   icon:"📷", color:"#ff5555", type:"warn", name:{de:"Fester Blitzer",en:"Fixed Camera",tr:"Sabit Radar",ar:"رادار ثابت",ku:"Radarê Sabît",fr:"Radar fixe"}, voice:{de:"Achtung, Blitzer in {d}",en:"Warning, camera in {d}",tr:"Dikkat, radar {d}",ar:"تحذير رادار {d}",ku:"Hişyarî, radar li {d}",fr:"Attention, radar à {d}"} },
     { id:"blitzer_mobil", icon:"🚔", color:"#ff8844", type:"warn", name:{de:"Mobile Kontrolle",en:"Mobile Check",tr:"Mobil Kontrol",ar:"مراقبة متحركة",ku:"Kontrola Mobîl",fr:"Contrôle mobile"}, voice:{de:"Achtung, Kontrolle in {d}",en:"Warning, check in {d}",tr:"Dikkat, kontrol {d}",ar:"تحذير مراقبة {d}",ku:"Hişyarî, kontrol li {d}",fr:"Attention, contrôle à {d}"} },
@@ -22,8 +22,8 @@
 
   var LANGS = { de:{ name:"Deutsch", code:"de-DE" }, en:{ name:"English", code:"en-US" }, tr:{ name:"Türkçe", code:"tr-TR" }, ar:{ name:"العربية", code:"ar-SA" }, ku:{ name:"Kurdî (Ezidi)", code:"tr-TR" }, fr:{ name:"Français", code:"fr-FR" } };
 
-  var DEFAULT_SETTINGS = { enabled: {}, lang:"de", voiceOn:true, beepOn:true, notifyOn:true, warnDist: 1000, sounds:{} };
-  CATS.forEach(function(c){ DEFAULT_SETTINGS.enabled[c.id] = true; DEFAULT_SETTINGS.sounds[c.id] = c.id === "blitzer_fix" ? "urgent" : "medium"; });
+  var DEFAULT_SETTINGS = { enabled: {}, lang:"de", voiceOn:true, beepOn:true, notifyOn:true, warnDist: 1000, sounds:{}, arrowStyle: "gold" };
+  CATS.forEach(function(c){ DEFAULT_SETTINGS.enabled[c.id] = true; DEFAULT_SETTINGS.sounds[c.id] = "medium"; });
 
   function _esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
   function haversine(lat1,lng1,lat2,lng2){ var R=6371000, dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180; var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2); return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); }
@@ -46,16 +46,14 @@
   function render(container, ctx){
     var store = ctx.store;
     var view = { screen:"cockpit" };
-    var geoWatch = null, lastPos = null, simTimer = null;
+    var geoWatch = null, lastPos = null, simTimer = null, simSpeed = 0;
     var trip = { active:false, startTime:0, distance:0, warnings:0 };
     var map = null, mapMarkers = [], triggered = {}, lastLimitFetch = 0, currentLimit = null;
     var poiCache = {}, routeData = null, targetPos = null;
-    var tfModel = null, cameraStream = null, visionLoop = null;
 
     function getSettings(){ var s = store.get("settings", {}); var m = JSON.parse(JSON.stringify(DEFAULT_SETTINGS)); Object.keys(s).forEach(function(k){ m[k] = s[k]; }); return m; }
     function saveSettings(s){ store.set("settings", s); }
     function getWarnings(){ return store.get("warnings", []); }
-    function saveWarnings(w){ store.set("warnings", w); }
     function getCustomVoice(){ return store.get("customVoice", {}); }
     function getCat(id){ return CATS.find(function(c){ return c.id === id; }); }
 
@@ -68,19 +66,36 @@
       else if(view.screen === "list") screenList();
     }
 
-    /* ═══════════ COCKPIT (AUTO TACHO & 3D) ═══════════ */
+    /* ═══════════ COCKPIT (Echter Tacho & 3D) ═══════════ */
     function screenCockpit(){
       var s = getSettings();
       var speed = lastPos ? Math.round((lastPos.coords.speed||0)*3.6) : 0;
-      if(simTimer) speed = simSpeed;
+      if(simTimer) speed = Math.round(simSpeed);
       
       var nextEvent = getNextEvent();
       
-      // Tacho Winkel (0 bis 240 km/h) -> SVG Rotation (-120deg bis +120deg)
+      // Tacho Winkel (0 bis 240 km/h)
       var maxSpeed = 240;
       var percent = Math.min(1, speed / maxSpeed);
-      var angle = -120 + (percent * 240);
-      var dashOffset = 565 - (percent * 565);
+      var angle = -120 + (percent * 240); // -120deg bis +120deg
+
+      // Tacho SVG Striche (0 bis 240 in 20er Schritten)
+      var ticks = "";
+      for (var i = 0; i <= 240; i += 20) {
+        var tickAngle = -120 + (i / maxSpeed) * 240;
+        var isMajor = i % 40 === 0;
+        var len = isMajor ? 15 : 8;
+        var x1 = 100 + 85 * Math.cos((tickAngle - 90) * Math.PI / 180);
+        var y1 = 100 + 85 * Math.sin((tickAngle - 90) * Math.PI / 180);
+        var x2 = 100 + (85 - len) * Math.cos((tickAngle - 90) * Math.PI / 180);
+        var y2 = 100 + (85 - len) * Math.sin((tickAngle - 90) * Math.PI / 180);
+        ticks += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${isMajor ? '#fff' : 'rgba(255,255,255,.4)'}" stroke-width="${isMajor ? 3 : 1.5}" />`;
+        if (isMajor) {
+          var tx = 100 + 70 * Math.cos((tickAngle - 90) * Math.PI / 180);
+          var ty = 100 + 70 * Math.sin((tickAngle - 90) * Math.PI / 180);
+          ticks += `<text x="${tx}" y="${ty}" fill="#fff" font-size="10" font-weight="900" text-anchor="middle" dominant-baseline="middle">${i}</text>`;
+        }
+      }
 
       var etaStr = "—", remTimeStr = "—";
       if (routeData && routeData.totalTime) {
@@ -89,6 +104,9 @@
         etaStr = eta.toLocaleTimeString("de-DE", {hour: '2-digit', minute:'2-digit'});
         remTimeStr = fmtTime(Math.round(routeData.totalTime));
       }
+
+      var arrowColor = s.arrowStyle === "gold" ? "#ffd700" : s.arrowStyle === "blue" ? "#4dd0e1" : "#ffffff";
+      var arrowGlow = s.arrowStyle === "gold" ? "rgba(255,215,0,.6)" : s.arrowStyle === "blue" ? "rgba(77,208,225,.6)" : "rgba(255,255,255,.6)";
 
       var css = `
         .cpt-wrap{position:relative;height:calc(100vh - 100px);min-height:600px;background:radial-gradient(ellipse at 50% 30%,#0a1220 0%,#050810 80%);border-radius:20px;padding:16px;display:flex;flex-direction:column;overflow:hidden;font-family:-apple-system,sans-serif;color:#fff}
@@ -99,27 +117,25 @@
         .svg-ring{position:absolute;top:0;left:0;width:100%;height:100%;transform:rotate(150deg)}
         .svg-ring circle{fill:none;stroke-linecap:round}
         .svg-ring .bg{stroke:rgba(255,255,255,.05);stroke-width:10}
-        .svg-ring .fg{stroke:#4dd0e1;stroke-width:10;stroke-dasharray:565;transition:stroke-dashoffset .2s ease-out}
-        .svg-ring .fg.fast{stroke:#ffd54f}
-        .svg-ring .fg.veryfast{stroke:#ff5555}
+        .svg-ring .fg{stroke:${speed>180?'#ff5555':speed>140?'#ffd54f':'#4dd0e1'};stroke-width:10;stroke-dasharray:565;stroke-dashoffset:${565 - (percent * 565)};transition:stroke-dashoffset .2s ease-out}
         
         /* Tacho Nadel */
         .needle-container{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;transform:rotate(150deg)}
         .needle{width:4px;height:100px;background:linear-gradient(to top, transparent, #ff5555);position:absolute;bottom:50%;transform-origin:bottom center;transform:rotate(${angle}deg);transition:transform .2s ease-out;filter:drop-shadow(0 0 5px #ff5555)}
-        .needle::after{content:"";position:absolute;bottom:-10px;left:-8px;width:20px;height:20px;background:#fff;border-radius:50%;box-shadow:0 0 10px #fff}
+        .needle::after{content:"";position:absolute;bottom:-8px;left:-8px;width:20px;height:20px;background:#fff;border-radius:50%;box-shadow:0 0 10px #fff}
         
-        .cpt-speed{font-size:76px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;z-index:2;text-shadow:0 0 20px rgba(77,208,225,.5)}
+        .cpt-speed{font-size:64px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;z-index:2;text-shadow:0 0 20px rgba(77,208,225,.5);margin-top:10px}
         .cpt-unit{font-size:12px;color:#7fa5b8;font-weight:900;letter-spacing:3px;margin-top:2px;z-index:2}
         
         .cpt-limit{position:absolute;top:10px;right:10px;width:64px;height:64px;border-radius:50%;background:#fff;border:6px solid #ff3333;display:flex;align-items:center;justify-content:center;z-index:20}
         .cpt-limit-num{font-size:24px;font-weight:900;color:#000}
         
-        /* Hologram 3D LED */
-        .holo-container{perspective:1000px;width:100%;height:120px;display:flex;align-items:center;justify-content:center;margin-top:10px;position:relative;overflow:hidden}
-        .holo-beam{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:120px;height:120px;background:linear-gradient(to top, rgba(77,208,225,.8), transparent);clip-path:polygon(10% 100%, 90% 100%, 50% 0%);filter:blur(8px);opacity:0.6;animation:beamPulse 1.5s infinite alternate}
-        .holo-arrow{font-size:64px;color:#4dd0e1;text-shadow:0 0 20px #fff, 0 0 40px #4dd0e1;transform:rotateX(65deg) rotateZ(var(--angle,0deg));transform-style:preserve-3d;animation:holoFloat 2s infinite alternate;z-index:2}
-        @keyframes holoFloat{0%{transform:rotateX(65deg) rotateZ(var(--angle,0deg)) translateZ(0)}100%{transform:rotateX(65deg) rotateZ(var(--angle,0deg)) translateZ(30px)}}
-        @keyframes beamPulse{0%{opacity:0.4}100%{opacity:0.8}}
+        /* 3D Hologramm Pfeil (Gold) */
+        .holo-container{perspective:800px;width:100%;height:160px;display:flex;align-items:center;justify-content:center;margin-top:10px;position:relative}
+        .holo-base{position:absolute;bottom:20px;width:200px;height:40px;background:radial-gradient(ellipse, ${arrowGlow} 0%, transparent 70%);filter:blur(10px);border-radius:50%}
+        .holo-arrow-box{position:relative;transform-style:preserve-3d;transform:rotateX(55deg) rotateZ(${nextEvent ? (nextEvent.modifier && nextEvent.modifier.indexOf('left') >= 0 ? -45 : nextEvent.modifier && nextEvent.modifier.indexOf('right') >= 0 ? 45 : 0) : 0}deg);animation:arrowFloat 2s infinite alternate}
+        .holo-svg{width:140px;height:auto;filter:drop-shadow(0 0 20px ${arrowGlow})}
+        @keyframes arrowFloat{0%{transform:rotateX(55deg) rotateZ(var(--rot,0deg)) translateZ(0)}100%{transform:rotateX(55deg) rotateZ(var(--rot,0deg)) translateZ(30px)}}
 
         .cpt-bottom{margin-top:auto;background:rgba(0,0,0,.5);backdrop-filter:blur(10px);border-radius:16px;padding:12px;border:1px solid rgba(255,255,255,.08);z-index:10}
         .cpt-stat{display:flex;justify-content:space-around;text-align:center;margin-bottom:8px}
@@ -142,34 +158,44 @@
 
       // Navigation ETA (Von -> Nach)
       if(nextEvent && nextEvent.type === "nav"){
-        var arrowAngle = 0;
-        var mod = nextEvent.modifier || "";
-        if(mod.indexOf("left") >= 0) arrowAngle = -45;
-        if(mod.indexOf("right") >= 0) arrowAngle = 45;
+        var arrowAngle = nextEvent.modifier && nextEvent.modifier.indexOf('left') >= 0 ? -45 : nextEvent.modifier && nextEvent.modifier.indexOf('right') >= 0 ? 45 : 0;
 
         html += `<div style="margin-top:10px;padding:10px;background:rgba(77,208,225,.1);border:1px solid rgba(77,208,225,.3);border-radius:12px;display:flex;justify-content:space-between;align-items:center;z-index:10">
           <div><div style="font-size:10px;color:#7fa5b8">ROUTE AKTIV</div><div style="font-size:13px;font-weight:900;color:#fff">${_esc(routeData.targetName)}</div></div>
           <div style="text-align:right"><div style="font-size:10px;color:#7fa5b8">ANKUNFT</div><div style="font-size:14px;font-weight:900;color:#4dd0e1">${etaStr} (${remTimeStr})</div></div>
         </div>`;
 
+        // 3D Goldener Pfeil
         html += `<div class="holo-container">
-          <div class="holo-beam"></div>
-          <div class="holo-arrow" style="--angle:${arrowAngle}deg">⬆️</div>
+          <div class="holo-base"></div>
+          <div class="holo-arrow-box" style="--rot:${arrowAngle}deg">
+            <svg class="holo-svg" viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="${arrowColor}"/>
+                  <stop offset="50%" stop-color="${arrowColor}"/>
+                  <stop offset="100%" stop-color="#b8860b"/>
+                </linearGradient>
+              </defs>
+              <polygon points="50,5 90,50 65,50 65,95 35,95 35,50 10,50" fill="url(#goldGrad)" stroke="#fff" stroke-width="2"/>
+            </svg>
+          </div>
         </div>
         <div style="text-align:center;margin-top:-10px;z-index:10">
-          <div style="font-size:15px;font-weight:900;color:#4dd0e1;text-shadow:0 0 10px rgba(77,208,225,.5)">${_esc(nextEvent.instruction)}</div>
+          <div style="font-size:15px;font-weight:900;color:${arrowColor};text-shadow:0 0 10px ${arrowGlow}">${_esc(nextEvent.instruction)}</div>
           <div style="font-size:12px;color:#fff;margin-top:2px">in ${fmtDist(nextEvent.distance)}</div>
         </div>`;
       } else {
         html += `<div style="text-align:center;margin:20px 0;color:#7fa5b8;font-size:12px">Keine aktive Route.</div>`;
       }
 
-      // SVG Tacho
+      // SVG Tacho mit Skala
       html += `<div class="cpt-tacho">
         ${currentLimit !== null ? `<div class="cpt-limit"><div class="cpt-limit-num">${currentLimit === 0 ? "∞" : currentLimit}</div></div>` : ''}
         <svg class="svg-ring" viewBox="0 0 200 200">
-          <circle class="bg" cx="100" cy="100" r="90"></circle>
-          <circle class="fg ${speed>130?'veryfast':speed>100?'fast':''}" cx="100" cy="100" r="90" style="stroke-dashoffset:${dashOffset}"></circle>
+          ${ticks}
+          <circle class="bg" cx="100" cy="100" r="85"></circle>
+          <circle class="fg" cx="100" cy="100" r="85" style="stroke-dashoffset:${565 - (percent * 565)}"></circle>
         </svg>
         <div class="needle-container"><div class="needle"></div></div>
         <div class="cpt-speed">${speed}</div>
@@ -196,7 +222,32 @@
       fetchPOIsIfNeeded(); fetchSpeedLimitIfNeeded();
     }
 
-    /* ═══════════ REPARIERTE HELFER-FUNKTIONEN ═══════════ */
+    /* ═══════════ REPARIERTE FUNKTIONEN ═══════════ */
+    function checkTriggers(pos){
+      var s = getSettings(), lat = pos.coords.latitude, lng = pos.coords.longitude;
+      var zones = [2000, 1000, 500, 200];
+      getWarnings().forEach(w => {
+        if(!s.enabled[w.cat]) return;
+        var d = haversine(lat, lng, w.lat, w.lng), cat = getCat(w.cat); if(!cat) return;
+        for(var i=0; i<zones.length; i++){
+          var key = w.id + "_z" + i;
+          if(d <= zones[i] && !triggered[key]){
+            triggered[key] = true; 
+            speakAlert(cat, d, s); 
+            trip.warnings++;
+            var wn = container.querySelector("#tripWarn"); if(wn) wn.textContent = trip.warnings;
+            break;
+          }
+        }
+      });
+      Object.keys(poiCache).forEach(id => {
+        var p = poiCache[id]; if(!p.cat || !s.enabled[p.cat]) return;
+        var d = haversine(lat, lng, p.lat, p.lng), key = "poi_" + id;
+        if(d < s.warnDist && !triggered[key]){ triggered[key] = true; speakAlert(getCat(p.cat), d, s); }
+        if(d > s.warnDist + 200) delete triggered[key];
+      });
+    }
+
     function fetchSpeedLimitIfNeeded(){
       if(!lastPos || simTimer) return; 
       var now = Date.now();
@@ -250,7 +301,6 @@
     }
 
     /* ═══════════ SIMULATION & GEOLOCATION ═══════════ */
-    var simSpeed = 0;
     function startSimulation(){
       if(simTimer) clearInterval(simTimer);
       lastPos = { coords: { latitude: 51.1657, longitude: 10.4515, speed: 0 } }; 
@@ -276,7 +326,6 @@
           if(d) d.textContent = trip.distance.toFixed(1) + " km";
           var w = container.querySelector("#tripWarn");
           if(w) w.textContent = trip.warnings;
-          // Tacho Nadel Update (einfach: Seite neu zeichnen)
           build();
         }
       }, 1000);
@@ -305,87 +354,6 @@
     }
     function onErr(err){ console.warn("[Blitzer] GPS:", err.message); }
 
-    /* ═══════════ KI VISION & PUSH ═══════════ */
-    function screenVision(){
-      var html = `<button data-nav="cockpit" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>
-      <div class="card">
-        <h3>🤖 KI-Kamera (TensorFlow)</h3>
-        <div style="font-size:11px;color:var(--text-mute);margin-bottom:10px">Erkennt Autos, LKW, Personen in Echtzeit.</div>
-        <div style="position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center">
-          <video id="visionVideo" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:none"></video>
-          <canvas id="visionCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;display:none"></canvas>
-          <div id="visionPlaceholder" style="color:#aaa;text-align:center;padding:20px"><div style="font-size:44px">📷</div><div style="font-size:11px;margin-top:8px">Kamera starten</div></div>
-        </div>
-        <button class="btn full" id="visionStart" style="padding:14px;margin-top:10px;background:linear-gradient(135deg,#b478ff,#4dd0e1);color:#fff">📷 KI aktivieren</button>
-        <div id="visionStatus" style="text-align:center;font-size:11px;font-weight:900;color:#4ade80;margin-top:8px">Bereit</div>
-      </div>`;
-      container.innerHTML = html;
-      bindNav();
-      container.querySelector("#visionStart").addEventListener("click", startVision);
-    }
-
-    async function startVision(){
-      if(tfModel){ stopVision(); return; }
-      var status = document.getElementById("visionStatus");
-      status.textContent = "Lade KI-Modell (kann dauern)...";
-      try {
-        if(!window.tf || !window.cocoSsd){
-          await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.2.0/dist/tf.min.js");
-          await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js");
-        }
-        tfModel = await cocoSsd.load();
-        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
-        var video = document.getElementById("visionVideo");
-        video.srcObject = cameraStream; video.style.display = "block";
-        document.getElementById("visionPlaceholder").style.display = "none";
-        document.getElementById("visionCanvas").style.display = "block";
-        document.getElementById("visionStart").textContent = "⏹ KI stoppen";
-        status.textContent = "🟢 Live - Analysiere...";
-        runVisionLoop();
-      } catch(e){ status.textContent = "❌ Fehler: " + e.message; }
-    }
-
-    function loadScript(src){
-      return new Promise((res, rej) => {
-        var s = document.createElement("script");
-        s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s);
-      });
-    }
-
-    async function runVisionLoop(){
-      if(!tfModel || !cameraStream) return;
-      var video = document.getElementById("visionVideo"), canvas = document.getElementById("visionCanvas");
-      if(!video || !canvas) return;
-      var ctx2d = canvas.getContext("2d");
-      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-      
-      async function detect(){
-        if(!tfModel || !cameraStream) return;
-        var predictions = await tfModel.detect(video);
-        ctx2d.clearRect(0, 0, canvas.width, canvas.height);
-        var s = getSettings();
-        predictions.forEach(p => {
-          if(p.class === "car" || p.class === "truck" || p.class === "person" || p.class === "bicycle"){
-            var [x, y, w, h] = p.bbox;
-            ctx2d.strokeStyle = p.class === "person" ? "#ff5555" : "#4dd0e1";
-            ctx2d.lineWidth = 3; ctx2d.strokeRect(x, y, w, h);
-            ctx2d.fillStyle = p.class === "person" ? "#ff5555" : "#4dd0e1";
-            ctx2d.font = "16px sans-serif";
-            ctx2d.fillText(p.class.toUpperCase() + " " + Math.round(p.score * 100) + "%", x, y > 20 ? y - 5 : y + 20);
-          }
-        });
-        if(cameraStream) visionLoop = requestAnimationFrame(detect);
-      }
-      detect();
-    }
-
-    function stopVision(){
-      if(visionLoop) cancelAnimationFrame(visionLoop);
-      visionLoop = null;
-      if(cameraStream){ cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
-      tfModel = null; screenVision();
-    }
-
     /* ═══════════ SETTINGS, NAV, MAP, LIST ═══════════ */
     function screenSettings(){
       var s = getSettings();
@@ -410,6 +378,13 @@
       });
       html += `</div>`;
 
+      html += `<div class="card"><h3>🎨 Pfeil-Stil</h3>
+        <select id="arrowStyle" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:1px solid #444;border-radius:8px;color:#fff">
+          <option value="gold" ${s.arrowStyle==='gold'?'selected':''}>🥇 Gold (Standard)</option>
+          <option value="blue" ${s.arrowStyle==='blue'?'selected':''}>🔵 Neon Blau</option>
+          <option value="white" ${s.arrowStyle==='white'?'selected':''}>⚪ Klassisch Weiß</option>
+        </select></div>`;
+
       html += `<div class="card"><h3>🌍 Sprache</h3>
         <select id="setLang" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:1px solid #444;border-radius:8px;color:#fff">
         ${Object.keys(LANGS).map(k => `<option value="${k}" ${s.lang===k?"selected":""}>${LANGS[k].name}</option>`).join("")}
@@ -419,6 +394,8 @@
       
       container.querySelector("#reqNotify").addEventListener("click", function(){ Notification.requestPermission().then(p => { if(p==="granted") screenSettings(); }); });
       container.querySelector("#setLang").addEventListener("change", e => { s.lang = e.target.value; saveSettings(s); });
+      container.querySelector("#arrowStyle").addEventListener("change", e => { s.arrowStyle = e.target.value; saveSettings(s); });
+      
       container.querySelectorAll("[data-sound]").forEach(el => {
         el.addEventListener("change", e => {
           s.sounds[el.dataset.sound] = e.target.value;
@@ -567,5 +544,5 @@
   }
 
   HalDoApp("blitzer", { name: "Blitzer", icon: "⚠️", render: render, category: "werkzeuge" });
-  console.log("🦚 blitzer.js v7.0 geladen — ULTIMATE COCKPIT (SVG Nadel · 3D Hologramm · ETA · Push)");
+  console.log("🦚 blitzer.js v8.0 geladen — Echter Tacho · Goldene 3D-Pfeile · CarPlay-Ready");
 })();
