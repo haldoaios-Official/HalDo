@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — HALDO BLITZER v20.0 (REAL PEACOCK + CUSTOM IMAGE)
-   Eigenes Bild hochladen · Ultra-Realistischer Pfau · GPS Fix
+   HALDO AI OS — HALDO BLITZER v21.0 (MASTERPIECE EDITION)
+   Ultra-3D Pfau · Eigenes Bild hochladen · Echte Sonne · GPS Fix
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -8,7 +8,7 @@
 
   var LOGO_URL = "logo.png";
   var GOLD_STYLE = 'color:#ffd700;font-weight:900;font-size:14px;text-shadow:0 0 10px #ffd700,0 0 20px rgba(255,215,0,.8);background:#0a0e2a;padding:4px 8px;border-radius:6px;';
-  console.log('%c🦚 HalDo Blitzer v20.0 — Real Peacock & Custom Image', GOLD_STYLE);
+  console.log('%c🦚 HalDo Blitzer v21.0 — Masterpiece Edition', GOLD_STYLE);
 
   var WELCOME = {
     de:{title:"Willkommen in",author:"von Halil Donma",footer:"HalDo Blitzer a Halil Donma",enter:"Los geht's",ai:"HalDo AI präsentiert"},
@@ -32,149 +32,156 @@
 
   // ═══════════ REALISTIC SUN SVG ═══════════
   function buildSunSVG(size, theme){
-    size = size || 200;
+    size = size || 220;
     var rays = "";
     for(var i=0; i<24; i++){
       var angle = (i * 15) * Math.PI / 180;
-      var x1 = 100 + Math.cos(angle) * 60;
-      var y1 = 100 + Math.sin(angle) * 60;
-      var x2 = 100 + Math.cos(angle) * 110;
-      var y2 = 100 + Math.sin(angle) * 110;
-      rays += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${theme.sun3}" stroke-width="${i%2===0 ? 3 : 1.5}" stroke-linecap="round" opacity="0.4" filter="url(#glowSun)"/>`;
+      var x1 = 100 + Math.cos(angle) * 55;
+      var y1 = 100 + Math.sin(angle) * 55;
+      var x2 = 100 + Math.cos(angle) * 120;
+      var y2 = 100 + Math.sin(angle) * 120;
+      rays += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${theme.sun3}" stroke-width="${i%2===0 ? 4 : 2}" stroke-linecap="round" opacity="0.35" filter="url(#glowSun)"/>`;
     }
-    return `<svg viewBox="0 0 200 200" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;overflow:visible;filter:drop-shadow(0 0 50px ${theme.accent}aa)">
+    return `<svg viewBox="0 0 200 200" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;overflow:visible;filter:drop-shadow(0 0 60px ${theme.accent}cc)">
       <defs>
-        <radialGradient id="sunGrad" cx="50%" cy="50%" r="50%">
+        <radialGradient id="sunCore" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stop-color="#ffffff"/>
-          <stop offset="15%" stop-color="${theme.sun1}"/>
-          <stop offset="40%" stop-color="${theme.sun2}"/>
-          <stop offset="70%" stop-color="${theme.sun3}"/>
-          <stop offset="90%" stop-color="${theme.sun4}"/>
-          <stop offset="100%" stop-color="${theme.sun5}"/>
+          <stop offset="20%" stop-color="${theme.sun1}"/>
+          <stop offset="50%" stop-color="${theme.sun2}"/>
+          <stop offset="80%" stop-color="${theme.sun3}"/>
+          <stop offset="100%" stop-color="${theme.sun4}"/>
         </radialGradient>
-        <filter id="glowSun"><feGaussianBlur stdDeviation="6" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glowSun"><feGaussianBlur stdDeviation="8" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       </defs>
       ${rays}
-      <circle cx="100" cy="100" r="55" fill="url(#sunGrad)" filter="url(#glowSun)"/>
+      <circle cx="100" cy="100" r="60" fill="url(#sunCore)" filter="url(#glowSun)"/>
     </svg>`;
   }
 
-  // ═══════════ ULTRA REALISTIC PEACOCK SVG ═══════════
+  // ═══════════ ULTRA REALISTIC 3D PEACOCK SVG ═══════════
   function buildUltraPeacockSVG(size, uid){
-    size = size || 280; uid = uid || (size+"_"+Math.random().toString(36).slice(2,7));
-    var cx = 140, cy = 180, fan = "", numF = 45;
+    size = size || 300; uid = uid || (size+"_"+Math.random().toString(36).slice(2,7));
+    var cx = 150, cy = 200, fan = "", numF = 55;
     
-    // Generate highly detailed feather fan
+    // Generate 3D layered feather fan
     for(var i=0; i<numF; i++){
-      var angle = -110 + (220/(numF-1))*i;
+      var angle = -115 + (230/(numF-1))*i;
       var rad = angle * Math.PI / 180;
-      var dC = Math.abs(angle) / 110;
-      var len = 125 - dC * 25;
+      var dC = Math.abs(angle) / 115;
+      var len = 140 - dC * 30;
       var tipX = cx + len * Math.sin(rad);
       var tipY = cy - len * Math.cos(rad);
       
-      // Outer green feather
-      fan += `<path d="M ${cx} ${cy} Q ${cx + (len*0.4)*Math.sin(rad+0.15)} ${cy - (len*0.4)*Math.cos(rad+0.15)} ${tipX} ${tipY} Q ${cx + (len*0.4)*Math.sin(rad-0.15)} ${cy - (len*0.4)*Math.cos(rad-0.15)} ${cx} ${cy} Z" fill="url(#fGrad_${uid})" opacity="0.85"/>`;
+      // Deep background feather shadow
+      fan += `<path d="M ${cx} ${cy} Q ${cx + (len*0.5)*Math.sin(rad+0.2)} ${cy - (len*0.5)*Math.cos(rad+0.2)} ${tipX} ${tipY} Q ${cx + (len*0.5)*Math.sin(rad-0.2)} ${cy - (len*0.5)*Math.cos(rad-0.2)} ${cx} ${cy} Z" fill="#022a1a" opacity="0.6"/>`;
       
-      // Inner gold/copper feather
-      fan += `<path d="M ${cx} ${cy} Q ${cx + (len*0.6)*Math.sin(rad+0.05)} ${cy - (len*0.6)*Math.cos(rad+0.05)} ${tipX} ${tipY} Q ${cx + (len*0.6)*Math.sin(rad-0.05)} ${cy - (len*0.6)*Math.cos(rad-0.05)} ${cx} ${cy} Z" fill="url(#fGradInner_${uid})" opacity="0.7"/>`;
+      // Main green feather leaf
+      fan += `<path d="M ${cx} ${cy} Q ${cx + (len*0.6)*Math.sin(rad+0.1)} ${cy - (len*0.6)*Math.cos(rad+0.1)} ${tipX} ${tipY} Q ${cx + (len*0.6)*Math.sin(rad-0.1)} ${cy - (len*0.6)*Math.cos(rad-0.1)} ${cx} ${cy} Z" fill="url(#fGreen_${uid})" opacity="0.9"/>`;
+      
+      // Golden/Copper inner core
+      fan += `<path d="M ${cx} ${cy} Q ${cx + (len*0.75)*Math.sin(rad+0.03)} ${cy - (len*0.75)*Math.cos(rad+0.03)} ${tipX} ${tipY} Q ${cx + (len*0.75)*Math.sin(rad-0.03)} ${cy - (len*0.75)*Math.cos(rad-0.03)} ${cx} ${cy} Z" fill="url(#fGold_${uid})" opacity="0.8"/>`;
 
-      // The eye (ocellus)
-      if(i % 2 === 0 || len > 80) {
-        fan += `<ellipse cx="${tipX}" cy="${tipY}" rx="12" ry="15" fill="#2a7a4a" stroke="#1a4a2a" stroke-width="0.5" transform="rotate(${angle} ${tipX} ${tipY})"/>`;
-        fan += `<ellipse cx="${tipX}" cy="${tipY}" rx="9" ry="11" fill="#b88020" transform="rotate(${angle} ${tipX} ${tipY})"/>`;
-        fan += `<ellipse cx="${tipX}" cy="${tipY}" rx="7" ry="8" fill="#0a2a6a" transform="rotate(${angle} ${tipX} ${tipY})"/>`;
-        fan += `<ellipse cx="${tipX}" cy="${tipY}" rx="4" ry="5" fill="#4dd0e1" transform="rotate(${angle} ${tipX} ${tipY})"/>`;
-        fan += `<circle cx="${tipX-1}" cy="${tipY-1}" r="1.5" fill="#fff" opacity="0.8"/>`;
+      // The eye (ocellus) 3D layers
+      if(len > 90) {
+        fan += `<ellipse cx="${tipX}" cy="${tipY}" rx="14" ry="18" fill="#0a2a1a" stroke="#1a4a2a" stroke-width="1" transform="rotate(${angle} ${tipX} ${tipY})"/>`;
+        fan += `<ellipse cx="${tipX}" cy="${tipY}" rx="11" ry="14" fill="#2a8a4a" transform="rotate(${angle} ${tipX} ${tipY})"/>`;
+        fan += `<ellipse cx="${tipX}" cy="${tipY}" rx="8" ry="10" fill="#c88020" transform="rotate(${angle} ${tipX} ${tipY})"/>`;
+        fan += `<ellipse cx="${tipX}" cy="${tipY}" rx="6" ry="7" fill="#0a2a6a" transform="rotate(${angle} ${tipX} ${tipY})"/>`;
+        fan += `<ellipse cx="${tipX}" cy="${tipY}" rx="3.5" ry="4.5" fill="#4dd0e1" transform="rotate(${angle} ${tipX} ${tipY})"/>`;
+        fan += `<circle cx="${tipX-1}" cy="${tipY-1}" r="2" fill="#fff" opacity="0.9"/>`;
       }
     }
 
-    // Crown (Crest)
+    // Crown (Crest) with 20 intricate feathers
     var crest = "";
     for(var i=0; i<20; i++){
       var cA = -60 + (120/19)*i;
       var cRad = cA * Math.PI / 180;
-      var cLen = 22 + Math.random()*6;
-      var tX = 140 + cLen * Math.sin(cRad);
-      var tY = 65 - cLen * Math.cos(cRad);
-      crest += `<line x1="140" y1="65" x2="${tX}" y2="${tY}" stroke="#0a4a7a" stroke-width="1.5" opacity="0.9"/>`;
-      crest += `<ellipse cx="${tX}" cy="${tY}" rx="2.5" ry="4" fill="#4dd0e1" filter="url(#glow_${uid})" transform="rotate(${cA} ${tX} ${tY})"/>`;
+      var cLen = 25 + Math.random()*8;
+      var tX = 150 + cLen * Math.sin(cRad);
+      var tY = 75 - cLen * Math.cos(cRad);
+      crest += `<path d="M 150 75 Q ${150 + (cLen*0.5)*Math.sin(cRad+0.1)} ${75 - (cLen*0.5)*Math.cos(cRad+0.1)} ${tX} ${tY}" stroke="#0a4a7a" stroke-width="1.5" fill="none" opacity="0.8"/>`;
+      crest += `<ellipse cx="${tX}" cy="${tY}" rx="3" ry="5" fill="#4dd0e1" filter="url(#glow_${uid})" transform="rotate(${cA} ${tX} ${tY})"/>`;
+      crest += `<circle cx="${tX}" cy="${tY}" r="1.5" fill="#fff" opacity="0.6"/>`;
     }
 
-    return `<svg viewBox="0 0 280 340" width="${size}" height="${size*340/280}" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;overflow:visible;filter:drop-shadow(0 20px 50px rgba(0,0,0,0.6))">
+    return `<svg viewBox="0 0 300 380" width="${size}" height="${size*380/300}" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;overflow:visible;filter:drop-shadow(0 30px 60px rgba(0,0,0,0.8))">
       <defs>
-        <linearGradient id="fGrad_${uid}" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#2a8a4a"/>
+        <linearGradient id="fGreen_${uid}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#1a7a4a"/>
           <stop offset="50%" stop-color="#0a4a2a"/>
           <stop offset="100%" stop-color="#022a1a"/>
         </linearGradient>
-        <linearGradient id="fGradInner_${uid}" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#6ab84a"/>
-          <stop offset="100%" stop-color="#1a6a3a"/>
+        <linearGradient id="fGold_${uid}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ffd700"/>
+          <stop offset="50%" stop-color="#b88020"/>
+          <stop offset="100%" stop-color="#4a2a0a"/>
         </linearGradient>
-        <radialGradient id="bodyG_${uid}" cx="40%" cy="30%" r="70%">
+        <radialGradient id="bodyG_${uid}" cx="30%" cy="30%" r="70%">
           <stop offset="0%" stop-color="#6dd4e8"/>
-          <stop offset="40%" stop-color="#1a5a9a"/>
-          <stop offset="80%" stop-color="#0a2a5a"/>
+          <stop offset="30%" stop-color="#1a5a9a"/>
+          <stop offset="70%" stop-color="#0a2a5a"/>
           <stop offset="100%" stop-color="#02102a"/>
         </radialGradient>
         <linearGradient id="neckG_${uid}" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stop-color="#0a2a5a"/>
-          <stop offset="30%" stop-color="#4dc4e0"/>
-          <stop offset="70%" stop-color="#1a6ab8"/>
+          <stop offset="0%" stop-color="#02102a"/>
+          <stop offset="25%" stop-color="#4dc4e0"/>
+          <stop offset="75%" stop-color="#1a6ab8"/>
           <stop offset="100%" stop-color="#02102a"/>
         </linearGradient>
-        <radialGradient id="headG_${uid}" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="#6dd4e8"/>
-          <stop offset="100%" stop-color="#0a2a5a"/>
+        <radialGradient id="headG_${uid}" cx="40%" cy="40%" r="60%">
+          <stop offset="0%" stop-color="#8ae4f8"/>
+          <stop offset="50%" stop-color="#1a5a9a"/>
+          <stop offset="100%" stop-color="#02102a"/>
         </radialGradient>
-        <filter id="glow_${uid}"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow_${uid}"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="shadow_${uid}"><feDropShadow dx="0" dy="5" stdDeviation="4" flood-opacity="0.6"/></filter>
       </defs>
 
       <g class="peacock-fan">
         ${fan}
       </g>
 
-      <g class="peacock-body">
+      <g class="peacock-body" filter="url(#shadow_${uid})">
         <!-- Thick, 3D Body -->
-        <ellipse cx="140" cy="230" rx="38" ry="60" fill="url(#bodyG_${uid})"/>
+        <ellipse cx="150" cy="250" rx="45" ry="70" fill="url(#bodyG_${uid})"/>
         <!-- S-Curve Neck with depth -->
-        <path d="M 115 190 Q 100 130 130 90 Q 145 75 150 90 Q 155 130 165 190 Z" fill="url(#neckG_${uid})"/>
+        <path d="M 120 200 Q 95 130 135 90 Q 155 70 165 90 Q 175 130 180 200 Z" fill="url(#neckG_${uid})"/>
       </g>
 
-      <g class="peacock-head">
+      <g class="peacock-head" filter="url(#shadow_${uid})">
         <!-- Head -->
-        <circle cx="140" cy="80" r="20" fill="url(#headG_${uid})"/>
+        <circle cx="150" cy="85" r="22" fill="url(#headG_${uid})"/>
         <!-- White Eye Stripes -->
-        <path d="M 122 75 Q 135 65 158 75" stroke="#fff" stroke-width="3" fill="none" opacity="0.9"/>
-        <path d="M 122 90 Q 135 100 158 90" stroke="#fff" stroke-width="2" fill="none" opacity="0.8"/>
+        <path d="M 130 80 Q 145 68 170 80" stroke="#fff" stroke-width="3.5" fill="none" opacity="0.95"/>
+        <path d="M 130 95 Q 145 105 170 95" stroke="#fff" stroke-width="2" fill="none" opacity="0.8"/>
         <!-- Eyes -->
-        <ellipse cx="132" cy="78" rx="4" ry="5" fill="#000"/>
-        <ellipse cx="148" cy="78" rx="4" ry="5" fill="#000"/>
-        <circle cx="133" cy="76" r="1.5" fill="#fff"/>
-        <circle cx="149" cy="76" r="1.5" fill="#fff"/>
+        <ellipse cx="140" cy="83" rx="4.5" ry="5.5" fill="#000"/>
+        <ellipse cx="160" cy="83" rx="4.5" ry="5.5" fill="#000"/>
+        <circle cx="141" cy="81" r="2" fill="#fff"/>
+        <circle cx="161" cy="81" r="2" fill="#fff"/>
         <!-- Beak -->
-        <polygon points="140,88 133,100 147,100" fill="#e8b030"/>
-        <line x1="140" y1="88" x2="140" y2="100" stroke="#8a5a10" stroke-width="1"/>
+        <polygon points="150,95 142,108 158,108" fill="#e8b030"/>
+        <line x1="150" y1="95" x2="150" y2="108" stroke="#8a5a10" stroke-width="1.5"/>
         ${crest}
       </g>
 
-      <!-- Camera on Chest -->
-      <g class="peacock-camera" transform="translate(140, 255)">
-        <rect x="-22" y="-14" width="44" height="28" rx="5" fill="#1a1a2e" stroke="#ffd700" stroke-width="2"/>
-        <rect x="-8" y="-20" width="16" height="8" rx="2" fill="#1a1a2e" stroke="#ffd700" stroke-width="1.5"/>
-        <circle cx="0" cy="4" r="12" fill="#000" stroke="#ffd700" stroke-width="1.5"/>
-        <circle cx="0" cy="4" r="8" fill="url(#neckG_${uid})"/>
-        <circle cx="0" cy="4" r="4" fill="#000"/>
-        <circle cx="-2" cy="2" r="2" fill="#fff" opacity="0.9"/>
-        <circle cx="18" cy="-8" r="3" fill="#ff3333" filter="url(#glow_${uid})"/>
+      <!-- Speed Camera on Chest -->
+      <g class="peacock-camera" transform="translate(150, 270)" filter="url(#shadow_${uid})">
+        <rect x="-25" y="-16" width="50" height="32" rx="6" fill="#1a1a2e" stroke="#ffd700" stroke-width="2.5"/>
+        <rect x="-10" y="-23" width="20" height="9" rx="2" fill="#1a1a2e" stroke="#ffd700" stroke-width="2"/>
+        <circle cx="0" cy="5" r="14" fill="#000" stroke="#ffd700" stroke-width="2"/>
+        <circle cx="0" cy="5" r="10" fill="url(#neckG_${uid})"/>
+        <circle cx="0" cy="5" r="5" fill="#000"/>
+        <circle cx="-3" cy="2" r="2.5" fill="#fff" opacity="0.9"/>
+        <circle cx="20" cy="-10" r="3.5" fill="#ff3333" filter="url(#glow_${uid})"/>
       </g>
     </svg>`;
   }
 
   function buildCarSVG(size, uid) {
     size = size || 260; uid = uid || (size+"_"+Math.random().toString(36).slice(2,7));
-    return `<svg viewBox="0 0 260 260" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;overflow:visible;filter:drop-shadow(0 15px 40px rgba(255,50,50,.6))">
+    return `<svg viewBox="0 0 260 260" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;overflow:visible;filter:drop-shadow(0 20px 50px rgba(255,50,50,.6))">
       <defs>
         <linearGradient id="carBody_${uid}" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#ff5555"/><stop offset="50%" stop-color="#aa0000"/><stop offset="100%" stop-color="#550000"/>
@@ -368,7 +375,7 @@
     }
 
     function screenBoot(){
-      var logs = ["🦚 runtime.js geladen","🦚 store.js geladen","🎙️ 319 Stimmen geladen","🎙️ 346 Stimmen geladen","🦚 notify.js geladen","🎨 theme.js geladen — 8 Themes","🦚 apps.js geladen — 48 Apps","🦚 ai-engine.js geladen — WASM aktiv","🦚 haldo-ai.js geladen","🪟 deskpane.js geladen","👤 avatar.js geladen","🏠 shell.js geladen","⚙️ settings.js geladen","🦚 HalDo Blitzer v20.0 — Real Peacock"];
+      var logs = ["🦚 runtime.js geladen","🦚 store.js geladen","🎙️ 319 Stimmen geladen","🎙️ 346 Stimmen geladen","🦚 notify.js geladen","🎨 theme.js geladen — 8 Themes","🦚 apps.js geladen — 48 Apps","🦚 ai-engine.js geladen — WASM aktiv","🦚 haldo-ai.js geladen","🪟 deskpane.js geladen","👤 avatar.js geladen","🏠 shell.js geladen","⚙️ settings.js geladen","🦚 HalDo Blitzer v21.0 — Masterpiece"];
       var css = `.boot-screen{position:fixed;inset:0;background:radial-gradient(ellipse at center,#0a0e2a 0%,#000 100%);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:'SF Mono','Monaco','Consolas',monospace;overflow:hidden}.boot-terminal{width:90%;max-width:520px;padding:24px;background:rgba(10,14,42,.85);border:1px solid rgba(255,215,0,.3);border-radius:16px;box-shadow:0 0 60px rgba(255,215,0,.3),inset 0 0 40px rgba(77,208,225,.1);backdrop-filter:blur(10px)}.boot-header{font-size:13px;color:#ffd700;font-weight:900;letter-spacing:2px;text-align:center;margin-bottom:16px;text-shadow:0 0 12px #ffd700;animation:bp 2s ease-in-out infinite}@keyframes bp{0%,100%{opacity:.8;text-shadow:0 0 12px #ffd700}50%{opacity:1;text-shadow:0 0 24px #ffd700,0 0 40px #ff9800}}.boot-lines{font-size:11px;line-height:1.9;max-height:340px;overflow:hidden}.boot-line{opacity:0;color:#4dd0e1;text-shadow:0 0 6px rgba(77,208,225,.7);animation:bl .4s ease-out forwards;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.boot-line:last-child{color:#ffd700;text-shadow:0 0 10px #ffd700;font-weight:900}@keyframes bl{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}.boot-cursor{display:inline-block;width:7px;height:13px;background:#4dd0e1;box-shadow:0 0 10px #4dd0e1;animation:bc 1s step-end infinite;vertical-align:middle;margin-left:4px}@keyframes bc{50%{opacity:0}}.boot-bar{height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:14px;overflow:hidden}.boot-bar-fill{height:100%;background:linear-gradient(90deg,#4dd0e1,#ffd700);box-shadow:0 0 10px #ffd700;animation:bb 3s ease-in-out forwards;width:0%}@keyframes bb{to{width:100%}}`;
       container.innerHTML = `<style>${css}</style><div class="boot-screen"><div class="boot-terminal"><div class="boot-header">🦚 HALDO AI OS — BOOT SEQUENCE 🦚</div><div class="boot-lines" id="bootLines"></div><div class="boot-bar"><div class="boot-bar-fill"></div></div></div></div>`;
       var linesEl = container.querySelector("#bootLines"), i=0;
@@ -395,7 +402,7 @@
       } else if(s.welcomeCharacter === "car") {
         characterHTML = buildCarSVG(260, "car");
       } else {
-        characterHTML = buildUltraPeacockSVG(280, "peacock");
+        characterHTML = buildUltraPeacockSVG(300, "peacock");
       }
 
       var sunSVG = buildSunSVG(220, theme);
@@ -404,10 +411,10 @@
         .splash{position:fixed;inset:0;background:linear-gradient(to bottom,${theme.top} 0%,${theme.mid} 30%,${theme.bot} 100%);overflow:hidden;z-index:99998;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff}
         .splash-stars{position:absolute;inset:0;background-image:radial-gradient(1px 1px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 40% 70%,#fff,transparent),radial-gradient(1.5px 1.5px at 60% 20%,#fff,transparent),radial-gradient(1px 1px at 80% 50%,#fff,transparent),radial-gradient(1px 1px at 30% 85%,#fff,transparent),radial-gradient(1.5px 1.5px at 70% 40%,#fff,transparent);animation:twinkle 4s ease-in-out infinite alternate;pointer-events:none}
         @keyframes twinkle{from{opacity:.4}to{opacity:1}}
-        .splash-sun-container{position:absolute;top:8%;left:50%;transform:translateX(-50%);z-index:2;animation:sunPulse 4s ease-in-out infinite}
+        .splash-sun-container{position:absolute;top:5%;left:50%;transform:translateX(-50%);z-index:2;animation:sunPulse 4s ease-in-out infinite}
         @keyframes sunPulse{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.05)}}
 
-        .splash-character{position:absolute;top:48%;left:50%;margin-left:-140px;margin-top:-170px;width:280px;height:340px;z-index:5;animation:charFlyIn ${flyDur}s cubic-bezier(.4,0,.2,1) forwards;display:flex;align-items:center;justify-content:center}
+        .splash-character{position:absolute;top:50%;left:50%;margin-left:-150px;margin-top:-190px;width:300px;height:380px;z-index:5;animation:charFlyIn ${flyDur}s cubic-bezier(.4,0,.2,1) forwards;display:flex;align-items:center;justify-content:center}
         @keyframes charFlyIn{
           0%{transform:translate(300%,-500%) scale(.15) rotate(-45deg);opacity:0}
           15%{opacity:1}
@@ -419,11 +426,11 @@
         }
 
         /* 3D Animations */
-        .peacock-body{transform-origin:140px 230px;transform-box:view-box;animation:breathe 3s ease-in-out infinite ${flyDur*0.7}s}
+        .peacock-body{transform-origin:150px 250px;transform-box:view-box;animation:breathe 3s ease-in-out infinite ${flyDur*0.7}s}
         @keyframes breathe{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.04)}}
-        .peacock-head{transform-origin:140px 110px;transform-box:view-box;animation:headSway 5s ease-in-out infinite ${flyDur*0.8}s}
+        .peacock-head{transform-origin:150px 120px;transform-box:view-box;animation:headSway 5s ease-in-out infinite ${flyDur*0.8}s}
         @keyframes headSway{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
-        .peacock-fan{transform-origin:140px 180px;transform-box:view-box;transform:scale(.3);opacity:0;animation:fanOpen 1.5s cubic-bezier(.4,0,.2,1) ${flyDur*0.6}s forwards}
+        .peacock-fan{transform-origin:150px 200px;transform-box:view-box;transform:scale(.3);opacity:0;animation:fanOpen 1.5s cubic-bezier(.4,0,.2,1) ${flyDur*0.6}s forwards}
         @keyframes fanOpen{0%{transform:scale(.3,.6);opacity:.5}20%{opacity:1}60%{transform:scale(1.05,.95)}80%{transform:scale(.98,1.02)}100%{transform:scale(1,1);opacity:1}}
 
         .car-body{transform-origin:130px 170px;transform-box:view-box;animation:carIdle 3s ease-in-out infinite ${flyDur*0.7}s}
@@ -460,6 +467,8 @@
       var enter = container.querySelector("#splashEnter");
       if(enter) enter.addEventListener("click", function(){ view.screen="cockpit"; build(); });
     }
+
+    // ... (Cockpit und der Rest bleiben identisch zum v20.0 Code) ...
 
     function screenCockpit(){
       var s = getSettings();
@@ -593,8 +602,6 @@
       container.querySelector("#previewWelcome").addEventListener("click", function(){ view.screen="splash"; build(); });
     }
 
-    // ... (Rest des Codes bleibt unverändert: Tacho-Design, Töne, Voice, Navi, BT, Flash, About, Weather, Trigger, Fuel, Restaurants, etc.) ...
-
     function screenSettingsDisplay(){
       var s = getSettings();
       var html = backBtn('settings') + `<div class="card"><h3>🎨 Tacho-Design</h3><div class="field"><label>Tacho-Farbe</label><div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:6px">${['#ffd700','#4dd0e1','#ff5555','#4ade80','#b478ff','#ff8844'].map(function(c){ return `<button data-color="${c}" style="height:38px;background:${c};border:3px solid ${s.tachoColor===c?'#fff':'transparent'};border-radius:8px;cursor:pointer;box-shadow:0 0 12px ${c}88"></button>`; }).join("")}</div></div><div class="field" style="margin-top:12px"><label>Pfeil-Farbe (${ARROW_COLORS[s.arrowColor]?ARROW_COLORS[s.arrowColor].name:'24K Gold'})</label><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px">${Object.keys(ARROW_COLORS).map(function(k){ var a=ARROW_COLORS[k]; return `<button data-arrow="${k}" style="height:42px;background:linear-gradient(135deg,${a.fill},${a.fill}cc);border:3px solid ${s.arrowColor===k?'#fff':'transparent'};border-radius:8px;cursor:pointer;box-shadow:0 0 12px ${a.glow}" title="${a.name}"></button>`; }).join("")}</div></div><div class="field" style="margin-top:12px"><label>Alarm-Dauer: <span id="durLbl">${s.alarmDuration}s</span></label><input type="range" id="setDuration" min="2" max="15" step="1" value="${s.alarmDuration}" style="width:100%"></div><div class="field" style="margin-top:12px"><label>Offline Modus</label><button id="toggleOffline" style="width:100%;padding:10px;background:${s.offlineMode?'rgba(255,128,128,.2)':'rgba(74,222,128,.2)'};border:1px solid ${s.offlineMode?'#ff8080':'#4ade80'};color:${s.offlineMode?'#ff8080':'#4ade80'};border-radius:8px;font-weight:900;font-size:12px;cursor:pointer;font-family:inherit">${s.offlineMode?'Offline':'Online'}</button></div></div>`;
@@ -689,7 +696,7 @@
 
     function screenSettingsAbout(){
       var charSvg = buildUltraPeacockSVG(120,"about");
-      var html = backBtn('settings') + `<div class="card" style="text-align:center"><div style="margin:8px 0">${charSvg}</div><div style="margin:6px 0">${appIconSVG(64)}</div><h3 style="margin:6px 0">HalDo Blitzer</h3><div style="font-size:12px;color:#ffd700;margin-top:4px;font-weight:800">Version 20.0 · Real Peacock & Custom Image</div><div style="font-size:11px;color:#7fa5b8;margin-top:14px;line-height:1.8">⚠️ Blitzer-Warnungen<br>🦚 Ultra-Realistischer Pfau<br>🥇 24 Karat Gold<br>🎙️ HalDoVoice<br>🗣️ Sprach-Navi<br>📡 Bluetooth<br>⛽ Tankstellen · 🍴 Restaurants<br>💡 Taschenlampe<br>🌍 9 Sprachen · 20 Töne</div><div style="font-size:11px;color:#ffd700;margin-top:20px;font-weight:900">von Halil Donma</div><div style="font-size:10px;color:#5a7a8a;margin-top:6px">Made with ❤️ for the Ezidi Community</div></div>`;
+      var html = backBtn('settings') + `<div class="card" style="text-align:center"><div style="margin:8px 0">${charSvg}</div><div style="margin:6px 0">${appIconSVG(64)}</div><h3 style="margin:6px 0">HalDo Blitzer</h3><div style="font-size:12px;color:#ffd700;margin-top:4px;font-weight:800">Version 21.0 · Masterpiece Edition</div><div style="font-size:11px;color:#7fa5b8;margin-top:14px;line-height:1.8">⚠️ Blitzer-Warnungen<br>🦚 Ultra-3D Pfau<br>🥇 24 Karat Gold<br>🎙️ HalDoVoice<br>🗣️ Sprach-Navi<br>📡 Bluetooth<br>⛽ Tankstellen · 🍴 Restaurants<br>💡 Taschenlampe<br>🌍 9 Sprachen · 20 Töne</div><div style="font-size:11px;color:#ffd700;margin-top:20px;font-weight:900">von Halil Donma</div><div style="font-size:10px;color:#5a7a8a;margin-top:6px">Made with ❤️ for the Ezidi Community</div></div>`;
       container.innerHTML = html; bindNav();
     }
 
@@ -795,7 +802,7 @@
     function screenMap(){ var html = backBtn('cockpit') + `<div class="card" style="padding:0;overflow:hidden;height:calc(100vh - 200px);position:relative"><div id="blMap" style="width:100%;height:100%;background:#0a1220"></div></div>`; container.innerHTML = html; bindNav(); initMap(); }
     function initMap(){ if(!document.getElementById("leaflet-css")){ var lc = document.createElement("link"); lc.id="leaflet-css"; lc.rel="stylesheet"; lc.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"; document.head.appendChild(lc); } if(window.L) return buildMap(); var s = document.createElement("script"); s.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"; s.onload=buildMap; document.head.appendChild(s); }
     function buildMap(){ var el = document.getElementById("blMap"); if(!el||!window.L) return; el.innerHTML=""; var center = lastPos?[lastPos.coords.latitude,lastPos.coords.longitude]:[51.1657,10.4515]; map = L.map(el,{zoomControl:false}).setView(center,14); L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map); updateMapMarkers(); }
-    function updateMapMarkers(){ if(!map) return; mapMarkers.forEach(function(m){ map.removeLayer(m); }); mapMarkers=[]; getWarnings().forEach(function(w){ var cat = getCat(w.cat); if(!cat) return; var icon = L.divIcon({html:`<div style="background:${cat.color};border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid #fff">${cat.icon}</div>`,className:"",iconSize:[32,32],iconAnchor:[16,16]}); mapMarkers.push(L.marker([w.lat,w.lng],{icon:icon}).addToMap(map)); }); if(lastPos){ var uicon = L.divIcon({html:`<div style="background:#ffd700;border:3px solid #fff;border-radius:50%;width:20px;height:20px;box-shadow:0 0 20px #ffd700"></div>`,className:"",iconSize:[20,20],iconAnchor:[10,10]}); mapMarkers.push(L.marker([lastPos.coords.latitude,lastPos.coords.longitude],{icon:uicon}).addTo(map)); map.setView([lastPos.coords.latitude,lastPos.coords.longitude]); } }
+    function updateMapMarkers(){ if(!map) return; mapMarkers.forEach(function(m){ map.removeLayer(m); }); mapMarkers=[]; getWarnings().forEach(function(w){ var cat = getCat(w.cat); if(!cat) return; var icon = L.divIcon({html:`<div style="background:${cat.color};border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid #fff">${cat.icon}</div>`,className:"",iconSize:[32,32],iconAnchor:[16,16]}); mapMarkers.push(L.marker([w.lat,w.lng],{icon:icon}).addTo(map)); }); if(lastPos){ var uicon = L.divIcon({html:`<div style="background:#ffd700;border:3px solid #fff;border-radius:50%;width:20px;height:20px;box-shadow:0 0 20px #ffd700"></div>`,className:"",iconSize:[20,20],iconAnchor:[10,10]}); mapMarkers.push(L.marker([lastPos.coords.latitude,lastPos.coords.longitude],{icon:uicon}).addTo(map)); map.setView([lastPos.coords.latitude,lastPos.coords.longitude]); } }
 
     function screenList(){ var warnings = getWarnings(); var html = backBtn('cockpit') + `<div class="card"><h3>📋 Warnungen (${warnings.length})</h3>`; if(!warnings.length) html += `<div style="text-align:center;color:#7fa5b8;padding:20px">Keine Warnungen.</div>`; else warnings.slice().reverse().forEach(function(w){ var c = getCat(w.cat)||CATS[0]; html += `<div style="padding:10px;background:rgba(0,0,0,.3);border-radius:10px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;border-left:3px solid ${c.color}"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:900">${c.icon} ${_esc(c.name.de)}</div><div style="font-size:10px;color:#7fa5b8">${w.lat.toFixed(4)}, ${w.lng.toFixed(4)}</div></div><button data-del="${w.id}" style="background:rgba(255,128,128,.2);border:none;color:#ff8080;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer">✕</button></div>`; }); html += `</div>`; container.innerHTML = html; bindNav(); container.querySelectorAll("[data-del]").forEach(function(el){ el.addEventListener("click", function(){ if(!confirm("Löschen?")) return; saveWarnings(getWarnings().filter(function(w){ return w.id!==el.dataset.del; })); screenList(); }); }); }
 
@@ -883,5 +890,5 @@
   }
 
   HalDoApp("blitzer", { name:"HalDo Blitzer", icon:"⚠️", render:render, category:"werkzeuge" });
-  console.log('%c🦚 HalDo Blitzer v20.0 — Real Peacock & Custom Image Edition bereit', GOLD_STYLE);
+  console.log('%c🦚 HalDo Blitzer v21.0 — Masterpiece Edition bereit', GOLD_STYLE);
 })();
