@@ -1,398 +1,377 @@
-/* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — FAHRSCHULE (v1.0 PROFESSIONAL)
-   Theorie-Training · Prüfungssimulation · Statistik · Fragen-Editor
-   ═══════════════════════════════════════════════════════════ */
-(function(){
-  "use strict";
-  if(!window.HalDo || !HalDo.Runtime) return;
+/* HalDo Fahrschule v300.0 — Theorie-Training PROFESSIONAL */
+(function () {
+  'use strict';
 
-  function _esc(s){
-    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
-      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
-    });
-  }
-  function shuffle(a){
-    var r = a.slice();
-    for(var i=r.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=r[i]; r[i]=r[j]; r[j]=t; }
-    return r;
-  }
+  const VERSION = '300.0';
+  const STORAGE_KEY = 'haldo.fahrschule.stats';
 
-  var SAMPLE = [
-    { cat: "Geschwindigkeit", q: "Wie hoch ist die zulässige Höchstgeschwindigkeit für Pkw außerhalb geschlossener Ortschaften?", a: ["80 km/h","100 km/h","130 km/h"], c: 1 },
-    { cat: "Geschwindigkeit", q: "Welche Richtgeschwindigkeit gilt für Pkw auf Autobahnen?", a: ["100 km/h","130 km/h","150 km/h"], c: 1 },
-    { cat: "Geschwindigkeit", q: "Wie schnell dürfen Sie in geschlossenen Ortschaften höchstens fahren?", a: ["30 km/h","50 km/h","60 km/h"], c: 1 },
-    { cat: "Vorfahrt", q: "Sie nähern sich einem Stoppschild. Wie verhalten Sie sich?", a: ["Nur langsamer fahren","Anhalten und Vorfahrt gewähren","Hupen"], c: 1 },
-    { cat: "Vorfahrt", q: "Was gilt an einer Kreuzung ohne Verkehrszeichen?", a: ["Rechts vor links","Links vor rechts","Immer Vorfahrt für geradeaus"], c: 0 },
-    { cat: "Alkohol", q: "Ab welcher Blutalkoholkonzentration ist Fahren für Fahranfänger (Probezeit) verboten?", a: ["0,3‰","0,5‰","0,0‰"], c: 2 },
-    { cat: "Alkohol", q: "Ab welcher Blutalkoholkonzentration begehen erfahrene Fahrer eine Ordnungswidrigkeit?", a: ["0,3‰","0,5‰","1,0‰"], c: 1 },
-    { cat: "Reifen", q: "Wie tief muss das Profil von Pkw-Reifen mindestens sein?", a: ["1,0 mm","1,6 mm","3,0 mm"], c: 1 },
-    { cat: "Licht", q: "Wann müssen Sie das Abblendlicht einschalten?", a: ["Nur nachts","Bei Dämmerung, Dunkelheit, Regen oder Nebel","Nur bei Regen"], c: 1 },
-    { cat: "Autobahn", q: "Wann dürfen Sie auf der Autobahn rechts schneller fahren als links?", a: ["Immer","Nie","Bei stockendem Verkehr (Stau)"], c: 2 },
-    { cat: "Autobahn", q: "Welche Fahrzeuge dürfen auf Autobahnen nicht fahren?", a: ["Motorräder","Pkw","Fahrräder"], c: 2 },
-    { cat: "Gurt", q: "Wer muss den Sicherheitsgurt anlegen?", a: ["Nur der Fahrer","Fahrer und alle Insassen","Nur Erwachsene"], c: 1 },
-    { cat: "Wild", q: "Wie verhalten Sie sich bei einem Wildwechsel?", a: ["Hupen und ausweichen","Bremsen, nicht ausweichen","Gas geben"], c: 1 },
-    { cat: "Bremsen", q: "Wovon hängt der Bremsweg ab?", a: ["Nur von der Geschwindigkeit","Von Geschwindigkeit und Zustand der Reifen","Nur vom Wetter"], c: 1 },
-    { cat: "Verkehrszeichen", q: "Ein auf der Spitze stehendes Dreieck bedeutet?", a: ["Vorfahrt gewähren","Vorfahrtstraße","Halteverbot"], c: 0 },
-    { cat: "Verkehrszeichen", q: "Ein rundes blaues Schild mit weißem Pfeil bedeutet?", a: ["Verbot der Fahrtrichtung","Vorgeschriebene Fahrtrichtung","Einbahnstraße"], c: 1 },
-    { cat: "Müdigkeit", q: "Was tun Sie bei Müdigkeit am Steuer?", a: ["Kaffee trinken und weiterfahren","Anhalten und Pause machen","Lauter Musik hören"], c: 1 },
-    { cat: "Überholen", q: "Wann dürfen Sie NICHT überholen?", a: ["Bei unklarer Verkehrslage","Wenn die Sonne scheint","Wenn die Straße trocken ist"], c: 0 },
-    { cat: "Parken", q: "Wie viel Abstand müssen Sie beim Parken vor und hinter einem Zebrastreifen lassen?", a: ["3 Meter","5 Meter","10 Meter"], c: 1 },
-    { cat: "Notfall", q: "Wie lautet die europaweite Notrufnummer?", a: ["110","112","115"], c: 1 }
+  // ═══════════════════════════════════════════════════════
+  // 1. DATENBANK (Fragen, Schilder, Kategorien)
+  // ═══════════════════════════════════════════════════════
+  const QUESTIONS = [
+    { id: 1, cat: 'Gefahrenlehre', q: 'Sie nähern sich einer unübersichtlichen Kurve. Wie verhalten Sie sich?', opts: ['Geschwindigkeit stark reduzieren, bremsbereit sein', 'Hupen und weiterfahren', 'Auf die Gegenfahrbahn ausweichen'], correct: 0, exp: 'In unübersichtlichen Kurven muss die Geschwindigkeit reduziert und bremsbereit gefahren werden, um auf plötzliche Hindernisse reagieren zu können.' },
+    { id: 2, cat: 'Vorfahrt', q: 'Wer hat an einer Kreuzung ohne Verkehrszeichen Vorfahrt?', opts: ['Das Fahrzeug von links', 'Das Fahrzeug von rechts', 'Wer zuerst ankommt'], correct: 1, exp: 'Die Grundregel lautet: Rechts vor Links. Das Fahrzeug von rechts hat Vorfahrt.' },
+    { id: 3, cat: 'Technik', q: 'Was ist bei einer Reifenpanne zu tun?', opts: ['Warnblinker an, Warndreieck aufstellen, Reifen wechseln', 'Sofort auf die Autobahn wechseln', 'Weiterfahren bis zur nächsten Werkstatt'], correct: 0, exp: 'Zuerst das Fahrzeug sichern (Warnblinker, Warndreieck), dann den Reifen wechseln.' },
+    { id: 4, cat: 'Verkehrszeichen', q: 'Was bedeutet ein rotes Dreieck mit einem Ausrufezeichen?', opts: ['Allgemeine Gefahr', 'Halt, Vorfahrt gewähren', 'Vorfahrtstraße'], correct: 0, exp: 'Das Zeichen warnt vor einer allgemeinen Gefahr. Die Geschwindigkeit sollte reduziert werden.' },
+    { id: 5, cat: 'Umweltschutz', q: 'Wie fahren Sie umweltbewusst?', opts: ['Früh hochschalten und niedrige Drehzahlen nutzen', 'Im ersten Gang bis 50 km/h fahren', 'Ständig beschleunigen und bremsen'], correct: 0, exp: 'Frühes Hochschalten und niedrige Drehzahlen sparen Kraftstoff und reduzieren den Schadstoffausstoß.' },
+    { id: 6, cat: 'Gefahrenlehre', q: 'Was ist bei Nässe besonders gefährlich?', opts: ['Aquaplaning', 'Bremsen quietschen', 'Der Motor wird heiß'], correct: 0, exp: 'Aquaplaning führt zum Verlust der Bodenhaftung. Geschwindigkeit reduzieren!' },
+    { id: 7, cat: 'Vorfahrt', q: 'Sie wollen links abbiegen. Worauf müssen Sie achten?', opts: ['Gegenverkehr durchlassen', 'Sofort abbiegen', 'Rechts blinken'], correct: 0, exp: 'Beim Linksabbiegen muss der Gegenverkehr durchgelassen werden.' },
+    { id: 8, cat: 'Technik', q: 'Die Bremsleuchten leuchten dauerhaft. Was tun?', opts: ['Bremslichtschalter überprüfen lassen', 'Weiterfahren', 'Batterie abklemmen'], correct: 0, exp: 'Ein defekter Bremslichtschalter kann die Batterie entladen und ist ein Sicherheitsrisiko.' },
+    { id: 9, cat: 'Verkehrszeichen', q: 'Ein blaues Schild mit weißem Pfeil nach rechts bedeutet?', opts: ['Vorgeschriebene Fahrtrichtung rechts', 'Einbahnstraße', 'Vorfahrtstraße'], correct: 0, exp: 'Dieses Schild schreibt die Fahrtrichtung vor.' },
+    { id: 10, cat: 'Gefahrenlehre', q: 'Sie fahren bei Nebel. Welches Licht ist Pflicht?', opts: ['Abblendlicht', 'Fernlicht', 'Standlicht'], correct: 0, exp: 'Bei Nebel ist Abblendlicht Pflicht. Fernlicht wird vom Nebel reflektiert und blendet.' },
+    { id: 11, cat: 'Vorfahrt', q: 'Was bedeutet "Vorfahrt gewähren"?', opts: ['Anhalten und warten', 'Geschwindigkeit anpassen, ggf. warten', 'Einfach durchfahren'], correct: 1, exp: 'Man muss nicht zwingend anhalten, aber die Geschwindigkeit anpassen und bei Bedarf warten.' },
+    { id: 12, cat: 'Technik', q: 'Wie tief sollte das Profil der Reifen mindestens sein?', opts: ['1,6 mm', '0,5 mm', '5 mm'], correct: 0, exp: 'Die gesetzliche Mindestprofiltiefe beträgt 1,6 mm. Empfohlen sind jedoch mehr.' },
+    { id: 13, cat: 'Verkehrszeichen', q: 'Was bedeutet ein auf dem Kopf stehendes Dreieck?', opts: ['Vorfahrt gewähren', 'Stop', 'Wildwechsel'], correct: 0, exp: 'Das auf dem Kopf stehende Dreieck (Spitze unten) bedeutet "Vorfahrt gewähren".' },
+    { id: 14, cat: 'Gefahrenlehre', q: 'Wie reagieren Sie bei einem Wildwechsel?', opts: ['Abbremsen und hupen', 'Ausweichen', 'Gas geben'], correct: 0, exp: 'Abbremsen und Hupen. Ausweichen kann zu schweren Unfällen führen.' },
+    { id: 15, cat: 'Vorfahrt', q: 'Sie fahren auf einer Vorfahrtstraße. Ein Auto kommt von rechts.', opts: ['Ich habe Vorfahrt', 'Ich muss warten', 'Rechts vor Links gilt'], correct: 0, exp: 'Wer auf einer Vorfahrtstraße fährt, hat Vorfahrt.' }
   ];
 
-  function render(container, ctx){
-    var store = ctx.store;
+  const SIGNS = [
+    { icon: '🛑', name: 'Stop', desc: 'Anhalten, Vorfahrt gewähren.' },
+    { icon: '⚠️', name: 'Gefahrenstelle', desc: 'Allgemeine Gefahr, Geschwindigkeit anpassen.' },
+    { icon: '⬇️', name: 'Vorfahrt gewähren', desc: 'Spitze unten. Andere Fahrzeuge durchlassen.' },
+    { icon: '⬆️', name: 'Vorfahrtstraße', desc: 'Gelbe Raute. Ich habe Vorfahrt.' },
+    { icon: '🚫', name: 'Verbot der Einfahrt', desc: 'Rotes Schild mit weißem Strich. Einfahrt verboten.' },
+    { icon: '➡️', name: 'Vorgeschriebene Richtung', desc: 'Blaues Schild mit Pfeil. Man muss rechts abbiegen.' },
+    { icon: '🚶', name: 'Fußgängerüberweg', desc: 'Blaues Schild. Fußgänger haben Vorrang.' },
+    { icon: '🚲', name: 'Radweg', desc: 'Blaues Schild mit Fahrrad. Nur für Radfahrer.' }
+  ];
 
-    var questions = store.get("questions", null);
-    if(!questions) {
-      questions = SAMPLE.map(function(q, i){ return { id: i+1, cat: q.cat, q: q.q, a: q.a, c: q.c }; });
-      store.set("questions", questions);
-    }
+  const CATS = ['Gefahrenlehre', 'Vorfahrt', 'Technik', 'Verkehrszeichen', 'Umweltschutz'];
 
-    var progress = store.get("progress", {});
-    var stats = store.get("stats", { totalAnswered: 0, totalCorrect: 0, exams: [] });
-    var ui = { screen: "home", practice: null, exam: null, modal: null };
+  // ═══════════════════════════════════════════════════════
+  // 2. STATE & STORAGE
+  // ═══════════════════════════════════════════════════════
+  let stats = { examsTaken: 0, examsPassed: 0, questionsAnswered: 0, correctAnswers: 0 };
+  let currentView = 'home';
+  let currentLearnIndex = 0;
+  let examState = null;
+  let examTimer = null;
 
-    function saveQuestions(){ store.set("questions", questions); }
-    function saveProgress(){ store.set("progress", progress); }
-    function saveStats(){ store.set("stats", stats); }
-
-    function recordAnswer(qid, isCorrect){
-      if(!progress[qid]) progress[qid] = { correct: 0, wrong: 0 };
-      if(isCorrect) progress[qid].correct++; else progress[qid].wrong++;
-      progress[qid].last = new Date().toISOString();
-      stats.totalAnswered++; if(isCorrect) stats.totalCorrect++;
-      saveProgress(); saveStats();
-    }
-
-    // ─── Screens ───
-    function card(icon, title, sub, screen){
-      return '<button data-goto="' + screen + '" style="background:rgba(0,0,0,.25);border:1px solid var(--border-soft);border-radius:12px;padding:16px 10px;cursor:pointer;text-align:center;color:inherit;font-family:inherit">'
-        + '<div style="font-size:28px">' + icon + '</div>'
-        + '<div style="font-size:13px;font-weight:900;color:var(--p1);margin-top:6px">' + title + '</div>'
-        + '<div style="font-size:10px;color:var(--text-mute);margin-top:2px">' + _esc(sub) + '</div>'
-        + '</button>';
-    }
-    function backButton(inner){
-      return '<button data-back="' + (inner ? 'inner' : '1') + '" style="background:transparent;border:none;color:var(--p1);cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px">← Zurück</button>';
-    }
-
-    function screenHome(){
-      var total = questions.length;
-      var answered = Object.keys(progress).length;
-      return ''
-        + '<div class="card" style="text-align:center;background:linear-gradient(135deg,rgba(200,160,30,.15),rgba(0,120,200,.15));border:1px solid rgba(200,160,30,.3)">'
-        + '<div style="font-size:56px">🚗</div>'
-        + '<div style="font-size:20px;font-weight:900;color:var(--p1);margin-top:6px">Fahrschule</div>'
-        + '<div style="font-size:11px;color:var(--text-mute);margin-top:4px">Theorie-Training · Klasse B</div>'
-        + '</div>'
-        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">'
-        + card("📖","Üben","Fragen einzeln durchgehen","practice")
-        + card("📝","Prüfung","30 Fragen · Simulation","exam")
-        + card("📊","Statistik", answered + " / " + total + " Fragen","stats")
-        + card("⚙️","Fragen", total + " verfügbar","manage")
-        + '</div>'
-        + (stats.exams.length ? '<div class="card" style="margin-top:12px"><h3>Letzte Prüfungen</h3>'
-            + stats.exams.slice(-3).reverse().map(function(e){
-                return '<div style="padding:8px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">'
-                  + '<div style="font-size:11px;color:var(--text-mute)">' + _esc(e.date) + '</div>'
-                  + '<div style="font-size:12px;font-weight:900;color:' + (e.passed?"#4ade80":"#ff8080") + '">' + e.score + ' / ' + e.total + (e.passed?' ✅':' ❌') + '</div>'
-                  + '</div>';
-              }).join('')
-            + '</div>' : '');
-    }
-
-    function screenPractice(){
-      if(!ui.practice) {
-        var cats = {};
-        questions.forEach(function(q){ cats[q.cat] = (cats[q.cat]||0) + 1; });
-        return backButton()
-          + '<div class="card"><h3>📖 Kategorie wählen</h3>'
-          + '<button data-pcat="__all" style="width:100%;padding:12px;background:rgba(200,160,30,.2);border:1px solid var(--p1);border-radius:10px;margin-bottom:6px;cursor:pointer;color:var(--p1);font-weight:900;font-size:13px">Alle Fragen (' + questions.length + ')</button>'
-          + Object.keys(cats).sort().map(function(c){
-              return '<button data-pcat="' + _esc(c) + '" style="width:100%;padding:10px;background:rgba(0,0,0,.2);border:1px solid var(--border-soft);border-radius:10px;margin-bottom:4px;cursor:pointer;color:inherit;font-weight:800;font-size:12px;text-align:left">'
-                + _esc(c) + ' <span style="float:right;color:var(--text-mute);font-size:10px">' + cats[c] + '</span></button>';
-            }).join('')
-          + '</div>';
-      }
-      var p = ui.practice;
-      var q = questions.find(function(x){ return x.id === p.qid; });
-      if(!q) return '<div class="card">Frage nicht gefunden</div>';
-      return backButton(true)
-        + '<div style="font-size:10px;color:var(--text-mute);text-align:center;margin-bottom:6px">Frage ' + (p.idx+1) + ' / ' + p.queue.length + ' · ' + _esc(q.cat) + '</div>'
-        + '<div class="card">'
-        + '<div style="font-size:14px;font-weight:900;margin-bottom:14px;line-height:1.4">' + _esc(q.q) + '</div>'
-        + q.a.map(function(ans, i){
-            var cls = 'background:rgba(0,0,0,.2);border-color:var(--border-soft)';
-            if(p.answered) {
-              if(i === q.c) cls = 'background:rgba(74,222,128,.15);border-color:#4ade80;color:#4ade80';
-              else if(i === p.selected) cls = 'background:rgba(255,128,128,.15);border-color:#ff8080;color:#ff8080';
-              else cls = 'opacity:.4';
-            }
-            return '<button data-pans="' + i + '" ' + (p.answered?"disabled":"") + ' style="width:100%;padding:12px;' + cls + ';border:1px solid;border-radius:10px;margin-bottom:6px;cursor:pointer;color:inherit;font-family:inherit;font-size:12.5px;text-align:left;font-weight:800">'
-              + String.fromCharCode(65+i) + ') ' + _esc(ans) + '</button>';
-          }).join('')
-        + (p.answered ? '<div style="padding:10px;background:rgba(0,0,0,.2);border-radius:8px;margin-top:8px;font-size:12px">'
-            + (p.correct ? '✅ <b style="color:#4ade80">Richtig!</b>' : '❌ <b style="color:#ff8080">Leider falsch.</b> Richtige Antwort: <b>' + String.fromCharCode(65+q.c) + '</b>')
-            + '</div><button data-pnext style="width:100%;padding:12px;background:var(--p1);color:#000;border:none;border-radius:10px;margin-top:10px;font-weight:900;font-size:13px;cursor:pointer">Weiter →</button>' : '')
-        + '</div>';
-    }
-
-    function screenExam(){
-      if(!ui.exam) {
-        return backButton()
-          + '<div class="card" style="text-align:center;padding:24px">'
-          + '<div style="font-size:48px">📝</div>'
-          + '<div style="font-size:16px;font-weight:900;color:var(--p1);margin-top:10px">Prüfungssimulation</div>'
-          + '<div style="font-size:12px;color:var(--text-dim);margin:10px 0;line-height:1.5">30 zufällige Fragen.<br>Bestanden mit max. 10 Fehlerpunkten.</div>'
-          + '<button data-startexam style="width:100%;padding:14px;background:var(--p1);color:#000;border:none;border-radius:10px;font-weight:900;font-size:14px;cursor:pointer">▶ Prüfung starten</button>'
-          + '</div>';
-      }
-      var e = ui.exam;
-      if(e.finished) {
-        var passed = e.errors <= 10;
-        return backButton(true)
-          + '<div class="card" style="text-align:center;padding:30px">'
-          + '<div style="font-size:64px">' + (passed?'🎉':'😔') + '</div>'
-          + '<div style="font-size:22px;font-weight:900;color:' + (passed?'#4ade80':'#ff8080') + ';margin-top:10px">' + (passed?'Bestanden!':'Nicht bestanden') + '</div>'
-          + '<div style="margin-top:16px;font-size:13px;color:var(--text-dim)">'
-          + '<div style="margin-bottom:6px">Fehlerpunkte: <b style="color:' + (passed?'#4ade80':'#ff8080') + '">' + e.errors + ' / 10</b></div>'
-          + '<div>Richtig: ' + e.correct + ' / ' + e.questions.length + '</div>'
-          + '</div>'
-          + '<button data-back style="width:100%;padding:12px;background:var(--p1);color:#000;border:none;border-radius:10px;margin-top:16px;font-weight:900;cursor:pointer">Zurück zur Auswahl</button>'
-          + '</div>';
-      }
-      var q = e.questions[e.idx];
-      return '<div style="font-size:10px;color:var(--text-mute);text-align:center;margin-bottom:6px">Frage ' + (e.idx+1) + ' / ' + e.questions.length + ' · Fehler: ' + e.errors + '</div>'
-        + '<div class="card">'
-        + '<div style="font-size:14px;font-weight:900;margin-bottom:14px;line-height:1.4">' + _esc(q.q) + '</div>'
-        + q.a.map(function(ans, i){
-            return '<button data-eans="' + i + '" style="width:100%;padding:12px;background:rgba(0,0,0,.2);border:1px solid var(--border-soft);border-radius:10px;margin-bottom:6px;cursor:pointer;color:inherit;font-family:inherit;font-size:12.5px;text-align:left;font-weight:800">'
-              + String.fromCharCode(65+i) + ') ' + _esc(ans) + '</button>';
-          }).join('')
-        + '</div>';
-    }
-
-    function screenStats(){
-      var byCat = {};
-      questions.forEach(function(q){
-        if(!byCat[q.cat]) byCat[q.cat] = { correct: 0, wrong: 0 };
-        var p = progress[q.id];
-        if(p){ byCat[q.cat].correct += p.correct; byCat[q.cat].wrong += p.wrong; }
-      });
-      var ratio = stats.totalAnswered ? Math.round(stats.totalCorrect / stats.totalAnswered * 100) : 0;
-      var html = backButton()
-        + '<div class="card" style="text-align:center"><h3>📊 Gesamtstatistik</h3>'
-        + '<div style="font-size:32px;font-weight:900;color:var(--p1)">' + ratio + '%</div>'
-        + '<div style="font-size:11px;color:var(--text-mute)">' + stats.totalCorrect + ' richtig von ' + stats.totalAnswered + ' beantwortet</div>'
-        + '</div><div class="card"><h3>Nach Kategorie</h3>';
-      Object.keys(byCat).sort().forEach(function(c){
-        var d = byCat[c]; var total = d.correct + d.wrong;
-        var pct = total ? Math.round(d.correct / total * 100) : 0;
-        var color = pct>=80?"#4ade80":pct>=50?"#fbbf24":"#ff8080";
-        html += '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px">'
-          + '<span style="font-weight:800">' + _esc(c) + '</span>'
-          + '<span style="color:' + color + ';font-weight:900">' + pct + '%</span></div>'
-          + '<div style="height:6px;background:rgba(0,0,0,.3);border-radius:3px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:3px"></div></div></div>';
-      });
-      html += '</div>';
-      var wrongQs = questions.filter(function(q){ var p = progress[q.id]; return p && p.wrong > 0; });
-      if(wrongQs.length) {
-        html += '<div class="card"><h3>❌ Fehlerliste (' + wrongQs.length + ')</h3>';
-        wrongQs.forEach(function(q){
-          html += '<div style="padding:8px;background:rgba(0,0,0,.2);border-left:3px solid #ff8080;border-radius:6px;margin-bottom:4px;font-size:11px">' + _esc(q.q) + '</div>';
-        });
-        html += '</div>';
-      }
-      return html;
-    }
-
-    function screenManage(){
-      var html = backButton()
-        + '<div class="card">'
-        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
-        + '<h3 style="margin:0">⚙️ Fragen (' + questions.length + ')</h3>'
-        + '<button data-addq style="padding:8px 12px;background:var(--p1);color:#000;border:none;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">+ Neu</button>'
-        + '</div>';
-      if(!questions.length) html += '<div style="text-align:center;color:var(--text-mute);padding:20px">Keine Fragen vorhanden</div>';
-      else questions.forEach(function(q){
-        html += '<div style="padding:10px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:4px">'
-          + '<div style="display:flex;justify-content:space-between;gap:8px">'
-          + '<div style="flex:1;font-size:11.5px;font-weight:800;line-height:1.3">' + _esc(q.q) + '</div>'
-          + '<div style="display:flex;gap:4px">'
-          + '<button data-editq="' + q.id + '" style="background:rgba(200,160,30,.2);border:none;color:var(--p1);cursor:pointer;padding:4px 8px;border-radius:6px;font-size:11px">✏️</button>'
-          + '<button data-delq="' + q.id + '" style="background:rgba(255,128,128,.2);border:none;color:#ff8080;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:11px">✕</button>'
-          + '</div></div>'
-          + '<div style="font-size:9.5px;color:var(--text-mute);margin-top:4px">' + _esc(q.cat) + ' · Antwort: ' + String.fromCharCode(65+q.c) + '</div>'
-          + '</div>';
-      });
-      return html + '</div>';
-    }
-
-    function questionForm(q){
-      var isEdit = !!q;
-      var cat = isEdit ? q.cat : "";
-      var question = isEdit ? q.q : "";
-      var answers = isEdit ? q.a : ["","",""];
-      var correct = isEdit ? q.c : 0;
-      var html = '<label style="font-size:11px;font-weight:900;color:var(--text-mute);display:block;margin-bottom:4px">Kategorie</label>'
-        + '<input id="qf-cat" value="' + _esc(cat) + '" placeholder="z.B. Vorfahrt" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:1px solid var(--border-soft);border-radius:8px;color:inherit;font-family:inherit;font-size:12px;margin-bottom:10px">'
-        + '<label style="font-size:11px;font-weight:900;color:var(--text-mute);display:block;margin-bottom:4px">Frage</label>'
-        + '<textarea id="qf-q" rows="2" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:1px solid var(--border-soft);border-radius:8px;color:inherit;font-family:inherit;font-size:12px;margin-bottom:10px;resize:vertical">' + _esc(question) + '</textarea>';
-      for(var i=0;i<3;i++){
-        var active = (correct === i);
-        html += '<div style="display:flex;gap:6px;margin-bottom:6px;align-items:center">'
-          + '<button data-qcorrect="' + i + '" style="width:28px;height:28px;border-radius:50%;border:2px solid ' + (active?'#4ade80':'var(--text-mute)') + ';background:' + (active?'#4ade80':'transparent') + ';color:' + (active?'#000':'var(--text-mute)') + ';font-size:11px;font-weight:900;cursor:pointer;flex-shrink:0">' + String.fromCharCode(65+i) + '</button>'
-          + '<input data-qans="' + i + '" value="' + _esc(answers[i]) + '" placeholder="Antwort ' + String.fromCharCode(65+i) + '" style="flex:1;padding:8px;background:rgba(0,0,0,.3);border:1px solid var(--border-soft);border-radius:6px;color:inherit;font-family:inherit;font-size:12px">'
-          + '</div>';
-      }
-      html += '<div style="font-size:10px;color:var(--text-mute);text-align:center;margin-top:6px">Grüner Buchstabe = richtige Antwort</div>'
-        + '<button data-qsave style="width:100%;padding:12px;background:var(--p1);color:#000;border:none;border-radius:10px;margin-top:14px;font-weight:900;font-size:13px;cursor:pointer">' + (isEdit?'💾 Speichern':'+ Anlegen') + '</button>';
-      return html;
-    }
-
-    function bindQuestionForm(editQ){
-      var curCorrect = editQ ? editQ.c : 0;
-      container.querySelectorAll("[data-qcorrect]").forEach(function(el){
-        el.addEventListener("click", function(){
-          curCorrect = parseInt(el.dataset.qcorrect);
-          container.querySelectorAll("[data-qcorrect]").forEach(function(x, idx){
-            var a = (idx === curCorrect);
-            x.style.border = '2px solid ' + (a?'#4ade80':'var(--text-mute)');
-            x.style.background = a?'#4ade80':'transparent';
-            x.style.color = a?'#000':'var(--text-mute)';
-          });
-        });
-      });
-      var saveBtn = container.querySelector("[data-qsave]");
-      if(saveBtn) saveBtn.addEventListener("click", function(){
-        var cat = container.querySelector("#qf-cat").value.trim();
-        var qText = container.querySelector("#qf-q").value.trim();
-        var ans = [];
-        for(var i=0;i<3;i++) ans.push(container.querySelector('[data-qans="' + i + '"]').value.trim());
-        if(!qText || !ans.every(function(a){ return a; })) { alert("Bitte Frage und alle 3 Antworten ausfüllen."); return; }
-        if(editQ) { editQ.cat = cat||"Allgemein"; editQ.q = qText; editQ.a = ans; editQ.c = curCorrect; }
-        else {
-          var maxId = questions.reduce(function(m,q){ return Math.max(m,q.id); }, 0);
-          questions.push({ id: maxId+1, cat: cat||"Allgemein", q: qText, a: ans, c: curCorrect });
-        }
-        saveQuestions(); ui.modal = null; build();
-      });
-    }
-
-    function build(){
-      var html = '';
-      if(ui.screen === "home") html = screenHome();
-      else if(ui.screen === "practice") html = screenPractice();
-      else if(ui.screen === "exam") html = screenExam();
-      else if(ui.screen === "stats") html = screenStats();
-      else if(ui.screen === "manage") html = screenManage();
-      if(ui.modal) {
-        html += '<div style="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px">'
-          + '<div style="background:var(--bg);border:1px solid var(--border-soft);border-radius:16px;padding:20px;max-width:420px;width:100%;max-height:85vh;overflow-y:auto">'
-          + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'
-          + '<div style="font-size:15px;font-weight:900;color:var(--p1)">' + _esc(ui.modal.title) + '</div>'
-          + '<button data-modalclose style="background:transparent;border:none;color:#ff8080;cursor:pointer;font-size:18px">✕</button>'
-          + '</div>' + ui.modal.body + '</div></div>';
-      }
-      container.innerHTML = html;
-      bind();
-    }
-
-    function bind(){
-      container.querySelectorAll("[data-goto]").forEach(function(el){
-        el.addEventListener("click", function(){ ui.screen = el.dataset.goto; build(); });
-      });
-      container.querySelectorAll("[data-back]").forEach(function(el){
-        el.addEventListener("click", function(){
-          if(el.dataset.back === "inner") {
-            if(ui.screen === "practice") ui.practice = null;
-            else if(ui.screen === "exam") ui.exam = null;
-          } else { ui.screen = "home"; ui.practice = null; ui.exam = null; }
-          build();
-        });
-      });
-      container.querySelectorAll("[data-pcat]").forEach(function(el){
-        el.addEventListener("click", function(){
-          var cat = el.dataset.pcat;
-          var pool = cat === "__all" ? questions.slice() : questions.filter(function(q){ return q.cat === cat; });
-          if(!pool.length) return;
-          var queue = shuffle(pool);
-          ui.practice = { queue: queue.map(function(q){ return q.id; }), idx: 0, qid: queue[0].id, answered: false, correct: false, selected: null };
-          build();
-        });
-      });
-      container.querySelectorAll("[data-pans]").forEach(function(el){
-        el.addEventListener("click", function(){
-          if(!ui.practice || ui.practice.answered) return;
-          var i = parseInt(el.dataset.pans);
-          var q = questions.find(function(x){ return x.id === ui.practice.qid; });
-          ui.practice.selected = i; ui.practice.answered = true; ui.practice.correct = (i === q.c);
-          recordAnswer(q.id, ui.practice.correct);
-          build();
-        });
-      });
-      var nextBtn = container.querySelector("[data-pnext]");
-      if(nextBtn) nextBtn.addEventListener("click", function(){
-        var p = ui.practice; p.idx++;
-        if(p.idx >= p.queue.length){ ui.practice = null; build(); return; }
-        p.qid = p.queue[p.idx]; p.answered = false; p.correct = false; p.selected = null;
-        build();
-      });
-      var startBtn = container.querySelector("[data-startexam]");
-      if(startBtn) startBtn.addEventListener("click", function(){
-        var pool = shuffle(questions).slice(0, Math.min(30, questions.length));
-        ui.exam = { queue: pool.map(function(q){ return q.id; }), questions: pool, idx: 0, correct: 0, errors: 0, finished: false };
-        build();
-      });
-      container.querySelectorAll("[data-eans]").forEach(function(el){
-        el.addEventListener("click", function(){
-          var e = ui.exam; if(!e || e.finished) return;
-          var i = parseInt(el.dataset.eans);
-          var q = e.questions[e.idx];
-          var ok = (i === q.c);
-          if(ok) e.correct++; else e.errors++;
-          recordAnswer(q.id, ok);
-          e.idx++;
-          if(e.idx >= e.questions.length) {
-            e.finished = true;
-            e.date = new Date().toLocaleString("de-DE");
-            e.total = e.questions.length; e.score = e.correct; e.passed = e.errors <= 10;
-            stats.exams.push({ date: e.date, score: e.score, total: e.total, passed: e.passed });
-            saveStats();
-          }
-          build();
-        });
-      });
-      var addBtn = container.querySelector("[data-addq]");
-      if(addBtn) addBtn.addEventListener("click", function(){
-        ui.modal = { title: "Neue Frage", body: questionForm(null) };
-        build(); bindQuestionForm(null);
-      });
-      container.querySelectorAll("[data-editq]").forEach(function(el){
-        el.addEventListener("click", function(){
-          var id = parseInt(el.dataset.editq);
-          var q = questions.find(function(x){ return x.id === id; });
-          ui.modal = { title: "Frage bearbeiten", body: questionForm(q) };
-          build(); bindQuestionForm(q);
-        });
-      });
-      container.querySelectorAll("[data-delq]").forEach(function(el){
-        el.addEventListener("click", function(){
-          var id = parseInt(el.dataset.delq);
-          if(!confirm("Frage wirklich löschen?")) return;
-          questions = questions.filter(function(q){ return q.id !== id; });
-          delete progress[id];
-          saveQuestions(); saveProgress(); build();
-        });
-      });
-      var mc = container.querySelector("[data-modalclose]");
-      if(mc) mc.addEventListener("click", function(){ ui.modal = null; build(); });
-    }
-
-    build();
+  function loadStats() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) stats = JSON.parse(raw);
+    } catch (e) { }
   }
 
-  HalDoApp("fahrschule", { name: "Fahrschule", icon: "🚗", render: render, category: "bildung" });
-  console.log("🦚 fahrschule.js v1.0 geladen — Theorie-Training PROFESSIONAL");
+  function saveStats() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(stats)); } catch (e) { }
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // 3. CSS STYLING
+  // ═══════════════════════════════════════════════════════
+  function css() {
+    return `<style>
+      .fs-app { font-family: Inter, system-ui, sans-serif; color: #e8e8ec; background: #0a0a0f; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+      .fs-header { padding: 15px 20px; background: #111118; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+      .fs-header h1 { margin: 0; font-size: 18px; color: #00e5ff; display: flex; gap: 10px; align-items: center; }
+      .fs-nav { display: flex; gap: 8px; }
+      .fs-btn { background: #1a1a24; border: 1px solid #2a2a36; color: #ccc; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: inherit; transition: all 0.2s; display: flex; align-items: center; gap: 6px; font-size: 13px; }
+      .fs-btn:hover { background: #252535; color: #fff; }
+      .fs-btn.active { background: #00e5ff; color: #000; border-color: #00e5ff; box-shadow: 0 0 15px rgba(0,229,255,0.4); }
+      .fs-btn.primary { background: linear-gradient(135deg, #00e5ff, #b478ff); color: #000; border: none; }
+      .fs-content { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; }
+      
+      .fs-card { background: #14141c; border: 1px solid #222; border-radius: 12px; padding: 20px; margin-bottom: 15px; }
+      .fs-card h2 { margin-top: 0; font-size: 16px; color: #fff; margin-bottom: 15px; }
+      
+      .fs-opt { display: block; width: 100%; text-align: left; padding: 12px 16px; background: #1a1a24; border: 1px solid #2a2a36; border-radius: 8px; color: #ddd; margin-bottom: 10px; cursor: pointer; font-family: inherit; font-size: 14px; transition: all 0.2s; }
+      .fs-opt:hover { background: #252535; border-color: #00e5ff; }
+      .fs-opt.correct { background: rgba(0,255,102,0.1); border-color: #00ff66; color: #00ff66; }
+      .fs-opt.wrong { background: rgba(255,0,0,0.1); border-color: #ff3333; color: #ff3333; }
+      
+      .fs-exp { background: #1a1a24; border-left: 4px solid #00e5ff; padding: 15px; border-radius: 0 8px 8px 0; margin-top: 15px; font-size: 13px; line-height: 1.6; color: #a8b0cc; display: none; }
+      
+      .fs-signs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
+      .fs-sign-item { background: #1a1a24; border: 1px solid #2a2a36; border-radius: 10px; padding: 15px; text-align: center; transition: transform 0.2s; }
+      .fs-sign-item:hover { transform: translateY(-2px); border-color: #00e5ff; }
+      .fs-sign-icon { font-size: 40px; margin-bottom: 10px; }
+      .fs-sign-name { font-weight: bold; color: #fff; font-size: 13px; margin-bottom: 4px; }
+      .fs-sign-desc { font-size: 11px; color: #888; }
+      
+      .fs-stat-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #222; font-size: 14px; }
+      .fs-stat-row:last-child { border-bottom: none; }
+      .fs-stat-val { font-weight: bold; color: #00e5ff; }
+      
+      .fs-timer { font-size: 24px; font-weight: 900; color: #ffaa00; background: rgba(255,170,0,0.1); padding: 5px 15px; border-radius: 8px; border: 1px solid rgba(255,170,0,0.3); }
+    </style>`;
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // 4. RENDER FUNCTIONS
+  // ═══════════════════════════════════════════════════════
+  function renderHome() {
+    const pct = stats.examsTaken > 0 ? Math.round((stats.examsPassed / stats.examsTaken) * 100) : 0;
+    return `
+      <div class="fs-card" style="text-align: center; padding: 40px 20px;">
+        <div style="font-size: 60px; margin-bottom: 15px;">🚦</div>
+        <h2 style="font-size: 24px; margin-bottom: 10px;">HalDo Fahrschule</h2>
+        <p style="color: #888; margin-bottom: 25px;">Bereit für die Theorie-Prüfung? Trainiere jetzt!</p>
+        <button class="fs-btn primary" data-action="start-exam" style="padding: 12px 30px; font-size: 16px; margin: 0 auto;">🏁 Prüfung starten</button>
+      </div>
+      <div class="fs-card">
+        <h2>📊 Dein Fortschritt</h2>
+        <div class="fs-stat-row"><span>Prüfungen absolviert</span><span class="fs-stat-val">${stats.examsTaken}</span></div>
+        <div class="fs-stat-row"><span>Prüfungen bestanden</span><span class="fs-stat-val" style="color:#00ff66;">${stats.examsPassed}</span></div>
+        <div class="fs-stat-row"><span>Fragen beantwortet</span><span class="fs-stat-val">${stats.questionsAnswered}</span></div>
+        <div class="fs-stat-row"><span>Erfolgsquote</span><span class="fs-stat-val">${pct}%</span></div>
+      </div>
+    `;
+  }
+
+  function renderLearn() {
+    const q = QUESTIONS[currentLearnIndex];
+    let optHtml = '';
+    q.opts.forEach((opt, i) => {
+      optHtml += `<button class="fs-opt" data-action="learn-answer" data-idx="${i}">${opt}</button>`;
+    });
+    
+    return `
+      <div class="fs-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+          <span style="font-size:12px; font-weight:bold; color:#00e5ff; background:rgba(0,229,255,0.1); padding:4px 8px; border-radius:4px;">${q.cat}</span>
+          <span style="font-size:12px; color:#888;">Frage ${currentLearnIndex + 1} von ${QUESTIONS.length}</span>
+        </div>
+        <h2 style="font-size: 18px; line-height: 1.5;">${q.q}</h2>
+        <div style="margin-top: 20px;" id="fs-opt-container">${optHtml}</div>
+        <div class="fs-exp" id="fs-explain">${q.exp}</div>
+        <div style="margin-top:20px; display:flex; gap:10px;">
+          <button class="fs-btn" data-action="learn-prev" ${currentLearnIndex === 0 ? 'disabled style="opacity:0.5"' : ''}>⬅️ Zurück</button>
+          <button class="fs-btn" data-action="learn-next" ${currentLearnIndex === QUESTIONS.length - 1 ? 'disabled style="opacity:0.5"' : ''}>Weiter ➡️</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderSigns() {
+    let html = '<div class="fs-card"><h2>🛑 Verkehrszeichen</h2><div class="fs-signs-grid">';
+    SIGNS.forEach(s => {
+      html += `<div class="fs-sign-item"><div class="fs-sign-icon">${s.icon}</div><div class="fs-sign-name">${s.name}</div><div class="fs-sign-desc">${s.desc}</div></div>`;
+    });
+    html += '</div></div>';
+    return html;
+  }
+
+  function renderExam() {
+    if (!examState) return '';
+    if (examState.finished) {
+      const passed = examState.correct >= 10;
+      return `
+        <div class="fs-card" style="text-align:center; padding:40px;">
+          <div style="font-size:60px; margin-bottom:15px;">${passed ? '🎉' : '😢'}</div>
+          <h2 style="font-size:24px; color:${passed ? '#00ff66' : '#ff3333'};">${passed ? 'BESTANDEN!' : 'DURCHGEFALLEN'}</h2>
+          <p style="color:#888; font-size:16px; margin:15px 0;">Du hast ${examState.correct} von ${examState.total} Fragen richtig beantwortet.</p>
+          <button class="fs-btn primary" data-action="exam-back" style="padding:12px 30px; font-size:16px; margin-top:20px;">Zurück zum Menü</button>
+        </div>
+      `;
+    }
+    
+    const q = examState.questions[examState.current];
+    let optHtml = '';
+    q.opts.forEach((opt, i) => {
+      optHtml += `<button class="fs-opt" data-action="exam-answer" data-idx="${i}">${opt}</button>`;
+    });
+    
+    return `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <span style="font-weight:bold; color:#fff;">Frage ${examState.current + 1} / ${examState.total}</span>
+        <div class="fs-timer" id="fs-exam-timer">${Math.floor(examState.timeLeft / 60)}:${(examState.timeLeft % 60).toString().padStart(2, '0')}</div>
+      </div>
+      <div class="fs-card">
+        <h2 style="font-size: 18px; line-height: 1.5; margin-bottom: 20px;">${q.q}</h2>
+        <div id="fs-exam-opts">${optHtml}</div>
+      </div>
+    `;
+  }
+
+  function renderStats() {
+    const accuracy = stats.questionsAnswered > 0 ? Math.round((stats.correctAnswers / stats.questionsAnswered) * 100) : 0;
+    const passRate = stats.examsTaken > 0 ? Math.round((stats.examsPassed / stats.examsTaken) * 100) : 0;
+    
+    return `
+      <div class="fs-card">
+        <h2>📈 Detaillierte Statistiken</h2>
+        <div class="fs-stat-row"><span>Fragen richtig beantwortet</span><span class="fs-stat-val">${stats.correctAnswers}</span></div>
+        <div class="fs-stat-row"><span>Fragen falsch beantwortet</span><span class="fs-stat-val" style="color:#ff3333;">${stats.questionsAnswered - stats.correctAnswers}</span></div>
+        <div class="fs-stat-row"><span>Trefferquote (Fragen)</span><span class="fs-stat-val">${accuracy}%</span></div>
+        <div class="fs-stat-row"><span>Prüfungs-Bestehensquote</span><span class="fs-stat-val">${passRate}%</span></div>
+      </div>
+      <div class="fs-card" style="text-align:center;">
+        <button class="fs-btn" data-action="reset-stats" style="color:#ff3333; border-color:#ff3333;">🗑️ Statistiken zurücksetzen</button>
+      </div>
+    `;
+  }
+
+  function renderMain() {
+    let viewHtml = '';
+    if (currentView === 'home') viewHtml = renderHome();
+    else if (currentView === 'learn') viewHtml = renderLearn();
+    else if (currentView === 'signs') viewHtml = renderSigns();
+    else if (currentView === 'exam') viewHtml = renderExam();
+    else if (currentView === 'stats') viewHtml = renderStats();
+
+    let examBtn = currentView === 'exam' ? `<button class="fs-btn active" data-view="exam">🏁 Prüfung</button>` : `<button class="fs-btn" data-action="start-exam">🏁 Prüfung</button>`;
+
+    return css() + `
+      <div class="fs-app">
+        <div class="fs-header">
+          <h1>🚦 HalDo Fahrschule <span style="font-size:10px; color:#666; margin-left:5px;">v${VERSION}</span></h1>
+          <div class="fs-nav">
+            <button class="fs-btn ${currentView === 'home' ? 'active' : ''}" data-view="home">🏠 Start</button>
+            <button class="fs-btn ${currentView === 'learn' ? 'active' : ''}" data-view="learn">📖 Lernen</button>
+            <button class="fs-btn ${currentView === 'signs' ? 'active' : ''}" data-view="signs">🛑 Schilder</button>
+            <button class="fs-btn ${currentView === 'stats' ? 'active' : ''}" data-view="stats">📊 Statistik</button>
+            ${examBtn}
+          </div>
+        </div>
+        <div class="fs-content" id="fs-main-content">
+          ${viewHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // 5. LOGIC & INTERACTION
+  // ═══════════════════════════════════════════════════════
+  function startExam() {
+    currentView = 'exam';
+    examState = {
+      questions: [...QUESTIONS].sort(() => Math.random() - 0.5).slice(0, 15), // 15 zufällige Fragen
+      current: 0,
+      correct: 0,
+      total: 15,
+      finished: false,
+      timeLeft: 900 // 15 Minuten
+    };
+    stats.examsTaken++;
+    saveStats();
+    
+    if (examTimer) clearInterval(examTimer);
+    examTimer = setInterval(() => {
+      if (!examState || examState.finished) { clearInterval(examTimer); return; }
+      examState.timeLeft--;
+      const timerEl = document.getElementById('fs-exam-timer');
+      if (timerEl) {
+        timerEl.textContent = `${Math.floor(examState.timeLeft / 60)}:${(examState.timeLeft % 60).toString().padStart(2, '0')}`;
+      }
+      if (examState.timeLeft <= 0) {
+        finishExam();
+      }
+    }, 1000);
+
+    updateView();
+  }
+
+  function finishExam() {
+    if (examTimer) clearInterval(examTimer);
+    examState.finished = true;
+    if (examState.correct >= 10) stats.examsPassed++;
+    saveStats();
+    updateView();
+  }
+
+  function handleClick(e) {
+    const viewBtn = e.target.closest('[data-view]');
+    if (viewBtn) {
+      currentView = viewBtn.dataset.view;
+      if (currentView !== 'exam' && examTimer) clearInterval(examTimer);
+      updateView();
+      return;
+    }
+
+    const actionBtn = e.target.closest('[data-action]');
+    if (!actionBtn) return;
+    const action = actionBtn.dataset.action;
+
+    if (action === 'start-exam') { startExam(); return; }
+    if (action === 'exam-back') { currentView = 'home'; examState = null; updateView(); return; }
+    if (action === 'reset-stats') {
+      if (confirm('Statistiken wirklich zurücksetzen?')) {
+        stats = { examsTaken: 0, examsPassed: 0, questionsAnswered: 0, correctAnswers: 0 };
+        saveStats(); updateView();
+      }
+      return;
+    }
+
+    // LERNEN
+    if (action === 'learn-prev') { if (currentLearnIndex > 0) currentLearnIndex--; updateView(); return; }
+    if (action === 'learn-next') { if (currentLearnIndex < QUESTIONS.length - 1) currentLearnIndex++; updateView(); return; }
+    if (action === 'learn-answer') {
+      const idx = parseInt(actionBtn.dataset.idx);
+      const q = QUESTIONS[currentLearnIndex];
+      const opts = document.querySelectorAll('#fs-opt-container .fs-opt');
+      const exp = document.getElementById('fs-explain');
+      
+      opts.forEach((el, i) => {
+        if (i === q.correct) el.classList.add('correct');
+        else if (i === idx && idx !== q.correct) el.classList.add('wrong');
+        el.disabled = true;
+      });
+      exp.style.display = 'block';
+      
+      stats.questionsAnswered++;
+      if (idx === q.correct) stats.correctAnswers++;
+      saveStats();
+      return;
+    }
+
+    // PRÜFUNG
+    if (action === 'exam-answer' && examState && !examState.finished) {
+      const idx = parseInt(actionBtn.dataset.idx);
+      const q = examState.questions[examState.current];
+      
+      stats.questionsAnswered++;
+      if (idx === q.correct) { examState.correct++; stats.correctAnswers++; }
+      saveStats();
+
+      examState.current++;
+      if (examState.current >= examState.total) {
+        finishExam();
+      } else {
+        updateView();
+      }
+      return;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // 6. INIT & GLOBAL API
+  // ═══════════════════════════════════════════════════════
+  let currentTarget = null;
+
+  function updateView() {
+    if (!currentTarget) return;
+    const main = currentTarget.querySelector('#fs-main-content');
+    if (main) {
+      if (currentView === 'home') main.innerHTML = renderHome();
+      else if (currentView === 'learn') main.innerHTML = renderLearn();
+      else if (currentView === 'signs') main.innerHTML = renderSigns();
+      else if (currentView === 'exam') main.innerHTML = renderExam();
+      else if (currentView === 'stats') main.innerHTML = renderStats();
+    }
+  }
+
+  function mount(target) {
+    if (target && target.nodeType === 1) {
+      currentTarget = target;
+      currentTarget.innerHTML = renderMain();
+      currentTarget.addEventListener('click', handleClick);
+    }
+  }
+
+  loadStats();
+
+  window.HalDoApps = window.HalDoApps || {};
+  window.HalDoApps.fahrschule = { 
+    mount, 
+    version: VERSION,
+    // Expose API for other apps to query stats
+    getStats: () => stats
+  };
+
+  console.log('🚦 fahrschule.js v' + VERSION + ' geladen — Theorie-Training PROFESSIONAL');
+
 })();
