@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    HALDO AI OS — SETTINGS v28.0 (THE ULTIMATE PRO MAX)
-   Alle 15+ Kategorien · 100+ Apps · Live-Theme · Voll Funktionsfähig
+   Alle 13+ Kategorien · 100+ Apps · Live-Theme · Voll Funktionsfähig
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -9,7 +9,7 @@
   var GOLD_STYLE = 'color:#ffd700;font-weight:900;font-size:14px;text-shadow:0 0 10px #ffd700;background:#0a0e2a;padding:4px 8px;border-radius:6px;';
   console.log('%c⚙️ HalDo Settings v28.0 — THE ULTIMATE PRO MAX', GOLD_STYLE);
 
-  // --- Die Master-Liste deiner Apps (aus deinem Boot-Report) ---
+  // --- Die Master-Liste deiner Apps ---
   var ALL_APPS = [
     { id: "ai-chat", name: "AI Chat", emoji: "🤖" }, { id: "blitzer", name: "HalDo Blitzer", emoji: "⚠️" },
     { id: "auto", name: "Auto", emoji: "🚗" }, { id: "chat", name: "Chat", emoji: "💬" },
@@ -195,7 +195,7 @@
 
       var html = `<style>${css}</style><div class="settings-app">`;
 
-      // --- HAUPTMENÜ (Alle Kategorien) ---
+      // --- HAUPTMENÜ (Alle 13 Kategorien) ---
       if (view.screen === "main") {
         html += `<div class="settings-header"><h1>⚙️ Einstellungen</h1></div><div class="settings-list">`;
         var categories = [
