@@ -1,4 +1,4 @@
-/* HalDo Settings v33.0 — ULTIMATE SYSTEM CONTROL (Audio-Dauer, Hotspot-Pass, Textersetzung) */
+/* HalDo Settings v34.0 — ULTIMATE SYSTEM CONTROL (Glass UI, Themes, Audio, Textersetzung) */
 (function () {
   'use strict';
 
@@ -38,50 +38,20 @@
       if (!ctx) return;
       
       const now = ctx.currentTime;
-      const dur = totalDuration || 2.0; // Standarddauer 2 Sekunden
+      const dur = totalDuration || 2.0;
       let loops = Math.max(1, Math.floor(dur / 1.0)); 
 
       switch(soundId) {
-        case 'ping': 
-          for(let i=0; i<loops; i++) playTone(880, now + i*0.8, 0.2, 'sine', 0.4); 
-          break;
-        case 'ding': 
-          for(let i=0; i<loops; i++) playTone(1320, now + i*1.0, 0.5, 'sine', 0.4); 
-          break;
-        case 'chime': 
-          for(let i=0; i<loops; i++) {
-            playTone(659, now + i*1.2, 0.3, 'sine', 0.3); 
-            playTone(988, now + i*1.2 + 0.15, 0.4, 'sine', 0.3); 
-          }
-          break;
-        case 'bell': 
-          for(let i=0; i<loops; i++) playTone(1046, now + i*1.5, 1.0, 'sine', 0.4); 
-          break;
-        case 'marimba': 
-          for(let i=0; i<loops; i++) {
-            [523, 659, 784, 1046].forEach((f, j) => playTone(f, now + i*1.2 + j*0.1, 0.3, 'triangle', 0.25));
-          }
-          break;
-        case 'alarm': 
-          for(let i=0; i<loops*2; i++) playTone(1400, now + i*0.3, 0.15, 'square', 0.5); 
-          break;
-        case 'siren':
-          for(let i=0; i<loops; i++) {
-            playTone(800, now + i*1.0, 0.4, 'sawtooth', 0.3);
-            playTone(1200, now + i*1.0 + 0.4, 0.4, 'sawtooth', 0.3);
-          }
-          break;
-        case 'echo':
-          playTone(1200, now, 0.2, 'sine', 0.5);
-          playTone(1200, now+0.3, 0.2, 'sine', 0.35);
-          playTone(1200, now+0.6, 0.2, 'sine', 0.2);
-          playTone(1200, now+0.9, 0.2, 'sine', 0.1);
-          break;
-        case 'success': 
-          [523, 659, 784, 1046].forEach((f, i) => playTone(f, now + i*0.15, 0.3, 'sine', 0.3)); 
-          break;
-        default: 
-          playTone(880, now, 0.5, 'sine', 0.3);
+        case 'ping': for(let i=0; i<loops; i++) playTone(880, now + i*0.8, 0.2, 'sine', 0.4); break;
+        case 'ding': for(let i=0; i<loops; i++) playTone(1320, now + i*1.0, 0.5, 'sine', 0.4); break;
+        case 'chime': for(let i=0; i<loops; i++) { playTone(659, now + i*1.2, 0.3, 'sine', 0.3); playTone(988, now + i*1.2 + 0.15, 0.4, 'sine', 0.3); } break;
+        case 'bell': for(let i=0; i<loops; i++) playTone(1046, now + i*1.5, 1.0, 'sine', 0.4); break;
+        case 'marimba': for(let i=0; i<loops; i++) { [523, 659, 784, 1046].forEach((f, j) => playTone(f, now + i*1.2 + j*0.1, 0.3, 'triangle', 0.25)); } break;
+        case 'alarm': for(let i=0; i<loops*2; i++) playTone(1400, now + i*0.3, 0.15, 'square', 0.5); break;
+        case 'siren': for(let i=0; i<loops; i++) { playTone(800, now + i*1.0, 0.4, 'sawtooth', 0.3); playTone(1200, now + i*1.0 + 0.4, 0.4, 'sawtooth', 0.3); } break;
+        case 'echo': playTone(1200, now, 0.2, 'sine', 0.5); playTone(1200, now+0.3, 0.2, 'sine', 0.35); playTone(1200, now+0.6, 0.2, 'sine', 0.2); playTone(1200, now+0.9, 0.2, 'sine', 0.1); break;
+        case 'success': [523, 659, 784, 1046].forEach((f, i) => playTone(f, now + i*0.15, 0.3, 'sine', 0.3)); break;
+        default: playTone(880, now, 0.5, 'sine', 0.3);
       }
     }
 
@@ -95,12 +65,16 @@
   // ═══════════════════════════════════════════════════════
   // 2. KONFIGURATION & STATE
   // ═══════════════════════════════════════════════════════
-  const VERSION = '33.0';
-  const STORAGE_KEY = 'haldo.settings.v33';
+  const VERSION = '34.0';
+  const STORAGE_KEY = 'haldo.settings.v34';
 
   const DEFAULTS = {
     general: { deviceName: 'HalDo Device', model: 'HalDo X1 Pro', version: VERSION },
-    display: { brightness: 100, darkMode: true, accent: '#00d4ff', fontSize: 100, wallpaper: 'gradient-dark', nightLight: false },
+    display: { 
+      brightness: 100, darkMode: true, accent: '#00d4ff', fontSize: 100, 
+      wallpaper: 'gradient-dark', nightLight: false, uiStyle: 'standard',
+      animations: true, cornerRadius: 10
+    },
     audio: { master: 0.8, ringtone: 'chime', testDuration: 3, silentMode: false, vibratePattern: 'standard' },
     bluetooth: { 
       wifi: true, bluetooth: false, nfc: false, location: true, airplane: false, 
@@ -161,11 +135,18 @@
   function save() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {} }
   function get(p) { const parts = p.split('.'); let c = state; for (const pt of parts) { if (c == null) return undefined; c = c[pt]; } return c; }
   function set(p, v) { const parts = p.split('.'); let c = state; for (let i = 0; i < parts.length - 1; i++) { if (c[parts[i]] == null) c[parts[i]] = {}; c = c[parts[i]]; } c[parts[parts.length - 1]] = v; save(); applySideEffects(p, v); }
+  
   function applySideEffects(p, v) {
     if (p === 'audio.master') HalDoAudio.setMasterVolume(v);
     if (p === 'display.brightness') document.documentElement.style.setProperty('--haldo-brightness', v / 100);
     if (p === 'display.darkMode') document.documentElement.classList.toggle('haldo-dark', v);
     if (p === 'display.nightLight') document.documentElement.style.filter = v ? 'sepia(0.3) hue-rotate(-15deg)' : '';
+    if (p === 'display.uiStyle') {
+      document.documentElement.setAttribute('data-ui-style', v);
+      if (v === 'glass') document.body.classList.add('haldo-glass-mode'); else document.body.classList.remove('haldo-glass-mode');
+    }
+    if (p === 'display.animations') { document.body.classList.toggle('haldo-no-anim', !v); }
+    if (p === 'display.cornerRadius') { document.documentElement.style.setProperty('--haldo-radius', v + 'px'); }
     if (p === 'welcome.enabled') window.__haldoWelcomeEnabled = !!v;
   }
 
@@ -183,17 +164,28 @@
 
   function css() {
     return `<style>
-      .haldo-settings { font-family: Inter, system-ui, sans-serif; color: #e8e8ec; background: #0a0a0f; display: flex; height: 100%; min-height: 500px; border-radius: 10px; overflow: hidden; }
+      :root { --haldo-radius: 10px; }
+      .haldo-settings { font-family: Inter, system-ui, sans-serif; color: #e8e8ec; background: #0a0a0f; display: flex; height: 100%; min-height: 500px; border-radius: 10px; overflow: hidden; transition: all 0.3s; }
       .haldo-settings * { box-sizing: border-box; }
-      .hs-sidebar { width: 220px; background: #111118; border-right: 1px solid #222; overflow-y: auto; padding: 12px 0; flex-shrink: 0; }
+      .haldo-no-anim * { transition: none !important; animation: none !important; }
+      
+      /* UI THEMES */
+      [data-ui-style="glass"] .haldo-settings { background: rgba(10, 10, 15, 0.6); backdrop-filter: blur(20px); }
+      [data-ui-style="glass"] .hs-section, [data-ui-style="glass"] .hs-sidebar { background: rgba(255, 255, 255, 0.05) !important; backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1) !important; }
+      [data-ui-style="neon"] .hs-section { border-color: var(--haldo-accent, #00d4ff); box-shadow: 0 0 10px rgba(0, 212, 255, 0.2); }
+      [data-ui-style="neon"] .hs-nav-item.active { text-shadow: 0 0 8px var(--haldo-accent); }
+      [data-ui-style="minimal"] .hs-section { background: transparent; border: none; border-bottom: 1px solid #222; border-radius: 0; padding: 10px 0; margin-bottom: 0; }
+      [data-ui-style="minimal"] .hs-sidebar { background: transparent; border: none; }
+
+      .hs-sidebar { width: 220px; background: #111118; border-right: 1px solid #222; overflow-y: auto; padding: 12px 0; flex-shrink: 0; transition: all 0.3s; }
       .hs-sidebar h2 { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #555; padding: 12px 16px 6px; margin: 0; }
       .hs-nav-item { padding: 10px 16px; cursor: pointer; font-size: 13px; border-left: 3px solid transparent; transition: all 0.15s; display: flex; align-items: center; gap: 9px; user-select: none; }
-      .hs-nav-item:hover { background: #1a1a24; }
-      .hs-nav-item.active { background: #1a1a24; border-left-color: var(--haldo-accent, #00d4ff); color: var(--haldo-accent, #00d4ff); }
+      .hs-nav-item:hover { background: rgba(255,255,255,0.05); }
+      .hs-nav-item.active { background: rgba(255,255,255,0.05); border-left-color: var(--haldo-accent, #00d4ff); color: var(--haldo-accent, #00d4ff); }
       .hs-nav-item .icon { font-size: 15px; width: 18px; text-align: center; }
       .hs-content { flex: 1; overflow-y: auto; padding: 22px 28px; }
       .hs-content h1 { font-size: 21px; margin: 0 0 18px; font-weight: 600; }
-      .hs-section { background: #14141c; border: 1px solid #222; border-radius: 10px; padding: 14px 18px; margin-bottom: 14px; }
+      .hs-section { background: #14141c; border: 1px solid #222; border-radius: var(--haldo-radius); padding: 14px 18px; margin-bottom: 14px; transition: all 0.3s; }
       .hs-section h3 { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; }
       .hs-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #1e1e28; gap: 12px; }
       .hs-row:last-child { border-bottom: none; }
@@ -232,11 +224,6 @@
       .hs-perm-btn.on { background: #0a6; color: #fff; border-color: #0a6; }
       .hs-panel { background: #16161e; border: 1px solid #2a2a36; border-radius: 8px; padding: 12px 14px; margin: 8px 0; }
       .hs-panel h4 { margin: 0 0 8px; font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
-      .hs-eq { display: flex; gap: 14px; padding: 10px 0; justify-content: center; }
-      .hs-eq-slider { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-      .hs-eq-slider label { font-size: 10px; color: #888; text-transform: uppercase; }
-      .hs-eq-slider input { writing-mode: vertical-lr; direction: rtl; width: 24px; height: 120px; accent-color: var(--haldo-accent, #00d4ff); }
-      .hs-eq-slider .val { font-size: 11px; color: #ccc; font-weight: 600; }
       .hs-wallpaper-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 8px 0; }
       .hs-wallpaper-item { aspect-ratio: 9/16; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; }
       .hs-wallpaper-item:hover { transform: scale(1.03); }
@@ -279,18 +266,39 @@
   function rowInfo(label, value) { return `<div class="hs-row"><label>${esc(label)}</label><span class="val">${esc(value)}</span></div>`; }
   function rowButton(label, btnText, action, cls) { return `<div class="hs-row"><label>${esc(label)}</label><button class="hs-btn ${cls || ''}" data-action="${action}">${esc(btnText)}</button></div>`; }
 
-  // ═══════════════════════════════════════════════════════
-  // RENDERERS
-  // ═══════════════════════════════════════════════════════
   function renderGeneral() {
     const apps = getAllApps();
     return `<h1>ℹ️ Allgemein & Info</h1><div class="hs-section"><h3>Gerät</h3>${rowInput('Gerätename', 'general.deviceName', 'set:general.deviceName')}${rowInfo('Modell', get('general.model'))}${rowInfo('Systemversion', VERSION)}${rowInfo('Installierte Apps', apps.length + ' Apps')}</div><div class="hs-section"><h3>System</h3>${rowInfo('Laufzeit', 'HalDo AI OS')}${rowButton('Werksreset', 'Zurücksetzen', 'reset-all', 'danger')}</div>`;
   }
   function renderDisplay() {
-    const wallpapers = [ { id: 'gradient-dark', style: 'linear-gradient(180deg, #050810 0%, #0a0f1a 100%)' }, { id: 'gradient-blue', style: 'linear-gradient(180deg, #001a4d 0%, #003580 100%)' }, { id: 'gradient-purple', style: 'linear-gradient(180deg, #1a0033 0%, #4d0080 100%)' }, { id: 'gradient-gold', style: 'linear-gradient(180deg, #1a1000 0%, #4d3a00 100%)' } ];
+    const wallpapers = [ 
+      { id: 'gradient-dark', style: 'linear-gradient(180deg, #050810 0%, #0a0f1a 100%)' }, 
+      { id: 'gradient-blue', style: 'linear-gradient(180deg, #001a4d 0%, #003580 100%)' }, 
+      { id: 'gradient-purple', style: 'linear-gradient(180deg, #1a0033 0%, #4d0080 100%)' }, 
+      { id: 'gradient-gold', style: 'linear-gradient(180deg, #1a1000 0%, #4d3a00 100%)' },
+      { id: 'gradient-teal', style: 'linear-gradient(180deg, #001a1a 0%, #004d4d 100%)' },
+      { id: 'gradient-red', style: 'linear-gradient(180deg, #1a0000 0%, #4d0000 100%)' },
+      { id: 'solid-black', style: '#000' },
+      { id: 'solid-navy', style: '#0a1428' }
+    ];
     const current = get('display.wallpaper');
     const wpGrid = wallpapers.map(w => `<div class="hs-wallpaper-item ${w.id === current ? 'active' : ''}" style="background: ${w.style}" data-action="set-wallpaper" data-wallpaper="${w.id}"></div>`).join('');
-    return `<h1>🎨 Darstellung & Display</h1><div class="hs-section"><h3>Helligkeit & Modus</h3>${rowSlider('Helligkeit', 'display.brightness', 'set:display.brightness', 10, 100, 1, '%')}${rowToggle('Dark Mode', 'display.darkMode', 'toggle:display.darkMode')}${rowToggle('Nachtlicht', 'display.nightLight', 'toggle:display.nightLight')}</div><div class="hs-section"><h3>Akzentfarbe</h3><div class="hs-row"><label>Akzentfarbe</label><input class="hs-color" type="color" value="${esc(get('display.accent'))}" data-action="set:display.accent"></div></div><div class="hs-section"><h3>Hintergrundbild</h3><div class="hs-wallpaper-grid">${wpGrid}</div></div><div class="hs-section"><h3>Schriftgröße</h3>${rowSlider('Schriftgröße', 'display.fontSize', 'set:display.fontSize', 80, 140, 5, '%')}</div>`;
+    
+    return `<h1>🎨 Darstellung & Display</h1>
+      <div class="hs-section"><h3>UI-Stil</h3>
+        ${rowSelect('Design', 'display.uiStyle', 'set:display.uiStyle', [ 
+          { value: 'standard', label: 'Standard (Dunkel)' }, 
+          { value: 'glass', label: 'Glassmorphism (Glas)' }, 
+          { value: 'neon', label: 'Neon (Leuchtend)' }, 
+          { value: 'minimal', label: 'Minimalistisch (Flach)' } 
+        ])}
+        ${rowToggle('Animationen', 'display.animations', 'toggle:display.animations')}
+        ${rowSlider('Ecken-Radius', 'display.cornerRadius', 'set:display.cornerRadius', 0, 24, 1, 'px')}
+      </div>
+      <div class="hs-section"><h3>Helligkeit & Modus</h3>${rowSlider('Helligkeit', 'display.brightness', 'set:display.brightness', 10, 100, 1, '%')}${rowToggle('Dark Mode', 'display.darkMode', 'toggle:display.darkMode')}${rowToggle('Nachtlicht', 'display.nightLight', 'toggle:display.nightLight')}</div>
+      <div class="hs-section"><h3>Akzentfarbe</h3><div class="hs-row"><label>Akzentfarbe</label><input class="hs-color" type="color" value="${esc(get('display.accent'))}" data-action="set:display.accent"></div></div>
+      <div class="hs-section"><h3>Hintergrundbild</h3><div class="hs-wallpaper-grid">${wpGrid}</div></div>
+      <div class="hs-section"><h3>Schriftgröße</h3>${rowSlider('Schriftgröße', 'display.fontSize', 'set:display.fontSize', 80, 140, 5, '%')}</div>`;
   }
   function renderAudio() {
     const sounds = HalDoAudio.listSounds().map(s => ({ value: s, label: s }));
@@ -450,11 +458,16 @@
     window.HalDoAudio = HalDoAudio;
     window.__haldoWelcomeEnabled = get('welcome.enabled'); window.__haldoWelcomeDuration = get('welcome.duration');
     
+    // Initial UI Theme anwenden
+    document.documentElement.setAttribute('data-ui-style', get('display.uiStyle') || 'standard');
+    document.documentElement.style.setProperty('--haldo-radius', (get('display.cornerRadius') || 10) + 'px');
+    if (!get('display.animations')) document.body.classList.add('haldo-no-anim');
+
     const api = { open, render, getHTML, get, set, getAppConfig, setAppConfig, VERSION, getAllApps, APP_LIST: FALLBACK_APPS };
     window.HalDo = window.HalDo || {}; window.HalDo.settings = api; window.HalDo.Settings = api;
     window.HalDo.getAppConfig = getAppConfig; window.HalDo.setAppConfig = setAppConfig;
     window.HalDoSettings = api; window.Settings = api; window.openSettings = open;
-    console.log('⚙️ HalDo Settings v' + VERSION + ' — AUDIO (Lang) & TEXTERSETZUNG READY');
+    console.log('⚙️ HalDo Settings v' + VERSION + ' — GLASS UI, THEMES, AUDIO & TEXTERSETZUNG READY');
   } catch (initErr) {
     console.error('❌ HalDo Settings Init Fehler:', initErr);
   }
