@@ -1,12 +1,13 @@
-/* HalDo Settings v32.0 — ULTIMATE SYSTEM CONTROL + AUDIO ENGINE + ERWEITERTE FEATURES */
+/* HalDo Settings v33.0 — ULTIMATE SYSTEM CONTROL (Audio-Dauer, Hotspot-Pass, Textersetzung) */
 (function () {
   'use strict';
 
   // ═══════════════════════════════════════════════════════
-  // 1. INTEGRIERTE AUDIO ENGINE (Damit Ton zu 100% geht)
+  // 1. INTEGRIERTE AUDIO ENGINE (Mit Dauer & mehr Sounds)
   // ═══════════════════════════════════════════════════════
   const HalDoAudio = (function() {
     let ctx = null, masterNode = null, masterVolume = 0.8;
+    
     function init() {
       if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return ctx; }
       try {
@@ -17,40 +18,90 @@
       } catch (e) { console.warn('AudioContext Fehler:', e); }
       return ctx;
     }
-    function playSound(soundId) {
-      init(); if (!ctx) return;
+
+    function playTone(freq, startTime, duration, type, vol) {
+      const osc = ctx.createOscillator(), g = ctx.createGain();
+      osc.type = type || 'sine'; 
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(0, startTime);
+      g.gain.linearRampToValueAtTime(vol, startTime + 0.02);
+      g.gain.setValueAtTime(vol, startTime + duration - 0.05);
+      g.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+      osc.connect(g); 
+      g.connect(masterNode); 
+      osc.start(startTime); 
+      osc.stop(startTime + duration + 0.1);
+    }
+
+    function playSound(soundId, totalDuration) {
+      init(); 
+      if (!ctx) return;
+      
       const now = ctx.currentTime;
-      function playFreq(freq, dur, type, vol) {
-        const osc = ctx.createOscillator(), g = ctx.createGain();
-        osc.type = type || 'sine'; osc.frequency.value = freq;
-        g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(vol, now + 0.01);
-        g.gain.exponentialRampToValueAtTime(0.001, now + dur);
-        osc.connect(g); g.connect(masterNode); osc.start(now); osc.stop(now + dur + 0.05);
-      }
+      const dur = totalDuration || 2.0; // Standarddauer 2 Sekunden
+      let loops = Math.max(1, Math.floor(dur / 1.0)); 
+
       switch(soundId) {
-        case 'ping': playFreq(880, 0.15, 'sine', 0.3); break;
-        case 'ding': playFreq(1320, 0.20, 'sine', 0.3); break;
-        case 'chime': playFreq(659, 0.15, 'sine', 0.3); setTimeout(() => playFreq(988, 0.20, 'sine', 0.3), 150); break;
-        case 'bell': playFreq(1046, 0.50, 'sine', 0.3); break;
-        case 'marimba': [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => playFreq(f, 0.25, 'triangle', 0.25), i * 90)); break;
-        case 'alarm': [1400, 1400, 1400].forEach((f, i) => setTimeout(() => playFreq(f, 0.15, 'square', 0.4), i * 250)); break;
-        case 'success': playFreq(523,0.1,'sine',0.3); setTimeout(()=>playFreq(659,0.1,'sine',0.3),80); setTimeout(()=>playFreq(784,0.15,'sine',0.3),160); break;
-        default: playFreq(880, 0.15, 'sine', 0.3);
+        case 'ping': 
+          for(let i=0; i<loops; i++) playTone(880, now + i*0.8, 0.2, 'sine', 0.4); 
+          break;
+        case 'ding': 
+          for(let i=0; i<loops; i++) playTone(1320, now + i*1.0, 0.5, 'sine', 0.4); 
+          break;
+        case 'chime': 
+          for(let i=0; i<loops; i++) {
+            playTone(659, now + i*1.2, 0.3, 'sine', 0.3); 
+            playTone(988, now + i*1.2 + 0.15, 0.4, 'sine', 0.3); 
+          }
+          break;
+        case 'bell': 
+          for(let i=0; i<loops; i++) playTone(1046, now + i*1.5, 1.0, 'sine', 0.4); 
+          break;
+        case 'marimba': 
+          for(let i=0; i<loops; i++) {
+            [523, 659, 784, 1046].forEach((f, j) => playTone(f, now + i*1.2 + j*0.1, 0.3, 'triangle', 0.25));
+          }
+          break;
+        case 'alarm': 
+          for(let i=0; i<loops*2; i++) playTone(1400, now + i*0.3, 0.15, 'square', 0.5); 
+          break;
+        case 'siren':
+          for(let i=0; i<loops; i++) {
+            playTone(800, now + i*1.0, 0.4, 'sawtooth', 0.3);
+            playTone(1200, now + i*1.0 + 0.4, 0.4, 'sawtooth', 0.3);
+          }
+          break;
+        case 'echo':
+          playTone(1200, now, 0.2, 'sine', 0.5);
+          playTone(1200, now+0.3, 0.2, 'sine', 0.35);
+          playTone(1200, now+0.6, 0.2, 'sine', 0.2);
+          playTone(1200, now+0.9, 0.2, 'sine', 0.1);
+          break;
+        case 'success': 
+          [523, 659, 784, 1046].forEach((f, i) => playTone(f, now + i*0.15, 0.3, 'sine', 0.3)); 
+          break;
+        default: 
+          playTone(880, now, 0.5, 'sine', 0.3);
       }
     }
-    return { playSound, setMasterVolume: (v) => { masterVolume = v; if (masterNode) masterNode.gain.value = v; }, listSounds: () => ['ping','ding','chime','bell','marimba','alarm','success'] };
+
+    return { 
+      playSound, 
+      setMasterVolume: (v) => { masterVolume = v; if (masterNode) masterNode.gain.value = v; }, 
+      listSounds: () => ['ping', 'ding', 'chime', 'bell', 'marimba', 'alarm', 'siren', 'echo', 'success'] 
+    };
   })();
 
   // ═══════════════════════════════════════════════════════
-  // 2. KONFIGURATION & STATE (Mit WLAN/Hotspot & KI Feldern)
+  // 2. KONFIGURATION & STATE
   // ═══════════════════════════════════════════════════════
-  const VERSION = '32.0';
-  const STORAGE_KEY = 'haldo.settings.v32';
+  const VERSION = '33.0';
+  const STORAGE_KEY = 'haldo.settings.v33';
 
   const DEFAULTS = {
     general: { deviceName: 'HalDo Device', model: 'HalDo X1 Pro', version: VERSION },
     display: { brightness: 100, darkMode: true, accent: '#00d4ff', fontSize: 100, wallpaper: 'gradient-dark', nightLight: false },
-    audio: { master: 0.8, ringtone: 'chime', silentMode: false, vibratePattern: 'standard' },
+    audio: { master: 0.8, ringtone: 'chime', testDuration: 3, silentMode: false, vibratePattern: 'standard' },
     bluetooth: { 
       wifi: true, bluetooth: false, nfc: false, location: true, airplane: false, 
       hotspot: false, hotspotName: 'HalDo_Hotspot', hotspotPass: '12345678',
@@ -63,7 +114,13 @@
     ai: { assistant: 'haldo-ai', ttsRate: 1.0 },
     language: { system: 'de' },
     storage: { total: 100, used: 12.4 },
-    keyboard: { de: true, en: true, tr: false, ar: false, ku: false, ezidi: false, aiText: '' },
+    keyboard: { 
+      de: true, en: true, tr: false, ar: false, ku: false, ezidi: false, aiText: '',
+      replacements: [
+        { key: 'zb', val: 'zum Beispiel' },
+        { key: 'mfg', val: 'Mit freundlichen Grüßen' }
+      ]
+    },
     update: { currentVersion: VERSION, lastCheck: null },
     battery: { percent: 87, charging: false, saver: false },
     welcome: { enabled: true, duration: 2200 }
@@ -185,6 +242,14 @@
       .hs-wallpaper-item:hover { transform: scale(1.03); }
       .hs-wallpaper-item.active { border-color: var(--haldo-accent, #00d4ff); }
       textarea.hs-input { resize: vertical; min-height: 60px; }
+      .hs-pass-wrapper { display: flex; gap: 6px; align-items: center; width: 100%; max-width: 250px; }
+      .hs-pass-wrapper input { flex: 1; max-width: none; }
+      .hs-eye-btn { background: #1a1a24; border: 1px solid #2a2a36; color: #fff; padding: 6px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+      .hs-tr-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+      .hs-tr-item { display: flex; justify-content: space-between; align-items: center; background: #1a1a24; padding: 8px 12px; border-radius: 6px; border: 1px solid #2a2a36; }
+      .hs-tr-key { font-weight: bold; color: var(--haldo-accent, #00d4ff); width: 50px; }
+      .hs-tr-val { flex: 1; color: #ccc; font-size: 12px; }
+      .hs-tr-del { background: transparent; border: none; color: #c33; cursor: pointer; font-weight: bold; padding: 0 5px; }
     </style>`;
   }
 
@@ -214,6 +279,9 @@
   function rowInfo(label, value) { return `<div class="hs-row"><label>${esc(label)}</label><span class="val">${esc(value)}</span></div>`; }
   function rowButton(label, btnText, action, cls) { return `<div class="hs-row"><label>${esc(label)}</label><button class="hs-btn ${cls || ''}" data-action="${action}">${esc(btnText)}</button></div>`; }
 
+  // ═══════════════════════════════════════════════════════
+  // RENDERERS
+  // ═══════════════════════════════════════════════════════
   function renderGeneral() {
     const apps = getAllApps();
     return `<h1>ℹ️ Allgemein & Info</h1><div class="hs-section"><h3>Gerät</h3>${rowInput('Gerätename', 'general.deviceName', 'set:general.deviceName')}${rowInfo('Modell', get('general.model'))}${rowInfo('Systemversion', VERSION)}${rowInfo('Installierte Apps', apps.length + ' Apps')}</div><div class="hs-section"><h3>System</h3>${rowInfo('Laufzeit', 'HalDo AI OS')}${rowButton('Werksreset', 'Zurücksetzen', 'reset-all', 'danger')}</div>`;
@@ -226,7 +294,7 @@
   }
   function renderAudio() {
     const sounds = HalDoAudio.listSounds().map(s => ({ value: s, label: s }));
-    return `<h1>🔊 Audio & Töne</h1><div class="hs-section"><h3>Lautstärke</h3>${rowSlider('Master', 'audio.master', 'set:audio.master', 0, 1, 0.01, '')}${rowToggle('Lautlos-Modus', 'audio.silentMode', 'toggle:audio.silentMode')}</div><div class="hs-section"><h3>Klingelton</h3>${rowSelect('Klingelton', 'audio.ringtone', 'set:audio.ringtone', sounds)}${rowButton('Klingelton testen', '🔊 Test', 'test-ringtone')}</div><div class="hs-section"><h3>Vibration</h3>${rowSelect('Muster', 'audio.vibratePattern', 'set:audio.vibratePattern', [ { value: 'standard', label: 'Standard' }, { value: 'long', label: 'Lang' }, { value: 'short', label: 'Kurz' }, { value: 'heartbeat', label: 'Herzschlag' }, { value: 'none', label: 'Keine' } ])}${rowButton('Vibration testen', '📳 Test', 'test-vibration')}</div><div class="hs-section"><h3>Equalizer</h3><div class="hs-eq"><div class="hs-eq-slider"><label>Bass</label><input type="range" min="-15" max="15" step="1" value="${get('audio.eq.bass')}" data-action="eq-bass"><span class="val">${get('audio.eq.bass')}</span></div><div class="hs-eq-slider"><label>Mid</label><input type="range" min="-15" max="15" step="1" value="${get('audio.eq.mid')}" data-action="eq-mid"><span class="val">${get('audio.eq.mid')}</span></div><div class="hs-eq-slider"><label>Treble</label><input type="range" min="-15" max="15" step="1" value="${get('audio.eq.treble')}" data-action="eq-treble"><span class="val">${get('audio.eq.treble')}</span></div></div>${rowButton('Equalizer testen', '🔊 Test', 'test-eq')}</div>`;
+    return `<h1>🔊 Audio & Töne</h1><div class="hs-section"><h3>Lautstärke</h3>${rowSlider('Master', 'audio.master', 'set:audio.master', 0, 1, 0.01, '')}${rowToggle('Lautlos-Modus', 'audio.silentMode', 'toggle:audio.silentMode')}</div><div class="hs-section"><h3>Klingelton</h3>${rowSelect('Klingelton', 'audio.ringtone', 'set:audio.ringtone', sounds)}<div class="hs-row"><label>Test-Dauer</label><select class="hs-select" data-action="set:audio.testDuration"><option value="1" ${get('audio.testDuration')==1?'selected':''}>1 Sekunde</option><option value="3" ${get('audio.testDuration')==3?'selected':''}>3 Sekunden</option><option value="5" ${get('audio.testDuration')==5?'selected':''}>5 Sekunden</option><option value="10" ${get('audio.testDuration')==10?'selected':''}>10 Sekunden</option></select></div>${rowButton('Klingelton testen', '🔊 Test', 'test-ringtone')}</div><div class="hs-section"><h3>Vibration</h3>${rowSelect('Muster', 'audio.vibratePattern', 'set:audio.vibratePattern', [ { value: 'standard', label: 'Standard' }, { value: 'long', label: 'Lang' }, { value: 'short', label: 'Kurz' }, { value: 'heartbeat', label: 'Herzschlag' }, { value: 'none', label: 'Keine' } ])}${rowButton('Vibration testen', '📳 Test', 'test-vibration')}</div>`;
   }
   function renderApps() {
     const apps = getAllApps();
@@ -246,10 +314,24 @@
   function renderBluetooth() {
     const isHotspot = get('bluetooth.hotspot');
     const isVpn = get('bluetooth.vpn');
-    return `<h1>📶 Bluetooth & Netzwerk</h1><div class="hs-section"><h3>Verbindungen</h3>${rowToggle('WLAN', 'bluetooth.wifi', 'toggle:bluetooth.wifi')}${rowToggle('Bluetooth', 'bluetooth.bluetooth', 'toggle:bluetooth.bluetooth')}${rowToggle('NFC', 'bluetooth.nfc', 'toggle:bluetooth.nfc')}${rowToggle('Standortdienste', 'bluetooth.location', 'toggle:bluetooth.location')}${rowToggle('Flugmodus', 'bluetooth.airplane', 'toggle:bluetooth.airplane')}</div><div class="hs-section"><h3>Hotspot</h3>${rowToggle('Hotspot aktiv', 'bluetooth.hotspot', 'toggle:bluetooth.hotspot')}${isHotspot ? `<div class="hs-row"><label>Netzwerkname (SSID)</label><input class="hs-input" value="${esc(get('bluetooth.hotspotName'))}" data-action="set:bluetooth.hotspotName"></div><div class="hs-row"><label>WLAN-Passwort</label><input class="hs-input" type="password" value="${esc(get('bluetooth.hotspotPass'))}" data-action="set:bluetooth.hotspotPass"></div>` : ''}</div><div class="hs-section"><h3>VPN</h3>${rowToggle('VPN aktiv', 'bluetooth.vpn', 'toggle:bluetooth.vpn')}${isVpn ? `<div class="hs-row"><label>VPN Server</label><input class="hs-input" value="${esc(get('bluetooth.vpnServer'))}" data-action="set:bluetooth.vpnServer"></div>` : ''}</div><div class="hs-section"><h3>Bluetooth-Geräte</h3>${rowButton('Gerätesuche (Web Bluetooth)', '🔍 Suchen', 'bt-scan')}<div id="hs-bt-results" class="hs-empty">Noch keine Suche gestartet.</div></div>`;
+    return `<h1>📶 Bluetooth & Netzwerk</h1><div class="hs-section"><h3>Verbindungen</h3>${rowToggle('WLAN', 'bluetooth.wifi', 'toggle:bluetooth.wifi')}${rowToggle('Bluetooth', 'bluetooth.bluetooth', 'toggle:bluetooth.bluetooth')}${rowToggle('NFC', 'bluetooth.nfc', 'toggle:bluetooth.nfc')}${rowToggle('Standortdienste', 'bluetooth.location', 'toggle:bluetooth.location')}${rowToggle('Flugmodus', 'bluetooth.airplane', 'toggle:bluetooth.airplane')}</div><div class="hs-section"><h3>Hotspot</h3>${rowToggle('Hotspot aktiv', 'bluetooth.hotspot', 'toggle:bluetooth.hotspot')}${isHotspot ? `<div class="hs-row"><label>Netzwerkname (SSID)</label><input class="hs-input" value="${esc(get('bluetooth.hotspotName'))}" data-action="set:bluetooth.hotspotName"></div><div class="hs-row"><label>WLAN-Passwort</label><div class="hs-pass-wrapper"><input class="hs-input" type="password" id="hotspot-pass-input" value="${esc(get('bluetooth.hotspotPass'))}" data-action="set:bluetooth.hotspotPass"><button class="hs-eye-btn" data-action="toggle-pass-visibility" data-target="hotspot-pass-input">👁️</button></div></div>` : ''}</div><div class="hs-section"><h3>VPN</h3>${rowToggle('VPN aktiv', 'bluetooth.vpn', 'toggle:bluetooth.vpn')}${isVpn ? `<div class="hs-row"><label>VPN Server</label><input class="hs-input" value="${esc(get('bluetooth.vpnServer'))}" data-action="set:bluetooth.vpnServer"></div>` : ''}</div><div class="hs-section"><h3>Bluetooth-Geräte</h3>${rowButton('Gerätesuche (Web Bluetooth)', '🔍 Suchen', 'bt-scan')}<div id="hs-bt-results" class="hs-empty">Noch keine Suche gestartet.</div></div>`;
   }
   function renderKeyboard() {
-    return `<h1>⌨️ Tastatur & KI</h1><div class="hs-section"><h3>Sprachen</h3>${rowToggle('Deutsch', 'keyboard.de', 'toggle:keyboard.de')}${rowToggle('Englisch', 'keyboard.en', 'toggle:keyboard.en')}${rowToggle('Türkisch', 'keyboard.tr', 'toggle:keyboard.tr')}${rowToggle('Arabisch', 'keyboard.ar', 'toggle:keyboard.ar')}${rowToggle('Kurdisch (Kurmandschi)', 'keyboard.ku', 'toggle:keyboard.ku')}${rowToggle('Ezidi (Alte Schrift)', 'keyboard.ezidi', 'toggle:keyboard.ezidi')}</div><div class="hs-section"><h3>HalDo KI Text-Werkzeuge</h3><textarea class="hs-input" placeholder="Text hier eingeben..." data-action="set:keyboard.aiText" style="width:100%; max-width:100%;">${esc(get('keyboard.aiText'))}</textarea><div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;"><button class="hs-btn sm" data-action="kb-ai-correct">Korrigieren</button><button class="hs-btn sm" data-action="kb-ai-formulate">Formulieren</button><button class="hs-btn sm" data-action="kb-ai-detail">Detailieren</button><button class="hs-btn sm ghost" data-action="kb-ai-doc">Dokument erstellen</button></div></div>`;
+    const reps = get('keyboard.replacements') || [];
+    const repList = reps.length ? reps.map((r, i) => `<div class="hs-tr-item"><span class="hs-tr-key">${esc(r.key)}</span><span class="hs-tr-val">➔ ${esc(r.val)}</span><button class="hs-tr-del" data-action="del-rep" data-idx="${i}">✕</button></div>`).join('') : '<div style="color:#666; font-size:12px; text-align:center;">Keine Kürzel gespeichert.</div>';
+    
+    return `<h1>⌨️ Tastatur & KI</h1><div class="hs-section"><h3>Sprachen</h3>${rowToggle('Deutsch', 'keyboard.de', 'toggle:keyboard.de')}${rowToggle('Englisch', 'keyboard.en', 'toggle:keyboard.en')}${rowToggle('Türkisch', 'keyboard.tr', 'toggle:keyboard.tr')}${rowToggle('Arabisch', 'keyboard.ar', 'toggle:keyboard.ar')}${rowToggle('Kurdisch (Kurmandschi)', 'keyboard.ku', 'toggle:keyboard.ku')}${rowToggle('Ezidi (Alte Schrift)', 'keyboard.ezidi', 'toggle:keyboard.ezidi')}</div>
+    
+    <div class="hs-section"><h3>Textersetzung (Abkürzungen)</h3>
+      <div style="display:flex; gap:8px; margin-bottom:8px;">
+        <input class="hs-input" id="tr-key" placeholder="Kürzel (z.B. mfg)" style="width:80px; max-width:80px;">
+        <input class="hs-input" id="tr-val" placeholder="Ersetzen mit (z.B. Mit freundlichen Grüßen)">
+        <button class="hs-btn" data-action="add-rep">+</button>
+      </div>
+      <div class="hs-tr-list">${repList}</div>
+    </div>
+
+    <div class="hs-section"><h3>HalDo KI Text-Werkzeuge</h3><textarea class="hs-input" placeholder="Text hier eingeben..." data-action="set:keyboard.aiText" style="width:100%; max-width:100%;">${esc(get('keyboard.aiText'))}</textarea><div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;"><button class="hs-btn sm" data-action="kb-ai-correct">Korrigieren</button><button class="hs-btn sm" data-action="kb-ai-formulate">Formulieren</button><button class="hs-btn sm" data-action="kb-ai-detail">Detailieren</button><button class="hs-btn sm ghost" data-action="kb-ai-doc">Dokument erstellen</button></div></div>`;
   }
   function renderAccessibility() { return `<h1>♿ Bedienungshilfen</h1><div class="hs-section"><h3>Screenreader & Feedback</h3>${rowToggle('Bildschirmleser', 'accessibility.screenReader', 'toggle:accessibility.screenReader')}${rowToggle('Vibration bei Eingabe', 'accessibility.hapticFeedback', 'toggle:accessibility.hapticFeedback')}</div>`; }
   function renderSecurity() { return `<h1>🔒 Datenschutz</h1><div class="hs-section"><h3>Globale Berechtigungen</h3>${rowToggle('Kamera', 'security.camera', 'toggle:security.camera')}${rowToggle('Mikrofon', 'security.mic', 'toggle:security.mic')}${rowToggle('Standort', 'security.location', 'toggle:security.location')}</div><div class="hs-section"><h3>Sperre</h3>${rowToggle('Bildschirmsperre', 'security.lockScreen', 'toggle:security.lockScreen')}</div>`; }
@@ -278,13 +360,39 @@
     const action = btn.dataset.action, appId = btn.dataset.appid;
 
     if (action.indexOf('toggle:') === 0) { set(action.slice(7), !get(action.slice(7))); refreshContent(); return; }
-    if (action === 'test-ringtone') { HalDoAudio.playSound(get('audio.ringtone') || 'chime'); return; }
+    if (action === 'test-ringtone') { HalDoAudio.playSound(get('audio.ringtone') || 'chime', parseInt(get('audio.testDuration'))); return; }
     if (action === 'test-vibration') { vibratePattern(get('audio.vibratePattern')); return; }
-    if (action === 'test-eq') { HalDoAudio.playSound('marimba'); return; }
     if (action === 'test-welcome') { if (window.HalDoWelcome) window.HalDoWelcome.show('Test App'); return; }
+    
+    if (action === 'toggle-pass-visibility') {
+      const input = document.getElementById(btn.dataset.target);
+      if (input) { input.type = input.type === 'password' ? 'text' : 'password'; }
+      return;
+    }
+
+    if (action === 'add-rep') {
+      const k = document.getElementById('tr-key').value.trim();
+      const v = document.getElementById('tr-val').value.trim();
+      if (k && v) {
+        const reps = get('keyboard.replacements') || [];
+        reps.push({ key: k, val: v });
+        set('keyboard.replacements', reps);
+        refreshContent();
+      } else { alert('Bitte Kürzel und Ersetzung eingeben.'); }
+      return;
+    }
+    if (action === 'del-rep') {
+      const idx = parseInt(btn.dataset.idx);
+      const reps = get('keyboard.replacements') || [];
+      reps.splice(idx, 1);
+      set('keyboard.replacements', reps);
+      refreshContent();
+      return;
+    }
+
     if (action === 'app-expand') { const panel = currentTarget.querySelector(`[data-permpanel="${appId}"]`); if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none'; return; }
     if (action === 'app-perm') { const perm = btn.dataset.perm, cfg = getAppConfig(appId), newVal = !cfg.permissions[perm]; setAppConfig(appId, { permissions: {} }); state.apps[appId].permissions[perm] = newVal; save(); btn.classList.toggle('on', newVal); return; }
-    if (action === 'app-test') { const c = getAppConfig(appId); if (!c.enabled || c.muted) return; HalDoAudio.playSound(c.sound); if (c.vibration) vibratePattern(get('audio.vibratePattern')); return; }
+    if (action === 'app-test') { const c = getAppConfig(appId); if (!c.enabled || c.muted) return; HalDoAudio.playSound(c.sound, parseInt(get('audio.testDuration'))); if (c.vibration) vibratePattern(get('audio.vibratePattern')); return; }
     if (action === 'app-toggle-mute') { const cm = getAppConfig(appId); setAppConfig(appId, { muted: !cm.muted }); refreshContent(); return; }
     if (action === 'app-toggle-enable') { const ce = getAppConfig(appId); setAppConfig(appId, { enabled: !ce.enabled }); refreshContent(); return; }
     if (action === 'app-status') { const cs = getAppConfig(appId); setAppConfig(appId, { muted: !cs.muted }); refreshContent(); return; }
@@ -306,14 +414,14 @@
       if (path === 'keyboard.aiText') save();
       return;
     }
-    if (action === 'eq-bass' || action === 'eq-mid' || action === 'eq-treble') { const key = action.split('-')[1]; set('audio.eq.' + key, parseFloat(el.value)); const valEl = el.parentElement.querySelector('.val'); if (valEl) valEl.textContent = el.value; return; }
     if (action === 'app-volume') { const appId = el.dataset.appid; setAppConfig(appId, { volume: parseFloat(el.value), muted: false }); return; }
     if (action === 'app-search') { const q = el.value.toLowerCase(); currentTarget.querySelectorAll('#hs-apps-list .hs-app-row').forEach(row => { const name = row.querySelector('.app-name').textContent.toLowerCase(), appid = (row.dataset.appid || '').toLowerCase(); row.style.display = (name.indexOf(q) > -1 || appid.indexOf(q) > -1) ? '' : 'none'; }); return; }
   }
 
   function onChange(e) {
     const el = e.target, action = el.dataset.action; if (!action) return;
-    if (action === 'app-sound') { const appId = el.dataset.appid; setAppConfig(appId, { sound: el.value }); HalDoAudio.playSound(el.value); return; }
+    if (action === 'app-sound') { const appId = el.dataset.appid; setAppConfig(appId, { sound: el.value }); HalDoAudio.playSound(el.value, 2); return; }
+    if (action === 'set:audio.testDuration') { set('audio.testDuration', parseInt(el.value)); return; }
     if (action.indexOf('set:') === 0) { set(action.slice(4), el.value); }
   }
 
@@ -339,14 +447,14 @@
 
   try {
     load();
-    window.HalDoAudio = HalDoAudio; // Export für andere Apps
+    window.HalDoAudio = HalDoAudio;
     window.__haldoWelcomeEnabled = get('welcome.enabled'); window.__haldoWelcomeDuration = get('welcome.duration');
     
     const api = { open, render, getHTML, get, set, getAppConfig, setAppConfig, VERSION, getAllApps, APP_LIST: FALLBACK_APPS };
     window.HalDo = window.HalDo || {}; window.HalDo.settings = api; window.HalDo.Settings = api;
     window.HalDo.getAppConfig = getAppConfig; window.HalDo.setAppConfig = setAppConfig;
     window.HalDoSettings = api; window.Settings = api; window.openSettings = open;
-    console.log('⚙️ HalDo Settings v' + VERSION + ' — AUDIO ENGINE INTEGRIERT & READY');
+    console.log('⚙️ HalDo Settings v' + VERSION + ' — AUDIO (Lang) & TEXTERSETZUNG READY');
   } catch (initErr) {
     console.error('❌ HalDo Settings Init Fehler:', initErr);
   }
