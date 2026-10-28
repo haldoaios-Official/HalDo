@@ -1,92 +1,109 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — SETTINGS v28.0 (THE ULTIMATE PRO MAX)
-   Alle 13+ Kategorien · 100+ Apps · Live-Theme · Voll Funktionsfähig
+   HALDO AI OS — SETTINGS v29.0 (ULTIMATE SYSTEM CONTROL)
+   Bluetooth Fix · Audio-Bibliothek · Granulare App-Steuerung
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
   if(!window.HalDo || !HalDo.Runtime) return;
 
   var GOLD_STYLE = 'color:#ffd700;font-weight:900;font-size:14px;text-shadow:0 0 10px #ffd700;background:#0a0e2a;padding:4px 8px;border-radius:6px;';
-  console.log('%c⚙️ HalDo Settings v28.0 — THE ULTIMATE PRO MAX', GOLD_STYLE);
+  console.log('%c⚙️ HalDo Settings v29.0 — ULTIMATE SYSTEM CONTROL', GOLD_STYLE);
 
-  // --- Die Master-Liste deiner Apps ---
+  // --- Master-Liste der Apps ---
   var ALL_APPS = [
-    { id: "ai-chat", name: "AI Chat", emoji: "🤖" }, { id: "blitzer", name: "HalDo Blitzer", emoji: "⚠️" },
-    { id: "auto", name: "Auto", emoji: "🚗" }, { id: "chat", name: "Chat", emoji: "💬" },
-    { id: "email", name: "E-Mail", emoji: "📧" }, { id: "posteingang", name: "Posteingang", emoji: "📥" },
-    { id: "kontakte", name: "Kontakte", emoji: "👥" }, { id: "phone", name: "Phone", emoji: "📞" },
-    { id: "videocall", name: "Videocall", emoji: "📹" }, { id: "aufnahme", name: "Aufnahme", emoji: "🎙️" },
-    { id: "voicememos", name: "Voicememos", emoji: "🎤" }, { id: "tasks", name: "Tasks", emoji: "✅" },
-    { id: "todo", name: "ToDo", emoji: "📋" }, { id: "notes", name: "Notes", emoji: "📝" },
-    { id: "kalender", name: "Kalender", emoji: "📅" }, { id: "projekte", name: "Projekte", emoji: "📊" },
-    { id: "arbeitszeit", name: "Arbeitszeit", emoji: "⏱️" }, { id: "dokumente", name: "Dokumente", emoji: "📄" },
-    { id: "links", name: "Links", emoji: "🔗" }, { id: "passwort", name: "Passwörter", emoji: "🔐" },
-    { id: "clipboard", name: "Clipboard", emoji: "📋" }, { id: "filemanager", name: "Dateien", emoji: "📁" },
-    { id: "fitness", name: "Fitness", emoji: "🏋️" }, { id: "gesundheit", name: "Gesundheit", emoji: "🏥" },
-    { id: "stimmung", name: "Stimmung", emoji: "😊" }, { id: "gewohnheiten", name: "Gewohnheiten", emoji: "🔄" },
-    { id: "schlaf", name: "Schlaf", emoji: "🌙" }, { id: "atem", name: "Atem", emoji: "🫁" },
-    { id: "wasser", name: "Wasser", emoji: "💧" }, { id: "kueche", name: "Küche", emoji: "🍳" },
-    { id: "rezept", name: "Rezepte", emoji: "🍲" }, { id: "einkauf", name: "Einkauf", emoji: "🛒" },
-    { id: "zuhause", name: "Zuhause", emoji: "🏠" }, { id: "finanzen", name: "Finanzen", emoji: "💰" },
-    { id: "reisen", name: "Reisen", emoji: "✈️" }, { id: "musik", name: "Musik", emoji: "🎵" },
-    { id: "photos", name: "Photos", emoji: "📷" }, { id: "video", name: "Video", emoji: "🎥" },
-    { id: "bild", name: "Bild", emoji: "🖼️" }, { id: "wetter", name: "Wetter", emoji: "🌤️" },
-    { id: "rechner", name: "Rechner", emoji: "🧮" }, { id: "wissenschaftlich", name: "Wissenschaft", emoji: "🧪" },
-    { id: "umrechner", name: "Umrechner", emoji: "📏" }, { id: "waehrung", name: "Währung", emoji: "💱" },
-    { id: "timer", name: "Timer", emoji: "⏳" }, { id: "pomodoro", name: "Pomodoro", emoji: "🍅" },
-    { id: "uebersetzer", name: "Übersetzer", emoji: "🌐" }, { id: "woerterbuch", name: "Wörterbuch", emoji: "📖" },
-    { id: "vokabeln", name: "Vokabeln", emoji: "🅰️" }, { id: "flashcards", name: "Flashcards", emoji: "🎴" },
-    { id: "lerne", name: "Lernen", emoji: "🎓" }, { id: "notfall", name: "Notfall", emoji: "🚨" },
-    { id: "bewertung", name: "Bewertung", emoji: "⭐" }, { id: "spiele", name: "Spiele", emoji: "🎮" },
-    { id: "sprachen", name: "Sprachen", emoji: "🗣️" }, { id: "fahrschule", name: "Fahrschule", emoji: "🚦" },
-    { id: "ezidi", name: "Ezidi Zentrum", emoji: "🦚" }, { id: "periodensystem", name: "Periodensystem", emoji: "⚗️" },
-    { id: "mathe", name: "Mathe", emoji: "📐" }, { id: "geo-quiz", name: "Geo Quiz", emoji: "🌍" },
-    { id: "wissen", name: "Wissen", emoji: "🧠" }, { id: "qr", name: "QR Scanner", emoji: "📱" },
-    { id: "barcode", name: "Barcode", emoji: "🏷️" }, { id: "random", name: "Zufall", emoji: "🎲" },
-    { id: "text-analyse", name: "Text-Analyse", emoji: "📄" }, { id: "datum-rechner", name: "Datumsrechner", emoji: "📅" },
-    { id: "netzwerk-info", name: "Netzwerk", emoji: "📡" }, { id: "geraete-info", name: "Geräte-Info", emoji: "📱" },
-    { id: "weltuhr", name: "Weltuhr", emoji: "🕒" }, { id: "kamera", name: "Kamera", emoji: "📸" },
-    { id: "spiegel", name: "Spiegel", emoji: "🪞" }, { id: "taschenlampe", name: "Taschenlampe", emoji: "🔦" },
-    { id: "lupe", name: "Lupe", emoji: "🔍" }, { id: "kredit", name: "Kredit", emoji: "💳" },
-    { id: "bmi", name: "BMI", emoji: "⚖️" }, { id: "statistik", name: "Statistik", emoji: "📈" },
-    { id: "labor", name: "Labor", emoji: "🔬" }, { id: "bookmarks", name: "Bookmarks", emoji: "🔖" },
-    { id: "leseliste", name: "Leseliste", emoji: "📚" }, { id: "sticky-notes", name: "Sticky Notes", emoji: "📌" },
-    { id: "heatmap", name: "Heatmap", emoji: "🗺️" }, { id: "voice-kurdisch", name: "Kurdisch", emoji: "🗣️" }
+    { id: "blitzer", name: "HalDo Blitzer", emoji: "⚠️" }, { id: "auto", name: "Auto", emoji: "🚗" },
+    { id: "chat", name: "Chat", emoji: "💬" }, { id: "email", name: "E-Mail", emoji: "📧" },
+    { id: "phone", name: "Phone", emoji: "📞" }, { id: "notes", name: "Notes", emoji: "📝" },
+    { id: "kalender", name: "Kalender", emoji: "📅" }, { id: "musik", name: "Musik", emoji: "🎵" },
+    { id: "photos", name: "Photos", emoji: "📷" }, { id: "wetter", name: "Wetter", emoji: "🌤️" },
+    { id: "ezidi", name: "Ezidi Zentrum", emoji: "🦚" }, { id: "voice-kurdisch", name: "Kurdisch", emoji: "🗣️" },
+    { id: "ai-chat", name: "AI Chat", emoji: "🤖" }, { id: "todo", name: "ToDo", emoji: "📋" }
+    // (Weitere Apps können hier hinzugefügt werden)
   ];
+
+  // --- Audio-Bibliothek (Web Audio API Synthesizer) ---
+  var audioCtx = null;
+  function getAudioCtx() {
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+    }
+    return audioCtx;
+  }
+
+  function playSound(type) {
+    var ctx = getAudioCtx();
+    if (!ctx) return;
+    var now = ctx.currentTime;
+
+    // Hilfsfunktion für einzelne Töne
+    function tone(freq, start, dur, vol, wave) {
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = wave || 'sine';
+      o.frequency.setValueAtTime(freq, now + start);
+      o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0, now + start);
+      g.gain.linearRampToValueAtTime(vol, now + start + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, now + start + dur);
+      o.start(now + start); o.stop(now + start + dur + 0.1);
+    }
+
+    switch(type) {
+      case 'ringtone_old': // Klassisches Telefonklingeln
+        for (let i = 0; i < 4; i++) {
+          tone(440, i * 0.5, 0.15, 0.3, 'sine');
+          tone(480, i * 0.5 + 0.15, 0.15, 0.3, 'sine');
+        }
+        break;
+      case 'alarm_loud': // Wecker / Alarm
+        for (let i = 0; i < 6; i++) {
+          tone(880, i * 0.2, 0.1, 0.4, 'square');
+        }
+        break;
+      case 'notification_chime': // Sanfte Benachrichtigung
+        tone(523.25, 0, 0.2, 0.2, 'sine'); // C5
+        tone(659.25, 0.15, 0.2, 0.2, 'sine'); // E5
+        tone(783.99, 0.3, 0.3, 0.2, 'sine'); // G5
+        break;
+      case 'siren': // Sirene (Warnung)
+        for (let i = 0; i < 5; i++) {
+          tone(800, i * 0.3, 0.15, 0.3, 'sawtooth');
+          tone(1000, i * 0.3 + 0.15, 0.15, 0.3, 'sawtooth');
+        }
+        break;
+      case 'beep': // Kurzer Piepton
+        tone(1000, 0, 0.1, 0.3, 'square');
+        break;
+      case 'none':
+        break;
+    }
+  }
 
   // --- Standard-Einstellungen ---
   var DEFAULT = {
     deviceName: "HalDo-Gerät",
-    systemVersion: "HalDo AI OS 1.0.0 (Pro Max)",
+    systemVersion: "HalDo AI OS 1.0.0 (Ultimate)",
     theme: "dark",
     accentColor: "#ffd700",
     brightness: 100,
-    fontFamily: "system",
     fontSize: 100,
     language: "de",
-    assistant: "ai",
-    ttsRate: 1.0,
-    ttsPitch: 1.0,
     notificationsEnabled: true,
-    dndEnabled: false,
-    volumeMedia: 80,
-    volumeRing: 80,
-    volumeAlarm: 100,
     vibrationEnabled: true,
+    bluetoothDevice: null,
     batterySaver: false,
-    screenLock: false,
-    permissions: {},
-    appConfigs: {}, 
-    keyboardLanguages: ["de", "en"],
-    accessibilityReader: false,
-    simulatedStorage: { total: 100 * 1024 * 1024 * 1024, used: 12.5 * 1024 * 1024 * 1024 }
+    appConfigs: {},
+    masterVolume: 80,
+    alarmVolume: 100,
+    notificationVolume: 80,
+    ringtoneType: 'ringtone_old',
+    alarmType: 'alarm_loud',
+    notificationType: 'notification_chime'
   };
 
   function getDefaultAppConfig() {
     return {
-      notif: { status: "on", priority: "normal", sound: "default", vibrate: true, popup: true },
-      design: { scale: 100, color: "#ffd700" },
-      permissions: { camera: false, mic: false, location: false }
+      notif: { status: "on", sound: "notification_chime", vibrate: true },
+      design: { scale: 100, color: "#ffd700" }
     };
   }
 
@@ -94,16 +111,13 @@
     var s = store.get("settings", {});
     var m = JSON.parse(JSON.stringify(DEFAULT));
     Object.keys(s).forEach(function(k){ m[k] = s[k]; });
-    
     if (!m.appConfigs) m.appConfigs = {};
     ALL_APPS.forEach(function(app) {
-      if (!m.appConfigs[app.id]) {
-        m.appConfigs[app.id] = getDefaultAppConfig();
-      }
+      if (!m.appConfigs[app.id]) m.appConfigs[app.id] = getDefaultAppConfig();
     });
     return m;
   }
-  
+
   function saveSettings(store, s) {
     store.set("settings", s);
     applyThemeToSystem(s);
@@ -119,31 +133,6 @@
   }
 
   function esc(str) { return String(str).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-  function formatBytes(bytes) { if (bytes === 0) return '0 B'; var k = 1024, sizes = ['B', 'KB', 'MB', 'GB', 'TB']; var i = Math.floor(Math.log(bytes) / Math.log(k)); return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]; }
-
-  var audioCtx = null;
-  function playTestTone(type) {
-    try {
-      if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-      if(type === 'none' || type === 'silent') return;
-      
-      var o = audioCtx.createOscillator(), g = audioCtx.createGain();
-      o.type = type === 'siren' ? "sawtooth" : "sine";
-      o.frequency.value = type === 'siren' ? 800 : 880;
-      o.connect(g); g.connect(audioCtx.destination);
-      
-      var now = audioCtx.currentTime;
-      g.gain.setValueAtTime(0, now);
-      g.gain.linearRampToValueAtTime(0.3, now + 0.05);
-      g.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-      
-      if (type === 'siren') {
-        o.frequency.linearRampToValueAtTime(1200, now + 0.2);
-        o.frequency.linearRampToValueAtTime(800, now + 0.4);
-      }
-      o.start(now); o.stop(now + 0.5);
-    } catch(e) {}
-  }
 
   function render(container, ctx) {
     var store = ctx.store;
@@ -160,7 +149,6 @@
       var isDark = s.theme === 'dark';
 
       var css = `
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Yezidi&display=swap');
         .settings-app { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--haldo-text); background: var(--haldo-bg); min-height: 100vh; padding: 16px; font-size: var(--haldo-font-size); }
         .settings-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
         .settings-header h1 { font-size: 24px; font-weight: 800; margin: 0; }
@@ -179,38 +167,30 @@
         .toggle input { width: 18px; height: 18px; accent-color: var(--haldo-accent); }
         .btn { padding: 12px 20px; border-radius: 10px; border: none; background: var(--haldo-accent); color: #000; font-weight: 700; cursor: pointer; font-size: 14px; font-family: inherit; }
         .btn-secondary { background: ${isDark ? 'rgba(255,255,255,0.1)' : '#eee'}; color: var(--haldo-text); border: 1px solid ${isDark ? '#333' : '#ccc'}; }
-        .storage-bar { height: 8px; background: ${isDark ? '#222' : '#ddd'}; border-radius: 4px; overflow: hidden; margin-top: 8px; }
-        .storage-bar-fill { height: 100%; background: var(--haldo-accent); transition: width 0.3s; }
         .info-text { font-size: 13px; color: ${isDark ? '#aaa' : '#666'}; line-height: 1.6; }
         .category-title { font-size: 13px; font-weight: 700; color: ${isDark ? '#666' : '#999'}; text-transform: uppercase; letter-spacing: 1px; margin: 24px 0 8px; }
         
         .app-detail-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
         .app-detail-icon { font-size: 48px; background: ${isDark ? '#222' : '#ddd'}; padding: 12px; border-radius: 16px; }
         .app-detail-title { font-size: 24px; font-weight: 800; margin: 0; }
-        .app-detail-tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid ${isDark ? '#333' : '#ccc'}; padding-bottom: 8px; }
-        .tab-btn { background: transparent; border: none; color: ${isDark ? '#aaa' : '#666'}; font-weight: 700; font-size: 14px; padding: 8px 16px; cursor: pointer; border-radius: 8px; }
-        .tab-btn.active { background: var(--haldo-accent); color: #000; }
-        .preview-box { background: ${isDark ? '#111' : '#eee'}; border: 2px dashed var(--haldo-accent); border-radius: 12px; padding: 20px; text-align: center; margin-top: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 120px; }
       `;
 
       var html = `<style>${css}</style><div class="settings-app">`;
 
-      // --- HAUPTMENÜ (Alle 13 Kategorien) ---
+      // --- HAUPTMENÜ ---
       if (view.screen === "main") {
         html += `<div class="settings-header"><h1>⚙️ Einstellungen</h1></div><div class="settings-list">`;
         var categories = [
           { id: "general", icon: "📱", label: "Allgemein & Info" },
           { id: "display", icon: "🎨", label: "Darstellung & Display" },
+          { id: "sounds", icon: "🔔", label: "Töne & Klingeltöne" },
           { id: "language", icon: "🌍", label: "Sprache & Region" },
           { id: "ai", icon: "🤖", label: "HalDo KI & Stimme" },
-          { id: "connectivity", icon: "📡", label: "Verbindungen (WLAN/BT)" },
-          { id: "apps", icon: "🔔", label: `Apps & Benachrichtigungen (${ALL_APPS.length})` },
-          { id: "sound", icon: "🔊", label: "Ton & Vibration" },
+          { id: "connectivity", icon: "📡", label: "Verbindungen (Bluetooth)" },
+          { id: "apps", icon: "📱", label: `Apps & Benachrichtigungen (${ALL_APPS.length})` },
           { id: "battery", icon: "🔋", label: "Akku & Energie" },
-          { id: "storage", icon: "💾", label: "Speicher (100 GB)" },
           { id: "security", icon: "🔐", label: "Sicherheit & Datenschutz" },
           { id: "accessibility", icon: "🦾", label: "Bedienungshilfen" },
-          { id: "wellbeing", icon: "📅", label: "Digital Wellbeing" },
           { id: "system", icon: "🔄", label: "Software-Update" }
         ];
         categories.forEach(function(c) {
@@ -219,7 +199,150 @@
         html += `</div>`;
       }
 
-      // --- 1. ALLGEMEIN ---
+      // --- 1. TÖNE & KLINGELTÖNE (NEU) ---
+      else if (view.screen === "sounds") {
+        html += `<button class="back-btn" data-nav="main">‹ Zurück</button><div class="settings-header"><h1>🔔 Töne & Klingeltöne</h1></div>`;
+        
+        html += `<div class="field"><label>Master-Lautstärke (${s.masterVolume}%)</label><input type="range" id="masterVol" min="0" max="100" value="${s.masterVolume}"></div>`;
+        html += `<div class="field"><label>Alarm-Lautstärke (${s.alarmVolume}%)</label><input type="range" id="alarmVol" min="0" max="100" value="${s.alarmVolume}"></div>`;
+        html += `<div class="field"><label>Benachrichtigungs-Lautstärke (${s.notificationVolume}%)</label><input type="range" id="notifVol" min="0" max="100" value="${s.notificationVolume}"></div>`;
+        
+        html += `<div class="field"><label>Klingelton</label><select id="ringtoneSelect">
+          <option value="ringtone_old" ${s.ringtoneType === 'ringtone_old' ? 'selected' : ''}>Klassisches Klingeln</option>
+          <option value="alarm_loud" ${s.ringtoneType === 'alarm_loud' ? 'selected' : ''}>Wecker</option>
+          <option value="notification_chime" ${s.ringtoneType === 'notification_chime' ? 'selected' : ''}>Glocke</option>
+          <option value="siren" ${s.ringtoneType === 'siren' ? 'selected' : ''}>Sirene</option>
+          <option value="none" ${s.ringtoneType === 'none' ? 'selected' : ''}>Lautlos</option>
+        </select></div>`;
+        html += `<button class="btn btn-secondary" id="testRingtone">🔊 Klingelton testen</button>`;
+
+        html += `<div class="field" style="margin-top:16px;"><label>Benachrichtigungston</label><select id="notifSelect">
+          <option value="notification_chime" ${s.notificationType === 'notification_chime' ? 'selected' : ''}>Glocke</option>
+          <option value="beep" ${s.notificationType === 'beep' ? 'selected' : ''}>Piepton</option>
+          <option value="alarm_loud" ${s.notificationType === 'alarm_loud' ? 'selected' : ''}>Alarm</option>
+          <option value="none" ${s.notificationType === 'none' ? 'selected' : ''}>Lautlos</option>
+        </select></div>`;
+        html += `<button class="btn btn-secondary" id="testNotif">🔊 Benachrichtigungston testen</button>`;
+
+        container.innerHTML = html;
+
+        container.querySelector("#masterVol").addEventListener("input", function(e) { s.masterVolume = parseInt(e.target.value); saveSettings(store, s); });
+        container.querySelector("#alarmVol").addEventListener("input", function(e) { s.alarmVolume = parseInt(e.target.value); saveSettings(store, s); });
+        container.querySelector("#notifVol").addEventListener("input", function(e) { s.notificationVolume = parseInt(e.target.value); saveSettings(store, s); });
+        container.querySelector("#ringtoneSelect").addEventListener("change", function(e) { s.ringtoneType = e.target.value; saveSettings(store, s); });
+        container.querySelector("#notifSelect").addEventListener("change", function(e) { s.notificationType = e.target.value; saveSettings(store, s); });
+        
+        container.querySelector("#testRingtone").addEventListener("click", function() { playSound(s.ringtoneType); });
+        container.querySelector("#testNotif").addEventListener("click", function() { playSound(s.notificationType); });
+      }
+
+      // --- 2. VERBINDUNGEN (BLUETOOTH FIX) ---
+      else if (view.screen === "connectivity") {
+        html += `<button class="back-btn" data-nav="main">‹ Zurück</button><div class="settings-header"><h1>📡 Verbindungen</h1></div>`;
+        html += `<div class="settings-item"><span><span class="icon">📶</span>WLAN</span><span class="value">${navigator.onLine ? 'Verbunden' : 'Getrennt'}</span></div>`;
+        html += `<div class="settings-item"><span><span class="icon">📡</span>Bluetooth</span><span class="value">${s.bluetoothDevice ? esc(s.bluetoothDevice) : 'Nicht verbunden'}</span></div>`;
+        
+        // WICHTIG: Der Button ruft requestDevice DIREKT im Click-Handler auf
+        html += `<button class="btn btn-secondary" id="scanBt">📡 Bluetooth-Gerät suchen</button>`;
+        html += `<div id="btError" style="color:#ff5555; font-size:12px; margin-top:8px;"></div>`;
+        
+        container.innerHTML = html;
+
+        // Bluetooth-Suche (muss synchron im Click-Handler sein)
+        container.querySelector("#scanBt").addEventListener("click", function() {
+          var errEl = container.querySelector("#btError");
+          errEl.textContent = "";
+          
+          if (!navigator.bluetooth) {
+            errEl.textContent = "❌ Web Bluetooth wird von diesem Browser nicht unterstützt.";
+            return;
+          }
+
+          navigator.bluetooth.requestDevice({ acceptAllDevices: true })
+            .then(function(device) {
+              s.bluetoothDevice = device.name || "Unbekanntes Gerät";
+              saveSettings(store, s);
+              if(window.HalDo && HalDo.Notify) HalDo.Notify.success("Bluetooth-Gerät gefunden: " + s.bluetoothDevice);
+              build(); // UI neu laden
+            })
+            .catch(function(error) {
+              errEl.textContent = "❌ Fehler: " + error.message;
+              if(window.HalDo && HalDo.Notify) HalDo.Notify.error("Bluetooth-Suche fehlgeschlagen.");
+            });
+        });
+      }
+
+      // --- 3. APPS & BENACHRICHTIGUNGEN (Granular) ---
+      else if (view.screen === "apps") {
+        html += `<button class="back-btn" data-nav="main">‹ Zurück</button><div class="settings-header"><h1>📱 Apps & Benachrichtigungen</h1></div>`;
+        html += `<div class="toggle"><label>Globale Benachrichtigungen</label><input type="checkbox" id="globalNotif" ${s.notificationsEnabled ? 'checked' : ''}></div>`;
+        html += `<div class="settings-list" style="max-height: 55vh;">`;
+        ALL_APPS.forEach(function(app) {
+          var appS = s.appConfigs[app.id];
+          var statusText = { on: "An", off: "Aus", mute: "Stumm", silent: "Lautlos" }[appS.notif.status] || "An";
+          var statusColor = appS.notif.status === 'on' ? '#4ade80' : (appS.notif.status === 'off' ? '#ff5555' : '#ffaa33');
+          html += `<div class="settings-item" data-app-detail="${app.id}">
+            <span><span class="icon">${app.emoji}</span><span class="label">${app.name}</span></span>
+            <span class="value" style="color:${statusColor};">${statusText} ›</span>
+          </div>`;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+        container.querySelector("#globalNotif").addEventListener("change", function(e) { s.notificationsEnabled = e.target.checked; saveSettings(store, s); });
+        container.querySelectorAll("[data-app-detail]").forEach(function(el) {
+          el.addEventListener("click", function() { view.screen = "app_detail"; view.currentApp = el.dataset.appDetail; build(); });
+        });
+      }
+
+      // --- 4. APP-DETAILS (Granulare Steuerung) ---
+      else if (view.screen === "app_detail" && view.currentApp) {
+        var app = ALL_APPS.find(function(a) { return a.id === view.currentApp; });
+        var appS = s.appConfigs[app.id];
+        
+        html += `<button class="back-btn" data-nav="apps">‹ Zurück zu Apps</button>`;
+        html += `<div class="app-detail-header"><div class="app-detail-icon">${app.emoji}</div><div><h1 class="app-detail-title">${app.name}</h1></div></div>`;
+
+        html += `<div class="field"><label>Benachrichtigungs-Status</label><select id="appNotifStatus">
+          <option value="on" ${appS.notif.status === 'on' ? 'selected' : ''}>🔔 An</option>
+          <option value="off" ${appS.notif.status === 'off' ? 'selected' : ''}>🚫 Aus</option>
+          <option value="mute" ${appS.notif.status === 'mute' ? 'selected' : ''}>🔇 Stumm</option>
+          <option value="silent" ${appS.notif.status === 'silent' ? 'selected' : ''}>🔕 Lautlos</option>
+        </select></div>`;
+        
+        html += `<div class="field"><label>Benachrichtigungston für diese App</label><select id="appNotifSound">
+          <option value="notification_chime" ${appS.notif.sound === 'notification_chime' ? 'selected' : ''}>Glocke</option>
+          <option value="beep" ${appS.notif.sound === 'beep' ? 'selected' : ''}>Piepton</option>
+          <option value="alarm_loud" ${appS.notif.sound === 'alarm_loud' ? 'selected' : ''}>Alarm</option>
+          <option value="siren" ${appS.notif.sound === 'siren' ? 'selected' : ''}>Sirene</option>
+          <option value="none" ${appS.notif.sound === 'none' ? 'selected' : ''}>Kein Ton</option>
+        </select></div>`;
+
+        html += `<div class="toggle"><label>Vibration</label><input type="checkbox" id="appNotifVibrate" ${appS.notif.vibrate ? 'checked' : ''}></div>`;
+        
+        html += `<button class="btn btn-secondary" id="testAppNotif" style="margin-top:12px;">🔊 Test-Benachrichtigung</button>`;
+        html += `<button class="btn" id="saveAppDetail" style="margin-top:20px; width:100%;">Speichern</button>`;
+        
+        container.innerHTML = html;
+
+        container.querySelector("#testAppNotif").addEventListener("click", function() {
+          var sound = container.querySelector("#appNotifSound").value;
+          playSound(sound);
+          if(container.querySelector("#appNotifVibrate").checked && navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        });
+
+        container.querySelector("#saveAppDetail").addEventListener("click", function() {
+          s.appConfigs[app.id].notif = {
+            status: container.querySelector("#appNotifStatus").value,
+            sound: container.querySelector("#appNotifSound").value,
+            vibrate: container.querySelector("#appNotifVibrate").checked
+          };
+          saveSettings(store, s);
+          if(window.HalDo && HalDo.Notify) HalDo.Notify.success(app.name + " gespeichert!");
+          view.screen = "apps"; build();
+        });
+      }
+
+      // --- 5. ALLGEMEIN ---
       else if (view.screen === "general") {
         html += `<button class="back-btn" data-nav="main">‹ Zurück</button><div class="settings-header"><h1>📱 Allgemein & Info</h1></div>`;
         html += `<div class="field"><label>Gerätename</label><input type="text" id="deviceName" value="${esc(s.deviceName)}"></div>`;
@@ -233,34 +356,25 @@
         });
       }
 
-      // --- 2. DISPLAY ---
+      // --- 6. DISPLAY ---
       else if (view.screen === "display") {
         html += `<button class="back-btn" data-nav="main">‹ Zurück</button><div class="settings-header"><h1>🎨 Darstellung & Display</h1></div>`;
         html += `<div class="field"><label>Helligkeit (${s.brightness}%)</label><input type="range" id="brightness" min="10" max="100" value="${s.brightness}"></div>`;
         html += `<div class="toggle"><label>Dark Mode</label><input type="checkbox" id="darkMode" ${isDark ? 'checked' : ''}></div>`;
-        html += `<div class="field"><label>Globale Akzentfarbe</label><div>`;
-        ['#ffd700','#4dd0e1','#ff5555','#4ade80','#b478ff','#ff8844','#ff77aa'].forEach(function(c) {
+        html += `<div class="field"><label>Akzentfarbe</label><div>`;
+        ['#ffd700','#4dd0e1','#ff5555','#4ade80','#b478ff','#ff8844'].forEach(function(c) {
           html += `<span data-color="${c}" style="display:inline-block; width:40px; height:40px; border-radius:50%; background:${c}; margin:4px; cursor:pointer; border: 3px solid ${s.accentColor === c ? '#fff' : 'transparent'}"></span>`;
         });
         html += `</div></div>`;
-        html += `<div class="field"><label>Schriftart</label><select id="fontFamily">
-          <option value="system" ${s.fontFamily === 'system' ? 'selected' : ''}>System</option>
-          <option value="'Noto Serif Yezidi', serif" ${s.fontFamily.includes('Yezidi') ? 'selected' : ''}>Ezidi (Yezidi)</option>
-          <option value="monospace" ${s.fontFamily === 'monospace' ? 'selected' : ''}>Monospace</option>
-        </select></div>`;
-        html += `<div class="field"><label>Schriftgröße (${s.fontSize}%)</label><input type="range" id="fontSize" min="80" max="150" value="${s.fontSize}"></div>`;
         container.innerHTML = html;
         
         container.querySelector("#brightness").addEventListener("input", function(e) { s.brightness = parseInt(e.target.value); applyThemeToSystem(s); });
         container.querySelector("#brightness").addEventListener("change", function() { saveSettings(store, s); });
         container.querySelector("#darkMode").addEventListener("change", function(e) { s.theme = e.target.checked ? 'dark' : 'light'; saveSettings(store, s); build(); });
         container.querySelectorAll("[data-color]").forEach(function(el) { el.addEventListener("click", function() { s.accentColor = el.dataset.color; saveSettings(store, s); build(); }); });
-        container.querySelector("#fontFamily").addEventListener("change", function(e) { s.fontFamily = e.target.value; saveSettings(store, s); build(); });
-        container.querySelector("#fontSize").addEventListener("input", function(e) { s.fontSize = parseInt(e.target.value); applyThemeToSystem(s); });
-        container.querySelector("#fontSize").addEventListener("change", function() { saveSettings(store, s); });
       }
 
-      // --- 3. SPRACHE ---
+      // --- 7. SPRACHE ---
       else if (view.screen === "language") {
         html += `<button class="back-btn" data-nav="main">‹ Zurück</button><div class="settings-header"><h1>🌍 Sprache & Region</h1></div>`;
         html += `<div class="field"><label>Systemsprache</label><select id="language">
@@ -275,7 +389,7 @@
         container.querySelector("#language").addEventListener("change", function(e) { s.language = e.target.value; saveSettings(store, s); });
       }
 
-      // --- 4. KI & STIMME ---
+      // --- 8. KI ---
       else if (view.screen === "ai") {
         html += `<button class="back-btn" data-nav="main">‹ Zurück</button><div class="settings-header"><h1>🤖 HalDo KI & Stimme</h1></div>`;
         html += `<div class="field"><label>KI-Assistent</label><select id="assistant">
@@ -283,179 +397,18 @@
           <option value="cyborg" ${s.assistant === 'cyborg' ? 'selected' : ''}>HalDo Cyborg</option>
           <option value="robot" ${s.assistant === 'robot' ? 'selected' : ''}>HalDo Roboter</option>
         </select></div>`;
-        html += `<div class="field"><label>TTS-Geschwindigkeit (${s.ttsRate.toFixed(1)})</label><input type="range" id="ttsRate" min="0.5" max="2" step="0.1" value="${s.ttsRate}"></div>`;
-        html += `<div class="field"><label>TTS-Tonhöhe (${s.ttsPitch.toFixed(1)})</label><input type="range" id="ttsPitch" min="0.5" max="2" step="0.1" value="${s.ttsPitch}"></div>`;
         html += `<button class="btn btn-secondary" id="testAI">🔊 Stimme testen</button>`;
         container.innerHTML = html;
         container.querySelector("#assistant").addEventListener("change", function(e) { s.assistant = e.target.value; saveSettings(store, s); });
-        container.querySelector("#ttsRate").addEventListener("input", function(e) { s.ttsRate = parseFloat(e.target.value); saveSettings(store, s); });
-        container.querySelector("#ttsPitch").addEventListener("input", function(e) { s.ttsPitch = parseFloat(e.target.value); saveSettings(store, s); });
         container.querySelector("#testAI").addEventListener("click", function() {
           if(window.speechSynthesis) {
             var u = new SpeechSynthesisUtterance("Hallo, ich bin dein HalDo KI-Assistent.");
-            u.lang = "de-DE"; u.rate = s.ttsRate; u.pitch = s.ttsPitch;
-            window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
+            u.lang = "de-DE"; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
           }
         });
       }
 
-      // --- 5. VERBINDUNGEN (WLAN/BT) ---
-      else if (view.screen === "connectivity") {
-        html += `<button class="back-btn" data-nav="main">‹ Zurück</button><div class="settings-header"><h1>📡 Verbindungen</h1></div>`;
-        html += `<div class="settings-item"><span><span class="icon">📶</span>WLAN</span><span class="value">${navigator.onLine ? 'Verbunden' : 'Getrennt'}</span></div>`;
-        html += `<div class="settings-item"><span><span class="icon">📡</span>Bluetooth</span><span class="value">${s.bluetoothDevice ? esc(s.bluetoothDevice) : 'Nicht verbunden'}</span></div>`;
-        html += `<div class="toggle"><label>NFC</label><input type="checkbox" id="nfcEnabled" ${s.nfcEnabled ? 'checked' : ''}></div>`;
-        html += `<div class="toggle"><label>Standortdienste</label><input type="checkbox" id="locationEnabled" ${s.locationEnabled ? 'checked' : ''}></div>`;
-        html += `<button class="btn btn-secondary" id="scanBt">📡 Bluetooth-Gerät suchen</button>`;
-        container.innerHTML = html;
-        container.querySelector("#nfcEnabled").addEventListener("change", function(e) { s.nfcEnabled = e.target.checked; saveSettings(store, s); });
-        container.querySelector("#locationEnabled").addEventListener("change", function(e) { s.locationEnabled = e.target.checked; saveSettings(store, s); });
-        container.querySelector("#scanBt").addEventListener("click", async function() {
-          try {
-            if(!navigator.bluetooth) throw new Error("Web Bluetooth nicht verfügbar");
-            var device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
-            s.bluetoothDevice = device.name || "Bluetooth-Gerät";
-            saveSettings(store, s);
-            if(window.HalDo && HalDo.Notify) HalDo.Notify.success("Verbunden: " + s.bluetoothDevice);
-            build();
-          } catch(e) { if(window.HalDo && HalDo.Notify) HalDo.Notify.error(e.message); }
-        });
-      }
-
-      // --- 6. APPS & BENACHRICHTIGUNGEN (Liste) ---
-      else if (view.screen === "apps") {
-        html += `<button class="back-btn" data-nav="main">‹ Zurück</button><div class="settings-header"><h1>🔔 Apps & Benachrichtigungen</h1></div>`;
-        html += `<div class="toggle"><label>Globale Benachrichtigungen</label><input type="checkbox" id="notificationsEnabled" ${s.notificationsEnabled ? 'checked' : ''}></div>`;
-        html += `<div class="settings-list" style="max-height: 55vh;">`;
-        ALL_APPS.forEach(function(app) {
-          var appS = s.appConfigs[app.id].notif;
-          var statusText = { on: "An", off: "Aus", mute: "Stumm", silent: "Lautlos" }[appS.status] || "An";
-          var statusColor = appS.status === 'on' ? '#4ade80' : (appS.status === 'off' ? '#ff5555' : '#ffaa33');
-          html += `<div class="settings-item" data-app-detail="${app.id}">
-            <span><span class="icon">${app.emoji}</span><span class="label">${app.name}</span></span>
-            <span class="value" style="color:${statusColor};">${statusText} ›</span>
-          </div>`;
-        });
-        html += `</div>`;
-        container.innerHTML = html;
-        container.querySelector("#notificationsEnabled").addEventListener("change", function(e) { s.notificationsEnabled = e.target.checked; saveSettings(store, s); });
-        container.querySelectorAll("[data-app-detail]").forEach(function(el) {
-          el.addEventListener("click", function() { view.screen = "app_detail"; view.currentApp = el.dataset.appDetail; build(); });
-        });
-      }
-
-      // --- 7. APP-DETAILS (Die Königsklasse) ---
-      else if (view.screen === "app_detail" && view.currentApp) {
-        var app = ALL_APPS.find(function(a) { return a.id === view.currentApp; });
-        var appS = s.appConfigs[app.id];
-        
-        html += `<button class="back-btn" data-nav="apps">‹ Zurück zu Apps</button>`;
-        html += `<div class="app-detail-header">
-          <div class="app-detail-icon">${app.emoji}</div>
-          <div><h1 class="app-detail-title">${app.name}</h1><div class="info-text">ID: ${app.id}</div></div>
-        </div>`;
-
-        html += `<div class="app-detail-tabs">
-          <button class="tab-btn active" data-tab="notif">🔔 Benachrichtigungen</button>
-          <button class="tab-btn" data-tab="design">🎨 Design</button>
-        </div>`;
-
-        // TAB 1: BENACHRICHTIGUNGEN
-        html += `<div id="tab-notif" class="tab-content">`;
-        html += `<div class="field"><label>Status</label><select id="appNotifStatus">
-          <option value="on" ${appS.notif.status === 'on' ? 'selected' : ''}>🔔 An (Normal)</option>
-          <option value="off" ${appS.notif.status === 'off' ? 'selected' : ''}>🚫 Aus (Keine)</option>
-          <option value="mute" ${appS.notif.status === 'mute' ? 'selected' : ''}>🔇 Stumm (Nur Vibration)</option>
-          <option value="silent" ${appS.notif.status === 'silent' ? 'selected' : ''}>🔕 Lautlos (Kein Ton/Vib)</option>
-        </select></div>`;
-        html += `<div class="field"><label>Benachrichtigungston</label><select id="appNotifSound">
-          <option value="default" ${appS.notif.sound === 'default' ? 'selected' : ''}>Standard</option>
-          <option value="chime" ${appS.notif.sound === 'chime' ? 'selected' : ''}>🎵 Glocke</option>
-          <option value="siren" ${appS.notif.sound === 'siren' ? 'selected' : ''}>🚨 Sirene</option>
-          <option value="none" ${appS.notif.sound === 'none' ? 'selected' : ''}>🚫 Kein Ton</option>
-        </select></div>`;
-        html += `<div class="toggle"><label>Vibration</label><input type="checkbox" id="appNotifVibrate" ${appS.notif.vibrate ? 'checked' : ''}></div>`;
-        html += `<button class="btn btn-secondary" id="testNotif">🔊 Test-Benachrichtigung</button>`;
-        html += `</div>`;
-
-        // TAB 2: DESIGN
-        html += `<div id="tab-design" class="tab-content" style="display:none;">`;
-        html += `<div class="field"><label>App-Größe (${appS.design.scale}%)</label><input type="range" id="appScale" min="50" max="150" value="${appS.design.scale}"></div>`;
-        html += `<div class="field"><label>Eigene App-Farbe</label><input type="color" id="appColor" value="${appS.design.color}"></div>`;
-        html += `<div class="field"><label>Live-Vorschau</label>
-          <div class="preview-box" id="appPreviewBox" style="transform: scale(${appS.design.scale / 100}); border-color: ${appS.design.color};">
-            <div style="font-size: 40px; margin-bottom: 8px;">${app.emoji}</div>
-            <div style="font-weight: 900; color: ${appS.design.color};">${app.name}</div>
-          </div>
-        </div>`;
-        html += `</div>`;
-
-        html += `<button class="btn" id="saveAppDetail" style="margin-top:20px; width:100%;">Alle Änderungen Speichern</button>`;
-        
-        container.innerHTML = html;
-
-        container.querySelectorAll(".tab-btn").forEach(function(btn) {
-          btn.addEventListener("click", function() {
-            container.querySelectorAll(".tab-btn").forEach(function(b) { b.classList.remove("active"); });
-            container.querySelectorAll(".tab-content").forEach(function(c) { c.style.display = "none"; });
-            btn.classList.add("active");
-            container.querySelector("#tab-" + btn.dataset.tab).style.display = "block";
-          });
-        });
-
-        container.querySelector("#appScale").addEventListener("input", function(e) {
-          var scale = e.target.value;
-          container.querySelector("#appPreviewBox").style.transform = `scale(${scale / 100})`;
-          container.querySelector("label[for='appScale']").textContent = `App-Größe (${scale}%)`;
-        });
-        container.querySelector("#appColor").addEventListener("input", function(e) {
-          var color = e.target.value;
-          container.querySelector("#appPreviewBox").style.borderColor = color;
-          container.querySelector("#appPreviewBox").querySelector("div:last-child").style.color = color;
-        });
-
-        container.querySelector("#testNotif").addEventListener("click", function() {
-          var sound = container.querySelector("#appNotifSound").value;
-          var vibrate = container.querySelector("#appNotifVibrate").checked;
-          playTestTone(sound);
-          if(vibrate && navigator.vibrate) navigator.vibrate([200, 100, 200]);
-          if(window.HalDo && HalDo.Notify) HalDo.Notify.info("Test für " + app.name + " ausgelöst!");
-        });
-
-        container.querySelector("#saveAppDetail").addEventListener("click", function() {
-          s.appConfigs[app.id] = {
-            notif: {
-              status: container.querySelector("#appNotifStatus").value,
-              priority: "normal",
-              sound: container.querySelector("#appNotifSound").value,
-              vibrate: container.querySelector("#appNotifVibrate").checked,
-              popup: true
-            },
-            design: {
-              scale: parseInt(container.querySelector("#appScale").value),
-              color: container.querySelector("#appColor").value
-            },
-            permissions: appS.permissions
-          };
-          saveSettings(store, s);
-          if(window.HalDo && HalDo.Notify) HalDo.Notify.success(app.name + " gespeichert!");
-          view.screen = "apps"; build();
-        });
-      }
-
-      // --- 8. TON & VIBRATION ---
-      else if (view.screen === "sound") {
-        html += `<button class="back-btn" data-nav="main">‹ Zurück</button><div class="settings-header"><h1>🔊 Ton & Vibration</h1></div>`;
-        html += `<div class="field"><label>Medienlautstärke (${s.volumeMedia}%)</label><input type="range" id="volumeMedia" min="0" max="100" value="${s.volumeMedia}"></div>`;
-        html += `<div class="field"><label>Alarm-Lautstärke (${s.volumeAlarm}%)</label><input type="range" id="volumeAlarm" min="0" max="100" value="${s.volumeAlarm}"></div>`;
-        html += `<div class="toggle"><label>Vibration</label><input type="checkbox" id="vibrationEnabled" ${s.vibrationEnabled ? 'checked' : ''}></div>`;
-        container.innerHTML = html;
-        container.querySelector("#volumeMedia").addEventListener("input", function(e) { s.volumeMedia = parseInt(e.target.value); saveSettings(store, s); });
-        container.querySelector("#volumeAlarm").addEventListener("input", function(e) { s.volumeAlarm = parseInt(e.target.value); saveSettings(store, s); });
-        container.querySelector("#vibrationEnabled").addEventListener("change", function(e) { s.vibrationEnabled = e.target.checked; saveSettings(store, s); });
-      }
-
-      // --- 9. AKKU & ENERGIE ---
+      // --- 9. AKKU ---
       else if (view.screen === "battery") {
         html += `<button class="back-btn" data-nav="main">‹ Zurück</button><div class="settings-header"><h1>🔋 Akku & Energie</h1></div>`;
         html += `<div class="field"><label>Akkustatus</label><div class="info-text" id="batteryInfo">Lade...</div></div>`;
@@ -465,47 +418,28 @@
           navigator.getBattery().then(function(battery) {
             var info = container.querySelector("#batteryInfo");
             function update() { info.textContent = "🔋 " + Math.round(battery.level * 100) + "% " + (battery.charging ? "⚡ (Lädt)" : ""); }
-            update();
-            battery.addEventListener('levelchange', update);
-            battery.addEventListener('chargingchange', update);
+            update(); battery.addEventListener('levelchange', update); battery.addEventListener('chargingchange', update);
           });
         }
         container.querySelector("#batterySaver").addEventListener("change", function(e) { s.batterySaver = e.target.checked; saveSettings(store, s); });
       }
 
-      // --- 10. SPEICHER (100 GB) ---
-      else if (view.screen === "storage") {
-        html += `<button class="back-btn" data-nav="main">‹ Zurück</button><div class="settings-header"><h1>💾 Speicher (100 GB)</h1></div>`;
-        var total = s.simulatedStorage.total;
-        var used = s.simulatedStorage.used;
-        var percent = Math.min(100, (used / total) * 100);
-        html += `<div class="field"><label>Belegter Speicher</label><div class="info-text">${formatBytes(used)} von ${formatBytes(total)} belegt</div><div class="storage-bar"><div class="storage-bar-fill" style="width:${percent}%"></div></div></div>`;
-        html += `<button class="btn btn-secondary" id="clearCache">🗑️ Cache leeren (10 GB freigeben)</button>`;
-        container.innerHTML = html;
-        container.querySelector("#clearCache").addEventListener("click", function() { 
-          s.simulatedStorage.used = 2 * 1024 * 1024 * 1024; 
-          saveSettings(store, s); build();
-          if(window.HalDo && HalDo.Notify) HalDo.Notify.success("Cache geleert! 10 GB freigegeben."); 
-        });
-      }
-
-      // --- 11. SICHERHEIT ---
+      // --- 10. SICHERHEIT ---
       else if (view.screen === "security") {
         html += `<button class="back-btn" data-nav="main">‹ Zurück</button><div class="settings-header"><h1>🔐 Sicherheit</h1></div>`;
-        html += `<div class="field"><label>App-Berechtigungen</label><div class="info-text">Kamera: ${s.permissions.camera ? '✅' : '❌'}<br>Mikrofon: ${s.permissions.microphone ? '✅' : '❌'}<br>Standort: ${s.permissions.location ? '✅' : '❌'}</div></div>`;
+        html += `<div class="field"><label>App-Berechtigungen</label><div class="info-text">Kamera: ${s.permissions.camera ? '✅' : '❌'}<br>Mikrofon: ${s.permissions.microphone ? '✅' : '❌'}</div></div>`;
         html += `<button class="btn btn-secondary" id="requestPermissions">Berechtigungen anfragen</button>`;
         container.innerHTML = html;
         container.querySelector("#requestPermissions").addEventListener("click", async function() {
           try {
             if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) { await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); s.permissions.camera = true; s.permissions.microphone = true; }
-            if(navigator.geolocation) { await new Promise(function(res, rej) { navigator.geolocation.getCurrentPosition(res, rej); }); s.permissions.location = true; }
             saveSettings(store, s); build();
             if(window.HalDo && HalDo.Notify) HalDo.Notify.success("Berechtigungen erteilt!");
           } catch(e) { if(window.HalDo && HalDo.Notify) HalDo.Notify.error("Verweigert: " + e.message); }
         });
       }
 
-      // --- 12. BEDIENUNGSHILFEN (Ezidi) ---
+      // --- 11. BEDIENUNGSHILFEN ---
       else if (view.screen === "accessibility") {
         html += `<button class="back-btn" data-nav="main">‹ Zurück</button><div class="settings-header"><h1>🦾 Bedienungshilfen</h1></div>`;
         html += `<div class="field"><label>Tastatur-Sprachen</label><div class="info-text">Aktive Sprachen: ${s.keyboardLanguages.join(', ')}</div>
@@ -519,20 +453,11 @@
         container.innerHTML = html;
         container.querySelector("#addKeyboardLang").addEventListener("change", function(e) {
           var lang = e.target.value;
-          if(lang && !s.keyboardLanguages.includes(lang)) {
-            s.keyboardLanguages.push(lang); saveSettings(store, s); build();
-          }
+          if(lang && !s.keyboardLanguages.includes(lang)) { s.keyboardLanguages.push(lang); saveSettings(store, s); build(); }
         });
       }
 
-      // --- 13. DIGITAL WELLBEING ---
-      else if (view.screen === "wellbeing") {
-        html += `<button class="back-btn" data-nav="main">‹ Zurück</button><div class="settings-header"><h1>📅 Digital Wellbeing</h1></div>`;
-        html += `<div class="info-text">Bildschirmzeit heute: 2 Std. 15 Min.<br>Entsperrungen: 42</div>`;
-        container.innerHTML = html;
-      }
-
-      // --- 14. SYSTEM ---
+      // --- 12. SYSTEM ---
       else if (view.screen === "system") {
         html += `<button class="back-btn" data-nav="main">‹ Zurück</button><div class="settings-header"><h1>🔄 Software-Update</h1></div>`;
         html += `<div class="field"><label>Aktuelle Version</label><div class="info-text">${s.systemVersion}</div></div>`;
@@ -557,5 +482,5 @@
   }
 
   HalDoApp("settings", { name: "Einstellungen", icon: "⚙️", render: render, category: "system" });
-  console.log('%c⚙️ HalDo Settings v28.0 — THE ULTIMATE PRO MAX bereit', GOLD_STYLE);
+  console.log('%c⚙️ HalDo Settings v29.0 — ULTIMATE SYSTEM CONTROL bereit', GOLD_STYLE);
 })();
