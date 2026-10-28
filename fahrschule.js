@@ -1,8 +1,8 @@
-/* HalDo Fahrschule v300.0 — Theorie-Training PROFESSIONAL */
+/* HalDo Fahrschule v300.1 — Theorie-Training PROFESSIONAL (Global API Fix) */
 (function () {
   'use strict';
 
-  const VERSION = '300.0';
+  const VERSION = '300.1';
   const STORAGE_KEY = 'haldo.fahrschule.stats';
 
   // ═══════════════════════════════════════════════════════
@@ -239,12 +239,12 @@
   function startExam() {
     currentView = 'exam';
     examState = {
-      questions: [...QUESTIONS].sort(() => Math.random() - 0.5).slice(0, 15), // 15 zufällige Fragen
+      questions: [...QUESTIONS].sort(() => Math.random() - 0.5).slice(0, 15),
       current: 0,
       correct: 0,
       total: 15,
       finished: false,
-      timeLeft: 900 // 15 Minuten
+      timeLeft: 900
     };
     stats.examsTaken++;
     saveStats();
@@ -296,7 +296,6 @@
       return;
     }
 
-    // LERNEN
     if (action === 'learn-prev') { if (currentLearnIndex > 0) currentLearnIndex--; updateView(); return; }
     if (action === 'learn-next') { if (currentLearnIndex < QUESTIONS.length - 1) currentLearnIndex++; updateView(); return; }
     if (action === 'learn-answer') {
@@ -318,7 +317,6 @@
       return;
     }
 
-    // PRÜFUNG
     if (action === 'exam-answer' && examState && !examState.finished) {
       const idx = parseInt(actionBtn.dataset.idx);
       const q = examState.questions[examState.current];
@@ -364,14 +362,14 @@
 
   loadStats();
 
+  // GLOBALE REGISTRIERUNG (Damit es JEDES System findet)
   window.HalDoApps = window.HalDoApps || {};
-  window.HalDoApps.fahrschule = { 
-    mount, 
-    version: VERSION,
-    // Expose API for other apps to query stats
-    getStats: () => stats
-  };
+  window.HalDoApps.fahrschule = { mount, version: VERSION, getStats: () => stats };
+  window.Fahrschule = window.HalDoApps.fahrschule;
+  window.apps = window.apps || {};
+  window.apps.fahrschule = window.HalDoApps.fahrschule;
+  window.renderFahrschule = mount;
 
-  console.log('🚦 fahrschule.js v' + VERSION + ' geladen — Theorie-Training PROFESSIONAL');
+  console.log('🚦 fahrschule.js v' + VERSION + ' geladen — Theorie-Training PROFESSIONAL (Global API Fix)');
 
 })();
