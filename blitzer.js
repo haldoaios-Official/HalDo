@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — HALDO BLITZER v17.0 (PEACOCK ALIVE)
-   Realistischer Pfau · Natürliche Animation · Kamera
+   HALDO AI OS — HALDO BLITZER v18.0 (3D PEACOCK ULTIMATE)
+   Echter 3D-Pfau · Auto-Auswahl · Kein Boot-Screen · Massive Code
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
@@ -8,7 +8,7 @@
 
   var LOGO_URL = "logo.png";
   var GOLD_STYLE = 'color:#ffd700;font-weight:900;font-size:13px;text-shadow:0 0 8px #ffd700,0 0 16px rgba(255,215,0,.6);background:#0a0e2a;padding:2px 6px;border-radius:4px;';
-  console.log('%c🦚 HalDo Blitzer v17.0 — Peacock Alive Edition', GOLD_STYLE);
+  console.log('%c🦚 HalDo Blitzer v18.0 — 3D Peacock Ultimate Edition', GOLD_STYLE);
 
   var WELCOME = {
     de:{title:"Willkommen in",author:"von Halil Donma",footer:"HalDo Blitzer a Halil Donma",enter:"Los geht's",ai:"HalDo AI präsentiert"},
@@ -30,95 +30,173 @@
     pink:{name:"🌸 Pink",top:"#1a0a1a",mid:"#3a1a3a",bot:"#6a2a5a",accent:"#ff77aa",sun1:"#ffe8f0",sun2:"#ff99cc",sun3:"#ff5599",sun4:"#cc3377",sun5:"#6a1a4a"}
   };
 
-  // ═══════════ REALISTIC PEACOCK SVG ═══════════
-  function buildPeacockSVG(size, uid){
-    size = size || 200;
-    uid = uid || (size+"_"+Math.random().toString(36).slice(2,7));
-    var cx = 120, cy = 158, numF = 23, fan = "";
+  // ═══════════════════════════════════════════════════════════
+  // 3D CHARACTERS (PEACOCK, CAR, COMET)
+  // ═══════════════════════════════════════════════════════════
 
-    for(var i = 0; i < numF; i++){
-      var angle = -105 + (210/(numF-1)) * i;
-      var radF = angle * Math.PI / 180;
-      var dC = Math.abs(angle) / 105;
-      var len = 92 - dC * 10;
-      var tipX = cx + len * Math.sin(radF);
-      var tipY = cy - len * Math.cos(radF);
-      var s = 0.85 + (1 - dC) * 0.3;
+  function build3DPeacockSVG(size, uid) {
+    size = size || 240; uid = uid || (size+"_"+Math.random().toString(36).slice(2,7));
+    var cx = 120, cy = 160, fan = "", numF = 33;
 
-      fan += `<line x1="${cx}" y1="${cy}" x2="${tipX.toFixed(1)}" y2="${tipY.toFixed(1)}" stroke="#2a6a3a" stroke-width="1.2" opacity="0.9"/>`;
-      fan += `<ellipse cx="${tipX.toFixed(1)}" cy="${tipY.toFixed(1)}" rx="${(14*s).toFixed(1)}" ry="${(18*s).toFixed(1)}" fill="url(#leaf_${uid})" transform="rotate(${angle.toFixed(1)} ${tipX.toFixed(1)} ${tipY.toFixed(1)})"/>`;
-      fan += `<circle cx="${tipX.toFixed(1)}" cy="${tipY.toFixed(1)}" r="${(7.5*s).toFixed(1)}" fill="#c88020"/>`;
-      fan += `<circle cx="${tipX.toFixed(1)}" cy="${tipY.toFixed(1)}" r="${(5*s).toFixed(1)}" fill="#0a2a5a"/>`;
-      fan += `<circle cx="${tipX.toFixed(1)}" cy="${tipY.toFixed(1)}" r="${(3.5*s).toFixed(1)}" fill="#4dc4e0"/>`;
-      fan += `<circle cx="${tipX.toFixed(1)}" cy="${tipY.toFixed(1)}" r="${(1.8*s).toFixed(1)}" fill="#0a0a2a"/>`;
-      fan += `<circle cx="${(tipX-0.6*s).toFixed(1)}" cy="${(tipY-0.6*s).toFixed(1)}" r="${(0.6*s).toFixed(1)}" fill="#fff" opacity="0.85"/>`;
+    for(var i=0; i<numF; i++){
+      var angle = -100 + (200/(numF-1))*i;
+      var rad = angle * Math.PI / 180;
+      var dC = Math.abs(angle) / 100;
+      var len = 105 - dC * 15;
+      var tipX = cx + len * Math.sin(rad);
+      var tipY = cy - len * Math.cos(rad);
+      
+      // Realistic feather base
+      fan += `<path d="M ${cx} ${cy} Q ${cx + (len*0.6)*Math.sin(rad + 0.1)} ${cy - (len*0.6)*Math.cos(rad + 0.1)} ${tipX} ${tipY} Q ${cx + (len*0.6)*Math.sin(rad - 0.1)} ${cy - (len*0.6)*Math.cos(rad - 0.1)} ${cx} ${cy} Z" fill="url(#featherBase_${uid})" opacity="0.9"/>`;
+      
+      // 3D Ocellus (Eye)
+      fan += `<circle cx="${tipX}" cy="${tipY}" r="9" fill="#c88020" filter="url(#drop_${uid})"/>`;
+      fan += `<circle cx="${tipX}" cy="${tipY}" r="7" fill="#1a5a3a"/>`;
+      fan += `<circle cx="${tipX}" cy="${tipY}" r="5" fill="#0a3a7a"/>`;
+      fan += `<circle cx="${tipX}" cy="${tipY}" r="3.5" fill="#4dc4e0"/>`;
+      fan += `<circle cx="${tipX-1}" cy="${tipY-1}" r="1.5" fill="#fff" opacity="0.9"/>`;
     }
 
-    var crest = "", numC = 15;
-    for(var i = 0; i < numC; i++){
-      var cA = -50 + (100/(numC-1)) * i;
-      var cR = cA * Math.PI / 180;
-      var cL = 15 + Math.random() * 3;
-      var bX = 120 + (i - (numC-1)/2) * 0.8;
-      var bY = 60;
-      var tX = bX + cL * Math.sin(cR);
-      var tY = bY - cL * Math.cos(cR);
-      crest += `<line x1="${bX.toFixed(1)}" y1="${bY.toFixed(1)}" x2="${tX.toFixed(1)}" y2="${tY.toFixed(1)}" stroke="#0a3a5a" stroke-width="0.8" opacity="0.9"/>`;
-      crest += `<ellipse cx="${tX.toFixed(1)}" cy="${tY.toFixed(1)}" rx="2" ry="2.8" fill="#4dc4e0"/>`;
-      crest += `<circle cx="${tX.toFixed(1)}" cy="${tY.toFixed(1)}" r="0.8" fill="#0a2a5a"/>`;
+    // Crown (Crest)
+    var crest = "";
+    for(var i=0; i<15; i++){
+      var cA = -45 + (90/14)*i;
+      var cRad = cA * Math.PI / 180;
+      var cLen = 18 + Math.random()*4;
+      var tX = 120 + cLen * Math.sin(cRad);
+      var tY = 75 - cLen * Math.cos(cRad);
+      crest += `<line x1="120" y1="75" x2="${tX}" y2="${tY}" stroke="#0a3a5a" stroke-width="1.2" opacity="0.8"/>`;
+      crest += `<circle cx="${tX}" cy="${tY}" r="2.5" fill="#4dc4e0" filter="url(#glow_${uid})"/>`;
     }
 
-    return `<svg viewBox="0 0 240 280" width="${size}" height="${size*280/240}" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;overflow:visible;filter:drop-shadow(0 8px 24px rgba(255,215,0,.4)) drop-shadow(0 0 40px rgba(77,208,225,.25))">
+    return `<svg viewBox="0 0 240 280" width="${size}" height="${size*280/240}" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;overflow:visible;filter:drop-shadow(0 10px 30px rgba(255,215,0,.4))">
       <defs>
-        <linearGradient id="leaf_${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3a9a5a"/><stop offset="50%" stop-color="#1a6a3a"/><stop offset="100%" stop-color="#0a3a1a"/></linearGradient>
-        <linearGradient id="bodyG_${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4dc4e0"/><stop offset="40%" stop-color="#1a7ab8"/><stop offset="100%" stop-color="#051a3a"/></linearGradient>
-        <linearGradient id="neckG_${uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4dc4e0"/><stop offset="50%" stop-color="#1a7ab8"/><stop offset="100%" stop-color="#051a3a"/></linearGradient>
-        <radialGradient id="headG_${uid}" cx="50%" cy="40%" r="60%"><stop offset="0%" stop-color="#6dd4e8"/><stop offset="50%" stop-color="#1a7ab8"/><stop offset="100%" stop-color="#0a3a7a"/></radialGradient>
+        <linearGradient id="featherBase_${uid}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#1a6a3a"/>
+          <stop offset="50%" stop-color="#0a3a1a"/>
+          <stop offset="100%" stop-color="#022a0a"/>
+        </linearGradient>
+        <linearGradient id="bodyG_${uid}" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#6dd4e8"/>
+          <stop offset="30%" stop-color="#1a7ab8"/>
+          <stop offset="70%" stop-color="#0a3a7a"/>
+          <stop offset="100%" stop-color="#021a3a"/>
+        </linearGradient>
+        <linearGradient id="neckG_${uid}" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#4dc4e0"/>
+          <stop offset="60%" stop-color="#1a5a9a"/>
+          <stop offset="100%" stop-color="#0a2a5a"/>
+        </linearGradient>
+        <radialGradient id="headG_${uid}" cx="40%" cy="30%" r="60%">
+          <stop offset="0%" stop-color="#8ae4f8"/>
+          <stop offset="50%" stop-color="#1a7ab8"/>
+          <stop offset="100%" stop-color="#051a3a"/>
+        </radialGradient>
+        <filter id="drop_${uid}"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.5"/></filter>
+        <filter id="glow_${uid}"><feGaussianBlur stdDeviation="1.5" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       </defs>
 
-      <g class="peacock-idle">
-        <g class="peacock-fan-sway">
-          <g class="peacock-fan">${fan}</g>
-        </g>
+      <g class="peacock-fan">
+        ${fan}
+      </g>
 
-        <g class="peacock-body">
-          <ellipse cx="120" cy="185" rx="20" ry="32" fill="url(#bodyG_${uid})"/>
-          <path d="M 108 165 Q 105 130 112 100 Q 116 85 120 78 Q 124 85 128 100 Q 135 130 132 165 Z" fill="url(#neckG_${uid})"/>
-        </g>
+      <g class="peacock-body">
+        <!-- Thick, 3D Body -->
+        <ellipse cx="120" cy="190" rx="28" ry="45" fill="url(#bodyG_${uid})" filter="url(#drop_${uid})"/>
+        <!-- S-Curve Neck -->
+        <path d="M 102 160 Q 95 110 115 85 Q 125 75 130 85 Q 135 110 138 160 Z" fill="url(#neckG_${uid})"/>
+      </g>
 
-        <g class="peacock-head-float">
-          <circle cx="120" cy="72" r="14" fill="url(#headG_${uid})"/>
-          ${crest}
-          <path d="M 108 68 Q 113 64 120 64 Q 127 64 132 68" stroke="#f5f5f5" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-          <path d="M 108 76 Q 113 80 120 80 Q 127 80 132 76" stroke="#f5f5f5" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.8"/>
-          <g class="peacock-eyes">
-            <ellipse cx="114" cy="71" rx="2.8" ry="3.3" fill="#0a0a1a"/>
-            <ellipse cx="126" cy="71" rx="2.8" ry="3.3" fill="#0a0a1a"/>
-            <circle cx="114.8" cy="69.8" r="1" fill="#fff"/>
-            <circle cx="126.8" cy="69.8" r="1" fill="#fff"/>
-          </g>
-          <path d="M 118 78 L 116 84 Q 120 83 120 83 Q 120 83 124 84 L 122 78 Z" fill="#c89020"/>
-          <line x1="118" y1="78" x2="122" y2="78" stroke="#8a5a10" stroke-width="0.5"/>
-        </g>
+      <g class="peacock-head">
+        <!-- Head -->
+        <circle cx="120" cy="75" r="16" fill="url(#headG_${uid})"/>
+        <!-- White Eye Stripes -->
+        <path d="M 106 70 Q 115 65 134 70" stroke="#fff" stroke-width="2.5" fill="none" opacity="0.8"/>
+        <path d="M 106 80 Q 115 85 134 80" stroke="#fff" stroke-width="1.5" fill="none" opacity="0.6"/>
+        <!-- Eyes -->
+        <ellipse cx="113" cy="73" rx="3" ry="3.5" fill="#000"/>
+        <ellipse cx="127" cy="73" rx="3" ry="3.5" fill="#000"/>
+        <circle cx="113.5" cy="72" r="1" fill="#fff"/>
+        <circle cx="127.5" cy="72" r="1" fill="#fff"/>
+        <!-- Beak -->
+        <polygon points="120,80 115,88 125,88" fill="#e8b030"/>
+        ${crest}
+      </g>
 
-        <g class="peacock-camera" transform="translate(120,200)">
-          <rect x="-14" y="-8" width="28" height="18" rx="3" fill="#1a1a2e" stroke="#ffd700" stroke-width="1.5"/>
-          <circle cx="0" cy="2" r="6.5" fill="#0a0a1a" stroke="#ffd700" stroke-width="0.8"/>
-          <circle cx="0" cy="2" r="4.5" fill="url(#headG_${uid})"/>
-          <circle cx="0" cy="2" r="2.5" fill="#0a0a1a"/>
-          <circle cx="-1" cy="1" r="1" fill="#4dc4e0" opacity="0.9"/>
-          <rect x="-4" y="-12" width="8" height="5" rx="1" fill="#1a1a2e" stroke="#ffd700" stroke-width="1"/>
-          <circle cx="10" cy="-3" r="1.2" fill="#ff3333"/>
-        </g>
+      <!-- 3D Speed Camera on Chest -->
+      <g class="peacock-camera" transform="translate(120, 205)">
+        <rect x="-18" y="-10" width="36" height="22" rx="4" fill="#1a1a2e" stroke="#ffd700" stroke-width="2"/>
+        <rect x="-6" y="-15" width="12" height="6" rx="1" fill="#1a1a2e" stroke="#ffd700" stroke-width="1.5"/>
+        <circle cx="0" cy="2" r="9" fill="#000" stroke="#ffd700" stroke-width="1"/>
+        <circle cx="0" cy="2" r="6" fill="url(#neckG_${uid})"/>
+        <circle cx="0" cy="2" r="3" fill="#000"/>
+        <circle cx="-1.5" cy="0.5" r="1.5" fill="#fff"/>
+        <circle cx="14" cy="-6" r="2" fill="#ff3333" filter="url(#glow_${uid})"/>
       </g>
     </svg>`;
   }
 
+  function buildCarSVG(size, uid) {
+    size = size || 240; uid = uid || (size+"_"+Math.random().toString(36).slice(2,7));
+    return `<svg viewBox="0 0 240 240" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;overflow:visible;filter:drop-shadow(0 10px 30px rgba(255,50,50,.5))">
+      <defs>
+        <linearGradient id="carBody_${uid}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ff5555"/><stop offset="50%" stop-color="#aa0000"/><stop offset="100%" stop-color="#550000"/>
+        </linearGradient>
+        <linearGradient id="window_${uid}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#4dd0e1"/><stop offset="100%" stop-color="#1a3a5a"/>
+        </linearGradient>
+        <filter id="glowCar_${uid}"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <g class="car-body">
+        <!-- Body -->
+        <path d="M 30 160 Q 30 120 60 110 L 90 70 Q 120 50 150 70 L 180 110 Q 210 120 210 160 L 210 180 Q 210 190 200 190 L 40 190 Q 30 190 30 180 Z" fill="url(#carBody_${uid})" stroke="#ff8888" stroke-width="1.5"/>
+        <!-- Windows -->
+        <path d="M 75 110 L 95 75 Q 120 60 145 75 L 165 110 Z" fill="url(#window_${uid})" opacity="0.9"/>
+        <!-- Radar on top -->
+        <rect x="110" y="40" width="20" height="15" rx="3" fill="#1a1a2e" stroke="#ffd700" stroke-width="1.5"/>
+        <circle cx="120" cy="47" r="4" fill="#ff3333" filter="url(#glowCar_${uid})"/>
+        <path d="M 120 40 L 120 20" stroke="#ffd700" stroke-width="2" stroke-dasharray="3,3"/>
+        <circle cx="120" cy="20" r="3" fill="#ffd700" filter="url(#glowCar_${uid})"/>
+        <!-- Wheels -->
+        <circle cx="65" cy="185" r="22" fill="#111" stroke="#444" stroke-width="4"/>
+        <circle cx="65" cy="185" r="12" fill="#ffd700"/>
+        <circle cx="175" cy="185" r="22" fill="#111" stroke="#444" stroke-width="4"/>
+        <circle cx="175" cy="185" r="12" fill="#ffd700"/>
+        <!-- Headlights -->
+        <rect x="180" y="140" width="25" height="10" rx="3" fill="#4dd0e1" filter="url(#glowCar_${uid})"/>
+        <rect x="35" y="140" width="20" height="10" rx="3" fill="#ff3333" filter="url(#glowCar_${uid})"/>
+      </g>
+    </svg>`;
+  }
+
+  function buildCometSVG(size, uid) {
+    size = size || 240; uid = uid || (size+"_"+Math.random().toString(36).slice(2,7));
+    return `<svg viewBox="0 0 240 240" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;overflow:visible;filter:drop-shadow(0 0 30px rgba(77,208,225,.6))">
+      <defs>
+        <radialGradient id="cometCore_${uid}" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#fff"/><stop offset="30%" stop-color="#4dd0e1"/><stop offset="100%" stop-color="#1a3a8a"/>
+        </radialGradient>
+        <linearGradient id="cometTail_${uid}" x1="1" y1="1" x2="0" y2="0">
+          <stop offset="0%" stop-color="#4dd0e1"/><stop offset="50%" stop-color="#b478ff"/><stop offset="100%" stop-color="transparent"/>
+        </linearGradient>
+      </defs>
+      <g class="comet-body">
+        <path d="M 120 20 Q 200 120 160 200 Q 120 240 80 200 Q 40 120 120 20 Z" fill="url(#cometTail_${uid})" opacity="0.5" transform="rotate(45 120 120)"/>
+        <circle cx="120" cy="120" r="40" fill="url(#cometCore_${uid})" filter="drop-shadow(0 0 20px #4dd0e1)"/>
+        <circle cx="120" cy="120" r="20" fill="#fff" opacity="0.8"/>
+      </g>
+    </svg>`;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // APP ICON
+  // ═══════════════════════════════════════════════════════════
   function appIconSVG(size){
     size = size || 60;
     return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" style="display:inline-block;vertical-align:middle;filter:drop-shadow(0 4px 12px rgba(255,215,0,.5))">
-      <defs><linearGradient id="gGold_${size}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe85e"/><stop offset="50%" stop-color="#ffd700"/><stop offset="100%" stop-color="#ffb300"/></linearGradient></defs>
-      <polygon points="50,6 95,92 5,92" fill="url(#gGold_${size})" stroke="#1a1a2e" stroke-width="4" stroke-linejoin="round"/>
+      <defs><linearGradient id="gGoldIcon_${size}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe85e"/><stop offset="50%" stop-color="#ffd700"/><stop offset="100%" stop-color="#ffb300"/></linearGradient></defs>
+      <polygon points="50,6 95,92 5,92" fill="url(#gGoldIcon_${size})" stroke="#1a1a2e" stroke-width="4" stroke-linejoin="round"/>
       <rect x="32" y="48" width="36" height="26" rx="3" fill="#1a1a2e" stroke="#fff" stroke-width="1.5"/>
       <rect x="44" y="41" width="12" height="9" rx="1" fill="#1a1a2e" stroke="#fff" stroke-width="1.5"/>
       <circle cx="50" cy="61" r="8" fill="#4dd0e1" stroke="#fff" stroke-width="1.5"/>
@@ -165,7 +243,7 @@
     warnDist:1000,sounds:{},arrowColor:"gold24k",tachoColor:"#ffd700",
     alarmDuration:5,offlineMode:false,flashOnWarning:false,globalMute:false,
     tankerApiKey:"",btDeviceName:null,useCustomVoice:false,
-    welcomeTheme:"gold",welcomeSpeed:"normal",welcomeDuration:"normal",showBootLog:true
+    welcomeTheme:"gold",welcomeSpeed:"normal",welcomeDuration:"normal",showBootLog:false,welcomeCharacter:"peacock"
   };
   CATS.forEach(function(c){ DEFAULT_SETTINGS.enabled[c.id]=true; DEFAULT_SETTINGS.sounds[c.id]=c.sound||"chime"; });
 
@@ -174,7 +252,6 @@
   function fmtDist(m){ return m<1000?Math.round(m/10)*10+" m":(m/1000).toFixed(1)+" km"; }
   function fmtTime(sec){ var h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60; return (h>0?h+"h ":"")+m+"m "+s+"s"; }
 
-  // ── Audio Engine ──
   var audioCtx = null;
   function getAudio(){ if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return audioCtx; }
   function playBeep(pattern, vol, duration){
@@ -277,9 +354,8 @@
       else if(sc==="restaurant") screenRestaurants();
     }
 
-    // ═══════════ BOOT LOG ═══════════
     function screenBoot(){
-      var logs = ["🦚 runtime.js geladen","🦚 store.js geladen","🎙️ 319 Stimmen geladen","🎙️ 346 Stimmen geladen","🦚 notify.js geladen","🎨 theme.js geladen — 8 Themes","🦚 apps.js geladen — 48 Apps","🦚 ai-engine.js geladen — WASM aktiv","🦚 haldo-ai.js geladen","🪟 deskpane.js geladen","👤 avatar.js geladen","🏠 shell.js geladen","⚙️ settings.js geladen","🦚 HalDo Blitzer v17.0 — Peacock Alive"];
+      var logs = ["🦚 runtime.js geladen","🦚 store.js geladen","🎙️ 319 Stimmen geladen","🎙️ 346 Stimmen geladen","🦚 notify.js geladen","🎨 theme.js geladen — 8 Themes","🦚 apps.js geladen — 48 Apps","🦚 ai-engine.js geladen — WASM aktiv","🦚 haldo-ai.js geladen","🪟 deskpane.js geladen","👤 avatar.js geladen","🏠 shell.js geladen","⚙️ settings.js geladen","🦚 HalDo Blitzer v18.0 — 3D Ultimate"];
       var css = `.boot-screen{position:fixed;inset:0;background:radial-gradient(ellipse at center,#0a0e2a 0%,#000 100%);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:'SF Mono','Monaco','Consolas',monospace;overflow:hidden}.boot-terminal{width:90%;max-width:520px;padding:24px;background:rgba(10,14,42,.85);border:1px solid rgba(255,215,0,.3);border-radius:16px;box-shadow:0 0 60px rgba(255,215,0,.3),inset 0 0 40px rgba(77,208,225,.1);backdrop-filter:blur(10px)}.boot-header{font-size:13px;color:#ffd700;font-weight:900;letter-spacing:2px;text-align:center;margin-bottom:16px;text-shadow:0 0 12px #ffd700;animation:bp 2s ease-in-out infinite}@keyframes bp{0%,100%{opacity:.8;text-shadow:0 0 12px #ffd700}50%{opacity:1;text-shadow:0 0 24px #ffd700,0 0 40px #ff9800}}.boot-lines{font-size:11px;line-height:1.9;max-height:340px;overflow:hidden}.boot-line{opacity:0;color:#4dd0e1;text-shadow:0 0 6px rgba(77,208,225,.7);animation:bl .4s ease-out forwards;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.boot-line:last-child{color:#ffd700;text-shadow:0 0 10px #ffd700;font-weight:900}@keyframes bl{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}.boot-cursor{display:inline-block;width:7px;height:13px;background:#4dd0e1;box-shadow:0 0 10px #4dd0e1;animation:bc 1s step-end infinite;vertical-align:middle;margin-left:4px}@keyframes bc{50%{opacity:0}}.boot-bar{height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:14px;overflow:hidden}.boot-bar-fill{height:100%;background:linear-gradient(90deg,#4dd0e1,#ffd700);box-shadow:0 0 10px #ffd700;animation:bb 3s ease-in-out forwards;width:0%}@keyframes bb{to{width:100%}}`;
       container.innerHTML = `<style>${css}</style><div class="boot-screen"><div class="boot-terminal"><div class="boot-header">🦚 HALDO AI OS — BOOT SEQUENCE 🦚</div><div class="boot-lines" id="bootLines"></div><div class="boot-bar"><div class="boot-bar-fill"></div></div></div></div>`;
       var linesEl = container.querySelector("#bootLines"), i=0;
@@ -288,7 +364,6 @@
       setTimeout(function(){ view.screen="splash"; build(); },3000);
     }
 
-    // ═══════════ SPLASH ═══════════
     function screenSplash(){
       var s = getSettings();
       var w = WELCOME[s.lang] || WELCOME.de;
@@ -298,7 +373,11 @@
       var durMap = {short:2,normal:4,long:6};
       var durMult = durMap[s.welcomeDuration] || 4;
       var flyDur = (durMult*speedMult).toFixed(1);
-      var peacock = buildPeacockSVG(200,"splash");
+      
+      var characterSVG = "";
+      if(s.welcomeCharacter === "car") characterSVG = buildCarSVG(220, "car");
+      else if(s.welcomeCharacter === "comet") characterSVG = buildCometSVG(220, "comet");
+      else characterSVG = build3DPeacockSVG(240, "peacock");
 
       var css = `
         .splash{position:fixed;inset:0;background:linear-gradient(to bottom,${theme.top} 0%,${theme.mid} 30%,${theme.bot} 100%);overflow:hidden;z-index:99998;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff}
@@ -310,8 +389,8 @@
         .splash-sun{position:absolute;top:8%;left:50%;transform:translateX(-50%);width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,${theme.sun1} 0%,${theme.sun2} 25%,${theme.sun3} 50%,${theme.sun4} 75%,${theme.sun5} 100%);box-shadow:0 0 80px ${theme.accent},0 0 160px ${theme.sun4},0 0 240px ${theme.accent}66;z-index:2;animation:sp 3s ease-in-out infinite}
         @keyframes sp{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.08)}}
 
-        .splash-peacock{position:absolute;top:42%;left:50%;margin-left:-110px;margin-top:-128px;width:220px;height:256px;z-index:5;animation:peacockFlyIn ${flyDur}s cubic-bezier(.4,0,.2,1) forwards}
-        @keyframes peacockFlyIn{
+        .splash-character{position:absolute;top:44%;left:50%;margin-left:-120px;margin-top:-140px;width:240px;height:280px;z-index:5;animation:charFlyIn ${flyDur}s cubic-bezier(.4,0,.2,1) forwards;display:flex;align-items:center;justify-content:center}
+        @keyframes charFlyIn{
           0%{transform:translate(300%,-500%) scale(.15) rotate(-45deg);opacity:0}
           15%{opacity:1}
           40%{transform:translate(50%,-180%) scale(.5) rotate(-20deg)}
@@ -320,18 +399,20 @@
           80%{transform:translate(0,0) scale(.98) rotate(-1deg)}
           100%{transform:translate(0,0) scale(1) rotate(0deg);opacity:1}
         }
-        .peacock-idle{display:inline-block;animation:idleSway 6s ease-in-out infinite ${flyDur*0.75}s;transform-origin:120px 220px;transform-box:view-box}
-        @keyframes idleSway{0%,100%{transform:rotate(-1deg) translateY(0)}50%{transform:rotate(1deg) translateY(-2px)}}
-        .peacock-fan-sway{transform-origin:120px 158px;transform-box:view-box;animation:fanSway 5s ease-in-out infinite 2.5s}
-        @keyframes fanSway{0%,100%{transform:rotate(-1.2deg)}50%{transform:rotate(1.2deg)}}
-        .peacock-fan{transform-origin:120px 158px;transform-box:view-box;transform:scale(.3);opacity:0;animation:fanOpen 1.2s cubic-bezier(.4,0,.2,1) ${flyDur*0.6}s forwards}
-        @keyframes fanOpen{0%{transform:scale(.3,.6);opacity:.5}20%{opacity:1}60%{transform:scale(1.05,.95)}80%{transform:scale(.98,1.02)}100%{transform:scale(1,1);opacity:1}}
-        .peacock-body{transform-origin:120px 185px;transform-box:view-box;animation:breathe 2.5s ease-in-out infinite ${flyDur*0.7}s}
+
+        /* 3D Animations */
+        .peacock-body{transform-origin:120px 190px;transform-box:view-box;animation:breathe 2.5s ease-in-out infinite ${flyDur*0.7}s}
         @keyframes breathe{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.03)}}
-        .peacock-head-float{transform-origin:120px 130px;transform-box:view-box;animation:headSway 5s ease-in-out infinite ${flyDur*0.8}s}
+        .peacock-head{transform-origin:120px 100px;transform-box:view-box;animation:headSway 5s ease-in-out infinite ${flyDur*0.8}s}
         @keyframes headSway{0%,100%{transform:rotate(-1.5deg)}50%{transform:rotate(1.5deg)}}
-        .peacock-eyes{transform-origin:120px 71px;transform-box:view-box;animation:blink 5s ease-in-out infinite ${flyDur*0.9}s}
-        @keyframes blink{0%,88%,100%{transform:scaleY(1)}92%,96%{transform:scaleY(.05)}}
+        .peacock-fan{transform-origin:120px 160px;transform-box:view-box;transform:scale(.3);opacity:0;animation:fanOpen 1.2s cubic-bezier(.4,0,.2,1) ${flyDur*0.6}s forwards}
+        @keyframes fanOpen{0%{transform:scale(.3,.6);opacity:.5}20%{opacity:1}60%{transform:scale(1.05,.95)}80%{transform:scale(.98,1.02)}100%{transform:scale(1,1);opacity:1}}
+
+        .car-body{transform-origin:120px 160px;transform-box:view-box;animation:carIdle 3s ease-in-out infinite ${flyDur*0.7}s}
+        @keyframes carIdle{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-2px) rotate(-1deg)}75%{transform:translateY(2px) rotate(1deg)}}
+        
+        .comet-body{transform-origin:120px 120px;transform-box:view-box;animation:cometIdle 4s ease-in-out infinite ${flyDur*0.7}s}
+        @keyframes cometIdle{0%,100%{transform:rotate(0) scale(1)}50%{transform:rotate(5deg) scale(1.05)}}
 
         .splash-logo{position:absolute;top:52%;left:50%;transform:translate(-50%,-50%);width:80px;height:80px;border-radius:50%;object-fit:cover;z-index:6;border:3px solid ${theme.accent};box-shadow:0 0 30px ${theme.accent},0 0 60px ${theme.accent}66;animation:logoIn .8s ease-out ${flyDur*0.9}s both;pointer-events:none}
         @keyframes logoIn{from{opacity:0;transform:translate(-50%,-50%) scale(.3)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
@@ -349,7 +430,7 @@
       `;
       container.innerHTML = `<style>${css}</style><div class="splash">
         <div class="splash-stars"></div><div class="splash-ray"></div><div class="splash-sun"></div>
-        <div class="splash-peacock">${peacock}</div>
+        <div class="splash-character">${characterSVG}</div>
         <img src="${LOGO_URL}" class="splash-logo" onerror="this.style.display='none'">
         <div class="splash-content">
           <div class="splash-ai">${_esc(w.ai)}</div>
@@ -364,7 +445,6 @@
       if(enter) enter.addEventListener("click", function(){ view.screen="cockpit"; build(); });
     }
 
-    // ═══════════ COCKPIT ═══════════
     function screenCockpit(){
       var s = getSettings();
       var speed = lastPos?Math.round((lastPos.coords.speed||0)*3.6):0;
@@ -437,8 +517,22 @@
 
     function screenSettingsWelcome(){
       var s = getSettings();
-      var html = backBtn('settings') + `<div class="card"><h3>🦚 Willkommens-Animation</h3><div class="field"><label>Farb-Theme</label><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px">${Object.keys(WELCOME_THEMES).map(function(k){ var t=WELCOME_THEMES[k]; return `<button data-theme="${k}" style="height:42px;background:linear-gradient(135deg,${t.accent},${t.sun4});border:3px solid ${s.welcomeTheme===k?'#fff':'transparent'};border-radius:8px;cursor:pointer;box-shadow:0 0 12px ${t.accent}88">${s.welcomeTheme===k?'✓':''}</button>`; }).join("")}</div></div><div class="field" style="margin-top:12px"><label>Geschwindigkeit</label><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px">${[['slow','🐢 Langsam'],['normal','⚡ Normal'],['fast','🚀 Schnell']].map(function(x){ return `<button data-speed="${x[0]}" style="padding:10px;background:${s.welcomeSpeed===x[0]?'rgba(255,215,0,.25)':'rgba(0,0,0,.3)'};border:1px solid ${s.welcomeSpeed===x[0]?'#ffd700':'#555'};color:${s.welcomeSpeed===x[0]?'#ffd700':'#ccc'};border-radius:8px;font-weight:900;font-size:11px;cursor:pointer;font-family:inherit">${x[1]}</button>`; }).join("")}</div></div><div class="field" style="margin-top:12px"><label>Dauer</label><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px">${[['short','⏱️ Kurz'],['normal','⏱️ Mittel'],['long','⏱️ Lang']].map(function(x){ return `<button data-duration="${x[0]}" style="padding:10px;background:${s.welcomeDuration===x[0]?'rgba(255,215,0,.25)':'rgba(0,0,0,.3)'};border:1px solid ${s.welcomeDuration===x[0]?'#ffd700':'#555'};color:${s.welcomeDuration===x[0]?'#ffd700':'#ccc'};border-radius:8px;font-weight:900;font-size:11px;cursor:pointer;font-family:inherit">${x[1]}</button>`; }).join("")}</div></div><div class="field" style="margin-top:12px"><label>Boot-Log-Screen</label><button id="toggleBootLog" style="width:100%;padding:12px;background:${s.showBootLog?'rgba(74,222,128,.2)':'rgba(255,85,85,.2)'};border:1px solid ${s.showBootLog?'#4ade80':'#ff5555'};color:${s.showBootLog?'#4ade80':'#ff5555'};border-radius:8px;font-weight:900;font-size:12px;cursor:pointer;font-family:inherit">${s.showBootLog?'✅ Boot-Log AN':'❌ Boot-Log AUS'}</button></div><button id="previewWelcome" style="width:100%;padding:14px;margin-top:12px;background:linear-gradient(135deg,#ffd700,#ff9800);border:none;color:#000;border-radius:10px;font-weight:900;font-size:14px;cursor:pointer;font-family:inherit">🎬 Vorschau ansehen</button></div>`;
+      var html = backBtn('settings') + `<div class="card"><h3>🦚 Willkommens-Animation</h3>
+        <div class="field"><label>Charakter Auswahl</label>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px">
+            ${[['peacock','🦚 Pfau'],['car','🏎️ Auto'],['comet','☄️ Comet']].map(function(x){
+              return `<button data-char="${x[0]}" style="padding:12px;background:${s.welcomeCharacter===x[0]?'rgba(255,215,0,.25)':'rgba(0,0,0,.3)'};border:1px solid ${s.welcomeCharacter===x[0]?'#ffd700':'#555'};color:${s.welcomeCharacter===x[0]?'#ffd700':'#ccc'};border-radius:8px;font-weight:900;font-size:12px;cursor:pointer;font-family:inherit">${x[1]}</button>`;
+            }).join("")}
+          </div>
+        </div>
+        <div class="field" style="margin-top:12px"><label>Farb-Theme</label><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px">${Object.keys(WELCOME_THEMES).map(function(k){ var t=WELCOME_THEMES[k]; return `<button data-theme="${k}" style="height:42px;background:linear-gradient(135deg,${t.accent},${t.sun4});border:3px solid ${s.welcomeTheme===k?'#fff':'transparent'};border-radius:8px;cursor:pointer;box-shadow:0 0 12px ${t.accent}88">${s.welcomeTheme===k?'✓':''}</button>`; }).join("")}</div></div>
+        <div class="field" style="margin-top:12px"><label>Geschwindigkeit</label><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px">${[['slow','🐢 Langsam'],['normal','⚡ Normal'],['fast','🚀 Schnell']].map(function(x){ return `<button data-speed="${x[0]}" style="padding:10px;background:${s.welcomeSpeed===x[0]?'rgba(255,215,0,.25)':'rgba(0,0,0,.3)'};border:1px solid ${s.welcomeSpeed===x[0]?'#ffd700':'#555'};color:${s.welcomeSpeed===x[0]?'#ffd700':'#ccc'};border-radius:8px;font-weight:900;font-size:11px;cursor:pointer;font-family:inherit">${x[1]}</button>`; }).join("")}</div></div>
+        <div class="field" style="margin-top:12px"><label>Dauer</label><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px">${[['short','⏱️ Kurz'],['normal','⏱️ Mittel'],['long','⏱️ Lang']].map(function(x){ return `<button data-duration="${x[0]}" style="padding:10px;background:${s.welcomeDuration===x[0]?'rgba(255,215,0,.25)':'rgba(0,0,0,.3)'};border:1px solid ${s.welcomeDuration===x[0]?'#ffd700':'#555'};color:${s.welcomeDuration===x[0]?'#ffd700':'#ccc'};border-radius:8px;font-weight:900;font-size:11px;cursor:pointer;font-family:inherit">${x[1]}</button>`; }).join("")}</div></div>
+        <div class="field" style="margin-top:12px"><label>Boot-Log-Screen</label><button id="toggleBootLog" style="width:100%;padding:12px;background:${s.showBootLog?'rgba(74,222,128,.2)':'rgba(255,85,85,.2)'};border:1px solid ${s.showBootLog?'#4ade80':'#ff5555'};color:${s.showBootLog?'#4ade80':'#ff5555'};border-radius:8px;font-weight:900;font-size:12px;cursor:pointer;font-family:inherit">${s.showBootLog?'✅ Boot-Log AN':'❌ Boot-Log AUS'}</button></div>
+        <button id="previewWelcome" style="width:100%;padding:14px;margin-top:12px;background:linear-gradient(135deg,#ffd700,#ff9800);border:none;color:#000;border-radius:10px;font-weight:900;font-size:14px;cursor:pointer;font-family:inherit">🎬 Vorschau ansehen</button>
+      </div>`;
       container.innerHTML = html; bindNav();
+      container.querySelectorAll("[data-char]").forEach(function(el){ el.addEventListener("click", function(){ s.welcomeCharacter=el.dataset.char; saveSettings(s); screenSettingsWelcome(); }); });
       container.querySelectorAll("[data-theme]").forEach(function(el){ el.addEventListener("click", function(){ s.welcomeTheme=el.dataset.theme; saveSettings(s); screenSettingsWelcome(); }); });
       container.querySelectorAll("[data-speed]").forEach(function(el){ el.addEventListener("click", function(){ s.welcomeSpeed=el.dataset.speed; saveSettings(s); screenSettingsWelcome(); }); });
       container.querySelectorAll("[data-duration]").forEach(function(el){ el.addEventListener("click", function(){ s.welcomeDuration=el.dataset.duration; saveSettings(s); screenSettingsWelcome(); }); });
@@ -539,8 +633,8 @@
     }
 
     function screenSettingsAbout(){
-      var peacock = buildPeacockSVG(140,"about");
-      var html = backBtn('settings') + `<div class="card" style="text-align:center"><div style="margin:8px 0">${peacock}</div><div style="margin:6px 0">${appIconSVG(64)}</div><h3 style="margin:6px 0">HalDo Blitzer</h3><div style="font-size:12px;color:#ffd700;margin-top:4px;font-weight:800">Version 17.0 · Peacock Alive</div><div style="font-size:11px;color:#7fa5b8;margin-top:14px;line-height:1.8">⚠️ Blitzer-Warnungen<br>🦚 Realistischer Pfau<br>🥇 24 Karat Gold<br>🎙️ HalDoVoice<br>🗣️ Sprach-Navi<br>📡 Bluetooth<br>⛽ Tankstellen · 🍴 Restaurants<br>💡 Taschenlampe<br>🌍 9 Sprachen · 20 Töne</div><div style="font-size:11px;color:#ffd700;margin-top:20px;font-weight:900">von Halil Donma</div><div style="font-size:10px;color:#5a7a8a;margin-top:6px">Made with ❤️ for the Ezidi Community</div></div>`;
+      var charSvg = build3DPeacockSVG(120,"about");
+      var html = backBtn('settings') + `<div class="card" style="text-align:center"><div style="margin:8px 0">${charSvg}</div><div style="margin:6px 0">${appIconSVG(64)}</div><h3 style="margin:6px 0">HalDo Blitzer</h3><div style="font-size:12px;color:#ffd700;margin-top:4px;font-weight:800">Version 18.0 · 3D Peacock Ultimate</div><div style="font-size:11px;color:#7fa5b8;margin-top:14px;line-height:1.8">⚠️ Blitzer-Warnungen<br>🦚 3D Charaktere (Pfau/Auto)<br>🥇 24 Karat Gold<br>🎙️ HalDoVoice<br>🗣️ Sprach-Navi<br>📡 Bluetooth<br>⛽ Tankstellen · 🍴 Restaurants<br>💡 Taschenlampe<br>🌍 9 Sprachen · 20 Töne</div><div style="font-size:11px;color:#ffd700;margin-top:20px;font-weight:900">von Halil Donma</div><div style="font-size:10px;color:#5a7a8a;margin-top:6px">Made with ❤️ for the Ezidi Community</div></div>`;
       container.innerHTML = html; bindNav();
     }
 
@@ -734,5 +828,5 @@
   }
 
   HalDoApp("blitzer", { name:"HalDo Blitzer", icon:"⚠️", render:render, category:"werkzeuge" });
-  console.log('%c🦚 HalDo Blitzer v17.0 — Peacock Alive Edition bereit', GOLD_STYLE);
+  console.log('%c🦚 HalDo Blitzer v18.0 — 3D Ultimate Edition bereit', GOLD_STYLE);
 })();
