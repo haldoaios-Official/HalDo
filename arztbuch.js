@@ -1,223 +1,223 @@
-/* HalDo Arztbuch v1200.0 — ULTRA PRO MAX (TTS für KI, 20+ Krankheiten, 20+ Medikamente, Alle Geräte A-Z, 20+ Sprachen) */
+/* HalDo Arztbuch v1300.0 — ULTRA PRO MAX (Laborwerte, 40+ Krankheiten, 25+ Medikamente, KI TTS, 20+ Sprachen) */
 (function () {
   'use strict';
 
-  const VERSION = '1200.0';
-  const STORAGE_KEY = 'haldo.arztbuch.data.v1200';
+  const VERSION = '1300.0';
+  const STORAGE_KEY = 'haldo.arztbuch.data.v1300';
 
   // ═══════════════════════════════════════════════════════
   // 1. MULTI-LANGUAGE ENGINE (20+ Sprachen)
   // ═══════════════════════════════════════════════════════
   const LANG = {
     de: {
-      dashboard: 'Dashboard', diseases: 'Krankheiten', meds: 'Medikamente', hospitals: 'Kliniken', devices: 'IoT-Geräte',
+      dashboard: 'Dashboard', diseases: 'Krankheiten', meds: 'Medikamente', labs: 'Laborwerte', hospitals: 'Kliniken', devices: 'IoT-Geräte',
       sicknotes: 'Krankschreibung', appointments: 'Termine', emergency: 'Notfall', settings: 'Einstellungen', lang: 'Sprache',
       ask_ai: 'KI fragen', speak: 'Vorlesen', search: 'Suchen...', close: 'Schließen', save: 'Speichern', delete: 'Löschen',
       first_aid: 'Erste Hilfe', call: 'Anrufen', no_results: 'Keine Ergebnisse gefunden.', ai_tools: 'KI Medizin-Assistent',
       correct: 'Korrigieren', formulate: 'Formulieren', detail: 'Detailieren', analyze: 'Analysieren', research: 'Recherchieren',
-      listen_disease: 'Krankheit vorlesen', listen_med: 'Medikament vorlesen', listen_first_aid: 'Erste Hilfe vorlesen', listen_device: 'Gerät vorlesen',
+      listen_disease: 'Krankheit vorlesen', listen_med: 'Medikament vorlesen', listen_lab: 'Laborwert vorlesen', listen_first_aid: 'Erste Hilfe vorlesen', listen_device: 'Gerät vorlesen',
       connect: 'Verbinden', disconnect: 'Trennen', connected: 'Verbunden', not_connected: 'Nicht verbunden', connection: 'Verbindung',
-      ai_thinking: 'Analysiere...', ai_result: 'Ergebnis:', ai_listen: 'Antwort vorlesen'
+      ai_thinking: 'Analysiere...', ai_result: 'Ergebnis:', ai_listen: 'Antwort vorlesen', reference: 'Referenzbereich'
     },
     en: {
-      dashboard: 'Dashboard', diseases: 'Diseases', meds: 'Medications', hospitals: 'Hospitals', devices: 'IoT Devices',
+      dashboard: 'Dashboard', diseases: 'Diseases', meds: 'Medications', labs: 'Lab Values', hospitals: 'Hospitals', devices: 'IoT Devices',
       sicknotes: 'Sick Notes', appointments: 'Appointments', emergency: 'Emergency', settings: 'Settings', lang: 'Language',
       ask_ai: 'Ask AI', speak: 'Speak', search: 'Search...', close: 'Close', save: 'Save', delete: 'Delete',
       first_aid: 'First Aid', call: 'Call', no_results: 'No results found.', ai_tools: 'AI Medical Assistant',
       correct: 'Correct', formulate: 'Formulate', detail: 'Detail', analyze: 'Analyze', research: 'Research',
-      listen_disease: 'Listen to disease', listen_med: 'Listen to medication', listen_first_aid: 'Listen to first aid', listen_device: 'Listen to device',
+      listen_disease: 'Listen to disease', listen_med: 'Listen to medication', listen_lab: 'Listen to lab value', listen_first_aid: 'Listen to first aid', listen_device: 'Listen to device',
       connect: 'Connect', disconnect: 'Disconnect', connected: 'Connected', not_connected: 'Not connected', connection: 'Connection',
-      ai_thinking: 'Analyzing...', ai_result: 'Result:', ai_listen: 'Listen to answer'
+      ai_thinking: 'Analyzing...', ai_result: 'Result:', ai_listen: 'Listen to answer', reference: 'Reference range'
     },
     tr: {
-      dashboard: 'Panel', diseases: 'Hastalıklar', meds: 'İlaçlar', hospitals: 'Hastaneler', devices: 'IoT Cihazları',
+      dashboard: 'Panel', diseases: 'Hastalıklar', meds: 'İlaçlar', labs: 'Laboratuvar', hospitals: 'Hastaneler', devices: 'IoT Cihazları',
       sicknotes: 'Rapor', appointments: 'Randevular', emergency: 'Acil Durum', settings: 'Ayarlar', lang: 'Dil',
       ask_ai: 'Yapay Zekaya Sor', speak: 'Sesli Oku', search: 'Ara...', close: 'Kapat', save: 'Kaydet', delete: 'Sil',
       first_aid: 'İlk Yardım', call: 'Ara', no_results: 'Sonuç bulunamadı.', ai_tools: 'AI Tıbbi Asistan',
       correct: 'Düzelt', formulate: 'Formüle Et', detail: 'Detaylandır', analyze: 'Analiz Et', research: 'Araştır',
-      listen_disease: 'Hastalığı dinle', listen_med: 'İlacı dinle', listen_first_aid: 'İlk yardımı dinle', listen_device: 'Cihazı dinle',
+      listen_disease: 'Hastalığı dinle', listen_med: 'İlacı dinle', listen_lab: 'Laboratuvar değerini dinle', listen_first_aid: 'İlk yardımı dinle', listen_device: 'Cihazı dinle',
       connect: 'Bağlan', disconnect: 'Bağlantıyı Kes', connected: 'Bağlandı', not_connected: 'Bağlı Değil', connection: 'Bağlantı',
-      ai_thinking: 'Analiz ediliyor...', ai_result: 'Sonuç:', ai_listen: 'Cevabı dinle'
+      ai_thinking: 'Analiz ediliyor...', ai_result: 'Sonuç:', ai_listen: 'Cevabı dinle', reference: 'Referans aralığı'
     },
     ku: {
-      dashboard: 'Destpêk', diseases: 'Nexweşî', meds: 'Derman', hospitals: 'Nexweşxane', devices: 'Amûrên IoT',
+      dashboard: 'Destpêk', diseases: 'Nexweşî', meds: 'Derman', labs: 'Nirxên Laboratuvarê', hospitals: 'Nexweşxane', devices: 'Amûrên IoT',
       sicknotes: 'Bêhnvedan', appointments: 'Hevdîtin', emergency: 'Lezgîn', settings: 'Mîheng', lang: 'Ziman',
       ask_ai: 'Ji AI bipirse', speak: 'Bixwîne', search: 'Lê bigere...', close: 'Bigre', save: 'Tomar bike', delete: 'Jê bibe',
       first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI',
       correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike',
-      listen_disease: 'Nexweşiyê bixwîne', listen_med: 'Dermanî bixwîne', listen_first_aid: 'Alîkariya pêşîn bixwîne', listen_device: 'Amûrê bixwîne',
+      listen_disease: 'Nexweşiyê bixwîne', listen_med: 'Dermanî bixwîne', listen_lab: 'Nirxê laboratuvarê bixwîne', listen_first_aid: 'Alîkariya pêşîn bixwîne', listen_device: 'Amûrê bixwîne',
       connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan',
-      ai_thinking: 'Tê analîzkirin...', ai_result: 'Encam:', ai_listen: 'Bersivê bixwîne'
+      ai_thinking: 'Tê analîzkirin...', ai_result: 'Encam:', ai_listen: 'Bersivê bixwîne', reference: 'Qada referansê'
     },
     ckb: {
-      dashboard: 'دەستپێک', diseases: 'نەخۆشییەکان', meds: 'دەرمانەکان', hospitals: 'نەخۆشخانەکان', devices: 'ئامێرەکانی IoT',
+      dashboard: 'دەستپێک', diseases: 'نەخۆشییەکان', meds: 'دەرمانەکان', labs: 'نرخی تاقیگە', hospitals: 'نەخۆشخانەکان', devices: 'ئامێرەکانی IoT',
       sicknotes: 'مۆڵەتی نەخۆشی', appointments: 'چاوپێکەوتنەکان', emergency: 'حاڵەتی فریاکەوتن', settings: 'ڕێکخستنەکان', lang: 'زمان',
       ask_ai: 'پرسیار لە AI بکە', speak: 'بخوێنەرەوە', search: 'گەڕان...', close: 'داخستن', save: 'پاشەکەوتکردن', delete: 'سڕینەوە',
       first_aid: 'یارمەتی سەرەتایی', call: 'پەیوەندی', no_results: 'هیچ ئەنجامێک نەدۆزرایەوە.', ai_tools: 'یاریدەدەری پزیشکی AI',
       correct: 'ڕاستکردنەوە', formulate: 'فۆرمولەکردن', detail: 'وردەکاری', analyze: 'شیکردنەوە', research: 'توێژینەوە',
-      listen_disease: 'نەخۆشییەکە بخوێنەرەوە', listen_med: 'دەرمانەکە بخوێنەرەوە', listen_first_aid: 'یارمەتی سەرەتایی بخوێنەرەوە', listen_device: 'ئامێرەکە بخوێنەرەوە',
+      listen_disease: 'نەخۆشییەکە بخوێنەرەوە', listen_med: 'دەرمانەکە بخوێنەرەوە', listen_lab: 'نرخی تاقیگە بخوێنەرەوە', listen_first_aid: 'یارمەتی سەرەتایی بخوێنەرەوە', listen_device: 'ئامێرەکە بخوێنەرەوە',
       connect: 'پەیوەندی', disconnect: 'پچڕاندن', connected: 'پەیوەندیدار', not_connected: 'پەیوەندی نییە', connection: 'پەیوەندی',
-      ai_thinking: 'شیکردنەوە...', ai_result: 'ئەنجام:', ai_listen: 'وەڵامەکە بخوێنەرەوە'
+      ai_thinking: 'شیکردنەوە...', ai_result: 'ئەنجام:', ai_listen: 'وەڵامەکە بخوێنەرەوە', reference: 'مەودای سەرچاوە'
     },
     gorani: {
-      dashboard: 'Destpêk', diseases: 'Nexweşî', meds: 'Derman', hospitals: 'Nexweşxane', devices: 'Amûrên IoT',
+      dashboard: 'Destpêk', diseases: 'Nexweşî', meds: 'Derman', labs: 'Nirxên Laboratuvarê', hospitals: 'Nexweşxane', devices: 'Amûrên IoT',
       sicknotes: 'Bêhnvedan', appointments: 'Hevdîtin', emergency: 'Lezgîn', settings: 'Mîheng', lang: 'Ziman',
       ask_ai: 'Ji AI bipirse', speak: 'Bixwîne', search: 'Lê bigere...', close: 'Bigre', save: 'Tomar bike', delete: 'Jê bibe',
       first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI',
       correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike',
-      listen_disease: 'Nexweşiyê bixwîne', listen_med: 'Dermanî bixwîne', listen_first_aid: 'Alîkariya pêşîn bixwîne', listen_device: 'Amûrê bixwîne',
+      listen_disease: 'Nexweşiyê bixwîne', listen_med: 'Dermanî bixwîne', listen_lab: 'Nirxê laboratuvarê bixwîne', listen_first_aid: 'Alîkariya pêşîn bixwîne', listen_device: 'Amûrê bixwîne',
       connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan',
-      ai_thinking: 'Tê analîzkirin...', ai_result: 'Encam:', ai_listen: 'Bersivê bixwîne'
+      ai_thinking: 'Tê analîzkirin...', ai_result: 'Encam:', ai_listen: 'Bersivê bixwîne', reference: 'Qada referansê'
     },
     ez: {
-      dashboard: 'Destpêk', diseases: 'Nexweşî', meds: 'Derman', hospitals: 'Nexweşxane', devices: 'Amûrên IoT',
+      dashboard: 'Destpêk', diseases: 'Nexweşî', meds: 'Derman', labs: 'Nirxên Laboratuvarê', hospitals: 'Nexweşxane', devices: 'Amûrên IoT',
       sicknotes: 'Bêhnvedan', appointments: 'Hevdîtin', emergency: 'Lezgîn', settings: 'Mîheng', lang: 'Ziman',
       ask_ai: 'Ji AI bipirse', speak: 'Bixwîne', search: 'Lê bigere...', close: 'Bigre', save: 'Tomar bike', delete: 'Jê bibe',
       first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI',
       correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike',
-      listen_disease: 'Nexweşiyê bixwîne', listen_med: 'Dermanî bixwîne', listen_first_aid: 'Alîkariya pêşîn bixwîne', listen_device: 'Amûrê bixwîne',
+      listen_disease: 'Nexweşiyê bixwîne', listen_med: 'Dermanî bixwîne', listen_lab: 'Nirxê laboratuvarê bixwîne', listen_first_aid: 'Alîkariya pêşîn bixwîne', listen_device: 'Amûrê bixwîne',
       connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan',
-      ai_thinking: 'Tê analîzkirin...', ai_result: 'Encam:', ai_listen: 'Bersivê bixwîne'
+      ai_thinking: 'Tê analîzkirin...', ai_result: 'Encam:', ai_listen: 'Bersivê bixwîne', reference: 'Qada referansê'
     },
     ar: {
-      dashboard: 'لوحة القيادة', diseases: 'الأمراض', meds: 'الأدوية', hospitals: 'المستشفيات', devices: 'أجهزة إنترنت الأشياء',
+      dashboard: 'لوحة القيادة', diseases: 'الأمراض', meds: 'الأدوية', labs: 'قيم المختبر', hospitals: 'المستشفيات', devices: 'أجهزة إنترنت الأشياء',
       sicknotes: 'إجازة مرضية', appointments: 'المواعيد', emergency: 'حالة طوارئ', settings: 'إعدادات', lang: 'اللغة',
       ask_ai: 'اسأل الذكاء الاصطناعي', speak: 'قراءة', search: 'بحث...', close: 'إغلاق', save: 'حفظ', delete: 'حذف',
       first_aid: 'الإسعافات الأولية', call: 'اتصال', no_results: 'لم يتم العثور على نتائج.', ai_tools: 'مساعد طبي بالذكاء الاصطناعي',
       correct: 'تصحيح', formulate: 'صياغة', detail: 'تفصيل', analyze: 'تحليل', research: 'بحث',
-      listen_disease: 'استمع للمرض', listen_med: 'استمع للدواء', listen_first_aid: 'استمع للإسعافات', listen_device: 'استمع للجهاز',
+      listen_disease: 'استمع للمرض', listen_med: 'استمع للدواء', listen_lab: 'استمع لقيمة المختبر', listen_first_aid: 'استمع للإسعافات', listen_device: 'استمع للجهاز',
       connect: 'اتصال', disconnect: 'قطع الاتصال', connected: 'متصل', not_connected: 'غير متصل', connection: 'اتصال',
-      ai_thinking: 'جاري التحليل...', ai_result: 'النتيجة:', ai_listen: 'استمع للرد'
+      ai_thinking: 'جاري التحليل...', ai_result: 'النتيجة:', ai_listen: 'استمع للرد', reference: 'النطاق المرجعي'
     },
     fa: {
-      dashboard: 'داشبورد', diseases: 'بیماری‌ها', meds: 'داروها', hospitals: 'بیمارستان‌ها', devices: 'دستگاه‌های IoT',
+      dashboard: 'داشبورد', diseases: 'بیماری‌ها', meds: 'داروها', labs: 'مقادیر آزمایشگاهی', hospitals: 'بیمارستان‌ها', devices: 'دستگاه‌های IoT',
       sicknotes: 'گواهی بیماری', appointments: 'نوبت‌ها', emergency: 'اورژانس', settings: 'تنظیمات', lang: 'زبان',
       ask_ai: 'پرسیدن از هوش مصنوعی', speak: 'خواندن', search: 'جستجو...', close: 'بستن', save: 'ذخیره', delete: 'حذف',
       first_aid: 'کمک‌های اولیه', call: 'تماس', no_results: 'نتیجه‌ای یافت نشد.', ai_tools: 'دستیار پزشکی هوش مصنوعی',
       correct: 'اصلاح', formulate: 'فرموله کردن', detail: 'جزئیات', analyze: 'تحلیل', research: 'تحقیق',
-      listen_disease: 'گوش دادن به بیماری', listen_med: 'گوش دادن به دارو', listen_first_aid: 'گوش دادن به کمک‌های اولیه', listen_device: 'گوش دادن به دستگاه',
+      listen_disease: 'گوش دادن به بیماری', listen_med: 'گوش دادن به دارو', listen_lab: 'گوش دادن به مقدار آزمایشگاه', listen_first_aid: 'گوش دادن به کمک‌های اولیه', listen_device: 'گوش دادن به دستگاه',
       connect: 'اتصال', disconnect: 'قطع اتصال', connected: 'متصل', not_connected: 'غیر متصل', connection: 'اتصال',
-      ai_thinking: 'در حال تجزیه و تحلیل...', ai_result: 'نتیجه:', ai_listen: 'گوش دادن به پاسخ'
+      ai_thinking: 'در حال تجزیه و تحلیل...', ai_result: 'نتیجه:', ai_listen: 'گوش دادن به پاسخ', reference: 'محدوده مرجع'
     },
     he: {
-      dashboard: 'לוח בקרה', diseases: 'מחלות', meds: 'תרופות', hospitals: 'בתי חולים', devices: 'התקני IoT',
+      dashboard: 'לוח בקרה', diseases: 'מחלות', meds: 'תרופות', labs: 'ערכי מעבדה', hospitals: 'בתי חולים', devices: 'התקני IoT',
       sicknotes: 'אישור מחלה', appointments: 'פגישות', emergency: 'חירום', settings: 'הגדרות', lang: 'שפה',
       ask_ai: 'שאל את ה-AI', speak: 'הקרא', search: 'חיפוש...', close: 'סגור', save: 'שמור', delete: 'מחק',
       first_aid: 'עזרה ראשונה', call: 'התקשר', no_results: 'לא נמצאו תוצאות.', ai_tools: 'עוזר רפואי AI',
       correct: 'תקן', formulate: 'נסח', detail: 'פרט', analyze: 'נתח', research: 'חקור',
-      listen_disease: 'הקשב למחלה', listen_med: 'הקשב לתרופה', listen_first_aid: 'הקשב לעזרה ראשונה', listen_device: 'הקשב להתקן',
+      listen_disease: 'הקשב למחלה', listen_med: 'הקשב לתרופה', listen_lab: 'הקשב לערך מעבדה', listen_first_aid: 'הקשב לעזרה ראשונה', listen_device: 'הקשב להתקן',
       connect: 'התחבר', disconnect: 'התנתק', connected: 'מחובר', not_connected: 'לא מחובר', connection: 'חיבור',
-      ai_thinking: 'מנתח...', ai_result: 'תוצאה:', ai_listen: 'הקשב לתשובה'
+      ai_thinking: 'מנתח...', ai_result: 'תוצאה:', ai_listen: 'הקשב לתשובה', reference: 'טווח ייחוס'
     },
     la: {
-      dashboard: 'Dashboard', diseases: 'Morbi', meds: 'Medicamenta', hospitals: 'Valetudinaria', devices: 'IoT Cogitationes',
+      dashboard: 'Dashboard', diseases: 'Morbi', meds: 'Medicamenta', labs: 'Valores Laboratorii', hospitals: 'Valetudinaria', devices: 'IoT Cogitationes',
       sicknotes: 'Libelli Aegri', appointments: 'Constitutiones', emergency: 'Subitum', settings: 'Optiones', lang: 'Lingua',
       ask_ai: 'Interroga AI', speak: 'Legere', search: 'Quaerere...', close: 'Claudere', save: 'Servare', delete: 'Delere',
       first_aid: 'Prima Auxilia', call: 'Vocare', no_results: 'Nulli eventus inventi.', ai_tools: 'AI Assistentis Medici',
       correct: 'Corrigere', formulate: 'Formulare', detail: 'Detail', analyze: 'Analyzare', research: 'Investigare',
-      listen_disease: 'Audire morbum', listen_med: 'Audire medicamentum', listen_first_aid: 'Audire prima auxilia', listen_device: 'Audire cogitationem',
+      listen_disease: 'Audire morbum', listen_med: 'Audire medicamentum', listen_lab: 'Audire valorem laboratorii', listen_first_aid: 'Audire prima auxilia', listen_device: 'Audire cogitationem',
       connect: 'Connectere', disconnect: 'Disconnectere', connected: 'Connexus', not_connected: 'Non connexus', connection: 'Connexio',
-      ai_thinking: 'Analyzans...', ai_result: 'Eventus:', ai_listen: 'Audire responsum'
+      ai_thinking: 'Analyzans...', ai_result: 'Eventus:', ai_listen: 'Audire responsum', reference: 'Relatio range'
     },
     uz: {
-      dashboard: 'Boshqaruv paneli', diseases: 'Kasalliklar', meds: 'Dorilar', hospitals: 'Kasalxonalar', devices: 'IoT qurilmalari',
+      dashboard: 'Boshqaruv paneli', diseases: 'Kasalliklar', meds: 'Dorilar', labs: 'Laboratoriya qiymatlari', hospitals: 'Kasalxonalar', devices: 'IoT qurilmalari',
       sicknotes: 'Kasallik varaqasi', appointments: 'Qabullar', emergency: 'Favqulodda', settings: 'Sozlamalar', lang: 'Til',
       ask_ai: "AI dan so'rash", speak: "O'qish", search: 'Qidirish...', close: 'Yopish', save: 'Saqlash', delete: "O'chirish",
       first_aid: 'Birinchi yordam', call: "Qo'ng'iroq", no_results: 'Hech narsa topilmadi.', ai_tools: 'AI Tibbiy Yordamchi',
       correct: 'Tuzatish', formulate: 'Shakllantirish', detail: 'Batafsil', analyze: 'Tahlil qilish', research: 'Tadqiqot',
-      listen_disease: 'Kasallikni tinglash', listen_med: 'Dorini tinglash', listen_first_aid: 'Birinchi yordamni tinglash', listen_device: 'Qurilmani tinglash',
+      listen_disease: 'Kasallikni tinglash', listen_med: 'Dorini tinglash', listen_lab: 'Laboratoriya qiymatini tinglash', listen_first_aid: 'Birinchi yordamni tinglash', listen_device: 'Qurilmani tinglash',
       connect: 'Ulash', disconnect: 'Uzish', connected: 'Ulangan', not_connected: 'Ulanmagan', connection: 'Ulanish',
-      ai_thinking: 'Tahlil qilinmoqda...', ai_result: 'Natija:', ai_listen: 'Javobni tinglash'
+      ai_thinking: 'Tahlil qilinmoqda...', ai_result: 'Natija:', ai_listen: 'Javobni tinglash', reference: 'Malumot oraligi'
     },
     ru: {
-      dashboard: 'Панель', diseases: 'Болезни', meds: 'Лекарства', hospitals: 'Больницы', devices: 'Устройства IoT',
+      dashboard: 'Панель', diseases: 'Болезни', meds: 'Лекарства', labs: 'Лабораторные показатели', hospitals: 'Больницы', devices: 'Устройства IoT',
       sicknotes: 'Больничные', appointments: 'Записи', emergency: 'Экстренная помощь', settings: 'Настройки', lang: 'Язык',
       ask_ai: 'Спросить ИИ', speak: 'Читать', search: 'Поиск...', close: 'Закрыть', save: 'Сохранить', delete: 'Удалить',
       first_aid: 'Первая помощь', call: 'Позвонить', no_results: 'Ничего не найдено.', ai_tools: 'ИИ Медицинский Ассистент',
       correct: 'Исправить', formulate: 'Сформулировать', detail: 'Детализировать', analyze: 'Анализировать', research: 'Исследовать',
-      listen_disease: 'Слушать болезнь', listen_med: 'Слушать лекарство', listen_first_aid: 'Слушать первую помощь', listen_device: 'Слушать устройство',
+      listen_disease: 'Слушать болезнь', listen_med: 'Слушать лекарство', listen_lab: 'Слушать показатель', listen_first_aid: 'Слушать первую помощь', listen_device: 'Слушать устройство',
       connect: 'Подключить', disconnect: 'Отключить', connected: 'Подключено', not_connected: 'Не подключено', connection: 'Подключение',
-      ai_thinking: 'Анализ...', ai_result: 'Результат:', ai_listen: 'Слушать ответ'
+      ai_thinking: 'Анализ...', ai_result: 'Результат:', ai_listen: 'Слушать ответ', reference: 'Референсный диапазон'
     },
     pl: {
-      dashboard: 'Pulpit', diseases: 'Choroby', meds: 'Leki', hospitals: 'Szpitale', devices: 'Urządzenia IoT',
+      dashboard: 'Pulpit', diseases: 'Choroby', meds: 'Leki', labs: 'Wartości laboratoryjne', hospitals: 'Szpitale', devices: 'Urządzenia IoT',
       sicknotes: 'Zwolnienia', appointments: 'Wizyty', emergency: 'Nagły wypadek', settings: 'Ustawienia', lang: 'Język',
       ask_ai: 'Zapytaj AI', speak: 'Czytaj', search: 'Szukaj...', close: 'Zamknij', save: 'Zapisz', delete: 'Usuń',
       first_aid: 'Pierwsza pomoc', call: 'Zadzwoń', no_results: 'Brak wyników.', ai_tools: 'Asystent Medyczny AI',
       correct: 'Popraw', formulate: 'Sformułuj', detail: 'Uszczegółowij', analyze: 'Przeanalizuj', research: 'Zbadaj',
-      listen_disease: 'Słuchaj choroby', listen_med: 'Słuchaj leku', listen_first_aid: 'Słuchaj pierwszej pomocy', listen_device: 'Słuchaj urządzenia',
+      listen_disease: 'Słuchaj choroby', listen_med: 'Słuchaj leku', listen_lab: 'Słuchaj wartości', listen_first_aid: 'Słuchaj pierwszej pomocy', listen_device: 'Słuchaj urządzenia',
       connect: 'Połącz', disconnect: 'Rozłącz', connected: 'Połączono', not_connected: 'Nie połączono', connection: 'Połączenie',
-      ai_thinking: 'Analizowanie...', ai_result: 'Wynik:', ai_listen: 'Słuchaj odpowiedzi'
+      ai_thinking: 'Analizowanie...', ai_result: 'Wynik:', ai_listen: 'Słuchaj odpowiedzi', reference: 'Zakres referencyjny'
     },
     ro: {
-      dashboard: 'Panou', diseases: 'Boli', meds: 'Medicamente', hospitals: 'Spitale', devices: 'Dispozitive IoT',
+      dashboard: 'Panou', diseases: 'Boli', meds: 'Medicamente', labs: 'Valori de laborator', hospitals: 'Spitale', devices: 'Dispozitive IoT',
       sicknotes: 'Concedii medicale', appointments: 'Programări', emergency: 'Urgență', settings: 'Setări', lang: 'Limbă',
       ask_ai: 'Întreabă AI', speak: 'Citește', search: 'Caută...', close: 'Închide', save: 'Salvează', delete: 'Șterge',
       first_aid: 'Primul ajutor', call: 'Sună', no_results: 'Nu s-au găsit rezultate.', ai_tools: 'Asistent Medical AI',
       correct: 'Corectează', formulate: 'Formulează', detail: 'Detaliază', analyze: 'Analizează', research: 'Cercetează',
-      listen_disease: 'Ascultă boala', listen_med: 'Ascultă medicamentul', listen_first_aid: 'Ascultă primul ajutor', listen_device: 'Ascultă dispozitivul',
+      listen_disease: 'Ascultă boala', listen_med: 'Ascultă medicamentul', listen_lab: 'Ascultă valoarea', listen_first_aid: 'Ascultă primul ajutor', listen_device: 'Ascultă dispozitivul',
       connect: 'Conectează', disconnect: 'Deconectează', connected: 'Conectat', not_connected: 'Neconectat', connection: 'Conexiune',
-      ai_thinking: 'Se analizează...', ai_result: 'Rezultat:', ai_listen: 'Ascultă răspunsul'
+      ai_thinking: 'Se analizează...', ai_result: 'Rezultat:', ai_listen: 'Ascultă răspunsul', reference: 'Interval de referință'
     },
     hr: {
-      dashboard: 'Nadzorna ploča', diseases: 'Bolesti', meds: 'Lijekovi', hospitals: 'Bolnice', devices: 'IoT Uređaji',
+      dashboard: 'Nadzorna ploča', diseases: 'Bolesti', meds: 'Lijekovi', labs: 'Laboratorijske vrijednosti', hospitals: 'Bolnice', devices: 'IoT Uređaji',
       sicknotes: 'Bolovanja', appointments: 'Termini', emergency: 'Hitno', settings: 'Postavke', lang: 'Jezik',
       ask_ai: 'Pitaj AI', speak: 'Čitaj', search: 'Pretraži...', close: 'Zatvori', save: 'Spremi', delete: 'Izbriši',
       first_aid: 'Prva pomoć', call: 'Nazovi', no_results: 'Nema rezultata.', ai_tools: 'AI Medicinski Asistent',
       correct: 'Ispravi', formulate: 'Formuliraj', detail: 'Detaljiziraj', analyze: 'Analiziraj', research: 'Istraži',
-      listen_disease: 'Slušaj bolest', listen_med: 'Slušaj lijek', listen_first_aid: 'Slušaj prvu pomoć', listen_device: 'Slušaj uređaj',
+      listen_disease: 'Slušaj bolest', listen_med: 'Slušaj lijek', listen_lab: 'Slušaj vrijednost', listen_first_aid: 'Slušaj prvu pomoć', listen_device: 'Slušaj uređaj',
       connect: 'Poveži', disconnect: 'Odspoji', connected: 'Povezano', not_connected: 'Nije povezano', connection: 'Veza',
-      ai_thinking: 'Analiziranje...', ai_result: 'Rezultat:', ai_listen: 'Slušaj odgovor'
+      ai_thinking: 'Analiziranje...', ai_result: 'Rezultat:', ai_listen: 'Slušaj odgovor', reference: 'Referentni raspon'
     },
     pt: {
-      dashboard: 'Painel', diseases: 'Doenças', meds: 'Medicamentos', hospitals: 'Hospitais', devices: 'Dispositivos IoT',
+      dashboard: 'Painel', diseases: 'Doenças', meds: 'Medicamentos', labs: 'Valores laboratoriais', hospitals: 'Hospitais', devices: 'Dispositivos IoT',
       sicknotes: 'Atestados', appointments: 'Consultas', emergency: 'Emergência', settings: 'Configurações', lang: 'Idioma',
       ask_ai: 'Perguntar à IA', speak: 'Ler', search: 'Pesquisar...', close: 'Fechar', save: 'Salvar', delete: 'Excluir',
       first_aid: 'Primeiros Socorros', call: 'Ligar', no_results: 'Nenhum resultado encontrado.', ai_tools: 'Assistente Médico IA',
       correct: 'Corrigir', formulate: 'Formular', detail: 'Detalhar', analyze: 'Analisar', research: 'Pesquisar',
-      listen_disease: 'Ouvir doença', listen_med: 'Ouvir medicamento', listen_first_aid: 'Ouvir primeiros socorros', listen_device: 'Ouvir dispositivo',
+      listen_disease: 'Ouvir doença', listen_med: 'Ouvir medicamento', listen_lab: 'Ouvir valor laboratorial', listen_first_aid: 'Ouvir primeiros socorros', listen_device: 'Ouvir dispositivo',
       connect: 'Conectar', disconnect: 'Desconectar', connected: 'Conectado', not_connected: 'Desconectado', connection: 'Conexão',
-      ai_thinking: 'Analisando...', ai_result: 'Resultado:', ai_listen: 'Ouvir resposta'
+      ai_thinking: 'Analisando...', ai_result: 'Resultado:', ai_listen: 'Ouvir resposta', reference: 'Intervalo de referência'
     },
     fr: {
-      dashboard: 'Tableau de bord', diseases: 'Maladies', meds: 'Médicaments', hospitals: 'Hôpitaux', devices: 'Appareils IoT',
+      dashboard: 'Tableau de bord', diseases: 'Maladies', meds: 'Médicaments', labs: 'Valeurs de laboratoire', hospitals: 'Hôpitaux', devices: 'Appareils IoT',
       sicknotes: 'Arrêts maladie', appointments: 'Rendez-vous', emergency: 'Urgence', settings: 'Paramètres', lang: 'Langue',
       ask_ai: 'Demander à l\'IA', speak: 'Lire', search: 'Rechercher...', close: 'Fermer', save: 'Enregistrer', delete: 'Supprimer',
       first_aid: 'Premiers secours', call: 'Appeler', no_results: 'Aucun résultat.', ai_tools: 'Assistant Médical IA',
       correct: 'Corriger', formulate: 'Formuler', detail: 'Détailler', analyze: 'Analyser', research: 'Rechercher',
-      listen_disease: 'Écouter la maladie', listen_med: 'Écouter le médicament', listen_first_aid: 'Écouter les premiers secours', listen_device: 'Écouter l\'appareil',
+      listen_disease: 'Écouter la maladie', listen_med: 'Écouter le médicament', listen_lab: 'Écouter la valeur', listen_first_aid: 'Écouter les premiers secours', listen_device: 'Écouter l\'appareil',
       connect: 'Connecter', disconnect: 'Déconnecter', connected: 'Connecté', not_connected: 'Non connecté', connection: 'Connexion',
-      ai_thinking: 'Analyse en cours...', ai_result: 'Résultat:', ai_listen: 'Écouter la réponse'
+      ai_thinking: 'Analyse en cours...', ai_result: 'Résultat:', ai_listen: 'Écouter la réponse', reference: 'Plage de référence'
     },
     el: {
-      dashboard: 'Πίνακας', diseases: 'Ασθένειες', meds: 'Φάρμακα', hospitals: 'Νοσοκομεία', devices: 'Συσκευές IoT',
+      dashboard: 'Πίνακας', diseases: 'Ασθένειες', meds: 'Φάρμακα', labs: 'Εργαστηριακές τιμές', hospitals: 'Νοσοκομεία', devices: 'Συσκευές IoT',
       sicknotes: 'Αναρρωτικές', appointments: 'Ραντεβού', emergency: 'Έκτακτη ανάγκη', settings: 'Ρυθμίσεις', lang: 'Γλώσσα',
       ask_ai: 'Ρώτα AI', speak: 'Ανάγνωση', search: 'Αναζήτηση...', close: 'Κλείσιμο', save: 'Αποθήκευση', delete: 'Διαγραφή',
       first_aid: 'Πρώτες Βοήθειες', call: 'Κλήση', no_results: 'Δεν βρέθηκαν αποτελέσματα.', ai_tools: 'AI Ιατρικός Βοηθός',
       correct: 'Διόρθωση', formulate: 'Διατύπωση', detail: 'Λεπτομέρεια', analyze: 'Ανάλυση', research: 'Έρευνα',
-      listen_disease: 'Άκουσε την ασθένεια', listen_med: 'Άκουσε το φάρμακο', listen_first_aid: 'Άκουσε τις πρώτες βοήθειες', listen_device: 'Άκουσε τη συσκευή',
+      listen_disease: 'Άκουσε την ασθένεια', listen_med: 'Άκουσε το φάρμακο', listen_lab: 'Άκουσε την εργαστηριακή τιμή', listen_first_aid: 'Άκουσε τις πρώτες βοήθειες', listen_device: 'Άκουσε τη συσκευή',
       connect: 'Σύνδεση', disconnect: 'Αποσύνδεση', connected: 'Συνδεδεμένο', not_connected: 'Μη συνδεδεμένο', connection: 'Σύνδεση',
-      ai_thinking: 'Ανάλυση...', ai_result: 'Αποτέλεσμα:', ai_listen: 'Άκουσε την απάντηση'
+      ai_thinking: 'Ανάλυση...', ai_result: 'Αποτέλεσμα:', ai_listen: 'Άκουσε την απάντηση', reference: 'Εύρος αναφοράς'
     },
     es: {
-      dashboard: 'Panel', diseases: 'Enfermedades', meds: 'Medicamentos', hospitals: 'Hospitales', devices: 'Dispositivos IoT',
+      dashboard: 'Panel', diseases: 'Enfermedades', meds: 'Medicamentos', labs: 'Valores de laboratorio', hospitals: 'Hospitales', devices: 'Dispositivos IoT',
       sicknotes: 'Bajas médicas', appointments: 'Citas', emergency: 'Emergencia', settings: 'Ajustes', lang: 'Idioma',
       ask_ai: 'Preguntar a IA', speak: 'Leer', search: 'Buscar...', close: 'Cerrar', save: 'Guardar', delete: 'Eliminar',
       first_aid: 'Primeros auxilios', call: 'Llamar', no_results: 'No se encontraron resultados.', ai_tools: 'Asistente Médico IA',
       correct: 'Corregir', formulate: 'Formular', detail: 'Detallar', analyze: 'Analizar', research: 'Investigar',
-      listen_disease: 'Escuchar enfermedad', listen_med: 'Escuchar medicamento', listen_first_aid: 'Escuchar primeros auxilios', listen_device: 'Escuchar dispositivo',
+      listen_disease: 'Escuchar enfermedad', listen_med: 'Escuchar medicamento', listen_lab: 'Escuchar valor de laboratorio', listen_first_aid: 'Escuchar primeros auxilios', listen_device: 'Escuchar dispositivo',
       connect: 'Conectar', disconnect: 'Desconectar', connected: 'Conectado', not_connected: 'No conectado', connection: 'Conexión',
-      ai_thinking: 'Analizando...', ai_result: 'Resultado:', ai_listen: 'Escuchar respuesta'
+      ai_thinking: 'Analizando...', ai_result: 'Resultado:', ai_listen: 'Escuchar respuesta', reference: 'Rango de referencia'
     },
     it: {
-      dashboard: 'Pannello', diseases: 'Malattie', meds: 'Farmaci', hospitals: 'Ospedali', devices: 'Dispositivi IoT',
+      dashboard: 'Pannello', diseases: 'Malattie', meds: 'Farmaci', labs: 'Valori di laboratorio', hospitals: 'Ospedali', devices: 'Dispositivi IoT',
       sicknotes: 'Certificati', appointments: 'Appuntamenti', emergency: 'Emergenza', settings: 'Impostazioni', lang: 'Lingua',
       ask_ai: 'Chiedi all\'IA', speak: 'Leggi', search: 'Cerca...', close: 'Chiudi', save: 'Salva', delete: 'Elimina',
       first_aid: 'Primo Soccorso', call: 'Chiama', no_results: 'Nessun risultato.', ai_tools: 'Assistente Medico IA',
       correct: 'Correggi', formulate: 'Formula', detail: 'Dettaglia', analyze: 'Analizza', research: 'Ricerca',
-      listen_disease: 'Ascolta malattia', listen_med: 'Ascolta farmaco', listen_first_aid: 'Ascolta primo soccorso', listen_device: 'Ascolta dispositivo',
+      listen_disease: 'Ascolta malattia', listen_med: 'Ascolta farmaco', listen_lab: 'Ascolta valore di laboratorio', listen_first_aid: 'Ascolta primo soccorso', listen_device: 'Ascolta dispositivo',
       connect: 'Connetti', disconnect: 'Disconnetti', connected: 'Connesso', not_connected: 'Non connesso', connection: 'Connessione',
-      ai_thinking: 'Analisi...', ai_result: 'Risultato:', ai_listen: 'Ascolta risposta'
+      ai_thinking: 'Analisi...', ai_result: 'Risultato:', ai_listen: 'Ascolta risposta', reference: 'Intervallo di riferimento'
     }
   };
 
@@ -225,34 +225,42 @@
   // 2. DATENBANK (A-Z) - MASSIV ERWEITERT
   // ═══════════════════════════════════════════════════════
   const DISEASES = [
-    { id: 'd1', name: 'Aids (HIV)', symp: 'Fieber, Müdigkeit, geschwollene Lymphknoten, Hautausschlag', tr: 'Antiretrovirale Therapie (ART), regelmäßige Kontrolle.' },
-    { id: 'd2', name: 'Allergie', symp: 'Niesen, Juckreiz, Hautausschlag, Atemnot', tr: 'Allergene meiden, Antihistaminika, im Notfall Adrenalin (EpiPen).' },
-    { id: 'd3', name: 'Alzheimer', symp: 'Gedächtnisverlust, Orientierungslosigkeit, Sprachstörungen', tr: 'Medikamente zur Verlangsamung, Betreuung, Gedächtnistraining.' },
-    { id: 'd4', name: 'Arthrose', symp: 'Gelenkschmerzen, Steifheit, Schwellungen', tr: 'Bewegung, Physiotherapie, Schmerzmittel, ggf. OP.' },
-    { id: 'd5', name: 'Asthma', symp: 'Atemnot, Husten, Engegefühl in der Brust', tr: 'Bronchienerweiternde Sprays, Kortison, Allergene meiden.' },
-    { id: 'd6', name: 'Bluthochdruck', symp: 'Oft symptomlos, Kopfschmerzen, Schwindel, Nasenbluten', tr: 'Salzarm essen, Sport, Blutdrucksenker (Betablocker etc.).' },
-    { id: 'd7', name: 'Bronchitis', symp: 'Husten mit Auswurf, Fieber, Brustschmerzen', tr: 'Viel trinken, Ruhe, ggf. Antibiotika (bei bakterieller Infektion).' },
-    { id: 'd8', name: 'Cholesterin (Hypercholesterinämie)', symp: 'Oft symptomlos, Ablagerungen in Gefäßen', tr: 'Ernährungsumstellung, Statine, Sport.' },
-    { id: 'd9', name: 'Demenz', symp: 'Vergesslichkeit, Verwirrtheit, Persönlichkeitsveränderung', tr: 'Medikamente, Betreuung, strukturierter Alltag.' },
-    { id: 'd10', name: 'Depression', symp: 'Niedergeschlagenheit, Antriebslosigkeit, Schlafstörungen', tr: 'Psychotherapie, Antidepressiva, soziale Unterstützung.' },
-    { id: 'd11', name: 'Diabetes Typ 1', symp: 'Starker Durst, häufiges Wasserlassen, Gewichtsverlust', tr: 'Insulin-Injektionen, Blutzuckerkontrolle, Ernährung.' },
-    { id: 'd12', name: 'Diabetes Typ 2', symp: 'Erhöhter Blutzucker, Müdigkeit, starker Durst', tr: 'Ernährungsumstellung, Bewegung, Metformin, Insulin (später).' },
-    { id: 'd13', name: 'Epilepsie', symp: 'Anfälle, Bewusstseinsverlust, Zuckungen', tr: 'Antiepileptika, Vermeidung von Auslösern.' },
-    { id: 'd14', name: 'Gastritis', symp: 'Magenschmerzen, Übelkeit, Sodbrennen', tr: 'Magenschonende Kost, Protonenpumpenhemmer (Pantoprazol).' },
-    { id: 'd15', name: 'Grippe (Influenza)', symp: 'Plötzliches Fieber, Gliederschmerzen, Husten, Schnupfen', tr: 'Bettruhe, viel Flüssigkeit, Fieber senken, ggf. Virostatika.' },
-    { id: 'd16', name: 'Hepatitis', symp: 'Gelbsucht, Müdigkeit, Übelkeit, Bauchschmerzen', tr: 'Ruhe, ggf. antivirale Medikamente, Alkohol meiden.' },
-    { id: 'd17', name: 'Herzinsuffizienz', symp: 'Kurzatmigkeit, Ödeme (Wassereinlagerungen), Müdigkeit', tr: 'Wasserausschwemmende Medikamente, ACE-Hemmer, salzarme Kost.' },
-    { id: 'd18', name: 'Herzinfarkt', symp: 'Starker Brustschmerz, Ausstrahlung in Arm/Kiefer, Atemnot', tr: 'Sofort Notruf 112! Stent, Medikamente.' },
-    { id: 'd19', name: 'Krebs (Tumor)', symp: 'Gewichtsverlust, Müdigkeit, je nach Art unterschiedliche Symptome', tr: 'OP, Chemo, Bestrahlung, Immuntherapie (je nach Art).' },
-    { id: 'd20', name: 'Leukämie (Blutkrebs)', symp: 'Blässe, Müdigkeit, häufige Infekte, Blutungen', tr: 'Chemotherapie, Stammzelltransplantation.' },
-    { id: 'd21', name: 'Magen-Darm-Infekt', symp: 'Übelkeit, Erbrechen, Durchfall, Bauchkrämpfe', tr: 'Viel trinken (Elektrolyte), Schonkost, ggf. Medikamente gegen Übelkeit.' },
-    { id: 'd22', name: 'Migräne', symp: 'Pulsierender Schmerz, Übelkeit, Lichtempfindlichkeit', tr: 'Ruhe, dunkler Raum, Schmerzmittel (Triptane).' },
-    { id: 'd23', name: 'Osteoporose', symp: 'Knochenschmerzen, erhöhte Bruchgefahr', tr: 'Kalzium, Vitamin D, Bewegung, Medikamente.' },
-    { id: 'd24', name: 'Parkinson', symp: 'Zittern, steife Muskeln, langsame Bewegungen', tr: 'L-Dopa, Physiotherapie, tiefe Hirnstimulation.' },
-    { id: 'd25', name: 'Rückenschmerzen', symp: 'Ziehen im Rücken, Verspannungen, Bewegungseinschränkung', tr: 'Wärme, Bewegung, Massage, ggf. Muskelrelaxantien.' },
-    { id: 'd26', name: 'Schlaganfall', symp: 'Plötzliche Lähmung, Sprachstörung, Sehstörung', tr: 'Sofort Notruf 112! Thrombolyse, Reha.' },
-    { id: 'd27', name: 'Thrombose', symp: 'Schwellung, Schmerzen im Bein, Überwärmung', tr: 'Blutverdünner, Kompressionsstrümpfe, Bewegung.' },
-    { id: 'd28', name: 'Wundrose (Erysipel)', symp: 'Rote, heiße, schmerzhafte Hautentzündung, Fieber', tr: 'Dringend zum Arzt! Antibiotika, Ruhigstellung.' }
+    { id: 'd1', name: 'Abszess', symp: 'Schmerzhafte, geschwollene, gerötete Stelle, Fieber', tr: 'Arzt aufsuchen, ggf. Eröffnung und Antibiotika.' },
+    { id: 'd2', name: 'Akne', symp: 'Pickel, Mitesser, Entzündungen im Gesicht/Rücken', tr: 'Reinigung, Salben (Benzoylperoxid), ggf. Antibiotika.' },
+    { id: 'd3', name: 'Aids (HIV)', symp: 'Fieber, Müdigkeit, geschwollene Lymphknoten, Hautausschlag', tr: 'Antiretrovirale Therapie (ART), regelmäßige Kontrolle.' },
+    { id: 'd4', name: 'Allergie', symp: 'Niesen, Juckreiz, Hautausschlag, Atemnot', tr: 'Allergene meiden, Antihistaminika, im Notfall Adrenalin (EpiPen).' },
+    { id: 'd5', name: 'Alzheimer', symp: 'Gedächtnisverlust, Orientierungslosigkeit, Sprachstörungen', tr: 'Medikamente zur Verlangsamung, Betreuung, Gedächtnistraining.' },
+    { id: 'd6', name: 'Anämie (Blutarmut)', symp: 'Müdigkeit, Blässe, Kurzatmigkeit, Schwindel', tr: 'Eisenpräparate, Vitamin B12, Ursachenbehandlung.' },
+    { id: 'd7', name: 'Angina Pectoris', symp: 'Engegefühl in der Brust, Schmerzen bei Belastung', tr: 'Nitrate, Betablocker, ggf. Stent/OP.' },
+    { id: 'd8', name: 'Angststörung', symp: 'Herzrasen, Schwitzen, Zittern, Panik', tr: 'Psychotherapie, Antidepressiva, Entspannungstechniken.' },
+    { id: 'd9', name: 'Arthritis', symp: 'Geschwollene, warme, schmerzhafte Gelenke', tr: 'Entzündungshemmer, Physiotherapie, ggf. Biologika.' },
+    { id: 'd10', name: 'Arthrose', symp: 'Gelenkschmerzen, Steifheit, Schwellungen', tr: 'Bewegung, Physiotherapie, Schmerzmittel, ggf. OP.' },
+    { id: 'd11', name: 'Asthma', symp: 'Atemnot, Husten, Engegefühl in der Brust', tr: 'Bronchienerweiternde Sprays, Kortison, Allergene meiden.' },
+    { id: 'd12', name: 'Atherosklerose', symp: 'Oft symptomlos, Ablagerungen in Arterien', tr: 'Gesunder Lebensstil, Statine, ggf. OP.' },
+    { id: 'd13', name: 'Autoimmunerkrankung', symp: 'Gelenkschmerzen, Müdigkeit, Hautausschläge', tr: 'Immunsuppressiva, Kortison, Symptombehandlung.' },
+    { id: 'd14', name: 'Bluthochdruck', symp: 'Oft symptomlos, Kopfschmerzen, Schwindel, Nasenbluten', tr: 'Salzarm essen, Sport, Blutdrucksenker (Betablocker etc.).' },
+    { id: 'd15', name: 'Bronchitis', symp: 'Husten mit Auswurf, Fieber, Brustschmerzen', tr: 'Viel trinken, Ruhe, ggf. Antibiotika (bei bakterieller Infektion).' },
+    { id: 'd16', name: 'Cholesterin (Hypercholesterinämie)', symp: 'Oft symptomlos, Ablagerungen in Gefäßen', tr: 'Ernährungsumstellung, Statine, Sport.' },
+    { id: 'd17', name: 'Demenz', symp: 'Vergesslichkeit, Verwirrtheit, Persönlichkeitsveränderung', tr: 'Medikamente, Betreuung, strukturierter Alltag.' },
+    { id: 'd18', name: 'Depression', symp: 'Niedergeschlagenheit, Antriebslosigkeit, Schlafstörungen', tr: 'Psychotherapie, Antidepressiva, soziale Unterstützung.' },
+    { id: 'd19', name: 'Diabetes Typ 1', symp: 'Starker Durst, häufiges Wasserlassen, Gewichtsverlust', tr: 'Insulin-Injektionen, Blutzuckerkontrolle, Ernährung.' },
+    { id: 'd20', name: 'Diabetes Typ 2', symp: 'Erhöhter Blutzucker, Müdigkeit, starker Durst', tr: 'Ernährungsumstellung, Bewegung, Metformin, Insulin (später).' },
+    { id: 'd21', name: 'Epilepsie', symp: 'Anfälle, Bewusstseinsverlust, Zuckungen', tr: 'Antiepileptika, Vermeidung von Auslösern.' },
+    { id: 'd22', name: 'Gastritis', symp: 'Magenschmerzen, Übelkeit, Sodbrennen', tr: 'Magenschonende Kost, Protonenpumpenhemmer (Pantoprazol).' },
+    { id: 'd23', name: 'Grippe (Influenza)', symp: 'Plötzliches Fieber, Gliederschmerzen, Husten, Schnupfen', tr: 'Bettruhe, viel Flüssigkeit, Fieber senken, ggf. Virostatika.' },
+    { id: 'd24', name: 'Hepatitis', symp: 'Gelbsucht, Müdigkeit, Übelkeit, Bauchschmerzen', tr: 'Ruhe, ggf. antivirale Medikamente, Alkohol meiden.' },
+    { id: 'd25', name: 'Herzinsuffizienz', symp: 'Kurzatmigkeit, Ödeme (Wassereinlagerungen), Müdigkeit', tr: 'Wasserausschwemmende Medikamente, ACE-Hemmer, salzarme Kost.' },
+    { id: 'd26', name: 'Herzinfarkt', symp: 'Starker Brustschmerz, Ausstrahlung in Arm/Kiefer, Atemnot', tr: 'Sofort Notruf 112! Stent, Medikamente.' },
+    { id: 'd27', name: 'Krebs (Tumor)', symp: 'Gewichtsverlust, Müdigkeit, je nach Art unterschiedliche Symptome', tr: 'OP, Chemo, Bestrahlung, Immuntherapie (je nach Art).' },
+    { id: 'd28', name: 'Leukämie (Blutkrebs)', symp: 'Blässe, Müdigkeit, häufige Infekte, Blutungen', tr: 'Chemotherapie, Stammzelltransplantation.' },
+    { id: 'd29', name: 'Magen-Darm-Infekt', symp: 'Übelkeit, Erbrechen, Durchfall, Bauchkrämpfe', tr: 'Viel trinken (Elektrolyte), Schonkost, ggf. Medikamente gegen Übelkeit.' },
+    { id: 'd30', name: 'Migräne', symp: 'Pulsierender Schmerz, Übelkeit, Lichtempfindlichkeit', tr: 'Ruhe, dunkler Raum, Schmerzmittel (Triptane).' },
+    { id: 'd31', name: 'Osteoporose', symp: 'Knochenschmerzen, erhöhte Bruchgefahr', tr: 'Kalzium, Vitamin D, Bewegung, Medikamente.' },
+    { id: 'd32', name: 'Parkinson', symp: 'Zittern, steife Muskeln, langsame Bewegungen', tr: 'L-Dopa, Physiotherapie, tiefe Hirnstimulation.' },
+    { id: 'd33', name: 'Rückenschmerzen', symp: 'Ziehen im Rücken, Verspannungen, Bewegungseinschränkung', tr: 'Wärme, Bewegung, Massage, ggf. Muskelrelaxantien.' },
+    { id: 'd34', name: 'Schlaganfall', symp: 'Plötzliche Lähmung, Sprachstörung, Sehstörung', tr: 'Sofort Notruf 112! Thrombolyse, Reha.' },
+    { id: 'd35', name: 'Thrombose', symp: 'Schwellung, Schmerzen im Bein, Überwärmung', tr: 'Blutverdünner, Kompressionsstrümpfe, Bewegung.' },
+    { id: 'd36', name: 'Wundrose (Erysipel)', symp: 'Rote, heiße, schmerzhafte Hautentzündung, Fieber', tr: 'Dringend zum Arzt! Antibiotika, Ruhigstellung.' }
   ];
 
   const MEDS = [
@@ -277,6 +285,27 @@
     { id: 'm19', name: 'Simvastatin', use: 'Cholesterinsenker', dose: 'Abends einnehmen.' },
     { id: 'm20', name: 'Voltaren (Diclofenac)', use: 'Schmerzen, Entzündungen (Salbe/Tablette)', dose: 'Nach Verordnung, magensicher einnehmen.' },
     { id: 'm21', name: 'Xarelto (Rivaroxaban)', use: 'Blutverdünnung (z.B. nach Thrombose)', dose: '1x täglich zu einer Mahlzeit.' }
+  ];
+
+  // ═══════════════════════════════════════════════════════
+  // 3. LABORWERTE (NEU - Band 4)
+  // ═══════════════════════════════════════════════════════
+  const LABS = [
+    { id: 'l1', name: 'Hämoglobin (Hb)', ref: 'M 13,5-17,5 g/dl | W 12-16 g/dl', desc: 'Sauerstofftransport im Blut. Niedrig = Anämie.' },
+    { id: 'l2', name: 'Leukozyten (WBC)', ref: '4.000-10.000 /µl', desc: 'Weiße Blutkörperchen. Hoch = Infektion/Entzündung.' },
+    { id: 'l3', name: 'Thrombozyten (PLT)', ref: '150.000-400.000 /µl', desc: 'Blutgerinnung. Niedrig = Blutungsgefahr.' },
+    { id: 'l4', name: 'CRP (C-reaktives Protein)', ref: '< 5 mg/l', desc: 'Entzündungswert. Hoch = Entzündung im Körper.' },
+    { id: 'l5', name: 'Blutzucker (Nüchtern)', ref: '70-100 mg/dl', desc: 'Zuckerstoffwechsel. Hoch = Diabetes-Verdacht.' },
+    { id: 'l6', name: 'HbA1c', ref: '4,0-5,6 %', desc: 'Langzeitblutzucker (3 Monate). Hoch = Diabetes.' },
+    { id: 'l7', name: 'Kreatinin', ref: 'M 0,7-1,3 mg/dl | W 0,6-1,1 mg/dl', desc: 'Nierenwert. Hoch = Nierenschwäche.' },
+    { id: 'l8', name: 'GOT / AST', ref: 'M bis 50 U/l | W bis 35 U/l', desc: 'Leberwert. Hoch = Leberschaden.' },
+    { id: 'l9', name: 'GPT / ALT', ref: 'M bis 50 U/l | W bis 35 U/l', desc: 'Leberwert. Hoch = Leberschaden.' },
+    { id: 'l10', name: 'Kalium', ref: '3,5-5,0 mmol/l', desc: 'Wichtig für Herz und Muskeln. Abweichungen gefährlich.' },
+    { id: 'l11', name: 'Natrium', ref: '135-145 mmol/l', desc: 'Wasserhaushalt. Abweichungen = Verwirrtheit, Krämpfe.' },
+    { id: 'l12', name: 'TSH (Schilddrüse)', ref: '0,4-4,0 mU/l', desc: 'Schilddrüsenwert. Hoch = Unterfunktion.' },
+    { id: 'l13', name: 'Cholesterin (Gesamt)', ref: '< 200 mg/dl', desc: 'Blutfett. Hoch = Risiko für Herzinfarkt.' },
+    { id: 'l14', name: 'LDL-Cholesterin', ref: '< 130 mg/dl', desc: 'Schlechtes Cholesterin. Hoch = Gefäßverkalkung.' },
+    { id: 'l15', name: 'INR (Gerinnung)', ref: '0,8-1,2', desc: 'Blutgerinnung. Hoch = Blutungsgefahr (z.B. bei Marcumar).' }
   ];
 
   const FIRST_AID = [
@@ -323,7 +352,7 @@
   ];
 
   // ═══════════════════════════════════════════════════════
-  // 3. STATE
+  // 4. STATE
   // ═══════════════════════════════════════════════════════
   let state = {
     lang: 'de',
@@ -428,7 +457,7 @@
   }
 
   function renderKITools() {
-    return `<div class="ab-content-inner"><div class="ab-card"><h2>🤖 ${t('ai_tools')}</h2><p style="color:#888; margin-bottom:15px;">Füge Symptome, medizinische Texte oder Befunde ein. Die HalDo KI hilft dir beim Verstehen und Bearbeiten.</p><textarea class="ab-input" id="ki-text" placeholder="Text eingeben..." style="min-height: 120px;">${state.kiText}</textarea><div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;"><button class="ab-btn" data-action="ki-action" data-type="correct">📝 ${t('correct')}</button><button class="ab-btn" data-action="ki-action" data-type="formulate">💬 ${t('formulate')}</button><button class="ab-btn" data-action="ki-action" data-type="detail">🔍 ${t('detail')}</button><button class="ab-btn primary" data-action="ki-action" data-type="analyze">🧠 ${t('analyze')}</button><button class="ab-btn primary" data-action="ki-action" data-type="research">🔬 ${t('research')}</button></div><div id="ki-result" style="margin-top:20px; padding:20px; background:rgba(0,255,136,0.05); border-left:4px solid #00ff88; border-radius:8px; display:none;"><h3 style="margin:0 0 10px; color:#00ff88; font-size:16px;">Ergebnis:</h3><div id="ki-result-text" style="color:#ddd; font-size:14px; line-height:1.6;"></div></div></div></div>`;
+    return `<div class="ab-content-inner"><div class="ab-card"><h2>🤖 ${t('ai_tools')}</h2><p style="color:#888; margin-bottom:15px;">Füge Symptome, medizinische Texte oder Befunde ein. Die HalDo KI hilft dir beim Verstehen und Bearbeiten.</p><textarea class="ab-input" id="ki-text" placeholder="Text eingeben..." style="min-height: 120px;">${state.kiText}</textarea><div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;"><button class="ab-btn" data-action="ki-action" data-type="correct">📝 ${t('correct')}</button><button class="ab-btn" data-action="ki-action" data-type="formulate">💬 ${t('formulate')}</button><button class="ab-btn" data-action="ki-action" data-type="detail">🔍 ${t('detail')}</button><button class="ab-btn primary" data-action="ki-action" data-type="analyze">🧠 ${t('analyze')}</button><button class="ab-btn primary" data-action="ki-action" data-type="research">🔬 ${t('research')}</button></div><div id="ki-result" style="margin-top:20px; padding:20px; background:rgba(0,255,136,0.05); border-left:4px solid #00ff88; border-radius:8px; display:none;"><h3 style="margin:0 0 10px; color:#00ff88; font-size:16px;">${t('ai_result')}</h3><div id="ki-result-text" style="color:#ddd; font-size:14px; line-height:1.6;"></div></div></div></div>`;
   }
 
   function renderDiseases() {
@@ -439,6 +468,11 @@
   function renderMeds() {
     const filtered = MEDS.filter(m => m.name.toLowerCase().includes(state.searchQuery.toLowerCase()) || m.use.toLowerCase().includes(state.searchQuery.toLowerCase()));
     return `<div class="ab-content-inner"><div class="ab-card"><h2>💊 ${t('meds')}</h2><input type="text" class="ab-input" placeholder="${t('search')}" data-action="search-med" value="${state.searchQuery}"><div style="margin-top: 20px;">${filtered.length ? filtered.map(m => `<div class="ab-list-item" data-action="open-med" data-name="${m.name}" data-use="${m.use}" data-dose="${m.dose}" data-icon="💊"><div><h4>${m.name}</h4><p><b>Anwendung:</b> ${m.use}</p></div></div>`).join('') : `<p style="color:#888; text-align:center;">${t('no_results')}</p>`}</div></div></div>`;
+  }
+
+  function renderLabs() {
+    const filtered = LABS.filter(l => l.name.toLowerCase().includes(state.searchQuery.toLowerCase()) || l.desc.toLowerCase().includes(state.searchQuery.toLowerCase()));
+    return `<div class="ab-content-inner"><div class="ab-card"><h2>🧪 ${t('labs')}</h2><input type="text" class="ab-input" placeholder="${t('search')}" data-action="search-lab" value="${state.searchQuery}"><div style="margin-top: 20px;">${filtered.length ? filtered.map(l => `<div class="ab-list-item" data-action="open-lab" data-name="${l.name}" data-ref="${l.ref}" data-desc="${l.desc}" data-icon="🧪"><div><h4>${l.name}</h4><p><b>${t('reference')}:</b> ${l.ref}</p></div></div>`).join('') : `<p style="color:#888; text-align:center;">${t('no_results')}</p>`}</div></div></div>`;
   }
 
   function renderHospitals() {
@@ -471,6 +505,7 @@
     else if (state.currentView === 'ki-tools') viewHtml = renderKITools();
     else if (state.currentView === 'diseases') viewHtml = renderDiseases();
     else if (state.currentView === 'meds') viewHtml = renderMeds();
+    else if (state.currentView === 'labs') viewHtml = renderLabs();
     else if (state.currentView === 'hospitals') viewHtml = renderHospitals();
     else if (state.currentView === 'devices') viewHtml = renderDevices();
     else if (state.currentView === 'sicknotes') viewHtml = renderSickNotes();
@@ -486,6 +521,7 @@
           <div class="ab-nav-item ${state.currentView === 'ki-tools' ? 'active' : ''}" data-action="view-ki-tools"><span class="icon">🤖</span> ${t('ai_tools')}</div>
           <div class="ab-nav-item ${state.currentView === 'diseases' ? 'active' : ''}" data-action="view-diseases"><span class="icon">🦠</span> ${t('diseases')}</div>
           <div class="ab-nav-item ${state.currentView === 'meds' ? 'active' : ''}" data-action="view-meds"><span class="icon">💊</span> ${t('meds')}</div>
+          <div class="ab-nav-item ${state.currentView === 'labs' ? 'active' : ''}" data-action="view-labs"><span class="icon">🧪</span> ${t('labs')}</div>
           <div class="ab-nav-item ${state.currentView === 'hospitals' ? 'active' : ''}" data-action="view-hospitals"><span class="icon">🏥</span> ${t('hospitals')}</div>
           <div class="ab-nav-item ${state.currentView === 'devices' ? 'active' : ''}" data-action="view-devices"><span class="icon">📡</span> ${t('devices')}</div>
           <div class="ab-nav-item ${state.currentView === 'sicknotes' ? 'active' : ''}" data-action="view-sicknotes"><span class="icon">📝</span> ${t('sicknotes')}</div>
@@ -496,7 +532,7 @@
         </div>
         <div class="ab-main">
           <div class="ab-header">
-            <h1>${state.currentView === 'dashboard' ? t('dashboard') : state.currentView === 'ki-tools' ? t('ai_tools') : state.currentView === 'diseases' ? t('diseases') : state.currentView === 'meds' ? t('meds') : state.currentView === 'hospitals' ? t('hospitals') : state.currentView === 'devices' ? t('devices') : state.currentView === 'sicknotes' ? t('sicknotes') : state.currentView === 'appointments' ? t('appointments') : state.currentView === 'settings' ? t('settings') : t('emergency')}</h1>
+            <h1>${state.currentView === 'dashboard' ? t('dashboard') : state.currentView === 'ki-tools' ? t('ai_tools') : state.currentView === 'diseases' ? t('diseases') : state.currentView === 'meds' ? t('meds') : state.currentView === 'labs' ? t('labs') : state.currentView === 'hospitals' ? t('hospitals') : state.currentView === 'devices' ? t('devices') : state.currentView === 'sicknotes' ? t('sicknotes') : state.currentView === 'appointments' ? t('appointments') : state.currentView === 'settings' ? t('settings') : t('emergency')}</h1>
             <div style="font-size:12px; color:#888;">v${VERSION}</div>
           </div>
           <div class="ab-content-area" id="ab-main-content">${viewHtml}</div>
@@ -585,6 +621,7 @@
     if (action === 'view-ki-tools') { state.currentView = 'ki-tools'; updateView(); return; }
     if (action === 'view-diseases') { state.currentView = 'diseases'; state.searchQuery = ''; updateView(); return; }
     if (action === 'view-meds') { state.currentView = 'meds'; state.searchQuery = ''; updateView(); return; }
+    if (action === 'view-labs') { state.currentView = 'labs'; state.searchQuery = ''; updateView(); return; }
     if (action === 'view-hospitals') { state.currentView = 'hospitals'; updateView(); return; }
     if (action === 'view-devices') { state.currentView = 'devices'; updateView(); return; }
     if (action === 'view-sicknotes') { state.currentView = 'sicknotes'; updateView(); return; }
@@ -622,13 +659,14 @@
       return;
     }
 
-    if (action === 'open-disease' || action === 'open-med' || action === 'open-first-aid' || action === 'open-device') {
+    if (action === 'open-disease' || action === 'open-med' || action === 'open-first-aid' || action === 'open-device' || action === 'open-lab') {
       let icon = btn.dataset.icon || '🦠';
       let title = '', desc = '';
       
       if (action === 'open-disease') { title = btn.dataset.name; desc = `Symptome: ${btn.dataset.symp}. Behandlung: ${btn.dataset.tr}`; }
       if (action === 'open-med') { title = btn.dataset.name; desc = `Anwendung: ${btn.dataset.use}. Dosierung: ${btn.dataset.dose}`; }
       if (action === 'open-first-aid') { title = btn.dataset.title; desc = btn.dataset.desc; }
+      if (action === 'open-lab') { title = btn.dataset.name; desc = `${t('reference')}: ${btn.dataset.ref}. ${btn.dataset.desc}`; }
       if (action === 'open-device') {
         const d = state.devices[parseInt(btn.dataset.idx)];
         title = d.name; desc = d.desc; icon = d.icon;
@@ -690,6 +728,15 @@
       const container = document.querySelector('#ab-main-content .ab-card div:last-child');
       if (container) container.innerHTML = listHtml || `<p style="color:#888; text-align:center;">${t('no_results')}</p>`;
     }
+    if (e.target.dataset.action === 'search-lab') {
+      state.searchQuery = e.target.value;
+      const listHtml = LABS.filter(l => l.name.toLowerCase().includes(state.searchQuery.toLowerCase()) || l.desc.toLowerCase().includes(state.searchQuery.toLowerCase())).map(l => `
+        <div class="ab-list-item" data-action="open-lab" data-name="${l.name}" data-ref="${l.ref}" data-desc="${l.desc}" data-icon="🧪">
+          <div><h4>${l.name}</h4><p><b>${t('reference')}:</b> ${l.ref}</p></div>
+        </div>`).join('');
+      const container = document.querySelector('#ab-main-content .ab-card div:last-child');
+      if (container) container.innerHTML = listHtml || `<p style="color:#888; text-align:center;">${t('no_results')}</p>`;
+    }
   }
 
   function handleChange(e) {
@@ -707,6 +754,7 @@
       else if (state.currentView === 'ki-tools') main.innerHTML = renderKITools();
       else if (state.currentView === 'diseases') main.innerHTML = renderDiseases();
       else if (state.currentView === 'meds') main.innerHTML = renderMeds();
+      else if (state.currentView === 'labs') main.innerHTML = renderLabs();
       else if (state.currentView === 'hospitals') main.innerHTML = renderHospitals();
       else if (state.currentView === 'devices') main.innerHTML = renderDevices();
       else if (state.currentView === 'sicknotes') main.innerHTML = renderSickNotes();
@@ -722,6 +770,7 @@
           <div class="ab-nav-item ${state.currentView === 'ki-tools' ? 'active' : ''}" data-action="view-ki-tools"><span class="icon">🤖</span> ${t('ai_tools')}</div>
           <div class="ab-nav-item ${state.currentView === 'diseases' ? 'active' : ''}" data-action="view-diseases"><span class="icon">🦠</span> ${t('diseases')}</div>
           <div class="ab-nav-item ${state.currentView === 'meds' ? 'active' : ''}" data-action="view-meds"><span class="icon">💊</span> ${t('meds')}</div>
+          <div class="ab-nav-item ${state.currentView === 'labs' ? 'active' : ''}" data-action="view-labs"><span class="icon">🧪</span> ${t('labs')}</div>
           <div class="ab-nav-item ${state.currentView === 'hospitals' ? 'active' : ''}" data-action="view-hospitals"><span class="icon">🏥</span> ${t('hospitals')}</div>
           <div class="ab-nav-item ${state.currentView === 'devices' ? 'active' : ''}" data-action="view-devices"><span class="icon">📡</span> ${t('devices')}</div>
           <div class="ab-nav-item ${state.currentView === 'sicknotes' ? 'active' : ''}" data-action="view-sicknotes"><span class="icon">📝</span> ${t('sicknotes')}</div>
@@ -733,7 +782,7 @@
     }
     
     if (headerTitle) {
-        headerTitle.textContent = state.currentView === 'dashboard' ? t('dashboard') : state.currentView === 'ki-tools' ? t('ai_tools') : state.currentView === 'diseases' ? t('diseases') : state.currentView === 'meds' ? t('meds') : state.currentView === 'hospitals' ? t('hospitals') : state.currentView === 'devices' ? t('devices') : state.currentView === 'sicknotes' ? t('sicknotes') : state.currentView === 'appointments' ? t('appointments') : state.currentView === 'settings' ? t('settings') : t('emergency');
+        headerTitle.textContent = state.currentView === 'dashboard' ? t('dashboard') : state.currentView === 'ki-tools' ? t('ai_tools') : state.currentView === 'diseases' ? t('diseases') : state.currentView === 'meds' ? t('meds') : state.currentView === 'labs' ? t('labs') : state.currentView === 'hospitals' ? t('hospitals') : state.currentView === 'devices' ? t('devices') : state.currentView === 'sicknotes' ? t('sicknotes') : state.currentView === 'appointments' ? t('appointments') : state.currentView === 'settings' ? t('settings') : t('emergency');
     }
   }
 
@@ -780,6 +829,6 @@
   window.apps.arztbuch = window.HalDoApps.arztbuch;
   window.openArztbuch = openOverlay;
 
-  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — ULTRA PRO MAX (KI TTS, Alle Geräte A-Z, 20+ Sprachen)');
+  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — ULTRA PRO MAX (Laborwerte, KI TTS, Alle Datenbanken)');
 
 })();
