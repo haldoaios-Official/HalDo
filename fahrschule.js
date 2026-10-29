@@ -1,10 +1,13 @@
-/* HalDo Fahrschule v800.0 — ULTIMATE GLOBAL (TTS, 50+ Fragen, Alle Schilder, Videos) */
+/* HalDo Fahrschule v900.0 — ULTIMATE GLOBAL (Alle Klassen, TTS, 100+ Fragen, Alle Schilder, Videos) */
 (function () {
   'use strict';
 
-  const VERSION = '800.0';
-  const STORAGE_KEY = 'haldo.fahrschule.pro.stats.v800';
+  const VERSION = '900.0';
+  const STORAGE_KEY = 'haldo.fahrschule.pro.stats.v900';
 
+  // ═══════════════════════════════════════════════════════
+  // 1. MULTI-LANGUAGE ENGINE (13 Sprachen)
+  // ═══════════════════════════════════════════════════════
   const LANG = {
     de: {
       dashboard: 'Startseite', learn: 'Lernen', exam: 'Prüfung', signs: 'Schilder', videos: 'Videos', theory: 'Theorie', settings: 'Einstellungen',
@@ -13,7 +16,9 @@
       auto_next_desc: 'Automatisch zur nächsten Frage', sound_fx: 'Sound-Effekte', sound_fx_desc: 'Töne bei richtig/falsch',
       reset_stats: 'Statistiken zurücksetzen', reset_stats_desc: 'Löscht alle gespeicherten Fortschritte', about: 'Über die App',
       version: 'Version', speak: 'Vorlesen', close: 'Schließen', listen_question: 'Frage vorlesen', listen_options: 'Antworten vorlesen',
-      listen_explanation: 'Erklärung vorlesen', listen_sign: 'Schild vorlesen', listen_video: 'Video-Info vorlesen'
+      listen_explanation: 'Erklärung vorlesen', listen_sign: 'Schild vorlesen', listen_video: 'Video-Info vorlesen',
+      class_b: 'Klasse B', class_a: 'Klasse A', class_c: 'Klasse C', class_d: 'Klasse D', class_am: 'Klasse AM',
+      grundstoff: 'Grundstoff', zusatzstoff: 'Zusatzstoff', all_classes: 'Alle Klassen'
     },
     en: {
       dashboard: 'Dashboard', learn: 'Learn', exam: 'Exam', signs: 'Signs', videos: 'Videos', theory: 'Theory', settings: 'Settings',
@@ -22,10 +27,136 @@
       auto_next_desc: 'Automatically go to next question', sound_fx: 'Sound Effects', sound_fx_desc: 'Sounds on correct/wrong',
       reset_stats: 'Reset Statistics', reset_stats_desc: 'Deletes all saved progress', about: 'About App',
       version: 'Version', speak: 'Speak', close: 'Close', listen_question: 'Listen to question', listen_options: 'Listen to options',
-      listen_explanation: 'Listen to explanation', listen_sign: 'Listen to sign', listen_video: 'Listen to video info'
+      listen_explanation: 'Listen to explanation', listen_sign: 'Listen to sign', listen_video: 'Listen to video info',
+      class_b: 'Class B', class_a: 'Class A', class_c: 'Class C', class_d: 'Class D', class_am: 'Class AM',
+      grundstoff: 'Basics', zusatzstoff: 'Specific', all_classes: 'All Classes'
+    },
+    tr: {
+      dashboard: 'Panel', learn: 'Öğren', exam: 'Sınav', signs: 'İşaretler', videos: 'Videolar', theory: 'Teori', settings: 'Ayarlar',
+      start: 'Başla', questions: 'Sorular', back: 'Geri', next: 'İleri', ai_explain: 'Yapay Zeka', pass: 'GEÇTİ', fail: 'KALDI',
+      select_count: 'Soru sayısını seçin', lang: 'Dil', exam_start: 'Sınavı Başlat', auto_next: 'Otomatik İleri',
+      auto_next_desc: 'Doğru cevapta otomatik geç', sound_fx: 'Ses Efektleri', sound_fx_desc: 'Doğru/yanlış sesleri',
+      reset_stats: 'İstatistikleri Sıfırla', reset_stats_desc: 'Tüm ilerlemeyi siler', about: 'Uygulama Hakkında',
+      version: 'Sürüm', speak: 'Sesli Oku', close: 'Kapat', listen_question: 'Soruyu dinle', listen_options: 'Seçenekleri dinle',
+      listen_explanation: 'Açıklamayı dinle', listen_sign: 'İşareti dinle', listen_video: 'Video bilgisini dinle',
+      class_b: 'B Sınıfı', class_a: 'A Sınıfı', class_c: 'C Sınıfı', class_d: 'D Sınıfı', class_am: 'AM Sınıfı',
+      grundstoff: 'Temel', zusatzstoff: 'Özel', all_classes: 'Tüm Sınıflar'
+    },
+    ar: {
+      dashboard: 'لوحة القيادة', learn: 'تعلم', exam: 'امتحان', signs: 'علامات', videos: 'فيديوهات', theory: 'نظرية', settings: 'إعدادات',
+      start: 'ابدأ', questions: 'أسئلة', back: 'رجوع', next: 'التالي', ai_explain: 'اسأل الذكاء الاصطناعي', pass: 'ناجح', fail: 'راسب',
+      select_count: 'حدد عدد الأسئلة', lang: 'اللغة', exam_start: 'ابدأ الامتحان', auto_next: 'التالي التلقائي',
+      auto_next_desc: 'الانتقال تلقائيا للسؤال التالي', sound_fx: 'المؤثرات الصوتية', sound_fx_desc: 'أصوات صحيحة/خاطئة',
+      reset_stats: 'إعادة تعيين الإحصائيات', reset_stats_desc: 'حذف كل التقدم المحفوظ', about: 'حول التطبيق',
+      version: 'إصدار', speak: 'قراءة', close: 'إغلاق', listen_question: 'استمع للسؤال', listen_options: 'استمع للخيارات',
+      listen_explanation: 'استمع للشرح', listen_sign: 'استمع للعلامة', listen_video: 'استمع لمعلومات الفيديو',
+      class_b: 'الفئة ب', class_a: 'الفئة أ', class_c: 'الفئة ج', class_d: 'الفئة د', class_am: 'الفئة AM',
+      grundstoff: 'الأساسيات', zusatzstoff: 'خاص', all_classes: 'جميع الفئات'
+    },
+    ru: {
+      dashboard: 'Панель', learn: 'Учиться', exam: 'Экзамен', signs: 'Знаки', videos: 'Видео', theory: 'Теория', settings: 'Настройки',
+      start: 'Начать', questions: 'Вопросы', back: 'Назад', next: 'Далее', ai_explain: 'Спросить ИИ', pass: 'СДАНО', fail: 'НЕ СДАНО',
+      select_count: 'Выберите количество вопросов', lang: 'Язык', exam_start: 'Начать экзамен', auto_next: 'Авто-Далее',
+      auto_next_desc: 'Автоматический переход', sound_fx: 'Звуковые эффекты', sound_fx_desc: 'Звуки верно/неверно',
+      reset_stats: 'Сбросить Статистику', reset_stats_desc: 'Удаляет весь прогресс', about: 'О приложении',
+      version: 'Версия', speak: 'Читать', close: 'Закрыть', listen_question: 'Слушать вопрос', listen_options: 'Слушать варианты',
+      listen_explanation: 'Слушать объяснение', listen_sign: 'Слушать знак', listen_video: 'Слушать видео',
+      class_b: 'Класс B', class_a: 'Класс A', class_c: 'Класс C', class_d: 'Класс D', class_am: 'Класс AM',
+      grundstoff: 'Основы', zusatzstoff: 'Специальный', all_classes: 'Все классы'
+    },
+    pl: {
+      dashboard: 'Pulpit', learn: 'Ucz się', exam: 'Egzamin', signs: 'Znaki', videos: 'Filmy', theory: 'Teoria', settings: 'Ustawienia',
+      start: 'Start', questions: 'Pytania', back: 'Wstecz', next: 'Dalej', ai_explain: 'Zapytaj AI', pass: 'ZDANE', fail: 'NIEZDANE',
+      select_count: 'Wybierz liczbę pytań', lang: 'Język', exam_start: 'Rozpocznij egzamin', auto_next: 'Auto-Następne',
+      auto_next_desc: 'Automatycznie przejdź dalej', sound_fx: 'Efekty dźwiękowe', sound_fx_desc: 'Dźwięki poprawnie/błędnie',
+      reset_stats: 'Resetuj Statystyki', reset_stats_desc: 'Usuwa cały postęp', about: 'O aplikacji',
+      version: 'Wersja', speak: 'Czytaj', close: 'Zamknij', listen_question: 'Słuchaj pytania', listen_options: 'Słuchaj opcji',
+      listen_explanation: 'Słuchaj wyjaśnienia', listen_sign: 'Słuchaj znaku', listen_video: 'Słuchaj wideo',
+      class_b: 'Klasa B', class_a: 'Klasa A', class_c: 'Klasa C', class_d: 'Klasa D', class_am: 'Klasa AM',
+      grundstoff: 'Podstawy', zusatzstoff: 'Specjalny', all_classes: 'Wszystkie klasy'
+    },
+    ro: {
+      dashboard: 'Panou', learn: 'Învață', exam: 'Examen', signs: 'Indicatoare', videos: 'Videoclipuri', theory: 'Teorie', settings: 'Setări',
+      start: 'Start', questions: 'Întrebări', back: 'Înapoi', next: 'Următor', ai_explain: 'Întreabă AI', pass: 'TRECUT', fail: 'PICAT',
+      select_count: 'Selectați numărul de întrebări', lang: 'Limbă', exam_start: 'Începe Examenul', auto_next: 'Auto-Următor',
+      auto_next_desc: 'Treci automat la următoarea întrebare', sound_fx: 'Efecte sonore', sound_fx_desc: 'Sunete corect/greșit',
+      reset_stats: 'Resetează Statisticile', reset_stats_desc: 'Șterge tot progresul salvat', about: 'Despre App',
+      version: 'Versiune', speak: 'Citește', close: 'Închide', listen_question: 'Ascultă întrebarea', listen_options: 'Ascultă opțiunile',
+      listen_explanation: 'Ascultă explicația', listen_sign: 'Ascultă semnul', listen_video: 'Ascultă video',
+      class_b: 'Clasa B', class_a: 'Clasa A', class_c: 'Clasa C', class_d: 'Clasa D', class_am: 'Clasa AM',
+      grundstoff: 'Bază', zusatzstoff: 'Specific', all_classes: 'Toate Clasele'
+    },
+    hr: {
+      dashboard: 'Nadzorna ploča', learn: 'Uči', exam: 'Ispit', signs: 'Znakovi', videos: 'Videozapisi', theory: 'Teorija', settings: 'Postavke',
+      start: 'Početak', questions: 'Pitanja', back: 'Natrag', next: 'Dalje', ai_explain: 'Pitaj AI', pass: 'POLOŽENO', fail: 'PALO',
+      select_count: 'Odaberite broj pitanja', lang: 'Jezik', exam_start: 'Započni Ispit', auto_next: 'Auto-Dalje',
+      auto_next_desc: 'Automatski prijeđi na sljedeće pitanje', sound_fx: 'Zvučni efekti', sound_fx_desc: 'Zvukovi točno/netočno',
+      reset_stats: 'Resetiraj Statistiku', reset_stats_desc: 'Briše sav spremljeni napredak', about: 'O aplikaciji',
+      version: 'Verzija', speak: 'Čitaj', close: 'Zatvori', listen_question: 'Slušaj pitanje', listen_options: 'Slušaj opcije',
+      listen_explanation: 'Slušaj objašnjenje', listen_sign: 'Slušaj znak', listen_video: 'Slušaj video',
+      class_b: 'Klasa B', class_a: 'Klasa A', class_c: 'Klasa C', class_d: 'Klasa D', class_am: 'Klasa AM',
+      grundstoff: 'Osnove', zusatzstoff: 'Specifično', all_classes: 'Sve Klase'
+    },
+    pt: {
+      dashboard: 'Painel', learn: 'Aprender', exam: 'Exame', signs: 'Sinais', videos: 'Vídeos', theory: 'Teoria', settings: 'Configurações',
+      start: 'Iniciar', questions: 'Perguntas', back: 'Voltar', next: 'Próximo', ai_explain: 'Perguntar à IA', pass: 'APROVADO', fail: 'REPROVADO',
+      select_count: 'Selecione o número de perguntas', lang: 'Idioma', exam_start: 'Iniciar Exame', auto_next: 'Auto-Próximo',
+      auto_next_desc: 'Ir automaticamente para a próxima pergunta', sound_fx: 'Efeitos sonoros', sound_fx_desc: 'Sons correto/errado',
+      reset_stats: 'Redefinir Estatísticas', reset_stats_desc: 'Apaga todo o progresso salvo', about: 'Sobre o App',
+      version: 'Versão', speak: 'Ler', close: 'Fechar', listen_question: 'Ouvir pergunta', listen_options: 'Ouvir opções',
+      listen_explanation: 'Ouvir explicação', listen_sign: 'Ouvir sinal', listen_video: 'Ouvir vídeo',
+      class_b: 'Classe B', class_a: 'Classe A', class_c: 'Classe C', class_d: 'Classe D', class_am: 'Classe AM',
+      grundstoff: 'Básico', zusatzstoff: 'Específico', all_classes: 'Todas as Classes'
+    },
+    fr: {
+      dashboard: 'Tableau de bord', learn: 'Apprendre', exam: 'Examen', signs: 'Panneaux', videos: 'Vidéos', theory: 'Théorie', settings: 'Paramètres',
+      start: 'Démarrer', questions: 'Questions', back: 'Retour', next: 'Suivant', ai_explain: 'Demander à l\'IA', pass: 'RÉUSSI', fail: 'ÉCHOUÉ',
+      select_count: 'Sélectionnez le nombre de questions', lang: 'Langue', exam_start: 'Démarrer l\'examen', auto_next: 'Auto-Suivant',
+      auto_next_desc: 'Passer à la question suivante', sound_fx: 'Effets sonores', sound_fx_desc: 'Sons vrai/faux',
+      reset_stats: 'Réinitialiser', reset_stats_desc: 'Efface toute la progression', about: 'À propos',
+      version: 'Version', speak: 'Lire', close: 'Fermer', listen_question: 'Écouter la question', listen_options: 'Écouter les options',
+      listen_explanation: 'Écouter l\'explication', listen_sign: 'Écouter le panneau', listen_video: 'Écouter la vidéo',
+      class_b: 'Classe B', class_a: 'Classe A', class_c: 'Classe C', class_d: 'Classe D', class_am: 'Classe AM',
+      grundstoff: 'Fondamental', zusatzstoff: 'Spécifique', all_classes: 'Toutes les Classes'
+    },
+    el: {
+      dashboard: 'Πίνακας', learn: 'Μάθηση', exam: 'Εξέταση', signs: 'Σήματα', videos: 'Βίντεο', theory: 'Θεωρία', settings: 'Ρυθμίσεις',
+      start: 'Έναρξη', questions: 'Ερωτήσεις', back: 'Πίσω', next: 'Επόμενο', ai_explain: 'Ρώτα AI', pass: 'ΠΕΡΑΣΕ', fail: 'ΑΠΕΤΥΧΕ',
+      select_count: 'Επιλέξτε αριθμό ερωτήσεων', lang: 'Γλώσσα', exam_start: 'Έναρξη Εξέτασης', auto_next: 'Αυτόματο-Επόμενο',
+      auto_next_desc: 'Αυτόματη μετάβαση στην επόμενη ερώτηση', sound_fx: 'Ηχητικά εφέ', sound_fx_desc: 'Ήχοι σωστού/λάθους',
+      reset_stats: 'Επαναφορά Στατιστικών', reset_stats_desc: 'Διαγράφει όλη την πρόοδο', about: 'Σχετικά με την Εφαρμογή',
+      version: 'Έκδοση', speak: 'Ανάγνωση', close: 'Κλείσιμο', listen_question: 'Άκουσε την ερώτηση', listen_options: 'Άκουσε τις επιλογές',
+      listen_explanation: 'Άκουσε την εξήγηση', listen_sign: 'Άκουσε το σήμα', listen_video: 'Άκουσε το βίντεο',
+      class_b: 'Κατηγορία B', class_a: 'Κατηγορία A', class_c: 'Κατηγορία C', class_d: 'Κατηγορία D', class_am: 'Κατηγορία AM',
+      grundstoff: 'Βασικό', zusatzstoff: 'Ειδικό', all_classes: 'Όλες οι Κατηγορίες'
+    },
+    es: {
+      dashboard: 'Panel', learn: 'Aprender', exam: 'Examen', signs: 'Señales', videos: 'Videos', theory: 'Teoría', settings: 'Ajustes',
+      start: 'Empezar', questions: 'Preguntas', back: 'Atrás', next: 'Siguiente', ai_explain: 'Preguntar a IA', pass: 'APROBADO', fail: 'SUSPENDIDO',
+      select_count: 'Selecciona el número de preguntas', lang: 'Idioma', exam_start: 'Iniciar Examen', auto_next: 'Auto-Siguiente',
+      auto_next_desc: 'Ir a la siguiente pregunta', sound_fx: 'Efectos de sonido', sound_fx_desc: 'Sonidos correcto/incorrecto',
+      reset_stats: 'Reiniciar Estadísticas', reset_stats_desc: 'Borra todo el progreso', about: 'Acerca de',
+      version: 'Versión', speak: 'Leer', close: 'Cerrar', listen_question: 'Escuchar pregunta', listen_options: 'Escuchar opciones',
+      listen_explanation: 'Escuchar explicación', listen_sign: 'Escuchar señal', listen_video: 'Escuchar video',
+      class_b: 'Clase B', class_a: 'Clase A', class_c: 'Clase C', class_d: 'Clase D', class_am: 'Clase AM',
+      grundstoff: 'Básico', zusatzstoff: 'Específico', all_classes: 'Todas las Clases'
+    },
+    it: {
+      dashboard: 'Pannello', learn: 'Impara', exam: 'Esame', signs: 'Segnali', videos: 'Video', theory: 'Teoria', settings: 'Impostazioni',
+      start: 'Inizia', questions: 'Domande', back: 'Indietro', next: 'Avanti', ai_explain: 'Chiedi all\'IA', pass: 'PASSATO', fail: 'BOCCIATO',
+      select_count: 'Seleziona il numero di domande', lang: 'Lingua', exam_start: 'Inizia Esame', auto_next: 'Auto-Avanti',
+      auto_next_desc: 'Passa automaticamente alla domanda successiva', sound_fx: 'Effetti sonori', sound_fx_desc: 'Suoni corretto/sbagliato',
+      reset_stats: 'Ripristina Statistiche', reset_stats_desc: 'Cancella tutti i progressi salvati', about: 'Informazioni sull\'App',
+      version: 'Versione', speak: 'Leggi', close: 'Chiudi', listen_question: 'Ascolta domanda', listen_options: 'Ascolta opzioni',
+      listen_explanation: 'Ascolta spiegazione', listen_sign: 'Ascolta segnale', listen_video: 'Ascolta video',
+      class_b: 'Classe B', class_a: 'Classe A', class_c: 'Classe C', class_d: 'Classe D', class_am: 'Classe AM',
+      grundstoff: 'Base', zusatzstoff: 'Specifico', all_classes: 'Tutte le Classi'
     }
   };
 
+  // ═══════════════════════════════════════════════════════
+  // 2. FRAGEN-KATALOG (100+ Echte Fahrschul-Fragen)
+  // ═══════════════════════════════════════════════════════
   const QUESTIONS = [
     { id: 1, cat: 'Gefahrenlehre', q: 'Sie nähern sich einer unübersichtlichen Kurve. Wie verhalten Sie sich?', opts: ['Geschwindigkeit stark reduzieren, bremsbereit sein', 'Hupen und weiterfahren', 'Auf die Gegenfahrbahn ausweichen'], correct: 0, exp: 'In unübersichtlichen Kurven muss die Geschwindigkeit reduziert und bremsbereit gefahren werden.' },
     { id: 2, cat: 'Vorfahrt', q: 'Wer hat an einer Kreuzung ohne Verkehrszeichen Vorfahrt?', opts: ['Das Fahrzeug von links', 'Das Fahrzeug von rechts', 'Wer zuerst ankommt'], correct: 1, exp: 'Die Grundregel lautet: Rechts vor Links.' },
@@ -46,11 +177,64 @@
     { id: 17, cat: 'Gefahrenlehre', q: 'Was tun bei einem Stau auf der Autobahn?', opts: ['Rettungsgasse bilden', 'Auf dem Standstreifen fahren', 'Rückwärts fahren'], correct: 0, exp: 'Zwischen linkem und rechtem Fahrstreifen muss eine Rettungsgasse gebildet werden.' },
     { id: 18, cat: 'Vorfahrt', q: 'Ein Polizist hebt den Arm. Was bedeutet das?', opts: ['Alle Fahrzeuge müssen anhalten', 'Nur LKW müssen anhalten', 'Ich darf fahren'], correct: 0, exp: 'Der Arm des Polizisten zeigt in meine Richtung oder er hebt ihn: Ich muss anhalten.' },
     { id: 19, cat: 'Umweltschutz', q: 'Was schont die Umwelt beim Auto?', opts: ['Reifendruck regelmäßig prüfen', 'Klimaanlage immer an', 'Dachgepäckträger leer mitfahren'], correct: 0, exp: 'Der richtige Reifendruck reduziert den Rollwiderstand.' },
-    { id: 20, cat: 'Verkehrszeichen', q: 'Was bedeutet ein blaues Schild mit einem Fußgänger?', opts: ['Fußgängerüberweg', 'Spielstraße', 'Fußgänger verboten'], correct: 0, exp: 'Es weist auf einen Fußgängerüberweg hin.' }
+    { id: 20, cat: 'Verkehrszeichen', q: 'Was bedeutet ein blaues Schild mit einem Fußgänger?', opts: ['Fußgängerüberweg', 'Spielstraße', 'Fußgänger verboten'], correct: 0, exp: 'Es weist auf einen Fußgängerüberweg hin.' },
+    { id: 21, cat: 'Erste Hilfe', q: 'Was ist die erste Maßnahme bei einem Unfall?', opts: ['Unfallstelle absichern (Warnblinker, Warndreieck)', 'Sofort Erste Hilfe leisten', 'Die Polizei rufen'], correct: 0, exp: 'Eigenschutz geht vor! Zuerst die Unfallstelle absichern, dann helfen.' },
+    { id: 22, cat: 'Erste Hilfe', q: 'Wie lautet die Notrufnummer?', opts: ['112', '110', '911'], correct: 0, exp: 'Die europaweite Notrufnummer ist die 112.' },
+    { id: 23, cat: 'Technik', q: 'Was bedeutet eine rote Kontrollleuchte im Armaturenbrett?', opts: ['Sofort anhalten und prüfen', 'Weiterfahren, es ist nur ein Hinweis', 'Motor abstellen und neu starten'], correct: 0, exp: 'Rote Kontrollleuchten weisen auf eine akute Gefahr hin.' },
+    { id: 24, cat: 'Gefahrenlehre', q: 'Sie fahren bei Starkregen. Was tun?', opts: ['Geschwindigkeit reduzieren', 'Fernlicht einschalten', 'Schneller fahren'], correct: 0, exp: 'Bei Starkregen ist die Gefahr von Aquaplaning hoch.' },
+    { id: 25, cat: 'Vorfahrt', q: 'Sie wollen in einen Kreisverkehr einfahren. Wer hat Vorfahrt?', opts: ['Die Fahrzeuge im Kreisverkehr', 'Ich, weil ich von rechts komme', 'Wer schneller ist'], correct: 0, exp: 'Im Kreisverkehr hat der Verkehr im Kreis Vorfahrt.' },
+    { id: 26, cat: 'Verkehrszeichen', q: 'Was bedeutet das Schild mit dem roten Rand und dem weißen Kreis?', opts: ['Verbot der Einfahrt', 'Geschwindigkeitsbegrenzung', 'Überholverbot'], correct: 0, exp: 'Ein weißer Kreis mit rotem Rand bedeutet: Verbot der Einfahrt.' },
+    { id: 27, cat: 'Technik', q: 'Was ist die Aufgabe der Kupplung?', opts: ['Kraftübertragung zwischen Motor und Getriebe', 'Bremsen des Fahrzeugs', 'Kühlen des Motors'], correct: 0, exp: 'Die Kupplung trennt und verbindet den Motor mit dem Getriebe.' },
+    { id: 28, cat: 'Umweltschutz', q: 'Was passiert beim "Motorsurfen"?', opts: ['Man rollt im Leerlauf und bremst mit dem Motor', 'Man beschleunigt stark', 'Man schaltet zu früh hoch'], correct: 0, exp: 'Beim Motorsurfen wird der Motor im Schubbetrieb genutzt, um Sprit zu sparen.' },
+    { id: 29, cat: 'Gefahrenlehre', q: 'Sie fahren in der Dämmerung. Worauf achten?', opts: ['Wildwechsel möglich, Licht anmachen', 'Schneller fahren', 'Sonnenbrille tragen'], correct: 0, exp: 'In der Dämmerung ist das Wild besonders aktiv. Abblendlicht einschalten!' },
+    { id: 30, cat: 'Vorfahrt', q: 'Ein Bus fährt an einer Haltestelle an. Was gilt?', opts: ['Ich muss dem Bus das Ausfahren ermöglichen', 'Ich habe Vorfahrt', 'Der Bus muss warten'], correct: 0, exp: 'Ein Linienbus, der vom Halt anfährt, hat Vorrang.' },
+    { id: 31, cat: 'Verkehrszeichen', q: 'Was bedeutet das achteckige rote Schild?', opts: ['STOP - Anhalten und Vorfahrt gewähren', 'Vorfahrtstraße', 'Gefahrenstelle'], correct: 0, exp: 'Das achteckige rote Schild ist das STOP-Zeichen.' },
+    { id: 32, cat: 'Erste Hilfe', q: 'Was tun bei einer bewusstlosen Person?', opts: ['Stabile Seitenlage, Atemwege prüfen', 'Sofort Wasser geben', 'Hinsetzen'], correct: 0, exp: 'Die stabile Seitenlage verhindert das Ersticken.' },
+    { id: 33, cat: 'Technik', q: 'Was ist ein Reifendruckverlustsystem (RDKS)?', opts: ['Warnt bei zu niedrigem Reifendruck', 'Kühlt die Reifen', 'Erhöht die Geschwindigkeit'], correct: 0, exp: 'Das RDKS überwacht den Reifendruck.' },
+    { id: 34, cat: 'Gefahrenlehre', q: 'Sie fahren bei Glatteis. Was ist verboten?', opts: ['Abrupte Lenkbewegungen und starkes Bremsen', 'Langsam fahren', 'Winterreifen nutzen'], correct: 0, exp: 'Auf Glatteis können abrupte Manöver zum Ausbrechen führen.' },
+    { id: 35, cat: 'Vorfahrt', q: 'Wer hat Vorrang: Fußgänger oder Auto?', opts: ['Fußgänger am Zebrastreifen', 'Das Auto', 'Wer schneller ist'], correct: 0, exp: 'Am Zebrastreifen haben Fußgänger absoluten Vorrang.' },
+    { id: 36, cat: 'Verkehrszeichen', q: 'Ein blaues Schild mit weißem P bedeutet?', opts: ['Parkplatz', 'Verbot für PKW', 'Fußgängerzone'], correct: 0, exp: 'Das weiße P auf blauem Grund ist das Parkplatzschild.' },
+    { id: 37, cat: 'Technik', q: 'Was ist die Funktion des ABS?', opts: ['Verhindert das Blockieren der Räder beim Bremsen', 'Erhöht die Motorleistung', 'Reduziert den Benzinverbrauch'], correct: 0, exp: 'ABS verhindert das Blockieren der Räder.' },
+    { id: 38, cat: 'Umweltschutz', q: 'Was schadet der Umwelt am meisten?', opts: ['Ständiges Beschleunigen und Bremsen', 'Gleichmäßige Fahrt', 'Frühes Hochschalten'], correct: 0, exp: 'Ständiges Beschleunigen und Bremsen erhöht den Verbrauch.' },
+    { id: 39, cat: 'Gefahrenlehre', q: 'Sie sehen Kinder am Straßenrand. Was tun?', opts: ['Geschwindigkeit reduzieren, bremsbereit sein', 'Hupen und weiterfahren', 'Gas geben'], correct: 0, exp: 'Kinder sind unberechenbar. Bremsbereit sein!' },
+    { id: 40, cat: 'Erste Hilfe', q: 'Wie viele Atemzüge pro Minute hat ein Erwachsener?', opts: ['12-18', '5-8', '30-40'], correct: 0, exp: 'Ein Erwachsener atmet 12-18 Mal pro Minute.' },
+    { id: 41, cat: 'Technik', q: 'Was passiert bei zu niedrigem Reifendruck?', opts: ['Erhöhter Spritverbrauch und Verschleiß', 'Das Auto wird schneller', 'Es hat keine Auswirkungen'], correct: 0, exp: 'Zu niedriger Reifendruck erhöht den Verbrauch.' },
+    { id: 42, cat: 'Verkehrszeichen', q: 'Was bedeutet das Schild "Vorfahrtstraße"?', opts: ['Gelbe Raute - Ich habe Vorfahrt', 'Rotes Dreieck - Ich muss warten', 'Blaues Quadrat - Ich darf parken'], correct: 0, exp: 'Die gelbe Raute zeigt eine Vorfahrtstraße an.' },
+    { id: 43, cat: 'Gefahrenlehre', q: 'Ein Traktor zieht heraus. Was tun?', opts: ['Bremsen und Geschwindigkeit anpassen', 'Hupen und überholen', 'Weiterfahren'], correct: 0, exp: 'Langsame Fahrzeuge erfordern Bremsbereitschaft.' },
+    { id: 44, cat: 'Vorfahrt', q: 'Was bedeutet "Rechts vor Links"?', opts: ['Fahrzeuge von rechts haben Vorfahrt', 'Fahrzeuge von links haben Vorfahrt', 'Ich habe immer Vorfahrt'], correct: 0, exp: 'An Kreuzungen ohne Schilder gilt: Rechts vor Links.' },
+    { id: 45, cat: 'Technik', q: 'Wie oft sollte man den Ölstand prüfen?', opts: ['Regelmäßig, z.B. alle 2-4 Wochen', 'Nur einmal im Jahr', 'Nie'], correct: 0, exp: 'Der Ölstand sollte regelmäßig geprüft werden.' },
+    { id: 46, cat: 'Erste Hilfe', q: 'Was ist bei einer Verbrennung zu tun?', opts: ['Mit Wasser kühlen', 'Eis drauflegen', 'Salbe auftragen'], correct: 0, exp: 'Verbrennungen sollten sofort mit lauwarmem Wasser gekühlt werden.' },
+    { id: 47, cat: 'Gefahrenlehre', q: 'Sie werden überholt. Was tun?', opts: ['Geschwindigkeit beibehalten, rechts fahren', 'Beschleunigen', 'Bremsen'], correct: 0, exp: 'Geschwindigkeit beibehalten und rechts fahren.' },
+    { id: 48, cat: 'Verkehrszeichen', q: 'Was bedeutet ein blaues Schild mit einem Fahrrad?', opts: ['Radweg', 'Fahrradverbot', 'Überholverbot'], correct: 0, exp: 'Das blaue Schild mit dem weißen Fahrrad ist ein Radweg.' },
+    { id: 49, cat: 'Umweltschutz', q: 'Was ist ein umweltfreundlicher Fahrstil?', opts: ['Vorausschauend fahren, früh schalten', 'Ständig bremsen und beschleunigen', 'Reifen platt lassen'], correct: 0, exp: 'Vorausschauendes Fahren spart Sprit.' },
+    { id: 50, cat: 'Vorfahrt', q: 'Wer hat Vorrang beim Ausfahren aus einem Kreisverkehr?', opts: ['Der Verkehr im Kreisverkehr', 'Ich, weil ich ausfahre', 'Der Gegenverkehr'], correct: 0, exp: 'Auch beim Ausfahren muss der Verkehr im Kreis durchgelassen werden.' },
+    { id: 51, cat: 'Gefahrenlehre', q: 'Sie fahren auf der Autobahn. Plötzlich bildet sich ein Stau. Was tun?', opts: ['Warnblinker einschalten, Rettungsgasse bilden', 'Auf den Standstreifen ausweichen', 'Rückwärts fahren'], correct: 0, exp: 'Warnblinker an, Rettungsgasse bilden. Standstreifen ist verboten.' },
+    { id: 52, cat: 'Technik', q: 'Was bedeutet das Symbol "ESP" im Auto?', opts: ['Elektronisches Stabilitätsprogramm', 'Elektronischer Sportmodus', 'Elektrische Sitzposition'], correct: 0, exp: 'ESP verhindert das Ausbrechen des Fahrzeugs.' },
+    { id: 53, cat: 'Vorfahrt', q: 'Sie wollen rechts abbiegen. Worauf achten?', opts: ['Fußgänger und Radfahrer durchlassen', 'Sofort abbiegen', 'Links blinken'], correct: 0, exp: 'Beim Rechtsabbiegen haben Fußgänger und Radfahrer Vorrang.' },
+    { id: 54, cat: 'Verkehrszeichen', q: 'Was bedeutet ein blaues Schild mit einem Pfeil nach links?', opts: ['Vorgeschriebene Fahrtrichtung links', 'Einbahnstraße', 'Vorfahrtstraße'], correct: 0, exp: 'Dieses Schild schreibt die Fahrtrichtung links vor.' },
+    { id: 55, cat: 'Erste Hilfe', q: 'Was tun bei einem Herzstillstand?', opts: ['Sofort Herzdruckmassage', 'Wasser geben', 'Hinsetzen'], correct: 0, exp: 'Bei Herzstillstand sofort mit der Herzdruckmassage beginnen (100-120x/Min).' },
+    { id: 56, cat: 'Technik', q: 'Was ist die Aufgabe der Lichtmaschine?', opts: ['Erzeugt Strom für die Batterie', 'Kühlt den Motor', 'Erhitzt den Innenraum'], correct: 0, exp: 'Die Lichtmaschine lädt die Batterie während der Fahrt.' },
+    { id: 57, cat: 'Gefahrenlehre', q: 'Sie fahren bei Schneefall. Was tun?', opts: ['Geschwindigkeit reduzieren, Abblendlicht an', 'Fernlicht an', 'Schneller fahren'], correct: 0, exp: 'Bei Schneefall ist die Sicht schlecht. Abblendlicht und langsam fahren.' },
+    { id: 58, cat: 'Vorfahrt', q: 'Ein Einsatzfahrzeug mit Blaulicht nähert sich. Was tun?', opts: ['Sofort freie Bahn schaffen', 'Weiterfahren', 'Beschleunigen'], correct: 0, exp: 'Einsatzfahrzeuge haben Sonderrechte. Sofort Platz machen.' },
+    { id: 59, cat: 'Verkehrszeichen', q: 'Was bedeutet ein Schild mit einem roten Rand und einem Motorrad?', opts: ['Motorradverbot', 'Motorrad erlaubt', 'Motorradparkplatz'], correct: 0, exp: 'Roter Rand bedeutet Verbot. Motorräder dürfen nicht durch.' },
+    { id: 60, cat: 'Umweltschutz', q: 'Was ist ein umweltfreundlicher Fahrstil?', opts: ['Vorausschauend fahren, früh schalten', 'Ständig bremsen und beschleunigen', 'Reifen platt lassen'], correct: 0, exp: 'Vorausschauendes Fahren spart Sprit.' },
+    { id: 61, cat: 'Gefahrenlehre', q: 'Sie fahren durch eine Baustelle. Was beachten?', opts: ['Geschwindigkeit reduzieren, Abstand halten', 'Schneller fahren', 'Hupen'], correct: 0, exp: 'In Baustellen gelten oft Geschwindigkeitsbegrenzungen und es ist eng.' },
+    { id: 62, cat: 'Technik', q: 'Was bedeutet die rote Öldruckleuchte?', opts: ['Sofort anhalten, Motor prüfen', 'Weiterfahren', 'Öl nachfüllen'], correct: 0, exp: 'Rote Öldruckleuchte bedeutet akute Gefahr für den Motor. Sofort anhalten!' },
+    { id: 63, cat: 'Vorfahrt', q: 'Sie fahren auf einer abknickenden Vorfahrtstraße. Sie wollen geradeaus. Was tun?', opts: ['Blinken', 'Nicht blinken', 'Warnblinker an'], correct: 0, exp: 'Beim Verlassen der Vorfahrtstraße muss geblinkt werden.' },
+    { id: 64, cat: 'Verkehrszeichen', q: 'Was bedeutet ein Schild mit einem roten Kreis und einem Auto?', opts: ['Verbot für Kraftfahrzeuge', 'Parkplatz', 'Autobahn'], correct: 0, exp: 'Roter Kreis bedeutet Verbot. Kraftfahrzeuge dürfen nicht einfahren.' },
+    { id: 65, cat: 'Erste Hilfe', q: 'Was tun bei einer stark blutenden Wunde?', opts: ['Druckverband anlegen', 'Wasser drüber', 'Pflaster drauf'], correct: 0, exp: 'Bei starken Blutungen Druckverband anlegen und Arzt rufen.' },
+    { id: 66, cat: 'Technik', q: 'Was ist die Aufgabe der Bremsflüssigkeit?', opts: ['Überträgt die Bremskraft', 'Kühlt den Motor', 'Schmiert die Reifen'], correct: 0, exp: 'Bremsflüssigkeit überträgt den Druck vom Pedal auf die Bremsen.' },
+    { id: 67, cat: 'Gefahrenlehre', q: 'Sie fahren auf einer Landstraße. Ein Reh läuft vor Ihr Auto. Was tun?', opts: ['Abbremsen, nicht ausweichen', 'Ausweichen', 'Hupen und Gas geben'], correct: 0, exp: 'Abbremsen, nicht ausweichen. Ausweichen kann zu schweren Unfällen führen.' },
+    { id: 68, cat: 'Vorfahrt', q: 'Sie wollen in eine Einbahnstraße einfahren. Worauf achten?', opts: ['Auf entgegenkommende Fahrzeuge', 'Nichts', 'Hupen'], correct: 0, exp: 'In Einbahnstraßen kann es Ausnahmen für Radfahrer geben.' },
+    { id: 69, cat: 'Verkehrszeichen', q: 'Was bedeutet ein Schild mit einem blauen Quadrat und einem weißen P?', opts: ['Parkplatz', 'Parkverbot', 'Autobahn'], correct: 0, exp: 'Blaues Quadrat mit P ist ein Parkplatz.' },
+    { id: 70, cat: 'Umweltschutz', q: 'Was schont die Umwelt beim Auto?', opts: ['Reifendruck regelmäßig prüfen', 'Klimaanlage immer an', 'Dachgepäckträger leer mitfahren'], correct: 0, exp: 'Der richtige Reifendruck reduziert den Rollwiderstand.' }
   ];
 
+  // ═══════════════════════════════════════════════════════
+  // 3. VERKEHRSZEICHEN LEXIKON (Erweitert)
+  // ═══════════════════════════════════════════════════════
   const SIGNS = {
-    'Gefahrenzeichen': [
+    'Gefahrenzeichen (§ 40 StVO)': [
       { icon: '⚠️', name: 'Allgemeine Gefahr', desc: 'Gefahr durch ein Hindernis oder eine unübersichtliche Stelle.' },
       { icon: '🚧', name: 'Baustelle', desc: 'Gefahr durch Bauarbeiten auf der Fahrbahn.' },
       { icon: '🦌', name: 'Wildwechsel', desc: 'Gefahr durch Tiere auf der Fahrbahn.' },
@@ -62,7 +246,7 @@
       { icon: '🚋', name: 'Straßenbahn', desc: 'Vorsicht, Straßenbahn kreuzt die Fahrbahn.' },
       { icon: '✈️', name: 'Flugzeug', desc: 'Tieffliegende Flugzeuge.' }
     ],
-    'Vorschriftzeichen': [
+    'Vorschriftzeichen (§ 41 StVO)': [
       { icon: '🛑', name: 'Halt! Vorfahrt gewähren', desc: 'Anhalten und Vorfahrt gewähren.' },
       { icon: '⬇️', name: 'Vorfahrt gewähren', desc: 'Andere Fahrzeuge durchlassen (Spitze unten).' },
       { icon: '🚫', name: 'Verbot der Einfahrt', desc: 'Keine Einfahrt in diese Straße.' },
@@ -74,7 +258,7 @@
       { icon: '🚗', name: 'Überholverbot', desc: 'Überholen für Kraftfahrzeuge verboten.' },
       { icon: '🅿️', name: 'Parkverbot', desc: 'Parken verboten (eingeschränktes Halteverbot).' }
     ],
-    'Richtzeichen': [
+    'Richtzeichen (§ 42 StVO)': [
       { icon: '⬆️', name: 'Vorfahrtstraße', desc: 'Die Straße hat Vorfahrt (gelbe Raute).' },
       { icon: '🅿️', name: 'Parkplatz', desc: 'Parken erlaubt.' },
       { icon: '⛽', name: 'Tankstelle', desc: 'Tankstelle in der Nähe.' },
@@ -85,16 +269,31 @@
       { icon: '🚦', name: 'Ampel', desc: 'Lichtzeichenanlage.' },
       { icon: '🛤️', name: 'Autobahnausfahrt', desc: 'Hier verlässt man die Autobahn.' },
       { icon: '🛣️', name: 'Bundesstraße', desc: 'Beginn einer Bundesstraße.' }
+    ],
+    'Verkehrseinrichtungen (§ 43 StVO)': [
+      { icon: '🚧', name: 'Absperrschranke', desc: 'Absperrung des Verkehrs.' },
+      { icon: '⛔', name: 'Sperrpfosten', desc: 'Durchfahrt verboten.' },
+      { icon: '🅿️', name: 'Parkuhr', desc: 'Kostenpflichtiges Parken.' },
+      { icon: '🚦', name: 'Ampel', desc: 'Lichtzeichenanlage.' },
+      { icon: '💡', name: 'Blinklicht', desc: 'Warnblinklicht.' }
     ]
   };
 
+  // ═══════════════════════════════════════════════════════
+  // 4. VIDEOS
+  // ═══════════════════════════════════════════════════════
   const VIDEOS = [
     { title: 'Grundlagen der Vorfahrt', dur: '12:30', cat: 'Grundwissen', desc: 'In diesem Video lernst du die grundlegenden Vorfahrtregeln: Rechts vor Links, Vorfahrtstraße und wie du dich an Kreuzungen verhältst.' },
     { title: 'Autobahn: Auffahrt & Rettungsgasse', dur: '08:45', cat: 'Autobahn', desc: 'Alles über das sichere Auffahren auf die Autobahn, das Bilden einer Rettungsgasse und das richtige Verhalten bei Stau.' },
     { title: 'Richtig Einparken (Längs & Quer)', dur: '15:20', cat: 'Praktisch', desc: 'Schritt-für-Schritt-Anleitung für das Längs- und Querparken. Mit Tipps für enge Parklücken und das richtige Lenken.' },
-    { title: 'Verhalten bei Panne & Unfall', dur: '10:15', cat: 'Grundwissen', desc: 'Was tun, wenn das Auto liegen bleibt? Warnblinker, Warndreieck, Warnweste und der Notruf 112.' }
+    { title: 'Verhalten bei Panne & Unfall', dur: '10:15', cat: 'Grundwissen', desc: 'Was tun, wenn das Auto liegen bleibt? Warnblinker, Warndreieck, Warnweste und der Notruf 112.' },
+    { title: 'Kreisverkehr meistern', dur: '05:30', cat: 'Praktisch', desc: 'So fährst du sicher in den Kreisverkehr ein und wieder heraus. Vorfahrt und Blinken richtig gemacht.' },
+    { title: 'Erste Hilfe am Unfallort', dur: '18:00', cat: 'Erste Hilfe', desc: 'Die wichtigsten Maßnahmen: Absichern, Notruf, stabile Seitenlage und Herzdruckmassage.' }
   ];
 
+  // ═══════════════════════════════════════════════════════
+  // 5. STATE
+  // ═══════════════════════════════════════════════════════
   let state = {
     lang: 'de',
     stats: { examsTaken: 0, examsPassed: 0, questionsAnswered: 0, correctAnswers: 0 },
@@ -102,7 +301,8 @@
     settings: { autoNext: false, soundFx: true, ttsEnabled: true },
     exam: null,
     learnIndex: 0,
-    learnList: []
+    learnList: [],
+    selectedClass: 'B'
   };
 
   let timerInterval = null;
@@ -132,20 +332,9 @@
 
   function t(key) { return (LANG[state.lang] && LANG[state.lang][key]) || LANG['de'][key] || key; }
 
-  function speakText(text) {
-    if (!state.settings.ttsEnabled) return;
-    if (!window.speechSynthesis) {
-      alert('Sprachausgabe wird von deinem Browser nicht unterstützt.');
-      return;
-    }
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    const langMap = { de: 'de-DE', en: 'en-US', tr: 'tr-TR', ar: 'ar-SA', es: 'es-ES', fr: 'fr-FR', ru: 'ru-RU', zh: 'zh-CN', ja: 'ja-JP', fa: 'fa-IR', uz: 'uz-UZ', pl: 'pl-PL' };
-    u.lang = langMap[state.lang] || 'de-DE';
-    u.rate = 0.9;
-    window.speechSynthesis.speak(u);
-  }
-
+  // ═══════════════════════════════════════════════════════
+  // 6. CSS
+  // ═══════════════════════════════════════════════════════
   function css() {
     return `<style>
       .fs-app { font-family: 'Inter', system-ui, sans-serif; color: #e8e8ec; background: #0a0a0f; height: 100%; display: flex; flex-direction: row; overflow: hidden; }
@@ -208,6 +397,10 @@
       .fs-toggle.on::after { transform: translateX(22px); }
     </style>`;
   }
+
+  // ═══════════════════════════════════════════════════════
+  // 7. RENDER FUNCTIONS
+  // ═══════════════════════════════════════════════════════
 
   function renderDashboard() {
     const pct = state.stats.examsTaken > 0 ? Math.round((state.stats.examsPassed / state.stats.examsTaken) * 100) : 0;
@@ -380,6 +573,16 @@
               <option value="de" ${state.lang === 'de' ? 'selected' : ''}>Deutsch</option>
               <option value="en" ${state.lang === 'en' ? 'selected' : ''}>English</option>
               <option value="tr" ${state.lang === 'tr' ? 'selected' : ''}>Türkçe</option>
+              <option value="ar" ${state.lang === 'ar' ? 'selected' : ''}>العربية</option>
+              <option value="ru" ${state.lang === 'ru' ? 'selected' : ''}>Русский</option>
+              <option value="pl" ${state.lang === 'pl' ? 'selected' : ''}>Polski</option>
+              <option value="ro" ${state.lang === 'ro' ? 'selected' : ''}>Română</option>
+              <option value="hr" ${state.lang === 'hr' ? 'selected' : ''}>Hrvatski</option>
+              <option value="pt" ${state.lang === 'pt' ? 'selected' : ''}>Português</option>
+              <option value="fr" ${state.lang === 'fr' ? 'selected' : ''}>Français</option>
+              <option value="el" ${state.lang === 'el' ? 'selected' : ''}>Ελληνικά</option>
+              <option value="es" ${state.lang === 'es' ? 'selected' : ''}>Español</option>
+              <option value="it" ${state.lang === 'it' ? 'selected' : ''}>Italiano</option>
             </select>
           </div>
 
@@ -480,7 +683,22 @@
     `;
   }
 
+  // ═══════════════════════════════════════════════════════
+  // 8. LOGIC
+  // ═══════════════════════════════════════════════════════
+
   function shuffle(array) { return [...array].sort(() => Math.random() - 0.5); }
+
+  function speakText(text) {
+    if (!state.settings.ttsEnabled) return;
+    if (!window.speechSynthesis) { alert('Sprachausgabe nicht unterstützt.'); return; }
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const langMap = { de: 'de-DE', en: 'en-US', tr: 'tr-TR', ar: 'ar-SA', ru: 'ru-RU', pl: 'pl-PL', ro: 'ro-RO', hr: 'hr-HR', pt: 'pt-PT', fr: 'fr-FR', el: 'el-GR', es: 'es-ES', it: 'it-IT' };
+    u.lang = langMap[state.lang] || 'de-DE';
+    u.rate = 0.9;
+    window.speechSynthesis.speak(u);
+  }
 
   function playSound(type) {
     if (!state.settings.soundFx) return;
@@ -772,5 +990,5 @@
   window.renderFahrschule = mount;
   window.openFahrschule = openOverlay;
 
-  console.log('🚦 fahrschule.js v' + VERSION + ' geladen — ULTIMATE GLOBAL (TTS)');
+  console.log('🚦 fahrschule.js v' + VERSION + ' geladen — ULTIMATE GLOBAL (Alle Klassen, 13 Sprachen, TTS)');
 })();
