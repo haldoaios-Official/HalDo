@@ -1,29 +1,28 @@
-/* HalDo Arztbuch v2000.5 — ULTIMATE HOLOGRAPHIC ANATOMY (16 Organe A-Z, Skeleton, Fixed Splash) */
-import * as THREE from 'three';
-
+/* HalDo Arztbuch v2000.6 — OS-FRIENDLY & REAL 3D ANATOMY (Sketchfab Embed) */
 (function () {
   'use strict';
 
-  const VERSION = '2000.5';
-  const STORAGE_KEY = 'haldo.arztbuch.data.v2000.5';
+  const VERSION = '2000.6';
+  const STORAGE_KEY = 'haldo.arztbuch.data.v2000.6';
 
   // ═══════════════════════════════════════════════════════
   // 1. MULTI-LANGUAGE ENGINE (24 Sprachen)
   // ═══════════════════════════════════════════════════════
   const LANG = {
-    de: { dashboard: 'Dashboard', anatomy: 'Anatomie 3D', diseases: 'Krankheiten', meds: 'Medikamente', natural: 'Naturheilkunde', labs: 'Laborwerte', hospitals: 'Kliniken', devices: 'IoT-Geräte', sicknotes: 'Krankschreibung', appointments: 'Termine', emergency: 'Notfall', settings: 'Einstellungen', lang: 'Sprache', ask_ai: 'KI fragen', speak: 'Vorlesen', search: 'Suchen...', close: 'Schließen', save: 'Speichern', delete: 'Löschen', first_aid: 'Erste Hilfe', call: 'Anrufen', no_results: 'Keine Ergebnisse gefunden.', ai_tools: 'KI Medizin-Assistent', correct: 'Korrigieren', formulate: 'Formulieren', detail: 'Detailieren', analyze: 'Analysieren', research: 'Recherchieren', listen: 'Vorlesen', connect: 'Verbinden', disconnect: 'Trennen', connected: 'Verbunden', not_connected: 'Nicht verbunden', connection: 'Verbindung', ai_thinking: 'Analysiere...', ai_result: 'Ergebnis:', ai_listen: 'Antwort vorlesen', reference: 'Referenzbereich', rotate_left: 'Links drehen', rotate_right: 'Rechts drehen', zoom_in: 'Reinzoomen', zoom_out: 'Rauszoomen', reset_view: 'Zurücksetzen', loading_3d: 'Lade Hologramm...', listen_device: 'Info vorlesen', organs_a_z: 'Organe A–Z', patient_name: 'Patientenname', diagnosis: 'Diagnose', from_date: 'Von (Datum)', to_date: 'Bis (Datum)', doctor: 'Arzt / Klinik', date_time: 'Datum & Uhrzeit', generate: 'Erstellen', no_data: 'Keine Daten vorhanden.', hotspot: 'Hotspot', ssid: 'Netzwerkname (SSID)', password: 'Passwort', generate_pass: 'Passwort generieren', hotspot_active: 'Hotspot Aktiv' },
-    en: { dashboard: 'Dashboard', anatomy: 'Anatomy 3D', diseases: 'Diseases', meds: 'Medications', natural: 'Naturopathy', labs: 'Lab Values', hospitals: 'Hospitals', devices: 'IoT Devices', sicknotes: 'Sick Notes', appointments: 'Appointments', emergency: 'Emergency', settings: 'Settings', lang: 'Language', ask_ai: 'Ask AI', speak: 'Speak', search: 'Search...', close: 'Close', save: 'Save', delete: 'Delete', first_aid: 'First Aid', call: 'Call', no_results: 'No results found.', ai_tools: 'AI Medical Assistant', correct: 'Correct', formulate: 'Formulate', detail: 'Detail', analyze: 'Analyze', research: 'Research', listen: 'Listen', connect: 'Connect', disconnect: 'Disconnect', connected: 'Connected', not_connected: 'Not connected', connection: 'Connection', ai_thinking: 'Analyzing...', ai_result: 'Result:', ai_listen: 'Listen to answer', reference: 'Reference range', rotate_left: 'Rotate Left', rotate_right: 'Rotate Right', zoom_in: 'Zoom In', zoom_out: 'Zoom Out', reset_view: 'Reset View', loading_3d: 'Loading Hologram...', listen_device: 'Read info', organs_a_z: 'Organs A-Z', patient_name: 'Patient Name', diagnosis: 'Diagnosis', from_date: 'From (Date)', to_date: 'To (Date)', doctor: 'Doctor / Clinic', date_time: 'Date & Time', generate: 'Generate', no_data: 'No data available.', hotspot: 'Hotspot', ssid: 'Network Name (SSID)', password: 'Password', generate_pass: 'Generate Password', hotspot_active: 'Hotspot Active' },
-    tr: { dashboard: 'Panel', anatomy: 'Anatomi 3D', diseases: 'Hastalıklar', meds: 'İlaçlar', natural: 'Doğal Tedavi', labs: 'Laboratuvar', hospitals: 'Hastaneler', devices: 'IoT Cihazları', sicknotes: 'Rapor', appointments: 'Randevular', emergency: 'Acil Durum', settings: 'Ayarlar', lang: 'Dil', ask_ai: 'Yapay Zekaya Sor', speak: 'Sesli Oku', search: 'Ara...', close: 'Kapat', save: 'Kaydet', delete: 'Sil', first_aid: 'İlk Yardım', call: 'Ara', no_results: 'Sonuç bulunamadı.', ai_tools: 'AI Tıbbi Asistan', correct: 'Düzelt', formulate: 'Formüle Et', detail: 'Detaylandır', analyze: 'Analiz Et', research: 'Araştır', listen: 'Dinle', connect: 'Bağlan', disconnect: 'Bağlantıyı Kes', connected: 'Bağlandı', not_connected: 'Bağlı Değil', connection: 'Bağlantı', ai_thinking: 'Analiz ediliyor...', ai_result: 'Sonuç:', ai_listen: 'Cevabı dinle', reference: 'Referans aralığı', rotate_left: 'Sola Döndür', rotate_right: 'Sağa Döndür', zoom_in: 'Yakınlaştır', zoom_out: 'Uzaklaştır', reset_view: 'Sıfırla', loading_3d: 'Hologram Yükleniyor...', listen_device: 'Bilgiyi dinle', organs_a_z: 'Organlar A-Z', patient_name: 'Hasta Adı', diagnosis: 'Teşhis', from_date: 'Başlangıç (Tarih)', to_date: 'Bitiş (Tarih)', doctor: 'Doktor / Klinik', date_time: 'Tarih & Saat', generate: 'Oluştur', no_data: 'Veri yok.', hotspot: 'Hotspot', ssid: 'Ağ Adı (SSID)', password: 'Şifre', generate_pass: 'Şifre Oluştur', hotspot_active: 'Hotspot Aktif' },
-    ku: { dashboard: 'Destpêk', anatomy: 'Anatomî 3D', diseases: 'Nexweşî', meds: 'Derman', natural: 'Dermana Xwezayî', labs: 'Nirxên Laboratuvarê', hospitals: 'Nexweşxane', devices: 'Amûrên IoT', sicknotes: 'Bêhnvedan', appointments: 'Hevdîtin', emergency: 'Lezgîn', settings: 'Mîheng', lang: 'Ziman', ask_ai: 'Ji AI bipirse', speak: 'Bixwîne', search: 'Lê bigere...', close: 'Bigre', save: 'Tomar bike', delete: 'Jê bibe', first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI', correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike', listen: 'Bixwîne', connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan', ai_thinking: 'Tê analîzkirin...', ai_result: 'Encam:', ai_listen: 'Bersivê bixwîne', reference: 'Qada referansê', rotate_left: 'Ber bi Çepê', rotate_right: 'Ber bi Rastê', zoom_in: 'Nêzîk bike', zoom_out: 'Dûr bike', reset_view: 'Vegerîne', loading_3d: 'Hologram tê barkirin...', listen_device: 'Agahdariyê bixwîne', organs_a_z: 'Organ A-Z', patient_name: 'Navê Nexweş', diagnosis: 'Teşhîs', from_date: 'Ji (Dîrok)', to_date: 'Heta (Dîrok)', doctor: 'Bijîşk / Nexweşxane', date_time: 'Dîrok & Dem', generate: 'Çêke', no_data: 'Agahdarî tune.', hotspot: 'Hotspot', ssid: 'Navê Torê (SSID)', password: 'Şîfre', generate_pass: 'Şîfreyê Çêke', hotspot_active: 'Hotspot Aktîf' }
+    de: { dashboard: 'Dashboard', anatomy: 'Anatomie 3D', diseases: 'Krankheiten', meds: 'Medikamente', natural: 'Naturheilkunde', labs: 'Laborwerte', hospitals: 'Kliniken', devices: 'IoT-Geräte', sicknotes: 'Krankschreibung', appointments: 'Termine', emergency: 'Notfall', settings: 'Einstellungen', lang: 'Sprache', ask_ai: 'KI fragen', speak: 'Vorlesen', search: 'Suchen...', close: 'Schließen', save: 'Speichern', delete: 'Löschen', first_aid: 'Erste Hilfe', call: 'Anrufen', no_results: 'Keine Ergebnisse gefunden.', ai_tools: 'KI Medizin-Assistent', correct: 'Korrigieren', formulate: 'Formulieren', detail: 'Detailieren', analyze: 'Analysieren', research: 'Recherchieren', listen: 'Vorlesen', connect: 'Verbinden', disconnect: 'Trennen', connected: 'Verbunden', not_connected: 'Nicht verbunden', connection: 'Verbindung', ai_thinking: 'Analysiere...', ai_result: 'Ergebnis:', ai_listen: 'Antwort vorlesen', reference: 'Referenzbereich', loading_3d: 'Lade echtes 3D-Modell...', listen_device: 'Info vorlesen', organs_a_z: 'Organe A–Z', patient_name: 'Patientenname', diagnosis: 'Diagnose', from_date: 'Von (Datum)', to_date: 'Bis (Datum)', doctor: 'Arzt / Klinik', date_time: 'Datum & Uhrzeit', generate: 'Erstellen', no_data: 'Keine Daten vorhanden.', hotspot: 'Hotspot', ssid: 'Netzwerkname (SSID)', password: 'Passwort', generate_pass: 'Passwort generieren', hotspot_active: 'Hotspot Aktiv', enter_app: 'App betreten' },
+    en: { dashboard: 'Dashboard', anatomy: 'Anatomy 3D', diseases: 'Diseases', meds: 'Medications', natural: 'Naturopathy', labs: 'Lab Values', hospitals: 'Hospitals', devices: 'IoT Devices', sicknotes: 'Sick Notes', appointments: 'Appointments', emergency: 'Emergency', settings: 'Settings', lang: 'Language', ask_ai: 'Ask AI', speak: 'Speak', search: 'Search...', close: 'Close', save: 'Save', delete: 'Delete', first_aid: 'First Aid', call: 'Call', no_results: 'No results found.', ai_tools: 'AI Medical Assistant', correct: 'Correct', formulate: 'Formulate', detail: 'Detail', analyze: 'Analyze', research: 'Research', listen: 'Listen', connect: 'Connect', disconnect: 'Disconnect', connected: 'Connected', not_connected: 'Not connected', connection: 'Connection', ai_thinking: 'Analyzing...', ai_result: 'Result:', ai_listen: 'Listen to answer', reference: 'Reference range', loading_3d: 'Loading real 3D model...', listen_device: 'Read info', organs_a_z: 'Organs A-Z', patient_name: 'Patient Name', diagnosis: 'Diagnosis', from_date: 'From (Date)', to_date: 'To (Date)', doctor: 'Doctor / Clinic', date_time: 'Date & Time', generate: 'Generate', no_data: 'No data available.', hotspot: 'Hotspot', ssid: 'Network Name (SSID)', password: 'Password', generate_pass: 'Generate Password', hotspot_active: 'Hotspot Active', enter_app: 'Enter App' },
+    tr: { dashboard: 'Panel', anatomy: 'Anatomi 3D', diseases: 'Hastalıklar', meds: 'İlaçlar', natural: 'Doğal Tedavi', labs: 'Laboratuvar', hospitals: 'Hastaneler', devices: 'IoT Cihazları', sicknotes: 'Rapor', appointments: 'Randevular', emergency: 'Acil Durum', settings: 'Ayarlar', lang: 'Dil', ask_ai: 'Yapay Zekaya Sor', speak: 'Sesli Oku', search: 'Ara...', close: 'Kapat', save: 'Kaydet', delete: 'Sil', first_aid: 'İlk Yardım', call: 'Ara', no_results: 'Sonuç bulunamadı.', ai_tools: 'AI Tıbbi Asistan', correct: 'Düzelt', formulate: 'Formüle Et', detail: 'Detaylandır', analyze: 'Analiz Et', research: 'Araştır', listen: 'Dinle', connect: 'Bağlan', disconnect: 'Bağlantıyı Kes', connected: 'Bağlandı', not_connected: 'Bağlı Değil', connection: 'Bağlantı', ai_thinking: 'Analiz ediliyor...', ai_result: 'Sonuç:', ai_listen: 'Cevabı dinle', reference: 'Referans aralığı', loading_3d: 'Gerçek 3D Model Yükleniyor...', listen_device: 'Bilgiyi dinle', organs_a_z: 'Organlar A-Z', patient_name: 'Hasta Adı', diagnosis: 'Teşhis', from_date: 'Başlangıç (Tarih)', to_date: 'Bitiş (Tarih)', doctor: 'Doktor / Klinik', date_time: 'Tarih & Saat', generate: 'Oluştur', no_data: 'Veri yok.', hotspot: 'Hotspot', ssid: 'Ağ Adı (SSID)', password: 'Şifre', generate_pass: 'Şifre Oluştur', hotspot_active: 'Hotspot Aktif', enter_app: 'Uygulamaya Gir' },
+    ku: { dashboard: 'Destpêk', anatomy: 'Anatomî 3D', diseases: 'Nexweşî', meds: 'Derman', natural: 'Dermana Xwezayî', labs: 'Nirxên Laboratuvarê', hospitals: 'Nexweşxane', devices: 'Amûrên IoT', sicknotes: 'Bêhnvedan', appointments: 'Hevdîtin', emergency: 'Lezgîn', settings: 'Mîheng', lang: 'Ziman', ask_ai: 'Ji AI bipirse', speak: 'Bixwîne', search: 'Lê bigere...', close: 'Bigre', save: 'Tomar bike', delete: 'Jê bibe', first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI', correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike', listen: 'Bixwîne', connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan', ai_thinking: 'Tê analîzkirin...', ai_result: 'Encam:', ai_listen: 'Bersivê bixwîne', reference: 'Qada referansê', loading_3d: 'Modela 3D a rastîn tê barkirin...', listen_device: 'Agahdariyê bixwîne', organs_a_z: 'Organ A-Z', patient_name: 'Navê Nexweş', diagnosis: 'Teşhîs', from_date: 'Ji (Dîrok)', to_date: 'Heta (Dîrok)', doctor: 'Bijîşk / Nexweşxane', date_time: 'Dîrok & Dem', generate: 'Çêke', no_data: 'Agahdarî tune.', hotspot: 'Hotspot', ssid: 'Navê Torê (SSID)', password: 'Şîfre', generate_pass: 'Şîfreyê Çêke', hotspot_active: 'Hotspot Aktîf', enter_app: 'Têkeve Appê' }
   };
 
   // ═══════════════════════════════════════════════════════
   // 2. WELCOME & THEMES
   // ═══════════════════════════════════════════════════════
   const WELCOME = {
-    de:{title:"Willkommen in",author:"von Halil Donma",footer:"HalDo Arztbuch a Halil Donma",enter:"Los geht's",ai:"HalDo AI präsentiert"},
-    en:{title:"Welcome to",author:"by Halil Donma",footer:"HalDo Arztbuch by Halil Donma",enter:"Let's Go",ai:"Presented by HalDo AI"},
-    tr:{title:"Hoşgeldiniz",author:"Halil Donma tarafından",footer:"HalDo Arztbuch - Halil Donma",enter:"Başla",ai:"HalDo AI tarafından"}
+    de:{title:"Willkommen in",author:"von Halil Donma",footer:"HalDo Arztbuch",enter:"Los geht's",ai:"HalDo AI präsentiert"},
+    en:{title:"Welcome to",author:"by Halil Donma",footer:"HalDo Arztbuch",enter:"Let's Go",ai:"Presented by HalDo AI"},
+    tr:{title:"Hoşgeldiniz",author:"Halil Donma tarafından",footer:"HalDo Arztbuch",enter:"Başla",ai:"HalDo AI tarafından"},
+    ku:{title:"Bi xêr hatî",author:"ji hêla Halîl Donma",footer:"HalDo Arztbuch",enter:"Dest pê bike",ai:"HalDo AI pêşkêş dike"}
   };
 
   const WELCOME_THEMES = {
@@ -83,7 +82,7 @@ import * as THREE from 'three';
   }
 
   // ═══════════════════════════════════════════════════════
-  // 3. DATENBANKEN (Vollausbau)
+  // 3. DATENBANKEN (A - Z Vollausbau)
   // ═══════════════════════════════════════════════════════
   const DISEASES = [
     { id: 'd1', name: 'Abszess', symp: 'Schmerzhafte, geschwollene, gerötete Stelle, Fieber', tr: 'Arzt aufsuchen, ggf. Eröffnung und Antibiotika.' },
@@ -165,9 +164,6 @@ import * as THREE from 'three';
 
   let currentTarget = null;
   let lastAIResponse = '';
-  let threeScene, threeCamera, threeRenderer, threeModel, threeAnimationId;
-  let heartMesh, lungLeft, lungRight, brainMesh, stomachMesh, liverMesh, kidneyLeft, kidneyRight;
-  let isAnimating3D = true;
 
   // ═══════════════════════════════════════════════════════
   // 4. CORE LOGIC
@@ -248,7 +244,8 @@ import * as THREE from 'three';
   // ═══════════════════════════════════════════════════════
   function css() {
     return `<style>
-      .ab-app{font-family:'Inter',system-ui,sans-serif;color:#e8e8ec;background:#0a0a0f;height:100%;display:flex;flex-direction:row;overflow:hidden;}
+      /* WICHTIG: Kein 'position: fixed' mehr! Wir bleiben im Container */
+      .ab-app{font-family:'Inter',system-ui,sans-serif;color:#e8e8ec;background:#0a0a0f;height:100%;width:100%;display:flex;flex-direction:row;overflow:hidden; position:absolute; top:0; left:0;}
       .ab-sidebar{width:260px;background:rgba(17,17,24,0.95);backdrop-filter:blur(24px);border-right:1px solid rgba(255,255,255,0.05);display:flex;flex-direction:column;padding:20px 0;flex-shrink:0;overflow-y:auto;}
       .ab-logo{font-size:20px;font-weight:900;color:#00e5ff;padding:0 20px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.05);margin-bottom:15px;}
       .ab-logo span{font-size:10px;background:rgba(0,229,255,0.1);padding:3px 6px;border-radius:4px;color:#00e5ff;}
@@ -256,7 +253,7 @@ import * as THREE from 'three';
       .ab-nav-item:hover{background:rgba(255,255,255,0.03);color:#fff;}
       .ab-nav-item.active{background:rgba(0,229,255,0.08);color:#00e5ff;border-left-color:#00e5ff;}
       .ab-nav-item .icon{font-size:18px;width:24px;text-align:center;}
-      .ab-main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;}
+      .ab-main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative; height:100%;}
       .ab-header{padding:20px 30px;background:rgba(10,10,15,0.8);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;z-index:10;}
       .ab-header h1{margin:0;font-size:22px;font-weight:900;color:#fff;}
       .ab-content-area{flex:1;overflow-y:auto;padding:30px;}
@@ -298,12 +295,13 @@ import * as THREE from 'three';
       .ab-toggle.on{background:#00e5ff;}
       .ab-toggle::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;background:#fff;border-radius:50%;transition:transform 0.2s;}
       .ab-toggle.on::after{transform:translateX(22px);}
-      .anatomy-3d-container{width:100%;height:550px;background:radial-gradient(circle at center, #111a2a 0%, #050810 100%);border-radius:16px;overflow:hidden;position:relative;cursor:grab;}
-      .anatomy-3d-container:active{cursor:grabbing;}
-      .anatomy-3d-controls{display:flex;gap:10px;margin-top:15px;justify-content:center;flex-wrap:wrap;}
+      
+      /* Anatomie Iframe Container */
+      .anatomy-container{width:100%;height:550px;background:#050810;border-radius:16px;overflow:hidden;position:relative; border: 1px solid rgba(0, 229, 255, 0.2);}
+      .anatomy-container iframe {width:100%; height:100%; border:none;}
 
-      /* FIXED Splash Animation CSS (Zentriert!) */
-      .splash-screen{position:fixed;inset:0;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:#000;}
+      /* Splash Animation CSS (jetzt relativ zum App-Fenster) */
+      .splash-screen{position:absolute;inset:0;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:#000;}
       .splash-stars{position:absolute;inset:0;background-image:radial-gradient(1px 1px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 40% 70%,#fff,transparent),radial-gradient(1.5px 1.5px at 60% 20%,#fff,transparent);animation:twinkle 4s infinite alternate;}
       @keyframes twinkle{from{opacity:.4}to{opacity:1}}
       .splash-sun-container{position:absolute;top:10%;z-index:2;animation:sunPulse 4s infinite;}
@@ -357,20 +355,19 @@ import * as THREE from 'three';
   }
 
   function renderAnatomy() {
+    // ECHTES 3D MODELL VON SKETCHFAB (IFRAME)
+    // Dieses Modell zeigt einen echten menschlichen Körper mit inneren Organen.
+    const sketchfabUrl = "https://sketchfab.com/models/59109b2d31944246a745b56819f5eb4c/embed?autospin=0.5&autostart=1&preload=1&transparent=1&ui_theme=dark&ui_infos=0&ui_watermark=0";
+    
     return `<div class="ab-content-inner">
       <div class="ab-card">
         <h2>🧍‍♂️ ${t('anatomy')}</h2>
-        <p style="color:#888;font-size:13px;margin-top:-8px;margin-bottom:15px;">🖱️ Organe direkt im 3D-Hologramm anklicken.</p>
-        <div class="anatomy-3d-container" id="anatomy-3d-container">
-          <div id="anatomy-3d-loading" style="display:flex;align-items:center;justify-content:center;height:100%;color:#00e5ff;font-size:18px;">${t('loading_3d')}</div>
+        <p style="color:#888;font-size:13px;margin-top:-8px;margin-bottom:15px;">Echte 3D-Anatomie. Ziehen zum Drehen, Scrollen zum Zoomen.</p>
+        
+        <div class="anatomy-container">
+           <iframe src="${sketchfabUrl}" allow="autoplay; fullscreen; xr-spatial-tracking" xr-spatial-tracking execution-while-out-of-viewport execution-while-not-rendered web-share></iframe>
         </div>
-        <div class="anatomy-3d-controls">
-          <button class="ab-btn" data-action="rotate-3d" data-dir="left">⬅️ ${t('rotate_left')}</button>
-          <button class="ab-btn" data-action="rotate-3d" data-dir="right">➡️ ${t('rotate_right')}</button>
-          <button class="ab-btn" data-action="zoom-3d" data-dir="in">🔍 ${t('zoom_in')}</button>
-          <button class="ab-btn" data-action="zoom-3d" data-dir="out">🔍 ${t('zoom_out')}</button>
-          <button class="ab-btn primary" data-action="reset-3d">🔄 ${t('reset_view')}</button>
-        </div>
+        
       </div>
       <div class="ab-card">
         <h2>🫀 ${t('organs_a_z')}</h2>
@@ -552,7 +549,7 @@ import * as THREE from 'three';
   }
 
   function renderMain() {
-    if (state.currentView === 'splash') return renderSplash();
+    if (state.currentView === 'splash') return css() + renderSplash();
 
     let viewHtml = '';
     if (state.currentView === 'dashboard') viewHtml = renderDashboard();
@@ -624,7 +621,7 @@ import * as THREE from 'three';
   }
 
   // ═══════════════════════════════════════════════════════
-  // 7. 3D HOLOGRAPHIC ANATOMY (16 Organs + Skeleton)
+  // 7. UTILS
   // ═══════════════════════════════════════════════════════
   function showOrganModal(organ, info, icon) {
     const modal = document.getElementById('ab-info-modal');
@@ -637,274 +634,6 @@ import * as THREE from 'three';
     modal.classList.add('show');
   }
 
-  function buildMedicalHologram() {
-    const group = new THREE.Group();
-    const organs = [];
-
-    // 1. Gläserner Körper (Hologramm)
-    const skinMat = new THREE.MeshPhysicalMaterial({
-      color: 0x00e5ff, transparent: true, opacity: 0.1, roughness: 0.1, metalness: 0.1, transmission: 0.8, thickness: 1.5, side: THREE.DoubleSide
-    });
-
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 32, 32), skinMat);
-    head.position.y = 2.2; group.add(head);
-    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.3, 16), skinMat);
-    neck.position.y = 1.85; group.add(neck);
-    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.45, 0.9, 16, 32), skinMat);
-    torso.position.y = 1.1; group.add(torso);
-    
-    [-1, 1].forEach(side => {
-      const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.9, 8, 16), skinMat);
-      arm.position.set(side * 0.6, 1.1, 0);
-      arm.rotation.z = side * Math.PI / 8;
-      group.add(arm);
-      const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 1.1, 8, 16), skinMat);
-      leg.position.set(side * 0.2, -0.1, 0);
-      group.add(leg);
-    });
-
-    // 2. Skelett (Wirbelsäule & Rippen) - gibt den "Medical" Look
-    const boneMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.8, transparent: true, opacity: 0.6 });
-    for (let i = 0; i < 12; i++) {
-      const spine = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.08, 8), boneMat);
-      spine.position.set(0, 1.6 - (i * 0.1), -0.2); group.add(spine);
-    }
-    for (let i = 0; i < 6; i++) { // Rippen
-      const rib = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.02, 8, 32, Math.PI), boneMat);
-      rib.position.set(0, 1.5 - (i * 0.12), -0.05);
-      rib.rotation.x = Math.PI / 2;
-      rib.rotation.y = Math.PI / 2;
-      group.add(rib);
-    }
-
-    // Hilfsfunktion für Organe
-    function addOrgan(mesh, name, info, icon) {
-      mesh.userData = { organ: name, info: info, icon: icon };
-      group.add(mesh);
-      organs.push(mesh);
-    }
-
-    // 3. Organe (16 Stück)
-    
-    // Gehirn
-    brainMesh = new THREE.Mesh(new THREE.SphereGeometry(0.25, 32, 32), new THREE.MeshStandardMaterial({ color: 0xffb3c8, roughness: 0.7 }));
-    brainMesh.scale.set(1, 0.9, 1.1); brainMesh.position.y = 2.25;
-    addOrgan(brainMesh, 'Gehirn', 'Zentrale des Nervensystems. Großhirn, Kleinhirn, Hirnstamm.', '🧠');
-
-    // Schilddrüse
-    const thyroid = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 16), new THREE.MeshStandardMaterial({ color: 0xff6b9d, roughness: 0.5 }));
-    thyroid.scale.set(1.5, 1, 0.8); thyroid.position.set(0, 1.85, 0.1);
-    addOrgan(thyroid, 'Schilddrüse', 'Produziert Hormone (T3, T4) für den Stoffwechsel.', '🦋');
-
-    // Lunge (Links & Rechts)
-    const lungMat = new THREE.MeshStandardMaterial({ color: 0xff8888, roughness: 0.6, transparent: true, opacity: 0.8 });
-    lungLeft = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.4, 8, 16), lungMat);
-    lungLeft.position.set(-0.2, 1.4, 0.05); lungLeft.scale.set(1, 1, 0.8);
-    addOrgan(lungLeft, 'Lunge (links)', 'Atmungsorgan. Nimmt Sauerstoff auf.', '🫁');
-    lungRight = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.45, 8, 16), lungMat);
-    lungRight.position.set(0.2, 1.4, 0.05); lungRight.scale.set(1, 1, 0.8);
-    addOrgan(lungRight, 'Lunge (rechts)', 'Atmungsorgan. Nimmt Sauerstoff auf.', '🫁');
-
-    // Herz
-    const heartGroup = new THREE.Group();
-    const heartBody = new THREE.Mesh(new THREE.SphereGeometry(0.15, 24, 24), new THREE.MeshStandardMaterial({ color: 0xcc0000, roughness: 0.3 }));
-    heartBody.scale.set(1, 1.2, 0.9);
-    heartGroup.add(heartBody);
-    const heartTip = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.15, 16), new THREE.MeshStandardMaterial({ color: 0xaa0000 }));
-    heartTip.position.y = -0.15; heartTip.rotation.x = Math.PI; heartGroup.add(heartTip);
-    heartGroup.position.set(-0.05, 1.15, 0.15);
-    heartGroup.userData = { organ: 'Herz', info: 'Muskelpumpe, die Blut durch den Körper pumpt. 4 Kammern.', icon: '🫀' };
-    group.add(heartGroup); organs.push(heartGroup); heartMesh = heartGroup;
-
-    // Leber
-    liverMesh = new THREE.Mesh(new THREE.SphereGeometry(0.25, 20, 20), new THREE.MeshStandardMaterial({ color: 0x8b3a1a, roughness: 0.8 }));
-    liverMesh.scale.set(1.5, 0.6, 1); liverMesh.position.set(0.2, 0.9, 0.1);
-    addOrgan(liverMesh, 'Leber', 'Größtes inneres Organ. Entgiftet Blut, produziert Galle.', '🟤');
-
-    // Gallenblase
-    const gall = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 16), new THREE.MeshStandardMaterial({ color: 0x2e8b2e }));
-    gall.scale.set(1, 1.5, 1); gall.position.set(0.1, 0.75, 0.15);
-    addOrgan(gall, 'Gallenblase', 'Speichert Galle für die Fettverdauung.', '🟢');
-
-    // Magen
-    stomachMesh = new THREE.Mesh(new THREE.SphereGeometry(0.18, 20, 20), new THREE.MeshStandardMaterial({ color: 0xe8a878, roughness: 0.7 }));
-    stomachMesh.scale.set(1, 1.2, 0.8); stomachMesh.position.set(-0.2, 0.8, 0.1);
-    addOrgan(stomachMesh, 'Magen', 'Zerkleinert Nahrung mit Magensäure.', '🫃');
-
-    // Bauchspeicheldrüse
-    const pankreas = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, 0.25, 8, 16), new THREE.MeshStandardMaterial({ color: 0xffd966 }));
-    pankreas.rotation.z = Math.PI / 2; pankreas.position.set(0, 0.6, 0);
-    addOrgan(pankreas, 'Pankreas', 'Produziert Insulin und Verdauungsenzyme.', '🟡');
-
-    // Milz
-    const spleen = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), new THREE.MeshStandardMaterial({ color: 0x6a1b9a }));
-    spleen.scale.set(1, 1.5, 0.8); spleen.position.set(-0.3, 0.9, -0.05);
-    addOrgan(spleen, 'Milz', 'Blutfilter und Immunorgan.', '🟣');
-
-    // Nieren
-    const kidneyMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.5 });
-    kidneyLeft = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), kidneyMat);
-    kidneyLeft.scale.set(0.8, 1.4, 1); kidneyLeft.position.set(-0.2, 0.65, -0.15);
-    addOrgan(kidneyLeft, 'Niere (links)', 'Filtert Blut, bildet Urin.', '🫘');
-    kidneyRight = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), kidneyMat);
-    kidneyRight.scale.set(0.8, 1.4, 1); kidneyRight.position.set(0.2, 0.65, -0.15);
-    addOrgan(kidneyRight, 'Niere (rechts)', 'Filtert Blut, bildet Urin.', '🫘');
-
-    // Darm (Dünndarm)
-    const intestines = new THREE.Mesh(new THREE.TorusKnotGeometry(0.15, 0.05, 64, 8), new THREE.MeshStandardMaterial({ color: 0xf5b8b8, roughness: 0.8 }));
-    intestines.position.set(0, 0.4, 0.1); intestines.scale.set(1.2, 0.8, 0.6);
-    addOrgan(intestines, 'Darm', 'Dünndarm (Nährstoffe) und Dickdarm (Wasser).', '🌀');
-
-    // Dickdarm (Rahmen um Dünndarm)
-    const colon = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.06, 16, 32), new THREE.MeshStandardMaterial({ color: 0xdda0a0 }));
-    colon.position.set(0, 0.4, 0.05); colon.scale.set(1, 1.2, 0.7);
-    addOrgan(colon, 'Dickdarm', 'Entzieht Wasser, bildet Stuhl.', '🌀');
-
-    // Harnblase
-    const bladder = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), new THREE.MeshStandardMaterial({ color: 0xffd700, transparent: true, opacity: 0.8 }));
-    bladder.scale.set(1, 0.8, 1); bladder.position.set(0, 0.1, 0.1);
-    addOrgan(bladder, 'Harnblase', 'Sammelt Urin.', '💧');
-
-    // Anhang (Appendix)
-    const appendix = new THREE.Mesh(new THREE.CapsuleGeometry(0.02, 0.08, 8, 8), new THREE.MeshStandardMaterial({ color: 0xffaaaa }));
-    appendix.position.set(0.15, 0.2, 0.1); appendix.rotation.z = Math.PI / 4;
-    addOrgan(appendix, 'Blinddarm (Appendix)', 'Kann sich entzünden (Appendizitis).', '🪱');
-
-    // Lymphknoten
-    const lymph = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), new THREE.MeshStandardMaterial({ color: 0x88ff88 }));
-    lymph.position.set(-0.3, 1.6, 0.1);
-    addOrgan(lymph, 'Lymphknoten', 'Teil des Immunsystems.', '🟢');
-
-    return { group, organs };
-  }
-
-  function init3DAnatomy() {
-    const container = document.getElementById('anatomy-3d-container');
-    if (!container) return;
-
-    const loading = document.getElementById('anatomy-3d-loading');
-    if (loading) loading.style.display = 'none';
-
-    if (threeRenderer) {
-      if (threeRenderer.domElement.parentNode) threeRenderer.domElement.parentNode.removeChild(threeRenderer.domElement);
-      threeRenderer.dispose();
-      threeRenderer = null;
-    }
-    if (threeAnimationId) { cancelAnimationFrame(threeAnimationId); threeAnimationId = null; }
-    isAnimating3D = true;
-
-    threeScene = new THREE.Scene();
-    // Kein Hintergrund, damit der CSS-Radial-Gradient durchscheint
-    
-    const w = container.clientWidth || 600;
-    const h = container.clientHeight || 500;
-    threeCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
-    threeCamera.position.set(0, 1.2, 5);
-
-    threeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    threeRenderer.setSize(w, h);
-    threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    container.appendChild(threeRenderer.domElement);
-
-    // Medical Hologram Lighting
-    threeScene.add(new THREE.AmbientLight(0xffffff, 0.6));
-    const dir = new THREE.DirectionalLight(0x00e5ff, 1.5); // Cyan Licht
-    dir.position.set(2, 3, 2);
-    threeScene.add(dir);
-    const rim = new THREE.DirectionalLight(0xb478ff, 1.0); // Purple Rim Light
-    rim.position.set(-2, 1, -2);
-    threeScene.add(rim);
-
-    const { group, organs } = buildMedicalHologram();
-    threeModel = group;
-    threeModel.position.y = -1.2; // Zentrieren
-    threeScene.add(threeModel);
-
-    const organList = organs;
-
-    function startAnimation() {
-      const clock = new THREE.Clock();
-      function tick() {
-        threeAnimationId = requestAnimationFrame(tick);
-        if (!isAnimating3D) return;
-        
-        const dt = clock.getDelta();
-        const time = clock.getElapsedTime();
-
-        if (threeModel) threeModel.rotation.y += dt * 0.15;
-
-        // Lebendige Animationen
-        if (heartMesh) {
-          const beat = 1 + Math.sin(time * 6) * 0.08; // Pulsieren
-          heartMesh.scale.set(beat, beat * 1.2, beat * 0.9);
-        }
-        if (lungLeft && lungRight) {
-          const breath = 1 + Math.sin(time * 2) * 0.05; // Atmen
-          lungLeft.scale.set(1, breath, 0.8);
-          lungRight.scale.set(1, breath, 0.8);
-        }
-        if (stomachMesh) {
-          stomachMesh.rotation.z = Math.sin(time * 1.5) * 0.05; // Magen bewegt sich leicht
-        }
-
-        if (threeRenderer && threeScene && threeCamera) {
-          threeRenderer.render(threeScene, threeCamera);
-        }
-      }
-      tick();
-    }
-    startAnimation();
-
-    // Raycasting für Klick & Hover
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-    const canvas = threeRenderer.domElement;
-    let hoveredOrgan = null;
-
-    function hitTest(event) {
-      if (organList.length === 0) return null;
-      const rect = canvas.getBoundingClientRect();
-      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(mouse, threeCamera);
-      const hits = raycaster.intersectObjects(organList, true);
-      if (hits.length === 0) return null;
-      let obj = hits[0].object;
-      while (obj && !obj.userData.organ) obj = obj.parent;
-      return obj && obj.userData.organ ? obj : null;
-    }
-
-    canvas.addEventListener('mousemove', function (ev) {
-      const organ = hitTest(ev);
-      if (hoveredOrgan !== organ) {
-        if (hoveredOrgan && hoveredOrgan.traverse) {
-          hoveredOrgan.traverse(child => { if (child.material && child.material.emissive) child.material.emissive.setHex(0x000000); });
-        }
-        hoveredOrgan = organ;
-        if (hoveredOrgan && hoveredOrgan.traverse) {
-          canvas.style.cursor = 'pointer';
-          hoveredOrgan.traverse(child => { if (child.material && child.material.emissive) child.material.emissive.setHex(0x444444); });
-        } else {
-          canvas.style.cursor = 'grab';
-        }
-      }
-    });
-
-    canvas.addEventListener('click', function (ev) {
-      const organ = hitTest(ev);
-      if (organ) showOrganModal(organ.userData.organ, organ.userData.info, organ.userData.icon);
-    });
-
-    window.addEventListener('resize', function () {
-      if (!threeCamera || !threeRenderer || !container) return;
-      const nw = container.clientWidth || 600;
-      const nh = container.clientHeight || 500;
-      threeCamera.aspect = nw / nh;
-      threeCamera.updateProjectionMatrix();
-      threeRenderer.setSize(nw, nh);
-    });
-  }
-
   // ═══════════════════════════════════════════════════════
   // 8. EVENT HANDLERS
   // ═══════════════════════════════════════════════════════
@@ -915,7 +644,7 @@ import * as THREE from 'three';
 
     if (action === 'enter-app') { state.currentView = 'dashboard'; updateView(); return; }
 
-    if (action === 'view-anatomy') { state.currentView = 'anatomy'; updateView(); setTimeout(init3DAnatomy, 100); return; }
+    if (action === 'view-anatomy') { state.currentView = 'anatomy'; updateView(); return; }
     if (action === 'view-dashboard') { state.currentView = 'dashboard'; updateView(); return; }
     if (action === 'view-ki-tools') { state.currentView = 'ki-tools'; updateView(); return; }
     if (action === 'view-diseases') { state.currentView = 'diseases'; updateView(); return; }
@@ -928,10 +657,6 @@ import * as THREE from 'three';
     if (action === 'view-appointments') { state.currentView = 'appointments'; updateView(); return; }
     if (action === 'view-emergency') { state.currentView = 'emergency'; updateView(); return; }
     if (action === 'view-settings') { state.currentView = 'settings'; updateView(); return; }
-
-    if (action === 'rotate-3d' && threeModel) { const dir = btn.dataset.dir; threeModel.rotation.y += (dir === 'left' ? -0.2 : 0.2); return; }
-    if (action === 'zoom-3d' && threeCamera) { const dir = btn.dataset.dir; if (dir === 'in') threeCamera.position.z -= 0.5; else threeCamera.position.z += 0.5; return; }
-    if (action === 'reset-3d' && threeModel && threeCamera) { threeModel.rotation.y = 0; threeCamera.position.set(0, 1.2, 5); return; }
 
     if (action === 'ki-action') {
       const type = btn.dataset.type;
@@ -1027,7 +752,7 @@ import * as THREE from 'three';
     if (!currentTarget) return;
     
     if (state.currentView === 'splash') {
-       currentTarget.innerHTML = renderSplash();
+       currentTarget.innerHTML = renderMain();
        return;
     }
 
@@ -1035,7 +760,7 @@ import * as THREE from 'three';
     
     if (main) {
       if (state.currentView === 'dashboard') main.innerHTML = renderDashboard();
-      else if (state.currentView === 'anatomy') { main.innerHTML = renderAnatomy(); setTimeout(init3DAnatomy, 50); }
+      else if (state.currentView === 'anatomy') main.innerHTML = renderAnatomy();
       else if (state.currentView === 'ki-tools') main.innerHTML = renderKITools();
       else if (state.currentView === 'diseases') main.innerHTML = renderDiseases();
       else if (state.currentView === 'meds') main.innerHTML = renderMeds();
@@ -1084,7 +809,6 @@ import * as THREE from 'three';
       currentTarget.addEventListener('click', handleClick);
       currentTarget.addEventListener('input', handleInput);
       currentTarget.addEventListener('change', handleChange);
-      if (state.currentView === 'anatomy') setTimeout(init3DAnatomy, 100);
     }
   }
 
@@ -1098,8 +822,10 @@ import * as THREE from 'three';
     }, 200);
 
     const overlay = document.createElement('div');
+    // WICHTIG: z-index ist niedriger, damit dein OS-Fenstersystem darüber liegt.
+    // Wenn die App im OS geöffnet wird, ist das hier nur der Fallback.
     overlay.className = 'ab-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0a0f;display:flex;flex-direction:column;';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#0a0a0f;display:flex;flex-direction:column;';
     
     const closeBar = document.createElement('div');
     closeBar.style.cssText = 'padding:10px 16px;background:#111;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;';
@@ -1107,15 +833,13 @@ import * as THREE from 'three';
     overlay.appendChild(closeBar);
     
     const mountDiv = document.createElement('div');
-    mountDiv.style.cssText = 'flex:1;overflow:hidden;';
+    mountDiv.style.cssText = 'flex:1;position:relative;overflow:hidden;';
     overlay.appendChild(mountDiv);
     document.body.appendChild(overlay);
     
     document.getElementById('ab-close-btn').onclick = () => { 
       overlay.remove(); 
       currentTarget = null; 
-      state.currentView = 'dashboard'; 
-      if(threeAnimationId) cancelAnimationFrame(threeAnimationId); 
     };
     mount(mountDiv);
   }
@@ -1128,5 +852,5 @@ import * as THREE from 'three';
   window.renderArztbuch = mount;
   window.openArztbuch = openOverlay;
 
-  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — ULTIMATE HOLOGRAPHIC ANATOMY');
+  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — OS-FRIENDLY & REAL 3D ANATOMY');
 })();
