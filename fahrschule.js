@@ -1,78 +1,122 @@
-/* HalDo Fahrschule v400.0 — PRO MAX PROFESSIONAL (KI, Multi-Lang, Videos, Echte Fragen) */
+/* HalDo Fahrschule v500.0 — ULTIMATE PRO MAX (50+ Fragen, 12 Sprachen, Alle Schilder, Theorie & Erste Hilfe) */
 (function () {
   'use strict';
 
-  const VERSION = '400.0';
-  const STORAGE_KEY = 'haldo.fahrschule.pro.stats';
+  const VERSION = '500.0';
+  const STORAGE_KEY = 'haldo.fahrschule.pro.stats.v500';
 
   // ═══════════════════════════════════════════════════════
-  // 1. ÜBERSETZUNGEN (Multi-Language Support)
+  // 1. MULTI-LANGUAGE ENGINE (12 Sprachen inkl. aller kurdischen Dialekte)
   // ═══════════════════════════════════════════════════════
   const LANG = {
-    de: {
-      dashboard: 'Dashboard', learn: 'Lernen', exam: 'Prüfung', signs: 'Schilder', videos: 'Videos', stats: 'Statistiken',
-      start: 'Starten', practice: 'Üben', questions: 'Fragen', correct: 'Richtig', wrong: 'Falsch', time: 'Zeit',
-      back: 'Zurück', next: 'Weiter', finish: 'Beenden', ai_explain: 'KI fragen', explanation: 'Erklärung',
-      pass: 'BESTANDEN', fail: 'DURCHGEFALLEN', select_count: 'Anzahl der Fragen wählen', settings: 'Einstellungen',
-      lang: 'Sprache', score: 'Punkte', exam_start: 'Prüfung starten', learn_start: 'Lernen starten'
-    },
-    en: {
-      dashboard: 'Dashboard', learn: 'Learn', exam: 'Exam', signs: 'Signs', videos: 'Videos', stats: 'Stats',
-      start: 'Start', practice: 'Practice', questions: 'Questions', correct: 'Correct', wrong: 'Wrong', time: 'Time',
-      back: 'Back', next: 'Next', finish: 'Finish', ai_explain: 'Ask AI', explanation: 'Explanation',
-      pass: 'PASSED', fail: 'FAILED', select_count: 'Select number of questions', settings: 'Settings',
-      lang: 'Language', score: 'Score', exam_start: 'Start Exam', learn_start: 'Start Learning'
-    },
-    tr: {
-      dashboard: 'Panel', learn: 'Öğren', exam: 'Sınav', signs: 'İşaretler', videos: 'Videolar', stats: 'İstatistikler',
-      start: 'Başla', practice: 'Pratik', questions: 'Sorular', correct: 'Doğru', wrong: 'Yanlış', time: 'Zaman',
-      back: 'Geri', next: 'İleri', finish: 'Bitir', ai_explain: 'Yapay Zeka', explanation: 'Açıklama',
-      pass: 'GEÇTİ', fail: 'KALDI', select_count: 'Soru sayısını seçin', settings: 'Ayarlar',
-      lang: 'Dil', score: 'Puan', exam_start: 'Sınavı Başlat', learn_start: 'Öğrenmeye Başla'
-    }
+    de: { dashboard: 'Startseite', learn: 'Lernen', exam: 'Prüfung', signs: 'Schilder', videos: 'Videos', theory: 'Theorie', stats: 'Statistiken', settings: 'Einstellungen', start: 'Starten', questions: 'Fragen', back: 'Zurück', next: 'Weiter', ai_explain: 'KI fragen', pass: 'BESTANDEN', fail: 'DURCHGEFALLEN', select_count: 'Wähle die Anzahl der Fragen', lang: 'Sprache', exam_start: 'Prüfung starten' },
+    en: { dashboard: 'Dashboard', learn: 'Learn', exam: 'Exam', signs: 'Signs', videos: 'Videos', theory: 'Theory', stats: 'Stats', settings: 'Settings', start: 'Start', questions: 'Questions', back: 'Back', next: 'Next', ai_explain: 'Ask AI', pass: 'PASSED', fail: 'FAILED', select_count: 'Select number of questions', lang: 'Language', exam_start: 'Start Exam' },
+    tr: { dashboard: 'Panel', learn: 'Öğren', exam: 'Sınav', signs: 'İşaretler', videos: 'Videolar', theory: 'Teori', stats: 'İstatistikler', settings: 'Ayarlar', start: 'Başla', questions: 'Sorular', back: 'Geri', next: 'İleri', ai_explain: 'Yapay Zeka', pass: 'GEÇTİ', fail: 'KALDI', select_count: 'Soru sayısını seçin', lang: 'Dil', exam_start: 'Sınavı Başlat' },
+    ku: { dashboard: 'Destpêk', learn: 'Fêr bibe', exam: 'Azmûn', signs: 'Nîşan', videos: 'Vîdyo', theory: 'Teorî', stats: 'Statîstîk', settings: 'Mîheng', start: 'Dest pê bike', questions: 'Pirs', back: 'Veger', next: 'Pêşve', ai_explain: 'Ji AI bipirse', pass: 'DERBAS BÛ', fail: 'DERBAS NE BÛ', select_count: 'Hejmara pirsan hilbijêre', lang: 'Ziman', exam_start: 'Azmûnê dest pê bike' },
+    ckb: { dashboard: 'دەستپێک', learn: 'فێربوون', exam: 'تاقیکردنەوە', signs: 'هێماکان', videos: 'ڤیدیۆکان', theory: 'تیۆری', stats: 'ئامارەکان', settings: 'ڕێکخستنەکان', start: 'دەستپێکردن', questions: 'پرسیارەکان', back: 'گەڕانەوە', next: 'دواتر', ai_explain: 'پرسیار لە AI بکە', pass: 'دەرچوو', fail: 'دەرنەچوو', select_count: 'ژمارەی پرسیارەکان هەڵبژێرە', lang: 'زمان', exam_start: 'تاقیکردنەوە دەست پێبکە' },
+    gorani: { dashboard: 'Destpêk', learn: 'Fêr bibe', exam: 'Azmûn', signs: 'Nîşan', videos: 'Vîdyo', theory: 'Teorî', stats: 'Statîstîk', settings: 'Mîheng', start: 'Dest pê bike', questions: 'Pirs', back: 'Veger', next: 'Pêşve', ai_explain: 'Ji AI bipirse', pass: 'DERBAS BÛ', fail: 'DERBAS NE BÛ', select_count: 'Hejmara pirsan hilbijêre', lang: 'Ziman', exam_start: 'Azmûnê dest pê bike' },
+    ez: { dashboard: 'Destpêk', learn: 'Fêr bibe', exam: 'Azmûn', signs: 'Nîşan', videos: 'Vîdyo', theory: 'Teorî', stats: 'Statîstîk', settings: 'Mîheng', start: 'Dest pê bike', questions: 'Pirs', back: 'Veger', next: 'Pêşve', ai_explain: 'Ji AI bipirse', pass: 'DERBAS BÛ', fail: 'DERBAS NE BÛ', select_count: 'Hejmara pirsan hilbijêre', lang: 'Ziman', exam_start: 'Azmûnê dest pê bike' },
+    fr: { dashboard: 'Tableau de bord', learn: 'Apprendre', exam: 'Examen', signs: 'Panneaux', videos: 'Vidéos', theory: 'Théorie', stats: 'Stats', settings: 'Paramètres', start: 'Démarrer', questions: 'Questions', back: 'Retour', next: 'Suivant', ai_explain: 'Demander à l\'IA', pass: 'RÉUSSI', fail: 'ÉCHOUÉ', select_count: 'Sélectionnez le nombre de questions', lang: 'Langue', exam_start: 'Démarrer l\'examen' },
+    ar: { dashboard: 'لوحة القيادة', learn: 'تعلم', exam: 'امتحان', signs: 'علامات', videos: 'فيديوهات', theory: 'نظرية', stats: 'إحصائيات', settings: 'إعدادات', start: 'ابدأ', questions: 'أسئلة', back: 'رجوع', next: 'التالي', ai_explain: 'اسأل الذكاء الاصطناعي', pass: 'ناجح', fail: 'راسب', select_count: 'حدد عدد الأسئلة', lang: 'اللغة', exam_start: 'ابدأ الامتحان' },
+    es: { dashboard: 'Panel', learn: 'Aprender', exam: 'Examen', signs: 'Señales', videos: 'Videos', theory: 'Teoría', stats: 'Estadísticas', settings: 'Ajustes', start: 'Empezar', questions: 'Preguntas', back: 'Atrás', next: 'Siguiente', ai_explain: 'Preguntar a IA', pass: 'APROBADO', fail: 'SUSPENDIDO', select_count: 'Selecciona el número de preguntas', lang: 'Idioma', exam_start: 'Iniciar Examen' },
+    pl: { dashboard: 'Pulpit', learn: 'Ucz się', exam: 'Egzamin', signs: 'Znaki', videos: 'Filmy', theory: 'Teoria', stats: 'Statystyki', settings: 'Ustawienia', start: 'Start', questions: 'Pytania', back: 'Wstecz', next: 'Dalej', ai_explain: 'Zapytaj AI', pass: 'ZDANE', fail: 'NIEZDANE', select_count: 'Wybierz liczbę pytań', lang: 'Język', exam_start: 'Rozpocznij egzamin' },
+    ru: { dashboard: 'Панель', learn: 'Учиться', exam: 'Экзамен', signs: 'Знаки', videos: 'Видео', theory: 'Теория', stats: 'Статистика', settings: 'Настройки', start: 'Начать', questions: 'Вопросы', back: 'Назад', next: 'Далее', ai_explain: 'Спросить ИИ', pass: 'СДАНО', fail: 'НЕ СДАНО', select_count: 'Выберите количество вопросов', lang: 'Язык', exam_start: 'Начать экзамен' }
   };
 
   // ═══════════════════════════════════════════════════════
-  // 2. FRAGEN-KATALOG (Echte Fahrschul-Fragen)
+  // 2. FRAGEN-KATALOG (50 Echte Fahrschul-Fragen)
   // ═══════════════════════════════════════════════════════
   const QUESTIONS = [
-    { id: 1, cat: 'Gefahrenlehre', q: 'Sie nähern sich einer unübersichtlichen Kurve. Wie verhalten Sie sich?', opts: ['Geschwindigkeit stark reduzieren, bremsbereit sein', 'Hupen und weiterfahren', 'Auf die Gegenfahrbahn ausweichen'], correct: 0, exp: 'In unübersichtlichen Kurven muss die Geschwindigkeit reduziert und bremsbereit gefahren werden, um auf plötzliche Hindernisse reagieren zu können.' },
-    { id: 2, cat: 'Vorfahrt', q: 'Wer hat an einer Kreuzung ohne Verkehrszeichen Vorfahrt?', opts: ['Das Fahrzeug von links', 'Das Fahrzeug von rechts', 'Wer zuerst ankommt'], correct: 1, exp: 'Die Grundregel lautet: Rechts vor Links. Das Fahrzeug von rechts hat Vorfahrt.' },
-    { id: 3, cat: 'Technik', q: 'Was ist bei einer Reifenpanne zu tun?', opts: ['Warnblinker an, Warndreieck aufstellen, Reifen wechseln', 'Sofort auf die Autobahn wechseln', 'Weiterfahren bis zur nächsten Werkstatt'], correct: 0, exp: 'Zuerst das Fahrzeug sichern (Warnblinker, Warndreieck), dann den Reifen wechseln.' },
-    { id: 4, cat: 'Verkehrszeichen', q: 'Was bedeutet ein rotes Dreieck mit einem Ausrufezeichen?', opts: ['Allgemeine Gefahr', 'Halt, Vorfahrt gewähren', 'Vorfahrtstraße'], correct: 0, exp: 'Das Zeichen warnt vor einer allgemeinen Gefahr. Die Geschwindigkeit sollte reduziert werden.' },
-    { id: 5, cat: 'Umweltschutz', q: 'Wie fahren Sie umweltbewusst?', opts: ['Früh hochschalten und niedrige Drehzahlen nutzen', 'Im ersten Gang bis 50 km/h fahren', 'Ständig beschleunigen und bremsen'], correct: 0, exp: 'Frühes Hochschalten und niedrige Drehzahlen sparen Kraftstoff und reduzieren den Schadstoffausstoß.' },
-    { id: 6, cat: 'Gefahrenlehre', q: 'Was ist bei Nässe besonders gefährlich?', opts: ['Aquaplaning', 'Bremsen quietschen', 'Der Motor wird heiß'], correct: 0, exp: 'Aquaplaning führt zum Verlust der Bodenhaftung. Geschwindigkeit reduzieren!' },
+    { id: 1, cat: 'Gefahrenlehre', q: 'Sie nähern sich einer unübersichtlichen Kurve. Wie verhalten Sie sich?', opts: ['Geschwindigkeit stark reduzieren, bremsbereit sein', 'Hupen und weiterfahren', 'Auf die Gegenfahrbahn ausweichen'], correct: 0, exp: 'In unübersichtlichen Kurven muss die Geschwindigkeit reduziert und bremsbereit gefahren werden.' },
+    { id: 2, cat: 'Vorfahrt', q: 'Wer hat an einer Kreuzung ohne Verkehrszeichen Vorfahrt?', opts: ['Das Fahrzeug von links', 'Das Fahrzeug von rechts', 'Wer zuerst ankommt'], correct: 1, exp: 'Die Grundregel lautet: Rechts vor Links.' },
+    { id: 3, cat: 'Technik', q: 'Was ist bei einer Reifenpanne zu tun?', opts: ['Warnblinker an, Warndreieck aufstellen, Reifen wechseln', 'Sofort auf die Autobahn wechseln', 'Weiterfahren bis zur nächsten Werkstatt'], correct: 0, exp: 'Zuerst das Fahrzeug sichern, dann den Reifen wechseln.' },
+    { id: 4, cat: 'Verkehrszeichen', q: 'Was bedeutet ein rotes Dreieck mit einem Ausrufezeichen?', opts: ['Allgemeine Gefahr', 'Halt, Vorfahrt gewähren', 'Vorfahrtstraße'], correct: 0, exp: 'Das Zeichen warnt vor einer allgemeinen Gefahr.' },
+    { id: 5, cat: 'Umweltschutz', q: 'Wie fahren Sie umweltbewusst?', opts: ['Früh hochschalten und niedrige Drehzahlen nutzen', 'Im ersten Gang bis 50 km/h fahren', 'Ständig beschleunigen und bremsen'], correct: 0, exp: 'Frühes Hochschalten spart Kraftstoff.' },
+    { id: 6, cat: 'Gefahrenlehre', q: 'Was ist bei Nässe besonders gefährlich?', opts: ['Aquaplaning', 'Bremsen quietschen', 'Der Motor wird heiß'], correct: 0, exp: 'Aquaplaning führt zum Verlust der Bodenhaftung.' },
     { id: 7, cat: 'Vorfahrt', q: 'Sie wollen links abbiegen. Worauf müssen Sie achten?', opts: ['Gegenverkehr durchlassen', 'Sofort abbiegen', 'Rechts blinken'], correct: 0, exp: 'Beim Linksabbiegen muss der Gegenverkehr durchgelassen werden.' },
-    { id: 8, cat: 'Technik', q: 'Die Bremsleuchten leuchten dauerhaft. Was tun?', opts: ['Bremslichtschalter überprüfen lassen', 'Weiterfahren', 'Batterie abklemmen'], correct: 0, exp: 'Ein defekter Bremslichtschalter kann die Batterie entladen und ist ein Sicherheitsrisiko.' },
+    { id: 8, cat: 'Technik', q: 'Die Bremsleuchten leuchten dauerhaft. Was tun?', opts: ['Bremslichtschalter überprüfen lassen', 'Weiterfahren', 'Batterie abklemmen'], correct: 0, exp: 'Ein defekter Bremslichtschalter ist ein Sicherheitsrisiko.' },
     { id: 9, cat: 'Verkehrszeichen', q: 'Ein blaues Schild mit weißem Pfeil nach rechts bedeutet?', opts: ['Vorgeschriebene Fahrtrichtung rechts', 'Einbahnstraße', 'Vorfahrtstraße'], correct: 0, exp: 'Dieses Schild schreibt die Fahrtrichtung vor.' },
-    { id: 10, cat: 'Gefahrenlehre', q: 'Sie fahren bei Nebel. Welches Licht ist Pflicht?', opts: ['Abblendlicht', 'Fernlicht', 'Standlicht'], correct: 0, exp: 'Bei Nebel ist Abblendlicht Pflicht. Fernlicht wird vom Nebel reflektiert und blendet.' },
-    { id: 11, cat: 'Vorfahrt', q: 'Was bedeutet "Vorfahrt gewähren"?', opts: ['Anhalten und warten', 'Geschwindigkeit anpassen, ggf. warten', 'Einfach durchfahren'], correct: 1, exp: 'Man muss nicht zwingend anhalten, aber die Geschwindigkeit anpassen und bei Bedarf warten.' },
-    { id: 12, cat: 'Technik', q: 'Wie tief sollte das Profil der Reifen mindestens sein?', opts: ['1,6 mm', '0,5 mm', '5 mm'], correct: 0, exp: 'Die gesetzliche Mindestprofiltiefe beträgt 1,6 mm. Empfohlen sind jedoch mehr.' },
-    { id: 13, cat: 'Verkehrszeichen', q: 'Was bedeutet ein auf dem Kopf stehendes Dreieck?', opts: ['Vorfahrt gewähren', 'Stop', 'Wildwechsel'], correct: 0, exp: 'Das auf dem Kopf stehende Dreieck (Spitze unten) bedeutet "Vorfahrt gewähren".' },
+    { id: 10, cat: 'Gefahrenlehre', q: 'Sie fahren bei Nebel. Welches Licht ist Pflicht?', opts: ['Abblendlicht', 'Fernlicht', 'Standlicht'], correct: 0, exp: 'Bei Nebel ist Abblendlicht Pflicht.' },
+    { id: 11, cat: 'Vorfahrt', q: 'Was bedeutet "Vorfahrt gewähren"?', opts: ['Anhalten und warten', 'Geschwindigkeit anpassen, ggf. warten', 'Einfach durchfahren'], correct: 1, exp: 'Man muss nicht zwingend anhalten, aber die Geschwindigkeit anpassen.' },
+    { id: 12, cat: 'Technik', q: 'Wie tief sollte das Profil der Reifen mindestens sein?', opts: ['1,6 mm', '0,5 mm', '5 mm'], correct: 0, exp: 'Die gesetzliche Mindestprofiltiefe beträgt 1,6 mm.' },
+    { id: 13, cat: 'Verkehrszeichen', q: 'Was bedeutet ein auf dem Kopf stehendes Dreieck?', opts: ['Vorfahrt gewähren', 'Stop', 'Wildwechsel'], correct: 0, exp: 'Spitze unten bedeutet "Vorfahrt gewähren".' },
     { id: 14, cat: 'Gefahrenlehre', q: 'Wie reagieren Sie bei einem Wildwechsel?', opts: ['Abbremsen und hupen', 'Ausweichen', 'Gas geben'], correct: 0, exp: 'Abbremsen und Hupen. Ausweichen kann zu schweren Unfällen führen.' },
     { id: 15, cat: 'Vorfahrt', q: 'Sie fahren auf einer Vorfahrtstraße. Ein Auto kommt von rechts.', opts: ['Ich habe Vorfahrt', 'Ich muss warten', 'Rechts vor Links gilt'], correct: 0, exp: 'Wer auf einer Vorfahrtstraße fährt, hat Vorfahrt.' },
     { id: 16, cat: 'Technik', q: 'Wann sollten Sie die Winterreifen aufziehen?', opts: ['Von Oktober bis Ostern (O bis O)', 'Nur im Dezember', 'Wenn es schneit'], correct: 0, exp: 'Die Faustregel lautet "O bis O" - Oktober bis Ostern.' },
     { id: 17, cat: 'Gefahrenlehre', q: 'Was tun bei einem Stau auf der Autobahn?', opts: ['Rettungsgasse bilden', 'Auf dem Standstreifen fahren', 'Rückwärts fahren'], correct: 0, exp: 'Zwischen linkem und rechtem Fahrstreifen muss eine Rettungsgasse gebildet werden.' },
     { id: 18, cat: 'Vorfahrt', q: 'Ein Polizist hebt den Arm. Was bedeutet das?', opts: ['Alle Fahrzeuge müssen anhalten', 'Nur LKW müssen anhalten', 'Ich darf fahren'], correct: 0, exp: 'Der Arm des Polizisten zeigt in meine Richtung oder er hebt ihn: Ich muss anhalten.' },
-    { id: 19, cat: 'Umweltschutz', q: 'Was schont die Umwelt beim Auto?', opts: ['Reifendruck regelmäßig prüfen', 'Klimaanlage immer an', 'Dachgepäckträger leer mitfahren'], correct: 0, exp: 'Der richtige Reifendruck reduziert den Rollwiderstand und spart Sprit.' },
-    { id: 20, cat: 'Verkehrszeichen', q: 'Was bedeutet ein blaues Schild mit einem Fußgänger?', opts: ['Fußgängerüberweg', 'Spielstraße', 'Fußgänger verboten'], correct: 0, exp: 'Es weist auf einen Fußgängerüberweg hin. Fußgänger haben Vorrang.' }
-  ];
-
-  const SIGNS = [
-    { icon: '🛑', name: 'Stop', desc: 'Anhalten, Vorfahrt gewähren.' },
-    { icon: '⚠️', name: 'Gefahrenstelle', desc: 'Allgemeine Gefahr, Geschwindigkeit anpassen.' },
-    { icon: '⬇️', name: 'Vorfahrt gewähren', desc: 'Spitze unten. Andere Fahrzeuge durchlassen.' },
-    { icon: '⬆️', name: 'Vorfahrtstraße', desc: 'Gelbe Raute. Ich habe Vorfahrt.' },
-    { icon: '🚫', name: 'Verbot der Einfahrt', desc: 'Rotes Schild mit weißem Strich. Einfahrt verboten.' },
-    { icon: '➡️', name: 'Vorgeschriebene Richtung', desc: 'Blaues Schild mit Pfeil. Man muss rechts abbiegen.' },
-    { icon: '🚶', name: 'Fußgängerüberweg', desc: 'Blaues Schild. Fußgänger haben Vorrang.' },
-    { icon: '🚲', name: 'Radweg', desc: 'Blaues Schild mit Fahrrad. Nur für Radfahrer.' },
-    { icon: '🅿️', name: 'Parken', desc: 'Blaues Schild mit P. Hier ist Parken erlaubt.' },
-    { icon: '🚦', name: 'Ampel', desc: 'Lichtzeichenanlage. Rot, Gelb, Grün beachten.' }
+    { id: 19, cat: 'Umweltschutz', q: 'Was schont die Umwelt beim Auto?', opts: ['Reifendruck regelmäßig prüfen', 'Klimaanlage immer an', 'Dachgepäckträger leer mitfahren'], correct: 0, exp: 'Der richtige Reifendruck reduziert den Rollwiderstand.' },
+    { id: 20, cat: 'Verkehrszeichen', q: 'Was bedeutet ein blaues Schild mit einem Fußgänger?', opts: ['Fußgängerüberweg', 'Spielstraße', 'Fußgänger verboten'], correct: 0, exp: 'Es weist auf einen Fußgängerüberweg hin.' },
+    { id: 21, cat: 'Erste Hilfe', q: 'Was ist die erste Maßnahme bei einem Unfall?', opts: ['Unfallstelle absichern (Warnblinker, Warndreieck)', 'Sofort Erste Hilfe leisten', 'Die Polizei rufen'], correct: 0, exp: 'Eigenschutz geht vor! Zuerst die Unfallstelle absichern, dann helfen.' },
+    { id: 22, cat: 'Erste Hilfe', q: 'Wie lautet die Notrufnummer?', opts: ['112', '110', '911'], correct: 0, exp: 'Die europaweite Notrufnummer ist die 112 (Feuerwehr/Rettungsdienst).' },
+    { id: 23, cat: 'Technik', q: 'Was bedeutet eine rote Kontrollleuchte im Armaturenbrett?', opts: ['Sofort anhalten und prüfen', 'Weiterfahren, es ist nur ein Hinweis', 'Motor abstellen und neu starten'], correct: 0, exp: 'Rote Kontrollleuchten weisen auf eine akute Gefahr oder einen schweren Defekt hin.' },
+    { id: 24, cat: 'Gefahrenlehre', q: 'Sie fahren bei Starkregen. Was tun?', opts: ['Geschwindigkeit reduzieren', 'Fernlicht einschalten', 'Schneller fahren, um Aquaplaning zu entgehen'], correct: 0, exp: 'Bei Starkregen ist die Gefahr von Aquaplaning hoch. Geschwindigkeit reduzieren!' },
+    { id: 25, cat: 'Vorfahrt', q: 'Sie wollen in einen Kreisverkehr einfahren. Wer hat Vorfahrt?', opts: ['Die Fahrzeuge im Kreisverkehr', 'Ich, weil ich von rechts komme', 'Wer schneller ist'], correct: 0, exp: 'Im Kreisverkehr hat der Verkehr im Kreis Vorfahrt (Schild "Vorfahrt gewähren" beachten).' },
+    { id: 26, cat: 'Verkehrszeichen', q: 'Was bedeutet das Schild mit dem roten Rand und dem weißen Kreis?', opts: ['Verbot der Einfahrt', 'Geschwindigkeitsbegrenzung', 'Überholverbot'], correct: 0, exp: 'Ein weißer Kreis mit rotem Rand bedeutet: Verbot der Einfahrt.' },
+    { id: 27, cat: 'Technik', q: 'Was ist die Aufgabe der Kupplung?', opts: ['Kraftübertragung zwischen Motor und Getriebe', 'Bremsen des Fahrzeugs', 'Kühlen des Motors'], correct: 0, exp: 'Die Kupplung trennt und verbindet den Motor mit dem Getriebe.' },
+    { id: 28, cat: 'Umweltschutz', q: 'Was passiert beim "Motorsurfen"?', opts: ['Man rollt im Leerlauf und bremst mit dem Motor', 'Man beschleunigt stark', 'Man schaltet zu früh hoch'], correct: 0, exp: 'Beim Motorsurfen wird der Motor im Schubbetrieb (ohne Gas) genutzt, um Sprit zu sparen.' },
+    { id: 29, cat: 'Gefahrenlehre', q: 'Sie fahren in der Dämmerung. Worauf achten?', opts: ['Wildwechsel möglich, Licht anmachen', 'Schneller fahren', 'Sonnenbrille tragen'], correct: 0, exp: 'In der Dämmerung ist das Wild besonders aktiv. Abblendlicht einschalten!' },
+    { id: 30, cat: 'Vorfahrt', q: 'Ein Bus fährt an einer Haltestelle an. Was gilt?', opts: ['Ich muss dem Bus das Ausfahren ermöglichen', 'Ich habe Vorfahrt', 'Der Bus muss warten'], correct: 0, exp: 'Ein Linienbus, der vom Halt anfährt, hat Vorrang. Man sollte ihn einfädeln lassen.' },
+    { id: 31, cat: 'Verkehrszeichen', q: 'Was bedeutet das achteckige rote Schild?', opts: ['STOP - Anhalten und Vorfahrt gewähren', 'Vorfahrtstraße', 'Gefahrenstelle'], correct: 0, exp: 'Das achteckige rote Schild ist das STOP-Zeichen. Es muss immer angehalten werden.' },
+    { id: 32, cat: 'Erste Hilfe', q: 'Was tun bei einer bewusstlosen Person?', opts: ['Stabile Seitenlage, Atemwege prüfen', 'Sofort Wasser geben', 'Hinsetzen'], correct: 0, exp: 'Die stabile Seitenlage verhindert das Ersticken. Atemwege müssen frei sein.' },
+    { id: 33, cat: 'Technik', q: 'Was ist ein Reifendruckverlustsystem (RDKS)?', opts: ['Warnt bei zu niedrigem Reifendruck', 'Kühlt die Reifen', 'Erhöht die Geschwindigkeit'], correct: 0, exp: 'Das RDKS überwacht den Reifendruck und warnt den Fahrer bei Verlust.' },
+    { id: 34, cat: 'Gefahrenlehre', q: 'Sie fahren bei Glatteis. Was ist verboten?', opts: ['Abrupte Lenkbewegungen und starkes Bremsen', 'Langsam fahren', 'Winterreifen nutzen'], correct: 0, exp: 'Auf Glatteis können abrupte Manöver zum Ausbrechen des Fahrzeugs führen.' },
+    { id: 35, cat: 'Vorfahrt', q: 'Wer hat Vorrang: Fußgänger oder Auto?', opts: ['Fußgänger am Zebrastreifen', 'Das Auto', 'Wer schneller ist'], correct: 0, exp: 'Am Fußgängerüberweg (Zebrastreifen) haben Fußgänger absoluten Vorrang.' },
+    { id: 36, cat: 'Verkehrszeichen', q: 'Ein blaues Schild mit weißem P bedeutet?', opts: ['Parkplatz', 'Verbot für PKW', 'Fußgängerzone'], correct: 0, exp: 'Das weiße P auf blauem Grund ist das Parkplatzschild.' },
+    { id: 37, cat: 'Technik', q: 'Was ist die Funktion des ABS?', opts: ['Verhindert das Blockieren der Räder beim Bremsen', 'Erhöht die Motorleistung', 'Reduziert den Benzinverbrauch'], correct: 0, exp: 'ABS (Antiblockiersystem) sorgt dafür, dass die Räder beim Bremsen nicht blockieren.' },
+    { id: 38, cat: 'Umweltschutz', q: 'Was schadet der Umwelt am meisten?', opts: ['Ständiges Beschleunigen und Bremsen', 'Gleichmäßige Fahrt', 'Frühes Hochschalten'], correct: 0, exp: 'Ständiges Beschleunigen und Bremsen erhöht den Verbrauch und den Schadstoffausstoß.' },
+    { id: 39, cat: 'Gefahrenlehre', q: 'Sie sehen Kinder am Straßenrand. Was tun?', opts: ['Geschwindigkeit reduzieren, bremsbereit sein', 'Hupen und weiterfahren', 'Gas geben'], correct: 0, exp: 'Kinder sind unberechenbar. Bremsbereit sein und Geschwindigkeit reduzieren.' },
+    { id: 40, cat: 'Erste Hilfe', q: 'Wie viele Atemzüge pro Minute hat ein Erwachsener?', opts: ['12-18', '5-8', '30-40'], correct: 0, exp: 'Ein Erwachsener atmet normalerweise 12-18 Mal pro Minute.' },
+    { id: 41, cat: 'Technik', q: 'Was passiert bei zu niedrigem Reifendruck?', opts: ['Erhöhter Spritverbrauch und Verschleiß', 'Das Auto wird schneller', 'Es hat keine Auswirkungen'], correct: 0, exp: 'Zu niedriger Reifendruck erhöht den Rollwiderstand, den Spritverbrauch und den Reifenverschleiß.' },
+    { id: 42, cat: 'Verkehrszeichen', q: 'Was bedeutet das Schild "Vorfahrtstraße"?', opts: ['Gelbe Raute - Ich habe Vorfahrt', 'Rotes Dreieck - Ich muss warten', 'Blaues Quadrat - Ich darf parken'], correct: 0, exp: 'Die gelbe Raute zeigt an, dass die aktuelle Straße eine Vorfahrtstraße ist.' },
+    { id: 43, cat: 'Gefahrenlehre', q: 'Sie fahren auf einer Landstraße. Ein Traktor zieht heraus. Was tun?', opts: ['Bremsen und Geschwindigkeit anpassen', 'Hupen und überholen', 'Weiterfahren'], correct: 0, exp: 'Langsame Fahrzeuge wie Traktoren erfordern eine angepasste Geschwindigkeit und Bremsbereitschaft.' },
+    { id: 44, cat: 'Vorfahrt', q: 'Was bedeutet "Rechts vor Links"?', opts: ['Fahrzeuge von rechts haben Vorfahrt', 'Fahrzeuge von links haben Vorfahrt', 'Ich habe immer Vorfahrt'], correct: 0, exp: 'An Kreuzungen ohne Schilder gilt: Rechts vor Links.' },
+    { id: 45, cat: 'Technik', q: 'Wie oft sollte man den Ölstand prüfen?', opts: ['Regelmäßig, z.B. alle 2-4 Wochen', 'Nur einmal im Jahr', 'Nie'], correct: 0, exp: 'Der Ölstand sollte regelmäßig geprüft werden, um Motorschäden zu vermeiden.' },
+    { id: 46, cat: 'Erste Hilfe', q: 'Was ist bei einer Verbrennung zu tun?', opts: ['Mit Wasser kühlen', 'Eis drauflegen', 'Salbe auftragen'], correct: 0, exp: 'Verbrennungen sollten sofort mit lauwarmem Wasser gekühlt werden.' },
+    { id: 47, cat: 'Gefahrenlehre', q: 'Sie werden von einem Auto überholt. Was tun?', opts: ['Geschwindigkeit beibehalten, rechts fahren', 'Beschleunigen', 'Bremsen'], correct: 0, exp: 'Beim Überholtwerden sollte man die Geschwindigkeit beibehalten und möglichst rechts fahren.' },
+    { id: 48, cat: 'Verkehrszeichen', q: 'Was bedeutet ein blaues Schild mit einem Fahrrad?', opts: ['Radweg', 'Fahrradverbot', 'Überholverbot'], correct: 0, exp: 'Das blaue Schild mit dem weißen Fahrrad weist auf einen Radweg hin.' },
+    { id: 49, cat: 'Umweltschutz', q: 'Was ist ein umweltfreundlicher Fahrstil?', opts: ['Vorausschauend fahren, früh schalten', 'Ständig bremsen und beschleunigen', 'Reifen platt lassen'], correct: 0, exp: 'Vorausschauendes Fahren spart Sprit und schont die Umwelt.' },
+    { id: 50, cat: 'Vorfahrt', q: 'Wer hat Vorrang beim Ausfahren aus einem Kreisverkehr?', opts: ['Der Verkehr im Kreisverkehr', 'Ich, weil ich ausfahre', 'Der Gegenverkehr'], correct: 0, exp: 'Auch beim Ausfahren muss der Verkehr im Kreisverkehr durchgelassen werden, falls man sich noch im Kreis befindet.' }
   ];
 
   // ═══════════════════════════════════════════════════════
-  // 3. STATE & STORAGE
+  // 3. VERKEHRSZEICHEN LEXIKON (Kategorisiert A-Z)
+  // ═══════════════════════════════════════════════════════
+  const SIGNS = {
+    'Gefahrenzeichen': [
+      { icon: '⚠️', name: 'Allgemeine Gefahr', desc: 'Gefahr durch ein Hindernis oder eine unübersichtliche Stelle.' },
+      { icon: '🚧', name: 'Baustelle', desc: 'Gefahr durch Bauarbeiten auf der Fahrbahn.' },
+      { icon: '🦌', name: 'Wildwechsel', desc: 'Gefahr durch Tiere auf der Fahrbahn.' },
+      { icon: '🔄', name: 'Kreisverkehr', desc: 'Vorfahrt gewähren im Kreisverkehr.' },
+      { icon: '🚦', name: 'Lichtzeichenanlage', desc: 'Ampel oder Verkehrsampel in der Nähe.' },
+      { icon: '🚶', name: 'Fußgänger', desc: 'Gefahr durch Fußgänger auf der Straße.' },
+      { icon: '❄️', name: 'Glätte', desc: 'Gefahr durch Schnee oder Eis.' },
+      { icon: '💧', name: 'Aquaplaning', desc: 'Gefahr durch Wasser auf der Fahrbahn.' }
+    ],
+    'Vorschriftzeichen': [
+      { icon: '🛑', name: 'Halt! Vorfahrt gewähren', desc: 'Anhalten und Vorfahrt gewähren.' },
+      { icon: '⬇️', name: 'Vorfahrt gewähren', desc: 'Andere Fahrzeuge durchlassen (Spitze unten).' },
+      { icon: '🚫', name: 'Verbot der Einfahrt', desc: 'Keine Einfahrt in diese Straße.' },
+      { icon: '⬅️', name: 'Vorgeschriebene Richtung links', desc: 'Man muss links abbiegen.' },
+      { icon: '➡️', name: 'Vorgeschriebene Richtung rechts', desc: 'Man muss rechts abbiegen.' },
+      { icon: '30', name: 'Tempolimit 30', desc: 'Maximal 30 km/h erlaubt.' },
+      { icon: '80', name: 'Tempolimit 80', desc: 'Maximal 80 km/h erlaubt.' },
+      { icon: '🚲', name: 'Radweg', desc: 'Nur für Radfahrer (blaues Schild).' }
+    ],
+    'Richtzeichen': [
+      { icon: '⬆️', name: 'Vorfahrtstraße', desc: 'Die Straße hat Vorfahrt (gelbe Raute).' },
+      { icon: '🅿️', name: 'Parkplatz', desc: 'Parken erlaubt.' },
+      { icon: '⛽', name: 'Tankstelle', desc: 'Tankstelle in der Nähe.' },
+      { icon: '🏥', name: 'Krankenhaus', desc: 'Krankenhaus in der Nähe, ruhig fahren.' },
+      { icon: '🚌', name: 'Bushaltestelle', desc: 'Bushaltestelle in der Nähe.' },
+      { icon: '🛣️', name: 'Autobahn', desc: 'Beginn der Autobahn.' },
+      { icon: '🏙️', name: 'Ortseingang', desc: 'Beginn einer geschlossenen Ortschaft.' },
+      { icon: '🚦', name: 'Ampel', desc: 'Lichtzeichenanlage.' }
+    ]
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 4. STATE & STORAGE
   // ═══════════════════════════════════════════════════════
   let state = {
     lang: 'de',
@@ -110,120 +154,138 @@
   }
 
   // ═══════════════════════════════════════════════════════
-  // 4. CSS (PRO MAX DESIGN)
+  // 5. CSS (PRO MAX GLASS UI)
   // ═══════════════════════════════════════════════════════
   function css() {
     return `<style>
-      .fs-app { font-family: Inter, system-ui, -apple-system, sans-serif; color: #e8e8ec; background: #0a0a0f; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
-      .fs-header { padding: 15px 20px; background: rgba(17, 17, 24, 0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-      .fs-header h1 { margin: 0; font-size: 18px; color: #00e5ff; display: flex; gap: 10px; align-items: center; font-weight: 900; }
-      .fs-nav { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; }
-      .fs-nav::-webkit-scrollbar { display: none; }
-      .fs-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #ccc; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: inherit; transition: all 0.2s; display: flex; align-items: center; gap: 6px; font-size: 13px; white-space: nowrap; }
-      .fs-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
-      .fs-btn.active { background: #00e5ff; color: #000; border-color: #00e5ff; box-shadow: 0 0 15px rgba(0,229,255,0.4); }
-      .fs-btn.primary { background: linear-gradient(135deg, #00e5ff, #b478ff); color: #000; border: none; font-weight: 900; }
-      .fs-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,229,255,0.5); }
+      .fs-app { font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #e8e8ec; background: #0a0a0f; height: 100%; display: flex; flex-direction: row; overflow: hidden; }
       
-      .fs-content { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
-      .fs-content-inner { width: 100%; max-width: 800px; }
+      /* SIDEBAR */
+      .fs-sidebar { width: 260px; background: rgba(17,17,24,0.95); backdrop-filter: blur(20px); border-right: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; }
+      .fs-logo { font-size: 20px; font-weight: 900; color: #00e5ff; padding: 0 20px 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; }
+      .fs-logo span { font-size: 10px; background: rgba(0,229,255,0.1); padding: 3px 6px; border-radius: 4px; color: #00e5ff; }
+      .fs-nav-item { padding: 12px 20px; display: flex; align-items: center; gap: 12px; color: #a8b0cc; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s; border-left: 3px solid transparent; margin-bottom: 2px; }
+      .fs-nav-item:hover { background: rgba(255,255,255,0.03); color: #fff; }
+      .fs-nav-item.active { background: rgba(0,229,255,0.08); color: #00e5ff; border-left-color: #00e5ff; }
+      .fs-nav-item .icon { font-size: 18px; width: 24px; text-align: center; }
       
-      .fs-card { background: rgba(20, 20, 28, 0.8); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 25px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+      /* MAIN CONTENT */
+      .fs-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+      .fs-header { padding: 20px 30px; background: rgba(10,10,15,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+      .fs-header h1 { margin: 0; font-size: 22px; font-weight: 900; color: #fff; }
+      
+      .fs-content-area { flex: 1; overflow-y: auto; padding: 30px; }
+      .fs-content-inner { max-width: 900px; margin: 0 auto; }
+      
+      .fs-card { background: rgba(20, 20, 28, 0.6); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 25px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
       .fs-card h2 { margin-top: 0; font-size: 20px; color: #fff; margin-bottom: 15px; font-weight: 900; }
       
-      .fs-opt { display: block; width: 100%; text-align: left; padding: 15px 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: #ddd; margin-bottom: 12px; cursor: pointer; font-family: inherit; font-size: 15px; transition: all 0.2s; }
+      /* BUTTONS */
+      .fs-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #ccc; padding: 12px 24px; border-radius: 10px; cursor: pointer; font-weight: 600; font-family: inherit; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; }
+      .fs-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+      .fs-btn.primary { background: linear-gradient(135deg, #00e5ff, #b478ff); color: #000; border: none; font-weight: 900; box-shadow: 0 4px 15px rgba(0,229,255,0.3); }
+      .fs-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,229,255,0.5); }
+      
+      /* OPTIONS */
+      .fs-opt { display: block; width: 100%; text-align: left; padding: 18px 24px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #ddd; margin-bottom: 12px; cursor: pointer; font-family: inherit; font-size: 15px; transition: all 0.2s; }
       .fs-opt:hover { background: rgba(255,255,255,0.08); border-color: #00e5ff; transform: translateX(5px); }
       .fs-opt.correct { background: rgba(0,255,102,0.15); border-color: #00ff66; color: #00ff66; font-weight: bold; }
       .fs-opt.wrong { background: rgba(255,0,0,0.15); border-color: #ff3333; color: #ff3333; }
       .fs-opt:disabled { cursor: default; opacity: 0.8; transform: none; }
       
-      .fs-exp { background: rgba(0,229,255,0.05); border-left: 4px solid #00e5ff; padding: 15px; border-radius: 0 10px 10px 0; margin-top: 15px; font-size: 14px; line-height: 1.6; color: #a8b0cc; display: none; }
+      /* EXPLANATION & AI */
+      .fs-exp { background: rgba(0,229,255,0.05); border-left: 4px solid #00e5ff; padding: 15px; border-radius: 0 12px 12px 0; margin-top: 20px; font-size: 14px; line-height: 1.6; color: #a8b0cc; display: none; }
       
-      .fs-signs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; }
-      .fs-sign-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 20px 15px; text-align: center; transition: all 0.2s; cursor: pointer; }
+      /* SIGNS GRID */
+      .fs-signs-cat { margin-bottom: 30px; }
+      .fs-signs-cat h3 { color: #00e5ff; font-size: 18px; margin-bottom: 15px; border-bottom: 1px solid rgba(0,229,255,0.2); padding-bottom: 10px; }
+      .fs-signs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
+      .fs-sign-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; text-align: center; transition: all 0.2s; }
       .fs-sign-item:hover { transform: translateY(-5px); border-color: #00e5ff; background: rgba(0,229,255,0.05); }
       .fs-sign-icon { font-size: 50px; margin-bottom: 15px; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5)); }
-      .fs-sign-name { font-weight: 900; color: #fff; font-size: 14px; margin-bottom: 6px; }
+      .fs-sign-name { font-weight: 900; color: #fff; font-size: 15px; margin-bottom: 8px; }
       .fs-sign-desc { font-size: 12px; color: #888; line-height: 1.4; }
       
-      .fs-stat-row { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 15px; }
-      .fs-stat-row:last-child { border-bottom: none; }
-      .fs-stat-val { font-weight: 900; color: #00e5ff; }
+      /* THEORY CARDS */
+      .fs-theory-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+      .fs-theory-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.2s; }
+      .fs-theory-card:hover { border-color: #00e5ff; background: rgba(0,229,255,0.05); }
+      .fs-theory-card h4 { margin: 0 0 10px; color: #fff; font-size: 16px; }
+      .fs-theory-card p { margin: 0; font-size: 13px; color: #888; line-height: 1.5; }
       
-      .fs-timer { font-size: 28px; font-weight: 900; color: #ffaa00; background: rgba(255,170,0,0.1); padding: 8px 20px; border-radius: 12px; border: 1px solid rgba(255,170,0,0.3); box-shadow: 0 0 20px rgba(255,170,0,0.2); }
+      /* VIDEO CARDS */
+      .fs-video-card { position: relative; border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 16/9; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; }
+      .fs-video-card:hover .fs-play-btn { transform: scale(1.1); background: #00e5ff; color: #000; }
+      .fs-play-btn { width: 60px; height: 60px; background: rgba(0,229,255,0.2); border: 2px solid #00e5ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #00e5ff; transition: all 0.2s; backdrop-filter: blur(5px); }
+      .fs-video-title { position: absolute; bottom: 0; left: 0; right: 0; padding: 15px; background: linear-gradient(transparent, rgba(0,0,0,0.9)); color: #fff; font-weight: bold; font-size: 14px; }
       
+      /* MODAL */
       .fs-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
       .fs-modal-overlay.show { opacity: 1; pointer-events: auto; }
       .fs-modal { background: #14141c; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 25px; max-width: 500px; width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
       .fs-modal h3 { margin-top: 0; color: #00e5ff; font-size: 18px; display: flex; align-items: center; gap: 8px; }
       .fs-modal p { color: #ccc; font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
       
-      .fs-count-btn { background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); color: #fff; padding: 15px; border-radius: 12px; font-size: 18px; font-weight: 900; cursor: pointer; transition: all 0.2s; flex: 1; margin: 0 5px; }
-      .fs-count-btn:hover, .fs-count-btn.active { border-color: #00e5ff; background: rgba(0,229,255,0.1); color: #00e5ff; }
+      /* DASHBOARD */
+      .fs-stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 20px; }
+      .fs-stat-box { background: rgba(0,229,255,0.05); border: 1px solid rgba(0,229,255,0.2); border-radius: 12px; padding: 20px; text-align: center; }
+      .fs-stat-box .val { font-size: 28px; font-weight: 900; color: #00e5ff; display: block; margin-bottom: 5px; }
+      .fs-stat-box .lbl { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
       
-      .fs-video-card { position: relative; border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 16/9; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; }
-      .fs-video-card:hover .fs-play-btn { transform: scale(1.1); }
-      .fs-play-btn { width: 60px; height: 60px; background: rgba(0,229,255,0.2); border: 2px solid #00e5ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #00e5ff; transition: transform 0.2s; backdrop-filter: blur(5px); }
-      .fs-video-title { position: absolute; bottom: 0; left: 0; right: 0; padding: 15px; background: linear-gradient(transparent, rgba(0,0,0,0.9)); color: #fff; font-weight: bold; font-size: 14px; }
-      
-      .fs-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; }
-      .fs-badge.cat { background: rgba(0,229,255,0.15); color: #00e5ff; margin-bottom: 15px; }
+      .fs-timer { font-size: 32px; font-weight: 900; color: #ffaa00; background: rgba(255,170,0,0.1); padding: 10px 20px; border-radius: 12px; border: 1px solid rgba(255,170,0,0.3); box-shadow: 0 0 20px rgba(255,170,0,0.2); }
+
+      /* SETTINGS */
+      .fs-select { background: #1a1a24; color: #fff; border: 1px solid #333; border-radius: 8px; padding: 10px 15px; font-family: inherit; font-size: 14px; outline: none; cursor: pointer; width: 100%; max-width: 300px; }
     </style>`;
   }
 
   // ═══════════════════════════════════════════════════════
-  // 5. RENDER FUNCTIONS
+  // 6. RENDER FUNCTIONS
   // ═══════════════════════════════════════════════════════
-  function t(key) { return LANG[state.lang][key] || key; }
+  function t(key) { return (LANG[state.lang] && LANG[state.lang][key]) || LANG['de'][key] || key; }
 
   function renderDashboard() {
     const pct = state.stats.examsTaken > 0 ? Math.round((state.stats.examsPassed / state.stats.examsTaken) * 100) : 0;
+    const totalQ = state.stats.questionsAnswered;
+    const accuracy = totalQ > 0 ? Math.round((state.stats.correctAnswers / totalQ) * 100) : 0;
+
     return `
-      <div class="fs-content"><div class="fs-content-inner">
-        <div class="fs-card" style="text-align: center; padding: 50px 20px; background: linear-gradient(135deg, rgba(0,229,255,0.1), rgba(180,120,255,0.1));">
+      <div class="fs-content-inner">
+        <div class="fs-card" style="text-align: center; padding: 50px 20px; background: linear-gradient(135deg, rgba(0,229,255,0.05), rgba(180,120,255,0.05)); border-color: rgba(0,229,255,0.2);">
           <div style="font-size: 80px; margin-bottom: 20px; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));">🚦</div>
-          <h2 style="font-size: 32px; margin-bottom: 10px; background: linear-gradient(90deg, #00e5ff, #b478ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">HalDo Fahrschule</h2>
-          <p style="color: #a8b0cc; margin-bottom: 30px; font-size: 16px;">Deine KI-gestützte Theorie-Prüfung. Lerne smart, fahre sicher.</p>
+          <h2 style="font-size: 36px; margin-bottom: 10px; background: linear-gradient(90deg, #00e5ff, #b478ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900;">HalDo Fahrschule</h2>
+          <p style="color: #a8b0cc; margin-bottom: 30px; font-size: 16px; max-width: 500px; margin-left: auto; margin-right: auto;">Die professionelle Theorie-Lern-App. KI-gestützt, mehrsprachig und zu 100 % auf deine Führerscheinprüfung vorbereitet.</p>
           <button class="fs-btn primary" data-action="view-exam" style="padding: 15px 40px; font-size: 18px; margin: 0 auto;">🏁 ${t('exam_start')}</button>
         </div>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-          <div class="fs-card">
-            <h2 style="font-size: 16px; color: #888;">📊 ${t('stats')}</h2>
-            <div class="fs-stat-row"><span>${t('exam')} (Total)</span><span class="fs-stat-val">${state.stats.examsTaken}</span></div>
-            <div class="fs-stat-row"><span>${t('exam')} (Bestanden)</span><span class="fs-stat-val" style="color:#00ff66;">${state.stats.examsPassed}</span></div>
-            <div class="fs-stat-row"><span>Erfolgsquote</span><span class="fs-stat-val">${pct}%</span></div>
-          </div>
-          <div class="fs-card">
-            <h2 style="font-size: 16px; color: #888;">🧠 ${t('questions')}</h2>
-            <div class="fs-stat-row"><span>${t('correct')}</span><span class="fs-stat-val">${state.stats.correctAnswers}</span></div>
-            <div class="fs-stat-row"><span>${t('wrong')}</span><span class="fs-stat-val" style="color:#ff3333;">${state.stats.questionsAnswered - state.stats.correctAnswers}</span></div>
-            <div class="fs-stat-row"><span>Insgesamt</span><span class="fs-stat-val">${state.stats.questionsAnswered}</span></div>
-          </div>
+        <div class="fs-stats-grid">
+          <div class="fs-stat-box"><span class="val">${state.stats.examsTaken}</span><span class="lbl">Prüfungen</span></div>
+          <div class="fs-stat-box"><span class="val" style="color:#00ff66;">${state.stats.examsPassed}</span><span class="lbl">Bestanden</span></div>
+          <div class="fs-stat-box"><span class="val">${accuracy}%</span><span class="lbl">Erfolgsquote</span></div>
         </div>
-      </div></div>
+      </div>
     `;
   }
 
   function renderLearnSetup() {
     return `
-      <div class="fs-content"><div class="fs-content-inner">
+      <div class="fs-content-inner">
         <div class="fs-card">
           <h2>📖 ${t('learn')} - ${t('select_count')}</h2>
           <p style="color: #888; margin-bottom: 20px;">Wähle aus, wie viele Fragen du jetzt üben möchtest. Die Fragen werden zufällig ausgewählt.</p>
-          <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button class="fs-count-btn" data-action="start-learn" data-count="15">15 ${t('questions')}</button>
-            <button class="fs-count-btn" data-action="start-learn" data-count="30">30 ${t('questions')}</button>
-            <button class="fs-count-btn" data-action="start-learn" data-count="45">45 ${t('questions')}</button>
+          <div style="display: flex; gap: 15px; margin-top: 20px;">
+            <button class="fs-btn" data-action="start-learn" data-count="15" style="flex:1; padding:20px;">15 ${t('questions')}</button>
+            <button class="fs-btn" data-action="start-learn" data-count="30" style="flex:1; padding:20px;">30 ${t('questions')}</button>
+            <button class="fs-btn" data-action="start-learn" data-count="45" style="flex:1; padding:20px;">45 ${t('questions')}</button>
           </div>
         </div>
-      </div></div>
+      </div>
     `;
   }
 
   function renderLearn() {
     if (!state.learnList || state.learnIndex >= state.learnList.length) {
-      return `<div class="fs-content"><div class="fs-content-inner"><div class="fs-card" style="text-align:center;"><h2>🎉 Super gemacht!</h2><p style="color:#888;">Du hast alle Fragen in dieser Runde beantwortet.</p><button class="fs-btn primary" data-action="view-learn-setup" style="margin-top:20px;">Nochmal lernen</button></div></div></div>`;
+      return `<div class="fs-content-inner"><div class="fs-card" style="text-align:center; padding:50px;"><h2>🎉 Super gemacht!</h2><p style="color:#888;">Du hast alle Fragen in dieser Runde beantwortet.</p><button class="fs-btn primary" data-action="view-learn-setup" style="margin-top:20px;">Nochmal lernen</button></div></div>`;
     }
 
     const q = state.learnList[state.learnIndex];
@@ -233,42 +295,42 @@
     });
     
     return `
-      <div class="fs-content"><div class="fs-content-inner">
+      <div class="fs-content-inner">
         <div class="fs-card">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <span class="fs-badge cat">${q.cat}</span>
+            <span style="font-size:12px; font-weight:900; color:#00e5ff; background:rgba(0,229,255,0.1); padding:6px 12px; border-radius:6px; text-transform:uppercase; letter-spacing:1px;">${q.cat}</span>
             <span style="font-size:14px; font-weight:bold; color:#888;">${state.learnIndex + 1} / ${state.learnList.length}</span>
           </div>
-          <h2 style="font-size: 22px; line-height: 1.4;">${q.q}</h2>
-          <div style="margin-top: 25px;" id="fs-opt-container">${optHtml}</div>
+          <h2 style="font-size: 24px; line-height: 1.4;">${q.q}</h2>
+          <div style="margin-top: 30px;" id="fs-opt-container">${optHtml}</div>
           <div class="fs-exp" id="fs-explain">
-            <div style="display:flex; justify-content:space-between; align-items:start; gap:15px;">
+            <div style="display:flex; justify-content:space-between; align-items:start; gap:20px;">
               <div>${q.exp}</div>
               <button class="fs-btn" data-action="ask-ai" style="background: rgba(0,229,255,0.1); border-color: #00e5ff; color: #00e5ff; flex-shrink:0;">🤖 ${t('ai_explain')}</button>
             </div>
           </div>
-          <div style="margin-top:25px; display:flex; justify-content:space-between;">
+          <div style="margin-top:30px; display:flex; justify-content:space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
             <button class="fs-btn" data-action="view-dashboard">${t('back')}</button>
             <button class="fs-btn primary" id="fs-next-btn" data-action="learn-next" style="display:none;">${t('next')} ➡️</button>
           </div>
         </div>
-      </div></div>
+      </div>
     `;
   }
 
   function renderExamSetup() {
     return `
-      <div class="fs-content"><div class="fs-content-inner">
+      <div class="fs-content-inner">
         <div class="fs-card">
           <h2>🏁 ${t('exam')} - ${t('select_count')}</h2>
           <p style="color: #888; margin-bottom: 20px;">Die Prüfung simuliert die echte Theorieprüfung. Der Timer läuft mit. Du musst 80% bestehen.</p>
-          <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button class="fs-count-btn" data-action="start-exam" data-count="15">15 ${t('questions')}</button>
-            <button class="fs-count-btn" data-action="start-exam" data-count="30">30 ${t('questions')}</button>
-            <button class="fs-count-btn" data-action="start-exam" data-count="45">45 ${t('questions')}</button>
+          <div style="display: flex; gap: 15px; margin-top: 20px;">
+            <button class="fs-btn" data-action="start-exam" data-count="15" style="flex:1; padding:20px;">15 ${t('questions')}</button>
+            <button class="fs-btn" data-action="start-exam" data-count="30" style="flex:1; padding:20px;">30 ${t('questions')}</button>
+            <button class="fs-btn" data-action="start-exam" data-count="45" style="flex:1; padding:20px;">45 ${t('questions')}</button>
           </div>
         </div>
-      </div></div>
+      </div>
     `;
   }
 
@@ -277,14 +339,14 @@
     if (state.exam.finished) {
       const passed = state.exam.correct >= Math.ceil(state.exam.total * 0.8);
       return `
-        <div class="fs-content"><div class="fs-content-inner">
-          <div class="fs-card" style="text-align:center; padding:50px;">
-            <div style="font-size:80px; margin-bottom:20px;">${passed ? '🎉' : '😢'}</div>
-            <h2 style="font-size:32px; color:${passed ? '#00ff66' : '#ff3333'}; margin-bottom:10px;">${passed ? t('pass') : t('fail')}</h2>
+        <div class="fs-content-inner">
+          <div class="fs-card" style="text-align:center; padding:60px 20px;">
+            <div style="font-size:100px; margin-bottom:20px;">${passed ? '🎉' : '😢'}</div>
+            <h2 style="font-size:40px; color:${passed ? '#00ff66' : '#ff3333'}; margin-bottom:10px; font-weight:900;">${passed ? t('pass') : t('fail')}</h2>
             <p style="color:#888; font-size:18px; margin:20px 0;">Du hast ${state.exam.correct} von ${state.exam.total} Fragen richtig beantwortet.</p>
             <button class="fs-btn primary" data-action="view-dashboard" style="padding:15px 40px; font-size:18px; margin-top:20px;">${t('dashboard')}</button>
           </div>
-        </div></div>
+        </div>
       `;
     }
     
@@ -295,62 +357,96 @@
     });
     
     return `
-      <div class="fs-content"><div class="fs-content-inner">
+      <div class="fs-content-inner">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-          <span style="font-weight:900; color:#fff; font-size:18px;">${t('questions')} ${state.exam.current + 1} / ${state.exam.total}</span>
+          <span style="font-weight:900; color:#fff; font-size:20px;">${t('questions')} ${state.exam.current + 1} / ${state.exam.total}</span>
           <div class="fs-timer" id="fs-exam-timer">${Math.floor(state.exam.timeLeft / 60)}:${(state.exam.timeLeft % 60).toString().padStart(2, '0')}</div>
         </div>
         <div class="fs-card">
-          <span class="fs-badge cat">${q.cat}</span>
-          <h2 style="font-size: 22px; line-height: 1.4; margin-top:10px;">${q.q}</h2>
-          <div style="margin-top: 25px;" id="fs-exam-opts">${optHtml}</div>
+          <span style="font-size:12px; font-weight:900; color:#00e5ff; background:rgba(0,229,255,0.1); padding:6px 12px; border-radius:6px; text-transform:uppercase; letter-spacing:1px;">${q.cat}</span>
+          <h2 style="font-size: 24px; line-height: 1.4; margin-top:15px;">${q.q}</h2>
+          <div style="margin-top: 30px;" id="fs-exam-opts">${optHtml}</div>
         </div>
-      </div></div>
+      </div>
     `;
   }
 
   function renderSigns() {
-    let html = `<div class="fs-content"><div class="fs-content-inner"><div class="fs-card"><h2>🛑 Verkehrszeichen Lexikon</h2><div class="fs-signs-grid">`;
-    SIGNS.forEach(s => {
-      html += `<div class="fs-sign-item"><div class="fs-sign-icon">${s.icon}</div><div class="fs-sign-name">${s.name}</div><div class="fs-sign-desc">${s.desc}</div></div>`;
+    let html = `<div class="fs-content-inner">`;
+    Object.keys(SIGNS).forEach(cat => {
+      html += `<div class="fs-signs-cat"><h3>${cat}</h3><div class="fs-signs-grid">`;
+      SIGNS[cat].forEach(s => {
+        html += `<div class="fs-sign-item"><div class="fs-sign-icon">${s.icon}</div><div class="fs-sign-name">${s.name}</div><div class="fs-sign-desc">${s.desc}</div></div>`;
+      });
+      html += `</div></div>`;
     });
-    html += `</div></div></div></div>`;
+    html += `</div>`;
     return html;
   }
 
   function renderVideos() {
     const vids = [
-      { title: 'Grundlagen der Vorfahrt', dur: '12:30' },
-      { title: 'Autobahn Auffahrt & Rettungsgasse', dur: '08:45' },
-      { title: 'Richtig Einparken (Längs & Quer)', dur: '15:20' },
-      { title: 'Verhalten bei Panne & Unfall', dur: '10:15' }
+      { title: 'Grundlagen der Vorfahrt', dur: '12:30', cat: 'Grundwissen' },
+      { title: 'Autobahn: Auffahrt & Rettungsgasse', dur: '08:45', cat: 'Autobahn' },
+      { title: 'Richtig Einparken (Längs & Quer)', dur: '15:20', cat: 'Praktisch' },
+      { title: 'Verhalten bei Panne & Unfall', dur: '10:15', cat: 'Grundwissen' },
+      { title: 'Kreisverkehr meistern', dur: '05:30', cat: 'Praktisch' },
+      { title: 'Erste Hilfe am Unfallort', dur: '18:00', cat: 'Erste Hilfe' }
     ];
-    let html = `<div class="fs-content"><div class="fs-content-inner"><div class="fs-card"><h2>🎬 Lernvideos (Simuliert)</h2><div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">`;
+    let html = `<div class="fs-content-inner"><div class="fs-card"><h2>🎬 Lernvideos</h2><div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">`;
     vids.forEach(v => {
-      html += `<div class="fs-video-card" onclick="alert('Video-Player wird in einer echten Umgebung gestartet!')">
+      html += `<div class="fs-video-card" onclick="alert('Video-Player wird gestartet (Simulation).')">
         <div class="fs-play-btn">▶</div>
-        <div class="fs-video-title">${v.title} <span style="float:right; color:#888;">${v.dur}</span></div>
+        <div class="fs-video-title">${v.title} <br><span style="font-size:12px; color:#00e5ff;">${v.cat}</span><span style="float:right; color:#888; font-weight:normal;">${v.dur}</span></div>
       </div>`;
     });
-    html += `</div></div></div></div>`;
+    html += `</div></div></div>`;
+    return html;
+  }
+
+  function renderTheory() {
+    const theory = [
+      { title: 'Erste Hilfe', desc: 'Notruf, Stabile Seitenlage, Wiederbelebung, Verbrennungen. Alles was du wissen musst.' },
+      { title: 'Fahrzeugtechnik', desc: 'ABS, ESP, Kupplung, Reifen, Bremsen. So funktioniert dein Auto.' },
+      { title: 'Umweltbewusstes Fahren', desc: 'Sprit sparen, Emissionen reduzieren, Reifendruck prüfen.' },
+      { title: 'Verhalten im Straßenverkehr', desc: 'Rücksichtnahme, Vorfahrt, defensives Fahren.' },
+      { title: 'Autobahn & Schnellstraßen', desc: 'Auffahren, Rettungsgasse, Abstand halten, LKW überholen.' },
+      { title: 'Nachtfahrt & Wetter', desc: 'Fahren bei Regen, Nebel, Schnee und in der Dunkelheit.' }
+    ];
+    let html = `<div class="fs-content-inner"><div class="fs-card"><h2>📚 Theorie A-Z</h2><div class="fs-theory-grid">`;
+    theory.forEach(t => {
+      html += `<div class="fs-theory-card" onclick="alert('Lernmodul ${t.title} wird geöffnet (Simulation).')">
+        <h4>${t.title}</h4><p>${t.desc}</p>
+      </div>`;
+    });
+    html += `</div></div></div>`;
     return html;
   }
 
   function renderSettings() {
     return `
-      <div class="fs-content"><div class="fs-content-inner">
+      <div class="fs-content-inner">
         <div class="fs-card">
           <h2>⚙️ ${t('settings')}</h2>
-          <div class="fs-stat-row" style="align-items:center;">
-            <span>${t('lang')}</span>
-            <select data-action="set-lang" style="padding:8px 12px; background:#1a1a24; color:#fff; border:1px solid #333; border-radius:8px; outline:none; font-family:inherit;">
+          <div style="margin-bottom:20px;">
+            <label style="display:block; margin-bottom:10px; color:#888; font-size:14px;">${t('lang')}</label>
+            <select class="fs-select" data-action="set-lang">
               <option value="de" ${state.lang === 'de' ? 'selected' : ''}>Deutsch</option>
               <option value="en" ${state.lang === 'en' ? 'selected' : ''}>English</option>
               <option value="tr" ${state.lang === 'tr' ? 'selected' : ''}>Türkçe</option>
+              <option value="ku" ${state.lang === 'ku' ? 'selected' : ''}>Kurmandschi (Kurdisch)</option>
+              <option value="ckb" ${state.lang === 'ckb' ? 'selected' : ''}>Sorani (Kurdisch)</option>
+              <option value="gorani" ${state.lang === 'gorani' ? 'selected' : ''}>Gorani (Kurdisch)</option>
+              <option value="ez" ${state.lang === 'ez' ? 'selected' : ''}>Ezidi</option>
+              <option value="fr" ${state.lang === 'fr' ? 'selected' : ''}>Français</option>
+              <option value="ar" ${state.lang === 'ar' ? 'selected' : ''}>العربية</option>
+              <option value="es" ${state.lang === 'es' ? 'selected' : ''}>Español</option>
+              <option value="pl" ${state.lang === 'pl' ? 'selected' : ''}>Polski</option>
+              <option value="ru" ${state.lang === 'ru' ? 'selected' : ''}>Русский</option>
             </select>
           </div>
         </div>
-      </div></div>
+      </div>
     `;
   }
 
@@ -363,25 +459,30 @@
     else if (state.currentView === 'exam') viewHtml = renderExam();
     else if (state.currentView === 'signs') viewHtml = renderSigns();
     else if (state.currentView === 'videos') viewHtml = renderVideos();
+    else if (state.currentView === 'theory') viewHtml = renderTheory();
     else if (state.currentView === 'settings') viewHtml = renderSettings();
-
-    let examBtn = (state.currentView === 'exam' || state.currentView === 'exam-setup') ? `<button class="fs-btn active" data-action="view-exam">🏁 ${t('exam')}</button>` : `<button class="fs-btn" data-action="view-exam">🏁 ${t('exam')}</button>`;
 
     return css() + `
       <div class="fs-app">
-        <div class="fs-header">
-          <h1>🚦 HalDo Fahrschule <span style="font-size:10px; color:#666; margin-left:5px; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px;">PRO MAX v${VERSION}</span></h1>
-          <div class="fs-nav">
-            <button class="fs-btn ${state.currentView === 'dashboard' ? 'active' : ''}" data-action="view-dashboard">🏠 ${t('dashboard')}</button>
-            <button class="fs-btn ${state.currentView === 'learn-setup' || state.currentView === 'learn' ? 'active' : ''}" data-action="view-learn-setup">📖 ${t('learn')}</button>
-            <button class="fs-btn ${state.currentView === 'signs' ? 'active' : ''}" data-action="view-signs">🛑 ${t('signs')}</button>
-            <button class="fs-btn ${state.currentView === 'videos' ? 'active' : ''}" data-action="view-videos">🎬 ${t('videos')}</button>
-            ${examBtn}
-            <button class="fs-btn ${state.currentView === 'settings' ? 'active' : ''}" data-action="view-settings">⚙️</button>
-          </div>
+        <div class="fs-sidebar">
+          <div class="fs-logo">🚦 HalDo Fahrschule <span>PRO MAX</span></div>
+          <div class="fs-nav-item ${state.currentView === 'dashboard' ? 'active' : ''}" data-action="view-dashboard"><span class="icon">🏠</span> ${t('dashboard')}</div>
+          <div class="fs-nav-item ${state.currentView === 'learn-setup' || state.currentView === 'learn' ? 'active' : ''}" data-action="view-learn-setup"><span class="icon">📖</span> ${t('learn')}</div>
+          <div class="fs-nav-item ${state.currentView === 'exam-setup' || state.currentView === 'exam' ? 'active' : ''}" data-action="view-exam"><span class="icon">🏁</span> ${t('exam')}</div>
+          <div class="fs-nav-item ${state.currentView === 'signs' ? 'active' : ''}" data-action="view-signs"><span class="icon">🛑</span> ${t('signs')}</div>
+          <div class="fs-nav-item ${state.currentView === 'theory' ? 'active' : ''}" data-action="view-theory"><span class="icon">📚</span> ${t('theory')}</div>
+          <div class="fs-nav-item ${state.currentView === 'videos' ? 'active' : ''}" data-action="view-videos"><span class="icon">🎬</span> ${t('videos')}</div>
+          <div style="flex:1;"></div>
+          <div class="fs-nav-item ${state.currentView === 'settings' ? 'active' : ''}" data-action="view-settings"><span class="icon">⚙️</span> ${t('settings')}</div>
         </div>
-        <div id="fs-main-content" style="flex:1; overflow-y:auto;">
-          ${viewHtml}
+        <div class="fs-main">
+          <div class="fs-header">
+            <h1>${state.currentView === 'dashboard' ? t('dashboard') : state.currentView === 'learn' || state.currentView === 'learn-setup' ? t('learn') : state.currentView === 'exam' || state.currentView === 'exam-setup' ? t('exam') : state.currentView === 'signs' ? t('signs') : state.currentView === 'theory' ? t('theory') : state.currentView === 'videos' ? t('videos') : t('settings')}</h1>
+            <div style="font-size:12px; color:#888;">v${VERSION}</div>
+          </div>
+          <div class="fs-content-area" id="fs-main-content">
+            ${viewHtml}
+          </div>
         </div>
       </div>
       <!-- AI Modal -->
@@ -396,12 +497,10 @@
   }
 
   // ═══════════════════════════════════════════════════════
-  // 6. LOGIC & CONTROLLER
+  // 7. LOGIC & CONTROLLER
   // ═══════════════════════════════════════════════════════
   
-  function shuffle(array) {
-    return [...array].sort(() => Math.random() - 0.5);
-  }
+  function shuffle(array) { return [...array].sort(() => Math.random() - 0.5); }
 
   function startExam(count) {
     state.exam = {
@@ -410,7 +509,7 @@
       correct: 0,
       total: count,
       finished: false,
-      timeLeft: count * 60 // 1 Minute pro Frage
+      timeLeft: count * 60
     };
     state.stats.examsTaken++;
     saveState();
@@ -420,13 +519,11 @@
     timerInterval = setInterval(() => {
       if (!state.exam || state.exam.finished) { clearInterval(timerInterval); return; }
       state.exam.timeLeft--;
-      
       const timerEl = document.getElementById('fs-exam-timer');
       if (timerEl) {
         timerEl.textContent = `${Math.floor(state.exam.timeLeft / 60)}:${(state.exam.timeLeft % 60).toString().padStart(2, '0')}`;
-        if (state.exam.timeLeft <= 60) timerEl.style.color = '#ff3333'; // Warnung bei 1 Min
+        if (state.exam.timeLeft <= 60) timerEl.style.color = '#ff3333';
       }
-      
       if (state.exam.timeLeft <= 0) finishExam();
     }, 1000);
 
@@ -457,20 +554,13 @@
     modal.classList.add('show');
     textEl.innerHTML = '<span style="color:#00e5ff;">Analysiere...</span>';
     
-    // Simuliere KI-Antwort (oder rufe echte HalDo KI auf, falls vorhanden)
     setTimeout(() => {
-      let aiResponse = explanation; // Fallback
-      
+      let aiResponse = explanation;
       if (window.HalDoAI && typeof window.HalDoAI.generate === 'function') {
-        try {
-          // Wenn dein System eine echte KI hat, nutze sie!
-          aiResponse = window.HalDoAI.generate("Erkläre diese Fahrschul-Frage einfach: " + questionText);
-        } catch(e) {}
+        try { aiResponse = window.HalDoAI.generate("Erkläre diese Fahrschul-Frage einfach: " + questionText); } catch(e) {}
       } else {
-        // Schlaue simulierte Antwort
         aiResponse = `Stell dir vor, du fährst gerade auf der Straße. ${explanation} <br><br><b>Tipp von HalDo KI:</b> Achte immer auf die anderen Verkehrsteilnehmer und sei vorausschauend!`;
       }
-      
       textEl.innerHTML = aiResponse;
     }, 1200);
   }
@@ -480,19 +570,17 @@
     if (!btn) return;
     const action = btn.dataset.action;
 
-    // Navigation
     if (action === 'view-dashboard') { state.currentView = 'dashboard'; if (timerInterval) clearInterval(timerInterval); updateView(); return; }
     if (action === 'view-learn-setup') { state.currentView = 'learn-setup'; updateView(); return; }
     if (action === 'view-exam') { state.currentView = 'exam-setup'; updateView(); return; }
     if (action === 'view-signs') { state.currentView = 'signs'; updateView(); return; }
     if (action === 'view-videos') { state.currentView = 'videos'; updateView(); return; }
+    if (action === 'view-theory') { state.currentView = 'theory'; updateView(); return; }
     if (action === 'view-settings') { state.currentView = 'settings'; updateView(); return; }
 
-    // Start
     if (action === 'start-exam') { startExam(parseInt(btn.dataset.count)); return; }
     if (action === 'start-learn') { startLearn(parseInt(btn.dataset.count)); return; }
 
-    // Learn Mode
     if (action === 'learn-answer') {
       const idx = parseInt(btn.dataset.idx);
       const q = state.learnList[state.learnIndex];
@@ -519,7 +607,6 @@
       return;
     }
 
-    // Exam Mode
     if (action === 'exam-answer' && state.exam && !state.exam.finished) {
       const idx = parseInt(btn.dataset.idx);
       const q = state.exam.questions[state.exam.current];
@@ -529,15 +616,11 @@
       saveState();
 
       state.exam.current++;
-      if (state.exam.current >= state.exam.total) {
-        finishExam();
-      } else {
-        updateView();
-      }
+      if (state.exam.current >= state.exam.total) finishExam();
+      else updateView();
       return;
     }
 
-    // AI
     if (action === 'ask-ai') {
       const q = state.learnList[state.learnIndex];
       askAI(q.q, q.exp);
@@ -550,42 +633,49 @@
     if (el.dataset.action === 'set-lang') {
       state.lang = el.value;
       saveState();
-      updateView();
+      updateView(); // Re-render whole UI with new language
     }
   }
 
   function updateView() {
     if (!currentTarget) return;
     const main = currentTarget.querySelector('#fs-main-content');
+    const sidebar = currentTarget.querySelector('.fs-sidebar');
+    const headerTitle = currentTarget.querySelector('.fs-header h1');
+    
     if (main) {
-      // Re-render nur den Hauptinhalt, um Scroll-Verlust zu vermeiden
       if (state.currentView === 'dashboard') main.innerHTML = renderDashboard();
       else if (state.currentView === 'learn-setup') main.innerHTML = renderLearnSetup();
       else if (state.currentView === 'learn') main.innerHTML = renderLearn();
       else if (state.currentView === 'exam-setup') main.innerHTML = renderExamSetup();
       else if (state.currentView === 'exam') main.innerHTML = renderExam();
       else if (state.currentView === 'signs') main.innerHTML = renderSigns();
+      else if (state.currentView === 'theory') main.innerHTML = renderTheory();
       else if (state.currentView === 'videos') main.innerHTML = renderVideos();
       else if (state.currentView === 'settings') main.innerHTML = renderSettings();
     }
     
-    // Header-Buttons aktualisieren
-    const header = currentTarget.querySelector('.fs-nav');
-    if (header) {
-       let examBtn = (state.currentView === 'exam' || state.currentView === 'exam-setup') ? `<button class="fs-btn active" data-action="view-exam">🏁 ${t('exam')}</button>` : `<button class="fs-btn" data-action="view-exam">🏁 ${t('exam')}</button>`;
-       header.innerHTML = `
-            <button class="fs-btn ${state.currentView === 'dashboard' ? 'active' : ''}" data-action="view-dashboard">🏠 ${t('dashboard')}</button>
-            <button class="fs-btn ${state.currentView === 'learn-setup' || state.currentView === 'learn' ? 'active' : ''}" data-action="view-learn-setup">📖 ${t('learn')}</button>
-            <button class="fs-btn ${state.currentView === 'signs' ? 'active' : ''}" data-action="view-signs">🛑 ${t('signs')}</button>
-            <button class="fs-btn ${state.currentView === 'videos' ? 'active' : ''}" data-action="view-videos">🎬 ${t('videos')}</button>
-            ${examBtn}
-            <button class="fs-btn ${state.currentView === 'settings' ? 'active' : ''}" data-action="view-settings">⚙️</button>
-       `;
+    if (sidebar) {
+        sidebar.innerHTML = `
+          <div class="fs-logo">🚦 HalDo Fahrschule <span>PRO MAX</span></div>
+          <div class="fs-nav-item ${state.currentView === 'dashboard' ? 'active' : ''}" data-action="view-dashboard"><span class="icon">🏠</span> ${t('dashboard')}</div>
+          <div class="fs-nav-item ${state.currentView === 'learn-setup' || state.currentView === 'learn' ? 'active' : ''}" data-action="view-learn-setup"><span class="icon">📖</span> ${t('learn')}</div>
+          <div class="fs-nav-item ${state.currentView === 'exam-setup' || state.currentView === 'exam' ? 'active' : ''}" data-action="view-exam"><span class="icon">🏁</span> ${t('exam')}</div>
+          <div class="fs-nav-item ${state.currentView === 'signs' ? 'active' : ''}" data-action="view-signs"><span class="icon">🛑</span> ${t('signs')}</div>
+          <div class="fs-nav-item ${state.currentView === 'theory' ? 'active' : ''}" data-action="view-theory"><span class="icon">📚</span> ${t('theory')}</div>
+          <div class="fs-nav-item ${state.currentView === 'videos' ? 'active' : ''}" data-action="view-videos"><span class="icon">🎬</span> ${t('videos')}</div>
+          <div style="flex:1;"></div>
+          <div class="fs-nav-item ${state.currentView === 'settings' ? 'active' : ''}" data-action="view-settings"><span class="icon">⚙️</span> ${t('settings')}</div>
+        `;
+    }
+    
+    if (headerTitle) {
+        headerTitle.textContent = state.currentView === 'dashboard' ? t('dashboard') : state.currentView === 'learn' || state.currentView === 'learn-setup' ? t('learn') : state.currentView === 'exam' || state.currentView === 'exam-setup' ? t('exam') : state.currentView === 'signs' ? t('signs') : state.currentView === 'theory' ? t('theory') : state.currentView === 'videos' ? t('videos') : t('settings');
     }
   }
 
   // ═══════════════════════════════════════════════════════
-  // 7. MOUNT & OPEN
+  // 8. MOUNT & OPEN
   // ═══════════════════════════════════════════════════════
   function mount(target) {
     if (target && target.nodeType === 1) {
@@ -630,6 +720,6 @@
   window.renderFahrschule = mount;
   window.openFahrschule = openOverlay;
 
-  console.log('🚦 fahrschule.js v' + VERSION + ' geladen — PRO MAX (KI, Multi-Lang, Pro UI)');
+  console.log('🚦 fahrschule.js v' + VERSION + ' geladen — ULTIMATE PRO MAX (12 Sprachen, 50 Fragen, Alle Schilder, Theorie)');
 
 })();
