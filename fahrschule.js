@@ -1,12 +1,12 @@
-/* HalDo Fahrschule v1000.0 — ULTIMATE GLOBAL (Alle Klassen, TTS, 100+ Fragen, Alle Schilder, 20+ Sprachen) */
+/* HalDo Fahrschule v1100.0 — ULTIMATE GLOBAL (Alle Klassen, Alle Schilder A-Z, TTS, 20+ Sprachen) */
 (function () {
   'use strict';
 
-  const VERSION = '1000.0';
-  const STORAGE_KEY = 'haldo.fahrschule.pro.stats.v1000';
+  const VERSION = '1100.0';
+  const STORAGE_KEY = 'haldo.fahrschule.pro.stats.v1100';
 
   // ═══════════════════════════════════════════════════════
-  // 1. MULTI-LANGUAGE ENGINE (Erweitert um Ezidi, Kurdisch, Farsi, Latein, Hebräisch, Usbekisch)
+  // 1. MULTI-LANGUAGE ENGINE (20+ Sprachen)
   // ═══════════════════════════════════════════════════════
   const LANG = {
     de: {
@@ -17,8 +17,7 @@
       reset_stats: 'Statistiken zurücksetzen', reset_stats_desc: 'Löscht alle gespeicherten Fortschritte', about: 'Über die App',
       version: 'Version', speak: 'Vorlesen', close: 'Schließen', listen_question: 'Frage vorlesen', listen_options: 'Antworten vorlesen',
       listen_explanation: 'Erklärung vorlesen', listen_sign: 'Schild vorlesen', listen_video: 'Video-Info vorlesen',
-      class_b: 'Klasse B', class_a: 'Klasse A', class_c: 'Klasse C', class_d: 'Klasse D', class_am: 'Klasse AM',
-      grundstoff: 'Grundstoff', zusatzstoff: 'Zusatzstoff', all_classes: 'Alle Klassen'
+      select_class: 'Führerscheinklasse wählen', class: 'Klasse', all_signs: 'Alle Verkehrszeichen von A-Z', search_signs: 'Schilder suchen...'
     },
     en: {
       dashboard: 'Dashboard', learn: 'Learn', exam: 'Exam', signs: 'Signs', videos: 'Videos', theory: 'Theory', settings: 'Settings',
@@ -28,8 +27,7 @@
       reset_stats: 'Reset Statistics', reset_stats_desc: 'Deletes all saved progress', about: 'About App',
       version: 'Version', speak: 'Speak', close: 'Close', listen_question: 'Listen to question', listen_options: 'Listen to options',
       listen_explanation: 'Listen to explanation', listen_sign: 'Listen to sign', listen_video: 'Listen to video info',
-      class_b: 'Class B', class_a: 'Class A', class_c: 'Class C', class_d: 'Class D', class_am: 'Class AM',
-      grundstoff: 'Basics', zusatzstoff: 'Specific', all_classes: 'All Classes'
+      select_class: 'Select driving class', class: 'Class', all_signs: 'All traffic signs A-Z', search_signs: 'Search signs...'
     },
     tr: {
       dashboard: 'Panel', learn: 'Öğren', exam: 'Sınav', signs: 'İşaretler', videos: 'Videolar', theory: 'Teori', settings: 'Ayarlar',
@@ -39,8 +37,7 @@
       reset_stats: 'İstatistikleri Sıfırla', reset_stats_desc: 'Tüm ilerlemeyi siler', about: 'Uygulama Hakkında',
       version: 'Sürüm', speak: 'Sesli Oku', close: 'Kapat', listen_question: 'Soruyu dinle', listen_options: 'Seçenekleri dinle',
       listen_explanation: 'Açıklamayı dinle', listen_sign: 'İşareti dinle', listen_video: 'Video bilgisini dinle',
-      class_b: 'B Sınıfı', class_a: 'A Sınıfı', class_c: 'C Sınıfı', class_d: 'D Sınıfı', class_am: 'AM Sınıfı',
-      grundstoff: 'Temel', zusatzstoff: 'Özel', all_classes: 'Tüm Sınıflar'
+      select_class: 'Ehliyet sınıfı seç', class: 'Sınıf', all_signs: 'Tüm trafik işaretleri A-Z', search_signs: 'İşaret ara...'
     },
     ku: {
       dashboard: 'Destpêk', learn: 'Fêr bibe', exam: 'Azmûn', signs: 'Nîşan', videos: 'Vîdyo', theory: 'Teorî', settings: 'Mîheng',
@@ -50,8 +47,7 @@
       reset_stats: 'Statîstîkan Paqij Bike', reset_stats_desc: 'Hemû pêşkeftinê paqij dike', about: 'Derbarê App',
       version: 'Guhertî', speak: 'Bixwîne', close: 'Bigre', listen_question: 'Pirsê bixwîne', listen_options: 'Bersivan bixwîne',
       listen_explanation: 'Ravekirinê bixwîne', listen_sign: 'Nîşanê bixwîne', listen_video: 'Agahdariya vîdyoyê bixwîne',
-      class_b: 'Çîna B', class_a: 'Çîna A', class_c: 'Çîna C', class_d: 'Çîna D', class_am: 'Çîna AM',
-      grundstoff: 'Bingehîn', zusatzstoff: 'Taybet', all_classes: 'Hemû Çîn'
+      select_class: 'Çîna ehliyetê hilbijêre', class: 'Çîn', all_signs: 'Hemû nîşanên trafîkê A-Z', search_signs: 'Nîşanan bigere...'
     },
     ckb: {
       dashboard: 'دەستپێک', learn: 'فێربوون', exam: 'تاقیکردنەوە', signs: 'هێماکان', videos: 'ڤیدیۆکان', theory: 'تیۆری', settings: 'ڕێکخستنەکان',
@@ -61,8 +57,7 @@
       reset_stats: 'ئامارەکان ڕێست بکە', reset_stats_desc: 'هەموو پێشکەوتنەکان دەسڕێتەوە', about: 'دەربارەی ئەپ',
       version: 'وەشان', speak: 'بخوێنەرەوە', close: 'داخستن', listen_question: 'پرسیارەکە بخوێنەرەوە', listen_options: 'هەڵبژاردنەکان بخوێنەرەوە',
       listen_explanation: 'ڕوونکردنەوە بخوێنەرەوە', listen_sign: 'هێماکە بخوێنەرەوە', listen_video: 'زانیاری ڤیدیۆ بخوێنەرەوە',
-      class_b: 'پۆلی B', class_a: 'پۆلی A', class_c: 'پۆلی C', class_d: 'پۆلی D', class_am: 'پۆلی AM',
-      grundstoff: 'بنەڕەتی', zusatzstoff: 'تایبەت', all_classes: 'هەموو پۆلەکان'
+      select_class: 'پۆلی مۆڵەت هەڵبژێرە', class: 'پۆل', all_signs: 'هەموو هێماکانی هاتوچۆ A-Z', search_signs: 'گەڕان بۆ هێماکان...'
     },
     gorani: {
       dashboard: 'Destpêk', learn: 'Fêr bibe', exam: 'Azmûn', signs: 'Nîşan', videos: 'Vîdyo', theory: 'Teorî', settings: 'Mîheng',
@@ -72,8 +67,7 @@
       reset_stats: 'Statîstîkan Paqij Bike', reset_stats_desc: 'Hemû pêşkeftinê paqij dike', about: 'Derbarê App',
       version: 'Guhertî', speak: 'Bixwîne', close: 'Bigre', listen_question: 'Pirsê bixwîne', listen_options: 'Bersivan bixwîne',
       listen_explanation: 'Ravekirinê bixwîne', listen_sign: 'Nîşanê bixwîne', listen_video: 'Agahdariya vîdyoyê bixwîne',
-      class_b: 'Çîna B', class_a: 'Çîna A', class_c: 'Çîna C', class_d: 'Çîna D', class_am: 'Çîna AM',
-      grundstoff: 'Bingehîn', zusatzstoff: 'Taybet', all_classes: 'Hemû Çîn'
+      select_class: 'Çîna ehliyetê hilbijêre', class: 'Çîn', all_signs: 'Hemû nîşanên trafîkê A-Z', search_signs: 'Nîşanan bigere...'
     },
     ez: {
       dashboard: 'Destpêk', learn: 'Fêr bibe', exam: 'Azmûn', signs: 'Nîşan', videos: 'Vîdyo', theory: 'Teorî', settings: 'Mîheng',
@@ -83,8 +77,7 @@
       reset_stats: 'Statîstîkan Paqij Bike', reset_stats_desc: 'Hemû pêşkeftinê paqij dike', about: 'Derbarê App',
       version: 'Guhertî', speak: 'Bixwîne', close: 'Bigre', listen_question: 'Pirsê bixwîne', listen_options: 'Bersivan bixwîne',
       listen_explanation: 'Ravekirinê bixwîne', listen_sign: 'Nîşanê bixwîne', listen_video: 'Agahdariya vîdyoyê bixwîne',
-      class_b: 'Çîna B', class_a: 'Çîna A', class_c: 'Çîna C', class_d: 'Çîna D', class_am: 'Çîna AM',
-      grundstoff: 'Bingehîn', zusatzstoff: 'Taybet', all_classes: 'Hemû Çîn'
+      select_class: 'Çîna ehliyetê hilbijêre', class: 'Çîn', all_signs: 'Hemû nîşanên trafîkê A-Z', search_signs: 'Nîşanan bigere...'
     },
     ar: {
       dashboard: 'لوحة القيادة', learn: 'تعلم', exam: 'امتحان', signs: 'علامات', videos: 'فيديوهات', theory: 'نظرية', settings: 'إعدادات',
@@ -94,8 +87,7 @@
       reset_stats: 'إعادة تعيين الإحصائيات', reset_stats_desc: 'حذف كل التقدم المحفوظ', about: 'حول التطبيق',
       version: 'إصدار', speak: 'قراءة', close: 'إغلاق', listen_question: 'استمع للسؤال', listen_options: 'استمع للخيارات',
       listen_explanation: 'استمع للشرح', listen_sign: 'استمع للعلامة', listen_video: 'استمع لمعلومات الفيديو',
-      class_b: 'الفئة ب', class_a: 'الفئة أ', class_c: 'الفئة ج', class_d: 'الفئة د', class_am: 'الفئة AM',
-      grundstoff: 'الأساسيات', zusatzstoff: 'خاص', all_classes: 'جميع الفئات'
+      select_class: 'اختر فئة القيادة', class: 'فئة', all_signs: 'جميع علامات المرور A-Z', search_signs: 'ابحث عن العلامات...'
     },
     fa: {
       dashboard: 'داشبورد', learn: 'یادگیری', exam: 'آزمون', signs: 'علائم', videos: 'ویدیوها', theory: 'تئوری', settings: 'تنظیمات',
@@ -105,30 +97,7 @@
       reset_stats: 'بازنشانی آمار', reset_stats_desc: 'همه پیشرفت‌ها را پاک می‌کند', about: 'درباره برنامه',
       version: 'نسخه', speak: 'خواندن', close: 'بستن', listen_question: 'گوش دادن به سوال', listen_options: 'گوش دادن به گزینه‌ها',
       listen_explanation: 'گوش دادن به توضیحات', listen_sign: 'گوش دادن به علامت', listen_video: 'گوش دادن به ویدیو',
-      class_b: 'کلاس B', class_a: 'کلاس A', class_c: 'کلاس C', class_d: 'کلاس D', class_am: 'کلاس AM',
-      grundstoff: 'پایه', zusatzstoff: 'خاص', all_classes: 'همه کلاس‌ها'
-    },
-    uz: {
-      dashboard: 'Boshqaruv paneli', learn: "O'rganish", exam: 'Imtihon', signs: 'Belgilar', videos: 'Videolar', theory: 'Nazariya', settings: 'Sozlamalar',
-      start: 'Boshlash', questions: 'Savollar', back: 'Orqaga', next: 'Keyingi', ai_explain: "AI dan so'rash", pass: "O'TDI", fail: 'YIQILDI',
-      select_count: 'Savollar sonini tanlang', lang: 'Til', exam_start: 'Imtihonni boshlash', auto_next: 'Avto-Keyingi',
-      auto_next_desc: 'Avtomatik keyingi savolga', sound_fx: 'Ovoz effektlari', sound_fx_desc: "To'g'ri/xato ovozlari",
-      reset_stats: 'Statistikani Tozalash', reset_stats_desc: 'Barcha taraqqiyotni ochiradi', about: 'Ilova haqida',
-      version: 'Versiya', speak: "O'qish", close: 'Yopish', listen_question: 'Savolni tinglash', listen_options: 'Variantlarni tinglash',
-      listen_explanation: 'Tushuntirishni tinglash', listen_sign: 'Belgini tinglash', listen_video: 'Video maʼlumotlarini tinglash',
-      class_b: 'B sinfi', class_a: 'A sinfi', class_c: 'C sinfi', class_d: 'D sinfi', class_am: 'AM sinfi',
-      grundstoff: 'Asosiy', zusatzstoff: 'Maxsus', all_classes: 'Barcha sinflar'
-    },
-    la: {
-      dashboard: 'Dashboard', learn: 'Discere', exam: 'Examen', signs: 'Signa', videos: 'Videos', theory: 'Theoria', settings: 'Optiones',
-      start: 'Incipere', questions: 'Quaestiones', back: 'Retro', next: 'Porro', ai_explain: 'Interroga AI', pass: 'TRANSIIT', fail: 'CECIDIT',
-      select_count: 'Elige numerum quaestionum', lang: 'Lingua', exam_start: 'Incipere Examen', auto_next: 'Auto-Porro',
-      auto_next_desc: 'Automatice ad sequentem', sound_fx: 'Sonus Effectus', sound_fx_desc: 'Sonus recte/male',
-      reset_stats: 'Resettare Statistica', reset_stats_desc: 'Delet omnem progressum', about: 'De App',
-      version: 'Versio', speak: 'Legere', close: 'Claudere', listen_question: 'Audire quaestionem', listen_options: 'Audire optiones',
-      listen_explanation: 'Audire explicationem', listen_sign: 'Audire signum', listen_video: 'Audire video',
-      class_b: 'Classis B', class_a: 'Classis A', class_c: 'Classis C', class_d: 'Classis D', class_am: 'Classis AM',
-      grundstoff: 'Fundamentum', zusatzstoff: 'Specialis', all_classes: 'Omnes Classes'
+      select_class: 'کلاس گواهینامه را انتخاب کنید', class: 'کلاس', all_signs: 'همه علائم راهنمایی و رانندگی A-Z', search_signs: 'جستجوی علائم...'
     },
     he: {
       dashboard: 'לוח בקרה', learn: 'ללמוד', exam: 'בחינה', signs: 'שלטים', videos: 'סרטונים', theory: 'תיאוריה', settings: 'הגדרות',
@@ -138,8 +107,27 @@
       reset_stats: 'אפס סטטיסטיקות', reset_stats_desc: 'מוחק את כל ההתקדמות', about: 'אודות האפליקציה',
       version: 'גרסה', speak: 'הקרא', close: 'סגור', listen_question: 'הקשב לשאלה', listen_options: 'הקשב לאפשרויות',
       listen_explanation: 'הקשב להסבר', listen_sign: 'הקשב לשלט', listen_video: 'הקשב למידע על הסרטון',
-      class_b: 'סוג B', class_a: 'סוג A', class_c: 'סוג C', class_d: 'סוג D', class_am: 'סוג AM',
-      grundstoff: 'בסיסי', zusatzstoff: 'ספציפי', all_classes: 'כל הסוגים'
+      select_class: 'בחר סוג רישיון', class: 'סוג', all_signs: 'כל שלטי התנועה A-Z', search_signs: 'חפש שלטים...'
+    },
+    la: {
+      dashboard: 'Dashboard', learn: 'Discere', exam: 'Examen', signs: 'Signa', videos: 'Videos', theory: 'Theoria', settings: 'Optiones',
+      start: 'Incipere', questions: 'Quaestiones', back: 'Retro', next: 'Porro', ai_explain: 'Interroga AI', pass: 'TRANSIIT', fail: 'CECIDIT',
+      select_count: 'Elige numerum quaestionum', lang: 'Lingua', exam_start: 'Incipere Examen', auto_next: 'Auto-Porro',
+      auto_next_desc: 'Automatice ad sequentem', sound_fx: 'Sonus Effectus', sound_fx_desc: 'Sonus recte/male',
+      reset_stats: 'Resettare Statistica', reset_stats_desc: 'Delet omnem progressum', about: 'De App',
+      version: 'Versio', speak: 'Legere', close: 'Claudere', listen_question: 'Audire quaestionem', listen_options: 'Audire optiones',
+      listen_explanation: 'Audire explicationem', listen_sign: 'Audire signum', listen_video: 'Audire video',
+      select_class: 'Elige classemissam', class: 'Classis', all_signs: 'Omnia signa A-Z', search_signs: 'Quaerere signa...'
+    },
+    uz: {
+      dashboard: 'Boshqaruv paneli', learn: "O'rganish", exam: 'Imtihon', signs: 'Belgilar', videos: 'Videolar', theory: 'Nazariya', settings: 'Sozlamalar',
+      start: 'Boshlash', questions: 'Savollar', back: 'Orqaga', next: 'Keyingi', ai_explain: "AI dan so'rash", pass: "O'TDI", fail: 'YIQILDI',
+      select_count: 'Savollar sonini tanlang', lang: 'Til', exam_start: 'Imtihonni boshlash', auto_next: 'Avto-Keyingi',
+      auto_next_desc: 'Avtomatik keyingi savolga', sound_fx: 'Ovoz effektlari', sound_fx_desc: "To'g'ri/xato ovozlari",
+      reset_stats: 'Statistikani Tozalash', reset_stats_desc: 'Barcha taraqqiyotni ochiradi', about: 'Ilova haqida',
+      version: 'Versiya', speak: "O'qish", close: 'Yopish', listen_question: 'Savolni tinglash', listen_options: 'Variantlarni tinglash',
+      listen_explanation: 'Tushuntirishni tinglash', listen_sign: 'Belgini tinglash', listen_video: 'Video maʼlumotlarini tinglash',
+      select_class: 'Haydovchilik toifasini tanlang', class: 'Toifa', all_signs: 'Barcha yo\'l belgilari A-Z', search_signs: 'Belgilarni qidirish...'
     },
     ru: {
       dashboard: 'Панель', learn: 'Учиться', exam: 'Экзамен', signs: 'Знаки', videos: 'Видео', theory: 'Теория', settings: 'Настройки',
@@ -149,8 +137,7 @@
       reset_stats: 'Сбросить Статистику', reset_stats_desc: 'Удаляет весь прогресс', about: 'О приложении',
       version: 'Версия', speak: 'Читать', close: 'Закрыть', listen_question: 'Слушать вопрос', listen_options: 'Слушать варианты',
       listen_explanation: 'Слушать объяснение', listen_sign: 'Слушать знак', listen_video: 'Слушать видео',
-      class_b: 'Класс B', class_a: 'Класс A', class_c: 'Класс C', class_d: 'Класс D', class_am: 'Класс AM',
-      grundstoff: 'Основы', zusatzstoff: 'Специальный', all_classes: 'Все классы'
+      select_class: 'Выберите класс вождения', class: 'Класс', all_signs: 'Все знаки A-Z', search_signs: 'Поиск знаков...'
     },
     pl: {
       dashboard: 'Pulpit', learn: 'Ucz się', exam: 'Egzamin', signs: 'Znaki', videos: 'Filmy', theory: 'Teoria', settings: 'Ustawienia',
@@ -160,8 +147,7 @@
       reset_stats: 'Resetuj Statystyki', reset_stats_desc: 'Usuwa cały postęp', about: 'O aplikacji',
       version: 'Wersja', speak: 'Czytaj', close: 'Zamknij', listen_question: 'Słuchaj pytania', listen_options: 'Słuchaj opcji',
       listen_explanation: 'Słuchaj wyjaśnienia', listen_sign: 'Słuchaj znaku', listen_video: 'Słuchaj wideo',
-      class_b: 'Klasa B', class_a: 'Klasa A', class_c: 'Klasa C', class_d: 'Klasa D', class_am: 'Klasa AM',
-      grundstoff: 'Podstawy', zusatzstoff: 'Specjalny', all_classes: 'Wszystkie klasy'
+      select_class: 'Wybierz kategorię prawa jazdy', class: 'Kategoria', all_signs: 'Wszystkie znaki A-Z', search_signs: 'Szukaj znaków...'
     },
     ro: {
       dashboard: 'Panou', learn: 'Învață', exam: 'Examen', signs: 'Indicatoare', videos: 'Videoclipuri', theory: 'Teorie', settings: 'Setări',
@@ -171,8 +157,7 @@
       reset_stats: 'Resetează Statisticile', reset_stats_desc: 'Șterge tot progresul salvat', about: 'Despre App',
       version: 'Versiune', speak: 'Citește', close: 'Închide', listen_question: 'Ascultă întrebarea', listen_options: 'Ascultă opțiunile',
       listen_explanation: 'Ascultă explicația', listen_sign: 'Ascultă semnul', listen_video: 'Ascultă video',
-      class_b: 'Clasa B', class_a: 'Clasa A', class_c: 'Clasa C', class_d: 'Clasa D', class_am: 'Clasa AM',
-      grundstoff: 'Bază', zusatzstoff: 'Specific', all_classes: 'Toate Clasele'
+      select_class: 'Selectați categoria permisului', class: 'Categorie', all_signs: 'Toate indicatoarele A-Z', search_signs: 'Caută indicatoare...'
     },
     hr: {
       dashboard: 'Nadzorna ploča', learn: 'Uči', exam: 'Ispit', signs: 'Znakovi', videos: 'Videozapisi', theory: 'Teorija', settings: 'Postavke',
@@ -182,8 +167,7 @@
       reset_stats: 'Resetiraj Statistiku', reset_stats_desc: 'Briše sav spremljeni napredak', about: 'O aplikaciji',
       version: 'Verzija', speak: 'Čitaj', close: 'Zatvori', listen_question: 'Slušaj pitanje', listen_options: 'Slušaj opcije',
       listen_explanation: 'Slušaj objašnjenje', listen_sign: 'Slušaj znak', listen_video: 'Slušaj video',
-      class_b: 'Klasa B', class_a: 'Klasa A', class_c: 'Klasa C', class_d: 'Klasa D', class_am: 'Klasa AM',
-      grundstoff: 'Osnove', zusatzstoff: 'Specifično', all_classes: 'Sve Klase'
+      select_class: 'Odaberite kategoriju vozačke', class: 'Kategorija', all_signs: 'Svi znakovi A-Z', search_signs: 'Pretraži znakove...'
     },
     pt: {
       dashboard: 'Painel', learn: 'Aprender', exam: 'Exame', signs: 'Sinais', videos: 'Vídeos', theory: 'Teoria', settings: 'Configurações',
@@ -193,8 +177,7 @@
       reset_stats: 'Redefinir Estatísticas', reset_stats_desc: 'Apaga todo o progresso salvo', about: 'Sobre o App',
       version: 'Versão', speak: 'Ler', close: 'Fechar', listen_question: 'Ouvir pergunta', listen_options: 'Ouvir opções',
       listen_explanation: 'Ouvir explicação', listen_sign: 'Ouvir sinal', listen_video: 'Ouvir vídeo',
-      class_b: 'Classe B', class_a: 'Classe A', class_c: 'Classe C', class_d: 'Classe D', class_am: 'Classe AM',
-      grundstoff: 'Básico', zusatzstoff: 'Específico', all_classes: 'Todas as Classes'
+      select_class: 'Selecione a categoria da carta', class: 'Categoria', all_signs: 'Todos os sinais A-Z', search_signs: 'Pesquisar sinais...'
     },
     fr: {
       dashboard: 'Tableau de bord', learn: 'Apprendre', exam: 'Examen', signs: 'Panneaux', videos: 'Vidéos', theory: 'Théorie', settings: 'Paramètres',
@@ -204,8 +187,7 @@
       reset_stats: 'Réinitialiser', reset_stats_desc: 'Efface toute la progression', about: 'À propos',
       version: 'Version', speak: 'Lire', close: 'Fermer', listen_question: 'Écouter la question', listen_options: 'Écouter les options',
       listen_explanation: 'Écouter l\'explication', listen_sign: 'Écouter le panneau', listen_video: 'Écouter la vidéo',
-      class_b: 'Classe B', class_a: 'Classe A', class_c: 'Classe C', class_d: 'Classe D', class_am: 'Classe AM',
-      grundstoff: 'Fondamental', zusatzstoff: 'Spécifique', all_classes: 'Toutes les Classes'
+      select_class: 'Choisir la catégorie de permis', class: 'Catégorie', all_signs: 'Tous les panneaux A-Z', search_signs: 'Rechercher des panneaux...'
     },
     el: {
       dashboard: 'Πίνακας', learn: 'Μάθηση', exam: 'Εξέταση', signs: 'Σήματα', videos: 'Βίντεο', theory: 'Θεωρία', settings: 'Ρυθμίσεις',
@@ -215,8 +197,7 @@
       reset_stats: 'Επαναφορά Στατιστικών', reset_stats_desc: 'Διαγράφει όλη την πρόοδο', about: 'Σχετικά με την Εφαρμογή',
       version: 'Έκδοση', speak: 'Ανάγνωση', close: 'Κλείσιμο', listen_question: 'Άκουσε την ερώτηση', listen_options: 'Άκουσε τις επιλογές',
       listen_explanation: 'Άκουσε την εξήγηση', listen_sign: 'Άκουσε το σήμα', listen_video: 'Άκουσε το βίντεο',
-      class_b: 'Κατηγορία B', class_a: 'Κατηγορία A', class_c: 'Κατηγορία C', class_d: 'Κατηγορία D', class_am: 'Κατηγορία AM',
-      grundstoff: 'Βασικό', zusatzstoff: 'Ειδικό', all_classes: 'Όλες οι Κατηγορίες'
+      select_class: 'Επιλέξτε κατηγορία άδειας', class: 'Κατηγορία', all_signs: 'Όλα τα σήματα A-Z', search_signs: 'Αναζήτηση σημάτων...'
     },
     es: {
       dashboard: 'Panel', learn: 'Aprender', exam: 'Examen', signs: 'Señales', videos: 'Videos', theory: 'Teoría', settings: 'Ajustes',
@@ -226,8 +207,7 @@
       reset_stats: 'Reiniciar Estadísticas', reset_stats_desc: 'Borra todo el progreso', about: 'Acerca de',
       version: 'Versión', speak: 'Leer', close: 'Cerrar', listen_question: 'Escuchar pregunta', listen_options: 'Escuchar opciones',
       listen_explanation: 'Escuchar explicación', listen_sign: 'Escuchar señal', listen_video: 'Escuchar video',
-      class_b: 'Clase B', class_a: 'Clase A', class_c: 'Clase C', class_d: 'Clase D', class_am: 'Clase AM',
-      grundstoff: 'Básico', zusatzstoff: 'Específico', all_classes: 'Todas las Clases'
+      select_class: 'Seleccionar clase de conducir', class: 'Clase', all_signs: 'Todas las señales A-Z', search_signs: 'Buscar señales...'
     },
     it: {
       dashboard: 'Pannello', learn: 'Impara', exam: 'Esame', signs: 'Segnali', videos: 'Video', theory: 'Teoria', settings: 'Impostazioni',
@@ -237,10 +217,19 @@
       reset_stats: 'Ripristina Statistiche', reset_stats_desc: 'Cancella tutti i progressi salvati', about: 'Informazioni sull\'App',
       version: 'Versione', speak: 'Leggi', close: 'Chiudi', listen_question: 'Ascolta domanda', listen_options: 'Ascolta opzioni',
       listen_explanation: 'Ascolta spiegazione', listen_sign: 'Ascolta segnale', listen_video: 'Ascolta video',
-      class_b: 'Classe B', class_a: 'Classe A', class_c: 'Classe C', class_d: 'Classe D', class_am: 'Classe AM',
-      grundstoff: 'Base', zusatzstoff: 'Specifico', all_classes: 'Tutte le Classi'
+      select_class: 'Seleziona categoria patente', class: 'Categoria', all_signs: 'Tutti i segnali A-Z', search_signs: 'Cerca segnali...'
     }
   };
+
+  const LICENSE_CLASSES = [
+    { id: 'AM', name: 'Klasse AM (Moped)' },
+    { id: 'A', name: 'Klasse A (Motorrad)' },
+    { id: 'B', name: 'Klasse B (PKW)' },
+    { id: 'C', name: 'Klasse C (LKW)' },
+    { id: 'D', name: 'Klasse D (Bus)' },
+    { id: 'L', name: 'Klasse L (Landwirtschaft)' },
+    { id: 'T', name: 'Klasse T (Traktor)' }
+  ];
 
   const QUESTIONS = [
     { id: 1, cat: 'Gefahrenlehre', q: 'Sie nähern sich einer unübersichtlichen Kurve. Wie verhalten Sie sich?', opts: ['Geschwindigkeit stark reduzieren, bremsbereit sein', 'Hupen und weiterfahren', 'Auf die Gegenfahrbahn ausweichen'], correct: 0, exp: 'In unübersichtlichen Kurven muss die Geschwindigkeit reduziert und bremsbereit gefahren werden.' },
@@ -267,72 +256,164 @@
     { id: 22, cat: 'Erste Hilfe', q: 'Wie lautet die Notrufnummer?', opts: ['112', '110', '911'], correct: 0, exp: 'Die europaweite Notrufnummer ist die 112.' },
     { id: 23, cat: 'Technik', q: 'Was bedeutet eine rote Kontrollleuchte im Armaturenbrett?', opts: ['Sofort anhalten und prüfen', 'Weiterfahren, es ist nur ein Hinweis', 'Motor abstellen und neu starten'], correct: 0, exp: 'Rote Kontrollleuchten weisen auf eine akute Gefahr hin.' },
     { id: 24, cat: 'Gefahrenlehre', q: 'Sie fahren bei Starkregen. Was tun?', opts: ['Geschwindigkeit reduzieren', 'Fernlicht einschalten', 'Schneller fahren'], correct: 0, exp: 'Bei Starkregen ist die Gefahr von Aquaplaning hoch.' },
-    { id: 25, cat: 'Vorfahrt', q: 'Sie wollen in einen Kreisverkehr einfahren. Wer hat Vorfahrt?', opts: ['Die Fahrzeuge im Kreisverkehr', 'Ich, weil ich von rechts komme', 'Wer schneller ist'], correct: 0, exp: 'Im Kreisverkehr hat der Verkehr im Kreis Vorfahrt.' },
-    { id: 26, cat: 'Verkehrszeichen', q: 'Was bedeutet das Schild mit dem roten Rand und dem weißen Kreis?', opts: ['Verbot der Einfahrt', 'Geschwindigkeitsbegrenzung', 'Überholverbot'], correct: 0, exp: 'Ein weißer Kreis mit rotem Rand bedeutet: Verbot der Einfahrt.' },
-    { id: 27, cat: 'Technik', q: 'Was ist die Aufgabe der Kupplung?', opts: ['Kraftübertragung zwischen Motor und Getriebe', 'Bremsen des Fahrzeugs', 'Kühlen des Motors'], correct: 0, exp: 'Die Kupplung trennt und verbindet den Motor mit dem Getriebe.' },
-    { id: 28, cat: 'Umweltschutz', q: 'Was passiert beim "Motorsurfen"?', opts: ['Man rollt im Leerlauf und bremst mit dem Motor', 'Man beschleunigt stark', 'Man schaltet zu früh hoch'], correct: 0, exp: 'Beim Motorsurfen wird der Motor im Schubbetrieb genutzt, um Sprit zu sparen.' },
-    { id: 29, cat: 'Gefahrenlehre', q: 'Sie fahren in der Dämmerung. Worauf achten?', opts: ['Wildwechsel möglich, Licht anmachen', 'Schneller fahren', 'Sonnenbrille tragen'], correct: 0, exp: 'In der Dämmerung ist das Wild besonders aktiv. Abblendlicht einschalten!' },
-    { id: 30, cat: 'Vorfahrt', q: 'Ein Bus fährt an einer Haltestelle an. Was gilt?', opts: ['Ich muss dem Bus das Ausfahren ermöglichen', 'Ich habe Vorfahrt', 'Der Bus muss warten'], correct: 0, exp: 'Ein Linienbus, der vom Halt anfährt, hat Vorrang.' },
-    { id: 31, cat: 'Verkehrszeichen', q: 'Was bedeutet das achteckige rote Schild?', opts: ['STOP - Anhalten und Vorfahrt gewähren', 'Vorfahrtstraße', 'Gefahrenstelle'], correct: 0, exp: 'Das achteckige rote Schild ist das STOP-Zeichen.' },
-    { id: 32, cat: 'Erste Hilfe', q: 'Was tun bei einer bewusstlosen Person?', opts: ['Stabile Seitenlage, Atemwege prüfen', 'Sofort Wasser geben', 'Hinsetzen'], correct: 0, exp: 'Die stabile Seitenlage verhindert das Ersticken.' },
-    { id: 33, cat: 'Technik', q: 'Was ist ein Reifendruckverlustsystem (RDKS)?', opts: ['Warnt bei zu niedrigem Reifendruck', 'Kühlt die Reifen', 'Erhöht die Geschwindigkeit'], correct: 0, exp: 'Das RDKS überwacht den Reifendruck.' },
-    { id: 34, cat: 'Gefahrenlehre', q: 'Sie fahren bei Glatteis. Was ist verboten?', opts: ['Abrupte Lenkbewegungen und starkes Bremsen', 'Langsam fahren', 'Winterreifen nutzen'], correct: 0, exp: 'Auf Glatteis können abrupte Manöver zum Ausbrechen führen.' },
-    { id: 35, cat: 'Vorfahrt', q: 'Wer hat Vorrang: Fußgänger oder Auto?', opts: ['Fußgänger am Zebrastreifen', 'Das Auto', 'Wer schneller ist'], correct: 0, exp: 'Am Zebrastreifen haben Fußgänger absoluten Vorrang.' },
-    { id: 36, cat: 'Verkehrszeichen', q: 'Ein blaues Schild mit weißem P bedeutet?', opts: ['Parkplatz', 'Verbot für PKW', 'Fußgängerzone'], correct: 0, exp: 'Das weiße P auf blauem Grund ist das Parkplatzschild.' },
-    { id: 37, cat: 'Technik', q: 'Was ist die Funktion des ABS?', opts: ['Verhindert das Blockieren der Räder beim Bremsen', 'Erhöht die Motorleistung', 'Reduziert den Benzinverbrauch'], correct: 0, exp: 'ABS verhindert das Blockieren der Räder.' },
-    { id: 38, cat: 'Umweltschutz', q: 'Was schadet der Umwelt am meisten?', opts: ['Ständiges Beschleunigen und Bremsen', 'Gleichmäßige Fahrt', 'Frühes Hochschalten'], correct: 0, exp: 'Ständiges Beschleunigen und Bremsen erhöht den Verbrauch.' },
-    { id: 39, cat: 'Gefahrenlehre', q: 'Sie sehen Kinder am Straßenrand. Was tun?', opts: ['Geschwindigkeit reduzieren, bremsbereit sein', 'Hupen und weiterfahren', 'Gas geben'], correct: 0, exp: 'Kinder sind unberechenbar. Bremsbereit sein!' },
-    { id: 40, cat: 'Erste Hilfe', q: 'Wie viele Atemzüge pro Minute hat ein Erwachsener?', opts: ['12-18', '5-8', '30-40'], correct: 0, exp: 'Ein Erwachsener atmet 12-18 Mal pro Minute.' },
-    { id: 41, cat: 'Technik', q: 'Was passiert bei zu niedrigem Reifendruck?', opts: ['Erhöhter Spritverbrauch und Verschleiß', 'Das Auto wird schneller', 'Es hat keine Auswirkungen'], correct: 0, exp: 'Zu niedriger Reifendruck erhöht den Verbrauch.' },
-    { id: 42, cat: 'Verkehrszeichen', q: 'Was bedeutet das Schild "Vorfahrtstraße"?', opts: ['Gelbe Raute - Ich habe Vorfahrt', 'Rotes Dreieck - Ich muss warten', 'Blaues Quadrat - Ich darf parken'], correct: 0, exp: 'Die gelbe Raute zeigt eine Vorfahrtstraße an.' },
-    { id: 43, cat: 'Gefahrenlehre', q: 'Ein Traktor zieht heraus. Was tun?', opts: ['Bremsen und Geschwindigkeit anpassen', 'Hupen und überholen', 'Weiterfahren'], correct: 0, exp: 'Langsame Fahrzeuge erfordern Bremsbereitschaft.' },
-    { id: 44, cat: 'Vorfahrt', q: 'Was bedeutet "Rechts vor Links"?', opts: ['Fahrzeuge von rechts haben Vorfahrt', 'Fahrzeuge von links haben Vorfahrt', 'Ich habe immer Vorfahrt'], correct: 0, exp: 'An Kreuzungen ohne Schilder gilt: Rechts vor Links.' },
-    { id: 45, cat: 'Technik', q: 'Wie oft sollte man den Ölstand prüfen?', opts: ['Regelmäßig, z.B. alle 2-4 Wochen', 'Nur einmal im Jahr', 'Nie'], correct: 0, exp: 'Der Ölstand sollte regelmäßig geprüft werden.' },
-    { id: 46, cat: 'Erste Hilfe', q: 'Was ist bei einer Verbrennung zu tun?', opts: ['Mit Wasser kühlen', 'Eis drauflegen', 'Salbe auftragen'], correct: 0, exp: 'Verbrennungen sollten sofort mit lauwarmem Wasser gekühlt werden.' },
-    { id: 47, cat: 'Gefahrenlehre', q: 'Sie werden überholt. Was tun?', opts: ['Geschwindigkeit beibehalten, rechts fahren', 'Beschleunigen', 'Bremsen'], correct: 0, exp: 'Geschwindigkeit beibehalten und rechts fahren.' },
-    { id: 48, cat: 'Verkehrszeichen', q: 'Was bedeutet ein blaues Schild mit einem Fahrrad?', opts: ['Radweg', 'Fahrradverbot', 'Überholverbot'], correct: 0, exp: 'Das blaue Schild mit dem weißen Fahrrad ist ein Radweg.' },
-    { id: 49, cat: 'Umweltschutz', q: 'Was ist ein umweltfreundlicher Fahrstil?', opts: ['Vorausschauend fahren, früh schalten', 'Ständig bremsen und beschleunigen', 'Reifen platt lassen'], correct: 0, exp: 'Vorausschauendes Fahren spart Sprit.' },
-    { id: 50, cat: 'Vorfahrt', q: 'Wer hat Vorrang beim Ausfahren aus einem Kreisverkehr?', opts: ['Der Verkehr im Kreisverkehr', 'Ich, weil ich ausfahre', 'Der Gegenverkehr'], correct: 0, exp: 'Auch beim Ausfahren muss der Verkehr im Kreis durchgelassen werden.' }
+    { id: 25, cat: 'Vorfahrt', q: 'Sie wollen in einen Kreisverkehr einfahren. Wer hat Vorfahrt?', opts: ['Die Fahrzeuge im Kreisverkehr', 'Ich, weil ich von rechts komme', 'Wer schneller ist'], correct: 0, exp: 'Im Kreisverkehr hat der Verkehr im Kreis Vorfahrt.' }
   ];
 
-  const SIGNS = {
-    'Gefahrenzeichen': [
-      { icon: '⚠️', name: 'Allgemeine Gefahr', desc: 'Gefahr durch ein Hindernis oder eine unübersichtliche Stelle.' },
-      { icon: '🚧', name: 'Baustelle', desc: 'Gefahr durch Bauarbeiten auf der Fahrbahn.' },
-      { icon: '🦌', name: 'Wildwechsel', desc: 'Gefahr durch Tiere auf der Fahrbahn.' },
-      { icon: '🔄', name: 'Kreisverkehr', desc: 'Vorfahrt gewähren im Kreisverkehr.' },
-      { icon: '🚦', name: 'Lichtzeichenanlage', desc: 'Ampel oder Verkehrsampel in der Nähe.' },
-      { icon: '🚶', name: 'Fußgänger', desc: 'Gefahr durch Fußgänger auf der Straße.' },
-      { icon: '❄️', name: 'Glätte', desc: 'Gefahr durch Schnee oder Eis.' },
-      { icon: '💧', name: 'Aquaplaning', desc: 'Gefahr durch Wasser auf der Fahrbahn.' },
-      { icon: '🚋', name: 'Straßenbahn', desc: 'Vorsicht, Straßenbahn kreuzt die Fahrbahn.' },
-      { icon: '✈️', name: 'Flugzeug', desc: 'Tieffliegende Flugzeuge.' }
-    ],
-    'Vorschriftzeichen': [
-      { icon: '🛑', name: 'Halt! Vorfahrt gewähren', desc: 'Anhalten und Vorfahrt gewähren.' },
-      { icon: '⬇️', name: 'Vorfahrt gewähren', desc: 'Andere Fahrzeuge durchlassen (Spitze unten).' },
-      { icon: '🚫', name: 'Verbot der Einfahrt', desc: 'Keine Einfahrt in diese Straße.' },
-      { icon: '⬅️', name: 'Vorgeschriebene Richtung links', desc: 'Man muss links abbiegen.' },
-      { icon: '➡️', name: 'Vorgeschriebene Richtung rechts', desc: 'Man muss rechts abbiegen.' },
-      { icon: '30', name: 'Tempolimit 30', desc: 'Maximal 30 km/h erlaubt.' },
-      { icon: '80', name: 'Tempolimit 80', desc: 'Maximal 80 km/h erlaubt.' },
-      { icon: '🚲', name: 'Radweg', desc: 'Nur für Radfahrer (blaues Schild).' },
-      { icon: '🚗', name: 'Überholverbot', desc: 'Überholen für Kraftfahrzeuge verboten.' },
-      { icon: '🅿️', name: 'Parkverbot', desc: 'Parken verboten (eingeschränktes Halteverbot).' }
-    ],
-    'Richtzeichen': [
-      { icon: '⬆️', name: 'Vorfahrtstraße', desc: 'Die Straße hat Vorfahrt (gelbe Raute).' },
-      { icon: '🅿️', name: 'Parkplatz', desc: 'Parken erlaubt.' },
-      { icon: '⛽', name: 'Tankstelle', desc: 'Tankstelle in der Nähe.' },
-      { icon: '🏥', name: 'Krankenhaus', desc: 'Krankenhaus in der Nähe, ruhig fahren.' },
-      { icon: '🚌', name: 'Bushaltestelle', desc: 'Bushaltestelle in der Nähe.' },
-      { icon: '🛣️', name: 'Autobahn', desc: 'Beginn der Autobahn.' },
-      { icon: '🏙️', name: 'Ortseingang', desc: 'Beginn einer geschlossenen Ortschaft.' },
-      { icon: '🚦', name: 'Ampel', desc: 'Lichtzeichenanlage.' },
-      { icon: '🛤️', name: 'Autobahnausfahrt', desc: 'Hier verlässt man die Autobahn.' },
-      { icon: '🛣️', name: 'Bundesstraße', desc: 'Beginn einer Bundesstraße.' }
-    ]
-  };
+  // ═══════════════════════════════════════════════════════
+  // 2. MASSIVE VERKEHRSZEICHEN DATENBANK (A-Z)
+  // ═══════════════════════════════════════════════════════
+  const SIGNS = [
+    { cat: 'Gefahrzeichen', icon: '⚠️', nr: '101', name: 'Gefahrstelle', desc: 'Allgemeine Gefahr, Geschwindigkeit anpassen.' },
+    { cat: 'Gefahrzeichen', icon: '➕', nr: '102', name: 'Kreuzung oder Einmündung', desc: 'Vorfahrt beachten, bremsbereit sein.' },
+    { cat: 'Gefahrzeichen', icon: '↩️', nr: '103', name: 'Kurve', desc: 'Gefährliche Kurve, Geschwindigkeit reduzieren.' },
+    { cat: 'Gefahrzeichen', icon: '🔀', nr: '105', name: 'Doppelkurve', desc: 'Zwei Kurven hintereinander, stark abbremsen.' },
+    { cat: 'Gefahrzeichen', icon: '⬇️', nr: '108', name: 'Gefälle', desc: 'Starkes Gefälle, Motorbremse nutzen.' },
+    { cat: 'Gefahrzeichen', icon: '⬆️', nr: '110', name: 'Steigung', desc: 'Starke Steigung, ggf. zurückschalten.' },
+    { cat: 'Gefahrzeichen', icon: '🛣️', nr: '112', name: 'Unebene Fahrbahn', desc: 'Schlaglöcher oder Bodenwellen möglich.' },
+    { cat: 'Gefahrzeichen', icon: '💨', nr: '114', name: 'Schleuder- oder Rutschgefahr', desc: 'Bei Nässe besonders gefährlich, langsam fahren.' },
+    { cat: 'Gefahrzeichen', icon: '🌬️', nr: '117', name: 'Seitenwind', desc: 'Vorsicht bei Brücken und Waldschneisen.' },
+    { cat: 'Gefahrzeichen', icon: '↔️', nr: '120', name: 'Verengte Fahrbahn', desc: 'Beide Seiten verengt, Vorfahrt beachten.' },
+    { cat: 'Gefahrzeichen', icon: '➡️', nr: '121', name: 'Einseitig verengte Fahrbahn', desc: 'Nur eine Seite verengt, ggf. Vorfahrt gewähren.' },
+    { cat: 'Gefahrzeichen', icon: '🚧', nr: '123', name: 'Arbeitsstelle', desc: 'Baustelle, Geschwindigkeit reduzieren.' },
+    { cat: 'Gefahrzeichen', icon: '🚗🚗🚗', nr: '124', name: 'Stau', desc: 'Staugefahr, bremsbereit sein.' },
+    { cat: 'Gefahrzeichen', icon: '⬅️➡️', nr: '125', name: 'Gegenverkehr', desc: 'Gegenverkehr auf der eigenen Spur, Vorsicht!' },
+    { cat: 'Gefahrzeichen', icon: '🚦', nr: '131', name: 'Lichtzeichenanlage', desc: 'Ampel in der Nähe, bremsbereit sein.' },
+    { cat: 'Gefahrzeichen', icon: '🚶', nr: '133', name: 'Fußgänger', desc: 'Fußgänger überqueren die Straße.' },
+    { cat: 'Gefahrzeichen', icon: '🧒', nr: '136', name: 'Kinder', desc: 'Kinder auf der Straße, bremsbereit sein!' },
+    { cat: 'Gefahrzeichen', icon: '🚲', nr: '138', name: 'Radverkehr', desc: 'Radfahrer auf der Fahrbahn.' },
+    { cat: 'Gefahrzeichen', icon: '🦌', nr: '142', name: 'Wildwechsel', desc: 'Tiere könnten die Fahrbahn überqueren.' },
+    { cat: 'Gefahrzeichen', icon: '🚂', nr: '151', name: 'Bahnübergang', desc: 'Schienenfahrzeuge haben Vorrang.' },
+    { cat: 'Gefahrzeichen', icon: '🚂📏', nr: '156', name: 'Bahnübergang mit dreistreifiger Bake', desc: 'Entfernung zum Bahnübergang: 240m.' },
+    { cat: 'Gefahrzeichen', icon: '🚂📏', nr: '159', name: 'Zweistreifige Bake', desc: 'Entfernung zum Bahnübergang: 160m.' },
+    { cat: 'Gefahrzeichen', icon: '🚂📏', nr: '162', name: 'Einstreifige Bake', desc: 'Entfernung zum Bahnübergang: 80m.' },
+
+    { cat: 'Vorschriftzeichen', icon: '✖️', nr: '201', name: 'Andreaskreuz', desc: 'Schienenverkehr hat Vorrang! Anhalten und warten.' },
+    { cat: 'Vorschriftzeichen', icon: '⬇️', nr: '205', name: 'Vorfahrt gewähren', desc: 'Andere Fahrzeuge durchlassen (Spitze unten).' },
+    { cat: 'Vorschriftzeichen', icon: '🛑', nr: '206', name: 'Halt! Vorfahrt gewähren', desc: 'Immer anhalten! Dann Vorfahrt gewähren.' },
+    { cat: 'Vorschriftzeichen', icon: '⬆️⬇️', nr: '208', name: 'Vorrang des Gegenverkehrs', desc: 'Gegenverkehr hat Vorrang, warten.' },
+    { cat: 'Vorschriftzeichen', icon: '➡️', nr: '209', name: 'Vorgeschriebene Fahrtrichtung rechts', desc: 'Man muss rechts abbiegen.' },
+    { cat: 'Vorschriftzeichen', icon: '↪️', nr: '211', name: 'Hier rechts', desc: 'Rechts vorbei fahren.' },
+    { cat: 'Vorschriftzeichen', icon: '⬆️➡️', nr: '214', name: 'Geradeaus oder rechts', desc: 'Man darf geradeaus oder rechts fahren.' },
+    { cat: 'Vorschriftzeichen', icon: '🔄', nr: '215', name: 'Kreisverkehr', desc: 'Vorgeschriebene Fahrtrichtung im Kreis.' },
+    { cat: 'Vorschriftzeichen', icon: '➡️', nr: '220', name: 'Einbahnstraße', desc: 'Fahrt nur in Pfeilrichtung erlaubt.' },
+    { cat: 'Vorschriftzeichen', icon: '↔️', nr: '222', name: 'Vorbeifahrt rechts oder links', desc: 'Man kann rechts oder links vorbei.' },
+    { cat: 'Vorschriftzeichen', icon: '🚏', nr: '224', name: 'Haltestelle', desc: 'Bushaltestelle, Parken verboten.' },
+    { cat: 'Vorschriftzeichen', icon: '🚲', nr: '237', name: 'Radweg', desc: 'Nur für Radfahrer (blaues Schild).' },
+    { cat: 'Vorschriftzeichen', icon: '🚶', nr: '239', name: 'Gehweg', desc: 'Nur für Fußgänger.' },
+    { cat: 'Vorschriftzeichen', icon: '🚶🚲', nr: '240', name: 'Gemeinsamer Geh- und Radweg', desc: 'Fußgänger und Radfahrer teilen sich den Weg.' },
+    { cat: 'Vorschriftzeichen', icon: '🚶|🚲', nr: '241', name: 'Getrennter Geh- und Radweg', desc: 'Getrennte Wege für Fußgänger und Radfahrer.' },
+    { cat: 'Vorschriftzeichen', icon: '🚶🚫', nr: '242.1', name: 'Beginn einer Fußgängerzone', desc: 'Nur Fußgänger erlaubt, Lieferverkehr frei.' },
+    { cat: 'Vorschriftzeichen', icon: '🚶✅', nr: '242.2', name: 'Ende einer Fußgängerzone', desc: 'Ende der Fußgängerzone.' },
+    { cat: 'Vorschriftzeichen', icon: '🚲🚫', nr: '244.1', name: 'Beginn einer Fahrradstraße', desc: 'Radfahrer haben Vorrang.' },
+    { cat: 'Vorschriftzeichen', icon: '🚲✅', nr: '244.2', name: 'Ende einer Fahrradstraße', desc: 'Ende der Fahrradstraße.' },
+    { cat: 'Vorschriftzeichen', icon: '🚲🚫', nr: '244.3', name: 'Beginn einer Fahrradzone', desc: 'Radfahrer haben Vorrang.' },
+    { cat: 'Vorschriftzeichen', icon: '🚗🚫', nr: '250', name: 'Verbot für Fahrzeuge aller Art', desc: 'Durchfahrt für alle Fahrzeuge verboten.' },
+    { cat: 'Vorschriftzeichen', icon: '🚗🚫', nr: '251', name: 'Verbot für Kraftwagen', desc: 'Verbot für mehrspurige Kraftfahrzeuge.' },
+    { cat: 'Vorschriftzeichen', icon: '🚛🚫', nr: '253', name: 'Verbot für Kraftfahrzeuge über 3,5 t', desc: 'LKW-Verbot (Ausnahmen möglich).' },
+    { cat: 'Vorschriftzeichen', icon: '🚲🚫', nr: '254', name: 'Verbot für Radverkehr', desc: 'Radfahrer dürfen nicht durch.' },
+    { cat: 'Vorschriftzeichen', icon: '🏍️🚫', nr: '255', name: 'Verbot für Krafträder', desc: 'Motorräder dürfen nicht durch.' },
+    { cat: 'Vorschriftzeichen', icon: '🚶🚫', nr: '259', name: 'Verbot für Fußgänger', desc: 'Fußgänger dürfen nicht durch.' },
+    { cat: 'Vorschriftzeichen', icon: '🚗🚫', nr: '260', name: 'Verbot für Kraftfahrzeuge', desc: 'Kraftfahrzeuge aller Art verboten.' },
+    { cat: 'Vorschriftzeichen', icon: '☢️🚫', nr: '261', name: 'Verbot für Gefahrguttransporte', desc: 'Gefahrguttransporte verboten.' },
+    { cat: 'Vorschriftzeichen', icon: '⚖️🚫', nr: '262', name: 'Gewichtsgrenze', desc: 'Tatsächliches Gewicht über der Grenze verboten.' },
+    { cat: 'Vorschriftzeichen', icon: '⚖️🚫', nr: '263', name: 'Achslastgrenze', desc: 'Tatsächliche Achslast über der Grenze verboten.' },
+    { cat: 'Vorschriftzeichen', icon: '📏🚫', nr: '264', name: 'Breitengrenze', desc: 'Tatsächliche Breite über der Grenze verboten.' },
+    { cat: 'Vorschriftzeichen', icon: '📏🚫', nr: '265', name: 'Höhengrenze', desc: 'Tatsächliche Höhe über der Grenze verboten.' },
+    { cat: 'Vorschriftzeichen', icon: '📏🚫', nr: '266', name: 'Längengrenze', desc: 'Tatsächliche Länge über der Grenze verboten.' },
+    { cat: 'Vorschriftzeichen', icon: '⛔', nr: '267', name: 'Verbot der Einfahrt', desc: 'Keine Einfahrt in diese Straße.' },
+    { cat: 'Vorschriftzeichen', icon: '⛓️', nr: '268', name: 'Schneeketten vorgeschrieben', desc: 'Nur mit Schneeketten fahren.' },
+    { cat: 'Vorschriftzeichen', icon: '🌍', nr: '270.1', name: 'Umweltzone', desc: 'Nur Fahrzeuge mit Plakette erlaubt.' },
+    { cat: 'Vorschriftzeichen', icon: '🌍✅', nr: '270.2', name: 'Ende der Umweltzone', desc: 'Ende der Umweltzone.' },
+    { cat: 'Vorschriftzeichen', icon: '🔢', nr: '274', name: 'Zulässige Höchstgeschwindigkeit', desc: 'Maximal angegebene km/h erlaubt.' },
+    { cat: 'Vorschriftzeichen', icon: '3️⃣0️⃣', nr: '274.1', name: 'Tempo-30-Zone', desc: 'Beginn einer Tempo-30-Zone.' },
+    { cat: 'Vorschriftzeichen', icon: '🔢✅', nr: '278', name: 'Ende der Höchstgeschwindigkeit', desc: 'Geschwindigkeitsbegrenzung endet.' },
+    { cat: 'Vorschriftzeichen', icon: '✅', nr: '282', name: 'Ende aller Beschränkungen', desc: 'Geschwindigkeit und Überholverbote enden.' },
+    { cat: 'Vorschriftzeichen', icon: '🚫', nr: '283', name: 'Absolutes Haltverbot', desc: 'Halten und Parken verboten.' },
+    { cat: 'Vorschriftzeichen', icon: '🚫', nr: '286', name: 'Eingeschränktes Haltverbot', desc: 'Halten erlaubt, Parken verboten.' },
+    { cat: 'Vorschriftzeichen', icon: '🚫', nr: '290.1', name: 'Haltverbot Zone', desc: 'Beginn eines Haltverbots für eine Zone.' },
+    { cat: 'Vorschriftzeichen', icon: '✅', nr: '290.2', name: 'Ende Haltverbot Zone', desc: 'Ende des Haltverbots.' },
+    { cat: 'Vorschriftzeichen', icon: '🚶', nr: '293', name: 'Fußgängerüberweg', desc: 'Zebrastreifen, Fußgänger haben Vorrang.' },
+    { cat: 'Vorschriftzeichen', icon: '➖', nr: '294', name: 'Haltlinie', desc: 'Hier anhalten bei Rot oder Stop.' },
+    { cat: 'Vorschriftzeichen', icon: '➖', nr: '295', name: 'Fahrbahnbegrenzung', desc: 'Markierung am Fahrbahnrand.' },
+    { cat: 'Vorschriftzeichen', icon: '➖', nr: '296', name: 'Einseitige Fahrstreifenbegrenzung', desc: 'Trennlinie für Fahrstreifen.' },
+    { cat: 'Vorschriftzeichen', icon: '⬆️', nr: '297', name: 'Pfeilmarkierungen', desc: 'Fahrtrichtungsanzeiger auf der Fahrbahn.' },
+    { cat: 'Vorschriftzeichen', icon: '⬆️', nr: '297.1', name: 'Vorankündigungspfeil', desc: 'Kündigt Spurwechsel an.' },
+    { cat: 'Vorschriftzeichen', icon: '▨', nr: '298', name: 'Sperrfläche', desc: 'Nicht befahrbarer Bereich.' },
+    { cat: 'Vorschriftzeichen', icon: '➖', nr: '299', name: 'Grenzmarkierung', desc: 'Markierung für Halt- und Parkverbote.' },
+
+    { cat: 'Richtzeichen', icon: '⬆️', nr: '301', name: 'Vorfahrt', desc: 'Ich habe an der nächsten Kreuzung Vorfahrt.' },
+    { cat: 'Richtzeichen', icon: '⬆️', nr: '306', name: 'Vorfahrtstraße', desc: 'Die Straße hat Vorfahrt (gelbe Raute).' },
+    { cat: 'Richtzeichen', icon: '✅', nr: '307', name: 'Ende der Vorfahrtstraße', desc: 'Vorfahrt endet an der nächsten Kreuzung.' },
+    { cat: 'Richtzeichen', icon: '⬆️', nr: '308', name: 'Vorrang vor dem Gegenverkehr', desc: 'Ich habe Vorrang in der Engstelle.' },
+    { cat: 'Richtzeichen', icon: '🏙️', nr: '310', name: 'Ortseingang', desc: 'Beginn einer geschlossenen Ortschaft.' },
+    { cat: 'Richtzeichen', icon: '🏙️✅', nr: '311', name: 'Ortsausgang', desc: 'Ende der geschlossenen Ortschaft.' },
+    { cat: 'Richtzeichen', icon: '🅿️', nr: '314', name: 'Parken', desc: 'Parken erlaubt.' },
+    { cat: 'Richtzeichen', icon: '🅿️', nr: '314.1', name: 'Parkraumbewirtschaftung', desc: 'Beginn einer kostenpflichtigen Parkzone.' },
+    { cat: 'Richtzeichen', icon: '🅿️✅', nr: '314.2', name: 'Ende Parkraumbewirtschaftung', desc: 'Ende der Parkzone.' },
+    { cat: 'Richtzeichen', icon: '🅿️🚶', nr: '315', name: 'Parken auf Gehwegen', desc: 'Parken auf dem Gehweg erlaubt.' },
+    { cat: 'Richtzeichen', icon: '🅿️🚌', nr: '316', name: 'Parken und Reisen', desc: 'Parkplatz für Pendler.' },
+    { cat: 'Richtzeichen', icon: '🅿️🥾', nr: '317', name: 'Wanderparkplatz', desc: 'Parkplatz für Wanderer.' },
+    { cat: 'Richtzeichen', icon: '🕐', nr: '318', name: 'Parkscheibe', desc: 'Parkscheibe erforderlich.' },
+    { cat: 'Richtzeichen', icon: '🏘️', nr: '325.1', name: 'Verkehrsberuhigter Bereich', desc: 'Spielstraße, Schrittgeschwindigkeit.' },
+    { cat: 'Richtzeichen', icon: '🏘️✅', nr: '325.2', name: 'Ende verkehrsberuhigter Bereich', desc: 'Ende der Spielstraße.' },
+    { cat: 'Richtzeichen', icon: '🛣️', nr: '330.1', name: 'Autobahn', desc: 'Beginn der Autobahn.' },
+    { cat: 'Richtzeichen', icon: '🛣️✅', nr: '330.2', name: 'Ende der Autobahn', desc: 'Ende der Autobahn.' },
+    { cat: 'Richtzeichen', icon: '🛣️', nr: '331.1', name: 'Kraftfahrstraße', desc: 'Beginn einer Kraftfahrstraße.' },
+    { cat: 'Richtzeichen', icon: '🛣️✅', nr: '331.2', name: 'Ende Kraftfahrstraße', desc: 'Ende der Kraftfahrstraße.' },
+    { cat: 'Richtzeichen', icon: '🚪', nr: '333', name: 'Autobahnausfahrt', desc: 'Hier verlässt man die Autobahn.' },
+    { cat: 'Richtzeichen', icon: '🚶', nr: '350', name: 'Fußgängerüberweg', desc: 'Hinweis auf Zebrastreifen.' },
+    { cat: 'Richtzeichen', icon: '💧', nr: '354', name: 'Wasserschutzgebiet', desc: 'Gewässerschutz beachten.' },
+    { cat: 'Richtzeichen', icon: '🚦', nr: '356', name: 'Verkehrshelfer', desc: 'Schulweghelfer oder Lotsen.' },
+    { cat: 'Richtzeichen', icon: '🚫', nr: '357', name: 'Sackgasse', desc: 'Keine Durchfahrt, aber Wende möglich.' },
+    { cat: 'Richtzeichen', icon: '⛑️', nr: '358', name: 'Erste Hilfe', desc: 'Erste-Hilfe-Station oder Arzt.' },
+    { cat: 'Richtzeichen', icon: '👮', nr: '363', name: 'Polizei', desc: 'Polizeidienststelle.' },
+    { cat: 'Richtzeichen', icon: '📞', nr: '365', name: 'Fernsprecher', desc: 'Öffentliches Telefon.' },
+    { cat: 'Richtzeichen', icon: '🆘', nr: '366', name: 'Notrufsäule', desc: 'Notrufsäule für Pannen und Unfälle.' },
+    { cat: 'Richtzeichen', icon: '⛽', nr: '367', name: 'Tankstelle', desc: 'Tankstelle in der Nähe.' },
+    { cat: 'Richtzeichen', icon: '🏨', nr: '375', name: 'Autobahnhotel', desc: 'Hotel an der Autobahn.' },
+    { cat: 'Richtzeichen', icon: '🍔', nr: '376', name: 'Autobahngasthaus', desc: 'Raststätte an der Autobahn.' },
+    { cat: 'Richtzeichen', icon: '130', nr: '380', name: 'Richtgeschwindigkeit', desc: 'Empfohlene Geschwindigkeit (130 km/h).' },
+    { cat: 'Richtzeichen', icon: 'ℹ️', nr: '385', name: 'Hinweis', desc: 'Hinweis auf Ziele oder Einrichtungen.' },
+    { cat: 'Richtzeichen', icon: '🏛️', nr: '386', name: 'Touristische Hinweise', desc: 'Hinweis auf Sehenswürdigkeiten.' },
+    { cat: 'Richtzeichen', icon: '💰', nr: '390', name: 'Mautpflicht', desc: 'Mautpflicht für bestimmte Fahrzeuge.' },
+    { cat: 'Richtzeichen', icon: '🛃', nr: '392', name: 'Zollstelle', desc: 'Zollkontrolle.' },
+    { cat: 'Richtzeichen', icon: 'ℹ️', nr: '393', name: 'Informationstafel', desc: 'Informationen an Grenzübergängen.' },
+    { cat: 'Richtzeichen', icon: 'B', nr: '401', name: 'Bundesstraße', desc: 'Nummer der Bundesstraße.' },
+    { cat: 'Richtzeichen', icon: 'A', nr: '405', name: 'Autobahnnummer', desc: 'Nummer der Autobahn.' },
+    { cat: 'Richtzeichen', icon: '🔗', nr: '406', name: 'Knotenpunkte', desc: 'Autobahnkreuz oder -dreieck.' },
+    { cat: 'Richtzeichen', icon: 'ℹ️', nr: '448', name: 'Ankündigungstafel', desc: 'Informationen auf Autobahnen.' },
+    { cat: 'Richtzeichen', icon: '➡️', nr: '448.1', name: 'Ausfahrtstafel', desc: 'Kündigt Ausfahrt an.' },
+    { cat: 'Richtzeichen', icon: '🗺️', nr: '449', name: 'Vorwegweiser', desc: 'Zeigt Fahrstreifen und Ziele an.' },
+    { cat: 'Richtzeichen', icon: '📍', nr: '450', name: 'Ankündigungsbake', desc: 'Markiert die Ausfahrt.' },
+    { cat: 'Richtzeichen', icon: '📏', nr: '453', name: 'Entfernungstafel', desc: 'Zeigt Entfernungen zu Zielen.' },
+    { cat: 'Richtzeichen', icon: '↩️', nr: '501', name: 'Überleitung', desc: 'Wechsel auf die Gegenfahrbahn.' },
+    { cat: 'Richtzeichen', icon: '↔️', nr: '511', name: 'Verschwenkung', desc: 'Fahrbahn verschiebt sich.' },
+    { cat: 'Richtzeichen', icon: '🔀', nr: '531', name: 'Zusammenführung', desc: 'Fahrstreifen werden zusammengeführt.' },
+    { cat: 'Richtzeichen', icon: '↩️', nr: '590', name: 'Umlenkungspfeil', desc: 'Richtungsänderung.' },
+
+    { cat: 'Verkehrseinrichtungen', icon: '🚧', nr: '600', name: 'Absperrschranke', desc: 'Absperrung des Verkehrs.' },
+    { cat: 'Verkehrseinrichtungen', icon: '⚠️', nr: '605', name: 'Leitbake', desc: 'Markiert den Fahrbahnrand.' },
+    { cat: 'Verkehrseinrichtungen', icon: '🔶', nr: '610', name: 'Leitkegel', desc: 'Markiert Baustellenbereiche.' },
+    { cat: 'Verkehrseinrichtungen', icon: '🚧', nr: '615', name: 'Fahrbare Absperrtafel', desc: 'Absperrung mit Blinklicht.' },
+    { cat: 'Verkehrseinrichtungen', icon: '🚧➡️', nr: '616', name: 'Absperrtafel mit Blinkpfeil', desc: 'Weist auf Spurwechsel hin.' },
+    { cat: 'Verkehrseinrichtungen', icon: '📍', nr: '620', name: 'Leitpfosten', desc: 'Markieren den Fahrbahnrand nachts.' },
+    { cat: 'Verkehrseinrichtungen', icon: '↪️', nr: '625', name: 'Richtungstafel', desc: 'Zeigt Kurvenverlauf an.' },
+    { cat: 'Verkehrseinrichtungen', icon: '📋', nr: '626', name: 'Leittafel', desc: 'Führt den Verkehr.' },
+    { cat: 'Verkehrseinrichtungen', icon: '↩️', nr: '627', name: 'Umlenkungspfeile', desc: 'Leiten den Verkehr um.' },
+    { cat: 'Verkehrseinrichtungen', icon: '💡', nr: '628', name: 'Warnlichtanlage', desc: 'Blinklicht an Gefahrenstellen.' },
+    { cat: 'Verkehrseinrichtungen', icon: '🚧', nr: '629', name: 'Warnbaken', desc: 'Absperreinrichtungen.' },
+
+    { cat: 'Zusatzzeichen', icon: 'ℹ️', nr: '—', name: 'Anlieger frei', desc: 'Nur Anwohner dürfen passieren.' },
+    { cat: 'Zusatzzeichen', icon: 'ℹ️', nr: '—', name: 'Radfahrer frei', desc: 'Radfahrer dürfen trotz Verbot passieren.' },
+    { cat: 'Zusatzzeichen', icon: 'ℹ️', nr: '—', name: 'Lieferverkehr frei', desc: 'Lieferanten dürfen passieren.' },
+    { cat: 'Zusatzzeichen', icon: 'ℹ️', nr: '—', name: 'Bei Nässe', desc: 'Gilt nur bei nasser Fahrbahn.' },
+    { cat: 'Zusatzzeichen', icon: 'ℹ️', nr: '—', name: 'Zeitliche Beschränkung', desc: 'Gilt nur zu bestimmten Zeiten.' },
+    { cat: 'Zusatzzeichen', icon: 'ℹ️', nr: '—', name: 'Entfernungsangabe', desc: 'Gilt in X Metern.' },
+    { cat: 'Zusatzzeichen', icon: 'ℹ️', nr: '—', name: 'Parkscheibe', desc: 'Parkscheibe erforderlich.' },
+    { cat: 'Zusatzzeichen', icon: 'ℹ️', nr: '—', name: 'Elektrofahrzeuge frei', desc: 'E-Autos dürfen passieren.' },
+    { cat: 'Zusatzzeichen', icon: 'ℹ️', nr: '—', name: 'Schwerbehinderte', desc: 'Mit Ausweis erlaubt.' },
+    { cat: 'Zusatzzeichen', icon: 'ℹ️', nr: '—', name: 'Umleitung', desc: 'Zeigt Umleitungsstrecke an.' }
+  ];
 
   const VIDEOS = [
     { title: 'Grundlagen der Vorfahrt', dur: '12:30', cat: 'Grundwissen', desc: 'In diesem Video lernst du die grundlegenden Vorfahrtregeln: Rechts vor Links, Vorfahrtstraße und wie du dich an Kreuzungen verhältst.' },
@@ -351,7 +432,8 @@
     exam: null,
     learnIndex: 0,
     learnList: [],
-    selectedClass: 'B'
+    selectedClass: 'B',
+    signSearchQuery: ''
   };
 
   let timerInterval = null;
@@ -365,6 +447,7 @@
         if (parsed.stats) state.stats = parsed.stats;
         if (parsed.lang) state.lang = parsed.lang;
         if (parsed.settings) state.settings = parsed.settings;
+        if (parsed.selectedClass) state.selectedClass = parsed.selectedClass;
       }
     } catch (e) { }
   }
@@ -374,7 +457,8 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         stats: state.stats,
         lang: state.lang,
-        settings: state.settings
+        settings: state.settings,
+        selectedClass: state.selectedClass
       }));
     } catch (e) { }
   }
@@ -455,6 +539,13 @@
           <div style="font-size: 80px; margin-bottom: 20px; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));">🚦</div>
           <h2 style="font-size: 36px; margin-bottom: 10px; background: linear-gradient(90deg, #00e5ff, #b478ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900;">HalDo Fahrschule</h2>
           <p style="color: #a8b0cc; margin-bottom: 30px; font-size: 16px; max-width: 500px; margin-left: auto; margin-right: auto;">Die professionelle Theorie-Lern-App. KI-gestützt, mehrsprachig und zu 100 % auf deine Führerscheinprüfung vorbereitet.</p>
+          
+          <div style="display:flex; justify-content:center; margin-bottom:20px;">
+            <select class="fs-select" data-action="set-class" style="text-align:center;">
+              ${LICENSE_CLASSES.map(c => `<option value="${c.id}" ${state.selectedClass === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+            </select>
+          </div>
+
           <button class="fs-btn primary" data-action="view-exam" style="padding: 15px 40px; font-size: 18px; margin: 0 auto;">🏁 ${t('exam_start')}</button>
         </div>
         
@@ -575,18 +666,38 @@
   }
 
   function renderSigns() {
-    let html = `<div class="fs-content-inner">`;
-    Object.keys(SIGNS).forEach(cat => {
+    let html = `<div class="fs-content-inner">
+      <div class="fs-card" style="padding:15px;">
+        <input type="text" class="fs-select" style="max-width:100%;" placeholder="${t('search_signs')}" data-action="search-signs" value="${state.signSearchQuery}">
+      </div>`;
+      
+    const filtered = SIGNS.filter(s => 
+      s.name.toLowerCase().includes(state.signSearchQuery.toLowerCase()) || 
+      s.nr.toLowerCase().includes(state.signSearchQuery.toLowerCase())
+    );
+
+    const categories = {};
+    filtered.forEach(s => {
+      if (!categories[s.cat]) categories[s.cat] = [];
+      categories[s.cat].push(s);
+    });
+
+    Object.keys(categories).forEach(cat => {
       html += `<div class="fs-signs-cat"><h3>${cat}</h3><div class="fs-signs-grid">`;
-      SIGNS[cat].forEach(s => {
-        html += `<div class="fs-sign-item" data-action="click-sign" data-name="${s.name}" data-desc="${s.desc}" data-icon="${s.icon}">
+      categories[cat].forEach(s => {
+        html += `<div class="fs-sign-item" data-action="click-sign" data-name="${s.name}" data-desc="Nr. ${s.nr}: ${s.desc}" data-icon="${s.icon}">
           <div class="fs-sign-icon">${s.icon}</div>
-          <div class="fs-sign-name">${s.name}</div>
+          <div class="fs-sign-name">${s.nr} ${s.name}</div>
           <div class="fs-sign-desc">${s.desc}</div>
         </div>`;
       });
       html += `</div></div>`;
     });
+    
+    if (filtered.length === 0) {
+      html += `<div style="text-align:center; color:#888; padding:50px;">Keine Schilder gefunden.</div>`;
+    }
+    
     html += `</div>`;
     return html;
   }
@@ -850,22 +961,9 @@
     if (action === 'start-exam') { startExam(parseInt(btn.dataset.count)); return; }
     if (action === 'start-learn') { startLearn(parseInt(btn.dataset.count)); return; }
 
-    if (action === 'tts-question') {
-      const q = state.learnList[state.learnIndex];
-      speakText(q.q);
-      return;
-    }
-    if (action === 'tts-options') {
-      const q = state.learnList[state.learnIndex];
-      const text = q.opts.join('. ');
-      speakText(text);
-      return;
-    }
-    if (action === 'tts-explanation') {
-      const q = state.learnList[state.learnIndex];
-      speakText(q.exp);
-      return;
-    }
+    if (action === 'tts-question') { speakText(state.learnList[state.learnIndex].q); return; }
+    if (action === 'tts-options') { speakText(state.learnList[state.learnIndex].opts.join('. ')); return; }
+    if (action === 'tts-explanation') { speakText(state.learnList[state.learnIndex].exp); return; }
 
     if (action === 'learn-answer') {
       const idx = parseInt(btn.dataset.idx);
@@ -911,19 +1009,8 @@
       return;
     }
 
-    if (action === 'ask-ai') {
-      const q = state.learnList[state.learnIndex];
-      askAI(q.q + " " + q.exp);
-      return;
-    }
-
-    if (action === 'toggle-setting') {
-      const key = btn.dataset.key;
-      state.settings[key] = !state.settings[key];
-      saveState(); updateView();
-      return;
-    }
-
+    if (action === 'ask-ai') { askAI(state.learnList[state.learnIndex].q + " " + state.learnList[state.learnIndex].exp); return; }
+    if (action === 'toggle-setting') { state.settings[btn.dataset.key] = !state.settings[btn.dataset.key]; saveState(); updateView(); return; }
     if (action === 'reset-stats') {
       if (confirm('Wirklich alle Statistiken zurücksetzen?')) {
         state.stats = { examsTaken: 0, examsPassed: 0, questionsAnswered: 0, correctAnswers: 0 };
@@ -959,6 +1046,18 @@
 
   function handleChange(e) {
     if (e.target.dataset.action === 'set-lang') { state.lang = e.target.value; saveState(); updateView(); }
+    if (e.target.dataset.action === 'set-class') { state.selectedClass = e.target.value; saveState(); }
+  }
+
+  function handleInput(e) {
+    if (e.target.dataset.action === 'search-signs') {
+      state.signSearchQuery = e.target.value;
+      const main = currentTarget.querySelector('#fs-main-content');
+      if (main) main.innerHTML = renderSigns();
+      // Fokus behalten
+      const input = main.querySelector('[data-action="search-signs"]');
+      if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
+    }
   }
 
   function updateView() {
@@ -1002,6 +1101,7 @@
       currentTarget.innerHTML = renderMain();
       currentTarget.addEventListener('click', handleClick);
       currentTarget.addEventListener('change', handleChange);
+      currentTarget.addEventListener('input', handleInput);
     }
   }
 
@@ -1040,5 +1140,5 @@
   window.renderFahrschule = mount;
   window.openFahrschule = openOverlay;
 
-  console.log('🚦 fahrschule.js v' + VERSION + ' geladen — ULTIMATE GLOBAL (Alle Klassen, 20+ Sprachen, TTS)');
+  console.log('🚦 fahrschule.js v' + VERSION + ' geladen — ULTIMATE GLOBAL (Alle Klassen, Alle Schilder A-Z, TTS)');
 })();
