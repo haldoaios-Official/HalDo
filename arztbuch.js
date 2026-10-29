@@ -1,9 +1,9 @@
-/* HalDo Arztbuch v1100.0 — ULTRA PRO MAX (Alle Geräte, TTS, 20+ Sprachen, KI) */
+/* HalDo Arztbuch v1200.0 — ULTRA PRO MAX (TTS für KI, 20+ Krankheiten, 20+ Medikamente, Alle Geräte A-Z, 20+ Sprachen) */
 (function () {
   'use strict';
 
-  const VERSION = '1100.0';
-  const STORAGE_KEY = 'haldo.arztbuch.data.v1100';
+  const VERSION = '1200.0';
+  const STORAGE_KEY = 'haldo.arztbuch.data.v1200';
 
   // ═══════════════════════════════════════════════════════
   // 1. MULTI-LANGUAGE ENGINE (20+ Sprachen)
@@ -16,7 +16,8 @@
       first_aid: 'Erste Hilfe', call: 'Anrufen', no_results: 'Keine Ergebnisse gefunden.', ai_tools: 'KI Medizin-Assistent',
       correct: 'Korrigieren', formulate: 'Formulieren', detail: 'Detailieren', analyze: 'Analysieren', research: 'Recherchieren',
       listen_disease: 'Krankheit vorlesen', listen_med: 'Medikament vorlesen', listen_first_aid: 'Erste Hilfe vorlesen', listen_device: 'Gerät vorlesen',
-      connect: 'Verbinden', disconnect: 'Trennen', connected: 'Verbunden', not_connected: 'Nicht verbunden', connection: 'Verbindung'
+      connect: 'Verbinden', disconnect: 'Trennen', connected: 'Verbunden', not_connected: 'Nicht verbunden', connection: 'Verbindung',
+      ai_thinking: 'Analysiere...', ai_result: 'Ergebnis:', ai_listen: 'Antwort vorlesen'
     },
     en: {
       dashboard: 'Dashboard', diseases: 'Diseases', meds: 'Medications', hospitals: 'Hospitals', devices: 'IoT Devices',
@@ -25,7 +26,8 @@
       first_aid: 'First Aid', call: 'Call', no_results: 'No results found.', ai_tools: 'AI Medical Assistant',
       correct: 'Correct', formulate: 'Formulate', detail: 'Detail', analyze: 'Analyze', research: 'Research',
       listen_disease: 'Listen to disease', listen_med: 'Listen to medication', listen_first_aid: 'Listen to first aid', listen_device: 'Listen to device',
-      connect: 'Connect', disconnect: 'Disconnect', connected: 'Connected', not_connected: 'Not connected', connection: 'Connection'
+      connect: 'Connect', disconnect: 'Disconnect', connected: 'Connected', not_connected: 'Not connected', connection: 'Connection',
+      ai_thinking: 'Analyzing...', ai_result: 'Result:', ai_listen: 'Listen to answer'
     },
     tr: {
       dashboard: 'Panel', diseases: 'Hastalıklar', meds: 'İlaçlar', hospitals: 'Hastaneler', devices: 'IoT Cihazları',
@@ -34,7 +36,8 @@
       first_aid: 'İlk Yardım', call: 'Ara', no_results: 'Sonuç bulunamadı.', ai_tools: 'AI Tıbbi Asistan',
       correct: 'Düzelt', formulate: 'Formüle Et', detail: 'Detaylandır', analyze: 'Analiz Et', research: 'Araştır',
       listen_disease: 'Hastalığı dinle', listen_med: 'İlacı dinle', listen_first_aid: 'İlk yardımı dinle', listen_device: 'Cihazı dinle',
-      connect: 'Bağlan', disconnect: 'Bağlantıyı Kes', connected: 'Bağlandı', not_connected: 'Bağlı Değil', connection: 'Bağlantı'
+      connect: 'Bağlan', disconnect: 'Bağlantıyı Kes', connected: 'Bağlandı', not_connected: 'Bağlı Değil', connection: 'Bağlantı',
+      ai_thinking: 'Analiz ediliyor...', ai_result: 'Sonuç:', ai_listen: 'Cevabı dinle'
     },
     ku: {
       dashboard: 'Destpêk', diseases: 'Nexweşî', meds: 'Derman', hospitals: 'Nexweşxane', devices: 'Amûrên IoT',
@@ -43,7 +46,8 @@
       first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI',
       correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike',
       listen_disease: 'Nexweşiyê bixwîne', listen_med: 'Dermanî bixwîne', listen_first_aid: 'Alîkariya pêşîn bixwîne', listen_device: 'Amûrê bixwîne',
-      connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan'
+      connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan',
+      ai_thinking: 'Tê analîzkirin...', ai_result: 'Encam:', ai_listen: 'Bersivê bixwîne'
     },
     ckb: {
       dashboard: 'دەستپێک', diseases: 'نەخۆشییەکان', meds: 'دەرمانەکان', hospitals: 'نەخۆشخانەکان', devices: 'ئامێرەکانی IoT',
@@ -52,7 +56,8 @@
       first_aid: 'یارمەتی سەرەتایی', call: 'پەیوەندی', no_results: 'هیچ ئەنجامێک نەدۆزرایەوە.', ai_tools: 'یاریدەدەری پزیشکی AI',
       correct: 'ڕاستکردنەوە', formulate: 'فۆرمولەکردن', detail: 'وردەکاری', analyze: 'شیکردنەوە', research: 'توێژینەوە',
       listen_disease: 'نەخۆشییەکە بخوێنەرەوە', listen_med: 'دەرمانەکە بخوێنەرەوە', listen_first_aid: 'یارمەتی سەرەتایی بخوێنەرەوە', listen_device: 'ئامێرەکە بخوێنەرەوە',
-      connect: 'پەیوەندی', disconnect: 'پچڕاندن', connected: 'پەیوەندیدار', not_connected: 'پەیوەندی نییە', connection: 'پەیوەندی'
+      connect: 'پەیوەندی', disconnect: 'پچڕاندن', connected: 'پەیوەندیدار', not_connected: 'پەیوەندی نییە', connection: 'پەیوەندی',
+      ai_thinking: 'شیکردنەوە...', ai_result: 'ئەنجام:', ai_listen: 'وەڵامەکە بخوێنەرەوە'
     },
     gorani: {
       dashboard: 'Destpêk', diseases: 'Nexweşî', meds: 'Derman', hospitals: 'Nexweşxane', devices: 'Amûrên IoT',
@@ -61,7 +66,8 @@
       first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI',
       correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike',
       listen_disease: 'Nexweşiyê bixwîne', listen_med: 'Dermanî bixwîne', listen_first_aid: 'Alîkariya pêşîn bixwîne', listen_device: 'Amûrê bixwîne',
-      connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan'
+      connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan',
+      ai_thinking: 'Tê analîzkirin...', ai_result: 'Encam:', ai_listen: 'Bersivê bixwîne'
     },
     ez: {
       dashboard: 'Destpêk', diseases: 'Nexweşî', meds: 'Derman', hospitals: 'Nexweşxane', devices: 'Amûrên IoT',
@@ -70,7 +76,8 @@
       first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI',
       correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike',
       listen_disease: 'Nexweşiyê bixwîne', listen_med: 'Dermanî bixwîne', listen_first_aid: 'Alîkariya pêşîn bixwîne', listen_device: 'Amûrê bixwîne',
-      connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan'
+      connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan',
+      ai_thinking: 'Tê analîzkirin...', ai_result: 'Encam:', ai_listen: 'Bersivê bixwîne'
     },
     ar: {
       dashboard: 'لوحة القيادة', diseases: 'الأمراض', meds: 'الأدوية', hospitals: 'المستشفيات', devices: 'أجهزة إنترنت الأشياء',
@@ -79,7 +86,8 @@
       first_aid: 'الإسعافات الأولية', call: 'اتصال', no_results: 'لم يتم العثور على نتائج.', ai_tools: 'مساعد طبي بالذكاء الاصطناعي',
       correct: 'تصحيح', formulate: 'صياغة', detail: 'تفصيل', analyze: 'تحليل', research: 'بحث',
       listen_disease: 'استمع للمرض', listen_med: 'استمع للدواء', listen_first_aid: 'استمع للإسعافات', listen_device: 'استمع للجهاز',
-      connect: 'اتصال', disconnect: 'قطع الاتصال', connected: 'متصل', not_connected: 'غير متصل', connection: 'اتصال'
+      connect: 'اتصال', disconnect: 'قطع الاتصال', connected: 'متصل', not_connected: 'غير متصل', connection: 'اتصال',
+      ai_thinking: 'جاري التحليل...', ai_result: 'النتيجة:', ai_listen: 'استمع للرد'
     },
     fa: {
       dashboard: 'داشبورد', diseases: 'بیماری‌ها', meds: 'داروها', hospitals: 'بیمارستان‌ها', devices: 'دستگاه‌های IoT',
@@ -88,7 +96,8 @@
       first_aid: 'کمک‌های اولیه', call: 'تماس', no_results: 'نتیجه‌ای یافت نشد.', ai_tools: 'دستیار پزشکی هوش مصنوعی',
       correct: 'اصلاح', formulate: 'فرموله کردن', detail: 'جزئیات', analyze: 'تحلیل', research: 'تحقیق',
       listen_disease: 'گوش دادن به بیماری', listen_med: 'گوش دادن به دارو', listen_first_aid: 'گوش دادن به کمک‌های اولیه', listen_device: 'گوش دادن به دستگاه',
-      connect: 'اتصال', disconnect: 'قطع اتصال', connected: 'متصل', not_connected: 'غیر متصل', connection: 'اتصال'
+      connect: 'اتصال', disconnect: 'قطع اتصال', connected: 'متصل', not_connected: 'غیر متصل', connection: 'اتصال',
+      ai_thinking: 'در حال تجزیه و تحلیل...', ai_result: 'نتیجه:', ai_listen: 'گوش دادن به پاسخ'
     },
     he: {
       dashboard: 'לוח בקרה', diseases: 'מחלות', meds: 'תרופות', hospitals: 'בתי חולים', devices: 'התקני IoT',
@@ -97,7 +106,8 @@
       first_aid: 'עזרה ראשונה', call: 'התקשר', no_results: 'לא נמצאו תוצאות.', ai_tools: 'עוזר רפואי AI',
       correct: 'תקן', formulate: 'נסח', detail: 'פרט', analyze: 'נתח', research: 'חקור',
       listen_disease: 'הקשב למחלה', listen_med: 'הקשב לתרופה', listen_first_aid: 'הקשב לעזרה ראשונה', listen_device: 'הקשב להתקן',
-      connect: 'התחבר', disconnect: 'התנתק', connected: 'מחובר', not_connected: 'לא מחובר', connection: 'חיבור'
+      connect: 'התחבר', disconnect: 'התנתק', connected: 'מחובר', not_connected: 'לא מחובר', connection: 'חיבור',
+      ai_thinking: 'מנתח...', ai_result: 'תוצאה:', ai_listen: 'הקשב לתשובה'
     },
     la: {
       dashboard: 'Dashboard', diseases: 'Morbi', meds: 'Medicamenta', hospitals: 'Valetudinaria', devices: 'IoT Cogitationes',
@@ -106,7 +116,8 @@
       first_aid: 'Prima Auxilia', call: 'Vocare', no_results: 'Nulli eventus inventi.', ai_tools: 'AI Assistentis Medici',
       correct: 'Corrigere', formulate: 'Formulare', detail: 'Detail', analyze: 'Analyzare', research: 'Investigare',
       listen_disease: 'Audire morbum', listen_med: 'Audire medicamentum', listen_first_aid: 'Audire prima auxilia', listen_device: 'Audire cogitationem',
-      connect: 'Connectere', disconnect: 'Disconnectere', connected: 'Connexus', not_connected: 'Non connexus', connection: 'Connexio'
+      connect: 'Connectere', disconnect: 'Disconnectere', connected: 'Connexus', not_connected: 'Non connexus', connection: 'Connexio',
+      ai_thinking: 'Analyzans...', ai_result: 'Eventus:', ai_listen: 'Audire responsum'
     },
     uz: {
       dashboard: 'Boshqaruv paneli', diseases: 'Kasalliklar', meds: 'Dorilar', hospitals: 'Kasalxonalar', devices: 'IoT qurilmalari',
@@ -115,7 +126,8 @@
       first_aid: 'Birinchi yordam', call: "Qo'ng'iroq", no_results: 'Hech narsa topilmadi.', ai_tools: 'AI Tibbiy Yordamchi',
       correct: 'Tuzatish', formulate: 'Shakllantirish', detail: 'Batafsil', analyze: 'Tahlil qilish', research: 'Tadqiqot',
       listen_disease: 'Kasallikni tinglash', listen_med: 'Dorini tinglash', listen_first_aid: 'Birinchi yordamni tinglash', listen_device: 'Qurilmani tinglash',
-      connect: 'Ulash', disconnect: 'Uzish', connected: 'Ulangan', not_connected: 'Ulanmagan', connection: 'Ulanish'
+      connect: 'Ulash', disconnect: 'Uzish', connected: 'Ulangan', not_connected: 'Ulanmagan', connection: 'Ulanish',
+      ai_thinking: 'Tahlil qilinmoqda...', ai_result: 'Natija:', ai_listen: 'Javobni tinglash'
     },
     ru: {
       dashboard: 'Панель', diseases: 'Болезни', meds: 'Лекарства', hospitals: 'Больницы', devices: 'Устройства IoT',
@@ -124,7 +136,8 @@
       first_aid: 'Первая помощь', call: 'Позвонить', no_results: 'Ничего не найдено.', ai_tools: 'ИИ Медицинский Ассистент',
       correct: 'Исправить', formulate: 'Сформулировать', detail: 'Детализировать', analyze: 'Анализировать', research: 'Исследовать',
       listen_disease: 'Слушать болезнь', listen_med: 'Слушать лекарство', listen_first_aid: 'Слушать первую помощь', listen_device: 'Слушать устройство',
-      connect: 'Подключить', disconnect: 'Отключить', connected: 'Подключено', not_connected: 'Не подключено', connection: 'Подключение'
+      connect: 'Подключить', disconnect: 'Отключить', connected: 'Подключено', not_connected: 'Не подключено', connection: 'Подключение',
+      ai_thinking: 'Анализ...', ai_result: 'Результат:', ai_listen: 'Слушать ответ'
     },
     pl: {
       dashboard: 'Pulpit', diseases: 'Choroby', meds: 'Leki', hospitals: 'Szpitale', devices: 'Urządzenia IoT',
@@ -133,7 +146,8 @@
       first_aid: 'Pierwsza pomoc', call: 'Zadzwoń', no_results: 'Brak wyników.', ai_tools: 'Asystent Medyczny AI',
       correct: 'Popraw', formulate: 'Sformułuj', detail: 'Uszczegółowij', analyze: 'Przeanalizuj', research: 'Zbadaj',
       listen_disease: 'Słuchaj choroby', listen_med: 'Słuchaj leku', listen_first_aid: 'Słuchaj pierwszej pomocy', listen_device: 'Słuchaj urządzenia',
-      connect: 'Połącz', disconnect: 'Rozłącz', connected: 'Połączono', not_connected: 'Nie połączono', connection: 'Połączenie'
+      connect: 'Połącz', disconnect: 'Rozłącz', connected: 'Połączono', not_connected: 'Nie połączono', connection: 'Połączenie',
+      ai_thinking: 'Analizowanie...', ai_result: 'Wynik:', ai_listen: 'Słuchaj odpowiedzi'
     },
     ro: {
       dashboard: 'Panou', diseases: 'Boli', meds: 'Medicamente', hospitals: 'Spitale', devices: 'Dispozitive IoT',
@@ -142,7 +156,8 @@
       first_aid: 'Primul ajutor', call: 'Sună', no_results: 'Nu s-au găsit rezultate.', ai_tools: 'Asistent Medical AI',
       correct: 'Corectează', formulate: 'Formulează', detail: 'Detaliază', analyze: 'Analizează', research: 'Cercetează',
       listen_disease: 'Ascultă boala', listen_med: 'Ascultă medicamentul', listen_first_aid: 'Ascultă primul ajutor', listen_device: 'Ascultă dispozitivul',
-      connect: 'Conectează', disconnect: 'Deconectează', connected: 'Conectat', not_connected: 'Neconectat', connection: 'Conexiune'
+      connect: 'Conectează', disconnect: 'Deconectează', connected: 'Conectat', not_connected: 'Neconectat', connection: 'Conexiune',
+      ai_thinking: 'Se analizează...', ai_result: 'Rezultat:', ai_listen: 'Ascultă răspunsul'
     },
     hr: {
       dashboard: 'Nadzorna ploča', diseases: 'Bolesti', meds: 'Lijekovi', hospitals: 'Bolnice', devices: 'IoT Uređaji',
@@ -151,7 +166,8 @@
       first_aid: 'Prva pomoć', call: 'Nazovi', no_results: 'Nema rezultata.', ai_tools: 'AI Medicinski Asistent',
       correct: 'Ispravi', formulate: 'Formuliraj', detail: 'Detaljiziraj', analyze: 'Analiziraj', research: 'Istraži',
       listen_disease: 'Slušaj bolest', listen_med: 'Slušaj lijek', listen_first_aid: 'Slušaj prvu pomoć', listen_device: 'Slušaj uređaj',
-      connect: 'Poveži', disconnect: 'Odspoji', connected: 'Povezano', not_connected: 'Nije povezano', connection: 'Veza'
+      connect: 'Poveži', disconnect: 'Odspoji', connected: 'Povezano', not_connected: 'Nije povezano', connection: 'Veza',
+      ai_thinking: 'Analiziranje...', ai_result: 'Rezultat:', ai_listen: 'Slušaj odgovor'
     },
     pt: {
       dashboard: 'Painel', diseases: 'Doenças', meds: 'Medicamentos', hospitals: 'Hospitais', devices: 'Dispositivos IoT',
@@ -160,7 +176,8 @@
       first_aid: 'Primeiros Socorros', call: 'Ligar', no_results: 'Nenhum resultado encontrado.', ai_tools: 'Assistente Médico IA',
       correct: 'Corrigir', formulate: 'Formular', detail: 'Detalhar', analyze: 'Analisar', research: 'Pesquisar',
       listen_disease: 'Ouvir doença', listen_med: 'Ouvir medicamento', listen_first_aid: 'Ouvir primeiros socorros', listen_device: 'Ouvir dispositivo',
-      connect: 'Conectar', disconnect: 'Desconectar', connected: 'Conectado', not_connected: 'Desconectado', connection: 'Conexão'
+      connect: 'Conectar', disconnect: 'Desconectar', connected: 'Conectado', not_connected: 'Desconectado', connection: 'Conexão',
+      ai_thinking: 'Analisando...', ai_result: 'Resultado:', ai_listen: 'Ouvir resposta'
     },
     fr: {
       dashboard: 'Tableau de bord', diseases: 'Maladies', meds: 'Médicaments', hospitals: 'Hôpitaux', devices: 'Appareils IoT',
@@ -169,7 +186,8 @@
       first_aid: 'Premiers secours', call: 'Appeler', no_results: 'Aucun résultat.', ai_tools: 'Assistant Médical IA',
       correct: 'Corriger', formulate: 'Formuler', detail: 'Détailler', analyze: 'Analyser', research: 'Rechercher',
       listen_disease: 'Écouter la maladie', listen_med: 'Écouter le médicament', listen_first_aid: 'Écouter les premiers secours', listen_device: 'Écouter l\'appareil',
-      connect: 'Connecter', disconnect: 'Déconnecter', connected: 'Connecté', not_connected: 'Non connecté', connection: 'Connexion'
+      connect: 'Connecter', disconnect: 'Déconnecter', connected: 'Connecté', not_connected: 'Non connecté', connection: 'Connexion',
+      ai_thinking: 'Analyse en cours...', ai_result: 'Résultat:', ai_listen: 'Écouter la réponse'
     },
     el: {
       dashboard: 'Πίνακας', diseases: 'Ασθένειες', meds: 'Φάρμακα', hospitals: 'Νοσοκομεία', devices: 'Συσκευές IoT',
@@ -178,7 +196,8 @@
       first_aid: 'Πρώτες Βοήθειες', call: 'Κλήση', no_results: 'Δεν βρέθηκαν αποτελέσματα.', ai_tools: 'AI Ιατρικός Βοηθός',
       correct: 'Διόρθωση', formulate: 'Διατύπωση', detail: 'Λεπτομέρεια', analyze: 'Ανάλυση', research: 'Έρευνα',
       listen_disease: 'Άκουσε την ασθένεια', listen_med: 'Άκουσε το φάρμακο', listen_first_aid: 'Άκουσε τις πρώτες βοήθειες', listen_device: 'Άκουσε τη συσκευή',
-      connect: 'Σύνδεση', disconnect: 'Αποσύνδεση', connected: 'Συνδεδεμένο', not_connected: 'Μη συνδεδεμένο', connection: 'Σύνδεση'
+      connect: 'Σύνδεση', disconnect: 'Αποσύνδεση', connected: 'Συνδεδεμένο', not_connected: 'Μη συνδεδεμένο', connection: 'Σύνδεση',
+      ai_thinking: 'Ανάλυση...', ai_result: 'Αποτέλεσμα:', ai_listen: 'Άκουσε την απάντηση'
     },
     es: {
       dashboard: 'Panel', diseases: 'Enfermedades', meds: 'Medicamentos', hospitals: 'Hospitales', devices: 'Dispositivos IoT',
@@ -187,7 +206,8 @@
       first_aid: 'Primeros auxilios', call: 'Llamar', no_results: 'No se encontraron resultados.', ai_tools: 'Asistente Médico IA',
       correct: 'Corregir', formulate: 'Formular', detail: 'Detallar', analyze: 'Analizar', research: 'Investigar',
       listen_disease: 'Escuchar enfermedad', listen_med: 'Escuchar medicamento', listen_first_aid: 'Escuchar primeros auxilios', listen_device: 'Escuchar dispositivo',
-      connect: 'Conectar', disconnect: 'Desconectar', connected: 'Conectado', not_connected: 'No conectado', connection: 'Conexión'
+      connect: 'Conectar', disconnect: 'Desconectar', connected: 'Conectado', not_connected: 'No conectado', connection: 'Conexión',
+      ai_thinking: 'Analizando...', ai_result: 'Resultado:', ai_listen: 'Escuchar respuesta'
     },
     it: {
       dashboard: 'Pannello', diseases: 'Malattie', meds: 'Farmaci', hospitals: 'Ospedali', devices: 'Dispositivi IoT',
@@ -196,35 +216,67 @@
       first_aid: 'Primo Soccorso', call: 'Chiama', no_results: 'Nessun risultato.', ai_tools: 'Assistente Medico IA',
       correct: 'Correggi', formulate: 'Formula', detail: 'Dettaglia', analyze: 'Analizza', research: 'Ricerca',
       listen_disease: 'Ascolta malattia', listen_med: 'Ascolta farmaco', listen_first_aid: 'Ascolta primo soccorso', listen_device: 'Ascolta dispositivo',
-      connect: 'Connetti', disconnect: 'Disconnetti', connected: 'Connesso', not_connected: 'Non connesso', connection: 'Connessione'
+      connect: 'Connetti', disconnect: 'Disconnetti', connected: 'Connesso', not_connected: 'Non connesso', connection: 'Connessione',
+      ai_thinking: 'Analisi...', ai_result: 'Risultato:', ai_listen: 'Ascolta risposta'
     }
   };
 
   // ═══════════════════════════════════════════════════════
-  // 2. DATENBANK (A-Z)
+  // 2. DATENBANK (A-Z) - MASSIV ERWEITERT
   // ═══════════════════════════════════════════════════════
   const DISEASES = [
-    { id: 'd1', name: 'Asthma', symp: 'Atemnot, Husten, Engegefühl in der Brust', tr: 'Bronchienerweiternde Sprays, Kortison, Allergene meiden.' },
-    { id: 'd2', name: 'Diabetes Typ 2', symp: 'Erhöhter Blutzucker, Müdigkeit, starker Durst', tr: 'Ernährungsumstellung, Bewegung, Metformin, Insulin (später).' },
-    { id: 'd3', name: 'Grippe (Influenza)', symp: 'Plötzliches Fieber, Gliederschmerzen, Husten, Schnupfen', tr: 'Bettruhe, viel Flüssigkeit, Fieber senken, ggf. Virostatika.' },
-    { id: 'd4', name: 'Herzinsuffizienz', symp: 'Kurzatmigkeit, Ödeme (Wassereinlagerungen), Müdigkeit', tr: 'Wasserausschwemmende Medikamente, ACE-Hemmer, salzarme Kost.' },
-    { id: 'd5', name: 'Migräne', symp: 'Pulsierender Schmerz, Übelkeit, Lichtempfindlichkeit', tr: 'Ruhe, dunkler Raum, Schmerzmittel (Triptane).' },
-    { id: 'd6', name: 'Rückenschmerzen', symp: 'Ziehen im Rücken, Verspannungen, Bewegungseinschränkung', tr: 'Wärme, Bewegung, Massage, ggf. Muskelrelaxantien.' },
-    { id: 'd7', name: 'Bluthochdruck', symp: 'Oft symptomlos, Kopfschmerzen, Schwindel, Nasenbluten', tr: 'Salzarm essen, Sport, Blutdrucksenker (Betablocker etc.).' },
-    { id: 'd8', name: 'Wundrose (Erysipel)', symp: 'Rote, heiße, schmerzhafte Hautentzündung, Fieber', tr: 'Dringend zum Arzt! Antibiotika, Ruhigstellung.' },
-    { id: 'd9', name: 'Magen-Darm-Infekt', symp: 'Übelkeit, Erbrechen, Durchfall, Bauchkrämpfe', tr: 'Viel trinken (Elektrolyte), Schonkost, ggf. Medikamente gegen Übelkeit.' },
-    { id: 'd10', name: 'Allergie', symp: 'Niesen, Juckreiz, Hautausschlag, Atemnot', tr: 'Allergene meiden, Antihistaminika, im Notfall Adrenalin (EpiPen).' }
+    { id: 'd1', name: 'Aids (HIV)', symp: 'Fieber, Müdigkeit, geschwollene Lymphknoten, Hautausschlag', tr: 'Antiretrovirale Therapie (ART), regelmäßige Kontrolle.' },
+    { id: 'd2', name: 'Allergie', symp: 'Niesen, Juckreiz, Hautausschlag, Atemnot', tr: 'Allergene meiden, Antihistaminika, im Notfall Adrenalin (EpiPen).' },
+    { id: 'd3', name: 'Alzheimer', symp: 'Gedächtnisverlust, Orientierungslosigkeit, Sprachstörungen', tr: 'Medikamente zur Verlangsamung, Betreuung, Gedächtnistraining.' },
+    { id: 'd4', name: 'Arthrose', symp: 'Gelenkschmerzen, Steifheit, Schwellungen', tr: 'Bewegung, Physiotherapie, Schmerzmittel, ggf. OP.' },
+    { id: 'd5', name: 'Asthma', symp: 'Atemnot, Husten, Engegefühl in der Brust', tr: 'Bronchienerweiternde Sprays, Kortison, Allergene meiden.' },
+    { id: 'd6', name: 'Bluthochdruck', symp: 'Oft symptomlos, Kopfschmerzen, Schwindel, Nasenbluten', tr: 'Salzarm essen, Sport, Blutdrucksenker (Betablocker etc.).' },
+    { id: 'd7', name: 'Bronchitis', symp: 'Husten mit Auswurf, Fieber, Brustschmerzen', tr: 'Viel trinken, Ruhe, ggf. Antibiotika (bei bakterieller Infektion).' },
+    { id: 'd8', name: 'Cholesterin (Hypercholesterinämie)', symp: 'Oft symptomlos, Ablagerungen in Gefäßen', tr: 'Ernährungsumstellung, Statine, Sport.' },
+    { id: 'd9', name: 'Demenz', symp: 'Vergesslichkeit, Verwirrtheit, Persönlichkeitsveränderung', tr: 'Medikamente, Betreuung, strukturierter Alltag.' },
+    { id: 'd10', name: 'Depression', symp: 'Niedergeschlagenheit, Antriebslosigkeit, Schlafstörungen', tr: 'Psychotherapie, Antidepressiva, soziale Unterstützung.' },
+    { id: 'd11', name: 'Diabetes Typ 1', symp: 'Starker Durst, häufiges Wasserlassen, Gewichtsverlust', tr: 'Insulin-Injektionen, Blutzuckerkontrolle, Ernährung.' },
+    { id: 'd12', name: 'Diabetes Typ 2', symp: 'Erhöhter Blutzucker, Müdigkeit, starker Durst', tr: 'Ernährungsumstellung, Bewegung, Metformin, Insulin (später).' },
+    { id: 'd13', name: 'Epilepsie', symp: 'Anfälle, Bewusstseinsverlust, Zuckungen', tr: 'Antiepileptika, Vermeidung von Auslösern.' },
+    { id: 'd14', name: 'Gastritis', symp: 'Magenschmerzen, Übelkeit, Sodbrennen', tr: 'Magenschonende Kost, Protonenpumpenhemmer (Pantoprazol).' },
+    { id: 'd15', name: 'Grippe (Influenza)', symp: 'Plötzliches Fieber, Gliederschmerzen, Husten, Schnupfen', tr: 'Bettruhe, viel Flüssigkeit, Fieber senken, ggf. Virostatika.' },
+    { id: 'd16', name: 'Hepatitis', symp: 'Gelbsucht, Müdigkeit, Übelkeit, Bauchschmerzen', tr: 'Ruhe, ggf. antivirale Medikamente, Alkohol meiden.' },
+    { id: 'd17', name: 'Herzinsuffizienz', symp: 'Kurzatmigkeit, Ödeme (Wassereinlagerungen), Müdigkeit', tr: 'Wasserausschwemmende Medikamente, ACE-Hemmer, salzarme Kost.' },
+    { id: 'd18', name: 'Herzinfarkt', symp: 'Starker Brustschmerz, Ausstrahlung in Arm/Kiefer, Atemnot', tr: 'Sofort Notruf 112! Stent, Medikamente.' },
+    { id: 'd19', name: 'Krebs (Tumor)', symp: 'Gewichtsverlust, Müdigkeit, je nach Art unterschiedliche Symptome', tr: 'OP, Chemo, Bestrahlung, Immuntherapie (je nach Art).' },
+    { id: 'd20', name: 'Leukämie (Blutkrebs)', symp: 'Blässe, Müdigkeit, häufige Infekte, Blutungen', tr: 'Chemotherapie, Stammzelltransplantation.' },
+    { id: 'd21', name: 'Magen-Darm-Infekt', symp: 'Übelkeit, Erbrechen, Durchfall, Bauchkrämpfe', tr: 'Viel trinken (Elektrolyte), Schonkost, ggf. Medikamente gegen Übelkeit.' },
+    { id: 'd22', name: 'Migräne', symp: 'Pulsierender Schmerz, Übelkeit, Lichtempfindlichkeit', tr: 'Ruhe, dunkler Raum, Schmerzmittel (Triptane).' },
+    { id: 'd23', name: 'Osteoporose', symp: 'Knochenschmerzen, erhöhte Bruchgefahr', tr: 'Kalzium, Vitamin D, Bewegung, Medikamente.' },
+    { id: 'd24', name: 'Parkinson', symp: 'Zittern, steife Muskeln, langsame Bewegungen', tr: 'L-Dopa, Physiotherapie, tiefe Hirnstimulation.' },
+    { id: 'd25', name: 'Rückenschmerzen', symp: 'Ziehen im Rücken, Verspannungen, Bewegungseinschränkung', tr: 'Wärme, Bewegung, Massage, ggf. Muskelrelaxantien.' },
+    { id: 'd26', name: 'Schlaganfall', symp: 'Plötzliche Lähmung, Sprachstörung, Sehstörung', tr: 'Sofort Notruf 112! Thrombolyse, Reha.' },
+    { id: 'd27', name: 'Thrombose', symp: 'Schwellung, Schmerzen im Bein, Überwärmung', tr: 'Blutverdünner, Kompressionsstrümpfe, Bewegung.' },
+    { id: 'd28', name: 'Wundrose (Erysipel)', symp: 'Rote, heiße, schmerzhafte Hautentzündung, Fieber', tr: 'Dringend zum Arzt! Antibiotika, Ruhigstellung.' }
   ];
 
   const MEDS = [
-    { id: 'm1', name: 'Ibuprofen 400mg', use: 'Schmerzen, Entzündungen, Fieber', dose: 'Max. 3x täglich 1 Tablette nach dem Essen.' },
-    { id: 'm2', name: 'Paracetamol 500mg', use: 'Schmerzen, Fieber (magensicher)', dose: 'Max. 3x täglich 1-2 Tabletten.' },
-    { id: 'm3', name: 'Amoxicillin 1000mg', use: 'Bakterielle Infektionen (Antibiotikum)', dose: '1-0-1 (je nach Verordnung, immer zu Ende nehmen!).' },
-    { id: 'm4', name: 'Metformin 850mg', use: 'Diabetes Typ 2', dose: 'Zu den Mahlzeiten, morgens und abends.' },
-    { id: 'm5', name: 'Salbutamol Spray', use: 'Asthma-Anfall (bronchienerweiternd)', dose: 'Bei Bedarf 1-2 Hübe inhalieren.' },
-    { id: 'm6', name: 'Ramipril 5mg', use: 'Bluthochdruck, Herzschwäche', dose: '1x täglich morgens.' },
-    { id: 'm7', name: 'Aspirin 100mg', use: 'Blutverdünnung (Thrombozytenaggregationshemmer)', dose: '1x täglich.' },
-    { id: 'm8', name: 'Pantoprazol 40mg', use: 'Magenschutz, Sodbrennen', dose: '1x täglich morgens nüchtern.' }
+    { id: 'm1', name: 'Amoxicillin 1000mg', use: 'Bakterielle Infektionen (Antibiotikum)', dose: '1-0-1 (je nach Verordnung, immer zu Ende nehmen!).' },
+    { id: 'm2', name: 'Aspirin 100mg', use: 'Blutverdünnung (Thrombozytenaggregationshemmer)', dose: '1x täglich.' },
+    { id: 'm3', name: 'Betablocker (Metoprolol)', use: 'Bluthochdruck, Herzschwäche', dose: '1x täglich morgens.' },
+    { id: 'm4', name: 'Cortison (Prednisolon)', use: 'Entzündungen, Allergien, Autoimmunerkrankungen', dose: 'Ausschleichend einnehmen, nicht abrupt absetzen.' },
+    { id: 'm5', name: 'Diazepam', use: 'Angstzustände, Krämpfe, Muskelverspannungen', dose: 'Nur nach Verordnung, macht müde.' },
+    { id: 'm6', name: 'Furosemid', use: 'Wasserausschwemmend (Herzinsuffizienz)', dose: 'Morgens einnehmen, Elektrolyte prüfen.' },
+    { id: 'm7', name: 'Heparin', use: 'Blutverdünnung (Spritze)', dose: 'Nach Verordnung, subkutan spritzen.' },
+    { id: 'm8', name: 'Ibuprofen 400mg', use: 'Schmerzen, Entzündungen, Fieber', dose: 'Max. 3x täglich 1 Tablette nach dem Essen.' },
+    { id: 'm9', name: 'Insulin', use: 'Diabetes', dose: 'Je nach Blutzucker und Mahlzeit.' },
+    { id: 'm10', name: 'L-Thyroxin', use: 'Schilddrüsenunterfunktion', dose: 'Morgens nüchtern, 30 Min. vor dem Frühstück.' },
+    { id: 'm11', name: 'Metformin 850mg', use: 'Diabetes Typ 2', dose: 'Zu den Mahlzeiten, morgens und abends.' },
+    { id: 'm12', name: 'Morphin', use: 'Starke Schmerzen', dose: 'Nur nach Verordnung, kann abhängig machen.' },
+    { id: 'm13', name: 'Novalgin (Metamizol)', use: 'Starke Schmerzen, Fieber', dose: 'Max. 4x täglich, nicht bei Blutbildveränderungen.' },
+    { id: 'm14', name: 'Omeprazol', use: 'Magenschutz, Sodbrennen', dose: '1x täglich morgens nüchtern.' },
+    { id: 'm15', name: 'Pantoprazol 40mg', use: 'Magenschutz, Sodbrennen', dose: '1x täglich morgens nüchtern.' },
+    { id: 'm16', name: 'Paracetamol 500mg', use: 'Schmerzen, Fieber (magensicher)', dose: 'Max. 3x täglich 1-2 Tabletten.' },
+    { id: 'm17', name: 'Ramipril 5mg', use: 'Bluthochdruck, Herzschwäche', dose: '1x täglich morgens.' },
+    { id: 'm18', name: 'Salbutamol Spray', use: 'Asthma-Anfall (bronchienerweiternd)', dose: 'Bei Bedarf 1-2 Hübe inhalieren.' },
+    { id: 'm19', name: 'Simvastatin', use: 'Cholesterinsenker', dose: 'Abends einnehmen.' },
+    { id: 'm20', name: 'Voltaren (Diclofenac)', use: 'Schmerzen, Entzündungen (Salbe/Tablette)', dose: 'Nach Verordnung, magensicher einnehmen.' },
+    { id: 'm21', name: 'Xarelto (Rivaroxaban)', use: 'Blutverdünnung (z.B. nach Thrombose)', dose: '1x täglich zu einer Mahlzeit.' }
   ];
 
   const FIRST_AID = [
@@ -232,12 +284,14 @@
     { id: 'f2', title: 'Stabile Seitenlage', desc: 'Bei Bewusstlosigkeit mit normaler Atmung. Verhindert Ersticken. Atemwege freihalten.' },
     { id: 'f3', title: 'Herzdruckmassage', desc: 'Bei Atemstillstand. 100-120 Mal pro Minute fest auf die Mitte des Brustkorbs drücken. 5-6 cm tief.' },
     { id: 'f4', title: 'Verbrennungen', desc: 'Mit lauwarmem Wasser kühlen (ca. 10-15 Min). Keine Eiswürfel, keine Salben. Kleidung nicht abreißen.' },
-    { id: 'f5', title: 'Verschlucken', desc: 'Auffordern zu husten. Bei Atemnot: 5x kräftig auf den Rücken klopfen, dann 5x Oberbauchkompression (Heimlich).' }
+    { id: 'f5', title: 'Verschlucken', desc: 'Auffordern zu husten. Bei Atemnot: 5x kräftig auf den Rücken klopfen, dann 5x Oberbauchkompression (Heimlich).' },
+    { id: 'f6', title: 'Vergiftung', desc: 'Notruf 112. Kein Erbrechen auslösen! Giftnotruf anrufen, Reste sichern.' },
+    { id: 'f7', title: 'Knochenbruch', desc: 'Ruhigstellen, nicht bewegen. Ggf. Schiene anlegen, Arzt rufen.' },
+    { id: 'f8', title: 'Schock', desc: 'Betroffenen flach lagern, Beine hochlegen. Warm halten, beruhigen, Notruf 112.' },
+    { id: 'f9', title: 'Starke Blutung', desc: 'Druckverband anlegen, betroffene Gliedmaße hochhalten. Notruf 112.' },
+    { id: 'f10', title: 'Insektenstich (Allergie)', desc: 'Bei Atemnot oder Schwellung: Notruf 112. EpiPen verwenden, wenn vorhanden.' }
   ];
 
-  // ═══════════════════════════════════════════════════════
-  // 3. MEDIZINISCHE GERÄTE (A-Z mit Verbindungsart)
-  // ═══════════════════════════════════════════════════════
   const DEVICES = [
     { id: 'dev1', name: 'Blutdruckmessgerät', icon: '🩺', type: 'Bluetooth', desc: 'Misst den Blutdruck und Puls. Verbindet sich per Bluetooth mit der App.' },
     { id: 'dev2', name: 'Blutzuckermessgerät', icon: '🩸', type: 'Bluetooth', desc: 'Misst den Blutzucker. Sendet Werte automatisch an die App.' },
@@ -253,17 +307,23 @@
     { id: 'dev12', name: 'Fieberthermometer', icon: '🌡️', type: 'Infrarot', desc: 'Misst die Körpertemperatur berührungslos. Infrarot-Sensor.' },
     { id: 'dev13', name: 'Smart-Waage', icon: '⚖️', type: 'WLAN', desc: 'Misst Gewicht und Körperfett. Sendet Daten per WLAN.' },
     { id: 'dev14', name: 'Pulsoximeter', icon: '🫀', type: 'Bluetooth', desc: 'Misst Sauerstoffsättigung im Blut. Bluetooth-Sync.' },
-    { id: 'dev15', name: 'Schlafapnoe-Gerät', icon: '😴', type: 'WLAN', desc: 'Überwacht die Atmung im Schlaf. Sendet Berichte per WLAN.' }
+    { id: 'dev15', name: 'Schlafapnoe-Gerät', icon: '😴', type: 'WLAN', desc: 'Überwacht die Atmung im Schlaf. Sendet Berichte per WLAN.' },
+    { id: 'dev16', name: 'Endoskop', icon: '🔍', type: 'WLAN', desc: 'Kamera für Magen-Darm-Spiegelung. Sendet Bilder per WLAN.' },
+    { id: 'dev17', name: 'Herzschrittmacher', icon: '❤️', type: 'Bluetooth', desc: 'Reguliert den Herzschlag. Bluetooth für Kontrolle.' },
+    { id: 'dev18', name: 'Dialysegerät', icon: '🩸', type: 'WLAN', desc: 'Reinigt das Blut bei Nierenversagen. WLAN für Fernüberwachung.' },
+    { id: 'dev19', name: 'Inkubator', icon: '👶', type: 'WLAN', desc: 'Für Frühchen. Überwacht Temperatur und Atmung.' },
+    { id: 'dev20', name: 'Narkosegerät', icon: '💉', type: 'Bluetooth', desc: 'Für Operationen. Bluetooth für Überwachung.' }
   ];
 
   const HOSPITALS = [
     { name: 'Universitätsklinikum', dist: '1.2 km', type: 'Notaufnahme 24/7', phone: '112' },
     { name: 'St. Marien Krankenhaus', dist: '3.5 km', type: 'Allgemeinmedizin', phone: '030-123456' },
-    { name: 'Kinderklinik Sonnenschein', dist: '5.0 km', type: 'Pädiatrie', phone: '030-654321' }
+    { name: 'Kinderklinik Sonnenschein', dist: '5.0 km', type: 'Pädiatrie', phone: '030-654321' },
+    { name: 'Herzzentrum Mitte', dist: '8.2 km', type: 'Kardiologie', phone: '030-987654' }
   ];
 
   // ═══════════════════════════════════════════════════════
-  // 4. STATE
+  // 3. STATE
   // ═══════════════════════════════════════════════════════
   let state = {
     lang: 'de',
@@ -277,6 +337,7 @@
   };
 
   let currentTarget = null;
+  let lastAIResponse = '';
 
   function loadState() {
     try {
@@ -459,7 +520,10 @@
         <div class="ab-modal">
           <h3>🤖 HalDo KI Assistent</h3>
           <p id="ab-ai-text">Analysiere...</p>
-          <button class="ab-btn primary" style="width:100%;" onclick="document.getElementById('ab-ai-modal').classList.remove('show')">${t('close')}</button>
+          <div style="display:flex; gap:10px; justify-content:center; margin-bottom:15px;">
+            <button class="ab-btn" id="ab-ai-tts-btn" style="background: rgba(0,255,136,0.1); border-color: #00ff88; color: #00ff88;">🔊 ${t('ai_listen')}</button>
+            <button class="ab-btn primary" style="width:100%;" onclick="document.getElementById('ab-ai-modal').classList.remove('show')">${t('close')}</button>
+          </div>
         </div>
       </div>
     `;
@@ -483,9 +547,13 @@
   async function askAI(text) {
     const modal = document.getElementById('ab-ai-modal');
     const textEl = document.getElementById('ab-ai-text');
+    const ttsBtn = document.getElementById('ab-ai-tts-btn');
     if (!modal || !textEl) return;
+    
     modal.classList.add('show');
-    textEl.innerHTML = '<span style="color:#00ff88;">Analysiere...</span>';
+    textEl.innerHTML = `<span style="color:#00ff88;">${t('ai_thinking')}</span>`;
+    if (ttsBtn) ttsBtn.style.display = 'none';
+
     setTimeout(() => {
       let aiResponse = text;
       if (window.HalDoAI && typeof window.HalDoAI.generate === 'function') {
@@ -494,6 +562,17 @@
         aiResponse = `Medizinische Analyse: ${text} <br><br><b>Tipp von HalDo KI:</b> Bei anhaltenden Symptomen suche bitte einen echten Arzt auf!`;
       }
       textEl.innerHTML = aiResponse;
+      lastAIResponse = aiResponse;
+      
+      // TTS automatisch abspielen
+      const cleanText = aiResponse.replace(/<[^>]*>?/gm, '');
+      speakText(cleanText);
+
+      // TTS Button anzeigen
+      if (ttsBtn) {
+        ttsBtn.style.display = 'inline-flex';
+        ttsBtn.onclick = () => speakText(lastAIResponse.replace(/<[^>]*>?/gm, ''));
+      }
     }, 1200);
   }
 
@@ -521,7 +600,7 @@
       const resultBox = document.getElementById('ki-result');
       const resultText = document.getElementById('ki-result-text');
       resultBox.style.display = 'block';
-      resultText.innerHTML = '<span style="color:#00ff88;">Verarbeite...</span>';
+      resultText.innerHTML = `<span style="color:#00ff88;">${t('ai_thinking')}</span>`;
 
       setTimeout(() => {
         let res = "";
@@ -536,6 +615,9 @@
           else if (type === 'research') res = "🔬 Recherche-Ergebnis: Studien zeigen, dass diese Methode in 85% der Fälle wirksam ist.";
         }
         resultText.innerHTML = res;
+        
+        // TTS für KI-Ergebnis
+        speakText(res.replace(/<[^>]*>?/gm, ''));
       }, 1000);
       return;
     }
@@ -698,6 +780,6 @@
   window.apps.arztbuch = window.HalDoApps.arztbuch;
   window.openArztbuch = openOverlay;
 
-  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — ULTRA PRO MAX (Alle Geräte A-Z, TTS, 20+ Sprachen)');
+  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — ULTRA PRO MAX (KI TTS, Alle Geräte A-Z, 20+ Sprachen)');
 
 })();
