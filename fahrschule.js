@@ -5,9 +5,6 @@
   const VERSION = '700.0';
   const STORAGE_KEY = 'haldo.fahrschule.pro.stats.v700';
 
-  // ═══════════════════════════════════════════════════════
-  // 1. MULTI-LANGUAGE ENGINE (17 Sprachen)
-  // ═══════════════════════════════════════════════════════
   const LANG = {
     de: { dashboard: 'Startseite', learn: 'Lernen', exam: 'Prüfung', signs: 'Schilder', videos: 'Videos', theory: 'Theorie', settings: 'Einstellungen', start: 'Starten', questions: 'Fragen', back: 'Zurück', next: 'Weiter', ai_explain: 'KI fragen', pass: 'BESTANDEN', fail: 'DURCHGEFALLEN', select_count: 'Wähle die Anzahl der Fragen', lang: 'Sprache', exam_start: 'Prüfung starten', auto_next: 'Auto-Weiter', auto_next_desc: 'Automatisch zur nächsten Frage', sound_fx: 'Sound-Effekte', sound_fx_desc: 'Töne bei richtig/falsch', reset_stats: 'Statistiken zurücksetzen', reset_stats_desc: 'Löscht alle gespeicherten Fortschritte', about: 'Über die App', version: 'Version' },
     en: { dashboard: 'Dashboard', learn: 'Learn', exam: 'Exam', signs: 'Signs', videos: 'Videos', theory: 'Theory', settings: 'Settings', start: 'Start', questions: 'Questions', back: 'Back', next: 'Next', ai_explain: 'Ask AI', pass: 'PASSED', fail: 'FAILED', select_count: 'Select number of questions', lang: 'Language', exam_start: 'Start Exam', auto_next: 'Auto-Next', auto_next_desc: 'Automatically go to next question', sound_fx: 'Sound Effects', sound_fx_desc: 'Sounds on correct/wrong', reset_stats: 'Reset Statistics', reset_stats_desc: 'Deletes all saved progress', about: 'About App', version: 'Version' },
@@ -28,9 +25,6 @@
     ja: { dashboard: 'ダッシュボード', learn: '学習', exam: '試験', signs: '標識', videos: '動画', theory: '理論', settings: '設定', start: '開始', questions: '質問', back: '戻る', next: '次へ', ai_explain: 'AIに聞く', pass: '合格', fail: '不合格', select_count: '質問の数を選択', lang: '言語', exam_start: '試験を開始', auto_next: '自動次へ', auto_next_desc: '正解時に自動で次へ', sound_fx: '効果音', sound_fx_desc: '正解/不正解の音', reset_stats: '統計リセット', reset_stats_desc: 'すべての進捗を削除', about: 'アプリについて', version: 'バージョン' }
   };
 
-  // ═══════════════════════════════════════════════════════
-  // 2. FRAGEN-KATALOG (50 Echte Fahrschul-Fragen)
-  // ═══════════════════════════════════════════════════════
   const QUESTIONS = [
     { id: 1, cat: 'Gefahrenlehre', q: 'Sie nähern sich einer unübersichtlichen Kurve. Wie verhalten Sie sich?', opts: ['Geschwindigkeit stark reduzieren, bremsbereit sein', 'Hupen und weiterfahren', 'Auf die Gegenfahrbahn ausweichen'], correct: 0, exp: 'In unübersichtlichen Kurven muss die Geschwindigkeit reduziert und bremsbereit gefahren werden.' },
     { id: 2, cat: 'Vorfahrt', q: 'Wer hat an einer Kreuzung ohne Verkehrszeichen Vorfahrt?', opts: ['Das Fahrzeug von links', 'Das Fahrzeug von rechts', 'Wer zuerst ankommt'], correct: 1, exp: 'Die Grundregel lautet: Rechts vor Links.' },
@@ -53,35 +47,35 @@
     { id: 19, cat: 'Umweltschutz', q: 'Was schont die Umwelt beim Auto?', opts: ['Reifendruck regelmäßig prüfen', 'Klimaanlage immer an', 'Dachgepäckträger leer mitfahren'], correct: 0, exp: 'Der richtige Reifendruck reduziert den Rollwiderstand.' },
     { id: 20, cat: 'Verkehrszeichen', q: 'Was bedeutet ein blaues Schild mit einem Fußgänger?', opts: ['Fußgängerüberweg', 'Spielstraße', 'Fußgänger verboten'], correct: 0, exp: 'Es weist auf einen Fußgängerüberweg hin.' },
     { id: 21, cat: 'Erste Hilfe', q: 'Was ist die erste Maßnahme bei einem Unfall?', opts: ['Unfallstelle absichern (Warnblinker, Warndreieck)', 'Sofort Erste Hilfe leisten', 'Die Polizei rufen'], correct: 0, exp: 'Eigenschutz geht vor! Zuerst die Unfallstelle absichern, dann helfen.' },
-    { id: 22, cat: 'Erste Hilfe', q: 'Wie lautet die Notrufnummer?', opts: ['112', '110', '911'], correct: 0, exp: 'Die europaweite Notrufnummer ist die 112 (Feuerwehr/Rettungsdienst).' },
-    { id: 23, cat: 'Technik', q: 'Was bedeutet eine rote Kontrollleuchte im Armaturenbrett?', opts: ['Sofort anhalten und prüfen', 'Weiterfahren, es ist nur ein Hinweis', 'Motor abstellen und neu starten'], correct: 0, exp: 'Rote Kontrollleuchten weisen auf eine akute Gefahr oder einen schweren Defekt hin.' },
-    { id: 24, cat: 'Gefahrenlehre', q: 'Sie fahren bei Starkregen. Was tun?', opts: ['Geschwindigkeit reduzieren', 'Fernlicht einschalten', 'Schneller fahren, um Aquaplaning zu entgehen'], correct: 0, exp: 'Bei Starkregen ist die Gefahr von Aquaplaning hoch. Geschwindigkeit reduzieren!' },
-    { id: 25, cat: 'Vorfahrt', q: 'Sie wollen in einen Kreisverkehr einfahren. Wer hat Vorfahrt?', opts: ['Die Fahrzeuge im Kreisverkehr', 'Ich, weil ich von rechts komme', 'Wer schneller ist'], correct: 0, exp: 'Im Kreisverkehr hat der Verkehr im Kreis Vorfahrt (Schild "Vorfahrt gewähren" beachten).' },
+    { id: 22, cat: 'Erste Hilfe', q: 'Wie lautet die Notrufnummer?', opts: ['112', '110', '911'], correct: 0, exp: 'Die europaweite Notrufnummer ist die 112.' },
+    { id: 23, cat: 'Technik', q: 'Was bedeutet eine rote Kontrollleuchte im Armaturenbrett?', opts: ['Sofort anhalten und prüfen', 'Weiterfahren, es ist nur ein Hinweis', 'Motor abstellen und neu starten'], correct: 0, exp: 'Rote Kontrollleuchten weisen auf eine akute Gefahr hin.' },
+    { id: 24, cat: 'Gefahrenlehre', q: 'Sie fahren bei Starkregen. Was tun?', opts: ['Geschwindigkeit reduzieren', 'Fernlicht einschalten', 'Schneller fahren'], correct: 0, exp: 'Bei Starkregen ist die Gefahr von Aquaplaning hoch.' },
+    { id: 25, cat: 'Vorfahrt', q: 'Sie wollen in einen Kreisverkehr einfahren. Wer hat Vorfahrt?', opts: ['Die Fahrzeuge im Kreisverkehr', 'Ich, weil ich von rechts komme', 'Wer schneller ist'], correct: 0, exp: 'Im Kreisverkehr hat der Verkehr im Kreis Vorfahrt.' },
     { id: 26, cat: 'Verkehrszeichen', q: 'Was bedeutet das Schild mit dem roten Rand und dem weißen Kreis?', opts: ['Verbot der Einfahrt', 'Geschwindigkeitsbegrenzung', 'Überholverbot'], correct: 0, exp: 'Ein weißer Kreis mit rotem Rand bedeutet: Verbot der Einfahrt.' },
     { id: 27, cat: 'Technik', q: 'Was ist die Aufgabe der Kupplung?', opts: ['Kraftübertragung zwischen Motor und Getriebe', 'Bremsen des Fahrzeugs', 'Kühlen des Motors'], correct: 0, exp: 'Die Kupplung trennt und verbindet den Motor mit dem Getriebe.' },
-    { id: 28, cat: 'Umweltschutz', q: 'Was passiert beim "Motorsurfen"?', opts: ['Man rollt im Leerlauf und bremst mit dem Motor', 'Man beschleunigt stark', 'Man schaltet zu früh hoch'], correct: 0, exp: 'Beim Motorsurfen wird der Motor im Schubbetrieb (ohne Gas) genutzt, um Sprit zu sparen.' },
+    { id: 28, cat: 'Umweltschutz', q: 'Was passiert beim "Motorsurfen"?', opts: ['Man rollt im Leerlauf und bremst mit dem Motor', 'Man beschleunigt stark', 'Man schaltet zu früh hoch'], correct: 0, exp: 'Beim Motorsurfen wird der Motor im Schubbetrieb genutzt, um Sprit zu sparen.' },
     { id: 29, cat: 'Gefahrenlehre', q: 'Sie fahren in der Dämmerung. Worauf achten?', opts: ['Wildwechsel möglich, Licht anmachen', 'Schneller fahren', 'Sonnenbrille tragen'], correct: 0, exp: 'In der Dämmerung ist das Wild besonders aktiv. Abblendlicht einschalten!' },
-    { id: 30, cat: 'Vorfahrt', q: 'Ein Bus fährt an einer Haltestelle an. Was gilt?', opts: ['Ich muss dem Bus das Ausfahren ermöglichen', 'Ich habe Vorfahrt', 'Der Bus muss warten'], correct: 0, exp: 'Ein Linienbus, der vom Halt anfährt, hat Vorrang. Man sollte ihn einfädeln lassen.' },
-    { id: 31, cat: 'Verkehrszeichen', q: 'Was bedeutet das achteckige rote Schild?', opts: ['STOP - Anhalten und Vorfahrt gewähren', 'Vorfahrtstraße', 'Gefahrenstelle'], correct: 0, exp: 'Das achteckige rote Schild ist das STOP-Zeichen. Es muss immer angehalten werden.' },
-    { id: 32, cat: 'Erste Hilfe', q: 'Was tun bei einer bewusstlosen Person?', opts: ['Stabile Seitenlage, Atemwege prüfen', 'Sofort Wasser geben', 'Hinsetzen'], correct: 0, exp: 'Die stabile Seitenlage verhindert das Ersticken. Atemwege müssen frei sein.' },
-    { id: 33, cat: 'Technik', q: 'Was ist ein Reifendruckverlustsystem (RDKS)?', opts: ['Warnt bei zu niedrigem Reifendruck', 'Kühlt die Reifen', 'Erhöht die Geschwindigkeit'], correct: 0, exp: 'Das RDKS überwacht den Reifendruck und warnt den Fahrer bei Verlust.' },
-    { id: 34, cat: 'Gefahrenlehre', q: 'Sie fahren bei Glatteis. Was ist verboten?', opts: ['Abrupte Lenkbewegungen und starkes Bremsen', 'Langsam fahren', 'Winterreifen nutzen'], correct: 0, exp: 'Auf Glatteis können abrupte Manöver zum Ausbrechen des Fahrzeugs führen.' },
-    { id: 35, cat: 'Vorfahrt', q: 'Wer hat Vorrang: Fußgänger oder Auto?', opts: ['Fußgänger am Zebrastreifen', 'Das Auto', 'Wer schneller ist'], correct: 0, exp: 'Am Fußgängerüberweg (Zebrastreifen) haben Fußgänger absoluten Vorrang.' },
+    { id: 30, cat: 'Vorfahrt', q: 'Ein Bus fährt an einer Haltestelle an. Was gilt?', opts: ['Ich muss dem Bus das Ausfahren ermöglichen', 'Ich habe Vorfahrt', 'Der Bus muss warten'], correct: 0, exp: 'Ein Linienbus, der vom Halt anfährt, hat Vorrang.' },
+    { id: 31, cat: 'Verkehrszeichen', q: 'Was bedeutet das achteckige rote Schild?', opts: ['STOP - Anhalten und Vorfahrt gewähren', 'Vorfahrtstraße', 'Gefahrenstelle'], correct: 0, exp: 'Das achteckige rote Schild ist das STOP-Zeichen.' },
+    { id: 32, cat: 'Erste Hilfe', q: 'Was tun bei einer bewusstlosen Person?', opts: ['Stabile Seitenlage, Atemwege prüfen', 'Sofort Wasser geben', 'Hinsetzen'], correct: 0, exp: 'Die stabile Seitenlage verhindert das Ersticken.' },
+    { id: 33, cat: 'Technik', q: 'Was ist ein Reifendruckverlustsystem (RDKS)?', opts: ['Warnt bei zu niedrigem Reifendruck', 'Kühlt die Reifen', 'Erhöht die Geschwindigkeit'], correct: 0, exp: 'Das RDKS überwacht den Reifendruck.' },
+    { id: 34, cat: 'Gefahrenlehre', q: 'Sie fahren bei Glatteis. Was ist verboten?', opts: ['Abrupte Lenkbewegungen und starkes Bremsen', 'Langsam fahren', 'Winterreifen nutzen'], correct: 0, exp: 'Auf Glatteis können abrupte Manöver zum Ausbrechen führen.' },
+    { id: 35, cat: 'Vorfahrt', q: 'Wer hat Vorrang: Fußgänger oder Auto?', opts: ['Fußgänger am Zebrastreifen', 'Das Auto', 'Wer schneller ist'], correct: 0, exp: 'Am Zebrastreifen haben Fußgänger absoluten Vorrang.' },
     { id: 36, cat: 'Verkehrszeichen', q: 'Ein blaues Schild mit weißem P bedeutet?', opts: ['Parkplatz', 'Verbot für PKW', 'Fußgängerzone'], correct: 0, exp: 'Das weiße P auf blauem Grund ist das Parkplatzschild.' },
-    { id: 37, cat: 'Technik', q: 'Was ist die Funktion des ABS?', opts: ['Verhindert das Blockieren der Räder beim Bremsen', 'Erhöht die Motorleistung', 'Reduziert den Benzinverbrauch'], correct: 0, exp: 'ABS (Antiblockiersystem) sorgt dafür, dass die Räder beim Bremsen nicht blockieren.' },
-    { id: 38, cat: 'Umweltschutz', q: 'Was schadet der Umwelt am meisten?', opts: ['Ständiges Beschleunigen und Bremsen', 'Gleichmäßige Fahrt', 'Frühes Hochschalten'], correct: 0, exp: 'Ständiges Beschleunigen und Bremsen erhöht den Verbrauch und den Schadstoffausstoß.' },
-    { id: 39, cat: 'Gefahrenlehre', q: 'Sie sehen Kinder am Straßenrand. Was tun?', opts: ['Geschwindigkeit reduzieren, bremsbereit sein', 'Hupen und weiterfahren', 'Gas geben'], correct: 0, exp: 'Kinder sind unberechenbar. Bremsbereit sein und Geschwindigkeit reduzieren.' },
-    { id: 40, cat: 'Erste Hilfe', q: 'Wie viele Atemzüge pro Minute hat ein Erwachsener?', opts: ['12-18', '5-8', '30-40'], correct: 0, exp: 'Ein Erwachsener atmet normalerweise 12-18 Mal pro Minute.' },
-    { id: 41, cat: 'Technik', q: 'Was passiert bei zu niedrigem Reifendruck?', opts: ['Erhöhter Spritverbrauch und Verschleiß', 'Das Auto wird schneller', 'Es hat keine Auswirkungen'], correct: 0, exp: 'Zu niedriger Reifendruck erhöht den Rollwiderstand, den Spritverbrauch und den Reifenverschleiß.' },
-    { id: 42, cat: 'Verkehrszeichen', q: 'Was bedeutet das Schild "Vorfahrtstraße"?', opts: ['Gelbe Raute - Ich habe Vorfahrt', 'Rotes Dreieck - Ich muss warten', 'Blaues Quadrat - Ich darf parken'], correct: 0, exp: 'Die gelbe Raute zeigt an, dass die aktuelle Straße eine Vorfahrtstraße ist.' },
-    { id: 43, cat: 'Gefahrenlehre', q: 'Sie fahren auf einer Landstraße. Ein Traktor zieht heraus. Was tun?', opts: ['Bremsen und Geschwindigkeit anpassen', 'Hupen und überholen', 'Weiterfahren'], correct: 0, exp: 'Langsame Fahrzeuge wie Traktoren erfordern eine angepasste Geschwindigkeit und Bremsbereitschaft.' },
+    { id: 37, cat: 'Technik', q: 'Was ist die Funktion des ABS?', opts: ['Verhindert das Blockieren der Räder beim Bremsen', 'Erhöht die Motorleistung', 'Reduziert den Benzinverbrauch'], correct: 0, exp: 'ABS verhindert das Blockieren der Räder.' },
+    { id: 38, cat: 'Umweltschutz', q: 'Was schadet der Umwelt am meisten?', opts: ['Ständiges Beschleunigen und Bremsen', 'Gleichmäßige Fahrt', 'Frühes Hochschalten'], correct: 0, exp: 'Ständiges Beschleunigen und Bremsen erhöht den Verbrauch.' },
+    { id: 39, cat: 'Gefahrenlehre', q: 'Sie sehen Kinder am Straßenrand. Was tun?', opts: ['Geschwindigkeit reduzieren, bremsbereit sein', 'Hupen und weiterfahren', 'Gas geben'], correct: 0, exp: 'Kinder sind unberechenbar. Bremsbereit sein!' },
+    { id: 40, cat: 'Erste Hilfe', q: 'Wie viele Atemzüge pro Minute hat ein Erwachsener?', opts: ['12-18', '5-8', '30-40'], correct: 0, exp: 'Ein Erwachsener atmet 12-18 Mal pro Minute.' },
+    { id: 41, cat: 'Technik', q: 'Was passiert bei zu niedrigem Reifendruck?', opts: ['Erhöhter Spritverbrauch und Verschleiß', 'Das Auto wird schneller', 'Es hat keine Auswirkungen'], correct: 0, exp: 'Zu niedriger Reifendruck erhöht den Verbrauch.' },
+    { id: 42, cat: 'Verkehrszeichen', q: 'Was bedeutet das Schild "Vorfahrtstraße"?', opts: ['Gelbe Raute - Ich habe Vorfahrt', 'Rotes Dreieck - Ich muss warten', 'Blaues Quadrat - Ich darf parken'], correct: 0, exp: 'Die gelbe Raute zeigt eine Vorfahrtstraße an.' },
+    { id: 43, cat: 'Gefahrenlehre', q: 'Ein Traktor zieht heraus. Was tun?', opts: ['Bremsen und Geschwindigkeit anpassen', 'Hupen und überholen', 'Weiterfahren'], correct: 0, exp: 'Langsame Fahrzeuge erfordern Bremsbereitschaft.' },
     { id: 44, cat: 'Vorfahrt', q: 'Was bedeutet "Rechts vor Links"?', opts: ['Fahrzeuge von rechts haben Vorfahrt', 'Fahrzeuge von links haben Vorfahrt', 'Ich habe immer Vorfahrt'], correct: 0, exp: 'An Kreuzungen ohne Schilder gilt: Rechts vor Links.' },
-    { id: 45, cat: 'Technik', q: 'Wie oft sollte man den Ölstand prüfen?', opts: ['Regelmäßig, z.B. alle 2-4 Wochen', 'Nur einmal im Jahr', 'Nie'], correct: 0, exp: 'Der Ölstand sollte regelmäßig geprüft werden, um Motorschäden zu vermeiden.' },
+    { id: 45, cat: 'Technik', q: 'Wie oft sollte man den Ölstand prüfen?', opts: ['Regelmäßig, z.B. alle 2-4 Wochen', 'Nur einmal im Jahr', 'Nie'], correct: 0, exp: 'Der Ölstand sollte regelmäßig geprüft werden.' },
     { id: 46, cat: 'Erste Hilfe', q: 'Was ist bei einer Verbrennung zu tun?', opts: ['Mit Wasser kühlen', 'Eis drauflegen', 'Salbe auftragen'], correct: 0, exp: 'Verbrennungen sollten sofort mit lauwarmem Wasser gekühlt werden.' },
-    { id: 47, cat: 'Gefahrenlehre', q: 'Sie werden von einem Auto überholt. Was tun?', opts: ['Geschwindigkeit beibehalten, rechts fahren', 'Beschleunigen', 'Bremsen'], correct: 0, exp: 'Beim Überholtwerden sollte man die Geschwindigkeit beibehalten und möglichst rechts fahren.' },
-    { id: 48, cat: 'Verkehrszeichen', q: 'Was bedeutet ein blaues Schild mit einem Fahrrad?', opts: ['Radweg', 'Fahrradverbot', 'Überholverbot'], correct: 0, exp: 'Das blaue Schild mit dem weißen Fahrrad weist auf einen Radweg hin.' },
-    { id: 49, cat: 'Umweltschutz', q: 'Was ist ein umweltfreundlicher Fahrstil?', opts: ['Vorausschauend fahren, früh schalten', 'Ständig bremsen und beschleunigen', 'Reifen platt lassen'], correct: 0, exp: 'Vorausschauendes Fahren spart Sprit und schont die Umwelt.' },
-    { id: 50, cat: 'Vorfahrt', q: 'Wer hat Vorrang beim Ausfahren aus einem Kreisverkehr?', opts: ['Der Verkehr im Kreisverkehr', 'Ich, weil ich ausfahre', 'Der Gegenverkehr'], correct: 0, exp: 'Auch beim Ausfahren muss der Verkehr im Kreisverkehr durchgelassen werden, falls man sich noch im Kreis befindet.' }
+    { id: 47, cat: 'Gefahrenlehre', q: 'Sie werden überholt. Was tun?', opts: ['Geschwindigkeit beibehalten, rechts fahren', 'Beschleunigen', 'Bremsen'], correct: 0, exp: 'Geschwindigkeit beibehalten und rechts fahren.' },
+    { id: 48, cat: 'Verkehrszeichen', q: 'Was bedeutet ein blaues Schild mit einem Fahrrad?', opts: ['Radweg', 'Fahrradverbot', 'Überholverbot'], correct: 0, exp: 'Das blaue Schild mit dem weißen Fahrrad ist ein Radweg.' },
+    { id: 49, cat: 'Umweltschutz', q: 'Was ist ein umweltfreundlicher Fahrstil?', opts: ['Vorausschauend fahren, früh schalten', 'Ständig bremsen und beschleunigen', 'Reifen platt lassen'], correct: 0, exp: 'Vorausschauendes Fahren spart Sprit.' },
+    { id: 50, cat: 'Vorfahrt', q: 'Wer hat Vorrang beim Ausfahren aus einem Kreisverkehr?', opts: ['Der Verkehr im Kreisverkehr', 'Ich, weil ich ausfahre', 'Der Gegenverkehr'], correct: 0, exp: 'Auch beim Ausfahren muss der Verkehr im Kreis durchgelassen werden.' }
   ];
 
   const SIGNS = {
@@ -123,9 +117,6 @@
     ]
   };
 
-  // ═══════════════════════════════════════════════════════
-  // 3. STATE & STORAGE
-  // ═══════════════════════════════════════════════════════
   let state = {
     lang: 'de',
     stats: { examsTaken: 0, examsPassed: 0, questionsAnswered: 0, correctAnswers: 0 },
@@ -161,14 +152,9 @@
     } catch (e) { }
   }
 
-  // ═══════════════════════════════════════════════════════
-  // 4. CSS (PRO MAX GLASS UI)
-  // ═══════════════════════════════════════════════════════
   function css() {
     return `<style>
       .fs-app { font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #e8e8ec; background: #0a0a0f; height: 100%; display: flex; flex-direction: row; overflow: hidden; }
-      
-      /* SIDEBAR */
       .fs-sidebar { width: 260px; background: rgba(17,17,24,0.95); backdrop-filter: blur(20px); border-right: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; }
       .fs-logo { font-size: 20px; font-weight: 900; color: #00e5ff; padding: 0 20px 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; }
       .fs-logo span { font-size: 10px; background: rgba(0,229,255,0.1); padding: 3px 6px; border-radius: 4px; color: #00e5ff; }
@@ -176,36 +162,24 @@
       .fs-nav-item:hover { background: rgba(255,255,255,0.03); color: #fff; }
       .fs-nav-item.active { background: rgba(0,229,255,0.08); color: #00e5ff; border-left-color: #00e5ff; }
       .fs-nav-item .icon { font-size: 18px; width: 24px; text-align: center; }
-      
-      /* MAIN CONTENT */
       .fs-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
       .fs-header { padding: 20px 30px; background: rgba(10,10,15,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
       .fs-header h1 { margin: 0; font-size: 22px; font-weight: 900; color: #fff; }
-      
       .fs-content-area { flex: 1; overflow-y: auto; padding: 30px; }
       .fs-content-inner { max-width: 900px; margin: 0 auto; }
-      
       .fs-card { background: rgba(20, 20, 28, 0.6); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 25px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
       .fs-card h2 { margin-top: 0; font-size: 20px; color: #fff; margin-bottom: 15px; font-weight: 900; }
-      
-      /* BUTTONS */
       .fs-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #ccc; padding: 12px 24px; border-radius: 10px; cursor: pointer; font-weight: 600; font-family: inherit; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; }
       .fs-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
       .fs-btn.primary { background: linear-gradient(135deg, #00e5ff, #b478ff); color: #000; border: none; font-weight: 900; box-shadow: 0 4px 15px rgba(0,229,255,0.3); }
       .fs-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,229,255,0.5); }
       .fs-btn.danger { background: linear-gradient(135deg, #ff3333, #cc0000); color: #fff; border: none; font-weight: 900; box-shadow: 0 4px 15px rgba(255,51,51,0.4); }
-      
-      /* OPTIONS */
       .fs-opt { display: block; width: 100%; text-align: left; padding: 18px 24px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #ddd; margin-bottom: 12px; cursor: pointer; font-family: inherit; font-size: 15px; transition: all 0.2s; }
       .fs-opt:hover { background: rgba(255,255,255,0.08); border-color: #00e5ff; transform: translateX(5px); }
       .fs-opt.correct { background: rgba(0,255,102,0.15); border-color: #00ff66; color: #00ff66; font-weight: bold; }
       .fs-opt.wrong { background: rgba(255,0,0,0.15); border-color: #ff3333; color: #ff3333; }
       .fs-opt:disabled { cursor: default; opacity: 0.8; transform: none; }
-      
-      /* EXPLANATION & AI */
       .fs-exp { background: rgba(0,229,255,0.05); border-left: 4px solid #00e5ff; padding: 15px; border-radius: 0 12px 12px 0; margin-top: 20px; font-size: 14px; line-height: 1.6; color: #a8b0cc; display: none; }
-      
-      /* SIGNS GRID */
       .fs-signs-cat { margin-bottom: 30px; }
       .fs-signs-cat h3 { color: #00e5ff; font-size: 18px; margin-bottom: 15px; border-bottom: 1px solid rgba(0,229,255,0.2); padding-bottom: 10px; }
       .fs-signs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
@@ -214,36 +188,25 @@
       .fs-sign-icon { font-size: 50px; margin-bottom: 15px; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5)); }
       .fs-sign-name { font-weight: 900; color: #fff; font-size: 15px; margin-bottom: 8px; }
       .fs-sign-desc { font-size: 12px; color: #888; line-height: 1.4; }
-      
-      /* THEORY CARDS */
       .fs-theory-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
       .fs-theory-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.2s; }
       .fs-theory-card:hover { border-color: #00e5ff; background: rgba(0,229,255,0.05); }
       .fs-theory-card h4 { margin: 0 0 10px; color: #fff; font-size: 16px; }
       .fs-theory-card p { margin: 0; font-size: 13px; color: #888; line-height: 1.5; }
-      
-      /* VIDEO CARDS */
       .fs-video-card { position: relative; border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 16/9; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; }
       .fs-video-card:hover .fs-play-btn { transform: scale(1.1); background: #00e5ff; color: #000; }
       .fs-play-btn { width: 60px; height: 60px; background: rgba(0,229,255,0.2); border: 2px solid #00e5ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #00e5ff; transition: all 0.2s; backdrop-filter: blur(5px); }
       .fs-video-title { position: absolute; bottom: 0; left: 0; right: 0; padding: 15px; background: linear-gradient(transparent, rgba(0,0,0,0.9)); color: #fff; font-weight: bold; font-size: 14px; }
-      
-      /* MODAL */
       .fs-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
       .fs-modal-overlay.show { opacity: 1; pointer-events: auto; }
       .fs-modal { background: #14141c; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 25px; max-width: 500px; width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,0.8); text-align: center; }
       .fs-modal h3 { margin-top: 0; color: #00e5ff; font-size: 22px; display: flex; align-items: center; justify-content: center; gap: 8px; }
       .fs-modal p { color: #ccc; font-size: 15px; line-height: 1.6; margin-bottom: 20px; }
-      
-      /* DASHBOARD */
       .fs-stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 20px; }
       .fs-stat-box { background: rgba(0,229,255,0.05); border: 1px solid rgba(0,229,255,0.2); border-radius: 12px; padding: 20px; text-align: center; }
       .fs-stat-box .val { font-size: 28px; font-weight: 900; color: #00e5ff; display: block; margin-bottom: 5px; }
       .fs-stat-box .lbl { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-      
       .fs-timer { font-size: 32px; font-weight: 900; color: #ffaa00; background: rgba(255,170,0,0.1); padding: 10px 20px; border-radius: 12px; border: 1px solid rgba(255,170,0,0.3); box-shadow: 0 0 20px rgba(255,170,0,0.2); }
-
-      /* SETTINGS */
       .fs-select { background: #1a1a24; color: #fff; border: 1px solid #333; border-radius: 8px; padding: 10px 15px; font-family: inherit; font-size: 14px; outline: none; cursor: pointer; width: 100%; max-width: 300px; }
       .fs-setting-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
       .fs-setting-row:last-child { border-bottom: none; }
@@ -257,9 +220,6 @@
     </style>`;
   }
 
-  // ═══════════════════════════════════════════════════════
-  // 5. RENDER FUNCTIONS
-  // ═══════════════════════════════════════════════════════
   function t(key) { return (LANG[state.lang] && LANG[state.lang][key]) || LANG['de'][key] || key; }
 
   function renderDashboard() {
@@ -551,10 +511,6 @@
     `;
   }
 
-  // ═══════════════════════════════════════════════════════
-  // 6. LOGIC & CONTROLLER
-  // ═══════════════════════════════════════════════════════
-  
   function shuffle(array) { return [...array].sort(() => Math.random() - 0.5); }
 
   function speakText(text) {
@@ -786,9 +742,6 @@
     }
   }
 
-  // ═══════════════════════════════════════════════════════
-  // 7. MOUNT & OPEN
-  // ═══════════════════════════════════════════════════════
   function mount(target) {
     if (target && target.nodeType === 1) {
       currentTarget = target;
@@ -800,7 +753,6 @@
 
   function openOverlay() {
     loadState();
-    // WELCOME GRUSS TRIGGERN
     if (window.HalDoWelcome) window.HalDoWelcome.show("Fahrschule");
 
     const overlay = document.createElement('div');
@@ -826,7 +778,6 @@
     mount(mountDiv);
   }
 
-  // GLOBALE REGISTRIERUNG
   window.HalDoApps = window.HalDoApps || {};
   window.HalDoApps.fahrschule = { mount, version: VERSION, open: openOverlay };
   window.Fahrschule = window.HalDoApps.fahrschule;
