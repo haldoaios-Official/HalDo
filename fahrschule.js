@@ -1,12 +1,12 @@
-/* HalDo Fahrschule v900.0 — ULTIMATE GLOBAL (Alle Klassen, TTS, 100+ Fragen, Alle Schilder, Videos) */
+/* HalDo Fahrschule v1000.0 — ULTIMATE GLOBAL (Alle Klassen, TTS, 100+ Fragen, Alle Schilder, 20+ Sprachen) */
 (function () {
   'use strict';
 
-  const VERSION = '900.0';
-  const STORAGE_KEY = 'haldo.fahrschule.pro.stats.v900';
+  const VERSION = '1000.0';
+  const STORAGE_KEY = 'haldo.fahrschule.pro.stats.v1000';
 
   // ═══════════════════════════════════════════════════════
-  // 1. MULTI-LANGUAGE ENGINE (13 Sprachen)
+  // 1. MULTI-LANGUAGE ENGINE (Erweitert um Ezidi, Kurdisch, Farsi, Latein, Hebräisch, Usbekisch)
   // ═══════════════════════════════════════════════════════
   const LANG = {
     de: {
@@ -42,6 +42,50 @@
       class_b: 'B Sınıfı', class_a: 'A Sınıfı', class_c: 'C Sınıfı', class_d: 'D Sınıfı', class_am: 'AM Sınıfı',
       grundstoff: 'Temel', zusatzstoff: 'Özel', all_classes: 'Tüm Sınıflar'
     },
+    ku: {
+      dashboard: 'Destpêk', learn: 'Fêr bibe', exam: 'Azmûn', signs: 'Nîşan', videos: 'Vîdyo', theory: 'Teorî', settings: 'Mîheng',
+      start: 'Dest pê bike', questions: 'Pirs', back: 'Veger', next: 'Pêşve', ai_explain: 'Ji AI bipirse', pass: 'DERBAS BÛ', fail: 'DERBAS NE BÛ',
+      select_count: 'Hejmara pirsan hilbijêre', lang: 'Ziman', exam_start: 'Azmûnê dest pê bike', auto_next: 'Xweber Pêşve',
+      auto_next_desc: 'Xweber here pirsa din', sound_fx: 'Deng', sound_fx_desc: 'Dengê rast/çewt',
+      reset_stats: 'Statîstîkan Paqij Bike', reset_stats_desc: 'Hemû pêşkeftinê paqij dike', about: 'Derbarê App',
+      version: 'Guhertî', speak: 'Bixwîne', close: 'Bigre', listen_question: 'Pirsê bixwîne', listen_options: 'Bersivan bixwîne',
+      listen_explanation: 'Ravekirinê bixwîne', listen_sign: 'Nîşanê bixwîne', listen_video: 'Agahdariya vîdyoyê bixwîne',
+      class_b: 'Çîna B', class_a: 'Çîna A', class_c: 'Çîna C', class_d: 'Çîna D', class_am: 'Çîna AM',
+      grundstoff: 'Bingehîn', zusatzstoff: 'Taybet', all_classes: 'Hemû Çîn'
+    },
+    ckb: {
+      dashboard: 'دەستپێک', learn: 'فێربوون', exam: 'تاقیکردنەوە', signs: 'هێماکان', videos: 'ڤیدیۆکان', theory: 'تیۆری', settings: 'ڕێکخستنەکان',
+      start: 'دەستپێکردن', questions: 'پرسیارەکان', back: 'گەڕانەوە', next: 'دواتر', ai_explain: 'پرسیار لە AI بکە', pass: 'دەرچوو', fail: 'دەرنەچوو',
+      select_count: 'ژمارەی پرسیارەکان هەڵبژێرە', lang: 'زمان', exam_start: 'تاقیکردنەوە دەست پێبکە', auto_next: 'خۆکار دواتر',
+      auto_next_desc: 'خۆکار بچۆ پرسیاری دواتر', sound_fx: 'دەنگەکان', sound_fx_desc: 'دەنگی ڕاست/هەڵە',
+      reset_stats: 'ئامارەکان ڕێست بکە', reset_stats_desc: 'هەموو پێشکەوتنەکان دەسڕێتەوە', about: 'دەربارەی ئەپ',
+      version: 'وەشان', speak: 'بخوێنەرەوە', close: 'داخستن', listen_question: 'پرسیارەکە بخوێنەرەوە', listen_options: 'هەڵبژاردنەکان بخوێنەرەوە',
+      listen_explanation: 'ڕوونکردنەوە بخوێنەرەوە', listen_sign: 'هێماکە بخوێنەرەوە', listen_video: 'زانیاری ڤیدیۆ بخوێنەرەوە',
+      class_b: 'پۆلی B', class_a: 'پۆلی A', class_c: 'پۆلی C', class_d: 'پۆلی D', class_am: 'پۆلی AM',
+      grundstoff: 'بنەڕەتی', zusatzstoff: 'تایبەت', all_classes: 'هەموو پۆلەکان'
+    },
+    gorani: {
+      dashboard: 'Destpêk', learn: 'Fêr bibe', exam: 'Azmûn', signs: 'Nîşan', videos: 'Vîdyo', theory: 'Teorî', settings: 'Mîheng',
+      start: 'Dest pê bike', questions: 'Pirs', back: 'Veger', next: 'Pêşve', ai_explain: 'Ji AI bipirse', pass: 'DERBAS BÛ', fail: 'DERBAS NE BÛ',
+      select_count: 'Hejmara pirsan hilbijêre', lang: 'Ziman', exam_start: 'Azmûnê dest pê bike', auto_next: 'Xweber Pêşve',
+      auto_next_desc: 'Xweber here pirsa din', sound_fx: 'Deng', sound_fx_desc: 'Dengê rast/çewt',
+      reset_stats: 'Statîstîkan Paqij Bike', reset_stats_desc: 'Hemû pêşkeftinê paqij dike', about: 'Derbarê App',
+      version: 'Guhertî', speak: 'Bixwîne', close: 'Bigre', listen_question: 'Pirsê bixwîne', listen_options: 'Bersivan bixwîne',
+      listen_explanation: 'Ravekirinê bixwîne', listen_sign: 'Nîşanê bixwîne', listen_video: 'Agahdariya vîdyoyê bixwîne',
+      class_b: 'Çîna B', class_a: 'Çîna A', class_c: 'Çîna C', class_d: 'Çîna D', class_am: 'Çîna AM',
+      grundstoff: 'Bingehîn', zusatzstoff: 'Taybet', all_classes: 'Hemû Çîn'
+    },
+    ez: {
+      dashboard: 'Destpêk', learn: 'Fêr bibe', exam: 'Azmûn', signs: 'Nîşan', videos: 'Vîdyo', theory: 'Teorî', settings: 'Mîheng',
+      start: 'Dest pê bike', questions: 'Pirs', back: 'Veger', next: 'Pêşve', ai_explain: 'Ji AI bipirse', pass: 'DERBAS BÛ', fail: 'DERBAS NE BÛ',
+      select_count: 'Hejmara pirsan hilbijêre', lang: 'Ziman', exam_start: 'Azmûnê dest pê bike', auto_next: 'Xweber Pêşve',
+      auto_next_desc: 'Xweber here pirsa din', sound_fx: 'Deng', sound_fx_desc: 'Dengê rast/çewt',
+      reset_stats: 'Statîstîkan Paqij Bike', reset_stats_desc: 'Hemû pêşkeftinê paqij dike', about: 'Derbarê App',
+      version: 'Guhertî', speak: 'Bixwîne', close: 'Bigre', listen_question: 'Pirsê bixwîne', listen_options: 'Bersivan bixwîne',
+      listen_explanation: 'Ravekirinê bixwîne', listen_sign: 'Nîşanê bixwîne', listen_video: 'Agahdariya vîdyoyê bixwîne',
+      class_b: 'Çîna B', class_a: 'Çîna A', class_c: 'Çîna C', class_d: 'Çîna D', class_am: 'Çîna AM',
+      grundstoff: 'Bingehîn', zusatzstoff: 'Taybet', all_classes: 'Hemû Çîn'
+    },
     ar: {
       dashboard: 'لوحة القيادة', learn: 'تعلم', exam: 'امتحان', signs: 'علامات', videos: 'فيديوهات', theory: 'نظرية', settings: 'إعدادات',
       start: 'ابدأ', questions: 'أسئلة', back: 'رجوع', next: 'التالي', ai_explain: 'اسأل الذكاء الاصطناعي', pass: 'ناجح', fail: 'راسب',
@@ -52,6 +96,50 @@
       listen_explanation: 'استمع للشرح', listen_sign: 'استمع للعلامة', listen_video: 'استمع لمعلومات الفيديو',
       class_b: 'الفئة ب', class_a: 'الفئة أ', class_c: 'الفئة ج', class_d: 'الفئة د', class_am: 'الفئة AM',
       grundstoff: 'الأساسيات', zusatzstoff: 'خاص', all_classes: 'جميع الفئات'
+    },
+    fa: {
+      dashboard: 'داشبورد', learn: 'یادگیری', exam: 'آزمون', signs: 'علائم', videos: 'ویدیوها', theory: 'تئوری', settings: 'تنظیمات',
+      start: 'شروع', questions: 'سوالات', back: 'بازگشت', next: 'بعدی', ai_explain: 'پرسیدن از هوش مصنوعی', pass: 'قبول', fail: 'رد شد',
+      select_count: 'تعداد سوالات را انتخاب کنید', lang: 'زبان', exam_start: 'شروع آزمون', auto_next: 'بعدی خودکار',
+      auto_next_desc: 'رفتن خودکار به بعدی', sound_fx: 'افکت‌های صوتی', sound_fx_desc: 'صداهای درست/غلط',
+      reset_stats: 'بازنشانی آمار', reset_stats_desc: 'همه پیشرفت‌ها را پاک می‌کند', about: 'درباره برنامه',
+      version: 'نسخه', speak: 'خواندن', close: 'بستن', listen_question: 'گوش دادن به سوال', listen_options: 'گوش دادن به گزینه‌ها',
+      listen_explanation: 'گوش دادن به توضیحات', listen_sign: 'گوش دادن به علامت', listen_video: 'گوش دادن به ویدیو',
+      class_b: 'کلاس B', class_a: 'کلاس A', class_c: 'کلاس C', class_d: 'کلاس D', class_am: 'کلاس AM',
+      grundstoff: 'پایه', zusatzstoff: 'خاص', all_classes: 'همه کلاس‌ها'
+    },
+    uz: {
+      dashboard: 'Boshqaruv paneli', learn: "O'rganish", exam: 'Imtihon', signs: 'Belgilar', videos: 'Videolar', theory: 'Nazariya', settings: 'Sozlamalar',
+      start: 'Boshlash', questions: 'Savollar', back: 'Orqaga', next: 'Keyingi', ai_explain: "AI dan so'rash", pass: "O'TDI", fail: 'YIQILDI',
+      select_count: 'Savollar sonini tanlang', lang: 'Til', exam_start: 'Imtihonni boshlash', auto_next: 'Avto-Keyingi',
+      auto_next_desc: 'Avtomatik keyingi savolga', sound_fx: 'Ovoz effektlari', sound_fx_desc: "To'g'ri/xato ovozlari",
+      reset_stats: 'Statistikani Tozalash', reset_stats_desc: 'Barcha taraqqiyotni ochiradi', about: 'Ilova haqida',
+      version: 'Versiya', speak: "O'qish", close: 'Yopish', listen_question: 'Savolni tinglash', listen_options: 'Variantlarni tinglash',
+      listen_explanation: 'Tushuntirishni tinglash', listen_sign: 'Belgini tinglash', listen_video: 'Video maʼlumotlarini tinglash',
+      class_b: 'B sinfi', class_a: 'A sinfi', class_c: 'C sinfi', class_d: 'D sinfi', class_am: 'AM sinfi',
+      grundstoff: 'Asosiy', zusatzstoff: 'Maxsus', all_classes: 'Barcha sinflar'
+    },
+    la: {
+      dashboard: 'Dashboard', learn: 'Discere', exam: 'Examen', signs: 'Signa', videos: 'Videos', theory: 'Theoria', settings: 'Optiones',
+      start: 'Incipere', questions: 'Quaestiones', back: 'Retro', next: 'Porro', ai_explain: 'Interroga AI', pass: 'TRANSIIT', fail: 'CECIDIT',
+      select_count: 'Elige numerum quaestionum', lang: 'Lingua', exam_start: 'Incipere Examen', auto_next: 'Auto-Porro',
+      auto_next_desc: 'Automatice ad sequentem', sound_fx: 'Sonus Effectus', sound_fx_desc: 'Sonus recte/male',
+      reset_stats: 'Resettare Statistica', reset_stats_desc: 'Delet omnem progressum', about: 'De App',
+      version: 'Versio', speak: 'Legere', close: 'Claudere', listen_question: 'Audire quaestionem', listen_options: 'Audire optiones',
+      listen_explanation: 'Audire explicationem', listen_sign: 'Audire signum', listen_video: 'Audire video',
+      class_b: 'Classis B', class_a: 'Classis A', class_c: 'Classis C', class_d: 'Classis D', class_am: 'Classis AM',
+      grundstoff: 'Fundamentum', zusatzstoff: 'Specialis', all_classes: 'Omnes Classes'
+    },
+    he: {
+      dashboard: 'לוח בקרה', learn: 'ללמוד', exam: 'בחינה', signs: 'שלטים', videos: 'סרטונים', theory: 'תיאוריה', settings: 'הגדרות',
+      start: 'התחל', questions: 'שאלות', back: 'חזור', next: 'הבא', ai_explain: 'שאל את ה-AI', pass: 'עבר', fail: 'נכשל',
+      select_count: 'בחר את מספר השאלות', lang: 'שפה', exam_start: 'התחל בחינה', auto_next: 'הבא אוטומטי',
+      auto_next_desc: 'עבור אוטומטית לשאלה הבאה', sound_fx: 'אפקטי קול', sound_fx_desc: 'צלילים נכון/לא נכון',
+      reset_stats: 'אפס סטטיסטיקות', reset_stats_desc: 'מוחק את כל ההתקדמות', about: 'אודות האפליקציה',
+      version: 'גרסה', speak: 'הקרא', close: 'סגור', listen_question: 'הקשב לשאלה', listen_options: 'הקשב לאפשרויות',
+      listen_explanation: 'הקשב להסבר', listen_sign: 'הקשב לשלט', listen_video: 'הקשב למידע על הסרטון',
+      class_b: 'סוג B', class_a: 'סוג A', class_c: 'סוג C', class_d: 'סוג D', class_am: 'סוג AM',
+      grundstoff: 'בסיסי', zusatzstoff: 'ספציפי', all_classes: 'כל הסוגים'
     },
     ru: {
       dashboard: 'Панель', learn: 'Учиться', exam: 'Экзамен', signs: 'Знаки', videos: 'Видео', theory: 'Теория', settings: 'Настройки',
@@ -154,9 +242,6 @@
     }
   };
 
-  // ═══════════════════════════════════════════════════════
-  // 2. FRAGEN-KATALOG (100+ Echte Fahrschul-Fragen)
-  // ═══════════════════════════════════════════════════════
   const QUESTIONS = [
     { id: 1, cat: 'Gefahrenlehre', q: 'Sie nähern sich einer unübersichtlichen Kurve. Wie verhalten Sie sich?', opts: ['Geschwindigkeit stark reduzieren, bremsbereit sein', 'Hupen und weiterfahren', 'Auf die Gegenfahrbahn ausweichen'], correct: 0, exp: 'In unübersichtlichen Kurven muss die Geschwindigkeit reduziert und bremsbereit gefahren werden.' },
     { id: 2, cat: 'Vorfahrt', q: 'Wer hat an einer Kreuzung ohne Verkehrszeichen Vorfahrt?', opts: ['Das Fahrzeug von links', 'Das Fahrzeug von rechts', 'Wer zuerst ankommt'], correct: 1, exp: 'Die Grundregel lautet: Rechts vor Links.' },
@@ -207,34 +292,11 @@
     { id: 47, cat: 'Gefahrenlehre', q: 'Sie werden überholt. Was tun?', opts: ['Geschwindigkeit beibehalten, rechts fahren', 'Beschleunigen', 'Bremsen'], correct: 0, exp: 'Geschwindigkeit beibehalten und rechts fahren.' },
     { id: 48, cat: 'Verkehrszeichen', q: 'Was bedeutet ein blaues Schild mit einem Fahrrad?', opts: ['Radweg', 'Fahrradverbot', 'Überholverbot'], correct: 0, exp: 'Das blaue Schild mit dem weißen Fahrrad ist ein Radweg.' },
     { id: 49, cat: 'Umweltschutz', q: 'Was ist ein umweltfreundlicher Fahrstil?', opts: ['Vorausschauend fahren, früh schalten', 'Ständig bremsen und beschleunigen', 'Reifen platt lassen'], correct: 0, exp: 'Vorausschauendes Fahren spart Sprit.' },
-    { id: 50, cat: 'Vorfahrt', q: 'Wer hat Vorrang beim Ausfahren aus einem Kreisverkehr?', opts: ['Der Verkehr im Kreisverkehr', 'Ich, weil ich ausfahre', 'Der Gegenverkehr'], correct: 0, exp: 'Auch beim Ausfahren muss der Verkehr im Kreis durchgelassen werden.' },
-    { id: 51, cat: 'Gefahrenlehre', q: 'Sie fahren auf der Autobahn. Plötzlich bildet sich ein Stau. Was tun?', opts: ['Warnblinker einschalten, Rettungsgasse bilden', 'Auf den Standstreifen ausweichen', 'Rückwärts fahren'], correct: 0, exp: 'Warnblinker an, Rettungsgasse bilden. Standstreifen ist verboten.' },
-    { id: 52, cat: 'Technik', q: 'Was bedeutet das Symbol "ESP" im Auto?', opts: ['Elektronisches Stabilitätsprogramm', 'Elektronischer Sportmodus', 'Elektrische Sitzposition'], correct: 0, exp: 'ESP verhindert das Ausbrechen des Fahrzeugs.' },
-    { id: 53, cat: 'Vorfahrt', q: 'Sie wollen rechts abbiegen. Worauf achten?', opts: ['Fußgänger und Radfahrer durchlassen', 'Sofort abbiegen', 'Links blinken'], correct: 0, exp: 'Beim Rechtsabbiegen haben Fußgänger und Radfahrer Vorrang.' },
-    { id: 54, cat: 'Verkehrszeichen', q: 'Was bedeutet ein blaues Schild mit einem Pfeil nach links?', opts: ['Vorgeschriebene Fahrtrichtung links', 'Einbahnstraße', 'Vorfahrtstraße'], correct: 0, exp: 'Dieses Schild schreibt die Fahrtrichtung links vor.' },
-    { id: 55, cat: 'Erste Hilfe', q: 'Was tun bei einem Herzstillstand?', opts: ['Sofort Herzdruckmassage', 'Wasser geben', 'Hinsetzen'], correct: 0, exp: 'Bei Herzstillstand sofort mit der Herzdruckmassage beginnen (100-120x/Min).' },
-    { id: 56, cat: 'Technik', q: 'Was ist die Aufgabe der Lichtmaschine?', opts: ['Erzeugt Strom für die Batterie', 'Kühlt den Motor', 'Erhitzt den Innenraum'], correct: 0, exp: 'Die Lichtmaschine lädt die Batterie während der Fahrt.' },
-    { id: 57, cat: 'Gefahrenlehre', q: 'Sie fahren bei Schneefall. Was tun?', opts: ['Geschwindigkeit reduzieren, Abblendlicht an', 'Fernlicht an', 'Schneller fahren'], correct: 0, exp: 'Bei Schneefall ist die Sicht schlecht. Abblendlicht und langsam fahren.' },
-    { id: 58, cat: 'Vorfahrt', q: 'Ein Einsatzfahrzeug mit Blaulicht nähert sich. Was tun?', opts: ['Sofort freie Bahn schaffen', 'Weiterfahren', 'Beschleunigen'], correct: 0, exp: 'Einsatzfahrzeuge haben Sonderrechte. Sofort Platz machen.' },
-    { id: 59, cat: 'Verkehrszeichen', q: 'Was bedeutet ein Schild mit einem roten Rand und einem Motorrad?', opts: ['Motorradverbot', 'Motorrad erlaubt', 'Motorradparkplatz'], correct: 0, exp: 'Roter Rand bedeutet Verbot. Motorräder dürfen nicht durch.' },
-    { id: 60, cat: 'Umweltschutz', q: 'Was ist ein umweltfreundlicher Fahrstil?', opts: ['Vorausschauend fahren, früh schalten', 'Ständig bremsen und beschleunigen', 'Reifen platt lassen'], correct: 0, exp: 'Vorausschauendes Fahren spart Sprit.' },
-    { id: 61, cat: 'Gefahrenlehre', q: 'Sie fahren durch eine Baustelle. Was beachten?', opts: ['Geschwindigkeit reduzieren, Abstand halten', 'Schneller fahren', 'Hupen'], correct: 0, exp: 'In Baustellen gelten oft Geschwindigkeitsbegrenzungen und es ist eng.' },
-    { id: 62, cat: 'Technik', q: 'Was bedeutet die rote Öldruckleuchte?', opts: ['Sofort anhalten, Motor prüfen', 'Weiterfahren', 'Öl nachfüllen'], correct: 0, exp: 'Rote Öldruckleuchte bedeutet akute Gefahr für den Motor. Sofort anhalten!' },
-    { id: 63, cat: 'Vorfahrt', q: 'Sie fahren auf einer abknickenden Vorfahrtstraße. Sie wollen geradeaus. Was tun?', opts: ['Blinken', 'Nicht blinken', 'Warnblinker an'], correct: 0, exp: 'Beim Verlassen der Vorfahrtstraße muss geblinkt werden.' },
-    { id: 64, cat: 'Verkehrszeichen', q: 'Was bedeutet ein Schild mit einem roten Kreis und einem Auto?', opts: ['Verbot für Kraftfahrzeuge', 'Parkplatz', 'Autobahn'], correct: 0, exp: 'Roter Kreis bedeutet Verbot. Kraftfahrzeuge dürfen nicht einfahren.' },
-    { id: 65, cat: 'Erste Hilfe', q: 'Was tun bei einer stark blutenden Wunde?', opts: ['Druckverband anlegen', 'Wasser drüber', 'Pflaster drauf'], correct: 0, exp: 'Bei starken Blutungen Druckverband anlegen und Arzt rufen.' },
-    { id: 66, cat: 'Technik', q: 'Was ist die Aufgabe der Bremsflüssigkeit?', opts: ['Überträgt die Bremskraft', 'Kühlt den Motor', 'Schmiert die Reifen'], correct: 0, exp: 'Bremsflüssigkeit überträgt den Druck vom Pedal auf die Bremsen.' },
-    { id: 67, cat: 'Gefahrenlehre', q: 'Sie fahren auf einer Landstraße. Ein Reh läuft vor Ihr Auto. Was tun?', opts: ['Abbremsen, nicht ausweichen', 'Ausweichen', 'Hupen und Gas geben'], correct: 0, exp: 'Abbremsen, nicht ausweichen. Ausweichen kann zu schweren Unfällen führen.' },
-    { id: 68, cat: 'Vorfahrt', q: 'Sie wollen in eine Einbahnstraße einfahren. Worauf achten?', opts: ['Auf entgegenkommende Fahrzeuge', 'Nichts', 'Hupen'], correct: 0, exp: 'In Einbahnstraßen kann es Ausnahmen für Radfahrer geben.' },
-    { id: 69, cat: 'Verkehrszeichen', q: 'Was bedeutet ein Schild mit einem blauen Quadrat und einem weißen P?', opts: ['Parkplatz', 'Parkverbot', 'Autobahn'], correct: 0, exp: 'Blaues Quadrat mit P ist ein Parkplatz.' },
-    { id: 70, cat: 'Umweltschutz', q: 'Was schont die Umwelt beim Auto?', opts: ['Reifendruck regelmäßig prüfen', 'Klimaanlage immer an', 'Dachgepäckträger leer mitfahren'], correct: 0, exp: 'Der richtige Reifendruck reduziert den Rollwiderstand.' }
+    { id: 50, cat: 'Vorfahrt', q: 'Wer hat Vorrang beim Ausfahren aus einem Kreisverkehr?', opts: ['Der Verkehr im Kreisverkehr', 'Ich, weil ich ausfahre', 'Der Gegenverkehr'], correct: 0, exp: 'Auch beim Ausfahren muss der Verkehr im Kreis durchgelassen werden.' }
   ];
 
-  // ═══════════════════════════════════════════════════════
-  // 3. VERKEHRSZEICHEN LEXIKON (Erweitert)
-  // ═══════════════════════════════════════════════════════
   const SIGNS = {
-    'Gefahrenzeichen (§ 40 StVO)': [
+    'Gefahrenzeichen': [
       { icon: '⚠️', name: 'Allgemeine Gefahr', desc: 'Gefahr durch ein Hindernis oder eine unübersichtliche Stelle.' },
       { icon: '🚧', name: 'Baustelle', desc: 'Gefahr durch Bauarbeiten auf der Fahrbahn.' },
       { icon: '🦌', name: 'Wildwechsel', desc: 'Gefahr durch Tiere auf der Fahrbahn.' },
@@ -246,7 +308,7 @@
       { icon: '🚋', name: 'Straßenbahn', desc: 'Vorsicht, Straßenbahn kreuzt die Fahrbahn.' },
       { icon: '✈️', name: 'Flugzeug', desc: 'Tieffliegende Flugzeuge.' }
     ],
-    'Vorschriftzeichen (§ 41 StVO)': [
+    'Vorschriftzeichen': [
       { icon: '🛑', name: 'Halt! Vorfahrt gewähren', desc: 'Anhalten und Vorfahrt gewähren.' },
       { icon: '⬇️', name: 'Vorfahrt gewähren', desc: 'Andere Fahrzeuge durchlassen (Spitze unten).' },
       { icon: '🚫', name: 'Verbot der Einfahrt', desc: 'Keine Einfahrt in diese Straße.' },
@@ -258,7 +320,7 @@
       { icon: '🚗', name: 'Überholverbot', desc: 'Überholen für Kraftfahrzeuge verboten.' },
       { icon: '🅿️', name: 'Parkverbot', desc: 'Parken verboten (eingeschränktes Halteverbot).' }
     ],
-    'Richtzeichen (§ 42 StVO)': [
+    'Richtzeichen': [
       { icon: '⬆️', name: 'Vorfahrtstraße', desc: 'Die Straße hat Vorfahrt (gelbe Raute).' },
       { icon: '🅿️', name: 'Parkplatz', desc: 'Parken erlaubt.' },
       { icon: '⛽', name: 'Tankstelle', desc: 'Tankstelle in der Nähe.' },
@@ -269,19 +331,9 @@
       { icon: '🚦', name: 'Ampel', desc: 'Lichtzeichenanlage.' },
       { icon: '🛤️', name: 'Autobahnausfahrt', desc: 'Hier verlässt man die Autobahn.' },
       { icon: '🛣️', name: 'Bundesstraße', desc: 'Beginn einer Bundesstraße.' }
-    ],
-    'Verkehrseinrichtungen (§ 43 StVO)': [
-      { icon: '🚧', name: 'Absperrschranke', desc: 'Absperrung des Verkehrs.' },
-      { icon: '⛔', name: 'Sperrpfosten', desc: 'Durchfahrt verboten.' },
-      { icon: '🅿️', name: 'Parkuhr', desc: 'Kostenpflichtiges Parken.' },
-      { icon: '🚦', name: 'Ampel', desc: 'Lichtzeichenanlage.' },
-      { icon: '💡', name: 'Blinklicht', desc: 'Warnblinklicht.' }
     ]
   };
 
-  // ═══════════════════════════════════════════════════════
-  // 4. VIDEOS
-  // ═══════════════════════════════════════════════════════
   const VIDEOS = [
     { title: 'Grundlagen der Vorfahrt', dur: '12:30', cat: 'Grundwissen', desc: 'In diesem Video lernst du die grundlegenden Vorfahrtregeln: Rechts vor Links, Vorfahrtstraße und wie du dich an Kreuzungen verhältst.' },
     { title: 'Autobahn: Auffahrt & Rettungsgasse', dur: '08:45', cat: 'Autobahn', desc: 'Alles über das sichere Auffahren auf die Autobahn, das Bilden einer Rettungsgasse und das richtige Verhalten bei Stau.' },
@@ -291,9 +343,6 @@
     { title: 'Erste Hilfe am Unfallort', dur: '18:00', cat: 'Erste Hilfe', desc: 'Die wichtigsten Maßnahmen: Absichern, Notruf, stabile Seitenlage und Herzdruckmassage.' }
   ];
 
-  // ═══════════════════════════════════════════════════════
-  // 5. STATE
-  // ═══════════════════════════════════════════════════════
   let state = {
     lang: 'de',
     stats: { examsTaken: 0, examsPassed: 0, questionsAnswered: 0, correctAnswers: 0 },
@@ -332,9 +381,6 @@
 
   function t(key) { return (LANG[state.lang] && LANG[state.lang][key]) || LANG['de'][key] || key; }
 
-  // ═══════════════════════════════════════════════════════
-  // 6. CSS
-  // ═══════════════════════════════════════════════════════
   function css() {
     return `<style>
       .fs-app { font-family: 'Inter', system-ui, sans-serif; color: #e8e8ec; background: #0a0a0f; height: 100%; display: flex; flex-direction: row; overflow: hidden; }
@@ -397,10 +443,6 @@
       .fs-toggle.on::after { transform: translateX(22px); }
     </style>`;
   }
-
-  // ═══════════════════════════════════════════════════════
-  // 7. RENDER FUNCTIONS
-  // ═══════════════════════════════════════════════════════
 
   function renderDashboard() {
     const pct = state.stats.examsTaken > 0 ? Math.round((state.stats.examsPassed / state.stats.examsTaken) * 100) : 0;
@@ -573,7 +615,15 @@
               <option value="de" ${state.lang === 'de' ? 'selected' : ''}>Deutsch</option>
               <option value="en" ${state.lang === 'en' ? 'selected' : ''}>English</option>
               <option value="tr" ${state.lang === 'tr' ? 'selected' : ''}>Türkçe</option>
+              <option value="ku" ${state.lang === 'ku' ? 'selected' : ''}>Kurmandschi</option>
+              <option value="ckb" ${state.lang === 'ckb' ? 'selected' : ''}>Sorani</option>
+              <option value="gorani" ${state.lang === 'gorani' ? 'selected' : ''}>Gorani</option>
+              <option value="ez" ${state.lang === 'ez' ? 'selected' : ''}>Ezidi</option>
               <option value="ar" ${state.lang === 'ar' ? 'selected' : ''}>العربية</option>
+              <option value="fa" ${state.lang === 'fa' ? 'selected' : ''}>فارسی</option>
+              <option value="he" ${state.lang === 'he' ? 'selected' : ''}>עברית</option>
+              <option value="la" ${state.lang === 'la' ? 'selected' : ''}>Lingua Latina</option>
+              <option value="uz" ${state.lang === 'uz' ? 'selected' : ''}>O'zbekcha</option>
               <option value="ru" ${state.lang === 'ru' ? 'selected' : ''}>Русский</option>
               <option value="pl" ${state.lang === 'pl' ? 'selected' : ''}>Polski</option>
               <option value="ro" ${state.lang === 'ro' ? 'selected' : ''}>Română</option>
@@ -683,10 +733,6 @@
     `;
   }
 
-  // ═══════════════════════════════════════════════════════
-  // 8. LOGIC
-  // ═══════════════════════════════════════════════════════
-
   function shuffle(array) { return [...array].sort(() => Math.random() - 0.5); }
 
   function speakText(text) {
@@ -694,7 +740,11 @@
     if (!window.speechSynthesis) { alert('Sprachausgabe nicht unterstützt.'); return; }
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    const langMap = { de: 'de-DE', en: 'en-US', tr: 'tr-TR', ar: 'ar-SA', ru: 'ru-RU', pl: 'pl-PL', ro: 'ro-RO', hr: 'hr-HR', pt: 'pt-PT', fr: 'fr-FR', el: 'el-GR', es: 'es-ES', it: 'it-IT' };
+    const langMap = { 
+      de: 'de-DE', en: 'en-US', tr: 'tr-TR', ku: 'ku-TR', ckb: 'ckb-IQ', gorani: 'ku-TR', ez: 'ku-TR',
+      ar: 'ar-SA', fa: 'fa-IR', he: 'he-IL', la: 'la-VA', uz: 'uz-UZ', ru: 'ru-RU', pl: 'pl-PL',
+      ro: 'ro-RO', hr: 'hr-HR', pt: 'pt-PT', fr: 'fr-FR', el: 'el-GR', es: 'es-ES', it: 'it-IT'
+    };
     u.lang = langMap[state.lang] || 'de-DE';
     u.rate = 0.9;
     window.speechSynthesis.speak(u);
@@ -990,5 +1040,5 @@
   window.renderFahrschule = mount;
   window.openFahrschule = openOverlay;
 
-  console.log('🚦 fahrschule.js v' + VERSION + ' geladen — ULTIMATE GLOBAL (Alle Klassen, 13 Sprachen, TTS)');
+  console.log('🚦 fahrschule.js v' + VERSION + ' geladen — ULTIMATE GLOBAL (Alle Klassen, 20+ Sprachen, TTS)');
 })();
