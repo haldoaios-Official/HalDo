@@ -1,31 +1,31 @@
-/* HalDo Fahrschule v600.0 — ULTIMATE GLOBAL (17 Sprachen, Interaktive Schilder mit TTS & KI) */
+/* HalDo Fahrschule v700.0 — ULTIMATE PRO MAX (Settings, Welcome, 17 Sprachen, KI, TTS) */
 (function () {
   'use strict';
 
-  const VERSION = '600.0';
-  const STORAGE_KEY = 'haldo.fahrschule.pro.stats.v600';
+  const VERSION = '700.0';
+  const STORAGE_KEY = 'haldo.fahrschule.pro.stats.v700';
 
   // ═══════════════════════════════════════════════════════
   // 1. MULTI-LANGUAGE ENGINE (17 Sprachen)
   // ═══════════════════════════════════════════════════════
   const LANG = {
-    de: { dashboard: 'Startseite', learn: 'Lernen', exam: 'Prüfung', signs: 'Schilder', videos: 'Videos', theory: 'Theorie', stats: 'Statistiken', settings: 'Einstellungen', start: 'Starten', questions: 'Fragen', back: 'Zurück', next: 'Weiter', ai_explain: 'KI fragen', pass: 'BESTANDEN', fail: 'DURCHGEFALLEN', select_count: 'Wähle die Anzahl der Fragen', lang: 'Sprache', exam_start: 'Prüfung starten' },
-    en: { dashboard: 'Dashboard', learn: 'Learn', exam: 'Exam', signs: 'Signs', videos: 'Videos', theory: 'Theory', stats: 'Stats', settings: 'Settings', start: 'Start', questions: 'Questions', back: 'Back', next: 'Next', ai_explain: 'Ask AI', pass: 'PASSED', fail: 'FAILED', select_count: 'Select number of questions', lang: 'Language', exam_start: 'Start Exam' },
-    tr: { dashboard: 'Panel', learn: 'Öğren', exam: 'Sınav', signs: 'İşaretler', videos: 'Videolar', theory: 'Teori', stats: 'İstatistikler', settings: 'Ayarlar', start: 'Başla', questions: 'Sorular', back: 'Geri', next: 'İleri', ai_explain: 'Yapay Zeka', pass: 'GEÇTİ', fail: 'KALDI', select_count: 'Soru sayısını seçin', lang: 'Dil', exam_start: 'Sınavı Başlat' },
-    ku: { dashboard: 'Destpêk', learn: 'Fêr bibe', exam: 'Azmûn', signs: 'Nîşan', videos: 'Vîdyo', theory: 'Teorî', stats: 'Statîstîk', settings: 'Mîheng', start: 'Dest pê bike', questions: 'Pirs', back: 'Veger', next: 'Pêşve', ai_explain: 'Ji AI bipirse', pass: 'DERBAS BÛ', fail: 'DERBAS NE BÛ', select_count: 'Hejmara pirsan hilbijêre', lang: 'Ziman', exam_start: 'Azmûnê dest pê bike' },
-    ckb: { dashboard: 'دەستپێک', learn: 'فێربوون', exam: 'تاقیکردنەوە', signs: 'هێماکان', videos: 'ڤیدیۆکان', theory: 'تیۆری', stats: 'ئامارەکان', settings: 'ڕێکخستنەکان', start: 'دەستپێکردن', questions: 'پرسیارەکان', back: 'گەڕانەوە', next: 'دواتر', ai_explain: 'پرسیار لە AI بکە', pass: 'دەرچوو', fail: 'دەرنەچوو', select_count: 'ژمارەی پرسیارەکان هەڵبژێرە', lang: 'زمان', exam_start: 'تاقیکردنەوە دەست پێبکە' },
-    gorani: { dashboard: 'Destpêk', learn: 'Fêr bibe', exam: 'Azmûn', signs: 'Nîşan', videos: 'Vîdyo', theory: 'Teorî', stats: 'Statîstîk', settings: 'Mîheng', start: 'Dest pê bike', questions: 'Pirs', back: 'Veger', next: 'Pêşve', ai_explain: 'Ji AI bipirse', pass: 'DERBAS BÛ', fail: 'DERBAS NE BÛ', select_count: 'Hejmara pirsan hilbijêre', lang: 'Ziman', exam_start: 'Azmûnê dest pê bike' },
-    ez: { dashboard: 'Destpêk', learn: 'Fêr bibe', exam: 'Azmûn', signs: 'Nîşan', videos: 'Vîdyo', theory: 'Teorî', stats: 'Statîstîk', settings: 'Mîheng', start: 'Dest pê bike', questions: 'Pirs', back: 'Veger', next: 'Pêşve', ai_explain: 'Ji AI bipirse', pass: 'DERBAS BÛ', fail: 'DERBAS NE BÛ', select_count: 'Hejmara pirsan hilbijêre', lang: 'Ziman', exam_start: 'Azmûnê dest pê bike' },
-    fr: { dashboard: 'Tableau de bord', learn: 'Apprendre', exam: 'Examen', signs: 'Panneaux', videos: 'Vidéos', theory: 'Théorie', stats: 'Stats', settings: 'Paramètres', start: 'Démarrer', questions: 'Questions', back: 'Retour', next: 'Suivant', ai_explain: 'Demander à l\'IA', pass: 'RÉUSSI', fail: 'ÉCHOUÉ', select_count: 'Sélectionnez le nombre de questions', lang: 'Langue', exam_start: 'Démarrer l\'examen' },
-    ar: { dashboard: 'لوحة القيادة', learn: 'تعلم', exam: 'امتحان', signs: 'علامات', videos: 'فيديوهات', theory: 'نظرية', stats: 'إحصائيات', settings: 'إعدادات', start: 'ابدأ', questions: 'أسئلة', back: 'رجوع', next: 'التالي', ai_explain: 'اسأل الذكاء الاصطناعي', pass: 'ناجح', fail: 'راسب', select_count: 'حدد عدد الأسئلة', lang: 'اللغة', exam_start: 'ابدأ الامتحان' },
-    es: { dashboard: 'Panel', learn: 'Aprender', exam: 'Examen', signs: 'Señales', videos: 'Videos', theory: 'Teoría', stats: 'Estadísticas', settings: 'Ajustes', start: 'Empezar', questions: 'Preguntas', back: 'Atrás', next: 'Siguiente', ai_explain: 'Preguntar a IA', pass: 'APROBADO', fail: 'SUSPENDIDO', select_count: 'Selecciona el número de preguntas', lang: 'Idioma', exam_start: 'Iniciar Examen' },
-    pl: { dashboard: 'Pulpit', learn: 'Ucz się', exam: 'Egzamin', signs: 'Znaki', videos: 'Filmy', theory: 'Teoria', stats: 'Statystyki', settings: 'Ustawienia', start: 'Start', questions: 'Pytania', back: 'Wstecz', next: 'Dalej', ai_explain: 'Zapytaj AI', pass: 'ZDANE', fail: 'NIEZDANE', select_count: 'Wybierz liczbę pytań', lang: 'Język', exam_start: 'Rozpocznij egzamin' },
-    ru: { dashboard: 'Панель', learn: 'Учиться', exam: 'Экзамен', signs: 'Знаки', videos: 'Видео', theory: 'Теория', stats: 'Статистика', settings: 'Настройки', start: 'Начать', questions: 'Вопросы', back: 'Назад', next: 'Далее', ai_explain: 'Спросить ИИ', pass: 'СДАНО', fail: 'НЕ СДАНО', select_count: 'Выберите количество вопросов', lang: 'Язык', exam_start: 'Начать экзамен' },
-    uz: { dashboard: 'Boshqaruv paneli', learn: "O'rganish", exam: 'Imtihon', signs: 'Belgilar', videos: 'Videolar', theory: 'Nazariya', stats: 'Statistika', settings: 'Sozlamalar', start: 'Boshlash', questions: 'Savollar', back: 'Orqaga', next: 'Keyingi', ai_explain: "AI dan so'rash", pass: "O'TDI", fail: 'YIQILDI', select_count: 'Savollar sonini tanlang', lang: 'Til', exam_start: 'Imtihonni boshlash' },
-    fa: { dashboard: 'داشبورد', learn: 'یادگیری', exam: 'آزمون', signs: 'علائم', videos: 'ویدیوها', theory: 'تئوری', stats: 'آمار', settings: 'تنظیمات', start: 'شروع', questions: 'سوالات', back: 'بازگشت', next: 'بعدی', ai_explain: 'پرسیدن از هوش مصنوعی', pass: 'قبول', fail: 'رد شد', select_count: 'تعداد سوالات را انتخاب کنید', lang: 'زبان', exam_start: 'شروع آزمون' },
-    la: { dashboard: 'Dashboard', learn: 'Discere', exam: 'Examen', signs: 'Signa', videos: 'Videos', theory: 'Theoria', stats: 'Statistica', settings: 'Optiones', start: 'Incipere', questions: 'Quaestiones', back: 'Retro', next: 'Porro', ai_explain: 'Interroga AI', pass: 'TRANSIIT', fail: 'CECIDIT', select_count: 'Elige numerum quaestionum', lang: 'Lingua', exam_start: 'Incipere Examen' },
-    zh: { dashboard: '仪表盘', learn: '学习', exam: '考试', signs: '标志', videos: '视频', theory: '理论', stats: '统计', settings: '设置', start: '开始', questions: '问题', back: '返回', next: '下一个', ai_explain: '问AI', pass: '通过', fail: '失败', select_count: '选择问题数量', lang: '语言', exam_start: '开始考试' },
-    ja: { dashboard: 'ダッシュボード', learn: '学習', exam: '試験', signs: '標識', videos: '動画', theory: '理論', stats: '統計', settings: '設定', start: '開始', questions: '質問', back: '戻る', next: '次へ', ai_explain: 'AIに聞く', pass: '合格', fail: '不合格', select_count: '質問の数を選択', lang: '言語', exam_start: '試験を開始' }
+    de: { dashboard: 'Startseite', learn: 'Lernen', exam: 'Prüfung', signs: 'Schilder', videos: 'Videos', theory: 'Theorie', settings: 'Einstellungen', start: 'Starten', questions: 'Fragen', back: 'Zurück', next: 'Weiter', ai_explain: 'KI fragen', pass: 'BESTANDEN', fail: 'DURCHGEFALLEN', select_count: 'Wähle die Anzahl der Fragen', lang: 'Sprache', exam_start: 'Prüfung starten', auto_next: 'Auto-Weiter', auto_next_desc: 'Automatisch zur nächsten Frage', sound_fx: 'Sound-Effekte', sound_fx_desc: 'Töne bei richtig/falsch', reset_stats: 'Statistiken zurücksetzen', reset_stats_desc: 'Löscht alle gespeicherten Fortschritte', about: 'Über die App', version: 'Version' },
+    en: { dashboard: 'Dashboard', learn: 'Learn', exam: 'Exam', signs: 'Signs', videos: 'Videos', theory: 'Theory', settings: 'Settings', start: 'Start', questions: 'Questions', back: 'Back', next: 'Next', ai_explain: 'Ask AI', pass: 'PASSED', fail: 'FAILED', select_count: 'Select number of questions', lang: 'Language', exam_start: 'Start Exam', auto_next: 'Auto-Next', auto_next_desc: 'Automatically go to next question', sound_fx: 'Sound Effects', sound_fx_desc: 'Sounds on correct/wrong', reset_stats: 'Reset Statistics', reset_stats_desc: 'Deletes all saved progress', about: 'About App', version: 'Version' },
+    tr: { dashboard: 'Panel', learn: 'Öğren', exam: 'Sınav', signs: 'İşaretler', videos: 'Videolar', theory: 'Teori', settings: 'Ayarlar', start: 'Başla', questions: 'Sorular', back: 'Geri', next: 'İleri', ai_explain: 'Yapay Zeka', pass: 'GEÇTİ', fail: 'KALDI', select_count: 'Soru sayısını seçin', lang: 'Dil', exam_start: 'Sınavı Başlat', auto_next: 'Otomatik İleri', auto_next_desc: 'Doğru cevapta otomatik geç', sound_fx: 'Ses Efektleri', sound_fx_desc: 'Doğru/yanlış sesleri', reset_stats: 'İstatistikleri Sıfırla', reset_stats_desc: 'Tüm ilerlemeyi siler', about: 'Uygulama Hakkında', version: 'Sürüm' },
+    ku: { dashboard: 'Destpêk', learn: 'Fêr bibe', exam: 'Azmûn', signs: 'Nîşan', videos: 'Vîdyo', theory: 'Teorî', settings: 'Mîheng', start: 'Dest pê bike', questions: 'Pirs', back: 'Veger', next: 'Pêşve', ai_explain: 'Ji AI bipirse', pass: 'DERBAS BÛ', fail: 'DERBAS NE BÛ', select_count: 'Hejmara pirsan hilbijêre', lang: 'Ziman', exam_start: 'Azmûnê dest pê bike', auto_next: 'Xweber Pêşve', auto_next_desc: 'Xweber here pirsa din', sound_fx: 'Deng', sound_fx_desc: 'Dengê rast/çewt', reset_stats: 'Statîstîkan Paqij Bike', reset_stats_desc: 'Hemû pêşkeftinê paqij dike', about: 'Derbarê App', version: 'Guhertî' },
+    ckb: { dashboard: 'دەستپێک', learn: 'فێربوون', exam: 'تاقیکردنەوە', signs: 'هێماکان', videos: 'ڤیدیۆکان', theory: 'تیۆری', settings: 'ڕێکخستنەکان', start: 'دەستپێکردن', questions: 'پرسیارەکان', back: 'گەڕانەوە', next: 'دواتر', ai_explain: 'پرسیار لە AI بکە', pass: 'دەرچوو', fail: 'دەرنەچوو', select_count: 'ژمارەی پرسیارەکان هەڵبژێرە', lang: 'زمان', exam_start: 'تاقیکردنەوە دەست پێبکە', auto_next: 'خۆکار دواتر', auto_next_desc: 'خۆکار بچۆ پرسیاری دواتر', sound_fx: 'دەنگەکان', sound_fx_desc: 'دەنگی ڕاست/هەڵە', reset_stats: 'ئامارەکان ڕێست بکە', reset_stats_desc: 'هەموو پێشکەوتنەکان دەسڕێتەوە', about: 'دەربارەی ئەپ', version: 'وەشان' },
+    gorani: { dashboard: 'Destpêk', learn: 'Fêr bibe', exam: 'Azmûn', signs: 'Nîşan', videos: 'Vîdyo', theory: 'Teorî', settings: 'Mîheng', start: 'Dest pê bike', questions: 'Pirs', back: 'Veger', next: 'Pêşve', ai_explain: 'Ji AI bipirse', pass: 'DERBAS BÛ', fail: 'DERBAS NE BÛ', select_count: 'Hejmara pirsan hilbijêre', lang: 'Ziman', exam_start: 'Azmûnê dest pê bike', auto_next: 'Xweber Pêşve', auto_next_desc: 'Xweber here pirsa din', sound_fx: 'Deng', sound_fx_desc: 'Dengê rast/çewt', reset_stats: 'Statîstîkan Paqij Bike', reset_stats_desc: 'Hemû pêşkeftinê paqij dike', about: 'Derbarê App', version: 'Guhertî' },
+    ez: { dashboard: 'Destpêk', learn: 'Fêr bibe', exam: 'Azmûn', signs: 'Nîşan', videos: 'Vîdyo', theory: 'Teorî', settings: 'Mîheng', start: 'Dest pê bike', questions: 'Pirs', back: 'Veger', next: 'Pêşve', ai_explain: 'Ji AI bipirse', pass: 'DERBAS BÛ', fail: 'DERBAS NE BÛ', select_count: 'Hejmara pirsan hilbijêre', lang: 'Ziman', exam_start: 'Azmûnê dest pê bike', auto_next: 'Xweber Pêşve', auto_next_desc: 'Xweber here pirsa din', sound_fx: 'Deng', sound_fx_desc: 'Dengê rast/çewt', reset_stats: 'Statîstîkan Paqij Bike', reset_stats_desc: 'Hemû pêşkeftinê paqij dike', about: 'Derbarê App', version: 'Guhertî' },
+    fr: { dashboard: 'Tableau de bord', learn: 'Apprendre', exam: 'Examen', signs: 'Panneaux', videos: 'Vidéos', theory: 'Théorie', settings: 'Paramètres', start: 'Démarrer', questions: 'Questions', back: 'Retour', next: 'Suivant', ai_explain: 'Demander à l\'IA', pass: 'RÉUSSI', fail: 'ÉCHOUÉ', select_count: 'Sélectionnez le nombre de questions', lang: 'Langue', exam_start: 'Démarrer l\'examen', auto_next: 'Auto-Suivant', auto_next_desc: 'Passer à la question suivante', sound_fx: 'Effets sonores', sound_fx_desc: 'Sons vrai/faux', reset_stats: 'Réinitialiser', reset_stats_desc: 'Efface toute la progression', about: 'À propos', version: 'Version' },
+    ar: { dashboard: 'لوحة القيادة', learn: 'تعلم', exam: 'امتحان', signs: 'علامات', videos: 'فيديوهات', theory: 'نظرية', settings: 'إعدادات', start: 'ابدأ', questions: 'أسئلة', back: 'رجوع', next: 'التالي', ai_explain: 'اسأل الذكاء الاصطناعي', pass: 'ناجح', fail: 'راسب', select_count: 'حدد عدد الأسئلة', lang: 'اللغة', exam_start: 'ابدأ الامتحان', auto_next: 'التالي التلقائي', auto_next_desc: 'الانتقال تلقائيا للسؤال التالي', sound_fx: 'المؤثرات الصوتية', sound_fx_desc: 'أصوات صحيحة/خاطئة', reset_stats: 'إعادة تعيين الإحصائيات', reset_stats_desc: 'حذف كل التقدم المحفوظ', about: 'حول التطبيق', version: 'إصدار' },
+    es: { dashboard: 'Panel', learn: 'Aprender', exam: 'Examen', signs: 'Señales', videos: 'Videos', theory: 'Teoría', settings: 'Ajustes', start: 'Empezar', questions: 'Preguntas', back: 'Atrás', next: 'Siguiente', ai_explain: 'Preguntar a IA', pass: 'APROBADO', fail: 'SUSPENDIDO', select_count: 'Selecciona el número de preguntas', lang: 'Idioma', exam_start: 'Iniciar Examen', auto_next: 'Auto-Siguiente', auto_next_desc: 'Ir a la siguiente pregunta', sound_fx: 'Efectos de sonido', sound_fx_desc: 'Sonidos correcto/incorrecto', reset_stats: 'Reiniciar Estadísticas', reset_stats_desc: 'Borra todo el progreso', about: 'Acerca de', version: 'Versión' },
+    pl: { dashboard: 'Pulpit', learn: 'Ucz się', exam: 'Egzamin', signs: 'Znaki', videos: 'Filmy', theory: 'Teoria', settings: 'Ustawienia', start: 'Start', questions: 'Pytania', back: 'Wstecz', next: 'Dalej', ai_explain: 'Zapytaj AI', pass: 'ZDANE', fail: 'NIEZDANE', select_count: 'Wybierz liczbę pytań', lang: 'Język', exam_start: 'Rozpocznij egzamin', auto_next: 'Auto-Następne', auto_next_desc: 'Automatycznie przejdź dalej', sound_fx: 'Efekty dźwiękowe', sound_fx_desc: 'Dźwięki poprawnie/błędnie', reset_stats: 'Resetuj Statystyki', reset_stats_desc: 'Usuwa cały postęp', about: 'O aplikacji', version: 'Wersja' },
+    ru: { dashboard: 'Панель', learn: 'Учиться', exam: 'Экзамен', signs: 'Знаки', videos: 'Видео', theory: 'Теория', settings: 'Настройки', start: 'Начать', questions: 'Вопросы', back: 'Назад', next: 'Далее', ai_explain: 'Спросить ИИ', pass: 'СДАНО', fail: 'НЕ СДАНО', select_count: 'Выберите количество вопросов', lang: 'Язык', exam_start: 'Начать экзамен', auto_next: 'Авто-Далее', auto_next_desc: 'Автоматический переход', sound_fx: 'Звуковые эффекты', sound_fx_desc: 'Звуки верно/неверно', reset_stats: 'Сбросить Статистику', reset_stats_desc: 'Удаляет весь прогресс', about: 'О приложении', version: 'Версия' },
+    uz: { dashboard: 'Boshqaruv paneli', learn: "O'rganish", exam: 'Imtihon', signs: 'Belgilar', videos: 'Videolar', theory: 'Nazariya', settings: 'Sozlamalar', start: 'Boshlash', questions: 'Savollar', back: 'Orqaga', next: 'Keyingi', ai_explain: "AI dan so'rash", pass: "O'TDI", fail: 'YIQILDI', select_count: 'Savollar sonini tanlang', lang: 'Til', exam_start: 'Imtihonni boshlash', auto_next: 'Avto-Keyingi', auto_next_desc: 'Avtomatik keyingi savolga', sound_fx: 'Ovoz effektlari', sound_fx_desc: "To'g'ri/xato ovozlari", reset_stats: 'Statistikani Tozalash', reset_stats_desc: 'Barcha taraqqiyotni ochiradi', about: 'Ilova haqida', version: 'Versiya' },
+    fa: { dashboard: 'داشبورد', learn: 'یادگیری', exam: 'آزمون', signs: 'علائم', videos: 'ویدیوها', theory: 'تئوری', settings: 'تنظیمات', start: 'شروع', questions: 'سوالات', back: 'بازگشت', next: 'بعدی', ai_explain: 'پرسیدن از هوش مصنوعی', pass: 'قبول', fail: 'رد شد', select_count: 'تعداد سوالات را انتخاب کنید', lang: 'زبان', exam_start: 'شروع آزمون', auto_next: 'بعدی خودکار', auto_next_desc: 'رفتن خودکار به بعدی', sound_fx: 'افکت‌های صوتی', sound_fx_desc: 'صداهای درست/غلط', reset_stats: 'بازنشانی آمار', reset_stats_desc: 'همه پیشرفت‌ها را پاک می‌کند', about: 'درباره برنامه', version: 'نسخه' },
+    la: { dashboard: 'Dashboard', learn: 'Discere', exam: 'Examen', signs: 'Signa', videos: 'Videos', theory: 'Theoria', settings: 'Optiones', start: 'Incipere', questions: 'Quaestiones', back: 'Retro', next: 'Porro', ai_explain: 'Interroga AI', pass: 'TRANSIIT', fail: 'CECIDIT', select_count: 'Elige numerum quaestionum', lang: 'Lingua', exam_start: 'Incipere Examen', auto_next: 'Auto-Porro', auto_next_desc: 'Automatice ad sequentem', sound_fx: 'Sonus Effectus', sound_fx_desc: 'Sonus recte/male', reset_stats: 'Resettare Statistica', reset_stats_desc: 'Delet omnem progressum', about: 'De App', version: 'Versio' },
+    zh: { dashboard: '仪表盘', learn: '学习', exam: '考试', signs: '标志', videos: '视频', theory: '理论', settings: '设置', start: '开始', questions: '问题', back: '返回', next: '下一个', ai_explain: '问AI', pass: '通过', fail: '失败', select_count: '选择问题数量', lang: '语言', exam_start: '开始考试', auto_next: '自动下一个', auto_next_desc: '答对自动下一题', sound_fx: '音效', sound_fx_desc: '正确/错误音效', reset_stats: '重置统计', reset_stats_desc: '删除所有进度', about: '关于', version: '版本' },
+    ja: { dashboard: 'ダッシュボード', learn: '学習', exam: '試験', signs: '標識', videos: '動画', theory: '理論', settings: '設定', start: '開始', questions: '質問', back: '戻る', next: '次へ', ai_explain: 'AIに聞く', pass: '合格', fail: '不合格', select_count: '質問の数を選択', lang: '言語', exam_start: '試験を開始', auto_next: '自動次へ', auto_next_desc: '正解時に自動で次へ', sound_fx: '効果音', sound_fx_desc: '正解/不正解の音', reset_stats: '統計リセット', reset_stats_desc: 'すべての進捗を削除', about: 'アプリについて', version: 'バージョン' }
   };
 
   // ═══════════════════════════════════════════════════════
@@ -84,9 +84,6 @@
     { id: 50, cat: 'Vorfahrt', q: 'Wer hat Vorrang beim Ausfahren aus einem Kreisverkehr?', opts: ['Der Verkehr im Kreisverkehr', 'Ich, weil ich ausfahre', 'Der Gegenverkehr'], correct: 0, exp: 'Auch beim Ausfahren muss der Verkehr im Kreisverkehr durchgelassen werden, falls man sich noch im Kreis befindet.' }
   ];
 
-  // ═══════════════════════════════════════════════════════
-  // 3. VERKEHRSZEICHEN LEXIKON (Erweitert & Kategorisiert)
-  // ═══════════════════════════════════════════════════════
   const SIGNS = {
     'Gefahrenzeichen': [
       { icon: '⚠️', name: 'Allgemeine Gefahr', desc: 'Gefahr durch ein Hindernis oder eine unübersichtliche Stelle.' },
@@ -127,13 +124,13 @@
   };
 
   // ═══════════════════════════════════════════════════════
-  // 4. STATE & STORAGE
+  // 3. STATE & STORAGE
   // ═══════════════════════════════════════════════════════
   let state = {
     lang: 'de',
     stats: { examsTaken: 0, examsPassed: 0, questionsAnswered: 0, correctAnswers: 0 },
     currentView: 'dashboard',
-    settings: { questionCount: 15 },
+    settings: { autoNext: false, soundFx: true },
     exam: null,
     learnIndex: 0,
     learnList: []
@@ -165,7 +162,7 @@
   }
 
   // ═══════════════════════════════════════════════════════
-  // 5. CSS (PRO MAX GLASS UI)
+  // 4. CSS (PRO MAX GLASS UI)
   // ═══════════════════════════════════════════════════════
   function css() {
     return `<style>
@@ -196,6 +193,7 @@
       .fs-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
       .fs-btn.primary { background: linear-gradient(135deg, #00e5ff, #b478ff); color: #000; border: none; font-weight: 900; box-shadow: 0 4px 15px rgba(0,229,255,0.3); }
       .fs-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,229,255,0.5); }
+      .fs-btn.danger { background: linear-gradient(135deg, #ff3333, #cc0000); color: #fff; border: none; font-weight: 900; box-shadow: 0 4px 15px rgba(255,51,51,0.4); }
       
       /* OPTIONS */
       .fs-opt { display: block; width: 100%; text-align: left; padding: 18px 24px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #ddd; margin-bottom: 12px; cursor: pointer; font-family: inherit; font-size: 15px; transition: all 0.2s; }
@@ -247,11 +245,20 @@
 
       /* SETTINGS */
       .fs-select { background: #1a1a24; color: #fff; border: 1px solid #333; border-radius: 8px; padding: 10px 15px; font-family: inherit; font-size: 14px; outline: none; cursor: pointer; width: 100%; max-width: 300px; }
+      .fs-setting-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+      .fs-setting-row:last-child { border-bottom: none; }
+      .fs-setting-info { flex: 1; }
+      .fs-setting-info h4 { margin: 0 0 5px; font-size: 15px; color: #fff; }
+      .fs-setting-info p { margin: 0; font-size: 12px; color: #888; }
+      .fs-toggle { position: relative; width: 50px; height: 28px; background: #333; border-radius: 14px; cursor: pointer; transition: background 0.2s; flex-shrink: 0; }
+      .fs-toggle.on { background: #00e5ff; }
+      .fs-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
+      .fs-toggle.on::after { transform: translateX(22px); }
     </style>`;
   }
 
   // ═══════════════════════════════════════════════════════
-  // 6. RENDER FUNCTIONS
+  // 5. RENDER FUNCTIONS
   // ═══════════════════════════════════════════════════════
   function t(key) { return (LANG[state.lang] && LANG[state.lang][key]) || LANG['de'][key] || key; }
 
@@ -270,9 +277,9 @@
         </div>
         
         <div class="fs-stats-grid">
-          <div class="fs-stat-box"><span class="val">${state.stats.examsTaken}</span><span class="lbl">Prüfungen</span></div>
-          <div class="fs-stat-box"><span class="val" style="color:#00ff66;">${state.stats.examsPassed}</span><span class="lbl">Bestanden</span></div>
-          <div class="fs-stat-box"><span class="val">${accuracy}%</span><span class="lbl">Erfolgsquote</span></div>
+          <div class="fs-stat-box"><span class="val">${state.stats.examsTaken}</span><span class="lbl">${t('exam')}</span></div>
+          <div class="fs-stat-box"><span class="val" style="color:#00ff66;">${state.stats.examsPassed}</span><span class="lbl">${t('pass')}</span></div>
+          <div class="fs-stat-box"><span class="val">${accuracy}%</span><span class="lbl">${t('correct')}</span></div>
         </div>
       </div>
     `;
@@ -387,7 +394,7 @@
     Object.keys(SIGNS).forEach(cat => {
       html += `<div class="fs-signs-cat"><h3>${cat}</h3><div class="fs-signs-grid">`;
       SIGNS[cat].forEach(s => {
-        html += `<div class="fs-sign-item" data-action="click-sign" data-cat="${cat}" data-name="${s.name}" data-desc="${s.desc}" data-icon="${s.icon}">
+        html += `<div class="fs-sign-item" data-action="click-sign" data-name="${s.name}" data-desc="${s.desc}" data-icon="${s.icon}">
           <div class="fs-sign-icon">${s.icon}</div>
           <div class="fs-sign-name">${s.name}</div>
           <div class="fs-sign-desc">${s.desc}</div>
@@ -404,9 +411,7 @@
       { title: 'Grundlagen der Vorfahrt', dur: '12:30', cat: 'Grundwissen' },
       { title: 'Autobahn: Auffahrt & Rettungsgasse', dur: '08:45', cat: 'Autobahn' },
       { title: 'Richtig Einparken (Längs & Quer)', dur: '15:20', cat: 'Praktisch' },
-      { title: 'Verhalten bei Panne & Unfall', dur: '10:15', cat: 'Grundwissen' },
-      { title: 'Kreisverkehr meistern', dur: '05:30', cat: 'Praktisch' },
-      { title: 'Erste Hilfe am Unfallort', dur: '18:00', cat: 'Erste Hilfe' }
+      { title: 'Verhalten bei Panne & Unfall', dur: '10:15', cat: 'Grundwissen' }
     ];
     let html = `<div class="fs-content-inner"><div class="fs-card"><h2>🎬 Lernvideos</h2><div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">`;
     vids.forEach(v => {
@@ -424,9 +429,7 @@
       { title: 'Erste Hilfe', desc: 'Notruf, Stabile Seitenlage, Wiederbelebung, Verbrennungen. Alles was du wissen musst.' },
       { title: 'Fahrzeugtechnik', desc: 'ABS, ESP, Kupplung, Reifen, Bremsen. So funktioniert dein Auto.' },
       { title: 'Umweltbewusstes Fahren', desc: 'Sprit sparen, Emissionen reduzieren, Reifendruck prüfen.' },
-      { title: 'Verhalten im Straßenverkehr', desc: 'Rücksichtnahme, Vorfahrt, defensives Fahren.' },
-      { title: 'Autobahn & Schnellstraßen', desc: 'Auffahren, Rettungsgasse, Abstand halten, LKW überholen.' },
-      { title: 'Nachtfahrt & Wetter', desc: 'Fahren bei Regen, Nebel, Schnee und in der Dunkelheit.' }
+      { title: 'Verhalten im Straßenverkehr', desc: 'Rücksichtnahme, Vorfahrt, defensives Fahren.' }
     ];
     let html = `<div class="fs-content-inner"><div class="fs-card"><h2>📚 Theorie A-Z</h2><div class="fs-theory-grid">`;
     theory.forEach(t => {
@@ -443,27 +446,48 @@
       <div class="fs-content-inner">
         <div class="fs-card">
           <h2>⚙️ ${t('settings')}</h2>
-          <div style="margin-bottom:20px;">
-            <label style="display:block; margin-bottom:10px; color:#888; font-size:14px;">${t('lang')}</label>
+          
+          <div class="fs-setting-row">
+            <div class="fs-setting-info"><h4>${t('lang')}</h4></div>
             <select class="fs-select" data-action="set-lang">
               <option value="de" ${state.lang === 'de' ? 'selected' : ''}>Deutsch</option>
               <option value="en" ${state.lang === 'en' ? 'selected' : ''}>English</option>
               <option value="tr" ${state.lang === 'tr' ? 'selected' : ''}>Türkçe</option>
-              <option value="ku" ${state.lang === 'ku' ? 'selected' : ''}>Kurmandschi (Kurdisch)</option>
-              <option value="ckb" ${state.lang === 'ckb' ? 'selected' : ''}>Sorani (Kurdisch)</option>
-              <option value="gorani" ${state.lang === 'gorani' ? 'selected' : ''}>Gorani (Kurdisch)</option>
+              <option value="ku" ${state.lang === 'ku' ? 'selected' : ''}>Kurmandschi</option>
+              <option value="ckb" ${state.lang === 'ckb' ? 'selected' : ''}>Sorani</option>
+              <option value="gorani" ${state.lang === 'gorani' ? 'selected' : ''}>Gorani</option>
               <option value="ez" ${state.lang === 'ez' ? 'selected' : ''}>Ezidi</option>
               <option value="fr" ${state.lang === 'fr' ? 'selected' : ''}>Français</option>
               <option value="ar" ${state.lang === 'ar' ? 'selected' : ''}>العربية</option>
               <option value="es" ${state.lang === 'es' ? 'selected' : ''}>Español</option>
               <option value="pl" ${state.lang === 'pl' ? 'selected' : ''}>Polski</option>
               <option value="ru" ${state.lang === 'ru' ? 'selected' : ''}>Русский</option>
-              <option value="uz" ${state.lang === 'uz' ? 'selected' : ''}>O'zbekcha (Usbekisch)</option>
-              <option value="fa" ${state.lang === 'fa' ? 'selected' : ''}>فارسی (Farsi)</option>
-              <option value="la" ${state.lang === 'la' ? 'selected' : ''}>Lingua Latina (Latein)</option>
-              <option value="zh" ${state.lang === 'zh' ? 'selected' : ''}>中文 (Chinesisch)</option>
-              <option value="ja" ${state.lang === 'ja' ? 'selected' : ''}>日本語 (Japanisch)</option>
+              <option value="uz" ${state.lang === 'uz' ? 'selected' : ''}>O'zbekcha</option>
+              <option value="fa" ${state.lang === 'fa' ? 'selected' : ''}>فارسی</option>
+              <option value="la" ${state.lang === 'la' ? 'selected' : ''}>Lingua Latina</option>
+              <option value="zh" ${state.lang === 'zh' ? 'selected' : ''}>中文</option>
+              <option value="ja" ${state.lang === 'ja' ? 'selected' : ''}>日本語</option>
             </select>
+          </div>
+
+          <div class="fs-setting-row">
+            <div class="fs-setting-info"><h4>${t('auto_next')}</h4><p>${t('auto_next_desc')}</p></div>
+            <div class="fs-toggle ${state.settings.autoNext ? 'on' : ''}" data-action="toggle-setting" data-key="autoNext"></div>
+          </div>
+
+          <div class="fs-setting-row">
+            <div class="fs-setting-info"><h4>${t('sound_fx')}</h4><p>${t('sound_fx_desc')}</p></div>
+            <div class="fs-toggle ${state.settings.soundFx ? 'on' : ''}" data-action="toggle-setting" data-key="soundFx"></div>
+          </div>
+
+          <div class="fs-setting-row">
+            <div class="fs-setting-info"><h4>${t('reset_stats')}</h4><p>${t('reset_stats_desc')}</p></div>
+            <button class="fs-btn danger" data-action="reset-stats">${t('reset_stats')}</button>
+          </div>
+
+          <div class="fs-setting-row" style="border:none; padding-top:30px;">
+            <div class="fs-setting-info"><h4>${t('about')}</h4><p>HalDo Fahrschule PRO MAX</p></div>
+            <span style="color:#00e5ff; font-weight:bold;">${t('version')} ${VERSION}</span>
           </div>
         </div>
       </div>
@@ -485,7 +509,7 @@
     return css() + `
       <div class="fs-app">
         <div class="fs-sidebar">
-          <div class="fs-logo">🚦 HalDo Fahrschule <span>GLOBAL</span></div>
+          <div class="fs-logo">🚦 HalDo Fahrschule <span>PRO MAX</span></div>
           <div class="fs-nav-item ${state.currentView === 'dashboard' ? 'active' : ''}" data-action="view-dashboard"><span class="icon">🏠</span> ${t('dashboard')}</div>
           <div class="fs-nav-item ${state.currentView === 'learn-setup' || state.currentView === 'learn' ? 'active' : ''}" data-action="view-learn-setup"><span class="icon">📖</span> ${t('learn')}</div>
           <div class="fs-nav-item ${state.currentView === 'exam-setup' || state.currentView === 'exam' ? 'active' : ''}" data-action="view-exam"><span class="icon">🏁</span> ${t('exam')}</div>
@@ -500,53 +524,68 @@
             <h1>${state.currentView === 'dashboard' ? t('dashboard') : state.currentView === 'learn' || state.currentView === 'learn-setup' ? t('learn') : state.currentView === 'exam' || state.currentView === 'exam-setup' ? t('exam') : state.currentView === 'signs' ? t('signs') : state.currentView === 'theory' ? t('theory') : state.currentView === 'videos' ? t('videos') : t('settings')}</h1>
             <div style="font-size:12px; color:#888;">v${VERSION}</div>
           </div>
-          <div class="fs-content-area" id="fs-main-content">
-            ${viewHtml}
-          </div>
+          <div class="fs-content-area" id="fs-main-content">${viewHtml}</div>
         </div>
       </div>
       
-      <!-- MODAL FÜR SCHILDER -->
       <div class="fs-modal-overlay" id="fs-sign-modal">
         <div class="fs-modal">
           <div style="font-size:80px; margin-bottom:10px;" id="fs-sign-icon">🛑</div>
           <h3 id="fs-sign-title">Stop</h3>
           <p id="fs-sign-desc">Beschreibung...</p>
           <div style="display:flex; gap:10px; justify-content:center; margin-bottom:15px;">
-            <button class="fs-btn" id="fs-sign-tts-btn" style="background: rgba(0,229,255,0.1); border-color: #00e5ff; color: #00e5ff;">🔊 Vorlesen</button>
-            <button class="fs-btn primary" id="fs-sign-ai-btn">🤖 KI fragen</button>
+            <button class="fs-btn" id="fs-sign-tts-btn" style="background: rgba(0,229,255,0.1); border-color: #00e5ff; color: #00e5ff;">🔊 ${t('speak')}</button>
+            <button class="fs-btn primary" id="fs-sign-ai-btn">🤖 ${t('ai_explain')}</button>
           </div>
-          <button class="fs-btn ghost" style="width:100%;" onclick="document.getElementById('fs-sign-modal').classList.remove('show')">Schließen</button>
+          <button class="fs-btn ghost" style="width:100%;" onclick="document.getElementById('fs-sign-modal').classList.remove('show')">${t('close')}</button>
         </div>
       </div>
 
-      <!-- MODAL FÜR AI -->
       <div class="fs-modal-overlay" id="fs-ai-modal">
         <div class="fs-modal">
           <h3>🤖 HalDo KI Assistent</h3>
           <p id="fs-ai-text">Analysiere...</p>
-          <button class="fs-btn primary" style="width:100%;" onclick="document.getElementById('fs-ai-modal').classList.remove('show')">Verstanden</button>
+          <button class="fs-btn primary" style="width:100%;" onclick="document.getElementById('fs-ai-modal').classList.remove('show')">${t('close')}</button>
         </div>
       </div>
     `;
   }
 
   // ═══════════════════════════════════════════════════════
-  // 7. LOGIC & CONTROLLER
+  // 6. LOGIC & CONTROLLER
   // ═══════════════════════════════════════════════════════
   
   function shuffle(array) { return [...array].sort(() => Math.random() - 0.5); }
 
   function speakText(text) {
-    if (!window.speechSynthesis) {
-      alert("Sprachausgabe wird von diesem Browser nicht unterstützt.");
-      return;
-    }
+    if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     const langMap = { de: 'de-DE', en: 'en-US', tr: 'tr-TR', ar: 'ar-SA', es: 'es-ES', fr: 'fr-FR', ru: 'ru-RU', zh: 'zh-CN', ja: 'ja-JP', fa: 'fa-IR', uz: 'uz-UZ', pl: 'pl-PL' };
     u.lang = langMap[state.lang] || 'de-DE';
     window.speechSynthesis.speak(u);
+  }
+
+  function playSound(type) {
+    if (!state.settings.soundFx) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      if (type === 'correct') {
+        osc.frequency.setValueAtTime(600, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+      } else {
+        osc.frequency.setValueAtTime(300, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.2);
+      }
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+    } catch (e) {}
   }
 
   function startExam(count) {
@@ -643,21 +682,25 @@
       exp.style.display = 'block';
       nextBtn.style.display = 'block';
       
+      playSound(idx === q.correct ? 'correct' : 'wrong');
+
       state.stats.questionsAnswered++;
       if (idx === q.correct) state.stats.correctAnswers++;
       saveState();
+
+      if (state.settings.autoNext && idx === q.correct) {
+        setTimeout(() => { state.learnIndex++; updateView(); }, 1500);
+      }
       return;
     }
-    if (action === 'learn-next') {
-      state.learnIndex++;
-      updateView();
-      return;
-    }
+    if (action === 'learn-next') { state.learnIndex++; updateView(); return; }
 
     if (action === 'exam-answer' && state.exam && !state.exam.finished) {
       const idx = parseInt(btn.dataset.idx);
       const q = state.exam.questions[state.exam.current];
       
+      playSound(idx === q.correct ? 'correct' : 'wrong');
+
       state.stats.questionsAnswered++;
       if (idx === q.correct) { state.exam.correct++; state.stats.correctAnswers++; }
       saveState();
@@ -674,42 +717,36 @@
       return;
     }
 
-    // INTERAKTIVE SCHILDER
-    if (action === 'click-sign') {
-      const cat = btn.dataset.cat;
-      const name = btn.dataset.name;
-      const desc = btn.dataset.desc;
-      const icon = btn.dataset.icon;
+    if (action === 'toggle-setting') {
+      const key = btn.dataset.key;
+      state.settings[key] = !state.settings[key];
+      saveState(); updateView();
+      return;
+    }
 
+    if (action === 'reset-stats') {
+      if (confirm('Wirklich alle Statistiken zurücksetzen?')) {
+        state.stats = { examsTaken: 0, examsPassed: 0, questionsAnswered: 0, correctAnswers: 0 };
+        saveState(); updateView();
+      }
+      return;
+    }
+
+    if (action === 'click-sign') {
+      const name = btn.dataset.name, desc = btn.dataset.desc, icon = btn.dataset.icon;
       document.getElementById('fs-sign-icon').textContent = icon;
       document.getElementById('fs-sign-title').textContent = name;
       document.getElementById('fs-sign-desc').textContent = desc;
       
-      const ttsBtn = document.getElementById('fs-sign-tts-btn');
-      const aiBtn = document.getElementById('fs-sign-ai-btn');
-
-      // TTS Action
-      ttsBtn.onclick = () => {
-        speakText(`${name}. ${desc}`);
-      };
-
-      // AI Action
-      aiBtn.onclick = () => {
-        askAI(`Erkläre das Verkehrszeichen "${name}". ${desc}`);
-      };
-
+      document.getElementById('fs-sign-tts-btn').onclick = () => speakText(`${name}. ${desc}`);
+      document.getElementById('fs-sign-ai-btn').onclick = () => askAI(`Erkläre das Verkehrszeichen "${name}". ${desc}`);
       document.getElementById('fs-sign-modal').classList.add('show');
       return;
     }
   }
 
   function handleChange(e) {
-    const el = e.target;
-    if (el.dataset.action === 'set-lang') {
-      state.lang = el.value;
-      saveState();
-      updateView();
-    }
+    if (e.target.dataset.action === 'set-lang') { state.lang = e.target.value; saveState(); updateView(); }
   }
 
   function updateView() {
@@ -732,7 +769,7 @@
     
     if (sidebar) {
         sidebar.innerHTML = `
-          <div class="fs-logo">🚦 HalDo Fahrschule <span>GLOBAL</span></div>
+          <div class="fs-logo">🚦 HalDo Fahrschule <span>PRO MAX</span></div>
           <div class="fs-nav-item ${state.currentView === 'dashboard' ? 'active' : ''}" data-action="view-dashboard"><span class="icon">🏠</span> ${t('dashboard')}</div>
           <div class="fs-nav-item ${state.currentView === 'learn-setup' || state.currentView === 'learn' ? 'active' : ''}" data-action="view-learn-setup"><span class="icon">📖</span> ${t('learn')}</div>
           <div class="fs-nav-item ${state.currentView === 'exam-setup' || state.currentView === 'exam' ? 'active' : ''}" data-action="view-exam"><span class="icon">🏁</span> ${t('exam')}</div>
@@ -750,7 +787,7 @@
   }
 
   // ═══════════════════════════════════════════════════════
-  // 8. MOUNT & OPEN
+  // 7. MOUNT & OPEN
   // ═══════════════════════════════════════════════════════
   function mount(target) {
     if (target && target.nodeType === 1) {
@@ -763,13 +800,16 @@
 
   function openOverlay() {
     loadState();
+    // WELCOME GRUSS TRIGGERN
+    if (window.HalDoWelcome) window.HalDoWelcome.show("Fahrschule");
+
     const overlay = document.createElement('div');
     overlay.className = 'fs-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0a0f;display:flex;flex-direction:column;';
     
     const closeBar = document.createElement('div');
     closeBar.style.cssText = 'padding:10px 16px;background:#111;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;';
-    closeBar.innerHTML = `<b style="color:#e8e8ec; font-family:Inter;">🚦 HalDo Fahrschule GLOBAL</b><button id="fs-close-btn" style="background:transparent;border:1px solid #444;color:#fff;padding:5px 10px;border-radius:6px;cursor:pointer;font-family:Inter;">✕ Schließen</button>`;
+    closeBar.innerHTML = `<b style="color:#e8e8ec; font-family:Inter;">🚦 HalDo Fahrschule PRO MAX</b><button id="fs-close-btn" style="background:transparent;border:1px solid #444;color:#fff;padding:5px 10px;border-radius:6px;cursor:pointer;font-family:Inter;">✕ Schließen</button>`;
     overlay.appendChild(closeBar);
     
     const mountDiv = document.createElement('div');
@@ -795,6 +835,6 @@
   window.renderFahrschule = mount;
   window.openFahrschule = openOverlay;
 
-  console.log('🚦 fahrschule.js v' + VERSION + ' geladen — ULTIMATE GLOBAL (17 Sprachen, TTS, Interaktive Schilder)');
+  console.log('🚦 fahrschule.js v' + VERSION + ' geladen — ULTIMATE PRO MAX (Settings, Welcome, 17 Sprachen, KI, TTS)');
 
 })();
