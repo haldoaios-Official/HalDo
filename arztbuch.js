@@ -1,10 +1,13 @@
-/* HalDo Arztbuch v4.0 — ULTRA PRO MAX (KI-Tools, TTS, 17 Sprachen, Welcome, IoT) */
+/* HalDo Arztbuch v1100.0 — ULTRA PRO MAX (Alle Geräte, TTS, 20+ Sprachen, KI) */
 (function () {
   'use strict';
 
-  const VERSION = '4.0';
-  const STORAGE_KEY = 'haldo.arztbuch.data.v4';
+  const VERSION = '1100.0';
+  const STORAGE_KEY = 'haldo.arztbuch.data.v1100';
 
+  // ═══════════════════════════════════════════════════════
+  // 1. MULTI-LANGUAGE ENGINE (20+ Sprachen)
+  // ═══════════════════════════════════════════════════════
   const LANG = {
     de: {
       dashboard: 'Dashboard', diseases: 'Krankheiten', meds: 'Medikamente', hospitals: 'Kliniken', devices: 'IoT-Geräte',
@@ -12,7 +15,8 @@
       ask_ai: 'KI fragen', speak: 'Vorlesen', search: 'Suchen...', close: 'Schließen', save: 'Speichern', delete: 'Löschen',
       first_aid: 'Erste Hilfe', call: 'Anrufen', no_results: 'Keine Ergebnisse gefunden.', ai_tools: 'KI Medizin-Assistent',
       correct: 'Korrigieren', formulate: 'Formulieren', detail: 'Detailieren', analyze: 'Analysieren', research: 'Recherchieren',
-      listen_disease: 'Krankheit vorlesen', listen_med: 'Medikament vorlesen', listen_first_aid: 'Erste Hilfe vorlesen'
+      listen_disease: 'Krankheit vorlesen', listen_med: 'Medikament vorlesen', listen_first_aid: 'Erste Hilfe vorlesen', listen_device: 'Gerät vorlesen',
+      connect: 'Verbinden', disconnect: 'Trennen', connected: 'Verbunden', not_connected: 'Nicht verbunden', connection: 'Verbindung'
     },
     en: {
       dashboard: 'Dashboard', diseases: 'Diseases', meds: 'Medications', hospitals: 'Hospitals', devices: 'IoT Devices',
@@ -20,10 +24,185 @@
       ask_ai: 'Ask AI', speak: 'Speak', search: 'Search...', close: 'Close', save: 'Save', delete: 'Delete',
       first_aid: 'First Aid', call: 'Call', no_results: 'No results found.', ai_tools: 'AI Medical Assistant',
       correct: 'Correct', formulate: 'Formulate', detail: 'Detail', analyze: 'Analyze', research: 'Research',
-      listen_disease: 'Listen to disease', listen_med: 'Listen to medication', listen_first_aid: 'Listen to first aid'
+      listen_disease: 'Listen to disease', listen_med: 'Listen to medication', listen_first_aid: 'Listen to first aid', listen_device: 'Listen to device',
+      connect: 'Connect', disconnect: 'Disconnect', connected: 'Connected', not_connected: 'Not connected', connection: 'Connection'
+    },
+    tr: {
+      dashboard: 'Panel', diseases: 'Hastalıklar', meds: 'İlaçlar', hospitals: 'Hastaneler', devices: 'IoT Cihazları',
+      sicknotes: 'Rapor', appointments: 'Randevular', emergency: 'Acil Durum', settings: 'Ayarlar', lang: 'Dil',
+      ask_ai: 'Yapay Zekaya Sor', speak: 'Sesli Oku', search: 'Ara...', close: 'Kapat', save: 'Kaydet', delete: 'Sil',
+      first_aid: 'İlk Yardım', call: 'Ara', no_results: 'Sonuç bulunamadı.', ai_tools: 'AI Tıbbi Asistan',
+      correct: 'Düzelt', formulate: 'Formüle Et', detail: 'Detaylandır', analyze: 'Analiz Et', research: 'Araştır',
+      listen_disease: 'Hastalığı dinle', listen_med: 'İlacı dinle', listen_first_aid: 'İlk yardımı dinle', listen_device: 'Cihazı dinle',
+      connect: 'Bağlan', disconnect: 'Bağlantıyı Kes', connected: 'Bağlandı', not_connected: 'Bağlı Değil', connection: 'Bağlantı'
+    },
+    ku: {
+      dashboard: 'Destpêk', diseases: 'Nexweşî', meds: 'Derman', hospitals: 'Nexweşxane', devices: 'Amûrên IoT',
+      sicknotes: 'Bêhnvedan', appointments: 'Hevdîtin', emergency: 'Lezgîn', settings: 'Mîheng', lang: 'Ziman',
+      ask_ai: 'Ji AI bipirse', speak: 'Bixwîne', search: 'Lê bigere...', close: 'Bigre', save: 'Tomar bike', delete: 'Jê bibe',
+      first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI',
+      correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike',
+      listen_disease: 'Nexweşiyê bixwîne', listen_med: 'Dermanî bixwîne', listen_first_aid: 'Alîkariya pêşîn bixwîne', listen_device: 'Amûrê bixwîne',
+      connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan'
+    },
+    ckb: {
+      dashboard: 'دەستپێک', diseases: 'نەخۆشییەکان', meds: 'دەرمانەکان', hospitals: 'نەخۆشخانەکان', devices: 'ئامێرەکانی IoT',
+      sicknotes: 'مۆڵەتی نەخۆشی', appointments: 'چاوپێکەوتنەکان', emergency: 'حاڵەتی فریاکەوتن', settings: 'ڕێکخستنەکان', lang: 'زمان',
+      ask_ai: 'پرسیار لە AI بکە', speak: 'بخوێنەرەوە', search: 'گەڕان...', close: 'داخستن', save: 'پاشەکەوتکردن', delete: 'سڕینەوە',
+      first_aid: 'یارمەتی سەرەتایی', call: 'پەیوەندی', no_results: 'هیچ ئەنجامێک نەدۆزرایەوە.', ai_tools: 'یاریدەدەری پزیشکی AI',
+      correct: 'ڕاستکردنەوە', formulate: 'فۆرمولەکردن', detail: 'وردەکاری', analyze: 'شیکردنەوە', research: 'توێژینەوە',
+      listen_disease: 'نەخۆشییەکە بخوێنەرەوە', listen_med: 'دەرمانەکە بخوێنەرەوە', listen_first_aid: 'یارمەتی سەرەتایی بخوێنەرەوە', listen_device: 'ئامێرەکە بخوێنەرەوە',
+      connect: 'پەیوەندی', disconnect: 'پچڕاندن', connected: 'پەیوەندیدار', not_connected: 'پەیوەندی نییە', connection: 'پەیوەندی'
+    },
+    gorani: {
+      dashboard: 'Destpêk', diseases: 'Nexweşî', meds: 'Derman', hospitals: 'Nexweşxane', devices: 'Amûrên IoT',
+      sicknotes: 'Bêhnvedan', appointments: 'Hevdîtin', emergency: 'Lezgîn', settings: 'Mîheng', lang: 'Ziman',
+      ask_ai: 'Ji AI bipirse', speak: 'Bixwîne', search: 'Lê bigere...', close: 'Bigre', save: 'Tomar bike', delete: 'Jê bibe',
+      first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI',
+      correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike',
+      listen_disease: 'Nexweşiyê bixwîne', listen_med: 'Dermanî bixwîne', listen_first_aid: 'Alîkariya pêşîn bixwîne', listen_device: 'Amûrê bixwîne',
+      connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan'
+    },
+    ez: {
+      dashboard: 'Destpêk', diseases: 'Nexweşî', meds: 'Derman', hospitals: 'Nexweşxane', devices: 'Amûrên IoT',
+      sicknotes: 'Bêhnvedan', appointments: 'Hevdîtin', emergency: 'Lezgîn', settings: 'Mîheng', lang: 'Ziman',
+      ask_ai: 'Ji AI bipirse', speak: 'Bixwîne', search: 'Lê bigere...', close: 'Bigre', save: 'Tomar bike', delete: 'Jê bibe',
+      first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI',
+      correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike',
+      listen_disease: 'Nexweşiyê bixwîne', listen_med: 'Dermanî bixwîne', listen_first_aid: 'Alîkariya pêşîn bixwîne', listen_device: 'Amûrê bixwîne',
+      connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan'
+    },
+    ar: {
+      dashboard: 'لوحة القيادة', diseases: 'الأمراض', meds: 'الأدوية', hospitals: 'المستشفيات', devices: 'أجهزة إنترنت الأشياء',
+      sicknotes: 'إجازة مرضية', appointments: 'المواعيد', emergency: 'حالة طوارئ', settings: 'إعدادات', lang: 'اللغة',
+      ask_ai: 'اسأل الذكاء الاصطناعي', speak: 'قراءة', search: 'بحث...', close: 'إغلاق', save: 'حفظ', delete: 'حذف',
+      first_aid: 'الإسعافات الأولية', call: 'اتصال', no_results: 'لم يتم العثور على نتائج.', ai_tools: 'مساعد طبي بالذكاء الاصطناعي',
+      correct: 'تصحيح', formulate: 'صياغة', detail: 'تفصيل', analyze: 'تحليل', research: 'بحث',
+      listen_disease: 'استمع للمرض', listen_med: 'استمع للدواء', listen_first_aid: 'استمع للإسعافات', listen_device: 'استمع للجهاز',
+      connect: 'اتصال', disconnect: 'قطع الاتصال', connected: 'متصل', not_connected: 'غير متصل', connection: 'اتصال'
+    },
+    fa: {
+      dashboard: 'داشبورد', diseases: 'بیماری‌ها', meds: 'داروها', hospitals: 'بیمارستان‌ها', devices: 'دستگاه‌های IoT',
+      sicknotes: 'گواهی بیماری', appointments: 'نوبت‌ها', emergency: 'اورژانس', settings: 'تنظیمات', lang: 'زبان',
+      ask_ai: 'پرسیدن از هوش مصنوعی', speak: 'خواندن', search: 'جستجو...', close: 'بستن', save: 'ذخیره', delete: 'حذف',
+      first_aid: 'کمک‌های اولیه', call: 'تماس', no_results: 'نتیجه‌ای یافت نشد.', ai_tools: 'دستیار پزشکی هوش مصنوعی',
+      correct: 'اصلاح', formulate: 'فرموله کردن', detail: 'جزئیات', analyze: 'تحلیل', research: 'تحقیق',
+      listen_disease: 'گوش دادن به بیماری', listen_med: 'گوش دادن به دارو', listen_first_aid: 'گوش دادن به کمک‌های اولیه', listen_device: 'گوش دادن به دستگاه',
+      connect: 'اتصال', disconnect: 'قطع اتصال', connected: 'متصل', not_connected: 'غیر متصل', connection: 'اتصال'
+    },
+    he: {
+      dashboard: 'לוח בקרה', diseases: 'מחלות', meds: 'תרופות', hospitals: 'בתי חולים', devices: 'התקני IoT',
+      sicknotes: 'אישור מחלה', appointments: 'פגישות', emergency: 'חירום', settings: 'הגדרות', lang: 'שפה',
+      ask_ai: 'שאל את ה-AI', speak: 'הקרא', search: 'חיפוש...', close: 'סגור', save: 'שמור', delete: 'מחק',
+      first_aid: 'עזרה ראשונה', call: 'התקשר', no_results: 'לא נמצאו תוצאות.', ai_tools: 'עוזר רפואי AI',
+      correct: 'תקן', formulate: 'נסח', detail: 'פרט', analyze: 'נתח', research: 'חקור',
+      listen_disease: 'הקשב למחלה', listen_med: 'הקשב לתרופה', listen_first_aid: 'הקשב לעזרה ראשונה', listen_device: 'הקשב להתקן',
+      connect: 'התחבר', disconnect: 'התנתק', connected: 'מחובר', not_connected: 'לא מחובר', connection: 'חיבור'
+    },
+    la: {
+      dashboard: 'Dashboard', diseases: 'Morbi', meds: 'Medicamenta', hospitals: 'Valetudinaria', devices: 'IoT Cogitationes',
+      sicknotes: 'Libelli Aegri', appointments: 'Constitutiones', emergency: 'Subitum', settings: 'Optiones', lang: 'Lingua',
+      ask_ai: 'Interroga AI', speak: 'Legere', search: 'Quaerere...', close: 'Claudere', save: 'Servare', delete: 'Delere',
+      first_aid: 'Prima Auxilia', call: 'Vocare', no_results: 'Nulli eventus inventi.', ai_tools: 'AI Assistentis Medici',
+      correct: 'Corrigere', formulate: 'Formulare', detail: 'Detail', analyze: 'Analyzare', research: 'Investigare',
+      listen_disease: 'Audire morbum', listen_med: 'Audire medicamentum', listen_first_aid: 'Audire prima auxilia', listen_device: 'Audire cogitationem',
+      connect: 'Connectere', disconnect: 'Disconnectere', connected: 'Connexus', not_connected: 'Non connexus', connection: 'Connexio'
+    },
+    uz: {
+      dashboard: 'Boshqaruv paneli', diseases: 'Kasalliklar', meds: 'Dorilar', hospitals: 'Kasalxonalar', devices: 'IoT qurilmalari',
+      sicknotes: 'Kasallik varaqasi', appointments: 'Qabullar', emergency: 'Favqulodda', settings: 'Sozlamalar', lang: 'Til',
+      ask_ai: "AI dan so'rash", speak: "O'qish", search: 'Qidirish...', close: 'Yopish', save: 'Saqlash', delete: "O'chirish",
+      first_aid: 'Birinchi yordam', call: "Qo'ng'iroq", no_results: 'Hech narsa topilmadi.', ai_tools: 'AI Tibbiy Yordamchi',
+      correct: 'Tuzatish', formulate: 'Shakllantirish', detail: 'Batafsil', analyze: 'Tahlil qilish', research: 'Tadqiqot',
+      listen_disease: 'Kasallikni tinglash', listen_med: 'Dorini tinglash', listen_first_aid: 'Birinchi yordamni tinglash', listen_device: 'Qurilmani tinglash',
+      connect: 'Ulash', disconnect: 'Uzish', connected: 'Ulangan', not_connected: 'Ulanmagan', connection: 'Ulanish'
+    },
+    ru: {
+      dashboard: 'Панель', diseases: 'Болезни', meds: 'Лекарства', hospitals: 'Больницы', devices: 'Устройства IoT',
+      sicknotes: 'Больничные', appointments: 'Записи', emergency: 'Экстренная помощь', settings: 'Настройки', lang: 'Язык',
+      ask_ai: 'Спросить ИИ', speak: 'Читать', search: 'Поиск...', close: 'Закрыть', save: 'Сохранить', delete: 'Удалить',
+      first_aid: 'Первая помощь', call: 'Позвонить', no_results: 'Ничего не найдено.', ai_tools: 'ИИ Медицинский Ассистент',
+      correct: 'Исправить', formulate: 'Сформулировать', detail: 'Детализировать', analyze: 'Анализировать', research: 'Исследовать',
+      listen_disease: 'Слушать болезнь', listen_med: 'Слушать лекарство', listen_first_aid: 'Слушать первую помощь', listen_device: 'Слушать устройство',
+      connect: 'Подключить', disconnect: 'Отключить', connected: 'Подключено', not_connected: 'Не подключено', connection: 'Подключение'
+    },
+    pl: {
+      dashboard: 'Pulpit', diseases: 'Choroby', meds: 'Leki', hospitals: 'Szpitale', devices: 'Urządzenia IoT',
+      sicknotes: 'Zwolnienia', appointments: 'Wizyty', emergency: 'Nagły wypadek', settings: 'Ustawienia', lang: 'Język',
+      ask_ai: 'Zapytaj AI', speak: 'Czytaj', search: 'Szukaj...', close: 'Zamknij', save: 'Zapisz', delete: 'Usuń',
+      first_aid: 'Pierwsza pomoc', call: 'Zadzwoń', no_results: 'Brak wyników.', ai_tools: 'Asystent Medyczny AI',
+      correct: 'Popraw', formulate: 'Sformułuj', detail: 'Uszczegółowij', analyze: 'Przeanalizuj', research: 'Zbadaj',
+      listen_disease: 'Słuchaj choroby', listen_med: 'Słuchaj leku', listen_first_aid: 'Słuchaj pierwszej pomocy', listen_device: 'Słuchaj urządzenia',
+      connect: 'Połącz', disconnect: 'Rozłącz', connected: 'Połączono', not_connected: 'Nie połączono', connection: 'Połączenie'
+    },
+    ro: {
+      dashboard: 'Panou', diseases: 'Boli', meds: 'Medicamente', hospitals: 'Spitale', devices: 'Dispozitive IoT',
+      sicknotes: 'Concedii medicale', appointments: 'Programări', emergency: 'Urgență', settings: 'Setări', lang: 'Limbă',
+      ask_ai: 'Întreabă AI', speak: 'Citește', search: 'Caută...', close: 'Închide', save: 'Salvează', delete: 'Șterge',
+      first_aid: 'Primul ajutor', call: 'Sună', no_results: 'Nu s-au găsit rezultate.', ai_tools: 'Asistent Medical AI',
+      correct: 'Corectează', formulate: 'Formulează', detail: 'Detaliază', analyze: 'Analizează', research: 'Cercetează',
+      listen_disease: 'Ascultă boala', listen_med: 'Ascultă medicamentul', listen_first_aid: 'Ascultă primul ajutor', listen_device: 'Ascultă dispozitivul',
+      connect: 'Conectează', disconnect: 'Deconectează', connected: 'Conectat', not_connected: 'Neconectat', connection: 'Conexiune'
+    },
+    hr: {
+      dashboard: 'Nadzorna ploča', diseases: 'Bolesti', meds: 'Lijekovi', hospitals: 'Bolnice', devices: 'IoT Uređaji',
+      sicknotes: 'Bolovanja', appointments: 'Termini', emergency: 'Hitno', settings: 'Postavke', lang: 'Jezik',
+      ask_ai: 'Pitaj AI', speak: 'Čitaj', search: 'Pretraži...', close: 'Zatvori', save: 'Spremi', delete: 'Izbriši',
+      first_aid: 'Prva pomoć', call: 'Nazovi', no_results: 'Nema rezultata.', ai_tools: 'AI Medicinski Asistent',
+      correct: 'Ispravi', formulate: 'Formuliraj', detail: 'Detaljiziraj', analyze: 'Analiziraj', research: 'Istraži',
+      listen_disease: 'Slušaj bolest', listen_med: 'Slušaj lijek', listen_first_aid: 'Slušaj prvu pomoć', listen_device: 'Slušaj uređaj',
+      connect: 'Poveži', disconnect: 'Odspoji', connected: 'Povezano', not_connected: 'Nije povezano', connection: 'Veza'
+    },
+    pt: {
+      dashboard: 'Painel', diseases: 'Doenças', meds: 'Medicamentos', hospitals: 'Hospitais', devices: 'Dispositivos IoT',
+      sicknotes: 'Atestados', appointments: 'Consultas', emergency: 'Emergência', settings: 'Configurações', lang: 'Idioma',
+      ask_ai: 'Perguntar à IA', speak: 'Ler', search: 'Pesquisar...', close: 'Fechar', save: 'Salvar', delete: 'Excluir',
+      first_aid: 'Primeiros Socorros', call: 'Ligar', no_results: 'Nenhum resultado encontrado.', ai_tools: 'Assistente Médico IA',
+      correct: 'Corrigir', formulate: 'Formular', detail: 'Detalhar', analyze: 'Analisar', research: 'Pesquisar',
+      listen_disease: 'Ouvir doença', listen_med: 'Ouvir medicamento', listen_first_aid: 'Ouvir primeiros socorros', listen_device: 'Ouvir dispositivo',
+      connect: 'Conectar', disconnect: 'Desconectar', connected: 'Conectado', not_connected: 'Desconectado', connection: 'Conexão'
+    },
+    fr: {
+      dashboard: 'Tableau de bord', diseases: 'Maladies', meds: 'Médicaments', hospitals: 'Hôpitaux', devices: 'Appareils IoT',
+      sicknotes: 'Arrêts maladie', appointments: 'Rendez-vous', emergency: 'Urgence', settings: 'Paramètres', lang: 'Langue',
+      ask_ai: 'Demander à l\'IA', speak: 'Lire', search: 'Rechercher...', close: 'Fermer', save: 'Enregistrer', delete: 'Supprimer',
+      first_aid: 'Premiers secours', call: 'Appeler', no_results: 'Aucun résultat.', ai_tools: 'Assistant Médical IA',
+      correct: 'Corriger', formulate: 'Formuler', detail: 'Détailler', analyze: 'Analyser', research: 'Rechercher',
+      listen_disease: 'Écouter la maladie', listen_med: 'Écouter le médicament', listen_first_aid: 'Écouter les premiers secours', listen_device: 'Écouter l\'appareil',
+      connect: 'Connecter', disconnect: 'Déconnecter', connected: 'Connecté', not_connected: 'Non connecté', connection: 'Connexion'
+    },
+    el: {
+      dashboard: 'Πίνακας', diseases: 'Ασθένειες', meds: 'Φάρμακα', hospitals: 'Νοσοκομεία', devices: 'Συσκευές IoT',
+      sicknotes: 'Αναρρωτικές', appointments: 'Ραντεβού', emergency: 'Έκτακτη ανάγκη', settings: 'Ρυθμίσεις', lang: 'Γλώσσα',
+      ask_ai: 'Ρώτα AI', speak: 'Ανάγνωση', search: 'Αναζήτηση...', close: 'Κλείσιμο', save: 'Αποθήκευση', delete: 'Διαγραφή',
+      first_aid: 'Πρώτες Βοήθειες', call: 'Κλήση', no_results: 'Δεν βρέθηκαν αποτελέσματα.', ai_tools: 'AI Ιατρικός Βοηθός',
+      correct: 'Διόρθωση', formulate: 'Διατύπωση', detail: 'Λεπτομέρεια', analyze: 'Ανάλυση', research: 'Έρευνα',
+      listen_disease: 'Άκουσε την ασθένεια', listen_med: 'Άκουσε το φάρμακο', listen_first_aid: 'Άκουσε τις πρώτες βοήθειες', listen_device: 'Άκουσε τη συσκευή',
+      connect: 'Σύνδεση', disconnect: 'Αποσύνδεση', connected: 'Συνδεδεμένο', not_connected: 'Μη συνδεδεμένο', connection: 'Σύνδεση'
+    },
+    es: {
+      dashboard: 'Panel', diseases: 'Enfermedades', meds: 'Medicamentos', hospitals: 'Hospitales', devices: 'Dispositivos IoT',
+      sicknotes: 'Bajas médicas', appointments: 'Citas', emergency: 'Emergencia', settings: 'Ajustes', lang: 'Idioma',
+      ask_ai: 'Preguntar a IA', speak: 'Leer', search: 'Buscar...', close: 'Cerrar', save: 'Guardar', delete: 'Eliminar',
+      first_aid: 'Primeros auxilios', call: 'Llamar', no_results: 'No se encontraron resultados.', ai_tools: 'Asistente Médico IA',
+      correct: 'Corregir', formulate: 'Formular', detail: 'Detallar', analyze: 'Analizar', research: 'Investigar',
+      listen_disease: 'Escuchar enfermedad', listen_med: 'Escuchar medicamento', listen_first_aid: 'Escuchar primeros auxilios', listen_device: 'Escuchar dispositivo',
+      connect: 'Conectar', disconnect: 'Desconectar', connected: 'Conectado', not_connected: 'No conectado', connection: 'Conexión'
+    },
+    it: {
+      dashboard: 'Pannello', diseases: 'Malattie', meds: 'Farmaci', hospitals: 'Ospedali', devices: 'Dispositivi IoT',
+      sicknotes: 'Certificati', appointments: 'Appuntamenti', emergency: 'Emergenza', settings: 'Impostazioni', lang: 'Lingua',
+      ask_ai: 'Chiedi all\'IA', speak: 'Leggi', search: 'Cerca...', close: 'Chiudi', save: 'Salva', delete: 'Elimina',
+      first_aid: 'Primo Soccorso', call: 'Chiama', no_results: 'Nessun risultato.', ai_tools: 'Assistente Medico IA',
+      correct: 'Correggi', formulate: 'Formula', detail: 'Dettaglia', analyze: 'Analizza', research: 'Ricerca',
+      listen_disease: 'Ascolta malattia', listen_med: 'Ascolta farmaco', listen_first_aid: 'Ascolta primo soccorso', listen_device: 'Ascolta dispositivo',
+      connect: 'Connetti', disconnect: 'Disconnetti', connected: 'Connesso', not_connected: 'Non connesso', connection: 'Connessione'
     }
   };
 
+  // ═══════════════════════════════════════════════════════
+  // 2. DATENBANK (A-Z)
+  // ═══════════════════════════════════════════════════════
   const DISEASES = [
     { id: 'd1', name: 'Asthma', symp: 'Atemnot, Husten, Engegefühl in der Brust', tr: 'Bronchienerweiternde Sprays, Kortison, Allergene meiden.' },
     { id: 'd2', name: 'Diabetes Typ 2', symp: 'Erhöhter Blutzucker, Müdigkeit, starker Durst', tr: 'Ernährungsumstellung, Bewegung, Metformin, Insulin (später).' },
@@ -32,14 +211,20 @@
     { id: 'd5', name: 'Migräne', symp: 'Pulsierender Schmerz, Übelkeit, Lichtempfindlichkeit', tr: 'Ruhe, dunkler Raum, Schmerzmittel (Triptane).' },
     { id: 'd6', name: 'Rückenschmerzen', symp: 'Ziehen im Rücken, Verspannungen, Bewegungseinschränkung', tr: 'Wärme, Bewegung, Massage, ggf. Muskelrelaxantien.' },
     { id: 'd7', name: 'Bluthochdruck', symp: 'Oft symptomlos, Kopfschmerzen, Schwindel, Nasenbluten', tr: 'Salzarm essen, Sport, Blutdrucksenker (Betablocker etc.).' },
-    { id: 'd8', name: 'Wundrose (Erysipel)', symp: 'Rote, heiße, schmerzhafte Hautentzündung, Fieber', tr: 'Dringend zum Arzt! Antibiotika, Ruhigstellung.' }
+    { id: 'd8', name: 'Wundrose (Erysipel)', symp: 'Rote, heiße, schmerzhafte Hautentzündung, Fieber', tr: 'Dringend zum Arzt! Antibiotika, Ruhigstellung.' },
+    { id: 'd9', name: 'Magen-Darm-Infekt', symp: 'Übelkeit, Erbrechen, Durchfall, Bauchkrämpfe', tr: 'Viel trinken (Elektrolyte), Schonkost, ggf. Medikamente gegen Übelkeit.' },
+    { id: 'd10', name: 'Allergie', symp: 'Niesen, Juckreiz, Hautausschlag, Atemnot', tr: 'Allergene meiden, Antihistaminika, im Notfall Adrenalin (EpiPen).' }
   ];
 
   const MEDS = [
     { id: 'm1', name: 'Ibuprofen 400mg', use: 'Schmerzen, Entzündungen, Fieber', dose: 'Max. 3x täglich 1 Tablette nach dem Essen.' },
     { id: 'm2', name: 'Paracetamol 500mg', use: 'Schmerzen, Fieber (magensicher)', dose: 'Max. 3x täglich 1-2 Tabletten.' },
     { id: 'm3', name: 'Amoxicillin 1000mg', use: 'Bakterielle Infektionen (Antibiotikum)', dose: '1-0-1 (je nach Verordnung, immer zu Ende nehmen!).' },
-    { id: 'm4', name: 'Metformin 850mg', use: 'Diabetes Typ 2', dose: 'Zu den Mahlzeiten, morgens und abends.' }
+    { id: 'm4', name: 'Metformin 850mg', use: 'Diabetes Typ 2', dose: 'Zu den Mahlzeiten, morgens und abends.' },
+    { id: 'm5', name: 'Salbutamol Spray', use: 'Asthma-Anfall (bronchienerweiternd)', dose: 'Bei Bedarf 1-2 Hübe inhalieren.' },
+    { id: 'm6', name: 'Ramipril 5mg', use: 'Bluthochdruck, Herzschwäche', dose: '1x täglich morgens.' },
+    { id: 'm7', name: 'Aspirin 100mg', use: 'Blutverdünnung (Thrombozytenaggregationshemmer)', dose: '1x täglich.' },
+    { id: 'm8', name: 'Pantoprazol 40mg', use: 'Magenschutz, Sodbrennen', dose: '1x täglich morgens nüchtern.' }
   ];
 
   const FIRST_AID = [
@@ -50,21 +235,42 @@
     { id: 'f5', title: 'Verschlucken', desc: 'Auffordern zu husten. Bei Atemnot: 5x kräftig auf den Rücken klopfen, dann 5x Oberbauchkompression (Heimlich).' }
   ];
 
+  // ═══════════════════════════════════════════════════════
+  // 3. MEDIZINISCHE GERÄTE (A-Z mit Verbindungsart)
+  // ═══════════════════════════════════════════════════════
+  const DEVICES = [
+    { id: 'dev1', name: 'Blutdruckmessgerät', icon: '🩺', type: 'Bluetooth', desc: 'Misst den Blutdruck und Puls. Verbindet sich per Bluetooth mit der App.' },
+    { id: 'dev2', name: 'Blutzuckermessgerät', icon: '🩸', type: 'Bluetooth', desc: 'Misst den Blutzucker. Sendet Werte automatisch an die App.' },
+    { id: 'dev3', name: 'EKG-Gerät', icon: '📈', type: 'WLAN', desc: 'Zeichnet die Herzströme auf. Überträgt Daten per WLAN an den Arzt.' },
+    { id: 'dev4', name: 'Ultraschallgerät', icon: '📡', type: 'WLAN', desc: 'Erzeugt Bilder aus dem Körperinneren. Überträgt per WLAN.' },
+    { id: 'dev5', name: 'Röntgengerät', icon: '☢️', type: 'WLAN', desc: 'Macht Knochen und Organe sichtbar. Sendet Bilder an die App.' },
+    { id: 'dev6', name: 'MRT-Scanner', icon: '🧲', type: 'WLAN', desc: 'Magnetresonanztomographie. Sehr detaillierte Bilder.' },
+    { id: 'dev7', name: 'CT-Scanner', icon: '🔄', type: 'WLAN', desc: 'Computertomographie. Schichtbilder des Körpers.' },
+    { id: 'dev8', name: 'Defibrillator', icon: '⚡', type: 'Bluetooth', desc: 'Gibt bei Herzstillstand Stromstöße ab. Bluetooth für Statusmeldungen.' },
+    { id: 'dev9', name: 'Beatmungsgerät', icon: '🫁', type: 'Bluetooth', desc: 'Unterstützt die Atmung. Sendet Beatmungsparameter per Bluetooth.' },
+    { id: 'dev10', name: 'Infusionspumpe', icon: '💧', type: 'Bluetooth', desc: 'Gibt Medikamente genau dosiert ab. Bluetooth für Fernüberwachung.' },
+    { id: 'dev11', name: 'Smart-Inhalator', icon: '💨', type: 'Bluetooth', desc: 'Für Asthma-Patienten. Erinnert an die Einnahme per Bluetooth.' },
+    { id: 'dev12', name: 'Fieberthermometer', icon: '🌡️', type: 'Infrarot', desc: 'Misst die Körpertemperatur berührungslos. Infrarot-Sensor.' },
+    { id: 'dev13', name: 'Smart-Waage', icon: '⚖️', type: 'WLAN', desc: 'Misst Gewicht und Körperfett. Sendet Daten per WLAN.' },
+    { id: 'dev14', name: 'Pulsoximeter', icon: '🫀', type: 'Bluetooth', desc: 'Misst Sauerstoffsättigung im Blut. Bluetooth-Sync.' },
+    { id: 'dev15', name: 'Schlafapnoe-Gerät', icon: '😴', type: 'WLAN', desc: 'Überwacht die Atmung im Schlaf. Sendet Berichte per WLAN.' }
+  ];
+
   const HOSPITALS = [
     { name: 'Universitätsklinikum', dist: '1.2 km', type: 'Notaufnahme 24/7', phone: '112' },
     { name: 'St. Marien Krankenhaus', dist: '3.5 km', type: 'Allgemeinmedizin', phone: '030-123456' },
     { name: 'Kinderklinik Sonnenschein', dist: '5.0 km', type: 'Pädiatrie', phone: '030-654321' }
   ];
 
+  // ═══════════════════════════════════════════════════════
+  // 4. STATE
+  // ═══════════════════════════════════════════════════════
   let state = {
     lang: 'de',
     currentView: 'dashboard',
     appointments: [],
     sickNotes: [],
-    devices: [
-      { type: 'bluetooth', name: 'Blutdruckmessgerät', icon: '🩺', connected: false },
-      { type: 'wifi', name: 'Smart-Waage', icon: '⚖️', connected: false }
-    ],
+    devices: DEVICES.map(d => ({ ...d, connected: false })),
     searchQuery: '',
     kiText: '',
     ttsEnabled: true
@@ -96,16 +302,6 @@
 
   function t(key) { return (LANG[state.lang] && LANG[state.lang][key]) || LANG['de'][key] || key; }
 
-  function speakText(text) {
-    if (!state.ttsEnabled) return;
-    if (!window.speechSynthesis) { alert('Sprachausgabe nicht unterstützt.'); return; }
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = state.lang === 'de' ? 'de-DE' : 'en-US';
-    u.rate = 0.9;
-    window.speechSynthesis.speak(u);
-  }
-
   function css() {
     return `<style>
       .ab-app { font-family: 'Inter', system-ui, sans-serif; color: #e8e8ec; background: #0a0a0f; height: 100%; display: flex; flex-direction: row; overflow: hidden; }
@@ -116,7 +312,7 @@
       .ab-nav-item:hover { background: rgba(255,255,255,0.03); color: #fff; }
       .ab-nav-item.active { background: rgba(0,255,136,0.08); color: #00ff88; border-left-color: #00ff88; }
       .ab-nav-item .icon { font-size: 18px; width: 24px; text-align: center; }
-      .ab-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+      .ab-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
       .ab-header { padding: 20px 30px; background: rgba(10,10,15,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
       .ab-header h1 { margin: 0; font-size: 22px; font-weight: 900; color: #fff; }
       .ab-content-area { flex: 1; overflow-y: auto; padding: 30px; }
@@ -139,10 +335,11 @@
       .ab-stat-box .val { font-size: 28px; font-weight: 900; color: #00ff88; display: block; margin-bottom: 5px; }
       .ab-stat-box .lbl { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
       .ab-device-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
-      .ab-device { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; text-align: center; transition: all 0.2s; }
+      .ab-device { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; text-align: center; transition: all 0.2s; position: relative; }
       .ab-device .icon { font-size: 50px; margin-bottom: 10px; }
-      .ab-device .name { font-weight: bold; font-size: 14px; margin-bottom: 10px; }
-      .ab-device .status { font-size: 12px; font-weight: bold; padding: 4px 8px; border-radius: 6px; display: inline-block; }
+      .ab-device .name { font-weight: bold; font-size: 14px; margin-bottom: 5px; }
+      .ab-device .type { font-size: 11px; color: #00e5ff; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+      .ab-device .status { font-size: 12px; font-weight: bold; padding: 4px 8px; border-radius: 6px; display: inline-block; margin-bottom: 10px; }
       .ab-device .status.on { background: rgba(0,255,136,0.2); color: #00ff88; }
       .ab-device .status.off { background: rgba(255,255,255,0.1); color: #888; }
       .ab-emergency-btn { background: linear-gradient(135deg, #ff3333, #cc0000); color: #fff; border: none; border-radius: 50%; width: 200px; height: 200px; font-size: 28px; font-weight: 900; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 40px auto; cursor: pointer; box-shadow: 0 0 40px rgba(255,51,51,0.6); animation: pulse 2s infinite; }
@@ -188,7 +385,7 @@
   }
 
   function renderDevices() {
-    return `<div class="ab-content-inner"><div class="ab-card"><h2>📡 ${t('devices')}</h2><div class="ab-device-grid" id="ab-device-list">${state.devices.map((d, i) => `<div class="ab-device"><div class="icon">${d.icon}</div><div class="name">${d.name}</div><div class="status ${d.connected ? 'on' : 'off'}">${d.connected ? 'Verbunden' : 'Nicht verbunden'}</div><button class="ab-btn" data-action="connect-device" data-idx="${i}" style="margin-top: 10px; width: 100%;">${d.connected ? 'Trennen' : 'Verbinden'}</button></div>`).join('')}</div><div style="display:flex; gap:10px; margin-top:30px;"><button class="ab-btn primary" data-action="scan-bt" style="flex:1;">📶 Bluetooth</button><button class="ab-btn primary" data-action="scan-wifi" style="flex:1;">📡 WLAN</button></div></div></div>`;
+    return `<div class="ab-content-inner"><div class="ab-card"><h2>📡 ${t('devices')}</h2><div class="ab-device-grid" id="ab-device-list">${state.devices.map((d, i) => `<div class="ab-device"><div class="icon">${d.icon}</div><div class="name">${d.name}</div><div class="type">${d.type}</div><div class="status ${d.connected ? 'on' : 'off'}">${d.connected ? t('connected') : t('not_connected')}</div><button class="ab-btn" data-action="connect-device" data-idx="${i}" style="margin-top: 10px; width: 100%;">${d.connected ? t('disconnect') : t('connect')}</button><button class="ab-btn" data-action="open-device" data-idx="${i}" style="margin-top: 5px; width: 100%; background: rgba(0,229,255,0.1); color: #00e5ff; border-color: #00e5ff;">🔊 ${t('listen_device')}</button></div>`).join('')}</div><div style="display:flex; gap:10px; margin-top:30px;"><button class="ab-btn primary" data-action="scan-bt" style="flex:1;">📶 Bluetooth</button><button class="ab-btn primary" data-action="scan-wifi" style="flex:1;">📡 WLAN</button></div></div></div>`;
   }
 
   function renderSickNotes() {
@@ -204,7 +401,7 @@
   }
 
   function renderSettings() {
-    return `<div class="ab-content-inner"><div class="ab-card"><h2>⚙️ ${t('settings')}</h2><div class="ab-setting-row"><div class="ab-setting-info"><h4>${t('lang')}</h4></div><select class="ab-select" data-action="set-lang"><option value="de" ${state.lang === 'de' ? 'selected' : ''}>Deutsch</option><option value="en" ${state.lang === 'en' ? 'selected' : ''}>English</option></select></div><div class="ab-setting-row"><div class="ab-setting-info"><h4>TTS (Vorlesen)</h4><p>Sprachausgabe für alle Inhalte</p></div><div class="ab-toggle ${state.ttsEnabled ? 'on' : ''}" data-action="toggle-tts"></div></div></div></div>`;
+    return `<div class="ab-content-inner"><div class="ab-card"><h2>⚙️ ${t('settings')}</h2><div class="ab-setting-row"><div class="ab-setting-info"><h4>${t('lang')}</h4></div><select class="ab-select" data-action="set-lang"><option value="de" ${state.lang === 'de' ? 'selected' : ''}>Deutsch</option><option value="en" ${state.lang === 'en' ? 'selected' : ''}>English</option><option value="tr" ${state.lang === 'tr' ? 'selected' : ''}>Türkçe</option><option value="ku" ${state.lang === 'ku' ? 'selected' : ''}>Kurmandschi</option><option value="ckb" ${state.lang === 'ckb' ? 'selected' : ''}>Sorani</option><option value="gorani" ${state.lang === 'gorani' ? 'selected' : ''}>Gorani</option><option value="ez" ${state.lang === 'ez' ? 'selected' : ''}>Ezidi</option><option value="ar" ${state.lang === 'ar' ? 'selected' : ''}>العربية</option><option value="fa" ${state.lang === 'fa' ? 'selected' : ''}>فارسی</option><option value="he" ${state.lang === 'he' ? 'selected' : ''}>עברית</option><option value="la" ${state.lang === 'la' ? 'selected' : ''}>Lingua Latina</option><option value="uz" ${state.lang === 'uz' ? 'selected' : ''}>O'zbekcha</option><option value="ru" ${state.lang === 'ru' ? 'selected' : ''}>Русский</option><option value="pl" ${state.lang === 'pl' ? 'selected' : ''}>Polski</option><option value="ro" ${state.lang === 'ro' ? 'selected' : ''}>Română</option><option value="hr" ${state.lang === 'hr' ? 'selected' : ''}>Hrvatski</option><option value="pt" ${state.lang === 'pt' ? 'selected' : ''}>Português</option><option value="fr" ${state.lang === 'fr' ? 'selected' : ''}>Français</option><option value="el" ${state.lang === 'el' ? 'selected' : ''}>Ελληνικά</option><option value="es" ${state.lang === 'es' ? 'selected' : ''}>Español</option><option value="it" ${state.lang === 'it' ? 'selected' : ''}>Italiano</option></select></div><div class="ab-setting-row"><div class="ab-setting-info"><h4>TTS (Vorlesen)</h4><p>Sprachausgabe für alle Inhalte</p></div><div class="ab-toggle ${state.ttsEnabled ? 'on' : ''}" data-action="toggle-tts"></div></div></div></div>`;
   }
 
   function renderMain() {
@@ -268,6 +465,21 @@
     `;
   }
 
+  function speakText(text) {
+    if (!state.ttsEnabled) return;
+    if (!window.speechSynthesis) { alert('Sprachausgabe nicht unterstützt.'); return; }
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const langMap = { 
+      de: 'de-DE', en: 'en-US', tr: 'tr-TR', ku: 'ku-TR', ckb: 'ckb-IQ', gorani: 'ku-TR', ez: 'ku-TR',
+      ar: 'ar-SA', fa: 'fa-IR', he: 'he-IL', la: 'la-VA', uz: 'uz-UZ', ru: 'ru-RU', pl: 'pl-PL',
+      ro: 'ro-RO', hr: 'hr-HR', pt: 'pt-PT', fr: 'fr-FR', el: 'el-GR', es: 'es-ES', it: 'it-IT'
+    };
+    u.lang = langMap[state.lang] || 'de-DE';
+    u.rate = 0.9;
+    window.speechSynthesis.speak(u);
+  }
+
   async function askAI(text) {
     const modal = document.getElementById('ab-ai-modal');
     const textEl = document.getElementById('ab-ai-text');
@@ -328,12 +540,17 @@
       return;
     }
 
-    if (action === 'open-disease' || action === 'open-med' || action === 'open-first-aid') {
-      const icon = btn.dataset.icon || '🦠';
+    if (action === 'open-disease' || action === 'open-med' || action === 'open-first-aid' || action === 'open-device') {
+      let icon = btn.dataset.icon || '🦠';
       let title = '', desc = '';
+      
       if (action === 'open-disease') { title = btn.dataset.name; desc = `Symptome: ${btn.dataset.symp}. Behandlung: ${btn.dataset.tr}`; }
       if (action === 'open-med') { title = btn.dataset.name; desc = `Anwendung: ${btn.dataset.use}. Dosierung: ${btn.dataset.dose}`; }
       if (action === 'open-first-aid') { title = btn.dataset.title; desc = btn.dataset.desc; }
+      if (action === 'open-device') {
+        const d = state.devices[parseInt(btn.dataset.idx)];
+        title = d.name; desc = d.desc; icon = d.icon;
+      }
 
       document.getElementById('ab-info-icon').textContent = icon;
       document.getElementById('ab-info-title').textContent = title;
@@ -346,9 +563,9 @@
       return;
     }
 
-    if (action === 'connect-device') { state.devices[parseInt(btn.dataset.idx)].connected = !state.devices[parseInt(btn.dataset.idx)].connected; saveState(); updateView(); return; }
-    if (action === 'scan-bt') { alert('Bluetooth-Suche gestartet...'); state.devices[0].connected = true; saveState(); updateView(); return; }
-    if (action === 'scan-wifi') { alert('WLAN-Suche gestartet...'); state.devices[1].connected = true; saveState(); updateView(); return; }
+    if (action === 'connect-device') { const idx = parseInt(btn.dataset.idx); state.devices[idx].connected = !state.devices[idx].connected; saveState(); updateView(); return; }
+    if (action === 'scan-bt') { alert('Bluetooth-Suche gestartet... (Simulation)'); state.devices[0].connected = true; saveState(); updateView(); return; }
+    if (action === 'scan-wifi') { alert('WLAN-Suche gestartet... (Simulation)'); state.devices[1].connected = true; saveState(); updateView(); return; }
 
     if (action === 'generate-au') {
       const name = document.getElementById('au-name').value;
@@ -481,6 +698,6 @@
   window.apps.arztbuch = window.HalDoApps.arztbuch;
   window.openArztbuch = openOverlay;
 
-  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — ULTRA PRO MAX (TTS)');
+  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — ULTRA PRO MAX (Alle Geräte A-Z, TTS, 20+ Sprachen)');
 
 })();
