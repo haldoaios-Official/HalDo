@@ -48,7 +48,7 @@
       filter: drop-shadow(0 0 20px #00e5ff) brightness(1.3) !important;
     }
     .home-app span, .nebula-app span, .app-name {
-      pointer-events: none !important; /* Text blockiert Klicks nicht mehr */
+      pointer-events: none !important;
     }
 
     #haldo-root { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; position: relative; z-index: 1; }
@@ -99,27 +99,21 @@
     .haw-app-name { font-size: clamp(26px, 6vw, 40px); font-weight: 900; letter-spacing: 1px; margin: 4px 0; background: linear-gradient(90deg, var(--gold-1) 0%, var(--gold-2) 20%, var(--gold-3) 40%, var(--gold-2) 60%, var(--gold-1) 80%, var(--gold-2) 100%); background-size: 300% auto; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; animation: goldShimmer 3s linear infinite; filter: drop-shadow(0 0 20px rgba(255,200,50,.7)); line-height: 1.15; }
     @keyframes goldShimmer { 0% { background-position: 0% center; } 100% { background-position: 300% center; } }
 
-    /* MODERNER FLOATING BUTTON FÜR FAHRSCHULE */
-    #haldo-fs-fab {
-      position: fixed; bottom: 30px; right: 30px;
-      width: 60px; height: 60px;
-      background: linear-gradient(135deg, #00e5ff, #b478ff);
-      border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      font-size: 30px; cursor: pointer; z-index: 9999;
-      box-shadow: 0 4px 15px rgba(0, 229, 255, 0.4);
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    #haldo-fs-fab:hover {
-      transform: scale(1.1);
-      box-shadow: 0 6px 20px rgba(0, 229, 255, 0.6);
-    }
-    #haldo-fs-fab::after {
-      content: 'Fahrschule starten'; position: absolute; right: 70px; top: 50%; transform: translateY(-50%);
-      background: rgba(0,0,0,0.8); color: #fff; padding: 5px 10px; border-radius: 5px;
-      font-size: 12px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s;
-    }
-    #haldo-fs-fab:hover::after { opacity: 1; }
+    /* FLOATING BUTTONS */
+    .haldo-fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: linear-gradient(135deg, #00e5ff, #b478ff); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; cursor: pointer; z-index: 9999; box-shadow: 0 4px 15px rgba(0, 229, 255, 0.4); transition: transform 0.2s, box-shadow 0.2s; }
+    .haldo-fab:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(0, 229, 255, 0.6); }
+    .haldo-fab::after { content: attr(title); position: absolute; right: 70px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 5px 10px; border-radius: 5px; font-size: 12px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+    .haldo-fab:hover::after { opacity: 1; }
 
+    #haldo-missing-banner { position: fixed; bottom: max(20px, env(safe-area-inset-bottom, 0px) + 20px); left: 20px; right: 20px; background: rgba(255,183,0,.15); border: 1px solid rgba(255,183,0,.4); border-radius: 12px; padding: 12px 14px; color: #ffd54f; font-size: 11.5px; font-weight: 700; z-index: 9998; display: none; align-items: center; gap: 10px; animation: haldoFadeIn .3s; }
+    #haldo-missing-banner.show { display: flex; }
+    #haldo-missing-banner .x { margin-left: auto; background: transparent; border: none; color: #ffd54f; font-size: 16px; cursor: pointer; padding: 0; }
+    @keyframes haldoFadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    #haldo-diag { position: fixed; inset: 0; z-index: 100000; background: rgba(5,8,16,.97); padding: 20px; overflow-y: auto; display: none; }
+    #haldo-diag.show { display: block; }
+    #haldo-diag h2 { color: var(--p1); font-size: 18px; margin-bottom: 12px; }
+    #haldo-diag .close { position: sticky; top: 0; float: right; background: var(--p1); color: #000; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 900; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -163,6 +157,8 @@
       <button id="haldo-menu" style="background:transparent;border:none;color:var(--text);font-size:22px;cursor:pointer;padding:4px 8px">☰</button>
       <div id="haldo-title">🦚 HalDo AI OS</div>
       <div style="display:flex; gap:5px;">
+        <button id="haldo-arztbuch-btn" style="background:transparent;border:none;color:var(--text-mute);font-size:16px;cursor:pointer;padding:4px 8px" title="Arztbuch">🩺</button>
+        <button id="haldo-fahrschule-btn" style="background:transparent;border:none;color:var(--text-mute);font-size:16px;cursor:pointer;padding:4px 8px" title="Fahrschule">🚦</button>
         <button id="haldo-grid-btn" style="background:transparent;border:none;color:var(--text-mute);font-size:16px;cursor:pointer;padding:4px 8px" title="Ansicht wechseln">🔳</button>
         <button id="haldo-diag-btn" style="background:transparent;border:none;color:var(--text-mute);font-size:16px;cursor:pointer;padding:4px 8px" title="Diagnostics">⚙</button>
       </div>
@@ -172,8 +168,9 @@
   <div id="haldo-desk"></div>
   <div id="haldo-taskbar"></div>
 
-  <!-- FAHRSCHULE FLOATING BUTTON -->
-  <div id="haldo-fs-fab" onclick="if(window.openFahrschule) window.openFahrschule(); else alert('Fahrschule.js nicht geladen');">🚦</div>
+  <!-- FAHRSCHULE & ARZTBUCH FLOATING BUTTONS -->
+  <div class="haldo-fab" id="haldo-fs-fab" title="Fahrschule starten" style="bottom: 30px;" onclick="if(window.openFahrschule) window.openFahrschule(); else alert('Fahrschule.js nicht geladen');">🚦</div>
+  <div class="haldo-fab" id="haldo-ab-fab" title="Arztbuch starten" style="bottom: 100px; background: linear-gradient(135deg, #00ff88, #00e5ff);" onclick="if(window.openArztbuch) window.openArztbuch(); else alert('Arztbuch.js nicht geladen');">🩺</div>
 
   <script>
   (function(){
@@ -187,7 +184,7 @@
       "fitness.js", "gesundheit.js", "stimmung.js", "gewohnheiten.js", "schlaf.js", "atem.js", "wasser.js",
       "kueche.js", "rezept.js", "einkauf.js", "zuhause.js", "finanzen.js", "reisen.js", "auto.js", "musik.js", "photos.js", "video.js", "bild.js",
       "wetter.js", "rechner.js", "wissenschaftlich.js", "umrechner.js", "waehrung.js", "timer.js", "pomodoro.js", "uebersetzer.js", "woerterbuch.js", "vokabeln.js", "flashcards.js", "lerne.js", "notfall.js", "bewertung.js", "spiele.js", "sprachen.js",
-      "fahrschule.js", "blitzer.js", "periodensystem.js", "mathe.js", "geo-quiz.js", "ezidi.js", "wissen.js",
+      "fahrschule.js", "arztbuch.js", "blitzer.js", "periodensystem.js", "mathe.js", "geo-quiz.js", "ezidi.js", "wissen.js",
       "qr.js", "barcode.js", "random.js", "text-analyse.js", "datum-rechner.js", "netzwerk-info.js", "geraete-info.js", "weltuhr.js", "kamera.js", "spiegel.js", "taschenlampe.js", "lupe.js",
       "kredit.js", "bmi.js", "statistik.js", "labor.js", "bookmarks.js", "leseliste.js", "sticky-notes.js", "heatmap.js", "i18n.js", "voice-kurdisch.js", "home.js", "home-patch.js", "splash.js"
     ];
@@ -331,9 +328,25 @@
   })();
   </script>
 
+  <!-- HOTFIX FÜR HOME SCREEN & SETTINGS -->
+  <script>
+  setTimeout(function() {
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('.haldo-settings-root')) return;
+      var target = e.target.closest('button, .app-icon, .nav-item, div, span'); if (!target) return;
+      var text = (target.textContent || '').toLowerCase(), title = (target.title || '').toLowerCase(), id = (target.id || '').toLowerCase();
+      var isSettings = text.includes('einstellungen') || text.includes('settings') || title.includes('einstellungen') || id.includes('settings') || text.includes('⚙️') || text.includes('⚙');
+      if (isSettings && id !== 'haldo-diag-btn' && !target.closest('#haldo-diag')) {
+        e.preventDefault(); e.stopPropagation();
+        if (window.HalDoSettings && window.HalDoSettings.open) window.HalDoSettings.open();
+        else if (window.openSettings) window.openSettings();
+      }
+    }, true);
+  }, 1000);
+  </script>
+
   <!-- HOTFIX CSS FÜR GRID MODE (Macht das Chaos zu einer modernen Tabelle) -->
   <style>
-    /* Wenn Grid Mode aktiv ist, werden die absoluten Positionen überschrieben */
     #haldo-desk.haldo-grid-mode {
       display: grid !important;
       grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)) !important;
@@ -342,7 +355,6 @@
       overflow-y: auto !important;
       align-content: start !important;
     }
-    /* Alle App-Wrapper (Icons) im Grid Mode auf relative Position zurücksetzen */
     #haldo-desk.haldo-grid-mode > div, 
     #haldo-desk.haldo-grid-mode > .home-app,
     #haldo-desk.haldo-grid-mode > .nebula-app {
@@ -358,7 +370,6 @@
       align-items: center !important;
       justify-content: center !important;
     }
-    /* Text im Grid Mode schön mittig unter das Icon */
     #haldo-desk.haldo-grid-mode > div span, 
     #haldo-desk.haldo-grid-mode > .home-app span,
     #haldo-desk.haldo-grid-mode > .nebula-app span {
