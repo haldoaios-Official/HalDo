@@ -1,39 +1,29 @@
-/* HalDo Arztbuch v2000.1 — ULTIMATE PRO MAX (3D Organe, 20+ Sprachen, Alle Datenbanken, Crash-Fixes) */
+/* HalDo Arztbuch v2000.2 — ULTIMATE GLOBAL (A-Z Datenbanken, Ezidi, Lebendige 3D Anatomie) */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 (function () {
   'use strict';
 
-  const VERSION = '2000.1';
-  const STORAGE_KEY = 'haldo.arztbuch.data.v2000.1';
+  const VERSION = '2000.2';
+  const STORAGE_KEY = 'haldo.arztbuch.data.v2000.2';
 
   // ═══════════════════════════════════════════════════════
-  // 1. MULTI-LANGUAGE ENGINE (20+ Sprachen)
+  // 1. MULTI-LANGUAGE ENGINE (24 Sprachen inkl. Ezidi)
   // ═══════════════════════════════════════════════════════
   const LANG = {
-    de: {
-      dashboard: 'Dashboard', anatomy: 'Anatomie 3D', diseases: 'Krankheiten', meds: 'Medikamente', natural: 'Naturheilkunde', labs: 'Laborwerte', hospitals: 'Kliniken', devices: 'IoT-Geräte', sicknotes: 'Krankschreibung', appointments: 'Termine', emergency: 'Notfall', settings: 'Einstellungen', lang: 'Sprache', ask_ai: 'KI fragen', speak: 'Vorlesen', search: 'Suchen...', close: 'Schließen', save: 'Speichern', delete: 'Löschen', first_aid: 'Erste Hilfe', call: 'Anrufen', no_results: 'Keine Ergebnisse gefunden.', ai_tools: 'KI Medizin-Assistent', correct: 'Korrigieren', formulate: 'Formulieren', detail: 'Detailieren', analyze: 'Analysieren', research: 'Recherchieren', listen: 'Vorlesen', connect: 'Verbinden', disconnect: 'Trennen', connected: 'Verbunden', not_connected: 'Nicht verbunden', connection: 'Verbindung', ai_thinking: 'Analysiere...', ai_result: 'Ergebnis:', ai_listen: 'Antwort vorlesen', reference: 'Referenzbereich', rotate_left: 'Links drehen', rotate_right: 'Rechts drehen', zoom_in: 'Reinzoomen', zoom_out: 'Rauszoomen', reset_view: 'Zurücksetzen', loading_3d: 'Lade 3D-Modell...', fallback_3d: '3D-Modell nicht gefunden. Zeige 3D-Fallback.', listen_device: 'Info vorlesen', organs_a_z: 'Organe A–Z', patient_name: 'Patientenname', diagnosis: 'Diagnose', from_date: 'Von (Datum)', to_date: 'Bis (Datum)', doctor: 'Arzt / Klinik', date_time: 'Datum & Uhrzeit', generate: 'Erstellen', no_data: 'Keine Daten vorhanden.'
-    },
-    en: {
-      dashboard: 'Dashboard', anatomy: 'Anatomy 3D', diseases: 'Diseases', meds: 'Medications', natural: 'Naturopathy', labs: 'Lab Values', hospitals: 'Hospitals', devices: 'IoT Devices', sicknotes: 'Sick Notes', appointments: 'Appointments', emergency: 'Emergency', settings: 'Settings', lang: 'Language', ask_ai: 'Ask AI', speak: 'Speak', search: 'Search...', close: 'Close', save: 'Save', delete: 'Delete', first_aid: 'First Aid', call: 'Call', no_results: 'No results found.', ai_tools: 'AI Medical Assistant', correct: 'Correct', formulate: 'Formulate', detail: 'Detail', analyze: 'Analyze', research: 'Research', listen: 'Listen', connect: 'Connect', disconnect: 'Disconnect', connected: 'Connected', not_connected: 'Not connected', connection: 'Connection', ai_thinking: 'Analyzing...', ai_result: 'Result:', ai_listen: 'Listen to answer', reference: 'Reference range', rotate_left: 'Rotate Left', rotate_right: 'Rotate Right', zoom_in: 'Zoom In', zoom_out: 'Zoom Out', reset_view: 'Reset View', loading_3d: 'Loading 3D Model...', fallback_3d: '3D Model not found. Showing 3D Fallback.', listen_device: 'Read info', organs_a_z: 'Organs A-Z', patient_name: 'Patient Name', diagnosis: 'Diagnosis', from_date: 'From (Date)', to_date: 'To (Date)', doctor: 'Doctor / Clinic', date_time: 'Date & Time', generate: 'Generate', no_data: 'No data available.'
-    },
-    tr: {
-      dashboard: 'Panel', anatomy: 'Anatomi 3D', diseases: 'Hastalıklar', meds: 'İlaçlar', natural: 'Doğal Tedavi', labs: 'Laboratuvar', hospitals: 'Hastaneler', devices: 'IoT Cihazları', sicknotes: 'Rapor', appointments: 'Randevular', emergency: 'Acil Durum', settings: 'Ayarlar', lang: 'Dil', ask_ai: 'Yapay Zekaya Sor', speak: 'Sesli Oku', search: 'Ara...', close: 'Kapat', save: 'Kaydet', delete: 'Sil', first_aid: 'İlk Yardım', call: 'Ara', no_results: 'Sonuç bulunamadı.', ai_tools: 'AI Tıbbi Asistan', correct: 'Düzelt', formulate: 'Formüle Et', detail: 'Detaylandır', analyze: 'Analiz Et', research: 'Araştır', listen: 'Dinle', connect: 'Bağlan', disconnect: 'Bağlantıyı Kes', connected: 'Bağlandı', not_connected: 'Bağlı Değil', connection: 'Bağlantı', ai_thinking: 'Analiz ediliyor...', ai_result: 'Sonuç:', ai_listen: 'Cevabı dinle', reference: 'Referans aralığı', rotate_left: 'Sola Döndür', rotate_right: 'Sağa Döndür', zoom_in: 'Yakınlaştır', zoom_out: 'Uzaklaştır', reset_view: 'Sıfırla', loading_3d: '3D Model Yükleniyor...', fallback_3d: '3D Model bulunamadı. 3D Fallback gösteriliyor.', listen_device: 'Bilgiyi dinle', organs_a_z: 'Organlar A-Z', patient_name: 'Hasta Adı', diagnosis: 'Teşhis', from_date: 'Başlangıç (Tarih)', to_date: 'Bitiş (Tarih)', doctor: 'Doktor / Klinik', date_time: 'Tarih & Saat', generate: 'Oluştur', no_data: 'Veri yok.'
-    },
-    ku: {
-      dashboard: 'Destpêk', anatomy: 'Anatomî 3D', diseases: 'Nexweşî', meds: 'Derman', natural: 'Dermana Xwezayî', labs: 'Nirxên Laboratuvarê', hospitals: 'Nexweşxane', devices: 'Amûrên IoT', sicknotes: 'Bêhnvedan', appointments: 'Hevdîtin', emergency: 'Lezgîn', settings: 'Mîheng', lang: 'Ziman', ask_ai: 'Ji AI bipirse', speak: 'Bixwîne', search: 'Lê bigere...', close: 'Bigre', save: 'Tomar bike', delete: 'Jê bibe', first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI', correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike', listen: 'Bixwîne', connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan', ai_thinking: 'Tê analîzkirin...', ai_result: 'Encam:', ai_listen: 'Bersivê bixwîne', reference: 'Qada referansê', rotate_left: 'Ber bi Çepê', rotate_right: 'Ber bi Rastê', zoom_in: 'Nêzîk bike', zoom_out: 'Dûr bike', reset_view: 'Vegerîne', loading_3d: 'Modela 3D tê barkirin...', fallback_3d: 'Modela 3D nehat dîtin. Fallback 3D tê nîşandan.', listen_device: 'Agahdariyê bixwîne', organs_a_z: 'Organ A-Z', patient_name: 'Navê Nexweş', diagnosis: 'Teşhîs', from_date: 'Ji (Dîrok)', to_date: 'Heta (Dîrok)', doctor: 'Bijîşk / Nexweşxane', date_time: 'Dîrok & Dem', generate: 'Çêke', no_data: 'Agahdarî tune.'
-    },
-    ar: {
-      dashboard: 'لوحة القيادة', anatomy: 'التشريح 3D', diseases: 'الأمراض', meds: 'الأدوية', natural: 'العلاج الطبيعي', labs: 'قيم المختبر', hospitals: 'المستشفيات', devices: 'أجهزة إنترنت الأشياء', sicknotes: 'إجازة مرضية', appointments: 'المواعيد', emergency: 'حالة طوارئ', settings: 'إعدادات', lang: 'اللغة', ask_ai: 'اسأل الذكاء الاصطناعي', speak: 'قراءة', search: 'بحث...', close: 'إغلاق', save: 'حفظ', delete: 'حذف', first_aid: 'الإسعافات الأولية', call: 'اتصال', no_results: 'لم يتم العثور على نتائج.', ai_tools: 'مساعد طبي بالذكاء الاصطناعي', correct: 'تصحيح', formulate: 'صياغة', detail: 'تفصيل', analyze: 'تحليل', research: 'بحث', listen: 'قراءة', connect: 'اتصال', disconnect: 'قطع الاتصال', connected: 'متصل', not_connected: 'غير متصل', connection: 'اتصال', ai_thinking: 'جاري التحليل...', ai_result: 'النتيجة:', ai_listen: 'استمع للرد', reference: 'النطاق المرجعي', rotate_left: 'تدوير لليسار', rotate_right: 'تدوير لليمين', zoom_in: 'تكبير', zoom_out: 'تصغير', reset_view: 'إعادة تعيين', loading_3d: 'جاري تحميل النموذج 3D...', fallback_3d: 'لم يتم العثور على نموذج 3D. عرض 3D Fallback.', listen_device: 'قراءة المعلومات', organs_a_z: 'الأعضاء A-Z', patient_name: 'اسم المريض', diagnosis: 'التشخيص', from_date: 'من (تاريخ)', to_date: 'إلى (تاريخ)', doctor: 'طبيب / عيادة', date_time: 'التاريخ والوقت', generate: 'إنشاء', no_data: 'لا توجد بيانات.'
-    },
-    fa: {
-      dashboard: 'داشبورد', anatomy: 'کالبدشناسی 3D', diseases: 'بیماری‌ها', meds: 'داروها', natural: 'طب سنتی', labs: 'مقادیر آزمایشگاهی', hospitals: 'بیمارستان‌ها', devices: 'دستگاه‌های IoT', sicknotes: 'گواهی بیماری', appointments: 'نوبت‌ها', emergency: 'اورژانس', settings: 'تنظیمات', lang: 'زبان', ask_ai: 'پرسیدن از هوش مصنوعی', speak: 'خواندن', search: 'جستجو...', close: 'بستن', save: 'ذخیره', delete: 'حذف', first_aid: 'کمک‌های اولیه', call: 'تماس', no_results: 'نتیجه‌ای یافت نشد.', ai_tools: 'دستیار پزشکی هوش مصنوعی', correct: 'اصلاح', formulate: 'فرموله کردن', detail: 'جزئیات', analyze: 'تحلیل', research: 'تحقیق', listen: 'خواندن', connect: 'اتصال', disconnect: 'قطع اتصال', connected: 'متصل', not_connected: 'غیر متصل', connection: 'اتصال', ai_thinking: 'در حال تجزیه و تحلیل...', ai_result: 'نتیجه:', ai_listen: 'گوش دادن به پاسخ', reference: 'محدوده مرجع', rotate_left: 'چرخش به چپ', rotate_right: 'چرخش به راست', zoom_in: 'بزرگنمایی', zoom_out: 'کوچکنمایی', reset_view: 'بازنشانی', loading_3d: 'در حال بارگیری مدل 3D...', fallback_3d: 'مدل 3D یافت نشد. نمایش 3D Fallback.', listen_device: 'خواندن اطلاعات', organs_a_z: 'اعضای A-Z', patient_name: 'نام بیمار', diagnosis: 'تشخیص', from_date: 'از (تاریخ)', to_date: 'تا (تاریخ)', doctor: 'پزشک / کلینیک', date_time: 'تاریخ و زمان', generate: 'ایجاد', no_data: 'داده‌ای موجود نیست.'
-    }
+    de: { dashboard: 'Dashboard', anatomy: 'Anatomie 3D', diseases: 'Krankheiten', meds: 'Medikamente', natural: 'Naturheilkunde', labs: 'Laborwerte', hospitals: 'Kliniken', devices: 'IoT-Geräte', sicknotes: 'Krankschreibung', appointments: 'Termine', emergency: 'Notfall', settings: 'Einstellungen', lang: 'Sprache', ask_ai: 'KI fragen', speak: 'Vorlesen', search: 'Suchen...', close: 'Schließen', save: 'Speichern', delete: 'Löschen', first_aid: 'Erste Hilfe', call: 'Anrufen', no_results: 'Keine Ergebnisse gefunden.', ai_tools: 'KI Medizin-Assistent', correct: 'Korrigieren', formulate: 'Formulieren', detail: 'Detailieren', analyze: 'Analysieren', research: 'Recherchieren', listen: 'Vorlesen', connect: 'Verbinden', disconnect: 'Trennen', connected: 'Verbunden', not_connected: 'Nicht verbunden', connection: 'Verbindung', ai_thinking: 'Analysiere...', ai_result: 'Ergebnis:', ai_listen: 'Antwort vorlesen', reference: 'Referenzbereich', rotate_left: 'Links drehen', rotate_right: 'Rechts drehen', zoom_in: 'Reinzoomen', zoom_out: 'Rauszoomen', reset_view: 'Zurücksetzen', loading_3d: 'Lade 3D-Modell...', fallback_3d: '3D-Modell nicht gefunden. Zeige 3D-Fallback.', listen_device: 'Info vorlesen', organs_a_z: 'Organe A–Z', patient_name: 'Patientenname', diagnosis: 'Diagnose', from_date: 'Von (Datum)', to_date: 'Bis (Datum)', doctor: 'Arzt / Klinik', date_time: 'Datum & Uhrzeit', generate: 'Erstellen', no_data: 'Keine Daten vorhanden.' },
+    en: { dashboard: 'Dashboard', anatomy: 'Anatomy 3D', diseases: 'Diseases', meds: 'Medications', natural: 'Naturopathy', labs: 'Lab Values', hospitals: 'Hospitals', devices: 'IoT Devices', sicknotes: 'Sick Notes', appointments: 'Appointments', emergency: 'Emergency', settings: 'Settings', lang: 'Language', ask_ai: 'Ask AI', speak: 'Speak', search: 'Search...', close: 'Close', save: 'Save', delete: 'Delete', first_aid: 'First Aid', call: 'Call', no_results: 'No results found.', ai_tools: 'AI Medical Assistant', correct: 'Correct', formulate: 'Formulate', detail: 'Detail', analyze: 'Analyze', research: 'Research', listen: 'Listen', connect: 'Connect', disconnect: 'Disconnect', connected: 'Connected', not_connected: 'Not connected', connection: 'Connection', ai_thinking: 'Analyzing...', ai_result: 'Result:', ai_listen: 'Listen to answer', reference: 'Reference range', rotate_left: 'Rotate Left', rotate_right: 'Rotate Right', zoom_in: 'Zoom In', zoom_out: 'Zoom Out', reset_view: 'Reset View', loading_3d: 'Loading 3D Model...', fallback_3d: '3D Model not found. Showing 3D Fallback.', listen_device: 'Read info', organs_a_z: 'Organs A-Z', patient_name: 'Patient Name', diagnosis: 'Diagnosis', from_date: 'From (Date)', to_date: 'To (Date)', doctor: 'Doctor / Clinic', date_time: 'Date & Time', generate: 'Generate', no_data: 'No data available.' },
+    tr: { dashboard: 'Panel', anatomy: 'Anatomi 3D', diseases: 'Hastalıklar', meds: 'İlaçlar', natural: 'Doğal Tedavi', labs: 'Laboratuvar', hospitals: 'Hastaneler', devices: 'IoT Cihazları', sicknotes: 'Rapor', appointments: 'Randevular', emergency: 'Acil Durum', settings: 'Ayarlar', lang: 'Dil', ask_ai: 'Yapay Zekaya Sor', speak: 'Sesli Oku', search: 'Ara...', close: 'Kapat', save: 'Kaydet', delete: 'Sil', first_aid: 'İlk Yardım', call: 'Ara', no_results: 'Sonuç bulunamadı.', ai_tools: 'AI Tıbbi Asistan', correct: 'Düzelt', formulate: 'Formüle Et', detail: 'Detaylandır', analyze: 'Analiz Et', research: 'Araştır', listen: 'Dinle', connect: 'Bağlan', disconnect: 'Bağlantıyı Kes', connected: 'Bağlandı', not_connected: 'Bağlı Değil', connection: 'Bağlantı', ai_thinking: 'Analiz ediliyor...', ai_result: 'Sonuç:', ai_listen: 'Cevabı dinle', reference: 'Referans aralığı', rotate_left: 'Sola Döndür', rotate_right: 'Sağa Döndür', zoom_in: 'Yakınlaştır', zoom_out: 'Uzaklaştır', reset_view: 'Sıfırla', loading_3d: '3D Model Yükleniyor...', fallback_3d: '3D Model bulunamadı. 3D Fallback gösteriliyor.', listen_device: 'Bilgiyi dinle', organs_a_z: 'Organlar A-Z', patient_name: 'Hasta Adı', diagnosis: 'Teşhis', from_date: 'Başlangıç (Tarih)', to_date: 'Bitiş (Tarih)', doctor: 'Doktor / Klinik', date_time: 'Tarih & Saat', generate: 'Oluştur', no_data: 'Veri yok.' },
+    ku: { dashboard: 'Destpêk', anatomy: 'Anatomî 3D', diseases: 'Nexweşî', meds: 'Derman', natural: 'Dermana Xwezayî', labs: 'Nirxên Laboratuvarê', hospitals: 'Nexweşxane', devices: 'Amûrên IoT', sicknotes: 'Bêhnvedan', appointments: 'Hevdîtin', emergency: 'Lezgîn', settings: 'Mîheng', lang: 'Ziman', ask_ai: 'Ji AI bipirse', speak: 'Bixwîne', search: 'Lê bigere...', close: 'Bigre', save: 'Tomar bike', delete: 'Jê bibe', first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI', correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike', listen: 'Bixwîne', connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan', ai_thinking: 'Tê analîzkirin...', ai_result: 'Encam:', ai_listen: 'Bersivê bixwîne', reference: 'Qada referansê', rotate_left: 'Ber bi Çepê', rotate_right: 'Ber bi Rastê', zoom_in: 'Nêzîk bike', zoom_out: 'Dûr bike', reset_view: 'Vegerîne', loading_3d: 'Modela 3D tê barkirin...', fallback_3d: 'Modela 3D nehat dîtin. Fallback 3D tê nîşandan.', listen_device: 'Agahdariyê bixwîne', organs_a_z: 'Organ A-Z', patient_name: 'Navê Nexweş', diagnosis: 'Teşhîs', from_date: 'Ji (Dîrok)', to_date: 'Heta (Dîrok)', doctor: 'Bijîşk / Nexweşxane', date_time: 'Dîrok & Dem', generate: 'Çêke', no_data: 'Agahdarî tune.' },
+    ez: { dashboard: 'Destpêk', anatomy: 'Anatomî 3D', diseases: 'Nexweşî', meds: 'Derman', natural: 'Dermana Xwezayî', labs: 'Nirxên Laboratuvarê', hospitals: 'Nexweşxane', devices: 'Amûrên IoT', sicknotes: 'Bêhnvedan', appointments: 'Hevdîtin', emergency: 'Lezgîn', settings: 'Mîheng', lang: 'Ziman', ask_ai: 'Ji AI bipirse', speak: 'Bixwîne', search: 'Lê bigere...', close: 'Bigre', save: 'Tomar bike', delete: 'Jê bibe', first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI', correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike', listen: 'Bixwîne', connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan', ai_thinking: 'Tê analîzkirin...', ai_result: 'Encam:', ai_listen: 'Bersivê bixwîne', reference: 'Qada referansê', rotate_left: 'Ber bi Çepê', rotate_right: 'Ber bi Rastê', zoom_in: 'Nêzîk bike', zoom_out: 'Dûr bike', reset_view: 'Vegerîne', loading_3d: 'Modela 3D tê barkirin...', fallback_3d: 'Modela 3D nehat dîtin. Fallback 3D tê nîşandan.', listen_device: 'Agahdariyê bixwîne', organs_a_z: 'Organ A-Z', patient_name: 'Navê Nexweş', diagnosis: 'Teşhîs', from_date: 'Ji (Dîrok)', to_date: 'Heta (Dîrok)', doctor: 'Bijîşk / Nexweşxane', date_time: 'Dîrok & Dem', generate: 'Çêke', no_data: 'Agahdarî tune.' },
+    ckb: { dashboard: 'دەستپێک', anatomy: 'ئاناتۆمی 3D', diseases: 'نەخۆشییەکان', meds: 'دەرمانەکان', natural: 'دەرمانی سروشتی', labs: 'نرخی تاقیگە', hospitals: 'نەخۆشخانەکان', devices: 'ئامێرەکانی IoT', sicknotes: 'مۆڵەتی نەخۆشی', appointments: 'چاوپێکەوتنەکان', emergency: 'فریاکەوتن', settings: 'ڕێکخستنەکان', lang: 'زمان', ask_ai: 'لە AI بپرسە', speak: 'خوێندنەوە', search: 'گەڕان...', close: 'داخستن', save: 'پاشەکەوتکردن', delete: 'سڕینەوە', first_aid: 'یارمەتی سەرەتایی', call: 'پەیوەندی', no_results: 'هیچ ئەنجامێک نەدۆزرایەوە.', ai_tools: 'یاریدەدەری پزیشکی AI', correct: 'ڕاستکردنەوە', formulate: 'داڕشتن', detail: 'وردەکاری', analyze: 'شیکردنەوە', research: 'توێژینەوە', listen: 'گوێگرتن', connect: 'پەیوەندیکردن', disconnect: 'پچڕاندن', connected: 'پەیوەندیدراوە', not_connected: 'پەیوەندینەدراوە', connection: 'پەیوەندی', ai_thinking: 'شیکردنەوە...', ai_result: 'ئەنجام:', ai_listen: 'گوێگرتن لە وەڵام', reference: 'مەودای سەرچاوە', rotate_left: 'سووڕانەوە بۆ چەپ', rotate_right: 'سووڕانەوە بۆ ڕاست', zoom_in: 'گەورەکردن', zoom_out: 'بچووککردن', reset_view: 'ڕێستکردن', loading_3d: 'بارکردنی مۆدێلی 3D...', fallback_3d: 'مۆدێلی 3D نەدۆزرایەوە.', listen_device: 'خوێندنەوەی زانیاری', organs_a_z: 'ئەندامەکان A-Z', patient_name: 'ناوی نەخۆش', diagnosis: 'دەستنیشانکردن', from_date: 'لە (بەروار)', to_date: 'بۆ (بەروار)', doctor: 'پزیشک / کلینیک', date_time: 'بەروار و کات', generate: 'دروستکردن', no_data: 'هیچ داتایەک نییە.' },
+    ar: { dashboard: 'لوحة القيادة', anatomy: 'التشريح 3D', diseases: 'الأمراض', meds: 'الأدوية', natural: 'العلاج الطبيعي', labs: 'قيم المختبر', hospitals: 'المستشفيات', devices: 'أجهزة إنترنت الأشياء', sicknotes: 'إجازة مرضية', appointments: 'المواعيد', emergency: 'حالة طوارئ', settings: 'إعدادات', lang: 'اللغة', ask_ai: 'اسأل الذكاء الاصطناعي', speak: 'قراءة', search: 'بحث...', close: 'إغلاق', save: 'حفظ', delete: 'حذف', first_aid: 'الإسعافات الأولية', call: 'اتصال', no_results: 'لم يتم العثور على نتائج.', ai_tools: 'مساعد طبي بالذكاء الاصطناعي', correct: 'تصحيح', formulate: 'صياغة', detail: 'تفصيل', analyze: 'تحليل', research: 'بحث', listen: 'قراءة', connect: 'اتصال', disconnect: 'قطع الاتصال', connected: 'متصل', not_connected: 'غير متصل', connection: 'اتصال', ai_thinking: 'جاري التحليل...', ai_result: 'النتيجة:', ai_listen: 'استمع للرد', reference: 'النطاق المرجعي', rotate_left: 'تدوير لليسار', rotate_right: 'تدوير لليمين', zoom_in: 'تكبير', zoom_out: 'تصغير', reset_view: 'إعادة تعيين', loading_3d: 'جاري تحميل النموذج 3D...', fallback_3d: 'لم يتم العثور على نموذج 3D. عرض 3D Fallback.', listen_device: 'قراءة المعلومات', organs_a_z: 'الأعضاء A-Z', patient_name: 'اسم المريض', diagnosis: 'التشخيص', from_date: 'من (تاريخ)', to_date: 'إلى (تاريخ)', doctor: 'طبيب / عيادة', date_time: 'التاريخ والوقت', generate: 'إنشاء', no_data: 'لا توجد بيانات.' },
+    fa: { dashboard: 'داشبورد', anatomy: 'کالبدشناسی 3D', diseases: 'بیماری‌ها', meds: 'داروها', natural: 'طب سنتی', labs: 'مقادیر آزمایشگاهی', hospitals: 'بیمارستان‌ها', devices: 'دستگاه‌های IoT', sicknotes: 'گواهی بیماری', appointments: 'نوبت‌ها', emergency: 'اورژانس', settings: 'تنظیمات', lang: 'زبان', ask_ai: 'پرسیدن از هوش مصنوعی', speak: 'خواندن', search: 'جستجو...', close: 'بستن', save: 'ذخیره', delete: 'حذف', first_aid: 'کمک‌های اولیه', call: 'تماس', no_results: 'نتیجه‌ای یافت نشد.', ai_tools: 'دستیار پزشکی هوش مصنوعی', correct: 'اصلاح', formulate: 'فرموله کردن', detail: 'جزئیات', analyze: 'تحلیل', research: 'تحقیق', listen: 'خواندن', connect: 'اتصال', disconnect: 'قطع اتصال', connected: 'متصل', not_connected: 'غیر متصل', connection: 'اتصال', ai_thinking: 'در حال تجزیه و تحلیل...', ai_result: 'نتیجه:', ai_listen: 'گوش دادن به پاسخ', reference: 'محدوده مرجع', rotate_left: 'چرخش به چپ', rotate_right: 'چرخش به راست', zoom_in: 'بزرگنمایی', zoom_out: 'کوچکنمایی', reset_view: 'بازنشانی', loading_3d: 'در حال بارگیری مدل 3D...', fallback_3d: 'مدل 3D یافت نشد. نمایش 3D Fallback.', listen_device: 'خواندن اطلاعات', organs_a_z: 'اعضای A-Z', patient_name: 'نام بیمار', diagnosis: 'تشخیص', from_date: 'از (تاریخ)', to_date: 'تا (تاریخ)', doctor: 'پزشک / کلینیک', date_time: 'تاریخ و زمان', generate: 'ایجاد', no_data: 'داده‌ای موجود نیست.' }
   };
 
   // ═══════════════════════════════════════════════════════
-  // 2. DATENBANKEN
+  // 2. DATENBANKEN (A - Z Vollausbau)
   // ═══════════════════════════════════════════════════════
   const DISEASES = [
     { id: 'd1', name: 'Abszess', symp: 'Schmerzhafte, geschwollene, gerötete Stelle, Fieber', tr: 'Arzt aufsuchen, ggf. Eröffnung und Antibiotika.' },
@@ -75,7 +65,15 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     { id: 'd37', name: 'Gicht', symp: 'Plötzliche, starke Gelenkschmerzen (oft Großzehe), Rötung', tr: 'Kühlung, entzündungshemmende Medikamente, purinarme Ernährung.' },
     { id: 'd38', name: 'Neurodermitis', symp: 'Juckreiz, trockene, gerötete Haut, Ekzeme', tr: 'Feuchtigkeitscremes, Kortison, Allergene meiden.' },
     { id: 'd39', name: 'Schilddrüsenunterfunktion', symp: 'Müdigkeit, Gewichtszunahme, Kälteempfindlichkeit', tr: 'L-Thyroxin (Hormonersatz).' },
-    { id: 'd40', name: 'Schilddrüsenüberfunktion', symp: 'Herzrasen, Gewichtsverlust, Schwitzen, Unruhe', tr: 'Thiamazol, Radiojodtherapie, OP.' }
+    { id: 'd40', name: 'Schilddrüsenüberfunktion', symp: 'Herzrasen, Gewichtsverlust, Schwitzen, Unruhe', tr: 'Thiamazol, Radiojodtherapie, OP.' },
+    { id: 'd41', name: 'Tetanus (Wundstarrkrampf)', symp: 'Muskelkrämpfe, Kieferklemme, Fieber', tr: 'Sofort ins Krankenhaus! Impfschutz prüfen.' },
+    { id: 'd42', name: 'Tuberkulose', symp: 'Anhaltender Husten, Bluthusten, Nachtschweiß, Fieber', tr: 'Langwierige Antibiotika-Therapie, Isolierung.' },
+    { id: 'd43', name: 'Ulkus (Magengeschwür)', symp: 'Brennende Magenschmerzen, Übelkeit, Blähungen', tr: 'Protonenpumpenhemmer, Helicobacter-Behandlung, Schonkost.' },
+    { id: 'd44', name: 'Varizen (Krampfadern)', symp: 'Sichtbare, geschlängelte Venen, Schweregefühl', tr: 'Kompressionsstrümpfe, Bewegung, Verödung/OP.' },
+    { id: 'd45', name: 'Wechseljahresbeschwerden', symp: 'Hitzewallungen, Schlafstörungen, Stimmungsschwankungen', tr: 'Pflanzliche Mittel, Hormonersatztherapie (nach Absprache).' },
+    { id: 'd46', name: 'Windpocken', symp: 'Juckende Bläschen, Fieber, Müdigkeit', tr: 'Juckreizlindernde Salben, kühlen, ggf. Virostatika.' },
+    { id: 'd47', name: 'Zöliakie', symp: 'Bauchschmerzen, Durchfall, Mangelerscheinungen', tr: 'Strikte glutenfreie Ernährung.' },
+    { id: 'd48', name: 'Zystitis (Blasenentzündung)', symp: 'Brennen beim Wasserlassen, häufiger Harndrang', tr: 'Viel trinken, Wärme, ggf. Antibiotika.' }
   ];
 
   const MEDS = [
@@ -103,7 +101,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     { id: 'm22', name: 'Thiamazol', use: 'Schilddrüsenüberfunktion', dose: 'Nach Verordnung, regelmäßige Blutkontrolle.' },
     { id: 'm23', name: 'Allopurinol', use: 'Gicht', dose: '1x täglich nach dem Essen, viel trinken.' },
     { id: 'm24', name: 'Sertralin', use: 'Depression, Angststörungen', dose: '1x täglich morgens.' },
-    { id: 'm25', name: 'Levetiracetam', use: 'Epilepsie', dose: '2x täglich, nach Verordnung.' }
+    { id: 'm25', name: 'Levetiracetam', use: 'Epilepsie', dose: '2x täglich, nach Verordnung.' },
+    { id: 'm26', name: 'Zink-Tabletten', use: 'Immunsystem, Wundheilung', dose: '1x täglich zum Essen.' }
   ];
 
   const NATURAL = [
@@ -114,25 +113,34 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     { id: 'n5', name: 'Knoblauch', desc: 'Antibakteriell, antiviral. Senkt Bluthochdruck und Cholesterin.' },
     { id: 'n6', name: 'Honig', desc: 'Antibakteriell, beruhigt den Hals, fördert die Wundheilung.' },
     { id: 'n7', name: 'Zimt', desc: 'Reguliert Blutzucker, wirkt entzündungshemmend und antibakteriell.' },
-    { id: 'n8', name: 'Salbei', desc: 'Entzündungshemmend, hilft gegen Halsschmerzen und übermäßiges Schwitzen.' }
+    { id: 'n8', name: 'Salbei', desc: 'Entzündungshemmend, hilft gegen Halsschmerzen und übermäßiges Schwitzen.' },
+    { id: 'n9', name: 'Brennnessel', desc: 'Entwässernd, hilft bei Blasenentzündung und Rheuma.' },
+    { id: 'n10', name: 'Fenchel', desc: 'Krampflösend, hilft gegen Blähungen und Völlegefühl.' },
+    { id: 'n11', name: 'Echinacea (Sonnenhut)', desc: 'Stärkt das Immunsystem, verkürzt Erkältungen.' },
+    { id: 'n12', name: 'Weißdorn', desc: 'Stärkt das Herz, reguliert Blutdruck und Herzrhythmus.' }
   ];
 
   const LABS = [
-    { id: 'l1', name: 'Hämoglobin (Hb)', ref: 'M 13,5-17,5 g/dl | W 12-16 g/dl', desc: 'Sauerstofftransport im Blut. Niedrig = Anämie.' },
-    { id: 'l2', name: 'Leukozyten (WBC)', ref: '4.000-10.000 /µl', desc: 'Weiße Blutkörperchen. Hoch = Infektion/Entzündung.' },
-    { id: 'l3', name: 'Thrombozyten (PLT)', ref: '150.000-400.000 /µl', desc: 'Blutgerinnung. Niedrig = Blutungsgefahr.' },
+    { id: 'l1', name: 'Albumin', ref: '3,5-5,0 g/dl', desc: 'Wichtigstes Eiweiß im Blut. Niedrig = Leber-/Nierenerkrankung.' },
+    { id: 'l2', name: 'Bilirubin', ref: '< 1,2 mg/dl', desc: 'Gallenfarbstoff. Hoch = Gelbsucht, Lebererkrankung.' },
+    { id: 'l3', name: 'Blutzucker (Nüchtern)', ref: '70-100 mg/dl', desc: 'Zuckerstoffwechsel. Hoch = Diabetes-Verdacht.' },
     { id: 'l4', name: 'CRP (C-reaktives Protein)', ref: '< 5 mg/l', desc: 'Entzündungswert. Hoch = Entzündung im Körper.' },
-    { id: 'l5', name: 'Blutzucker (Nüchtern)', ref: '70-100 mg/dl', desc: 'Zuckerstoffwechsel. Hoch = Diabetes-Verdacht.' },
-    { id: 'l6', name: 'HbA1c', ref: '4,0-5,6 %', desc: 'Langzeitblutzucker (3 Monate). Hoch = Diabetes.' },
-    { id: 'l7', name: 'Kreatinin', ref: 'M 0,7-1,3 mg/dl | W 0,6-1,1 mg/dl', desc: 'Nierenwert. Hoch = Nierenschwäche.' },
-    { id: 'l8', name: 'GOT / AST', ref: 'M bis 50 U/l | W bis 35 U/l', desc: 'Leberwert. Hoch = Leberschaden.' },
+    { id: 'l5', name: 'Cholesterin (Gesamt)', ref: '< 200 mg/dl', desc: 'Blutfett. Hoch = Risiko für Herzinfarkt.' },
+    { id: 'l6', name: 'Eisen', ref: 'M 60-160 µg/dl | W 40-140 µg/dl', desc: 'Wichtig für Blutbildung. Niedrig = Anämie.' },
+    { id: 'l7', name: 'Gamma-GT (GGT)', ref: 'M bis 60 U/l | W bis 40 U/l', desc: 'Leberwert. Hoch = Leberschaden (Alkohol, Medikamente).' },
+    { id: 'l8', name: 'GOT / AST', ref: 'M bis 50 U/l | W bis 35 U/l', desc: 'Leber-/Herz-/Muskelwert. Hoch = Schaden.' },
     { id: 'l9', name: 'GPT / ALT', ref: 'M bis 50 U/l | W bis 35 U/l', desc: 'Leberwert. Hoch = Leberschaden.' },
-    { id: 'l10', name: 'Kalium', ref: '3,5-5,0 mmol/l', desc: 'Wichtig für Herz und Muskeln. Abweichungen gefährlich.' },
-    { id: 'l11', name: 'Natrium', ref: '135-145 mmol/l', desc: 'Wasserhaushalt. Abweichungen = Verwirrtheit, Krämpfe.' },
-    { id: 'l12', name: 'TSH (Schilddrüse)', ref: '0,4-4,0 mU/l', desc: 'Schilddrüsenwert. Hoch = Unterfunktion.' },
-    { id: 'l13', name: 'Cholesterin (Gesamt)', ref: '< 200 mg/dl', desc: 'Blutfett. Hoch = Risiko für Herzinfarkt.' },
-    { id: 'l14', name: 'LDL-Cholesterin', ref: '< 130 mg/dl', desc: 'Schlechtes Cholesterin. Hoch = Gefäßverkalkung.' },
-    { id: 'l15', name: 'INR (Gerinnung)', ref: '0,8-1,2', desc: 'Blutgerinnung. Hoch = Blutungsgefahr (z.B. bei Marcumar).' }
+    { id: 'l10', name: 'Hämoglobin (Hb)', ref: 'M 13,5-17,5 g/dl | W 12-16 g/dl', desc: 'Sauerstofftransport im Blut. Niedrig = Anämie.' },
+    { id: 'l11', name: 'HbA1c', ref: '4,0-5,6 %', desc: 'Langzeitblutzucker (3 Monate). Hoch = Diabetes.' },
+    { id: 'l12', name: 'INR (Gerinnung)', ref: '0,8-1,2', desc: 'Blutgerinnung. Hoch = Blutungsgefahr (z.B. bei Marcumar).' },
+    { id: 'l13', name: 'Kalium', ref: '3,5-5,0 mmol/l', desc: 'Wichtig für Herz und Muskeln. Abweichungen gefährlich.' },
+    { id: 'l14', name: 'Kreatinin', ref: 'M 0,7-1,3 mg/dl | W 0,6-1,1 mg/dl', desc: 'Nierenwert. Hoch = Nierenschwäche.' },
+    { id: 'l15', name: 'LDL-Cholesterin', ref: '< 130 mg/dl', desc: 'Schlechtes Cholesterin. Hoch = Gefäßverkalkung.' },
+    { id: 'l16', name: 'Leukozyten (WBC)', ref: '4.000-10.000 /µl', desc: 'Weiße Blutkörperchen. Hoch = Infektion/Entzündung.' },
+    { id: 'l17', name: 'Natrium', ref: '135-145 mmol/l', desc: 'Wasserhaushalt. Abweichungen = Verwirrtheit, Krämpfe.' },
+    { id: 'l18', name: 'Thrombozyten (PLT)', ref: '150.000-400.000 /µl', desc: 'Blutgerinnung. Niedrig = Blutungsgefahr.' },
+    { id: 'l19', name: 'TSH (Schilddrüse)', ref: '0,4-4,0 mU/l', desc: 'Schilddrüsenwert. Hoch = Unterfunktion.' },
+    { id: 'l20', name: 'Vitamin D (25-OH)', ref: '30-100 ng/ml', desc: 'Knochengesundheit, Immunsystem. Niedrig = Mangel.' }
   ];
 
   const DEVICES = [
@@ -145,7 +153,12 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     { id: 'dev7', name: 'CT-Scanner', icon: '🔄', type: 'WLAN', desc: 'Computertomographie. Schichtbilder des Körpers.' },
     { id: 'dev8', name: 'Defibrillator', icon: '⚡', type: 'Bluetooth', desc: 'Gibt bei Herzstillstand Stromstöße ab. Bluetooth für Statusmeldungen.' },
     { id: 'dev9', name: 'Beatmungsgerät', icon: '🫁', type: 'Bluetooth', desc: 'Unterstützt die Atmung. Sendet Beatmungsparameter per Bluetooth.' },
-    { id: 'dev10', name: 'Infusionspumpe', icon: '💧', type: 'Bluetooth', desc: 'Gibt Medikamente genau dosiert ab. Bluetooth für Fernüberwachung.' }
+    { id: 'dev10', name: 'Infusionspumpe', icon: '💧', type: 'Bluetooth', desc: 'Gibt Medikamente genau dosiert ab. Bluetooth für Fernüberwachung.' },
+    { id: 'dev11', name: 'Pulsoximeter', icon: '🫁', type: 'Bluetooth', desc: 'Misst die Sauerstoffsättigung im Blut.' },
+    { id: 'dev12', name: 'Fieberthermometer', icon: '🌡️', type: 'Bluetooth', desc: 'Misst die Körpertemperatur.' },
+    { id: 'dev13', name: 'Smartwatch', icon: '⌚', type: 'Bluetooth', desc: 'Misst Schritte, Puls, Schlaf.' },
+    { id: 'dev14', name: 'Waage', icon: '⚖️', type: 'Bluetooth', desc: 'Misst Gewicht und Körperfett.' },
+    { id: 'dev15', name: 'Hörgerät', icon: '🦻', type: 'Bluetooth', desc: 'Verstärkt Geräusche, per App steuerbar.' }
   ];
 
   const FIRST_AID = [
@@ -176,6 +189,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
   let currentTarget = null;
   let lastAIResponse = '';
   let threeScene, threeCamera, threeRenderer, threeModel, threeAnimationId;
+  let heartMesh, lungLeft, lungRight, brainMesh;
 
   // ═══════════════════════════════════════════════════════
   // 3. CORE LOGIC
@@ -215,7 +229,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     if (!window.speechSynthesis) { alert('Sprachausgabe nicht unterstützt.'); return; }
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    const langMap = { de: 'de-DE', en: 'en-US', tr: 'tr-TR', ku: 'ku-TR', ar: 'ar-SA', fa: 'fa-IR' };
+    const langMap = { de: 'de-DE', en: 'en-US', tr: 'tr-TR', ku: 'ku-TR', ez: 'ku-TR', ckb: 'ckb-IQ', ar: 'ar-SA', fa: 'fa-IR' };
     u.lang = langMap[state.lang] || 'de-DE';
     u.rate = 0.9;
     window.speechSynthesis.speak(u);
@@ -248,7 +262,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
   }
 
   // ═══════════════════════════════════════════════════════
-  // 4. CSS (Glassmorphism, Cyan/Purple)
+  // 4. CSS
   // ═══════════════════════════════════════════════════════
   function css() {
     return `<style>
@@ -507,6 +521,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
             <option value="en" ${state.lang === 'en' ? 'selected' : ''}>English</option>
             <option value="tr" ${state.lang === 'tr' ? 'selected' : ''}>Türkçe</option>
             <option value="ku" ${state.lang === 'ku' ? 'selected' : ''}>Kurmandschi</option>
+            <option value="ez" ${state.lang === 'ez' ? 'selected' : ''}>Ezidi</option>
+            <option value="ckb" ${state.lang === 'ckb' ? 'selected' : ''}>Sorani</option>
             <option value="ar" ${state.lang === 'ar' ? 'selected' : ''}>العربية</option>
             <option value="fa" ${state.lang === 'fa' ? 'selected' : ''}>فارسی</option>
           </select>
@@ -590,7 +606,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
   }
 
   // ═══════════════════════════════════════════════════════
-  // 6. 3D ANATOMY LOGIC
+  // 6. LEBENDIGE 3D ANATOMY LOGIC
   // ═══════════════════════════════════════════════════════
   function showOrganModal(organ, info, icon) {
     const modal = document.getElementById('ab-info-modal');
@@ -629,13 +645,13 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     group.add(headWire);
 
     // Gehirn
-    const brain = new THREE.Mesh(
+    brainMesh = new THREE.Mesh(
       new THREE.SphereGeometry(0.26, 32, 32),
       new THREE.MeshStandardMaterial({ color: 0xffb3c8, roughness: 0.55 })
     );
-    brain.scale.set(1, 0.95, 1.15);
-    brain.position.y = 1.95;
-    addOrgan(brain, 'Gehirn', 'Zentrale des Nervensystems. Besteht aus Großhirn (Denken), Kleinhirn (Bewegung) und Hirnstamm (Atmung, Herzschlag). Ca. 86 Milliarden Neuronen.', '🧠');
+    brainMesh.scale.set(1, 0.95, 1.15);
+    brainMesh.position.y = 1.95;
+    addOrgan(brainMesh, 'Gehirn', 'Zentrale des Nervensystems. Besteht aus Großhirn (Denken), Kleinhirn (Bewegung) und Hirnstamm (Atmung, Herzschlag). Ca. 86 Milliarden Neuronen.', '🧠');
 
     // === HALS ===
     const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 0.22, 16), bodyMat);
@@ -685,6 +701,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     heartGroup.userData = { organ: 'Herz', info: 'Muskelpumpe, die Blut durch den Körper pumpt. 4 Kammern (2 Vorhöfe, 2 Herzkammern), 4 Klappen. Schlägt ca. 60-100x pro Minute.', icon: '🫀' };
     group.add(heartGroup);
     organs.push(heartGroup);
+    heartMesh = heartGroup; // Für Animation speichern
 
     // Lunge (2 Flügel)
     [-1, 1].forEach(side => {
@@ -701,6 +718,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
       };
       group.add(lung);
       organs.push(lung);
+      if(side < 0) lungLeft = lung; else lungRight = lung; // Für Animation speichern
     });
 
     // Leber
@@ -870,7 +888,24 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
       function tick() {
         threeAnimationId = requestAnimationFrame(tick);
         const dt = clock.getDelta();
+        const time = clock.getElapsedTime();
+
         if (threeModel) threeModel.rotation.y += dt * 0.15;
+
+        // Lebendige Animationen (Herzschlag & Atmung)
+        if (heartMesh) {
+          const beat = 1 + Math.sin(time * 6) * 0.06; // 6 rad/s = ~1 beat/s
+          heartMesh.scale.set(beat, beat * 1.25, beat * 0.9);
+        }
+        if (lungLeft && lungRight) {
+          const breath = 1 + Math.sin(time * 2) * 0.04; // 2 rad/s = ~2s per breath
+          lungLeft.scale.set(0.85 * breath, 1.45, 0.85 * breath);
+          lungRight.scale.set(0.85 * breath, 1.45, 0.85 * breath);
+        }
+        if (brainMesh) {
+          brainMesh.rotation.y += dt * 0.05; // Ganz langsame Gehirn-Rotation
+        }
+
         if (threeRenderer && threeScene && threeCamera) {
           threeRenderer.render(threeScene, threeCamera);
         }
@@ -1094,7 +1129,15 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
   function openOverlay() {
     loadState();
-    if (window.HalDoWelcome) window.HalDoWelcome.show("Arztbuch");
+    
+    // Fix für den Willkommensgruß
+    setTimeout(() => {
+      if (window.HalDoWelcome && typeof window.HalDoWelcome.show === 'function') {
+        window.HalDoWelcome.show("Arztbuch");
+      } else {
+        console.log("HalDoWelcome nicht geladen, aber App startet.");
+      }
+    }, 200);
 
     const overlay = document.createElement('div');
     overlay.className = 'ab-overlay';
@@ -1127,5 +1170,5 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
   window.renderArztbuch = mount;
   window.openArztbuch = openOverlay;
 
-  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — ULTIMATE PRO MAX (3D Anatomie, Organe, Crash-Fixes)');
+  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — ULTIMATE GLOBAL (A-Z Datenbanken, Ezidi, Lebendige 3D Anatomie)');
 })();
