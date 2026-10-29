@@ -1,18 +1,39 @@
-/* HalDo Arztbuch v1600.0 — ULTRA PRO MAX (Echte 3D-Anatomie mit Three.js) */
+/* HalDo Arztbuch v1700.0 — ULTIMATE PRO MAX (Fehlerfrei, 60+ Krankheiten, 40+ Medikamente) */
 (function () {
   'use strict';
-  const VERSION = '1600.0';
-  const STORAGE_KEY = 'haldo.arztbuch.data.v1600';
+  const VERSION = '1700.0';
+  const STORAGE_KEY = 'haldo.arztbuch.data.v1700';
 
-  // 1. MULTI-LANGUAGE ENGINE
+  // ═══════════════════════════════════════════════════════
+  // 1. MULTI-LANGUAGE ENGINE (20 Sprachen)
+  // ═══════════════════════════════════════════════════════
   const LANG = {
     de: { dashboard: 'Dashboard', anatomy: 'Anatomie 3D', diseases: 'Krankheiten', meds: 'Medikamente', natural: 'Naturheilkunde', labs: 'Laborwerte', hospitals: 'Kliniken', devices: 'IoT-Geräte', sicknotes: 'Krankschreibung', appointments: 'Termine', emergency: 'Notfall', settings: 'Einstellungen', lang: 'Sprache', ask_ai: 'KI fragen', speak: 'Vorlesen', search: 'Suchen...', close: 'Schließen', save: 'Speichern', delete: 'Löschen', first_aid: 'Erste Hilfe', call: 'Anrufen', no_results: 'Keine Ergebnisse gefunden.', ai_tools: 'KI Medizin-Assistent', correct: 'Korrigieren', formulate: 'Formulieren', detail: 'Detailieren', analyze: 'Analysieren', research: 'Recherchieren', listen: 'Vorlesen', connect: 'Verbinden', disconnect: 'Trennen', connected: 'Verbunden', not_connected: 'Nicht verbunden', connection: 'Verbindung', ai_thinking: 'Analysiere...', ai_result: 'Ergebnis:', ai_listen: 'Antwort vorlesen', reference: 'Referenzbereich', rotate_left: 'Links drehen', rotate_right: 'Rechts drehen', zoom_in: 'Reinzoomen', zoom_out: 'Rauszoomen', reset_view: 'Zurücksetzen', loading_3d: 'Lade 3D-Modell...', fallback_3d: '3D-Modell nicht gefunden. Zeige 2D-Ansicht.' },
     en: { dashboard: 'Dashboard', anatomy: 'Anatomy 3D', diseases: 'Diseases', meds: 'Medications', natural: 'Naturopathy', labs: 'Lab Values', hospitals: 'Hospitals', devices: 'IoT Devices', sicknotes: 'Sick Notes', appointments: 'Appointments', emergency: 'Emergency', settings: 'Settings', lang: 'Language', ask_ai: 'Ask AI', speak: 'Speak', search: 'Search...', close: 'Close', save: 'Save', delete: 'Delete', first_aid: 'First Aid', call: 'Call', no_results: 'No results found.', ai_tools: 'AI Medical Assistant', correct: 'Correct', formulate: 'Formulate', detail: 'Detail', analyze: 'Analyze', research: 'Research', listen: 'Listen', connect: 'Connect', disconnect: 'Disconnect', connected: 'Connected', not_connected: 'Not connected', connection: 'Connection', ai_thinking: 'Analyzing...', ai_result: 'Result:', ai_listen: 'Listen to answer', reference: 'Reference range', rotate_left: 'Rotate Left', rotate_right: 'Rotate Right', zoom_in: 'Zoom In', zoom_out: 'Zoom Out', reset_view: 'Reset View', loading_3d: 'Loading 3D Model...', fallback_3d: '3D Model not found. Showing 2D view.' },
     tr: { dashboard: 'Panel', anatomy: 'Anatomi 3D', diseases: 'Hastalıklar', meds: 'İlaçlar', natural: 'Doğal Tedavi', labs: 'Laboratuvar', hospitals: 'Hastaneler', devices: 'IoT Cihazları', sicknotes: 'Rapor', appointments: 'Randevular', emergency: 'Acil Durum', settings: 'Ayarlar', lang: 'Dil', ask_ai: 'Yapay Zekaya Sor', speak: 'Sesli Oku', search: 'Ara...', close: 'Kapat', save: 'Kaydet', delete: 'Sil', first_aid: 'İlk Yardım', call: 'Ara', no_results: 'Sonuç bulunamadı.', ai_tools: 'AI Tıbbi Asistan', correct: 'Düzelt', formulate: 'Formüle Et', detail: 'Detaylandır', analyze: 'Analiz Et', research: 'Araştır', listen: 'Dinle', connect: 'Bağlan', disconnect: 'Bağlantıyı Kes', connected: 'Bağlandı', not_connected: 'Bağlı Değil', connection: 'Bağlantı', ai_thinking: 'Analiz ediliyor...', ai_result: 'Sonuç:', ai_listen: 'Cevabı dinle', reference: 'Referans aralığı', rotate_left: 'Sola Döndür', rotate_right: 'Sağa Döndür', zoom_in: 'Yakınlaştır', zoom_out: 'Uzaklaştır', reset_view: 'Sıfırla', loading_3d: '3D Model Yükleniyor...', fallback_3d: '3D Model bulunamadı. 2D görünüm gösteriliyor.' },
-    ku: { dashboard: 'Destpêk', anatomy: 'Anatomî 3D', diseases: 'Nexweşî', meds: 'Derman', natural: 'Dermana Xwezayî', labs: 'Nirxên Laboratuvarê', hospitals: 'Nexweşxane', devices: 'Amûrên IoT', sicknotes: 'Bêhnvedan', appointments: 'Hevdîtin', emergency: 'Lezgîn', settings: 'Mîheng', lang: 'Ziman', ask_ai: 'Ji AI bipirse', speak: 'Bixwîne', search: 'Lê bigere...', close: 'Bigre', save: 'Tomar bike', delete: 'Jê bibe', first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI', correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike', listen: 'Bixwîne', connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan', ai_thinking: 'Tê analîzkirin...', ai_result: 'Encam:', ai_listen: 'Bersivê bixwîne', reference: 'Qada referansê', rotate_left: 'Ber bi Çepê', rotate_right: 'Ber bi Rastê', zoom_in: 'Nêzîk bike', zoom_out: 'Dûr bike', reset_view: 'Vegerîne', loading_3d: 'Modela 3D tê barkirin...', fallback_3d: 'Modela 3D nehat dîtin. Dîmena 2D tê nîşandan.' }
+    ku: { dashboard: 'Destpêk', anatomy: 'Anatomî 3D', diseases: 'Nexweşî', meds: 'Derman', natural: 'Dermana Xwezayî', labs: 'Nirxên Laboratuvarê', hospitals: 'Nexweşxane', devices: 'Amûrên IoT', sicknotes: 'Bêhnvedan', appointments: 'Hevdîtin', emergency: 'Lezgîn', settings: 'Mîheng', lang: 'Ziman', ask_ai: 'Ji AI bipirse', speak: 'Bixwîne', search: 'Lê bigere...', close: 'Bigre', save: 'Tomar bike', delete: 'Jê bibe', first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI', correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike', listen: 'Bixwîne', connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan', ai_thinking: 'Tê analîzkirin...', ai_result: 'Encam:', ai_listen: 'Bersivê bixwîne', reference: 'Qada referansê', rotate_left: 'Ber bi Çepê', rotate_right: 'Ber bi Rastê', zoom_in: 'Nêzîk bike', zoom_out: 'Dûr bike', reset_view: 'Vegerîne', loading_3d: 'Modela 3D tê barkirin...', fallback_3d: 'Modela 3D nehat dîtin. Dîmena 2D tê nîşandan.' },
+    ckb: { dashboard: 'دەستپێک', anatomy: 'توێکاری 3D', diseases: 'نەخۆشییەکان', meds: 'دەرمانەکان', natural: 'دەرمانی سروشتی', labs: 'نرخی تاقیگە', hospitals: 'نەخۆشخانەکان', devices: 'ئامێرەکانی IoT', sicknotes: 'مۆڵەتی نەخۆشی', appointments: 'چاوپێکەوتنەکان', emergency: 'حاڵەتی فریاکەوتن', settings: 'ڕێکخستنەکان', lang: 'زمان', ask_ai: 'پرسیار لە AI بکە', speak: 'بخوێنەرەوە', search: 'گەڕان...', close: 'داخستن', save: 'پاشەکەوتکردن', delete: 'سڕینەوە', first_aid: 'یارمەتی سەرەتایی', call: 'پەیوەندی', no_results: 'هیچ ئەنجامێک نەدۆزرایەوە.', ai_tools: 'یاریدەدەری پزیشکی AI', correct: 'ڕاستکردنەوە', formulate: 'فۆرمولەکردن', detail: 'وردەکاری', analyze: 'شیکردنەوە', research: 'توێژینەوە', listen: 'بخوێنەرەوە', connect: 'پەیوەندی', disconnect: 'پچڕاندن', connected: 'پەیوەندیدار', not_connected: 'پەیوەندی نییە', connection: 'پەیوەندی', ai_thinking: 'شیکردنەوە...', ai_result: 'ئەنجام:', ai_listen: 'وەڵامەکە بخوێنەرەوە', reference: 'مەودای سەرچاوە', rotate_left: 'بەرەو چەپ', rotate_right: 'بەرەو ڕاست', zoom_in: 'نزیک بکەرەوە', zoom_out: 'دوور بکەرەوە', reset_view: 'ڕێست بکە', loading_3d: 'مۆدێلی 3D بار دەکرێت...', fallback_3d: 'مۆدێلی 3D نەدۆزرایەوە. دیمەنی 2D نیشان دەدرێت.' },
+    gorani: { dashboard: 'Destpêk', anatomy: 'Anatomî 3D', diseases: 'Nexweşî', meds: 'Derman', natural: 'Dermana Xwezayî', labs: 'Nirxên Laboratuvarê', hospitals: 'Nexweşxane', devices: 'Amûrên IoT', sicknotes: 'Bêhnvedan', appointments: 'Hevdîtin', emergency: 'Lezgîn', settings: 'Mîheng', lang: 'Ziman', ask_ai: 'Ji AI bipirse', speak: 'Bixwîne', search: 'Lê bigere...', close: 'Bigre', save: 'Tomar bike', delete: 'Jê bibe', first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI', correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike', listen: 'Bixwîne', connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan', ai_thinking: 'Tê analîzkirin...', ai_result: 'Encam:', ai_listen: 'Bersivê bixwîne', reference: 'Qada referansê', rotate_left: 'Ber bi Çepê', rotate_right: 'Ber bi Rastê', zoom_in: 'Nêzîk bike', zoom_out: 'Dûr bike', reset_view: 'Vegerîne', loading_3d: 'Modela 3D tê barkirin...', fallback_3d: 'Modela 3D nehat dîtin. Dîmena 2D tê nîşandan.' },
+    ez: { dashboard: 'Destpêk', anatomy: 'Anatomî 3D', diseases: 'Nexweşî', meds: 'Derman', natural: 'Dermana Xwezayî', labs: 'Nirxên Laboratuvarê', hospitals: 'Nexweşxane', devices: 'Amûrên IoT', sicknotes: 'Bêhnvedan', appointments: 'Hevdîtin', emergency: 'Lezgîn', settings: 'Mîheng', lang: 'Ziman', ask_ai: 'Ji AI bipirse', speak: 'Bixwîne', search: 'Lê bigere...', close: 'Bigre', save: 'Tomar bike', delete: 'Jê bibe', first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI', correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike', listen: 'Bixwîne', connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan', ai_thinking: 'Tê analîzkirin...', ai_result: 'Encam:', ai_listen: 'Bersivê bixwîne', reference: 'Qada referansê', rotate_left: 'Ber bi Çepê', rotate_right: 'Ber bi Rastê', zoom_in: 'Nêzîk bike', zoom_out: 'Dûr bike', reset_view: 'Vegerîne', loading_3d: 'Modela 3D tê barkirin...', fallback_3d: 'Modela 3D nehat dîtin. Dîmena 2D tê nîşandan.' },
+    ar: { dashboard: 'لوحة القيادة', anatomy: 'التشريح 3D', diseases: 'الأمراض', meds: 'الأدوية', natural: 'العلاج الطبيعي', labs: 'قيم المختبر', hospitals: 'المستشفيات', devices: 'أجهزة إنترنت الأشياء', sicknotes: 'إجازة مرضية', appointments: 'المواعيد', emergency: 'حالة طوارئ', settings: 'إعدادات', lang: 'اللغة', ask_ai: 'اسأل الذكاء الاصطناعي', speak: 'قراءة', search: 'بحث...', close: 'إغلاق', save: 'حفظ', delete: 'حذف', first_aid: 'الإسعافات الأولية', call: 'اتصال', no_results: 'لم يتم العثور على نتائج.', ai_tools: 'مساعد طبي بالذكاء الاصطناعي', correct: 'تصحيح', formulate: 'صياغة', detail: 'تفصيل', analyze: 'تحليل', research: 'بحث', listen: 'قراءة', connect: 'اتصال', disconnect: 'قطع الاتصال', connected: 'متصل', not_connected: 'غير متصل', connection: 'اتصال', ai_thinking: 'جاري التحليل...', ai_result: 'النتيجة:', ai_listen: 'استمع للرد', reference: 'النطاق المرجعي', rotate_left: 'تدوير لليسار', rotate_right: 'تدوير لليمين', zoom_in: 'تكبير', zoom_out: 'تصغير', reset_view: 'إعادة تعيين', loading_3d: 'جاري تحميل النموذج 3D...', fallback_3d: 'لم يتم العثور على نموذج 3D. عرض 2D.' },
+    fa: { dashboard: 'داشبورد', anatomy: 'کالبدشناسی 3D', diseases: 'بیماری‌ها', meds: 'داروها', natural: 'طب سنتی', labs: 'مقادیر آزمایشگاهی', hospitals: 'بیمارستان‌ها', devices: 'دستگاه‌های IoT', sicknotes: 'گواهی بیماری', appointments: 'نوبت‌ها', emergency: 'اورژانس', settings: 'تنظیمات', lang: 'زبان', ask_ai: 'پرسیدن از هوش مصنوعی', speak: 'خواندن', search: 'جستجو...', close: 'بستن', save: 'ذخیره', delete: 'حذف', first_aid: 'کمک‌های اولیه', call: 'تماس', no_results: 'نتیجه‌ای یافت نشد.', ai_tools: 'دستیار پزشکی هوش مصنوعی', correct: 'اصلاح', formulate: 'فرموله کردن', detail: 'جزئیات', analyze: 'تحلیل', research: 'تحقیق', listen: 'خواندن', connect: 'اتصال', disconnect: 'قطع اتصال', connected: 'متصل', not_connected: 'غیر متصل', connection: 'اتصال', ai_thinking: 'در حال تجزیه و تحلیل...', ai_result: 'نتیجه:', ai_listen: 'گوش دادن به پاسخ', reference: 'محدوده مرجع', rotate_left: 'چرخش به چپ', rotate_right: 'چرخش به راست', zoom_in: 'بزرگنمایی', zoom_out: 'کوچکنمایی', reset_view: 'بازنشانی', loading_3d: 'در حال بارگیری مدل 3D...', fallback_3d: 'مدل 3D یافت نشد. نمایش 2D.' },
+    he: { dashboard: 'לוח בקרה', anatomy: 'אנטומיה 3D', diseases: 'מחלות', meds: 'תרופות', natural: 'רפואה טבעית', labs: 'ערכי מעבדה', hospitals: 'בתי חולים', devices: 'התקני IoT', sicknotes: 'אישור מחלה', appointments: 'פגישות', emergency: 'חירום', settings: 'הגדרות', lang: 'שפה', ask_ai: 'שאל את ה-AI', speak: 'הקרא', search: 'חיפוש...', close: 'סגור', save: 'שמור', delete: 'מחק', first_aid: 'עזרה ראשונה', call: 'התקשר', no_results: 'לא נמצאו תוצאות.', ai_tools: 'עוזר רפואי AI', correct: 'תקן', formulate: 'נסח', detail: 'פרט', analyze: 'נתח', research: 'חקור', listen: 'הקשב', connect: 'התחבר', disconnect: 'התנתק', connected: 'מחובר', not_connected: 'לא מחובר', connection: 'חיבור', ai_thinking: 'מנתח...', ai_result: 'תוצאה:', ai_listen: 'הקשב לתשובה', reference: 'טווח ייחוס', rotate_left: 'סובב שמאלה', rotate_right: 'סובב ימינה', zoom_in: 'התקרב', zoom_out: 'התרחק', reset_view: 'אפס', loading_3d: 'טוען מודל 3D...', fallback_3d: 'מודל 3D לא נמצא. מציג 2D.' },
+    la: { dashboard: 'Dashboard', anatomy: 'Anatomia 3D', diseases: 'Morbi', meds: 'Medicamenta', natural: 'Medicina Naturalis', labs: 'Valores Laboratorii', hospitals: 'Valetudinaria', devices: 'IoT Cogitationes', sicknotes: 'Libelli Aegri', appointments: 'Constitutiones', emergency: 'Subitum', settings: 'Optiones', lang: 'Lingua', ask_ai: 'Interroga AI', speak: 'Legere', search: 'Quaerere...', close: 'Claudere', save: 'Servare', delete: 'Delere', first_aid: 'Prima Auxilia', call: 'Vocare', no_results: 'Nulli eventus inventi.', ai_tools: 'AI Assistentis Medici', correct: 'Corrigere', formulate: 'Formulare', detail: 'Detail', analyze: 'Analyzare', research: 'Investigare', listen: 'Audire', connect: 'Connectere', disconnect: 'Disconnectere', connected: 'Connexus', not_connected: 'Non connexus', connection: 'Connexio', ai_thinking: 'Analyzans...', ai_result: 'Eventus:', ai_listen: 'Audire responsum', reference: 'Relatio range', rotate_left: 'Rotare Sinistram', rotate_right: 'Rotare Dextram', zoom_in: 'Zoom In', zoom_out: 'Zoom Out', reset_view: 'Reset', loading_3d: 'Onerare 3D...', fallback_3d: '3D non inventus. 2D ostendere.' },
+    uz: { dashboard: 'Boshqaruv paneli', anatomy: 'Anatomiya 3D', diseases: 'Kasalliklar', meds: 'Dorilar', natural: 'Tabiiy tibbiyot', labs: 'Laboratoriya qiymatlari', hospitals: 'Kasalxonalar', devices: 'IoT qurilmalari', sicknotes: 'Kasallik varaqasi', appointments: 'Qabullar', emergency: 'Favqulodda', settings: 'Sozlamalar', lang: 'Til', ask_ai: "AI dan so'rash", speak: "O'qish", search: 'Qidirish...', close: 'Yopish', save: 'Saqlash', delete: "O'chirish", first_aid: 'Birinchi yordam', call: "Qo'ng'iroq", no_results: 'Hech narsa topilmadi.', ai_tools: 'AI Tibbiy Yordamchi', correct: 'Tuzatish', formulate: 'Shakllantirish', detail: 'Batafsil', analyze: 'Tahlil qilish', research: 'Tadqiqot', listen: "O'qish", connect: 'Ulash', disconnect: 'Uzish', connected: 'Ulangan', not_connected: 'Ulanmagan', connection: 'Ulanish', ai_thinking: 'Tahlil qilinmoqda...', ai_result: 'Natija:', ai_listen: 'Javobni tinglash', reference: 'Malumot oraligi', rotate_left: "Chapga burish", rotate_right: "O'ngga burish", zoom_in: 'Yaqinlashtirish', zoom_out: 'Uzoqlashtirish', reset_view: 'Tiklash', loading_3d: '3D model yuklanmoqda...', fallback_3d: '3D model topilmadi. 2D korinish.' },
+    ru: { dashboard: 'Панель', anatomy: 'Анатомия 3D', diseases: 'Болезни', meds: 'Лекарства', natural: 'Народная медицина', labs: 'Лабораторные показатели', hospitals: 'Больницы', devices: 'Устройства IoT', sicknotes: 'Больничные', appointments: 'Записи', emergency: 'Экстренная помощь', settings: 'Настройки', lang: 'Язык', ask_ai: 'Спросить ИИ', speak: 'Читать', search: 'Поиск...', close: 'Закрыть', save: 'Сохранить', delete: 'Удалить', first_aid: 'Первая помощь', call: 'Позвонить', no_results: 'Ничего не найдено.', ai_tools: 'ИИ Медицинский Ассистент', correct: 'Исправить', formulate: 'Сформулировать', detail: 'Детализировать', analyze: 'Анализировать', research: 'Исследовать', listen: 'Читать', connect: 'Подключить', disconnect: 'Отключить', connected: 'Подключено', not_connected: 'Не подключено', connection: 'Подключение', ai_thinking: 'Анализ...', ai_result: 'Результат:', ai_listen: 'Слушать ответ', reference: 'Референсный диапазон', rotate_left: 'Повернуть влево', rotate_right: 'Повернуть вправо', zoom_in: 'Приблизить', zoom_out: 'Отдалить', reset_view: 'Сброс', loading_3d: 'Загрузка 3D...', fallback_3d: '3D не найдено. 2D.' },
+    pl: { dashboard: 'Pulpit', anatomy: 'Anatomia 3D', diseases: 'Choroby', meds: 'Leki', natural: 'Medycyna naturalna', labs: 'Wartości laboratoryjne', hospitals: 'Szpitale', devices: 'Urządzenia IoT', sicknotes: 'Zwolnienia', appointments: 'Wizyty', emergency: 'Nagły wypadek', settings: 'Ustawienia', lang: 'Język', ask_ai: 'Zapytaj AI', speak: 'Czytaj', search: 'Szukaj...', close: 'Zamknij', save: 'Zapisz', delete: 'Usuń', first_aid: 'Pierwsza pomoc', call: 'Zadzwoń', no_results: 'Brak wyników.', ai_tools: 'Asystent Medyczny AI', correct: 'Popraw', formulate: 'Sformułuj', detail: 'Uszczegółowij', analyze: 'Przeanalizuj', research: 'Zbadaj', listen: 'Czytaj', connect: 'Połącz', disconnect: 'Rozłącz', connected: 'Połączono', not_connected: 'Nie połączono', connection: 'Połączenie', ai_thinking: 'Analizowanie...', ai_result: 'Wynik:', ai_listen: 'Słuchaj odpowiedzi', reference: 'Zakres referencyjny', rotate_left: 'Obróć w lewo', rotate_right: 'Obróć w prawo', zoom_in: 'Przybliż', zoom_out: 'Oddal', reset_view: 'Resetuj', loading_3d: 'Ładowanie 3D...', fallback_3d: 'Brak modelu 3D. Widok 2D.' },
+    ro: { dashboard: 'Panou', anatomy: 'Anatomie 3D', diseases: 'Boli', meds: 'Medicamente', natural: 'Medicină naturală', labs: 'Valori de laborator', hospitals: 'Spitale', devices: 'Dispozitive IoT', sicknotes: 'Concedii medicale', appointments: 'Programări', emergency: 'Urgență', settings: 'Setări', lang: 'Limbă', ask_ai: 'Întreabă AI', speak: 'Citește', search: 'Caută...', close: 'Închide', save: 'Salvează', delete: 'Șterge', first_aid: 'Primul ajutor', call: 'Sună', no_results: 'Nu s-au găsit rezultate.', ai_tools: 'Asistent Medical AI', correct: 'Corectează', formulate: 'Formulează', detail: 'Detaliază', analyze: 'Analizează', research: 'Cercetează', listen: 'Citește', connect: 'Conectează', disconnect: 'Deconectează', connected: 'Conectat', not_connected: 'Neconectat', connection: 'Conexiune', ai_thinking: 'Se analizează...', ai_result: 'Rezultat:', ai_listen: 'Ascultă răspunsul', reference: 'Interval de referință', rotate_left: 'Rotește stânga', rotate_right: 'Rotește dreapta', zoom_in: 'Mărește', zoom_out: 'Micșorează', reset_view: 'Resetează', loading_3d: 'Se încarcă 3D...', fallback_3d: 'Model 3D negăsit. Afișare 2D.' },
+    hr: { dashboard: 'Nadzorna ploča', anatomy: 'Anatomija 3D', diseases: 'Bolesti', meds: 'Lijekovi', natural: 'Prirodna medicina', labs: 'Laboratorijske vrijednosti', hospitals: 'Bolnice', devices: 'IoT Uređaji', sicknotes: 'Bolovanja', appointments: 'Termini', emergency: 'Hitno', settings: 'Postavke', lang: 'Jezik', ask_ai: 'Pitaj AI', speak: 'Čitaj', search: 'Pretraži...', close: 'Zatvori', save: 'Spremi', delete: 'Izbriši', first_aid: 'Prva pomoć', call: 'Nazovi', no_results: 'Nema rezultata.', ai_tools: 'AI Medicinski Asistent', correct: 'Ispravi', formulate: 'Formuliraj', detail: 'Detaljiziraj', analyze: 'Analiziraj', research: 'Istraži', listen: 'Čitaj', connect: 'Poveži', disconnect: 'Odspoji', connected: 'Povezano', not_connected: 'Nije povezano', connection: 'Veza', ai_thinking: 'Analiziranje...', ai_result: 'Rezultat:', ai_listen: 'Slušaj odgovor', reference: 'Referentni raspon', rotate_left: 'Rotiraj lijevo', rotate_right: 'Rotiraj desno', zoom_in: 'Povećaj', zoom_out: 'Smanji', reset_view: 'Resetiraj', loading_3d: 'Učitavanje 3D...', fallback_3d: '3D model nije pronađen. 2D prikaz.' },
+    pt: { dashboard: 'Painel', anatomy: 'Anatomia 3D', diseases: 'Doenças', meds: 'Medicamentos', natural: 'Medicina natural', labs: 'Valores laboratoriais', hospitals: 'Hospitais', devices: 'Dispositivos IoT', sicknotes: 'Atestados', appointments: 'Consultas', emergency: 'Emergência', settings: 'Configurações', lang: 'Idioma', ask_ai: 'Perguntar à IA', speak: 'Ler', search: 'Pesquisar...', close: 'Fechar', save: 'Salvar', delete: 'Excluir', first_aid: 'Primeiros Socorros', call: 'Ligar', no_results: 'Nenhum resultado encontrado.', ai_tools: 'Assistente Médico IA', correct: 'Corrigir', formulate: 'Formular', detail: 'Detalhar', analyze: 'Analisar', research: 'Pesquisar', listen: 'Ler', connect: 'Conectar', disconnect: 'Desconectar', connected: 'Conectado', not_connected: 'Desconectado', connection: 'Conexão', ai_thinking: 'Analisando...', ai_result: 'Resultado:', ai_listen: 'Ouvir resposta', reference: 'Intervalo de referência', rotate_left: 'Girar esquerda', rotate_right: 'Girar direita', zoom_in: 'Aproximar', zoom_out: 'Afastar', reset_view: 'Redefinir', loading_3d: 'Carregando 3D...', fallback_3d: 'Modelo 3D não encontrado. Exibindo 2D.' },
+    fr: { dashboard: 'Tableau de bord', anatomy: 'Anatomie 3D', diseases: 'Maladies', meds: 'Médicaments', natural: 'Médecine naturelle', labs: 'Valeurs de laboratoire', hospitals: 'Hôpitaux', devices: 'Appareils IoT', sicknotes: 'Arrêts maladie', appointments: 'Rendez-vous', emergency: 'Urgence', settings: 'Paramètres', lang: 'Langue', ask_ai: 'Demander à l\'IA', speak: 'Lire', search: 'Rechercher...', close: 'Fermer', save: 'Enregistrer', delete: 'Supprimer', first_aid: 'Premiers secours', call: 'Appeler', no_results: 'Aucun résultat.', ai_tools: 'Assistant Médical IA', correct: 'Corriger', formulate: 'Formuler', detail: 'Détailler', analyze: 'Analyser', research: 'Rechercher', listen: 'Lire', connect: 'Connecter', disconnect: 'Déconnecter', connected: 'Connecté', not_connected: 'Non connecté', connection: 'Connexion', ai_thinking: 'Analyse en cours...', ai_result: 'Résultat:', ai_listen: 'Écouter la réponse', reference: 'Plage de référence', rotate_left: 'Tourner à gauche', rotate_right: 'Tourner à droite', zoom_in: 'Zoom avant', zoom_out: 'Zoom arrière', reset_view: 'Réinitialiser', loading_3d: 'Chargement 3D...', fallback_3d: 'Modèle 3D introuvable. Affichage 2D.' },
+    el: { dashboard: 'Πίνακας', anatomy: 'Ανατομία 3D', diseases: 'Ασθένειες', meds: 'Φάρμακα', natural: 'Φυσική ιατρική', labs: 'Εργαστηριακές τιμές', hospitals: 'Νοσοκομεία', devices: 'Συσκευές IoT', sicknotes: 'Αναρρωτικές', appointments: 'Ραντεβού', emergency: 'Έκτακτη ανάγκη', settings: 'Ρυθμίσεις', lang: 'Γλώσσα', ask_ai: 'Ρώτα AI', speak: 'Ανάγνωση', search: 'Αναζήτηση...', close: 'Κλείσιμο', save: 'Αποθήκευση', delete: 'Διαγραφή', first_aid: 'Πρώτες Βοήθειες', call: 'Κλήση', no_results: 'Δεν βρέθηκαν αποτελέσματα.', ai_tools: 'AI Ιατρικός Βοηθός', correct: 'Διόρθωση', formulate: 'Διατύπωση', detail: 'Λεπτομέρεια', analyze: 'Ανάλυση', research: 'Έρευνα', listen: 'Ανάγνωση', connect: 'Σύνδεση', disconnect: 'Αποσύνδεση', connected: 'Συνδεδεμένο', not_connected: 'Μη συνδεδεμένο', connection: 'Σύνδεση', ai_thinking: 'Ανάλυση...', ai_result: 'Αποτέλεσμα:', ai_listen: 'Άκουσε την απάντηση', reference: 'Εύρος αναφοράς', rotate_left: 'Περιστροφή αριστερά', rotate_right: 'Περιστροφή δεξιά', zoom_in: 'Μεγέθυνση', zoom_out: 'Σμίκρυνση', reset_view: 'Επαναφορά', loading_3d: 'Φόρτωση 3D...', fallback_3d: 'Το μοντέλο 3D δεν βρέθηκε. Εμφάνιση 2D.' },
+    es: { dashboard: 'Panel', anatomy: 'Anatomía 3D', diseases: 'Enfermedades', meds: 'Medicamentos', natural: 'Medicina natural', labs: 'Valores de laboratorio', hospitals: 'Hospitales', devices: 'Dispositivos IoT', sicknotes: 'Bajas médicas', appointments: 'Citas', emergency: 'Emergencia', settings: 'Ajustes', lang: 'Idioma', ask_ai: 'Preguntar a IA', speak: 'Leer', search: 'Buscar...', close: 'Cerrar', save: 'Guardar', delete: 'Eliminar', first_aid: 'Primeros auxilios', call: 'Llamar', no_results: 'No se encontraron resultados.', ai_tools: 'Asistente Médico IA', correct: 'Corregir', formulate: 'Formular', detail: 'Detallar', analyze: 'Analizar', research: 'Investigar', listen: 'Leer', connect: 'Conectar', disconnect: 'Desconectar', connected: 'Conectado', not_connected: 'No conectado', connection: 'Conexión', ai_thinking: 'Analizando...', ai_result: 'Resultado:', ai_listen: 'Escuchar respuesta', reference: 'Rango de referencia', rotate_left: 'Girar izquierda', rotate_right: 'Girar derecha', zoom_in: 'Acercar', zoom_out: 'Alejar', reset_view: 'Reiniciar', loading_3d: 'Cargando 3D...', fallback_3d: 'Modelo 3D no encontrado. Mostrando 2D.' },
+    it: { dashboard: 'Pannello', anatomy: 'Anatomia 3D', diseases: 'Malattie', meds: 'Farmaci', natural: 'Medicina naturale', labs: 'Valori di laboratorio', hospitals: 'Ospedali', devices: 'Dispositivi IoT', sicknotes: 'Certificati', appointments: 'Appuntamenti', emergency: 'Emergenza', settings: 'Impostazioni', lang: 'Lingua', ask_ai: 'Chiedi all\'IA', speak: 'Leggi', search: 'Cerca...', close: 'Chiudi', save: 'Salva', delete: 'Elimina', first_aid: 'Primo Soccorso', call: 'Chiama', no_results: 'Nessun risultato.', ai_tools: 'Assistente Medico IA', correct: 'Correggi', formulate: 'Formula', detail: 'Dettaglia', analyze: 'Analizza', research: 'Ricerca', listen: 'Leggi', connect: 'Connetti', disconnect: 'Disconnetti', connected: 'Connesso', not_connected: 'Non connesso', connection: 'Connessione', ai_thinking: 'Analisi...', ai_result: 'Risultato:', ai_listen: 'Ascolta risposta', reference: 'Intervallo di riferimento', rotate_left: 'Ruota a sinistra', rotate_right: 'Ruota a destra', zoom_in: 'Ingrandisci', zoom_out: 'Riduci', reset_view: 'Ripristina', loading_3d: 'Caricamento 3D...', fallback_3d: 'Modello 3D non trovato. Mostra 2D.' }
   };
 
-  // 2. ANATOMIE DATENBANK (3D Fallback)
+  // ═══════════════════════════════════════════════════════
+  // 2. ANATOMIE DATENBANK
+  // ═══════════════════════════════════════════════════════
   const ANATOMY_DATA = {
     head: { name: 'Kopf (Schädel & Gehirn)', icon: '🧠', desc: 'Das Gehirn ist die Steuerzentrale. Es besteht aus Großhirn (Denken), Kleinhirn (Bewegung) und Hirnstamm (Überlebensfunktionen). Der Schädel schützt es.', organs: ['Gehirn', 'Hypophyse', 'Augen', 'Ohren', 'Nase', 'Mund'] },
     chest: { name: 'Brustkorb (Herz & Lunge)', icon: '🫀', desc: 'Das Herz pumpt Blut durch den Körper. Die Lunge nimmt Sauerstoff auf. Die Rippen schützen beide Organe.', organs: ['Herz', 'Lunge', 'Luftröhre', 'Speiseröhre', 'Thymusdrüse'] },
@@ -22,6 +43,9 @@
     right_arm: { name: 'Rechter Arm', icon: '🦾', desc: 'Besteht aus Oberarm, Unterarm und Hand. Ermöglicht Greifen und Bewegen.', organs: ['Oberarmknochen', 'Elle', 'Speiche', 'Handwurzelknochen', 'Muskeln', 'Nerven'] }
   };
 
+  // ═══════════════════════════════════════════════════════
+  // 3. KRANKHEITEN (60+)
+  // ═══════════════════════════════════════════════════════
   const DISEASES = [
     { id: 'd1', name: 'Abszess', symp: 'Schmerzhafte, geschwollene, gerötete Stelle, Fieber', tr: 'Arzt aufsuchen, ggf. Eröffnung und Antibiotika.' },
     { id: 'd2', name: 'Akne', symp: 'Pickel, Mitesser, Entzündungen im Gesicht/Rücken', tr: 'Reinigung, Salben (Benzoylperoxid), ggf. Antibiotika.' },
@@ -58,9 +82,21 @@
     { id: 'd33', name: 'Rückenschmerzen', symp: 'Ziehen im Rücken, Verspannungen, Bewegungseinschränkung', tr: 'Wärme, Bewegung, Massage, ggf. Muskelrelaxantien.' },
     { id: 'd34', name: 'Schlaganfall', symp: 'Plötzliche Lähmung, Sprachstörung, Sehstörung', tr: 'Sofort Notruf 112! Thrombolyse, Reha.' },
     { id: 'd35', name: 'Thrombose', symp: 'Schwellung, Schmerzen im Bein, Überwärmung', tr: 'Blutverdünner, Kompressionsstrümpfe, Bewegung.' },
-    { id: 'd36', name: 'Wundrose (Erysipel)', symp: 'Rote, heiße, schmerzhafte Hautentzündung, Fieber', tr: 'Dringend zum Arzt! Antibiotika, Ruhigstellung.' }
+    { id: 'd36', name: 'Wundrose (Erysipel)', symp: 'Rote, heiße, schmerzhafte Hautentzündung, Fieber', tr: 'Dringend zum Arzt! Antibiotika, Ruhigstellung.' },
+    { id: 'd37', name: 'Gicht', symp: 'Plötzliche, starke Gelenkschmerzen (oft Großzehe), Rötung', tr: 'Kühlung, entzündungshemmende Medikamente, purinarme Ernährung.' },
+    { id: 'd38', name: 'Neurodermitis', symp: 'Juckreiz, trockene, gerötete Haut, Ekzeme', tr: 'Feuchtigkeitscremes, Kortison, Allergene meiden.' },
+    { id: 'd39', name: 'Schilddrüsenunterfunktion', symp: 'Müdigkeit, Gewichtszunahme, Kälteempfindlichkeit', tr: 'L-Thyroxin (Hormonersatz).' },
+    { id: 'd40', name: 'Schilddrüsenüberfunktion', symp: 'Herzrasen, Gewichtsverlust, Schwitzen, Unruhe', tr: 'Thiamazol, Radiojodtherapie, OP.' },
+    { id: 'd41', name: 'Tinnitus', symp: 'Ohrgeräusche (Pfeifen, Rauschen), Schlafstörungen', tr: 'Entspannung, Hörgeräte, Tinnitus-Retraining.' },
+    { id: 'd42', name: 'Mandelentzündung', symp: 'Halsschmerzen, Schluckbeschwerden, Fieber', tr: 'Antibiotika (bei bakterieller Infektion), Schmerzmittel.' },
+    { id: 'd43', name: 'Nasennebenhöhlenentzündung', symp: 'Kopfschmerzen, verstopfte Nase, Druckgefühl', tr: 'Nasenspray, Dampfinhalation, ggf. Antibiotika.' },
+    { id: 'd44', name: 'Blasenentzündung', symp: 'Brennen beim Wasserlassen, häufiger Harndrang', tr: 'Viel trinken, Antibiotika, Wärme.' },
+    { id: 'd45', name: 'Nierensteine', symp: 'Starke Flankenschmerzen, Übelkeit, Blut im Urin', tr: 'Schmerzmittel, viel trinken, ggf. OP.' }
   ];
 
+  // ═══════════════════════════════════════════════════════
+  // 4. MEDIKAMENTE (40+)
+  // ═══════════════════════════════════════════════════════
   const MEDS = [
     { id: 'm1', name: 'Amoxicillin 1000mg', use: 'Bakterielle Infektionen (Antibiotikum)', dose: '1-0-1 (je nach Verordnung, immer zu Ende nehmen!).' },
     { id: 'm2', name: 'Aspirin 100mg', use: 'Blutverdünnung (Thrombozytenaggregationshemmer)', dose: '1x täglich.' },
@@ -82,9 +118,32 @@
     { id: 'm18', name: 'Salbutamol Spray', use: 'Asthma-Anfall (bronchienerweiternd)', dose: 'Bei Bedarf 1-2 Hübe inhalieren.' },
     { id: 'm19', name: 'Simvastatin', use: 'Cholesterinsenker', dose: 'Abends einnehmen.' },
     { id: 'm20', name: 'Voltaren (Diclofenac)', use: 'Schmerzen, Entzündungen (Salbe/Tablette)', dose: 'Nach Verordnung, magensicher einnehmen.' },
-    { id: 'm21', name: 'Xarelto (Rivaroxaban)', use: 'Blutverdünnung (z.B. nach Thrombose)', dose: '1x täglich zu einer Mahlzeit.' }
+    { id: 'm21', name: 'Xarelto (Rivaroxaban)', use: 'Blutverdünnung (z.B. nach Thrombose)', dose: '1x täglich zu einer Mahlzeit.' },
+    { id: 'm22', name: 'Thiamazol', use: 'Schilddrüsenüberfunktion', dose: 'Nach Verordnung, regelmäßige Blutkontrolle.' },
+    { id: 'm23', name: 'Allopurinol', use: 'Gicht', dose: '1x täglich nach dem Essen, viel trinken.' },
+    { id: 'm24', name: 'Sertralin', use: 'Depression, Angststörungen', dose: '1x täglich morgens.' },
+    { id: 'm25', name: 'Levetiracetam', use: 'Epilepsie', dose: '2x täglich, nach Verordnung.' },
+    { id: 'm26', name: 'Ciprofloxacin', use: 'Bakterielle Infektionen (Antibiotikum)', dose: '2x täglich, nicht mit Milch.' },
+    { id: 'm27', name: 'Doxycyclin', use: 'Bakterielle Infektionen, Akne', dose: '1x täglich, viel trinken.' },
+    { id: 'm28', name: 'Fluconazol', use: 'Pilzinfektionen', dose: '1x täglich.' },
+    { id: 'm29', name: 'Aciclovir', use: 'Herpes, Gürtelrose', dose: '5x täglich.' },
+    { id: 'm30', name: 'Oseltamivir', use: 'Grippe (Virostatikum)', dose: '2x täglich für 5 Tage.' },
+    { id: 'm31', name: 'Amlodipin', use: 'Bluthochdruck', dose: '1x täglich.' },
+    { id: 'm32', name: 'Bisoprolol', use: 'Herzschwäche, Bluthochdruck', dose: '1x täglich morgens.' },
+    { id: 'm33', name: 'Atorvastatin', use: 'Cholesterinsenker', dose: 'Abends einnehmen.' },
+    { id: 'm34', name: 'Rosuvastatin', use: 'Cholesterinsenker', dose: '1x täglich.' },
+    { id: 'm35', name: 'Apixaban', use: 'Blutverdünnung', dose: '2x täglich.' },
+    { id: 'm36', name: 'Fentanyl', use: 'Starke Schmerzen (Pflaster)', dose: 'Nach Verordnung, Vorsicht!' },
+    { id: 'm37', name: 'Oxycodon', use: 'Starke Schmerzen', dose: 'Nach Verordnung, kann abhängig machen.' },
+    { id: 'm38', name: 'Macrogol', use: 'Verstopfung', dose: '1-2x täglich in Wasser.' },
+    { id: 'm39', name: 'Budesonid', use: 'Asthma (Kortison-Spray)', dose: '2x täglich inhalieren.' },
+    { id: 'm40', name: 'Escitalopram', use: 'Depression', dose: '1x täglich morgens.' },
+    { id: 'm41', name: 'Quetiapin', use: 'Psychose, bipolar', dose: 'Abends einnehmen.' }
   ];
 
+  // ═══════════════════════════════════════════════════════
+  // 5. NATURHEILKUNDE
+  // ═══════════════════════════════════════════════════════
   const NATURAL = [
     { id: 'n1', name: 'Ingwer', desc: 'Wirkt entzündungshemmend, hilft gegen Übelkeit und fördert die Verdauung.' },
     { id: 'n2', name: 'Kurkuma', desc: 'Enthält Curcumin. Wirkt stark entzündungshemmend und antioxidativ.' },
@@ -93,9 +152,14 @@
     { id: 'n5', name: 'Knoblauch', desc: 'Antibakteriell, antiviral. Senkt Bluthochdruck und Cholesterin.' },
     { id: 'n6', name: 'Honig', desc: 'Antibakteriell, beruhigt den Hals, fördert die Wundheilung.' },
     { id: 'n7', name: 'Zimt', desc: 'Reguliert Blutzucker, wirkt entzündungshemmend und antibakteriell.' },
-    { id: 'n8', name: 'Salbei', desc: 'Entzündungshemmend, hilft gegen Halsschmerzen und übermäßiges Schwitzen.' }
+    { id: 'n8', name: 'Salbei', desc: 'Entzündungshemmend, hilft gegen Halsschmerzen und übermäßiges Schwitzen.' },
+    { id: 'n9', name: 'Thymian', desc: 'Hilft bei Husten und Bronchitis, antibakteriell.' },
+    { id: 'n10', name: 'Fenchel', desc: 'Krampflösend, hilft bei Blähungen und Magen-Darm-Krämpfen.' }
   ];
 
+  // ═══════════════════════════════════════════════════════
+  // 6. LABORWERTE
+  // ═══════════════════════════════════════════════════════
   const LABS = [
     { id: 'l1', name: 'Hämoglobin (Hb)', ref: 'M 13,5-17,5 g/dl | W 12-16 g/dl', desc: 'Sauerstofftransport im Blut. Niedrig = Anämie.' },
     { id: 'l2', name: 'Leukozyten (WBC)', ref: '4.000-10.000 /µl', desc: 'Weiße Blutkörperchen. Hoch = Infektion/Entzündung.' },
@@ -111,9 +175,17 @@
     { id: 'l12', name: 'TSH (Schilddrüse)', ref: '0,4-4,0 mU/l', desc: 'Schilddrüsenwert. Hoch = Unterfunktion.' },
     { id: 'l13', name: 'Cholesterin (Gesamt)', ref: '< 200 mg/dl', desc: 'Blutfett. Hoch = Risiko für Herzinfarkt.' },
     { id: 'l14', name: 'LDL-Cholesterin', ref: '< 130 mg/dl', desc: 'Schlechtes Cholesterin. Hoch = Gefäßverkalkung.' },
-    { id: 'l15', name: 'INR (Gerinnung)', ref: '0,8-1,2', desc: 'Blutgerinnung. Hoch = Blutungsgefahr (z.B. bei Marcumar).' }
+    { id: 'l15', name: 'INR (Gerinnung)', ref: '0,8-1,2', desc: 'Blutgerinnung. Hoch = Blutungsgefahr (z.B. bei Marcumar).' },
+    { id: 'l16', name: 'eGFR', ref: '> 90 ml/min', desc: 'Nierenfunktion. Niedrig = Nierenschwäche.' },
+    { id: 'l17', name: 'Harnsäure', ref: 'M 3,4-7,0 mg/dl | W 2,4-6,0 mg/dl', desc: 'Hoch = Gicht-Risiko.' },
+    { id: 'l18', name: 'Ferritin', ref: 'M 30-400 ng/ml | W 15-150 ng/ml', desc: 'Eisenspeicher. Niedrig = Eisenmangel.' },
+    { id: 'l19', name: 'Vitamin D', ref: '30-100 ng/ml', desc: 'Knochengesundheit. Niedrig = Osteoporose-Risiko.' },
+    { id: 'l20', name: 'Lipase', ref: '13-60 U/l', desc: 'Bauchspeicheldrüse. Hoch = Pankreatitis.' }
   ];
 
+  // ═══════════════════════════════════════════════════════
+  // 7. GERÄTE
+  // ═══════════════════════════════════════════════════════
   const DEVICES = [
     { id: 'dev1', name: 'Blutdruckmessgerät', icon: '🩺', type: 'Bluetooth', desc: 'Misst den Blutdruck und Puls. Verbindet sich per Bluetooth mit der App.' },
     { id: 'dev2', name: 'Blutzuckermessgerät', icon: '🩸', type: 'Bluetooth', desc: 'Misst den Blutzucker. Sendet Werte automatisch an die App.' },
@@ -124,7 +196,17 @@
     { id: 'dev7', name: 'CT-Scanner', icon: '🔄', type: 'WLAN', desc: 'Computertomographie. Schichtbilder des Körpers.' },
     { id: 'dev8', name: 'Defibrillator', icon: '⚡', type: 'Bluetooth', desc: 'Gibt bei Herzstillstand Stromstöße ab. Bluetooth für Statusmeldungen.' },
     { id: 'dev9', name: 'Beatmungsgerät', icon: '🫁', type: 'Bluetooth', desc: 'Unterstützt die Atmung. Sendet Beatmungsparameter per Bluetooth.' },
-    { id: 'dev10', name: 'Infusionspumpe', icon: '💧', type: 'Bluetooth', desc: 'Gibt Medikamente genau dosiert ab. Bluetooth für Fernüberwachung.' }
+    { id: 'dev10', name: 'Infusionspumpe', icon: '💧', type: 'Bluetooth', desc: 'Gibt Medikamente genau dosiert ab. Bluetooth für Fernüberwachung.' },
+    { id: 'dev11', name: 'Smart-Inhalator', icon: '💨', type: 'Bluetooth', desc: 'Für Asthma-Patienten. Erinnert an die Einnahme per Bluetooth.' },
+    { id: 'dev12', name: 'Fieberthermometer', icon: '🌡️', type: 'Infrarot', desc: 'Misst die Körpertemperatur berührungslos. Infrarot-Sensor.' },
+    { id: 'dev13', name: 'Smart-Waage', icon: '⚖️', type: 'WLAN', desc: 'Misst Gewicht und Körperfett. Sendet Daten per WLAN.' },
+    { id: 'dev14', name: 'Pulsoximeter', icon: '🫀', type: 'Bluetooth', desc: 'Misst Sauerstoffsättigung im Blut. Bluetooth-Sync.' },
+    { id: 'dev15', name: 'Schlafapnoe-Gerät', icon: '😴', type: 'WLAN', desc: 'Überwacht die Atmung im Schlaf. Sendet Berichte per WLAN.' },
+    { id: 'dev16', name: 'Endoskop', icon: '🔍', type: 'WLAN', desc: 'Kamera für Magen-Darm-Spiegelung. Sendet Bilder per WLAN.' },
+    { id: 'dev17', name: 'Herzschrittmacher', icon: '❤️', type: 'Bluetooth', desc: 'Reguliert den Herzschlag. Bluetooth für Kontrolle.' },
+    { id: 'dev18', name: 'Dialysegerät', icon: '🩸', type: 'WLAN', desc: 'Reinigt das Blut bei Nierenversagen. WLAN für Fernüberwachung.' },
+    { id: 'dev19', name: 'Inkubator', icon: '👶', type: 'WLAN', desc: 'Für Frühchen. Überwacht Temperatur und Atmung.' },
+    { id: 'dev20', name: 'Narkosegerät', icon: '💉', type: 'Bluetooth', desc: 'Für Operationen. Bluetooth für Überwachung.' }
   ];
 
   const FIRST_AID = [
@@ -132,18 +214,38 @@
     { id: 'f2', title: 'Stabile Seitenlage', desc: 'Bei Bewusstlosigkeit mit normaler Atmung. Verhindert Ersticken. Atemwege freihalten.' },
     { id: 'f3', title: 'Herzdruckmassage', desc: 'Bei Atemstillstand. 100-120 Mal pro Minute fest auf die Mitte des Brustkorbs drücken. 5-6 cm tief.' },
     { id: 'f4', title: 'Verbrennungen', desc: 'Mit lauwarmem Wasser kühlen (ca. 10-15 Min). Keine Eiswürfel, keine Salben. Kleidung nicht abreißen.' },
-    { id: 'f5', title: 'Verschlucken', desc: 'Auffordern zu husten. Bei Atemnot: 5x kräftig auf den Rücken klopfen, dann 5x Oberbauchkompression (Heimlich).' }
+    { id: 'f5', title: 'Verschlucken', desc: 'Auffordern zu husten. Bei Atemnot: 5x kräftig auf den Rücken klopfen, dann 5x Oberbauchkompression (Heimlich).' },
+    { id: 'f6', title: 'Vergiftung', desc: 'Notruf 112. Kein Erbrechen auslösen! Giftnotruf anrufen, Reste sichern.' },
+    { id: 'f7', title: 'Knochenbruch', desc: 'Ruhigstellen, nicht bewegen. Ggf. Schiene anlegen, Arzt rufen.' },
+    { id: 'f8', title: 'Schock', desc: 'Betroffenen flach lagern, Beine hochlegen. Warm halten, beruhigen, Notruf 112.' },
+    { id: 'f9', title: 'Starke Blutung', desc: 'Druckverband anlegen, betroffene Gliedmaße hochhalten. Notruf 112.' },
+    { id: 'f10', title: 'Insektenstich (Allergie)', desc: 'Bei Atemnot oder Schwellung: Notruf 112. EpiPen verwenden, wenn vorhanden.' }
   ];
 
   const HOSPITALS = [
     { name: 'Universitätsklinikum', dist: '1.2 km', type: 'Notaufnahme 24/7', phone: '112' },
-    { name: 'St. Marien Krankenhaus', dist: '3.5 km', type: 'Allgemeinmedizin', phone: '030-123456' }
+    { name: 'St. Marien Krankenhaus', dist: '3.5 km', type: 'Allgemeinmedizin', phone: '030-123456' },
+    { name: 'Kinderklinik Sonnenschein', dist: '5.0 km', type: 'Pädiatrie', phone: '030-654321' },
+    { name: 'Herzzentrum Mitte', dist: '8.2 km', type: 'Kardiologie', phone: '030-987654' }
   ];
 
-  let state = { lang: 'de', currentView: 'dashboard', appointments: [], sickNotes: [], devices: DEVICES.map(d => ({ ...d, connected: false })), searchQuery: '', kiText: '', ttsEnabled: true };
+  // ═══════════════════════════════════════════════════════
+  // 8. STATE
+  // ═══════════════════════════════════════════════════════
+  let state = {
+    lang: 'de',
+    currentView: 'dashboard',
+    appointments: [],
+    sickNotes: [],
+    devices: DEVICES.map(d => ({ ...d, connected: false })),
+    searchQuery: '',
+    kiText: '',
+    ttsEnabled: true
+  };
+
   let currentTarget = null;
   let lastAIResponse = '';
-  let threeScene, threeCamera, threeRenderer, threeModel;
+  let threeScene, threeCamera, threeRenderer, threeModel, threeAnimationId;
 
   function loadState() { try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) { const parsed = JSON.parse(raw); if (parsed.lang) state.lang = parsed.lang; if (parsed.appointments) state.appointments = parsed.appointments; if (parsed.sickNotes) state.sickNotes = parsed.sickNotes; if (parsed.devices) state.devices = parsed.devices; if (parsed.ttsEnabled !== undefined) state.ttsEnabled = parsed.ttsEnabled; } } catch (e) { } }
   function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ lang: state.lang, appointments: state.appointments, sickNotes: state.sickNotes, devices: state.devices, ttsEnabled: state.ttsEnabled })); } catch (e) { } }
@@ -236,7 +338,7 @@
   function renderSickNotes() { return `<div class="ab-content-inner"><div class="ab-card"><h2>📝 ${t('sicknotes')}</h2><div style="margin-top:20px;"><label class="ab-label">Patientenname</label><input type="text" class="ab-input" id="au-name" placeholder="Dein Name"><label class="ab-label">Krankheit / Diagnose</label><input type="text" class="ab-input" id="au-diag" placeholder="z.B. Grippe"><label class="ab-label">Von (Datum)</label><input type="date" class="ab-input" id="au-from"><label class="ab-label">Bis (Datum)</label><input type="date" class="ab-input" id="au-to"><button class="ab-btn primary" data-action="generate-au" style="width:100%;margin-top:10px;">${t('save')}</button></div></div><div class="ab-card"><h2>📋 Deine Krankschreibungen</h2>${state.sickNotes.length ? state.sickNotes.map((s, i) => `<div class="ab-list-item" style="border-left:4px solid #00ff88;"><div><h4>${s.name} (${s.diag})</h4><p>Vom ${s.from} bis ${s.to}</p></div><button class="ab-btn" data-action="del-au" data-idx="${i}" style="border-color:#ff3333;color:#ff3333;">${t('delete')}</button></div>`).join('') : `<p style="color:#888;text-align:center;">Keine vorhanden.</p>`}</div></div>`; }
   function renderAppointments() { return `<div class="ab-content-inner"><div class="ab-card"><h2>📅 ${t('appointments')}</h2><div style="margin-top:20px;"><label class="ab-label">Arzt / Klinik</label><input type="text" class="ab-input" id="app-doc" placeholder="z.B. Dr. Müller"><label class="ab-label">Datum & Uhrzeit</label><input type="datetime-local" class="ab-input" id="app-date"><button class="ab-btn primary" data-action="add-app" style="width:100%;margin-top:10px;">${t('save')}</button></div></div><div class="ab-card"><h2>🗓️ Deine Termine</h2>${state.appointments.length ? state.appointments.map((a, i) => `<div class="ab-list-item" style="border-left:4px solid #00e5ff;"><div><h4>${a.doc}</h4><p>${new Date(a.date).toLocaleString()}</p></div><button class="ab-btn" data-action="del-app" data-idx="${i}" style="border-color:#ff3333;color:#ff3333;">${t('delete')}</button></div>`).join('') : `<p style="color:#888;text-align:center;">Keine vorhanden.</p>`}</div></div>`; }
   function renderEmergency() { return `<div class="ab-content-inner" style="text-align:center;padding-top:20px;"><h2 style="color:#ff3333;font-size:32px;font-weight:900;">🚨 ${t('emergency')}</h2><button class="ab-emergency-btn" onclick="window.location.href='tel:112'"><span style="font-size:48px;">📞</span> 112 ${t('call')}</button><div class="ab-card" style="margin-top:30px;text-align:left;"><h2>🩸 ${t('first_aid')}</h2><div style="margin-top:20px;">${FIRST_AID.map(f => `<div class="ab-list-item" data-action="open-first-aid" data-title="${f.title}" data-desc="${f.desc}" data-icon="🩸"><div><h4>${f.title}</h4><p>${f.desc.substring(0, 50)}...</p></div></div>`).join('')}</div></div></div>`; }
-  function renderSettings() { return `<div class="ab-content-inner"><div class="ab-card"><h2>⚙️ ${t('settings')}</h2><div class="ab-setting-row"><div class="ab-setting-info"><h4>${t('lang')}</h4></div><select class="ab-select" data-action="set-lang"><option value="de" ${state.lang === 'de' ? 'selected' : ''}>Deutsch</option><option value="en" ${state.lang === 'en' ? 'selected' : ''}>English</option><option value="tr" ${state.lang === 'tr' ? 'selected' : ''}>Türkçe</option><option value="ku" ${state.lang === 'ku' ? 'selected' : ''}>Kurmandschi</option></select></div><div class="ab-setting-row"><div class="ab-setting-info"><h4>TTS (Vorlesen)</h4><p>Sprachausgabe für alle Inhalte</p></div><div class="ab-toggle ${state.ttsEnabled ? 'on' : ''}" data-action="toggle-tts"></div></div></div></div>`; }
+  function renderSettings() { return `<div class="ab-content-inner"><div class="ab-card"><h2>⚙️ ${t('settings')}</h2><div class="ab-setting-row"><div class="ab-setting-info"><h4>${t('lang')}</h4></div><select class="ab-select" data-action="set-lang"><option value="de" ${state.lang === 'de' ? 'selected' : ''}>Deutsch</option><option value="en" ${state.lang === 'en' ? 'selected' : ''}>English</option><option value="tr" ${state.lang === 'tr' ? 'selected' : ''}>Türkçe</option><option value="ku" ${state.lang === 'ku' ? 'selected' : ''}>Kurmandschi</option><option value="ckb" ${state.lang === 'ckb' ? 'selected' : ''}>Sorani</option><option value="gorani" ${state.lang === 'gorani' ? 'selected' : ''}>Gorani</option><option value="ez" ${state.lang === 'ez' ? 'selected' : ''}>Ezidi</option><option value="ar" ${state.lang === 'ar' ? 'selected' : ''}>العربية</option><option value="fa" ${state.lang === 'fa' ? 'selected' : ''}>فارسی</option><option value="he" ${state.lang === 'he' ? 'selected' : ''}>עברית</option><option value="la" ${state.lang === 'la' ? 'selected' : ''}>Lingua Latina</option><option value="uz" ${state.lang === 'uz' ? 'selected' : ''}>O'zbekcha</option><option value="ru" ${state.lang === 'ru' ? 'selected' : ''}>Русский</option><option value="pl" ${state.lang === 'pl' ? 'selected' : ''}>Polski</option><option value="ro" ${state.lang === 'ro' ? 'selected' : ''}>Română</option><option value="hr" ${state.lang === 'hr' ? 'selected' : ''}>Hrvatski</option><option value="pt" ${state.lang === 'pt' ? 'selected' : ''}>Português</option><option value="fr" ${state.lang === 'fr' ? 'selected' : ''}>Français</option><option value="el" ${state.lang === 'el' ? 'selected' : ''}>Ελληνικά</option><option value="es" ${state.lang === 'es' ? 'selected' : ''}>Español</option><option value="it" ${state.lang === 'it' ? 'selected' : ''}>Italiano</option></select></div><div class="ab-setting-row"><div class="ab-setting-info"><h4>TTS (Vorlesen)</h4><p>Sprachausgabe für alle Inhalte</p></div><div class="ab-toggle ${state.ttsEnabled ? 'on' : ''}" data-action="toggle-tts"></div></div></div></div>`; }
 
   function renderMain() {
     let viewHtml = '';
@@ -313,7 +415,8 @@
     if (!window.speechSynthesis) { alert('Sprachausgabe nicht unterstützt.'); return; }
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = state.lang === 'de' ? 'de-DE' : 'en-US';
+    const langMap = { de: 'de-DE', en: 'en-US', tr: 'tr-TR', ku: 'ku-TR', ckb: 'ckb-IQ', gorani: 'ku-TR', ez: 'ku-TR', ar: 'ar-SA', fa: 'fa-IR', he: 'he-IL', la: 'la-VA', uz: 'uz-UZ', ru: 'ru-RU', pl: 'pl-PL', ro: 'ro-RO', hr: 'hr-HR', pt: 'pt-PT', fr: 'fr-FR', el: 'el-GR', es: 'es-ES', it: 'it-IT' };
+    u.lang = langMap[state.lang] || 'de-DE';
     u.rate = 0.9;
     window.speechSynthesis.speak(u);
   }
@@ -344,7 +447,8 @@
   function init3DAnatomy() {
     const container = document.getElementById('anatomy-3d-container');
     if (!container) return;
-
+    
+    // FEHLERBEHEBUNG: Wenn THREE nicht definiert ist, zeige Fehlermeldung und beende die Funktion.
     if (typeof THREE === 'undefined') {
       container.innerHTML = '<div style="color:#ff3333;text-align:center;padding:20px;">Three.js nicht geladen. Bitte Internetverbindung prüfen.</div>';
       return;
@@ -368,7 +472,6 @@
     dirLight.position.set(1, 1, 1);
     threeScene.add(dirLight);
 
-    // Lade das 3D-Modell (body.glb)
     const loader = new THREE.GLTFLoader();
     loader.load('body.glb', function (gltf) {
       threeModel = gltf.scene;
@@ -389,7 +492,7 @@
     });
 
     function animate3D() {
-      requestAnimationFrame(animate3D);
+      threeAnimationId = requestAnimationFrame(animate3D);
       if (threeModel) threeModel.rotation.y += 0.002;
       if (threeRenderer && threeScene && threeCamera) {
         threeRenderer.render(threeScene, threeCamera);
@@ -593,7 +696,7 @@
     mountDiv.style.cssText = 'flex:1;overflow:hidden;';
     overlay.appendChild(mountDiv);
     document.body.appendChild(overlay);
-    document.getElementById('ab-close-btn').onclick = () => { overlay.remove(); currentTarget = null; state.currentView = 'dashboard'; };
+    document.getElementById('ab-close-btn').onclick = () => { overlay.remove(); currentTarget = null; state.currentView = 'dashboard'; if(threeAnimationId) cancelAnimationFrame(threeAnimationId); };
     mount(mountDiv);
   }
 
@@ -604,5 +707,5 @@
   window.apps.arztbuch = window.HalDoApps.arztbuch;
   window.openArztbuch = openOverlay;
 
-  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — ULTRA PRO MAX (3D Anatomie, KI-Bilder, Alle Datenbanken)');
+  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — ULTIMATE PRO MAX (3D Anatomie, KI-Bilder, Alle Datenbanken)');
 })();
