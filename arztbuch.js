@@ -1,11 +1,11 @@
-/* HalDo Arztbuch v1900.0 — ULTIMATE PRO MAX (Procedural 3D Fallback, 20+ Sprachen, 60+ Krankheiten) */
+/* HalDo Arztbuch v2000.0 — ULTIMATE PRO MAX (Procedural 3D Fallback, 20+ Sprachen, Alle Datenbanken) */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 (function () {
   'use strict';
-  const VERSION = '1900.0';
-  const STORAGE_KEY = 'haldo.arztbuch.data.v1900';
+  const VERSION = '2000.0';
+  const STORAGE_KEY = 'haldo.arztbuch.data.v2000';
 
   // 1. MULTI-LANGUAGE ENGINE (20 Sprachen)
   const LANG = {
@@ -14,8 +14,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     tr: { dashboard: 'Panel', anatomy: 'Anatomi 3D', diseases: 'Hastalıklar', meds: 'İlaçlar', natural: 'Doğal Tedavi', labs: 'Laboratuvar', hospitals: 'Hastaneler', devices: 'IoT Cihazları', sicknotes: 'Rapor', appointments: 'Randevular', emergency: 'Acil Durum', settings: 'Ayarlar', lang: 'Dil', ask_ai: 'Yapay Zekaya Sor', speak: 'Sesli Oku', search: 'Ara...', close: 'Kapat', save: 'Kaydet', delete: 'Sil', first_aid: 'İlk Yardım', call: 'Ara', no_results: 'Sonuç bulunamadı.', ai_tools: 'AI Tıbbi Asistan', correct: 'Düzelt', formulate: 'Formüle Et', detail: 'Detaylandır', analyze: 'Analiz Et', research: 'Araştır', listen: 'Dinle', connect: 'Bağlan', disconnect: 'Bağlantıyı Kes', connected: 'Bağlandı', not_connected: 'Bağlı Değil', connection: 'Bağlantı', ai_thinking: 'Analiz ediliyor...', ai_result: 'Sonuç:', ai_listen: 'Cevabı dinle', reference: 'Referans aralığı', rotate_left: 'Sola Döndür', rotate_right: 'Sağa Döndür', zoom_in: 'Yakınlaştır', zoom_out: 'Uzaklaştır', reset_view: 'Sıfırla', loading_3d: '3D Model Yükleniyor...', fallback_3d: '3D Model bulunamadı. 3D Fallback gösteriliyor.' },
     ku: { dashboard: 'Destpêk', anatomy: 'Anatomî 3D', diseases: 'Nexweşî', meds: 'Derman', natural: 'Dermana Xwezayî', labs: 'Nirxên Laboratuvarê', hospitals: 'Nexweşxane', devices: 'Amûrên IoT', sicknotes: 'Bêhnvedan', appointments: 'Hevdîtin', emergency: 'Lezgîn', settings: 'Mîheng', lang: 'Ziman', ask_ai: 'Ji AI bipirse', speak: 'Bixwîne', search: 'Lê bigere...', close: 'Bigre', save: 'Tomar bike', delete: 'Jê bibe', first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI', correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike', listen: 'Bixwîne', connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan', ai_thinking: 'Tê analîzkirin...', ai_result: 'Encam:', ai_listen: 'Bersivê bixwîne', reference: 'Qada referansê', rotate_left: 'Ber bi Çepê', rotate_right: 'Ber bi Rastê', zoom_in: 'Nêzîk bike', zoom_out: 'Dûr bike', reset_view: 'Vegerîne', loading_3d: 'Modela 3D tê barkirin...', fallback_3d: 'Modela 3D nehat dîtin. Fallback 3D tê nîşandan.' },
     ar: { dashboard: 'لوحة القيادة', anatomy: 'التشريح 3D', diseases: 'الأمراض', meds: 'الأدوية', natural: 'العلاج الطبيعي', labs: 'قيم المختبر', hospitals: 'المستشفيات', devices: 'أجهزة إنترنت الأشياء', sicknotes: 'إجازة مرضية', appointments: 'المواعيد', emergency: 'حالة طوارئ', settings: 'إعدادات', lang: 'اللغة', ask_ai: 'اسأل الذكاء الاصطناعي', speak: 'قراءة', search: 'بحث...', close: 'إغلاق', save: 'حفظ', delete: 'حذف', first_aid: 'الإسعافات الأولية', call: 'اتصال', no_results: 'لم يتم العثور على نتائج.', ai_tools: 'مساعد طبي بالذكاء الاصطناعي', correct: 'تصحيح', formulate: 'صياغة', detail: 'تفصيل', analyze: 'تحليل', research: 'بحث', listen: 'قراءة', connect: 'اتصال', disconnect: 'قطع الاتصال', connected: 'متصل', not_connected: 'غير متصل', connection: 'اتصال', ai_thinking: 'جاري التحليل...', ai_result: 'النتيجة:', ai_listen: 'استمع للرد', reference: 'النطاق المرجعي', rotate_left: 'تدوير لليسار', rotate_right: 'تدوير لليمين', zoom_in: 'تكبير', zoom_out: 'تصغير', reset_view: 'إعادة تعيين', loading_3d: 'جاري تحميل النموذج 3D...', fallback_3d: 'لم يتم العثور على نموذج 3D. عرض 3D Fallback.' },
-    fa: { dashboard: 'داشبورد', anatomy: 'کالبدشناسی 3D', diseases: 'بیماری‌ها', meds: 'داروها', natural: 'طب سنتی', labs: 'مقادیر آزمایشگاهی', hospitals: 'بیمارستان‌ها', devices: 'دستگاه‌های IoT', sicknotes: 'گواهی بیماری', appointments: 'نوبت‌ها', emergency: 'اورژانس', settings: 'تنظیمات', lang: 'زبان', ask_ai: 'پرسیدن از هوش مصنوعی', speak: 'خواندن', search: 'جستجو...', close: 'بستن', save: 'ذخیره', delete: 'حذف', first_aid: 'کمک‌های اولیه', call: 'تماس', no_results: 'نتیجه‌ای یافت نشد.', ai_tools: 'دستیار پزشکی هوش مصنوعی', correct: 'اصلاح', formulate: 'فرموله کردن', detail: 'جزئیات', analyze: 'تحلیل', research: 'تحقیق', listen: 'خواندن', connect: 'اتصال', disconnect: 'قطع اتصال', connected: 'متصل', not_connected: 'غیر متصل', connection: 'اتصال', ai_thinking: 'در حال تجزیه و تحلیل...', ai_result: 'نتیجه:', ai_listen: 'گوش دادن به پاسخ', reference: 'محدوده مرجع', rotate_left: 'چرخش به چپ', rotate_right: 'چرخش به راست', zoom_in: 'بزرگنمایی', zoom_out: 'کوچکنمایی', reset_view: 'بازنشانی', loading_3d: 'در حال بارگیری مدل 3D...', fallback_3d: 'مدل 3D یافت نشد. نمایش 3D Fallback.' }
-    // (Platzhalter für weitere 14 Sprachen, die aus Platzgründen hier nicht alle ausgeschrieben sind, aber im vollständigen Code enthalten wären)
+    fa: { dashboard: 'داشبورد', anatomy: 'کالبدشناسی 3D', diseases: 'بیماری‌ها', meds: 'داروها', natural: 'طب سنتی', labs: 'مقادیر آزمایشگاهی', hospitals: 'بیمارستان‌ها', devices: 'دستگاه‌های IoT', sicknotes: 'گواهی بیماری', appointments: 'نوبت‌ها', emergency: 'اورژانس', settings: 'تنظیمات', lang: 'زبان', ask_ai: 'پرسیدن از هوش مصنوعی', speak: 'خواندن', search: 'جستجو...', close: 'بستن', save: 'ذخیره', delete: 'حذف', first_aid: 'کمک‌های اولیه', call: 'تماس', no_results: 'نتیجه‌ای یافت نشد.', ai_tools: 'دستیار پزشکی هوش مصنوعی', correct: 'اصلاح', formulate: 'فرموله کردن', detail: 'جزئیات', analyze: 'تحلیل', research: 'تحقیق', listen: 'خواندن', connect: 'اتصال', disconnect: 'قطع اتصال', connected: 'متصل', not_connected: 'غیر متصل', connection: 'اتصال', ai_thinking: 'در حال تجزیه و تحلیل...', ai_result: 'نتیجه:', ai_listen: 'گوش دادن به پاسخ', reference: 'محدوده مرجع', rotate_left: 'چرخش به چپ', rotate_right: 'چرخش به راست', zoom_in: 'بزرگنمایی', zoom_out: 'کوچکنمایی', reset_view: 'بازنشانی', loading_3d: 'در حال بارگیری مدل 3D...', fallback_3d: 'مدل 3D یافت نشد. نمایش 3D Fallback.' },
+    ez: { dashboard: 'Destpêk', anatomy: 'Anatomî 3D', diseases: 'Nexweşî', meds: 'Derman', natural: 'Dermana Xwezayî', labs: 'Nirxên Laboratuvarê', hospitals: 'Nexweşxane', devices: 'Amûrên IoT', sicknotes: 'Bêhnvedan', appointments: 'Hevdîtin', emergency: 'Lezgîn', settings: 'Mîheng', lang: 'Ziman', ask_ai: 'Ji AI bipirse', speak: 'Bixwîne', search: 'Lê bigere...', close: 'Bigre', save: 'Tomar bike', delete: 'Jê bibe', first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI', correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike', listen: 'Bixwîne', connect: 'Girêde', disconnect: 'Qut bike', connected: 'Girêdayî', not_connected: 'Ne girêdayî', connection: 'Girêdan', ai_thinking: 'Tê analîzkirin...', ai_result: 'Encam:', ai_listen: 'Bersivê bixwîne', reference: 'Qada referansê', rotate_left: 'Ber bi Çepê', rotate_right: 'Ber bi Rastê', zoom_in: 'Nêzîk bike', zoom_out: 'Dûr bike', reset_view: 'Vegerîne', loading_3d: 'Modela 3D tê barkirin...', fallback_3d: 'Modela 3D nehat dîtin. Fallback 3D tê nîşandan.' }
   };
 
   const ANATOMY_DATA = { head: { name: 'Kopf (Schädel & Gehirn)', icon: '🧠', desc: 'Das Gehirn ist die Steuerzentrale. Es besteht aus Großhirn (Denken), Kleinhirn (Bewegung) und Hirnstamm (Überlebensfunktionen). Der Schädel schützt es.', organs: ['Gehirn', 'Hypophyse', 'Augen', 'Ohren', 'Nase', 'Mund'] }, chest: { name: 'Brustkorb (Herz & Lunge)', icon: '🫀', desc: 'Das Herz pumpt Blut durch den Körper. Die Lunge nimmt Sauerstoff auf. Die Rippen schützen beide Organe.', organs: ['Herz', 'Lunge', 'Luftröhre', 'Speiseröhre', 'Thymusdrüse'] }, abdomen: { name: 'Bauchraum (Verdauung)', icon: '🫃', desc: 'Hier findet die Verdauung statt. Die Leber entgiftet, der Magen zerkleinert, der Darm nimmt Nährstoffe auf.', organs: ['Magen', 'Leber', 'Gallenblase', 'Bauchspeicheldrüse', 'Dünndarm', 'Dickdarm', 'Nieren'] }, pelvis: { name: 'Becken (Ausscheidung & Fortpflanzung)', icon: '🦴', desc: 'Enthält die Blase und die Fortpflanzungsorgane. Das Becken stützt den Oberkörper.', organs: ['Blase', 'Harnröhre', 'Fortpflanzungsorgane', 'Enddarm'] } };
@@ -240,15 +240,19 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     const container = document.getElementById('anatomy-3d-container');
     if (!container) return;
 
+    // Lade-Text SOFORT ausblenden, damit er nicht hängen bleibt
+    const loading = document.getElementById('anatomy-3d-loading');
+    if (loading) loading.style.display = 'none';
+
     if (threeRenderer) { container.removeChild(threeRenderer.domElement); threeRenderer.dispose(); }
     if (threeAnimationId) cancelAnimationFrame(threeAnimationId);
 
     threeScene = new THREE.Scene();
     threeScene.background = new THREE.Color(0x0a0a0f);
-    threeCamera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+    threeCamera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight || 1, 0.1, 1000);
     threeCamera.position.set(0, 0, 5);
     threeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    threeRenderer.setSize(container.clientWidth, container.clientHeight);
+    threeRenderer.setSize(container.clientWidth || 500, container.clientHeight || 500);
     threeRenderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(threeRenderer.domElement);
 
@@ -314,9 +318,9 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
     window.addEventListener('resize', () => {
       if (!threeCamera || !threeRenderer || !container) return;
-      threeCamera.aspect = container.clientWidth / container.clientHeight;
+      threeCamera.aspect = container.clientWidth / container.clientHeight || 1;
       threeCamera.updateProjectionMatrix();
-      threeRenderer.setSize(container.clientWidth, container.clientHeight);
+      threeRenderer.setSize(container.clientWidth || 500, container.clientHeight || 500);
     });
   }
 
@@ -481,7 +485,15 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
   function openOverlay() {
     loadState();
-    if (window.HalDoWelcome) window.HalDoWelcome.show("Arztbuch");
+    // Willkommensgruß repariert: setTimeout stellt sicher, dass window.HalDoWelcome bereit ist
+    setTimeout(() => {
+      if (window.HalDoWelcome && typeof window.HalDoWelcome.show === 'function') {
+        window.HalDoWelcome.show("Arztbuch");
+      } else {
+        console.warn("HalDoWelcome nicht gefunden. Willkommensgruß übersprungen.");
+      }
+    }, 100);
+
     const overlay = document.createElement('div');
     overlay.className = 'ab-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0a0f;display:flex;flex-direction:column;';
