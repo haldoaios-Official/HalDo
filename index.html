@@ -4,627 +4,116 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <meta name="theme-color" content="#050810">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="HalDo AI OS">
-  <meta name="mobile-web-app-capable" content="yes">
   <title>🦚 HalDo AI OS</title>
-  
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦚</text></svg>">
-  <link rel="manifest" href="manifest.json">
+  
+  <!-- Three.js ES-Modul-Importe -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
 
   <style>
     :root {
-      --p1: #00e5ff;
-      --p2: #4da8ff;
-      --p3: #b478ff;
-      --bg: #050810;
-      --bg-2: #0a0f1a;
-      --card: rgba(255, 255, 255, 0.03);
-      --text: #e8ecff;
-      --text-dim: #a8b0cc;
-      --text-mute: #6b7390;
-      --border-soft: 1px solid rgba(255, 255, 255, 0.08);
-      --glow: 0 0 24px rgba(0, 229, 255, 0.35);
+      --p1: #00e5ff; --p2: #4da8ff; --p3: #b478ff;
+      --bg: #050810; --bg-2: #0a0f1a;
+      --card: rgba(255,255,255,.03);
+      --text: #e8ecff; --text-dim: #a8b0cc; --text-mute: #6b7390;
+      --border-soft: 1px solid rgba(255,255,255,.08);
+      --glow: 0 0 24px rgba(0,229,255,.35);
     }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    html, body {
-      height: 100%;
-      overflow: hidden;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; overflow: hidden; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
       background: linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
-      color: var(--text);
-      font-size: 14px;
-      line-height: 1.5;
+      color: var(--text); font-size: 14px; line-height: 1.5;
       -webkit-font-smoothing: antialiased;
     }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 3px; }
 
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 3px;
-    }
-
-    /* ZOOM KILLER */
-    .home-app, .nebula-app, .app-icon, [class*="app"] {
-      transition: filter 0.2s !important;
-    }
-
+    .home-app, .nebula-app, .app-icon, [class*="app"] { transition: filter 0.2s !important; }
     .home-app:hover, .nebula-app:hover, .app-icon:hover, [class*="app"]:hover {
       transform: none !important;
       filter: drop-shadow(0 0 20px #00e5ff) brightness(1.3) !important;
     }
-
-    .home-app span, .nebula-app span, .app-name {
-      pointer-events: none !important;
-    }
-
-    #haldo-root {
-      height: 100vh;
-      height: 100dvh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      position: relative;
-      z-index: 1;
-    }
-
-    #haldo-header {
-      padding: 10px 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(0, 0, 0, 0.2);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      flex-shrink: 0;
-      z-index: 900;
-      height: 56px;
-    }
-
-    #haldo-title {
-      font-size: 16px;
-      font-weight: 900;
-      color: var(--p1);
-    }
-
-    #haldo-content {
-      flex: 1;
-      overflow-y: auto;
-      overflow-x: hidden;
-      padding: 16px;
-      padding-bottom: 90px;
-    }
-
-    /* HAUPT-SIDEBAR */
-    #haldo-sidebar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      bottom: 0;
-      width: 300px;
-      background: rgba(10, 15, 26, 0.95);
-      backdrop-filter: blur(20px);
-      border-right: 1px solid rgba(255, 255, 255, 0.08);
-      transform: translateX(-100%);
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-    }
-
-    #haldo-sidebar.open {
-      transform: translateX(0);
-      box-shadow: 10px 0 50px rgba(0, 0, 0, 0.8);
-    }
-
-    .hs-logo-area {
-      padding: 20px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .hs-logo-area img {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
-      background: #111;
-    }
-
-    .hs-logo-area h2 {
-      font-size: 18px;
-      font-weight: 900;
-      color: #fff;
-    }
-
-    .hs-search {
-      padding: 15px 20px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .hs-search input {
-      width: 100%;
-      padding: 10px 15px;
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      color: #fff;
-      font-family: inherit;
-      outline: none;
-    }
-
-    .hs-menu-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 15px 10px;
-    }
-
-    .hs-cat-title {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      color: #555;
-      font-weight: 800;
-      padding: 10px 15px 5px;
-      margin-top: 10px;
-    }
-
-    .hs-app-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 15px;
-      cursor: pointer;
-      border-radius: 8px;
-      color: #ccc;
-      font-weight: 600;
-      font-size: 14px;
-      transition: all 0.2s;
-    }
-
-    .hs-app-item:hover {
-      background: rgba(255, 255, 255, 0.05);
-      color: #fff;
-    }
-
-    .hs-app-item .icon {
-      font-size: 20px;
-      width: 26px;
-      text-align: center;
-    }
-
-    #haldo-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(4px);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s;
-      z-index: 9998;
-    }
-
-    #haldo-overlay.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    /* LOADER */
-    #haldo-loader {
-      position: fixed;
-      inset: 0;
-      background: radial-gradient(ellipse at 50% 50%, #0a0f1a 0%, #050810 60%, #000 100%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 99999;
-      transition: opacity 0.35s;
-      padding: 20px;
-    }
-
-    #haldo-loader.hide {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    #haldo-loader .logo {
-      font-size: 72px;
-      animation: haldoBounce 1.2s infinite;
-    }
-
-    #haldo-loader .title {
-      margin-top: 8px;
-      font-size: 22px;
-      font-weight: 900;
-      color: var(--p1);
-      letter-spacing: 1px;
-    }
-
-    #haldo-loader .subtitle {
-      margin-top: 2px;
-      font-size: 11px;
-      color: var(--text-mute);
-      letter-spacing: 3px;
-      font-weight: 800;
-      text-transform: uppercase;
-    }
-
-    #haldo-loader .bar-wrap {
-      margin-top: 24px;
-      width: min(280px, 80vw);
-      height: 4px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-
-    #haldo-loader .bar {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, var(--p1), var(--p3));
-      border-radius: 2px;
-      transition: width 0.2s;
-      box-shadow: 0 0 12px var(--p1);
-    }
-
-    #haldo-loader .status {
-      margin-top: 14px;
-      font-size: 10.5px;
-      color: var(--text-mute);
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      min-height: 16px;
-      text-align: center;
-    }
-
-    #haldo-loader .count {
-      margin-top: 6px;
-      font-size: 10px;
-      color: var(--text-mute);
-      opacity: 0.6;
-    }
-
-    @keyframes haldoBounce {
-      0%, 100% { transform: translateY(0) scale(1); }
-      50% { transform: translateY(-12px) scale(1.05); }
-    }
-
-    /* WELCOME OVERLAY */
-    #haldo-app-welcome {
-      position: fixed;
-      inset: 0;
-      z-index: 999999; /* WICHTIG: Über allen Apps! */
-      display: none;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.35s ease;
-      --gold-1: #ffd54f;
-      --gold-2: #fff8c0;
-      --gold-3: #ffb300;
-      --gold-4: #ff8f00;
-    }
-
-    #haldo-app-welcome.show {
-      display: flex;
-      pointer-events: auto;
-      opacity: 1;
-      cursor: pointer;
-    }
-
-    #haldo-app-welcome.out {
-      opacity: 0;
-    }
-
-    .haw-backdrop {
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(ellipse at 50% 40%, rgba(255, 180, 50, 0.25) 0%, rgba(10, 15, 26, 0.96) 45%, rgba(5, 8, 16, 0.99) 100%);
-      backdrop-filter: blur(6px);
-      z-index: 0;
-    }
-
-    .haw-scene {
-      position: relative;
-      width: min(420px, 82vw);
-      height: min(420px, 82vw);
-      margin-bottom: -40px;
-      z-index: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .haw-peacock-bg {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      font-size: 220px;
-      line-height: 1;
-      transform: translate(-50%, -50%) scale(0.85);
-      opacity: 0;
-      filter: blur(3px) drop-shadow(0 0 40px rgba(255, 200, 50, 0.8));
-      z-index: 1;
-      animation: peacockBg 2.4s ease-out forwards;
-    }
-
-    @keyframes peacockBg {
-      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6) rotate(-8deg); }
-      35% { opacity: 0.55; }
-      100% { opacity: 0.28; transform: translate(-50%, -50%) scale(1.35) rotate(0deg); }
-    }
-
-    .haw-rays {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 380px;
-      height: 380px;
-      transform: translate(-50%, -50%);
-      background: conic-gradient(from 0deg, rgba(255, 213, 79, 0.28) 0deg, transparent 20deg, rgba(255, 213, 79, 0.28) 40deg, transparent 60deg, rgba(255, 213, 79, 0.28) 80deg, transparent 100deg, rgba(255, 213, 79, 0.28) 120deg, transparent 140deg, rgba(255, 213, 79, 0.28) 160deg, transparent 180deg, rgba(255, 213, 79, 0.28) 200deg, transparent 220deg, rgba(255, 213, 79, 0.28) 240deg, transparent 260deg, rgba(255, 213, 79, 0.28) 280deg, transparent 300deg, rgba(255, 213, 79, 0.28) 320deg, transparent 340deg);
-      border-radius: 50%;
-      z-index: 2;
-      opacity: 0;
-      animation: raysFadeIn 1.2s ease-out 0.1s forwards, raysRotate 20s linear infinite;
-      mask-image: radial-gradient(circle, transparent 80px, black 130px, transparent 190px);
-      -webkit-mask-image: radial-gradient(circle, transparent 80px, black 130px, transparent 190px);
-    }
-
-    @keyframes raysFadeIn {
-      to { opacity: 0.85; }
-    }
-
-    @keyframes raysRotate {
-      to { transform: translate(-50%, -50%) rotate(360deg); }
-    }
-
-    .haw-sun {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 200px;
-      height: 200px;
-      transform: translate(-50%, -50%);
-      border-radius: 50%;
-      background: radial-gradient(circle at 45% 40%, #fff8c0 0%, #ffe082 22%, #ffd54f 42%, #ffb300 68%, #ff8f00 88%, #e65100 100%);
-      box-shadow: 0 0 60px rgba(255, 200, 50, 0.85), 0 0 120px rgba(255, 180, 40, 0.55), 0 0 200px rgba(255, 150, 30, 0.3), inset -18px -18px 40px rgba(200, 100, 0, 0.35), inset 10px 10px 30px rgba(255, 255, 200, 0.4);
-      z-index: 3;
-      opacity: 0;
-      animation: sunAppear 1s ease-out forwards, sunPulse 2.5s ease-in-out 1s infinite;
-    }
-
-    @keyframes sunAppear {
-      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-      60% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
-      100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    }
-
-    @keyframes sunPulse {
-      0%, 100% { transform: translate(-50%, -50%) scale(1); }
-      50% { transform: translate(-50%, -50%) scale(1.06); }
-    }
-
-    .haw-wing {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      font-size: 88px;
-      line-height: 1;
-      z-index: 4;
-      opacity: 0;
-      filter: drop-shadow(0 0 24px rgba(255, 200, 50, 0.95)) drop-shadow(0 0 8px rgba(255, 255, 200, 0.7));
-      pointer-events: none;
-    }
-
-    .haw-wing-l {
-      animation: wingL 1.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
-    }
-
-    .haw-wing-r {
-      animation: wingR 1.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
-      transform: scaleX(-1);
-    }
-
-    @keyframes wingL {
-      0% { transform: translate(-50%, -50%) scale(0.2) rotate(-100deg); opacity: 0; }
-      20% { opacity: 1; }
-      65% { transform: translate(-190%, -50%) scale(1.05) rotate(-28deg); opacity: 1; }
-      100% { transform: translate(-260%, -50%) scale(1.25) rotate(-18deg); opacity: 0.92; }
-    }
-
-    @keyframes wingR {
-      0% { transform: translate(-50%, -50%) scale(0.2) rotate(-100deg) scaleX(-1); opacity: 0; }
-      20% { opacity: 1; }
-      65% { transform: translate(90%, -50%) scale(1.05) rotate(-28deg) scaleX(-1); opacity: 1; }
-      100% { transform: translate(160%, -50%) scale(1.25) rotate(-18deg) scaleX(-1); opacity: 0.92; }
-    }
-
-    .haw-content {
-      position: relative;
-      z-index: 5;
-      text-align: center;
-      padding: 0 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      animation: contentFadeIn 1s ease-out 0.4s both;
-    }
-
-    @keyframes contentFadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .haw-brand {
-      font-size: 14px;
-      font-weight: 900;
-      letter-spacing: 4px;
-      color: var(--gold-1);
-      text-transform: uppercase;
-      filter: drop-shadow(0 0 12px rgba(255, 200, 50, 0.8));
-    }
-
-    .haw-presents {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 3px;
-      color: rgba(255, 213, 79, 0.72);
-      text-transform: uppercase;
-      margin-bottom: 4px;
-    }
-
-    .haw-divider {
-      width: 80px;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--gold-1), transparent);
-      margin: 8px 0 10px;
-      box-shadow: 0 0 10px var(--gold-1);
-    }
-
-    .haw-welcome-text {
-      font-size: 15px;
-      font-weight: 600;
-      color: rgba(255, 213, 79, 0.85);
-      letter-spacing: 1px;
-    }
-
-    .haw-by {
-      font-size: 11.5px;
-      font-weight: 600;
-      color: rgba(255, 213, 79, 0.68);
-      letter-spacing: 1.5px;
-      margin-top: 6px;
-      text-transform: uppercase;
-    }
-
-    .haw-app-name {
-      font-size: clamp(26px, 6vw, 40px);
-      font-weight: 900;
-      letter-spacing: 1px;
-      margin: 4px 0;
-      background: linear-gradient(90deg, var(--gold-1) 0%, var(--gold-2) 20%, var(--gold-3) 40%, var(--gold-2) 60%, var(--gold-1) 80%, var(--gold-2) 100%);
-      background-size: 300% auto;
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-      color: transparent;
-      animation: goldShimmer 3s linear infinite;
-      filter: drop-shadow(0 0 20px rgba(255, 200, 50, 0.7));
-      line-height: 1.15;
-    }
-
-    @keyframes goldShimmer {
-      0% { background-position: 0% center; }
-      100% { background-position: 300% center; }
-    }
-
-    /* FLOATING BUTTONS */
-    .haldo-fab {
-      position: fixed;
-      bottom: 30px;
-      right: 30px;
-      width: 60px;
-      height: 60px;
-      background: linear-gradient(135deg, #00e5ff, #b478ff);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 30px;
-      cursor: pointer;
-      z-index: 9999;
-      box-shadow: 0 4px 15px rgba(0, 229, 255, 0.4);
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .haldo-fab:hover {
-      transform: scale(1.1);
-      box-shadow: 0 6px 20px rgba(0, 229, 255, 0.6);
-    }
-
-    #haldo-missing-banner {
-      position: fixed;
-      bottom: 20px;
-      left: 20px;
-      right: 20px;
-      background: rgba(255, 183, 0, 0.15);
-      border: 1px solid rgba(255, 183, 0, 0.4);
-      border-radius: 12px;
-      padding: 12px 14px;
-      color: #ffd54f;
-      font-size: 11.5px;
-      font-weight: 700;
-      z-index: 9998;
-      display: none;
-      align-items: center;
-      gap: 10px;
-    }
-
-    #haldo-missing-banner.show {
-      display: flex;
-    }
-
-    #haldo-missing-banner .x {
-      margin-left: auto;
-      background: transparent;
-      border: none;
-      color: #ffd54f;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    #haldo-diag {
-      position: fixed;
-      inset: 0;
-      z-index: 100000;
-      background: rgba(5, 8, 16, 0.97);
-      padding: 20px;
-      overflow-y: auto;
-      display: none;
-    }
-
-    #haldo-diag.show {
-      display: block;
-    }
-
-    #haldo-diag h2 {
-      color: var(--p1);
-      font-size: 18px;
-      margin-bottom: 12px;
-    }
-
-    #haldo-diag .close {
-      position: sticky;
-      top: 0;
-      float: right;
-      background: var(--p1);
-      color: #000;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 8px;
-      font-weight: 900;
-      cursor: pointer;
-    }
+    .home-app span, .nebula-app span, .app-name { pointer-events: none !important; }
+
+    #haldo-root { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; position: relative; z-index: 1; }
+    #haldo-header { padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,.2); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,.05); flex-shrink: 0; z-index: 900; height: 56px; }
+    #haldo-title { font-size: 16px; font-weight: 900; color: var(--p1); }
+    #haldo-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px; padding-bottom: 90px; }
+
+    #haldo-sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: 300px; background: rgba(10,15,26,0.95); backdrop-filter: blur(20px); border-right: 1px solid rgba(255,255,255,0.08); transform: translateX(-100%); transition: transform .3s cubic-bezier(.4,0,.2,1); z-index: 9999; display: flex; flex-direction: column; }
+    #haldo-sidebar.open { transform: translateX(0); box-shadow: 10px 0 50px rgba(0,0,0,0.8); }
+    .hs-logo-area { padding: 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .hs-logo-area img { width: 40px; height: 40px; border-radius: 8px; background: #111; }
+    .hs-logo-area h2 { font-size: 18px; font-weight: 900; color: #fff; }
+    .hs-search { padding: 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .hs-search input { width: 100%; padding: 10px 15px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-family: inherit; outline: none; }
+    .hs-menu-list { flex: 1; overflow-y: auto; padding: 15px 10px; }
+    .hs-cat-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #555; font-weight: 800; padding: 10px 15px 5px; margin-top: 10px; }
+    .hs-app-item { display: flex; align-items: center; gap: 12px; padding: 12px 15px; cursor: pointer; border-radius: 8px; color: #ccc; font-weight: 600; font-size: 14px; transition: all 0.2s; }
+    .hs-app-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+    .hs-app-item .icon { font-size: 20px; width: 26px; text-align: center; }
+
+    #haldo-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(4px); opacity: 0; pointer-events: none; transition: opacity .3s; z-index: 9998; }
+    #haldo-overlay.open { opacity: 1; pointer-events: auto; }
+
+    #haldo-loader { position: fixed; inset: 0; background: radial-gradient(ellipse at 50% 50%, #0a0f1a 0%, #050810 60%, #000 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 99999; transition: opacity .35s; padding: 20px; }
+    #haldo-loader.hide { opacity: 0; pointer-events: none; }
+    #haldo-loader .logo { font-size: 72px; animation: haldoBounce 1.2s infinite; }
+    #haldo-loader .title { margin-top: 8px; font-size: 22px; font-weight: 900; color: var(--p1); letter-spacing: 1px; }
+    #haldo-loader .subtitle { margin-top: 2px; font-size: 11px; color: var(--text-mute); letter-spacing: 3px; font-weight: 800; text-transform: uppercase; }
+    #haldo-loader .bar-wrap { margin-top: 24px; width: min(280px, 80vw); height: 4px; background: rgba(255,255,255,.08); border-radius: 2px; overflow: hidden; }
+    #haldo-loader .bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--p1), var(--p3)); border-radius: 2px; transition: width .2s; box-shadow: 0 0 12px var(--p1); }
+    #haldo-loader .status { margin-top: 14px; font-size: 10.5px; color: var(--text-mute); font-weight: 700; letter-spacing: .5px; min-height: 16px; text-align: center; max-width: 80vw; }
+    #haldo-loader .count { margin-top: 6px; font-size: 10px; color: var(--text-mute); opacity: .6; }
+    @keyframes haldoBounce { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-12px) scale(1.05); } }
+
+    #haldo-app-welcome { position: fixed; inset: 0; z-index: 99990; display: none; align-items: center; justify-content: center; flex-direction: column; pointer-events: none; opacity: 0; transition: opacity .35s ease; --gold-1: #ffd54f; --gold-2: #fff8c0; --gold-3: #ffb300; --gold-4: #ff8f00; }
+    #haldo-app-welcome.show { display: flex; pointer-events: auto; opacity: 1; cursor: pointer; }
+    #haldo-app-welcome.out { opacity: 0; }
+    .haw-backdrop { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, rgba(255,180,50,.25) 0%, rgba(10,15,26,.96) 45%, rgba(5,8,16,.99) 100%); backdrop-filter: blur(6px); z-index: 0; }
+    .haw-scene { position: relative; width: min(420px, 82vw); height: min(420px, 82vw); margin-bottom: -40px; z-index: 1; display: flex; align-items: center; justify-content: center; }
+    .haw-peacock-bg { position: absolute; top: 50%; left: 50%; font-size: 220px; line-height: 1; transform: translate(-50%, -50%) scale(0.85); opacity: 0; filter: blur(3px) drop-shadow(0 0 40px rgba(255,200,50,.8)); z-index: 1; animation: peacockBg 2.4s ease-out forwards; }
+    @keyframes peacockBg { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6) rotate(-8deg); } 35% { opacity: 0.55; } 100% { opacity: 0.28; transform: translate(-50%, -50%) scale(1.35) rotate(0deg); } }
+    .haw-rays { position: absolute; top: 50%; left: 50%; width: 380px; height: 380px; transform: translate(-50%, -50%); background: conic-gradient(from 0deg, rgba(255,213,79,.28) 0deg, transparent 20deg, rgba(255,213,79,.28) 40deg, transparent 60deg, rgba(255,213,79,.28) 80deg, transparent 100deg, rgba(255,213,79,.28) 120deg, transparent 140deg, rgba(255,213,79,.28) 160deg, transparent 180deg, rgba(255,213,79,.28) 200deg, transparent 220deg, rgba(255,213,79,.28) 240deg, transparent 260deg, rgba(255,213,79,.28) 280deg, transparent 300deg, rgba(255,213,79,.28) 320deg, transparent 340deg); border-radius: 50%; z-index: 2; opacity: 0; animation: raysFadeIn 1.2s ease-out .1s forwards, raysRotate 20s linear infinite; mask-image: radial-gradient(circle, transparent 80px, black 130px, transparent 190px); -webkit-mask-image: radial-gradient(circle, transparent 80px, black 130px, transparent 190px); }
+    @keyframes raysFadeIn { to { opacity: 0.85; } }
+    @keyframes raysRotate { to { transform: translate(-50%, -50%) rotate(360deg); } }
+    .haw-sun { position: absolute; top: 50%; left: 50%; width: 200px; height: 200px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle at 45% 40%, #fff8c0 0%, #ffe082 22%, #ffd54f 42%, #ffb300 68%, #ff8f00 88%, #e65100 100%); box-shadow: 0 0 60px rgba(255,200,50,.85), 0 0 120px rgba(255,180,40,.55), 0 0 200px rgba(255,150,30,.3), inset -18px -18px 40px rgba(200,100,0,.35), inset 10px 10px 30px rgba(255,255,200,.4); z-index: 3; opacity: 0; animation: sunAppear 1s ease-out forwards, sunPulse 2.5s ease-in-out 1s infinite; }
+    @keyframes sunAppear { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); } 60% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+    @keyframes sunPulse { 0%, 100% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.06); } }
+    .haw-wing { position: absolute; top: 50%; left: 50%; font-size: 88px; line-height: 1; z-index: 4; opacity: 0; filter: drop-shadow(0 0 24px rgba(255,200,50,.95)) drop-shadow(0 0 8px rgba(255,255,200,.7)); pointer-events: none; }
+    .haw-wing-l { animation: wingL 1.6s cubic-bezier(.16,1,.3,1) .15s forwards; }
+    .haw-wing-r { animation: wingR 1.6s cubic-bezier(.16,1,.3,1) .15s forwards; transform: scaleX(-1); }
+    @keyframes wingL { 0% { transform: translate(-50%, -50%) scale(0.2) rotate(-100deg); opacity: 0; } 20% { opacity: 1; } 65% { transform: translate(-190%, -50%) scale(1.05) rotate(-28deg); opacity: 1; } 100% { transform: translate(-260%, -50%) scale(1.25) rotate(-18deg); opacity: 0.92; } }
+    @keyframes wingR { 0% { transform: translate(-50%, -50%) scale(0.2) rotate(-100deg) scaleX(-1); opacity: 0; } 20% { opacity: 1; } 65% { transform: translate(90%, -50%) scale(1.05) rotate(-28deg) scaleX(-1); opacity: 1; } 100% { transform: translate(160%, -50%) scale(1.25) rotate(-18deg) scaleX(-1); opacity: 0.92; } }
+    .haw-content { position: relative; z-index: 5; text-align: center; padding: 0 20px; display: flex; flex-direction: column; align-items: center; gap: 6px; animation: contentFadeIn 1s ease-out .4s both; }
+    @keyframes contentFadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .haw-brand { font-size: 14px; font-weight: 900; letter-spacing: 4px; color: var(--gold-1); text-transform: uppercase; filter: drop-shadow(0 0 12px rgba(255,200,50,.8)); }
+    .haw-presents { font-size: 11px; font-weight: 700; letter-spacing: 3px; color: rgba(255,213,79,.72); text-transform: uppercase; margin-bottom: 4px; }
+    .haw-divider { width: 80px; height: 1px; background: linear-gradient(90deg, transparent, var(--gold-1), transparent); margin: 8px 0 10px; box-shadow: 0 0 10px var(--gold-1); }
+    .haw-welcome-text { font-size: 15px; font-weight: 600; color: rgba(255,213,79,.85); letter-spacing: 1px; }
+    .haw-by { font-size: 11.5px; font-weight: 600; color: rgba(255,213,79,.68); letter-spacing: 1.5px; margin-top: 6px; text-transform: uppercase; }
+    .haw-app-name { font-size: clamp(26px, 6vw, 40px); font-weight: 900; letter-spacing: 1px; margin: 4px 0; background: linear-gradient(90deg, var(--gold-1) 0%, var(--gold-2) 20%, var(--gold-3) 40%, var(--gold-2) 60%, var(--gold-1) 80%, var(--gold-2) 100%); background-size: 300% auto; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; animation: goldShimmer 3s linear infinite; filter: drop-shadow(0 0 20px rgba(255,200,50,.7)); line-height: 1.15; }
+    @keyframes goldShimmer { 0% { background-position: 0% center; } 100% { background-position: 300% center; } }
+
+    .haldo-fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: linear-gradient(135deg, #00e5ff, #b478ff); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; cursor: pointer; z-index: 9999; box-shadow: 0 4px 15px rgba(0, 229, 255, 0.4); transition: transform 0.2s, box-shadow 0.2s; }
+    .haldo-fab:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(0, 229, 255, 0.6); }
+
+    #haldo-missing-banner { position: fixed; bottom: 20px; left: 20px; right: 20px; background: rgba(255,183,0,.15); border: 1px solid rgba(255,183,0,.4); border-radius: 12px; padding: 12px 14px; color: #ffd54f; font-size: 11.5px; font-weight: 700; z-index: 9998; display: none; align-items: center; gap: 10px; }
+    #haldo-missing-banner.show { display: flex; }
+    #haldo-missing-banner .x { margin-left: auto; background: transparent; border: none; color: #ffd54f; font-size: 16px; cursor: pointer; }
+    #haldo-diag { position: fixed; inset: 0; z-index: 100000; background: rgba(5,8,16,.97); padding: 20px; overflow-y: auto; display: none; }
+    #haldo-diag.show { display: block; }
+    #haldo-diag h2 { color: var(--p1); font-size: 18px; margin-bottom: 12px; }
+    #haldo-diag .close { position: sticky; top: 0; float: right; background: var(--p1); color: #000; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 900; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -638,7 +127,6 @@
     <div class="count" id="haldo-count">0 / 0</div>
   </div>
 
-  <!-- WELCOME OVERLAY (z-index 999999 -> über alles) -->
   <div id="haldo-app-welcome" aria-hidden="true">
     <div class="haw-backdrop"></div>
     <div class="haw-scene">
@@ -658,17 +146,8 @@
     </div>
   </div>
 
-  <div id="haldo-missing-banner">
-    <span>⚠️</span>
-    <span id="haldo-missing-text">—</span>
-    <button class="x" id="haldo-missing-close">✕</button>
-  </div>
-
-  <div id="haldo-diag">
-    <button class="close" id="haldo-diag-close">✕ Schließen</button>
-    <h2>🦚 HalDo Diagnostics</h2>
-    <div id="haldo-diag-content"></div>
-  </div>
+  <div id="haldo-missing-banner"><span>⚠️</span><span id="haldo-missing-text">—</span><button class="x" id="haldo-missing-close">✕</button></div>
+  <div id="haldo-diag"><button class="close" id="haldo-diag-close">✕ Schließen</button><h2>🦚 HalDo Diagnostics</h2><div id="haldo-diag-content"></div></div>
 
   <div id="haldo-overlay"></div>
 
@@ -700,13 +179,12 @@
   <div id="haldo-desk"></div>
   <div id="haldo-taskbar"></div>
 
-  <div class="haldo-fab" id="haldo-fs-fab" style="bottom: 30px;" onclick="if(window.openFahrschule) window.openFahrschule(); else alert('Fahrschule.js nicht geladen');">🚦</div>
-  <div class="haldo-fab" id="haldo-ab-fab" style="bottom: 100px; background: linear-gradient(135deg, #00ff88, #00e5ff);" onclick="if(window.openArztbuch) window.openArztbuch(); else alert('Arztbuch.js nicht geladen');">🩺</div>
+  <div class="haldo-fab" id="haldo-fs-fab" style="bottom:30px;" onclick="if(window.openFahrschule)window.openFahrschule();else alert('Fahrschule.js fehlt');">🚦</div>
+  <div class="haldo-fab" id="haldo-ab-fab" style="bottom:100px;background:linear-gradient(135deg,#00ff88,#00e5ff);" onclick="if(window.openArztbuch)window.openArztbuch();else alert('Arztbuch.js fehlt');">🩺</div>
 
   <script>
     (function() {
       "use strict";
-
       var SCRIPTS = [
         "runtime.js", "store.js", "voice.js", "notify.js", "theme.js", "apps.js",
         "ai-engine.js", "haldo-ai.js", "deskpane.js", "avatar.js", "shell.js",
@@ -755,37 +233,17 @@
         var formatted = formatAppName(appName), now = Date.now();
         if (formatted === lastShownApp && (now - lastShownTime) < 600) return;
         lastShownApp = formatted; lastShownTime = now;
-        
         var overlay = document.getElementById("haldo-app-welcome"), nameEl = document.getElementById("haw-app-name");
         if (!overlay) return;
         if (nameEl) nameEl.textContent = formatted;
-        
-        overlay.classList.remove("out");
-        overlay.classList.add("show");
-        
+        overlay.classList.remove("out"); overlay.classList.add("show");
         var animated = overlay.querySelectorAll(".haw-peacock-bg, .haw-rays, .haw-sun, .haw-wing, .haw-content, .haw-app-name");
-        animated.forEach(function(el) {
-          el.style.animation = "none";
-          void el.offsetWidth;
-          el.style.animation = "";
-        });
-        
+        animated.forEach(function(el) { el.style.animation = "none"; void el.offsetWidth; el.style.animation = ""; });
         clearTimeout(welcomeTimeout);
         welcomeTimeout = setTimeout(hideWelcome, window.__haldoWelcomeDuration || 2200);
       }
-
-      function hideWelcome() {
-        var overlay = document.getElementById("haldo-app-welcome");
-        if (!overlay) return;
-        overlay.classList.add("out");
-        setTimeout(function() { overlay.classList.remove("show", "out"); }, 400);
-      }
-
-      document.addEventListener("DOMContentLoaded", function() {
-        var overlay = document.getElementById("haldo-app-welcome");
-        if (overlay) overlay.addEventListener("click", function() { clearTimeout(welcomeTimeout); hideWelcome(); });
-      });
-
+      function hideWelcome() { var overlay = document.getElementById("haldo-app-welcome"); if (!overlay) return; overlay.classList.add("out"); setTimeout(function() { overlay.classList.remove("show", "out"); }, 400); }
+      document.addEventListener("DOMContentLoaded", function() { var overlay = document.getElementById("haldo-app-welcome"); if (overlay) overlay.addEventListener("click", function() { clearTimeout(welcomeTimeout); hideWelcome(); }); });
       window.HalDoWelcome = { show: showWelcome, hide: hideWelcome, formatAppName: formatAppName };
 
       function updateProgress(current, total, label) {
@@ -800,22 +258,15 @@
           var total = SCRIPTS.length, done = 0;
           updateProgress(0, total, "Lade " + total + " Apps parallel...");
           if (!window.__haldoLoadedScripts) window.__haldoLoadedScripts = {};
-          
           SCRIPTS.forEach(function(src) {
             if (window.__haldoLoadedScripts[src]) { loaded.push(src); done++; return; }
             var s = document.createElement("script");
-            s.src = src; s.async = false;
-            s.onload = function() {
-              window.__haldoLoadedScripts[src] = true;
-              loaded.push(src); done++;
-              updateProgress(done, total, "Geladen: " + done + " / " + total);
-              if (done >= total) resolve();
-            };
-            s.onerror = function() {
-              missing.push(src); done++;
-              updateProgress(done, total, "Fehlt: " + done + " / " + total);
-              if (done >= total) resolve();
-            };
+            s.src = src;
+            s.async = false;
+            // WICHTIG: arztbuch.js als Modul laden, damit ES-Importe funktionieren
+            if (src === 'arztbuch.js') s.type = 'module';
+            s.onload = function() { window.__haldoLoadedScripts[src] = true; loaded.push(src); done++; updateProgress(done, total, "Geladen: " + done + " / " + total); if (done >= total) resolve(); };
+            s.onerror = function() { missing.push(src); done++; updateProgress(done, total, "Fehlt: " + done + " / " + total); if (done >= total) resolve(); };
             document.head.appendChild(s);
           });
           if (total === 0) resolve();
@@ -827,26 +278,9 @@
         await loadAllScripts();
         var tLoad = performance.now() - tStart;
         updateProgress(SCRIPTS.length, SCRIPTS.length, "✅ System bereit (" + Math.round(tLoad) + "ms)");
-        
-        var loader = document.getElementById("haldo-loader");
-        if (loader) {
-          loader.classList.add("hide");
-          setTimeout(function() { loader.remove(); }, 400);
-        }
-        
+        var loader = document.getElementById("haldo-loader"); if (loader) { loader.classList.add("hide"); setTimeout(function() { loader.remove(); }, 400); }
         bootComplete = true;
-
-        // WELCOME BEIM START VON HALDO OS TRIGGERN
-        setTimeout(function() {
-          if (window.HalDoWelcome) window.HalDoWelcome.show("HalDo AI OS");
-        }, 500);
-        
-        setTimeout(function() {
-          if (window.HalDo && HalDo.Shell && HalDo.Shell.init) {
-            try { HalDo.Shell.init(); } catch(e) { }
-          }
-        }, 100);
-        
+        setTimeout(function() { if (window.HalDo && HalDo.Shell && HalDo.Shell.init) { try { HalDo.Shell.init(); } catch(e) { } } }, 100);
         setTimeout(setupAdditionalHooks, 250);
         reportMissing();
       })();
@@ -858,11 +292,7 @@
             if (typeof dp[method] === "function" && !dp["__welcomePatched_" + method]) {
               var orig = dp[method];
               dp[method] = function() {
-                try {
-                  var args = Array.prototype.slice.call(arguments);
-                  var name = extractAppNameFromArgs(args);
-                  if (name) window.HalDoWelcome.show(name);
-                } catch (e) {}
+                try { var args = Array.prototype.slice.call(arguments); var name = extractAppNameFromArgs(args); if (name) window.HalDoWelcome.show(name); } catch (e) {}
                 return orig.apply(this, arguments);
               };
               dp["__welcomePatched_" + method] = true;
@@ -871,57 +301,29 @@
         }
         observeDeskForWindows();
       }
-
-      function extractAppNameFromArgs(args) {
-        if (!args || !args.length) return null;
-        var a = args[0];
-        if (typeof a === "string") return a;
-        if (a && typeof a === "object") return a.title || a.name || a.appName || a.label || a.id || null;
-        return null;
-      }
-
+      function extractAppNameFromArgs(args) { if (!args || !args.length) return null; var a = args[0]; if (typeof a === "string") return a; if (a && typeof a === "object") return a.title || a.name || a.appName || a.label || a.id || null; return null; }
       function observeDeskForWindows() {
-        var desk = document.getElementById("haldo-desk");
-        if (!desk || !window.MutationObserver) return;
-        var observer = new MutationObserver(function(mutations) {
-          mutations.forEach(function(m) {
-            m.addedNodes.forEach(function(node) {
-              if (node.nodeType !== 1) return;
-              var title = extractWindowTitle(node);
-              if (title) window.HalDoWelcome.show(title);
-            });
-          });
-        });
+        var desk = document.getElementById("haldo-desk"); if (!desk || !window.MutationObserver) return;
+        var observer = new MutationObserver(function(mutations) { mutations.forEach(function(m) { m.addedNodes.forEach(function(node) { if (node.nodeType !== 1) return; var title = extractWindowTitle(node); if (title) window.HalDoWelcome.show(title); }); }); });
         observer.observe(desk, { childList: true, subtree: true });
       }
-
       function extractWindowTitle(node) {
         if (!node.classList) return null;
-        var cls = String(node.className || "");
-        var isWindow = /(^|\s)(window|win|desk-window|app-window|haldo-window|hp-window|hw-window)/i.test(cls);
+        var cls = String(node.className || ""); var isWindow = /(^|\s)(window|win|desk-window|app-window|haldo-window|hp-window|hw-window)/i.test(cls);
         if (!isWindow && !node.hasAttribute("data-window") && !node.hasAttribute("data-app-window")) return null;
-        var t = node.getAttribute("data-title") || node.getAttribute("data-app-name");
-        if (t) return t.trim();
-        var titleEl = node.querySelector(".window-title, .win-title, .hp-window-title, .hw-window-title, .title");
-        if (titleEl && titleEl.textContent) return titleEl.textContent.trim();
-        var h = node.querySelector("h1, h2, h3, header .title");
-        if (h && h.textContent && h.textContent.length < 60) return h.textContent.trim();
-        return null;
+        var t = node.getAttribute("data-title") || node.getAttribute("data-app-name"); if (t) return t.trim();
+        var titleEl = node.querySelector(".window-title, .win-title, .hp-window-title, .hw-window-title, .title"); if (titleEl && titleEl.textContent) return titleEl.textContent.trim();
+        var h = node.querySelector("h1, h2, h3, header .title"); if (h && h.textContent && h.textContent.length < 60) return h.textContent.trim(); return null;
       }
-
       function reportMissing() {
         if (!missing.length) return;
-        var banner = document.getElementById("haldo-missing-banner"), text = document.getElementById("haldo-missing-text");
-        if (!banner || !text) return;
-        text.textContent = missing.length + " Apps fehlen";
-        banner.classList.add("show");
-        var close = document.getElementById("haldo-missing-close");
-        if (close) close.addEventListener("click", function() { banner.classList.remove("show"); });
+        var banner = document.getElementById("haldo-missing-banner"), text = document.getElementById("haldo-missing-text"); if (!banner || !text) return;
+        text.textContent = missing.length + " Apps fehlen"; banner.classList.add("show");
+        var close = document.getElementById("haldo-missing-close"); if (close) close.addEventListener("click", function() { banner.classList.remove("show"); });
       }
 
       document.addEventListener("DOMContentLoaded", function() {
         var list = document.getElementById("hs-menu-list"), searchInput = document.getElementById("hs-search-input");
-
         function renderSidebar(filter) {
           filter = (filter || '').toLowerCase();
           var html = '';
@@ -936,29 +338,20 @@
           });
           if (list) list.innerHTML = html;
         }
-
         renderSidebar('');
-
         if (searchInput) searchInput.addEventListener('input', function(e) { renderSidebar(e.target.value); });
-
         if (list) {
           list.addEventListener('click', function(e) {
-            var item = e.target.closest('.hs-app-item');
-            if (!item) return;
+            var item = e.target.closest('.hs-app-item'); if (!item) return;
             var appId = item.dataset.appid, action = item.dataset.action;
             document.getElementById('haldo-sidebar').classList.remove('open');
             document.getElementById('haldo-overlay').classList.remove('open');
-
             if (action === 'settings') { if (window.HalDoSettings) window.HalDoSettings.open(); }
             else if (action === 'fahrschule') { if (window.openFahrschule) window.openFahrschule(); }
             else if (action === 'arztbuch') { if (window.openArztbuch) window.openArztbuch(); }
-            else {
-              if (window.HalDo && window.HalDo.Deskpane && window.HalDo.Deskpane.open) window.HalDo.Deskpane.open(appId);
-              else window.HalDoWelcome.show(appId);
-            }
+            else { if (window.HalDo && window.HalDo.Deskpane && window.HalDo.Deskpane.open) window.HalDo.Deskpane.open(appId); else window.HalDoWelcome.show(appId); }
           });
         }
-
         var btn = document.getElementById("haldo-diag-btn"); if (btn) btn.addEventListener("click", function() {});
         var closeBtn = document.getElementById("haldo-diag-close"); if (closeBtn) closeBtn.addEventListener("click", function() { document.getElementById("haldo-diag").classList.remove("show"); });
         var menu = document.getElementById("haldo-menu"), sidebar = document.getElementById("haldo-sidebar"), overlay = document.getElementById("haldo-overlay");
@@ -966,7 +359,6 @@
           menu.addEventListener("click", function() { sidebar.classList.add("open"); overlay.classList.add("open"); });
           overlay.addEventListener("click", function() { sidebar.classList.remove("open"); overlay.classList.remove("open"); });
         }
-        
         var gridBtn = document.getElementById("haldo-grid-btn"), isGridMode = false;
         if (gridBtn) {
           gridBtn.addEventListener("click", function() {
