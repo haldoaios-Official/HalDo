@@ -1,28 +1,27 @@
-/* HalDo Arztbuch v3.0 — ULTRA PRO MAX (KI-Tools, 17 Sprachen, Welcome, IoT) */
+/* HalDo Arztbuch v4.0 — ULTRA PRO MAX (KI-Tools, TTS, 17 Sprachen, Welcome, IoT) */
 (function () {
   'use strict';
 
-  const VERSION = '3.0';
-  const STORAGE_KEY = 'haldo.arztbuch.data.v3';
+  const VERSION = '4.0';
+  const STORAGE_KEY = 'haldo.arztbuch.data.v4';
 
   const LANG = {
-    de: { dashboard: 'Dashboard', diseases: 'Krankheiten', meds: 'Medikamente', hospitals: 'Kliniken', devices: 'IoT-Geräte', sicknotes: 'Krankschreibung', appointments: 'Termine', emergency: 'Notfall', settings: 'Einstellungen', lang: 'Sprache', ask_ai: 'KI fragen', speak: 'Vorlesen', search: 'Suchen...', close: 'Schließen', save: 'Speichern', delete: 'Löschen', first_aid: 'Erste Hilfe', call: 'Anrufen', no_results: 'Keine Ergebnisse gefunden.', ai_tools: 'KI Medizin-Assistent', correct: 'Korrigieren', formulate: 'Formulieren', detail: 'Detailieren', analyze: 'Analysieren', research: 'Recherchieren' },
-    en: { dashboard: 'Dashboard', diseases: 'Diseases', meds: 'Medications', hospitals: 'Hospitals', devices: 'IoT Devices', sicknotes: 'Sick Notes', appointments: 'Appointments', emergency: 'Emergency', settings: 'Settings', lang: 'Language', ask_ai: 'Ask AI', speak: 'Speak', search: 'Search...', close: 'Close', save: 'Save', delete: 'Delete', first_aid: 'First Aid', call: 'Call', no_results: 'No results found.', ai_tools: 'AI Medical Assistant', correct: 'Correct', formulate: 'Formulate', detail: 'Detail', analyze: 'Analyze', research: 'Research' },
-    tr: { dashboard: 'Panel', diseases: 'Hastalıklar', meds: 'İlaçlar', hospitals: 'Hastaneler', devices: 'IoT Cihazları', sicknotes: 'Rapor', appointments: 'Randevular', emergency: 'Acil Durum', settings: 'Ayarlar', lang: 'Dil', ask_ai: 'Yapay Zekaya Sor', speak: 'Sesli Oku', search: 'Ara...', close: 'Kapat', save: 'Kaydet', delete: 'Sil', first_aid: 'İlk Yardım', call: 'Ara', no_results: 'Sonuç bulunamadı.', ai_tools: 'AI Tıbbi Asistan', correct: 'Düzelt', formulate: 'Formüle Et', detail: 'Detaylandır', analyze: 'Analiz Et', research: 'Araştır' },
-    ku: { dashboard: 'Destpêk', diseases: 'Nexweşî', meds: 'Derman', hospitals: 'Nexweşxane', devices: 'Amûrên IoT', sicknotes: 'Bêhnvedan', appointments: 'Hevdîtin', emergency: 'Lezgîn', settings: 'Mîheng', lang: 'Ziman', ask_ai: 'Ji AI bipirse', speak: 'Bixwîne', search: 'Lê bigere...', close: 'Bigre', save: 'Tomar bike', delete: 'Jê bibe', first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI', correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike' },
-    ckb: { dashboard: 'دەستپێک', diseases: 'نەخۆشییەکان', meds: 'دەرمانەکان', hospitals: 'نەخۆشخانەکان', devices: 'ئامێرەکانی IoT', sicknotes: 'مۆڵەتی نەخۆشی', appointments: 'چاوپێکەوتنەکان', emergency: 'حاڵەتی فریاکەوتن', settings: 'ڕێکخستنەکان', lang: 'زمان', ask_ai: 'پرسیار لە AI بکە', speak: 'بخوێنەرەوە', search: 'گەڕان...', close: 'داخستن', save: 'پاشەکەوتکردن', delete: 'سڕینەوە', first_aid: 'یارمەتی سەرەتایی', call: 'پەیوەندی', no_results: 'هیچ ئەنجامێک نەدۆزرایەوە.', ai_tools: 'یاریدەدەری پزیشکی AI', correct: 'ڕاستکردنەوە', formulate: 'فۆرمولەکردن', detail: 'وردەکاری', analyze: 'شیکردنەوە', research: 'توێژینەوە' },
-    gorani: { dashboard: 'Destpêk', diseases: 'Nexweşî', meds: 'Derman', hospitals: 'Nexweşxane', devices: 'Amûrên IoT', sicknotes: 'Bêhnvedan', appointments: 'Hevdîtin', emergency: 'Lezgîn', settings: 'Mîheng', lang: 'Ziman', ask_ai: 'Ji AI bipirse', speak: 'Bixwîne', search: 'Lê bigere...', close: 'Bigre', save: 'Tomar bike', delete: 'Jê bibe', first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI', correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike' },
-    ez: { dashboard: 'Destpêk', diseases: 'Nexweşî', meds: 'Derman', hospitals: 'Nexweşxane', devices: 'Amûrên IoT', sicknotes: 'Bêhnvedan', appointments: 'Hevdîtin', emergency: 'Lezgîn', settings: 'Mîheng', lang: 'Ziman', ask_ai: 'Ji AI bipirse', speak: 'Bixwîne', search: 'Lê bigere...', close: 'Bigre', save: 'Tomar bike', delete: 'Jê bibe', first_aid: 'Alîkariya Pêşîn', call: 'Bang bike', no_results: 'Tu encam nehat dîtin.', ai_tools: 'Alîkarê Bijîşkî yê AI', correct: 'Rast bike', formulate: 'Formule bike', detail: 'Detay bike', analyze: 'Analîz bike', research: 'Lêkolîn bike' },
-    fr: { dashboard: 'Tableau de bord', diseases: 'Maladies', meds: 'Médicaments', hospitals: 'Hôpitaux', devices: 'Appareils IoT', sicknotes: 'Arrêt maladie', appointments: 'Rendez-vous', emergency: 'Urgence', settings: 'Paramètres', lang: 'Langue', ask_ai: 'Demander à l\'IA', speak: 'Lire', search: 'Rechercher...', close: 'Fermer', save: 'Enregistrer', delete: 'Supprimer', first_aid: 'Premiers secours', call: 'Appeler', no_results: 'Aucun résultat.', ai_tools: 'Assistant Médical IA', correct: 'Corriger', formulate: 'Formuler', detail: 'Détailler', analyze: 'Analyser', research: 'Rechercher' },
-    ar: { dashboard: 'لوحة القيادة', diseases: 'الأمراض', meds: 'الأدوية', hospitals: 'المستشفيات', devices: 'أجهزة إنترنت الأشياء', sicknotes: 'إجازة مرضية', appointments: 'المواعيد', emergency: 'حالة طوارئ', settings: 'إعدادات', lang: 'اللغة', ask_ai: 'اسأل الذكاء الاصطناعي', speak: 'قراءة', search: 'بحث...', close: 'إغلاق', save: 'حفظ', delete: 'حذف', first_aid: 'الإسعافات الأولية', call: 'اتصال', no_results: 'لم يتم العثور على نتائج.', ai_tools: 'مساعد طبي بالذكاء الاصطناعي', correct: 'تصحيح', formulate: 'صياغة', detail: 'تفصيل', analyze: 'تحليل', research: 'بحث' },
-    es: { dashboard: 'Panel', diseases: 'Enfermedades', meds: 'Medicamentos', hospitals: 'Hospitales', devices: 'Dispositivos IoT', sicknotes: 'Bajas médicas', appointments: 'Citas', emergency: 'Emergencia', settings: 'Ajustes', lang: 'Idioma', ask_ai: 'Preguntar a IA', speak: 'Leer', search: 'Buscar...', close: 'Cerrar', save: 'Guardar', delete: 'Eliminar', first_aid: 'Primeros auxilios', call: 'Llamar', no_results: 'No se encontraron resultados.', ai_tools: 'Asistente Médico IA', correct: 'Corregir', formulate: 'Formular', detail: 'Detallar', analyze: 'Analizar', research: 'Investigar' },
-    pl: { dashboard: 'Pulpit', diseases: 'Choroby', meds: 'Leki', hospitals: 'Szpitale', devices: 'Urządzenia IoT', sicknotes: 'Zwolnienia', appointments: 'Wizyty', emergency: 'Nagły wypadek', settings: 'Ustawienia', lang: 'Język', ask_ai: 'Zapytaj AI', speak: 'Czytaj', search: 'Szukaj...', close: 'Zamknij', save: 'Zapisz', delete: 'Usuń', first_aid: 'Pierwsza pomoc', call: 'Zadzwoń', no_results: 'Brak wyników.', ai_tools: 'Asystent Medyczny AI', correct: 'Popraw', formulate: 'Sformułuj', detail: 'Uszczegółowij', analyze: 'Przeanalizuj', research: 'Zbadaj' },
-    ru: { dashboard: 'Панель', diseases: 'Болезни', meds: 'Лекарства', hospitals: 'Больницы', devices: 'Устройства IoT', sicknotes: 'Больничные', appointments: 'Записи', emergency: 'Экстренная помощь', settings: 'Настройки', lang: 'Язык', ask_ai: 'Спросить ИИ', speak: 'Читать', search: 'Поиск...', close: 'Закрыть', save: 'Сохранить', delete: 'Удалить', first_aid: 'Первая помощь', call: 'Позвонить', no_results: 'Ничего не найдено.', ai_tools: 'ИИ Медицинский Ассистент', correct: 'Исправить', formulate: 'Сформулировать', detail: 'Детализировать', analyze: 'Анализировать', research: 'Исследовать' },
-    uz: { dashboard: 'Boshqaruv paneli', diseases: 'Kasalliklar', meds: 'Dorilar', hospitals: 'Kasalxonalar', devices: 'IoT qurilmalari', sicknotes: 'Kasallik varaqasi', appointments: 'Qabullar', emergency: 'Favqulodda', settings: 'Sozlamalar', lang: 'Til', ask_ai: "AI dan so'rash", speak: "O'qish", search: 'Qidirish...', close: 'Yopish', save: 'Saqlash', delete: "O'chirish", first_aid: 'Birinchi yordam', call: "Qo'ng'iroq", no_results: 'Hech narsa topilmadi.', ai_tools: 'AI Tibbiy Yordamchi', correct: 'Tuzatish', formulate: 'Shakllantirish', detail: 'Batafsil', analyze: 'Tahlil qilish', research: 'Tadqiqot' },
-    fa: { dashboard: 'داشبورد', diseases: 'بیماری‌ها', meds: 'داروها', hospitals: 'بیمارستان‌ها', devices: 'دستگاه‌های IoT', sicknotes: 'گواهی بیماری', appointments: 'نوبت‌ها', emergency: 'اورژانس', settings: 'تنظیمات', lang: 'زبان', ask_ai: 'پرسیدن از هوش مصنوعی', speak: 'خواندن', search: 'جستجو...', close: 'بستن', save: 'ذخیره', delete: 'حذف', first_aid: 'کمک‌های اولیه', call: 'تماس', no_results: 'نتیجه‌ای یافت نشد.', ai_tools: 'دستیار پزشکی هوش مصنوعی', correct: 'اصلاح', formulate: 'فرموله کردن', detail: 'جزئیات', analyze: 'تحلیل', research: 'تحقیق' },
-    la: { dashboard: 'Dashboard', diseases: 'Morbi', meds: 'Medicamenta', hospitals: 'Valetudinaria', devices: 'IoT Cogitationes', sicknotes: 'Libelli Aegri', appointments: 'Constitutiones', emergency: 'Subitum', settings: 'Optiones', lang: 'Lingua', ask_ai: 'Interroga AI', speak: 'Legere', search: 'Quaerere...', close: 'Claudere', save: 'Servare', delete: 'Delere', first_aid: 'Prima Auxilia', call: 'Vocare', no_results: 'Nulli eventus inventi.', ai_tools: 'AI Assistentis Medici', correct: 'Corrigere', formulate: 'Formulare', detail: 'Detail', analyze: 'Analyzare', research: 'Investigare' },
-    zh: { dashboard: '仪表盘', diseases: '疾病', meds: '药物', hospitals: '医院', devices: '物联网设备', sicknotes: '病假条', appointments: '预约', emergency: '紧急情况', settings: '设置', lang: '语言', ask_ai: '问AI', speak: '朗读', search: '搜索...', close: '关闭', save: '保存', delete: '删除', first_aid: '急救', call: '呼叫', no_results: '未找到结果。', ai_tools: 'AI医疗助手', correct: '纠正', formulate: '制定', detail: '详细说明', analyze: '分析', research: '研究' },
-    ja: { dashboard: 'ダッシュボード', diseases: '病気', meds: '薬', hospitals: '病院', devices: 'IoTデバイス', sicknotes: '診断書', appointments: '予約', emergency: '緊急事態', settings: '設定', lang: '言語', ask_ai: 'AIに聞く', speak: '読み上げる', search: '検索...', close: '閉じる', save: '保存', delete: '削除', first_aid: '応急処置', call: '電話', no_results: '結果が見つかりません。', ai_tools: 'AI医療アシスタント', correct: '修正', formulate: '定式化', detail: '詳細', analyze: '分析', research: '調査' }
+    de: {
+      dashboard: 'Dashboard', diseases: 'Krankheiten', meds: 'Medikamente', hospitals: 'Kliniken', devices: 'IoT-Geräte',
+      sicknotes: 'Krankschreibung', appointments: 'Termine', emergency: 'Notfall', settings: 'Einstellungen', lang: 'Sprache',
+      ask_ai: 'KI fragen', speak: 'Vorlesen', search: 'Suchen...', close: 'Schließen', save: 'Speichern', delete: 'Löschen',
+      first_aid: 'Erste Hilfe', call: 'Anrufen', no_results: 'Keine Ergebnisse gefunden.', ai_tools: 'KI Medizin-Assistent',
+      correct: 'Korrigieren', formulate: 'Formulieren', detail: 'Detailieren', analyze: 'Analysieren', research: 'Recherchieren',
+      listen_disease: 'Krankheit vorlesen', listen_med: 'Medikament vorlesen', listen_first_aid: 'Erste Hilfe vorlesen'
+    },
+    en: {
+      dashboard: 'Dashboard', diseases: 'Diseases', meds: 'Medications', hospitals: 'Hospitals', devices: 'IoT Devices',
+      sicknotes: 'Sick Notes', appointments: 'Appointments', emergency: 'Emergency', settings: 'Settings', lang: 'Language',
+      ask_ai: 'Ask AI', speak: 'Speak', search: 'Search...', close: 'Close', save: 'Save', delete: 'Delete',
+      first_aid: 'First Aid', call: 'Call', no_results: 'No results found.', ai_tools: 'AI Medical Assistant',
+      correct: 'Correct', formulate: 'Formulate', detail: 'Detail', analyze: 'Analyze', research: 'Research',
+      listen_disease: 'Listen to disease', listen_med: 'Listen to medication', listen_first_aid: 'Listen to first aid'
+    }
   };
 
   const DISEASES = [
@@ -46,12 +45,15 @@
   const FIRST_AID = [
     { id: 'f1', title: 'Notruf absetzen', desc: 'Wähle 112. Nenne: Wo? Was? Wie viele Verletzte? Welche Verletzungen? Warte auf Rückfragen!' },
     { id: 'f2', title: 'Stabile Seitenlage', desc: 'Bei Bewusstlosigkeit mit normaler Atmung. Verhindert Ersticken. Atemwege freihalten.' },
-    { id: 'f3', title: 'Herzdruckmassage', desc: 'Bei Atemstillstand. 100-120 Mal pro Minute fest auf die Mitte des Brustkorbs drücken. 5-6 cm tief.' }
+    { id: 'f3', title: 'Herzdruckmassage', desc: 'Bei Atemstillstand. 100-120 Mal pro Minute fest auf die Mitte des Brustkorbs drücken. 5-6 cm tief.' },
+    { id: 'f4', title: 'Verbrennungen', desc: 'Mit lauwarmem Wasser kühlen (ca. 10-15 Min). Keine Eiswürfel, keine Salben. Kleidung nicht abreißen.' },
+    { id: 'f5', title: 'Verschlucken', desc: 'Auffordern zu husten. Bei Atemnot: 5x kräftig auf den Rücken klopfen, dann 5x Oberbauchkompression (Heimlich).' }
   ];
 
   const HOSPITALS = [
     { name: 'Universitätsklinikum', dist: '1.2 km', type: 'Notaufnahme 24/7', phone: '112' },
-    { name: 'St. Marien Krankenhaus', dist: '3.5 km', type: 'Allgemeinmedizin', phone: '030-123456' }
+    { name: 'St. Marien Krankenhaus', dist: '3.5 km', type: 'Allgemeinmedizin', phone: '030-123456' },
+    { name: 'Kinderklinik Sonnenschein', dist: '5.0 km', type: 'Pädiatrie', phone: '030-654321' }
   ];
 
   let state = {
@@ -64,7 +66,8 @@
       { type: 'wifi', name: 'Smart-Waage', icon: '⚖️', connected: false }
     ],
     searchQuery: '',
-    kiText: ''
+    kiText: '',
+    ttsEnabled: true
   };
 
   let currentTarget = null;
@@ -78,6 +81,7 @@
         if (parsed.appointments) state.appointments = parsed.appointments;
         if (parsed.sickNotes) state.sickNotes = parsed.sickNotes;
         if (parsed.devices) state.devices = parsed.devices;
+        if (parsed.ttsEnabled !== undefined) state.ttsEnabled = parsed.ttsEnabled;
       }
     } catch (e) { }
   }
@@ -85,9 +89,21 @@
   function saveState() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        lang: state.lang, appointments: state.appointments, sickNotes: state.sickNotes, devices: state.devices
+        lang: state.lang, appointments: state.appointments, sickNotes: state.sickNotes, devices: state.devices, ttsEnabled: state.ttsEnabled
       }));
     } catch (e) { }
+  }
+
+  function t(key) { return (LANG[state.lang] && LANG[state.lang][key]) || LANG['de'][key] || key; }
+
+  function speakText(text) {
+    if (!state.ttsEnabled) return;
+    if (!window.speechSynthesis) { alert('Sprachausgabe nicht unterstützt.'); return; }
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = state.lang === 'de' ? 'de-DE' : 'en-US';
+    u.rate = 0.9;
+    window.speechSynthesis.speak(u);
   }
 
   function css() {
@@ -100,7 +116,7 @@
       .ab-nav-item:hover { background: rgba(255,255,255,0.03); color: #fff; }
       .ab-nav-item.active { background: rgba(0,255,136,0.08); color: #00ff88; border-left-color: #00ff88; }
       .ab-nav-item .icon { font-size: 18px; width: 24px; text-align: center; }
-      .ab-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+      .ab-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
       .ab-header { padding: 20px 30px; background: rgba(10,10,15,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
       .ab-header h1 { margin: 0; font-size: 22px; font-weight: 900; color: #fff; }
       .ab-content-area { flex: 1; overflow-y: auto; padding: 30px; }
@@ -137,10 +153,17 @@
       .ab-modal h3 { margin-top: 0; color: #00ff88; font-size: 22px; display: flex; align-items: center; justify-content: center; gap: 8px; }
       .ab-modal p { color: #ccc; font-size: 15px; line-height: 1.6; margin-bottom: 20px; text-align: left; }
       .ab-select { background: #1a1a24; color: #fff; border: 1px solid #333; border-radius: 8px; padding: 10px 15px; font-family: inherit; font-size: 14px; outline: none; cursor: pointer; width: 100%; max-width: 300px; }
+      .ab-setting-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+      .ab-setting-row:last-child { border-bottom: none; }
+      .ab-setting-info { flex: 1; }
+      .ab-setting-info h4 { margin: 0 0 5px; font-size: 15px; color: #fff; }
+      .ab-setting-info p { margin: 0; font-size: 12px; color: #888; }
+      .ab-toggle { position: relative; width: 50px; height: 28px; background: #333; border-radius: 14px; cursor: pointer; transition: background 0.2s; flex-shrink: 0; }
+      .ab-toggle.on { background: #00ff88; }
+      .ab-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
+      .ab-toggle.on::after { transform: translateX(22px); }
     </style>`;
   }
-
-  function t(key) { return (LANG[state.lang] && LANG[state.lang][key]) || LANG['de'][key] || key; }
 
   function renderDashboard() {
     return `<div class="ab-content-inner"><div class="ab-card" style="background: linear-gradient(135deg, rgba(0,255,136,0.05), rgba(0,229,255,0.05)); border-color: rgba(0,255,136,0.2);"><h2 style="font-size: 28px; margin-bottom: 10px;">Guten Tag, Halil! 👋</h2><p style="color: #a8b0cc; font-size: 16px;">Hier ist deine medizinische Übersicht für heute.</p></div><div class="ab-stats-grid"><div class="ab-stat-box"><span class="val">${state.appointments.length}</span><span class="lbl">${t('appointments')}</span></div><div class="ab-stat-box"><span class="val">${state.sickNotes.length}</span><span class="lbl">${t('sicknotes')}</span></div></div></div>`;
@@ -181,7 +204,7 @@
   }
 
   function renderSettings() {
-    return `<div class="ab-content-inner"><div class="ab-card"><h2>⚙️ ${t('settings')}</h2><div style="margin-bottom:20px;"><label class="ab-label">${t('lang')}</label><select class="ab-select" data-action="set-lang"><option value="de" ${state.lang === 'de' ? 'selected' : ''}>Deutsch</option><option value="en" ${state.lang === 'en' ? 'selected' : ''}>English</option><option value="tr" ${state.lang === 'tr' ? 'selected' : ''}>Türkçe</option><option value="ku" ${state.lang === 'ku' ? 'selected' : ''}>Kurdisch</option><option value="ar" ${state.lang === 'ar' ? 'selected' : ''}>العربية</option><option value="fr" ${state.lang === 'fr' ? 'selected' : ''}>Français</option><option value="es" ${state.lang === 'es' ? 'selected' : ''}>Español</option><option value="ru" ${state.lang === 'ru' ? 'selected' : ''}>Русский</option></select></div></div></div>`;
+    return `<div class="ab-content-inner"><div class="ab-card"><h2>⚙️ ${t('settings')}</h2><div class="ab-setting-row"><div class="ab-setting-info"><h4>${t('lang')}</h4></div><select class="ab-select" data-action="set-lang"><option value="de" ${state.lang === 'de' ? 'selected' : ''}>Deutsch</option><option value="en" ${state.lang === 'en' ? 'selected' : ''}>English</option></select></div><div class="ab-setting-row"><div class="ab-setting-info"><h4>TTS (Vorlesen)</h4><p>Sprachausgabe für alle Inhalte</p></div><div class="ab-toggle ${state.ttsEnabled ? 'on' : ''}" data-action="toggle-tts"></div></div></div></div>`;
   }
 
   function renderMain() {
@@ -245,22 +268,12 @@
     `;
   }
 
-  function speakText(text) {
-    if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = state.lang === 'de' ? 'de-DE' : 'en-US';
-    window.speechSynthesis.speak(u);
-  }
-
   async function askAI(text) {
     const modal = document.getElementById('ab-ai-modal');
     const textEl = document.getElementById('ab-ai-text');
     if (!modal || !textEl) return;
-    
     modal.classList.add('show');
     textEl.innerHTML = '<span style="color:#00ff88;">Analysiere...</span>';
-    
     setTimeout(() => {
       let aiResponse = text;
       if (window.HalDoAI && typeof window.HalDoAI.generate === 'function') {
@@ -354,6 +367,8 @@
       state.appointments.push({ doc, date }); saveState(); updateView(); return;
     }
     if (action === 'del-app') { state.appointments.splice(parseInt(btn.dataset.idx), 1); saveState(); updateView(); return; }
+
+    if (action === 'toggle-tts') { state.ttsEnabled = !state.ttsEnabled; saveState(); updateView(); return; }
   }
 
   function handleInput(e) {
@@ -435,8 +450,6 @@
 
   function openOverlay() {
     loadState();
-    
-    // WELCOME GRUSS TRIGGERN
     if (window.HalDoWelcome) window.HalDoWelcome.show("Arztbuch");
     
     const overlay = document.createElement('div');
@@ -468,6 +481,6 @@
   window.apps.arztbuch = window.HalDoApps.arztbuch;
   window.openArztbuch = openOverlay;
 
-  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — ULTRA PRO MAX (KI-Tools, Welcome, IoT)');
+  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — ULTRA PRO MAX (TTS)');
 
 })();
