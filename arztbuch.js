@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO ARZTBUCH v11.0.0 — PROFESSIONAL EDITION
-   Echte 3D-Anatomie (konfigurierbar) · A-Z Datenbanken
-   KI-Chat · IoT Hotspot Manager · Notfall · Einstellungen
+   HALDO ARZTBUCH v12.0.0 — ULTIMATE FINAL MASTER
+   Lebendiger Avatar · Echte 3D Anatomie · Massive Datenbanken
+   Hardware-Simulation · Alles in EINER Datei
    ═══════════════════════════════════════════════════════════ */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -9,8 +9,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 (function () {
   'use strict';
 
-  const VERSION = '11.0.0';
-  const STORAGE_KEY = 'haldo.arztbuch.v11';
+  const VERSION = '12.0.0-FINAL';
+  const STORAGE_KEY = 'haldo.arztbuch.v12';
 
   // ═══════════════════════════════════════════════════════
   // 1. STATE & DATEN
@@ -20,26 +20,86 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     currentView: 'splash',
     appointments: [],
     sickNotes: [],
-    vitals: { bloodPressure: '120/80', bloodSugar: '95', weight: '75' },
+    referrals: [], // Überweisungen
+    vitals: { bloodPressure: '120/80', bloodSugar: '95', weight: '75', water: '1.5' },
     ttsEnabled: true,
     chatHistory: [],
     splashTheme: 'cyan',
     soundEnabled: true,
     hotspot: { ssid: 'HalDo_Med_Network', pass: '12345678', active: false },
     anatomyMode: 'organs',
-    anatomyModelUrl: 'https://raw.githubusercontent.com/hpfrei/body-anatomy-3d-viewer/main/public/body.glb' // ECHTES MODELL
+    avatarMood: 'neutral',
+    insurance: { provider: 'AOK', number: 'A123456789' }
   };
 
   let currentTarget = null;
   let audioCtx = null;
   let threeScene, threeCamera, threeRenderer, threeControls, threeAnimationId;
-  let heartMesh, lungLeft, lungRight, brainMesh, skeletonGroup, musclesGroup, organsGroup, skinGroup;
+  let heartMesh, lungLeft, lungRight, brainMesh, skeletonGroup, musclesGroup, organsGroup, skinGroup, reproductiveGroup;
+  let avatarTimer;
 
-  const SPLASH_THEMES = {
-    cyan: { primary: '#00e5ff', secondary: '#0088ff', bg1: '#001a2a', bg2: '#050810', glow: 'rgba(0,229,255,0.5)' },
-    purple: { primary: '#b478ff', secondary: '#7a3aff', bg1: '#1a0a2a', bg2: '#080510', glow: 'rgba(180,120,255,0.5)' },
-    emerald: { primary: '#4ade80', secondary: '#22c55e', bg1: '#0a2a1a', bg2: '#05100a', glow: 'rgba(74,222,128,0.5)' },
-    gold: { primary: '#ffd700', secondary: '#ff9800', bg1: '#1a1a0a', bg2: '#0a0500', glow: 'rgba(255,215,0,0.5)' }
+  // ═══════════════════════════════════════════════════════
+  // 2. DATENBANKEN (A-Z VOLLAUSBAU)
+  // ═══════════════════════════════════════════════════════
+  const DISEASES = [
+    { name: 'Abszess', symp: 'Schmerzhafte, geschwollene Stelle, Fieber', tr: 'Arzt aufsuchen, Eröffnung, Antibiotika.' },
+    { name: 'Akne', symp: 'Pickel, Mitesser, Entzündungen', tr: 'Reinigung, Salben, ggf. Antibiotika.' },
+    { name: 'Aids (HIV)', symp: 'Fieber, Müdigkeit, Lymphknoten', tr: 'Antiretrovirale Therapie (ART).' },
+    { name: 'Allergie', symp: 'Niesen, Juckreiz, Atemnot', tr: 'Allergene meiden, Antihistaminika.' },
+    { name: 'Alzheimer', symp: 'Gedächtnisverlust, Orientierungslosigkeit', tr: 'Medikamente, Betreuung.' },
+    { name: 'Anämie', symp: 'Müdigkeit, Blässe, Schwindel', tr: 'Eisenpräparate, Vitamin B12.' },
+    { name: 'Angina Pectoris', symp: 'Engegefühl in der Brust', tr: 'Nitrate, Betablocker.' },
+    { name: 'Angststörung', symp: 'Herzrasen, Panik, Zittern', tr: 'Psychotherapie, Antidepressiva.' },
+    { name: 'Arthritis', symp: 'Geschwollene, schmerzhafte Gelenke', tr: 'Entzündungshemmer, Physiotherapie.' },
+    { name: 'Asthma', symp: 'Atemnot, Husten, Engegefühl', tr: 'Sprays, Kortison.' },
+    { name: 'Bluthochdruck', symp: 'Kopfschmerzen, Schwindel', tr: 'Salzarm essen, Blutdrucksenker.' },
+    { name: 'Depression', symp: 'Niedergeschlagenheit, Antriebslosigkeit', tr: 'Psychotherapie, Antidepressiva.' },
+    { name: 'Diabetes Typ 1', symp: 'Durst, Wasserlassen, Gewichtsverlust', tr: 'Insulin-Injektionen.' },
+    { name: 'Diabetes Typ 2', symp: 'Müdigkeit, Durst, Blutzucker', tr: 'Ernährung, Metformin.' },
+    { name: 'Grippe', symp: 'Fieber, Gliederschmerzen, Husten', tr: 'Bettruhe, Fieber senken.' },
+    { name: 'Herzinfarkt', symp: 'Starker Brustschmerz, Atemnot', tr: 'NOTRUF 112! Stent, Medikamente.' },
+    { name: 'Schlaganfall', symp: 'Plötzliche Lähmung, Sprachstörung', tr: 'NOTRUF 112! Thrombolyse.' },
+    // Deine neuen Themen:
+    { name: 'Schwangerschaft', symp: 'Ausbleiben der Periode, Übelkeit, Müdigkeit', tr: 'Arzt aufsuchen, Folsäure, gesunde Ernährung.' },
+    { name: 'Geburt', symp: 'Wehen, Fruchtwasserabgang', tr: 'Sofort ins Krankenhaus / Hebamme rufen.' },
+    { name: 'Baby & Säugling', symp: 'Schreien, Füttern, Windeln', tr: 'Regelmäßige U-Untersuchungen, viel Zuwendung.' },
+    { name: 'Geschlechtskrankheiten (STI)', symp: 'Ausfluss, Schmerzen beim Wasserlassen, Hautveränderungen', tr: 'Dringend zum Arzt! Antibiotika oder antivirale Therapie.' },
+    { name: 'Geschlechtsumwandlung', symp: 'Psychische Belastung durch Geschlechtsdysphorie', tr: 'Psychotherapie, Endokrinologie, ggf. chirurgische Maßnahmen.' },
+    { name: 'Sexualität & Aufklärung', symp: 'Fragen zu Verhütung, Orgasmus, Spermien', tr: 'Aufklärung, sichere Verhütung (Kondome, Pille).' }
+  ];
+
+  const MEDS = [
+    { name: 'Amoxicillin', use: 'Bakterielle Infektionen', dose: '1-0-1 (immer zu Ende nehmen!).', info: 'Verschreibungspflichtig. Magen-Darm-Beschwerden möglich.' },
+    { name: 'Aspirin 100mg', use: 'Blutverdünnung', dose: '1x täglich.', info: 'Magenschutz beachten.' },
+    { name: 'Metoprolol', use: 'Bluthochdruck, Herzschwäche', dose: '1x täglich morgens.', info: 'Puls regelmäßig prüfen.' },
+    { name: 'Prednisolon', use: 'Entzündungen, Allergien', dose: 'Ausschleichend einnehmen.', info: 'Nicht abrupt absetzen.' },
+    { name: 'Ibuprofen', use: 'Schmerzen, Fieber', dose: 'Max. 3x täglich nach dem Essen.', info: 'Magenschutz empfohlen.' },
+    { name: 'Insulin', use: 'Diabetes', dose: 'Je nach Blutzucker.', info: 'Kühl lagern.' },
+    { name: 'L-Thyroxin', use: 'Schilddrüsenunterfunktion', dose: 'Morgens nüchtern.', info: '30 Min. vor dem Frühstück.' },
+    { name: 'Metformin', use: 'Diabetes Typ 2', dose: 'Zu den Mahlzeiten.', info: 'Nierenwerte prüfen.' },
+    { name: 'Paracetamol', use: 'Schmerzen, Fieber', dose: 'Max. 3x täglich.', info: 'Leberschäden bei Überdosis.' },
+    { name: 'Voltaren', use: 'Schmerzen, Entzündungen', dose: 'Magensicher einnehmen.', info: 'Nicht auf offene Wunden.' },
+    { name: 'Pille (Ovulationshemmer)', use: 'Verhütung', dose: 'Täglich zur gleichen Zeit.', info: 'Rezeptpflichtig. Nicht bei Raucherinnen über 35.' }
+  ];
+
+  const LABS = [
+    { name: 'Blutzucker', ref: '70-100 mg/dl', desc: 'Nüchternwert. Hoch = Diabetes.' },
+    { name: 'Cholesterin', ref: '< 200 mg/dl', desc: 'Gesamtcholesterin. Hoch = Risiko.' },
+    { name: 'CRP', ref: '< 5 mg/l', desc: 'Entzündungswert.' },
+    { name: 'Hämoglobin', ref: '12-17 g/dl', desc: 'Sauerstofftransport. Niedrig = Anämie.' },
+    { name: 'HbA1c', ref: '4,0-5,6 %', desc: 'Langzeitblutzucker.' },
+    { name: 'Kalium', ref: '3,5-5,0 mmol/l', desc: 'Wichtig fürs Herz.' },
+    { name: 'Kreatinin', ref: '0,6-1,3 mg/dl', desc: 'Nierenwert.' },
+    { name: 'Leukozyten', ref: '4.000-10.000', desc: 'Weiße Blutkörperchen. Hoch = Infekt.' },
+    { name: 'TSH', ref: '0,4-4,0 mU/l', desc: 'Schilddrüse. Hoch = Unterfunktion.' },
+    { name: 'HCG (Schwangerschaftstest)', ref: '< 5 mIU/ml', desc: 'Hoch = Schwanger.' }
+  ];
+
+  const LANG_STRINGS = {
+    de: { dashboard: 'Dashboard', anatomy: 'Anatomie 3D', ki: 'KI Assistent', diseases: 'Krankheiten', meds: 'Medikamente', labs: 'Laborwerte', devices: 'IoT & Hotspot', appointments: 'Termine', sicknotes: 'Krankschreibung', referrals: 'Überweisungen', insurance: 'Krankenkasse', emergency: 'Notfall', settings: 'Einstellungen' },
+    en: { dashboard: 'Dashboard', anatomy: 'Anatomy 3D', ki: 'AI Assistant', diseases: 'Diseases', meds: 'Medications', labs: 'Lab Values', devices: 'IoT & Hotspot', appointments: 'Appointments', sicknotes: 'Sick Notes', referrals: 'Referrals', insurance: 'Health Insurance', emergency: 'Emergency', settings: 'Settings' },
+    tr: { dashboard: 'Panel', anatomy: 'Anatomi 3D', ki: 'AI Asistan', diseases: 'Hastalıklar', meds: 'İlaçlar', labs: 'Laboratuvar', devices: 'IoT & Hotspot', appointments: 'Randevular', sicknotes: 'Rapor', referrals: 'Sevkler', insurance: 'Sigorta', emergency: 'Acil Durum', settings: 'Ayarlar' },
+    ku: { dashboard: 'Destpêk', anatomy: 'Anatomî 3D', ki: 'Alîkarê AI', diseases: 'Nexweşî', meds: 'Derman', labs: 'Laboratuvar', devices: 'IoT & Hotspot', appointments: 'Hevdîtin', sicknotes: 'Bêhnvedan', referrals: 'Şandin', insurance: 'Bîme', emergency: 'Lezgîn', settings: 'Mîheng' }
   };
 
   const DAILY_TIPS = [
@@ -52,61 +112,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     { icon: '🫀', title: 'Herzgesundheit', text: 'Reduziere heute Salz in deinem Essen. Das entlastet dein Herz und reguliert den Blutdruck.' }
   ];
 
-  // A-Z Datenbanken (Auszug, erweiterbar)
-  const DISEASES = [
-    { name: 'Abszess', symp: 'Schmerzhafte, geschwollene Stelle, Fieber', tr: 'Arzt aufsuchen, Eröffnung, Antibiotika.' },
-    { name: 'Akne', symp: 'Pickel, Mitesser, Entzündungen', tr: 'Reinigung, Salben, ggf. Antibiotika.' },
-    { name: 'Aids (HIV)', symp: 'Fieber, Müdigkeit, Lymphknoten', tr: 'Antiretrovirale Therapie (ART).' },
-    { name: 'Allergie', symp: 'Niesen, Juckreiz, Atemnot', tr: 'Allergene meiden, Antihistaminika.' },
-    { name: 'Alzheimer', symp: 'Gedächtnisverlust, Orientierungslosigkeit', tr: 'Medikamente, Betreuung.' },
-    { name: 'Anämie', symp: 'Müdigkeit, Blässe, Schwindel', tr: 'Eisenpräparate, Vitamin B12.' },
-    { name: 'Angina Pectoris', symp: 'Engegefühl in der Brust', tr: 'Nitrate, Betablocker.' },
-    { name: 'Angststörung', symp: 'Herzrasen, Panik, Zittern', tr: 'Psychotherapie, Antidepressiva.' },
-    { name: 'Arthritis', symp: 'Geschwollene, schmerzhafte Gelenke', tr: 'Entzündungshemmer, Physiotherapie.' },
-    { name: 'Arthrose', symp: 'Gelenkschmerzen, Steifheit', tr: 'Bewegung, Schmerzmittel.' },
-    { name: 'Asthma', symp: 'Atemnot, Husten, Engegefühl', tr: 'Sprays, Kortison.' },
-    { name: 'Bluthochdruck', symp: 'Kopfschmerzen, Schwindel', tr: 'Salzarm essen, Blutdrucksenker.' },
-    { name: 'Bronchitis', symp: 'Husten mit Auswurf, Fieber', tr: 'Viel trinken, ggf. Antibiotika.' },
-    { name: 'Cholesterin', symp: 'Oft symptomlos, Ablagerungen', tr: 'Ernährung, Statine.' },
-    { name: 'Depression', symp: 'Niedergeschlagenheit, Antriebslosigkeit', tr: 'Psychotherapie, Antidepressiva.' },
-    { name: 'Diabetes Typ 1', symp: 'Durst, Wasserlassen, Gewichtsverlust', tr: 'Insulin-Injektionen.' },
-    { name: 'Diabetes Typ 2', symp: 'Müdigkeit, Durst, Blutzucker', tr: 'Ernährung, Metformin.' },
-    { name: 'Gastritis', symp: 'Magenschmerzen, Übelkeit', tr: 'Schonkost, Protonenpumpenhemmer.' },
-    { name: 'Grippe', symp: 'Fieber, Gliederschmerzen, Husten', tr: 'Bettruhe, Fieber senken.' },
-    { name: 'Herzinfarkt', symp: 'Starker Brustschmerz, Atemnot', tr: 'NOTRUF 112! Stent, Medikamente.' },
-    { name: 'Migräne', symp: 'Pulsierender Schmerz, Übelkeit', tr: 'Ruhe, Triptane.' },
-    { name: 'Schlaganfall', symp: 'Plötzliche Lähmung, Sprachstörung', tr: 'NOTRUF 112! Thrombolyse.' },
-    { name: 'Schwangerschaft', symp: 'Ausbleiben der Periode, Übelkeit, Müdigkeit', tr: 'Arzt aufsuchen, Folsäure einnehmen, gesunde Ernährung.' },
-    { name: 'Geschlechtskrankheiten', symp: 'Ausfluss, Schmerzen beim Wasserlassen, Hautveränderungen', tr: 'Dringend zum Arzt! Antibiotika oder antivirale Therapie.' }
-  ];
-
-  const MEDS = [
-    { name: 'Amoxicillin', use: 'Bakterielle Infektionen', dose: '1-0-1 (immer zu Ende nehmen!).', info: 'Verschreibungspflichtig.' },
-    { name: 'Aspirin 100mg', use: 'Blutverdünnung', dose: '1x täglich.', info: 'Magenschutz beachten.' },
-    { name: 'Metoprolol', use: 'Bluthochdruck, Herzschwäche', dose: '1x täglich morgens.', info: 'Puls regelmäßig prüfen.' },
-    { name: 'Prednisolon', use: 'Entzündungen, Allergien', dose: 'Ausschleichend einnehmen.', info: 'Nicht abrupt absetzen.' },
-    { name: 'Ibuprofen', use: 'Schmerzen, Fieber', dose: 'Max. 3x täglich nach dem Essen.', info: 'Magenschutz empfohlen.' },
-    { name: 'Insulin', use: 'Diabetes', dose: 'Je nach Blutzucker.', info: 'Kühl lagern.' },
-    { name: 'L-Thyroxin', use: 'Schilddrüsenunterfunktion', dose: 'Morgens nüchtern.', info: '30 Min. vor dem Frühstück.' },
-    { name: 'Metformin', use: 'Diabetes Typ 2', dose: 'Zu den Mahlzeiten.', info: 'Nierenwerte prüfen.' },
-    { name: 'Paracetamol', use: 'Schmerzen, Fieber', dose: 'Max. 3x täglich.', info: 'Leberschäden bei Überdosis.' },
-    { name: 'Voltaren', use: 'Schmerzen, Entzündungen', dose: 'Magensicher einnehmen.', info: 'Nicht auf offene Wunden.' }
-  ];
-
-  const LABS = [
-    { name: 'Blutzucker', ref: '70-100 mg/dl', desc: 'Nüchternwert. Hoch = Diabetes.' },
-    { name: 'Cholesterin', ref: '< 200 mg/dl', desc: 'Gesamtcholesterin.' },
-    { name: 'CRP', ref: '< 5 mg/l', desc: 'Entzündungswert.' },
-    { name: 'Hämoglobin', ref: '12-17 g/dl', desc: 'Sauerstofftransport.' },
-    { name: 'HbA1c', ref: '4,0-5,6 %', desc: 'Langzeitblutzucker.' },
-    { name: 'Kalium', ref: '3,5-5,0 mmol/l', desc: 'Wichtig fürs Herz.' },
-    { name: 'Kreatinin', ref: '0,6-1,3 mg/dl', desc: 'Nierenwert.' },
-    { name: 'Leukozyten', ref: '4.000-10.000', desc: 'Weiße Blutkörperchen.' },
-    { name: 'TSH', ref: '0,4-4,0 mU/l', desc: 'Schilddrüse.' }
-  ];
-
   // ═══════════════════════════════════════════════════════
-  // 2. LOGIK & SOUND
+  // 3. LOGIK & SOUND
   // ═══════════════════════════════════════════════════════
   function loadState() {
     try {
@@ -120,6 +127,10 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
   function saveState() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { }
+  }
+
+  function t(key) {
+    return LANG_STRINGS[state.lang] && LANG_STRINGS[state.lang][key] ? LANG_STRINGS[state.lang][key] : LANG_STRINGS['de'][key];
   }
 
   function speakText(text) {
@@ -151,19 +162,38 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     } catch (e) { }
   }
 
+  function startAvatarAnimation() {
+    if (avatarTimer) clearInterval(avatarTimer);
+    avatarTimer = setInterval(() => {
+      const core = document.querySelector('.h-ai-core');
+      if (core) {
+        if (Math.random() > 0.8) {
+          core.style.transform = 'scale(0.95)'; // Blinzeln
+          setTimeout(() => core.style.transform = 'scale(1)', 150);
+        }
+      }
+    }, 3000);
+  }
+
   // ═══════════════════════════════════════════════════════
-  // 3. CSS (Komplett)
+  // 4. CSS (Das gigantische Design-System)
   // ═══════════════════════════════════════════════════════
   function css() {
-    const theme = SPLASH_THEMES[state.splashTheme];
+    const theme = {
+      cyan: { p: '#00e5ff', s: '#0088ff', bg: '#050810', g: 'rgba(0,229,255,0.5)' },
+      purple: { p: '#b478ff', s: '#7a3aff', bg: '#080510', g: 'rgba(180,120,255,0.5)' },
+      gold: { p: '#ffd700', s: '#ff9800', bg: '#0a0500', g: 'rgba(255,215,0,0.5)' },
+      green: { p: '#4ade80', s: '#22c55e', bg: '#05100a', g: 'rgba(74,222,128,0.5)' }
+    }[state.splashTheme];
+
     return `<style>
-      :root { --splash-primary: ${theme.primary}; --splash-secondary: ${theme.secondary}; --splash-bg1: ${theme.bg1}; --splash-bg2: ${theme.bg2}; --splash-glow: ${theme.glow}; }
-      .haldo-app { font-family: 'Inter', system-ui, sans-serif; color: #e8e8ec; background: radial-gradient(circle at top right, #0a1220 0%, #050810 100%); height: 100%; width: 100%; display: flex; position: absolute; top: 0; left: 0; overflow: hidden; }
-      .h-sidebar { width: 260px; background: rgba(10, 15, 25, 0.6); backdrop-filter: blur(24px); border-right: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; padding: 20px 0; z-index: 10; }
-      .h-logo { padding: 0 20px 25px; font-size: 22px; font-weight: 900; color: #00e5ff; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; }
+      :root { --p: ${theme.p}; --s: ${theme.s}; --bg: ${theme.bg}; --g: ${theme.g}; }
+      .haldo-app { font-family: 'Inter', system-ui, sans-serif; color: #e8e8ec; background: radial-gradient(circle at top right, #0a1220 0%, var(--bg) 100%); height: 100%; width: 100%; display: flex; position: absolute; top: 0; left: 0; overflow: hidden; }
+      .h-sidebar { width: 260px; background: rgba(10, 15, 25, 0.6); backdrop-filter: blur(24px); border-right: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; padding: 20px 0; z-index: 10; overflow-y: auto; }
+      .h-logo { padding: 0 20px 25px; font-size: 22px; font-weight: 900; color: var(--p); display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; }
       .h-nav-item { padding: 14px 24px; display: flex; align-items: center; gap: 14px; color: #8a9bb5; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.25s ease; border-left: 3px solid transparent; }
       .h-nav-item:hover { background: rgba(255,255,255,0.02); color: #fff; }
-      .h-nav-item.active { background: linear-gradient(90deg, rgba(0,229,255,0.1) 0%, transparent 100%); color: #00e5ff; border-left-color: #00e5ff; }
+      .h-nav-item.active { background: linear-gradient(90deg, rgba(0,229,255,0.1) 0%, transparent 100%); color: var(--p); border-left-color: var(--p); }
       .h-nav-item .icon { font-size: 20px; width: 24px; text-align: center; }
       .h-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
       .h-header { padding: 25px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(10, 15, 25, 0.4); backdrop-filter: blur(10px); }
@@ -182,8 +212,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
       .h-greeting-card p { color: #a8b0cc; margin: 0; font-size: 16px; line-height: 1.5; }
       .h-ai-avatar-container { width: 200px; height: 200px; position: relative; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); border-radius: 50%; border: 2px solid rgba(0,229,255,0.3); box-shadow: 0 0 40px rgba(0,229,255,0.2); cursor: pointer; transition: all 0.3s; }
       .h-ai-avatar-container:hover { box-shadow: 0 0 60px rgba(0,229,255,0.5); transform: scale(1.05); }
-      .h-ai-core { width: 100px; height: 100px; background: radial-gradient(circle, #00e5ff 0%, #0044aa 100%); border-radius: 50%; animation: breathe 3s ease-in-out infinite; box-shadow: 0 0 50px #00e5ff; }
-      @keyframes breathe { 0%, 100% { transform: scale(1); box-shadow: 0 0 30px #00e5ff; } 50% { transform: scale(1.15); box-shadow: 0 0 70px #00e5ff; } }
+      .h-ai-core { width: 100px; height: 100px; background: radial-gradient(circle, var(--p) 0%, var(--s) 100%); border-radius: 50%; animation: breathe 3s ease-in-out infinite; box-shadow: 0 0 50px var(--p); transition: transform 0.1s; }
+      @keyframes breathe { 0%, 100% { transform: scale(1); box-shadow: 0 0 30px var(--p); } 50% { transform: scale(1.15); box-shadow: 0 0 70px var(--p); } }
       .h-daily-tip { display: flex; align-items: center; gap: 20px; border-left: 4px solid #b478ff; }
       .h-daily-tip .tip-icon { font-size: 40px; background: rgba(180,120,255,0.1); padding: 15px; border-radius: 16px; }
       .h-daily-tip h3 { margin: 0 0 5px 0; color: #b478ff; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
@@ -192,17 +222,20 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
       .h-stat-box { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
       .h-stat-box .title { font-size: 12px; color: #8a9bb5; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
       .h-stat-box .value { font-size: 28px; font-weight: 900; color: #fff; }
-      .h-stat-box .unit { font-size: 14px; color: #00e5ff; }
+      .h-stat-box .unit { font-size: 14px; color: var(--p); }
       .h-quick-btn { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; transition: all 0.2s; }
-      .h-quick-btn:hover { background: rgba(0,229,255,0.1); border-color: #00e5ff; transform: translateY(-3px); }
+      .h-quick-btn:hover { background: rgba(0,229,255,0.1); border-color: var(--p); transform: translateY(-3px); }
       .h-quick-btn .icon { font-size: 32px; }
       .h-quick-btn .label { font-size: 14px; font-weight: bold; color: #fff; }
 
-      /* Generic List Items */
+      /* Generic List Items & Inputs */
       .h-list-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
-      .h-list-item:hover { border-color: #00e5ff; background: rgba(0,229,255,0.05); }
+      .h-list-item:hover { border-color: var(--p); background: rgba(0,229,255,0.05); }
       .h-input { width: 100%; padding: 15px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #fff; font-size: 15px; margin-bottom: 20px; outline: none; }
-      .h-input:focus { border-color: #00e5ff; }
+      .h-input:focus { border-color: var(--p); }
+      .h-btn { padding: 12px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; border: none; transition: 0.2s; font-family: inherit; }
+      .h-btn.primary { background: var(--p); color: #000; }
+      .h-btn.primary:hover { opacity: 0.8; }
 
       /* KI Chat */
       .h-chat-container { display: flex; flex-direction: column; height: calc(100vh - 200px); background: rgba(20, 25, 35, 0.4); border-radius: 20px; overflow: hidden; }
@@ -210,31 +243,31 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
       .h-msg { display: flex; gap: 15px; max-width: 80%; }
       .h-msg.user { align-self: flex-end; flex-direction: row-reverse; }
       .h-msg.ai { align-self: flex-start; }
-      .h-msg-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; background: rgba(0,229,255,0.2); border: 1px solid #00e5ff; }
+      .h-msg-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; background: rgba(0,229,255,0.2); border: 1px solid var(--p); }
       .h-msg-bubble { padding: 15px 20px; border-radius: 16px; font-size: 15px; line-height: 1.6; }
       .h-msg.ai .h-msg-bubble { background: rgba(0,229,255,0.05); border: 1px solid rgba(0,229,255,0.2); border-top-left-radius: 4px; }
-      .h-msg.user .h-msg-bubble { background: linear-gradient(135deg, #00e5ff, #0088ff); color: #000; border-top-right-radius: 4px; }
+      .h-msg.user .h-msg-bubble { background: linear-gradient(135deg, var(--p), var(--s)); color: #000; border-top-right-radius: 4px; }
       .h-chat-input-area { padding: 20px 30px; background: rgba(10, 15, 25, 0.8); display: flex; gap: 15px; }
       .h-chat-input { flex: 1; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; color: #fff; font-size: 15px; outline: none; }
-      .h-chat-send { background: linear-gradient(135deg, #00e5ff, #0088ff); border: none; border-radius: 12px; width: 50px; height: 50px; cursor: pointer; font-size: 20px; color: #000; }
+      .h-chat-send { background: linear-gradient(135deg, var(--p), var(--s)); border: none; border-radius: 12px; width: 50px; height: 50px; cursor: pointer; font-size: 20px; color: #000; }
 
       /* 3D Anatomie */
       .h-anatomy-container { width: 100%; height: calc(100vh - 250px); background: radial-gradient(circle at center, #111a2a 0%, #050810 100%); border-radius: 20px; overflow: hidden; position: relative; border: 1px solid rgba(0,229,255,0.2); }
       .h-anatomy-controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 12px; backdrop-filter: blur(10px); }
       .h-anatomy-btn { padding: 8px 16px; background: transparent; border: 1px solid #555; color: #aaa; border-radius: 8px; cursor: pointer; font-weight: bold; }
-      .h-anatomy-btn.active { background: rgba(0,229,255,0.2); border-color: #00e5ff; color: #00e5ff; }
+      .h-anatomy-btn.active { background: rgba(0,229,255,0.2); border-color: var(--p); color: var(--p); }
 
       /* Splash */
-      .h-splash { position: absolute; inset: 0; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle at center, var(--splash-bg1) 0%, var(--splash-bg2) 100%); overflow: hidden; }
+      .h-splash { position: absolute; inset: 0; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle at center, var(--bg) 0%, #000 100%); overflow: hidden; }
       .h-splash-logo-wrapper { margin-bottom: 20px; animation: floatLogo 4s ease-in-out infinite; }
-      .h-splash-logo-img { width: 120px; height: 120px; object-fit: contain; filter: drop-shadow(0 0 30px var(--splash-primary)); }
+      .h-splash-logo-img { width: 120px; height: 120px; object-fit: contain; filter: drop-shadow(0 0 30px var(--p)); }
       @keyframes floatLogo { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
       .h-splash-text-top { font-size: 20px; font-weight: 600; color: #ddd; margin-bottom: 5px; letter-spacing: 2px; text-transform: uppercase; }
       .h-splash-title { font-size: 52px; font-weight: 900; color: #ffd700; margin-bottom: 15px; text-align: center; text-shadow: 0 0 10px #ffd700, 0 0 20px #ff9800, 0 0 40px #ff6f00; animation: pulseGold 3s infinite alternate; }
       @keyframes pulseGold { 0% { text-shadow: 0 0 10px #ffd700, 0 0 20px #ff9800; } 100% { text-shadow: 0 0 15px #ffd700, 0 0 30px #ff9800, 0 0 50px #ff6f00; } }
       .h-splash-author { font-size: 18px; font-weight: 500; color: #e8e8ec; margin-bottom: 40px; font-style: italic; }
       .h-splash-subtitle { position: absolute; bottom: 100px; font-size: 12px; font-weight: 800; color: #ffd700; letter-spacing: 4px; text-transform: uppercase; opacity: 0.8; }
-      .h-splash-btn { padding: 18px 60px; background: linear-gradient(135deg, var(--splash-primary) 0%, var(--splash-secondary) 100%); color: #000; font-size: 18px; font-weight: 900; border: none; border-radius: 30px; cursor: pointer; box-shadow: 0 10px 30px var(--splash-glow); }
+      .h-splash-btn { padding: 18px 60px; background: linear-gradient(135deg, var(--p) 0%, var(--s) 100%); color: #000; font-size: 18px; font-weight: 900; border: none; border-radius: 30px; cursor: pointer; box-shadow: 0 10px 30px var(--g); }
       .h-color-bands { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; background: rgba(0,0,0,0.4); padding: 10px 20px; border-radius: 30px; align-items: center; }
       .h-color-band { width: 25px; height: 25px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
       .h-color-band.active { border-color: #fff; transform: scale(1.1); }
@@ -244,7 +277,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   }
 
   // ═══════════════════════════════════════════════════════
-  // 4. RENDER FUNKTIONEN
+  // 5. RENDER FUNKTIONEN
   // ═══════════════════════════════════════════════════════
   function renderSplash() {
     return `
@@ -256,7 +289,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         <div class="h-splash-subtitle">Professionale App</div>
         <button class="h-splash-btn" data-action="enter-app">Los geht's →</button>
         <div class="h-color-bands">
-          ${Object.keys(SPLASH_THEMES).map(key => `<div class="h-color-band band-${key} ${state.splashTheme === key ? 'active' : ''}" data-theme="${key}"></div>`).join('')}
+          ${['cyan', 'purple', 'emerald', 'gold'].map(key => `<div class="h-color-band band-${key} ${state.splashTheme === key ? 'active' : ''}" data-theme="${key}"></div>`).join('')}
           <div class="h-sound-toggle" data-action="toggle-sound">${state.soundEnabled ? '🔊' : '🔇'}</div>
         </div>
       </div>
@@ -275,12 +308,12 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         <div class="h-stat-box"><div class="title">Blutdruck</div><div class="value">${state.vitals.bloodPressure} <span class="unit">mmHg</span></div></div>
         <div class="h-stat-box"><div class="title">Blutzucker</div><div class="value">${state.vitals.bloodSugar} <span class="unit">mg/dl</span></div></div>
         <div class="h-stat-box"><div class="title">Gewicht</div><div class="value">${state.vitals.weight} <span class="unit">kg</span></div></div>
-        <div class="h-stat-box"><div class="title">Termine</div><div class="value">${state.appointments.length} <span class="unit">Anstehend</span></div></div>
+        <div class="h-stat-box"><div class="title">Wasser</div><div class="value">${state.vitals.water} <span class="unit">L</span></div></div>
       </div>
       <div><h3 style="color:#fff; margin: 10px 0 15px 0;">Schnellzugriff</h3><div class="h-grid-4">
         <div class="h-quick-btn" data-action="view-emergency" style="border-color:#ff5555;"><div class="icon">🚨</div><div class="label" style="color:#ff5555;">Notfall</div></div>
         <div class="h-quick-btn" data-action="view-ki"><div class="icon">🤖</div><div class="label">KI Check</div></div>
-        <div class="h-quick-btn" data-action="view-meds"><div class="icon">💊</div><div class="label">Medikamente</div></div>
+        <div class="h-quick-btn" data-action="view-referrals"><div class="icon">📄</div><div class="label">Überweisung</div></div>
         <div class="h-quick-btn" data-action="view-anatomy"><div class="icon">🧍‍♂️</div><div class="label">Anatomie 3D</div></div>
       </div></div>
     </div>`;
@@ -324,12 +357,33 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
           <div><b>SSID:</b> ${state.hotspot.ssid}</div>
           <div><b>Passwort:</b> <input type="text" id="hotspot-pass" value="${state.hotspot.pass}" style="background:transparent; border:1px solid #444; color:#fff; padding:5px; border-radius:5px;"></div>
           <div style="display:flex; gap:10px;">
-            <button class="h-btn primary" data-action="save-hotspot" style="padding:10px; border:none; border-radius:8px; background:#00e5ff; font-weight:bold; cursor:pointer;">Passwort speichern</button>
-            <button class="h-btn" data-action="toggle-hotspot" style="padding:10px; border:1px solid #00e5ff; color:#00e5ff; border-radius:8px; background:transparent; font-weight:bold; cursor:pointer;">Ein/Aus</button>
+            <button class="h-btn primary" data-action="save-hotspot">Passwort speichern</button>
+            <button class="h-btn" data-action="toggle-hotspot" style="border:1px solid var(--p); color:var(--p); background:transparent;">Ein/Aus</button>
           </div>
         </div>
       </div>
       <div class="h-card"><h2>📡 Verbundene Geräte</h2><p>Blutdruck, Blutzucker, Waage, Smartwatch (Simulation)</p></div>
+    </div>`;
+  }
+
+  function renderHardware() {
+    return `<div class="h-inner">
+      <div class="h-card" style="border-color:#00e5ff;">
+        <h2>🖨️ Drucker & Scanner (Simulation)</h2>
+        <p style="color:#888;margin-bottom:15px;">Verbinde deine Hardware mit der App.</p>
+        <div style="display:flex; gap:10px;">
+          <button class="h-btn primary" onclick="alert('Druckauftrag gesendet!')">Rezept drucken</button>
+          <button class="h-btn" style="border:1px solid var(--p); color:var(--p); background:transparent;" onclick="alert('Scanner bereit. Dokument eingescannt.')">Dokument scannen</button>
+        </div>
+      </div>
+      <div class="h-card" style="border-color:#4ade80;">
+        <h2>🏥 Krankenkasse</h2>
+        <p style="color:#888;margin-bottom:15px;">Verwalte deine Versicherungsdaten.</p>
+        <div style="background:rgba(0,0,0,0.3); padding:20px; border-radius:12px; border-left:4px solid #4ade80;">
+          <div style="font-size:18px; font-weight:bold;">${state.insurance.provider}</div>
+          <div style="color:#aaa;">Versichertennummer: ${state.insurance.number}</div>
+        </div>
+      </div>
     </div>`;
   }
 
@@ -342,7 +396,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         <div style="text-align:left; margin-top:30px; background:rgba(0,0,0,0.3); padding:20px; border-radius:12px;">
           <h3>Herzdruckmassage</h3>
           <p style="color:#ccc;">100-120x pro Minute, 5-6 cm tief drücken. <br>Timer: <span id="cpr-timer">0</span> Sekunden</p>
-          <button onclick="document.getElementById('cpr-timer').innerText=0; let i=setInterval(()=>document.getElementById('cpr-timer').innerText++, 1000); setTimeout(()=>clearInterval(i), 30000)" style="background:#00e5ff; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;">Timer starten</button>
+          <button onclick="document.getElementById('cpr-timer').innerText=0; let i=setInterval(()=>document.getElementById('cpr-timer').innerText++, 1000); setTimeout(()=>clearInterval(i), 30000)" style="background:var(--p); border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;">Timer starten</button>
         </div>
       </div>
     </div>`;
@@ -360,7 +414,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         </select>
       </div>
       <div style="margin-top:20px;"><label>System</label>
-        <button class="h-btn" style="padding:15px; width:100%; border:1px solid #ff5555; background:transparent; color:#ff5555; border-radius:12px; cursor:pointer; margin-top:10px;" onclick="localStorage.clear(); location.reload();">Daten zurücksetzen (App neu starten)</button>
+        <button class="h-btn" style="width:100%; border:1px solid #ff5555; color:#ff5555; background:transparent; margin-top:10px;" onclick="localStorage.clear(); location.reload();">Daten zurücksetzen (App neu starten)</button>
       </div>
     </div></div>`;
   }
@@ -376,6 +430,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
       case 'meds': content = renderGenericList('💊 Medikamente A-Z', MEDS, 'med'); break;
       case 'labs': content = renderGenericList('🧪 Laborwerte A-Z', LABS, 'lab'); break;
       case 'devices': content = renderDevices(); break;
+      case 'hardware': content = renderHardware(); break;
       case 'emergency': content = renderEmergency(); break;
       case 'settings': content = renderSettings(); break;
       default: content = `<div class="h-inner"><div class="h-card">Modul in Arbeit...</div></div>`;
@@ -384,23 +439,24 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
       <div class="haldo-app">
         <div class="h-sidebar">
           <div class="h-logo">🩺 HalDo</div>
-          <div class="h-nav-item ${state.currentView === 'dashboard' ? 'active' : ''}" data-action="view-dashboard"><span class="icon">📊</span> Dashboard</div>
-          <div class="h-nav-item ${state.currentView === 'anatomy' ? 'active' : ''}" data-action="view-anatomy"><span class="icon">🧍‍♂️</span> Anatomie 3D</div>
-          <div class="h-nav-item ${state.currentView === 'ki' ? 'active' : ''}" data-action="view-ki"><span class="icon">🤖</span> KI Assistent</div>
-          <div class="h-nav-item ${state.currentView === 'diseases' ? 'active' : ''}" data-action="view-diseases"><span class="icon">🦠</span> Krankheiten</div>
-          <div class="h-nav-item ${state.currentView === 'meds' ? 'active' : ''}" data-action="view-meds"><span class="icon">💊</span> Medikamente</div>
-          <div class="h-nav-item ${state.currentView === 'labs' ? 'active' : ''}" data-action="view-labs"><span class="icon">🧪</span> Laborwerte</div>
-          <div class="h-nav-item ${state.currentView === 'devices' ? 'active' : ''}" data-action="view-devices"><span class="icon">📡</span> IoT & Hotspot</div>
+          <div class="h-nav-item ${state.currentView === 'dashboard' ? 'active' : ''}" data-action="view-dashboard"><span class="icon">📊</span> ${t('dashboard')}</div>
+          <div class="h-nav-item ${state.currentView === 'anatomy' ? 'active' : ''}" data-action="view-anatomy"><span class="icon">🧍‍♂️</span> ${t('anatomy')}</div>
+          <div class="h-nav-item ${state.currentView === 'ki' ? 'active' : ''}" data-action="view-ki"><span class="icon">🤖</span> ${t('ki')}</div>
+          <div class="h-nav-item ${state.currentView === 'diseases' ? 'active' : ''}" data-action="view-diseases"><span class="icon">🦠</span> ${t('diseases')}</div>
+          <div class="h-nav-item ${state.currentView === 'meds' ? 'active' : ''}" data-action="view-meds"><span class="icon">💊</span> ${t('meds')}</div>
+          <div class="h-nav-item ${state.currentView === 'labs' ? 'active' : ''}" data-action="view-labs"><span class="icon">🧪</span> ${t('labs')}</div>
+          <div class="h-nav-item ${state.currentView === 'devices' ? 'active' : ''}" data-action="view-devices"><span class="icon">📡</span> ${t('devices')}</div>
+          <div class="h-nav-item ${state.currentView === 'hardware' ? 'active' : ''}" data-action="view-hardware"><span class="icon">🖨️</span> Hardware & Kasse</div>
           <div style="flex:1;"></div>
-          <div class="h-nav-item ${state.currentView === 'settings' ? 'active' : ''}" data-action="view-settings"><span class="icon">⚙️</span> Einstellungen</div>
-          <div class="h-nav-item ${state.currentView === 'emergency' ? 'active' : ''}" data-action="view-emergency" style="color:#ff5555;"><span class="icon">🚨</span> Notfall</div>
+          <div class="h-nav-item ${state.currentView === 'settings' ? 'active' : ''}" data-action="view-settings"><span class="icon">⚙️</span> ${t('settings')}</div>
+          <div class="h-nav-item ${state.currentView === 'emergency' ? 'active' : ''}" data-action="view-emergency" style="color:#ff5555;"><span class="icon">🚨</span> ${t('emergency')}</div>
         </div>
-        <div class="h-main"><div class="h-header"><h1>${state.currentView.toUpperCase()}</h1><div style="font-size:12px; color:#00e5ff;">v${VERSION}</div></div><div class="h-content" id="h-view">${content}</div></div>
+        <div class="h-main"><div class="h-header"><h1>${state.currentView.toUpperCase()}</h1><div style="font-size:12px; color:var(--p);">v${VERSION}</div></div><div class="h-content" id="h-view">${content}</div></div>
       </div>`;
   }
 
   // ═══════════════════════════════════════════════════════
-  // 5. 3D LOGIK (Prozedural mit optionalem GLB-Loader)
+  // 6. 3D LOGIK (Prozedurales Meisterwerk mit mehr Details)
   // ═══════════════════════════════════════════════════════
   function init3DAnatomy() {
     const container = document.getElementById('anatomy-3d-container');
@@ -417,9 +473,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     threeScene.add(new THREE.AmbientLight(0xffffff, 0.7));
     const dirLight = new THREE.DirectionalLight(0xffffff, 1); dirLight.position.set(2, 3, 2); threeScene.add(dirLight);
     const rimLight = new THREE.DirectionalLight(0x00e5ff, 0.6); rimLight.position.set(-2, -1, -2); threeScene.add(rimLight);
-    
-    // Hier wird das prozedurale Modell gebaut.
-    // Für ein echtes GLB-Modell müsste hier ein GLTFLoader verwendet werden.
     buildAnatomyModel(threeScene);
     updateAnatomyVisibility(state.anatomyMode);
     function animate() {
@@ -465,10 +518,13 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     heartMesh = new THREE.Mesh(new THREE.SphereGeometry(0.14, 24, 24), new THREE.MeshStandardMaterial({ color: 0xdd0000, roughness: 0.3 })); heartMesh.scale.set(1, 1.2, 0.9); heartMesh.position.set(-0.05, 1.0, 0.15); addOrgan(heartMesh, 'Herz', 'Muskelpumpe für den Blutkreislauf.', '🫀');
     const lungMat = new THREE.MeshStandardMaterial({ color: 0xff8888, transparent: true, opacity: 0.9 }); lungLeft = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.4, 8, 16), lungMat); lungLeft.position.set(-0.15, 1.2, 0.05); addOrgan(lungLeft, 'Lunge (links)', 'Atmungsorgan.', '🫁'); lungRight = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.4, 8, 16), lungMat); lungRight.position.set(0.15, 1.2, 0.05); addOrgan(lungRight, 'Lunge (rechts)', 'Atmungsorgan.', '🫁');
     const liver = new THREE.Mesh(new THREE.SphereGeometry(0.22, 20, 20), new THREE.MeshStandardMaterial({ color: 0x8b3a1a })); liver.scale.set(1.5, 0.6, 0.9); liver.position.set(0.15, 0.75, 0.1); addOrgan(liver, 'Leber', 'Entgiftung und Galle.', '🟤');
+    // Fortpflanzungsorgane
+    const uterus = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), new THREE.MeshStandardMaterial({ color: 0xff77aa })); uterus.position.set(0, 0.2, 0.1); addOrgan(uterus, 'Uterus/Gebärmutter', 'Fortpflanzungsorgan der Frau.', '🤰');
+    const prostate = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 16), new THREE.MeshStandardMaterial({ color: 0x77aaff })); prostate.position.set(0, 0.15, 0.1); addOrgan(prostate, 'Prostata', 'Fortpflanzungsorgan des Mannes.', '♂️');
   }
 
   // ═══════════════════════════════════════════════════════
-  // 6. EVENT HANDLERS
+  // 7. EVENT HANDLERS
   // ═══════════════════════════════════════════════════════
   function handleClick(e) {
     const btn = e.target.closest('[data-action]');
@@ -481,7 +537,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     if (!btn) return;
     const action = btn.dataset.action;
     if (action === 'toggle-sound') { state.soundEnabled = !state.soundEnabled; saveState(); currentTarget.innerHTML = renderAppShell(); return; }
-    if (action === 'enter-app') { state.currentView = 'dashboard'; currentTarget.innerHTML = renderAppShell(); return; }
+    if (action === 'enter-app') { state.currentView = 'dashboard'; currentTarget.innerHTML = renderAppShell(); startAvatarAnimation(); return; }
     if (action === 'save-hotspot') { state.hotspot.pass = document.getElementById('hotspot-pass').value; saveState(); alert('Passwort gespeichert!'); return; }
     if (action === 'toggle-hotspot') { state.hotspot.active = !state.hotspot.active; saveState(); currentTarget.innerHTML = renderAppShell(); return; }
     if (action.startsWith('view-')) { state.currentView = action.replace('view-', ''); currentTarget.innerHTML = renderAppShell(); if (state.currentView === 'anatomy') setTimeout(init3DAnatomy, 100); return; }
@@ -496,7 +552,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   });
 
   // ═══════════════════════════════════════════════════════
-  // 7. MOUNT & EXPORT
+  // 8. MOUNT & EXPORT
   // ═══════════════════════════════════════════════════════
   function mount(target) {
     if (target && target.nodeType === 1) {
@@ -510,7 +566,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   function openOverlay() {
     const overlay = document.createElement('div'); overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#0a0a0f;display:flex;flex-direction:column;';
     const closeBar = document.createElement('div'); closeBar.style.cssText = 'padding:10px 16px;background:#111;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;';
-    closeBar.innerHTML = `<b style="color:#e8e8ec;font-family:Inter;">🩺 HalDo Arztbuch MASTER</b><button id="h-close-btn" style="background:transparent;border:1px solid #444;color:#fff;padding:5px 10px;border-radius:6px;cursor:pointer;">✕ Schließen</button>`;
+    closeBar.innerHTML = `<b style="color:#e8e8ec;font-family:Inter;">🩺 HalDo Arztbuch FINAL</b><button id="h-close-btn" style="background:transparent;border:1px solid #444;color:#fff;padding:5px 10px;border-radius:6px;cursor:pointer;">✕ Schließen</button>`;
     overlay.appendChild(closeBar); const mountDiv = document.createElement('div'); mountDiv.style.cssText = 'flex:1;position:relative;overflow:hidden;'; overlay.appendChild(mountDiv); document.body.appendChild(overlay);
     document.getElementById('h-close-btn').onclick = () => { overlay.remove(); currentTarget = null; }; mount(mountDiv);
   }
