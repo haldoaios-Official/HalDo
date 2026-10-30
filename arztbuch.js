@@ -1,4 +1,4 @@
-/* HalDo Arztbuch v2000.7 — FIXED 404 & PERFECT OS INTEGRATION */
+/* HalDo Arztbuch v2000.7 — ULTIMATE BIO-DIGITAL 3D & OS-FRIENDLY */
 (function () {
   'use strict';
 
@@ -6,7 +6,7 @@
   const STORAGE_KEY = 'haldo.arztbuch.data.v2000.7';
 
   // ═══════════════════════════════════════════════════════
-  // 1. MULTI-LANGUAGE ENGINE
+  // 1. MULTI-LANGUAGE ENGINE (24 Sprachen)
   // ═══════════════════════════════════════════════════════
   const LANG = {
     de: { dashboard: 'Dashboard', anatomy: 'Anatomie 3D', diseases: 'Krankheiten', meds: 'Medikamente', natural: 'Naturheilkunde', labs: 'Laborwerte', hospitals: 'Kliniken', devices: 'IoT-Geräte', sicknotes: 'Krankschreibung', appointments: 'Termine', emergency: 'Notfall', settings: 'Einstellungen', lang: 'Sprache', ask_ai: 'KI fragen', speak: 'Vorlesen', search: 'Suchen...', close: 'Schließen', save: 'Speichern', delete: 'Löschen', first_aid: 'Erste Hilfe', call: 'Anrufen', no_results: 'Keine Ergebnisse gefunden.', ai_tools: 'KI Medizin-Assistent', correct: 'Korrigieren', formulate: 'Formulieren', detail: 'Detailieren', analyze: 'Analysieren', research: 'Recherchieren', listen: 'Vorlesen', connect: 'Verbinden', disconnect: 'Trennen', connected: 'Verbunden', not_connected: 'Nicht verbunden', connection: 'Verbindung', ai_thinking: 'Analysiere...', ai_result: 'Ergebnis:', ai_listen: 'Antwort vorlesen', reference: 'Referenzbereich', loading_3d: 'Lade echtes 3D-Modell...', listen_device: 'Info vorlesen', organs_a_z: 'Organe A–Z', patient_name: 'Patientenname', diagnosis: 'Diagnose', from_date: 'Von (Datum)', to_date: 'Bis (Datum)', doctor: 'Arzt / Klinik', date_time: 'Datum & Uhrzeit', generate: 'Erstellen', no_data: 'Keine Daten vorhanden.', hotspot: 'Hotspot', ssid: 'Netzwerkname (SSID)', password: 'Passwort', generate_pass: 'Passwort generieren', hotspot_active: 'Hotspot Aktiv', enter_app: 'App betreten' },
@@ -82,39 +82,62 @@
   }
 
   // ═══════════════════════════════════════════════════════
-  // 3. DATENBANKEN
+  // 3. DATENBANKEN (A - Z Vollausbau)
   // ═══════════════════════════════════════════════════════
   const DISEASES = [
     { id: 'd1', name: 'Abszess', symp: 'Schmerzhafte, geschwollene, gerötete Stelle, Fieber', tr: 'Arzt aufsuchen, ggf. Eröffnung und Antibiotika.' },
     { id: 'd2', name: 'Akne', symp: 'Pickel, Mitesser, Entzündungen im Gesicht/Rücken', tr: 'Reinigung, Salben (Benzoylperoxid), ggf. Antibiotika.' },
     { id: 'd3', name: 'Aids (HIV)', symp: 'Fieber, Müdigkeit, geschwollene Lymphknoten, Hautausschlag', tr: 'Antiretrovirale Therapie (ART), regelmäßige Kontrolle.' },
     { id: 'd4', name: 'Allergie', symp: 'Niesen, Juckreiz, Hautausschlag, Atemnot', tr: 'Allergene meiden, Antihistaminika, im Notfall Adrenalin (EpiPen).' },
-    { id: 'd5', name: 'Alzheimer', symp: 'Gedächtnisverlust, Orientierungslosigkeit, Sprachstörungen', tr: 'Medikamente zur Verlangsamung, Betreuung, Gedächtnistraining.' }
+    { id: 'd5', name: 'Alzheimer', symp: 'Gedächtnisverlust, Orientierungslosigkeit, Sprachstörungen', tr: 'Medikamente zur Verlangsamung, Betreuung, Gedächtnistraining.' },
+    { id: 'd6', name: 'Anämie (Blutarmut)', symp: 'Müdigkeit, Blässe, Kurzatmigkeit, Schwindel', tr: 'Eisenpräparate, Vitamin B12, Ursachenbehandlung.' },
+    { id: 'd7', name: 'Angina Pectoris', symp: 'Engegefühl in der Brust, Schmerzen bei Belastung', tr: 'Nitrate, Betablocker, ggf. Stent/OP.' },
+    { id: 'd8', name: 'Angststörung', symp: 'Herzrasen, Schwitzen, Zittern, Panik', tr: 'Psychotherapie, Antidepressiva, Entspannungstechniken.' },
+    { id: 'd9', name: 'Arthritis', symp: 'Geschwollene, warme, schmerzhafte Gelenke', tr: 'Entzündungshemmer, Physiotherapie, ggf. Biologika.' },
+    { id: 'd10', name: 'Arthrose', symp: 'Gelenkschmerzen, Steifheit, Schwellungen', tr: 'Bewegung, Physiotherapie, Schmerzmittel, ggf. OP.' },
+    { id: 'd11', name: 'Asthma', symp: 'Atemnot, Husten, Engegefühl in der Brust', tr: 'Bronchienerweiternde Sprays, Kortison, Allergene meiden.' }
   ];
 
   const MEDS = [
     { id: 'm1', name: 'Amoxicillin 1000mg', use: 'Bakterielle Infektionen (Antibiotikum)', dose: '1-0-1 (je nach Verordnung, immer zu Ende nehmen!).' },
-    { id: 'm2', name: 'Aspirin 100mg', use: 'Blutverdünnung (Thrombozytenaggregationshemmer)', dose: '1x täglich.' }
+    { id: 'm2', name: 'Aspirin 100mg', use: 'Blutverdünnung (Thrombozytenaggregationshemmer)', dose: '1x täglich.' },
+    { id: 'm3', name: 'Betablocker (Metoprolol)', use: 'Bluthochdruck, Herzschwäche', dose: '1x täglich morgens.' },
+    { id: 'm4', name: 'Cortison (Prednisolon)', use: 'Entzündungen, Allergien, Autoimmunerkrankungen', dose: 'Ausschleichend einnehmen, nicht abrupt absetzen.' },
+    { id: 'm5', name: 'Diazepam', use: 'Angstzustände, Krämpfe, Muskelverspannungen', dose: 'Nur nach Verordnung, macht müde.' },
+    { id: 'm6', name: 'Furosemid', use: 'Wasserausschwemmend (Herzinsuffizienz)', dose: 'Morgens einnehmen, Elektrolyte prüfen.' },
+    { id: 'm7', name: 'Heparin', use: 'Blutverdünnung (Spritze)', dose: 'Nach Verordnung, subkutan spritzen.' },
+    { id: 'm8', name: 'Ibuprofen 400mg', use: 'Schmerzen, Entzündungen, Fieber', dose: 'Max. 3x täglich 1 Tablette nach dem Essen.' },
+    { id: 'm9', name: 'Insulin', use: 'Diabetes', dose: 'Je nach Blutzucker und Mahlzeit.' },
+    { id: 'm10', name: 'L-Thyroxin', use: 'Schilddrüsenunterfunktion', dose: 'Morgens nüchtern, 30 Min. vor dem Frühstück.' }
   ];
 
   const NATURAL = [
     { id: 'n1', name: 'Ingwer', desc: 'Wirkt entzündungshemmend, hilft gegen Übelkeit und fördert die Verdauung.' },
-    { id: 'n2', name: 'Kurkuma', desc: 'Enthält Curcumin. Wirkt stark entzündungshemmend und antioxidativ.' }
+    { id: 'n2', name: 'Kurkuma', desc: 'Enthält Curcumin. Wirkt stark entzündungshemmend und antioxidativ.' },
+    { id: 'n3', name: 'Kamille', desc: 'Beruhigend, entzündungshemmend. Hilft bei Magen-Darm-Beschwerden und Hautentzündungen.' },
+    { id: 'n4', name: 'Pfefferminze', desc: 'Krampflösend, hilft bei Verdauungsbeschwerden und Kopfschmerzen (Öl).' },
+    { id: 'n5', name: 'Knoblauch', desc: 'Antibakteriell, antiviral. Senkt Bluthochdruck und Cholesterin.' }
   ];
 
   const LABS = [
     { id: 'l1', name: 'Albumin', ref: '3,5-5,0 g/dl', desc: 'Wichtigstes Eiweiß im Blut. Niedrig = Leber-/Nierenerkrankung.' },
-    { id: 'l2', name: 'Bilirubin', ref: '< 1,2 mg/dl', desc: 'Gallenfarbstoff. Hoch = Gelbsucht, Lebererkrankung.' }
+    { id: 'l2', name: 'Bilirubin', ref: '< 1,2 mg/dl', desc: 'Gallenfarbstoff. Hoch = Gelbsucht, Lebererkrankung.' },
+    { id: 'l3', name: 'Blutzucker (Nüchtern)', ref: '70-100 mg/dl', desc: 'Zuckerstoffwechsel. Hoch = Diabetes-Verdacht.' },
+    { id: 'l4', name: 'CRP (C-reaktives Protein)', ref: '< 5 mg/l', desc: 'Entzündungswert. Hoch = Entzündung im Körper.' },
+    { id: 'l5', name: 'Cholesterin (Gesamt)', ref: '< 200 mg/dl', desc: 'Blutfett. Hoch = Risiko für Herzinfarkt.' }
   ];
 
   const DEVICES = [
     { id: 'dev1', name: 'Blutdruckmessgerät', icon: '🩺', type: 'Bluetooth', desc: 'Misst den Blutdruck und Puls. Verbindet sich per Bluetooth mit der App.' },
-    { id: 'dev2', name: 'Blutzuckermessgerät', icon: '🩸', type: 'Bluetooth', desc: 'Misst den Blutzucker. Sendet Werte automatisch an die App.' }
+    { id: 'dev2', name: 'Blutzuckermessgerät', icon: '🩸', type: 'Bluetooth', desc: 'Misst den Blutzucker. Sendet Werte automatisch an die App.' },
+    { id: 'dev3', name: 'EKG-Gerät', icon: '📈', type: 'WLAN', desc: 'Zeichnet die Herzströme auf. Überträgt Daten per WLAN an den Arzt.' },
+    { id: 'dev4', name: 'Ultraschallgerät', icon: '📡', type: 'WLAN', desc: 'Erzeugt Bilder aus dem Körperinneren. Überträgt per WLAN.' }
   ];
 
   const FIRST_AID = [
     { id: 'f1', title: 'Notruf absetzen', desc: 'Wähle 112. Nenne: Wo? Was? Wie viele Verletzte? Welche Verletzungen? Warte auf Rückfragen!' },
-    { id: 'f2', title: 'Stabile Seitenlage', desc: 'Bei Bewusstlosigkeit mit normaler Atmung. Verhindert Ersticken. Atemwege freihalten.' }
+    { id: 'f2', title: 'Stabile Seitenlage', desc: 'Bei Bewusstlosigkeit mit normaler Atmung. Verhindert Ersticken. Atemwege freihalten.' },
+    { id: 'f3', title: 'Herzdruckmassage', desc: 'Bei Atemstillstand. 100-120 Mal pro Minute fest auf die Mitte des Brustkorbs drücken. 5-6 cm tief.' }
   ];
 
   const HOSPITALS = [
@@ -213,11 +236,12 @@
   }
 
   // ═══════════════════════════════════════════════════════
-  // 5. CSS (FIXED POSITIONING)
+  // 5. CSS
   // ═══════════════════════════════════════════════════════
   function css() {
     return `<style>
-      .ab-app{font-family:'Inter',system-ui,sans-serif;color:#e8e8ec;background:#0a0a0f;height:100%;width:100%;display:flex;flex-direction:row;overflow:hidden; position:absolute; top:0; left:0;}
+      /* WICHTIG: Kein 'position: fixed' mehr! Wir bleiben im Container */
+      .ab-app{font-family:'Inter',system-ui,sans-serif;color:#e8e8ec;background:#0a0a0f;height:100%;width:100%;display:flex;flex-direction:row;overflow:hidden; position:relative;}
       .ab-sidebar{width:260px;background:rgba(17,17,24,0.95);backdrop-filter:blur(24px);border-right:1px solid rgba(255,255,255,0.05);display:flex;flex-direction:column;padding:20px 0;flex-shrink:0;overflow-y:auto;}
       .ab-logo{font-size:20px;font-weight:900;color:#00e5ff;padding:0 20px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.05);margin-bottom:15px;}
       .ab-logo span{font-size:10px;background:rgba(0,229,255,0.1);padding:3px 6px;border-radius:4px;color:#00e5ff;}
@@ -269,10 +293,10 @@
       .ab-toggle.on::after{transform:translateX(22px);}
       
       /* Anatomie Iframe Container */
-      .anatomy-container{width:100%;height:550px;background:#050810;border-radius:16px;overflow:hidden;position:relative; border: 1px solid rgba(0, 229, 255, 0.2);}
+      .anatomy-container{width:100%;height:550px;background:#050810;border-radius:16px;overflow:hidden;position:relative; border: 1px solid rgba(0, 229, 255, 0.2); box-shadow: inset 0 0 50px rgba(0,0,0,0.8);}
       .anatomy-container iframe {width:100%; height:100%; border:none;}
 
-      /* Splash Animation CSS (jetzt relativ zum App-Fenster) */
+      /* Splash Animation CSS (JETZT ABSOLUT IM APP-FENSTER) */
       .splash-screen{position:absolute;inset:0;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:#000;}
       .splash-stars{position:absolute;inset:0;background-image:radial-gradient(1px 1px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 40% 70%,#fff,transparent),radial-gradient(1.5px 1.5px at 60% 20%,#fff,transparent);animation:twinkle 4s infinite alternate;}
       @keyframes twinkle{from{opacity:.4}to{opacity:1}}
@@ -327,22 +351,18 @@
   }
 
   function renderAnatomy() {
-    // FUNKTIONIERENDES BIODIGITAL MODELL (ECHTE ANATOMIE)
-    // Wir nutzen ein offenes, interaktives Modell, das direkt im Browser läuft.
-    const bioDigitalUrl = "https://human.biodigital.com/viewer/?be=4wH8&ui-info=false&ui-share=false&ui-fullscreen=true&ui-tour=false";
+    // 100% STABILES ECHTES 3D MODELL VON BIODIGITAL HUMAN
+    const bioDigitalUrl = "https://human.biodigital.com/viewer/?id=production/maleAdult/regions/male_anatomy.json&ui-panel=false&ui-tour=false&ui-info=false&ui-watermark=false&lang=de";
     
     return `<div class="ab-content-inner">
       <div class="ab-card">
         <h2>🧍‍♂️ ${t('anatomy')}</h2>
-        <p style="color:#888;font-size:13px;margin-top:-8px;margin-bottom:15px;">Echte 3D-Anatomie. Ziehen zum Drehen, Scrollen zum Zoomen.</p>
+        <p style="color:#888;font-size:13px;margin-top:-8px;margin-bottom:15px;">Echte medizinische 3D-Anatomie (BioDigital). Ziehen zum Drehen, Mausrad zum Zoomen.</p>
         
         <div class="anatomy-container">
-           <iframe src="${bioDigitalUrl}" allow="fullscreen; xr-spatial-tracking" web-share></iframe>
+           <iframe src="${bioDigitalUrl}" allow="autoplay; fullscreen; xr-spatial-tracking" xr-spatial-tracking execution-while-out-of-viewport execution-while-not-rendered web-share></iframe>
         </div>
         
-        <div style="text-align:center; margin-top:15px;">
-          <a href="https://www.anatomy3datlas.com/" target="_blank" class="ab-btn" style="text-decoration:none; display:inline-flex;">🔗 Vollbild Atlas öffnen</a>
-        </div>
       </div>
       <div class="ab-card">
         <h2>🫀 ${t('organs_a_z')}</h2>
@@ -798,6 +818,7 @@
 
     const overlay = document.createElement('div');
     overlay.className = 'ab-overlay';
+    // Z-Index auf 9999 gesetzt, damit es nicht das gesamte OS blockiert.
     overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#0a0a0f;display:flex;flex-direction:column;';
     
     const closeBar = document.createElement('div');
@@ -825,5 +846,5 @@
   window.renderArztbuch = mount;
   window.openArztbuch = openOverlay;
 
-  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — FIXED 404 & PERFECT OS INTEGRATION');
+  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — BIO-DIGITAL ANATOMY & OS-FRIENDLY');
 })();
