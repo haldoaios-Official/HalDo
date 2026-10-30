@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO ARZTBUCH v10.4 — MODUL 1, 2 & 3
-   Echte 3D-Anatomie (Three.js) · KI-Chat · Sound-Settings
+   HALDO ARZTBUCH v10.4.0-M3 — MASTER EDITION (All-in-One)
+   Splash (Gold-Glow) · Dashboard · KI-Chat · Echte 3D-Anatomie
    ═══════════════════════════════════════════════════════════ */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -23,7 +23,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     ttsEnabled: true,
     chatHistory: [],
     splashTheme: 'cyan',
-    soundEnabled: true // NEU: Sound ein/aus
+    soundEnabled: true 
   };
 
   let currentTarget = null;
@@ -109,7 +109,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   }
 
   // ═══════════════════════════════════════════════════════
-  // 3. CSS (inkl. 3D Container & Splash)
+  // 3. CSS (Komplett)
   // ═══════════════════════════════════════════════════════
   function css() {
     const theme = SPLASH_THEMES[state.splashTheme];
@@ -188,25 +188,10 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
       .h-chat-send { background: linear-gradient(135deg, #00e5ff, #0088ff); border: none; border-radius: 12px; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 20px; color: #000; transition: transform 0.2s; }
       .h-chat-send:hover { transform: scale(1.05); }
 
-      /* ═══════════════════════════════════════════════════════
-         3D ANATOMIE CONTAINER
-         ═══════════════════════════════════════════════════════ */
-      .h-anatomy-container {
-        width: 100%; height: calc(100vh - 200px);
-        background: radial-gradient(circle at center, #111a2a 0%, #050810 100%);
-        border-radius: 20px; overflow: hidden; position: relative;
-        border: 1px solid rgba(0,229,255,0.2);
-        box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
-      }
-      .h-anatomy-controls {
-        position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-        display: flex; gap: 10px; background: rgba(0,0,0,0.6); padding: 10px;
-        border-radius: 12px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); z-index: 10;
-      }
-      .h-anatomy-btn {
-        padding: 8px 16px; background: transparent; border: 1px solid #555;
-        color: #aaa; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s;
-      }
+      /* 3D Anatomie */
+      .h-anatomy-container { width: 100%; height: calc(100vh - 200px); background: radial-gradient(circle at center, #111a2a 0%, #050810 100%); border-radius: 20px; overflow: hidden; position: relative; border: 1px solid rgba(0,229,255,0.2); box-shadow: inset 0 0 50px rgba(0,0,0,0.8); }
+      .h-anatomy-controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 12px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); z-index: 10; }
+      .h-anatomy-btn { padding: 8px 16px; background: transparent; border: 1px solid #555; color: #aaa; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s; }
       .h-anatomy-btn.active { background: rgba(0,229,255,0.2); border-color: #00e5ff; color: #00e5ff; }
 
       /* Splash */
@@ -229,7 +214,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
       .band-cyan { background: linear-gradient(135deg, #00e5ff, #0088ff); }
       .band-purple { background: linear-gradient(135deg, #b478ff, #7a3aff); }
       .band-emerald { background: linear-gradient(135deg, #4ade80, #22c55e); }
-      
       .h-sound-toggle { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 20px; margin-left: 10px; border: 1px solid rgba(255,255,255,0.2); }
       .h-sound-toggle:hover { background: rgba(255,255,255,0.2); }
     </style>`;
@@ -379,7 +363,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   }
 
   // ═══════════════════════════════════════════════════════
-  // 5. 3D LOGIK (Prozedurales Meisterwerk)
+  // 5. 3D LOGIK (Prozedural)
   // ═══════════════════════════════════════════════════════
   function init3DAnatomy() {
     const container = document.getElementById('anatomy-3d-container');
@@ -438,7 +422,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     }
     animate();
 
-    // Raycaster für Klicks
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
@@ -453,7 +436,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
       if (intersects.length > 0) {
         const hit = intersects[0].object;
         if (hit.userData && hit.userData.name) {
-          // Zeige Info-Modal (vereinfacht für jetzt)
           alert(`${hit.userData.name}\n\n${hit.userData.desc}`);
           speakText(hit.userData.name + '. ' + hit.userData.desc);
         }
@@ -483,7 +465,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     organsGroup = new THREE.Group();
     scene.add(skinGroup, musclesGroup, skeletonGroup, organsGroup);
 
-    // 1. Haut (Hologramm)
     const skinMat = new THREE.MeshPhysicalMaterial({ color: 0x66ccff, transparent: true, opacity: 0.15, roughness: 0.2, transmission: 0.5, side: THREE.DoubleSide });
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 32, 32), skinMat); head.position.y = 1.8; skinGroup.add(head);
     const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.3, 16), skinMat); neck.position.y = 1.4; skinGroup.add(neck);
@@ -493,7 +474,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
       const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.9, 8, 16), skinMat); leg.position.set(side * 0.18, -0.5, 0); skinGroup.add(leg);
     });
 
-    // 2. Skelett
     const boneMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.8 });
     const skull = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), boneMat); skull.position.y = 1.85; skeletonGroup.add(skull);
     for(let i=0; i<15; i++) {
@@ -509,13 +489,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.0, 8), boneMat); leg.position.set(side * 0.18, -0.5, 0); skeletonGroup.add(leg);
     });
 
-    // 3. Muskeln
     const muscleMat = new THREE.MeshStandardMaterial({ color: 0xaa3333, roughness: 0.6 });
     const muscleTorso = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.6, 16, 32), muscleMat); muscleTorso.position.y = 0.9; musclesGroup.add(muscleTorso);
     const muscleThighL = new THREE.Mesh(new THREE.CapsuleGeometry(0.14, 0.6, 8, 16), muscleMat); muscleThighL.position.set(-0.18, -0.4, 0); musclesGroup.add(muscleThighL);
     const muscleThighR = new THREE.Mesh(new THREE.CapsuleGeometry(0.14, 0.6, 8, 16), muscleMat); muscleThighR.position.set(0.18, -0.4, 0); musclesGroup.add(muscleThighR);
 
-    // 4. Organe (Klickbar)
     function addOrgan(mesh, name, desc, icon) {
         mesh.userData = { name, desc, icon };
         organsGroup.add(mesh);
@@ -676,5 +654,5 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   window.renderArztbuch = mount;
   window.openArztbuch = openOverlay;
 
-  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — Modul 1, 2 & 3');
+  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — Master Edition (M3)');
 })();
