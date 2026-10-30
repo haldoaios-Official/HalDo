@@ -1,11 +1,11 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO ARZTBUCH v10.2 — MODUL 1 & 2
-   Interaktiver Splash-Screen (Sound, Farben, Logo) · Dashboard · KI-Chat
+   HALDO ARZTBUCH v10.3 — MODUL 1 & 2
+   Gold-Glow Splash (Audio on load) · Dashboard · KI-Chat
    ═══════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
 
-  const VERSION = '10.2.0-M2';
+  const VERSION = '10.3.0-M2';
   const STORAGE_KEY = 'haldo.arztbuch.v10';
 
   // ═══════════════════════════════════════════════════════
@@ -19,18 +19,17 @@
     vitals: { bloodPressure: '120/80', bloodSugar: '95', weight: '75' },
     ttsEnabled: true,
     chatHistory: [],
-    splashTheme: 'cyan' // NEU: Speichert das gewählte Farbband
+    splashTheme: 'cyan' 
   };
 
   let currentTarget = null;
+  let audioCtx = null; // Global für den Sound
 
-  // Die Farb-Themes für den Splash-Screen
+  // Die Farb-Themes für den Splash-Screen (Hintergrund & Button)
   const SPLASH_THEMES = {
     cyan: { name: 'Cyan', primary: '#00e5ff', secondary: '#0088ff', bg1: '#001a2a', bg2: '#050810', glow: 'rgba(0,229,255,0.5)' },
     purple: { name: 'Purple', primary: '#b478ff', secondary: '#7a3aff', bg1: '#1a0a2a', bg2: '#080510', glow: 'rgba(180,120,255,0.5)' },
-    gold: { name: 'Gold', primary: '#ffd700', secondary: '#ff9800', bg1: '#1a1a0a', bg2: '#0a0500', glow: 'rgba(255,215,0,0.5)' },
-    pink: { name: 'Pink', primary: '#ff77aa', secondary: '#ff3377', bg1: '#2a0a1a', bg2: '#10050a', glow: 'rgba(255,119,170,0.5)' },
-    green: { name: 'Emerald', primary: '#4ade80', secondary: '#22c55e', bg1: '#0a2a1a', bg2: '#05100a', glow: 'rgba(74,222,128,0.5)' }
+    emerald: { name: 'Emerald', primary: '#4ade80', secondary: '#22c55e', bg1: '#0a2a1a', bg2: '#05100a', glow: 'rgba(74,222,128,0.5)' }
   };
 
   const DAILY_TIPS = [
@@ -71,44 +70,43 @@
     window.speechSynthesis.speak(u);
   }
 
-  // Der coole Glocken-Sound (Temple Bell)
-  function playChime() {
+  // Der Start-Sound (wird beim Laden der App abgespielt)
+  function playStartupSound() {
     try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      const ctx = new AudioContext();
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
       
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      
+      // Ein weicher, magischer Glockenton
       osc.type = 'sine';
-      // Ein weicher, tiefer Glockenton (A4 zu A3)
-      osc.frequency.setValueAtTime(440, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 1.5);
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime); // Hoher Ton (A5)
+      osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 1.5); // Fällt zu A4
       
-      // Lautstärke-Hüllkurve (Fade Out)
-      gain.gain.setValueAtTime(0.5, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2.0);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 3.0);
       
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(audioCtx.destination);
       
       osc.start();
-      osc.stop(ctx.currentTime + 2.0);
-    } catch (e) { console.log('Audio nicht unterstützt'); }
+      osc.stop(audioCtx.currentTime + 3.0);
+    } catch (e) { console.log('Audio blockiert oder nicht unterstützt.'); }
   }
 
-  function getAIResponse(text, mode) {
+  function getAIResponse(text) {
     const lower = text.toLowerCase();
-    if (mode === 'formulate') return `Hier ist ein formulierter Text für: "${text}"\n\nSehr geehrte Damen und Herren...`;
-    if (mode === 'analyze') return `Medizinische Analyse für: "${text}"\n\nMögliche Ursachen: Stress, Dehydrierung. Bitte achte auf deinen Körper.\n\n⚠️ Keine echte Diagnose!`;
-    
     if (lower.includes('kopf')) return "Bei Kopfschmerzen helfen oft Ruhe, Wasser und frische Luft. Wenn es nicht besser wird, suche einen Arzt auf.";
     if (lower.includes('hallo')) return "Hallo Halil! Wie kann ich dir heute helfen?";
     return `Ich habe deine Nachricht verstanden: "${text}". Wie kann ich dir weiterhelfen?`;
   }
 
   // ═══════════════════════════════════════════════════════
-  // 3. CSS (Modern & Interaktiv)
+  // 3. CSS (Gold-Glow Text & Layout)
   // ═══════════════════════════════════════════════════════
   function css() {
     const theme = SPLASH_THEMES[state.splashTheme];
@@ -128,7 +126,7 @@
         height: 100%; width: 100%; display: flex; position: absolute; top: 0; left: 0; overflow: hidden;
       }
 
-      /* Sidebar & Main (wie gehabt) */
+      /* Sidebar & Main */
       .h-sidebar { width: 260px; background: rgba(10, 15, 25, 0.6); backdrop-filter: blur(24px); border-right: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; padding: 20px 0; z-index: 10; }
       .h-logo { padding: 0 20px 25px; font-size: 22px; font-weight: 900; color: #00e5ff; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; }
       .h-nav-item { padding: 14px 24px; display: flex; align-items: center; gap: 14px; color: #8a9bb5; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.25s ease; border-left: 3px solid transparent; }
@@ -197,7 +195,7 @@
       .h-chat-send:hover { transform: scale(1.05); }
 
       /* ═══════════════════════════════════════════════════════
-         DER NEUE INTERAKTIVE SPLASH-SCREEN
+         DER NEUE SPLASH-SCREEN (MIT GOLD-GLOW & TEXT)
          ═══════════════════════════════════════════════════════ */
       .h-splash {
         position: absolute; inset: 0; z-index: 999;
@@ -208,20 +206,19 @@
       
       /* Modernes, schwebendes Logo */
       .h-splash-logo-wrapper {
-        position: relative;
-        margin-bottom: 20px;
+        position: relative; margin-bottom: 20px;
         animation: floatLogo 4s ease-in-out infinite;
       }
       .h-splash-logo-img {
-        width: 150px; height: 150px; object-fit: contain;
+        width: 120px; height: 120px; object-fit: contain;
         filter: drop-shadow(0 0 30px var(--splash-primary));
         transition: filter 0.5s ease;
       }
       .h-splash-logo-fallback {
-        width: 150px; height: 150px; border-radius: 50%;
+        width: 120px; height: 120px; border-radius: 50%;
         background: linear-gradient(135deg, var(--splash-primary), var(--splash-secondary));
         display: flex; align-items: center; justify-content: center;
-        font-size: 60px; font-weight: 900; color: #000;
+        font-size: 50px; font-weight: 900; color: #000;
         box-shadow: 0 0 50px var(--splash-glow);
       }
       @keyframes floatLogo {
@@ -229,16 +226,37 @@
         50% { transform: translateY(-15px) scale(1.02); }
       }
 
-      .h-splash-text {
-        font-size: 24px; font-weight: 800; color: #fff;
-        margin-bottom: 10px; letter-spacing: 1px;
-        text-shadow: 0 0 20px var(--splash-glow);
+      /* Der Text-Aufbau */
+      .h-splash-text-top {
+        font-size: 20px; font-weight: 600; color: #ddd;
+        margin-bottom: 5px; letter-spacing: 2px; text-transform: uppercase;
       }
+      
+      /* Der goldene, strahlende Titel */
       .h-splash-title {
-        font-size: 42px; font-weight: 900; color: var(--splash-primary);
-        margin-bottom: 40px; text-align: center;
-        transition: color 0.5s ease;
+        font-size: 52px; font-weight: 900;
+        color: #ffd700; /* Gold */
+        margin-bottom: 15px; text-align: center;
+        text-shadow: 0 0 10px #ffd700, 0 0 20px #ff9800, 0 0 40px #ff6f00;
+        animation: pulseGold 3s infinite alternate;
       }
+      @keyframes pulseGold {
+        0% { text-shadow: 0 0 10px #ffd700, 0 0 20px #ff9800; }
+        100% { text-shadow: 0 0 15px #ffd700, 0 0 30px #ff9800, 0 0 50px #ff6f00; }
+      }
+
+      .h-splash-author {
+        font-size: 18px; font-weight: 500; color: #e8e8ec;
+        margin-bottom: 40px; font-style: italic;
+      }
+
+      .h-splash-subtitle {
+        position: absolute; bottom: 100px;
+        font-size: 12px; font-weight: 800; color: #ffd700;
+        letter-spacing: 4px; text-transform: uppercase;
+        opacity: 0.8;
+      }
+
       .h-splash-btn {
         padding: 18px 60px; background: linear-gradient(135deg, var(--splash-primary) 0%, var(--splash-secondary) 100%);
         color: #000; font-size: 18px; font-weight: 900; border: none; border-radius: 30px;
@@ -249,25 +267,22 @@
 
       /* Farbbänder (Color Bands) */
       .h-color-bands {
-        position: absolute; bottom: 40px;
+        position: absolute; bottom: 30px;
         display: flex; gap: 15px;
-        background: rgba(0,0,0,0.3); padding: 12px 24px; border-radius: 30px;
+        background: rgba(0,0,0,0.4); padding: 10px 20px; border-radius: 30px;
         backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1);
       }
       .h-color-band {
-        width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+        width: 25px; height: 25px; border-radius: 50%; cursor: pointer;
         transition: transform 0.2s, box-shadow 0.2s;
         border: 2px solid transparent;
       }
       .h-color-band:hover { transform: scale(1.2); }
       .h-color-band.active { border-color: #fff; transform: scale(1.1); box-shadow: 0 0 15px rgba(255,255,255,0.5); }
       
-      /* Farben für die Bänder */
       .band-cyan { background: linear-gradient(135deg, #00e5ff, #0088ff); }
       .band-purple { background: linear-gradient(135deg, #b478ff, #7a3aff); }
-      .band-gold { background: linear-gradient(135deg, #ffd700, #ff9800); }
-      .band-pink { background: linear-gradient(135deg, #ff77aa, #ff3377); }
-      .band-green { background: linear-gradient(135deg, #4ade80, #22c55e); }
+      .band-emerald { background: linear-gradient(135deg, #4ade80, #22c55e); }
     </style>`;
   }
 
@@ -284,8 +299,11 @@
           <div class="h-splash-logo-fallback" style="display:none;">H</div>
         </div>
 
-        <div class="h-splash-text">Willkommen bei</div>
+        <!-- Der Text (Gold & Glow) -->
+        <div class="h-splash-text-top">Willkommen bei</div>
         <div class="h-splash-title">HalDo Arztbuch App</div>
+        <div class="h-splash-author">von Halil Donma</div>
+        <div class="h-splash-subtitle">Professionale App</div>
         
         <button class="h-splash-btn" data-action="enter-app">Los geht's →</button>
 
@@ -402,7 +420,6 @@
     const toolBtn = e.target.closest('[data-tool]');
     const btn = e.target.closest('[data-action]');
 
-    // Farbbänder wechseln
     if (themeBtn) {
       state.splashTheme = themeBtn.dataset.theme;
       saveState();
@@ -423,7 +440,6 @@
     const action = btn.dataset.action;
 
     if (action === 'enter-app') {
-      playChime(); // Sound abspielen
       state.currentView = 'dashboard';
       if (currentTarget) currentTarget.innerHTML = renderAppShell();
       return;
@@ -444,7 +460,7 @@
     input.value = '';
     state.chatHistory.push({ role: 'user', text: text });
     
-    const aiResponse = getAIResponse(text, 'chat');
+    const aiResponse = getAIResponse(text);
     state.chatHistory.push({ role: 'ai', text: aiResponse });
     saveState();
     
@@ -467,6 +483,9 @@
       state.currentView = 'splash'; 
       currentTarget.innerHTML = renderAppShell();
       currentTarget.addEventListener('click', handleClick);
+      
+      // SOUND SOFORT BEIM LADEN ABSPIELEN
+      playStartupSound();
       
       setTimeout(() => {
         if (window.HalDoWelcome && typeof window.HalDoWelcome.show === 'function') {
@@ -502,5 +521,5 @@
   window.renderArztbuch = mount;
   window.openArztbuch = openOverlay;
 
-  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — Splash-Sound & Farben');
+  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — Gold-Splash & Audio');
 })();
