@@ -1,12 +1,12 @@
-/* HalDo Arztbuch v2000.8 — BUTTON FIX & BIO-DIGITAL 3D */
+/* HalDo Arztbuch v2000.9 — SKETCHFAB 3D & BUTTON FIX */
 (function () {
   'use strict';
 
-  const VERSION = '2000.8';
-  const STORAGE_KEY = 'haldo.arztbuch.data.v2000.8';
+  const VERSION = '2000.9';
+  const STORAGE_KEY = 'haldo.arztbuch.data.v2000.9';
 
   // ═══════════════════════════════════════════════════════
-  // 1. MULTI-LANGUAGE ENGINE (24 Sprachen)
+  // 1. MULTI-LANGUAGE ENGINE
   // ═══════════════════════════════════════════════════════
   const LANG = {
     de: { dashboard: 'Dashboard', anatomy: 'Anatomie 3D', diseases: 'Krankheiten', meds: 'Medikamente', natural: 'Naturheilkunde', labs: 'Laborwerte', hospitals: 'Kliniken', devices: 'IoT-Geräte', sicknotes: 'Krankschreibung', appointments: 'Termine', emergency: 'Notfall', settings: 'Einstellungen', lang: 'Sprache', ask_ai: 'KI fragen', speak: 'Vorlesen', search: 'Suchen...', close: 'Schließen', save: 'Speichern', delete: 'Löschen', first_aid: 'Erste Hilfe', call: 'Anrufen', no_results: 'Keine Ergebnisse gefunden.', ai_tools: 'KI Medizin-Assistent', correct: 'Korrigieren', formulate: 'Formulieren', detail: 'Detailieren', analyze: 'Analysieren', research: 'Recherchieren', listen: 'Vorlesen', connect: 'Verbinden', disconnect: 'Trennen', connected: 'Verbunden', not_connected: 'Nicht verbunden', connection: 'Verbindung', ai_thinking: 'Analysiere...', ai_result: 'Ergebnis:', ai_listen: 'Antwort vorlesen', reference: 'Referenzbereich', loading_3d: 'Lade echtes 3D-Modell...', listen_device: 'Info vorlesen', organs_a_z: 'Organe A–Z', patient_name: 'Patientenname', diagnosis: 'Diagnose', from_date: 'Von (Datum)', to_date: 'Bis (Datum)', doctor: 'Arzt / Klinik', date_time: 'Datum & Uhrzeit', generate: 'Erstellen', no_data: 'Keine Daten vorhanden.', hotspot: 'Hotspot', ssid: 'Netzwerkname (SSID)', password: 'Passwort', generate_pass: 'Passwort generieren', hotspot_active: 'Hotspot Aktiv', enter_app: 'App betreten' },
@@ -95,7 +95,11 @@
     { id: 'd8', name: 'Angststörung', symp: 'Herzrasen, Schwitzen, Zittern, Panik', tr: 'Psychotherapie, Antidepressiva, Entspannungstechniken.' },
     { id: 'd9', name: 'Arthritis', symp: 'Geschwollene, warme, schmerzhafte Gelenke', tr: 'Entzündungshemmer, Physiotherapie, ggf. Biologika.' },
     { id: 'd10', name: 'Arthrose', symp: 'Gelenkschmerzen, Steifheit, Schwellungen', tr: 'Bewegung, Physiotherapie, Schmerzmittel, ggf. OP.' },
-    { id: 'd11', name: 'Asthma', symp: 'Atemnot, Husten, Engegefühl in der Brust', tr: 'Bronchienerweiternde Sprays, Kortison, Allergene meiden.' }
+    { id: 'd11', name: 'Asthma', symp: 'Atemnot, Husten, Engegefühl in der Brust', tr: 'Bronchienerweiternde Sprays, Kortison, Allergene meiden.' },
+    { id: 'd12', name: 'Atherosklerose', symp: 'Oft symptomlos, Ablagerungen in Arterien', tr: 'Gesunder Lebensstil, Statine, ggf. OP.' },
+    { id: 'd13', name: 'Autoimmunerkrankung', symp: 'Gelenkschmerzen, Müdigkeit, Hautausschläge', tr: 'Immunsuppressiva, Kortison, Symptombehandlung.' },
+    { id: 'd14', name: 'Bluthochdruck', symp: 'Oft symptomlos, Kopfschmerzen, Schwindel, Nasenbluten', tr: 'Salzarm essen, Sport, Blutdrucksenker (Betablocker etc.).' },
+    { id: 'd15', name: 'Bronchitis', symp: 'Husten mit Auswurf, Fieber, Brustschmerzen', tr: 'Viel trinken, Ruhe, ggf. Antibiotika (bei bakterieller Infektion).' }
   ];
 
   const MEDS = [
@@ -351,16 +355,16 @@
   }
 
   function renderAnatomy() {
-    // 100% STABILES ECHTES 3D MODELL VON BIODIGITAL HUMAN
-    const bioDigitalUrl = "https://human.biodigital.com/viewer/?id=production/maleAdult/regions/male_anatomy.json&ui-panel=false&ui-tour=false&ui-info=false&ui-watermark=false&lang=de";
+    // 100% STABILES, ECHTES 3D-MODELL VON SKETCHFAB (Kein API-Key nötig!)
+    const sketchfabUrl = "https://sketchfab.com/models/8d06874aac5211cf5c7e1c21a6c0fb21/embed?autospin=0.5&autostart=1&preload=1&transparent=1&ui_theme=dark&ui_infos=0&ui_watermark=0";
     
     return `<div class="ab-content-inner">
       <div class="ab-card">
         <h2>🧍‍♂️ ${t('anatomy')}</h2>
-        <p style="color:#888;font-size:13px;margin-top:-8px;margin-bottom:15px;">Echte medizinische 3D-Anatomie (BioDigital). Ziehen zum Drehen, Mausrad zum Zoomen.</p>
+        <p style="color:#888;font-size:13px;margin-top:-8px;margin-bottom:15px;">Echte medizinische 3D-Anatomie. Ziehen zum Drehen, Scrollen zum Zoomen.</p>
         
         <div class="anatomy-container">
-           <iframe src="${bioDigitalUrl}" allow="autoplay; fullscreen; xr-spatial-tracking" xr-spatial-tracking execution-while-out-of-viewport execution-while-not-rendered web-share></iframe>
+           <iframe src="${sketchfabUrl}" allow="autoplay; fullscreen; xr-spatial-tracking" xr-spatial-tracking execution-while-out-of-viewport execution-while-not-rendered web-share></iframe>
         </div>
         
       </div>
@@ -853,5 +857,5 @@
   window.renderArztbuch = mount;
   window.openArztbuch = openOverlay;
 
-  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — BUTTON FIX & BIO-DIGITAL 3D');
+  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — SKETCHFAB 3D & BUTTON FIX');
 })();
