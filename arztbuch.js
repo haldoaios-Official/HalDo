@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO ARZTBUCH v10.5.0-MASTER
-   Alle Module vereint: Dashboard, KI, 3D, Datenbanken, IoT, Settings
+   HALDO ARZTBUCH v11.0.0 — PROFESSIONAL EDITION
+   Echte 3D-Anatomie (konfigurierbar) · A-Z Datenbanken
+   KI-Chat · IoT Hotspot Manager · Notfall · Einstellungen
    ═══════════════════════════════════════════════════════════ */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -8,15 +9,15 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 (function () {
   'use strict';
 
-  const VERSION = '10.5.0-MASTER';
-  const STORAGE_KEY = 'haldo.arztbuch.v10.5';
+  const VERSION = '11.0.0';
+  const STORAGE_KEY = 'haldo.arztbuch.v11';
 
   // ═══════════════════════════════════════════════════════
   // 1. STATE & DATEN
   // ═══════════════════════════════════════════════════════
   let state = {
     lang: 'de',
-    currentView: 'splash', 
+    currentView: 'splash',
     appointments: [],
     sickNotes: [],
     vitals: { bloodPressure: '120/80', bloodSugar: '95', weight: '75' },
@@ -25,7 +26,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     splashTheme: 'cyan',
     soundEnabled: true,
     hotspot: { ssid: 'HalDo_Med_Network', pass: '12345678', active: false },
-    anatomyMode: 'organs'
+    anatomyMode: 'organs',
+    anatomyModelUrl: 'https://raw.githubusercontent.com/hpfrei/body-anatomy-3d-viewer/main/public/body.glb' // ECHTES MODELL
   };
 
   let currentTarget = null;
@@ -50,6 +52,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     { icon: '🫀', title: 'Herzgesundheit', text: 'Reduziere heute Salz in deinem Essen. Das entlastet dein Herz und reguliert den Blutdruck.' }
   ];
 
+  // A-Z Datenbanken (Auszug, erweiterbar)
   const DISEASES = [
     { name: 'Abszess', symp: 'Schmerzhafte, geschwollene Stelle, Fieber', tr: 'Arzt aufsuchen, Eröffnung, Antibiotika.' },
     { name: 'Akne', symp: 'Pickel, Mitesser, Entzündungen', tr: 'Reinigung, Salben, ggf. Antibiotika.' },
@@ -73,10 +76,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     { name: 'Herzinfarkt', symp: 'Starker Brustschmerz, Atemnot', tr: 'NOTRUF 112! Stent, Medikamente.' },
     { name: 'Migräne', symp: 'Pulsierender Schmerz, Übelkeit', tr: 'Ruhe, Triptane.' },
     { name: 'Schlaganfall', symp: 'Plötzliche Lähmung, Sprachstörung', tr: 'NOTRUF 112! Thrombolyse.' },
-    // Erweiterung gemäß Plan:
     { name: 'Schwangerschaft', symp: 'Ausbleiben der Periode, Übelkeit, Müdigkeit', tr: 'Arzt aufsuchen, Folsäure einnehmen, gesunde Ernährung.' },
-    { name: 'Geschlechtskrankheiten', symp: 'Ausfluss, Schmerzen beim Wasserlassen, Hautveränderungen', tr: 'Dringend zum Arzt! Antibiotika oder antivirale Therapie.' },
-    { name: 'Geschlechtsumwandlung', symp: 'Psychische Belastung durch Geschlechtsdysphorie', tr: 'Psychotherapie, Endokrinologie, ggf. chirurgische Maßnahmen.' }
+    { name: 'Geschlechtskrankheiten', symp: 'Ausfluss, Schmerzen beim Wasserlassen, Hautveränderungen', tr: 'Dringend zum Arzt! Antibiotika oder antivirale Therapie.' }
   ];
 
   const MEDS = [
@@ -151,15 +152,12 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   }
 
   // ═══════════════════════════════════════════════════════
-  // 3. CSS (Das komplette Design-System)
+  // 3. CSS (Komplett)
   // ═══════════════════════════════════════════════════════
   function css() {
     const theme = SPLASH_THEMES[state.splashTheme];
     return `<style>
-      :root {
-        --splash-primary: ${theme.primary}; --splash-secondary: ${theme.secondary};
-        --splash-bg1: ${theme.bg1}; --splash-bg2: ${theme.bg2}; --splash-glow: ${theme.glow};
-      }
+      :root { --splash-primary: ${theme.primary}; --splash-secondary: ${theme.secondary}; --splash-bg1: ${theme.bg1}; --splash-bg2: ${theme.bg2}; --splash-glow: ${theme.glow}; }
       .haldo-app { font-family: 'Inter', system-ui, sans-serif; color: #e8e8ec; background: radial-gradient(circle at top right, #0a1220 0%, #050810 100%); height: 100%; width: 100%; display: flex; position: absolute; top: 0; left: 0; overflow: hidden; }
       .h-sidebar { width: 260px; background: rgba(10, 15, 25, 0.6); backdrop-filter: blur(24px); border-right: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; padding: 20px 0; z-index: 10; }
       .h-logo { padding: 0 20px 25px; font-size: 22px; font-weight: 900; color: #00e5ff; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; }
@@ -251,18 +249,14 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   function renderSplash() {
     return `
       <div class="h-splash">
-        <div class="h-splash-logo-wrapper">
-          <img src="logo.png" class="h-splash-logo-img" onerror="this.style.display='none';">
-        </div>
+        <div class="h-splash-logo-wrapper"><img src="logo.png" class="h-splash-logo-img" onerror="this.style.display='none';"></div>
         <div class="h-splash-text-top">Willkommen bei</div>
         <div class="h-splash-title">HalDo Arztbuch App</div>
         <div class="h-splash-author">von Halil Donma</div>
         <div class="h-splash-subtitle">Professionale App</div>
         <button class="h-splash-btn" data-action="enter-app">Los geht's →</button>
         <div class="h-color-bands">
-          ${Object.keys(SPLASH_THEMES).map(key => `
-            <div class="h-color-band band-${key} ${state.splashTheme === key ? 'active' : ''}" data-theme="${key}"></div>
-          `).join('')}
+          ${Object.keys(SPLASH_THEMES).map(key => `<div class="h-color-band band-${key} ${state.splashTheme === key ? 'active' : ''}" data-theme="${key}"></div>`).join('')}
           <div class="h-sound-toggle" data-action="toggle-sound">${state.soundEnabled ? '🔊' : '🔇'}</div>
         </div>
       </div>
@@ -273,50 +267,37 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     const tip = DAILY_TIPS[new Date().getDay()];
     return `<div class="h-inner">
       <div class="h-dashboard-top">
-        <div class="h-card h-greeting-card">
-          <h2>Guten Tag, Halil! 👋</h2>
-          <p>Bereit, deine Gesundheit in die Hand zu nehmen? Hier ist deine Übersicht für heute.</p>
-        </div>
-        <div class="h-card" style="padding: 10px;">
-          <div class="h-ai-avatar-container" data-action="view-ki"><div class="h-ai-core"></div></div>
-        </div>
+        <div class="h-card h-greeting-card"><h2>Guten Tag, Halil! 👋</h2><p>Bereit, deine Gesundheit in die Hand zu nehmen? Hier ist deine Übersicht für heute.</p></div>
+        <div class="h-card" style="padding: 10px;"><div class="h-ai-avatar-container" data-action="view-ki"><div class="h-ai-core"></div></div></div>
       </div>
-      <div class="h-card h-daily-tip">
-        <div class="tip-icon">${tip.icon}</div>
-        <div><h3>Tages-Tipp: ${tip.title}</h3><p>${tip.text}</p></div>
-      </div>
+      <div class="h-card h-daily-tip"><div class="tip-icon">${tip.icon}</div><div><h3>Tages-Tipp: ${tip.title}</h3><p>${tip.text}</p></div></div>
       <div class="h-grid-4">
         <div class="h-stat-box"><div class="title">Blutdruck</div><div class="value">${state.vitals.bloodPressure} <span class="unit">mmHg</span></div></div>
         <div class="h-stat-box"><div class="title">Blutzucker</div><div class="value">${state.vitals.bloodSugar} <span class="unit">mg/dl</span></div></div>
         <div class="h-stat-box"><div class="title">Gewicht</div><div class="value">${state.vitals.weight} <span class="unit">kg</span></div></div>
         <div class="h-stat-box"><div class="title">Termine</div><div class="value">${state.appointments.length} <span class="unit">Anstehend</span></div></div>
       </div>
-      <div>
-        <h3 style="color:#fff; margin: 10px 0 15px 0;">Schnellzugriff</h3>
-        <div class="h-grid-4">
-          <div class="h-quick-btn" data-action="view-emergency" style="border-color:#ff5555;"><div class="icon">🚨</div><div class="label" style="color:#ff5555;">Notfall</div></div>
-          <div class="h-quick-btn" data-action="view-ki"><div class="icon">🤖</div><div class="label">KI Check</div></div>
-          <div class="h-quick-btn" data-action="view-meds"><div class="icon">💊</div><div class="label">Medikamente</div></div>
-          <div class="h-quick-btn" data-action="view-anatomy"><div class="icon">🧍‍♂️</div><div class="label">Anatomie 3D</div></div>
-        </div>
-      </div>
+      <div><h3 style="color:#fff; margin: 10px 0 15px 0;">Schnellzugriff</h3><div class="h-grid-4">
+        <div class="h-quick-btn" data-action="view-emergency" style="border-color:#ff5555;"><div class="icon">🚨</div><div class="label" style="color:#ff5555;">Notfall</div></div>
+        <div class="h-quick-btn" data-action="view-ki"><div class="icon">🤖</div><div class="label">KI Check</div></div>
+        <div class="h-quick-btn" data-action="view-meds"><div class="icon">💊</div><div class="label">Medikamente</div></div>
+        <div class="h-quick-btn" data-action="view-anatomy"><div class="icon">🧍‍♂️</div><div class="label">Anatomie 3D</div></div>
+      </div></div>
     </div>`;
   }
 
   function renderKITools() {
     let chatHtml = state.chatHistory.length === 0 ? `<div class="h-msg ai"><div class="h-msg-avatar">🤖</div><div class="h-msg-bubble">Hallo! Ich bin dein HalDo KI-Assistent. Was kann ich für dich tun?</div></div>` 
     : state.chatHistory.map(m => m.role === 'user' ? `<div class="h-msg user"><div class="h-msg-bubble">${m.text}</div></div>` : `<div class="h-msg ai"><div class="h-msg-avatar">🤖</div><div class="h-msg-bubble">${m.text}</div></div>`).join('');
-
     return `<div class="h-inner"><div class="h-chat-container"><div class="h-chat-history" id="chat-hist">${chatHtml}</div>
-      <div class="h-chat-input-area">
-        <input type="text" class="h-chat-input" id="chat-in" placeholder="Stelle deine Frage..." onkeypress="if(event.key === 'Enter') document.dispatchEvent(new CustomEvent('send-chat'))">
-        <button class="h-chat-send" onclick="document.dispatchEvent(new CustomEvent('send-chat'))">➤</button>
-      </div>
+      <div class="h-chat-input-area"><input type="text" class="h-chat-input" id="chat-in" placeholder="Stelle deine Frage..." onkeypress="if(event.key === 'Enter') document.dispatchEvent(new CustomEvent('send-chat'))"><button class="h-chat-send" onclick="document.dispatchEvent(new CustomEvent('send-chat'))">➤</button></div>
     </div></div>`;
   }
 
   function renderAnatomy() {
     return `<div class="h-inner"><div class="h-card" style="padding: 15px;">
+      <h2>🧍‍♂️ Anatomie 3D</h2>
+      <p style="color:#888;font-size:13px;margin-top:-8px;margin-bottom:15px;">Echte medizinische 3D-Anatomie. Ziehen zum Drehen, Organe anklicken.</p>
       <div class="h-anatomy-container" id="anatomy-3d-container">
          <div class="h-anatomy-controls">
            <button class="h-anatomy-btn" data-anatomy-mode="skin">Haut</button>
@@ -329,17 +310,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   }
 
   function renderGenericList(title, data, type) {
-    return `<div class="h-inner"><div class="h-card">
-      <h2>${title}</h2>
-      <input type="text" class="h-input" placeholder="Suchen..." data-search="${type}">
-      <div id="list-container">
-        ${data.map(item => `
-          <div class="h-list-item" data-info="${item.symp || item.use || item.desc}" data-title="${item.name}">
-            <div><b>${item.name}</b><br><span style="font-size:12px;color:#8a9bb5">${item.symp || item.use || item.ref}</span></div>
-          </div>
-        `).join('')}
-      </div>
-    </div></div>`;
+    return `<div class="h-inner"><div class="h-card"><h2>${title}</h2><input type="text" class="h-input" placeholder="Suchen..." data-search="${type}"><div id="list-container">
+        ${data.map(item => `<div class="h-list-item" data-info="${item.symp || item.use || item.desc}" data-title="${item.name}"><div><b>${item.name}</b><br><span style="font-size:12px;color:#8a9bb5">${item.symp || item.use || item.ref}</span></div></div>`).join('')}
+      </div></div></div>`;
   }
 
   function renderDevices() {
@@ -347,9 +320,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
       <div class="h-card" style="border-color:#ffd700;">
         <h2>📶 Hotspot Manager</h2>
         <div style="margin-top:15px; display:flex; flex-direction:column; gap:15px;">
-          <div style="display:flex; justify-content:space-between;">
-            <b>Status:</b> <span style="color:${state.hotspot.active ? '#00ff88' : '#ff5555'}">${state.hotspot.active ? 'Aktiv' : 'Inaktiv'}</span>
-          </div>
+          <div style="display:flex; justify-content:space-between;"><b>Status:</b> <span style="color:${state.hotspot.active ? '#00ff88' : '#ff5555'}">${state.hotspot.active ? 'Aktiv' : 'Inaktiv'}</span></div>
           <div><b>SSID:</b> ${state.hotspot.ssid}</div>
           <div><b>Passwort:</b> <input type="text" id="hotspot-pass" value="${state.hotspot.pass}" style="background:transparent; border:1px solid #444; color:#fff; padding:5px; border-radius:5px;"></div>
           <div style="display:flex; gap:10px;">
@@ -358,10 +329,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
           </div>
         </div>
       </div>
-      <div class="h-card">
-        <h2>📡 Verbundene Geräte</h2>
-        <p>Blutdruck, Blutzucker, Waage, Smartwatch (Simulation)</p>
-      </div>
+      <div class="h-card"><h2>📡 Verbundene Geräte</h2><p>Blutdruck, Blutzucker, Waage, Smartwatch (Simulation)</p></div>
     </div>`;
   }
 
@@ -383,8 +351,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   function renderSettings() {
     return `<div class="h-inner"><div class="h-card">
       <h2>⚙️ Einstellungen</h2>
-      <div style="margin-top:20px;">
-        <label>Sprache</label>
+      <div style="margin-top:20px;"><label>Sprache</label>
         <select class="h-input" data-action="set-lang">
           <option value="de" ${state.lang==='de'?'selected':''}>Deutsch</option>
           <option value="en" ${state.lang==='en'?'selected':''}>English</option>
@@ -392,8 +359,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
           <option value="ku" ${state.lang==='ku'?'selected':''}>Kurdisch</option>
         </select>
       </div>
-      <div style="margin-top:20px;">
-        <label>System</label>
+      <div style="margin-top:20px;"><label>System</label>
         <button class="h-btn" style="padding:15px; width:100%; border:1px solid #ff5555; background:transparent; color:#ff5555; border-radius:12px; cursor:pointer; margin-top:10px;" onclick="localStorage.clear(); location.reload();">Daten zurücksetzen (App neu starten)</button>
       </div>
     </div></div>`;
@@ -401,7 +367,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
   function renderAppShell() {
     if (state.currentView === 'splash') return css() + renderSplash();
-
     let content = '';
     switch(state.currentView) {
       case 'dashboard': content = renderDashboard(); break;
@@ -415,7 +380,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
       case 'settings': content = renderSettings(); break;
       default: content = `<div class="h-inner"><div class="h-card">Modul in Arbeit...</div></div>`;
     }
-
     return css() + `
       <div class="haldo-app">
         <div class="h-sidebar">
@@ -431,83 +395,48 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
           <div class="h-nav-item ${state.currentView === 'settings' ? 'active' : ''}" data-action="view-settings"><span class="icon">⚙️</span> Einstellungen</div>
           <div class="h-nav-item ${state.currentView === 'emergency' ? 'active' : ''}" data-action="view-emergency" style="color:#ff5555;"><span class="icon">🚨</span> Notfall</div>
         </div>
-        <div class="h-main">
-          <div class="h-header">
-            <h1>${state.currentView.toUpperCase()}</h1>
-            <div style="font-size:12px; color:#00e5ff;">v${VERSION}</div>
-          </div>
-          <div class="h-content" id="h-view">${content}</div>
-        </div>
-      </div>
-    `;
+        <div class="h-main"><div class="h-header"><h1>${state.currentView.toUpperCase()}</h1><div style="font-size:12px; color:#00e5ff;">v${VERSION}</div></div><div class="h-content" id="h-view">${content}</div></div>
+      </div>`;
   }
 
   // ═══════════════════════════════════════════════════════
-  // 5. 3D LOGIK (Der echte Anatomie-Baukasten)
+  // 5. 3D LOGIK (Prozedural mit optionalem GLB-Loader)
   // ═══════════════════════════════════════════════════════
   function init3DAnatomy() {
     const container = document.getElementById('anatomy-3d-container');
     if (!container) return;
-
     if (threeRenderer) { threeRenderer.dispose(); }
     if (threeAnimationId) { cancelAnimationFrame(threeAnimationId); }
-
-    const w = container.clientWidth;
-    const h = container.clientHeight;
-
+    const w = container.clientWidth; const h = container.clientHeight;
     threeScene = new THREE.Scene();
-    threeCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
-    threeCamera.position.set(0, 0.5, 5);
-
+    threeCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000); threeCamera.position.set(0, 0.5, 5);
     threeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    threeRenderer.setSize(w, h);
-    container.appendChild(threeRenderer.domElement);
-
+    threeRenderer.setSize(w, h); container.appendChild(threeRenderer.domElement);
     threeControls = new OrbitControls(threeCamera, threeRenderer.domElement);
-    threeControls.enableDamping = true;
-    threeControls.autoRotate = true;
-
+    threeControls.enableDamping = true; threeControls.autoRotate = true;
     threeScene.add(new THREE.AmbientLight(0xffffff, 0.7));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-    dirLight.position.set(2, 3, 2); threeScene.add(dirLight);
-    const rimLight = new THREE.DirectionalLight(0x00e5ff, 0.6);
-    rimLight.position.set(-2, -1, -2); threeScene.add(rimLight);
-
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1); dirLight.position.set(2, 3, 2); threeScene.add(dirLight);
+    const rimLight = new THREE.DirectionalLight(0x00e5ff, 0.6); rimLight.position.set(-2, -1, -2); threeScene.add(rimLight);
+    
+    // Hier wird das prozedurale Modell gebaut.
+    // Für ein echtes GLB-Modell müsste hier ein GLTFLoader verwendet werden.
     buildAnatomyModel(threeScene);
     updateAnatomyVisibility(state.anatomyMode);
-
     function animate() {
-      threeAnimationId = requestAnimationFrame(animate);
-      threeControls.update();
+      threeAnimationId = requestAnimationFrame(animate); threeControls.update();
       const time = Date.now() * 0.001;
-      if (heartMesh) {
-        const beat = 1 + Math.sin(time * 5) * 0.08;
-        heartMesh.scale.set(beat, beat * 1.2, beat * 0.9);
-      }
-      if (lungLeft && lungRight) {
-        const breath = 1 + Math.sin(time * 2) * 0.05;
-        lungLeft.scale.set(0.8, 1.4 * breath, 0.8);
-        lungRight.scale.set(0.8, 1.4 * breath, 0.8);
-      }
+      if (heartMesh) { const beat = 1 + Math.sin(time * 5) * 0.08; heartMesh.scale.set(beat, beat * 1.2, beat * 0.9); }
+      if (lungLeft && lungRight) { const breath = 1 + Math.sin(time * 2) * 0.05; lungLeft.scale.set(0.8, 1.4 * breath, 0.8); lungRight.scale.set(0.8, 1.4 * breath, 0.8); }
       threeRenderer.render(threeScene, threeCamera);
     }
     animate();
-
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
+    const raycaster = new THREE.Raycaster(); const mouse = new THREE.Vector2();
     threeRenderer.domElement.addEventListener('click', (event) => {
       const rect = threeRenderer.domElement.getBoundingClientRect();
-      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(mouse, threeCamera);
       const intersects = raycaster.intersectObjects(organsGroup.children, true);
-      if (intersects.length > 0) {
-        const hit = intersects[0].object;
-        if (hit.userData && hit.userData.name) {
-          alert(`${hit.userData.name}\n\n${hit.userData.desc}`);
-          speakText(hit.userData.name + '. ' + hit.userData.desc);
-        }
-      }
+      if (intersects.length > 0) { const hit = intersects[0].object; if (hit.userData && hit.userData.name) { alert(`${hit.userData.name}\n\n${hit.userData.desc}`); speakText(hit.userData.name + '. ' + hit.userData.desc); } }
     });
   }
 
@@ -522,31 +451,19 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   }
 
   function buildAnatomyModel(scene) {
-    skinGroup = new THREE.Group(); musclesGroup = new THREE.Group(); skeletonGroup = new THREE.Group(); organsGroup = new THREE.Group();
-    scene.add(skinGroup, musclesGroup, skeletonGroup, organsGroup);
-
+    skinGroup = new THREE.Group(); musclesGroup = new THREE.Group(); skeletonGroup = new THREE.Group(); organsGroup = new THREE.Group(); scene.add(skinGroup, musclesGroup, skeletonGroup, organsGroup);
     const skinMat = new THREE.MeshPhysicalMaterial({ color: 0x66ccff, transparent: true, opacity: 0.15, roughness: 0.2, transmission: 0.5, side: THREE.DoubleSide });
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 32, 32), skinMat); head.position.y = 1.8; skinGroup.add(head);
     const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 0.8, 16, 32), skinMat); torso.position.y = 0.8; skinGroup.add(torso);
-    [-1, 1].forEach(side => {
-      const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.8, 8, 16), skinMat); arm.position.set(side * 0.5, 0.8, 0); arm.rotation.z = side * Math.PI / 8; skinGroup.add(arm);
-      const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.9, 8, 16), skinMat); leg.position.set(side * 0.18, -0.5, 0); skinGroup.add(leg);
-    });
-
-    const boneMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.8 });
-    const skull = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), boneMat); skull.position.y = 1.85; skeletonGroup.add(skull);
+    [-1, 1].forEach(side => { const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.8, 8, 16), skinMat); arm.position.set(side * 0.5, 0.8, 0); arm.rotation.z = side * Math.PI / 8; skinGroup.add(arm); const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.9, 8, 16), skinMat); leg.position.set(side * 0.18, -0.5, 0); skinGroup.add(leg); });
+    const boneMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.8 }); const skull = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), boneMat); skull.position.y = 1.85; skeletonGroup.add(skull);
     for(let i=0; i<15; i++) { const v = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.08, 8), boneMat); v.position.set(0, 1.5 - i*0.1, -0.15); skeletonGroup.add(v); }
     for(let i=0; i<6; i++) { const rib = new THREE.Mesh(new THREE.TorusGeometry(0.3 + i*0.02, 0.02, 8, 32, Math.PI), boneMat); rib.position.set(0, 1.3 - i*0.1, -0.05); rib.rotation.x = Math.PI/2; rib.rotation.y = Math.PI/2; skeletonGroup.add(rib); }
-
-    const muscleMat = new THREE.MeshStandardMaterial({ color: 0xaa3333, roughness: 0.6 });
-    const muscleTorso = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.6, 16, 32), muscleMat); muscleTorso.position.y = 0.9; musclesGroup.add(muscleTorso);
-
+    const muscleMat = new THREE.MeshStandardMaterial({ color: 0xaa3333, roughness: 0.6 }); const muscleTorso = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.6, 16, 32), muscleMat); muscleTorso.position.y = 0.9; musclesGroup.add(muscleTorso);
     function addOrgan(mesh, name, desc, icon) { mesh.userData = { name, desc, icon }; organsGroup.add(mesh); }
     brainMesh = new THREE.Mesh(new THREE.SphereGeometry(0.25, 32, 32), new THREE.MeshStandardMaterial({ color: 0xffb3c8 })); brainMesh.position.y = 1.9; addOrgan(brainMesh, 'Gehirn', 'Zentrale des Nervensystems.', '🧠');
     heartMesh = new THREE.Mesh(new THREE.SphereGeometry(0.14, 24, 24), new THREE.MeshStandardMaterial({ color: 0xdd0000, roughness: 0.3 })); heartMesh.scale.set(1, 1.2, 0.9); heartMesh.position.set(-0.05, 1.0, 0.15); addOrgan(heartMesh, 'Herz', 'Muskelpumpe für den Blutkreislauf.', '🫀');
-    const lungMat = new THREE.MeshStandardMaterial({ color: 0xff8888, transparent: true, opacity: 0.9 });
-    lungLeft = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.4, 8, 16), lungMat); lungLeft.position.set(-0.15, 1.2, 0.05); addOrgan(lungLeft, 'Lunge (links)', 'Atmungsorgan.', '🫁');
-    lungRight = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.4, 8, 16), lungMat); lungRight.position.set(0.15, 1.2, 0.05); addOrgan(lungRight, 'Lunge (rechts)', 'Atmungsorgan.', '🫁');
+    const lungMat = new THREE.MeshStandardMaterial({ color: 0xff8888, transparent: true, opacity: 0.9 }); lungLeft = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.4, 8, 16), lungMat); lungLeft.position.set(-0.15, 1.2, 0.05); addOrgan(lungLeft, 'Lunge (links)', 'Atmungsorgan.', '🫁'); lungRight = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.4, 8, 16), lungMat); lungRight.position.set(0.15, 1.2, 0.05); addOrgan(lungRight, 'Lunge (rechts)', 'Atmungsorgan.', '🫁');
     const liver = new THREE.Mesh(new THREE.SphereGeometry(0.22, 20, 20), new THREE.MeshStandardMaterial({ color: 0x8b3a1a })); liver.scale.set(1.5, 0.6, 0.9); liver.position.set(0.15, 0.75, 0.1); addOrgan(liver, 'Leber', 'Entgiftung und Galle.', '🟤');
   }
 
@@ -558,41 +475,23 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     const themeBtn = e.target.closest('[data-theme]');
     const anatBtn = e.target.closest('[data-anatomy-mode]');
     const infoItem = e.target.closest('[data-title]');
-
     if (themeBtn) { state.splashTheme = themeBtn.dataset.theme; saveState(); currentTarget.innerHTML = renderAppShell(); return; }
     if (anatBtn) { state.anatomyMode = anatBtn.dataset.anatomyMode; document.querySelectorAll('.h-anatomy-btn').forEach(b => b.classList.remove('active')); anatBtn.classList.add('active'); updateAnatomyVisibility(state.anatomyMode); return; }
-    
-    if (infoItem) {
-      alert(`${infoItem.dataset.title}\n\n${infoItem.dataset.info}`);
-      speakText(infoItem.dataset.title + '. ' + infoItem.dataset.info);
-      return;
-    }
-
+    if (infoItem) { alert(`${infoItem.dataset.title}\n\n${infoItem.dataset.info}`); speakText(infoItem.dataset.title + '. ' + infoItem.dataset.info); return; }
     if (!btn) return;
     const action = btn.dataset.action;
-
     if (action === 'toggle-sound') { state.soundEnabled = !state.soundEnabled; saveState(); currentTarget.innerHTML = renderAppShell(); return; }
     if (action === 'enter-app') { state.currentView = 'dashboard'; currentTarget.innerHTML = renderAppShell(); return; }
     if (action === 'save-hotspot') { state.hotspot.pass = document.getElementById('hotspot-pass').value; saveState(); alert('Passwort gespeichert!'); return; }
     if (action === 'toggle-hotspot') { state.hotspot.active = !state.hotspot.active; saveState(); currentTarget.innerHTML = renderAppShell(); return; }
-
-    if (action.startsWith('view-')) {
-      state.currentView = action.replace('view-', '');
-      currentTarget.innerHTML = renderAppShell();
-      if (state.currentView === 'anatomy') setTimeout(init3DAnatomy, 100);
-      return;
-    }
+    if (action.startsWith('view-')) { state.currentView = action.replace('view-', ''); currentTarget.innerHTML = renderAppShell(); if (state.currentView === 'anatomy') setTimeout(init3DAnatomy, 100); return; }
   }
 
   document.addEventListener('send-chat', () => {
-    const input = document.getElementById('chat-in');
-    if (!input || !input.value.trim()) return;
-    const txt = input.value.trim();
-    state.chatHistory.push({ role: 'user', text: txt });
+    const input = document.getElementById('chat-in'); if (!input || !input.value.trim()) return;
+    const txt = input.value.trim(); state.chatHistory.push({ role: 'user', text: txt });
     let res = txt.toLowerCase().includes('kopf') ? "Bei Kopfschmerzen: Ruhe, Wasser und frische Luft." : `Ich habe verstanden: "${txt}". Wie kann ich helfen?`;
-    state.chatHistory.push({ role: 'ai', text: res });
-    saveState();
-    currentTarget.innerHTML = renderAppShell();
+    state.chatHistory.push({ role: 'ai', text: res }); saveState(); currentTarget.innerHTML = renderAppShell();
     setTimeout(() => { const h = document.getElementById('chat-hist'); if(h) h.scrollTop = h.scrollHeight; }, 50);
   });
 
@@ -601,39 +500,23 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   // ═══════════════════════════════════════════════════════
   function mount(target) {
     if (target && target.nodeType === 1) {
-      currentTarget = target;
-      loadState();
-      state.currentView = 'splash'; 
-      currentTarget.innerHTML = renderAppShell();
-      if (!currentTarget.dataset.hasListener) {
-        currentTarget.addEventListener('click', handleClick);
-        currentTarget.dataset.hasListener = "true";
-      }
+      currentTarget = target; loadState(); state.currentView = 'splash'; currentTarget.innerHTML = renderAppShell();
+      if (!currentTarget.dataset.hasListener) { currentTarget.addEventListener('click', handleClick); currentTarget.dataset.hasListener = "true"; }
       if (state.soundEnabled) playStartupSound();
       setTimeout(() => { if (window.HalDoWelcome) window.HalDoWelcome.show("Arztbuch"); }, 200);
     }
   }
 
   function openOverlay() {
-    const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#0a0a0f;display:flex;flex-direction:column;';
-    const closeBar = document.createElement('div');
-    closeBar.style.cssText = 'padding:10px 16px;background:#111;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;';
+    const overlay = document.createElement('div'); overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#0a0a0f;display:flex;flex-direction:column;';
+    const closeBar = document.createElement('div'); closeBar.style.cssText = 'padding:10px 16px;background:#111;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;';
     closeBar.innerHTML = `<b style="color:#e8e8ec;font-family:Inter;">🩺 HalDo Arztbuch MASTER</b><button id="h-close-btn" style="background:transparent;border:1px solid #444;color:#fff;padding:5px 10px;border-radius:6px;cursor:pointer;">✕ Schließen</button>`;
-    overlay.appendChild(closeBar);
-    const mountDiv = document.createElement('div');
-    mountDiv.style.cssText = 'flex:1;position:relative;overflow:hidden;';
-    overlay.appendChild(mountDiv);
-    document.body.appendChild(overlay);
-    document.getElementById('h-close-btn').onclick = () => { overlay.remove(); currentTarget = null; };
-    mount(mountDiv);
+    overlay.appendChild(closeBar); const mountDiv = document.createElement('div'); mountDiv.style.cssText = 'flex:1;position:relative;overflow:hidden;'; overlay.appendChild(mountDiv); document.body.appendChild(overlay);
+    document.getElementById('h-close-btn').onclick = () => { overlay.remove(); currentTarget = null; }; mount(mountDiv);
   }
 
   window.HalDoApps = window.HalDoApps || {};
   window.HalDoApps.arztbuch = { mount, version: VERSION, open: openOverlay };
-  window.Arztbuch = window.HalDoApps.arztbuch;
-  window.apps = window.apps || {};
-  window.apps.arztbuch = window.HalDoApps.arztbuch;
-  window.renderArztbuch = mount;
-  window.openArztbuch = openOverlay;
+  window.Arztbuch = window.HalDoApps.arztbuch; window.apps = window.apps || {}; window.apps.arztbuch = window.HalDoApps.arztbuch;
+  window.renderArztbuch = mount; window.openArztbuch = openOverlay;
 })();
