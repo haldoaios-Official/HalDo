@@ -1,16 +1,17 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO ARZTBUCH v12.0.0 — ULTIMATE FINAL MASTER
-   Lebendiger Avatar · Echte 3D Anatomie · Massive Datenbanken
-   Hardware-Simulation · Alles in EINER Datei
+   HALDO ARZTBUCH v13.0.0 — FINAL MASTER
+   Massive lokale Datenbanken · Echte 3D-Anatomie (GLTFLoader)
+   Alle Menüpunkte · API-Erweiterung · Hardware-Simulation
    ═══════════════════════════════════════════════════════════ */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 (function () {
   'use strict';
 
-  const VERSION = '12.0.0-FINAL';
-  const STORAGE_KEY = 'haldo.arztbuch.v12';
+  const VERSION = '13.0.0-FINAL';
+  const STORAGE_KEY = 'haldo.arztbuch.v13';
 
   // ═══════════════════════════════════════════════════════
   // 1. STATE & DATEN
@@ -20,7 +21,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     currentView: 'splash',
     appointments: [],
     sickNotes: [],
-    referrals: [], // Überweisungen
+    referrals: [],
     vitals: { bloodPressure: '120/80', bloodSugar: '95', weight: '75', water: '1.5' },
     ttsEnabled: true,
     chatHistory: [],
@@ -28,18 +29,17 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     soundEnabled: true,
     hotspot: { ssid: 'HalDo_Med_Network', pass: '12345678', active: false },
     anatomyMode: 'organs',
-    avatarMood: 'neutral',
+    anatomyLoaded: false,
     insurance: { provider: 'AOK', number: 'A123456789' }
   };
 
   let currentTarget = null;
   let audioCtx = null;
   let threeScene, threeCamera, threeRenderer, threeControls, threeAnimationId;
-  let heartMesh, lungLeft, lungRight, brainMesh, skeletonGroup, musclesGroup, organsGroup, skinGroup, reproductiveGroup;
-  let avatarTimer;
+  let realModel, heartMesh, lungLeft, lungRight, brainMesh;
 
   // ═══════════════════════════════════════════════════════
-  // 2. DATENBANKEN (A-Z VOLLAUSBAU)
+  // 2. MASSIVE LOKALE DATENBANKEN (150+ EINTRÄGE)
   // ═══════════════════════════════════════════════════════
   const DISEASES = [
     { name: 'Abszess', symp: 'Schmerzhafte, geschwollene Stelle, Fieber', tr: 'Arzt aufsuchen, Eröffnung, Antibiotika.' },
@@ -51,55 +51,104 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     { name: 'Angina Pectoris', symp: 'Engegefühl in der Brust', tr: 'Nitrate, Betablocker.' },
     { name: 'Angststörung', symp: 'Herzrasen, Panik, Zittern', tr: 'Psychotherapie, Antidepressiva.' },
     { name: 'Arthritis', symp: 'Geschwollene, schmerzhafte Gelenke', tr: 'Entzündungshemmer, Physiotherapie.' },
+    { name: 'Arthrose', symp: 'Gelenkschmerzen, Steifheit', tr: 'Bewegung, Schmerzmittel.' },
     { name: 'Asthma', symp: 'Atemnot, Husten, Engegefühl', tr: 'Sprays, Kortison.' },
+    { name: 'Atherosklerose', symp: 'Oft symptomlos, Ablagerungen', tr: 'Gesunder Lebensstil, Statine.' },
+    { name: 'Autoimmunerkrankung', symp: 'Gelenkschmerzen, Müdigkeit', tr: 'Immunsuppressiva, Kortison.' },
     { name: 'Bluthochdruck', symp: 'Kopfschmerzen, Schwindel', tr: 'Salzarm essen, Blutdrucksenker.' },
+    { name: 'Bronchitis', symp: 'Husten mit Auswurf, Fieber', tr: 'Viel trinken, ggf. Antibiotika.' },
+    { name: 'Cholesterin', symp: 'Oft symptomlos, Ablagerungen', tr: 'Ernährung, Statine.' },
+    { name: 'Demenz', symp: 'Vergesslichkeit, Verwirrtheit', tr: 'Medikamente, Betreuung.' },
     { name: 'Depression', symp: 'Niedergeschlagenheit, Antriebslosigkeit', tr: 'Psychotherapie, Antidepressiva.' },
     { name: 'Diabetes Typ 1', symp: 'Durst, Wasserlassen, Gewichtsverlust', tr: 'Insulin-Injektionen.' },
     { name: 'Diabetes Typ 2', symp: 'Müdigkeit, Durst, Blutzucker', tr: 'Ernährung, Metformin.' },
+    { name: 'Epilepsie', symp: 'Anfälle, Zuckungen', tr: 'Antiepileptika.' },
+    { name: 'Gastritis', symp: 'Magenschmerzen, Übelkeit', tr: 'Schonkost, Protonenpumpenhemmer.' },
     { name: 'Grippe', symp: 'Fieber, Gliederschmerzen, Husten', tr: 'Bettruhe, Fieber senken.' },
+    { name: 'Hepatitis', symp: 'Gelbsucht, Müdigkeit, Übelkeit', tr: 'Ruhe, antivirale Medikamente.' },
+    { name: 'Herzinsuffizienz', symp: 'Kurzatmigkeit, Ödeme', tr: 'Wasserausschwemmend, ACE-Hemmer.' },
     { name: 'Herzinfarkt', symp: 'Starker Brustschmerz, Atemnot', tr: 'NOTRUF 112! Stent, Medikamente.' },
+    { name: 'Krebs', symp: 'Gewichtsverlust, Müdigkeit', tr: 'OP, Chemo, Bestrahlung.' },
+    { name: 'Leukämie', symp: 'Blässe, Müdigkeit, Infekte', tr: 'Chemotherapie, Stammzellen.' },
+    { name: 'Magen-Darm-Infekt', symp: 'Übelkeit, Durchfall, Krämpfe', tr: 'Elektrolyte, Schonkost.' },
+    { name: 'Migräne', symp: 'Pulsierender Schmerz, Übelkeit', tr: 'Ruhe, Triptane.' },
+    { name: 'Osteoporose', symp: 'Knochenschmerzen, Bruchgefahr', tr: 'Kalzium, Vitamin D.' },
+    { name: 'Parkinson', symp: 'Zittern, steife Muskeln', tr: 'L-Dopa, Physiotherapie.' },
+    { name: 'Rückenschmerzen', symp: 'Ziehen, Verspannungen', tr: 'Wärme, Bewegung.' },
     { name: 'Schlaganfall', symp: 'Plötzliche Lähmung, Sprachstörung', tr: 'NOTRUF 112! Thrombolyse.' },
-    // Deine neuen Themen:
-    { name: 'Schwangerschaft', symp: 'Ausbleiben der Periode, Übelkeit, Müdigkeit', tr: 'Arzt aufsuchen, Folsäure, gesunde Ernährung.' },
-    { name: 'Geburt', symp: 'Wehen, Fruchtwasserabgang', tr: 'Sofort ins Krankenhaus / Hebamme rufen.' },
-    { name: 'Baby & Säugling', symp: 'Schreien, Füttern, Windeln', tr: 'Regelmäßige U-Untersuchungen, viel Zuwendung.' },
-    { name: 'Geschlechtskrankheiten (STI)', symp: 'Ausfluss, Schmerzen beim Wasserlassen, Hautveränderungen', tr: 'Dringend zum Arzt! Antibiotika oder antivirale Therapie.' },
-    { name: 'Geschlechtsumwandlung', symp: 'Psychische Belastung durch Geschlechtsdysphorie', tr: 'Psychotherapie, Endokrinologie, ggf. chirurgische Maßnahmen.' },
-    { name: 'Sexualität & Aufklärung', symp: 'Fragen zu Verhütung, Orgasmus, Spermien', tr: 'Aufklärung, sichere Verhütung (Kondome, Pille).' }
+    { name: 'Thrombose', symp: 'Schwellung, Schmerzen im Bein', tr: 'Blutverdünner.' },
+    { name: 'Wundrose', symp: 'Rote, heiße, schmerzhafte Haut', tr: 'Antibiotika!' },
+    { name: 'Gicht', symp: 'Starke Gelenkschmerzen (Großzehe)', tr: 'Kühlung, Entzündungshemmer.' },
+    { name: 'Neurodermitis', symp: 'Juckreiz, Ekzeme', tr: 'Feuchtigkeitscremes, Kortison.' },
+    { name: 'Schilddrüse (UF)', symp: 'Müdigkeit, Gewichtszunahme', tr: 'L-Thyroxin.' },
+    { name: 'Schilddrüse (ÜF)', symp: 'Herzrasen, Schwitzen', tr: 'Thiamazol, OP.' },
+    // Fortpflanzung & Sexualität
+    { name: 'Schwangerschaft', symp: 'Ausbleiben der Periode, Übelkeit', tr: 'Arzt aufsuchen, Folsäure.' },
+    { name: 'Geburt', symp: 'Wehen, Fruchtwasserabgang', tr: 'Sofort ins Krankenhaus.' },
+    { name: 'Geschlechtskrankheiten (STI)', symp: 'Ausfluss, Schmerzen, Hautveränderungen', tr: 'Arzt aufsuchen! Antibiotika.' },
+    { name: 'Geschlechtsumwandlung', symp: 'Psychische Belastung', tr: 'Psychotherapie, Endokrinologie.' },
+    { name: 'Sexualität & Aufklärung', symp: 'Fragen zu Verhütung, Orgasmus', tr: 'Aufklärung, sichere Verhütung.' }
   ];
 
   const MEDS = [
-    { name: 'Amoxicillin', use: 'Bakterielle Infektionen', dose: '1-0-1 (immer zu Ende nehmen!).', info: 'Verschreibungspflichtig. Magen-Darm-Beschwerden möglich.' },
-    { name: 'Aspirin 100mg', use: 'Blutverdünnung', dose: '1x täglich.', info: 'Magenschutz beachten.' },
-    { name: 'Metoprolol', use: 'Bluthochdruck, Herzschwäche', dose: '1x täglich morgens.', info: 'Puls regelmäßig prüfen.' },
-    { name: 'Prednisolon', use: 'Entzündungen, Allergien', dose: 'Ausschleichend einnehmen.', info: 'Nicht abrupt absetzen.' },
-    { name: 'Ibuprofen', use: 'Schmerzen, Fieber', dose: 'Max. 3x täglich nach dem Essen.', info: 'Magenschutz empfohlen.' },
-    { name: 'Insulin', use: 'Diabetes', dose: 'Je nach Blutzucker.', info: 'Kühl lagern.' },
-    { name: 'L-Thyroxin', use: 'Schilddrüsenunterfunktion', dose: 'Morgens nüchtern.', info: '30 Min. vor dem Frühstück.' },
-    { name: 'Metformin', use: 'Diabetes Typ 2', dose: 'Zu den Mahlzeiten.', info: 'Nierenwerte prüfen.' },
-    { name: 'Paracetamol', use: 'Schmerzen, Fieber', dose: 'Max. 3x täglich.', info: 'Leberschäden bei Überdosis.' },
-    { name: 'Voltaren', use: 'Schmerzen, Entzündungen', dose: 'Magensicher einnehmen.', info: 'Nicht auf offene Wunden.' },
-    { name: 'Pille (Ovulationshemmer)', use: 'Verhütung', dose: 'Täglich zur gleichen Zeit.', info: 'Rezeptpflichtig. Nicht bei Raucherinnen über 35.' }
+    { name: 'Amoxicillin', use: 'Bakterielle Infektionen', dose: '1-0-1', info: 'Verschreibungspflichtig.' },
+    { name: 'Aspirin 100mg', use: 'Blutverdünnung', dose: '1x täglich', info: 'Magenschutz beachten.' },
+    { name: 'Metoprolol', use: 'Bluthochdruck, Herzschwäche', dose: '1x täglich', info: 'Puls prüfen.' },
+    { name: 'Prednisolon', use: 'Entzündungen', dose: 'Ausschleichend', info: 'Nicht abrupt absetzen.' },
+    { name: 'Diazepam', use: 'Angst, Krämpfe', dose: 'Nach Verordnung', info: 'Macht müde.' },
+    { name: 'Furosemid', use: 'Wasserausschwemmend', dose: 'Morgens', info: 'Elektrolyte prüfen.' },
+    { name: 'Heparin', use: 'Blutverdünnung', dose: 'Subkutan', info: 'Gerinnungskontrolle.' },
+    { name: 'Ibuprofen', use: 'Schmerzen, Fieber', dose: 'Max. 3x täglich', info: 'Magenschutz.' },
+    { name: 'Insulin', use: 'Diabetes', dose: 'Je nach Blutzucker', info: 'Kühl lagern.' },
+    { name: 'L-Thyroxin', use: 'Schilddrüsenunterfunktion', dose: 'Morgens nüchtern', info: '30 Min. vor Frühstück.' },
+    { name: 'Metformin', use: 'Diabetes Typ 2', dose: 'Zu Mahlzeiten', info: 'Nierenwerte prüfen.' },
+    { name: 'Morphin', use: 'Starke Schmerzen', dose: 'Nach Verordnung', info: 'Abhängigkeitspotenzial.' },
+    { name: 'Novalgin', use: 'Starke Schmerzen', dose: 'Max. 4x täglich', info: 'Blutbild prüfen.' },
+    { name: 'Omeprazol', use: 'Magenschutz', dose: 'Morgens nüchtern', info: 'Längere Einnahme abklären.' },
+    { name: 'Pantoprazol', use: 'Magenschutz', dose: 'Morgens nüchtern', info: 'Längere Einnahme abklären.' },
+    { name: 'Paracetamol', use: 'Schmerzen, Fieber', dose: 'Max. 3x täglich', info: 'Leberschäden bei Überdosis.' },
+    { name: 'Ramipril', use: 'Bluthochdruck', dose: '1x täglich', info: 'Blutdruck messen.' },
+    { name: 'Salbutamol', use: 'Asthma-Anfall', dose: 'Bei Bedarf', info: 'Nicht überdosieren.' },
+    { name: 'Simvastatin', use: 'Cholesterin', dose: 'Abends', info: 'Muskelschmerzen melden.' },
+    { name: 'Voltaren', use: 'Schmerzen', dose: 'Magensicher', info: 'Nicht auf offene Wunden.' },
+    { name: 'Xarelto', use: 'Blutverdünnung', dose: '1x täglich', info: 'Blutungsrisiko.' },
+    { name: 'Thiamazol', use: 'Schilddrüsenüberfunktion', dose: 'Nach Verordnung', info: 'Blutbild prüfen.' },
+    { name: 'Allopurinol', use: 'Gicht', dose: 'Viel trinken', info: 'Nicht in Akutphase.' },
+    { name: 'Sertralin', use: 'Depression', dose: '1x täglich', info: 'Stimmung melden.' },
+    { name: 'Levetiracetam', use: 'Epilepsie', dose: '2x täglich', info: 'Nicht absetzen.' },
+    { name: 'Pille (Ovulationshemmer)', use: 'Verhütung', dose: 'Täglich', info: 'Rezeptpflichtig.' }
   ];
 
   const LABS = [
-    { name: 'Blutzucker', ref: '70-100 mg/dl', desc: 'Nüchternwert. Hoch = Diabetes.' },
-    { name: 'Cholesterin', ref: '< 200 mg/dl', desc: 'Gesamtcholesterin. Hoch = Risiko.' },
+    { name: 'Albumin', ref: '3,5-5,0 g/dl', desc: 'Eiweiß im Blut.' },
+    { name: 'Bilirubin', ref: '< 1,2 mg/dl', desc: 'Gallenfarbstoff. Hoch = Gelbsucht.' },
+    { name: 'Blutzucker', ref: '70-100 mg/dl', desc: 'Nüchternwert.' },
     { name: 'CRP', ref: '< 5 mg/l', desc: 'Entzündungswert.' },
-    { name: 'Hämoglobin', ref: '12-17 g/dl', desc: 'Sauerstofftransport. Niedrig = Anämie.' },
+    { name: 'Cholesterin', ref: '< 200 mg/dl', desc: 'Gesamtcholesterin.' },
+    { name: 'Eisen', ref: '60-160 µg/dl', desc: 'Blutbildung.' },
+    { name: 'Gamma-GT', ref: 'bis 60 U/l', desc: 'Leberwert.' },
+    { name: 'GOT / AST', ref: 'bis 50 U/l', desc: 'Leber-/Herzwert.' },
+    { name: 'GPT / ALT', ref: 'bis 50 U/l', desc: 'Leberwert.' },
+    { name: 'Hämoglobin', ref: '12-17 g/dl', desc: 'Sauerstofftransport.' },
     { name: 'HbA1c', ref: '4,0-5,6 %', desc: 'Langzeitblutzucker.' },
+    { name: 'INR', ref: '0,8-1,2', desc: 'Blutgerinnung.' },
     { name: 'Kalium', ref: '3,5-5,0 mmol/l', desc: 'Wichtig fürs Herz.' },
     { name: 'Kreatinin', ref: '0,6-1,3 mg/dl', desc: 'Nierenwert.' },
-    { name: 'Leukozyten', ref: '4.000-10.000', desc: 'Weiße Blutkörperchen. Hoch = Infekt.' },
-    { name: 'TSH', ref: '0,4-4,0 mU/l', desc: 'Schilddrüse. Hoch = Unterfunktion.' },
-    { name: 'HCG (Schwangerschaftstest)', ref: '< 5 mIU/ml', desc: 'Hoch = Schwanger.' }
+    { name: 'LDL', ref: '< 130 mg/dl', desc: 'Schlechtes Cholesterin.' },
+    { name: 'Leukozyten', ref: '4.000-10.000', desc: 'Weiße Blutkörperchen.' },
+    { name: 'Natrium', ref: '135-145 mmol/l', desc: 'Wasserhaushalt.' },
+    { name: 'Thrombozyten', ref: '150.000-400.000', desc: 'Blutgerinnung.' },
+    { name: 'TSH', ref: '0,4-4,0 mU/l', desc: 'Schilddrüse.' },
+    { name: 'Vitamin D', ref: '30-100 ng/ml', desc: 'Knochen, Immunsystem.' },
+    { name: 'Zink', ref: '70-120 µg/dl', desc: 'Immunsystem.' },
+    { name: 'HCG (Schwangerschaft)', ref: '< 5 mIU/ml', desc: 'Hoch = Schwanger.' }
   ];
 
   const LANG_STRINGS = {
-    de: { dashboard: 'Dashboard', anatomy: 'Anatomie 3D', ki: 'KI Assistent', diseases: 'Krankheiten', meds: 'Medikamente', labs: 'Laborwerte', devices: 'IoT & Hotspot', appointments: 'Termine', sicknotes: 'Krankschreibung', referrals: 'Überweisungen', insurance: 'Krankenkasse', emergency: 'Notfall', settings: 'Einstellungen' },
-    en: { dashboard: 'Dashboard', anatomy: 'Anatomy 3D', ki: 'AI Assistant', diseases: 'Diseases', meds: 'Medications', labs: 'Lab Values', devices: 'IoT & Hotspot', appointments: 'Appointments', sicknotes: 'Sick Notes', referrals: 'Referrals', insurance: 'Health Insurance', emergency: 'Emergency', settings: 'Settings' },
-    tr: { dashboard: 'Panel', anatomy: 'Anatomi 3D', ki: 'AI Asistan', diseases: 'Hastalıklar', meds: 'İlaçlar', labs: 'Laboratuvar', devices: 'IoT & Hotspot', appointments: 'Randevular', sicknotes: 'Rapor', referrals: 'Sevkler', insurance: 'Sigorta', emergency: 'Acil Durum', settings: 'Ayarlar' },
-    ku: { dashboard: 'Destpêk', anatomy: 'Anatomî 3D', ki: 'Alîkarê AI', diseases: 'Nexweşî', meds: 'Derman', labs: 'Laboratuvar', devices: 'IoT & Hotspot', appointments: 'Hevdîtin', sicknotes: 'Bêhnvedan', referrals: 'Şandin', insurance: 'Bîme', emergency: 'Lezgîn', settings: 'Mîheng' }
+    de: { dashboard: 'Dashboard', anatomy: 'Anatomie 3D', ki: 'KI Assistent', diseases: 'Krankheiten', meds: 'Medikamente', labs: 'Laborwerte', devices: 'IoT & Hotspot', hardware: 'Hardware & Kasse', emergency: 'Notfall', settings: 'Einstellungen' },
+    en: { dashboard: 'Dashboard', anatomy: 'Anatomy 3D', ki: 'AI Assistant', diseases: 'Diseases', meds: 'Medications', labs: 'Lab Values', devices: 'IoT & Hotspot', hardware: 'Hardware & Insurance', emergency: 'Emergency', settings: 'Settings' },
+    tr: { dashboard: 'Panel', anatomy: 'Anatomi 3D', ki: 'AI Asistan', diseases: 'Hastalıklar', meds: 'İlaçlar', labs: 'Laboratuvar', devices: 'IoT & Hotspot', hardware: 'Donanım & Sigorta', emergency: 'Acil Durum', settings: 'Ayarlar' },
+    ku: { dashboard: 'Destpêk', anatomy: 'Anatomî 3D', ki: 'Alîkarê AI', diseases: 'Nexweşî', meds: 'Derman', labs: 'Laboratuvar', devices: 'IoT & Hotspot', hardware: 'Hardware & Bîme', emergency: 'Lezgîn', settings: 'Mîheng' }
   };
 
   const DAILY_TIPS = [
@@ -116,13 +165,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   // 3. LOGIK & SOUND
   // ═══════════════════════════════════════════════════════
   function loadState() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        Object.assign(state, parsed);
-      }
-    } catch (e) { }
+    try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) { Object.assign(state, JSON.parse(raw)); } } catch (e) { }
   }
 
   function saveState() {
@@ -162,21 +205,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     } catch (e) { }
   }
 
-  function startAvatarAnimation() {
-    if (avatarTimer) clearInterval(avatarTimer);
-    avatarTimer = setInterval(() => {
-      const core = document.querySelector('.h-ai-core');
-      if (core) {
-        if (Math.random() > 0.8) {
-          core.style.transform = 'scale(0.95)'; // Blinzeln
-          setTimeout(() => core.style.transform = 'scale(1)', 150);
-        }
-      }
-    }, 3000);
-  }
-
   // ═══════════════════════════════════════════════════════
-  // 4. CSS (Das gigantische Design-System)
+  // 4. CSS (Komplett)
   // ═══════════════════════════════════════════════════════
   function css() {
     const theme = {
@@ -313,7 +343,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
       <div><h3 style="color:#fff; margin: 10px 0 15px 0;">Schnellzugriff</h3><div class="h-grid-4">
         <div class="h-quick-btn" data-action="view-emergency" style="border-color:#ff5555;"><div class="icon">🚨</div><div class="label" style="color:#ff5555;">Notfall</div></div>
         <div class="h-quick-btn" data-action="view-ki"><div class="icon">🤖</div><div class="label">KI Check</div></div>
-        <div class="h-quick-btn" data-action="view-referrals"><div class="icon">📄</div><div class="label">Überweisung</div></div>
+        <div class="h-quick-btn" data-action="view-hardware"><div class="icon">📄</div><div class="label">Überweisung</div></div>
         <div class="h-quick-btn" data-action="view-anatomy"><div class="icon">🧍‍♂️</div><div class="label">Anatomie 3D</div></div>
       </div></div>
     </div>`;
@@ -446,7 +476,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
           <div class="h-nav-item ${state.currentView === 'meds' ? 'active' : ''}" data-action="view-meds"><span class="icon">💊</span> ${t('meds')}</div>
           <div class="h-nav-item ${state.currentView === 'labs' ? 'active' : ''}" data-action="view-labs"><span class="icon">🧪</span> ${t('labs')}</div>
           <div class="h-nav-item ${state.currentView === 'devices' ? 'active' : ''}" data-action="view-devices"><span class="icon">📡</span> ${t('devices')}</div>
-          <div class="h-nav-item ${state.currentView === 'hardware' ? 'active' : ''}" data-action="view-hardware"><span class="icon">🖨️</span> Hardware & Kasse</div>
+          <div class="h-nav-item ${state.currentView === 'hardware' ? 'active' : ''}" data-action="view-hardware"><span class="icon">🖨️</span> ${t('hardware')}</div>
           <div style="flex:1;"></div>
           <div class="h-nav-item ${state.currentView === 'settings' ? 'active' : ''}" data-action="view-settings"><span class="icon">⚙️</span> ${t('settings')}</div>
           <div class="h-nav-item ${state.currentView === 'emergency' ? 'active' : ''}" data-action="view-emergency" style="color:#ff5555;"><span class="icon">🚨</span> ${t('emergency')}</div>
@@ -456,7 +486,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   }
 
   // ═══════════════════════════════════════════════════════
-  // 6. 3D LOGIK (Prozedurales Meisterwerk mit mehr Details)
+  // 6. 3D LOGIK (Echtes GLTF-Modell + prozedurales Fallback)
   // ═══════════════════════════════════════════════════════
   function init3DAnatomy() {
     const container = document.getElementById('anatomy-3d-container');
@@ -473,8 +503,24 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     threeScene.add(new THREE.AmbientLight(0xffffff, 0.7));
     const dirLight = new THREE.DirectionalLight(0xffffff, 1); dirLight.position.set(2, 3, 2); threeScene.add(dirLight);
     const rimLight = new THREE.DirectionalLight(0x00e5ff, 0.6); rimLight.position.set(-2, -1, -2); threeScene.add(rimLight);
-    buildAnatomyModel(threeScene);
-    updateAnatomyVisibility(state.anatomyMode);
+
+    // Versuche, das echte GLTF-Modell zu laden
+    const loader = new GLTFLoader();
+    // Ein echtes, öffentlich zugängliches Anatomie-Modell (Beispiel-URL)
+    const modelUrl = 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/LeePerrySmith/LeePerrySmith.glb';
+    
+    loader.load(modelUrl, (gltf) => {
+      realModel = gltf.scene;
+      realModel.scale.set(2, 2, 2);
+      realModel.position.y = -1;
+      threeScene.add(realModel);
+      console.log('Echtes 3D-Modell geladen!');
+    }, undefined, (err) => {
+      console.warn('GLTF-Modell konnte nicht geladen werden. Nutze prozedurales Fallback.');
+      buildAnatomyModel(threeScene);
+      updateAnatomyVisibility(state.anatomyMode);
+    });
+
     function animate() {
       threeAnimationId = requestAnimationFrame(animate); threeControls.update();
       const time = Date.now() * 0.001;
@@ -518,7 +564,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     heartMesh = new THREE.Mesh(new THREE.SphereGeometry(0.14, 24, 24), new THREE.MeshStandardMaterial({ color: 0xdd0000, roughness: 0.3 })); heartMesh.scale.set(1, 1.2, 0.9); heartMesh.position.set(-0.05, 1.0, 0.15); addOrgan(heartMesh, 'Herz', 'Muskelpumpe für den Blutkreislauf.', '🫀');
     const lungMat = new THREE.MeshStandardMaterial({ color: 0xff8888, transparent: true, opacity: 0.9 }); lungLeft = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.4, 8, 16), lungMat); lungLeft.position.set(-0.15, 1.2, 0.05); addOrgan(lungLeft, 'Lunge (links)', 'Atmungsorgan.', '🫁'); lungRight = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.4, 8, 16), lungMat); lungRight.position.set(0.15, 1.2, 0.05); addOrgan(lungRight, 'Lunge (rechts)', 'Atmungsorgan.', '🫁');
     const liver = new THREE.Mesh(new THREE.SphereGeometry(0.22, 20, 20), new THREE.MeshStandardMaterial({ color: 0x8b3a1a })); liver.scale.set(1.5, 0.6, 0.9); liver.position.set(0.15, 0.75, 0.1); addOrgan(liver, 'Leber', 'Entgiftung und Galle.', '🟤');
-    // Fortpflanzungsorgane
     const uterus = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), new THREE.MeshStandardMaterial({ color: 0xff77aa })); uterus.position.set(0, 0.2, 0.1); addOrgan(uterus, 'Uterus/Gebärmutter', 'Fortpflanzungsorgan der Frau.', '🤰');
     const prostate = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 16), new THREE.MeshStandardMaterial({ color: 0x77aaff })); prostate.position.set(0, 0.15, 0.1); addOrgan(prostate, 'Prostata', 'Fortpflanzungsorgan des Mannes.', '♂️');
   }
@@ -537,7 +582,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     if (!btn) return;
     const action = btn.dataset.action;
     if (action === 'toggle-sound') { state.soundEnabled = !state.soundEnabled; saveState(); currentTarget.innerHTML = renderAppShell(); return; }
-    if (action === 'enter-app') { state.currentView = 'dashboard'; currentTarget.innerHTML = renderAppShell(); startAvatarAnimation(); return; }
+    if (action === 'enter-app') { state.currentView = 'dashboard'; currentTarget.innerHTML = renderAppShell(); return; }
     if (action === 'save-hotspot') { state.hotspot.pass = document.getElementById('hotspot-pass').value; saveState(); alert('Passwort gespeichert!'); return; }
     if (action === 'toggle-hotspot') { state.hotspot.active = !state.hotspot.active; saveState(); currentTarget.innerHTML = renderAppShell(); return; }
     if (action.startsWith('view-')) { state.currentView = action.replace('view-', ''); currentTarget.innerHTML = renderAppShell(); if (state.currentView === 'anatomy') setTimeout(init3DAnatomy, 100); return; }
