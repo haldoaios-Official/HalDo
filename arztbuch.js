@@ -1,9 +1,9 @@
-/* HalDo Arztbuch v2000.7 — ULTIMATE BIO-DIGITAL 3D & OS-FRIENDLY */
+/* HalDo Arztbuch v2000.8 — BUTTON FIX & BIO-DIGITAL 3D */
 (function () {
   'use strict';
 
-  const VERSION = '2000.7';
-  const STORAGE_KEY = 'haldo.arztbuch.data.v2000.7';
+  const VERSION = '2000.8';
+  const STORAGE_KEY = 'haldo.arztbuch.data.v2000.8';
 
   // ═══════════════════════════════════════════════════════
   // 1. MULTI-LANGUAGE ENGINE (24 Sprachen)
@@ -637,7 +637,12 @@
     if (!btn) return;
     const action = btn.dataset.action;
 
-    if (action === 'enter-app') { state.currentView = 'dashboard'; updateView(); return; }
+    // DER FIX: Wenn "enter-app" geklickt wird, komplett neu rendern!
+    if (action === 'enter-app') { 
+      state.currentView = 'dashboard'; 
+      currentTarget.innerHTML = renderMain(); 
+      return; 
+    }
 
     if (action === 'view-anatomy') { state.currentView = 'anatomy'; updateView(); return; }
     if (action === 'view-dashboard') { state.currentView = 'dashboard'; updateView(); return; }
@@ -746,12 +751,15 @@
   function updateView() {
     if (!currentTarget) return;
     
-    if (state.currentView === 'splash') {
+    // Wenn wir uns im Splash befinden, aber die View gewechselt hat, 
+    // finden wir #ab-main-content nicht. Also komplett neu rendern.
+    const main = currentTarget.querySelector('#ab-main-content');
+    if (!main || state.currentView === 'splash') {
        currentTarget.innerHTML = renderMain();
        return;
     }
 
-    const main = currentTarget.querySelector('#ab-main-content'), sidebar = currentTarget.querySelector('.ab-sidebar'), headerTitle = currentTarget.querySelector('.ab-header h1');
+    const sidebar = currentTarget.querySelector('.ab-sidebar'), headerTitle = currentTarget.querySelector('.ab-header h1');
     
     if (main) {
       if (state.currentView === 'dashboard') main.innerHTML = renderDashboard();
@@ -818,7 +826,6 @@
 
     const overlay = document.createElement('div');
     overlay.className = 'ab-overlay';
-    // Z-Index auf 9999 gesetzt, damit es nicht das gesamte OS blockiert.
     overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#0a0a0f;display:flex;flex-direction:column;';
     
     const closeBar = document.createElement('div');
@@ -846,5 +853,5 @@
   window.renderArztbuch = mount;
   window.openArztbuch = openOverlay;
 
-  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — BIO-DIGITAL ANATOMY & OS-FRIENDLY');
+  console.log('🩺 arztbuch.js v' + VERSION + ' geladen — BUTTON FIX & BIO-DIGITAL 3D');
 })();
