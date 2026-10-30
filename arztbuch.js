@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO ARZTBUCH v13.0 — TEIL 1 (GRUNDGERÜST & 3D ENGINE)
-   Komplettes UI, Splash, KI, Hardware, 3D-Loader
+   HALDO ARZTBUCH v13.0 — TEIL 2 (FULL BODY & MASSIVE DATABASES)
+   Komplettes UI, Splash, KI, Hardware, 3D-Loader (Full Body)
    ═══════════════════════════════════════════════════════════ */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -9,7 +9,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 (function () {
   'use strict';
 
-  const VERSION = '13.0-P1';
+  const VERSION = '13.0-P2';
   const STORAGE_KEY = 'haldo.arztbuch.v13';
 
   let state = {
@@ -26,7 +26,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
   let currentTarget = null;
   let audioCtx = null;
   let threeScene, threeCamera, threeRenderer, threeControls, threeAnimationId;
-  let loadedModel, organsGroup;
+  let skinGroup, musclesGroup, skeletonGroup, organsGroup;
+  let loadedModel;
 
   // Theme Farben
   const THEMES = {
@@ -35,6 +36,73 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     gold: { p: '#ffd700', s: '#ff9800', bg: '#0a0500', g: 'rgba(255,215,0,0.5)' },
     green: { p: '#4ade80', s: '#22c55e', bg: '#05100a', g: 'rgba(74,222,128,0.5)' }
   };
+
+  // ═══════════════════════════════════════════════════════
+  // MASSIVE A-Z DATENBANKEN (AUSBAU)
+  // ═══════════════════════════════════════════════════════
+  const DISEASES = [
+    { name: 'Abszess', symp: 'Schmerzhafte, geschwollene Stelle, Fieber', tr: 'Arzt aufsuchen, Eröffnung, Antibiotika.' },
+    { name: 'Akne', symp: 'Pickel, Mitesser, Entzündungen', tr: 'Reinigung, Salben, ggf. Antibiotika.' },
+    { name: 'Aids (HIV)', symp: 'Fieber, Müdigkeit, Lymphknoten', tr: 'Antiretrovirale Therapie (ART).' },
+    { name: 'Allergie', symp: 'Niesen, Juckreiz, Atemnot', tr: 'Allergene meiden, Antihistaminika.' },
+    { name: 'Alzheimer', symp: 'Gedächtnisverlust, Orientierungslosigkeit', tr: 'Medikamente, Betreuung.' },
+    { name: 'Anämie', symp: 'Müdigkeit, Blässe, Schwindel', tr: 'Eisenpräparate, Vitamin B12.' },
+    { name: 'Angina Pectoris', symp: 'Engegefühl in der Brust', tr: 'Nitrate, Betablocker.' },
+    { name: 'Angststörung', symp: 'Herzrasen, Panik, Zittern', tr: 'Psychotherapie, Antidepressiva.' },
+    { name: 'Arthritis', symp: 'Geschwollene, schmerzhafte Gelenke', tr: 'Entzündungshemmer, Physiotherapie.' },
+    { name: 'Arthrose', symp: 'Gelenkschmerzen, Steifheit', tr: 'Bewegung, Schmerzmittel.' },
+    { name: 'Asthma', symp: 'Atemnot, Husten, Engegefühl', tr: 'Sprays, Kortison.' },
+    { name: 'Bluthochdruck', symp: 'Kopfschmerzen, Schwindel', tr: 'Salzarm essen, Blutdrucksenker.' },
+    { name: 'Bronchitis', symp: 'Husten mit Auswurf, Fieber', tr: 'Viel trinken, ggf. Antibiotika.' },
+    { name: 'Cholesterin', symp: 'Oft symptomlos, Ablagerungen', tr: 'Ernährung, Statine.' },
+    { name: 'Depression', symp: 'Niedergeschlagenheit, Antriebslosigkeit', tr: 'Psychotherapie, Antidepressiva.' },
+    { name: 'Diabetes Typ 1', symp: 'Durst, Wasserlassen, Gewichtsverlust', tr: 'Insulin-Injektionen.' },
+    { name: 'Diabetes Typ 2', symp: 'Müdigkeit, Durst, Blutzucker', tr: 'Ernährung, Metformin.' },
+    { name: 'Gastritis', symp: 'Magenschmerzen, Übelkeit', tr: 'Schonkost, Protonenpumpenhemmer.' },
+    { name: 'Grippe', symp: 'Fieber, Gliederschmerzen, Husten', tr: 'Bettruhe, Fieber senken.' },
+    { name: 'Herzinfarkt', symp: 'Starker Brustschmerz, Atemnot', tr: 'NOTRUF 112! Stent, Medikamente.' },
+    { name: 'Migräne', symp: 'Pulsierender Schmerz, Übelkeit', tr: 'Ruhe, Triptane.' },
+    { name: 'Schlaganfall', symp: 'Plötzliche Lähmung, Sprachstörung', tr: 'NOTRUF 112! Thrombolyse.' },
+    // Deine Wunschthemen (Sexualität & Fortpflanzung)
+    { name: 'Schwangerschaft', symp: 'Ausbleiben der Periode, Übelkeit, Müdigkeit', tr: 'Arzt aufsuchen, Folsäure einnehmen, gesunde Ernährung.' },
+    { name: 'Geburt', symp: 'Wehen, Fruchtwasserabgang', tr: 'Sofort ins Krankenhaus / Hebamme rufen.' },
+    { name: 'Geschlechtskrankheiten (STI)', symp: 'Ausfluss, Schmerzen beim Wasserlassen, Hautveränderungen', tr: 'Dringend zum Arzt! Antibiotika oder antivirale Therapie.' },
+    { name: 'Geschlechtsumwandlung', symp: 'Psychische Belastung durch Geschlechtsdysphorie', tr: 'Psychotherapie, Endokrinologie, ggf. chirurgische Maßnahmen.' },
+    { name: 'Sexualität & Aufklärung', symp: 'Fragen zu Verhütung, Orgasmus, Spermien', tr: 'Aufklärung, sichere Verhütung (Kondome, Pille).' },
+    { name: 'Urologie (Mann)', symp: 'Prostata-Beschwerden, Erektionsstörungen', tr: 'Urologe aufsuchen, Vorsorge wahrnehmen.' },
+    { name: 'Gynäkologie (Frau)', symp: 'Regelschmerzen, Myome, Wechseljahre', tr: 'Gynäkologe aufsuchen, regelmäßige Vorsorge.' }
+  ];
+
+  const MEDS = [
+    { name: 'Amoxicillin', use: 'Bakterielle Infektionen', dose: '1-0-1 (immer zu Ende nehmen!).', info: 'Verschreibungspflichtig. Magen-Darm-Beschwerden möglich.' },
+    { name: 'Aspirin 100mg', use: 'Blutverdünnung', dose: '1x täglich.', info: 'Magenschutz beachten.' },
+    { name: 'Metoprolol', use: 'Bluthochdruck, Herzschwäche', dose: '1x täglich morgens.', info: 'Puls regelmäßig prüfen.' },
+    { name: 'Prednisolon', use: 'Entzündungen, Allergien', dose: 'Ausschleichend einnehmen.', info: 'Nicht abrupt absetzen.' },
+    { name: 'Ibuprofen', use: 'Schmerzen, Fieber', dose: 'Max. 3x täglich nach dem Essen.', info: 'Magenschutz empfohlen.' },
+    { name: 'Insulin', use: 'Diabetes', dose: 'Je nach Blutzucker.', info: 'Kühl lagern.' },
+    { name: 'L-Thyroxin', use: 'Schilddrüsenunterfunktion', dose: 'Morgens nüchtern.', info: '30 Min. vor dem Frühstück.' },
+    { name: 'Metformin', use: 'Diabetes Typ 2', dose: 'Zu den Mahlzeiten.', info: 'Nierenwerte prüfen.' },
+    { name: 'Paracetamol', use: 'Schmerzen, Fieber', dose: 'Max. 3x täglich.', info: 'Leberschäden bei Überdosis.' },
+    { name: 'Voltaren', use: 'Schmerzen, Entzündungen', dose: 'Magensicher einnehmen.', info: 'Nicht auf offene Wunden.' },
+    { name: 'Pille (Ovulationshemmer)', use: 'Verhütung', dose: 'Täglich zur gleichen Zeit.', info: 'Rezeptpflichtig. Nicht bei Raucherinnen über 35.' },
+    { name: 'Viagra (Sildenafil)', use: 'Erektionsstörungen', dose: '30-60 Min. vor dem Sex.', info: 'Rezeptpflichtig. Nicht mit Nitraten kombinieren!' },
+    { name: 'Antibiotika (allg.)', use: 'Bakterien abtöten', dose: 'Nach Verordnung.', info: 'Immer zu Ende nehmen, sonst Resistenzen!' }
+  ];
+
+  const LABS = [
+    { name: 'Blutzucker', ref: '70-100 mg/dl', desc: 'Nüchternwert. Hoch = Diabetes.' },
+    { name: 'Cholesterin', ref: '< 200 mg/dl', desc: 'Gesamtcholesterin. Hoch = Risiko.' },
+    { name: 'CRP', ref: '< 5 mg/l', desc: 'Entzündungswert.' },
+    { name: 'Hämoglobin', ref: '12-17 g/dl', desc: 'Sauerstofftransport. Niedrig = Anämie.' },
+    { name: 'HbA1c', ref: '4,0-5,6 %', desc: 'Langzeitblutzucker.' },
+    { name: 'Kalium', ref: '3,5-5,0 mmol/l', desc: 'Wichtig fürs Herz.' },
+    { name: 'Kreatinin', ref: '0,6-1,3 mg/dl', desc: 'Nierenwert.' },
+    { name: 'Leukozyten', ref: '4.000-10.000', desc: 'Weiße Blutkörperchen. Hoch = Infekt.' },
+    { name: 'TSH', ref: '0,4-4,0 mU/l', desc: 'Schilddrüse. Hoch = Unterfunktion.' },
+    { name: 'HCG (Schwangerschaftstest)', ref: '< 5 mIU/ml', desc: 'Hoch = Schwanger.' },
+    { name: 'Testosteron', ref: 'M: 3-10 ng/ml', desc: 'Männliches Geschlechtshormon.' },
+    { name: 'Östrogen', ref: 'W: 30-400 pg/ml', desc: 'Weibliches Geschlechtshormon.' }
+  ];
 
   // ═══════════════════════════════════════════════════════
   // LOGIK & SOUND
@@ -63,7 +131,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
   }
 
   // ═══════════════════════════════════════════════════════
-  // CSS (Komplettes Design)
+  // CSS (Das gigantische Design-System)
   // ═══════════════════════════════════════════════════════
   function css() {
     const t = THEMES[state.splashTheme];
@@ -99,6 +167,12 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
       .h-quick-btn { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; transition: 0.2s; }
       .h-quick-btn:hover { background: rgba(0,229,255,0.1); border-color: var(--p); transform: translateY(-3px); }
       .h-quick-btn .icon { font-size: 32px; } .h-quick-btn .label { font-size: 14px; font-weight: bold; color: #fff; }
+
+      /* Generic List Items & Inputs */
+      .h-list-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
+      .h-list-item:hover { border-color: var(--p); background: rgba(0,229,255,0.05); }
+      .h-input { width: 100%; padding: 15px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #fff; font-size: 15px; margin-bottom: 20px; outline: none; }
+      .h-input:focus { border-color: var(--p); }
 
       /* KI Chat */
       .h-chat-container { display: flex; flex-direction: column; height: calc(100vh - 200px); background: rgba(20, 25, 35, 0.4); border-radius: 20px; overflow: hidden; }
@@ -194,7 +268,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
   function renderAnatomy() {
     return `<div class="h-inner"><div class="h-card" style="padding: 15px;">
       <h2>🧍‍♂️ Anatomie 3D</h2>
-      <p style="color:#888;font-size:13px;margin-top:-8px;margin-bottom:15px;">Echte medizinische 3D-Anatomie. Lade ein echtes .glb Modell.</p>
+      <p style="color:#888;font-size:13px;margin-top:-8px;margin-bottom:15px;">Echte medizinische 3D-Anatomie. Ziehen zum Drehen, Organe anklicken.</p>
       <div class="h-anatomy-container" id="anatomy-3d-container">
          <div class="h-anatomy-controls">
            <button class="h-anatomy-btn" data-anatomy-mode="skin">Haut</button>
@@ -204,6 +278,12 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
          </div>
       </div>
     </div></div>`;
+  }
+
+  function renderGenericList(title, data, type) {
+    return `<div class="h-inner"><div class="h-card"><h2>${title}</h2><input type="text" class="h-input" placeholder="Suchen..." data-search="${type}"><div id="list-container">
+        ${data.map(item => `<div class="h-list-item" data-info="${item.symp || item.use || item.desc}" data-title="${item.name}"><div><b>${item.name}</b><br><span style="font-size:12px;color:#8a9bb5">${item.symp || item.use || item.ref}</span></div></div>`).join('')}
+      </div></div></div>`;
   }
 
   function renderHardware() {
@@ -254,10 +334,6 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     </div>`;
   }
 
-  function renderPlaceholder(title) {
-    return `<div class="h-inner"><div class="h-card"><h2>${title}</h2><p style="color:#888; margin-top:20px;">Die riesige Datenbank für dieses Modul wird in Teil 2 geladen. (Um das Chat-Limit nicht zu sprengen).</p></div></div>`;
-  }
-
   function renderAppShell() {
     if (state.currentView === 'splash') return css() + renderSplash();
     let content = '';
@@ -265,12 +341,12 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
       case 'dashboard': content = renderDashboard(); break;
       case 'ki': content = renderKITools(); break;
       case 'anatomy': content = renderAnatomy(); break;
+      case 'diseases': content = renderGenericList('🦠 Krankheiten A-Z', DISEASES, 'disease'); break;
+      case 'meds': content = renderGenericList('💊 Medikamente A-Z', MEDS, 'med'); break;
+      case 'labs': content = renderGenericList('🧪 Laborwerte A-Z', LABS, 'lab'); break;
       case 'devices': content = renderDevices(); break;
       case 'hardware': content = renderHardware(); break;
       case 'emergency': content = renderEmergency(); break;
-      case 'diseases': content = renderPlaceholder('🦠 Krankheiten A-Z (Datenbank folgt in Teil 2)'); break;
-      case 'meds': content = renderPlaceholder('💊 Medikamente A-Z (Datenbank folgt in Teil 2)'); break;
-      case 'labs': content = renderPlaceholder('🧪 Laborwerte (Datenbank folgt in Teil 2)'); break;
       default: content = `<div class="h-inner"><div class="h-card">Modul in Arbeit...</div></div>`;
     }
     return css() + `
@@ -293,7 +369,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
   }
 
   // ═══════════════════════════════════════════════════════
-  // 3D ENGINE (Echter GLTF-Loader)
+  // 3D ENGINE (Full Body & Organ Loading)
   // ═══════════════════════════════════════════════════════
   function init3DAnatomy() {
     const container = document.getElementById('anatomy-3d-container');
@@ -313,29 +389,50 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     threeScene.add(new THREE.AmbientLight(0xffffff, 1));
     const dirLight = new THREE.DirectionalLight(0xffffff, 1.5); dirLight.position.set(2, 3, 2); threeScene.add(dirLight);
 
-    // Lade ein echtes, hochauflösendes Modell von einem öffentlichen Server
+    // Gruppen für die Schichten
+    skinGroup = new THREE.Group();
+    musclesGroup = new THREE.Group();
+    skeletonGroup = new THREE.Group();
+    organsGroup = new THREE.Group();
+    threeScene.add(skinGroup, musclesGroup, skeletonGroup, organsGroup);
+
     const loader = new GLTFLoader();
-    const modelUrl = 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/Michelle.glb';
+    // VOLLSTÄNDIGES KÖRPERMODELL MIT ORGANEN
+    const modelUrl = 'https://raw.githubusercontent.com/hpfrei/body-anatomy-3d-viewer/main/public/body.glb';
 
     loader.load(modelUrl, function(gltf) {
       loadedModel = gltf.scene;
-      // Skalierung und Zentrierung anpassen
-      loadedModel.scale.set(1.5, 1.5, 1.5);
-      loadedModel.position.y = -1;
       
-      // Materialien anpassen (halbtransparent, holografisch)
+      // Modell-Anpassung für die Kamera
+      loadedModel.scale.set(1.5, 1.5, 1.5);
+      loadedModel.position.y = -1.5;
+      
+      // Sortiere Meshes in Gruppen (Haut, Organe, Knochen) basierend auf Namen im GLB
       loadedModel.traverse((child) => {
         if (child.isMesh) {
+          const name = child.name.toLowerCase();
+          
+          // Materialien für den Hologramm-Look
           child.material = new THREE.MeshPhysicalMaterial({
             color: 0x00e5ff, transparent: true, opacity: 0.3, transmission: 0.5, roughness: 0.2
           });
+
+          if (name.includes('heart') || name.includes('lung') || name.includes('liver') || name.includes('brain') || name.includes('kidney') || name.includes('stomach')) {
+            child.material.color.setHex(0xff5555); // Organe rot
+            organsGroup.add(child);
+          } else if (name.includes('bone') || name.includes('skeleton')) {
+            child.material.color.setHex(0xffffff); // Knochen weiß
+            skeletonGroup.add(child);
+          } else {
+            skinGroup.add(child);
+          }
         }
       });
       
-      threeScene.add(loadedModel);
+      updateAnatomyVisibility(state.anatomyMode);
     }, undefined, function(error) {
       console.error("Fehler beim Laden des Modells", error);
-      // Fallback, falls das Netzwerk blockiert
+      // Fallback
       const geo = new THREE.SphereGeometry(1, 32, 32);
       const mat = new THREE.MeshStandardMaterial({ color: 0x00e5ff, wireframe: true });
       loadedModel = new THREE.Mesh(geo, mat);
@@ -348,6 +445,33 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
       threeRenderer.render(threeScene, threeCamera);
     }
     animate();
+    
+    // Klick-Interaktion für Organe (Raycaster)
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    threeRenderer.domElement.addEventListener('click', (event) => {
+      const rect = threeRenderer.domElement.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, threeCamera);
+      const intersects = raycaster.intersectObjects(organsGroup.children, true);
+      if (intersects.length > 0) {
+        const hit = intersects[0].object;
+        // Info basierend auf Mesh-Namen ausgeben
+        alert(`Organ angewählt: ${hit.name}\n\nBitte suchen Sie in der Datenbank nach "${hit.name}" für Details.`);
+        speakText(`Sie haben ${hit.name} angewählt.`);
+      }
+    });
+  }
+
+  function updateAnatomyVisibility(mode) {
+    if (!skinGroup || !skeletonGroup || !musclesGroup || !organsGroup) return;
+    skinGroup.visible = (mode === 'skin' || mode === 'organs' || mode === 'muscles');
+    musclesGroup.visible = (mode === 'muscles' || mode === 'organs' || mode === 'skeleton');
+    skeletonGroup.visible = (mode === 'skeleton' || mode === 'organs');
+    organsGroup.visible = (mode === 'organs');
+    if (skinGroup.visible && mode !== 'skin') skinGroup.children.forEach(c => { if(c.material) c.material.opacity = 0.1; });
+    else if (skinGroup.visible) skinGroup.children.forEach(c => { if(c.material) c.material.opacity = 0.8; });
   }
 
   // ═══════════════════════════════════════════════════════
@@ -355,11 +479,15 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
   // ═══════════════════════════════════════════════════════
   function handleClick(e) {
     const themeBtn = e.target.closest('[data-theme]');
+    const anatBtn = e.target.closest('[data-anatomy-mode]');
+    const infoItem = e.target.closest('[data-title]');
     const btn = e.target.closest('[data-action]');
 
     if (themeBtn) { state.splashTheme = themeBtn.dataset.theme; saveState(); currentTarget.innerHTML = renderAppShell(); return; }
+    if (anatBtn) { state.anatomyMode = anatBtn.dataset.anatomyMode; document.querySelectorAll('.h-anatomy-btn').forEach(b => b.classList.remove('active')); anatBtn.classList.add('active'); updateAnatomyVisibility(state.anatomyMode); return; }
+    if (infoItem) { alert(`${infoItem.dataset.title}\n\n${infoItem.dataset.info}`); speakText(infoItem.dataset.title + '. ' + infoItem.dataset.info); return; }
+    
     if (!btn) return;
-
     const action = btn.dataset.action;
     if (action === 'toggle-sound') { state.soundEnabled = !state.soundEnabled; saveState(); currentTarget.innerHTML = renderAppShell(); return; }
     if (action === 'enter-app') { state.currentView = 'dashboard'; currentTarget.innerHTML = renderAppShell(); return; }
@@ -373,6 +501,21 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
       return;
     }
   }
+
+  // Such-Logik für die Datenbanken
+  document.addEventListener('input', (e) => {
+    if (e.target.dataset.search) {
+      const query = e.target.value.toLowerCase();
+      const type = e.target.dataset.search;
+      const container = document.getElementById('list-container');
+      let data = [];
+      if (type === 'disease') data = DISEASES;
+      if (type === 'med') data = MEDS;
+      if (type === 'lab') data = LABS;
+      const filtered = data.filter(item => item.name.toLowerCase().includes(query) || (item.symp && item.symp.toLowerCase().includes(query)) || (item.use && item.use.toLowerCase().includes(query)));
+      container.innerHTML = filtered.map(item => `<div class="h-list-item" data-info="${item.symp || item.use || item.desc}" data-title="${item.name}"><div><b>${item.name}</b><br><span style="font-size:12px;color:#8a9bb5">${item.symp || item.use || item.ref}</span></div></div>`).join('');
+    }
+  });
 
   document.addEventListener('send-chat', () => {
     const input = document.getElementById('chat-in'); if (!input || !input.value.trim()) return;
@@ -400,7 +543,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
   function openOverlay() {
     const overlay = document.createElement('div'); overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#0a0a0f;display:flex;flex-direction:column;';
     const closeBar = document.createElement('div'); closeBar.style.cssText = 'padding:10px 16px;background:#111;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;';
-    closeBar.innerHTML = `<b style="color:#e8e8ec;font-family:Inter;">🩺 HalDo Arztbuch P1</b><button id="h-close-btn" style="background:transparent;border:1px solid #444;color:#fff;padding:5px 10px;border-radius:6px;cursor:pointer;">✕ Schließen</button>`;
+    closeBar.innerHTML = `<b style="color:#e8e8ec;font-family:Inter;">🩺 HalDo Arztbuch P2</b><button id="h-close-btn" style="background:transparent;border:1px solid #444;color:#fff;padding:5px 10px;border-radius:6px;cursor:pointer;">✕ Schließen</button>`;
     overlay.appendChild(closeBar); const mountDiv = document.createElement('div'); mountDiv.style.cssText = 'flex:1;position:relative;overflow:hidden;'; overlay.appendChild(mountDiv); document.body.appendChild(overlay);
     document.getElementById('h-close-btn').onclick = () => { overlay.remove(); currentTarget = null; }; mount(mountDiv);
   }
