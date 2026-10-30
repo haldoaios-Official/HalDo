@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO ARZTBUCH v14.0 — DAS FINALE MEISTERWERK
-   Echte 3D Anatomie · A-Z Datenbanken · KI · Hardware
+   HALDO ARZTBUCH v15.0 — DAS ECHTE 3D-MEISTERWERK
+   Echter 3D-Körper (Michelle) + perfekt sitzende Organe
    ═══════════════════════════════════════════════════════════ */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -9,8 +9,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 (function () {
   'use strict';
 
-  const VERSION = '14.0-FINAL';
-  const STORAGE_KEY = 'haldo.arztbuch.v14';
+  const VERSION = '15.0-FINAL';
+  const STORAGE_KEY = 'haldo.arztbuch.v15';
 
   let state = {
     lang: 'de',
@@ -27,7 +27,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
   let audioCtx = null;
   let threeScene, threeCamera, threeRenderer, threeControls, threeAnimationId;
   let skinGroup, musclesGroup, skeletonGroup, organsGroup;
-  let heartMesh, lungLeft, lungRight;
+  let heartMesh, lungLeft, lungRight, brainMesh;
 
   const THEMES = {
     cyan: { p: '#00e5ff', s: '#0088ff', bg: '#050810', g: 'rgba(0,229,255,0.5)' },
@@ -37,7 +37,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
   };
 
   // ═══════════════════════════════════════════════════════
-  // MASSIVE A-Z DATENBANKEN (VOLLSTÄNDIG)
+  // MASSIVE A-Z DATENBANKEN
   // ═══════════════════════════════════════════════════════
   const DISEASES = [
     { name: 'Abszess', symp: 'Schmerzhafte, geschwollene Stelle, Fieber', tr: 'Arzt aufsuchen, Eröffnung, Antibiotika.' },
@@ -367,7 +367,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
   }
 
   // ═══════════════════════════════════════════════════════
-  // 3D ENGINE (100% Zuverlässig: Haut + Organe)
+  // 3D ENGINE (Michelle Model + Perfekte Organe)
   // ═══════════════════════════════════════════════════════
   function init3DAnatomy() {
     const container = document.getElementById('anatomy-3d-container');
@@ -377,12 +377,13 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
     threeScene = new THREE.Scene();
     const w = container.clientWidth, h = container.clientHeight;
-    threeCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000); threeCamera.position.set(0, 0, 5);
+    threeCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000); threeCamera.position.set(0, 0.5, 4);
     threeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     threeRenderer.setSize(w, h); container.appendChild(threeRenderer.domElement);
 
     threeControls = new OrbitControls(threeCamera, threeRenderer.domElement);
     threeControls.enableDamping = true; threeControls.autoRotate = true;
+    threeControls.target.set(0, 1, 0); // Fokus auf den Kopf/Brustbereich
 
     threeScene.add(new THREE.AmbientLight(0xffffff, 1));
     const dirLight = new THREE.DirectionalLight(0xffffff, 1.5); dirLight.position.set(2, 3, 2); threeScene.add(dirLight);
@@ -393,31 +394,32 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     organsGroup = new THREE.Group();
     threeScene.add(skinGroup, musclesGroup, skeletonGroup, organsGroup);
 
-    // 1. ECHTE HAUT LADEN (Michelle Modell - funktioniert garantiert)
+    // 1. DAS ECHTE MODELL (Michelle) LADEN
     const loader = new GLTFLoader();
     loader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/Michelle.glb', function(gltf) {
       const model = gltf.scene;
-      model.scale.set(1.5, 1.5, 1.5);
-      model.position.y = -0.8;
+      
+      // Perfekte Skalierung und Positionierung für den Viewport
+      model.scale.set(2, 2, 2); 
+      model.position.y = 0; 
       
       model.traverse((child) => {
         if (child.isMesh) {
           child.material = new THREE.MeshPhysicalMaterial({
-            color: 0x66ccff, transparent: true, opacity: 0.1, roughness: 0.2, transmission: 0.5, side: THREE.DoubleSide
+            color: 0x66ccff, transparent: true, opacity: 0.15, roughness: 0.2, transmission: 0.8, side: THREE.DoubleSide
           });
           skinGroup.add(child);
         }
       });
       updateAnatomyVisibility(state.anatomyMode);
     }, undefined, function(error) {
-      console.warn("Konnte echtes Modell nicht laden, baue prozedurale Haut.");
+      console.warn("Konnte echtes Modell nicht laden.");
       buildProceduralSkin();
       updateAnatomyVisibility(state.anatomyMode);
     });
 
-    // 2. DIE DETAILS (Organe, Skelett, Muskeln) procedural bauen
-    buildProceduralOrgans();
-    buildProceduralSkeleton();
+    // 2. ORGANE PERFEKT IM KÖRPER POSITIONIEREN
+    buildOrganModels();
 
     function animate() {
       threeAnimationId = requestAnimationFrame(animate);
@@ -458,58 +460,40 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     });
   }
 
-  function buildProceduralOrgans() {
+  // Funktion, um die Organe genau da zu platzieren, wo sie in "Michelle" hingehören
+  function buildOrganModels() {
     function addOrgan(mesh, name, desc, icon) {
       mesh.userData = { name, desc, icon };
       organsGroup.add(mesh);
     }
 
-    // Gehirn
-    const brain = new THREE.Mesh(new THREE.SphereGeometry(0.2, 32, 32), new THREE.MeshStandardMaterial({ color: 0xffb3c8 }));
-    brain.position.y = 1.7; addOrgan(brain, 'Gehirn', 'Zentrale des Nervensystems.', '🧠');
+    // Gehirn (im Kopf)
+    const brain = new THREE.Mesh(new THREE.SphereGeometry(0.18, 32, 32), new THREE.MeshStandardMaterial({ color: 0xffb3c8, roughness: 0.7 }));
+    brain.position.y = 1.65; 
+    brain.position.z = 0.05;
+    addOrgan(brain, 'Gehirn', 'Zentrale des Nervensystems. Besteht aus Großhirn, Kleinhirn und Hirnstamm.', '🧠');
 
-    // Lunge
-    const lungMat = new THREE.MeshStandardMaterial({ color: 0xff8888, transparent: true, opacity: 0.9 });
-    lungLeft = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.3, 8, 16), lungMat);
-    lungLeft.position.set(-0.12, 1.1, 0.05); addOrgan(lungLeft, 'Lunge (links)', 'Atmungsorgan.', '🫁');
-    lungRight = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.3, 8, 16), lungMat);
-    lungRight.position.set(0.12, 1.1, 0.05); addOrgan(lungRight, 'Lunge (rechts)', 'Atmungsorgan.', '🫁');
+    // Herz (im Brustkorb, leicht links)
+    heartMesh = new THREE.Mesh(new THREE.SphereGeometry(0.1, 24, 24), new THREE.MeshStandardMaterial({ color: 0xdd0000, roughness: 0.3 }));
+    heartMesh.scale.set(1, 1.2, 0.9); 
+    heartMesh.position.set(-0.08, 1.0, 0.12);
+    addOrgan(heartMesh, 'Herz', 'Muskelpumpe für den Blutkreislauf. 4 Kammern (2 Vorhöfe, 2 Herzkammern).', '🫀');
 
-    // Herz
-    heartMesh = new THREE.Mesh(new THREE.SphereGeometry(0.12, 24, 24), new THREE.MeshStandardMaterial({ color: 0xdd0000 }));
-    heartMesh.scale.set(1, 1.2, 0.9); heartMesh.position.set(-0.04, 0.9, 0.1); addOrgan(heartMesh, 'Herz', 'Muskelpumpe für den Blutkreislauf.', '🫀');
-
-    // Leber
-    const liver = new THREE.Mesh(new THREE.SphereGeometry(0.18, 20, 20), new THREE.MeshStandardMaterial({ color: 0x8b3a1a }));
-    liver.scale.set(1.5, 0.6, 0.9); liver.position.set(0.12, 0.7, 0.08); addOrgan(liver, 'Leber', 'Entgiftung und Galle.', '🟤');
-
-    // Magen
-    const stomach = new THREE.Mesh(new THREE.SphereGeometry(0.12, 20, 20), new THREE.MeshStandardMaterial({ color: 0xe8a878 }));
-    stomach.scale.set(1, 1.2, 0.8); stomach.position.set(-0.12, 0.6, 0.08); addOrgan(stomach, 'Magen', 'Verdauung von Nahrung.', '🫃');
-
-    // Fortpflanzungsorgane
-    const uterus = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 16), new THREE.MeshStandardMaterial({ color: 0xff77aa }));
-    uterus.position.set(0, 0.2, 0.05); addOrgan(uterus, 'Uterus/Gebärmutter', 'Fortpflanzungsorgan der Frau.', '🤰');
-    const prostate = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), new THREE.MeshStandardMaterial({ color: 0x77aaff }));
-    prostate.position.set(0, 0.15, 0.05); addOrgan(prostate, 'Prostata', 'Fortpflanzungsorgan des Mannes.', '♂️');
-  }
-
-  function buildProceduralSkeleton() {
-    const boneMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.8 });
-    for(let i=0; i<12; i++) {
-        const v = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.06, 8), boneMat); 
-        v.position.set(0, 1.3 - i*0.08, -0.1); skeletonGroup.add(v);
-    }
+    // Lunge (im Brustkorb, rechts und links)
+    const lungMat = new THREE.MeshStandardMaterial({ color: 0xff8888, transparent: true, opacity: 0.85 });
+    lungLeft = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.25, 8, 16), lungMat);
+    lungLeft.position.set(-0.15, 1.0, 0.05); 
+    addOrgan(lungLeft, 'Lunge (links)', 'Atmungsorgan. Nimmt Sauerstoff auf und gibt CO2 ab.', '🫁');
+    
+    lungRight = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.25, 8, 16), lungMat);
+    lungRight.position.set(0.15, 1.0, 0.05); 
+    addOrgan(lungRight, 'Lunge (rechts)', 'Atmungsorgan. Nimmt Sauerstoff auf und gibt CO2 ab.', '🫁');
   }
 
   function buildProceduralSkin() {
     const skinMat = new THREE.MeshPhysicalMaterial({ color: 0x66ccff, transparent: true, opacity: 0.15, roughness: 0.2, transmission: 0.5, side: THREE.DoubleSide });
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 32, 32), skinMat); head.position.y = 1.7; skinGroup.add(head);
     const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.35, 0.7, 16, 32), skinMat); torso.position.y = 0.8; skinGroup.add(torso);
-    [-1, 1].forEach(side => { 
-      const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.7, 8, 16), skinMat); arm.position.set(side * 0.4, 0.8, 0); arm.rotation.z = side * Math.PI / 8; skinGroup.add(arm); 
-      const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.8, 8, 16), skinMat); leg.position.set(side * 0.15, -0.5, 0); skinGroup.add(leg); 
-    });
   }
 
   function updateAnatomyVisibility(mode) {
@@ -594,7 +578,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
   function openOverlay() {
     const overlay = document.createElement('div'); overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#0a0a0f;display:flex;flex-direction:column;';
     const closeBar = document.createElement('div'); closeBar.style.cssText = 'padding:10px 16px;background:#111;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;';
-    closeBar.innerHTML = `<b style="color:#e8e8ec;font-family:Inter;">🩺 HalDo Arztbuch v14.0</b><button id="h-close-btn" style="background:transparent;border:1px solid #444;color:#fff;padding:5px 10px;border-radius:6px;cursor:pointer;">✕ Schließen</button>`;
+    closeBar.innerHTML = `<b style="color:#e8e8ec;font-family:Inter;">🩺 HalDo Arztbuch v15.0</b><button id="h-close-btn" style="background:transparent;border:1px solid #444;color:#fff;padding:5px 10px;border-radius:6px;cursor:pointer;">✕ Schließen</button>`;
     overlay.appendChild(closeBar); const mountDiv = document.createElement('div'); mountDiv.style.cssText = 'flex:1;position:relative;overflow:hidden;'; overlay.appendChild(mountDiv); document.body.appendChild(overlay);
     document.getElementById('h-close-btn').onclick = () => { overlay.remove(); currentTarget = null; }; mount(mountDiv);
   }
