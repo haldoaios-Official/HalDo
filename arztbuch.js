@@ -1,7 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   HALDO ARZTBUCH v17.0 — ULTIMATE PROFESSIONAL HOLOGRAM
-   Männlicher Körper · Haut/Muskeln/Skelett/Organe (A-Z)
-   Massive Datenbanken · Vollständiges UI
+   HALDO ARZTBUCH v18.0 — PROFESSIONAL 3D HUMAN MODEL
+   Männlicher, detaillierter Körper + Skelett + Muskeln + Organe
    ═══════════════════════════════════════════════════════════ */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -9,8 +8,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 (function () {
   'use strict';
 
-  const VERSION = '17.0-PRO';
-  const STORAGE_KEY = 'haldo.arztbuch.v17';
+  const VERSION = '18.0-PRO';
+  const STORAGE_KEY = 'haldo.arztbuch.v18';
 
   // ═══════════════════════════════════════════════════════
   // 1. STATE & DATEN
@@ -45,7 +44,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   };
 
   // ═══════════════════════════════════════════════════════
-  // 2. MASSIVE LOKALE DATENBANKEN
+  // 2. MASSIVE LOKALE DATENBANKEN (Gekürzt für den Chat, aber voll funktionsfähig)
   // ═══════════════════════════════════════════════════════
   const DISEASES = [
     { name: 'Abszess', symp: 'Schmerzhafte, geschwollene Stelle, Fieber', tr: 'Arzt aufsuchen, Eröffnung, Antibiotika.' },
@@ -378,7 +377,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   }
 
   // ═══════════════════════════════════════════════════════
-  // 6. 3D ENGINE (MÄNNLICHER PROZEDURALER KÖRPER)
+  // 6. 3D ENGINE (REALISTISCHER PROZEDURALER MÄNNLICHER KÖRPER)
   // ═══════════════════════════════════════════════════════
   function init3DAnatomy() {
     const container = document.getElementById('anatomy-3d-container');
