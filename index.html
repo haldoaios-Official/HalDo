@@ -461,7 +461,7 @@ function showWelcome(appName) {
   setTimeout(() => {
     welcomeOverlay.classList.remove('show');
     document.getElementById('app').classList.add('ready');
-    // Automatisch zur Anatomie wechseln nach dem Gruß (z.B. nach 8 Sekunden)
+    // Automatisch zur Anatomie wechseln nach dem Gruß
     switchView('anatomie', 'Anatomie 3D');
   }, state.greetDuration * 1000);
 }
@@ -846,39 +846,72 @@ function initAnatomy() {
   const rimLight = new THREE.DirectionalLight(0x00d4ff, 2.0); rimLight.position.set(-3, 2, -2); scene.add(rimLight);
   const bottomLight = new THREE.PointLight(0xff5ea8, 1.5, 5); bottomLight.position.set(0, -1, 2); scene.add(bottomLight);
 
-  // 1. Mensch (Prozedural Pro)
-  humanModel = buildProceduralHuman();
-  humanModel.visible = false;
-  scene.add(humanModel);
+  const loader = new GLTFLoader();
 
-  // 2. Skelett (Teil des Menschen, aber isoliert)
+  // 1. Mensch (Echtes GLTF-Modell mit SSS / Hologramm-Look)
+  const humanUrl = 'https://pub-2534e921bf9c4314addcd4d8a6e98b7b.r2.dev/avatars/mixamo/glb/xbot.glb';
+  
+  loader.load(humanUrl, (gltf) => {
+    humanModel = gltf.scene;
+    
+    const box = new THREE.Box3().setFromObject(humanModel);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scaleFactor = 2.0 / maxDim;
+    humanModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
+    humanModel.position.x = -center.x * scaleFactor;
+    humanModel.position.z = -center.z * scaleFactor;
+    humanModel.position.y = -box.min.y * scaleFactor;
+
+    // High-End SSS Material für den Menschen
+    humanModel.traverse((child) => {
+      if (child.isMesh) {
+        child.material = new THREE.MeshPhysicalMaterial({
+          color: 0xffe4cc, // Hautfarbe
+          roughness: 0.3,
+          metalness: 0.1,
+          clearcoat: 0.2,
+          transmission: 0.2, // SSS-Effekt
+          thickness: 1.0,
+          ior: 1.4
+        });
+      }
+    });
+
+    humanModel.visible = false; 
+    scene.add(humanModel);
+    
+    document.getElementById('loaderContainer').style.display = 'none';
+    toggleAnatomy('human'); // Start mit Mensch
+
+  }, undefined, (error) => {
+    console.error('Human Modell Fehler:', error);
+    document.getElementById('loaderContainer').innerHTML = '<p style="color:red;">Human Modell Fehler.</p>';
+  });
+
+  // 2. Skelett (Prozedural, da kein gutes leichtes Skelett-Modell vorhanden)
   skeletonModel = buildProceduralSkeleton();
   skeletonModel.visible = false;
   scene.add(skeletonModel);
 
   // 3. Cyborg (Lebendiges GLTF Model mit Animationen)
-  const loader = new GLTFLoader();
-  const modelUrl = 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/models/gltf/RobotExpressive/RobotExpressive.glb';
+  const cyborgUrl = 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/models/gltf/RobotExpressive/RobotExpressive.glb';
   
-  loader.load(modelUrl, (gltf) => {
+  loader.load(cyborgUrl, (gltf) => {
     cyborgModel = gltf.scene;
     
-    // --- KORREKTUR: AUTOMATISCHE SKALIERUNG UND ZENTRIERUNG ---
     const box = new THREE.Box3().setFromObject(cyborgModel);
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
-
-    // Berechne den Skalierungsfaktor, um das Modell auf eine Höhe von ~2 Einheiten zu bringen
     const maxDim = Math.max(size.x, size.y, size.z);
     const scaleFactor = 2.0 / maxDim;
     cyborgModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
-
-    // Zentriere das Modell horizontal und setze es auf den Boden (y=0)
     cyborgModel.position.x = -center.x * scaleFactor;
     cyborgModel.position.z = -center.z * scaleFactor;
     cyborgModel.position.y = -box.min.y * scaleFactor;
 
-    // Cyborg-Look (Metallic Cyan/Magenta)
+    // Cyborg-Look
     cyborgModel.traverse((child) => {
       if (child.isMesh) {
         child.material = new THREE.MeshStandardMaterial({
@@ -894,24 +927,14 @@ function initAnatomy() {
     cyborgModel.visible = false;
     scene.add(cyborgModel);
 
-    // Animationen laden
     mixer = new THREE.AnimationMixer(cyborgModel);
     gltf.animations.forEach((clip) => {
       actions[clip.name] = mixer.clipAction(clip);
     });
-    
-    // Standard-Animation
     if (actions['Idle']) actions['Idle'].play();
 
-    document.getElementById('loaderContainer').style.display = 'none';
-    toggleAnatomy('human'); // Start mit Mensch
-
-  }, (xhr) => {
-    // Progress
-  }, (error) => {
+  }, undefined, (error) => {
     console.error('Cyborg Modell Fehler:', error);
-    document.getElementById('loaderContainer').innerHTML = '<p style="color:red;">Cyborg Modell Fehler.</p>';
-    toggleAnatomy('human');
   });
 
   clock = new THREE.Clock();
@@ -922,14 +945,12 @@ function initAnatomy() {
     controls.update();
     
     const delta = clock.getDelta();
-    
-    // Mixer updaten (für Cyborg Animationen)
     if (mixer) mixer.update(delta);
 
-    // Atem-Animation für Mensch
+    // Atem-Animation für Mensch (leichtes Schweben)
     if (humanModel && humanModel.visible) {
       const time = clock.getElapsedTime();
-      humanModel.position.y = Math.sin(time * 2) * 0.02;
+      humanModel.position.y = -0.0 + Math.sin(time * 2) * 0.015;
     }
 
     renderer.render(scene, camera);
@@ -947,12 +968,10 @@ function initAnatomy() {
 window.toggleAnatomy = function(mode) {
   state.anatomyMode = mode;
   
-  // Alle ausblenden
   if (humanModel) humanModel.visible = false;
   if (cyborgModel) cyborgModel.visible = false;
   if (skeletonModel) skeletonModel.visible = false;
   
-  // Buttons updaten
   document.getElementById('btnHuman').classList.remove('active');
   document.getElementById('btnCyborg').classList.remove('active');
   document.getElementById('btnSkeleton').classList.remove('active');
@@ -971,21 +990,16 @@ window.toggleAnatomy = function(mode) {
   }
 };
 
-// Cyborg Animationen abspielen
+// Cyborg Animationen
 window.playCyborgAnim = function(animName) {
   if (!actions || !mixer) return;
   
-  // Stoppe alle laufenden Animationen
-  for (const key in actions) {
-    actions[key].fadeOut(0.2);
-  }
+  for (const key in actions) actions[key].fadeOut(0.2);
   
-  // Spiele die neue Animation
   if (actions[animName]) {
     const action = actions[animName];
     action.reset().fadeIn(0.2).play();
     
-    // Wenn es keine Idle-Animation ist, kehre nach 3 Sekunden zurück
     if (animName !== 'Idle') {
       setTimeout(() => {
         if (state.anatomyMode === 'cyborg') {
@@ -996,56 +1010,7 @@ window.playCyborgAnim = function(animName) {
   }
 };
 
-// Prozeduraler Mensch (High-End)
-function buildProceduralHuman() {
-  const group = new THREE.Group();
-  const skinMat = new THREE.MeshPhysicalMaterial({ 
-    color: 0xffdbba, roughness: 0.35, metalness: 0.0, clearcoat: 0.3, transmission: 0.2, thickness: 1.0, ior: 1.4 
-  });
-  
-  // Kopf
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 32, 32), skinMat);
-  head.position.set(0, 1.7, 0);
-  head.scale.set(1, 1.15, 0.95);
-  group.add(head);
-  
-  // Nacken
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.12, 32), skinMat);
-  neck.position.set(0, 1.56, 0);
-  group.add(neck);
-
-  // Torso (Lathe)
-  const torsoPoints = [new THREE.Vector2(0.12, 0.8), new THREE.Vector2(0.15, 1.0), new THREE.Vector2(0.22, 1.25), new THREE.Vector2(0.24, 1.42)];
-  const torso = new THREE.Mesh(new THREE.LatheGeometry(torsoPoints, 32), skinMat);
-  torso.scale.set(1.2, 1, 0.65);
-  group.add(torso);
-
-  // Arme
-  for (const s of [1, -1]) {
-    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.5, 16, 32), skinMat);
-    arm.position.set(s*0.28, 1.1, 0);
-    arm.rotation.z = s * 0.1;
-    group.add(arm);
-    
-    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.1, 0.03), skinMat);
-    hand.position.set(s*0.34, 0.55, 0.02);
-    group.add(hand);
-  }
-
-  // Beine
-  for (const s of [1, -1]) {
-    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.6, 16, 32), skinMat);
-    leg.position.set(s*0.11, 0.4, 0);
-    group.add(leg);
-    
-    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.22), skinMat);
-    foot.position.set(s*0.11, 0.0, 0.05);
-    group.add(foot);
-  }
-  return group;
-}
-
-// Prozedurales Skelett
+// Prozedurales Skelett (Fallback)
 function buildProceduralSkeleton() {
   const group = new THREE.Group();
   const boneMat = new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.45 });
