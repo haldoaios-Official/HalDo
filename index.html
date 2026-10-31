@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>HalDo Arztbuch Pro Max</title>
+<link rel="icon" href="data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
 <style>
 /* ============================================================
    BASIS & THEME
@@ -15,6 +16,7 @@
   --glass-2:rgba(255,255,255,.08);
   --border:rgba(255,255,255,.09);
   --accent:#00d4ff; --accent-2:#00ffa3;
+  --gold:#ffd700; --gold-2:#ffb700;
   --danger:#ff4d6d; --warn:#ffb703;
   --text:#e8f1ff; --muted:#7e91ab;
   --r:16px;
@@ -30,11 +32,45 @@ body{
 #app.ready{opacity:1;}
 
 /* ============================================================
-   SIDEBAR & NAVIGATION
+   HINTERGRUND
+============================================================ */
+#bg-canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:auto;cursor:grab;}
+#bg-canvas:active{cursor:grabbing;}
+
+/* ============================================================
+   WILLKOMMENS-OVERLAY
+============================================================ */
+#welcome-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: rgba(2, 2, 5, 0.75); backdrop-filter: blur(10px);
+  opacity: 0; pointer-events: none; transition: opacity 1s ease;
+}
+#welcome-overlay.show { opacity: 1; pointer-events: auto; }
+.welcome-content { text-align: center; max-width: 800px; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+.welcome-logo { width: 120px; height: 120px; object-fit: contain; margin-bottom: 20px; filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.6)); }
+.welcome-title {
+  font-size: 3rem; font-weight: 800; letter-spacing: 2px;
+  background: linear-gradient(120deg, var(--gold), var(--gold-2));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  margin-bottom: 20px; text-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+}
+.welcome-sub {
+  font-size: 1.2rem; color: var(--accent); letter-spacing: 4px; text-transform: uppercase;
+  margin-bottom: 40px; height: 30px;
+}
+.welcome-footer {
+  position: absolute; bottom: 50px; left: 0; right: 0;
+  text-align: center; font-size: 1rem; color: var(--muted); letter-spacing: 1px;
+}
+
+/* ============================================================
+   SIDEBAR
 ============================================================ */
 #sidebar{background:rgba(10,16,26,.72);backdrop-filter:blur(22px);border-right:1px solid var(--border);padding:22px 14px;display:flex;flex-direction:column;gap:4px;overflow-y:auto;z-index:50;transition:transform .32s cubic-bezier(.4,0,.2,1);}
 .brand{display:flex;align-items:center;gap:10px;padding:4px 10px 20px;}
-.brand-logo{font-size:24px;font-weight:800;background:linear-gradient(120deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.brand-logo-img { width: 32px; height: 32px; object-fit: contain; }
+.brand-logo-text{font-size:24px;font-weight:800;background:linear-gradient(120deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent;}
 .brand-sub{font-size:10px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;}
 .nav-section{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;padding:14px 12px 6px;}
 .nav-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:12px;border:1px solid transparent;background:transparent;color:#c3d1e6;font-size:13.5px;font-weight:500;cursor:pointer;text-align:left;width:100%;font-family:inherit;transition:all .18s ease;}
@@ -105,24 +141,6 @@ body{
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 /* ============================================================
-   HINTERGRUND & CHAT
-============================================================ */
-#bg-canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:auto;cursor:grab;}
-#bg-canvas:active{cursor:grabbing;}
-
-#ai-chat-overlay{position:fixed;bottom:20px;right:20px;width:350px;height:450px;background:rgba(10,16,26,0.85);backdrop-filter:blur(24px);border:1px solid var(--accent);border-radius:var(--r);display:none;flex-direction:column;z-index:1000;box-shadow:0 10px 40px rgba(0,212,255,0.2);animation:slideUp 0.3s ease;}
-@keyframes slideUp{from{transform:translateY(50px);opacity:0;}to{transform:translateY(0);opacity:1;}}
-#ai-chat-overlay.show{display:flex;}
-.chat-header{padding:15px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-weight:700;color:var(--accent);}
-.chat-close{background:none;border:none;color:var(--danger);font-size:20px;cursor:pointer;}
-.chat-body{flex:1;padding:15px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;font-size:13px;}
-.msg-ai{background:rgba(255,255,255,0.05);padding:10px;border-radius:10px 10px 10px 0;align-self:flex-start;max-width:80%;}
-.msg-user{background:var(--accent);color:#000;padding:10px;border-radius:10px 10px 0 10px;align-self:flex-end;max-width:80%;font-weight:500;}
-.chat-input-area{padding:10px;border-top:1px solid var(--border);display:flex;gap:10px;}
-.chat-input-area input{flex:1;background:rgba(0,0,0,0.3);border:1px solid var(--border);color:#fff;padding:10px;border-radius:8px;outline:none;}
-.chat-input-area button{background:var(--accent);border:none;color:#000;padding:0 15px;border-radius:8px;cursor:pointer;font-weight:bold;}
-
-/* ============================================================
    PLACEHOLDER & SETTINGS
 ============================================================ */
 .placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:340px;gap:14px;text-align:center;padding:40px 20px;}
@@ -134,25 +152,14 @@ body{
 .settings-row:last-child{border-bottom:none;}
 .settings-row .sr-label{font-size:14px;font-weight:600;}
 .settings-row .sr-sub{font-size:12px;color:var(--muted);margin-top:3px;}
-select.styled{background:var(--glass-2);border:1px solid var(--border);color:#fff;padding:9px 13px;border-radius:10px;font-size:13px;font-family:inherit;cursor:pointer;outline:none;}
-.switch{position:relative;width:48px;height:26px;border-radius:99px;background:rgba(255,255,255,.12);cursor:pointer;transition:.2s;flex-shrink:0;}
-.switch::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s;}
-.switch.on{background:linear-gradient(90deg,var(--accent),var(--accent-2));}
-.switch.on::after{left:25px;}
+select.styled, input.styled{background:var(--glass-2);border:1px solid var(--border);color:#fff;padding:9px 13px;border-radius:10px;font-size:13px;font-family:inherit;cursor:pointer;outline:none;width:200px;}
+input[type="range"] { width: 150px; accent-color: var(--accent); }
 .btn-danger{background:rgba(255,77,109,.14);border:1px solid rgba(255,77,109,.45);color:#ff8fa3;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:.18s;}
 .btn-danger:hover{background:rgba(255,77,109,.25);color:#fff;}
 
 /* Notfall Spezial */
 .emergency-btn { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:20px; background:rgba(255,77,109,0.15); border:2px solid var(--danger); color:var(--danger); border-radius:16px; font-size:20px; font-weight:800; cursor:pointer; text-transform:uppercase; letter-spacing:2px; transition:0.2s; }
 .emergency-btn:hover { background:rgba(255,77,109,0.3); transform:scale(1.02); box-shadow:0 0 30px rgba(255,77,109,0.4); }
-
-/* Hintergrund-Steuerung */
-.bg-controls { display: flex; flex-direction: column; gap: 12px; }
-.bg-slider-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
-.bg-slider-row input[type="range"] { flex: 1; accent-color: var(--accent); }
-.bg-coord-row { display: flex; gap: 8px; font-size: 11px; }
-.bg-coord-row label { display: flex; align-items: center; gap: 4px; }
-.bg-coord-row input { width: 50px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: #fff; border-radius: 4px; padding: 2px 4px; text-align: center; }
 
 /* Organ Modal */
 #organ-modal { position: fixed; inset: 0; z-index: 2000; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); padding: 20px; }
@@ -169,7 +176,8 @@ select.styled{background:var(--glass-2);border:1px solid var(--border);color:#ff
   #sidebar.open{transform:none;}
   #main{padding:66px 16px 16px;}
   #menuBtn{display:flex;}
-  #ai-chat-overlay{width:calc(100% - 40px);right:20px;bottom:20px;}
+  .welcome-title { font-size: 2rem; }
+  .welcome-logo { width: 80px; height: 80px; }
 }
 </style>
 <script type="importmap">
@@ -184,45 +192,41 @@ select.styled{background:var(--glass-2);border:1px solid var(--border);color:#ff
 <body>
 <canvas id="bg-canvas"></canvas>
 
-<div id="ai-chat-overlay">
-  <div class="chat-header">
-    <span>🤖 HalDo KI Chat</span>
-    <button class="chat-close" onclick="document.getElementById('ai-chat-overlay').classList.remove('show')">×</button>
+<div id="welcome-overlay">
+  <div class="welcome-content">
+    <img src="logo.png" alt="HalDo Logo" class="welcome-logo" onerror="this.style.display='none'">
+    <div class="welcome-title" id="welcomeTitle"></div>
+    <div class="welcome-sub" id="welcomeSub"></div>
   </div>
-  <div class="chat-body" id="chat-body">
-    <div class="msg-ai">Hallo Bruder! Ich bin die HalDo KI. Du hast mich über die Erde aufgerufen. Wie kann ich helfen?</div>
-  </div>
-  <div class="chat-input-area">
-    <input type="text" id="chat-input" placeholder="Frage die KI..." onkeypress="if(event.key==='Enter') sendChatMessage()">
-    <button onclick="sendChatMessage()">Senden</button>
-  </div>
+  <div class="welcome-footer" id="welcomeFooter"></div>
 </div>
 
 <div id="app">
   <aside id="sidebar">
     <div class="brand">
+      <img src="logo.png" alt="HalDo" class="brand-logo-img" onerror="this.style.display='none'">
       <div>
-        <div class="brand-logo">HalDo</div>
-        <div class="brand-sub">Arztbuch Pro Max</div>
+        <div class="brand-logo-text">HalDo</div>
+        <div class="brand-sub" id="sidebarSub">Arztbuch Pro Max</div>
       </div>
     </div>
     <div class="nav-section">Übersicht</div>
-    <button class="nav-item active" data-view="dashboard"><span class="ico">📊</span> Dashboard</button>
-    <button class="nav-item" data-view="anatomie"><span class="ico">🧍‍♂️</span> Anatomie 3D</button>
-    <button class="nav-item" data-view="assistant"><span class="ico">🤖</span> KI Assistent</button>
+    <button class="nav-item active" data-view="dashboard" data-name="Dashboard"><span class="ico">📊</span> Dashboard</button>
+    <button class="nav-item" data-view="anatomie" data-name="Anatomie 3D"><span class="ico">🧍‍♂️</span> Anatomie 3D</button>
+    <button class="nav-item" data-view="assistant" data-name="KI Assistent"><span class="ico">🤖</span> KI Assistent</button>
 
     <div class="nav-section">Wissen</div>
-    <button class="nav-item" data-view="krankheiten"><span class="ico">🦠</span> Krankheiten A-Z</button>
-    <button class="nav-item" data-view="medikamente"><span class="ico">💊</span> Medikamente A-Z</button>
-    <button class="nav-item" data-view="labor"><span class="ico">🧪</span> Laborwerte</button>
+    <button class="nav-item" data-view="krankheiten" data-name="Krankheiten A-Z"><span class="ico">🦠</span> Krankheiten A-Z</button>
+    <button class="nav-item" data-view="medikamente" data-name="Medikamente A-Z"><span class="ico">💊</span> Medikamente A-Z</button>
+    <button class="nav-item" data-view="labor" data-name="Laborwerte"><span class="ico">🧪</span> Laborwerte</button>
 
     <div class="nav-section">Praxis</div>
-    <button class="nav-item" data-view="iot"><span class="ico">📡</span> IoT & Hotspot</button>
-    <button class="nav-item" data-view="hardware"><span class="ico">🖨️</span> Hardware & Kasse</button>
-    <button class="nav-item danger" data-view="notfall"><span class="ico">🚨</span> Notfall</button>
+    <button class="nav-item" data-view="iot" data-name="IoT & Hotspot"><span class="ico">📡</span> IoT & Hotspot</button>
+    <button class="nav-item" data-view="hardware" data-name="Hardware & Kasse"><span class="ico">🖨️</span> Hardware & Kasse</button>
+    <button class="nav-item danger" data-view="notfall" data-name="Notfall"><span class="ico">🚨</span> Notfall</button>
 
     <div class="nav-section">System</div>
-    <button class="nav-item" data-view="einstellungen"><span class="ico">⚙️</span> Einstellungen</button>
+    <button class="nav-item" data-view="einstellungen" data-name="Einstellungen"><span class="ico">⚙️</span> Einstellungen</button>
   </aside>
 
   <div id="backdrop"></div>
@@ -231,45 +235,24 @@ select.styled{background:var(--glass-2);border:1px solid var(--border);color:#ff
   <main id="main">
     <!-- DASHBOARD -->
     <section id="view-dashboard" class="view active">
-      <div class="view-head">
-        <h1 id="greeting">Guten Tag</h1>
-        <p class="sub" id="dateStr"></p>
-      </div>
+      <div class="view-head"><h1 id="greeting">Guten Tag</h1><p class="sub" id="dateStr"></p></div>
       <div class="grid">
-        <div class="span-8 card tip-card">
-          <div class="card-label">💡 Tages-Tipp</div>
-          <p id="tipText">Lade…</p>
-        </div>
+        <div class="span-8 card tip-card"><div class="card-label">💡 Tages-Tipp</div><p id="tipText">Lade…</p></div>
         <div class="span-4 card">
           <div class="card-label">💧 Wasser</div>
           <div class="water-row">
             <div class="water-big"><span id="waterVal">0</span><small> / 8 Gläser</small></div>
-            <div style="display:flex;gap:6px">
-              <button class="btn-mini" id="waterMinus">−</button>
-              <button class="btn-mini" id="waterPlus">+</button>
-            </div>
+            <div style="display:flex;gap:6px"><button class="btn-mini" id="waterMinus">−</button><button class="btn-mini" id="waterPlus">+</button></div>
           </div>
           <div class="water-glasses" id="waterGlasses"></div>
         </div>
         <div class="span-12 card">
           <div class="card-label">❤️ Vitalwerte</div>
           <div class="vitals">
-            <div class="vital">
-              <span class="vlabel">Blutdruck</span>
-              <div class="vital-row"><input id="v-bd" placeholder="120/80"><span class="unit">mmHg</span></div>
-            </div>
-            <div class="vital">
-              <span class="vlabel">Blutzucker</span>
-              <div class="vital-row"><input id="v-zucker" placeholder="95"><span class="unit">mg/dl</span></div>
-            </div>
-            <div class="vital">
-              <span class="vlabel">Gewicht</span>
-              <div class="vital-row"><input id="v-gewicht" placeholder="78"><span class="unit">kg</span></div>
-            </div>
-            <div class="vital">
-              <span class="vlabel">Puls</span>
-              <div class="vital-row"><input id="v-puls" placeholder="72"><span class="unit">bpm</span></div>
-            </div>
+            <div class="vital"><span class="vlabel">Blutdruck</span><div class="vital-row"><input id="v-bd" placeholder="120/80"><span class="unit">mmHg</span></div></div>
+            <div class="vital"><span class="vlabel">Blutzucker</span><div class="vital-row"><input id="v-zucker" placeholder="95"><span class="unit">mg/dl</span></div></div>
+            <div class="vital"><span class="vlabel">Gewicht</span><div class="vital-row"><input id="v-gewicht" placeholder="78"><span class="unit">kg</span></div></div>
+            <div class="vital"><span class="vlabel">Puls</span><div class="vital-row"><input id="v-puls" placeholder="72"><span class="unit">bpm</span></div></div>
           </div>
         </div>
       </div>
@@ -277,10 +260,7 @@ select.styled{background:var(--glass-2);border:1px solid var(--border);color:#ff
 
     <!-- ANATOMIE -->
     <section id="view-anatomie" class="view col">
-      <div class="view-head">
-        <h1>Anatomie 3D Pro Max</h1>
-        <p class="sub">Fotorealistisch · 4 Ebenen</p>
-      </div>
+      <div class="view-head"><h1>Anatomie 3D Pro Max</h1><p class="sub">Fotorealistisch · 4 Ebenen</p></div>
       <div class="anatomy-wrap">
         <div class="anatomy-toolbar">
           <button class="layer-btn active" id="btnHuman" onclick="toggleAnatomy('human')">🧍 Haut (Xbot)</button>
@@ -336,24 +316,6 @@ select.styled{background:var(--glass-2);border:1px solid var(--border);color:#ff
             <button class="btn-danger" id="resetData">Löschen</button>
           </div>
         </div>
-        <div class="span-6 card">
-          <div class="card-label">🌌 Hintergrund-Steuerung</div>
-          <div class="bg-controls">
-            <div class="bg-slider-row">
-              <label>Helligkeit</label>
-              <input type="range" id="bgBrightness" min="0.5" max="3" step="0.1" value="1.5">
-            </div>
-            <div class="bg-slider-row">
-              <label>Erde X</label>
-              <input type="range" id="earthX" min="-20" max="20" step="0.5" value="-10">
-            </div>
-            <div class="bg-slider-row">
-              <label>Erde Y</label>
-              <input type="range" id="earthY" min="-15" max="15" step="0.5" value="4">
-            </div>
-            <button class="btn-mini" id="resetBg" style="width:100%; margin-top:8px;">🔄 Zurücksetzen</button>
-          </div>
-        </div>
       </div>
     </section>
   </main>
@@ -378,25 +340,90 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
    STATE & STORAGE
 ============================================================ */
 const state = {
+  appName: localStorage.getItem('haldo_appName') || 'HalDo Arztbuch',
+  appSub: localStorage.getItem('haldo_appSub') || 'a Halil Donma Professioneller App',
+  appPresent: localStorage.getItem('haldo_appPresent') || 'präsentiert',
+  greetDuration: parseInt(localStorage.getItem('haldo_greetDuration')) || 5,
   lang: localStorage.getItem('haldo_lang') || 'de-DE',
-  bgBrightness: parseFloat(localStorage.getItem('haldo_bg_bright')) || 1.5,
-  earthX: parseFloat(localStorage.getItem('haldo_earth_x')) || -10,
-  earthY: parseFloat(localStorage.getItem('haldo_earth_y')) || 4
+  anatomyMode: 'human',
+  bgBrightness: parseFloat(localStorage.getItem('haldo_bg_bright')) || 1.5
 };
 
 const vitals = JSON.parse(localStorage.getItem('haldo_vitals') || 'null') || {
   bd: '120/80', zucker: '95', gewicht: '78', puls: '72', wasser: 3
 };
 function saveVitals(){ localStorage.setItem('haldo_vitals', JSON.stringify(vitals)); }
-function saveSetting(key, val){ localStorage.setItem(key, val); }
 
 /* ============================================================
-   1. UI NAVIGATION
+   1. AUDIO & WELCOME
+============================================================ */
+let audioCtx;
+function playChime(freq, timeOffset = 0, duration = 1.5) {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(freq, audioCtx.currentTime + timeOffset);
+  gain.gain.setValueAtTime(0, audioCtx.currentTime + timeOffset);
+  gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + timeOffset + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + timeOffset + duration);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(audioCtx.currentTime + timeOffset); osc.stop(audioCtx.currentTime + timeOffset + duration);
+}
+
+function playWelcomeChimes() {
+  const notes = [880, 1100, 1320, 1760, 1320, 1100, 880, 660];
+  notes.forEach((freq, i) => playChime(freq, i * 0.15, 2.0));
+}
+
+const welcomeOverlay = document.getElementById('welcome-overlay');
+const welcomeTitle = document.getElementById('welcomeTitle');
+const welcomeSub = document.getElementById('welcomeSub');
+const welcomeFooter = document.getElementById('welcomeFooter');
+
+function typeWriter(element, text, speed, callback) {
+  element.innerHTML = '';
+  let i = 0;
+  function type() {
+    if (i < text.length) {
+      element.innerHTML += text.charAt(i);
+      i++;
+      setTimeout(type, speed);
+    } else if (callback) {
+      callback();
+    }
+  }
+  type();
+}
+
+function showWelcome(appName) {
+  welcomeOverlay.classList.add('show');
+  playWelcomeChimes();
+  
+  const t1 = `Willkommen bei ${appName}`;
+  const t2 = `${appName} App`;
+  const t3 = `a Halil Donma Professioneller App ${state.appPresent}`;
+  
+  typeWriter(welcomeTitle, t1, 50, () => {
+    typeWriter(welcomeSub, t2, 50, () => {
+      typeWriter(welcomeFooter, t3, 40);
+    });
+  });
+  
+  setTimeout(() => {
+    welcomeOverlay.classList.remove('show');
+    document.getElementById('app').classList.add('ready');
+    switchView('anatomie', 'Anatomie 3D');
+  }, state.greetDuration * 1000);
+}
+
+/* ============================================================
+   2. UI NAVIGATION
 ============================================================ */
 const views = document.querySelectorAll('.view');
 const navItems = document.querySelectorAll('.nav-item');
 
-function switchView(name){
+function switchView(name, displayName){
   views.forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
   navItems.forEach(b => b.classList.toggle('active', b.dataset.view === name));
   document.getElementById('sidebar').classList.remove('open');
@@ -405,7 +432,7 @@ function switchView(name){
   if (name === 'anatomie') requestAnimationFrame(initAnatomy);
   if (name === 'dashboard') renderDashboard();
 }
-navItems.forEach(b => b.addEventListener('click', () => switchView(b.dataset.view)));
+navItems.forEach(b => b.addEventListener('click', () => switchView(b.dataset.view, b.dataset.name)));
 
 document.getElementById('menuBtn').addEventListener('click', () => {
   document.getElementById('sidebar').classList.add('open');
@@ -417,7 +444,7 @@ document.getElementById('backdrop').addEventListener('click', () => {
 });
 
 /* ============================================================
-   2. DASHBOARD LOGIK
+   3. DASHBOARD LOGIK
 ============================================================ */
 const TIPS = [
   'Trinke morgens ein großes Glas Wasser – das startet den Stoffwechsel.',
@@ -468,49 +495,12 @@ document.getElementById('waterMinus').onclick = () => { vitals.wasser--; renderW
   document.getElementById(id).addEventListener('input', e => { vitals[keys[i]] = e.target.value; saveVitals(); });
 });
 
-/* ============================================================
-   3. EINSTELLUNGEN
-============================================================ */
 document.getElementById('resetData').addEventListener('click', () => {
   if (confirm('Wirklich alle gespeicherten Daten löschen?')){ localStorage.clear(); location.reload(); }
 });
 
-const bgBrightness = document.getElementById('bgBrightness');
-bgBrightness.value = state.bgBrightness;
-bgBrightness.addEventListener('input', e => {
-  state.bgBrightness = parseFloat(e.target.value);
-  saveSetting('haldo_bg_bright', state.bgBrightness);
-  if (bgScene) bgScene.traverse(child => {
-    if (child.isLight && child.type !== 'AmbientLight') child.intensity = state.bgBrightness * 1000; 
-  });
-});
-
-const earthX = document.getElementById('earthX');
-earthX.value = state.earthX;
-earthX.addEventListener('input', e => {
-  state.earthX = parseFloat(e.target.value);
-  saveSetting('haldo_earth_x', state.earthX);
-  if (earthMesh) earthMesh.position.x = state.earthX;
-});
-
-const earthY = document.getElementById('earthY');
-earthY.value = state.earthY;
-earthY.addEventListener('input', e => {
-  state.earthY = parseFloat(e.target.value);
-  saveSetting('haldo_earth_y', state.earthY);
-  if (earthMesh) earthMesh.position.y = state.earthY;
-});
-
-document.getElementById('resetBg').addEventListener('click', () => {
-  state.bgBrightness = 1.5; state.earthX = -10; state.earthY = 4;
-  localStorage.removeItem('haldo_bg_bright'); localStorage.removeItem('haldo_earth_x'); localStorage.removeItem('haldo_earth_y');
-  bgBrightness.value = 1.5; earthX.value = -10; earthY.value = 4;
-  if (bgScene) bgScene.traverse(child => { if (child.isLight && child.type !== 'AmbientLight') child.intensity = 1500; });
-  if (earthMesh) { earthMesh.position.x = -10; earthMesh.position.y = 4; }
-});
-
 /* ============================================================
-   4. WELTRAUM HINTERGRUND (Exakt dein Code mit Sun.jpg)
+   4. WELTRAUM HINTERGRUND (EXAKT DEINE SONNE)
 ============================================================ */
 let bgScene, bgCamera, bgRenderer, earthMesh, moonMesh, sunMesh;
 let isDraggingEarth = false;
@@ -545,7 +535,7 @@ function initBackground() {
 
   const textureLoader = new THREE.TextureLoader();
   
-  // SONNE (Deine URL)
+  // SONNE (Exakt dein Code)
   const sunTex = textureLoader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/textures/planets/sun.jpg');
   const sunGeo = new THREE.SphereGeometry(5, 64, 64);
   const sunMat = new THREE.MeshBasicMaterial({ map: sunTex, color: 0xffdd55 });
@@ -553,7 +543,7 @@ function initBackground() {
   sunMesh.position.set(35, 25, -60);
   bgScene.add(sunMesh);
   
-  // Sonnen-Glow (Dein Canvas Code)
+  // Sonnen-Glow (Exakt dein Code)
   const canvasSun = document.createElement('canvas');
   canvasSun.width = 256; canvasSun.height = 256;
   const ctx = canvasSun.getContext('2d');
@@ -572,7 +562,7 @@ function initBackground() {
   const earthGeo = new THREE.SphereGeometry(5, 64, 64);
   const earthMat = new THREE.MeshStandardMaterial({ map: earthMap, roughness: 0.7, metalness: 0.1 });
   earthMesh = new THREE.Mesh(earthGeo, earthMat);
-  earthMesh.position.set(state.earthX, state.earthY, -20);
+  earthMesh.position.set(-8, 3, -20);
   bgScene.add(earthMesh);
 
   // MOND
@@ -583,7 +573,7 @@ function initBackground() {
   moonMesh.position.set(18, 12, -15);
   bgScene.add(moonMesh);
 
-  // LICHTER
+  // LICHTER (KORREKT IMPLEMENTIERT)
   const sunLight = new THREE.PointLight(0xffccaa, 5000 * state.bgBrightness, 1000);
   sunLight.position.copy(sunMesh.position);
   bgScene.add(sunLight);
@@ -594,37 +584,26 @@ function initBackground() {
   
   bgScene.add(new THREE.AmbientLight(0x555566, 1.5 * state.bgBrightness));
 
-  // INTERAKTION ERDE
+  // INTERAKTION
   canvas.addEventListener('pointerdown', (e) => {
     isDraggingEarth = true;
     previousMousePosition = { x: e.clientX, y: e.clientY };
     mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, bgCamera);
-    const intersects = raycaster.intersectObject(earthMesh);
-    if (intersects.length > 0) {
+    if (raycaster.intersectObject(earthMesh).length > 0) {
       document.getElementById('ai-chat-overlay').classList.add('show');
     }
   });
 
   canvas.addEventListener('pointermove', (e) => {
     if (isDraggingEarth) {
-      const deltaX = e.clientX - previousMousePosition.x;
-      const deltaY = e.clientY - previousMousePosition.y;
-      earthMesh.position.x += deltaX * 0.05;
-      earthMesh.position.y -= deltaY * 0.05;
+      earthMesh.position.x += (e.clientX - previousMousePosition.x) * 0.05;
+      earthMesh.position.y -= (e.clientY - previousMousePosition.y) * 0.05;
       previousMousePosition = { x: e.clientX, y: e.clientY };
-      document.getElementById('earthX').value = earthMesh.position.x;
-      document.getElementById('earthY').value = earthMesh.position.y;
-      state.earthX = earthMesh.position.x;
-      state.earthY = earthMesh.position.y;
-      saveSetting('haldo_earth_x', state.earthX);
-      saveSetting('haldo_earth_y', state.earthY);
     }
   });
-
   canvas.addEventListener('pointerup', () => { isDraggingEarth = false; });
-  canvas.addEventListener('pointerleave', () => { isDraggingEarth = false; });
 
   const clock = new THREE.Clock();
   function animateBg() {
@@ -635,7 +614,6 @@ function initBackground() {
     bgRenderer.render(bgScene, bgCamera);
   }
   animateBg();
-
   window.addEventListener('resize', () => {
     bgRenderer.setSize(window.innerWidth, window.innerHeight);
     bgCamera.aspect = window.innerWidth / window.innerHeight;
@@ -658,7 +636,7 @@ window.sendChatMessage = function() {
 };
 
 /* ============================================================
-   5. ANATOMIE 3D (Echtes Modell + Ebenen + Klickbare Organe)
+   5. ANATOMIE 3D (Echtes Modell + Ebenen)
 ============================================================ */
 let scene, camera, renderer, controls;
 let bodyGroup, currentLayer = 'human';
@@ -684,9 +662,7 @@ function initAnatomy() {
 
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
-  
-  // KAMERA FIX: Weiter weg, damit der ganze Körper sichtbar ist
-  camera.position.set(0, 1.5, 6.5);
+  camera.position.set(0, 1.5, 6.5); // Kamera weiter weg
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -695,11 +671,10 @@ function initAnatomy() {
   host.appendChild(renderer.domElement);
 
   controls = new OrbitControls(camera, renderer.domElement);
-  // ZIEL FIX: Genau auf die Körpermitte
   controls.target.set(0, 1.0, 0);
   controls.enableDamping = true;
   controls.minDistance = 1.0;
-  controls.maxDistance = 10.0; // Weiter raus zoomen erlauben
+  controls.maxDistance = 10.0;
   controls.autoRotate = true;
   controls.autoRotateSpeed = 0.6;
 
@@ -716,11 +691,8 @@ function initAnatomy() {
   
   loader.load(humanUrl, (gltf) => {
     humanModel = gltf.scene;
-    
-    // Aufrecht hinstellen
     humanModel.rotation.set(0, Math.PI, 0); 
 
-    // Skalierung und Zentrierung
     const box = new THREE.Box3().setFromObject(humanModel);
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
@@ -732,7 +704,6 @@ function initAnatomy() {
     humanModel.position.z = -center.z * scaleFactor;
     humanModel.position.y = -box.min.y * scaleFactor;
 
-    // High-End Hautmaterial
     humanModel.traverse((child) => {
       if (child.isMesh) {
         child.material = new THREE.MeshPhysicalMaterial({
@@ -744,7 +715,6 @@ function initAnatomy() {
 
     bodyGroup.add(humanModel);
     
-    // Prozedurale Ebenen bauen
     buildProceduralLayers(maxDim * scaleFactor); 
     
     document.getElementById('loaderContainer').style.display = 'none';
@@ -787,14 +757,14 @@ function buildProceduralLayers(modelHeight) {
   const h = modelHeight;
   const centerY = h / 2;
 
-  // 1. Muskeln
+  // Muskeln
   muscleGroup = new THREE.Group();
   const m1 = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.5, 16, 32), skinMat); m1.position.set(0, centerY, 0); muscleGroup.add(m1);
   const m2 = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.5, 16, 32), skinMat); m2.position.set(0.25, centerY - 0.2, 0); muscleGroup.add(m2);
   const m3 = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.5, 16, 32), skinMat); m3.position.set(-0.25, centerY - 0.2, 0); muscleGroup.add(m3);
   bodyGroup.add(muscleGroup);
 
-  // 2. Skelett
+  // Skelett
   skeletonGroup = new THREE.Group();
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 32, 32), boneMat); head.position.set(0, h - 0.15, 0); skeletonGroup.add(head);
   const spine = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, h * 0.6, 16), boneMat); spine.position.set(0, centerY - 0.1, -0.05); skeletonGroup.add(spine);
@@ -804,7 +774,7 @@ function buildProceduralLayers(modelHeight) {
   }
   bodyGroup.add(skeletonGroup);
 
-  // 3. Organe
+  // Organe
   organGroup = new THREE.Group();
   const addOrgan = (geo, pos, color, key, scl) => {
     const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3, emissive: color, emissiveIntensity: 0.2 });
@@ -862,10 +832,10 @@ function speakOrganInfo() {
 /* ============================================================
    START
 ============================================================ */
-setTimeout(() => {
-  document.getElementById('app').classList.add('ready');
+window.addEventListener('load', () => {
+  showWelcome(state.appName);
   renderDashboard();
-}, 500);
+});
 </script>
 </body>
 </html>
