@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HalDo Arztbuch Pro Max</title>
+<style>
+/* ============================================================
+   BASIS & THEME
+============================================================ */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#070b12; --bg2:#0d1420;
+  --glass:rgba(255,255,255,.045);
+  --glass-2:rgba(255,255,255,.08);
+  --border:rgba(255,255,255,.09);
+  --accent:#00d4ff; --accent-2:#00ffa3;
+  --danger:#ff4d6d; --warn:#ffb703;
+  --text:#e8f1ff; --muted:#7e91ab;
+  --r:16px;
+}
+html,body{height:100%;}
+body{
+  background: #000;
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  overflow:hidden; -webkit-font-smoothing:antialiased;
+}
+#app{display:grid;height:100vh;height:100dvh;grid-template-columns:260px 1fr;position:relative;z-index:1;opacity:0;transition:opacity 0.5s;}
+#app.ready{opacity:1;}
+
+/* ============================================================
+   SIDEBAR & NAVIGATION
+============================================================ */
+#sidebar{background:rgba(10,16,26,.72);backdrop-filter:blur(22px);border-right:1px solid var(--border);padding:22px 14px;display:flex;flex-direction:column;gap:4px;overflow-y:auto;z-index:50;transition:transform .32s cubic-bezier(.4,0,.2,1);}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 10px 20px;}
+.brand-logo{font-size:24px;font-weight:800;background:linear-gradient(120deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.brand-sub{font-size:10px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;}
+.nav-section{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;padding:14px 12px 6px;}
+.nav-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:12px;border:1px solid transparent;background:transparent;color:#c3d1e6;font-size:13.5px;font-weight:500;cursor:pointer;text-align:left;width:100%;font-family:inherit;transition:all .18s ease;}
+.nav-item:hover{background:var(--glass);color:#fff;}
+.nav-item.active{background:linear-gradient(90deg,rgba(0,212,255,.18),rgba(0,255,163,.06));border-color:rgba(0,212,255,.3);color:#fff;box-shadow:0 0 20px rgba(0,212,255,.12);}
+.nav-item .ico{font-size:16px;width:20px;text-align:center;}
+.nav-item.danger .ico{color:var(--danger);}
+
+/* ============================================================
+   MAIN & VIEWS
+============================================================ */
+#main{position:relative;overflow:hidden;padding:22px 26px;display:flex;flex-direction:column;height:100vh;height:100dvh;}
+#menuBtn{display:none;position:fixed;top:14px;left:14px;z-index:60;width:42px;height:42px;border-radius:12px;background:rgba(10,16,26,.85);backdrop-filter:blur(12px);border:1px solid var(--border);color:#fff;font-size:19px;cursor:pointer;align-items:center;justify-content:center;}
+#backdrop{display:none;position:fixed;inset:0;z-index:45;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);}
+#backdrop.show{display:block;}
+
+.view{display:none;flex:1;min-height:0;overflow-y:auto;padding-right:4px;}
+.view.active{display:block;}
+.view.active.col{display:flex;flex-direction:column;overflow:hidden;}
+.view-head{margin-bottom:20px;}
+.view-head h1{font-size:26px;font-weight:700;letter-spacing:-.5px;}
+.view-head .sub{color:var(--muted);font-size:13px;margin-top:4px;}
+
+/* ============================================================
+   CARDS & WIDGETS
+============================================================ */
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;}
+.span-12{grid-column:span 12;}.span-8{grid-column:span 8;}.span-6{grid-column:span 6;}.span-4{grid-column:span 4;}
+@media (max-width:1000px){.span-8,.span-6,.span-4{grid-column:span 12;}}
+
+.card{background:var(--glass);border:1px solid var(--border);border-radius:var(--r);padding:18px;backdrop-filter:blur(14px);position:relative;overflow:hidden;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),transparent);}
+.card-label{font-size:11px;color:var(--muted);letter-spacing:1.6px;text-transform:uppercase;margin-bottom:12px;font-weight:600;}
+
+/* Dashboard Widgets */
+.tip-card{background:linear-gradient(135deg,rgba(0,212,255,.13),rgba(0,255,163,.05));border-color:rgba(0,212,255,.24);}
+.tip-card p{font-size:14.5px;line-height:1.6;color:#dceaff;}
+.vitals{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.vital{background:rgba(255,255,255,.035);border:1px solid var(--border);border-radius:12px;padding:11px 13px;display:flex;flex-direction:column;gap:5px;}
+.vital .vlabel{font-size:11px;color:var(--muted);letter-spacing:.6px;}
+.vital input{background:transparent;border:none;outline:none;color:#fff;font-size:19px;font-weight:700;font-family:inherit;width:100%;}
+.vital input::placeholder{color:rgba(255,255,255,.25);}
+.vital .unit{font-size:11px;color:var(--accent);font-weight:600;}
+.vital-row{display:flex;align-items:baseline;gap:5px;}
+.water-row{display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.water-big{font-size:38px;font-weight:800;color:var(--accent);}
+.water-big small{font-size:14px;color:var(--muted);font-weight:500;}
+.water-glasses{display:flex;gap:5px;margin-top:12px;flex-wrap:wrap;}
+.glass-icon{width:16px;height:22px;border-radius:0 0 4px 4px;border:1.5px solid rgba(0,212,255,.35);transition:all .2s;}
+.glass-icon.full{background:linear-gradient(180deg,var(--accent),rgba(0,212,255,.4));border-color:var(--accent);box-shadow:0 0 10px rgba(0,212,255,.5);}
+.btn-mini{width:34px;height:34px;border-radius:10px;border:1px solid var(--border);background:var(--glass-2);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;}
+.btn-mini:hover{background:rgba(0,212,255,.2);border-color:var(--accent);}
+
+/* ============================================================
+   ANATOMIE
+============================================================ */
+.anatomy-wrap{display:flex;flex-direction:column;flex:1;min-height:0;gap:14px;}
+.anatomy-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;position:relative;z-index:10;}
+.layer-btn{padding:8px 16px;border-radius:11px;border:1px solid var(--border);background:var(--glass);color:#c3d1e6;font-size:12.5px;font-weight:600;cursor:pointer;transition:.18s;display:flex;align-items:center;gap:7px;}
+.layer-btn:hover{background:var(--glass-2);color:#fff;}
+.layer-btn.active{background:linear-gradient(90deg,rgba(0,212,255,.22),rgba(0,255,163,.08));border-color:var(--accent);color:#fff;box-shadow:0 0 18px rgba(0,212,255,.2);}
+.spacer{flex:1;}
+#anatomy-canvas{flex:1;min-height:320px;border-radius:var(--r);border:1px solid var(--border);background:transparent;overflow:hidden;position:relative;}
+#anatomy-canvas canvas{display:block;width:100%!important;height:100%!important;}
+.anatomy-hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--muted);background:rgba(0,0,0,.5);padding:6px 14px;border-radius:99px;border:1px solid var(--border);white-space:nowrap;pointer-events:none;}
+.loader-container{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:20;}
+.loader { border: 4px solid rgba(255,255,255,0.1); border-left-color: var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 10px; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* ============================================================
+   HINTERGRUND & CHAT
+============================================================ */
+#bg-canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:auto;cursor:grab;}
+#bg-canvas:active{cursor:grabbing;}
+
+#ai-chat-overlay{position:fixed;bottom:20px;right:20px;width:350px;height:450px;background:rgba(10,16,26,0.85);backdrop-filter:blur(24px);border:1px solid var(--accent);border-radius:var(--r);display:none;flex-direction:column;z-index:1000;box-shadow:0 10px 40px rgba(0,212,255,0.2);animation:slideUp 0.3s ease;}
+@keyframes slideUp{from{transform:translateY(50px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+#ai-chat-overlay.show{display:flex;}
+.chat-header{padding:15px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-weight:700;color:var(--accent);}
+.chat-close{background:none;border:none;color:var(--danger);font-size:20px;cursor:pointer;}
+.chat-body{flex:1;padding:15px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;font-size:13px;}
+.msg-ai{background:rgba(255,255,255,0.05);padding:10px;border-radius:10px 10px 10px 0;align-self:flex-start;max-width:80%;}
+.msg-user{background:var(--accent);color:#000;padding:10px;border-radius:10px 10px 0 10px;align-self:flex-end;max-width:80%;font-weight:500;}
+.chat-input-area{padding:10px;border-top:1px solid var(--border);display:flex;gap:10px;}
+.chat-input-area input{flex:1;background:rgba(0,0,0,0.3);border:1px solid var(--border);color:#fff;padding:10px;border-radius:8px;outline:none;}
+.chat-input-area button{background:var(--accent);border:none;color:#000;padding:0 15px;border-radius:8px;cursor:pointer;font-weight:bold;}
+
+/* ============================================================
+   PLACEHOLDER & SETTINGS
+============================================================ */
+.placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:340px;gap:14px;text-align:center;padding:40px 20px;}
+.ph-icon{font-size:54px;filter:grayscale(.2);opacity:.85;}
+.placeholder h2{font-size:20px;font-weight:700;}
+.placeholder p{color:var(--muted);font-size:13.5px;max-width:420px;line-height:1.6;}
+.ph-badge{font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--accent);border:1px solid rgba(0,212,255,.35);padding:5px 12px;border-radius:99px;background:rgba(0,212,255,.08);}
+.settings-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 0;border-bottom:1px solid var(--border);}
+.settings-row:last-child{border-bottom:none;}
+.settings-row .sr-label{font-size:14px;font-weight:600;}
+.settings-row .sr-sub{font-size:12px;color:var(--muted);margin-top:3px;}
+select.styled{background:var(--glass-2);border:1px solid var(--border);color:#fff;padding:9px 13px;border-radius:10px;font-size:13px;font-family:inherit;cursor:pointer;outline:none;}
+.switch{position:relative;width:48px;height:26px;border-radius:99px;background:rgba(255,255,255,.12);cursor:pointer;transition:.2s;flex-shrink:0;}
+.switch::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s;}
+.switch.on{background:linear-gradient(90deg,var(--accent),var(--accent-2));}
+.switch.on::after{left:25px;}
+.btn-danger{background:rgba(255,77,109,.14);border:1px solid rgba(255,77,109,.45);color:#ff8fa3;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:.18s;}
+.btn-danger:hover{background:rgba(255,77,109,.25);color:#fff;}
+
+/* Notfall Spezial */
+.emergency-btn { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:20px; background:rgba(255,77,109,0.15); border:2px solid var(--danger); color:var(--danger); border-radius:16px; font-size:20px; font-weight:800; cursor:pointer; text-transform:uppercase; letter-spacing:2px; transition:0.2s; }
+.emergency-btn:hover { background:rgba(255,77,109,0.3); transform:scale(1.02); box-shadow:0 0 30px rgba(255,77,109,0.4); }
+
+/* Hintergrund-Steuerung */
+.bg-controls { display: flex; flex-direction: column; gap: 12px; }
+.bg-slider-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.bg-slider-row input[type="range"] { flex: 1; accent-color: var(--accent); }
+.bg-coord-row { display: flex; gap: 8px; font-size: 11px; }
+.bg-coord-row label { display: flex; align-items: center; gap: 4px; }
+.bg-coord-row input { width: 50px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: #fff; border-radius: 4px; padding: 2px 4px; text-align: center; }
+
+/* Organ Modal */
+#organ-modal { position: fixed; inset: 0; z-index: 2000; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); padding: 20px; }
+#organ-modal.show { display: flex; animation: fadeIn 0.3s ease; }
+.modal-box { background: rgba(20,30,44,0.95); border: 1px solid var(--accent); border-radius: 20px; padding: 30px; max-width: 500px; width: 100%; position: relative; box-shadow: 0 20px 50px rgba(0,212,255,0.2); }
+.modal-close { position: absolute; top: 15px; right: 15px; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+.modal-box h2 { font-size: 24px; margin-bottom: 10px; color: var(--accent); }
+.modal-box p { font-size: 14px; line-height: 1.6; color: var(--text); }
+.btn-speak { background: var(--accent); border: none; color: #000; padding: 10px 20px; border-radius: 10px; font-weight: bold; margin-top: 20px; cursor: pointer; }
+
+@media (max-width:860px){
+  #app{grid-template-columns:1fr;}
+  #sidebar{position:fixed;left:0;top:0;bottom:0;width:255px;transform:translateX(-100%);}
+  #sidebar.open{transform:none;}
+  #main{padding:66px 16px 16px;}
+  #menuBtn{display:flex;}
+  #ai-chat-overlay{width:calc(100% - 40px);right:20px;bottom:20px;}
+}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+
+<div id="ai-chat-overlay">
+  <div class="chat-header">
+    <span>🤖 HalDo KI Chat</span>
+    <button class="chat-close" onclick="document.getElementById('ai-chat-overlay').classList.remove('show')">×</button>
+  </div>
+  <div class="chat-body" id="chat-body">
+    <div class="msg-ai">Hallo Bruder! Ich bin die HalDo KI. Du hast mich über die Erde aufgerufen. Wie kann ich helfen?</div>
+  </div>
+  <div class="chat-input-area">
+    <input type="text" id="chat-input" placeholder="Frage die KI..." onkeypress="if(event.key==='Enter') sendChatMessage()">
+    <button onclick="sendChatMessage()">Senden</button>
+  </div>
+</div>
+
+<div id="app">
+  <aside id="sidebar">
+    <div class="brand">
+      <div>
+        <div class="brand-logo">HalDo</div>
+        <div class="brand-sub">Arztbuch Pro Max</div>
+      </div>
+    </div>
+    <div class="nav-section">Übersicht</div>
+    <button class="nav-item active" data-view="dashboard"><span class="ico">📊</span> Dashboard</button>
+    <button class="nav-item" data-view="anatomie"><span class="ico">🧍‍♂️</span> Anatomie 3D</button>
+    <button class="nav-item" data-view="assistant"><span class="ico">🤖</span> KI Assistent</button>
+
+    <div class="nav-section">Wissen</div>
+    <button class="nav-item" data-view="krankheiten"><span class="ico">🦠</span> Krankheiten A-Z</button>
+    <button class="nav-item" data-view="medikamente"><span class="ico">💊</span> Medikamente A-Z</button>
+    <button class="nav-item" data-view="labor"><span class="ico">🧪</span> Laborwerte</button>
+
+    <div class="nav-section">Praxis</div>
+    <button class="nav-item" data-view="iot"><span class="ico">📡</span> IoT & Hotspot</button>
+    <button class="nav-item" data-view="hardware"><span class="ico">🖨️</span> Hardware & Kasse</button>
+    <button class="nav-item danger" data-view="notfall"><span class="ico">🚨</span> Notfall</button>
+
+    <div class="nav-section">System</div>
+    <button class="nav-item" data-view="einstellungen"><span class="ico">⚙️</span> Einstellungen</button>
+  </aside>
+
+  <div id="backdrop"></div>
+  <button id="menuBtn">☰</button>
+
+  <main id="main">
+    <!-- DASHBOARD -->
+    <section id="view-dashboard" class="view active">
+      <div class="view-head">
+        <h1 id="greeting">Guten Tag</h1>
+        <p class="sub" id="dateStr"></p>
+      </div>
+      <div class="grid">
+        <div class="span-8 card tip-card">
+          <div class="card-label">💡 Tages-Tipp</div>
+          <p id="tipText">Lade…</p>
+        </div>
+        <div class="span-4 card">
+          <div class="card-label">💧 Wasser</div>
+          <div class="water-row">
+            <div class="water-big"><span id="waterVal">0</span><small> / 8 Gläser</small></div>
+            <div style="display:flex;gap:6px">
+              <button class="btn-mini" id="waterMinus">−</button>
+              <button class="btn-mini" id="waterPlus">+</button>
+            </div>
+          </div>
+          <div class="water-glasses" id="waterGlasses"></div>
+        </div>
+        <div class="span-12 card">
+          <div class="card-label">❤️ Vitalwerte</div>
+          <div class="vitals">
+            <div class="vital">
+              <span class="vlabel">Blutdruck</span>
+              <div class="vital-row"><input id="v-bd" placeholder="120/80"><span class="unit">mmHg</span></div>
+            </div>
+            <div class="vital">
+              <span class="vlabel">Blutzucker</span>
+              <div class="vital-row"><input id="v-zucker" placeholder="95"><span class="unit">mg/dl</span></div>
+            </div>
+            <div class="vital">
+              <span class="vlabel">Gewicht</span>
+              <div class="vital-row"><input id="v-gewicht" placeholder="78"><span class="unit">kg</span></div>
+            </div>
+            <div class="vital">
+              <span class="vlabel">Puls</span>
+              <div class="vital-row"><input id="v-puls" placeholder="72"><span class="unit">bpm</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ANATOMIE -->
+    <section id="view-anatomie" class="view col">
+      <div class="view-head">
+        <h1>Anatomie 3D Pro Max</h1>
+        <p class="sub">Fotorealistisch · 4 Ebenen</p>
+      </div>
+      <div class="anatomy-wrap">
+        <div class="anatomy-toolbar">
+          <button class="layer-btn active" id="btnHuman" onclick="toggleAnatomy('human')">🧍 Haut (Xbot)</button>
+          <button class="layer-btn" id="btnMuskeln" onclick="toggleAnatomy('muskeln')">💪 Muskeln</button>
+          <button class="layer-btn" id="btnSkelett" onclick="toggleAnatomy('skelett')">🦴 Skelett</button>
+          <button class="layer-btn" id="btnOrgane" onclick="toggleAnatomy('organe')">🫀 Organe</button>
+          <div class="spacer"></div>
+          <button class="layer-btn" id="resetCam">🔄 Kamera</button>
+        </div>
+        
+        <div id="anatomy-canvas">
+          <div class="loader-container" id="loaderContainer">
+            <div class="loader"></div>
+            <p style="color:var(--accent); font-size:12px; margin-top:10px;">Lade echtes 3D-Modell...</p>
+          </div>
+          <div class="anatomy-hint" id="anatomyHint">Ziehen = Drehen · Scrollen = Zoom · Organ anklicken</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLACEHOLDER VIEWS -->
+    <section id="view-assistant" class="view"><div class="placeholder"><div class="ph-icon">🤖</div><span class="ph-badge">Teil 2</span><h2>KI Assistent</h2><p>Medizinischer Chat folgt.</p></div></section>
+    <section id="view-krankheiten" class="view"><div class="placeholder"><div class="ph-icon">🦠</div><span class="ph-badge">Teil 2</span><h2>Krankheiten A-Z</h2><p>Datenbank folgt.</p></div></section>
+    <section id="view-medikamente" class="view"><div class="placeholder"><div class="ph-icon">💊</div><span class="ph-badge">Teil 2</span><h2>Medikamente A-Z</h2><p>Datenbank folgt.</p></div></section>
+    <section id="view-labor" class="view"><div class="placeholder"><div class="ph-icon">🧪</div><span class="ph-badge">Teil 3</span><h2>Laborwerte</h2><p>Referenzbereiche folgen.</p></div></section>
+    <section id="view-iot" class="view"><div class="placeholder"><div class="ph-icon">📡</div><h2>IoT & Hotspot</h2><p>Steuerung folgt.</p></div></section>
+    <section id="view-hardware" class="view"><div class="placeholder"><div class="ph-icon">🖨️</div><h2>Hardware</h2><p>Drucker-Simulation folgt.</p></div></section>
+    
+    <!-- NOTFALL -->
+    <section id="view-notfall" class="view">
+      <div class="view-head"><h1>Notfall</h1></div>
+      <div class="grid">
+        <div class="span-12 card"><button class="emergency-btn" onclick="alert('Rufe 112 an!')">🚨 112 Notruf wählen</button></div>
+        <div class="span-12 card"><div class="card-label">Erste Hilfe Timer</div><p style="color:var(--muted); font-size:13px;">Herzdruckmassage: 100-120 Mal pro Minute.</p></div>
+      </div>
+    </section>
+
+    <!-- EINSTELLUNGEN -->
+    <section id="view-einstellungen" class="view">
+      <div class="view-head"><h1>Einstellungen</h1></div>
+      <div class="grid">
+        <div class="span-6 card">
+          <div class="card-label">⚙️ Allgemein</div>
+          <div class="settings-row">
+            <div><div class="sr-label">Sprache</div><div class="sr-sub">Wähle deine Sprache</div></div>
+            <select class="styled" id="langSelect">
+              <option value="de-DE">Deutsch</option>
+              <option value="en-US">English</option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <div><div class="sr-label">Daten zurücksetzen</div></div>
+            <button class="btn-danger" id="resetData">Löschen</button>
+          </div>
+        </div>
+        <div class="span-6 card">
+          <div class="card-label">🌌 Hintergrund-Steuerung</div>
+          <div class="bg-controls">
+            <div class="bg-slider-row">
+              <label>Helligkeit</label>
+              <input type="range" id="bgBrightness" min="0.5" max="3" step="0.1" value="1.5">
+            </div>
+            <div class="bg-slider-row">
+              <label>Erde X</label>
+              <input type="range" id="earthX" min="-20" max="20" step="0.5" value="-10">
+            </div>
+            <div class="bg-slider-row">
+              <label>Erde Y</label>
+              <input type="range" id="earthY" min="-15" max="15" step="0.5" value="4">
+            </div>
+            <button class="btn-mini" id="resetBg" style="width:100%; margin-top:8px;">🔄 Zurücksetzen</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ORGAN MODAL -->
+<div id="organ-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('organ-modal').classList.remove('show')">×</button>
+    <h2 id="organ-title">Organ</h2>
+    <p id="organ-desc">Beschreibung...</p>
+    <button class="btn-speak" onclick="speakOrganInfo()">🔊 Vorlesen</button>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+/* ============================================================
+   STATE & STORAGE
+============================================================ */
+const state = {
+  lang: localStorage.getItem('haldo_lang') || 'de-DE',
+  bgBrightness: parseFloat(localStorage.getItem('haldo_bg_bright')) || 1.5,
+  earthX: parseFloat(localStorage.getItem('haldo_earth_x')) || -10,
+  earthY: parseFloat(localStorage.getItem('haldo_earth_y')) || 4
+};
+
+const vitals = JSON.parse(localStorage.getItem('haldo_vitals') || 'null') || {
+  bd: '120/80', zucker: '95', gewicht: '78', puls: '72', wasser: 3
+};
+function saveVitals(){ localStorage.setItem('haldo_vitals', JSON.stringify(vitals)); }
+function saveSetting(key, val){ localStorage.setItem(key, val); }
+
+/* ============================================================
+   1. UI NAVIGATION
+============================================================ */
+const views = document.querySelectorAll('.view');
+const navItems = document.querySelectorAll('.nav-item');
+
+function switchView(name){
+  views.forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+  navItems.forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('backdrop').classList.remove('show');
+
+  if (name === 'anatomie') requestAnimationFrame(initAnatomy);
+  if (name === 'dashboard') renderDashboard();
+}
+navItems.forEach(b => b.addEventListener('click', () => switchView(b.dataset.view)));
+
+document.getElementById('menuBtn').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('backdrop').classList.add('show');
+});
+document.getElementById('backdrop').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('backdrop').classList.remove('show');
+});
+
+/* ============================================================
+   2. DASHBOARD LOGIK
+============================================================ */
+const TIPS = [
+  'Trinke morgens ein großes Glas Wasser – das startet den Stoffwechsel.',
+  '30 Minuten zügiges Gehen pro Tag senken das Herzinfarkt-Risiko.',
+  'Männer ab 45: jährlich zur Prostata-Vorsorge.',
+  'Selbstuntersuchung der Hoden – monatlich.',
+  'Reduziere Salz auf unter 5 g pro Tag.',
+  '5 Portionen Obst und Gemüse täglich.',
+  'Check deinen Blutdruck regelmäßig.',
+  'Schlaf 7–9 Stunden pro Nacht.',
+  'Rauchstopp senkt das Herzinfarkt-Risiko massiv.',
+  'Sonnenschutz nicht vergessen.'
+];
+
+function renderDashboard(){
+  const h = new Date().getHours();
+  const gr = h < 11 ? 'Guten Morgen' : h < 18 ? 'Guten Tag' : 'Guten Abend';
+  document.getElementById('greeting').textContent = gr + ' 👋';
+  document.getElementById('dateStr').textContent = new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const dayIdx = Math.floor(Date.now() / 86400000) % TIPS.length;
+  document.getElementById('tipText').textContent = TIPS[dayIdx];
+
+  document.getElementById('v-bd').value = vitals.bd;
+  document.getElementById('v-zucker').value = vitals.zucker;
+  document.getElementById('v-gewicht').value = vitals.gewicht;
+  document.getElementById('v-puls').value = vitals.puls;
+
+  renderWater();
+}
+
+function renderWater(){
+  if (vitals.wasser > 8) vitals.wasser = 8;
+  if (vitals.wasser < 0) vitals.wasser = 0;
+  document.getElementById('waterVal').textContent = vitals.wasser;
+  const box = document.getElementById('waterGlasses');
+  box.innerHTML = '';
+  for (let i = 0; i < 8; i++){
+    const g = document.createElement('div');
+    g.className = 'glass-icon' + (i < vitals.wasser ? ' full' : '');
+    box.appendChild(g);
+  }
+  saveVitals();
+}
+document.getElementById('waterPlus').onclick = () => { vitals.wasser++; renderWater(); };
+document.getElementById('waterMinus').onclick = () => { vitals.wasser--; renderWater(); };
+['v-bd','v-zucker','v-gewicht','v-puls'].forEach((id, i) => {
+  const keys = ['bd','zucker','gewicht','puls'];
+  document.getElementById(id).addEventListener('input', e => { vitals[keys[i]] = e.target.value; saveVitals(); });
+});
+
+/* ============================================================
+   3. EINSTELLUNGEN
+============================================================ */
+document.getElementById('resetData').addEventListener('click', () => {
+  if (confirm('Wirklich alle gespeicherten Daten löschen?')){ localStorage.clear(); location.reload(); }
+});
+
+const bgBrightness = document.getElementById('bgBrightness');
+bgBrightness.value = state.bgBrightness;
+bgBrightness.addEventListener('input', e => {
+  state.bgBrightness = parseFloat(e.target.value);
+  saveSetting('haldo_bg_bright', state.bgBrightness);
+  if (bgScene) bgScene.traverse(child => {
+    if (child.isLight && child.type !== 'AmbientLight') child.intensity = state.bgBrightness * 1000; 
+  });
+});
+
+const earthX = document.getElementById('earthX');
+earthX.value = state.earthX;
+earthX.addEventListener('input', e => {
+  state.earthX = parseFloat(e.target.value);
+  saveSetting('haldo_earth_x', state.earthX);
+  if (earthMesh) earthMesh.position.x = state.earthX;
+});
+
+const earthY = document.getElementById('earthY');
+earthY.value = state.earthY;
+earthY.addEventListener('input', e => {
+  state.earthY = parseFloat(e.target.value);
+  saveSetting('haldo_earth_y', state.earthY);
+  if (earthMesh) earthMesh.position.y = state.earthY;
+});
+
+document.getElementById('resetBg').addEventListener('click', () => {
+  state.bgBrightness = 1.5; state.earthX = -10; state.earthY = 4;
+  localStorage.removeItem('haldo_bg_bright'); localStorage.removeItem('haldo_earth_x'); localStorage.removeItem('haldo_earth_y');
+  bgBrightness.value = 1.5; earthX.value = -10; earthY.value = 4;
+  if (bgScene) bgScene.traverse(child => { if (child.isLight && child.type !== 'AmbientLight') child.intensity = 1500; });
+  if (earthMesh) { earthMesh.position.x = -10; earthMesh.position.y = 4; }
+});
+
+/* ============================================================
+   4. WELTRAUM HINTERGRUND (Exakt dein Code mit Sun.jpg)
+============================================================ */
+let bgScene, bgCamera, bgRenderer, earthMesh, moonMesh, sunMesh;
+let isDraggingEarth = false;
+let previousMousePosition = { x: 0, y: 0 };
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+function initBackground() {
+  const canvas = document.getElementById('bg-canvas');
+  bgRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  bgRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  bgRenderer.setSize(window.innerWidth, window.innerHeight);
+  bgRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+  bgScene = new THREE.Scene();
+  bgScene.background = new THREE.Color(0x020205);
+  bgCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+  bgCamera.position.set(0, 0, 15);
+
+  // STERNE
+  const starGeometry = new THREE.BufferGeometry();
+  const starCount = 8000;
+  const starPositions = new Float32Array(starCount * 3);
+  for (let i = 0; i < starCount * 3; i += 3) {
+    starPositions[i] = (Math.random() - 0.5) * 2000;
+    starPositions[i+1] = (Math.random() - 0.5) * 2000;
+    starPositions[i+2] = (Math.random() - 0.5) * 2000;
+  }
+  starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+  const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 1.5, transparent: true, opacity: 0.8 });
+  bgScene.add(new THREE.Points(starGeometry, starMaterial));
+
+  const textureLoader = new THREE.TextureLoader();
+  
+  // SONNE (Deine URL)
+  const sunTex = textureLoader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/textures/planets/sun.jpg');
+  const sunGeo = new THREE.SphereGeometry(5, 64, 64);
+  const sunMat = new THREE.MeshBasicMaterial({ map: sunTex, color: 0xffdd55 });
+  sunMesh = new THREE.Mesh(sunGeo, sunMat);
+  sunMesh.position.set(35, 25, -60);
+  bgScene.add(sunMesh);
+  
+  // Sonnen-Glow (Dein Canvas Code)
+  const canvasSun = document.createElement('canvas');
+  canvasSun.width = 256; canvasSun.height = 256;
+  const ctx = canvasSun.getContext('2d');
+  const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  gradient.addColorStop(0, 'rgba(255, 255, 200, 1)');
+  gradient.addColorStop(0.3, 'rgba(255, 200, 50, 0.6)');
+  gradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+  ctx.fillStyle = gradient; ctx.fillRect(0, 0, 256, 256);
+  const sunSpriteMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvasSun), blending: THREE.AdditiveBlending, depthTest: false });
+  const sunSprite = new THREE.Sprite(sunSpriteMat);
+  sunSprite.scale.set(45, 45, 1); sunSprite.position.copy(sunMesh.position);
+  bgScene.add(sunSprite);
+
+  // ERDE
+  const earthMap = textureLoader.load('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg');
+  const earthGeo = new THREE.SphereGeometry(5, 64, 64);
+  const earthMat = new THREE.MeshStandardMaterial({ map: earthMap, roughness: 0.7, metalness: 0.1 });
+  earthMesh = new THREE.Mesh(earthGeo, earthMat);
+  earthMesh.position.set(state.earthX, state.earthY, -20);
+  bgScene.add(earthMesh);
+
+  // MOND
+  const moonTex = textureLoader.load('https://cdn.jsdelivr.net/gh/homer-jay/solar-system-textures@master/moon.jpg');
+  const moonGeo = new THREE.SphereGeometry(1.5, 32, 32);
+  const moonMat = new THREE.MeshStandardMaterial({ map: moonTex, roughness: 1.0 });
+  moonMesh = new THREE.Mesh(moonGeo, moonMat);
+  moonMesh.position.set(18, 12, -15);
+  bgScene.add(moonMesh);
+
+  // LICHTER
+  const sunLight = new THREE.PointLight(0xffccaa, 5000 * state.bgBrightness, 1000);
+  sunLight.position.copy(sunMesh.position);
+  bgScene.add(sunLight);
+  
+  const earthLight = new THREE.DirectionalLight(0xffffff, 2.0 * state.bgBrightness);
+  earthLight.position.set(-5, 5, 10); 
+  bgScene.add(earthLight);
+  
+  bgScene.add(new THREE.AmbientLight(0x555566, 1.5 * state.bgBrightness));
+
+  // INTERAKTION ERDE
+  canvas.addEventListener('pointerdown', (e) => {
+    isDraggingEarth = true;
+    previousMousePosition = { x: e.clientX, y: e.clientY };
+    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, bgCamera);
+    const intersects = raycaster.intersectObject(earthMesh);
+    if (intersects.length > 0) {
+      document.getElementById('ai-chat-overlay').classList.add('show');
+    }
+  });
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (isDraggingEarth) {
+      const deltaX = e.clientX - previousMousePosition.x;
+      const deltaY = e.clientY - previousMousePosition.y;
+      earthMesh.position.x += deltaX * 0.05;
+      earthMesh.position.y -= deltaY * 0.05;
+      previousMousePosition = { x: e.clientX, y: e.clientY };
+      document.getElementById('earthX').value = earthMesh.position.x;
+      document.getElementById('earthY').value = earthMesh.position.y;
+      state.earthX = earthMesh.position.x;
+      state.earthY = earthMesh.position.y;
+      saveSetting('haldo_earth_x', state.earthX);
+      saveSetting('haldo_earth_y', state.earthY);
+    }
+  });
+
+  canvas.addEventListener('pointerup', () => { isDraggingEarth = false; });
+  canvas.addEventListener('pointerleave', () => { isDraggingEarth = false; });
+
+  const clock = new THREE.Clock();
+  function animateBg() {
+    requestAnimationFrame(animateBg);
+    const delta = clock.getDelta();
+    earthMesh.rotation.y += delta * 0.03;
+    moonMesh.rotation.y += delta * 0.01;
+    bgRenderer.render(bgScene, bgCamera);
+  }
+  animateBg();
+
+  window.addEventListener('resize', () => {
+    bgRenderer.setSize(window.innerWidth, window.innerHeight);
+    bgCamera.aspect = window.innerWidth / window.innerHeight;
+    bgCamera.updateProjectionMatrix();
+  });
+}
+initBackground();
+
+window.sendChatMessage = function() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  const body = document.getElementById('chat-body');
+  body.innerHTML += `<div class="msg-user">${text}</div>`;
+  input.value = ''; body.scrollTop = body.scrollHeight;
+  setTimeout(() => {
+    body.innerHTML += `<div class="msg-ai">Ich bin die HalDo KI. Deine Nachricht: "${text}"</div>`;
+    body.scrollTop = body.scrollHeight;
+  }, 1000);
+};
+
+/* ============================================================
+   5. ANATOMIE 3D (Echtes Modell + Ebenen + Klickbare Organe)
+============================================================ */
+let scene, camera, renderer, controls;
+let bodyGroup, currentLayer = 'human';
+let humanModel, skeletonGroup, organGroup, muscleGroup;
+let anatomyInited = false;
+let raycasterAnatomy, mouseAnatomy;
+let organMeshes = [];
+let ttsText = '';
+
+const ORGAN_INFO = {
+  brain: { name: 'Gehirn', color: '#f2a0c0', text: 'Das Gehirn ist die Zentrale des Nervensystems. Es steuert Denken, Bewegung, Atmung und Hormone.' },
+  heart: { name: 'Herz', color: '#e63946', text: 'Das Herz pumpt täglich rund 7.000 Liter Blut durch den Körper. Warnzeichen: Brustschmerz, Atemnot.' },
+  lunge: { name: 'Lunge', color: '#f4a6b8', text: 'Die Lunge versorgt das Blut mit Sauerstoff. Erkrankungen: Asthma, COPD, Lungenentzündung.' },
+  liver: { name: 'Leber', color: '#8b2e2e', text: 'Die Leber ist das zentrale Stoffwechselorgan. Sie baut Giftstoffe ab und speichert Zucker.' }
+};
+
+function initAnatomy() {
+  if (anatomyInited) return;
+  anatomyInited = true;
+
+  const host = document.getElementById('anatomy-canvas');
+  const w = host.clientWidth, h = host.clientHeight;
+
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
+  
+  // KAMERA FIX: Weiter weg, damit der ganze Körper sichtbar ist
+  camera.position.set(0, 1.5, 6.5);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(w, h);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  host.appendChild(renderer.domElement);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  // ZIEL FIX: Genau auf die Körpermitte
+  controls.target.set(0, 1.0, 0);
+  controls.enableDamping = true;
+  controls.minDistance = 1.0;
+  controls.maxDistance = 10.0; // Weiter raus zoomen erlauben
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.6;
+
+  scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+  const keyLight = new THREE.DirectionalLight(0xffffff, 3.0); keyLight.position.set(2, 4, 3); scene.add(keyLight);
+  const rimLight = new THREE.DirectionalLight(0x00d4ff, 2.0); rimLight.position.set(-3, 2, -2); scene.add(rimLight);
+  const bottomLight = new THREE.PointLight(0xff5ea8, 1.5, 5); bottomLight.position.set(0, -1, 2); scene.add(bottomLight);
+
+  bodyGroup = new THREE.Group();
+  scene.add(bodyGroup);
+
+  const loader = new GLTFLoader();
+  const humanUrl = 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/models/gltf/Xbot.glb';
+  
+  loader.load(humanUrl, (gltf) => {
+    humanModel = gltf.scene;
+    
+    // Aufrecht hinstellen
+    humanModel.rotation.set(0, Math.PI, 0); 
+
+    // Skalierung und Zentrierung
+    const box = new THREE.Box3().setFromObject(humanModel);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scaleFactor = 2.0 / maxDim;
+    humanModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
+    
+    humanModel.position.x = -center.x * scaleFactor;
+    humanModel.position.z = -center.z * scaleFactor;
+    humanModel.position.y = -box.min.y * scaleFactor;
+
+    // High-End Hautmaterial
+    humanModel.traverse((child) => {
+      if (child.isMesh) {
+        child.material = new THREE.MeshPhysicalMaterial({
+          color: 0xffe4cc, roughness: 0.35, metalness: 0.1,
+          clearcoat: 0.2, transmission: 0.2, thickness: 1.0, ior: 1.4
+        });
+      }
+    });
+
+    bodyGroup.add(humanModel);
+    
+    // Prozedurale Ebenen bauen
+    buildProceduralLayers(maxDim * scaleFactor); 
+    
+    document.getElementById('loaderContainer').style.display = 'none';
+    toggleAnatomy('human');
+
+  }, undefined, (error) => {
+    console.error('Human Modell Fehler:', error);
+    document.getElementById('loaderContainer').innerHTML = '<p style="color:red;">Modell konnte nicht geladen werden.</p>';
+  });
+
+  raycasterAnatomy = new THREE.Raycaster(); mouseAnatomy = new THREE.Vector2();
+  renderer.domElement.addEventListener('pointerdown', (e) => {
+    if (!organGroup || !organGroup.visible) return;
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouseAnatomy.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouseAnatomy.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycasterAnatomy.setFromCamera(mouseAnatomy, camera);
+    const hits = raycasterAnatomy.intersectObjects(organMeshes, false);
+    if (hits.length) openOrganModal(hits[0].object.userData.organ);
+  });
+
+  new ResizeObserver(() => {
+    const w = host.clientWidth, h = host.clientHeight;
+    if(!w || !h) return;
+    camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h);
+  }).observe(host);
+
+  function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+}
+
+function buildProceduralLayers(modelHeight) {
+  const skinMat = new THREE.MeshStandardMaterial({ color: 0xb32b2b, roughness: 0.65, transparent: true, opacity: 0.8 });
+  const boneMat = new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.45 });
+  
+  const h = modelHeight;
+  const centerY = h / 2;
+
+  // 1. Muskeln
+  muscleGroup = new THREE.Group();
+  const m1 = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.5, 16, 32), skinMat); m1.position.set(0, centerY, 0); muscleGroup.add(m1);
+  const m2 = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.5, 16, 32), skinMat); m2.position.set(0.25, centerY - 0.2, 0); muscleGroup.add(m2);
+  const m3 = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.5, 16, 32), skinMat); m3.position.set(-0.25, centerY - 0.2, 0); muscleGroup.add(m3);
+  bodyGroup.add(muscleGroup);
+
+  // 2. Skelett
+  skeletonGroup = new THREE.Group();
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 32, 32), boneMat); head.position.set(0, h - 0.15, 0); skeletonGroup.add(head);
+  const spine = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, h * 0.6, 16), boneMat); spine.position.set(0, centerY - 0.1, -0.05); skeletonGroup.add(spine);
+  for (let i = 0; i < 6; i++) {
+    const rib = new THREE.Mesh(new THREE.TorusGeometry(0.18 - i*0.015, 0.015, 16, 32), boneMat);
+    rib.position.set(0, centerY + 0.2 - i*0.08, 0); rib.rotation.x = Math.PI / 2; rib.scale.set(1, 0.65, 1); skeletonGroup.add(rib);
+  }
+  bodyGroup.add(skeletonGroup);
+
+  // 3. Organe
+  organGroup = new THREE.Group();
+  const addOrgan = (geo, pos, color, key, scl) => {
+    const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3, emissive: color, emissiveIntensity: 0.2 });
+    const m = new THREE.Mesh(geo, mat); m.position.set(pos[0], pos[1], pos[2]);
+    if(scl) m.scale.set(scl[0], scl[1], scl[2]); 
+    m.userData.organ = key; organMeshes.push(m); organGroup.add(m);
+  };
+  addOrgan(new THREE.SphereGeometry(0.08, 32, 32), [0, h - 0.15, 0], '#f2a0c0', 'brain');
+  addOrgan(new THREE.SphereGeometry(0.06, 32, 32), [-0.04, centerY + 0.1, 0.08], '#e63946', 'heart', [1, 1.3, 1]);
+  addOrgan(new THREE.SphereGeometry(0.08, 32, 32), [0.1, centerY + 0.1, 0], '#f4a6b8', 'lunge', [0.8, 1.5, 0.8]);
+  addOrgan(new THREE.SphereGeometry(0.08, 32, 32), [-0.1, centerY + 0.1, 0], '#f4a6b8', 'lunge', [0.8, 1.5, 0.8]);
+  addOrgan(new THREE.SphereGeometry(0.09, 32, 32), [0.08, centerY - 0.15, 0.08], '#8b2e2e', 'liver', [1.2, 0.7, 0.9]);
+  bodyGroup.add(organGroup);
+}
+
+window.toggleAnatomy = function(mode) {
+  state.anatomyMode = mode;
+  if (humanModel) humanModel.visible = (mode === 'human');
+  if (muscleGroup) muscleGroup.visible = (mode === 'muskeln');
+  if (skeletonGroup) skeletonGroup.visible = (mode === 'skelett');
+  if (organGroup) organGroup.visible = (mode === 'organe');
+
+  document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('btn' + mode.charAt(0).toUpperCase() + mode.slice(1));
+  if(btn) btn.classList.add('active');
+};
+
+document.getElementById('resetCam').addEventListener('click', () => { 
+  if (camera) {
+    camera.position.set(0, 1.5, 6.5); 
+    controls.target.set(0, 1.0, 0); 
+    controls.update(); 
+  }
+});
+
+function openOrganModal(key) {
+  const info = ORGAN_INFO[key];
+  if (!info) return;
+  document.getElementById('organ-title').innerHTML = `<span style="color:${info.color}">●</span> ${info.name}`;
+  document.getElementById('organ-desc').textContent = info.text;
+  ttsText = info.name + '. ' + info.text;
+  document.getElementById('organ-modal').classList.add('show');
+  speakOrganInfo();
+}
+
+function speakOrganInfo() {
+  if ('speechSynthesis' in window && ttsText) {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(ttsText);
+    u.lang = 'de-DE';
+    speechSynthesis.speak(u);
+  }
+}
+
+/* ============================================================
+   START
+============================================================ */
+setTimeout(() => {
+  document.getElementById('app').classList.add('ready');
+  renderDashboard();
+}, 500);
+</script>
+</body>
+</html>
