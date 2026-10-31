@@ -182,5 +182,233 @@ window.renderDiseases = window.renderDiseases || null;
 window.renderMeds = window.renderMeds || null;
 window.renderLab = window.renderLab || null;
 </script>
+<!-- ============================================================
+     TEIL 2 – HINTERGRUND: SONNE + ERDE + TEXT-RING
+     ============================================================ -->
+<canvas id="bg-canvas" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:none;"></canvas>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+/* ============================================================
+   TEIL 2 – Weltraum-Hintergrund (Sonne, Erde, Mond, Text-Ring)
+   ============================================================ */
+import * as THREE from 'three';
+
+const APP_NAME = 'HalDo Arztbuch';
+const APP_SUB  = 'a Halil Donma Professioneller App';
+const APP_PRESENT = 'präsentiert';
+
+/* ---------- SONNE (Canvas, unzerstörbar) ---------- */
+function createSunTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512; canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+  const gradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+  gradient.addColorStop(0, '#ffffff');
+  gradient.addColorStop(0.2, '#ffffaa');
+  gradient.addColorStop(0.5, '#ffaa00');
+  gradient.addColorStop(0.8, '#ff5500');
+  gradient.addColorStop(1, '#aa0000');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 512, 512);
+  // Sonnenflecken
+  for (let i = 0; i < 50; i++) {
+    const x = Math.random() * 512;
+    const y = Math.random() * 512;
+    const r = Math.random() * 10 + 5;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, 'rgba(255,255,255,0.8)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  return new THREE.CanvasTexture(canvas);
+}
+
+/* ---------- TEXT-RING (golden, 3 Zeilen) ---------- */
+function createTextTexture(name) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 4096; canvas.height = 1024;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+  gradient.addColorStop(0, '#ffd700');
+  gradient.addColorStop(0.3, '#fff8b0');
+  gradient.addColorStop(0.5, '#ffb700');
+  gradient.addColorStop(0.7, '#fff8b0');
+  gradient.addColorStop(1, '#ffd700');
+
+  ctx.fillStyle = gradient;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(255,215,0,0.8)';
+  ctx.shadowBlur = 20;
+
+  // Zeile 1 – Willkommen
+  ctx.font = 'bold 100px "Segoe UI", Arial, sans-serif';
+  const t1 = `Willkommen bei ${name}   •   `;
+  ctx.fillText(t1.repeat(Math.ceil(canvas.width / ctx.measureText(t1).width) + 1), canvas.width / 2, 250);
+
+  // Zeile 2 – App (cyan)
+  ctx.font = 'bold 140px "Segoe UI", Arial, sans-serif';
+  ctx.fillStyle = '#00d4ff';
+  ctx.shadowColor = 'rgba(0,212,255,0.8)';
+  const t2 = `${name} App   •   `;
+  ctx.fillText(t2.repeat(Math.ceil(canvas.width / ctx.measureText(t2).width) + 1), canvas.width / 2, 500);
+
+  // Zeile 3 – Präsentiert von
+  ctx.font = 'bold 80px "Segoe UI", Arial, sans-serif';
+  ctx.fillStyle = gradient;
+  ctx.shadowColor = 'rgba(255,215,0,0.8)';
+  const t3 = `${APP_SUB} ${APP_PRESENT}   •   `;
+  ctx.fillText(t3.repeat(Math.ceil(canvas.width / ctx.measureText(t3).width) + 1), canvas.width / 2, 750);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  return texture;
+}
+
+/* ---------- INIT ---------- */
+(function initBackground() {
+  const canvas = document.getElementById('bg-canvas');
+  if (!canvas) return;
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x020205);
+
+  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+  camera.position.set(0, 0, 15);
+
+  /* --- Sterne --- */
+  const starGeo = new THREE.BufferGeometry();
+  const starPos = new Float32Array(8000 * 3);
+  for (let i = 0; i < 8000 * 3; i += 3) {
+    starPos[i]     = (Math.random() - 0.5) * 2000;
+    starPos[i + 1] = (Math.random() - 0.5) * 2000;
+    starPos[i + 2] = (Math.random() - 0.5) * 2000;
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.5 })));
+
+  const textureLoader = new THREE.TextureLoader();
+
+  /* --- Sonne --- */
+  const sunMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(5, 64, 64),
+    new THREE.MeshBasicMaterial({ map: createSunTexture() })
+  );
+  sunMesh.position.set(35, 25, -60);
+  scene.add(sunMesh);
+
+  /* --- Sonnen-Glow --- */
+  const glowCanvas = document.createElement('canvas');
+  glowCanvas.width = 256; glowCanvas.height = 256;
+  const gx = glowCanvas.getContext('2d');
+  const gg = gx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  gg.addColorStop(0, 'rgba(255,200,50,0.8)');
+  gg.addColorStop(0.5, 'rgba(255,100,0,0.4)');
+  gg.addColorStop(1, 'rgba(255,0,0,0)');
+  gx.fillStyle = gg;
+  gx.fillRect(0, 0, 256, 256);
+  const sunGlow = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: new THREE.CanvasTexture(glowCanvas),
+      blending: THREE.AdditiveBlending,
+      depthTest: false
+    })
+  );
+  sunGlow.scale.set(40, 40, 1);
+  sunGlow.position.copy(sunMesh.position);
+  scene.add(sunGlow);
+
+  /* --- Erde --- */
+  const earthMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(5, 64, 64),
+    new THREE.MeshStandardMaterial({
+      map: textureLoader.load('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg'),
+      roughness: 0.7,
+      metalness: 0.1
+    })
+  );
+  earthMesh.position.set(-8, 3, -20);
+  scene.add(earthMesh);
+
+  /* --- Mond --- */
+  const moonMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(1.5, 32, 32),
+    new THREE.MeshStandardMaterial({
+      map: textureLoader.load('https://cdn.jsdelivr.net/gh/homer-jay/solar-system-textures@master/moon.jpg'),
+      roughness: 1.0
+    })
+  );
+  moonMesh.position.set(18, 12, -15);
+  scene.add(moonMesh);
+
+  /* --- Goldener Text-Ring um die Erde --- */
+  const textGeo = new THREE.CylinderGeometry(7, 7, 4, 64, 1, true);
+  const textMat = new THREE.MeshBasicMaterial({
+    map: createTextTexture(APP_NAME),
+    transparent: true,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending
+  });
+  const textMesh = new THREE.Mesh(textGeo, textMat);
+  textMesh.position.copy(earthMesh.position);
+  textMesh.rotation.x = Math.PI / 10;
+  textMesh.rotation.z = -Math.PI / 16;
+  scene.add(textMesh);
+
+  /* --- Lichter --- */
+  const sunLight = new THREE.PointLight(0xfff5e6, 5000, 1000);
+  sunLight.position.copy(sunMesh.position);
+  scene.add(sunLight);
+
+  const fill1 = new THREE.DirectionalLight(0xffffff, 3.0);
+  fill1.position.set(-10, 5, 10);
+  scene.add(fill1);
+
+  const fill2 = new THREE.DirectionalLight(0x00d4ff, 2.0);
+  fill2.position.set(5, -5, 10);
+  scene.add(fill2);
+
+  scene.add(new THREE.AmbientLight(0x555566, 2.0));
+
+  /* --- Animation --- */
+  const clock = new THREE.Clock();
+  function animate() {
+    requestAnimationFrame(animate);
+    const delta = clock.getDelta();
+    earthMesh.rotation.y += delta * 0.02;
+    textMesh.rotation.y  -= delta * 0.03;
+    moonMesh.rotation.y  += delta * 0.01;
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  /* --- Resize --- */
+  window.addEventListener('resize', () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+  });
+})();
+</script>
 </body>
 </html>
