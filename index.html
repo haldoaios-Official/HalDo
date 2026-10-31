@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HalDo Arztbuch</title>
+<style>
+/* ============================================================
+   BASIS & THEME
+============================================================ */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#070b12; --bg2:#0d1420;
+  --glass:rgba(255,255,255,.045);
+  --glass-2:rgba(255,255,255,.08);
+  --border:rgba(255,255,255,.09);
+  --accent:#00d4ff; --accent-2:#00ffa3;
+  --danger:#ff4d6d; --warn:#ffb703;
+  --text:#e8f1ff; --muted:#7e91ab;
+  --r:16px;
+}
+html,body{height:100%;}
+body{
+  background:
+    radial-gradient(1200px 800px at 85% -10%, rgba(0,212,255,.12), transparent 60%),
+    radial-gradient(900px 700px at -10% 110%, rgba(0,255,163,.09), transparent 60%),
+    linear-gradient(160deg, var(--bg), var(--bg2));
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  overflow:hidden; -webkit-font-smoothing:antialiased;
+}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+/* ============================================================
+   SPLASH
+============================================================ */
+#splash{
+  position:fixed;inset:0;z-index:9999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  background:linear-gradient(160deg,#070b12,#0d1420);
+  transition:opacity .7s ease, visibility .7s;
+}
+#splash.hide{opacity:0;visibility:hidden;pointer-events:none;}
+.splash-logo{
+  font-size:52px;font-weight:800;letter-spacing:-2px;
+  background:linear-gradient(120deg,var(--accent),var(--accent-2));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:pulse 2s ease-in-out infinite;
+}
+.splash-logo span{opacity:.7;}
+.splash-sub{color:var(--muted);letter-spacing:6px;font-size:12px;text-transform:uppercase;}
+.splash-bar{width:180px;height:3px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;margin-top:8px;}
+.splash-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent-2));animation:load 1.6s ease forwards;}
+@keyframes load{to{width:100%;}}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.65;}}
+
+/* ============================================================
+   APP SHELL
+============================================================ */
+#app{display:none;height:100vh;height:100dvh;grid-template-columns:260px 1fr;}
+#app.ready{display:grid;}
+
+/* ---------- SIDEBAR ---------- */
+#sidebar{
+  background:rgba(10,16,26,.72);
+  backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+  border-right:1px solid var(--border);
+  padding:22px 14px;
+  display:flex;flex-direction:column;gap:4px;
+  overflow-y:auto;z-index:50;
+  transition:transform .32s cubic-bezier(.4,0,.2,1);
+}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 10px 20px;}
+.brand-logo{
+  font-size:24px;font-weight:800;letter-spacing:-1px;
+  background:linear-gradient(120deg,var(--accent),var(--accent-2));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.brand-sub{font-size:10px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-top:-2px;}
+.nav-section{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;padding:14px 12px 6px;}
+.nav-item{
+  display:flex;align-items:center;gap:11px;
+  padding:10px 12px;border-radius:12px;
+  border:1px solid transparent;
+  background:transparent;color:#c3d1e6;
+  font-size:13.5px;font-weight:500;cursor:pointer;
+  text-align:left;width:100%;font-family:inherit;
+  transition:all .18s ease;
+}
+.nav-item:hover{background:var(--glass);color:#fff;}
+.nav-item.active{
+  background:linear-gradient(90deg,rgba(0,212,255,.18),rgba(0,255,163,.06));
+  border-color:rgba(0,212,255,.3);
+  color:#fff;box-shadow:0 0 20px rgba(0,212,255,.12);
+}
+.nav-item .ico{font-size:16px;width:20px;text-align:center;flex-shrink:0;}
+
+/* ---------- MAIN ---------- */
+#main{
+  position:relative;overflow:hidden;
+  padding:22px 26px;display:flex;flex-direction:column;
+  height:100vh;height:100dvh;
+}
+.view{display:none;flex:1;min-height:0;overflow-y:auto;padding-right:4px;}
+.view.active{display:block;}
+.view.active.col{display:flex;flex-direction:column;overflow:hidden;}
+
+/* ---------- MOBILE MENU BTN ---------- */
+#menuBtn{
+  display:none;position:fixed;top:14px;left:14px;z-index:60;
+  width:42px;height:42px;border-radius:12px;
+  background:rgba(10,16,26,.85);backdrop-filter:blur(12px);
+  border:1px solid var(--border);color:#fff;font-size:19px;cursor:pointer;
+  align-items:center;justify-content:center;
+}
+#backdrop{
+  display:none;position:fixed;inset:0;z-index:45;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(3px);
+}
+#backdrop.show{display:block;}
+
+/* ============================================================
+   CARDS & UI
+============================================================ */
+.view-head{margin-bottom:20px;}
+.view-head h1{font-size:26px;font-weight:700;letter-spacing:-.5px;}
+.view-head .sub{color:var(--muted);font-size:13px;margin-top:4px;}
+
+.card{
+  background:var(--glass);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:18px;
+  backdrop-filter:blur(14px);
+  position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),transparent);
+}
+.card-label{
+  font-size:11px;color:var(--muted);letter-spacing:1.6px;
+  text-transform:uppercase;margin-bottom:12px;font-weight:600;
+}
+
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;}
+.span-12{grid-column:span 12;}
+.span-8{grid-column:span 8;}
+.span-6{grid-column:span 6;}
+.span-4{grid-column:span 4;}
+@media (max-width:1000px){.span-8,.span-6,.span-4{grid-column:span 12;}}
+
+/* ---------- TAGES-TIPP ---------- */
+.tip-card{
+  background:linear-gradient(135deg,rgba(0,212,255,.13),rgba(0,255,163,.05));
+  border-color:rgba(0,212,255,.24);
+}
+.tip-card p{font-size:14.5px;line-height:1.6;color:#dceaff;}
+
+/* ---------- VITALS ---------- */
+.vitals{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.vital{
+  background:rgba(255,255,255,.035);
+  border:1px solid var(--border);border-radius:12px;
+  padding:11px 13px;display:flex;flex-direction:column;gap:5px;
+}
+.vital .vlabel{font-size:11px;color:var(--muted);letter-spacing:.6px;}
+.vital input{
+  background:transparent;border:none;outline:none;
+  color:#fff;font-size:19px;font-weight:700;
+  font-family:inherit;width:100%;
+}
+.vital input::placeholder{color:rgba(255,255,255,.25);}
+.vital .unit{font-size:11px;color:var(--accent);font-weight:600;}
+.vital-row{display:flex;align-items:baseline;gap:5px;}
+
+/* ---------- WASSER ---------- */
+.water-row{display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.water-big{font-size:38px;font-weight:800;color:var(--accent);}
+.water-big small{font-size:14px;color:var(--muted);font-weight:500;}
+.water-glasses{display:flex;gap:5px;margin-top:12px;flex-wrap:wrap;}
+.glass{width:16px;height:22px;border-radius:0 0 4px 4px;border:1.5px solid rgba(0,212,255,.35);transition:all .2s;}
+.glass.full{background:linear-gradient(180deg,var(--accent),rgba(0,212,255,.4));border-color:var(--accent);box-shadow:0 0 10px rgba(0,212,255,.5);}
+.btn-mini{
+  width:34px;height:34px;border-radius:10px;border:1px solid var(--border);
+  background:var(--glass-2);color:#fff;font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:.15s;
+}
+.btn-mini:hover{background:rgba(0,212,255,.2);border-color:var(--accent);}
+
+/* ---------- QUICK ---------- */
+.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.quick{
+  background:rgba(255,255,255,.04);border:1px solid var(--border);
+  border-radius:12px;padding:14px;cursor:pointer;transition:.18s;
+  display:flex;flex-direction:column;gap:8px;color:var(--text);font-family:inherit;
+  text-align:left;
+}
+.quick:hover{background:rgba(0,212,255,.1);border-color:rgba(0,212,255,.35);transform:translateY(-2px);}
+.quick .q-ico{font-size:20px;}
+.quick .q-txt{font-size:12.5px;font-weight:600;}
+
+/* ============================================================
+   ANATOMIE
+============================================================ */
+.anatomy-wrap{
+  display:flex;flex-direction:column;flex:1;min-height:0;gap:14px;
+}
+.anatomy-toolbar{
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+}
+.layer-btn{
+  padding:8px 16px;border-radius:11px;
+  border:1px solid var(--border);background:var(--glass);
+  color:#c3d1e6;font-size:12.5px;font-weight:600;cursor:pointer;
+  font-family:inherit;transition:.18s;display:flex;align-items:center;gap:7px;
+}
+.layer-btn:hover{background:var(--glass-2);color:#fff;}
+.layer-btn.active{
+  background:linear-gradient(90deg,rgba(0,212,255,.22),rgba(0,255,163,.08));
+  border-color:var(--accent);color:#fff;box-shadow:0 0 18px rgba(0,212,255,.2);
+}
+.spacer{flex:1;}
+#anatomy-canvas{
+  flex:1;min-height:320px;border-radius:var(--r);
+  border:1px solid var(--border);
+  background:radial-gradient(circle at 50% 40%,rgba(0,212,255,.06),transparent 65%),rgba(6,10,16,.55);
+  overflow:hidden;position:relative;
+}
+#anatomy-canvas canvas{display:block;width:100%!important;height:100%!important;}
+.anatomy-hint{
+  position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+  font-size:11px;color:var(--muted);background:rgba(0,0,0,.5);
+  padding:6px 14px;border-radius:99px;border:1px solid var(--border);
+  white-space:nowrap;pointer-events:none;
+}
+.anatomy-err{
+  display:flex;align-items:center;justify-content:center;height:100%;
+  color:var(--danger);font-size:14px;padding:20px;text-align:center;
+}
+
+/* ============================================================
+   PLACEHOLDER VIEWS
+============================================================ */
+.placeholder{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;min-height:340px;gap:14px;text-align:center;padding:40px 20px;
+}
+.ph-icon{font-size:54px;filter:grayscale(.2);opacity:.85;}
+.placeholder h2{font-size:20px;font-weight:700;}
+.placeholder p{color:var(--muted);font-size:13.5px;max-width:420px;line-height:1.6;}
+.ph-badge{
+  font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--accent);border:1px solid rgba(0,212,255,.35);
+  padding:5px 12px;border-radius:99px;background:rgba(0,212,255,.08);
+}
+
+/* ============================================================
+   EINSTELLUNGEN
+============================================================ */
+.settings-row{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:15px 0;border-bottom:1px solid var(--border);
+}
+.settings-row:last-child{border-bottom:none;}
+.settings-row .sr-label{font-size:14px;font-weight:600;}
+.settings-row .sr-sub{font-size:12px;color:var(--muted);margin-top:3px;}
+select.styled{
+  background:var(--glass-2);border:1px solid var(--border);color:#fff;
+  padding:9px 13px;border-radius:10px;font-size:13px;font-family:inherit;
+  cursor:pointer;outline:none;
+}
+select.styled:focus{border-color:var(--accent);}
+.switch{
+  position:relative;width:48px;height:26px;border-radius:99px;
+  background:rgba(255,255,255,.12);cursor:pointer;transition:.2s;flex-shrink:0;
+}
+.switch::after{
+  content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;
+  border-radius:50%;background:#fff;transition:.2s;
+}
+.switch.on{background:linear-gradient(90deg,var(--accent),var(--accent-2));}
+.switch.on::after{left:25px;}
+.btn-danger{
+  background:rgba(255,77,109,.14);border:1px solid rgba(255,77,109,.45);
+  color:#ff8fa3;padding:9px 16px;border-radius:10px;font-size:13px;
+  font-weight:600;cursor:pointer;font-family:inherit;transition:.18s;
+}
+.btn-danger:hover{background:rgba(255,77,109,.25);color:#fff;}
+
+/* ============================================================
+   MODAL
+============================================================ */
+#modal{
+  position:fixed;inset:0;z-index:500;
+  display:none;align-items:center;justify-content:center;padding:20px;
+  background:rgba(3,6,10,.72);backdrop-filter:blur(6px);
+}
+#modal.show{display:flex;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.modal-box{
+  width:100%;max-width:480px;max-height:80vh;overflow-y:auto;
+  background:linear-gradient(160deg,rgba(20,30,44,.98),rgba(12,18,28,.98));
+  border:1px solid rgba(0,212,255,.28);border-radius:20px;
+  padding:26px;position:relative;
+  box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 60px rgba(0,212,255,.1);
+  animation:slideUp .28s cubic-bezier(.4,0,.2,1);
+}
+@keyframes slideUp{from{transform:translateY(18px);opacity:0;}to{transform:none;opacity:1;}}
+.modal-close{
+  position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:9px;
+  background:rgba(255,255,255,.06);border:1px solid var(--border);
+  color:#fff;font-size:18px;cursor:pointer;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+}
+.modal-close:hover{background:rgba(255,77,109,.25);}
+.modal-box h2{font-size:21px;margin-bottom:4px;letter-spacing:-.3px;}
+.modal-org-dot{
+  display:inline-block;width:10px;height:10px;border-radius:50%;
+  margin-right:8px;vertical-align:middle;
+}
+.modal-box p{font-size:13.5px;line-height:1.72;color:#c3d1e6;margin-top:14px;}
+.modal-actions{display:flex;gap:10px;margin-top:20px;}
+.btn-primary{
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));
+  border:none;color:#04121a;padding:10px 18px;border-radius:11px;
+  font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;gap:7px;transition:.18s;
+}
+.btn-primary:hover{filter:brightness(1.12);transform:translateY(-1px);}
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+@media (max-width:860px){
+  #app{grid-template-columns:1fr;}
+  #sidebar{position:fixed;left:0;top:0;bottom:0;width:255px;transform:translateX(-100%);}
+  #sidebar.open{transform:none;}
+  #main{padding:66px 16px 16px;}
+  #menuBtn{display:flex;}
+  .view-head h1{font-size:21px;}
+  .vitals{grid-template-columns:1fr;}
+  .layer-btn{flex:1;justify-content:center;padding:9px 10px;font-size:11.5px;}
+}
+</style>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+
+<body>
+
+<!-- ================= SPLASH ================= -->
+<div id="splash">
+  <div class="splash-logo">Hal<span>Do</span></div>
+  <div class="splash-sub">Arztbuch</div>
+  <div class="splash-bar"><i></i></div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="app">
+
+  <!-- ---------- SIDEBAR ---------- -->
+  <aside id="sidebar">
+    <div class="brand">
+      <div>
+        <div class="brand-logo">HalDo</div>
+        <div class="brand-sub">Arztbuch</div>
+      </div>
+    </div>
+
+    <div class="nav-section">Übersicht</div>
+    <button class="nav-item active" data-view="dashboard"><span class="ico">📊</span> Dashboard</button>
+    <button class="nav-item" data-view="assistant"><span class="ico">🤖</span> KI Assistent</button>
+    <button class="nav-item" data-view="anatomie"><span class="ico">🧍‍♂️</span> Anatomie 3D</button>
+
+    <div class="nav-section">Wissen</div>
+    <button class="nav-item" data-view="krankheiten"><span class="ico">🦠</span> Krankheiten A-Z</button>
+    <button class="nav-item" data-view="medikamente"><span class="ico">💊</span> Medikamente A-Z</button>
+    <button class="nav-item" data-view="labor"><span class="ico">🧪</span> Laborwerte</button>
+
+    <div class="nav-section">Praxis</div>
+    <button class="nav-item" data-view="iot"><span class="ico">📡</span> IoT & Hotspot</button>
+    <button class="nav-item" data-view="hardware"><span class="ico">🖨️</span> Hardware & Kasse</button>
+    <button class="nav-item" data-view="notfall"><span class="ico">🚨</span> Notfall</button>
+
+    <div class="nav-section">System</div>
+    <button class="nav-item" data-view="einstellungen"><span class="ico">⚙️</span> Einstellungen</button>
+  </aside>
+
+  <div id="backdrop"></div>
+  <button id="menuBtn">☰</button>
+
+  <!-- ---------- MAIN ---------- -->
+  <main id="main">
+
+    <!-- ============ DASHBOARD ============ -->
+    <section id="view-dashboard" class="view active">
+      <div class="view-head">
+        <h1 id="greeting">Guten Tag</h1>
+        <p class="sub" id="dateStr"></p>
+      </div>
+
+      <div class="grid">
+        <div class="span-8 card tip-card">
+          <div class="card-label">💡 Tages-Tipp</div>
+          <p id="tipText">Lade…</p>
+        </div>
+
+        <div class="span-4 card">
+          <div class="card-label">💧 Wasser</div>
+          <div class="water-row">
+            <div class="water-big"><span id="waterVal">0</span><small> / 8 Gläser</small></div>
+            <div style="display:flex;gap:6px">
+              <button class="btn-mini" id="waterMinus">−</button>
+              <button class="btn-mini" id="waterPlus">+</button>
+            </div>
+          </div>
+          <div class="water-glasses" id="waterGlasses"></div>
+        </div>
+
+        <div class="span-6 card">
+          <div class="card-label">❤️ Vitalwerte</div>
+          <div class="vitals">
+            <div class="vital">
+              <span class="vlabel">Blutdruck</span>
+              <div class="vital-row"><input id="v-bd" placeholder="120/80"><span class="unit">mmHg</span></div>
+            </div>
+            <div class="vital">
+              <span class="vlabel">Blutzucker</span>
+              <div class="vital-row"><input id="v-zucker" placeholder="95"><span class="unit">mg/dl</span></div>
+            </div>
+            <div class="vital">
+              <span class="vlabel">Gewicht</span>
+              <div class="vital-row"><input id="v-gewicht" placeholder="78"><span class="unit">kg</span></div>
+            </div>
+            <div class="vital">
+              <span class="vlabel">Puls</span>
+              <div class="vital-row"><input id="v-puls" placeholder="72"><span class="unit">bpm</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="span-6 card">
+          <div class="card-label">⚡ Schnellzugriff</div>
+          <div class="quick-grid">
+            <button class="quick" data-goto="anatomie"><span class="q-ico">🧍‍♂️</span><span class="q-txt">3D-Körper</span></button>
+            <button class="quick" data-goto="krankheiten"><span class="q-ico">🦠</span><span class="q-txt">Krankheiten</span></button>
+            <button class="quick" data-goto="medikamente"><span class="q-ico">💊</span><span class="q-txt">Medikamente</span></button>
+            <button class="quick" data-goto="notfall"><span class="q-ico">🚨</span><span class="q-txt">Notfall</span></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ANATOMIE ============ -->
+    <section id="view-anatomie" class="view col">
+      <div class="view-head">
+        <h1>Anatomie 3D</h1>
+        <p class="sub">Männlicher Körper · prozedural · 4 Ebenen</p>
+      </div>
+      <div class="anatomy-wrap">
+        <div class="anatomy-toolbar">
+          <button class="layer-btn" data-layer="haut">🫥 Haut</button>
+          <button class="layer-btn" data-layer="muskeln">💪 Muskeln</button>
+          <button class="layer-btn" data-layer="skelett">🦴 Skelett</button>
+          <button class="layer-btn active" data-layer="organe">🫀 Organe</button>
+          <div class="spacer"></div>
+          <button class="layer-btn" id="resetCam">🔄 Kamera</button>
+        </div>
+        <div id="anatomy-canvas">
+          <div class="anatomy-hint">Ziehen = Drehen · Scrollen = Zoom · Organ anklicken</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PLACEHOLDERS ============ -->
+    <section id="view-assistant" class="view">
+      <div class="placeholder">
+        <div class="ph-icon">🤖</div>
+        <span class="ph-badge">Teil 2</span>
+        <h2>KI Assistent</h2>
+        <p>Medizinischer Chat mit Symptom-Analyse und Sprachausgabe folgt in Teil 2.</p>
+      </div>
+    </section>
+
+    <section id="view-krankheiten" class="view">
+      <div class="placeholder">
+        <div class="ph-icon">🦠</div>
+        <span class="ph-badge">Teil 2</span>
+        <h2>Krankheiten A-Z</h2>
+        <p>Vollständige Datenbank mit Symptomen, Behandlung, Schwangerschaft & STIs folgt in Teil 2.</p>
+      </div>
+    </section>
+
+    <section id="view-medikamente" class="view">
+      <div class="placeholder">
+        <div class="ph-icon">💊</div>
+        <span class="ph-badge">Teil 2</span>
+        <h2>Medikamente A-Z</h2>
+        <p>Datenbank mit Anwendung, Dosierung und Rezeptpflicht folgt in Teil 2.</p>
+      </div>
+    </section>
+
+    <section id="view-labor" class="view">
+      <div class="placeholder">
+        <div class="ph-icon">🧪</div>
+        <span class="ph-badge">Teil 3</span>
+        <h2>Laborwerte</h2>
+        <p>Referenzbereiche und Bedeutung aller wichtigen Blutwerte folgt in Teil 3.</p>
+      </div>
+    </section>
+
+    <section id="view-iot" class="view">
+      <div class="placeholder">
+        <div class="ph-icon">📡</div>
+        <span class="ph-badge">Teil 3</span>
+        <h2>IoT & Hotspot</h2>
+        <p>Hotspot-Passwort ändern, WLAN- und Bluetooth-Scan-Simulation folgt in Teil 3.</p>
+      </div>
+    </section>
+
+    <section id="view-hardware" class="view">
+      <div class="placeholder">
+        <div class="ph-icon">🖨️</div>
+        <span class="ph-badge">Teil 3</span>
+        <h2>Hardware & Kasse</h2>
+        <p>Drucker-, Scanner-Simulation und Krankenkassen-Karte folgen in Teil 3.</p>
+      </div>
+    </section>
+
+    <section id="view-notfall" class="view">
+      <div class="placeholder">
+        <div class="ph-icon">🚨</div>
+        <span class="ph-badge">Teil 3</span>
+        <h2>Notfall</h2>
+        <p>112-Sofortwahl und Erste-Hilfe-Timer folgen in Teil 3.</p>
+      </div>
+    </section>
+
+    <!-- ============ EINSTELLUNGEN ============ -->
+    <section id="view-einstellungen" class="view">
+      <div class="view-head"><h1>Einstellungen</h1></div>
+      <div class="card" style="max-width:640px">
+        <div class="settings-row">
+          <div>
+            <div class="sr-label">Sprache</div>
+            <div class="sr-sub">Deutsch & Englisch aktiv · weitere folgen</div>
+          </div>
+          <select class="styled" id="langSelect">
+            <option value="de">Deutsch</option>
+            <option value="en">English</option>
+            <option value="tr">Türkçe</option>
+            <option value="ku">Kurmancî</option>
+            <option value="ez">Êzîdî</option>
+            <option value="ar">العربية</option>
+            <option value="fa">فارسی</option>
+          </select>
+        </div>
+
+        <div class="settings-row">
+          <div>
+            <div class="sr-label">Sprachausgabe (TTS)</div>
+            <div class="sr-sub">Organ-Infos und Texte vorlesen</div>
+          </div>
+          <div class="switch on" id="ttsSwitch"></div>
+        </div>
+
+        <div class="settings-row">
+          <div>
+            <div class="sr-label">3D Auto-Rotation</div>
+            <div class="sr-sub">Körper dreht sich langsam von selbst</div>
+          </div>
+          <div class="switch on" id="rotSwitch"></div>
+        </div>
+
+        <div class="settings-row">
+          <div>
+            <div class="sr-label">Daten zurücksetzen</div>
+            <div class="sr-sub">Löscht Vitalwerte, Wasserstand & Einstellungen</div>
+          </div>
+          <button class="btn-danger" id="resetData">Alles löschen</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ================= MODAL ================= -->
+<div id="modal">
+  <div class="modal-box">
+    <button class="modal-close" id="modalClose">×</button>
+    <h2 id="modalTitle"></h2>
+    <p id="modalText"></p>
+    <div class="modal-actions">
+      <button class="btn-primary" id="modalSpeak">🔊 Vorlesen</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+/* ============================================================
+   STATE
+============================================================ */
+const state = {
+  lang: localStorage.getItem('haldo_lang') || 'de',
+  tts: localStorage.getItem('haldo_tts') !== '0',
+  autorotate: localStorage.getItem('haldo_rot') !== '0'
+};
+
+const vitals = JSON.parse(localStorage.getItem('haldo_vitals') || 'null') || {
+  bd: '120/80', zucker: '95', gewicht: '78', puls: '72', wasser: 3
+};
+
+function saveVitals(){ localStorage.setItem('haldo_vitals', JSON.stringify(vitals)); }
+
+/* ============================================================
+   SPLASH
+============================================================ */
+setTimeout(() => {
+  document.getElementById('splash').classList.add('hide');
+  document.getElementById('app').classList.add('ready');
+}, 1800);
+
+/* ============================================================
+   NAVIGATION
+============================================================ */
+const views = document.querySelectorAll('.view');
+const navItems = document.querySelectorAll('.nav-item');
+
+function switchView(name){
+  views.forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+  navItems.forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('backdrop').classList.remove('show');
+
+  if (name === 'anatomie') requestAnimationFrame(initAnatomy);
+  if (name === 'dashboard') renderDashboard();
+}
+navItems.forEach(b => b.addEventListener('click', () => switchView(b.dataset.view)));
+document.querySelectorAll('[data-goto]').forEach(b =>
+  b.addEventListener('click', () => switchView(b.dataset.goto))
+);
+
+/* Mobile Drawer */
+document.getElementById('menuBtn').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('backdrop').classList.add('show');
+});
+document.getElementById('backdrop').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('backdrop').classList.remove('show');
+});
+
+/* ============================================================
+   DASHBOARD
+============================================================ */
+const TIPS = [
+  'Trinke morgens ein großes Glas Wasser – das startet den Stoffwechsel und gleicht die Nachtflüssigkeitsverluste aus.',
+  '30 Minuten zügiges Gehen pro Tag senken das Herzinfarkt-Risiko um bis zu 30 %.',
+  'Männer ab 45: jährlich zur Prostata-Vorsorge. Früherkennung rettet Leben.',
+  'Selbstuntersuchung der Hoden – monatlich, am besten nach dem Duschen. Knoten früh erkennen.',
+  'Reduziere Salz auf unter 5 g pro Tag – das schützt Herz und Nieren.',
+  '5 Portionen Obst und Gemüse täglich gelten als Faustregel für ein gesundes Immunsystem.',
+  'Check deinen Blutdruck regelmäßig – Bluthochdruck verursacht oft keine Beschwerden, schadet aber den Gefäßen.',
+  'Schlaf 7–9 Stunden pro Nacht. Chronischer Schlafmangel erhöht das Risiko für Diabetes und Herz-Kreislauf-Erkrankungen.',
+  'Aufhör-Tipp: Rauchstopp senkt das Herzinfarkt-Risiko schon nach einem Jahr um die Hälfte.',
+  'Sonnenschutz nicht vergessen – Hautkrebs ist die häufigste Krebsart bei Männern.'
+];
+
+function renderDashboard(){
+  // Begrüßung
+  const h = new Date().getHours();
+  const gr = h < 11 ? 'Guten Morgen' : h < 18 ? 'Guten Tag' : 'Guten Abend';
+  document.getElementById('greeting').textContent = gr + ' 👋';
+  document.getElementById('dateStr').textContent = new Date().toLocaleDateString('de-DE', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+  });
+
+  // Tages-Tipp
+  const dayIdx = Math.floor(Date.now() / 86400000) % TIPS.length;
+  document.getElementById('tipText').textContent = TIPS[dayIdx];
+
+  // Vitalwerte
+  document.getElementById('v-bd').value = vitals.bd;
+  document.getElementById('v-zucker').value = vitals.zucker;
+  document.getElementById('v-gewicht').value = vitals.gewicht;
+  document.getElementById('v-puls').value = vitals.puls;
+
+  // Wasser
+  renderWater();
+}
+
+function renderWater(){
+  if (vitals.wasser > 8) vitals.wasser = 8;
+  if (vitals.wasser < 0) vitals.wasser = 0;
+  document.getElementById('waterVal').textContent = vitals.wasser;
+  const box = document.getElementById('waterGlasses');
+  box.innerHTML = '';
+  for (let i = 0; i < 8; i++){
+    const g = document.createElement('div');
+    g.className = 'glass' + (i < vitals.wasser ? ' full' : '');
+    box.appendChild(g);
+  }
+  saveVitals();
+}
+
+document.getElementById('waterPlus').onclick = () => { vitals.wasser++; renderWater(); };
+document.getElementById('waterMinus').onclick = () => { vitals.wasser--; renderWater(); };
+
+['v-bd','v-zucker','v-gewicht','v-puls'].forEach((id, i) => {
+  const keys = ['bd','zucker','gewicht','puls'];
+  document.getElementById(id).addEventListener('input', e => {
+    vitals[keys[i]] = e.target.value;
+    saveVitals();
+  });
+});
+
+/* ============================================================
+   EINSTELLUNGEN
+============================================================ */
+const langSelect = document.getElementById('langSelect');
+langSelect.value = state.lang;
+langSelect.addEventListener('change', e => {
+  state.lang = e.target.value;
+  localStorage.setItem('haldo_lang', state.lang);
+  document.documentElement.dir = (state.lang === 'ar' || state.lang === 'fa') ? 'rtl' : 'ltr';
+});
+
+const ttsSwitch = document.getElementById('ttsSwitch');
+ttsSwitch.classList.toggle('on', state.tts);
+ttsSwitch.addEventListener('click', () => {
+  state.tts = !state.tts;
+  ttsSwitch.classList.toggle('on', state.tts);
+  localStorage.setItem('haldo_tts', state.tts ? '1' : '0');
+});
+
+const rotSwitch = document.getElementById('rotSwitch');
+rotSwitch.classList.toggle('on', state.autorotate);
+rotSwitch.addEventListener('click', () => {
+  state.autorotate = !state.autorotate;
+  rotSwitch.classList.toggle('on', state.autorotate);
+  localStorage.setItem('haldo_rot', state.autorotate ? '1' : '0');
+  if (controls) controls.autoRotate = state.autorotate;
+});
+
+document.getElementById('resetData').addEventListener('click', () => {
+  if (confirm('Wirklich alle gespeicherten Daten löschen?')){
+    localStorage.clear();
+    location.reload();
+  }
+});
+
+/* ============================================================
+   TTS
+============================================================ */
+function speak(text){
+  if (!state.tts || !('speechSynthesis' in window)) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = state.lang === 'de' ? 'de-DE' : state.lang === 'en' ? 'en-US' : 'de-DE';
+    u.rate = 0.98;
+    speechSynthesis.speak(u);
+  } catch(e){ /* still */ }
+}
+
+/* ============================================================
+   ORGAN-DATEN
+============================================================ */
+const ORGAN_INFO = {
+  brain: {
+    name: 'Gehirn', color: '#f2a0c0',
+    text: 'Das Gehirn ist die Zentrale des Nervensystems. Es steuert Denken, Bewegung, Atmung, Herzschlag und Hormone. Es wiegt beim Erwachsenen etwa 1,3–1,4 kg und verbraucht rund 20 % der gesamten Energie des Körpers. Warnzeichen: plötzliche Kopfschmerzen, Schwindel, Sehstörungen, Lähmungen oder Sprachstörungen – dann sofort 112.'
+  },
+  heart: {
+    name: 'Herz', color: '#e63946',
+    text: 'Das Herz ist ein faustgroßer Hohlmuskel und pumpt täglich rund 7.000 Liter Blut durch den Körper. Es schlägt etwa 60–100 Mal pro Minute. Wichtige Erkrankungen: koronare Herzkrankheit, Herzinfarkt, Herzinsuffizienz. Warnzeichen: Brustschmerz, Atemnot, Übelkeit, Ausstrahlung in den linken Arm oder Kiefer – sofort 112!'
+  },
+  lunge: {
+    name: 'Lunge', color: '#f4a6b8',
+    text: 'Die Lunge versorgt das Blut mit Sauerstoff. Die rechte Lunge hat 3, die linke 2 Lappen. Erkrankungen: Asthma, COPD, Lungenentzündung, Lungenembolie. Warnzeichen: chronischer Husten, Atemnot, blutiger Auswurf, pfeifende Atmung.'
+  },
+  liver: {
+    name: 'Leber', color: '#8b2e2e',
+    text: 'Die Leber ist das zentrale Stoffwechselorgan (ca. 1,5 kg). Sie baut Giftstoffe ab, speichert Zucker und bildet Gallenflüssigkeit. Erkrankungen: Fettleber, Hepatitis, Leberzirrhose. Warnzeichen: Gelbsucht, Oberbauchschmerzen rechts, Müdigkeit, dunkler Urin.'
+  },
+  stomach: {
+    name: 'Magen', color: '#d4a373',
+    text: 'Der Magen verdaut Nahrung mit Salzsäure (pH 1–2). Erkrankungen: Gastritis, Magengeschwür, Reflux, Magenkrebs. Warnzeichen: brennender Oberbauchschmerz, Übelkeit, schwarzer Stuhl (Blutung).'
+  },
+  kidney: {
+    name: 'Nieren', color: '#b56576',
+    text: 'Die Nieren filtern täglich etwa 180 Liter Blut und bilden 1,5–2 Liter Urin. Sie regeln Wasser- und Salzhaushalt sowie den Blutdruck. Erkrankungen: Nierensteine, Nierenentzündung, Niereninsuffizienz. Warnzeichen: Flankenschmerz, Blut im Urin, geschwollene Beine.'
+  },
+  darm: {
+    name: 'Darm', color: '#e9c46a',
+    text: 'Der Darm ist etwa 7–8 Meter lang. Der Dünndarm nimmt Nährstoffe auf, der Dickdarm entzieht Wasser. Erkrankungen: Reizdarm, Morbus Crohn, Colitis ulcerosa, Darmkrebs. Vorsorge: Darmspiegelung ab 50 (bei Familienrisiko früher).'
+  },
+  prostate: {
+    name: 'Prostata', color: '#6a994e',
+    text: 'Die Prostata ist eine walnussgroße Drüse unter der Harnblase. Sie produziert einen Teil des Spermas. Ab 45 nimmt die gutartige Vergrößerung (BPH) häufig zu. Warnzeichen: schwacher Harnstrahl, häufiges Wasserlassen nachts. Vorsorge: PSA-Test und Tastuntersuchung ab 45.'
+  },
+  hoden: {
+    name: 'Hoden', color: '#90be6d',
+    text: 'Die Hoden produzieren Spermien und das männliche Hormon Testosteron. Wichtig: monatliche Selbstuntersuchung auf Knoten. Hodentumor ist die häufigste Krebsart bei Männern unter 40 – bei früher Erkennung sehr gut heilbar. Warnzeichen: harte, schmerzlose Knoten, Schweregefühl.'
+  }
+};
+
+/* ============================================================
+   3D-ANATOMIE (prozedural)
+============================================================ */
+let THREE, OrbitControls;
+let scene, camera, renderer, controls, raycaster, pointer, bodyRoot;
+const layers = {};
+let organMeshes = [];
+let anatomyInited = false;
+let currentLayer = 'organe';
+
+async function initAnatomy(){
+  if (anatomyInited){
+    resizeRenderer();
+    return;
+  }
+  try {
+    THREE = await import('three');
+    const oc = await import('three/addons/controls/OrbitControls.js');
+    OrbitControls = oc.OrbitControls;
+  } catch(err){
+    console.error(err);
+    document.getElementById('anatomy-canvas').innerHTML =
+      '<div class="anatomy-err">3D-Engine konnte nicht geladen werden.<br>Bitte Internetverbindung prüfen.</div>';
+    return;
+  }
+  buildScene();
+  anatomyInited = true;
+}
+
+function resizeRenderer(){
+  if (!renderer || !camera) return;
+  const host = document.getElementById('anatomy-canvas');
+  const w = host.clientWidth, h = host.clientHeight;
+  if (!w || !h) return;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+
+function buildScene(){
+  const host = document.getElementById('anatomy-canvas');
+  const w = host.clientWidth || 600;
+  const h = host.clientHeight || 400;
+
+  scene = new THREE.Scene();
+  scene.background = null;
+
+  camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
+  camera.position.set(0, 1.15, 3.1);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(w, h);
+  host.appendChild(renderer.domElement);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 1.0, 0);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.minDistance = 1.4;
+  controls.maxDistance = 5.5;
+  controls.autoRotate = state.autorotate;
+  controls.autoRotateSpeed = 0.7;
+  controls.update();
+
+  // Licht
+  scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+  const key = new THREE.DirectionalLight(0xbfe9ff, 1.5); key.position.set(2.5, 3.5, 4); scene.add(key);
+  const rim = new THREE.DirectionalLight(0xff5ea8, 0.85); rim.position.set(-3, 2, -3); scene.add(rim);
+  const fill = new THREE.DirectionalLight(0x66ffd9, 0.5); fill.position.set(0, -2, 2.5); scene.add(fill);
+
+  // Bodenring
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.34, 0.42, 64),
+    new THREE.MeshBasicMaterial({
+      color: 0x00d4ff, transparent: true, opacity: 0.32,
+      side: THREE.DoubleSide, depthWrite: false
+    })
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.005;
+  scene.add(ring);
+
+  bodyRoot = new THREE.Group();
+  scene.add(bodyRoot);
+
+  buildSkin();
+  buildMuscles();
+  buildSkeleton();
+  buildOrgans();
+
+  setLayer('organe');
+
+  raycaster = new THREE.Raycaster();
+  pointer = new THREE.Vector2();
+  renderer.domElement.addEventListener('pointerdown', onPointerDown);
+
+  const ro = new ResizeObserver(() => resizeRenderer());
+  ro.observe(host);
+
+  animate();
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+/* ---------- HELPERS ---------- */
+function addPart(group, geo, mat, pos, rot, scl){
+  const m = new THREE.Mesh(geo, mat);
+  if (pos) m.position.set(pos[0], pos[1], pos[2]);
+  if (rot) m.rotation.set(rot[0], rot[1], rot[2]);
+  if (scl) m.scale.set(scl[0], scl[1], scl[2]);
+  group.add(m);
+  return m;
+}
+
+function boneBetween(group, a, b, r, mat){
+  const va = new THREE.Vector3(a[0], a[1], a[2]);
+  const vb = new THREE.Vector3(b[0], b[1], b[2]);
+  const mid = va.clone().add(vb).multiplyScalar(0.5);
+  const dir = vb.clone().sub(va);
+  const len = dir.length();
+  const geo = new THREE.CylinderGeometry(r, r, len, 10);
+  const m = new THREE.Mesh(geo, mat);
+  m.position.copy(mid);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+  group.add(m);
+  return m;
+}
+
+/* ---------- HAUT (Hologramm) ---------- */
+function buildSkin(){
+  const g = new THREE.Group();
+  const M = new THREE.MeshStandardMaterial({
+    color: 0x2fa8d8, emissive: 0x0a4a66, emissiveIntensity: 0.85,
+    transparent: true, opacity: 0.14, roughness: 0.35, metalness: 0.15,
+    side: THREE.DoubleSide, depthWrite: false
+  });
+
+  // Kopf & Hals
+  addPart(g, new THREE.SphereGeometry(0.115, 28, 24), M, [0, 1.66, 0], null, [1, 1.12, 0.95]);
+  addPart(g, new THREE.SphereGeometry(0.085, 20, 18), M, [0, 1.56, 0.02], null, [1, 0.8, 0.9]);
+  addPart(g, new THREE.CylinderGeometry(0.055, 0.065, 0.12, 16), M, [0, 1.50, 0]);
+
+  // Schultern
+  addPart(g, new THREE.SphereGeometry(0.095, 20, 18), M, [ 0.27, 1.40, 0], null, [1, 0.9, 0.9]);
+  addPart(g, new THREE.SphereGeometry(0.095, 20, 18), M, [-0.27, 1.40, 0], null, [1, 0.9, 0.9]);
+
+  // Torso
+  addPart(g, new THREE.CapsuleGeometry(0.155, 0.20, 8, 20), M, [0, 1.28, 0], null, [1.35, 1, 0.72]);
+  addPart(g, new THREE.CapsuleGeometry(0.130, 0.16, 8, 20), M, [0, 1.04, 0], null, [1.12, 1, 0.72]);
+  addPart(g, new THREE.CapsuleGeometry(0.145, 0.06, 8, 20), M, [0, 0.89, 0], null, [1.15, 1, 0.80]);
+
+  // Arme
+  for (const s of [1, -1]){
+    addPart(g, new THREE.CapsuleGeometry(0.055, 0.24, 6, 14), M, [s*0.300, 1.22, 0]);
+    addPart(g, new THREE.SphereGeometry(0.055, 16, 14), M, [s*0.320, 1.06, 0]);
+    addPart(g, new THREE.CapsuleGeometry(0.050, 0.22, 6, 14), M, [s*0.335, 0.90, 0]);
+    addPart(g, new THREE.SphereGeometry(0.042, 14, 12), M, [s*0.340, 0.77, 0]);
+    addPart(g, new THREE.SphereGeometry(0.055, 16, 14), M, [s*0.345, 0.70, 0.005], null, [0.8, 1.3, 0.5]);
+  }
+
+  // Beine
+  for (const s of [1, -1]){
+    addPart(g, new THREE.SphereGeometry(0.095, 16, 14), M, [s*0.110, 0.86, 0]);
+    addPart(g, new THREE.CapsuleGeometry(0.085, 0.30, 6, 16), M, [s*0.120, 0.66, 0]);
+    addPart(g, new THREE.SphereGeometry(0.075, 16, 14), M, [s*0.120, 0.47, 0]);
+    addPart(g, new THREE.CapsuleGeometry(0.068, 0.26, 6, 16), M, [s*0.120, 0.30, 0]);
+    addPart(g, new THREE.SphereGeometry(0.050, 14, 12), M, [s*0.120, 0.14, 0]);
+    addPart(g, new THREE.BoxGeometry(0.10, 0.075, 0.24), M, [s*0.120, 0.06, 0.07]);
+  }
+
+  g.name = 'haut'; g.visible = false;
+  bodyRoot.add(g);
+  layers.haut = g;
+}
+
+/* ---------- MUSKELN ---------- */
+function buildMuscles(){
+  const g = new THREE.Group();
+  const M1 = new THREE.MeshStandardMaterial({ color: 0xa83232, roughness: 0.68, metalness: 0.05 });
+  const M2 = new THREE.MeshStandardMaterial({ color: 0x8a2828, roughness: 0.72, metalness: 0.05 });
+  const M3 = new THREE.MeshStandardMaterial({ color: 0xc24242, roughness: 0.6,  metalness: 0.06 });
+
+  // Brust (Pectoralis)
+  for (const s of [1, -1])
+    addPart(g, new THREE.SphereGeometry(0.105, 18, 16), M3, [s*0.10, 1.31, 0.075], null, [1.1, 0.85, 0.55]);
+
+  // Schultern (Deltoideus)
+  for (const s of [1, -1])
+    addPart(g, new THREE.SphereGeometry(0.085, 18, 16), M1, [s*0.28, 1.40, 0], null, [1.05, 1, 1]);
+
+  // Bauch (6-Pack)
+  for (const s of [1, -1])
+    for (let i = 0; i < 3; i++)
+      addPart(g, new THREE.BoxGeometry(0.075, 0.075, 0.05), M2, [s*0.045, 1.15 - i*0.085, 0.085]);
+
+  // Seitliche Bauchmuskeln
+  for (const s of [1, -1])
+    addPart(g, new THREE.BoxGeometry(0.05, 0.20, 0.06), M1, [s*0.115, 1.02, 0.06]);
+
+  // Bizeps
+  for (const s of [1, -1])
+    addPart(g, new THREE.SphereGeometry(0.055, 16, 14), M3, [s*0.30, 1.22, 0.03], null, [1, 1.5, 1]);
+
+  // Unterarme
+  for (const s of [1, -1])
+    addPart(g, new THREE.CapsuleGeometry(0.052, 0.18, 6, 14), M1, [s*0.335, 0.90, 0]);
+
+  // Oberschenkel (Quadrizeps)
+  for (const s of [1, -1])
+    addPart(g, new THREE.CapsuleGeometry(0.082, 0.26, 6, 14), M3, [s*0.12, 0.66, 0.01]);
+
+  // Waden
+  for (const s of [1, -1])
+    addPart(g, new THREE.SphereGeometry(0.068, 16, 14), M1, [s*0.12, 0.34, -0.02], null, [1, 1.6, 1]);
+
+  // Gesäß
+  for (const s of [1, -1])
+    addPart(g, new THREE.SphereGeometry(0.09, 16, 14), M2, [s*0.09, 0.88, -0.06], null, [1, 1, 0.8]);
+
+  // Nacken / Trapez
+  addPart(g, new THREE.BoxGeometry(0.30, 0.06, 0.10), M1, [0, 1.44, -0.03]);
+
+  g.name = 'muskeln'; g.visible = false;
+  bodyRoot.add(g);
+  layers.muskeln = g;
+}
+
+/* ---------- SKELETT ---------- */
+function buildSkeleton(){
+  const g = new THREE.Group();
+  const B = new THREE.MeshStandardMaterial({
+    color: 0xf2efe2, roughness: 0.55, metalness: 0.05, emissive: 0x161616
+  });
+
+  // Schädel
+  addPart(g, new THREE.SphereGeometry(0.10, 22, 20), B, [0, 1.68, 0], null, [1, 1.1, 0.95]);
+  addPart(g, new THREE.BoxGeometry(0.12, 0.05, 0.10), B, [0, 1.575, 0.02]);
+
+  // Wirbelsäule
+  for (let i = 0; i < 14; i++){
+    const y = 0.92 + i * 0.038;
+    addPart(g, new THREE.CylinderGeometry(0.03, 0.03, 0.02, 10), B, [0, y, -0.05]);
+  }
+
+  // Rippen
+  for (let i = 0; i < 6; i++){
+    const y = 1.40 - i * 0.048;
+    const r = 0.135 - i * 0.008;
+    const t = new THREE.Mesh(new THREE.TorusGeometry(r, 0.009, 8, 28), B);
+    t.position.set(0, y, 0);
+    t.rotation.x = Math.PI / 2;
+    t.scale.set(1, 0.75, 1);
+    g.add(t);
+  }
+
+  // Schlüsselbein / Schultergürtel
+  addPart(g, new THREE.CylinderGeometry(0.012, 0.012, 0.36, 8), B, [0, 1.40, 0], [0, 0, Math.PI/2]);
+
+  // Becken
+  for (const s of [1, -1])
+    addPart(g, new THREE.SphereGeometry(0.09, 18, 16), B, [s*0.08, 0.86, 0], null, [1.1, 0.9, 0.7]);
+  addPart(g, new THREE.BoxGeometry(0.20, 0.05, 0.06), B, [0, 0.80, 0]);
+
+  // Arme
+  for (const s of [1, -1]){
+    boneBetween(g, [s*0.27, 1.40, 0], [s*0.315, 1.06, 0], 0.018, B);  // Oberarm
+    boneBetween(g, [s*0.315, 1.06, 0], [s*0.335, 0.78, 0], 0.014, B); // Unterarm
+    addPart(g, new THREE.BoxGeometry(0.05, 0.10, 0.03), B, [s*0.34, 0.70, 0]); // Hand
+  }
+
+  // Beine
+  for (const s of [1, -1]){
+    boneBetween(g, [s*0.11, 0.86, 0], [s*0.12, 0.47, 0], 0.022, B); // Oberschenkel
+    boneBetween(g, [s*0.12, 0.47, 0], [s*0.12, 0.14, 0], 0.017, B); // Unterschenkel
+    addPart(g, new THREE.BoxGeometry(0.07, 0.05, 0.18), B, [s*0.12, 0.06, 0.06]); // Fuß
+  }
+
+  g.name = 'skelett'; g.visible = false;
+  bodyRoot.add(g);
+  layers.skelett = g;
+}
+
+/* ---------- ORGANE ---------- */
+function buildOrgans(){
+  const g = new THREE.Group();
+  organMeshes = [];
+
+  function organMesh(key, geo, pos, scale){
+    const info = ORGAN_INFO[key];
+    const mat = new THREE.MeshStandardMaterial({
+      color: info.color, roughness: 0.42, metalness: 0.1,
+      emissive: new THREE.Color(info.color).multiplyScalar(0.25),
+      emissiveIntensity: 0.9
+    });
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(pos[0], pos[1], pos[2]);
+    if (scale) m.scale.set(scale[0], scale[1], scale[2]);
+    m.userData.organ = key;
+    g.add(m);
+    organMeshes.push(m);
+    return m;
+  }
+
+  // Gehirn
+  organMesh('brain', new THREE.SphereGeometry(0.08, 22, 20), [0, 1.69, 0], [1, 1.15, 1]);
+
+  // Herz
+  organMesh('heart', new THREE.SphereGeometry(0.055, 20, 18), [-0.035, 1.30, 0.045], [1, 1.25, 1]);
+
+  // Lunge (2 Lappen-Objekte, gleicher Key)
+  organMesh('lunge', new THREE.SphereGeometry(0.075, 20, 18), [ 0.085, 1.33, 0], [0.9, 1.5, 0.85]);
+  organMesh('lunge', new THREE.SphereGeometry(0.075, 20, 18), [-0.085, 1.33, 0], [0.9, 1.5, 0.85]);
+
+  // Leber (rechts)
+  organMesh('liver', new THREE.SphereGeometry(0.085, 20, 18), [0.075, 1.14, 0.02], [1.3, 0.7, 0.9]);
+
+  // Magen (links)
+  organMesh('stomach', new THREE.SphereGeometry(0.065, 20, 18), [-0.075, 1.10, 0.02], [1, 1.15, 0.9]);
+
+  // Nieren (2)
+  organMesh('kidney', new THREE.SphereGeometry(0.042, 16, 14), [ 0.075, 1.02, -0.06], [1, 1.6, 0.85]);
+  organMesh('kidney', new THREE.SphereGeometry(0.042, 16, 14), [-0.075, 1.02, -0.06], [1, 1.6, 0.85]);
+
+  // Darm
+  const darm = new THREE.Mesh(
+    new THREE.TorusGeometry(0.075, 0.028, 10, 26),
+    new THREE.MeshStandardMaterial({
+      color: ORGAN_INFO.darm.color, roughness: 0.5, metalness: 0.1,
+      emissive: new THREE.Color(ORGAN_INFO.darm.color).multiplyScalar(0.2),
+      emissiveIntensity: 0.9
+    })
+  );
+  darm.position.set(0, 0.97, 0.02);
+  darm.rotation.x = Math.PI / 2;
+  darm.scale.set(1, 0.8, 1);
+  darm.userData.organ = 'darm';
+  g.add(darm);
+  organMeshes.push(darm);
+
+  // Prostata
+  organMesh('prostate', new THREE.SphereGeometry(0.028, 14, 12), [0, 0.855, 0.01]);
+
+  // Hoden (2)
+  organMesh('hoden', new THREE.SphereGeometry(0.025, 14, 12), [ 0.032, 0.78, 0.03]);
+  organMesh('hoden', new THREE.SphereGeometry(0.025, 14, 12), [-0.032, 0.78, 0.03]);
+
+  g.name = 'organe'; g.visible = false;
+  bodyRoot.add(g);
+  layers.organe = g;
+}
+
+/* ---------- LAYER-WECHSEL ---------- */
+function setLayer(name){
+  currentLayer = name;
+  for (const k in layers) layers[k].visible = (k === name);
+  document.querySelectorAll('.layer-btn[data-layer]').forEach(b =>
+    b.classList.toggle('active', b.dataset.layer === name)
+  );
+}
+document.querySelectorAll('.layer-btn[data-layer]').forEach(b =>
+  b.addEventListener('click', () => setLayer(b.dataset.layer))
+);
+
+document.getElementById('resetCam').addEventListener('click', () => {
+  if (!camera) return;
+  camera.position.set(0, 1.15, 3.1);
+  controls.target.set(0, 1.0, 0);
+  controls.update();
+});
+
+/* ---------- K L I C K ---------- */
+function onPointerDown(e){
+  if (!layers.organe || !layers.organe.visible) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(organMeshes, false);
+  if (hits.length) openOrganModal(hits[0].object.userData.organ);
+}
+
+/* ---------- MODAL ---------- */
+const modal = document.getElementById('modal');
+const modalTitle = document.getElementById('modalTitle');
+const modalText = document.getElementById('modalText');
+let lastSpoken = '';
+
+function openOrganModal(key){
+  const info = ORGAN_INFO[key];
+  if (!info) return;
+  modalTitle.innerHTML =
+    `<span class="modal-org-dot" style="background:${info.color};box-shadow:0 0 12px ${info.color}"></span>${info.name}`;
+  modalText.textContent = info.text;
+  lastSpoken = info.name + '. ' + info.text;
+  modal.classList.add('show');
+  speak(lastSpoken);
+}
+
+function closeModal(){
+  modal.classList.remove('show');
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+}
+document.getElementById('modalClose').addEventListener('click', closeModal);
+modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+document.getElementById('modalSpeak').addEventListener('click', () => {
+  const was = state.tts;
+  state.tts = true;
+  speak(lastSpoken);
+  state.tts = was;
+});
+
+/* ============================================================
+   START
+============================================================ */
+document.documentElement.dir = (state.lang === 'ar' || state.lang === 'fa') ? 'rtl' : 'ltr';
+renderDashboard();
+</script>
+</body>
+</html>
