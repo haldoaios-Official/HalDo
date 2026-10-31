@@ -43,11 +43,12 @@ body{
 #welcome-overlay {
   position: fixed; inset: 0; z-index: 9999;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  background: rgba(2, 2, 5, 0.7); backdrop-filter: blur(8px);
+  background: rgba(2, 2, 5, 0.75); backdrop-filter: blur(10px);
   opacity: 0; pointer-events: none; transition: opacity 1s ease;
 }
 #welcome-overlay.show { opacity: 1; pointer-events: auto; }
-.welcome-content { text-align: center; max-width: 800px; padding: 20px; }
+.welcome-content { text-align: center; max-width: 800px; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+.welcome-logo { width: 120px; height: 120px; object-fit: contain; margin-bottom: 20px; filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.6)); }
 .welcome-title {
   font-size: 3rem; font-weight: 800; letter-spacing: 2px;
   background: linear-gradient(120deg, var(--gold), var(--gold-2));
@@ -68,7 +69,8 @@ body{
 ============================================================ */
 #sidebar{background:rgba(10,16,26,.72);backdrop-filter:blur(22px);border-right:1px solid var(--border);padding:22px 14px;display:flex;flex-direction:column;gap:4px;overflow-y:auto;z-index:50;transition:transform .32s cubic-bezier(.4,0,.2,1);}
 .brand{display:flex;align-items:center;gap:10px;padding:4px 10px 20px;}
-.brand-logo{font-size:24px;font-weight:800;background:linear-gradient(120deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.brand-logo-img { width: 32px; height: 32px; object-fit: contain; }
+.brand-logo-text{font-size:24px;font-weight:800;background:linear-gradient(120deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent;}
 .brand-sub{font-size:10px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;}
 .nav-section{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;padding:14px 12px 6px;}
 .nav-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:12px;border:1px solid transparent;background:transparent;color:#c3d1e6;font-size:13.5px;font-weight:500;cursor:pointer;text-align:left;width:100%;font-family:inherit;transition:all .18s ease;}
@@ -170,6 +172,7 @@ input[type="range"] { width: 150px; accent-color: var(--accent); }
   #main{padding:66px 16px 16px;}
   #menuBtn{display:flex;}
   .welcome-title { font-size: 2rem; }
+  .welcome-logo { width: 80px; height: 80px; }
 }
 </style>
 <script type="importmap">
@@ -186,6 +189,7 @@ input[type="range"] { width: 150px; accent-color: var(--accent); }
 
 <div id="welcome-overlay">
   <div class="welcome-content">
+    <img src="logo.png" alt="HalDo Logo" class="welcome-logo" onerror="this.style.display='none'">
     <div class="welcome-title" id="welcomeTitle"></div>
     <div class="welcome-sub" id="welcomeSub"></div>
   </div>
@@ -195,8 +199,9 @@ input[type="range"] { width: 150px; accent-color: var(--accent); }
 <div id="app">
   <aside id="sidebar">
     <div class="brand">
+      <img src="logo.png" alt="HalDo" class="brand-logo-img" onerror="this.style.display='none'">
       <div>
-        <div class="brand-logo">HalDo</div>
+        <div class="brand-logo-text">HalDo</div>
         <div class="brand-sub" id="sidebarSub">Arztbuch Pro Max</div>
       </div>
     </div>
@@ -457,11 +462,9 @@ function showWelcome(appName) {
     });
   });
   
-  // Auto-Open Logic
   setTimeout(() => {
     welcomeOverlay.classList.remove('show');
     document.getElementById('app').classList.add('ready');
-    // Automatisch zur Anatomie wechseln nach dem Gruß
     switchView('anatomie', 'Anatomie 3D');
   }, state.greetDuration * 1000);
 }
@@ -649,7 +652,6 @@ function createSunTexture() {
   canvas.height = 512;
   const ctx = canvas.getContext('2d');
   
-  // Basis-Gradient
   const gradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
   gradient.addColorStop(0, '#ffffff');
   gradient.addColorStop(0.2, '#ffffaa');
@@ -660,7 +662,6 @@ function createSunTexture() {
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, 512, 512);
   
-  // Ein paar zufällige "Flare"-Punkte für Textur
   for (let i = 0; i < 50; i++) {
     const x = Math.random() * 512;
     const y = Math.random() * 512;
@@ -708,7 +709,7 @@ function initBackground() {
   earthMesh.position.set(-8, 3, -20);
   bgScene.add(earthMesh);
 
-  // SONNE (Generiert im Code, keine externen Links mehr!)
+  // SONNE (Generiert im Code)
   const sunTex = createSunTexture();
   sunMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 64, 64), new THREE.MeshBasicMaterial({ map: sunTex }));
   sunMesh.position.set(35, 25, -60);
@@ -750,7 +751,7 @@ function initBackground() {
   textMesh.rotation.z = -Math.PI / 16;
   bgScene.add(textMesh);
 
-  // Logo laden
+  // Logo laden (als 3D-Objekt im Hintergrund)
   const logoTexture = textureLoader.load('logo.png');
   const logoMaterial = new THREE.MeshBasicMaterial({ map: logoTexture, transparent: true });
   const logoMesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), logoMaterial);
@@ -848,8 +849,8 @@ function initAnatomy() {
 
   const loader = new GLTFLoader();
 
-  // 1. Mensch (Echtes GLTF-Modell mit SSS / Hologramm-Look)
-  const humanUrl = 'https://pub-2534e921bf9c4314addcd4d8a6e98b7b.r2.dev/avatars/mixamo/glb/xbot.glb';
+  // 1. Mensch (Echtes GLTF-Modell von three.ws)
+  const humanUrl = 'https://three.ws/avatars/xbot.glb';
   
   loader.load(humanUrl, (gltf) => {
     humanModel = gltf.scene;
@@ -868,11 +869,11 @@ function initAnatomy() {
     humanModel.traverse((child) => {
       if (child.isMesh) {
         child.material = new THREE.MeshPhysicalMaterial({
-          color: 0xffe4cc, // Hautfarbe
+          color: 0xffe4cc,
           roughness: 0.3,
           metalness: 0.1,
           clearcoat: 0.2,
-          transmission: 0.2, // SSS-Effekt
+          transmission: 0.2,
           thickness: 1.0,
           ior: 1.4
         });
@@ -883,14 +884,14 @@ function initAnatomy() {
     scene.add(humanModel);
     
     document.getElementById('loaderContainer').style.display = 'none';
-    toggleAnatomy('human'); // Start mit Mensch
+    toggleAnatomy('human');
 
   }, undefined, (error) => {
     console.error('Human Modell Fehler:', error);
     document.getElementById('loaderContainer').innerHTML = '<p style="color:red;">Human Modell Fehler.</p>';
   });
 
-  // 2. Skelett (Prozedural, da kein gutes leichtes Skelett-Modell vorhanden)
+  // 2. Skelett (Prozedural)
   skeletonModel = buildProceduralSkeleton();
   skeletonModel.visible = false;
   scene.add(skeletonModel);
@@ -911,7 +912,6 @@ function initAnatomy() {
     cyborgModel.position.z = -center.z * scaleFactor;
     cyborgModel.position.y = -box.min.y * scaleFactor;
 
-    // Cyborg-Look
     cyborgModel.traverse((child) => {
       if (child.isMesh) {
         child.material = new THREE.MeshStandardMaterial({
@@ -939,7 +939,6 @@ function initAnatomy() {
 
   clock = new THREE.Clock();
 
-  // Animation Loop
   function animate() {
     requestAnimationFrame(animate);
     controls.update();
@@ -947,7 +946,6 @@ function initAnatomy() {
     const delta = clock.getDelta();
     if (mixer) mixer.update(delta);
 
-    // Atem-Animation für Mensch (leichtes Schweben)
     if (humanModel && humanModel.visible) {
       const time = clock.getElapsedTime();
       humanModel.position.y = -0.0 + Math.sin(time * 2) * 0.015;
@@ -964,7 +962,6 @@ function initAnatomy() {
   }).observe(host);
 }
 
-// Umschalt-Funktion
 window.toggleAnatomy = function(mode) {
   state.anatomyMode = mode;
   
@@ -990,7 +987,6 @@ window.toggleAnatomy = function(mode) {
   }
 };
 
-// Cyborg Animationen
 window.playCyborgAnim = function(animName) {
   if (!actions || !mixer) return;
   
@@ -1010,7 +1006,6 @@ window.playCyborgAnim = function(animName) {
   }
 };
 
-// Prozedurales Skelett (Fallback)
 function buildProceduralSkeleton() {
   const group = new THREE.Group();
   const boneMat = new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.45 });
