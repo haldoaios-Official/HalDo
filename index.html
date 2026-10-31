@@ -587,7 +587,7 @@ function initBackground() {
 
   const textureLoader = new THREE.TextureLoader();
   
-  // SONNE (Generiert)
+  // SONNE
   const sunTex = createSunTexture();
   sunMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 64, 64), new THREE.MeshBasicMaterial({ map: sunTex }));
   sunMesh.position.set(35, 25, -60);
@@ -650,7 +650,7 @@ function initBackground() {
 initBackground();
 
 /* ============================================================
-   5. ANATOMIE 3D (PERFEKT ZENTRIERT)
+   5. ANATOMIE 3D (PERFEKT ZENTRIERT & LEBENDIG)
 ============================================================ */
 let scene, camera, renderer, controls;
 let bodyGroup, currentLayer = 'human';
@@ -659,6 +659,8 @@ let anatomyInited = false;
 let raycasterAnatomy, mouseAnatomy;
 let organMeshes = [];
 let ttsText = '';
+let clockAnatomy;
+let baseY = 0;
 
 const ORGAN_INFO = {
   brain: { name: 'Gehirn', color: '#f2a0c0', text: 'Das Gehirn ist die Zentrale des Nervensystems. Es steuert Denken, Bewegung, Atmung und Hormone.' },
@@ -677,8 +679,8 @@ function initAnatomy() {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
   
-  // Kamera richtig positioniert
-  camera.position.set(0, 1.2, 5.5);
+  // KAMERA WEIT WEG
+  camera.position.set(0, 1.2, 6);
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -687,6 +689,7 @@ function initAnatomy() {
   host.appendChild(renderer.domElement);
 
   controls = new OrbitControls(camera, renderer.domElement);
+  // TARGET AUF DIE MITTE
   controls.target.set(0, 1.0, 0);
   controls.enableDamping = true;
   controls.minDistance = 1.0;
@@ -709,19 +712,16 @@ function initAnatomy() {
     humanModel = gltf.scene;
     humanModel.rotation.set(0, Math.PI, 0); 
 
-    // Pivot Group für perfekte Skalierung
-    const pivot = new THREE.Group();
-    pivot.add(humanModel);
-    const box = new THREE.Box3().setFromObject(pivot);
-    const size = box.getSize(new THREE.Vector3());
-    const scale = 2.0 / size.y; // Exakt 2m hoch
-    pivot.scale.set(scale, scale, scale);
+    // RADIKALE SKALIERUNG FÜR MIXAMO
+    humanModel.scale.set(0.01, 0.01, 0.01); 
     
-    // Nach Skalierung neu berechnen für Füße auf 0
-    box.setFromObject(pivot);
-    pivot.position.y = -box.min.y;
-    pivot.position.x = -(box.max.x + box.min.x) / 2;
-    pivot.position.z = -(box.max.z + box.min.z) / 2;
+    // Position auf Füsse (0,0,0)
+    const box = new THREE.Box3().setFromObject(humanModel);
+    humanModel.position.x = -(box.max.x + box.min.x) / 2;
+    humanModel.position.z = -(box.max.z + box.min.z) / 2;
+    humanModel.position.y = -box.min.y;
+    
+    baseY = humanModel.position.y;
 
     humanModel.traverse((child) => {
       if (child.isMesh) {
@@ -732,12 +732,16 @@ function initAnatomy() {
       }
     });
 
-    bodyGroup.add(pivot);
+    bodyGroup.add(humanModel);
     
-    buildProceduralLayers(2.0); 
+    // EBENEN ANPASSEN (Höhe ist jetzt ca 1.8 Einheiten)
+    buildProceduralLayers(1.8); 
     
     document.getElementById('loaderContainer').style.display = 'none';
     toggleAnatomy('human');
+    
+    // Atem-Animation starten
+    clockAnatomy = new THREE.Clock();
 
   }, undefined, (error) => {
     console.error('Human Modell Fehler:', error);
@@ -764,6 +768,13 @@ function initAnatomy() {
   function animate() {
     requestAnimationFrame(animate);
     controls.update();
+    
+    // Lebendige Atem-Animation
+    if (humanModel && humanModel.visible && clockAnatomy) {
+      const time = clockAnatomy.getElapsedTime();
+      humanModel.position.y = baseY + Math.sin(time * 2) * 0.02;
+    }
+
     renderer.render(scene, camera);
   }
   animate();
@@ -773,14 +784,14 @@ function buildProceduralLayers(modelHeight) {
   const skinMat = new THREE.MeshStandardMaterial({ color: 0xb32b2b, roughness: 0.65, transparent: true, opacity: 0.8 });
   const boneMat = new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.45 });
   
-  const h = modelHeight;
+  const h = modelHeight; // Ca 1.8
   const centerY = h / 2;
 
   // MUSKELN
   muscleGroup = new THREE.Group();
-  const m1 = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.5, 16, 32), skinMat); m1.position.set(0, centerY, 0); muscleGroup.add(m1);
-  const m2 = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.5, 16, 32), skinMat); m2.position.set(0.25, centerY - 0.2, 0); muscleGroup.add(m2);
-  const m3 = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.5, 16, 32), skinMat); m3.position.set(-0.25, centerY - 0.2, 0); muscleGroup.add(m3);
+  const m1 = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.4, 16, 32), skinMat); m1.position.set(0, centerY, 0); muscleGroup.add(m1);
+  const m2 = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.4, 16, 32), skinMat); m2.position.set(0.22, centerY - 0.2, 0); muscleGroup.add(m2);
+  const m3 = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.4, 16, 32), skinMat); m3.position.set(-0.22, centerY - 0.2, 0); muscleGroup.add(m3);
   bodyGroup.add(muscleGroup);
 
   // SKELETT
@@ -823,7 +834,7 @@ window.toggleAnatomy = function(mode) {
 
 document.getElementById('resetCam').addEventListener('click', () => { 
   if (camera) {
-    camera.position.set(0, 1.2, 5.5); 
+    camera.position.set(0, 1.2, 6); 
     controls.target.set(0, 1.0, 0); 
     controls.update(); 
   }
