@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>HalDo AI OS - Arztbuch Pro Max</title>
+<link rel="icon" href="data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
 <style>
 /* ============================================================
    BASIS & THEME (Glassmorphism, Dark Mode)
@@ -37,12 +38,12 @@ body{
 #bg-canvas:active{cursor:grabbing;}
 
 /* ============================================================
-   WILLKOMMENS-OVERLAY (Typewriter)
+   WILLKOMMENS-OVERLAY
 ============================================================ */
 #welcome-overlay {
   position: fixed; inset: 0; z-index: 9999;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  background: rgba(2, 2, 5, 0.75); backdrop-filter: blur(12px);
+  background: rgba(2, 2, 5, 0.7); backdrop-filter: blur(8px);
   opacity: 0; pointer-events: none; transition: opacity 1s ease;
 }
 #welcome-overlay.show { opacity: 1; pointer-events: auto; }
@@ -61,11 +62,6 @@ body{
   position: absolute; bottom: 50px; left: 0; right: 0;
   text-align: center; font-size: 1rem; color: var(--muted); letter-spacing: 1px;
 }
-.typewriter-cursor {
-  display: inline-block; width: 2px; height: 1em; background: var(--gold);
-  animation: blink 1s step-end infinite; vertical-align: bottom;
-}
-@keyframes blink { 50% { opacity: 0; } }
 
 /* ============================================================
    SIDEBAR
@@ -142,6 +138,10 @@ body{
 .loader { border: 4px solid rgba(255,255,255,0.1); border-left-color: var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 10px; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+/* Cyborg Actions */
+.cyborg-actions { display: none; gap: 8px; margin-top: 10px; }
+.cyborg-actions.show { display: flex; }
+
 /* ============================================================
    PLACEHOLDER & SETTINGS
 ============================================================ */
@@ -184,7 +184,6 @@ input[type="range"] { width: 150px; accent-color: var(--accent); }
 <body>
 <canvas id="bg-canvas"></canvas>
 
-<!-- WILLKOMMENS-OVERLAY -->
 <div id="welcome-overlay">
   <div class="welcome-content">
     <div class="welcome-title" id="welcomeTitle"></div>
@@ -251,7 +250,7 @@ input[type="range"] { width: 150px; accent-color: var(--accent); }
 
     <!-- ANATOMIE -->
     <section id="view-anatomie" class="view col">
-      <div class="view-head"><h1>Anatomie 3D Pro Max</h1><p class="sub">Mensch · Cyborg · Skelett</p></div>
+      <div class="view-head"><h1>Anatomie 3D Pro Max</h1><p class="sub">Mensch · Lebendiger Cyborg · Skelett</p></div>
       <div class="anatomy-wrap">
         <div class="anatomy-toolbar">
           <button class="layer-btn active" id="btnHuman" onclick="toggleAnatomy('human')">🧍 Mensch</button>
@@ -260,6 +259,15 @@ input[type="range"] { width: 150px; accent-color: var(--accent); }
           <div class="spacer"></div>
           <button class="layer-btn" id="resetCam">🔄 Kamera</button>
         </div>
+        
+        <!-- Cyborg Steuerung -->
+        <div class="cyborg-actions" id="cyborgActions">
+          <button class="layer-btn" onclick="playCyborgAnim('Wave')">👋 Winken</button>
+          <button class="layer-btn" onclick="playCyborgAnim('ThumbsUp')">👍 Daumen hoch</button>
+          <button class="layer-btn" onclick="playCyborgAnim('Dance')">🕺 Tanzen</button>
+          <button class="layer-btn" onclick="playCyborgAnim('Idle')">🧘 Ruhen</button>
+        </div>
+
         <div id="anatomy-canvas">
           <div class="loader-container" id="loaderContainer">
             <div class="loader"></div>
@@ -792,12 +800,14 @@ function initBackground() {
 initBackground();
 
 /* ============================================================
-   6. ANATOMIE 3D (Mensch, Cyborg, Skelett)
+   6. ANATOMIE 3D (Mensch, Lebendiger Cyborg, Skelett)
 ============================================================ */
 let scene, camera, renderer, controls;
 let humanModel, cyborgModel, skeletonModel;
 let anatomyInited = false;
 let clock;
+let mixer;
+let actions = {};
 
 function initAnatomy() {
   if (anatomyInited) return;
@@ -843,33 +853,42 @@ function initAnatomy() {
   skeletonModel.visible = false;
   scene.add(skeletonModel);
 
-  // 3. Cyborg (GLTF Y-Bot)
+  // 3. Cyborg (Lebendiges GLTF Model mit Animationen)
   const loader = new GLTFLoader();
-  const modelUrl = 'https://pub-2534e921bf9c4314addcd4d8a6e98b7b.r2.dev/avatars/mixamo/glb/y-bot.glb';
+  const modelUrl = 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/models/gltf/RobotExpressive/RobotExpressive.glb';
   
   loader.load(modelUrl, (gltf) => {
     cyborgModel = gltf.scene;
     
-    // Cyborg-Look (Metallic)
+    // Cyborg-Look (Metallic Cyan/Magenta)
     cyborgModel.traverse((child) => {
       if (child.isMesh) {
         child.material = new THREE.MeshStandardMaterial({
-          color: 0x333333,
+          color: 0x222222,
           metalness: 0.9,
           roughness: 0.2,
           emissive: 0x00d4ff,
-          emissiveIntensity: 0.2
+          emissiveIntensity: 0.4
         });
       }
     });
 
-    // Größe anpassen (damit er neben den anderen passt)
+    // Größe anpassen
     cyborgModel.scale.set(1.1, 1.1, 1.1);
     cyborgModel.position.set(0, 0, 0);
     
     cyborgModel.visible = false;
     scene.add(cyborgModel);
+
+    // Animationen laden
+    mixer = new THREE.AnimationMixer(cyborgModel);
+    gltf.animations.forEach((clip) => {
+      actions[clip.name] = mixer.clipAction(clip);
+    });
     
+    // Standard-Animation
+    if (actions['Idle']) actions['Idle'].play();
+
     document.getElementById('loaderContainer').style.display = 'none';
     toggleAnatomy('human'); // Start mit Mensch
 
@@ -883,23 +902,20 @@ function initAnatomy() {
 
   clock = new THREE.Clock();
 
-  // Animation Loop (mit Atmen & Schweben)
+  // Animation Loop
   function animate() {
     requestAnimationFrame(animate);
     controls.update();
     
-    const time = clock.getElapsedTime();
+    const delta = clock.getDelta();
     
+    // Mixer updaten (für Cyborg Animationen)
+    if (mixer) mixer.update(delta);
+
     // Atem-Animation für Mensch
     if (humanModel && humanModel.visible) {
+      const time = clock.getElapsedTime();
       humanModel.position.y = Math.sin(time * 2) * 0.02;
-      // Leichtes Armdrehen
-      if (humanModel.children[0]) humanModel.children[0].rotation.z = Math.sin(time * 2) * 0.02;
-    }
-    
-    // Schwebe-Animation für Cyborg
-    if (cyborgModel && cyborgModel.visible) {
-      cyborgModel.position.y = Math.sin(time * 1.5) * 0.05;
     }
 
     renderer.render(scene, camera);
@@ -926,6 +942,7 @@ window.toggleAnatomy = function(mode) {
   document.getElementById('btnHuman').classList.remove('active');
   document.getElementById('btnCyborg').classList.remove('active');
   document.getElementById('btnSkeleton').classList.remove('active');
+  document.getElementById('cyborgActions').classList.remove('show');
 
   if (mode === 'human' && humanModel) {
     humanModel.visible = true;
@@ -933,9 +950,35 @@ window.toggleAnatomy = function(mode) {
   } else if (mode === 'cyborg' && cyborgModel) {
     cyborgModel.visible = true;
     document.getElementById('btnCyborg').classList.add('active');
+    document.getElementById('cyborgActions').classList.add('show');
   } else if (mode === 'skeleton' && skeletonModel) {
     skeletonModel.visible = true;
     document.getElementById('btnSkeleton').classList.add('active');
+  }
+};
+
+// Cyborg Animationen abspielen
+window.playCyborgAnim = function(animName) {
+  if (!actions || !mixer) return;
+  
+  // Stoppe alle laufenden Animationen
+  for (const key in actions) {
+    actions[key].fadeOut(0.2);
+  }
+  
+  // Spiele die neue Animation
+  if (actions[animName]) {
+    const action = actions[animName];
+    action.reset().fadeIn(0.2).play();
+    
+    // Wenn es keine Idle-Animation ist, kehre nach 3 Sekunden zurück
+    if (animName !== 'Idle') {
+      setTimeout(() => {
+        if (state.anatomyMode === 'cyborg') {
+          actions['Idle'].reset().fadeIn(0.2).play();
+        }
+      }, 3000);
+    }
   }
 };
 
