@@ -6,7 +6,7 @@
 <title>HalDo Arztbuch - 3D Anatomie Pro Max</title>
 <style>
 /* ============================================================
-   BASIS & THEME (Dunkel, Glassmorphism)
+   BASIS & THEME
 ============================================================ */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -21,7 +21,7 @@
 }
 html,body{height:100%;}
 body{
-  background: #000; /* Fallback */
+  background: #000;
   color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
   overflow:hidden; -webkit-font-smoothing:antialiased;
@@ -40,7 +40,7 @@ body{
 .view.active{display:block;}
 .view.active.col{display:flex;flex-direction:column;overflow:hidden;}
 .anatomy-wrap{display:flex;flex-direction:column;flex:1;min-height:0;gap:14px;}
-.anatomy-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.anatomy-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center; position:relative; z-index:10;}
 .layer-btn{padding:8px 16px;border-radius:11px;border:1px solid var(--border);background:var(--glass);color:#c3d1e6;font-size:12.5px;font-weight:600;cursor:pointer;transition:.18s;display:flex;align-items:center;gap:7px;}
 .layer-btn:hover{background:var(--glass-2);color:#fff;}
 .layer-btn.active{background:linear-gradient(90deg,rgba(0,212,255,.22),rgba(0,255,163,.08));border-color:var(--accent);color:#fff;box-shadow:0 0 18px rgba(0,212,255,.2);}
@@ -49,14 +49,7 @@ body{
 #anatomy-canvas canvas{display:block;width:100%!important;height:100%!important;}
 .anatomy-hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--muted);background:rgba(0,0,0,.5);padding:6px 14px;border-radius:99px;border:1px solid var(--border);white-space:nowrap;pointer-events:none;}
 
-/* Neuer Hintergrund */
 #bg-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; pointer-events: none; }
-
-/* Type Selector */
-.type-selector { display: flex; gap: 10px; padding: 10px; background: rgba(0,0,0,0.4); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 10px; overflow-x: auto; white-space: nowrap; align-items: center; }
-.type-btn { padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border); background: var(--glass); color: #fff; cursor: pointer; font-size: 13px; transition: 0.2s; font-family: inherit; font-weight: 600; }
-.type-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
-.type-btn:hover:not(.active) { background: var(--glass-2); }
 
 /* Responsive */
 @media (max-width:860px){
@@ -93,13 +86,9 @@ body{
     <section id="view-anatomie" class="view active col">
       <div class="view-head">
         <h1>Anatomie 3D Pro Max</h1>
-        <p class="sub">Fotorealistisch · BodyParts3D · Subsurface Scattering</p>
+        <p class="sub">Prozedural · Fotorealistisch · 4 Ebenen</p>
       </div>
       <div class="anatomy-wrap">
-        <div class="type-selector" id="type-selector">
-          <button class="type-btn active" data-type="male">Männlich</button>
-          <button class="type-btn" data-type="female">Weiblich</button>
-        </div>
         <div class="anatomy-toolbar">
           <button class="layer-btn" data-layer="haut">🫥 Haut</button>
           <button class="layer-btn" data-layer="muskeln">💪 Muskeln</button>
@@ -109,7 +98,7 @@ body{
           <button class="layer-btn" id="resetCam">🔄 Kamera</button>
         </div>
         <div id="anatomy-canvas">
-          <div class="anatomy-hint">Lade fotorealistisches Modell... Bitte warten.</div>
+          <div class="anatomy-hint">Ziehen = Drehen · Scrollen = Zoom · Organ anklicken</div>
         </div>
       </div>
     </section>
@@ -119,11 +108,9 @@ body{
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
 /* ============================================================
-   1. DER NEUE WELTRAUM-HINTERGRUND (Sonne, Sterne, Erde)
+   1. WELTRAUM HINTERGRUND (Sonne, Mond, Sterne, Erde)
 ============================================================ */
 function initBackground() {
   const canvas = document.getElementById('bg-canvas');
@@ -131,67 +118,80 @@ function initBackground() {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.2;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x050505);
+  scene.background = new THREE.Color(0x020205); // Tiefes Weltraum-Schwarz
   const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
-  camera.position.z = 5;
+  camera.position.z = 10;
 
-  // Sterne (Partikelwolke)
+  // --- STERNE ---
   const starGeometry = new THREE.BufferGeometry();
-  const starCount = 5000;
+  const starCount = 8000;
   const starPositions = new Float32Array(starCount * 3);
   for (let i = 0; i < starCount * 3; i += 3) {
-    starPositions[i] = (Math.random() - 0.5) * 1000;
-    starPositions[i+1] = (Math.random() - 0.5) * 1000;
-    starPositions[i+2] = (Math.random() - 0.5) * 1000;
+    starPositions[i] = (Math.random() - 0.5) * 2000;
+    starPositions[i+1] = (Math.random() - 0.5) * 2000;
+    starPositions[i+2] = (Math.random() - 0.5) * 2000;
   }
   starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-  const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.8, transparent: true, opacity: 0.8, sizeAttenuation: true });
+  const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 1.2, transparent: true, opacity: 0.9 });
   const stars = new THREE.Points(starGeometry, starMaterial);
   scene.add(stars);
 
-  // Die Sonne (Leuchtende Kugel mit Glut-Effekt)
-  const sunGeometry = new THREE.SphereGeometry(0.8, 64, 64);
-  const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
-  const sun = new THREE.Mesh(sunGeometry, sunMaterial);
-  sun.position.set(10, 5, -15);
+  // --- SONNE (mit Glut-Effekt) ---
+  const sunGeo = new THREE.SphereGeometry(3, 64, 64);
+  const sunMat = new THREE.MeshBasicMaterial({ color: 0xffdd55 });
+  const sun = new THREE.Mesh(sunGeo, sunMat);
+  sun.position.set(30, 20, -40);
   scene.add(sun);
-  // Sonnen-Glow
-  const sunGlow = new THREE.PointLight(0xffaa00, 2, 50);
-  sunGlow.position.copy(sun.position);
-  scene.add(sunGlow);
 
-  // Die Erde
-  const earthGeometry = new THREE.SphereGeometry(2, 64, 64);
+  // Sonnen-Corona (Sprite)
+  const canvasSun = document.createElement('canvas');
+  canvasSun.width = 256; canvasSun.height = 256;
+  const ctx = canvasSun.getContext('2d');
+  const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  gradient.addColorStop(0, 'rgba(255, 240, 180, 1)');
+  gradient.addColorStop(0.2, 'rgba(255, 200, 50, 0.8)');
+  gradient.addColorStop(0.5, 'rgba(255, 100, 0, 0.3)');
+  gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 256, 256);
+  const sunSpriteMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvasSun), blending: THREE.AdditiveBlending });
+  const sunSprite = new THREE.Sprite(sunSpriteMat);
+  sunSprite.scale.set(30, 30, 1);
+  sunSprite.position.copy(sun.position);
+  scene.add(sunSprite);
+
+  // --- ERDE (Mittig) ---
+  const earthGeo = new THREE.SphereGeometry(5, 64, 64);
   const textureLoader = new THREE.TextureLoader();
   const earthMap = textureLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
-  const earthMaterial = new THREE.MeshPhongMaterial({ map: earthMap, shininess: 5 });
-  const earth = new THREE.Mesh(earthGeometry, earthMaterial);
-  earth.position.set(-6, -3, -10);
-  earth.rotation.y = 2.0;
+  const earthMat = new THREE.MeshStandardMaterial({ map: earthMap, roughness: 0.8, metalness: 0.1 });
+  const earth = new THREE.Mesh(earthGeo, earthMat);
+  earth.position.set(15, -10, -20);
   scene.add(earth);
-  
-  // Erd-Atmosphäre (Blauer Schimmer)
-  const atmosGeometry = new THREE.SphereGeometry(2.05, 64, 64);
-  const atmosMaterial = new THREE.MeshBasicMaterial({ color: 0x00aaff, transparent: true, opacity: 0.15, side: THREE.BackSide });
-  const atmosphere = new THREE.Mesh(atmosGeometry, atmosMaterial);
-  atmosphere.position.copy(earth.position);
-  scene.add(atmosphere);
 
-  // Licht
-  scene.add(new THREE.AmbientLight(0x222222));
-  const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
-  dirLight.position.set(5, 3, 5);
-  scene.add(dirLight);
+  // --- MOND ---
+  const moonGeo = new THREE.SphereGeometry(1.5, 32, 32);
+  const moonMap = textureLoader.load('https://unpkg.com/three-globe/example/img/moon-map.jpg');
+  const moonMat = new THREE.MeshStandardMaterial({ map: moonMap, roughness: 1.0 });
+  const moon = new THREE.Mesh(moonGeo, moonMat);
+  moon.position.set(22, -7, -18);
+  scene.add(moon);
+
+  // Lichter im Weltraum
+  const sunLight = new THREE.PointLight(0xffccaa, 2000, 1000);
+  sunLight.position.copy(sun.position);
+  scene.add(sunLight);
+  scene.add(new THREE.AmbientLight(0x111122, 1));
 
   const clock = new THREE.Clock();
   function animateBg() {
     requestAnimationFrame(animateBg);
     const delta = clock.getDelta();
-    earth.rotation.y += delta * 0.03;
-    atmosphere.rotation.y += delta * 0.01;
+    earth.rotation.y += delta * 0.02;
+    moon.rotation.y += delta * 0.01;
+    moon.position.x = 22 + Math.sin(clock.elapsedTime * 0.2) * 2; // Leichtes Kreisen
     stars.rotation.y += delta * 0.001;
     renderer.render(scene, camera);
   }
@@ -206,19 +206,19 @@ function initBackground() {
 initBackground();
 
 /* ============================================================
-   2. FOTOREALISTISCHE ANATOMIE (GLTF + SSS)
+   2. FOTOREALISTISCHE ANATOMIE (Prozedural Pro Max)
 ============================================================ */
 let scene, camera, renderer, controls;
-let bodyGroup;
-const organMeshes = [];
-let currentAnatomy = 'male';
+let bodyGroup, currentLayer = 'organe';
+const layers = {};
+let organMeshes = [];
 
 function initAnatomy() {
   const host = document.getElementById('anatomy-canvas');
   const w = host.clientWidth, h = host.clientHeight;
 
   scene = new THREE.Scene();
-  scene.background = null; // Transparent, damit der Weltraum durchscheint
+  scene.background = null; 
 
   camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
   camera.position.set(0, 1.15, 3.1);
@@ -227,7 +227,6 @@ function initAnatomy() {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(w, h);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.0;
   host.appendChild(renderer.domElement);
 
   controls = new OrbitControls(camera, renderer.domElement);
@@ -238,62 +237,137 @@ function initAnatomy() {
   controls.autoRotate = true;
   controls.autoRotateSpeed = 0.5;
 
-  // Beleuchtung für SSS
-  scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-  const key = new THREE.DirectionalLight(0xbfe9ff, 1.5); key.position.set(2.5, 3.5, 4); scene.add(key);
-  const rim = new THREE.DirectionalLight(0xff5ea8, 0.85); rim.position.set(-3, 2, -3); scene.add(rim);
+  // --- BELEUCHTUNG FÜR SSS (Subsurface Scattering) ---
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const keyLight = new THREE.DirectionalLight(0xffeedd, 2.0); 
+  keyLight.position.set(2, 3, 4); 
+  scene.add(keyLight);
   
-  // High-End Material für Haut (Subsurface Scattering)
-  const skinMaterial = new THREE.MeshPhysicalMaterial({
-    color: 0xffddc4,
-    roughness: 0.45,
+  const rimLight = new THREE.DirectionalLight(0x00d4ff, 1.5); 
+  rimLight.position.set(-3, 1, -2); 
+  scene.add(rimLight);
+
+  // --- MATERIALIEN ---
+  // Haut: MeshPhysicalMaterial mit Transmission (SSS-Effekt)
+  const skinMat = new THREE.MeshPhysicalMaterial({
+    color: 0xffdbba, 
+    roughness: 0.4, 
     metalness: 0.0,
-    clearcoat: 0.1,
-    clearcoatRoughness: 0.2,
-    transmission: 0.1, // Leichte Lichtdurchlässigkeit
-    thickness: 0.5,    // Für SSS
-    ior: 1.4,
-    side: THREE.DoubleSide
+    clearcoat: 0.2, 
+    clearcoatRoughness: 0.3,
+    transmission: 0.4, // Lässt Licht durch die Haut
+    thickness: 1.0, 
+    ior: 1.4
   });
-
-  // Lade das hochdetaillierte GLTF-Modell (BodyParts3D)
-  const loader = new GLTFLoader();
-  const dracoLoader = new DRACOLoader();
-  dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
-  loader.setDRACOLoader(dracoLoader);
-
-  // Ersatz-URL für ein realistisches Anatomie-Modell
-  const modelUrl = 'https://raw.githubusercontent.com/ashemag/human-atlas/main/public/models/male_atlas.glb'; 
   
-  document.querySelector('.anatomy-hint').textContent = 'Lade hochauflösendes Modell (33 MB)...';
+  const muscleMat = new THREE.MeshStandardMaterial({ color: 0xb32b2b, roughness: 0.6 });
+  const boneMat = new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.5 });
+
+  // --- DER KÖRPER (Detailliert) ---
+  bodyGroup = new THREE.Group();
+  scene.add(bodyGroup);
   
-  loader.load(modelUrl, (gltf) => {
-    const model = gltf.scene;
-    bodyGroup = new THREE.Group();
-    bodyGroup.add(model);
-    scene.add(bodyGroup);
+  layers.haut = new THREE.Group();
+  layers.muskeln = new THREE.Group();
+  layers.skelett = new THREE.Group();
+  layers.organe = new THREE.Group();
+  bodyGroup.add(layers.haut, layers.muskeln, layers.skelett, layers.organe);
 
-    // Materialien überschreiben (für den SSS-Look)
-    model.traverse((child) => {
-      if (child.isMesh) {
-        child.material = skinMaterial;
-        if (child.name.includes('organ') || child.name.includes('heart') || child.name.includes('brain')) {
-           organMeshes.push(child);
-        }
-      }
-    });
-    
-    // Modell zentrieren
-    const box = new THREE.Box3().setFromObject(model);
-    const center = box.getCenter(new THREE.Vector3());
-    model.position.sub(center); 
-    model.position.y += 1.0;
+  // Helper für einfache Erstellung
+  const add = (group, geo, mat, pos, scl) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(pos[0], pos[1], pos[2]);
+    if(scl) m.scale.set(scl[0], scl[1], scl[2]);
+    group.add(m); return m;
+  };
 
-    document.querySelector('.anatomy-hint').textContent = 'Ziehen = Drehen · Scrollen = Zoom · Organ anklicken';
-    
-  }, undefined, (error) => {
-    console.error('Fehler beim Laden des Modells:', error);
-    document.querySelector('.anatomy-hint').textContent = 'Modell konnte nicht geladen werden.';
+  // --- HAUT EBENE (Glatte Formen) ---
+  // Kopf (mit Gesichtsansatz)
+  add(layers.haut, new THREE.SphereGeometry(0.12, 32, 32), skinMat, [0, 1.7, 0], [1, 1.15, 0.95]);
+  // Nacken
+  add(layers.haut, new THREE.CylinderGeometry(0.05, 0.06, 0.15, 32), skinMat, [0, 1.55, 0]);
+  
+  // Torso (Schultern, Brust, Taille) - Nutze LatheGeometry für Kurven
+  const torsoPoints = [];
+  torsoPoints.push(new THREE.Vector2(0.1, 0.8));   // Hüfte
+  torsoPoints.push(new THREE.Vector2(0.18, 1.0));  // Taille
+  torsoPoints.push(new THREE.Vector2(0.22, 1.25)); // Brust
+  torsoPoints.push(new THREE.Vector2(0.18, 1.45)); // Schultern
+  const torsoGeo = new THREE.LatheGeometry(torsoPoints, 32);
+  add(layers.haut, torsoGeo, skinMat, [0, 0, 0], [1.2, 1, 0.7]); // Skaliert für flacheren Torso
+
+  // Arme
+  for (const s of [1, -1]) {
+    add(layers.haut, new THREE.SphereGeometry(0.08, 32, 32), skinMat, [s*0.26, 1.4, 0], [1, 1.2, 1]); // Schulter
+    add(layers.haut, new THREE.CapsuleGeometry(0.06, 0.28, 16, 32), skinMat, [s*0.3, 1.1, 0]); // Bizeps
+    add(layers.haut, new THREE.CapsuleGeometry(0.05, 0.25, 16, 32), skinMat, [s*0.32, 0.75, 0]); // Unterarm
+    add(layers.haut, new THREE.BoxGeometry(0.06, 0.1, 0.03), skinMat, [s*0.33, 0.55, 0.02]); // Hand
+  }
+
+  // Beine
+  for (const s of [1, -1]) {
+    add(layers.haut, new THREE.CapsuleGeometry(0.09, 0.35, 16, 32), skinMat, [s*0.11, 0.6, 0]); // Oberschenkel
+    add(layers.haut, new THREE.CapsuleGeometry(0.07, 0.35, 16, 32), skinMat, [s*0.11, 0.2, 0]); // Unterschenkel
+    add(layers.haut, new THREE.BoxGeometry(0.1, 0.08, 0.25), skinMat, [s*0.11, 0.0, 0.06]); // Fuß
+  }
+
+  // --- MUSKELN EBENE ---
+  for (const s of [1, -1]) {
+    // Brust
+    add(layers.muskeln, new THREE.SphereGeometry(0.11, 32, 32), muscleMat, [s*0.1, 1.3, 0.08], [1.2, 0.8, 0.6]);
+    // Bauch (6-Pack)
+    for (let i = 0; i < 3; i++) {
+      add(layers.muskeln, new THREE.BoxGeometry(0.08, 0.08, 0.08), muscleMat, [s*0.045, 1.15 - i*0.1, 0.1]);
+    }
+    // Bizeps
+    add(layers.muskeln, new THREE.SphereGeometry(0.065, 32, 32), muscleMat, [s*0.3, 1.1, 0.02], [1, 1.6, 1]);
+    // Oberschenkel
+    add(layers.muskeln, new THREE.CapsuleGeometry(0.09, 0.3, 16, 32), muscleMat, [s*0.11, 0.6, 0.01]);
+  }
+
+  // --- SKELETT EBENE ---
+  add(layers.skelett, new THREE.SphereGeometry(0.09, 32, 32), boneMat, [0, 1.7, 0]); // Schädel
+  add(layers.skelett, new THREE.CylinderGeometry(0.03, 0.03, 0.7, 16), boneMat, [0, 1.1, -0.02]); // Wirbelsäule
+  
+  for (let i = 0; i < 6; i++) { // Rippen
+    const rib = new THREE.Mesh(new THREE.TorusGeometry(0.16 - i*0.015, 0.012, 16, 32), boneMat);
+    rib.position.set(0, 1.35 - i*0.08, 0);
+    rib.rotation.x = Math.PI / 2;
+    rib.scale.set(1, 0.7, 1);
+    layers.skelett.add(rib);
+  }
+
+  // --- ORGANE EBENE ---
+  const addOrgan = (geo, pos, color, key, scl) => {
+    const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3, emissive: color, emissiveIntensity: 0.2 });
+    const m = add(layers.organe, geo, mat, pos, scl);
+    m.userData.organ = key;
+    organMeshes.push(m);
+  };
+
+  addOrgan(new THREE.SphereGeometry(0.07, 32, 32), [0, 1.7, 0], '#f2a0c0', 'brain'); // Gehirn
+  addOrgan(new THREE.SphereGeometry(0.06, 32, 32), [-0.03, 1.3, 0.03], '#e63946', 'heart', [1, 1.3, 1]); // Herz
+  addOrgan(new THREE.SphereGeometry(0.08, 32, 32), [0.08, 1.32, 0], '#f4a6b8', 'lunge', [0.8, 1.5, 0.8]); // Lunge R
+  addOrgan(new THREE.SphereGeometry(0.08, 32, 32), [-0.08, 1.32, 0], '#f4a6b8', 'lunge', [0.8, 1.5, 0.8]); // Lunge L
+  addOrgan(new THREE.SphereGeometry(0.09, 32, 32), [0.07, 1.1, 0.03], '#8b2e2e', 'liver', [1.2, 0.7, 0.9]); // Leber
+
+  // Initiale Ebene setzen
+  setLayer(currentLayer);
+
+  // Raycaster für Klicks
+  const raycaster = new THREE.Raycaster();
+  const pointer = new THREE.Vector2();
+  renderer.domElement.addEventListener('pointerdown', (e) => {
+    if (!layers.organe.visible) return;
+    const rect = renderer.domElement.getBoundingClientRect();
+    pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+    const hits = raycaster.intersectObjects(organMeshes, false);
+    if (hits.length) {
+      alert("Organ angeklickt: " + hits[0].object.userData.organ);
+      // Hier später Modal öffnen
+    }
   });
 
   const ro = new ResizeObserver(() => {
@@ -307,25 +381,25 @@ function initAnatomy() {
   animate();
 }
 
-function animate() {
-  requestAnimationFrame(animate);
-  controls.update();
-  renderer.render(scene, camera);
+function setLayer(name) {
+  currentLayer = name;
+  for (const k in layers) if(layers[k]) layers[k].visible = (k === name);
+  document.querySelectorAll('.layer-btn[data-layer]').forEach(b => b.classList.toggle('active', b.dataset.layer === name));
 }
 
-// UI-Interaktion
-document.querySelectorAll('.type-btn').forEach(b => b.addEventListener('click', (e) => {
-  document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
-  e.target.classList.add('active');
-  // Hier würde die Logik zum Laden des weiblichen Modells stehen
-  console.log('Wechsle zu:', e.target.dataset.type);
-}));
+document.querySelectorAll('.layer-btn[data-layer]').forEach(b => b.addEventListener('click', () => setLayer(b.dataset.layer)));
 
 document.getElementById('resetCam').addEventListener('click', () => {
   camera.position.set(0, 1.15, 3.1);
   controls.target.set(0, 1.0, 0);
   controls.update();
 });
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
 
 // Start
 setTimeout(() => {
