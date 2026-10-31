@@ -28,7 +28,7 @@ body{
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
   overflow:hidden; -webkit-font-smoothing:antialiased;
 }
-#app{display:grid;height:100vh;height:100dvh;grid-template-columns:260px 1fr;position:relative;z-index:1;opacity:0;transition:opacity 0.5s;}
+#app{display:grid;height:100vh;height:100dvh;grid-template-columns:260px 1fr;position:relative;z-index:1;opacity:0;transition:opacity 0.8s;}
 #app.ready{opacity:1;}
 
 /* ============================================================
@@ -662,7 +662,8 @@ function initAnatomy() {
 
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
-  camera.position.set(0, 1.5, 6.5); // Kamera weiter weg
+  // KAMERA WEIT WEG
+  camera.position.set(0, 1.5, 6.5);
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -671,6 +672,7 @@ function initAnatomy() {
   host.appendChild(renderer.domElement);
 
   controls = new OrbitControls(camera, renderer.domElement);
+  // TARGET AUF DIE MITTE
   controls.target.set(0, 1.0, 0);
   controls.enableDamping = true;
   controls.minDistance = 1.0;
@@ -693,13 +695,15 @@ function initAnatomy() {
     humanModel = gltf.scene;
     humanModel.rotation.set(0, Math.PI, 0); 
 
+    // PERFEKTE SKALIERUNG AUF 2 METER HÖHE
     const box = new THREE.Box3().setFromObject(humanModel);
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z);
-    const scaleFactor = 2.0 / maxDim;
+    const height = size.y;
+    const scaleFactor = 2.0 / height;
     humanModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
     
+    // Füsse auf Y=0, horizontal zentriert
     humanModel.position.x = -center.x * scaleFactor;
     humanModel.position.z = -center.z * scaleFactor;
     humanModel.position.y = -box.min.y * scaleFactor;
@@ -715,7 +719,8 @@ function initAnatomy() {
 
     bodyGroup.add(humanModel);
     
-    buildProceduralLayers(maxDim * scaleFactor); 
+    // EBENEN AN DIE GRÖSSE ANPASSEN
+    buildProceduralLayers(2.0); 
     
     document.getElementById('loaderContainer').style.display = 'none';
     toggleAnatomy('human');
@@ -755,16 +760,16 @@ function buildProceduralLayers(modelHeight) {
   const boneMat = new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.45 });
   
   const h = modelHeight;
-  const centerY = h / 2;
+  const centerY = h / 2; // 1.0
 
-  // Muskeln
+  // MUSKELN
   muscleGroup = new THREE.Group();
   const m1 = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.5, 16, 32), skinMat); m1.position.set(0, centerY, 0); muscleGroup.add(m1);
   const m2 = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.5, 16, 32), skinMat); m2.position.set(0.25, centerY - 0.2, 0); muscleGroup.add(m2);
   const m3 = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.5, 16, 32), skinMat); m3.position.set(-0.25, centerY - 0.2, 0); muscleGroup.add(m3);
   bodyGroup.add(muscleGroup);
 
-  // Skelett
+  // SKELETT
   skeletonGroup = new THREE.Group();
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 32, 32), boneMat); head.position.set(0, h - 0.15, 0); skeletonGroup.add(head);
   const spine = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, h * 0.6, 16), boneMat); spine.position.set(0, centerY - 0.1, -0.05); skeletonGroup.add(spine);
@@ -774,7 +779,7 @@ function buildProceduralLayers(modelHeight) {
   }
   bodyGroup.add(skeletonGroup);
 
-  // Organe
+  // ORGANE
   organGroup = new THREE.Group();
   const addOrgan = (geo, pos, color, key, scl) => {
     const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3, emissive: color, emissiveIntensity: 0.2 });
