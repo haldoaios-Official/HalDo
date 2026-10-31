@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#070b12">
+<title>HalDo Arztbuch</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>🏥</text></svg>">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{--bg:#070b12;--glass:rgba(255,255,255,.045);--glass-2:rgba(255,255,255,.08);--border:rgba(255,255,255,.09);--accent:#00d4ff;--accent-2:#4da8ff;--accent-3:#b478ff;--gold:#ffd700;--gold-2:#ffb700;--danger:#ff4d6d;--warn:#ffb703;--ok:#00ffa3;--text:#e8f1ff;--muted:#7e91ab;--r:16px;--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);}
+html,body{height:100%;}
+body{background:#000;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased;}
+#app{display:grid;height:100vh;height:100dvh;grid-template-columns:260px 1fr;position:relative;z-index:1;opacity:0;transition:opacity .8s;}
+#app.ready{opacity:1;}
+#bg-canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:none;}
+#welcome-overlay{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(2,2,5,.75);backdrop-filter:blur(10px);opacity:0;pointer-events:none;transition:opacity 1s;}
+#welcome-overlay.show{opacity:1;pointer-events:auto;}
+.welcome-content{text-align:center;max-width:800px;padding:20px;}
+.welcome-title{font-size:3rem;font-weight:800;letter-spacing:2px;background:linear-gradient(120deg,var(--gold),var(--gold-2));-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:20px;text-shadow:0 0 30px rgba(255,215,0,.4);min-height:60px;}
+.welcome-sub{font-size:1.2rem;color:var(--accent);letter-spacing:4px;text-transform:uppercase;margin-bottom:40px;min-height:30px;}
+.welcome-footer{position:absolute;bottom:50px;left:0;right:0;text-align:center;font-size:1rem;color:var(--muted);letter-spacing:1px;min-height:24px;}
+#sidebar{background:rgba(10,16,26,.72);backdrop-filter:blur(22px);border-right:1px solid var(--border);padding:calc(22px + var(--safe-top)) 14px 22px;display:flex;flex-direction:column;gap:4px;overflow-y:auto;z-index:50;transition:transform .32s;}
+.brand{padding:4px 10px 20px;}
+.brand-logo-text{font-size:24px;font-weight:800;background:linear-gradient(120deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.brand-sub{font-size:10px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;}
+.nav-section{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;padding:14px 12px 6px;}
+.nav-item{display:flex;align-items:center;gap:11px;padding:12px 14px;min-height:44px;border-radius:12px;border:1px solid transparent;background:transparent;color:#c3d1e6;font-size:13.5px;font-weight:500;cursor:pointer;text-align:left;width:100%;font-family:inherit;transition:all .18s;}
+.nav-item:hover{background:var(--glass);color:#fff;}
+.nav-item.active{background:linear-gradient(90deg,rgba(0,212,255,.18),rgba(77,168,255,.06));border-color:rgba(0,212,255,.3);color:#fff;box-shadow:0 0 20px rgba(0,212,255,.12);}
+.nav-item .ico{font-size:16px;width:20px;text-align:center;}
+.nav-item.danger .ico{color:var(--danger);}
+#main{position:relative;overflow:hidden;padding:calc(22px + var(--safe-top)) 26px calc(22px + var(--safe-bottom));display:flex;flex-direction:column;height:100vh;height:100dvh;}
+#menuBtn{display:none;position:fixed;top:calc(14px + var(--safe-top));left:14px;z-index:60;width:44px;height:44px;border-radius:12px;background:rgba(10,16,26,.85);backdrop-filter:blur(12px);border:1px solid var(--border);color:#fff;font-size:19px;cursor:pointer;align-items:center;justify-content:center;font-family:inherit;}
+#backdrop{display:none;position:fixed;inset:0;z-index:45;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);}
+#backdrop.show{display:block;}
+.view{display:none;flex:1;min-height:0;overflow-y:auto;}
+.view.active{display:block;}
+.view.active.col{display:flex;flex-direction:column;overflow:hidden;}
+.view-head{margin-bottom:20px;}
+.view-head h1{font-size:26px;font-weight:700;letter-spacing:-.5px;}
+.view-head .sub{color:var(--muted);font-size:13px;margin-top:4px;}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;}
+.span-12{grid-column:span 12;}.span-8{grid-column:span 8;}.span-4{grid-column:span 4;}
+@media(max-width:1000px){.span-8,.span-4{grid-column:span 12;}}
+.card{background:var(--glass);border:1px solid var(--border);border-radius:var(--r);padding:18px;backdrop-filter:blur(14px);position:relative;overflow:hidden;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),transparent);}
+.card-label{font-size:11px;color:var(--muted);letter-spacing:1.6px;text-transform:uppercase;margin-bottom:12px;font-weight:600;}
+.placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:340px;gap:14px;text-align:center;padding:40px 20px;}
+.ph-icon{font-size:54px;opacity:.85;}
+.placeholder h2{font-size:20px;font-weight:700;}
+.placeholder p{color:var(--muted);font-size:13.5px;max-width:420px;line-height:1.6;}
+.ph-badge{font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--accent);border:1px solid rgba(0,212,255,.35);padding:5px 12px;border-radius:99px;background:rgba(0,212,255,.08);}
+.anatomy-wrap{display:flex;flex-direction:column;flex:1;min-height:0;gap:14px;}
+.anatomy-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;position:relative;z-index:10;}
+.layer-btn{padding:10px 16px;min-height:44px;border-radius:11px;border:1px solid var(--border);background:var(--glass);color:#c3d1e6;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;font-family:inherit;}
+.layer-btn:hover{background:var(--glass-2);color:#fff;}
+.layer-btn.active{background:linear-gradient(90deg,rgba(0,212,255,.22),rgba(77,168,255,.08));border-color:var(--accent);color:#fff;box-shadow:0 0 18px rgba(0,212,255,.2);}
+.spacer{flex:1;}
+#anatomy-canvas{flex:1;min-height:320px;border-radius:var(--r);border:1px solid var(--border);background:transparent;overflow:hidden;position:relative;}
+#anatomy-canvas canvas{display:block;width:100%!important;height:100%!important;}
+.anatomy-hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--muted);background:rgba(0,0,0,.5);padding:6px 14px;border-radius:99px;border:1px solid var(--border);white-space:nowrap;pointer-events:none;}
+.loader-container{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:20;}
+.loader{border:4px solid rgba(255,255,255,.1);border-left-color:var(--accent);border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto 10px;}
+@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
+.modal-overlay{position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.8);backdrop-filter:blur(5px);padding:20px;}
+.modal-overlay.show{display:flex;}
+.modal-box{background:rgba(20,30,44,.95);border:1px solid var(--accent);border-radius:20px;padding:30px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto;position:relative;box-shadow:0 20px 50px rgba(0,212,255,.2);}
+.modal-close{position:absolute;top:15px;right:15px;background:none;border:none;color:#fff;font-size:26px;cursor:pointer;width:40px;height:40px;border-radius:8px;}
+.modal-box h2{font-size:22px;margin-bottom:12px;color:var(--accent);padding-right:40px;}
+.modal-box p{font-size:14px;line-height:1.6;}
+.btn-speak{background:var(--accent);border:none;color:#000;padding:11px 20px;min-height:44px;border-radius:10px;font-weight:bold;margin-top:20px;cursor:pointer;font-family:inherit;}
+@media(max-width:860px){#app{grid-template-columns:1fr;}#sidebar{position:fixed;left:0;top:0;bottom:0;width:255px;transform:translateX(-100%);}#sidebar.open{transform:none;}#main{padding:calc(66px + var(--safe-top)) 16px 16px;}#menuBtn{display:flex;}.welcome-title{font-size:2rem;}}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div id="welcome-overlay">
+  <div class="welcome-content">
+    <div class="welcome-title" id="welcomeTitle"></div>
+    <div class="welcome-sub" id="welcomeSub"></div>
+  </div>
+  <div class="welcome-footer" id="welcomeFooter"></div>
+</div>
+<div id="app">
+  <aside id="sidebar">
+    <div class="brand"><div class="brand-logo-text">HalDo</div><div class="brand-sub">Arztbuch Pro Max</div></div>
+    <div class="nav-section">Übersicht</div>
+    <button class="nav-item active" data-view="dashboard"><span class="ico">📊</span> Dashboard</button>
+    <button class="nav-item" data-view="anatomie"><span class="ico">🧍‍♂️</span> Anatomie 3D</button>
+    <button class="nav-item" data-view="assistant"><span class="ico">🤖</span> KI Assistent</button>
+    <div class="nav-section">Wissen</div>
+    <button class="nav-item" data-view="krankheiten"><span class="ico">🦠</span> Krankheiten A-Z</button>
+    <button class="nav-item" data-view="medikamente"><span class="ico">💊</span> Medikamente A-Z</button>
+    <button class="nav-item" data-view="labor"><span class="ico">🧪</span> Laborwerte</button>
+    <div class="nav-section">Praxis</div>
+    <button class="nav-item" data-view="iot"><span class="ico">📡</span> IoT & Hotspot</button>
+    <button class="nav-item" data-view="hardware"><span class="ico">🖨️</span> Hardware & Kasse</button>
+    <button class="nav-item danger" data-view="notfall"><span class="ico">🚨</span> Notfall</button>
+    <div class="nav-section">System</div>
+    <button class="nav-item" data-view="einstellungen"><span class="ico">⚙️</span> Einstellungen</button>
+  </aside>
+  <div id="backdrop"></div>
+  <button id="menuBtn">☰</button>
+  <main id="main">
+    <section id="view-dashboard" class="view active"><div class="view-head"><h1>Dashboard</h1></div><div class="placeholder"><div class="ph-icon">📊</div><h2>Dashboard</h2><p>Teil 4 baut Vitalwerte, Wasser & Tipp.</p></div></section>
+    <section id="view-anatomie" class="view col">
+      <div class="view-head"><h1>Anatomie 3D Pro Max</h1><p class="sub">Fotorealistisch · 4 Ebenen</p></div>
+      <div class="anatomy-wrap">
+        <div class="anatomy-toolbar">
+          <button class="layer-btn active" id="btnHuman" onclick="toggleAnatomy('human')">🧍 Haut</button>
+          <button class="layer-btn" id="btnMuskeln" onclick="toggleAnatomy('muskeln')">💪 Muskeln</button>
+          <button class="layer-btn" id="btnSkelett" onclick="toggleAnatomy('skelett')">🦴 Skelett</button>
+          <button class="layer-btn" id="btnOrgane" onclick="toggleAnatomy('organe')">🫀 Organe</button>
+          <div class="spacer"></div>
+          <button class="layer-btn" id="resetCam">🔄 Kamera</button>
+        </div>
+        <div id="anatomy-canvas">
+          <div class="loader-container" id="loaderContainer"><div class="loader"></div><p style="color:var(--accent);font-size:12px;margin-top:10px;">Lade 3D-Modell...</p></div>
+          <div class="anatomy-hint">Ziehen = Drehen · Scrollen = Zoom · Organ anklicken</div>
+        </div>
+      </div>
+    </section>
+    <section id="view-assistant" class="view"><div class="view-head"><h1>KI Assistent</h1></div><div class="placeholder"><div class="ph-icon">🤖</div><h2>KI Assistent</h2><p>Symptom-Checker kommt in Teil 8.</p></div></section>
+    <section id="view-krankheiten" class="view"><div class="view-head"><h1>Krankheiten A-Z</h1></div><div class="placeholder"><div class="ph-icon">🦠</div><h2>Krankheiten A-Z</h2><p>Datenbank kommt in Teil 5.</p></div></section>
+    <section id="view-medikamente" class="view"><div class="view-head"><h1>Medikamente A-Z</h1></div><div class="placeholder"><div class="ph-icon">💊</div><h2>Medikamente A-Z</h2><p>Datenbank kommt in Teil 6.</p></div></section>
+    <section id="view-labor" class="view"><div class="view-head"><h1>Laborwerte</h1></div><div class="placeholder"><div class="ph-icon">🧪</div><h2>Laborwerte</h2><p>Referenzbereiche kommen in Teil 7.</p></div></section>
+    <section id="view-iot" class="view"><div class="view-head"><h1>IoT & Hotspot</h1></div><div class="placeholder"><div class="ph-icon">📡</div><h2>IoT & Hotspot</h2><p>Teil 11.</p></div></section>
+    <section id="view-hardware" class="view"><div class="view-head"><h1>Hardware & Kasse</h1></div><div class="placeholder"><div class="ph-icon">🖨️</div><h2>Hardware & Kasse</h2><p>Teil 11.</p></div></section>
+    <section id="view-notfall" class="view"><div class="view-head"><h1>Notfall</h1></div><div class="placeholder"><div class="ph-icon">🚨</div><h2>Notfall</h2><p>Teil 9.</p></div></section>
+    <section id="view-einstellungen" class="view"><div class="view-head"><h1>Einstellungen</h1></div><div class="placeholder"><div class="ph-icon">⚙️</div><h2>Einstellungen</h2><p>11 Sprachen kommen in Teil 10.</p></div></section>
+  </main>
+</div>
+<div id="organ-modal" class="modal-overlay">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('organ-modal').classList.remove('show')">×</button>
+    <h2 id="organ-title">Organ</h2>
+    <p id="organ-desc">Beschreibung...</p>
+    <button class="btn-speak" onclick="speakOrganInfo()">🔊 Vorlesen</button>
+  </div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const APP_NAME='HalDo Arztbuch';
+const APP_SUB='a Halil Donma Professioneller App';
+const APP_PRESENT='präsentiert';
+
+/* WILLKOMMEN */
+let audioCtx;
+function playChime(f,t=0,d=1.5){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.setValueAtTime(f,audioCtx.currentTime+t);g.gain.setValueAtTime(0,audioCtx.currentTime+t);g.gain.linearRampToValueAtTime(.3,audioCtx.currentTime+t+.02);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+t+d);o.connect(g);g.connect(audioCtx.destination);o.start(audioCtx.currentTime+t);o.stop(audioCtx.currentTime+t+d);}
+function playWelcomeChimes(){[880,1100,1320,1760,1320,1100,880,660].forEach((f,i)=>playChime(f,i*.15,2));}
+function typeWriter(el,text,speed,cb){el.innerHTML='';let i=0;(function type(){if(i<text.length){el.innerHTML+=text.charAt(i);i++;setTimeout(type,speed);}else if(cb)cb();})();}
+function showWelcome(){const ov=document.getElementById('welcome-overlay');ov.classList.add('show');playWelcomeChimes();typeWriter(document.getElementById('welcomeTitle'),'Willkommen bei '+APP_NAME,50,()=>{typeWriter(document.getElementById('welcomeSub'),APP_NAME+' App',50,()=>{typeWriter(document.getElementById('welcomeFooter'),APP_SUB+' '+APP_PRESENT,40);});});setTimeout(()=>{ov.classList.remove('show');document.getElementById('app').classList.add('ready');},5000);}
+
+/* NAVIGATION */
+const navItems=document.querySelectorAll('.nav-item');
+const views=document.querySelectorAll('.view');
+function switchView(name){views.forEach(v=>v.classList.toggle('active',v.id==='view-'+name));navItems.forEach(b=>b.classList.toggle('active',b.dataset.view===name));document.getElementById('sidebar').classList.remove('open');document.getElementById('backdrop').classList.remove('show');if(name==='anatomie')requestAnimationFrame(initAnatomy);}
+navItems.forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
+document.getElementById('menuBtn').addEventListener('click',()=>{document.getElementById('sidebar').classList.add('open');document.getElementById('backdrop').classList.add('show');});
+document.getElementById('backdrop').addEventListener('click',()=>{document.getElementById('sidebar').classList.remove('open');document.getElementById('backdrop').classList.remove('show');});
+
+/* HINTERGRUND */
+function createSunTexture(){const c=document.createElement('canvas');c.width=512;c.height=512;const x=c.getContext('2d');const g=x.createRadialGradient(256,256,0,256,256,256);g.addColorStop(0,'#ffffff');g.addColorStop(.2,'#ffffaa');g.addColorStop(.5,'#ffaa00');g.addColorStop(.8,'#ff5500');g.addColorStop(1,'#aa0000');x.fillStyle=g;x.fillRect(0,0,512,512);for(let i=0;i<50;i++){const px=Math.random()*512,py=Math.random()*512,r=Math.random()*10+5;const rg=x.createRadialGradient(px,py,0,px,py,r);rg.addColorStop(0,'rgba(255,255,255,.8)');rg.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=rg;x.beginPath();x.arc(px,py,r,0,Math.PI*2);x.fill();}return new THREE.CanvasTexture(c);}
+function createTextTexture(name){const c=document.createElement('canvas');c.width=4096;c.height=1024;const x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);const g=x.createLinearGradient(0,0,c.width,0);g.addColorStop(0,'#ffd700');g.addColorStop(.3,'#fff8b0');g.addColorStop(.5,'#ffb700');g.addColorStop(.7,'#fff8b0');g.addColorStop(1,'#ffd700');x.fillStyle=g;x.textAlign='center';x.textBaseline='middle';x.shadowColor='rgba(255,215,0,.8)';x.shadowBlur=20;x.font='bold 100px "Segoe UI",Arial,sans-serif';const t1='Willkommen bei '+name+'   •   ';x.fillText(t1.repeat(Math.ceil(c.width/x.measureText(t1).width)+1),c.width/2,250);x.font='bold 140px "Segoe UI",Arial,sans-serif';x.fillStyle='#00d4ff';x.shadowColor='rgba(0,212,255,.8)';const t2=name+' App   •   ';x.fillText(t2.repeat(Math.ceil(c.width/x.measureText(t2).width)+1),c.width/2,500);x.font='bold 80px "Segoe UI",Arial,sans-serif';x.fillStyle=g;x.shadowColor='rgba(255,215,0,.8)';const t3=APP_SUB+' '+APP_PRESENT+'   •   ';x.fillText(t3.repeat(Math.ceil(c.width/x.measureText(t3).width)+1),c.width/2,750);const t=new THREE.CanvasTexture(c);t.wrapS=THREE.RepeatWrapping;t.wrapT=THREE.ClampToEdgeWrapping;return t;}
+(function initBg(){const canvas=document.getElementById('bg-canvas');const r=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});r.setPixelRatio(Math.min(devicePixelRatio,2));r.setSize(innerWidth,innerHeight);r.toneMapping=THREE.ACESFilmicToneMapping;const s=new THREE.Scene();s.background=new THREE.Color(0x020205);const cam=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,2000);cam.position.set(0,0,15);
+const sg=new THREE.BufferGeometry();const sp=new Float32Array(8000*3);for(let i=0;i<8000*3;i+=3){sp[i]=(Math.random()-.5)*2000;sp[i+1]=(Math.random()-.5)*2000;sp[i+2]=(Math.random()-.5)*2000;}sg.setAttribute('position',new THREE.BufferAttribute(sp,3));s.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:1.5})));
+const tl=new THREE.TextureLoader();
+const sunMesh=new THREE.Mesh(new THREE.SphereGeometry(5,64,64),new THREE.MeshBasicMaterial({map:createSunTexture()}));sunMesh.position.set(35,25,-60);s.add(sunMesh);
+const gc=document.createElement('canvas');gc.width=256;gc.height=256;const gx=gc.getContext('2d');const gg=gx.createRadialGradient(128,128,0,128,128,128);gg.addColorStop(0,'rgba(255,200,50,.8)');gg.addColorStop(.5,'rgba(255,100,0,.4)');gg.addColorStop(1,'rgba(255,0,0,0)');gx.fillStyle=gg;gx.fillRect(0,0,256,256);const sunGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(gc),blending:THREE.AdditiveBlending,depthTest:false}));sunGlow.scale.set(40,40,1);sunGlow.position.copy(sunMesh.position);s.add(sunGlow);
+const earthMesh=new THREE.Mesh(new THREE.SphereGeometry(5,64,64),new THREE.MeshStandardMaterial({map:tl.load('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg'),roughness:.7,metalness:.1}));earthMesh.position.set(-8,3,-20);s.add(earthMesh);
+const moonMesh=new THREE.Mesh(new THREE.SphereGeometry(1.5,32,32),new THREE.MeshStandardMaterial({map:tl.load('https://cdn.jsdelivr.net/gh/homer-jay/solar-system-textures@master/moon.jpg'),roughness:1}));moonMesh.position.set(18,12,-15);s.add(moonMesh);
+const textGeo=new THREE.CylinderGeometry(7,7,4,64,1,true);const textMat=new THREE.MeshBasicMaterial({map:createTextTexture(APP_NAME),transparent:true,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});const textMesh=new THREE.Mesh(textGeo,textMat);textMesh.position.copy(earthMesh.position);textMesh.rotation.x=Math.PI/10;textMesh.rotation.z=-Math.PI/16;s.add(textMesh);
+const sunLight=new THREE.PointLight(0xfff5e6,5000,1000);sunLight.position.copy(sunMesh.position);s.add(sunLight);const fl1=new THREE.DirectionalLight(0xffffff,3);fl1.position.set(-10,5,10);s.add(fl1);const fl2=new THREE.DirectionalLight(0x00d4ff,2);fl2.position.set(5,-5,10);s.add(fl2);s.add(new THREE.AmbientLight(0x555566,2));
+const clock=new THREE.Clock();(function anim(){requestAnimationFrame(anim);const d=clock.getDelta();earthMesh.rotation.y+=d*.02;textMesh.rotation.y-=d*.03;moonMesh.rotation.y+=d*.01;r.render(s,cam);})();
+addEventListener('resize',()=>{r.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();});})();
+
+/* ANATOMIE */
+let anScene,anCamera,anRenderer,anControls,bodyGroup,humanModel,skeletonGroup,organGroup,muscleGroup,anatomyInited=false,raycasterAnatomy,mouseAnatomy,organMeshes=[],ttsText='',clockAnatomy,baseY=0;
+const ORGAN_INFO={brain:{name:'Gehirn',color:'#f2a0c0',text:'Das Gehirn steuert Denken, Bewegung, Atmung und Hormone. Es wiegt ca. 1,4 kg und verbraucht 20% der Energie.'},heart:{name:'Herz',color:'#e63946',text:'Das Herz pumpt täglich ca. 7.000 Liter Blut. Warnzeichen: Brustschmerz, Atemnot, Ausstrahlung in den linken Arm.'},lunge:{name:'Lunge',color:'#f4a6b8',text:'Die Lunge versorgt das Blut mit Sauerstoff. Erkrankungen: Asthma, COPD, Lungenentzündung. Rauchen ist der größte Risikofaktor.'},liver:{name:'Leber',color:'#8b2e2e',text:'Die Leber baut Giftstoffe ab, speichert Zucker und produziert Gallenflüssigkeit. Sie kann sich regenerieren.'}};
+function initAnatomy(){if(anatomyInited)return;anatomyInited=true;const host=document.getElementById('anatomy-canvas');if(!host)return;const w=host.clientWidth||600,h=host.clientHeight||400;anScene=new THREE.Scene();anCamera=new THREE.PerspectiveCamera(40,w/h,.1,100);anCamera.position.set(0,1.2,6);anRenderer=new THREE.WebGLRenderer({antialias:true,alpha:true});anRenderer.setPixelRatio(Math.min(devicePixelRatio,2));anRenderer.setSize(w,h);anRenderer.toneMapping=THREE.ACESFilmicToneMapping;host.appendChild(anRenderer.domElement);anControls=new OrbitControls(anCamera,anRenderer.domElement);anControls.target.set(0,1.0,0);anControls.enableDamping=true;anControls.minDistance=1.0;anControls.maxDistance=10.0;anControls.autoRotate=true;anControls.autoRotateSpeed=.6;
+anScene.add(new THREE.AmbientLight(0xffffff,1.0));const kl=new THREE.DirectionalLight(0xffffff,3.0);kl.position.set(2,4,3);anScene.add(kl);const rl=new THREE.DirectionalLight(0x00d4ff,2.0);rl.position.set(-3,2,-2);anScene.add(rl);const bl=new THREE.PointLight(0xff5ea8,1.5,5);bl.position.set(0,-1,2);anScene.add(bl);
+bodyGroup=new THREE.Group();anScene.add(bodyGroup);
+const loader=new GLTFLoader();const humanUrl='https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/models/gltf/Xbot.glb';
+loader.load(humanUrl,(gltf)=>{humanModel=gltf.scene;humanModel.rotation.set(0,Math.PI,0);humanModel.scale.set(0.01,0.01,0.01);const box=new
+Box3().setFromObject(humanModel);humanModel.position.x=-(box.max.x+box.min.x)/2;humanModel.position.z=-(box.max.z+box.min.z)/2;humanModel.position.y=-box.min.y;baseY=humanModel.position.y;humanModel.traverse((child)=>{if(child.isMesh){child.material=new THREE.MeshPhysicalMaterial({color:0xffe4cc,roughness:.35,metalness:.1,clearcoat:.2,transmission:.2,thickness:1.0,ior:1.4});}});bodyGroup.add(humanModel);buildProceduralLayers(1.8);const lc=document.getElementById('loaderContainer');if(lc)lc.style.display='none';toggleAnatomy('human');clockAnatomy=new THREE.Clock();},undefined,(error)=>{console.error('Xbot Fehler:',error);const lc=document.getElementById('loaderContainer');if(lc)lc.innerHTML='<p style="color:red;font-size:12px;">Modell konnte nicht geladen werden.<br>Internet prüfen.</p>';});
+raycasterAnatomy=new THREE.Raycaster();mouseAnatomy=new THREE.Vector2();anRenderer.domElement.addEventListener('pointerdown',(e)=>{if(!organGroup||!organGroup.visible)return;const rect=anRenderer.domElement.getBoundingClientRect();mouseAnatomy.x=((e.clientX-rect.left)/rect.width)*2-1;mouseAnatomy.y=-((e.clientY-rect.top)/rect.height)*2+1;raycasterAnatomy.setFromCamera(mouseAnatomy,anCamera);const hits=raycasterAnatomy.intersectObjects(organMeshes,false);if(hits.length)openOrganModal(hits[0].object.userData.organ);});
+new ResizeObserver(()=>{const nw=host.clientWidth,nh=host.clientHeight;if(!nw||!nh)return;anCamera.aspect=nw/nh;anCamera.updateProjectionMatrix();anRenderer.setSize(nw,nh);}).observe(host);
+(function animate(){requestAnimationFrame(animate);anControls.update();if(humanModel&&humanModel.visible&&clockAnatomy){const t=clockAnatomy.getElapsedTime();humanModel.position.y=baseY+Math.sin(t*2)*.02;}anRenderer.render(anScene,anCamera);})();}
+
+function buildProceduralLayers(modelHeight){const muscleMat=new THREE.MeshStandardMaterial({color:0xb32b2b,roughness:.65,transparent:true,opacity:.85});const boneMat=new THREE.MeshStandardMaterial({color:0xf4f0e6,roughness:.45});const h=modelHeight;const centerY=h/2;
+muscleGroup=new THREE.Group();const m1=new THREE.Mesh(new THREE.CapsuleGeometry(.15,.4,16,32),muscleMat);m1.position.set(0,centerY,0);muscleGroup.add(m1);const m2=new THREE.Mesh(new THREE.CapsuleGeometry(.08,.4,16,32),muscleMat);m2.position.set(.22,centerY-.2,0);muscleGroup.add(m2);const m3=new THREE.Mesh(new THREE.CapsuleGeometry(.08,.4,16,32),muscleMat);m3.position.set(-.22,centerY-.2,0);muscleGroup.add(m3);const m4=new THREE.Mesh(new THREE.CapsuleGeometry(.09,.35,16,32),muscleMat);m4.position.set(.12,centerY-.6,0);muscleGroup.add(m4);const m5=new THREE.Mesh(new THREE.CapsuleGeometry(.09,.35,16,32),muscleMat);m5.position.set(-.12,centerY-.6,0);muscleGroup.add(m5);bodyGroup.add(muscleGroup);
+skeletonGroup=new THREE.Group();const skull=new THREE.Mesh(new THREE.SphereGeometry(.12,32,32),boneMat);skull.position.set(0,h-.15,0);skeletonGroup.add(skull);const spine=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,h*.6,16),boneMat);spine.position.set(0,centerY-.1,-.05);skeletonGroup.add(spine);for(let i=0;i<6;i++){const rib=new THREE.Mesh(new THREE.TorusGeometry(.18-i*.015,.015,16,32),boneMat);rib.position.set(0,centerY+.2-i*.08,0);rib.rotation.x=Math.PI/2;rib.scale.set(1,.65,1);skeletonGroup.add(rib);}const pelvis=new THREE.Mesh(new THREE.TorusGeometry(.16,.03,16,32),boneMat);pelvis.position.set(0,centerY-.5,0);pelvis.rotation.x=Math.PI/2;skeletonGroup.add(pelvis);const femurL=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.4,16),boneMat);femurL.position.set(.1,centerY-.75,0);skeletonGroup.add(femurL);const femurR=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.4,16),boneMat);femurR.position.set(-.1,centerY-.75,0);skeletonGroup.add(femurR);const armL=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.35,16),boneMat);armL.position.set(.28,centerY-.1,0);armL.rotation.z=.15;skeletonGroup.add(armL);const armR=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.35,16),boneMat);armR.position.set(-.28,centerY-.1,0);armR.rotation.z=-.15;skeletonGroup.add(armR);bodyGroup.add(skeletonGroup);
+organGroup=new THREE.Group();organMeshes=[];const addOrgan=(geo,pos,color,key,scl)=>{const mat=new THREE.MeshStandardMaterial({color,roughness:.3,emissive:color,emissiveIntensity:.25});const m=new THREE.Mesh(geo,mat);m.position.set(pos[0],pos[1],pos[2]);if(scl)m.scale.set(scl[0],scl[1],scl[2]);m.userData.organ=key;organMeshes.push(m);organGroup.add(m);};addOrgan(new THREE.SphereGeometry(.09,32,32),[0,h-.15,0],'#f2a0c0','brain');addOrgan(new THREE.SphereGeometry(.06,32,32),[-.04,centerY+.1,.08],'#e63946','heart',[1,1.3,1]);addOrgan(new THREE.SphereGeometry(.08,32,32),[.1,centerY+.1,0],'#f4a6b8','lunge',[.8,1.5,.8]);addOrgan(new THREE.SphereGeometry(.08,32,32),[-.1,centerY+.1,0],'#f4a6b8','lunge',[.8,1.5,.8]);addOrgan(new THREE.SphereGeometry(.09,32,32),[.08,centerY-.15,.08],'#8b2e2e','liver',[1.2,.7,.9]);bodyGroup.add(organGroup);}
+
+window.toggleAnatomy=function(mode){if(humanModel)humanModel.visible=(mode==='human');if(muscleGroup)muscleGroup.visible=(mode==='muskeln');if(skeletonGroup)skeletonGroup.visible=(mode==='skelett');if(organGroup)organGroup.visible=(mode==='organe');document.querySelectorAll('.layer-btn').forEach(b=>b.classList.remove('active'));const btn=document.getElementById('btn'+mode.charAt(0).toUpperCase()+mode.slice(1));if(btn)btn.classList.add('active');};
+
+document.addEventListener('click',(e)=>{if(e.target&&e.target.id==='resetCam'){if(anCamera&&anControls){anCamera.position.set(0,1.2,6);anControls.target.set(0,1.0,0);anControls.update();}}});
+
+function openOrganModal(key){const info=ORGAN_INFO[key];if(!info)return;document.getElementById('organ-title').innerHTML='<span style="color:'+info.color+'">●</span> '+info.name;document.getElementById('organ-desc').textContent=info.text;ttsText=info.name+'. '+info.text;document.getElementById('organ-modal').classList.add('show');speakOrganInfo();}
+window.speakOrganInfo=function(){if('speechSynthesis' in window&&ttsText){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(ttsText);u.lang='de-DE';speechSynthesis.speak(u);}};
+
+window.addEventListener('load',()=>{setTimeout(showWelcome,100);const app=document.getElementById('app');if(app)app.classList.add('ready');});
+</script>
+</body>
+</html>
