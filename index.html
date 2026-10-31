@@ -32,14 +32,11 @@ body{
 #app.ready{opacity:1;}
 
 /* ============================================================
-   HINTERGRUND
+   HINTERGRUND & WELCOME
 ============================================================ */
 #bg-canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:auto;cursor:grab;}
 #bg-canvas:active{cursor:grabbing;}
 
-/* ============================================================
-   WILLKOMMENS-OVERLAY
-============================================================ */
 #welcome-overlay {
   position: fixed; inset: 0; z-index: 9999;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -309,6 +306,16 @@ input[type="range"] { width: 150px; accent-color: var(--accent); }
             <select class="styled" id="langSelect">
               <option value="de-DE">Deutsch</option>
               <option value="en-US">English</option>
+              <option value="ku">Kurdisch (Kurmandschi)</option>
+              <option value="ez">Ezidi</option>
+              <option value="ar-SA">Arabisch</option>
+              <option value="fa-IR">Farsi</option>
+              <option value="he-IL">Hebräisch</option>
+              <option value="la">Latein</option>
+              <option value="tr-TR">Türkisch</option>
+              <option value="zh-CN">Chinesisch</option>
+              <option value="ja-JP">Japanisch</option>
+              <option value="uz-UZ">Usbekisch</option>
             </select>
           </div>
           <div class="settings-row">
@@ -345,8 +352,7 @@ const state = {
   appPresent: localStorage.getItem('haldo_appPresent') || 'präsentiert',
   greetDuration: parseInt(localStorage.getItem('haldo_greetDuration')) || 5,
   lang: localStorage.getItem('haldo_lang') || 'de-DE',
-  anatomyMode: 'human',
-  bgBrightness: parseFloat(localStorage.getItem('haldo_bg_bright')) || 1.5
+  anatomyMode: 'human'
 };
 
 const vitals = JSON.parse(localStorage.getItem('haldo_vitals') || 'null') || {
@@ -505,8 +511,25 @@ document.getElementById('resetData').addEventListener('click', () => {
 let bgScene, bgCamera, bgRenderer, earthMesh, moonMesh, sunMesh, textMesh;
 let isDraggingEarth = false;
 let previousMousePosition = { x: 0, y: 0 };
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
+
+function createSunTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512; canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+  const gradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+  gradient.addColorStop(0, '#ffffff'); gradient.addColorStop(0.2, '#ffffaa');
+  gradient.addColorStop(0.5, '#ffaa00'); gradient.addColorStop(0.8, '#ff5500');
+  gradient.addColorStop(1, '#aa0000');
+  ctx.fillStyle = gradient; ctx.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 50; i++) {
+    const x = Math.random() * 512; const y = Math.random() * 512;
+    const r = Math.random() * 10 + 5;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, 'rgba(255, 255, 255, 0.8)'); g.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+  return new THREE.CanvasTexture(canvas);
+}
 
 function createTextTexture(appName) {
   const canvas = document.createElement('canvas');
@@ -554,59 +577,47 @@ function initBackground() {
   bgCamera.position.set(0, 0, 15);
 
   // STERNE
-  const starGeometry = new THREE.BufferGeometry();
-  const starCount = 8000;
-  const starPositions = new Float32Array(starCount * 3);
-  for (let i = 0; i < starCount * 3; i += 3) {
-    starPositions[i] = (Math.random() - 0.5) * 2000;
-    starPositions[i+1] = (Math.random() - 0.5) * 2000;
-    starPositions[i+2] = (Math.random() - 0.5) * 2000;
+  const starGeo = new THREE.BufferGeometry();
+  const starPos = new Float32Array(8000 * 3);
+  for (let i = 0; i < 8000 * 3; i += 3) {
+    starPos[i] = (Math.random() - 0.5) * 2000; starPos[i+1] = (Math.random() - 0.5) * 2000; starPos[i+2] = (Math.random() - 0.5) * 2000;
   }
-  starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-  const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 1.5, transparent: true, opacity: 0.8 });
-  bgScene.add(new THREE.Points(starGeometry, starMaterial));
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  bgScene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.5 })));
 
   const textureLoader = new THREE.TextureLoader();
   
-  // SONNE (Fixierter jsdelivr link)
-  const sunTex = textureLoader.load('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/textures/planets/sun.jpg');
-  const sunGeo = new THREE.SphereGeometry(5, 64, 64);
-  const sunMat = new THREE.MeshBasicMaterial({ map: sunTex, color: 0xffdd55 });
-  sunMesh = new THREE.Mesh(sunGeo, sunMat);
+  // SONNE (Generiert)
+  const sunTex = createSunTexture();
+  sunMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 64, 64), new THREE.MeshBasicMaterial({ map: sunTex }));
   sunMesh.position.set(35, 25, -60);
   bgScene.add(sunMesh);
-  
-  // Sonnen-Glow (Canvas)
-  const canvasSun = document.createElement('canvas');
-  canvasSun.width = 256; canvasSun.height = 256;
-  const ctx = canvasSun.getContext('2d');
+
+  // Sonnen-Glow
+  const canvasSunGlow = document.createElement('canvas');
+  canvasSunGlow.width = 256; canvasSunGlow.height = 256;
+  const ctx = canvasSunGlow.getContext('2d');
   const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
-  gradient.addColorStop(0, 'rgba(255, 255, 200, 1)');
-  gradient.addColorStop(0.3, 'rgba(255, 200, 50, 0.6)');
-  gradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+  gradient.addColorStop(0, 'rgba(255, 200, 50, 0.8)'); gradient.addColorStop(0.5, 'rgba(255, 100, 0, 0.4)'); gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
   ctx.fillStyle = gradient; ctx.fillRect(0, 0, 256, 256);
-  const sunSpriteMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvasSun), blending: THREE.AdditiveBlending, depthTest: false });
+  const sunSpriteMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvasSunGlow), blending: THREE.AdditiveBlending, depthTest: false });
   const sunSprite = new THREE.Sprite(sunSpriteMat);
-  sunSprite.scale.set(45, 45, 1); sunSprite.position.copy(sunMesh.position);
+  sunSprite.scale.set(40, 40, 1); sunSprite.position.copy(sunMesh.position);
   bgScene.add(sunSprite);
 
   // ERDE
   const earthMap = textureLoader.load('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg');
-  const earthGeo = new THREE.SphereGeometry(5, 64, 64);
-  const earthMat = new THREE.MeshStandardMaterial({ map: earthMap, roughness: 0.7, metalness: 0.1 });
-  earthMesh = new THREE.Mesh(earthGeo, earthMat);
+  earthMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 64, 64), new THREE.MeshStandardMaterial({ map: earthMap, roughness: 0.7, metalness: 0.1 }));
   earthMesh.position.set(-8, 3, -20);
   bgScene.add(earthMesh);
 
   // MOND
   const moonTex = textureLoader.load('https://cdn.jsdelivr.net/gh/homer-jay/solar-system-textures@master/moon.jpg');
-  const moonGeo = new THREE.SphereGeometry(1.5, 32, 32);
-  const moonMat = new THREE.MeshStandardMaterial({ map: moonTex, roughness: 1.0 });
-  moonMesh = new THREE.Mesh(moonGeo, moonMat);
+  moonMesh = new THREE.Mesh(new THREE.SphereGeometry(1.5, 32, 32), new THREE.MeshStandardMaterial({ map: moonTex, roughness: 1.0 }));
   moonMesh.position.set(18, 12, -15);
   bgScene.add(moonMesh);
 
-  // DER GOLDENE TEXT-RING
+  // TEXT RING
   const textGeo = new THREE.CylinderGeometry(7, 7, 4, 64, 1, true);
   const textMat = new THREE.MeshBasicMaterial({ map: createTextTexture(state.appName), transparent: true, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
   textMesh = new THREE.Mesh(textGeo, textMat);
@@ -615,38 +626,17 @@ function initBackground() {
   bgScene.add(textMesh);
 
   // LICHTER
-  const sunLight = new THREE.PointLight(0xffccaa, 5000 * state.bgBrightness, 1000);
-  sunLight.position.copy(sunMesh.position);
-  bgScene.add(sunLight);
-  
-  const earthLight = new THREE.DirectionalLight(0xffffff, 2.0 * state.bgBrightness);
-  earthLight.position.set(-5, 5, 10); 
-  bgScene.add(earthLight);
-  
-  bgScene.add(new THREE.AmbientLight(0x555566, 1.5 * state.bgBrightness));
-
-  // INTERAKTION
-  canvas.addEventListener('pointerdown', (e) => {
-    isDraggingEarth = true;
-    previousMousePosition = { x: e.clientX, y: e.clientY };
-  });
-
-  canvas.addEventListener('pointermove', (e) => {
-    if (isDraggingEarth) {
-      earthMesh.position.x += (e.clientX - previousMousePosition.x) * 0.05;
-      earthMesh.position.y -= (e.clientY - previousMousePosition.y) * 0.05;
-      textMesh.position.copy(earthMesh.position);
-      previousMousePosition = { x: e.clientX, y: e.clientY };
-    }
-  });
-  canvas.addEventListener('pointerup', () => { isDraggingEarth = false; });
+  const sunLight = new THREE.PointLight(0xfff5e6, 5000, 1000); sunLight.position.copy(sunMesh.position); bgScene.add(sunLight);
+  const fillLight1 = new THREE.DirectionalLight(0xffffff, 3.0); fillLight1.position.set(-10, 5, 10); bgScene.add(fillLight1);
+  const fillLight2 = new THREE.DirectionalLight(0x00d4ff, 2.0); fillLight2.position.set(5, -5, 10); bgScene.add(fillLight2);
+  bgScene.add(new THREE.AmbientLight(0x555566, 2.0));
 
   const clock = new THREE.Clock();
   function animateBg() {
     requestAnimationFrame(animateBg);
     const delta = clock.getDelta();
-    earthMesh.rotation.y += delta * 0.03;
-    textMesh.rotation.y -= delta * 0.04;
+    earthMesh.rotation.y += delta * 0.02;
+    textMesh.rotation.y -= delta * 0.03;
     moonMesh.rotation.y += delta * 0.01;
     bgRenderer.render(bgScene, bgCamera);
   }
@@ -658,19 +648,6 @@ function initBackground() {
   });
 }
 initBackground();
-
-window.sendChatMessage = function() {
-  const input = document.getElementById('chat-input');
-  const text = input.value.trim();
-  if (!text) return;
-  const body = document.getElementById('chat-body');
-  body.innerHTML += `<div class="msg-user">${text}</div>`;
-  input.value = ''; body.scrollTop = body.scrollHeight;
-  setTimeout(() => {
-    body.innerHTML += `<div class="msg-ai">Ich bin die HalDo KI. Deine Nachricht: "${text}"</div>`;
-    body.scrollTop = body.scrollHeight;
-  }, 1000);
-};
 
 /* ============================================================
    5. ANATOMIE 3D (PERFEKT ZENTRIERT)
@@ -700,8 +677,8 @@ function initAnatomy() {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
   
-  // KAMERA: z=5.5, y=1.5 um den 2m Körper komplett zu sehen
-  camera.position.set(0, 1.5, 5.5);
+  // Kamera richtig positioniert
+  camera.position.set(0, 1.2, 5.5);
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -710,8 +687,6 @@ function initAnatomy() {
   host.appendChild(renderer.domElement);
 
   controls = new OrbitControls(camera, renderer.domElement);
-  
-  // TARGET: Mitte des Körpers (y=1.0)
   controls.target.set(0, 1.0, 0);
   controls.enableDamping = true;
   controls.minDistance = 1.0;
@@ -734,19 +709,19 @@ function initAnatomy() {
     humanModel = gltf.scene;
     humanModel.rotation.set(0, Math.PI, 0); 
 
-    // PERFEKTE SKALIERUNG UND ZENTRIERUNG
-    const box = new THREE.Box3().setFromObject(humanModel);
+    // Pivot Group für perfekte Skalierung
+    const pivot = new THREE.Group();
+    pivot.add(humanModel);
+    const box = new THREE.Box3().setFromObject(pivot);
     const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
+    const scale = 2.0 / size.y; // Exakt 2m hoch
+    pivot.scale.set(scale, scale, scale);
     
-    // Setze die Höhe exakt auf 2 Meter
-    const scaleFactor = 2.0 / size.y; 
-    humanModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
-    
-    // Positioniere den Ursprung auf den Füßen (y=0)
-    humanModel.position.x = -center.x * scaleFactor;
-    humanModel.position.z = -center.z * scaleFactor;
-    humanModel.position.y = -box.min.y * scaleFactor;
+    // Nach Skalierung neu berechnen für Füße auf 0
+    box.setFromObject(pivot);
+    pivot.position.y = -box.min.y;
+    pivot.position.x = -(box.max.x + box.min.x) / 2;
+    pivot.position.z = -(box.max.z + box.min.z) / 2;
 
     humanModel.traverse((child) => {
       if (child.isMesh) {
@@ -757,7 +732,7 @@ function initAnatomy() {
       }
     });
 
-    bodyGroup.add(humanModel);
+    bodyGroup.add(pivot);
     
     buildProceduralLayers(2.0); 
     
@@ -848,7 +823,7 @@ window.toggleAnatomy = function(mode) {
 
 document.getElementById('resetCam').addEventListener('click', () => { 
   if (camera) {
-    camera.position.set(0, 1.5, 5.5); 
+    camera.position.set(0, 1.2, 5.5); 
     controls.target.set(0, 1.0, 0); 
     controls.update(); 
   }
