@@ -525,7 +525,7 @@ document.getElementById('resetData').addEventListener('click', () => {
 });
 
 /* ============================================================
-   4. 3D WELTRAUM
+   4. 3D WELTRAUM & SONNE (Exakt nach deinem Wunsch)
 ============================================================ */
 let bgScene, bgCamera, bgRenderer, earthMesh, textMesh, sunMesh;
 let isDraggingEarth = false;
@@ -654,9 +654,19 @@ function initBackground() {
   logoMesh.position.set(0, 6, -10);
   bgScene.add(logoMesh);
 
-  const sunLight = new THREE.PointLight(0xfff5e6, 5000, 1000); sunLight.position.copy(sunMesh.position); bgScene.add(sunLight);
-  const fillLight1 = new THREE.DirectionalLight(0xffffff, 3.0); fillLight1.position.set(-10, 5, 10); bgScene.add(fillLight1);
-  const fillLight2 = new THREE.DirectionalLight(0x00d4ff, 2.0); fillLight2.position.set(5, -5, 10); bgScene.add(fillLight2);
+  // Lichter (KORREKT IMPLEMENTIERT)
+  const sunLight = new THREE.PointLight(0xfff5e6, 5000, 1000);
+  sunLight.position.copy(sunMesh.position);
+  bgScene.add(sunLight);
+
+  const fillLight1 = new THREE.DirectionalLight(0xffffff, 3.0);
+  fillLight1.position.set(-10, 5, 10);
+  bgScene.add(fillLight1);
+
+  const fillLight2 = new THREE.DirectionalLight(0x00d4ff, 2.0);
+  fillLight2.position.set(5, -5, 10);
+  bgScene.add(fillLight2);
+
   bgScene.add(new THREE.AmbientLight(0x555566, 2.0));
 
   canvas.addEventListener('pointerdown', (e) => { isDraggingEarth = true; previousMousePosition = { x: e.clientX, y: e.clientY }; });
@@ -710,7 +720,8 @@ function initAnatomy() {
 
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
-  camera.position.set(0, 1.2, 3.5);
+  // Kamera weiter weg, damit das Modell reinpasst
+  camera.position.set(0, 1.2, 5.5);
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -719,10 +730,11 @@ function initAnatomy() {
   host.appendChild(renderer.domElement);
 
   controls = new OrbitControls(camera, renderer.domElement);
+  // Target auf die Körpermitte (ca. y=1.0 bei 2m Größe)
   controls.target.set(0, 1.0, 0);
   controls.enableDamping = true;
   controls.minDistance = 1.0;
-  controls.maxDistance = 5.5;
+  controls.maxDistance = 10.0; // Weiter raus zoomen erlauben
   controls.autoRotate = true;
   controls.autoRotateSpeed = 0.6;
 
@@ -734,17 +746,16 @@ function initAnatomy() {
   bodyGroup = new THREE.Group();
   scene.add(bodyGroup);
 
-  // 1. Echtes 3D-Modell (Haut)
   const loader = new GLTFLoader();
   const humanUrl = 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/models/gltf/Xbot.glb';
   
   loader.load(humanUrl, (gltf) => {
     humanModel = gltf.scene;
     
-    // Aufrecht hinstellen (Rotation korrigieren)
-    humanModel.rotation.set(0, Math.PI, 0); // Dreht das Modell zum Betrachter
+    // Aufrecht hinstellen
+    humanModel.rotation.set(0, Math.PI, 0); 
 
-    // Skalierung und Zentrierung
+    // Skalierung (2 Meter hoch) und Zentrierung
     const box = new THREE.Box3().setFromObject(humanModel);
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
@@ -752,7 +763,6 @@ function initAnatomy() {
     const scaleFactor = 2.0 / maxDim;
     humanModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
     
-    // Positionieren (Füße auf y=0)
     humanModel.position.x = -center.x * scaleFactor;
     humanModel.position.z = -center.z * scaleFactor;
     humanModel.position.y = -box.min.y * scaleFactor;
@@ -769,7 +779,7 @@ function initAnatomy() {
 
     bodyGroup.add(humanModel);
     
-    // Jetzt die prozeduralen Ebenen relativ zu dieser Größe bauen
+    // Prozedurale Ebenen bauen
     buildProceduralLayers(maxDim * scaleFactor); 
     
     document.getElementById('loaderContainer').style.display = 'none';
@@ -780,7 +790,6 @@ function initAnatomy() {
     document.getElementById('loaderContainer').innerHTML = '<p style="color:red;">Modell konnte nicht geladen werden.</p>';
   });
 
-  // Raycaster für Klicks
   raycaster = new THREE.Raycaster(); mouse = new THREE.Vector2();
   renderer.domElement.addEventListener('pointerdown', (e) => {
     if (!organGroup || !organGroup.visible) return;
@@ -806,12 +815,10 @@ function initAnatomy() {
   animate();
 }
 
-// Baut Skelett, Muskeln und Organe, passend zur Größe des Xbots
 function buildProceduralLayers(modelHeight) {
   const skinMat = new THREE.MeshStandardMaterial({ color: 0xb32b2b, roughness: 0.65, transparent: true, opacity: 0.8 });
   const boneMat = new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.45 });
   
-  // Höhe anpassen (Xbot ist ca. 2 Meter hoch)
   const h = modelHeight;
   const centerY = h / 2;
 
@@ -862,13 +869,12 @@ window.toggleAnatomy = function(mode) {
 
 document.getElementById('resetCam').addEventListener('click', () => { 
   if (camera) {
-    camera.position.set(0, 1.2, 3.5); 
+    camera.position.set(0, 1.2, 5.5); 
     controls.target.set(0, 1.0, 0); 
     controls.update(); 
   }
 });
 
-// Modal & TTS Logik
 function openOrganModal(key) {
   const info = ORGAN_INFO[key];
   if (!info) return;
