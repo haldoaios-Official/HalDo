@@ -42,7 +42,7 @@ body{
 #welcome-overlay {
   position: fixed; inset: 0; z-index: 9999;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  background: rgba(2, 2, 5, 0.85); backdrop-filter: blur(10px);
+  background: rgba(2, 2, 5, 0.75); backdrop-filter: blur(12px);
   opacity: 0; pointer-events: none; transition: opacity 1s ease;
 }
 #welcome-overlay.show { opacity: 1; pointer-events: auto; }
@@ -251,18 +251,18 @@ input[type="range"] { width: 150px; accent-color: var(--accent); }
 
     <!-- ANATOMIE -->
     <section id="view-anatomie" class="view col">
-      <div class="view-head"><h1>Anatomie 3D Pro Max</h1><p class="sub">Fotorealistisches 3D-Scan Modell · SSS-Shader</p></div>
+      <div class="view-head"><h1>Anatomie 3D Pro Max</h1><p class="sub">Professionelles 3D-Modell (Y-Bot) · CORS-frei</p></div>
       <div class="anatomy-wrap">
         <div class="anatomy-toolbar">
-          <button class="layer-btn active" id="btnRealistic" onclick="toggleAnatomy('realistic')">📷 Realistisch (3D-Scan)</button>
-          <button class="layer-btn" id="btnProcedural" onclick="toggleAnatomy('procedural')">🤖 Prozedural (Lego)</button>
+          <button class="layer-btn active" onclick="toggleAnatomy('realistic')">📷 Realistisch (GLB)</button>
+          <button class="layer-btn" onclick="toggleAnatomy('procedural')">🤖 Prozedural (Lego)</button>
           <div class="spacer"></div>
           <button class="layer-btn" id="resetCam">🔄 Kamera</button>
         </div>
         <div id="anatomy-canvas">
           <div class="loader-container" id="loaderContainer">
             <div class="loader"></div>
-            <p style="color:var(--accent); font-size:12px; margin-top:10px;">Lade 3D Scan (16 MB)...</p>
+            <p style="color:var(--accent); font-size:12px; margin-top:10px;">Lade professionelles Modell...</p>
           </div>
           <div class="anatomy-hint" id="anatomyHint">Ziehen = Drehen · Scrollen = Zoom</div>
         </div>
@@ -347,7 +347,6 @@ input[type="range"] { width: 150px; accent-color: var(--accent); }
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { SubsurfaceScatteringShader } from 'three/addons/shaders/SubsurfaceScatteringShader.js';
 
 /* ============================================================
    STATE & STORAGE
@@ -568,7 +567,7 @@ document.getElementById('resetData').addEventListener('click', () => {
 /* ============================================================
    5. 3D WELTRAUM & GOLDENER TEXT-RING
 ============================================================ */
-let bgScene, bgCamera, bgRenderer, earthMesh, textMesh;
+let bgScene, bgCamera, bgRenderer, earthMesh, textMesh, sunMesh;
 let isDraggingEarth = false;
 let previousMousePosition = { x: 0, y: 0 };
 
@@ -662,9 +661,9 @@ function initBackground() {
   earthMesh.position.set(-8, 3, -20);
   bgScene.add(earthMesh);
 
-  // Sonne
-  const sunTex = textureLoader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/textures/planets/sun.jpg');
-  const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 64, 64), new THREE.MeshBasicMaterial({ map: sunTex, color: 0xffdd55 }));
+  // Sonne (Zuverlässige URL von unpkg)
+  const sunTex = textureLoader.load('https://unpkg.com/three-globe@2.45.6/example/img/sun-texture.jpg');
+  sunMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 64, 64), new THREE.MeshBasicMaterial({ map: sunTex, color: 0xffdd55 }));
   sunMesh.position.set(35, 25, -60);
   bgScene.add(sunMesh);
 
@@ -688,12 +687,18 @@ function initBackground() {
   textMesh.rotation.z = -Math.PI / 16;
   bgScene.add(textMesh);
 
-  // Lichter (Heller und realistischer)
+  // Logo laden (als Textur auf einer kleinen Box)
+  const logoTexture = textureLoader.load('logo.png');
+  const logoMaterial = new THREE.MeshBasicMaterial({ map: logoTexture, transparent: true });
+  const logoMesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), logoMaterial);
+  logoMesh.position.set(0, 6, -10); // Oben mittig positioniert
+  bgScene.add(logoMesh);
+
+  // Lichter
   const sunLight = new THREE.PointLight(0xfff5e6, 5000, 1000);
   sunLight.position.copy(sunMesh.position);
   bgScene.add(sunLight);
   
-  // Zusätzliche Fülllichter für die Erde
   const fillLight1 = new THREE.DirectionalLight(0xffffff, 3.0); fillLight1.position.set(-10, 5, 10); bgScene.add(fillLight1);
   const fillLight2 = new THREE.DirectionalLight(0x00d4ff, 2.0); fillLight2.position.set(5, -5, 10); bgScene.add(fillLight2);
   
@@ -735,7 +740,7 @@ function initBackground() {
 initBackground();
 
 /* ============================================================
-   6. ANATOMIE 3D (Echtes GLTF-Modell + SSS)
+   6. ANATOMIE 3D (Professionelles GLB-Modell)
 ============================================================ */
 let scene, camera, renderer, controls;
 let realisticModel, proceduralModel;
@@ -775,9 +780,9 @@ function initAnatomy() {
   const rimLight = new THREE.DirectionalLight(0x00d4ff, 2.0); rimLight.position.set(-3, 2, -2); scene.add(rimLight);
   const bottomLight = new THREE.PointLight(0xff5ea8, 1.5, 5); bottomLight.position.set(0, -1, 2); scene.add(bottomLight);
 
-  // Lade echtes GLTF-Modell
+  // Lade professionelles GLB-Modell (Y-Bot von three.ws, CORS-frei)
   const loader = new GLTFLoader();
-  const modelUrl = 'https://raw.githubusercontent.com/0beqz/three.js-studio-human-demo/master/glb/studio_human.glb';
+  const modelUrl = 'https://pub-2534e921bf9c4314addcd4d8a6e98b7b.r2.dev/avatars/mixamo/glb/y-bot.glb';
   
   loader.load(modelUrl, (gltf) => {
     realisticModel = gltf.scene;
@@ -786,18 +791,13 @@ function initAnatomy() {
     realisticModel.scale.set(1.0, 1.0, 1.0);
     realisticModel.position.set(0, 0, 0);
     
-    // SSS-Material anwenden
-    const sssMaterial = new THREE.ShaderMaterial({
-      ...SubsurfaceScatteringShader,
-      uniforms: THREE.UniformsUtils.clone(SubsurfaceScatteringShader.uniforms)
-    });
-
+    // Materialien verfeinern (Haut-Look)
     realisticModel.traverse((child) => {
       if (child.isMesh) {
-        // Standardmäßig das SSS-Material verwenden, falls es sich um Haut handelt
-        // Ansonsten das Originalmaterial (für Kleidung etc.)
-        if (child.name.toLowerCase().includes('body') || child.name.toLowerCase().includes('skin')) {
-          child.material = sssMaterial;
+        // Wir lassen das Originalmaterial, fügen aber einen leichten Glanz hinzu
+        if (child.material) {
+          child.material.roughness = 0.4;
+          child.material.metalness = 0.1;
         }
       }
     });
