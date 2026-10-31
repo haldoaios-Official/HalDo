@@ -15,7 +15,8 @@
   --glass-2:rgba(255,255,255,.08);
   --border:rgba(255,255,255,.09);
   --accent:#00d4ff; --accent-2:#00ffa3;
-  --gold:#ffd700; --danger:#ff4d6d; --warn:#ffb703;
+  --gold:#ffd700; --gold-2:#ffb700;
+  --danger:#ff4d6d; --warn:#ffb703;
   --text:#e8f1ff; --muted:#7e91ab;
   --r:16px;
 }
@@ -26,7 +27,7 @@ body{
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
   overflow:hidden; -webkit-font-smoothing:antialiased;
 }
-#app{display:grid;height:100vh;height:100dvh;grid-template-columns:260px 1fr;position:relative;z-index:1;opacity:0;transition:opacity 0.5s;}
+#app{display:grid;height:100vh;height:100dvh;grid-template-columns:260px 1fr;position:relative;z-index:1;opacity:0;transition:opacity 0.8s;}
 #app.ready{opacity:1;}
 
 /* ============================================================
@@ -34,6 +35,39 @@ body{
 ============================================================ */
 #bg-canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:auto;cursor:grab;}
 #bg-canvas:active{cursor:grabbing;}
+
+/* ============================================================
+   WILLKOMMENS-OVERLAY (Typewriter)
+============================================================ */
+#welcome-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: rgba(2, 2, 5, 0.85); backdrop-filter: blur(10px);
+  opacity: 0; pointer-events: none; transition: opacity 1s ease;
+}
+#welcome-overlay.show { opacity: 1; pointer-events: auto; }
+.welcome-content {
+  text-align: center; max-width: 800px; padding: 20px;
+}
+.welcome-title {
+  font-size: 3rem; font-weight: 800; letter-spacing: 2px;
+  background: linear-gradient(120deg, var(--gold), var(--gold-2));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  margin-bottom: 20px; text-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+}
+.welcome-sub {
+  font-size: 1.2rem; color: var(--accent); letter-spacing: 4px; text-transform: uppercase;
+  margin-bottom: 40px; height: 30px;
+}
+.welcome-footer {
+  position: absolute; bottom: 50px; left: 0; right: 0;
+  text-align: center; font-size: 1rem; color: var(--muted); letter-spacing: 1px;
+}
+.typewriter-cursor {
+  display: inline-block; width: 2px; height: 1em; background: var(--gold);
+  animation: blink 1s step-end infinite; vertical-align: bottom;
+}
+@keyframes blink { 50% { opacity: 0; } }
 
 /* ============================================================
    SIDEBAR
@@ -120,10 +154,7 @@ body{
 .settings-row .sr-label{font-size:14px;font-weight:600;}
 .settings-row .sr-sub{font-size:12px;color:var(--muted);margin-top:3px;}
 select.styled, input.styled{background:var(--glass-2);border:1px solid var(--border);color:#fff;padding:9px 13px;border-radius:10px;font-size:13px;font-family:inherit;cursor:pointer;outline:none;width:200px;}
-.switch{position:relative;width:48px;height:26px;border-radius:99px;background:rgba(255,255,255,.12);cursor:pointer;transition:.2s;flex-shrink:0;}
-.switch::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s;}
-.switch.on{background:linear-gradient(90deg,var(--accent),var(--accent-2));}
-.switch.on::after{left:25px;}
+input[type="range"] { width: 150px; accent-color: var(--accent); }
 .btn-danger{background:rgba(255,77,109,.14);border:1px solid rgba(255,77,109,.45);color:#ff8fa3;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:.18s;}
 .btn-danger:hover{background:rgba(255,77,109,.25);color:#fff;}
 
@@ -137,6 +168,7 @@ select.styled, input.styled{background:var(--glass-2);border:1px solid var(--bor
   #sidebar.open{transform:none;}
   #main{padding:66px 16px 16px;}
   #menuBtn{display:flex;}
+  .welcome-title { font-size: 2rem; }
 }
 </style>
 <script type="importmap">
@@ -151,6 +183,15 @@ select.styled, input.styled{background:var(--glass-2);border:1px solid var(--bor
 <body>
 <canvas id="bg-canvas"></canvas>
 
+<!-- WILLKOMMENS-OVERLAY -->
+<div id="welcome-overlay">
+  <div class="welcome-content">
+    <div class="welcome-title" id="welcomeTitle"></div>
+    <div class="welcome-sub" id="welcomeSub"></div>
+  </div>
+  <div class="welcome-footer" id="welcomeFooter"></div>
+</div>
+
 <div id="app">
   <aside id="sidebar">
     <div class="brand">
@@ -160,22 +201,22 @@ select.styled, input.styled{background:var(--glass-2);border:1px solid var(--bor
       </div>
     </div>
     <div class="nav-section">Übersicht</div>
-    <button class="nav-item active" data-view="dashboard"><span class="ico">📊</span> Dashboard</button>
-    <button class="nav-item" data-view="anatomie"><span class="ico">🧍‍♂️</span> Anatomie 3D</button>
-    <button class="nav-item" data-view="assistant"><span class="ico">🤖</span> KI Assistent</button>
+    <button class="nav-item active" data-view="dashboard" data-name="Dashboard"><span class="ico">📊</span> Dashboard</button>
+    <button class="nav-item" data-view="anatomie" data-name="Anatomie 3D"><span class="ico">🧍‍♂️</span> Anatomie 3D</button>
+    <button class="nav-item" data-view="assistant" data-name="KI Assistent"><span class="ico">🤖</span> KI Assistent</button>
 
     <div class="nav-section">Wissen</div>
-    <button class="nav-item" data-view="krankheiten"><span class="ico">🦠</span> Krankheiten A-Z</button>
-    <button class="nav-item" data-view="medikamente"><span class="ico">💊</span> Medikamente A-Z</button>
-    <button class="nav-item" data-view="labor"><span class="ico">🧪</span> Laborwerte</button>
+    <button class="nav-item" data-view="krankheiten" data-name="Krankheiten A-Z"><span class="ico">🦠</span> Krankheiten A-Z</button>
+    <button class="nav-item" data-view="medikamente" data-name="Medikamente A-Z"><span class="ico">💊</span> Medikamente A-Z</button>
+    <button class="nav-item" data-view="labor" data-name="Laborwerte"><span class="ico">🧪</span> Laborwerte</button>
 
     <div class="nav-section">Praxis</div>
-    <button class="nav-item" data-view="iot"><span class="ico">📡</span> IoT & Hotspot</button>
-    <button class="nav-item" data-view="hardware"><span class="ico">🖨️</span> Hardware & Kasse</button>
-    <button class="nav-item danger" data-view="notfall"><span class="ico">🚨</span> Notfall</button>
+    <button class="nav-item" data-view="iot" data-name="IoT & Hotspot"><span class="ico">📡</span> IoT & Hotspot</button>
+    <button class="nav-item" data-view="hardware" data-name="Hardware & Kasse"><span class="ico">🖨️</span> Hardware & Kasse</button>
+    <button class="nav-item danger" data-view="notfall" data-name="Notfall"><span class="ico">🚨</span> Notfall</button>
 
     <div class="nav-section">System</div>
-    <button class="nav-item" data-view="einstellungen"><span class="ico">⚙️</span> Einstellungen</button>
+    <button class="nav-item" data-view="einstellungen" data-name="Einstellungen"><span class="ico">⚙️</span> Einstellungen</button>
   </aside>
 
   <div id="backdrop"></div>
@@ -184,45 +225,24 @@ select.styled, input.styled{background:var(--glass-2);border:1px solid var(--bor
   <main id="main">
     <!-- DASHBOARD -->
     <section id="view-dashboard" class="view active">
-      <div class="view-head">
-        <h1 id="greeting">Guten Tag</h1>
-        <p class="sub" id="dateStr"></p>
-      </div>
+      <div class="view-head"><h1 id="greeting">Guten Tag</h1><p class="sub" id="dateStr"></p></div>
       <div class="grid">
-        <div class="span-8 card tip-card">
-          <div class="card-label">💡 Tages-Tipp</div>
-          <p id="tipText">Lade…</p>
-        </div>
+        <div class="span-8 card tip-card"><div class="card-label">💡 Tages-Tipp</div><p id="tipText">Lade…</p></div>
         <div class="span-4 card">
           <div class="card-label">💧 Wasser</div>
           <div class="water-row">
             <div class="water-big"><span id="waterVal">0</span><small> / 8 Gläser</small></div>
-            <div style="display:flex;gap:6px">
-              <button class="btn-mini" id="waterMinus">−</button>
-              <button class="btn-mini" id="waterPlus">+</button>
-            </div>
+            <div style="display:flex;gap:6px"><button class="btn-mini" id="waterMinus">−</button><button class="btn-mini" id="waterPlus">+</button></div>
           </div>
           <div class="water-glasses" id="waterGlasses"></div>
         </div>
         <div class="span-12 card">
           <div class="card-label">❤️ Vitalwerte</div>
           <div class="vitals">
-            <div class="vital">
-              <span class="vlabel">Blutdruck</span>
-              <div class="vital-row"><input id="v-bd" placeholder="120/80"><span class="unit">mmHg</span></div>
-            </div>
-            <div class="vital">
-              <span class="vlabel">Blutzucker</span>
-              <div class="vital-row"><input id="v-zucker" placeholder="95"><span class="unit">mg/dl</span></div>
-            </div>
-            <div class="vital">
-              <span class="vlabel">Gewicht</span>
-              <div class="vital-row"><input id="v-gewicht" placeholder="78"><span class="unit">kg</span></div>
-            </div>
-            <div class="vital">
-              <span class="vlabel">Puls</span>
-              <div class="vital-row"><input id="v-puls" placeholder="72"><span class="unit">bpm</span></div>
-            </div>
+            <div class="vital"><span class="vlabel">Blutdruck</span><div class="vital-row"><input id="v-bd" placeholder="120/80"><span class="unit">mmHg</span></div></div>
+            <div class="vital"><span class="vlabel">Blutzucker</span><div class="vital-row"><input id="v-zucker" placeholder="95"><span class="unit">mg/dl</span></div></div>
+            <div class="vital"><span class="vlabel">Gewicht</span><div class="vital-row"><input id="v-gewicht" placeholder="78"><span class="unit">kg</span></div></div>
+            <div class="vital"><span class="vlabel">Puls</span><div class="vital-row"><input id="v-puls" placeholder="72"><span class="unit">bpm</span></div></div>
           </div>
         </div>
       </div>
@@ -230,10 +250,7 @@ select.styled, input.styled{background:var(--glass-2);border:1px solid var(--bor
 
     <!-- ANATOMIE -->
     <section id="view-anatomie" class="view col">
-      <div class="view-head">
-        <h1>Anatomie 3D Pro Max</h1>
-        <p class="sub">Holografischer Scan · 4 Ebenen</p>
-      </div>
+      <div class="view-head"><h1>Anatomie 3D Pro Max</h1><p class="sub">High-End Hologramm · 4 Ebenen</p></div>
       <div class="anatomy-wrap">
         <div class="anatomy-toolbar">
           <button class="layer-btn" data-layer="haut">🫥 Haut</button>
@@ -243,16 +260,14 @@ select.styled, input.styled{background:var(--glass-2);border:1px solid var(--bor
           <div class="spacer"></div>
           <button class="layer-btn" id="resetCam">🔄 Kamera</button>
         </div>
-        <div id="anatomy-canvas">
-          <div class="anatomy-hint">Ziehen = Drehen · Scrollen = Zoom · Organ anklicken</div>
-        </div>
+        <div id="anatomy-canvas"><div class="anatomy-hint">Ziehen = Drehen · Scrollen = Zoom · Organ anklicken</div></div>
       </div>
     </section>
 
     <!-- PLACEHOLDER VIEWS -->
-    <section id="view-assistant" class="view"><div class="placeholder"><div class="ph-icon">🤖</div><span class="ph-badge">Teil 2</span><h2>KI Assistent</h2><p>Medizinischer Chat mit Symptom-Analyse folgt.</p></div></section>
-    <section id="view-krankheiten" class="view"><div class="placeholder"><div class="ph-icon">🦠</div><span class="ph-badge">Teil 2</span><h2>Krankheiten A-Z</h2><p>Datenbank mit Symptomen und Behandlung folgt.</p></div></section>
-    <section id="view-medikamente" class="view"><div class="placeholder"><div class="ph-icon">💊</div><span class="ph-badge">Teil 2</span><h2>Medikamente A-Z</h2><p>Datenbank mit Dosierung folgt.</p></div></section>
+    <section id="view-assistant" class="view"><div class="placeholder"><div class="ph-icon">🤖</div><span class="ph-badge">Teil 2</span><h2>KI Assistent</h2><p>Medizinischer Chat folgt.</p></div></section>
+    <section id="view-krankheiten" class="view"><div class="placeholder"><div class="ph-icon">🦠</div><span class="ph-badge">Teil 2</span><h2>Krankheiten A-Z</h2><p>Datenbank folgt.</p></div></section>
+    <section id="view-medikamente" class="view"><div class="placeholder"><div class="ph-icon">💊</div><span class="ph-badge">Teil 2</span><h2>Medikamente A-Z</h2><p>Datenbank folgt.</p></div></section>
     <section id="view-labor" class="view"><div class="placeholder"><div class="ph-icon">🧪</div><span class="ph-badge">Teil 3</span><h2>Laborwerte</h2><p>Referenzbereiche folgen.</p></div></section>
     <section id="view-iot" class="view"><div class="placeholder"><div class="ph-icon">📡</div><h2>IoT & Hotspot</h2><p>Steuerung folgt.</p></div></section>
     <section id="view-hardware" class="view"><div class="placeholder"><div class="ph-icon">🖨️</div><h2>Hardware</h2><p>Drucker-Simulation folgt.</p></div></section>
@@ -271,39 +286,55 @@ select.styled, input.styled{background:var(--glass-2);border:1px solid var(--bor
       <div class="view-head"><h1>Einstellungen</h1></div>
       <div class="grid">
         <div class="span-6 card">
-          <div class="card-label">⚙️ System & Namen</div>
+          <div class="card-label">🎨 App & Texte</div>
           <div class="settings-row">
-            <div><div class="sr-label">App Name</div><div class="sr-sub">Um die Erde schwebend</div></div>
+            <div><div class="sr-label">App Name</div></div>
             <input class="styled" type="text" id="appNameInput" value="HalDo Arztbuch">
           </div>
           <div class="settings-row">
-            <div><div class="sr-label">Untertitel</div><div class="sr-sub">Zweite Zeile</div></div>
+            <div><div class="sr-label">Untertitel</div></div>
             <input class="styled" type="text" id="appSubInput" value="a Halil Donma Professioneller App">
           </div>
           <div class="settings-row">
-            <div><div class="sr-label">Präsentiert von</div><div class="sr-sub">Dritte Zeile</div></div>
+            <div><div class="sr-label">Präsentiert</div></div>
             <input class="styled" type="text" id="appPresentInput" value="präsentiert">
           </div>
           <div class="settings-row">
             <div><div class="sr-label">Sprache</div></div>
-            <select class="styled" id="langSelect">
-              <option value="de">Deutsch</option>
-              <option value="en">English</option>
-              <option value="ku">Kurdisch</option>
-              <option value="ar">Arabisch</option>
+            <select class="styled" id="langSelect"><option value="de-DE">Deutsch</option><option value="en-US">English</option></select>
+          </div>
+        </div>
+        
+        <div class="span-6 card">
+          <div class="card-label">⏱️ Animation & Sound</div>
+          <div class="settings-row">
+            <div><div class="sr-label">Drehgeschwindigkeit</div></div>
+            <input type="range" id="rotSpeedInput" min="0" max="3" step="0.1" value="1.0">
+          </div>
+          <div class="settings-row">
+            <div><div class="sr-label">Willkommensdauer (Sek)</div></div>
+            <input type="range" id="greetDurationInput" min="2" max="15" step="1" value="5">
+          </div>
+          <div class="settings-row">
+            <div><div class="sr-label">Sound-Profil</div></div>
+            <select class="styled" id="soundProfileInput">
+              <option value="glass">Sternen Glas (8x)</option>
+              <option value="space">Deep Space</option>
+              <option value="scifi">Sci-Fi Computer</option>
+              <option value="none">Stumm</option>
             </select>
           </div>
         </div>
-        <div class="span-6 card">
+
+        <div class="span-12 card">
           <div class="card-label">🔧 Wartung</div>
           <div class="settings-row">
             <div><div class="sr-label">Daten zurücksetzen</div></div>
-            <button class="btn-danger" id="resetData">Löschen</button>
+            <button class="btn-danger" id="resetData">Alles löschen</button>
           </div>
         </div>
       </div>
     </section>
-
   </main>
 </div>
 
@@ -318,6 +349,9 @@ const state = {
   appName: localStorage.getItem('haldo_appName') || 'HalDo Arztbuch',
   appSub: localStorage.getItem('haldo_appSub') || 'a Halil Donma Professioneller App',
   appPresent: localStorage.getItem('haldo_appPresent') || 'präsentiert',
+  rotSpeed: parseFloat(localStorage.getItem('haldo_rotSpeed')) || 1.0,
+  greetDuration: parseInt(localStorage.getItem('haldo_greetDuration')) || 5,
+  soundProfile: localStorage.getItem('haldo_soundProfile') || 'glass',
   lang: localStorage.getItem('haldo_lang') || 'de-DE'
 };
 
@@ -327,21 +361,117 @@ const vitals = JSON.parse(localStorage.getItem('haldo_vitals') || 'null') || {
 function saveVitals(){ localStorage.setItem('haldo_vitals', JSON.stringify(vitals)); }
 
 /* ============================================================
-   1. UI NAVIGATION
+   1. AUDIO ENGINE (Web Audio API)
+============================================================ */
+let audioCtx;
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+
+function playChime(freq, timeOffset = 0, duration = 1.5) {
+  if (state.soundProfile === 'none' || !audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  
+  osc.type = state.soundProfile === 'scifi' ? 'square' : 'sine';
+  osc.frequency.setValueAtTime(freq, audioCtx.currentTime + timeOffset);
+  
+  // Hüllkurve für Glasklingen (schneller Attack, langer Decay)
+  gain.gain.setValueAtTime(0, audioCtx.currentTime + timeOffset);
+  gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + timeOffset + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + timeOffset + duration);
+  
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  
+  osc.start(audioCtx.currentTime + timeOffset);
+  osc.stop(audioCtx.currentTime + timeOffset + duration);
+}
+
+function playWelcomeChimes() {
+  initAudio();
+  if (state.soundProfile === 'none') return;
+  
+  // 8 Klingeltöne (Sternen-Glas-Effekt)
+  const baseFreq = 880; // A5
+  const notes = [1, 1.25, 1.5, 2, 1.5, 1.25, 1, 0.75]; // Harmonische Sequenz
+  
+  notes.forEach((mult, i) => {
+    let freq = baseFreq * mult;
+    if (state.soundProfile === 'space') freq /= 2; // Tiefer für Space
+    if (state.soundProfile === 'scifi') freq *= 1.5; // Höher für SciFi
+    playChime(freq, i * 0.15, 2.0);
+  });
+}
+
+/* ============================================================
+   2. UI NAVIGATION & WELCOME
 ============================================================ */
 const views = document.querySelectorAll('.view');
 const navItems = document.querySelectorAll('.nav-item');
+const welcomeOverlay = document.getElementById('welcome-overlay');
+const welcomeTitle = document.getElementById('welcomeTitle');
+const welcomeSub = document.getElementById('welcomeSub');
+const welcomeFooter = document.getElementById('welcomeFooter');
 
-function switchView(name){
+function typeWriter(element, text, speed, callback) {
+  element.innerHTML = '';
+  let i = 0;
+  function type() {
+    if (i < text.length) {
+      element.innerHTML += text.charAt(i);
+      i++;
+      setTimeout(type, speed);
+    } else if (callback) {
+      callback();
+    }
+  }
+  type();
+}
+
+function showWelcome(appName) {
+  welcomeOverlay.classList.add('show');
+  playWelcomeChimes();
+  
+  // Texte zusammenbauen
+  const t1 = `Willkommen bei ${appName}`;
+  const t2 = `${appName} App`;
+  const t3 = `a Halil Donma Professioneller App ${state.appPresent}`;
+  
+  // Typewriter Sequenz
+  typeWriter(welcomeTitle, t1, 50, () => {
+    typeWriter(welcomeSub, t2, 50, () => {
+      typeWriter(welcomeFooter, t3, 40);
+    });
+  });
+  
+  // Nach Ablauf der Dauer ausblenden
+  setTimeout(() => {
+    welcomeOverlay.classList.remove('show');
+    document.getElementById('app').classList.add('ready');
+  }, state.greetDuration * 1000);
+}
+
+function switchView(name, displayName) {
   views.forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
   navItems.forEach(b => b.classList.toggle('active', b.dataset.view === name));
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('backdrop').classList.remove('show');
 
+  // Update 3D Text
+  if (displayName) {
+    updateRingText(displayName);
+  }
+
   if (name === 'anatomie') requestAnimationFrame(initAnatomy);
   if (name === 'dashboard') renderDashboard();
 }
-navItems.forEach(b => b.addEventListener('click', () => switchView(b.dataset.view)));
+
+navItems.forEach(b => b.addEventListener('click', () => {
+  const name = b.dataset.view;
+  const displayName = b.dataset.name || b.innerText.trim();
+  switchView(name, displayName);
+}));
 
 document.getElementById('menuBtn').addEventListener('click', () => {
   document.getElementById('sidebar').classList.add('open');
@@ -353,7 +483,7 @@ document.getElementById('backdrop').addEventListener('click', () => {
 });
 
 /* ============================================================
-   2. DASHBOARD LOGIK
+   3. DASHBOARD LOGIK
 ============================================================ */
 const TIPS = [
   'Trinke morgens ein großes Glas Wasser – das startet den Stoffwechsel.',
@@ -372,7 +502,7 @@ function renderDashboard(){
   const h = new Date().getHours();
   const gr = h < 11 ? 'Guten Morgen' : h < 18 ? 'Guten Tag' : 'Guten Abend';
   document.getElementById('greeting').textContent = gr + ' 👋';
-  document.getElementById('dateStr').textContent = new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  document.getElementById('dateStr').textContent = new Date().toLocaleDateString(state.lang, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const dayIdx = Math.floor(Date.now() / 86400000) % TIPS.length;
   document.getElementById('tipText').textContent = TIPS[dayIdx];
 
@@ -405,89 +535,102 @@ document.getElementById('waterMinus').onclick = () => { vitals.wasser--; renderW
 });
 
 /* ============================================================
-   3. EINSTELLUNGEN & TEXT-UPDATE
+   4. EINSTELLUNGEN
 ============================================================ */
 const appNameInput = document.getElementById('appNameInput');
 const appSubInput = document.getElementById('appSubInput');
 const appPresentInput = document.getElementById('appPresentInput');
+const rotSpeedInput = document.getElementById('rotSpeedInput');
+const greetDurationInput = document.getElementById('greetDurationInput');
+const soundProfileInput = document.getElementById('soundProfileInput');
+const langSelect = document.getElementById('langSelect');
 
-appNameInput.addEventListener('input', (e) => {
-  state.appName = e.target.value;
-  localStorage.setItem('haldo_appName', state.appName);
-  updateOrbitText();
-});
-appSubInput.addEventListener('input', (e) => {
-  state.appSub = e.target.value;
-  localStorage.setItem('haldo_appSub', state.appSub);
-  updateOrbitText();
-});
-appPresentInput.addEventListener('input', (e) => {
-  state.appPresent = e.target.value;
-  localStorage.setItem('haldo_appPresent', state.appPresent);
-  updateOrbitText();
-});
+appNameInput.value = state.appName;
+appSubInput.value = state.appSub;
+appPresentInput.value = state.appPresent;
+rotSpeedInput.value = state.rotSpeed;
+greetDurationInput.value = state.greetDuration;
+soundProfileInput.value = state.soundProfile;
+langSelect.value = state.lang;
+
+appNameInput.addEventListener('input', (e) => { state.appName = e.target.value; localStorage.setItem('haldo_appName', state.appName); updateRingText(state.appName); });
+appSubInput.addEventListener('input', (e) => { state.appSub = e.target.value; localStorage.setItem('haldo_appSub', state.appSub); updateRingText(state.appName); });
+appPresentInput.addEventListener('input', (e) => { state.appPresent = e.target.value; localStorage.setItem('haldo_appPresent', state.appPresent); updateRingText(state.appName); });
+rotSpeedInput.addEventListener('input', (e) => { state.rotSpeed = parseFloat(e.target.value); localStorage.setItem('haldo_rotSpeed', state.rotSpeed); });
+greetDurationInput.addEventListener('input', (e) => { state.greetDuration = parseInt(e.target.value); localStorage.setItem('haldo_greetDuration', state.greetDuration); });
+soundProfileInput.addEventListener('change', (e) => { state.soundProfile = e.target.value; localStorage.setItem('haldo_soundProfile', state.soundProfile); });
+langSelect.addEventListener('change', (e) => { state.lang = e.target.value; localStorage.setItem('haldo_lang', state.lang); });
 
 document.getElementById('resetData').addEventListener('click', () => {
   if (confirm('Wirklich alle gespeicherten Daten löschen?')){ localStorage.clear(); location.reload(); }
 });
 
 /* ============================================================
-   4. 3D WELTRAUM & ROTIERENDER GOLD-TEXT
+   5. 3D WELTRAUM & GOLDENER TEXT-RING
 ============================================================ */
 let bgScene, bgCamera, bgRenderer, earthMesh, textMesh;
 let isDraggingEarth = false;
 let previousMousePosition = { x: 0, y: 0 };
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
 
-// Erzeugt eine Textur aus Text für den 3D-Ring
-function createTextTexture() {
+let currentAppText = state.appName;
+
+function createTextTexture(appName) {
   const canvas = document.createElement('canvas');
   canvas.width = 4096;
-  canvas.height = 512;
+  canvas.height = 1024; // Höher für 3 Zeilen
   const ctx = canvas.getContext('2d');
-  
-  // Hintergrund transparent
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
   // Goldener Farbverlauf
   const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
   gradient.addColorStop(0, '#ffd700');
+  gradient.addColorStop(0.3, '#fff8b0');
   gradient.addColorStop(0.5, '#ffb700');
+  gradient.addColorStop(0.7, '#fff8b0');
   gradient.addColorStop(1, '#ffd700');
   
   ctx.fillStyle = gradient;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  
-  // Text zusammenbauen
-  const fullText = `${state.appName}   •   ${state.appSub}   •   ${state.appPresent}   •   `;
-  
-  // Obere Zeile (App Name)
-  ctx.font = 'bold 120px "Segoe UI", Arial, sans-serif';
-  // Wir wiederholen den Text, damit er um den Ring passt
-  const textWidth = ctx.measureText(fullText).width;
-  const repeatCount = Math.ceil(canvas.width / textWidth) + 1;
-  const repeatedText = fullText.repeat(repeatCount);
-  
-  ctx.fillText(repeatedText, canvas.width / 2, canvas.height / 2);
-  
-  // Zusätzlicher Schatten/Glow
   ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
   ctx.shadowBlur = 20;
-  ctx.fillText(repeatedText, canvas.width / 2, canvas.height / 2);
+
+  // Zeile 1 (Oben)
+  ctx.font = 'bold 100px "Segoe UI", Arial, sans-serif';
+  const text1 = `Willkommen bei ${appName}   •   `;
+  const width1 = ctx.measureText(text1).width;
+  const repeat1 = Math.ceil(canvas.width / width1) + 1;
+  ctx.fillText(text1.repeat(repeat1), canvas.width / 2, 250);
+
+  // Zeile 2 (Mitte)
+  ctx.font = 'bold 140px "Segoe UI", Arial, sans-serif';
+  ctx.fillStyle = '#00d4ff'; // Cyan für Kontrast
+  ctx.shadowColor = 'rgba(0, 212, 255, 0.8)';
+  const text2 = `${appName} App   •   `;
+  const width2 = ctx.measureText(text2).width;
+  const repeat2 = Math.ceil(canvas.width / width2) + 1;
+  ctx.fillText(text2.repeat(repeat2), canvas.width / 2, 500);
+
+  // Zeile 3 (Unten)
+  ctx.font = 'bold 80px "Segoe UI", Arial, sans-serif';
+  ctx.fillStyle = gradient;
+  ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
+  const text3 = `${state.appSub} ${state.appPresent}   •   `;
+  const width3 = ctx.measureText(text3).width;
+  const repeat3 = Math.ceil(canvas.width / width3) + 1;
+  ctx.fillText(text3.repeat(repeat3), canvas.width / 2, 750);
   
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.ClampToEdgeWrapping;
-  texture.repeat.set(1, 1);
   return texture;
 }
 
-function updateOrbitText() {
+function updateRingText(appName) {
+  currentAppText = appName;
   if (textMesh) {
     textMesh.material.map.dispose();
-    textMesh.material.map = createTextTexture();
+    textMesh.material.map = createTextTexture(appName);
     textMesh.material.needsUpdate = true;
   }
 }
@@ -504,7 +647,7 @@ function initBackground() {
   bgCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
   bgCamera.position.set(0, 0, 15);
 
-  // STERNE
+  // Sterne
   const starGeo = new THREE.BufferGeometry();
   const starPos = new Float32Array(8000 * 3);
   for (let i = 0; i < 8000 * 3; i += 3) {
@@ -517,36 +660,35 @@ function initBackground() {
 
   const textureLoader = new THREE.TextureLoader();
   
-  // ERDE (Höher positioniert)
+  // Erde
   const earthMap = textureLoader.load('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg');
   earthMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 64, 64), new THREE.MeshStandardMaterial({ map: earthMap, roughness: 0.7 }));
   earthMesh.position.set(-8, 3, -20);
   bgScene.add(earthMesh);
 
-  // SONNE
+  // Sonne
   const sunTex = textureLoader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/textures/planets/sun.jpg');
   const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 64, 64), new THREE.MeshBasicMaterial({ map: sunTex, color: 0xffdd55 }));
   sunMesh.position.set(35, 25, -60);
   bgScene.add(sunMesh);
 
-  // MOND
+  // Mond
   const moonTex = textureLoader.load('https://cdn.jsdelivr.net/gh/homer-jay/solar-system-textures@master/moon.jpg');
   const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(1.5, 32, 32), new THREE.MeshStandardMaterial({ map: moonTex, roughness: 1.0 }));
   moonMesh.position.set(18, 12, -15);
   bgScene.add(moonMesh);
 
-  // --- DER GOLDENE TEXT-RING UM DIE ERDE ---
-  const textGeo = new THREE.CylinderGeometry(7, 7, 2.5, 64, 1, true);
+  // Der 3D Text-Ring
+  const textGeo = new THREE.CylinderGeometry(7, 7, 4, 64, 1, true);
   const textMat = new THREE.MeshBasicMaterial({ 
-    map: createTextTexture(), 
+    map: createTextTexture(state.appName), 
     transparent: true, 
     side: THREE.DoubleSide,
-    blending: THREE.AdditiveBlending // Lässt den Text leuchten
+    blending: THREE.AdditiveBlending
   });
   textMesh = new THREE.Mesh(textGeo, textMat);
   textMesh.position.copy(earthMesh.position);
-  // Neigung, damit es schräg um die Erde geht
-  textMesh.rotation.x = Math.PI / 8;
+  textMesh.rotation.x = Math.PI / 10;
   textMesh.rotation.z = -Math.PI / 16;
   bgScene.add(textMesh);
 
@@ -556,7 +698,7 @@ function initBackground() {
   bgScene.add(sunLight);
   bgScene.add(new THREE.AmbientLight(0x555566, 1.5));
 
-  // Klick auf Erde (zum Verschieben)
+  // Erde verschieben
   canvas.addEventListener('pointerdown', (e) => {
     isDraggingEarth = true;
     previousMousePosition = { x: e.clientX, y: e.clientY };
@@ -573,14 +715,12 @@ function initBackground() {
   });
   canvas.addEventListener('pointerup', () => { isDraggingEarth = false; });
 
-  // ANIMATION LOOP
   const clock = new THREE.Clock();
   function animateBg() {
     requestAnimationFrame(animateBg);
     const delta = clock.getDelta();
-    earthMesh.rotation.y += delta * 0.02;
-    // Den Text-Ring entgegengesetzt drehen
-    textMesh.rotation.y -= delta * 0.03;
+    earthMesh.rotation.y += delta * 0.02 * state.rotSpeed;
+    textMesh.rotation.y -= delta * 0.03 * state.rotSpeed;
     bgRenderer.render(bgScene, bgCamera);
   }
   animateBg();
@@ -594,7 +734,7 @@ function initBackground() {
 initBackground();
 
 /* ============================================================
-   5. HIGH-END 3D ANATOMIE (Prozedural Pro Max)
+   6. ANATOMIE 3D
 ============================================================ */
 let scene, camera, renderer, controls;
 let bodyGroup, currentLayer = 'organe';
@@ -630,32 +770,12 @@ function initAnatomy() {
   controls.autoRotate = true;
   controls.autoRotateSpeed = 0.6;
 
-  // --- STUDIO BELEUCHTUNG FÜR REALISMUS ---
   scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-  const keyLight = new THREE.DirectionalLight(0xfff5e6, 3.0); 
-  keyLight.position.set(2, 4, 3); 
-  scene.add(keyLight);
-  
-  const rimLight = new THREE.DirectionalLight(0x00d4ff, 2.0); 
-  rimLight.position.set(-3, 2, -2); 
-  scene.add(rimLight);
+  const keyLight = new THREE.DirectionalLight(0xfff5e6, 3.0); keyLight.position.set(2, 4, 3); scene.add(keyLight);
+  const rimLight = new THREE.DirectionalLight(0x00d4ff, 2.0); rimLight.position.set(-3, 2, -2); scene.add(rimLight);
+  const bottomLight = new THREE.PointLight(0xff5ea8, 1.5, 5); bottomLight.position.set(0, -1, 2); scene.add(bottomLight);
 
-  const bottomLight = new THREE.PointLight(0xff5ea8, 1.5, 5);
-  bottomLight.position.set(0, -1, 2);
-  scene.add(bottomLight);
-
-  // --- MATERIALIEN (HIGH END) ---
-  const skinMat = new THREE.MeshPhysicalMaterial({
-    color: 0xffdbba, 
-    roughness: 0.35, 
-    metalness: 0.0,
-    clearcoat: 0.3, 
-    clearcoatRoughness: 0.2,
-    transmission: 0.25, // SSS
-    thickness: 1.0, 
-    ior: 1.4
-  });
-  
+  const skinMat = new THREE.MeshPhysicalMaterial({ color: 0xffdbba, roughness: 0.35, metalness: 0.0, clearcoat: 0.3, clearcoatRoughness: 0.2, transmission: 0.25, thickness: 1.0, ior: 1.4 });
   const muscleMat = new THREE.MeshStandardMaterial({ color: 0xb32b2b, roughness: 0.65 });
   const boneMat = new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.45 });
 
@@ -670,34 +790,22 @@ function initAnatomy() {
     if(scl) m.scale.set(scl[0], scl[1], scl[2]); group.add(m); return m;
   };
 
-  // --- HAUT EBENE (Geschwungene Formen) ---
-  add(layers.haut, new THREE.SphereGeometry(0.12, 32, 32), skinMat, [0, 1.7, 0], [1, 1.15, 0.95]); // Kopf
-  add(layers.haut, new THREE.CylinderGeometry(0.05, 0.06, 0.12, 32), skinMat, [0, 1.56, 0]); // Nacken
-  
-  // Torso (LatheGeometry für Kurven)
-  const torsoPoints = [];
-  torsoPoints.push(new THREE.Vector2(0.12, 0.8));   // Hüfte
-  torsoPoints.push(new THREE.Vector2(0.15, 1.0));   // Taille
-  torsoPoints.push(new THREE.Vector2(0.22, 1.25));  // Brust
-  torsoPoints.push(new THREE.Vector2(0.24, 1.42));  // Schultern
+  // Haut
+  add(layers.haut, new THREE.SphereGeometry(0.12, 32, 32), skinMat, [0, 1.7, 0], [1, 1.15, 0.95]);
+  add(layers.haut, new THREE.CylinderGeometry(0.05, 0.06, 0.12, 32), skinMat, [0, 1.56, 0]);
+  const torsoPoints = [new THREE.Vector2(0.12, 0.8), new THREE.Vector2(0.15, 1.0), new THREE.Vector2(0.22, 1.25), new THREE.Vector2(0.24, 1.42)];
   add(layers.haut, new THREE.LatheGeometry(torsoPoints, 32), skinMat, [0, 0, 0], [1.2, 1, 0.65]);
-
-  // Arme
   for (const s of [1, -1]) {
     add(layers.haut, new THREE.SphereGeometry(0.08, 32, 32), skinMat, [s*0.28, 1.4, 0], [1, 1.1, 1]);
     add(layers.haut, new THREE.CapsuleGeometry(0.06, 0.28, 16, 32), skinMat, [s*0.31, 1.1, 0]);
     add(layers.haut, new THREE.CapsuleGeometry(0.05, 0.25, 16, 32), skinMat, [s*0.33, 0.75, 0]);
     add(layers.haut, new THREE.BoxGeometry(0.06, 0.1, 0.03), skinMat, [s*0.34, 0.55, 0.02]);
-  }
-
-  // Beine
-  for (const s of [1, -1]) {
     add(layers.haut, new THREE.CapsuleGeometry(0.1, 0.35, 16, 32), skinMat, [s*0.11, 0.6, 0]);
     add(layers.haut, new THREE.CapsuleGeometry(0.07, 0.35, 16, 32), skinMat, [s*0.11, 0.2, 0]);
     add(layers.haut, new THREE.BoxGeometry(0.1, 0.08, 0.22), skinMat, [s*0.11, 0.0, 0.05]);
   }
 
-  // --- MUSKELN EBENE ---
+  // Muskeln
   for (const s of [1, -1]) {
     add(layers.muskeln, new THREE.SphereGeometry(0.11, 32, 32), muscleMat, [s*0.1, 1.28, 0.07], [1.2, 0.7, 0.5]);
     for (let i = 0; i < 3; i++) add(layers.muskeln, new THREE.BoxGeometry(0.07, 0.07, 0.05), muscleMat, [s*0.04, 1.15 - i*0.09, 0.09]);
@@ -705,15 +813,15 @@ function initAnatomy() {
     add(layers.muskeln, new THREE.CapsuleGeometry(0.1, 0.3, 16, 32), muscleMat, [s*0.11, 0.6, 0.01]);
   }
 
-  // --- SKELETT EBENE ---
-  add(layers.skelett, new THREE.SphereGeometry(0.09, 32, 32), boneMat, [0, 1.7, 0]); // Schädel
-  add(layers.skelett, new THREE.CylinderGeometry(0.03, 0.03, 0.7, 16), boneMat, [0, 1.1, -0.01]); // Wirbelsäule
+  // Skelett
+  add(layers.skelett, new THREE.SphereGeometry(0.09, 32, 32), boneMat, [0, 1.7, 0]);
+  add(layers.skelett, new THREE.CylinderGeometry(0.03, 0.03, 0.7, 16), boneMat, [0, 1.1, -0.01]);
   for (let i = 0; i < 6; i++) {
     const rib = new THREE.Mesh(new THREE.TorusGeometry(0.16 - i*0.015, 0.012, 16, 32), boneMat);
     rib.position.set(0, 1.38 - i*0.08, 0); rib.rotation.x = Math.PI / 2; rib.scale.set(1, 0.65, 1); layers.skelett.add(rib);
   }
 
-  // --- ORGANE EBENE ---
+  // Organe
   const addOrgan = (geo, pos, color, key, scl) => {
     const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3, emissive: color, emissiveIntensity: 0.2 });
     const m = add(layers.organe, geo, mat, pos, scl); m.userData.organ = key; organMeshes.push(m);
@@ -760,12 +868,15 @@ document.querySelectorAll('.layer-btn[data-layer]').forEach(b => b.addEventListe
 document.getElementById('resetCam').addEventListener('click', () => { camera.position.set(0, 1.15, 3.2); controls.target.set(0, 1.0, 0); controls.update(); });
 
 /* ============================================================
-   START
+   START SEQUENZ
 ============================================================ */
-setTimeout(() => {
-  document.getElementById('app').classList.add('ready');
+window.addEventListener('load', () => {
+  // 1. Begrüßung anzeigen
+  showWelcome(state.appName);
+  
+  // 2. Dashboard initialisieren
   renderDashboard();
-}, 500);
+});
 </script>
 </body>
 </html>
