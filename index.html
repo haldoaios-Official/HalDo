@@ -146,6 +146,14 @@ select.styled{background:var(--glass-2);border:1px solid var(--border);color:#ff
 .emergency-btn { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:20px; background:rgba(255,77,109,0.15); border:2px solid var(--danger); color:var(--danger); border-radius:16px; font-size:20px; font-weight:800; cursor:pointer; text-transform:uppercase; letter-spacing:2px; transition:0.2s; }
 .emergency-btn:hover { background:rgba(255,77,109,0.3); transform:scale(1.02); box-shadow:0 0 30px rgba(255,77,109,0.4); }
 
+/* Hintergrund-Steuerung */
+.bg-controls { display: flex; flex-direction: column; gap: 12px; }
+.bg-slider-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.bg-slider-row input[type="range"] { flex: 1; accent-color: var(--accent); }
+.bg-coord-row { display: flex; gap: 8px; font-size: 11px; }
+.bg-coord-row label { display: flex; align-items: center; gap: 4px; }
+.bg-coord-row input { width: 50px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: #fff; border-radius: 4px; padding: 2px 4px; text-align: center; }
+
 @media (max-width:860px){
   #app{grid-template-columns:1fr;}
   #sidebar{position:fixed;left:0;top:0;bottom:0;width:255px;transform:translateX(-100%);}
@@ -353,27 +361,58 @@ select.styled{background:var(--glass-2);border:1px solid var(--border);color:#ff
     <!-- EINSTELLUNGEN -->
     <section id="view-einstellungen" class="view">
       <div class="view-head"><h1>Einstellungen</h1></div>
-      <div class="card" style="max-width:640px">
-        <div class="settings-row">
-          <div><div class="sr-label">Sprache</div><div class="sr-sub">Deutsch, Englisch, Kurdisch</div></div>
-          <select class="styled" id="langSelect">
-            <option value="de">Deutsch</option>
-            <option value="en">English</option>
-            <option value="ku">Kurmancî</option>
-            <option value="ar">العربية</option>
-          </select>
+      <div class="grid">
+        <div class="span-6 card">
+          <div class="card-label">⚙️ Allgemein</div>
+          <div class="settings-row">
+            <div><div class="sr-label">Sprache</div><div class="sr-sub">Wähle deine Sprache</div></div>
+            <select class="styled" id="langSelect">
+              <option value="de-DE">Deutsch</option>
+              <option value="en-US">English</option>
+              <option value="ku">Kurdisch (Kurmandschi)</option>
+              <option value="ar-SA">Arabisch</option>
+              <option value="fa-IR">Farsi</option>
+              <option value="he-IL">Hebräisch</option>
+              <option value="la">Latein</option>
+              <option value="yaz">Ezidi</option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <div><div class="sr-label">Stimme</div><div class="sr-sub">Wähle eine Stimme</div></div>
+            <select class="styled" id="voiceSelect">
+              <option value="standard">Standard</option>
+              <option value="male">Männlich</option>
+              <option value="female">Weiblich</option>
+              <option value="young">Jung</option>
+              <option value="old">Älter</option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <div><div class="sr-label">TTS Test</div><div class="sr-sub">Sprachausgabe testen</div></div>
+            <button class="btn-mini" id="testTTS">🔊</button>
+          </div>
+          <div class="settings-row">
+            <div><div class="sr-label">Daten zurücksetzen</div></div>
+            <button class="btn-danger" id="resetData">Löschen</button>
+          </div>
         </div>
-        <div class="settings-row">
-          <div><div class="sr-label">Sprachausgabe (TTS)</div></div>
-          <div class="switch on" id="ttsSwitch"></div>
-        </div>
-        <div class="settings-row">
-          <div><div class="sr-label">3D Auto-Rotation</div></div>
-          <div class="switch on" id="rotSwitch"></div>
-        </div>
-        <div class="settings-row">
-          <div><div class="sr-label">Daten zurücksetzen</div></div>
-          <button class="btn-danger" id="resetData">Löschen</button>
+        <div class="span-6 card">
+          <div class="card-label">🌌 Hintergrund-Steuerung</div>
+          <div class="bg-controls">
+            <div class="bg-slider-row">
+              <label>Helligkeit</label>
+              <input type="range" id="bgBrightness" min="0.5" max="3" step="0.1" value="1.5">
+            </div>
+            <div class="bg-slider-row">
+              <label>Erde X</label>
+              <input type="range" id="earthX" min="-20" max="20" step="0.5" value="-10">
+            </div>
+            <div class="bg-slider-row">
+              <label>Erde Y</label>
+              <input type="range" id="earthY" min="-15" max="15" step="0.5" value="4">
+            </div>
+            <button class="btn-mini" id="resetBg" style="width:100%; margin-top:8px;">🔄 Zurücksetzen</button>
+          </div>
         </div>
       </div>
     </section>
@@ -389,14 +428,20 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
    STATE & STORAGE
 ============================================================ */
 const state = {
-  lang: localStorage.getItem('haldo_lang') || 'de',
+  lang: localStorage.getItem('haldo_lang') || 'de-DE',
+  voice: localStorage.getItem('haldo_voice') || 'standard',
   tts: localStorage.getItem('haldo_tts') !== '0',
-  autorotate: localStorage.getItem('haldo_rot') !== '0'
+  autorotate: localStorage.getItem('haldo_rot') !== '0',
+  bgBrightness: parseFloat(localStorage.getItem('haldo_bg_bright')) || 1.5,
+  earthX: parseFloat(localStorage.getItem('haldo_earth_x')) || -10,
+  earthY: parseFloat(localStorage.getItem('haldo_earth_y')) || 4
 };
+
 const vitals = JSON.parse(localStorage.getItem('haldo_vitals') || 'null') || {
   bd: '120/80', zucker: '95', gewicht: '78', puls: '72', wasser: 3
 };
 function saveVitals(){ localStorage.setItem('haldo_vitals', JSON.stringify(vitals)); }
+function saveSetting(key, val){ localStorage.setItem(key, val); }
 
 /* ============================================================
    1. UI NAVIGATION
@@ -479,27 +524,84 @@ document.getElementById('waterMinus').onclick = () => { vitals.wasser--; renderW
 /* ============================================================
    3. EINSTELLUNGEN
 ============================================================ */
-const ttsSwitch = document.getElementById('ttsSwitch');
-ttsSwitch.classList.toggle('on', state.tts);
-ttsSwitch.addEventListener('click', () => {
-  state.tts = !state.tts; ttsSwitch.classList.toggle('on', state.tts); localStorage.setItem('haldo_tts', state.tts ? '1' : '0');
-});
+const langSelect = document.getElementById('langSelect');
+langSelect.value = state.lang;
+langSelect.addEventListener('change', e => { state.lang = e.target.value; saveSetting('haldo_lang', state.lang); });
 
-const rotSwitch = document.getElementById('rotSwitch');
-rotSwitch.classList.toggle('on', state.autorotate);
-rotSwitch.addEventListener('click', () => {
-  state.autorotate = !state.autorotate; rotSwitch.classList.toggle('on', state.autorotate); localStorage.setItem('haldo_rot', state.autorotate ? '1' : '0');
-  if (controls) controls.autoRotate = state.autorotate;
+const voiceSelect = document.getElementById('voiceSelect');
+voiceSelect.value = state.voice;
+voiceSelect.addEventListener('change', e => { state.voice = e.target.value; saveSetting('haldo_voice', state.voice); });
+
+document.getElementById('testTTS').addEventListener('click', () => {
+  if ('speechSynthesis' in window) {
+    const u = new SpeechSynthesisUtterance('Dies ist ein Test der HalDo Arztbuch Sprachausgabe.');
+    u.lang = state.lang;
+    // Versuch, die Stimme nach Geschlecht/Alter zu filtern (abhängig von der Browser-Unterstützung)
+    const voices = speechSynthesis.getVoices();
+    if (state.voice !== 'standard') {
+      const filtered = voices.filter(v => v.name.toLowerCase().includes(state.voice) || v.name.toLowerCase().includes(state.voice === 'male' ? 'männlich' : ''));
+      if (filtered.length > 0) u.voice = filtered[0];
+    }
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  } else {
+    alert('Sprachausgabe wird von diesem Browser nicht unterstützt.');
+  }
 });
 
 document.getElementById('resetData').addEventListener('click', () => {
   if (confirm('Wirklich alle gespeicherten Daten löschen?')){ localStorage.clear(); location.reload(); }
 });
 
+// Hintergrund-Steuerung
+const bgBrightness = document.getElementById('bgBrightness');
+bgBrightness.value = state.bgBrightness;
+bgBrightness.addEventListener('input', e => {
+  state.bgBrightness = parseFloat(e.target.value);
+  saveSetting('haldo_bg_bright', state.bgBrightness);
+  if (bgScene) bgScene.traverse(child => {
+    if (child.isLight && child.type !== 'AmbientLight') child.intensity = state.bgBrightness * 1000; // Für PointLight
+  });
+});
+
+const earthX = document.getElementById('earthX');
+earthX.value = state.earthX;
+earthX.addEventListener('input', e => {
+  state.earthX = parseFloat(e.target.value);
+  saveSetting('haldo_earth_x', state.earthX);
+  if (earthMesh) earthMesh.position.x = state.earthX;
+});
+
+const earthY = document.getElementById('earthY');
+earthY.value = state.earthY;
+earthY.addEventListener('input', e => {
+  state.earthY = parseFloat(e.target.value);
+  saveSetting('haldo_earth_y', state.earthY);
+  if (earthMesh) earthMesh.position.y = state.earthY;
+});
+
+document.getElementById('resetBg').addEventListener('click', () => {
+  state.bgBrightness = 1.5; state.earthX = -10; state.earthY = 4;
+  localStorage.removeItem('haldo_bg_bright'); localStorage.removeItem('haldo_earth_x'); localStorage.removeItem('haldo_earth_y');
+  bgBrightness.value = 1.5; earthX.value = -10; earthY.value = 4;
+  if (bgScene) bgScene.traverse(child => { if (child.isLight && child.type !== 'AmbientLight') child.intensity = 1500; });
+  if (earthMesh) { earthMesh.position.x = -10; earthMesh.position.y = 4; }
+});
+
+const rotSwitch = document.getElementById('rotSwitch');
+if (rotSwitch) {
+  rotSwitch.classList.toggle('on', state.autorotate);
+  rotSwitch.addEventListener('click', () => {
+    state.autorotate = !state.autorotate; rotSwitch.classList.toggle('on', state.autorotate); saveSetting('haldo_rot', state.autorotate ? '1' : '0');
+    if (controls) controls.autoRotate = state.autorotate;
+  });
+}
+
+
 /* ============================================================
-   4. WELTRAUM HINTERGRUND (Erde Hell gemacht)
+   4. WELTRAUM HINTERGRUND (Sonne, Mond, Sterne, Erde + Interaktion)
 ============================================================ */
-let bgScene, bgCamera, bgRenderer, earthMesh;
+let bgScene, bgCamera, bgRenderer, earthMesh, moonMesh, sunMesh;
 let isDraggingEarth = false;
 let previousMousePosition = { x: 0, y: 0 };
 const raycaster = new THREE.Raycaster();
@@ -530,16 +632,18 @@ function initBackground() {
   const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 1.5, transparent: true, opacity: 0.8 });
   bgScene.add(new THREE.Points(starGeometry, starMaterial));
 
-  // SONNE
+  // TEXTUREN (Zuverlässige CDNs)
   const textureLoader = new THREE.TextureLoader();
+  
+  // SONNE (Zuverlässige jsDelivr-URL)
   const sunTex = textureLoader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/textures/planets/sun.jpg');
   const sunGeo = new THREE.SphereGeometry(5, 64, 64);
   const sunMat = new THREE.MeshBasicMaterial({ map: sunTex, color: 0xffdd55 });
-  const sun = new THREE.Mesh(sunGeo, sunMat);
-  sun.position.set(35, 25, -60);
-  bgScene.add(sun);
+  sunMesh = new THREE.Mesh(sunGeo, sunMat);
+  sunMesh.position.set(35, 25, -60);
+  bgScene.add(sunMesh);
   
-  // Sonnen-Glow
+  // Sonnen-Glow (Sprite)
   const canvasSun = document.createElement('canvas');
   canvasSun.width = 256; canvasSun.height = 256;
   const ctx = canvasSun.getContext('2d');
@@ -550,7 +654,7 @@ function initBackground() {
   ctx.fillStyle = gradient; ctx.fillRect(0, 0, 256, 256);
   const sunSpriteMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvasSun), blending: THREE.AdditiveBlending, depthTest: false });
   const sunSprite = new THREE.Sprite(sunSpriteMat);
-  sunSprite.scale.set(45, 45, 1); sunSprite.position.copy(sun.position);
+  sunSprite.scale.set(45, 45, 1); sunSprite.position.copy(sunMesh.position);
   bgScene.add(sunSprite);
 
   // ERDE (Höher positioniert)
@@ -558,39 +662,42 @@ function initBackground() {
   const earthGeo = new THREE.SphereGeometry(5, 64, 64);
   const earthMat = new THREE.MeshStandardMaterial({ map: earthMap, roughness: 0.7, metalness: 0.1 });
   earthMesh = new THREE.Mesh(earthGeo, earthMat);
-  earthMesh.position.set(-10, 4, -20);
+  earthMesh.position.set(state.earthX, state.earthY, -20);
   bgScene.add(earthMesh);
 
   // MOND
   const moonTex = textureLoader.load('https://cdn.jsdelivr.net/gh/homer-jay/solar-system-textures@master/moon.jpg');
   const moonGeo = new THREE.SphereGeometry(1.5, 32, 32);
   const moonMat = new THREE.MeshStandardMaterial({ map: moonTex, roughness: 1.0 });
-  const moon = new THREE.Mesh(moonGeo, moonMat);
-  moon.position.set(18, 12, -15);
-  bgScene.add(moon);
+  moonMesh = new THREE.Mesh(moonGeo, moonMat);
+  moonMesh.position.set(18, 12, -15);
+  bgScene.add(moonMesh);
 
-  // LICHTER (Erde wird jetzt hell angestrahlt)
-  const sunLight = new THREE.PointLight(0xffccaa, 5000, 1000);
-  sunLight.position.copy(sun.position);
+  // LICHTER
+  const sunLight = new THREE.PointLight(0xffccaa, 5000 * state.bgBrightness, 1000);
+  sunLight.position.copy(sunMesh.position);
   bgScene.add(sunLight);
   
-  // Zusätzliches Licht, damit die Erde nicht im Dunkeln verschwindet
-  const earthLight = new THREE.DirectionalLight(0xffffff, 2.0);
-  earthLight.position.set(-5, 5, 10); // Direkt auf die Erde gerichtet
+  const earthLight = new THREE.DirectionalLight(0xffffff, 2.0 * state.bgBrightness);
+  earthLight.position.set(-5, 5, 10); 
   bgScene.add(earthLight);
   
-  bgScene.add(new THREE.AmbientLight(0x555566, 1.5)); // Deutlich mehr Grundhelligkeit
+  bgScene.add(new THREE.AmbientLight(0x555566, 1.5 * state.bgBrightness));
 
-  // INTERAKTION ERDE
+  // INTERAKTION ERDE (KLICKEN & VERSCHIEBEN)
   canvas.addEventListener('pointerdown', (e) => {
     isDraggingEarth = true;
     previousMousePosition = { x: e.clientX, y: e.clientY };
+    
     mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, bgCamera);
     const intersects = raycaster.intersectObject(earthMesh);
-    if (intersects.length > 0) document.getElementById('ai-chat-overlay').classList.add('show');
+    if (intersects.length > 0) {
+      document.getElementById('ai-chat-overlay').classList.add('show');
+    }
   });
+
   canvas.addEventListener('pointermove', (e) => {
     if (isDraggingEarth) {
       const deltaX = e.clientX - previousMousePosition.x;
@@ -598,16 +705,26 @@ function initBackground() {
       earthMesh.position.x += deltaX * 0.05;
       earthMesh.position.y -= deltaY * 0.05;
       previousMousePosition = { x: e.clientX, y: e.clientY };
+      // Update der Slider-Positionen
+      document.getElementById('earthX').value = earthMesh.position.x;
+      document.getElementById('earthY').value = earthMesh.position.y;
+      // Speichern
+      state.earthX = earthMesh.position.x;
+      state.earthY = earthMesh.position.y;
+      saveSetting('haldo_earth_x', state.earthX);
+      saveSetting('haldo_earth_y', state.earthY);
     }
   });
+
   canvas.addEventListener('pointerup', () => { isDraggingEarth = false; });
+  canvas.addEventListener('pointerleave', () => { isDraggingEarth = false; });
 
   const clock = new THREE.Clock();
   function animateBg() {
     requestAnimationFrame(animateBg);
     const delta = clock.getDelta();
     earthMesh.rotation.y += delta * 0.03;
-    moon.rotation.y += delta * 0.01;
+    moonMesh.rotation.y += delta * 0.01;
     bgRenderer.render(bgScene, bgCamera);
   }
   animateBg();
