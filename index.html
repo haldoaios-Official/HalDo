@@ -251,18 +251,19 @@ input[type="range"] { width: 150px; accent-color: var(--accent); }
 
     <!-- ANATOMIE -->
     <section id="view-anatomie" class="view col">
-      <div class="view-head"><h1>Anatomie 3D Pro Max</h1><p class="sub">Professionelles 3D-Modell (Y-Bot) · CORS-frei</p></div>
+      <div class="view-head"><h1>Anatomie 3D Pro Max</h1><p class="sub">Mensch · Cyborg · Skelett</p></div>
       <div class="anatomy-wrap">
         <div class="anatomy-toolbar">
-          <button class="layer-btn active" onclick="toggleAnatomy('realistic')">📷 Realistisch (GLB)</button>
-          <button class="layer-btn" onclick="toggleAnatomy('procedural')">🤖 Prozedural (Lego)</button>
+          <button class="layer-btn active" id="btnHuman" onclick="toggleAnatomy('human')">🧍 Mensch</button>
+          <button class="layer-btn" id="btnCyborg" onclick="toggleAnatomy('cyborg')">🤖 Cyborg</button>
+          <button class="layer-btn" id="btnSkeleton" onclick="toggleAnatomy('skeleton')">🦴 Skelett</button>
           <div class="spacer"></div>
           <button class="layer-btn" id="resetCam">🔄 Kamera</button>
         </div>
         <div id="anatomy-canvas">
           <div class="loader-container" id="loaderContainer">
             <div class="loader"></div>
-            <p style="color:var(--accent); font-size:12px; margin-top:10px;">Lade professionelles Modell...</p>
+            <p style="color:var(--accent); font-size:12px; margin-top:10px;">Lade Modelle...</p>
           </div>
           <div class="anatomy-hint" id="anatomyHint">Ziehen = Drehen · Scrollen = Zoom</div>
         </div>
@@ -359,7 +360,7 @@ const state = {
   greetDuration: parseInt(localStorage.getItem('haldo_greetDuration')) || 5,
   soundProfile: localStorage.getItem('haldo_soundProfile') || 'glass',
   lang: localStorage.getItem('haldo_lang') || 'de-DE',
-  anatomyMode: 'realistic'
+  anatomyMode: 'human'
 };
 
 const vitals = JSON.parse(localStorage.getItem('haldo_vitals') || 'null') || {
@@ -630,6 +631,41 @@ function updateRingText(appName) {
   }
 }
 
+// GENERIERT EINE SONNEN-TEXTUR IM CODE (Unzerstörbar)
+function createSunTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+  
+  // Basis-Gradient
+  const gradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+  gradient.addColorStop(0, '#ffffff');
+  gradient.addColorStop(0.2, '#ffffaa');
+  gradient.addColorStop(0.5, '#ffaa00');
+  gradient.addColorStop(0.8, '#ff5500');
+  gradient.addColorStop(1, '#aa0000');
+  
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 512, 512);
+  
+  // Ein paar zufällige "Flare"-Punkte für Textur
+  for (let i = 0; i < 50; i++) {
+    const x = Math.random() * 512;
+    const y = Math.random() * 512;
+    const r = Math.random() * 10 + 5;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+    g.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  return new THREE.CanvasTexture(canvas);
+}
+
 function initBackground() {
   const canvas = document.getElementById('bg-canvas');
   bgRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
@@ -661,11 +697,27 @@ function initBackground() {
   earthMesh.position.set(-8, 3, -20);
   bgScene.add(earthMesh);
 
-  // Sonne (Zuverlässige URL von unpkg)
-  const sunTex = textureLoader.load('https://unpkg.com/three-globe@2.45.6/example/img/sun-texture.jpg');
-  sunMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 64, 64), new THREE.MeshBasicMaterial({ map: sunTex, color: 0xffdd55 }));
+  // SONNE (Generiert im Code, keine externen Links mehr!)
+  const sunTex = createSunTexture();
+  sunMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 64, 64), new THREE.MeshBasicMaterial({ map: sunTex }));
   sunMesh.position.set(35, 25, -60);
   bgScene.add(sunMesh);
+
+  // Sonnen-Glow (Sprite)
+  const canvasSunGlow = document.createElement('canvas');
+  canvasSunGlow.width = 256; canvasSunGlow.height = 256;
+  const ctx = canvasSunGlow.getContext('2d');
+  const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  gradient.addColorStop(0, 'rgba(255, 200, 50, 0.8)');
+  gradient.addColorStop(0.5, 'rgba(255, 100, 0, 0.4)');
+  gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 256, 256);
+  const sunSpriteMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvasSunGlow), blending: THREE.AdditiveBlending, depthTest: false });
+  const sunSprite = new THREE.Sprite(sunSpriteMat);
+  sunSprite.scale.set(40, 40, 1);
+  sunSprite.position.copy(sunMesh.position);
+  bgScene.add(sunSprite);
 
   // Mond
   const moonTex = textureLoader.load('https://cdn.jsdelivr.net/gh/homer-jay/solar-system-textures@master/moon.jpg');
@@ -687,11 +739,11 @@ function initBackground() {
   textMesh.rotation.z = -Math.PI / 16;
   bgScene.add(textMesh);
 
-  // Logo laden (als Textur auf einer kleinen Box)
+  // Logo laden
   const logoTexture = textureLoader.load('logo.png');
   const logoMaterial = new THREE.MeshBasicMaterial({ map: logoTexture, transparent: true });
   const logoMesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), logoMaterial);
-  logoMesh.position.set(0, 6, -10); // Oben mittig positioniert
+  logoMesh.position.set(0, 6, -10);
   bgScene.add(logoMesh);
 
   // Lichter
@@ -740,11 +792,12 @@ function initBackground() {
 initBackground();
 
 /* ============================================================
-   6. ANATOMIE 3D (Professionelles GLB-Modell)
+   6. ANATOMIE 3D (Mensch, Cyborg, Skelett)
 ============================================================ */
 let scene, camera, renderer, controls;
-let realisticModel, proceduralModel;
+let humanModel, cyborgModel, skeletonModel;
 let anatomyInited = false;
+let clock;
 
 function initAnatomy() {
   if (anatomyInited) return;
@@ -780,48 +833,75 @@ function initAnatomy() {
   const rimLight = new THREE.DirectionalLight(0x00d4ff, 2.0); rimLight.position.set(-3, 2, -2); scene.add(rimLight);
   const bottomLight = new THREE.PointLight(0xff5ea8, 1.5, 5); bottomLight.position.set(0, -1, 2); scene.add(bottomLight);
 
-  // Lade professionelles GLB-Modell (Y-Bot von three.ws, CORS-frei)
+  // 1. Mensch (Prozedural Pro)
+  humanModel = buildProceduralHuman();
+  humanModel.visible = false;
+  scene.add(humanModel);
+
+  // 2. Skelett (Teil des Menschen, aber isoliert)
+  skeletonModel = buildProceduralSkeleton();
+  skeletonModel.visible = false;
+  scene.add(skeletonModel);
+
+  // 3. Cyborg (GLTF Y-Bot)
   const loader = new GLTFLoader();
   const modelUrl = 'https://pub-2534e921bf9c4314addcd4d8a6e98b7b.r2.dev/avatars/mixamo/glb/y-bot.glb';
   
   loader.load(modelUrl, (gltf) => {
-    realisticModel = gltf.scene;
+    cyborgModel = gltf.scene;
     
-    // Größe anpassen
-    realisticModel.scale.set(1.0, 1.0, 1.0);
-    realisticModel.position.set(0, 0, 0);
-    
-    // Materialien verfeinern (Haut-Look)
-    realisticModel.traverse((child) => {
+    // Cyborg-Look (Metallic)
+    cyborgModel.traverse((child) => {
       if (child.isMesh) {
-        // Wir lassen das Originalmaterial, fügen aber einen leichten Glanz hinzu
-        if (child.material) {
-          child.material.roughness = 0.4;
-          child.material.metalness = 0.1;
-        }
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0x333333,
+          metalness: 0.9,
+          roughness: 0.2,
+          emissive: 0x00d4ff,
+          emissiveIntensity: 0.2
+        });
       }
     });
 
-    scene.add(realisticModel);
+    // Größe anpassen (damit er neben den anderen passt)
+    cyborgModel.scale.set(1.1, 1.1, 1.1);
+    cyborgModel.position.set(0, 0, 0);
     
-    // Loader ausblenden
+    cyborgModel.visible = false;
+    scene.add(cyborgModel);
+    
     document.getElementById('loaderContainer').style.display = 'none';
-    document.getElementById('anatomyHint').textContent = 'Ziehen = Drehen · Scrollen = Zoom';
-    
-    toggleAnatomy('realistic');
+    toggleAnatomy('human'); // Start mit Mensch
 
   }, (xhr) => {
-    // Fortschritt könnte hier angezeigt werden
+    // Progress
   }, (error) => {
-    console.error('Fehler beim Laden des 3D-Modells:', error);
-    document.getElementById('loaderContainer').innerHTML = '<p style="color:red;">Fehler beim Laden des 3D-Modells.</p>';
-    toggleAnatomy('procedural'); // Fallback auf Lego-Mann
+    console.error('Cyborg Modell Fehler:', error);
+    document.getElementById('loaderContainer').innerHTML = '<p style="color:red;">Cyborg Modell Fehler.</p>';
+    toggleAnatomy('human');
   });
 
-  // Animation Loop
+  clock = new THREE.Clock();
+
+  // Animation Loop (mit Atmen & Schweben)
   function animate() {
     requestAnimationFrame(animate);
     controls.update();
+    
+    const time = clock.getElapsedTime();
+    
+    // Atem-Animation für Mensch
+    if (humanModel && humanModel.visible) {
+      humanModel.position.y = Math.sin(time * 2) * 0.02;
+      // Leichtes Armdrehen
+      if (humanModel.children[0]) humanModel.children[0].rotation.z = Math.sin(time * 2) * 0.02;
+    }
+    
+    // Schwebe-Animation für Cyborg
+    if (cyborgModel && cyborgModel.visible) {
+      cyborgModel.position.y = Math.sin(time * 1.5) * 0.05;
+    }
+
     renderer.render(scene, camera);
   }
   animate();
@@ -836,43 +916,97 @@ function initAnatomy() {
 // Umschalt-Funktion
 window.toggleAnatomy = function(mode) {
   state.anatomyMode = mode;
-  if (mode === 'realistic' && realisticModel) {
-    realisticModel.visible = true;
-    if (proceduralModel) proceduralModel.visible = false;
-    document.getElementById('btnRealistic').classList.add('active');
-    document.getElementById('btnProcedural').classList.remove('active');
-  } else if (mode === 'procedural') {
-    if (realisticModel) realisticModel.visible = false;
-    if (!proceduralModel) {
-      // Fallback: Prozeduraler Bauplan (stark vereinfacht)
-      proceduralModel = buildProceduralModel();
-      scene.add(proceduralModel);
-    }
-    proceduralModel.visible = true;
-    document.getElementById('btnProcedural').classList.add('active');
-    document.getElementById('btnRealistic').classList.remove('active');
+  
+  // Alle ausblenden
+  if (humanModel) humanModel.visible = false;
+  if (cyborgModel) cyborgModel.visible = false;
+  if (skeletonModel) skeletonModel.visible = false;
+  
+  // Buttons updaten
+  document.getElementById('btnHuman').classList.remove('active');
+  document.getElementById('btnCyborg').classList.remove('active');
+  document.getElementById('btnSkeleton').classList.remove('active');
+
+  if (mode === 'human' && humanModel) {
+    humanModel.visible = true;
+    document.getElementById('btnHuman').classList.add('active');
+  } else if (mode === 'cyborg' && cyborgModel) {
+    cyborgModel.visible = true;
+    document.getElementById('btnCyborg').classList.add('active');
+  } else if (mode === 'skeleton' && skeletonModel) {
+    skeletonModel.visible = true;
+    document.getElementById('btnSkeleton').classList.add('active');
   }
 };
 
-// Fallback: Prozeduraler Bauplan (stark vereinfacht)
-function buildProceduralModel() {
+// Prozeduraler Mensch (High-End)
+function buildProceduralHuman() {
   const group = new THREE.Group();
-  const skinMat = new THREE.MeshPhysicalMaterial({ color: 0xffdbba, roughness: 0.4 });
+  const skinMat = new THREE.MeshPhysicalMaterial({ 
+    color: 0xffdbba, roughness: 0.35, metalness: 0.0, clearcoat: 0.3, transmission: 0.2, thickness: 1.0, ior: 1.4 
+  });
   
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 32, 32), skinMat);
+  // Kopf
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 32, 32), skinMat);
+  head.position.set(0, 1.7, 0);
+  head.scale.set(1, 1.15, 0.95);
+  group.add(head);
+  
+  // Nacken
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.12, 32), skinMat);
+  neck.position.set(0, 1.56, 0);
+  group.add(neck);
+
+  // Torso (Lathe)
+  const torsoPoints = [new THREE.Vector2(0.12, 0.8), new THREE.Vector2(0.15, 1.0), new THREE.Vector2(0.22, 1.25), new THREE.Vector2(0.24, 1.42)];
+  const torso = new THREE.Mesh(new THREE.LatheGeometry(torsoPoints, 32), skinMat);
+  torso.scale.set(1.2, 1, 0.65);
+  group.add(torso);
+
+  // Arme
+  for (const s of [1, -1]) {
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.5, 16, 32), skinMat);
+    arm.position.set(s*0.28, 1.1, 0);
+    arm.rotation.z = s * 0.1;
+    group.add(arm);
+    
+    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.1, 0.03), skinMat);
+    hand.position.set(s*0.34, 0.55, 0.02);
+    group.add(hand);
+  }
+
+  // Beine
+  for (const s of [1, -1]) {
+    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.6, 16, 32), skinMat);
+    leg.position.set(s*0.11, 0.4, 0);
+    group.add(leg);
+    
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.22), skinMat);
+    foot.position.set(s*0.11, 0.0, 0.05);
+    group.add(foot);
+  }
+  return group;
+}
+
+// Prozedurales Skelett
+function buildProceduralSkeleton() {
+  const group = new THREE.Group();
+  const boneMat = new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.45 });
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.09, 32, 32), boneMat);
   head.position.set(0, 1.7, 0); group.add(head);
   
-  const pts = [new THREE.Vector2(0.12, 0.8), new THREE.Vector2(0.22, 1.25), new THREE.Vector2(0.25, 1.42)];
-  const torso = new THREE.Mesh(new THREE.LatheGeometry(pts, 32), skinMat);
-  torso.scale.set(1.2, 1, 0.7); group.add(torso);
+  const spine = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.7, 16), boneMat);
+  spine.position.set(0, 1.1, -0.01); group.add(spine);
 
-  for (const s of [1, -1]) {
-    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 0.5, 16, 32), skinMat);
-    arm.position.set(s*0.3, 1.1, 0); arm.rotation.z = s * 0.1; group.add(arm);
-    
-    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.6, 16, 32), skinMat);
-    leg.position.set(s*0.12, 0.4, 0); group.add(leg);
+  for (let i = 0; i < 6; i++) {
+    const rib = new THREE.Mesh(new THREE.TorusGeometry(0.16 - i*0.015, 0.012, 16, 32), boneMat);
+    rib.position.set(0, 1.38 - i*0.08, 0);
+    rib.rotation.x = Math.PI / 2;
+    rib.scale.set(1, 0.65, 1);
+    group.add(rib);
   }
+  
   return group;
 }
 
