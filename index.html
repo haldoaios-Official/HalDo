@@ -46,9 +46,7 @@ body{
   opacity: 0; pointer-events: none; transition: opacity 1s ease;
 }
 #welcome-overlay.show { opacity: 1; pointer-events: auto; }
-.welcome-content {
-  text-align: center; max-width: 800px; padding: 20px;
-}
+.welcome-content { text-align: center; max-width: 800px; padding: 20px; }
 .welcome-title {
   font-size: 3rem; font-weight: 800; letter-spacing: 2px;
   background: linear-gradient(120deg, var(--gold), var(--gold-2));
@@ -140,6 +138,9 @@ body{
 #anatomy-canvas{flex:1;min-height:320px;border-radius:var(--r);border:1px solid var(--border);background:transparent;overflow:hidden;position:relative;}
 #anatomy-canvas canvas{display:block;width:100%!important;height:100%!important;}
 .anatomy-hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--muted);background:rgba(0,0,0,.5);padding:6px 14px;border-radius:99px;border:1px solid var(--border);white-space:nowrap;pointer-events:none;}
+.loader-container{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:20;}
+.loader { border: 4px solid rgba(255,255,255,0.1); border-left-color: var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 10px; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 /* ============================================================
    PLACEHOLDER & SETTINGS
@@ -250,17 +251,21 @@ input[type="range"] { width: 150px; accent-color: var(--accent); }
 
     <!-- ANATOMIE -->
     <section id="view-anatomie" class="view col">
-      <div class="view-head"><h1>Anatomie 3D Pro Max</h1><p class="sub">High-End Hologramm · 4 Ebenen</p></div>
+      <div class="view-head"><h1>Anatomie 3D Pro Max</h1><p class="sub">Fotorealistisches 3D-Scan Modell · SSS-Shader</p></div>
       <div class="anatomy-wrap">
         <div class="anatomy-toolbar">
-          <button class="layer-btn" data-layer="haut">🫥 Haut</button>
-          <button class="layer-btn" data-layer="muskeln">💪 Muskeln</button>
-          <button class="layer-btn" data-layer="skelett">🦴 Skelett</button>
-          <button class="layer-btn active" data-layer="organe">🫀 Organe</button>
+          <button class="layer-btn active" id="btnRealistic" onclick="toggleAnatomy('realistic')">📷 Realistisch (3D-Scan)</button>
+          <button class="layer-btn" id="btnProcedural" onclick="toggleAnatomy('procedural')">🤖 Prozedural (Lego)</button>
           <div class="spacer"></div>
           <button class="layer-btn" id="resetCam">🔄 Kamera</button>
         </div>
-        <div id="anatomy-canvas"><div class="anatomy-hint">Ziehen = Drehen · Scrollen = Zoom · Organ anklicken</div></div>
+        <div id="anatomy-canvas">
+          <div class="loader-container" id="loaderContainer">
+            <div class="loader"></div>
+            <p style="color:var(--accent); font-size:12px; margin-top:10px;">Lade 3D Scan (16 MB)...</p>
+          </div>
+          <div class="anatomy-hint" id="anatomyHint">Ziehen = Drehen · Scrollen = Zoom</div>
+        </div>
       </div>
     </section>
 
@@ -341,6 +346,8 @@ input[type="range"] { width: 150px; accent-color: var(--accent); }
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { SubsurfaceScatteringShader } from 'three/addons/shaders/SubsurfaceScatteringShader.js';
 
 /* ============================================================
    STATE & STORAGE
@@ -352,7 +359,8 @@ const state = {
   rotSpeed: parseFloat(localStorage.getItem('haldo_rotSpeed')) || 1.0,
   greetDuration: parseInt(localStorage.getItem('haldo_greetDuration')) || 5,
   soundProfile: localStorage.getItem('haldo_soundProfile') || 'glass',
-  lang: localStorage.getItem('haldo_lang') || 'de-DE'
+  lang: localStorage.getItem('haldo_lang') || 'de-DE',
+  anatomyMode: 'realistic'
 };
 
 const vitals = JSON.parse(localStorage.getItem('haldo_vitals') || 'null') || {
@@ -376,7 +384,6 @@ function playChime(freq, timeOffset = 0, duration = 1.5) {
   osc.type = state.soundProfile === 'scifi' ? 'square' : 'sine';
   osc.frequency.setValueAtTime(freq, audioCtx.currentTime + timeOffset);
   
-  // Hüllkurve für Glasklingen (schneller Attack, langer Decay)
   gain.gain.setValueAtTime(0, audioCtx.currentTime + timeOffset);
   gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + timeOffset + 0.02);
   gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + timeOffset + duration);
@@ -392,14 +399,13 @@ function playWelcomeChimes() {
   initAudio();
   if (state.soundProfile === 'none') return;
   
-  // 8 Klingeltöne (Sternen-Glas-Effekt)
-  const baseFreq = 880; // A5
-  const notes = [1, 1.25, 1.5, 2, 1.5, 1.25, 1, 0.75]; // Harmonische Sequenz
+  const baseFreq = 880;
+  const notes = [1, 1.25, 1.5, 2, 1.5, 1.25, 1, 0.75];
   
   notes.forEach((mult, i) => {
     let freq = baseFreq * mult;
-    if (state.soundProfile === 'space') freq /= 2; // Tiefer für Space
-    if (state.soundProfile === 'scifi') freq *= 1.5; // Höher für SciFi
+    if (state.soundProfile === 'space') freq /= 2;
+    if (state.soundProfile === 'scifi') freq *= 1.5;
     playChime(freq, i * 0.15, 2.0);
   });
 }
@@ -433,19 +439,16 @@ function showWelcome(appName) {
   welcomeOverlay.classList.add('show');
   playWelcomeChimes();
   
-  // Texte zusammenbauen
   const t1 = `Willkommen bei ${appName}`;
   const t2 = `${appName} App`;
   const t3 = `a Halil Donma Professioneller App ${state.appPresent}`;
   
-  // Typewriter Sequenz
   typeWriter(welcomeTitle, t1, 50, () => {
     typeWriter(welcomeSub, t2, 50, () => {
       typeWriter(welcomeFooter, t3, 40);
     });
   });
   
-  // Nach Ablauf der Dauer ausblenden
   setTimeout(() => {
     welcomeOverlay.classList.remove('show');
     document.getElementById('app').classList.add('ready');
@@ -458,10 +461,7 @@ function switchView(name, displayName) {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('backdrop').classList.remove('show');
 
-  // Update 3D Text
-  if (displayName) {
-    updateRingText(displayName);
-  }
+  if (displayName) updateRingText(displayName);
 
   if (name === 'anatomie') requestAnimationFrame(initAnatomy);
   if (name === 'dashboard') renderDashboard();
@@ -577,11 +577,10 @@ let currentAppText = state.appName;
 function createTextTexture(appName) {
   const canvas = document.createElement('canvas');
   canvas.width = 4096;
-  canvas.height = 1024; // Höher für 3 Zeilen
+  canvas.height = 1024;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
-  // Goldener Farbverlauf
   const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
   gradient.addColorStop(0, '#ffd700');
   gradient.addColorStop(0.3, '#fff8b0');
@@ -595,23 +594,20 @@ function createTextTexture(appName) {
   ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
   ctx.shadowBlur = 20;
 
-  // Zeile 1 (Oben)
   ctx.font = 'bold 100px "Segoe UI", Arial, sans-serif';
   const text1 = `Willkommen bei ${appName}   •   `;
   const width1 = ctx.measureText(text1).width;
   const repeat1 = Math.ceil(canvas.width / width1) + 1;
   ctx.fillText(text1.repeat(repeat1), canvas.width / 2, 250);
 
-  // Zeile 2 (Mitte)
   ctx.font = 'bold 140px "Segoe UI", Arial, sans-serif';
-  ctx.fillStyle = '#00d4ff'; // Cyan für Kontrast
+  ctx.fillStyle = '#00d4ff';
   ctx.shadowColor = 'rgba(0, 212, 255, 0.8)';
   const text2 = `${appName} App   •   `;
   const width2 = ctx.measureText(text2).width;
   const repeat2 = Math.ceil(canvas.width / width2) + 1;
   ctx.fillText(text2.repeat(repeat2), canvas.width / 2, 500);
 
-  // Zeile 3 (Unten)
   ctx.font = 'bold 80px "Segoe UI", Arial, sans-serif';
   ctx.fillStyle = gradient;
   ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
@@ -662,7 +658,7 @@ function initBackground() {
   
   // Erde
   const earthMap = textureLoader.load('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg');
-  earthMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 64, 64), new THREE.MeshStandardMaterial({ map: earthMap, roughness: 0.7 }));
+  earthMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 64, 64), new THREE.MeshStandardMaterial({ map: earthMap, roughness: 0.8, metalness: 0.1 }));
   earthMesh.position.set(-8, 3, -20);
   bgScene.add(earthMesh);
 
@@ -692,11 +688,16 @@ function initBackground() {
   textMesh.rotation.z = -Math.PI / 16;
   bgScene.add(textMesh);
 
-  // Lichter
-  const sunLight = new THREE.PointLight(0xffccaa, 5000, 1000);
+  // Lichter (Heller und realistischer)
+  const sunLight = new THREE.PointLight(0xfff5e6, 5000, 1000);
   sunLight.position.copy(sunMesh.position);
   bgScene.add(sunLight);
-  bgScene.add(new THREE.AmbientLight(0x555566, 1.5));
+  
+  // Zusätzliche Fülllichter für die Erde
+  const fillLight1 = new THREE.DirectionalLight(0xffffff, 3.0); fillLight1.position.set(-10, 5, 10); bgScene.add(fillLight1);
+  const fillLight2 = new THREE.DirectionalLight(0x00d4ff, 2.0); fillLight2.position.set(5, -5, 10); bgScene.add(fillLight2);
+  
+  bgScene.add(new THREE.AmbientLight(0x555566, 2.0));
 
   // Erde verschieben
   canvas.addEventListener('pointerdown', (e) => {
@@ -734,12 +735,10 @@ function initBackground() {
 initBackground();
 
 /* ============================================================
-   6. ANATOMIE 3D
+   6. ANATOMIE 3D (Echtes GLTF-Modell + SSS)
 ============================================================ */
 let scene, camera, renderer, controls;
-let bodyGroup, currentLayer = 'organe';
-const layers = {};
-let organMeshes = [];
+let realisticModel, proceduralModel;
 let anatomyInited = false;
 
 function initAnatomy() {
@@ -753,7 +752,7 @@ function initAnatomy() {
   scene.background = null; 
 
   camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
-  camera.position.set(0, 1.15, 3.2);
+  camera.position.set(0, 1.2, 3.5);
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -770,111 +769,126 @@ function initAnatomy() {
   controls.autoRotate = true;
   controls.autoRotateSpeed = 0.6;
 
-  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-  const keyLight = new THREE.DirectionalLight(0xfff5e6, 3.0); keyLight.position.set(2, 4, 3); scene.add(keyLight);
+  // Studio Beleuchtung
+  scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+  const keyLight = new THREE.DirectionalLight(0xffffff, 3.0); keyLight.position.set(2, 4, 3); scene.add(keyLight);
   const rimLight = new THREE.DirectionalLight(0x00d4ff, 2.0); rimLight.position.set(-3, 2, -2); scene.add(rimLight);
   const bottomLight = new THREE.PointLight(0xff5ea8, 1.5, 5); bottomLight.position.set(0, -1, 2); scene.add(bottomLight);
 
-  const skinMat = new THREE.MeshPhysicalMaterial({ color: 0xffdbba, roughness: 0.35, metalness: 0.0, clearcoat: 0.3, clearcoatRoughness: 0.2, transmission: 0.25, thickness: 1.0, ior: 1.4 });
-  const muscleMat = new THREE.MeshStandardMaterial({ color: 0xb32b2b, roughness: 0.65 });
-  const boneMat = new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.45 });
-
-  bodyGroup = new THREE.Group();
-  scene.add(bodyGroup);
+  // Lade echtes GLTF-Modell
+  const loader = new GLTFLoader();
+  const modelUrl = 'https://raw.githubusercontent.com/0beqz/three.js-studio-human-demo/master/glb/studio_human.glb';
   
-  layers.haut = new THREE.Group(); layers.muskeln = new THREE.Group(); layers.skelett = new THREE.Group(); layers.organe = new THREE.Group();
-  bodyGroup.add(layers.haut, layers.muskeln, layers.skelett, layers.organe);
+  loader.load(modelUrl, (gltf) => {
+    realisticModel = gltf.scene;
+    
+    // Größe anpassen
+    realisticModel.scale.set(1.0, 1.0, 1.0);
+    realisticModel.position.set(0, 0, 0);
+    
+    // SSS-Material anwenden
+    const sssMaterial = new THREE.ShaderMaterial({
+      ...SubsurfaceScatteringShader,
+      uniforms: THREE.UniformsUtils.clone(SubsurfaceScatteringShader.uniforms)
+    });
 
-  const add = (group, geo, mat, pos, scl) => {
-    const m = new THREE.Mesh(geo, mat); m.position.set(pos[0], pos[1], pos[2]);
-    if(scl) m.scale.set(scl[0], scl[1], scl[2]); group.add(m); return m;
-  };
+    realisticModel.traverse((child) => {
+      if (child.isMesh) {
+        // Standardmäßig das SSS-Material verwenden, falls es sich um Haut handelt
+        // Ansonsten das Originalmaterial (für Kleidung etc.)
+        if (child.name.toLowerCase().includes('body') || child.name.toLowerCase().includes('skin')) {
+          child.material = sssMaterial;
+        }
+      }
+    });
 
-  // Haut
-  add(layers.haut, new THREE.SphereGeometry(0.12, 32, 32), skinMat, [0, 1.7, 0], [1, 1.15, 0.95]);
-  add(layers.haut, new THREE.CylinderGeometry(0.05, 0.06, 0.12, 32), skinMat, [0, 1.56, 0]);
-  const torsoPoints = [new THREE.Vector2(0.12, 0.8), new THREE.Vector2(0.15, 1.0), new THREE.Vector2(0.22, 1.25), new THREE.Vector2(0.24, 1.42)];
-  add(layers.haut, new THREE.LatheGeometry(torsoPoints, 32), skinMat, [0, 0, 0], [1.2, 1, 0.65]);
-  for (const s of [1, -1]) {
-    add(layers.haut, new THREE.SphereGeometry(0.08, 32, 32), skinMat, [s*0.28, 1.4, 0], [1, 1.1, 1]);
-    add(layers.haut, new THREE.CapsuleGeometry(0.06, 0.28, 16, 32), skinMat, [s*0.31, 1.1, 0]);
-    add(layers.haut, new THREE.CapsuleGeometry(0.05, 0.25, 16, 32), skinMat, [s*0.33, 0.75, 0]);
-    add(layers.haut, new THREE.BoxGeometry(0.06, 0.1, 0.03), skinMat, [s*0.34, 0.55, 0.02]);
-    add(layers.haut, new THREE.CapsuleGeometry(0.1, 0.35, 16, 32), skinMat, [s*0.11, 0.6, 0]);
-    add(layers.haut, new THREE.CapsuleGeometry(0.07, 0.35, 16, 32), skinMat, [s*0.11, 0.2, 0]);
-    add(layers.haut, new THREE.BoxGeometry(0.1, 0.08, 0.22), skinMat, [s*0.11, 0.0, 0.05]);
-  }
+    scene.add(realisticModel);
+    
+    // Loader ausblenden
+    document.getElementById('loaderContainer').style.display = 'none';
+    document.getElementById('anatomyHint').textContent = 'Ziehen = Drehen · Scrollen = Zoom';
+    
+    toggleAnatomy('realistic');
 
-  // Muskeln
-  for (const s of [1, -1]) {
-    add(layers.muskeln, new THREE.SphereGeometry(0.11, 32, 32), muscleMat, [s*0.1, 1.28, 0.07], [1.2, 0.7, 0.5]);
-    for (let i = 0; i < 3; i++) add(layers.muskeln, new THREE.BoxGeometry(0.07, 0.07, 0.05), muscleMat, [s*0.04, 1.15 - i*0.09, 0.09]);
-    add(layers.muskeln, new THREE.SphereGeometry(0.065, 32, 32), muscleMat, [s*0.31, 1.1, 0.02], [1, 1.6, 1]);
-    add(layers.muskeln, new THREE.CapsuleGeometry(0.1, 0.3, 16, 32), muscleMat, [s*0.11, 0.6, 0.01]);
-  }
-
-  // Skelett
-  add(layers.skelett, new THREE.SphereGeometry(0.09, 32, 32), boneMat, [0, 1.7, 0]);
-  add(layers.skelett, new THREE.CylinderGeometry(0.03, 0.03, 0.7, 16), boneMat, [0, 1.1, -0.01]);
-  for (let i = 0; i < 6; i++) {
-    const rib = new THREE.Mesh(new THREE.TorusGeometry(0.16 - i*0.015, 0.012, 16, 32), boneMat);
-    rib.position.set(0, 1.38 - i*0.08, 0); rib.rotation.x = Math.PI / 2; rib.scale.set(1, 0.65, 1); layers.skelett.add(rib);
-  }
-
-  // Organe
-  const addOrgan = (geo, pos, color, key, scl) => {
-    const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3, emissive: color, emissiveIntensity: 0.2 });
-    const m = add(layers.organe, geo, mat, pos, scl); m.userData.organ = key; organMeshes.push(m);
-  };
-  addOrgan(new THREE.SphereGeometry(0.07, 32, 32), [0, 1.7, 0], '#f2a0c0', 'brain');
-  addOrgan(new THREE.SphereGeometry(0.06, 32, 32), [-0.03, 1.28, 0.03], '#e63946', 'heart', [1, 1.3, 1]);
-  addOrgan(new THREE.SphereGeometry(0.08, 32, 32), [0.08, 1.3, 0], '#f4a6b8', 'lunge', [0.8, 1.5, 0.8]);
-  addOrgan(new THREE.SphereGeometry(0.08, 32, 32), [-0.08, 1.3, 0], '#f4a6b8', 'lunge', [0.8, 1.5, 0.8]);
-  addOrgan(new THREE.SphereGeometry(0.09, 32, 32), [0.07, 1.05, 0.03], '#8b2e2e', 'liver', [1.2, 0.7, 0.9]);
-
-  setLayer(currentLayer);
-
-  const rc = new THREE.Raycaster(); const ptr = new THREE.Vector2();
-  renderer.domElement.addEventListener('pointerdown', (e) => {
-    if (!layers.organe.visible) return;
-    const rect = renderer.domElement.getBoundingClientRect();
-    ptr.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    ptr.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-    rc.setFromCamera(ptr, camera);
-    const hits = rc.intersectObjects(organMeshes, false);
-    if (hits.length) alert("Organ: " + hits[0].object.userData.organ.toUpperCase());
+  }, (xhr) => {
+    // Fortschritt könnte hier angezeigt werden
+  }, (error) => {
+    console.error('Fehler beim Laden des 3D-Modells:', error);
+    document.getElementById('loaderContainer').innerHTML = '<p style="color:red;">Fehler beim Laden des 3D-Modells.</p>';
+    toggleAnatomy('procedural'); // Fallback auf Lego-Mann
   });
 
-  new ResizeObserver(() => {
-    const w = host.clientWidth, h = host.clientHeight;
-    if(!w || !h) return;
-    camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h);
-  }).observe(host);
-
+  // Animation Loop
   function animate() {
     requestAnimationFrame(animate);
     controls.update();
     renderer.render(scene, camera);
   }
   animate();
+
+  new ResizeObserver(() => {
+    const w = host.clientWidth, h = host.clientHeight;
+    if(!w || !h) return;
+    camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h);
+  }).observe(host);
 }
 
-function setLayer(name) {
-  currentLayer = name;
-  for (const k in layers) if(layers[k]) layers[k].visible = (k === name);
-  document.querySelectorAll('.layer-btn[data-layer]').forEach(b => b.classList.toggle('active', b.dataset.layer === name));
+// Umschalt-Funktion
+window.toggleAnatomy = function(mode) {
+  state.anatomyMode = mode;
+  if (mode === 'realistic' && realisticModel) {
+    realisticModel.visible = true;
+    if (proceduralModel) proceduralModel.visible = false;
+    document.getElementById('btnRealistic').classList.add('active');
+    document.getElementById('btnProcedural').classList.remove('active');
+  } else if (mode === 'procedural') {
+    if (realisticModel) realisticModel.visible = false;
+    if (!proceduralModel) {
+      // Fallback: Prozeduraler Bauplan (stark vereinfacht)
+      proceduralModel = buildProceduralModel();
+      scene.add(proceduralModel);
+    }
+    proceduralModel.visible = true;
+    document.getElementById('btnProcedural').classList.add('active');
+    document.getElementById('btnRealistic').classList.remove('active');
+  }
+};
+
+// Fallback: Prozeduraler Bauplan (stark vereinfacht)
+function buildProceduralModel() {
+  const group = new THREE.Group();
+  const skinMat = new THREE.MeshPhysicalMaterial({ color: 0xffdbba, roughness: 0.4 });
+  
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 32, 32), skinMat);
+  head.position.set(0, 1.7, 0); group.add(head);
+  
+  const pts = [new THREE.Vector2(0.12, 0.8), new THREE.Vector2(0.22, 1.25), new THREE.Vector2(0.25, 1.42)];
+  const torso = new THREE.Mesh(new THREE.LatheGeometry(pts, 32), skinMat);
+  torso.scale.set(1.2, 1, 0.7); group.add(torso);
+
+  for (const s of [1, -1]) {
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 0.5, 16, 32), skinMat);
+    arm.position.set(s*0.3, 1.1, 0); arm.rotation.z = s * 0.1; group.add(arm);
+    
+    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.6, 16, 32), skinMat);
+    leg.position.set(s*0.12, 0.4, 0); group.add(leg);
+  }
+  return group;
 }
-document.querySelectorAll('.layer-btn[data-layer]').forEach(b => b.addEventListener('click', () => setLayer(b.dataset.layer)));
-document.getElementById('resetCam').addEventListener('click', () => { camera.position.set(0, 1.15, 3.2); controls.target.set(0, 1.0, 0); controls.update(); });
+
+document.getElementById('resetCam').addEventListener('click', () => { 
+  if (camera) {
+    camera.position.set(0, 1.2, 3.5); 
+    controls.target.set(0, 1.0, 0); 
+    controls.update(); 
+  }
+});
 
 /* ============================================================
-   START SEQUENZ
+   START
 ============================================================ */
 window.addEventListener('load', () => {
-  // 1. Begrüßung anzeigen
   showWelcome(state.appName);
-  
-  // 2. Dashboard initialisieren
   renderDashboard();
 });
 </script>
