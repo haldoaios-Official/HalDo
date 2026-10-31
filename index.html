@@ -860,6 +860,21 @@ function initAnatomy() {
   loader.load(modelUrl, (gltf) => {
     cyborgModel = gltf.scene;
     
+    // --- KORREKTUR: AUTOMATISCHE SKALIERUNG UND ZENTRIERUNG ---
+    const box = new THREE.Box3().setFromObject(cyborgModel);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+
+    // Berechne den Skalierungsfaktor, um das Modell auf eine Höhe von ~2 Einheiten zu bringen
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scaleFactor = 2.0 / maxDim;
+    cyborgModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
+
+    // Zentriere das Modell horizontal und setze es auf den Boden (y=0)
+    cyborgModel.position.x = -center.x * scaleFactor;
+    cyborgModel.position.z = -center.z * scaleFactor;
+    cyborgModel.position.y = -box.min.y * scaleFactor;
+
     // Cyborg-Look (Metallic Cyan/Magenta)
     cyborgModel.traverse((child) => {
       if (child.isMesh) {
@@ -873,10 +888,6 @@ function initAnatomy() {
       }
     });
 
-    // Größe anpassen
-    cyborgModel.scale.set(1.1, 1.1, 1.1);
-    cyborgModel.position.set(0, 0, 0);
-    
     cyborgModel.visible = false;
     scene.add(cyborgModel);
 
