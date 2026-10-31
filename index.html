@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>HalDo AI OS - Arztbuch Pro Max</title>
+<title>HalDo Arztbuch Pro Max</title>
 <link rel="icon" href="data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
 <style>
 /* ============================================================
-   BASIS & THEME (Glassmorphism, Dark Mode)
+   BASIS & THEME
 ============================================================ */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -43,7 +43,7 @@ body{
 #welcome-overlay {
   position: fixed; inset: 0; z-index: 9999;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  background: rgba(2, 2, 5, 0.75); backdrop-filter: blur(10px);
+  background: rgba(2, 2, 5, 0.7); backdrop-filter: blur(10px);
   opacity: 0; pointer-events: none; transition: opacity 1s ease;
 }
 #welcome-overlay.show { opacity: 1; pointer-events: auto; }
@@ -136,13 +136,6 @@ body{
 #anatomy-canvas{flex:1;min-height:320px;border-radius:var(--r);border:1px solid var(--border);background:transparent;overflow:hidden;position:relative;}
 #anatomy-canvas canvas{display:block;width:100%!important;height:100%!important;}
 .anatomy-hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--muted);background:rgba(0,0,0,.5);padding:6px 14px;border-radius:99px;border:1px solid var(--border);white-space:nowrap;pointer-events:none;}
-.loader-container{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:20;}
-.loader { border: 4px solid rgba(255,255,255,0.1); border-left-color: var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 10px; }
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-/* Cyborg Actions */
-.cyborg-actions { display: none; gap: 8px; margin-top: 10px; }
-.cyborg-actions.show { display: flex; }
 
 /* ============================================================
    PLACEHOLDER & SETTINGS
@@ -164,6 +157,15 @@ input[type="range"] { width: 150px; accent-color: var(--accent); }
 /* Notfall Spezial */
 .emergency-btn { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:20px; background:rgba(255,77,109,0.15); border:2px solid var(--danger); color:var(--danger); border-radius:16px; font-size:20px; font-weight:800; cursor:pointer; text-transform:uppercase; letter-spacing:2px; transition:0.2s; }
 .emergency-btn:hover { background:rgba(255,77,109,0.3); transform:scale(1.02); box-shadow:0 0 30px rgba(255,77,109,0.4); }
+
+/* Organ Modal */
+#organ-modal { position: fixed; inset: 0; z-index: 2000; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); padding: 20px; }
+#organ-modal.show { display: flex; animation: fadeIn 0.3s ease; }
+.modal-box { background: rgba(20,30,44,0.95); border: 1px solid var(--accent); border-radius: 20px; padding: 30px; max-width: 500px; width: 100%; position: relative; box-shadow: 0 20px 50px rgba(0,212,255,0.2); }
+.modal-close { position: absolute; top: 15px; right: 15px; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+.modal-box h2 { font-size: 24px; margin-bottom: 10px; color: var(--accent); }
+.modal-box p { font-size: 14px; line-height: 1.6; color: var(--text); }
+.btn-speak { background: var(--accent); border: none; color: #000; padding: 10px 20px; border-radius: 10px; font-weight: bold; margin-top: 20px; cursor: pointer; }
 
 @media (max-width:860px){
   #app{grid-template-columns:1fr;}
@@ -255,30 +257,18 @@ input[type="range"] { width: 150px; accent-color: var(--accent); }
 
     <!-- ANATOMIE -->
     <section id="view-anatomie" class="view col">
-      <div class="view-head"><h1>Anatomie 3D Pro Max</h1><p class="sub">Mensch · Lebendiger Cyborg · Skelett</p></div>
+      <div class="view-head"><h1>Anatomie 3D Pro Max</h1><p class="sub">Prozedural · Fotorealistisch · Klickbare Organe</p></div>
       <div class="anatomy-wrap">
         <div class="anatomy-toolbar">
-          <button class="layer-btn active" id="btnHuman" onclick="toggleAnatomy('human')">🧍 Mensch</button>
-          <button class="layer-btn" id="btnCyborg" onclick="toggleAnatomy('cyborg')">🤖 Cyborg</button>
-          <button class="layer-btn" id="btnSkeleton" onclick="toggleAnatomy('skeleton')">🦴 Skelett</button>
+          <button class="layer-btn" data-layer="haut">🫥 Haut</button>
+          <button class="layer-btn" data-layer="muskeln">💪 Muskeln</button>
+          <button class="layer-btn" data-layer="skelett">🦴 Skelett</button>
+          <button class="layer-btn active" data-layer="organe">🫀 Organe</button>
           <div class="spacer"></div>
           <button class="layer-btn" id="resetCam">🔄 Kamera</button>
         </div>
-        
-        <!-- Cyborg Steuerung -->
-        <div class="cyborg-actions" id="cyborgActions">
-          <button class="layer-btn" onclick="playCyborgAnim('Wave')">👋 Winken</button>
-          <button class="layer-btn" onclick="playCyborgAnim('ThumbsUp')">👍 Daumen hoch</button>
-          <button class="layer-btn" onclick="playCyborgAnim('Dance')">🕺 Tanzen</button>
-          <button class="layer-btn" onclick="playCyborgAnim('Idle')">🧘 Ruhen</button>
-        </div>
-
         <div id="anatomy-canvas">
-          <div class="loader-container" id="loaderContainer">
-            <div class="loader"></div>
-            <p style="color:var(--accent); font-size:12px; margin-top:10px;">Lade Modelle...</p>
-          </div>
-          <div class="anatomy-hint" id="anatomyHint">Ziehen = Drehen · Scrollen = Zoom</div>
+          <div class="anatomy-hint">Ziehen = Drehen · Scrollen = Zoom · Organ anklicken</div>
         </div>
       </div>
     </section>
@@ -318,10 +308,6 @@ input[type="range"] { width: 150px; accent-color: var(--accent); }
             <div><div class="sr-label">Präsentiert</div></div>
             <input class="styled" type="text" id="appPresentInput" value="präsentiert">
           </div>
-          <div class="settings-row">
-            <div><div class="sr-label">Sprache</div></div>
-            <select class="styled" id="langSelect"><option value="de-DE">Deutsch</option><option value="en-US">English</option></select>
-          </div>
         </div>
         
         <div class="span-6 card">
@@ -333,15 +319,6 @@ input[type="range"] { width: 150px; accent-color: var(--accent); }
           <div class="settings-row">
             <div><div class="sr-label">Willkommensdauer (Sek)</div></div>
             <input type="range" id="greetDurationInput" min="2" max="15" step="1" value="5">
-          </div>
-          <div class="settings-row">
-            <div><div class="sr-label">Sound-Profil</div></div>
-            <select class="styled" id="soundProfileInput">
-              <option value="glass">Sternen Glas (8x)</option>
-              <option value="space">Deep Space</option>
-              <option value="scifi">Sci-Fi Computer</option>
-              <option value="none">Stumm</option>
-            </select>
           </div>
         </div>
 
@@ -357,10 +334,19 @@ input[type="range"] { width: 150px; accent-color: var(--accent); }
   </main>
 </div>
 
+<!-- ORGAN MODAL -->
+<div id="organ-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('organ-modal').classList.remove('show')">×</button>
+    <h2 id="organ-title">Organ</h2>
+    <p id="organ-desc">Beschreibung...</p>
+    <button class="btn-speak" onclick="speakOrganInfo()">🔊 Vorlesen</button>
+  </div>
+</div>
+
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 /* ============================================================
    STATE & STORAGE
@@ -371,9 +357,7 @@ const state = {
   appPresent: localStorage.getItem('haldo_appPresent') || 'präsentiert',
   rotSpeed: parseFloat(localStorage.getItem('haldo_rotSpeed')) || 1.0,
   greetDuration: parseInt(localStorage.getItem('haldo_greetDuration')) || 5,
-  soundProfile: localStorage.getItem('haldo_soundProfile') || 'glass',
-  lang: localStorage.getItem('haldo_lang') || 'de-DE',
-  anatomyMode: 'human'
+  lang: localStorage.getItem('haldo_lang') || 'de-DE'
 };
 
 const vitals = JSON.parse(localStorage.getItem('haldo_vitals') || 'null') || {
@@ -382,49 +366,7 @@ const vitals = JSON.parse(localStorage.getItem('haldo_vitals') || 'null') || {
 function saveVitals(){ localStorage.setItem('haldo_vitals', JSON.stringify(vitals)); }
 
 /* ============================================================
-   1. AUDIO ENGINE (Web Audio API)
-============================================================ */
-let audioCtx;
-function initAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-}
-
-function playChime(freq, timeOffset = 0, duration = 1.5) {
-  if (state.soundProfile === 'none' || !audioCtx) return;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  
-  osc.type = state.soundProfile === 'scifi' ? 'square' : 'sine';
-  osc.frequency.setValueAtTime(freq, audioCtx.currentTime + timeOffset);
-  
-  gain.gain.setValueAtTime(0, audioCtx.currentTime + timeOffset);
-  gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + timeOffset + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + timeOffset + duration);
-  
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  
-  osc.start(audioCtx.currentTime + timeOffset);
-  osc.stop(audioCtx.currentTime + timeOffset + duration);
-}
-
-function playWelcomeChimes() {
-  initAudio();
-  if (state.soundProfile === 'none') return;
-  
-  const baseFreq = 880;
-  const notes = [1, 1.25, 1.5, 2, 1.5, 1.25, 1, 0.75];
-  
-  notes.forEach((mult, i) => {
-    let freq = baseFreq * mult;
-    if (state.soundProfile === 'space') freq /= 2;
-    if (state.soundProfile === 'scifi') freq *= 1.5;
-    playChime(freq, i * 0.15, 2.0);
-  });
-}
-
-/* ============================================================
-   2. UI NAVIGATION & WELCOME
+   1. UI NAVIGATION & WELCOME
 ============================================================ */
 const views = document.querySelectorAll('.view');
 const navItems = document.querySelectorAll('.nav-item');
@@ -450,7 +392,6 @@ function typeWriter(element, text, speed, callback) {
 
 function showWelcome(appName) {
   welcomeOverlay.classList.add('show');
-  playWelcomeChimes();
   
   const t1 = `Willkommen bei ${appName}`;
   const t2 = `${appName} App`;
@@ -462,6 +403,7 @@ function showWelcome(appName) {
     });
   });
   
+  // Auto-Open Logic nach Ablauf der Dauer
   setTimeout(() => {
     welcomeOverlay.classList.remove('show');
     document.getElementById('app').classList.add('ready');
@@ -497,7 +439,7 @@ document.getElementById('backdrop').addEventListener('click', () => {
 });
 
 /* ============================================================
-   3. DASHBOARD LOGIK
+   2. DASHBOARD LOGIK
 ============================================================ */
 const TIPS = [
   'Trinke morgens ein großes Glas Wasser – das startet den Stoffwechsel.',
@@ -549,103 +491,39 @@ document.getElementById('waterMinus').onclick = () => { vitals.wasser--; renderW
 });
 
 /* ============================================================
-   4. EINSTELLUNGEN
+   3. EINSTELLUNGEN
 ============================================================ */
 const appNameInput = document.getElementById('appNameInput');
 const appSubInput = document.getElementById('appSubInput');
 const appPresentInput = document.getElementById('appPresentInput');
 const rotSpeedInput = document.getElementById('rotSpeedInput');
 const greetDurationInput = document.getElementById('greetDurationInput');
-const soundProfileInput = document.getElementById('soundProfileInput');
-const langSelect = document.getElementById('langSelect');
 
 appNameInput.value = state.appName;
 appSubInput.value = state.appSub;
 appPresentInput.value = state.appPresent;
 rotSpeedInput.value = state.rotSpeed;
 greetDurationInput.value = state.greetDuration;
-soundProfileInput.value = state.soundProfile;
-langSelect.value = state.lang;
 
 appNameInput.addEventListener('input', (e) => { state.appName = e.target.value; localStorage.setItem('haldo_appName', state.appName); updateRingText(state.appName); });
 appSubInput.addEventListener('input', (e) => { state.appSub = e.target.value; localStorage.setItem('haldo_appSub', state.appSub); updateRingText(state.appName); });
 appPresentInput.addEventListener('input', (e) => { state.appPresent = e.target.value; localStorage.setItem('haldo_appPresent', state.appPresent); updateRingText(state.appName); });
 rotSpeedInput.addEventListener('input', (e) => { state.rotSpeed = parseFloat(e.target.value); localStorage.setItem('haldo_rotSpeed', state.rotSpeed); });
 greetDurationInput.addEventListener('input', (e) => { state.greetDuration = parseInt(e.target.value); localStorage.setItem('haldo_greetDuration', state.greetDuration); });
-soundProfileInput.addEventListener('change', (e) => { state.soundProfile = e.target.value; localStorage.setItem('haldo_soundProfile', state.soundProfile); });
-langSelect.addEventListener('change', (e) => { state.lang = e.target.value; localStorage.setItem('haldo_lang', state.lang); });
 
 document.getElementById('resetData').addEventListener('click', () => {
   if (confirm('Wirklich alle gespeicherten Daten löschen?')){ localStorage.clear(); location.reload(); }
 });
 
 /* ============================================================
-   5. 3D WELTRAUM & GOLDENER TEXT-RING
+   4. 3D WELTRAUM (EXAKTE SONNE AUS DEINER DATEI)
 ============================================================ */
 let bgScene, bgCamera, bgRenderer, earthMesh, textMesh, sunMesh;
 let isDraggingEarth = false;
 let previousMousePosition = { x: 0, y: 0 };
-
 let currentAppText = state.appName;
 
-function createTextTexture(appName) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 4096;
-  canvas.height = 1024;
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
-  const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-  gradient.addColorStop(0, '#ffd700');
-  gradient.addColorStop(0.3, '#fff8b0');
-  gradient.addColorStop(0.5, '#ffb700');
-  gradient.addColorStop(0.7, '#fff8b0');
-  gradient.addColorStop(1, '#ffd700');
-  
-  ctx.fillStyle = gradient;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
-  ctx.shadowBlur = 20;
-
-  ctx.font = 'bold 100px "Segoe UI", Arial, sans-serif';
-  const text1 = `Willkommen bei ${appName}   •   `;
-  const width1 = ctx.measureText(text1).width;
-  const repeat1 = Math.ceil(canvas.width / width1) + 1;
-  ctx.fillText(text1.repeat(repeat1), canvas.width / 2, 250);
-
-  ctx.font = 'bold 140px "Segoe UI", Arial, sans-serif';
-  ctx.fillStyle = '#00d4ff';
-  ctx.shadowColor = 'rgba(0, 212, 255, 0.8)';
-  const text2 = `${appName} App   •   `;
-  const width2 = ctx.measureText(text2).width;
-  const repeat2 = Math.ceil(canvas.width / width2) + 1;
-  ctx.fillText(text2.repeat(repeat2), canvas.width / 2, 500);
-
-  ctx.font = 'bold 80px "Segoe UI", Arial, sans-serif';
-  ctx.fillStyle = gradient;
-  ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
-  const text3 = `${state.appSub} ${state.appPresent}   •   `;
-  const width3 = ctx.measureText(text3).width;
-  const repeat3 = Math.ceil(canvas.width / width3) + 1;
-  ctx.fillText(text3.repeat(repeat3), canvas.width / 2, 750);
-  
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.ClampToEdgeWrapping;
-  return texture;
-}
-
-function updateRingText(appName) {
-  currentAppText = appName;
-  if (textMesh) {
-    textMesh.material.map.dispose();
-    textMesh.material.map = createTextTexture(appName);
-    textMesh.material.needsUpdate = true;
-  }
-}
-
-// GENERIERT EINE SONNEN-TEXTUR IM CODE (Unzerstörbar)
+// EXAKTE KOPIE DEINER SONNEN-FUNKTION
 function createSunTexture() {
   const canvas = document.createElement('canvas');
   canvas.width = 512;
@@ -676,6 +554,55 @@ function createSunTexture() {
   }
   
   return new THREE.CanvasTexture(canvas);
+}
+
+function createTextTexture(appName) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 4096;
+  canvas.height = 1024;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+  gradient.addColorStop(0, '#ffd700'); gradient.addColorStop(0.3, '#fff8b0');
+  gradient.addColorStop(0.5, '#ffb700'); gradient.addColorStop(0.7, '#fff8b0');
+  gradient.addColorStop(1, '#ffd700');
+  
+  ctx.fillStyle = gradient;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
+  ctx.shadowBlur = 20;
+
+  ctx.font = 'bold 100px "Segoe UI", Arial, sans-serif';
+  const text1 = `Willkommen bei ${appName}   •   `;
+  ctx.fillText(text1.repeat(Math.ceil(canvas.width / ctx.measureText(text1).width) + 1), canvas.width / 2, 250);
+
+  ctx.font = 'bold 140px "Segoe UI", Arial, sans-serif';
+  ctx.fillStyle = '#00d4ff';
+  ctx.shadowColor = 'rgba(0, 212, 255, 0.8)';
+  const text2 = `${appName} App   •   `;
+  ctx.fillText(text2.repeat(Math.ceil(canvas.width / ctx.measureText(text2).width) + 1), canvas.width / 2, 500);
+
+  ctx.font = 'bold 80px "Segoe UI", Arial, sans-serif';
+  ctx.fillStyle = gradient;
+  ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
+  const text3 = `${state.appSub} ${state.appPresent}   •   `;
+  ctx.fillText(text3.repeat(Math.ceil(canvas.width / ctx.measureText(text3).width) + 1), canvas.width / 2, 750);
+  
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  return texture;
+}
+
+function updateRingText(appName) {
+  currentAppText = appName;
+  if (textMesh) {
+    textMesh.material.map.dispose();
+    textMesh.material.map = createTextTexture(appName);
+    textMesh.material.needsUpdate = true;
+  }
 }
 
 function initBackground() {
@@ -709,13 +636,13 @@ function initBackground() {
   earthMesh.position.set(-8, 3, -20);
   bgScene.add(earthMesh);
 
-  // SONNE (Generiert im Code)
+  // EXAKTE SONNE (Unzerstörbar, aus deinem Code)
   const sunTex = createSunTexture();
   sunMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 64, 64), new THREE.MeshBasicMaterial({ map: sunTex }));
   sunMesh.position.set(35, 25, -60);
   bgScene.add(sunMesh);
 
-  // Sonnen-Glow (Sprite)
+  // Sonnen-Glow
   const canvasSunGlow = document.createElement('canvas');
   canvasSunGlow.width = 256; canvasSunGlow.height = 256;
   const ctx = canvasSunGlow.getContext('2d');
@@ -723,12 +650,10 @@ function initBackground() {
   gradient.addColorStop(0, 'rgba(255, 200, 50, 0.8)');
   gradient.addColorStop(0.5, 'rgba(255, 100, 0, 0.4)');
   gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, 256, 256);
+  ctx.fillStyle = gradient; ctx.fillRect(0, 0, 256, 256);
   const sunSpriteMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvasSunGlow), blending: THREE.AdditiveBlending, depthTest: false });
   const sunSprite = new THREE.Sprite(sunSpriteMat);
-  sunSprite.scale.set(40, 40, 1);
-  sunSprite.position.copy(sunMesh.position);
+  sunSprite.scale.set(40, 40, 1); sunSprite.position.copy(sunMesh.position);
   bgScene.add(sunSprite);
 
   // Mond
@@ -737,21 +662,16 @@ function initBackground() {
   moonMesh.position.set(18, 12, -15);
   bgScene.add(moonMesh);
 
-  // Der 3D Text-Ring
+  // Goldener Text-Ring
   const textGeo = new THREE.CylinderGeometry(7, 7, 4, 64, 1, true);
-  const textMat = new THREE.MeshBasicMaterial({ 
-    map: createTextTexture(state.appName), 
-    transparent: true, 
-    side: THREE.DoubleSide,
-    blending: THREE.AdditiveBlending
-  });
+  const textMat = new THREE.MeshBasicMaterial({ map: createTextTexture(state.appName), transparent: true, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
   textMesh = new THREE.Mesh(textGeo, textMat);
   textMesh.position.copy(earthMesh.position);
   textMesh.rotation.x = Math.PI / 10;
   textMesh.rotation.z = -Math.PI / 16;
   bgScene.add(textMesh);
 
-  // Logo laden (als 3D-Objekt im Hintergrund)
+  // Logo im Hintergrund
   const logoTexture = textureLoader.load('logo.png');
   const logoMaterial = new THREE.MeshBasicMaterial({ map: logoTexture, transparent: true });
   const logoMesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), logoMaterial);
@@ -759,26 +679,17 @@ function initBackground() {
   bgScene.add(logoMesh);
 
   // Lichter
-  const sunLight = new THREE.PointLight(0xfff5e6, 5000, 1000);
-  sunLight.position.copy(sunMesh.position);
-  bgScene.add(sunLight);
-  
-  const fillLight1 = new THREE.DirectionalLight(0xffffff, 3.0); fillLight1.position.set(-10, 5, 10); bgScene.add(fillLight1);
-  const fillLight2 = new THREE.DirectionalLight(0x00d4ff, 2.0); fillLight2.position.set(5, -5, 10); bgScene.add(fillLight2);
-  
+  bgScene.add(new THREE.PointLight(0xfff5e6, 5000, 1000).position.copy(sunMesh.position));
+  bgScene.add(new THREE.DirectionalLight(0xffffff, 3.0).position.set(-10, 5, 10));
+  bgScene.add(new THREE.DirectionalLight(0x00d4ff, 2.0).position.set(5, -5, 10));
   bgScene.add(new THREE.AmbientLight(0x555566, 2.0));
 
-  // Erde verschieben
-  canvas.addEventListener('pointerdown', (e) => {
-    isDraggingEarth = true;
-    previousMousePosition = { x: e.clientX, y: e.clientY };
-  });
+  // Interaktion
+  canvas.addEventListener('pointerdown', (e) => { isDraggingEarth = true; previousMousePosition = { x: e.clientX, y: e.clientY }; });
   canvas.addEventListener('pointermove', (e) => {
     if (isDraggingEarth) {
-      const dx = (e.clientX - previousMousePosition.x) * 0.05;
-      const dy = (e.clientY - previousMousePosition.y) * 0.05;
-      earthMesh.position.x += dx;
-      earthMesh.position.y -= dy;
+      earthMesh.position.x += (e.clientX - previousMousePosition.x) * 0.05;
+      earthMesh.position.y -= (e.clientY - previousMousePosition.y) * 0.05;
       textMesh.position.copy(earthMesh.position);
       previousMousePosition = { x: e.clientX, y: e.clientY };
     }
@@ -794,24 +705,26 @@ function initBackground() {
     bgRenderer.render(bgScene, bgCamera);
   }
   animateBg();
-
-  window.addEventListener('resize', () => {
-    bgRenderer.setSize(window.innerWidth, window.innerHeight);
-    bgCamera.aspect = window.innerWidth / window.innerHeight;
-    bgCamera.updateProjectionMatrix();
-  });
+  window.addEventListener('resize', () => { bgRenderer.setSize(window.innerWidth, window.innerHeight); bgCamera.aspect = window.innerWidth / window.innerHeight; bgCamera.updateProjectionMatrix(); });
 }
 initBackground();
 
 /* ============================================================
-   6. ANATOMIE 3D (Mensch, Lebendiger Cyborg, Skelett)
+   5. ANATOMIE 3D (Prozedural Pro Max + Klickbare Organe)
 ============================================================ */
 let scene, camera, renderer, controls;
-let humanModel, cyborgModel, skeletonModel;
+let bodyGroup, currentLayer = 'organe';
+const layers = {};
+let organMeshes = [];
 let anatomyInited = false;
-let clock;
-let mixer;
-let actions = {};
+let raycaster, mouse;
+
+const ORGAN_INFO = {
+  brain: { name: 'Gehirn', color: '#f2a0c0', text: 'Das Gehirn ist die Zentrale des Nervensystems. Es steuert Denken, Bewegung, Atmung und Hormone.' },
+  heart: { name: 'Herz', color: '#e63946', text: 'Das Herz pumpt täglich rund 7.000 Liter Blut durch den Körper. Warnzeichen: Brustschmerz, Atemnot.' },
+  lunge: { name: 'Lunge', color: '#f4a6b8', text: 'Die Lunge versorgt das Blut mit Sauerstoff. Erkrankungen: Asthma, COPD, Lungenentzündung.' },
+  liver: { name: 'Leber', color: '#8b2e2e', text: 'Die Leber ist das zentrale Stoffwechselorgan. Sie baut Giftstoffe ab und speichert Zucker.' }
+};
 
 function initAnatomy() {
   if (anatomyInited) return;
@@ -821,16 +734,13 @@ function initAnatomy() {
   const w = host.clientWidth, h = host.clientHeight;
 
   scene = new THREE.Scene();
-  scene.background = null; 
-
   camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
-  camera.position.set(0, 1.2, 3.5);
+  camera.position.set(0, 1.15, 3.1);
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(w, h);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.2;
   host.appendChild(renderer.domElement);
 
   controls = new OrbitControls(camera, renderer.domElement);
@@ -842,198 +752,125 @@ function initAnatomy() {
   controls.autoRotateSpeed = 0.6;
 
   // Studio Beleuchtung
-  scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+  scene.add(new THREE.AmbientLight(0xffffff, 1.0));
   const keyLight = new THREE.DirectionalLight(0xffffff, 3.0); keyLight.position.set(2, 4, 3); scene.add(keyLight);
   const rimLight = new THREE.DirectionalLight(0x00d4ff, 2.0); rimLight.position.set(-3, 2, -2); scene.add(rimLight);
   const bottomLight = new THREE.PointLight(0xff5ea8, 1.5, 5); bottomLight.position.set(0, -1, 2); scene.add(bottomLight);
 
-  const loader = new GLTFLoader();
+  // Materialien
+  const skinMat = new THREE.MeshPhysicalMaterial({ color: 0xffdbba, roughness: 0.35, metalness: 0.0, clearcoat: 0.3, transmission: 0.2, thickness: 1.0, ior: 1.4 });
+  const muscleMat = new THREE.MeshStandardMaterial({ color: 0xb32b2b, roughness: 0.65 });
+  const boneMat = new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.45 });
 
-  // 1. Mensch (Echtes GLTF-Modell von three.ws)
-  const humanUrl = 'https://three.ws/avatars/xbot.glb';
+  bodyGroup = new THREE.Group();
+  scene.add(bodyGroup);
   
-  loader.load(humanUrl, (gltf) => {
-    humanModel = gltf.scene;
-    
-    const box = new THREE.Box3().setFromObject(humanModel);
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z);
-    const scaleFactor = 2.0 / maxDim;
-    humanModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
-    humanModel.position.x = -center.x * scaleFactor;
-    humanModel.position.z = -center.z * scaleFactor;
-    humanModel.position.y = -box.min.y * scaleFactor;
+  layers.haut = new THREE.Group(); layers.muskeln = new THREE.Group(); layers.skelett = new THREE.Group(); layers.organe = new THREE.Group();
+  bodyGroup.add(layers.haut, layers.muskeln, layers.skelett, layers.organe);
 
-    // High-End SSS Material für den Menschen
-    humanModel.traverse((child) => {
-      if (child.isMesh) {
-        child.material = new THREE.MeshPhysicalMaterial({
-          color: 0xffe4cc,
-          roughness: 0.3,
-          metalness: 0.1,
-          clearcoat: 0.2,
-          transmission: 0.2,
-          thickness: 1.0,
-          ior: 1.4
-        });
-      }
-    });
+  const add = (group, geo, mat, pos, scl) => {
+    const m = new THREE.Mesh(geo, mat); m.position.set(pos[0], pos[1], pos[2]);
+    if(scl) m.scale.set(scl[0], scl[1], scl[2]); group.add(m); return m;
+  };
 
-    humanModel.visible = false; 
-    scene.add(humanModel);
-    
-    document.getElementById('loaderContainer').style.display = 'none';
-    toggleAnatomy('human');
-
-  }, undefined, (error) => {
-    console.error('Human Modell Fehler:', error);
-    document.getElementById('loaderContainer').innerHTML = '<p style="color:red;">Human Modell Fehler.</p>';
-  });
-
-  // 2. Skelett (Prozedural)
-  skeletonModel = buildProceduralSkeleton();
-  skeletonModel.visible = false;
-  scene.add(skeletonModel);
-
-  // 3. Cyborg (Lebendiges GLTF Model mit Animationen)
-  const cyborgUrl = 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/models/gltf/RobotExpressive/RobotExpressive.glb';
-  
-  loader.load(cyborgUrl, (gltf) => {
-    cyborgModel = gltf.scene;
-    
-    const box = new THREE.Box3().setFromObject(cyborgModel);
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z);
-    const scaleFactor = 2.0 / maxDim;
-    cyborgModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
-    cyborgModel.position.x = -center.x * scaleFactor;
-    cyborgModel.position.z = -center.z * scaleFactor;
-    cyborgModel.position.y = -box.min.y * scaleFactor;
-
-    cyborgModel.traverse((child) => {
-      if (child.isMesh) {
-        child.material = new THREE.MeshStandardMaterial({
-          color: 0x222222,
-          metalness: 0.9,
-          roughness: 0.2,
-          emissive: 0x00d4ff,
-          emissiveIntensity: 0.4
-        });
-      }
-    });
-
-    cyborgModel.visible = false;
-    scene.add(cyborgModel);
-
-    mixer = new THREE.AnimationMixer(cyborgModel);
-    gltf.animations.forEach((clip) => {
-      actions[clip.name] = mixer.clipAction(clip);
-    });
-    if (actions['Idle']) actions['Idle'].play();
-
-  }, undefined, (error) => {
-    console.error('Cyborg Modell Fehler:', error);
-  });
-
-  clock = new THREE.Clock();
-
-  function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-    
-    const delta = clock.getDelta();
-    if (mixer) mixer.update(delta);
-
-    if (humanModel && humanModel.visible) {
-      const time = clock.getElapsedTime();
-      humanModel.position.y = -0.0 + Math.sin(time * 2) * 0.015;
-    }
-
-    renderer.render(scene, camera);
+  // --- HAUT ---
+  add(layers.haut, new THREE.SphereGeometry(0.12, 32, 32), skinMat, [0, 1.7, 0], [1, 1.15, 0.95]); // Kopf
+  add(layers.haut, new THREE.CylinderGeometry(0.05, 0.06, 0.12, 32), skinMat, [0, 1.56, 0]); // Hals
+  const torsoPoints = [new THREE.Vector2(0.12, 0.8), new THREE.Vector2(0.15, 1.0), new THREE.Vector2(0.22, 1.25), new THREE.Vector2(0.24, 1.42)];
+  add(layers.haut, new THREE.LatheGeometry(torsoPoints, 32), skinMat, [0, 0, 0], [1.2, 1, 0.65]); // Torso
+  for (const s of [1, -1]) {
+    add(layers.haut, new THREE.SphereGeometry(0.08, 32, 32), skinMat, [s*0.28, 1.4, 0], [1, 1.1, 1]); // Schultern
+    add(layers.haut, new THREE.CapsuleGeometry(0.06, 0.28, 16, 32), skinMat, [s*0.31, 1.1, 0]); // Arme
+    add(layers.haut, new THREE.CapsuleGeometry(0.05, 0.25, 16, 32), skinMat, [s*0.33, 0.75, 0]);
+    add(layers.haut, new THREE.BoxGeometry(0.06, 0.1, 0.03), skinMat, [s*0.34, 0.55, 0.02]); // Hände
+    add(layers.haut, new THREE.CapsuleGeometry(0.1, 0.35, 16, 32), skinMat, [s*0.11, 0.6, 0]); // Beine
+    add(layers.haut, new THREE.CapsuleGeometry(0.07, 0.35, 16, 32), skinMat, [s*0.11, 0.2, 0]);
+    add(layers.haut, new THREE.BoxGeometry(0.1, 0.08, 0.22), skinMat, [s*0.11, 0.0, 0.05]); // Füße
   }
-  animate();
+
+  // --- MUSKELN ---
+  for (const s of [1, -1]) {
+    add(layers.muskeln, new THREE.SphereGeometry(0.11, 32, 32), muscleMat, [s*0.1, 1.28, 0.07], [1.2, 0.7, 0.5]);
+    for (let i = 0; i < 3; i++) add(layers.muskeln, new THREE.BoxGeometry(0.07, 0.07, 0.05), muscleMat, [s*0.04, 1.15 - i*0.09, 0.09]);
+    add(layers.muskeln, new THREE.SphereGeometry(0.065, 32, 32), muscleMat, [s*0.31, 1.1, 0.02], [1, 1.6, 1]);
+    add(layers.muskeln, new THREE.CapsuleGeometry(0.1, 0.3, 16, 32), muscleMat, [s*0.11, 0.6, 0.01]);
+  }
+
+  // --- SKELETT ---
+  add(layers.skelett, new THREE.SphereGeometry(0.09, 32, 32), boneMat, [0, 1.7, 0]);
+  add(layers.skelett, new THREE.CylinderGeometry(0.03, 0.03, 0.7, 16), boneMat, [0, 1.1, -0.01]);
+  for (let i = 0; i < 6; i++) {
+    const rib = new THREE.Mesh(new THREE.TorusGeometry(0.16 - i*0.015, 0.012, 16, 32), boneMat);
+    rib.position.set(0, 1.38 - i*0.08, 0); rib.rotation.x = Math.PI / 2; rib.scale.set(1, 0.65, 1); layers.skelett.add(rib);
+  }
+
+  // --- ORGANE (Klickbar) ---
+  const addOrgan = (geo, pos, color, key, scl) => {
+    const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3, emissive: color, emissiveIntensity: 0.2 });
+    const m = add(layers.organe, geo, mat, pos, scl); m.userData.organ = key; organMeshes.push(m);
+  };
+  addOrgan(new THREE.SphereGeometry(0.07, 32, 32), [0, 1.7, 0], '#f2a0c0', 'brain');
+  addOrgan(new THREE.SphereGeometry(0.06, 32, 32), [-0.03, 1.28, 0.03], '#e63946', 'heart', [1, 1.3, 1]);
+  addOrgan(new THREE.SphereGeometry(0.08, 32, 32), [0.08, 1.3, 0], '#f4a6b8', 'lunge', [0.8, 1.5, 0.8]);
+  addOrgan(new THREE.SphereGeometry(0.08, 32, 32), [-0.08, 1.3, 0], '#f4a6b8', 'lunge', [0.8, 1.5, 0.8]);
+  addOrgan(new THREE.SphereGeometry(0.09, 32, 32), [0.07, 1.05, 0.03], '#8b2e2e', 'liver', [1.2, 0.7, 0.9]);
+
+  setLayer(currentLayer);
+
+  // Raycaster für Klicks
+  raycaster = new THREE.Raycaster(); mouse = new THREE.Vector2();
+  renderer.domElement.addEventListener('pointerdown', (e) => {
+    if (!layers.organe.visible) return;
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(organMeshes, false);
+    if (hits.length) openOrganModal(hits[0].object.userData.organ);
+  });
 
   new ResizeObserver(() => {
     const w = host.clientWidth, h = host.clientHeight;
     if(!w || !h) return;
     camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h);
   }).observe(host);
+
+  function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
 }
 
-window.toggleAnatomy = function(mode) {
-  state.anatomyMode = mode;
-  
-  if (humanModel) humanModel.visible = false;
-  if (cyborgModel) cyborgModel.visible = false;
-  if (skeletonModel) skeletonModel.visible = false;
-  
-  document.getElementById('btnHuman').classList.remove('active');
-  document.getElementById('btnCyborg').classList.remove('active');
-  document.getElementById('btnSkeleton').classList.remove('active');
-  document.getElementById('cyborgActions').classList.remove('show');
+function setLayer(name) {
+  currentLayer = name;
+  for (const k in layers) if(layers[k]) layers[k].visible = (k === name);
+  document.querySelectorAll('.layer-btn[data-layer]').forEach(b => b.classList.toggle('active', b.dataset.layer === name));
+}
+document.querySelectorAll('.layer-btn[data-layer]').forEach(b => b.addEventListener('click', () => setLayer(b.dataset.layer)));
+document.getElementById('resetCam').addEventListener('click', () => { camera.position.set(0, 1.15, 3.1); controls.target.set(0, 1.0, 0); controls.update(); });
 
-  if (mode === 'human' && humanModel) {
-    humanModel.visible = true;
-    document.getElementById('btnHuman').classList.add('active');
-  } else if (mode === 'cyborg' && cyborgModel) {
-    cyborgModel.visible = true;
-    document.getElementById('btnCyborg').classList.add('active');
-    document.getElementById('cyborgActions').classList.add('show');
-  } else if (mode === 'skeleton' && skeletonModel) {
-    skeletonModel.visible = true;
-    document.getElementById('btnSkeleton').classList.add('active');
-  }
-};
-
-window.playCyborgAnim = function(animName) {
-  if (!actions || !mixer) return;
-  
-  for (const key in actions) actions[key].fadeOut(0.2);
-  
-  if (actions[animName]) {
-    const action = actions[animName];
-    action.reset().fadeIn(0.2).play();
-    
-    if (animName !== 'Idle') {
-      setTimeout(() => {
-        if (state.anatomyMode === 'cyborg') {
-          actions['Idle'].reset().fadeIn(0.2).play();
-        }
-      }, 3000);
-    }
-  }
-};
-
-function buildProceduralSkeleton() {
-  const group = new THREE.Group();
-  const boneMat = new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.45 });
-
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.09, 32, 32), boneMat);
-  head.position.set(0, 1.7, 0); group.add(head);
-  
-  const spine = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.7, 16), boneMat);
-  spine.position.set(0, 1.1, -0.01); group.add(spine);
-
-  for (let i = 0; i < 6; i++) {
-    const rib = new THREE.Mesh(new THREE.TorusGeometry(0.16 - i*0.015, 0.012, 16, 32), boneMat);
-    rib.position.set(0, 1.38 - i*0.08, 0);
-    rib.rotation.x = Math.PI / 2;
-    rib.scale.set(1, 0.65, 1);
-    group.add(rib);
-  }
-  
-  return group;
+// Modal & TTS Logik
+let currentOrganText = '';
+function openOrganModal(key) {
+  const info = ORGAN_INFO[key];
+  if (!info) return;
+  document.getElementById('organ-title').innerHTML = `<span style="color:${info.color}">●</span> ${info.name}`;
+  document.getElementById('organ-desc').textContent = info.text;
+  currentOrganText = info.name + '. ' + info.text;
+  document.getElementById('organ-modal').classList.add('show');
+  speakOrganInfo();
 }
 
-document.getElementById('resetCam').addEventListener('click', () => { 
-  if (camera) {
-    camera.position.set(0, 1.2, 3.5); 
-    controls.target.set(0, 1.0, 0); 
-    controls.update(); 
+function speakOrganInfo() {
+  if ('speechSynthesis' in window && currentOrganText) {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(currentOrganText);
+    u.lang = 'de-DE';
+    speechSynthesis.speak(u);
   }
-});
+}
 
 /* ============================================================
    START
