@@ -268,5 +268,136 @@ window.addEventListener('load',()=>{
   if(location.hash==='#anatomie')switchView('anatomie');
 });
 </script>
+/* ============================================================
+   6. KRANKHEITEN A-Z (Datenbank + Suche + Details)
+   ============================================================ */
+
+// Die medizinische Datenbank (20 Krankheiten für den Start)
+const KRANKHEITEN_DB = [
+  { name: "Diabetes Typ 2", icd: "E11", kat: "Stoffwechsel", sym: "Starker Durst, häufiges Wasserlassen, Müdigkeit, Gewichtsverlust", urs: "Insulinresistenz, Übergewicht, Bewegungsmangel, Genetik", beh: "Gesunde Ernährung, Sport, Metformin, Insulin (später)" },
+  { name: "Hypertonie (Bluthochdruck)", icd: "I10", kat: "Herz-Kreislauf", sym: "Meist keine, Kopfschmerzen, Schwindel, Nasenbluten", urs: "Genetik, Salz, Stress, Übergewicht, Rauchen", beh: "Salzreduktion, Sport, ACE-Hemmer, Betablocker" },
+  { name: "Asthma bronchiale", icd: "J45", kat: "Atemwege", sym: "Atemnot, Pfeifen beim Ausatmen, Husten (nachts/morgens)", urs: "Allergien, Genetik, Umweltreize, Infekte", beh: "Salbutamol (Notfall), Kortison-Spray, Allergenmeidung" },
+  { name: "Gastritis", icd: "K29", kat: "Magen-Darm", sym: "Magenschmerzen, Übelkeit, Völlegefühl, Sodbrennen", urs: "Helicobacter pylori, NSAR-Schmerzmittel, Stress, Alkohol", beh: "Protonenpumpenhemmer (Omeprazol), Antibiotika bei H. pylori" },
+  { name: "Migräne", icd: "G43", kat: "Neurologie", sym: "Pulsierender Kopfschmerz (einseitig), Übelkeit, Lichtempfindlichkeit", urs: "Genetik, Stress, Hormone, bestimmte Lebensmittel", beh: "Triptane, Schmerzmittel, Ruhe in dunklem Raum, Prophylaxe" },
+  { name: "Rückenschmerzen (Lumbago)", icd: "M54", kat: "Orthopädie", sym: "Plötzlicher Schmerz im unteren Rücken, Bewegungseinschränkung", urs: "Heben schwerer Lasten, Fehlhaltung, Bandscheibenvorfall", beh: "Wärme, leichte Bewegung, NSAR, Physiotherapie" },
+  { name: "Erkältung (Grippaler Infekt)", icd: "J06", kat: "Infektion", sym: "Schnupfen, Halsschmerzen, Husten, leichtes Fieber", urs: "Viren (Rhinoviren), Tröpfcheninfektion", beh: "Ruhe, viel Trinken, Nasenspray, ggf. Ibuprofen" },
+  { name: "Grippe (Influenza)", icd: "J11", kat: "Infektion", sym: "Plötzliches hohes Fieber, Gliederschmerzen, trockener Husten", urs: "Influenza-Viren, Tröpfcheninfektion", beh: "Bettruhe, fiebersenkende Mittel, Neuraminidase-Hemmer" },
+  { name: "Herzinsuffizienz", icd: "I50", kat: "Herz-Kreislauf", sym: "Atemnot bei Belastung, geschwollene Beine, Müdigkeit", urs: "Koronare Herzkrankheit, Bluthochdruck, Herzinfarkt", beh: "ACE-Hemmer, Betablocker, Diuretika, salzarme Ernährung" },
+  { name: "Koronare Herzkrankheit (KHK)", icd: "I25", kat: "Herz-Kreislauf", sym: "Brustenge (Angina pectoris), Atemnot, Schmerzen im linken Arm", urs: "Arteriosklerose, Rauchen, Cholesterin, Diabetes", beh: "Stents, Bypass, Statine, Blutverdünner, Lebensstil" },
+  { name: "Chronische Bronchitis (COPD)", icd: "J44", kat: "Atemwege", sym: "Husten mit Auswurf, Atemnot, Pfeifen", urs: "Rauchen (90%), Staub, Luftverschmutzung", beh: "Rauchstopp, Bronchodilatatoren, Kortison-Spray, Sauerstoff" },
+  { name: "Depression", icd: "F32", kat: "Psychiatrie", sym: "Traurigkeit, Interessenverlust, Schlafstörungen, Hoffnungslosigkeit", urs: "Genetik, Neurotransmitter-Ungleichgewicht, Trauma, Stress", beh: "Psychotherapie, Antidepressiva (SSRI), Lichttherapie" },
+  { name: "Arthrose", icd: "M19", kat: "Orthopädie", sym: "Gelenkschmerzen (Knie, Hüfte), Morgensteifigkeit, Knirschen", urs: "Verschleiß, Alter, Übergewicht, Fehlbelastung", beh: "Bewegung, Physiotherapie, Schmerzmittel, Gelenkersatz" },
+  { name: "Osteoporose", icd: "M81", kat: "Orthopädie", sym: "Knochenbrüche ohne Grund, Rückenschmerzen, Größenverlust", urs: "Östrogenmangel (Menopause), Kalziummangel, Bewegungsmangel", beh: "Kalzium, Vitamin D, Bisphosphonate, Krafttraining" },
+  { name: "Schilddrüsenunterfunktion", icd: "E03", kat: "Hormone", sym: "Müdigkeit, Gewichtszunahme, Kälteempfindlichkeit, trockene Haut", urs: "Hashimoto-Thyreoiditis, Jodmangel, OP", beh: "L-Thyroxin (Tabletten), Jodzufuhr" },
+  { name: "Akne", icd: "L70", kat: "Haut", sym: "Pickel, Mitesser, fettige Haut, Narben", urs: "Hormone, Talgüberproduktion, Bakterien", beh: "Benzoylperoxid, Retinoide, Antibiotika (bei Bedarf)" },
+  { name: "Neurodermitis", icd: "L20", kat: "Haut", sym: "Juckreiz, rote Hautstellen, trockene Haut, Ekzeme", urs: "Genetik, Immunsystem, Stress, Allergene", beh: "Kortisonsalben, Feuchtigkeitscremes, Antihistaminika" },
+  { name: "Gicht", icd: "M10", kat: "Stoffwechsel", sym: "Plötzliche, sehr starke Gelenkschmerzen (oft große Zehe)", urs: "Harnsäurekristalle, Purin-reiche Ernährung, Alkohol", beh: "Allopurinol, Colchicin, NSAR, Diät (weniger Fleisch)" },
+  { name: "Nierensteine", icd: "N20", kat: "Harnwege", sym: "Kolikartige Schmerzen (Flanke bis Leiste), Blut im Urin", urs: "Kalziumoxalat-Kristalle, zu wenig Trinken, Genetik", beh: "Viel Trinken, Schmerzmittel, ggf. OP (Lithotripsie)" },
+  { name: "Anämie (Blutarmut)", icd: "D50", kat: "Blut", sym: "Blässe, Müdigkeit, Atemnot, Schwindel", urs: "Eisenmangel, Vitamin B12-Mangel, Blutverlust", beh: "Eisentabletten, Vitamin B12-Spritzen, Ursachenbehandlung" }
+];
+
+// 1. Die Such-Logik & das Rendering
+window.renderDiseases = function() {
+  const list = document.getElementById('krankheitenList');
+  const search = document.getElementById('krankheitenSearch');
+  if (!list || !search) return;
+  
+  const q = search.value.toLowerCase();
+  const filtered = KRANKHEITEN_DB.filter(k => 
+    k.name.toLowerCase().includes(q) || 
+    k.sym.toLowerCase().includes(q) || 
+    k.kat.toLowerCase().includes(q)
+  );
+
+  list.innerHTML = '';
+  if (filtered.length === 0) {
+    list.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:20px;">Keine Krankheit gefunden.</div>';
+    return;
+  }
+
+  filtered.forEach(k => {
+    const el = document.createElement('div');
+    el.className = 'list-item';
+    el.innerHTML = `
+      <div class="li-name">${k.name}</div>
+      <div class="li-sub">ICD-10: ${k.icd}</div>
+      <div class="li-tag">${k.kat}</div>
+    `;
+    el.onclick = () => openDiseaseModal(k);
+    list.appendChild(el);
+  });
+
+  // Zähler im Header aktualisieren
+  const countEl = document.getElementById('krankheitenCount');
+  if (countEl) countEl.textContent = filtered.length + ' Krankheiten';
+};
+
+// 2. Das Modal (Detailansicht)
+function openDiseaseModal(k) {
+  let modal = document.getElementById('disease-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'disease-modal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-box">
+        <button class="modal-close" onclick="document.getElementById('disease-modal').classList.remove('show')">×</button>
+        <h2 id="d-title" style="color:var(--accent)"></h2>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px;" id="d-icd"></div>
+        
+        <h3 style="font-size:14px;color:var(--accent-2);margin-bottom:6px;">Symptome</h3>
+        <p id="d-sym" style="margin-bottom:16px;font-size:14px;line-height:1.6;"></p>
+        
+        <h3 style="font-size:14px;color:var(--accent-2);margin-bottom:6px;">Ursachen</h3>
+        <p id="d-urs" style="margin-bottom:16px;font-size:14px;line-height:1.6;"></p>
+        
+        <h3 style="font-size:14px;color:var(--accent-2);margin-bottom:6px;">Behandlung</h3>
+        <p id="d-beh" style="margin-bottom:16px;font-size:14px;line-height:1.6;"></p>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  document.getElementById('d-title').textContent = k.name;
+  document.getElementById('d-icd').textContent = 'ICD-10: ' + k.icd + ' · Kategorie: ' + k.kat;
+  document.getElementById('d-sym').textContent = k.sym;
+  document.getElementById('d-urs').textContent = k.urs;
+  document.getElementById('d-beh').textContent = k.beh;
+  
+  modal.classList.add('show');
+}
+
+// 3. HTML-Gerüst in den Placeholder-View einbauen
+document.addEventListener('DOMContentLoaded', () => {
+  const viewKrankheiten = document.getElementById('view-krankheiten');
+  if (viewKrankheiten) {
+    viewKrankheiten.innerHTML = `
+      <div class="view-head">
+        <h1>Krankheiten A-Z</h1>
+        <p class="sub" id="krankheitenCount">Lade Datenbank...</p>
+      </div>
+      <input type="text" class="list-search" id="krankheitenSearch" placeholder="🔍 Suche nach Name, Symptom oder Kategorie..." oninput="renderDiseases()">
+      <div class="list-grid" id="krankheitenList"></div>
+    `;
+    // Styles für die Liste kurz injizieren (falls nicht vorhanden)
+    if (!document.getElementById('list-styles')) {
+      const style = document.createElement('style');
+      style.id = 'list-styles';
+      style.textContent = `
+        .list-search{width:100%;padding:12px 16px;min-height:44px;background:var(--glass-2);border:1px solid var(--border);border-radius:12px;color:#fff;font-size:14px;font-family:inherit;outline:none;margin-bottom:16px;}
+        .list-search:focus{border-color:var(--accent);}
+        .list-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+        .list-item{padding:16px;min-height:80px;background:var(--glass);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:.18s;display:flex;flex-direction:column;gap:6px;}
+        .list-item:hover{background:var(--glass-2);border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,0.2);}
+        .list-item .li-name{font-size:15px;font-weight:700;color:#fff;}
+        .list-item .li-sub{font-size:12px;color:var(--muted);}
+        .list-item .li-tag{font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-top:4px;font-weight:700;}
+      `;
+      document.head.appendChild(style);
+    }
+    // Initial rendern
+    renderDiseases();
+  }
+});
 </body>
 </html>                                                                                                                                                                                                                                                                                                                                                                           
