@@ -1,558 +1,887 @@
-/* ═══════════════════════════════════════════════════════════
-   HALDO ARZTBUCH v13.0 — TEIL 3 (FULL BODY FIX & DATABASES)
-   Kompletter Körper · DracoLoader Fix · Kugel als Fallback
-   ═══════════════════════════════════════════════════════════ */
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'; // NEU: Der Entpacker
-
-(function () {
-  'use strict';
-
-  const VERSION = '13.0-P3';
-  const STORAGE_KEY = 'haldo.arztbuch.v13';
-
-  let state = {
-    lang: 'de',
-    currentView: 'splash',
-    ttsEnabled: true,
-    chatHistory: [],
-    splashTheme: 'cyan',
-    soundEnabled: true,
-    hotspot: { ssid: 'HalDo_Med_Network', pass: '12345678', active: false },
-    anatomyMode: 'organs'
-  };
-
-  let currentTarget = null;
-  let audioCtx = null;
-  let threeScene, threeCamera, threeRenderer, threeControls, threeAnimationId;
-  let skinGroup, musclesGroup, skeletonGroup, organsGroup;
-  let loadedModel;
-
-  // Theme Farben
-  const THEMES = {
-    cyan: { p: '#00e5ff', s: '#0088ff', bg: '#050810', g: 'rgba(0,229,255,0.5)' },
-    purple: { p: '#b478ff', s: '#7a3aff', bg: '#080510', g: 'rgba(180,120,255,0.5)' },
-    gold: { p: '#ffd700', s: '#ff9800', bg: '#0a0500', g: 'rgba(255,215,0,0.5)' },
-    green: { p: '#4ade80', s: '#22c55e', bg: '#05100a', g: 'rgba(74,222,128,0.5)' }
-  };
-
-  // ═══════════════════════════════════════════════════════
-  // MASSIVE A-Z DATENBANKEN (ERWEITERT)
-  // ═══════════════════════════════════════════════════════
-  const DISEASES = [
-    { name: 'Abszess', symp: 'Schmerzhafte, geschwollene Stelle, Fieber', tr: 'Arzt aufsuchen, Eröffnung, Antibiotika.' },
-    { name: 'Akne', symp: 'Pickel, Mitesser, Entzündungen', tr: 'Reinigung, Salben, ggf. Antibiotika.' },
-    { name: 'Aids (HIV)', symp: 'Fieber, Müdigkeit, Lymphknoten', tr: 'Antiretrovirale Therapie (ART).' },
-    { name: 'Allergie', symp: 'Niesen, Juckreiz, Atemnot', tr: 'Allergene meiden, Antihistaminika.' },
-    { name: 'Alzheimer', symp: 'Gedächtnisverlust, Orientierungslosigkeit', tr: 'Medikamente, Betreuung.' },
-    { name: 'Anämie', symp: 'Müdigkeit, Blässe, Schwindel', tr: 'Eisenpräparate, Vitamin B12.' },
-    { name: 'Angina Pectoris', symp: 'Engegefühl in der Brust', tr: 'Nitrate, Betablocker.' },
-    { name: 'Angststörung', symp: 'Herzrasen, Panik, Zittern', tr: 'Psychotherapie, Antidepressiva.' },
-    { name: 'Arthritis', symp: 'Geschwollene, schmerzhafte Gelenke', tr: 'Entzündungshemmer, Physiotherapie.' },
-    { name: 'Arthrose', symp: 'Gelenkschmerzen, Steifheit', tr: 'Bewegung, Schmerzmittel.' },
-    { name: 'Asthma', symp: 'Atemnot, Husten, Engegefühl', tr: 'Sprays, Kortison.' },
-    { name: 'Bluthochdruck', symp: 'Kopfschmerzen, Schwindel', tr: 'Salzarm essen, Blutdrucksenker.' },
-    { name: 'Bronchitis', symp: 'Husten mit Auswurf, Fieber', tr: 'Viel trinken, ggf. Antibiotika.' },
-    { name: 'Cholesterin', symp: 'Oft symptomlos, Ablagerungen', tr: 'Ernährung, Statine.' },
-    { name: 'Depression', symp: 'Niedergeschlagenheit, Antriebslosigkeit', tr: 'Psychotherapie, Antidepressiva.' },
-    { name: 'Diabetes Typ 1', symp: 'Durst, Wasserlassen, Gewichtsverlust', tr: 'Insulin-Injektionen.' },
-    { name: 'Diabetes Typ 2', symp: 'Müdigkeit, Durst, Blutzucker', tr: 'Ernährung, Metformin.' },
-    { name: 'Gastritis', symp: 'Magenschmerzen, Übelkeit', tr: 'Schonkost, Protonenpumpenhemmer.' },
-    { name: 'Grippe', symp: 'Fieber, Gliederschmerzen, Husten', tr: 'Bettruhe, Fieber senken.' },
-    { name: 'Herzinfarkt', symp: 'Starker Brustschmerz, Atemnot', tr: 'NOTRUF 112! Stent, Medikamente.' },
-    { name: 'Migräne', symp: 'Pulsierender Schmerz, Übelkeit', tr: 'Ruhe, Triptane.' },
-    { name: 'Schlaganfall', symp: 'Plötzliche Lähmung, Sprachstörung', tr: 'NOTRUF 112! Thrombolyse.' },
-    { name: 'Schwangerschaft', symp: 'Ausbleiben der Periode, Übelkeit, Müdigkeit', tr: 'Arzt aufsuchen, Folsäure einnehmen, gesunde Ernährung.' },
-    { name: 'Geburt', symp: 'Wehen, Fruchtwasserabgang', tr: 'Sofort ins Krankenhaus / Hebamme rufen.' },
-    { name: 'Geschlechtskrankheiten (STI)', symp: 'Ausfluss, Schmerzen beim Wasserlassen, Hautveränderungen', tr: 'Dringend zum Arzt! Antibiotika oder antivirale Therapie.' },
-    { name: 'Geschlechtsumwandlung', symp: 'Psychische Belastung durch Geschlechtsdysphorie', tr: 'Psychotherapie, Endokrinologie, ggf. chirurgische Maßnahmen.' },
-    { name: 'Sexualität & Aufklärung', symp: 'Fragen zu Verhütung, Orgasmus, Spermien', tr: 'Aufklärung, sichere Verhütung (Kondome, Pille).' },
-    { name: 'Urologie (Mann)', symp: 'Prostata-Beschwerden, Erektionsstörungen', tr: 'Urologe aufsuchen, Vorsorge wahrnehmen.' },
-    { name: 'Gynäkologie (Frau)', symp: 'Regelschmerzen, Myome, Wechseljahre', tr: 'Gynäkologe aufsuchen, regelmäßige Vorsorge.' }
-  ];
-
-  const MEDS = [
-    { name: 'Amoxicillin', use: 'Bakterielle Infektionen', dose: '1-0-1 (immer zu Ende nehmen!).', info: 'Verschreibungspflichtig. Magen-Darm-Beschwerden möglich.' },
-    { name: 'Aspirin 100mg', use: 'Blutverdünnung', dose: '1x täglich.', info: 'Magenschutz beachten.' },
-    { name: 'Metoprolol', use: 'Bluthochdruck, Herzschwäche', dose: '1x täglich morgens.', info: 'Puls regelmäßig prüfen.' },
-    { name: 'Prednisolon', use: 'Entzündungen, Allergien', dose: 'Ausschleichend einnehmen.', info: 'Nicht abrupt absetzen.' },
-    { name: 'Ibuprofen', use: 'Schmerzen, Fieber', dose: 'Max. 3x täglich nach dem Essen.', info: 'Magenschutz empfohlen.' },
-    { name: 'Insulin', use: 'Diabetes', dose: 'Je nach Blutzucker.', info: 'Kühl lagern.' },
-    { name: 'L-Thyroxin', use: 'Schilddrüsenunterfunktion', dose: 'Morgens nüchtern.', info: '30 Min. vor dem Frühstück.' },
-    { name: 'Metformin', use: 'Diabetes Typ 2', dose: 'Zu den Mahlzeiten.', info: 'Nierenwerte prüfen.' },
-    { name: 'Paracetamol', use: 'Schmerzen, Fieber', dose: 'Max. 3x täglich.', info: 'Leberschäden bei Überdosis.' },
-    { name: 'Voltaren', use: 'Schmerzen, Entzündungen', dose: 'Magensicher einnehmen.', info: 'Nicht auf offene Wunden.' },
-    { name: 'Pille (Ovulationshemmer)', use: 'Verhütung', dose: 'Täglich zur gleichen Zeit.', info: 'Rezeptpflichtig. Nicht bei Raucherinnen über 35.' },
-    { name: 'Viagra (Sildenafil)', use: 'Erektionsstörungen', dose: '30-60 Min. vor dem Sex.', info: 'Rezeptpflichtig. Nicht mit Nitraten kombinieren!' },
-    { name: 'Antibiotika (allg.)', use: 'Bakterien abtöten', dose: 'Nach Verordnung.', info: 'Immer zu Ende nehmen, sonst Resistenzen!' }
-  ];
-
-  const LABS = [
-    { name: 'Blutzucker', ref: '70-100 mg/dl', desc: 'Nüchternwert. Hoch = Diabetes.' },
-    { name: 'Cholesterin', ref: '< 200 mg/dl', desc: 'Gesamtcholesterin. Hoch = Risiko.' },
-    { name: 'CRP', ref: '< 5 mg/l', desc: 'Entzündungswert.' },
-    { name: 'Hämoglobin', ref: '12-17 g/dl', desc: 'Sauerstofftransport. Niedrig = Anämie.' },
-    { name: 'HbA1c', ref: '4,0-5,6 %', desc: 'Langzeitblutzucker.' },
-    { name: 'Kalium', ref: '3,5-5,0 mmol/l', desc: 'Wichtig fürs Herz.' },
-    { name: 'Kreatinin', ref: '0,6-1,3 mg/dl', desc: 'Nierenwert.' },
-    { name: 'Leukozyten', ref: '4.000-10.000', desc: 'Weiße Blutkörperchen. Hoch = Infekt.' },
-    { name: 'TSH', ref: '0,4-4,0 mU/l', desc: 'Schilddrüse. Hoch = Unterfunktion.' },
-    { name: 'HCG (Schwangerschaftstest)', ref: '< 5 mIU/ml', desc: 'Hoch = Schwanger.' },
-    { name: 'Testosteron', ref: 'M: 3-10 ng/ml', desc: 'Männliches Geschlechtshormon.' },
-    { name: 'Östrogen', ref: 'W: 30-400 pg/ml', desc: 'Weibliches Geschlechtshormon.' }
-  ];
-
-  // ═══════════════════════════════════════════════════════
-  // LOGIK & SOUND
-  // ═══════════════════════════════════════════════════════
-  function speakText(text) {
-    if (!state.ttsEnabled || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text.replace(/<[^>]*>?/gm, ''));
-    u.lang = 'de-DE'; u.rate = 1.0;
-    window.speechSynthesis.speak(u);
-  }
-
-  function playStartupSound() {
-    if (!state.soundEnabled) return;
-    try {
-      if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-      osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 1.5);
-      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 3.0);
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.start(); osc.stop(audioCtx.currentTime + 3.0);
-    } catch (e) { }
-  }
-
-  // ═══════════════════════════════════════════════════════
-  // CSS (Design-System)
-  // ═══════════════════════════════════════════════════════
-  function css() {
-    const t = THEMES[state.splashTheme];
-    return `<style>
-      :root { --p: ${t.p}; --s: ${t.s}; --bg: ${t.bg}; --g: ${t.g}; }
-      .haldo-app { font-family: 'Inter', sans-serif; color: #e8e8ec; background: radial-gradient(circle at top right, #0a1220 0%, var(--bg) 100%); height: 100%; width: 100%; display: flex; position: absolute; top: 0; left: 0; overflow: hidden; }
-      .h-sidebar { width: 260px; background: rgba(10, 15, 25, 0.6); backdrop-filter: blur(24px); border-right: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; padding: 20px 0; z-index: 10; overflow-y: auto; }
-      .h-logo { padding: 0 20px 25px; font-size: 22px; font-weight: 900; color: var(--p); display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; }
-      .h-nav-item { padding: 14px 24px; display: flex; align-items: center; gap: 14px; color: #8a9bb5; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; border-left: 3px solid transparent; }
-      .h-nav-item:hover { background: rgba(255,255,255,0.02); color: #fff; }
-      .h-nav-item.active { background: linear-gradient(90deg, rgba(0,229,255,0.1) 0%, transparent 100%); color: var(--p); border-left-color: var(--p); }
-      .h-nav-item .icon { font-size: 20px; width: 24px; text-align: center; }
-      .h-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-      .h-header { padding: 25px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(10, 15, 25, 0.4); backdrop-filter: blur(10px); }
-      .h-header h1 { margin: 0; font-size: 24px; font-weight: 800; color: #fff; }
-      .h-content { flex: 1; overflow-y: auto; padding: 40px; position: relative; }
-      .h-content::-webkit-scrollbar { width: 8px; } .h-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-      .h-inner { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
-      .h-card { background: rgba(20, 25, 35, 0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.06); border-radius: 20px; padding: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
-      
-      /* Dashboard */
-      .h-dashboard-top { display: flex; gap: 30px; align-items: stretch; }
-      .h-greeting-card { flex: 1; display: flex; flex-direction: column; justify-content: center; background: linear-gradient(135deg, rgba(0,229,255,0.05) 0%, rgba(180,120,255,0.05) 100%); border: 1px solid rgba(0,229,255,0.15); }
-      .h-greeting-card h2 { font-size: 32px; margin: 0 0 10px 0; color: #fff; font-weight: 900; }
-      .h-ai-avatar-container { width: 200px; height: 200px; position: relative; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); border-radius: 50%; border: 2px solid rgba(0,229,255,0.3); cursor: pointer; transition: 0.3s; }
-      .h-ai-avatar-container:hover { box-shadow: 0 0 60px rgba(0,229,255,0.5); transform: scale(1.05); }
-      .h-ai-core { width: 100px; height: 100px; background: radial-gradient(circle, var(--p) 0%, var(--s) 100%); border-radius: 50%; animation: breathe 3s infinite; box-shadow: 0 0 50px var(--p); }
-      @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); box-shadow: 0 0 70px var(--p); } }
-      .h-grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
-      .h-stat-box { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 20px; }
-      .h-stat-box .title { font-size: 12px; color: #8a9bb5; text-transform: uppercase; font-weight: bold; }
-      .h-stat-box .value { font-size: 28px; font-weight: 900; color: #fff; }
-      .h-quick-btn { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; transition: 0.2s; }
-      .h-quick-btn:hover { background: rgba(0,229,255,0.1); border-color: var(--p); transform: translateY(-3px); }
-      .h-quick-btn .icon { font-size: 32px; } .h-quick-btn .label { font-size: 14px; font-weight: bold; color: #fff; }
-
-      /* Generic List Items & Inputs */
-      .h-list-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
-      .h-list-item:hover { border-color: var(--p); background: rgba(0,229,255,0.05); }
-      .h-input { width: 100%; padding: 15px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #fff; font-size: 15px; margin-bottom: 20px; outline: none; }
-      .h-input:focus { border-color: var(--p); }
-
-      /* KI Chat */
-      .h-chat-container { display: flex; flex-direction: column; height: calc(100vh - 200px); background: rgba(20, 25, 35, 0.4); border-radius: 20px; overflow: hidden; }
-      .h-chat-history { flex: 1; overflow-y: auto; padding: 30px; display: flex; flex-direction: column; gap: 20px; }
-      .h-msg { display: flex; gap: 15px; max-width: 80%; }
-      .h-msg.user { align-self: flex-end; flex-direction: row-reverse; }
-      .h-msg-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(0,229,255,0.2); border: 1px solid var(--p); }
-      .h-msg-bubble { padding: 15px 20px; border-radius: 16px; font-size: 15px; line-height: 1.6; }
-      .h-msg.ai .h-msg-bubble { background: rgba(0,229,255,0.05); border: 1px solid rgba(0,229,255,0.2); border-top-left-radius: 4px; }
-      .h-msg.user .h-msg-bubble { background: linear-gradient(135deg, var(--p), var(--s)); color: #000; border-top-right-radius: 4px; }
-      .h-chat-input-area { padding: 20px 30px; background: rgba(10, 15, 25, 0.8); display: flex; gap: 15px; }
-      .h-chat-input { flex: 1; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; color: #fff; font-size: 15px; outline: none; }
-      .h-chat-send { background: linear-gradient(135deg, var(--p), var(--s)); border: none; border-radius: 12px; width: 50px; cursor: pointer; font-size: 20px; color: #000; }
-
-      /* 3D Anatomie */
-      .h-anatomy-container { width: 100%; height: calc(100vh - 250px); background: radial-gradient(circle at center, #111a2a 0%, #050810 100%); border-radius: 20px; overflow: hidden; position: relative; border: 1px solid rgba(0,229,255,0.2); }
-      .h-anatomy-controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 12px; backdrop-filter: blur(10px); }
-      .h-anatomy-btn { padding: 8px 16px; background: transparent; border: 1px solid #555; color: #aaa; border-radius: 8px; cursor: pointer; font-weight: bold; }
-      .h-anatomy-btn.active { background: rgba(0,229,255,0.2); border-color: var(--p); color: var(--p); }
-
-      /* Splash */
-      .h-splash { position: absolute; inset: 0; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle at center, var(--bg) 0%, #000 100%); }
-      .h-splash-logo-wrapper { margin-bottom: 20px; animation: floatLogo 4s infinite; }
-      .h-splash-logo-img { width: 120px; height: 120px; object-fit: contain; filter: drop-shadow(0 0 30px var(--p)); }
-      @keyframes floatLogo { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
-      .h-splash-text-top { font-size: 20px; color: #ddd; text-transform: uppercase; }
-      .h-splash-title { font-size: 52px; font-weight: 900; color: #ffd700; margin-bottom: 15px; text-shadow: 0 0 10px #ffd700, 0 0 20px #ff9800; animation: pulseGold 3s infinite alternate; }
-      @keyframes pulseGold { 0% { text-shadow: 0 0 10px #ffd700; } 100% { text-shadow: 0 0 30px #ff9800, 0 0 50px #ff6f00; } }
-      .h-splash-author { font-size: 18px; color: #e8e8ec; margin-bottom: 40px; font-style: italic; }
-      .h-splash-subtitle { position: absolute; bottom: 100px; font-size: 12px; color: #ffd700; letter-spacing: 4px; text-transform: uppercase; }
-      .h-splash-btn { padding: 18px 60px; background: linear-gradient(135deg, var(--p) 0%, var(--s) 100%); color: #000; font-size: 18px; font-weight: 900; border: none; border-radius: 30px; cursor: pointer; box-shadow: 0 10px 30px var(--g); }
-      .h-color-bands { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; background: rgba(0,0,0,0.4); padding: 10px 20px; border-radius: 30px; align-items: center; }
-      .h-color-band { width: 25px; height: 25px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
-      .h-color-band.active { border-color: #fff; transform: scale(1.1); }
-      .band-cyan { background: #00e5ff; } .band-purple { background: #b478ff; } .band-green { background: #4ade80; } .band-gold { background: #ffd700; }
-      .h-sound-toggle { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; cursor: pointer; margin-left: 10px; }
-      
-      /* Hardware */
-      .h-hw-btn { padding: 15px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #fff; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 10px; }
-      .h-hw-btn:hover { background: rgba(0,229,255,0.1); border-color: var(--p); }
-    </style>`;
-  }
-
-  // ═══════════════════════════════════════════════════════
-  // RENDER FUNKTIONEN
-  // ═══════════════════════════════════════════════════════
-  function renderSplash() {
-    return `
-      <div class="h-splash">
-        <div class="h-splash-logo-wrapper"><img src="logo.png" class="h-splash-logo-img" onerror="this.style.display='none';"></div>
-        <div class="h-splash-text-top">Willkommen bei</div>
-        <div class="h-splash-title">HalDo Arztbuch App</div>
-        <div class="h-splash-author">von Halil Donma</div>
-        <div class="h-splash-subtitle">Professionale App</div>
-        <button class="h-splash-btn" data-action="enter-app">Los geht's →</button>
-        <div class="h-color-bands">
-          ${['cyan', 'purple', 'green', 'gold'].map(key => `<div class="h-color-band band-${key} ${state.splashTheme === key ? 'active' : ''}" data-theme="${key}"></div>`).join('')}
-          <div class="h-sound-toggle" data-action="toggle-sound">${state.soundEnabled ? '🔊' : '🔇'}</div>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#070b12">
+<title>HalDo Arztbuch Pro Max</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>🏥</text></svg>">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{--bg:#070b12;--glass:rgba(255,255,255,.045);--glass2:rgba(255,255,255,.08);--border:rgba(255,255,255,.09);--acc:#00d4ff;--acc2:#4da8ff;--gold:#ffd700;--danger:#ff4d6d;--text:#e8f1ff;--muted:#7e91ab;--r:16px;--safe:env(safe-area-inset-top,0px);}
+html,body{height:100%;}
+body{background:#000;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased;}
+#app{display:grid;height:100dvh;grid-template-columns:260px 1fr;position:relative;z-index:1;opacity:0;transition:opacity .8s;}
+#app.ready{opacity:1;}
+#bg-canvas{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none;}
+#welcome{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(2,2,5,.85);backdrop-filter:blur(10px);opacity:0;pointer-events:none;transition:opacity 1s;}
+#welcome.show{opacity:1;pointer-events:auto;}
+.w-t{font-size:3rem;font-weight:800;background:linear-gradient(120deg,var(--gold),#ffb700);-webkit-background-clip:text;color:transparent;margin-bottom:20px;min-height:60px;text-align:center;}
+.w-s{font-size:1.2rem;color:var(--acc);letter-spacing:4px;text-transform:uppercase;min-height:30px;text-align:center;}
+.w-f{position:absolute;bottom:50px;color:var(--muted);text-align:center;}
+#sidebar{background:rgba(10,16,26,.72);backdrop-filter:blur(22px);border-right:1px solid var(--border);padding:calc(22px + var(--safe)) 14px 22px;display:flex;flex-direction:column;gap:4px;overflow-y:auto;z-index:50;transition:transform .3s;}
+.brand{padding:4px 10px 20px;}
+.b-logo{font-size:24px;font-weight:800;background:linear-gradient(120deg,var(--acc),var(--acc2));-webkit-background-clip:text;color:transparent;}
+.b-sub{font-size:10px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;}
+.n-sec{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;padding:14px 12px 6px;}
+.nav{display:flex;align-items:center;gap:11px;padding:12px 14px;min-height:44px;border-radius:12px;border:1px solid transparent;background:none;color:#c3d1e6;font-size:13.5px;font-weight:500;cursor:pointer;text-align:left;width:100%;font-family:inherit;transition:.2s;}
+.nav:hover{background:var(--glass);color:#fff;}
+.nav.active{background:linear-gradient(90deg,rgba(0,212,255,.18),rgba(77,168,255,.06));border-color:rgba(0,212,255,.3);color:#fff;}
+.nav .ico{font-size:16px;width:20px;text-align:center;}
+#main{position:relative;overflow:hidden;padding:calc(22px + var(--safe)) 26px 22px;display:flex;flex-direction:column;height:100dvh;}
+#menuBtn{display:none;position:fixed;top:calc(14px + var(--safe));left:14px;z-index:60;width:44px;height:44px;border-radius:12px;background:rgba(10,16,26,.85);border:1px solid var(--border);color:#fff;font-size:19px;cursor:pointer;}
+#backdrop{display:none;position:fixed;inset:0;z-index:45;background:rgba(0,0,0,.55);}
+#backdrop.show{display:block;}
+.view{display:none;flex:1;min-height:0;overflow-y:auto;}
+.view.active{display:block;}
+.view.active.col{display:flex;flex-direction:column;overflow:hidden;}
+.v-head{margin-bottom:20px;}
+.v-head h1{font-size:26px;font-weight:700;}
+.v-head .sub{color:var(--muted);font-size:13px;margin-top:4px;}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;}
+.s12{grid-column:span 12;}.s8{grid-column:span 8;}.s4{grid-column:span 4;}
+@media(max-width:1000px){.s8,.s4{grid-column:span 12;}}
+.card{background:var(--glass);border:1px solid var(--border);border-radius:var(--r);padding:18px;backdrop-filter:blur(14px);position:relative;overflow:hidden;}
+.c-label{font-size:11px;color:var(--muted);letter-spacing:1.6px;text-transform:uppercase;margin-bottom:12px;font-weight:600;}
+.tip-card{background:linear-gradient(135deg,rgba(0,212,255,.13),rgba(77,168,255,.05));border-color:rgba(0,212,255,.24);}
+.tip-card p{font-size:14.5px;line-height:1.6;color:#dceaff;}
+.vitals{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.vital{background:rgba(255,255,255,.035);border:1px solid var(--border);border-radius:12px;padding:11px 13px;display:flex;flex-direction:column;gap:5px;}
+.vital .vlab{font-size:11px;color:var(--muted);}
+.vital input{background:none;border:none;outline:none;color:#fff;font-size:19px;font-weight:700;width:100%;font-family:inherit;}
+.vital .unit{font-size:11px;color:var(--acc);font-weight:600;}
+.v-row{display:flex;align-items:baseline;gap:5px;}
+.w-row{display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.w-big{font-size:38px;font-weight:800;color:var(--acc);}
+.w-glasses{display:flex;gap:5px;margin-top:12px;flex-wrap:wrap;}
+.glass{width:16px;height:22px;border-radius:0 0 4px 4px;border:1.5px solid rgba(0,212,255,.35);transition:.2s;}
+.glass.full{background:linear-gradient(180deg,var(--acc),rgba(0,212,255,.4));border-color:var(--acc);}
+.btn-mini{width:40px;height:40px;border-radius:10px;border:1px solid var(--border);background:var(--glass2);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.a-wrap{display:flex;flex-direction:column;flex:1;min-height:0;gap:14px;}
+.a-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;z-index:10;}
+.layer{padding:10px 16px;min-height:44px;border-radius:11px;border:1px solid var(--border);background:var(--glass);color:#c3d1e6;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;font-family:inherit;}
+.layer.active{background:linear-gradient(90deg,rgba(0,212,255,.22),rgba(77,168,255,.08));border-color:var(--acc);color:#fff;}
+.spacer{flex:1;}
+#anatomy-canvas{flex:1;min-height:320px;border-radius:var(--r);border:1px solid var(--border);position:relative;overflow:hidden;}
+#anatomy-canvas canvas{display:block;width:100%!important;height:100%!important;}
+.a-hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--muted);background:rgba(0,0,0,.5);padding:6px 14px;border-radius:99px;border:1px solid var(--border);white-space:nowrap;pointer-events:none;}
+.loader-cont{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:20;}
+.loader{border:4px solid rgba(255,255,255,.1);border-left-color:var(--acc);border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto 10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:340px;gap:14px;text-align:center;padding:40px 20px;}
+.ph-ico{font-size:54px;opacity:.85;}
+.placeholder h2{font-size:20px;font-weight:700;}
+.placeholder p{color:var(--muted);font-size:13.5px;max-width:420px;line-height:1.6;}
+.ph-badge{font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--acc);border:1px solid rgba(0,212,255,.35);padding:5px 12px;border-radius:99px;background:rgba(0,212,255,.08);}
+.modal{position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.8);backdrop-filter:blur(5px);padding:20px;}
+.modal.show{display:flex;}
+.m-box{background:rgba(20,30,44,.95);border:1px solid var(--acc);border-radius:20px;padding:30px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto;position:relative;}
+.m-close{position:absolute;top:15px;right:15px;background:none;border:none;color:#fff;font-size:26px;cursor:pointer;}
+.m-box h2{font-size:22px;margin-bottom:12px;color:var(--acc);padding-right:40px;}
+.m-box p{font-size:14px;line-height:1.6;}
+.btn-s{background:var(--acc);border:none;color:#000;padding:11px 20px;border-radius:10px;font-weight:bold;margin-top:20px;cursor:pointer;font-family:inherit;}
+.list-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+.list-item{padding:16px;min-height:80px;background:var(--glass);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:.2s;display:flex;flex-direction:column;gap:6px;}
+.list-item:hover{background:var(--glass2);border-color:var(--acc);transform:translateY(-2px);}
+.list-item .li-n{font-size:15px;font-weight:700;color:#fff;}
+.list-item .li-s{font-size:12px;color:var(--muted);}
+.list-item .li-t{font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:var(--acc);margin-top:4px;font-weight:700;}
+.list-search{width:100%;padding:12px 16px;min-height:44px;background:var(--glass2);border:1px solid var(--border);border-radius:12px;color:#fff;font-size:14px;outline:none;margin-bottom:16px;font-family:inherit;}
+.list-search:focus{border-color:var(--acc);}
+.chat-box{display:flex;flex-direction:column;gap:12px;height:calc(100vh - 200px);min-height:400px;}
+.chat-log{flex:1;overflow-y:auto;padding:12px;background:rgba(0,0,0,.3);border-radius:12px;display:flex;flex-direction:column;gap:10px;}
+.chat-msg{padding:10px 14px;border-radius:12px;font-size:13.5px;line-height:1.5;max-width:85%;}
+.chat-msg.user{align-self:flex-end;background:linear-gradient(90deg,var(--acc),var(--acc2));color:#000;font-weight:600;}
+.chat-msg.bot{align-self:flex-start;background:rgba(255,255,255,.06);border:1px solid var(--border);}
+.chat-input{display:flex;gap:8px;}
+.chat-input input{flex:1;padding:12px 16px;min-height:44px;background:var(--glass2);border:1px solid var(--border);border-radius:12px;color:#fff;font-size:14px;outline:none;font-family:inherit;}
+.chat-input button{padding:12px 20px;min-height:44px;background:linear-gradient(90deg,var(--acc),var(--acc2));border:none;border-radius:12px;color:#000;font-weight:700;cursor:pointer;font-family:inherit;}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 0;border-bottom:1px solid var(--border);}
+.set-row:last-child{border-bottom:none;}
+.set-row .sr-l{font-size:14px;font-weight:600;}
+.set-row .sr-s{font-size:12px;color:var(--muted);margin-top:3px;}
+select.styled{background:var(--glass2);border:1px solid var(--border);color:#fff;padding:11px 13px;min-height:44px;border-radius:10px;font-size:13px;outline:none;width:220px;}
+.btn-d{background:rgba(255,77,109,.14);border:1px solid rgba(255,77,109,.45);color:#ff8fa3;padding:11px 18px;min-height:44px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+.em-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:20px;min-height:64px;background:rgba(255,77,109,.15);border:2px solid var(--danger);color:var(--danger);border-radius:16px;font-size:20px;font-weight:800;cursor:pointer;text-transform:uppercase;letter-spacing:2px;transition:.2s;font-family:inherit;}
+.em-btn:hover{background:rgba(255,77,109,.3);transform:scale(1.02);}
+@media(max-width:860px){#app{grid-template-columns:1fr;}#sidebar{position:fixed;left:0;top:0;bottom:0;width:255px;transform:translateX(-100%);}#sidebar.open{transform:none;}#main{padding:calc(66px + var(--safe)) 16px 16px;}#menuBtn{display:flex;}.w-t{font-size:2rem;}}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div id="welcome">
+  <div class="w-t" id="w-t"></div>
+  <div class="w-s" id="w-s"></div>
+  <div class="w-f" id="w-f"></div>
+</div>
+<div id="app">
+  <aside id="sidebar">
+    <div class="brand"><div class="b-logo">HalDo</div><div class="b-sub">Arztbuch Pro Max</div></div>
+    <div class="n-sec">Übersicht</div>
+    <button class="nav active" data-view="dashboard"><span class="ico">📊</span> Dashboard</button>
+    <button class="nav" data-view="anatomie"><span class="ico">🧍‍♂️</span> Anatomie 3D</button>
+    <button class="nav" data-view="assistant"><span class="ico">🤖</span> KI Assistent</button>
+    <div class="n-sec">Wissen</div>
+    <button class="nav" data-view="krankheiten"><span class="ico">🦠</span> Krankheiten A-Z</button>
+    <button class="nav" data-view="medikamente"><span class="ico">💊</span> Medikamente A-Z</button>
+    <button class="nav" data-view="labor"><span class="ico">🧪</span> Laborwerte</button>
+    <div class="n-sec">Praxis</div>
+    <button class="nav" data-view="iot"><span class="ico">📡</span> IoT & Hotspot</button>
+    <button class="nav" data-view="hardware"><span class="ico">🖨️</span> Hardware & Kasse</button>
+    <button class="nav" data-view="notfall" style="color:var(--danger)"><span class="ico">🚨</span> Notfall</button>
+    <div class="n-sec">System</div>
+    <button class="nav" data-view="einstellungen"><span class="ico">⚙️</span> Einstellungen</button>
+  </aside>
+  <div id="backdrop"></div>
+  <button id="menuBtn">☰</button>
+  <main id="main">
+    <section id="view-dashboard" class="view active">
+      <div class="v-head"><h1 id="greeting">Guten Tag</h1><p class="sub" id="dateStr"></p></div>
+      <div class="grid">
+        <div class="s8 card tip-card"><div class="c-label">💡 Tages-Tipp</div><p id="tipText">Lade…</p></div>
+        <div class="s4 card">
+          <div class="c-label">💧 Wasser</div>
+          <div class="w-row">
+            <div class="w-big"><span id="waterVal">0</span><small> / 8 Gläser</small></div>
+            <div style="display:flex;gap:6px"><button class="btn-mini" id="waterMinus">−</button><button class="btn-mini" id="waterPlus">+</button></div>
+          </div>
+          <div class="w-glasses" id="waterGlasses"></div>
         </div>
-      </div>
-    `;
-  }
-
-  function renderDashboard() {
-    return `<div class="h-inner">
-      <div class="h-dashboard-top">
-        <div class="h-card h-greeting-card"><h2>Guten Tag, Halil! 👋</h2><p>Bereit, deine Gesundheit in die Hand zu nehmen? Hier ist deine Übersicht für heute.</p></div>
-        <div class="h-card" style="padding: 10px;"><div class="h-ai-avatar-container" data-action="view-ki"><div class="h-ai-core"></div></div></div>
-      </div>
-      <div class="h-grid-4">
-        <div class="h-stat-box"><div class="title">Blutdruck</div><div class="value">120/80 <span style="font-size:14px;color:var(--p);">mmHg</span></div></div>
-        <div class="h-stat-box"><div class="title">Blutzucker</div><div class="value">95 <span style="font-size:14px;color:var(--p);">mg/dl</span></div></div>
-        <div class="h-stat-box"><div class="title">Gewicht</div><div class="value">75 <span style="font-size:14px;color:var(--p);">kg</span></div></div>
-        <div class="h-stat-box"><div class="title">Wasser</div><div class="value">1.5 <span style="font-size:14px;color:var(--p);">L</span></div></div>
-      </div>
-      <div><h3 style="color:#fff; margin: 10px 0 15px 0;">Schnellzugriff</h3><div class="h-grid-4">
-        <div class="h-quick-btn" data-action="view-emergency" style="border-color:#ff5555;"><div class="icon">🚨</div><div class="label" style="color:#ff5555;">Notfall</div></div>
-        <div class="h-quick-btn" data-action="view-ki"><div class="icon">🤖</div><div class="label">KI Check</div></div>
-        <div class="h-quick-btn" data-action="view-hardware"><div class="icon">🖨️</div><div class="label">Hardware</div></div>
-        <div class="h-quick-btn" data-action="view-anatomy"><div class="icon">🧍‍♂️</div><div class="label">Anatomie 3D</div></div>
-      </div></div>
-    </div>`;
-  }
-
-  function renderKITools() {
-    let chatHtml = state.chatHistory.length === 0 ? `<div class="h-msg ai"><div class="h-msg-avatar">🤖</div><div class="h-msg-bubble">Hallo! Ich bin dein HalDo KI-Assistent. Was kann ich für dich tun?</div></div>` 
-    : state.chatHistory.map(m => m.role === 'user' ? `<div class="h-msg user"><div class="h-msg-bubble">${m.text}</div></div>` : `<div class="h-msg ai"><div class="h-msg-avatar">🤖</div><div class="h-msg-bubble">${m.text}</div></div>`).join('');
-    return `<div class="h-inner"><div class="h-chat-container"><div class="h-chat-history" id="chat-hist">${chatHtml}</div>
-      <div class="h-chat-input-area"><input type="text" class="h-chat-input" id="chat-in" placeholder="Stelle deine Frage..." onkeypress="if(event.key === 'Enter') document.dispatchEvent(new CustomEvent('send-chat'))"><button class="h-chat-send" onclick="document.dispatchEvent(new CustomEvent('send-chat'))">➤</button></div>
-    </div></div>`;
-  }
-
-  function renderAnatomy() {
-    return `<div class="h-inner"><div class="h-card" style="padding: 15px;">
-      <h2>🧍‍♂️ Anatomie 3D</h2>
-      <p style="color:#888;font-size:13px;margin-top:-8px;margin-bottom:15px;">Echte medizinische 3D-Anatomie. Ziehen zum Drehen, Organe anklicken.</p>
-      <div class="h-anatomy-container" id="anatomy-3d-container">
-         <div class="h-anatomy-controls">
-           <button class="h-anatomy-btn" data-anatomy-mode="skin">Haut</button>
-           <button class="h-anatomy-btn" data-anatomy-mode="muscles">Muskeln</button>
-           <button class="h-anatomy-btn" data-anatomy-mode="skeleton">Skelett</button>
-           <button class="h-anatomy-btn active" data-anatomy-mode="organs">Organe</button>
-         </div>
-      </div>
-    </div></div>`;
-  }
-
-  function renderGenericList(title, data, type) {
-    return `<div class="h-inner"><div class="h-card"><h2>${title}</h2><input type="text" class="h-input" placeholder="Suchen..." data-search="${type}"><div id="list-container">
-        ${data.map(item => `<div class="h-list-item" data-info="${item.symp || item.use || item.desc}" data-title="${item.name}"><div><b>${item.name}</b><br><span style="font-size:12px;color:#8a9bb5">${item.symp || item.use || item.ref}</span></div></div>`).join('')}
-      </div></div></div>`;
-  }
-
-  function renderHardware() {
-    return `<div class="h-inner">
-      <div class="h-card" style="border-color:#00e5ff;">
-        <h2>🖨️ Drucker & Scanner</h2>
-        <p style="color:#888;margin-bottom:15px;">Verbinde deine Hardware mit der App.</p>
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button class="h-hw-btn" onclick="alert('Druckauftrag an Drucker gesendet!')">🖨️ Rezept drucken</button>
-          <button class="h-hw-btn" onclick="alert('Scanner bereit. Bitte Dokument einlegen.')">📠 Dokument scannen</button>
-          <button class="h-hw-btn" onclick="alert('Kopierer gestartet.')">📄 Kopieren</button>
-        </div>
-      </div>
-      <div class="h-card" style="border-color:#4ade80;">
-        <h2>🏥 Krankenkasse & Überweisungen</h2>
-        <div style="background:rgba(0,0,0,0.3); padding:20px; border-radius:12px; border-left:4px solid #4ade80; margin-bottom:15px;">
-          <div style="font-size:18px; font-weight:bold;">AOK</div>
-          <div style="color:#aaa;">Versichertennummer: A123456789</div>
-        </div>
-        <button class="h-hw-btn" onclick="alert('Überweisungsschein als PDF generiert und an Drucker gesendet.')">📄 Überweisung erstellen</button>
-      </div>
-    </div>`;
-  }
-
-  function renderDevices() {
-    return `<div class="h-inner">
-      <div class="h-card" style="border-color:#ffd700;">
-        <h2>📶 Hotspot Manager</h2>
-        <div style="margin-top:15px; display:flex; flex-direction:column; gap:15px;">
-          <div style="display:flex; justify-content:space-between;"><b>Status:</b> <span style="color:${state.hotspot.active ? '#00ff88' : '#ff5555'}">${state.hotspot.active ? 'Aktiv' : 'Inaktiv'}</span></div>
-          <div><b>SSID:</b> ${state.hotspot.ssid}</div>
-          <div><b>Passwort:</b> <input type="text" id="hotspot-pass" value="${state.hotspot.pass}" style="background:transparent; border:1px solid #444; color:#fff; padding:5px; border-radius:5px;"></div>
-          <div style="display:flex; gap:10px;">
-            <button class="h-btn primary" data-action="save-hotspot" style="padding:10px; border:none; border-radius:8px; background:#00e5ff; font-weight:bold; cursor:pointer;">Passwort speichern</button>
-            <button class="h-btn" data-action="toggle-hotspot" style="padding:10px; border:1px solid #00e5ff; color:#00e5ff; border-radius:8px; background:transparent; font-weight:bold; cursor:pointer;">Ein/Aus</button>
+        <div class="s12 card">
+          <div class="c-label">❤️ Vitalwerte</div>
+          <div class="vitals">
+            <div class="vital"><span class="vlab">Blutdruck</span><div class="v-row"><input id="v-bd" placeholder="120/80"><span class="unit">mmHg</span></div></div>
+            <div class="vital"><span class="vlab">Blutzucker</span><div class="v-row"><input id="v-zucker" placeholder="95"><span class="unit">mg/dl</span></div></div>
+            <div class="vital"><span class="vlab">Gewicht</span><div class="v-row"><input id="v-gewicht" placeholder="78"><span class="unit">kg</span></div></div>
+            <div class="vital"><span class="vlab">Puls</span><div class="v-row"><input id="v-puls" placeholder="72"><span class="unit">bpm</span></div></div>
           </div>
         </div>
       </div>
-    </div>`;
-  }
-
-  function renderEmergency() {
-    return `<div class="h-inner" style="text-align:center;">
-      <div class="h-card" style="background:rgba(255,0,0,0.1); border-color:#ff3333;">
-        <h2 style="color:#ff3333; font-size:32px;">🚨 NOTFALL</h2>
-        <button onclick="window.location.href='tel:112'" style="background:#ff3333; color:#fff; border:none; padding:20px 40px; font-size:24px; font-weight:900; border-radius:50px; cursor:pointer; margin-top:20px; box-shadow:0 0 30px rgba(255,0,0,0.5);">📞 112 Anrufen</button>
-      </div>
-    </div>`;
-  }
-
-  function renderAppShell() {
-    if (state.currentView === 'splash') return css() + renderSplash();
-    let content = '';
-    switch(state.currentView) {
-      case 'dashboard': content = renderDashboard(); break;
-      case 'ki': content = renderKITools(); break;
-      case 'anatomy': content = renderAnatomy(); break;
-      case 'diseases': content = renderGenericList('🦠 Krankheiten A-Z', DISEASES, 'disease'); break;
-      case 'meds': content = renderGenericList('💊 Medikamente A-Z', MEDS, 'med'); break;
-      case 'labs': content = renderGenericList('🧪 Laborwerte A-Z', LABS, 'lab'); break;
-      case 'devices': content = renderDevices(); break;
-      case 'hardware': content = renderHardware(); break;
-      case 'emergency': content = renderEmergency(); break;
-      default: content = `<div class="h-inner"><div class="h-card">Modul in Arbeit...</div></div>`;
-    }
-    return css() + `
-      <div class="haldo-app">
-        <div class="h-sidebar">
-          <div class="h-logo">🩺 HalDo</div>
-          <div class="h-nav-item ${state.currentView === 'dashboard' ? 'active' : ''}" data-action="view-dashboard"><span class="icon">📊</span> Dashboard</div>
-          <div class="h-nav-item ${state.currentView === 'anatomy' ? 'active' : ''}" data-action="view-anatomy"><span class="icon">🧍‍♂️</span> Anatomie 3D</div>
-          <div class="h-nav-item ${state.currentView === 'ki' ? 'active' : ''}" data-action="view-ki"><span class="icon">🤖</span> KI Assistent</div>
-          <div class="h-nav-item ${state.currentView === 'diseases' ? 'active' : ''}" data-action="view-diseases"><span class="icon">🦠</span> Krankheiten</div>
-          <div class="h-nav-item ${state.currentView === 'meds' ? 'active' : ''}" data-action="view-meds"><span class="icon">💊</span> Medikamente</div>
-          <div class="h-nav-item ${state.currentView === 'labs' ? 'active' : ''}" data-action="view-labs"><span class="icon">🧪</span> Laborwerte</div>
-          <div class="h-nav-item ${state.currentView === 'devices' ? 'active' : ''}" data-action="view-devices"><span class="icon">📡</span> IoT & Hotspot</div>
-          <div class="h-nav-item ${state.currentView === 'hardware' ? 'active' : ''}" data-action="view-hardware"><span class="icon">🖨️</span> Hardware & Kasse</div>
-          <div style="flex:1;"></div>
-          <div class="h-nav-item ${state.currentView === 'emergency' ? 'active' : ''}" data-action="view-emergency" style="color:#ff5555;"><span class="icon">🚨</span> Notfall</div>
+    </section>
+    <section id="view-anatomie" class="view col">
+      <div class="v-head"><h1>Anatomie 3D Pro Max</h1><p class="sub">Fotorealistisch · 4 Ebenen</p></div>
+      <div class="a-wrap">
+        <div class="a-toolbar">
+          <button class="layer active" id="btnHuman" onclick="toggleAnatomy('human')">🧍 Haut</button>
+          <button class="layer" id="btnMuskeln" onclick="toggleAnatomy('muskeln')">💪 Muskeln</button>
+          <button class="layer" id="btnSkelett" onclick="toggleAnatomy('skelett')">🦴 Skelett</button>
+          <button class="layer" id="btnOrgane" onclick="toggleAnatomy('organe')">🫀 Organe</button>
+          <div class="spacer"></div>
+          <button class="layer" id="resetCam">🔄 Kamera</button>
         </div>
-        <div class="h-main"><div class="h-header"><h1>${state.currentView.toUpperCase()}</h1><div style="font-size:12px; color:var(--p);">v${VERSION}</div></div><div class="h-content" id="h-view">${content}</div></div>
-      </div>`;
+        <div id="anatomy-canvas">
+          <div class="loader-cont" id="loaderContainer"><div class="loader"></div><p style="color:var(--acc);font-size:12px;margin-top:10px;">Lade 3D-Modell...</p></div>
+          <div class="a-hint">Ziehen = Drehen · Scrollen = Zoom · Organ anklicken</div>
+        </div>
+      </div>
+    </section>
+    <section id="view-assistant" class="view">
+      <div class="v-head"><h1>KI Assistent</h1><p class="sub">Symptom-Checker · Regelbasiert</p></div>
+      <div class="chat-box">
+        <div class="chat-log" id="chatLog">
+          <div class="chat-msg bot">Hallo! Ich bin dein HalDo Assistent. Beschreibe deine Symptome (z.B. "Kopfschmerzen und Fieber") und ich gebe dir erste Hinweise. ⚠️ Kein Ersatz für einen Arzt.</div>
+        </div>
+        <div class="chat-input">
+          <input id="chatInput" placeholder="Symptome eingeben..." onkeydown="if(event.key==='Enter')sendChat()">
+          <button onclick="sendChat()">Senden</button>
+        </div>
+      </div>
+    </section>
+    <section id="view-krankheiten" class="view">
+      <div class="v-head"><h1>Krankheiten A-Z</h1><p class="sub" id="krankheitenCount">Datenbank lädt...</p></div>
+      <input type="text" class="list-search" id="krankheitenSearch" placeholder="🔍 Krankheit suchen..." oninput="renderDiseases()">
+      <div class="list-grid" id="krankheitenList"></div>
+    </section>
+    <section id="view-medikamente" class="view">
+      <div class="v-head"><h1>Medikamente A-Z</h1><p class="sub" id="medikamenteCount">Datenbank lädt...</p></div>
+      <input type="text" class="list-search" id="medikamenteSearch" placeholder="🔍 Medikament suchen..." oninput="renderMeds()">
+      <div class="list-grid" id="medikamenteList"></div>
+    </section>
+    <section id="view-labor" class="view">
+      <div class="v-head"><h1>Laborwerte</h1><p class="sub" id="laborCount">Datenbank lädt...</p></div>
+      <input type="text" class="list-search" id="laborSearch" placeholder="🔍 Laborwert suchen..." oninput="renderLab()">
+      <div class="list-grid" id="laborList"></div>
+    </section>
+    <section id="view-iot" class="view"><div class="placeholder"><div class="ph-ico">📡</div><span class="ph-badge">In Arbeit</span><h2>IoT & Hotspot</h2><p>Geräte-Steuerung folgt.</p></div></section>
+    <section id="view-hardware" class="view"><div class="placeholder"><div class="ph-ico">🖨️</div><span class="ph-badge">In Arbeit</span><h2>Hardware</h2><p>Drucker-Simulation folgt.</p></div></section>
+    <section id="view-notfall" class="view">
+      <div class="v-head"><h1>Notfall</h1></div>
+      <div class="grid">
+        <div class="s12 card"><button class="em-btn" onclick="alert('🚨 Rufe 112 an!')">🚨 112 Notruf wählen</button></div>
+        <div class="s12 card"><div class="c-label">⏱️ Erste Hilfe Timer</div><p style="color:var(--muted);font-size:13px;">Herzdruckmassage: 100–120 Mal pro Minute. Tiefe 5–6 cm.</p></div>
+      </div>
+    </section>
+    <section id="view-einstellungen" class="view">
+      <div class="v-head"><h1>Einstellungen</h1></div>
+      <div class="grid">
+        <div class="s12 card">
+          <div class="c-label">⚙️ Allgemein</div>
+          <div class="set-row"><div><div class="sr-l">Sprache</div><div class="sr-sub">Wähle deine Sprache</div></div>
+            <select class="styled" id="langSelect" onchange="localStorage.setItem('haldo_lang',this.value)">
+              <option value="de-DE">Deutsch</option><option value="en-US">English</option><option value="ku">Kurdisch (Kurmandschi)</option>
+              <option value="ez">Ezidi</option><option value="ar-SA">Arabisch</option><option value="fa-IR">Farsi</option>
+              <option value="he-IL">Hebräisch</option><option value="la">Latein</option><option value="tr-TR">Türkisch</option>
+              <option value="zh-CN">Chinesisch</option><option value="ja-JP">Japanisch</option><option value="uz-UZ">Usbekisch</option>
+              <option value="ru-RU">Russisch</option><option value="fr-FR">Französisch</option><option value="es-ES">Spanisch</option>
+              <option value="it-IT">Italienisch</option><option value="hi-IN">Hindi</option><option value="bn-BD">Bengalisch</option>
+              <option value="pt-PT">Portugiesisch</option><option value="ko-KR">Koreanisch</option>
+            </select>
+          </div>
+          <div class="set-row"><div><div class="sr-l">Daten zurücksetzen</div></div><button class="btn-d" onclick="if(confirm('Alles löschen?')){localStorage.clear();location.reload();}">Löschen</button></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<div id="organ-modal" class="modal">
+  <div class="m-box">
+    <button class="m-close" onclick="document.getElementById('organ-modal').classList.remove('show')">×</button>
+    <h2 id="organ-title">Organ</h2><p id="organ-desc">Beschreibung...</p>
+    <button class="btn-s" onclick="speakOrganInfo()">🔊 Vorlesen</button>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const APP_NAME='HalDo Arztbuch';
+const APP_SUB='a Halil Donma Professioneller App';
+const APP_PRESENT='präsentiert';
+
+/* 1. WILLKOMMEN */
+let audioCtx;
+function playChime(f,t=0,d=1.5){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.setValueAtTime(f,audioCtx.currentTime+t);g.gain.setValueAtTime(0,audioCtx.currentTime+t);g.gain.linearRampToValueAtTime(.3,audioCtx.currentTime+t+.02);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+t+d);o.connect(g);g.connect(audioCtx.destination);o.start(audioCtx.currentTime+t);o.stop(audioCtx.currentTime+t+d);}
+function playWelcomeChimes(){[880,1100,1320,1760,1320,1100,880,660].forEach((f,i)=>playChime(f,i*.15,2));}
+function typeWriter(el,text,speed,cb){el.innerHTML='';let i=0;(function type(){if(i<text.length){el.innerHTML+=text.charAt(i);i++;setTimeout(type,speed);}else if(cb)cb();})();}
+function showWelcome(){const ov=document.getElementById('welcome');ov.classList.add('show');playWelcomeChimes();typeWriter(document.getElementById('w-t'),'Willkommen bei '+APP_NAME,50,()=>{typeWriter(document.getElementById('w-s'),APP_NAME+' App',50,()=>{typeWriter(document.getElementById('w-f'),APP_SUB+' '+APP_PRESENT,40);});});setTimeout(()=>{ov.classList.remove('show');document.getElementById('app').classList.add('ready');},5000);}
+
+/* 2. NAVIGATION */
+const navItems=document.querySelectorAll('.nav');
+const views=document.querySelectorAll('.view');
+function switchView(name){
+  views.forEach(v=>v.classList.toggle('active',v.id==='view-'+name));
+  navItems.forEach(b=>b.classList.toggle('active',b.dataset.view===name));
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('backdrop').classList.remove('show');
+  if(name==='anatomie')requestAnimationFrame(initAnatomy);
+  if(name==='dashboard')renderDashboard();
+  if(name==='krankheiten')renderDiseases();
+  if(name==='medikamente')renderMeds();
+  if(name==='labor')renderLab();
+}
+navItems.forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
+document.getElementById('menuBtn').addEventListener('click',()=>{document.getElementById('sidebar').classList.add('open');document.getElementById('backdrop').classList.add('show');});
+document.getElementById('backdrop').addEventListener('click',()=>{document.getElementById('sidebar').classList.remove('open');document.getElementById('backdrop').classList.remove('show');});
+
+/* 3. DASHBOARD */
+const vitals=JSON.parse(localStorage.getItem('haldo_vitals')||'null')||{bd:'120/80',zucker:'95',gewicht:'78',puls:'72',wasser:3};
+function saveVitals(){localStorage.setItem('haldo_vitals',JSON.stringify(vitals));}
+const TIPS=['Trinke morgens ein großes Glas Wasser – das startet den Stoffwechsel.','30 Minuten zügiges Gehen pro Tag senken das Herzinfarkt-Risiko.','Männer ab 45: jährlich zur Prostata-Vorsorge.','Reduziere Salz auf unter 5 g pro Tag.','5 Portionen Obst und Gemüse täglich.','Check deinen Blutdruck regelmäßig.','Schlaf 7–9 Stunden pro Nacht.','Rauchstopp senkt das Herzinfarkt-Risiko massiv.','Sonnenschutz nicht vergessen.','Selbstuntersuchung der Hoden – monatlich.'];
+function renderDashboard(){const h=new Date().getHours();const gr=h<11?'Guten Morgen':h<18?'Guten Tag':'Guten Abend';const grEl=document.getElementById('greeting');if(grEl)grEl.textContent=gr+' 👋';const dEl=document.getElementById('dateStr');if(dEl)dEl.textContent=new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'});const tEl=document.getElementById('tipText');if(tEl)tEl.textContent=TIPS[Math.floor(Date.now()/86400000)%TIPS.length];if(document.getElementById('v-bd'))document.getElementById('v-bd').value=vitals.bd;if(document.getElementById('v-zucker'))document.getElementById('v-zucker').value=vitals.zucker;if(document.getElementById('v-gewicht'))document.getElementById('v-gewicht').value=vitals.gewicht;if(document.getElementById('v-puls'))document.getElementById('v-puls').value=vitals.puls;renderWater();}
+function renderWater(){vitals.wasser=Math.max(0,Math.min(8,vitals.wasser));const wv=document.getElementById('waterVal');if(wv)wv.textContent=vitals.wasser;const b=document.getElementById('waterGlasses');if(b){b.innerHTML='';for(let i=0;i<8;i++){const g=document.createElement('div');g.className='glass'+(i<vitals.wasser?' full':'');b.appendChild(g);}}saveVitals();}
+document.addEventListener('click',(e)=>{if(e.target.id==='waterPlus'){vitals.wasser++;renderWater();}if(e.target.id==='waterMinus'){vitals.wasser--;renderWater();}});
+document.addEventListener('input',(e)=>{const map={'v-bd':'bd','v-zucker':'zucker','v-gewicht':'gewicht','v-puls':'puls'};if(map[e.target.id]){vitals[map[e.target.id]]=e.target.value;saveVitals();}});
+
+/* 4. HINTERGRUND */
+function createSunTexture(){const c=document.createElement('canvas');c.width=512;c.height=512;const x=c.getContext('2d');const g=x.createRadialGradient(256,256,0,256,256,256);g.addColorStop(0,'#ffffff');g.addColorStop(.2,'#ffffaa');g.addColorStop(.5,'#ffaa00');g.addColorStop(.8,'#ff5500');g.addColorStop(1,'#aa0000');x.fillStyle=g;x.fillRect(0,0,512,512);for(let i=0;i<50;i++){const px=Math.random()*512,py=Math.random()*512,r=Math.random()*10+5;const rg=x.createRadialGradient(px,py,0,px,py,r);rg.addColorStop(0,'rgba(255,255,255,.8)');rg.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=rg;x.beginPath();x.arc(px,py,r,0,Math.PI*2);x.fill();}return new THREE.CanvasTexture(c);}
+function createTextTexture(name){const c=document.createElement('canvas');c.width=4096;c.height=1024;const x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);const g=x.createLinearGradient(0,0,c.width,0);g.addColorStop(0,'#ffd700');g.addColorStop(.3,'#fff8b0');g.addColorStop(.5,'#ffb700');g.addColorStop(.7,'#fff8b0');g.addColorStop(1,'#ffd700');x.fillStyle=g;x.textAlign='center';x.textBaseline='middle';x.shadowColor='rgba(255,215,0,.8)';x.shadowBlur=20;x.font='bold 100px "Segoe UI",Arial,sans-serif';const t1='Willkommen bei '+name+'   •   ';x.fillText(t1.repeat(Math.ceil(c.width/x.measureText(t1).width)+1),c.width/2,250);x.font='bold 140px "Segoe UI",Arial,sans-serif';x.fillStyle='#00d4ff';x.shadowColor='rgba(0,212,255,.8)';const t2=name+' App   •   ';x.fillText(t2.repeat(Math.ceil(c.width/x.measureText(t2).width)+1),c.width/2,500);x.font='bold 80px "Segoe UI",Arial,sans-serif';x.fillStyle=g;x.shadowColor='rgba(255,215,0,.8)';const t3=APP_SUB+' '+APP_PRESENT+'   •   ';x.fillText(t3.repeat(Math.ceil(c.width/x.measureText(t3).width)+1),c.width/2,750);const t=new THREE.CanvasTexture(c);t.wrapS=THREE.RepeatWrapping;t.wrapT=THREE.ClampToEdgeWrapping;return t;}
+(function initBg(){const canvas=document.getElementById('bg-canvas');const r=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});r.setPixelRatio(Math.min(devicePixelRatio,2));r.setSize(innerWidth,innerHeight);r.toneMapping=THREE.ACESFilmicToneMapping;const s=new THREE.Scene();s.background=new THREE.Color(0x020205);const cam=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,2000);cam.position.set(0,0,15);const sg=new THREE.BufferGeometry();const sp=new Float32Array(8000*3);for(let i=0;i<8000*3;i+=3){sp[i]=(Math.random()-.5)*2000;sp[i+1]=(Math.random()-.5)*2000;sp[i+2]=(Math.random()-.5)*2000;}sg.setAttribute('position',new THREE.BufferAttribute(sp,3));s.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:1.5})));const tl=new THREE.TextureLoader();const sunMesh=new THREE.Mesh(new THREE.SphereGeometry(5,64,64),new THREE.MeshBasicMaterial({map:createSunTexture()}));sunMesh.position.set(35,25,-60);s.add(sunMesh);const gc=document.createElement('canvas');gc.width=256;gc.height=256;const gx=gc.getContext('2d');const gg=gx.createRadialGradient(128,128,0,128,128,128);gg.addColorStop(0,'rgba(255,200,50,.8)');gg.addColorStop(.5,'rgba(255,100,0,.4)');gg.addColorStop(1,'rgba(255,0,0,0)');gx.fillStyle=gg;gx.fillRect(0,0,256,256);const sunGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(gc),blending:THREE.AdditiveBlending,depthTest:false}));sunGlow.scale.set(40,40,1);sunGlow.position.copy(sunMesh.position);s.add(sunGlow);const earthMesh=new THREE.Mesh(new THREE.SphereGeometry(5,64,64),new THREE.MeshStandardMaterial({map:tl.load('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg'),roughness:.7,metalness:.1}));earthMesh.position.set(-8,3,-20);s.add(earthMesh);const moonMesh=new THREE.Mesh(new THREE.SphereGeometry(1.5,32,32),new THREE.MeshStandardMaterial({map:tl.load('https://cdn.jsdelivr.net/gh/homer-jay/solar-system-textures@master/moon.jpg'),roughness:1}));moonMesh.position.set(18,12,-15);s.add(moonMesh);const textGeo=new THREE.CylinderGeometry(7,7,4,64,1,true);const textMat=new THREE.MeshBasicMaterial({map:createTextTexture(APP_NAME),transparent:true,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});const textMesh=new THREE.Mesh(textGeo,textMat);textMesh.position.copy(earthMesh.position);textMesh.rotation.x=Math.PI/10;textMesh.rotation.z=-Math.PI/16;s.add(textMesh);const sunLight=new THREE.PointLight(0xfff5e6,5000,1000);sunLight.position.copy(sunMesh.position);s.add(sunLight);const fl1=new THREE.DirectionalLight(0xffffff,3);fl1.position.set(-10,5,10);s.add(fl1);const fl2=new THREE.DirectionalLight(0x00d4ff,2);fl2.position.set(5,-5,10);s.add(fl2);s.add(new THREE.AmbientLight(0x555566,2));const clock=new THREE.Clock();(function anim(){requestAnimationFrame(anim);const d=clock.getDelta();earthMesh.rotation.y+=d*.02;textMesh.rotation.y-=d*.03;moonMesh.rotation.y+=d*.01;r.render(s,cam);})();addEventListener('resize',()=>{r.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();});})();
+
+/* 5. ANATOMIE */
+let anScene,anCamera,anRenderer,anControls,bodyGroup,humanModel,skeletonGroup,organGroup,muscleGroup,anatomyInited=false,raycasterAnatomy,mouseAnatomy,organMeshes=[],ttsText='',clockAnatomy,baseY=0;
+const ORGAN_INFO={brain:{name:'Gehirn',color:'#f2a0c0',text:'Das Gehirn steuert Denken, Bewegung, Atmung und Hormone. Es wiegt ca. 1,4 kg und verbraucht 20% der Energie.'},heart:{name:'Herz',color:'#e63946',text:'Das Herz pumpt täglich ca. 7.000 Liter Blut. Warnzeichen: Brustschmerz, Atemnot, Ausstrahlung in den linken Arm.'},lunge:{name:'Lunge',color:'#f4a6b8',text:'Die Lunge versorgt das Blut mit Sauerstoff. Erkrankungen: Asthma, COPD, Lungenentzündung. Rauchen ist der größte Risikofaktor.'},liver:{name:'Leber',color:'#8b2e2e',text:'Die Leber baut Giftstoffe ab, speichert Zucker und produziert Gallenflüssigkeit. Sie kann sich regenerieren.'}};
+function initAnatomy(){if(anatomyInited)return;anatomyInited=true;const host=document.getElementById('anatomy-canvas');if(!host)return;const w=host.clientWidth||600,h=host.clientHeight||400;anScene=new THREE.Scene();anCamera=new THREE.PerspectiveCamera(40,w/h,.1,100);anCamera.position.set(0,1.2,6);anRenderer=new THREE.WebGLRenderer({antialias:true,alpha:true});anRenderer.setPixelRatio(Math.min(devicePixelRatio,2));anRenderer.setSize(w,h);anRenderer.toneMapping=THREE.ACESFilmicToneMapping;host.appendChild(anRenderer.domElement);anControls=new OrbitControls(anCamera,anRenderer.domElement);anControls.target.set(0,1.0,0);anControls.enableDamping=true;anControls.minDistance=1.0;anControls.maxDistance=10.0;anControls.autoRotate=true;anControls.autoRotateSpeed=.6;anScene.add(new THREE.AmbientLight(0xffffff,1.0));const kl=new THREE.DirectionalLight(0xffffff,3.0);kl.position.set(2,4,3);anScene.add(kl);const rl=new THREE.DirectionalLight(0x00d4ff,2.0);rl.position.set(-3,2,-2);anScene.add(rl);const bl=new THREE.PointLight(0xff5ea8,1.5,5);bl.position.set(0,-1,2);anScene.add(bl);bodyGroup=new THREE.Group();anScene.add(bodyGroup);const loader=new GLTFLoader();const humanUrl='https://threejs.org/examples/models/gltf/Soldier.glb';loader.load(humanUrl,(gltf)=>{humanModel=gltf.scene;humanModel.rotation.set(0,Math.PI,0);humanModel.scale.set(0.9,0.9,0.9);const box=new THREE.Box3().setFromObject(humanModel);humanModel.position.x=-(box.max.x+box.min.x)/2;humanModel.position.z=-(box.max.z+box.min.z)/2;humanModel.position.y=-box.min.y;baseY=humanModel.position.y;humanModel.traverse((child)=>{if(child.isMesh){child.material=new THREE.MeshPhysicalMaterial({color:0xffe4cc,roughness:.35,metalness:.1,clearcoat:.2,transmission:.2,thickness:1.0,ior:1.4});}});bodyGroup.add(humanModel);buildProceduralLayers(1.8);const lc=document.getElementById('loaderContainer');if(lc)lc.style.display='none';toggleAnatomy('human');clockAnatomy=new THREE.Clock();},undefined,(error)=>{console.warn('GLTF Fehler, baue eigenen 3D-Menschen.');humanModel=new THREE.Group();const mMat=new THREE.MeshPhysicalMaterial({color:0xffe4cc,roughness:.35,metalness:.1});const head=new THREE.Mesh(new THREE.SphereGeometry(0.15,32,32),mMat);head.position.set(0,1.7,0);humanModel.add(head);const torso=new THREE.Mesh(new THREE.CapsuleGeometry(0.2,0.5,16,32),mMat);torso.position.set(0,1.2,0);humanModel.add(torso);const armL=new THREE.Mesh(new THREE.CapsuleGeometry(0.06,0.5,16,32),mMat);armL.position.set(0.3,1.2,0);armL.rotation.z=0.2;humanModel.add(armL);const armR=new THREE.Mesh(new THREE.CapsuleGeometry(0.06,0.5,16,32),mMat);armR.position.set(-0.3,1.2,0);armR.rotation.z=-0.2;humanModel.add(armR);const legL=new THREE.Mesh(new THREE.CapsuleGeometry(0.08,0.6,16,32),mMat);legL.position.set(0.1,0.5,0);humanModel.add(legL);const legR=new THREE.Mesh(new THREE.CapsuleGeometry(0.08,0.6,16,32),mMat);legR.position.set(-0.1,0.5,0);humanModel.add(legR);baseY=0;bodyGroup.add(humanModel);buildProceduralLayers(1.8);const lc=document.getElementById('loaderContainer');if(lc)lc.style.display='none';toggleAnatomy('human');clockAnatomy=new THREE.Clock();});raycasterAnatomy=new THREE.Raycaster();mouseAnatomy=new THREE.Vector2();anRenderer.domElement.addEventListener('pointerdown',(e)=>{if(!organGroup||!organGroup.visible)return;const rect=anRenderer.domElement.getBoundingClientRect();mouseAnatomy.x=((e.clientX-rect.left)/rect.width)*2-1;mouseAnatomy.y=-((e.clientY-rect.top)/rect.height)*2+1;raycasterAnatomy.setFromCamera(mouseAnatomy,anCamera);const hits=raycasterAnatomy.intersectObjects(organMeshes,false);if(hits.length)openOrganModal(hits[0].object.userData.organ);});new ResizeObserver(()=>{const nw=host.clientWidth,nh=host.clientHeight;if(!nw||!nh)return;anCamera.aspect=nw/nh;anCamera.updateProjectionMatrix();anRenderer.setSize(nw,nh);}).observe(host);(function animate(){requestAnimationFrame(animate);anControls.update();if(humanModel&&humanModel.visible&&clockAnatomy){const t=clockAnatomy.getElapsedTime();humanModel.position.y=baseY+Math.sin(t*2)*.02;}anRenderer.render(anScene,anCamera);})();}
+function buildProceduralLayers(modelHeight){const muscleMat=new THREE.MeshStandardMaterial({color:0xb32b2b,roughness:.65,transparent:true,opacity:.85});const boneMat=new THREE.MeshStandardMaterial({color:0xf4f0e6,roughness:.45});const h=modelHeight,centerY=h/2;muscleGroup=new THREE.Group();const m1=new THREE.Mesh(new THREE.CapsuleGeometry(.15,.4,16,32),muscleMat);m1.position.set(0,centerY,0);muscleGroup.add(m1);const m2=new THREE.Mesh(new THREE.CapsuleGeometry(.08,.4,16,32),muscleMat);m2.position.set(.22,centerY-.2,0);muscleGroup.add(m2);const m3=new THREE.Mesh(new THREE.CapsuleGeometry(.08,.4,16,32),muscleMat);m3.position.set(-.22,centerY-.2,0);muscleGroup.add(m3);const m4=new THREE.Mesh(new THREE.CapsuleGeometry(.09,.35,16,32),muscleMat);m4.position.set(.12,centerY-.6,0);muscleGroup.add(m4);const m5=new THREE.Mesh(new THREE.CapsuleGeometry(.09,.35,16,32),muscleMat);m5.position.set(-.12,centerY-.6,0);muscleGroup.add(m5);bodyGroup.add(muscleGroup);skeletonGroup=new THREE.Group();const skull=new THREE.Mesh(new THREE.SphereGeometry(.12,32,32),boneMat);skull.position.set(0,h-.15,0);skeletonGroup.add(skull);const spine=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,h*.6,16),boneMat);spine.position.set(0,centerY-.1,-.05);skeletonGroup.add(spine);for(let i=0;i<6;i++){const rib=new THREE.Mesh(new THREE.TorusGeometry(.18-i*.015,.015,16,32),boneMat);rib.position.set(0,centerY+.2-i*.08,0);rib.rotation.x=Math.PI/2;rib.scale.set(1,.65,1);skeletonGroup.add(rib);}const pelvis=new THREE.Mesh(new THREE.TorusGeometry(.16,.03,16,32),boneMat);pelvis.position.set(0,centerY-.5,0);pelvis.rotation.x=Math.PI/2;skeletonGroup.add(pelvis);const femurL=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.4,16),boneMat);femurL.position.set(.1,centerY-.75,0);skeletonGroup.add(femurL);const femurR=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.4,16),boneMat);femurR.position.set(-.1,centerY-.75,0);skeletonGroup.add(femurR);const armL=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.35,16),boneMat);armL.position.set(.28,centerY-.1,0);armL.rotation.z=.15;skeletonGroup.add(armL);const armR=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.35,16),boneMat);armR.position.set(-.28,centerY-.1,0);armR.rotation.z=-.15;skeletonGroup.add(armR);bodyGroup.add(skeletonGroup);organGroup=new THREE.Group();organMeshes=[];const addOrgan=(geo,pos,color,key,scl)=>{const mat=new THREE.MeshStandardMaterial({color,roughness:.3,emissive:color,emissiveIntensity:.25});const m=new THREE.Mesh(geo,mat);m.position.set(pos[0],pos[1],pos[2]);if(scl)m.scale.set(scl[0],scl[1],scl[2]);m.userData.organ=key;organMeshes.push(m);organGroup.add(m);};addOrgan(new THREE.SphereGeometry(.09,32,32),[0,h-.15,0],'#f2a0c0','brain');addOrgan(new THREE.SphereGeometry(.06,32,32),[-.04,centerY+.1,.08],'#e63946','heart',[1,1.3,1]);addOrgan(new THREE.SphereGeometry(.08,32,32),[.1,centerY+.1,0],'#f4a6b8','lunge',[.8,1.5,.8]);addOrgan(new THREE.SphereGeometry(.08,32,32),[-.1,centerY+.1,0],'#f4a6b8','lunge',[.8,1.5,.8]);addOrgan(new THREE.SphereGeometry(.09,32,32),[.08,centerY-.15,.08],'#8b2e2e','liver',[1.2,.7,.9]);bodyGroup.add(organGroup);}
+function toggleAnatomy(mode){if(humanModel)humanModel.visible=(mode==='human');if(muscleGroup)muscleGroup.visible=(mode==='muskeln');if(skeletonGroup)skeletonGroup.visible=(mode==='skelett');if(organGroup)organGroup.visible=(mode==='organe');document.querySelectorAll('.layer').forEach(b=>b.classList.remove('active'));const btn=document.getElementById('btn'+mode.charAt(0).toUpperCase()+mode.slice(1));if(btn)btn.classList.add('active');}
+window.toggleAnatomy = toggleAnatomy;
+document.addEventListener('click',(e)=>{if(e.target&&e.target.id==='resetCam'){if(anCamera&&anControls){anCamera.position.set(0,1.2,6);anControls.target.set(0,1.0,0);anControls.update();}}});
+function openOrganModal(key){const info=ORGAN_INFO[key];if(!info)return;document.getElementById('organ-title').innerHTML='<span style="color:'+info.color+'">●</span> '+info.name;document.getElementById('organ-desc').textContent=info.text;ttsText=info.name+'. '+info.text;document.getElementById('organ-modal').classList.add('show');speakOrganInfo();}
+function speakOrganInfo(){if('speechSynthesis' in window&&ttsText){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(ttsText);u.lang='de-DE';speechSynthesis.speak(u);}}
+window.speakOrganInfo = speakOrganInfo;
+
+/* 6. DATEN LADEN (Datenbanken kommen aus daten.js!) */
+window.KRANKHEITEN_DB = window.KRANKHEITEN_DB || [];
+window.MEDIKAMENTE_DB = window.MEDIKAMENTE_DB || [];
+window.LABOR_DB = window.LABOR_DB || [];
+
+function renderDiseases(){const list=document.getElementById('krankheitenList'),search=document.getElementById('krankheitenSearch');if(!list||!search)return;const q=search.value.toLowerCase();const filtered=window.KRANKHEITEN_DB.filter(k=>k.n.toLowerCase().includes(q)||k.s.toLowerCase().includes(q)||k.k.toLowerCase().includes(q));list.innerHTML='';if(!filtered.length){list.innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:20px;">Lade Datenbank...</div>';return;}filtered.forEach(k=>{const el=document.createElement('div');el.className='list-item';el.innerHTML=`<div class="li-n">${k.n}</div><div class="li-s">ICD-10: ${k.i}</div><div class="li-t">${k.k}</div>`;el.onclick=()=>openDiseaseModal(k);list.appendChild(el);});const c=document.getElementById('krankheitenCount');if(c)c.textContent=filtered.length+' Krankheiten';}
+function openDiseaseModal(k){let modal=document.getElementById('disease-modal');if(!modal){modal=document.createElement('div');modal.id='disease-modal';modal.className='modal';modal.innerHTML=`<div class="m-box"><button class="m-close" onclick="document.getElementById('disease-modal').classList.remove('show')">×</button><h2 id="d-title" style="color:var(--acc)"></h2><div style="font-size:12px;color:var(--muted);margin-bottom:16px;" id="d-icd"></div><h3 style="font-size:14px;color:var(--acc2);margin-bottom:6px;">Symptome</h3><p id="d-sym" style="margin-bottom:16px;font-size:14px;line-height:1.6;"></p><h3 style="font-size:14px;color:var(--acc2);margin-bottom:6px;">Ursachen</h3><p id="d-urs" style="margin-bottom:16px;font-size:14px;line-height:1.6;"></p><h3 style="font-size:14px;color:var(--acc2);margin-bottom:6px;">Behandlung</h3><p id="d-beh" style="margin-bottom:16px;font-size:14px;line-height:1.6;"></p></div>`;document.body.appendChild(modal);}document.getElementById('d-title').textContent=k.n;document.getElementById('d-icd').textContent='ICD-10: '+k.i+' · Kategorie: '+k.k;document.getElementById('d-sym').textContent=k.s;document.getElementById('d-urs').textContent=k.u;document.getElementById('d-beh').textContent=k.b;modal.classList.add('show');}
+
+function renderMeds(){const list=document.getElementById('medikamenteList'),search=document.getElementById('medikamenteSearch');if(!list||!search)return;const q=search.value.toLowerCase();const filtered=window.MEDIKAMENTE_DB.filter(m=>m.n.toLowerCase().includes(q)||m.s.toLowerCase().includes(q)||m.w.toLowerCase().includes(q));list.innerHTML='';if(!filtered.length){list.innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:20px;">Lade Datenbank...</div>';return;}filtered.forEach(m=>{const el=document.createElement('div');el.className='list-item';el.innerHTML=`<div class="li-n">${m.n}</div><div class="li-s">Wirkstoff: ${m.w}</div><div class="li-t">${m.s}</div>`;el.onclick=()=>openMedModal(m);list.appendChild(el);});const c=document.getElementById('medikamenteCount');if(c)c.textContent=filtered.length+' Medikamente';}
+function openMedModal(m){let modal=document.getElementById('med-modal');if(!modal){modal=document.createElement('div');modal.id='med-modal';modal.className='modal';modal.innerHTML=`<div class="m-box"><button class="m-close" onclick="document.getElementById('med-modal').classList.remove('show')">×</button><h2 id="m-title" style="color:var(--acc)"></h2><div style="font-size:12px;color:var(--muted);margin-bottom:16px;" id="m-wirk"></div><h3 style="font-size:14px;color:var(--acc2);margin-bottom:6px;">Anwendung</h3><p id="m-sym" style="margin-bottom:16px;font-size:14px;line-height:1.6;"></p><h3 style="font-size:14px;color:var(--acc2);margin-bottom:6px;">Dosierung</h3><p id="m-dos" style="margin-bottom:16px;font-size:14px;line-height:1.6;"></p><h3 style="font-size:14px;color:var(--acc2);margin-bottom:6px;">Nebenwirkungen</h3><p id="m-ne" style="margin-bottom:16px;font-size:14px;line-height:1.6;"></p></div>`;document.body.appendChild(modal);}document.getElementById('m-title').textContent=m.n;document.getElementById('m-wirk').textContent='Wirkstoffklasse: '+m.w;document.getElementById('m-sym').textContent=m.s;document.getElementById('m-dos').textContent=m.d;document.getElementById('m-ne').textContent=m.ne;modal.classList.add('show');}
+
+function renderLab(){const list=document.getElementById('laborList'),search=document.getElementById('laborSearch');if(!list||!search)return;const q=search.value.toLowerCase();const filtered=window.LABOR_DB.filter(l=>l.n.toLowerCase().includes(q)||l.k.toLowerCase().includes(q));list.innerHTML='';if(!filtered.length){list.innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:20px;">Lade Datenbank...</div>';return;}filtered.forEach(l=>{const el=document.createElement('div');el.className='list-item';el.innerHTML=`<div class="li-n">${l.n}</div><div class="li-s">Norm: ${l.w}</div><div class="li-t">${l.k}</div>`;list.appendChild(el);});const c=document.getElementById('laborCount');if(c)c.textContent=filtered.length+' Laborwerte';}
+
+/* 7. KI-ASSISTENT */
+function sendChat(){const input=document.getElementById('chatInput'),log=document.getElementById('chatLog');if(!input||!log)return;const text=input.value.trim();if(!text)return;input.value='';log.innerHTML+=`<div class="chat-msg user">${text}</div>`;log.scrollTop=log.scrollHeight;setTimeout(()=>{let answer="Ich habe deine Symptome notiert. Bitte achte auf deinen Körper und konsultiere bei anhaltenden Beschwerden einen Arzt.";const t=text.toLowerCase();if(t.includes('kopf'))answer="Bei Kopfschmerzen: Trinke Wasser, ruhe dich aus. Bei plötzlichem, starkem Schmerz (Donnerschlag) sofort Notarzt!";else if(t.includes('fieber'))answer="Bei Fieber: Viel trinken, Bettruhe. Ab 39°C oder über 3 Tage: Arzt aufsuchen.";else if(t.includes('bauch'))answer="Bei Bauchschmerzen: Leichte Kost, Wärme. Bei starkem Schmerz rechts unten (Blinddarm): Notarzt!";else if(t.includes('herz')||t.includes('brust'))answer="Bei Brustschmerz mit Atemnot oder Ausstrahlung in den Arm: SOFORT 112 anrufen!";log.innerHTML+=`<div class="chat-msg bot">${answer}</div>`;log.scrollTop=log.scrollHeight;},600);}
+window.sendChat = sendChat;
+
+/* START */
+window.addEventListener('load',()=>{
+  setTimeout(showWelcome,100);
+  renderDashboard();
+  if(location.hash==='#anatomie')switchView('anatomie');
+});
+/* ============================================================
+   TEIL 1: PERFEKTE SONNE + ECHTE 3D ANATOMIE + A-Z SIDEBAR
+   ============================================================ */
+
+// 1. DIE ORIGINAL SONNE VON DAMALS (aus deinem Screenshot)
+(function rebuildOriginalSun() {
+  const canvas = document.getElementById('bg-canvas');
+  if (!canvas) return;
+  
+  // Wir überschreiben den alten Hintergrund mit dem Original-Code
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x020205);
+  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+  camera.position.set(0, 0, 15);
+
+  // Sterne
+  const starGeo = new THREE.BufferGeometry();
+  const starPos = new Float32Array(8000 * 3);
+  for (let i = 0; i < 8000 * 3; i += 3) {
+    starPos[i]     = (Math.random() - 0.5) * 2000;
+    starPos[i + 1] = (Math.random() - 0.5) * 2000;
+    starPos[i + 2] = (Math.random() - 0.5) * 2000;
   }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.5 })));
 
-  // ═══════════════════════════════════════════════════════
-  // 3D ENGINE (MIT DRACO LOADER FIX)
-  // ═══════════════════════════════════════════════════════
-  function init3DAnatomy() {
-    const container = document.getElementById('anatomy-3d-container');
-    if (!container) return;
-    if (threeRenderer) threeRenderer.dispose();
-    if (threeAnimationId) cancelAnimationFrame(threeAnimationId);
+  const tl = new THREE.TextureLoader();
 
-    threeScene = new THREE.Scene();
-    const w = container.clientWidth, h = container.clientHeight;
-    threeCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000); threeCamera.position.set(0, 0, 5);
-    threeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    threeRenderer.setSize(w, h); container.appendChild(threeRenderer.domElement);
-
-    threeControls = new OrbitControls(threeCamera, threeRenderer.domElement);
-    threeControls.enableDamping = true; threeControls.autoRotate = true;
-
-    threeScene.add(new THREE.AmbientLight(0xffffff, 1));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.5); dirLight.position.set(2, 3, 2); threeScene.add(dirLight);
-
-    // Gruppen für die Schichten
-    skinGroup = new THREE.Group();
-    musclesGroup = new THREE.Group();
-    skeletonGroup = new THREE.Group();
-    organsGroup = new THREE.Group();
-    threeScene.add(skinGroup, musclesGroup, skeletonGroup, organsGroup);
-
-    // DER FIX: DRACO LOADER
-    const dracoLoader = new DRACOLoader();
-    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
-    
-    const loader = new GLTFLoader();
-    loader.setDRACOLoader(dracoLoader); // Setze den DracoLoader für den GLTFLoader
-
-    const modelUrl = 'https://raw.githubusercontent.com/hpfrei/body-anatomy-3d-viewer/main/public/body.glb';
-
-    loader.load(modelUrl, function(gltf) {
-      console.log("3D Körper erfolgreich geladen!");
-      loadedModel = gltf.scene;
-      
-      loadedModel.scale.set(1.5, 1.5, 1.5);
-      loadedModel.position.y = -1.5;
-      
-      loadedModel.traverse((child) => {
-        if (child.isMesh) {
-          const name = child.name.toLowerCase();
-          
-          child.material = new THREE.MeshPhysicalMaterial({
-            color: 0x00e5ff, transparent: true, opacity: 0.3, transmission: 0.5, roughness: 0.2
-          });
-
-          if (name.includes('heart') || name.includes('lung') || name.includes('liver') || name.includes('brain') || name.includes('kidney') || name.includes('stomach')) {
-            child.material.color.setHex(0xff5555);
-            organsGroup.add(child);
-          } else if (name.includes('bone') || name.includes('skeleton')) {
-            child.material.color.setHex(0xffffff);
-            skeletonGroup.add(child);
-          } else {
-            skinGroup.add(child);
-          }
-        }
-      });
-      
-      updateAnatomyVisibility(state.anatomyMode);
-    }, undefined, function(error) {
-      console.error("Fehler beim Laden des Modells", error);
-      
-      // DEINE KUGEL BLEIBT ALS FALLBACK ERHALTEN
-      console.log("Zeige Ersatz-Kugel an.");
-      const geo = new THREE.SphereGeometry(1, 32, 32);
-      const mat = new THREE.MeshStandardMaterial({ color: 0x00e5ff, wireframe: true });
-      loadedModel = new THREE.Mesh(geo, mat);
-      threeScene.add(loadedModel);
-    });
-
-    function animate() {
-      threeAnimationId = requestAnimationFrame(animate);
-      threeControls.update();
-      threeRenderer.render(threeScene, threeCamera);
-    }
-    animate();
-    
-    // Klick-Interaktion
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-    threeRenderer.domElement.addEventListener('click', (event) => {
-      const rect = threeRenderer.domElement.getBoundingClientRect();
-      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(mouse, threeCamera);
-      const intersects = raycaster.intersectObjects(organsGroup.children, true);
-      if (intersects.length > 0) {
-        const hit = intersects[0].object;
-        alert(`Organ angewählt: ${hit.name}\n\nBitte suchen Sie in der Datenbank nach "${hit.name}" für Details.`);
-        speakText(`Sie haben ${hit.name} angewählt.`);
-      }
-    });
+  // DIE SONNE (Canvas, unzerstörbar, exakt wie damals)
+  const sunCanvas = document.createElement('canvas');
+  sunCanvas.width = 512; sunCanvas.height = 512;
+  const sCtx = sunCanvas.getContext('2d');
+  const sGrad = sCtx.createRadialGradient(256, 256, 0, 256, 256, 256);
+  sGrad.addColorStop(0, '#ffffff'); sGrad.addColorStop(0.2, '#ffffaa');
+  sGrad.addColorStop(0.5, '#ffaa00'); sGrad.addColorStop(0.8, '#ff5500');
+  sGrad.addColorStop(1, '#aa0000');
+  sCtx.fillStyle = sGrad; sCtx.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 50; i++) {
+    const px = Math.random() * 512, py = Math.random() * 512, r = Math.random() * 10 + 5;
+    const rg = sCtx.createRadialGradient(px, py, 0, px, py, r);
+    rg.addColorStop(0, 'rgba(255, 255, 255, 0.8)'); rg.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    sCtx.fillStyle = rg; sCtx.beginPath(); sCtx.arc(px, py, r, 0, Math.PI * 2); sCtx.fill();
   }
+  const sunTex = new THREE.CanvasTexture(sunCanvas);
+  
+  const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 64, 64), new THREE.MeshBasicMaterial({ map: sunTex }));
+  sunMesh.position.set(35, 25, -60);
+  scene.add(sunMesh);
 
-  function updateAnatomyVisibility(mode) {
-    if (!skinGroup || !skeletonGroup || !musclesGroup || !organsGroup) return;
-    skinGroup.visible = (mode === 'skin' || mode === 'organs' || mode === 'muscles');
-    musclesGroup.visible = (mode === 'muscles' || mode === 'organs' || mode === 'skeleton');
-    skeletonGroup.visible = (mode === 'skeleton' || mode === 'organs');
-    organsGroup.visible = (mode === 'organs');
-    if (skinGroup.visible && mode !== 'skin') skinGroup.children.forEach(c => { if(c.material) c.material.opacity = 0.1; });
-    else if (skinGroup.visible) skinGroup.children.forEach(c => { if(c.material) c.material.opacity = 0.8; });
+  // Sonnen-Glow
+  const glowCanvas = document.createElement('canvas');
+  glowCanvas.width = 256; glowCanvas.height = 256;
+  const gCtx = glowCanvas.getContext('2d');
+  const gGrad = gCtx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  gGrad.addColorStop(0, 'rgba(255, 200, 50, 0.8)'); gGrad.addColorStop(0.5, 'rgba(255, 100, 0, 0.4)'); gGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+  gCtx.fillStyle = gGrad; gCtx.fillRect(0, 0, 256, 256);
+  const sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(glowCanvas), blending: THREE.AdditiveBlending, depthTest: false }));
+  sunGlow.scale.set(40, 40, 1);
+  sunGlow.position.copy(sunMesh.position);
+  scene.add(sunGlow);
+
+  // Erde & Mond & Text-Ring (wie im Original)
+  const earthMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 64, 64), new THREE.MeshStandardMaterial({ map: tl.load('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg'), roughness: 0.7, metalness: 0.1 }));
+  earthMesh.position.set(-8, 3, -20); scene.add(earthMesh);
+  const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(1.5, 32, 32), new THREE.MeshStandardMaterial({ map: tl.load('https://cdn.jsdelivr.net/gh/homer-jay/solar-system-textures@master/moon.jpg'), roughness: 1.0 }));
+  moonMesh.position.set(18, 12, -15); scene.add(moonMesh);
+
+  // Lichter
+  const sunLight = new THREE.PointLight(0xfff5e6, 5000, 1000); sunLight.position.copy(sunMesh.position); scene.add(sunLight);
+  const fl1 = new THREE.DirectionalLight(0xffffff, 3.0); fl1.position.set(-10, 5, 10); scene.add(fl1);
+  const fl2 = new THREE.DirectionalLight(0x00d4ff, 2.0); fl2.position.set(5, -5, 10); scene.add(fl2);
+  scene.add(new THREE.AmbientLight(0x555566, 2.0));
+
+  const clock = new THREE.Clock();
+  function animate() {
+    requestAnimationFrame(animate);
+    const delta = clock.getDelta();
+    earthMesh.rotation.y += delta * 0.02;
+    moonMesh.rotation.y += delta * 0.01;
+    renderer.render(scene, camera);
   }
-
-  // ═══════════════════════════════════════════════════════
-  // EVENT HANDLERS
-  // ═══════════════════════════════════════════════════════
-  function handleClick(e) {
-    const themeBtn = e.target.closest('[data-theme]');
-    const anatBtn = e.target.closest('[data-anatomy-mode]');
-    const infoItem = e.target.closest('[data-title]');
-    const btn = e.target.closest('[data-action]');
-
-    if (themeBtn) { state.splashTheme = themeBtn.dataset.theme; saveState(); currentTarget.innerHTML = renderAppShell(); return; }
-    if (anatBtn) { state.anatomyMode = anatBtn.dataset.anatomyMode; document.querySelectorAll('.h-anatomy-btn').forEach(b => b.classList.remove('active')); anatBtn.classList.add('active'); updateAnatomyVisibility(state.anatomyMode); return; }
-    if (infoItem) { alert(`${infoItem.dataset.title}\n\n${infoItem.dataset.info}`); speakText(infoItem.dataset.title + '. ' + infoItem.dataset.info); return; }
-    
-    if (!btn) return;
-    const action = btn.dataset.action;
-    if (action === 'toggle-sound') { state.soundEnabled = !state.soundEnabled; saveState(); currentTarget.innerHTML = renderAppShell(); return; }
-    if (action === 'enter-app') { state.currentView = 'dashboard'; currentTarget.innerHTML = renderAppShell(); return; }
-    if (action === 'save-hotspot') { state.hotspot.pass = document.getElementById('hotspot-pass').value; saveState(); alert('Passwort gespeichert!'); return; }
-    if (action === 'toggle-hotspot') { state.hotspot.active = !state.hotspot.active; saveState(); currentTarget.innerHTML = renderAppShell(); return; }
-
-    if (action.startsWith('view-')) {
-      state.currentView = action.replace('view-', '');
-      currentTarget.innerHTML = renderAppShell();
-      if (state.currentView === 'anatomy') setTimeout(init3DAnatomy, 100);
-      return;
-    }
-  }
-
-  document.addEventListener('input', (e) => {
-    if (e.target.dataset.search) {
-      const query = e.target.value.toLowerCase();
-      const type = e.target.dataset.search;
-      const container = document.getElementById('list-container');
-      let data = [];
-      if (type === 'disease') data = DISEASES;
-      if (type === 'med') data = MEDS;
-      if (type === 'lab') data = LABS;
-      const filtered = data.filter(item => item.name.toLowerCase().includes(query) || (item.symp && item.symp.toLowerCase().includes(query)) || (item.use && item.use.toLowerCase().includes(query)));
-      container.innerHTML = filtered.map(item => `<div class="h-list-item" data-info="${item.symp || item.use || item.desc}" data-title="${item.name}"><div><b>${item.name}</b><br><span style="font-size:12px;color:#8a9bb5">${item.symp || item.use || item.ref}</span></div></div>`).join('');
-    }
+  animate();
+  window.addEventListener('resize', () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
   });
-
-  document.addEventListener('send-chat', () => {
-    const input = document.getElementById('chat-in'); if (!input || !input.value.trim()) return;
-    const txt = input.value.trim(); state.chatHistory.push({ role: 'user', text: txt });
-    let res = txt.toLowerCase().includes('kopf') ? "Bei Kopfschmerzen: Ruhe, Wasser und frische Luft." : `Ich habe verstanden: "${txt}".`;
-    state.chatHistory.push({ role: 'ai', text: res }); saveState(); currentTarget.innerHTML = renderAppShell();
-    setTimeout(() => { const h = document.getElementById('chat-hist'); if(h) h.scrollTop = h.scrollHeight; }, 50);
-  });
-
-  function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){} }
-  function loadState() { try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) Object.assign(state, JSON.parse(raw)); } catch(e){} }
-
-  // ═══════════════════════════════════════════════════════
-  // MOUNT & EXPORT
-  // ═══════════════════════════════════════════════════════
-  function mount(target) {
-    if (target && target.nodeType === 1) {
-      currentTarget = target; loadState(); state.currentView = 'splash'; currentTarget.innerHTML = renderAppShell();
-      if (!currentTarget.dataset.hasListener) { currentTarget.addEventListener('click', handleClick); currentTarget.dataset.hasListener = "true"; }
-      if (state.soundEnabled) playStartupSound();
-      setTimeout(() => { if (window.HalDoWelcome) window.HalDoWelcome.show("Arztbuch"); }, 200);
-    }
-  }
-
-  function openOverlay() {
-    const overlay = document.createElement('div'); overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#0a0a0f;display:flex;flex-direction:column;';
-    const closeBar = document.createElement('div'); closeBar.style.cssText = 'padding:10px 16px;background:#111;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;';
-    closeBar.innerHTML = `<b style="color:#e8e8ec;font-family:Inter;">🩺 HalDo Arztbuch P3</b><button id="h-close-btn" style="background:transparent;border:1px solid #444;color:#fff;padding:5px 10px;border-radius:6px;cursor:pointer;">✕ Schließen</button>`;
-    overlay.appendChild(closeBar); const mountDiv = document.createElement('div'); mountDiv.style.cssText = 'flex:1;position:relative;overflow:hidden;'; overlay.appendChild(mountDiv); document.body.appendChild(overlay);
-    document.getElementById('h-close-btn').onclick = () => { overlay.remove(); currentTarget = null; }; mount(mountDiv);
-  }
-
-  window.HalDoApps = window.HalDoApps || {};
-  window.HalDoApps.arztbuch = { mount, version: VERSION, open: openOverlay };
-  window.Arztbuch = window.HalDoApps.arztbuch; window.apps = window.apps || {}; window.apps.arztbuch = window.HalDoApps.arztbuch;
-  window.renderArztbuch = mount; window.openArztbuch = openOverlay;
 })();
+
+// 2. DIE NEUE, PROFESSIONELLE 3D ANATOMIE (MÄNNLICH & WEIBLICH)
+window.initAnatomy = function() {
+  const host = document.getElementById('anatomy-canvas');
+  if (!host || host.dataset.inited) return;
+  host.dataset.inited = "true";
+  host.innerHTML = ''; // Lade-Text weg
+
+  const w = host.clientWidth, h = host.clientHeight;
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
+  camera.position.set(0, 1.2, 6);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(w, h);
+  host.appendChild(renderer.domElement);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 1.0, 0);
+  controls.enableDamping = true;
+  controls.minDistance = 1.0;
+  controls.maxDistance = 10.0;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.6;
+
+  scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+  const key = new THREE.DirectionalLight(0xffffff, 3.0); key.position.set(2, 4, 3); scene.add(key);
+  const rim = new THREE.DirectionalLight(0x00d4ff, 2.0); rim.position.set(-3, 2, -2); scene.add(rim);
+
+  const loader = new GLTFLoader();
+  // ECHTES XBOT MODELL (Männlich) + ECHTES WEIBLICHES MODELL
+  const maleUrl = 'https://threejs.org/examples/models/gltf/Xbot.glb';
+  const femaleUrl = 'https://threejs.org/examples/models/gltf/Michelle.glb';
+
+  let currentModel = null;
+
+  // Männlich laden
+  loader.load(maleUrl, (gltf) => {
+    const model = gltf.scene;
+    model.rotation.set(0, Math.PI, 0);
+    // Xbot hat oft Skalierungsprobleme, wir zwingen ihn auf 2 Meter
+    model.scale.set(1.8, 1.8, 1.8); 
+    const box = new THREE.Box3().setFromObject(model);
+    model.position.y = -box.min.y; // Füße auf den Boden
+    model.position.x = -(box.max.x + box.min.x) / 2;
+    model.position.z = -(box.max.z + box.min.z) / 2;
+
+    model.traverse((child) => {
+      if (child.isMesh) child.material = new THREE.MeshPhysicalMaterial({ color: 0xffe4cc, roughness: 0.3, clearcoat: 0.5 });
+    });
+    scene.add(model);
+    currentModel = model;
+    window.toggleAnatomy('human'); // Standardmäßig anzeigen
+    document.getElementById('btnHuman').innerText = '🧍 Männlich';
+    document.getElementById('btnHuman').onclick = () => {
+      if(currentModel) currentModel.visible = false;
+      model.visible = true;
+      currentModel = model;
+      document.getElementById('btnHuman').innerText = '🧍 Männlich';
+    };
+  }, undefined, (err) => {
+    console.warn("Xbot fehlgeschlagen, lade Michelle (Weiblich)");
+    loader.load(femaleUrl, (gltf) => {
+      const model = gltf.scene;
+      model.scale.set(1.5, 1.5, 1.5);
+      const box = new THREE.Box3().setFromObject(model);
+      model.position.y = -box.min.y;
+      model.traverse(c => { if (c.isMesh) c.material = new THREE.MeshPhysicalMaterial({ color: 0xffe4cc, roughness: 0.3 }); });
+      scene.add(model); currentModel = model;
+    });
+  });
+
+  // Weiblich laden (im Hintergrund)
+  loader.load(femaleUrl, (gltf) => {
+    const model = gltf.scene;
+    model.scale.set(1.5, 1.5, 1.5);
+    const box = new THREE.Box3().setFromObject(model);
+    model.position.y = -box.min.y;
+    model.position.x = -(box.max.x + box.min.x) / 2;
+    model.position.z = -(box.max.z + box.min.z) / 2;
+    model.traverse((child) => {
+      if (child.isMesh) child.material = new THREE.MeshPhysicalMaterial({ color: 0xffe4cc, roughness: 0.3, clearcoat: 0.5 });
+    });
+    model.visible = false;
+    scene.add(model);
+    
+    // Button für Weiblich
+    const btnFemale = document.getElementById('btnMuskeln'); // Wir klauen uns den Button
+    btnFemale.innerText = '👩 Weiblich';
+    btnFemale.onclick = () => {
+      if(currentModel) currentModel.visible = false;
+      model.visible = true;
+      currentModel = model;
+      document.getElementById('btnHuman').innerText = '🧍 Männlich';
+      btnFemale.innerText = '👩 Weiblich';
+    };
+    // Wenn wir auf Männlich klicken, Weiblich ausblenden
+    document.getElementById('btnHuman').addEventListener('click', () => { model.visible = false; });
+  });
+
+  (function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  })();
+/* ============================================================
+   TEIL 1: KOSMISCHER HINTERGRUND + 3D ANATOMIE + A-Z SIDEBAR
+   ============================================================ */
+
+// 1. KOSMISCHER HINTERGRUND (Sonne, Erde, Mond, Text-Ring)
+// Wir bauen einen komplett neuen Hintergrund, der über allem liegt
+(function buildCosmicBackground() {
+  // Alten Canvas entfernen, falls vorhanden
+  const oldCanvas = document.getElementById('bg-canvas');
+  if (oldCanvas) oldCanvas.remove();
+
+  // Neuen Canvas erstellen
+  const canvas = document.createElement('canvas');
+  canvas.id = 'bg-canvas';
+  canvas.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:none;';
+  document.body.insertBefore(canvas, document.body.firstChild);
+
+  // Die App über den Hintergrund legen
+  const app = document.querySelector('.haldo-app') || document.getElementById('app');
+  if (app) {
+    app.style.position = 'relative';
+    app.style.zIndex = '10';
+  }
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x020205);
+  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+  camera.position.set(0, 0, 15);
+
+  // Sterne
+  const starGeo = new THREE.BufferGeometry();
+  const starPos = new Float32Array(8000 * 3);
+  for (let i = 0; i < 8000 * 3; i += 3) {
+    starPos[i] = (Math.random() - 0.5) * 2000;
+    starPos[i + 1] = (Math.random() - 0.5) * 2000;
+    starPos[i + 2] = (Math.random() - 0.5) * 2000;
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.5 })));
+
+  const tl = new THREE.TextureLoader();
+
+  // DIE SONNE (Canvas, unzerstörbar)
+  const sunCanvas = document.createElement('canvas');
+  sunCanvas.width = 512; sunCanvas.height = 512;
+  const sCtx = sunCanvas.getContext('2d');
+  const sGrad = sCtx.createRadialGradient(256, 256, 0, 256, 256, 256);
+  sGrad.addColorStop(0, '#ffffff'); sGrad.addColorStop(0.2, '#ffffaa');
+  sGrad.addColorStop(0.5, '#ffaa00'); sGrad.addColorStop(0.8, '#ff5500');
+  sGrad.addColorStop(1, '#aa0000');
+  sCtx.fillStyle = sGrad; sCtx.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 50; i++) {
+    const px = Math.random() * 512, py = Math.random() * 512, r = Math.random() * 10 + 5;
+    const rg = sCtx.createRadialGradient(px, py, 0, px, py, r);
+    rg.addColorStop(0, 'rgba(255, 255, 255, 0.8)'); rg.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    sCtx.fillStyle = rg; sCtx.beginPath(); sCtx.arc(px, py, r, 0, Math.PI * 2); sCtx.fill();
+  }
+  const sunTex = new THREE.CanvasTexture(sunCanvas);
+  
+  const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 64, 64), new THREE.MeshBasicMaterial({ map: sunTex }));
+  sunMesh.position.set(35, 25, -60);
+  scene.add(sunMesh);
+
+  // Sonnen-Glow
+  const glowCanvas = document.createElement('canvas');
+  glowCanvas.width = 256; glowCanvas.height = 256;
+  const gCtx = glowCanvas.getContext('2d');
+  const gGrad = gCtx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  gGrad.addColorStop(0, 'rgba(255, 200, 50, 0.8)'); gGrad.addColorStop(0.5, 'rgba(255, 100, 0, 0.4)'); gGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+  gCtx.fillStyle = gGrad; gCtx.fillRect(0, 0, 256, 256);
+  const sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(glowCanvas), blending: THREE.AdditiveBlending, depthTest: false }));
+  sunGlow.scale.set(40, 40, 1);
+  sunGlow.position.copy(sunMesh.position);
+  scene.add(sunGlow);
+
+  // ERDE
+  const earthMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 64, 64), new THREE.MeshStandardMaterial({ map: tl.load('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg'), roughness: 0.7, metalness: 0.1 }));
+  earthMesh.position.set(-8, 3, -20); scene.add(earthMesh);
+
+  // MOND
+  const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(1.5, 32, 32), new THREE.MeshStandardMaterial({ map: tl.load('https://cdn.jsdelivr.net/gh/homer-jay/solar-system-textures@master/moon.jpg'), roughness: 1.0 }));
+  moonMesh.position.set(18, 12, -15); scene.add(moonMesh);
+
+  // TEXT-RING (Willkommen...)
+  function createTextTexture(name) {
+    const c = document.createElement('canvas'); c.width = 4096; c.height = 1024;
+    const x = c.getContext('2d');
+    x.clearRect(0, 0, c.width, c.height);
+    const g = x.createLinearGradient(0, 0, c.width, 0);
+    g.addColorStop(0, '#ffd700'); g.addColorStop(0.3, '#fff8b0'); g.addColorStop(0.5, '#ffb700'); g.addColorStop(0.7, '#fff8b0'); g.addColorStop(1, '#ffd700');
+    x.fillStyle = g; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.shadowColor = 'rgba(255,215,0,0.8)'; x.shadowBlur = 20;
+    x.font = 'bold 100px "Segoe UI",Arial,sans-serif';
+    const t1 = 'Willkommen bei ' + name + '   •   ';
+    x.fillText(t1.repeat(Math.ceil(c.width / x.measureText(t1).width) + 1), c.width / 2, 250);
+    x.font = 'bold 140px "Segoe UI",Arial,sans-serif'; x.fillStyle = '#00d4ff'; x.shadowColor = 'rgba(0,212,255,0.8)';
+    const t2 = name + ' App   •   ';
+    x.fillText(t2.repeat(Math.ceil(c.width / x.measureText(t2).width) + 1), c.width / 2, 500);
+    x.font = 'bold 80px "Segoe UI",Arial,sans-serif'; x.fillStyle = g; x.shadowColor = 'rgba(255,215,0,0.8)';
+    const t3 = 'a Halil Donma Professioneller App präsentiert   •   ';
+    x.fillText(t3.repeat(Math.ceil(c.width / x.measureText(t3).width) + 1), c.width / 2, 750);
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.ClampToEdgeWrapping;
+    return t;
+  }
+  const textGeo = new THREE.CylinderGeometry(7, 7, 4, 64, 1, true);
+  const textMat = new THREE.MeshBasicMaterial({ map: createTextTexture('HalDo Arztbuch'), transparent: true, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
+  const textMesh = new THREE.Mesh(textGeo, textMat);
+  textMesh.position.copy(earthMesh.position);
+  textMesh.rotation.x = Math.PI / 10; textMesh.rotation.z = -Math.PI / 16;
+  scene.add(textMesh);
+
+  // Lichter
+  const sunLight = new THREE.PointLight(0xfff5e6, 5000, 1000); sunLight.position.copy(sunMesh.position); scene.add(sunLight);
+  const fl1 = new THREE.DirectionalLight(0xffffff, 3.0); fl1.position.set(-10, 5, 10); scene.add(fl1);
+  const fl2 = new THREE.DirectionalLight(0x00d4ff, 2.0); fl2.position.set(5, -5, 10); scene.add(fl2);
+  scene.add(new THREE.AmbientLight(0x555566, 2.0));
+
+  const clock = new THREE.Clock();
+  function animate() {
+    requestAnimationFrame(animate);
+    const delta = clock.getDelta();
+    earthMesh.rotation.y += delta * 0.02;
+    textMesh.rotation.y -= delta * 0.03;
+    moonMesh.rotation.y += delta * 0.01;
+    renderer.render(scene, camera);
+  }
+  animate();
+  window.addEventListener('resize', () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+  });
+})();
+
+// 2. DIE NEUE, PROFESSIONELLE 3D ANATOMIE (MÄNNLICH & WEIBLICH)
+// Wir überschreiben die init3DAnatomy-Funktion aus deinem Code
+window.init3DAnatomy = function() {
+  const container = document.getElementById('anatomy-3d-container');
+  if (!container) return;
+  
+  // Alten Renderer aufräumen
+  if (window.threeRenderer) { window.threeRenderer.dispose(); }
+  if (window.threeAnimationId) { cancelAnimationFrame(window.threeAnimationId); }
+  
+  const w = container.clientWidth; const h = container.clientHeight;
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
+  camera.position.set(0, 0.5, 5);
+  
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(w, h);
+  container.appendChild(renderer.domElement);
+  
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.autoRotate = true;
+  
+  scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1); dirLight.position.set(2, 3, 2); scene.add(dirLight);
+  const rimLight = new THREE.DirectionalLight(0x00e5ff, 0.6); rimLight.position.set(-2, -1, -2); scene.add(rimLight);
+
+  // Xbot (Männlich) und Michelle (Weiblich) laden
+  const loader = new GLTFLoader();
+  const maleUrl = 'https://threejs.org/examples/models/gltf/Xbot.glb';
+  const femaleUrl = 'https://threejs.org/examples/models/gltf/Michelle.glb';
+
+  let currentModel = null;
+
+  loader.load(maleUrl, (gltf) => {
+    const model = gltf.scene;
+    model.scale.set(1.8, 1.8, 1.8); // Xbot auf 1.8m skalieren
+    const box = new THREE.Box3().setFromObject(model);
+    model.position.y = -box.min.y;
+    model.position.x = -(box.max.x + box.min.x) / 2;
+    model.position.z = -(box.max.z + box.min.z) / 2;
+    model.traverse((child) => {
+      if (child.isMesh) child.material = new THREE.MeshPhysicalMaterial({ color: 0xffe4cc, roughness: 0.3, clearcoat: 0.5 });
+    });
+    scene.add(model);
+    currentModel = model;
+    container.dataset.gender = 'male';
+  }, undefined, (err) => {
+    console.warn("Xbot fehlgeschlagen, lade Michelle");
+    loader.load(femaleUrl, (gltf) => {
+      const model = gltf.scene;
+      model.scale.set(1.5, 1.5, 1.5);
+      const box = new THREE.Box3().setFromObject(model);
+      model.position.y = -box.min.y;
+      model.traverse((c) => { if (c.isMesh) c.material = new THREE.MeshPhysicalMaterial({ color: 0xffe4cc, roughness: 0.3 }); });
+      scene.add(model);
+      currentModel = model;
+      container.dataset.gender = 'female';
+    });
+  });
+
+  // Weibliches Modell im Hintergrund laden
+  loader.load(femaleUrl, (gltf) => {
+    const femaleModel = gltf.scene;
+    femaleModel.scale.set(1.5, 1.5, 1.5);
+    const box = new THREE.Box3().setFromObject(femaleModel);
+    femaleModel.position.y = -box.min.y;
+    femaleModel.traverse((child) => {
+      if (child.isMesh) child.material = new THREE.MeshPhysicalMaterial({ color: 0xffe4cc, roughness: 0.3, clearcoat: 0.5 });
+    });
+    femaleModel.visible = false;
+    scene.add(femaleModel);
+
+    // Geschlechts-Button
+    const btn = document.getElementById('btnGender');
+    if (btn) {
+      btn.onclick = () => {
+        if (currentModel) currentModel.visible = false;
+        femaleModel.visible = true;
+        currentModel = femaleModel;
+        btn.innerText = '👩 Weiblich';
+      };
+    }
+  });
+
+  function animate() {
+    window.threeAnimationId = requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  new ResizeObserver(() => {
+    const nw = container.clientWidth, nh = container.clientHeight;
+    if (!nw || !nh) return;
+    camera.aspect = nw / nh;
+    camera.updateProjectionMatrix();
+    renderer.setSize(nw, nh);
+  }).observe(container);
+};
+
+// 3. DIE KOMPLETTE A-Z APP LISTE IN DER SIDEBAR
+// Wir bauen die Sidebar komplett neu auf, mit allen Apps aus deiner Master-Notiz
+(function rebuildSidebar() {
+  const appList = [
+    { id: 'dashboard', icon: '📊', name: 'Dashboard' },
+    { id: 'anatomy', icon: '🧍‍♂️', name: 'Anatomie 3D' },
+    { id: 'ki', icon: '🤖', name: 'KI Assistent' },
+    { id: 'diseases', icon: '🦠', name: 'Krankheiten A-Z' },
+    { id: 'meds', icon: '💊', name: 'Medikamente A-Z' },
+    { id: 'labs', icon: '🧪', name: 'Laborwerte' },
+    { id: 'contracts', icon: '📝', name: 'Patientenverträge' },
+    { id: 'care', icon: '🧑‍⚕️', name: 'Pflege & Betreuung' },
+    { id: 'devices', icon: '📡', name: 'IoT & Hotspot' },
+    { id: 'hardware', icon: '🖨️', name: 'Hardware & Kasse' },
+    { id: 'emergency', icon: '🚨', name: 'Notfall' },
+    { id: 'settings', icon: '⚙️', name: 'Einstellungen' }
+  ];
+
+  // Sidebar HTML neu generieren
+  const sidebar = document.querySelector('.h-sidebar');
+  if (sidebar) {
+    sidebar.innerHTML = `<div class="h-logo">🩺 HalDo</div>`;
+    appList.forEach(app => {
+      if(app.id === 'diseases') sidebar.innerHTML += `<div style="padding: 10px 20px; font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px;">Wissen</div>`;
+      if(app.id === 'contracts') sidebar.innerHTML += `<div style="padding: 10px 20px; font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px;">Praxis & Verträge</div>`;
+      if(app.id === 'devices') sidebar.innerHTML += `<div style="padding: 10px 20px; font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px;">Praxis</div>`;
+      if(app.id === 'settings') sidebar.innerHTML += `<div style="padding: 10px 20px; font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px;">System</div>`;
+      
+      const active = app.id === 'dashboard' ? ' active' : '';
+      const danger = app.id === 'emergency' ? ' style="color:#ff5555;"' : '';
+      sidebar.innerHTML += `<div class="h-nav-item${active}" data-action="view-${app.id}"${danger}><span class="icon">${app.icon}</span> ${app.name}</div>`;
+    });
+  }
+})();
+  new ResizeObserver(() => {
+    const nw = host.clientWidth, nh = host.clientHeight;
+    if (!nw || !nh) return;
+    camera.aspect = nw / nh;
+    camera.updateProjectionMatrix();
+    renderer.setSize(nw, nh);
+  }).observe(host);
+};
+
+// 3. DIE KOMPLETTE A-Z APP LISTE IN DER SIDEBAR
+// Wir bauen die Sidebar komplett neu auf, mit allen Apps aus deiner Master-Notiz
+const appList = [
+  { id: 'dashboard', icon: '📊', name: 'Dashboard' },
+  { id: 'anatomie', icon: '🧍‍♂️', name: 'Anatomie 3D' },
+  { id: 'assistant', icon: '🤖', name: 'KI Assistent' },
+  { id: 'krankheiten', icon: '🦠', name: 'Krankheiten A-Z' },
+  { id: 'medikamente', icon: '💊', name: 'Medikamente A-Z' },
+  { id: 'labor', icon: '🧪', name: 'Laborwerte' },
+  { id: 'vertraege', icon: '📝', name: 'Patientenverträge' },
+  { id: 'pflege', icon: '🧑‍⚕️', name: 'Pflege & Betreuung' },
+  { id: 'iot', icon: '📡', name: 'IoT & Hotspot' },
+  { id: 'hardware', icon: '🖨️', name: 'Hardware & Kasse' },
+  { id: 'notfall', icon: '🚨', name: 'Notfall' },
+  { id: 'einstellungen', icon: '⚙️', name: 'Einstellungen' }
+];
+
+// Sidebar HTML neu generieren
+const sidebar = document.getElementById('sidebar');
+if (sidebar) {
+  // Header behalten, Rest neu
+  let html = `<div class="brand"><div class="b-logo">HalDo</div><div class="b-sub">Arztbuch Pro Max</div></div>`;
+  html += `<div class="n-sec">Übersicht</div>`;
+  appList.forEach(app => {
+    if(app.id === 'krankheiten') html += `<div class="n-sec">Wissen</div>`;
+    if(app.id === 'vertraege') html += `<div class="n-sec">Praxis & Verträge</div>`;
+    if(app.id === 'iot') html += `<div class="n-sec">Praxis</div>`;
+    if(app.id === 'einstellungen') html += `<div class="n-sec">System</div>`;
+    
+    const active = app.id === 'dashboard' ? ' active' : '';
+    const danger = app.id === 'notfall' ? ' style="color:var(--danger)"' : '';
+    html += `<button class="nav${active}" data-view="${app.id}"${danger}><span class="ico">${app.icon}</span> ${app.name}</button>`;
+  });
+  sidebar.innerHTML = html;
+
+  // Klick-Events neu binden
+  const navItems = document.querySelectorAll('.nav');
+  const views = document.querySelectorAll('.view');
+  
+  window.switchView = function(name){
+    views.forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+    navItems.forEach(b => b.classList.toggle('active', b.dataset.view === name));
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('backdrop').classList.remove('show');
+    
+    if(name === 'anatomie') requestAnimationFrame(window.initAnatomy);
+    if(name === 'dashboard') renderDashboard();
+    if(name === 'krankheiten') renderDiseases();
+    if(name === 'medikamente') renderMeds();
+    if(name === 'labor') renderLab();
+  };
+
+  navItems.forEach(b => {
+    b.addEventListener('click', () => window.switchView(b.dataset.view));
+  });
+}
+
+// Die neuen Views (Verträge & Pflege) als Platzhalter einfügen
+const main = document.getElementById('main');
+if (main && !document.getElementById('view-vertraege')) {
+  const v1 = document.createElement('section');
+  v1.id = 'view-vertraege'; v1.className = 'view';
+  v1.innerHTML = `<div class="v-head"><h1>Patientenverträge</h1><p class="sub">Verwaltung & Betreuung</p></div><div class="placeholder"><div class="ph-ico">📝</div><h2>Verträge</h2><p>Hier werden Patientenverträge, Behandlungsverträge und Betreuungsverträge verwaltet. (Kommt in Teil 4)</p></div>`;
+  
+  const v2 = document.createElement('section');
+  v2.id = 'view-pflege'; v2.className = 'view';
+  v2.innerHTML = `<div class="v-head"><h1>Pflege & Betreuung</h1><p class="sub">Pflegedokumentation</p></div><div class="placeholder"><div class="ph-ico">🧑‍⚕️</div><h2>Pflege</h2><p>Hier entsteht die Pflegedokumentation, Medikamentenplan und Betreuungsnachweise. (Kommt in Teil 4)</p></div>`;
+  
+  main.appendChild(v1);
+  main.appendChild(v2);
+}
+</script>
+<!-- WICHTIG: Diese Zeile lädt die Datenbanken aus der zweiten Datei! -->
+<script src="daten.js"></script>
+</body>
+</html>
