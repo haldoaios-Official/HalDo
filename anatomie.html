@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anatomie 3D Pro Max – HalDo AI OS</title>
+<style>
+  :root{
+    --bg:#0a0e17; --panel:#111827; --border:#1e293b;
+    --cyan:#00e5ff; --text:#e5e7eb; --muted:#94a3b8;
+    --green:#10b981; --red:#ef4444; --yellow:#f59e0b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:var(--bg); color:var(--text);
+    height:100vh; overflow:hidden; display:flex; flex-direction:column;
+  }
+
+  /* ---- Topbar ---- */
+  #topbar{
+    padding:12px 20px; border-bottom:1px solid var(--border);
+    display:flex; justify-content:space-between; align-items:center;
+    background:#0f1420; flex-shrink:0;
+  }
+  #topbar h1{font-size:16px; font-weight:700; display:flex; align-items:center; gap:8px}
+  #topbar h1 span{color:var(--cyan)}
+  .top-actions{display:flex; gap:8px; align-items:center}
+  .btn{
+    background:var(--panel); color:var(--text); border:1px solid var(--border);
+    border-radius:8px; padding:7px 14px; font-size:13px; cursor:pointer;
+    font-family:inherit; transition:all .15s;
+  }
+  .btn:hover{border-color:var(--cyan); color:var(--cyan)}
+  .btn.active{background:rgba(0,229,255,.15); border-color:var(--cyan); color:var(--cyan)}
+  .btn.primary{background:linear-gradient(135deg,var(--cyan),#3b82f6); color:#001018; font-weight:700; border:none}
+  .btn.primary:hover{opacity:.9; color:#001018}
+
+  /* ---- Layout ---- */
+  #app{flex:1; display:flex; overflow:hidden}
+
+  /* ---- 3D Bereich ---- */
+  #viewport{
+    flex:1; position:relative; background:radial-gradient(circle at 50% 40%, #111827 0%, #0a0e17 100%);
+    overflow:hidden;
+  }
+  #viewport canvas{display:block}
+
+  #loading{
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; background:rgba(10,14,23,.9);
+    z-index:10; transition:opacity .5s;
+  }
+  #loading.hidden{opacity:0; pointer-events:none}
+  .spinner{
+    width:48px; height:48px; border:4px solid #1e293b; border-top-color:var(--cyan);
+    border-radius:50%; animation:spin 1s linear infinite; margin-bottom:16px;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #load-text{font-size:14px; color:var(--muted)}
+  #load-bar{width:200px; height:6px; background:#1e293b; border-radius:3px; margin-top:12px; overflow:hidden}
+  #load-fill{height:100%; width:0%; background:linear-gradient(90deg,var(--cyan),#3b82f6); transition:width .2s}
+
+  /* ---- Info Panel ---- */
+  #info{
+    width:320px; background:#0f1420; border-left:1px solid var(--border);
+    padding:20px; overflow-y:auto; flex-shrink:0;
+  }
+  #info::-webkit-scrollbar{width:6px}
+  #info::-webkit-scrollbar-thumb{background:#1e293b; border-radius:3px}
+  #info h2{font-size:12px; text-transform:uppercase; letter-spacing:1.2px; color:var(--cyan); margin-bottom:14px}
+  #info .empty{color:var(--muted); font-size:13px; line-height:1.6; text-align:center; padding:30px 10px}
+  #info .empty .ico{font-size:40px; display:block; margin-bottom:10px; opacity:.4}
+  .info-card{
+    background:linear-gradient(135deg,#111827,#0d1424); border:1px solid var(--border);
+    border-radius:12px; padding:16px; margin-bottom:14px; animation:fadeIn .25s;
+  }
+  @keyframes fadeIn{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:translateY(0)}}
+  .info-card .name{font-size:17px; font-weight:700; color:var(--cyan); margin-bottom:6px; line-height:1.3}
+  .info-card .detail{font-size:12px; color:var(--muted); margin-bottom:10px; line-height:1.5}
+  .info-card .type-badge{
+    display:inline-block; padding:3px 10px; border-radius:20px; font-size:10px;
+    text-transform:uppercase; letter-spacing:.8px; font-weight:600; margin-bottom:10px;
+  }
+  .type-muscle{background:rgba(239,68,68,.15); color:#fca5a5; border:1px solid rgba(239,68,68,.3)}
+  .type-bone{background:rgba(59,130,246,.15); color:#93c5fd; border:1px solid rgba(59,130,246,.3)}
+  .type-organ{background:rgba(16,185,129,.15); color:#6ee7b7; border:1px solid rgba(16,185,129,.3)}
+  .info-card .actions{display:flex; gap:8px; margin-top:12px}
+  .info-card .actions .btn{flex:1; padding:8px; font-size:12px}
+
+  /* ---- Hint ---- */
+  #hint{
+    position:absolute; bottom:16px; left:50%; transform:translateX(-50%);
+    background:rgba(15,20,32,.85); border:1px solid var(--border);
+    padding:8px 16px; border-radius:20px; font-size:12px; color:var(--muted);
+    backdrop-filter:blur(6px); pointer-events:none; white-space:nowrap;
+  }
+
+  /* ---- Mobile ---- */
+  @media(max-width:768px){
+    #app{flex-direction:column}
+    #info{width:100%; max-height:35vh; border-left:none; border-top:1px solid var(--border)}
+    #hint{display:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <h1>🦴 Anatomie <span>3D Pro Max</span></h1>
+  <div class="top-actions">
+    <button class="btn active" id="btn-muscles">💪 Muskeln</button>
+    <button class="btn active" id="btn-bones">🦴 Knochen</button>
+    <button class="btn" id="btn-reset">🔄 Reset</button>
+    <button class="btn" id="btn-tts">🔊 TTS</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div id="viewport">
+    <div id="loading">
+      <div class="spinner"></div>
+      <div id="load-text">Modell wird geladen…</div>
+      <div id="load-bar"><div id="load-fill"></div></div>
+    </div>
+    <div id="hint">🖱️ Ziehen = drehen · Scrollen = zoomen · Klick = Körperteil wählen</div>
+  </div>
+
+  <aside id="info">
+    <h2>ℹ️ Information</h2>
+    <div id="info-content">
+      <div class="empty">
+        <span class="ico">👆</span>
+        Klicke auf einen Muskel oder Knochen im 3D-Modell, um Details zu sehen.
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- THREE.JS + LOADER -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+/* ============================================================
+   KONFIGURATION
+   ============================================================ */
+const MODEL_URL = 'https://raw.githubusercontent.com/hpfrei/body-anatomy-3d-viewer/main/public/body.glb';
+// Falls CORS-Probleme: Datei herunterladen und './body.glb' verwenden.
+
+/* ============================================================
+   SCENE, CAMERA, RENDERER
+   ============================================================ */
+const viewport = document.getElementById('viewport');
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0e17);
+
+// Kamera: weit genug weg, auf Füße gerichtet
+const camera = new THREE.PerspectiveCamera(
+  45, viewport.clientWidth / viewport.clientHeight, 0.1, 100
+);
+camera.position.set(0, 1.2, 6);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+viewport.appendChild(renderer.domElement);
+
+/* ============================================================
+   CONTROLS – Pivot auf Füßen (y≈1.0)
+   ============================================================ */
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1.0, 0);       // Blickpunkt ca. Bauchnabel-Höhe
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 1.5;
+controls.maxDistance = 12;
+controls.maxPolarAngle = Math.PI * 0.95; // fast bis unten
+controls.update();
+
+/* ============================================================
+   LICHT
+   ============================================================ */
+// Ambient – Grundhelligkeit
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+
+// Key-Light (vorne rechts oben)
+const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+keyLight.position.set(3, 6, 4);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(1024, 1024);
+scene.add(keyLight);
+
+// Fill-Light (hinten links)
+const fillLight = new THREE.DirectionalLight(0x88bbff, 0.8);
+fillLight.position.set(-4, 3, -3);
+scene.add(fillLight);
+
+// Rim-Light (hinten)
+const rimLight = new THREE.DirectionalLight(0x00e5ff, 0.6);
+rimLight.position.set(0, 4, -6);
+scene.add(rimLight);
+
+/* ============================================================
+   BODEN (Schattenfänger, unsichtbar)
+   ============================================================ */
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(20, 20),
+  new THREE.ShadowMaterial({ opacity: 0.25 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = 0;
+ground.receiveShadow = true;
+scene.add(ground);
+
+/* ============================================================
+   LOADER (DRACO)
+   ============================================================ */
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
+
+const gltfLoader = new GLTFLoader();
+gltfLoader.setDRACOLoader(dracoLoader);
+
+/* ============================================================
+   MODELL LADEN
+   ============================================================ */
+let model = null;
+let muscles = [];
+let bones = [];
+let organs = [];
+
+const loadingEl = document.getElementById('loading');
+const loadFill = document.getElementById('load-fill');
+const loadText = document.getElementById('load-text');
+
+gltfLoader.load(
+  MODEL_URL,
+  (gltf) => {
+    model = gltf.scene;
+
+    // Füße auf y=0 setzen
+    const box = new THREE.Box3().setFromObject(model);
+    model.position.y = -box.min.y; // hebt Modell so, dass min.y = 0
+
+    // Schatten + Kategorisierung
+    model.traverse((node) => {
+      if (node.isMesh) {
+        node.castShadow = true;
+        node.receiveShadow = true;
+
+        const type = (node.userData.type || '').toLowerCase();
+        if (type.includes('muscle')) muscles.push(node);
+        else if (type.includes('bone')) bones.push(node);
+        else if (type.includes('organ')) organs.push(node);
+      }
+    });
+
+    scene.add(model);
+
+    // Ladeanzeige ausblenden
+    loadingEl.classList.add('hidden');
+
+    // Info-Text setzen
+    document.getElementById('info-content').innerHTML = `
+      <div class="empty">
+        <span class="ico">👆</span>
+        Klicke auf einen Muskel oder Knochen im 3D-Modell, um Details zu sehen.
+      </div>
+    `;
+  },
+  (xhr) => {
+    if (xhr.total) {
+      const pct = Math.round((xhr.loaded / xhr.total) * 100);
+      loadFill.style.width = pct + '%';
+      loadText.textContent = `Modell wird geladen… ${pct}%`;
+    }
+  },
+  (err) => {
+    console.error('Modell-Ladefehler:', err);
+    loadText.textContent = '⚠️ Modell konnte nicht geladen werden.';
+    document.getElementById('load-fill').style.background = '#ef4444';
+  }
+);
+
+/* ============================================================
+   RAYCASTER – Klick auf Körperteil
+   ============================================================ */
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+renderer.domElement.addEventListener('click', (event) => {
+  if (!model) return;
+
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(pointer, camera);
+  const intersects = raycaster.intersectObject(model, true);
+
+  if (intersects.length > 0) {
+    const hit = intersects[0].object;
+    showInfo(hit);
+  }
+});
+
+/* ============================================================
+   INFO ANZEIGEN
+   ============================================================ */
+const infoContent = document.getElementById('info-content');
+
+function showInfo(mesh) {
+  const name = mesh.userData.name || mesh.name || 'Unbekanntes Körperteil';
+  const detail = mesh.userData.nameDetail || mesh.userData.description || '';
+  const type = (mesh.userData.type || 'struktur').toLowerCase();
+  const wiki = mesh.userData.wikiLink || '';
+
+  const typeLabel = type.includes('muscle') ? 'Muskel'
+                  : type.includes('bone') ? 'Knochen'
+                  : type.includes('organ') ? 'Organ'
+                  : 'Struktur';
+  const typeClass = type.includes('muscle') ? 'type-muscle'
+                  : type.includes('bone') ? 'type-bone'
+                  : type.includes('organ') ? 'type-organ'
+                  : 'type-bone';
+
+  infoContent.innerHTML = `
+    <div class="info-card">
+      <div class="type-badge ${typeClass}">${typeLabel}</div>
+      <div class="name">${name}</div>
+      ${detail ? `<div class="detail">${detail}</div>` : ''}
+      <div class="actions">
+        <button class="btn primary" id="info-speak">🔊 Vorlesen</button>
+        ${wiki ? `<a class="btn" href="${wiki}" target="_blank" rel="noopener">📖 Wiki</a>` : ''}
+      </div>
+    </div>
+  `;
+
+  // TTS-Button
+  const speakBtn = document.getElementById('info-speak');
+  if (speakBtn) {
+    speakBtn.addEventListener('click', () => {
+      speakText(`${name}. ${detail}`);
+    });
+  }
+
+  // Ausgewähltes Mesh hervorheben (Emissive-Glow)
+  highlightMesh(mesh);
+}
+
+/* ============================================================
+   HERVORHEBUNG
+   ============================================================ */
+let lastHighlighted = null;
+
+function highlightMesh(mesh) {
+  // Alten Glow entfernen
+  if (lastHighlighted) {
+    lastHighlighted.material.emissive?.setHex(0x000000);
+    lastHighlighted.material.emissiveIntensity = 0;
+  }
+
+  // Neuen Glow setzen
+  if (mesh.material && mesh.material.emissive) {
+    mesh.material.emissive.setHex(0x00e5ff);
+    mesh.material.emissiveIntensity = 0.35;
+    lastHighlighted = mesh;
+  }
+}
+
+/* ============================================================
+   FILTER – Muskeln / Knochen ein-/ausblenden
+   ============================================================ */
+let showMuscles = true;
+let showBones = true;
+
+const btnMuscles = document.getElementById('btn-muscles');
+const btnBones = document.getElementById('btn-bones');
+
+btnMuscles.addEventListener('click', () => {
+  showMuscles = !showMuscles;
+  muscles.forEach(m => m.visible = showMuscles);
+  btnMuscles.classList.toggle('active', showMuscles);
+});
+
+btnBones.addEventListener('click', () => {
+  showBones = !showBones;
+  bones.forEach(b => b.visible = showBones);
+  btnBones.classList.toggle('active', showBones);
+});
+
+/* ============================================================
+   RESET
+   ============================================================ */
+document.getElementById('btn-reset').addEventListener('click', () => {
+  // Sichtbarkeit zurücksetzen
+  showMuscles = true;
+  showBones = true;
+  muscles.forEach(m => m.visible = true);
+  bones.forEach(b => b.visible = true);
+  organs.forEach(o => o.visible = true);
+  btnMuscles.classList.add('active');
+  btnBones.classList.add('active');
+
+  // Kamera zurücksetzen
+  camera.position.set(0, 1.2, 6);
+  controls.target.set(0, 1.0, 0);
+  controls.update();
+
+  // Hervorhebung entfernen
+  if (lastHighlighted) {
+    lastHighlighted.material.emissive?.setHex(0x000000);
+    lastHighlighted.material.emissiveIntensity = 0;
+    lastHighlighted = null;
+  }
+
+  // Info zurücksetzen
+  infoContent.innerHTML = `
+    <div class="empty">
+      <span class="ico">👆</span>
+      Klicke auf einen Muskel oder Knochen im 3D-Modell, um Details zu sehen.
+    </div>
+  `;
+});
+
+/* ============================================================
+   TTS (Web Speech API)
+   ============================================================ */
+let ttsEnabled = true;
+
+document.getElementById('btn-tts').addEventListener('click', () => {
+  ttsEnabled = !ttsEnabled;
+  document.getElementById('btn-tts').classList.toggle('active', ttsEnabled);
+  if (!ttsEnabled) window.speechSynthesis.cancel();
+});
+
+function speakText(text) {
+  if (!ttsEnabled) return;
+  if (!('speechSynthesis' in window)) return;
+
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'de-DE';
+  u.rate = 0.95;
+  window.speechSynthesis.speak(u);
+}
+
+/* ============================================================
+   ANIMATION LOOP
+   ============================================================ */
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+/* ============================================================
+   RESIZE
+   ============================================================ */
+window.addEventListener('resize', () => {
+  const w = viewport.clientWidth;
+  const h = viewport.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+});
+
+/* ============================================================
+   TASTATUR – R = Reset
+   ============================================================ */
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'r' || e.key === 'R') {
+    document.getElementById('btn-reset').click();
+  }
+});
+</script>
+</body>
+</html>
