@@ -327,6 +327,286 @@ window.addEventListener('load',()=>{
   renderDashboard();
   if(location.hash==='#anatomie')switchView('anatomie');
 });
+/* ============================================================
+   TEIL 1: PERFEKTE SONNE + ECHTE 3D ANATOMIE + A-Z SIDEBAR
+   ============================================================ */
+
+// 1. DIE ORIGINAL SONNE VON DAMALS (aus deinem Screenshot)
+(function rebuildOriginalSun() {
+  const canvas = document.getElementById('bg-canvas');
+  if (!canvas) return;
+  
+  // Wir überschreiben den alten Hintergrund mit dem Original-Code
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x020205);
+  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+  camera.position.set(0, 0, 15);
+
+  // Sterne
+  const starGeo = new THREE.BufferGeometry();
+  const starPos = new Float32Array(8000 * 3);
+  for (let i = 0; i < 8000 * 3; i += 3) {
+    starPos[i]     = (Math.random() - 0.5) * 2000;
+    starPos[i + 1] = (Math.random() - 0.5) * 2000;
+    starPos[i + 2] = (Math.random() - 0.5) * 2000;
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.5 })));
+
+  const tl = new THREE.TextureLoader();
+
+  // DIE SONNE (Canvas, unzerstörbar, exakt wie damals)
+  const sunCanvas = document.createElement('canvas');
+  sunCanvas.width = 512; sunCanvas.height = 512;
+  const sCtx = sunCanvas.getContext('2d');
+  const sGrad = sCtx.createRadialGradient(256, 256, 0, 256, 256, 256);
+  sGrad.addColorStop(0, '#ffffff'); sGrad.addColorStop(0.2, '#ffffaa');
+  sGrad.addColorStop(0.5, '#ffaa00'); sGrad.addColorStop(0.8, '#ff5500');
+  sGrad.addColorStop(1, '#aa0000');
+  sCtx.fillStyle = sGrad; sCtx.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 50; i++) {
+    const px = Math.random() * 512, py = Math.random() * 512, r = Math.random() * 10 + 5;
+    const rg = sCtx.createRadialGradient(px, py, 0, px, py, r);
+    rg.addColorStop(0, 'rgba(255, 255, 255, 0.8)'); rg.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    sCtx.fillStyle = rg; sCtx.beginPath(); sCtx.arc(px, py, r, 0, Math.PI * 2); sCtx.fill();
+  }
+  const sunTex = new THREE.CanvasTexture(sunCanvas);
+  
+  const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 64, 64), new THREE.MeshBasicMaterial({ map: sunTex }));
+  sunMesh.position.set(35, 25, -60);
+  scene.add(sunMesh);
+
+  // Sonnen-Glow
+  const glowCanvas = document.createElement('canvas');
+  glowCanvas.width = 256; glowCanvas.height = 256;
+  const gCtx = glowCanvas.getContext('2d');
+  const gGrad = gCtx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  gGrad.addColorStop(0, 'rgba(255, 200, 50, 0.8)'); gGrad.addColorStop(0.5, 'rgba(255, 100, 0, 0.4)'); gGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+  gCtx.fillStyle = gGrad; gCtx.fillRect(0, 0, 256, 256);
+  const sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(glowCanvas), blending: THREE.AdditiveBlending, depthTest: false }));
+  sunGlow.scale.set(40, 40, 1);
+  sunGlow.position.copy(sunMesh.position);
+  scene.add(sunGlow);
+
+  // Erde & Mond & Text-Ring (wie im Original)
+  const earthMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 64, 64), new THREE.MeshStandardMaterial({ map: tl.load('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg'), roughness: 0.7, metalness: 0.1 }));
+  earthMesh.position.set(-8, 3, -20); scene.add(earthMesh);
+  const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(1.5, 32, 32), new THREE.MeshStandardMaterial({ map: tl.load('https://cdn.jsdelivr.net/gh/homer-jay/solar-system-textures@master/moon.jpg'), roughness: 1.0 }));
+  moonMesh.position.set(18, 12, -15); scene.add(moonMesh);
+
+  // Lichter
+  const sunLight = new THREE.PointLight(0xfff5e6, 5000, 1000); sunLight.position.copy(sunMesh.position); scene.add(sunLight);
+  const fl1 = new THREE.DirectionalLight(0xffffff, 3.0); fl1.position.set(-10, 5, 10); scene.add(fl1);
+  const fl2 = new THREE.DirectionalLight(0x00d4ff, 2.0); fl2.position.set(5, -5, 10); scene.add(fl2);
+  scene.add(new THREE.AmbientLight(0x555566, 2.0));
+
+  const clock = new THREE.Clock();
+  function animate() {
+    requestAnimationFrame(animate);
+    const delta = clock.getDelta();
+    earthMesh.rotation.y += delta * 0.02;
+    moonMesh.rotation.y += delta * 0.01;
+    renderer.render(scene, camera);
+  }
+  animate();
+  window.addEventListener('resize', () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+  });
+})();
+
+// 2. DIE NEUE, PROFESSIONELLE 3D ANATOMIE (MÄNNLICH & WEIBLICH)
+window.initAnatomy = function() {
+  const host = document.getElementById('anatomy-canvas');
+  if (!host || host.dataset.inited) return;
+  host.dataset.inited = "true";
+  host.innerHTML = ''; // Lade-Text weg
+
+  const w = host.clientWidth, h = host.clientHeight;
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
+  camera.position.set(0, 1.2, 6);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(w, h);
+  host.appendChild(renderer.domElement);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 1.0, 0);
+  controls.enableDamping = true;
+  controls.minDistance = 1.0;
+  controls.maxDistance = 10.0;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.6;
+
+  scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+  const key = new THREE.DirectionalLight(0xffffff, 3.0); key.position.set(2, 4, 3); scene.add(key);
+  const rim = new THREE.DirectionalLight(0x00d4ff, 2.0); rim.position.set(-3, 2, -2); scene.add(rim);
+
+  const loader = new GLTFLoader();
+  // ECHTES XBOT MODELL (Männlich) + ECHTES WEIBLICHES MODELL
+  const maleUrl = 'https://threejs.org/examples/models/gltf/Xbot.glb';
+  const femaleUrl = 'https://threejs.org/examples/models/gltf/Michelle.glb';
+
+  let currentModel = null;
+
+  // Männlich laden
+  loader.load(maleUrl, (gltf) => {
+    const model = gltf.scene;
+    model.rotation.set(0, Math.PI, 0);
+    // Xbot hat oft Skalierungsprobleme, wir zwingen ihn auf 2 Meter
+    model.scale.set(1.8, 1.8, 1.8); 
+    const box = new THREE.Box3().setFromObject(model);
+    model.position.y = -box.min.y; // Füße auf den Boden
+    model.position.x = -(box.max.x + box.min.x) / 2;
+    model.position.z = -(box.max.z + box.min.z) / 2;
+
+    model.traverse((child) => {
+      if (child.isMesh) child.material = new THREE.MeshPhysicalMaterial({ color: 0xffe4cc, roughness: 0.3, clearcoat: 0.5 });
+    });
+    scene.add(model);
+    currentModel = model;
+    window.toggleAnatomy('human'); // Standardmäßig anzeigen
+    document.getElementById('btnHuman').innerText = '🧍 Männlich';
+    document.getElementById('btnHuman').onclick = () => {
+      if(currentModel) currentModel.visible = false;
+      model.visible = true;
+      currentModel = model;
+      document.getElementById('btnHuman').innerText = '🧍 Männlich';
+    };
+  }, undefined, (err) => {
+    console.warn("Xbot fehlgeschlagen, lade Michelle (Weiblich)");
+    loader.load(femaleUrl, (gltf) => {
+      const model = gltf.scene;
+      model.scale.set(1.5, 1.5, 1.5);
+      const box = new THREE.Box3().setFromObject(model);
+      model.position.y = -box.min.y;
+      model.traverse(c => { if (c.isMesh) c.material = new THREE.MeshPhysicalMaterial({ color: 0xffe4cc, roughness: 0.3 }); });
+      scene.add(model); currentModel = model;
+    });
+  });
+
+  // Weiblich laden (im Hintergrund)
+  loader.load(femaleUrl, (gltf) => {
+    const model = gltf.scene;
+    model.scale.set(1.5, 1.5, 1.5);
+    const box = new THREE.Box3().setFromObject(model);
+    model.position.y = -box.min.y;
+    model.position.x = -(box.max.x + box.min.x) / 2;
+    model.position.z = -(box.max.z + box.min.z) / 2;
+    model.traverse((child) => {
+      if (child.isMesh) child.material = new THREE.MeshPhysicalMaterial({ color: 0xffe4cc, roughness: 0.3, clearcoat: 0.5 });
+    });
+    model.visible = false;
+    scene.add(model);
+    
+    // Button für Weiblich
+    const btnFemale = document.getElementById('btnMuskeln'); // Wir klauen uns den Button
+    btnFemale.innerText = '👩 Weiblich';
+    btnFemale.onclick = () => {
+      if(currentModel) currentModel.visible = false;
+      model.visible = true;
+      currentModel = model;
+      document.getElementById('btnHuman').innerText = '🧍 Männlich';
+      btnFemale.innerText = '👩 Weiblich';
+    };
+    // Wenn wir auf Männlich klicken, Weiblich ausblenden
+    document.getElementById('btnHuman').addEventListener('click', () => { model.visible = false; });
+  });
+
+  (function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  })();
+
+  new ResizeObserver(() => {
+    const nw = host.clientWidth, nh = host.clientHeight;
+    if (!nw || !nh) return;
+    camera.aspect = nw / nh;
+    camera.updateProjectionMatrix();
+    renderer.setSize(nw, nh);
+  }).observe(host);
+};
+
+// 3. DIE KOMPLETTE A-Z APP LISTE IN DER SIDEBAR
+// Wir bauen die Sidebar komplett neu auf, mit allen Apps aus deiner Master-Notiz
+const appList = [
+  { id: 'dashboard', icon: '📊', name: 'Dashboard' },
+  { id: 'anatomie', icon: '🧍‍♂️', name: 'Anatomie 3D' },
+  { id: 'assistant', icon: '🤖', name: 'KI Assistent' },
+  { id: 'krankheiten', icon: '🦠', name: 'Krankheiten A-Z' },
+  { id: 'medikamente', icon: '💊', name: 'Medikamente A-Z' },
+  { id: 'labor', icon: '🧪', name: 'Laborwerte' },
+  { id: 'vertraege', icon: '📝', name: 'Patientenverträge' },
+  { id: 'pflege', icon: '🧑‍⚕️', name: 'Pflege & Betreuung' },
+  { id: 'iot', icon: '📡', name: 'IoT & Hotspot' },
+  { id: 'hardware', icon: '🖨️', name: 'Hardware & Kasse' },
+  { id: 'notfall', icon: '🚨', name: 'Notfall' },
+  { id: 'einstellungen', icon: '⚙️', name: 'Einstellungen' }
+];
+
+// Sidebar HTML neu generieren
+const sidebar = document.getElementById('sidebar');
+if (sidebar) {
+  // Header behalten, Rest neu
+  let html = `<div class="brand"><div class="b-logo">HalDo</div><div class="b-sub">Arztbuch Pro Max</div></div>`;
+  html += `<div class="n-sec">Übersicht</div>`;
+  appList.forEach(app => {
+    if(app.id === 'krankheiten') html += `<div class="n-sec">Wissen</div>`;
+    if(app.id === 'vertraege') html += `<div class="n-sec">Praxis & Verträge</div>`;
+    if(app.id === 'iot') html += `<div class="n-sec">Praxis</div>`;
+    if(app.id === 'einstellungen') html += `<div class="n-sec">System</div>`;
+    
+    const active = app.id === 'dashboard' ? ' active' : '';
+    const danger = app.id === 'notfall' ? ' style="color:var(--danger)"' : '';
+    html += `<button class="nav${active}" data-view="${app.id}"${danger}><span class="ico">${app.icon}</span> ${app.name}</button>`;
+  });
+  sidebar.innerHTML = html;
+
+  // Klick-Events neu binden
+  const navItems = document.querySelectorAll('.nav');
+  const views = document.querySelectorAll('.view');
+  
+  window.switchView = function(name){
+    views.forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+    navItems.forEach(b => b.classList.toggle('active', b.dataset.view === name));
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('backdrop').classList.remove('show');
+    
+    if(name === 'anatomie') requestAnimationFrame(window.initAnatomy);
+    if(name === 'dashboard') renderDashboard();
+    if(name === 'krankheiten') renderDiseases();
+    if(name === 'medikamente') renderMeds();
+    if(name === 'labor') renderLab();
+  };
+
+  navItems.forEach(b => {
+    b.addEventListener('click', () => window.switchView(b.dataset.view));
+  });
+}
+
+// Die neuen Views (Verträge & Pflege) als Platzhalter einfügen
+const main = document.getElementById('main');
+if (main && !document.getElementById('view-vertraege')) {
+  const v1 = document.createElement('section');
+  v1.id = 'view-vertraege'; v1.className = 'view';
+  v1.innerHTML = `<div class="v-head"><h1>Patientenverträge</h1><p class="sub">Verwaltung & Betreuung</p></div><div class="placeholder"><div class="ph-ico">📝</div><h2>Verträge</h2><p>Hier werden Patientenverträge, Behandlungsverträge und Betreuungsverträge verwaltet. (Kommt in Teil 4)</p></div>`;
+  
+  const v2 = document.createElement('section');
+  v2.id = 'view-pflege'; v2.className = 'view';
+  v2.innerHTML = `<div class="v-head"><h1>Pflege & Betreuung</h1><p class="sub">Pflegedokumentation</p></div><div class="placeholder"><div class="ph-ico">🧑‍⚕️</div><h2>Pflege</h2><p>Hier entsteht die Pflegedokumentation, Medikamentenplan und Betreuungsnachweise. (Kommt in Teil 4)</p></div>`;
+  
+  main.appendChild(v1);
+  main.appendChild(v2);
+}
 </script>
 <!-- WICHTIG: Diese Zeile lädt die Datenbanken aus der zweiten Datei! -->
 <script src="daten.js"></script>
