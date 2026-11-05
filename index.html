@@ -1,2351 +1,665 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>HalDo AI OS Pro Max</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body {
-    height: 100%; overflow: hidden;
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    background: #000; color: #d8f1ff;
-    user-select: none;
-  }
-  #cosmos { position: fixed; inset: 0; z-index: 0; display: block; }
+:root {
+  --bg: #0a0e1a; --bg2: rgba(17,24,39,.85); --bg3: #1f2937; --border: #374151;
+  --text: #f3f4f6; --dim: #9ca3af; --accent: #06b6d4; --accent2: #3b82f6;
+  --success: #10b981; --warn: #f59e0b; --danger: #ef4444;
+  --radius: 12px; --font: 'Segoe UI',system-ui,-apple-system,sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: #000; user-select: none; }
+body { font-family: var(--font); color: var(--text); font-size: 14px; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input, textarea, select { font-family: inherit; background: var(--bg2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 10px 12px; width: 100%; outline: none; font-size: 14px; }
+input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
-  /* ===== TOPBAR ===== */
-  #topbar {
-    position: fixed; top: 0; left: 0; right: 0; height: 40px;
-    background: rgba(2, 12, 24, 0.75);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(80, 200, 255, 0.25);
-    display: flex; align-items: center; gap: 10px;
-    padding: 0 12px; z-index: 200;
-  }
-  #topbar .brand {
-    font-weight: 700; color: #66e0ff; letter-spacing: 1.5px;
-    text-shadow: 0 0 8px rgba(102, 224, 255, 0.7);
-    font-size: 14px;
-  }
-  #topbar .spacer { flex: 1; }
-  #topbar select, #topbar button {
-    background: rgba(10, 30, 50, 0.85); color: #c8ecff;
-    border: 1px solid rgba(80, 200, 255, 0.4); border-radius: 6px;
-    padding: 4px 8px; font-size: 12px; cursor: pointer;
-    font-family: inherit;
-  }
-  #topbar button:hover { background: rgba(30, 80, 120, 0.9); }
-  #clock { font-family: monospace; color: #66e0ff; font-size: 13px; }
-  #startBtn {
-    background: transparent; border: 1px solid rgba(80,200,255,0.5);
-    color: #66e0ff; font-size: 16px; padding: 4px 10px; border-radius: 6px;
-    cursor: pointer;
-  }
+/* ===== 3D HINTERGRUND ===== */
+#cosmos-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; width: 100%; height: 100%; }
+#cyborg-canvas { position: fixed; inset: 0; z-index: 1; pointer-events: none; width: 100%; height: 100%; }
 
-  /* ===== START MENU ===== */
-  #startmenu {
-    position: fixed; top: 46px; left: 8px; z-index: 300;
-    width: 560px; max-height: calc(100vh - 110px);
-    background: rgba(2, 15, 30, 0.96);
-    border: 1px solid rgba(80, 200, 255, 0.4);
-    border-radius: 10px; padding: 14px;
-    box-shadow: 0 0 40px rgba(0, 150, 255, 0.35);
-    display: none; overflow-y: auto;
-  }
-  #startmenu.open { display: block; }
-  #startmenu h3 { margin-bottom: 10px; color: #66e0ff; font-size: 14px; letter-spacing: 1.5px; }
-  #startGrid {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
-  }
-  .app-tile {
-    background: rgba(10, 30, 50, 0.85);
-    border: 1px solid rgba(80, 200, 255, 0.3);
-    border-radius: 8px; padding: 8px 6px; cursor: pointer;
-    display: flex; flex-direction: column; align-items: center; gap: 4px;
-    font-size: 11px; text-align: center; color: #b8e6ff;
-    transition: all .15s;
-  }
-  .app-tile:hover {
-    background: rgba(30, 90, 140, 0.9);
-    border-color: #66e0ff;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0, 180, 255, 0.4);
-  }
-  .app-tile .icon { font-size: 22px; }
-  .app-tile .letter { color: #66e0ff; font-size: 9px; font-weight: 700; }
+/* ===== WELCOME ===== */
+#welcome { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; z-index: 9999; gap: 20px; padding: 40px; text-align: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); transition: opacity 0.5s; }
+#welcome.hide { opacity: 0; pointer-events: none; }
+#welcome h1 { font-size: clamp(32px,5.5vw,64px); font-weight: 900; letter-spacing: 4px; background: linear-gradient(90deg,#fffbeb,#fde047,#f59e0b,#fbbf24); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: 0 0 30px rgba(251,191,36,.8); }
+#welcome h2 { font-size: clamp(16px,2vw,22px); color: #e5e7eb; font-weight: 400; line-height: 1.6; }
+#welcome .presented { font-size: 12px; color: #9ca3af; letter-spacing: 3px; text-transform: uppercase; }
+#welcome .presented b { color: #fbbf24; }
+#welcome .enter-btn { margin-top: 20px; padding: 16px 48px; background: linear-gradient(90deg,var(--accent),var(--accent2)); border-radius: 30px; font-size: 16px; font-weight: 700; letter-spacing: 2px; box-shadow: 0 0 40px rgba(6,182,212,.6); transition: transform .2s; }
+#welcome .enter-btn:hover { transform: scale(1.05); }
 
-  /* ===== WINDOWS ===== */
-  #windows { position: fixed; inset: 0; z-index: 100; pointer-events: none; }
-  .window {
-    position: absolute; pointer-events: auto;
-    background: rgba(3, 15, 30, 0.94);
-    border: 1px solid rgba(80, 200, 255, 0.4);
-    border-radius: 10px;
-    box-shadow: 0 10px 50px rgba(0, 80, 180, 0.5);
-    display: flex; flex-direction: column;
-    min-width: 420px; min-height: 280px;
-    overflow: hidden;
-    backdrop-filter: blur(6px);
-  }
-  .window.minimized { display: none; }
-  .win-header {
-    height: 36px; flex: none; display: flex; align-items: center;
-    padding: 0 10px; gap: 10px; cursor: move;
-    background: linear-gradient(90deg, rgba(20,80,130,0.9), rgba(10,40,70,0.9));
-    border-bottom: 1px solid rgba(80,200,255,0.3);
-  }
-  .win-title {
-    font-size: 13px; font-weight: 600; color: #aee6ff;
-    text-shadow: 0 0 6px rgba(0,180,255,0.6);
-    flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .win-controls { display: flex; gap: 4px; }
-  .win-controls button {
-    width: 26px; height: 22px; border: 1px solid rgba(80,200,255,0.4);
-    background: rgba(10,30,50,0.7); color: #aee6ff; cursor: pointer;
-    border-radius: 4px; font-size: 12px; line-height: 1;
-    font-family: inherit;
-  }
-  .win-controls button:hover { background: rgba(30,90,140,0.9); }
-  .win-controls button[data-act="close"]:hover { background: #b32222; border-color: #ff5555; }
-  .win-body { flex: 1; display: flex; min-height: 0; }
+/* ===== TASKBAR ===== */
+#taskbar { position: fixed; bottom: 0; left: 0; right: 0; height: 50px; background: rgba(17,24,39,.95); backdrop-filter: blur(15px); border-top: 1px solid var(--border); display: none; align-items: center; padding: 0 20px; gap: 10px; z-index: 9997; }
+#taskbar.show { display: flex; }
+.start-btn { background: linear-gradient(135deg,var(--accent),var(--accent2)); padding: 8px 16px; border-radius: 8px; font-weight: bold; display: flex; align-items: center; gap: 8px; color: #fff; cursor: pointer; }
+.taskbar-apps { flex: 1; display: flex; gap: 8px; overflow: hidden; }
+.taskbar-app { background: rgba(55,65,81,.5); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; border: 1px solid transparent; }
+.taskbar-app:hover { border-color: var(--accent); background: rgba(31,41,55,.8); }
+.taskbar-app.active { border-color: var(--accent); background: rgba(6,182,212,.2); }
+#sys-clock { color: var(--dim); font-size: 13px; font-weight: 600; }
 
-  /* ===== SIDEBAR ===== */
-  .app-sidebar {
-    width: 180px; flex: none; padding: 8px; overflow-y: auto;
-    background: rgba(0, 10, 20, 0.6);
-    border-right: 1px solid rgba(80,200,255,0.15);
-    display: flex; flex-direction: column; gap: 4px;
-  }
-  .side-btn {
-    text-align: left; padding: 8px 10px; font-size: 12px;
-    background: transparent; border: 1px solid transparent;
-    color: #a0d0e8; cursor: pointer; border-radius: 6px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    font-family: inherit;
-  }
-  .side-btn:hover { background: rgba(30,80,120,0.4); color: #fff; }
-  .side-btn.active {
-    background: rgba(30,110,170,0.7);
-    border-color: rgba(80,200,255,0.6); color: #fff;
-    box-shadow: 0 0 10px rgba(0,180,255,0.4);
-  }
-  .side-btn.speak-btn { margin-top: auto; color: #66e0ff; }
+/* ===== START MENÜ ===== */
+#start-menu { position: fixed; bottom: 60px; left: 10px; width: 380px; max-height: 80vh; background: rgba(17,24,39,.98); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 12px; display: none; flex-direction: column; overflow: hidden; z-index: 9998; box-shadow: 0 -10px 40px rgba(0,0,0,.8); }
+#start-menu.show { display: flex; }
+.sm-header { padding: 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-weight: bold; color: var(--accent); }
+.sm-search { padding: 10px; border-bottom: 1px solid var(--border); }
+.sm-search input { background: rgba(0,0,0,0.3); border: none; padding: 8px 12px; border-radius: 6px; }
+.sm-apps { flex: 1; overflow-y: auto; padding: 10px; display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+.sm-app-card { display: flex; flex-direction: column; align-items: center; padding: 10px; border-radius: 8px; cursor: pointer; transition: background .2s; }
+.sm-app-card:hover { background: rgba(55,65,81,.5); }
+.sm-app-card .ico { font-size: 28px; margin-bottom: 6px; }
+.sm-app-card .nm { font-size: 11px; text-align: center; line-height: 1.2; }
 
-  /* ===== APP CONTENT ===== */
-  .app-content { flex: 1; padding: 14px; overflow-y: auto; min-width: 0; }
-  .app-content h3 {
-    margin-bottom: 10px; color: #66e0ff; font-size: 15px; letter-spacing: 1px;
-  }
-  .app-content input, .app-content select, .app-content textarea {
-    width: 100%; padding: 8px 10px; margin: 4px 0;
-    background: rgba(0,15,30,0.9); color: #d8f1ff;
-    border: 1px solid rgba(80,200,255,0.3); border-radius: 6px;
-    font-size: 13px; font-family: inherit; outline: none;
-  }
-  .app-content input:focus, .app-content select:focus, .app-content textarea:focus {
-    border-color: #66e0ff; box-shadow: 0 0 8px rgba(0,180,255,0.4);
-  }
-  .app-content button {
-    padding: 8px 14px; margin: 6px 4px 6px 0;
-    background: linear-gradient(180deg, #1c6fa8, #0e3f66);
-    border: 1px solid #66e0ff; color: #fff; border-radius: 6px;
-    cursor: pointer; font-size: 12px; font-family: inherit;
-  }
-  .app-content button:hover { background: linear-gradient(180deg, #2a8fd0, #145a8a); }
-  .app-content button.danger { background: linear-gradient(180deg, #a82020, #661010); border-color: #ff5555; }
-  .app-content .list { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
-  .app-content .list-row {
-    display: flex; align-items: center; gap: 8px;
-    padding: 8px 10px; background: rgba(10, 30, 50, 0.6);
-    border: 1px solid rgba(80,200,255,0.15); border-radius: 6px;
-    cursor: pointer; font-size: 12px;
-  }
-  .app-content .list-row:hover { background: rgba(30,80,120,0.6); border-color: rgba(80,200,255,0.5); }
-  .app-content .list-row .muted { color: #7ea3bb; font-size: 11px; margin-left: auto; }
-  .muted { color: #7ea3bb; }
+/* ===== WINDOW MANAGER ===== */
+.window { position: fixed; top: 50px; left: 50px; width: 800px; height: 600px; min-width: 400px; min-height: 300px; background: rgba(10,14,26,.95); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; z-index: 10; box-shadow: 0 20px 50px rgba(0,0,0,.7); resize: both; }
+.window-header { padding: 12px 16px; background: rgba(0,0,0,0.4); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; cursor: move; user-select: none; }
+.window-title { font-weight: 600; color: var(--accent); display: flex; align-items: center; gap: 10px; }
+.window-controls { display: flex; gap: 8px; }
+.win-btn { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); transition: background .2s; }
+.win-btn:hover { background: rgba(255,255,255,0.2); }
+.win-btn.close:hover { background: var(--danger); }
+.window-body { flex: 1; overflow-y: auto; padding: 20px; }
 
-  /* ===== TASKBAR ===== */
-  #taskbar {
-    position: fixed; bottom: 0; left: 0; right: 0; height: 44px;
-    background: rgba(2, 12, 24, 0.9); backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(80,200,255,0.3);
-    display: flex; align-items: center; gap: 6px; padding: 0 10px;
-    z-index: 250; overflow-x: auto;
-  }
-  .task-btn {
-    padding: 4px 10px; background: rgba(10,30,50,0.9);
-    border: 1px solid rgba(80,200,255,0.3); color: #b8e6ff;
-    border-radius: 6px; font-size: 11px; cursor: pointer;
-    white-space: nowrap; font-family: inherit;
-  }
-  .task-btn:hover { background: rgba(30,80,120,0.9); }
-  .task-btn.active { border-color: #66e0ff; box-shadow: 0 0 10px rgba(0,180,255,0.5); }
+/* ===== SPLASH & PANELS ===== */
+#app-splash { position: fixed; inset: 0; z-index: 99999; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 20px; background: radial-gradient(circle at 50% 50%, rgba(6,182,212,.2) 0%, rgba(5,8,16,.98) 75%); backdrop-filter: blur(10px); }
+#app-splash.show { display: flex; animation: splashIn .3s; }
+.splash-icon { font-size: 110px; filter: drop-shadow(0 0 40px #06b6d4); animation: starGlow 1.2s ease-out; }
+.splash-name { font-size: 32px; font-weight: 800; background: linear-gradient(90deg,#fde047,#f59e0b); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.splash-presented { font-size: 12px; color: var(--dim); letter-spacing: 4px; text-transform: uppercase; }
+.splash-presented b { color: #fbbf24; }
+@keyframes splashIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes starGlow { 0% { transform: scale(0) rotate(0deg); } 50% { transform: scale(1.2) rotate(180deg); } 100% { transform: scale(1) rotate(360deg); } }
 
-  /* ===== ANATOMY ===== */
-  .anatomy-wrap {
-    width: 100%; height: calc(100% - 5px); min-height: 380px;
-    border: 1px solid rgba(80,200,255,0.3); border-radius: 8px;
-    overflow: hidden; position: relative; background: #001122;
-  }
-  .anatomy-wrap canvas { display: block; }
-  .layer-toggles {
-    position: absolute; top: 8px; left: 8px; z-index: 2;
-    display: flex; gap: 10px; font-size: 11px;
-    background: rgba(0,20,40,0.8); padding: 6px 10px;
-    border: 1px solid rgba(80,200,255,0.4); border-radius: 6px;
-  }
-  .layer-toggles label { display: flex; align-items: center; gap: 4px; cursor: pointer; color: #b8e6ff; }
-  .layer-toggles input { width: auto; margin: 0; }
-
-  /* ===== CHAT ===== */
-  .chat-box { display: flex; flex-direction: column; height: 100%; }
-  .chat-log {
-    flex: 1; overflow-y: auto; padding: 8px;
-    background: rgba(0,15,30,0.6); border-radius: 6px;
-    border: 1px solid rgba(80,200,255,0.2); margin-bottom: 8px;
-    display: flex; flex-direction: column; gap: 6px;
-  }
-  .msg { padding: 6px 10px; border-radius: 8px; font-size: 12px; max-width: 85%; }
-  .msg.user { align-self: flex-end; background: rgba(30,110,170,0.8); color: #fff; }
-  .msg.ai { align-self: flex-start; background: rgba(20,50,80,0.8); color: #c8ecff; border: 1px solid rgba(80,200,255,0.3); }
-  .chat-input { display: flex; gap: 6px; }
-  .chat-input input { flex: 1; }
-  .chat-input button { margin: 0; }
-
-  /* ===== QUICKTOOLS ===== */
-  .qt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .qt-panel { background: rgba(10,30,50,0.6); padding: 10px; border-radius: 8px; border: 1px solid rgba(80,200,255,0.2); }
-  .qt-panel h4 { margin-bottom: 8px; font-size: 12px; color: #66e0ff; }
-  .qt-panel input, .qt-panel select { margin-bottom: 4px; }
-
-  /* ===== CALENDAR ===== */
-  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; font-size: 11px; margin-top: 8px; }
-  .cal-cell {
-    min-height: 55px; padding: 3px; background: rgba(10,30,50,0.5);
-    border: 1px solid rgba(80,200,255,0.15); border-radius: 3px; cursor: pointer;
-  }
-  .cal-cell:hover { background: rgba(30,80,120,0.6); }
-  .cal-cell .day { color: #66e0ff; font-weight: 700; font-size: 10px; }
-  .cal-cell.today { border-color: #66e0ff; box-shadow: 0 0 6px rgba(0,180,255,0.4); }
-  .cal-head { color: #66e0ff; text-align: center; padding: 3px; font-weight: 700; font-size: 10px; }
-
-  /* ===== SCROLLBAR ===== */
-  ::-webkit-scrollbar { width: 8px; height: 8px; }
-  ::-webkit-scrollbar-track { background: rgba(0,10,20,0.5); }
-  ::-webkit-scrollbar-thumb { background: rgba(80,200,255,0.4); border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(80,200,255,0.7); }
-
-  .flash { color: #66e0ff; font-size: 12px; margin-top: 6px; }
+.panel { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+.panel h3 { font-size: 16px; margin-bottom: 12px; color: var(--accent); }
+.btn { padding: 10px 18px; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 600; font-size: 13px; transition: all .2s; display: inline-block; }
+.btn:hover { background: var(--accent2); }
+.btn.ghost { background: var(--bg3); color: var(--text); }
+.btn.danger { background: var(--danger); }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.list-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin-bottom: 10px; cursor: pointer; transition: all .2s; display: flex; justify-content: space-between; align-items: center; }
+.list-item:hover { background: rgba(31,41,55,.95); border-color: var(--accent); }
+.list-item .title { font-weight: 600; margin-bottom: 4px; }
+.list-item .meta { color: var(--dim); font-size: 12px; }
+.badge { background: var(--accent); color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.settings-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.settings-row:last-child { border: none; }
+.settings-row .info { flex: 1; }
+.settings-row .ctrl { flex-shrink: 0; margin-left: 16px; min-width: 150px; }
+#glb-uploader { position: fixed; bottom: 60px; right: 20px; z-index: 50; background: rgba(0,0,0,0.8); padding: 12px; border-radius: 12px; border: 1px solid var(--border); display: flex; gap: 10px; align-items: center; font-size: 12px; }
 </style>
 </head>
 <body>
 
-<canvas id="cosmos"></canvas>
+<canvas id="cosmos-canvas"></canvas>
+<canvas id="cyborg-canvas"></canvas>
 
-<div id="topbar">
-  <button id="startBtn" title="Startmenü">☰</button>
-  <span class="brand">HALDO AI OS PRO MAX</span>
-  <span class="spacer"></span>
-  <select id="langSelect" title="Sprache"></select>
-  <button id="voiceToggle" title="Vorlesen an/aus">🔊</button>
-  <span id="clock">--:--</span>
+<div id="welcome">
+  <h1>HALDO AI OS PRO MAX</h1>
+  <h2>Willkommen zurück, Bruder 💙<br>Dein Universum aus Medizin, Alltag und Intelligenz.</h2>
+  <div class="presented">Präsentiert von <b>Halil Donma</b></div>
+  <button class="enter-btn" onclick="enterApp()">JETZT STARTEN →</button>
 </div>
 
-<div id="startmenu">
-  <h3>📱 APPS A – Z</h3>
-  <div id="startGrid"></div>
+<div id="app-splash">
+  <div class="splash-icon" id="splash-icon">🤖</div>
+  <div class="splash-name" id="splash-name">HalDo AI OS</div>
+  <div class="splash-presented">Präsentiert von <b>Halil Donma</b></div>
 </div>
 
-<div id="windows"></div>
-<div id="taskbar"></div>
+<div id="taskbar">
+  <div class="start-btn" onclick="toggleStartMenu(event)">
+    <span>⊞</span> <span data-i18n="start">Start</span>
+  </div>
+  <div class="taskbar-apps" id="taskbar-apps"></div>
+  <div id="sys-clock">--:--</div>
+</div>
+
+<div id="start-menu">
+  <div class="sm-header">
+    <span>🚀 HalDo AI OS</span>
+    <button class="btn ghost" style="padding:4px 8px;font-size:12px" onclick="openApp('Z')">⚙️ <span data-i18n="system">System</span></button>
+  </div>
+  <div class="sm-search">
+    <input type="text" id="sm-search-input" placeholder="Apps durchsuchen (A-Z)..." oninput="filterStartMenu(this.value)">
+  </div>
+  <div class="sm-apps" id="sm-apps"></div>
+</div>
+
+<div id="glb-uploader">
+  <span style="color:var(--dim)" data-i18n="upload_model">3D-Modell hochladen:</span>
+  <label class="btn" style="padding:6px 12px;font-size:12px">
+    <span data-i18n="choose">Wählen</span> <input type="file" id="manual-glb" accept=".glb" style="display:none">
+  </label>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
 <script>
-/* ============================================================
-   HALDO AI OS PRO MAX – Hauptscript
-   ============================================================ */
-
-/* ---------- i18n ---------- */
+/* ================= I18N (MULTI-LANGUAGE ENGINE) ================= */
 const I18N = {
-  de:{create:'Erstellen',edit:'Bearbeiten',select:'Auswählen',settings:'Einstellungen',delete:'Löschen',save:'Speichern',cancel:'Abbrechen',close:'Schließen',speak:'Vorlesen',language:'Sprache',add:'Hinzufügen',name:'Name',description:'Beschreibung',date:'Datum',actions:'Aktionen',noEntries:'Keine Einträge vorhanden',search:'Suchen',total:'Gesamt',confirm:'Wirklich löschen?',title:'Titel'},
-  en:{create:'Create',edit:'Edit',select:'Select',settings:'Settings',delete:'Delete',save:'Save',cancel:'Cancel',close:'Close',speak:'Speak',language:'Language',add:'Add',name:'Name',description:'Description',date:'Date',actions:'Actions',noEntries:'No entries',search:'Search',total:'Total',confirm:'Really delete?',title:'Title'},
-  ku:{create:'Çêkirin',edit:'Sererastkirin',select:'Hilbijartin',settings:'Mîheng',delete:'Jêbirin',save:'Tomarkirin',cancel:'Betal',close:'Girtin',speak:'Xwendin',language:'Ziman',add:'Zêdekirin',name:'Nav',description:'Danasîn',date:'Dîrok',actions:'Çalakî',noEntries:'Tu tomar tune',search:'Lêgerîn',total:'Giştî',confirm:'Bira jê bê?',title:'Sernav'},
-  ez:{create:'Çêkirin',edit:'Sererast',select:'Hilbijartin',settings:'Sazkarî',delete:'Jêbirin',save:'Tomar',cancel:'Betal',close:'Girtin',speak:'Xwendin',language:'Ziman',add:'Zêde',name:'Nav',description:'Vedîtin',date:'Dîrok',actions:'Kar',noEntries:'Tu tişt tune',search:'Lêgerîn',total:'Hemû',confirm:'Jê bibe?',title:'Sernav'},
-  ar:{create:'إنشاء',edit:'تعديل',select:'اختيار',settings:'إعدادات',delete:'حذف',save:'حفظ',cancel:'إلغاء',close:'إغلاق',speak:'نطق',language:'اللغة',add:'إضافة',name:'اسم',description:'وصف',date:'تاريخ',actions:'إجراءات',noEntries:'لا توجد عناصر',search:'بحث',total:'المجموع',confirm:'حذف حقاً؟',title:'عنوان'},
-  fa:{create:'ایجاد',edit:'ویرایش',select:'انتخاب',settings:'تنظیمات',delete:'حذف',save:'ذخیره',cancel:'لغو',close:'بستن',speak:'خواندن',language:'زبان',add:'افزودن',name:'نام',description:'توضیحات',date:'تاریخ',actions:'عملیات',noEntries:'موردی وجود ندارد',search:'جستجو',total:'مجموع',confirm:'واقعا حذف شود؟',title:'عنوان'},
-  he:{create:'צור',edit:'ערוך',select:'בחר',settings:'הגדרות',delete:'מחק',save:'שמור',cancel:'בטל',close:'סגור',speak:'הקרא',language:'שפה',add:'הוסף',name:'שם',description:'תיאור',date:'תאריך',actions:'פעולות',noEntries:'אין פריטים',search:'חפש',total:'סה"כ',confirm:'למחוק באמת?',title:'כותרת'},
-  tr:{create:'Oluştur',edit:'Düzenle',select:'Seç',settings:'Ayarlar',delete:'Sil',save:'Kaydet',cancel:'İptal',close:'Kapat',speak:'Oku',language:'Dil',add:'Ekle',name:'Ad',description:'Açıklama',date:'Tarih',actions:'İşlemler',noEntries:'Kayıt yok',search:'Ara',total:'Toplam',confirm:'Gerçekten silinsin mi?',title:'Başlık'},
-  zh:{create:'创建',edit:'编辑',select:'选择',settings:'设置',delete:'删除',save:'保存',cancel:'取消',close:'关闭',speak:'朗读',language:'语言',add:'添加',name:'名称',description:'描述',date:'日期',actions:'操作',noEntries:'无条目',search:'搜索',total:'总计',confirm:'确认删除？',title:'标题'},
-  ja:{create:'作成',edit:'編集',select:'選択',settings:'設定',delete:'削除',save:'保存',cancel:'キャンセル',close:'閉じる',speak:'読み上げ',language:'言語',add:'追加',name:'名前',description:'説明',date:'日付',actions:'操作',noEntries:'項目なし',search:'検索',total:'合計',confirm:'本当に削除？',title:'タイトル'},
-  uz:{create:'Yaratish',edit:'Tahrirlash',select:'Tanlash',settings:'Sozlamalar',delete:"O'chirish",save:'Saqlash',cancel:'Bekor',close:'Yopish',speak:"O'qish",language:'Til',add:"Qo'shish",name:'Nom',description:'Tavsif',date:'Sana',actions:'Amallar',noEntries:"Yozuvlar yo'q",search:'Qidirish',total:'Jami',confirm:"Rostdan o'chirilsinmi?",title:'Sarlavha'},
-  ru:{create:'Создать',edit:'Изменить',select:'Выбрать',settings:'Настройки',delete:'Удалить',save:'Сохранить',cancel:'Отмена',close:'Закрыть',speak:'Читать',language:'Язык',add:'Добавить',name:'Имя',description:'Описание',date:'Дата',actions:'Действия',noEntries:'Нет записей',search:'Поиск',total:'Всего',confirm:'Действительно удалить?',title:'Заголовок'},
-  fr:{create:'Créer',edit:'Modifier',select:'Sélectionner',settings:'Paramètres',delete:'Supprimer',save:'Enregistrer',cancel:'Annuler',close:'Fermer',speak:'Lire',language:'Langue',add:'Ajouter',name:'Nom',description:'Description',date:'Date',actions:'Actions',noEntries:'Aucune entrée',search:'Rechercher',total:'Total',confirm:'Vraiment supprimer ?',title:'Titre'},
-  es:{create:'Crear',edit:'Editar',select:'Seleccionar',settings:'Ajustes',delete:'Eliminar',save:'Guardar',cancel:'Cancelar',close:'Cerrar',speak:'Leer',language:'Idioma',add:'Añadir',name:'Nombre',description:'Descripción',date:'Fecha',actions:'Acciones',noEntries:'Sin entradas',search:'Buscar',total:'Total',confirm:'¿Eliminar de verdad?',title:'Título'},
-  it:{create:'Crea',edit:'Modifica',select:'Seleziona',settings:'Impostazioni',delete:'Elimina',save:'Salva',cancel:'Annulla',close:'Chiudi',speak:'Leggi',language:'Lingua',add:'Aggiungi',name:'Nome',description:'Descrizione',date:'Data',actions:'Azioni',noEntries:'Nessuna voce',search:'Cerca',total:'Totale',confirm:'Eliminare davvero?',title:'Titolo'},
-  hi:{create:'बनाएं',edit:'संपादित करें',select:'चुनें',settings:'सेटिंग्स',delete:'हटाएं',save:'सहेजें',cancel:'रद्द',close:'बंद',speak:'पढ़ें',language:'भाषा',add:'जोड़ें',name:'नाम',description:'विवरण',date:'तारीख',actions:'क्रियाएँ',noEntries:'कोई प्रविष्टि नहीं',search:'खोज',total:'कुल',confirm:'वाकई हटाएं?',title:'शीर्षक'},
-  pt:{create:'Criar',edit:'Editar',select:'Selecionar',settings:'Configurações',delete:'Excluir',save:'Salvar',cancel:'Cancelar',close:'Fechar',speak:'Falar',language:'Idioma',add:'Adicionar',name:'Nome',description:'Descrição',date:'Data',actions:'Ações',noEntries:'Sem entradas',search:'Buscar',total:'Total',confirm:'Excluir mesmo?',title:'Título'},
-  ko:{create:'생성',edit:'편집',select:'선택',settings:'설정',delete:'삭제',save:'저장',cancel:'취소',close:'닫기',speak:'읽기',language:'언어',add:'추가',name:'이름',description:'설명',date:'날짜',actions:'작업',noEntries:'항목 없음',search:'검색',total:'합계',confirm:'정말 삭제?',title:'제목'},
-  ckb:{create:'دروستکردن',edit:'دەستکاری',select:'هەڵبژاردن',settings:'ڕێکخستن',delete:'سڕینەوە',save:'پاشەکەوت',cancel:'هەڵوەشاندن',close:'داخستن',speak:'خوێندنەوە',language:'زمان',add:'زیادکردن',name:'ناو',description:'وەسف',date:'بەروار',actions:'کردارەکان',noEntries:'هیچ تۆمارێک نییە',search:'گەڕان',total:'کۆی گشتی',confirm:'بەڕاستی بسڕێتەوە؟',title:'ناونیشان'},
-  la:{create:'Creare',edit:'Mutare',select:'Eligere',settings:'Optiones',delete:'Delere',save:'Servare',cancel:'Abrogare',close:'Claudere',speak:'Legere',language:'Lingua',add:'Addere',name:'Nomen',description:'Descriptio',date:'Dies',actions:'Actiones',noEntries:'Nullae',search:'Quaerere',total:'Summa',confirm:'Delere vero?',title:'Titulus'}
+  de: { start:"Start", system:"System", search:"Apps durchsuchen...", upload_model:"3D-Modell hochladen:", choose:"Wählen", language:"Sprache", voice:"Stimme", rate:"Geschwindigkeit", pitch:"Tonhöhe", api_key:"HalDo API Key", save:"Speichern", send:"Senden", stop:"Stopp", ai_welcome:"Hallo! Ich bin HalDo AI. Wie kann ich helfen?", ai_sim:"Simulierte Antwort.", health_title:"HalDo Arztbuch (A-Z)", health_desc:"Deine zentrale Gesundheitsakte.", vitals:"Vitalwerte", bp:"Blutdruck", sugar:"Blutzucker", normal:"Normal", anatomy:"Anatomie 3D", diseases:"Krankheiten", meds:"Medikamente", labs:"Laborwerte", notes:"Notizen", save_note:"Gespeichert!", journal:"Tagebuch", placeholder_journal:"Schreibe deine Gedanken auf...", tasks:"Aufgaben", settings:"Einstellungen", general:"Allgemein", account:"Konto", privacy:"Datenschutz", storage:"Speicher", version:"Version" },
+  en: { start:"Start", system:"System", search:"Search apps...", upload_model:"Upload 3D model:", choose:"Choose", language:"Language", voice:"Voice", rate:"Rate", pitch:"Pitch", api_key:"HalDo API Key", save:"Save", send:"Send", stop:"Stop", ai_welcome:"Hello! I am HalDo AI. How can I help?", ai_sim:"Simulated response.", health_title:"HalDo Medical Book (A-Z)", health_desc:"Your central health record.", vitals:"Vital signs", bp:"Blood pressure", sugar:"Blood sugar", normal:"Normal", anatomy:"Anatomy 3D", diseases:"Diseases", meds:"Medications", labs:"Lab values", notes:"Notes", save_note:"Saved!", journal:"Journal", placeholder_journal:"Write your thoughts...", tasks:"Tasks", settings:"Settings", general:"General", account:"Account", privacy:"Privacy", storage:"Storage", version:"Version" },
+  ku: { start:"Destpêk", system:"Sîstem", search:"Lêgerîna sepanan...", upload_model:"Modela 3D bar bike:", choose:"Hilbijêre", language:"Ziman", voice:"Deng", rate:"Lez", pitch:"Pîç", api_key:"Mifteya API ya HalDo", save:"Tomar bike", send:"Bipeşîne", stop:"Rawestîne", ai_welcome:"Silav! Ez HalDo AI me. Çawa dikarim alîkariya te bikim?", ai_sim:"Bersiva simulasyonê.", health_title:"Pirtûka Bijîşkî ya HalDo (A-Z)", health_desc:"Tomara tenduristiya te.", vitals:"Nîşaneyên jiyanî", bp:"Tansiyona xwînê", sugar:"Şekira xwînê", normal:"Normal", anatomy:"Anatomija 3D", diseases:"Nexweşî", meds:"Derman", labs:"Nirxên laboratuarê", notes:"Nîşe", save_note:"Hat tomarkirin!", journal:"Rojname", placeholder_journal:"Ramanên xwe binivîse...", tasks:"Kar", settings:"Mîheng", general:"Giştî", account:"Hesab", privacy:"Nepenî", storage:"Depo", version:"Guherto" },
+  ez: { start:"Destpêk", system:"Sîstem", search:"Lêgerîn...", upload_model:"Modela 3D bar bike:", choose:"Hilbijêre", language:"Ziman", voice:"Deng", rate:"Lez", pitch:"Pîç", api_key:"Mifteya API ya HalDo", save:"Tomar bike", send:"Bipeşîne", stop:"Rawestîne", ai_welcome:"Silav! Ez HalDo AI me.", ai_sim:"Bersiva simulasyonê.", health_title:"Pirtûka Bijîşkî ya HalDo (A-Z)", health_desc:"Tomara tenduristiya te.", vitals:"Nîşaneyên jiyanî", bp:"Tansiyona xwînê", sugar:"Şekira xwînê", normal:"Normal", anatomy:"Anatomija 3D", diseases:"Nexweşî", meds:"Derman", labs:"Nirxên laboratuarê", notes:"Nîşe", save_note:"Hat tomarkirin!", journal:"Rojname", placeholder_journal:"Ramanên xwe binivîse...", tasks:"Kar", settings:"Mîheng", general:"Giştî", account:"Hesab", privacy:"Nepenî", storage:"Depo", version:"Guherto" },
+  he: { start:"התחל", system:"מערכת", search:"חפש אפליקציות...", upload_model:"העלה מודל תלת-ממד:", choose:"בחר", language:"שפה", voice:"קול", rate:"קצב", pitch:"גובה צליל", api_key:"מפתח API של HalDo", save:"שמור", send:"שלח", stop:"עצור", ai_welcome:"שלום! אני HalDo AI. איך אני יכול לעזור?", ai_sim:"תגובה מדומה.", health_title:"ספר הרפואה של HalDo (A-Z)", health_desc:"הרשומה הרפואית שלך.", vitals:"סימנים חיוניים", bp:"לחץ דם", sugar:"סוכר בדם", normal:"תקין", anatomy:"אנטומיה תלת-ממד", diseases:"מחלות", meds:"תרופות", labs:"ערכי מעבדה", notes:"הערות", save_note:"נשמר!", journal:"יומן", placeholder_journal:"כתוב את מחשבותיך...", tasks:"משימות", settings:"הגדרות", general:"כללי", account:"חשבון", privacy:"פרטיות", storage:"אחסון", version:"גרסה" },
+  la: { start:"Incipe", system:"Systema", search:"Quaere applicationes...", upload_model:"Onera exemplar 3D:", choose:"Elige", language:"Lingua", voice:"Vox", rate:"Celeritas", pitch:"Tonus", api_key:"Clavis API HalDo", save:"Serva", send:"Mitte", stop:"Siste", ai_welcome:"Salve! Ego sum HalDo AI. Quomodo te adiuvare possum?", ai_sim:"Responsum simulatum.", health_title:"Liber Medicinalis HalDo (A-Z)", health_desc:"Tua tabula sanitatis.", vitals:"Signa vitalia", bp:"Pressio sanguinis", sugar:"Saccharum sanguinis", normal:"Normalis", anatomy:"Anatomia 3D", diseases:"Morbi", meds:"Medicamenta", labs:"Valores laboratorii", notes:"Notae", save_note:"Servatum!", journal:"Diarium", placeholder_journal:"Scribe cogitationes tuas...", tasks:"Munera", settings:"Optiones", general:"Generalis", account:"Ratio", privacy:"Secretum", storage:"Repositorium", version:"Versio" }
 };
 
-const LANGCODES = {de:'de-DE',en:'en-US',ku:'tr-TR',ez:'tr-TR',ar:'ar-SA',fa:'fa-IR',he:'he-IL',tr:'tr-TR',zh:'zh-CN',ja:'ja-JP',uz:'uz-UZ',ru:'ru-RU',fr:'fr-FR',es:'es-ES',it:'it-IT',hi:'hi-IN',pt:'pt-BR',ko:'ko-KR',ckb:'ar-IQ',la:'it-IT'};
+let currentLang = localStorage.getItem('haldo_lang') || 'de';
 
-const LANGNAMES = {de:'🇩🇪 Deutsch',en:'🇬🇧 English',ku:'☀️ Kurdî',ez:'🦚 Êzîdî',ar:'🇸🇦 العربية',fa:'🇮🇷 فارسی',he:'🇮🇱 עברית',tr:'🇹🇷 Türkçe',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',uz:'🇺🇿 Oʻzbek',ru:'🇷🇺 Русский',fr:'🇫🇷 Français',es:'🇪🇸 Español',it:'🇮🇹 Italiano',hi:'🇮🇳 हिन्दी',pt:'🇵🇹 Português',ko:'🇰🇷 한국어',ckb:'🌙 Soranî',la:'🏛️ Latina'};
+function applyLanguage() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (I18N[currentLang] && I18N[currentLang][key]) {
+      el.textContent = I18N[currentLang][key];
+    }
+  });
+  const searchInp = document.getElementById('sm-search-input');
+  if (searchInp) searchInp.placeholder = I18N[currentLang].search;
+}
 
-/* ---------- State ---------- */
-const state = {
-  lang: localStorage.getItem('haldo_lang') || 'de',
-  zIndex: 100,
-  openWindows: {},
-  ttsEnabled: true,
-  voiceSettings: JSON.parse(localStorage.getItem('haldo_voice') || '{"rate":1,"pitch":1}'),
-};
+function setLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem('haldo_lang', lang);
+  applyLanguage();
+  populateStartMenu();
+  speak(I18N[lang].ai_welcome); // Test voice
+}
 
-const t = (key) => (I18N[state.lang] || I18N.de)[key] || I18N.de[key] || key;
-const store = (k, d) => { try { const v = localStorage.getItem('haldo_' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
-const save  = (k, v) => localStorage.setItem('haldo_' + k, JSON.stringify(v));
-
-/* ---------- TTS ---------- */
+/* ================= VOICE ENGINE & SETTINGS ================= */
 function speak(text) {
-  if (!state.ttsEnabled || !window.speechSynthesis) return;
+  if (!('speechSynthesis' in window)) return alert('TTS nicht verfügbar.');
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(String(text));
-  u.rate = state.voiceSettings.rate || 1;
-  u.pitch = state.voiceSettings.pitch || 1;
-  u.lang = LANGCODES[state.lang] || 'de-DE';
+  const u = new SpeechSynthesisUtterance(text);
+  const langMap = { de:'de-DE', en:'en-US', ku:'tr-TR', ez:'tr-TR', he:'he-IL', la:'it-IT' };
+  u.lang = langMap[currentLang] || 'de-DE';
+  u.rate = parseFloat(localStorage.getItem('haldo_voice_rate') || 1.0);
+  u.pitch = parseFloat(localStorage.getItem('haldo_voice_pitch') || 1.0);
   speechSynthesis.speak(u);
 }
-function stopSpeak() { if (window.speechSynthesis) speechSynthesis.cancel(); }
 
-/* ============================================================
-   KOSMOS (Three.js) – Sonne, Erde, Mond, Sterne, Ring
-   ============================================================ */
+/* ================= 3D KOSMOS & CYBORG ================= */
 function initCosmos() {
-  const canvas = document.getElementById('cosmos');
-  if (!canvas || typeof THREE === 'undefined') return;
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setSize(innerWidth, innerHeight);
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.setClearColor(0x000006, 1);
-
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 3000);
-  camera.position.set(0, 2.5, 13);
-  camera.lookAt(0, 0.5, 0);
-
-  // Sterne
-  const starGeo = new THREE.BufferGeometry();
-  const starCount = 8000;
-  const pos = new Float32Array(starCount * 3);
-  for (let i = 0; i < starCount * 3; i += 3) {
-    const r = 200 + Math.random() * 800;
-    const th = Math.random() * Math.PI * 2;
-    const ph = Math.acos(2 * Math.random() - 1);
-    pos[i]     = r * Math.sin(ph) * Math.cos(th);
-    pos[i + 1] = r * Math.cos(ph);
-    pos[i + 2] = r * Math.sin(ph) * Math.sin(th);
-  }
-  starGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.4, sizeAttenuation: true }));
-  scene.add(stars);
-
-  // Sonne + Glow
-  const sunPos = new THREE.Vector3(-8, 3, -5);
-  const sun = new THREE.Mesh(new THREE.SphereGeometry(1.5, 32, 32), new THREE.MeshBasicMaterial({ color: 0xffd060 }));
-  sun.position.copy(sunPos);
-  scene.add(sun);
-
-  const gc = document.createElement('canvas'); gc.width = gc.height = 256;
-  const gx = gc.getContext('2d');
-  const grd = gx.createRadialGradient(128, 128, 0, 128, 128, 128);
-  grd.addColorStop(0, 'rgba(255,230,140,1)');
-  grd.addColorStop(0.35, 'rgba(255,160,60,0.55)');
-  grd.addColorStop(1, 'rgba(255,100,0,0)');
-  gx.fillStyle = grd; gx.fillRect(0, 0, 256, 256);
-  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(gc), blending: THREE.AdditiveBlending, depthWrite: false }));
-  glow.scale.set(8, 8, 1); glow.position.copy(sunPos);
-  scene.add(glow);
-
-  const sunLight = new THREE.PointLight(0xffaa55, 2, 100);
-  sunLight.position.copy(sunPos); scene.add(sunLight);
-
-  // Erde – Canvas-Textur
-  const eCanvas = document.createElement('canvas'); eCanvas.width = 1024; eCanvas.height = 512;
-  const ex = eCanvas.getContext('2d');
-  ex.fillStyle = '#062a5a'; ex.fillRect(0, 0, 1024, 512);
-  ex.fillStyle = '#1c7a3c';
-  [[140,200,80,50],[220,230,65,45],[320,180,55,40],[430,190,75,55],[540,210,55,45],[640,200,50,40],[700,260,60,70],[760,300,55,60],[480,340,55,40],[280,360,50,35],[860,400,55,40],[150,360,60,55],[900,180,60,55]].forEach(([x,y,w,h]) => { ex.beginPath(); ex.ellipse(x, y, w, h, 0, 0, Math.PI * 2); ex.fill(); });
-  ex.fillStyle = 'rgba(255,255,255,0.45)';
-  for (let i = 0; i < 60; i++) {
-    ex.beginPath();
-    ex.ellipse(Math.random() * 1024, Math.random() * 512, 15 + Math.random() * 55, 8 + Math.random() * 20, Math.random() * Math.PI, 0, Math.PI * 2);
-    ex.fill();
-  }
-  const earthTex = new THREE.CanvasTexture(eCanvas);
-  const earth = new THREE.Mesh(new THREE.SphereGeometry(1.9, 64, 64), new THREE.MeshPhongMaterial({ map: earthTex, shininess: 20, specular: 0x224466 }));
-  scene.add(earth);
-
-  // Atmosphäre
-  const atmo = new THREE.Mesh(new THREE.SphereGeometry(2.05, 48, 48), new THREE.MeshBasicMaterial({ color: 0x3fa9ff, transparent: true, opacity: 0.18, side: THREE.BackSide }));
-  scene.add(atmo);
-
-  // Ring mit Text
-  const rc = document.createElement('canvas'); rc.width = 4096; rc.height = 128;
-  const rx = rc.getContext('2d');
-  rx.clearRect(0, 0, 4096, 128);
-  rx.font = 'bold 56px monospace';
-  rx.fillStyle = '#66e0ff';
-  rx.textAlign = 'center'; rx.textBaseline = 'middle';
-  rx.shadowColor = '#00aaff'; rx.shadowBlur = 18;
-  const txt = 'HALIL DONMA  •  HALDO AI OS PRO MAX  •  ';
-  rx.fillText(txt, 1024, 64);
-  rx.fillText(txt, 3072, 64);
-  const ringTex = new THREE.CanvasTexture(rc);
-  ringTex.wrapS = THREE.RepeatWrapping;
-  const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(3.4, 0.06, 12, 220),
-    new THREE.MeshBasicMaterial({ map: ringTex, transparent: true, color: 0x66e0ff, side: THREE.DoubleSide })
-  );
-  ring.rotation.x = Math.PI / 2.1;
-  ring.position.y = 0.4;
-  scene.add(ring);
-
-  // Mond
-  const moon = new THREE.Mesh(new THREE.SphereGeometry(0.4, 24, 24), new THREE.MeshPhongMaterial({ color: 0xbbbbbb, shininess: 5 }));
-  scene.add(moon);
-
-  scene.add(new THREE.AmbientLight(0x223344, 1.3));
-  const dl = new THREE.DirectionalLight(0xffffff, 1.1);
-  dl.position.copy(sunPos); scene.add(dl);
-
-  let t0 = Date.now();
-  function animate() {
-    requestAnimationFrame(animate);
-    earth.rotation.y += 0.0012;
-    atmo.rotation.y = earth.rotation.y;
-    ring.rotation.z += 0.0018;
-    ringTex.offset.x += 0.0006;
-    const tt = (Date.now() - t0) * 0.00025;
-    moon.position.set(4.8 * Math.cos(tt), 0.6 + 0.3 * Math.sin(tt * 1.7), 4.8 * Math.sin(tt));
-    stars.rotation.y += 0.00008;
-    renderer.render(scene, camera);
-  }
-  animate();
-
-  addEventListener('resize', () => {
-    renderer.setSize(innerWidth, innerHeight);
-    camera.aspect = innerWidth / innerHeight;
-    camera.updateProjectionMatrix();
-  });
-}
-
-/* ============================================================
-   WINDOW MANAGER
-   ============================================================ */
-function openApp(appId) {
-  const app = APPS.find(a => a.id === appId);
-  if (!app) return;
-  document.getElementById('startmenu').classList.remove('open');
-  let win = document.getElementById('win-' + appId);
-  if (win) {
-    win.classList.remove('minimized');
-    win.style.zIndex = ++state.zIndex;
-    renderTaskbar();
-    return;
-  }
-  win = document.createElement('div');
-  win.className = 'window';
-  win.id = 'win-' + appId;
-  const idx = Object.keys(state.openWindows).length;
-  const off = (idx % 7) * 28;
-  win.style.left = (70 + off) + 'px';
-  win.style.top  = (60 + off) + 'px';
-  win.style.width  = '940px';
-  win.style.height = '620px';
-  win.style.zIndex = ++state.zIndex;
-  win.innerHTML =
-    '<div class="win-header">' +
-      '<span class="win-title">' + app.icon + ' ' + app.name + '</span>' +
-      '<div class="win-controls">' +
-        '<button data-act="min" title="Minimize">—</button>' +
-        '<button data-act="max" title="Maximize">▢</button>' +
-        '<button data-act="close" title="Close">✕</button>' +
-      '</div>' +
-    '</div>' +
-    '<div class="win-body">' +
-      '<div class="app-sidebar"></div>' +
-      '<div class="app-content"></div>' +
-    '</div>';
-  document.getElementById('windows').appendChild(win);
-  state.openWindows[appId] = win;
-
-  win.querySelector('[data-act="min"]').onclick = e => { e.stopPropagation(); win.classList.toggle('minimized'); renderTaskbar(); };
-  win.querySelector('[data-act="max"]').onclick = e => {
-    e.stopPropagation();
-    if (win.dataset.max === '1') {
-      win.style.left = win.dataset.l; win.style.top = win.dataset.t;
-      win.style.width = win.dataset.w; win.style.height = win.dataset.h;
-      win.dataset.max = '0';
-    } else {
-      win.dataset.l = win.style.left; win.dataset.t = win.style.top;
-      win.dataset.w = win.style.width; win.dataset.h = win.style.height;
-      win.style.left = '0'; win.style.top = '40px';
-      win.style.width = '100vw'; win.style.height = 'calc(100vh - 90px)';
-      win.dataset.max = '1';
-    }
-  };
-  win.querySelector('[data-act="close"]').onclick = e => {
-    e.stopPropagation();
-    if (win._cleanup) { try { win._cleanup(); } catch (err) {} }
-    win.remove();
-    delete state.openWindows[appId];
-    renderTaskbar();
-  };
-  win.onmousedown = () => { win.style.zIndex = ++state.zIndex; };
-
-  const header = win.querySelector('.win-header');
-  let drag = null;
-  header.addEventListener('mousedown', e => {
-    if (e.target.tagName === 'BUTTON') return;
-    drag = { x: e.clientX, y: e.clientY, l: win.offsetLeft, t: win.offsetTop };
-    win.style.zIndex = ++state.zIndex;
-  });
-  window.addEventListener('mousemove', e => {
-    if (!drag) return;
-    win.style.left = (drag.l + e.clientX - drag.x) + 'px';
-    win.style.top  = Math.max(40, drag.t + e.clientY - drag.y) + 'px';
-  });
-  window.addEventListener('mouseup', () => { drag = null; });
-
-  const sidebar = win.querySelector('.app-sidebar');
-  const content = win.querySelector('.app-content');
   try {
-    app.render(sidebar, content, win);
-  } catch (err) {
-    content.innerHTML = '<p style="color:#ff7777">Fehler: ' + err.message + '</p>';
-    console.error(err);
-  }
-  renderTaskbar();
-}
-
-function renderTaskbar() {
-  const tb = document.getElementById('taskbar');
-  tb.innerHTML = '';
-  Object.keys(state.openWindows).forEach(id => {
-    const app = APPS.find(a => a.id === id);
-    const win = state.openWindows[id];
-    if (!app) return;
-    const b = document.createElement('button');
-    b.className = 'task-btn' + (win.classList.contains('minimized') ? '' : ' active');
-    b.textContent = app.icon + ' ' + app.name;
-    b.onclick = () => {
-      if (win.classList.contains('minimized')) {
-        win.classList.remove('minimized');
-        win.style.zIndex = ++state.zIndex;
-      } else if (win.style.zIndex == state.zIndex) {
-        win.classList.add('minimized');
-      } else {
-        win.style.zIndex = ++state.zIndex;
-      }
-      renderTaskbar();
-    };
-    tb.appendChild(b);
-  });
-}
-
-/* ============================================================
-   HELPERS
-   ============================================================ */
-function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-function flash(el, msg) {
-  const d = document.createElement('div');
-  d.className = 'flash';
-  d.textContent = msg;
-  el.appendChild(d);
-  setTimeout(() => d.remove(), 1800);
-}
-
-/* ============================================================
-   GENERISCHE CRUD-APP
-   ============================================================ */
-function crudApp(cfg) {
-  return function (sidebar, content) {
-    const key = 'crud_' + cfg.id;
-    let items = store(key, cfg.initial || []);
-    let selectedId = items[0] ? items[0].id : null;
-    const fields = cfg.fields;
-    const persist = () => save(key, items);
-    const tabs = ['create', 'edit', 'select', 'settings', 'delete'];
-    let active = 'select';
-
-    function renderSidebar() {
-      sidebar.innerHTML = '';
-      tabs.forEach(tab => {
-        const b = document.createElement('button');
-        b.className = 'side-btn' + (active === tab ? ' active' : '');
-        b.textContent = t(tab);
-        b.onclick = () => { active = tab; renderBody(); };
-        sidebar.appendChild(b);
-      });
-      const sb = document.createElement('button');
-      sb.className = 'side-btn speak-btn';
-      sb.textContent = '🔊 ' + t('speak');
-      sb.onclick = () => speak(cfg.id + '. ' + items.length + ' Einträge.');
-      sidebar.appendChild(sb);
-    }
-
-    function renderBody() {
-      renderSidebar();
-      content.innerHTML = '';
-      const box = document.createElement('div');
-
-      if (active === 'create') {
-        box.innerHTML = '<h3>' + t('create') + '</h3>';
-        const form = document.createElement('form');
-        fields.forEach(f => {
-          const inp = document.createElement('input');
-          inp.name = f.name; inp.placeholder = f.label;
-          form.appendChild(inp);
-        });
-        const btn = document.createElement('button');
-        btn.textContent = t('save');
-        form.appendChild(btn);
-        form.onsubmit = e => {
-          e.preventDefault();
-          const item = { id: Date.now() };
-          fields.forEach(f => item[f.name] = form.querySelector('[name="' + f.name + '"]').value);
-          items.push(item); persist();
-          form.reset();
-          flash(box, '✓ ' + t('save'));
-        };
-        box.appendChild(form);
-      } else if (active === 'edit') {
-        box.innerHTML = '<h3>' + t('edit') + '</h3>';
-        if (items.length === 0) { box.innerHTML += '<p class="muted">' + t('noEntries') + '</p>'; }
-        else {
-          if (!items.find(i => i.id === selectedId)) selectedId = items[0].id;
-          const sel = document.createElement('select');
-          items.forEach(it => {
-            const o = document.createElement('option');
-            o.value = it.id; o.textContent = it[fields[0].name] || ('#' + it.id);
-            sel.appendChild(o);
-          });
-          sel.value = selectedId;
-          sel.onchange = () => { selectedId = Number(sel.value); renderBody(); };
-          box.appendChild(sel);
-          const item = items.find(i => i.id === selectedId);
-          const form = document.createElement('form');
-          fields.forEach(f => {
-            const inp = document.createElement('input');
-            inp.name = f.name; inp.placeholder = f.label;
-            inp.value = item[f.name] || '';
-            form.appendChild(inp);
-          });
-          const btn = document.createElement('button');
-          btn.textContent = t('save');
-          form.appendChild(btn);
-          form.onsubmit = e => {
-            e.preventDefault();
-            fields.forEach(f => item[f.name] = form.querySelector('[name="' + f.name + '"]').value);
-            persist();
-            flash(box, '✓ ' + t('save'));
-            renderBody();
-          };
-          box.appendChild(form);
-        }
-      } else if (active === 'select') {
-        box.innerHTML = '<h3>' + t('select') + '</h3>';
-        const search = document.createElement('input');
-        search.placeholder = '🔍 ' + t('search');
-        box.appendChild(search);
-        const list = document.createElement('div');
-        list.className = 'list';
-        const renderList = () => {
-          list.innerHTML = '';
-          const q = search.value.toLowerCase();
-          const filtered = items.filter(it =>
-            !q || fields.some(f => String(it[f.name] || '').toLowerCase().includes(q))
-          );
-          if (filtered.length === 0) {
-            list.innerHTML = '<p class="muted">' + t('noEntries') + '</p>';
-            return;
-          }
-          filtered.forEach(it => {
-            const row = document.createElement('div');
-            row.className = 'list-row';
-            const first = fields[0];
-            const second = fields[1];
-            row.innerHTML = '<span>' + esc(it[first.name] || '—') + '</span>' +
-              (second ? '<span class="muted">' + esc(it[second.name] || '') + '</span>' : '');
-            row.onclick = () => { selectedId = it.id; active = 'edit'; renderBody(); };
-            list.appendChild(row);
-          });
-        };
-        search.oninput = renderList;
-        renderList();
-        box.appendChild(list);
-      } else if (active === 'settings') {
-        box.innerHTML = '<h3>' + t('settings') + '</h3>';
-        box.innerHTML += '<p>' + t('total') + ': <b>' + items.length + '</b></p>';
-        const exp = document.createElement('button');
-        exp.textContent = '⬇ Export JSON';
-        exp.onclick = () => {
-          const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
-          const a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-          a.download = cfg.id + '_export.json'; a.click();
-        };
-        box.appendChild(exp);
-        const wipe = document.createElement('button');
-        wipe.className = 'danger';
-        wipe.textContent = '🗑 Alles löschen';
-        wipe.onclick = () => {
-          if (confirm(t('confirm'))) { items = []; persist(); renderBody(); }
-        };
-        box.appendChild(wipe);
-      } else if (active === 'delete') {
-        box.innerHTML = '<h3>' + t('delete') + '</h3>';
-        if (items.length === 0) { box.innerHTML += '<p class="muted">' + t('noEntries') + '</p>'; }
-        items.forEach(it => {
-          const row = document.createElement('div');
-          row.className = 'list-row';
-          row.innerHTML = '<span>' + esc(it[fields[0].name] || '—') + '</span>';
-          const del = document.createElement('button');
-          del.className = 'danger'; del.textContent = '✕';
-          del.onclick = () => {
-            if (confirm(t('confirm'))) {
-              items = items.filter(x => x.id !== it.id);
-              persist(); renderBody();
-            }
-          };
-          row.appendChild(del);
-          box.appendChild(row);
-        });
-      }
-      content.appendChild(box);
-    }
-    renderBody();
-  };
-}
-
-/* ============================================================
-   SPEZIAL-APPS
-   ============================================================ */
-
-/* ---------- A: AI Assistant ---------- */
-function renderAI(sidebar, content) {
-  let chats = store('ai_chats', [{ id: 1, name: 'Neuer Chat', messages: [] }]);
-  let currentId = chats[0].id;
-  let active = 'chat';
-  const persist = () => save('ai_chats', chats);
-
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    [['chat', '💬 Chat'], ['templates', '📋 Vorlagen'], ['settings', '⚙ Einstellungen'], ['delete', '🗑 Löschen']].forEach(([id, label]) => {
-      const b = document.createElement('button');
-      b.className = 'side-btn' + (active === id ? ' active' : '');
-      b.textContent = label;
-      b.onclick = () => { active = id; render(); };
-      sidebar.appendChild(b);
-    });
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => {
-      const chat = chats.find(c => c.id === currentId);
-      const last = chat && chat.messages.length ? chat.messages[chat.messages.length - 1].text : 'Bereit.';
-      speak(last);
-    };
-    sidebar.appendChild(sb);
-  }
-
-  function render() {
-    renderSidebar();
-    content.innerHTML = '';
-    if (active === 'chat') {
-      const wrap = document.createElement('div');
-      wrap.className = 'chat-box';
-      const log = document.createElement('div');
-      log.className = 'chat-log';
-      const chat = chats.find(c => c.id === currentId) || chats[0];
-      if (!chat.messages.length) {
-        chat.messages.push({ role: 'ai', text: 'Hallo! Ich bin HalDo AI. Stelle mir eine Frage.' });
-        persist();
-      }
-      chat.messages.forEach(m => {
-        const d = document.createElement('div');
-        d.className = 'msg ' + m.role;
-        d.textContent = m.text;
-        log.appendChild(d);
-      });
-      wrap.appendChild(log);
-      const inputRow = document.createElement('div');
-      inputRow.className = 'chat-input';
-      const input = document.createElement('input');
-      input.placeholder = 'Nachricht eingeben…';
-      const send = document.createElement('button');
-      send.textContent = '➤';
-      const sendMsg = () => {
-        const v = input.value.trim();
-        if (!v) return;
-        chat.messages.push({ role: 'user', text: v });
-        persist();
-        setTimeout(() => {
-          const apiKey = store('api_key', '');
-          let reply;
-          if (apiKey) reply = 'API-Key erkannt. Deine Nachricht: "' + v + '"';
-          else reply = demotextAI(v);
-          chat.messages.push({ role: 'ai', text: reply });
-          persist();
-          render();
-          speak(reply);
-        }, 250);
-        input.value = '';
-        render();
-      };
-      send.onclick = sendMsg;
-      input.onkeydown = e => { if (e.key === 'Enter') sendMsg(); };
-      inputRow.appendChild(input);
-      inputRow.appendChild(send);
-      wrap.appendChild(inputRow);
-      content.appendChild(wrap);
-    } else if (active === 'templates') {
-      content.innerHTML = '<h3>📋 Prompt-Vorlagen</h3>';
-      ['Erkläre die Anatomie des Herzens', 'Erstelle einen Arztbrief', 'Fasse folgenden Text zusammen: ', 'Übersetze ins Kurdische: '].forEach(tpl => {
-        const row = document.createElement('div');
-        row.className = 'list-row';
-        row.textContent = tpl;
-        row.onclick = () => {
-          const chat = chats.find(c => c.id === currentId);
-          chat.messages.push({ role: 'user', text: tpl });
-          chat.messages.push({ role: 'ai', text: 'Antwort folgt…' });
-          persist(); active = 'chat'; render();
-        };
-        content.appendChild(row);
-      });
-      const newBtn = document.createElement('button');
-      newBtn.textContent = '+ Neuer Chat';
-      newBtn.onclick = () => {
-        const id = Date.now();
-        chats.push({ id, name: 'Chat ' + chats.length, messages: [] });
-        currentId = id; persist(); render();
-      };
-      content.appendChild(newBtn);
-    } else if (active === 'settings') {
-      content.innerHTML = '<h3>⚙ KI-Einstellungen</h3>';
-      const key = document.createElement('input');
-      key.placeholder = 'API-Key (Gemini / HalDo)';
-      key.value = store('api_key', '');
-      content.appendChild(key);
-      const b = document.createElement('button');
-      b.textContent = t('save');
-      b.onclick = () => { save('api_key', key.value); flash(content, '✓ Gespeichert'); };
-      content.appendChild(b);
-    } else if (active === 'delete') {
-      content.innerHTML = '<h3>🗑 Chats löschen</h3>';
-      chats.forEach(c => {
-        const row = document.createElement('div');
-        row.className = 'list-row';
-        row.innerHTML = '<span>' + esc(c.name) + ' (' + c.messages.length + ')</span>';
-        const d = document.createElement('button');
-        d.className = 'danger'; d.textContent = '✕';
-        d.onclick = () => {
-          if (confirm(t('confirm'))) {
-            chats = chats.filter(x => x.id !== c.id);
-            if (chats.length === 0) chats = [{ id: Date.now(), name: 'Neuer Chat', messages: [] }];
-            currentId = chats[0].id;
-            persist(); render();
-          }
-        };
-        row.appendChild(d);
-        content.appendChild(row);
-      });
-    }
-  }
-  render();
-}
-function demotextAI(q) {
-  const ql = q.toLowerCase();
-  if (/hallo|hi|hey/.test(ql)) return 'Hallo! Wie kann ich dir helfen?';
-  if (/herz/.test(ql)) return 'Das Herz ist ein muskuläres Hohlorgan, das Blut durch den Körper pumpt. Es hat vier Kammern: zwei Vorhöfe und zwei Ventrikel.';
-  if (/arztbrief|bericht/.test(ql)) return 'Sehr geehrte Kollegin, sehr geehrter Kollege, hiermit berichten wir über den Aufenthalt. Diagnose: … Therapie: … Empfehlung: …';
-  if (/kopf/.test(ql)) return 'Bei Kopfschmerzen: Ruhe, Wasser trinken, frische Luft. Bei anhaltenden Beschwerden Arzt aufsuchen.';
-  return 'Interessante Frage: "' + q + '". Im Demo-Modus antworte ich vorbereitet. Trage in den Einstellungen einen API-Key ein.';
-}
-
-/* ---------- C: Calendar ---------- */
-function renderCalendar(sidebar, content) {
-  let events = store('cal_events', []);
-  let active = 'select';
-  let viewDate = new Date();
-  const persist = () => save('cal_events', events);
-
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    [['create', '➕ ' + t('create')], ['select', '📅 Kalender'], ['settings', '⚙ Einstellungen'], ['delete', '🗑 Löschen']].forEach(([id, label]) => {
-      const b = document.createElement('button');
-      b.className = 'side-btn' + (active === id ? ' active' : '');
-      b.textContent = label;
-      b.onclick = () => { active = id; render(); };
-      sidebar.appendChild(b);
-    });
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => speak('Kalender. ' + events.length + ' Termine.');
-    sidebar.appendChild(sb);
-  }
-
-  function render() {
-    renderSidebar();
-    content.innerHTML = '';
-    if (active === 'select') {
-      const head = document.createElement('div');
-      head.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:10px;';
-      const prev = document.createElement('button'); prev.textContent = '◀';
-      prev.onclick = () => { viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1); render(); };
-      const next = document.createElement('button'); next.textContent = '▶';
-      next.onclick = () => { viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1); render(); };
-      const title = document.createElement('h3');
-      title.style.margin = '0'; title.style.flex = '1';
-      title.textContent = viewDate.toLocaleString(state.lang, { month: 'long', year: 'numeric' });
-      head.appendChild(prev); head.appendChild(title); head.appendChild(next);
-      content.appendChild(head);
-      const grid = document.createElement('div');
-      grid.className = 'cal-grid';
-      ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].forEach(d => {
-        const c = document.createElement('div');
-        c.className = 'cal-head'; c.textContent = d; grid.appendChild(c);
-      });
-      const y = viewDate.getFullYear(), m = viewDate.getMonth();
-      const first = new Date(y, m, 1);
-      const startDay = (first.getDay() + 6) % 7;
-      const days = new Date(y, m + 1, 0).getDate();
-      const today = new Date();
-      for (let i = 0; i < startDay; i++) grid.appendChild(document.createElement('div'));
-      for (let d = 1; d <= days; d++) {
-        const c = document.createElement('div');
-        c.className = 'cal-cell';
-        const dt = new Date(y, m, d);
-        if (dt.toDateString() === today.toDateString()) c.classList.add('today');
-        c.innerHTML = '<div class="day">' + d + '</div>';
-        const key = dt.toISOString().slice(0, 10);
-        events.filter(e => e.date === key).forEach(e => {
-          const ev = document.createElement('div');
-          ev.style.cssText = 'font-size:10px;background:rgba(30,110,170,0.7);color:#fff;padding:1px 3px;margin-top:2px;border-radius:2px;';
-          ev.textContent = e.title;
-          c.appendChild(ev);
-        });
-        c.onclick = () => {
-          const title2 = prompt('Termin am ' + d + '.' + (m + 1) + '.' + y + ':', '');
-          if (title2) {
-            events.push({ id: Date.now(), title: title2, date: key });
-            persist(); render();
-          }
-        };
-        grid.appendChild(c);
-      }
-      content.appendChild(grid);
-    } else if (active === 'create') {
-      content.innerHTML = '<h3>' + t('create') + ' Termin</h3>';
-      const form = document.createElement('form');
-      const tIn = document.createElement('input'); tIn.placeholder = 'Titel'; form.appendChild(tIn);
-      const dIn = document.createElement('input'); dIn.type = 'date'; dIn.value = new Date().toISOString().slice(0, 10); form.appendChild(dIn);
-      const b = document.createElement('button'); b.textContent = t('save'); form.appendChild(b);
-      form.onsubmit = e => {
-        e.preventDefault();
-        events.push({ id: Date.now(), title: tIn.value, date: dIn.value });
-        persist(); active = 'select'; render();
-      };
-      content.appendChild(form);
-    } else if (active === 'settings') {
-      content.innerHTML = '<h3>⚙ Kalender</h3><p>Termine: ' + events.length + '</p>';
-    } else if (active === 'delete') {
-      content.innerHTML = '<h3>🗑 Termine löschen</h3>';
-      events.forEach(ev => {
-        const row = document.createElement('div');
-        row.className = 'list-row';
-        row.innerHTML = '<span>' + esc(ev.title) + '</span><span class="muted">' + ev.date + '</span>';
-        const d = document.createElement('button'); d.className = 'danger'; d.textContent = '✕';
-        d.onclick = () => {
-          if (confirm(t('confirm'))) { events = events.filter(x => x.id !== ev.id); persist(); render(); }
-        };
-        row.appendChild(d);
-        content.appendChild(row);
-      });
-    }
-  }
-  render();
-}
-
-/* ---------- H: Health & Medical ---------- */
-function renderHealth(sidebar, content) {
-  const sections = [
-    ['anatomy', '🧬 3D Anatomie'],
-    ['diseases', '🦠 Krankheiten A–Z'],
-    ['meds', '💊 Medikamente A–Z'],
-    ['labs', '🧪 Laborwerte A–Z'],
-    ['vitals', '❤ Vitalwerte'],
-    ['emergency', '🚨 Notfall'],
-  ];
-  let active = 'anatomy';
-
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    sections.forEach(([id, label]) => {
-      const b = document.createElement('button');
-      b.className = 'side-btn' + (active === id ? ' active' : '');
-      b.textContent = label;
-      b.onclick = () => { active = id; render(); };
-      sidebar.appendChild(b);
-    });
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => speak('HalDo Arztbuch. Anatomie, Krankheiten, Medikamente, Laborwerte, Vitalwerte.');
-    sidebar.appendChild(sb);
-  }
-
-  function render() {
-    renderSidebar();
-    if (content._cleanup) { try { content._cleanup(); } catch (e) {} content._cleanup = null; }
-    content.innerHTML = '';
-
-    if (active === 'anatomy') {
-      const wrap = document.createElement('div');
-      wrap.className = 'anatomy-wrap';
-      content.appendChild(wrap);
-      initAnatomy(wrap, content);
-    } else if (active === 'emergency') {
-      content.innerHTML = '<h3>🚨 NOTFALL</h3><p>Notruf: <b style="color:#ff5555;font-size:24px;">112</b></p><p class="muted">Bei Herzinfarkt, Schlaganfall, schweren Unfällen sofort anrufen.</p><button class="danger" onclick="window.location.href=\'tel:112\'">📞 112 anrufen</button>';
-    } else {
-      const cfg = {
-        diseases: { key: 'health_diseases', fields: [{ name: 'name', label: 'Krankheit' }, { name: 'icd', label: 'ICD-10' }, { name: 'desc', label: 'Beschreibung' }] },
-        meds: { key: 'health_meds', fields: [{ name: 'name', label: 'Medikament' }, { name: 'dose', label: 'Dosierung' }, { name: 'info', label: 'Info' }] },
-        labs: { key: 'health_labs', fields: [{ name: 'name', label: 'Laborwert' }, { name: 'value', label: 'Wert' }, { name: 'unit', label: 'Einheit' }] },
-        vitals: { key: 'health_vitals', fields: [{ name: 'name', label: 'Vitalwert (z.B. Blutdruck)' }, { name: 'value', label: 'Wert' }, { name: 'date', label: 'Datum' }] },
-      }[active];
-      if (cfg) renderHealthCRUD(content, cfg, sections.find(s => s[0] === active)[1]);
-    }
-  }
-
-  function renderHealthCRUD(container, cfg, title) {
-    let items = store(cfg.key, []);
-    const persist = () => save(cfg.key, items);
-    const panel = document.createElement('div');
-    panel.innerHTML = '<h3>' + title + '</h3>';
-
-    const form = document.createElement('form');
-    cfg.fields.forEach(f => {
-      const inp = document.createElement('input');
-      inp.name = f.name; inp.placeholder = f.label;
-      form.appendChild(inp);
-    });
-    const addBtn = document.createElement('button');
-    addBtn.textContent = '＋ ' + t('add');
-    form.appendChild(addBtn);
-    form.onsubmit = e => {
-      e.preventDefault();
-      const item = { id: Date.now() };
-      cfg.fields.forEach(f => item[f.name] = form.querySelector('[name="' + f.name + '"]').value);
-      items.push(item); persist();
-      form.reset();
-      renderList();
-    };
-    panel.appendChild(form);
-
-    const list = document.createElement('div');
-    list.className = 'list';
-    panel.appendChild(list);
-
-    function renderList() {
-      list.innerHTML = '';
-      if (items.length === 0) { list.innerHTML = '<p class="muted">' + t('noEntries') + '</p>'; return; }
-      items.forEach(it => {
-        const row = document.createElement('div');
-        row.className = 'list-row';
-        const vals = cfg.fields.map(f => esc(it[f.name] || '')).join(' · ');
-        row.innerHTML = '<span>' + vals + '</span>';
-        const d = document.createElement('button');
-        d.className = 'danger'; d.textContent = '✕';
-        d.onclick = e => {
-          e.stopPropagation();
-          if (confirm(t('confirm'))) { items = items.filter(x => x.id !== it.id); persist(); renderList(); }
-        };
-        row.appendChild(d);
-        list.appendChild(row);
-      });
-    }
-    renderList();
-    container.appendChild(panel);
-  }
-
-  function initAnatomy(wrap, contentRef) {
-    if (typeof THREE === 'undefined') {
-      wrap.innerHTML = '<p style="padding:20px;color:#ff8888">Three.js nicht geladen.</p>';
-      return;
-    }
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(wrap.clientWidth, wrap.clientHeight);
-    renderer.setClearColor(0x001122, 1);
-    wrap.appendChild(renderer.domElement);
+    const canvas = document.getElementById('cosmos-canvas');
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, wrap.clientWidth / wrap.clientHeight, 0.1, 100);
-    camera.position.set(0, 1.2, 4);
-    camera.lookAt(0, 0.7, 0);
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+    camera.position.set(0, 0, 18); 
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.75));
-    const dl = new THREE.DirectionalLight(0xffffff, 1.1);
-    dl.position.set(2, 4, 3); scene.add(dl);
-    const dl2 = new THREE.DirectionalLight(0x88ccff, 0.5);
-    dl2.position.set(-3, 1, -2); scene.add(dl2);
-
-    const skeleton = new THREE.Group();
-    const organs = new THREE.Group();
-    const bones = new THREE.MeshStandardMaterial({ color: 0xeeeecc, roughness: 0.6, metalness: 0.1 });
-
-    const skull = new THREE.Mesh(new THREE.SphereGeometry(0.22, 24, 24), bones);
-    skull.position.y = 1.5; skeleton.add(skull);
-    for (let i = 0; i < 8; i++) {
-      const v = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.09, 12), bones);
-      v.position.y = 1.2 - i * 0.11; skeleton.add(v);
+    const starGeo = new THREE.BufferGeometry();
+    const posArray = new Float32Array(8000 * 3);
+    const colorArray = new Float32Array(8000 * 3);
+    for(let i=0; i<8000*3; i++) {
+      posArray[i] = (Math.random() - 0.5) * 400;
+      colorArray[i] = Math.random() * 0.5 + 0.5;
     }
-    for (let i = 0; i < 5; i++) {
-      const rib = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.018, 8, 22, Math.PI), bones);
-      rib.position.y = 1.1 - i * 0.1;
-      rib.rotation.y = Math.PI / 2; skeleton.add(rib);
+    starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+    starGeo.setAttribute('color', new THREE.BufferAttribute(colorArray, 3));
+    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.3, vertexColors: true, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending })));
+
+    const sunCanvas = document.createElement('canvas'); sunCanvas.width = sunCanvas.height = 512;
+    const sCtx = sunCanvas.getContext('2d');
+    sCtx.fillStyle = '#ffaa00'; sCtx.fillRect(0, 0, 512, 512);
+    for(let i=0; i<2000; i++) {
+      sCtx.fillStyle = Math.random() > 0.5 ? '#ffdd00' : '#ff5500';
+      sCtx.beginPath(); sCtx.arc(Math.random()*512, Math.random()*512, Math.random()*10, 0, Math.PI*2); sCtx.fill();
     }
-    const pelvis = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.035, 8, 20), bones);
-    pelvis.position.y = 0.42; pelvis.rotation.x = Math.PI / 2; skeleton.add(pelvis);
-    const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.75, 12), bones);
-    armL.position.set(0.38, 1.0, 0); skeleton.add(armL);
-    const armR = armL.clone(); armR.position.x = -0.38; skeleton.add(armR);
-    const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.95, 12), bones);
-    legL.position.set(0.12, 0, 0); skeleton.add(legL);
-    const legR = legL.clone(); legR.position.x = -0.12; skeleton.add(legR);
-    scene.add(skeleton);
+    const sun = new THREE.Mesh(new THREE.SphereGeometry(4, 64, 64), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sunCanvas) }));
+    sun.position.set(16, 10, -15); scene.add(sun);
+    
+    const moon = new THREE.Mesh(new THREE.SphereGeometry(1.8, 64, 64), new THREE.MeshStandardMaterial({ map: new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/moon_1024.jpg'), roughness: 0.9 }));
+    moon.position.set(-14, 8, -10); scene.add(moon);
 
-    const brain = new THREE.Mesh(new THREE.SphereGeometry(0.16, 20, 20), new THREE.MeshStandardMaterial({ color: 0xff88aa, roughness: 0.5 }));
-    brain.position.y = 1.5; organs.add(brain);
-    const heart = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), new THREE.MeshStandardMaterial({ color: 0xcc2222, roughness: 0.35 }));
-    heart.position.set(0.05, 1.0, 0.02); organs.add(heart);
-    const lungL = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 16), new THREE.MeshStandardMaterial({ color: 0xffaabb, roughness: 0.5 }));
-    lungL.position.set(0.16, 1.05, 0); lungL.scale.set(1, 1.4, 1); organs.add(lungL);
-    const lungR = lungL.clone(); lungR.position.x = -0.16; organs.add(lungR);
-    const liver = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 16), new THREE.MeshStandardMaterial({ color: 0x884422, roughness: 0.5 }));
-    liver.position.set(-0.08, 0.75, 0); liver.scale.set(1.3, 0.7, 1); organs.add(liver);
-    const stomach = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), new THREE.MeshStandardMaterial({ color: 0xddaa66, roughness: 0.5 }));
-    stomach.position.set(0.08, 0.7, 0); organs.add(stomach);
-    scene.add(organs);
+    const earth = new THREE.Mesh(new THREE.SphereGeometry(3.5, 64, 64), new THREE.MeshStandardMaterial({ map: new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'), roughness: 0.5, emissive: 0x112244, emissiveIntensity: 1.0 }));
+    earth.position.set(0, 0, 0); scene.add(earth);
 
-    const tg = document.createElement('div');
-    tg.className = 'layer-toggles';
-    tg.innerHTML =
-      '<label><input type="checkbox" data-layer="sk" checked> Skelett</label>' +
-      '<label><input type="checkbox" data-layer="or" checked> Organe</label>';
-    tg.querySelectorAll('input').forEach(cb => {
-      cb.onchange = () => {
-        if (cb.dataset.layer === 'sk') skeleton.visible = cb.checked;
-        if (cb.dataset.layer === 'or') organs.visible = cb.checked;
-      };
-    });
-    wrap.appendChild(tg);
+    scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+    const sunLight = new THREE.DirectionalLight(0xfff8e1, 3.0); sunLight.position.copy(sun.position); scene.add(sunLight);
 
-    let rot = 0, raf;
     function animate() {
-      raf = requestAnimationFrame(animate);
-      rot += 0.006;
-      skeleton.rotation.y = rot; organs.rotation.y = rot;
+      requestAnimationFrame(animate);
+      earth.rotation.y += 0.001; moon.rotation.y += 0.002; sun.rotation.y += 0.001;
       renderer.render(scene, camera);
     }
     animate();
-
-    const ro = new ResizeObserver(() => {
-      const w = wrap.clientWidth, h = wrap.clientHeight;
-      if (w && h) {
-        renderer.setSize(w, h);
-        camera.aspect = w / h;
-        camera.updateProjectionMatrix();
-      }
-    });
-    ro.observe(wrap);
-
-    contentRef._cleanup = () => {
-      cancelAnimationFrame(raf);
-      ro.disconnect();
-      renderer.dispose();
-    };
-  }
-
-  render();
+    window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+  } catch (e) {}
 }
 
-/* ---------- T: Tasks ---------- */
-function renderTasks(sidebar, content) {
-  let tasks = store('tasks', []);
-  let active = 'select';
-  const persist = () => save('tasks', tasks);
-
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    [['create', '➕ ' + t('create')], ['select', '✅ Aufgaben'], ['settings', '⚙ Einstellungen'], ['delete', '🗑 Löschen']].forEach(([id, label]) => {
-      const b = document.createElement('button');
-      b.className = 'side-btn' + (active === id ? ' active' : '');
-      b.textContent = label; b.onclick = () => { active = id; render(); };
-      sidebar.appendChild(b);
-    });
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => speak('Aufgaben. ' + tasks.filter(x => !x.done).length + ' offen.');
-    sidebar.appendChild(sb);
-  }
-
-  function render() {
-    renderSidebar(); content.innerHTML = '';
-    if (active === 'create') {
-      content.innerHTML = '<h3>＋ Neue Aufgabe</h3>';
-      const form = document.createElement('form');
-      const i = document.createElement('input'); i.placeholder = 'Aufgabe'; form.appendChild(i);
-      const d = document.createElement('input'); d.type = 'date'; form.appendChild(d);
-      const b = document.createElement('button'); b.textContent = t('save'); form.appendChild(b);
-      form.onsubmit = e => {
-        e.preventDefault();
-        tasks.push({ id: Date.now(), text: i.value, date: d.value, done: false });
-        persist(); i.value = ''; flash(content, '✓ ' + t('save'));
-      };
-      content.appendChild(form);
-    } else if (active === 'select') {
-      content.innerHTML = '<h3>✅ Aufgaben (' + tasks.filter(x => !x.done).length + ' offen)</h3>';
-      const list = document.createElement('div'); list.className = 'list';
-      tasks.forEach(tk => {
-        const row = document.createElement('div');
-        row.className = 'list-row';
-        row.innerHTML = '<span style="' + (tk.done ? 'text-decoration:line-through;opacity:0.5' : '') + '">' + esc(tk.text) + '</span><span class="muted">' + (tk.date || '') + '</span>';
-        const cb = document.createElement('input');
-        cb.type = 'checkbox'; cb.checked = tk.done;
-        cb.style.width = 'auto'; cb.style.margin = '0';
-        cb.onchange = () => { tk.done = cb.checked; persist(); render(); };
-        row.insertBefore(cb, row.firstChild);
-        list.appendChild(row);
-      });
-      content.appendChild(list);
-    } else if (active === 'settings') {
-      content.innerHTML = '<h3>⚙ Aufgaben</h3><p>Gesamt: ' + tasks.length + ', Offen: ' + tasks.filter(x => !x.done).length + '</p>';
-      const b = document.createElement('button');
-      b.textContent = 'Alle als erledigt markieren';
-      b.onclick = () => { tasks.forEach(x => x.done = true); persist(); render(); };
-      content.appendChild(b);
-    } else if (active === 'delete') {
-      content.innerHTML = '<h3>🗑 Löschen</h3>';
-      tasks.forEach(tk => {
-        const row = document.createElement('div');
-        row.className = 'list-row';
-        row.innerHTML = '<span>' + esc(tk.text) + '</span>';
-        const d = document.createElement('button'); d.className = 'danger'; d.textContent = '✕';
-        d.onclick = () => { if (confirm(t('confirm'))) { tasks = tasks.filter(x => x.id !== tk.id); persist(); render(); } };
-        row.appendChild(d); content.appendChild(row);
-      });
-    }
-  }
-  render();
-}
-
-/* ---------- Q: Quick Tools ---------- */
-function renderQuickTools(sidebar, content) {
-  let active = 'tools';
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    [['tools', '🔧 Werkzeuge'], ['settings', '⚙ Einstellungen']].forEach(([id, label]) => {
-      const b = document.createElement('button');
-      b.className = 'side-btn' + (active === id ? ' active' : '');
-      b.textContent = label; b.onclick = () => { active = id; render(); };
-      sidebar.appendChild(b);
-    });
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => speak('Quick Tools: Rechner, Timer, Umrechner, Passwortgenerator.');
-    sidebar.appendChild(sb);
-  }
-  function render() {
-    renderSidebar(); content.innerHTML = '';
-    if (active === 'tools') {
-      const grid = document.createElement('div'); grid.className = 'qt-grid';
-
-      const calc = document.createElement('div'); calc.className = 'qt-panel';
-      calc.innerHTML = '<h4>🧮 Rechner</h4>';
-      const ci = document.createElement('input'); ci.placeholder = 'z.B. 2+2*3';
-      const cr = document.createElement('div'); cr.style.cssText = 'margin-top:6px;color:#66e0ff;font-size:16px;font-weight:700;';
-      ci.oninput = () => {
-        try { cr.textContent = '= ' + Function('"use strict";return(' + ci.value.replace(/[^0-9+\-*/(). ]/g, '') + ')')(); }
-        catch { cr.textContent = ''; }
-      };
-      calc.appendChild(ci); calc.appendChild(cr);
-      grid.appendChild(calc);
-
-      const timer = document.createElement('div'); timer.className = 'qt-panel';
-      timer.innerHTML = '<h4>⏱ Timer</h4>';
-      const ti = document.createElement('input'); ti.type = 'number'; ti.placeholder = 'Sekunden'; ti.value = 60;
-      const tbtn = document.createElement('button'); tbtn.textContent = 'Start';
-      const tout = document.createElement('div'); tout.style.cssText = 'margin-top:6px;color:#66e0ff;font-size:16px;font-weight:700;';
-      tbtn.onclick = () => {
-        let s = parseInt(ti.value) || 0;
-        tout.textContent = s + 's';
-        const iv = setInterval(() => {
-          s--; tout.textContent = s + 's';
-          if (s <= 0) { clearInterval(iv); tout.textContent = '⏰ Fertig!'; speak('Timer beendet'); }
-        }, 1000);
-      };
-      timer.appendChild(ti); timer.appendChild(tbtn); timer.appendChild(tout);
-      grid.appendChild(timer);
-
-      const conv = document.createElement('div'); conv.className = 'qt-panel';
-      conv.innerHTML = '<h4>📏 Umrechner</h4>';
-      const cIn = document.createElement('input'); cIn.type = 'number'; cIn.value = 1;
-      const cSel = document.createElement('select');
-      [['km_m', 'km → m'], ['m_cm', 'm → cm'], ['kg_g', 'kg → g'], ['C_F', '°C → °F'], ['F_C', '°F → °C']].forEach(([v, l]) => { const o = document.createElement('option'); o.value = v; o.textContent = l; cSel.appendChild(o); });
-      const cOut = document.createElement('div'); cOut.style.cssText = 'margin-top:6px;color:#66e0ff;font-size:16px;font-weight:700;';
-      function doConv() {
-        const v = parseFloat(cIn.value) || 0;
-        const map = { km_m: v => v * 1000, m_cm: v => v * 100, kg_g: v => v * 1000, C_F: v => v * 9 / 5 + 32, F_C: v => (v - 32) * 5 / 9 };
-        cOut.textContent = '= ' + map[cSel.value](v).toFixed(2);
-      }
-      cIn.oninput = doConv; cSel.onchange = doConv; doConv();
-      conv.appendChild(cIn); conv.appendChild(cSel); conv.appendChild(cOut);
-      grid.appendChild(conv);
-
-      const pw = document.createElement('div'); pw.className = 'qt-panel';
-      pw.innerHTML = '<h4>🔑 Passwort</h4>';
-      const pwBtn = document.createElement('button'); pwBtn.textContent = 'Generieren';
-      const pwOut = document.createElement('div'); pwOut.style.cssText = 'margin-top:6px;color:#66e0ff;font-family:monospace;word-break:break-all;';
-      pwBtn.onclick = () => {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-        let p = '';
-        for (let i = 0; i < 20; i++) p += chars[Math.floor(Math.random() * chars.length)];
-        pwOut.textContent = p;
-      };
-      pw.appendChild(pwBtn); pw.appendChild(pwOut);
-      grid.appendChild(pw);
-
-      content.appendChild(grid);
-    } else {
-      content.innerHTML = '<h3>⚙ Quick Tools Einstellungen</h3><p class="muted">Währung, Einheiten, Standardwerte…</p>';
-    }
-  }
-  render();
-}
-
-/* ---------- S: Security ---------- */
-function renderSecurity(sidebar, content) {
-  let items = store('security', []);
-  let active = 'select';
-  const persist = () => save('security', items);
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    [['create', '➕ Neuer Eintrag'], ['select', '🔐 Tresor'], ['settings', '⚙ Einstellungen'], ['delete', '🗑 Löschen']].forEach(([id, label]) => {
-      const b = document.createElement('button');
-      b.className = 'side-btn' + (active === id ? ' active' : '');
-      b.textContent = label; b.onclick = () => { active = id; render(); };
-      sidebar.appendChild(b);
-    });
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => speak('Sicherheitstresor. ' + items.length + ' Einträge.');
-    sidebar.appendChild(sb);
-  }
-  function render() {
-    renderSidebar(); content.innerHTML = '';
-    if (active === 'create') {
-      content.innerHTML = '<h3>➕ Neuer Eintrag</h3>';
-      const f = document.createElement('form');
-      const name = document.createElement('input'); name.placeholder = 'Name / Dienst'; f.appendChild(name);
-      const user = document.createElement('input'); user.placeholder = 'Benutzername'; f.appendChild(user);
-      const pass = document.createElement('input'); pass.type = 'password'; pass.placeholder = 'Passwort'; f.appendChild(pass);
-      const b = document.createElement('button'); b.textContent = t('save'); f.appendChild(b);
-      f.onsubmit = e => {
-        e.preventDefault();
-        items.push({ id: Date.now(), name: name.value, user: user.value, pass: btoa(pass.value) });
-        persist(); f.reset(); flash(content, '✓ ' + t('save'));
-      };
-      content.appendChild(f);
-    } else if (active === 'select') {
-      content.innerHTML = '<h3>🔐 Passwort-Tresor</h3>';
-      if (items.length === 0) { content.innerHTML += '<p class="muted">' + t('noEntries') + '</p>'; return; }
-      items.forEach(it => {
-        const row = document.createElement('div'); row.className = 'list-row';
-        row.innerHTML = '<span>' + esc(it.name) + ' – ' + esc(it.user) + '</span>';
-        const show = document.createElement('button');
-        show.textContent = '👁';
-        show.onclick = () => { try { alert('Passwort: ' + atob(it.pass)); } catch (e) { alert('Fehler'); } };
-        row.appendChild(show); content.appendChild(row);
-      });
-    } else if (active === 'settings') {
-      content.innerHTML = '<h3>⚙ Sicherheit</h3><p class="muted">Verschlüsselung: Base64 (Demo).</p>';
-    } else if (active === 'delete') {
-      content.innerHTML = '<h3>🗑 Löschen</h3>';
-      items.forEach(it => {
-        const row = document.createElement('div'); row.className = 'list-row';
-        row.innerHTML = '<span>' + esc(it.name) + '</span>';
-        const b = document.createElement('button'); b.className = 'danger'; b.textContent = '✕';
-        b.onclick = () => { if (confirm(t('confirm'))) { items = items.filter(x => x.id !== it.id); persist(); render(); } };
-        row.appendChild(b); content.appendChild(row);
-      });
-    }
-  }
-  render();
-}
-
-/* ---------- Z: System Center ---------- */
-function renderSystem(sidebar, content) {
-  let active = 'lang';
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    [['lang', '🌐 Sprache'], ['voice', '🎤 Stimme'], ['storage', '💾 Speicher'], ['about', 'ℹ Über']].forEach(([id, label]) => {
-      const b = document.createElement('button');
-      b.className = 'side-btn' + (active === id ? ' active' : '');
-      b.textContent = label; b.onclick = () => { active = id; render(); };
-      sidebar.appendChild(b);
-    });
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => speak('System Center. Alle Einstellungen.');
-    sidebar.appendChild(sb);
-  }
-  function render() {
-    renderSidebar(); content.innerHTML = '';
-    if (active === 'lang') {
-      content.innerHTML = '<h3>🌐 Sprache</h3>';
-      const sel = document.createElement('select');
-      Object.keys(LANGNAMES).forEach(code => {
-        const o = document.createElement('option'); o.value = code; o.textContent = LANGNAMES[code];
-        if (code === state.lang) o.selected = true;
-        sel.appendChild(o);
-      });
-      sel.onchange = () => { setLang(sel.value); render(); };
-      content.appendChild(sel);
-    } else if (active === 'voice') {
-      content.innerHTML = '<h3>🎤 Stimme</h3>';
-      const r = document.createElement('input'); r.type = 'range'; r.min = 0.5; r.max = 2; r.step = 0.1;
-      r.value = state.voiceSettings.rate || 1;
-      const p = document.createElement('input'); p.type = 'range'; p.min = 0.5; p.max = 2; p.step = 0.1;
-      p.value = state.voiceSettings.pitch || 1;
-      const rl = document.createElement('div'); rl.textContent = 'Rate: ' + r.value;
-      const pl = document.createElement('div'); pl.textContent = 'Pitch: ' + p.value;
-      r.oninput = () => { rl.textContent = 'Rate: ' + r.value; state.voiceSettings.rate = parseFloat(r.value); save('voice', state.voiceSettings); };
-      p.oninput = () => { pl.textContent = 'Pitch: ' + p.value; state.voiceSettings.pitch = parseFloat(p.value); save('voice', state.voiceSettings); };
-      content.appendChild(rl); content.appendChild(r);
-      content.appendChild(pl); content.appendChild(p);
-      const test = document.createElement('button'); test.textContent = '🔊 Testen';
-      test.onclick = () => speak('Hallo, dies ist eine Testansage von HalDo AI OS Pro Max.');
-      content.appendChild(test);
-    } else if (active === 'storage') {
-      content.innerHTML = '<h3>💾 Speicher</h3>';
-      let total = 0;
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k.startsWith('haldo_')) total += (localStorage.getItem(k) || '').length;
-      }
-      content.innerHTML += '<p>Belegt: <b>' + (total / 1024).toFixed(2) + ' KB</b></p>';
-      const wipe = document.createElement('button'); wipe.className = 'danger';
-      wipe.textContent = '🗑 Alles zurücksetzen';
-      wipe.onclick = () => {
-        if (confirm('Wirklich ALLE Daten löschen?')) {
-          Object.keys(localStorage).filter(k => k.startsWith('haldo_')).forEach(k => localStorage.removeItem(k));
-          location.reload();
+let A = {scene:null, cam:null, ren:null, ctrl:null, current:null};
+function initCyborg() {
+  try {
+    const canvas = document.getElementById('cyborg-canvas');
+    A.scene = new THREE.Scene(); A.cam = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100); A.cam.position.set(0, 1.2, 4);
+    A.ren = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); A.ren.setSize(window.innerWidth, window.innerHeight); A.ren.setPixelRatio(Math.min(window.devicePixelRatio, 2)); A.ren.setClearColor(0x000000, 0);
+    A.ctrl = new THREE.OrbitControls(A.cam, A.ren.domElement); A.ctrl.enableDamping = true; A.ctrl.enablePan = false; A.ctrl.minDistance = 1.0; A.ctrl.maxDistance = 8;
+    A.scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+    const d1 = new THREE.DirectionalLight(0xffffff, 1.5); d1.position.set(3, 4, 5); A.scene.add(d1);
+    const d2 = new THREE.DirectionalLight(0x06b6d4, 1.5); d2.position.set(-3, 2, -5); A.scene.add(d2);
+    const loader = new THREE.GLTFLoader();
+    function loadModel(url, isManual = false) {
+      loader.load(url, (gltf) => {
+        if(A.current) A.scene.remove(A.current);
+        const m = gltf.scene; m.traverse(o => { if(o.isMesh && o.material) o.material.side = THREE.DoubleSide; });
+        A.scene.add(m); A.current = m;
+        const box = new THREE.Box3().setFromObject(m); const size = box.getSize(new THREE.Vector3()); const center = box.getCenter(new THREE.Vector3());
+        m.position.x = -center.x; m.position.y = -box.min.y; m.position.z = -center.z;
+        const maxDim = Math.max(size.x, size.y, size.z); const fov = A.cam.fov * (Math.PI / 180);
+        let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.3;
+        A.cam.position.set(0, size.y / 2, cameraZ); A.ctrl.target.set(0, size.y / 2, 0); A.ctrl.update();
+        document.getElementById('glb-uploader').style.display = 'none';
+      }, undefined, () => {
+        if (!isManual) {
+          document.getElementById('glb-uploader').style.borderColor = 'var(--danger)';
+          const geo = new THREE.CapsuleGeometry(0.3, 1.2, 16, 32); const mat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, wireframe: true, transparent: true, opacity: 0.5 });
+          const mesh = new THREE.Mesh(geo, mat); mesh.position.y = 0.9; A.scene.add(mesh); A.cam.position.set(0, 1, 3); A.ctrl.target.set(0, 1, 0);
         }
-      };
-      content.appendChild(wipe);
-    } else {
-      content.innerHTML = '<h3>ℹ HalDo AI OS Pro Max</h3><p>Version 1.0.0</p><p class="muted">Von Halil Donma. 20 Sprachen · 26 Apps · 3D Kosmos · 3D Anatomie · TTS.</p>';
-    }
-  }
-  render();
-}
-
-/* ---------- W: Weather ---------- */
-function renderWeather(sidebar, content) {
-  let cities = store('weather_cities', [{ id: 1, name: 'Berlin' }]);
-  let active = 'select';
-  const persist = () => save('weather_cities', cities);
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    [['select', '⛅ Wetter'], ['create', '➕ Stadt'], ['settings', '⚙ Einheiten'], ['delete', '🗑 Löschen']].forEach(([id, label]) => {
-      const b = document.createElement('button');
-      b.className = 'side-btn' + (active === id ? ' active' : '');
-      b.textContent = label; b.onclick = () => { active = id; render(); };
-      sidebar.appendChild(b);
-    });
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => speak('Wetter. Vorhersage.');
-    sidebar.appendChild(sb);
-  }
-  function render() {
-    renderSidebar(); content.innerHTML = '';
-    if (active === 'select') {
-      content.innerHTML = '<h3>⛅ Wetter</h3>';
-      const conds = ['Sonnig ☀️', 'Bewölkt ☁️', 'Regnerisch 🌧️', 'Gewitter ⛈️', 'Schnee ❄️'];
-      cities.forEach(c => {
-        const panel = document.createElement('div'); panel.className = 'qt-panel';
-        panel.style.marginBottom = '8px';
-        const temp = Math.round(15 + Math.random() * 15);
-        const cond = conds[Math.floor(Math.random() * conds.length)];
-        panel.innerHTML = '<h4>' + esc(c.name) + '</h4><div style="font-size:24px;color:#66e0ff;">' + temp + '°C</div><div>' + cond + '</div><div class="muted">Demo-Daten</div>';
-        content.appendChild(panel);
-      });
-    } else if (active === 'create') {
-      content.innerHTML = '<h3>➕ Stadt hinzufügen</h3>';
-      const f = document.createElement('form');
-      const i = document.createElement('input'); i.placeholder = 'Stadtname'; f.appendChild(i);
-      const b = document.createElement('button'); b.textContent = t('save'); f.appendChild(b);
-      f.onsubmit = e => { e.preventDefault(); cities.push({ id: Date.now(), name: i.value }); persist(); i.value = ''; render(); };
-      content.appendChild(f);
-    } else if (active === 'settings') {
-      content.innerHTML = '<h3>⚙ Einheiten</h3><p class="muted">°C / °F</p>';
-    } else {
-      content.innerHTML = '<h3>🗑 Städte löschen</h3>';
-      cities.forEach(c => {
-        const row = document.createElement('div'); row.className = 'list-row';
-        row.innerHTML = '<span>' + esc(c.name) + '</span>';
-        const b = document.createElement('button'); b.className = 'danger'; b.textContent = '✕';
-        b.onclick = () => { if (confirm(t('confirm'))) { cities = cities.filter(x => x.id !== c.id); persist(); render(); } };
-        row.appendChild(b); content.appendChild(row);
       });
     }
-  }
-  render();
-}
-
-/* ---------- Y: Your Life ---------- */
-function renderYourLife(sidebar, content) {
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    const b = document.createElement('button');
-    b.className = 'side-btn active';
-    b.textContent = '💫 Dashboard';
-    sidebar.appendChild(b);
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => speak('Dein Leben Dashboard.');
-    sidebar.appendChild(sb);
-  }
-  function render() {
-    renderSidebar();
-    content.innerHTML = '<h3>💫 Dein Leben – Dashboard</h3>';
-    const grid = document.createElement('div'); grid.className = 'qt-grid';
-    const tasks = store('tasks', []);
-    const events = store('cal_events', []);
-    const vitals = store('health_vitals', []);
-    const widgets = [
-      { t: '⛅ Wetter', v: '18°C · ☀️' },
-      { t: '❤ Vitalwerte', v: vitals.length + ' Einträge' },
-      { t: '✅ Aufgaben', v: tasks.filter(x => !x.done).length + ' offen' },
-      { t: '📅 Termine', v: events.length + ' geplant' },
-    ];
-    widgets.forEach(w => {
-      const p = document.createElement('div'); p.className = 'qt-panel';
-      p.innerHTML = '<h4>' + w.t + '</h4><div style="font-size:18px;color:#66e0ff;">' + w.v + '</div>';
-      grid.appendChild(p);
+    loadModel('./male_base.glb');
+    document.getElementById('manual-glb').addEventListener('change', function(e) {
+      const file = e.target.files[0]; if (!file) return; loadModel(URL.createObjectURL(file), true);
     });
-    content.appendChild(grid);
-  }
-  render();
+    (function loop() { requestAnimationFrame(loop); A.ctrl.update(); A.ren.render(A.scene, A.cam); })();
+    window.addEventListener('resize', () => { A.cam.aspect = window.innerWidth / window.innerHeight; A.cam.updateProjectionMatrix(); A.ren.setSize(window.innerWidth, window.innerHeight); });
+  } catch (e) {}
 }
 
-/* ---------- Browser ---------- */
-function renderBrowser(sidebar, content) {
-  let bookmarks = store('browser_bm', [{ id: 1, name: 'Google', url: 'https://www.google.com' }]);
-  let active = 'web';
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    [['web', '🌐 Web'], ['bm', '⭐ Lesezeichen'], ['settings', '⚙ Einstellungen'], ['delete', '🗑 Löschen']].forEach(([id, label]) => {
-      const b = document.createElement('button');
-      b.className = 'side-btn' + (active === id ? ' active' : '');
-      b.textContent = label; b.onclick = () => { active = id; render(); };
-      sidebar.appendChild(b);
-    });
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => speak('Browser. URL eingeben.');
-    sidebar.appendChild(sb);
-  }
-  function render() {
-    renderSidebar(); content.innerHTML = '';
-    if (active === 'web') {
-      const bar = document.createElement('div');
-      bar.style.cssText = 'display:flex;gap:6px;margin-bottom:6px;';
-      const inp = document.createElement('input');
-      inp.placeholder = 'https://…'; inp.style.flex = '1';
-      const go = document.createElement('button'); go.textContent = '➤';
-      const frame = document.createElement('iframe');
-      frame.style.cssText = 'width:100%;height:calc(100% - 60px);min-height:380px;border:1px solid rgba(80,200,255,0.3);border-radius:6px;background:#fff;';
-      go.onclick = () => { frame.src = inp.value; };
-      bar.appendChild(inp); bar.appendChild(go);
-      content.appendChild(bar);
-      content.appendChild(frame);
-    } else if (active === 'bm') {
-      content.innerHTML = '<h3>⭐ Lesezeichen</h3>';
-      bookmarks.forEach(bm => {
-        const row = document.createElement('div'); row.className = 'list-row';
-        row.innerHTML = '<span>' + esc(bm.name) + '</span><span class="muted">' + esc(bm.url) + '</span>';
-        content.appendChild(row);
-      });
-      const addB = document.createElement('button'); addB.textContent = '➕ Lesezeichen';
-      addB.onclick = () => { const n = prompt('Name'); const u = prompt('URL', 'https://'); if (n && u) { bookmarks.push({ id: Date.now(), name: n, url: u }); save('browser_bm', bookmarks); render(); } };
-      content.appendChild(addB);
-    } else if (active === 'settings') {
-      content.innerHTML = '<h3>⚙ Browser</h3><p class="muted">Startseite, Privatsphäre.</p>';
-    } else {
-      content.innerHTML = '<h3>🗑 Lesezeichen löschen</h3>';
-      bookmarks.forEach(bm => {
-        const row = document.createElement('div'); row.className = 'list-row';
-        row.innerHTML = '<span>' + esc(bm.name) + '</span>';
-        const b = document.createElement('button'); b.className = 'danger'; b.textContent = '✕';
-        b.onclick = () => { if (confirm(t('confirm'))) { bookmarks = bookmarks.filter(x => x.id !== bm.id); save('browser_bm', bookmarks); render(); } };
-        row.appendChild(b); content.appendChild(row);
-      });
-    }
-  }
-  render();
-}
+/* ================= BOOT & OS CORE ================= */
+window.addEventListener('DOMContentLoaded', () => {
+  initCosmos();
+  initCyborg();
+  startClock();
+  applyLanguage();
+});
 
-/* ---------- Email ---------- */
-function renderEmail(sidebar, content) {
-  let mails = store('mails', [{ id: 1, from: 'HalDo', subject: 'Willkommen', body: 'Willkommen im HalDo Mail!', folder: 'inbox' }]);
-  let folder = 'inbox';
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    [['inbox', '📥 Posteingang'], ['sent', '📤 Gesendet'], ['compose', '✍ Neu'], ['settings', '⚙ Einstellungen'], ['delete', '🗑 Löschen']].forEach(([id, label]) => {
-      const b = document.createElement('button');
-      b.className = 'side-btn' + (folder === id ? ' active' : '');
-      b.textContent = label; b.onclick = () => { folder = id; render(); };
-      sidebar.appendChild(b);
-    });
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => speak('E-Mail. ' + mails.filter(m => m.folder === 'inbox').length + ' Nachrichten.');
-    sidebar.appendChild(sb);
-  }
-  function render() {
-    renderSidebar(); content.innerHTML = '';
-    if (folder === 'compose') {
-      content.innerHTML = '<h3>✍ Neue E-Mail</h3>';
-      const f = document.createElement('form');
-      const to = document.createElement('input'); to.placeholder = 'An'; f.appendChild(to);
-      const sub = document.createElement('input'); sub.placeholder = 'Betreff'; f.appendChild(sub);
-      const body = document.createElement('textarea'); body.placeholder = 'Nachricht'; body.style.minHeight = '150px'; f.appendChild(body);
-      const b = document.createElement('button'); b.textContent = '📤 ' + t('save'); f.appendChild(b);
-      f.onsubmit = e => { e.preventDefault(); mails.push({ id: Date.now(), from: 'Du', to: to.value, subject: sub.value, body: body.value, folder: 'sent' }); save('mails', mails); folder = 'sent'; render(); };
-      content.appendChild(f);
-    } else if (folder === 'settings') {
-      content.innerHTML = '<h3>⚙ E-Mail</h3><p class="muted">Signaturen, Filter.</p>';
-    } else if (folder === 'delete') {
-      content.innerHTML = '<h3>🗑 Löschen</h3>';
-      mails.forEach(m => {
-        const row = document.createElement('div'); row.className = 'list-row';
-        row.innerHTML = '<span>' + esc(m.subject) + '</span>';
-        const b = document.createElement('button'); b.className = 'danger'; b.textContent = '✕';
-        b.onclick = () => { if (confirm(t('confirm'))) { mails = mails.filter(x => x.id !== m.id); save('mails', mails); render(); } };
-        row.appendChild(b); content.appendChild(row);
-      });
-    } else {
-      content.innerHTML = '<h3>' + (folder === 'inbox' ? '📥 Posteingang' : '📤 Gesendet') + '</h3>';
-      mails.filter(m => m.folder === folder).forEach(m => {
-        const row = document.createElement('div'); row.className = 'list-row';
-        row.innerHTML = '<span>' + esc(m.subject) + '</span><span class="muted">' + esc(m.from) + '</span>';
-        row.onclick = () => alert(m.subject + '\n\n' + m.body);
-        content.appendChild(row);
-      });
-    }
-  }
-  render();
-}
-
-/* ---------- Photos ---------- */
-function renderPhotos(sidebar, content) {
-  let photos = store('photos', []);
-  let active = 'select';
-  const persist = () => save('photos', photos);
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    [['select', '🖼 Galerie'], ['create', '📷 Hinzufügen'], ['settings', '⚙ Einstellungen'], ['delete', '🗑 Löschen']].forEach(([id, label]) => {
-      const b = document.createElement('button');
-      b.className = 'side-btn' + (active === id ? ' active' : '');
-      b.textContent = label; b.onclick = () => { active = id; render(); };
-      sidebar.appendChild(b);
-    });
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => speak('Fotogalerie. ' + photos.length + ' Bilder.');
-    sidebar.appendChild(sb);
-  }
-  function render() {
-    renderSidebar(); content.innerHTML = '';
-    if (active === 'select') {
-      content.innerHTML = '<h3>🖼 Galerie</h3>';
-      if (photos.length === 0) { content.innerHTML += '<p class="muted">Keine Bilder. Füge welche hinzu!</p>'; return; }
-      const grid = document.createElement('div');
-      grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;';
-      photos.forEach(p => {
-        const img = document.createElement('img');
-        img.src = p.data;
-        img.style.cssText = 'width:100%;height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(80,200,255,0.3);';
-        grid.appendChild(img);
-      });
-      content.appendChild(grid);
-    } else if (active === 'create') {
-      content.innerHTML = '<h3>📷 Bild hinzufügen</h3>';
-      const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
-      inp.onchange = () => {
-        const f = inp.files[0]; if (!f) return;
-        const r = new FileReader();
-        r.onload = () => { photos.push({ id: Date.now(), data: r.result, name: f.name }); persist(); active = 'select'; render(); };
-        r.readAsDataURL(f);
-      };
-      content.appendChild(inp);
-    } else if (active === 'settings') {
-      content.innerHTML = '<h3>⚙ Einstellungen</h3><p>Bilder: ' + photos.length + '</p>';
-    } else {
-      content.innerHTML = '<h3>🗑 Löschen</h3>';
-      photos.forEach(p => {
-        const row = document.createElement('div'); row.className = 'list-row';
-        row.innerHTML = '<span>' + esc(p.name) + '</span>';
-        const b = document.createElement('button'); b.className = 'danger'; b.textContent = '✕';
-        b.onclick = () => { if (confirm(t('confirm'))) { photos = photos.filter(x => x.id !== p.id); persist(); render(); } };
-        row.appendChild(b); content.appendChild(row);
-      });
-    }
-  }
-  render();
-}
-
-/* ---------- Music Studio ---------- */
-function renderMusic(sidebar, content) {
-  let playlists = store('music_pl', [{ id: 1, name: 'Meine Playlist', tracks: [] }]);
-  let active = 'select';
-  const persist = () => save('music_pl', playlists);
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    [['select', '🎵 Bibliothek'], ['create', '➕ Playlist'], ['settings', '⚙ Equalizer'], ['delete', '🗑 Löschen']].forEach(([id, label]) => {
-      const b = document.createElement('button');
-      b.className = 'side-btn' + (active === id ? ' active' : '');
-      b.textContent = label; b.onclick = () => { active = id; render(); };
-      sidebar.appendChild(b);
-    });
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => speak('Music Studio.');
-    sidebar.appendChild(sb);
-  }
-  function render() {
-    renderSidebar(); content.innerHTML = '';
-    if (active === 'select') {
-      content.innerHTML = '<h3>🎵 Bibliothek</h3>';
-      playlists.forEach(pl => {
-        const row = document.createElement('div'); row.className = 'list-row';
-        row.innerHTML = '<span>' + esc(pl.name) + '</span><span class="muted">' + pl.tracks.length + ' Tracks</span>';
-        row.onclick = () => { const url = prompt('Audio-URL für "' + pl.name + '":', ''); if (url) { pl.tracks.push({ id: Date.now(), url }); persist(); render(); } };
-        content.appendChild(row);
-      });
-    } else if (active === 'create') {
-      content.innerHTML = '<h3>➕ Neue Playlist</h3>';
-      const f = document.createElement('form');
-      const i = document.createElement('input'); i.placeholder = 'Playlist-Name'; f.appendChild(i);
-      const b = document.createElement('button'); b.textContent = t('save'); f.appendChild(b);
-      f.onsubmit = e => { e.preventDefault(); playlists.push({ id: Date.now(), name: i.value, tracks: [] }); persist(); i.value = ''; render(); };
-      content.appendChild(f);
-    } else if (active === 'settings') {
-      content.innerHTML = '<h3>⚙ Equalizer</h3><p class="muted">Audioqualität.</p>';
-    } else {
-      content.innerHTML = '<h3>🗑 Playlist löschen</h3>';
-      playlists.forEach(pl => {
-        const row = document.createElement('div'); row.className = 'list-row';
-        row.innerHTML = '<span>' + esc(pl.name) + '</span>';
-        const b = document.createElement('button'); b.className = 'danger'; b.textContent = '✕';
-        b.onclick = () => { if (confirm(t('confirm'))) { playlists = playlists.filter(x => x.id !== pl.id); persist(); render(); } };
-        row.appendChild(b); content.appendChild(row);
-      });
-    }
-  }
-  render();
-}
-
-/* ---------- Navigation ---------- */
-function renderNavigation(sidebar, content) {
-  let routes = store('routes', []);
-  let active = 'select';
-  const persist = () => save('routes', routes);
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    [['select', '🗺 Karte'], ['create', '➕ Route'], ['settings', '⚙ Verkehr'], ['delete', '🗑 Löschen']].forEach(([id, label]) => {
-      const b = document.createElement('button');
-      b.className = 'side-btn' + (active === id ? ' active' : '');
-      b.textContent = label; b.onclick = () => { active = id; render(); };
-      sidebar.appendChild(b);
-    });
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => speak('Navigation. ' + routes.length + ' Routen.');
-    sidebar.appendChild(sb);
-  }
-  function render() {
-    renderSidebar(); content.innerHTML = '';
-    if (active === 'select') {
-      content.innerHTML = '<h3>🗺 Karte / Routen</h3>';
-      const map = document.createElement('iframe');
-      map.src = 'https://www.openstreetmap.org/export/embed.html?bbox=-10,35,30,60&layer=mapnik';
-      map.style.cssText = 'width:100%;height:380px;border:1px solid rgba(80,200,255,0.3);border-radius:6px;';
-      content.appendChild(map);
-      routes.forEach(r => {
-        const row = document.createElement('div'); row.className = 'list-row';
-        row.innerHTML = '<span>' + esc(r.from) + ' → ' + esc(r.to) + '</span>';
-        content.appendChild(row);
-      });
-    } else if (active === 'create') {
-      content.innerHTML = '<h3>➕ Neue Route</h3>';
-      const f = document.createElement('form');
-      const from = document.createElement('input'); from.placeholder = 'Von'; f.appendChild(from);
-      const to = document.createElement('input'); to.placeholder = 'Nach'; f.appendChild(to);
-      const b = document.createElement('button'); b.textContent = t('save'); f.appendChild(b);
-      f.onsubmit = e => { e.preventDefault(); routes.push({ id: Date.now(), from: from.value, to: to.value }); persist(); f.reset(); render(); };
-      content.appendChild(f);
-    } else if (active === 'settings') {
-      content.innerHTML = '<h3>⚙ Verkehr</h3><p class="muted">Stau, Maut.</p>';
-    } else {
-      content.innerHTML = '<h3>🗑 Routen löschen</h3>';
-      routes.forEach(r => {
-        const row = document.createElement('div'); row.className = 'list-row';
-        row.innerHTML = '<span>' + esc(r.from) + ' → ' + esc(r.to) + '</span>';
-        const b = document.createElement('button'); b.className = 'danger'; b.textContent = '✕';
-        b.onclick = () => { if (confirm(t('confirm'))) { routes = routes.filter(x => x.id !== r.id); persist(); render(); } };
-        row.appendChild(b); content.appendChild(row);
-      });
-    }
-  }
-  render();
-}
-
-/* ---------- Recorder ---------- */
-function renderRecorder(sidebar, content) {
-  let recordings = store('recordings', []);
-  let active = 'select';
-  let mediaRecorder = null, chunks = [];
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    [['select', '🎙 Aufnahmen'], ['create', '⏺ Aufnahme'], ['settings', '⚙ Audio'], ['delete', '🗑 Löschen']].forEach(([id, label]) => {
-      const b = document.createElement('button');
-      b.className = 'side-btn' + (active === id ? ' active' : '');
-      b.textContent = label; b.onclick = () => { active = id; render(); };
-      sidebar.appendChild(b);
-    });
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => speak('Recorder. ' + recordings.length + ' Aufnahmen.');
-    sidebar.appendChild(sb);
-  }
-  function render() {
-    renderSidebar(); content.innerHTML = '';
-    if (active === 'create') {
-      content.innerHTML = '<h3>⏺ Aufnahme</h3>';
-      const start = document.createElement('button'); start.textContent = '⏺ Start';
-      const stop = document.createElement('button'); stop.textContent = '⏹ Stop';
-      const status = document.createElement('div'); status.style.marginTop = '10px'; status.style.color = '#66e0ff';
-      start.onclick = async () => {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          mediaRecorder = new MediaRecorder(stream);
-          chunks = [];
-          mediaRecorder.ondataavailable = e => chunks.push(e.data);
-          mediaRecorder.onstop = () => {
-            const blob = new Blob(chunks, { type: 'audio/webm' });
-            const url = URL.createObjectURL(blob);
-            recordings.push({ id: Date.now(), url, name: 'Aufnahme ' + new Date().toLocaleTimeString() });
-            save('recordings', recordings);
-            status.textContent = '✓ Aufnahme gespeichert';
-            stream.getTracks().forEach(t => t.stop());
-            active = 'select'; render();
-          };
-          mediaRecorder.start();
-          status.textContent = '⏺ Aufnahme läuft…';
-        } catch (e) { status.textContent = 'Mikrofon nicht verfügbar: ' + e.message; }
-      };
-      stop.onclick = () => { if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop(); };
-      content.appendChild(start); content.appendChild(stop); content.appendChild(status);
-    } else if (active === 'select') {
-      content.innerHTML = '<h3>🎙 Aufnahmen</h3>';
-      recordings.forEach(r => {
-        const panel = document.createElement('div'); panel.className = 'qt-panel'; panel.style.marginBottom = '6px';
-        panel.innerHTML = '<h4>' + esc(r.name) + '</h4>';
-        const a = document.createElement('audio'); a.controls = true; a.src = r.url; a.style.width = '100%';
-        panel.appendChild(a);
-        content.appendChild(panel);
-      });
-      if (recordings.length === 0) content.innerHTML += '<p class="muted">Keine Aufnahmen.</p>';
-    } else if (active === 'settings') {
-      content.innerHTML = '<h3>⚙ Audio-Format</h3><p class="muted">WebM.</p>';
-    } else {
-      content.innerHTML = '<h3>🗑 Löschen</h3>';
-      recordings.forEach(r => {
-        const row = document.createElement('div'); row.className = 'list-row';
-        row.innerHTML = '<span>' + esc(r.name) + '</span>';
-        const b = document.createElement('button'); b.className = 'danger'; b.textContent = '✕';
-        b.onclick = () => { if (confirm(t('confirm'))) { recordings = recordings.filter(x => x.id !== r.id); save('recordings', recordings); render(); } };
-        row.appendChild(b); content.appendChild(row);
-      });
-    }
-  }
-  render();
-}
-
-/* ---------- Video Studio ---------- */
-function renderVideo(sidebar, content) {
-  let videos = store('videos', []);
-  let active = 'select';
-  const persist = () => save('videos', videos);
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    [['select', '🎬 Videos'], ['create', '➕ Hinzufügen'], ['settings', '⚙ Export'], ['delete', '🗑 Löschen']].forEach(([id, label]) => {
-      const b = document.createElement('button');
-      b.className = 'side-btn' + (active === id ? ' active' : '');
-      b.textContent = label; b.onclick = () => { active = id; render(); };
-      sidebar.appendChild(b);
-    });
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => speak('Video Studio. ' + videos.length + ' Videos.');
-    sidebar.appendChild(sb);
-  }
-  function render() {
-    renderSidebar(); content.innerHTML = '';
-    if (active === 'select') {
-      content.innerHTML = '<h3>🎬 Videos</h3>';
-      if (videos.length === 0) { content.innerHTML += '<p class="muted">Keine Videos.</p>'; return; }
-      videos.forEach(v => {
-        const panel = document.createElement('div'); panel.className = 'qt-panel'; panel.style.marginBottom = '8px';
-        const vid = document.createElement('video');
-        vid.controls = true; vid.style.width = '100%'; vid.src = v.url;
-        panel.innerHTML = '<h4>' + esc(v.name) + '</h4>';
-        panel.appendChild(vid);
-        content.appendChild(panel);
-      });
-    } else if (active === 'create') {
-      content.innerHTML = '<h3>➕ Video hinzufügen</h3>';
-      const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'video/*';
-      inp.onchange = () => {
-        const f = inp.files[0]; if (!f) return;
-        const r = new FileReader();
-        r.onload = () => { videos.push({ id: Date.now(), name: f.name, url: r.result }); persist(); active = 'select'; render(); };
-        r.readAsDataURL(f);
-      };
-      content.appendChild(inp);
-    } else if (active === 'settings') {
-      content.innerHTML = '<h3>⚙ Export</h3><p class="muted">MP4, 4K.</p>';
-    } else {
-      content.innerHTML = '<h3>🗑 Löschen</h3>';
-      videos.forEach(v => {
-        const row = document.createElement('div'); row.className = 'list-row';
-        row.innerHTML = '<span>' + esc(v.name) + '</span>';
-        const b = document.createElement('button'); b.className = 'danger'; b.textContent = '✕';
-        b.onclick = () => { if (confirm(t('confirm'))) { videos = videos.filter(x => x.id !== v.id); persist(); render(); } };
-        row.appendChild(b); content.appendChild(row);
-      });
-    }
-  }
-  render();
-}
-
-/* ---------- Documents ---------- */
-function renderDocuments(sidebar, content) {
-  let docs = store('documents', [{ id: Date.now(), title: 'Willkommen', body: 'HalDo AI OS Pro Max – Dokumente\n\nHier kannst du schreiben…' }]);
-  let currentId = docs[0].id;
-  let active = 'select';
-  const persist = () => save('documents', docs);
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    [['select', '📂 Dateien'], ['create', '➕ Neu'], ['settings', '⚙ Einstellungen'], ['delete', '🗑 Löschen']].forEach(([id, label]) => {
-      const b = document.createElement('button');
-      b.className = 'side-btn' + (active === id ? ' active' : '');
-      b.textContent = label; b.onclick = () => { active = id; render(); };
-      sidebar.appendChild(b);
-    });
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => {
-      const doc = docs.find(d => d.id === currentId);
-      speak(doc ? doc.body : 'Keine Datei.');
-    };
-    sidebar.appendChild(sb);
-  }
-  function render() {
-    renderSidebar(); content.innerHTML = '';
-    if (active === 'create') {
-      const doc = { id: Date.now(), title: 'Neues Dokument', body: '' };
-      docs.push(doc); currentId = doc.id; persist();
-      active = 'select'; render(); return;
-    } else if (active === 'select') {
-      const doc = docs.find(d => d.id === currentId) || docs[0];
-      const head = document.createElement('div');
-      head.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px;';
-      const title = document.createElement('input');
-      title.value = doc.title; title.style.flex = '1';
-      title.oninput = () => { doc.title = title.value; persist(); };
-      head.appendChild(title);
-      const saveBtn = document.createElement('button');
-      saveBtn.textContent = '💾 ' + t('save');
-      saveBtn.onclick = () => { persist(); flash(content, '✓ Gespeichert'); };
-      head.appendChild(saveBtn);
-      content.appendChild(head);
-      const ta = document.createElement('textarea');
-      ta.value = doc.body;
-      ta.style.cssText = 'width:100%;height:calc(100% - 120px);min-height:280px;font-family:monospace;';
-      ta.oninput = () => { doc.body = ta.value; persist(); };
-      content.appendChild(ta);
-      const sel = document.createElement('select');
-      sel.style.marginTop = '6px';
-      docs.forEach(d => {
-        const o = document.createElement('option'); o.value = d.id; o.textContent = d.title;
-        if (d.id === currentId) o.selected = true;
-        sel.appendChild(o);
-      });
-      sel.onchange = () => { currentId = Number(sel.value); render(); };
-      content.appendChild(sel);
-    } else if (active === 'settings') {
-      content.innerHTML = '<h3>⚙ Dokumente</h3><p>Anzahl: ' + docs.length + '</p>';
-    } else if (active === 'delete') {
-      content.innerHTML = '<h3>🗑 Löschen</h3>';
-      docs.forEach(d => {
-        const row = document.createElement('div');
-        row.className = 'list-row';
-        row.innerHTML = '<span>' + esc(d.title) + '</span>';
-        const b = document.createElement('button'); b.className = 'danger'; b.textContent = '✕';
-        b.onclick = () => { if (confirm(t('confirm'))) { docs = docs.filter(x => x.id !== d.id); if (docs.length === 0) docs = [{ id: Date.now(), title: 'Neu', body: '' }]; currentId = docs[0].id; persist(); render(); } };
-        row.appendChild(b); content.appendChild(row);
-      });
-    }
-  }
-  render();
-}
-
-/* ---------- Office ---------- */
-function renderOffice(sidebar, content) {
-  const tabs = { doc: '📄 Text', sheet: '📊 Tabelle', slides: '📽 Präsentation' };
-  let active = 'doc';
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    Object.keys(tabs).forEach(id => {
-      const b = document.createElement('button');
-      b.className = 'side-btn' + (active === id ? ' active' : '');
-      b.textContent = tabs[id]; b.onclick = () => { active = id; render(); };
-      sidebar.appendChild(b);
-    });
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => speak('Office. Text, Tabelle, Präsentation.');
-    sidebar.appendChild(sb);
-  }
-  function render() {
-    renderSidebar(); content.innerHTML = '';
-    const key = 'office_' + active;
-    let data = store(key, {});
-    content.innerHTML = '<h3>' + tabs[active] + '</h3>';
-    const ta = document.createElement('textarea');
-    ta.placeholder = active === 'sheet' ? 'Zellen zeilenweise, Werte durch Komma getrennt' : (active === 'slides' ? 'Folie 1:\nTitel…\n\nFolie 2:' : 'Text hier…');
-    ta.style.cssText = 'width:100%;height:calc(100% - 80px);min-height:300px;' + (active === 'sheet' ? 'font-family:monospace;' : '');
-    ta.value = data.text || '';
-    ta.oninput = () => { data.text = ta.value; save(key, data); };
-    content.appendChild(ta);
-    const b = document.createElement('button');
-    b.textContent = '💾 ' + t('save');
-    b.onclick = () => { save(key, data); flash(content, '✓ ' + t('save')); };
-    content.appendChild(b);
-  }
-  render();
-}
-
-/* ---------- Journal ---------- */
-function renderJournal(sidebar, content) {
-  let entries = store('journal', []);
-  let active = 'select';
-  const persist = () => save('journal', entries);
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    [['create', '➕ Neuer Eintrag'], ['select', '📔 Einträge'], ['settings', '⚙ Stimmung'], ['delete', '🗑 Löschen']].forEach(([id, label]) => {
-      const b = document.createElement('button');
-      b.className = 'side-btn' + (active === id ? ' active' : '');
-      b.textContent = label; b.onclick = () => { active = id; render(); };
-      sidebar.appendChild(b);
-    });
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => speak('Tagebuch. ' + entries.length + ' Einträge.');
-    sidebar.appendChild(sb);
-  }
-  function render() {
-    renderSidebar(); content.innerHTML = '';
-    if (active === 'create') {
-      content.innerHTML = '<h3>➕ Neuer Eintrag</h3>';
-      const f = document.createElement('form');
-      const mood = document.createElement('select');
-      ['😊 Gut', '😐 Neutral', '😔 Traurig', '😡 Wütend', '😴 Müde', '🤩 Glücklich'].forEach(m => { const o = document.createElement('option'); o.textContent = m; mood.appendChild(o); });
-      const ta = document.createElement('textarea'); ta.placeholder = 'Was denkst du?'; ta.style.minHeight = '120px';
-      const b = document.createElement('button'); b.textContent = t('save');
-      f.appendChild(mood); f.appendChild(ta); f.appendChild(b);
-      f.onsubmit = e => { e.preventDefault(); entries.push({ id: Date.now(), mood: mood.value, text: ta.value, date: new Date().toLocaleString() }); persist(); ta.value = ''; flash(content, '✓ ' + t('save')); };
-      content.appendChild(f);
-    } else if (active === 'select') {
-      content.innerHTML = '<h3>📔 Journal</h3>';
-      entries.slice().reverse().forEach(en => {
-        const panel = document.createElement('div'); panel.className = 'qt-panel';
-        panel.style.marginBottom = '8px';
-        panel.innerHTML = '<h4>' + esc(en.mood) + ' <span class="muted" style="font-size:11px;font-weight:normal;">' + esc(en.date) + '</span></h4><div style="white-space:pre-wrap;font-size:13px;">' + esc(en.text) + '</div>';
-        content.appendChild(panel);
-      });
-    } else if (active === 'settings') {
-      content.innerHTML = '<h3>⚙ Stimmungs-Tracker</h3><p class="muted">Verlauf folgt.</p>';
-    } else {
-      content.innerHTML = '<h3>🗑 Löschen</h3>';
-      entries.forEach(en => {
-        const row = document.createElement('div'); row.className = 'list-row';
-        row.innerHTML = '<span>' + esc(en.mood) + ' – ' + esc(en.text.slice(0, 40)) + '</span>';
-        const b = document.createElement('button'); b.className = 'danger'; b.textContent = '✕';
-        b.onclick = () => { if (confirm(t('confirm'))) { entries = entries.filter(x => x.id !== en.id); persist(); render(); } };
-        row.appendChild(b); content.appendChild(row);
-      });
-    }
-  }
-  render();
-}
-
-/* ---------- Internet ---------- */
-function renderInternet(sidebar, content) {
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    [['news', '📰 News']].forEach(([id, label]) => {
-      const b = document.createElement('button');
-      b.className = 'side-btn active'; b.textContent = label;
-      sidebar.appendChild(b);
-    });
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => speak('Internet und Information.');
-    sidebar.appendChild(sb);
-  }
-  function render() {
-    renderSidebar(); content.innerHTML = '<h3>📰 Nachrichten</h3>';
-    const iframe = document.createElement('iframe');
-    iframe.src = 'https://de.m.wikipedia.org/wiki/Hauptseite';
-    iframe.style.cssText = 'width:100%;height:400px;border:1px solid rgba(80,200,255,0.3);border-radius:6px;background:#fff;';
-    content.appendChild(iframe);
-  }
-  render();
-}
-
-/* ---------- Keyboard & Language ---------- */
-function renderKeyboard(sidebar, content) {
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    const b = document.createElement('button');
-    b.className = 'side-btn active'; b.textContent = '⌨ Sprache';
-    sidebar.appendChild(b);
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => speak('Keyboard und Sprache. 20 Sprachen.');
-    sidebar.appendChild(sb);
-  }
-  function render() {
-    renderSidebar();
-    content.innerHTML = '<h3>⌨ Sprachen</h3>';
-    const sel = document.createElement('select');
-    Object.keys(LANGNAMES).forEach(code => {
-      const o = document.createElement('option'); o.value = code; o.textContent = LANGNAMES[code];
-      if (code === state.lang) o.selected = true;
-      sel.appendChild(o);
-    });
-    sel.onchange = () => setLang(sel.value);
-    content.appendChild(sel);
-  }
-  render();
-}
-
-/* ---------- Updates ---------- */
-function renderUpdates(sidebar, content) {
-  sidebar.innerHTML = '';
-  const sb = document.createElement('button');
-  sb.className = 'side-btn speak-btn';
-  sb.textContent = '🔊 ' + t('speak');
-  sb.onclick = () => speak('System-Updates. Version 1.0.0. Aktuell.');
-  sidebar.appendChild(sb);
-  content.innerHTML = '<h3>⬆ Updates</h3><p>Aktuelle Version: <b>1.0.0</b></p><p class="muted">System ist aktuell.</p><button onclick="alert(\'System ist aktuell.\')">Jetzt prüfen</button>';
-}
-
-/* ---------- eXperience ---------- */
-function renderExperience(sidebar, content) {
-  function renderSidebar() {
-    sidebar.innerHTML = '';
-    const b = document.createElement('button');
-    b.className = 'side-btn active'; b.textContent = '🎨 Theme';
-    sidebar.appendChild(b);
-    const sb = document.createElement('button');
-    sb.className = 'side-btn speak-btn';
-    sb.textContent = '🔊 ' + t('speak');
-    sb.onclick = () => speak('Personalisierung.');
-    sidebar.appendChild(sb);
-  }
-  function render() {
-    renderSidebar();
-    content.innerHTML = '<h3>🎨 Theme wählen</h3>';
-    ['#66e0ff', '#ff66dd', '#88ff88', '#ffcc44', '#ff6666', '#aa88ff', '#ffffff'].forEach(c => {
-      const b = document.createElement('button');
-      b.textContent = c; b.style.background = c; b.style.color = '#000';
-      b.onclick = () => alert('Theme "' + c + '" ausgewählt (Demo).');
-      content.appendChild(b);
-    });
-  }
-  render();
-}
-
-/* ---------- Files (CRUD) ---------- */
-const renderFiles = crudApp({ id: 'files', fields: [{ name: 'name', label: 'Dateiname' }, { name: 'content', label: 'Inhalt' }] });
-
-/* ---------- Learning (CRUD) ---------- */
-const renderLearning = crudApp({ id: 'learning', fields: [{ name: 'front', label: 'Vorderseite' }, { name: 'back', label: 'Rückseite' }] });
-
-/* ============================================================
-   APP REGISTRY (A–Z)
-   ============================================================ */
-const APPS = [
-  { id: 'ai',          letter: 'A', name: 'AI & Assistant',    icon: '🤖', render: renderAI },
-  { id: 'browser',     letter: 'B', name: 'Browser',           icon: '🌐', render: renderBrowser },
-  { id: 'calendar',    letter: 'C', name: 'Calendar',          icon: '📅', render: renderCalendar },
-  { id: 'documents',   letter: 'D', name: 'Documents',         icon: '📝', render: renderDocuments },
-  { id: 'email',       letter: 'E', name: 'Email',             icon: '📧', render: renderEmail },
-  { id: 'files',       letter: 'F', name: 'Files',             icon: '📁', render: renderFiles },
-  { id: 'gallery',     letter: 'G', name: 'Gallery',           icon: '🖼️', render: renderPhotos },
-  { id: 'health',      letter: 'H', name: 'Health & Medical',  icon: '🏥', render: renderHealth },
-  { id: 'internet',    letter: 'I', name: 'Internet',          icon: '📰', render: renderInternet },
-  { id: 'journal',     letter: 'J', name: 'Journal',           icon: '📔', render: renderJournal },
-  { id: 'keyboard',    letter: 'K', name: 'Keyboard & Language', icon: '⌨️', render: renderKeyboard },
-  { id: 'learning',    letter: 'L', name: 'Learning',          icon: '🎓', render: renderLearning },
-  { id: 'music',       letter: 'M', name: 'Music Studio',      icon: '🎵', render: renderMusic },
-  { id: 'navigation',  letter: 'N', name: 'Navigation',        icon: '🗺️', render: renderNavigation },
-  { id: 'office',      letter: 'O', name: 'Office',            icon: '📊', render: renderOffice },
-  { id: 'photos',      letter: 'P', name: 'Photos & Camera',   icon: '📷', render: renderPhotos },
-  { id: 'quicktools',  letter: 'Q', name: 'Quick Tools',       icon: '🔧', render: renderQuickTools },
-  { id: 'recorder',    letter: 'R', name: 'Recorder',          icon: '🎙️', render: renderRecorder },
-  { id: 'security',    letter: 'S', name: 'Security & API',    icon: '🔐', render: renderSecurity },
-  { id: 'tasks',       letter: 'T', name: 'Tasks',             icon: '✅', render: renderTasks },
-  { id: 'updates',     letter: 'U', name: 'Updates',           icon: '⬆️', render: renderUpdates },
-  { id: 'video',       letter: 'V', name: 'Video Studio',      icon: '🎬', render: renderVideo },
-  { id: 'weather',     letter: 'W', name: 'Weather',           icon: '⛅', render: renderWeather },
-  { id: 'experience',  letter: 'X', name: 'eXperience',        icon: '🎨', render: renderExperience },
-  { id: 'yourlife',    letter: 'Y', name: 'Your Life',         icon: '💫', render: renderYourLife },
-  { id: 'system',      letter: 'Z', name: 'System Center',     icon: '⚙️', render: renderSystem },
-];
-
-/* ============================================================
-   START MENU + LANGUAGE + CLOCK
-   ============================================================ */
-function buildStartMenu() {
-  const grid = document.getElementById('startGrid');
-  grid.innerHTML = '';
-  APPS.forEach(app => {
-    const tile = document.createElement('div');
-    tile.className = 'app-tile';
-    tile.innerHTML = '<div class="letter">' + app.letter + '</div>' +
-                     '<div class="icon">' + app.icon + '</div>' +
-                     '<div>' + app.name + '</div>';
-    tile.onclick = () => openApp(app.id);
-    grid.appendChild(tile);
-  });
-}
-
-function setLang(lang) {
-  state.lang = lang;
-  localStorage.setItem('haldo_lang', lang);
-  const sel = document.getElementById('langSelect');
-  if (sel) sel.value = lang;
-  Object.keys(state.openWindows).forEach(id => {
-    const app = APPS.find(a => a.id === id);
-    const win = state.openWindows[id];
-    if (!app || !win) return;
-    const sidebar = win.querySelector('.app-sidebar');
-    const content = win.querySelector('.app-content');
-    if (win._cleanup) { try { win._cleanup(); } catch (e) {} win._cleanup = null; }
-    sidebar.innerHTML = ''; content.innerHTML = '';
-    try { app.render(sidebar, content, win); } catch (e) { content.innerHTML = '<p style="color:#f77">' + e.message + '</p>'; }
-  });
-}
-
-function buildLangSelect() {
-  const sel = document.getElementById('langSelect');
-  sel.innerHTML = '';
-  Object.keys(LANGNAMES).forEach(code => {
-    const o = document.createElement('option');
-    o.value = code; o.textContent = LANGNAMES[code];
-    if (code === state.lang) o.selected = true;
-    sel.appendChild(o);
-  });
-  sel.onchange = () => setLang(sel.value);
+function enterApp() {
+  document.getElementById('welcome').classList.add('hide');
+  document.getElementById('taskbar').classList.add('show');
+  populateStartMenu();
 }
 
 function startClock() {
-  const el = document.getElementById('clock');
-  const tick = () => {
-    const d = new Date();
-    el.textContent = d.toLocaleTimeString(state.lang, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  };
-  tick(); setInterval(tick, 1000);
+  const clock = document.getElementById('sys-clock');
+  setInterval(() => { clock.textContent = new Date().toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'}); }, 1000);
+  clock.textContent = new Date().toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'});
 }
 
-/* ============================================================
-   INIT
-   ============================================================ */
-function init() {
-  initCosmos();
-  buildStartMenu();
-  buildLangSelect();
-  startClock();
-  renderTaskbar();
+/* ================= APP REGISTRY (A-Z MASTERPLAN) ================= */
+const REGISTRY = [
+  {id:'A', ico:'🧠', nm:'HalDo AI', fn:viewAI},
+  {id:'B', ico:'🌐', nm:'Browser', fn:viewBrowser},
+  {id:'C', ico:'📅', nm:'Calendar', fn:viewCalendar},
+  {id:'D', ico:'📄', nm:'Documents', fn:viewDocuments},
+  {id:'E', ico:'✉️', nm:'Email', fn:viewEmail},
+  {id:'F', ico:'📂', nm:'Files', fn:viewFiles},
+  {id:'G', ico:'🖼️', nm:'Gallery', fn:viewGallery},
+  {id:'H', ico:'🩺', nm:'Health / Arztbuch', fn:viewHealth},
+  {id:'I', ico:'🌍', nm:'Internet', fn:viewInternet},
+  {id:'J', ico:'📖', nm:'Journal', fn:viewJournal},
+  {id:'K', ico:'⌨️', nm:'Keyboard', fn:viewKeyboard},
+  {id:'L', ico:'🎓', nm:'Learning', fn:viewLearning},
+  {id:'M', ico:'🎵', nm:'Music Studio', fn:viewMusic},
+  {id:'N', ico:'🗺️', nm:'Navigation', fn:viewNavigation},
+  {id:'O', ico:'📊', nm:'Office', fn:viewOffice},
+  {id:'P', ico:'📷', nm:'Photos & Camera', fn:viewPhotos},
+  {id:'Q', ico:'🛠️', nm:'Quick Tools', fn:viewQuickTools},
+  {id:'R', ico:'🎙️', nm:'Recorder', fn:viewRecorder},
+  {id:'S', ico:'🛡️', nm:'Security', fn:viewSecurity},
+  {id:'T', ico:'✅', nm:'Tasks', fn:viewTasks},
+  {id:'U', ico:'🔄', nm:'Updates', fn:viewUpdates},
+  {id:'V', ico:'🎬', nm:'Video Studio', fn:viewVideo},
+  {id:'W', ico:'🌤️', nm:'Weather', fn:viewWeather},
+  {id:'X', ico:'🎨', nm:'eXperience', fn:viewExperience},
+  {id:'Y', ico:'🏠', nm:'Your Life', fn:viewYourLife},
+  {id:'Z', ico:'⚙️', nm:'System Center', fn:viewSystemCenter}
+];
 
-  document.getElementById('startBtn').onclick = () => {
-    document.getElementById('startmenu').classList.toggle('open');
-  };
-  document.addEventListener('click', e => {
-    const sm = document.getElementById('startmenu');
-    const sb = document.getElementById('startBtn');
-    if (sm.classList.contains('open') && !sm.contains(e.target) && e.target !== sb) {
-      sm.classList.remove('open');
-    }
+function populateStartMenu() {
+  const grid = document.getElementById('sm-apps');
+  grid.innerHTML = '';
+  REGISTRY.forEach(app => {
+    grid.innerHTML += `
+      <div class="sm-app-card" onclick="openApp('${app.id}')">
+        <div class="ico">${app.ico}</div>
+        <div class="nm">${app.nm}</div>
+      </div>
+    `;
   });
-  document.getElementById('voiceToggle').onclick = () => {
-    state.ttsEnabled = !state.ttsEnabled;
-    document.getElementById('voiceToggle').textContent = state.ttsEnabled ? '🔊' : '🔇';
-    if (!state.ttsEnabled) stopSpeak();
-  };
 }
 
-document.addEventListener('DOMContentLoaded', init);
+function filterStartMenu(q) {
+  const grid = document.getElementById('sm-apps');
+  grid.innerHTML = '';
+  const filtered = REGISTRY.filter(a => a.nm.toLowerCase().includes(q.toLowerCase()));
+  filtered.forEach(app => {
+    grid.innerHTML += `
+      <div class="sm-app-card" onclick="openApp('${app.id}')">
+        <div class="ico">${app.ico}</div>
+        <div class="nm">${app.nm}</div>
+      </div>
+    `;
+  });
+}
+
+function toggleStartMenu(e) {
+  if(e) e.stopPropagation();
+  document.getElementById('start-menu').classList.toggle('show');
+}
+
+/* ================= WINDOW MANAGER ================= */
+const openWindows = {}; 
+
+function openApp(id) {
+  const appDef = REGISTRY.find(a => a.id === id);
+  if(!appDef) return;
+  
+  const el = document.getElementById('app-splash');
+  el.querySelector('.splash-icon').textContent = appDef.ico;
+  el.querySelector('.splash-name').textContent = appDef.nm;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 1000);
+  
+  document.getElementById('start-menu').classList.remove('show');
+  
+  if (openWindows[id]) {
+    const win = document.getElementById('win-' + id);
+    win.style.zIndex = getNextZIndex();
+    return;
+  }
+
+  const win = document.createElement('div');
+  win.className = 'window';
+  win.id = 'win-' + id;
+  win.style.width = '800px'; win.style.height = '600px';
+  win.style.left = (80 + Object.keys(openWindows).length * 20) + 'px';
+  win.style.top = (40 + Object.keys(openWindows).length * 20) + 'px';
+  win.style.zIndex = getNextZIndex();
+  
+  win.innerHTML = `
+    <div class="window-header" onmousedown="startDrag(event, '${id}')">
+      <div class="window-title">${appDef.ico} ${appDef.nm}</div>
+      <div class="window-controls">
+        <button class="win-btn close" onclick="closeApp('${id}')">✕</button>
+      </div>
+    </div>
+    <div class="window-body" id="body-${id}"></div>
+  `;
+  
+  document.body.appendChild(win);
+  openWindows[id] = true;
+  
+  const tb = document.getElementById('taskbar-apps');
+  tb.innerHTML += `<div class="taskbar-app" id="tb-${id}" onclick="focusApp('${id}')">${appDef.ico} ${appDef.nm}</div>`;
+  
+  setTimeout(() => {
+    appDef.fn(document.getElementById('body-' + id));
+  }, 50);
+}
+
+function closeApp(id) {
+  const win = document.getElementById('win-' + id);
+  if(win) win.remove();
+  const tb = document.getElementById('tb-' + id);
+  if(tb) tb.remove();
+  delete openWindows[id];
+}
+
+function focusApp(id) { const win = document.getElementById('win-' + id); if(win) win.style.zIndex = getNextZIndex(); }
+let zIndexCounter = 20;
+function getNextZIndex() { return zIndexCounter++; }
+
+let dragState = null;
+function startDrag(e, id) {
+  if (e.target.closest('.win-btn')) return;
+  const win = document.getElementById('win-' + id);
+  dragState = { id, startX: e.clientX, startY: e.clientY, winX: win.offsetLeft, winY: win.offsetTop };
+  win.style.zIndex = getNextZIndex();
+}
+document.addEventListener('mousemove', (e) => {
+  if(!dragState) return;
+  const win = document.getElementById('win-' + dragState.id);
+  win.style.left = (dragState.winX + (e.clientX - dragState.startX)) + 'px';
+  win.style.top = (dragState.winY + (e.clientY - dragState.startY)) + 'px';
+});
+document.addEventListener('mouseup', () => { dragState = null; });
+
+window.addEventListener('click', (e) => {
+  const sm = document.getElementById('start-menu');
+  const btn = document.querySelector('.start-btn');
+  if(sm.classList.contains('show') && !sm.contains(e.target) && !btn.contains(e.target)) sm.classList.remove('show');
+});
+
+/* =========================================================
+   APPS LOGIK (A-Z)
+   ========================================================= */
+
+// A: AI
+function viewAI(c) {
+  c.innerHTML = `
+    <div id="chat-log" style="display:flex;flex-direction:column;gap:12px;height:calc(100% - 60px);overflow-y:auto;padding:10px;background:rgba(0,0,0,.3);border-radius:10px;margin-bottom:10px">
+      <div class="list-item" style="display:block">${I18N[currentLang].ai_welcome}</div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <input id="ai-input" placeholder="Frage stellen..." onkeydown="if(event.key==='Enter')aiSend()">
+      <button class="btn" onclick="aiSend()">${I18N[currentLang].send}</button>
+    </div>
+  `;
+}
+function aiSend() {
+  const inp = document.getElementById('ai-input'); const log = document.getElementById('chat-log'); const q = inp.value.trim(); if(!q) return;
+  log.insertAdjacentHTML('beforeend', `<div class="list-item" style="display:block;background:var(--accent);color:#fff;align-self:flex-end">${q}</div>`);
+  inp.value = '';
+  setTimeout(() => {
+    const resp = `${I18N[currentLang].ai_sim} (${q})`;
+    log.insertAdjacentHTML('beforeend', `<div class="list-item" style="display:block">${resp}<button class="btn ghost" style="padding:4px 8px;margin-top:5px;font-size:11px" onclick="speak('${resp}')">🔊 Vorlesen</button></div>`);
+    log.scrollTop = log.scrollHeight;
+    speak(resp);
+  }, 400);
+}
+
+// B: Browser
+function viewBrowser(c) {
+  c.innerHTML = `<div style="display:flex;gap:10px;margin-bottom:10px"><input id="url-bar" value="https://www.google.com/search?igu=1" style="flex:1"><button class="btn" onclick="document.getElementById('browser-frame').src=document.getElementById('url-bar').value">Los</button></div><iframe id="browser-frame" src="https://www.google.com/search?igu=1" style="width:100%;height:calc(100% - 60px);border:none;border-radius:10px;background:#fff"></iframe>`;
+}
+
+// C: Calendar
+function viewCalendar(c) {
+  const now = new Date(); const month = now.getMonth(); const year = now.getFullYear();
+  const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate();
+  let html = `<div class="panel"><h3>📅 ${now.toLocaleString(currentLang, { month: 'long', year: 'numeric' })}</h3><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px">`;
+  ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => html += `<div style="text-align:center;font-weight:bold;color:var(--dim)">${d}</div>`);
+  const offset = (firstDay + 6) % 7;
+  for(let i=0; i<offset; i++) html += `<div></div>`;
+  for(let d=1; d<=daysInMonth; d++) { const isToday = d === now.getDate(); html += `<div style="text-align:center;padding:10px;border:1px solid var(--border);border-radius:6px;${isToday ? 'background:var(--accent);color:#fff;font-weight:bold' : ''}">${d}</div>`; }
+  html += `</div></div>`; c.innerHTML = html;
+}
+
+// D: Documents
+function viewDocuments(c) {
+  c.innerHTML = `<div class="panel"><h3>📄 Documents</h3><div class="list-item"><div><div class="title">Patientenakte.pdf</div><div class="meta">1.2 MB • Heute</div></div><button class="btn ghost">Öffnen</button></div><div class="list-item"><div><div class="title">Rezept.docx</div><div class="meta">45 KB • Gestern</div></div><button class="btn ghost">Öffnen</button></div></div>`;
+}
+
+// E: Email
+function viewEmail(c) {
+  c.innerHTML = `<div class="panel"><h3>✉️ Email</h3><div class="list-item"><div><div class="title">Willkommen bei HalDo</div><div class="meta">System • Heute</div></div></div><div class="list-item"><div><div class="title">Ihre Laborwerte sind da</div><div class="meta">Dr. Müller • Gestern</div></div></div></div>`;
+}
+
+// F: Files
+function viewFiles(c) {
+  c.innerHTML = `<div class="panel"><h3>📂 Files</h3><div class="list-item"><div><div class="title">📁 Bilder</div><div class="meta">12 Dateien</div></div></div><div class="list-item"><div><div class="title">📁 Dokumente</div><div class="meta">5 Dateien</div></div></div></div>`;
+}
+
+// G: Gallery
+function viewGallery(c) {
+  c.innerHTML = `<div class="panel"><h3>🖼️ Gallery</h3><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;"><div style="background:linear-gradient(45deg,#f59e0b,#ef4444);height:100px;border-radius:8px"></div><div style="background:linear-gradient(45deg,#3b82f6,#06b6d4);height:100px;border-radius:8px"></div><div style="background:linear-gradient(45deg,#10b981,#84cc16);height:100px;border-radius:8px"></div></div></div>`;
+}
+
+// H: Health
+function viewHealth(c) {
+  c.innerHTML = `
+    <div class="panel" style="background:rgba(6,182,212,.1);border-color:var(--accent)">
+      <h3>🩺 ${I18N[currentLang].health_title}</h3>
+      <p class="meta" style="margin-bottom:10px">${I18N[currentLang].health_desc}</p>
+      <div class="btn-row">
+        <button class="btn" onclick="openApp('H-anatomy')">🦴 ${I18N[currentLang].anatomy}</button>
+        <button class="btn ghost" onclick="openApp('H-diseases')">🦠 ${I18N[currentLang].diseases}</button>
+        <button class="btn ghost" onclick="openApp('H-meds')">💊 ${I18N[currentLang].meds}</button>
+        <button class="btn ghost" onclick="openApp('H-labs')">🧪 ${I18N[currentLang].labs}</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>${I18N[currentLang].vitals}</h3>
+      <div class="list-item"><div><div class="title">${I18N[currentLang].bp}</div><div class="meta">120 / 80 mmHg</div></div><span class="badge">${I18N[currentLang].normal}</span></div>
+      <div class="list-item"><div><div class="title">${I18N[currentLang].sugar}</div><div class="meta">95 mg/dL</div></div><span class="badge">${I18N[currentLang].normal}</span></div>
+    </div>
+  `;
+}
+document.addEventListener('click', (e) => {
+  if(e.target.closest('button') && e.target.closest('button').innerText.includes('Anatomy')) {
+    const body = document.getElementById('body-H'); if(body) body.innerHTML = `<div class="panel"><h3>🦴 3D Anatomy</h3><p>Das 3D-Modell wird im Hintergrund angezeigt. Du kannst es mit der Maus drehen.</p><button class="btn" onclick="viewHealth(document.getElementById('body-H'))">Zurück</button></div>`;
+  }
+});
+
+// I: Internet
+function viewInternet(c) {
+  c.innerHTML = `<div class="panel"><h3>🌍 Internet</h3><input id="search-in" placeholder="Wikipedia durchsuchen..." style="margin-bottom:10px"><button class="btn" onclick="window.open('https://de.wikipedia.org/wiki/'+encodeURIComponent(document.getElementById('search-in').value))">Suchen</button></div>`;
+}
+
+// J: Journal
+function viewJournal(c) {
+  c.innerHTML = `<div class="panel"><h3>📖 ${I18N[currentLang].journal}</h3><textarea style="height:300px;background:rgba(0,0,0,.3);color:#fff;border:1px solid var(--border);padding:16px" placeholder="${I18N[currentLang].placeholder_journal}">${localStorage.getItem('haldo_journal') || ''}</textarea><div class="btn-row"><button class="btn" onclick="localStorage.setItem('haldo_journal', this.parentElement.previousElementSibling.value); alert(I18N[currentLang].save_note)">${I18N[currentLang].save}</button></div></div>`;
+}
+
+// K: Keyboard
+function viewKeyboard(c) {
+  c.innerHTML = `<div class="panel"><h3>⌨️ Keyboard</h3><div class="list-item"><div><div class="title">Deutsch (QWERTZ)</div></div><span class="badge">Aktiv</span></div><div class="list-item"><div><div class="title">Kurdisch (Êzîdî)</div></div><button class="btn ghost">Aktivieren</button></div></div>`;
+}
+
+// L: Learning
+function viewLearning(c) {
+  c.innerHTML = `<div class="panel"><h3>🎓 Learning</h3><div class="list-item"><div><div class="title">Anatomie Grundlagen</div><div class="meta">Lektion 1</div></div><button class="btn">Lernen</button></div><div class="list-item"><div><div class="title">Medikamentenlehre</div><div class="meta">Lektion 1</div></div><button class="btn">Lernen</button></div></div>`;
+}
+
+// M: Music
+function viewMusic(c) {
+  c.innerHTML = `<div class="panel" style="text-align:center"><h3>🎵 Music Studio</h3><div style="width:150px;height:150px;background:linear-gradient(45deg,#8b5cf6,#3b82f6);border-radius:50%;margin:20px auto;display:flex;align-items:center;justify-content:center;font-size:50px;box-shadow:0 0 30px rgba(59,130,246,.5)">🎵</div><div style="font-size:20px;font-weight:bold;color:var(--accent)">HalDo Anthem</div><div class="meta" style="margin-bottom:20px">AI Generated</div><div class="btn-row" style="justify-content:center"><button class="btn" onclick="speak('Playing HalDo Anthem')">▶ Play</button><button class="btn ghost" onclick="speechSynthesis.cancel()">⏸</button></div></div>`;
+}
+
+// N: Navigation
+function viewNavigation(c) {
+  c.innerHTML = `<div class="panel"><h3>🗺️ Navigation</h3><div class="list-item"><div><div class="title">Nach Hause</div><div class="meta">12 km • 15 Min</div></div><button class="btn">Start</button></div></div>`;
+}
+
+// O: Office
+function viewOffice(c) {
+  c.innerHTML = `<div class="panel"><h3>📊 Office</h3><div class="btn-row"><button class="btn">+ Textdokument</button><button class="btn ghost">+ Tabelle</button></div></div>`;
+}
+
+// P: Photos
+function viewPhotos(c) {
+  c.innerHTML = `<div class="panel"><h3>📷 Photos & Camera</h3><div style="width:100%;height:200px;background:#000;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--dim)">Kamera-Vorschau</div></div>`;
+}
+
+// Q: Quick Tools
+function viewQuickTools(c) {
+  c.innerHTML = `<div class="panel"><h3>🛠️ Quick Tools</h3><div class="btn-row"><button class="btn" onclick="alert('Taschenrechner')">Taschenrechner</button><button class="btn ghost" onclick="alert('Stoppuhr')">Stoppuhr</button></div></div>`;
+}
+
+// R: Recorder
+function viewRecorder(c) {
+  c.innerHTML = `<div class="panel" style="text-align:center"><h3>🎙️ Recorder</h3><div style="font-size:64px;color:var(--danger);margin:20px 0">⏺</div><button class="btn" onclick="alert('Aufnahme startet')">Aufnahme starten</button></div>`;
+}
+
+// S: Security
+function viewSecurity(c) {
+  c.innerHTML = `<div class="panel"><h3>🛡️ Security & API</h3>
+    <div class="settings-row">
+      <div class="info"><div class="lbl">HalDo API-Key</div><div class="sub">Für KI & Voice Cloning</div></div>
+      <div class="ctrl"><input type="password" id="api-key-input" value="${localStorage.getItem('haldo_api_key') || ''}" placeholder="sk-..."></div>
+    </div>
+    <button class="btn" onclick="localStorage.setItem('haldo_api_key', document.getElementById('api-key-input').value); alert('API Key gespeichert')">${I18N[currentLang].save}</button>
+    <div class="list-item" style="margin-top:20px"><div><div class="title">PIN-Schutz</div></div><span class="badge">Aktiv</span></div>
+  </div>`;
+}
+
+// T: Tasks
+function viewTasks(c) {
+  c.innerHTML = `<div class="panel"><h3>✅ Tasks</h3><div class="list-item"><div><div class="title">Blutdruck messen</div><div class="meta">Heute, 18:00</div></div><button class="btn ghost">✓</button></div><div class="list-item"><div><div class="title">Medikament einnehmen</div><div class="meta">Heute, 20:00</div></div><button class="btn ghost">✓</button></div></div>`;
+}
+
+// U: Updates
+function viewUpdates(c) {
+  c.innerHTML = `<div class="panel"><h3>🔄 Updates</h3><p class="meta">Dein System ist auf dem neuesten Stand.</p><div style="font-size:24px;font-weight:bold;color:var(--success);margin:20px 0">v1.0.0 (Build 2026)</div><button class="btn" onclick="alert('Suche nach Updates...')">Nach Updates suchen</button></div>`;
+}
+
+// V: Video
+function viewVideo(c) {
+  c.innerHTML = `<div class="panel"><h3>🎬 Video Studio</h3><div class="list-item"><div><div class="title">Projekt_1.mp4</div><div class="meta">4K • 10:20 Min</div></div><button class="btn">Bearbeiten</button></div></div>`;
+}
+
+// W: Weather
+function viewWeather(c) {
+  c.innerHTML = `<div class="panel" style="text-align:center"><h3>🌤️ Weather</h3><div id="wx" style="margin:20px 0;font-size:18px">Lade...</div><button class="btn" onclick="loadWeather()">Aktualisieren</button></div>`;
+  loadWeather();
+}
+function loadWeather() {
+  const el = document.getElementById('wx'); if(!el) return;
+  if(!navigator.geolocation) { el.textContent = 'GPS fehlt.'; return; }
+  navigator.geolocation.getCurrentPosition(async p => {
+    try {
+      const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.coords.latitude}&longitude=${p.coords.longitude}&current=temperature_2m,weather_code`);
+      const j = await r.json();
+      el.innerHTML = `<div style="font-size:48px;font-weight:800;color:var(--accent)">${j.current.temperature_2m}°C</div><div class="meta">Code: ${j.current.weather_code}</div>`;
+    } catch(e) { el.textContent = 'Fehler.'; }
+  }, () => { el.textContent = 'GPS verweigert.'; });
+}
+
+// X: Experience
+function viewExperience(c) {
+  c.innerHTML = `<div class="panel"><h3>🎨 eXperience</h3><div class="list-item"><div><div class="title">Theme: Dark Cosmos</div></div><span class="badge">Aktiv</span></div></div>`;
+}
+
+// Y: Your Life
+function viewYourLife(c) {
+  c.innerHTML = `<div class="panel"><h3>🏠 Your Life</h3><div class="btn-row"><button class="btn" onclick="openApp('C')">📅 Kalender</button><button class="btn" onclick="openApp('T')">✅ Tasks</button></div></div>`;
+}
+
+// Z: System Center
+function viewSystemCenter(c) {
+  const langs = ['de','en','ku','ez','he','la'];
+  c.innerHTML = `<div class="panel"><h3>⚙️ ${I18N[currentLang].system}</h3>
+    <div class="settings-row">
+      <div class="info"><div class="lbl">${I18N[currentLang].language}</div><div class="sub">HalDo Multi-Language Engine</div></div>
+      <div class="ctrl"><select onchange="setLanguage(this.value)">
+        ${langs.map(l => `<option value="${l}" ${currentLang === l ? 'selected' : ''}>${l.toUpperCase()}</option>`).join('')}
+      </select></div>
+    </div>
+    <div class="settings-row">
+      <div class="info"><div class="lbl">HalDo Voice Studio</div><div class="sub">Eigene Stimme (TTS)</div></div>
+      <div class="ctrl"><button class="btn" onclick="speak(I18N[currentLang].ai_welcome)">🔊 Test</button></div>
+    </div>
+    <div class="settings-row">
+      <div class="info"><div class="lbl">Version</div></div>
+      <div class="ctrl">HalDo OS Pro Max v1.0.0</div>
+    </div>
+  </div>`;
+}
+
 </script>
 </body>
 </html>
