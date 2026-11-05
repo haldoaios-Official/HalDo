@@ -17,7 +17,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent);}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
 
 /* COSMOS */
-#cosmos-canvas{position:fixed;inset:0;z-index:0;pointer-events:auto;width:100%;height:100%;}
+#cosmos-canvas{position:fixed;inset:0;z-index:0;pointer-events:auto;width:100%;height:100%;display:block;}
 
 /* WELCOME */
 #welcome{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9999;gap:20px;padding:40px;text-align:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(10px);transition:opacity 0.5s;}
@@ -53,7 +53,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent);}
 .sm-search{padding:8px 10px 10px;}
 .sm-search input{background:rgba(0,0,0,.3);border:1px solid var(--border);padding:8px 12px;border-radius:6px;}
 .sm-apps{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
-.sm-app-card{display:flex;flex-direction:column;align-items:center;padding:12px 8px;border-radius:8px;cursor:grab;transition:all .2s;border:1px solid transparent;background:rgba(55,65,81,.2);}
+.sm-app-card{display:flex;flex-direction:column;align-items:center;padding:12px 8px;border-radius:8px;cursor:pointer;transition:all .2s;border:1px solid transparent;background:rgba(55,65,81,.2);}
 .sm-app-card:hover{background:rgba(55,65,81,.6);border-color:var(--accent);transform:translateY(-2px);}
 .sm-app-card.dragging{opacity:0.4;border:2px dashed var(--accent);}
 .sm-app-card .ico{font-size:26px;margin-bottom:6px;pointer-events:none;}
@@ -128,7 +128,6 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent);}
 .cyborg-chat{display:flex;flex:1;height:100%;}
 .cyborg-3d{width:40%;min-width:280px;background:radial-gradient(circle at center,#0a2a3a 0%,#000 100%);position:relative;border-right:1px solid var(--border);}
 .cyborg-3d canvas{display:block;width:100%;height:100%;}
-.cyborg-3d::after{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 60%,transparent 40%,rgba(6,182,212,.15) 100%);}
 .cyborg-chat-log{flex:1;padding:14px;display:flex;flex-direction:column;}
 .cyborg-status{text-align:center;font-size:11px;color:var(--accent);padding:6px;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid var(--border);}
 
@@ -241,18 +240,15 @@ function speak(text){
   speechSynthesis.speak(u);
 }
 
-/* ==================== KOSMOS mit ECHTER Sonne ==================== */
+/* ==================== KOSMOS (echte Sonne, Erde, Mond) ==================== */
 let cosmosState={earth:null,scene:null,camera:null,renderer:null,raycaster:null,mouse:null};
 
 function makeSunTexture(){
-  // Prozedurale Sonnenoberfläche mit Granulation + Flecken
   const c=document.createElement('canvas');c.width=1024;c.height=512;
   const ctx=c.getContext('2d');
-  // Basis warmes Orange
   const baseGrad=ctx.createLinearGradient(0,0,0,512);
   baseGrad.addColorStop(0,'#ffaa00');baseGrad.addColorStop(0.5,'#ffdd00');baseGrad.addColorStop(1,'#ffaa00');
   ctx.fillStyle=baseGrad;ctx.fillRect(0,0,1024,512);
-  // Granulation (kleine Zellen)
   for(let i=0;i<15000;i++){
     const x=Math.random()*1024,y=Math.random()*512,r=Math.random()*6+1;
     const b=Math.random();
@@ -261,14 +257,12 @@ function makeSunTexture(){
     else ctx.fillStyle='rgba(220,80,10,'+(0.15+Math.random()*0.25)+')';
     ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
   }
-  // Konvektionszellen (große Blasen)
   for(let i=0;i<200;i++){
     const x=Math.random()*1024,y=Math.random()*512,r=10+Math.random()*30;
     const g=ctx.createRadialGradient(x,y,0,x,y,r);
     g.addColorStop(0,'rgba(255,255,180,0.5)');g.addColorStop(0.6,'rgba(255,180,40,0.3)');g.addColorStop(1,'rgba(255,120,0,0)');
     ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
   }
-  // Sonnenflecken
   for(let i=0;i<12;i++){
     const x=Math.random()*1024,y=Math.random()*512,r=15+Math.random()*35;
     const g=ctx.createRadialGradient(x,y,0,x,y,r);
@@ -307,7 +301,6 @@ function initCosmos(){
     renderer.setPixelRatio(Math.min(devicePixelRatio,2));
     renderer.setClearColor(0x000005,1);
 
-    // Sterne
     const sg=new THREE.BufferGeometry();
     const sp=new Float32Array(10000*3);
     const sc=new Float32Array(10000*3);
@@ -324,7 +317,6 @@ function initCosmos(){
     const stars=new THREE.Points(sg,new THREE.PointsMaterial({size:1.5,vertexColors:true,transparent:true,opacity:0.9,blending:THREE.AdditiveBlending}));
     scene.add(stars);
 
-    // ECHTE SONNE
     const sunPos=new THREE.Vector3(-14,6,-12);
     const sunTex=makeSunTexture();
     const sun=new THREE.Mesh(
@@ -334,7 +326,6 @@ function initCosmos(){
     sun.position.copy(sunPos);
     scene.add(sun);
 
-    // Korona-Glow (mehrere Schichten für realistischen Look)
     const glow1=makeGlowSprite(20,'rgba(255,180,60,1)');
     glow1.position.copy(sunPos);scene.add(glow1);
     const glow2=makeGlowSprite(30,'rgba(255,140,30,1)');
@@ -342,16 +333,10 @@ function initCosmos(){
     const glow3=makeGlowSprite(45,'rgba(255,100,20,1)');
     glow3.position.copy(sunPos);scene.add(glow3);
 
-    // Sonnenlicht
     const sunLight=new THREE.PointLight(0xffaa55,2.5,200);
     sunLight.position.copy(sunPos);scene.add(sunLight);
 
-    // ERDE
-    const earthTex=new THREE.TextureLoader().load(
-      'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg',
-      undefined,undefined,
-      ()=>{/*Fallback bei CORS*/}
-    );
+    const earthTex=new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
     const earth=new THREE.Mesh(
       new THREE.SphereGeometry(3.5,64,64),
       new THREE.MeshPhongMaterial({map:earthTex,shininess:20,specular:0x333344,emissive:0x112244,emissiveIntensity:0.5})
@@ -359,14 +344,12 @@ function initCosmos(){
     scene.add(earth);
     cosmosState.earth=earth;
 
-    // Atmosphäre
     const atmo=new THREE.Mesh(
       new THREE.SphereGeometry(3.7,48,48),
       new THREE.MeshBasicMaterial({color:0x3fa9ff,transparent:true,opacity:0.15,side:THREE.BackSide})
     );
     scene.add(atmo);
 
-    // MOND
     const moonTex=new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/moon_1024.jpg');
     const moon=new THREE.Mesh(
       new THREE.SphereGeometry(1.2,32,32),
@@ -374,25 +357,21 @@ function initCosmos(){
     );
     scene.add(moon);
 
-    // Beleuchtung
     scene.add(new THREE.AmbientLight(0x223344,1.5));
     const dl=new THREE.DirectionalLight(0xfff8e1,2.5);
     dl.position.copy(sunPos);scene.add(dl);
 
-    // Raycaster für Klick auf Erde
     const raycaster=new THREE.Raycaster();
     const mouse=new THREE.Vector2();
     cosmosState.raycaster=raycaster;
     cosmosState.mouse=mouse;
 
-    let hovered=false;
     renderer.domElement.addEventListener('mousemove',e=>{
       mouse.x=(e.clientX/innerWidth)*2-1;
       mouse.y=-(e.clientY/innerHeight)*2+1;
       raycaster.setFromCamera(mouse,camera);
       const hits=raycaster.intersectObject(earth);
-      hovered=hits.length>0;
-      canvas.style.cursor=hovered?'pointer':'default';
+      canvas.style.cursor=hits.length>0?'pointer':'default';
     });
 
     renderer.domElement.addEventListener('click',e=>{
@@ -417,7 +396,6 @@ function initCosmos(){
       moon.position.set(6.5*Math.cos(tt),0.5+0.5*Math.sin(tt*1.5),6.5*Math.sin(tt));
       moon.rotation.y=tt*4;
       stars.rotation.y+=0.00005;
-      // Sonnen-Glow pulsieren
       const pulse=1+Math.sin(Date.now()*0.001)*0.05;
       glow1.scale.set(20*pulse,20*pulse,1);
       glow2.scale.set(30*(2-pulse),30*(2-pulse),1);
@@ -456,19 +434,15 @@ function initCyborg3D(container){
   const d2=new THREE.DirectionalLight(0x06b6d4,1.2);d2.position.set(-2,1,-2);scene.add(d2);
   const d3=new THREE.DirectionalLight(0xff88aa,0.6);d3.position.set(0,-1,2);scene.add(d3);
 
-  // Prozeduraler Cyborg-Kopf
   const headGroup=new THREE.Group();
-  // Kopf
   const headMat=new THREE.MeshStandardMaterial({color:0x88aacc,roughness:0.4,metalness:0.6});
   const head=new THREE.Mesh(new THREE.SphereGeometry(0.5,32,32),headMat);
   head.scale.set(0.85,1,0.9);
   headGroup.add(head);
-  // Gesicht heller
   const face=new THREE.Mesh(new THREE.SphereGeometry(0.48,32,32),new THREE.MeshStandardMaterial({color:0xaaccee,roughness:0.3,metalness:0.3}));
   face.scale.set(0.82,0.95,0.75);
   face.position.z=0.08;
   headGroup.add(face);
-  // Augen (weiß + Pupille)
   const eyes=[];
   [-0.18,0.18].forEach(x=>{
     const eyeWhite=new THREE.Mesh(new THREE.SphereGeometry(0.09,16,16),new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.1}));
@@ -479,20 +453,16 @@ function initCyborg3D(container){
     headGroup.add(pupil);
     eyes.push({white:eyeWhite,pupil});
   });
-  // Mund
   const mouth=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.02,0.02),new THREE.MeshStandardMaterial({color:0x333333,emissive:0x06b6d4,emissiveIntensity:0.3}));
   mouth.position.set(0,-0.12,0.42);
   headGroup.add(mouth);
-  // Hals
   const neck=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.18,0.4,16),new THREE.MeshStandardMaterial({color:0x667799,roughness:0.5,metalness:0.7}));
   neck.position.y=-0.6;
   headGroup.add(neck);
-  // Schultern
   const shoulders=new THREE.Mesh(new THREE.SphereGeometry(0.55,24,24),new THREE.MeshStandardMaterial({color:0x556688,roughness:0.6,metalness:0.4}));
   shoulders.scale.set(1.3,0.5,0.8);
   shoulders.position.y=-0.9;
   headGroup.add(shoulders);
-  // Cyan-Akzente (Cyborg-Linien)
   const lineMat=new THREE.MeshBasicMaterial({color:0x06b6d4});
   [-0.3,0.3].forEach(x=>{
     const line=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.15,0.02),lineMat);
@@ -510,28 +480,6 @@ function initCyborg3D(container){
   cyborgState.container=container;
   cyborgState.blinkTimer=Math.random()*3000;
 
-  // Versuche GLTF-Modell zu laden (echter Mensch)
-  if(typeof THREE.GLTFLoader!=='undefined'){
-    const loader=new THREE.GLTFLoader();
-    loader.load('./male_base.glb',gltf=>{
-      const m=gltf.scene;
-      const box=new THREE.Box3().setFromObject(m);
-      const size=box.getSize(new THREE.Vector3());
-      const center=box.getCenter(new THREE.Vector3());
-      m.position.x=-center.x;
-      m.position.y=-box.min.y-0.5;
-      m.position.z=-center.z;
-      const maxDim=Math.max(size.x,size.y,size.z);
-      const dist=Math.abs(maxDim/2/Math.tan(camera.fov*Math.PI/180/2))*1.5;
-      camera.position.set(0,size.y/2-0.3,dist);
-      camera.lookAt(0,size.y/2-0.3,0);
-      m.traverse(o=>{if(o.isMesh&&o.material)o.material.side=THREE.DoubleSide;});
-      scene.remove(headGroup);
-      scene.add(m);
-      cyborgState.gltf=m;
-    },undefined,()=>{/* Fallback bleibt prozedural */});
-  }
-
   let lastT=Date.now();
   let headBob=0;
   (function loop(){
@@ -539,12 +487,9 @@ function initCyborg3D(container){
     const now=Date.now();
     const dt=now-lastT;lastT=now;
     headBob+=dt*0.002;
-    // Kopf nicken (subtil)
     headGroup.rotation.x=Math.sin(headBob)*0.03;
     headGroup.rotation.y=Math.sin(headBob*0.7)*0.05;
-    // Atem
     headGroup.position.y=Math.sin(headBob*1.2)*0.02;
-    // Blinzeln
     cyborgState.blinkTimer-=dt;
     if(cyborgState.blinkTimer<=0){
       cyborgState.blinkTimer=2000+Math.random()*4000;
@@ -557,7 +502,6 @@ function initCyborg3D(container){
       };
       blink();
     }
-    // Mund bei TTS
     if(cyborgState.speaking){
       mouth.scale.y=1+Math.abs(Math.sin(Date.now()*0.02))*4;
       mouth.scale.x=1+Math.abs(Math.sin(Date.now()*0.015))*0.5;
@@ -602,7 +546,7 @@ function openCyborgChat(){
         <div class="cyborg-chat-log">
           <div class="chat-log" id="cy-log"></div>
           <div class="chat-input">
-            <input id="cy-input" placeholder="Frage oder Befehl eingeben… (z.B. 'öffne Browser', 'erstelle Aufgabe Arzt anrufen')" onkeydown="if(event.key==='Enter')cySend()">
+            <input id="cy-input" placeholder="Frage oder Befehl eingeben…" onkeydown="if(event.key==='Enter')cySend()">
             <button onclick="cySend()">➤</button>
           </div>
         </div>
@@ -645,7 +589,6 @@ function cySend(){
 function processHalDoCommand(input){
   const ql=input.toLowerCase().trim();
 
-  // Öffne App
   for(const verb of ['öffne ','starte ','open ','start ','zeige ']){
     if(ql.startsWith(verb)){
       const target=ql.substring(verb.length).trim();
@@ -654,7 +597,6 @@ function processHalDoCommand(input){
     }
   }
 
-  // Aufgabe erstellen
   const taskM=input.match(/^(?:erstelle?|add|neue?)\s+(?:aufgabe|task)\s+(.+)$/i);
   if(taskM){
     const tasks=store('tasks',[]);
@@ -663,7 +605,6 @@ function processHalDoCommand(input){
     return '✓ Aufgabe erstellt: "'+taskM[1]+'"';
   }
 
-  // Termin erstellen
   const calM=input.match(/^(?:erstelle?|add|neue?)\s+(?:termin|event)\s+(.+)$/i);
   if(calM){
     const events=store('cal_events',[]);
@@ -672,63 +613,135 @@ function processHalDoCommand(input){
     return '✓ Termin erstellt: "'+calM[1]+'" (heute)';
   }
 
-  // Sprache wechseln
   const langM=ql.match(/^(?:sprache|language|lang)\s+(.+)$/);
   if(langM){
     const langMap={deutsch:'de',englisch:'en',english:'en',türkisch:'tr',türkçe:'tr',kurdisch:'ku',kurdi:'ku',arabisch:'ar',persisch:'fa',hebräisch:'he',hebrew:'he',russisch:'ru',russian:'ru',französisch:'fr',français:'fr',spanisch:'es',spanish:'es',italienisch:'it',chinesisch:'zh',japanisch:'ja',koreanisch:'ko',portugiesisch:'pt',hindi:'hi'};
     const code=langMap[langM[1].trim()]||langM[1].trim();
     if(I18N[code]){setLanguage(code);return '✓ Sprache: '+LANGNAMES[code];}
-    return '❌ Sprache nicht gefunden. Verfügbar: '+Object.values(LANGNAMES).join(', ');
+    return '❌ Sprache nicht gefunden.';
   }
 
-  // Wetter
   if(/wetter|weather/.test(ql)){setTimeout(()=>openApp('W'),300);return '✓ Öffne Wetter…';}
-
-  // Zeit
-  if(/zeit|uhrzeit|time/.test(ql)){
-    return '🕐 Es ist '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr.';
-  }
-
-  // Vorlesen
+  if(/zeit|uhrzeit|time/.test(ql)){return '🕐 Es ist '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr.';}
   const speakM=input.match(/^(?:lies|vorlesen|sag|speak)\s+(.+)$/i);
   if(speakM){speak(speakM[1]);return '🔊 '+speakM[1];}
-
-  // Notfall
-  if(/notfall|hilfe|emergency/.test(ql)){
-    setTimeout(()=>openApp('H'),300);
-    return '🚨 Notfall-Modus geöffnet. Bei echtem Notfall: 112 anrufen!';
-  }
-
-  // Aufgaben anzeigen
+  if(/notfall|hilfe|emergency/.test(ql)){setTimeout(()=>openApp('H'),300);return '🚨 Notfall-Modus geöffnet.';}
   if(/aufgaben|tasks/.test(ql)){
     const tasks=store('tasks',[]);
     const open=tasks.filter(t=>!t.done);
     return '📋 Du hast '+open.length+' offene Aufgabe(n):\n'+(open.map(t=>'• '+t.text).join('\n')||'Keine');
   }
-
-  // Termine anzeigen
   if(/termine|kalender/.test(ql)){
     const events=store('cal_events',[]);
     return '📅 Du hast '+events.length+' Termin(e):\n'+(events.map(e=>'• '+e.title+' ('+e.date+')').join('\n')||'Keine');
   }
-
-  // Medizin
-  if(/herz/.test(ql))return '🫀 Das Herz ist ein muskuläres Hohlorgan mit vier Kammern: zwei Vorhöfe und zwei Ventrikel. Es pumpt sauerstoffarmes Blut aus dem Körper und sauerstoffreiches aus der Lunge.';
+  if(/herz/.test(ql))return '🫀 Das Herz ist ein muskuläres Hohlorgan mit vier Kammern. Es pumpt Blut durch den Körper.';
   if(/kopfschmerz/.test(ql))return '💊 Bei Kopfschmerzen: Ruhe, Wasser, frische Luft. Bei anhaltenden Beschwerden bitte einen Arzt aufsuchen.';
-  if(/blutdruck/.test(ql))return '🩺 Normaler Blutdruck: 120/80 mmHg. Bei Werten über 140/90 solltest du einen Arzt aufsuchen.';
+  if(/blutdruck/.test(ql))return '🩺 Normaler Blutdruck: 120/80 mmHg.';
   if(/medikament/.test(ql)){setTimeout(()=>openApp('H'),300);return '✓ Öffne Medikamenten-Datenbank…';}
-
-  // Sonst: freundliche Antwort
-  if(/hallo|hi|hey|servus/.test(ql))return 'Hallo Bruder! 💙 Wie kann ich dir helfen? Du kannst sagen: "öffne Browser", "erstelle Aufgabe …", "sprache english", "wetter", "zeit".';
+  if(/hallo|hi|hey|servus/.test(ql))return 'Hallo Bruder! 💙 Wie kann ich dir helfen? Du kannst sagen: "öffne Browser", "erstelle Aufgabe …", "sprache english".';
   if(/danke|thanks/.test(ql))return 'Gerne! Ich bin immer für dich da. 💙';
-
-  return '🤖 Ich habe dich verstanden: "'+input+'"\n\nIch kann für dich: Apps öffnen, Aufgaben erstellen, Termine planen, Sprache wechseln, Wetter zeigen, Zeit sagen, medizinische Infos geben. Versuche z.B.: "öffne Browser" oder "erstelle Aufgabe Arzt anrufen".';
+  return '🤖 Ich habe dich verstanden: "'+input+'"\n\nIch kann Apps öffnen, Aufgaben erstellen, Termine planen, Sprache wechseln. Versuche: "öffne Browser" oder "erstelle Aufgabe Arzt anrufen".';
 }
 
+/* ==================== HELPER: CRUD APP ==================== */
+function makeCRUD(config){
+  return function(body){
+    body.style.cssText='display:flex;height:100%;';
+    const sb=document.createElement('div');sb.className='app-sidebar';
+    const ct=document.createElement('div');ct.className='app-content';
+    body.appendChild(sb);body.appendChild(ct);
+    let items=store('crud_'+config.id,config.initial||[]);
+    let selId=items[0]?items[0].id:null;
+    const persist=()=>save('crud_'+config.id,items);
+    const fields=config.fields;
+    let active='select';
+
+    function flash(msg){const d=document.createElement('div');d.style.cssText='color:#06b6d4;font-size:12px;margin-top:8px;';d.textContent=msg;ct.appendChild(d);setTimeout(()=>d.remove(),1800);}
+
+    function render(){
+      sb.innerHTML='';
+      ['create','edit','select','settings','delete'].forEach(k=>{
+        const b=document.createElement('button');
+        b.className='side-btn'+(active===k?' active':'');
+        b.textContent=T(k);
+        b.onclick=()=>{active=k;render();};
+        sb.appendChild(b);
+      });
+      const sp=document.createElement('button');sp.className='side-btn speak-btn';sp.textContent='🔊 '+T('speak');
+      sp.onclick=()=>speak((config.title||config.id)+'. '+items.length+' Einträge.');
+      sb.appendChild(sp);
+      ct.innerHTML='';
+      if(active==='create'){
+        ct.innerHTML='<h3>'+T('create')+'</h3>';
+        const f=document.createElement('form');
+        fields.forEach(fd=>{const i=document.createElement('input');i.name=fd.name;i.placeholder=fd.label;f.appendChild(i);});
+        const b=document.createElement('button');b.textContent=T('save');f.appendChild(b);
+        f.onsubmit=e=>{e.preventDefault();const item={id:Date.now()};fields.forEach(fd=>item[fd.name]=f.querySelector('[name="'+fd.name+'"]').value);items.push(item);persist();f.reset();flash('✓ '+T('save'));};
+        ct.appendChild(f);
+      }else if(active==='edit'){
+        ct.innerHTML='<h3>'+T('edit')+'</h3>';
+        if(!items.length){ct.innerHTML+='<p class="muted">'+T('noEntries')+'</p>';return;}
+        if(!items.find(i=>i.id===selId))selId=items[0].id;
+        const sel=document.createElement('select');
+        items.forEach(it=>{const o=document.createElement('option');o.value=it.id;o.textContent=it[fields[0].name]||'#'+it.id;sel.appendChild(o);});
+        sel.value=selId;sel.onchange=()=>{selId=Number(sel.value);render();};
+        ct.appendChild(sel);
+        const item=items.find(i=>i.id===selId);
+        const f=document.createElement('form');
+        fields.forEach(fd=>{const i=document.createElement('input');i.name=fd.name;i.placeholder=fd.label;i.value=item[fd.name]||'';f.appendChild(i);});
+        const b=document.createElement('button');b.textContent=T('save');f.appendChild(b);
+        f.onsubmit=e=>{e.preventDefault();fields.forEach(fd=>item[fd.name]=f.querySelector('[name="'+fd.name+'"]').value);persist();flash('✓ '+T('save'));render();};
+        ct.appendChild(f);
+      }else if(active==='select'){
+        ct.innerHTML='<h3>'+T('select')+'</h3>';
+        const s=document.createElement('input');s.placeholder='🔍 '+T('search');ct.appendChild(s);
+        const list=document.createElement('div');ct.appendChild(list);
+        const rl=()=>{
+          list.innerHTML='';
+          const q=s.value.toLowerCase();
+          const filt=items.filter(it=>!q||fields.some(fd=>String(it[fd.name]||'').toLowerCase().includes(q)));
+          if(!filt.length){list.innerHTML='<p class="muted">'+T('noEntries')+'</p>';return;}
+          filt.forEach(it=>{
+            const row=document.createElement('div');row.className='list-row';
+            row.innerHTML='<span>'+esc(it[fields[0].name]||'—')+'</span>'+(fields[1]?'<span class="meta">'+esc(it[fields[1].name]||'')+'</span>':'');
+            row.onclick=()=>{selId=it.id;active='edit';render();};
+            list.appendChild(row);
+          });
+        };
+        s.oninput=rl;rl();
+      }else if(active==='settings'){
+        ct.innerHTML='<h3>'+T('settings')+'</h3><p>'+T('total')+': <b>'+items.length+'</b></p>';
+        const exp=document.createElement('button');exp.textContent='⬇ Export JSON';
+        exp.onclick=()=>{const blob=new Blob([JSON.stringify(items,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=config.id+'.json';a.click();};
+        ct.appendChild(exp);
+        const w=document.createElement('button');w.className='danger';w.textContent='🗑 Alles löschen';
+        w.onclick=()=>{if(confirm(T('confirm'))){items=[];persist();render();}};
+        ct.appendChild(w);
+      }else if(active==='delete'){
+        ct.innerHTML='<h3>'+T('delete')+'</h3>';
+        if(!items.length){ct.innerHTML+='<p class="muted">'+T('noEntries')+'</p>';return;}
+        items.forEach(it=>{
+          const row=document.createElement('div');row.className='list-row';
+          row.innerHTML='<span>'+esc(it[fields[0].name]||'—')+'</span>';
+          const d=document.createElement('button');d.className='danger';d.textContent='✕';
+          d.onclick=()=>{if(confirm(T('confirm'))){items=items.filter(x=>x.id!==it.id);persist();render();}};
+          row.appendChild(d);ct.appendChild(row);
+        });
+      }
+    }
+    render();
+  };
+}
+
+/* ==================== DEFINE viewFiles & viewLearning BEFORE REGISTRY ==================== */
+const viewFiles = makeCRUD({id:'files',title:'Files',fields:[{name:'name',label:'Dateiname'},{name:'content',label:'Inhalt'}]});
+const viewLearning = makeCRUD({id:'learning',title:'Learning',fields:[{name:'front',label:'Vorderseite (Frage)'},{name:'back',label:'Rückseite (Antwort)'}]});
+
 /* ==================== WINDOW MANAGER ==================== */
-const openWindows={};
-let zCounter=20;
-const nextZ=()=>zCounter++;
+const openWindows = {};
+let zCounter = 20;
+const nextZ = () => zCounter++;
 
 function openApp(id){
   const def=REGISTRY.find(a=>a.id===id);if(!def)return;
@@ -801,41 +814,44 @@ addEventListener('mousemove',e=>{
 });
 addEventListener('mouseup',()=>{dragState=null;});
 
-/* ==================== STARTMENÜ ==================== */
+/* ==================== REGISTRY ==================== */
 const REGISTRY=[
-  {id:'A',ico:'🧠',nm:'HalDo AI',fn:viewAI},
-  {id:'B',ico:'🌐',nm:'Browser',fn:viewBrowser},
-  {id:'C',ico:'📅',nm:'Calendar',fn:viewCalendar},
-  {id:'D',ico:'📄',nm:'Documents',fn:viewDocuments},
-  {id:'E',ico:'✉️',nm:'Email',fn:viewEmail},
-  {id:'F',ico:'📂',nm:'Files',fn:viewFiles},
-  {id:'G',ico:'🖼️',nm:'Gallery',fn:viewGallery},
-  {id:'H',ico:'🩺',nm:'Health',fn:viewHealth},
-  {id:'I',ico:'🌍',nm:'Internet',fn:viewInternet},
-  {id:'J',ico:'📖',nm:'Journal',fn:viewJournal},
-  {id:'K',ico:'⌨️',nm:'Keyboard',fn:viewKeyboard},
-  {id:'L',ico:'🎓',nm:'Learning',fn:viewLearning},
-  {id:'M',ico:'🎵',nm:'Music',fn:viewMusic},
-  {id:'N',ico:'🗺️',nm:'Navigation',fn:viewNavigation},
-  {id:'O',ico:'📊',nm:'Office',fn:viewOffice},
-  {id:'P',ico:'📷',nm:'Photos',fn:viewPhotos},
-  {id:'Q',ico:'🛠️',nm:'Quick Tools',fn:viewQuickTools},
-  {id:'R',ico:'🎙️',nm:'Recorder',fn:viewRecorder},
-  {id:'S',ico:'🛡️',nm:'Security',fn:viewSecurity},
-  {id:'T',ico:'✅',nm:'Tasks',fn:viewTasks},
-  {id:'U',ico:'🔄',nm:'Updates',fn:viewUpdates},
-  {id:'V',ico:'🎬',nm:'Video',fn:viewVideo},
-  {id:'W',ico:'🌤️',nm:'Weather',fn:viewWeather},
-  {id:'X',ico:'🎨',nm:'eXperience',fn:viewExperience},
-  {id:'Y',ico:'🏠',nm:'Your Life',fn:viewYourLife},
-  {id:'Z',ico:'⚙️',nm:'System',fn:viewSystemCenter}
+  {id:'A', ico:'🧠', nm:'HalDo AI', fn:viewAI},
+  {id:'B', ico:'🌐', nm:'Browser', fn:viewBrowser},
+  {id:'C', ico:'📅', nm:'Calendar', fn:viewCalendar},
+  {id:'D', ico:'📄', nm:'Documents', fn:viewDocuments},
+  {id:'E', ico:'✉️', nm:'Email', fn:viewEmail},
+  {id:'F', ico:'📂', nm:'Files', fn:viewFiles},
+  {id:'G', ico:'🖼️', nm:'Gallery', fn:viewGallery},
+  {id:'H', ico:'🩺', nm:'Health', fn:viewHealth},
+  {id:'I', ico:'🌍', nm:'Internet', fn:viewInternet},
+  {id:'J', ico:'📖', nm:'Journal', fn:viewJournal},
+  {id:'K', ico:'⌨️', nm:'Keyboard', fn:viewKeyboard},
+  {id:'L', ico:'🎓', nm:'Learning', fn:viewLearning},
+  {id:'M', ico:'🎵', nm:'Music', fn:viewMusic},
+  {id:'N', ico:'🗺️', nm:'Navigation', fn:viewNavigation},
+  {id:'O', ico:'📊', nm:'Office', fn:viewOffice},
+  {id:'P', ico:'📷', nm:'Photos', fn:viewPhotos},
+  {id:'Q', ico:'🛠️', nm:'Quick Tools', fn:viewQuickTools},
+  {id:'R', ico:'🎙️', nm:'Recorder', fn:viewRecorder},
+  {id:'S', ico:'🛡️', nm:'Security', fn:viewSecurity},
+  {id:'T', ico:'✅', nm:'Tasks', fn:viewTasks},
+  {id:'U', ico:'🔄', nm:'Updates', fn:viewUpdates},
+  {id:'V', ico:'🎬', nm:'Video', fn:viewVideo},
+  {id:'W', ico:'🌤️', nm:'Weather', fn:viewWeather},
+  {id:'X', ico:'🎨', nm:'eXperience', fn:viewExperience},
+  {id:'Y', ico:'🏠', nm:'Your Life', fn:viewYourLife},
+  {id:'Z', ico:'⚙️', nm:'System', fn:viewSystemCenter}
 ];
 
-let appOrder=store('appOrder',REGISTRY.map(a=>a.id));
+let appOrder = store('appOrder', REGISTRY.map(a=>a.id));
+
 function orderedRegistry(){return appOrder.map(id=>REGISTRY.find(a=>a.id===id)).filter(Boolean);}
 
 function populateStartMenu(){
-  const grid=document.getElementById('sm-apps');grid.innerHTML='';
+  const grid=document.getElementById('sm-apps');
+  if(!grid)return;
+  grid.innerHTML='';
   orderedRegistry().forEach(a=>{
     const card=document.createElement('div');
     card.className='sm-app-card';card.draggable=true;card.dataset.id=a.id;
@@ -860,6 +876,7 @@ function populateStartMenu(){
 
 function filterStartMenu(q){
   const grid=document.getElementById('sm-apps');
+  if(!grid)return;
   const filt=orderedRegistry().filter(a=>a.nm.toLowerCase().includes(q.toLowerCase()));
   grid.innerHTML='';
   filt.forEach(a=>{
@@ -870,7 +887,6 @@ function filterStartMenu(q){
   });
 }
 
-// Tabs
 document.querySelectorAll('.sm-tab').forEach(tab=>{
   tab.onclick=()=>{
     document.querySelectorAll('.sm-tab').forEach(t=>t.classList.remove('active'));
@@ -880,19 +896,20 @@ document.querySelectorAll('.sm-tab').forEach(tab=>{
   };
 });
 
-// Startmenü verschiebbar
 let menuDrag=null;
 document.addEventListener('DOMContentLoaded',()=>{
   const menu=document.getElementById('start-menu');
   const handle=document.getElementById('sm-drag-handle');
-  handle.addEventListener('mousedown',e=>{
-    if(e.target.tagName==='BUTTON')return;
-    const rect=menu.getBoundingClientRect();
-    menu.style.left=rect.left+'px';
-    menu.style.top=rect.top+'px';
-    menu.style.bottom='auto';
-    menuDrag={sx:e.clientX,sy:e.clientY,ml:rect.left,mt:rect.top};
-  });
+  if(handle){
+    handle.addEventListener('mousedown',e=>{
+      if(e.target.tagName==='BUTTON')return;
+      const rect=menu.getBoundingClientRect();
+      menu.style.left=rect.left+'px';
+      menu.style.top=rect.top+'px';
+      menu.style.bottom='auto';
+      menuDrag={sx:e.clientX,sy:e.clientY,ml:rect.left,mt:rect.top};
+    });
+  }
 });
 addEventListener('mousemove',e=>{
   if(!menuDrag)return;
@@ -911,8 +928,8 @@ addEventListener('click',e=>{
 /* ==================== EINSTELLUNGEN PANEL ==================== */
 function renderSettingsPanel(){
   const c=document.getElementById('sm-settings-content');
+  if(!c)return;
   c.innerHTML='';
-  // Sprache
   const langRow=document.createElement('div');langRow.className='sm-setting-row';
   langRow.innerHTML='<div><div class="lbl">🌐 Sprache</div><div class="sub">20 Sprachen</div></div>';
   const langSel=document.createElement('select');langSel.className='ctrl';
@@ -922,29 +939,26 @@ function renderSettingsPanel(){
     langSel.appendChild(o);
   });
   langSel.onchange=()=>setLanguage(langSel.value);
-  langRow.querySelector('.lbl').parentElement.appendChild(langSel);
-  langRow.lastElementChild.remove();
-  langRow.appendChild(langSel);
-  c.appendChild(langRow);
-  // Rate
+  langRow.appendChild(langSel);c.appendChild(langRow);
+  
   const rateRow=document.createElement('div');rateRow.className='sm-setting-row';
   rateRow.innerHTML='<div><div class="lbl">🎤 Sprachgeschwindigkeit</div><div class="sub" id="rate-val">1.0x</div></div>';
   const rateInp=document.createElement('input');rateInp.type='range';rateInp.min=0.5;rateInp.max=2;rateInp.step=0.1;rateInp.value=parseFloat(localStorage.getItem('haldo_voice_rate')||1);rateInp.className='ctrl';
   rateInp.oninput=()=>{localStorage.setItem('haldo_voice_rate',rateInp.value);document.getElementById('rate-val').textContent=rateInp.value+'x';};
   rateRow.appendChild(rateInp);c.appendChild(rateRow);
-  // Pitch
+
   const pitchRow=document.createElement('div');pitchRow.className='sm-setting-row';
   pitchRow.innerHTML='<div><div class="lbl">🎵 Tonhöhe</div><div class="sub" id="pitch-val">1.0</div></div>';
   const pitchInp=document.createElement('input');pitchInp.type='range';pitchInp.min=0.5;pitchInp.max=2;pitchInp.step=0.1;pitchInp.value=parseFloat(localStorage.getItem('haldo_voice_pitch')||1);pitchInp.className='ctrl';
   pitchInp.oninput=()=>{localStorage.setItem('haldo_voice_pitch',pitchInp.value);document.getElementById('pitch-val').textContent=pitchInp.value;};
   pitchRow.appendChild(pitchInp);c.appendChild(pitchRow);
-  // Test
+
   const testRow=document.createElement('div');testRow.className='sm-setting-row';
   testRow.innerHTML='<div><div class="lbl">🔊 Stimme testen</div><div class="sub">HalDo TTS</div></div>';
   const testBtn=document.createElement('button');testBtn.textContent='Test';testBtn.style.cssText='padding:8px 16px;background:var(--accent);color:#fff;border-radius:8px;font-weight:600;';
   testBtn.onclick=()=>speak('Hallo! Dies ist die Stimme von HalDo AI OS Pro Max.');
   testRow.appendChild(testBtn);c.appendChild(testRow);
-  // Theme
+
   const themeRow=document.createElement('div');themeRow.className='sm-setting-row';
   themeRow.innerHTML='<div><div class="lbl">🎨 Akzentfarbe</div><div class="sub">Design</div></div>';
   const themeWrap=document.createElement('div');themeWrap.style.cssText='display:flex;gap:6px;';
@@ -954,117 +968,25 @@ function renderSettingsPanel(){
     themeWrap.appendChild(b);
   });
   themeRow.appendChild(themeWrap);c.appendChild(themeRow);
-  // API Key
+
   const apiRow=document.createElement('div');apiRow.className='sm-setting-row';
   apiRow.innerHTML='<div><div class="lbl">🔑 HalDo API-Key</div><div class="sub">Für Live-KI</div></div>';
   const apiInp=document.createElement('input');apiInp.type='password';apiInp.placeholder='sk-…';apiInp.value=localStorage.getItem('haldo_api_key')||'';apiInp.className='ctrl';
   apiInp.oninput=()=>localStorage.setItem('haldo_api_key',apiInp.value);
   apiRow.appendChild(apiInp);c.appendChild(apiRow);
-  // Reset
+
   const resetRow=document.createElement('div');resetRow.className='sm-setting-row';
   resetRow.innerHTML='<div><div class="lbl">🗑 Daten zurücksetzen</div><div class="sub">Alle HalDo-Daten löschen</div></div>';
   const resetBtn=document.createElement('button');resetBtn.textContent='Reset';resetBtn.style.cssText='padding:8px 16px;background:var(--danger);color:#fff;border-radius:8px;font-weight:600;';
   resetBtn.onclick=()=>{if(confirm('Alle Daten löschen?')){Object.keys(localStorage).filter(k=>k.startsWith('haldo_')).forEach(k=>localStorage.removeItem(k));location.reload();}};
   resetRow.appendChild(resetBtn);c.appendChild(resetRow);
-  // About
+
   const aboutRow=document.createElement('div');aboutRow.className='sm-setting-row';
   aboutRow.innerHTML='<div><div class="lbl">ℹ Über HalDo AI OS</div><div class="sub">v1.0.0 · Halil Donma</div></div>';
   c.appendChild(aboutRow);
 }
 
-/* ==================== CRUD HELPER ==================== */
-function makeCRUD(cfg){
-  return function(body){
-    body.style.cssText='display:flex;height:100%;';
-    const sb=document.createElement('div');sb.className='app-sidebar';
-    const ct=document.createElement('div');ct.className='app-content';
-    body.appendChild(sb);body.appendChild(ct);
-    let items=store('crud_'+cfg.id,cfg.initial||[]);
-    let selId=items[0]?items[0].id:null;
-    const persist=()=>save('crud_'+cfg.id,items);
-    const fields=cfg.fields;
-    let active='select';
-
-    function flash(msg){const d=document.createElement('div');d.style.cssText='color:#06b6d4;font-size:12px;margin-top:8px;';d.textContent=msg;ct.appendChild(d);setTimeout(()=>d.remove(),1800);}
-
-    function render(){
-      sb.innerHTML='';
-      ['create','edit','select','settings','delete'].forEach(k=>{
-        const b=document.createElement('button');
-        b.className='side-btn'+(active===k?' active':'');
-        b.textContent=T(k);
-        b.onclick=()=>{active=k;render();};
-        sb.appendChild(b);
-      });
-      const sp=document.createElement('button');sp.className='side-btn speak-btn';sp.textContent='🔊 '+T('speak');
-      sp.onclick=()=>speak((cfg.title||cfg.id)+'. '+items.length+' Einträge.');
-      sb.appendChild(sp);
-      ct.innerHTML='';
-      if(active==='create'){
-        ct.innerHTML='<h3>'+T('create')+'</h3>';
-        const f=document.createElement('form');
-        fields.forEach(fd=>{const i=document.createElement('input');i.name=fd.name;i.placeholder=fd.label;f.appendChild(i);});
-        const b=document.createElement('button');b.textContent=T('save');f.appendChild(b);
-        f.onsubmit=e=>{e.preventDefault();const item={id:Date.now()};fields.forEach(fd=>item[fd.name]=f.querySelector('[name="'+fd.name+'"]').value);items.push(item);persist();f.reset();flash('✓ '+T('save'));};
-        ct.appendChild(f);
-      }else if(active==='edit'){
-        ct.innerHTML='<h3>'+T('edit')+'</h3>';
-        if(!items.length){ct.innerHTML+='<p class="muted">'+T('noEntries')+'</p>';return;}
-        if(!items.find(i=>i.id===selId))selId=items[0].id;
-        const sel=document.createElement('select');
-        items.forEach(it=>{const o=document.createElement('option');o.value=it.id;o.textContent=it[fields[0].name]||'#'+it.id;sel.appendChild(o);});
-        sel.value=selId;sel.onchange=()=>{selId=Number(sel.value);render();};
-        ct.appendChild(sel);
-        const item=items.find(i=>i.id===selId);
-        const f=document.createElement('form');
-        fields.forEach(fd=>{const i=document.createElement('input');i.name=fd.name;i.placeholder=fd.label;i.value=item[fd.name]||'';f.appendChild(i);});
-        const b=document.createElement('button');b.textContent=T('save');f.appendChild(b);
-        f.onsubmit=e=>{e.preventDefault();fields.forEach(fd=>item[fd.name]=f.querySelector('[name="'+fd.name+'"]').value);persist();flash('✓ '+T('save'));render();};
-        ct.appendChild(f);
-      }else if(active==='select'){
-        ct.innerHTML='<h3>'+T('select')+'</h3>';
-        const s=document.createElement('input');s.placeholder='🔍 '+T('search');ct.appendChild(s);
-        const list=document.createElement('div');ct.appendChild(list);
-        const rl=()=>{
-          list.innerHTML='';
-          const q=s.value.toLowerCase();
-          const filt=items.filter(it=>!q||fields.some(fd=>String(it[fd.name]||'').toLowerCase().includes(q)));
-          if(!filt.length){list.innerHTML='<p class="muted">'+T('noEntries')+'</p>';return;}
-          filt.forEach(it=>{
-            const row=document.createElement('div');row.className='list-row';
-            row.innerHTML='<span>'+esc(it[fields[0].name]||'—')+'</span>'+(fields[1]?'<span class="meta">'+esc(it[fields[1].name]||'')+'</span>':'');
-            row.onclick=()=>{selId=it.id;active='edit';render();};
-            list.appendChild(row);
-          });
-        };
-        s.oninput=rl;rl();
-      }else if(active==='settings'){
-        ct.innerHTML='<h3>'+T('settings')+'</h3><p>'+T('total')+': <b>'+items.length+'</b></p>';
-        const exp=document.createElement('button');exp.textContent='⬇ Export JSON';
-        exp.onclick=()=>{const blob=new Blob([JSON.stringify(items,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=cfg.id+'.json';a.click();};
-        ct.appendChild(exp);
-        const w=document.createElement('button');w.className='danger';w.textContent='🗑 Alles löschen';
-        w.onclick=()=>{if(confirm(T('confirm'))){items=[];persist();render();}};
-        ct.appendChild(w);
-      }else if(active==='delete'){
-        ct.innerHTML='<h3>'+T('delete')+'</h3>';
-        if(!items.length){ct.innerHTML+='<p class="muted">'+T('noEntries')+'</p>';return;}
-        items.forEach(it=>{
-          const row=document.createElement('div');row.className='list-row';
-          row.innerHTML='<span>'+esc(it[fields[0].name]||'—')+'</span>';
-          const d=document.createElement('button');d.className='danger';d.textContent='✕';
-          d.onclick=()=>{if(confirm(T('confirm'))){items=items.filter(x=>x.id!==it.id);persist();render();}};
-          row.appendChild(d);ct.appendChild(row);
-        });
-      }
-    }
-    render();
-  };
-}
-
 /* ==================== APPS ==================== */
-
-/* A: AI Chat (klassisch) */
 function viewAI(body){
   body.style.cssText='display:flex;height:100%;padding:18px;flex-direction:column;';
   const wrap=document.createElement('div');wrap.className='chat-box';
@@ -1090,7 +1012,6 @@ function viewAI(body){
   render();
 }
 
-/* B: Browser */
 function viewBrowser(body){
   body.style.cssText='display:flex;flex-direction:column;height:100%;padding:14px;';
   const bar=document.createElement('div');bar.style.cssText='display:flex;gap:8px;margin-bottom:8px;';
@@ -1103,7 +1024,6 @@ function viewBrowser(body){
   body.appendChild(bar);body.appendChild(frame);
 }
 
-/* C: Calendar */
 function viewCalendar(body){
   body.style.cssText='display:flex;height:100%;';
   const sb=document.createElement('div');sb.className='app-sidebar';
@@ -1179,7 +1099,6 @@ function viewCalendar(body){
   render();
 }
 
-/* D: Documents */
 function viewDocuments(body){
   body.style.cssText='display:flex;height:100%;';
   let docs=store('documents',[{id:Date.now(),title:'Willkommen',body:'Willkommen bei HalDo Documents!\n\nHier kannst du schreiben…'}]);
@@ -1220,7 +1139,6 @@ function viewDocuments(body){
   render();
 }
 
-/* E: Email */
 function viewEmail(body){
   body.style.cssText='display:flex;height:100%;';
   let mails=store('mails',[{id:1,from:'HalDo Team',subject:'Willkommen',body:'Willkommen im HalDo Mail!',folder:'inbox'}]);
@@ -1272,10 +1190,6 @@ function viewEmail(body){
   render();
 }
 
-/* F: Files (CRUD) */
-const viewFiles=makeCRUD({id:'files',title:'Files',fields:[{name:'name',label:'Dateiname'},{name:'content',label:'Inhalt'}]});
-
-/* G: Gallery */
 function viewGallery(body){
   body.style.cssText='display:flex;height:100%;';
   let photos=store('photos',[]);
@@ -1322,7 +1236,6 @@ function viewGallery(body){
   render();
 }
 
-/* H: Health */
 function viewHealth(body){
   body.style.cssText='display:flex;height:100%;';
   const sb=document.createElement('div');sb.className='app-sidebar';
@@ -1397,7 +1310,6 @@ function viewHealth(body){
   render();
 }
 
-/* I: Internet */
 function viewInternet(body){
   body.style.cssText='padding:18px;overflow-y:auto;';
   body.innerHTML='<h3>🌍 Internet</h3>';
@@ -1407,7 +1319,6 @@ function viewInternet(body){
   body.appendChild(inp);body.appendChild(btn);
 }
 
-/* J: Journal */
 function viewJournal(body){
   body.style.cssText='display:flex;height:100%;';
   let entries=store('journal',[]);
@@ -1460,7 +1371,6 @@ function viewJournal(body){
   render();
 }
 
-/* K: Keyboard */
 function viewKeyboard(body){
   body.style.cssText='padding:18px;overflow-y:auto;';
   body.innerHTML='<h3>⌨️ Sprache wählen</h3>';
@@ -1474,10 +1384,6 @@ function viewKeyboard(body){
   body.appendChild(sel);
 }
 
-/* L: Learning */
-const viewLearning=makeCRUD({id:'learning',title:'Learning',fields:[{name:'front',label:'Vorderseite (Frage)'},{name:'back',label:'Rückseite (Antwort)'}]});
-
-/* M: Music */
 function viewMusic(body){
   body.style.cssText='display:flex;height:100%;';
   let playlists=store('music_pl',[{id:1,name:'Meine Playlist',tracks:[]}]);
@@ -1527,7 +1433,6 @@ function viewMusic(body){
   render();
 }
 
-/* N: Navigation */
 function viewNavigation(body){
   body.style.cssText='padding:14px;';
   body.innerHTML='<h3>🗺️ Karte</h3>';
@@ -1537,7 +1442,6 @@ function viewNavigation(body){
   body.appendChild(map);
 }
 
-/* O: Office */
 function viewOffice(body){
   body.style.cssText='display:flex;height:100%;';
   const sb=document.createElement('div');sb.className='app-sidebar';
@@ -1573,7 +1477,6 @@ function viewOffice(body){
   render();
 }
 
-/* P: Photos */
 function viewPhotos(body){
   body.style.cssText='padding:18px;';
   body.innerHTML='<h3>📷 Kamera</h3>';
@@ -1584,7 +1487,6 @@ function viewPhotos(body){
   }else{body.innerHTML+='<p class="muted">Kamera nicht verfügbar.</p>';}
 }
 
-/* Q: Quick Tools */
 function viewQuickTools(body){
   body.style.cssText='padding:18px;overflow-y:auto;';
   body.innerHTML='<h3>🛠️ Quick Tools</h3>';
@@ -1620,7 +1522,6 @@ function viewQuickTools(body){
   body.appendChild(grid);
 }
 
-/* R: Recorder */
 function viewRecorder(body){
   body.style.cssText='display:flex;height:100%;';
   let recs=store('recordings',[]);
@@ -1687,7 +1588,6 @@ function viewRecorder(body){
   render();
 }
 
-/* S: Security */
 function viewSecurity(body){
   body.style.cssText='display:flex;height:100%;';
   let items=store('security',[]);
@@ -1741,7 +1641,6 @@ function viewSecurity(body){
   render();
 }
 
-/* T: Tasks */
 function viewTasks(body){
   body.style.cssText='display:flex;height:100%;';
   let tasks=store('tasks',[]);
@@ -1796,13 +1695,11 @@ function viewTasks(body){
   render();
 }
 
-/* U: Updates */
 function viewUpdates(body){
   body.style.cssText='padding:18px;';
   body.innerHTML='<h3>🔄 Updates</h3><p class="muted">System aktuell</p><div style="font-size:24px;font-weight:bold;color:#10b981;margin:20px 0">v1.0.0</div><button onclick="alert(\'System ist aktuell.\')">Nach Updates suchen</button>';
 }
 
-/* V: Video */
 function viewVideo(body){
   body.style.cssText='padding:18px;';
   body.innerHTML='<h3>🎬 Video Studio</h3><p class="muted">Importiere ein Video:</p>';
@@ -1822,7 +1719,6 @@ function viewVideo(body){
   body.appendChild(inp);
 }
 
-/* W: Weather */
 function viewWeather(body){
   body.style.cssText='padding:18px;';
   body.innerHTML='<h3>🌤️ Wetter</h3>';
@@ -1844,7 +1740,6 @@ function viewWeather(body){
   body.appendChild(btn);
 }
 
-/* X: Experience */
 function viewExperience(body){
   body.style.cssText='padding:18px;';
   body.innerHTML='<h3>🎨 Themes</h3>';
@@ -1855,7 +1750,6 @@ function viewExperience(body){
   });
 }
 
-/* Y: Your Life */
 function viewYourLife(body){
   body.style.cssText='padding:18px;overflow-y:auto;';
   body.innerHTML='<h3>🏠 Your Life</h3>';
@@ -1869,7 +1763,6 @@ function viewYourLife(body){
   body.appendChild(grid);
 }
 
-/* Z: System Center */
 function viewSystemCenter(body){
   body.style.cssText='padding:18px;overflow-y:auto;';
   body.innerHTML='<h3>⚙️ System Center</h3>';
@@ -1900,7 +1793,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   startClock();
   populateStartMenu();
   renderSettingsPanel();
-  // Theme laden
   const savedTheme=localStorage.getItem('haldo_theme');
   if(savedTheme){document.documentElement.style.setProperty('--accent',savedTheme);document.documentElement.style.setProperty('--accent2',savedTheme);}
 });
