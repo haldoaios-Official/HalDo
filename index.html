@@ -22,7 +22,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent)}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
 
-/* ===== 3D BACKGROUND (COSMOS) ===== */
+/* ===== 3D BACKGROUND (KOSMOS) ===== */
 #cosmos-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;width:100%;height:100%}
 
 /* ===== CENTER 3D MODEL (CYBORG) ===== */
@@ -56,7 +56,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent)}
 .nav-btn .icon{font-size:18px;width:24px;text-align:center}
 
 /* ===== APP CONTENT OVERLAY ===== */
-#app-content{position:fixed;top:0;right:0;bottom:0;width:100%;max-width:800px;z-index:50;background:rgba(10,14,26,.95);backdrop-filter:blur(15px);border-left:1px solid var(--border);display:none;flex-direction:column;box-shadow:-10px 0 30px rgba(0,0,0,.5);transform:translateX(100%);transition:transform .3s ease}
+#app-content{position:fixed;top:0;right:0;bottom:0;width:100%;max-width:650px;z-index:50;background:rgba(10,14,26,.95);backdrop-filter:blur(15px);border-left:1px solid var(--border);display:none;flex-direction:column;box-shadow:-10px 0 30px rgba(0,0,0,.5);transform:translateX(100%);transition:transform .3s ease}
 #app-content.show{display:flex;transform:translateX(0)}
 .app-header{padding:20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .app-header h2{font-size:18px;color:var(--accent);display:flex;align-items:center;gap:10px}
@@ -168,7 +168,7 @@ function initCosmos() {
   const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.15, transparent: true, opacity: 0.8 }));
   scene.add(stars);
 
-  // Sonne (Realistischer Glow)
+  // Sonne
   const sunGeo = new THREE.SphereGeometry(2.5, 64, 64);
   const sunMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
   const sun = new THREE.Mesh(sunGeo, sunMat);
@@ -198,7 +198,7 @@ function initCosmos() {
   moon.position.set(-10, 6, -8);
   scene.add(moon);
 
-  // Erde (Kleiner & komplett sichtbar)
+  // Erde
   const earthGeo = new THREE.SphereGeometry(4.5, 64, 64);
   const earthTex = new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
   const earthMat = new THREE.MeshStandardMaterial({ map: earthTex, roughness: 0.8 });
@@ -213,7 +213,7 @@ function initCosmos() {
   atm.position.copy(earth.position);
   scene.add(atm);
 
-  // Drehender Ring um die Erde
+  // Drehender Ring
   const ringGeo = new THREE.TorusGeometry(5.5, 0.05, 16, 100);
   const ringMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending });
   const ring = new THREE.Mesh(ringGeo, ringMat);
@@ -221,7 +221,6 @@ function initCosmos() {
   ring.rotation.x = Math.PI / 2;
   scene.add(ring);
 
-  // Licht
   scene.add(new THREE.AmbientLight(0xffffff, 0.3));
   const sunLight = new THREE.DirectionalLight(0xfff8e1, 2);
   sunLight.position.copy(sun.position);
@@ -263,7 +262,7 @@ function initCyborg() {
   A.ctrl.enablePan = false;
   A.ctrl.enableZoom = true;
   A.ctrl.minDistance = 2;
-  A.ctrl.maxDistance = 8;
+  A.ctrl.maxDistance = 10;
 
   A.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
   const d1 = new THREE.DirectionalLight(0xffffff, 1.5); d1.position.set(3, 4, 5); A.scene.add(d1);
@@ -271,42 +270,66 @@ function initCyborg() {
   const d3 = new THREE.DirectionalLight(0x3b82f6, 0.8); d3.position.set(0, -5, 0); A.scene.add(d3);
 
   const loader = new THREE.GLTFLoader();
-  const status = document.createElement('div');
+  const status = document.getElementById('cyborg-status') || document.createElement('div');
   status.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:#06b6d4;font-size:14px;z-index:10;background:rgba(0,0,0,.8);padding:10px 20px;border-radius:20px;display:none;';
   status.id = 'cyborg-status';
   status.textContent = 'Lade 3D-Modell...';
   document.body.appendChild(status);
   status.style.display = 'block';
 
-  loader.load('./male_base.glb', (gltf) => {
-    const m = gltf.scene;
-    m.traverse(o => { if(o.isMesh && o.material) o.material.side = THREE.DoubleSide; });
-    A.scene.add(m);
-    A.current = m;
-    
-    // Kamera perfekt auf den gesamten Körper anpassen
-    const box = new THREE.Box3().setFromObject(m);
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
-    
-    m.position.x = -center.x;
-    m.position.y = -box.min.y;
-    m.position.z = -center.z;
-    
-    const maxDim = Math.max(size.x, size.y, size.z);
-    const fov = A.cam.fov * (Math.PI / 180);
-    let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
-    
-    A.cam.position.set(0, size.y / 2, cameraZ);
-    A.ctrl.target.set(0, size.y / 2, 0);
-    A.ctrl.update();
-    
-    status.textContent = '✅ 3D-Cyborg geladen.';
-    setTimeout(() => status.style.display = 'none', 2000);
-  }, undefined, (err) => {
-    status.textContent = '⚠️ male_base.glb nicht gefunden. (Bitte Datei prüfen)';
-    status.style.color = '#ef4444';
-  });
+  // Fallback-Kette für GitHub Pages
+  const paths = [
+    './male_base.glb',
+    './adult_male/male_base.glb',
+    './models/adult_male/male_base.glb',
+    'male_base.glb'
+  ];
+
+  function tryLoad(index) {
+    if (index >= paths.length) {
+      status.innerHTML = '⚠️ <b>male_base.glb</b> nicht gefunden.<br>Bitte lade die Datei in den Hauptordner (neben index.html) hoch.';
+      status.style.color = '#ef4444';
+      createFallbackHologram();
+      return;
+    }
+    loader.load(paths[index], (gltf) => {
+      const m = gltf.scene;
+      m.traverse(o => { if(o.isMesh && o.material) o.material.side = THREE.DoubleSide; });
+      A.scene.add(m);
+      A.current = m;
+      
+      const box = new THREE.Box3().setFromObject(m);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      
+      m.position.x = -center.x;
+      m.position.y = -box.min.y;
+      m.position.z = -center.z;
+      
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const fov = A.cam.fov * (Math.PI / 180);
+      let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.3; // 1.3 = Abstand
+      
+      A.cam.position.set(0, size.y / 2, cameraZ);
+      A.ctrl.target.set(0, size.y / 2, 0);
+      A.ctrl.update();
+      
+      status.textContent = `✅ 3D-Cyborg geladen (${paths[index]})`;
+      setTimeout(() => status.style.display = 'none', 3000);
+    }, undefined, () => tryLoad(index + 1)); // Fehler -> nächster Pfad
+  }
+  
+  tryLoad(0);
+
+  function createFallbackHologram() {
+    const geo = new THREE.CapsuleGeometry(0.3, 1.2, 16, 32);
+    const mat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, wireframe: true, transparent: true, opacity: 0.5 });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.y = 0.9;
+    A.scene.add(mesh);
+    A.cam.position.set(0, 1, 3);
+    A.ctrl.target.set(0, 1, 0);
+  }
 
   (function loop() {
     requestAnimationFrame(loop);
@@ -328,12 +351,10 @@ function playTone(type) {
   try {
     if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if(audioCtx.state === 'suspended') audioCtx.resume();
-    
-    // Glasklarer Glockenton (Glass Chime)
     const patterns = {
-      glass: [{f:1760,t:'sine',d:0.4},{f:2637,t:'sine',d:0.4}],
-      chime: [{f:880,t:'sine',d:0.3},{f:1320,t:'sine',d:0.3}],
-      epic: [{f:440,t:'triangle',d:0.5},{f:554,t:'triangle',d:0.5},{f:659,t:'triangle',d:0.5}]
+      glass: [{f:1760,t:'sine',d:0.6},{f:2637,t:'sine',d:0.6}],
+      chime: [{f:880,t:'sine',d:0.4},{f:1320,t:'sine',d:0.4}],
+      epic: [{f:440,t:'triangle',d:0.8},{f:554,t:'triangle',d:0.8},{f:659,t:'triangle',d:0.8}]
     };
     const notes = patterns[type] || patterns.glass;
     let t = 0;
@@ -464,12 +485,10 @@ function openApp(id) {
   title.innerHTML = `<span>${app.ico}</span> ${app.nm}`;
   body.innerHTML = '';
   overlay.style.display = 'flex';
-  // Kurze Verzögerung für die Animation
   setTimeout(() => overlay.classList.add('show'), 50);
   
   document.getElementById('main-sidebar').classList.remove('show');
   
-  // App-spezifische Logik rendern
   if(id === 'anatomy') {
     body.innerHTML = `
       <div class="panel" style="background:rgba(6,182,212,.1);border-color:var(--accent)">
@@ -489,7 +508,7 @@ function resetCyborgCam() {
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
     const fov = A.cam.fov * (Math.PI / 180);
-    let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
+    let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.3;
     A.cam.position.set(0, size.y / 2, cameraZ);
     A.ctrl.target.set(0, size.y / 2, 0);
     A.ctrl.update();
@@ -502,7 +521,7 @@ const menu = document.getElementById('floating-menu');
 
 menu.addEventListener('mousedown', (e) => {
   if(e.target.closest('.menu-btn') && e.button === 0) {
-    // Nur ziehen, wenn wir nicht auf den Button zum Öffnen klicken, sondern ihn bewegen
+    // Erlaube Klick auf Button
   }
   isDragging = true;
   dragStartX = e.clientX;
@@ -571,7 +590,8 @@ function speak(text){
 const DISEASES = [
   {n:'Grippe (Influenza)', icd:'J10', s:'Fieber, Husten, Gliederschmerzen', t:'Bettruhe, Flüssigkeit'},
   {n:'Hypertonie', icd:'I10', s:'Oft symptomlos, Kopfschmerz', t:'Bewegung, salzarm'},
-  {n:'Diabetes Typ 2', icd:'E11', s:'Durst, häufiges Wasserlassen', t:'Ernährung, Metformin'}
+  {n:'Diabetes Typ 2', icd:'E11', s:'Durst, häufiges Wasserlassen', t:'Ernährung, Metformin'},
+  {n:'Asthma', icd:'J45', s:'Atemnot, Giemen', t:'Salbutamol, Kortison'}
 ];
 function viewDiseases(c){
   c.innerHTML = `<input placeholder="Suchen…" oninput="filterDiseases(this.value)" style="margin-bottom:16px"><div id="dis-list"></div>`;
@@ -588,7 +608,8 @@ function filterDiseases(q){
 
 const MEDS = [
   {n:'Paracetamol', d:'500–1000 mg', nw:'Leberschaden bei Überdosis', i:'Analgetikum'},
-  {n:'Ibuprofen', d:'400–600 mg', nw:'Magenschmerz', i:'NSAR'}
+  {n:'Ibuprofen', d:'400–600 mg', nw:'Magenschmerz', i:'NSAR'},
+  {n:'Metformin', d:'500–1000 mg 2x tgl.', nw:'Magen-Darm', i:'Antidiabetikum'}
 ];
 function viewMeds(c){
   c.innerHTML = `<input placeholder="Suchen…" oninput="filterMeds(this.value)" style="margin-bottom:16px"><div id="med-list"></div>`;
@@ -606,7 +627,8 @@ function filterMeds(q){
 const LABS = [
   {n:'Hämoglobin (Hb)', ref:'M: 13,5–17,5 / W: 12–16 g/dL'},
   {n:'Leukozyten', ref:'4.000–10.000 /µL'},
-  {n:'CRP', ref:'< 5 mg/L'}
+  {n:'CRP', ref:'< 5 mg/L'},
+  {n:'Blutzucker', ref:'70–100 mg/dL'}
 ];
 function viewLabs(c){
   c.innerHTML = `<input placeholder="Suchen…" oninput="filterLabs(this.value)" style="margin-bottom:16px"><div id="lab-list"></div>`;
@@ -657,6 +679,7 @@ function viewSettings(c){
 }
 function setTone(t){ localStorage.setItem('haldo_tone', t); playTone(t); }
 
+// Stubs für den Rest
 function renderStub(c, title, desc){ c.innerHTML = `<div class="panel"><h3>${title}</h3><p class="desc">${desc}</p></div>`; }
 function viewContracts(c){ renderStub(c,'📝 Patientenverträge','Vorlagen folgen.'); }
 function viewCare(c){ renderStub(c,'🧑‍⚕️ Pflege','Dokumentation.'); }
