@@ -28,8 +28,16 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent)}
 /* ===== CENTER 3D MODEL (CYBORG) ===== */
 #cyborg-canvas{position:fixed;inset:0;z-index:1;pointer-events:none;width:100%;height:100%}
 
+/* ===== DASHBOARD (APPS GRID) ===== */
+#dashboard{position:fixed;inset:0;z-index:2;overflow-y:auto;padding:80px 40px 40px 100px;pointer-events:none}
+.app-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:16px;pointer-events:auto;max-width:1200px;margin:0 auto}
+.app-card{background:rgba(17,24,39,.6);border:1px solid rgba(55,65,81,.5);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;transition:all .2s;text-align:center;backdrop-filter:blur(10px)}
+.app-card:hover{background:rgba(31,41,55,.9);border-color:var(--accent);transform:translateY(-3px);box-shadow:0 8px 24px rgba(6,182,212,.2)}
+.app-card .ico{font-size:32px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5))}
+.app-card .nm{font-size:12px;font-weight:600;color:#e5e7eb}
+
 /* ===== WELCOME ===== */
-#welcome{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9998;gap:20px;padding:40px;text-align:center;background:rgba(0,0,0,0.4);backdrop-filter:blur(2px)}
+#welcome{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9998;gap:20px;padding:40px;text-align:center;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px)}
 #welcome h1{font-size:clamp(32px,5.5vw,64px);font-weight:900;letter-spacing:4px;animation:fadeUp 1s ease-out;
   background:linear-gradient(90deg,#fffbeb,#fde047,#f59e0b,#fbbf24);-webkit-background-clip:text;background-clip:text;color:transparent;
   text-shadow:0 0 30px rgba(251,191,36,.8),0 0 60px rgba(245,158,11,.5);
@@ -56,7 +64,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent)}
 .nav-btn .icon{font-size:18px;width:24px;text-align:center}
 
 /* ===== APP CONTENT OVERLAY ===== */
-#app-content{position:fixed;top:0;right:0;bottom:0;width:100%;max-width:650px;z-index:50;background:rgba(10,14,26,.95);backdrop-filter:blur(15px);border-left:1px solid var(--border);display:none;flex-direction:column;box-shadow:-10px 0 30px rgba(0,0,0,.5);transform:translateX(100%);transition:transform .3s ease}
+#app-content{position:fixed;top:0;right:0;bottom:0;width:100%;max-width:600px;z-index:50;background:rgba(10,14,26,.95);backdrop-filter:blur(15px);border-left:1px solid var(--border);display:none;flex-direction:column;box-shadow:-10px 0 30px rgba(0,0,0,.5);transform:translateX(100%);transition:transform .3s ease}
 #app-content.show{display:flex;transform:translateX(0)}
 .app-header{padding:20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .app-header h2{font-size:18px;color:var(--accent);display:flex;align-items:center;gap:10px}
@@ -98,6 +106,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent)}
 .calc-grid button.op{color:var(--accent)}
 .calc-grid button.eq{background:var(--accent);color:#fff}
 .emergency-btn{display:flex;align-items:center;justify-content:center;width:100%;height:200px;background:linear-gradient(135deg,#dc2626,#ef4444);border-radius:20px;font-size:48px;font-weight:900;color:#fff;letter-spacing:4px;box-shadow:0 0 40px rgba(239,68,68,.4);cursor:pointer}
+#glb-uploader{position:fixed;bottom:20px;right:20px;z-index:100;background:rgba(0,0,0,0.8);padding:12px;border-radius:12px;border:1px solid var(--border);display:flex;gap:10px;align-items:center;font-size:12px}
 </style>
 </head>
 <body>
@@ -107,6 +116,19 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent)}
 
 <!-- 3D ZENTRUM (CYBORG/MENSCH) -->
 <canvas id="cyborg-canvas"></canvas>
+
+<!-- DASHBOARD (ALLE APPS DIREKT SICHTBAR) -->
+<div id="dashboard">
+  <div class="app-grid" id="main-grid"></div>
+</div>
+
+<!-- MANUELLER GLB UPLOAD (FALLBACK) -->
+<div id="glb-uploader">
+  <span style="color:var(--dim)">GLB fehlt?</span>
+  <label class="btn" style="padding:6px 12px;font-size:12px">
+    Hochladen <input type="file" id="manual-glb" accept=".glb" style="display:none">
+  </label>
+</div>
 
 <!-- WELCOME -->
 <div id="welcome">
@@ -128,7 +150,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent)}
   <button class="menu-btn" onclick="toggleMenu(event)">☰</button>
   <div id="main-sidebar">
     <div class="sidebar-header">🚀 HalDo AI OS</div>
-    <div class="sidebar-content">
+    <div class="sidebar-content" id="sidebar-links">
       <!-- Wird per JS befüllt -->
     </div>
   </div>
@@ -148,7 +170,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent)}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
 <script>
-/* ================= KOSMOS 3D (HINTERGRUND) ================= */
+/* ================= KOSMOS 3D ================= */
 function initCosmos() {
   const canvas = document.getElementById('cosmos-canvas');
   const scene = new THREE.Scene();
@@ -168,9 +190,9 @@ function initCosmos() {
   const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.15, transparent: true, opacity: 0.8 }));
   scene.add(stars);
 
-  // Sonne
-  const sunGeo = new THREE.SphereGeometry(2.5, 64, 64);
-  const sunMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+  // ECHTE SONNE (Gigantischer Glow)
+  const sunGeo = new THREE.SphereGeometry(3, 64, 64);
+  const sunMat = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
   const sun = new THREE.Mesh(sunGeo, sunMat);
   sun.position.set(12, 8, -15);
   scene.add(sun);
@@ -186,7 +208,7 @@ function initCosmos() {
     return new THREE.CanvasTexture(c);
   };
   const sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: createGlow([255,200,0]), transparent: true, blending: THREE.AdditiveBlending }));
-  sunGlow.scale.set(20, 20, 1);
+  sunGlow.scale.set(25, 25, 1); // Rießig groß
   sunGlow.position.copy(sun.position);
   scene.add(sunGlow);
 
@@ -198,33 +220,37 @@ function initCosmos() {
   moon.position.set(-10, 6, -8);
   scene.add(moon);
 
-  // Erde
-  const earthGeo = new THREE.SphereGeometry(4.5, 64, 64);
+  // HELLE ERDE (Komplett sichtbar)
+  const earthGeo = new THREE.SphereGeometry(4, 64, 64);
   const earthTex = new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
   const earthMat = new THREE.MeshStandardMaterial({ map: earthTex, roughness: 0.8 });
   const earth = new THREE.Mesh(earthGeo, earthMat);
-  earth.position.set(0, -4, 0);
+  earth.position.set(0, -2, 0); // Höher gesetzt
   scene.add(earth);
 
   // Atmosphäre
-  const atmGeo = new THREE.SphereGeometry(4.65, 64, 64);
-  const atmMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.15, side: THREE.BackSide });
+  const atmGeo = new THREE.SphereGeometry(4.15, 64, 64);
+  const atmMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.2, side: THREE.BackSide });
   const atm = new THREE.Mesh(atmGeo, atmMat);
   atm.position.copy(earth.position);
   scene.add(atm);
 
   // Drehender Ring
-  const ringGeo = new THREE.TorusGeometry(5.5, 0.05, 16, 100);
+  const ringGeo = new THREE.TorusGeometry(5, 0.05, 16, 100);
   const ringMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending });
   const ring = new THREE.Mesh(ringGeo, ringMat);
   ring.position.copy(earth.position);
   ring.rotation.x = Math.PI / 2;
   scene.add(ring);
 
-  scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+  // VIEL MEHR LICHT FÜR DIE ERDE
+  scene.add(new THREE.AmbientLight(0xffffff, 0.8));
   const sunLight = new THREE.DirectionalLight(0xfff8e1, 2);
   sunLight.position.copy(sun.position);
   scene.add(sunLight);
+  const fillLight = new THREE.DirectionalLight(0x3b82f6, 0.5); // Blaues Fülllicht
+  fillLight.position.set(-10, -5, 10);
+  scene.add(fillLight);
 
   function animate() {
     requestAnimationFrame(animate);
@@ -232,6 +258,8 @@ function initCosmos() {
     moon.rotation.y += 0.002;
     ring.rotation.z += 0.005;
     stars.rotation.y += 0.0001;
+    sunGlow.scale.x = 25 + Math.sin(Date.now() * 0.002) * 1.5;
+    sunGlow.scale.y = 25 + Math.sin(Date.now() * 0.002) * 1.5;
     renderer.render(scene, camera);
   }
   animate();
@@ -242,10 +270,9 @@ function initCosmos() {
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 }
-initCosmos();
 
-/* ================= 3D MENSCH (CYBORG/ANATOMY) ================= */
-let A = {scene:null, cam:null, ren:null, ctrl:null, current:null, init:false};
+/* ================= 3D MENSCH (CYBORG) ================= */
+let A = {scene:null, cam:null, ren:null, ctrl:null, current:null};
 function initCyborg() {
   const canvas = document.getElementById('cyborg-canvas');
   A.scene = new THREE.Scene();
@@ -261,38 +288,28 @@ function initCyborg() {
   A.ctrl.enableDamping = true;
   A.ctrl.enablePan = false;
   A.ctrl.enableZoom = true;
-  A.ctrl.minDistance = 2;
-  A.ctrl.maxDistance = 10;
+  A.ctrl.minDistance = 1.5;
+  A.ctrl.maxDistance = 8;
 
-  A.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  A.scene.add(new THREE.AmbientLight(0xffffff, 0.8));
   const d1 = new THREE.DirectionalLight(0xffffff, 1.5); d1.position.set(3, 4, 5); A.scene.add(d1);
-  const d2 = new THREE.DirectionalLight(0x06b6d4, 1.0); d2.position.set(-3, 2, -5); A.scene.add(d2);
-  const d3 = new THREE.DirectionalLight(0x3b82f6, 0.8); d3.position.set(0, -5, 0); A.scene.add(d3);
+  const d2 = new THREE.DirectionalLight(0x06b6d4, 1.5); d2.position.set(-3, 2, -5); A.scene.add(d2);
+  const d3 = new THREE.DirectionalLight(0x3b82f6, 1.0); d3.position.set(0, -5, 0); A.scene.add(d3);
 
   const loader = new THREE.GLTFLoader();
-  const status = document.getElementById('cyborg-status') || document.createElement('div');
-  status.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:#06b6d4;font-size:14px;z-index:10;background:rgba(0,0,0,.8);padding:10px 20px;border-radius:20px;display:none;';
-  status.id = 'cyborg-status';
-  status.textContent = 'Lade 3D-Modell...';
-  document.body.appendChild(status);
-  status.style.display = 'block';
 
-  // Fallback-Kette für GitHub Pages
+  // KORREKTE PFADE FÜR GITHUB
   const paths = [
+    'male_base.glb',
     './male_base.glb',
-    './adult_male/male_base.glb',
-    './models/adult_male/male_base.glb',
-    'male_base.glb'
+    'models/adult_male/male_base.glb',
+    'adult_male/male_base.glb'
   ];
 
-  function tryLoad(index) {
-    if (index >= paths.length) {
-      status.innerHTML = '⚠️ <b>male_base.glb</b> nicht gefunden.<br>Bitte lade die Datei in den Hauptordner (neben index.html) hoch.';
-      status.style.color = '#ef4444';
-      createFallbackHologram();
-      return;
-    }
-    loader.load(paths[index], (gltf) => {
+  function loadModel(url, isManual = false) {
+    loader.load(url, (gltf) => {
+      if(A.current) A.scene.remove(A.current);
+      
       const m = gltf.scene;
       m.traverse(o => { if(o.isMesh && o.material) o.material.side = THREE.DoubleSide; });
       A.scene.add(m);
@@ -308,28 +325,41 @@ function initCyborg() {
       
       const maxDim = Math.max(size.x, size.y, size.z);
       const fov = A.cam.fov * (Math.PI / 180);
-      let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.3; // 1.3 = Abstand
+      let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.2;
       
       A.cam.position.set(0, size.y / 2, cameraZ);
       A.ctrl.target.set(0, size.y / 2, 0);
       A.ctrl.update();
       
-      status.textContent = `✅ 3D-Cyborg geladen (${paths[index]})`;
-      setTimeout(() => status.style.display = 'none', 3000);
-    }, undefined, () => tryLoad(index + 1)); // Fehler -> nächster Pfad
+      document.getElementById('glb-uploader').style.display = 'none'; // Verstecke Uploader bei Erfolg
+    }, undefined, (err) => {
+      if (!isManual && url === paths[paths.length - 1]) {
+        // Wenn alle Pfade fehlschlagen, zeige Meldung und Fallback
+        document.getElementById('glb-uploader').style.borderColor = 'var(--danger)';
+        document.getElementById('glb-uploader').style.boxShadow = '0 0 15px rgba(239,68,68,0.5)';
+        
+        // Fallback Hologramm
+        const geo = new THREE.CapsuleGeometry(0.3, 1.2, 16, 32);
+        const mat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, wireframe: true, transparent: true, opacity: 0.5 });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.y = 0.9;
+        A.scene.add(mesh);
+        A.cam.position.set(0, 1, 3);
+        A.ctrl.target.set(0, 1, 0);
+      }
+    });
   }
-  
-  tryLoad(0);
 
-  function createFallbackHologram() {
-    const geo = new THREE.CapsuleGeometry(0.3, 1.2, 16, 32);
-    const mat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, wireframe: true, transparent: true, opacity: 0.5 });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.y = 0.9;
-    A.scene.add(mesh);
-    A.cam.position.set(0, 1, 3);
-    A.ctrl.target.set(0, 1, 0);
-  }
+  // Starte automatischen Versuch
+  loadModel(paths[0]);
+
+  // Manueller Upload-Handler
+  document.getElementById('manual-glb').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    loadModel(url, true);
+  });
 
   (function loop() {
     requestAnimationFrame(loop);
@@ -343,7 +373,6 @@ function initCyborg() {
     A.ren.setSize(window.innerWidth, window.innerHeight);
   });
 }
-initCyborg();
 
 /* ================= TÖNE & SPLASH ================= */
 let audioCtx = null;
@@ -429,10 +458,19 @@ const CATEGORIES = [
 ];
 const ALL_APPS = CATEGORIES.flatMap(c => c.apps);
 
-/* ================= INIT MENU ================= */
-function initMenu() {
-  const content = document.querySelector('.sidebar-content');
-  content.innerHTML = `
+/* ================= INITIALISIERUNG ================= */
+window.addEventListener('DOMContentLoaded', () => {
+  initCosmos();
+  initCyborg();
+  initMenuAndGrid();
+});
+
+function initMenuAndGrid() {
+  const sidebar = document.getElementById('sidebar-links');
+  const grid = document.getElementById('main-grid');
+  
+  // System & Home
+  sidebar.innerHTML = `
     <button class="nav-btn" onclick="closeApp()" style="color:var(--accent)">
       <span class="icon">🏠</span> Hauptmenü
     </button>
@@ -441,10 +479,22 @@ function initMenu() {
       <span class="icon">⚙️</span> Einstellungen
     </button>
   `;
+
+  // Grid auf dem Hauptbildschirm (Alle Apps sichtbar machen)
+  ALL_APPS.forEach(a => {
+    grid.innerHTML += `
+      <div class="app-card" onclick="openApp('${a.id}')">
+        <div class="ico">${a.ico}</div>
+        <div class="nm">${a.nm}</div>
+      </div>
+    `;
+  });
+
+  // Sidebar befüllen
   CATEGORIES.forEach(cat => {
-    content.innerHTML += `<div class="nav-category">${cat.name}</div>`;
+    sidebar.innerHTML += `<div class="nav-category">${cat.name}</div>`;
     cat.apps.forEach(a => {
-      content.innerHTML += `
+      sidebar.innerHTML += `
         <button class="nav-btn" onclick="openApp('${a.id}')">
           <span class="icon">${a.ico}</span> ${a.nm}
         </button>
@@ -452,7 +502,6 @@ function initMenu() {
     });
   });
 }
-initMenu();
 
 /* ================= LOGIK ================= */
 function enterApp() {
@@ -508,7 +557,7 @@ function resetCyborgCam() {
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
     const fov = A.cam.fov * (Math.PI / 180);
-    let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.3;
+    let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.2;
     A.cam.position.set(0, size.y / 2, cameraZ);
     A.ctrl.target.set(0, size.y / 2, 0);
     A.ctrl.update();
@@ -520,9 +569,6 @@ let isDragging = false, dragStartX, dragStartY, menuStartX, menuStartY;
 const menu = document.getElementById('floating-menu');
 
 menu.addEventListener('mousedown', (e) => {
-  if(e.target.closest('.menu-btn') && e.button === 0) {
-    // Erlaube Klick auf Button
-  }
   isDragging = true;
   dragStartX = e.clientX;
   dragStartY = e.clientY;
