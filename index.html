@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>HalDo AI OS Pro Max</title>
-<!-- Favicon gegen 404 Fehler -->
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
 <style>
 :root{
@@ -14,7 +13,7 @@
   --radius:12px;--font:'Segoe UI',system-ui,-apple-system,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden;background:#050810}
+html,body{height:100%;overflow:hidden;background:#000}
 body{font-family:var(--font);color:var(--text);font-size:14px}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
 input,textarea,select{font-family:inherit;background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;width:100%;outline:none;font-size:14px}
@@ -23,12 +22,14 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent)}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
 
-/* ===== COSMOS 3D BACKGROUND ===== */
-#cosmos-bg{position:fixed;inset:0;z-index:0;pointer-events:none;background:#000}
-#cosmos-bg canvas{display:block;width:100%;height:100%}
+/* ===== 3D BACKGROUND (COSMOS) ===== */
+#cosmos-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;width:100%;height:100%}
+
+/* ===== CENTER 3D MODEL (CYBORG) ===== */
+#cyborg-canvas{position:fixed;inset:0;z-index:1;pointer-events:none;width:100%;height:100%}
 
 /* ===== WELCOME ===== */
-#welcome{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9998;gap:20px;padding:40px;text-align:center}
+#welcome{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9998;gap:20px;padding:40px;text-align:center;background:rgba(0,0,0,0.4);backdrop-filter:blur(2px)}
 #welcome h1{font-size:clamp(32px,5.5vw,64px);font-weight:900;letter-spacing:4px;animation:fadeUp 1s ease-out;
   background:linear-gradient(90deg,#fffbeb,#fde047,#f59e0b,#fbbf24);-webkit-background-clip:text;background-clip:text;color:transparent;
   text-shadow:0 0 30px rgba(251,191,36,.8),0 0 60px rgba(245,158,11,.5);
@@ -40,103 +41,75 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent)}
 #welcome .enter-btn:hover{transform:scale(1.05);box-shadow:0 0 60px rgba(6,182,212,.9)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 
-/* ===== APP SHELL ===== */
-#app{display:none;position:relative;z-index:1;height:100vh;width:100vw;background:rgba(10,14,26,.9);backdrop-filter:blur(5px)}
-#app.active{display:flex}
-#sidebar{width:80px;background:rgba(17,24,39,.95);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:10px;transition:width .25s;backdrop-filter:blur(10px)}
-#sidebar.expanded{width:280px;align-items:stretch;padding:16px}
-#logo-wrap{display:flex;align-items:center;gap:12px;padding:8px 4px;cursor:pointer;border-radius:10px;transition:background .2s}
-#logo-wrap:hover{background:var(--bg3)}
-#logo-img{width:48px;height:48px;border-radius:12px;object-fit:cover;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;color:#fff;flex-shrink:0;overflow:hidden}
-#logo-img img{width:100%;height:100%;object-fit:cover;border-radius:12px}
-#logo-text{font-weight:700;font-size:16px;letter-spacing:1px;white-space:nowrap;overflow:hidden}
-#sidebar:not(.expanded) #logo-text{display:none}
-#sidebar-nav{flex:1;display:flex;flex-direction:column;gap:4px;width:100%;margin-top:20px;overflow-y:auto;overflow-x:hidden}
-.nav-btn{display:flex;align-items:center;gap:14px;padding:10px;border-radius:10px;transition:all .2s;color:var(--dim);text-align:left;width:100%}
-.nav-btn:hover{background:var(--bg3);color:var(--text)}
-.nav-btn.active{background:linear-gradient(90deg,rgba(6,182,212,.2),rgba(59,130,246,.1));color:var(--accent);border-left:3px solid var(--accent)}
-.nav-btn .icon{font-size:20px;flex-shrink:0;width:24px;text-align:center}
-.nav-btn .label{white-space:nowrap;overflow:hidden;font-size:13px}
-#sidebar:not(.expanded) .nav-btn{justify-content:center;padding:12px}
-#sidebar:not(.expanded) .nav-btn .label{display:none}
-#sidebar:not(.expanded) .nav-btn.active{border-left:none;border-bottom:2px solid var(--accent)}
-.nav-category{font-size:11px;text-transform:uppercase;color:var(--dim);margin:14px 0 6px 12px;font-weight:700;letter-spacing:1px}
-#sidebar:not(.expanded) .nav-category{display:none}
+/* ===== FLOATING DRAGGABLE MENU ===== */
+#floating-menu{position:fixed;top:20px;left:20px;z-index:100;display:flex;flex-direction:column;gap:10px;cursor:grab}
+#floating-menu:active{cursor:grabbing}
+.menu-btn{background:rgba(17,24,39,.95);border:1px solid var(--accent);border-radius:50%;width:50px;height:50px;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 0 20px rgba(6,182,212,.4);transition:transform .2s;pointer-events:auto}
+.menu-btn:hover{transform:scale(1.1)}
+#main-sidebar{background:rgba(17,24,39,.95);border:1px solid var(--border);border-radius:12px;width:280px;max-height:80vh;display:none;flex-direction:column;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.5);backdrop-filter:blur(10px);pointer-events:auto}
+#main-sidebar.show{display:flex}
+.sidebar-header{padding:16px;border-bottom:1px solid var(--border);font-weight:700;color:var(--accent);display:flex;align-items:center;gap:10px}
+.sidebar-content{flex:1;overflow-y:auto;padding:10px}
+.nav-category{font-size:11px;text-transform:uppercase;color:var(--dim);margin:14px 0 6px 10px;font-weight:700;letter-spacing:1px}
+.nav-btn{display:flex;align-items:center;gap:12px;padding:10px;border-radius:8px;transition:all .2s;color:var(--text);width:100%;text-align:left;pointer-events:auto}
+.nav-btn:hover{background:var(--bg3);color:var(--accent)}
+.nav-btn .icon{font-size:18px;width:24px;text-align:center}
 
-#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-#topbar{height:60px;background:rgba(17,24,39,.9);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px}
-#topbar h2{font-size:16px;font-weight:600}
-#topbar .spacer{flex:1}
-#topbar .clock{color:var(--dim);font-size:13px}
-#content{flex:1;overflow-y:auto;padding:24px}
+/* ===== APP CONTENT OVERLAY ===== */
+#app-content{position:fixed;top:0;right:0;bottom:0;width:100%;max-width:800px;z-index:50;background:rgba(10,14,26,.95);backdrop-filter:blur(15px);border-left:1px solid var(--border);display:none;flex-direction:column;box-shadow:-10px 0 30px rgba(0,0,0,.5);transform:translateX(100%);transition:transform .3s ease}
+#app-content.show{display:flex;transform:translateX(0)}
+.app-header{padding:20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.app-header h2{font-size:18px;color:var(--accent);display:flex;align-items:center;gap:10px}
+.close-btn{background:var(--bg3);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;transition:background .2s}
+.close-btn:hover{background:var(--danger)}
+.app-body{flex:1;overflow-y:auto;padding:24px}
 
-/* ===== HOME (KATEGORIEN) ===== */
-.category-header{font-size:18px;color:var(--accent);margin:24px 0 16px 0;font-weight:700;display:flex;align-items:center;gap:12px}
-.category-header::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
-.app-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:16px}
-.app-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;transition:all .2s;text-align:center}
-.app-card:hover{background:rgba(31,41,55,.95);border-color:var(--accent);transform:translateY(-3px);box-shadow:0 8px 24px rgba(6,182,212,.2)}
-.app-card .ico{font-size:32px}
-.app-card .nm{font-size:12px;font-weight:500}
+/* ===== SPLASH ===== */
+#app-splash{position:fixed;inset:0;z-index:9997;display:none;align-items:center;justify-content:center;flex-direction:column;gap:20px;background:radial-gradient(circle at 50% 50%, rgba(6,182,212,.2) 0%, rgba(5,8,16,.98) 75%);backdrop-filter:blur(10px)}
+#app-splash.show{display:flex;animation:splashIn .3s ease-out}
+.splash-icon{font-size:110px;filter:drop-shadow(0 0 40px #06b6d4);animation:starGlow 1.2s ease-out}
+.splash-name{font-size:32px;font-weight:800;background:linear-gradient(90deg,#fde047,#f59e0b);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:2px}
+.splash-presented{font-size:12px;color:var(--dim);letter-spacing:4px;text-transform:uppercase;margin-top:10px}
+.splash-presented b{color:#fbbf24}
+@keyframes splashIn{from{opacity:0}to{opacity:1}}
+@keyframes starGlow{0%{transform:scale(0) rotate(0deg)}50%{transform:scale(1.2) rotate(180deg)}100%{transform:scale(1) rotate(360deg)}}
 
-/* ===== ANATOMY ===== */
-#anatomy-wrap{position:relative;width:100%;height:calc(100vh - 140px);background:radial-gradient(circle at 50% 50%,#0f2233 0%,#0a0e1a 100%);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
-#anatomy-wrap canvas{display:block}
-.anatomy-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;position:absolute;top:12px;left:12px;z-index:10}
-.load-folder-btn{background:linear-gradient(90deg,var(--success),#059669);color:#fff;font-weight:700;padding:10px 20px;border-radius:30px;font-size:13px;box-shadow:0 4px 15px rgba(16,185,129,.4);transition:transform .2s}
-.load-folder-btn:hover{transform:scale(1.05)}
-.chip{padding:8px 14px;border-radius:20px;background:rgba(17,24,39,.85);border:1px solid var(--border);font-size:13px;transition:all .2s;color:var(--text);backdrop-filter:blur(5px)}
-.chip:hover{border-color:var(--accent);color:var(--accent)}
-#anatomy-status{position:absolute;bottom:12px;left:12px;right:12px;background:rgba(0,0,0,.85);padding:12px;border-radius:8px;font-size:13px;color:var(--accent);z-index:5;border:1px solid rgba(6,182,212,.3);display:none;text-align:center}
-#anatomy-status.show{display:block}
-
-/* ===== LISTEN & PANELS ===== */
-.panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;backdrop-filter:blur(5px)}
-.panel h3{font-size:15px;margin-bottom:12px;color:var(--accent)}
+/* ===== PANELS & UI ===== */
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.panel h3{font-size:16px;margin-bottom:12px;color:var(--accent)}
 .panel .desc{color:var(--dim);font-size:13px;margin-bottom:12px}
 .btn{padding:10px 18px;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;font-size:13px;transition:all .2s}
 .btn:hover{background:var(--accent2)}
 .btn.ghost{background:var(--bg3);color:var(--text)}
 .btn.danger{background:var(--danger)}
 .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-.search-bar{display:flex;gap:10px;margin-bottom:16px}
 .list-item{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;cursor:pointer;transition:all .2s}
 .list-item:hover{background:rgba(31,41,55,.95);border-color:var(--accent)}
 .list-item .title{font-weight:600;margin-bottom:4px}
 .list-item .meta{color:var(--dim);font-size:12px}
-.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:rgba(6,182,212,.2);color:var(--accent)}
-
-/* ===== SETTINGS & CALC ===== */
 .settings-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border)}
 .settings-row:last-child{border:none}
 .settings-row .info{flex:1}
 .settings-row .info .lbl{font-weight:600;margin-bottom:4px}
-.settings-row .info .sub{color:var(--dim);font-size:12px}
 .settings-row .ctrl{flex-shrink:0;margin-left:16px;min-width:200px}
-.settings-row .ctrl select{width:100%}
 .calc-display{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:20px;font-size:32px;text-align:right;font-weight:600;margin-bottom:12px;min-height:70px}
 .calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .calc-grid button{padding:18px;font-size:18px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;font-weight:600}
 .calc-grid button.op{color:var(--accent)}
 .calc-grid button.eq{background:var(--accent);color:#fff}
 .emergency-btn{display:flex;align-items:center;justify-content:center;width:100%;height:200px;background:linear-gradient(135deg,#dc2626,#ef4444);border-radius:20px;font-size:48px;font-weight:900;color:#fff;letter-spacing:4px;box-shadow:0 0 40px rgba(239,68,68,.4);cursor:pointer}
-
-/* ===== SPLASH ===== */
-#app-splash{position:fixed;inset:0;z-index:9997;display:none;align-items:center;justify-content:center;flex-direction:column;gap:22px;background:radial-gradient(circle at 50% 50%, rgba(6,182,212,.18) 0%, rgba(5,8,16,.95) 75%);backdrop-filter:blur(8px)}
-#app-splash.show{display:flex;animation:splashIn .3s ease-out}
-.splash-icon{font-size:130px;filter:drop-shadow(0 0 50px #06b6d4);animation:starGlow 1.2s ease-out}
-.splash-name{font-size:34px;font-weight:800;background:linear-gradient(90deg,#06b6d4,#3b82f6,#8b5cf6);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:3px}
-@keyframes splashIn{from{opacity:0}to{opacity:1}}
-@keyframes starGlow{0%{transform:scale(0) rotate(0deg)}50%{transform:scale(1.3) rotate(180deg)}100%{transform:scale(1) rotate(360deg)}}
 </style>
 </head>
 <body>
 
-<!-- 3D COSMOS HINTERGRUND -->
-<div id="cosmos-bg"></div>
+<!-- 3D HINTERGRUND (KOSMOS) -->
+<canvas id="cosmos-canvas"></canvas>
+
+<!-- 3D ZENTRUM (CYBORG/MENSCH) -->
+<canvas id="cyborg-canvas"></canvas>
 
 <!-- WELCOME -->
-<div id="welcome" style="display:none">
+<div id="welcome">
   <h1>HALDO AI OS PRO MAX</h1>
   <h2>Willkommen zurück, Bruder 💙<br>Dein Universum aus Medizin, Alltag und Intelligenz.</h2>
   <div class="presented">Präsentiert von <b>Halil Donma</b></div>
@@ -147,27 +120,27 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent)}
 <div id="app-splash">
   <div class="splash-icon">🤖</div>
   <div class="splash-name">HalDo AI OS</div>
+  <div class="splash-presented">Präsentiert von <b>Halil Donma</b></div>
 </div>
 
-<!-- APP -->
-<div id="app">
-  <aside id="sidebar">
-    <div id="logo-wrap" onclick="toggleSidebar()">
-      <div id="logo-img">H</div>
-      <div id="logo-text">HalDo OS</div>
-    </div>
-    <nav id="sidebar-nav">
+<!-- FLOATING MENU -->
+<div id="floating-menu">
+  <button class="menu-btn" onclick="toggleMenu(event)">☰</button>
+  <div id="main-sidebar">
+    <div class="sidebar-header">🚀 HalDo AI OS</div>
+    <div class="sidebar-content">
       <!-- Wird per JS befüllt -->
-    </nav>
-  </aside>
-  <div id="main">
-    <div id="topbar">
-      <h2 id="view-title">HalDo AI OS</h2>
-      <div class="spacer"></div>
-      <div class="clock" id="clock">--:--</div>
     </div>
-    <div id="content"></div>
   </div>
+</div>
+
+<!-- APP CONTENT OVERLAY -->
+<div id="app-content">
+  <div class="app-header">
+    <h2 id="app-title">App</h2>
+    <button class="close-btn" onclick="closeApp()">✕</button>
+  </div>
+  <div class="app-body" id="app-body"></div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -175,95 +148,90 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent)}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
 <script>
-/* ================= 3D KOSMOS (WELCOME) ================= */
+/* ================= KOSMOS 3D (HINTERGRUND) ================= */
 function initCosmos() {
-  const container = document.getElementById('cosmos-bg');
-  if(!container || !window.THREE) return;
-
+  const canvas = document.getElementById('cosmos-canvas');
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
   camera.position.set(0, 0, 15);
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  container.appendChild(renderer.domElement);
 
-  // Sterne (Partikel)
+  // Sterne
   const starGeo = new THREE.BufferGeometry();
   const starCount = 3000;
   const posArray = new Float32Array(starCount * 3);
-  for(let i=0; i<starCount*3; i++) {
-    posArray[i] = (Math.random() - 0.5) * 200;
-  }
+  for(let i=0; i<starCount*3; i++) posArray[i] = (Math.random() - 0.5) * 200;
   starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-  const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.15, transparent: true, opacity: 0.8 });
-  const stars = new THREE.Points(starGeo, starMat);
+  const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.15, transparent: true, opacity: 0.8 }));
   scene.add(stars);
 
-  // Sonne (Rechts oben)
+  // Sonne (Realistischer Glow)
   const sunGeo = new THREE.SphereGeometry(2.5, 64, 64);
   const sunMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
   const sun = new THREE.Mesh(sunGeo, sunMat);
-  sun.position.set(10, 6, -10);
+  sun.position.set(12, 8, -15);
   scene.add(sun);
   
-  // Sonnen-Glow (Sprite)
-  const sunGlowMat = new THREE.SpriteMaterial({ map: createGlowTexture(0xffaa00), transparent: true, blending: THREE.AdditiveBlending });
-  const sunGlow = new THREE.Sprite(sunGlowMat);
-  sunGlow.scale.set(15, 15, 1);
+  const createGlow = (color) => {
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const ctx = c.getContext('2d');
+    const grad = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+    grad.addColorStop(0, 'rgba(255,255,255,1)');
+    grad.addColorStop(0.2, `rgba(${color[0]},${color[1]},${color[2]},1)`);
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad; ctx.fillRect(0,0,256,256);
+    return new THREE.CanvasTexture(c);
+  };
+  const sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: createGlow([255,200,0]), transparent: true, blending: THREE.AdditiveBlending }));
+  sunGlow.scale.set(20, 20, 1);
   sunGlow.position.copy(sun.position);
   scene.add(sunGlow);
 
-  // Mond (Links oben)
+  // Mond
   const moonGeo = new THREE.SphereGeometry(1.2, 64, 64);
   const moonTex = new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/moon_1024.jpg');
   const moonMat = new THREE.MeshStandardMaterial({ map: moonTex, roughness: 1 });
   const moon = new THREE.Mesh(moonGeo, moonMat);
-  moon.position.set(-9, 5, -5);
+  moon.position.set(-10, 6, -8);
   scene.add(moon);
 
-  // Erde (Unten Mitte)
-  const earthGeo = new THREE.SphereGeometry(6, 64, 64);
+  // Erde (Kleiner & komplett sichtbar)
+  const earthGeo = new THREE.SphereGeometry(4.5, 64, 64);
   const earthTex = new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
   const earthMat = new THREE.MeshStandardMaterial({ map: earthTex, roughness: 0.8 });
   const earth = new THREE.Mesh(earthGeo, earthMat);
-  earth.position.set(0, -7, 0);
+  earth.position.set(0, -4, 0);
   scene.add(earth);
 
   // Atmosphäre
-  const atmGeo = new THREE.SphereGeometry(6.2, 64, 64);
+  const atmGeo = new THREE.SphereGeometry(4.65, 64, 64);
   const atmMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.15, side: THREE.BackSide });
   const atm = new THREE.Mesh(atmGeo, atmMat);
   atm.position.copy(earth.position);
   scene.add(atm);
 
+  // Drehender Ring um die Erde
+  const ringGeo = new THREE.TorusGeometry(5.5, 0.05, 16, 100);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.position.copy(earth.position);
+  ring.rotation.x = Math.PI / 2;
+  scene.add(ring);
+
   // Licht
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
-  scene.add(ambientLight);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.3));
   const sunLight = new THREE.DirectionalLight(0xfff8e1, 2);
   sunLight.position.copy(sun.position);
   scene.add(sunLight);
 
-  // Glow-Textur Generator
-  function createGlowTexture(color) {
-    const c = document.createElement('canvas');
-    c.width = c.height = 256;
-    const ctx = c.getContext('2d');
-    const grad = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
-    grad.addColorStop(0, 'rgba(255,255,255,1)');
-    grad.addColorStop(0.2, `rgba(${(color>>16)&255},${(color>>8)&255},${color&255},1)`);
-    grad.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0,0,256,256);
-    return new THREE.CanvasTexture(c);
-  }
-
-  // Animation
   function animate() {
     requestAnimationFrame(animate);
-    earth.rotation.y += 0.002;
-    moon.rotation.y += 0.001;
+    earth.rotation.y += 0.001;
+    moon.rotation.y += 0.002;
+    ring.rotation.z += 0.005;
     stars.rotation.y += 0.0001;
     renderer.render(scene, camera);
   }
@@ -276,6 +244,121 @@ function initCosmos() {
   });
 }
 initCosmos();
+
+/* ================= 3D MENSCH (CYBORG/ANATOMY) ================= */
+let A = {scene:null, cam:null, ren:null, ctrl:null, current:null, init:false};
+function initCyborg() {
+  const canvas = document.getElementById('cyborg-canvas');
+  A.scene = new THREE.Scene();
+  A.cam = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+  A.cam.position.set(0, 1.2, 4);
+  
+  A.ren = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  A.ren.setSize(window.innerWidth, window.innerHeight);
+  A.ren.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  A.ren.setClearColor(0x000000, 0);
+  
+  A.ctrl = new THREE.OrbitControls(A.cam, A.ren.domElement);
+  A.ctrl.enableDamping = true;
+  A.ctrl.enablePan = false;
+  A.ctrl.enableZoom = true;
+  A.ctrl.minDistance = 2;
+  A.ctrl.maxDistance = 8;
+
+  A.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const d1 = new THREE.DirectionalLight(0xffffff, 1.5); d1.position.set(3, 4, 5); A.scene.add(d1);
+  const d2 = new THREE.DirectionalLight(0x06b6d4, 1.0); d2.position.set(-3, 2, -5); A.scene.add(d2);
+  const d3 = new THREE.DirectionalLight(0x3b82f6, 0.8); d3.position.set(0, -5, 0); A.scene.add(d3);
+
+  const loader = new THREE.GLTFLoader();
+  const status = document.createElement('div');
+  status.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:#06b6d4;font-size:14px;z-index:10;background:rgba(0,0,0,.8);padding:10px 20px;border-radius:20px;display:none;';
+  status.id = 'cyborg-status';
+  status.textContent = 'Lade 3D-Modell...';
+  document.body.appendChild(status);
+  status.style.display = 'block';
+
+  loader.load('./male_base.glb', (gltf) => {
+    const m = gltf.scene;
+    m.traverse(o => { if(o.isMesh && o.material) o.material.side = THREE.DoubleSide; });
+    A.scene.add(m);
+    A.current = m;
+    
+    // Kamera perfekt auf den gesamten Körper anpassen
+    const box = new THREE.Box3().setFromObject(m);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    
+    m.position.x = -center.x;
+    m.position.y = -box.min.y;
+    m.position.z = -center.z;
+    
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fov = A.cam.fov * (Math.PI / 180);
+    let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
+    
+    A.cam.position.set(0, size.y / 2, cameraZ);
+    A.ctrl.target.set(0, size.y / 2, 0);
+    A.ctrl.update();
+    
+    status.textContent = '✅ 3D-Cyborg geladen.';
+    setTimeout(() => status.style.display = 'none', 2000);
+  }, undefined, (err) => {
+    status.textContent = '⚠️ male_base.glb nicht gefunden. (Bitte Datei prüfen)';
+    status.style.color = '#ef4444';
+  });
+
+  (function loop() {
+    requestAnimationFrame(loop);
+    A.ctrl.update();
+    A.ren.render(A.scene, A.cam);
+  })();
+
+  window.addEventListener('resize', () => {
+    A.cam.aspect = window.innerWidth / window.innerHeight;
+    A.cam.updateProjectionMatrix();
+    A.ren.setSize(window.innerWidth, window.innerHeight);
+  });
+}
+initCyborg();
+
+/* ================= TÖNE & SPLASH ================= */
+let audioCtx = null;
+function playTone(type) {
+  try {
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    
+    // Glasklarer Glockenton (Glass Chime)
+    const patterns = {
+      glass: [{f:1760,t:'sine',d:0.4},{f:2637,t:'sine',d:0.4}],
+      chime: [{f:880,t:'sine',d:0.3},{f:1320,t:'sine',d:0.3}],
+      epic: [{f:440,t:'triangle',d:0.5},{f:554,t:'triangle',d:0.5},{f:659,t:'triangle',d:0.5}]
+    };
+    const notes = patterns[type] || patterns.glass;
+    let t = 0;
+    notes.forEach(n => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.frequency.value = n.f; o.type = n.t;
+      const st = audioCtx.currentTime + t;
+      g.gain.setValueAtTime(0.0001, st);
+      g.gain.exponentialRampToValueAtTime(0.2, st + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, st + n.d);
+      o.start(st); o.stop(st + n.d + 0.1);
+      t += 0.1;
+    });
+  } catch(e) {}
+}
+
+function showAppSplash(icon, name) {
+  const el = document.getElementById('app-splash');
+  el.querySelector('.splash-icon').textContent = icon;
+  el.querySelector('.splash-name').textContent = name;
+  el.classList.add('show');
+  playTone(localStorage.getItem('haldo_tone') || 'glass');
+  setTimeout(() => el.classList.remove('show'), 1500);
+}
 
 /* ================= APPS LISTE ================= */
 const CATEGORIES = [
@@ -325,307 +408,143 @@ const CATEGORIES = [
 ];
 const ALL_APPS = CATEGORIES.flatMap(c => c.apps);
 
-/* ================= INIT SIDEBAR & BOOT ================= */
-function initSidebar() {
-  const nav = document.getElementById('sidebar-nav');
-  nav.innerHTML = `
-    <button class="nav-btn active" data-view="home" onclick="showView('home')">
-      <span class="icon">🚀</span><span class="label">Startseite</span>
+/* ================= INIT MENU ================= */
+function initMenu() {
+  const content = document.querySelector('.sidebar-content');
+  content.innerHTML = `
+    <button class="nav-btn" onclick="closeApp()" style="color:var(--accent)">
+      <span class="icon">🏠</span> Hauptmenü
     </button>
-    <div class="nav-category">Apps</div>
-  `;
-  ALL_APPS.forEach(a => {
-    nav.innerHTML += `
-      <button class="nav-btn" data-view="${a.id}" onclick="showView('${a.id}')">
-        <span class="icon">${a.ico}</span><span class="label">${a.nm}</span>
-      </button>
-    `;
-  });
-  nav.innerHTML += `
     <div class="nav-category">System</div>
-    <button class="nav-btn" data-view="settings" onclick="showView('settings')">
-      <span class="icon">⚙️</span><span class="label">Einstellungen</span>
+    <button class="nav-btn" onclick="openApp('settings')">
+      <span class="icon">⚙️</span> Einstellungen
     </button>
   `;
+  CATEGORIES.forEach(cat => {
+    content.innerHTML += `<div class="nav-category">${cat.name}</div>`;
+    cat.apps.forEach(a => {
+      content.innerHTML += `
+        <button class="nav-btn" onclick="openApp('${a.id}')">
+          <span class="icon">${a.ico}</span> ${a.nm}
+        </button>
+      `;
+    });
+  });
 }
-initSidebar();
+initMenu();
 
-window.addEventListener('load', () => {
-  setTimeout(() => {
-    document.getElementById('welcome').style.display = 'flex';
-  }, 500);
+/* ================= LOGIK ================= */
+function enterApp() {
+  document.getElementById('welcome').style.display = 'none';
+  document.querySelector('.menu-btn').style.display = 'flex';
+}
+document.querySelector('.menu-btn').style.display = 'none';
+
+function toggleMenu(e) {
+  e.stopPropagation();
+  document.getElementById('main-sidebar').classList.toggle('show');
+}
+
+function closeApp() {
+  document.getElementById('app-content').classList.remove('show');
+  setTimeout(() => { document.getElementById('app-content').style.display = 'none'; }, 300);
+  document.getElementById('main-sidebar').classList.remove('show');
+}
+
+function openApp(id) {
+  const app = ALL_APPS.find(a => a.id === id) || (id === 'settings' ? {ico:'⚙️', nm:'Einstellungen', fn:viewSettings} : null);
+  if(!app) return;
+  
+  showAppSplash(app.ico, app.nm);
+  
+  const overlay = document.getElementById('app-content');
+  const title = document.getElementById('app-title');
+  const body = document.getElementById('app-body');
+  
+  title.innerHTML = `<span>${app.ico}</span> ${app.nm}`;
+  body.innerHTML = '';
+  overlay.style.display = 'flex';
+  // Kurze Verzögerung für die Animation
+  setTimeout(() => overlay.classList.add('show'), 50);
+  
+  document.getElementById('main-sidebar').classList.remove('show');
+  
+  // App-spezifische Logik rendern
+  if(id === 'anatomy') {
+    body.innerHTML = `
+      <div class="panel" style="background:rgba(6,182,212,.1);border-color:var(--accent)">
+        <h3>🦴 3D Anatomie</h3>
+        <p class="desc">Das 3D-Modell wird im Hintergrund bereits angezeigt. Du kannst es mit der Maus drehen und zoomen.</p>
+        <div class="btn-row"><button class="btn" onclick="resetCyborgCam()">🎯 Kamera zurücksetzen</button></div>
+      </div>
+    `;
+  } else {
+    app.fn(body);
+  }
+}
+
+function resetCyborgCam() {
+  if(A.current) {
+    const box = new THREE.Box3().setFromObject(A.current);
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fov = A.cam.fov * (Math.PI / 180);
+    let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
+    A.cam.position.set(0, size.y / 2, cameraZ);
+    A.ctrl.target.set(0, size.y / 2, 0);
+    A.ctrl.update();
+  }
+}
+
+/* ================= DRAG & DROP MENÜ ================= */
+let isDragging = false, dragStartX, dragStartY, menuStartX, menuStartY;
+const menu = document.getElementById('floating-menu');
+
+menu.addEventListener('mousedown', (e) => {
+  if(e.target.closest('.menu-btn') && e.button === 0) {
+    // Nur ziehen, wenn wir nicht auf den Button zum Öffnen klicken, sondern ihn bewegen
+  }
+  isDragging = true;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  const rect = menu.getBoundingClientRect();
+  menuStartX = rect.left;
+  menuStartY = rect.top;
 });
 
-function enterApp(){
-  document.getElementById('welcome').style.display = 'none';
-  document.getElementById('app').classList.add('active');
-  showView('home');
-  startClock();
-}
+window.addEventListener('mousemove', (e) => {
+  if(!isDragging) return;
+  const dx = e.clientX - dragStartX;
+  const dy = e.clientY - dragStartY;
+  menu.style.left = `${menuStartX + dx}px`;
+  menu.style.top = `${menuStartY + dy}px`;
+});
 
-function startClock(){
-  const c = document.getElementById('clock');
-  const tick = () => c.textContent = new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-  tick(); setInterval(tick, 1000);
-}
+window.addEventListener('mouseup', () => isDragging = false);
 
-function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('expanded'); }
-
-/* ================= NAVIGATION & HOME ================= */
-function showView(id){
-  if(id !== 'home' && id !== 'settings'){
-    const app = ALL_APPS.find(a => a.id === id);
-    if(app) showAppSplash(app.ico, app.nm);
-  }
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === id));
-  const title = id === 'home' ? 'HalDo AI OS' : id === 'settings' ? 'Einstellungen' : (ALL_APPS.find(a => a.id === id)?.nm || id);
-  document.getElementById('view-title').textContent = title;
-  const c = document.getElementById('content');
-  c.innerHTML = '';
-  
-  if(id === 'home') {
-    c.innerHTML = `<div class="panel" style="margin-bottom:24px;background:rgba(6,182,212,.05);border-color:rgba(6,182,212,.3)"><h3>Willkommen im HalDo AI OS</h3><p class="desc">Wähle eine App aus den Kategorien unten.</p></div>`;
-    CATEGORIES.forEach(cat => {
-      const div = document.createElement('div');
-      div.innerHTML = `<div class="category-header">${cat.name}</div><div class="app-grid"></div>`;
-      const grid = div.querySelector('.app-grid');
-      cat.apps.forEach(a => {
-        const card = document.createElement('div');
-        card.className = 'app-card';
-        card.innerHTML = `<div class="ico">${a.ico}</div><div class="nm">${a.nm}</div>`;
-        card.onclick = () => showView(a.id);
-        grid.appendChild(card);
-      });
-      c.appendChild(div);
-    });
-  } else if(id === 'settings') {
-    viewSettings(c);
-  } else {
-    const app = ALL_APPS.find(a => a.id === id);
-    if(app) app.fn(c);
-  }
-  c.scrollTop = 0;
-}
-
-/* ================= ANATOMY 3D ================= */
-let A = {scene:null, cam:null, ren:null, ctrl:null, loader:null, current:null, init:false};
-
-function viewAnatomy(c){
-  c.innerHTML = `
-    <div id="anatomy-wrap">
-      <div class="anatomy-toolbar">
-        <button class="load-folder-btn" onclick="pickBoneFolder()">📁 Knochen-Ordner wählen</button>
-        <button class="chip" onclick="loadFallbackAnatomy()">👨 Xbot Test</button>
-        <button class="chip" onclick="resetAnatomyCam()">🎯 Reset</button>
-      </div>
-      <div id="anatomy-status" class="show">Bereit. Bitte "Knochen-Ordner" klicken und Ordner (adult_male) auswählen.</div>
-    </div>
-    <input type="file" id="bones-picker" multiple webkitdirectory style="display:none">
-  `;
-  setTimeout(initAnatomyScene, 50);
-}
-
-function initAnatomyScene(){
-  const wrap = document.getElementById('anatomy-wrap');
-  if(!wrap || !window.THREE) return;
-  
-  if(A.init) {
-    // Wenn bereits initialisiert, setze Größe neu
-    const w2 = wrap.clientWidth, h2 = wrap.clientHeight;
-    wrap.appendChild(A.ren.domElement);
-    A.ren.setSize(w2, h2);
-    A.cam.aspect = w2/h2; A.cam.updateProjectionMatrix();
-    return;
-  }
-  
-  A.init = true;
-  const w = wrap.clientWidth, h = wrap.clientHeight;
-  A.scene = new THREE.Scene();
-  A.cam = new THREE.PerspectiveCamera(45, w/h, 0.1, 1000);
-  A.ren = new THREE.WebGLRenderer({antialias:true, alpha:true});
-  A.ren.setSize(w, h);
-  A.ren.setPixelRatio(window.devicePixelRatio);
-  A.ren.setClearColor(0x000000, 0);
-  wrap.appendChild(A.ren.domElement);
-  
-  A.ctrl = new THREE.OrbitControls(A.cam, A.ren.domElement);
-  A.ctrl.enableDamping = true;
-  
-  A.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-  const d1 = new THREE.DirectionalLight(0xffffff, 1.2); d1.position.set(5, 10, 7); A.scene.add(d1);
-  const d2 = new THREE.DirectionalLight(0x06b6d4, 0.8); d2.position.set(-5, -10, -7); A.scene.add(d2);
-  const grid = new THREE.GridHelper(10, 20, 0x1f2937, 0x111827);
-  A.scene.add(grid);
-  
-  A.loader = new THREE.GLTFLoader();
-  
-  (function loop(){ requestAnimationFrame(loop); A.ctrl.update(); A.ren.render(A.scene, A.cam); })();
-  
-  window.addEventListener('resize', () => {
-    const w2 = wrap.clientWidth, h2 = wrap.clientHeight;
-    if(A.cam && A.ren){ A.cam.aspect = w2/h2; A.cam.updateProjectionMatrix(); A.ren.setSize(w2, h2); }
-  });
-}
-
-function clearCurrent(){
-  if(A.current){
-    A.scene.remove(A.current);
-    A.current.traverse(o => { if(o.isMesh){ if(o.geometry) o.geometry.dispose(); if(o.material){ if(Array.isArray(o.material)) o.material.forEach(m=>m.dispose()); else o.material.dispose(); } } });
-    A.current = null;
-  }
-}
-
-// Passt die Kamera perfekt an das geladene Modell an
-function fitCameraToObject(object, offset = 1.5) {
-  const boundingBox = new THREE.Box3().setFromObject(object);
-  const size = boundingBox.getSize(new THREE.Vector3());
-  const center = boundingBox.getCenter(new THREE.Vector3());
-
-  // Modell auf den Boden setzen
-  object.position.x = -center.x;
-  object.position.y = -boundingBox.min.y;
-  object.position.z = -center.z;
-
-  const maxDim = Math.max(size.x, size.y, size.z);
-  const fov = A.cam.fov * (Math.PI / 180);
-  let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
-  cameraZ *= offset;
-
-  A.cam.position.set(0, size.y / 2, cameraZ);
-  A.ctrl.target.set(0, size.y / 2, 0);
-  A.ctrl.update();
-}
-
-function pickBoneFolder(){
-  const picker = document.getElementById('bones-picker');
-  picker.onchange = handleBoneFiles;
-  picker.click();
-}
-
-async function handleBoneFiles(e){
-  const files = Array.from(e.target.files).filter(f => f.name.toLowerCase().endsWith('.glb'));
-  if(!files.length){ alert('Keine GLB-Dateien im Ordner gefunden.'); return; }
-  const status = document.getElementById('anatomy-status');
-  status.classList.add('show');
-  status.textContent = `Lade ${files.length} Knochen … (Bitte warten)`;
-  clearCurrent();
-  
-  const group = new THREE.Group();
-  let ok = 0, fail = 0, processed = 0;
-  const BATCH = 10;
-  
-  for(let i = 0; i < files.length; i += BATCH){
-    const batch = files.slice(i, i + BATCH);
-    await Promise.all(batch.map(async f => {
-      const url = URL.createObjectURL(f);
-      try{
-        const gltf = await new Promise((res, rej) => A.loader.load(url, res, undefined, rej));
-        group.add(gltf.scene);
-        ok++;
-      }catch(err){ fail++; }
-      URL.revokeObjectURL(url);
-      processed++;
-    }));
-    status.textContent = `Lade Knochen … ${processed}/${files.length}`;
-  }
-  
-  A.scene.add(group);
-  A.current = group;
-  fitCameraToObject(group); // Kamera anpassen
-  
-  status.innerHTML = `✅ <b>${ok}</b> Knochen geladen${fail?`, <span style="color:#f59e0b">${fail} fehlgeschlagen</span>`:''}.`;
-}
-
-function loadFallbackAnatomy(){
-  const status = document.getElementById('anatomy-status');
-  status.classList.add('show');
-  status.textContent = 'Lade Fallback-Testmodell (Xbot)…';
-  clearCurrent();
-  A.loader.load('https://threejs.org/examples/models/gltf/Xbot.glb', (gltf) => {
-    const m = gltf.scene;
-    m.traverse(o => { if(o.isMesh && o.material) o.material.side = THREE.DoubleSide; });
-    A.scene.add(m); 
-    A.current = m;
-    fitCameraToObject(m); // Kamera anpassen
-    status.textContent = '✅ Fallback-Modell (Xbot) geladen.';
-  }, undefined, () => {
-    status.textContent = '❌ Fallback-Modell konnte nicht geladen werden.';
-  });
-}
-
-function resetAnatomyCam(){
-  if(A.current) fitCameraToObject(A.current);
-}
-
-/* ================= SPLASH & TÖNE ================= */
-let audioCtx = null;
-function playTone(type){
-  if(type === 'silent') return;
-  try{
-    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if(audioCtx.state === 'suspended') audioCtx.resume();
-    const patterns = {
-      chime: [{f:880,t:'sine'},{f:1320,t:'sine'}],
-      beep: [{f:1000,t:'square'}],
-      bell: [{f:660,t:'triangle'},{f:990,t:'triangle'},{f:1320,t:'triangle'}]
-    };
-    const notes = patterns[type] || patterns.chime;
-    let t = 0;
-    notes.forEach(n => {
-      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-      o.connect(g); g.connect(audioCtx.destination);
-      o.frequency.value = n.f; o.type = n.t;
-      const st = audioCtx.currentTime + t;
-      g.gain.setValueAtTime(0.0001, st); g.gain.exponentialRampToValueAtTime(0.14, st + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, st + 0.28);
-      o.start(st); o.stop(st + 0.32);
-      t += 0.14;
-    });
-  }catch(e){}
-}
-function showAppSplash(icon, name){
-  const el = document.getElementById('app-splash');
-  el.querySelector('.splash-icon').textContent = icon;
-  el.querySelector('.splash-name').textContent = name;
-  el.classList.add('show');
-  playTone(localStorage.getItem('haldo_tone') || 'chime');
-  setTimeout(() => el.classList.remove('show'), 1300);
-}
-
-/* ================= TTS ================= */
-function speak(text){
-  if(!('speechSynthesis' in window)) return alert('TTS nicht verfügbar.');
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'de-DE'; u.rate = parseFloat(localStorage.getItem('haldo_rate') || 1); u.pitch = 1.0;
-  speechSynthesis.speak(u);
-}
-function stopSpeak(){ if('speechSynthesis' in window) speechSynthesis.cancel(); }
-
-/* ================= APPS FUNKTIONEN ================= */
+/* ================= APP FUNKTIONEN ================= */
 function viewDashboard(c){
   const water = localStorage.getItem('haldo_water') || 0;
   c.innerHTML = `
-    <div class="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:20px">
-      <div class="panel"><div class="meta">Wasser heute</div><div style="font-size:28px;font-weight:700;color:var(--accent)">${water} Gläser</div>
-        <div class="btn-row"><button class="btn" onclick="addWater(1)">+ 1 Glas</button><button class="btn ghost" onclick="addWater(-1)">– 1</button></div>
+    <div class="panel"><h3>📊 Vitalwerte</h3>
+      <div class="list-item"><div class="title">Wasser heute</div><div class="meta">${water} Gläser</div>
+        <div class="btn-row"><button class="btn" onclick="addWater(1)">+ 1 Glas</button><button class="btn ghost" onclick="addWater(-1)">- 1</button></div>
       </div>
-      <div class="panel"><div class="meta">Schritte</div><div style="font-size:28px;font-weight:700;color:var(--accent)">0 / 8000</div></div>
-      <div class="panel"><div class="meta">Puls</div><div style="font-size:28px;font-weight:700;color:var(--accent)">– bpm</div></div>
+      <div class="list-item"><div class="title">Schritte</div><div class="meta">0 / 8000</div></div>
     </div>
-    <div class="panel"><h3>💡 Tages-Tipp</h3><p class="desc">Trinke morgens ein Glas Wasser – das unterstützt den Kreislauf.</p></div>
+    <div class="panel"><h3>💡 Tages-Tipp</h3><p class="desc">Trinke morgens ein Glas Wasser – das unterstützt den Kreislauf und die Konzentration.</p></div>
   `;
 }
-function addWater(d){ let w = Math.max(0, (parseInt(localStorage.getItem('haldo_water') || 0)) + d); localStorage.setItem('haldo_water', w); viewDashboard(document.getElementById('content')); }
+function addWater(d){ let w = Math.max(0, (parseInt(localStorage.getItem('haldo_water') || 0)) + d); localStorage.setItem('haldo_water', w); viewDashboard(document.getElementById('app-body')); }
 
 function viewAI(c){
   c.innerHTML = `
-    <div id="chat-log" style="display:flex;flex-direction:column;gap:12px;height:calc(100vh - 320px);overflow-y:auto;padding:16px;background:rgba(0,0,0,.3);border-radius:12px;margin-bottom:12px">
+    <div id="chat-log" style="display:flex;flex-direction:column;gap:12px;height:400px;overflow-y:auto;padding:16px;background:rgba(0,0,0,.3);border-radius:12px;margin-bottom:12px">
       <div class="list-item">Hallo Bruder 💙 Ich bin HalDo KI. Frag mich zu Symptomen, Krankheiten, Medikamenten oder Laborwerten.</div>
     </div>
-    <div class="search-bar">
+    <div style="display:flex;gap:10px">
       <input id="ai-input" placeholder="Deine Frage…" onkeydown="if(event.key==='Enter')aiSend()">
       <button class="btn" onclick="aiSend()">Senden</button>
-      <button class="btn ghost" onclick="stopSpeak()">🔇 Stop</button>
     </div>
   `;
 }
@@ -641,18 +560,25 @@ function aiSend(){
   }, 300);
 }
 
+function speak(text){
+  if(!('speechSynthesis' in window)) return alert('TTS nicht verfügbar.');
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'de-DE'; u.rate = 1.0; u.pitch = 1.0;
+  speechSynthesis.speak(u);
+}
+
 const DISEASES = [
   {n:'Grippe (Influenza)', icd:'J10', s:'Fieber, Husten, Gliederschmerzen', t:'Bettruhe, Flüssigkeit'},
   {n:'Hypertonie', icd:'I10', s:'Oft symptomlos, Kopfschmerz', t:'Bewegung, salzarm'},
   {n:'Diabetes Typ 2', icd:'E11', s:'Durst, häufiges Wasserlassen', t:'Ernährung, Metformin'}
 ];
 function viewDiseases(c){
-  c.innerHTML = `<div class="search-bar"><input id="dis-q" placeholder="Suchen…" oninput="filterDiseases()"></div><div id="dis-list"></div>`;
-  filterDiseases();
+  c.innerHTML = `<input placeholder="Suchen…" oninput="filterDiseases(this.value)" style="margin-bottom:16px"><div id="dis-list"></div>`;
+  filterDiseases('');
 }
-function filterDiseases(){
-  const q = (document.getElementById('dis-q')?.value || '').toLowerCase();
-  const list = DISEASES.filter(d => d.n.toLowerCase().includes(q) || d.icd.toLowerCase().includes(q));
+function filterDiseases(q){
+  const list = DISEASES.filter(d => d.n.toLowerCase().includes(q.toLowerCase()) || d.icd.toLowerCase().includes(q.toLowerCase()));
   document.getElementById('dis-list').innerHTML = list.map(d => `
     <div class="list-item" onclick="speak('${d.n}. ${d.s}')">
       <div class="title">${d.n} <span class="badge">${d.icd}</span></div>
@@ -665,12 +591,11 @@ const MEDS = [
   {n:'Ibuprofen', d:'400–600 mg', nw:'Magenschmerz', i:'NSAR'}
 ];
 function viewMeds(c){
-  c.innerHTML = `<div class="search-bar"><input id="med-q" placeholder="Suchen…" oninput="filterMeds()"></div><div id="med-list"></div>`;
-  filterMeds();
+  c.innerHTML = `<input placeholder="Suchen…" oninput="filterMeds(this.value)" style="margin-bottom:16px"><div id="med-list"></div>`;
+  filterMeds('');
 }
-function filterMeds(){
-  const q = (document.getElementById('med-q')?.value || '').toLowerCase();
-  const list = MEDS.filter(m => m.n.toLowerCase().includes(q));
+function filterMeds(q){
+  const list = MEDS.filter(m => m.n.toLowerCase().includes(q.toLowerCase()));
   document.getElementById('med-list').innerHTML = list.map(m => `
     <div class="list-item" onclick="speak('${m.n}. ${m.d}')">
       <div class="title">${m.n} <span class="badge">${m.i}</span></div>
@@ -684,12 +609,11 @@ const LABS = [
   {n:'CRP', ref:'< 5 mg/L'}
 ];
 function viewLabs(c){
-  c.innerHTML = `<div class="search-bar"><input id="lab-q" placeholder="Suchen…" oninput="filterLabs()"></div><div id="lab-list"></div>`;
-  filterLabs();
+  c.innerHTML = `<input placeholder="Suchen…" oninput="filterLabs(this.value)" style="margin-bottom:16px"><div id="lab-list"></div>`;
+  filterLabs('');
 }
-function filterLabs(){
-  const q = (document.getElementById('lab-q')?.value || '').toLowerCase();
-  const list = LABS.filter(l => l.n.toLowerCase().includes(q));
+function filterLabs(q){
+  const list = LABS.filter(l => l.n.toLowerCase().includes(q.toLowerCase()));
   document.getElementById('lab-list').innerHTML = list.map(l => `
     <div class="list-item" onclick="speak('${l.n}. ${l.ref}')">
       <div class="title">${l.n}</div>
@@ -703,28 +627,19 @@ function viewEmergency(c){
       <button class="emergency-btn" onclick="window.location.href='tel:112'">112</button>
       <p class="desc" style="margin-top:12px">Bei akuter Lebensgefahr: sofort anrufen.</p>
     </div>
-    <div class="panel"><h3>⏱️ Timer</h3>
-      <div class="btn-row"><button class="btn" onclick="startEmerg()">Start</button><button class="btn ghost" onclick="resetEmerg()">Reset</button></div>
-      <div style="font-size:32px;font-weight:700;color:var(--accent);margin-top:12px" id="emerg-clock">00:00</div>
-    </div>
   `;
 }
-let emergTimer = null, emergSec = 0;
-function startEmerg(){ if(emergTimer) return; emergTimer = setInterval(() => { emergSec++; document.getElementById('emerg-clock').textContent = fmtTime(emergSec); }, 1000); }
-function resetEmerg(){ clearInterval(emergTimer); emergTimer = null; emergSec = 0; document.getElementById('emerg-clock').textContent = '00:00'; }
-function fmtTime(s){ const m = Math.floor(s/60), ss = s%60; return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`; }
 
 function viewSettings(c){
-  const curTone = localStorage.getItem('haldo_tone') || 'chime';
+  const curTone = localStorage.getItem('haldo_tone') || 'glass';
   c.innerHTML = `
     <div class="panel"><h3>🔊 Ton</h3>
       <div class="settings-row">
         <div class="info"><div class="lbl">App-Start-Ton</div></div>
         <div class="ctrl"><select onchange="setTone(this.value)">
-          <option value="chime" ${curTone==='chime'?'selected':''}>🔔 Chime</option>
-          <option value="beep" ${curTone==='beep'?'selected':''}>📟 Beep</option>
-          <option value="bell" ${curTone==='bell'?'selected':''}>🛎️ Bell</option>
-          <option value="silent" ${curTone==='silent'?'selected':''}>🔇 Aus</option>
+          <option value="glass" ${curTone==='glass'?'selected':''}>🔔 Glass Chime</option>
+          <option value="chime" ${curTone==='chime'?'selected':''}>🎵 Chime</option>
+          <option value="epic" ${curTone==='epic'?'selected':''}>✨ Epic</option>
         </select></div>
       </div>
       <div class="settings-row">
@@ -757,7 +672,7 @@ function viewChat(c){ renderStub(c,'💬 Chat','Messenger.'); }
 function viewPhone(c){ renderStub(c,'📞 Phone','Anrufe.'); }
 function viewVideo(c){ renderStub(c,'📹 Video','Telefonie.'); }
 function viewMusic(c){ renderStub(c,'🎵 Musik','Studio.'); }
-function viewNotes(c){ c.innerHTML = `<div class="panel"><h3>📝 Notizen</h3><textarea id="notes-txt" style="height:60vh;background:rgba(0,0,0,.3);color:#fff;border:1px solid var(--border);padding:12px">${localStorage.getItem('haldo_notes')||''}</textarea><div class="btn-row"><button class="btn" onclick="localStorage.setItem('haldo_notes',document.getElementById('notes-txt').value);alert('Gespeichert.')">Speichern</button></div></div>`; }
+function viewNotes(c){ c.innerHTML = `<div class="panel"><h3>📝 Notizen</h3><textarea style="height:300px;background:rgba(0,0,0,.3);color:#fff;border:1px solid var(--border);padding:12px">${localStorage.getItem('haldo_notes')||''}</textarea><div class="btn-row"><button class="btn" onclick="localStorage.setItem('haldo_notes',this.previousElementSibling.value);alert('Gespeichert.')">Speichern</button></div></div>`; }
 function viewCalendar(c){ renderStub(c,'📅 Kalender','Termine.'); }
 function viewCalc(c){ c.innerHTML = `<div class="panel" style="max-width:360px"><h3>🧮 Rechner</h3><div class="calc-display" id="calc-d">0</div><div class="calc-grid"><button onclick="calcIn('C')">C</button><button onclick="calcIn('/')">÷</button><button onclick="calcIn('*')">×</button><button onclick="calcIn('-')">−</button><button onclick="calcIn('7')">7</button><button onclick="calcIn('8')">8</button><button onclick="calcIn('9')">9</button><button class="op" onclick="calcIn('+')">+</button><button onclick="calcIn('4')">4</button><button onclick="calcIn('5')">5</button><button onclick="calcIn('6')">6</button><button onclick="calcIn('1')">1</button><button onclick="calcIn('2')">2</button><button onclick="calcIn('3')">3</button><button onclick="calcIn('0')">0</button><button onclick="calcIn('.')">.</button><button class="eq" onclick="calcIn('=')">=</button></div></div>`; }
 let calcBuf = '';
@@ -773,13 +688,6 @@ function viewTranslator(c){ renderStub(c,'🌐 Übersetzer','Sprachen.'); }
 function viewPasswords(c){ renderStub(c,'🔐 Passwörter','Safe.'); }
 function viewContacts(c){ renderStub(c,'👥 Kontakte','Adressbuch.'); }
 function viewVoice(c){ renderStub(c,'🎙️ Sprachnotizen','Aufnahme.'); }
-
-document.addEventListener('DOMContentLoaded', () => {
-  const logo = document.getElementById('logo-img');
-  const img = new Image();
-  img.onload = () => { logo.innerHTML = `<img src="logo.png" alt="HalDo">`; };
-  img.src = 'logo.png';
-});
 </script>
 </body>
 </html>
