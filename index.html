@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>HalDo AI OS Pro Max</title>
+<style>
+:root{
+  --bg: #0a0e1a;
+  --bg2: rgba(17,24,39,.85);
+  --bg3: #1f2937;
+  --border: #374151;
+  --text: #f3f4f6;
+  --dim: #9ca3af;
+  --accent: #06b6d4;
+  --accent2: #3b82f6;
+  --gold: #fbbf24;
+  --success: #10b981;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --radius: 12px;
+  --font: 'Segoe UI',system-ui,sans-serif;
+  --font-size: 14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:#000;user-select:none;}
+body{font-family:var(--font);color:var(--text);font-size:var(--font-size);}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+input,textarea,select{font-family:inherit;background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;width:100%;outline:none;font-size:14px;}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+#cosmos-canvas{position:fixed;inset:0;z-index:0;pointer-events:auto;width:100%;height:100%;display:block;}
+#welcome{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9999;gap:20px;padding:40px;text-align:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(10px);transition:opacity 0.5s;}
+#welcome.hide{opacity:0;pointer-events:none;}
+#welcome .logo-img{width:110px;height:110px;object-fit:contain;filter:drop-shadow(0 0 30px rgba(6,182,212,.9));animation:floatLogo 3s ease-in-out infinite;}
+@keyframes floatLogo{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+#welcome h1{font-size:clamp(28px,5vw,56px);font-weight:900;letter-spacing:4px;background:linear-gradient(90deg,#fffbeb,#fde047,#f59e0b,#fbbf24);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 30px rgba(251,191,36,.8);}
+#welcome h2{font-size:clamp(14px,2vw,20px);color:#e5e7eb;font-weight:400;line-height:1.6;}
+#welcome .presented{font-size:12px;color:#9ca3af;letter-spacing:3px;text-transform:uppercase;}
+#welcome .presented b{color:#fbbf24;}
+#welcome .enter-btn{margin-top:20px;padding:16px 48px;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:30px;font-size:16px;font-weight:700;letter-spacing:2px;box-shadow:0 0 40px rgba(6,182,212,.6);transition:transform .2s;color:#fff;}
+#welcome .enter-btn:hover{transform:scale(1.05);}
+#taskbar{position:fixed;bottom:0;left:0;right:0;height:50px;background:rgba(17,24,39,.95);backdrop-filter:blur(15px);border-top:1px solid var(--border);display:none;align-items:center;padding:0 12px;gap:10px;z-index:9997;}
+#taskbar.show{display:flex;}
+.start-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));padding:10px 20px;border-radius:10px;font-weight:bold;display:flex;align-items:center;gap:8px;color:#fff;cursor:pointer;font-size:14px;box-shadow:0 0 15px rgba(6,182,212,.4);}
+.start-btn:hover{filter:brightness(1.15);}
+.taskbar-apps{flex:1;display:flex;gap:8px;overflow-x:auto;}
+.taskbar-app{background:rgba(55,65,81,.5);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;border:1px solid transparent;white-space:nowrap;}
+.taskbar-app:hover{border-color:var(--accent);background:rgba(31,41,55,.8);}
+#sys-clock{color:var(--dim);font-size:13px;font-weight:600;}
+#start-menu{position:fixed;bottom:60px;left:10px;width:720px;max-height:85vh;background:rgba(17,24,39,.98);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:12px;display:none;flex-direction:column;overflow:hidden;z-index:9998;box-shadow:0 -10px 40px rgba(0,0,0,.8);}
+#start-menu.show{display:flex;}
+.sm-drag-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-weight:bold;color:var(--accent);cursor:move;user-select:none;background:rgba(0,0,0,.2);}
+.sm-tabs{display:flex;gap:4px;padding:8px 8px 0;border-bottom:1px solid var(--border);}
+.sm-tab{flex:1;padding:10px;border-radius:8px 8px 0 0;font-size:13px;font-weight:600;color:var(--dim);background:transparent;border:none;cursor:pointer;}
+.sm-tab.active{color:var(--accent);background:rgba(6,182,212,.15);border-bottom:2px solid var(--accent);}
+.sm-panel{flex:1;overflow-y:auto;padding:12px;display:none;}
+.sm-panel.active{display:block;}
+.sm-search{padding:8px 10px 10px;}
+.sm-search input{background:rgba(0,0,0,.3);border:1px solid var(--border);padding:8px 12px;border-radius:6px;}
+.sm-apps{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;}
+.sm-app-card{display:flex;flex-direction:column;align-items:center;padding:10px 6px;border-radius:8px;cursor:pointer;transition:all .2s;border:1px solid transparent;background:rgba(55,65,81,.2);}
+.sm-app-card:hover{background:rgba(55,65,81,.6);border-color:var(--accent);transform:translateY(-2px);}
+.sm-app-card .ico{font-size:22px;margin-bottom:4px;pointer-events:none;}
+.sm-app-card .nm{font-size:9px;text-align:center;line-height:1.2;pointer-events:none;}
+.settings-layout{display:flex;height:100%;min-height:480px;}
+.settings-nav{width:190px;flex:none;padding:8px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:4px;overflow-y:auto;background:rgba(0,0,0,.3);}
+.settings-nav-item{text-align:left;padding:9px 10px;font-size:12px;border-radius:6px;color:#a0c8e0;cursor:pointer;background:transparent;border:1px solid transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.settings-nav-item:hover{background:rgba(55,65,81,.5);color:#fff;}
+.settings-nav-item.active{background:rgba(6,182,212,.2);border-color:var(--accent);color:#fff;}
+.settings-content{flex:1;padding:16px;overflow-y:auto;}
+.settings-content h3{color:var(--accent);font-size:15px;margin-bottom:12px;}
+.settings-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(55,65,81,.5);gap:12px;}
+.settings-row:last-child{border:none;}
+.settings-row .lbl{font-size:13px;font-weight:600;}
+.settings-row .sub{font-size:11px;color:var(--dim);margin-top:2px;}
+.settings-row .ctrl{flex-shrink:0;min-width:160px;max-width:280px;}
+.settings-row .ctrl button{padding:6px 14px;background:var(--accent);color:#fff;border-radius:6px;font-size:12px;font-weight:600;}
+.toggle{position:relative;width:44px;height:24px;background:rgba(55,65,81,.8);border-radius:12px;cursor:pointer;transition:background .2s;display:inline-block;}
+.toggle.on{background:var(--accent);}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform .2s;}
+.toggle.on::after{transform:translateX(20px);}
+.window{position:fixed;background:rgba(10,14,26,.96);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;overflow:hidden;z-index:10;box-shadow:0 20px 50px rgba(0,0,0,.7);min-width:380px;min-height:280px;}
+.window.minimized{display:none;}
+.window-header{padding:12px 16px;background:rgba(0,0,0,0.5);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:move;user-select:none;}
+.window-title{font-weight:600;color:var(--accent);display:flex;align-items:center;gap:10px;font-size:13px;}
+.window-controls{display:flex;gap:6px;}
+.win-btn{width:28px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);transition:background .2s;font-size:14px;}
+.win-btn:hover{background:rgba(255,255,255,.2);}
+.win-btn.close:hover{background:var(--danger);}
+.window-body{flex:1;overflow:hidden;display:flex;}
+#app-splash{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:20px;background:radial-gradient(circle at 50% 50%,rgba(6,182,212,.2) 0%,rgba(5,8,16,.98) 75%);backdrop-filter:blur(10px);}
+#app-splash.show{display:flex;animation:splashIn .3s;}
+.splash-icon{font-size:110px;filter:drop-shadow(0 0 40px #06b6d4);animation:starGlow 1.2s ease-out;}
+.splash-name{font-size:32px;font-weight:800;background:linear-gradient(90deg,#fde047,#f59e0b);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.splash-presented{font-size:12px;color:var(--dim);letter-spacing:4px;text-transform:uppercase;}
+.splash-presented b{color:#fbbf24;}
+@keyframes splashIn{from{opacity:0;}to{opacity:1;}}
+@keyframes starGlow{0%{transform:scale(0) rotate(0deg);}50%{transform:scale(1.2) rotate(180deg);}100%{transform:scale(1) rotate(360deg);}}
+.app-sidebar{width:170px;flex:none;padding:10px 8px;background:rgba(0,10,20,.6);border-right:1px solid rgba(55,65,81,.5);display:flex;flex-direction:column;gap:4px;overflow-y:auto;}
+.side-btn{text-align:left;padding:9px 12px;font-size:12px;background:transparent;border:1px solid transparent;color:#a0c8e0;cursor:pointer;border-radius:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.side-btn:hover{background:rgba(55,65,81,.5);color:#fff;}
+.side-btn.active{background:rgba(6,182,212,.2);border-color:var(--accent);color:#fff;}
+.side-btn.speak-btn{margin-top:auto;color:var(--accent);}
+.app-content{flex:1;padding:18px;overflow-y:auto;min-width:0;}
+.app-content h3{margin-bottom:12px;color:var(--accent);font-size:16px;}
+.app-content input,.app-content select,.app-content textarea{margin-bottom:8px;}
+.app-content button{padding:9px 16px;margin:4px 4px 4px 0;background:var(--accent);border:1px solid var(--accent);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;}
+.app-content button:hover{background:var(--accent2);}
+.app-content button.danger{background:var(--danger);border-color:var(--danger);}
+.app-content button.ghost{background:transparent;color:var(--text);border-color:var(--border);}
+.list-row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(55,65,81,.3);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;margin-bottom:6px;}
+.list-row:hover{background:rgba(55,65,81,.6);border-color:var(--accent);}
+.list-row .meta{color:var(--dim);font-size:11px;margin-left:auto;}
+.muted{color:var(--dim);}
+.qt-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.qt-panel{background:rgba(31,41,55,.5);padding:14px;border-radius:10px;border:1px solid var(--border);}
+.qt-panel h4{margin-bottom:8px;font-size:12px;color:var(--accent);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-size:11px;margin-top:10px;}
+.cal-cell{min-height:56px;padding:3px;background:rgba(55,65,81,.4);border:1px solid var(--border);border-radius:4px;cursor:pointer;}
+.cal-cell:hover{background:rgba(55,65,81,.8);}
+.cal-cell .day{color:var(--accent);font-weight:700;font-size:10px;}
+.cal-cell.today{border-color:var(--accent);box-shadow:0 0 6px rgba(6,182,212,.4);}
+.cal-head{color:var(--accent);text-align:center;padding:3px;font-weight:700;font-size:10px;}
+.chat-box{display:flex;flex-direction:column;height:100%;}
+.chat-log{flex:1;overflow-y:auto;padding:10px;background:rgba(0,0,0,.3);border-radius:10px;border:1px solid var(--border);margin-bottom:10px;display:flex;flex-direction:column;gap:8px;}
+.msg{padding:8px 12px;border-radius:10px;font-size:13px;max-width:85%;line-height:1.5;}
+.msg.user{align-self:flex-end;background:var(--accent);color:#fff;}
+.msg.ai{align-self:flex-start;background:rgba(31,41,55,.9);border:1px solid var(--border);}
+.chat-input{display:flex;gap:8px;}
+.chat-input input{flex:1;margin:0;}
+.chat-input button{margin:0;}
+.anatomy-wrap{width:100%;height:calc(100% - 5px);min-height:380px;border:1px solid var(--border);border-radius:10px;overflow:hidden;position:relative;background:#001122;}
+.layer-toggles{position:absolute;top:10px;left:10px;z-index:2;display:flex;gap:10px;font-size:11px;background:rgba(0,20,40,.8);padding:6px 10px;border:1px solid var(--accent);border-radius:6px;}
+.layer-toggles label{display:flex;align-items:center;gap:4px;cursor:pointer;color:#b8e6ff;}
+.layer-toggles input{width:auto;margin:0;}
+.cyborg-chat{display:flex;flex:1;height:100%;}
+.cyborg-3d{width:40%;min-width:280px;background:radial-gradient(circle at center,#0a2a3a 0%,#000 100%);position:relative;border-right:1px solid var(--border);}
+.cyborg-3d canvas{display:block;width:100%;height:100%;}
+.cyborg-chat-log{flex:1;padding:14px;display:flex;flex-direction:column;}
+.cyborg-status{text-align:center;font-size:11px;color:var(--accent);padding:6px;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid var(--border);}
+#click-hint{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(6,182,212,.9);color:#fff;padding:8px 20px;border-radius:20px;font-size:12px;z-index:99;animation:pulse 2s infinite;pointer-events:none;transition:opacity .5s;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(6,182,212,.7);}50%{box-shadow:0 0 0 15px rgba(6,182,212,0);}}
+.q-badge{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;background:rgba(6,182,212,.3);color:#a0f0ff;}
+
+/* TACHO */
+.tacho-wrap{display:flex;flex-direction:column;align-items:center;gap:20px;padding:20px;}
+.tacho{position:relative;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle at center,#1a1a2e 0%,#0a0a15 100%);border:4px solid var(--accent);box-shadow:0 0 40px rgba(6,182,212,.5),inset 0 0 30px rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;}
+.tacho-needle{position:absolute;width:4px;height:130px;background:linear-gradient(to top,#ef4444,transparent);top:30px;left:50%;transform-origin:bottom center;transform:translateX(-50%) rotate(0deg);transition:transform 0.1s;z-index:2;border-radius:2px;}
+.tacho-center{position:absolute;top:50%;left:50%;width:24px;height:24px;background:var(--accent);border-radius:50%;transform:translate(-50%,-50%);z-index:3;box-shadow:0 0 15px var(--accent);}
+.tacho-inner{position:absolute;bottom:80px;display:flex;flex-direction:column;align-items:center;z-index:1;}
+.tacho-speed{font-size:48px;font-weight:900;color:#fff;text-shadow:0 0 10px var(--accent);}
+.tacho-unit{font-size:12px;color:var(--dim);letter-spacing:2px;}
+.tacho-settings-btn{position:absolute;bottom:10px;background:rgba(6,182,212,.2);border:1px solid var(--accent);color:var(--accent);width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;z-index:3;}
+.tacho-settings-btn:hover{background:rgba(6,182,212,.4);}
+.tacho-marks{position:absolute;inset:0;border-radius:50%;pointer-events:none;}
+.tacho-marks span{position:absolute;font-size:10px;color:var(--dim);}
+.tacho-warning{animation:tacho-warn 0.5s infinite alternate;}
+@keyframes tacho-warn{from{box-shadow:0 0 0 0 rgba(239,68,68,.5);}to{box-shadow:0 0 60px 20px rgba(239,68,68,.7);}}
+
+/* KI BUBBLE */
+.ki-bubble{background:linear-gradient(135deg,rgba(6,182,212,.15),rgba(59,130,246,.15));border:1px solid var(--accent);border-radius:16px;padding:14px 18px;max-width:100%;display:flex;gap:12px;align-items:flex-start;animation:kiPulse 2s infinite;}
+@keyframes kiPulse{0%,100%{box-shadow:0 0 20px rgba(6,182,212,.3);}50%{box-shadow:0 0 35px rgba(6,182,212,.6);}}
+.ki-avatar{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle,#06b6d4,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;animation:kiBob 3s ease-in-out infinite;}
+@keyframes kiBob{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+.ki-text{font-size:14px;line-height:1.5;color:#fff;}
+.ki-text strong{color:var(--accent);}
+
+/* GEFAHREN-LOG */
+.danger-log{max-height:240px;overflow-y:auto;background:rgba(0,0,0,.4);border-radius:10px;border:1px solid var(--border);padding:10px;margin-top:12px;}
+.danger-entry{display:flex;gap:8px;padding:8px;border-bottom:1px solid rgba(55,65,81,.3);font-size:12px;align-items:center;}
+.danger-entry:last-child{border-bottom:none;}
+.danger-entry .icon{font-size:20px;flex-shrink:0;}
+.danger-entry .info{flex:1;}
+.danger-entry .time{color:var(--dim);font-size:10px;}
+
+/* SPEED LIMITS */
+.speed-limits{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:8px;margin-top:12px;width:100%;}
+.speed-btn{background:rgba(55,65,81,.6);border:2px solid var(--border);color:#fff;border-radius:8px;padding:10px 4px;cursor:pointer;text-align:center;font-size:13px;font-weight:700;}
+.speed-btn:hover{border-color:var(--accent);background:rgba(6,182,212,.2);}
+.speed-btn.active{border-color:var(--accent);background:rgba(6,182,212,.3);box-shadow:0 0 12px rgba(6,182,212,.5);}
+.speed-btn small{display:block;font-size:9px;color:var(--dim);font-weight:400;margin-top:2px;}
+
+/* KLASSEN */
+.klassen-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:10px;margin-top:12px;}
+.klasse-btn{background:rgba(55,65,81,.5);border:2px solid var(--border);border-radius:10px;padding:14px 8px;cursor:pointer;text-align:center;transition:all .2s;}
+.klasse-btn:hover{border-color:var(--accent);transform:translateY(-2px);}
+.klasse-btn.active{border-color:var(--accent);background:rgba(6,182,212,.25);box-shadow:0 0 15px rgba(6,182,212,.4);}
+.klasse-btn .kl-ico{font-size:26px;margin-bottom:4px;}
+.klasse-btn .kl-code{font-size:18px;font-weight:900;color:var(--accent);}
+.klasse-btn .kl-desc{font-size:10px;color:var(--dim);margin-top:2px;}
+
+/* SIMULATOR */
+.simulator{background:radial-gradient(circle at center,#0a2a3a,#000);border-radius:12px;padding:20px;text-align:center;margin-top:12px;}
+.sim-question{font-size:18px;margin:16px 0;line-height:1.5;color:#fff;}
+.sim-answers{display:flex;flex-direction:column;gap:10px;max-width:500px;margin:0 auto;}
+.sim-answer{background:rgba(55,65,81,.6);border:2px solid var(--border);color:#fff;padding:14px 18px;border-radius:10px;text-align:left;font-size:14px;cursor:pointer;transition:all .2s;}
+.sim-answer:hover{border-color:var(--accent);background:rgba(6,182,212,.15);}
+.sim-answer.correct{border-color:#10b981;background:rgba(16,185,129,.25);}
+.sim-answer.wrong{border-color:#ef4444;background:rgba(239,68,68,.25);}
+
+/* NAVIGATION HOLOGRAMM */
+.holo-map{position:relative;width:100%;height:400px;background:radial-gradient(circle at center,#0a1a2e,#000);border-radius:12px;overflow:hidden;border:1px solid var(--accent);}
+.holo-arrow{position:absolute;font-size:60px;color:var(--gold);text-shadow:0 0 20px var(--gold),0 0 40px var(--gold);animation:holoPulse 1.5s infinite;pointer-events:none;}
+@keyframes holoPulse{0%,100%{opacity:0.8;transform:scale(1);}50%{opacity:1;transform:scale(1.1);}}
+.holo-text{position:absolute;color:var(--gold);font-size:20px;font-weight:900;text-shadow:0 0 10px var(--gold);letter-spacing:2px;animation:holoText 2s infinite;}
+@keyframes holoText{0%,100%{opacity:0.7;}50%{opacity:1;}}
+</style>
+</head>
+<body>
+<canvas id="cosmos-canvas"></canvas>
+<div id="welcome">
+  <img src="logo.png" class="logo-img" alt="Logo" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+  <div style="font-size:80px;display:none;filter:drop-shadow(0 0 30px #06b6d4)">🤖</div>
+  <h1>HALDO AI OS PRO MAX</h1>
+  <h2>Willkommen zurück, Bruder 💙<br>Dein Universum aus Medizin, Alltag und Intelligenz.</h2>
+  <div class="presented">Präsentiert von <b>Halil Donma</b></div>
+  <button class="enter-btn" onclick="enterApp()">JETZT STARTEN →</button>
+</div>
+<div id="app-splash"><div class="splash-icon" id="splash-icon">🤖</div><div class="splash-name" id="splash-name">HalDo AI OS</div><div class="splash-presented">Präsentiert von <b>Halil Donma</b></div></div>
+<div id="taskbar">
+  <div class="start-btn" onclick="toggleStartMenu(event)"><span>⊞</span> <span>Start</span></div>
+  <div class="taskbar-apps" id="taskbar-apps"></div>
+  <div id="sys-clock">--:--</div>
+</div>
+<div id="start-menu">
+  <div class="sm-drag-header" id="sm-drag-handle"><span>🚀 HalDo AI OS Pro Max</span><span style="font-size:11px;color:var(--dim)">≡ ziehen</span></div>
+  <div class="sm-tabs">
+    <button class="sm-tab active" data-tab="apps">📱 Apps</button>
+    <button class="sm-tab" data-tab="settings">⚙️ Einstellungen</button>
+  </div>
+  <div class="sm-panel active" id="sm-panel-apps">
+    <div class="sm-search"><input type="text" id="sm-search-input" placeholder="Apps durchsuchen…" oninput="filterStartMenu(this.value)"></div>
+    <div class="sm-apps" id="sm-apps"></div>
+  </div>
+  <div class="sm-panel" id="sm-panel-settings">
+    <div class="settings-layout"><div class="settings-nav" id="settings-nav"></div><div class="settings-content" id="settings-content"></div></div>
+  </div>
+</div>
+<div id="click-hint">👆 Klicke auf die Erde, um mit HalDo AI zu sprechen</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+/* ==================== i18n ==================== */
+const I18N={
+  de:{start:'Start',create:'Erstellen',edit:'Bearbeiten',select:'Auswählen',settings:'Einstellungen',delete:'Löschen',save:'Speichern',speak:'Vorlesen',add:'Hinzufügen',search:'Suchen',noEntries:'Keine Einträge',total:'Gesamt',confirm:'Wirklich löschen?',send:'Senden'},
+  en:{start:'Start',create:'Create',edit:'Edit',select:'Select',settings:'Settings',delete:'Delete',save:'Save',speak:'Speak',add:'Add',search:'Search',noEntries:'No entries',total:'Total',confirm:'Really delete?',send:'Send'},
+  ku:{start:'Destpêk',create:'Çêkirin',edit:'Sererast',select:'Hilbijartin',settings:'Mîheng',delete:'Jêbirin',save:'Tomar',speak:'Xwendin',add:'Zêde',search:'Lêgerîn',noEntries:'Tu tişt tune',total:'Giştî',confirm:'Jê bibe?',send:'Bipeşîne'},
+  ez:{start:'Destpêk',create:'Çêkirin',edit:'Sererast',select:'Hilbijartin',settings:'Sazkarî',delete:'Jêbirin',save:'Tomar',speak:'Xwendin',add:'Zêde',search:'Lêgerîn',noEntries:'Tu tişt tune',total:'Hemû',confirm:'Jê bibe?',send:'Bipeşîne'},
+  ar:{start:'ابدأ',create:'إنشاء',edit:'تعديل',select:'اختيار',settings:'إعدادات',delete:'حذف',save:'حفظ',speak:'نطق',add:'إضافة',search:'بحث',noEntries:'لا شيء',total:'المجموع',confirm:'حذف؟',send:'إرسال'},
+  fa:{start:'شروع',create:'ایجاد',edit:'ویرایش',select:'انتخاب',settings:'تنظیمات',delete:'حذف',save:'ذخیره',speak:'خواندن',add:'افزودن',search:'جستجو',noEntries:'موردی نیست',total:'مجموع',confirm:'حذف؟',send:'ارسال'},
+  he:{start:'התחל',create:'צור',edit:'ערוך',select:'בחר',settings:'הגדרות',delete:'מחק',save:'שמור',speak:'הקרא',add:'הוסף',search:'חפש',noEntries:'אין',total:'סה"כ',confirm:'למחוק?',send:'שלח'},
+  tr:{start:'Başlat',create:'Oluştur',edit:'Düzenle',select:'Seç',settings:'Ayarlar',delete:'Sil',save:'Kaydet',speak:'Oku',add:'Ekle',search:'Ara',noEntries:'Kayıt yok',total:'Toplam',confirm:'Silinsin mi?',send:'Gönder'},
+  zh:{start:'开始',create:'创建',edit:'编辑',select:'选择',settings:'设置',delete:'删除',save:'保存',speak:'朗读',add:'添加',search:'搜索',noEntries:'无条目',total:'总计',confirm:'删除？',send:'发送'},
+  ja:{start:'開始',create:'作成',edit:'編集',select:'選択',settings:'設定',delete:'削除',save:'保存',speak:'読み上げ',add:'追加',search:'検索',noEntries:'なし',total:'合計',confirm:'削除？',send:'送信'},
+  uz:{start:'Boshlash',create:'Yaratish',edit:'Tahrirlash',select:'Tanlash',settings:'Sozlamalar',delete:"O'chirish",save:'Saqlash',speak:"O'qish",add:"Qo'shish",search:'Qidirish',noEntries:"Yo'q",total:'Jami',confirm:"O'chirilsinmi?",send:'Yuborish'},
+  ru:{start:'Старт',create:'Создать',edit:'Изменить',select:'Выбрать',settings:'Настройки',delete:'Удалить',save:'Сохранить',speak:'Читать',add:'Добавить',search:'Поиск',noEntries:'Нет',total:'Всего',confirm:'Удалить?',send:'Отправить'},
+  fr:{start:'Démarrer',create:'Créer',edit:'Modifier',select:'Sélectionner',settings:'Paramètres',delete:'Supprimer',save:'Enregistrer',speak:'Lire',add:'Ajouter',search:'Rechercher',noEntries:'Aucune',total:'Total',confirm:'Supprimer ?',send:'Envoyer'},
+  es:{start:'Inicio',create:'Crear',edit:'Editar',select:'Seleccionar',settings:'Ajustes',delete:'Eliminar',save:'Guardar',speak:'Leer',add:'Añadir',search:'Buscar',noEntries:'Ninguna',total:'Total',confirm:'¿Eliminar?',send:'Enviar'},
+  it:{start:'Avvia',create:'Crea',edit:'Modifica',select:'Seleziona',settings:'Impostazioni',delete:'Elimina',save:'Salva',speak:'Leggi',add:'Aggiungi',search:'Cerca',noEntries:'Nessuna',total:'Totale',confirm:'Eliminare?',send:'Invia'},
+  hi:{start:'शुरू',create:'बनाएं',edit:'संपादित',select:'चुनें',settings:'सेटिंग्स',delete:'हटाएं',save:'सहेजें',speak:'पढ़ें',add:'जोड़ें',search:'खोज',noEntries:'नहीं',total:'कुल',confirm:'हटाएं?',send:'भेजें'},
+  pt:{start:'Iniciar',create:'Criar',edit:'Editar',select:'Selecionar',settings:'Configurações',delete:'Excluir',save:'Salvar',speak:'Falar',add:'Adicionar',search:'Buscar',noEntries:'Nenhuma',total:'Total',confirm:'Excluir?',send:'Enviar'},
+  ko:{start:'시작',create:'생성',edit:'편집',select:'선택',settings:'설정',delete:'삭제',save:'저장',speak:'읽기',add:'추가',search:'검색',noEntries:'없음',total:'합계',confirm:'삭제?',send:'전송'},
+  ckb:{start:'دەستپێک',create:'دروستکردن',edit:'دەستکاری',select:'هەڵبژاردن',settings:'ڕێکخستن',delete:'سڕینەوە',save:'پاشەکەوت',speak:'خوێندنەوە',add:'زیادکردن',search:'گەڕان',noEntries:'نییە',total:'کۆی گشتی',confirm:'بسڕێتەوە؟',send:'ناردن'},
+  la:{start:'Incipe',create:'Creare',edit:'Mutare',select:'Eligere',settings:'Optiones',delete:'Delere',save:'Servare',speak:'Legere',add:'Addere',search:'Quaerere',noEntries:'Nullae',total:'Summa',confirm:'Delere?',send:'Mittere'}
+};
+const LANGCODES={de:'de-DE',en:'en-US',ku:'tr-TR',ez:'tr-TR',ar:'ar-SA',fa:'fa-IR',he:'he-IL',tr:'tr-TR',zh:'zh-CN',ja:'ja-JP',uz:'uz-UZ',ru:'ru-RU',fr:'fr-FR',es:'es-ES',it:'it-IT',hi:'hi-IN',pt:'pt-BR',ko:'ko-KR',ckb:'ar-IQ',la:'it-IT'};
+const LANGNAMES={de:'🇩🇪 Deutsch',en:'🇬🇧 English',ku:'☀️ Kurdî',ez:'🦚 Êzîdî',ar:'🇸🇦 العربية',fa:'🇮🇷 فارسی',he:'🇮🇱 עברית',tr:'🇹🇷 Türkçe',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',uz:'🇺🇿 Oʻzbek',ru:'🇷🇺 Русский',fr:'🇫🇷 Français',es:'🇪🇸 Español',it:'🇮🇹 Italiano',hi:'🇮🇳 हिन्दी',pt:'🇵🇹 Português',ko:'🇰🇷 한국어',ckb:'🌙 Soranî',la:'🏛️ Latina'};
+let currentLang=localStorage.getItem('haldo_lang')||'de';
+const T=k=>(I18N[currentLang]&&I18N[currentLang][k])||I18N.de[k]||k;
+const store=(k,d)=>{try{const v=localStorage.getItem('haldo_'+k);return v?JSON.parse(v):d;}catch(e){return d;}};
+const save=(k,v)=>localStorage.setItem('haldo_'+k,JSON.stringify(v));
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ==================== TTS ==================== */
+function speak(text, voiceType='default', langCode=null){
+  if(!('speechSynthesis'in window))return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(String(text));
+  u.lang = langCode || LANGCODES[currentLang] || 'de-DE';
+  u.rate=parseFloat(localStorage.getItem('haldo_voice_rate')||1);
+  u.pitch=parseFloat(localStorage.getItem('haldo_voice_pitch')||1);
+  const voices = speechSynthesis.getVoices();
+  let sv = null;
+  if(voiceType==='male') sv = voices.find(v=>/male|mann|hans|stefan|david|mark/i.test(v.name));
+  else if(voiceType==='female') sv = voices.find(v=>/female|frau|anna|marlene|zira|samantha/i.test(v.name));
+  else if(voiceType==='robot') { u.rate=0.7; u.pitch=0.5; sv=voices.find(v=>/robot|machine/i.test(v.name)); }
+  else if(voiceType==='child') { u.pitch=1.8; sv=voices.find(v=>/child|kind|junior/i.test(v.name)); }
+  else if(voiceType==='old') { u.rate=0.8; u.pitch=0.8; sv=voices.find(v=>/old|senior/i.test(v.name)); }
+  if(sv) u.voice = sv;
+  u.onstart=()=>{if(cyborgState)cyborgState.speaking=true;};
+  u.onend=()=>{if(cyborgState)cyborgState.speaking=false;};
+  speechSynthesis.speak(u);
+}
+
+/* ==================== SOUNDS ==================== */
+function playGlassSound(){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const osc=ctx.createOscillator();const g=ctx.createGain();
+    osc.type='sine';
+    osc.frequency.setValueAtTime(1200,ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1800,ctx.currentTime+0.1);
+    g.gain.setValueAtTime(0.3,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+1.5);
+    osc.connect(g);g.connect(ctx.destination);
+    osc.start();osc.stop(ctx.currentTime+1.5);
+  }catch(e){console.warn('Audio:',e);}
+}
+
+function playAlarm(type='beep',duration=3){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const master=ctx.createGain();
+    master.gain.value=0.3;
+    master.connect(ctx.destination);
+    const now=ctx.currentTime;
+    const stopAt=now+duration;
+    
+    function pulse(freq,wave,count,vol=0.2){
+      const osc=ctx.createOscillator();const g=ctx.createGain();
+      osc.type=wave;osc.frequency.value=freq;
+      osc.connect(g);g.connect(master);
+      const interval=duration/count;
+      for(let i=0;i<count;i++){
+        g.gain.setValueAtTime(vol,now+i*interval);
+        g.gain.exponentialRampToValueAtTime(0.001,now+i*interval+interval*0.7);
+      }
+      osc.start(now);osc.stop(stopAt);
+    }
+
+    switch(type){
+      case 'siren':
+        const osc1=ctx.createOscillator();osc1.type='sawtooth';
+        const lfo=ctx.createOscillator();lfo.frequency.value=2;
+        const lfoGain=ctx.createGain();lfoGain.gain.value=300;
+        lfo.connect(lfoGain);lfoGain.connect(osc1.frequency);
+        osc1.frequency.value=800;
+        const g1=ctx.createGain();g1.gain.value=0.25;
+        osc1.connect(g1);g1.connect(master);
+        osc1.start(now);osc1.stop(stopAt);
+        lfo.start(now);lfo.stop(stopAt);
+        break;
+      case 'bell':
+        [523,659,784,1047].forEach((f,i)=>{
+          const o=ctx.createOscillator();const gg=ctx.createGain();
+          o.type='sine';o.frequency.value=f;
+          gg.gain.setValueAtTime(0.15,now+i*0.1);
+          gg.gain.exponentialRampToValueAtTime(0.001,stopAt);
+          o.connect(gg);gg.connect(master);
+          o.start(now+i*0.1);o.stop(stopAt);
+        });
+        break;
+      case 'beep':
+        pulse(880,'square',Math.min(duration*3,15),0.25);
+        break;
+      case 'danger':
+        pulse(440,'sawtooth',Math.min(duration*3,15),0.3);
+        break;
+      case 'radar':
+        for(let i=0;i<Math.min(duration*4,20);i++){
+          const o=ctx.createOscillator();const gg=ctx.createGain();
+          o.type='sine';o.frequency.value=1500;
+          gg.gain.setValueAtTime(0.1,now+i*0.25);
+          gg.gain.exponentialRampToValueAtTime(0.001,now+i*0.25+0.1);
+          o.connect(gg);gg.connect(master);
+          o.start(now+i*0.25);o.stop(now+i*0.25+0.15);
+        }
+        break;
+      default:
+        pulse(440,'sine',Math.min(duration*2,10),0.2);
+    }
+  }catch(e){console.warn('Alarm:',e);}
+}
+
+/* ==================== KOSMOS ==================== */
+let cosmosState={scene:null,camera:null,renderer:null,raycaster:null,mouse:null,sun:null,earth:null,moon:null,planets:{},orbits:[],config:JSON.parse(localStorage.getItem('haldo_kosmos')||'{"sun":true,"mercury":true,"venus":true,"earth":true,"moon":true,"mars":true,"jupiter":true,"saturn":true,"neptune":true,"orbits":true,"speed":1,"brightness":1}')};
+
+function makeSunTexture(){const c=document.createElement('canvas');c.width=1024;c.height=512;const ctx=c.getContext('2d');const g=ctx.createLinearGradient(0,0,0,512);g.addColorStop(0,'#ffaa00');g.addColorStop(0.5,'#ffdd00');g.addColorStop(1,'#ffaa00');ctx.fillStyle=g;ctx.fillRect(0,0,1024,512);for(let i=0;i<15000;i++){const x=Math.random()*1024,y=Math.random()*512,r=Math.random()*6+1;const b=Math.random();if(b>0.7)ctx.fillStyle='rgba(255,255,220,'+(0.3+Math.random()*0.4)+')';else if(b>0.4)ctx.fillStyle='rgba(255,200,60,'+(0.25+Math.random()*0.35)+')';else ctx.fillStyle='rgba(220,80,10,'+(0.15+Math.random()*0.25)+')';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}return new THREE.CanvasTexture(c);}
+function makeGlowSprite(size,color){const c=document.createElement('canvas');c.width=c.height=256;const ctx=c.getContext('2d');const g=ctx.createRadialGradient(128,128,0,128,128,128);g.addColorStop(0,color);g.addColorStop(0.3,color.replace(/[\d.]+\)$/,'0.6)'));g.addColorStop(0.6,color.replace(/[\d.]+\)$/,'0.2)'));g.addColorStop(1,color.replace(/[\d.]+\)$/,'0)'));ctx.fillStyle=g;ctx.fillRect(0,0,256,256);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));s.scale.set(size,size,1);return s;}
+function makePlanetTexture(baseColor){const c=document.createElement('canvas');c.width=512;c.height=256;const ctx=c.getContext('2d');ctx.fillStyle=baseColor;ctx.fillRect(0,0,512,256);for(let i=0;i<3000;i++){const x=Math.random()*512,y=Math.random()*256,r=Math.random()*8+1;ctx.fillStyle='rgba(255,255,255,'+(0.05+Math.random()*0.15)+')';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}for(let i=0;i<1500;i++){const x=Math.random()*512,y=Math.random()*256,r=Math.random()*6+1;ctx.fillStyle='rgba(0,0,0,'+(0.05+Math.random()*0.15)+')';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}return new THREE.CanvasTexture(c);}
+function createSaturnRing(scale){const innerR=1.5*scale,outerR=2.6*scale;const c=document.createElement('canvas');c.width=512;c.height=64;const ctx=c.getContext('2d');for(let x=0;x<512;x++){const a=0.4+Math.sin(x*0.1)*0.3;ctx.fillStyle='rgba(230,210,170,'+a+')';ctx.fillRect(x,0,1,64);}const t=new THREE.CanvasTexture(c);const geo=new THREE.RingGeometry(innerR,outerR,64,1);const mat=new THREE.MeshBasicMaterial({map:t,side:THREE.DoubleSide,transparent:true,opacity:0.9});const r=new THREE.Mesh(geo,mat);r.rotation.x=Math.PI/2;return r;}
+
+function initCosmos(){
+  if(typeof THREE==='undefined'){console.warn('Three.js fehlt');return;}
+  try{
+    const canvas=document.getElementById('cosmos-canvas');
+    const scene=new THREE.Scene();
+    const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,0.1,5000);
+    camera.position.set(0,20,60);
+    camera.lookAt(0,0,0);
+    const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+    renderer.setSize(innerWidth,innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    renderer.setClearColor(0x000005,1);
+
+    const sg=new THREE.BufferGeometry();
+    const sp=new Float32Array(18000*3);
+    const scArr=new Float32Array(18000*3);
+    for(let i=0;i<18000;i++){
+      const r=400+Math.random()*1000,th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);
+      sp[i*3]=r*Math.sin(ph)*Math.cos(th);sp[i*3+1]=r*Math.cos(ph);sp[i*3+2]=r*Math.sin(ph)*Math.sin(th);
+      const b=0.6+Math.random()*0.4;scArr[i*3]=b;scArr[i*3+1]=b;scArr[i*3+2]=b;
+    }
+    sg.setAttribute('position',new THREE.BufferAttribute(sp,3));
+    sg.setAttribute('color',new THREE.BufferAttribute(scArr,3));
+    const stars=new THREE.Points(sg,new THREE.PointsMaterial({size:2.5,vertexColors:true,transparent:true,opacity:0.95,blending:THREE.AdditiveBlending}));
+    scene.add(stars);
+
+    const sun=new THREE.Mesh(new THREE.SphereGeometry(3,64,64),new THREE.MeshBasicMaterial({map:makeSunTexture()}));
+    scene.add(sun);
+    cosmosState.sun=sun;
+    const g1=makeGlowSprite(18,'rgba(255,180,60,1)');scene.add(g1);
+    const g2=makeGlowSprite(28,'rgba(255,140,30,1)');scene.add(g2);
+    const g3=makeGlowSprite(40,'rgba(255,100,20,1)');scene.add(g3);
+    const sunLight=new THREE.PointLight(0xffffff,4,700);
+    scene.add(sunLight);
+    const ambient=new THREE.AmbientLight(0x8899cc,2.5);
+    scene.add(ambient);
+    cosmosState.ambient=ambient;
+
+    const PLANETS=[
+      {id:'mercury',name:'Merkur',radius:2.0,dist:12,color:'#888888',speed:0.04},
+      {id:'venus',name:'Venus',radius:2.6,dist:18,color:'#eebb77',speed:0.03},
+      {id:'earth',name:'Erde',radius:4.0,dist:28,color:'#2288ff',speed:0.022,isEarth:true},
+      {id:'mars',name:'Mars',radius:3.0,dist:38,color:'#cc4422',speed:0.017},
+      {id:'jupiter',name:'Jupiter',radius:5.5,dist:50,color:'#ddbb88',speed:0.011},
+      {id:'saturn',name:'Saturn',radius:4.5,dist:65,color:'#ddcc88',speed:0.008,hasRing:true},
+      {id:'neptune',name:'Neptun',radius:3.8,dist:82,color:'#4466cc',speed:0.005}
+    ];
+    PLANETS.forEach(p=>{
+      const grp=new THREE.Group();
+      let mesh;
+      if(p.isEarth){
+        const earthTex=new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
+        mesh=new THREE.Mesh(new THREE.SphereGeometry(p.radius,64,64),new THREE.MeshPhongMaterial({map:earthTex,shininess:30,specular:0x6688aa,emissive:0x335588,emissiveIntensity:1.2}));
+        cosmosState.earth=mesh;
+      }else{
+        mesh=new THREE.Mesh(new THREE.SphereGeometry(p.radius,48,48),new THREE.MeshPhongMaterial({map:makePlanetTexture(p.color),shininess:10,emissive:new THREE.Color(p.color).multiplyScalar(0.2)}));
+      }
+      grp.add(mesh);
+      grp.userData={...p,mesh,angle:Math.random()*Math.PI*2};
+      scene.add(grp);
+      cosmosState.planets[p.id]=grp;
+      if(p.hasRing){const ring=createSaturnRing(p.radius/4.5);mesh.add(ring);}
+      const orbitGeo=new THREE.RingGeometry(p.dist-0.15,p.dist+0.15,128);
+      const orbitMat=new THREE.MeshBasicMaterial({color:0x66aadd,side:THREE.DoubleSide,transparent:true,opacity:0.35});
+      const orbit=new THREE.Mesh(orbitGeo,orbitMat);
+      orbit.rotation.x=Math.PI/2;scene.add(orbit);cosmosState.orbits.push(orbit);
+    });
+
+    const moonGroup=new THREE.Group();
+    const moonTex=new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/moon_1024.jpg');
+    const moon=new THREE.Mesh(new THREE.SphereGeometry(1.5,32,32),new THREE.MeshPhongMaterial({map:moonTex,shininess:5,emissive:0x333333,emissiveIntensity:0.5}));
+    moonGroup.add(moon);scene.add(moonGroup);
+    cosmosState.moon=moonGroup;cosmosState.moonMesh=moon;
+
+    applyKosmosConfig();
+
+    const raycaster=new THREE.Raycaster();
+    const mouse=new THREE.Vector2();
+    cosmosState.raycaster=raycaster;cosmosState.mouse=mouse;
+    renderer.domElement.addEventListener('mousemove',e=>{mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;raycaster.setFromCamera(mouse,camera);const hits=cosmosState.earth?raycaster.intersectObject(cosmosState.earth):[];canvas.style.cursor=hits.length>0?'pointer':'default';});
+    renderer.domElement.addEventListener('click',e=>{mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;raycaster.setFromCamera(mouse,camera);const hits=cosmosState.earth?raycaster.intersectObject(cosmosState.earth):[];if(hits.length>0){openCyborgChat();const h=document.getElementById('click-hint');if(h)h.style.opacity='0';}});
+
+    let t0=Date.now();
+    (function animate(){
+      requestAnimationFrame(animate);
+      const dt=(Date.now()-t0)*0.001;
+      const sm=cosmosState.config.speed||1;
+      sun.rotation.y+=0.0008*sm;
+      Object.keys(cosmosState.planets).forEach(id=>{
+        const grp=cosmosState.planets[id];const p=grp.userData;
+        p.angle+=p.speed*0.01*sm;
+        grp.position.x=Math.cos(p.angle)*p.dist;
+        grp.position.z=Math.sin(p.angle)*p.dist;
+        p.mesh.rotation.y+=0.01;
+      });
+      if(cosmosState.planets.earth){
+        const ep=cosmosState.planets.earth.position;
+        const ma=dt*0.8*sm;
+        cosmosState.moon.position.set(ep.x+Math.cos(ma)*8.0,ep.y+Math.sin(ma*0.3)*1.0,ep.z+Math.sin(ma)*8.0);
+        cosmosState.moonMesh.rotation.y+=0.02;
+      }
+      const pulse=1+Math.sin(Date.now()*0.001)*0.05;
+      g1.scale.set(18*pulse,18*pulse,1);
+      g2.scale.set(28*(2-pulse),28*(2-pulse),1);
+      stars.rotation.y+=0.00003;
+      renderer.render(scene,camera);
+    })();
+
+    addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();});
+    cosmosState.scene=scene;cosmosState.camera=camera;cosmosState.renderer=renderer;
+  }catch(e){console.error('Cosmos:',e);}
+}
+function applyKosmosConfig(){
+  if(!cosmosState.scene)return;
+  const c=cosmosState.config;
+  if(cosmosState.sun)cosmosState.sun.visible=c.sun!==false;
+  ['mercury','venus','earth','mars','jupiter','saturn','neptune'].forEach(id=>{if(cosmosState.planets[id])cosmosState.planets[id].visible=c[id]!==false;});
+  if(cosmosState.moon)cosmosState.moon.visible=c.moon!==false;
+  cosmosState.orbits.forEach(o=>o.visible=c.orbits!==false);
+  if(cosmosState.ambient)cosmosState.ambient.intensity=2.5*(c.brightness||1);
+  localStorage.setItem('haldo_kosmos',JSON.stringify(c));
+}
+
+/* ==================== CYBORG ==================== */
+let cyborgState={scene:null,camera:null,renderer:null,head:null,eyes:[],mouth:null,speaking:false,blinkTimer:0,container:null};
+function initCyborg3D(container){
+  if(typeof THREE==='undefined')return;
+  container.innerHTML='';
+  const canvas=document.createElement('canvas');
+  canvas.style.cssText='width:100%;height:100%;display:block;';
+  container.appendChild(canvas);
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  renderer.setSize(container.clientWidth,container.clientHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setClearColor(0x000000,0);
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(35,container.clientWidth/container.clientHeight,0.1,100);
+  camera.position.set(0,0.3,2.5);camera.lookAt(0,0.2,0);
+  scene.add(new THREE.AmbientLight(0xffffff,0.8));
+  const d1=new THREE.DirectionalLight(0xffffff,1.5);d1.position.set(2,3,3);scene.add(d1);
+  const d2=new THREE.DirectionalLight(0x06b6d4,1.2);d2.position.set(-2,1,-2);scene.add(d2);
+  const headGroup=new THREE.Group();
+  headGroup.add(new THREE.Mesh(new THREE.SphereGeometry(0.5,32,32),new THREE.MeshStandardMaterial({color:0x88aacc,roughness:0.4,metalness:0.6})));
+  const face=new THREE.Mesh(new THREE.SphereGeometry(0.48,32,32),new THREE.MeshStandardMaterial({color:0xaaccee,roughness:0.3,metalness:0.3}));
+  face.scale.set(0.82,0.95,0.75);face.position.z=0.08;headGroup.add(face);
+  const eyes=[];
+  [-0.18,0.18].forEach(x=>{
+    const w=new THREE.Mesh(new THREE.SphereGeometry(0.09,16,16),new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.1}));
+    w.position.set(x,0.1,0.35);headGroup.add(w);
+    const p=new THREE.Mesh(new THREE.SphereGeometry(0.04,16,16),new THREE.MeshStandardMaterial({color:0x06b6d4,emissive:0x06b6d4,emissiveIntensity:1.5}));
+    p.position.set(x,0.1,0.43);headGroup.add(p);
+    eyes.push({white:w,pupil:p});
+  });
+  const mouth=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.02,0.02),new THREE.MeshStandardMaterial({color:0x333333,emissive:0x06b6d4,emissiveIntensity:0.3}));
+  mouth.position.set(0,-0.12,0.42);headGroup.add(mouth);
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.18,0.4,16),new THREE.MeshStandardMaterial({color:0x667799,roughness:0.5,metalness:0.7}));
+  neck.position.y=-0.6;headGroup.add(neck);
+  const sh=new THREE.Mesh(new THREE.SphereGeometry(0.55,24,24),new THREE.MeshStandardMaterial({color:0x556688,roughness:0.6,metalness:0.4}));
+  sh.scale.set(1.3,0.5,0.8);sh.position.y=-0.9;headGroup.add(sh);
+  scene.add(headGroup);
+  cyborgState.scene=scene;cyborgState.camera=camera;cyborgState.renderer=renderer;
+  cyborgState.eyes=eyes;cyborgState.mouth=mouth;cyborgState.blinkTimer=Math.random()*3000;
+  let lastT=Date.now(),hb=0;
+  (function loop(){
+    requestAnimationFrame(loop);
+    const now=Date.now();const dt=now-lastT;lastT=now;hb+=dt*0.002;
+    headGroup.rotation.x=Math.sin(hb)*0.03;headGroup.rotation.y=Math.sin(hb*0.7)*0.05;headGroup.position.y=Math.sin(hb*1.2)*0.02;
+    cyborgState.blinkTimer-=dt;
+    if(cyborgState.blinkTimer<=0){
+      cyborgState.blinkTimer=2000+Math.random()*4000;
+      const bs=Date.now();
+      const blink=()=>{const e=Date.now()-bs;const s=e<100?Math.max(0.05,1-e/50):Math.min(1,(e-100)/50);eyes.forEach(ey=>{ey.white.scale.y=Math.max(0.05,s);ey.pupil.scale.y=Math.max(0.05,s);});if(e<200)setTimeout(blink,16);};
+      blink();
+    }
+    if(cyborgState.speaking){mouth.scale.y=1+Math.abs(Math.sin(Date.now()*0.02))*4;mouth.scale.x=1+Math.abs(Math.sin(Date.now()*0.015))*0.5;eyes.forEach(ey=>{ey.pupil.material.emissiveIntensity=1+Math.sin(Date.now()*0.01)*0.5;});}else{mouth.scale.y=Math.max(1,mouth.scale.y*0.9);mouth.scale.x=Math.max(1,mouth.scale.x*0.9);}
+    renderer.render(scene,camera);
+  })();
+  const ro=new ResizeObserver(()=>{const w=container.clientWidth,h=container.clientHeight;if(w&&h){renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();}});
+  ro.observe(container);
+}
+function openCyborgChat(){
+  if(openWindows['cyborg'])return focusApp('cyborg');
+  const win=document.createElement('div');
+  win.className='window';win.id='win-cyborg';
+  win.style.width='900px';win.style.height='560px';
+  win.style.left=(innerWidth/2-450)+'px';win.style.top=(innerHeight/2-280)+'px';
+  win.style.zIndex=nextZ();
+  win.innerHTML=`
+    <div class="window-header" onmousedown="startDrag(event,'cyborg')">
+      <div class="window-title">🤖 HalDo AI · Cyborg Chat</div>
+      <div class="window-controls">
+        <button class="win-btn" onclick="event.stopPropagation();minimizeApp('cyborg')">—</button>
+        <button class="win-btn" onclick="event.stopPropagation();maximizeApp('cyborg')">▢</button>
+        <button class="win-btn close" onclick="event.stopPropagation();closeApp('cyborg')">✕</button>
+      </div>
+    </div>
+    <div class="window-body" style="flex-direction:column;">
+      <div class="cyborg-status" id="cy-status">🟢 ONLINE · BEREIT</div>
+      <div class="cyborg-chat">
+        <div class="cyborg-3d" id="cyborg-3d-container"></div>
+        <div class="cyborg-chat-log">
+          <div class="chat-log" id="cy-log"></div>
+          <div class="chat-input"><input id="cy-input" placeholder="Frage oder Befehl…" onkeydown="if(event.key==='Enter')cySend()"><button onclick="cySend()">➤</button></div>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(win);
+  openWindows['cyborg']=true;
+  document.getElementById('taskbar-apps').innerHTML+=`<div class="taskbar-app" id="tb-cyborg" onclick="focusApp('cyborg')">🤖 HalDo AI</div>`;
+  const welcome = 'Willkommen bei HalDo AI OS Pro Max – Professionelle Präsentation ihrer Intelligenz. Ich bin HalDo AI, dein persönlicher Cyborg-Assistent. Ich bin bereit, Halil Donma.';
+  setTimeout(()=>{initCyborg3D(document.getElementById('cyborg-3d-container'));cyAddMessage('ai',welcome);speak(welcome);},100);
+}
+function cyAddMessage(role,text){const log=document.getElementById('cy-log');if(!log)return;const d=document.createElement('div');d.className='msg '+role;d.textContent=text;log.appendChild(d);log.scrollTop=log.scrollHeight;}
+function cySend(){
+  const inp=document.getElementById('cy-input');if(!inp)return;
+  const q=inp.value.trim();if(!q)return;
+  inp.value='';cyAddMessage('user',q);
+  const s=document.getElementById('cy-status');if(s)s.textContent='🤔 DENKT NACH…';
+  setTimeout(()=>{const r=processHalDoCommand(q);cyAddMessage('ai',r);if(s)s.textContent='🟢 ONLINE · BEREIT';speak(r);},500);
+}
+function processHalDoCommand(input){
+  const ql=input.toLowerCase().trim();
+  for(const v of ['öffne ','starte ','open ','start ','zeige ']){
+    if(ql.startsWith(v)){
+      const t=ql.substring(v.length).trim();
+      const app=REGISTRY.find(a=>a.nm.toLowerCase().includes(t)||a.id.toLowerCase()===t);
+      if(app){setTimeout(()=>openApp(app.id),500);return '✓ Öffne '+app.nm+'…';}
+    }
+  }
+  if(/wetter|weather/.test(ql)){setTimeout(()=>openApp('W'),300);return '✓ Öffne Wetter…';}
+  if(/zeit|time/.test(ql))return '🕐 '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr.';
+  if(/blitzer/.test(ql)){setTimeout(()=>openApp('BL'),300);return '🚨 Öffne Blitzer-App…';}
+  if(/fahrschule/.test(ql)){setTimeout(()=>openApp('FS'),300);return '🚗 Öffne Fahrschule…';}
+  if(/hallo|hi|hey/.test(ql))return 'Hallo Bruder! 💙 Wie kann ich helfen?';
+  return '🤖 Verstanden: "'+input+'". Befehle: "öffne Fahrschule", "öffne Blitzer", "wetter".';
+}
+
+/* ==================== CRUD HELPER ==================== */
+function makeCRUD(config){
+  return function(body){
+    body.style.cssText='display:flex;height:100%;';
+    const sb=document.createElement('div');sb.className='app-sidebar';
+    const ct=document.createElement('div');ct.className='app-content';
+    body.appendChild(sb);body.appendChild(ct);
+    let items=store('crud_'+config.id,config.initial||[]);
+    let selId=items[0]?items[0].id:null;
+    const persist=()=>save('crud_'+config.id,items);
+    const fields=config.fields;
+    let active='select';
+    function flash(m){const d=document.createElement('div');d.style.cssText='color:#06b6d4;font-size:12px;margin-top:8px;';d.textContent=m;ct.appendChild(d);setTimeout(()=>d.remove(),1800);}
+    function render(){
+      sb.innerHTML='';
+      ['create','edit','select','settings','delete'].forEach(k=>{const b=document.createElement('button');b.className='side-btn'+(active===k?' active':'');b.textContent=T(k);b.onclick=()=>{active=k;render();};sb.appendChild(b);});
+      const sp=document.createElement('button');sp.className='side-btn speak-btn';sp.textContent='🔊 '+T('speak');sp.onclick=()=>speak((config.title||config.id)+'. '+items.length+' Einträge.');sb.appendChild(sp);
+      ct.innerHTML='';
+      if(active==='create'){ct.innerHTML='<h3>'+T('create')+'</h3>';const f=document.createElement('form');fields.forEach(fd=>{const i=document.createElement('input');i.name=fd.name;i.placeholder=fd.label;f.appendChild(i);});const b=document.createElement('button');b.textContent=T('save');f.appendChild(b);f.onsubmit=e=>{e.preventDefault();const item={id:Date.now()};fields.forEach(fd=>item[fd.name]=f.querySelector('[name="'+fd.name+'"]').value);items.push(item);persist();f.reset();flash('✓ '+T('save'));};ct.appendChild(f);}
+      else if(active==='edit'){ct.innerHTML='<h3>'+T('edit')+'</h3>';if(!items.length){ct.innerHTML+='<p class="muted">'+T('noEntries')+'</p>';return;}if(!items.find(i=>i.id===selId))selId=items[0].id;const sel=document.createElement('select');items.forEach(it=>{const o=document.createElement('option');o.value=it.id;o.textContent=it[fields[0].name]||'#'+it.id;sel.appendChild(o);});sel.value=selId;sel.onchange=()=>{selId=Number(sel.value);render();};ct.appendChild(sel);const item=items.find(i=>i.id===selId);const f=document.createElement('form');fields.forEach(fd=>{const i=document.createElement('input');i.name=fd.name;i.placeholder=fd.label;i.value=item[fd.name]||'';f.appendChild(i);});const b=document.createElement('button');b.textContent=T('save');f.appendChild(b);f.onsubmit=e=>{e.preventDefault();fields.forEach(fd=>item[fd.name]=f.querySelector('[name="'+fd.name+'"]').value);persist();flash('✓ '+T('save'));render();};ct.appendChild(f);}
+      else if(active==='select'){ct.innerHTML='<h3>'+T('select')+'</h3>';const s=document.createElement('input');s.placeholder='🔍 '+T('search');ct.appendChild(s);const list=document.createElement('div');ct.appendChild(list);const rl=()=>{list.innerHTML='';const q=s.value.toLowerCase();const filt=items.filter(it=>!q||fields.some(fd=>String(it[fd.name]||'').toLowerCase().includes(q)));if(!filt.length){list.innerHTML='<p class="muted">'+T('noEntries')+'</p>';return;}filt.forEach(it=>{const row=document.createElement('div');row.className='list-row';row.innerHTML='<span>'+esc(it[fields[0].name]||'—')+'</span>'+(fields[1]?'<span class="meta">'+esc(it[fields[1].name]||'')+'</span>':'');row.onclick=()=>{selId=it.id;active='edit';render();};list.appendChild(row);});};s.oninput=rl;rl();}
+      else if(active==='settings'){ct.innerHTML='<h3>'+T('settings')+'</h3><p>'+T('total')+': <b>'+items.length+'</b></p>';const exp=document.createElement('button');exp.textContent='⬇ Export JSON';exp.onclick=()=>{const b=new Blob([JSON.stringify(items,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=config.id+'.json';a.click();};ct.appendChild(exp);const w=document.createElement('button');w.className='danger';w.textContent='🗑 Alles löschen';w.onclick=()=>{if(confirm(T('confirm'))){items=[];persist();render();}};ct.appendChild(w);}
+      else if(active==='delete'){ct.innerHTML='<h3>'+T('delete')+'</h3>';if(!items.length){ct.innerHTML+='<p class="muted">'+T('noEntries')+'</p>';return;}items.forEach(it=>{const row=document.createElement('div');row.className='list-row';row.innerHTML='<span>'+esc(it[fields[0].name]||'—')+'</span>';const d=document.createElement('button');d.className='danger';d.textContent='✕';d.onclick=()=>{if(confirm(T('confirm'))){items=items.filter(x=>x.id!==it.id);persist();render();}};row.appendChild(d);ct.appendChild(row);});}
+    }
+    render();
+  };
+}
+
+/* ==================== STANDARD-APPS ==================== */
+const viewFiles = makeCRUD({id:'files',title:'Files',fields:[{name:'name',label:'Dateiname'},{name:'content',label:'Inhalt'}]});
+const viewLearning = makeCRUD({id:'learning',title:'Learning',fields:[{name:'front',label:'Frage'},{name:'back',label:'Antwort'}]});
+const viewKontakte = makeCRUD({id:'kontakte',title:'Kontakte',fields:[{name:'name',label:'Name'},{name:'phone',label:'Telefon'}]});
+const viewNotizen = makeCRUD({id:'notizen',title:'Notizen',fields:[{name:'title',label:'Titel'},{name:'text',label:'Text'}]});
+const viewPasswort = makeCRUD({id:'passwort',title:'Passwörter',fields:[{name:'name',label:'Dienst'},{name:'user',label:'Benutzer'},{name:'pass',label:'Passwort'}]});
+const viewFinanzen = makeCRUD({id:'finanzen',title:'Finanzen',fields:[{name:'desc',label:'Beschreibung'},{name:'amount',label:'Betrag'}]});
+const viewFitness = makeCRUD({id:'fitness',title:'Fitness',fields:[{name:'exercise',label:'Übung'},{name:'reps',label:'Wiederholungen'}]});
+const viewGewohnheiten = makeCRUD({id:'gewohnheiten',title:'Gewohnheiten',fields:[{name:'name',label:'Gewohnheit'},{name:'streak',label:'Streak'}]});
+const viewWasser = makeCRUD({id:'wasser',title:'Wasser',fields:[{name:'amount',label:'Menge'},{name:'time',label:'Uhrzeit'}]});
+const viewStimmung = makeCRUD({id:'stimmung',title:'Stimmung',fields:[{name:'mood',label:'Stimmung'},{name:'note',label:'Notiz'}]});
+const viewRezepte = makeCRUD({id:'rezepte',title:'Rezepte',fields:[{name:'name',label:'Rezept'},{name:'ingredients',label:'Zutaten'}]});
+const viewEinkauf = makeCRUD({id:'einkauf',title:'Einkauf',fields:[{name:'item',label:'Artikel'},{name:'qty',label:'Menge'}]});
+const viewReisen = makeCRUD({id:'reisen',title:'Reisen',fields:[{name:'dest',label:'Ziel'},{name:'date',label:'Datum'}]});
+const viewVokabeln = makeCRUD({id:'vokabeln',title:'Vokabeln',fields:[{name:'de',label:'Deutsch'},{name:'other',label:'Andere Sprache'}]});
+const viewFlashcards = makeCRUD({id:'flashcards',title:'Flashcards',fields:[{name:'q',label:'Frage'},{name:'a',label:'Antwort'}]});
+const viewNotfall = makeCRUD({id:'notfall',title:'Notfall',fields:[{name:'name',label:'Name'},{name:'phone',label:'Telefon'}]});
+
+const viewAI = function(body){
+  body.style.cssText='display:flex;height:100%;padding:18px;flex-direction:column;';
+  const wrap=document.createElement('div');wrap.className='chat-box';
+  const log=document.createElement('div');log.className='chat-log';
+  const inpRow=document.createElement('div');inpRow.className='chat-input';
+  const inp=document.createElement('input');inp.placeholder='Frage oder Befehl…';
+  const snd=document.createElement('button');snd.textContent='➤';
+  wrap.appendChild(log);inpRow.appendChild(inp);inpRow.appendChild(snd);wrap.appendChild(inpRow);body.appendChild(wrap);
+  const welcome = 'Willkommen bei HalDo AI OS – Professionelle Präsentation ihrer Intelligenz. Ich bin HalDo AI und freue mich, dir zu helfen.';
+  let h=store('ai_classic',[{role:'ai',text:welcome}]);
+  speak(welcome);
+  const render=()=>{log.innerHTML='';h.forEach(m=>{const d=document.createElement('div');d.className='msg '+m.role;d.textContent=m.text;log.appendChild(d);});log.scrollTop=log.scrollHeight;};
+  const send=()=>{const q=inp.value.trim();if(!q)return;h.push({role:'user',text:q});inp.value='';render();setTimeout(()=>{const r=processHalDoCommand(q);h.push({role:'ai',text:r});if(h.length>40)h=h.slice(-40);save('ai_classic',h);render();speak(r);},400);};
+  snd.onclick=send;inp.onkeydown=e=>{if(e.key==='Enter')send();};render();
+};
+
+const viewBrowser = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  let bms=store('browser_bm',[{id:1,name:'Google',url:'https://www.google.com'}]);
+  let hist=store('browser_hist',[]);
+  let active='web';let frame=null;
+  speak('Willkommen beim HalDo Browser');
+  function render(){
+    sb.innerHTML='';
+    [['web','🌐 Web'],['bm','⭐ Lesezeichen'],['hist','📜 Verlauf'],['settings','⚙ Einstellungen'],['delete','🗑 Löschen']].forEach(([id,label])=>{const b=document.createElement('button');b.className='side-btn'+(active===id?' active':'');b.textContent=label;b.onclick=()=>{active=id;render();};sb.appendChild(b);});
+    const sp=document.createElement('button');sp.className='side-btn speak-btn';sp.textContent='🔊 '+T('speak');sp.onclick=()=>speak('Browser.');sb.appendChild(sp);
+    ct.innerHTML='';
+    if(active==='web'){const bar=document.createElement('div');bar.style.cssText='display:flex;gap:8px;margin-bottom:8px;';const i=document.createElement('input');i.value='https://www.wikipedia.org';i.style.flex='1';i.style.margin='0';const go=document.createElement('button');go.textContent='Los';go.style.margin='0';frame=document.createElement('iframe');frame.src=i.value;frame.style.cssText='flex:1;border:1px solid #374151;border-radius:8px;background:#fff;width:100%;';go.onclick=()=>{frame.src=i.value;hist.push({url:i.value,date:new Date().toLocaleString()});save('browser_hist',hist);};bar.appendChild(i);bar.appendChild(go);ct.appendChild(bar);ct.appendChild(frame);}
+    else if(active==='bm'){ct.innerHTML='<h3>⭐ Lesezeichen</h3>';bms.forEach(bm=>{const row=document.createElement('div');row.className='list-row';row.innerHTML='<span>'+esc(bm.name)+'</span><span class="meta">'+esc(bm.url)+'</span>';row.onclick=()=>{active='web';render();setTimeout(()=>{if(frame)frame.src=bm.url;},50);};ct.appendChild(row);});}
+    else if(active==='hist'){ct.innerHTML='<h3>📜 Verlauf</h3>';hist.slice().reverse().forEach(h=>{const row=document.createElement('div');row.className='list-row';row.innerHTML='<span>'+esc(h.url)+'</span><span class="meta">'+h.date+'</span>';ct.appendChild(row);});}
+    else if(active==='settings'){ct.innerHTML='<h3>⚙ Einstellungen</h3><p>Startseite: <input id="home-url" value="'+(localStorage.getItem('haldo_homepage')||'https://www.google.com')+'"></p>';const b=document.createElement('button');b.textContent='💾 '+T('save');b.onclick=()=>{localStorage.setItem('haldo_homepage',document.getElementById('home-url').value);alert('✓');};ct.appendChild(b);}
+    else{ct.innerHTML='<h3>🗑 Löschen</h3>';}
+  }
+  render();
+};
+
+const viewCalendar = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  let events=store('cal_events',[]);let viewDate=new Date();let active='select';
+  speak('Willkommen beim HalDo Kalender');
+  function render(){
+    sb.innerHTML='';
+    [['select','📅 Kalender'],['create','➕ Neu'],['settings','⚙ Einstellungen'],['delete','🗑 Löschen']].forEach(([id,label])=>{const b=document.createElement('button');b.className='side-btn'+(active===id?' active':'');b.textContent=label;b.onclick=()=>{active=id;render();};sb.appendChild(b);});
+    const sp=document.createElement('button');sp.className='side-btn speak-btn';sp.textContent='🔊 '+T('speak');sp.onclick=()=>speak('Kalender.');sb.appendChild(sp);
+    ct.innerHTML='';
+    if(active==='select'){
+      const head=document.createElement('div');head.style.cssText='display:flex;align-items:center;gap:10px;margin-bottom:10px;';
+      const prev=document.createElement('button');prev.textContent='◀';prev.onclick=()=>{viewDate=new Date(viewDate.getFullYear(),viewDate.getMonth()-1,1);render();};
+      const next=document.createElement('button');next.textContent='▶';next.onclick=()=>{viewDate=new Date(viewDate.getFullYear(),viewDate.getMonth()+1,1);render();};
+      const title=document.createElement('h3');title.style.margin='0';title.style.flex='1';title.textContent=viewDate.toLocaleString(currentLang,{month:'long',year:'numeric'});
+      head.appendChild(prev);head.appendChild(title);head.appendChild(next);ct.appendChild(head);
+      const grid=document.createElement('div');grid.className='cal-grid';
+      ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d=>{const c=document.createElement('div');c.className='cal-head';c.textContent=d;grid.appendChild(c);});
+      const y=viewDate.getFullYear(),m=viewDate.getMonth();
+      const sd=(new Date(y,m,1).getDay()+6)%7;const days=new Date(y,m+1,0).getDate();const today=new Date();
+      for(let i=0;i<sd;i++)grid.appendChild(document.createElement('div'));
+      for(let d=1;d<=days;d++){
+        const c=document.createElement('div');c.className='cal-cell';
+        const dt=new Date(y,m,d);if(dt.toDateString()===today.toDateString())c.classList.add('today');
+        c.innerHTML='<div class="day">'+d+'</div>';
+        const key=dt.toISOString().slice(0,10);
+        events.filter(e=>e.date===key).forEach(e=>{const ev=document.createElement('div');ev.style.cssText='font-size:10px;background:rgba(6,182,212,.4);color:#fff;padding:1px 3px;margin-top:2px;border-radius:2px;';ev.textContent=e.title;c.appendChild(ev);});
+        c.onclick=()=>{const tit=prompt('Termin:','');if(tit){events.push({id:Date.now(),title:tit,date:key});save('cal_events',events);render();}};
+        grid.appendChild(c);
+      }
+      ct.appendChild(grid);
+    }else if(active==='create'){ct.innerHTML='<h3>➕ Termin</h3>';const f=document.createElement('form');const ti=document.createElement('input');ti.placeholder='Titel';f.appendChild(ti);const di=document.createElement('input');di.type='date';f.appendChild(di);const b=document.createElement('button');b.textContent=T('save');f.appendChild(b);f.onsubmit=e=>{e.preventDefault();events.push({id:Date.now(),title:ti.value,date:di.value});save('cal_events',events);active='select';render();};ct.appendChild(f);}
+    else if(active==='settings'){ct.innerHTML='<h3>⚙ Einstellungen</h3><p>Termine: '+events.length+'</p>';}
+    else{ct.innerHTML='<h3>🗑 Löschen</h3>';events.forEach(ev=>{const row=document.createElement('div');row.className='list-row';row.innerHTML='<span>'+esc(ev.title)+'</span>';const d=document.createElement('button');d.className='danger';d.textContent='✕';d.onclick=()=>{if(confirm(T('confirm'))){events=events.filter(x=>x.id!==ev.id);save('cal_events',events);render();}};row.appendChild(d);ct.appendChild(row);});}
+  }
+  render();
+};
+
+const viewDocuments = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  let docs=store('documents',[{id:Date.now(),title:'Willkommen',body:'Willkommen bei HalDo Documents!'}]);
+  let currentId=docs[0].id;const persist=()=>save('documents',docs);
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  speak('Willkommen bei den HalDo Dokumenten');
+  function render(){
+    sb.innerHTML='';
+    const add=document.createElement('button');add.className='side-btn';add.textContent='➕ Neues Dokument';
+    add.onclick=()=>{const d={id:Date.now(),title:'Neu '+docs.length,body:''};docs.push(d);currentId=d.id;persist();render();};sb.appendChild(add);
+    docs.forEach(d=>{const b=document.createElement('button');b.className='side-btn'+(d.id===currentId?' active':'');b.textContent='📄 '+d.title;b.onclick=()=>{currentId=d.id;render();};sb.appendChild(b);});
+    const sp=document.createElement('button');sp.className='side-btn speak-btn';sp.textContent='🔊 '+T('speak');sp.onclick=()=>{const d=docs.find(x=>x.id===currentId);speak(d?d.body:'Keine');};sb.appendChild(sp);
+    ct.innerHTML='';
+    const doc=docs.find(d=>d.id===currentId)||docs[0];
+    const head=document.createElement('div');head.style.cssText='display:flex;gap:8px;margin-bottom:8px;';
+    const ti=document.createElement('input');ti.value=doc.title;ti.style.margin='0';ti.oninput=()=>{doc.title=ti.value;persist();};
+    const saveBtn=document.createElement('button');saveBtn.textContent='💾 '+T('save');saveBtn.style.margin='0';saveBtn.onclick=()=>{persist();alert('✓');};
+    const delBtn=document.createElement('button');delBtn.className='danger';delBtn.textContent='🗑';delBtn.style.margin='0';delBtn.onclick=()=>{if(confirm(T('confirm'))){docs=docs.filter(x=>x.id!==doc.id);if(!docs.length)docs=[{id:Date.now(),title:'Neu',body:''}];currentId=docs[0].id;persist();render();}};
+    head.appendChild(ti);head.appendChild(saveBtn);head.appendChild(delBtn);ct.appendChild(head);
+    const ta=document.createElement('textarea');ta.value=doc.body;ta.style.cssText='width:100%;height:calc(100% - 90px);min-height:280px;font-family:monospace;resize:none;';ta.oninput=()=>{doc.body=ta.value;persist();};ct.appendChild(ta);
+  }
+  render();
+};
+
+const viewEmail = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  let mails=store('mails',[{id:1,from:'HalDo Team',subject:'Willkommen',body:'Willkommen!',folder:'inbox'}]);
+  let folder='inbox';const persist=()=>save('mails',mails);
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  speak('Willkommen beim HalDo E-Mail-Programm');
+  function render(){
+    sb.innerHTML='';
+    [['inbox','📥 Posteingang'],['sent','📤 Gesendet'],['compose','✍ Neu'],['settings','⚙ Einstellungen'],['delete','🗑 Löschen']].forEach(([id,label])=>{const b=document.createElement('button');b.className='side-btn'+(folder===id?' active':'');b.textContent=label;b.onclick=()=>{folder=id;render();};sb.appendChild(b);});
+    ct.innerHTML='';
+    if(folder==='compose'){ct.innerHTML='<h3>✍ Neue E-Mail</h3>';const f=document.createElement('form');const to=document.createElement('input');to.placeholder='An';f.appendChild(to);const sub=document.createElement('input');sub.placeholder='Betreff';f.appendChild(sub);const bd=document.createElement('textarea');bd.placeholder='Nachricht';f.appendChild(bd);const b=document.createElement('button');b.textContent='📤 Senden';f.appendChild(b);f.onsubmit=e=>{e.preventDefault();mails.push({id:Date.now(),from:'Du',to:to.value,subject:sub.value,body:bd.value,folder:'sent'});persist();folder='sent';render();};ct.appendChild(f);}
+    else if(folder==='settings'){ct.innerHTML='<h3>⚙ Einstellungen</h3>';}
+    else if(folder==='delete'){ct.innerHTML='<h3>🗑 Löschen</h3>';mails.forEach(m=>{const row=document.createElement('div');row.className='list-row';row.innerHTML='<span>'+esc(m.subject)+'</span>';const d=document.createElement('button');d.className='danger';d.textContent='✕';d.onclick=()=>{if(confirm(T('confirm'))){mails=mails.filter(x=>x.id!==m.id);persist();render();}};row.appendChild(d);ct.appendChild(row);});}
+    else{ct.innerHTML='<h3>'+(folder==='inbox'?'📥 Posteingang':'📤 Gesendet')+'</h3>';mails.filter(m=>m.folder===folder).forEach(m=>{const row=document.createElement('div');row.className='list-row';row.innerHTML='<span>'+esc(m.subject)+'</span><span class="meta">'+esc(m.from)+'</span>';row.onclick=()=>alert(m.subject+'\n\n'+m.body);ct.appendChild(row);});}
+  }
+  render();
+};
+
+const viewGallery = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  let photos=store('photos',[]);const persist=()=>save('photos',photos);
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  let active='select';
+  speak('Willkommen in der HalDo Galerie');
+  function render(){
+    sb.innerHTML='';
+    [['select','🖼 Galerie'],['create','📷 Hinzufügen'],['settings','⚙ Einstellungen'],['delete','🗑 Löschen']].forEach(([id,label])=>{const b=document.createElement('button');b.className='side-btn'+(active===id?' active':'');b.textContent=label;b.onclick=()=>{active=id;render();};sb.appendChild(b);});
+    ct.innerHTML='';
+    if(active==='select'){ct.innerHTML='<h3>🖼 Galerie</h3>';if(!photos.length){ct.innerHTML+='<p class="muted">Keine Bilder.</p>';return;}const g=document.createElement('div');g.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;';photos.forEach(p=>{const img=document.createElement('img');img.src=p.data;img.style.cssText='width:100%;height:120px;object-fit:cover;border-radius:8px;';g.appendChild(img);});ct.appendChild(g);}
+    else if(active==='create'){ct.innerHTML='<h3>📷 Bild hinzufügen</h3>';const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.onchange=()=>{const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{photos.push({id:Date.now(),data:r.result,name:f.name});persist();active='select';render();};r.readAsDataURL(f);};ct.appendChild(inp);}
+    else if(active==='settings'){ct.innerHTML='<h3>⚙ Einstellungen</h3>';}
+    else{ct.innerHTML='<h3>🗑 Löschen</h3>';photos.forEach(p=>{const row=document.createElement('div');row.className='list-row';row.innerHTML='<span>'+esc(p.name)+'</span>';const d=document.createElement('button');d.className='danger';d.textContent='✕';d.onclick=()=>{if(confirm(T('confirm'))){photos=photos.filter(x=>x.id!==p.id);persist();render();}};row.appendChild(d);ct.appendChild(row);});}
+  }
+  render();
+};
+
+const viewHealth = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  const sections=[['anatomy','🧬 3D Anatomie'],['diseases','🦠 Krankheiten'],['meds','💊 Medikamente'],['labs','🧪 Laborwerte'],['vitals','❤ Vitalwerte'],['settings','⚙ Einstellungen'],['emergency','🚨 Notfall']];
+  let active='anatomy';let raf=null,cleanup=null;
+  speak('Willkommen im HalDo Arztbuch. Deine Gesundheit liegt uns am Herzen.');
+  function render(){
+    sb.innerHTML='';
+    sections.forEach(([id,label])=>{const b=document.createElement('button');b.className='side-btn'+(active===id?' active':'');b.textContent=label;b.onclick=()=>{active=id;render();};sb.appendChild(b);});
+    const sp=document.createElement('button');sp.className='side-btn speak-btn';sp.textContent='🔊 '+T('speak');sp.onclick=()=>speak('HalDo Arztbuch.');sb.appendChild(sp);
+    if(cleanup){try{cleanup();}catch(e){}cleanup=null;}
+    ct.innerHTML='';
+    if(active==='anatomy')initAnatomy();
+    else if(active==='emergency'){ct.innerHTML='<h3>🚨 NOTFALL</h3><p>Notruf: <b style="color:#ef4444;font-size:28px">112</b></p>';}
+    else if(active==='settings'){ct.innerHTML='<h3>⚙ Einstellungen</h3>';}
+    else{const key={diseases:'health_diseases',meds:'health_meds',labs:'health_labs',vitals:'health_vitals'}[active];const fields={diseases:[{name:'name',label:'Krankheit'},{name:'desc',label:'Beschreibung'}],meds:[{name:'name',label:'Medikament'},{name:'dose',label:'Dosierung'}],labs:[{name:'name',label:'Laborwert'},{name:'value',label:'Wert'}],vitals:[{name:'name',label:'Vitalwert'},{name:'value',label:'Wert'}]}[active];makeCRUD({id:key,fields,initial:[]})(ct);}
+  }
+  function initAnatomy(){
+    const wrap=document.createElement('div');wrap.className='anatomy-wrap';ct.appendChild(wrap);
+    const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(wrap.clientWidth,wrap.clientHeight);renderer.setClearColor(0x001122,1);wrap.appendChild(renderer.domElement);
+    const scene=new THREE.Scene();const camera=new THREE.PerspectiveCamera(45,wrap.clientWidth/wrap.clientHeight,0.1,100);camera.position.set(0,1.2,4);camera.lookAt(0,0.7,0);
+    scene.add(new THREE.AmbientLight(0xffffff,0.75));const dl=new THREE.DirectionalLight(0xffffff,1.1);dl.position.set(2,4,3);scene.add(dl);
+    const skel=new THREE.Group();const org=new THREE.Group();const bm=new THREE.MeshStandardMaterial({color:0xeeeecc,roughness:0.6});
+    skel.add(new THREE.Mesh(new THREE.SphereGeometry(0.22,24,24),bm));
+    for(let i=0;i<8;i++){const v=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.09,12),bm);v.position.y=1.2-i*0.11;skel.add(v);}
+    for(let i=0;i<5;i++){const r=new THREE.Mesh(new THREE.TorusGeometry(0.25,0.018,8,22,Math.PI),bm);r.position.y=1.1-i*0.1;r.rotation.y=Math.PI/2;skel.add(r);}
+    const aL=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.75,12),bm);aL.position.set(0.38,1,0);skel.add(aL);
+    const aR=aL.clone();aR.position.x=-0.38;skel.add(aR);
+    scene.add(skel);
+    const brain=new THREE.Mesh(new THREE.SphereGeometry(0.16,20,20),new THREE.MeshStandardMaterial({color:0xff88aa}));brain.position.y=1.5;org.add(brain);
+    const heart=new THREE.Mesh(new THREE.SphereGeometry(0.1,16,16),new THREE.MeshStandardMaterial({color:0xcc2222}));heart.position.set(0.05,1,0.02);org.add(heart);
+    scene.add(org);
+    const tg=document.createElement('div');tg.className='layer-toggles';tg.innerHTML='<label><input type="checkbox" data-layer="sk" checked> Skelett</label><label><input type="checkbox" data-layer="or" checked> Organe</label>';
+    tg.querySelectorAll('input').forEach(cb=>cb.onchange=()=>{if(cb.dataset.layer==='sk')skel.visible=cb.checked;if(cb.dataset.layer==='or')org.visible=cb.checked;});wrap.appendChild(tg);
+    let rot=0;function anim(){raf=requestAnimationFrame(anim);rot+=0.006;skel.rotation.y=rot;org.rotation.y=rot;renderer.render(scene,camera);}anim();
+    cleanup=()=>{cancelAnimationFrame(raf);renderer.dispose();};
+  }
+  render();
+};
+
+const viewInternet = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🌍 Internet</h3>';
+  speak('Willkommen beim HalDo Internet');
+  const inp=document.createElement('input');inp.placeholder='Wikipedia durchsuchen…';
+  const btn=document.createElement('button');btn.textContent='Suchen';
+  btn.onclick=()=>{if(inp.value)window.open('https://de.wikipedia.org/wiki/'+encodeURIComponent(inp.value),'_blank');};
+  body.appendChild(inp);body.appendChild(btn);
+};
+
+const viewJournal = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  let entries=store('journal',[]);const persist=()=>save('journal',entries);
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  let active='select';
+  speak('Willkommen beim HalDo Journal');
+  function render(){
+    sb.innerHTML='';
+    [['select','📔 Einträge'],['create','➕ Neu'],['settings','⚙ Einstellungen'],['delete','🗑 Löschen']].forEach(([id,label])=>{const b=document.createElement('button');b.className='side-btn'+(active===id?' active':'');b.textContent=label;b.onclick=()=>{active=id;render();};sb.appendChild(b);});
+    ct.innerHTML='';
+    if(active==='create'){ct.innerHTML='<h3>➕ Neuer Eintrag</h3>';const f=document.createElement('form');const ta=document.createElement('textarea');ta.placeholder='Was denkst du?';ta.style.minHeight='180px';const b=document.createElement('button');b.textContent=T('save');f.appendChild(ta);f.appendChild(b);f.onsubmit=e=>{e.preventDefault();entries.push({id:Date.now(),text:ta.value,date:new Date().toLocaleString()});persist();ta.value='';render();};ct.appendChild(f);}
+    else if(active==='select'){ct.innerHTML='<h3>📔 Journal</h3>';entries.slice().reverse().forEach(en=>{const p=document.createElement('div');p.className='qt-panel';p.style.marginBottom='8px';p.innerHTML='<span class="meta">'+esc(en.date)+'</span><div>'+esc(en.text)+'</div>';ct.appendChild(p);});}
+    else if(active==='settings'){ct.innerHTML='<h3>⚙ Einstellungen</h3>';}
+    else{ct.innerHTML='<h3>🗑 Löschen</h3>';entries.forEach(en=>{const row=document.createElement('div');row.className='list-row';row.innerHTML='<span>'+esc(en.text.slice(0,40))+'</span>';const d=document.createElement('button');d.className='danger';d.textContent='✕';d.onclick=()=>{if(confirm(T('confirm'))){entries=entries.filter(x=>x.id!==en.id);persist();render();}};row.appendChild(d);ct.appendChild(row);});}
+  }
+  render();
+};
+
+const viewKeyboard = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>⌨️ Sprache</h3>';
+  speak('Willkommen bei den HalDo Tastatur-Einstellungen');
+  const sel=document.createElement('select');
+  Object.keys(LANGNAMES).forEach(code=>{const o=document.createElement('option');o.value=code;o.textContent=LANGNAMES[code];sel.appendChild(o);});
+  sel.onchange=()=>setLanguage(sel.value);body.appendChild(sel);
+};
+
+const viewMusic = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🎵 Music Studio</h3>';
+  speak('Willkommen im HalDo Music Studio');
+};
+
+const viewNavigation = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  speak('Willkommen bei der HalDo Navigation. Ich führe dich sicher ans Ziel.');
+  let active='map';
+  function render(){
+    sb.innerHTML='';
+    [['map','🗺 Karte'],['settings','⚙ Einstellungen']].forEach(([id,label])=>{const b=document.createElement('button');b.className='side-btn'+(active===id?' active':'');b.textContent=label;b.onclick=()=>{active=id;render();};sb.appendChild(b);});
+    const sp=document.createElement('button');sp.className='side-btn speak-btn';sp.textContent='🔊 '+T('speak');sp.onclick=()=>speak('Navigation.');sb.appendChild(sp);
+    ct.innerHTML='';
+    if(active==='map'){
+      const holo=document.createElement('div');holo.className='holo-map';
+      holo.innerHTML='<div class="holo-arrow" style="top:30%;left:20%;">⬆️</div><div class="holo-arrow" style="top:50%;left:50%;">➡️</div><div class="holo-text" style="top:20%;left:30%;">Links abbiegen in 500m</div><div class="holo-text" style="top:70%;left:40%;">Ziel: Hauptstraße 12</div>';
+      ct.appendChild(holo);
+    }else if(active==='settings'){
+      ct.innerHTML='<h3>⚙ Einstellungen</h3><p>Hologramm-Farbe: <input type="color" value="#fbbf24" onchange="document.documentElement.style.setProperty(\'--gold\',this.value)"></p>';
+    }
+  }
+  render();
+};
+
+const viewOffice = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>📊 Office</h3>';
+  speak('Willkommen bei HalDo Office');
+};
+
+const viewPhotos = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>📷 Kamera</h3>';
+  speak('Willkommen bei der HalDo Kamera');
+  const video=document.createElement('video');video.autoplay=true;video.style.cssText='width:100%;max-height:400px;background:#000;border-radius:8px;';body.appendChild(video);
+  if(navigator.mediaDevices?.getUserMedia){navigator.mediaDevices.getUserMedia({video:true}).then(s=>video.srcObject=s).catch(()=>{});}
+};
+
+const viewQuickTools = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🛠️ Quick Tools</h3>';
+  speak('Willkommen bei den HalDo Quick Tools');
+};
+
+const viewRecorder = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🎙️ Recorder</h3>';
+  speak('Willkommen beim HalDo Recorder');
+};
+
+const viewSecurity = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🛡️ Security</h3>';
+  speak('Willkommen bei der HalDo Sicherheit');
+};
+
+const viewTasks = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  let tasks=store('tasks',[]);const persist=()=>save('tasks',tasks);
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  let active='select';
+  speak('Willkommen bei den HalDo Aufgaben');
+  function render(){
+    sb.innerHTML='';
+    [['select','✅ Aufgaben'],['create','➕ Neu'],['settings','⚙ Einstellungen'],['delete','🗑 Löschen']].forEach(([id,label])=>{const b=document.createElement('button');b.className='side-btn'+(active===id?' active':'');b.textContent=label;b.onclick=()=>{active=id;render();};sb.appendChild(b);});
+    ct.innerHTML='';
+    if(active==='select'){ct.innerHTML='<h3>✅ Aufgaben ('+tasks.filter(x=>!x.done).length+' offen)</h3>';tasks.forEach(tk=>{const row=document.createElement('div');row.className='list-row';const cb=document.createElement('input');cb.type='checkbox';cb.checked=tk.done;cb.style.width='auto';cb.onchange=()=>{tk.done=cb.checked;persist();render();};row.appendChild(cb);const span=document.createElement('span');span.textContent=tk.text;row.appendChild(span);ct.appendChild(row);});}
+    else if(active==='create'){ct.innerHTML='<h3>➕ Neue Aufgabe</h3>';const f=document.createElement('form');const i=document.createElement('input');i.placeholder='Aufgabe';f.appendChild(i);const b=document.createElement('button');b.textContent=T('save');f.appendChild(b);f.onsubmit=e=>{e.preventDefault();tasks.push({id:Date.now(),text:i.value,done:false});persist();render();};ct.appendChild(f);}
+    else if(active==='settings'){ct.innerHTML='<h3>⚙ Einstellungen</h3>';}
+    else{ct.innerHTML='<h3>🗑 Löschen</h3>';tasks.forEach(tk=>{const row=document.createElement('div');row.className='list-row';row.innerHTML='<span>'+esc(tk.text)+'</span>';const d=document.createElement('button');d.className='danger';d.textContent='✕';d.onclick=()=>{if(confirm(T('confirm'))){tasks=tasks.filter(x=>x.id!==tk.id);persist();render();}};row.appendChild(d);ct.appendChild(row);});}
+  }
+  render();
+};
+
+const viewUpdates = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🔄 Updates</h3><p>System aktuell: v1.7.0</p>';
+  speak('Willkommen bei den HalDo Updates');
+};
+
+const viewVideo = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🎬 Video Studio</h3>';
+  speak('Willkommen im HalDo Video Studio');
+};
+
+const viewWeather = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🌤️ Wetter</h3>';
+  speak('Willkommen beim HalDo Wetter');
+};
+
+const viewExperience = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🎨 Themes</h3>';
+  speak('Willkommen bei der HalDo Personalisierung');
+  ['#06b6d4','#ff66dd','#88ff88','#ffcc44','#ff6666','#aa88ff','#fbbf24','#a855f7'].forEach(c=>{const b=document.createElement('button');b.textContent=c;b.style.cssText='background:'+c+';color:#000;margin:4px;padding:12px 20px;border-radius:8px;font-weight:700;';b.onclick=()=>{document.documentElement.style.setProperty('--accent',c);document.documentElement.style.setProperty('--accent2',c);localStorage.setItem('haldo_theme',c);};body.appendChild(b);});
+};
+
+const viewYourLife = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🏠 Your Life</h3>';
+  speak('Willkommen bei Dein Leben Dashboard');
+};
+
+const viewSystemCenter = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>⚙️ System Center</h3><p>Version: v1.7.0</p><p>Apps: '+REGISTRY.length+'</p><p>Sprachen: 20</p>';
+  speak('Willkommen im HalDo System Center');
+};
+
+/* ==================== FAHRSCHULE (ALLE KLASSEN) ==================== */
+const viewFahrschuleApp = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  let active='klassen';
+  let stats=store('fahrschule_stats',{richtig:0,falsch:0});
+  let selectedClass=store('fahrschule_class','B');
+  let questionCount=store('fahrschule_count',30);
+  let questions=store('fahrschule_fragen',[
+    {id:1,q:'Wie schnell darf man innerorts höchstens fahren?',a:['30 km/h','50 km/h','60 km/h','70 km/h'],correct:1,klasse:'B'},
+    {id:2,q:'Was bedeutet ein rotes Dreieck?',a:['Vorfahrt gewähren','Stop','Vorfahrtstraße','Parkplatz'],correct:0,klasse:'B'},
+    {id:3,q:'Promillegrenze für Fahranfänger?',a:['0,0 Promille','0,5 Promille','0,8 Promille','1,0 Promille'],correct:0,klasse:'B'},
+    {id:4,q:'Wie lang ist die Probezeit?',a:['1 Jahr','2 Jahre','3 Jahre','5 Jahre'],correct:1,klasse:'B'},
+    {id:5,q:'Autobahn Richtgeschwindigkeit?',a:['100 km/h','120 km/h','130 km/h','150 km/h'],correct:2,klasse:'B'},
+    {id:6,q:'Wie tief muss das Profil sein?',a:['1,0 mm','1,6 mm','2,0 mm','3,0 mm'],correct:1,klasse:'B'},
+    {id:7,q:'Wie schnell darf ein Mofa fahren?',a:['20 km/h','25 km/h','30 km/h','45 km/h'],correct:1,klasse:'AM'},
+    {id:8,q:'Wie schnell darf ein Kleinkraftrad fahren?',a:['25 km/h','30 km/h','45 km/h','50 km/h'],correct:2,klasse:'AM'},
+    {id:9,q:'Ab welchem Alter darf man A1 fahren?',a:['14 Jahre','16 Jahre','18 Jahre','21 Jahre'],correct:1,klasse:'A1'},
+    {id:10,q:'Ab welchem Alter darf man A2 fahren?',a:['16 Jahre','18 Jahre','20 Jahre','24 Jahre'],correct:1,klasse:'A2'},
+    {id:11,q:'Ab welchem Alter darf man A fahren (Direkteinstieg)?',a:['18 Jahre','21 Jahre','24 Jahre','25 Jahre'],correct:2,klasse:'A'},
+    {id:12,q:'Ab welchem Alter darf man C fahren?',a:['18 Jahre','20 Jahre','21 Jahre','24 Jahre'],correct:2,klasse:'C'},
+    {id:13,q:'Ab welchem Alter darf man D fahren?',a:['18 Jahre','20 Jahre','21 Jahre','24 Jahre'],correct:3,klasse:'D'},
+    {id:14,q:'Was bedeutet ein blaues Quadrat mit P?',a:['Parkplatz','Pause','Polizei','Post'],correct:0,klasse:'B'},
+    {id:15,q:'Was tun bei Wildwechsel?',a:['Bremsen, nicht ausweichen','Ausweichen','Beschleunigen','Hupen'],correct:0,klasse:'B'}
+  ]);
+
+  const KLASSEN = [
+    {code:'AM', ico:'🛵', desc:'Mofa / Roller'},
+    {code:'A1', ico:'🏍️', desc:'Leichtkraftrad'},
+    {code:'A2', ico:'🏍️', desc:'Mittlere Maschine'},
+    {code:'A', ico:'🏍️', desc:'Schwere Maschine'},
+    {code:'B', ico:'🚗', desc:'PKW'},
+    {code:'BE', ico:'🚗', desc:'PKW + Anhänger'},
+    {code:'C1', ico:'🚛', desc:'LKW 3,5-7,5t'},
+    {code:'C', ico:'🚛', desc:'LKW über 7,5t'},
+    {code:'D1', ico:'🚌', desc:'Kleinbus'},
+    {code:'D', ico:'🚌', desc:'Bus'},
+    {code:'E', ico:'🚛', desc:'Anhänger'},
+    {code:'M', ico:'🛴', desc:'Leichtkraftrad'}
+  ];
+
+  speak('Willkommen in der HalDo Fahrschule. Wähle deine Führerscheinklasse und starte deine Ausbildung.');
+
+  let quizIndex=0;
+  let quizQuestions=[];
+
+  function render(){
+    sb.innerHTML='';
+    [['klassen','🚗 Klassen'],['simulator','🎯 Simulator'],['stats','📊 Statistik'],['settings','⚙ Einstellungen'],['delete','🗑 Löschen']].forEach(([id,label])=>{
+      const b=document.createElement('button');b.className='side-btn'+(active===id?' active':'');b.textContent=label;b.onclick=()=>{active=id;render();};sb.appendChild(b);
+    });
+    const sp=document.createElement('button');sp.className='side-btn speak-btn';sp.textContent='🔊 '+T('speak');
+    sp.onclick=()=>speak('Fahrschule. '+questions.length+' Fragen. Klasse '+selectedClass+'.');
+    sb.appendChild(sp);
+    ct.innerHTML='';
+
+    if(active==='klassen'){
+      ct.innerHTML='<h3>🚗 Führerscheinklassen</h3><p class="muted">Wähle deine Klasse. Alle Prüfungsfragen werden auf diese Klasse abgestimmt.</p>';
+      const grid=document.createElement('div');grid.className='klassen-grid';
+      KLASSEN.forEach(k=>{
+        const b=document.createElement('div');
+        b.className='klasse-btn'+(selectedClass===k.code?' active':'');
+        b.innerHTML='<div class="kl-ico">'+k.ico+'</div><div class="kl-code">'+k.code+'</div><div class="kl-desc">'+k.desc+'</div>';
+        b.onclick=()=>{selectedClass=k.code;save('fahrschule_class',k.code);speak('Führerscheinklasse '+k.code+' ausgewählt.');render();};
+        grid.appendChild(b);
+      });
+      ct.appendChild(grid);
+    }else if(active==='simulator'){
+      ct.innerHTML='<h3>🎯 Simulator – Klasse '+selectedClass+'</h3>';
+      if(quizIndex===0||quizQuestions.length===0){
+        const pool=questions.filter(q=>q.klasse===selectedClass);
+        quizQuestions=pool.slice(0,Math.min(questionCount,pool.length)).sort(()=>Math.random()-0.5);
+        if(quizQuestions.length===0){ct.innerHTML+='<p class="muted">Keine Fragen für diese Klasse verfügbar.</p>';return;}
+        const startBtn=document.createElement('button');
+        startBtn.textContent='🚀 Simulator starten ('+quizQuestions.length+' Fragen)';
+        startBtn.style.cssText='padding:16px 32px;background:var(--accent);color:#fff;font-size:16px;font-weight:700;border-radius:12px;cursor:pointer;border:none;margin-top:12px;';
+        startBtn.onclick=()=>{quizIndex=0;render();};
+        ct.appendChild(startBtn);
+        return;
+      }
+      if(quizIndex>=quizQuestions.length){
+        const total=stats.richtig+stats.falsch;
+        const rate=total>0?Math.round(stats.richtig/total*100):0;
+        ct.innerHTML+='<div class="simulator"><h4>🎉 Simulator beendet!</h4><p style="font-size:32px;color:#10b981;margin:20px 0;">'+rate+'% richtig</p><p>Richtig: '+stats.richtig+' · Falsch: '+stats.falsch+'</p></div>';
+        const restart=document.createElement('button');
+        restart.textContent='🔄 Nochmal';
+        restart.style.marginTop='12px';
+        restart.onclick=()=>{stats={richtig:0,falsch:0};save('fahrschule_stats',stats);quizIndex=0;quizQuestions=[];render();};
+        ct.appendChild(restart);
+        return;
+      }
+      const q=quizQuestions[quizIndex];
+      const sim=document.createElement('div');sim.className='simulator';
+      sim.innerHTML='<div style="font-size:14px;color:var(--dim);margin-bottom:8px;">Frage '+(quizIndex+1)+' von '+quizQuestions.length+'</div>';
+      const qt=document.createElement('div');qt.className='sim-question';qt.textContent=q.q;sim.appendChild(qt);
+      const answers=document.createElement('div');answers.className='sim-answers';
+      q.a.forEach((ans,idx)=>{
+        const btn=document.createElement('button');
+        btn.className='sim-answer';
+        btn.textContent=String.fromCharCode(65+idx)+') '+ans;
+        btn.onclick=()=>{
+          if(idx===q.correct){
+            btn.classList.add('correct');stats.richtig++;speak('Richtig!');
+          }else{
+            btn.classList.add('wrong');stats.falsch++;
+            answers.children[q.correct].classList.add('correct');
+            speak('Leider falsch. Richtig ist: '+q.a[q.correct]);
+          }
+          save('fahrschule_stats',stats);
+          setTimeout(()=>{quizIndex++;render();},1800);
+        };
+        answers.appendChild(btn);
+      });
+      sim.appendChild(answers);
+      ct.appendChild(sim);
+    }else if(active==='stats'){
+      ct.innerHTML='<h3>📊 Statistik</h3>';
+      const total=stats.richtig+stats.falsch;const rate=total>0?Math.round(stats.richtig/total*100):0;
+      ct.innerHTML+='<div class="qt-grid"><div class="qt-panel"><h4>✓ Richtig</h4><div style="font-size:32px;color:#10b981;">'+stats.richtig+'</div></div><div class="qt-panel"><h4>✗ Falsch</h4><div style="font-size:32px;color:#ef4444;">'+stats.falsch+'</div></div><div class="qt-panel"><h4>📊 Quote</h4><div style="font-size:32px;color:#06b6d4;">'+rate+'%</div></div><div class="qt-panel"><h4>🎯 Klasse</h4><div style="font-size:32px;color:#f59e0b;">'+selectedClass+'</div></div></div>';
+    }else if(active==='settings'){
+      ct.innerHTML='<h3>⚙ Einstellungen</h3><p>Klasse: <b>'+selectedClass+'</b></p>';
+    }else if(active==='delete'){
+      ct.innerHTML='<h3>🗑 Löschen</h3>';
+      const reset=document.createElement('button');reset.className='danger';reset.textContent='Alle Statistiken löschen';
+      reset.onclick=()=>{if(confirm('Wirklich löschen?')){stats={richtig:0,falsch:0};save('fahrschule_stats',stats);render();}};
+      ct.appendChild(reset);
+    }
+  }
+  render();
+};
+
+/* ==================== BLITZER (MIT ECHTEM TACHO) ==================== */
+const viewBlitzerApp = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  let active='tacho';
+  let currentSpeed=store('blitzer_speed',50);
+  let speedLimit=store('blitzer_limit',50);
+  let settings=store('blitzer_settings',{voiceType:'female',langCode:'de',alarmType:'siren',alarmDuration:5,warnDistance:3000,backgroundMode:true});
+  let dangerLog=store('blitzer_log',[]);
+  const persistSettings=()=>save('blitzer_settings',settings);
+  const persistLog=()=>save('blitzer_log',dangerLog);
+
+  const DANGERS = [
+    {id:'stau',label:'Stau',icon:'🚗',msg:'Achtung Halil, vor dir ist ein Stau. Bitte reduziere deine Geschwindigkeit.'},
+    {id:'baustelle',label:'Baustelle',icon:'🚧',msg:'Achtung Halil, vor dir ist eine Baustelle. Fahr bitte vorsichtig.'},
+    {id:'blitzer_fest',label:'Fester Blitzer',icon:'📸',msg:'Achtung Halil, vor dir ist ein fester Blitzer.'},
+    {id:'blitzer_mobil',label:'Mobiler Blitzer',icon:'🚔',msg:'Achtung Halil, vor dir ist ein mobiler Blitzer. Bitte reduziere deine Geschwindigkeit.'},
+    {id:'ampel_blitzer',label:'Ampel-Blitzer',icon:'🚦',msg:'Achtung Halil, vor dir ist ein Ampel-Blitzer.'},
+    {id:'umleitung',label:'Umleitung',icon:'↩️',msg:'Achtung Halil, vor dir ist eine Umleitung.'},
+    {id:'ampel_rot',label:'Rote Ampel',icon:'🔴',msg:'Achtung Halil, rote Ampel vor dir. Bitte bremsen.'},
+    {id:'fussgaenger',label:'Fußgängerzone',icon:'🚶',msg:'Achtung Halil, Fußgängerzone. Bitte langsam fahren.'},
+    {id:'kinder',label:'Kinder',icon:'👧',msg:'Achtung Halil, Kinder auf der Straße. Bitte bremsbereit sein.'},
+    {id:'temp_30',label:'30 km/h',icon:'3️⃣',msg:'Achtung Halil, 30 km/h Zone. Bitte anpassen.'},
+    {id:'temp_50',label:'50 km/h',icon:'5️⃣',msg:'Achtung Halil, 50 km/h Zone.'},
+    {id:'temp_100',label:'100 km/h',icon:'💯',msg:'Achtung Halil, 100 km/h Zone.'},
+    {id:'temp_130',label:'130 km/h',icon:'🛣️',msg:'Achtung Halil, 130 km/h Zone.'},
+    {id:'unbegrenzt',label:'Unbegrenzt',icon:'⚡',msg:'Achtung Halil, ab hier unbegrenzt. Fahr sicher.'},
+    {id:'verbot',label:'Verbotsschild',icon:'⛔',msg:'Achtung Halil, Verbotsschild voraus.'},
+    {id:'gefahr',label:'Gefahrenstelle',icon:'⚠️',msg:'Achtung Halil, Gefahrenstelle voraus.'}
+  ];
+
+  let bgInterval=null;
+  let currentDangerIndex=0;
+
+  function triggerDanger(danger){
+    if(!danger)return;
+    const time=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    dangerLog.unshift({id:Date.now(),label:danger.label,icon:danger.icon,time,msg:danger.msg});
+    if(dangerLog.length>20)dangerLog=dangerLog.slice(0,20);
+    persistLog();
+    speak(danger.msg,settings.voiceType,LANGCODES[settings.langCode]);
+    playAlarm(settings.alarmType,settings.alarmDuration);
+    const tacho=document.getElementById('tacho-main');
+    if(tacho){tacho.classList.add('tacho-warning');setTimeout(()=>tacho.classList.remove('tacho-warning'),2000);}
+    const logEl=document.getElementById('danger-log-list');
+    if(logEl){
+      logEl.innerHTML='';
+      dangerLog.forEach(d=>{
+        const entry=document.createElement('div');entry.className='danger-entry';
+        entry.innerHTML='<div class="icon">'+d.icon+'</div><div class="info"><strong>'+d.label+'</strong><br><small>'+d.msg+'</small></div><div class="time">'+d.time+'</div>';
+        logEl.appendChild(entry);
+      });
+    }
+  }
+
+  function startBg(){
+    if(bgInterval)clearInterval(bgInterval);
+    if(!settings.backgroundMode)return;
+    bgInterval=setInterval(()=>{
+      if(currentDangerIndex<DANGERS.length){
+        const danger=DANGERS[currentDangerIndex%DANGERS.length];
+        triggerDanger(danger);
+        currentDangerIndex++;
+      }
+    },12000);
+  }
+
+  function renderTacho(){
+    ct.innerHTML='';
+    const wrap=document.createElement('div');wrap.className='tacho-wrap';
+    wrap.innerHTML='<h3 style="margin-bottom:0;">🚨 HalDo Blitzer – Live</h3>';
+
+    const ki=document.createElement('div');ki.className='ki-bubble';
+    ki.innerHTML='<div class="ki-avatar">🤖</div><div class="ki-text" id="ki-text">Ich bin HalDo AI, dein Beifahrer. Ich passe auf dich auf und warne dich vor Gefahren. <strong>Fahre sicher!</strong></div>';
+    wrap.appendChild(ki);
+
+    const tachoWrap=document.createElement('div');tachoWrap.style.cssText='position:relative;';
+    const tacho=document.createElement('div');tacho.className='tacho';tacho.id='tacho-main';
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('viewBox','0 0 340 340');
+    svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;';
+    const arcPath=document.createElementNS('http://www.w3.org/2000/svg','path');
+    arcPath.setAttribute('d','M 60 170 A 110 110 0 0 1 280 170');
+    arcPath.setAttribute('fill','none');
+    arcPath.setAttribute('stroke','rgba(55,65,81,.5)');
+    arcPath.setAttribute('stroke-width','12');
+    arcPath.setAttribute('stroke-linecap','round');
+    svg.appendChild(arcPath);
+    const speedArc=document.createElementNS('http://www.w3.org/2000/svg','path');
+    speedArc.setAttribute('id','speed-arc');
+    speedArc.setAttribute('fill','none');
+    speedArc.setAttribute('stroke','#06b6d4');
+    speedArc.setAttribute('stroke-width','12');
+    speedArc.setAttribute('stroke-linecap','round');
+    speedArc.setAttribute('stroke-dasharray','0 999');
+    svg.appendChild(speedArc);
+    tacho.appendChild(svg);
+
+    const needle=document.createElement('div');needle.className='tacho-needle';needle.id='needle';tacho.appendChild(needle);
+    const center=document.createElement('div');center.className='tacho-center';tacho.appendChild(center);
+    const inner=document.createElement('div');inner.className='tacho-inner';
+    inner.innerHTML='<div class="tacho-speed" id="speed-val">'+currentSpeed+'</div><div class="tacho-unit">km/h</div>';
+    tacho.appendChild(inner);
+
+    const settingsBtn=document.createElement('button');
+    settingsBtn.className='tacho-settings-btn';
+    settingsBtn.innerHTML='⚙';
+    settingsBtn.title='Einstellungen im Tacho';
+    settingsBtn.onclick=()=>{active='settings';render();};
+    tacho.appendChild(settingsBtn);
+
+    tachoWrap.appendChild(tacho);
+    wrap.appendChild(tachoWrap);
+
+    const limitDiv=document.createElement('div');limitDiv.style.cssText='text-align:center;margin-top:8px;';
+    limitDiv.innerHTML='<span style="font-size:14px;color:var(--dim);">Tempolimit:</span> <span style="font-size:28px;font-weight:900;color:'+(currentSpeed>speedLimit?'#ef4444':'#10b981')+';margin-left:8px;">'+speedLimit+' km/h</span>';
+    wrap.appendChild(limitDiv);
+
+    const speedControls=document.createElement('div');speedControls.style.cssText='display:flex;gap:10px;align-items:center;margin-top:8px;';
+    const minusBtn=document.createElement('button');minusBtn.textContent='−';minusBtn.style.cssText='width:50px;height:50px;font-size:24px;border-radius:50%;background:rgba(6,182,212,.2);border:1px solid var(--accent);color:var(--accent);cursor:pointer;';
+    minusBtn.onclick=()=>{currentSpeed=Math.max(0,currentSpeed-5);save('blitzer_speed',currentSpeed);render();};
+    const plusBtn=document.createElement('button');plusBtn.textContent='+';plusBtn.style.cssText='width:50px;height:50px;font-size:24px;border-radius:50%;background:rgba(6,182,212,.2);border:1px solid var(--accent);color:var(--accent);cursor:pointer;';
+    plusBtn.onclick=()=>{currentSpeed=Math.min(300,currentSpeed+5);save('blitzer_speed',currentSpeed);render();};
+    speedControls.appendChild(minusBtn);speedControls.appendChild(plusBtn);
+    wrap.appendChild(speedControls);
+
+    const limits=[30,50,60,70,80,100,120,130];
+    const limitGrid=document.createElement('div');limitGrid.className='speed-limits';
+    limits.forEach(lim=>{
+      const b=document.createElement('div');
+      b.className='speed-btn'+(speedLimit===lim?' active':'');
+      b.innerHTML=lim+'<small>km/h</small>';
+      b.onclick=()=>{speedLimit=lim;save('blitzer_limit',lim);render();};
+      limitGrid.appendChild(b);
+    });
+    const unb=document.createElement('div');unb.className='speed-btn'+(speedLimit===999?' active':'');unb.innerHTML='⚡<small>unbegrenzt</small>';
+    unb.onclick=()=>{speedLimit=999;save('blitzer_limit',999);render();};
+    limitGrid.appendChild(unb);
+    wrap.appendChild(limitGrid);
+
+    const testBtn=document.createElement('button');
+    testBtn.textContent='🚨 Test-Warnung (KI)';
+    testBtn.style.cssText='margin-top:16px;padding:14px 28px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:15px;font-weight:700;border-radius:10px;border:none;cursor:pointer;box-shadow:0 4px 20px rgba(6,182,212,.5);';
+    testBtn.onclick=()=>{
+      const danger=DANGERS[Math.floor(Math.random()*DANGERS.length)];
+      triggerDanger(danger);
+    };
+    wrap.appendChild(testBtn);
+
+    const logTitle=document.createElement('h4');logTitle.style.cssText='margin-top:20px;width:100%;';logTitle.textContent='📋 Warnungs-Verlauf';
+    wrap.appendChild(logTitle);
+    const logDiv=document.createElement('div');logDiv.className='danger-log';logDiv.id='danger-log-list';logDiv.style.width='100%';
+    dangerLog.forEach(d=>{
+      const entry=document.createElement('div');entry.className='danger-entry';
+      entry.innerHTML='<div class="icon">'+d.icon+'</div><div class="info"><strong>'+d.label+'</strong><br><small>'+d.msg+'</small></div><div class="time">'+d.time+'</div>';
+      logDiv.appendChild(entry);
+    });
+    if(dangerLog.length===0)logDiv.innerHTML='<p class="muted">Noch keine Warnungen. Klicke auf "Test-Warnung".</p>';
+    wrap.appendChild(logDiv);
+
+    ct.appendChild(wrap);
+
+    const maxSpeed=200;
+    const pct=Math.min(currentSpeed/maxSpeed,1);
+    const arcLen=340;
+    const speedArcEl=document.getElementById('speed-arc');
+    if(speedArcEl){
+      speedArcEl.setAttribute('stroke-dasharray',(pct*arcLen)+' '+arcLen);
+      speedArcEl.setAttribute('stroke',currentSpeed>speedLimit?'#ef4444':'#06b6d4');
+    }
+    const needleEl=document.getElementById('needle');
+    if(needleEl){
+      const angle=-90+(pct*180);
+      needleEl.style.transform='translateX(-50%) rotate('+angle+'deg)';
+    }
+  }
+
+  function render(){
+    sb.innerHTML='';
+    [['tacho','🏁 Tacho'],['settings','⚙ Einstellungen']].forEach(([id,label])=>{
+      const b=document.createElement('button');b.className='side-btn'+(active===id?' active':'');b.textContent=label;b.onclick=()=>{active=id;render();};sb.appendChild(b);
+    });
+    const sp=document.createElement('button');sp.className='side-btn speak-btn';sp.textContent='🔊 '+T('speak');
+    sp.onclick=()=>speak('HalDo Blitzer. Dein Beifahrer.',settings.voiceType,LANGCODES[settings.langCode]);
+    sb.appendChild(sp);
+
+    if(active==='tacho'){
+      renderTacho();
+    }else if(active==='settings'){
+      ct.innerHTML='<h3>⚙ Blitzer-Einstellungen</h3>';
+
+      let opts = Object.keys(LANGNAMES).map(k=>'<option value="'+k+'"'+(settings.langCode===k?' selected':'')+'>'+LANGNAMES[k]+'</option>').join('');
+      ct.innerHTML+='<div class="settings-row"><div><div class="lbl">🌐 Sprache</div><div class="sub">Warnungen in dieser Sprache</div></div><div class="ctrl"><select id="bl-lang">'+opts+'</select></div></div>';
+
+      const voiceMap=[['male','Männlich'],['female','Weiblich'],['robot','Roboter'],['child','Kind'],['old','Älterer Mensch']];
+      opts = voiceMap.map(([v,l])=>'<option value="'+v+'"'+(settings.voiceType===v?' selected':'')+'>'+l+'</option>').join('');
+      ct.innerHTML+='<div class="settings-row"><div><div class="lbl">🎤 Stimme</div><div class="sub">Sprecher</div></div><div class="ctrl"><select id="bl-voice">'+opts+'</select></div></div>';
+
+      const alarmMap=[['beep','Piepton'],['siren','Sirene'],['bell','Glocke'],['bird','Vogelstimme'],['alarm','Alarm'],['horn','Hupe'],['whistle','Pfeife'],['chime','Klingel'],['dog','Hund'],['cat','Katze'],['cow','Kuh'],['police','Polizei'],['ambulance','Krankenwagen'],['fire','Feuerwehr'],['train','Zug'],['buzzer','Summer'],['radar','Radar'],['martinshorn','Martinshorn'],['laser','Laser'],['sonar','Sonar'],['heartbeat','Herzschlag'],['ufo','UFO'],['explosion','Explosion'],['geiger','Geiger'],['danger','Gefahr'],['warning','Warnung'],['horn2','Hupe 2']];
+      opts = alarmMap.map(([v,l])=>'<option value="'+v+'"'+(settings.alarmType===v?' selected':'')+'>'+l+'</option>').join('');
+      ct.innerHTML+='<div class="settings-row"><div><div class="lbl">🔊 Warnton</div><div class="sub">Alarm-Signal (27 verfügbar)</div></div><div class="ctrl"><select id="bl-alarm">'+opts+'</select></div></div>';
+
+      ct.innerHTML+='<div class="settings-row"><div><div class="lbl">⏱ Dauer (Sek.)</div><div class="sub">1-30 Sekunden</div></div><div class="ctrl"><input id="bl-dur" type="number" min="1" max="30" value="'+settings.alarmDuration+'"></div></div>';
+
+      ct.innerHTML+='<div class="settings-row"><div><div class="lbl">📏 Warnabstand (m)</div><div class="sub">Ab wann warnen</div></div><div class="ctrl"><input id="bl-dist" type="number" value="'+settings.warnDistance+'"></div></div>';
+
+      ct.innerHTML+='<div class="settings-row"><div><div class="lbl">🌙 Hintergrundmodus</div><div class="sub">Regelmäßige Warnungen</div></div><div class="ctrl"><span class="toggle '+(settings.backgroundMode?'on':'')+'" id="bl-bg"></span></div></div>';
+
+      const saveBtn = document.createElement('button');
+      saveBtn.textContent = '💾 '+T('save');
+      saveBtn.style.marginTop = '16px';
+      saveBtn.onclick = () => {
+        settings.langCode = document.getElementById('bl-lang').value;
+        settings.voiceType = document.getElementById('bl-voice').value;
+        settings.alarmType = document.getElementById('bl-alarm').value;
+        settings.alarmDuration = parseInt(document.getElementById('bl-dur').value)||5;
+        settings.warnDistance = parseInt(document.getElementById('bl-dist').value)||3000;
+        settings.backgroundMode = document.getElementById('bl-bg').classList.contains('on');
+        persistSettings();
+        startBg();
+        alert('✓ Einstellungen gespeichert');
+        render();
+      };
+      ct.appendChild(saveBtn);
+
+      const testBtn = document.createElement('button');
+      testBtn.textContent = '🔊 Test (mit aktuellen Einstellungen)';
+      testBtn.style.marginTop = '8px';
+      testBtn.onclick = () => {
+        const testLang = document.getElementById('bl-lang').value;
+        const testVoice = document.getElementById('bl-voice').value;
+        const testAlarm = document.getElementById('bl-alarm').value;
+        const testDur = parseInt(document.getElementById('bl-dur').value)||3;
+        speak('Achtung Halil! Test-Warnung aktiv.', testVoice, LANGCODES[testLang]);
+        playAlarm(testAlarm, testDur);
+      };
+      ct.appendChild(testBtn);
+
+      setTimeout(()=>{
+        const bg = document.getElementById('bl-bg');
+        if(bg){ bg.onclick = (e) => { e.stopPropagation(); bg.classList.toggle('on'); }; }
+      },0);
+    }
+  }
+  render();
+  const welcome='Willkommen bei HalDo Blitzer. Ich bin dein KI-Beifahrer und passe auf dich auf.';
+  speak(welcome,settings.voiceType,LANGCODES[settings.langCode]);
+  startBg();
+};
+
+/* ==================== AUTO ==================== */
+const viewAutoApp = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🚙 Auto</h3>';
+  speak('Willkommen bei deiner HalDo Auto-App');
+};
+
+/* ==================== WINDOW MANAGER ==================== */
+const openWindows={};let zCounter=20;const nextZ=()=>zCounter++;
+const REGISTRY=[
+  {id:'A', ico:'🧠', nm:'HalDo AI', fn:viewAI},
+  {id:'B', ico:'🌐', nm:'Browser', fn:viewBrowser},
+  {id:'C', ico:'📅', nm:'Calendar', fn:viewCalendar},
+  {id:'D', ico:'📄', nm:'Documents', fn:viewDocuments},
+  {id:'E', ico:'✉️', nm:'Email', fn:viewEmail},
+  {id:'F', ico:'📂', nm:'Files', fn:viewFiles},
+  {id:'G', ico:'🖼️', nm:'Gallery', fn:viewGallery},
+  {id:'H', ico:'🩺', nm:'Health', fn:viewHealth},
+  {id:'I', ico:'🌍', nm:'Internet', fn:viewInternet},
+  {id:'J', ico:'📖', nm:'Journal', fn:viewJournal},
+  {id:'K', ico:'⌨️', nm:'Keyboard', fn:viewKeyboard},
+  {id:'L', ico:'🎓', nm:'Learning', fn:viewLearning},
+  {id:'M', ico:'🎵', nm:'Music', fn:viewMusic},
+  {id:'N', ico:'🗺️', nm:'Navigation', fn:viewNavigation},
+  {id:'O', ico:'📊', nm:'Office', fn:viewOffice},
+  {id:'P', ico:'📷', nm:'Photos', fn:viewPhotos},
+  {id:'Q', ico:'🛠️', nm:'Quick Tools', fn:viewQuickTools},
+  {id:'R', ico:'🎙️', nm:'Recorder', fn:viewRecorder},
+  {id:'S', ico:'🛡️', nm:'Security', fn:viewSecurity},
+  {id:'T', ico:'✅', nm:'Tasks', fn:viewTasks},
+  {id:'U', ico:'🔄', nm:'Updates', fn:viewUpdates},
+  {id:'V', ico:'🎬', nm:'Video', fn:viewVideo},
+  {id:'W', ico:'🌤️', nm:'Weather', fn:viewWeather},
+  {id:'X', ico:'🎨', nm:'eXperience', fn:viewExperience},
+  {id:'Y', ico:'🏠', nm:'Your Life', fn:viewYourLife},
+  {id:'Z', ico:'⚙️', nm:'System', fn:viewSystemCenter},
+  {id:'FS', ico:'🚗', nm:'Fahrschule', fn:viewFahrschuleApp},
+  {id:'BL', ico:'🚨', nm:'Blitzer', fn:viewBlitzerApp},
+  {id:'AU', ico:'🚙', nm:'Auto', fn:viewAutoApp},
+  {id:'KO', ico:'👥', nm:'Kontakte', fn:viewKontakte},
+  {id:'NO', ico:'📝', nm:'Notizen', fn:viewNotizen},
+  {id:'PW', ico:'🔑', nm:'Passwörter', fn:viewPasswort},
+  {id:'FI', ico:'💰', nm:'Finanzen', fn:viewFinanzen},
+  {id:'FT', ico:'💪', nm:'Fitness', fn:viewFitness},
+  {id:'GE', ico:'🔁', nm:'Gewohnheiten', fn:viewGewohnheiten},
+  {id:'WA', ico:'💧', nm:'Wasser', fn:viewWasser},
+  {id:'ST', ico:'😊', nm:'Stimmung', fn:viewStimmung},
+  {id:'RE', ico:'🍳', nm:'Rezepte', fn:viewRezepte},
+  {id:'EI', ico:'🛒', nm:'Einkauf', fn:viewEinkauf},
+  {id:'RS', ico:'✈️', nm:'Reisen', fn:viewReisen},
+  {id:'VO', ico:'📚', nm:'Vokabeln', fn:viewVokabeln},
+  {id:'FL', ico:'🎴', nm:'Flashcards', fn:viewFlashcards},
+  {id:'NF', ico:'🚨', nm:'Notfall', fn:viewNotfall}
+];
+let appOrder=store('appOrder',REGISTRY.map(a=>a.id));
+function orderedRegistry(){return appOrder.map(id=>REGISTRY.find(a=>a.id===id)).filter(Boolean);}
+function populateStartMenu(){
+  const grid=document.getElementById('sm-apps');if(!grid)return;
+  grid.innerHTML='';
+  orderedRegistry().forEach(a=>{
+    const card=document.createElement('div');card.className='sm-app-card';
+    card.innerHTML='<div class="ico">'+a.ico+'</div><div class="nm">'+a.nm+'</div>';
+    card.onclick=()=>openApp(a.id);
+    grid.appendChild(card);
+  });
+}
+function filterStartMenu(q){
+  const grid=document.getElementById('sm-apps');if(!grid)return;
+  const filt=orderedRegistry().filter(a=>a.nm.toLowerCase().includes(q.toLowerCase()));
+  grid.innerHTML='';
+  filt.forEach(a=>{const card=document.createElement('div');card.className='sm-app-card';card.innerHTML='<div class="ico">'+a.ico+'</div><div class="nm">'+a.nm+'</div>';card.onclick=()=>openApp(a.id);grid.appendChild(card);});
+}
+document.querySelectorAll('.sm-tab').forEach(tab=>{
+  tab.onclick=(e)=>{
+    e.stopPropagation();
+    document.querySelectorAll('.sm-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.sm-panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('sm-panel-'+tab.dataset.tab).classList.add('active');
+    if(tab.dataset.tab==='settings')renderSettingsPanel();
+  };
+});
+
+/* ==================== STARTMENÜ ==================== */
+function toggleStartMenu(e){
+  if(e){e.stopPropagation();e.preventDefault();}
+  const sm=document.getElementById('start-menu');
+  if(sm.classList.contains('show')){sm.classList.remove('show');}
+  else{sm.classList.add('show');renderSettingsPanel();}
+}
+
+document.addEventListener('click',function(e){
+  const sm=document.getElementById('start-menu');
+  if(!sm || !sm.classList.contains('show')) return;
+  if(!e.target || !e.target.isConnected) return;
+  if(sm.contains(e.target)) return;
+  if(e.target.closest('.start-btn')) return;
+  sm.classList.remove('show');
+}, false);
+
+/* ==================== EINSTELLUNGEN ==================== */
+const SETTINGS_SECTIONS=[
+  {id:'general',icon:'🔧',label:'Allgemein'},
+  {id:'display',icon:'🎨',label:'Anzeige'},
+  {id:'kosmos',icon:'🌌',label:'Kosmos'},
+  {id:'voice',icon:'🎤',label:'Stimme'},
+  {id:'language',icon:'🌐',label:'Sprache'},
+  {id:'ki',icon:'🤖',label:'KI & API'},
+  {id:'bluetooth',icon:'📶',label:'Bluetooth'},
+  {id:'notifications',icon:'🔔',label:'Benachrichtigungen'},
+  {id:'sounds',icon:'🔊',label:'Töne'},
+  {id:'privacy',icon:'🔒',label:'Datenschutz'},
+  {id:'security',icon:'🔐',label:'Sicherheit'},
+  {id:'storage',icon:'💾',label:'Speicher'},
+  {id:'battery',icon:'🔋',label:'Akku'},
+  {id:'accessibility',icon:'♿',label:'Bedienungshilfen'},
+  {id:'software',icon:'📱',label:'Software-Update'},
+  {id:'carplay',icon:'🚗',label:'CarPlay'},
+  {id:'wlan',icon:'📡',label:'WLAN'},
+  {id:'airplane',icon:'✈️',label:'Flugmodus'},
+  {id:'about',icon:'ℹ️',label:'Über'}
+];
+let activeSetting='general';
+
+function renderSettingsPanel(){
+  const nav=document.getElementById('settings-nav');const c=document.getElementById('settings-content');
+  if(!nav||!c)return;
+  nav.innerHTML='';
+  SETTINGS_SECTIONS.forEach(s=>{
+    const b=document.createElement('button');
+    b.className='settings-nav-item'+(activeSetting===s.id?' active':'');
+    b.textContent=s.icon+' '+s.label;
+    b.onclick=(e)=>{e.stopPropagation();activeSetting=s.id;renderSettingsPanel();};
+    nav.appendChild(b);
+  });
+  c.innerHTML='';
+  const s=activeSetting;
+  if(s==='general')renderGeneral(c);
+  else if(s==='display')renderDisplay(c);
+  else if(s==='kosmos')renderKosmos(c);
+  else if(s==='voice')renderVoice(c);
+  else if(s==='language')renderLanguage(c);
+  else if(s==='ki')renderKI(c);
+  else if(s==='bluetooth')renderBluetooth(c);
+  else if(s==='notifications')renderNotifications(c);
+  else if(s==='sounds')renderSounds(c);
+  else if(s==='privacy')renderPrivacy(c);
+  else if(s==='security')renderSecuritySettings(c);
+  else if(s==='storage')renderStorage(c);
+  else if(s==='battery')renderBattery(c);
+  else if(s==='accessibility')renderAccessibility(c);
+  else if(s==='software')renderSoftware(c);
+  else if(s==='carplay')renderCarPlay(c);
+  else if(s==='wlan')renderWLAN(c);
+  else if(s==='airplane')renderAirplane(c);
+  else if(s==='about')renderAbout(c);
+}
+function rowHTML(label,sub,ctrl){return '<div class="settings-row"><div><div class="lbl">'+label+'</div><div class="sub">'+sub+'</div></div><div class="ctrl">'+ctrl+'</div></div>';}
+function toggleHTML(id,on){return '<span class="toggle '+(on?'on':'')+'" onclick="event.stopPropagation();this.classList.toggle(\'on\');localStorage.setItem(\'haldo_set_'+id+'\',this.classList.contains(\'on\')?\'1\':\'0\')"></span>';}
+function getToggle(id,def){if(def===undefined)def=true;const v=localStorage.getItem('haldo_set_'+id);if(v===null)return def;return v==='1';}
+
+function renderGeneral(c){
+  c.innerHTML='<h3>🔧 Allgemein</h3>';
+  c.innerHTML+=rowHTML('Gerätename','Name deines HalDo AI OS','<input value="'+(localStorage.getItem('haldo_device_name')||'HalDo AI OS')+'" oninput="localStorage.setItem(\'haldo_device_name\',this.value)" onclick="event.stopPropagation()">');
+  c.innerHTML+=rowHTML('Automatisch speichern','Sofort sichern',toggleHTML('auto_save',getToggle('auto_save',true)));
+  c.innerHTML+=rowHTML('Willkommen','Welcome-Screen',toggleHTML('welcome',getToggle('welcome',true)));
+  c.innerHTML+=rowHTML('App-Splash','Animation',toggleHTML('splash',getToggle('splash',true)));
+}
+function renderDisplay(c){
+  c.innerHTML='<h3>🎨 Anzeige</h3>';
+  const cur=localStorage.getItem('haldo_theme')||'#06b6d4';
+  const btns=['#06b6d4','#b478ff','#10b981','#f59e0b','#ef4444','#ec4899'].map(col=>'<button style="background:'+col+';width:26px;height:26px;border-radius:50%;border:'+(col===cur?'3px solid #fff':'2px solid transparent')+';cursor:pointer;" onclick="event.stopPropagation();document.documentElement.style.setProperty(\'--accent\',\''+col+'\');document.documentElement.style.setProperty(\'--accent2\',\''+col+'\');localStorage.setItem(\'haldo_theme\',\''+col+'\')"></button>').join('');
+  c.innerHTML+=rowHTML('Akzentfarbe','Design',btns);
+  c.innerHTML+=rowHTML('Dark Mode','Dunkles Design',toggleHTML('dark_mode',getToggle('dark_mode',true)));
+  c.innerHTML+=rowHTML('Schriftgröße','12–18px','<input type="range" min="12" max="18" value="'+(localStorage.getItem('haldo_font_size')||14)+'" oninput="document.documentElement.style.setProperty(\'--font-size\',this.value+\'px\');localStorage.setItem(\'haldo_font_size\',this.value)" onclick="event.stopPropagation()">');
+}
+function renderKosmos(c){
+  c.innerHTML='<h3>🌌 Kosmos</h3>';
+  const cfg=cosmosState.config;
+  [['kosmos_sun','☀️ Sonne','Zentraler Stern'],['kosmos_earth','🌍 Erde','Unser Zuhause'],['kosmos_moon','🌙 Mond','Kreist um Erde'],['kosmos_mars','🔴 Mars','Roter Planet'],['kosmos_jupiter','🟠 Jupiter','Größter Planet'],['kosmos_saturn','🪐 Saturn','Mit Ringen'],['kosmos_neptune','🔵 Neptun','Eisriese'],['kosmos_orbits','🛸 Umlaufbahnen','Orbit-Ringe']].forEach(([id,lbl,sub])=>{
+    const key=id.replace('kosmos_','');
+    c.innerHTML+=rowHTML(lbl,sub,'<span class="toggle '+(cfg[key]!==false?'on':'')+'" onclick="event.stopPropagation();this.classList.toggle(\'on\');cosmosState.config[\''+key+'\']=this.classList.contains(\'on\');applyKosmosConfig();"></span>');
+  });
+}
+function renderVoice(c){
+  c.innerHTML='<h3>🎤 Stimme</h3>';
+  c.innerHTML+=rowHTML('Geschwindigkeit','Rate','<input type="range" min="0.5" max="2" step="0.1" value="'+(localStorage.getItem('haldo_voice_rate')||1)+'" oninput="localStorage.setItem(\'haldo_voice_rate\',this.value)" onclick="event.stopPropagation()">');
+  c.innerHTML+=rowHTML('Test','TTS','<button onclick="event.stopPropagation();speak(\'Hallo! Ich bin HalDo AI.\')">🔊 Test</button>');
+}
+function renderLanguage(c){
+  c.innerHTML='<h3>🌐 Sprache</h3>';
+  const sel='<select onchange="setLanguage(this.value)" onclick="event.stopPropagation()">'+Object.keys(LANGNAMES).map(k=>'<option value="'+k+'"'+(k===currentLang?' selected':'')+'>'+LANGNAMES[k]+'</option>').join('')+'</select>';
+  c.innerHTML+=rowHTML('Systemsprache','20 Sprachen',sel);
+}
+function renderKI(c){
+  c.innerHTML='<h3>🤖 KI & API</h3>';
+  c.innerHTML+=rowHTML('API-Key','Live-KI','<input type="password" value="'+(localStorage.getItem('haldo_api_key')||'')+'" oninput="localStorage.setItem(\'haldo_api_key\',this.value)" onclick="event.stopPropagation()">');
+  c.innerHTML+=rowHTML('Auto-Speak','Vorlesen',toggleHTML('ai_autospeak',getToggle('ai_autospeak',true)));
+}
+function renderBluetooth(c){c.innerHTML='<h3>📶 Bluetooth</h3>';}
+function renderNotifications(c){c.innerHTML='<h3>🔔 Benachrichtigungen</h3>';}
+function renderSounds(c){
+  c.innerHTML='<h3>🔊 Töne</h3>';
+  c.innerHTML+=rowHTML('Test-Ton','Abspielen','<button onclick="event.stopPropagation();playTone()">🔊 Test</button>');
+}
+function playTone(){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const o=ctx.createOscillator();const g=ctx.createGain();
+    o.type='sine';o.frequency.value=800;o.connect(g);g.connect(ctx.destination);
+    g.gain.setValueAtTime(0.3,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.5);
+    o.start();o.stop(ctx.currentTime+0.5);
+  }catch(e){}
+}
+function renderPrivacy(c){c.innerHTML='<h3>🔒 Datenschutz</h3>';}
+function renderSecuritySettings(c){c.innerHTML='<h3>🔐 Sicherheit</h3>';}
+function renderStorage(c){c.innerHTML='<h3>💾 Speicher</h3>';}
+function renderBattery(c){
+  c.innerHTML='<h3>🔋 Akku</h3>';
+  if(navigator.getBattery){navigator.getBattery().then(b=>{c.innerHTML+='<p>Ladestand: <b>'+(b.level*100).toFixed(0)+'%</b></p>';});}
+}
+function renderAccessibility(c){c.innerHTML='<h3>♿ Bedienungshilfen</h3>';}
+function renderSoftware(c){c.innerHTML='<h3>📱 Software-Update</h3><p>Version v1.7.0</p>';}
+function renderCarPlay(c){c.innerHTML='<h3>🚗 CarPlay</h3>';}
+function renderWLAN(c){c.innerHTML='<h3>📡 WLAN</h3>';}
+function renderAirplane(c){c.innerHTML='<h3>✈️ Flugmodus</h3>';}
+function renderAbout(c){
+  c.innerHTML='<h3>ℹ️ Über</h3><div class="qt-panel"><h4>HalDo AI OS Pro Max</h4><p>Version 1.7.0</p><p>Von Halil Donma</p><p>'+REGISTRY.length+' Apps · 20 Sprachen · 27 Töne</p></div>';
+}
+function setLanguage(lang){
+  currentLang=lang;localStorage.setItem('haldo_lang',lang);
+  populateStartMenu();renderSettingsPanel();
+}
+
+/* ==================== WINDOW ==================== */
+function openApp(id){
+  const def=REGISTRY.find(a=>a.id===id);if(!def)return;
+  const splash=document.getElementById('app-splash');
+  if(splash){splash.querySelector('.splash-icon').textContent=def.ico;splash.querySelector('.splash-name').textContent=def.nm;splash.classList.add('show');setTimeout(()=>splash.classList.remove('show'),700);}
+  document.getElementById('start-menu').classList.remove('show');
+  if(openWindows[id]){const w=document.getElementById('win-'+id);if(w){w.classList.remove('minimized');w.style.zIndex=nextZ();}return;}
+  const win=document.createElement('div');
+  win.className='window';win.id='win-'+id;
+  win.style.width='880px';win.style.height='600px';
+  win.style.left=(80+Object.keys(openWindows).length*25)+'px';win.style.top=(40+Object.keys(openWindows).length*25)+'px';win.style.zIndex=nextZ();
+  win.innerHTML='<div class="window-header" onmousedown="startDrag(event,\''+id+'\')"><div class="window-title">'+def.ico+' '+def.nm+'</div><div class="window-controls"><button class="win-btn" onclick="event.stopPropagation();minimizeApp(\''+id+'\')">—</button><button class="win-btn" onclick="event.stopPropagation();maximizeApp(\''+id+'\')">▢</button><button class="win-btn close" onclick="event.stopPropagation();closeApp(\''+id+'\')">✕</button></div></div><div class="window-body" id="body-'+id+'"></div>';
+  document.body.appendChild(win);
+  openWindows[id]=true;
+  document.getElementById('taskbar-apps').innerHTML+='<div class="taskbar-app" id="tb-'+id+'" onclick="focusApp(\''+id+'\')">'+def.ico+' '+def.nm+'</div>';
+  setTimeout(()=>{try{def.fn(document.getElementById('body-'+id));}catch(e){console.error(e);document.getElementById('body-'+id).innerHTML='<p style="color:#f77;padding:20px">Fehler: '+e.message+'</p>';}},60);
+}
+function closeApp(id){const w=document.getElementById('win-'+id);if(w)w.remove();const tb=document.getElementById('tb-'+id);if(tb)tb.remove();delete openWindows[id];}
+function focusApp(id){const w=document.getElementById('win-'+id);if(w){w.classList.remove('minimized');w.style.zIndex=nextZ();}}
+function minimizeApp(id){const w=document.getElementById('win-'+id);if(w)w.classList.toggle('minimized');}
+function maximizeApp(id){const w=document.getElementById('win-'+id);if(!w)return;if(w.dataset.max==='1'){w.style.left=w.dataset.l;w.style.top=w.dataset.t;w.style.width=w.dataset.wd;w.style.height=w.dataset.ht;w.dataset.max='0';}else{w.dataset.l=w.style.left;w.dataset.t=w.style.top;w.dataset.wd=w.style.width;w.dataset.ht=w.style.height;w.style.left='0';w.style.top='0';w.style.width='100vw';w.style.height='calc(100vh - 50px)';w.dataset.max='1';}}
+let dragState=null;
+function startDrag(e,id){if(e.target.closest('.win-btn'))return;const w=document.getElementById('win-'+id);if(!w)return;dragState={id,sx:e.clientX,sy:e.clientY,wx:w.offsetLeft,wy:w.offsetTop};w.style.zIndex=nextZ();}
+addEventListener('mousemove',e=>{if(!dragState)return;const w=document.getElementById('win-'+dragState.id);if(!w||w.dataset.max==='1')return;w.style.left=(dragState.wx+e.clientX-dragState.sx)+'px';w.style.top=Math.max(0,dragState.wy+e.clientY-dragState.sy)+'px';});
+addEventListener('mouseup',()=>{dragState=null;});
+
+/* ==================== BOOT ==================== */
+function enterApp(){
+  document.getElementById('welcome').classList.add('hide');
+  document.getElementById('taskbar').classList.add('show');
+  populateStartMenu();
+  renderSettingsPanel();
+  playGlassSound();
+  const h=document.getElementById('click-hint');
+  if(h)setTimeout(()=>{h.style.opacity='0';},8000);
+}
+function startClock(){const c=document.getElementById('sys-clock');const tick=()=>c.textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});tick();setInterval(tick,1000);}
+document.addEventListener('DOMContentLoaded',()=>{
+  initCosmos();startClock();populateStartMenu();renderSettingsPanel();
+  const t2=localStorage.getItem('haldo_theme');if(t2){document.documentElement.style.setProperty('--accent',t2);document.documentElement.style.setProperty('--accent2',t2);}
+  const f=localStorage.getItem('haldo_font_size');if(f)document.documentElement.style.setProperty('--font-size',f+'px');
+});
+</script>
+</body>
+</html>
