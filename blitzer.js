@@ -1,933 +1,1667 @@
-/* ═══════════════════════════════════════════════════════════
-   HALDO AI OS — HALDO BLITZER v22.0 (AI NAVIGATOR FULL)
-   Fahrzeuge (Pfau/Auto/Cyborg) · KI-Assistenten · GPS Fix
-   ═══════════════════════════════════════════════════════════ */
-(function(){
-  "use strict";
-  if(!window.HalDo || !HalDo.Runtime) return;
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>HalDo AI OS Pro Max</title>
+<style>
+:root{
+  --bg: #0a0e1a;
+  --bg2: rgba(17,24,39,.85);
+  --bg3: #1f2937;
+  --border: #374151;
+  --text: #f3f4f6;
+  --dim: #9ca3af;
+  --accent: #06b6d4;
+  --accent2: #3b82f6;
+  --gold: #fbbf24;
+  --success: #10b981;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --radius: 12px;
+  --font: 'Segoe UI',system-ui,sans-serif;
+  --font-size: 14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:#000;user-select:none;}
+body{font-family:var(--font);color:var(--text);font-size:var(--font-size);}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+input,textarea,select{font-family:inherit;background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;width:100%;outline:none;font-size:14px;}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+#cosmos-canvas{position:fixed;inset:0;z-index:0;pointer-events:auto;width:100%;height:100%;display:block;}
+#welcome{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9999;gap:20px;padding:40px;text-align:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(10px);transition:opacity 0.5s;}
+#welcome.hide{opacity:0;pointer-events:none;}
+#welcome .logo-img{width:110px;height:110px;object-fit:contain;filter:drop-shadow(0 0 30px rgba(6,182,212,.9));animation:floatLogo 3s ease-in-out infinite;}
+@keyframes floatLogo{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+#welcome h1{font-size:clamp(28px,5vw,56px);font-weight:900;letter-spacing:4px;background:linear-gradient(90deg,#fffbeb,#fde047,#f59e0b,#fbbf24);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 30px rgba(251,191,36,.8);}
+#welcome h2{font-size:clamp(14px,2vw,20px);color:#e5e7eb;font-weight:400;line-height:1.6;}
+#welcome .presented{font-size:12px;color:#9ca3af;letter-spacing:3px;text-transform:uppercase;}
+#welcome .presented b{color:#fbbf24;}
+#welcome .enter-btn{margin-top:20px;padding:16px 48px;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:30px;font-size:16px;font-weight:700;letter-spacing:2px;box-shadow:0 0 40px rgba(6,182,212,.6);transition:transform .2s;color:#fff;}
+#welcome .enter-btn:hover{transform:scale(1.05);}
+#taskbar{position:fixed;bottom:0;left:0;right:0;height:50px;background:rgba(17,24,39,.95);backdrop-filter:blur(15px);border-top:1px solid var(--border);display:none;align-items:center;padding:0 12px;gap:10px;z-index:9997;}
+#taskbar.show{display:flex;}
+.start-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));padding:10px 20px;border-radius:10px;font-weight:bold;display:flex;align-items:center;gap:8px;color:#fff;cursor:pointer;font-size:14px;box-shadow:0 0 15px rgba(6,182,212,.4);}
+.start-btn:hover{filter:brightness(1.15);}
+.taskbar-apps{flex:1;display:flex;gap:8px;overflow-x:auto;}
+.taskbar-app{background:rgba(55,65,81,.5);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;border:1px solid transparent;white-space:nowrap;}
+.taskbar-app:hover{border-color:var(--accent);background:rgba(31,41,55,.8);}
+#sys-clock{color:var(--dim);font-size:13px;font-weight:600;}
+#start-menu{position:fixed;bottom:60px;left:10px;width:720px;max-height:85vh;background:rgba(17,24,39,.98);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:12px;display:none;flex-direction:column;overflow:hidden;z-index:9998;box-shadow:0 -10px 40px rgba(0,0,0,.8);}
+#start-menu.show{display:flex;}
+.sm-drag-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-weight:bold;color:var(--accent);cursor:move;user-select:none;background:rgba(0,0,0,.2);}
+.sm-tabs{display:flex;gap:4px;padding:8px 8px 0;border-bottom:1px solid var(--border);}
+.sm-tab{flex:1;padding:10px;border-radius:8px 8px 0 0;font-size:13px;font-weight:600;color:var(--dim);background:transparent;border:none;cursor:pointer;}
+.sm-tab.active{color:var(--accent);background:rgba(6,182,212,.15);border-bottom:2px solid var(--accent);}
+.sm-panel{flex:1;overflow-y:auto;padding:12px;display:none;}
+.sm-panel.active{display:block;}
+.sm-search{padding:8px 10px 10px;}
+.sm-search input{background:rgba(0,0,0,.3);border:1px solid var(--border);padding:8px 12px;border-radius:6px;}
+.sm-apps{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;}
+.sm-app-card{display:flex;flex-direction:column;align-items:center;padding:10px 6px;border-radius:8px;cursor:pointer;transition:all .2s;border:1px solid transparent;background:rgba(55,65,81,.2);}
+.sm-app-card:hover{background:rgba(55,65,81,.6);border-color:var(--accent);transform:translateY(-2px);}
+.sm-app-card .ico{font-size:22px;margin-bottom:4px;pointer-events:none;}
+.sm-app-card .nm{font-size:9px;text-align:center;line-height:1.2;pointer-events:none;}
+.settings-layout{display:flex;height:100%;min-height:480px;}
+.settings-nav{width:190px;flex:none;padding:8px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:4px;overflow-y:auto;background:rgba(0,0,0,.3);}
+.settings-nav-item{text-align:left;padding:9px 10px;font-size:12px;border-radius:6px;color:#a0c8e0;cursor:pointer;background:transparent;border:1px solid transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.settings-nav-item:hover{background:rgba(55,65,81,.5);color:#fff;}
+.settings-nav-item.active{background:rgba(6,182,212,.2);border-color:var(--accent);color:#fff;}
+.settings-content{flex:1;padding:16px;overflow-y:auto;}
+.settings-content h3{color:var(--accent);font-size:15px;margin-bottom:12px;}
+.settings-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(55,65,81,.5);gap:12px;}
+.settings-row:last-child{border:none;}
+.settings-row .lbl{font-size:13px;font-weight:600;}
+.settings-row .sub{font-size:11px;color:var(--dim);margin-top:2px;}
+.settings-row .ctrl{flex-shrink:0;min-width:160px;max-width:280px;}
+.settings-row .ctrl button{padding:6px 14px;background:var(--accent);color:#fff;border-radius:6px;font-size:12px;font-weight:600;}
+.toggle{position:relative;width:44px;height:24px;background:rgba(55,65,81,.8);border-radius:12px;cursor:pointer;transition:background .2s;display:inline-block;}
+.toggle.on{background:var(--accent);}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform .2s;}
+.toggle.on::after{transform:translateX(20px);}
+.window{position:fixed;background:rgba(10,14,26,.96);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;overflow:hidden;z-index:10;box-shadow:0 20px 50px rgba(0,0,0,.7);min-width:380px;min-height:280px;}
+.window.minimized{display:none;}
+.window-header{padding:12px 16px;background:rgba(0,0,0,0.5);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:move;user-select:none;}
+.window-title{font-weight:600;color:var(--accent);display:flex;align-items:center;gap:10px;font-size:13px;}
+.window-controls{display:flex;gap:6px;}
+.win-btn{width:28px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);transition:background .2s;font-size:14px;}
+.win-btn:hover{background:rgba(255,255,255,.2);}
+.win-btn.close:hover{background:var(--danger);}
+.window-body{flex:1;overflow:hidden;display:flex;}
+#app-splash{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:20px;background:radial-gradient(circle at 50% 50%,rgba(6,182,212,.2) 0%,rgba(5,8,16,.98) 75%);backdrop-filter:blur(10px);}
+#app-splash.show{display:flex;animation:splashIn .3s;}
+.splash-icon{font-size:110px;filter:drop-shadow(0 0 40px #06b6d4);animation:starGlow 1.2s ease-out;}
+.splash-name{font-size:32px;font-weight:800;background:linear-gradient(90deg,#fde047,#f59e0b);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.splash-presented{font-size:12px;color:var(--dim);letter-spacing:4px;text-transform:uppercase;}
+.splash-presented b{color:#fbbf24;}
+@keyframes splashIn{from{opacity:0;}to{opacity:1;}}
+@keyframes starGlow{0%{transform:scale(0) rotate(0deg);}50%{transform:scale(1.2) rotate(180deg);}100%{transform:scale(1) rotate(360deg);}}
+.app-sidebar{width:170px;flex:none;padding:10px 8px;background:rgba(0,10,20,.6);border-right:1px solid rgba(55,65,81,.5);display:flex;flex-direction:column;gap:4px;overflow-y:auto;}
+.side-btn{text-align:left;padding:9px 12px;font-size:12px;background:transparent;border:1px solid transparent;color:#a0c8e0;cursor:pointer;border-radius:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.side-btn:hover{background:rgba(55,65,81,.5);color:#fff;}
+.side-btn.active{background:rgba(6,182,212,.2);border-color:var(--accent);color:#fff;}
+.side-btn.speak-btn{margin-top:auto;color:var(--accent);}
+.app-content{flex:1;padding:18px;overflow-y:auto;min-width:0;}
+.app-content h3{margin-bottom:12px;color:var(--accent);font-size:16px;}
+.app-content input,.app-content select,.app-content textarea{margin-bottom:8px;}
+.app-content button{padding:9px 16px;margin:4px 4px 4px 0;background:var(--accent);border:1px solid var(--accent);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;}
+.app-content button:hover{background:var(--accent2);}
+.app-content button.danger{background:var(--danger);border-color:var(--danger);}
+.app-content button.ghost{background:transparent;color:var(--text);border-color:var(--border);}
+.list-row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(55,65,81,.3);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;margin-bottom:6px;}
+.list-row:hover{background:rgba(55,65,81,.6);border-color:var(--accent);}
+.list-row .meta{color:var(--dim);font-size:11px;margin-left:auto;}
+.muted{color:var(--dim);}
+.qt-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.qt-panel{background:rgba(31,41,55,.5);padding:14px;border-radius:10px;border:1px solid var(--border);}
+.qt-panel h4{margin-bottom:8px;font-size:12px;color:var(--accent);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-size:11px;margin-top:10px;}
+.cal-cell{min-height:56px;padding:3px;background:rgba(55,65,81,.4);border:1px solid var(--border);border-radius:4px;cursor:pointer;}
+.cal-cell:hover{background:rgba(55,65,81,.8);}
+.cal-cell .day{color:var(--accent);font-weight:700;font-size:10px;}
+.cal-cell.today{border-color:var(--accent);box-shadow:0 0 6px rgba(6,182,212,.4);}
+.cal-head{color:var(--accent);text-align:center;padding:3px;font-weight:700;font-size:10px;}
+.chat-box{display:flex;flex-direction:column;height:100%;}
+.chat-log{flex:1;overflow-y:auto;padding:10px;background:rgba(0,0,0,.3);border-radius:10px;border:1px solid var(--border);margin-bottom:10px;display:flex;flex-direction:column;gap:8px;}
+.msg{padding:8px 12px;border-radius:10px;font-size:13px;max-width:85%;line-height:1.5;}
+.msg.user{align-self:flex-end;background:var(--accent);color:#fff;}
+.msg.ai{align-self:flex-start;background:rgba(31,41,55,.9);border:1px solid var(--border);}
+.chat-input{display:flex;gap:8px;}
+.chat-input input{flex:1;margin:0;}
+.chat-input button{margin:0;}
+.anatomy-wrap{width:100%;height:calc(100% - 5px);min-height:380px;border:1px solid var(--border);border-radius:10px;overflow:hidden;position:relative;background:#001122;}
+.layer-toggles{position:absolute;top:10px;left:10px;z-index:2;display:flex;gap:10px;font-size:11px;background:rgba(0,20,40,.8);padding:6px 10px;border:1px solid var(--accent);border-radius:6px;}
+.layer-toggles label{display:flex;align-items:center;gap:4px;cursor:pointer;color:#b8e6ff;}
+.layer-toggles input{width:auto;margin:0;}
+.cyborg-chat{display:flex;flex:1;height:100%;}
+.cyborg-3d{width:40%;min-width:280px;background:radial-gradient(circle at center,#0a2a3a 0%,#000 100%);position:relative;border-right:1px solid var(--border);}
+.cyborg-3d canvas{display:block;width:100%;height:100%;}
+.cyborg-chat-log{flex:1;padding:14px;display:flex;flex-direction:column;}
+.cyborg-status{text-align:center;font-size:11px;color:var(--accent);padding:6px;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid var(--border);}
+#click-hint{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(6,182,212,.9);color:#fff;padding:8px 20px;border-radius:20px;font-size:12px;z-index:99;animation:pulse 2s infinite;pointer-events:none;transition:opacity .5s;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(6,182,212,.7);}50%{box-shadow:0 0 0 15px rgba(6,182,212,0);}}
+.q-badge{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;background:rgba(6,182,212,.3);color:#a0f0ff;}
 
-  var LOGO_URL = "logo.png";
-  var GOLD_STYLE = 'color:#ffd700;font-weight:900;font-size:14px;text-shadow:0 0 10px #ffd700,0 0 20px rgba(255,215,0,.8);background:#0a0e2a;padding:4px 8px;border-radius:6px;';
-  console.log('%c🦚 HalDo Blitzer v22.0 — AI Navigator Full Edition', GOLD_STYLE);
+/* TACHO */
+.tacho-wrap{display:flex;flex-direction:column;align-items:center;gap:20px;padding:20px;}
+.tacho{position:relative;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle at center,#1a1a2e 0%,#0a0a15 100%);border:6px solid var(--accent);box-shadow:0 0 40px rgba(6,182,212,.5),inset 0 0 30px rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;}
+.tacho-needle{position:absolute;width:6px;height:160px;background:linear-gradient(to top,#ef4444,transparent);top:40px;left:50%;transform-origin:bottom center;transform:translateX(-50%) rotate(0deg);transition:transform 0.1s;z-index:2;border-radius:3px;}
+.tacho-center{position:absolute;top:50%;left:50%;width:30px;height:30px;background:var(--accent);border-radius:50%;transform:translate(-50%,-50%);z-index:3;box-shadow:0 0 15px var(--accent);}
+.tacho-inner{position:absolute;bottom:100px;display:flex;flex-direction:column;align-items:center;z-index:1;}
+.tacho-speed{font-size:56px;font-weight:900;color:#fff;text-shadow:0 0 10px var(--accent);}
+.tacho-unit{font-size:14px;color:var(--dim);letter-spacing:2px;}
+.tacho-settings-btn{position:absolute;bottom:10px;background:rgba(6,182,212,.2);border:1px solid var(--accent);color:var(--accent);width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;z-index:3;}
+.tacho-settings-btn:hover{background:rgba(6,182,212,.4);}
+.tacho-marks{position:absolute;inset:0;border-radius:50%;pointer-events:none;}
+.tacho-marks span{position:absolute;font-size:10px;color:var(--dim);}
+.tacho-warning{animation:tacho-warn 0.5s infinite alternate;}
+@keyframes tacho-warn{from{box-shadow:0 0 0 0 rgba(239,68,68,.5);}to{box-shadow:0 0 60px 20px rgba(239,68,68,.7);}}
 
-  var WELCOME = {
-    de:{title:"Willkommen in",author:"von Halil Donma",footer:"HalDo Blitzer a Halil Donma",enter:"Los geht's",ai:"HalDo AI präsentiert"},
-    en:{title:"Welcome to",author:"by Halil Donma",footer:"HalDo Blitzer by Halil Donma",enter:"Let's Go",ai:"Presented by HalDo AI"},
-    tr:{title:"Hoşgeldiniz",author:"Halil Donma tarafından",footer:"HalDo Blitzer - Halil Donma",enter:"Başla",ai:"HalDo AI tarafından"},
-    ar:{title:"مرحبًا بك في",author:"من هليل دونما",footer:"هالدو بليتزر من هليل دونما",enter:"هيا بنا",ai:"مقدمة من هالدو AI"},
-    ku:{title:"Bi xêr hatî",author:"ji hêla Halîl Donma",footer:"HalDo Blitzer ji Halîl Donma",enter:"Dest pê bike",ai:"HalDo AI pêşkêş dike"},
-    fr:{title:"Bienvenue dans",author:"par Halil Donma",footer:"HalDo Blitzer par Halil Donma",enter:"C'est parti",ai:"Présenté par HalDo AI"},
-    es:{title:"Bienvenido a",author:"por Halil Donma",footer:"HalDo Blitzer por Halil Donma",enter:"Vamos",ai:"Presentado por HalDo AI"},
-    it:{title:"Benvenuto in",author:"di Halil Donma",footer:"HalDo Blitzer di Halil Donma",enter:"Andiamo",ai:"Presentato da HalDo AI"},
-    ru:{title:"Добро пожаловать в",author:"от Халила Донма",footer:"HalDo Blitzer от Халила Донма",enter:"Поехали",ai:"Представлено HalDo AI"}
-  };
+/* KI BUBBLE */
+.ki-bubble{background:linear-gradient(135deg,rgba(6,182,212,.15),rgba(59,130,246,.15));border:1px solid var(--accent);border-radius:16px;padding:14px 18px;max-width:100%;display:flex;gap:12px;align-items:flex-start;animation:kiPulse 2s infinite;}
+@keyframes kiPulse{0%,100%{box-shadow:0 0 20px rgba(6,182,212,.3);}50%{box-shadow:0 0 35px rgba(6,182,212,.6);}}
+.ki-avatar{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle,#06b6d4,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;animation:kiBob 3s ease-in-out infinite;}
+@keyframes kiBob{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+.ki-text{font-size:14px;line-height:1.5;color:#fff;}
+.ki-text strong{color:var(--accent);}
 
-  var WELCOME_THEMES = {
-    gold:{name:"🥇 Gold",top:"#0a0e2a",mid:"#1a1a4e",bot:"#5a3a6a",accent:"#ffd700",sun1:"#fffce0",sun2:"#ffe85e",sun3:"#ffd700",sun4:"#ff9800",sun5:"#ff6f00"},
-    cosmic:{name:"🌌 Kosmisch",top:"#000010",mid:"#0a0a3a",bot:"#2a0a4a",accent:"#b478ff",sun1:"#f0e8ff",sun2:"#b478ff",sun3:"#8a3aff",sun4:"#4dd0e1",sun5:"#1a3a8a"},
-    sunset:{name:"🌅 Sunset",top:"#0a0a1a",mid:"#3a1a3a",bot:"#8a3a2a",accent:"#ff8844",sun1:"#fff0e0",sun2:"#ffb070",sun3:"#ff7733",sun4:"#ff4444",sun5:"#8a1a4a"},
-    emerald:{name:"💚 Smaragd",top:"#0a1a0a",mid:"#0a3a2a",bot:"#0a5a3a",accent:"#4ade80",sun1:"#e0fff0",sun2:"#88ffbb",sun3:"#4ade80",sun4:"#22aa66",sun5:"#0a5a3a"},
-    pink:{name:"🌸 Pink",top:"#1a0a1a",mid:"#3a1a3a",bot:"#6a2a5a",accent:"#ff77aa",sun1:"#ffe8f0",sun2:"#ff99cc",sun3:"#ff5599",sun4:"#cc3377",sun5:"#6a1a4a"}
-  };
+/* GEFAHREN-LOG */
+.danger-log{max-height:240px;overflow-y:auto;background:rgba(0,0,0,.4);border-radius:10px;border:1px solid var(--border);padding:10px;margin-top:12px;}
+.danger-entry{display:flex;gap:8px;padding:8px;border-bottom:1px solid rgba(55,65,81,.3);font-size:12px;align-items:center;}
+.danger-entry:last-child{border-bottom:none;}
+.danger-entry .icon{font-size:20px;flex-shrink:0;}
+.danger-entry .info{flex:1;}
+.danger-entry .time{color:var(--dim);font-size:10px;}
 
-  var VEHICLES = {
-    peacock: { name: "🦚 Pfau", build: buildUltraPeacockSVG },
-    car: { name: "🏎️ Sportwagen", build: buildSportsCarSVG },
-    cyborg: { name: "🤖 Cyborg", build: buildCyborgSVG }
-  };
+/* SPEED LIMITS */
+.speed-limits{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:8px;margin-top:12px;width:100%;}
+.speed-btn{background:rgba(55,65,81,.6);border:2px solid var(--border);color:#fff;border-radius:8px;padding:10px 4px;cursor:pointer;text-align:center;font-size:13px;font-weight:700;}
+.speed-btn:hover{border-color:var(--accent);background:rgba(6,182,212,.2);}
+.speed-btn.active{border-color:var(--accent);background:rgba(6,182,212,.3);box-shadow:0 0 12px rgba(6,182,212,.5);}
+.speed-btn small{display:block;font-size:9px;color:var(--dim);font-weight:400;margin-top:2px;}
 
-  var ASSISTANTS = {
-    ai: { name: "HalDo AI", pitch: 1, rate: 1 },
-    cyborg: { name: "HalDo Cyborg", pitch: 0.7, rate: 0.9 },
-    robot: { name: "HalDo Roboter", pitch: 0.4, rate: 0.85 }
-  };
+/* KLASSEN */
+.klassen-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:10px;margin-top:12px;}
+.klasse-btn{background:rgba(55,65,81,.5);border:2px solid var(--border);border-radius:10px;padding:14px 8px;cursor:pointer;text-align:center;transition:all .2s;}
+.klasse-btn:hover{border-color:var(--accent);transform:translateY(-2px);}
+.klasse-btn.active{border-color:var(--accent);background:rgba(6,182,212,.25);box-shadow:0 0 15px rgba(6,182,212,.4);}
+.klasse-btn .kl-ico{font-size:26px;margin-bottom:4px;}
+.klasse-btn .kl-code{font-size:18px;font-weight:900;color:var(--accent);}
+.klasse-btn .kl-desc{font-size:10px;color:var(--dim);margin-top:2px;}
 
-  // ═══════════ SVGs ═══════════
-  function buildSunSVG(size, theme){
-    size = size || 220;
-    var rays = "";
-    for(var i=0; i<24; i++){
-      var angle = (i * 15) * Math.PI / 180;
-      var x1 = 100 + Math.cos(angle) * 55;
-      var y1 = 100 + Math.sin(angle) * 55;
-      var x2 = 100 + Math.cos(angle) * 120;
-      var y2 = 100 + Math.sin(angle) * 120;
-      rays += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${theme.sun3}" stroke-width="${i%2===0 ? 4 : 2}" stroke-linecap="round" opacity="0.35" filter="url(#glowSun)"/>`;
-    }
-    return `<svg viewBox="0 0 200 200" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;overflow:visible;filter:drop-shadow(0 0 60px ${theme.accent}cc)">
-      <defs>
-        <radialGradient id="sunCore" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="#ffffff"/><stop offset="20%" stop-color="${theme.sun1}"/><stop offset="50%" stop-color="${theme.sun2}"/><stop offset="80%" stop-color="${theme.sun3}"/><stop offset="100%" stop-color="${theme.sun4}"/>
-        </radialGradient>
-        <filter id="glowSun"><feGaussianBlur stdDeviation="8" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-      </defs>
-      ${rays}
-      <circle cx="100" cy="100" r="60" fill="url(#sunCore)" filter="url(#glowSun)"/>
-    </svg>`;
-  }
+/* SIMULATOR */
+.simulator{background:radial-gradient(circle at center,#0a2a3a,#000);border-radius:12px;padding:20px;text-align:center;margin-top:12px;}
+.sim-question{font-size:18px;margin:16px 0;line-height:1.5;color:#fff;}
+.sim-answers{display:flex;flex-direction:column;gap:10px;max-width:500px;margin:0 auto;}
+.sim-answer{background:rgba(55,65,81,.6);border:2px solid var(--border);color:#fff;padding:14px 18px;border-radius:10px;text-align:left;font-size:14px;cursor:pointer;transition:all .2s;}
+.sim-answer:hover{border-color:var(--accent);background:rgba(6,182,212,.15);}
+.sim-answer.correct{border-color:#10b981;background:rgba(16,185,129,.25);}
+.sim-answer.wrong{border-color:#ef4444;background:rgba(239,68,68,.25);}
 
-  function buildUltraPeacockSVG(size, uid){
-    size = size || 300; uid = uid || (size+"_"+Math.random().toString(36).slice(2,7));
-    var cx = 150, cy = 200, fan = "", numF = 55;
-    for(var i=0; i<numF; i++){
-      var angle = -115 + (230/(numF-1))*i;
-      var rad = angle * Math.PI / 180;
-      var dC = Math.abs(angle) / 115;
-      var len = 140 - dC * 30;
-      var tipX = cx + len * Math.sin(rad);
-      var tipY = cy - len * Math.cos(rad);
-      fan += `<path d="M ${cx} ${cy} Q ${cx + (len*0.5)*Math.sin(rad+0.2)} ${cy - (len*0.5)*Math.cos(rad+0.2)} ${tipX} ${tipY} Q ${cx + (len*0.5)*Math.sin(rad-0.2)} ${cy - (len*0.5)*Math.cos(rad-0.2)} ${cx} ${cy} Z" fill="#022a1a" opacity="0.6"/>`;
-      fan += `<path d="M ${cx} ${cy} Q ${cx + (len*0.6)*Math.sin(rad+0.1)} ${cy - (len*0.6)*Math.cos(rad+0.1)} ${tipX} ${tipY} Q ${cx + (len*0.6)*Math.sin(rad-0.1)} ${cy - (len*0.6)*Math.cos(rad-0.1)} ${cx} ${cy} Z" fill="url(#fGreen_${uid})" opacity="0.9"/>`;
-      fan += `<path d="M ${cx} ${cy} Q ${cx + (len*0.75)*Math.sin(rad+0.03)} ${cy - (len*0.75)*Math.cos(rad+0.03)} ${tipX} ${tipY} Q ${cx + (len*0.75)*Math.sin(rad-0.03)} ${cy - (len*0.75)*Math.cos(rad-0.03)} ${cx} ${cy} Z" fill="url(#fGold_${uid})" opacity="0.8"/>`;
-      if(len > 90) {
-        fan += `<ellipse cx="${tipX}" cy="${tipY}" rx="14" ry="18" fill="#0a2a1a" stroke="#1a4a2a" stroke-width="1" transform="rotate(${angle} ${tipX} ${tipY})"/>`;
-        fan += `<ellipse cx="${tipX}" cy="${tipY}" rx="11" ry="14" fill="#2a8a4a" transform="rotate(${angle} ${tipX} ${tipY})"/>`;
-        fan += `<ellipse cx="${tipX}" cy="${tipY}" rx="8" ry="10" fill="#c88020" transform="rotate(${angle} ${tipX} ${tipY})"/>`;
-        fan += `<ellipse cx="${tipX}" cy="${tipY}" rx="6" ry="7" fill="#0a2a6a" transform="rotate(${angle} ${tipX} ${tipY})"/>`;
-        fan += `<ellipse cx="${tipX}" cy="${tipY}" rx="3.5" ry="4.5" fill="#4dd0e1" transform="rotate(${angle} ${tipX} ${tipY})"/>`;
-        fan += `<circle cx="${tipX-1}" cy="${tipY-1}" r="2" fill="#fff" opacity="0.9"/>`;
+/* NAVIGATION HOLOGRAMM */
+.holo-map{position:relative;width:100%;height:420px;background:radial-gradient(circle at center,#0a1a2e,#000);border-radius:12px;overflow:hidden;border:1px solid var(--accent);}
+.holo-arrow{position:absolute;font-size:80px;color:var(--gold);text-shadow:0 0 20px var(--gold),0 0 40px var(--gold);animation:holoPulse 1.5s infinite;pointer-events:none;}
+@keyframes holoPulse{0%,100%{opacity:0.8;transform:scale(1) translateY(0);}50%{opacity:1;transform:scale(1.1) translateY(-20px);}}
+.holo-text{position:absolute;color:var(--gold);font-size:22px;font-weight:900;text-shadow:0 0 10px var(--gold);letter-spacing:2px;animation:holoText 2s infinite;}
+@keyframes holoText{0%,100%{opacity:0.7;}50%{opacity:1;}}
+</style>
+</head>
+<body>
+<canvas id="cosmos-canvas"></canvas>
+<div id="welcome">
+  <img src="logo.png" class="logo-img" alt="Logo" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+  <div style="font-size:80px;display:none;filter:drop-shadow(0 0 30px #06b6d4)">🤖</div>
+  <h1>HALDO AI OS PRO MAX</h1>
+  <h2>Willkommen zurück, Bruder 💙<br>Dein Universum aus Medizin, Alltag und Intelligenz.</h2>
+  <div class="presented">Präsentiert von <b>Halil Donma</b></div>
+  <button class="enter-btn" onclick="enterApp()">JETZT STARTEN →</button>
+</div>
+<div id="app-splash"><div class="splash-icon" id="splash-icon">🤖</div><div class="splash-name" id="splash-name">HalDo AI OS</div><div class="splash-presented">Präsentiert von <b>Halil Donma</b></div></div>
+<div id="taskbar">
+  <div class="start-btn" onclick="toggleStartMenu(event)"><span>⊞</span> <span>Start</span></div>
+  <div class="taskbar-apps" id="taskbar-apps"></div>
+  <div id="sys-clock">--:--</div>
+</div>
+<div id="start-menu">
+  <div class="sm-drag-header" id="sm-drag-handle"><span>🚀 HalDo AI OS Pro Max</span><span style="font-size:11px;color:var(--dim)">≡ ziehen</span></div>
+  <div class="sm-tabs">
+    <button class="sm-tab active" data-tab="apps">📱 Apps</button>
+    <button class="sm-tab" data-tab="settings">⚙️ Einstellungen</button>
+  </div>
+  <div class="sm-panel active" id="sm-panel-apps">
+    <div class="sm-search"><input type="text" id="sm-search-input" placeholder="Apps durchsuchen…" oninput="filterStartMenu(this.value)"></div>
+    <div class="sm-apps" id="sm-apps"></div>
+  </div>
+  <div class="sm-panel" id="sm-panel-settings">
+    <div class="settings-layout"><div class="settings-nav" id="settings-nav"></div><div class="settings-content" id="settings-content"></div></div>
+  </div>
+</div>
+<div id="click-hint">👆 Klicke auf die Erde, um mit HalDo AI zu sprechen</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+/* ==================== i18n ==================== */
+const I18N={
+  de:{start:'Start',create:'Erstellen',edit:'Bearbeiten',select:'Auswählen',settings:'Einstellungen',delete:'Löschen',save:'Speichern',speak:'Vorlesen',add:'Hinzufügen',search:'Suchen',noEntries:'Keine Einträge',total:'Gesamt',confirm:'Wirklich löschen?',send:'Senden'},
+  en:{start:'Start',create:'Create',edit:'Edit',select:'Select',settings:'Settings',delete:'Delete',save:'Save',speak:'Speak',add:'Add',search:'Search',noEntries:'No entries',total:'Total',confirm:'Really delete?',send:'Send'},
+  ku:{start:'Destpêk',create:'Çêkirin',edit:'Sererast',select:'Hilbijartin',settings:'Mîheng',delete:'Jêbirin',save:'Tomar',speak:'Xwendin',add:'Zêde',search:'Lêgerîn',noEntries:'Tu tişt tune',total:'Giştî',confirm:'Jê bibe?',send:'Bipeşîne'},
+  ez:{start:'Destpêk',create:'Çêkirin',edit:'Sererast',select:'Hilbijartin',settings:'Sazkarî',delete:'Jêbirin',save:'Tomar',speak:'Xwendin',add:'Zêde',search:'Lêgerîn',noEntries:'Tu tişt tune',total:'Hemû',confirm:'Jê bibe?',send:'Bipeşîne'},
+  ar:{start:'ابدأ',create:'إنشاء',edit:'تعديل',select:'اختيار',settings:'إعدادات',delete:'حذف',save:'حفظ',speak:'نطق',add:'إضافة',search:'بحث',noEntries:'لا شيء',total:'المجموع',confirm:'حذف؟',send:'إرسال'},
+  fa:{start:'شروع',create:'ایجاد',edit:'ویرایش',select:'انتخاب',settings:'تنظیمات',delete:'حذف',save:'ذخیره',speak:'خواندن',add:'افزودن',search:'جستجو',noEntries:'موردی نیست',total:'مجموع',confirm:'حذف؟',send:'ارسال'},
+  he:{start:'התחל',create:'צור',edit:'ערוך',select:'בחר',settings:'הגדרות',delete:'מחק',save:'שמור',speak:'הקרא',add:'הוסף',search:'חפש',noEntries:'אין',total:'סה"כ',confirm:'למחוק?',send:'שלח'},
+  tr:{start:'Başlat',create:'Oluştur',edit:'Düzenle',select:'Seç',settings:'Ayarlar',delete:'Sil',save:'Kaydet',speak:'Oku',add:'Ekle',search:'Ara',noEntries:'Kayıt yok',total:'Toplam',confirm:'Silinsin mi?',send:'Gönder'},
+  zh:{start:'开始',create:'创建',edit:'编辑',select:'选择',settings:'设置',delete:'删除',save:'保存',speak:'朗读',add:'添加',search:'搜索',noEntries:'无条目',total:'总计',confirm:'删除？',send:'发送'},
+  ja:{start:'開始',create:'作成',edit:'編集',select:'選択',settings:'設定',delete:'削除',save:'保存',speak:'読み上げ',add:'追加',search:'検索',noEntries:'なし',total:'合計',confirm:'削除？',send:'送信'},
+  uz:{start:'Boshlash',create:'Yaratish',edit:'Tahrirlash',select:'Tanlash',settings:'Sozlamalar',delete:"O'chirish",save:'Saqlash',speak:"O'qish",add:"Qo'shish",search:'Qidirish',noEntries:"Yo'q",total:'Jami',confirm:"O'chirilsinmi?",send:'Yuborish'},
+  ru:{start:'Старт',create:'Создать',edit:'Изменить',select:'Выбрать',settings:'Настройки',delete:'Удалить',save:'Сохранить',speak:'Читать',add:'Добавить',search:'Поиск',noEntries:'Нет',total:'Всего',confirm:'Удалить?',send:'Отправить'},
+  fr:{start:'Démarrer',create:'Créer',edit:'Modifier',select:'Sélectionner',settings:'Paramètres',delete:'Supprimer',save:'Enregistrer',speak:'Lire',add:'Ajouter',search:'Rechercher',noEntries:'Aucune',total:'Total',confirm:'Supprimer ?',send:'Envoyer'},
+  es:{start:'Inicio',create:'Crear',edit:'Editar',select:'Seleccionar',settings:'Ajustes',delete:'Eliminar',save:'Guardar',speak:'Leer',add:'Añadir',search:'Buscar',noEntries:'Ninguna',total:'Total',confirm:'¿Eliminar?',send:'Enviar'},
+  it:{start:'Avvia',create:'Crea',edit:'Modifica',select:'Seleziona',settings:'Impostazioni',delete:'Elimina',save:'Salva',speak:'Leggi',add:'Aggiungi',search:'Cerca',noEntries:'Nessuna',total:'Totale',confirm:'Eliminare?',send:'Invia'},
+  hi:{start:'शुरू',create:'बनाएं',edit:'संपादित',select:'चुनें',settings:'सेटिंग्स',delete:'हटाएं',save:'सहेजें',speak:'पढ़ें',add:'जोड़ें',search:'खोज',noEntries:'नहीं',total:'कुल',confirm:'हटाएं?',send:'भेजें'},
+  pt:{start:'Iniciar',create:'Criar',edit:'Editar',select:'Selecionar',settings:'Configurações',delete:'Excluir',save:'Salvar',speak:'Falar',add:'Adicionar',search:'Buscar',noEntries:'Nenhuma',total:'Total',confirm:'Excluir?',send:'Enviar'},
+  ko:{start:'시작',create:'생성',edit:'편집',select:'선택',settings:'설정',delete:'삭제',save:'저장',speak:'읽기',add:'추가',search:'검색',noEntries:'없음',total:'합계',confirm:'삭제?',send:'전송'},
+  ckb:{start:'دەستپێک',create:'دروستکردن',edit:'دەستکاری',select:'هەڵبژاردن',settings:'ڕێکخستن',delete:'سڕینەوە',save:'پاشەکەوت',speak:'خوێندنەوە',add:'زیادکردن',search:'گەڕان',noEntries:'نییە',total:'کۆی گشتی',confirm:'بسڕێتەوە؟',send:'ناردن'},
+  la:{start:'Incipe',create:'Creare',edit:'Mutare',select:'Eligere',settings:'Optiones',delete:'Delere',save:'Servare',speak:'Legere',add:'Addere',search:'Quaerere',noEntries:'Nullae',total:'Summa',confirm:'Delere?',send:'Mittere'}
+};
+const LANGCODES={de:'de-DE',en:'en-US',ku:'tr-TR',ez:'tr-TR',ar:'ar-SA',fa:'fa-IR',he:'he-IL',tr:'tr-TR',zh:'zh-CN',ja:'ja-JP',uz:'uz-UZ',ru:'ru-RU',fr:'fr-FR',es:'es-ES',it:'it-IT',hi:'hi-IN',pt:'pt-BR',ko:'ko-KR',ckb:'ar-IQ',la:'it-IT'};
+const LANGNAMES={de:'🇩🇪 Deutsch',en:'🇬🇧 English',ku:'☀️ Kurdî',ez:'🦚 Êzîdî',ar:'🇸🇦 العربية',fa:'🇮🇷 فارسی',he:'🇮🇱 עברית',tr:'🇹🇷 Türkçe',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',uz:'🇺🇿 Oʻzbek',ru:'🇷🇺 Русский',fr:'🇫🇷 Français',es:'🇪🇸 Español',it:'🇮🇹 Italiano',hi:'🇮🇳 हिन्दी',pt:'🇵🇹 Português',ko:'🇰🇷 한국어',ckb:'🌙 Soranî',la:'🏛️ Latina'};
+let currentLang=localStorage.getItem('haldo_lang')||'de';
+const T=k=>(I18N[currentLang]&&I18N[currentLang][k])||I18N.de[k]||k;
+const store=(k,d)=>{try{const v=localStorage.getItem('haldo_'+k);return v?JSON.parse(v):d;}catch(e){return d;}};
+const save=(k,v)=>localStorage.setItem('haldo_'+k,JSON.stringify(v));
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ==================== TTS ==================== */
+function speak(text, voiceType='default', langCode=null){
+  if(!('speechSynthesis'in window))return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(String(text));
+  u.lang = langCode || LANGCODES[currentLang] || 'de-DE';
+  u.rate=parseFloat(localStorage.getItem('haldo_voice_rate')||1);
+  u.pitch=parseFloat(localStorage.getItem('haldo_voice_pitch')||1);
+  const voices = speechSynthesis.getVoices();
+  let sv = null;
+  if(voiceType==='male') sv = voices.find(v=>/male|mann|hans|stefan|david|mark/i.test(v.name));
+  else if(voiceType==='female') sv = voices.find(v=>/female|frau|anna|marlene|zira|samantha/i.test(v.name));
+  else if(voiceType==='robot') { u.rate=0.7; u.pitch=0.5; sv=voices.find(v=>/robot|machine/i.test(v.name)); }
+  else if(voiceType==='child') { u.pitch=1.8; sv=voices.find(v=>/child|kind|junior/i.test(v.name)); }
+  else if(voiceType==='old') { u.rate=0.8; u.pitch=0.8; sv=voices.find(v=>/old|senior/i.test(v.name)); }
+  if(sv) u.voice = sv;
+  u.onstart=()=>{if(cyborgState)cyborgState.speaking=true;};
+  u.onend=()=>{if(cyborgState)cyborgState.speaking=false;};
+  speechSynthesis.speak(u);
+}
+
+/* ==================== SOUNDS ==================== */
+function playGlassSound(){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const osc=ctx.createOscillator();const g=ctx.createGain();
+    osc.type='sine';
+    osc.frequency.setValueAtTime(1200,ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1800,ctx.currentTime+0.1);
+    g.gain.setValueAtTime(0.3,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+1.5);
+    osc.connect(g);g.connect(ctx.destination);
+    osc.start();osc.stop(ctx.currentTime+1.5);
+  }catch(e){console.warn('Audio:',e);}
+}
+
+function playAlarm(type='beep',duration=3){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const master=ctx.createGain();
+    master.gain.value=0.3;
+    master.connect(ctx.destination);
+    const now=ctx.currentTime;
+    const stopAt=now+duration;
+    
+    function pulse(freq,wave,count,vol=0.2){
+      const osc=ctx.createOscillator();const g=ctx.createGain();
+      osc.type=wave;osc.frequency.value=freq;
+      osc.connect(g);g.connect(master);
+      const interval=duration/count;
+      for(let i=0;i<count;i++){
+        g.gain.setValueAtTime(vol,now+i*interval);
+        g.gain.exponentialRampToValueAtTime(0.001,now+i*interval+interval*0.7);
       }
+      osc.start(now);osc.stop(stopAt);
     }
-    var crest = "";
-    for(var i=0; i<20; i++){
-      var cA = -60 + (120/19)*i;
-      var cRad = cA * Math.PI / 180;
-      var cLen = 25 + Math.random()*8;
-      var tX = 150 + cLen * Math.sin(cRad);
-      var tY = 75 - cLen * Math.cos(cRad);
-      crest += `<path d="M 150 75 Q ${150 + (cLen*0.5)*Math.sin(cRad+0.1)} ${75 - (cLen*0.5)*Math.cos(cRad+0.1)} ${tX} ${tY}" stroke="#0a4a7a" stroke-width="1.5" fill="none" opacity="0.8"/>`;
-      crest += `<ellipse cx="${tX}" cy="${tY}" rx="3" ry="5" fill="#4dd0e1" filter="url(#glow_${uid})" transform="rotate(${cA} ${tX} ${tY})"/>`;
-      crest += `<circle cx="${tX}" cy="${tY}" r="1.5" fill="#fff" opacity="0.6"/>`;
+
+    switch(type){
+      case 'siren':
+        const osc1=ctx.createOscillator();osc1.type='sawtooth';
+        const lfo=ctx.createOscillator();lfo.frequency.value=2;
+        const lfoGain=ctx.createGain();lfoGain.gain.value=300;
+        lfo.connect(lfoGain);lfoGain.connect(osc1.frequency);
+        osc1.frequency.value=800;
+        const g1=ctx.createGain();g1.gain.value=0.25;
+        osc1.connect(g1);g1.connect(master);
+        osc1.start(now);osc1.stop(stopAt);
+        lfo.start(now);lfo.stop(stopAt);
+        break;
+      case 'bell':
+        [523,659,784,1047].forEach((f,i)=>{
+          const o=ctx.createOscillator();const gg=ctx.createGain();
+          o.type='sine';o.frequency.value=f;
+          gg.gain.setValueAtTime(0.15,now+i*0.1);
+          gg.gain.exponentialRampToValueAtTime(0.001,stopAt);
+          o.connect(gg);gg.connect(master);
+          o.start(now+i*0.1);o.stop(stopAt);
+        });
+        break;
+      case 'beep':
+        pulse(880,'square',Math.min(duration*3,15),0.25);
+        break;
+      case 'danger':
+        pulse(440,'sawtooth',Math.min(duration*3,15),0.3);
+        break;
+      case 'radar':
+        for(let i=0;i<Math.min(duration*4,20);i++){
+          const o=ctx.createOscillator();const gg=ctx.createGain();
+          o.type='sine';o.frequency.value=1500;
+          gg.gain.setValueAtTime(0.1,now+i*0.25);
+          gg.gain.exponentialRampToValueAtTime(0.001,now+i*0.25+0.1);
+          o.connect(gg);gg.connect(master);
+          o.start(now+i*0.25);o.stop(now+i*0.25+0.15);
+        }
+        break;
+      default:
+        pulse(440,'sine',Math.min(duration*2,10),0.2);
     }
-    return `<svg viewBox="0 0 300 380" width="${size}" height="${size*380/300}" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;overflow:visible;filter:drop-shadow(0 30px 60px rgba(0,0,0,0.8))">
-      <defs>
-        <linearGradient id="fGreen_${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a7a4a"/><stop offset="50%" stop-color="#0a4a2a"/><stop offset="100%" stop-color="#022a1a"/></linearGradient>
-        <linearGradient id="fGold_${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffd700"/><stop offset="50%" stop-color="#b88020"/><stop offset="100%" stop-color="#4a2a0a"/></linearGradient>
-        <radialGradient id="bodyG_${uid}" cx="30%" cy="30%" r="70%"><stop offset="0%" stop-color="#6dd4e8"/><stop offset="30%" stop-color="#1a5a9a"/><stop offset="70%" stop-color="#0a2a5a"/><stop offset="100%" stop-color="#02102a"/></radialGradient>
-        <linearGradient id="neckG_${uid}" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#02102a"/><stop offset="25%" stop-color="#4dc4e0"/><stop offset="75%" stop-color="#1a6ab8"/><stop offset="100%" stop-color="#02102a"/></linearGradient>
-        <radialGradient id="headG_${uid}" cx="40%" cy="40%" r="60%"><stop offset="0%" stop-color="#8ae4f8"/><stop offset="50%" stop-color="#1a5a9a"/><stop offset="100%" stop-color="#02102a"/></radialGradient>
-        <filter id="glow_${uid}"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        <filter id="shadow_${uid}"><feDropShadow dx="0" dy="5" stdDeviation="4" flood-opacity="0.6"/></filter>
-      </defs>
-      <g class="peacock-fan">${fan}</g>
-      <g class="peacock-body" filter="url(#shadow_${uid})">
-        <ellipse cx="150" cy="250" rx="45" ry="70" fill="url(#bodyG_${uid})"/>
-        <path d="M 120 200 Q 95 130 135 90 Q 155 70 165 90 Q 175 130 180 200 Z" fill="url(#neckG_${uid})"/>
-      </g>
-      <g class="peacock-head" filter="url(#shadow_${uid})">
-        <circle cx="150" cy="85" r="22" fill="url(#headG_${uid})"/>
-        <path d="M 130 80 Q 145 68 170 80" stroke="#fff" stroke-width="3.5" fill="none" opacity="0.95"/>
-        <path d="M 130 95 Q 145 105 170 95" stroke="#fff" stroke-width="2" fill="none" opacity="0.8"/>
-        <ellipse cx="140" cy="83" rx="4.5" ry="5.5" fill="#000"/><ellipse cx="160" cy="83" rx="4.5" ry="5.5" fill="#000"/>
-        <circle cx="141" cy="81" r="2" fill="#fff"/><circle cx="161" cy="81" r="2" fill="#fff"/>
-        <polygon points="150,95 142,108 158,108" fill="#e8b030"/><line x1="150" y1="95" x2="150" y2="108" stroke="#8a5a10" stroke-width="1.5"/>
-        ${crest}
-      </g>
-      <g class="peacock-camera" transform="translate(150, 270)" filter="url(#shadow_${uid})">
-        <rect x="-25" y="-16" width="50" height="32" rx="6" fill="#1a1a2e" stroke="#ffd700" stroke-width="2.5"/>
-        <rect x="-10" y="-23" width="20" height="9" rx="2" fill="#1a1a2e" stroke="#ffd700" stroke-width="2"/>
-        <circle cx="0" cy="5" r="14" fill="#000" stroke="#ffd700" stroke-width="2"/>
-        <circle cx="0" cy="5" r="10" fill="url(#neckG_${uid})"/><circle cx="0" cy="5" r="5" fill="#000"/>
-        <circle cx="-3" cy="2" r="2.5" fill="#fff" opacity="0.9"/><circle cx="20" cy="-10" r="3.5" fill="#ff3333" filter="url(#glow_${uid})"/>
-      </g>
-    </svg>`;
-  }
+  }catch(e){console.warn('Alarm:',e);}
+}
 
-  function buildSportsCarSVG(size, uid){
-    size = size || 260; uid = uid || (size+"_"+Math.random().toString(36).slice(2,7));
-    return `<svg viewBox="0 0 260 260" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;overflow:visible;filter:drop-shadow(0 20px 50px rgba(255,50,50,.6))">
-      <defs>
-        <linearGradient id="carBody_${uid}" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#ff5555"/><stop offset="50%" stop-color="#aa0000"/><stop offset="100%" stop-color="#550000"/>
-        </linearGradient>
-        <linearGradient id="window_${uid}" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#4dd0e1"/><stop offset="100%" stop-color="#1a3a5a"/>
-        </linearGradient>
-        <filter id="glowCar_${uid}"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-      </defs>
-      <g class="car-body">
-        <path d="M 30 170 Q 30 120 70 105 L 100 70 Q 130 50 160 70 L 190 105 Q 230 120 230 170 L 230 195 Q 230 210 215 210 L 45 210 Q 30 210 30 195 Z" fill="url(#carBody_${uid})" stroke="#ff8888" stroke-width="2"/>
-        <path d="M 85 110 L 105 75 Q 130 60 155 75 L 175 110 Z" fill="url(#window_${uid})" opacity="0.95"/>
-        <rect x="120" y="40" width="20" height="18" rx="3" fill="#1a1a2e" stroke="#ffd700" stroke-width="2"/>
-        <circle cx="130" cy="49" r="5" fill="#ff3333" filter="url(#glowCar_${uid})"/>
-        <path d="M 130 40 L 130 18" stroke="#ffd700" stroke-width="2.5" stroke-dasharray="4,4"/>
-        <circle cx="130" cy="18" r="4" fill="#ffd700" filter="url(#glowCar_${uid})"/>
-        <circle cx="70" cy="200" r="25" fill="#111" stroke="#444" stroke-width="5"/><circle cx="70" cy="200" r="15" fill="#ffd700"/>
-        <circle cx="190" cy="200" r="25" fill="#111" stroke="#444" stroke-width="5"/><circle cx="190" cy="200" r="15" fill="#ffd700"/>
-        <rect x="200" y="150" width="30" height="12" rx="4" fill="#4dd0e1" filter="url(#glowCar_${uid})"/>
-        <rect x="30" y="150" width="25" height="12" rx="4" fill="#ff3333" filter="url(#glowCar_${uid})"/>
-      </g>
-    </svg>`;
-  }
+/* ==================== KOSMOS ==================== */
+let cosmosState={scene:null,camera:null,renderer:null,raycaster:null,mouse:null,sun:null,earth:null,moon:null,planets:{},orbits:[],config:JSON.parse(localStorage.getItem('haldo_kosmos')||'{"sun":true,"mercury":true,"venus":true,"earth":true,"moon":true,"mars":true,"jupiter":true,"saturn":true,"neptune":true,"orbits":true,"speed":1,"brightness":1}')};
 
-  function buildCyborgSVG(size, uid){
-    size = size || 260; uid = uid || (size+"_"+Math.random().toString(36).slice(2,7));
-    return `<svg viewBox="0 0 200 250" width="${size}" height="${size*250/200}" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 40px rgba(77,208,225,0.6))">
-      <defs>
-        <linearGradient id="metal_${uid}" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#8899aa"/><stop offset="50%" stop-color="#ccddee"/><stop offset="100%" stop-color="#556677"/></linearGradient>
-        <filter id="glow_cyborg_${uid}"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-      </defs>
-      <rect x="85" y="170" width="30" height="40" fill="url(#metal_${uid})"/>
-      <path d="M 50 100 Q 50 40 100 40 Q 150 40 150 100 L 150 160 Q 150 180 100 180 Q 50 180 50 160 Z" fill="url(#metal_${uid})" stroke="#4dd0e1" stroke-width="2"/>
-      <rect x="70" y="80" width="60" height="50" rx="10" fill="#0a0e1a" stroke="#4dd0e1" stroke-width="2"/>
-      <circle cx="85" cy="105" r="8" fill="#4dd0e1" filter="url(#glow_cyborg_${uid})"/>
-      <circle cx="115" cy="105" r="8" fill="#4dd0e1" filter="url(#glow_cyborg_${uid})"/>
-      <line x1="60" y1="150" x2="140" y2="150" stroke="#b478ff" stroke-width="3" opacity="0.8"/>
-    </svg>`;
-  }
+function makeSunTexture(){const c=document.createElement('canvas');c.width=1024;c.height=512;const ctx=c.getContext('2d');const g=ctx.createLinearGradient(0,0,0,512);g.addColorStop(0,'#ffaa00');g.addColorStop(0.5,'#ffdd00');g.addColorStop(1,'#ffaa00');ctx.fillStyle=g;ctx.fillRect(0,0,1024,512);for(let i=0;i<15000;i++){const x=Math.random()*1024,y=Math.random()*512,r=Math.random()*6+1;const b=Math.random();if(b>0.7)ctx.fillStyle='rgba(255,255,220,'+(0.3+Math.random()*0.4)+')';else if(b>0.4)ctx.fillStyle='rgba(255,200,60,'+(0.25+Math.random()*0.35)+')';else ctx.fillStyle='rgba(220,80,10,'+(0.15+Math.random()*0.25)+')';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}return new THREE.CanvasTexture(c);}
+function makeGlowSprite(size,color){const c=document.createElement('canvas');c.width=c.height=256;const ctx=c.getContext('2d');const g=ctx.createRadialGradient(128,128,0,128,128,128);g.addColorStop(0,color);g.addColorStop(0.3,color.replace(/[\d.]+\)$/,'0.6)'));g.addColorStop(0.6,color.replace(/[\d.]+\)$/,'0.2)'));g.addColorStop(1,color.replace(/[\d.]+\)$/,'0)'));ctx.fillStyle=g;ctx.fillRect(0,0,256,256);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));s.scale.set(size,size,1);return s;}
+function makePlanetTexture(baseColor){const c=document.createElement('canvas');c.width=512;c.height=256;const ctx=c.getContext('2d');ctx.fillStyle=baseColor;ctx.fillRect(0,0,512,256);for(let i=0;i<3000;i++){const x=Math.random()*512,y=Math.random()*256,r=Math.random()*8+1;ctx.fillStyle='rgba(255,255,255,'+(0.05+Math.random()*0.15)+')';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}for(let i=0;i<1500;i++){const x=Math.random()*512,y=Math.random()*256,r=Math.random()*6+1;ctx.fillStyle='rgba(0,0,0,'+(0.05+Math.random()*0.15)+')';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}return new THREE.CanvasTexture(c);}
+function createSaturnRing(scale){const innerR=1.5*scale,outerR=2.6*scale;const c=document.createElement('canvas');c.width=512;c.height=64;const ctx=c.getContext('2d');for(let x=0;x<512;x++){const a=0.4+Math.sin(x*0.1)*0.3;ctx.fillStyle='rgba(230,210,170,'+a+')';ctx.fillRect(x,0,1,64);}const t=new THREE.CanvasTexture(c);const geo=new THREE.RingGeometry(innerR,outerR,64,1);const mat=new THREE.MeshBasicMaterial({map:t,side:THREE.DoubleSide,transparent:true,opacity:0.9});const r=new THREE.Mesh(geo,mat);r.rotation.x=Math.PI/2;return r;}
 
-  function appIconSVG(size){
-    size = size || 60;
-    return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" style="display:inline-block;vertical-align:middle;filter:drop-shadow(0 4px 12px rgba(255,215,0,.5))">
-      <defs><linearGradient id="gGoldIcon_${size}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe85e"/><stop offset="50%" stop-color="#ffd700"/><stop offset="100%" stop-color="#ffb300"/></linearGradient></defs>
-      <polygon points="50,6 95,92 5,92" fill="url(#gGoldIcon_${size})" stroke="#1a1a2e" stroke-width="4" stroke-linejoin="round"/>
-      <rect x="32" y="48" width="36" height="26" rx="3" fill="#1a1a2e" stroke="#fff" stroke-width="1.5"/>
-      <rect x="44" y="41" width="12" height="9" rx="1" fill="#1a1a2e" stroke="#fff" stroke-width="1.5"/>
-      <circle cx="50" cy="61" r="8" fill="#4dd0e1" stroke="#fff" stroke-width="1.5"/>
-      <circle cx="50" cy="61" r="3" fill="#fff"/>
-      <rect x="34" y="52" width="6" height="3" fill="#ffd700"/>
-    </svg>`;
-  }
+function initCosmos(){
+  if(typeof THREE==='undefined'){console.warn('Three.js fehlt');return;}
+  try{
+    const canvas=document.getElementById('cosmos-canvas');
+    const scene=new THREE.Scene();
+    const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,0.1,5000);
+    camera.position.set(0,20,60);
+    camera.lookAt(0,0,0);
+    const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+    renderer.setSize(innerWidth,innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    renderer.setClearColor(0x000005,1);
 
-  var CATS = [
-    {id:"blitzer_fix",icon:"📷",color:"#ff5555",type:"warn",sound:"siren",name:{de:"Fester Blitzer",en:"Fixed Camera",tr:"Sabit Radar",ar:"رادار ثابت",ku:"Radarê Sabît",fr:"Radar fixe",es:"Radar fijo",it:"Autovelox fisso",ru:"Стационарная камера"},voice:{de:"Achtung, Blitzer in {d}",en:"Warning, camera in {d}",tr:"Dikkat, radar {d}",ar:"تحذير رادار {d}",ku:"Hişyarî, radar li {d}",fr:"Attention, radar à {d}",es:"Atención, radar en {d}",it:"Attenzione, autovelox a {d}",ru:"Внимание, камера через {d}"}},
-    {id:"blitzer_mobil",icon:"🚔",color:"#ff8844",type:"warn",sound:"police",name:{de:"Mobile Kontrolle",en:"Mobile Check",tr:"Mobil Kontrol",ar:"مراقبة متحركة",ku:"Kontrola Mobîl",fr:"Contrôle mobile",es:"Control móvil",it:"Controllo mobile",ru:"Мобильная проверка"},voice:{de:"Achtung, Kontrolle in {d}",en:"Warning, check in {d}",tr:"Dikkat, kontrol {d}",ar:"تحذير مراقبة {d}",ku:"Hişyarî, kontrol li {d}",fr:"Attention, contrôle à {d}",es:"Atención, control en {d}",it:"Attenzione, controllo a {d}",ru:"Внимание, проверка через {d}"}},
-    {id:"stau",icon:"🚗",color:"#ffaa33",type:"warn",sound:"siren",name:{de:"Stau",en:"Traffic Jam",tr:"Trafik",ar:"ازدحام",ku:"Traffîk",fr:"Embouteillage",es:"Atasco",it:"Ingorgo",ru:"Пробка"},voice:{de:"Stau in {d}",en:"Traffic jam in {d}",tr:"Trafik {d}",ar:"ازدحام {d}",ku:"Traffîk li {d}",fr:"Embouteillage à {d}",es:"Atasco en {d}",it:"Ingorgo a {d}",ru:"Пробка через {d}"}},
-    {id:"unfall",icon:"💥",color:"#ff3333",type:"warn",sound:"urgent",name:{de:"Unfall",en:"Accident",tr:"Kaza",ar:"حادث",ku:"Qeza",fr:"Accident",es:"Accidente",it:"Incidente",ru:"Авария"},voice:{de:"Unfall in {d}",en:"Accident in {d}",tr:"Kaza {d}",ar:"حادث {d}",ku:"Qeza li {d}",fr:"Accident à {d}",es:"Accidente en {d}",it:"Incidente a {d}",ru:"Авария через {d}"}},
-    {id:"baustelle",icon:"🚧",color:"#ffaa33",type:"warn",sound:"chime",name:{de:"Baustelle",en:"Road Work",tr:"Yol Çalışması",ar:"أعمال طريق",ku:"Karê Rê",fr:"Travaux",es:"Obras",it:"Lavori",ru:"Ремонт дороги"},voice:{de:"Baustelle in {d}",en:"Road work in {d}",tr:"Yol çalışması {d}",ar:"أعمال طريق {d}",ku:"Karê rê li {d}",fr:"Travaux à {d}",es:"Obras en {d}",it:"Lavori a {d}",ru:"Ремонт дороги через {d}"}},
-    {id:"baustelle_gesperrt",icon:"⛔",color:"#ff3333",type:"warn",sound:"buzzer",name:{de:"Baustelle (gesperrt)",en:"Road Closed",tr:"Yol Kapalı",ar:"طريق مغلق",ku:"Rê Girtî",fr:"Route fermée",es:"Vía cerrada",it:"Strada chiusa",ru:"Дорога закрыта"},voice:{de:"Straße gesperrt in {d}",en:"Road closed in {d}",tr:"Yol kapalı {d}",ar:"طريق مغلق {d}",ku:"Rê girtî li {d}",fr:"Route fermée à {d}",es:"Vía cerrada en {d}",it:"Strada chiusa a {d}",ru:"Дорога закрыта через {d}"}},
-    {id:"umleitung",icon:"↪️",color:"#4dd0e1",type:"warn",sound:"siren",name:{de:"Umleitung",en:"Detour",tr:"Güzergah",ar:"تحويلة",ku:"Rêya Din",fr:"Déviation",es:"Desvío",it:"Deviazione",ru:"Объезд"},voice:{de:"Umleitung in {d}",en:"Detour in {d}",tr:"Güzergah {d}",ar:"تحويلة {d}",ku:"Rêya din li {d}",fr:"Déviation à {d}",es:"Desvío en {d}",it:"Deviazione a {d}",ru:"Объезд через {d}"}},
-    {id:"ezidi",icon:"🦚",color:"#ffd700",type:"warn",sound:"radar",name:{de:"Ezidi-Zentrum",en:"Ezidi Center",tr:"Ezidi Merkezi",ar:"مركز إيزيدي",ku:"Navenda Êzîdî",fr:"Centre Ezidi",es:"Centro Ezidi",it:"Centro Ezidi",ru:"Езидский центр"},voice:{de:"Ezidi-Zentrum in {d}",en:"Ezidi center in {d}",tr:"Ezidi merkezi {d}",ar:"مركز إيزيدي {d}",ku:"Navenda Êzîdî li {d}",fr:"Centre Ezidi à {d}",es:"Centro Ezidi en {d}",it:"Centro Ezidi a {d}",ru:"Езидский центр через {d}"}},
-    {id:"poi_fuel",icon:"⛽",color:"#66cc66",type:"poi",osm:"amenity=fuel",sound:"chime",name:{de:"Tankstelle",en:"Gas Station",tr:"Benzinlik",ar:"محطة وقود",ku:"Benzîngeh",fr:"Station",es:"Gasolinera",it:"Benzinaio",ru:"АЗС"},voice:{de:"Tankstelle in {d}",en:"Gas station in {d}",tr:"Benzinlik {d}",ar:"محطة وقود {d}",ku:"Benzîngeh li {d}",fr:"Station à {d}",es:"Gasolinera en {d}",it:"Benzinaio a {d}",ru:"АЗС через {d}"}},
-    {id:"poi_rest",icon:"🍴",color:"#ff8844",type:"poi",osm:"amenity=restaurant",sound:"chime",name:{de:"Restaurant",en:"Restaurant",tr:"Restoran",ar:"مطعم",ku:"Restoran",fr:"Restaurant",es:"Restaurante",it:"Ristorante",ru:"Ресторан"},voice:{de:"Restaurant in {d}",en:"Restaurant in {d}",tr:"Restoran {d}",ar:"مطعم {d}",ku:"Restoran li {d}",fr:"Restaurant à {d}",es:"Restaurante en {d}",it:"Ristorante a {d}",ru:"Ресторан через {d}"}}
+    const sg=new THREE.BufferGeometry();
+    const sp=new Float32Array(18000*3);
+    const scArr=new Float32Array(18000*3);
+    for(let i=0;i<18000;i++){
+      const r=400+Math.random()*1000,th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);
+      sp[i*3]=r*Math.sin(ph)*Math.cos(th);sp[i*3+1]=r*Math.cos(ph);sp[i*3+2]=r*Math.sin(ph)*Math.sin(th);
+      const b=0.6+Math.random()*0.4;scArr[i*3]=b;scArr[i*3+1]=b;scArr[i*3+2]=b;
+    }
+    sg.setAttribute('position',new THREE.BufferAttribute(sp,3));
+    sg.setAttribute('color',new THREE.BufferAttribute(scArr,3));
+    const stars=new THREE.Points(sg,new THREE.PointsMaterial({size:2.5,vertexColors:true,transparent:true,opacity:0.95,blending:THREE.AdditiveBlending}));
+    scene.add(stars);
+
+    const sun=new THREE.Mesh(new THREE.SphereGeometry(3,64,64),new THREE.MeshBasicMaterial({map:makeSunTexture()}));
+    scene.add(sun);
+    cosmosState.sun=sun;
+    const g1=makeGlowSprite(18,'rgba(255,180,60,1)');scene.add(g1);
+    const g2=makeGlowSprite(28,'rgba(255,140,30,1)');scene.add(g2);
+    const g3=makeGlowSprite(40,'rgba(255,100,20,1)');scene.add(g3);
+    const sunLight=new THREE.PointLight(0xffffff,4,700);
+    scene.add(sunLight);
+    const ambient=new THREE.AmbientLight(0x8899cc,2.5);
+    scene.add(ambient);
+    cosmosState.ambient=ambient;
+
+    const PLANETS=[
+      {id:'mercury',name:'Merkur',radius:2.0,dist:12,color:'#888888',speed:0.04},
+      {id:'venus',name:'Venus',radius:2.6,dist:18,color:'#eebb77',speed:0.03},
+      {id:'earth',name:'Erde',radius:4.0,dist:28,color:'#2288ff',speed:0.022,isEarth:true},
+      {id:'mars',name:'Mars',radius:3.0,dist:38,color:'#cc4422',speed:0.017},
+      {id:'jupiter',name:'Jupiter',radius:5.5,dist:50,color:'#ddbb88',speed:0.011},
+      {id:'saturn',name:'Saturn',radius:4.5,dist:65,color:'#ddcc88',speed:0.008,hasRing:true},
+      {id:'neptune',name:'Neptun',radius:3.8,dist:82,color:'#4466cc',speed:0.005}
+    ];
+    PLANETS.forEach(p=>{
+      const grp=new THREE.Group();
+      let mesh;
+      if(p.isEarth){
+        const earthTex=new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
+        mesh=new THREE.Mesh(new THREE.SphereGeometry(p.radius,64,64),new THREE.MeshPhongMaterial({map:earthTex,shininess:30,specular:0x6688aa,emissive:0x335588,emissiveIntensity:1.2}));
+        cosmosState.earth=mesh;
+      }else{
+        mesh=new THREE.Mesh(new THREE.SphereGeometry(p.radius,48,48),new THREE.MeshPhongMaterial({map:makePlanetTexture(p.color),shininess:10,emissive:new THREE.Color(p.color).multiplyScalar(0.2)}));
+      }
+      grp.add(mesh);
+      grp.userData={...p,mesh,angle:Math.random()*Math.PI*2};
+      scene.add(grp);
+      cosmosState.planets[p.id]=grp;
+      if(p.hasRing){const ring=createSaturnRing(p.radius/4.5);mesh.add(ring);}
+      const orbitGeo=new THREE.RingGeometry(p.dist-0.15,p.dist+0.15,128);
+      const orbitMat=new THREE.MeshBasicMaterial({color:0x66aadd,side:THREE.DoubleSide,transparent:true,opacity:0.35});
+      const orbit=new THREE.Mesh(orbitGeo,orbitMat);
+      orbit.rotation.x=Math.PI/2;scene.add(orbit);cosmosState.orbits.push(orbit);
+    });
+
+    const moonGroup=new THREE.Group();
+    const moonTex=new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/moon_1024.jpg');
+    const moon=new THREE.Mesh(new THREE.SphereGeometry(1.5,32,32),new THREE.MeshPhongMaterial({map:moonTex,shininess:5,emissive:0x333333,emissiveIntensity:0.5}));
+    moonGroup.add(moon);scene.add(moonGroup);
+    cosmosState.moon=moonGroup;cosmosState.moonMesh=moon;
+
+    applyKosmosConfig();
+
+    const raycaster=new THREE.Raycaster();
+    const mouse=new THREE.Vector2();
+    cosmosState.raycaster=raycaster;cosmosState.mouse=mouse;
+    renderer.domElement.addEventListener('mousemove',e=>{mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;raycaster.setFromCamera(mouse,camera);const hits=cosmosState.earth?raycaster.intersectObject(cosmosState.earth):[];canvas.style.cursor=hits.length>0?'pointer':'default';});
+    renderer.domElement.addEventListener('click',e=>{mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;raycaster.setFromCamera(mouse,camera);const hits=cosmosState.earth?raycaster.intersectObject(cosmosState.earth):[];if(hits.length>0){openCyborgChat();const h=document.getElementById('click-hint');if(h)h.style.opacity='0';}});
+
+    let t0=Date.now();
+    (function animate(){
+      requestAnimationFrame(animate);
+      const dt=(Date.now()-t0)*0.001;
+      const sm=cosmosState.config.speed||1;
+      sun.rotation.y+=0.0008*sm;
+      Object.keys(cosmosState.planets).forEach(id=>{
+        const grp=cosmosState.planets[id];const p=grp.userData;
+        p.angle+=p.speed*0.01*sm;
+        grp.position.x=Math.cos(p.angle)*p.dist;
+        grp.position.z=Math.sin(p.angle)*p.dist;
+        p.mesh.rotation.y+=0.01;
+      });
+      if(cosmosState.planets.earth){
+        const ep=cosmosState.planets.earth.position;
+        const ma=dt*0.8*sm;
+        cosmosState.moon.position.set(ep.x+Math.cos(ma)*8.0,ep.y+Math.sin(ma*0.3)*1.0,ep.z+Math.sin(ma)*8.0);
+        cosmosState.moonMesh.rotation.y+=0.02;
+      }
+      const pulse=1+Math.sin(Date.now()*0.001)*0.05;
+      g1.scale.set(18*pulse,18*pulse,1);
+      g2.scale.set(28*(2-pulse),28*(2-pulse),1);
+      stars.rotation.y+=0.00003;
+      renderer.render(scene,camera);
+    })();
+
+    addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();});
+    cosmosState.scene=scene;cosmosState.camera=camera;cosmosState.renderer=renderer;
+  }catch(e){console.error('Cosmos:',e);}
+}
+function applyKosmosConfig(){
+  if(!cosmosState.scene)return;
+  const c=cosmosState.config;
+  if(cosmosState.sun)cosmosState.sun.visible=c.sun!==false;
+  ['mercury','venus','earth','mars','jupiter','saturn','neptune'].forEach(id=>{if(cosmosState.planets[id])cosmosState.planets[id].visible=c[id]!==false;});
+  if(cosmosState.moon)cosmosState.moon.visible=c.moon!==false;
+  cosmosState.orbits.forEach(o=>o.visible=c.orbits!==false);
+  if(cosmosState.ambient)cosmosState.ambient.intensity=2.5*(c.brightness||1);
+  localStorage.setItem('haldo_kosmos',JSON.stringify(c));
+}
+
+/* ==================== CYBORG ==================== */
+let cyborgState={scene:null,camera:null,renderer:null,head:null,eyes:[],mouth:null,speaking:false,blinkTimer:0,container:null};
+function initCyborg3D(container){
+  if(typeof THREE==='undefined')return;
+  container.innerHTML='';
+  const canvas=document.createElement('canvas');
+  canvas.style.cssText='width:100%;height:100%;display:block;';
+  container.appendChild(canvas);
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  renderer.setSize(container.clientWidth,container.clientHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setClearColor(0x000000,0);
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(35,container.clientWidth/container.clientHeight,0.1,100);
+  camera.position.set(0,0.3,2.5);camera.lookAt(0,0.2,0);
+  scene.add(new THREE.AmbientLight(0xffffff,0.8));
+  const d1=new THREE.DirectionalLight(0xffffff,1.5);d1.position.set(2,3,3);scene.add(d1);
+  const d2=new THREE.DirectionalLight(0x06b6d4,1.2);d2.position.set(-2,1,-2);scene.add(d2);
+  const headGroup=new THREE.Group();
+  headGroup.add(new THREE.Mesh(new THREE.SphereGeometry(0.5,32,32),new THREE.MeshStandardMaterial({color:0x88aacc,roughness:0.4,metalness:0.6})));
+  const face=new THREE.Mesh(new THREE.SphereGeometry(0.48,32,32),new THREE.MeshStandardMaterial({color:0xaaccee,roughness:0.3,metalness:0.3}));
+  face.scale.set(0.82,0.95,0.75);face.position.z=0.08;headGroup.add(face);
+  const eyes=[];
+  [-0.18,0.18].forEach(x=>{
+    const w=new THREE.Mesh(new THREE.SphereGeometry(0.09,16,16),new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.1}));
+    w.position.set(x,0.1,0.35);headGroup.add(w);
+    const p=new THREE.Mesh(new THREE.SphereGeometry(0.04,16,16),new THREE.MeshStandardMaterial({color:0x06b6d4,emissive:0x06b6d4,emissiveIntensity:1.5}));
+    p.position.set(x,0.1,0.43);headGroup.add(p);
+    eyes.push({white:w,pupil:p});
+  });
+  const mouth=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.02,0.02),new THREE.MeshStandardMaterial({color:0x333333,emissive:0x06b6d4,emissiveIntensity:0.3}));
+  mouth.position.set(0,-0.12,0.42);headGroup.add(mouth);
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.18,0.4,16),new THREE.MeshStandardMaterial({color:0x667799,roughness:0.5,metalness:0.7}));
+  neck.position.y=-0.6;headGroup.add(neck);
+  const sh=new THREE.Mesh(new THREE.SphereGeometry(0.55,24,24),new THREE.MeshStandardMaterial({color:0x556688,roughness:0.6,metalness:0.4}));
+  sh.scale.set(1.3,0.5,0.8);sh.position.y=-0.9;headGroup.add(sh);
+  scene.add(headGroup);
+  cyborgState.scene=scene;cyborgState.camera=camera;cyborgState.renderer=renderer;
+  cyborgState.eyes=eyes;cyborgState.mouth=mouth;cyborgState.blinkTimer=Math.random()*3000;
+  let lastT=Date.now(),hb=0;
+  (function loop(){
+    requestAnimationFrame(loop);
+    const now=Date.now();const dt=now-lastT;lastT=now;hb+=dt*0.002;
+    headGroup.rotation.x=Math.sin(hb)*0.03;headGroup.rotation.y=Math.sin(hb*0.7)*0.05;headGroup.position.y=Math.sin(hb*1.2)*0.02;
+    cyborgState.blinkTimer-=dt;
+    if(cyborgState.blinkTimer<=0){
+      cyborgState.blinkTimer=2000+Math.random()*4000;
+      const bs=Date.now();
+      const blink=()=>{const e=Date.now()-bs;const s=e<100?Math.max(0.05,1-e/50):Math.min(1,(e-100)/50);eyes.forEach(ey=>{ey.white.scale.y=Math.max(0.05,s);ey.pupil.scale.y=Math.max(0.05,s);});if(e<200)setTimeout(blink,16);};
+      blink();
+    }
+    if(cyborgState.speaking){mouth.scale.y=1+Math.abs(Math.sin(Date.now()*0.02))*4;mouth.scale.x=1+Math.abs(Math.sin(Date.now()*0.015))*0.5;eyes.forEach(ey=>{ey.pupil.material.emissiveIntensity=1+Math.sin(Date.now()*0.01)*0.5;});}else{mouth.scale.y=Math.max(1,mouth.scale.y*0.9);mouth.scale.x=Math.max(1,mouth.scale.x*0.9);}
+    renderer.render(scene,camera);
+  })();
+  const ro=new ResizeObserver(()=>{const w=container.clientWidth,h=container.clientHeight;if(w&&h){renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();}});
+  ro.observe(container);
+}
+function openCyborgChat(){
+  if(openWindows['cyborg'])return focusApp('cyborg');
+  const win=document.createElement('div');
+  win.className='window';win.id='win-cyborg';
+  win.style.width='900px';win.style.height='560px';
+  win.style.left=(innerWidth/2-450)+'px';win.style.top=(innerHeight/2-280)+'px';
+  win.style.zIndex=nextZ();
+  win.innerHTML=`
+    <div class="window-header" onmousedown="startDrag(event,'cyborg')">
+      <div class="window-title">🤖 HalDo AI · Cyborg Chat</div>
+      <div class="window-controls">
+        <button class="win-btn" onclick="event.stopPropagation();minimizeApp('cyborg')">—</button>
+        <button class="win-btn" onclick="event.stopPropagation();maximizeApp('cyborg')">▢</button>
+        <button class="win-btn close" onclick="event.stopPropagation();closeApp('cyborg')">✕</button>
+      </div>
+    </div>
+    <div class="window-body" style="flex-direction:column;">
+      <div class="cyborg-status" id="cy-status">🟢 ONLINE · BEREIT</div>
+      <div class="cyborg-chat">
+        <div class="cyborg-3d" id="cyborg-3d-container"></div>
+        <div class="cyborg-chat-log">
+          <div class="chat-log" id="cy-log"></div>
+          <div class="chat-input"><input id="cy-input" placeholder="Frage oder Befehl…" onkeydown="if(event.key==='Enter')cySend()"><button onclick="cySend()">➤</button></div>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(win);
+  openWindows['cyborg']=true;
+  document.getElementById('taskbar-apps').innerHTML+=`<div class="taskbar-app" id="tb-cyborg" onclick="focusApp('cyborg')">🤖 HalDo AI</div>`;
+  const welcome = 'Willkommen bei HalDo AI OS Pro Max – Professionelle Präsentation ihrer Intelligenz. Ich bin HalDo AI, dein persönlicher Cyborg-Assistent. Ich bin bereit, Halil Donma.';
+  setTimeout(()=>{initCyborg3D(document.getElementById('cyborg-3d-container'));cyAddMessage('ai',welcome);speak(welcome);},100);
+}
+function cyAddMessage(role,text){const log=document.getElementById('cy-log');if(!log)return;const d=document.createElement('div');d.className='msg '+role;d.textContent=text;log.appendChild(d);log.scrollTop=log.scrollHeight;}
+function cySend(){
+  const inp=document.getElementById('cy-input');if(!inp)return;
+  const q=inp.value.trim();if(!q)return;
+  inp.value='';cyAddMessage('user',q);
+  const s=document.getElementById('cy-status');if(s)s.textContent='🤔 DENKT NACH…';
+  setTimeout(()=>{const r=processHalDoCommand(q);cyAddMessage('ai',r);if(s)s.textContent='🟢 ONLINE · BEREIT';speak(r);},500);
+}
+function processHalDoCommand(input){
+  const ql=input.toLowerCase().trim();
+  for(const v of ['öffne ','starte ','open ','start ','zeige ']){
+    if(ql.startsWith(v)){
+      const t=ql.substring(v.length).trim();
+      const app=REGISTRY.find(a=>a.nm.toLowerCase().includes(t)||a.id.toLowerCase()===t);
+      if(app){setTimeout(()=>openApp(app.id),500);return '✓ Öffne '+app.nm+'…';}
+    }
+  }
+  if(/wetter|weather/.test(ql)){setTimeout(()=>openApp('W'),300);return '✓ Öffne Wetter…';}
+  if(/zeit|time/.test(ql))return '🕐 '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr.';
+  if(/blitzer/.test(ql)){setTimeout(()=>openApp('BL'),300);return '🚨 Öffne Blitzer-App…';}
+  if(/fahrschule/.test(ql)){setTimeout(()=>openApp('FS'),300);return '🚗 Öffne Fahrschule…';}
+  if(/hallo|hi|hey/.test(ql))return 'Hallo Bruder! 💙 Wie kann ich helfen?';
+  return '🤖 Verstanden: "'+input+'". Befehle: "öffne Fahrschule", "öffne Blitzer", "wetter".';
+}
+
+/* ==================== CRUD HELPER ==================== */
+function makeCRUD(config){
+  return function(body){
+    body.style.cssText='display:flex;height:100%;';
+    const sb=document.createElement('div');sb.className='app-sidebar';
+    const ct=document.createElement('div');ct.className='app-content';
+    body.appendChild(sb);body.appendChild(ct);
+    let items=store('crud_'+config.id,config.initial||[]);
+    let selId=items[0]?items[0].id:null;
+    const persist=()=>save('crud_'+config.id,items);
+    const fields=config.fields;
+    let active='select';
+    function flash(m){const d=document.createElement('div');d.style.cssText='color:#06b6d4;font-size:12px;margin-top:8px;';d.textContent=m;ct.appendChild(d);setTimeout(()=>d.remove(),1800);}
+    function render(){
+      sb.innerHTML='';
+      ['create','edit','select','settings','delete'].forEach(k=>{const b=document.createElement('button');b.className='side-btn'+(active===k?' active':'');b.textContent=T(k);b.onclick=()=>{active=k;render();};sb.appendChild(b);});
+      const sp=document.createElement('button');sp.className='side-btn speak-btn';sp.textContent='🔊 '+T('speak');sp.onclick=()=>speak((config.title||config.id)+'. '+items.length+' Einträge.');sb.appendChild(sp);
+      ct.innerHTML='';
+      if(active==='create'){ct.innerHTML='<h3>'+T('create')+'</h3>';const f=document.createElement('form');fields.forEach(fd=>{const i=document.createElement('input');i.name=fd.name;i.placeholder=fd.label;f.appendChild(i);});const b=document.createElement('button');b.textContent=T('save');f.appendChild(b);f.onsubmit=e=>{e.preventDefault();const item={id:Date.now()};fields.forEach(fd=>item[fd.name]=f.querySelector('[name="'+fd.name+'"]').value);items.push(item);persist();f.reset();flash('✓ '+T('save'));};ct.appendChild(f);}
+      else if(active==='edit'){ct.innerHTML='<h3>'+T('edit')+'</h3>';if(!items.length){ct.innerHTML+='<p class="muted">'+T('noEntries')+'</p>';return;}if(!items.find(i=>i.id===selId))selId=items[0].id;const sel=document.createElement('select');items.forEach(it=>{const o=document.createElement('option');o.value=it.id;o.textContent=it[fields[0].name]||'#'+it.id;sel.appendChild(o);});sel.value=selId;sel.onchange=()=>{selId=Number(sel.value);render();};ct.appendChild(sel);const item=items.find(i=>i.id===selId);const f=document.createElement('form');fields.forEach(fd=>{const i=document.createElement('input');i.name=fd.name;i.placeholder=fd.label;i.value=item[fd.name]||'';f.appendChild(i);});const b=document.createElement('button');b.textContent=T('save');f.appendChild(b);f.onsubmit=e=>{e.preventDefault();fields.forEach(fd=>item[fd.name]=f.querySelector('[name="'+fd.name+'"]').value);persist();flash('✓ '+T('save'));render();};ct.appendChild(f);}
+      else if(active==='select'){ct.innerHTML='<h3>'+T('select')+'</h3>';const s=document.createElement('input');s.placeholder='🔍 '+T('search');ct.appendChild(s);const list=document.createElement('div');ct.appendChild(list);const rl=()=>{list.innerHTML='';const q=s.value.toLowerCase();const filt=items.filter(it=>!q||fields.some(fd=>String(it[fd.name]||'').toLowerCase().includes(q)));if(!filt.length){list.innerHTML='<p class="muted">'+T('noEntries')+'</p>';return;}filt.forEach(it=>{const row=document.createElement('div');row.className='list-row';row.innerHTML='<span>'+esc(it[fields[0].name]||'—')+'</span>'+(fields[1]?'<span class="meta">'+esc(it[fields[1].name]||'')+'</span>':'');row.onclick=()=>{selId=it.id;active='edit';render();};list.appendChild(row);});};s.oninput=rl;rl();}
+      else if(active==='settings'){ct.innerHTML='<h3>'+T('settings')+'</h3><p>'+T('total')+': <b>'+items.length+'</b></p>';const exp=document.createElement('button');exp.textContent='⬇ Export JSON';exp.onclick=()=>{const b=new Blob([JSON.stringify(items,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=config.id+'.json';a.click();};ct.appendChild(exp);const w=document.createElement('button');w.className='danger';w.textContent='🗑 Alles löschen';w.onclick=()=>{if(confirm(T('confirm'))){items=[];persist();render();}};ct.appendChild(w);}
+      else if(active==='delete'){ct.innerHTML='<h3>'+T('delete')+'</h3>';if(!items.length){ct.innerHTML+='<p class="muted">'+T('noEntries')+'</p>';return;}items.forEach(it=>{const row=document.createElement('div');row.className='list-row';row.innerHTML='<span>'+esc(it[fields[0].name]||'—')+'</span>';const d=document.createElement('button');d.className='danger';d.textContent='✕';d.onclick=()=>{if(confirm(T('confirm'))){items=items.filter(x=>x.id!==it.id);persist();render();}};row.appendChild(d);ct.appendChild(row);});}
+    }
+    render();
+  };
+}
+
+/* ==================== STANDARD-APPS ==================== */
+const viewFiles = makeCRUD({id:'files',title:'Files',fields:[{name:'name',label:'Dateiname'},{name:'content',label:'Inhalt'}]});
+const viewLearning = makeCRUD({id:'learning',title:'Learning',fields:[{name:'front',label:'Frage'},{name:'back',label:'Antwort'}]});
+const viewKontakte = makeCRUD({id:'kontakte',title:'Kontakte',fields:[{name:'name',label:'Name'},{name:'phone',label:'Telefon'}]});
+const viewNotizen = makeCRUD({id:'notizen',title:'Notizen',fields:[{name:'title',label:'Titel'},{name:'text',label:'Text'}]});
+const viewPasswort = makeCRUD({id:'passwort',title:'Passwörter',fields:[{name:'name',label:'Dienst'},{name:'user',label:'Benutzer'},{name:'pass',label:'Passwort'}]});
+const viewFinanzen = makeCRUD({id:'finanzen',title:'Finanzen',fields:[{name:'desc',label:'Beschreibung'},{name:'amount',label:'Betrag'}]});
+const viewFitness = makeCRUD({id:'fitness',title:'Fitness',fields:[{name:'exercise',label:'Übung'},{name:'reps',label:'Wiederholungen'}]});
+const viewGewohnheiten = makeCRUD({id:'gewohnheiten',title:'Gewohnheiten',fields:[{name:'name',label:'Gewohnheit'},{name:'streak',label:'Streak'}]});
+const viewWasser = makeCRUD({id:'wasser',title:'Wasser',fields:[{name:'amount',label:'Menge'},{name:'time',label:'Uhrzeit'}]});
+const viewStimmung = makeCRUD({id:'stimmung',title:'Stimmung',fields:[{name:'mood',label:'Stimmung'},{name:'note',label:'Notiz'}]});
+const viewRezepte = makeCRUD({id:'rezepte',title:'Rezepte',fields:[{name:'name',label:'Rezept'},{name:'ingredients',label:'Zutaten'}]});
+const viewEinkauf = makeCRUD({id:'einkauf',title:'Einkauf',fields:[{name:'item',label:'Artikel'},{name:'qty',label:'Menge'}]});
+const viewReisen = makeCRUD({id:'reisen',title:'Reisen',fields:[{name:'dest',label:'Ziel'},{name:'date',label:'Datum'}]});
+const viewVokabeln = makeCRUD({id:'vokabeln',title:'Vokabeln',fields:[{name:'de',label:'Deutsch'},{name:'other',label:'Andere Sprache'}]});
+const viewFlashcards = makeCRUD({id:'flashcards',title:'Flashcards',fields:[{name:'q',label:'Frage'},{name:'a',label:'Antwort'}]});
+const viewNotfall = makeCRUD({id:'notfall',title:'Notfall',fields:[{name:'name',label:'Name'},{name:'phone',label:'Telefon'}]});
+
+const viewAI = function(body){
+  body.style.cssText='display:flex;height:100%;padding:18px;flex-direction:column;';
+  const wrap=document.createElement('div');wrap.className='chat-box';
+  const log=document.createElement('div');log.className='chat-log';
+  const inpRow=document.createElement('div');inpRow.className='chat-input';
+  const inp=document.createElement('input');inp.placeholder='Frage oder Befehl…';
+  const snd=document.createElement('button');snd.textContent='➤';
+  wrap.appendChild(log);inpRow.appendChild(inp);inpRow.appendChild(snd);wrap.appendChild(inpRow);body.appendChild(wrap);
+  const welcome = 'Willkommen bei HalDo AI OS – Professionelle Präsentation ihrer Intelligenz. Ich bin HalDo AI und freue mich, dir zu helfen.';
+  let h=store('ai_classic',[{role:'ai',text:welcome}]);
+  speak(welcome);
+  const render=()=>{log.innerHTML='';h.forEach(m=>{const d=document.createElement('div');d.className='msg '+m.role;d.textContent=m.text;log.appendChild(d);});log.scrollTop=log.scrollHeight;};
+  const send=()=>{const q=inp.value.trim();if(!q)return;h.push({role:'user',text:q});inp.value='';render();setTimeout(()=>{const r=processHalDoCommand(q);h.push({role:'ai',text:r});if(h.length>40)h=h.slice(-40);save('ai_classic',h);render();speak(r);},400);};
+  snd.onclick=send;inp.onkeydown=e=>{if(e.key==='Enter')send();};render();
+};
+
+const viewBrowser = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  let bms=store('browser_bm',[{id:1,name:'Google',url:'https://www.google.com'}]);
+  let hist=store('browser_hist',[]);
+  let active='web';let frame=null;
+  speak('Willkommen beim HalDo Browser');
+  function render(){
+    sb.innerHTML='';
+    [['web','🌐 Web'],['bm','⭐ Lesezeichen'],['hist','📜 Verlauf'],['settings','⚙ Einstellungen'],['delete','🗑 Löschen']].forEach(([id,label])=>{const b=document.createElement('button');b.className='side-btn'+(active===id?' active':'');b.textContent=label;b.onclick=()=>{active=id;render();};sb.appendChild(b);});
+    const sp=document.createElement('button');sp.className='side-btn speak-btn';sp.textContent='🔊 '+T('speak');sp.onclick=()=>speak('Browser.');sb.appendChild(sp);
+    ct.innerHTML='';
+    if(active==='web'){const bar=document.createElement('div');bar.style.cssText='display:flex;gap:8px;margin-bottom:8px;';const i=document.createElement('input');i.value='https://www.wikipedia.org';i.style.flex='1';i.style.margin='0';const go=document.createElement('button');go.textContent='Los';go.style.margin='0';frame=document.createElement('iframe');frame.src=i.value;frame.style.cssText='flex:1;border:1px solid #374151;border-radius:8px;background:#fff;width:100%;';go.onclick=()=>{frame.src=i.value;hist.push({url:i.value,date:new Date().toLocaleString()});save('browser_hist',hist);};bar.appendChild(i);bar.appendChild(go);ct.appendChild(bar);ct.appendChild(frame);}
+    else if(active==='bm'){ct.innerHTML='<h3>⭐ Lesezeichen</h3>';bms.forEach(bm=>{const row=document.createElement('div');row.className='list-row';row.innerHTML='<span>'+esc(bm.name)+'</span><span class="meta">'+esc(bm.url)+'</span>';row.onclick=()=>{active='web';render();setTimeout(()=>{if(frame)frame.src=bm.url;},50);};ct.appendChild(row);});}
+    else if(active==='hist'){ct.innerHTML='<h3>📜 Verlauf</h3>';hist.slice().reverse().forEach(h=>{const row=document.createElement('div');row.className='list-row';row.innerHTML='<span>'+esc(h.url)+'</span><span class="meta">'+h.date+'</span>';ct.appendChild(row);});}
+    else if(active==='settings'){ct.innerHTML='<h3>⚙ Einstellungen</h3><p>Startseite: <input id="home-url" value="'+(localStorage.getItem('haldo_homepage')||'https://www.google.com')+'"></p>';const b=document.createElement('button');b.textContent='💾 '+T('save');b.onclick=()=>{localStorage.setItem('haldo_homepage',document.getElementById('home-url').value);alert('✓');};ct.appendChild(b);}
+    else{ct.innerHTML='<h3>🗑 Löschen</h3>';}
+  }
+  render();
+};
+
+const viewCalendar = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  let events=store('cal_events',[]);let viewDate=new Date();let active='select';
+  speak('Willkommen beim HalDo Kalender');
+  function render(){
+    sb.innerHTML='';
+    [['select','📅 Kalender'],['create','➕ Neu'],['settings','⚙ Einstellungen'],['delete','🗑 Löschen']].forEach(([id,label])=>{const b=document.createElement('button');b.className='side-btn'+(active===id?' active':'');b.textContent=label;b.onclick=()=>{active=id;render();};sb.appendChild(b);});
+    const sp=document.createElement('button');sp.className='side-btn speak-btn';sp.textContent='🔊 '+T('speak');sp.onclick=()=>speak('Kalender.');sb.appendChild(sp);
+    ct.innerHTML='';
+    if(active==='select'){
+      const head=document.createElement('div');head.style.cssText='display:flex;align-items:center;gap:10px;margin-bottom:10px;';
+      const prev=document.createElement('button');prev.textContent='◀';prev.onclick=()=>{viewDate=new Date(viewDate.getFullYear(),viewDate.getMonth()-1,1);render();};
+      const next=document.createElement('button');next.textContent='▶';next.onclick=()=>{viewDate=new Date(viewDate.getFullYear(),viewDate.getMonth()+1,1);render();};
+      const title=document.createElement('h3');title.style.margin='0';title.style.flex='1';title.textContent=viewDate.toLocaleString(currentLang,{month:'long',year:'numeric'});
+      head.appendChild(prev);head.appendChild(title);head.appendChild(next);ct.appendChild(head);
+      const grid=document.createElement('div');grid.className='cal-grid';
+      ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d=>{const c=document.createElement('div');c.className='cal-head';c.textContent=d;grid.appendChild(c);});
+      const y=viewDate.getFullYear(),m=viewDate.getMonth();
+      const sd=(new Date(y,m,1).getDay()+6)%7;const days=new Date(y,m+1,0).getDate();const today=new Date();
+      for(let i=0;i<sd;i++)grid.appendChild(document.createElement('div'));
+      for(let d=1;d<=days;d++){
+        const c=document.createElement('div');c.className='cal-cell';
+        const dt=new Date(y,m,d);if(dt.toDateString()===today.toDateString())c.classList.add('today');
+        c.innerHTML='<div class="day">'+d+'</div>';
+        const key=dt.toISOString().slice(0,10);
+        events.filter(e=>e.date===key).forEach(e=>{const ev=document.createElement('div');ev.style.cssText='font-size:10px;background:rgba(6,182,212,.4);color:#fff;padding:1px 3px;margin-top:2px;border-radius:2px;';ev.textContent=e.title;c.appendChild(ev);});
+        c.onclick=()=>{const tit=prompt('Termin:','');if(tit){events.push({id:Date.now(),title:tit,date:key});save('cal_events',events);render();}};
+        grid.appendChild(c);
+      }
+      ct.appendChild(grid);
+    }else if(active==='create'){ct.innerHTML='<h3>➕ Termin</h3>';const f=document.createElement('form');const ti=document.createElement('input');ti.placeholder='Titel';f.appendChild(ti);const di=document.createElement('input');di.type='date';f.appendChild(di);const b=document.createElement('button');b.textContent=T('save');f.appendChild(b);f.onsubmit=e=>{e.preventDefault();events.push({id:Date.now(),title:ti.value,date:di.value});save('cal_events',events);active='select';render();};ct.appendChild(f);}
+    else if(active==='settings'){ct.innerHTML='<h3>⚙ Einstellungen</h3><p>Termine: '+events.length+'</p>';}
+    else{ct.innerHTML='<h3>🗑 Löschen</h3>';events.forEach(ev=>{const row=document.createElement('div');row.className='list-row';row.innerHTML='<span>'+esc(ev.title)+'</span>';const d=document.createElement('button');d.className='danger';d.textContent='✕';d.onclick=()=>{if(confirm(T('confirm'))){events=events.filter(x=>x.id!==ev.id);save('cal_events',events);render();}};row.appendChild(d);ct.appendChild(row);});}
+  }
+  render();
+};
+
+const viewDocuments = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  let docs=store('documents',[{id:Date.now(),title:'Willkommen',body:'Willkommen bei HalDo Documents!'}]);
+  let currentId=docs[0].id;const persist=()=>save('documents',docs);
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  speak('Willkommen bei den HalDo Dokumenten');
+  function render(){
+    sb.innerHTML='';
+    const add=document.createElement('button');add.className='side-btn';add.textContent='➕ Neues Dokument';
+    add.onclick=()=>{const d={id:Date.now(),title:'Neu '+docs.length,body:''};docs.push(d);currentId=d.id;persist();render();};sb.appendChild(add);
+    docs.forEach(d=>{const b=document.createElement('button');b.className='side-btn'+(d.id===currentId?' active':'');b.textContent='📄 '+d.title;b.onclick=()=>{currentId=d.id;render();};sb.appendChild(b);});
+    const sp=document.createElement('button');sp.className='side-btn speak-btn';sp.textContent='🔊 '+T('speak');sp.onclick=()=>{const d=docs.find(x=>x.id===currentId);speak(d?d.body:'Keine');};sb.appendChild(sp);
+    ct.innerHTML='';
+    const doc=docs.find(d=>d.id===currentId)||docs[0];
+    const head=document.createElement('div');head.style.cssText='display:flex;gap:8px;margin-bottom:8px;';
+    const ti=document.createElement('input');ti.value=doc.title;ti.style.margin='0';ti.oninput=()=>{doc.title=ti.value;persist();};
+    const saveBtn=document.createElement('button');saveBtn.textContent='💾 '+T('save');saveBtn.style.margin='0';saveBtn.onclick=()=>{persist();alert('✓');};
+    const delBtn=document.createElement('button');delBtn.className='danger';delBtn.textContent='🗑';delBtn.style.margin='0';delBtn.onclick=()=>{if(confirm(T('confirm'))){docs=docs.filter(x=>x.id!==doc.id);if(!docs.length)docs=[{id:Date.now(),title:'Neu',body:''}];currentId=docs[0].id;persist();render();}};
+    head.appendChild(ti);head.appendChild(saveBtn);head.appendChild(delBtn);ct.appendChild(head);
+    const ta=document.createElement('textarea');ta.value=doc.body;ta.style.cssText='width:100%;height:calc(100% - 90px);min-height:280px;font-family:monospace;resize:none;';ta.oninput=()=>{doc.body=ta.value;persist();};ct.appendChild(ta);
+  }
+  render();
+};
+
+const viewEmail = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  let mails=store('mails',[{id:1,from:'HalDo Team',subject:'Willkommen',body:'Willkommen!',folder:'inbox'}]);
+  let folder='inbox';const persist=()=>save('mails',mails);
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  speak('Willkommen beim HalDo E-Mail-Programm');
+  function render(){
+    sb.innerHTML='';
+    [['inbox','📥 Posteingang'],['sent','📤 Gesendet'],['compose','✍ Neu'],['settings','⚙ Einstellungen'],['delete','🗑 Löschen']].forEach(([id,label])=>{const b=document.createElement('button');b.className='side-btn'+(folder===id?' active':'');b.textContent=label;b.onclick=()=>{folder=id;render();};sb.appendChild(b);});
+    ct.innerHTML='';
+    if(folder==='compose'){ct.innerHTML='<h3>✍ Neue E-Mail</h3>';const f=document.createElement('form');const to=document.createElement('input');to.placeholder='An';f.appendChild(to);const sub=document.createElement('input');sub.placeholder='Betreff';f.appendChild(sub);const bd=document.createElement('textarea');bd.placeholder='Nachricht';f.appendChild(bd);const b=document.createElement('button');b.textContent='📤 Senden';f.appendChild(b);f.onsubmit=e=>{e.preventDefault();mails.push({id:Date.now(),from:'Du',to:to.value,subject:sub.value,body:bd.value,folder:'sent'});persist();folder='sent';render();};ct.appendChild(f);}
+    else if(folder==='settings'){ct.innerHTML='<h3>⚙ Einstellungen</h3>';}
+    else if(folder==='delete'){ct.innerHTML='<h3>🗑 Löschen</h3>';mails.forEach(m=>{const row=document.createElement('div');row.className='list-row';row.innerHTML='<span>'+esc(m.subject)+'</span>';const d=document.createElement('button');d.className='danger';d.textContent='✕';d.onclick=()=>{if(confirm(T('confirm'))){mails=mails.filter(x=>x.id!==m.id);persist();render();}};row.appendChild(d);ct.appendChild(row);});}
+    else{ct.innerHTML='<h3>'+(folder==='inbox'?'📥 Posteingang':'📤 Gesendet')+'</h3>';mails.filter(m=>m.folder===folder).forEach(m=>{const row=document.createElement('div');row.className='list-row';row.innerHTML='<span>'+esc(m.subject)+'</span><span class="meta">'+esc(m.from)+'</span>';row.onclick=()=>alert(m.subject+'\n\n'+m.body);ct.appendChild(row);});}
+  }
+  render();
+};
+
+const viewGallery = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  let photos=store('photos',[]);const persist=()=>save('photos',photos);
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  let active='select';
+  speak('Willkommen in der HalDo Galerie');
+  function render(){
+    sb.innerHTML='';
+    [['select','🖼 Galerie'],['create','📷 Hinzufügen'],['settings','⚙ Einstellungen'],['delete','🗑 Löschen']].forEach(([id,label])=>{const b=document.createElement('button');b.className='side-btn'+(active===id?' active':'');b.textContent=label;b.onclick=()=>{active=id;render();};sb.appendChild(b);});
+    ct.innerHTML='';
+    if(active==='select'){ct.innerHTML='<h3>🖼 Galerie</h3>';if(!photos.length){ct.innerHTML+='<p class="muted">Keine Bilder.</p>';return;}const g=document.createElement('div');g.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;';photos.forEach(p=>{const img=document.createElement('img');img.src=p.data;img.style.cssText='width:100%;height:120px;object-fit:cover;border-radius:8px;';g.appendChild(img);});ct.appendChild(g);}
+    else if(active==='create'){ct.innerHTML='<h3>📷 Bild hinzufügen</h3>';const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.onchange=()=>{const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{photos.push({id:Date.now(),data:r.result,name:f.name});persist();active='select';render();};r.readAsDataURL(f);};ct.appendChild(inp);}
+    else if(active==='settings'){ct.innerHTML='<h3>⚙ Einstellungen</h3>';}
+    else{ct.innerHTML='<h3>🗑 Löschen</h3>';photos.forEach(p=>{const row=document.createElement('div');row.className='list-row';row.innerHTML='<span>'+esc(p.name)+'</span>';const d=document.createElement('button');d.className='danger';d.textContent='✕';d.onclick=()=>{if(confirm(T('confirm'))){photos=photos.filter(x=>x.id!==p.id);persist();render();}};row.appendChild(d);ct.appendChild(row);});}
+  }
+  render();
+};
+
+const viewHealth = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  const sections=[['anatomy','🧬 3D Anatomie'],['diseases','🦠 Krankheiten'],['meds','💊 Medikamente'],['labs','🧪 Laborwerte'],['vitals','❤ Vitalwerte'],['settings','⚙ Einstellungen'],['emergency','🚨 Notfall']];
+  let active='anatomy';let raf=null,cleanup=null;
+  speak('Willkommen im HalDo Arztbuch. Deine Gesundheit liegt uns am Herzen.');
+  function render(){
+    sb.innerHTML='';
+    sections.forEach(([id,label])=>{const b=document.createElement('button');b.className='side-btn'+(active===id?' active':'');b.textContent=label;b.onclick=()=>{active=id;render();};sb.appendChild(b);});
+    const sp=document.createElement('button');sp.className='side-btn speak-btn';sp.textContent='🔊 '+T('speak');sp.onclick=()=>speak('HalDo Arztbuch.');sb.appendChild(sp);
+    if(cleanup){try{cleanup();}catch(e){}cleanup=null;}
+    ct.innerHTML='';
+    if(active==='anatomy')initAnatomy();
+    else if(active==='emergency'){ct.innerHTML='<h3>🚨 NOTFALL</h3><p>Notruf: <b style="color:#ef4444;font-size:28px">112</b></p>';}
+    else if(active==='settings'){ct.innerHTML='<h3>⚙ Einstellungen</h3>';}
+    else{const key={diseases:'health_diseases',meds:'health_meds',labs:'health_labs',vitals:'health_vitals'}[active];const fields={diseases:[{name:'name',label:'Krankheit'},{name:'desc',label:'Beschreibung'}],meds:[{name:'name',label:'Medikament'},{name:'dose',label:'Dosierung'}],labs:[{name:'name',label:'Laborwert'},{name:'value',label:'Wert'}],vitals:[{name:'name',label:'Vitalwert'},{name:'value',label:'Wert'}]}[active];makeCRUD({id:key,fields,initial:[]})(ct);}
+  }
+  function initAnatomy(){
+    const wrap=document.createElement('div');wrap.className='anatomy-wrap';ct.appendChild(wrap);
+    const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(wrap.clientWidth,wrap.clientHeight);renderer.setClearColor(0x001122,1);wrap.appendChild(renderer.domElement);
+    const scene=new THREE.Scene();const camera=new THREE.PerspectiveCamera(45,wrap.clientWidth/wrap.clientHeight,0.1,100);camera.position.set(0,1.2,4);camera.lookAt(0,0.7,0);
+    scene.add(new THREE.AmbientLight(0xffffff,0.75));const dl=new THREE.DirectionalLight(0xffffff,1.1);dl.position.set(2,4,3);scene.add(dl);
+    const skel=new THREE.Group();const org=new THREE.Group();const bm=new THREE.MeshStandardMaterial({color:0xeeeecc,roughness:0.6});
+    skel.add(new THREE.Mesh(new THREE.SphereGeometry(0.22,24,24),bm));
+    for(let i=0;i<8;i++){const v=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.09,12),bm);v.position.y=1.2-i*0.11;skel.add(v);}
+    for(let i=0;i<5;i++){const r=new THREE.Mesh(new THREE.TorusGeometry(0.25,0.018,8,22,Math.PI),bm);r.position.y=1.1-i*0.1;r.rotation.y=Math.PI/2;skel.add(r);}
+    const aL=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.75,12),bm);aL.position.set(0.38,1,0);skel.add(aL);
+    const aR=aL.clone();aR.position.x=-0.38;skel.add(aR);
+    scene.add(skel);
+    const brain=new THREE.Mesh(new THREE.SphereGeometry(0.16,20,20),new THREE.MeshStandardMaterial({color:0xff88aa}));brain.position.y=1.5;org.add(brain);
+    const heart=new THREE.Mesh(new THREE.SphereGeometry(0.1,16,16),new THREE.MeshStandardMaterial({color:0xcc2222}));heart.position.set(0.05,1,0.02);org.add(heart);
+    scene.add(org);
+    const tg=document.createElement('div');tg.className='layer-toggles';tg.innerHTML='<label><input type="checkbox" data-layer="sk" checked> Skelett</label><label><input type="checkbox" data-layer="or" checked> Organe</label>';
+    tg.querySelectorAll('input').forEach(cb=>cb.onchange=()=>{if(cb.dataset.layer==='sk')skel.visible=cb.checked;if(cb.dataset.layer==='or')org.visible=cb.checked;});wrap.appendChild(tg);
+    let rot=0;function anim(){raf=requestAnimationFrame(anim);rot+=0.006;skel.rotation.y=rot;org.rotation.y=rot;renderer.render(scene,camera);}anim();
+    cleanup=()=>{cancelAnimationFrame(raf);renderer.dispose();};
+  }
+  render();
+};
+
+const viewInternet = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🌍 Internet</h3>';
+  speak('Willkommen beim HalDo Internet');
+  const inp=document.createElement('input');inp.placeholder='Wikipedia durchsuchen…';
+  const btn=document.createElement('button');btn.textContent='Suchen';
+  btn.onclick=()=>{if(inp.value)window.open('https://de.wikipedia.org/wiki/'+encodeURIComponent(inp.value),'_blank');};
+  body.appendChild(inp);body.appendChild(btn);
+};
+
+const viewJournal = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  let entries=store('journal',[]);const persist=()=>save('journal',entries);
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  let active='select';
+  speak('Willkommen beim HalDo Journal');
+  function render(){
+    sb.innerHTML='';
+    [['select','📔 Einträge'],['create','➕ Neu'],['settings','⚙ Einstellungen'],['delete','🗑 Löschen']].forEach(([id,label])=>{const b=document.createElement('button');b.className='side-btn'+(active===id?' active':'');b.textContent=label;b.onclick=()=>{active=id;render();};sb.appendChild(b);});
+    ct.innerHTML='';
+    if(active==='create'){ct.innerHTML='<h3>➕ Neuer Eintrag</h3>';const f=document.createElement('form');const ta=document.createElement('textarea');ta.placeholder='Was denkst du?';ta.style.minHeight='180px';const b=document.createElement('button');b.textContent=T('save');f.appendChild(ta);f.appendChild(b);f.onsubmit=e=>{e.preventDefault();entries.push({id:Date.now(),text:ta.value,date:new Date().toLocaleString()});persist();ta.value='';render();};ct.appendChild(f);}
+    else if(active==='select'){ct.innerHTML='<h3>📔 Journal</h3>';entries.slice().reverse().forEach(en=>{const p=document.createElement('div');p.className='qt-panel';p.style.marginBottom='8px';p.innerHTML='<span class="meta">'+esc(en.date)+'</span><div>'+esc(en.text)+'</div>';ct.appendChild(p);});}
+    else if(active==='settings'){ct.innerHTML='<h3>⚙ Einstellungen</h3>';}
+    else{ct.innerHTML='<h3>🗑 Löschen</h3>';entries.forEach(en=>{const row=document.createElement('div');row.className='list-row';row.innerHTML='<span>'+esc(en.text.slice(0,40))+'</span>';const d=document.createElement('button');d.className='danger';d.textContent='✕';d.onclick=()=>{if(confirm(T('confirm'))){entries=entries.filter(x=>x.id!==en.id);persist();render();}};row.appendChild(d);ct.appendChild(row);});}
+  }
+  render();
+};
+
+const viewKeyboard = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>⌨️ Sprache</h3>';
+  speak('Willkommen bei den HalDo Tastatur-Einstellungen');
+  const sel=document.createElement('select');
+  Object.keys(LANGNAMES).forEach(code=>{const o=document.createElement('option');o.value=code;o.textContent=LANGNAMES[code];sel.appendChild(o);});
+  sel.onchange=()=>setLanguage(sel.value);body.appendChild(sel);
+};
+
+const viewMusic = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🎵 Music Studio</h3>';
+  speak('Willkommen im HalDo Music Studio');
+};
+
+const viewNavigation = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  speak('Willkommen bei der HalDo Navigation. Ich führe dich sicher ans Ziel.');
+  let active='map';
+  function render(){
+    sb.innerHTML='';
+    [['map','🗺 Karte'],['settings','⚙ Einstellungen']].forEach(([id,label])=>{const b=document.createElement('button');b.className='side-btn'+(active===id?' active':'');b.textContent=label;b.onclick=()=>{active=id;render();};sb.appendChild(b);});
+    const sp=document.createElement('button');sp.className='side-btn speak-btn';sp.textContent='🔊 '+T('speak');sp.onclick=()=>speak('Navigation.');sb.appendChild(sp);
+    ct.innerHTML='';
+    if(active==='map'){
+      const holo=document.createElement('div');holo.className='holo-map';
+      holo.innerHTML='<div class="holo-arrow" style="top:30%;left:20%;">⬆️</div><div class="holo-arrow" style="top:50%;left:50%;">➡️</div><div class="holo-text" style="top:20%;left:30%;">Links abbiegen in 500m</div><div class="holo-text" style="top:70%;left:40%;">Ziel: Hauptstraße 12</div>';
+      ct.appendChild(holo);
+    }else if(active==='settings'){
+      ct.innerHTML='<h3>⚙ Einstellungen</h3><p>Hologramm-Farbe: <input type="color" value="#fbbf24" onchange="document.documentElement.style.setProperty(\'--gold\',this.value)"></p>';
+    }
+  }
+  render();
+};
+
+const viewOffice = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>📊 Office</h3>';
+  speak('Willkommen bei HalDo Office');
+};
+
+const viewPhotos = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>📷 Kamera</h3>';
+  speak('Willkommen bei der HalDo Kamera');
+  const video=document.createElement('video');video.autoplay=true;video.style.cssText='width:100%;max-height:400px;background:#000;border-radius:8px;';body.appendChild(video);
+  if(navigator.mediaDevices?.getUserMedia){navigator.mediaDevices.getUserMedia({video:true}).then(s=>video.srcObject=s).catch(()=>{});}
+};
+
+const viewQuickTools = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🛠️ Quick Tools</h3>';
+  speak('Willkommen bei den HalDo Quick Tools');
+};
+
+const viewRecorder = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🎙️ Recorder</h3>';
+  speak('Willkommen beim HalDo Recorder');
+};
+
+const viewSecurity = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🛡️ Security</h3>';
+  speak('Willkommen bei der HalDo Sicherheit');
+};
+
+const viewTasks = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  let tasks=store('tasks',[]);const persist=()=>save('tasks',tasks);
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  let active='select';
+  speak('Willkommen bei den HalDo Aufgaben');
+  function render(){
+    sb.innerHTML='';
+    [['select','✅ Aufgaben'],['create','➕ Neu'],['settings','⚙ Einstellungen'],['delete','🗑 Löschen']].forEach(([id,label])=>{const b=document.createElement('button');b.className='side-btn'+(active===id?' active':'');b.textContent=label;b.onclick=()=>{active=id;render();};sb.appendChild(b);});
+    ct.innerHTML='';
+    if(active==='select'){ct.innerHTML='<h3>✅ Aufgaben ('+tasks.filter(x=>!x.done).length+' offen)</h3>';tasks.forEach(tk=>{const row=document.createElement('div');row.className='list-row';const cb=document.createElement('input');cb.type='checkbox';cb.checked=tk.done;cb.style.width='auto';cb.onchange=()=>{tk.done=cb.checked;persist();render();};row.appendChild(cb);const span=document.createElement('span');span.textContent=tk.text;row.appendChild(span);ct.appendChild(row);});}
+    else if(active==='create'){ct.innerHTML='<h3>➕ Neue Aufgabe</h3>';const f=document.createElement('form');const i=document.createElement('input');i.placeholder='Aufgabe';f.appendChild(i);const b=document.createElement('button');b.textContent=T('save');f.appendChild(b);f.onsubmit=e=>{e.preventDefault();tasks.push({id:Date.now(),text:i.value,done:false});persist();render();};ct.appendChild(f);}
+    else if(active==='settings'){ct.innerHTML='<h3>⚙ Einstellungen</h3>';}
+    else{ct.innerHTML='<h3>🗑 Löschen</h3>';tasks.forEach(tk=>{const row=document.createElement('div');row.className='list-row';row.innerHTML='<span>'+esc(tk.text)+'</span>';const d=document.createElement('button');d.className='danger';d.textContent='✕';d.onclick=()=>{if(confirm(T('confirm'))){tasks=tasks.filter(x=>x.id!==tk.id);persist();render();}};row.appendChild(d);ct.appendChild(row);});}
+  }
+  render();
+};
+
+const viewUpdates = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🔄 Updates</h3><p>System aktuell: v1.8.0</p>';
+  speak('Willkommen bei den HalDo Updates');
+};
+
+const viewVideo = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🎬 Video Studio</h3>';
+  speak('Willkommen im HalDo Video Studio');
+};
+
+const viewWeather = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🌤️ Wetter</h3>';
+  speak('Willkommen beim HalDo Wetter');
+};
+
+const viewExperience = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🎨 Themes</h3>';
+  speak('Willkommen bei der HalDo Personalisierung');
+  ['#06b6d4','#ff66dd','#88ff88','#ffcc44','#ff6666','#aa88ff','#fbbf24','#a855f7'].forEach(c=>{const b=document.createElement('button');b.textContent=c;b.style.cssText='background:'+c+';color:#000;margin:4px;padding:12px 20px;border-radius:8px;font-weight:700;';b.onclick=()=>{document.documentElement.style.setProperty('--accent',c);document.documentElement.style.setProperty('--accent2',c);localStorage.setItem('haldo_theme',c);};body.appendChild(b);});
+};
+
+const viewYourLife = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🏠 Your Life</h3>';
+  speak('Willkommen bei Dein Leben Dashboard');
+};
+
+const viewSystemCenter = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>⚙️ System Center</h3><p>Version: v1.8.0</p><p>Apps: '+REGISTRY.length+'</p><p>Sprachen: 20</p>';
+  speak('Willkommen im HalDo System Center');
+};
+
+/* ==================== FAHRSCHULE (ALLE KLASSEN) ==================== */
+const viewFahrschuleApp = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  let active='klassen';
+  let stats=store('fahrschule_stats',{richtig:0,falsch:0});
+  let selectedClass=store('fahrschule_class','B');
+  let questionCount=store('fahrschule_count',30);
+  let questions=store('fahrschule_fragen',[
+    {id:1,q:'Wie schnell darf man innerorts höchstens fahren?',a:['30 km/h','50 km/h','60 km/h','70 km/h'],correct:1,klasse:'B'},
+    {id:2,q:'Was bedeutet ein rotes Dreieck?',a:['Vorfahrt gewähren','Stop','Vorfahrtstraße','Parkplatz'],correct:0,klasse:'B'},
+    {id:3,q:'Promillegrenze für Fahranfänger?',a:['0,0 Promille','0,5 Promille','0,8 Promille','1,0 Promille'],correct:0,klasse:'B'},
+    {id:4,q:'Wie lang ist die Probezeit?',a:['1 Jahr','2 Jahre','3 Jahre','5 Jahre'],correct:1,klasse:'B'},
+    {id:5,q:'Autobahn Richtgeschwindigkeit?',a:['100 km/h','120 km/h','130 km/h','150 km/h'],correct:2,klasse:'B'},
+    {id:6,q:'Wie tief muss das Profil sein?',a:['1,0 mm','1,6 mm','2,0 mm','3,0 mm'],correct:1,klasse:'B'},
+    {id:7,q:'Wie schnell darf ein Mofa fahren?',a:['20 km/h','25 km/h','30 km/h','45 km/h'],correct:1,klasse:'AM'},
+    {id:8,q:'Wie schnell darf ein Kleinkraftrad fahren?',a:['25 km/h','30 km/h','45 km/h','50 km/h'],correct:2,klasse:'AM'},
+    {id:9,q:'Ab welchem Alter darf man A1 fahren?',a:['14 Jahre','16 Jahre','18 Jahre','21 Jahre'],correct:1,klasse:'A1'},
+    {id:10,q:'Ab welchem Alter darf man A2 fahren?',a:['16 Jahre','18 Jahre','20 Jahre','24 Jahre'],correct:1,klasse:'A2'},
+    {id:11,q:'Ab welchem Alter darf man A fahren (Direkteinstieg)?',a:['18 Jahre','21 Jahre','24 Jahre','25 Jahre'],correct:2,klasse:'A'},
+    {id:12,q:'Ab welchem Alter darf man C fahren?',a:['18 Jahre','20 Jahre','21 Jahre','24 Jahre'],correct:2,klasse:'C'},
+    {id:13,q:'Ab welchem Alter darf man D fahren?',a:['18 Jahre','20 Jahre','21 Jahre','24 Jahre'],correct:3,klasse:'D'},
+    {id:14,q:'Was bedeutet ein blaues Quadrat mit P?',a:['Parkplatz','Pause','Polizei','Post'],correct:0,klasse:'B'},
+    {id:15,q:'Was tun bei Wildwechsel?',a:['Bremsen, nicht ausweichen','Ausweichen','Beschleunigen','Hupen'],correct:0,klasse:'B'}
+  ]);
+
+  const KLASSEN = [
+    {code:'AM', ico:'🛵', desc:'Mofa / Roller'},
+    {code:'A1', ico:'🏍️', desc:'Leichtkraftrad'},
+    {code:'A2', ico:'🏍️', desc:'Mittlere Maschine'},
+    {code:'A', ico:'🏍️', desc:'Schwere Maschine'},
+    {code:'B', ico:'🚗', desc:'PKW'},
+    {code:'BE', ico:'🚗', desc:'PKW + Anhänger'},
+    {code:'C1', ico:'🚛', desc:'LKW 3,5-7,5t'},
+    {code:'C', ico:'🚛', desc:'LKW über 7,5t'},
+    {code:'D1', ico:'🚌', desc:'Kleinbus'},
+    {code:'D', ico:'🚌', desc:'Bus'},
+    {code:'E', ico:'🚛', desc:'Anhänger'},
+    {code:'M', ico:'🛴', desc:'Leichtkraftrad'}
   ];
 
-  var LANGS = {
-    de:{name:"Deutsch",code:"de-DE"},en:{name:"English",code:"en-US"},
-    tr:{name:"Türkçe",code:"tr-TR"},ar:{name:"العربية",code:"ar-SA"},
-    ku:{name:"Kurdî (Ezidi)",code:"tr-TR"},fr:{name:"Français",code:"fr-FR"},
-    es:{name:"Español",code:"es-ES"},it:{name:"Italiano",code:"it-IT"},ru:{name:"Русский",code:"ru-RU"}
-  };
+  speak('Willkommen in der HalDo Fahrschule. Wähle deine Führerscheinklasse und starte deine Ausbildung.');
 
-  var ARROW_COLORS = {
-    gold24k:{fill:"#ffd700",glow:"rgba(255,215,0,.9)",name:"🥇 24K Gold"},
-    gold:{fill:"#ffed4e",glow:"rgba(255,237,78,.9)",name:"✨ Hellgold"},
-    blue:{fill:"#4dd0e1",glow:"rgba(77,208,225,.8)",name:"💎 Cyan"},
-    white:{fill:"#ffffff",glow:"rgba(255,255,255,.8)",name:"⚪ Weiß"},
-    green:{fill:"#4ade80",glow:"rgba(74,222,128,.8)",name:"🟢 Neon-Grün"},
-    red:{fill:"#ff5555",glow:"rgba(255,85,85,.8)",name:"🔴 Rot"},
-    purple:{fill:"#b478ff",glow:"rgba(180,120,255,.8)",name:"🟣 Lila"},
-    orange:{fill:"#ff8844",glow:"rgba(255,136,68,.8)",name:"🟠 Orange"},
-    silver:{fill:"#e0e0e0",glow:"rgba(224,224,224,.8)",name:"🥈 Silber"},
-    pink:{fill:"#ff77aa",glow:"rgba(255,119,170,.8)",name:"🌸 Pink"}
-  };
+  let quizIndex=0;
+  let quizQuestions=[];
 
-  var DEFAULT_SETTINGS = {
-    enabled:{},lang:"de",voiceOn:true,navVoiceOn:true,beepOn:true,notifyOn:true,
-    warnDist:1000,sounds:{},arrowColor:"gold24k",tachoColor:"#ffd700",
-    alarmDuration:5,offlineMode:false,flashOnWarning:false,globalMute:false,
-    tankerApiKey:"",btDeviceName:null,useCustomVoice:false,
-    welcomeTheme:"gold",welcomeSpeed:"normal",welcomeDuration:"normal",showBootLog:false,
-    selectedVehicle:"peacock", selectedAssistant:"ai"
-  };
-  CATS.forEach(function(c){ DEFAULT_SETTINGS.enabled[c.id]=true; DEFAULT_SETTINGS.sounds[c.id]=c.sound||"chime"; });
+  function render(){
+    sb.innerHTML='';
+    [['klassen','🚗 Klassen'],['simulator','🎯 Simulator'],['stats','📊 Statistik'],['settings','⚙ Einstellungen'],['delete','🗑 Löschen']].forEach(([id,label])=>{
+      const b=document.createElement('button');b.className='side-btn'+(active===id?' active':'');b.textContent=label;b.onclick=()=>{active=id;render();};sb.appendChild(b);
+    });
+    const sp=document.createElement('button');sp.className='side-btn speak-btn';sp.textContent='🔊 '+T('speak');
+    sp.onclick=()=>speak('Fahrschule. '+questions.length+' Fragen. Klasse '+selectedClass+'.');
+    sb.appendChild(sp);
+    ct.innerHTML='';
 
-  function _esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
-  function haversine(a,b,c,d){ var R=6371000,dLa=(c-a)*Math.PI/180,dLo=(d-b)*Math.PI/180; var x=Math.sin(dLa/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLo/2)**2; return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x)); }
-  function fmtDist(m){ return m<1000?Math.round(m/10)*10+" m":(m/1000).toFixed(1)+" km"; }
-  function fmtTime(sec){ var h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60; return (h>0?h+"h ":"")+m+"m "+s+"s"; }
-
-  var audioCtx = null;
-  function getAudio(){ if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return audioCtx; }
-  function playBeep(pattern, vol, duration){
-    duration = duration||2.5;
-    var ctx = getAudio(); if(!ctx) return; var now = ctx.currentTime;
-    if(pattern==="siren"||pattern==="siren2"||pattern==="siren3"){
-      var o=ctx.createOscillator(),g=ctx.createGain(); o.type="sawtooth"; o.connect(g); g.connect(ctx.destination);
-      var base = pattern==="siren3"?600:pattern==="siren2"?1000:800;
-      o.frequency.setValueAtTime(base,now);
-      for(var t=0;t<duration;t+=1){ o.frequency.linearRampToValueAtTime(base+500,now+t+0.5); o.frequency.linearRampToValueAtTime(base,now+t+1); }
-      g.gain.setValueAtTime(0,now); g.gain.linearRampToValueAtTime(vol,now+0.1); g.gain.setValueAtTime(vol,now+duration-0.2); g.gain.linearRampToValueAtTime(0,now+duration);
-      o.start(now); o.stop(now+duration); return;
-    }
-    if(pattern==="long_alarm"||pattern==="long_alarm2"){
-      var freq = pattern==="long_alarm2"?1200:1600;
-      for(var i=0;i<(duration/0.4);i++){ var t2=now+i*0.4; var o2=ctx.createOscillator(),g2=ctx.createGain(); o2.type="square"; o2.frequency.value=freq; o2.connect(g2); g2.connect(ctx.destination); g2.gain.setValueAtTime(0,t2); g2.gain.linearRampToValueAtTime(vol,t2+0.05); g2.gain.setValueAtTime(vol,t2+0.25); g2.gain.linearRampToValueAtTime(0,t2+0.35); o2.start(t2); o2.stop(t2+0.35); }
-      return;
-    }
-    if(pattern==="radar"||pattern==="radar2"){
-      var f2 = pattern==="radar2"?2600:2200;
-      for(var i=0;i<(duration/0.15);i++){ var t3=now+i*0.15; var o3=ctx.createOscillator(),g3=ctx.createGain(); o3.type="sine"; o3.frequency.value=f2; o3.connect(g3); g3.connect(ctx.destination); g3.gain.setValueAtTime(0,t3); g3.gain.linearRampToValueAtTime(vol,t3+0.01); g3.gain.exponentialRampToValueAtTime(0.001,t3+0.08); o3.start(t3); o3.stop(t3+0.1); }
-      return;
-    }
-    if(pattern==="birds"){ for(var i=0;i<10;i++){ var t4=now+i*0.22+Math.random()*0.1; var o4=ctx.createOscillator(),g4=ctx.createGain(); o4.type="sine"; o4.frequency.setValueAtTime(2000+Math.random()*1500,t4); o4.frequency.exponentialRampToValueAtTime(2500+Math.random()*1500,t4+0.05); o4.connect(g4); g4.connect(ctx.destination); g4.gain.setValueAtTime(0,t4); g4.gain.linearRampToValueAtTime(vol,t4+0.01); g4.gain.exponentialRampToValueAtTime(0.001,t4+0.1); o4.start(t4); o4.stop(t4+0.12); } return; }
-    if(pattern==="extreme"){ var o5=ctx.createOscillator(),g5=ctx.createGain(); o5.type="sawtooth"; o5.frequency.value=300; o5.connect(g5); g5.connect(ctx.destination); for(var i=0;i<duration;i+=0.5){ o5.frequency.setValueAtTime(300,now+i); o5.frequency.linearRampToValueAtTime(1500,now+i+0.25); o5.frequency.linearRampToValueAtTime(300,now+i+0.5); } g5.gain.setValueAtTime(vol,now); g5.gain.setValueAtTime(vol,now+duration-0.2); g5.gain.linearRampToValueAtTime(0,now+duration); o5.start(now); o5.stop(now+duration); return; }
-    if(pattern==="police"){ for(var i=0;i<Math.ceil(duration*3.3);i++){ var t6=now+i*0.3; var o6=ctx.createOscillator(),g6=ctx.createGain(); o6.type="square"; o6.frequency.value=i%2===0?1400:1800; o6.connect(g6); g6.connect(ctx.destination); g6.gain.setValueAtTime(0,t6); g6.gain.linearRampToValueAtTime(vol,t6+0.02); g6.gain.setValueAtTime(vol,t6+0.15); g6.gain.linearRampToValueAtTime(0,t6+0.18); o6.start(t6); o6.stop(t6+0.2); } return; }
-    if(pattern==="buzzer"){ var o7=ctx.createOscillator(),g7=ctx.createGain(); o7.type="square"; o7.frequency.value=120; o7.connect(g7); g7.connect(ctx.destination); g7.gain.setValueAtTime(vol,now); g7.gain.setValueAtTime(vol,now+duration-0.1); g7.gain.linearRampToValueAtTime(0,now+duration); o7.start(now); o7.stop(now+duration); return; }
-    if(pattern==="horn"){ [400,500].forEach(function(f){ var o8=ctx.createOscillator(),g8=ctx.createGain(); o8.type="sawtooth"; o8.frequency.value=f; o8.connect(g8); g8.connect(ctx.destination); g8.gain.setValueAtTime(0,now); g8.gain.linearRampToValueAtTime(vol*0.5,now+0.05); g8.gain.setValueAtTime(vol*0.5,now+duration-0.2); g8.gain.linearRampToValueAtTime(0,now+duration); o8.start(now); o8.stop(now+duration); }); return; }
-    if(pattern==="ping"){ var o9=ctx.createOscillator(),g9=ctx.createGain(); o9.type="sine"; o9.frequency.setValueAtTime(1500,now); o9.frequency.exponentialRampToValueAtTime(800,now+0.5); o9.connect(g9); g9.connect(ctx.destination); g9.gain.setValueAtTime(0,now); g9.gain.linearRampToValueAtTime(vol,now+0.01); g9.gain.exponentialRampToValueAtTime(0.001,now+0.6); o9.start(now); o9.stop(now+0.7); return; }
-    if(pattern==="sonar"){ for(var i=0;i<3;i++){ var t10=now+i*0.8; var o10=ctx.createOscillator(),g10=ctx.createGain(); o10.type="sine"; o10.frequency.setValueAtTime(1800,t10); o10.frequency.exponentialRampToValueAtTime(600,t10+0.5); o10.connect(g10); g10.connect(ctx.destination); g10.gain.setValueAtTime(0,t10); g10.gain.linearRampToValueAtTime(vol,t10+0.02); g10.gain.exponentialRampToValueAtTime(0.001,t10+0.7); o10.start(t10); o10.stop(t10+0.75); } return; }
-    if(pattern==="digital"){ var notes=[2000,1800,2200,1600,2400,1400]; for(var i=0;i<Math.ceil(duration*12);i++){ var t11=now+i*0.08; var o11=ctx.createOscillator(),g11=ctx.createGain(); o11.type="square"; o11.frequency.value=notes[i%notes.length]; o11.connect(g11); g11.connect(ctx.destination); g11.gain.setValueAtTime(0,t11); g11.gain.linearRampToValueAtTime(vol,t11+0.005); g11.gain.exponentialRampToValueAtTime(0.001,t11+0.06); o11.start(t11); o11.stop(t11+0.07); } return; }
-    if(pattern==="bell"){ var o12=ctx.createOscillator(),g12=ctx.createGain(); o12.type="sine"; o12.frequency.value=800; o12.connect(g12); g12.connect(ctx.destination); g12.gain.setValueAtTime(0,now); g12.gain.linearRampToValueAtTime(vol,now+0.005); g12.gain.exponentialRampToValueAtTime(0.001,now+3); o12.start(now); o12.stop(now+3); return; }
-    if(pattern==="klaxon"){ for(var i=0;i<Math.ceil(duration*2);i++){ var t13=now+i*0.5; var o13=ctx.createOscillator(),g13=ctx.createGain(); o13.type="sawtooth"; o13.frequency.value=i%2===0?500:700; o13.connect(g13); g13.connect(ctx.destination); g13.gain.setValueAtTime(0,t13); g13.gain.linearRampToValueAtTime(vol,t13+0.03); g13.gain.setValueAtTime(vol,t13+0.35); g13.gain.linearRampToValueAtTime(0,t13+0.45); o13.start(t13); o13.stop(t13+0.5); } return; }
-    var p = {urgent:[{f:880,t:0,d:0.1},{f:880,t:0.15,d:0.1}],alarm:[{f:1200,t:0,d:0.08},{f:1200,t:0.12,d:0.08}],chime:[{f:523,t:0,d:0.15},{f:659,t:0.15,d:0.15},{f:784,t:0.3,d:0.25}],low:[{f:440,t:0,d:0.2}]}[pattern]||[{f:440,t:0,d:0.2}];
-    p.forEach(function(b){ var o=ctx.createOscillator(),g=ctx.createGain(); o.frequency.value=b.f; o.type="sine"; g.gain.setValueAtTime(0,now+b.t); g.gain.linearRampToValueAtTime(vol,now+b.t+0.01); g.gain.exponentialRampToValueAtTime(0.001,now+b.t+b.d); o.connect(g).connect(ctx.destination); o.start(now+b.t); o.stop(now+b.t+b.d+0.02); });
-  }
-
-  var torchStream=null,torchTrack=null,torchTimer=null;
-  async function setTorch(on){ try{ if(on){ if(!torchStream){ torchStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}}); torchTrack=torchStream.getVideoTracks()[0]; } await torchTrack.applyConstraints({advanced:[{torch:true}]}); } else if(torchTrack){ try{ await torchTrack.applyConstraints({advanced:[{torch:false}]}); }catch(e){} } }catch(e){} }
-  function blinkTorch(count){ if(torchTimer) clearInterval(torchTimer); var i=0,max=count||5; setTorch(true); torchTimer=setInterval(function(){ i++; setTorch(i%2===0?true:false); if(i>=max*2){ clearInterval(torchTimer); torchTimer=null; setTorch(false); } },250); }
-
-  var swRegistration = null;
-  async function registerServiceWorker(){
-    if(!('serviceWorker' in navigator)) return null;
-    try {
-      if(swRegistration) return swRegistration;
-      var swCode = `self.addEventListener('push',function(e){var d={title:'HalDo Blitzer',body:'Warnung!'};try{d=e.data.json()}catch(x){}e.waitUntil(self.registration.showNotification(d.title,{body:d.body,icon:d.icon||'/logo.png',badge:d.icon||'/logo.png',vibrate:[200,100,200]}))});self.addEventListener('notificationclick',function(e){e.notification.close();e.waitUntil(clients.openWindow('/'))});`;
-      var blob = new Blob([swCode],{type:'application/javascript'});
-      var url = URL.createObjectURL(blob);
-      swRegistration = await navigator.serviceWorker.register(url,{scope:'/'}).catch(function(){ return null; });
-      return swRegistration;
-    } catch(e){ return null; }
-  }
-
-  function render(container, ctx){
-    var store = ctx.store;
-    var view = { screen:"splash" };
-    var geoWatch=null,lastPos=null;
-    var trip={active:false,startTime:0,distance:0,warnings:0};
-    var map=null,mapMarkers=[],triggered={},lastLimitFetch=0,currentLimit=null;
-    var poiCache={},routeData=null,targetPos=null;
-    var tfModel=null,cameraStream=null,visionLoop=null;
-    var weatherData=null,weatherPos=store.get("weatherPos",{x:20,y:60});
-    var parkTimer=null,parkEndTime=0;
-    var fuelStations=[];
-    var btDevice=null,btServer=null;
-    var lastSpokenStep=null,lastSpokenDist=null;
-    var voiceRecorder=null,voiceChunks=[];
-    
-    var gpsRetries = 0;
-    var gpsRetryTimer = null;
-
-    function getSettings(){ var s=store.get("settings",{}); var m=JSON.parse(JSON.stringify(DEFAULT_SETTINGS)); Object.keys(s).forEach(function(k){ m[k]=s[k]; }); return m; }
-    function saveSettings(s){ store.set("settings",s); }
-    function getWarnings(){ return store.get("warnings",[]); }
-    function saveWarnings(w){ store.set("warnings",w); }
-    function getCat(id){ return CATS.find(function(c){ return c.id===id; }); }
-    function getCustomVoice(){ return store.get("customVoice",{}); }
-    function saveCustomVoice(v){ store.set("customVoice",v); }
-    
-    function getCustomImage(){ return store.get("customWelcomeImage", null); }
-    function saveCustomImage(img){ store.set("customWelcomeImage", img); }
-
-    function build(){
-      var sc = view.screen;
-      if(sc==="boot") screenBoot();
-      else if(sc==="splash") screenSplash();
-      else if(sc==="cockpit") screenCockpit();
-      else if(sc==="map") screenMap();
-      else if(sc==="settings") screenSettingsMenu();
-      else if(sc==="settings_display") screenSettingsDisplay();
-      else if(sc==="settings_sounds") screenSettingsSounds();
-      else if(sc==="settings_welcome") screenSettingsWelcome();
-      else if(sc==="settings_vehicle") screenSettingsVehicle();
-      else if(sc==="settings_assistant") screenSettingsAssistant();
-      else if(sc==="settings_nav") screenSettingsNav();
-      else if(sc==="settings_lang") screenSettingsLang();
-      else if(sc==="settings_bt") screenSettingsBT();
-      else if(sc==="settings_flash") screenSettingsFlash();
-      else if(sc==="settings_voice") screenSettingsVoice();
-      else if(sc==="settings_about") screenSettingsAbout();
-      else if(sc==="nav") screenNav();
-      else if(sc==="vision") screenVision();
-      else if(sc==="list") screenList();
-      else if(sc==="report") screenReport();
-      else if(sc==="park") screenPark();
-      else if(sc==="fuel") screenFuel();
-      else if(sc==="restaurant") screenRestaurants();
-    }
-
-    function screenBoot(){
-      var logs = ["🦚 runtime.js geladen","🦚 store.js geladen","🎙️ 319 Stimmen geladen","🎙️ 346 Stimmen geladen","🦚 notify.js geladen","🎨 theme.js geladen — 8 Themes","🦚 apps.js geladen — 48 Apps","🦚 ai-engine.js geladen — WASM aktiv","🦚 haldo-ai.js geladen","🪟 deskpane.js geladen","👤 avatar.js geladen","🏠 shell.js geladen","⚙️ settings.js geladen","🦚 HalDo Blitzer v22.0 — AI Navigator"];
-      var css = `.boot-screen{position:fixed;inset:0;background:radial-gradient(ellipse at center,#0a0e2a 0%,#000 100%);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:'SF Mono','Monaco','Consolas',monospace;overflow:hidden}.boot-terminal{width:90%;max-width:520px;padding:24px;background:rgba(10,14,42,.85);border:1px solid rgba(255,215,0,.3);border-radius:16px;box-shadow:0 0 60px rgba(255,215,0,.3),inset 0 0 40px rgba(77,208,225,.1);backdrop-filter:blur(10px)}.boot-header{font-size:13px;color:#ffd700;font-weight:900;letter-spacing:2px;text-align:center;margin-bottom:16px;text-shadow:0 0 12px #ffd700;animation:bp 2s ease-in-out infinite}@keyframes bp{0%,100%{opacity:.8;text-shadow:0 0 12px #ffd700}50%{opacity:1;text-shadow:0 0 24px #ffd700,0 0 40px #ff9800}}.boot-lines{font-size:11px;line-height:1.9;max-height:340px;overflow:hidden}.boot-line{opacity:0;color:#4dd0e1;text-shadow:0 0 6px rgba(77,208,225,.7);animation:bl .4s ease-out forwards;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.boot-line:last-child{color:#ffd700;text-shadow:0 0 10px #ffd700;font-weight:900}@keyframes bl{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}.boot-cursor{display:inline-block;width:7px;height:13px;background:#4dd0e1;box-shadow:0 0 10px #4dd0e1;animation:bc 1s step-end infinite;vertical-align:middle;margin-left:4px}@keyframes bc{50%{opacity:0}}.boot-bar{height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:14px;overflow:hidden}.boot-bar-fill{height:100%;background:linear-gradient(90deg,#4dd0e1,#ffd700);box-shadow:0 0 10px #ffd700;animation:bb 3s ease-in-out forwards;width:0%}@keyframes bb{to{width:100%}}`;
-      container.innerHTML = `<style>${css}</style><div class="boot-screen"><div class="boot-terminal"><div class="boot-header">🦚 HALDO AI OS — BOOT SEQUENCE 🦚</div><div class="boot-lines" id="bootLines"></div><div class="boot-bar"><div class="boot-bar-fill"></div></div></div></div>`;
-      var linesEl = container.querySelector("#bootLines"), i=0;
-      function next(){ if(i>=logs.length) return; var d=document.createElement("div"); d.className="boot-line"; d.textContent=logs[i]; linesEl.appendChild(d); if(i===logs.length-1){ var c=document.createElement("span"); c.className="boot-cursor"; linesEl.appendChild(c); } i++; setTimeout(next,180); }
-      next();
-      setTimeout(function(){ view.screen="splash"; build(); },3000);
-    }
-
-    function screenSplash(){
-      var s = getSettings();
-      var w = WELCOME[s.lang] || WELCOME.de;
-      var theme = WELCOME_THEMES[s.welcomeTheme] || WELCOME_THEMES.gold;
-      var speedMap = {slow:1.4,normal:1,fast:0.6};
-      var speedMult = speedMap[s.welcomeSpeed] || 1;
-      var durMap = {short:2,normal:4,long:6};
-      var durMult = durMap[s.welcomeDuration] || 4;
-      var flyDur = (durMult*speedMult).toFixed(1);
-      
-      var customImg = getCustomImage();
-      var characterHTML = "";
-      
-      if (customImg) {
-        characterHTML = `<img src="${customImg}" style="width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 15px 40px rgba(0,0,0,0.8)); border-radius:20px;">`;
-      } else {
-        var vehicle = VEHICLES[s.selectedVehicle] || VEHICLES.peacock;
-        characterHTML = vehicle.build(300, "splash_" + s.selectedVehicle);
-      }
-
-      var sunSVG = buildSunSVG(220, theme);
-
-      var css = `
-        .splash{position:fixed;inset:0;background:linear-gradient(to bottom,${theme.top} 0%,${theme.mid} 30%,${theme.bot} 100%);overflow:hidden;z-index:99998;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff}
-        .splash-stars{position:absolute;inset:0;background-image:radial-gradient(1px 1px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 40% 70%,#fff,transparent),radial-gradient(1.5px 1.5px at 60% 20%,#fff,transparent),radial-gradient(1px 1px at 80% 50%,#fff,transparent),radial-gradient(1px 1px at 30% 85%,#fff,transparent),radial-gradient(1.5px 1.5px at 70% 40%,#fff,transparent);animation:twinkle 4s ease-in-out infinite alternate;pointer-events:none}
-        @keyframes twinkle{from{opacity:.4}to{opacity:1}}
-        .splash-sun-container{position:absolute;top:5%;left:50%;transform:translateX(-50%);z-index:2;animation:sunPulse 4s ease-in-out infinite}
-        @keyframes sunPulse{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.05)}}
-
-        .splash-character{position:absolute;top:50%;left:50%;margin-left:-150px;margin-top:-190px;width:300px;height:380px;z-index:5;animation:charFlyIn ${flyDur}s cubic-bezier(.4,0,.2,1) forwards;display:flex;align-items:center;justify-content:center}
-        @keyframes charFlyIn{
-          0%{transform:translate(300%,-500%) scale(.15) rotate(-45deg);opacity:0}
-          15%{opacity:1}
-          40%{transform:translate(50%,-180%) scale(.5) rotate(-20deg)}
-          60%{transform:translate(-20%,-30%) scale(.9) rotate(-5deg)}
-          70%{transform:translate(0,0) scale(1.05) rotate(2deg)}
-          80%{transform:translate(0,0) scale(.98) rotate(-1deg)}
-          100%{transform:translate(0,0) scale(1) rotate(0deg);opacity:1}
-        }
-
-        .peacock-body{transform-origin:150px 250px;transform-box:view-box;animation:breathe 3s ease-in-out infinite ${flyDur*0.7}s}
-        @keyframes breathe{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.04)}}
-        .peacock-head{transform-origin:150px 120px;transform-box:view-box;animation:headSway 5s ease-in-out infinite ${flyDur*0.8}s}
-        @keyframes headSway{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
-        .peacock-fan{transform-origin:150px 200px;transform-box:view-box;transform:scale(.3);opacity:0;animation:fanOpen 1.5s cubic-bezier(.4,0,.2,1) ${flyDur*0.6}s forwards}
-        @keyframes fanOpen{0%{transform:scale(.3,.6);opacity:.5}20%{opacity:1}60%{transform:scale(1.05,.95)}80%{transform:scale(.98,1.02)}100%{transform:scale(1,1);opacity:1}}
-        .car-body{transform-origin:130px 170px;transform-box:view-box;animation:carIdle 3s ease-in-out infinite ${flyDur*0.7}s}
-        @keyframes carIdle{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-3px) rotate(-1deg)}75%{transform:translateY(3px) rotate(1deg)}}
-
-        .splash-logo{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:80px;height:80px;border-radius:50%;object-fit:cover;z-index:6;border:3px solid ${theme.accent};box-shadow:0 0 30px ${theme.accent},0 0 60px ${theme.accent}66;animation:logoIn .8s ease-out ${flyDur*0.9}s both;pointer-events:none}
-        @keyframes logoIn{from{opacity:0;transform:translate(-50%,-50%) scale(.3)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
-        .splash-content{position:absolute;bottom:6%;left:50%;transform:translateX(-50%);text-align:center;z-index:10;width:90%;max-width:440px;padding:0 16px}
-        .splash-ai{font-size:11px;letter-spacing:3px;color:${theme.accent};font-weight:900;text-transform:uppercase;opacity:0;animation:fiu .8s ease-out ${flyDur*0.65}s forwards;text-shadow:0 0 15px ${theme.accent}}
-        .splash-title{font-size:22px;font-weight:800;margin:6px 0;opacity:0;animation:fiu .8s ease-out ${flyDur*0.75}s forwards;color:#fff}
-        .splash-brand{font-size:46px;font-weight:900;margin:4px 0;background:linear-gradient(135deg,${theme.sun1} 0%,${theme.accent} 30%,${theme.sun4} 60%,${theme.sun1} 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;background-size:200% 200%;animation:bs 3s ease-in-out infinite,fiu .9s ease-out ${flyDur*0.85}s forwards;filter:drop-shadow(0 4px 12px ${theme.accent}88);letter-spacing:1px;opacity:0}
-        @keyframes bs{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
-        .splash-author{font-size:15px;color:${theme.sun2};font-weight:800;margin:6px 0 16px;opacity:0;animation:fiu .8s ease-out ${flyDur*0.95}s forwards;text-shadow:0 0 15px ${theme.accent}}
-        .splash-footer{font-size:12px;color:rgba(255,255,255,.7);letter-spacing:1px;margin-bottom:20px;opacity:0;animation:fiu .8s ease-out ${flyDur*1.05}s forwards}
-        .splash-btn{padding:16px 44px;background:linear-gradient(135deg,${theme.accent} 0%,${theme.sun4} 50%,${theme.accent} 100%);background-size:200% 100%;color:#0a0e2a;border:none;border-radius:14px;font-weight:900;font-size:16px;cursor:pointer;opacity:0;animation:fiu .8s ease-out ${flyDur*1.15}s forwards,bg 2s ease-in-out infinite ${flyDur*1.3}s;font-family:inherit;letter-spacing:1px;box-shadow:0 8px 24px ${theme.accent}66}
-        .splash-btn:active{transform:scale(.96)}
-        @keyframes bg{0%,100%{box-shadow:0 8px 24px ${theme.accent}66}50%{box-shadow:0 12px 40px ${theme.accent}aa}}
-        @keyframes fiu{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
-      `;
-      container.innerHTML = `<style>${css}</style><div class="splash">
-        <div class="splash-stars"></div>
-        <div class="splash-sun-container">${sunSVG}</div>
-        <div class="splash-character">${characterHTML}</div>
-        <img src="${LOGO_URL}" class="splash-logo" onerror="this.style.display='none'">
-        <div class="splash-content">
-          <div class="splash-ai">${_esc(w.ai)}</div>
-          <div class="splash-title">${_esc(w.title)}</div>
-          <div class="splash-brand">HalDo Blitzer</div>
-          <div class="splash-author">${_esc(w.author)}</div>
-          <div class="splash-footer">${_esc(w.footer)}</div>
-          <button class="splash-btn" id="splashEnter">${_esc(w.enter)} →</button>
-        </div>
-      </div>`;
-      var enter = container.querySelector("#splashEnter");
-      if(enter) enter.addEventListener("click", function(){ view.screen="cockpit"; build(); });
-    }
-
-    function screenCockpit(){
-      var s = getSettings();
-      var speed = lastPos?Math.round((lastPos.coords.speed||0)*3.6):0;
-      var nextEvent = getNextEvent();
-      var nearestWarning = getNearestWarning();
-      var maxSpeed=240,startAngle=210,endAngle=510;
-      var currentAngle = startAngle + (Math.min(speed,maxSpeed)/maxSpeed)*(endAngle-startAngle);
-      var ticks = "";
-      for(var i=0;i<=240;i+=20){
-        var angle = startAngle+(i/maxSpeed)*(endAngle-startAngle);
-        var rad = (angle-90)*Math.PI/180;
-        var isMajor = i%40===0;
-        var len = isMajor?15:8;
-        var x1=100+75*Math.cos(rad),y1=100+75*Math.sin(rad);
-        var x2=100+(75-len)*Math.cos(rad),y2=100+(75-len)*Math.sin(rad);
-        var tc = (i>180)?'#ff5555':(isMajor?'#fff':'rgba(255,255,255,.3)');
-        ticks += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${tc}" stroke-width="${isMajor?3:1.5}"/>`;
-        if(isMajor){ var tx=100+60*Math.cos(rad),ty=100+60*Math.sin(rad); ticks += `<text x="${tx}" y="${ty}" fill="${tc}" font-size="12" font-weight="900" text-anchor="middle" dominant-baseline="middle">${i}</text>`; }
-      }
-      var ac = ARROW_COLORS[s.arrowColor]||ARROW_COLORS.gold24k;
-      var etaStr="—",remTimeStr="—";
-      if(routeData && routeData.totalTime){ var eta=new Date(Date.now()+routeData.totalTime*1000); etaStr=eta.toLocaleTimeString("de-DE",{hour:'2-digit',minute:'2-digit'}); remTimeStr=fmtTime(Math.round(routeData.totalTime)); }
-      var tachoColor = s.tachoColor;
-      var isGold = (s.arrowColor==="gold24k"||s.arrowColor==="gold");
-      var assistant = ASSISTANTS[s.selectedAssistant] || ASSISTANTS.ai;
-      
-      var css = `.cpt-wrap{position:relative;height:calc(100vh - 100px);min-height:680px;background:radial-gradient(ellipse at 50% 30%,#0a1220 0%,#050810 80%);border-radius:20px;padding:16px;display:flex;flex-direction:column;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;color:#fff}.cpt-top{display:flex;justify-content:space-between;align-items:center;z-index:10}.cpt-navbtn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;padding:10px 14px;border-radius:12px;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:6px;transition:.2s;font-family:inherit}.cpt-navbtn:hover{background:rgba(255,215,0,.15);border-color:#ffd700}.cpt-logo{width:52px;height:52px;border-radius:12px;object-fit:cover;border:2px solid ${tachoColor}88;box-shadow:0 0 20px ${tachoColor}55}.cpt-tacho{position:relative;width:440px;height:440px;margin:6px auto;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .1s}.cpt-tacho:active{transform:scale(.98)}.tacho-bg{position:absolute;inset:0;background:radial-gradient(circle,rgba(10,18,32,1) 0%,rgba(5,8,16,1) 100%);border-radius:50%;border:3px solid ${tachoColor}55;box-shadow:0 0 40px ${tachoColor}33,inset 0 0 30px rgba(0,0,0,.85)}.needle-container{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform:rotate(${currentAngle}deg);transition:transform .3s cubic-bezier(.4,2.08,.55,.44)}.needle{width:4px;height:175px;background:linear-gradient(to top,transparent 40%,${isGold?'#ffd700':'#ff3333'} 40%,${isGold?'#ffd700':'#ff3333'} 100%);position:absolute;bottom:50%;transform-origin:bottom center;border-radius:2px;box-shadow:0 0 15px ${isGold?'#ffd700':'#ff3333'}}.needle-center{position:absolute;width:32px;height:32px;background:#111;border:4px solid ${isGold?'#ffd700':'#ff3333'};border-radius:50%;z-index:2;box-shadow:0 0 25px ${isGold?'#ffd700':'#ff3333'}}.inner-display{position:absolute;top:50%;left:50%;transform:translate(-50%,-30%);z-index:5;background:linear-gradient(135deg,rgba(20,30,50,.92) 0%,rgba(10,15,25,.96) 100%);backdrop-filter:blur(20px) saturate(180%);border:1.5px solid ${isGold?'rgba(255,215,0,.5)':'rgba(77,208,225,.4)'};border-radius:20px;padding:14px 22px;text-align:center;min-width:180px;box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.15),0 0 40px ${isGold?'rgba(255,215,0,.25)':'rgba(77,208,225,.2)'};cursor:pointer}.inner-display .spd{font-size:48px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;background:linear-gradient(180deg,${isGold?'#ffe85e 0%,#ffd700 50%,#ffb300 100%':'#4dd0e1 0%,#b478ff 100%'});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 15px ${isGold?'rgba(255,215,0,.6)':'rgba(77,208,225,.5)'})}.inner-display .unit{font-size:10px;color:#7fa5b8;font-weight:900;letter-spacing:3px;margin-top:2px}.inner-display .wrn{margin-top:8px;font-size:10px;font-weight:900;padding:4px 10px;border-radius:12px;background:rgba(255,255,255,.08);white-space:nowrap;display:inline-block;border:1px solid rgba(255,255,255,.1)}.inner-display .hint{margin-top:8px;font-size:8px;color:#5a7a8a;letter-spacing:1.5px;font-weight:900}.inner-display .divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);margin:8px 0}.cpt-limit{position:absolute;top:8px;right:8px;width:82px;height:82px;border-radius:50%;background:#fff;border:8px solid #ff3333;display:flex;align-items:center;justify-content:center;z-index:20;box-shadow:0 0 22px rgba(255,51,51,.7)}.cpt-limit-num{font-size:30px;font-weight:900;color:#000}.holo-container{perspective:800px;width:100%;height:130px;display:flex;align-items:center;justify-content:center;position:relative}.holo-base{position:absolute;bottom:0;width:220px;height:44px;background:radial-gradient(ellipse,${ac.glow} 0%,transparent 70%);filter:blur(10px);border-radius:50%}.holo-arrow-box{position:relative;transform-style:preserve-3d;transform:rotateX(60deg) rotateZ(var(--rot,0deg));animation:af 1.5s infinite alternate}.holo-svg{width:100px;height:auto;filter:drop-shadow(0 0 25px ${ac.glow})}@keyframes af{0%{transform:rotateX(60deg) rotateZ(var(--rot,0deg)) translateZ(0)}100%{transform:rotateX(60deg) rotateZ(var(--rot,0deg)) translateZ(35px)}}.road-sign{position:absolute;top:-24px;left:50%;transform:translateX(-50%);background:#0066cc;border:2px solid #fff;border-radius:8px;padding:4px 12px;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,.5);z-index:10;white-space:nowrap}.road-sign .num{font-size:16px;font-weight:900;color:#fff;background:#0055aa;display:inline-block;padding:2px 6px;border-radius:4px;margin-bottom:2px}.road-sign .dest{font-size:11px;font-weight:800;color:#fff}.road-sign .action{font-size:9px;color:#e0e0e0}.cpt-bottom{margin-top:auto;background:rgba(0,0,0,.55);backdrop-filter:blur(15px);border-radius:18px;padding:14px;border:1px solid rgba(255,215,0,.15);z-index:10}.cpt-stat{display:flex;justify-content:space-around;text-align:center;margin-bottom:10px}.cpt-stat div span:first-child{font-size:18px;font-weight:900;color:${tachoColor};display:block;text-shadow:0 0 12px ${tachoColor}66}.cpt-stat div span:last-child{font-size:9px;color:#7fa5b8;font-weight:800;text-transform:uppercase;letter-spacing:1px}.cpt-btn{width:100%;padding:14px;border:none;border-radius:12px;font-weight:900;font-size:14px;cursor:pointer;font-family:inherit;transition:.2s}.cpt-btn.start{background:linear-gradient(135deg,#4ade80,#22c55e);color:#000}.cpt-btn.stop{background:#ff5555;color:#fff}.weather-widget{position:absolute;z-index:100;background:rgba(10,15,25,.85);backdrop-filter:blur(15px);border:1px solid rgba(255,215,0,.3);border-radius:14px;padding:10px 14px;font-size:11px;font-weight:800;display:flex;align-items:center;gap:10px;cursor:move;box-shadow:0 6px 20px rgba(0,0,0,.6);user-select:none;touch-action:none}`;
-      
-      var html = `<style>${css}</style><div class="cpt-wrap"><div class="cpt-top"><div style="display:flex;gap:6px;align-items:center"><img src="${LOGO_URL}" class="cpt-logo" onerror="this.style.display='none'"><button data-nav="nav" class="cpt-navbtn" style="color:${tachoColor}">🧭 Route</button><button data-nav="report" class="cpt-navbtn" style="color:#ff5555">➕ Melden</button><span style="font-size:12px;font-weight:900;color:#7fa5b8;margin-left:10px">🤖 ${assistant.name}</span></div><div style="display:flex;gap:6px"><button data-nav="fuel" class="cpt-navbtn">⛽</button><button data-nav="restaurant" class="cpt-navbtn">🍴</button><button data-nav="settings" class="cpt-navbtn">⚙️</button></div></div>`;
-      if(weatherData){ html += `<div id="weatherWidget" class="weather-widget" style="left:${weatherPos.x}px;top:${weatherPos.y}px"><span style="font-size:20px">${weatherData.icon}</span><div><div>${weatherData.city||'Ort'} ${weatherData.temp}°C</div><div style="font-size:9px;color:#aaa">${weatherData.desc} · ${weatherData.pressure} hPa</div></div></div>`; }
-      
-      if(!lastPos) {
-         html += `<div style="text-align:center;margin-top:20px"><button id="gpsRetryBtn" style="background:#ff9800;color:#000;border:none;padding:10px 20px;border-radius:8px;font-weight:900;cursor:pointer;display:none" onclick="document.dispatchEvent(new Event('retryGps'))">📡 GPS neu laden</button></div>`;
-      }
-
-      if(nextEvent && nextEvent.type==="nav"){
-        var arrowAngle = nextEvent.modifier && nextEvent.modifier.indexOf('left')>=0?-45:(nextEvent.modifier && nextEvent.modifier.indexOf('right')>=0?45:0);
-        var roadName = nextEvent.instruction||"Straße"; var roadNum="",roadDest=roadName;
-        if(roadName.match(/^[AB]\d+/)){ roadNum=roadName.split(" ")[0]; roadDest=roadName.substring(roadName.indexOf(" ")+1)||""; }
-        html += `<div style="margin-top:8px;padding:10px;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.3);border-radius:12px;display:flex;justify-content:space-between;align-items:center;z-index:10"><div><div style="font-size:10px;color:#7fa5b8">ROUTE AKTIV</div><div style="font-size:13px;font-weight:900;color:#fff">${_esc(routeData.targetName)}</div></div><div style="text-align:right"><div style="font-size:10px;color:#7fa5b8">ANKUNFT</div><div style="font-size:14px;font-weight:900;color:${tachoColor}">${etaStr} (${remTimeStr})</div></div></div><div class="holo-container"><div class="road-sign">${roadNum?`<div class="num">${roadNum}</div>`:''}<div class="dest">${_esc(roadDest)}</div><div class="action">in ${fmtDist(nextEvent.distance)}</div></div><div class="holo-base"></div><div class="holo-arrow-box" style="--rot:${arrowAngle}deg"><svg class="holo-svg" viewBox="0 0 100 100"><defs><linearGradient id="ag1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${isGold?'#ffe85e':ac.fill}"/><stop offset="50%" stop-color="${ac.fill}"/><stop offset="100%" stop-color="${isGold?'#ffb300':ac.fill}"/></linearGradient></defs><polygon points="50,5 90,50 65,50 65,95 35,95 35,50 10,50" fill="url(#ag1)" stroke="#fff" stroke-width="2"/></svg></div></div>`;
-      } else {
-        html += `<div class="holo-container" style="height:90px;margin-top:10px"><div class="holo-base"></div><div class="holo-arrow-box" style="--rot:0deg"><svg class="holo-svg" viewBox="0 0 100 100" style="width:65px"><defs><linearGradient id="ag2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${isGold?'#ffe85e':ac.fill}"/><stop offset="50%" stop-color="${ac.fill}"/><stop offset="100%" stop-color="${isGold?'#ffb300':ac.fill}"/></linearGradient></defs><polygon points="50,5 90,50 65,50 65,95 35,95 35,50 10,50" fill="url(#ag2)" stroke="#fff" stroke-width="2"/></svg></div></div>`;
-      }
-      html += `<div class="cpt-tacho" data-open-settings="1">${currentLimit!==null?`<div class="cpt-limit"><div class="cpt-limit-num">${currentLimit===0?"∞":currentLimit}</div></div>`:''}<div class="tacho-bg"></div><svg viewBox="0 0 200 200" style="position:absolute;inset:0;width:100%;height:100%"><path d="M 39.3 156 A 75 75 0 1 1 160.7 156" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="8"/><path d="M 39.3 156 A 75 75 0 1 1 160.7 156" fill="none" stroke="${tachoColor}" stroke-width="8" stroke-linecap="round" stroke-dasharray="353" stroke-dashoffset="${353-(Math.min(speed,maxSpeed)/maxSpeed*353)}" style="transition:stroke-dashoffset .2s;filter:drop-shadow(0 0 6px ${tachoColor})"/>${ticks}</svg><div class="needle-container"><div class="needle"></div></div><div class="needle-center"></div><div class="inner-display"><div class="spd">${speed}</div><div class="unit">KM/H</div><div class="divider"></div>${nearestWarning?`<div class="wrn" style="color:${nearestWarning.color}">${nearestWarning.icon} in ${fmtDist(nearestWarning.dist)}</div>`:`<div class="wrn" style="color:#7fa5b8">Bereit</div>`}<div class="hint">⚙️ TIPPEN = EINSTELLUNGEN</div></div></div>`;
-      var elapsedMin = trip.active?Math.floor((Date.now()-trip.startTime)/60000):0;
-      html += `<div class="cpt-bottom"><div class="cpt-stat"><div><span>${trip.distance.toFixed(1)} km</span><span>Strecke</span></div><div><span>${elapsedMin} min</span><span>Zeit</span></div><div><span id="tripWarn">${trip.warnings}</span><span>Warnungen</span></div></div><div style="display:flex;gap:6px">${trip.active?`<button data-trip="stop" class="cpt-btn stop" style="flex:1">⏹ Fahrt beenden</button>`:`<button data-trip="start" class="cpt-btn start" style="flex:1">▶ Fahrt starten</button>`}<button data-nav="park" class="cpt-btn" style="flex:1;background:rgba(255,255,255,.1);color:#fff">🅿️ Parkuhr</button></div></div></div>`;
-      container.innerHTML = html;
-      bindNav(); bindCockpit(); bindWeatherDrag();
-      var tacho = container.querySelector('[data-open-settings]');
-      if(tacho) tacho.addEventListener("click", function(){ view.screen="settings"; build(); });
-      
-      document.removeEventListener('retryGps', startGeo);
-      document.addEventListener('retryGps', startGeo);
-
-      fetchPOIsIfNeeded(); fetchSpeedLimitIfNeeded();
-      if(!weatherData) fetchWeather();
-    }
-
-    function bindWeatherDrag(){
-      var w = document.getElementById("weatherWidget"); if(!w) return;
-      var isDragging=false,startX,startY,startLeft,startTop;
-      w.addEventListener("pointerdown", function(e){ isDragging=true; startX=e.clientX; startY=e.clientY; startLeft=parseInt(w.style.left)||20; startTop=parseInt(w.style.top)||60; w.setPointerCapture(e.pointerId); });
-      w.addEventListener("pointermove", function(e){ if(!isDragging) return; var dx=e.clientX-startX,dy=e.clientY-startY; var nl=Math.max(0,Math.min(window.innerWidth-150,startLeft+dx)); var nt=Math.max(0,Math.min(window.innerHeight-80,startTop+dy)); w.style.left=nl+"px"; w.style.top=nt+"px"; weatherPos={x:nl,y:nt}; });
-      w.addEventListener("pointerup", function(e){ isDragging=false; try{ w.releasePointerCapture(e.pointerId); }catch(err){} store.set("weatherPos",weatherPos); });
-    }
-
-    function getNearestWarning(){
-      if(!lastPos) return null;
-      var lat=lastPos.coords.latitude,lng=lastPos.coords.longitude,minDist=Infinity,nearest=null;
-      getWarnings().forEach(function(w){ var d=haversine(lat,lng,w.lat,w.lng); if(d<minDist){ minDist=d; nearest=w; } });
-      if(nearest && minDist<10000){ var cat=getCat(nearest.cat); return {icon:cat.icon,color:cat.color,dist:minDist}; }
-      return null;
-    }
-
-    function backBtn(target){ return `<button data-nav="${target||'cockpit'}" style="background:transparent;border:none;color:#4dd0e1;cursor:pointer;font-size:12px;font-weight:900;padding:6px 0;margin-bottom:6px;font-family:inherit">← Zurück</button>`; }
-    
-    function screenSettingsMenu(){
-      var s = getSettings();
-      var html = backBtn('cockpit') + `<div class="card"><h3 style="display:flex;align-items:center;gap:10px">${appIconSVG(32)} Einstellungen</h3><div style="display:grid;gap:6px;margin-top:8px"><button data-nav="settings_vehicle" class="menu-btn">🚗 Fahrzeug wählen</button><button data-nav="settings_assistant" class="menu-btn">🤖 KI-Assistent wählen</button><button data-nav="settings_display" class="menu-btn">🎨 Display & Tacho</button><button data-nav="settings_sounds" class="menu-btn">🎵 Töne & Stimmen</button><button data-nav="settings_welcome" class="menu-btn">🦚 Willkommens-Animation</button><button data-nav="settings_voice" class="menu-btn">🎙️ HalDoVoice</button><button data-nav="settings_nav" class="menu-btn">🗺️ Navigation</button><button data-nav="settings_lang" class="menu-btn">🌍 Sprache</button><button data-nav="settings_bt" class="menu-btn">📡 Bluetooth ${s.btDeviceName?`<span style="color:#4ade80">(✓ ${_esc(s.btDeviceName)})</span>`:''}</button><button data-nav="settings_flash" class="menu-btn">💡 Taschenlampe</button><button data-nav="settings_about" class="menu-btn">ℹ️ Über HalDo Blitzer</button></div></div>`;
-      html += `<style>.menu-btn{width:100%;padding:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#fff;font-size:13px;font-weight:800;text-align:left;cursor:pointer;font-family:inherit;display:flex;justify-content:space-between;align-items:center;transition:.15s}.menu-btn:hover{background:rgba(255,215,0,.12);border-color:#ffd700}</style>`;
-      container.innerHTML = html; bindNav();
-    }
-
-    function screenSettingsVehicle(){
-      var s = getSettings();
-      var html = backBtn('settings') + `<div class="card"><h3>🚗 Fahrzeug wählen</h3><div style="display:grid;gap:6px;margin-top:8px">`;
-      Object.keys(VEHICLES).forEach(function(k){
-        var v = VEHICLES[k];
-        html += `<button data-vehicle="${k}" style="padding:14px;background:${s.selectedVehicle===k?'rgba(255,215,0,.25)':'rgba(0,0,0,.3)'};border:1px solid ${s.selectedVehicle===k?'#ffd700':'#555'};color:${s.selectedVehicle===k?'#ffd700':'#ccc'};border-radius:10px;font-weight:900;font-size:14px;cursor:pointer;font-family:inherit;text-align:left">${v.name}</button>`;
+    if(active==='klassen'){
+      ct.innerHTML='<h3>🚗 Führerscheinklassen</h3><p class="muted">Wähle deine Klasse. Alle Prüfungsfragen werden auf diese Klasse abgestimmt.</p>';
+      const grid=document.createElement('div');grid.className='klassen-grid';
+      KLASSEN.forEach(k=>{
+        const b=document.createElement('div');
+        b.className='klasse-btn'+(selectedClass===k.code?' active':'');
+        b.innerHTML='<div class="kl-ico">'+k.ico+'</div><div class="kl-code">'+k.code+'</div><div class="kl-desc">'+k.desc+'</div>';
+        b.onclick=()=>{selectedClass=k.code;save('fahrschule_class',k.code);speak('Führerscheinklasse '+k.code+' ausgewählt.');render();};
+        grid.appendChild(b);
       });
-      html += `</div></div>`;
-      container.innerHTML = html; bindNav();
-      container.querySelectorAll("[data-vehicle]").forEach(function(el){ el.addEventListener("click", function(){ s.selectedVehicle=el.dataset.vehicle; saveSettings(s); screenSettingsVehicle(); }); });
-    }
-
-    function screenSettingsAssistant(){
-      var s = getSettings();
-      var html = backBtn('settings') + `<div class="card"><h3>🤖 KI-Assistent wählen</h3><div style="display:grid;gap:6px;margin-top:8px">`;
-      Object.keys(ASSISTANTS).forEach(function(k){
-        var a = ASSISTANTS[k];
-        html += `<button data-assistant="${k}" style="padding:14px;background:${s.selectedAssistant===k?'rgba(255,215,0,.25)':'rgba(0,0,0,.3)'};border:1px solid ${s.selectedAssistant===k?'#ffd700':'#555'};color:${s.selectedAssistant===k?'#ffd700':'#ccc'};border-radius:10px;font-weight:900;font-size:14px;cursor:pointer;font-family:inherit;text-align:left">${a.name}</button>`;
-      });
-      html += `</div><button id="testAssistant" style="width:100%;padding:12px;margin-top:12px;background:linear-gradient(135deg,#4dd0e1,#b478ff);border:none;color:#fff;border-radius:8px;font-weight:900;cursor:pointer;font-family:inherit">🔊 Stimme testen</button></div>`;
-      container.innerHTML = html; bindNav();
-      container.querySelectorAll("[data-assistant]").forEach(function(el){ el.addEventListener("click", function(){ s.selectedAssistant=el.dataset.assistant; saveSettings(s); screenSettingsAssistant(); }); });
-      container.querySelector("#testAssistant").addEventListener("click", function(){ speak("Hallo, ich bin dein Assistent."); });
-    }
-
-    function screenSettingsWelcome(){
-      var s = getSettings();
-      var customImg = getCustomImage();
-      var html = backBtn('settings') + `<div class="card"><h3>🦚 Willkommens-Animation</h3>
-        <div class="field">
-          <label>Eigenes Bild / Foto hochladen</label>
-          <div style="margin-top:6px; padding:10px; background:rgba(0,0,0,.2); border-radius:8px; text-align:center;">
-            ${customImg ? `<img src="${customImg}" style="max-width:100%; max-height:120px; border-radius:8px; margin-bottom:8px; border:2px solid #ffd700;">` : `<div style="font-size:12px; color:#7fa5b8; margin-bottom:8px;">Kein eigenes Bild ausgewählt.</div>`}
-            <input type="file" id="customImgUpload" accept="image/*" style="display:none">
-            <button id="btnUploadImg" style="padding:10px 20px; background:linear-gradient(135deg,#4dd0e1,#b478ff); border:none; color:#fff; border-radius:8px; font-weight:900; cursor:pointer; width:100%;">📸 Bild auswählen</button>
-            ${customImg ? `<button id="btnClearImg" style="margin-top:6px; padding:10px 20px; background:rgba(255,85,85,.2); border:1px solid #ff5555; color:#ff5555; border-radius:8px; font-weight:900; cursor:pointer; width:100%;">🗑️ Bild löschen</button>` : ''}
-          </div>
-        </div>
-        <div class="field" style="margin-top:12px"><label>Farb-Theme</label><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px">${Object.keys(WELCOME_THEMES).map(function(k){ var t=WELCOME_THEMES[k]; return `<button data-theme="${k}" style="height:42px;background:linear-gradient(135deg,${t.accent},${t.sun4});border:3px solid ${s.welcomeTheme===k?'#fff':'transparent'};border-radius:8px;cursor:pointer;box-shadow:0 0 12px ${t.accent}88">${s.welcomeTheme===k?'✓':''}</button>`; }).join("")}</div></div>
-        <div class="field" style="margin-top:12px"><label>Geschwindigkeit</label><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px">${[['slow','🐢 Langsam'],['normal','⚡ Normal'],['fast','🚀 Schnell']].map(function(x){ return `<button data-speed="${x[0]}" style="padding:10px;background:${s.welcomeSpeed===x[0]?'rgba(255,215,0,.25)':'rgba(0,0,0,.3)'};border:1px solid ${s.welcomeSpeed===x[0]?'#ffd700':'#555'};color:${s.welcomeSpeed===x[0]?'#ffd700':'#ccc'};border-radius:8px;font-weight:900;font-size:11px;cursor:pointer;font-family:inherit">${x[1]}</button>`; }).join("")}</div></div>
-        <div class="field" style="margin-top:12px"><label>Dauer</label><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px">${[['short','⏱️ Kurz'],['normal','⏱️ Mittel'],['long','⏱️ Lang']].map(function(x){ return `<button data-duration="${x[0]}" style="padding:10px;background:${s.welcomeDuration===x[0]?'rgba(255,215,0,.25)':'rgba(0,0,0,.3)'};border:1px solid ${s.welcomeDuration===x[0]?'#ffd700':'#555'};color:${s.welcomeDuration===x[0]?'#ffd700':'#ccc'};border-radius:8px;font-weight:900;font-size:11px;cursor:pointer;font-family:inherit">${x[1]}</button>`; }).join("")}</div></div>
-        <button id="previewWelcome" style="width:100%;padding:14px;margin-top:12px;background:linear-gradient(135deg,#ffd700,#ff9800);border:none;color:#000;border-radius:10px;font-weight:900;font-size:14px;cursor:pointer;font-family:inherit">🎬 Vorschau ansehen</button>
-      </div>`;
-      container.innerHTML = html; bindNav();
-      
-      var uploadBtn = container.querySelector("#btnUploadImg");
-      var fileInput = container.querySelector("#customImgUpload");
-      if(uploadBtn && fileInput) {
-        uploadBtn.addEventListener("click", function() { fileInput.click(); });
-        fileInput.addEventListener("change", function(e) {
-          var file = e.target.files[0];
-          if(!file) return;
-          var reader = new FileReader();
-          reader.onload = function(ev) { saveCustomImage(ev.target.result); screenSettingsWelcome(); };
-          reader.readAsDataURL(file);
-        });
+      ct.appendChild(grid);
+    }else if(active==='simulator'){
+      ct.innerHTML='<h3>🎯 Simulator – Klasse '+selectedClass+'</h3>';
+      if(quizIndex===0||quizQuestions.length===0){
+        const pool=questions.filter(q=>q.klasse===selectedClass);
+        quizQuestions=pool.slice(0,Math.min(questionCount,pool.length)).sort(()=>Math.random()-0.5);
+        if(quizQuestions.length===0){ct.innerHTML+='<p class="muted">Keine Fragen für diese Klasse verfügbar.</p>';return;}
+        const startBtn=document.createElement('button');
+        startBtn.textContent='🚀 Simulator starten ('+quizQuestions.length+' Fragen)';
+        startBtn.style.cssText='padding:16px 32px;background:var(--accent);color:#fff;font-size:16px;font-weight:700;border-radius:12px;cursor:pointer;border:none;margin-top:12px;';
+        startBtn.onclick=()=>{quizIndex=0;render();};
+        ct.appendChild(startBtn);
+        return;
       }
-      var clearBtn = container.querySelector("#btnClearImg");
-      if(clearBtn) { clearBtn.addEventListener("click", function() { saveCustomImage(null); screenSettingsWelcome(); }); }
-
-      container.querySelectorAll("[data-theme]").forEach(function(el){ el.addEventListener("click", function(){ s.welcomeTheme=el.dataset.theme; saveSettings(s); screenSettingsWelcome(); }); });
-      container.querySelectorAll("[data-speed]").forEach(function(el){ el.addEventListener("click", function(){ s.welcomeSpeed=el.dataset.speed; saveSettings(s); screenSettingsWelcome(); }); });
-      container.querySelectorAll("[data-duration]").forEach(function(el){ el.addEventListener("click", function(){ s.welcomeDuration=el.dataset.duration; saveSettings(s); screenSettingsWelcome(); }); });
-      container.querySelector("#previewWelcome").addEventListener("click", function(){ view.screen="splash"; build(); });
-    }
-
-    function screenSettingsDisplay(){
-      var s = getSettings();
-      var html = backBtn('settings') + `<div class="card"><h3>🎨 Tacho-Design</h3><div class="field"><label>Tacho-Farbe</label><div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:6px">${['#ffd700','#4dd0e1','#ff5555','#4ade80','#b478ff','#ff8844'].map(function(c){ return `<button data-color="${c}" style="height:38px;background:${c};border:3px solid ${s.tachoColor===c?'#fff':'transparent'};border-radius:8px;cursor:pointer;box-shadow:0 0 12px ${c}88"></button>`; }).join("")}</div></div><div class="field" style="margin-top:12px"><label>Pfeil-Farbe (${ARROW_COLORS[s.arrowColor]?ARROW_COLORS[s.arrowColor].name:'24K Gold'})</label><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px">${Object.keys(ARROW_COLORS).map(function(k){ var a=ARROW_COLORS[k]; return `<button data-arrow="${k}" style="height:42px;background:linear-gradient(135deg,${a.fill},${a.fill}cc);border:3px solid ${s.arrowColor===k?'#fff':'transparent'};border-radius:8px;cursor:pointer;box-shadow:0 0 12px ${a.glow}" title="${a.name}"></button>`; }).join("")}</div></div><div class="field" style="margin-top:12px"><label>Alarm-Dauer: <span id="durLbl">${s.alarmDuration}s</span></label><input type="range" id="setDuration" min="2" max="15" step="1" value="${s.alarmDuration}" style="width:100%"></div><div class="field" style="margin-top:12px"><label>Offline Modus</label><button id="toggleOffline" style="width:100%;padding:10px;background:${s.offlineMode?'rgba(255,128,128,.2)':'rgba(74,222,128,.2)'};border:1px solid ${s.offlineMode?'#ff8080':'#4ade80'};color:${s.offlineMode?'#ff8080':'#4ade80'};border-radius:8px;font-weight:900;font-size:12px;cursor:pointer;font-family:inherit">${s.offlineMode?'Offline':'Online'}</button></div></div>`;
-      container.innerHTML = html; bindNav();
-      container.querySelector("#setDuration").addEventListener("input", function(e){ s.alarmDuration=parseInt(e.target.value); container.querySelector("#durLbl").textContent=s.alarmDuration+"s"; saveSettings(s); });
-      container.querySelectorAll("[data-color]").forEach(function(el){ el.addEventListener("click", function(){ s.tachoColor=el.dataset.color; saveSettings(s); screenSettingsDisplay(); }); });
-      container.querySelectorAll("[data-arrow]").forEach(function(el){ el.addEventListener("click", function(){ s.arrowColor=el.dataset.arrow; saveSettings(s); screenSettingsDisplay(); }); });
-      container.querySelector("#toggleOffline").addEventListener("click", function(){ s.offlineMode=!s.offlineMode; saveSettings(s); screenSettingsDisplay(); });
-    }
-
-    function screenSettingsSounds(){
-      var s = getSettings();
-      var soundOptions = [{id:"siren",name:"🚨 Sirene"},{id:"siren2",name:"🚨 Sirene 2"},{id:"siren3",name:"🚨 Sirene 3"},{id:"long_alarm",name:"🔔 Feueralarm"},{id:"long_alarm2",name:"🔔 Feuer 2"},{id:"radar",name:"📡 Radar"},{id:"radar2",name:"📡 Radar 2"},{id:"urgent",name:"⚠️ Dringend"},{id:"extreme",name:"🔥 Extrem"},{id:"police",name:"🚔 Polizei"},{id:"buzzer",name:"⚡ Buzzer"},{id:"horn",name:"📯 Hupe"},{id:"ping",name:"🔵 Ping"},{id:"sonar",name:"🌊 Sonar"},{id:"digital",name:"💻 Digital"},{id:"bell",name:"🔔 Glocke"},{id:"klaxon",name:"📢 Klaxon"},{id:"birds",name:"🐦 Vögel"},{id:"chime",name:"🎵 Chime"},{id:"low",name:"🕊️ Sanft"}];
-      var html = backBtn('settings') + `<div class="card"><h3>🎵 Globale Töne</h3><div style="display:flex;gap:6px;margin-top:6px"><button id="muteAll" style="flex:1;padding:12px;background:${s.globalMute?'rgba(255,85,85,.2)':'rgba(74,222,128,.2)'};border:1px solid ${s.globalMute?'#ff5555':'#4ade80'};color:${s.globalMute?'#ff5555':'#4ade80'};border-radius:8px;font-weight:900;font-size:12px;cursor:pointer;font-family:inherit">${s.globalMute?'🔇 STUMM':'🔊 TÖNE AN'}</button><button id="toggleVoice" style="flex:1;padding:12px;background:${s.voiceOn?'rgba(255,215,0,.2)':'rgba(255,85,85,.2)'};border:1px solid ${s.voiceOn?'#ffd700':'#ff5555'};color:${s.voiceOn?'#ffd700':'#ff5555'};border-radius:8px;font-weight:900;font-size:12px;cursor:pointer;font-family:inherit">${s.voiceOn?'🗣️ STIMME':'🔇 STIMME'}</button></div></div><div class="card"><h3>🚨 20 Alarm-Töne</h3>`;
-      CATS.forEach(function(c){
-        var cur = s.sounds[c.id]||"chime";
-        html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="font-size:11px;font-weight:800;flex:1">${c.icon} ${_esc(c.name.de)}</span><div style="display:flex;gap:4px"><select data-sound="${c.id}" style="background:rgba(0,0,0,.5);color:#fff;border:1px solid #444;border-radius:6px;padding:4px 6px;font-size:10px;font-family:inherit">${soundOptions.map(function(o){return `<option value="${o.id}" ${cur===o.id?'selected':''}>${o.name}</option>`;}).join("")}</select><button data-test="${c.id}" style="background:rgba(255,215,0,.15);border:1px solid rgba(255,215,0,.3);color:#ffd700;border-radius:6px;width:30px;cursor:pointer;font-size:12px">🔊</button></div></div>`;
-      });
-      html += `</div>`;
-      container.innerHTML = html; bindNav();
-      container.querySelector("#muteAll").addEventListener("click", function(){ s.globalMute=!s.globalMute; saveSettings(s); screenSettingsSounds(); });
-      container.querySelector("#toggleVoice").addEventListener("click", function(){ s.voiceOn=!s.voiceOn; saveSettings(s); screenSettingsSounds(); });
-      container.querySelectorAll("[data-sound]").forEach(function(el){ el.addEventListener("change", function(e){ s.sounds[el.dataset.sound]=e.target.value; saveSettings(s); }); });
-      container.querySelectorAll("[data-test]").forEach(function(el){ el.addEventListener("click", function(){ playBeep(s.sounds[el.dataset.test]||"chime",0.8,s.alarmDuration); }); });
-    }
-
-    function screenSettingsVoice(){
-      var s = getSettings();
-      var cv = getCustomVoice();
-      var html = backBtn('settings') + `<div class="card"><h3>🎙️ HalDoVoice</h3><p style="font-size:11px;color:#7fa5b8;margin-bottom:10px;line-height:1.6">Nimm deine eigene Stimme auf. 4 Sekunden pro Warnung.</p><div style="padding:10px;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.3);border-radius:8px;margin-bottom:12px"><button id="toggleCustomVoice" style="width:100%;padding:10px;background:${s.useCustomVoice?'rgba(255,215,0,.25)':'rgba(0,0,0,.3)'};border:1px solid ${s.useCustomVoice?'#ffd700':'#555'};color:${s.useCustomVoice?'#ffd700':'#aaa'};border-radius:8px;font-weight:900;font-size:13px;cursor:pointer;font-family:inherit">${s.useCustomVoice?'🎙️ AKTIV':'🔇 INAKTIV (TTS)'}</button></div><div style="max-height:400px;overflow-y:auto">`;
-      CATS.forEach(function(c){
-        var hasVoice = !!cv[c.id];
-        html += `<div style="padding:10px;background:rgba(0,0,0,.3);border-radius:10px;margin-bottom:6px;border-left:3px solid ${c.color}"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;font-weight:800">${c.icon} ${_esc(c.name.de)}</span><div style="display:flex;gap:4px">${hasVoice?`<button data-playvoice="${c.id}" style="background:rgba(74,222,128,.2);border:1px solid #4ade80;color:#4ade80;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer">▶️</button><button data-delvoice="${c.id}" style="background:rgba(255,85,85,.2);border:1px solid #ff5555;color:#ff5555;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer">🗑️</button>`:''}<button data-recvoice="${c.id}" style="background:rgba(255,215,0,.2);border:1px solid #ffd700;color:#ffd700;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-weight:900">🎙️</button></div></div><div id="recStatus_${c.id}" style="font-size:10px;color:#7fa5b8;margin-top:4px">${hasVoice?'✅ Eigene Stimme':'❌ Keine Stimme'}</div></div>`;
-      });
-      html += `</div></div>`;
-      container.innerHTML = html; bindNav();
-      container.querySelector("#toggleCustomVoice").addEventListener("click", function(){ s.useCustomVoice=!s.useCustomVoice; saveSettings(s); screenSettingsVoice(); });
-      container.querySelectorAll("[data-recvoice]").forEach(function(el){ el.addEventListener("click", function(){ startVoiceRecording(el.dataset.recvoice); }); });
-      container.querySelectorAll("[data-playvoice]").forEach(function(el){ el.addEventListener("click", function(){ var cv=getCustomVoice(); if(cv[el.dataset.playvoice]) new Audio(cv[el.dataset.playvoice]).play().catch(function(){}); }); });
-      container.querySelectorAll("[data-delvoice]").forEach(function(el){ el.addEventListener("click", function(){ if(!confirm("Löschen?")) return; var cv=getCustomVoice(); delete cv[el.dataset.delvoice]; saveCustomVoice(cv); screenSettingsVoice(); }); });
-    }
-    async function startVoiceRecording(catId){
-      var status = document.getElementById("recStatus_"+catId);
-      try {
-        if(!navigator.mediaDevices || !window.MediaRecorder) throw new Error("MediaRecorder nicht verfügbar");
-        var stream = await navigator.mediaDevices.getUserMedia({audio:true});
-        voiceChunks = [];
-        var mimeType = MediaRecorder.isTypeSupported("audio/webm")?"audio/webm":(MediaRecorder.isTypeSupported("audio/mp4")?"audio/mp4":"");
-        voiceRecorder = mimeType ? new MediaRecorder(stream,{mimeType:mimeType}) : new MediaRecorder(stream);
-        voiceRecorder.ondataavailable = function(e){ if(e.data.size>0) voiceChunks.push(e.data); };
-        voiceRecorder.onstop = function(){ var blob = new Blob(voiceChunks,{type:voiceRecorder.mimeType||"audio/webm"}); var reader = new FileReader(); reader.onload = function(){ var cv=getCustomVoice(); cv[catId]=reader.result; saveCustomVoice(cv); stream.getTracks().forEach(function(t){t.stop();}); if(status) status.textContent="✅ Gespeichert!"; setTimeout(function(){ screenSettingsVoice(); },800); }; reader.readAsDataURL(blob); };
-        voiceRecorder.start();
-        if(status) status.textContent = "🔴 Aufnahme... sprich! (4s)";
-        setTimeout(function(){ if(voiceRecorder && voiceRecorder.state==="recording") voiceRecorder.stop(); },4000);
-      } catch(e){ if(status) status.textContent = "❌ "+e.message; }
-    }
-
-    function screenSettingsNav(){
-      var s = getSettings();
-      var html = backBtn('settings') + `<div class="card"><h3>🗺️ Navigation</h3><div class="field"><label>Sprach-Navi</label><button id="toggleNavVoice" style="width:100%;padding:12px;background:${s.navVoiceOn?'rgba(74,222,128,.2)':'rgba(255,85,85,.2)'};border:1px solid ${s.navVoiceOn?'#4ade80':'#ff5555'};color:${s.navVoiceOn?'#4ade80':'#ff5555'};border-radius:8px;font-weight:900;font-size:12px;cursor:pointer;font-family:inherit">${s.navVoiceOn?'🗣️ AN':'🔇 AUS'}</button></div><div class="field" style="margin-top:10px"><label>Warn-Distanz: <span id="wdLbl">${s.warnDist}m</span></label><input type="range" id="warnDistRange" min="200" max="2000" step="100" value="${s.warnDist}" style="width:100%"></div><div class="field" style="margin-top:10px"><label>Push</label><button id="toggleNotify" style="width:100%;padding:12px;background:${s.notifyOn?'rgba(74,222,128,.2)':'rgba(255,85,85,.2)'};border:1px solid ${s.notifyOn?'#4ade80':'#ff5555'};color:${s.notifyOn?'#4ade80':'#ff5555'};border-radius:8px;font-weight:900;font-size:12px;cursor:pointer;font-family:inherit">${s.notifyOn?'🔔 PUSH AN':'🔕 PUSH AUS'}</button></div></div>`;
-      container.innerHTML = html; bindNav();
-      container.querySelector("#toggleNavVoice").addEventListener("click", function(){ s.navVoiceOn=!s.navVoiceOn; saveSettings(s); screenSettingsNav(); });
-      container.querySelector("#toggleNotify").addEventListener("click", function(){ s.notifyOn=!s.notifyOn; saveSettings(s); if(s.notifyOn){ if("Notification" in window && Notification.permission==="default") Notification.requestPermission(); registerServiceWorker(); } screenSettingsNav(); });
-      container.querySelector("#warnDistRange").addEventListener("input", function(e){ s.warnDist=parseInt(e.target.value); container.querySelector("#wdLbl").textContent=s.warnDist+"m"; saveSettings(s); });
-    }
-
-    function screenSettingsLang(){
-      var s = getSettings();
-      var html = backBtn('settings') + `<div class="card"><h3>🌍 Sprache</h3><select id="setLang" style="width:100%;padding:12px;background:rgba(0,0,0,.3);border:1px solid #444;border-radius:8px;color:#fff;font-size:14px">${Object.keys(LANGS).map(function(k){ return `<option value="${k}" ${s.lang===k?"selected":""}>${LANGS[k].name}</option>`; }).join("")}</select><button id="testLang" style="width:100%;padding:12px;margin-top:10px;background:rgba(255,215,0,.2);border:1px solid #ffd700;color:#ffd700;border-radius:8px;font-weight:900;font-size:12px;cursor:pointer;font-family:inherit">🔊 Test</button></div>`;
-      container.innerHTML = html; bindNav();
-      container.querySelector("#setLang").addEventListener("change", function(e){ s.lang=e.target.value; saveSettings(s); });
-      container.querySelector("#testLang").addEventListener("click", function(){ if(!window.speechSynthesis) return; var msg={de:"Hallo, ich bin HalDo Blitzer",en:"Hello, I am HalDo Blitzer",tr:"Merhaba, ben HalDo Blitzer",ar:"مرحبا، أنا هالدو بليتزر",ku:"Silav, ez HalDo Blitzer im",fr:"Bonjour, je suis HalDo Blitzer",es:"Hola, soy HalDo Blitzer",it:"Ciao, sono HalDo Blitzer",ru:"Привет, я HalDo Blitzer"}[s.lang]; var u = new SpeechSynthesisUtterance(msg); u.lang = LANGS[s.lang].code; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); });
-    }
-
-    function screenSettingsBT(){
-      var s = getSettings();
-      var html = backBtn('settings') + `<div class="card"><h3>📡 Bluetooth</h3><button id="btScan" style="width:100%;padding:14px;background:linear-gradient(135deg,#ffd700,#ff9800);border:none;color:#000;border-radius:10px;font-weight:900;font-size:14px;cursor:pointer;font-family:inherit">🔍 Gerät suchen</button><div id="btStatus" style="margin-top:12px;padding:10px;background:rgba(0,0,0,.3);border-radius:8px;font-size:12px;color:#7fa5b8">${s.btDeviceName?`✅ ${_esc(s.btDeviceName)}`:'❌ Nicht verbunden'}</div>${s.btDeviceName?`<button id="btDisconnect" style="width:100%;padding:12px;margin-top:8px;background:rgba(255,85,85,.2);border:1px solid #ff5555;color:#ff5555;border-radius:8px;font-weight:900;font-size:12px;cursor:pointer;font-family:inherit">🔌 Trennen</button>`:''}</div>`;
-      container.innerHTML = html; bindNav();
-      var btn = container.querySelector("#btScan");
-      if(btn) btn.addEventListener("click", async function(){ var status = container.querySelector("#btStatus"); status.textContent = "🔍 Suche..."; try { if(!navigator.bluetooth) throw new Error("Web Bluetooth nicht verfügbar"); var device = await navigator.bluetooth.requestDevice({acceptAllDevices:true}); btServer = await device.gatt.connect(); btDevice = device; s.btDeviceName = device.name || "Bluetooth-Gerät"; saveSettings(s); status.textContent = "✅ "+s.btDeviceName; if(HalDo.Notify) HalDo.Notify.success("Verbunden: "+s.btDeviceName); screenSettingsBT(); } catch(e){ status.textContent = "❌ "+e.message; } });
-      var disc = container.querySelector("#btDisconnect");
-      if(disc) disc.addEventListener("click", function(){ if(btServer){ try{ btServer.disconnect(); }catch(e){} } btServer=null; btDevice=null; s.btDeviceName=null; saveSettings(s); screenSettingsBT(); });
-    }
-
-    function screenSettingsFlash(){
-      var s = getSettings();
-      var html = backBtn('settings') + `<div class="card"><h3>💡 Taschenlampe</h3><button id="toggleFlash" style="width:100%;padding:14px;background:${s.flashOnWarning?'rgba(255,215,0,.2)':'rgba(255,255,255,.05)'};border:1px solid ${s.flashOnWarning?'#ffd700':'#555'};color:${s.flashOnWarning?'#ffd700':'#fff'};border-radius:10px;font-weight:900;font-size:14px;cursor:pointer;font-family:inherit">${s.flashOnWarning?'💡 BLINKEN AN':'💡 BLINKEN AUS'}</button><button id="testFlash" style="width:100%;padding:12px;margin-top:10px;background:rgba(255,215,0,.2);border:1px solid #ffd700;color:#ffd700;border-radius:8px;font-weight:900;font-size:12px;cursor:pointer;font-family:inherit">🔦 Test (3x)</button></div>`;
-      container.innerHTML = html; bindNav();
-      container.querySelector("#toggleFlash").addEventListener("click", function(){ s.flashOnWarning=!s.flashOnWarning; saveSettings(s); screenSettingsFlash(); });
-      container.querySelector("#testFlash").addEventListener("click", function(){ blinkTorch(3); });
-    }
-
-    function screenSettingsAbout(){
-      var charSvg = buildUltraPeacockSVG(120,"about");
-      var html = backBtn('settings') + `<div class="card" style="text-align:center"><div style="margin:8px 0">${charSvg}</div><div style="margin:6px 0">${appIconSVG(64)}</div><h3 style="margin:6px 0">HalDo Blitzer</h3><div style="font-size:12px;color:#ffd700;margin-top:4px;font-weight:800">Version 22.0 · AI Navigator</div><div style="font-size:11px;color:#7fa5b8;margin-top:14px;line-height:1.8">⚠️ Blitzer-Warnungen<br>🦚 Ultra-3D Pfau · 🏎️ Auto · 🤖 Cyborg<br>🥇 24 Karat Gold<br>🎙️ HalDoVoice<br>🗣️ Sprach-Navi<br>📡 Bluetooth<br>⛽ Tankstellen · 🍴 Restaurants<br>💡 Taschenlampe<br>🌍 9 Sprachen · 20 Töne</div><div style="font-size:11px;color:#ffd700;margin-top:20px;font-weight:900">von Halil Donma</div><div style="font-size:10px;color:#5a7a8a;margin-top:6px">Made with ❤️ for the Ezidi Community</div></div>`;
-      container.innerHTML = html; bindNav();
-    }
-
-    function fetchWeather(){
-      if(!lastPos || getSettings().offlineMode) return;
-      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lastPos.coords.latitude}&longitude=${lastPos.coords.longitude}&current_weather=true&hourly=surface_pressure`)
-        .then(r=>r.json()).then(function(data){
-          if(data.current_weather){ var temp=Math.round(data.current_weather.temperature),code=data.current_weather.weathercode; var pressure=data.hourly&&data.hourly.surface_pressure?Math.round(data.hourly.surface_pressure[0]):"—"; var icon="☀️",desc="Klar"; if(code>0&&code<4){icon="🌤️";desc="Wolkig";} if(code>=4&&code<70){icon="☁️";desc="Bedeckt";} if(code>=70&&code<80){icon="🌧️";desc="Regen";} if(code>=80){icon="⛈️";desc="Gewitter";} fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lastPos.coords.latitude}&lon=${lastPos.coords.longitude}`).then(r=>r.json()).then(function(geo){ var city = geo.address?(geo.address.city||geo.address.town||geo.address.village||geo.address.county):"Unbekannt"; weatherData = {temp,icon,desc,pressure,city}; if(view.screen==="cockpit") build(); }).catch(function(){ weatherData={temp,icon,desc,pressure,city:"Ort"}; if(view.screen==="cockpit") build(); }); }
-        }).catch(function(){});
-    }
-
-    async function sendPushNotification(cat,dist){
-      var s = getSettings();
-      if(!s.notifyOn) return;
-      if(!("Notification" in window)) return;
-      if(Notification.permission==="default") await Notification.requestPermission();
-      if(Notification.permission!=="granted") return;
-      try { if(swRegistration && swRegistration.active){ swRegistration.active.postMessage({title:"HalDo Blitzer: "+cat.name.de,body:"Achtung! In "+fmtDist(dist)+".",icon:LOGO_URL}); } new Notification("HalDo Blitzer: "+cat.name.de,{body:"Achtung! In "+fmtDist(dist)+".",icon:LOGO_URL,badge:LOGO_URL}); } catch(e){}
-    }
-
-    function checkTriggers(pos){
-      var s = getSettings(),lat=pos.coords.latitude,lng=pos.coords.longitude,zones=[2000,1000,500,200];
-      getWarnings().forEach(function(w){
-        if(!s.enabled[w.cat]) return;
-        var d=haversine(lat,lng,w.lat,w.lng),cat=getCat(w.cat); if(!cat) return;
-        for(var i=0;i<zones.length;i++){ var key=w.id+"_z"+i; if(d<=zones[i] && !triggered[key]){ triggered[key]=true; speakAlert(cat,d,s); sendPushNotification(cat,d); if(s.flashOnWarning) blinkTorch(3); trip.warnings++; var wn=container.querySelector("#tripWarn"); if(wn) wn.textContent=trip.warnings; break; } }
-      });
-    }
-    
-    function speakAlert(cat,dist,settings){
-      if(settings.globalMute) return;
-      var cv = getCustomVoice();
-      if(settings.useCustomVoice && cv[cat.id]){ try{ new Audio(cv[cat.id]).play().catch(function(){}); }catch(e){} if(navigator.vibrate) navigator.vibrate([200,100,200]); return; }
-      if(settings.beepOn) playBeep(settings.sounds[cat.id]||"chime",0.9,settings.alarmDuration);
-      
-      if(settings.voiceOn && window.speechSynthesis){ 
-        var txt = (cat.voice[settings.lang]||cat.voice.de).replace("{d}",fmtDist(dist)); 
-        speak(txt);
+      if(quizIndex>=quizQuestions.length){
+        const total=stats.richtig+stats.falsch;
+        const rate=total>0?Math.round(stats.richtig/total*100):0;
+        ct.innerHTML+='<div class="simulator"><h4>🎉 Simulator beendet!</h4><p style="font-size:32px;color:#10b981;margin:20px 0;">'+rate+'% richtig</p><p>Richtig: '+stats.richtig+' · Falsch: '+stats.falsch+'</p></div>';
+        const restart=document.createElement('button');
+        restart.textContent='🔄 Nochmal';
+        restart.style.marginTop='12px';
+        restart.onclick=()=>{stats={richtig:0,falsch:0};save('fahrschule_stats',stats);quizIndex=0;quizQuestions=[];render();};
+        ct.appendChild(restart);
+        return;
       }
-      if(navigator.vibrate) navigator.vibrate([200,100,200]);
-    }
-
-    function speak(text){ 
-      var s = getSettings(); 
-      if(!s.navVoiceOn || s.globalMute) return; 
-      if(!window.speechSynthesis) return; 
-      
-      var assistant = ASSISTANTS[s.selectedAssistant] || ASSISTANTS.ai;
-      
-      window.speechSynthesis.cancel(); 
-      var u = new SpeechSynthesisUtterance(text); 
-      u.lang = LANGS[s.lang].code; 
-      u.pitch = assistant.pitch;
-      u.rate = assistant.rate;
-      
-      window.speechSynthesis.speak(u); 
-    }
-
-    function getTurnWord(mod,lang){
-      mod = mod||"";
-      var words = {de:{l:"links abbiegen",r:"rechts abbiegen",s:"geradeaus",u:"wenden",sl:"leicht links",sr:"leicht rechts",hl:"scharf links",hr:"scharf rechts"},en:{l:"turn left",r:"turn right",s:"straight",u:"u-turn",sl:"slight left",sr:"slight right",hl:"sharp left",hr:"sharp right"},tr:{l:"sola dön",r:"sağa dön",s:"düz git",u:"u dönüşü",sl:"hafif sol",sr:"hafif sağ",hl:"keskin sol",hr:"keskin sağ"},ar:{l:"انعطف يسارا",r:"انعطف يمينا",s:"استمر",u:"استدر",sl:"يسار قليلا",sr:"يمين قليلا",hl:"يسار حاد",hr:"يمين حاد"},ku:{l:"ber bi çepê ve bizivire",r:"ber bi rastê ve bizivire",s:"rasterast",u:"zivirîn",sl:"hinek çep",sr:"hinek rast",hl:"tûj çep",hr:"tûj rast"},fr:{l:"tourner à gauche",r:"tourner à droite",s:"tout droit",u:"demi-tour",sl:"légèrement à gauche",sr:"légèrement à droite",hl:"fortement à gauche",hr:"fortement à droite"},es:{l:"gira a la izquierda",r:"gira a la derecha",s:"recto",u:"da la vuelta",sl:"ligeramente izq",sr:"ligeramente der",hl:"giro brusco izq",hr:"giro brusco der"},it:{l:"gira a sinistra",r:"gira a destra",s:"dritto",u:"inverti marcia",sl:"leggermente sx",sr:"leggermente dx",hl:"bruscamente sx",hr:"bruscamente dx"},ru:{l:"поверните налево",r:"поверните направо",s:"прямо",u:"развернитесь",sl:"плавно налево",sr:"плавно направо",hl:"резко налево",hr:"резко направо"}};
-      var d = words[lang]||words.de;
-      if(mod.indexOf("left")>=0 && mod.indexOf("slight")>=0) return d.sl;
-      if(mod.indexOf("right")>=0 && mod.indexOf("slight")>=0) return d.sr;
-      if(mod.indexOf("left")>=0 && mod.indexOf("sharp")>=0) return d.hl;
-      if(mod.indexOf("right")>=0 && mod.indexOf("sharp")>=0) return d.hr;
-      if(mod.indexOf("left")>=0) return d.l;
-      if(mod.indexOf("right")>=0) return d.r;
-      if(mod.indexOf("uturn")>=0||mod.indexOf("u-turn")>=0) return d.u;
-      return d.s;
-    }
-    
-    function checkNavVoice(){
-      if(!routeData||!lastPos) return;
-      var step = routeData.steps[routeData.currentStep];
-      if(!step) return;
-      var stepKey = routeData.currentStep+"_"+routeData.targetName;
-      if(stepKey===lastSpokenStep) return;
-      if(step.distance<300 && step.distance>50){ if(lastSpokenDist!==stepKey+"_300"){ lastSpokenDist = stepKey+"_300"; var s = getSettings(); var pre = {de:"In "+fmtDist(step.distance)+": ",en:"In "+fmtDist(step.distance)+": ",tr:fmtDist(step.distance)+" sonra: ",ar:"بعد "+fmtDist(step.distance)+": ",ku:"Piştî "+fmtDist(step.distance)+": ",fr:"Dans "+fmtDist(step.distance)+": ",es:"En "+fmtDist(step.distance)+": ",it:"Tra "+fmtDist(step.distance)+": ",ru:"Через "+fmtDist(step.distance)+": "}[s.lang]||""; speak(pre + getTurnWord(step.maneuver.modifier, s.lang)); } }
-      if(step.distance<50){ lastSpokenStep = stepKey; speak(getTurnWord(step.maneuver.modifier, getSettings().lang)); routeData.currentStep++; }
-    }
-
-    function fetchSpeedLimitIfNeeded(){
-      if(!lastPos||getSettings().offlineMode) return;
-      var now = Date.now(); if(now-lastLimitFetch<15000) return;
-      lastLimitFetch = now;
-      fetch("https://overpass-api.de/api/interpreter?data="+encodeURIComponent(`[out:json];way(around:30,${lastPos.coords.latitude},${lastPos.coords.longitude})["highway"]["maxspeed"];out tags;`))
-        .then(r=>r.json()).then(function(data){
-          if(data.elements && data.elements.length>0){ var ms = data.elements[0].tags.maxspeed; if(ms==="none"||ms==="signals"||ms==="DE:urban") currentLimit = ms==="DE:urban"?50:0; else { var num = parseInt(ms); currentLimit = isNaN(num)?null:num; } } else currentLimit = null;
-          if(view.screen==="cockpit"){ var el = container.querySelector(".cpt-limit"); if(el){ el.style.display = currentLimit===null?"none":"flex"; el.innerHTML = `<div class="cpt-limit-num">${currentLimit===0?"∞":currentLimit}</div>`; } }
-        }).catch(function(){});
-    }
-
-    function fetchPOIsIfNeeded(){
-      if(!lastPos||getSettings().offlineMode) return;
-      var s = getSettings(); var enabled = CATS.filter(function(c){ return c.type==="poi" && s.enabled[c.id]; }); if(!enabled.length) return;
-      var filter = enabled.map(function(c){ return `node(around:3000,${lastPos.coords.latitude},${lastPos.coords.longitude})[${c.osm}];`; }).join("");
-      fetch("https://overpass-api.de/api/interpreter?data="+encodeURIComponent(`[out:json];(${filter});out center 30;`))
-        .then(r=>r.json()).then(function(data){ if(!data.elements) return; data.elements.forEach(function(el){ if(!poiCache[el.id]) poiCache[el.id] = {id:el.id,lat:el.lat,lng:el.lon,cat:guessCatFromTags(el.tags),tags:el.tags}; }); }).catch(function(){});
-    }
-    function guessCatFromTags(tags){ if(!tags) return null; if(tags.amenity==="fuel") return "poi_fuel"; if(tags.amenity==="restaurant") return "poi_rest"; return null; }
-
-    function screenFuel(){
-      var s = getSettings();
-      var html = backBtn('cockpit') + `<div class="card"><h3>⛽ Tankstellen</h3>`;
-      if(!s.tankerApiKey){ html += `<div style="padding:10px;background:rgba(255,215,0,.1);border:1px solid #ffd700;border-radius:8px;margin-bottom:10px;font-size:11px;color:#ffd700">💡 Tankerkönig API-Key auf creativecommons.tankerkoenig.de</div><div class="field"><label>API-Key</label><input id="tankerKey" placeholder="API-Key..." value="${_esc(s.tankerApiKey)}" style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:1px solid #444;border-radius:8px;color:#fff;font-size:12px"><button id="saveTanker" style="width:100%;padding:10px;margin-top:6px;background:rgba(255,215,0,.2);border:1px solid #ffd700;color:#ffd700;border-radius:8px;font-weight:900;cursor:pointer;font-family:inherit">💾 Speichern</button></div>`; }
-      else if(!lastPos){ html += `<div style="text-align:center;color:#7fa5b8;padding:20px">GPS wird gesucht...</div>`; }
-      else { html += `<button id="refreshFuel" style="width:100%;padding:10px;background:rgba(74,222,128,.2);border:1px solid #4ade80;color:#4ade80;border-radius:8px;font-weight:900;cursor:pointer;margin-bottom:10px;font-family:inherit">🔄 Aktualisieren</button><div id="fuelList">`; if(fuelStations.length===0) html += `<div style="text-align:center;color:#7fa5b8;padding:15px">Lade...</div>`; else fuelStations.forEach(function(st){ var d = lastPos?haversine(lastPos.coords.latitude,lastPos.coords.longitude,st.lat,st.lng):0; html += `<div style="padding:10px;background:rgba(0,0,0,.3);border-radius:10px;margin-bottom:6px;border-left:3px solid #66cc66"><div style="display:flex;justify-content:space-between"><div><div style="font-size:13px;font-weight:900">${_esc(st.name)}</div><div style="font-size:10px;color:#7fa5b8">${_esc(st.street||'')} · ${fmtDist(d)}</div></div><div style="text-align:right;font-size:11px">${st.e5?`<div>E5: <b style="color:#4dd0e1">${st.e5.toFixed(2)}€</b></div>`:''}${st.e10?`<div>E10: <b style="color:#4dd0e1">${st.e10.toFixed(2)}€</b></div>`:''}${st.diesel?`<div>Diesel: <b style="color:#ffd700">${st.diesel.toFixed(2)}€</b></div>`:''}</div></div></div>`; }); html += `</div>`; setTimeout(fetchFuelPrices, 100); }
-      html += `</div>`;
-      container.innerHTML = html; bindNav();
-      var k = container.querySelector("#saveTanker"); if(k) k.addEventListener("click", function(){ s.tankerApiKey = container.querySelector("#tankerKey").value.trim(); saveSettings(s); screenFuel(); });
-      var r = container.querySelector("#refreshFuel"); if(r) r.addEventListener("click", fetchFuelPrices);
-    }
-    function fetchFuelPrices(){ var s = getSettings(); if(!s.tankerApiKey||!lastPos) return; fetch(`https://creativecommons.tankerkoenig.de/json/list.php?lat=${lastPos.coords.latitude}&lng=${lastPos.coords.longitude}&rad=3&sort=dist&type=all&apikey=${s.tankerApiKey}`).then(r=>r.json()).then(function(d){ if(d.ok) fuelStations=d.stations; if(view.screen==="fuel") screenFuel(); }).catch(function(){}); }
-
-    function screenRestaurants(){
-      var html = backBtn('cockpit') + `<div class="card"><h3>🍴 Restaurants</h3><div id="restList">`;
-      var rest = Object.values(poiCache).filter(function(p){ return p.cat==="poi_rest"; });
-      if(!rest.length) html += `<div style="text-align:center;color:#7fa5b8;padding:15px">Keine Restaurants. Warte auf GPS...</div>`;
-      else rest.forEach(function(r){ var d = lastPos?haversine(lastPos.coords.latitude,lastPos.coords.longitude,r.lat,r.lng):0; var name = r.tags&&r.tags.name?r.tags.name:"Restaurant"; var cuisine = r.tags&&r.tags.cuisine?r.tags.cuisine.replace(/_/g," "):""; html += `<div style="padding:10px;background:rgba(0,0,0,.3);border-radius:10px;margin-bottom:6px;border-left:3px solid #ff8844"><div style="font-size:13px;font-weight:900">🍴 ${_esc(name)}</div><div style="font-size:10px;color:#7fa5b8">${cuisine?_esc(cuisine)+" · ":""}${fmtDist(d)}</div></div>`; });
-      html += `</div></div>`; container.innerHTML = html; bindNav();
-    }
-
-    function screenMap(){ var html = backBtn('cockpit') + `<div class="card" style="padding:0;overflow:hidden;height:calc(100vh - 200px);position:relative"><div id="blMap" style="width:100%;height:100%;background:#0a1220"></div></div>`; container.innerHTML = html; bindNav(); initMap(); }
-    function initMap(){ if(!document.getElementById("leaflet-css")){ var lc = document.createElement("link"); lc.id="leaflet-css"; lc.rel="stylesheet"; lc.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"; document.head.appendChild(lc); } if(window.L) return buildMap(); var s = document.createElement("script"); s.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"; s.onload=buildMap; document.head.appendChild(s); }
-    function buildMap(){ var el = document.getElementById("blMap"); if(!el||!window.L) return; el.innerHTML=""; var center = lastPos?[lastPos.coords.latitude,lastPos.coords.longitude]:[51.1657,10.4515]; map = L.map(el,{zoomControl:false}).setView(center,14); L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map); updateMapMarkers(); }
-    function updateMapMarkers(){ if(!map) return; mapMarkers.forEach(function(m){ map.removeLayer(m); }); mapMarkers=[]; getWarnings().forEach(function(w){ var cat = getCat(w.cat); if(!cat) return; var icon = L.divIcon({html:`<div style="background:${cat.color};border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid #fff">${cat.icon}</div>`,className:"",iconSize:[32,32],iconAnchor:[16,16]}); mapMarkers.push(L.marker([w.lat,w.lng],{icon:icon}).addTo(map)); }); if(lastPos){ var uicon = L.divIcon({html:`<div style="background:#ffd700;border:3px solid #fff;border-radius:50%;width:20px;height:20px;box-shadow:0 0 20px #ffd700"></div>`,className:"",iconSize:[20,20],iconAnchor:[10,10]}); mapMarkers.push(L.marker([lastPos.coords.latitude,lastPos.coords.longitude],{icon:uicon}).addTo(map)); map.setView([lastPos.coords.latitude,lastPos.coords.longitude]); } }
-
-    function screenList(){ var warnings = getWarnings(); var html = backBtn('cockpit') + `<div class="card"><h3>📋 Warnungen (${warnings.length})</h3>`; if(!warnings.length) html += `<div style="text-align:center;color:#7fa5b8;padding:20px">Keine Warnungen.</div>`; else warnings.slice().reverse().forEach(function(w){ var c = getCat(w.cat)||CATS[0]; html += `<div style="padding:10px;background:rgba(0,0,0,.3);border-radius:10px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;border-left:3px solid ${c.color}"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:900">${c.icon} ${_esc(c.name.de)}</div><div style="font-size:10px;color:#7fa5b8">${w.lat.toFixed(4)}, ${w.lng.toFixed(4)}</div></div><button data-del="${w.id}" style="background:rgba(255,128,128,.2);border:none;color:#ff8080;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer">✕</button></div>`; }); html += `</div>`; container.innerHTML = html; bindNav(); container.querySelectorAll("[data-del]").forEach(function(el){ el.addEventListener("click", function(){ if(!confirm("Löschen?")) return; saveWarnings(getWarnings().filter(function(w){ return w.id!==el.dataset.del; })); screenList(); }); }); }
-
-    function screenReport(){
-      var html = backBtn('cockpit') + `<div class="card"><h3>➕ Warnung melden</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">`;
-      CATS.forEach(function(c){ html += `<button data-report="${c.id}" style="padding:14px;background:rgba(0,0,0,.2);border:1px solid ${c.color}44;border-radius:10px;color:inherit;font-family:inherit;text-align:center;cursor:pointer"><div style="font-size:26px">${c.icon}</div><div style="font-size:10px;color:${c.color};margin-top:4px;font-weight:800">${_esc(c.name.de)}</div></button>`; });
-      html += `</div></div>`; container.innerHTML = html; bindNav();
-      container.querySelectorAll("[data-report]").forEach(function(el){ el.addEventListener("click", function(){ if(!lastPos){ alert("GPS fehlt"); return; } var warnings = getWarnings(); warnings.push({id:"w"+Date.now(),cat:el.dataset.report,lat:lastPos.coords.latitude,lng:lastPos.coords.longitude,created:Date.now()}); saveWarnings(warnings); if(HalDo.Notify) HalDo.Notify.success("Warnung gemeldet!"); view.screen="cockpit"; build(); }); });
-    }
-
-    function screenNav(){
-      var hist = store.get("navHistory",[]); var favs = store.get("navFavorites",[]);
-      var html = backBtn('cockpit') + `<div class="card"><h3>🧭 Navigation</h3><div class="field"><label>Straße + Hausnummer</label><input id="navStreet" placeholder="z.B. Hauptstraße 12" style="width:100%;padding:12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#fff;font-size:14px;margin-bottom:6px"></div><div class="field"><label>PLZ + Stadt</label><input id="navCity" placeholder="z.B. 30159 Hannover" style="width:100%;padding:12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#fff;font-size:14px"></div><div style="display:flex;gap:6px;margin-top:8px"><button class="btn full" id="navGo" style="flex:1;padding:12px;background:linear-gradient(135deg,#ffd700,#ff9800);color:#000;font-weight:900;border:none;border-radius:10px;cursor:pointer;font-family:inherit">🔍 Route berechnen</button><button id="navFav" style="padding:12px 16px;background:rgba(255,215,0,.2);border:1px solid #ffd700;color:#ffd700;border-radius:10px;font-size:18px;cursor:pointer">⭐</button></div>${routeData?`<div style="margin-top:14px;padding:12px;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.3);border-radius:10px"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:11px;color:#7fa5b8;font-weight:800">ROUTE AKTIV</div><div style="font-size:14px;font-weight:900;color:#ffd700;margin-top:4px">${fmtDist(routeData.totalDist)} · ${fmtTime(Math.round(routeData.totalTime))}</div></div><button id="navClear" style="background:rgba(255,128,128,.15);border:1px solid rgba(255,128,128,.3);color:#ff8080;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;font-weight:800;font-family:inherit">Beenden</button></div></div>`:''}</div>`;
-      if(favs.length){ html += `<div class="card"><h3>⭐ Favoriten</h3>`; favs.forEach(function(f,i){ html += `<div style="display:flex;justify-content:space-between;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:4px"><div style="font-size:12px;font-weight:800;cursor:pointer" data-fav="${i}">${_esc(f.addr)}</div><button data-delfav="${i}" style="background:transparent;border:none;color:#ff8080;cursor:pointer">✕</button></div>`; }); html += `</div>`; }
-      if(hist.length){ html += `<div class="card"><h3>🕒 Verlauf</h3>`; hist.slice(0,5).forEach(function(h){ html += `<div style="display:flex;justify-content:space-between;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:4px"><div style="font-size:12px;font-weight:800;cursor:pointer" data-hist="${_esc(h.addr)}">${_esc(h.addr)}</div><div style="font-size:10px;color:#7fa5b8">${h.date}</div></div>`; }); html += `</div>`; }
-      container.innerHTML = html; bindNav();
-      container.querySelector("#navGo").addEventListener("click", function(){ var street = container.querySelector("#navStreet").value.trim(); var city = container.querySelector("#navCity").value.trim(); var target = (street + " " + city).trim(); if(!target) return; hist.unshift({addr:target,date:new Date().toLocaleString("de-DE")}); store.set("navHistory", hist.slice(0,20)); if(!lastPos){ alert("GPS fehlt"); return; } geocodeAndRoute(target); });
-      container.querySelector("#navFav").addEventListener("click", function(){ var street = container.querySelector("#navStreet").value.trim(); var city = container.querySelector("#navCity").value.trim(); var target = (street + " " + city).trim(); if(!target) return; if(!favs.some(function(f){return f.addr===target;})){ favs.push({addr:target}); store.set("navFavorites",favs); screenNav(); } });
-      container.querySelectorAll("[data-delfav]").forEach(function(el){ el.addEventListener("click", function(){ favs.splice(parseInt(el.dataset.delfav),1); store.set("navFavorites",favs); screenNav(); }); });
-      container.querySelectorAll("[data-fav]").forEach(function(el){ el.addEventListener("click", function(){ container.querySelector("#navStreet").value=favs[parseInt(el.dataset.fav)].addr; }); });
-      container.querySelectorAll("[data-hist]").forEach(function(el){ el.addEventListener("click", function(){ container.querySelector("#navStreet").value=el.dataset.hist; }); });
-      var nc = container.querySelector("#navClear"); if(nc) nc.addEventListener("click", function(){ routeData=null; screenNav(); });
-    }
-    function geocodeAndRoute(query){
-      fetch("https://nominatim.openstreetmap.org/search?format=json&q="+encodeURIComponent(query)+"&limit=1")
-        .then(r=>r.json()).then(function(data){
-          if(!data||!data.length){ alert("Ziel nicht gefunden"); return; }
-          targetPos = {lat:parseFloat(data[0].lat),lng:parseFloat(data[0].lon)};
-          var addr = data[0].display_name.split(",")[0]; speak("Navigation gestartet. Ziel: "+addr+".");
-          fetch(`https://router.project-osrm.org/route/v1/driving/${lastPos.coords.longitude},${lastPos.coords.latitude};${targetPos.lng},${targetPos.lat}?steps=true&geometries=geojson&overview=false`)
-            .then(r=>r.json()).then(function(rdata){
-              if(!rdata.routes||!rdata.routes.length){ alert("Route nicht gefunden"); return; }
-              routeData = {totalDist:rdata.routes[0].distance,totalTime:rdata.routes[0].duration,steps:rdata.routes[0].legs[0].steps,currentStep:0,targetName:addr};
-              lastSpokenStep=null; lastSpokenDist=null;
-              if(HalDo.Notify) HalDo.Notify.success("Route: "+fmtDist(routeData.totalDist));
-              view.screen="cockpit"; build();
-            }).catch(function(e){ alert("Routing-Fehler: "+e.message); });
-        }).catch(function(e){ alert("Geocoding-Fehler: "+e.message); });
-    }
-
-    function screenPark(){
-      var now = Date.now(); var remaining = parkEndTime>now?Math.floor((parkEndTime-now)/1000):0;
-      var html = backBtn('cockpit') + `<div class="card" style="text-align:center"><h3>🅿️ Parkuhr</h3><div style="font-size:56px;font-weight:900;color:${remaining>0?'#ffd700':'#ff5555'};margin:20px 0;text-shadow:0 0 20px ${remaining>0?'rgba(255,215,0,.5)':'rgba(255,85,85,.5)'}" id="parkTime">${fmtTime(remaining)}</div>${remaining===0&&parkEndTime>0?'<div style="color:#ff5555;font-weight:900">⏰ Zeit abgelaufen!</div>':''}<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:20px"><button onclick="window._parkAdd(15)" style="background:rgba(255,215,0,.2);border:1px solid #ffd700;color:#ffd700;padding:12px;border-radius:8px;font-weight:900;cursor:pointer;font-family:inherit">+ 15 Min</button><button onclick="window._parkAdd(30)" style="background:rgba(255,215,0,.2);border:1px solid #ffd700;color:#ffd700;padding:12px;border-radius:8px;font-weight:900;cursor:pointer;font-family:inherit">+ 30 Min</button><button onclick="window._parkAdd(60)" style="background:rgba(255,215,0,.2);border:1px solid #ffd700;color:#ffd700;padding:12px;border-radius:8px;font-weight:900;cursor:pointer;font-family:inherit">+ 1 Std</button><button onclick="window._parkStop()" style="background:rgba(255,85,85,.2);border:1px solid #ff5555;color:#ff5555;padding:12px;border-radius:8px;font-weight:900;cursor:pointer;font-family:inherit">⏹ Stopp</button></div></div>`;
-      container.innerHTML = html; bindNav();
-      window._parkAdd = function(mins){ parkEndTime = (parkEndTime>Date.now()?parkEndTime:Date.now())+mins*60000; if(parkTimer) clearInterval(parkTimer); parkTimer=setInterval(updateParkUI,1000); updateParkUI(); };
-      window._parkStop = function(){ parkEndTime=0; if(parkTimer) clearInterval(parkTimer); updateParkUI(); };
-      function updateParkUI(){ var el = document.getElementById("parkTime"); if(!el) return; var rem = parkEndTime>Date.now()?Math.floor((parkEndTime-Date.now())/1000):0; el.textContent = fmtTime(rem); el.style.color = rem>0?'#ffd700':'#ff5555'; if(rem===0 && parkEndTime>0){ if(HalDo.Notify) HalDo.Notify.error("Parkzeit abgelaufen!"); playBeep("urgent",1.0,5); parkEndTime = 0; } }
-      if(parkTimer) clearInterval(parkTimer); if(parkEndTime>Date.now()) parkTimer = setInterval(updateParkUI,1000);
-    }
-
-    function screenVision(){
-      var html = backBtn('cockpit') + `<div class="card"><h3>🤖 KI-Kamera</h3><div style="position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center"><video id="visionVideo" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:none"></video><canvas id="visionCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;display:none"></canvas><div id="visionPlaceholder" style="color:#aaa;text-align:center;padding:20px"><div style="font-size:44px">📷</div><div style="font-size:11px;margin-top:8px">Kamera starten</div></div></div><button id="visionStart" style="width:100%;padding:14px;margin-top:10px;background:linear-gradient(135deg,#ffd700,#ff9800);color:#000;border:none;border-radius:10px;font-weight:900;cursor:pointer;font-family:inherit">📷 KI aktivieren</button><div id="visionStatus" style="text-align:center;font-size:11px;font-weight:900;color:#4ade80;margin-top:8px">Bereit</div></div>`;
-      container.innerHTML = html; bindNav(); container.querySelector("#visionStart").addEventListener("click", startVision);
-    }
-    async function startVision(){
-      if(tfModel){ stopVision(); return; }
-      var status = document.getElementById("visionStatus"); status.textContent = "Lade KI...";
-      try { if(!window.tf||!window.cocoSsd){ await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.2.0/dist/tf.min.js"); await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js"); } tfModel = await cocoSsd.load(); cameraStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false}); var video = document.getElementById("visionVideo"); video.srcObject = cameraStream; video.style.display = "block"; document.getElementById("visionPlaceholder").style.display = "none"; document.getElementById("visionCanvas").style.display = "block"; document.getElementById("visionStart").textContent = "⏹ KI stoppen"; status.textContent = "🟢 Live"; runVisionLoop(); } catch(e){ status.textContent = "❌ "+e.message; }
-    }
-    function loadScript(src){ return new Promise(function(res,rej){ var s=document.createElement("script"); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
-    async function runVisionLoop(){
-      if(!tfModel||!cameraStream) return;
-      var video = document.getElementById("visionVideo"), canvas = document.getElementById("visionCanvas"); if(!video||!canvas) return;
-      var c2d = canvas.getContext("2d"); canvas.width = video.videoWidth||640; canvas.height = video.videoHeight||480;
-      async function detect(){ if(!tfModel||!cameraStream) return; var preds = await tfModel.detect(video); c2d.clearRect(0,0,canvas.width,canvas.height); preds.forEach(function(p){ if(p.class==="car"||p.class==="truck"||p.class==="person"||p.class==="bicycle"){ var b = p.bbox; c2d.strokeStyle = p.class==="person"?"#ff5555":"#4dd0e1"; c2d.lineWidth = 3; c2d.strokeRect(b[0],b[1],b[2],b[3]); c2d.fillStyle = c2d.strokeStyle; c2d.font = "16px sans-serif"; c2d.fillText(p.class.toUpperCase()+" "+Math.round(p.score*100)+"%", b[0], b[1]>20?b[1]-5:b[1]+20); } }); if(cameraStream) visionLoop = requestAnimationFrame(detect); }
-      detect();
-    }
-    function stopVision(){ if(visionLoop) cancelAnimationFrame(visionLoop); visionLoop = null; if(cameraStream){ cameraStream.getTracks().forEach(function(t){t.stop();}); cameraStream = null; } tfModel = null; screenVision(); }
-
-    function getNextEvent(){ if(routeData && routeData.steps){ for(var i=routeData.currentStep;i<routeData.steps.length;i++){ var st = routeData.steps[i]; if(st.maneuver && st.maneuver.type!=="depart"){ return {type:"nav",modifier:st.maneuver.modifier,instruction:st.name||st.maneuver.type,distance:st.distance}; } } } return null; }
-
-    function startGeo(){
-      if(!navigator.geolocation) return;
-      if(geoWatch) navigator.geolocation.clearWatch(geoWatch);
-      
-      function onSuccess(pos) {
-        lastPos = pos;
-        gpsRetries = 0;
-        if(gpsRetryTimer) { clearTimeout(gpsRetryTimer); gpsRetryTimer = null; }
-        if(view.screen==="cockpit"){
-          var btn = container.querySelector("#gpsRetryBtn");
-          if(btn) btn.style.display = "none";
-          var t = container.querySelector(".cpt-speed"); if(t) t.textContent = Math.round((pos.coords.speed||0)*3.6);
-          fetchPOIsIfNeeded(); fetchSpeedLimitIfNeeded();
-        }
-        checkTriggers(pos);
-        checkNavVoice();
-        if(view.screen==="map" && map) updateMapMarkers();
-      }
-
-      function onError(err) {
-        console.warn('%c[Blitzer] GPS: '+err.message,'color:#ff8844;font-weight:900;');
-        gpsRetries++;
-        if(gpsRetries < 5) {
-          if(!gpsRetryTimer) {
-            gpsRetryTimer = setTimeout(function() { startGeo(); }, 5000);
+      const q=quizQuestions[quizIndex];
+      const sim=document.createElement('div');sim.className='simulator';
+      sim.innerHTML='<div style="font-size:14px;color:var(--dim);margin-bottom:8px;">Frage '+(quizIndex+1)+' von '+quizQuestions.length+'</div>';
+      const qt=document.createElement('div');qt.className='sim-question';qt.textContent=q.q;sim.appendChild(qt);
+      const answers=document.createElement('div');answers.className='sim-answers';
+      q.a.forEach((ans,idx)=>{
+        const btn=document.createElement('button');
+        btn.className='sim-answer';
+        btn.textContent=String.fromCharCode(65+idx)+') '+ans;
+        btn.onclick=()=>{
+          if(idx===q.correct){
+            btn.classList.add('correct');stats.richtig++;speak('Richtig!');
+          }else{
+            btn.classList.add('wrong');stats.falsch++;
+            answers.children[q.correct].classList.add('correct');
+            speak('Leider falsch. Richtig ist: '+q.a[q.correct]);
           }
-        } else {
-          if(view.screen==="cockpit") {
-            var btn = container.querySelector("#gpsRetryBtn");
-            if(btn) btn.style.display = "block";
-          }
-        }
-      }
-      
-      geoWatch = navigator.geolocation.watchPosition(onSuccess, onError, {enableHighAccuracy:true,maximumAge:10000,timeout:15000});
+          save('fahrschule_stats',stats);
+          setTimeout(()=>{quizIndex++;render();},1800);
+        };
+        answers.appendChild(btn);
+      });
+      sim.appendChild(answers);
+      ct.appendChild(sim);
+    }else if(active==='stats'){
+      ct.innerHTML='<h3>📊 Statistik</h3>';
+      const total=stats.richtig+stats.falsch;const rate=total>0?Math.round(stats.richtig/total*100):0;
+      ct.innerHTML+='<div class="qt-grid"><div class="qt-panel"><h4>✓ Richtig</h4><div style="font-size:32px;color:#10b981;">'+stats.richtig+'</div></div><div class="qt-panel"><h4>✗ Falsch</h4><div style="font-size:32px;color:#ef4444;">'+stats.falsch+'</div></div><div class="qt-panel"><h4>📊 Quote</h4><div style="font-size:32px;color:#06b6d4;">'+rate+'%</div></div><div class="qt-panel"><h4>🎯 Klasse</h4><div style="font-size:32px;color:#f59e0b;">'+selectedClass+'</div></div></div>';
+    }else if(active==='settings'){
+      ct.innerHTML='<h3>⚙ Einstellungen</h3><p>Klasse: <b>'+selectedClass+'</b></p>';
+    }else if(active==='delete'){
+      ct.innerHTML='<h3>🗑 Löschen</h3>';
+      const reset=document.createElement('button');reset.className='danger';reset.textContent='Alle Statistiken löschen';
+      reset.onclick=()=>{if(confirm('Wirklich löschen?')){stats={richtig:0,falsch:0};save('fahrschule_stats',stats);render();}};
+      ct.appendChild(reset);
     }
+  }
+  render();
+};
 
-    function bindNav(){ container.querySelectorAll("[data-nav]").forEach(function(el){ el.addEventListener("click", function(){ view.screen=el.dataset.nav; build(); }); }); }
-    function bindCockpit(){ var tb = container.querySelector("[data-trip]"); if(tb) tb.addEventListener("click", function(){ if(tb.dataset.trip==="start"){ trip={active:true,startTime:Date.now(),distance:0,warnings:0}; if(HalDo.Notify) HalDo.Notify.success("Fahrt gestartet!"); } else { trip.active=false; if(HalDo.Notify) HalDo.Notify.info("Fahrt beendet: "+trip.distance.toFixed(1)+" km"); } build(); }); }
+/* ==================== BLITZER (MIT ECHTEM TACHO) ==================== */
+const viewBlitzerApp = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  let active='tacho';
+  let currentSpeed=store('blitzer_speed',50);
+  let speedLimit=store('blitzer_limit',50);
+  let settings=store('blitzer_settings',{voiceType:'female',langCode:'de',alarmType:'siren',alarmDuration:5,warnDistance:3000,backgroundMode:true});
+  let dangerLog=store('blitzer_log',[]);
+  const persistSettings=()=>save('blitzer_settings',settings);
+  const persistLog=()=>save('blitzer_log',dangerLog);
 
-    if("Notification" in window && Notification.permission==="default") Notification.requestPermission();
-    registerServiceWorker();
-    startGeo();
-    var s = getSettings();
-    view.screen = s.showBootLog ? "boot" : "splash";
-    build();
+  const DANGERS = [
+    {id:'stau',label:'Stau',icon:'🚗',msg:'Achtung Halil, vor dir ist ein Stau. Bitte reduziere deine Geschwindigkeit.'},
+    {id:'baustelle',label:'Baustelle',icon:'🚧',msg:'Achtung Halil, vor dir ist eine Baustelle. Fahr bitte vorsichtig.'},
+    {id:'blitzer_fest',label:'Fester Blitzer',icon:'📸',msg:'Achtung Halil, vor dir ist ein fester Blitzer.'},
+    {id:'blitzer_mobil',label:'Mobiler Blitzer',icon:'🚔',msg:'Achtung Halil, vor dir ist ein mobiler Blitzer. Bitte reduziere deine Geschwindigkeit.'},
+    {id:'ampel_blitzer',label:'Ampel-Blitzer',icon:'🚦',msg:'Achtung Halil, vor dir ist ein Ampel-Blitzer.'},
+    {id:'umleitung',label:'Umleitung',icon:'↩️',msg:'Achtung Halil, vor dir ist eine Umleitung.'},
+    {id:'ampel_rot',label:'Rote Ampel',icon:'🔴',msg:'Achtung Halil, rote Ampel vor dir. Bitte bremsen.'},
+    {id:'fussgaenger',label:'Fußgängerzone',icon:'🚶',msg:'Achtung Halil, Fußgängerzone. Bitte langsam fahren.'},
+    {id:'kinder',label:'Kinder',icon:'👧',msg:'Achtung Halil, Kinder auf der Straße. Bitte bremsbereit sein.'},
+    {id:'temp_30',label:'30 km/h',icon:'3️⃣',msg:'Achtung Halil, 30 km/h Zone. Bitte anpassen.'},
+    {id:'temp_50',label:'50 km/h',icon:'5️⃣',msg:'Achtung Halil, 50 km/h Zone.'},
+    {id:'temp_100',label:'100 km/h',icon:'💯',msg:'Achtung Halil, 100 km/h Zone.'},
+    {id:'temp_130',label:'130 km/h',icon:'🛣️',msg:'Achtung Halil, 130 km/h Zone.'},
+    {id:'unbegrenzt',label:'Unbegrenzt',icon:'⚡',msg:'Achtung Halil, ab hier unbegrenzt. Fahr sicher.'},
+    {id:'verbot',label:'Verbotsschild',icon:'⛔',msg:'Achtung Halil, Verbotsschild voraus.'},
+    {id:'gefahr',label:'Gefahrenstelle',icon:'⚠️',msg:'Achtung Halil, Gefahrenstelle voraus.'}
+  ];
+
+  let bgInterval=null;
+  let currentDangerIndex=0;
+
+  function triggerDanger(danger){
+    if(!danger)return;
+    const time=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    dangerLog.unshift({id:Date.now(),label:danger.label,icon:danger.icon,time,msg:danger.msg});
+    if(dangerLog.length>20)dangerLog=dangerLog.slice(0,20);
+    persistLog();
+    speak(danger.msg,settings.voiceType,LANGCODES[settings.langCode]);
+    playAlarm(settings.alarmType,settings.alarmDuration);
+    const tacho=document.getElementById('tacho-main');
+    if(tacho){tacho.classList.add('tacho-warning');setTimeout(()=>tacho.classList.remove('tacho-warning'),2000);}
+    const logEl=document.getElementById('danger-log-list');
+    if(logEl){
+      logEl.innerHTML='';
+      dangerLog.forEach(d=>{
+        const entry=document.createElement('div');entry.className='danger-entry';
+        entry.innerHTML='<div class="icon">'+d.icon+'</div><div class="info"><strong>'+d.label+'</strong><br><small>'+d.msg+'</small></div><div class="time">'+d.time+'</div>';
+        logEl.appendChild(entry);
+      });
+    }
   }
 
-  HalDoApp("blitzer", { name:"HalDo Blitzer", icon:"⚠️", render:render, category:"werkzeuge" });
-  console.log('%c🦚 HalDo Blitzer v22.0 — AI Navigator Full bereit', GOLD_STYLE);
-})();
+  function startBg(){
+    if(bgInterval)clearInterval(bgInterval);
+    if(!settings.backgroundMode)return;
+    bgInterval=setInterval(()=>{
+      if(currentDangerIndex<DANGERS.length){
+        const danger=DANGERS[currentDangerIndex%DANGERS.length];
+        triggerDanger(danger);
+        currentDangerIndex++;
+      }
+    },12000);
+  }
+
+  function renderTacho(){
+    ct.innerHTML='';
+    const wrap=document.createElement('div');wrap.className='tacho-wrap';
+    wrap.innerHTML='<h3 style="margin-bottom:0;">🚨 HalDo Blitzer – Live</h3>';
+
+    const ki=document.createElement('div');ki.className='ki-bubble';
+    ki.innerHTML='<div class="ki-avatar">🤖</div><div class="ki-text" id="ki-text">Ich bin HalDo AI, dein Beifahrer. Ich passe auf dich auf und warne dich vor Gefahren. <strong>Fahre sicher!</strong></div>';
+    wrap.appendChild(ki);
+
+    const tachoWrap=document.createElement('div');tachoWrap.style.cssText='position:relative;';
+    const tacho=document.createElement('div');tacho.className='tacho';tacho.id='tacho-main';
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('viewBox','0 0 400 400');
+    svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;';
+    const arcPath=document.createElementNS('http://www.w3.org/2000/svg','path');
+    arcPath.setAttribute('d','M 70 200 A 130 130 0 0 1 330 200');
+    arcPath.setAttribute('fill','none');
+    arcPath.setAttribute('stroke','rgba(55,65,81,.5)');
+    arcPath.setAttribute('stroke-width','14');
+    arcPath.setAttribute('stroke-linecap','round');
+    svg.appendChild(arcPath);
+    const speedArc=document.createElementNS('http://www.w3.org/2000/svg','path');
+    speedArc.setAttribute('id','speed-arc');
+    speedArc.setAttribute('fill','none');
+    speedArc.setAttribute('stroke','#06b6d4');
+    speedArc.setAttribute('stroke-width','14');
+    speedArc.setAttribute('stroke-linecap','round');
+    speedArc.setAttribute('stroke-dasharray','0 999');
+    svg.appendChild(speedArc);
+    tacho.appendChild(svg);
+
+    const needle=document.createElement('div');needle.className='tacho-needle';needle.id='needle';tacho.appendChild(needle);
+    const center=document.createElement('div');center.className='tacho-center';tacho.appendChild(center);
+    const inner=document.createElement('div');inner.className='tacho-inner';
+    inner.innerHTML='<div class="tacho-speed" id="speed-val">'+currentSpeed+'</div><div class="tacho-unit">km/h</div>';
+    tacho.appendChild(inner);
+
+    const settingsBtn=document.createElement('button');
+    settingsBtn.className='tacho-settings-btn';
+    settingsBtn.innerHTML='⚙';
+    settingsBtn.title='Einstellungen im Tacho';
+    settingsBtn.onclick=()=>{active='settings';render();};
+    tacho.appendChild(settingsBtn);
+
+    tachoWrap.appendChild(tacho);
+    wrap.appendChild(tachoWrap);
+
+    const limitDiv=document.createElement('div');limitDiv.style.cssText='text-align:center;margin-top:8px;';
+    limitDiv.innerHTML='<span style="font-size:14px;color:var(--dim);">Tempolimit:</span> <span style="font-size:28px;font-weight:900;color:'+(currentSpeed>speedLimit?'#ef4444':'#10b981')+';margin-left:8px;">'+speedLimit+' km/h</span>';
+    wrap.appendChild(limitDiv);
+
+    const speedControls=document.createElement('div');speedControls.style.cssText='display:flex;gap:10px;align-items:center;margin-top:8px;';
+    const minusBtn=document.createElement('button');minusBtn.textContent='−';minusBtn.style.cssText='width:50px;height:50px;font-size:24px;border-radius:50%;background:rgba(6,182,212,.2);border:1px solid var(--accent);color:var(--accent);cursor:pointer;';
+    minusBtn.onclick=()=>{currentSpeed=Math.max(0,currentSpeed-5);save('blitzer_speed',currentSpeed);render();};
+    const plusBtn=document.createElement('button');plusBtn.textContent='+';plusBtn.style.cssText='width:50px;height:50px;font-size:24px;border-radius:50%;background:rgba(6,182,212,.2);border:1px solid var(--accent);color:var(--accent);cursor:pointer;';
+    plusBtn.onclick=()=>{currentSpeed=Math.min(300,currentSpeed+5);save('blitzer_speed',currentSpeed);render();};
+    speedControls.appendChild(minusBtn);speedControls.appendChild(plusBtn);
+    wrap.appendChild(speedControls);
+
+    const limits=[30,50,60,70,80,100,120,130];
+    const limitGrid=document.createElement('div');limitGrid.className='speed-limits';
+    limits.forEach(lim=>{
+      const b=document.createElement('div');
+      b.className='speed-btn'+(speedLimit===lim?' active':'');
+      b.innerHTML=lim+'<small>km/h</small>';
+      b.onclick=()=>{speedLimit=lim;save('blitzer_limit',lim);render();};
+      limitGrid.appendChild(b);
+    });
+    const unb=document.createElement('div');unb.className='speed-btn'+(speedLimit===999?' active':'');unb.innerHTML='⚡<small>unbegrenzt</small>';
+    unb.onclick=()=>{speedLimit=999;save('blitzer_limit',999);render();};
+    limitGrid.appendChild(unb);
+    wrap.appendChild(limitGrid);
+
+    const testBtn=document.createElement('button');
+    testBtn.textContent='🚨 Test-Warnung (KI)';
+    testBtn.style.cssText='margin-top:16px;padding:14px 28px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:15px;font-weight:700;border-radius:10px;border:none;cursor:pointer;box-shadow:0 4px 20px rgba(6,182,212,.5);';
+    testBtn.onclick=()=>{
+      const danger=DANGERS[Math.floor(Math.random()*DANGERS.length)];
+      triggerDanger(danger);
+    };
+    wrap.appendChild(testBtn);
+
+    const logTitle=document.createElement('h4');logTitle.style.cssText='margin-top:20px;width:100%;';logTitle.textContent='📋 Warnungs-Verlauf';
+    wrap.appendChild(logTitle);
+    const logDiv=document.createElement('div');logDiv.className='danger-log';logDiv.id='danger-log-list';logDiv.style.width='100%';
+    dangerLog.forEach(d=>{
+      const entry=document.createElement('div');entry.className='danger-entry';
+      entry.innerHTML='<div class="icon">'+d.icon+'</div><div class="info"><strong>'+d.label+'</strong><br><small>'+d.msg+'</small></div><div class="time">'+d.time+'</div>';
+      logDiv.appendChild(entry);
+    });
+    if(dangerLog.length===0)logDiv.innerHTML='<p class="muted">Noch keine Warnungen. Klicke auf "Test-Warnung".</p>';
+    wrap.appendChild(logDiv);
+
+    ct.appendChild(wrap);
+
+    const maxSpeed=260;
+    const pct=Math.min(currentSpeed/maxSpeed,1);
+    const arcLen=400;
+    const speedArcEl=document.getElementById('speed-arc');
+    if(speedArcEl){
+      speedArcEl.setAttribute('stroke-dasharray',(pct*arcLen)+' '+arcLen);
+      speedArcEl.setAttribute('stroke',currentSpeed>speedLimit?'#ef4444':'#06b6d4');
+    }
+    const needleEl=document.getElementById('needle');
+    if(needleEl){
+      const angle=-90+(pct*180);
+      needleEl.style.transform='translateX(-50%) rotate('+angle+'deg)';
+    }
+  }
+
+  function render(){
+    sb.innerHTML='';
+    [['tacho','🏁 Tacho'],['settings','⚙ Einstellungen']].forEach(([id,label])=>{
+      const b=document.createElement('button');b.className='side-btn'+(active===id?' active':'');b.textContent=label;b.onclick=()=>{active=id;render();};sb.appendChild(b);
+    });
+    const sp=document.createElement('button');sp.className='side-btn speak-btn';sp.textContent='🔊 '+T('speak');
+    sp.onclick=()=>speak('HalDo Blitzer. Dein Beifahrer.',settings.voiceType,LANGCODES[settings.langCode]);
+    sb.appendChild(sp);
+
+    if(active==='tacho'){
+      renderTacho();
+    }else if(active==='settings'){
+      ct.innerHTML='<h3>⚙ Blitzer-Einstellungen</h3>';
+
+      let opts = Object.keys(LANGNAMES).map(k=>'<option value="'+k+'"'+(settings.langCode===k?' selected':'')+'>'+LANGNAMES[k]+'</option>').join('');
+      ct.innerHTML+='<div class="settings-row"><div><div class="lbl">🌐 Sprache</div><div class="sub">Warnungen in dieser Sprache</div></div><div class="ctrl"><select id="bl-lang">'+opts+'</select></div></div>';
+
+      const voiceMap=[['male','Männlich'],['female','Weiblich'],['robot','Roboter'],['child','Kind'],['old','Älterer Mensch']];
+      opts = voiceMap.map(([v,l])=>'<option value="'+v+'"'+(settings.voiceType===v?' selected':'')+'>'+l+'</option>').join('');
+      ct.innerHTML+='<div class="settings-row"><div><div class="lbl">🎤 Stimme</div><div class="sub">Sprecher</div></div><div class="ctrl"><select id="bl-voice">'+opts+'</select></div></div>';
+
+      const alarmMap=[['beep','Piepton'],['siren','Sirene'],['bell','Glocke'],['bird','Vogelstimme'],['alarm','Alarm'],['horn','Hupe'],['whistle','Pfeife'],['chime','Klingel'],['dog','Hund'],['cat','Katze'],['cow','Kuh'],['police','Polizei'],['ambulance','Krankenwagen'],['fire','Feuerwehr'],['train','Zug'],['buzzer','Summer'],['radar','Radar'],['martinshorn','Martinshorn'],['laser','Laser'],['sonar','Sonar'],['heartbeat','Herzschlag'],['ufo','UFO'],['explosion','Explosion'],['geiger','Geiger'],['danger','Gefahr'],['warning','Warnung'],['horn2','Hupe 2']];
+      opts = alarmMap.map(([v,l])=>'<option value="'+v+'"'+(settings.alarmType===v?' selected':'')+'>'+l+'</option>').join('');
+      ct.innerHTML+='<div class="settings-row"><div><div class="lbl">🔊 Warnton</div><div class="sub">Alarm-Signal (27 verfügbar)</div></div><div class="ctrl"><select id="bl-alarm">'+opts+'</select></div></div>';
+
+      ct.innerHTML+='<div class="settings-row"><div><div class="lbl">⏱ Dauer (Sek.)</div><div class="sub">1-30 Sekunden</div></div><div class="ctrl"><input id="bl-dur" type="number" min="1" max="30" value="'+settings.alarmDuration+'"></div></div>';
+
+      ct.innerHTML+='<div class="settings-row"><div><div class="lbl">📏 Warnabstand (m)</div><div class="sub">Ab wann warnen</div></div><div class="ctrl"><input id="bl-dist" type="number" value="'+settings.warnDistance+'"></div></div>';
+
+      ct.innerHTML+='<div class="settings-row"><div><div class="lbl">🌙 Hintergrundmodus</div><div class="sub">Regelmäßige Warnungen</div></div><div class="ctrl"><span class="toggle '+(settings.backgroundMode?'on':'')+'" id="bl-bg"></span></div></div>';
+
+      const saveBtn = document.createElement('button');
+      saveBtn.textContent = '💾 '+T('save');
+      saveBtn.style.marginTop = '16px';
+      saveBtn.onclick = () => {
+        settings.langCode = document.getElementById('bl-lang').value;
+        settings.voiceType = document.getElementById('bl-voice').value;
+        settings.alarmType = document.getElementById('bl-alarm').value;
+        settings.alarmDuration = parseInt(document.getElementById('bl-dur').value)||5;
+        settings.warnDistance = parseInt(document.getElementById('bl-dist').value)||3000;
+        settings.backgroundMode = document.getElementById('bl-bg').classList.contains('on');
+        persistSettings();
+        startBg();
+        alert('✓ Einstellungen gespeichert');
+        render();
+      };
+      ct.appendChild(saveBtn);
+
+      const testBtn = document.createElement('button');
+      testBtn.textContent = '🔊 Test (mit aktuellen Einstellungen)';
+      testBtn.style.marginTop = '8px';
+      testBtn.onclick = () => {
+        const testLang = document.getElementById('bl-lang').value;
+        const testVoice = document.getElementById('bl-voice').value;
+        const testAlarm = document.getElementById('bl-alarm').value;
+        const testDur = parseInt(document.getElementById('bl-dur').value)||3;
+        speak('Achtung Halil! Test-Warnung aktiv.', testVoice, LANGCODES[testLang]);
+        playAlarm(testAlarm, testDur);
+      };
+      ct.appendChild(testBtn);
+
+      setTimeout(()=>{
+        const bg = document.getElementById('bl-bg');
+        if(bg){ bg.onclick = (e) => { e.stopPropagation(); bg.classList.toggle('on'); }; }
+      },0);
+    }
+  }
+  render();
+  const welcome='Willkommen bei HalDo Blitzer. Ich bin dein KI-Beifahrer und passe auf dich auf.';
+  speak(welcome,settings.voiceType,LANGCODES[settings.langCode]);
+  startBg();
+};
+
+/* ==================== AUTO ==================== */
+const viewAutoApp = function(body){
+  body.style.cssText='padding:18px;';
+  body.innerHTML='<h3>🚙 Auto</h3>';
+  speak('Willkommen bei deiner HalDo Auto-App');
+};
+
+/* ==================== WINDOW MANAGER ==================== */
+const openWindows={};let zCounter=20;const nextZ=()=>zCounter++;
+const REGISTRY=[
+  {id:'A', ico:'🧠', nm:'HalDo AI', fn:viewAI},
+  {id:'B', ico:'🌐', nm:'Browser', fn:viewBrowser},
+  {id:'C', ico:'📅', nm:'Calendar', fn:viewCalendar},
+  {id:'D', ico:'📄', nm:'Documents', fn:viewDocuments},
+  {id:'E', ico:'✉️', nm:'Email', fn:viewEmail},
+  {id:'F', ico:'📂', nm:'Files', fn:viewFiles},
+  {id:'G', ico:'🖼️', nm:'Gallery', fn:viewGallery},
+  {id:'H', ico:'🩺', nm:'Health', fn:viewHealth},
+  {id:'I', ico:'🌍', nm:'Internet', fn:viewInternet},
+  {id:'J', ico:'📖', nm:'Journal', fn:viewJournal},
+  {id:'K', ico:'⌨️', nm:'Keyboard', fn:viewKeyboard},
+  {id:'L', ico:'🎓', nm:'Learning', fn:viewLearning},
+  {id:'M', ico:'🎵', nm:'Music', fn:viewMusic},
+  {id:'N', ico:'🗺️', nm:'Navigation', fn:viewNavigation},
+  {id:'O', ico:'📊', nm:'Office', fn:viewOffice},
+  {id:'P', ico:'📷', nm:'Photos', fn:viewPhotos},
+  {id:'Q', ico:'🛠️', nm:'Quick Tools', fn:viewQuickTools},
+  {id:'R', ico:'🎙️', nm:'Recorder', fn:viewRecorder},
+  {id:'S', ico:'🛡️', nm:'Security', fn:viewSecurity},
+  {id:'T', ico:'✅', nm:'Tasks', fn:viewTasks},
+  {id:'U', ico:'🔄', nm:'Updates', fn:viewUpdates},
+  {id:'V', ico:'🎬', nm:'Video', fn:viewVideo},
+  {id:'W', ico:'🌤️', nm:'Weather', fn:viewWeather},
+  {id:'X', ico:'🎨', nm:'eXperience', fn:viewExperience},
+  {id:'Y', ico:'🏠', nm:'Your Life', fn:viewYourLife},
+  {id:'Z', ico:'⚙️', nm:'System', fn:viewSystemCenter},
+  {id:'FS', ico:'🚗', nm:'Fahrschule', fn:viewFahrschuleApp},
+  {id:'BL', ico:'🚨', nm:'Blitzer', fn:viewBlitzerApp},
+  {id:'AU', ico:'🚙', nm:'Auto', fn:viewAutoApp},
+  {id:'KO', ico:'👥', nm:'Kontakte', fn:viewKontakte},
+  {id:'NO', ico:'📝', nm:'Notizen', fn:viewNotizen},
+  {id:'PW', ico:'🔑', nm:'Passwörter', fn:viewPasswort},
+  {id:'FI', ico:'💰', nm:'Finanzen', fn:viewFinanzen},
+  {id:'FT', ico:'💪', nm:'Fitness', fn:viewFitness},
+  {id:'GE', ico:'🔁', nm:'Gewohnheiten', fn:viewGewohnheiten},
+  {id:'WA', ico:'💧', nm:'Wasser', fn:viewWasser},
+  {id:'ST', ico:'😊', nm:'Stimmung', fn:viewStimmung},
+  {id:'RE', ico:'🍳', nm:'Rezepte', fn:viewRezepte},
+  {id:'EI', ico:'🛒', nm:'Einkauf', fn:viewEinkauf},
+  {id:'RS', ico:'✈️', nm:'Reisen', fn:viewReisen},
+  {id:'VO', ico:'📚', nm:'Vokabeln', fn:viewVokabeln},
+  {id:'FL', ico:'🎴', nm:'Flashcards', fn:viewFlashcards},
+  {id:'NF', ico:'🚨', nm:'Notfall', fn:viewNotfall}
+];
+let appOrder=store('appOrder',REGISTRY.map(a=>a.id));
+function orderedRegistry(){return appOrder.map(id=>REGISTRY.find(a=>a.id===id)).filter(Boolean);}
+function populateStartMenu(){
+  const grid=document.getElementById('sm-apps');if(!grid)return;
+  grid.innerHTML='';
+  orderedRegistry().forEach(a=>{
+    const card=document.createElement('div');card.className='sm-app-card';
+    card.innerHTML='<div class="ico">'+a.ico+'</div><div class="nm">'+a.nm+'</div>';
+    card.onclick=()=>openApp(a.id);
+    grid.appendChild(card);
+  });
+}
+function filterStartMenu(q){
+  const grid=document.getElementById('sm-apps');if(!grid)return;
+  const filt=orderedRegistry().filter(a=>a.nm.toLowerCase().includes(q.toLowerCase()));
+  grid.innerHTML='';
+  filt.forEach(a=>{const card=document.createElement('div');card.className='sm-app-card';card.innerHTML='<div class="ico">'+a.ico+'</div><div class="nm">'+a.nm+'</div>';card.onclick=()=>openApp(a.id);grid.appendChild(card);});
+}
+document.querySelectorAll('.sm-tab').forEach(tab=>{
+  tab.onclick=(e)=>{
+    e.stopPropagation();
+    document.querySelectorAll('.sm-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.sm-panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('sm-panel-'+tab.dataset.tab).classList.add('active');
+    if(tab.dataset.tab==='settings')renderSettingsPanel();
+  };
+});
+
+/* ==================== STARTMENÜ ==================== */
+function toggleStartMenu(e){
+  if(e){e.stopPropagation();e.preventDefault();}
+  const sm=document.getElementById('start-menu');
+  if(sm.classList.contains('show')){sm.classList.remove('show');}
+  else{sm.classList.add('show');renderSettingsPanel();}
+}
+
+document.addEventListener('click',function(e){
+  const sm=document.getElementById('start-menu');
+  if(!sm || !sm.classList.contains('show')) return;
+  if(!e.target || !e.target.isConnected) return;
+  if(sm.contains(e.target)) return;
+  if(e.target.closest('.start-btn')) return;
+  sm.classList.remove('show');
+}, false);
+
+/* ==================== EINSTELLUNGEN ==================== */
+const SETTINGS_SECTIONS=[
+  {id:'general',icon:'🔧',label:'Allgemein'},
+  {id:'display',icon:'🎨',label:'Anzeige'},
+  {id:'kosmos',icon:'🌌',label:'Kosmos'},
+  {id:'voice',icon:'🎤',label:'Stimme'},
+  {id:'language',icon:'🌐',label:'Sprache'},
+  {id:'ki',icon:'🤖',label:'KI & API'},
+  {id:'bluetooth',icon:'📶',label:'Bluetooth'},
+  {id:'notifications',icon:'🔔',label:'Benachrichtigungen'},
+  {id:'sounds',icon:'🔊',label:'Töne'},
+  {id:'privacy',icon:'🔒',label:'Datenschutz'},
+  {id:'security',icon:'🔐',label:'Sicherheit'},
+  {id:'storage',icon:'💾',label:'Speicher'},
+  {id:'battery',icon:'🔋',label:'Akku'},
+  {id:'accessibility',icon:'♿',label:'Bedienungshilfen'},
+  {id:'software',icon:'📱',label:'Software-Update'},
+  {id:'carplay',icon:'🚗',label:'CarPlay'},
+  {id:'wlan',icon:'📡',label:'WLAN'},
+  {id:'airplane',icon:'✈️',label:'Flugmodus'},
+  {id:'about',icon:'ℹ️',label:'Über'}
+];
+let activeSetting='general';
+
+function renderSettingsPanel(){
+  const nav=document.getElementById('settings-nav');const c=document.getElementById('settings-content');
+  if(!nav||!c)return;
+  nav.innerHTML='';
+  SETTINGS_SECTIONS.forEach(s=>{
+    const b=document.createElement('button');
+    b.className='settings-nav-item'+(activeSetting===s.id?' active':'');
+    b.textContent=s.icon+' '+s.label;
+    b.onclick=(e)=>{e.stopPropagation();activeSetting=s.id;renderSettingsPanel();};
+    nav.appendChild(b);
+  });
+  c.innerHTML='';
+  const s=activeSetting;
+  if(s==='general')renderGeneral(c);
+  else if(s==='display')renderDisplay(c);
+  else if(s==='kosmos')renderKosmos(c);
+  else if(s==='voice')renderVoice(c);
+  else if(s==='language')renderLanguage(c);
+  else if(s==='ki')renderKI(c);
+  else if(s==='bluetooth')renderBluetooth(c);
+  else if(s==='notifications')renderNotifications(c);
+  else if(s==='sounds')renderSounds(c);
+  else if(s==='privacy')renderPrivacy(c);
+  else if(s==='security')renderSecuritySettings(c);
+  else if(s==='storage')renderStorage(c);
+  else if(s==='battery')renderBattery(c);
+  else if(s==='accessibility')renderAccessibility(c);
+  else if(s==='software')renderSoftware(c);
+  else if(s==='carplay')renderCarPlay(c);
+  else if(s==='wlan')renderWLAN(c);
+  else if(s==='airplane')renderAirplane(c);
+  else if(s==='about')renderAbout(c);
+}
+function rowHTML(label,sub,ctrl){return '<div class="settings-row"><div><div class="lbl">'+label+'</div><div class="sub">'+sub+'</div></div><div class="ctrl">'+ctrl+'</div></div>';}
+function toggleHTML(id,on){return '<span class="toggle '+(on?'on':'')+'" onclick="event.stopPropagation();this.classList.toggle(\'on\');localStorage.setItem(\'haldo_set_'+id+'\',this.classList.contains(\'on\')?\'1\':\'0\')"></span>';}
+function getToggle(id,def){if(def===undefined)def=true;const v=localStorage.getItem('haldo_set_'+id);if(v===null)return def;return v==='1';}
+
+function renderGeneral(c){
+  c.innerHTML='<h3>🔧 Allgemein</h3>';
+  c.innerHTML+=rowHTML('Gerätename','Name deines HalDo AI OS','<input value="'+(localStorage.getItem('haldo_device_name')||'HalDo AI OS')+'" oninput="localStorage.setItem(\'haldo_device_name\',this.value)" onclick="event.stopPropagation()">');
+  c.innerHTML+=rowHTML('Automatisch speichern','Sofort sichern',toggleHTML('auto_save',getToggle('auto_save',true)));
+  c.innerHTML+=rowHTML('Willkommen','Welcome-Screen',toggleHTML('welcome',getToggle('welcome',true)));
+  c.innerHTML+=rowHTML('App-Splash','Animation',toggleHTML('splash',getToggle('splash',true)));
+}
+function renderDisplay(c){
+  c.innerHTML='<h3>🎨 Anzeige</h3>';
+  const cur=localStorage.getItem('haldo_theme')||'#06b6d4';
+  const btns=['#06b6d4','#b478ff','#10b981','#f59e0b','#ef4444','#ec4899'].map(col=>'<button style="background:'+col+';width:26px;height:26px;border-radius:50%;border:'+(col===cur?'3px solid #fff':'2px solid transparent')+';cursor:pointer;" onclick="event.stopPropagation();document.documentElement.style.setProperty(\'--accent\',\''+col+'\');document.documentElement.style.setProperty(\'--accent2\',\''+col+'\');localStorage.setItem(\'haldo_theme\',\''+col+'\')"></button>').join('');
+  c.innerHTML+=rowHTML('Akzentfarbe','Design',btns);
+  c.innerHTML+=rowHTML('Dark Mode','Dunkles Design',toggleHTML('dark_mode',getToggle('dark_mode',true)));
+  c.innerHTML+=rowHTML('Schriftgröße','12–18px','<input type="range" min="12" max="18" value="'+(localStorage.getItem('haldo_font_size')||14)+'" oninput="document.documentElement.style.setProperty(\'--font-size\',this.value+\'px\');localStorage.setItem(\'haldo_font_size\',this.value)" onclick="event.stopPropagation()">');
+}
+function renderKosmos(c){
+  c.innerHTML='<h3>🌌 Kosmos</h3>';
+  const cfg=cosmosState.config;
+  [['kosmos_sun','☀️ Sonne','Zentraler Stern'],['kosmos_earth','🌍 Erde','Unser Zuhause'],['kosmos_moon','🌙 Mond','Kreist um Erde'],['kosmos_mars','🔴 Mars','Roter Planet'],['kosmos_jupiter','🟠 Jupiter','Größter Planet'],['kosmos_saturn','🪐 Saturn','Mit Ringen'],['kosmos_neptune','🔵 Neptun','Eisriese'],['kosmos_orbits','🛸 Umlaufbahnen','Orbit-Ringe']].forEach(([id,lbl,sub])=>{
+    const key=id.replace('kosmos_','');
+    c.innerHTML+=rowHTML(lbl,sub,'<span class="toggle '+(cfg[key]!==false?'on':'')+'" onclick="event.stopPropagation();this.classList.toggle(\'on\');cosmosState.config[\''+key+'\']=this.classList.contains(\'on\');applyKosmosConfig();"></span>');
+  });
+}
+function renderVoice(c){
+  c.innerHTML='<h3>🎤 Stimme</h3>';
+  c.innerHTML+=rowHTML('Geschwindigkeit','Rate','<input type="range" min="0.5" max="2" step="0.1" value="'+(localStorage.getItem('haldo_voice_rate')||1)+'" oninput="localStorage.setItem(\'haldo_voice_rate\',this.value)" onclick="event.stopPropagation()">');
+  c.innerHTML+=rowHTML('Test','TTS','<button onclick="event.stopPropagation();speak(\'Hallo! Ich bin HalDo AI.\')">🔊 Test</button>');
+}
+function renderLanguage(c){
+  c.innerHTML='<h3>🌐 Sprache</h3>';
+  const sel='<select onchange="setLanguage(this.value)" onclick="event.stopPropagation()">'+Object.keys(LANGNAMES).map(k=>'<option value="'+k+'"'+(k===currentLang?' selected':'')+'>'+LANGNAMES[k]+'</option>').join('')+'</select>';
+  c.innerHTML+=rowHTML('Systemsprache','20 Sprachen',sel);
+}
+function renderKI(c){
+  c.innerHTML='<h3>🤖 KI & API</h3>';
+  c.innerHTML+=rowHTML('API-Key','Live-KI','<input type="password" value="'+(localStorage.getItem('haldo_api_key')||'')+'" oninput="localStorage.setItem(\'haldo_api_key\',this.value)" onclick="event.stopPropagation()">');
+  c.innerHTML+=rowHTML('Auto-Speak','Vorlesen',toggleHTML('ai_autospeak',getToggle('ai_autospeak',true)));
+}
+function renderBluetooth(c){c.innerHTML='<h3>📶 Bluetooth</h3>';}
+function renderNotifications(c){c.innerHTML='<h3>🔔 Benachrichtigungen</h3>';}
+function renderSounds(c){
+  c.innerHTML='<h3>🔊 Töne</h3>';
+  c.innerHTML+=rowHTML('Test-Ton','Abspielen','<button onclick="event.stopPropagation();playTone()">🔊 Test</button>');
+}
+function playTone(){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const o=ctx.createOscillator();const g=ctx.createGain();
+    o.type='sine';o.frequency.value=800;o.connect(g);g.connect(ctx.destination);
+    g.gain.setValueAtTime(0.3,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.5);
+    o.start();o.stop(ctx.currentTime+0.5);
+  }catch(e){}
+}
+function renderPrivacy(c){c.innerHTML='<h3>🔒 Datenschutz</h3>';}
+function renderSecuritySettings(c){c.innerHTML='<h3>🔐 Sicherheit</h3>';}
+function renderStorage(c){c.innerHTML='<h3>💾 Speicher</h3>';}
+function renderBattery(c){
+  c.innerHTML='<h3>🔋 Akku</h3>';
+  if(navigator.getBattery){navigator.getBattery().then(b=>{c.innerHTML+='<p>Ladestand: <b>'+(b.level*100).toFixed(0)+'%</b></p>';});}
+}
+function renderAccessibility(c){c.innerHTML='<h3>♿ Bedienungshilfen</h3>';}
+function renderSoftware(c){c.innerHTML='<h3>📱 Software-Update</h3><p>Version v1.8.0</p>';}
+function renderCarPlay(c){c.innerHTML='<h3>🚗 CarPlay</h3>';}
+function renderWLAN(c){c.innerHTML='<h3>📡 WLAN</h3>';}
+function renderAirplane(c){c.innerHTML='<h3>✈️ Flugmodus</h3>';}
+function renderAbout(c){
+  c.innerHTML='<h3>ℹ️ Über</h3><div class="qt-panel"><h4>HalDo AI OS Pro Max</h4><p>Version 1.8.0</p><p>Von Halil Donma</p><p>'+REGISTRY.length+' Apps · 20 Sprachen · 27 Töne</p></div>';
+}
+function setLanguage(lang){
+  currentLang=lang;localStorage.setItem('haldo_lang',lang);
+  populateStartMenu();renderSettingsPanel();
+}
+
+/* ==================== WINDOW ==================== */
+function openApp(id){
+  const def=REGISTRY.find(a=>a.id===id);if(!def)return;
+  const splash=document.getElementById('app-splash');
+  if(splash){splash.querySelector('.splash-icon').textContent=def.ico;splash.querySelector('.splash-name').textContent=def.nm;splash.classList.add('show');setTimeout(()=>splash.classList.remove('show'),700);}
+  document.getElementById('start-menu').classList.remove('show');
+  if(openWindows[id]){const w=document.getElementById('win-'+id);if(w){w.classList.remove('minimized');w.style.zIndex=nextZ();}return;}
+  const win=document.createElement('div');
+  win.className='window';win.id='win-'+id;
+  win.style.width='880px';win.style.height='600px';
+  win.style.left=(80+Object.keys(openWindows).length*25)+'px';win.style.top=(40+Object.keys(openWindows).length*25)+'px';win.style.zIndex=nextZ();
+  win.innerHTML='<div class="window-header" onmousedown="startDrag(event,\''+id+'\')"><div class="window-title">'+def.ico+' '+def.nm+'</div><div class="window-controls"><button class="win-btn" onclick="event.stopPropagation();minimizeApp(\''+id+'\')">—</button><button class="win-btn" onclick="event.stopPropagation();maximizeApp(\''+id+'\')">▢</button><button class="win-btn close" onclick="event.stopPropagation();closeApp(\''+id+'\')">✕</button></div></div><div class="window-body" id="body-'+id+'"></div>';
+  document.body.appendChild(win);
+  openWindows[id]=true;
+  document.getElementById('taskbar-apps').innerHTML+='<div class="taskbar-app" id="tb-'+id+'" onclick="focusApp(\''+id+'\')">'+def.ico+' '+def.nm+'</div>';
+  setTimeout(()=>{try{def.fn(document.getElementById('body-'+id));}catch(e){console.error(e);document.getElementById('body-'+id).innerHTML='<p style="color:#f77;padding:20px">Fehler: '+e.message+'</p>';}},60);
+}
+function closeApp(id){const w=document.getElementById('win-'+id);if(w)w.remove();const tb=document.getElementById('tb-'+id);if(tb)tb.remove();delete openWindows[id];}
+function focusApp(id){const w=document.getElementById('win-'+id);if(w){w.classList.remove('minimized');w.style.zIndex=nextZ();}}
+function minimizeApp(id){const w=document.getElementById('win-'+id);if(w)w.classList.toggle('minimized');}
+function maximizeApp(id){const w=document.getElementById('win-'+id);if(!w)return;if(w.dataset.max==='1'){w.style.left=w.dataset.l;w.style.top=w.dataset.t;w.style.width=w.dataset.wd;w.style.height=w.dataset.ht;w.dataset.max='0';}else{w.dataset.l=w.style.left;w.dataset.t=w.style.top;w.dataset.wd=w.style.width;w.dataset.ht=w.style.height;w.style.left='0';w.style.top='0';w.style.width='100vw';w.style.height='calc(100vh - 50px)';w.dataset.max='1';}}
+let dragState=null;
+function startDrag(e,id){if(e.target.closest('.win-btn'))return;const w=document.getElementById('win-'+id);if(!w)return;dragState={id,sx:e.clientX,sy:e.clientY,wx:w.offsetLeft,wy:w.offsetTop};w.style.zIndex=nextZ();}
+addEventListener('mousemove',e=>{if(!dragState)return;const w=document.getElementById('win-'+dragState.id);if(!w||w.dataset.max==='1')return;w.style.left=(dragState.wx+e.clientX-dragState.sx)+'px';w.style.top=Math.max(0,dragState.wy+e.clientY-dragState.sy)+'px';});
+addEventListener('mouseup',()=>{dragState=null;});
+
+/* ==================== BOOT ==================== */
+function enterApp(){
+  document.getElementById('welcome').classList.add('hide');
+  document.getElementById('taskbar').classList.add('show');
+  populateStartMenu();
+  renderSettingsPanel();
+  playGlassSound();
+  const h=document.getElementById('click-hint');
+  if(h)setTimeout(()=>{h.style.opacity='0';},8000);
+}
+function startClock(){const c=document.getElementById('sys-clock');const tick=()=>c.textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});tick();setInterval(tick,1000);}
+document.addEventListener('DOMContentLoaded',()=>{
+  initCosmos();startClock();populateStartMenu();renderSettingsPanel();
+  const t2=localStorage.getItem('haldo_theme');if(t2){document.documentElement.style.setProperty('--accent',t2);document.documentElement.style.setProperty('--accent2',t2);}
+  const f=localStorage.getItem('haldo_font_size');if(f)document.documentElement.style.setProperty('--font-size',f+'px');
+});
+</script>
+</body>
+</html>
