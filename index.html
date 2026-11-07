@@ -481,9 +481,18 @@ function createReverbImpulse(ctx, dur, decay){
   return impulse;
 }
 
-function hasInstr(sel, name){return sel.some(s=>s.toLowerCase().includes(name.toLowerCase()));}
-function hasDrumGenre(genres){return genres.some(g=>['Pop','Rock','Hip-Hop','Electronic','R&B','Funk','Soul','Metal','Punk','Indie','Reggaeton','Salsa','Bachata','Afrobeat','Highlife','Soukous','Bhangra','Bollywood','Arabesk','Anadolu Rock','Türk Pop','Kurdisch-Pop','Kurdisch-Rock'].includes(g));}
-function hasSoftGenre(genres){return genres.some(g=>['Ambient','Lo-Fi','Klassik','Chill'].includes(g));}
+function hasInstr(sel, name){
+  if(!Array.isArray(sel)) return false;
+  return sel.some(s=>s.toLowerCase().includes(name.toLowerCase()));
+}
+function hasDrumGenre(genres){
+  if(!Array.isArray(genres)) return false;
+  return genres.some(g=>['Pop','Rock','Hip-Hop','Electronic','R&B','Funk','Soul','Metal','Punk','Indie','Reggaeton','Salsa','Bachata','Afrobeat','Highlife','Soukous','Bhangra','Bollywood','Arabesk','Anadolu Rock','Türk Pop','Kurdisch-Pop','Kurdisch-Rock'].includes(g));
+}
+function hasSoftGenre(genres){
+  if(!Array.isArray(genres)) return false;
+  return genres.some(g=>['Ambient','Lo-Fi','Klassik','Chill'].includes(g));
+}
 
 async function generateSong(config){
   const ctx = new OfflineAudioContext(2, 44100 * config.duration, 44100);
@@ -496,9 +505,9 @@ async function generateSong(config){
   const beatDur = 60 / bpm;
   const barDur = beatDur * 4;
   const totalBars = Math.max(1, Math.ceil(config.duration / barDur));
-  const mode = getMode(config.stimmungen);
+  const mode = getMode(config.stimmungen || []);
   const scale = getScale(config.key || 'C', mode);
-  const progression = getProgression(config.stimmungen);
+  const progression = getProgression(config.stimmungen || []);
   
   const inst = config.instrumente || [];
   const genres = config.genres || [];
@@ -511,7 +520,6 @@ async function generateSong(config){
     const chordRoot = scale[chordIdx];
     const barStart = bar * barDur;
     
-    // Chords
     if(hasInstr(inst,'Klavier') || hasInstr(inst,'Synthesizer') || hasInstr(inst,'Synth-Pad')){
       [0,4,7].forEach((offset,i)=>{
         const semi = (chordRoot + offset) % 12;
@@ -521,14 +529,12 @@ async function generateSong(config){
       });
     }
     
-    // Bass
     if(hasInstr(inst,'Bass')){
       const bassFreq = semitoneToFreq(chordRoot, 2);
       playBass(ctx, bassFreq, barStart, beatDur*1.8, master);
       playBass(ctx, bassFreq, barStart + beatDur*2, beatDur*1.8, master);
     }
     
-    // Gitarre
     if(hasInstr(inst,'Gitarre (elektrisch)')){
       [0,7].forEach(offset=>{
         const semi = (chordRoot + offset) % 12;
@@ -536,7 +542,6 @@ async function generateSong(config){
       });
     }
     
-    // Streicher
     if(hasInstr(inst,'Violine') || hasInstr(inst,'Cello')){
       [0,4,7].forEach(offset=>{
         const semi = (chordRoot + offset) % 12;
@@ -544,7 +549,6 @@ async function generateSong(config){
       });
     }
     
-    // Drums
     if(useDrums){
       for(let beat=0; beat<4; beat++){
         const t = barStart + beat * beatDur;
@@ -566,7 +570,6 @@ async function generateSong(config){
       if(genres.includes('Hip-Hop')) playKick(ctx, barStart + beatDur*2.5, master);
     }
     
-    // Melodie (Flöte / Synth-Lead / Gitarre)
     const melInstrument = hasInstr(inst,'Flöte') ? 'flute' : hasInstr(inst,'Synth-Lead') ? 'synth' : hasInstr(inst,'Gitarre (elektrisch)') ? 'guitar' : null;
     if(melInstrument){
       const steps = 8;
@@ -611,7 +614,6 @@ function audioBufferToWav(buffer){
   return new Blob([arrBuf],{type:'audio/wav'});
 }
 
-// In-Memory Audio-Buffer-Speicher
 const audioBufferStore = new Map();
 let currentPlayingBuffer = null;
 let currentPlayingSource = null;
@@ -872,22 +874,32 @@ const viewMusic=function(body){
   body.appendChild(tabs);body.appendChild(content);
   let active='studio';
   let tracks=store('music_tracks',[]);
-  let settings=store('music_settings',{
+  
+  // FIX: Sicheres Laden der Einstellungen für alte LocalStorage-Daten
+  let defaultSettings = {
     prompt:'',bpm:120,key:'C',duration:15,lyrics:'',instrumental:false,
     genres:['Pop'],instrumente:['Klavier','Bass','Schlagzeug'],stimmungen:['Happy'],stimme:'Weiblich (Sopran)',sprache:'Deutsch',langCode:'de'
-  });
+  };
+  let loaded = store('music_settings', {});
+  let settings = Object.assign({}, defaultSettings, loaded);
+  if(!Array.isArray(settings.genres)) settings.genres = ['Pop'];
+  if(!Array.isArray(settings.instrumente)) settings.instrumente = ['Klavier','Bass','Schlagzeug'];
+  if(!Array.isArray(settings.stimmungen)) settings.stimmungen = ['Happy'];
+  
   const persistTracks=()=>save('music_tracks',tracks);
   const persistSettings=()=>save('music_settings',settings);
   let generating=false;
   speak('Willkommen im HalDo Musik Studio. Ich kann echte Musik generieren.');
   
   function chipsGroup(items,activeItems,onToggle){
+    // FIX: Fallback falls activeItems undefined oder kein Array
+    let arr = Array.isArray(activeItems) ? activeItems : [];
     const g=document.createElement('div');g.className='chip-group';
     items.forEach(it=>{
-      const c=document.createElement('div');c.className='chip'+(activeItems.includes(it)?' active':'');c.textContent=it;
+      const c=document.createElement('div');c.className='chip'+(arr.includes(it)?' active':'');c.textContent=it;
       c.onclick=()=>{
-        if(c.classList.contains('active')){c.classList.remove('active');const i=activeItems.indexOf(it);if(i>-1)activeItems.splice(i,1);}
-        else{c.classList.add('active');activeItems.push(it);}
+        if(c.classList.contains('active')){c.classList.remove('active');const i=arr.indexOf(it);if(i>-1)arr.splice(i,1);}
+        else{c.classList.add('active');arr.push(it);}
         onToggle&&onToggle();
       };
       g.appendChild(c);
@@ -1064,7 +1076,9 @@ const viewMusic=function(body){
     if(!tracks.length){content.innerHTML+='<p class="muted">Noch keine Songs. Gehe zu Studio und generiere.</p>';return;}
     tracks.forEach(t=>{
       const el=document.createElement('div');el.className='music-track';
-      el.innerHTML='<div class="track-title">🎵 '+esc(t.title)+'</div><div class="track-meta">'+(t.genres||[]).join(', ')+' · '+(t.stimmungen||[]).join(', ')+' · '+t.bpm+' BPM · '+t.key+' · '+t.duration+'s</div>';
+      const gStr = Array.isArray(t.genres) ? t.genres.join(', ') : (t.genres || '');
+      const sStr = Array.isArray(t.stimmungen) ? t.stimmungen.join(', ') : (t.stimmungen || '');
+      el.innerHTML='<div class="track-title">🎵 '+esc(t.title)+'</div><div class="track-meta">'+gStr+' · '+sStr+' · '+(t.bpm||'')+' BPM · '+(t.key||'')+' · '+(t.duration||'')+'s</div>';
       const actions=document.createElement('div');actions.className='actions';
       const buf=audioBufferStore.get(t.id);
       if(buf){
