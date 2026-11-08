@@ -138,13 +138,74 @@ body.cyborg .bottomBtn{background:rgba(255,120,200,.08)}
 .planet-canvas{width:100%;height:260px;border-radius:14px;overflow:hidden;background:radial-gradient(circle at 50% 50%,#0a1020,#02030d);box-shadow:inset 0 0 60px rgba(0,229,255,.15);position:relative}
 .planet-canvas canvas{width:100%!important;height:100%!important}
 
-/* BLITZER */
-.tacho-wrap{position:relative;width:260px;height:260px;margin:0 auto;max-width:100%}
-.tacho-svg{width:100%;height:100%}
-.tacho-speed{position:absolute;top:55%;left:50%;transform:translate(-50%,-50%);text-align:center}
-.tacho-speed .val{font-size:38px;font-weight:800;color:#fff;text-shadow:0 0 20px var(--accent);font-family:monospace}
-.tacho-speed .unit{font-size:12px;color:var(--dim);letter-spacing:2px}
-.tacho-sign{position:absolute;top:12%;left:50%;transform:translateX(-50%);font-size:12px;color:var(--accent);background:rgba(0,0,0,.5);padding:3px 10px;border-radius:8px;white-space:nowrap;max-width:90%}
+/* ==================== BLITZER (MIT ECHTEM TACHO & NAVI) ==================== */
+const viewBlitzerApp = function(body){
+  body.style.cssText='display:flex;height:100%;';
+  const sb=document.createElement('div');sb.className='app-sidebar';const ct=document.createElement('div');ct.className='app-content';
+  body.appendChild(sb);body.appendChild(ct);
+  let active='tacho';
+  let currentSpeed=store('blitzer_speed',50);
+  let speedLimit=store('blitzer_limit',50);
+  let settings=store('blitzer_settings',{
+    voiceType:'female',
+    specificVoice:'',
+    langCode:'de',
+    alarmType:'siren',
+    alarmDuration:5,
+    warnDistance:3000,
+    backgroundMode:true
+  });
+  let dangerLog=store('blitzer_log',[]);
+  const persistSettings=()=>save('blitzer_settings',settings);
+  const persistLog=()=>save('blitzer_log',dangerLog);
+
+  const DANGERS = [
+    {id:'stau',label:'Stau',icon:'🚗',msg:'Achtung Halil, vor dir ist ein Stau. Bitte reduziere deine Geschwindigkeit.'},
+    {id:'baustelle',label:'Baustelle',icon:'🚧',msg:'Achtung Halil, vor dir ist eine Baustelle. Fahr bitte vorsichtig.'},
+    {id:'blitzer_fest',label:'Fester Blitzer',icon:'📸',msg:'Achtung Halil, vor dir ist ein fester Blitzer.'},
+    {id:'blitzer_mobil',label:'Mobiler Blitzer',icon:'🚔',msg:'Achtung Halil, vor dir ist ein mobiler Blitzer. Bitte reduziere deine Geschwindigkeit.'},
+    {id:'ampel_blitzer',label:'Ampel-Blitzer',icon:'🚦',msg:'Achtung Halil, vor dir ist ein Ampel-Blitzer.'},
+    {id:'umleitung',label:'Umleitung',icon:'↩️',msg:'Achtung Halil, vor dir ist eine Umleitung.'},
+    {id:'ampel_rot',label:'Rote Ampel',icon:'🔴',msg:'Achtung Halil, rote Ampel vor dir. Bitte bremsen.'},
+    {id:'fussgaenger',label:'Fußgängerzone',icon:'🚶',msg:'Achtung Halil, Fußgängerzone. Bitte langsam fahren.'},
+    {id:'kinder',label:'Kinder',icon:'👧',msg:'Achtung Halil, Kinder auf der Straße. Bitte bremsbereit sein.'},
+    {id:'temp_30',label:'30 km/h',icon:'3️⃣',msg:'Achtung Halil, 30 km/h Zone. Bitte anpassen.'},
+    {id:'temp_50',label:'50 km/h',icon:'5️⃣',msg:'Achtung Halil, 50 km/h Zone.'},
+    {id:'temp_100',label:'100 km/h',icon:'💯',msg:'Achtung Halil, 100 km/h Zone.'},
+    {id:'temp_130',label:'130 km/h',icon:'🛣️',msg:'Achtung Halil, 130 km/h Zone.'},
+    {id:'unbegrenzt',label:'Unbegrenzt',icon:'⚡',msg:'Achtung Halil, ab hier unbegrenzt. Fahr sicher.'},
+    {id:'verbot',label:'Verbotsschild',icon:'⛔',msg:'Achtung Halil, Verbotsschild voraus.'},
+    {id:'gefahr',label:'Gefahrenstelle',icon:'⚠️',msg:'Achtung Halil, Gefahrenstelle voraus.'}
+  ];
+
+  let bgInterval=null;
+  let currentDangerIndex=0;
+
+  function triggerDanger(danger){
+    if(!danger)return;
+    const time=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    dangerLog.unshift({id:Date.now(),label:danger.label,icon:danger.icon,time,msg:danger.msg});
+    if(dangerLog.length>20)dangerLog=dangerLog.slice(0,20);
+    persistLog();
+    
+    // Voice & Sound
+    speak(danger.msg, settings.voiceType, LANGCODES[settings.langCode], settings.specificVoice);
+    playAlarm(settings.alarmType,settings.alarmDuration);
+    
+    // Tacho blinken lassen
+    const tacho=document.getElementById('tacho-main');
+    if(tacho){tacho.classList.add('tacho-warning');setTimeout(()=>tacho.classList.remove('tacho-warning'),2000);}
+    
+    // Log aktualisieren
+    const logEl=document.getElementById('danger-log-list');
+    if(logEl){
+      logEl.innerHTML='';
+      dangerLog.forEach(d=>{
+        const entry=document.createElement('div');entry.className='danger-entry';
+        entry.innerHTML='<div class="icon">'+d.icon+'</div><div class="info"><strong>'+d.label+'</strong><br><small>'+d.msg+'</small></div><div class="time">'+d.time+'</div>';
+        logEl.appendChild(entry);
+      });
+    }
 
 /* FAHRSCHULE */
 .license-classes{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
