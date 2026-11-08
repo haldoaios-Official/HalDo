@@ -4171,5 +4171,1069 @@ console.log('[HalDo v2.2] D+E+F Packs: ' + Object.keys(PACKS).length + ' Apps re
 })();
 </script>
 <!-- ═══════ ENDE HALDO PACK v2.2 ═══════ -->
+<!-- ═══════ HALDO PACK v2.3 — G · H · I ═══════ -->
+<script>
+(function(){
+'use strict';
+if (!window.HalDo || !window.HalDo.WM) { console.warn('v2.3 braucht v2.0'); return; }
+const WM = window.HalDo.WM;
+const toast = window.HalDo.toast;
+const speak = window.HalDo.speak;
+const store = (k,v) => { try{localStorage.setItem(k,JSON.stringify(v));}catch(_){} };
+const load = (k,d) => { try{return JSON.parse(localStorage.getItem(k))??d;}catch(_){return d;} };
+
+/* ═══════ HELFER ═══════ */
+function makeListApp(id, title, icon, fields, cat, prefix) {
+  return {
+    title: icon + ' ' + title, width: 380, height: 480, cat,
+    render() { return `
+      <div class="app-content">
+        ${fields.map(f=>`<input class="app-input" id="${id}_${f.k}" placeholder="${f.p}" ${f.t?'type="'+f.t+'"':''}>`).join('')}
+        <button class="app-btn primary" id="${id}_add">+ Hinzufügen</button>
+        <div class="app-list" id="${id}_list"></div>
+      </div>
+    `;},
+    mount(root) {
+      const list = root.querySelector('#'+id+'_list');
+      const draw = () => {
+        const items = load('haldo_'+prefix+'_v1', []);
+        list.innerHTML = items.map((it,i)=>{
+          const sum = fields.map(f=>it[f.k]||'').filter(Boolean).slice(0,2).join(' · ');
+          return `<div class="app-row"><div style="flex:1"><b>${it[fields[0].k]||'—'}</b><br><span style="opacity:.7;font-size:10px">${String(sum).slice(0,90)}</span></div><button class="del" data-i="${i}">🗑</button></div>`;
+        }).join('') || '<div style="opacity:.5;text-align:center;padding:20px">Leer</div>';
+        list.querySelectorAll('.del').forEach(b=>b.onclick=()=>{
+          const a=load('haldo_'+prefix+'_v1',[]);a.splice(+b.dataset.i,1);store('haldo_'+prefix+'_v1',a);draw();
+        });
+      };
+      root.querySelector('#'+id+'_add').onclick=()=>{
+        const obj={};
+        fields.forEach(f=>obj[f.k]=root.querySelector('#'+id+'_'+f.k).value.trim());
+        if(!fields.some(f=>obj[f.k]))return toast('Feld ausfüllen');
+        const a=load('haldo_'+prefix+'_v1',[]);a.unshift({...obj,date:new Date().toISOString()});
+        store('haldo_'+prefix+'_v1',a);
+        fields.forEach(f=>root.querySelector('#'+id+'_'+f.k).value='');
+        draw();toast('✅ Gespeichert');
+      };
+      draw();
+    }
+  };
+}
+
+function makeQuizApp(id, title, icon, questions, cat) {
+  return {
+    title: icon+' '+title, width:400, height:540, cat,
+    render() { return `
+      <div class="app-content">
+        <div id="qz_p_${id}" style="font-size:11px;opacity:.7;text-align:right"></div>
+        <div id="qz_q_${id}" style="font-size:14px;font-weight:600;padding:14px;border-radius:12px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);min-height:70px;line-height:1.5"></div>
+        <div id="qz_a_${id}" style="display:flex;flex-direction:column;gap:8px"></div>
+        <div id="qz_r_${id}" style="text-align:center;font-size:13px;min-height:20px;font-weight:600"></div>
+        <button class="app-btn primary" id="qz_n_${id}">Nächste →</button>
+        <button class="app-btn" id="qz_rs_${id}">🔄 Reset</button>
+      </div>
+    `;},
+    mount(root) {
+      let idx=0, score=0, answered=false;
+      const qBox=root.querySelector('#qz_q_'+id), aBox=root.querySelector('#qz_a_'+id);
+      const rBox=root.querySelector('#qz_r_'+id), pBox=root.querySelector('#qz_p_'+id);
+      function show(){
+        if (idx>=questions.length) {
+          qBox.innerHTML = `<div style="text-align:center;padding:20px">🎉 Fertig!<br><br>Punkte: <b style="color:var(--accent);font-size:22px">${score}</b> / ${questions.length}</div>`;
+          aBox.innerHTML=''; rBox.textContent=''; pBox.textContent=''; return;
+        }
+        answered=false;
+        const q=questions[idx];
+        pBox.textContent='Frage '+(idx+1)+'/'+questions.length+' · '+score+' Punkte';
+        qBox.textContent=q.q; rBox.textContent='';
+        aBox.innerHTML=q.a.map((o,i)=>`<button class="app-btn" data-ans="${i}" style="text-align:left;justify-content:flex-start">${o}</button>`).join('');
+        aBox.querySelectorAll('[data-ans]').forEach(b=>b.onclick=()=>{
+          if (answered) return; answered=true;
+          const c=+b.dataset.ans;
+          if (c===q.c){score++;rBox.textContent='✅ Richtig!';rBox.style.color='#4ade80';}
+          else{rBox.textContent='❌ Richtig: '+q.a[q.c];rBox.style.color='#f87171';}
+          aBox.querySelectorAll('[data-ans]').forEach((x,j)=>{x.style.background = j===q.c?'rgba(74,222,128,.3)':(j===c?'rgba(248,113,113,.3)':'');});
+        });
+      }
+      root.querySelector('#qz_n_'+id).onclick=()=>{idx++;show();};
+      root.querySelector('#qz_rs_'+id).onclick=()=>{idx=0;score=0;show();};
+      show();
+    }
+  };
+}
+
+function makeInfoApp(id, title, icon, sections, cat) {
+  return {
+    title: icon+' '+title, width:380, height:520, cat,
+    render() { return `
+      <div class="app-content">
+        ${sections.map((s,i)=>`
+          <details ${i===0?'open':''} style="border-radius:12px;background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.2);padding:10px">
+            <summary style="cursor:pointer;font-weight:600;color:var(--accent);font-size:13px">${s.h}</summary>
+            <div style="font-size:12px;line-height:1.6;margin-top:8px;opacity:.9">${s.c}</div>
+          </details>
+        `).join('')}
+      </div>
+    `;}
+  };
+}
+
+function makeTrackerApp(id, title, icon, unit, cat, prefix) {
+  return {
+    title: icon+' '+title, width:360, height:480, cat,
+    render() { return `
+      <div class="app-content">
+        <div style="display:flex;gap:8px">
+          <input class="app-input" type="number" id="${id}_v" placeholder="Wert (${unit})" step="0.1" style="flex:1">
+          <button class="app-btn primary" id="${id}_add">+</button>
+        </div>
+        <div id="${id}_latest" style="text-align:center;padding:14px;border-radius:12px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);font-size:22px;font-weight:700;color:var(--accent)">—</div>
+        <div id="${id}_chart" style="height:100px;display:flex;align-items:flex-end;gap:2px;padding:8px;border-radius:12px;background:rgba(0,0,0,.2)"></div>
+        <div class="app-row">Ø Durchschnitt: <b id="${id}_avg">—</b></div>
+        <div class="app-list" id="${id}_list"></div>
+      </div>
+    `;},
+    mount(root) {
+      const list = root.querySelector('#'+id+'_list');
+      const draw = () => {
+        const items = load('haldo_'+prefix+'_v1', []);
+        root.querySelector('#'+id+'_latest').textContent = items[0] ? items[0].v+' '+unit : '—';
+        if (items.length) {
+          const avg = (items.reduce((a,b)=>a+(+b.v||0),0)/items.length).toFixed(1);
+          root.querySelector('#'+id+'_avg').textContent = avg+' '+unit;
+        }
+        const chart = root.querySelector('#'+id+'_chart');
+        const last = items.slice(0,20).reverse();
+        if (last.length) {
+          const maxV = Math.max(...last.map(x=>+x.v), 1);
+          chart.innerHTML = last.map(x=>{
+            const h = Math.min(100, ((+x.v||0)/maxV)*100);
+            return `<div style="flex:1;height:${h}%;background:linear-gradient(to top,var(--accent),var(--accent2));border-radius:2px 2px 0 0;min-width:4px"></div>`;
+          }).join('');
+        } else chart.innerHTML = '';
+        list.innerHTML = items.slice(0,10).map((x,i)=>
+          `<div class="app-row"><span style="flex:1;font-size:11px">${new Date(x.date).toLocaleString('de-DE')}</span><b>${x.v} ${unit}</b><button class="del" data-i="${i}">🗑</button></div>`
+        ).join('') || '<div style="opacity:.5;text-align:center;padding:14px">Noch keine Daten</div>';
+        list.querySelectorAll('.del').forEach(b=>b.onclick=()=>{
+          const a=load('haldo_'+prefix+'_v1',[]);a.splice(+b.dataset.i,1);store('haldo_'+prefix+'_v1',a);draw();
+        });
+      };
+      root.querySelector('#'+id+'_add').onclick=()=>{
+        const v = root.querySelector('#'+id+'_v').value;
+        if (!v) return toast('Wert eingeben');
+        const a = load('haldo_'+prefix+'_v1', []);
+        a.unshift({ v, date: new Date().toISOString() });
+        store('haldo_'+prefix+'_v1', a);
+        root.querySelector('#'+id+'_v').value = '';
+        draw(); toast('✅ '+v+' '+unit+' gespeichert');
+      };
+      draw();
+    }
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*              G — HALDO ZUHAUSE & FAMILIE (13)               */
+/* ═══════════════════════════════════════════════════════════ */
+const PACK_G = {};
+
+PACK_G.fam_kalender = makeListApp('fk_cal','Familienkalender','📅',[
+  {k:'titel',p:'Termin'},
+  {k:'wer',p:'Wer? (Familienmitglied)'},
+  {k:'wann',p:'Datum + Uhrzeit',t:'datetime-local'},
+  {k:'notiz',p:'Notiz'}
+],'G','fam_kalender');
+
+PACK_G.fam_einkauf = {
+  title: '🛒 Einkaufsliste', width: 380, height: 500, cat: 'G',
+  render() { return `
+    <div class="app-content">
+      <div style="display:flex;gap:6px">
+        <input class="app-input" id="ek_item" placeholder="Artikel" style="flex:1">
+        <input class="app-input" type="number" id="ek_qty" placeholder="Menge" style="width:80px" value="1">
+        <button class="app-btn primary" id="ek_add">+</button>
+      </div>
+      <div class="app-row" style="justify-content:space-between">
+        <span>Offen: <b id="ek_off">0</b></span>
+        <span>Erledigt: <b id="ek_done">0</b></span>
+      </div>
+      <div class="app-list" id="ek_list"></div>
+      <button class="app-btn danger" id="ek_clear">🗑 Erledigte löschen</button>
+    </div>
+  `;},
+  mount(root) {
+    const list = root.querySelector('#ek_list');
+    const draw = () => {
+      const items = load('haldo_einkauf_v1', []);
+      const done = items.filter(x=>x.done).length;
+      root.querySelector('#ek_off').textContent = items.length - done;
+      root.querySelector('#ek_done').textContent = done;
+      list.innerHTML = items.map((x,i)=>
+        `<div class="app-row" style="opacity:${x.done?.5:1}"><button class="del" data-chk="${i}" style="background:${x.done?'rgba(80,255,120,.3)':''}">${x.done?'✓':'○'}</button><span style="flex:1;text-decoration:${x.done?'line-through':'none'}">${x.item} <small style="opacity:.6">× ${x.qty}</small></span><button class="del" data-i="${i}">🗑</button></div>`
+      ).join('') || '<div style="opacity:.5;text-align:center;padding:14px">Liste leer</div>';
+      list.querySelectorAll('[data-chk]').forEach(b=>b.onclick=()=>{
+        const a=load('haldo_einkauf_v1',[]);a[+b.dataset.chk].done=!a[+b.dataset.chk].done;store('haldo_einkauf_v1',a);draw();
+      });
+      list.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{
+        const a=load('haldo_einkauf_v1',[]);a.splice(+b.dataset.i,1);store('haldo_einkauf_v1',a);draw();
+      });
+    };
+    root.querySelector('#ek_add').onclick = () => {
+      const item = root.querySelector('#ek_item').value.trim();
+      if (!item) return;
+      const qty = +root.querySelector('#ek_qty').value || 1;
+      const a = load('haldo_einkauf_v1', []);
+      a.unshift({ item, qty, done: false });
+      store('haldo_einkauf_v1', a);
+      root.querySelector('#ek_item').value = '';
+      root.querySelector('#ek_qty').value = 1;
+      draw();
+    };
+    root.querySelector('#ek_clear').onclick = () => {
+      const a = load('haldo_einkauf_v1', []).filter(x=>!x.done);
+      store('haldo_einkauf_v1', a); draw(); toast('🗑 Erledigte gelöscht');
+    };
+    draw();
+  }
+};
+
+PACK_G.fam_rezepte = makeListApp('fz_r','Rezepte','🍳',[
+  {k:'name',p:'Rezept-Name'},
+  {k:'zutaten',p:'Zutaten (Komma-getrennt)'},
+  {k:'zeit',p:'Zubereitungszeit (Min)',t:'number'},
+  {k:'schritte',p:'Zubereitung'}
+],'G','fam_rezepte');
+
+PACK_G.fam_haushalt = makeListApp('fh','Haushaltsplan','🧹',[
+  {k:'aufgabe',p:'Aufgabe (z.B. Staubsaugen)'},
+  {k:'haeufig',p:'Häufigkeit (täglich/wöchentlich/monatlich)'},
+  {k:'wer',p:'Wer macht es?'},
+  {k:'notiz',p:'Notiz'}
+],'G','fam_haushalt');
+
+PACK_G.fam_kinder = makeListApp('ki','Kinder','👶',[
+  {k:'name',p:'Name'},
+  {k:'geburtstag',p:'Geburtstag',t:'date'},
+  {k:'schule',p:'Schule / Klasse'},
+  {k:'notiz',p:'Notiz / Allergien'}
+],'G','fam_kinder');
+
+PACK_G.fam_schule = {
+  title: '🎒 Stundenplan', width: 420, height: 540, cat: 'G',
+  render() {
+    const days = ['Mo','Di','Mi','Do','Fr'];
+    const times = ['08:00','09:00','10:00','11:00','12:00','13:00','14:00'];
+    return `
+      <div class="app-content">
+        <div style="display:grid;grid-template-columns:60px repeat(5,1fr);gap:3px;font-size:10px">
+          <div></div>
+          ${days.map(d=>`<div style="text-align:center;color:var(--accent);font-weight:700;padding:4px">${d}</div>`).join('')}
+          ${times.map((t,ti)=>`
+            <div style="font-size:9px;opacity:.6;padding:4px 0">${t}</div>
+            ${days.map((d,di)=>`<div style="background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.2);border-radius:6px;padding:4px;min-height:34px;text-align:center;cursor:pointer;font-size:9px" data-slot="${di}_${ti}">+</div>`).join('')}
+          `).join('')}
+        </div>
+        <p style="font-size:10px;opacity:.6;text-align:center;margin-top:8px">Klicke auf ein Feld um ein Fach einzutragen</p>
+      </div>
+    `;
+  },
+  mount(root) {
+    const plan = load('haldo_stundenplan_v1', {});
+    const draw = () => {
+      Object.entries(plan).forEach(([slot, fach]) => {
+        const el = root.querySelector(`[data-slot="${slot}"]`);
+        if (el) { el.textContent = fach; el.style.background = 'rgba(0,229,255,.2)'; }
+      });
+    };
+    root.querySelectorAll('[data-slot]').forEach(el => el.onclick = () => {
+      const slot = el.dataset.slot;
+      const fach = prompt('Fach eintragen:', plan[slot] || '');
+      if (fach === null) return;
+      if (fach.trim() === '') { delete plan[slot]; el.textContent = '+'; el.style.background = 'rgba(0,229,255,.08)'; }
+      else { plan[slot] = fach; el.textContent = fach; el.style.background = 'rgba(0,229,255,.2)'; }
+      store('haldo_stundenplan_v1', plan);
+    });
+    draw();
+  }
+};
+
+PACK_G.fam_haustiere = makeListApp('ht','Haustiere','🐾',[
+  {k:'name',p:'Name'},
+  {k:'tier',p:'Tierart (Hund/Katze/...)'},
+  {k:'geburtstag',p:'Geburtstag',t:'date'},
+  {k:'notiz',p:'Notiz / Tierarzt'}
+],'G','fam_haustiere');
+
+PACK_G.fam_pflanzen = makeListApp('pf_p','Pflanzen','🌱',[
+  {k:'name',p:'Pflanzen-Name'},
+  {k:'ort',p:'Standort'},
+  {k:'giessen',p:'Gießen alle (Tage)',t:'number'},
+  {k:'notiz',p:'Notiz'}
+],'G','fam_pflanzen');
+
+PACK_G.fam_reparaturen = makeListApp('rp','Reparaturen','🔧',[
+  {k:'was',p:'Was reparieren?'},
+  {k:'wo',p:'Wo? (z.B. Küche)'},
+  {k:'status',p:'Status (offen/in Arbeit/fertig)'},
+  {k:'notiz',p:'Notiz'}
+],'G','fam_reparaturen');
+
+PACK_G.fam_werkzeuge = makeListApp('wz','Werkzeuge','🛠️',[
+  {k:'name',p:'Werkzeug'},
+  {k:'ort',p:'Wo liegt es?'},
+  {k:'zustand',p:'Zustand (gut/reparieren/fehlt)'},
+  {k:'notiz',p:'Notiz'}
+],'G','fam_werkzeuge');
+
+PACK_G.fam_strom = makeTrackerApp('st','Stromzähler','⚡','kWh','G','fam_strom');
+PACK_G.fam_heizung = makeTrackerApp('hz','Heizung','🔥','°C','G','fam_heizung');
+
+PACK_G.fam_mietvertrag = {
+  title: '📄 Mietvertrag', width: 380, height: 520, cat: 'G',
+  render() { return `
+    <div class="app-content">
+      <input class="app-input" id="mv_vermieter" placeholder="Vermieter">
+      <input class="app-input" id="mv_adresse" placeholder="Objekt-Adresse">
+      <input class="app-input" type="number" id="mv_miete" placeholder="Kaltmiete (€)">
+      <input class="app-input" type="number" id="mv_nk" placeholder="Nebenkosten (€)">
+      <input class="app-input" type="number" id="mv_kaution" placeholder="Kaution (€)">
+      <input class="app-input" id="mv_start" type="date" placeholder="Mietbeginn">
+      <textarea class="app-textarea" id="mv_notizen" placeholder="Weitere Vereinbarungen"></textarea>
+      <button class="app-btn primary" id="mv_save">💾 Speichern</button>
+      <div id="mv_out" style="padding:12px;border-radius:12px;background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.2);font-size:12px;line-height:1.6"></div>
+    </div>
+  `;},
+  mount(root) {
+    const d = load('haldo_mietvertrag_v1', {});
+    ['vermieter','adresse','miete','nk','kaution','start','notizen'].forEach(k=>root.querySelector('#mv_'+k).value = d[k]||'');
+    root.querySelector('#mv_save').onclick = () => {
+      const out = {};
+      ['vermieter','adresse','miete','nk','kaution','start','notizen'].forEach(k=>out[k]=root.querySelector('#mv_'+k).value);
+      store('haldo_mietvertrag_v1', out);
+      const gesamt = (+out.miete||0) + (+out.nk||0);
+      root.querySelector('#mv_out').innerHTML = `
+        <b>🏠 ${out.adresse||'—'}</b><br>
+        👤 Vermieter: ${out.vermieter||'—'}<br>
+        💰 Kaltmiete: ${(+out.miete||0).toFixed(2)} €<br>
+        💡 Nebenkosten: ${(+out.nk||0).toFixed(2)} €<br>
+        <b style="color:var(--accent)">📊 Gesamtmiete: ${gesamt.toFixed(2)} €</b><br>
+        🔒 Kaution: ${(+out.kaution||0).toFixed(2)} €<br>
+        📅 Beginn: ${out.start||'—'}<br>
+        ${out.notizen?'📝 '+out.notizen:''}
+      `;
+      toast('📄 Mietvertrag gespeichert');
+    };
+    if (d.adresse) root.querySelector('#mv_save').click();
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════ */
+/*                  H — HALDO WORLD (14)                       */
+/* ═══════════════════════════════════════════════════════════ */
+const PACK_H = {};
+
+// 1. Weltkarte (interaktiv, klickbare Kontinente)
+PACK_H.world_karte = {
+  title: '🗺️ Weltkarte', width: 480, height: 480, cat: 'H',
+  render() { return `
+    <div class="app-content">
+      <svg viewBox="0 0 400 240" style="width:100%;background:rgba(0,20,40,.5);border-radius:12px;border:1px solid rgba(0,229,255,.2)">
+        <defs>
+          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(0,229,255,.1)" stroke-width=".5"/></pattern>
+        </defs>
+        <rect width="400" height="240" fill="url(#grid)"/>
+        <path d="M 40 70 L 80 50 L 130 55 L 150 80 L 140 110 L 110 130 L 75 120 L 55 100 Z" fill="rgba(0,229,255,.3)" stroke="var(--accent)" stroke-width="1.5" data-cont="Nordamerika" style="cursor:pointer"/>
+        <path d="M 105 130 L 135 135 L 145 165 L 130 200 L 110 210 L 95 180 L 90 150 Z" fill="rgba(0,229,255,.3)" stroke="var(--accent)" stroke-width="1.5" data-cont="Südamerika" style="cursor:pointer"/>
+        <path d="M 175 60 L 215 55 L 240 75 L 235 100 L 200 105 L 175 95 Z" fill="rgba(0,229,255,.3)" stroke="var(--accent)" stroke-width="1.5" data-cont="Europa" style="cursor:pointer"/>
+        <path d="M 195 105 L 245 105 L 265 130 L 250 170 L 220 185 L 200 165 L 185 130 Z" fill="rgba(0,229,255,.3)" stroke="var(--accent)" stroke-width="1.5" data-cont="Afrika" style="cursor:pointer"/>
+        <path d="M 250 55 L 340 55 L 370 90 L 340 130 L 290 135 L 265 110 L 245 85 Z" fill="rgba(0,229,255,.3)" stroke="var(--accent)" stroke-width="1.5" data-cont="Asien" style="cursor:pointer"/>
+        <path d="M 330 145 L 380 145 L 380 175 L 330 175 Z" fill="rgba(0,229,255,.3)" stroke="var(--accent)" stroke-width="1.5" data-cont="Australien" style="cursor:pointer"/>
+        <circle cx="200" cy="230" r="12" fill="rgba(180,220,255,.4)" stroke="var(--accent)" stroke-width="1.5" data-cont="Antarktis" style="cursor:pointer"/>
+      </svg>
+      <div id="wmap_info" style="padding:12px;border-radius:12px;background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.2);font-size:12px;line-height:1.6;min-height:70px">👆 Klicke einen Kontinent</div>
+    </div>
+  `;},
+  mount(root) {
+    const info = {
+      Nordamerika: '🌎 <b>Nordamerika</b><br>Fläche: 24,7 Mio km² · 23 Länder · ~580 Mio Einwohner<br>Größte Länder: USA, Kanada, Mexiko<br>Größter Berg: Denali (6.190 m)<br>Größter See: Oberer See',
+      Südamerika: '🌎 <b>Südamerika</b><br>Fläche: 17,8 Mio km² · 12 Länder · ~430 Mio Einwohner<br>Größte Länder: Brasilien, Argentinien<br>Längster Fluss: Amazonas (7.062 km)<br>Höchster Berg: Aconcagua (6.961 m)',
+      Europa: '🌍 <b>Europa</b><br>Fläche: 10,2 Mio km² · 44 Länder · ~750 Mio Einwohner<br>Größte Länder: Russland, Ukraine, Frankreich<br>Höchster Berg: Elbrus (5.642 m)<br>Größter See: Ladogasee',
+      Afrika: '🌍 <b>Afrika</b><br>Fläche: 30,4 Mio km² · 54 Länder · ~1,4 Mrd Einwohner<br>Größte Länder: Algerien, DR Kongo, Sudan<br>Höchster Berg: Kilimandscharo (5.895 m)<br>Längster Fluss: Nil (6.650 km)',
+      Asien: '🌏 <b>Asien</b><br>Fläche: 44,6 Mio km² · 49 Länder · ~4,7 Mrd Einwohner<br>Größte Länder: Russland, China, Indien<br>Höchster Berg: Everest (8.849 m)<br>Größter See: Kaspisches Meer',
+      Australien: '🌏 <b>Australien/Ozeanien</b><br>Fläche: 8,5 Mio km² · 14 Länder · ~43 Mio Einwohner<br>Größtes Land: Australien<br>Höchster Berg: Puncak Jaya (4.884 m)<br>Besonderheit: Kontinent + Inselstaat',
+      Antarktis: '❄️ <b>Antarktis</b><br>Fläche: 14 Mio km² · keine Länder · keine ständigen Einwohner<br>Forscherstationen: ~70<br>Temperatur: bis -89,2 °C<br>Eisdecke: 4,8 km dick'
+    };
+    root.querySelectorAll('[data-cont]').forEach(el => {
+      el.addEventListener('click', () => {
+        root.querySelector('#wmap_info').innerHTML = info[el.dataset.cont] || '';
+        root.querySelectorAll('[data-cont]').forEach(x => x.style.filter = '');
+        el.style.filter = 'drop-shadow(0 0 6px var(--accent))';
+      });
+    });
+  }
+};
+
+// 2. Länder (Datenbank mit Top-30)
+PACK_H.world_laender = makeInfoApp('wl','Länder A-Z','🌍',[
+  {h:'🇩🇪 Deutschland', c:'Hauptstadt: Berlin · Einwohner: 84 Mio · Fläche: 357.588 km² · Währung: Euro · Sprache: Deutsch'},
+  {h:'🇫🇷 Frankreich', c:'Hauptstadt: Paris · Einwohner: 68 Mio · Fläche: 643.801 km² · Währung: Euro · Sprache: Französisch'},
+  {h:'🇬🇧 Großbritannien', c:'Hauptstadt: London · Einwohner: 67 Mio · Fläche: 243.610 km² · Währung: Pfund · Sprache: Englisch'},
+  {h:'🇮🇹 Italien', c:'Hauptstadt: Rom · Einwohner: 59 Mio · Fläche: 301.340 km² · Währung: Euro · Sprache: Italienisch'},
+  {h:'🇪🇸 Spanien', c:'Hauptstadt: Madrid · Einwohner: 47 Mio · Fläche: 505.970 km² · Währung: Euro · Sprache: Spanisch'},
+  {h:'🇳🇱 Niederlande', c:'Hauptstadt: Amsterdam · Einwohner: 17,5 Mio · Fläche: 41.543 km² · Währung: Euro · Sprache: Niederländisch'},
+  {h:'🇹🇷 Türkei', c:'Hauptstadt: Ankara · Einwohner: 85 Mio · Fläche: 783.562 km² · Währung: Lira · Sprache: Türkisch'},
+  {h:'🇺🇸 USA', c:'Hauptstadt: Washington D.C. · Einwohner: 335 Mio · Fläche: 9,8 Mio km² · Währung: Dollar · Sprache: Englisch'},
+  {h:'🇨🇳 China', c:'Hauptstadt: Peking · Einwohner: 1,41 Mrd · Fläche: 9,6 Mio km² · Währung: Yuan · Sprache: Mandarin'},
+  {h:'🇮🇳 Indien', c:'Hauptstadt: Neu-Delhi · Einwohner: 1,43 Mrd · Fläche: 3,3 Mio km² · Währung: Rupie · Sprache: Hindi'},
+  {h:'🇯🇵 Japan', c:'Hauptstadt: Tokio · Einwohner: 125 Mio · Fläche: 377.975 km² · Währung: Yen · Sprache: Japanisch'},
+  {h:'🇧🇷 Brasilien', c:'Hauptstadt: Brasília · Einwohner: 215 Mio · Fläche: 8,5 Mio km² · Währung: Real · Sprache: Portugiesisch'},
+  {h:'🇷🇺 Russland', c:'Hauptstadt: Moskau · Einwohner: 144 Mio · Fläche: 17,1 Mio km² · Währung: Rubel · Sprache: Russisch'},
+  {h:'🇦🇺 Australien', c:'Hauptstadt: Canberra · Einwohner: 26 Mio · Fläche: 7,7 Mio km² · Währung: AUD · Sprache: Englisch'},
+  {h:'🇨🇦 Kanada', c:'Hauptstadt: Ottawa · Einwohner: 39 Mio · Fläche: 9,98 Mio km² · Währung: CAD · Sprache: Englisch/Französisch'},
+  {h:'🇮🇶 Irak', c:'Hauptstadt: Bagdad · Einwohner: 42 Mio · Fläche: 438.317 km² · Währung: Dinar · Sprache: Arabisch/Kurdisch'},
+  {h:'🇮🇷 Iran', c:'Hauptstadt: Teheran · Einwohner: 88 Mio · Fläche: 1,6 Mio km² · Währung: Rial · Sprache: Persisch'},
+  {h:'🇮🇱 Israel', c:'Hauptstadt: Jerusalem · Einwohner: 9,7 Mio · Fläche: 22.072 km² · Währung: Schekel · Sprache: Hebräisch'},
+  {h:'🇸🇦 Saudi-Arabien', c:'Hauptstadt: Riad · Einwohner: 36 Mio · Fläche: 2,15 Mio km² · Währung: Riyal · Sprache: Arabisch'},
+  {h:'🇪🇬 Ägypten', c:'Hauptstadt: Kairo · Einwohner: 110 Mio · Fläche: 1 Mio km² · Währung: Pfund · Sprache: Arabisch'},
+  {h:'🇿🇦 Südafrika', c:'Hauptstadt: Pretoria · Einwohner: 61 Mio · Fläche: 1,22 Mio km² · Währung: Rand · Sprache: 11 Amtssprachen'},
+  {h:'🇲🇽 Mexiko', c:'Hauptstadt: Mexiko-Stadt · Einwohner: 128 Mio · Fläche: 1,97 Mio km² · Währung: Peso · Sprache: Spanisch'},
+  {h:'🇦🇷 Argentinien', c:'Hauptstadt: Buenos Aires · Einwohner: 46 Mio · Fläche: 2,78 Mio km² · Währung: Peso · Sprache: Spanisch'},
+  {h:'🇰🇷 Südkorea', c:'Hauptstadt: Seoul · Einwohner: 51 Mio · Fläche: 100.363 km² · Währung: Won · Sprache: Koreanisch'},
+  {h:'🇮🇩 Indonesien', c:'Hauptstadt: Jakarta · Einwohner: 279 Mio · Fläche: 1,9 Mio km² · Währung: Rupiah · Sprache: Indonesisch'}
+],'H');
+
+// 3. Hauptstädte-Quiz
+PACK_H.world_hauptstaedte = makeQuizApp('whq','Hauptstädte','🏛️',[
+  {q:'Was ist die Hauptstadt von Deutschland?', a:['München','Berlin','Hamburg','Köln'], c:1},
+  {q:'Was ist die Hauptstadt von Frankreich?', a:['Lyon','Marseille','Paris','Nizza'], c:2},
+  {q:'Was ist die Hauptstadt von Japan?', a:['Osaka','Kyoto','Tokio','Yokohama'], c:2},
+  {q:'Was ist die Hauptstadt der Türkei?', a:['Istanbul','Ankara','Izmir','Antalya'], c:1},
+  {q:'Was ist die Hauptstadt von Australien?', a:['Sydney','Melbourne','Canberra','Perth'], c:2},
+  {q:'Was ist die Hauptstadt von Brasilien?', a:['Rio','São Paulo','Brasília','Salvador'], c:2},
+  {q:'Was ist die Hauptstadt von Kanada?', a:['Toronto','Vancouver','Montreal','Ottawa'], c:3},
+  {q:'Was ist die Hauptstadt von Spanien?', a:['Barcelona','Madrid','Valencia','Sevilla'], c:1},
+  {q:'Was ist die Hauptstadt von Indien?', a:['Mumbai','Neu-Delhi','Kalkutta','Chennai'], c:1},
+  {q:'Was ist die Hauptstadt von Russland?', a:['St. Petersburg','Moskau','Kiew','Minsk'], c:1},
+  {q:'Was ist die Hauptstadt von Ägypten?', a:['Alexandria','Kairo','Gizeh','Luxor'], c:1},
+  {q:'Was ist die Hauptstadt von Südafrika?', a:['Kapstadt','Johannesburg','Pretoria','Durban'], c:2}
+],'H');
+
+// 4. Flaggen-Quiz
+PACK_H.world_flaggen = makeQuizApp('wfl','Flaggen','🏴',[
+  {q:'🇩🇪 — Welches Land?', a:['Belgien','Deutschland','Österreich','Frankreich'], c:1},
+  {q:'🇫🇷 — Welches Land?', a:['Italien','Spanien','Frankreich','Niederlande'], c:2},
+  {q:'🇯🇵 — Welches Land?', a:['China','Japan','Südkorea','Vietnam'], c:1},
+  {q:'🇧🇷 — Welches Land?', a:['Portugal','Mexiko','Brasilien','Argentinien'], c:2},
+  {q:'🇹🇷 — Welches Land?', a:['Tunesien','Pakistan','Türkei','Algerien'], c:2},
+  {q:'🇮🇳 — Welches Land?', a:['Indien','Bangladesch','Sri Lanka','Nepal'], c:0},
+  {q:'🇨🇦 — Welches Land?', a:['USA','Kanada','Australien','Neuseeland'], c:1},
+  {q:'🇦🇺 — Welches Land?', a:['Neuseeland','Australien','Fidschi','Papua-Neuguinea'], c:1},
+  {q:'🇪🇬 — Welches Land?', a:['Syrien','Irak','Ägypten','Libyen'], c:2},
+  {q:'🇰🇷 — Welches Land?', a:['Nordkorea','Südkorea','Japan','China'], c:1},
+  {q:'🇿🇦 — Welches Land?', a:['Südafrika','Kenia','Nigeria','Ghana'], c:0},
+  {q:'🇸🇦 — Welches Land?', a:['Vereinigte Arabische Emirate','Saudi-Arabien','Kuwait','Katar'], c:1}
+],'H');
+
+// 5. Währungen
+PACK_H.world_waehrungen = makeInfoApp('ww','Währungen','💱',[
+  {h:'🇪🇺 Euro (EUR)', c:'Symbol: € · Genutzt in: 20 EU-Ländern · 1 € = 100 Cent'},
+  {h:'🇺🇸 US-Dollar (USD)', c:'Symbol: $ · Weltreservewährung · 1 $ = 100 Cent'},
+  {h:'🇬🇧 Pfund (GBP)', c:'Symbol: £ · Älteste Währung · 1 £ = 100 Pence'},
+  {h:'🇯🇵 Yen (JPY)', c:'Symbol: ¥ · 1 Yen hat keine Untereinheit'},
+  {h:'🇨🇳 Yuan (CNY)', c:'Symbol: ¥ · Auch Renminbi (RMB) · 1 ¥ = 10 Jiǎo'},
+  {h:'🇨🇭 Franken (CHF)', c:'Symbol: Fr. · Schweiz + Liechtenstein · 1 Fr. = 100 Rappen'},
+  {h:'🇹🇷 Lira (TRY)', c:'Symbol: ₺ · Türkei · 1 ₺ = 100 Kuruş'},
+  {h:'🇮🇳 Rupie (INR)', c:'Symbol: ₹ · Indien · 1 ₹ = 100 Paise'},
+  {h:'🇷🇺 Rubel (RUB)', c:'Symbol: ₽ · Russland · 1 ₽ = 100 Kopeken'},
+  {h:'🇧🇷 Real (BRL)', c:'Symbol: R$ · Brasilien · 1 R$ = 100 Centavos'},
+  {h:'🇸🇦 Riyal (SAR)', c:'Symbol: ﷼ · Saudi-Arabien · 1 Riyal = 100 Halala'},
+  {h:'₿ Bitcoin (BTC)', c:'Kryptowährung · Dezentral · Max. 21 Mio Coins'}
+],'H');
+
+// 6. Zeitzonen (live)
+PACK_H.world_zeitzonen = {
+  title: '🌐 Zeitzonen', width: 380, height: 500, cat: 'H',
+  render() {
+    const cities = [
+      ['🇩🇪 Berlin','Europe/Berlin'],
+      ['🇬🇧 London','Europe/London'],
+      ['🇫🇷 Paris','Europe/Paris'],
+      ['🇷🇺 Moskau','Europe/Moscow'],
+      ['🇹🇷 Istanbul','Europe/Istanbul'],
+      ['🇸🇦 Riad','Asia/Riyadh'],
+      ['🇦🇪 Dubai','Asia/Dubai'],
+      ['🇮🇳 Mumbai','Asia/Kolkata'],
+      ['🇨🇳 Peking','Asia/Shanghai'],
+      ['🇯🇵 Tokio','Asia/Tokyo'],
+      ['🇦🇺 Sydney','Australia/Sydney'],
+      ['🇺🇸 New York','America/New_York'],
+      ['🇺🇸 Los Angeles','America/Los_Angeles'],
+      ['🇧🇷 São Paulo','America/Sao_Paulo']
+    ];
+    return `<div class="app-content">
+      ${cities.map(([n,tz],i)=>`<div class="app-row" style="justify-content:space-between"><span>${n}</span><b id="tz_${i}" style="color:var(--accent)">—</b></div>`).join('')}
+      <div style="font-size:10px;opacity:.6;text-align:center;margin-top:8px">Live · aktualisiert jede Sekunde</div>
+    </div>`;
+  },
+  mount(root) {
+    const cities = ['Europe/Berlin','Europe/London','Europe/Paris','Europe/Moscow','Europe/Istanbul','Asia/Riyadh','Asia/Dubai','Asia/Kolkata','Asia/Shanghai','Asia/Tokyo','Australia/Sydney','America/New_York','America/Los_Angeles','America/Sao_Paulo'];
+    const upd = () => {
+      const now = new Date();
+      cities.forEach((tz, i) => {
+        try {
+          root.querySelector('#tz_'+i).textContent = now.toLocaleTimeString('de-DE', { timeZone: tz });
+        } catch(_) {}
+      });
+    };
+    upd(); setInterval(upd, 1000);
+  }
+};
+
+// 7. Sprachen
+PACK_H.world_sprachen = makeInfoApp('ws','Sprachen','🗣️',[
+  {h:'Top 10 meistgesprochene Sprachen (Muttersprachler)', c:'1. Mandarin (918 Mio) · 2. Spanisch (480 Mio) · 3. Englisch (379 Mio) · 4. Hindi (341 Mio) · 5. Bengali (228 Mio) · 6. Portugiesisch (221 Mio) · 7. Russisch (154 Mio) · 8. Japanisch (128 Mio) · 9. West-Punjabi (92 Mio) · 10. Telugu (82 Mio)'},
+  {h:'🌍 Sprachfamilien', c:'Indogermanisch (~45% Welt) · Sino-Tibetisch · Niger-Kongo · Afroasiatisch · Austronesisch · Drawidisch · Altaisch · Uralisch'},
+  {h:'📚 Kurdisch (Kurmancî)', c:'Silav = Hallo · Spas = Danke · Bixêr hatî = Willkommen · Rojbaş = Guten Tag · Şevbaş = Gute Nacht · Ez ji te hez dikim = Ich liebe dich'},
+  {h:'🇪🇬 Arabisch', c:'مرحبا (Marhaba) = Hallo · شكرا (Shukran) = Danke · السلام عليكم = Friede sei mit dir'},
+  {h:'🇮🇱 Hebräisch', c:'שלום (Shalom) = Frieden/Hallo · תודה (Toda) = Danke · בוקר טוב (Boker tov) = Guten Morgen'},
+  {h:'🏛️ Latein', c:'Salve = Hallo · Gratias = Danke · Vale = Lebewohl · Veni vidi vici = Ich kam, sah, siegte'},
+  {h:'🇨🇳 Chinesisch', c:'你好 (Nǐ hǎo) = Hallo · 谢谢 (Xièxie) = Danke · 早上好 (Zǎoshang hǎo) = Guten Morgen'},
+  {h:'🇯🇵 Japanisch', c:'こんにちは (Konnichiwa) = Hallo · ありがとう (Arigatō) = Danke · おやすみ (Oyasumi) = Gute Nacht'},
+  {h:'🇺🇿 Usbekisch', c:'Salom = Hallo · Rahmat = Danke · Xush kelibsiz = Willkommen'},
+  {h:'🏳️ Êzîdî', c:'Silav = Hallo · Spas = Danke · Bixêr hatî = Willkommen · Êzîdî ist eine kurdische Religionsgemeinschaft mit eigener Sprache'}
+],'H');
+
+// 8. Kulturen
+PACK_H.world_kulturen = makeInfoApp('wk','Kulturen','🎭',[
+  {h:'🇩🇪 Deutschland', c:'Pünktlichkeit, Ordnung, direkt. Bier + Brot Kultur. Karneval, Oktoberfest. 16 Bundesländer mit eigenen Traditionen.'},
+  {h:'🇫🇷 Frankreich', c:'Savoir-vivre, gutes Essen, Wein, Käse. Baguette, Croissant. Kunst und Mode. Höflichkeit wichtig (Bonjour/Merci).'},
+  {h:'🇯🇵 Japan', c:'Höflichkeit, Respekt, Gruppenharmonie. Verbeugen. Sushi, Ramen, Teezeremonie. Anime, Manga, Sumo.'},
+  {h:'🇨🇳 China', c:'Alte Kultur (5000 Jahre). Familienzentriert. Tee, Dim Sum. Chinesisches Neujahr, Drachentanz. Rot = Glück.'},
+  {h:'🇮🇳 Indien', c:'Vielfalt — 22 Amtssprachen, viele Religionen. Bollywood, Yoga, Gewürze. Rote Hochzeitsfarbe. Vegetarier ~40%.'},
+  {h:'🇹🇷 Türkei', c:'Gastfreundschaft sehr wichtig. Tee (Çay) immer. Frühstück (Kahvaltı) ausgedehnt. Baklava, Döner, Kebab.'},
+  {h:'🇸🇦 Arabien', c:'Gastfreundschaft, Kaffee (Qahwa), Datteln. Familienzentriert. Ramadan wichtig. Moscheen-Kultur.'},
+  {h:'🇲🇽 Mexiko', c:'Día de los Muertos, Mariachi, Tacos. Familie sehr wichtig. Farbenfrohe Kultur. Piñata bei Geburtstagen.'},
+  {h:'🇧🇷 Brasilien', c:'Karneval, Samba, Fußball. Lebensfreude. Açaí, Feijoada. Portugiesisch — einzige in Südamerika.'},
+  {h:'🏴 Êzîdîtum', c:'Alte monotheistische Religion. Glaube an Tawûsî Melek (Pfau-Engel). Neujahr (Çarşema Sor) im Frühling. Heiligtum Lalisch im Nordirak.'}
+],'H');
+
+// 9. Reiseziele
+PACK_H.world_reiseziele = makeInfoApp('wr','Reiseziele','✈️',[
+  {h:'🗼 Paris, Frankreich', c:'Eiffelturm, Louvre, Notre-Dame. Romantik, Kunst, Mode. Beste Zeit: April-Juni, Sep-Okt.'},
+  {h:'🗽 New York, USA', c:'Freiheitsstatue, Times Square, Central Park. 24/7 Stadt. Frühling/Herbst ideal.'},
+  {h:'🏯 Tokio, Japan', c:'Shibuya, Senso-ji, Akihabara. Mix aus Tradition + Tech. März-Mai (Kirschblüte).'},
+  {h:'🏛️ Rom, Italien', c:'Kolosseum, Vatikan, Trevi-Brunnen. Antike + Moderne. April-Juni.'},
+  {h:'🕌 Istanbul, Türkei', c:'Hagia Sophia, Blaue Moschee, Bosporus. Europa trifft Asien. Frühling/Herbst.'},
+  {h:'🏝️ Bali, Indonesien', c:'Strände, Tempel, Reisterrassen. Trockenzeit April-Okt.'},
+  {h:'🏔️ Santorini, Griechenland', c:'Weiße Häuser, blaue Kuppeln, Sonnenuntergänge. Mai-Sep.'},
+  {h:'🦁 Kapstadt, Südafrika', c:'Tafelberg, Pinguine, Weinregionen. Nov-März (Sommer).'},
+  {h:'🏜️ Dubai, VAE', c:'Burj Khalifa, Wüste, Luxus-Shopping. Okt-April ideal.'},
+  {h:'🗿 Machu Picchu, Peru', c:'Inka-Ruinen in den Anden. Trockenzeit Mai-Sep.'},
+  {h:'🇹🇭 Bangkok, Thailand', c:'Tempel, Streetfood, Nachtleben. Nov-Feb (kühler).'},
+  {h:'🏝️ Malediven', c:'Überwasser-Bungalows, Tauchen, Riffe. Nov-April (Trockenzeit).'}
+],'H');
+
+// 10. Klima
+PACK_H.world_klima = makeInfoApp('wc','Klima','🌡️',[
+  {h:'❄️ Polar', c:'Temp: unter 10 °C im wärmsten Monat. Arktis, Antarktis. Eis, Tundra.'},
+  {h:'🌨️ Subpolar (Tundra)', c:'Kurze Sommer, lange Winter. Nördliches Russland, Kanada, Grönland.'},
+  {h:'🌲 Gemäßigt (Kontinental)', c:'4 Jahreszeiten. Deutschland, Osteuropa, Teile USA. 0-20 °C im Jahr.'},
+  {h:'🌊 Gemäßigt (Ozeanisch)', c:'Milde Winter, kühle Sommer, viel Regen. UK, Irland, West-Norwegen.'},
+  {h:'☀️ Mittelmeer', c:'Heiße, trockene Sommer + milde, feuchte Winter. Italien, Spanien, Griechenland.'},
+  {h:'🌵 Wüste', c:'Extrem heiß + trocken. Sahara, Arabien, Australien. Unter 200 mm Regen/Jahr.'},
+  {h:'🌴 Savanne', c:'Trocken- und Regenzeit. Afrika, Brasilien, Indien. 20-30 °C.'},
+  {h:'🌧️ Tropisch', c:'Immer warm (25-30 °C), hohe Feuchtigkeit. Amazonas, Kongo, Südostasien. Über 2000 mm Regen/Jahr.'},
+  {h:'🏔️ Hochgebirge', c:'Temperatur sinkt mit Höhe. Himalaya, Alpen, Anden. 6 °C pro 1000 m.'}
+],'H');
+
+// 11. Bevölkerung
+PACK_H.world_bevoelkerung = makeInfoApp('wb','Bevölkerung','👥',[
+  {h:'Top 10 Länder (2024)', c:'1. 🇮🇳 Indien (1,43 Mrd) · 2. 🇨🇳 China (1,41 Mrd) · 3. 🇺🇸 USA (335 Mio) · 4. 🇮🇩 Indonesien (279 Mio) · 5. 🇵🇰 Pakistan (240 Mio) · 6. 🇳🇬 Nigeria (223 Mio) · 7. 🇧🇷 Brasilien (215 Mio) · 8. 🇧🇩 Bangladesch (173 Mio) · 9. 🇷🇺 Russland (144 Mio) · 10. 🇲🇽 Mexiko (128 Mio)'},
+  {h:'🌍 Kontinente', c:'Asien 4,7 Mrd (59%) · Afrika 1,4 Mrd (18%) · Europa 750 Mio (9%) · Nordamerika 580 Mio (7%) · Südamerika 430 Mio (5%) · Ozeanien 43 Mio (0,5%)'},
+  {h:'📈 Weltbevölkerung', c:'~8,1 Milliarden (2024). Wachstum ca. 75 Mio pro Jahr. Prognose 2050: 9,7 Mrd.'},
+  {h:'👶 Geburtenrate', c:'Weltweit 2,3 Kinder/Frau. Niger höchste (6,7), Südkorea niedrigste (0,8). Deutschland 1,5.'},
+  {h:'👴 Lebenserwartung', c:'Weltweit 73 Jahre. Japan 84 (höchste), Monaco 89. Deutschland 81. Sierra Leone 55 (niedrigste).'},
+  {h:'🏙️ Urbanisierung', c:'56% der Menschen leben in Städten. Tendenz steigend. Tokio größte Metropole (37 Mio).'}
+],'H');
+
+// 12. Geschichte
+PACK_H.world_geschichte = makeInfoApp('wg','Weltgeschichte','📜',[
+  {h:'🪨 Ur- und Frühgeschichte (bis 3000 v.Chr.)', c:'Steinzeit (2,6 Mio-2000 v.Chr.), Bronzezeit (2000-800 v.Chr.), Eisenzeit (800-50 v.Chr.). Erfindung von Feuer, Rad, Schrift.'},
+  {h:'🏛️ Antike (3000 v.Chr.-500 n.Chr.)', c:'Ägypten, Mesopotamien, Griechenland, Rom. Pyramiden (2560 v.Chr.), Demokratie in Athen (508 v.Chr.), Römisches Reich (27 v.Chr.-476 n.Chr.).'},
+  {h:'🏰 Mittelalter (500-1500)', c:'Völkerwanderung, Islamische Blüte, Kreuzzüge, Ritter, Burgen. Karl der Große (800). Magna Carta (1215).'},
+  {h:'🎨 Renaissance (1400-1600)', c:'Wiedergeburt der Antike. Leonardo da Vinci, Michelangelo. Buchdruck (1450, Gutenberg). Kolumbus (1492). Reformation (1517, Luther).'},
+  {h:'⚙️ Industrialisierung (1750-1900)', c:'Dampfmaschine (1769, Watt). Eisenbahn, Fabriken. Französische Revolution (1789). Deutsches Kaiserreich (1871).'},
+  {h:'💥 Weltkriege (1914-1945)', c:'1. WK (1914-1918). Weimarer Republik (1919-1933). NS-Zeit (1933-1945). 2. WK (1939-1945). Holocaust. Atombombe Hiroshima (1945).'},
+  {h:'🌐 Kalter Krieg (1945-1991)', c:'USA vs. UdSSR. Berliner Mauer (1961-1989). Mondlandung (1969). Fall der Mauer (1989). Wiedervereinigung (1990).'},
+  {h:'🚀 Digitalzeitalter (1991-heute)', c:'Internet (1991 WWW). Smartphones (2007 iPhone). KI (ChatGPT 2022). Klimawandel als globale Herausforderung.'}
+],'H');
+
+// 13. Politik
+PACK_H.world_politik = makeInfoApp('wp','Politische Systeme','🏛️',[
+  {h:'🗳️ Demokratie', c:'Volkssouveränität durch Wahlen. Gewaltenteilung: Legislative (Parlament), Exekutive (Regierung), Judikative (Gerichte). Beispiele: Deutschland, USA, Frankreich.'},
+  {h:'👑 Monarchie', c:'König/Königin als Staatsoberhaupt. Absolut (Saudi-Arabien), konstitutionell (UK, Schweden, Japan).'},
+  {h:'🔨 Sozialismus/Kommunismus', c:'Staatseigentum an Produktionsmitteln. Einparteiensystem in der Theorie. Beispiele: China (praktiziert Marktwirtschaft), Nordkorea, Kuba.'},
+  {h:'🕌 Theokratie', c:'Religiöse Führung. Iran (Islamische Republik), Vatikan (Katholisch).'},
+  {h:'🏛️ EU', c:'27 Mitgliedsstaaten. Europäisches Parlament (Straßburg), EU-Kommission (Brüssel), Europäischer Rat. Euro in 20 Ländern.'},
+  {h:'🇺🇳 UNO', c:'193 Mitglieder. Sicherheitsrat (5 ständige: USA, Russland, China, UK, Frankreich mit Veto). Sitz: New York.'},
+  {h:'🌍 NATO', c:'32 Mitglieder. Verteidigungsbündnis. Artikel 5: Angriff auf einen = Angriff auf alle.'},
+  {h:'🇩🇪 Deutschland', c:'Föderale parlamentarische Demokratie. 16 Bundesländer. Bundestag (736 Sitze), Bundesrat, Bundespräsident, Bundeskanzler.'}
+],'H');
+
+// 14. Wirtschaft
+PACK_H.world_wirtschaft = makeInfoApp('we','Weltwirtschaft','💼',[
+  {h:'Top 10 Volkswirtschaften (BIP)', c:'1. 🇺🇸 USA (25 Bio $) · 2. 🇨🇳 China (18 Bio) · 3. 🇩🇪 Deutschland (4,1 Bio) · 4. 🇯🇵 Japan (4,2 Bio) · 5. 🇮🇳 Indien (3,4 Bio) · 6. 🇬🇧 UK (3,1 Bio) · 7. 🇫🇷 Frankreich (2,8 Bio) · 8. 🇮🇹 Italien (2,0 Bio) · 9. 🇨🇦 Kanada (2,1 Bio) · 10. 🇧🇷 Brasilien (1,9 Bio)'},
+  {h:'📊 BIP weltweit', c:'~100 Billionen USD (2023). Wachstum ca. 3% pro Jahr. EU ist größter Binnenmarkt.'},
+  {h:'🛢️ Rohstoffe', c:'Öl: Saudi-Arabien, USA, Russland. Gold: China, Australien. Lithium: Australien, Chile. Seltene Erden: China (60% Weltmarkt).'},
+  {h:'💻 Technologie-Sektoren', c:'USA dominiert (Apple, Google, Microsoft). China: Huawei, Alibaba, Tencent. Taiwan: TSMC (90% Chips). Südkorea: Samsung.'},
+  {h:'🏦 Börsen', c:'NYSE (New York, 25 Bio $), Nasdaq (Tech), Tokio, London, Frankfurt (DAX).'},
+  {h:'💱 Währungen', c:'USD (Reservewährung 60%), EUR (2.), JPY (3.), GBP (4.), CNY (5. — steigend).'},
+  {h:'📈 Inflation', c:'Ziel meist 2%. 2022-2023 hoch (7-10%) wegen Ukraine-Krieg + Energie. EZB-Leitzins 4,0-4,5% (2024).'},
+  {h:'🧑‍💼 Arbeitslosigkeit', c:'Weltweit ~5%. Deutschland ~6%, USA ~4%. Niedrigste: Schweiz, Japan. Höchste: Südafrika (32%).'}
+],'H');
+
+/* ═══════════════════════════════════════════════════════════ */
+/*                   I — HALDO WISSEN (17)                     */
+/* ═══════════════════════════════════════════════════════════ */
+const PACK_I = {};
+
+// 1. Enzyklopädie (Wikipedia Live)
+PACK_I.wissen_ency = {
+  title: '📚 Enzyklopädie LIVE', width: 420, height: 560, cat: 'I',
+  render() { return `
+    <div class="app-content">
+      <div style="display:flex;gap:6px">
+        <input class="app-input" id="ency_in" placeholder="🔍 Suche in Wikipedia..." style="flex:1">
+        <button class="app-btn primary" id="ency_go">→</button>
+      </div>
+      <div class="app-row" style="font-size:11px">Beliebte Themen:</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">
+        ${['Sonne','Erde','Photosynthese','Albert Einstein','Berlin','Quantenphysik','Êzîden','Kurden','Schwarzes Loch'].map(t=>`<button class="app-btn" data-ency-topic="${t}" style="padding:4px 8px;font-size:11px;min-height:30px">${t}</button>`).join('')}
+      </div>
+      <div id="ency_out" style="min-height:200px;font-size:12px;line-height:1.6;padding:12px;border-radius:12px;background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.2)">Suche ein Thema oder klicke einen Vorschlag</div>
+    </div>
+  `;},
+  mount(root) {
+    const search = async (q) => {
+      if (!q.trim()) return;
+      root.querySelector('#ency_out').innerHTML = 'Lade...';
+      try {
+        const r = await fetch('https://de.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(q));
+        const d = await r.json();
+        if (d.extract) {
+          root.querySelector('#ency_out').innerHTML = `
+            <h3 style="color:var(--accent);margin:0 0 8px">${d.title}</h3>
+            <p>${d.extract}</p>
+            ${d.content_urls?.desktop?.page ? `<a href="${d.content_urls.desktop.page}" target="_blank" style="color:var(--accent);font-size:11px">📖 Auf Wikipedia weiterlesen</a>` : ''}
+          `;
+        } else {
+          root.querySelector('#ency_out').innerHTML = 'Kein Artikel gefunden';
+        }
+      } catch(e) {
+        root.querySelector('#ency_out').innerHTML = 'Fehler beim Laden';
+      }
+    };
+    root.querySelector('#ency_go').onclick = () => search(root.querySelector('#ency_in').value);
+    root.querySelector('#ency_in').addEventListener('keydown', e => { if (e.key === 'Enter') search(e.target.value); });
+    root.querySelectorAll('[data-ency-topic]').forEach(b => b.onclick = () => { root.querySelector('#ency_in').value = b.dataset.encyTopic; search(b.dataset.encyTopic); });
+  }
+};
+
+// 2. Wörterbuch (Englisch via API)
+PACK_I.wissen_woerterbuch = {
+  title: '📖 Wörterbuch EN-DE', width: 400, height: 540, cat: 'I',
+  render() { return `
+    <div class="app-content">
+      <div style="display:flex;gap:6px">
+        <input class="app-input" id="wb_in" placeholder="🔍 Englisch (z.B. book)" style="flex:1">
+        <button class="app-btn primary" id="wb_go">→</button>
+      </div>
+      <div id="wb_out" style="min-height:300px;font-size:12px;line-height:1.6;padding:12px;border-radius:12px;background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.2)">Gib ein englisches Wort ein</div>
+    </div>
+  `;},
+  mount(root) {
+    const search = async (w) => {
+      if (!w.trim()) return;
+      root.querySelector('#wb_out').innerHTML = 'Lade...';
+      try {
+        const r = await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/' + encodeURIComponent(w));
+        const d = await r.json();
+        if (Array.isArray(d) && d[0]) {
+          const e = d[0];
+          let html = `<h3 style="color:var(--accent);margin:0">${e.word}</h3>`;
+          if (e.phonetic) html += `<div style="opacity:.7;font-size:11px">🔊 ${e.phonetic}</div>`;
+          e.meanings?.forEach(m => {
+            html += `<div style="margin-top:8px"><b style="color:var(--accent);font-size:11px;text-transform:uppercase">${m.partOfSpeech}</b>`;
+            m.definitions?.slice(0,3).forEach(def => {
+              html += `<div style="margin:4px 0">• ${def.definition}</div>`;
+              if (def.example) html += `<div style="opacity:.6;font-style:italic;font-size:11px;margin-left:12px">"${def.example}"</div>`;
+            });
+            html += '</div>';
+          });
+          root.querySelector('#wb_out').innerHTML = html;
+        } else {
+          root.querySelector('#wb_out').innerHTML = 'Wort nicht gefunden';
+        }
+      } catch(_) {
+        root.querySelector('#wb_out').innerHTML = 'Wort nicht gefunden';
+      }
+    };
+    root.querySelector('#wb_go').onclick = () => search(root.querySelector('#wb_in').value);
+    root.querySelector('#wb_in').addEventListener('keydown', e => { if (e.key === 'Enter') search(e.target.value); });
+  }
+};
+
+// 3. Zitate
+PACK_I.wissen_zitate = {
+  title: '💬 Zitate', width: 380, height: 460, cat: 'I',
+  render() { return `
+    <div class="app-content" style="text-align:center">
+      <div id="zt_quote" style="padding:20px;border-radius:14px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);font-size:14px;line-height:1.7;min-height:120px;display:flex;align-items:center;justify-content:center;flex-direction:column"></div>
+      <button class="app-btn primary" id="zt_next">🔄 Neues Zitat</button>
+      <button class="app-btn" id="zt_speak">🔊 Vorlesen</button>
+    </div>
+  `;},
+  mount(root) {
+    const quotes = [
+      ['"Ich denke, also bin ich."', 'René Descartes'],
+      ['"Wissen ist Macht."', 'Francis Bacon'],
+      ['"Der Weg ist das Ziel."', 'Konfuzius'],
+      ['"Die Grenzen meiner Sprache sind die Grenzen meiner Welt."', 'Ludwig Wittgenstein'],
+      ['"Wer kämpft, kann verlieren. Wer nicht kämpft, hat schon verloren."', 'Bertolt Brecht'],
+      ['"Nur wer sein Ziel kennt, findet den Weg."', 'Laotse'],
+      ['"Die Zeit heilt alle Wunden."', 'Volksmund'],
+      ['"Lebe als ob du morgen stirbst, lerne als ob du ewig lebst."', 'Mahatma Gandhi'],
+      ['"Alle Menschen sind klug — die einen vorher, die anderen nachher."', 'Voltaire'],
+      ['"Phantasie ist wichtiger als Wissen."', 'Albert Einstein'],
+      ['"Was du nicht willst, das man dir tu, das füg auch keinem andern zu."', 'Goldene Regel'],
+      ['"Der Mensch ist das Maß aller Dinge."', 'Protagoras'],
+      ['"Das Leben ist wie ein Fahrrad. Man muss sich vorwärts bewegen, um das Gleichgewicht nicht zu verlieren."', 'Albert Einstein'],
+      ['"Die Freiheit ist immer die Freiheit des Andersdenkenden."', 'Rosa Luxemburg']
+    ];
+    let cur = null;
+    const next = () => {
+      cur = quotes[Math.floor(Math.random()*quotes.length)];
+      root.querySelector('#zt_quote').innerHTML = `<div style="font-style:italic;font-size:15px;margin-bottom:12px">${cur[0]}</div><div style="color:var(--accent);font-size:12px">— ${cur[1]}</div>`;
+    };
+    root.querySelector('#zt_next').onclick = next;
+    root.querySelector('#zt_speak').onclick = () => { if (cur) speak(cur[0] + ' von ' + cur[1]); };
+    next();
+  }
+};
+
+// 4. Fakten
+PACK_I.wissen_fakten = {
+  title: '💡 Fun Facts', width: 380, height: 460, cat: 'I',
+  render() { return `
+    <div class="app-content" style="text-align:center">
+      <div id="ff_card" style="padding:20px;border-radius:14px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);font-size:14px;line-height:1.7;min-height:120px;display:flex;align-items:center;justify-content:center"></div>
+      <button class="app-btn primary" id="ff_next">💡 Neuer Fakt</button>
+    </div>
+  `;},
+  mount(root) {
+    const facts = [
+      '🦴 Ein Erwachsener hat 206 Knochen, ein Baby hat ~300.',
+      '🧠 Das Gehirn besteht zu 73% aus Wasser.',
+      '💧 60% des menschlichen Körpers ist Wasser.',
+      '🌙 Der Mond entfernt sich jährlich 3,8 cm von der Erde.',
+      '🌍 71% der Erdoberfläche sind Ozeane.',
+      '⚡ Ein Blitz ist 5× heißer als die Sonnenoberfläche.',
+      '🐘 Elefanten sind die einzigen Säugetiere, die nicht springen können.',
+      '💡 Eine Glühbirne verliert nur 10% als Licht, 90% als Wärme.',
+      '🦋 Schmetterlinge schmecken mit ihren Füßen.',
+      '🐝 Honig verdirbt nie — 3000 Jahre alter Honig ist noch essbar.',
+      '🌡️ Der wärmste Ort der Erde: Death Valley, 56,7 °C (1913).',
+      '❄️ Der kälteste Ort: Antarktis, -89,2 °C (1983).',
+      '🌊 Der Marianengraben ist 11.034 m tief — Everest passt rein.',
+      '🐋 Blauwale sind die größten Tiere, die je gelebt haben (30 m, 200 t).',
+      '🍌 Bananen sind botanisch Beeren, Erdbeeren nicht.',
+      '📱 Dein Smartphone hat mehr Rechenleistung als Apollo 11 (1969).',
+      '🦈 Haie existieren seit 450 Mio Jahren — älter als Bäume.',
+      '🎵 Musik kann Schmerzen lindern (Endorphin-Ausschüttung).',
+      '🌳 Bäume kommunizieren über unterirdische Pilznetzwerke.',
+      '💤 Man träumt ca. 4-7× pro Nacht.'
+    ];
+    let cur = '';
+    const next = () => {
+      cur = facts[Math.floor(Math.random()*facts.length)];
+      root.querySelector('#ff_card').textContent = cur;
+    };
+    root.querySelector('#ff_next').onclick = next;
+    next();
+  }
+};
+
+// 5. Rekorde
+PACK_I.wissen_rekorde = makeInfoApp('wr2','Rekorde','🏆',[
+  {h:'🏔️ Höchster Berg', c:'Mount Everest, 8.849 m (Nepal/Tibet). Erstbesteigung 1953 (Hillary + Tenzing).'},
+  {h:'🌊 Tiefster Ozean', c:'Marianengraben, 11.034 m (Pazifik). Druck: 1000× atm.'},
+  {h:'🏜️ Größte Wüste', c:'Sahara (9,2 Mio km²) — heißeste Wüste. Antarktis (14 Mio) ist Kältewüste.'},
+  {h:'🌳 Ältester Baum', c:'Old Tjikko (Schweden) — 9.550 Jahre. Methusalem-Kiefer 4.853 Jahre.'},
+  {h:'🐋 Größtes Tier', c:'Blauwal — 30 m, 200 Tonnen. Herz: 180 kg.'},
+  {h:'🏃 Schnellster Mensch', c:'Usain Bolt — 44,72 km/h (100 m, 2009).'},
+  {h:'🌡️ Höchste Temperatur', c:'56,7 °C — Death Valley, USA (1913).'},
+  {h:'❄️ Tiefste Temperatur', c:'-89,2 °C — Antarktis, Wostok-Station (1983).'},
+  {h:'🏢 Höchstes Gebäude', c:'Burj Khalifa, Dubai — 828 m, 163 Etagen.'},
+  {h:'🌉 Längste Brücke', c:'Danyang-Kunshan, China — 164 km (Eisenbahn).'},
+  {h:'💎 Wertvollste Marke', c:'Apple (~500 Mrd $, 2024).'},
+  {h:'🚀 Schnellstes Objekt', c:'Parker Solar Probe — 690.000 km/h.'}
+],'I');
+
+// 6. Erfindungen
+PACK_I.wissen_erfindungen = makeInfoApp('wer','Erfindungen','⚙️',[
+  {h:'🔥 Feuer (~400.000 v.Chr.)', c:'Homo erectus. Grundlage der Zivilisation — Kochen, Wärme, Schutz.'},
+  {h:'📝 Schrift (~3400 v.Chr.)', c:'Sumerer in Mesopotamien (Keilschrift). Ermöglichte Geschichte.'},
+  {h:'🖨️ Buchdruck (1440)', c:'Johannes Gutenberg. Massenverbreitung von Wissen → Reformation.'},
+  {h:'💡 Glühbirne (1879)', c:'Thomas Edison (mit vielen Vorläufern). Elektrizität für alle.'},
+  {h:'🚗 Automobil (1886)', c:'Carl Benz. Erstes Patent für ein Benzinauto.'},
+  {h:'✈️ Flugzeug (1903)', c:'Brüder Wright — erster Motorflug, 12 Sekunden.'},
+  {h:'💊 Penicillin (1928)', c:'Alexander Fleming. Rettete ~200 Mio Leben.'},
+  {h:'💻 Computer (1941)', c:'Konrad Zuse (Z3). Erste programmierbare Rechenmaschine.'},
+  {h:'📡 Internet (1969)', c:'ARPANET. World Wide Web: 1991 (Tim Berners-Lee).'},
+  {h:'📱 Smartphone (2007)', c:'Steve Jobs (iPhone). Revolutionierte Kommunikation.'},
+  {h:'🧬 CRISPR (2012)', c:'Gen-Schere — präzise DNA-Bearbeitung. Nobelpreis 2020.'},
+  {h:'🤖 KI (2022)', c:'ChatGPT — generative KI. Neue Ära der Informatik.'}
+],'I');
+
+// 7. Weltall
+PACK_I.wissen_weltall = makeInfoApp('wwl','Weltall','🌌',[
+  {h:'🌌 Universum', c:'Alter: 13,8 Mrd Jahre. Durchmesser: ~93 Mrd Lichtjahre. ~2 Billionen Galaxien.'},
+  {h:'🌞 Sonnensystem', c:'8 Planeten: Merkur, Venus, Erde, Mars, Jupiter, Saturn, Uranus, Neptun. Pluto = Zwergplanet.'},
+  {h:'🌍 Erde', c:'Einziger bekannter Planet mit Leben. 1,5 Mio km von der Sonne entfernt. 4,5 Mrd Jahre alt.'},
+  {h:'🌙 Mond', c:'384.400 km entfernt. Stabilisiert Erdachse. Entstehung: Kollision (4,5 Mrd Jahre).'},
+  {h:'🔴 Mars', c:'Roter Planet. Olympus Mons (höchster Berg, 22 km). Wassereis an Polen.'},
+  {h:'🪐 Saturn', c:'Ringe aus Eis + Gestein. 146 Monde. Titan hat dichte Atmosphäre.'},
+  {h:'☀️ Sonne', c:'Gelber Zwergstern. 5.505 °C Oberfläche. 99,86% der Masse des Sonnensystems.'},
+  {h:'🌠 Schwarze Löcher', c:'Gravitation so stark, dass nichts entkommt. Sagittarius A* im Zentrum der Milchstraße.'},
+  {h:'🌌 Milchstraße', c:'Unsere Galaxie. ~200 Mrd Sterne. 100.000 Lj Durchmesser.'},
+  {h:'🚀 Raumfahrt', c:'Erster Mensch im All: Juri Gagarin (1961). Mondlandung: 1969 (Apollo 11). Mars-Missionen laufen.'}
+],'I');
+
+// 8. Tiere
+PACK_I.wissen_tiere = makeInfoApp('wti','Tiere','🦁',[
+  {h:'🐋 Blauwal', c:'Größtes Tier aller Zeiten. 30 m, 200 Tonnen. Herz 180 kg. Zunge 2,7 Tonnen.'},
+  {h:'🐘 Elefant', c:'Größtes Landtier. Bis 6 Tonnen. Intelligenz wie Kleinkind. Lebt bis 70 Jahre.'},
+  {h:'🐆 Gepard', c:'Schnellstes Landtier — 110 km/h für kurze Sprints. Beschleunigt wie ein Ferrari.'},
+  {h:'🦅 Wanderfalke', c:'Schnellstes Tier — 390 km/h im Sturzflug.'},
+  {h:'🐙 Oktopus', c:'3 Herzen, 9 Gehirne (eines pro Arm). Blau-grünes Blut (Hämocyanin).'},
+  {h:'🦈 Haie', c:'Älter als Bäume (450 Mio Jahre). Sinne: Elektrorezeptoren für Beute.'},
+  {h:'🐜 Ameisen', c:'~20.000 Arten. Bauen komplexe Nester. Können 50× ihr Gewicht tragen.'},
+  {h:'🐝 Bienen', c:'Bestäuben 80% der Nutzpflanzen. Ein Volk: 50.000 Bienen. Tanzsprache.'},
+  {h:'🐢 Schildkröten', c:'Können 150+ Jahre alt werden. Lederschildkröte: 900 kg.'},
+  {h:'🦇 Fledermäuse', c:'Einzige Säugetiere mit echtem Flug. Echoortung — sehen mit Schall.'},
+  {h:'🐼 Pandas', c:'Fressen 12-38 kg Bambus täglich. 6 Stunden Schlaf, 14 Stunden fressen.'},
+  {h:'🐧 Pinguine', c:'Fliegen nicht, aber schwimmen 35 km/h. Kaiserpinguin überlebt -60 °C.'}
+],'I');
+
+// 9. Pflanzen
+PACK_I.wissen_pflanzen = makeInfoApp('wpf','Pflanzen','🌿',[
+  {h:'🌳 Bäume', c:'Größter Baum: General Sherman (Riesenmammutbaum), 84 m, 1900 Tonnen. Ältester: Old Tjikko, 9.550 Jahre.'},
+  {h:'🌹 Rosen', c:'Über 30.000 Sorten. Symbol für Liebe. Reichweite: alle Kontinente außer Antarktis.'},
+  {h:'🌻 Sonnenblume', c:'Bis 3 m hoch. Dreht sich zur Sonne (Heliotropismus). Bestäubt von Bienen.'},
+  {h:'🎋 Bambus', c:'Wächst bis 90 cm pro Tag (schnellste Pflanze). 1000+ Arten. Baustoff der Zukunft.'},
+  {h:'🌵 Kakteen', c:'Speichern Wasser in Blättern/Stamm. 2000+ Arten. Wüstenpflanzen.'},
+  {h:'🌾 Getreide', c:'Weizen, Reis, Mais: Grundnahrung von 8 Mrd Menschen. Weizen: 780 Mio t/Jahr.'},
+  {h:'🌸 Orchideen', c:'28.000 Arten. Komplexeste Blüten. Vanille aus Orchidee.'},
+  {h:'🍄 Pilze', c:'Nicht Pflanze, nicht Tier — eigenes Reich. 5 Mio+ Arten. Mykorrhiza mit Bäumen.'},
+  {h:'🌊 Algen', c:'Produzieren 70% des Sauerstoffs. Blaualgen (Cyanobakterien) — älteste Lebensform (3,5 Mrd Jahre).'},
+  {h:'🌿 Heilkräuter', c:'Aloe Vera (Haut), Minze (Magen), Kamille (Entzündung), Lavendel (Schlaf).'}
+],'I');
+
+// 10. Geschichte
+PACK_I.wissen_geschichte = makeInfoApp('wge','Geschichte','📜',[
+  {h:'📅 Epochen', c:'Ur-/Frühgeschichte · Antike (3000 v.-500 n.) · Mittelalter (500-1500) · Frühe Neuzeit (1500-1800) · Moderne (1800-heute)'},
+  {h:'🏛️ Hochkulturen', c:'Mesopotamien (Sumerer, Babylonier) · Ägypten (Pharaonen) · China (Han, Ming) · Indien (Maurya) · Griechenland · Rom'},
+  {h:'⚔️ Wichtige Kriege', c:'Peloponnesischer Krieg (431-404 v.) · Kreuzzüge (1096-1291) · 30-jähriger Krieg (1618-1648) · 1. WK (1914-1918) · 2. WK (1939-1945)'},
+  {h:'👑 Große Herrscher', c:'Alexander der Große · Julius Caesar · Karl der Große · Napoleon · Queen Victoria'},
+  {h:'💡 Revolutionen', c:'Französische (1789) · Industrielle (1750-1900) · Russische (1917) · Digitale (1990-heute)'},
+  {h:'🇩🇪 Deutschland', c:'Heiliges Röm. Reich (962) · Kaiserreich (1871) · Weimar (1919) · NS-Zeit (1933-1945) · BRD+DDR (1949-1990) · Wiedervereinigung (1990)'},
+  {h:'🌍 Entkolonialisierung', c:'1945-1975: Indien, afrikanische Länder, Südostasien werden unabhängig.'},
+  {h:'🕊️ Friedensschlüsse', c:'Westfälischer Frieden (1648) · Versailles (1919) · UNO-Charta (1945)'}
+],'I');
+
+// 11. Erdkunde
+PACK_I.wissen_erdkunde = makeInfoApp('wed','Erdkunde','🌍',[
+  {h:'🌍 Kontinente', c:'Asien (größter) · Afrika (2.) · Nordamerika · Südamerika · Antarktis · Europa · Australien/Ozeanien. 7 Kontinente.'},
+  {h:'🌊 Ozeane', c:'Pazifik (größter, 165 Mio km²) · Atlantik · Indischer · Arktischer · Südlicher. 71% der Erdoberfläche.'},
+  {h:'🏔️ Höchste Berge', c:'1. Everest (8.849 m) · 2. K2 (8.611 m) · 3. Kangchendzönga (8.586 m) · ... · Mont Blanc (4.808 m, Alpen)'},
+  {h:'🌋 Vulkane', c:'Höchster: Ojos del Salado (6.893 m, Chile). Aktivste: Kilauea (Hawaii). Gefährlichster: Vesuv.'},
+  {h:'🏜️ Wüsten', c:'Sahara (9,2 Mio km²) · Arabische Wüste · Gobi · Kalahari · Atacama (trockenste)'},
+  {h:'🌊 Flüsse', c:'1. Nil (6.650 km) · 2. Amazonas (6.400 km) · 3. Yangtse (6.300 km) · 4. Mississippi · 5. Jenissei · Rhein (1.233 km, DE)'},
+  {h:'🌍 Länder', c:'195 Länder weltweit. Größtes: Russland (17 Mio km²). Kleinstes: Vatikan (0,44 km²).'},
+  {h:'🏝️ Inseln', c:'Grönland (größte) · Neuguinea · Borneo · Madagaskar · Sumatra. 100.000+ Inseln weltweit.'}
+],'I');
+
+// 12. Technik
+PACK_I.wissen_technik = makeInfoApp('wte','Technik','⚙️',[
+  {h:'💻 Computer', c:'Von Abakus (3000 v.) zu ENIAC (1945) zu Quantencomputern (2020er). Moores Gesetz: alle 2 Jahre doppelt so viele Transistoren.'},
+  {h:'📱 Smartphones', c:'iPhone (2007). Heute: KI, 5G, 200 MPix Kamera. Mehr Leistung als Apollo-Computer.'},
+  {h:'🌐 Internet', c:'1969 ARPANET. 1991 WWW. Heute: 5 Mrd Nutzer, 8,5 Mrd Geräte.'},
+  {h:'🤖 KI', c:'Machine Learning · Deep Learning · LLMs (GPT-4, Claude, Gemini). Anwendungen: Übersetzung, Medizin, Autonomes Fahren.'},
+  {h:'⚛️ Quantencomputer', c:'Quanten-Bits (Qubits) statt Bits. 100 Mio× schneller für bestimmte Aufgaben. IBM, Google, China.'},
+  {h:'🚀 Raumfahrt', c:'SpaceX Falcon 9 (wiederverwendbar). Starship (Mars-Pläne). ISS: seit 1998 bewohnt.'},
+  {h:'🔋 Energie', c:'Solar, Wind, Wasser, Kernfusion (im Labor gelungen 2022). Tesla Powerwall.'},
+  {h:'🧬 Biotechnologie', c:'CRISPR Gen-Editierung. mRNA-Impfstoffe (2020). Künstliches Leben (2010).'}
+],'I');
+
+// 13. Kunst
+PACK_I.wissen_kunst = makeInfoApp('wku','Kunst','🎨',[
+  {h:'🏛️ Antike', c:'Griechenland: Skulpturen (Venus von Milo), Tempel (Parthenon). Rom: Mosaike, Wandmalereien.'},
+  {h:'🎨 Renaissance (1400-1600)', c:'Leonardo da Vinci (Mona Lisa, Letztes Abendmahl). Michelangelo (David, Sixtinische Kapelle). Raffael.'},
+  {h:'🌷 Barock (1600-1750)', c:'Dramatik, Licht/Schatten. Rembrandt, Rubens, Caravaggio. Versailles.'},
+  {h:'💫 Impressionismus (1860-1890)', c:'Licht und Moment einfangen. Monet (Seerosen), Renoir, Degas.'},
+  {h:'🎭 Expressionismus (1900-1920)', c:'Gefühle statt Realität. Munch (Der Schrei), Kirchner, Kandinsky.'},
+  {h:'🎲 Kubismus (1907-1920)', c:'Objekte aus mehreren Perspektiven. Picasso (Guernica), Braque.'},
+  {h:'🌈 Surrealismus (1920-1950)', c:'Traum und Unterbewusstsein. Dalí (schmelzende Uhren), Magritte, Miró.'},
+  {h:'🖼️ Moderne Kunst', c:'Pop Art (Warhol), Abstrakt (Pollock), Street Art (Banksy). Digital Art (NFTs).'}
+],'I');
+
+// 14. Literatur
+PACK_I.wissen_literatur = makeInfoApp('wli','Literatur','📖',[
+  {h:'📜 Antike', c:'Homer (Ilias, Odyssee) · Sophokles (Tragödien) · Vergil (Aeneis)'},
+  {h:'📖 Klassik', c:'Goethe (Faust) · Schiller (Die Räuber) · Lessing (Nathan der Weise)'},
+  {h:'🌍 Weltliteratur', c:'Shakespeare (Hamlet) · Tolstoi (Krieg und Frieden) · Dostojewski (Schuld und Sühne) · Cervantes (Don Quijote)'},
+  {h:'💭 Philosophische Literatur', c:'Kafka (Die Verwandlung, Der Process) · Camus (Der Fremde) · Sartre (Der Ekel)'},
+  {h:'🇩🇪 Deutsche Klassiker', c:'Thomas Mann (Buddenbrooks) · Hesse (Siddhartha, Steppenwolf) · Brecht (Mutter Courage) · Böll · Grass'},  
+  {h:'📚 Nobelpreisträger', c:'Toni Morrison · Gabriel García Márquez · Orhan Pamuk · Herta Müller · Annie Ernaux (2022)'},
+  {h:'🌟 Bestseller', c:'Harry Potter (Rowling) · Herr der Ringe (Tolkien) · Der kleine Prinz (Saint-Exupéry) · 1984 (Orwell)'},
+  {h:'🏳️ Êzîdî Literatur', c:'Mündliche Tradition: Qewl (Hymnen), Beyt (Gedichte). Schriftsteller: Feleknas Uca, Ilhan Cicek.'}
+],'I');
+
+// 15. Musik
+PACK_I.wissen_musik = makeInfoApp('wmu','Musik','🎵',[
+  {h:'🎼 Klassik', c:'Bach (Barock) · Mozart (Wiener Klassik) · Beethoven (Brücke zur Romantik) · Wagner · Tschaikowski · Mahler'},
+  {h:'🎸 Rock', c:'1950er: Elvis · 1960er: Beatles, Stones · 1970er: Led Zeppelin, Pink Floyd · 1980er: Queen, U2 · 1990er: Nirvana, Metallica'},
+  {h:'🎤 Pop', c:'Michael Jackson (King of Pop) · Madonna · Beyoncé · Taylor Swift · Ed Sheeran · Adele'},
+  {h:'🎹 Jazz', c:'Louis Armstrong · Miles Davis · John Coltrane · Ella Fitzgerald · Billie Holiday'},
+  {h:'🎧 Electronic', c:'Daft Punk · Kraftwerk (Pioniere) · Avicii · David Guetta · Calvin Harris'},
+  {h:'🎻 Musiktheorie', c:'Noten: A-G · 12 Halbtöne pro Oktave · Quintenzirkel · Tonleitern (Dur/Moll) · Akkorde'},
+  {h:'📯 Instrumente', c:'Saiten: Gitarre, Violine, Klavier · Bläser: Trompete, Flöte, Saxophon · Schlagzeug · Elektronik: Synth, Drums'},
+  {h:'🏆 Rekorde', c:'Bestseller-Album: Thriller (Jackson, 70 Mio). Meistgestreamter Song: Blinding Lights (Weeknd).'}
+],'I');
+
+// 16. Film
+PACK_I.wissen_film = makeInfoApp('wfi','Film','🎬',[
+  {h:'🎥 Filmgeschichte', c:'1895: Erste Filme (Lumière) · 1927: Tonfilm (The Jazz Singer) · 1930er: Farbfilm · 1995: Toy Story (erster CGI-Film)'},
+  {h:'🏆 Oscar-Gewinner', c:'Beste Filme: Ben Hur · Der Pate · Titanic · Herr der Ringe 3 · Slumdog Millionär · Parasite (2019, erster nicht-englischer)'},
+  {h:'💰 Erfolgreichste Filme', c:'1. Avatar (2,9 Mrd $) · 2. Avengers: Endgame (2,8) · 3. Avatar 2 (2,3) · 4. Titanic (2,2)'},
+  {h:'🎭 Genres', c:'Action · Komödie · Drama · Horror · Sci-Fi · Fantasy · Thriller · Animation · Dokumentation · Western'},
+  {h:'🌟 Regisseure', c:'Spielberg · Scorsese · Nolan · Tarantino · Cameron · Kubrick · Hitchcock (Master of Suspense)'},
+  {h:'🎞️ Filmtechnik', c:'Kamera, Ton, Schnitt, VFX (Visual Effects), CGI (Computer Generated Imagery), IMAX, 3D, Dolby Atmos'},
+  {h:'🎬 Serien', c:'Game of Thrones · Breaking Bad · Stranger Things · The Crown · Squid Game · Dark (deutsch)'},
+  {h:'🇩🇪 Deutscher Film', c:'Das Boot · Good Bye Lenin! · Der Untergang · Lola rennt · Die Blechtrommel (Oscar 1979)'}
+],'I');
+
+// 17. Sport
+PACK_I.wissen_sport = makeInfoApp('wsp','Sport','⚽',[
+  {h:'⚽ Fußball', c:'Beliebteste Sportart der Welt. 250 Mio Spieler. FIFA WM alle 4 Jahre. Rekord-WM-Sieger: Brasilien (5×).'},
+  {h:'🏀 Basketball', c:'NBA (USA): Michael Jordan (6× Champion), LeBron James. Olympisch seit 1936.'},
+  {h:'🎾 Tennis', c:'4 Grand Slams: Australian, French (Roland Garros), Wimbledon, US Open. Rekord: Djokovic (24 Grand Slams).'},
+  {h:'🏊 Schwimmen', c:'Olympische Disziplinen: Freistil, Brust, Rücken, Schmetterling, Lagen. Michael Phelps: 23× Gold.'},
+  {h:'🏃 Leichtathletik', c:'100m-Weltrekord: Usain Bolt (9,58 s). Marathon: 2:00:35 (Kelvin Kiptum, 2023).'},
+  {h:'🥊 Kampfsport', c:'Boxen · MMA/UFC · Judo · Karate · Taekwondo · Ringen · Sumo · Muay Thai'},
+  {h:'🚴 Radsport', c:'Tour de France (seit 1903). Rekord-Sieger: Eddy Merckx (5×). Lance Armstrong (7× aberkannt).'},
+  {h:'⛷️ Wintersport', c:'Ski Alpin · Biathlon · Skispringen · Eishockey · Snowboard · Eiskunstlauf. Olympia alle 4 Jahre.'},
+  {h:'🏅 Olympische Spiele', c:'Antike: 776 v.Chr. (Olympia). Moderne: 1896 (Athen). Sommer + Winter. Nächste: Paris 2024, Milano 2026.'},
+  {h:'🌍 Rekorde', c:'Höchster Sprung: 2,45 m (Männer Stabhochsprung). Schnellster: 44,72 km/h (Bolt). Längster Tennis-Match: 11 Std 5 Min (Isner-Mahut, 2010).'}
+],'I');
+
+/* ═══════════════════════════════════════════════════════════ */
+/*              REGISTRIEREN + HOOK                            */
+/* ═══════════════════════════════════════════════════════════ */
+const PACKS = { ...PACK_G, ...PACK_H, ...PACK_I };
+const origOpen = window.HalDo.open;
+window.HalDo.open = function(id) {
+  if (PACKS[id]) {
+    WM.open(id, PACKS[id].title, PACKS[id].render ? PACKS[id].render() : PACKS[id].render, {
+      width: PACKS[id].width, height: PACKS[id].height, onMount: PACKS[id].mount
+    });
+  } else {
+    return origOpen.call(window.HalDo, id);
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════ */
+/*              SIDEBAR + KATEGORIE                            */
+/* ═══════════════════════════════════════════════════════════ */
+function addGHIToSidebar() {
+  const sb = document.getElementById('sidebar');
+  if (!sb) return;
+  const sec = document.createElement('div');
+  sec.innerHTML = `
+    <div class="sidebar-title">⭐ G · H · I Packs (44 Apps)</div>
+    <button class="sidebar-item" data-ghi="G"><span class="ico">🏠</span>G · Zuhause (13)</button>
+    <button class="sidebar-item" data-ghi="H"><span class="ico">🌍</span>H · World (14)</button>
+    <button class="sidebar-item" data-ghi="I"><span class="ico">📚</span>I · Wissen (17)</button>
+  `;
+  sb.appendChild(sec);
+  sb.querySelectorAll('[data-ghi]').forEach(b => b.onclick = () => openGHICategory(b.dataset.ghi));
+}
+
+function openGHICategory(cat) {
+  const lists = {
+    G: { title: '🏠 G · Zuhause & Familie (13 Apps)', apps: [
+      ['fam_kalender','📅','Familienkalender'],['fam_einkauf','🛒','Einkaufsliste'],
+      ['fam_rezepte','🍳','Rezepte'],['fam_haushalt','🧹','Haushaltsplan'],
+      ['fam_kinder','👶','Kinder'],['fam_schule','🎒','Stundenplan'],
+      ['fam_haustiere','🐾','Haustiere'],['fam_pflanzen','🌱','Pflanzen'],
+      ['fam_reparaturen','🔧','Reparaturen'],['fam_werkzeuge','🛠️','Werkzeuge'],
+      ['fam_strom','⚡','Stromzähler'],['fam_heizung','🔥','Heizung'],
+      ['fam_mietvertrag','📄','Mietvertrag']
+    ]},
+    H: { title: '🌍 H · World (14 Apps)', apps: [
+      ['world_karte','🗺️','Weltkarte'],['world_laender','🌍','Länder A-Z'],
+      ['world_hauptstaedte','🏛️','Hauptstädte'],['world_flaggen','🏴','Flaggen'],
+      ['world_waehrungen','💱','Währungen'],['world_zeitzonen','🌐','Zeitzonen'],
+      ['world_sprachen','🗣️','Sprachen'],['world_kulturen','🎭','Kulturen'],
+      ['world_reiseziele','✈️','Reiseziele'],['world_klima','🌡️','Klima'],
+      ['world_bevoelkerung','👥','Bevölkerung'],['world_geschichte','📜','Geschichte'],
+      ['world_politik','🏛️','Politik'],['world_wirtschaft','💼','Wirtschaft']
+    ]},
+    I: { title: '📚 I · Wissen (17 Apps)', apps: [
+      ['wissen_ency','📚','Enzyklopädie'],['wissen_woerterbuch','📖','Wörterbuch'],
+      ['wissen_zitate','💬','Zitate'],['wissen_fakten','💡','Fun Facts'],
+      ['wissen_rekorde','🏆','Rekorde'],['wissen_erfindungen','⚙️','Erfindungen'],
+      ['wissen_weltall','🌌','Weltall'],['wissen_tiere','🦁','Tiere'],
+      ['wissen_pflanzen','🌿','Pflanzen'],['wissen_geschichte','📜','Geschichte'],
+      ['wissen_erdkunde','🌍','Erdkunde'],['wissen_technik','⚙️','Technik'],
+      ['wissen_kunst','🎨','Kunst'],['wissen_literatur','📖','Literatur'],
+      ['wissen_musik','🎵','Musik'],['wissen_film','🎬','Film'],
+      ['wissen_sport','⚽','Sport']
+    ]}
+  };
+  const c = lists[cat];
+  if (!c) return;
+  WM.open('ghi_' + cat, c.title, `
+    <div class="app-content">
+      <p style="font-size:11px;opacity:.7">${c.apps.length} Apps</p>
+      <div class="app-grid">
+        ${c.apps.map(([id,ic,nm]) => `<div class="app-tile" data-id="${id}"><span class="tico">${ic}</span><span class="tname">${nm}</span></div>`).join('')}
+      </div>
+    </div>
+  `, {
+    width: 440, height: 540,
+    onMount(root) {
+      root.querySelectorAll('[data-id]').forEach(t => t.onclick = () => window.HalDo.open(t.dataset.id));
+    }
+  });
+}
+
+setTimeout(() => {
+  addGHIToSidebar();
+  toast('🚀 v2.3 geladen: G + H + I (44 Apps)');
+}, 1000);
+
+window.HalDo.PackGHI = {
+  G: Object.keys(PACK_G),
+  H: Object.keys(PACK_H),
+  I: Object.keys(PACK_I),
+  openCategory: openGHICategory,
+  total: Object.keys(PACKS).length
+};
+
+console.log('[HalDo v2.3] G+H+I Packs: ' + Object.keys(PACKS).length + ' Apps registriert');
+
+})();
+</script>
+<!-- ═══════ ENDE HALDO PACK v2.3 ═══════ -->
 </body>
 </html>
