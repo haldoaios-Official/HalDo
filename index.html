@@ -1669,5 +1669,965 @@ window.HalDo={
 /* ========== WELCOME ========== */
 setTimeout(()=>toast('🌌 Willkommen, Bruder. Klicke auf JETZT STARTEN.'),800);
 </script>
+<!-- ═══════ HALDO PACK v2.1 — A · B · C ═══════ -->
+<script>
+(function(){
+'use strict';
+if (!window.HalDo || !window.HalDo.WM) { console.warn('v2.1 braucht v2.0'); return; }
+const WM = window.HalDo.WM;
+const toast = window.HalDo.toast;
+const speak = window.HalDo.speak;
+const store = (k,v) => { try{localStorage.setItem(k,JSON.stringify(v));}catch(_){} };
+const load = (k,d) => { try{return JSON.parse(localStorage.getItem(k))??d;}catch(_){return d;} };
+
+/* ═══════ GENERISCHE QUIZ-APP ═══════ */
+function makeQuizApp(id, title, icon, questions, cat) {
+  return {
+    title: icon + ' ' + title, width: 400, height: 560, cat,
+    render() {
+      return `
+        <div class="app-content">
+          <div style="display:flex;justify-content:space-between;font-size:11px;opacity:.7">
+            <span id="qz_cat_${id}">${cat||''}</span>
+            <span id="qz_prog_${id}"></span>
+          </div>
+          <div id="qz_q_${id}" style="font-size:14px;font-weight:600;padding:14px;border-radius:12px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);min-height:70px;line-height:1.5"></div>
+          <div id="qz_a_${id}" style="display:flex;flex-direction:column;gap:8px"></div>
+          <div id="qz_r_${id}" style="text-align:center;font-size:13px;min-height:20px;font-weight:600"></div>
+          <button class="app-btn primary" id="qz_next_${id}">Nächste Frage →</button>
+          <button class="app-btn" id="qz_reset_${id}">🔄 Neu starten</button>
+        </div>`;
+    },
+    mount(root) {
+      let idx=0, score=0, answered=false;
+      const qBox=root.querySelector('#qz_q_'+id), aBox=root.querySelector('#qz_a_'+id);
+      const rBox=root.querySelector('#qz_r_'+id), pBox=root.querySelector('#qz_prog_'+id);
+      function showQ() {
+        if (idx >= questions.length) {
+          qBox.innerHTML = '<div style="text-align:center;font-size:16px;padding:20px">🎉 Fertig!<br><br>Punkte: <b style="color:var(--accent);font-size:24px">'+score+'</b> / '+questions.length+'</div>';
+          aBox.innerHTML=''; rBox.textContent=''; pBox.textContent='';
+          return;
+        }
+        answered=false;
+        const q=questions[idx];
+        pBox.textContent='Frage '+(idx+1)+'/'+questions.length+' · Punkte: '+score;
+        qBox.textContent=q.q;
+        rBox.textContent=''; rBox.style.color='';
+        aBox.innerHTML=q.a.map((o,i)=>'<button class="app-btn" data-ans="'+i+'" style="text-align:left;justify-content:flex-start">'+o+'</button>').join('');
+        aBox.querySelectorAll('[data-ans]').forEach(btn=>btn.onclick=()=>{
+          if (answered) return;
+          answered=true;
+          const c=+btn.dataset.ans;
+          if (c===q.c) { score++; rBox.textContent='✅ Richtig!'; rBox.style.color='#4ade80'; }
+          else { rBox.textContent='❌ Richtig wäre: '+q.a[q.c]; rBox.style.color='#f87171'; }
+          aBox.querySelectorAll('[data-ans]').forEach((b,j)=>{
+            b.style.background = j===q.c ? 'rgba(74,222,128,.3)' : (j===c ? 'rgba(248,113,113,.3)' : '');
+          });
+        });
+      }
+      root.querySelector('#qz_next_'+id).onclick=()=>{ idx++; showQ(); };
+      root.querySelector('#qz_reset_'+id).onclick=()=>{ idx=0; score=0; showQ(); };
+      showQ();
+    }
+  };
+}
+
+/* ═══════ GENERISCHE FLASHCARD-APP ═══════ */
+function makeFlashcardApp(id, title, icon, cards, cat) {
+  return {
+    title: icon + ' ' + title, width: 400, height: 480, cat,
+    render() {
+      return `
+        <div class="app-content" style="text-align:center">
+          <div style="display:flex;justify-content:space-between;font-size:11px;opacity:.7">
+            <span>${cat||''}</span><span id="fc_p_${id}"></span>
+          </div>
+          <div id="fc_c_${id}" style="min-height:180px;padding:22px;border-radius:16px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1.6;cursor:pointer;flex-direction:column;gap:8px"></div>
+          <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+            <button class="app-btn" id="fc_pv_${id}">←</button>
+            <button class="app-btn primary" id="fc_f_${id}">🔄 Drehen</button>
+            <button class="app-btn" id="fc_n_${id}">→</button>
+          </div>
+          <button class="app-btn" id="fc_sh_${id}">🔀 Zufall</button>
+        </div>`;
+    },
+    mount(root) {
+      let idx=0, flipped=false;
+      const card=root.querySelector('#fc_c_'+id), prog=root.querySelector('#fc_p_'+id);
+      function show() {
+        if (!cards.length) { card.textContent='Keine Karten'; return; }
+        prog.textContent='Karte '+(idx+1)+'/'+cards.length;
+        const c=cards[idx];
+        card.innerHTML = flipped
+          ? '<div><b style="color:var(--accent);font-size:12px">ANTWORT</b><br><br>'+c.a+'</div>'
+          : '<div><b style="color:var(--accent);font-size:12px">FRAGE</b><br><br>'+c.q+'</div>';
+      }
+      card.onclick=()=>{ flipped=!flipped; show(); };
+      root.querySelector('#fc_pv_'+id).onclick=()=>{ idx=(idx-1+cards.length)%cards.length; flipped=false; show(); };
+      root.querySelector('#fc_f_'+id).onclick=()=>{ flipped=!flipped; show(); };
+      root.querySelector('#fc_n_'+id).onclick=()=>{ idx=(idx+1)%cards.length; flipped=false; show(); };
+      root.querySelector('#fc_sh_'+id).onclick=()=>{ idx=Math.floor(Math.random()*cards.length); flipped=false; show(); };
+      show();
+    }
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*                    A — HALDO AI & ASSISTANT                 */
+/* ═══════════════════════════════════════════════════════════ */
+const PACK_A = {};
+
+PACK_A.ai_voice = {
+  title: '🎤 AI Voice', width: 360, height: 400, cat: 'A',
+  render() { return `
+    <div class="app-content" style="text-align:center">
+      <div style="font-size:60px">🎤</div>
+      <div id="av_status" style="font-size:14px;color:var(--accent);min-height:24px">Bereit</div>
+      <button class="app-btn primary" id="av_btn" style="min-height:60px;font-size:16px">🎤 Aufnahme starten</button>
+      <div id="av_result" style="padding:10px;border-radius:10px;background:rgba(0,229,255,.05);min-height:60px;font-size:12px;text-align:left"></div>
+      <button class="app-btn" id="av_speak">🔊 Vorlesen</button>
+    </div>
+  `;},
+  mount(root) {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const btn = root.querySelector('#av_btn'), status = root.querySelector('#av_status'), res = root.querySelector('#av_result');
+    let lastText = '';
+    if (!SR) { status.textContent = '❌ Spracherkennung nicht verfügbar'; btn.disabled=true; return; }
+    btn.onclick = () => {
+      const rec = new SR(); rec.lang = 'de-DE'; rec.continuous = false; rec.interimResults = true;
+      status.textContent = '🔴 Hört zu...';
+      rec.onresult = e => {
+        const t = Array.from(e.results).map(r => r[0].transcript).join(' ');
+        lastText = t; res.textContent = t;
+      };
+      rec.onerror = () => status.textContent = 'Fehler';
+      rec.onend = () => status.textContent = '✅ Fertig';
+      rec.start();
+    };
+    root.querySelector('#av_speak').onclick = () => { if (lastText) speak(lastText); else toast('Nichts aufgenommen'); };
+  }
+};
+
+PACK_A.ai_vision = {
+  title: '👁️ AI Vision', width: 380, height: 500, cat: 'A',
+  render() { return `
+    <div class="app-content" style="text-align:center">
+      <div style="font-size:40px">👁️</div>
+      <video id="av_cam" autoplay playsinline style="width:100%;border-radius:12px;background:#000;max-height:240px"></video>
+      <button class="app-btn primary" id="av_start">📷 Kamera starten</button>
+      <button class="app-btn" id="av_snap">📸 Foto aufnehmen</button>
+      <button class="app-btn danger" id="av_stop">⏹ Stop</button>
+      <div id="av_out" style="font-size:11px;opacity:.7"></div>
+    </div>
+  `;},
+  mount(root) {
+    const video = root.querySelector('#av_cam'), out = root.querySelector('#av_out');
+    let stream = null;
+    root.querySelector('#av_start').onclick = async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        out.textContent = '✅ Kamera aktiv';
+      } catch(e) { out.textContent = '❌ Zugriff verweigert: ' + e.message; }
+    };
+    root.querySelector('#av_snap').onclick = () => {
+      if (!stream) return toast('Erst Kamera starten');
+      const c = document.createElement('canvas'); c.width = 640; c.height = 480;
+      c.getContext('2d').drawImage(video, 0, 0, 640, 480);
+      const url = c.toDataURL('image/jpeg', 0.8);
+      const imgs = load('haldo_vision_v1', []); imgs.unshift({ url, date: new Date().toISOString() });
+      store('haldo_vision_v1', imgs.slice(0, 20));
+      toast('📸 Foto gespeichert (' + load('haldo_vision_v1', []).length + ')');
+      out.innerHTML = '<img src="' + url + '" style="width:100%;border-radius:8px;margin-top:8px">';
+    };
+    root.querySelector('#av_stop').onclick = () => { if (stream) { stream.getTracks().forEach(t => t.stop()); out.textContent = 'Kamera gestoppt'; } };
+  }
+};
+
+PACK_A.ai_summarize = {
+  title: '📋 AI Summarize', width: 380, height: 480, cat: 'A',
+  render() { return `
+    <div class="app-content">
+      <textarea class="app-textarea" id="sm_in" placeholder="Text einfügen..." style="min-height:120px"></textarea>
+      <div class="app-row">Sätze: <b id="sm_sent">3</b></div>
+      <input type="range" id="sm_range" min="1" max="10" value="3" style="width:100%">
+      <button class="app-btn primary" id="sm_go">📋 Zusammenfassen</button>
+      <div id="sm_out" style="padding:12px;border-radius:12px;background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.2);min-height:80px;font-size:12px;line-height:1.6"></div>
+      <button class="app-btn" id="sm_speak">🔊 Vorlesen</button>
+    </div>
+  `;},
+  mount(root) {
+    let sum = '';
+    root.querySelector('#sm_range').oninput = e => root.querySelector('#sm_sent').textContent = e.target.value;
+    root.querySelector('#sm_go').onclick = () => {
+      const txt = root.querySelector('#sm_in').value.trim();
+      if (!txt) return;
+      const sents = txt.match(/[^.!?]+[.!?]+/g) || [txt];
+      const freq = {};
+      sents.forEach(s => s.toLowerCase().match(/\b\w{4,}\b/g)?.forEach(w => freq[w] = (freq[w] || 0) + 1));
+      const scored = sents.map((s, i) => {
+        const words = s.toLowerCase().match(/\b\w{4,}\b/g) || [];
+        const score = words.reduce((a, w) => a + (freq[w] || 0), 0) / (words.length || 1);
+        return { s: s.trim(), score, idx: i };
+      });
+      const n = +root.querySelector('#sm_range').value;
+      const top = scored.sort((a, b) => b.score - a.score).slice(0, n).sort((a, b) => a.idx - b.idx);
+      sum = top.map(t => t.s).join(' ');
+      root.querySelector('#sm_out').innerHTML = '<b style="color:var(--accent)">📋 Zusammenfassung:</b><br><br>' + sum;
+    };
+    root.querySelector('#sm_speak').onclick = () => { if (sum) speak(sum); };
+  }
+};
+
+PACK_A.ai_writer = {
+  title: '✍️ AI Writer', width: 380, height: 480, cat: 'A',
+  render() { return `
+    <div class="app-content">
+      <select class="app-select" id="wr_type">
+        <option value="email">📧 E-Mail</option>
+        <option value="letter">📝 Brief</option>
+        <option value="cv">📄 Lebenslauf</option>
+        <option value="invitation">💌 Einladung</option>
+        <option value="apology">🙏 Entschuldigung</option>
+        <option value="thanks">🙏 Dankesschreiben</option>
+      </select>
+      <input class="app-input" id="wr_to" placeholder="An wen?">
+      <input class="app-input" id="wr_subject" placeholder="Betreff / Anlass">
+      <textarea class="app-textarea" id="wr_notes" placeholder="Stichpunkte..." style="min-height:60px"></textarea>
+      <button class="app-btn primary" id="wr_go">✍️ Text generieren</button>
+      <textarea class="app-textarea" id="wr_out" readonly style="min-height:140px"></textarea>
+      <button class="app-btn" id="wr_speak">🔊 Vorlesen</button>
+      <button class="app-btn" id="wr_copy">📋 Kopieren</button>
+    </div>
+  `;},
+  mount(root) {
+    const templates = {
+      email: (to, subj, notes) => `Betreff: ${subj || '(kein Betreff)'}\n\nHallo ${to || 'zusammen'},\n\n${notes || 'ich schreibe dir wegen eines wichtigen Anliegens.'}\n\nBitte melde dich bei Fragen gerne bei mir.\n\nBeste Grüße\nHalil`,
+      letter: (to, subj, notes) => `Liebe/r ${to || 'Empfänger'},\n\n${notes || 'ich möchte dir mitteilen...'}\n\nMit freundlichen Grüßen\nHalil`,
+      cv: (to, subj, notes) => `LEBENSLAUF\n\nName: Halil Donma\n\nBerufserfahrung:\n${notes || '• siehe Anhang'}\n\nKenntnisse:\n• Deutsch, Englisch, Kurdisch, Türkisch\n• Web-Entwicklung\n\nBereit für neue Herausforderungen.`,
+      invitation: (to, subj, notes) => `Einladung: ${subj || 'Zu einem besonderen Anlass'}\n\nLiebe/r ${to || 'Gast'},\n\nhiermit lade ich dich herzlich ein.\n\n${notes || ''}\n\nIch freue mich auf dein Kommen!\n\nHalil`,
+      apology: (to, subj, notes) => `Liebe/r ${to || 'Betroffene/r'},\n\nich möchte mich aufrichtig bei dir entschuldigen. ${notes || ''}\n\nEs tut mir sehr leid.\n\nMit aufrichtigen Grüßen\nHalil`,
+      thanks: (to, subj, notes) => `Liebe/r ${to || 'Liebe Helfer'},\n\nvielen Dank für ${subj || 'deine Unterstützung'}!\n\n${notes || 'Ich weiß das sehr zu schätzen.'}\n\nHerzlichen Dank\nHalil`
+    };
+    let out = '';
+    root.querySelector('#wr_go').onclick = () => {
+      const t = root.querySelector('#wr_type').value;
+      out = templates[t](root.querySelector('#wr_to').value, root.querySelector('#wr_subject').value, root.querySelector('#wr_notes').value);
+      root.querySelector('#wr_out').value = out;
+    };
+    root.querySelector('#wr_speak').onclick = () => { if (out) speak(out); };
+    root.querySelector('#wr_copy').onclick = () => { if (out) { navigator.clipboard.writeText(out); toast('📋 Kopiert'); } };
+  }
+};
+
+PACK_A.ai_code = {
+  title: '💻 AI Code', width: 380, height: 500, cat: 'A',
+  render() { return `
+    <div class="app-content">
+      <select class="app-select" id="cd_type">
+        <option value="html">📄 HTML Template</option>
+        <option value="css">🎨 CSS Glassmorphism</option>
+        <option value="js">⚡ JS Funktion</option>
+        <option value="fetch">🌐 Fetch API</option>
+        <option value="storage">💾 LocalStorage</option>
+      </select>
+      <button class="app-btn primary" id="cd_go">💻 Code generieren</button>
+      <textarea class="app-textarea" id="cd_out" readonly style="min-height:220px;font-family:monospace;font-size:11px"></textarea>
+      <button class="app-btn" id="cd_copy">📋 Kopieren</button>
+    </div>
+  `;},
+  mount(root) {
+    const snippets = {
+      html: '<!DOCTYPE html>\n<html>\n<head>\n  <meta charset="UTF-8">\n  <title>HalDo</title>\n</head>\n<body>\n  <h1>Hallo Bruder 💙</h1>\n</body>\n</html>',
+      css: '.glass {\n  background: rgba(10,20,40,0.55);\n  backdrop-filter: blur(24px);\n  border: 1.5px solid rgba(0,229,255,0.4);\n  border-radius: 18px;\n  box-shadow: 0 0 20px rgba(0,229,255,0.4);\n}',
+      js: 'function greet(name) {\n  return `Hallo ${name}, willkommen bei HalDo!`;\n}\n\nconsole.log(greet("Bruder"));',
+      fetch: 'async function loadData(url) {\n  try {\n    const res = await fetch(url);\n    const data = await res.json();\n    return data;\n  } catch (e) {\n    console.error("Fehler:", e);\n  }\n}',
+      storage: 'function save(key, value) {\n  localStorage.setItem(key, JSON.stringify(value));\n}\n\nfunction load(key, def) {\n  try {\n    return JSON.parse(localStorage.getItem(key)) ?? def;\n  } catch { return def; }\n}'
+    };
+    root.querySelector('#cd_go').onclick = () => {
+      root.querySelector('#cd_out').value = snippets[root.querySelector('#cd_type').value];
+    };
+    root.querySelector('#cd_copy').onclick = () => {
+      navigator.clipboard.writeText(root.querySelector('#cd_out').value);
+      toast('📋 Kopiert');
+    };
+  }
+};
+
+PACK_A.ai_image = {
+  title: '🎨 AI Image Prompt', width: 380, height: 480, cat: 'A',
+  render() { return `
+    <div class="app-content">
+      <input class="app-input" id="im_subj" placeholder="Subjekt (z.B. Planet, Person)">
+      <select class="app-select" id="im_style">
+        <option>Cyberpunk Neon</option><option>Holographic Sci-Fi</option><option>Fotorealistisch</option>
+        <option>Anime</option><option>Ölgemälde</option><option>Aquarell</option><option>3D Render</option>
+      </select>
+      <button class="app-btn primary" id="im_go">🎨 Prompt erstellen</button>
+      <div id="im_out" style="padding:12px;border-radius:12px;background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.2);font-size:11px;line-height:1.5;min-height:80px"></div>
+      <button class="app-btn" id="im_copy">📋 Kopieren</button>
+      <p style="font-size:10px;opacity:.5">Kopiere den Prompt in Midjourney, DALL-E, Stable Diffusion...</p>
+    </div>
+  `;},
+  mount(root) {
+    let prompt = '';
+    root.querySelector('#im_go').onclick = () => {
+      const s = root.querySelector('#im_subj').value || 'a mysterious object';
+      const st = root.querySelector('#im_style').value;
+      prompt = `${s}, ${st}, highly detailed, cinematic lighting, 4k, ultra realistic, masterpiece, trending on artstation, holographic glow, cyan and purple accents`;
+      root.querySelector('#im_out').textContent = prompt;
+    };
+    root.querySelector('#im_copy').onclick = () => { if (prompt) { navigator.clipboard.writeText(prompt); toast('📋 Kopiert'); } };
+  }
+};
+
+PACK_A.ai_study = {
+  title: '📚 AI Study', width: 380, height: 500, cat: 'A',
+  render() { return `
+    <div class="app-content">
+      <input class="app-input" id="st_topic" placeholder="Thema (z.B. Photosynthese)">
+      <input class="app-input" type="number" id="st_days" placeholder="Tage bis Prüfung" value="7">
+      <button class="app-btn primary" id="st_go">📚 Lernplan erstellen</button>
+      <div id="st_out" style="font-size:12px;line-height:1.6"></div>
+    </div>
+  `;},
+  mount(root) {
+    root.querySelector('#st_go').onclick = () => {
+      const topic = root.querySelector('#st_topic').value || 'Allgemein';
+      const days = Math.max(1, +root.querySelector('#st_days').value || 7);
+      const phases = ['Grundlagen lesen', 'Notizen machen', 'Karteikarten erstellen', 'Übungsaufgaben', 'Zusammenfassung', 'Prüfungsfragen', 'Wiederholung'];
+      let html = `<h4 style="color:var(--accent)">📖 Lernplan: ${topic} (${days} Tage)</h4>`;
+      for (let i = 0; i < days; i++) {
+        const p = phases[i % phases.length];
+        html += `<div class="app-row"><b>Tag ${i+1}:</b> ${p} <span style="margin-left:auto;opacity:.6;font-size:10px">${(i+1)}/${days}</span></div>`;
+      }
+      root.querySelector('#st_out').innerHTML = html;
+    };
+  }
+};
+
+PACK_A.ai_tutor = {
+  title: '🎓 AI Tutor', width: 380, height: 500, cat: 'A',
+  render() { return `
+    <div class="app-content">
+      <div id="tu_log" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:8px">
+        <div style="padding:10px;background:rgba(0,229,255,.15);border-radius:12px;font-size:12px">Hallo Bruder! Frag mich alles — Mathe, Physik, Geschichte, Sprachen. 🎓</div>
+      </div>
+      <input class="app-input" id="tu_in" placeholder="Deine Frage...">
+      <button class="app-btn primary" id="tu_send">Fragen</button>
+    </div>
+  `;},
+  mount(root) {
+    const log = root.querySelector('#tu_log'), inp = root.querySelector('#tu_in');
+    const answers = {
+      'photosynthese': 'Photosynthese ist der Prozess, bei dem Pflanzen Lichtenergie in chemische Energie umwandeln: 6CO₂ + 6H₂O + Licht → C₆H₁₂O₆ + 6O₂. Sie findet in den Chloroplasten statt.',
+      'newton': 'Newtons drei Gesetze: 1) Trägheit — ein Körper bleibt in Ruhe oder gleichförmiger Bewegung, wenn keine Kraft wirkt. 2) F=ma — Kraft = Masse × Beschleunigung. 3) Actio = Reactio — jede Kraft hat eine Gegenkraft.',
+      'mathe': 'Mathe-Tipp: Bei quadratischen Gleichungen ax²+bx+c=0 nutzt du die Mitternachtsformel: x = (-b ± √(b²-4ac)) / 2a.',
+      'pi': 'Pi (π) ist das Verhältnis von Kreisumfang zu Durchmesser: π ≈ 3,14159... Es ist irrational — unendlich viele Nachkommastellen ohne Muster.',
+      'licht': 'Lichtgeschwindigkeit: c ≈ 299.792.458 m/s. Nichts kann schneller sein (Relativitätstheorie).',
+      'dna': 'DNA (Desoxyribonukleinsäure) speichert Erbinformation. Doppelhelix aus 4 Basen: A-T, G-C. Sie wird bei Zellteilung kopiert.'
+    };
+    const send = () => {
+      const t = inp.value.trim(); if (!t) return;
+      log.innerHTML += `<div style="padding:10px;background:rgba(180,120,255,.2);border-radius:12px;font-size:12px;align-self:flex-end;max-width:85%">${t.replace(/</g,'&lt;')}</div>`;
+      inp.value = '';
+      log.scrollTop = log.scrollHeight;
+      setTimeout(() => {
+        const key = Object.keys(answers).find(k => t.toLowerCase().includes(k));
+        const reply = key ? answers[key] : 'Gute Frage! In v2.2 kann ich mit echter KI antworten. Aktuell kenne ich: Photosynthese, Newton, Mathe, Pi, Licht, DNA.';
+        log.innerHTML += `<div style="padding:10px;background:rgba(0,229,255,.15);border-radius:12px;font-size:12px;max-width:85%">${reply}</div>`;
+        log.scrollTop = log.scrollHeight;
+        speak(reply);
+      }, 400);
+    };
+    root.querySelector('#tu_send').onclick = send;
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+  }
+};
+
+PACK_A.ai_coach = {
+  title: '💪 AI Coach', width: 380, height: 460, cat: 'A',
+  render() { return `
+    <div class="app-content" style="text-align:center">
+      <div style="font-size:60px">💪</div>
+      <div id="co_quote" style="padding:20px;border-radius:14px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);font-size:14px;line-height:1.6;min-height:100px;display:flex;align-items:center;justify-content:center"></div>
+      <button class="app-btn primary" id="co_next">🔄 Neue Motivation</button>
+      <button class="app-btn" id="co_speak">🔊 Vorlesen</button>
+      <div class="app-row" style="text-align:center">Heute motiviert: <b id="co_count">0</b></div>
+    </div>
+  `;},
+  mount(root) {
+    const quotes = [
+      'Du schaffst das, Bruder! 💙 Ein Schritt nach dem anderen.',
+      'Erfolg ist die Summe kleiner Schritte. Mach heute einen davon.',
+      'Der einzige Weg, der scheitert, ist der, den du nicht gehst.',
+      'Dein Potenzial ist unbegrenzt. Fang einfach an.',
+      'Disziplin schlägt Motivation. Zeig was du kannst! 🔥',
+      'Jeden Tag 1% besser = nach einem Jahr 37x besser.',
+      'Deine Zukunft wird von dem bestimmt, was du JETZT tust.',
+      'Glaube an dich — ich glaube an dich, Bruder!'
+    ];
+    let count = load('haldo_coach_v1', 0);
+    root.querySelector('#co_count').textContent = count;
+    let current = '';
+    root.querySelector('#co_next').onclick = () => {
+      current = quotes[Math.floor(Math.random() * quotes.length)];
+      root.querySelector('#co_quote').textContent = current;
+      count++; store('haldo_coach_v1', count);
+      root.querySelector('#co_count').textContent = count;
+    };
+    root.querySelector('#co_speak').onclick = () => { if (current) speak(current); };
+    root.querySelector('#co_next').click();
+  }
+};
+
+PACK_A.ai_psychologist = {
+  title: '🧠 AI Psychologe', width: 380, height: 500, cat: 'A',
+  render() { return `
+    <div class="app-content">
+      <div style="font-size:11px;opacity:.6;text-align:center;padding:6px;border-radius:8px;background:rgba(255,100,100,.1)">⚠️ Kein Ersatz für echten Therapeuten</div>
+      <div id="ps_log" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:8px">
+        <div style="padding:10px;background:rgba(0,229,255,.15);border-radius:12px;font-size:12px">Hallo Bruder. Wie geht es dir heute? Ich bin hier zum Zuhören. 💙</div>
+      </div>
+      <input class="app-input" id="ps_in" placeholder="Was beschäftigt dich?">
+      <button class="app-btn primary" id="ps_send">Senden</button>
+    </div>
+  `;},
+  mount(root) {
+    const log = root.querySelector('#ps_log'), inp = root.querySelector('#ps_in');
+    const responses = {
+      'traurig': 'Es ist okay, traurig zu sein, Bruder. Nimm dir Zeit. Was macht dich traurig?',
+      'angst': 'Angst ist normal. Atme tief durch — 4 Sekunden ein, 4 halten, 4 aus. Was macht dir Angst?',
+      'stress': 'Stress zeigt, dass dir etwas wichtig ist. Was steht gerade an? Vielleicht hilft ein Plan.',
+      'müde': 'Müdigkeit ist ein Signal. Schlaf ist wichtig. Wie viel schläfst du im Schnitt?',
+      'einsam': 'Einsamkeit tut weh. Du bist nicht allein — ich höre zu. Wen könntest du heute kontaktieren?',
+      'glücklich': 'Das freut mich sehr, Bruder! 💙 Erzähl — was macht dich glücklich?'
+    };
+    const send = () => {
+      const t = inp.value.trim(); if (!t) return;
+      log.innerHTML += `<div style="padding:10px;background:rgba(180,120,255,.2);border-radius:12px;font-size:12px;align-self:flex-end;max-width:85%">${t.replace(/</g,'&lt;')}</div>`;
+      inp.value = ''; log.scrollTop = log.scrollHeight;
+      setTimeout(() => {
+        const key = Object.keys(responses).find(k => t.toLowerCase().includes(k));
+        const reply = key ? responses[key] : 'Ich höre dir zu, Bruder. Erzähl mir mehr — was fühlst du gerade?';
+        log.innerHTML += `<div style="padding:10px;background:rgba(0,229,255,.15);border-radius:12px;font-size:12px;max-width:85%">${reply}</div>`;
+        log.scrollTop = log.scrollHeight;
+      }, 500);
+    };
+    root.querySelector('#ps_send').onclick = send;
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+  }
+};
+
+PACK_A.ai_speech = {
+  title: '🔊 AI Speech', width: 360, height: 420, cat: 'A',
+  render() { return `
+    <div class="app-content">
+      <textarea class="app-textarea" id="sp_txt" placeholder="Text zum Vorlesen..." style="min-height:100px">Hallo Bruder, ich bin HalDo.</textarea>
+      <select class="app-select" id="sp_lang">
+        <option value="de-DE">🇩🇪 Deutsch</option>
+        <option value="en-US">🇺🇸 English</option>
+        <option value="tr-TR">🇹🇷 Türkçe</option>
+        <option value="ar-SA">🇸🇦 العربية</option>
+        <option value="he-IL">🇮🇱 עברית</option>
+      </select>
+      <div class="app-row">Tempo: <b id="sp_r">1.0</b></div>
+      <input type="range" id="sp_rate" min="0.5" max="2" step="0.1" value="1" style="width:100%">
+      <button class="app-btn primary" id="sp_go">🔊 Vorlesen</button>
+      <button class="app-btn danger" id="sp_stop">⏹ Stop</button>
+    </div>
+  `;},
+  mount(root) {
+    root.querySelector('#sp_rate').oninput = e => root.querySelector('#sp_r').textContent = e.target.value;
+    root.querySelector('#sp_go').onclick = () => {
+      if (!('speechSynthesis' in window)) return toast('Nicht verfügbar');
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(root.querySelector('#sp_txt').value);
+      u.lang = root.querySelector('#sp_lang').value;
+      u.rate = +root.querySelector('#sp_rate').value;
+      speechSynthesis.speak(u);
+    };
+    root.querySelector('#sp_stop').onclick = () => speechSynthesis.cancel();
+  }
+};
+
+PACK_A.ai_assistant = {
+  title: '🤖 AI Assistant Hub', width: 420, height: 520, cat: 'A',
+  render() {
+    const list = [
+      ['chat','💬','AI Chat'],['memory','🧠','AI Memory'],['ai_voice','🎤','AI Voice'],['ai_vision','👁️','AI Vision'],
+      ['translator','🌐','AI Translate'],['ai_summarize','📋','AI Summarize'],['ai_study','📚','AI Study'],
+      ['ai_writer','✍️','AI Writer'],['ai_code','💻','AI Code'],['ai_image','🎨','AI Image'],
+      ['music','🎵','AI Music'],['ai_speech','🔊','AI Speech'],['avatar','🤖','AI Avatar'],
+      ['ai_tutor','🎓','AI Tutor'],['ai_coach','💪','AI Coach'],['ai_psychologist','🧠','AI Psychologe'],
+      ['dashboard','🏠','AI Dashboard']
+    ];
+    return `<div class="app-content">
+      <p style="font-size:11px;opacity:.7">Alle 17 AI-Apps an einem Ort</p>
+      <div class="app-grid">
+        ${list.map(([id,ic,nm])=>`<div class="app-tile" data-open="${id}"><span class="tico">${ic}</span><span class="tname">${nm}</span></div>`).join('')}
+      </div>
+    </div>`;
+  },
+  mount(root) {
+    root.querySelectorAll('[data-open]').forEach(t => t.onclick = () => window.HalDo.open(t.dataset.open));
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════ */
+/*                       B — HALDO BILDUNG                     */
+/* ═══════════════════════════════════════════════════════════ */
+const PACK_B = {};
+
+// 8 echte Quiz-Apps
+PACK_B.bildung_mathe = makeQuizApp('bm', 'Mathe-Quiz', '🔢', [
+  {q:'Was ist 7 × 8?', a:['54','56','64','48'], c:1},
+  {q:'Wie lautet die Formel für die Kreisfläche?', a:['2πr','πr²','πd','r²'], c:1},
+  {q:'Was ist die Wurzel aus 144?', a:['10','11','12','14'], c:2},
+  {q:'Löse: 3x + 5 = 20', a:['x=3','x=5','x=7','x=10'], c:1},
+  {q:'Was ist 15 % von 200?', a:['25','30','35','40'], c:1},
+  {q:'Wie viele Grad hat ein rechtwinkliges Dreieck insgesamt?', a:['90','180','270','360'], c:1},
+  {q:'Was ist 2⁸?', a:['128','256','512','64'], c:1},
+  {q:'Was ist der ggT von 24 und 36?', a:['6','8','12','18'], c:2}
+], 'B · Mathematik');
+
+PACK_B.bildung_deutsch = makeQuizApp('bd', 'Deutsch-Quiz', '📖', [
+  {q:'Welcher Fall ist "des Mannes"?', a:['Nominativ','Genitiv','Dativ','Akkusativ'], c:1},
+  {q:'Was ist ein Synonym für "schnell"?', a:['langsam','rasch','müde','alt'], c:1},
+  {q:'Wie viele Fälle hat die deutsche Sprache?', a:['2','3','4','5'], c:2},
+  {q:'Wer schrieb "Faust"?', a:['Schiller','Goethe','Kafka','Brecht'], c:1},
+  {q:'Was ist das Präteritum von "gehen"?', a:['ging','gegangen','gehe','geht'], c:0},
+  {q:'Welches Wort ist ein Adjektiv?', a:['laufen','schnell','Haus','und'], c:1},
+  {q:'Welche Wortart ist "der"?', a:['Verb','Adjektiv','Artikel','Adverb'], c:2},
+  {q:'Wer schrieb "Die Verwandlung"?', a:['Goethe','Kafka','Thomas Mann','Hesse'], c:1}
+], 'B · Deutsch');
+
+PACK_B.bildung_englisch = makeQuizApp('be', 'Englisch-Quiz', '🇬🇧', [
+  {q:'What is the past tense of "go"?', a:['goed','went','gone','going'], c:1},
+  {q:'Which is correct: "I ___ a student"?', a:['is','am','are','be'], c:1},
+  {q:'What does "awesome" mean?', a:['schrecklich','großartig','langweilig','müde'], c:1},
+  {q:'Plural of "child"?', a:['childs','childes','children','childrens'], c:2},
+  {q:'Translate: "Ich habe Hunger"', a:['I am hungry','I have hunger','I hungry','My hunger'], c:0},
+  {q:'Which is a color?', a:['apple','blue','run','happy'], c:1},
+  {q:'What is "Danke" in English?', a:['Please','Sorry','Thank you','Hello'], c:2}
+], 'B · Englisch');
+
+PACK_B.bildung_bio = makeQuizApp('bb', 'Biologie-Quiz', '🧬', [
+  {q:'Was ist die Photosynthese-Formel?', a:['CO₂ + H₂O → Glucose + O₂','O₂ + H₂O → CO₂','Nur CO₂','Nur H₂O'], c:0},
+  {q:'Wie viele Basen hat DNA?', a:['2','3','4','5'], c:2},
+  {q:'Was ist die kleinste Einheit des Lebens?', a:['Atom','Molekül','Zelle','Organ'], c:2},
+  {q:'Welches Organ pumpt Blut?', a:['Lunge','Leber','Herz','Niere'], c:2},
+  {q:'Wo findet Photosynthese statt?', a:['Zellkern','Chloroplasten','Mitochondrien','Ribosomen'], c:1},
+  {q:'Was ist das menschliche Erbgut?', a:['RNA','DNA','Protein','Zucker'], c:1},
+  {q:'Welches Blutgefäß führt zum Herzen?', a:['Arterie','Vene','Kapillare','Nerv'], c:1}
+], 'B · Biologie');
+
+PACK_B.bildung_chemie = makeQuizApp('bc', 'Chemie-Quiz', '⚗️', [
+  {q:'Was ist das chemische Symbol für Gold?', a:['Go','Gd','Au','Ag'], c:2},
+  {q:'Was ist H₂O?', a:['Salz','Wasser','Zucker','Säure'], c:1},
+  {q:'Wie viele Elemente hat das Periodensystem ca.?', a:['50','100','118','200'], c:2},
+  {q:'Was ist der pH-Wert von reinem Wasser?', a:['0','7','14','5'], c:1},
+  {q:'Was ist NaCl?', a:['Kochsalz','Zucker','Backpulver','Essig'], c:0},
+  {q:'Welches Gas atmen wir ein?', a:['CO₂','O₂','N₂','H₂'], c:1},
+  {q:'Was ist die Atomnummer von Kohlenstoff?', a:['4','6','8','12'], c:1}
+], 'B · Chemie');
+
+PACK_B.bildung_physik = makeQuizApp('bp', 'Physik-Quiz', '⚛️', [
+  {q:'Was ist die Formel für Kraft?', a:['F = m × a','F = m / a','F = a / m','F = m + a'], c:0},
+  {q:'Wie schnell ist Licht?', a:['300 km/s','300.000 km/s','3.000 km/s','30.000 km/s'], c:1},
+  {q:'Wer formulierte E = mc²?', a:['Newton','Einstein','Tesla','Bohr'], c:1},
+  {q:'Was ist die Einheit der elektrischen Spannung?', a:['Watt','Ampere','Volt','Ohm'], c:2},
+  {q:'Was ist Schwerkraft?', a:['Abstoßung','Anziehung zwischen Massen','Lichtwelle','Wärme'], c:1},
+  {q:'Wie lautet die Einheit der Kraft?', a:['Joule','Newton','Watt','Pascal'], c:1},
+  {q:'Was passiert mit Wasser bei 100 °C?', a:['friert','kocht','verdampft langsam','wird Eis'], c:1}
+], 'B · Physik');
+
+PACK_B.bildung_geschichte = makeQuizApp('bg', 'Geschichte-Quiz', '📜', [
+  {q:'Wann fiel die Berliner Mauer?', a:['1985','1989','1991','1987'], c:1},
+  {q:'Wer war der erste Bundeskanzler?', a:['Adenauer','Brandt','Kohl','Schmidt'], c:0},
+  {q:'Wann endete der 2. Weltkrieg?', a:['1943','1944','1945','1946'], c:2},
+  {q:'Wann begann der 1. Weltkrieg?', a:['1912','1914','1916','1918'], c:1},
+  {q:'Wer entdeckte Amerika 1492?', a:['Magellan','Kolumbus','Vasco da Gama','Cook'], c:1},
+  {q:'Wann wurde die BRD gegründet?', a:['1945','1949','1955','1961'], c:1},
+  {q:'Wer war Napoleon?', a:['König von England','Kaiser der Franzosen','Papst','spanischer König'], c:1}
+], 'B · Geschichte');
+
+PACK_B.bildung_geo = makeQuizApp('bge', 'Geographie-Quiz', '🌍', [
+  {q:'Was ist die Hauptstadt von Frankreich?', a:['Lyon','Marseille','Paris','Nizza'], c:2},
+  {q:'Welcher ist der längste Fluss der Welt?', a:['Nil','Amazonas','Mississippi','Yangtse'], c:0},
+  {q:'Wie viele Kontinente gibt es?', a:['5','6','7','8'], c:2},
+  {q:'Was ist der höchste Berg?', a:['Kilimandscharo','Everest','Mont Blanc','K2'], c:1},
+  {q:'Welches Land hat die meisten Einwohner?', a:['USA','China','Indien','Russland'], c:2},
+  {q:'Was ist die Hauptstadt von Deutschland?', a:['München','Hamburg','Berlin','Köln'], c:2},
+  {q:'Welcher Ozean ist der größte?', a:['Atlantik','Pazifik','Indischer','Arktischer'], c:1}
+], 'B · Geographie');
+
+// 31 Fächer als Flashcards
+const B_FACH_KARTEN = {
+  politik: [{q:'Was ist Demokratie?', a:'Herrschaftsform, in der das Volk durch Wahlen die Macht ausübt.'}, {q:'Was ist die Gewaltenteilung?', a:'Aufteilung in Legislative (Gesetze), Exekutive (Ausführung), Judikative (Rechtsprechung).'}, {q:'Wie viele Bundesländer hat Deutschland?', a:'16 Bundesländer.'}, {q:'Was ist der Bundestag?', a:'Das deutsche Parlament, gewählt vom Volk.'}, {q:'Was ist eine Koalition?', a:'Zusammenschluss mehrerer Parteien zur Regierungsbildung.'}],
+  sozialkunde: [{q:'Was ist Sozialisation?', a:'Prozess, durch den Menschen Werte und Normen der Gesellschaft lernen.'}, {q:'Was ist ein Rollenkonflikt?', a:'Widerspruch zwischen verschiedenen sozialen Rollen einer Person.'}, {q:'Was ist eine Peer-Group?', a:'Gleichaltrigen-Gruppe, wichtig für Sozialisation Jugendlicher.'}, {q:'Was ist Integration?', a:'Eingliederung in die Gesellschaft.'}, {q:'Was ist Inklusion?', a:'Volle Teilhabe aller Menschen, unabhängig von Unterschieden.'}],
+  ethik: [{q:'Was ist der kategorische Imperativ?', a:'Kants Prinzip: Handle so, dass deine Maxime allgemeines Gesetz werden könnte.'}, {q:'Was ist Utilitarismus?', a:'Ethik, die nach dem größten Glück für die größte Zahl strebt.'}, {q:'Was ist Moral?', a:'Gesellschaftliche Normen über richtig und falsch.'}, {q:'Was ist Ethik?', a:'Die philosophische Reflexion über Moral.'}, {q:'Was ist Tugend?', a:'Eine gute Charaktereigenschaft, z.B. Gerechtigkeit.'}],
+  kunst: [{q:'Was ist die Renaissance?', a:'Kunstepoche (14.-17. Jh.), Wiedergeburt der Antike. Künstler: Da Vinci, Michelangelo.'}, {q:'Wer malte die Mona Lisa?', a:'Leonardo da Vinci (1503-1519).'}, {q:'Was ist Impressionismus?', a:'Kunstepoche (19. Jh.) — Licht und Moment einfangen. Monet, Renoir.'}, {q:'Was ist Kubismus?', a:'Kunstrichtung — Objekte in geometrische Formen zerlegt. Picasso.'}, {q:'Wer malte "Die Sternennacht"?', a:'Vincent van Gogh (1889).'}],
+  musik: [{q:'Wie viele Noten hat eine Oktave?', a:'12 Halbtöne (7 weiße + 5 schwarze Tasten).'}, {q:'Wer komponierte die 9. Sinfonie?', a:'Ludwig van Beethoven. Das "Freude schöner Götterfunken" ist im 4. Satz.'}, {q:'Was ist ein Takt?', a:'Regelmäßige Einteilung der Musik (z.B. 4/4).'}, {q:'Was ist BPM?', a:'Beats per minute — Tempo-Angabe.'}, {q:'Wer war Mozart?', a:'Österreichischer Komponist (1756-1791), Wunderkind, schrieb über 600 Werke.'}],
+  sport: [{q:'Wie viele Spieler hat eine Fußballmannschaft?', a:'11 Spieler (inkl. Torwart).'}, {q:'Wie lang ist ein Marathon?', a:'42,195 km.'}, {q:'Was ist die olympische Hymne?', a:'Instrumentalhymne bei Olympischen Spielen.'}, {q:'Wer war Michael Jordan?', a:'Legendärer Basketballspieler (Chicago Bulls), 6× NBA-Champion.'}, {q:'Was ist HIIT?', a:'High Intensity Interval Training — hochintensives Intervalltraining.'}],
+  informatik: [{q:'Was ist ein Algorithmus?', a:'Eine endliche Folge von Anweisungen zur Lösung eines Problems.'}, {q:'Was ist HTML?', a:'HyperText Markup Language — Sprache für Webseiten-Struktur.'}, {q:'Was ist eine Variable?', a:'Ein benannter Speicherplatz für Werte.'}, {q:'Was ist KI?', a:'Künstliche Intelligenz — Maschinen, die menschenähnlich denken.'}, {q:'Was ist ein Loop?', a:'Schleife — wiederholte Ausführung von Code.'}],
+  wirtschaft: [{q:'Was ist Angebot und Nachfrage?', a:'Marktprinzip — Preis bildet sich aus Angebot und Nachfrage.'}, {q:'Was ist Inflation?', a:'Anstieg des allgemeinen Preisniveaus — Geld verliert an Kaufkraft.'}, {q:'Was ist BIP?', a:'Bruttoinlandsprodukt — Gesamtwert aller Waren und Dienstleistungen.'}, {q:'Was ist ein Monopol?', a:'Markt mit nur einem Anbieter.'}, {q:'Was ist Aktie?', a:'Anteil am Unternehmen.'}],
+  recht: [{q:'Was ist das Grundgesetz?', a:'Die Verfassung Deutschlands (1949).'}, {q:'Was ist Meinungsfreiheit?', a:'Recht, seine Meinung frei zu äußern (Art. 5 GG) — mit Grenzen.'}, {q:'Was ist ein Vertrag?', a:'Zweiseitiges Rechtsgeschäft aus zwei übereinstimmenden Willenserklärungen.'}, {q:'Was ist Diebstahl?', a:'Wegnahme einer fremden beweglichen Sache in Zueignungsabsicht (§ 242 StGB).'}, {q:'Was ist Notwehr?', a:'Verteidigung gegen einen rechtswidrigen Angriff.'}],
+  pädagogik: [{q:'Was ist Erziehung?', a:'Geplante Einwirkung auf die Entwicklung eines Menschen.'}, {q:'Wer war Pestalozzi?', a:'Schweizer Pädagoge — ganzheitliche Erziehung (Kopf, Herz, Hand).'}, {q:'Was ist Fröbels Idee?', a:'Kindergarten-Konzept — Spiel als Lernform.'}, {q:'Was ist Montessori?', a:'Pädagogik — Kind als Baumeister seiner selbst, "Hilf mir, es selbst zu tun".'}, {q:'Was ist Inklusion (Päd.)?', a:'Gemeinsames Lernen aller Kinder, auch mit Behinderung.'}],
+  medizin: [{q:'Was ist der Blutdruck normal?', a:'ca. 120/80 mmHg.'}, {q:'Wie viele Knochen hat ein Erwachsener?', a:'206 Knochen.'}, {q:'Was ist CPR?', a:'Herz-Lungen-Wiederbelebung — 30× Herzdruckmassage, 2× Beatmung.'}, {q:'Was ist die Blutgruppe 0?', a:'Universalspender für rote Blutkörperchen.'}, {q:'Was ist Diabetes?', a:'Erkrankung des Zuckerstoffwechsels (Insulin-Mangel oder Resistenz).'}],
+  psychologie: [{q:'Wer war Freud?', a:'Begründer der Psychoanalyse — Unbewusstes, Es/Ich/Über-Ich.'}, {q:'Was ist Konditionierung?', a:'Lernen durch Reize (Pawlow: Hund + Glocke = Speichel).'}, {q:'Was ist das Kurzzeitgedächtnis?', a:'Speicher für ~7±2 Informationseinheiten für ~30 Sekunden.'}, {q:'Was ist Resilienz?', a:'Psychische Widerstandskraft — Fähigkeit, Krisen zu überstehen.'}, {q:'Was ist die Maslow-Pyramide?', a:'Bedürfnispyramide: Physiologisch → Sicherheit → Sozial → Wertschätzung → Selbstverwirklichung.'}],
+  soziologie: [{q:'Wer war Max Weber?', a:'Soziologe — Bürokratie, protestantische Ethik.'}, {q:'Was ist eine Gruppe?', a:'Mehrere Personen mit gemeinsamen Zielen und Interaktionen.'}, {q:'Was ist Sozialstruktur?', a:'Gliederung einer Gesellschaft (Schichten, Klassen, Milieus).'}, {q:'Was ist Anomie?', a:'Zustand fehlender Normen (Durkheim).'}, {q:'Was ist eine Rolle?', a:'Erwartungen an eine Person in einer bestimmten Position.'}],
+  philosophie: [{q:'Wer war Sokrates?', a:'Griechischer Philosoph — "Ich weiß, dass ich nichts weiß".'}, {q:'Was ist Erkenntnistheorie?', a:'Philosophie des Wissens — was können wir wissen?'}, {q:'Was ist Existenzialismus?', a:'Philosophie — "Die Existenz geht der Essenz voraus" (Sartre).'}, {q:'Was ist der Determinismus?', a:'Alles ist durch Ursachen bestimmt — keine Willensfreiheit?'}, {q:'Wer schrieb "Also sprach Zarathustra"?', a:'Friedrich Nietzsche (1883-1885).'}],
+  theologie: [{q:'Was ist Monotheismus?', a:'Glaube an einen einzigen Gott (Judentum, Christentum, Islam).'}, {q:'Wie viele Gebote hat der Dekalog?', a:'10 Gebote (Mose, Altes Testament).'}, {q:'Was ist die Bibel?', a:'Heilige Schrift des Christentums — Altes + Neues Testament.'}, {q:'Was ist der Koran?', a:'Heilige Schrift des Islams, geoffenbart an Mohammed.'}, {q:'Was ist die Tora?', a:'Die fünf Bücher Moses — heilige Schrift des Judentums.'}],
+  archaeologie: [{q:'Was ist die Steinzeit?', a:'Früheste Epoche der Menschheit — Steinwerkzeuge.'}, {q:'Wo liegt Troja?', a:'In der heutigen Türkei (Hisarlık).'}, {q:'Wer war Heinrich Schliemann?', a:'Archäologe — entdeckte Troja (1871).'}, {q:'Was sind Pyramiden?', a:'Grabmäler der ägyptischen Pharaonen (z.B. Gizeh, 2560 v.Chr.).'}, {q:'Was ist Carbon-14?', a:'Radioaktives Isotop — Altersbestimmung organischer Funde.'}],
+  astronomie: [{q:'Wie viele Planeten hat unser Sonnensystem?', a:'8 Planeten (Pluto = Zwergplanet).'}, {q:'Was ist ein Lichtjahr?', a:'~9,46 Billionen km — Strecke, die Licht in 1 Jahr zurücklegt.'}, {q:'Was ist ein Schwarzes Loch?', a:'Objekt, dessen Gravitation so stark ist, dass nichts entkommt.'}, {q:'Wer war Carl Sagan?', a:'Astronom — "Pale Blue Dot", Cosmos.'}, {q:'Was ist die Milchstraße?', a:'Unsere Galaxie — 100.000 Lj Durchmesser, ~200 Mrd Sterne.'}],
+  geologie: [{q:'Was ist die Erdkruste?', a:'Äußerste Schicht der Erde (5-70 km dick).'}, {q:'Was ist ein Erdbeben?', a:'Plötzliche Bewegung der Erdplatten — gemessen auf Richter-Skala.'}, {q:'Was sind tektonische Platten?', a:'Bewegliche Teile der Erdkruste.'}, {q:'Was ist ein Vulkan?', a:'Öffnung in der Erdkruste, aus der Magma austritt.'}, {q:'Was ist der Erdkern?', a:'Innerster Teil der Erde — Eisen und Nickel, ~5.500 °C.'}],
+  meteorologie: [{q:'Was ist ein Hochdruckgebiet?', a:'Luftdruck höher als Umgebung — meist sonniges Wetter.'}, {q:'Was ist ein Tiefdruckgebiet?', a:'Luftdruck niedriger — meist Wolken und Regen.'}, {q:'Wie entsteht Regen?', a:'Wasserdampf kondensiert zu Wolken, Tropfen werden zu schwer.'}, {q:'Was ist ein Hurrikan?', a:'Tropischer Wirbelsturm mit Winden über 119 km/h.'}, {q:'Was ist die Windstärke?', a:'Beaufort-Skala 0-12.'}],
+  ozeanographie: [{q:'Wie tief ist der Marianengraben?', a:'~11.000 m (tiefster Punkt der Erde).'}, {q:'Wie viel Prozent der Erde sind Ozean?', a:'~71 %.'}, {q:'Was ist ein Riff?', a:'Korallenriff — Lebensraum im flachen Meer.'}, {q:'Was ist der Golfstrom?', a:'Warme Meeresströmung im Atlantik — beeinflusst Klima Europas.'}, {q:'Was ist Plankton?', a:'Kleine Lebewesen im Wasser — Basis der Nahrungskette.'}],
+  umwelt: [{q:'Was ist der Treibhauseffekt?', a:'Gase wie CO₂ halten Wärme in der Atmosphäre — Ursache der Erderwärmung.'}, {q:'Was ist Recycling?', a:'Wiederverwertung von Rohstoffen.'}, {q:'Was ist erneuerbare Energie?', a:'Energie aus Sonne, Wind, Wasser, Biomasse.'}, {q:'Was ist das Pariser Abkommen?', a:'Klimaabkommen (2015) — Erderwärmung unter 2 °C halten.'}, {q:'Was ist Artensterben?', a:'Rückgang der Artenvielfalt — aktuell dramatisch beschleunigt.'}],
+  nachhaltigkeit: [{q:'Was sind die SDGs?', a:'17 UN-Nachhaltigkeitsziele (Agenda 2030).'}, {q:'Was ist der ökologische Fußabdruck?', a:'Maß für Ressourcenverbrauch eines Menschen.'}, {q:'Was ist Cradle to Cradle?', a:'Design-Prinzip — alles wird recycelt, kein Müll.'}, {q:'Was ist Zero Waste?', a:'Bewegung — Müll vermeiden statt entsorgen.'}, {q:'Was ist Fairtrade?', a:'Faire Bezahlung von Produzenten in Entwicklungsländern.'}],
+  digitalisierung: [{q:'Was ist KI?', a:'Künstliche Intelligenz — Maschinen, die lernen und entscheiden.'}, {q:'Was ist IoT?', a:'Internet of Things — vernetzte Geräte (Smart Home etc.).'}, {q:'Was ist Blockchain?', a:'Dezentrale Datenbank — Basis für Kryptowährungen.'}, {q:'Was ist Cloud?', a:'Speicher/Rechenleistung im Internet (AWS, Google, Azure).'}, {q:'Was ist 5G?', a:'5. Mobilfunkgeneration — schneller, mehr Geräte.'}],
+  medienkompetenz: [{q:'Was ist Fake News?', a:'Falschnachrichten — prüfe Quellen, Datum, Bilder.'}, {q:'Was ist Filterblase?', a:'Nur Informationen, die zur eigenen Meinung passen.'}, {q:'Was ist Datenschutz?', a:'Recht auf informationelle Selbstbestimmung (DSGVO).'}, {q:'Was ist Urheberrecht?', a:'Schutz geistigen Eigentums (Text, Bild, Musik).'}, {q:'Was ist Cybermobbing?', a:'Mobbing über digitale Medien — strafbar.'}],
+  bildungsberatung: [{q:'Was ist BAföG?', a:'Staatliche Ausbildungsförderung (Bundesausbildungsförderungsgesetz).'}, {q:'Was ist eine duale Ausbildung?', a:'Betrieb + Berufsschule — 2-3,5 Jahre.'}, {q:'Was ist ein Praktikum?', a:'Kurzzeitige Berufserfahrung in einem Betrieb.'}, {q:'Was ist Abitur?', a:'Hochschulzugangsberechtigung (nach 12/13 Jahren).'}, {q:'Was ist ein FSJ?', a:'Freiwilliges Soziales Jahr — 6-18 Monate gemeinnützige Arbeit.'}],
+  pruefungstrainer: [{q:'Wie lernst du am besten?', a:'Aktives Abrufen (Karteikarten) statt nur Lesen.'}, {q:'Was ist Spaced Repetition?', a:'Verteiltes Wiederholen in wachsenden Abständen.'}, {q:'Wie viele Pausen?', a:'Nach 25 Min lernen: 5 Min Pause (Pomodoro).'}, {q:'Was ist aktives Zuhören?', a:'Aufmerksam zuhören, nachfragen, zusammenfassen.'}, {q:'Was ist eine Eselsbrücke?', a:'Merkhilfe (z.B. "Mein Vater erklärt mir jeden Sonntag unseren Nachthimmel" — Planeten).'}],
+  lernplaner: [{q:'Was ist ein Lernziel?', a:'Konkret, messbar, erreichbar (SMART).'}, {q:'Wie viele Stunden pro Tag?', a:'Realistisch 2-4 Std konzentriert.'}, {q:'Was ist der Eisenhower-Matrix?', a:'Wichtig/Dringend — Priorisierung von Aufgaben.'}, {q:'Was ist Deep Work?', a:'Konzentriertes Arbeiten ohne Ablenkung (Cal Newport).'}, {q:'Warum Pausen?', a:'Gehirn festigt Wissen in Pausen.'}],
+  notenrechner: [{q:'Wie berechnet man den Durchschnitt?', a:'Summe aller Noten ÷ Anzahl der Noten.'}, {q:'Was ist die 1?', a:'Sehr gut (Note 1 in Deutschland).'}, {q:'Was ist eine 5?', a:'Mangelhaft — nicht bestanden in vielen Fächern.'}, {q:'Wie viel zählt eine Klassenarbeit?', a:'Oft 50% der Note, mündlich 50%.'}, {q:'Was ist der Numerus Clausus?', a:'NC — Zulassungsnote für Studiengänge.'}],
+  stundenplan: [{q:'Was ist eine Doppelstunde?', a:'Zwei Schulstunden (je 45 Min) hintereinander.'}, {q:'Wie viele Stunden pro Tag?', a:'Typisch 6-8 Stunden in der Schule.'}, {q:'Was ist eine Freistunde?', a:'Stunde ohne Unterricht zwischen zwei Fächern.'}, {q:'Was ist ein Blockplan?', a:'Fächer als Blöcke über mehrere Wochen.'}, {q:'Was ist ein Vertretungsplan?', a:'Zeigt Änderungen am Stundenplan.'}],
+  referate: [{q:'Was ist ein gutes Referat?', a:'Klare Struktur: Einleitung, Hauptteil, Schluss.'}, {q:'Wie lange sollte ein Referat sein?', a:'10-15 Minuten für die Schule.'}, {q:'Was ist ein Handout?', a:'Zusammenfassung für Zuhörer (1 Seite).'}, {q:'Warum Blickkontakt?', a:'Zeigt Sicherheit und bindet Zuhörer.'}, {q:'Was ist eine PPP?', a:'PowerPoint-Präsentation.'}],
+  hausaufgaben: [{q:'Wann Hausaufgaben machen?', a:'Nach kurzer Pause — frische Energie.'}, {q:'Wo am besten?', a:'Ruhiger Ort ohne Ablenkung.'}, {q:'Was ist die Zwei-Minuten-Regel?', a:'Aufgaben unter 2 Min sofort erledigen.'}, {q:'Wie lernt man Vokabeln?', a:'Täglich 10 Min statt 1× pro Woche.'}, {q:'Was bei Blockade?', a:'Frag Freunde oder Eltern — nicht abschreiben.'}],
+  lernkarten: [{q:'Wie erstellt man Karteikarten?', a:'Vorne Frage, hinten Antwort — kurz und präzise.'}, {q:'Was ist das Leitner-System?', a:'5 Fächer, Karten wandern nach richtig/falsch.'}, {q:'Was ist Anki?', a:'Digitale Karteikarten-Software mit Spaced Repetition.'}, {q:'Wie oft wiederholen?', a:'Täglich 15-20 Min reicht für Karteikarten.'}, {q:'Warum eigene Karten?', a:'Selbst schreiben festigt Wissen doppelt.'}]
+};
+
+Object.keys(B_FACH_KARTEN).forEach(key => {
+  const fach = key.charAt(0).toUpperCase() + key.slice(1);
+  const icons = {politik:'🏛️',sozialkunde:'👥',ethik:'🤔',kunst:'🎨',musik:'🎵',sport:'⚽',informatik:'💻',wirtschaft:'💼',recht:'⚖️',paedagogik:'🎓',medizin:'⚕️',psychologie:'🧠',soziologie:'👥',philosophie:'📚',theologie:'🕊️',archaeologie:'🏺',astronomie:'🔭',geologie:'🪨',meteorologie:'🌦️',ozeanographie:'🌊',umwelt:'🌱',nachhaltigkeit:'♻️',digitalisierung:'📱',medienkompetenz:'📺',bildungsberatung:'🎯',pruefungstrainer:'📝',lernplaner:'📅',notenrechner:'🔢',stundenplan:'⏰',referate:'📊',hausaufgaben:'📚',lernkarten:'🃏'};
+  PACK_B['bildung_' + key] = makeFlashcardApp('bf_' + key, fach, icons[key] || '📖', B_FACH_KARTEN[key], 'B · ' + fach);
+});
+
+/* ═══════════════════════════════════════════════════════════ */
+/*                    C — HALDO FAHRSCHULE                     */
+/* ═══════════════════════════════════════════════════════════ */
+const PACK_C = {};
+
+// 12 Führerscheinklassen als eigene Apps
+const LICENSE_INFO = {
+  A: { label:'Motorrad', icon:'🏍️', info:'Klasse A: Motorrad ohne Hubraumbegrenzung. Mindestalter 24 (oder 20 bei Aufstieg von A2).', dauer:'ca. 3 Monate', kosten:'1.500-2.500 €' },
+  A1: { label:'125 cm³', icon:'🏍️', info:'Klasse A1: Leichtkraftrad bis 125 cm³ und max. 11 kW. Mindestalter 16.', dauer:'ca. 2 Monate', kosten:'1.000-1.500 €' },
+  A2: { label:'35 kW', icon:'🏍️', info:'Klasse A2: Motorrad bis 35 kW. Mindestalter 18.', dauer:'ca. 2 Monate', kosten:'1.200-1.800 €' },
+  AM: { label:'Mofa 45 km/h', icon:'🛵', info:'Klasse AM: Mofa bis 45 km/h. Mindestalter 15 (mit Prüfbescheinigung).', dauer:'ca. 1 Monat', kosten:'300-500 €' },
+  B: { label:'PKW', icon:'🚗', info:'Klasse B: PKW bis 3,5 t. Anhänger bis 750 kg. Mindestalter 17 (BF17) / 18.', dauer:'ca. 2-3 Monate', kosten:'1.500-2.500 €' },
+  BE: { label:'PKW+Anhänger', icon:'🚙', info:'Klasse BE: PKW mit schwerem Anhänger. Mindestalter 18.', dauer:'ca. 1 Monat', kosten:'500-800 €' },
+  C: { label:'LKW', icon:'🚚', info:'Klasse C: LKW über 3,5 t. Vorbedingung: B. Mindestalter 21 (mit Grundqualifikation).', dauer:'ca. 2-3 Monate', kosten:'2.000-3.500 €' },
+  CE: { label:'LKW+Anh.', icon:'🚛', info:'Klasse CE: LKW mit Anhänger. Vorbedingung: C. Mindestalter 21.', dauer:'ca. 1-2 Monate', kosten:'1.500-2.500 €' },
+  D: { label:'Bus', icon:'🚌', info:'Klasse D: Omnibus. Vorbedingung: B. Mindestalter 24 (21 eingeschränkt).', dauer:'ca. 2-3 Monate', kosten:'3.000-5.000 €' },
+  DE: { label:'Bus+Anh.', icon:'🚎', info:'Klasse DE: Bus mit Anhänger. Vorbedingung: D.', dauer:'ca. 1-2 Monate', kosten:'2.000-3.500 €' },
+  L: { label:'Landwirtschaft', icon:'🚜', info:'Klasse L: Land-/forstwirtschaftliche Fahrzeuge. Mindestalter 16.', dauer:'ca. 1 Monat', kosten:'500-900 €' },
+  T: { label:'Traktor', icon:'🚜', info:'Klasse T: Traktor bis 60 km/h. Mindestalter 16.', dauer:'ca. 1-2 Monate', kosten:'600-1.200 €' }
+};
+
+Object.keys(LICENSE_INFO).forEach(cls => {
+  const inf = LICENSE_INFO[cls];
+  PACK_C['fahrschule_' + cls] = {
+    title: inf.icon + ' Klasse ' + cls, width: 400, height: 480, cat: 'C',
+    render() { return `
+      <div class="app-content">
+        <div style="text-align:center;font-size:64px">${inf.icon}</div>
+        <h3 style="color:var(--accent);text-align:center;margin:0">Führerschein Klasse ${cls}</h3>
+        <div class="app-row">📝 ${inf.label}</div>
+        <div class="app-row">⏱️ Dauer: <b>${inf.dauer}</b></div>
+        <div class="app-row">💰 Kosten: <b>${inf.kosten}</b></div>
+        <div style="padding:12px;border-radius:12px;background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.2);font-size:12px;line-height:1.6">${inf.info}</div>
+        <button class="app-btn primary" id="lk_speak">🔊 Vorlesen</button>
+        <button class="app-btn" id="lk_quiz">📝 Theorie-Test starten</button>
+      </div>
+    `;},
+    mount(root) {
+      root.querySelector('#lk_speak').onclick = () => speak(`Führerschein Klasse ${cls}. ${inf.info} Dauer: ${inf.dauer}. Kosten: ${inf.kosten}.`);
+      root.querySelector('#lk_quiz').onclick = () => window.HalDo.open('fahrschule_theorie');
+    }
+  };
+});
+
+// Theorie-Tests A, B, C, D
+const THEORIE_FRAGEN = {
+  A: [
+    {q:'Welche Schutzkleidung ist auf dem Motorrad Pflicht?', a:['Nur Helm','Helm + Handschuhe','Helm, Handschuhe, feste Kleidung','Keine'], c:2},
+    {q:'Wie viel Promille gilt für Fahranfänger?', a:['0,0','0,3','0,5','1,0'], c:0},
+    {q:'Wann musst du das Licht am Motorrad einschalten?', a:['Nur nachts','Immer während der Fahrt','Nur bei Regen','Nie'], c:1},
+    {q:'Was tun bei einem Sturz?', a:['Weiterfahren','Sofort abbremsen, Unfallstelle sichern','Gas geben','Nichts'], c:1},
+    {q:'Wie viele Sekunden Sicherheitsabstand?', a:['1','2 (Regel: "2-Sekunden-Regel")','5','10'], c:1}
+  ],
+  B: [
+    {q:'Wie viel Promille im Blut sind erlaubt?', a:['0,0','0,5','1,0','1,5'], c:1},
+    {q:'Wo ist die Anschnallpflicht?', a:['Nur vorne','Nur hinten','Überall','Nur Autobahn'], c:2},
+    {q:'Wie schnell darfst du innerorts fahren?', a:['30 km/h','50 km/h','60 km/h','70 km/h'], c:1},
+    {q:'Wann musst du das Warnblinklicht einsetzen?', a:['Nie','Nur bei Panne','Bei Gefahr / Panne / Abschleppen','Immer'], c:2},
+    {q:'Wie viel Sicherheitsabstand bei 100 km/h?', a:['10 m','25 m','50 m (halber Tacho)','100 m'], c:2},
+    {q:'Was bedeutet das rote Dreieck?', a:['Vorfahrt','Gefahr','Verbot','Parken'], c:1},
+    {q:'Wie verhältst du dich bei Zebrastreifen?', a:['Hupen','Durchfahren','Anhalten wenn Fußgänger warten','Gas geben'], c:2}
+  ],
+  C: [
+    {q:'Wie viel Promille gilt für LKW-Fahrer?', a:['0,0','0,3','0,5','1,0'], c:0},
+    {q:'Wie oft muss ein LKW zum TÜV?', a:['1× jährlich','2× jährlich','alle 2 Jahre','nie'], c:0},
+    {q:'Wie hoch ist die zulässige Gesamthöhe?', a:['3 m','4 m','5 m','6 m'], c:1},
+    {q:'Was ist die Lenkzeit-Regel?', a:['4,5 Std fahren, 45 Min Pause','2 Std fahren','8 Std am Stück','Keine Regel'], c:0},
+    {q:'Was bedeutet ein gelbes Blinklicht am LKW?', a:['Panne','Achtung — breites Fahrzeug','Linksabbiegen','Nichts'], c:1}
+  ],
+  D: [
+    {q:'Wie viel Promille für Busfahrer?', a:['0,0','0,3','0,5','1,0'], c:0},
+    {q:'Wie oft müssen Busse zum TÜV?', a:['1× jährlich','2× jährlich','alle 2 Jahre','nie'], c:0},
+    {q:'Wie viele Fahrgäste dürfen stehen?', a:['Keine','Nur bei Stadtbus','Wie viele Sitzplätze × 1,5','Unbegrenzt'], c:2},
+    {q:'Was ist bei Schulbus mit Warnblinker zu tun?', a:['Überholen','Anhalten (Schrittgeschwindigkeit)','Hupen','Gas geben'], c:1},
+    {q:'Wie viel Sicherheitsabstand bei 80 km/h (Bus)?', a:['10 m','20 m','40 m (halber Tacho)','80 m'], c:2}
+  ]
+};
+
+Object.keys(THEORIE_FRAGEN).forEach(cls => {
+  PACK_C['fahrschule_theorie_' + cls] = makeQuizApp('th_' + cls, 'Theorie Klasse ' + cls, '📝', THEORIE_FRAGEN[cls], 'C · Theorie ' + cls);
+});
+
+// Sammel-App für Theorie
+PACK_C.fahrschule_theorie = {
+  title: '📝 Fahrschule Theorie', width: 400, height: 460, cat: 'C',
+  render() { return `
+    <div class="app-content">
+      <p style="font-size:12px;opacity:.7">Wähle deinen Theorie-Test:</p>
+      <button class="app-btn primary" data-th="A">🏍️ Klasse A</button>
+      <button class="app-btn primary" data-th="B">🚗 Klasse B</button>
+      <button class="app-btn primary" data-th="C">🚚 Klasse C</button>
+      <button class="app-btn primary" data-th="D">🚌 Klasse D</button>
+    </div>
+  `;},
+  mount(root) {
+    root.querySelectorAll('[data-th]').forEach(b => b.onclick = () => window.HalDo.open('fahrschule_theorie_' + b.dataset.th));
+  }
+};
+
+// Verkehrszeichen-Quiz
+PACK_C.fahrschule_zeichen = makeQuizApp('fz', 'Verkehrszeichen', '🚦', [
+  {q:'Was bedeutet ein rotes Achteck mit "STOP"?', a:['Vorfahrt gewähren','Halt — anhalten!','Baustelle','Nur für LKW'], c:1},
+  {q:'Blaues Schild mit weißem Pfeil bedeutet?', a:['Vorfahrt','Einbahnstraße','Richtung/Gebot','Verbot'], c:2},
+  {q:'Rotes Dreieck mit Ausrufezeichen?', a:['Achtung Gefahr','Stop','Parken','Gebot'], c:0},
+  {q:'Weißes Schild mit rotem Kreis und "50" bedeutet?', a:['Mindestens 50','Tempolimit 50','Zone 50','Empfehlung 50'], c:1},
+  {q:'Blaues rundes Schild mit Fahrrad?', a:['Radweg','Radfahrer verboten','Fahrrad-Gebot','Achtung Radfahrer'], c:2},
+  {q:'Gelbes Rautenschild mit weißem Rand?', a:['Vorfahrtstraße','Stop','Baustelle','Vorfahrt gewähren'], c:0},
+  {q:'Rotes Sechseck (STOP) — wo?', a:['Nur Autobahn','Überall an Kreuzungen','Nur in Städten','Nur an Ampeln'], c:1}
+], 'C · Verkehrszeichen');
+
+// Vorfahrt
+PACK_C.fahrschule_vorfahrt = makeQuizApp('fv', 'Vorfahrt-Regeln', '⏸️', [
+  {q:'Was bedeutet "rechts vor links"?', a:['Immer links abbiegen','Rechts vor Links an Kreuzungen ohne Schild','Rechts überholen','Zebrastreifen'], c:1},
+  {q:'Wer hat Vorfahrt bei grünem Pfeil?', a:['Du immer','Nur wenn frei','Nicht du','Polizei'], c:1},
+  {q:'Rote Ampel + grüner Pfeil nach rechts?', a:['Anhalten und warten','Rechts abbiegen wenn frei','Nur bei Nacht','Hupen'], c:1},
+  {q:'Wer hat Vorfahrt: Linksabbieger oder Geradeaus?', a:['Linksabbieger','Geradeaus','Gleichzeitig','Wer schneller ist'], c:1},
+  {q:'Was ist ein Kreisverkehr?', a:['Im Kreis fahren','Vorfahrt im Kreis hat Vorfahrt','Rechts vor Links gilt immer','Stop für alle'], c:1},
+  {q:'An welcher Kreuzung gilt "rechts vor links"?', a:['Mit Ampel','Mit Stopp-Schild','Ohne Schilder / ohne Ampel','Autobahn'], c:2}
+], 'C · Vorfahrt');
+
+// Erste Hilfe
+PACK_C.fahrschule_erste_hilfe = makeQuizApp('fe', 'Erste Hilfe', '🚑', [
+  {q:'Was ist die erste Maßnahme bei Bewusstlosigkeit?', a:['Nichts','Atemwege prüfen','Wasser geben','Hinsetzen'], c:1},
+  {q:'Wie viele Herzdruckmassagen pro Minute?', a:['60','100-120','150','200'], c:1},
+  {q:'Wie viele Atemzüge bei CPR?', a:['1','2','5','10'], c:1},
+  {q:'Notrufnummer in Deutschland?', a:['110','112','119','911'], c:1},
+  {q:'Was tun bei starker Blutung?', a:['Warten','Direkter Druck mit Verband','Kühlen','Desinfizieren'], c:1},
+  {q:'Was ist die stabile Seitenlage?', a:['Bauchlage','Seitenlage für Atmung','Sitzen','Kopf nach unten'], c:1},
+  {q:'Notruf 112 — was ist wichtig?', a:['Nur Name','Ort, Was, Wer, Warten','Nur Ort','Schnell auflegen'], c:1}
+], 'C · Erste Hilfe');
+
+// Technik
+PACK_C.fahrschule_technik = makeQuizApp('ft', 'Fahrzeug-Technik', '🔧', [
+  {q:'Wofür ist die Kupplung?', a:['Bremsen','Kraftübertragung trennen/verbinden','Lenken','Hupen'], c:1},
+  {q:'Was bedeutet ABS?', a:['Automatisches Bremssystem','Antiblockiersystem','Automatik','Aufladen'], c:1},
+  {q:'Wann Bremsflüssigkeit wechseln?', a:['Nie','alle 2 Jahre','Jeden Monat','Nach 10 Jahren'], c:1},
+  {q:'Was ist ESP?', a:['Elektronisches Stabilitätsprogramm','Erste Sicherheit','Elektro-System','Energie-Spar-Programm'], c:0},
+  {q:'Wie oft Ölstand prüfen?', a:['Nie','Regelmäßig (alle 2-4 Wochen)','1× im Jahr','Nach 100.000 km'], c:1},
+  {q:'Was tun bei Reifenpanne?', a:['Weiterfahren','Anhalten, Warnblinker, Warndreieck','Gas geben','Hupen'], c:1},
+  {q:'Mindestprofiltiefe Winterreifen?', a:['1 mm','1,6 mm (Sommer), 4 mm (Winter)','5 mm','Kein Limit'], c:1}
+], 'C · Technik');
+
+// Umwelt
+PACK_C.fahrschule_umwelt = makeQuizApp('fu', 'Umwelt & Fahren', '🌱', [
+  {q:'Was ist die grüne Plakette?', a:['Umweltzone — Schadstoffklasse 4','Bio-Sprit','Neues Auto','Elektro'], c:0},
+  {q:'Was bedeutet "Reifendruck prüfen"?', a:['Spart Sprit','Nur Komfort','Nur Sicherheit','Egal'], c:0},
+  {q:'Was ist Eco-Driving?', a:['Schnell fahren','Spritsparend fahren','Nur Autobahn','Elektro'], c:1},
+  {q:'Wie viel Prozent Sprit spart niedertouriges Fahren?', a:['5%','10%','20%','50%'], c:2},
+  {q:'Wann Motor abstellen?', a:['Nie','Bei Halt über 20 Sekunden','Immer','Nach 1 Std'], c:1},
+  {q:'Was ist Feinstaub?', a:['Staub aus Reifen/Bremsen','Sprit','Lärm','Wasser'], c:0}
+], 'C · Umwelt');
+
+// Praktische Prüfung
+PACK_C.fahrschule_praktisch = makeQuizApp('fp', 'Praktische Prüfung', '🚙', [
+  {q:'Wie lange dauert die praktische Prüfung (Klasse B)?', a:['15 Min','45 Min','1,5 Std','3 Std'], c:1},
+  {q:'Was ist eine Grundfahraufgabe?', a:['Rückwärts einparken','Gas geben','Spiegel einstellen','Hupen'], c:0},
+  {q:'Wann ist die Prüfung bestanden?', a:['Bei 0 Fehlern','Bei nicht mehr als 10 Fehlerpunkten','Bei 5 Fehlern','Nur bei perfekt'], c:1},
+  {q:'Was prüft der Prüfer zuerst?', a:['Fahrzeugkontrolle','Gas geben','Hupen','Musik'], c:0},
+  {q:'Was tun bei einem Fehler?', a:['Weiterfahren ruhig','Weinen','Prüfung abbrechen','Nichts'], c:0},
+  {q:'Wo findet die Prüfung statt?', a:['Autobahn nur','Stadt, Land, Autobahn','Nur Land','Nur Stadt'], c:1}
+], 'C · Praktisch');
+
+// Theorie-Mix (alle Klassen gemischt)
+PACK_C.fahrschule_mix = makeQuizApp('fm', 'Theorie-Mix', '🎯',
+  [...THEORIE_FRAGEN.A, ...THEORIE_FRAGEN.B, ...THEORIE_FRAGEN.C, ...THEORIE_FRAGEN.D].sort(() => Math.random() - 0.5).slice(0, 15),
+  'C · Mixed');
+
+/* ═══════════════════════════════════════════════════════════ */
+/*                  REGISTRIEREN IN APPS                       */
+/* ═══════════════════════════════════════════════════════════ */
+const APPS = {};
+// aus window erreichbar
+Object.assign(APPS, PACK_A, PACK_B, PACK_C);
+
+// In die bestehende openApp-Funktion einhängen
+const origOpen = window.HalDo.open;
+window.HalDo.open = function(id) {
+  if (APPS[id]) {
+    WM.open(id, APPS[id].title, APPS[id].render(), { width: APPS[id].width, height: APPS[id].height, onMount: APPS[id].mount });
+  } else {
+    return origOpen.call(window.HalDo, id);
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════ */
+/*            SIDEBAR ERWEITERN + A-B-C-HUB                    */
+/* ═══════════════════════════════════════════════════════════ */
+function addABCToSidebar() {
+  const sb = document.getElementById('sidebar');
+  if (!sb) return;
+
+  const section = document.createElement('div');
+  section.innerHTML = `
+    <div class="sidebar-title">⭐ A · B · C Packs (78 Apps)</div>
+    <button class="sidebar-item" data-abc="hub"><span class="ico">🚀</span>A·B·C Hub</button>
+    <button class="sidebar-item" data-abc="A"><span class="ico">🤖</span>A · AI (17)</button>
+    <button class="sidebar-item" data-abc="B"><span class="ico">📚</span>B · Bildung (39)</button>
+    <button class="sidebar-item" data-abc="C"><span class="ico">🚗</span>C · Fahrschule (22)</button>
+  `;
+  sb.appendChild(section);
+
+  sb.querySelectorAll('[data-abc]').forEach(btn => {
+    btn.onclick = () => {
+      const t = btn.dataset.abc;
+      if (t === 'hub') openABCHub();
+      else openCategory(t);
+    };
+  });
+}
+
+function openABCHub() {
+  WM.open('abc_hub', '🚀 A · B · C Hub', `
+    <div class="app-content">
+      <p style="font-size:12px;opacity:.7;text-align:center">78 Apps · klicke eine Kategorie</p>
+      <div class="app-grid" style="grid-template-columns:repeat(3,1fr);gap:10px">
+        <div class="app-tile" data-cat="A" style="padding:20px 10px"><span class="tico" style="font-size:40px">🤖</span><span class="tname" style="font-size:12px;margin-top:6px"><b>A · AI</b><br>17 Apps</span></div>
+        <div class="app-tile" data-cat="B" style="padding:20px 10px"><span class="tico" style="font-size:40px">📚</span><span class="tname" style="font-size:12px;margin-top:6px"><b>B · Bildung</b><br>39 Apps</span></div>
+        <div class="app-tile" data-cat="C" style="padding:20px 10px"><span class="tico" style="font-size:40px">🚗</span><span class="tname" style="font-size:12px;margin-top:6px"><b>C · Fahrschule</b><br>22 Apps</span></div>
+      </div>
+      <div style="margin-top:14px;padding:12px;border-radius:12px;background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.2);font-size:11px;line-height:1.5;opacity:.9">
+        <b style="color:var(--accent)">💙 Info:</b> Alle 78 Apps aus A, B, C sind voll funktionsfähig. Die nächsten 297 kommen mit v2.2 (D, E, F) — sag Bescheid, Bruder!
+      </div>
+    </div>
+  `, {
+    width: 420, height: 440,
+    onMount(root) {
+      root.querySelectorAll('[data-cat]').forEach(t => t.onclick = () => openCategory(t.dataset.cat));
+    }
+  });
+}
+
+function openCategory(cat) {
+  const lists = {
+    A: { title:'🤖 A · HalDo AI & Assistant', apps:[
+      ['ai_assistant','🤖','AI Assistant'],['chat','💬','AI Chat'],['memory','🧠','AI Memory'],
+      ['ai_voice','🎤','AI Voice'],['ai_vision','👁️','AI Vision'],['translator','🌐','AI Translate'],
+      ['ai_summarize','📋','AI Summarize'],['ai_study','📚','AI Study'],['ai_writer','✍️','AI Writer'],
+      ['ai_code','💻','AI Code'],['ai_image','🎨','AI Image'],['music','🎵','AI Music'],
+      ['ai_speech','🔊','AI Speech'],['avatar','🤖','AI Avatar'],['ai_tutor','🎓','AI Tutor'],
+      ['ai_coach','💪','AI Coach'],['ai_psychologist','🧠','AI Psychologe']
+    ]},
+    B: { title:'📚 B · HalDo Bildung', apps:[
+      ['bildung_mathe','🔢','Mathe'],['bildung_deutsch','📖','Deutsch'],['bildung_englisch','🇬🇧','Englisch'],
+      ['bildung_bio','🧬','Biologie'],['bildung_chemie','⚗️','Chemie'],['bildung_physik','⚛️','Physik'],
+      ['bildung_geschichte','📜','Geschichte'],['bildung_geo','🌍','Geographie'],
+      ['bildung_politik','🏛️','Politik'],['bildung_sozialkunde','👥','Sozialkunde'],['bildung_ethik','🤔','Ethik'],
+      ['bildung_kunst','🎨','Kunst'],['bildung_musik','🎵','Musik'],['bildung_sport','⚽','Sport'],
+      ['bildung_informatik','💻','Informatik'],['bildung_wirtschaft','💼','Wirtschaft'],['bildung_recht','⚖️','Recht'],
+      ['bildung_paedagogik','🎓','Pädagogik'],['bildung_medizin','⚕️','Medizin'],['bildung_psychologie','🧠','Psychologie'],
+      ['bildung_soziologie','👥','Soziologie'],['bildung_philosophie','📚','Philosophie'],['bildung_theologie','🕊️','Theologie'],
+      ['bildung_archaeologie','🏺','Archäologie'],['bildung_astronomie','🔭','Astronomie'],['bildung_geologie','🪨','Geologie'],
+      ['bildung_meteorologie','🌦️','Meteorologie'],['bildung_ozeanographie','🌊','Ozeanographie'],['bildung_umwelt','🌱','Umwelt'],
+      ['bildung_nachhaltigkeit','♻️','Nachhaltigkeit'],['bildung_digitalisierung','📱','Digitalisierung'],
+      ['bildung_medienkompetenz','📺','Medienkompetenz'],['bildung_bildungsberatung','🎯','Bildungsberatung'],
+      ['bildung_pruefungstrainer','📝','Prüfungstrainer'],['bildung_lernplaner','📅','Lernplaner'],
+      ['bildung_notenrechner','🔢','Notenrechner'],['bildung_stundenplan','⏰','Stundenplan'],
+      ['bildung_referate','📊','Referate'],['bildung_hausaufgaben','📚','Hausaufgaben'],['bildung_lernkarten','🃏','Lernkarten']
+    ]},
+    C: { title:'🚗 C · HalDo Fahrschule', apps:[
+      ['fahrschule_A','🏍️','Klasse A'],['fahrschule_A1','🏍️','Klasse A1'],['fahrschule_A2','🏍️','Klasse A2'],
+      ['fahrschule_AM','🛵','Klasse AM'],['fahrschule_B','🚗','Klasse B'],['fahrschule_BE','🚙','Klasse BE'],
+      ['fahrschule_C','🚚','Klasse C'],['fahrschule_CE','🚛','Klasse CE'],['fahrschule_D','🚌','Klasse D'],
+      ['fahrschule_DE','🚎','Klasse DE'],['fahrschule_L','🚜','Klasse L'],['fahrschule_T','🚜','Klasse T'],
+      ['fahrschule_theorie','📝','Theorie-Menü'],['fahrschule_theorie_A','📝','Theorie A'],
+      ['fahrschule_theorie_B','📝','Theorie B'],['fahrschule_theorie_C','📝','Theorie C'],
+      ['fahrschule_theorie_D','📝','Theorie D'],['fahrschule_zeichen','🚦','Verkehrszeichen'],
+      ['fahrschule_vorfahrt','⏸️','Vorfahrt'],['fahrschule_erste_hilfe','🚑','Erste Hilfe'],
+      ['fahrschule_technik','🔧','Technik'],['fahrschule_umwelt','🌱','Umwelt'],
+      ['fahrschule_praktisch','🚙','Praktische Prüfung'],['fahrschule_mix','🎯','Theorie-Mix']
+    ]}
+  };
+
+  const cat_ = lists[cat];
+  if (!cat_) return;
+
+  WM.open('abc_' + cat, cat_.title, `
+    <div class="app-content">
+      <p style="font-size:11px;opacity:.7">${cat_.apps.length} Apps</p>
+      <div class="app-grid">
+        ${cat_.apps.map(([id,ic,nm]) => `<div class="app-tile" data-id="${id}"><span class="tico">${ic}</span><span class="tname">${nm}</span></div>`).join('')}
+      </div>
+    </div>
+  `, {
+    width: 440, height: 560,
+    onMount(root) {
+      root.querySelectorAll('[data-id]').forEach(t => t.onclick = () => window.HalDo.open(t.dataset.id));
+    }
+  });
+}
+
+// Bottom-Bar erweitern
+function addABCToBottomBar() {
+  const bb = document.getElementById('bottomBar');
+  if (!bb) return;
+  const btn = document.createElement('button');
+  btn.className = 'bottomBtn';
+  btn.textContent = '🚀 A·B·C';
+  btn.onclick = openABCHub;
+  bb.appendChild(btn);
+}
+
+// Init
+setTimeout(() => {
+  addABCToSidebar();
+  addABCToBottomBar();
+  toast('🚀 v2.1 geladen: A + B + C (78 Apps)');
+}, 500);
+
+/* ═══════════════════════════════════════════════════════════ */
+/*              GLOBAL API ERWEITERN                           */
+/* ═══════════════════════════════════════════════════════════ */
+window.HalDo.PackABC = {
+  A: Object.keys(PACK_A),
+  B: Object.keys(PACK_B),
+  C: Object.keys(PACK_C),
+  openHub: openABCHub,
+  openCategory: openCategory,
+  total: Object.keys(APPS).length
+};
+
+console.log('[HalDo v2.1] A+B+C Packs geladen: ' + Object.keys(APPS).length + ' Apps registriert');
+
+})();
+</script>
+<!-- ═══════ ENDE HALDO PACK v2.1 ═══════ -->
 </body>
 </html>
