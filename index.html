@@ -2629,5 +2629,1547 @@ console.log('[HalDo v2.1] A+B+C Packs geladen: ' + Object.keys(APPS).length + ' 
 })();
 </script>
 <!-- ═══════ ENDE HALDO PACK v2.1 ═══════ -->
+<!-- ═══════ HALDO PACK v2.2 — D · E · F ═══════ -->
+<script>
+(function(){
+'use strict';
+if (!window.HalDo || !window.HalDo.WM) { console.warn('v2.2 braucht v2.0'); return; }
+const WM = window.HalDo.WM;
+const toast = window.HalDo.toast;
+const speak = window.HalDo.speak;
+const store = (k,v) => { try{localStorage.setItem(k,JSON.stringify(v));}catch(_){} };
+const load = (k,d) => { try{return JSON.parse(localStorage.getItem(k))??d;}catch(_){return d;} };
+
+/* ═══════ GENERISCHE HELFER ═══════ */
+function makeListApp(id, title, icon, fields, cat, prefix) {
+  return {
+    title: icon + ' ' + title, width: 380, height: 480, cat,
+    render() { return `
+      <div class="app-content">
+        ${fields.map(f=>`<input class="app-input" id="${id}_${f.k}" placeholder="${f.p}" ${f.t?'type="'+f.t+'"':''}>`).join('')}
+        <button class="app-btn primary" id="${id}_add">+ Hinzufügen</button>
+        <div class="app-list" id="${id}_list"></div>
+      </div>
+    `;},
+    mount(root) {
+      const list = root.querySelector('#'+id+'_list');
+      const draw = () => {
+        const items = load('haldo_'+prefix+'_v1', []);
+        list.innerHTML = items.map((it,i)=>{
+          const sum = fields.map(f=>it[f.k]||'').filter(Boolean).slice(0,2).join(' · ');
+          return `<div class="app-row"><div style="flex:1"><b>${it[fields[0].k]||'—'}</b><br><span style="opacity:.7;font-size:10px">${sum.slice(0,80)}</span></div><button class="del" data-i="${i}">🗑</button></div>`;
+        }).join('') || '<div style="opacity:.5;text-align:center;padding:20px">Leer</div>';
+        list.querySelectorAll('.del').forEach(b=>b.onclick=()=>{
+          const a=load('haldo_'+prefix+'_v1',[]);a.splice(+b.dataset.i,1);store('haldo_'+prefix+'_v1',a);draw();
+        });
+      };
+      root.querySelector('#'+id+'_add').onclick=()=>{
+        const obj={};
+        fields.forEach(f=>obj[f.k]=root.querySelector('#'+id+'_'+f.k).value.trim());
+        if(!fields.some(f=>obj[f.k]))return toast('Feld ausfüllen');
+        const a=load('haldo_'+prefix+'_v1',[]);a.unshift({...obj,date:new Date().toISOString()});
+        store('haldo_'+prefix+'_v1',a);
+        fields.forEach(f=>root.querySelector('#'+id+'_'+f.k).value='');
+        draw();toast('✅ Gespeichert');
+      };
+      draw();
+    }
+  };
+}
+
+function makeTrackerApp(id, title, icon, unit, min, max, cat, prefix) {
+  return {
+    title: icon + ' ' + title, width: 360, height: 480, cat,
+    render() { return `
+      <div class="app-content">
+        <div style="display:flex;gap:8px">
+          <input class="app-input" type="number" id="${id}_v" placeholder="Wert (${unit})" step="0.1" style="flex:1">
+          <button class="app-btn primary" id="${id}_add">+</button>
+        </div>
+        <div id="${id}_latest" style="text-align:center;padding:14px;border-radius:12px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);font-size:22px;font-weight:700;color:var(--accent)">—</div>
+        <div id="${id}_chart" style="height:100px;display:flex;align-items:flex-end;gap:2px;padding:8px;border-radius:12px;background:rgba(0,0,0,.2)"></div>
+        <div class="app-row">Ø Durchschnitt: <b id="${id}_avg">—</b></div>
+        <div class="app-list" id="${id}_list"></div>
+      </div>
+    `;},
+    mount(root) {
+      const list = root.querySelector('#'+id+'_list');
+      const draw = () => {
+        const items = load('haldo_'+prefix+'_v1', []);
+        root.querySelector('#'+id+'_latest').textContent = items[0] ? items[0].v+' '+unit : '—';
+        if (items.length) {
+          const avg = (items.reduce((a,b)=>a+(+b.v||0),0)/items.length).toFixed(1);
+          root.querySelector('#'+id+'_avg').textContent = avg+' '+unit;
+        }
+        const chart = root.querySelector('#'+id+'_chart');
+        const last = items.slice(0,20).reverse();
+        if (last.length) {
+          const maxV = Math.max(...last.map(x=>+x.v), max);
+          chart.innerHTML = last.map(x=>{
+            const h = Math.min(100, ((+x.v||0)/maxV)*100);
+            return `<div style="flex:1;height:${h}%;background:linear-gradient(to top,var(--accent),var(--accent2));border-radius:2px 2px 0 0;min-width:4px"></div>`;
+          }).join('');
+        } else chart.innerHTML = '';
+        list.innerHTML = items.slice(0,10).map((x,i)=>
+          `<div class="app-row"><span style="flex:1">${new Date(x.date).toLocaleString('de-DE')}</span><b>${x.v} ${unit}</b><button class="del" data-i="${i}">🗑</button></div>`
+        ).join('') || '<div style="opacity:.5;text-align:center;padding:14px">Noch keine Daten</div>';
+        list.querySelectorAll('.del').forEach(b=>b.onclick=()=>{
+          const a=load('haldo_'+prefix+'_v1',[]);a.splice(+b.dataset.i,1);store('haldo_'+prefix+'_v1',a);draw();
+        });
+      };
+      root.querySelector('#'+id+'_add').onclick=()=>{
+        const v = root.querySelector('#'+id+'_v').value;
+        if (!v) return toast('Wert eingeben');
+        const a = load('haldo_'+prefix+'_v1', []);
+        a.unshift({ v, date: new Date().toISOString() });
+        store('haldo_'+prefix+'_v1', a);
+        root.querySelector('#'+id+'_v').value = '';
+        draw(); toast('✅ '+v+' '+unit+' gespeichert');
+      };
+      draw();
+    }
+  };
+}
+
+function makeQuizApp(id, title, icon, questions, cat) {
+  return {
+    title: icon+' '+title, width:400, height:540, cat,
+    render() { return `
+      <div class="app-content">
+        <div id="qz_p_${id}" style="font-size:11px;opacity:.7;text-align:right"></div>
+        <div id="qz_q_${id}" style="font-size:14px;font-weight:600;padding:14px;border-radius:12px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);min-height:70px;line-height:1.5"></div>
+        <div id="qz_a_${id}" style="display:flex;flex-direction:column;gap:8px"></div>
+        <div id="qz_r_${id}" style="text-align:center;font-size:13px;min-height:20px;font-weight:600"></div>
+        <button class="app-btn primary" id="qz_n_${id}">Nächste →</button>
+        <button class="app-btn" id="qz_rs_${id}">🔄 Reset</button>
+      </div>
+    `;},
+    mount(root) {
+      let idx=0, score=0, answered=false;
+      const qBox=root.querySelector('#qz_q_'+id), aBox=root.querySelector('#qz_a_'+id);
+      const rBox=root.querySelector('#qz_r_'+id), pBox=root.querySelector('#qz_p_'+id);
+      function show(){
+        if (idx>=questions.length) {
+          qBox.innerHTML = `<div style="text-align:center;padding:20px">🎉 Fertig!<br><br>Punkte: <b style="color:var(--accent);font-size:22px">${score}</b> / ${questions.length}</div>`;
+          aBox.innerHTML=''; rBox.textContent=''; pBox.textContent=''; return;
+        }
+        answered=false;
+        const q=questions[idx];
+        pBox.textContent='Frage '+(idx+1)+'/'+questions.length+' · '+score+' Punkte';
+        qBox.textContent=q.q;
+        rBox.textContent='';
+        aBox.innerHTML=q.a.map((o,i)=>`<button class="app-btn" data-ans="${i}" style="text-align:left;justify-content:flex-start">${o}</button>`).join('');
+        aBox.querySelectorAll('[data-ans]').forEach(b=>b.onclick=()=>{
+          if (answered) return;
+          answered=true;
+          const c=+b.dataset.ans;
+          if (c===q.c){score++;rBox.textContent='✅ Richtig!';rBox.style.color='#4ade80';}
+          else{rBox.textContent='❌ Richtig: '+q.a[q.c];rBox.style.color='#f87171';}
+          aBox.querySelectorAll('[data-ans]').forEach((x,j)=>{x.style.background = j===q.c?'rgba(74,222,128,.3)':(j===c?'rgba(248,113,113,.3)':'');});
+        });
+      }
+      root.querySelector('#qz_n_'+id).onclick=()=>{idx++;show();};
+      root.querySelector('#qz_rs_'+id).onclick=()=>{idx=0;score=0;show();};
+      show();
+    }
+  };
+}
+
+function makeCalculatorApp(id, title, icon, fields, calc, cat) {
+  return {
+    title: icon+' '+title, width:360, height:440, cat,
+    render() { return `
+      <div class="app-content">
+        ${fields.map(f=>`<div><div style="font-size:11px;opacity:.7;margin-bottom:4px">${f.l}</div><input class="app-input" id="${id}_${f.k}" type="number" placeholder="${f.p||''}" step="any"></div>`).join('')}
+        <button class="app-btn primary" id="${id}_go">Berechnen</button>
+        <div id="${id}_out" style="padding:16px;border-radius:12px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);font-size:15px;line-height:1.6;min-height:60px"></div>
+      </div>
+    `;},
+    mount(root) {
+      root.querySelector('#'+id+'_go').onclick=()=>{
+        const vals={};fields.forEach(f=>vals[f.k]=parseFloat(root.querySelector('#'+id+'_'+f.k).value)||0);
+        try{
+          const out=calc(vals);
+          root.querySelector('#'+id+'_out').innerHTML=out;
+        }catch(e){root.querySelector('#'+id+'_out').textContent='Fehler: '+e.message;}
+      };
+    }
+  };
+}
+
+function makeInfoApp(id, title, icon, sections, cat) {
+  return {
+    title: icon+' '+title, width:380, height:520, cat,
+    render() { return `
+      <div class="app-content">
+        ${sections.map((s,i)=>`
+          <details ${i===0?'open':''} style="border-radius:12px;background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.2);padding:10px">
+            <summary style="cursor:pointer;font-weight:600;color:var(--accent);font-size:13px">${s.h}</summary>
+            <div style="font-size:12px;line-height:1.6;margin-top:8px;opacity:.9">${s.c}</div>
+          </details>
+        `).join('')}
+      </div>
+    `;}
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*                D — HALDO GESUNDHEIT (24)                    */
+/* ═══════════════════════════════════════════════════════════ */
+const PACK_D = {};
+
+// 1. Anatomie (interaktiv)
+PACK_D.ges_anatomie = {
+  title: '🫀 Anatomie 3D', width: 420, height: 560, cat: 'D',
+  render() { return `
+    <div class="app-content">
+      <div id="an_body" style="display:flex;justify-content:center;padding:10px">
+        <svg viewBox="0 0 200 400" style="width:200px;height:380px">
+          <defs>
+            <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="rgba(0,229,255,0.4)"/>
+              <stop offset="100%" stop-color="rgba(77,168,255,0.2)"/>
+            </linearGradient>
+          </defs>
+          <ellipse cx="100" cy="40" rx="28" ry="32" fill="url(#bodyGrad)" stroke="var(--accent)" stroke-width="1.5" data-part="Kopf"/>
+          <rect x="72" y="72" width="56" height="10" rx="3" fill="url(#bodyGrad)" stroke="var(--accent)" stroke-width="1.5" data-part="Hals"/>
+          <path d="M 62 90 Q 55 130 55 180 Q 55 200 62 220 L 138 220 Q 145 200 145 180 Q 145 130 138 90 Z" fill="url(#bodyGrad)" stroke="var(--accent)" stroke-width="1.5" data-part="Brust"/>
+          <ellipse cx="55" cy="130" rx="10" ry="30" fill="url(#bodyGrad)" stroke="var(--accent)" stroke-width="1.5" data-part="Arm links"/>
+          <ellipse cx="145" cy="130" rx="10" ry="30" fill="url(#bodyGrad)" stroke="var(--accent)" stroke-width="1.5" data-part="Arm rechts"/>
+          <rect x="75" y="220" width="20" height="90" rx="5" fill="url(#bodyGrad)" stroke="var(--accent)" stroke-width="1.5" data-part="Bein links"/>
+          <rect x="105" y="220" width="20" height="90" rx="5" fill="url(#bodyGrad)" stroke="var(--accent)" stroke-width="1.5" data-part="Bein rechts"/>
+          <circle cx="100" cy="145" r="18" fill="rgba(255,80,100,0.3)" stroke="#ff5050" stroke-width="2" data-part="Herz"/>
+          <path d="M 85 160 Q 100 175 115 160" stroke="#ff8888" stroke-width="1.5" fill="none" data-part="Herz"/>
+        </svg>
+      </div>
+      <div id="an_info" style="padding:12px;border-radius:12px;background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.2);font-size:12px;line-height:1.6;min-height:80px">
+        👆 Klicke auf einen Körperteil
+      </div>
+    </div>
+  `;},
+  mount(root) {
+    const info = {
+      'Kopf': '🧠 <b>Kopf</b><br>Enthält Gehirn (Schädel), Augen, Nase, Mund, Ohren. Das Gehirn wiegt ca. 1,4 kg und steuert alle Körperfunktionen.',
+      'Hals': '🎤 <b>Hals</b><br>Verbindet Kopf und Rumpf. Enthält Luftröhre, Speiseröhre, Schilddrüse und wichtige Blutgefäße (Halsschlagader).',
+      'Brust': '🫁 <b>Brust</b><br>Enthält Lunge (Atmung), Herz (Blutkreislauf), Rippen und Brustbein. Die Lunge hat ca. 300 Mio Alveolen.',
+      'Arm links': '💪 <b>Arm</b><br>Oberarm (Humerus), Unterarm (Radius, Ulna), Hand mit 27 Knochen. Bizeps und Trizeps steuern Beugung/Streckung.',
+      'Arm rechts': '💪 <b>Arm</b><br>Gleiche Anatomie wie links. Nervus radialis, medianus und ulnaris steuern die Hand.',
+      'Herz': '❤️ <b>Herz</b><br>Muskelpumpe, ca. 300 g, schlägt 60-100× pro Minute. 4 Kammern: 2 Vorhöfe, 2 Kammern. Pumpt ca. 5 L Blut/Minute.',
+      'Bein links': '🦵 <b>Bein</b><br>Oberschenkel (Femur — stärkster Knochen), Unterschenkel (Tibia, Fibula), Fuß mit 26 Knochen.',
+      'Bein rechts': '🦵 <b>Bein</b><br>Gleiche Anatomie wie links. Knie ist das größte Gelenk des Körpers.'
+    };
+    root.querySelectorAll('[data-part]').forEach(el => {
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', () => {
+        root.querySelector('#an_info').innerHTML = info[el.dataset.part] || '';
+        root.querySelectorAll('[data-part]').forEach(p => p.style.filter = '');
+        el.style.filter = 'drop-shadow(0 0 8px var(--accent))';
+      });
+    });
+  }
+};
+
+// 2. Symptom-Checker
+PACK_D.ges_symptom = {
+  title: '🔍 Symptom-Checker', width: 380, height: 480, cat: 'D',
+  render() { return `
+    <div class="app-content">
+      <p style="font-size:11px;opacity:.6;text-align:center;padding:6px;background:rgba(255,100,100,.1);border-radius:8px">⚠️ Nur Info, kein Arzt-Ersatz</p>
+      <select class="app-select" id="sy_sym">
+        <option value="">— Symptom wählen —</option>
+        <option>Fieber</option><option>Husten</option><option>Halsschmerzen</option><option>Schnupfen</option>
+        <option>Kopfschmerzen</option><option>Bauchschmerzen</option><option>Rückenschmerzen</option>
+        <option>Übelkeit</option><option>Durchfall</option><option>Verstopfung</option>
+        <option>Müdigkeit</option><option>Schlaflosigkeit</option><option>Juckreiz</option>
+        <option>Schwindel</option><option>Herzrasen</option><option>Atemnot</option>
+      </select>
+      <button class="app-btn primary" id="sy_go">Mögliche Ursachen</button>
+      <div id="sy_out" style="font-size:12px;line-height:1.6"></div>
+    </div>
+  `;},
+  mount(root) {
+    const db = {
+      'Fieber': ['Grippe','Erkältung','COVID-19','Infektion','Entzündung'],
+      'Husten': ['Erkältung','Bronchitis','Asthma','Allergie','Lungenentzündung'],
+      'Halsschmerzen': ['Mandelentzündung','Erkältung','Grippe','Scharlach','Rachenentzündung'],
+      'Schnupfen': ['Allergie','Erkältung','Sinusitis','Heuschnupfen','Nasennebenhöhlen-Entzündung'],
+      'Kopfschmerzen': ['Stress','Migräne','Spannungskopfschmerz','Dehydrierung','Bluthochdruck'],
+      'Bauchschmerzen': ['Magen-Darm-Infekt','Blähungen','Gastritis','Lebensmittelvergiftung','Appendizitis'],
+      'Rückenschmerzen': ['Muskelverspannung','Bandscheibenvorfall','Ischias','Fehlhaltung','Arthrose'],
+      'Übelkeit': ['Lebensmittelvergiftung','Migräne','Schwangerschaft','Reisekrankheit','Gastritis'],
+      'Durchfall': ['Infekt','Lebensmittelvergiftung','Stress','Unverträglichkeit','Reizdarm'],
+      'Verstopfung': ['Ballaststoffmangel','Flüssigkeitsmangel','Stress','Medikamente','Trägheit'],
+      'Müdigkeit': ['Schlafmangel','Eisenmangel','Stress','Schilddrüse','Depression'],
+      'Schlaflosigkeit': ['Stress','Koffein','Blaulicht','Angst','Schlafhygiene'],
+      'Juckreiz': ['Allergie','Trockene Haut','Ekzem','Pilz','Insektenstich'],
+      'Schwindel': ['Blutdruckabfall','Dehydrierung','Innenohr','Anämie','Stress'],
+      'Herzrasen': ['Stress','Koffein','Herzrhythmusstörung','Hyperthyreose','Angst'],
+      'Atemnot': ['Asthma','Herzschwäche','Anämie','Lungenembolie','Panikattacke']
+    };
+    root.querySelector('#sy_go').onclick = () => {
+      const s = root.querySelector('#sy_sym').value;
+      if (!s) return toast('Symptom wählen');
+      const list = db[s] || [];
+      root.querySelector('#sy_out').innerHTML = `
+        <h4 style="color:var(--accent);margin:10px 0 8px">Mögliche Ursachen für ${s}:</h4>
+        ${list.map(x=>`<div class="app-row">• ${x}</div>`).join('')}
+        <div style="margin-top:10px;padding:10px;border-radius:8px;background:rgba(255,100,100,.1);font-size:11px">
+          <b>⚠️ Wichtig:</b> Bei starken Beschwerden oder länger als 3 Tage → Arzt aufsuchen!
+        </div>
+      `;
+    };
+  }
+};
+
+// 3. Medikamente
+PACK_D.ges_medikamente = makeListApp('med','Medikamente','💊',[
+  {k:'name',p:'Name (z.B. Ibuprofen)'},
+  {k:'dosis',p:'Dosis (z.B. 400mg)'},
+  {k:'zeit',p:'Einnahme (z.B. morgens)'},
+  {k:'notiz',p:'Notiz'}
+],'D','medikamente');
+
+// 4. Laborwerte
+PACK_D.ges_laborwerte = {
+  title: '🧪 Laborwerte', width: 400, height: 540, cat: 'D',
+  render() {
+    const werte = [
+      ['Blutzucker (nüchtern)','70-100 mg/dl'],['HbA1c','4,5-5,7 %'],
+      ['Cholesterin ges.','< 200 mg/dl'],['LDL','< 130 mg/dl'],['HDL','> 40 mg/dl'],
+      ['Triglyceride','< 150 mg/dl'],['Hämoglobin (M)','13,5-17,5 g/dl'],['Hämoglobin (W)','12-16 g/dl'],
+      ['Leukozyten','4.000-10.000 /µl'],['Thrombozyten','150.000-400.000 /µl'],
+      ['Kreatinin (M)','0,7-1,2 mg/dl'],['Kreatinin (W)','0,5-1,1 mg/dl'],
+      ['CRP','< 5 mg/l'],['TSH','0,4-4,0 mU/l'],
+      ['Natrium','135-145 mmol/l'],['Kalium','3,5-5,0 mmol/l'],
+      ['Calcium','2,1-2,6 mmol/l'],['Eisen (M)','12-31 µmol/l'],['Eisen (W)','9-30 µmol/l']
+    ];
+    return `
+      <div class="app-content">
+        <p style="font-size:11px;opacity:.7">Referenzwerte (Erwachsene)</p>
+        ${werte.map(([n,v])=>`<div class="app-row"><span style="flex:1">${n}</span><b style="color:var(--accent);font-size:11px">${v}</b></div>`).join('')}
+        <div style="font-size:10px;opacity:.5;text-align:center;margin-top:10px">⚠️ Referenzwerte variieren je nach Labor</div>
+      </div>
+    `;
+  }
+};
+
+// 5. Krankheiten
+const KRANKHEITEN = [
+  {q:'Was ist Diabetes Typ 1?', a:'Autoimmunerkrankung — Körper produziert kein Insulin. Meist im Kindesalter. Lebenslange Insulin-Injektion nötig.'},
+  {q:'Was ist Diabetes Typ 2?', a:'Insulinresistenz — Zellen reagieren nicht mehr auf Insulin. Häufig durch Übergewicht, Bewegungsmangel. Behandelbar mit Ernährung, Tabletten, Insulin.'},
+  {q:'Was ist Bluthochdruck?', a:'Werte über 140/90 mmHg. Risikofaktor für Herzinfarkt, Schlaganfall. Behandlung: Lebensstil, Medikamente.'},
+  {q:'Was ist Asthma?', a:'Chronische Entzündung der Atemwege — Anfälle mit Atemnot, Husten, Pfeifen. Behandlung: Spray (Bronchodilatator, Kortison).'},
+  {q:'Was ist ein Herzinfarkt?', a:'Verschluss eines Herzkranzgefäßes — Herzmuskel wird nicht mehr durchblutet. Symptome: Brustschmerz, Enge, Ausstrahlung in Arm/Kiefer. NOTRUF 112!'},
+  {q:'Was ist ein Schlaganfall?', a:'Durchblutungsstörung im Gehirn. FAST-Regel: Face (hängt Mundwinkel), Arms (Arm sinkt), Speech (Sprache), Time (Zeit → 112!).'},
+  {q:'Was ist Migräne?', a:'Wiederkehrende Kopfschmerzen, oft einseitig, pulsierend, mit Übelkeit und Licht-/Lärmempfindlichkeit. Auslöser: Stress, Hormone, Lebensmittel.'},
+  {q:'Was ist Arthrose?', a:'Verschleiß des Gelenkknorpels — Schmerzen bei Bewegung, Steifigkeit. Häufig Knie, Hüfte, Daumen. Behandlung: Bewegung, Schmerzmittel, OP.'},
+  {q:'Was ist Depression?', a:'Psychische Erkrankung — anhaltende Traurigkeit, Antriebslosigkeit, Interessenverlust, Schlafstörung >2 Wochen. Behandlung: Therapie, ggf. Medikamente.'},
+  {q:'Was ist COVID-19?', a:'Infektion mit SARS-CoV-2 — Symptome: Husten, Fieber, Verlust Geruchs-/Geschmackssinn. Impfung und Hygiene schützen.'}
+];
+PACK_D.ges_krankheiten = makeQuizApp('kr','Krankheiten A-Z','🏥',
+  KRANKHEITEN.map((x,i)=>({q:x.q, a:['Richtig','Falsch','Weiß nicht','Überspringen'], c:0}))
+  ,'D');
+
+// 6. Ernährung
+PACK_D.ges_ernaehrung = {
+  title: '🥗 Ernährung', width: 380, height: 480, cat: 'D',
+  render() { return `
+    <div class="app-content">
+      <div class="app-row">Gewicht (kg): <input class="app-input" type="number" id="er_kg" style="width:100px;margin-left:auto" value="70"></div>
+      <div class="app-row">Größe (cm): <input class="app-input" type="number" id="er_cm" style="width:100px;margin-left:auto" value="175"></div>
+      <div class="app-row">Alter: <input class="app-input" type="number" id="er_age" style="width:100px;margin-left:auto" value="30"></div>
+      <div class="app-row">Geschlecht: <select class="app-select" id="er_sex" style="width:120px;margin-left:auto"><option value="m">Männlich</option><option value="w">Weiblich</option></select></div>
+      <div class="app-row">Aktivität: <select class="app-select" id="er_act" style="width:140px;margin-left:auto">
+        <option value="1.2">Sitzend</option><option value="1.375">Leicht</option>
+        <option value="1.55">Mittel</option><option value="1.725">Aktiv</option>
+        <option value="1.9">Sehr aktiv</option>
+      </select></div>
+      <button class="app-btn primary" id="er_go">Kalorienbedarf berechnen</button>
+      <div id="er_out" style="padding:14px;border-radius:12px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);font-size:13px;line-height:1.6"></div>
+    </div>
+  `;},
+  mount(root) {
+    root.querySelector('#er_go').onclick = () => {
+      const kg=+root.querySelector('#er_kg').value, cm=+root.querySelector('#er_cm').value;
+      const age=+root.querySelector('#er_age').value, sex=root.querySelector('#er_sex').value;
+      const act=+root.querySelector('#er_act').value;
+      const bmr = sex==='m' ? 10*kg+6.25*cm-5*age+5 : 10*kg+6.25*cm-5*age-161;
+      const tdee = bmr*act;
+      const bmi = (kg/(cm*cm/10000)).toFixed(1);
+      root.querySelector('#er_out').innerHTML = `
+        <div>🔥 Grundumsatz: <b>${Math.round(bmr)} kcal</b></div>
+        <div>⚡ Gesamtbedarf: <b>${Math.round(tdee)} kcal</b></div>
+        <div>📊 BMI: <b>${bmi}</b></div>
+        <div>🥗 Empfehlung: <b>${Math.round(tdee-500)} kcal</b> (abnehmen) / <b>${Math.round(tdee+300)} kcal</b> (zunehmen)</div>
+      `;
+    };
+  }
+};
+
+// 7. Fitness
+PACK_D.ges_fitness = makeListApp('fit','Fitness-Tracker','💪',[
+  {k:'uebung',p:'Übung (z.B. Liegestütze)'},
+  {k:'saetze',p:'Sätze (z.B. 3×12)'},
+  {k:'gewicht',p:'Gewicht (kg)',t:'number'},
+  {k:'notiz',p:'Notiz'}
+],'D','fitness');
+
+// 8. Mental Health
+PACK_D.ges_mental = {
+  title: '🧠 Mental Health', width: 380, height: 520, cat: 'D',
+  render() { return `
+    <div class="app-content">
+      <p style="font-size:12px;opacity:.7;text-align:center">Wie fühlst du dich heute?</p>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+        ${['😢','😟','😐','🙂','😄'].map((e,i)=>`<button class="app-btn" data-mood="${i+1}" style="font-size:24px;padding:12px;min-height:52px">${e}</button>`).join('')}
+      </div>
+      <textarea class="app-textarea" id="mh_txt" placeholder="Was beschäftigt dich?" style="min-height:60px"></textarea>
+      <button class="app-btn primary" id="mh_add">Eintrag speichern</button>
+      <div class="app-row">Ø Stimmung: <b id="mh_avg">—</b> / 5</div>
+      <div class="app-list" id="mh_list"></div>
+    </div>
+  `;},
+  mount(root) {
+    let mood = 3;
+    root.querySelectorAll('[data-mood]').forEach(b=>b.onclick=()=>{
+      mood=+b.dataset.mood;
+      root.querySelectorAll('[data-mood]').forEach(x=>x.style.background='');
+      b.style.background='rgba(0,229,255,.4)';
+    });
+    const list = root.querySelector('#mh_list');
+    const draw = () => {
+      const items = load('haldo_mental_v1', []);
+      root.querySelector('#mh_avg').textContent = items.length ? (items.reduce((a,b)=>a+b.mood,0)/items.length).toFixed(1) : '—';
+      const emoji = ['😢','😟','😐','🙂','😄'];
+      list.innerHTML = items.slice(0,10).map((x,i)=>
+        `<div class="app-row"><span style="font-size:20px">${emoji[x.mood-1]}</span><span style="flex:1;font-size:11px">${(x.txt||'').slice(0,50)}</span><button class="del" data-i="${i}">🗑</button></div>`
+      ).join('') || '<div style="opacity:.5;text-align:center;padding:14px">Keine Einträge</div>';
+      list.querySelectorAll('.del').forEach(b=>b.onclick=()=>{
+        const a=load('haldo_mental_v1',[]);a.splice(+b.dataset.i,1);store('haldo_mental_v1',a);draw();
+      });
+    };
+    root.querySelector('#mh_add').onclick = () => {
+      const txt = root.querySelector('#mh_txt').value;
+      const a = load('haldo_mental_v1', []);
+      a.unshift({ mood, txt, date: new Date().toISOString() });
+      store('haldo_mental_v1', a);
+      root.querySelector('#mh_txt').value = '';
+      draw(); toast('🧠 Gespeichert');
+    };
+    draw();
+  }
+};
+
+// 9. Schlaf
+PACK_D.ges_schlaf = makeTrackerApp('sl','Schlaf-Tracker','😴','Std',0,12,'D','schlaf');
+
+// 10. Notfall
+PACK_D.ges_notfall = {
+  title: '🚨 Notfall', width: 380, height: 480, cat: 'D',
+  render() {
+    const nums = [
+      ['🚑 Rettungsdienst','112'],['🚔 Polizei','110'],['🚒 Feuerwehr','112'],
+      ['☎️ Notruf (EU)','112'],['🧪 Giftnotruf','+49 30 19240'],
+      ['🆘 Telefonseelsorge','0800 1110111'],['🌍 Notruf international','911 (US), 999 (UK), 112 (EU)'],
+      ['💊 Ärztlicher Bereitschaftsdienst','116117']
+    ];
+    return `
+      <div class="app-content">
+        <h3 style="color:#f87171;margin:0">🚨 Notrufnummern</h3>
+        ${nums.map(([n,v])=>`<a href="tel:${v.replace(/\D/g,'')}" class="app-row" style="text-decoration:none;color:#fff"><span style="flex:1">${n}</span><b style="color:var(--accent)">${v}</b></a>`).join('')}
+        <h3 style="color:#f87171;margin:10px 0 0">📋 Notfall-Info</h3>
+        <input class="app-input" id="nf_blut" placeholder="Blutgruppe">
+        <input class="app-input" id="nf_aller" placeholder="Allergien">
+        <input class="app-input" id="nf_med" placeholder="Medikamente">
+        <input class="app-input" id="nf_contact" placeholder="Notfallkontakt (Name + Tel)">
+        <button class="app-btn primary" id="nf_save">💾 Speichern</button>
+      </div>
+    `;
+  },
+  mount(root) {
+    const info = load('haldo_notfall_v1', {});
+    ['blut','aller','med','contact'].forEach(k=>root.querySelector('#nf_'+k).value = info[k]||'');
+    root.querySelector('#nf_save').onclick = () => {
+      const d = {};
+      ['blut','aller','med','contact'].forEach(k=>d[k]=root.querySelector('#nf_'+k).value);
+      store('haldo_notfall_v1', d);
+      toast('🚨 Notfall-Info gespeichert');
+    };
+  }
+};
+
+// 11. Erste Hilfe
+PACK_D.ges_erste_hilfe = makeQuizApp('eh','Erste Hilfe','🚑',[
+  {q:'Notrufnummer in Deutschland?', a:['110','112','911','119'], c:1},
+  {q:'Wie oft Herzdruckmassage pro Minute?', a:['60','100-120','150','200'], c:1},
+  {q:'Verhältnis Herzdruckmassage zu Beatmung?', a:['15:2','30:2','10:1','20:2'], c:1},
+  {q:'Was ist die stabile Seitenlage?', a:['Bauchlage','Seitenlage für freie Atmung','Sitzen','Kopf nach unten'], c:1},
+  {q:'Erste Maßnahme bei starker Blutung?', a:['Kühlen','Direkter Druck','Waschen','Desinfizieren'], c:1},
+  {q:'Was tun bei Verbrennung?', a:['Eis drauf','Kühlen mit Wasser 10-15 Min','Salben','Aufstechen'], c:1},
+  {q:'Was tun bei Bewusstlosigkeit?', a:['Sitzen','Atemwege prüfen','Wasser','Schütteln'], c:1},
+  {q:'Wie lange nach Herzstillstand Gehirnschäden?', a:['1 Min','3-5 Min','10 Min','30 Min'], c:1},
+  {q:'Was tun bei Nasenbluten?', a:['Kopf nach hinten','Kopf nach vorne, Nase drücken','Hinlegen','Nichts'], c:1},
+  {q:'Wann Helm abnehmen (Motorrad)?', a:['Immer','Nur bei Bewusstlosigkeit/Atemnot','Nie','Nach 5 Min'], c:1}
+],'D');
+
+// 12. Vorsorge
+PACK_D.ges_vorsorge = makeInfoApp('vs','Vorsorge','🩺',[
+  {h:'🩺 Check-up 35 (ab 35 J.)',c:'Alle 3 Jahre: Blutdruck, Blutzucker, Cholesterin, Urin — erkennt Herz-Kreislauf-Risiken früh.'},
+  {h:'🎗️ Krebsfrüherkennung',c:'Männer ab 45: Prostatakrebs. Frauen ab 20: Gebärmutterhals (Pap-Test). Ab 50: Darmspiegelung.'},
+  {h:'💉 Impfungen',c:'Tetanus/Diphtherie alle 10 Jahre. Grippe jährlich ab 60. COVID nach Empfehlung.'},
+  {h:'🦷 Zahnarzt',c:'1-2× pro Jahr. Professionelle Reinigung empfohlen.'},
+  {h:'👁️ Augenarzt',c:'Ab 40 alle 2 Jahre — Glaukom-Früherkennung.'},
+  {h:'🧠 Psychische Gesundheit',c:'Bei anhaltender Traurigkeit, Angst, Schlafstörung >2 Wochen → Hausarzt.'},
+  {h:'❤️ Herz-Kreislauf',c:'Blutdruck, Cholesterin, Blutzucker regelmäßig checken. Bewegung, Ernährung, Nichtrauchen.'},
+  {h:'🦴 Knochendichte',c:'Frauen ab 50, Männer ab 65 — Osteoporose-Risiko.'}
+],'D');
+
+// 13. Impftracker
+PACK_D.ges_impfungen = makeListApp('imp','Impftracker','💉',[
+  {k:'impf',p:'Impfung (z.B. Tetanus)'},
+  {k:'datum',p:'Datum',t:'date'},
+  {k:'naechste',p:'Nächste Auffrischung',t:'date'},
+  {k:'notiz',p:'Notiz'}
+],'D','impfungen');
+
+// 14. Blutdruck
+PACK_D.ges_blutdruck = {
+  title: '🩸 Blutdruck', width: 360, height: 500, cat: 'D',
+  render() { return `
+    <div class="app-content">
+      <div style="display:flex;gap:6px">
+        <input class="app-input" type="number" id="bd_sys" placeholder="Systolisch" style="flex:1">
+        <input class="app-input" type="number" id="bd_dia" placeholder="Diastolisch" style="flex:1">
+        <button class="app-btn primary" id="bd_add">+</button>
+      </div>
+      <div id="bd_show" style="text-align:center;padding:14px;border-radius:12px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);font-size:20px;font-weight:700;color:var(--accent)">—/—</div>
+      <div class="app-row">Kategorie: <b id="bd_cat">—</b></div>
+      <div class="app-row">Ø Durchschnitt: <b id="bd_avg">—</b></div>
+      <div class="app-list" id="bd_list"></div>
+    </div>
+  `;},
+  mount(root) {
+    const cat = (s,d) => {
+      if (s<90||d<60) return '🟦 Niedrig';
+      if (s<120&&d<80) return '🟢 Optimal';
+      if (s<130&&d<85) return '🟢 Normal';
+      if (s<140||d<90) return '🟡 Hochnormal';
+      if (s<160||d<100) return '🟠 Hypertonie 1';
+      if (s>=160||d>=100) return '🔴 Hypertonie 2';
+      return '—';
+    };
+    const list = root.querySelector('#bd_list');
+    const draw = () => {
+      const items = load('haldo_blutdruck_v1', []);
+      if (items.length) {
+        root.querySelector('#bd_show').textContent = items[0].s+'/'+items[0].d;
+        root.querySelector('#bd_cat').textContent = cat(items[0].s, items[0].d);
+        const avgS = Math.round(items.reduce((a,b)=>a+b.s,0)/items.length);
+        const avgD = Math.round(items.reduce((a,b)=>a+b.d,0)/items.length);
+        root.querySelector('#bd_avg').textContent = avgS+'/'+avgD;
+      }
+      list.innerHTML = items.slice(0,10).map((x,i)=>
+        `<div class="app-row"><span style="flex:1;font-size:11px">${new Date(x.date).toLocaleString('de-DE')}</span><b>${x.s}/${x.d}</b><button class="del" data-i="${i}">🗑</button></div>`
+      ).join('') || '<div style="opacity:.5;text-align:center;padding:14px">Noch keine Daten</div>';
+      list.querySelectorAll('.del').forEach(b=>b.onclick=()=>{
+        const a=load('haldo_blutdruck_v1',[]);a.splice(+b.dataset.i,1);store('haldo_blutdruck_v1',a);draw();
+      });
+    };
+    root.querySelector('#bd_add').onclick = () => {
+      const s = +root.querySelector('#bd_sys').value;
+      const d = +root.querySelector('#bd_dia').value;
+      if (!s||!d) return toast('Beide Werte eingeben');
+      const a = load('haldo_blutdruck_v1', []);
+      a.unshift({ s, d, date: new Date().toISOString() });
+      store('haldo_blutdruck_v1', a);
+      root.querySelector('#bd_sys').value='';
+      root.querySelector('#bd_dia').value='';
+      draw(); toast('🩸 '+s+'/'+d+' gespeichert');
+    };
+    draw();
+  }
+};
+
+// 15. Blutzucker
+PACK_D.ges_blutzucker = makeTrackerApp('bz','Blutzucker','🍬','mg/dl',40,300,'D','blutzucker');
+
+// 16. Gewicht
+PACK_D.ges_gewicht = makeTrackerApp('gw','Gewicht','⚖️','kg',30,200,'D','gewicht');
+
+// 17. BMI
+PACK_D.ges_bmi = makeCalculatorApp('bmi','BMI-Rechner','📊',[
+  {k:'kg',l:'Gewicht (kg)',p:'70'},
+  {k:'cm',l:'Größe (cm)',p:'175'}
+], (v) => {
+  if (!v.kg||!v.cm) return 'Bitte Werte eingeben';
+  const bmi = (v.kg/(v.cm*v.cm/10000)).toFixed(1);
+  let kat = '';
+  if (bmi<18.5) kat='🟦 Untergewicht';
+  else if (bmi<25) kat='🟢 Normalgewicht';
+  else if (bmi<30) kat='🟡 Übergewicht';
+  else kat='🔴 Adipositas';
+  return `<div style="text-align:center"><div style="font-size:32px;color:var(--accent);font-weight:700">${bmi}</div><div>${kat}</div><div style="font-size:11px;opacity:.6;margin-top:6px">Normal: 18,5-24,9</div></div>`;
+},'D');
+
+// 18. Kalorien
+PACK_D.ges_kalorien = {
+  title: '🍎 Kalorien', width: 380, height: 480, cat: 'D',
+  render() { return `
+    <div class="app-content">
+      <p style="font-size:11px;opacity:.7">Suche ein Lebensmittel oder gib manuell ein</p>
+      <input class="app-input" id="kl_search" placeholder="🔍 z.B. Apfel">
+      <div class="app-grid" id="kl_results"></div>
+      <div class="app-row">Heute gesamt: <b id="kl_total">0 kcal</b></div>
+      <button class="app-btn danger" id="kl_reset">🔄 Reset</button>
+      <div class="app-list" id="kl_list"></div>
+    </div>
+  `;},
+  mount(root) {
+    const db = { 'Apfel':52, 'Banane':89, 'Orange':47, 'Brot (1 Scheibe)':80, 'Ei':155, 'Milch (100ml)':42,
+      'Hähnchen (100g)':165, 'Reis (100g)':130, 'Nudeln (100g)':131, 'Kartoffel':77, 'Tomate':18,
+      'Gurke':15, 'Salat':15, 'Käse (100g)':400, 'Joghurt':59, 'Pizza (Stück)':285, 'Burger':295,
+      'Cola (250ml)':105, 'Wasser':0, 'Kaffee schwarz':2, 'Bier (500ml)':215, 'Schokolade (100g)':546 };
+    const today = new Date().toISOString().slice(0,10);
+    const draw = () => {
+      const items = load('haldo_kalorien_v1', {}).filter?.(x=>x.date===today) || (load('haldo_kalorien_v1', [])||[]).filter(x=>x.date===today);
+      const total = items.reduce((a,b)=>a+b.kcal,0);
+      root.querySelector('#kl_total').textContent = total+' kcal';
+      const list = root.querySelector('#kl_list');
+      const all = (load('haldo_kalorien_v1', [])||[]).filter(x=>x.date===today);
+      list.innerHTML = all.slice(0,15).map((x,i)=>
+        `<div class="app-row"><span style="flex:1">${x.name}</span><b>${x.kcal} kcal</b><button class="del" data-i="${i}">🗑</button></div>`
+      ).join('') || '<div style="opacity:.5;text-align:center;padding:14px">Noch nichts gegessen</div>';
+      list.querySelectorAll('.del').forEach(b=>b.onclick=()=>{
+        const a=(load('haldo_kalorien_v1',[])||[]);a.splice(+b.dataset.i,1);store('haldo_kalorien_v1',a);draw();
+      });
+    };
+    const results = root.querySelector('#kl_results');
+    const renderResults = (q='') => {
+      const list = Object.entries(db).filter(([k])=>k.toLowerCase().includes(q.toLowerCase())).slice(0,12);
+      results.innerHTML = list.map(([k,v])=>`<div class="app-tile" data-food="${k}" data-kcal="${v}" style="cursor:pointer"><span class="tico" style="font-size:16px">🍽️</span><span class="tname">${k}<br><b style="color:var(--accent)">${v}</b></span></div>`).join('');
+      results.querySelectorAll('[data-food]').forEach(t=>t.onclick=()=>{
+        const a = load('haldo_kalorien_v1', []);
+        a.unshift({ name: t.dataset.food, kcal: +t.dataset.kcal, date: today });
+        store('haldo_kalorien_v1', a);
+        draw(); toast('🍽️ '+t.dataset.food+' hinzugefügt');
+      });
+    };
+    root.querySelector('#kl_search').oninput = e => renderResults(e.target.value);
+    root.querySelector('#kl_reset').onclick = () => { store('haldo_kalorien_v1', []); draw(); };
+    renderResults();
+    draw();
+  }
+};
+
+// 19. Pflege
+PACK_D.ges_pflege = makeListApp('pf','Pflege-Doku','🏥',[
+  {k:'patient',p:'Patient/Klient'},
+  {k:'datum',p:'Datum',t:'date'},
+  {k:'massnahme',p:'Maßnahme (z.B. Waschen)'},
+  {k:'notiz',p:'Notiz'}
+],'D','pflege');
+
+// 20. Arzttermine
+PACK_D.ges_termine = makeListApp('at','Arzttermine','📅',[
+  {k:'arzt',p:'Arzt (z.B. Dr. Müller)'},
+  {k:'fach',p:'Fachrichtung'},
+  {k:'datum',p:'Datum + Uhrzeit',t:'datetime-local'},
+  {k:'notiz',p:'Notiz'}
+],'D','arzttermine');
+
+// 21. Patientenverträge
+PACK_D.ges_vertraege = makeListApp('pv','Patientenverträge','📄',[
+  {k:'titel',p:'Titel'},
+  {k:'patient',p:'Patient'},
+  {k:'datum',p:'Datum',t:'date'},
+  {k:'notiz',p:'Notiz'}
+],'D','patientenvertraege');
+
+// 22. IoT
+PACK_D.ges_iot = {
+  title: '📡 IoT-Gesundheit', width: 380, height: 500, cat: 'D',
+  render() {
+    const devices = [
+      ['⌚ Smartwatch','Herzfrequenz: —','Verbunden'],
+      ['⚖️ Smart-Waage','Gewicht: —','Nicht verbunden'],
+      ['🩸 Blutzucker-Messgerät','Letzte Messung: —','Nicht verbunden'],
+      ['😴 Schlaftracker','Schlaf: —','Verbunden'],
+      ['🏃 Fitness-Tracker','Schritte: —','Verbunden'],
+      ['🩺 Blutdruck-Messgerät','Wert: —','Nicht verbunden']
+    ];
+    return `<div class="app-content">
+      <p style="font-size:11px;opacity:.7">Verbundene Gesundheitsgeräte (Demo)</p>
+      ${devices.map(([n,i,s])=>`<div class="app-row"><span style="font-size:20px">${n.split(' ')[0]}</span><div style="flex:1"><b>${n.split(' ').slice(1).join(' ')}</b><br><span style="opacity:.6;font-size:10px">${i}</span></div><span style="font-size:10px;color:${s==='Verbunden'?'#4ade80':'#f87171'}">● ${s}</span></div>`).join('')}
+      <div style="font-size:10px;opacity:.5;text-align:center;margin-top:10px">Echte Geräte-Anbindung in v2.3</div>
+    </div>`;
+  }
+};
+
+// 23. Hardware
+PACK_D.ges_hardware = {
+  title: '🔧 Hardware', width: 380, height: 480, cat: 'D',
+  render() {
+    const info = [
+      ['🖥️ Prozessor', navigator.hardwareConcurrency ? navigator.hardwareConcurrency + ' Kerne' : 'unbekannt'],
+      ['💾 RAM', navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'unbekannt'],
+      ['📱 Gerät', /Mobi|Android/i.test(navigator.userAgent) ? 'Mobil' : 'Desktop'],
+      ['🌐 Online', navigator.onLine ? 'Ja' : 'Nein'],
+      ['🔋 Akku', '—'],
+      ['📶 Verbindung', navigator.connection?.effectiveType || '—'],
+      ['🖨️ Bildschirm', window.screen.width + '×' + window.screen.height],
+      ['🎨 Pixeldichte', window.devicePixelRatio || 1],
+      ['🌍 Sprache', navigator.language],
+      ['⏰ Zeitzone', Intl.DateTimeFormat().resolvedOptions().timeZone]
+    ];
+    return `<div class="app-content">
+      ${info.map(([n,v])=>`<div class="app-row"><span style="flex:1">${n}</span><b style="color:var(--accent);font-size:11px">${v}</b></div>`).join('')}
+    </div>`;
+  }
+};
+
+// 24. Gesundheitstipps
+PACK_D.ges_tipps = {
+  title: '💡 Gesundheitstipps', width: 380, height: 460, cat: 'D',
+  render() {
+    const tipps = [
+      '💧 Trinke 2 Liter Wasser pro Tag',
+      '🏃 Bewege dich mind. 30 Min täglich',
+      '😴 Schlafe 7-9 Stunden pro Nacht',
+      '🥗 Iss 5 Portionen Obst/Gemüse am Tag',
+      '🚭 Rauch nicht — größter Risikofaktor',
+      '🧘 Reduziere Stress durch Meditation',
+      '🦷 Putze Zähne 2× täglich, 2 Min',
+      '🧴 Benutze Sonnenschutz (LSF 30+)',
+      '🚶 Mach 10.000 Schritte am Tag',
+      '💊 Nimm Medikamente regelmäßig',
+      '🧠 Trainiere dein Gehirn (Rätsel, Lesen)',
+      '❤️ Lass Blutdruck/Cholesterin prüfen',
+      '🍷 Reduziere Alkohol',
+      '🥤 Vermeide Zucker-Getränke',
+      '🩺 Geh zu Vorsorge-Untersuchungen',
+      '😊 Pflege soziale Kontakte',
+      '💤 Kein Bildschirm 1 Std vor dem Schlafen',
+      '🚰 Wasche Hände regelmäßig (20 Sek)'
+    ];
+    return `<div class="app-content">
+      ${tipps.map(t=>`<div class="app-row" style="font-size:12px">${t}</div>`).join('')}
+    </div>`;
+  }
+};
+
+// 25. Fitness-Quiz
+PACK_D.ges_fitness_quiz = makeQuizApp('fq','Fitness-Quiz','💪',[
+  {q:'Wie viele Liter Wasser sollte man täglich trinken?', a:['1','2','3','5'], c:1},
+  {q:'Wie viel Bewegung pro Woche empfiehlt die WHO?', a:['30 Min','60 Min','150 Min','300 Min'], c:2},
+  {q:'Wie viele Stunden Schlaf braucht ein Erwachsener?', a:['4-5','5-6','7-9','10-12'], c:2},
+  {q:'Was ist der beste Zeitpunkt für Sport?', a:['Morgens nüchtern','Nachmittags','Wann du dich wohlfühlst','Abends spät'], c:2},
+  {q:'Wie viel Protein pro kg Körpergewicht (Sport)?', a:['0,5g','1,0g','1,6-2,2g','5g'], c:2},
+  {q:'Wie viele Schritte gelten als aktiv?', a:['5.000','7.500','10.000','20.000'], c:2},
+  {q:'Wie oft sollte man Ausdauersport machen?', a:['1× Woche','2-3× Woche','5× Woche','Täglich intensiv'], c:1},
+  {q:'Wie lange sollte man vor dem Sport essen warten?', a:['Nichts','30 Min - 2 Std','4 Std','6 Std'], c:1}
+],'D');
+
+/* ═══════════════════════════════════════════════════════════ */
+/*                  E — HALDO ARBEIT (18)                      */
+/* ═══════════════════════════════════════════════════════════ */
+const PACK_E = {};
+
+// 1. Arbeitsaufgaben
+PACK_E.arb_aufgaben = makeListApp('auf','Arbeits-Aufgaben','✅',[
+  {k:'titel',p:'Aufgabe'},
+  {k:'prio',p:'Priorität (hoch/mittel/niedrig)'},
+  {k:'deadline',p:'Deadline',t:'date'},
+  {k:'notiz',p:'Notiz'}
+],'E','arbeit_aufgaben');
+
+// 2. Projekte
+PACK_E.arb_projekte = makeListApp('prj','Projekte','📊',[
+  {k:'name',p:'Projektname'},
+  {k:'status',p:'Status (aktiv/pausiert/fertig)'},
+  {k:'deadline',p:'Deadline',t:'date'},
+  {k:'notiz',p:'Beschreibung'}
+],'E','arbeit_projekte');
+
+// 3. Zeiterfassung
+PACK_E.arb_zeit = {
+  title: '⏱️ Zeiterfassung', width: 360, height: 460, cat: 'E',
+  render() { return `
+    <div class="app-content">
+      <div id="zt_clock" style="text-align:center;padding:14px;border-radius:12px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);font-size:32px;font-family:monospace;color:var(--accent);font-weight:700">00:00:00</div>
+      <input class="app-input" id="zt_task" placeholder="Aufgabe / Projekt">
+      <div style="display:flex;gap:8px">
+        <button class="app-btn primary" id="zt_start" style="flex:1">▶ Start</button>
+        <button class="app-btn danger" id="zt_stop" style="flex:1">⏹ Stop</button>
+      </div>
+      <div class="app-row">Heute: <b id="zt_today">0 Min</b></div>
+      <div class="app-list" id="zt_list"></div>
+    </div>
+  `;},
+  mount(root) {
+    let start = null, iv = null;
+    const clock = root.querySelector('#zt_clock');
+    const today = new Date().toISOString().slice(0,10);
+    const draw = () => {
+      const items = (load('haldo_zeit_v1', [])||[]).filter(x=>x.date===today);
+      const totalMin = items.reduce((a,b)=>a+b.min,0);
+      root.querySelector('#zt_today').textContent = totalMin + ' Min (' + (totalMin/60).toFixed(1) + ' Std)';
+      const list = root.querySelector('#zt_list');
+      list.innerHTML = items.slice(0,15).map((x,i)=>
+        `<div class="app-row"><span style="flex:1;font-size:11px">${x.task} · ${x.min} Min</span><button class="del" data-i="${i}">🗑</button></div>`
+      ).join('') || '<div style="opacity:.5;text-align:center;padding:14px">Keine Einträge heute</div>';
+      list.querySelectorAll('.del').forEach(b=>b.onclick=()=>{
+        const a=(load('haldo_zeit_v1',[])||[]);const items2=a.filter(x=>x.date===today);
+        const target=items2[+b.dataset.i];
+        const idx=a.indexOf(target);
+        if (idx>=0){a.splice(idx,1);store('haldo_zeit_v1',a);draw();}
+      });
+    };
+    root.querySelector('#zt_start').onclick = () => {
+      start = Date.now();
+      clearInterval(iv);
+      iv = setInterval(()=>{
+        const s = Math.floor((Date.now()-start)/1000);
+        const h=String(Math.floor(s/3600)).padStart(2,'0');
+        const m=String(Math.floor((s%3600)/60)).padStart(2,'0');
+        const sec=String(s%60).padStart(2,'0');
+        clock.textContent = h+':'+m+':'+sec;
+      }, 1000);
+    };
+    root.querySelector('#zt_stop').onclick = () => {
+      if (!start) return toast('Erst Start');
+      clearInterval(iv);
+      const min = Math.floor((Date.now()-start)/60000);
+      const task = root.querySelector('#zt_task').value.trim() || 'Arbeit';
+      if (min < 1) { toast('Unter 1 Minute'); return; }
+      const a = load('haldo_zeit_v1', []);
+      a.unshift({ task, min, date: today });
+      store('haldo_zeit_v1', a);
+      root.querySelector('#zt_task').value = '';
+      clock.textContent = '00:00:00';
+      start = null;
+      draw(); toast('⏱️ '+min+' Min erfasst');
+    };
+    draw();
+  }
+};
+
+// 4. Stundenzettel
+PACK_E.arb_stunden = {
+  title: '📋 Stundenzettel', width: 400, height: 480, cat: 'E',
+  render() { return `
+    <div class="app-content">
+      <div class="app-row">Stundenlohn (€): <input class="app-input" type="number" id="sz_lohn" style="width:100px;margin-left:auto" value="15"></div>
+      <div class="app-row">Stunden/Woche: <input class="app-input" type="number" id="sz_woche" style="width:100px;margin-left:auto" value="40"></div>
+      <div class="app-row">Wochen/Monat: <input class="app-input" type="number" id="sz_monate" style="width:100px;margin-left:auto" value="4"></div>
+      <button class="app-btn primary" id="sz_go">💰 Gehalt berechnen</button>
+      <div id="sz_out" style="padding:14px;border-radius:12px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);font-size:13px;line-height:1.7"></div>
+    </div>
+  `;},
+  mount(root) {
+    root.querySelector('#sz_go').onclick = () => {
+      const lohn = +root.querySelector('#sz_lohn').value;
+      const woche = +root.querySelector('#sz_woche').value;
+      const monate = +root.querySelector('#sz_monate').value;
+      const brutto = lohn * woche * monate;
+      const steuer = brutto * 0.25;
+      const netto = brutto - steuer;
+      root.querySelector('#sz_out').innerHTML = `
+        <div>📊 Stunden/Monat: <b>${woche*monate}h</b></div>
+        <div>💵 Brutto: <b>${brutto.toFixed(2)} €</b></div>
+        <div>🧾 Steuern ~25%: <b>${steuer.toFixed(2)} €</b></div>
+        <div style="color:#4ade80">💰 Netto: <b>${netto.toFixed(2)} €</b></div>
+        <div>📈 Jahr: <b>${(netto*12).toFixed(2)} €</b></div>
+      `;
+    };
+    root.querySelector('#sz_go').click();
+  }
+};
+
+// 5. Lohnrechner
+PACK_E.arb_lohn = makeCalculatorApp('lr','Lohnrechner','💶',[
+  {k:'brutto',l:'Brutto/Monat (€)',p:'3500'},
+  {k:'stkl',l:'Steuerklasse (1-6)',p:'1'},
+  {k:'kv',l:'Krankenkasse % (7,3-8,5)',p:'7,3'}
+], (v) => {
+  if (!v.brutto) return 'Bitte Brutto eingeben';
+  const steuerP = [0.14,0.14,0.12,0.10,0.08,0.20][(v.stkl||1)-1] || 0.14;
+  const steuer = v.brutto * steuerP;
+  const kv = v.brutto * ((v.kv||7.3)/100);
+  const rv = v.brutto * 0.093;
+  const av = v.brutto * 0.013;
+  const pv = v.brutto * 0.0175;
+  const netto = v.brutto - steuer - kv - rv - av - pv;
+  return `
+    <div>💵 Brutto: <b>${v.brutto.toFixed(2)} €</b></div>
+    <div>🧾 Lohnsteuer: -${steuer.toFixed(2)} €</div>
+    <div>🏥 KV: -${kv.toFixed(2)} €</div>
+    <div>👴 RV: -${rv.toFixed(2)} €</div>
+    <div>🛡️ AV: -${av.toFixed(2)} €</div>
+    <div>💊 PV: -${pv.toFixed(2)} €</div>
+    <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,229,255,.3);color:#4ade80;font-size:16px"><b>Netto: ${netto.toFixed(2)} €</b></div>
+    <div style="font-size:10px;opacity:.6;margin-top:6px">⚠️ Näherung. Exakte Berechnung über Steuerberater.</div>
+  `;
+},'E');
+
+// 6. Bewerbungen
+PACK_E.arb_bewerbungen = makeListApp('bew','Bewerbungen','📮',[
+  {k:'firma',p:'Firma'},
+  {k:'stelle',p:'Stelle'},
+  {k:'status',p:'Status (offen/gesendet/Interview/abgelehnt)'},
+  {k:'notiz',p:'Notiz'}
+],'E','bewerbungen');
+
+// 7. Lebenslauf
+PACK_E.arb_lebenslauf = {
+  title: '📄 Lebenslauf', width: 420, height: 540, cat: 'E',
+  render() { return `
+    <div class="app-content">
+      <input class="app-input" id="cv_name" placeholder="Name">
+      <input class="app-input" id="cv_geb" placeholder="Geburtsdatum (TT.MM.JJJJ)">
+      <input class="app-input" id="cv_adr" placeholder="Adresse">
+      <input class="app-input" id="cv_tel" placeholder="Telefon">
+      <input class="app-input" id="cv_email" placeholder="E-Mail">
+      <textarea class="app-textarea" id="cv_beruf" placeholder="Berufserfahrung (Zeilen)"></textarea>
+      <textarea class="app-textarea" id="cv_bildung" placeholder="Ausbildung"></textarea>
+      <textarea class="app-textarea" id="cv_skills" placeholder="Fähigkeiten"></textarea>
+      <button class="app-btn primary" id="cv_gen">📄 Lebenslauf anzeigen</button>
+      <div id="cv_out" style="font-size:11px;line-height:1.6;padding:14px;border-radius:12px;background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.2)"></div>
+    </div>
+  `;},
+  mount(root) {
+    root.querySelector('#cv_gen').onclick = () => {
+      const g = id => root.querySelector('#'+id).value;
+      root.querySelector('#cv_out').innerHTML = `
+        <h2 style="color:var(--accent);margin:0 0 8px">${g('cv_name')||'—'}</h2>
+        <div>📅 ${g('cv_geb')||'—'}</div>
+        <div>📍 ${g('cv_adr')||'—'}</div>
+        <div>📞 ${g('cv_tel')||'—'}</div>
+        <div>📧 ${g('cv_email')||'—'}</div>
+        <h4 style="color:var(--accent);margin:10px 0 4px">💼 Berufserfahrung</h4>
+        <div style="white-space:pre-wrap">${g('cv_beruf')||'—'}</div>
+        <h4 style="color:var(--accent);margin:10px 0 4px">🎓 Ausbildung</h4>
+        <div style="white-space:pre-wrap">${g('cv_bildung')||'—'}</div>
+        <h4 style="color:var(--accent);margin:10px 0 4px">🛠️ Fähigkeiten</h4>
+        <div style="white-space:pre-wrap">${g('cv_skills')||'—'}</div>
+      `;
+    };
+  }
+};
+
+// 8. Zeugnisse
+PACK_E.arb_zeugnisse = makeListApp('zug','Zeugnisse','🎓',[
+  {k:'titel',p:'Titel / Zeugnis'},
+  {k:'von',p:'Von (Firma/Schule)'},
+  {k:'datum',p:'Datum',t:'date'},
+  {k:'note',p:'Note (1-6)'}
+],'E','zeugnisse');
+
+// 9. Team
+PACK_E.arb_team = makeListApp('tm','Team','👥',[
+  {k:'name',p:'Name'},
+  {k:'rolle',p:'Rolle / Position'},
+  {k:'email',p:'E-Mail'},
+  {k:'tel',p:'Telefon'}
+],'E','arbeit_team');
+
+// 10. Meetings
+PACK_E.arb_meetings = makeListApp('mt','Meetings','🤝',[
+  {k:'titel',p:'Meeting-Titel'},
+  {k:'datum',p:'Datum + Uhrzeit',t:'datetime-local'},
+  {k:'teilnehmer',p:'Teilnehmer'},
+  {k:'protokoll',p:'Protokoll / Notizen'}
+],'E','arbeit_meetings');
+
+// 11. Verträge (Arbeit)
+PACK_E.arb_vertraege = makeListApp('av','Arbeitsverträge','📑',[
+  {k:'titel',p:'Vertrag-Titel'},
+  {k:'partner',p:'Vertragspartner'},
+  {k:'start',p:'Start',t:'date'},
+  {k:'ende',p:'Ende',t:'date'}
+],'E','arbeit_vertraege');
+
+// 12. Steuern
+PACK_E.arb_steuern = makeCalculatorApp('as','Steuer-Rechner','🧾',[
+  {k:'eink',l:'Jahreseinkommen (€)',p:'45000'},
+  {k:'werb',l:'Werbungskosten (€)',p:'1000'},
+  {k:'sonder',l:'Sonderausgaben (€)',p:'500'}
+], (v) => {
+  const zu = v.eink - v.werb - v.sonder;
+  if (zu < 10908) return '🟢 Steuerfrei (Grundfreibetrag 2024: 11.604 €)';
+  let steuer = 0;
+  if (zu < 17005) steuer = (979.18 * (zu-11604)/10000 + 1400) * (zu-11604)/10000;
+  else if (zu < 66760) steuer = (181.19*(zu-17005)/10000 + 2397)*(zu-17005)/10000 + 1025.28;
+  else if (zu < 277825) steuer = 0.42*zu - 10602.13;
+  else steuer = 0.45*zu - 18948.13;
+  return `
+    <div>💼 Brutto-Jahr: <b>${v.eink.toFixed(0)} €</b></div>
+    <div>📊 Zu versteuern: <b>${zu.toFixed(0)} €</b></div>
+    <div style="font-size:22px;color:#f87171;margin:8px 0"><b>${steuer.toFixed(0)} € Steuer</b></div>
+    <div style="color:#4ade80">💰 Nach Steuer: ${(v.eink-steuer).toFixed(0)} €</div>
+    <div style="font-size:10px;opacity:.6;margin-top:6px">⚠️ Näherung nach §32a EStG 2024</div>
+  `;
+},'E');
+
+// 13. Business-Plan
+PACK_E.arb_business = {
+  title: '💼 Business-Plan', width: 420, height: 560, cat: 'E',
+  render() { return `
+    <div class="app-content">
+      <input class="app-input" id="bp_name" placeholder="Geschäftsidee">
+      <textarea class="app-textarea" id="bp_problem" placeholder="Problem / Markt"></textarea>
+      <textarea class="app-textarea" id="bp_loesung" placeholder="Lösung / Produkt"></textarea>
+      <textarea class="app-textarea" id="bp_ziel" placeholder="Zielgruppe"></textarea>
+      <textarea class="app-textarea" id="bp_finanz" placeholder="Finanzplan (Invest, Umsatz, Kosten)"></textarea>
+      <button class="app-btn primary" id="bp_save">💾 Speichern</button>
+      <button class="app-btn" id="bp_view">👁️ Anzeigen</button>
+      <div id="bp_out" style="font-size:12px;line-height:1.6;padding:14px;border-radius:12px;background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.2);min-height:60px"></div>
+    </div>
+  `;},
+  mount(root) {
+    const d = load('haldo_business_v1', {});
+    ['name','problem','loesung','ziel','finanz'].forEach(k=>root.querySelector('#bp_'+k).value = d[k]||'');
+    root.querySelector('#bp_save').onclick = () => {
+      const out = {};
+      ['name','problem','loesung','ziel','finanz'].forEach(k=>out[k]=root.querySelector('#bp_'+k).value);
+      store('haldo_business_v1', out);
+      toast('💼 Business-Plan gespeichert');
+    };
+    root.querySelector('#bp_view').onclick = () => {
+      const d2 = load('haldo_business_v1', {});
+      root.querySelector('#bp_out').innerHTML = `
+        <h3 style="color:var(--accent);margin:0">${d2.name||'—'}</h3>
+        <b>❓ Problem:</b><div>${d2.problem||'—'}</div>
+        <b>✅ Lösung:</b><div>${d2.loesung||'—'}</div>
+        <b>🎯 Zielgruppe:</b><div>${d2.ziel||'—'}</div>
+        <b>💰 Finanzen:</b><div>${d2.finanz||'—'}</div>
+      `;
+    };
+  }
+};
+
+// 14. Rechnungen
+PACK_E.arb_rechnungen = {
+  title: '💵 Rechnungen', width: 400, height: 520, cat: 'E',
+  render() { return `
+    <div class="app-content">
+      <input class="app-input" id="rh_kunde" placeholder="Kunde">
+      <input class="app-input" id="rh_pos" placeholder="Position / Leistung">
+      <div style="display:flex;gap:6px">
+        <input class="app-input" type="number" id="rh_netto" placeholder="Netto €" style="flex:1">
+        <input class="app-input" type="number" id="rh_mwst" placeholder="MwSt %" value="19" style="width:100px">
+      </div>
+      <button class="app-btn primary" id="rh_add">+ Rechnung erstellen</button>
+      <div class="app-list" id="rh_list"></div>
+    </div>
+  `;},
+  mount(root) {
+    const list = root.querySelector('#rh_list');
+    const draw = () => {
+      const items = load('haldo_rechnungen_v1', []);
+      list.innerHTML = items.map((x,i)=>`
+        <div class="app-row">
+          <div style="flex:1"><b>${x.kunde}</b><br>
+          <span style="opacity:.7;font-size:10px">${x.pos} · ${x.netto.toFixed(2)} € netto</span></div>
+          <div style="text-align:right"><b style="color:var(--accent)">${x.brutto.toFixed(2)} €</b><br><span style="opacity:.5;font-size:9px">${x.date.slice(0,10)}</span></div>
+          <button class="del" data-i="${i}">🗑</button>
+        </div>
+      `).join('') || '<div style="opacity:.5;text-align:center;padding:14px">Keine Rechnungen</div>';
+      list.querySelectorAll('.del').forEach(b=>b.onclick=()=>{
+        const a=load('haldo_rechnungen_v1',[]);a.splice(+b.dataset.i,1);store('haldo_rechnungen_v1',a);draw();
+      });
+    };
+    root.querySelector('#rh_add').onclick = () => {
+      const kunde = root.querySelector('#rh_kunde').value.trim();
+      const pos = root.querySelector('#rh_pos').value.trim();
+      const netto = +root.querySelector('#rh_netto').value;
+      const mwst = +root.querySelector('#rh_mwst').value;
+      if (!kunde||!netto) return toast('Kunde + Netto nötig');
+      const brutto = netto * (1+mwst/100);
+      const a = load('haldo_rechnungen_v1', []);
+      a.unshift({ kunde, pos, netto, mwst, brutto, date: new Date().toISOString() });
+      store('haldo_rechnungen_v1', a);
+      ['rh_kunde','rh_pos','rh_netto'].forEach(id=>root.querySelector('#'+id).value='');
+      draw(); toast('💵 Rechnung: '+brutto.toFixed(2)+' €');
+    };
+    draw();
+  }
+};
+
+// 15. Angebote
+PACK_E.arb_angebote = makeListApp('ag','Angebote','📝',[
+  {k:'kunde',p:'Kunde'},
+  {k:'leistung',p:'Leistung'},
+  {k:'preis',p:'Preis (€)',t:'number'},
+  {k:'gueltig',p:'Gültig bis',t:'date'}
+],'E','angebote');
+
+// 16. Kunden
+PACK_E.arb_kunden = makeListApp('kd','Kunden','🤝',[
+  {k:'firma',p:'Firma / Name'},
+  {k:'ansprech',p:'Ansprechpartner'},
+  {k:'email',p:'E-Mail'},
+  {k:'tel',p:'Telefon'}
+],'E','kunden');
+
+// 17. Arbeitsnotizen
+PACK_E.arb_notizen = makeListApp('an','Arbeitsnotizen','📝',[
+  {k:'titel',p:'Titel'},
+  {k:'kategorie',p:'Kategorie'},
+  {k:'inhalt',p:'Inhalt'},
+  {k:'notiz',p:'Notiz'}
+],'E','arbeit_notizen');
+
+// 18. Team-Kalender
+PACK_E.arb_kalender = {
+  title: '📅 Team-Kalender', width: 380, height: 460, cat: 'E',
+  render() { return `
+    <div class="app-content">
+      <input class="app-input" id="tk_titel" placeholder="Termin">
+      <input class="app-input" id="tk_wer" placeholder="Mit wem?">
+      <input class="app-input" type="datetime-local" id="tk_wann">
+      <button class="app-btn primary" id="tk_add">+ Termin</button>
+      <div class="app-list" id="tk_list"></div>
+    </div>
+  `;},
+  mount(root) {
+    const list = root.querySelector('#tk_list');
+    const draw = () => {
+      const items = load('haldo_team_kalender_v1', []);
+      items.sort((a,b)=>new Date(a.wann)-new Date(b.wann));
+      list.innerHTML = items.map((x,i)=>
+        `<div class="app-row"><div style="flex:1"><b>${x.titel}</b><br><span style="opacity:.7;font-size:10px">${x.wer} · ${x.wann ? new Date(x.wann).toLocaleString('de-DE') : '—'}</span></div><button class="del" data-i="${i}">🗑</button></div>`
+      ).join('') || '<div style="opacity:.5;text-align:center;padding:14px">Keine Termine</div>';
+      list.querySelectorAll('.del').forEach(b=>b.onclick=()=>{
+        const a=load('haldo_team_kalender_v1',[]);a.splice(+b.dataset.i,1);store('haldo_team_kalender_v1',a);draw();
+      });
+    };
+    root.querySelector('#tk_add').onclick = () => {
+      const titel=root.querySelector('#tk_titel').value.trim();
+      const wer=root.querySelector('#tk_wer').value.trim();
+      const wann=root.querySelector('#tk_wann').value;
+      if (!titel) return toast('Titel nötig');
+      const a=load('haldo_team_kalender_v1',[]);
+      a.push({titel,wer,wann});
+      store('haldo_team_kalender_v1',a);
+      ['tk_titel','tk_wer','tk_wann'].forEach(id=>root.querySelector('#'+id).value='');
+      draw(); toast('📅 Termin gespeichert');
+    };
+    draw();
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════ */
+/*                  F — HALDO FINANZEN (13)                    */
+/* ═══════════════════════════════════════════════════════════ */
+const PACK_F = {};
+
+// 1. Budget
+PACK_F.fin_budget = {
+  title: '💰 Budget', width: 380, height: 500, cat: 'F',
+  render() { return `
+    <div class="app-content">
+      <input class="app-input" type="number" id="bg_monat" placeholder="Monats-Budget (€)">
+      <button class="app-btn primary" id="bg_set">Budget setzen</button>
+      <div class="app-row">Budget: <b id="bg_show">—</b></div>
+      <div class="app-row">Ausgegeben: <b id="bg_aus">0 €</b></div>
+      <div class="app-row">Verfügbar: <b id="bg_verf" style="color:#4ade80">—</b></div>
+      <div style="height:20px;background:rgba(0,0,0,.3);border-radius:10px;overflow:hidden;margin:8px 0">
+        <div id="bg_bar" style="height:100%;width:0%;background:linear-gradient(90deg,#00e5ff,#4da8ff);transition:width .3s"></div>
+      </div>
+      <input class="app-input" id="bg_was" placeholder="Was gekauft?">
+      <input class="app-input" type="number" id="bg_wie" placeholder="Betrag €">
+      <button class="app-btn primary" id="bg_add">+ Ausgabe</button>
+      <div class="app-list" id="bg_list"></div>
+    </div>
+  `;},
+  mount(root) {
+    const draw = () => {
+      const bud = +load('haldo_budget_v1', 0);
+      const items = load('haldo_budget_aus_v1', []);
+      const total = items.reduce((a,b)=>a+(+b.betrag||0),0);
+      root.querySelector('#bg_show').textContent = bud ? bud+' €' : '—';
+      root.querySelector('#bg_aus').textContent = total.toFixed(2)+' €';
+      root.querySelector('#bg_verf').textContent = bud ? (bud-total).toFixed(2)+' €' : '—';
+      root.querySelector('#bg_bar').style.width = bud ? Math.min(100,(total/bud)*100)+'%' : '0%';
+      const list = root.querySelector('#bg_list');
+      list.innerHTML = items.map((x,i)=>
+        `<div class="app-row"><span style="flex:1">${x.was}</span><b>${(+x.betrag).toFixed(2)} €</b><button class="del" data-i="${i}">🗑</button></div>`
+      ).join('') || '<div style="opacity:.5;text-align:center;padding:14px">Keine Ausgaben</div>';
+      list.querySelectorAll('.del').forEach(b=>b.onclick=()=>{
+        const a=load('haldo_budget_aus_v1',[]);a.splice(+b.dataset.i,1);store('haldo_budget_aus_v1',a);draw();
+      });
+    };
+    root.querySelector('#bg_set').onclick = () => {
+      const b = +root.querySelector('#bg_monat').value;
+      if (b) { store('haldo_budget_v1', b); draw(); toast('💰 Budget: '+b+' €'); }
+    };
+    root.querySelector('#bg_add').onclick = () => {
+      const was=root.querySelector('#bg_was').value.trim();
+      const betrag=+root.querySelector('#bg_wie').value;
+      if (!was||!betrag) return toast('Was + Betrag');
+      const a=load('haldo_budget_aus_v1',[]);
+      a.unshift({was,betrag,date:new Date().toISOString()});
+      store('haldo_budget_aus_v1',a);
+      root.querySelector('#bg_was').value='';
+      root.querySelector('#bg_wie').value='';
+      draw(); toast('✅ Ausgabe erfasst');
+    };
+    draw();
+  }
+};
+
+// 2. Ausgaben
+PACK_F.fin_ausgaben = makeListApp('fa','Ausgaben','📤',[
+  {k:'was',p:'Was (z.B. Miete)'},
+  {k:'betrag',p:'Betrag (€)',t:'number'},
+  {k:'kategorie',p:'Kategorie'},
+  {k:'datum',p:'Datum',t:'date'}
+],'F','ausgaben');
+
+// 3. Einnahmen
+PACK_F.fin_einnahmen = makeListApp('fi','Einnahmen','📥',[
+  {k:'was',p:'Was (z.B. Gehalt)'},
+  {k:'betrag',p:'Betrag (€)',t:'number'},
+  {k:'datum',p:'Datum',t:'date'},
+  {k:'notiz',p:'Notiz'}
+],'F','einnahmen');
+
+// 4. Konten
+PACK_F.fin_konten = makeListApp('fk','Konten','🏦',[
+  {k:'name',p:'Konto-Name'},
+  {k:'typ',p:'Typ (Giro/Spar/Depot)'},
+  {k:'stand',p:'Stand (€)',t:'number'},
+  {k:'iban',p:'IBAN / Notiz'}
+],'F','konten');
+
+// 5. Kredite
+PACK_F.fin_kredite = makeCalculatorApp('kr2','Kredit-Rechner','🏦',[
+  {k:'summe',l:'Kreditbetrag (€)',p:'10000'},
+  {k:'zins',l:'Zins p.a. (%)',p:'5'},
+  {k:'monate',l:'Laufzeit (Monate)',p:'60'}
+], (v) => {
+  if (!v.summe||!v.zins||!v.monate) return 'Bitte alles eingeben';
+  const r = (v.zins/100)/12;
+  const rate = v.summe * r * Math.pow(1+r, v.monate) / (Math.pow(1+r, v.monate)-1);
+  const total = rate * v.monate;
+  const zinsen = total - v.summe;
+  return `
+    <div>💵 Kredit: <b>${v.summe.toFixed(0)} €</b></div>
+    <div>📅 Laufzeit: <b>${v.monate} Monate</b></div>
+    <div>💳 Monatliche Rate: <b style="color:var(--accent);font-size:20px">${rate.toFixed(2)} €</b></div>
+    <div>💰 Gesamt: <b>${total.toFixed(2)} €</b></div>
+    <div>🔴 Zinskosten: <b style="color:#f87171">${zinsen.toFixed(2)} €</b></div>
+  `;
+},'F');
+
+// 6. Hypothek
+PACK_F.fin_hypothek = makeCalculatorApp('hy','Hypothek','🏠',[
+  {k:'kauf',l:'Kaufpreis (€)',p:'400000'},
+  {k:'ek',l:'Eigenkapital (€)',p:'80000'},
+  {k:'zins',l:'Zins p.a. (%)',p:'3.5'},
+  {k:'jahre',l:'Laufzeit (Jahre)',p:'30'}
+], (v) => {
+  const darlehen = v.kauf - v.ek;
+  if (darlehen <= 0) return '✅ Kein Kredit nötig!';
+  const r = v.zins/100;
+  const ann = darlehen * (r/12) / (1 - Math.pow(1+r/12, -v.jahre*12));
+  const total = ann * v.jahre * 12;
+  return `
+    <div>🏠 Kaufpreis: <b>${v.kauf.toLocaleString('de-DE')} €</b></div>
+    <div>💰 Eigenkapital: <b>${v.ek.toLocaleString('de-DE')} €</b></div>
+    <div>🏦 Darlehen: <b>${darlehen.toLocaleString('de-DE')} €</b></div>
+    <div>💳 Monatliche Rate: <b style="color:var(--accent);font-size:20px">${ann.toFixed(2)} €</b></div>
+    <div>📊 Gesamt-Zinslast: <b style="color:#f87171">${(total-darlehen).toFixed(0)} €</b></div>
+    <div>💵 Gesamtzahlung: <b>${total.toFixed(0)} €</b></div>
+  `;
+},'F');
+
+// 7. Investments
+PACK_F.fin_investments = makeListApp('iv','Investments','📈',[
+  {k:'name',p:'Name (z.B. ETF MSCI World)'},
+  {k:'typ',p:'Typ (ETF/Aktie/Krypto)'},
+  {k:'betrag',p:'Investiert (€)',t:'number'},
+  {k:'wert',p:'Aktueller Wert (€)',t:'number'}
+],'F','investments');
+
+// 8. Aktien
+PACK_F.fin_aktien = makeListApp('ak','Aktien','📊',[
+  {k:'name',p:'Aktie (z.B. Apple)'},
+  {k:'symbol',p:'Symbol (z.B. AAPL)'},
+  {k:'stueck',p:'Anzahl Stück',t:'number'},
+  {k:'kauf',p:'Kaufpreis (€)',t:'number'}
+],'F','aktien');
+
+// 9. Krypto
+PACK_F.fin_krypto = {
+  title: '💎 Krypto', width: 380, height: 480, cat: 'F',
+  render() { return `
+    <div class="app-content">
+      <div class="app-row" style="justify-content:space-between">
+        <span>🟠 Bitcoin</span><b id="kr_btc" style="color:var(--accent)">Lade...</b>
+      </div>
+      <div class="app-row" style="justify-content:space-between">
+        <span>🔷 Ethereum</span><b id="kr_eth" style="color:var(--accent)">Lade...</b>
+      </div>
+      <div class="app-row" style="justify-content:space-between">
+        <span>🟡 BNB</span><b id="kr_bnb" style="color:var(--accent)">Lade...</b>
+      </div>
+      <button class="app-btn primary" id="kr_refresh">🔄 Aktualisieren</button>
+      <h4 style="color:var(--accent);margin:10px 0 0">Meine Coins</h4>
+      <input class="app-input" id="kr_coin" placeholder="Coin (z.B. BTC)">
+      <input class="app-input" type="number" id="kr_anz" placeholder="Anzahl">
+      <input class="app-input" type="number" id="kr_preis" placeholder="Kaufpreis (€)">
+      <button class="app-btn primary" id="kr_add">+ Hinzufügen</button>
+      <div class="app-list" id="kr_list"></div>
+    </div>
+  `;},
+  mount(root) {
+    const loadPrices = async () => {
+      try {
+        const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,binancecoin&vs_currencies=eur');
+        const d = await r.json();
+        root.querySelector('#kr_btc').textContent = d.bitcoin.eur.toLocaleString('de-DE')+' €';
+        root.querySelector('#kr_eth').textContent = d.ethereum.eur.toLocaleString('de-DE')+' €';
+        root.querySelector('#kr_bnb').textContent = d.binancecoin.eur.toLocaleString('de-DE')+' €';
+      } catch(e) {
+        ['kr_btc','kr_eth','kr_bnb'].forEach(id=>root.querySelector('#'+id).textContent='n/a');
+      }
+    };
+    root.querySelector('#kr_refresh').onclick = loadPrices;
+    loadPrices();
+    const list = root.querySelector('#kr_list');
+    const draw = () => {
+      const items = load('haldo_krypto_v1', []);
+      list.innerHTML = items.map((x,i)=>
+        `<div class="app-row"><span style="flex:1"><b>${x.coin}</b> · ${x.anz} Stück<br><span style="opacity:.6;font-size:10px">Kauf: ${x.preis} €</span></span><button class="del" data-i="${i}">🗑</button></div>`
+      ).join('') || '<div style="opacity:.5;text-align:center;padding:10px">Keine Coins</div>';
+      list.querySelectorAll('.del').forEach(b=>b.onclick=()=>{
+        const a=load('haldo_krypto_v1',[]);a.splice(+b.dataset.i,1);store('haldo_krypto_v1',a);draw();
+      });
+    };
+    root.querySelector('#kr_add').onclick = () => {
+      const coin=root.querySelector('#kr_coin').value.trim();
+      const anz=+root.querySelector('#kr_anz').value;
+      const preis=+root.querySelector('#kr_preis').value;
+      if (!coin||!anz) return toast('Coin + Anzahl');
+      const a=load('haldo_krypto_v1',[]);
+      a.unshift({coin,anz,preis});
+      store('haldo_krypto_v1',a);
+      ['kr_coin','kr_anz','kr_preis'].forEach(id=>root.querySelector('#'+id).value='');
+      draw();
+    };
+    draw();
+  }
+};
+
+// 10. Steuern (Finanzen)
+PACK_F.fin_steuern = makeCalculatorApp('fs2','Steuer','🧾',[
+  {k:'eink',l:'Brutto-Jahr (€)',p:'50000'},
+  {k:'klasse',l:'Steuerklasse (1-6)',p:'1'}
+], (v) => {
+  const freibetrag = 11604;
+  if (v.eink < freibetrag) return '🟢 Keine Steuer (unter Grundfreibetrag)';
+  const zvE = v.eink - freibetrag;
+  let steuer = 0;
+  if (zvE < 17005) steuer = 0.2 * zvE;
+  else if (zvE < 66760) steuer = 0.35 * zvE;
+  else if (zvE < 277825) steuer = 0.42 * zvE;
+  else steuer = 0.45 * zvE;
+  const soli = steuer > 18130 ? steuer*0.055 : 0;
+  return `
+    <div>💼 Zu versteuern: <b>${zvE.toFixed(0)} €</b></div>
+    <div>🧾 Einkommensteuer: <b style="color:#f87171">${steuer.toFixed(0)} €</b></div>
+    <div>📋 Solidaritätszuschlag: <b>${soli.toFixed(0)} €</b></div>
+    <div style="color:#4ade80;margin-top:8px">💰 Nach Steuer: <b>${(v.eink-steuer-soli).toFixed(0)} €</b></div>
+  `;
+},'F');
+
+// 11. Versicherungen
+PACK_F.fin_versicherungen = makeListApp('fv','Versicherungen','🛡️',[
+  {k:'name',p:'Versicherung (z.B. Haftpflicht)'},
+  {k:'anbieter',p:'Anbieter'},
+  {k:'beitrag',p:'Beitrag (€/Monat)',t:'number'},
+  {k:'notiz',p:'Notiz'}
+],'F','versicherungen');
+
+// 12. Altersvorsorge
+PACK_F.fin_altersvorsorge = makeCalculatorApp('av2','Altersvorsorge','👴',[
+  {k:'alter',l:'Aktuelles Alter',p:'30'},
+  {k:'rente',l:'Rentenalter',p:'67'},
+  {k:'sparen',l:'Monatl. Sparen (€)',p:'300'},
+  {k:'zins',l:'Zins p.a. (%)',p:'5'}
+], (v) => {
+  const jahre = v.rente - v.alter;
+  if (jahre <= 0) return 'Bereits im Rentenalter';
+  const monate = jahre * 12;
+  const r = v.zins/100/12;
+  const endkapital = v.sparen * (Math.pow(1+r, monate) - 1) / r;
+  return `
+    <div>📅 Spardauer: <b>${jahre} Jahre</b></div>
+    <div>💰 Eingezahlt: <b>${(v.sparen*monate).toLocaleString('de-DE')} €</b></div>
+    <div style="color:var(--accent);font-size:20px;margin:8px 0"><b>${endkapital.toLocaleString('de-DE',{maximumFractionDigits:0})} €</b></div>
+    <div>📊 Zinsertrag: <b style="color:#4ade80">${(endkapital-v.sparen*monate).toLocaleString('de-DE',{maximumFractionDigits:0})} €</b></div>
+    <div style="font-size:10px;opacity:.6;margin-top:6px">Bei ${v.zins}% Zins p.a. (Zinseszins)</div>
+  `;
+},'F');
+
+// 13. Währung (Live)
+PACK_F.fin_waehrung = {
+  title: '💱 Währung LIVE', width: 380, height: 480, cat: 'F',
+  render() { return `
+    <div class="app-content">
+      <input class="app-input" type="number" id="wh_betrag" value="100" placeholder="Betrag">
+      <select class="app-select" id="wh_from">
+        <option value="EUR">🇪🇺 EUR — Euro</option>
+        <option value="USD">🇺🇸 USD — Dollar</option>
+        <option value="GBP">🇬🇧 GBP — Pfund</option>
+        <option value="TRY">🇹🇷 TRY — Lira</option>
+        <option value="CHF">🇨🇭 CHF — Franken</option>
+        <option value="JPY">🇯🇵 JPY — Yen</option>
+      </select>
+      <select class="app-select" id="wh_to">
+        <option value="USD">🇺🇸 USD — Dollar</option>
+        <option value="EUR">🇪🇺 EUR — Euro</option>
+        <option value="GBP">🇬🇧 GBP — Pfund</option>
+        <option value="TRY">🇹🇷 TRY — Lira</option>
+        <option value="CHF">🇨🇭 CHF — Franken</option>
+        <option value="JPY">🇯🇵 JPY — Yen</option>
+      </select>
+      <button class="app-btn primary" id="wh_go">💱 Umtauschen</button>
+      <div id="wh_out" style="padding:20px;border-radius:12px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);text-align:center;font-size:20px;color:var(--accent);font-weight:700">—</div>
+      <p style="font-size:10px;opacity:.5;text-align:center">Live-Kurse von exchangerate-api</p>
+    </div>
+  `;},
+  mount(root) {
+    root.querySelector('#wh_go').onclick = async () => {
+      const b = +root.querySelector('#wh_betrag').value;
+      const f = root.querySelector('#wh_from').value;
+      const t = root.querySelector('#wh_to').value;
+      if (f === t) { root.querySelector('#wh_out').textContent = b.toFixed(2)+' '+t; return; }
+      root.querySelector('#wh_out').textContent = 'Lade...';
+      try {
+        const r = await fetch('https://open.er-api.com/v6/latest/'+f);
+        const d = await r.json();
+        const rate = d.rates?.[t];
+        if (rate) root.querySelector('#wh_out').innerHTML = `${b.toFixed(2)} ${f}<br><span style="color:#4ade80">= ${(b*rate).toFixed(2)} ${t}</span><br><span style="font-size:10px;opacity:.6">1 ${f} = ${rate.toFixed(4)} ${t}</span>`;
+        else root.querySelector('#wh_out').textContent = 'Fehler';
+      } catch(e) {
+        root.querySelector('#wh_out').textContent = 'Keine Verbindung';
+      }
+    };
+    root.querySelector('#wh_go').click();
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════ */
+/*              REGISTRIEREN + HOOK IN HalDo.open              */
+/* ═══════════════════════════════════════════════════════════ */
+const PACKS = { ...PACK_D, ...PACK_E, ...PACK_F };
+const origOpen = window.HalDo.open;
+window.HalDo.open = function(id) {
+  if (PACKS[id]) {
+    WM.open(id, PACKS[id].title, PACKS[id].render ? PACKS[id].render() : PACKS[id].render, {
+      width: PACKS[id].width, height: PACKS[id].height, onMount: PACKS[id].mount
+    });
+  } else {
+    return origOpen.call(window.HalDo, id);
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════ */
+/*              SIDEBAR + BOTTOM-BAR ERWEITERN                 */
+/* ═══════════════════════════════════════════════════════════ */
+function addDEFToSidebar() {
+  const sb = document.getElementById('sidebar');
+  if (!sb) return;
+  const sec = document.createElement('div');
+  sec.innerHTML = `
+    <div class="sidebar-title">⭐ D · E · F Packs (55 Apps)</div>
+    <button class="sidebar-item" data-def="D"><span class="ico">🩺</span>D · Gesundheit (24)</button>
+    <button class="sidebar-item" data-def="E"><span class="ico">💼</span>E · Arbeit (18)</button>
+    <button class="sidebar-item" data-def="F"><span class="ico">💰</span>F · Finanzen (13)</button>
+  `;
+  sb.appendChild(sec);
+  sb.querySelectorAll('[data-def]').forEach(b => {
+    b.onclick = () => openDEFCategory(b.dataset.def);
+  });
+}
+
+function openDEFCategory(cat) {
+  const lists = {
+    D: { title: '🩺 D · Gesundheit (24 Apps)', apps: [
+      ['ges_anatomie','🫀','Anatomie 3D'],['ges_symptom','🔍','Symptom-Checker'],
+      ['ges_medikamente','💊','Medikamente'],['ges_laborwerte','🧪','Laborwerte'],
+      ['ges_krankheiten','🏥','Krankheiten'],['ges_ernaehrung','🥗','Ernährung'],
+      ['ges_fitness','💪','Fitness'],['ges_mental','🧠','Mental Health'],
+      ['ges_schlaf','😴','Schlaf'],['ges_notfall','🚨','Notfall'],
+      ['ges_erste_hilfe','🚑','Erste Hilfe'],['ges_vorsorge','🩺','Vorsorge'],
+      ['ges_impfungen','💉','Impfungen'],['ges_blutdruck','🩸','Blutdruck'],
+      ['ges_blutzucker','🍬','Blutzucker'],['ges_gewicht','⚖️','Gewicht'],
+      ['ges_bmi','📊','BMI'],['ges_kalorien','🍎','Kalorien'],
+      ['ges_pflege','🏥','Pflege'],['ges_termine','📅','Arzttermine'],
+      ['ges_vertraege','📄','Patientenverträge'],['ges_iot','📡','IoT'],
+      ['ges_hardware','🔧','Hardware'],['ges_tipps','💡','Gesundheitstipps'],
+      ['ges_fitness_quiz','🏋️','Fitness-Quiz']
+    ]},
+    E: { title: '💼 E · Arbeit (18 Apps)', apps: [
+      ['arb_aufgaben','✅','Aufgaben'],['arb_projekte','📊','Projekte'],
+      ['arb_zeit','⏱️','Zeiterfassung'],['arb_stunden','📋','Stundenzettel'],
+      ['arb_lohn','💶','Lohnrechner'],['arb_bewerbungen','📮','Bewerbungen'],
+      ['arb_lebenslauf','📄','Lebenslauf'],['arb_zeugnisse','🎓','Zeugnisse'],
+      ['arb_team','👥','Team'],['arb_meetings','🤝','Meetings'],
+      ['arb_notizen','📝','Notizen'],['arb_vertraege','📑','Verträge'],
+      ['arb_steuern','🧾','Steuern'],['arb_business','💼','Business-Plan'],
+      ['arb_rechnungen','💵','Rechnungen'],['arb_angebote','📝','Angebote'],
+      ['arb_kunden','🤝','Kunden'],['arb_kalender','📅','Team-Kalender']
+    ]},
+    F: { title: '💰 F · Finanzen (13 Apps)', apps: [
+      ['fin_budget','💰','Budget'],['fin_ausgaben','📤','Ausgaben'],
+      ['fin_einnahmen','📥','Einnahmen'],['fin_konten','🏦','Konten'],
+      ['fin_kredite','🏦','Kredite'],['fin_hypothek','🏠','Hypothek'],
+      ['fin_investments','📈','Investments'],['fin_aktien','📊','Aktien'],
+      ['fin_krypto','💎','Krypto'],['fin_steuern','🧾','Steuern'],
+      ['fin_versicherungen','🛡️','Versicherungen'],['fin_altersvorsorge','👴','Altersvorsorge'],
+      ['fin_waehrung','💱','Währung LIVE']
+    ]}
+  };
+  const c = lists[cat];
+  if (!c) return;
+  WM.open('def_' + cat, c.title, `
+    <div class="app-content">
+      <p style="font-size:11px;opacity:.7">${c.apps.length} Apps</p>
+      <div class="app-grid">
+        ${c.apps.map(([id,ic,nm]) => `<div class="app-tile" data-id="${id}"><span class="tico">${ic}</span><span class="tname">${nm}</span></div>`).join('')}
+      </div>
+    </div>
+  `, {
+    width: 440, height: 560,
+    onMount(root) {
+      root.querySelectorAll('[data-id]').forEach(t => t.onclick = () => window.HalDo.open(t.dataset.id));
+    }
+  });
+}
+
+setTimeout(() => {
+  addDEFToSidebar();
+  toast('🚀 v2.2 geladen: D + E + F (55 Apps)');
+}, 800);
+
+/* ═══════════════════════════════════════════════════════════ */
+/*                  GLOBAL API                                 */
+/* ═══════════════════════════════════════════════════════════ */
+window.HalDo.PackDEF = {
+  D: Object.keys(PACK_D),
+  E: Object.keys(PACK_E),
+  F: Object.keys(PACK_F),
+  openCategory: openDEFCategory,
+  total: Object.keys(PACKS).length
+};
+
+console.log('[HalDo v2.2] D+E+F Packs: ' + Object.keys(PACKS).length + ' Apps registriert');
+
+})();
+</script>
+<!-- ═══════ ENDE HALDO PACK v2.2 ═══════ -->
 </body>
 </html>
