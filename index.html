@@ -6299,5 +6299,1240 @@ console.log('[HalDo v2.3] G+H+I Packs: ' + Object.keys(PACKS).length + ' Apps re
 })();
 </script>
 <!-- ═══════ ENDE HALDO PACK v2.3 ═══════ -->
+<!-- ═══════ HALDO PACK v2.4 — J · K · L ═══════ -->
+<script>
+(function(){
+'use strict';
+if (!window.HalDo || !window.HalDo.WM) { console.warn('v2.4 braucht v2.0'); return; }
+const WM = window.HalDo.WM;
+const toast = window.HalDo.toast;
+const speak = window.HalDo.speak;
+const store = (k,v) => { try{localStorage.setItem(k,JSON.stringify(v));}catch(_){} };
+const load = (k,d) => { try{return JSON.parse(localStorage.getItem(k))??d;}catch(_){return d;} };
+
+/* ═══════ HELFER ═══════ */
+function makeListApp(id, title, icon, fields, cat, prefix) {
+  return {
+    title: icon + ' ' + title, width: 380, height: 480, cat,
+    render() { return `
+      <div class="app-content">
+        ${fields.map(f=>`<input class="app-input" id="${id}_${f.k}" placeholder="${f.p}" ${f.t?'type="'+f.t+'"':''}>`).join('')}
+        <button class="app-btn primary" id="${id}_add">+ Hinzufügen</button>
+        <div class="app-list" id="${id}_list"></div>
+      </div>
+    `;},
+    mount(root) {
+      const list = root.querySelector('#'+id+'_list');
+      const draw = () => {
+        const items = load('haldo_'+prefix+'_v1', []);
+        list.innerHTML = items.map((it,i)=>{
+          const sum = fields.map(f=>it[f.k]||'').filter(Boolean).slice(0,2).join(' · ');
+          return `<div class="app-row"><div style="flex:1"><b>${it[fields[0].k]||'—'}</b><br><span style="opacity:.7;font-size:10px">${String(sum).slice(0,90)}</span></div><button class="del" data-i="${i}">🗑</button></div>`;
+        }).join('') || '<div style="opacity:.5;text-align:center;padding:20px">Leer</div>';
+        list.querySelectorAll('.del').forEach(b=>b.onclick=()=>{
+          const a=load('haldo_'+prefix+'_v1',[]);a.splice(+b.dataset.i,1);store('haldo_'+prefix+'_v1',a);draw();
+        });
+      };
+      root.querySelector('#'+id+'_add').onclick=()=>{
+        const obj={};
+        fields.forEach(f=>obj[f.k]=root.querySelector('#'+id+'_'+f.k).value.trim());
+        if(!fields.some(f=>obj[f.k]))return toast('Feld ausfüllen');
+        const a=load('haldo_'+prefix+'_v1',[]);a.unshift({...obj,date:new Date().toISOString()});
+        store('haldo_'+prefix+'_v1',a);
+        fields.forEach(f=>root.querySelector('#'+id+'_'+f.k).value='');
+        draw();toast('✅ Gespeichert');
+      };
+      draw();
+    }
+  };
+}
+
+function makeQuizApp(id, title, icon, questions, cat) {
+  return {
+    title: icon+' '+title, width:400, height:540, cat,
+    render() { return `
+      <div class="app-content">
+        <div id="qz_p_${id}" style="font-size:11px;opacity:.7;text-align:right"></div>
+        <div id="qz_q_${id}" style="font-size:14px;font-weight:600;padding:14px;border-radius:12px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);min-height:70px;line-height:1.5"></div>
+        <div id="qz_a_${id}" style="display:flex;flex-direction:column;gap:8px"></div>
+        <div id="qz_r_${id}" style="text-align:center;font-size:13px;min-height:20px;font-weight:600"></div>
+        <button class="app-btn primary" id="qz_n_${id}">Nächste →</button>
+        <button class="app-btn" id="qz_rs_${id}">🔄 Reset</button>
+      </div>
+    `;},
+    mount(root) {
+      let idx=0, score=0, answered=false;
+      const qBox=root.querySelector('#qz_q_'+id), aBox=root.querySelector('#qz_a_'+id);
+      const rBox=root.querySelector('#qz_r_'+id), pBox=root.querySelector('#qz_p_'+id);
+      function show(){
+        if (idx>=questions.length) {
+          qBox.innerHTML = `<div style="text-align:center;padding:20px">🎉 Fertig!<br><br>Punkte: <b style="color:var(--accent);font-size:22px">${score}</b> / ${questions.length}</div>`;
+          aBox.innerHTML=''; rBox.textContent=''; pBox.textContent=''; return;
+        }
+        answered=false;
+        const q=questions[idx];
+        pBox.textContent='Frage '+(idx+1)+'/'+questions.length+' · '+score+' Punkte';
+        qBox.textContent=q.q; rBox.textContent='';
+        aBox.innerHTML=q.a.map((o,i)=>`<button class="app-btn" data-ans="${i}" style="text-align:left;justify-content:flex-start">${o}</button>`).join('');
+        aBox.querySelectorAll('[data-ans]').forEach(b=>b.onclick=()=>{
+          if (answered) return; answered=true;
+          const c=+b.dataset.ans;
+          if (c===q.c){score++;rBox.textContent='✅ Richtig!';rBox.style.color='#4ade80';}
+          else{rBox.textContent='❌ Richtig: '+q.a[q.c];rBox.style.color='#f87171';}
+          aBox.querySelectorAll('[data-ans]').forEach((x,j)=>{x.style.background = j===q.c?'rgba(74,222,128,.3)':(j===c?'rgba(248,113,113,.3)':'');});
+        });
+      }
+      root.querySelector('#qz_n_'+id).onclick=()=>{idx++;show();};
+      root.querySelector('#qz_rs_'+id).onclick=()=>{idx=0;score=0;show();};
+      show();
+    }
+  };
+}
+
+function makeInfoApp(id, title, icon, sections, cat) {
+  return {
+    title: icon+' '+title, width:380, height:520, cat,
+    render() { return `
+      <div class="app-content">
+        ${sections.map((s,i)=>`
+          <details ${i===0?'open':''} style="border-radius:12px;background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.2);padding:10px">
+            <summary style="cursor:pointer;font-weight:600;color:var(--accent);font-size:13px">${s.h}</summary>
+            <div style="font-size:12px;line-height:1.6;margin-top:8px;opacity:.9">${s.c}</div>
+          </details>
+        `).join('')}
+      </div>
+    `;}
+  };
+}
+
+function makeFlashcardApp(id, title, icon, cards, cat) {
+  return {
+    title: icon+' '+title, width:400, height:480, cat,
+    render() { return `
+      <div class="app-content" style="text-align:center">
+        <div id="fc_p_${id}" style="font-size:11px;opacity:.7;text-align:right"></div>
+        <div id="fc_c_${id}" style="min-height:180px;padding:22px;border-radius:16px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1.6;cursor:pointer;flex-direction:column;gap:8px"></div>
+        <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+          <button class="app-btn" id="fc_pv_${id}">←</button>
+          <button class="app-btn primary" id="fc_f_${id}">🔄 Drehen</button>
+          <button class="app-btn" id="fc_n_${id}">→</button>
+        </div>
+        <button class="app-btn" id="fc_sh_${id}">🔀 Zufall</button>
+      </div>
+    `;},
+    mount(root) {
+      let idx=0, flipped=false;
+      const card=root.querySelector('#fc_c_'+id), prog=root.querySelector('#fc_p_'+id);
+      function show() {
+        if (!cards.length) { card.textContent='Keine Karten'; return; }
+        prog.textContent='Karte '+(idx+1)+'/'+cards.length;
+        const c=cards[idx];
+        card.innerHTML = flipped
+          ? `<div><b style="color:var(--accent);font-size:12px">ANTWORT</b><br><br>${c.a}</div>`
+          : `<div><b style="color:var(--accent);font-size:12px">FRAGE</b><br><br>${c.q}</div>`;
+      }
+      card.onclick=()=>{ flipped=!flipped; show(); };
+      root.querySelector('#fc_pv_'+id).onclick=()=>{ idx=(idx-1+cards.length)%cards.length; flipped=false; show(); };
+      root.querySelector('#fc_f_'+id).onclick=()=>{ flipped=!flipped; show(); };
+      root.querySelector('#fc_n_'+id).onclick=()=>{ idx=(idx+1)%cards.length; flipped=false; show(); };
+      root.querySelector('#fc_sh_'+id).onclick=()=>{ idx=Math.floor(Math.random()*cards.length); flipped=false; show(); };
+      show();
+    }
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*              J — HALDO KULTUR & RELIGION (9)                */
+/* ═══════════════════════════════════════════════════════════ */
+const PACK_J = {};
+
+PACK_J.kult_ezidi = {
+  title: '🕊️ Êzîdîtum', width: 400, height: 540, cat: 'J',
+  render() { return `
+    <div class="app-content">
+      <div style="text-align:center;font-size:50px">🕊️</div>
+      <div id="ez_tabs" style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="app-btn active" data-tab="over">📖 Übersicht</button>
+        <button class="app-btn" data-tab="glaube">🙏 Glaube</button>
+        <button class="app-btn" data-tab="feste">🎉 Feste</button>
+        <button class="app-btn" data-tab="sprache">💬 Sprache</button>
+        <button class="app-btn" data-tab="orte">🏛️ Orte</button>
+      </div>
+      <div id="ez_content" style="font-size:12px;line-height:1.7;padding:12px;border-radius:12px;background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.2);min-height:200px"></div>
+      <button class="app-btn primary" id="ez_speak">🔊 Vorlesen</button>
+    </div>
+  `;},
+  mount(root) {
+    const data = {
+      over: `<h3 style="color:var(--accent);margin:0 0 8px">Êzîdîtum — Überblick</h3>
+        <p>Das Êzîdîtum ist eine alte monotheistische Religion, die vor allem von Kurden im Nordirak (Sindschar), in Syrien, der Türkei, Armenien, Georgien und in der Diaspora praktiziert wird.</p>
+        <p>Schätzungen: 700.000 bis 1,5 Mio Gläubige weltweit.</p>
+        <p>Das Êzîdîtum ist keine "Offenbarungsreligion" wie Islam/Christentum — es gibt keinen Stifter, keine Missionspflicht. Die Religion wird durch Geburt weitergegeben.</p>
+        <p><b>Zentrum:</b> Lalisch (Irak) — das heiligste Heiligtum.</p>`,
+      glaube: `<h3 style="color:var(--accent);margin:0 0 8px">Glaube</h3>
+        <p><b>Xwedê (Gott):</b> Der allmächtige, einzige Gott. Schöpfer des Universums.</p>
+        <p><b>Tawûsî Melek (Pfau-Engel):</b> Der oberste Engel, Stellvertreter Gottes. Symbol des Guten.</p>
+        <p><b>Heilige:</b> Sheikh Adi ibn Musafir (12. Jh.) — Reformer, in Lalisch begraben.</p>
+        <p><b>Nach dem Tod:</b> Seelenwanderung — die Seele wird wiedergeboren, bis sie rein ist.</p>
+        <p><b>Gebetsrichtung:</b> Nach Osten (Sonnenaufgang).</p>
+        <p><b>Verboten:</b> Schweinefleisch, blaue Kleidung (in manchen Traditionen), Ehen mit Nicht-Êzîden.</p>`,
+      feste: `<h3 style="color:var(--accent);margin:0 0 8px">Feste</h3>
+        <p><b>Çarşema Sor (Rote Mittwoch):</b> Neujahr, erste Mittwoch im April. Eier bemalen, Feuer springen.</p>
+        <p><b>Cejna Êzî:</b> Dezember, 3-tägiges Fest. Fasten vorher.</p>
+        <p><b>Cejna Heftiyê (Wallfahrt):</b> September, Pilgerfahrt nach Lalisch. 6 Tage.</p>
+        <p><b>Cejna Xidir Nebî:</b> Februar, Fest für den Propheten Xidir (Frühlingsbote).</p>
+        <p><b>Rojiyên Êzîdiyan:</b> Fastenzeiten — 3 Tage im Dezember, 40 Tage im Winter.</p>`,
+      sprache: `<h3 style="color:var(--accent);margin:0 0 8px">Kurmandschi (Kurmancî) — Basics</h3>
+        <p><b>Silav</b> — Hallo<br>
+        <b>Spas</b> — Danke<br>
+        <b>Bixêr hatî</b> — Willkommen<br>
+        <b>Rojbaş</b> — Guten Tag<br>
+        <b>Şevbaş</b> — Gute Nacht<br>
+        <b>Ez ji te hez dikim</b> — Ich liebe dich<br>
+        <b>Tu çawa yî?</b> — Wie geht es dir?<br>
+        <b>Ez baş im</b> — Mir geht es gut<br>
+        <b>Belê / Na</b> — Ja / Nein<br>
+        <b>Navê min ... e</b> — Mein Name ist ...</p>
+        <p><i>Êzîden sprechen überwiegend Kurmandschi (Nordkurdisch).</i></p>`,
+      orte: `<h3 style="color:var(--accent);margin:0 0 8px">Heilige Orte</h3>
+        <p><b>🏛️ Lalisch (Irak):</b> Heiligtum, Grab von Sheikh Adi. Zentrum der Wallfahrt.</p>
+        <p><b>🕯️ Sindschar (Irak):</b> Hochburg der Êzîden. 2014 Völkermord durch IS.</p>
+        <p><b>🏔️ Berg Sindschar:</b> Schutzberg, Symbol des Widerstands.</p>
+        <p><b>🇦🇲 Armenien:</b> Êzîdisches Dorf Aknalich mit Tempel.</p>
+        <p><b>🇩🇪 Deutschland:</b> Größte Diaspora-Gemeinde in Europa (~200.000).</p>`
+    };
+    let cur = 'over';
+    root.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
+      root.querySelectorAll('[data-tab]').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      cur = b.dataset.tab;
+      root.querySelector('#ez_content').innerHTML = data[cur];
+    });
+    root.querySelector('#ez_content').innerHTML = data.over;
+    root.querySelector('#ez_speak').onclick = () => {
+      const txt = root.querySelector('#ez_content').innerText;
+      speak(txt.slice(0, 400));
+    };
+  }
+};
+
+PACK_J.kult_islam = makeInfoApp('isl','Islam','🕌',[
+  {h:'📖 Überblick', c:'Monotheistische Religion, gestiftet von Prophet Mohammed (570-632 n.Chr.). ~1,9 Mrd Gläubige. Heiliges Buch: Koran (114 Suren).'},
+  {h:'🙏 Die 5 Säulen', c:'1. Schahada (Glaubensbekenntnis) · 2. Salat (Gebet 5× täglich) · 3. Zakat (Almosen ~2,5%) · 4. Saum (Fasten Ramadan) · 5. Hadsch (Pilgerfahrt nach Mekka)'},
+  {h:'🕋 Heilige Orte', c:'Mekka (Kaaba) · Medina (Propheten-Moschee) · Jerusalem (Al-Aqsa-Moschee) · Kerbela (Schiiten) · Nadschaf'},
+  {h:'🎉 Feste', c:'Ramadan (Fastenmonat) · Eid al-Fitr (Fest des Fastenbrechens) · Eid al-Adha (Opferfest) · Muharram (Neujahr) · Aschura (Schiiten)'},
+  {h:'📚 Strömungen', c:'Sunniten (85-90%): 4 Rechtsschulen (Hanafi, Maliki, Schafi\'i, Hanbali) · Schiiten (10-15%): Zwölfer, Ismailiten · Sufismus (Mystik) · Ahmadiyya · Ibaditen'},
+  {h:'🙏 Allahs 99 Namen', c:'Ar-Rahman (Der Gnädige) · Al-Malik (Der König) · Al-Quddus (Der Heilige) · As-Salam (Der Friede) · Al-Khaliq (Der Schöpfer) ...'},
+  {h:'📅 Islamischer Kalender', c:'Mondkalender, 354 Tage. Muharram (Neujahr) · Ramadan · Schawwal (Eid al-Fitr) · Dhu al-Hijjah (Hadsch)'}
+],'J');
+
+PACK_J.kult_christentum = makeInfoApp('chr','Christentum','✝️',[
+  {h:'📖 Überblick', c:'Monotheistische Religion, basierend auf Jesus Christus (ca. 4 v.Chr. - 30 n.Chr.). ~2,4 Mrd Gläubige. Heiliges Buch: Bibel (AT + NT).'},
+  {h:'✝️ Kern-Glaube', c:'Dreieinigkeit (Trinität): Gott Vater, Sohn, Heiliger Geist. Jesus als Sohn Gottes, gestorben + auferstanden. Erlösung durch Gnade.'},
+  {h:'📚 Hauptströmungen', c:'Katholisch (1,4 Mrd, Papst) · Orthodox (220 Mio, Patriarch) · Protestantisch (900 Mio, Luther/Calvin) · Anglikanisch · Evangelikal'},
+  {h:'🎉 Feste', c:'Weihnachten (25. Dez.) · Ostern (Auferstehung) · Pfingsten (Heiliger Geist) · Karfreitag · Epiphanias (6. Jan.) · Erntedank'},
+  {h:'🙏 Sakramente', c:'Katholisch: Taufe · Eucharistie · Firmung · Beichte · Krankensalbung · Priesterweihe · Ehe. Protestanten: meist nur Taufe + Abendmahl.'},
+  {h:'📖 Bibel', c:'Altes Testament (39 Bücher) + Neues Testament (27 Bücher). Psalmen, Evangelien (Matthäus, Markus, Lukas, Johannes), Paulus-Briefe, Offenbarung.'},
+  {h:'🏛️ Heilige Orte', c:'Jerusalem (Grabeskirche) · Rom (Vatikan, Petersdom) · Bethlehem (Geburtskirche) · Nazareth · Santiago de Compostela'}
+],'J');
+
+PACK_J.kult_judentum = makeInfoApp('jud','Judentum','✡️',[
+  {h:'📖 Überblick', c:'Älteste monotheistische Religion (~4000 Jahre). ~15 Mio Gläubige. Heilige Schrift: Tora (5 Bücher Mose), Talmud.'},
+  {h:'✡️ Kern-Glaube', c:'Ein einziger Gott (JHWH). Bund (Bund Abrahams). Auserwähltes Volk. Tikkun Olam (Welt reparieren). 613 Mizwot (Gebote).'},
+  {h:'📚 Strömungen', c:'Orthodox · Konservativ (Masorti) · Reform (Progressiv) · Ultra-Orthodox (Haredi) · Säkular'},
+  {h:'🎉 Feste', c:'Rosch ha-Schana (Neujahr) · Jom Kippur (Versöhnung) · Pessach (Auszug aus Ägypten) · Schawuot (Tora-Gabe) · Sukkot (Laubhütten) · Chanukka (Lichterfest) · Purim'},
+  {h:'🕯️ Schabbat', c:'Ruhetag: Freitagabend bis Samstagabend. Kein Arbeiten, kein Feuer, keine Elektronik (Orthodox). Kerzen, Wein, Challah-Brot.'},
+  {h:'📖 Tora', c:'5 Bücher Mose: Bereschit (Genesis), Schemot (Exodus), Wajikra (Levitikus), Bamidbar (Numeri), Devarim (Deuteronomium).'},
+  {h:'🕍 Heilige Orte', c:'Westliche Mauer (Klagemauer, Jerusalem) · Tempelberg · Synagogen weltweit · Hebron (Machpela-Höhle)'}
+],'J');
+
+PACK_J.kult_hinduismus = makeInfoApp('hin','Hinduismus','🕉️',[
+  {h:'📖 Überblick', c:'Älteste lebende Religion (~4000 Jahre). ~1,2 Mrd Gläubige (v.a. Indien, Nepal). Kein Gründer, kein einheitliches Buch.'},
+  {h:'🕉️ Kern-Glaube', c:'Brahman (Weltseele) · Atman (Selbst) · Samsara (Wiedergeburt) · Karma (Taten) · Dharma (Pflicht) · Moksha (Erlösung)'},
+  {h:'👥 Götter-Trias', c:'Brahma (Schöpfer) · Vishnu (Erhalter, Rama/Krishna Avatare) · Shiva (Zerstörer). Dazu: Ganesha (Weisheit), Lakshmi (Glück), Saraswati (Kunst)'},
+  {h:'📚 Heilige Schriften', c:'Veden (älteste) · Upanishaden (Philosophie) · Bhagavad Gita (Kern) · Ramayana · Mahabharata · Puranas'},
+  {h:'🎉 Feste', c:'Diwali (Lichterfest) · Holi (Farbfest) · Navaratri (9 Nächte) · Ganesh Chaturthi · Krishna Janmashtami · Maha Shivaratri'},
+  {h:'🙏 Yoga & Meditation', c:'4 Wege zur Erlösung: Karma Yoga (Handeln) · Bhakti Yoga (Hingabe) · Jnana Yoga (Wissen) · Raja Yoga (Meditation)'},
+  {h:'🏛️ Heilige Orte', c:'Varanasi (Ganges) · Tirupati · Amritsar (Golden Tempel) · Ayodhya · Kedarnath'}
+],'J');
+
+PACK_J.kult_buddhismus = makeInfoApp('bud','Buddhismus','☸️',[
+  {h:'📖 Überblick', c:'Gestiftet von Siddhartha Gautama (Buddha, 5. Jh. v.Chr.). ~500 Mio Gläubige. Kein Gott im westlichen Sinne.'},
+  {h:'☸️ 4 Edle Wahrheiten', c:'1. Leben ist Leiden (Dukkha) · 2. Ursache ist Begehren (Tanha) · 3. Begehren kann überwunden werden · 4. Der 8-fache Pfad führt dazu'},
+  {h:'🛤️ 8-facher Pfad', c:'Rechte Erkenntnis · Rechte Absicht · Rechte Rede · Rechtes Handeln · Rechter Lebenserwerb · Rechte Anstrengung · Rechte Achtsamkeit · Rechte Sammlung'},
+  {h:'📚 Strömungen', c:'Theravada (Sri Lanka, Thailand, Myanmar) · Mahayana (China, Japan, Vietnam) · Vajrayana (Tibet, Dalai Lama) · Zen'},
+  {h:'🎉 Feste', c:'Vesak (Buddhas Geburt/Erleuchtung/Tod) · Magha Puja · Asalha Puja · Losar (tibetisches Neujahr)'},
+  {h:'🧘 Meditation', c:'Vipassana (Einsicht) · Samatha (Ruhe) · Metta (liebende Güte) · Zazen (Zen-Sitzmeditation) · Mantra'},
+  {h:'🏛️ Heilige Orte', c:'Bodh Gaya (Erleuchtung) · Lumbini (Geburt) · Sarnath (erste Predigt) · Kushinagar (Tod) · Tibet (Potala-Palast)'}
+],'J');
+
+PACK_J.kult_sikhismus = makeInfoApp('sik','Sikhismus','🔱',[
+  {h:'📖 Überblick', c:'Gestiftet von Guru Nanak (1469-1539) im Punjab. ~30 Mio Gläubige. Monotheistisch.'},
+  {h:'🔱 Kern-Glaube', c:'Ein Gott (Ik Onkar). 10 Gurus. Heilige Schrift: Guru Granth Sahib. Gleichheit aller Menschen. Seva (selbstloser Dienst).'},
+  {h:'📚 Die 10 Gurus', c:'1. Nanak · 2. Angad · 3. Amar Das · 4. Ram Das · 5. Arjan (Harmandir Sahib) · 6. Hargobind · 7. Har Rai · 8. Har Krishan · 9. Tegh Bahadur · 10. Gobind Singh'},
+  {h:'🙏 Die 5 Ks', c:'Kesh (unbeschnittenes Haar) · Kangha (Kamm) · Kara (Armreif) · Kachera (Unterwäsche) · Kirpan (Dolch)'},
+  {h:'🎉 Feste', c:'Vaisakhi (Neujahr, April) · Gurpurab (Guru-Geburtstage) · Diwali (Bandi Chhor Divas) · Hola Mohalla (Kampfsport-Fest)'},
+  {h:'🏛️ Golden Tempel', c:'Harmandir Sahib in Amritsar (Punjab, Indien). Heiligster Ort. Offen für alle. Langar (Gemeinschaftsküche) — kostenlos für alle.'}
+],'J');
+
+PACK_J.kult_atheismus = makeInfoApp('ath','Atheismus & Humanismus','🌐',[
+  {h:'📖 Was ist Atheismus?', c:'Nicht-Glaube an Gott/Götter. Kein einheitliches System — umfasst Agnostiker, Naturalisten, Humanisten, Skeptiker.'},
+  {h:'🧠 Kern-Ideen', c:'Naturalismus (Natur erklärt alles) · Rationalismus (Vernunft) · Wissenschaft als Erkenntnisquelle · Säkularer Humanismus'},
+  {h:'👥 Bekannte Atheisten', c:'Richard Dawkins · Christopher Hitchens · Sam Harris · Daniel Dennett · Nietzsche · Einstein (pantheistisch) · Marx'},
+  {h:'💬 Zitate', c:'"Ich glaube nicht an einen personalen Gott." — Einstein<br>"Das Universum braucht keinen Schöpfer." — Hawking<br>"Man muss sich das vorstellen können." — Dawkins'},
+  {h:'🌍 Organisationen', c:'Humanistische Union · Brights · Freedom From Religion Foundation · Zentralrat der Ex-Muslime · Giordano-Bruno-Stiftung'},
+  {h:'🙏 Ethik ohne Religion', c:'Ethik basierend auf Vernunft, Empathie, Konsequenzen. Goldene Regel in vielen Kulturen. Säkularer Humanismus als Lebensphilosophie.'}
+],'J');
+
+PACK_J.kult_spiritualitaet = makeInfoApp('spi','Spiritualität','🌈',[
+  {h:'📖 Was ist Spiritualität?', c:'Suche nach Sinn, Transzendenz, Verbundenheit — unabhängig von Religion. Persönliche Erfahrung.'},
+  {h:'🧘 Praktiken', c:'Meditation · Yoga · Achtsamkeit (Mindfulness) · Gebet · Fasten · Natur-Erfahrung · Journaling · Atemarbeit'},
+  {h:'🌿 Esoterik & New Age', c:'Astrologie · Numerologie · Tarot · Kristalle · Reiki · Chakren · Manifestation · Ayurveda · Akupunktur'},
+  {h:'🧠 Bewusste Praktiken', c:'Dankbarkeit üben · Achtsamkeit täglich · Selbstreflexion · Vergebung · Naturverbundenheit · Stille'},
+  {h:'📚 Bücher', c:'Eckhart Tolle (Jetzt) · Deepak Chopra · Wayne Dyer · Rumi (Sufi-Dichter) · Thich Nhat Hanh (Achtsamkeit)'},
+  {h:'⚠️ Achtung', c:'Seriöse Spiritualität ≠ Geschäftemacherei. Skeptisch sein bei teuren "Heilungen" oder Versprechen.'},
+  {h:'🕉️ Östliche Spiritualität', c:'Yoga (Indien) · Zen (Japan) · Taoismus (China) · Sufismus (Islam) · Kabbalah (Judentum)'}
+],'J');
+
+PACK_J.kult_vergleich = makeQuizApp('kv','Religions-Vergleich','📊',[
+  {q:'Wie viele Säulen hat der Islam?', a:['3','4','5','7'], c:2},
+  {q:'Welche Schrift ist heilig im Judentum?', a:['Bibel','Tora','Koran','Veden'], c:1},
+  {q:'Wer stiftete den Buddhismus?', a:['Mohammed','Jesus','Buddha','Guru Nanak'], c:2},
+  {q:'Was ist die Heilige Schrift der Sikhs?', a:['Guru Granth Sahib','Tora','Bhagavad Gita','Bibel'], c:0},
+  {q:'Wie viele Edle Wahrheiten hat der Buddhismus?', a:['2','3','4','8'], c:2},
+  {q:'Wer ist der Hauptgott im Hinduismus (Trias)?', a:['Nur einer','Brahma, Vishnu, Shiva','Ganesha allein','Krishna allein'], c:1},
+  {q:'Was ist das Zentrum der Êzîden?', a:['Mekka','Lalisch','Jerusalem','Rom'], c:1},
+  {q:'Wie viele Ks (K\'s) haben Sikhs?', a:['3','5','7','10'], c:1},
+  {q:'Wer ist das Oberhaupt der Katholiken?', a:['Patriarch','Papst','Dalai Lama','Imam'], c:1},
+  {q:'Welches Fest feiern Christen an Ostern?', a:['Geburt Jesu','Auferstehung Jesu','Taufe','Himmelfahrt'], c:1}
+],'J');
+
+/* ═══════════════════════════════════════════════════════════ */
+/*                  K — HALDO KEYBOARD (11)                    */
+/* ═══════════════════════════════════════════════════════════ */
+const PACK_K = {};
+
+function makeKeyboardApp(id, title, icon, layouts, cat) {
+  return {
+    title: icon+' '+title, width:420, height:540, cat,
+    render() {
+      return `
+        <div class="app-content">
+          <textarea class="app-textarea" id="kb_out_${id}" placeholder="Hier tippen..." style="min-height:100px;font-size:15px"></textarea>
+          <div style="display:flex;gap:6px;margin-bottom:6px">
+            ${layouts.map((l,i)=>`<button class="app-btn ${i===0?'primary':''}" data-lay="${i}" style="padding:6px 10px;font-size:11px;min-height:36px">${l.name}</button>`).join('')}
+          </div>
+          <div id="kb_grid_${id}" style="display:grid;gap:4px"></div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <button class="app-btn" id="kb_space_${id}" style="flex:3">␣ Leer</button>
+            <button class="app-btn" id="kb_back_${id}" style="flex:1">⌫</button>
+            <button class="app-btn primary" id="kb_copy_${id}" style="flex:1">📋</button>
+          </div>
+        </div>
+      `;
+    },
+    mount(root) {
+      const out = root.querySelector('#kb_out_'+id);
+      const grid = root.querySelector('#kb_grid_'+id);
+      let curLayout = 0;
+      const renderLayout = () => {
+        const chars = layouts[curLayout].chars;
+        const cols = layouts[curLayout].cols || 10;
+        grid.style.gridTemplateColumns = `repeat(${cols},1fr)`;
+        grid.innerHTML = chars.map(c => `<button class="app-btn kb-key" data-char="${c}" style="min-height:42px;padding:4px;font-size:${c.length>1?'12px':'16px'}">${c}</button>`).join('');
+        grid.querySelectorAll('[data-char]').forEach(b => b.onclick = () => {
+          out.value += b.dataset.char;
+          out.focus();
+        });
+      };
+      root.querySelectorAll('[data-lay]').forEach((b,i) => b.onclick = () => {
+        curLayout = i;
+        root.querySelectorAll('[data-lay]').forEach(x => { x.classList.remove('primary'); });
+        b.classList.add('primary');
+        renderLayout();
+      });
+      root.querySelector('#kb_space_'+id).onclick = () => { out.value += ' '; out.focus(); };
+      root.querySelector('#kb_back_'+id).onclick = () => { out.value = out.value.slice(0, -1); out.focus(); };
+      root.querySelector('#kb_copy_'+id).onclick = () => { navigator.clipboard.writeText(out.value); toast('📋 Kopiert'); };
+      renderLayout();
+    }
+  };
+}
+
+PACK_K.key_tastatur_de = makeKeyboardApp('kde','Tastatur DE','⌨️',[
+  { name:'Klein', chars:['q','w','e','r','t','z','u','i','o','p','a','s','d','f','g','h','j','k','l','ä','ö','ü','y','x','c','v','b','n','m','ß','.','!','?'], cols:6 },
+  { name:'Groß', chars:['Q','W','E','R','T','Z','U','I','O','P','A','S','D','F','G','H','J','K','L','Ä','Ö','Ü','Y','X','C','V','B','N','M','ẞ','.','!','?'], cols:6 },
+  { name:'Zahlen', chars:['1','2','3','4','5','6','7','8','9','0','+','-','*','/','=','(',')','[',']','{','}','@','#','€','$','%','&','"','\'','<','>','~'], cols:8 }
+],'K');
+
+PACK_K.key_tastatur_en = makeKeyboardApp('ken','Tastatur EN','🇬🇧',[
+  { name:'lower', chars:['q','w','e','r','t','y','u','i','o','p','a','s','d','f','g','h','j','k','l','.',';','z','x','c','v','b','n','m',',','!','?'], cols:6 },
+  { name:'UPPER', chars:['Q','W','E','R','T','Y','U','I','O','P','A','S','D','F','G','H','J','K','L','.',';','Z','X','C','V','B','N','M',',','!','?'], cols:6 }
+],'K');
+
+PACK_K.key_tastatur_ar = makeKeyboardApp('kar','Tastatur عربية','🇸🇦',[
+  { name:'عربي', chars:['ض','ص','ث','ق','ف','غ','ع','ه','خ','ح','ج','ش','س','ي','ب','ل','ا','ت','ن','م','ك','ط','ظ','ذ','د','ز','ر','و','ة','ى','ء','ئ','ؤ'], cols:6 },
+  { name:'أرقام', chars:['١','٢','٣','٤','٥','٦','٧','٨','٩','٠','٠','١','٢','٣','٤','٥','٦','٧','٨','٩','،','.','!','?'], cols:8 }
+],'K');
+
+PACK_K.key_tastatur_ku = makeKeyboardApp('kku','Tastatur Kurdî','☀️',[
+  { name:'kurmancî', chars:['q','w','e','r','t','y','u','i','o','p','a','s','d','f','g','h','j','k','l','ç','ş','ê','î','û','z','x','c','v','b','n','m','.','!','?'], cols:6 },
+  { name:'Mezin', chars:['Q','W','E','R','T','Y','U','I','O','P','A','S','D','F','G','H','J','K','L','Ç','Ş','Ê','Î','Û','Z','X','C','V','B','N','M','.','!','?'], cols:6 }
+],'K');
+
+PACK_K.key_tastatur_he = makeKeyboardApp('khe','Tastatur עברית','🇮🇱',[
+  { name:'עברית', chars:['ק','ר','א','ט','ו','ן','ם','פ','ש','ד','ג','כ','ע','י','ח','ל','ך','ף','ז','ס','ב','ה','נ','מ','צ','ת','ץ','.','!','?'], cols:6 }
+],'K');
+
+PACK_K.key_emoji = {
+  title: '😊 Emoji-Picker', width: 420, height: 500, cat: 'K',
+  render() {
+    const cats = {
+      '😊 Gesichter': ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','😘','🥰','😗','😙','😚','🙂','🤗','🤩','🤔','🤨','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','🥱','😴','😌','😛','😜','😝','🤤','😒','😓','😔','😕','🙃','🤑','😲','🙁','😖','😞','😟','😤','😢','😭','😦','😧','😨','😩','🤯','😬','😰','😱','🥵','🥶','😳','🤪','😵','🥴','😠','😡','🤬','😷','🤒','🤕','🤢','🤮','🤧','😇','🥳','🥺','🤠','🤡','🤥','🤫','🤭','🧐','🤓','😈','👿','👹','👺','💀','👻','👽','🤖'],
+      '👍 Hände': ['👍','👎','👌','🤌','🤏','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','👇','☝️','✋','🤚','🖐','🖖','👋','🤝','🙏','✍️','💅','🤳','💪','🦾','🦵','🦶','👂','🦻','👃','🧠','🫀','🫁','🦷','🦴','👀','👁','👅','👄'],
+      '❤️ Herz': ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','♥️','💋','💌','🫶'],
+      '🌍 Natur': ['🌍','🌎','🌏','🌕','🌖','🌗','🌘','🌑','🌒','🌓','🌔','🌙','⭐','🌟','✨','⚡','☀️','🌞','☁️','🌤','⛅','🌥','☁️','🌦','🌧','⛈','🌩','🌨','❄️','☃️','⛄','🌬','💨','💧','💦','☔','☂','🌊','🌈','🌪','🔥','⭐','🌟','💫','☄️','🌠'],
+      '🍕 Essen': ['🍏','🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🥑','🥦','🥕','🌽','🍞','🥐','🍕','🍔','🍟','🌭','🌮','🍣','🍜','🍱','🍚','🍙','🍛','🍲','🥘','🍝','🍞','🧁','🍰','🎂','🍪','🍩','🍫','🍬','🍭','🍮','🍯','☕','🍵','🥤','🍺','🍷','🍸','🍹']
+    };
+    return `<div class="app-content">
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
+        ${Object.keys(cats).map((k,i)=>`<button class="app-btn ${i===0?'primary':''}" data-cat="${k}" style="padding:6px 10px;font-size:11px;min-height:36px">${k}</button>`).join('')}
+      </div>
+      <div id="em_grid" style="display:grid;grid-template-columns:repeat(8,1fr);gap:4px;font-size:24px"></div>
+      <div style="margin-top:8px;padding:10px;border-radius:10px;background:rgba(0,229,255,.05);min-height:40px;font-size:18px" id="em_preview">Klicke Emojis...</div>
+      <button class="app-btn primary" id="em_copy">📋 Kopieren</button>
+    </div>`;
+  },
+  mount(root) {
+    const cats = {
+      '😊 Gesichter': ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','😘','🥰','😗','😙','😚','🙂','🤗','🤩','🤔','🤨','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','🥱','😴','😌','😛','😜','😝','🤤','😒','😓','😔','😕','🙃','🤑','😲','🙁','😖','😞','😟','😤','😢','😭','😦','😧','😨','😩','🤯','😬','😰','😱','🥵','🥶','😳','🤪','😵','🥴','😠','😡','🤬','😷','🤒','🤕','🤢','🤮','🤧','😇','🥳','🥺','🤠','🤡','🤥','🤫','🤭','🧐','🤓','😈','👿','👹','👺','💀','👻','👽','🤖'],
+      '👍 Hände': ['👍','👎','👌','🤌','🤏','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','👇','☝️','✋','🤚','🖐','🖖','👋','🤝','🙏','✍️','💅','🤳','💪','🦾','🦵','🦶','👂','🦻','👃','🧠','🫀','🫁','🦷','🦴','👀','👁','👅','👄'],
+      '❤️ Herz': ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','♥️','💋','💌','🫶'],
+      '🌍 Natur': ['🌍','🌎','🌏','🌕','🌖','🌗','🌘','🌑','🌒','🌓','🌔','🌙','⭐','🌟','✨','⚡','☀️','🌞','☁️','🌤','⛅','🌥','☁️','🌦','🌧','⛈','🌩','🌨','❄️','☃️','⛄','🌬','💨','💧','💦','☔','☂','🌊','🌈','🌪','🔥','⭐','🌟','💫','☄️','🌠'],
+      '🍕 Essen': ['🍏','🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🥑','🥦','🥕','🌽','🍞','🥐','🍕','🍔','🍟','🌭','🌮','🍣','🍜','🍱','🍚','🍙','🍛','🍲','🥘','🍝','🍞','🧁','🍰','🎂','🍪','🍩','🍫','🍬','🍭','🍮','🍯','☕','🍵','🥤','🍺','🍷','🍸','🍹']
+    };
+    let cur = '😊 Gesichter';
+    let text = '';
+    const grid = root.querySelector('#em_grid'), preview = root.querySelector('#em_preview');
+    const render = () => {
+      grid.innerHTML = cats[cur].map(e => `<button data-emoji="${e}" style="min-height:40px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.2);border-radius:8px;cursor:pointer;font-size:22px;color:#fff">${e}</button>`).join('');
+      grid.querySelectorAll('[data-emoji]').forEach(b => b.onclick = () => {
+        text += b.dataset.emoji;
+        preview.textContent = text;
+      });
+    };
+    root.querySelectorAll('[data-cat]').forEach(b => b.onclick = () => {
+      cur = b.dataset.cat;
+      root.querySelectorAll('[data-cat]').forEach(x => { x.classList.remove('primary'); });
+      b.classList.add('primary');
+      render();
+    });
+    root.querySelector('#em_copy').onclick = () => {
+      navigator.clipboard.writeText(text);
+      toast('📋 '+text.length+' Emojis kopiert');
+    };
+    render();
+  }
+};
+
+PACK_K.key_symbole = {
+  title: '∑ Symbole', width: 420, height: 500, cat: 'K',
+  render() {
+    const groups = {
+      'Mathe': ['∑','∏','∫','∂','√','±','≠','≤','≥','≈','∞','π','θ','α','β','γ','δ','λ','μ','σ','Ω','Δ','∈','∉','⊂','⊃','∪','∩','∅','∀','∃','¬','∧','∨','⇒','⇔','→','←','↔'],
+      'Währung': ['€','$','£','¥','₽','₺','₹','₿','¢','₩','₪','₴','₦','₱','฿'],
+      'Pfeile': ['←','→','↑','↓','↔','↕','↖','↗','↘','↙','⇐','⇒','⇑','⇓','⇔','⟵','⟶','⟷','⟸','⟹'],
+      'Sonne/Sterne': ['☀️','☼','★','☆','✩','✪','✫','✬','✭','✮','✯','✰','✦','✧','⭐','🌟','✨'],
+      'Sonne/Formen': ['■','□','▪','▫','▲','△','▼','▽','◆','◇','○','●','◯','◉','◎','★','☆','♠','♣','♥','♦'],
+      'Spezial': ['©','®','™','§','¶','†','‡','…','·','•','°','′','″','‰','‹','›','«','»','„','"','"','\'','\'']
+    };
+    return `<div class="app-content">
+      ${Object.keys(groups).map((g,i)=>`
+        <div style="margin-bottom:8px">
+          <div style="font-size:11px;color:var(--accent);margin-bottom:4px;font-weight:600">${g}</div>
+          <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:4px">
+            ${groups[g].map(s=>`<button data-sym="${s}" style="min-height:36px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.2);border-radius:6px;cursor:pointer;font-size:15px;color:#fff">${s}</button>`).join('')}
+          </div>
+        </div>
+      `).join('')}
+      <div style="padding:10px;border-radius:10px;background:rgba(0,229,255,.05);min-height:40px;font-size:16px" id="sym_preview">Klicke Symbole...</div>
+      <button class="app-btn primary" id="sym_copy">📋 Kopieren</button>
+    </div>`;
+  },
+  mount(root) {
+    let text = '';
+    const preview = root.querySelector('#sym_preview');
+    root.querySelectorAll('[data-sym]').forEach(b => b.onclick = () => {
+      text += b.dataset.sym;
+      preview.textContent = text;
+    });
+    root.querySelector('#sym_copy').onclick = () => {
+      navigator.clipboard.writeText(text);
+      toast('📋 Kopiert');
+    };
+  }
+};
+
+PACK_K.key_verlauf = {
+  title: '📋 Tastatur-Verlauf', width: 380, height: 460, cat: 'K',
+  render() { return `
+    <div class="app-content">
+      <textarea class="app-textarea" id="kv_in" placeholder="Text einfügen / tippen..."></textarea>
+      <button class="app-btn primary" id="kv_save">💾 Speichern</button>
+      <div class="app-list" id="kv_list"></div>
+      <button class="app-btn danger" id="kv_clear">🗑 Alles löschen</button>
+    </div>
+  `;},
+  mount(root) {
+    const list = root.querySelector('#kv_list');
+    const draw = () => {
+      const items = load('haldo_kb_history_v1', []);
+      list.innerHTML = items.map((t,i)=>
+        `<div class="app-row"><div style="flex:1;font-size:11px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${t}</div><button class="del" data-copy="${i}">📋</button><button class="del" data-i="${i}">🗑</button></div>`
+      ).join('') || '<div style="opacity:.5;text-align:center;padding:14px">Verlauf leer</div>';
+      list.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>{
+        navigator.clipboard.writeText(items[+b.dataset.copy]);
+        toast('📋 Kopiert');
+      });
+      list.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{
+        const a=load('haldo_kb_history_v1',[]);a.splice(+b.dataset.i,1);store('haldo_kb_history_v1',a);draw();
+      });
+    };
+    root.querySelector('#kv_save').onclick = () => {
+      const t = root.querySelector('#kv_in').value.trim();
+      if (!t) return;
+      const a = load('haldo_kb_history_v1', []);
+      a.unshift(t); store('haldo_kb_history_v1', a.slice(0, 50));
+      root.querySelector('#kv_in').value = '';
+      draw(); toast('💾 Gespeichert');
+    };
+    root.querySelector('#kv_clear').onclick = () => { store('haldo_kb_history_v1', []); draw(); toast('🗑 Gelöscht'); };
+    draw();
+  }
+};
+
+PACK_K.key_design = {
+  title: '🎨 Tastatur-Design', width: 380, height: 460, cat: 'K',
+  render() { return `
+    <div class="app-content">
+      <div class="app-row">Akzent-Farbe: <input type="color" id="kd_color" value="#00e5ff" style="width:60px;height:32px;border-radius:6px;border:none;background:transparent;margin-left:auto"></div>
+      <div class="app-row">Größe: <input type="range" id="kd_size" min="12" max="24" value="16" style="flex:1;margin-left:8px"></div>
+      <div class="app-row">Anzahl Reihen: <input type="range" id="kd_rows" min="1" max="5" value="3" style="flex:1;margin-left:8px"></div>
+      <div id="kd_preview" style="display:grid;gap:4px;padding:10px;border-radius:12px;background:rgba(0,0,0,.2)"></div>
+      <button class="app-btn primary" id="kd_save">💾 Design speichern</button>
+      <div style="font-size:11px;opacity:.6;text-align:center">Vorschau · Design-Einstellungen für Tastaturen</div>
+    </div>
+  `;},
+  mount(root) {
+    const preview = root.querySelector('#kd_preview');
+    const chars = 'abcdefghijklmnopqrstuvwxyz';
+    const render = () => {
+      const color = root.querySelector('#kd_color').value;
+      const size = +root.querySelector('#kd_size').value;
+      const rows = +root.querySelector('#kd_rows').value;
+      const cols = Math.ceil(26/rows);
+      preview.style.gridTemplateColumns = `repeat(${cols},1fr)`;
+      preview.innerHTML = '';
+      for (let i = 0; i < rows * cols; i++) {
+        const ch = chars[i % chars.length];
+        preview.innerHTML += `<button style="min-height:34px;background:${color}20;border:1px solid ${color}60;border-radius:6px;color:#fff;font-size:${size}px;cursor:pointer">${ch}</button>`;
+      }
+    };
+    ['kd_color','kd_size','kd_rows'].forEach(id => root.querySelector('#'+id).oninput = render);
+    root.querySelector('#kd_save').onclick = () => {
+      store('haldo_kb_design_v1', {
+        color: root.querySelector('#kd_color').value,
+        size: +root.querySelector('#kd_size').value,
+        rows: +root.querySelector('#kd_rows').value
+      });
+      toast('🎨 Design gespeichert');
+    };
+    render();
+  }
+};
+
+PACK_K.key_mehrsprachig = makeKeyboardApp('kml','Tastatur Multi','🌍',[
+  { name:'Deutsch', chars:['ä','ö','ü','Ä','Ö','Ü','ß','é','è','ê','à','â','ç','ñ','å','ø','æ','œ'], cols:6 },
+  { name:'Kurdisch', chars:['ç','ê','î','ş','û','Ç','Ê','Î','Ş','Û','é','ñ'], cols:6 },
+  { name:'Türkisch', chars:['ç','ğ','ı','ö','ş','ü','Ç','Ğ','İ','Ö','Ş','Ü'], cols:6 },
+  { name:'Französisch', chars:['à','â','æ','ç','é','è','ê','ë','î','ï','ô','œ','ù','û','ü','ÿ'], cols:8 }
+],'K');
+
+PACK_K.key_kurzschrift = {
+  title: '⚡ Text-Kürzel', width: 380, height: 500, cat: 'K',
+  render() { return `
+    <div class="app-content">
+      <p style="font-size:11px;opacity:.7">Tippe ein Kürzel — wird automatisch ersetzt.</p>
+      <textarea class="app-textarea" id="ks_in" placeholder="z.B. 'mfg' tippen und tippen..." style="min-height:80px"></textarea>
+      <button class="app-btn primary" id="ks_expand">⚡ Ersetzen</button>
+      <div class="app-row" style="font-size:11px">Verfügbare Kürzel: <b id="ks_count">0</b></div>
+      <div class="app-list" id="ks_list" style="max-height:200px"></div>
+      <div style="font-size:10px;opacity:.6">Kürzel antippen → einsetzen</div>
+    </div>
+  `;},
+  mount(root) {
+    const codes = {
+      'mfg':'Mit freundlichen Grüßen','lg':'Liebe Grüße','vg':'Viele Grüße','sg':'Schöne Grüße',
+      'hdgdl':'Hab dich ganz doll lieb','hdl':'Hab dich lieb','guteN':'Gute Nacht','gm':'Guten Morgen',
+      'ab':'Alles Beste','ok':'Okay','thx':'Danke','bitt':'Bitte','sry':'Entschuldigung',
+      'cu':'Bis später','bb':'Bis bald','cya':'See you','omg':'Oh mein Gott','wtf':'Was zur Hölle',
+      'ka':'Keine Ahnung','kA':'Keine Ahnung','idk':'I don\'t know','imo':'Meiner Meinung nach',
+      'asap':'So schnell wie möglich','fyi':'Zur Info','btw':'Übrigens','fwd':'Weitergeleitet',
+      'term':'Termin','tel':'Telefon','adr':'Adresse','mail':'E-Mail','nr':'Nummer',
+      'str':'Straße','plz':'Postleitzahl','tel.':'Telefon:','♥':'❤️',':)':'😊',':(':'☹️',';)':'😉',
+      'gg':'Grins','fg':'Frech grins','bg':'Breit grins'
+    };
+    const list = root.querySelector('#ks_list');
+    root.querySelector('#ks_count').textContent = Object.keys(codes).length;
+    list.innerHTML = Object.entries(codes).map(([k,v])=>`<div class="app-row" style="cursor:pointer" data-code="${k}"><b style="color:var(--accent);min-width:60px">${k}</b> → ${v}</div>`).join('');
+    list.querySelectorAll('[data-code]').forEach(b => b.onclick = () => {
+      root.querySelector('#ks_in').value += codes[b.dataset.code];
+      root.querySelector('#ks_in').focus();
+    });
+    root.querySelector('#ks_expand').onclick = () => {
+      let txt = root.querySelector('#ks_in').value;
+      Object.keys(codes).forEach(k => {
+        txt = txt.replace(new RegExp('\\b'+k+'\\b','g'), codes[k]);
+      });
+      root.querySelector('#ks_in').value = txt;
+    };
+  }
+};
+
+PACK_K.key_trigger = {
+  title: '📝 Text-Bausteine', width: 380, height: 460, cat: 'K',
+  render() { return `
+    <div class="app-content">
+      <input class="app-input" id="kt_name" placeholder="Name / Kürzel">
+      <textarea class="app-textarea" id="kt_text" placeholder="Text (was eingefügt wird)"></textarea>
+      <button class="app-btn primary" id="kt_add">+ Baustein speichern</button>
+      <div class="app-list" id="kt_list"></div>
+    </div>
+  `;},
+  mount(root) {
+    const list = root.querySelector('#kt_list');
+    const draw = () => {
+      const items = load('haldo_bausteine_v1', []);
+      list.innerHTML = items.map((x,i)=>
+        `<div class="app-row"><div style="flex:1"><b>${x.name}</b><br><span style="opacity:.7;font-size:10px">${(x.text||'').slice(0,60)}</span></div><button class="del" data-copy="${i}">📋</button><button class="del" data-i="${i}">🗑</button></div>`
+      ).join('') || '<div style="opacity:.5;text-align:center;padding:14px">Keine Bausteine</div>';
+      list.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>{
+        navigator.clipboard.writeText(items[+b.dataset.copy].text);
+        toast('📋 Kopiert');
+      });
+      list.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{
+        const a=load('haldo_bausteine_v1',[]);a.splice(+b.dataset.i,1);store('haldo_bausteine_v1',a);draw();
+      });
+    };
+    root.querySelector('#kt_add').onclick = () => {
+      const name = root.querySelector('#kt_name').value.trim();
+      const text = root.querySelector('#kt_text').value.trim();
+      if (!name || !text) return toast('Beide Felder');
+      const a = load('haldo_bausteine_v1', []);
+      a.unshift({ name, text });
+      store('haldo_bausteine_v1', a);
+      root.querySelector('#kt_name').value = '';
+      root.querySelector('#kt_text').value = '';
+      draw(); toast('✅ Gespeichert');
+    };
+    draw();
+  }
+};
+
+PACK_K.key_quiz = makeQuizApp('kq','Tastatur-Tipps','⌨️',[
+  {q:'Was ist die Tastenkombination für "Kopieren"?', a:['Strg+C','Strg+V','Strg+X','Strg+Z'], c:0},
+  {q:'Was macht Strg+Z?', a:['Kopieren','Rückgängig','Speichern','Neu'], c:1},
+  {q:'Wie viele Tasten hat eine Standard-Tastatur?', a:['60','80','104','120'], c:2},
+  {q:'Was ist Strg+Alt+Entf?', a:['Neustart','Sicherheitsbildschirm','Herunterfahren','Screenshot'], c:1},
+  {q:'Was macht die Windows-Taste?', a:['Lautstärke','Startmenü','Screenshot','Bildschirm sperren'], c:1},
+  {q:'Was ist Alt+Tab?', a:['Fenster wechseln','Neu starten','Kopieren','Drucken'], c:0},
+  {q:'Welche Taste macht Großbuchstaben?', a:['Strg','Shift','Alt','Tab'], c:1}
+],'K');
+
+/* ═══════════════════════════════════════════════════════════ */
+/*                   L — HALDO LERNEN (11)                     */
+/* ═══════════════════════════════════════════════════════════ */
+const PACK_L = {};
+
+PACK_L.lern_karteikarten = {
+  title: '🃏 Karteikarten', width: 420, height: 540, cat: 'L',
+  render() { return `
+    <div class="app-content">
+      <div style="display:flex;gap:4px;flex-wrap:wrap" id="lk_decks"></div>
+      <input class="app-input" id="lk_deck_name" placeholder="Neues Deck erstellen...">
+      <button class="app-btn primary" id="lk_new_deck">+ Deck erstellen</button>
+      <div id="lk_active" style="display:none">
+        <div class="app-row" style="justify-content:space-between">
+          <b id="lk_active_name">—</b>
+          <span id="lk_active_count" style="opacity:.7;font-size:11px"></span>
+        </div>
+        <div id="lk_card" style="min-height:140px;padding:16px;border-radius:14px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);text-align:center;font-size:15px;line-height:1.6;display:flex;align-items:center;justify-content:center;cursor:pointer"></div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button class="app-btn" id="lk_prev">←</button>
+          <button class="app-btn primary" id="lk_flip">🔄 Drehen</button>
+          <button class="app-btn" id="lk_next">→</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <input class="app-input" id="lk_q" placeholder="Frage" style="flex:1">
+          <input class="app-input" id="lk_a" placeholder="Antwort" style="flex:1">
+          <button class="app-btn primary" id="lk_add_card">+</button>
+        </div>
+      </div>
+    </div>
+  `;},
+  mount(root) {
+    let activeDeck = null, idx = 0, flipped = false;
+    const drawDecks = () => {
+      const decks = load('haldo_decks_v1', {});
+      root.querySelector('#lk_decks').innerHTML = Object.keys(decks).map(d =>
+        `<button class="app-btn ${activeDeck===d?'primary':''}" data-deck="${d}" style="padding:6px 10px;font-size:11px;min-height:36px">${d} (${decks[d].length})</button>`
+      ).join('') || '<span style="opacity:.5;font-size:11px">Keine Decks</span>';
+      root.querySelectorAll('[data-deck]').forEach(b => b.onclick = () => {
+        activeDeck = b.dataset.deck; idx = 0; flipped = false;
+        root.querySelector('#lk_active').style.display = 'block';
+        root.querySelector('#lk_active_name').textContent = activeDeck;
+        drawDecks();
+        showCard();
+      });
+    };
+    const showCard = () => {
+      const decks = load('haldo_decks_v1', {});
+      const cards = decks[activeDeck] || [];
+      root.querySelector('#lk_active_count').textContent = cards.length ? (idx+1)+'/'+cards.length : '—';
+      if (!cards.length) {
+        root.querySelector('#lk_card').textContent = 'Leeres Deck. Füge Karten hinzu.';
+        return;
+      }
+      const c = cards[idx];
+      root.querySelector('#lk_card').innerHTML = flipped
+        ? `<div><b style="color:var(--accent);font-size:11px">ANTWORT</b><br><br>${c.a}</div>`
+        : `<div><b style="color:var(--accent);font-size:11px">FRAGE</b><br><br>${c.q}</div>`;
+    };
+    root.querySelector('#lk_card').onclick = () => { flipped = !flipped; showCard(); };
+    root.querySelector('#lk_prev').onclick = () => {
+      const decks = load('haldo_decks_v1', {});
+      const cards = decks[activeDeck] || [];
+      if (!cards.length) return;
+      idx = (idx-1+cards.length)%cards.length; flipped = false; showCard();
+    };
+    root.querySelector('#lk_next').onclick = () => {
+      const decks = load('haldo_decks_v1', {});
+      const cards = decks[activeDeck] || [];
+      if (!cards.length) return;
+      idx = (idx+1)%cards.length; flipped = false; showCard();
+    };
+    root.querySelector('#lk_flip').onclick = () => { flipped = !flipped; showCard(); };
+    root.querySelector('#lk_new_deck').onclick = () => {
+      const name = root.querySelector('#lk_deck_name').value.trim();
+      if (!name) return;
+      const decks = load('haldo_decks_v1', {});
+      if (!decks[name]) decks[name] = [];
+      store('haldo_decks_v1', decks);
+      root.querySelector('#lk_deck_name').value = '';
+      activeDeck = name;
+      root.querySelector('#lk_active').style.display = 'block';
+      root.querySelector('#lk_active_name').textContent = name;
+      drawDecks(); showCard();
+    };
+    root.querySelector('#lk_add_card').onclick = () => {
+      if (!activeDeck) return toast('Erst Deck wählen');
+      const q = root.querySelector('#lk_q').value.trim();
+      const a = root.querySelector('#lk_a').value.trim();
+      if (!q || !a) return toast('Frage + Antwort');
+      const decks = load('haldo_decks_v1', {});
+      decks[activeDeck].push({ q, a });
+      store('haldo_decks_v1', decks);
+      root.querySelector('#lk_q').value = '';
+      root.querySelector('#lk_a').value = '';
+      drawDecks(); showCard();
+    };
+    drawDecks();
+  }
+};
+
+PACK_L.lern_vokabeln = {
+  title: '🌍 Vokabeln', width: 400, height: 500, cat: 'L',
+  render() { return `
+    <div class="app-content">
+      <select class="app-select" id="vo_sprache">
+        <option value="en">🇬🇧 Englisch → Deutsch</option>
+        <option value="tr">🇹🇷 Türkisch → Deutsch</option>
+        <option value="ku">☀️ Kurdisch → Deutsch</option>
+        <option value="ar">🇸🇦 Arabisch → Deutsch</option>
+      </select>
+      <div id="vo_card" style="min-height:140px;padding:20px;border-radius:14px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);text-align:center;font-size:20px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer"></div>
+      <div style="text-align:center;font-size:11px;opacity:.6" id="vo_hint">Klicke Karte zum Umdrehen</div>
+      <div style="display:flex;gap:6px">
+        <button class="app-btn" id="vo_prev">←</button>
+        <button class="app-btn primary" id="vo_flip" style="flex:1">🔄 Drehen</button>
+        <button class="app-btn" id="vo_next">→</button>
+      </div>
+      <div class="app-row">Fortschritt: <b id="vo_score">0</b> richtig</div>
+    </div>
+  `;},
+  mount(root) {
+    const db = {
+      en: [
+        ['Hello','Hallo'],['Goodbye','Auf Wiedersehen'],['Thank you','Danke'],['Please','Bitte'],
+        ['Yes','Ja'],['No','Nein'],['Water','Wasser'],['Food','Essen'],['House','Haus'],
+        ['Family','Familie'],['Friend','Freund'],['Love','Liebe'],['Book','Buch'],['Car','Auto'],
+        ['School','Schule'],['Work','Arbeit'],['Money','Geld'],['Time','Zeit'],['Day','Tag'],['Night','Nacht']
+      ],
+      tr: [
+        ['Merhaba','Hallo'],['Hoşça kal','Tschüss'],['Teşekkürler','Danke'],['Lütfen','Bitte'],
+        ['Evet','Ja'],['Hayır','Nein'],['Su','Wasser'],['Yemek','Essen'],['Ev','Haus'],
+        ['Aile','Familie'],['Arkadaş','Freund'],['Aşk','Liebe'],['Kitap','Buch'],['Araba','Auto']
+      ],
+      ku: [
+        ['Silav','Hallo'],['Spas','Danke'],['Bixêr hatî','Willkommen'],['Belê','Ja'],
+        ['Na','Nein'],['Av','Wasser'],['Xwarin','Essen'],['Mal','Haus'],
+        ['Malbat','Familie'],['Heval','Freund'],['Evîn','Liebe'],['Pirtûk','Buch'],
+        ['Rojbaş','Guten Tag'],['Şevbaş','Gute Nacht'],['Ez ji te hez dikim','Ich liebe dich']
+      ],
+      ar: [
+        ['مرحبا (Marhaba)','Hallo'],['شكرا (Shukran)','Danke'],['نعم (Na\'am)','Ja'],['لا (La)','Nein'],
+        ['ماء (Ma\')','Wasser'],['طعام (Ta\'am)','Essen'],['بيت (Bayt)','Haus'],
+        ['عائلة (\'A\'ila)','Familie'],['صديق (Sadiq)','Freund'],['حب (Hubb)','Liebe'],
+        ['كتاب (Kitab)','Buch'],['سيارة (Sayyara)','Auto']
+      ]
+    };
+    let lang = 'en', idx = 0, flipped = false, score = 0;
+    const show = () => {
+      const cards = db[lang];
+      const c = cards[idx%cards.length];
+      root.querySelector('#vo_card').textContent = flipped ? c[1] : c[0];
+      root.querySelector('#vo_score').textContent = score;
+    };
+    root.querySelector('#vo_flip').onclick = () => { flipped = !flipped; if (flipped) score++; show(); };
+    root.querySelector('#vo_card').onclick = () => { flipped = !flipped; if (flipped) score++; show(); };
+    root.querySelector('#vo_next').onclick = () => { idx++; flipped = false; show(); };
+    root.querySelector('#vo_prev').onclick = () => { idx = Math.max(0, idx-1); flipped = false; show(); };
+    root.querySelector('#vo_sprache').onchange = e => {
+      lang = e.target.value; idx = 0; flipped = false; score = 0; show();
+    };
+    show();
+  }
+};
+
+PACK_L.lern_pruefungsplaner = {
+  title: '📅 Prüfungsplaner', width: 380, height: 500, cat: 'L',
+  render() { return `
+    <div class="app-content">
+      <input class="app-input" id="pp_fach" placeholder="Fach / Prüfung">
+      <input class="app-input" type="date" id="pp_datum">
+      <textarea class="app-textarea" id="pp_themen" placeholder="Themen (Komma-getrennt)"></textarea>
+      <button class="app-btn primary" id="pp_add">+ Hinzufügen</button>
+      <div class="app-list" id="pp_list"></div>
+    </div>
+  `;},
+  mount(root) {
+    const draw = () => {
+      const items = load('haldo_pruefungen_v1', []);
+      items.sort((a,b) => new Date(a.datum) - new Date(b.datum));
+      const today = new Date();
+      root.querySelector('#pp_list').innerHTML = items.map((x,i) => {
+        const days = Math.ceil((new Date(x.datum) - today) / (1000*60*60*24));
+        const color = days < 7 ? '#f87171' : days < 14 ? '#fbbf24' : '#4ade80';
+        return `<div class="app-row"><div style="flex:1"><b>${x.fach}</b><br><span style="opacity:.7;font-size:10px">${x.datum}</span></div><div style="color:${color};font-weight:700;text-align:right;font-size:11px">${days>0?days+' Tage':'Heute!'}</div><button class="del" data-i="${i}">🗑</button></div>`;
+      }).join('') || '<div style="opacity:.5;text-align:center;padding:14px">Keine Prüfungen</div>';
+      root.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{
+        const a=load('haldo_pruefungen_v1',[]);a.splice(+b.dataset.i,1);store('haldo_pruefungen_v1',a);draw();
+      });
+    };
+    root.querySelector('#pp_add').onclick = () => {
+      const fach = root.querySelector('#pp_fach').value.trim();
+      const datum = root.querySelector('#pp_datum').value;
+      const themen = root.querySelector('#pp_themen').value.trim();
+      if (!fach || !datum) return toast('Fach + Datum');
+      const a = load('haldo_pruefungen_v1', []);
+      a.push({ fach, datum, themen });
+      store('haldo_pruefungen_v1', a);
+      ['pp_fach','pp_datum','pp_themen'].forEach(id=>root.querySelector('#'+id).value='');
+      draw(); toast('📅 Prüfung gespeichert');
+    };
+    draw();
+  }
+};
+
+PACK_L.lern_ziele = {
+  title: '🎯 Lernziele', width: 380, height: 460, cat: 'L',
+  render() { return `
+    <div class="app-content">
+      <input class="app-input" id="lz_titel" placeholder="Lernziel">
+      <input class="app-input" type="date" id="lz_deadline">
+      <button class="app-btn primary" id="lz_add">+ Hinzufügen</button>
+      <div class="app-list" id="lz_list"></div>
+    </div>
+  `;},
+  mount(root) {
+    const draw = () => {
+      const items = load('haldo_lernziele_v1', []);
+      root.querySelector('#lz_list').innerHTML = items.map((x,i)=>
+        `<div class="app-row"><button class="del" data-toggle="${i}" style="background:${x.done?'rgba(80,255,120,.3)':''}">${x.done?'✓':'○'}</button><span style="flex:1;${x.done?'text-decoration:line-through;opacity:.5':''}">${x.titel}</span><button class="del" data-i="${i}">🗑</button></div>`
+      ).join('') || '<div style="opacity:.5;text-align:center;padding:14px">Keine Lernziele</div>';
+      root.querySelectorAll('[data-toggle]').forEach(b=>b.onclick=()=>{
+        const a=load('haldo_lernziele_v1',[]);a[+b.dataset.toggle].done=!a[+b.dataset.toggle].done;store('haldo_lernziele_v1',a);draw();
+      });
+      root.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{
+        const a=load('haldo_lernziele_v1',[]);a.splice(+b.dataset.i,1);store('haldo_lernziele_v1',a);draw();
+      });
+    };
+    root.querySelector('#lz_add').onclick = () => {
+      const titel = root.querySelector('#lz_titel').value.trim();
+      const deadline = root.querySelector('#lz_deadline').value;
+      if (!titel) return;
+      const a = load('haldo_lernziele_v1', []);
+      a.unshift({ titel, deadline, done: false });
+      store('haldo_lernziele_v1', a);
+      root.querySelector('#lz_titel').value = '';
+      root.querySelector('#lz_deadline').value = '';
+      draw(); toast('🎯 Ziel gespeichert');
+    };
+    draw();
+  }
+};
+
+PACK_L.lern_fortschritt = {
+  title: '📊 Lernfortschritt', width: 380, height: 500, cat: 'L',
+  render() { return `
+    <div class="app-content">
+      <div class="app-row">Fach: <input class="app-input" id="lf_fach" style="flex:1;margin-left:8px" placeholder="z.B. Mathe"></div>
+      <div class="app-row">Stunden gelernt: <input class="app-input" type="number" id="lf_h" style="width:100px;margin-left:auto" step="0.5" value="1"></div>
+      <button class="app-btn primary" id="lf_add">+ Session erfassen</button>
+      <div id="lf_chart" style="height:120px;display:flex;align-items:flex-end;gap:3px;padding:8px;border-radius:12px;background:rgba(0,0,0,.2)"></div>
+      <div class="app-row">Gesamt: <b id="lf_total">0 Std</b></div>
+      <div class="app-row">Diese Woche: <b id="lf_week">0 Std</b></div>
+      <div class="app-list" id="lf_list" style="max-height:180px"></div>
+    </div>
+  `;},
+  mount(root) {
+    const draw = () => {
+      const items = load('haldo_fortschritt_v1', []);
+      const total = items.reduce((a,b)=>a+(+b.h||0),0);
+      const week = items.filter(x => (new Date() - new Date(x.date)) < 7*24*60*60*1000).reduce((a,b)=>a+(+b.h||0),0);
+      root.querySelector('#lf_total').textContent = total.toFixed(1)+' Std';
+      root.querySelector('#lf_week').textContent = week.toFixed(1)+' Std';
+      const last = items.slice(0,20).reverse();
+      const max = Math.max(...last.map(x=>+x.h||0), 1);
+      root.querySelector('#lf_chart').innerHTML = last.map(x=>{
+        const h = ((+x.h||0)/max)*100;
+        return `<div style="flex:1;height:${h}%;background:linear-gradient(to top,#00e5ff,#4da8ff);border-radius:2px 2px 0 0;min-width:5px" title="${x.fach}: ${x.h} h"></div>`;
+      }).join('');
+      const list = root.querySelector('#lf_list');
+      list.innerHTML = items.slice(0,10).map((x,i)=>
+        `<div class="app-row"><span style="flex:1;font-size:11px">${x.fach}</span><b>${x.h} Std</b><button class="del" data-i="${i}">🗑</button></div>`
+      ).join('') || '<div style="opacity:.5;text-align:center;padding:14px">Noch keine Sessions</div>';
+      list.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{
+        const a=load('haldo_fortschritt_v1',[]);a.splice(+b.dataset.i,1);store('haldo_fortschritt_v1',a);draw();
+      });
+    };
+    root.querySelector('#lf_add').onclick = () => {
+      const fach = root.querySelector('#lf_fach').value.trim();
+      const h = +root.querySelector('#lf_h').value;
+      if (!fach || !h) return;
+      const a = load('haldo_fortschritt_v1', []);
+      a.unshift({ fach, h, date: new Date().toISOString() });
+      store('haldo_fortschritt_v1', a);
+      draw(); toast('📊 '+h+' Std '+fach+' erfasst');
+    };
+    draw();
+  }
+};
+
+PACK_L.lern_timer = {
+  title: '⏱️ Lern-Timer', width: 340, height: 460, cat: 'L',
+  render() { return `
+    <div class="app-content" style="text-align:center">
+      <div id="lt_time" style="font-size:48px;font-family:monospace;color:var(--accent);text-shadow:0 0 20px var(--accent);padding:14px">25:00</div>
+      <div class="app-row">Modus: <select class="app-select" id="lt_mode" style="flex:1;margin-left:8px">
+        <option value="25">🍅 Pomodoro (25 Min)</option>
+        <option value="15">📖 Lesen (15 Min)</option>
+        <option value="45">📝 Intensive (45 Min)</option>
+        <option value="5">☕ Kurze Pause (5 Min)</option>
+        <option value="15b">☕ Lange Pause (15 Min)</option>
+      </select></div>
+      <button class="app-btn primary" id="lt_start">▶ Start</button>
+      <button class="app-btn" id="lt_pause">⏸ Pause</button>
+      <button class="app-btn danger" id="lt_stop">⏹ Stop</button>
+      <div class="app-row">Sessions heute: <b id="lt_count">0</b></div>
+    </div>
+  `;},
+  mount(root) {
+    let remain = 25*60, iv = null;
+    const today = new Date().toISOString().slice(0,10);
+    const draw = () => {
+      const m = Math.floor(remain/60), s = remain%60;
+      root.querySelector('#lt_time').textContent = String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    };
+    const drawCount = () => {
+      const items = (load('haldo_lerntimer_count_v1', {}) || {});
+      root.querySelector('#lt_count').textContent = items[today] || 0;
+    };
+    root.querySelector('#lt_start').onclick = () => {
+      const v = root.querySelector('#lt_mode').value;
+      remain = (v === '15b' ? 15 : +v) * 60;
+      clearInterval(iv);
+      draw();
+      iv = setInterval(() => {
+        remain--;
+        if (remain <= 0) {
+          clearInterval(iv);
+          speak('Fertig, Bruder! Zeit für eine Pause.');
+          toast('⏱️ Timer fertig!');
+          const c = load('haldo_lerntimer_count_v1', {});
+          c[today] = (c[today]||0) + 1;
+          store('haldo_lerntimer_count_v1', c);
+          drawCount();
+          remain = 0;
+        }
+        draw();
+      }, 1000);
+    };
+    root.querySelector('#lt_pause').onclick = () => clearInterval(iv);
+    root.querySelector('#lt_stop').onclick = () => { clearInterval(iv); remain = 25*60; draw(); };
+    draw(); drawCount();
+  }
+};
+
+PACK_L.lern_formeln = {
+  title: '📐 Formelsammlung', width: 400, height: 540, cat: 'L',
+  render() {
+    const formulas = [
+      ['Kreisfläche','A = π · r²','π × Radius²'],
+      ['Kreisumfang','U = 2 · π · r','2 × π × Radius'],
+      ['Rechteck-Fläche','A = a · b','Länge × Breite'],
+      ['Dreieck-Fläche','A = ½ · g · h','Grundseite × Höhe / 2'],
+      ['Satz des Pythagoras','a² + b² = c²','rechtwinkliges Dreieck'],
+      ['Quadratische Formel','x = (-b ± √(b²-4ac)) / 2a','ax²+bx+c=0'],
+      ['Binomische Formel (1)','(a+b)² = a² + 2ab + b²',''],
+      ['Binomische Formel (2)','(a-b)² = a² - 2ab + b²',''],
+      ['Binomische Formel (3)','(a+b)(a-b) = a² - b²',''],
+      ['Kugel-Volumen','V = 4/3 · π · r³',''],
+      ['Kugel-Oberfläche','O = 4 · π · r²',''],
+      ['Zylinder-Volumen','V = π · r² · h',''],
+      ['Geschwindigkeit','v = s / t','Strecke / Zeit'],
+      ['Beschleunigung','a = Δv / Δt',''],
+      ['Kraft (Newton)','F = m · a','Masse × Beschleunigung'],
+      ['Energie','E = m · c²','Einstein'],
+      ['Elektrische Leistung','P = U · I','Spannung × Strom'],
+      ['Ohmsches Gesetz','U = R · I','Widerstand × Strom'],
+      ['Dichte','ρ = m / V','Masse / Volumen'],
+      ['Druck','p = F / A','Kraft / Fläche'],
+      ['Zinseszins','K = K₀ · (1 + p/100)ⁿ',''],
+      ['Prozent','p% = W/G · 100',''],
+      ['BMI','BMI = kg / m²',''],
+      ['Pythagoras-3D','d² = x² + y² + z²','']
+    ];
+    return `<div class="app-content">
+      <input class="app-input" id="fo_search" placeholder="🔍 Suchen (z.B. Kreis)">
+      <div id="fo_list">
+        ${formulas.map(([n,f,e])=>`<div class="app-row" data-formula="${n}" style="cursor:pointer"><div style="flex:1"><b style="color:var(--accent)">${n}</b><br><code style="font-size:13px;color:#fff">${f}</code>${e?`<br><span style="opacity:.6;font-size:10px">${e}</span>`:''}</div></div>`).join('')}
+      </div>
+    </div>`;
+  },
+  mount(root) {
+    root.querySelector('#fo_search').oninput = e => {
+      const q = e.target.value.toLowerCase();
+      root.querySelectorAll('[data-formula]').forEach(el => {
+        el.style.display = el.dataset.formula.toLowerCase().includes(q) ? '' : 'none';
+      });
+    };
+  }
+};
+
+PACK_L.lern_nachschlagen = {
+  title: '📖 Nachschlagen', width: 400, height: 540, cat: 'L',
+  render() { return `
+    <div class="app-content">
+      <div style="display:flex;gap:6px">
+        <input class="app-input" id="ns_in" placeholder="🔍 Wikipedia durchsuchen..." style="flex:1">
+        <button class="app-btn primary" id="ns_go">→</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">
+        ${['Physik','Biologie','Chemie','Mathematik','Geschichte','Philosophie','Kunst','Musik','Sport'].map(t=>`<button class="app-btn" data-ns-topic="${t}" style="padding:4px 8px;font-size:11px;min-height:30px">${t}</button>`).join('')}
+      </div>
+      <div id="ns_out" style="min-height:220px;font-size:12px;line-height:1.6;padding:12px;border-radius:12px;background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.2)">Suche ein Thema</div>
+    </div>
+  `;},
+  mount(root) {
+    const search = async (q) => {
+      if (!q.trim()) return;
+      root.querySelector('#ns_out').innerHTML = 'Lade...';
+      try {
+        const r = await fetch('https://de.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(q));
+        const d = await r.json();
+        if (d.extract) {
+          root.querySelector('#ns_out').innerHTML = `<h3 style="color:var(--accent);margin:0 0 8px">${d.title}</h3><p>${d.extract}</p>${d.content_urls?.desktop?.page?`<a href="${d.content_urls.desktop.page}" target="_blank" style="color:var(--accent);font-size:11px">📖 Wikipedia öffnen</a>`:''}`;
+        } else root.querySelector('#ns_out').innerHTML = 'Nicht gefunden';
+      } catch(e) { root.querySelector('#ns_out').innerHTML = 'Fehler'; }
+    };
+    root.querySelector('#ns_go').onclick = () => search(root.querySelector('#ns_in').value);
+    root.querySelector('#ns_in').addEventListener('keydown', e => { if (e.key === 'Enter') search(e.target.value); });
+    root.querySelectorAll('[data-ns-topic]').forEach(b => b.onclick = () => {
+      root.querySelector('#ns_in').value = b.dataset.nsTopic; search(b.dataset.nsTopic);
+    });
+  }
+};
+
+PACK_L.lern_gruppen = makeListApp('lg','Lerngruppen','👥',[
+  {k:'name',p:'Gruppenname'},
+  {k:'thema',p:'Thema / Fach'},
+  {k:'mitglieder',p:'Mitglieder (Komma-getrennt)'},
+  {k:'treffen',p:'Nächstes Treffen',t:'datetime-local'}
+],'L','lerngruppen');
+
+PACK_L.lern_tutor = {
+  title: '🎓 Lern-Tutor', width: 400, height: 540, cat: 'L',
+  render() { return `
+    <div class="app-content">
+      <div style="display:flex;flex-wrap:wrap;gap:4px">
+        ${['Mathe','Physik','Bio','Chemie','Deutsch','Englisch','Geschichte','Geo'].map(f=>`<button class="app-btn" data-fach="${f}" style="padding:4px 8px;font-size:11px;min-height:30px">${f}</button>`).join('')}
+      </div>
+      <div id="tu_log" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:8px">
+        <div style="padding:10px;background:rgba(0,229,255,.15);border-radius:12px;font-size:12px">Hallo Bruder! Frag mich was — Mathe, Physik, Bio, Chemie, Deutsch. 🎓</div>
+      </div>
+      <input class="app-input" id="tu_in" placeholder="Deine Frage...">
+      <button class="app-btn primary" id="tu_send">Fragen</button>
+    </div>
+  `;},
+  mount(root) {
+    const log = root.querySelector('#tu_log'), inp = root.querySelector('#tu_in');
+    const answers = {
+      'pythagoras': 'Satz des Pythagoras: a² + b² = c². Gilt nur in rechtwinkligen Dreiecken. c = Hypotenuse (längste Seite).',
+      'photosynthese': 'Photosynthese: 6CO₂ + 6H₂O + Licht → C₆H₁₂O₆ + 6O₂. Findet in Chloroplasten statt.',
+      'kraft': 'Kraft F = m × a. Einheit: Newton (N). 1 N = 1 kg × 1 m/s².',
+      'newton': 'Newton-Gesetze: 1) Trägheit, 2) F=ma, 3) Actio = Reactio.',
+      'ableitung': 'Ableitung von xⁿ = n·xⁿ⁻¹. Beispiel: f(x)=x³ → f\'(x)=3x².',
+      'integral': '∫xⁿ dx = xⁿ⁺¹/(n+1) + C. Beispiel: ∫x² dx = x³/3 + C.',
+      'dna': 'DNA: Doppelhelix aus 4 Basen (A-T, G-C). Träger der Erbinformation.',
+      'satz_des_thales': 'Satz des Thales: Ein Dreieck im Halbkreis hat immer einen rechten Winkel an der Hypotenuse.',
+      'zellteilung': 'Mitose: 1 Zelle → 2 identische Zellen. Meiose: → 4 haploide Zellen (Geschlechtszellen).',
+      'säure': 'Säuren: pH < 7. Basen: pH > 7. Neutral: pH = 7 (reines Wasser).'
+    };
+    const send = () => {
+      const t = inp.value.trim(); if (!t) return;
+      log.innerHTML += `<div style="padding:10px;background:rgba(180,120,255,.2);border-radius:12px;font-size:12px;align-self:flex-end;max-width:85%">${t.replace(/</g,'&lt;')}</div>`;
+      inp.value = ''; log.scrollTop = log.scrollHeight;
+      setTimeout(() => {
+        const key = Object.keys(answers).find(k => t.toLowerCase().includes(k));
+        const reply = key ? answers[key] : 'Gute Frage, Bruder! Für detaillierte Antworten in v2.5. Tippe z.B. "Pythagoras" oder "Photosynthese".';
+        log.innerHTML += `<div style="padding:10px;background:rgba(0,229,255,.15);border-radius:12px;font-size:12px;max-width:85%">${reply}</div>`;
+        log.scrollTop = log.scrollHeight;
+        speak(reply);
+      }, 400);
+    };
+    root.querySelector('#tu_send').onclick = send;
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+    root.querySelectorAll('[data-fach]').forEach(b => b.onclick = () => { inp.value = b.dataset.fach + ': '; inp.focus(); });
+  }
+};
+
+PACK_L.lern_quiz_allgemein = makeQuizApp('lqa','Allgemeinwissen','🧠',[
+  {q:'Hauptstadt von Deutschland?', a:['München','Berlin','Hamburg','Frankfurt'], c:1},
+  {q:'Wer schrieb "Faust"?', a:['Schiller','Goethe','Kafka','Brecht'], c:1},
+  {q:'Wie viele Planeten hat das Sonnensystem?', a:['7','8','9','10'], c:1},
+  {q:'Was ist die Hauptstadt von Australien?', a:['Sydney','Melbourne','Canberra','Perth'], c:2},
+  {q:'Jahr der deutschen Wiedervereinigung?', a:['1985','1989','1990','1991'], c:2},
+  {q:'Wer entwickelte die Relativitätstheorie?', a:['Newton','Einstein','Bohr','Hawking'], c:1},
+  {q:'Was ist H₂O?', a:['Salz','Wasser','Zucker','Säure'], c:1},
+  {q:'Wer war der erste Bundeskanzler?', a:['Brandt','Kohl','Adenauer','Schmidt'], c:2},
+  {q:'Was ist das größte Land der Welt?', a:['China','USA','Kanada','Russland'], c:3},
+  {q:'Anzahl der Bundesländer?', a:['12','14','16','18'], c:2}
+],'L');
+
+/* ═══════════════════════════════════════════════════════════ */
+/*              REGISTRIEREN + HOOK                            */
+/* ═══════════════════════════════════════════════════════════ */
+const PACKS = { ...PACK_J, ...PACK_K, ...PACK_L };
+const origOpen = window.HalDo.open;
+window.HalDo.open = function(id) {
+  if (PACKS[id]) {
+    WM.open(id, PACKS[id].title, PACKS[id].render ? PACKS[id].render() : PACKS[id].render, {
+      width: PACKS[id].width, height: PACKS[id].height, onMount: PACKS[id].mount
+    });
+  } else {
+    return origOpen.call(window.HalDo, id);
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════ */
+/*              SIDEBAR + KATEGORIE                            */
+/* ═══════════════════════════════════════════════════════════ */
+function addJKLToSidebar() {
+  const sb = document.getElementById('sidebar');
+  if (!sb) return;
+  const sec = document.createElement('div');
+  sec.innerHTML = `
+    <div class="sidebar-title">⭐ J · K · L Packs (31 Apps)</div>
+    <button class="sidebar-item" data-jkl="J"><span class="ico">🕊️</span>J · Kultur & Religion (9)</button>
+    <button class="sidebar-item" data-jkl="K"><span class="ico">⌨️</span>K · Keyboard (11)</button>
+    <button class="sidebar-item" data-jkl="L"><span class="ico">📚</span>L · Lernen (11)</button>
+  `;
+  sb.appendChild(sec);
+  sb.querySelectorAll('[data-jkl]').forEach(b => b.onclick = () => openJKLCategory(b.dataset.jkl));
+}
+
+function openJKLCategory(cat) {
+  const lists = {
+    J: { title: '🕊️ J · Kultur & Religion (9 Apps)', apps: [
+      ['kult_ezidi','🕊️','Êzîdîtum'],['kult_islam','🕌','Islam'],
+      ['kult_christentum','✝️','Christentum'],['kult_judentum','✡️','Judentum'],
+      ['kult_hinduismus','🕉️','Hinduismus'],['kult_buddhismus','☸️','Buddhismus'],
+      ['kult_sikhismus','🔱','Sikhismus'],['kult_atheismus','🌐','Atheismus'],
+      ['kult_spiritualitaet','🌈','Spiritualität'],['kult_vergleich','📊','Religions-Vergleich']
+    ]},
+    K: { title: '⌨️ K · Keyboard (11 Apps)', apps: [
+      ['key_tastatur_de','🇩🇪','Tastatur DE'],['key_tastatur_en','🇬🇧','Tastatur EN'],
+      ['key_tastatur_ar','🇸🇦','Tastatur عربية'],['key_tastatur_ku','☀️','Tastatur Kurdî'],
+      ['key_tastatur_he','🇮🇱','Tastatur עברית'],['key_emoji','😊','Emoji-Picker'],
+      ['key_symbole','∑','Symbole'],['key_verlauf','📋','Text-Verlauf'],
+      ['key_design','🎨','Tastatur-Design'],['key_mehrsprachig','🌍','Tastatur Multi'],
+      ['key_kurzschrift','⚡','Text-Kürzel'],['key_trigger','📝','Text-Bausteine'],
+      ['key_quiz','⌨️','Tastatur-Quiz']
+    ]},
+    L: { title: '📚 L · Lernen (11 Apps)', apps: [
+      ['lern_karteikarten','🃏','Karteikarten'],['lern_vokabeln','🌍','Vokabeln'],
+      ['lern_pruefungsplaner','📅','Prüfungsplaner'],['lern_ziele','🎯','Lernziele'],
+      ['lern_fortschritt','📊','Lernfortschritt'],['lern_timer','⏱️','Lern-Timer'],
+      ['lern_formeln','📐','Formelsammlung'],['lern_nachschlagen','📖','Nachschlagen'],
+      ['lern_gruppen','👥','Lerngruppen'],['lern_tutor','🎓','Lern-Tutor'],
+      ['lern_quiz_allgemein','🧠','Allgemeinwissen']
+    ]}
+  };
+  const c = lists[cat];
+  if (!c) return;
+  WM.open('jkl_' + cat, c.title, `
+    <div class="app-content">
+      <p style="font-size:11px;opacity:.7">${c.apps.length} Apps</p>
+      <div class="app-grid">
+        ${c.apps.map(([id,ic,nm]) => `<div class="app-tile" data-id="${id}"><span class="tico">${ic}</span><span class="tname">${nm}</span></div>`).join('')}
+      </div>
+    </div>
+  `, {
+    width: 440, height: 540,
+    onMount(root) {
+      root.querySelectorAll('[data-id]').forEach(t => t.onclick = () => window.HalDo.open(t.dataset.id));
+    }
+  });
+}
+
+setTimeout(() => {
+  addJKLToSidebar();
+  toast('🚀 v2.4 geladen: J + K + L (31 Apps)');
+}, 1200);
+
+window.HalDo.PackJKL = {
+  J: Object.keys(PACK_J),
+  K: Object.keys(PACK_K),
+  L: Object.keys(PACK_L),
+  openCategory: openJKLCategory,
+  total: Object.keys(PACKS).length
+};
+
+console.log('[HalDo v2.4] J+K+L Packs: ' + Object.keys(PACKS).length + ' Apps registriert');
+
+})();
+</script>
+<!-- ═══════ ENDE HALDO PACK v2.4 ═══════ -->
 </body>
 </html>
