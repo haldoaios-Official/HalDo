@@ -1716,5 +1716,541 @@ setTimeout(() => {
   speak('Hallo Bruder, HalDo System online.');
 }, 1200);
 </script>
+<!-- ═══════ HALDO PLANETEN v123 ═══════ -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+(function() {
+'use strict';
+if (!window.HalDo || !window.HalDo.open) {
+  console.warn('[HalDo Planets] v122 nicht gefunden — bitte zuerst v122 einfügen');
+  return;
+}
+
+/* ═══════ ECHTE PLANETENDATEN (NASA) ═══════ */
+const PLANETS = {
+  sun:     { name:'Sonne',   icon:'☀️', radius:'696.340 km',   distance:'0 km',          day:'25,4 Tage', year:'230 Mio Jahre', temp:'5.505 °C (Oberfläche)', moons:'8 Planeten', color:0xffaa00, isSun:true,
+             desc:'Die Sonne ist ein G-Typ Hauptreihenstern im Zentrum unseres Sonnensystems. Sie macht 99,86 % der Gesamtmasse aus. Kernfusion verwandelt 600 Mio Tonnen Wasserstoff pro Sekunde zu Helium.' },
+  mercury: { name:'Merkur',  icon:'🪨', radius:'2.439 km',      distance:'57,9 Mio km',   day:'58,6 Erdentage', year:'88 Erdentage', temp:'-173 bis 427 °C', moons:'0', color:0x888888,
+             desc:'Merkur ist der kleinste und sonnennächste Planet. Er hat keine Atmosphäre und ist mit Kratern übersät. Ein Tag auf Merkur dauert länger als sein Jahr.' },
+  venus:   { name:'Venus',   icon:'🌕', radius:'6.051 km',      distance:'108,2 Mio km',  day:'243 Erdentage', year:'225 Erdentage', temp:'464 °C',          moons:'0', color:0xffcc88, atmosphere:0xffddaa,
+             desc:'Venus ist der heißeste Planet — heißer als Merkur. Eine dichte CO₂-Atmosphäre mit Schwefelsäurewolken erzeugt einen Treibhauseffekt. Sie dreht rückwärts.' },
+  earth:   { name:'Erde',    icon:'🌍', radius:'6.371 km',      distance:'149,6 Mio km',  day:'23 Std 56 Min', year:'365,25 Tage', temp:'-88 bis 58 °C',  moons:'1 (Mond)', color:0x4da8ff, atmosphere:0x66bbff,
+             desc:'Die Erde ist der einzige bekannte Planet mit Leben. 71 % der Oberfläche sind Ozeane. Die Atmosphäre besteht zu 78 % aus Stickstoff und 21 % aus Sauerstoff.' },
+  moon:    { name:'Mond',    icon:'🌙', radius:'1.737 km',      distance:'384.400 km',    day:'27,3 Tage',     year:'27,3 Tage',     temp:'-173 bis 127 °C', moons:'—', color:0xaaaaaa,
+             desc:'Der Mond ist der einzige natürliche Satellit der Erde. Er stabilisiert die Erdachse und verursacht die Gezeiten. 1969 betraten die ersten Menschen seine Oberfläche.' },
+  mars:    { name:'Mars',    icon:'🔴', radius:'3.389 km',      distance:'227,9 Mio km',  day:'24 Std 37 Min', year:'687 Erdentage', temp:'-153 bis 20 °C', moons:'2 (Phobos, Deimos)', color:0xcc4422, atmosphere:0xcc6633,
+             desc:'Mars wird der Rote Planet genannt wegen seines Eisenoxids. Er hat den höchsten Berg des Sonnensystems (Olympus Mons, 22 km) und den größten Canyon (Valles Marineris, 4000 km).' },
+  jupiter: { name:'Jupiter', icon:'🟠', radius:'69.911 km',     distance:'778,5 Mio km',  day:'9 Std 56 Min',  year:'11,9 Jahre',    temp:'-145 °C',        moons:'95 (Io, Europa, Ganymed, Kallisto...)', color:0xd4a060, atmosphere:0xddaa66,
+             desc:'Jupiter ist der größte Planet — mehr als doppelt so massereich wie alle anderen zusammen. Der Große Rote Fleck ist ein Sturm, größer als die Erde, der seit 350 Jahren tobt.' },
+  saturn:  { name:'Saturn',  icon:'🪐', radius:'58.232 km',     distance:'1,43 Mrd km',   day:'10 Std 42 Min', year:'29,4 Jahre',    temp:'-178 °C',        moons:'146 (Titan, Enceladus...)', color:0xe8d090, rings:true, atmosphere:0xffe0a0,
+             desc:'Saturn ist berühmt für sein Ringsystem aus Eis und Gestein — 280.000 km breit aber nur 1 km dick. Er ist so leicht, dass er auf Wasser schwimmen würde.' },
+  uranus:  { name:'Uranus',  icon:'💎', radius:'25.362 km',     distance:'2,87 Mrd km',   day:'17 Std 14 Min', year:'84 Jahre',      temp:'-224 °C',        moons:'28', color:0x7de0e8, atmosphere:0x88e0f0,
+             desc:'Uranus dreht auf der Seite — seine Achse ist um 98° geneigt. Grund: eine Kollision in der Frühzeit. Er ist der kälteste Planet des Sonnensystems.' },
+  neptune: { name:'Neptun',  icon:'🔵', radius:'24.622 km',     distance:'4,5 Mrd km',    day:'16 Std 6 Min',  year:'165 Jahre',     temp:'-214 °C',        moons:'16 (Triton)', color:0x2a4dc8, atmosphere:0x3a5dd8,
+             desc:'Neptun ist der äußerste Planet — 4,5 Mrd km von der Sonne. Er hat die stärksten Winde (2.100 km/h). Ein Jahr dort dauert 165 Erdenjahre.' },
+  pluto:   { name:'Pluto',   icon:'⚪', radius:'1.188 km',      distance:'5,9 Mrd km',    day:'6,4 Erdentage', year:'248 Jahre',     temp:'-229 °C',        moons:'5 (Charon...)', color:0xc0a080,
+             desc:'Pluto wurde 2006 zum Zwergplaneten herabgestuft. Er hat ein herzförmiges Eisgebiet (Tombaugh Regio) und einen Mond, Charon, halb so groß wie er selbst.' }
+};
+
+/* ═══════ TEXTUR-GENERATOR ═══════ */
+function makeTexture(id) {
+  const THREE = window.THREE;
+  const c = document.createElement('canvas');
+  c.width = 2048; c.height = 1024;
+  const ctx = c.getContext('2d');
+  const rnd = () => Math.random();
+
+  if (id === 'sun') {
+    const g = ctx.createLinearGradient(0, 0, 0, 1024);
+    g.addColorStop(0,   '#ffee44');
+    g.addColorStop(0.25,'#ffcc00');
+    g.addColorStop(0.5, '#ff8800');
+    g.addColorStop(0.75,'#ffcc00');
+    g.addColorStop(1,   '#ffee44');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 2048, 1024);
+    for (let i = 0; i < 300; i++) {
+      const x = rnd()*2048, y = rnd()*1024, r = 3+rnd()*18;
+      ctx.fillStyle = `rgba(255,255,${150+Math.floor(rnd()*100)},${0.2+rnd()*0.4})`;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+    }
+    for (let i = 0; i < 50; i++) {
+      const x = rnd()*2048, y = 200+rnd()*624, r = 8+rnd()*35;
+      const sg = ctx.createRadialGradient(x, y, 0, x, y, r);
+      sg.addColorStop(0, 'rgba(60,15,0,0.8)');
+      sg.addColorStop(0.7, 'rgba(120,40,0,0.4)');
+      sg.addColorStop(1, 'rgba(255,150,0,0)');
+      ctx.fillStyle = sg;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  else if (id === 'earth') {
+    const og = ctx.createLinearGradient(0, 0, 0, 1024);
+    og.addColorStop(0, '#062038');
+    og.addColorStop(0.5, '#1a4d8f');
+    og.addColorStop(1, '#062038');
+    ctx.fillStyle = og; ctx.fillRect(0, 0, 2048, 1024);
+    const pt = (lon, lat) => [(lon+180)/360*2048, (90-lat)/180*1024];
+    const continents = [
+      [[-168,65],[-125,70],[-95,72],[-60,50],[-55,45],[-70,42],[-80,25],[-95,18],[-105,20],[-120,32],[-125,48],[-140,60]],
+      [[-80,10],[-60,12],[-35,-5],[-40,-22],[-55,-35],[-70,-55],[-75,-45],[-80,-20]],
+      [[-17,20],[-10,35],[10,37],[30,32],[50,12],[40,-5],[35,-20],[25,-35],[15,-35],[10,-15],[-10,5]],
+      [[-10,42],[-5,55],[15,58],[30,70],[60,68],[60,50],[40,42],[20,40],[0,38]],
+      [[60,68],[120,72],[180,68],[180,30],[130,10],[100,5],[80,10],[60,25],[45,35],[55,50]],
+      [[113,-22],[135,-15],[153,-28],[150,-38],[125,-35],[113,-28]],
+      [[-55,60],[-20,70],[-20,80],[-45,83],[-60,75]],
+      [[-180,-65],[180,-65],[180,-90],[-180,-90]]
+    ];
+    continents.forEach(poly => {
+      ctx.beginPath();
+      poly.forEach((c,i) => { const [x,y]=pt(c[0],c[1]); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+      ctx.closePath();
+      const lg = ctx.createLinearGradient(0, 0, 0, 1024);
+      lg.addColorStop(0, '#8ba88b');
+      lg.addColorStop(0.35,'#6a9948');
+      lg.addColorStop(0.65,'#aa8844');
+      lg.addColorStop(1, '#e8e8e8');
+      ctx.fillStyle = lg; ctx.fill();
+    });
+    for (let i = 0; i < 400; i++) {
+      const x = rnd()*2048, y = rnd()*1024, r = 15+rnd()*55;
+      const cg = ctx.createRadialGradient(x, y, 0, x, y, r);
+      cg.addColorStop(0, `rgba(255,255,255,${0.15+rnd()*0.28})`);
+      cg.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = cg;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  else if (id === 'mars') {
+    ctx.fillStyle = '#c2522e'; ctx.fillRect(0, 0, 2048, 1024);
+    for (let i = 0; i < 80; i++) {
+      const x = rnd()*2048, y = rnd()*1024, r = 40+rnd()*180;
+      const sg = ctx.createRadialGradient(x, y, 0, x, y, r);
+      sg.addColorStop(0, 'rgba(80,30,15,0.5)');
+      sg.addColorStop(1, 'rgba(80,30,15,0)');
+      ctx.fillStyle = sg;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+    }
+    for (let i = 0; i < 60; i++) {
+      const x = rnd()*2048, y = rnd()*1024, r = 5+rnd()*25;
+      ctx.fillStyle = 'rgba(60,25,10,0.4)';
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+    }
+    const ng = ctx.createLinearGradient(0, 0, 0, 120);
+    ng.addColorStop(0, 'rgba(255,255,255,0.9)');
+    ng.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = ng; ctx.fillRect(0, 0, 2048, 120);
+    const sg2 = ctx.createLinearGradient(0, 904, 0, 1024);
+    sg2.addColorStop(0, 'rgba(255,255,255,0)');
+    sg2.addColorStop(1, 'rgba(255,255,255,0.9)');
+    ctx.fillStyle = sg2; ctx.fillRect(0, 904, 2048, 120);
+  }
+  else if (id === 'jupiter' || id === 'saturn') {
+    const bands = id === 'jupiter'
+      ? ['#c89848','#e0b878','#d4a060','#e8c890','#b88840','#ddb070','#f0d0a0','#c8a060']
+      : ['#e8d090','#f0dca8','#ddc878','#f5e0b0','#d8c080','#ecd8a0'];
+    let y = 0;
+    while (y < 1024) {
+      const h = 20 + rnd()*60;
+      ctx.fillStyle = bands[Math.floor(rnd()*bands.length)];
+      ctx.fillRect(0, y, 2048, h);
+      y += h;
+    }
+    for (let i = 0; i < 800; i++) {
+      const x = rnd()*2048, y = rnd()*1024, r = 10+rnd()*45;
+      ctx.fillStyle = `rgba(${200+Math.floor(rnd()*55)},${150+Math.floor(rnd()*80)},${80+Math.floor(rnd()*80)},0.25)`;
+      ctx.beginPath(); ctx.ellipse(x, y, r, r*0.5, 0, 0, Math.PI*2); ctx.fill();
+    }
+    if (id === 'jupiter') {
+      const grs = ctx.createRadialGradient(620, 600, 0, 620, 600, 130);
+      grs.addColorStop(0, '#dd3322');
+      grs.addColorStop(0.5, '#bb4422');
+      grs.addColorStop(1, 'rgba(200,100,60,0)');
+      ctx.fillStyle = grs;
+      ctx.beginPath(); ctx.ellipse(620, 600, 130, 75, 0, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  else if (id === 'uranus' || id === 'neptune') {
+    const base = id === 'uranus' ? '#7de0e8' : '#2a4dc8';
+    const band = id === 'uranus' ? '#9de8f0' : '#4a6dd8';
+    ctx.fillStyle = base; ctx.fillRect(0, 0, 2048, 1024);
+    for (let i = 0; i < 24; i++) {
+      const y = rnd()*1024, h = 15+rnd()*45;
+      ctx.fillStyle = band;
+      ctx.globalAlpha = 0.2 + rnd()*0.3;
+      ctx.fillRect(0, y, 2048, h);
+    }
+    ctx.globalAlpha = 1;
+    if (id === 'neptune') {
+      for (let i = 0; i < 10; i++) {
+        const x = rnd()*2048, y = rnd()*1024, r = 30+rnd()*70;
+        const sg = ctx.createRadialGradient(x, y, 0, x, y, r);
+        sg.addColorStop(0, 'rgba(220,240,255,0.55)');
+        sg.addColorStop(1, 'rgba(220,240,255,0)');
+        ctx.fillStyle = sg;
+        ctx.beginPath(); ctx.ellipse(x, y, r*1.4, r*0.7, 0, 0, Math.PI*2); ctx.fill();
+      }
+    }
+  }
+  else if (id === 'mercury' || id === 'moon') {
+    const base = id === 'mercury' ? '#8a8a8a' : '#b0b0b0';
+    const dark = id === 'mercury' ? '#4a4a4a' : '#5a5a5a';
+    ctx.fillStyle = base; ctx.fillRect(0, 0, 2048, 1024);
+    for (let i = 0; i < 400; i++) {
+      const x = rnd()*2048, y = rnd()*1024, r = 3+rnd()*32;
+      ctx.fillStyle = dark;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = 'rgba(230,230,230,0.35)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.stroke();
+    }
+    if (id === 'moon') {
+      for (let i = 0; i < 9; i++) {
+        const x = rnd()*2048, y = 200+rnd()*624, r = 60+rnd()*140;
+        const sg = ctx.createRadialGradient(x, y, 0, x, y, r);
+        sg.addColorStop(0, 'rgba(55,55,55,0.75)');
+        sg.addColorStop(1, 'rgba(55,55,55,0)');
+        ctx.fillStyle = sg;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+      }
+    }
+  }
+  else if (id === 'venus') {
+    const vg = ctx.createLinearGradient(0, 0, 0, 1024);
+    vg.addColorStop(0, '#f0d080');
+    vg.addColorStop(0.5, '#e8b860');
+    vg.addColorStop(1, '#f0d080');
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, 2048, 1024);
+    for (let i = 0; i < 400; i++) {
+      const x = rnd()*2048, y = rnd()*1024, r = 20+rnd()*90;
+      const sg = ctx.createRadialGradient(x, y, 0, x, y, r);
+      sg.addColorStop(0, `rgba(255,230,160,${0.15+rnd()*0.22})`);
+      sg.addColorStop(1, 'rgba(200,160,80,0)');
+      ctx.fillStyle = sg;
+      ctx.beginPath(); ctx.ellipse(x, y, r*1.6, r*0.7, 0, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  else if (id === 'pluto') {
+    ctx.fillStyle = '#c0a080'; ctx.fillRect(0, 0, 2048, 1024);
+    for (let i = 0; i < 300; i++) {
+      const x = rnd()*2048, y = rnd()*1024, r = 5+rnd()*35;
+      ctx.fillStyle = `rgba(${100+Math.floor(rnd()*80)},${70+Math.floor(rnd()*50)},${50+Math.floor(rnd()*40)},0.6)`;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+    }
+    const hg = ctx.createRadialGradient(1024, 512, 0, 1024, 512, 220);
+    hg.addColorStop(0, 'rgba(255,250,235,0.85)');
+    hg.addColorStop(1, 'rgba(255,250,235,0)');
+    ctx.fillStyle = hg;
+    ctx.beginPath(); ctx.arc(1024, 512, 220, 0, Math.PI*2); ctx.fill();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.anisotropy = 4;
+  tex.wrapS = THREE.RepeatWrapping;
+  return tex;
+}
+
+function makeGlowTexture() {
+  const THREE = window.THREE;
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 256;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  g.addColorStop(0, 'rgba(255,200,80,1)');
+  g.addColorStop(0.3, 'rgba(255,140,20,0.6)');
+  g.addColorStop(1, 'rgba(255,100,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 256, 256);
+  return new THREE.CanvasTexture(c);
+}
+
+function makeRingTexture() {
+  const THREE = window.THREE;
+  const c = document.createElement('canvas');
+  c.width = 1024; c.height = 64;
+  const ctx = c.getContext('2d');
+  for (let x = 0; x < 1024; x++) {
+    const d = x / 1024;
+    const alpha = (Math.sin(d*22)*0.5+0.5) * 0.7 + 0.15;
+    const gap = (d > 0.45 && d < 0.5) ? 0.1 : 1;
+    const r = 200 + Math.floor(Math.sin(d*30)*30);
+    const g = 170 + Math.floor(Math.sin(d*30)*30);
+    const b = 120 + Math.floor(Math.sin(d*30)*25);
+    ctx.fillStyle = `rgba(${r},${g},${b},${alpha*gap})`;
+    ctx.fillRect(x, 0, 1, 64);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  return tex;
+}
+
+/* ═══════ 3D-SZENE ═══════ */
+function initScene(container, id, data) {
+  const THREE = window.THREE;
+  const W = container.clientWidth || 400;
+  const H = container.clientHeight || 280;
+
+  if (!THREE) {
+    container.innerHTML = `<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:64px">${data.icon}</div>`;
+    return;
+  }
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 200);
+  camera.position.z = 3;
+
+  const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+  renderer.setSize(W, H);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(renderer.domElement);
+  const canvas = renderer.domElement;
+  canvas.style.touchAction = 'none';
+  canvas.style.cursor = 'grab';
+  canvas.style.display = 'block';
+  canvas.style.borderRadius = '14px';
+
+  // Planet
+  const tex = makeTexture(id);
+  const geo = new THREE.SphereGeometry(1, 64, 64);
+  const mat = data.isSun
+    ? new THREE.MeshBasicMaterial({ map: tex })
+    : new THREE.MeshPhongMaterial({ map: tex, shininess: 4, specular: new THREE.Color(0x111122) });
+  const planet = new THREE.Mesh(geo, mat);
+  scene.add(planet);
+
+  // Lighting
+  if (!data.isSun) {
+    const dir = new THREE.DirectionalLight(0xffffff, 1.9);
+    dir.position.set(5, 2, 3);
+    scene.add(dir);
+    scene.add(new THREE.AmbientLight(0x334466, 0.35));
+  }
+
+  // Sun glow + corona
+  if (data.isSun) {
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: makeGlowTexture(), color: 0xffaa00, transparent: true,
+      blending: THREE.AdditiveBlending, opacity: 0.85
+    }));
+    glow.scale.set(4.5, 4.5, 1);
+    scene.add(glow);
+
+    const coronaGeo = new THREE.BufferGeometry();
+    const cPos = [];
+    for (let i = 0; i < 600; i++) {
+      const theta = Math.random()*Math.PI*2;
+      const phi = Math.acos(2*Math.random()-1);
+      const r = 1.15 + Math.random()*0.55;
+      cPos.push(r*Math.sin(phi)*Math.cos(theta), r*Math.sin(phi)*Math.sin(theta), r*Math.cos(phi));
+    }
+    coronaGeo.setAttribute('position', new THREE.Float32BufferAttribute(cPos, 3));
+    scene.add(new THREE.Points(coronaGeo, new THREE.PointsMaterial({
+      color:0xffaa00, size:0.04, transparent:true, opacity:0.7, blending:THREE.AdditiveBlending
+    })));
+  }
+
+  // Atmosphere
+  if (data.atmosphere && !data.isSun) {
+    const atmMat = new THREE.MeshBasicMaterial({
+      color: data.atmosphere, transparent: true, opacity: 0.14, side: THREE.BackSide
+    });
+    scene.add(new THREE.Mesh(new THREE.SphereGeometry(1.14, 32, 32), atmMat));
+  }
+
+  // Rings (Saturn)
+  if (data.rings) {
+    const ringGeo = new THREE.RingGeometry(1.35, 2.25, 96);
+    const ringMat = new THREE.MeshBasicMaterial({
+      map: makeRingTexture(), side: THREE.DoubleSide,
+      transparent: true, opacity: 0.9, depthWrite: false
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = Math.PI / 2.25;
+    planet.add(ring);
+  }
+
+  // Sternenfeld
+  const starGeo = new THREE.BufferGeometry();
+  const starPos = [];
+  for (let i = 0; i < 250; i++) {
+    const theta = Math.random()*Math.PI*2;
+    const phi = Math.acos(2*Math.random()-1);
+    const r = 15 + Math.random()*25;
+    starPos.push(r*Math.sin(phi)*Math.cos(theta), r*Math.sin(phi)*Math.sin(theta), r*Math.cos(phi));
+  }
+  starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+  const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color:0xffffff, size:0.06, transparent:true, opacity:0.85 }));
+  scene.add(stars);
+
+  // Interaktion
+  let drag = false, lx = 0, ly = 0, rotX = 0.15, rotY = 0, autoRot = true;
+  canvas.addEventListener('pointerdown', e => {
+    drag = true; autoRot = false;
+    lx = e.clientX; ly = e.clientY;
+    try { canvas.setPointerCapture(e.pointerId); } catch(_){}
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (!drag) return;
+    rotY += (e.clientX - lx) * 0.01;
+    rotX += (e.clientY - ly) * 0.01;
+    rotX = Math.max(-Math.PI/2, Math.min(Math.PI/2, rotX));
+    lx = e.clientX; ly = e.clientY;
+  });
+  canvas.addEventListener('pointerup', e => {
+    drag = false;
+    setTimeout(() => autoRot = true, 2500);
+    try { canvas.releasePointerCapture(e.pointerId); } catch(_){}
+  });
+  canvas.addEventListener('pointercancel', () => drag = false);
+
+  // Resize
+  function onResize() {
+    const nw = container.clientWidth, nh = container.clientHeight;
+    if (nw < 10 || nh < 10) return;
+    camera.aspect = nw / nh;
+    camera.updateProjectionMatrix();
+    renderer.setSize(nw, nh);
+  }
+  window.addEventListener('resize', onResize);
+
+  let anim;
+  function loop() {
+    anim = requestAnimationFrame(loop);
+    if (!document.body.contains(canvas)) {
+      cancelAnimationFrame(anim);
+      renderer.dispose();
+      window.removeEventListener('resize', onResize);
+      return;
+    }
+    if (autoRot) rotY += 0.005;
+    planet.rotation.y = rotY;
+    planet.rotation.x = rotX;
+    stars.rotation.y += 0.0002;
+    renderer.render(scene, camera);
+  }
+  loop();
+}
+
+/* ═══════ PLANET-FENSTER ═══════ */
+function openPlanet(id) {
+  const data = PLANETS[id];
+  if (!data) return;
+
+  const html = `
+    <div style="position:relative">
+      <div id="planetCanvas_${id}" style="width:100%;height:280px;border-radius:14px;overflow:hidden;background:radial-gradient(circle at 50% 50%,#0a1020,#02030d);box-shadow:inset 0 0 60px rgba(0,229,255,0.15)"></div>
+      <div style="position:absolute;top:8px;right:8px;font-size:11px;opacity:0.6;background:rgba(0,0,0,0.4);padding:3px 8px;border-radius:8px">🖱️ drehbar</div>
+    </div>
+    <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px">
+      <div class="app-row" style="margin:0;flex-direction:column;align-items:flex-start;gap:2px">
+        <span style="opacity:0.6">📏 Radius</span><b style="color:var(--accent)">${data.radius}</b>
+      </div>
+      <div class="app-row" style="margin:0;flex-direction:column;align-items:flex-start;gap:2px">
+        <span style="opacity:0.6">☀️ Distanz</span><b style="color:var(--accent)">${data.distance}</b>
+      </div>
+      <div class="app-row" style="margin:0;flex-direction:column;align-items:flex-start;gap:2px">
+        <span style="opacity:0.6">🕐 Tag</span><b style="color:var(--accent)">${data.day}</b>
+      </div>
+      <div class="app-row" style="margin:0;flex-direction:column;align-items:flex-start;gap:2px">
+        <span style="opacity:0.6">📅 Jahr</span><b style="color:var(--accent)">${data.year}</b>
+      </div>
+      <div class="app-row" style="margin:0;flex-direction:column;align-items:flex-start;gap:2px">
+        <span style="opacity:0.6">🌡️ Temp</span><b style="color:var(--accent)">${data.temp}</b>
+      </div>
+      <div class="app-row" style="margin:0;flex-direction:column;align-items:flex-start;gap:2px">
+        <span style="opacity:0.6">🌙 Monde</span><b style="color:var(--accent)">${data.moons}</b>
+      </div>
+    </div>
+    <div style="margin-top:10px;padding:10px;border-radius:12px;background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.2);font-size:11px;line-height:1.5;opacity:0.9">
+      ${data.desc}
+    </div>
+    <button class="app-btn primary" id="pSpeak_${id}" style="margin-top:10px;width:100%">🔊 Info vorlesen</button>
+  `;
+
+  window.HalDo.WM.open('planet_' + id, data.icon + ' ' + data.name, html, {
+    width: 400, height: 620,
+    onMount(root) {
+      initScene(root.querySelector('#planetCanvas_' + id), id, data);
+      root.querySelector('#pSpeak_' + id).onclick = () => {
+        window.HalDo.speak(`${data.name}. ${data.desc} Radius: ${data.radius}. Entfernung: ${data.distance}. Temperatur: ${data.temp}.`);
+      };
+    }
+  });
+}
+window.HalDo.Planets = { open: openPlanet, data: PLANETS };
+
+/* ═══════ WM ZUGRIFF (nach v122) ═══════ */
+// v122 hat WM intern — wir holen uns eine Referenz über HalDo.open + eigene Kontrolle
+// Trick: wir bauen unser eigenes Fenster mit WM-ähnlicher API
+if (!window.HalDo.WM) {
+  const wm = {
+    wins: {}, zTop: 300,
+    open(id, title, html, opts = {}) {
+      if (this.wins[id]) { this.wins[id].el.style.zIndex = ++this.zTop + 200; return; }
+      const el = document.createElement('div');
+      el.className = 'win';
+      el.dataset.id = id;
+      const w = opts.width || 380;
+      const h = opts.height || 500;
+      const x = Math.max(10, (innerWidth - w) / 2 + (Math.random()-0.5)*80);
+      const y = Math.max(80, (innerHeight - h) / 2 - 30 + (Math.random()-0.5)*60);
+      el.style.left = x + 'px'; el.style.top = y + 'px';
+      el.style.width = Math.min(w, innerWidth-20) + 'px';
+      el.style.height = Math.min(h, innerHeight-120) + 'px';
+      el.style.zIndex = ++this.zTop + 200;
+      el.innerHTML = `
+        <div class="win-header">
+          <div class="win-title">${title}</div>
+          <div class="win-drag"></div>
+          <div class="win-btns"><button class="win-btn close" data-close="${id}">✕</button></div>
+        </div>
+        <div class="win-body">${html}</div>
+      `;
+      document.getElementById('windows').appendChild(el);
+      this.wins[id] = { el };
+      el.querySelector('[data-close]').onclick = e => { e.stopPropagation(); this.close(id); };
+      // Dragging
+      const handle = el.querySelector('.win-drag');
+      let sx=0, sy=0, ox=0, oy=0, dragging=false;
+      handle.addEventListener('pointerdown', e => { dragging=true; sx=e.clientX; sy=e.clientY; ox=el.offsetLeft; oy=el.offsetTop; handle.setPointerCapture(e.pointerId); });
+      handle.addEventListener('pointermove', e => {
+        if (!dragging) return;
+        const nx = ox + (e.clientX-sx), ny = oy + (e.clientY-sy);
+        el.style.left = Math.max(0, Math.min(nx, innerWidth - el.offsetWidth)) + 'px';
+        el.style.top  = Math.max(70, Math.min(ny, innerHeight - el.offsetHeight - 10)) + 'px';
+      });
+      handle.addEventListener('pointerup', e => { dragging=false; try{handle.releasePointerCapture(e.pointerId);}catch(_){} });
+      el.addEventListener('pointerdown', () => { el.style.zIndex = ++this.zTop + 200; });
+      if (opts.onMount) setTimeout(() => opts.onMount(el.querySelector('.win-body')), 10);
+    },
+    close(id) { if (this.wins[id]) { this.wins[id].el.remove(); delete this.wins[id]; } }
+  };
+  window.HalDo.WM = wm;
+}
+
+/* ═══════ SIDEBAR-ERWEITERUNG ═══════ */
+(function() {
+  const sb = document.getElementById('sidebar');
+  if (!sb) return;
+  const sep = document.createElement('div');
+  sep.innerHTML = `
+    <div class="sidebar-title">Sonnensystem</div>
+    ${Object.keys(PLANETS).map(k => `
+      <button class="sidebar-item" data-planet="${k}">
+        <span class="ico">${PLANETS[k].icon}</span>${PLANETS[k].name}
+      </button>
+    `).join('')}
+  `;
+  sb.appendChild(sep);
+  sb.querySelectorAll('[data-planet]').forEach(btn => {
+    btn.onclick = () => openPlanet(btn.dataset.planet);
+  });
+})();
+
+/* ═══════ TOAST ═══════ */
+setTimeout(() => {
+  window.HalDo.toast('🌌 11 Planeten-Apps geladen, Bruder 🚀');
+}, 1500);
+
+})();
+</script>
+<!-- ═══════ ENDE HALDO PLANETEN v123 ═══════ -->
 </body>
 </html>
