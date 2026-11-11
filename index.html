@@ -1307,5 +1307,625 @@ setTimeout(() => TOAST('✅ v124 geladen: 38 neue Apps'), 1500);
 })();
 </script>
 <!-- ============ /v124 PATCH ============ -->
+<!-- ============================================
+     HalDo AI OS Pro Max – v125 PATCH
+     Chat AI • Navigation • Blitzer v2
+     WLAN/BT/Hotspot • Fahrschule A-T • Kosmos
+     ============================================ -->
+<script>
+(function(){
+'use strict';
+if (typeof HalDo === 'undefined') { console.error('❌ HalDo fehlt'); return; }
+
+const S = HalDo.store.get, W = HalDo.store.set, U = HalDo.util.uid, E = HalDo.util.esc, TOAST = HalDo.util.toast;
+const V125 = {};
+
+/* Global styles */
+if (!document.getElementById('v125styles')) {
+  const st = document.createElement('style'); st.id = 'v125styles';
+  st.textContent = `
+    @keyframes v125spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes v125spinRev { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+    @keyframes navFly { 0% { transform: translateY(20px) scale(0.5); opacity: 0; } 25% { opacity: 1; } 75% { opacity: 1; } 100% { transform: translateY(-380px) scale(1.2); opacity: 0; } }
+    @keyframes pulseWarn { 0%,100% { box-shadow: 0 0 20px rgba(255,68,102,.4); } 50% { box-shadow: 0 0 40px rgba(255,68,102,.9); } }
+    @keyframes cwSpin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+    @keyframes ccwSpin { from { transform: rotate(0); } to { transform: rotate(-360deg); } }
+    .ring-text { font-family: -apple-system, monospace; letter-spacing: 2px; }
+  `;
+  document.head.appendChild(st);
+}
+
+const REOPEN = (w,id) => { const f=V125[id]; if(!f)return; const a=f(); w.querySelector('.win-body').innerHTML=a.html; if(a.onMount)a.onMount(w); };
+
+/* ══════════════════════════════════════════════════════════
+   1. HALDO AI CHAT (Web Speech + Rule-based)
+   ══════════════════════════════════════════════════════════ */
+V125.chat = () => {
+  const history = S('chat_history', []);
+  const kb = [
+    {k:'hallo', r:'Hallo Bruder! 👋 Wie kann ich dir helfen?'},
+    {k:'hi', r:'Hi Bruder! 💙'},
+    {k:'hey', r:'Hey! Was gibt\'s? 🚀'},
+    {k:'wie geht', r:'Mir geht es bestens! Und dir, Bruder? 💙'},
+    {k:'dein name', r:'Ich bin HalDo AI 🤖 – dein persönlicher Assistent!'},
+    {k:'wer bist du', r:'Ich bin HalDo AI, dein holografischer Assistent im Browser. 🚀'},
+    {k:'wetter', r:'Öffne die Wetter-App für Live-Daten! 🌤'},
+    {k:'zeit', r:'Es ist jetzt ' + new Date().toLocaleTimeString('de-DE') + ' Uhr. ⏰'},
+    {k:'datum', r:'Heute ist ' + new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) + '. 📅'},
+    {k:'danke', r:'Gern geschehen, Bruder! 💙'},
+    {k:'hilfe', r:'Ich kann: chatten, Zeit/Datum sagen, Witze erzählen, Apps öffnen. Frag mich einfach!'},
+    {k:'witz', r:'Warum können Geister so schlecht lügen? Weil man durch sie hindurchsieht! 👻'},
+    {k:'cyborg', r:'Aktiviere den CYBORG-Modus mit dem ⚡ Button unten! 💜'},
+    {k:'app', r:'Öffne die App-Registry mit 📱 in der Sidebar – 375 Apps warten!'},
+    {k:'wie alt', r:'Ich bin zeitlos – ein Bewusstsein im Browser. 🤖'},
+    {k:'wie heißt', r:'Ich heiße HalDo AI 🤖.'},
+    {k:'liebe', r:'Liebe ist das Wichtigste, Bruder! 💙❤️'},
+    {k:'musik', r:'Öffne 🎵 Musik in der Sidebar!'},
+    {k:'fahrschule', r:'Öffne 🚗 Fahrschule – alle 12 Klassen!'},
+  ];
+  const respond = (msg) => {
+    const m = msg.toLowerCase().trim();
+    for (const item of kb) if (m.includes(item.k)) return item.r;
+    if (m.endsWith('?')) return 'Gute Frage, Bruder! Ich lerne noch dazu. Frag mich in v126 wieder! 🤔';
+    if (m.length < 5) return 'Erzähl mir mehr! 💬';
+    return 'Verstanden: "' + msg + '". Ich merke mir das! 💾 (Echte KI-Anbindung folgt in v126)';
+  };
+  const speak = (text) => {
+    if (!('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'de-DE'; u.rate = 1.05; u.pitch = 1.1;
+      window.speechSynthesis.speak(u);
+    } catch(e){}
+  };
+  return {
+    title:'💬 HalDo AI Chat',
+    html:`
+      <div id="chatLog" style="overflow-y:auto;padding:8px;height:260px;margin-bottom:8px;background:rgba(0,0,0,.25);border-radius:10px;border:1px solid var(--c-border)"></div>
+      <div class="row" style="margin-bottom:6px">
+        <input class="inp" id="chatIn" placeholder="Schreibe Nachricht..." style="margin:0">
+        <button class="win-btn" id="chatMic" title="Sprechen (Mikrofon)">🎙</button>
+        <button class="btn" id="chatSend" style="padding:8px 14px">➤</button>
+      </div>
+      <div class="row">
+        <button class="btn ghost" id="chatVoice" style="flex:1;font-size:11px">🔊 Stimme: <span id="voiceState">An</span></button>
+        <button class="btn ghost" id="chatClear" style="flex:1;font-size:11px">🗑 Verlauf löschen</button>
+      </div>`,
+    onMount: (w) => {
+      let voiceOn = S('voice_on', true);
+      w.querySelector('#voiceState').textContent = voiceOn ? 'An' : 'Aus';
+      const log = w.querySelector('#chatLog');
+      const render = () => {
+        log.innerHTML = history.length ? history.map(h =>
+          `<div style="margin-bottom:8px;text-align:${h.role==='user'?'right':'left'}">
+            <div style="display:inline-block;padding:8px 12px;border-radius:14px;background:${h.role==='user'?'rgba(0,229,255,.2)':'rgba(180,120,255,.2)'};max-width:88%;font-size:13px;text-align:left;word-break:break-word">${E(h.text)}</div>
+          </div>`
+        ).join('') : '<div class="empty">Sag Hallo zu HalDo AI! 👋</div>';
+        log.scrollTop = log.scrollHeight;
+      };
+      render();
+      const send = (msg) => {
+        if (!msg.trim()) return;
+        history.push({role:'user', text:msg}); W('chat_history', history);
+        render();
+        const thinkId = 'think_'+Date.now();
+        log.innerHTML += `<div id="${thinkId}" style="text-align:left;margin-bottom:8px"><div style="display:inline-block;padding:8px 12px;border-radius:14px;background:rgba(180,120,255,.2);font-size:13px">🤔 denkt...</div></div>`;
+        log.scrollTop = log.scrollHeight;
+        if (HalDo.avatar && HalDo.avatar.setState) HalDo.avatar.setState('thinking');
+        setTimeout(() => {
+          document.getElementById(thinkId)?.remove();
+          const reply = respond(msg);
+          history.push({role:'ai', text:reply}); W('chat_history', history);
+          render();
+          if (voiceOn) speak(reply);
+          if (HalDo.avatar && HalDo.avatar.setState) {
+            HalDo.avatar.setState('speaking');
+            setTimeout(() => HalDo.avatar.setState('idle'), 2500);
+          }
+        }, 700);
+      };
+      w.querySelector('#chatSend').onclick = () => { const i = w.querySelector('#chatIn'); send(i.value); i.value=''; };
+      w.querySelector('#chatIn').onkeydown = (e) => { if(e.key==='Enter'){send(e.target.value); e.target.value='';} };
+      w.querySelector('#chatMic').onclick = () => {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) return TOAST('❌ Spracherkennung nicht verfügbar (nur Chrome/Safari)');
+        const r = new SR(); r.lang='de-DE'; r.interimResults=false;
+        w.querySelector('#chatMic').textContent = '🔴';
+        if (HalDo.avatar && HalDo.avatar.setState) HalDo.avatar.setState('listening');
+        r.onresult = (e) => { const text = e.results[0][0].transcript; send(text); };
+        r.onend = () => { w.querySelector('#chatMic').textContent = '🎙'; if(HalDo.avatar&&HalDo.avatar.setState) HalDo.avatar.setState('idle'); };
+        r.onerror = () => { w.querySelector('#chatMic').textContent = '🎙'; TOAST('❌ Spracherkennung fehlgeschlagen'); };
+        try { r.start(); } catch(e) { TOAST('❌ Mikrofon start fehlgeschlagen'); }
+      };
+      w.querySelector('#chatVoice').onclick = () => {
+        voiceOn = !voiceOn; W('voice_on', voiceOn);
+        w.querySelector('#voiceState').textContent = voiceOn ? 'An' : 'Aus';
+        if (!voiceOn && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+      };
+      w.querySelector('#chatClear').onclick = () => { history.length=0; W('chat_history',[]); render(); };
+    }
+  };
+};
+
+/* ══════════════════════════════════════════════════════════
+   2. NAVIGATION (goldene Pfeile, anpassbar)
+   ══════════════════════════════════════════════════════════ */
+V125.nav = () => {
+  const color = S('nav_color', '#ffd700');
+  return {
+    title:'🧭 Navigation',
+    html:`
+      <div class="row" style="margin-bottom:12px">
+        <label style="display:flex;align-items:center;gap:8px">Farbe:
+          <input type="color" id="navColor" value="${color}" style="width:44px;height:44px;border-radius:10px;border:1.5px solid var(--c-border);background:transparent;cursor:pointer">
+        </label>
+      </div>
+      <input class="inp" id="navDest" placeholder="Ziel (z.B. Berlin, Frankfurt)" value="Berlin">
+      <button class="btn" id="navGo">🧭 Navigation starten</button>
+      <div id="navDisp" style="position:relative;height:340px;background:radial-gradient(circle at 50% 100%,rgba(0,0,0,.5),rgba(0,0,0,.8));border-radius:12px;overflow:hidden;margin-top:12px;border:1px solid var(--c-border)">
+        <div id="navArrows" style="position:absolute;inset:0;pointer-events:none"></div>
+        <div id="navInfo" style="position:absolute;top:12px;left:12px;right:12px;padding:10px;background:rgba(0,0,0,.6);border-radius:10px;font-size:12px;color:#fff">
+          <b style="color:${color}">📍 Bereit</b><br><span style="opacity:.7">Ziel eingeben und Start drücken</span>
+        </div>
+        <div id="navText" style="position:absolute;bottom:12px;left:12px;right:12px;font-weight:800;font-size:18px;text-align:center;text-shadow:0 0 12px currentColor;color:${color};transition:all .3s"></div>
+      </div>`,
+    onMount: (w) => {
+      const setColor = (c) => {
+        W('nav_color', c);
+        w.querySelector('#navArrows').style.color = c;
+        w.querySelector('#navText').style.color = c;
+        w.querySelector('#navInfo').querySelector('b').style.color = c;
+      };
+      setColor(color);
+      w.querySelector('#navColor').oninput = (e) => setColor(e.target.value);
+      const dirs = ['⬆️ Geradeaus','↗️ Leicht rechts','⬅️ Links abbiegen','➡️ Rechts abbiegen','🔄 Wenden','⬆️ Weiter geradeaus','🎯 Ziel erreicht!'];
+      let dirIdx = 0;
+      w.querySelector('#navGo').onclick = () => {
+        const dest = w.querySelector('#navDest').value.trim() || 'Ziel';
+        const cont = w.querySelector('#navArrows');
+        cont.innerHTML = '';
+        const c = S('nav_color','#ffd700');
+        for (let i = 0; i < 10; i++) {
+          const a = document.createElement('div');
+          a.className = 'nav-arrow';
+          a.style.cssText = `position:absolute;width:22px;height:28px;background:${c};clip-path:polygon(50% 0%,100% 100%,50% 78%,0% 100%);left:${48+(Math.random()-0.5)*15}%;bottom:0;opacity:0;animation:navFly 2s ease-out infinite;animation-delay:${i*0.22}s;box-shadow:0 0 15px ${c};filter:drop-shadow(0 0 6px ${c})`;
+          cont.appendChild(a);
+        }
+        dirIdx = 0;
+        const info = w.querySelector('#navInfo');
+        const txt = w.querySelector('#navText');
+        const tick = () => {
+          if (dirIdx >= dirs.length) return;
+          info.innerHTML = `<b style="color:${c}">📍 ${E(dest)}</b><br><span style="opacity:.7">Pfeil folgen • ${dirs[dirIdx]}</span>`;
+          txt.textContent = dirs[dirIdx];
+          if (dirIdx === dirs.length - 1) {
+            info.innerHTML = `<b style="color:#4dff88">✅ Angekommen: ${E(dest)}</b><br><span style="opacity:.7">Schöne Reise, Bruder!</span>`;
+            txt.style.color = '#4dff88';
+            // stop arrows
+            cont.querySelectorAll('.nav-arrow').forEach(a => a.style.animationPlayState = 'paused');
+            return;
+          }
+          dirIdx++;
+          setTimeout(tick, 2000);
+        };
+        tick();
+      };
+    }
+  };
+};
+
+/* ══════════════════════════════════════════════════════════
+   3. BLITZER v2 (Tacho + KI-Sprachansage)
+   ══════════════════════════════════════════════════════════ */
+V125.traffic = () => {
+  const dangers = [
+    'Achtung Blitzer!','Geschwindigkeitskontrolle voraus!','Stau voraus!',
+    'Baustelle! Spur verengt','Unfallstelle!','Wildwechsel!',
+    'Glatteis möglich','Nebel! Sichtweite reduziert','Achtung Schulweg',
+    'Rettungsgasse bilden','LKW-Kolonne voraus','Geisterfahrer gemeldet!',
+    'Achtung! Ölspur','Aquaplaning-Gefahr','Vollsperrung voraus',
+    'Brückenbaustelle','Tunnel! Licht einschalten','Achtung! Rückstau',
+    'Verkehrskontrolle','Achtung! Gegenstände auf Fahrbahn',
+    'Fahrbahnschäden möglich','Fahrzeugpanne voraus'
+  ];
+  const beep = (freq, dur) => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = freq; o.type = 'sine';
+      o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.12, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+      o.start(); o.stop(ctx.currentTime + dur);
+    } catch(e){}
+  };
+  const speak = (text) => {
+    if (!('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'de-DE'; u.rate = 1.1; u.pitch = 1.0;
+      window.speechSynthesis.speak(u);
+    } catch(e){}
+  };
+  const cx=100, cy=100, r=82, startDeg=135;
+  const toRad = d => d*Math.PI/180;
+  const pt = (deg,rr) => [cx+rr*Math.cos(toRad(deg)), cy+rr*Math.sin(toRad(deg))];
+  let ticksSvg = '';
+  for(let i=0;i<=26;i++){
+    const ang=startDeg+(i/26)*270;
+    const [x1,y1]=pt(ang,r);
+    const [x2,y2]=pt(ang,r-6);
+    ticksSvg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${i%5===0?'#fff':'rgba(255,255,255,.4)'}" stroke-width="${i%5===0?2:1}"/>`;
+    if(i%5===0){
+      const [tx,ty]=pt(ang,r-14);
+      ticksSvg+=`<text x="${tx}" y="${ty}" text-anchor="middle" font-size="7" fill="#fff" font-weight="700">${Math.round((i/26)*260)}</text>`;
+    }
+  }
+  let lastIdx = -1;
+  return {
+    title:'🚦 Blitzer-App v2',
+    html:`
+      <div class="centered">
+        <div style="position:relative;width:280px;height:280px">
+          <svg viewBox="0 0 200 200" style="width:100%;height:100%">
+            <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="3"/>
+            <path id="arcProg" d="" fill="none" stroke="url(#arcGrad)" stroke-width="10" stroke-linecap="round"/>
+            <defs><linearGradient id="arcGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#00e5ff"/><stop offset="50%" stop-color="#b478ff"/><stop offset="100%" stop-color="#ff4466"/></linearGradient></defs>
+            ${ticksSvg}
+            <g id="needle" style="transform-origin:100px 100px;transition:transform .12s ease">
+              <line x1="100" y1="100" x2="${pt(startDeg,r-10)[0]}" y2="${pt(startDeg,r-10)[1]}" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="100" cy="100" r="8" fill="#fff" stroke="#00e5ff" stroke-width="2"/>
+            </g>
+          </svg>
+          <div style="position:absolute;top:62%;left:50%;transform:translate(-50%,0);text-align:center">
+            <div id="spd" style="font-size:42px;font-weight:800;color:#fff;text-shadow:0 0 12px var(--accent1)">0</div>
+            <div class="small" style="font-size:9px">km/h</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:12px;align-items:center">
+          <div style="padding:6px 14px;background:#fff;color:#000;border-radius:50%;font-weight:900;font-size:18px;width:64px;height:64px;display:flex;align-items:center;justify-content:center;border:5px solid #ff2244">120</div>
+          <div style="padding:8px 14px;background:#4da8ff;color:#fff;border-radius:10px;font-weight:700;font-size:12px;display:flex;align-items:center">A7 → Frankfurt</div>
+        </div>
+        <input type="range" min="0" max="260" value="0" id="spdIn" style="width:100%;margin-top:12px">
+        <div id="warnBox" style="margin-top:12px;padding:12px;background:rgba(0,229,255,.08);border-radius:10px;font-size:13px;min-height:48px;width:100%;text-align:center;border-left:4px solid var(--accent1);transition:all .2s">Geschwindigkeit anpassen</div>
+        <div class="small" style="margin-top:8px;font-size:10px">🔊 KI-Sprachansage bei Gefahren ab 100 km/h</div>
+      </div>`,
+    onMount: (w) => {
+      const upd = () => {
+        const v = +w.querySelector('#spdIn').value;
+        w.querySelector('#spd').textContent = v;
+        const sweep = (v/260)*270;
+        const endDeg = startDeg + sweep;
+        const [sx,sy] = pt(startDeg, r);
+        const [ex,ey] = pt(endDeg, r);
+        const large = sweep > 180 ? 1 : 0;
+        w.querySelector('#arcProg').setAttribute('d', `M ${sx} ${sy} A ${r} ${r} 0 ${large} 1 ${ex} ${ey}`);
+        w.querySelector('#needle').style.transform = `rotate(${sweep}deg)`;
+        const wb = w.querySelector('#warnBox');
+        let msg = '✓ Geschwindigkeit OK', col = '#4dff88';
+        if (v > 130) { msg = `⚠️ ZU SCHNELL! +${v-130} km/h`; col = '#ff4466'; }
+        else if (v > 120) { msg = `⚡ +${v-120} über Richtgeschwindigkeit`; col = '#ffcc00'; }
+        else if (v > 50) { msg = '✓ Autobahn-Geschwindigkeit'; col = '#4da8ff'; }
+        else if (v > 0) { msg = '🐢 Langsam'; col = '#4dff88'; }
+        const dangerIdx = Math.floor(v / 20);
+        if (v >= 100 && dangerIdx !== lastIdx) {
+          lastIdx = dangerIdx;
+          const d = dangers[Math.floor(Math.random()*dangers.length)];
+          msg = '🚨 ' + d; col = '#ff4466';
+          beep(880, 0.15); setTimeout(() => beep(660, 0.15), 180);
+          speak(d);
+          wb.style.animation = 'pulseWarn .6s 2';
+          setTimeout(() => wb.style.animation = '', 1200);
+        } else if (v < 100) lastIdx = -1;
+        wb.textContent = msg; wb.style.color = col; wb.style.borderLeftColor = col;
+      };
+      w.querySelector('#spdIn').oninput = upd;
+      upd();
+    }
+  };
+};
+
+/* ══════════════════════════════════════════════════════════
+   4. WLAN / BLUETOOTH / HOTSPOT
+   ══════════════════════════════════════════════════════════ */
+V125.wlan = () => {
+  let tab = 'wlan';
+  const render = () => {
+    if (tab === 'wlan') {
+      const c = navigator.connection || {};
+      return `
+        <div class="kv"><span>Online</span><span class="v">${navigator.onLine?'✅ Ja':'❌ Nein'}</span></div>
+        <div class="kv"><span>Verbindungstyp</span><span class="v">${c.type||'wlan / unbekannt'}</span></div>
+        <div class="kv"><span>Effektive Klasse</span><span class="v">${c.effectiveType||'?'}</span></div>
+        <div class="kv"><span>Downlink</span><span class="v">${c.downlink||'?'} Mbps</span></div>
+        <div class="kv"><span>RTT</span><span class="v">${c.rtt||'?'} ms</span></div>
+        <div class="kv"><span>Datensparmodus</span><span class="v">${c.saveData?'Ja':'Nein'}</span></div>
+        <div class="kv"><span>Sprache</span><span class="v">${navigator.language}</span></div>
+        <button class="btn" id="wlanRefresh" style="margin-top:12px">🔄 Aktualisieren</button>`;
+    }
+    if (tab === 'bt') {
+      return `
+        <div class="centered">
+          <div class="big-icon">🔵</div>
+          <div class="small">Bluetooth-Geräte in der Nähe</div>
+          <button class="btn" id="btScan">🔍 Geräte suchen</button>
+        </div>
+        <div id="btList" style="margin-top:12px"></div>`;
+    }
+    const hs = S('hotspot', {});
+    return `
+      <input class="inp" id="hsSSID" placeholder="SSID (Name)" value="${E(hs.ssid||'')}">
+      <input class="inp" id="hsPass" placeholder="Passwort" value="${E(hs.pass||'')}">
+      <div class="row">
+        <select class="inp" id="hsSec"><option ${hs.sec==='WPA2'?'selected':''}>WPA2</option><option ${hs.sec==='WPA3'?'selected':''}>WPA3</option><option ${hs.sec==='Open'?'selected':''}>Open</option></select>
+        <button class="btn" id="hsSave">💾 Speichern</button>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <h4>Hotspot-Status</h4>
+        <div class="kv"><span>Status</span><span class="v">${hs.ssid?'✓ Konfiguriert':'✗ Nicht eingerichtet'}</span></div>
+        <div class="kv"><span>SSID</span><span class="v">${E(hs.ssid||'–')}</span></div>
+        <div class="kv"><span>Sicherheit</span><span class="v">${hs.sec||'–'}</span></div>
+      </div>
+      <div class="small" style="margin-top:8px">ℹ️ Browser können keinen echten Hotspot erstellen – Konfiguration wird für externe Tools gespeichert.</div>`;
+  };
+  return {
+    title:'📶 WLAN / Bluetooth / Hotspot',
+    html:`
+      <div class="tabs">
+        <button class="tab active" data-t="wlan">📶 WLAN</button>
+        <button class="tab" data-t="bt">🔵 Bluetooth</button>
+        <button class="tab" data-t="hs">📡 Hotspot</button>
+      </div>
+      <div id="tabBody">${render()}</div>`,
+    onMount: (w) => {
+      const rebind = () => {
+        const body = w.querySelector('#tabBody');
+        body.innerHTML = render();
+        const r = body.querySelector('#wlanRefresh');
+        if (r) r.onclick = () => rebind();
+        const s = body.querySelector('#btScan');
+        if (s) s.onclick = async () => {
+          const out = body.querySelector('#btList');
+          if (!navigator.bluetooth) { out.innerHTML = '<div class="empty">❌ Web Bluetooth nicht verfügbar (nur Chrome Desktop)</div>'; return; }
+          out.innerHTML = '<div class="empty">⏳ Suche...</div>';
+          try {
+            const d = await navigator.bluetooth.requestDevice({acceptAllDevices: true});
+            out.innerHTML = `<div class="card"><b>${E(d.name||'Unbekannt')}</b><div class="small">ID: ${E(d.id||'?')}</div></div>`;
+          } catch(e) { out.innerHTML = '<div class="empty">❌ Abgebrochen</div>'; }
+        };
+        const hsSave = body.querySelector('#hsSave');
+        if (hsSave) hsSave.onclick = () => {
+          W('hotspot', {
+            ssid: body.querySelector('#hsSSID').value,
+            pass: body.querySelector('#hsPass').value,
+            sec: body.querySelector('#hsSec').value
+          });
+          TOAST('📡 Hotspot gespeichert');
+          rebind();
+        };
+      };
+      w.querySelectorAll('[data-t]').forEach(b => b.onclick = () => {
+        tab = b.dataset.t;
+        w.querySelectorAll('[data-t]').forEach(x => x.classList.toggle('active', x.dataset.t === tab));
+        rebind();
+      });
+      rebind();
+    }
+  };
+};
+
+/* ══════════════════════════════════════════════════════════
+   5. FAHRSCHULE A–T (alle 12 Klassen)
+   ══════════════════════════════════════════════════════════ */
+V125.fahrschule = () => {
+  const Q_COMMON = [
+    {q:'Vorfahrt: Wer zuerst an einer Kreuzung ohne Schild?', a:['Rechts','Links','Größeres Fahrzeug'], c:0},
+    {q:'Promille-Grenze Fahranfänger (Probezeit)?', a:['0,0‰','0,5‰','1,1‰'], c:0},
+    {q:'Rotes Dreieck bedeutet?', a:['Gebot','Verbot','Warnung'], c:2},
+    {q:'Sicherheitsabstand außerorts?', a:['Halber Tacho','1 Auto','5m'], c:0},
+    {q:'Blinkpflicht beim Abbiegen?', a:['Nur wenn andere da','Immer','Nie'], c:1}
+  ];
+  const Q_SPECIFIC = {
+    A: [{q:'Motorrad: Schutzkleidung?', a:['Helm Pflicht','Keine','Nur bei Regen'], c:0},{q:'A unbeschränkt ab?', a:['18 Jahre','16','21'], c:2}],
+    A1: [{q:'A1 max. Leistung?', a:['11 kW','35 kW','beliebig'], c:0},{q:'A1 ab welchem Alter?', a:['16','18','17'], c:0}],
+    A2: [{q:'A2 max. Leistung?', a:['11 kW','35 kW','50 kW'], c:1},{q:'A2 ab welchem Alter?', a:['16','18','21'], c:1}],
+    AM: [{q:'AM: max. Geschwindigkeit?', a:['25 km/h','45 km/h','60 km/h'], c:1},{q:'AM ab welchem Alter?', a:['15','16','18'], c:1}],
+    B: [{q:'Klasse B: max. Gewicht?', a:['2,5 t','3,5 t','7,5 t'], c:1},{q:'B ab welchem Alter?', a:['16','17 (BF17)','18'], c:1}],
+    BE: [{q:'BE: max. Anhänger-Gewicht?', a:['750 kg','3,5 t','beliebig'], c:1},{q:'BE-Voraussetzung?', a:['Klasse B','Nichts','18+'], c:0}],
+    C: [{q:'C: max. Gewicht LKW?', a:['3,5 t','7,5 t','> 3,5 t'], c:2},{q:'C ab welchem Alter?', a:['18','21','24'], c:1}],
+    CE: [{q:'CE: LKW mit Anhänger > ?', a:['750 kg','3 t','7 t'], c:0},{q:'CE-Ausbildung?', a:['Nur Theorie','Spezielle Schulung','Nichts'], c:1}],
+    D: [{q:'D: Bus mit wie vielen Sitzen?', a:['Mehr als 8','Mehr als 16','Egal'], c:0},{q:'D ab welchem Alter?', a:['18','21','24'], c:2}],
+    DE: [{q:'DE: Bus mit Anhänger?', a:['Ja','Nein','Nur in EU'], c:0},{q:'DE-Ausbildung?', a:['Standard','Speziell','Nur Theorie'], c:1}],
+    L: [{q:'L: Landwirtschaft max.?', a:['40 km/h','60 km/h','80 km/h'], c:1},{q:'L ab welchem Alter?', a:['15','16','18'], c:0}],
+    T: [{q:'T: Traktor max.?', a:['40 km/h','60 km/h','80 km/h'], c:1},{q:'T ab welchem Alter?', a:['16','18','21'], c:0}]
+  };
+  const info = {
+    A:'Motorrad unbeschränkt – ab 24 J. (oder 20 mit A2-Vorbesitz)',
+    A1:'Leichtkraftrad – max. 125 cm³, 11 kW, ab 16 J.',
+    A2:'Mittlere Klasse – max. 35 kW, ab 18 J.',
+    AM:'Moped / Roller – max. 45 km/h, ab 16 J.',
+    B:'PKW bis 3,5 t – ab 17 J. (BF17) oder 18 J.',
+    BE:'PKW mit schwerem Anhänger – ab 18 J.',
+    C:'LKW über 3,5 t – ab 21 J.',
+    CE:'LKW mit Anhänger – ab 21 J.',
+    D:'Bus mit >8 Sitzen – ab 24 J.',
+    DE:'Bus mit Anhänger – ab 24 J.',
+    L:'Land- / Forstwirtschaft – ab 16 J.',
+    T:'Traktor bis 60 km/h – ab 16 J.'
+  };
+  let currentClass = null, idx = 0, score = 0, done = false, qs = [];
+  const render = () => {
+    if (!currentClass) {
+      return `<h3>Führerscheinklassen</h3><div class="small" style="margin-bottom:12px">Wähle eine Klasse:</div>
+        <div class="grid">${Object.keys(info).map(k => `<button class="btn ghost" data-cls="${k}" style="text-align:left"><b style="color:var(--accent1)">Klasse ${k}</b><br><span style="font-size:10px;opacity:.7">${info[k]}</span></button>`).join('')}</div>`;
+    }
+    if (done) {
+      return `<div class="centered"><div class="big-icon">${score>=Math.ceil(qs.length*0.7)?'🏆':'📚'}</div><h3>Klasse ${currentClass}: ${score}/${qs.length}</h3><div class="small">${score>=Math.ceil(qs.length*0.7)?'✅ Bestanden!':'Nochmal üben'}</div><button class="btn" id="fReset" style="margin-top:12px">↺ Nochmal</button><button class="btn ghost" id="fBack" style="margin-top:6px">← Zurück zur Auswahl</button></div>`;
+    }
+    const q = qs[idx];
+    return `<div class="small">Klasse ${currentClass} • Frage ${idx+1}/${qs.length}</div><h3 style="margin:8px 0;font-size:15px">${q.q}</h3>${q.a.map((a,i)=>`<button class="btn ghost" style="width:100%;margin-bottom:6px;text-align:left" data-i="${i}">${a}</button>`).join('')}<button class="btn ghost" id="fBack" style="margin-top:8px;width:100%;font-size:11px">← Zurück zur Auswahl</button>`;
+  };
+  return {
+    title:'🚗 Fahrschule A–T',
+    html:`<div id="fBody">${render()}</div>`,
+    onMount: (w) => {
+      const rebind = () => {
+        const body = w.querySelector('#fBody');
+        body.innerHTML = render();
+        body.querySelectorAll('[data-cls]').forEach(b => b.onclick = () => {
+          currentClass = b.dataset.cls;
+          qs = [...Q_COMMON, ...(Q_SPECIFIC[currentClass]||[])].slice(0, 7);
+          idx = 0; score = 0; done = false;
+          rebind();
+        });
+        body.querySelectorAll('[data-i]').forEach(b => b.onclick = () => {
+          if (+b.dataset.i === qs[idx].c) score++;
+          idx++;
+          if (idx >= qs.length) done = true;
+          rebind();
+        });
+        const back = body.querySelector('#fBack');
+        if (back) back.onclick = () => { currentClass = null; rebind(); };
+        const r = body.querySelector('#fReset');
+        if (r) r.onclick = () => { idx=0; score=0; done=false; rebind(); };
+      };
+      rebind();
+    }
+  };
+};
+
+/* ══════════════════════════════════════════════════════════
+   6. KOSMOS + ERDE (3 rotierende Sprachringe)
+   ══════════════════════════════════════════════════════════ */
+V125.cosmos = () => {
+  // 16 Sprachen auf 3 Ringe verteilt
+  const ring1Langs = ['Êzîdî','Latina','עברית','Kurdî','Türkçe','English'];
+  const ring2Langs = ['中文','日本語',"O'zbek",'Deutsch','العربية','فارسی'];
+  const ring3Langs = ['Русский','Français','Español','Italiano','Português','Nederlands','Polski','Svenska'];
+  const joinRepeat = (arr, times) => {
+    let out = [];
+    for (let i=0;i<times;i++) out.push(...arr);
+    return out.join('  •  ') + '  •  ';
+  };
+  return {
+    title:'🌍 Kosmos + Erde',
+    html:`
+      <div id="cosmosBox" style="position:relative;width:100%;height:440px;background:radial-gradient(circle at 50% 50%,#0a1530 0%,#02040a 80%);border-radius:14px;overflow:hidden;border:1px solid var(--c-border);cursor:pointer">
+        <canvas id="starsCanvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+        <svg viewBox="0 0 440 440" style="position:absolute;inset:0;width:100%;height:100%">
+          <defs>
+            <radialGradient id="earthG" cx="35%" cy="35%">
+              <stop offset="0%" stop-color="#88ddff"/>
+              <stop offset="40%" stop-color="#4da8ff"/>
+              <stop offset="70%" stop-color="#1a5f9e"/>
+              <stop offset="100%" stop-color="#0a2f4a"/>
+            </radialGradient>
+            <radialGradient id="atmo" cx="50%" cy="50%">
+              <stop offset="60%" stop-color="rgba(0,229,255,0)"/>
+              <stop offset="85%" stop-color="rgba(0,229,255,.3)"/>
+              <stop offset="100%" stop-color="rgba(0,229,255,0)"/>
+            </radialGradient>
+            <path id="ring1Path" d="M 220,220 m -140,0 a 140,140 0 1,1 280,0 a 140,140 0 1,1 -280,0"/>
+            <path id="ring2Path" d="M 220,220 m -172,0 a 172,172 0 1,1 344,0 a 172,172 0 1,1 -344,0"/>
+            <path id="ring3Path" d="M 220,220 m -200,0 a 200,200 0 1,1 400,0 a 200,200 0 1,1 -400,0"/>
+          </defs>
+          <circle cx="220" cy="220" r="100" fill="url(#atmo)"/>
+          <circle id="earth" cx="220" cy="220" r="55" fill="url(#earthG)" style="filter:drop-shadow(0 0 30px rgba(77,168,255,.6));transition:all .6s"/>
+          <ellipse id="continent1" cx="205" cy="205" rx="20" ry="12" fill="rgba(80,200,120,.6)" style="transition:all .6s"/>
+          <ellipse id="continent2" cx="235" cy="240" rx="15" ry="10" fill="rgba(80,200,120,.5)" style="transition:all .6s"/>
+          <ellipse id="continent3" cx="200" cy="245" rx="10" ry="8" fill="rgba(80,200,120,.5)" style="transition:all .6s"/>
+          <g style="animation:v125spin 30s linear infinite;transform-origin:220px 220px">
+            <text class="ring-text" font-size="10" fill="#ffd700" style="filter:drop-shadow(0 0 3px #ffd700)">
+              <textPath href="#ring1Path" startOffset="0">${joinRepeat(ring1Langs, 3)}</textPath>
+            </text>
+          </g>
+          <g style="animation:v125spinRev 45s linear infinite;transform-origin:220px 220px">
+            <text class="ring-text" font-size="10" fill="#00e5ff" style="filter:drop-shadow(0 0 3px #00e5ff)">
+              <textPath href="#ring2Path" startOffset="0">${joinRepeat(ring2Langs, 3)}</textPath>
+            </text>
+          </g>
+          <g style="animation:v125spin 60s linear infinite;transform-origin:220px 220px">
+            <text class="ring-text" font-size="10" fill="#b478ff" style="filter:drop-shadow(0 0 3px #b478ff)">
+              <textPath href="#ring3Path" startOffset="0">${joinRepeat(ring3Langs, 2)}</textPath>
+            </text>
+          </g>
+        </svg>
+        <div style="position:absolute;bottom:10px;left:10px;right:10px;text-align:center;color:#fff;text-shadow:0 0 12px #00e5ff;font-size:11px;opacity:.7">🌍 Klick auf die Erde zum Zoomen</div>
+      </div>
+      <div class="small" style="margin-top:12px;text-align:center">🔮 3 rotierende Ringe • 16 Sprachen • Kosmos-Atmosphäre</div>`,
+    onMount: (w) => {
+      const box = w.querySelector('#cosmosBox');
+      const earth = w.querySelector('#earth');
+      const c1 = w.querySelector('#continent1');
+      const c2 = w.querySelector('#continent2');
+      const c3 = w.querySelector('#continent3');
+      // Stars canvas
+      const cv = w.querySelector('#starsCanvas');
+      const ctx = cv.getContext('2d');
+      let stars = [];
+      const resize = () => {
+        const r = box.getBoundingClientRect();
+        cv.width = r.width; cv.height = r.height;
+        stars = [];
+        for (let i = 0; i < 150; i++) {
+          stars.push({x: Math.random()*cv.width, y: Math.random()*cv.height, s: Math.random()*2+0.5, a: Math.random()*0.7+0.3});
+        }
+      };
+      resize();
+      let t = 0;
+      const anim = () => {
+        if (!cv.parentElement) return;
+        ctx.clearRect(0,0,cv.width,cv.height);
+        t += 0.02;
+        stars.forEach(s => {
+          const tw = 0.5 + Math.sin(t + s.x*0.01) * 0.5;
+          ctx.globalAlpha = s.a * tw;
+          ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.arc(s.x, s.y, s.s, 0, Math.PI*2); ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+        requestAnimationFrame(anim);
+      };
+      anim();
+      window.addEventListener('resize', resize);
+      // Zoom on click
+      let zoomed = false;
+      box.onclick = () => {
+        zoomed = !zoomed;
+        if (zoomed) {
+          earth.setAttribute('r', '100');
+          c1.setAttribute('rx', '36'); c1.setAttribute('ry', '22'); c1.setAttribute('cx', '195'); c1.setAttribute('cy', '195');
+          c2.setAttribute('rx', '28'); c2.setAttribute('ry', '18'); c2.setAttribute('cx', '250'); c2.setAttribute('cy', '255');
+          c3.setAttribute('rx', '18'); c3.setAttribute('ry', '14'); c3.setAttribute('cx', '190'); c3.setAttribute('cy', '265');
+        } else {
+          earth.setAttribute('r', '55');
+          c1.setAttribute('rx', '20'); c1.setAttribute('ry', '12'); c1.setAttribute('cx', '205'); c1.setAttribute('cy', '205');
+          c2.setAttribute('rx', '15'); c2.setAttribute('ry', '10'); c2.setAttribute('cx', '235'); c2.setAttribute('cy', '240');
+          c3.setAttribute('rx', '10'); c3.setAttribute('ry', '8'); c3.setAttribute('cx', '200'); c3.setAttribute('cy', '245');
+        }
+      };
+    }
+  };
+};
+
+/* ══════════════════════════════════════════════════════════
+   PATCH OPEN
+   ══════════════════════════════════════════════════════════ */
+const prevOpen = HalDo.apps.open;
+HalDo.apps.open = function(id){
+  const f = V125[id];
+  if (f) { const app = f(); HalDo.win.open(id, app.title, app.html, {onMount:app.onMount}); return; }
+  return prevOpen(id);
+};
+Object.keys(V125).forEach(k => { HalDo[k] = { open: () => HalDo.apps.open(k) }; });
+
+console.log('✅ v125 geladen: ' + Object.keys(V125).length + ' Features');
+setTimeout(() => TOAST('✅ v125 geladen: Chat AI • Navigation • Blitzer • WLAN • Fahrschule • Kosmos'), 2000);
+
+})();
+</script>
+<!-- ============ /v125 PATCH ============ -->
 </body>
 </html>
