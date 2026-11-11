@@ -506,5 +506,806 @@ function openSearch(){openApp('search');}
 setTimeout(()=>{if(!load('haldo_first_v1',false)){store('haldo_first_v1',true);toast('💙 Willkommen bei HalDo OS — 375 Apps bereit!',5000);}},1500);
 console.log('[HalDo v3.0] '+ALL_FLAT.length+' Apps registriert ('+Object.keys(CUST).length+' Custom + '+(ALL_FLAT.length-Object.keys(CUST).length)+' generisch)');
 </script>
+<!-- ============================================
+     HalDo AI OS Pro Max – v124 PATCH
+     38 neue echte Apps
+     ============================================ -->
+<script>
+/* HalDo v124 */
+(function(){
+'use strict';
+if (typeof HalDo === 'undefined') { console.error('❌ HalDo nicht bereit – v124 übersprungen'); return; }
+
+const S = (k,d) => HalDo.store.get(k,d);
+const W = (k,v) => HalDo.store.set(k,v);
+const U = () => HalDo.util.uid();
+const E = HalDo.util.esc;
+const T = () => HalDo.util.today();
+const TOAST = HalDo.util.toast;
+
+const V124 = {};
+
+/* Re-render in place (behält Fenster-Position) */
+const REOPEN = (w, id) => {
+  const f = V124[id]; if (!f) return;
+  const app = f();
+  w.querySelector('.win-body').innerHTML = app.html;
+  if (app.onMount) app.onMount(w);
+};
+
+/* ═══════════════ 1. ZIELE ═══════════════ */
+V124.goals = () => {
+  const goals = S('goals', []);
+  const list = goals.map(g => `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <b>${E(g.title)}</b>
+        <button class="win-btn" data-del="${g.id}">🗑</button>
+      </div>
+      <div class="progress" style="margin-top:8px"><div style="width:${g.progress||0}%"></div></div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn ghost" data-dec="${g.id}">−</button>
+        <div style="flex:1;text-align:center">${g.progress||0}%</div>
+        <button class="btn ghost" data-inc="${g.id}">+</button>
+      </div>
+    </div>`).join('') || '<div class="empty">Keine Ziele</div>';
+  return {
+    title:'🎯 Ziele',
+    html:`<input class="inp" id="gT" placeholder="Neues Ziel..."><button class="btn" id="gAdd">+ Hinzufügen</button><h4>Aktive Ziele</h4><div>${list}</div>`,
+    onMount:(w)=>{
+      w.querySelector('#gAdd').onclick=()=>{const v=w.querySelector('#gT').value.trim();if(!v)return;const a=S('goals',[]);a.push({id:U(),title:v,progress:0});W('goals',a);REOPEN(w,'goals');};
+      w.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{W('goals',S('goals',[]).filter(x=>x.id!==b.dataset.del));REOPEN(w,'goals');});
+      w.querySelectorAll('[data-inc]').forEach(b=>b.onclick=()=>{const a=S('goals',[]);const g=a.find(x=>x.id===b.dataset.inc);if(g)g.progress=Math.min(100,(g.progress||0)+10);W('goals',a);REOPEN(w,'goals');});
+      w.querySelectorAll('[data-dec]').forEach(b=>b.onclick=()=>{const a=S('goals',[]);const g=a.find(x=>x.id===b.dataset.dec);if(g)g.progress=Math.max(0,(g.progress||0)-10);W('goals',a);REOPEN(w,'goals');});
+    }
+  };
+};
+
+/* ═══════════════ 2. HABITS ═══════════════ */
+V124.habits = () => {
+  const habits = S('habits', []);
+  const today = T();
+  const list = habits.map(h => {
+    const checks = h.checks||[];
+    const done = checks.includes(today);
+    let streak = 0, d = new Date();
+    while(checks.includes(d.toISOString().slice(0,10))){streak++;d.setDate(d.getDate()-1);}
+    return `<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><b>${E(h.name)}</b><div class="small">🔥 ${streak} Tage Streak</div></div>
+        <button class="win-btn" style="${done?'background:var(--accent1);color:#02040a':''}" data-tog="${h.id}">${done?'✓':'○'}</button>
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty">Keine Gewohnheiten</div>';
+  return {
+    title:'💪 Gewohnheiten',
+    html:`<input class="inp" id="hN" placeholder="Neue Gewohnheit..."><button class="btn" id="hAdd">+ Hinzufügen</button><h4>Heute</h4><div>${list}</div>`,
+    onMount:(w)=>{
+      w.querySelector('#hAdd').onclick=()=>{const v=w.querySelector('#hN').value.trim();if(!v)return;const a=S('habits',[]);a.push({id:U(),name:v,checks:[]});W('habits',a);REOPEN(w,'habits');};
+      w.querySelectorAll('[data-tog]').forEach(b=>b.onclick=()=>{
+        const a=S('habits',[]);const h=a.find(x=>x.id===b.dataset.tog);
+        if(h){h.checks=h.checks||[];const i=h.checks.indexOf(today);if(i>=0)h.checks.splice(i,1);else h.checks.push(today);}
+        W('habits',a);REOPEN(w,'habits');
+      });
+    }
+  };
+};
+
+/* ═══════════════ 3. ERINNERUNGEN ═══════════════ */
+V124.reminders = () => {
+  const items = S('reminders', []);
+  const list = items.map(r => `<div class="list-item"><div class="txt"><b>${E(r.title)}</b><div class="sub">${E(r.date)} ${E(r.time||'')}</div></div><button class="win-btn" data-del="${r.id}">🗑</button></div>`).join('') || '<div class="empty">Keine Erinnerungen</div>';
+  return {
+    title:'⏰ Erinnerungen',
+    html:`<input class="inp" id="rT" placeholder="Was?"><div class="row"><input class="inp" id="rD" type="date" value="${T()}"><input class="inp" id="rTi" type="time" value="09:00"></div><button class="btn" id="rAdd">+ Hinzufügen</button><h4>Alle</h4><div>${list}</div>`,
+    onMount:(w)=>{
+      w.querySelector('#rAdd').onclick=()=>{const t=w.querySelector('#rT').value.trim();if(!t)return;const a=S('reminders',[]);a.push({id:U(),title:t,date:w.querySelector('#rD').value,time:w.querySelector('#rTi').value});W('reminders',a);REOPEN(w,'reminders');};
+      w.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{W('reminders',S('reminders',[]).filter(x=>x.id!==b.dataset.del));REOPEN(w,'reminders');});
+    }
+  };
+};
+
+/* ═══════════════ 4. KALENDER ═══════════════ */
+V124.calendar = () => {
+  const state = {m: new Date().getMonth(), y: new Date().getFullYear()};
+  const render = () => {
+    const first = new Date(state.y, state.m, 1);
+    const last = new Date(state.y, state.m+1, 0);
+    const startDay = (first.getDay()+6)%7;
+    const events = S('events', []);
+    let cells = '';
+    for(let i=0;i<startDay;i++) cells += '<div style="aspect-ratio:1"></div>';
+    for(let d=1;d<=last.getDate();d++){
+      const ds = `${state.y}-${String(state.m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const ev = events.filter(e=>e.date===ds);
+      const isToday = ds===T();
+      cells += `<div style="aspect-ratio:1;border:1px solid var(--c-border);border-radius:6px;padding:2px;font-size:10px;position:relative;${isToday?'background:rgba(0,229,255,.2)':''}"><div>${d}</div>${ev.length?`<div style="position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--accent1)"></div>`:''}</div>`;
+    }
+    return `<div class="row" style="justify-content:space-between;margin-bottom:8px"><button class="win-btn" data-prev>◀</button><b>${['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][state.m]} ${state.y}</b><button class="win-btn" data-next>▶</button></div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;font-size:9px;color:var(--c-dim);margin-bottom:4px">${['Mo','Di','Mi','Do','Fr','Sa','So'].map(x=>`<div>${x}</div>`).join('')}</div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">${cells}</div>
+      <h4 style="margin-top:16px">Termin hinzufügen</h4>
+      <input class="inp" id="eT" placeholder="Titel...">
+      <input class="inp" id="eD" type="date" value="${T()}">
+      <button class="btn" id="eAdd">+ Hinzufügen</button>`;
+  };
+  return {
+    title:'📅 Kalender',
+    html: render(),
+    onMount:(w)=>{
+      const rebind = () => {
+        w.querySelector('[data-prev]').onclick=()=>{state.m--;if(state.m<0){state.m=11;state.y--;}w.querySelector('.win-body').innerHTML=render();rebind();};
+        w.querySelector('[data-next]').onclick=()=>{state.m++;if(state.m>11){state.m=0;state.y++;}w.querySelector('.win-body').innerHTML=render();rebind();};
+        const btn = w.querySelector('#eAdd');
+        if(btn) btn.onclick=()=>{const t=w.querySelector('#eT').value.trim();if(!t)return;const a=S('events',[]);a.push({id:U(),title:t,date:w.querySelector('#eD').value});W('events',a);w.querySelector('.win-body').innerHTML=render();rebind();};
+      };
+      rebind();
+    }
+  };
+};
+
+/* ═══════════════ 5. FAHRSCHULE ═══════════════ */
+V124.fahrschule = () => {
+  const questions = [
+    {q:'Wie schnell innerorts?', a:['30 km/h','50 km/h','70 km/h'], c:1},
+    {q:'Rotes Dreieck bedeutet?', a:['Verbot','Warnung','Hinweis'], c:1},
+    {q:'Promille-Grenze Fahranfänger?', a:['0,0‰','0,5‰','1,1‰'], c:0},
+    {q:'Min. Reifenprofiltiefe?', a:['1mm','1,6mm','3mm'], c:1},
+    {q:'Überholen auf welcher Seite?', a:['Links','Rechts','Egal'], c:0},
+    {q:'HU (TÜV) alle?', a:['1 Jahr','2 Jahre','3 Jahre'], c:1},
+    {q:'Grüner Pfeil links = ?', a:['Anhalten','Vorfahrt','Weiterfahren'], c:2},
+    {q:'Warnblinker bei?', a:['Parken','Panne','Überholen'], c:1},
+    {q:'Vorfahrt beachten = ?', a:['Rechts vor Links','Nur bei Schild','Immer'], c:0},
+    {q:'Sicherheitsabstand außerorts?', a:['Halber Tacho','1 Auto','5m'], c:0}
+  ];
+  let idx=0, score=0, done=false;
+  const render = () => {
+    if(done) return `<div class="centered"><div class="big-icon">${score>=7?'🏆':'📚'}</div><h3>${score} / ${questions.length}</h3><div class="small">${score>=7?'✅ Bestanden':'Nochmal üben'}</div><button class="btn" id="fReset" style="margin-top:16px">↺ Nochmal</button></div>`;
+    const q = questions[idx];
+    return `<div class="small">Frage ${idx+1} / ${questions.length}</div><h3 style="margin:8px 0">${q.q}</h3>${q.a.map((a,i)=>`<button class="btn ghost" style="width:100%;margin-bottom:6px;text-align:left" data-i="${i}">${a}</button>`).join('')}`;
+  };
+  return {
+    title:'🚗 Fahrschule',
+    html: render(),
+    onMount:(w)=>{
+      const rebind=()=>{
+        w.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{if(+b.dataset.i===questions[idx].c)score++;idx++;if(idx>=questions.length)done=true;w.querySelector('.win-body').innerHTML=render();rebind();});
+        const r=w.querySelector('#fReset');if(r)r.onclick=()=>{idx=0;score=0;done=false;w.querySelector('.win-body').innerHTML=render();rebind();};
+      };
+      rebind();
+    }
+  };
+};
+
+/* ═══════════════ 6. BLITZER / TACHO ═══════════════ */
+V124.traffic = () => {
+  const cx=100, cy=100, r=82;
+  const startDeg = 135;
+  const toRad = d => d*Math.PI/180;
+  const pt = (deg,rr) => [cx+rr*Math.cos(toRad(deg)), cy+rr*Math.sin(toRad(deg))];
+  let ticksSvg = '';
+  for(let i=0;i<=26;i++){
+    const ang = startDeg + (i/26)*270;
+    const [x1,y1] = pt(ang, r);
+    const [x2,y2] = pt(ang, r-6);
+    ticksSvg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" style="stroke:rgba(255,255,255,.4)" stroke-width="1.5"/>`;
+  }
+  return {
+    title:'🚦 Blitzer / Tacho',
+    html:`
+      <div class="centered">
+        <div style="position:relative;width:260px;height:260px">
+          <svg viewBox="0 0 200 200" style="width:100%;height:100%">
+            <circle cx="100" cy="100" r="90" fill="none" style="stroke:rgba(255,255,255,.08)" stroke-width="3"/>
+            <path id="arc" d="" fill="none" style="stroke:var(--accent1)" stroke-width="8" stroke-linecap="round"/>
+            ${ticksSvg}
+          </svg>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center">
+            <div id="spd" style="font-size:44px;font-weight:700;color:var(--accent1)">0</div>
+            <div class="small">km/h</div>
+          </div>
+        </div>
+        <input type="range" min="0" max="260" value="0" id="spdIn" style="width:100%;margin-top:8px">
+        <div style="margin-top:12px;padding:8px;background:rgba(0,229,255,.08);border-radius:10px;font-size:13px">📍 <b>A7 Frankfurt</b> • Erlaubt: 120 km/h</div>
+        <div id="warn" class="small" style="margin-top:8px"></div>
+      </div>`,
+    onMount:(w)=>{
+      const upd = () => {
+        const v = +w.querySelector('#spdIn').value;
+        w.querySelector('#spd').textContent = v;
+        const sweep = (v/260)*270;
+        const endDeg = startDeg + sweep;
+        const [sx,sy] = pt(startDeg, r);
+        const [ex,ey] = pt(endDeg, r);
+        const large = sweep > 180 ? 1 : 0;
+        w.querySelector('#arc').setAttribute('d', `M ${sx} ${sy} A ${r} ${r} 0 ${large} 1 ${ex} ${ey}`);
+        const warn = w.querySelector('#warn');
+        if(v>120) warn.innerHTML = `<span style="color:#ff4466">⚠️ Zu schnell! +${v-120} km/h</span>`;
+        else warn.innerHTML = `<span style="color:#4dff88">✓ OK</span>`;
+      };
+      w.querySelector('#spdIn').oninput = upd;
+      upd();
+    }
+  };
+};
+
+/* ═══════════════ 7. WORKOUT ═══════════════ */
+V124.workout = () => {
+  let t=0, int=null;
+  return {
+    title:'💪 Workout',
+    html:`
+      <div class="centered">
+        <div id="wTime" style="font-size:48px;font-weight:700;color:var(--accent1);font-variant-numeric:tabular-nums">00:00</div>
+        <div class="small">Trainingszeit</div>
+        <div class="row" style="margin-top:12px"><button class="btn" id="wStart">▶ Start</button><button class="btn ghost" id="wStop">⏸ Stop</button><button class="btn ghost" id="wReset">↺</button></div>
+      </div>
+      <h4 style="margin-top:16px">Übungen (Klick zählt)</h4>
+      <div class="grid" id="wEx">${['Liegestütze','Kniebeugen','Situps','Burpees','Plank (s)','Hampelmänner'].map(n=>`<div class="card center" data-e="${n}" style="cursor:pointer"><div style="font-size:20px;font-weight:700;color:var(--accent1)" class="c">0</div><div class="small">${n}</div></div>`).join('')}</div>`,
+    onMount:(w)=>{
+      const disp = w.querySelector('#wTime');
+      const upd = () => { const m=Math.floor(t/60),s=t%60; disp.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); };
+      w.querySelector('#wStart').onclick=()=>{clearInterval(int);int=setInterval(()=>{t++;upd();},1000);};
+      w.querySelector('#wStop').onclick=()=>clearInterval(int);
+      w.querySelector('#wReset').onclick=()=>{clearInterval(int);t=0;upd();};
+      w.querySelectorAll('[data-e]').forEach(c=>c.onclick=()=>{const n=c.querySelector('.c');n.textContent=(+n.textContent)+1;});
+    }
+  };
+};
+
+/* ═══════════════ 8. UTILITIES ═══════════════ */
+V124.utilities = () => ({
+  title:'🔧 Utilities',
+  html:`<div class="grid"><button class="btn" id="uTorch">🔦 Taschenlampe</button><button class="btn" id="uMirror">🪞 Spiegel</button><button class="btn" id="uLupe">🔍 Lupe</button><button class="btn" id="uQR">📷 QR Scan</button></div><div id="uOut" style="margin-top:16px"></div>`,
+  onMount:(w)=>{
+    w.querySelector('#uTorch').onclick=()=>{
+      const d = document.createElement('div');
+      d.style.cssText='position:fixed;inset:0;background:#fff;z-index:9999999;display:flex;align-items:center;justify-content:center;font-size:48px;color:#000;cursor:pointer';
+      d.textContent='🔦 Klick = Aus';
+      d.onclick=()=>d.remove();
+      document.body.appendChild(d);
+    };
+    w.querySelector('#uMirror').onclick=async()=>{
+      try{const s=await navigator.mediaDevices.getUserMedia({video:true});const v=document.createElement('video');v.srcObject=s;v.autoplay=true;v.playsInline=true;v.style.cssText='width:100%;border-radius:12px;transform:scaleX(-1)';w.querySelector('#uOut').innerHTML='';w.querySelector('#uOut').appendChild(v);}catch(e){TOAST('❌ Kamera nicht verfügbar');}
+    };
+    w.querySelector('#uLupe').onclick=async()=>{
+      try{const s=await navigator.mediaDevices.getUserMedia({video:true});const v=document.createElement('video');v.srcObject=s;v.autoplay=true;v.playsInline=true;v.style.cssText='width:100%;border-radius:12px;transform:scale(2)';w.querySelector('#uOut').innerHTML='';w.querySelector('#uOut').appendChild(v);}catch(e){TOAST('❌ Kamera nicht verfügbar');}
+    };
+    w.querySelector('#uQR').onclick=()=>TOAST('📷 QR-Scanner folgt in v125');
+  }
+});
+
+/* ═══════════════ 9. TEXT ANALYZER ═══════════════ */
+V124.textanalyzer = () => ({
+  title:'📊 Text Analyzer',
+  html:`<textarea class="inp ta" id="taIn" placeholder="Text eingeben..." style="min-height:120px"></textarea><button class="btn" id="taGo">Analysieren</button><div id="taOut" style="margin-top:12px"></div>`,
+  onMount:(w)=>{
+    w.querySelector('#taGo').onclick=()=>{
+      const t = w.querySelector('#taIn').value;
+      const chars = t.length;
+      const words = t.trim()?t.trim().split(/\s+/).length:0;
+      const sentences = (t.match(/[.!?]+/g)||[]).length;
+      const lines = t.split('\n').length;
+      const readTime = Math.ceil(words/200);
+      const avgWord = words?(t.replace(/\s/g,'').length/words).toFixed(1):0;
+      w.querySelector('#taOut').innerHTML = `
+        <div class="kv"><span>Zeichen</span><span class="v">${chars}</span></div>
+        <div class="kv"><span>Wörter</span><span class="v">${words}</span></div>
+        <div class="kv"><span>Sätze</span><span class="v">${sentences}</span></div>
+        <div class="kv"><span>Zeilen</span><span class="v">${lines}</span></div>
+        <div class="kv"><span>Ø Wortlänge</span><span class="v">${avgWord}</span></div>
+        <div class="kv"><span>Lesezeit</span><span class="v">${readTime} min</span></div>`;
+    };
+  }
+});
+
+/* ═══════════════ 10. DATUM RECHNER ═══════════════ */
+V124.datecalc = () => ({
+  title:'📅 Datum Rechner',
+  html:`<h4>Alter berechnen</h4><input class="inp" id="dAge" type="date"><button class="btn" id="dAgeGo">Berechnen</button><div id="dAgeOut" style="margin-bottom:16px"></div><h4>Tage bis Datum</h4><input class="inp" id="dUntil" type="date"><button class="btn" id="dUntilGo">Berechnen</button><div id="dUntilOut"></div>`,
+  onMount:(w)=>{
+    w.querySelector('#dAgeGo').onclick=()=>{
+      const b = new Date(w.querySelector('#dAge').value); if(isNaN(b)) return TOAST('Datum fehlt');
+      const n = new Date(); let y=n.getFullYear()-b.getFullYear(), m=n.getMonth()-b.getMonth(), d=n.getDate()-b.getDate();
+      if(d<0){m--;d+=30;}if(m<0){y--;m+=12;}
+      w.querySelector('#dAgeOut').innerHTML=`<div class="card center"><div style="font-size:24px;color:var(--accent1);font-weight:700">${y} Jahre, ${m} Monate, ${d} Tage</div></div>`;
+    };
+    w.querySelector('#dUntilGo').onclick=()=>{
+      const t = new Date(w.querySelector('#dUntil').value); if(isNaN(t)) return TOAST('Datum fehlt');
+      const diff = Math.ceil((t-new Date())/(1000*60*60*24));
+      w.querySelector('#dUntilOut').innerHTML=`<div class="card center"><div style="font-size:24px;color:var(--accent1);font-weight:700">${diff} Tage</div></div>`;
+    };
+  }
+});
+
+/* ═══════════════ 11. CLIPBOARD ═══════════════ */
+V124.clipboard = () => {
+  const items = S('clipboard', []);
+  const list = items.map(c=>`<div class="card"><div style="font-size:12px;white-space:pre-wrap;word-break:break-all">${E(c.text)}</div><div class="row" style="margin-top:6px"><button class="btn ghost" data-cp="${c.id}">📋 Kopieren</button><button class="win-btn" data-del="${c.id}">🗑</button></div></div>`).join('') || '<div class="empty">Leer</div>';
+  return {
+    title:'📋 Clipboard',
+    html:`<textarea class="inp ta" id="cbIn" placeholder="Text..."></textarea><button class="btn" id="cbAdd">+ Speichern</button><div>${list}</div>`,
+    onMount:(w)=>{
+      w.querySelector('#cbAdd').onclick=()=>{const t=w.querySelector('#cbIn').value;if(!t)return;const a=S('clipboard',[]);a.unshift({id:U(),text:t});W('clipboard',a);REOPEN(w,'clipboard');};
+      w.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{W('clipboard',S('clipboard',[]).filter(x=>x.id!==b.dataset.del));REOPEN(w,'clipboard');});
+      w.querySelectorAll('[data-cp]').forEach(b=>b.onclick=()=>{const i=S('clipboard',[]).find(x=>x.id===b.dataset.cp);if(i&&navigator.clipboard)navigator.clipboard.writeText(i.text).then(()=>TOAST('📋 Kopiert'));});
+    }
+  };
+};
+
+/* ═══════════════ 12. TODO PRO ═══════════════ */
+V124.todo = () => {
+  const items = S('todo', []);
+  const open = items.filter(t=>!t.done), done = items.filter(t=>t.done);
+  return {
+    title:'✅ ToDo Pro',
+    html:`<input class="inp" id="tpIn" placeholder="Neue Aufgabe..."><button class="btn" id="tpAdd">+ Hinzufügen</button><h4>Offen (${open.length})</h4><div>${open.map(t=>`<div class="list-item"><div class="txt">${E(t.title)}</div><button class="win-btn" data-tog="${t.id}">✓</button></div>`).join('')||'<div class="empty">Keine offenen</div>'}</div><h4>Erledigt (${done.length})</h4><div>${done.map(t=>`<div class="list-item"><div class="txt" style="text-decoration:line-through;opacity:.5">${E(t.title)}</div><button class="win-btn" data-tog="${t.id}">↺</button></div>`).join('')||'<div class="empty">Nichts</div>'}</div>`,
+    onMount:(w)=>{
+      w.querySelector('#tpAdd').onclick=()=>{const v=w.querySelector('#tpIn').value.trim();if(!v)return;const a=S('todo',[]);a.push({id:U(),title:v,done:false});W('todo',a);REOPEN(w,'todo');};
+      w.querySelectorAll('[data-tog]').forEach(b=>b.onclick=()=>{const a=S('todo',[]);const t=a.find(x=>x.id===b.dataset.tog);if(t)t.done=!t.done;W('todo',a);REOPEN(w,'todo');});
+    }
+  };
+};
+
+/* ═══════════════ 13. POMODORO ═══════════════ */
+V124.pomodoro = () => {
+  let sec=25*60, int=null;
+  return {
+    title:'🍅 Pomodoro',
+    html:`<div class="centered"><div id="pDisp" style="font-size:64px;font-weight:700;color:var(--accent1);font-variant-numeric:tabular-nums">25:00</div><div class="small" id="pState">Bereit</div><div class="row" style="margin-top:16px"><button class="btn" id="pStart">▶ Start</button><button class="btn ghost" id="pPause">⏸</button><button class="btn ghost" id="pReset">↺</button></div></div>`,
+    onMount:(w)=>{
+      const d = w.querySelector('#pDisp'), st = w.querySelector('#pState');
+      const upd = () => { const m=Math.floor(sec/60),s=sec%60; d.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); };
+      w.querySelector('#pStart').onclick=()=>{ if(int)return; st.textContent='Fokus läuft'; int=setInterval(()=>{ if(sec<=0){clearInterval(int);int=null;st.textContent='Fertig!';TOAST('🍅 Pomodoro fertig!');return;} sec--;upd(); },1000); };
+      w.querySelector('#pPause').onclick=()=>{clearInterval(int);int=null;st.textContent='Pausiert';};
+      w.querySelector('#pReset').onclick=()=>{clearInterval(int);int=null;sec=25*60;st.textContent='Bereit';upd();};
+      upd();
+    }
+  };
+};
+
+/* ═══════════════ 14. WASSER ═══════════════ */
+V124.water = () => {
+  const today = T(); const data = S('water', {}); const cur = data[today]||0; const goal = 8;
+  return {
+    title:'💧 Wasser',
+    html:`<div class="centered"><div style="font-size:80px">💧</div><div style="font-size:40px;font-weight:700;color:var(--accent1)">${cur} / ${goal}</div><div class="small">Gläser heute</div><div class="progress" style="width:80%;margin-top:12px"><div style="width:${Math.min(100,cur/goal*100)}%"></div></div><div class="row" style="margin-top:16px"><button class="btn ghost" id="wMinus">−</button><button class="btn" id="wPlus">+ 1 Glas</button></div></div>`,
+    onMount:(w)=>{
+      const upd = (v) => { const d=S('water',{}); d[today]=Math.max(0,v); W('water',d); REOPEN(w,'water'); };
+      w.querySelector('#wPlus').onclick=()=>upd(cur+1);
+      w.querySelector('#wMinus').onclick=()=>upd(cur-1);
+    }
+  };
+};
+
+/* ═══════════════ 15. BREATHING ═══════════════ */
+V124.breathing = () => {
+  let int=null, phase=0;
+  const phases = [{n:'Einatmen',t:4},{n:'Halten',t:4},{n:'Ausatmen',t:6},{n:'Halten',t:2}];
+  return {
+    title:'🌬 Atemübung',
+    html:`<div class="centered"><div id="bCircle" style="width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(0,229,255,.4),rgba(180,120,255,.2));transition:transform 4s ease-in-out"></div><div id="bPhase" style="font-size:24px;color:var(--accent1);margin-top:20px">Bereit</div><div id="bCount" class="small"></div><button class="btn" id="bStart" style="margin-top:16px">▶ Start</button></div>`,
+    onMount:(w)=>{
+      const c=w.querySelector('#bCircle'), p=w.querySelector('#bPhase'), co=w.querySelector('#bCount');
+      const run=()=>{
+        const ph=phases[phase]; p.textContent=ph.n;
+        c.style.transform = ph.n==='Einatmen'?'scale(1.6)':ph.n==='Ausatmen'?'scale(1)':'scale(1.3)';
+        let left=ph.t; co.textContent=left;
+        clearInterval(int);
+        int=setInterval(()=>{left--;co.textContent=left;if(left<=0){phase=(phase+1)%phases.length;clearInterval(int);run();}},1000);
+      };
+      w.querySelector('#bStart').onclick=()=>{phase=0;run();};
+    }
+  };
+};
+
+/* ═══════════════ 16. STATISTIK ═══════════════ */
+V124.statistics = () => ({
+  title:'📊 Statistik',
+  html:`<textarea class="inp ta" id="sIn" placeholder="Zahlen (Komma oder Zeile)" style="min-height:80px"></textarea><button class="btn" id="sGo">Berechnen</button><div id="sOut" style="margin-top:12px"></div>`,
+  onMount:(w)=>{
+    w.querySelector('#sGo').onclick=()=>{
+      const nums=w.querySelector('#sIn').value.split(/[,\s\n]+/).map(Number).filter(n=>!isNaN(n));
+      if(!nums.length) return w.querySelector('#sOut').innerHTML='<div class="empty">Keine Zahlen</div>';
+      const sum=nums.reduce((a,b)=>a+b,0), mean=sum/nums.length;
+      const sorted=[...nums].sort((a,b)=>a-b);
+      const median=sorted.length%2?sorted[(sorted.length-1)/2]:(sorted[sorted.length/2-1]+sorted[sorted.length/2])/2;
+      const min=Math.min(...nums), max=Math.max(...nums);
+      const variance=nums.reduce((a,b)=>a+(b-mean)**2,0)/nums.length;
+      const std=Math.sqrt(variance);
+      w.querySelector('#sOut').innerHTML=`
+        <div class="kv"><span>Anzahl</span><span class="v">${nums.length}</span></div>
+        <div class="kv"><span>Summe</span><span class="v">${sum.toFixed(2)}</span></div>
+        <div class="kv"><span>Mittelwert</span><span class="v">${mean.toFixed(2)}</span></div>
+        <div class="kv"><span>Median</span><span class="v">${median.toFixed(2)}</span></div>
+        <div class="kv"><span>Min</span><span class="v">${min}</span></div>
+        <div class="kv"><span>Max</span><span class="v">${max}</span></div>
+        <div class="kv"><span>Std-Abw.</span><span class="v">${std.toFixed(2)}</span></div>`;
+    };
+  }
+});
+
+/* ═══════════════ 17. SCI-CALC ═══════════════ */
+V124.scicalc = () => ({
+  title:'🔬 Sci-Calc',
+  html:`<input class="inp" id="scIn" placeholder="z.B. sin(45) + sqrt(16)" style="font-size:18px"><div id="scOut" style="font-size:24px;text-align:right;color:var(--accent1);font-weight:700;margin:12px 0;min-height:32px"></div><div class="grid" style="grid-template-columns:repeat(4,1fr)">${['sin','cos','tan','√','log','ln','π','e','(',')','x²','^','+','−','×','÷','7','8','9','C','4','5','6','⌫','1','2','3','=','0','.','exp','abs'].map(k=>`<button class="btn ghost" data-k="${k}" style="padding:8px 4px">${k}</button>`).join('')}</div>`,
+  onMount:(w)=>{
+    const inp=w.querySelector('#scIn'), out=w.querySelector('#scOut');
+    const ev=()=>{
+      try{
+        let e=inp.value.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/π/g,'Math.PI').replace(/√/g,'Math.sqrt').replace(/\^/g,'**').replace(/sin\(/g,'Math.sin(').replace(/cos\(/g,'Math.cos(').replace(/tan\(/g,'Math.tan(').replace(/log\(/g,'Math.log10(').replace(/ln\(/g,'Math.log(').replace(/exp\(/g,'Math.exp(').replace(/abs\(/g,'Math.abs(');
+        const r=Function('"use strict";return ('+e+')')();
+        out.textContent=Number.isFinite(r)?('= '+r):'';
+      }catch(err){out.textContent='';}
+    };
+    inp.oninput=ev;
+    w.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{
+      const k=b.dataset.k;
+      if(k==='C'){inp.value='';out.textContent='';return;}
+      if(k==='⌫'){inp.value=inp.value.slice(0,-1);ev();return;}
+      if(k==='='){ev();return;}
+      if(['sin','cos','tan','log','ln','exp','abs'].includes(k)){inp.value+=k+'(';ev();return;}
+      if(k==='√'){inp.value+='√(';ev();return;}
+      if(k==='x²'){inp.value+='^2';ev();return;}
+      if(k==='π'||k==='e'){inp.value+=k;ev();return;}
+      inp.value+=k;ev();
+    });
+  }
+});
+
+/* ═══════════════ 18. UMRECHNER ═══════════════ */
+V124.converter = () => {
+  const cats = {
+    'Länge':{m:1, km:1000, cm:0.01, mm:0.001, mi:1609.34, ft:0.3048, in:0.0254},
+    'Gewicht':{g:1, kg:1000, mg:0.001, t:1e6, lb:453.592, oz:28.3495},
+    'Temperatur':{c:1, f:1, k:1},
+    'Volumen':{l:1, ml:0.001, m3:1000, gal:3.78541}
+  };
+  let cat='Länge';
+  const units = () => Object.keys(cats[cat]);
+  const opts = () => units().map(u=>`<option>${u}</option>`).join('');
+  return {
+    title:'📏 Umrechner',
+    html:`<div class="tabs" id="cvTabs">${Object.keys(cats).map(c=>`<button class="tab ${c===cat?'active':''}" data-c="${c}">${c}</button>`).join('')}</div><input class="inp" id="cvVal" type="number" value="1"><div class="row"><select class="inp" id="cvFrom">${opts()}</select><span>→</span><select class="inp" id="cvTo">${opts()}</select></div><button class="btn" id="cvGo">Umrechnen</button><div id="cvOut" style="font-size:24px;text-align:center;color:var(--accent1);font-weight:700;margin-top:12px"></div>`,
+    onMount:(w)=>{
+      w.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{
+        cat=b.dataset.c;
+        w.querySelectorAll('[data-c]').forEach(x=>x.classList.toggle('active',x.dataset.c===cat));
+        w.querySelector('#cvFrom').innerHTML=opts(); w.querySelector('#cvTo').innerHTML=opts();
+      });
+      w.querySelector('#cvGo').onclick=()=>{
+        const v=+w.querySelector('#cvVal').value;
+        const f=w.querySelector('#cvFrom').value, t=w.querySelector('#cvTo').value;
+        if(cat==='Temperatur'){
+          let c=v;
+          if(f==='f')c=(v-32)*5/9; if(f==='k')c=v-273.15;
+          let r=c; if(t==='f')r=c*9/5+32; if(t==='k')r=c+273.15;
+          w.querySelector('#cvOut').textContent=r.toFixed(2)+' '+t.toUpperCase();
+          return;
+        }
+        const r=v*cats[cat][f]/cats[cat][t];
+        w.querySelector('#cvOut').textContent=r.toFixed(4)+' '+t;
+      };
+    }
+  };
+};
+
+/* ═══════════════ 19. WÄHRUNG LIVE ═══════════════ */
+V124.currency = () => ({
+  title:'💱 Währung Live',
+  html:`<input class="inp" id="cuVal" type="number" value="100"><div class="row"><select class="inp" id="cuFrom"><option>EUR</option><option>USD</option><option>GBP</option><option>TRY</option><option>JPY</option><option>CHF</option></select><span>→</span><select class="inp" id="cuTo"><option>USD</option><option>EUR</option><option>GBP</option><option>TRY</option><option>JPY</option><option>CHF</option></select></div><button class="btn" id="cuGo">Umrechnen</button><div id="cuOut" style="text-align:center;font-size:24px;font-weight:700;color:var(--accent1);margin-top:12px"></div>`,
+  onMount:(w)=>{
+    w.querySelector('#cuGo').onclick=async()=>{
+      const v=+w.querySelector('#cuVal').value;
+      const f=w.querySelector('#cuFrom').value, t=w.querySelector('#cuTo').value;
+      if(f===t){w.querySelector('#cuOut').textContent=v+' '+t;return;}
+      w.querySelector('#cuOut').textContent='⏳...';
+      try{const r=await fetch(`https://api.frankfurter.app/latest?from=${f}&to=${t}`).then(r=>r.json());w.querySelector('#cuOut').textContent=(v*r.rates[t]).toFixed(2)+' '+t;}
+      catch(e){w.querySelector('#cuOut').textContent='❌ Fehler';}
+    };
+  }
+});
+
+/* ═══════════════ 20. HEALTH ═══════════════ */
+V124.health = () => ({
+  title:'❤️ Health',
+  html:`<input class="inp" id="hWeight" type="number" placeholder="Gewicht (kg)"><input class="inp" id="hHeight" type="number" placeholder="Größe (cm)"><input class="inp" id="hAge" type="number" placeholder="Alter"><div class="row" style="margin-bottom:8px"><label><input type="radio" name="hSex" value="m" checked> M</label><label><input type="radio" name="hSex" value="f"> F</label></div><button class="btn" id="hGo">Berechnen</button><div id="hOut" style="margin-top:12px"></div>`,
+  onMount:(w)=>{
+    w.querySelector('#hGo').onclick=()=>{
+      const wt=+w.querySelector('#hWeight').value, ht=+w.querySelector('#hHeight').value/100, ag=+w.querySelector('#hAge').value;
+      const sx=w.querySelector('input[name=hSex]:checked').value;
+      if(!wt||!ht||!ag) return TOAST('Bitte alle Felder ausfüllen');
+      const bmi=wt/(ht*ht);
+      const bmr=sx==='m'?88.36+(13.4*wt)+(4.8*ht*100)-(5.7*ag):447.6+(9.2*wt)+(3.1*ht*100)-(4.3*ag);
+      const cat=bmi<18.5?'Untergewicht':bmi<25?'Normal':bmi<30?'Übergewicht':'Adipositas';
+      w.querySelector('#hOut').innerHTML=`<div class="kv"><span>BMI</span><span class="v">${bmi.toFixed(1)} (${cat})</span></div><div class="kv"><span>Grundumsatz</span><span class="v">${Math.round(bmr)} kcal</span></div><div class="kv"><span>Gesamt (aktiv)</span><span class="v">${Math.round(bmr*1.55)} kcal</span></div>`;
+    };
+  }
+});
+
+/* ═══════════════ 21. NOTFALL ═══════════════ */
+V124.emergency = () => ({
+  title:'🚨 Notfall',
+  html:`<div class="card center" style="border-color:#ff4466"><div style="font-size:64px">🚨</div><h3 style="color:#ff4466">NOTRUF</h3></div><a href="tel:112" style="text-decoration:none;color:inherit"><div class="card center" style="border-color:#ff4466"><h3>📞 112</h3><div class="small">Feuerwehr / Rettung</div></div></a><a href="tel:110" style="text-decoration:none;color:inherit"><div class="card center" style="border-color:#4da8ff"><h3>📞 110</h3><div class="small">Polizei</div></div></a><a href="tel:116117" style="text-decoration:none;color:inherit"><div class="card center"><h3>📞 116 117</h3><div class="small">Ärztl. Bereitschaft</div></div></a><h4>Erste Hilfe</h4><div class="card"><div class="small">1. Prüfen: Ansprechbar? Atmung?<br>2. Notruf 112<br>3. Stabile Seitenlage<br>4. Herzdruckmassage 30×2</div></div>`
+});
+
+/* ═══════════════ 22. WELTUHR ═══════════════ */
+V124.worldclock = () => {
+  const cities=[
+    {n:'Berlin',tz:'Europe/Berlin'},{n:'London',tz:'Europe/London'},
+    {n:'New York',tz:'America/New_York'},{n:'Tokyo',tz:'Asia/Tokyo'},
+    {n:'Dubai',tz:'Asia/Dubai'},{n:'Sydney',tz:'Australia/Sydney'},
+    {n:'Moskau',tz:'Europe/Moscow'},{n:'Istanbul',tz:'Europe/Istanbul'}
+  ];
+  const upd = () => cities.map(c=>{
+    const t = new Date().toLocaleTimeString('de-DE',{timeZone:c.tz,hour:'2-digit',minute:'2-digit'});
+    return `<div class="kv"><span>${c.n}</span><span class="v">${t}</span></div>`;
+  }).join('');
+  return {
+    title:'🌍 Weltuhr',
+    html:`<div id="wcOut">${upd()}</div>`,
+    onMount:(w)=>{const i=setInterval(()=>{const o=w.querySelector('#wcOut');if(o)o.innerHTML=upd();else clearInterval(i);},1000);}
+  };
+};
+
+/* ═══════════════ 23. VOICE MEMOS ═══════════════ */
+V124.voice = () => ({
+  title:'🎙 Voice Memos',
+  html:`<div class="centered"><div id="vIcon" style="font-size:64px">🎙</div><button class="btn" id="vRec">● Aufnehmen</button><button class="btn ghost" id="vStop">■ Stop</button></div><div id="vList" style="margin-top:16px"></div>`,
+  onMount:(w)=>{
+    let mr=null, chunks=[];
+    w.querySelector('#vRec').onclick=async()=>{
+      try{
+        const s=await navigator.mediaDevices.getUserMedia({audio:true});
+        mr=new MediaRecorder(s); chunks=[];
+        mr.ondataavailable=e=>chunks.push(e.data);
+        mr.onstop=()=>{
+          const b=new Blob(chunks,{type:'audio/webm'});
+          const url=URL.createObjectURL(b);
+          const div=document.createElement('div');
+          div.className='card';
+          div.innerHTML=`<audio controls src="${url}" style="width:100%"></audio><div class="small">${new Date().toLocaleTimeString('de-DE')}</div>`;
+          w.querySelector('#vList').prepend(div);
+        };
+        mr.start();
+        w.querySelector('#vIcon').textContent='🔴';
+        TOAST('🎙 Aufnahme läuft');
+      }catch(e){TOAST('❌ Mikrofon nicht verfügbar');}
+    };
+    w.querySelector('#vStop').onclick=()=>{if(mr&&mr.state==='recording'){mr.stop();w.querySelector('#vIcon').textContent='🎙';}};
+  }
+});
+
+/* ═══════════════ 24. NETZWERK ═══════════════ */
+V124.network = () => {
+  const c=navigator.connection||{};
+  return {
+    title:'📶 Netzwerk',
+    html:`<div class="kv"><span>Online</span><span class="v">${navigator.onLine?'✅ Ja':'❌ Nein'}</span></div><div class="kv"><span>Typ</span><span class="v">${c.effectiveType||'?'}</span></div><div class="kv"><span>Downlink</span><span class="v">${c.downlink||'?'} Mbps</span></div><div class="kv"><span>RTT</span><span class="v">${c.rtt||'?'} ms</span></div><div class="kv"><span>Speichern</span><span class="v">${c.saveData?'Ja':'Nein'}</span></div><div class="kv"><span>Sprache</span><span class="v">${navigator.language}</span></div>`
+  };
+};
+
+/* ═══════════════ 25. GERÄT ═══════════════ */
+V124.device = () => ({
+  title:'💻 Gerät',
+  html:`<div class="kv"><span>User-Agent</span><span class="v" style="font-size:9px;word-break:break-all;text-align:right;max-width:60%">${navigator.userAgent}</span></div><div class="kv"><span>Plattform</span><span class="v">${navigator.platform||'?'}</span></div><div class="kv"><span>Sprache</span><span class="v">${navigator.language}</span></div><div class="kv"><span>CPU</span><span class="v">${navigator.hardwareConcurrency||'?'} Kerne</span></div><div class="kv"><span>RAM</span><span class="v">${navigator.deviceMemory?navigator.deviceMemory+' GB':'?'}</span></div><div class="kv"><span>Bildschirm</span><span class="v">${screen.width}×${screen.height}</span></div><div class="kv"><span>Pixel-Ratio</span><span class="v">${window.devicePixelRatio}</span></div><div class="kv"><span>Touch</span><span class="v">${'ontouchstart' in window?'Ja':'Nein'}</span></div>`
+});
+
+/* ═══════════════ 26. KREDIT ═══════════════ */
+V124.loan = () => ({
+  title:'💳 Kredit',
+  html:`<input class="inp" id="lA" type="number" placeholder="Betrag (€)"><input class="inp" id="lR" type="number" placeholder="Zins (% p.a.)" step="0.1"><input class="inp" id="lY" type="number" placeholder="Laufzeit (Jahre)"><button class="btn" id="lGo">Berechnen</button><div id="lOut" style="margin-top:12px"></div>`,
+  onMount:(w)=>{
+    w.querySelector('#lGo').onclick=()=>{
+      const a=+w.querySelector('#lA').value, r=+w.querySelector('#lR').value/100/12, y=+w.querySelector('#lY').value*12;
+      if(!a||!y) return TOAST('Betrag & Laufzeit fehlen');
+      const m = r ? a*r*Math.pow(1+r,y)/(Math.pow(1+r,y)-1) : a/y;
+      const total=m*y, interest=total-a;
+      w.querySelector('#lOut').innerHTML=`<div class="kv"><span>Monatlich</span><span class="v">${m.toFixed(2)} €</span></div><div class="kv"><span>Gesamt</span><span class="v">${total.toFixed(2)} €</span></div><div class="kv"><span>Zinsen</span><span class="v">${interest.toFixed(2)} €</span></div>`;
+    };
+  }
+});
+
+/* ═══════════════ 27. LESezeichen ═══════════════ */
+V124.bookmarks = () => {
+  const items=S('bookmarks',[]);
+  return {
+    title:'🔖 Lesezeichen',
+    html:`<input class="inp" id="bmT" placeholder="Titel..."><input class="inp" id="bmU" placeholder="URL..."><button class="btn" id="bmAdd">+ Hinzufügen</button><div>${items.map(b=>`<div class="card"><b>${E(b.title)}</b><div class="small" style="word-break:break-all">${E(b.url)}</div><div class="row" style="margin-top:6px"><a href="${E(b.url)}" target="_blank" class="btn ghost" style="padding:6px 12px;text-decoration:none;font-size:11px">🔗 Öffnen</a><button class="win-btn" data-del="${b.id}">🗑</button></div></div>`).join('')||'<div class="empty">Leer</div>'}</div>`,
+    onMount:(w)=>{
+      w.querySelector('#bmAdd').onclick=()=>{const t=w.querySelector('#bmT').value.trim(),u=w.querySelector('#bmU').value.trim();if(!t||!u)return;const a=S('bookmarks',[]);a.unshift({id:U(),title:t,url:u});W('bookmarks',a);REOPEN(w,'bookmarks');};
+      w.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{W('bookmarks',S('bookmarks',[]).filter(x=>x.id!==b.dataset.del));REOPEN(w,'bookmarks');});
+    }
+  };
+};
+
+/* ═══════════════ 28. LESELISTE ═══════════════ */
+V124.reading = () => {
+  const items=S('reading',[]);
+  return {
+    title:'📚 Leseliste',
+    html:`<input class="inp" id="rT" placeholder="Titel..."><input class="inp" id="rA" placeholder="Autor..."><input class="inp" id="rP" type="number" placeholder="Seiten"><button class="btn" id="rAdd">+ Hinzufügen</button><div>${items.map(b=>`<div class="card"><b>${E(b.title)}</b><div class="small">${E(b.author||'')} • ${b.read||0}/${b.total||0} Seiten</div><div class="progress" style="margin-top:6px"><div style="width:${b.total?(b.read||0)/b.total*100:0}%"></div></div><button class="win-btn" data-del="${b.id}" style="margin-top:6px">🗑</button></div>`).join('')||'<div class="empty">Leer</div>'}</div>`,
+    onMount:(w)=>{
+      w.querySelector('#rAdd').onclick=()=>{const t=w.querySelector('#rT').value.trim();if(!t)return;const a=S('reading',[]);a.push({id:U(),title:t,author:w.querySelector('#rA').value,total:+w.querySelector('#rP').value||0,read:0});W('reading',a);REOPEN(w,'reading');};
+      w.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{W('reading',S('reading',[]).filter(x=>x.id!==b.dataset.del));REOPEN(w,'reading');});
+    }
+  };
+};
+
+/* ═══════════════ 29. VOKABELN ═══════════════ */
+V124.vocab = () => {
+  const items=S('vocab',[]);
+  return {
+    title:'📖 Vokabeln',
+    html:`<input class="inp" id="vQ" placeholder="Wort (z.B. Haus)"><input class="inp" id="vA" placeholder="Übersetzung (z.B. house)"><button class="btn" id="vAdd">+ Hinzufügen</button><div>${items.map(v=>`<div class="list-item"><div class="txt"><b>${E(v.q)}</b><div class="sub">${E(v.a)}</div></div><button class="win-btn" data-del="${v.id}">🗑</button></div>`).join('')||'<div class="empty">Leer</div>'}</div>`,
+    onMount:(w)=>{
+      w.querySelector('#vAdd').onclick=()=>{const q=w.querySelector('#vQ').value.trim(),a=w.querySelector('#vA').value.trim();if(!q||!a)return;const arr=S('vocab',[]);arr.push({id:U(),q,a});W('vocab',arr);REOPEN(w,'vocab');};
+      w.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{W('vocab',S('vocab',[]).filter(x=>x.id!==b.dataset.del));REOPEN(w,'vocab');});
+    }
+  };
+};
+
+/* ═══════════════ 30. FLASHCARDS ═══════════════ */
+V124.flash = () => {
+  const items=S('flash',[]);
+  let idx=0, showAnswer=false;
+  const render=()=>{
+    if(!items.length) return '<div class="empty">Keine Karten</div>';
+    const c=items[idx%items.length];
+    return `<div class="centered" style="min-height:180px"><div class="card" style="min-height:140px;display:flex;align-items:center;justify-content:center;width:100%"><div style="font-size:20px;font-weight:600;text-align:center">${E(showAnswer?c.a:c.q)}</div></div><div class="small">${(idx%items.length)+1} / ${items.length}</div><div class="row"><button class="btn ghost" id="fPrev">◀</button><button class="btn" id="fFlip">Flip</button><button class="btn ghost" id="fNext">▶</button></div></div>`;
+  };
+  return {
+    title:'🎴 Flashcards',
+    html:`<div class="row"><input class="inp" id="fcQ" placeholder="Frage"><input class="inp" id="fcA" placeholder="Antwort"></div><button class="btn" id="fcAdd">+ Karte</button><div id="fcBody">${render()}</div>`,
+    onMount:(w)=>{
+      const rebind=()=>{
+        const p=w.querySelector('#fPrev'); if(p)p.onclick=()=>{idx--;showAnswer=false;w.querySelector('#fcBody').innerHTML=render();rebind();};
+        const n=w.querySelector('#fNext'); if(n)n.onclick=()=>{idx++;showAnswer=false;w.querySelector('#fcBody').innerHTML=render();rebind();};
+        const f=w.querySelector('#fFlip'); if(f)f.onclick=()=>{showAnswer=!showAnswer;w.querySelector('#fcBody').innerHTML=render();rebind();};
+      };
+      w.querySelector('#fcAdd').onclick=()=>{const q=w.querySelector('#fcQ').value.trim(),a=w.querySelector('#fcA').value.trim();if(!q||!a)return;const arr=S('flash',[]);arr.push({id:U(),q,a});W('flash',arr);items.push({id:U(),q,a});w.querySelector('#fcQ').value='';w.querySelector('#fcA').value='';w.querySelector('#fcBody').innerHTML=render();rebind();};
+      rebind();
+    }
+  };
+};
+
+/* ═══════════════ 31. PERIODENSYSTEM ═══════════════ */
+V124.ptable = () => {
+  const elements=[
+    [1,'H','Wasserstoff'],[2,'He','Helium'],[3,'Li','Lithium'],[4,'Be','Beryllium'],[5,'B','Bor'],
+    [6,'C','Kohlenstoff'],[7,'N','Stickstoff'],[8,'O','Sauerstoff'],[9,'F','Fluor'],[10,'Ne','Neon'],
+    [11,'Na','Natrium'],[12,'Mg','Magnesium'],[13,'Al','Aluminium'],[14,'Si','Silizium'],[15,'P','Phosphor'],
+    [16,'S','Schwefel'],[17,'Cl','Chlor'],[18,'Ar','Argon'],[19,'K','Kalium'],[20,'Ca','Calcium'],
+    [26,'Fe','Eisen'],[29,'Cu','Kupfer'],[30,'Zn','Zink'],[47,'Ag','Silber'],[79,'Au','Gold']
+  ];
+  return {
+    title:'⚛ Periodensystem',
+    html:`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">${elements.map(e=>`<div class="card" style="padding:8px;text-align:center;cursor:pointer" data-e="${e[0]}"><div style="font-size:16px;font-weight:700;color:var(--accent1)">${e[1]}</div><div style="font-size:9px">${e[0]}</div></div>`).join('')}</div><div id="ptOut" style="margin-top:12px"></div>`,
+    onMount:(w)=>{
+      w.querySelectorAll('[data-e]').forEach(c=>c.onclick=()=>{
+        const n=+c.dataset.e;
+        const el=elements.find(e=>e[0]===n);
+        w.querySelector('#ptOut').innerHTML=`<div class="card center"><h3>${el[1]}</h3><div>${el[2]}</div><div class="small">Atomzahl: ${el[0]}</div></div>`;
+      });
+    }
+  };
+};
+
+/* ═══════════════ 32. MATH SOLVER ═══════════════ */
+V124.math = () => ({
+  title:'📐 Math Solver',
+  html:`<h4>Quadratische Gleichung ax² + bx + c = 0</h4><div class="row"><input class="inp" id="mA" type="number" placeholder="a" value="1"><input class="inp" id="mB" type="number" placeholder="b"><input class="inp" id="mC" type="number" placeholder="c"></div><button class="btn" id="mGo">Lösen</button><div id="mOut" style="margin-top:12px"></div>`,
+  onMount:(w)=>{
+    w.querySelector('#mGo').onclick=()=>{
+      const a=+w.querySelector('#mA').value, b=+w.querySelector('#mB').value, c=+w.querySelector('#mC').value;
+      if(!a) return TOAST('a darf nicht 0 sein');
+      const D=b*b-4*a*c;
+      if(D<0) return w.querySelector('#mOut').innerHTML='<div class="card">Keine reellen Lösungen (D&lt;0)</div>';
+      const x1=(-b+Math.sqrt(D))/(2*a), x2=(-b-Math.sqrt(D))/(2*a);
+      w.querySelector('#mOut').innerHTML=`<div class="card"><div class="kv"><span>Diskriminante</span><span class="v">${D}</span></div><div class="kv"><span>x₁</span><span class="v">${x1.toFixed(4)}</span></div><div class="kv"><span>x₂</span><span class="v">${x2.toFixed(4)}</span></div></div>`;
+    };
+  }
+});
+
+/* ═══════════════ 33. GEO QUIZ ═══════════════ */
+V124.geo = () => {
+  const questions=[
+    {q:'Hauptstadt von Frankreich?',a:['Paris','Lyon','Marseille'],c:0},
+    {q:'Hauptstadt von Japan?',a:['Osaka','Tokyo','Kyoto'],c:1},
+    {q:'Längster Fluss?',a:['Nil','Amazonas','Mississippi'],c:1},
+    {q:'Größtes Land?',a:['China','USA','Russland'],c:2},
+    {q:'Höchster Berg?',a:['K2','Everest','Mont Blanc'],c:1},
+    {q:'Wo liegt Brasilien?',a:['Afrika','Asien','Südamerika'],c:2}
+  ];
+  let idx=0, score=0, done=false;
+  const render=()=>{
+    if(done) return `<div class="centered"><div class="big-icon">${score>=4?'🏆':'📚'}</div><h3>${score}/${questions.length}</h3><button class="btn" id="gReset" style="margin-top:16px">↺ Nochmal</button></div>`;
+    const q=questions[idx];
+    return `<div class="small">Frage ${idx+1}/${questions.length}</div><h3>${q.q}</h3>${q.a.map((a,i)=>`<button class="btn ghost" style="width:100%;margin-bottom:6px;text-align:left" data-i="${i}">${a}</button>`).join('')}`;
+  };
+  return {
+    title:'🌍 Geo Quiz',
+    html:render(),
+    onMount:(w)=>{
+      const rebind=()=>{
+        w.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{if(+b.dataset.i===questions[idx].c)score++;idx++;if(idx>=questions.length)done=true;w.querySelector('.win-body').innerHTML=render();rebind();});
+        const r=w.querySelector('#gReset');if(r)r.onclick=()=>{idx=0;score=0;done=false;w.querySelector('.win-body').innerHTML=render();rebind();};
+      };
+      rebind();
+    }
+  };
+};
+
+/* ═══════════════ 34. ÊZÎDÎ ═══════════════ */
+V124.ezidi = () => ({
+  title:'🦚 Êzîdî Wissen',
+  html:`<div class="centered"><div class="big-icon">🦚</div><h3>Êzîdî Wissen</h3></div><div class="card"><h4>👑 Tawûsê Melek</h4><div class="small">Der Pfauengel – zentrale Figur im Êzîdîtum, Symbol göttlicher Schönheit und Ordnung.</div></div><div class="card"><h4>📜 Heilige Stätten</h4><div class="small">Lalisch (Irak) – Hauptheiligtum<br>Şêxadî – Berg der Êzîden</div></div><div class="card"><h4>📅 Feiertage</h4><div class="small">Çarşema Sor (Neujahr, April)<br>Cejna Êzî (Dezember)<br>Roja Êzîdî</div></div><div class="card"><h4>🗣 Sprachen</h4><div class="small">Kurmancî (Ezdîkî) – Hauptsprache<br>Arabisch, Deutsch als Zweitsprachen</div></div><div class="card"><h4>🍽 Fasten</h4><div class="small">Fastenzeit vor Çarşema Sor<br>Fasten im Winter (Roja Êzîdî)</div></div>`
+});
+
+/* ═══════════════ 35. REZEPT-SCALER ═══════════════ */
+V124.rscale = () => ({
+  title:'⚖ Rezept-Scaler',
+  html:`<input class="inp" id="rsFactor" type="number" value="2" step="0.5" placeholder="Faktor"><textarea class="inp ta" id="rsIn" placeholder="Zutaten (eine pro Zeile):&#10;200 g Mehl&#10;2 Eier&#10;500 ml Milch"></textarea><button class="btn" id="rsGo">Skalieren</button><div id="rsOut" style="margin-top:12px"></div>`,
+  onMount:(w)=>{
+    w.querySelector('#rsGo').onclick=()=>{
+      const f=+w.querySelector('#rsFactor').value;
+      if(!f) return TOAST('Faktor fehlt');
+      const lines=w.querySelector('#rsIn').value.split('\n').filter(l=>l.trim());
+      const out=lines.map(l=>{
+        const m=l.match(/^(\d+(?:[.,]\d+)?)(.*)$/);
+        if(m){const n=parseFloat(m[1].replace(',','.'));return `${(n*f).toFixed(2).replace(/\.?0+$/,'')}${m[2]}`;}
+        return l;
+      }).join('<br>');
+      w.querySelector('#rsOut').innerHTML=`<div class="card"><div style="white-space:pre-wrap">${out}</div></div>`;
+    };
+  }
+});
+
+/* ═══════════════ 36. WLAN ═══════════════ */
+V124.wlan = () => ({
+  title:'📶 WLAN',
+  html:`<div class="kv"><span>Online</span><span class="v">${navigator.onLine?'✅ Ja':'❌ Nein'}</span></div><div class="kv"><span>Verbindungstyp</span><span class="v">${navigator.connection?.type||'?'}</span></div><div class="kv"><span>Effektiv</span><span class="v">${navigator.connection?.effectiveType||'?'}</span></div><div class="kv"><span>Downlink</span><span class="v">${navigator.connection?.downlink||'?'} Mbps</span></div><div class="kv"><span>RTT</span><span class="v">${navigator.connection?.rtt||'?'} ms</span></div><div class="card center" style="margin-top:16px"><div class="small">Hotspot-Verwaltung:</div><button class="btn" onclick="HalDo.util.toast('📶 Hotspot folgt in v125')">📶 Hotspot einrichten</button></div>`
+});
+
+/* ═══════════════ 37. BLUETOOTH ═══════════════ */
+V124.bluetooth = () => ({
+  title:'🔵 Bluetooth',
+  html:`<div class="centered"><div class="big-icon">🔵</div><h3>Bluetooth</h3><div class="small">Geräte in der Nähe finden</div><button class="btn" id="btScan" style="margin-top:16px">🔍 Geräte suchen</button></div><div id="btOut" style="margin-top:12px"></div>`,
+  onMount:(w)=>{
+    w.querySelector('#btScan').onclick=async()=>{
+      if(!navigator.bluetooth) return w.querySelector('#btOut').innerHTML='<div class="empty">❌ Bluetooth API nicht verfügbar (Chrome/Safari)</div>';
+      try{
+        const d=await navigator.bluetooth.requestDevice({acceptAllDevices:true});
+        w.querySelector('#btOut').innerHTML=`<div class="card"><b>${E(d.name||'Unbekannt')}</b><div class="small">ID: ${E(d.id||'?')}</div></div>`;
+      }catch(e){w.querySelector('#btOut').innerHTML='<div class="empty">❌ Abgebrochen oder nicht unterstützt</div>';}
+    };
+  }
+});
+
+/* ═══════════════ 38. ARZTBUCH ═══════════════ */
+V124.doctor = () => ({
+  title:'🩺 Arztbuch',
+  html:`<div class="tabs"><button class="tab active">Dashboard</button><button class="tab">Anatomie</button><button class="tab">KI</button><button class="tab">Medikamente</button></div><div class="card"><h4>❤️ Herz-Kreislauf</h4><div class="small">Blutdruck, Puls, EKG</div></div><div class="card"><h4>🫁 Atmung</h4><div class="small">Lunge, Sauerstoffsättigung</div></div><div class="card"><h4>🧠 Nerven</h4><div class="small">Reflexe, Wahrnehmung</div></div><div class="card"><h4>💊 Medikamente</h4><div class="small">Datenbank durchsuchen</div></div><div class="card"><h4>🩸 Laborwerte</h4><div class="small">Blutbild, Cholesterin</div></div><div class="card"><h4>📋 Patienten</h4><div class="small">Verträge, Pflege, IoT</div></div>`
+});
+
+/* ═══════════════ PATCH OPEN ═══════════════ */
+const orig = HalDo.apps.open;
+HalDo.apps.open = function(id){
+  const f = V124[id];
+  if (f) { const app = f(); HalDo.win.open(id, app.title, app.html, {onMount:app.onMount}); return; }
+  return orig(id);
+};
+
+/* Global API für Kompatibilität */
+Object.keys(V124).forEach(k => { HalDo[k] = { open: () => HalDo.apps.open(k) }; });
+
+/* Log */
+console.log('✅ v124 geladen: ' + Object.keys(V124).length + ' echte Apps');
+
+setTimeout(() => TOAST('✅ v124 geladen: 38 neue Apps'), 1500);
+
+})();
+</script>
+<!-- ============ /v124 PATCH ============ -->
 </body>
 </html>
