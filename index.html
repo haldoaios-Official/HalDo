@@ -1312,5 +1312,200 @@ if (LANGS[savedLang]) { document.documentElement.lang=savedLang; document.docume
 setTimeout(() => HalDo.util.toast('🌌 HalDo v127 • '+Object.keys(APPS).length+' Apps • '+Object.keys(LANGS).length+' Sprachen'), 500);
 console.log('✅ HalDo v127: '+Object.keys(APPS).length+' Apps, '+Object.keys(LANGS).length+' Sprachen');
 </script>
+<!-- ============================================
+     HalDo v127.1 HOTFIX
+     2 Bugs behoben: Dashboard + Registry
+     ============================================ -->
+<script>
+(function(){
+'use strict';
+if (typeof HalDo === 'undefined' || typeof APPS === 'undefined') {
+  console.error('❌ HalDo/APPS fehlt'); return;
+}
+
+/* FIX 1: APPS.dashboard – lang Bug */
+APPS.dashboard = () => {
+  const lang = HalDo.i18n.current();
+  return {
+    title:'🏠 '+HalDo.i18n.t('home'),
+    html:`<div class="centered" style="min-height:auto">
+      <div class="big-icon">🌌</div>
+      <div><b style="font-size:18px;color:var(--accent1)">${HalDo.i18n.t('welcome')}!</b></div>
+      <div class="small">${new Date().toLocaleDateString(lang==='ar'?'ar-SA':'de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+    </div>
+    <div class="grid" style="margin-top:16px">
+      <div class="card"><h4>📝 Notizen</h4><div class="small">${(HalDo.store.get('notes',[])).length}</div></div>
+      <div class="card"><h4>✅ Aufgaben</h4><div class="small">${(HalDo.store.get('tasks',[]).filter(x=>!x.done)).length} offen</div></div>
+      <div class="card"><h4>💭 Journal</h4><div class="small">${(HalDo.store.get('journal',[])).length}</div></div>
+      <div class="card"><h4>🎯 Ziele</h4><div class="small">${(HalDo.store.get('goals',[])).length}</div></div>
+    </div>
+    <h4>Schnellzugriff</h4>
+    <div class="menu-grid">
+      <div class="menu-tile" onclick="HalDo.apps.open('notes')">📝<span class="lbl">Notes</span></div>
+      <div class="menu-tile" onclick="HalDo.apps.open('tasks')">✅<span class="lbl">Tasks</span></div>
+      <div class="menu-tile" onclick="HalDo.apps.open('journal')">💭<span class="lbl">Journal</span></div>
+      <div class="menu-tile" onclick="HalDo.apps.open('weather')">🌤<span class="lbl">Wetter</span></div>
+      <div class="menu-tile" onclick="HalDo.apps.open('calc')">🧮<span class="lbl">Calc</span></div>
+      <div class="menu-tile" onclick="HalDo.apps.open('chat')">💬<span class="lbl">Chat</span></div>
+      <div class="menu-tile" onclick="HalDo.apps.open('fahrschule')">🚗<span class="lbl">Fahrschule</span></div>
+      <div class="menu-tile" onclick="HalDo.apps.open('blitzer')">🚦<span class="lbl">Blitzer</span></div>
+      <div class="menu-tile" onclick="HalDo.apps.open('arztbuch')">🩺<span class="lbl">Arztbuch</span></div>
+      <div class="menu-tile" onclick="HalDo.apps.open('nav')">🧭<span class="lbl">Nav</span></div>
+      <div class="menu-tile" onclick="HalDo.apps.open('settings')">⚙️<span class="lbl">Settings</span></div>
+      <div class="menu-tile" onclick="HalDo.apps.open('registry')">📱<span class="lbl">Apps</span></div>
+    </div>`
+  };
+};
+
+/* FIX 2: empty Translation */
+if (typeof STR !== 'undefined') {
+  STR.de = STR.de||{}; STR.de.empty='Leer';
+  STR.en = STR.en||{}; STR.en.empty='Empty';
+  STR.tr = STR.tr||{}; STR.tr.empty='Boş';
+  STR.ku = STR.ku||{}; STR.ku.empty='Vala';
+  STR.ar = STR.ar||{}; STR.ar.empty='فارغ';
+  STR.ru = STR.ru||{}; STR.ru.empty='Пусто';
+}
+
+/* FIX 3: Registry – Items klickbar + Name→ID Mapping */
+const slugify = (name) => name
+  .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  .toLowerCase()
+  .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')
+  .replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+
+const ALIASES = {
+  'haldo_ai':'chat','assistant':'chat','chat':'chat','voice_ai':'chat',
+  'haldo_chat':'chat','ai':'avatar','ai_writer':'notes','ai_journal':'journal',
+  'ai_tutor':'chat','ai_coach':'chat','ai_health':'health','ai_finance':'finance',
+  'ai_recipes':'recipes','ai_travel':'nav',
+  'fahrschule':'fahrschule',
+  'klasse_a':'fahrschule','klasse_a1':'fahrschule','klasse_a2':'fahrschule',
+  'klasse_am':'fahrschule','klasse_b':'fahrschule','klasse_be':'fahrschule',
+  'klasse_c':'fahrschule','klasse_ce':'fahrschule','klasse_d':'fahrschule',
+  'klasse_de':'fahrschule','klasse_l':'fahrschule','klasse_t':'fahrschule',
+  'theorie':'fahrschule','praxis':'fahrschule','pruefung':'fahrschule',
+  'verkehrszeichen':'fahrschule','fahrstunden':'fahrschule',
+  'blitzer':'blitzer','blitzer_app':'blitzer','traffic':'blitzer',
+  'arztbuch':'arztbuch','doctor':'arztbuch','dashboard':'dashboard',
+  'anatomie':'arztbuch','krankheiten':'arztbuch','medikamente':'arztbuch',
+  'laborwerte':'arztbuch','patienten':'arztbuch','pflege':'arztbuch',
+  'notfall':'emergency','iot':'arztbuch',
+  'gesundheit':'health','health':'health','symptom':'health',
+  'diat':'health','fitness':'workout','workout':'workout',
+  'schlaf':'sleep','sleep':'sleep','stress':'breathing','breathing':'breathing',
+  'meditation':'breathing','yoga':'workout','zahn':'arztbuch','augen':'arztbuch',
+  'herz':'arztbuch','diabetes':'arztbuch','allergie':'arztbuch','impfung':'arztbuch',
+  'navigation':'nav','nav':'nav','karten':'nav','reisen':'nav',
+  'packing':'tasks','tickets':'bookmarks','bahn':'nav','bus':'nav',
+  'auto':'nav','fahrrad':'nav','fluege':'bookmarks','hotels':'bookmarks',
+  'settings':'settings','einstellungen':'settings','system':'settings',
+  'update':'settings','reset':'settings','export':'files','import':'files',
+  'backup':'files','info':'info','statistik':'statistics',
+  'logs':'network','konsole':'network','speicher':'files',
+  'akku':'device','display':'device','toene':'settings','sprache':'settings',
+  'netzwerk':'network','network':'network','geraet':'device','device':'device',
+  'clipboard':'notes','files':'files','ordner':'files','desktop':'files',
+  'taskbar':'files','start':'dashboard','suche':'registry','windows':'files',
+  'wetter':'weather','weather':'weather','notizen':'notes','notes':'notes',
+  'sticky':'notes','journal':'journal','tagebuch':'journal',
+  'checkliste':'tasks','todo':'tasks','ideen':'notes','zitate':'notes',
+  'skizzen':'notes','text':'notes','aufgaben':'tasks','tasks':'tasks',
+  'ziele':'goals','goals':'goals','traeume':'dashboard','mood':'mood',
+  'habits':'habits','dankbarkeit':'journal','bucket':'goals','vision':'goals',
+  'rechner':'calc','calc':'calc','calculator':'calc','taschenrechner':'calc',
+  'timer':'timer','uhr':'worldclock','worldclock':'worldclock','zeit':'worldclock',
+  'finanzen':'finance','finance':'finance','budget':'finance',
+  'ausgaben':'finance','einnahmen':'finance','kredit':'loan','loan':'loan',
+  'sparen':'finance','aktien':'finance','krypto':'finance','steuer':'finance',
+  'rechnung':'finance','iban':'finance','versicherung':'finance','rente':'finance',
+  'passwort':'password','password':'password',
+  'uebersetzer':'translator','translator':'translator','sprachen':'translator',
+  'waehrung':'currency','currency':'currency',
+  'umrechner':'converter','converter':'converter','einheiten':'converter',
+  'kontakte':'contacts','contacts':'contacts','rezepte':'recipes','recipes':'recipes',
+  'einkauf':'shopping','shopping':'shopping','zufall':'random','random':'random',
+  'statistics':'statistics','emergency':'emergency','water':'water','wasser':'water',
+  'atmen':'breathing','qr':'qr','qrcode':'qr',
+  'ezidi':'ezidi','ezidi_wissen':'ezidi',
+  'musik':'music','music':'music','video':'music','foto':'music','podcast':'music',
+  'radio':'music','tv':'music','streaming':'music','player':'music','galerie':'music',
+  'kamera':'camera','camera':'camera','voice':'voice','speech':'voice',
+  'memos':'voice','tts':'voice','stt':'voice',
+  'mathe':'math','math':'math','algebra':'math','geometrie':'math','analysis':'math',
+  'trigonometrie':'math','stochastik':'math','statistik_2':'statistics',
+  'periodensystem':'ptable','chemie':'ptable','physik':'science','science':'science',
+  'wissen':'info','enzyklopaedie':'info','wikipedia':'info','lexikon':'info',
+  'woerterbuch':'translator','fakten':'info','rekorde':'info',
+  'laender':'info','staedte':'info','kultur':'ezidi','religion':'ezidi',
+  'islam':'ezidi','christentum':'ezidi','judentum':'ezidi',
+  'buddhismus':'ezidi','philosophie':'ezidi',
+  'kalender':'calendar','calendar':'calendar','termine':'calendar',
+  'erinnerungen':'reminders','reminders':'reminders',
+  'gewohnheiten':'habits','pomodoro':'pomodoro',
+  'flashcards':'flash','flash':'flash','vocab':'vocab','vokabeln':'vocab',
+  'bookmarks':'bookmarks','lesezeichen':'bookmarks',
+  'reading':'reading','leseliste':'reading',
+  'app_registry':'registry','registry':'registry','apps':'registry',
+  'haldo_arztbuch':'arztbuch','haldo_blitzer':'blitzer',
+  'haldo_fahrschule':'fahrschule','haldo_navigation':'nav',
+  'sicherheit':'settings','passwort_generator':'password','2fa':'password',
+  'vpn':'password','verschluesselung':'password','antivirus':'password',
+  'firewall':'password','privacy':'settings'
+};
+
+const nameToId = (name) => {
+  const slug = slugify(name);
+  if (APPS[slug]) return slug;
+  if (ALIASES[slug]) return ALIASES[slug];
+  return slug;
+};
+
+/* Patch Registry */
+APPS.registry = () => {
+  const letters = Object.keys(REGISTRY);
+  let activeLetter = letters[0];
+  const render = () => `
+    <div class="tabs">${letters.map(l=>`<button class="tab ${l===activeLetter?'active':''}" data-l="${l}">${l}</button>`).join('')}</div>
+    <div class="small" style="margin-bottom:8px">${REGISTRY[activeLetter].length} Apps • Total 375</div>
+    <div>${REGISTRY[activeLetter].map(n=>{
+      const id = nameToId(n);
+      const avail = APPS[id] ? '' : ' <span style="font-size:9px;color:var(--c-dim)">(bald)</span>';
+      return `<div class="list-item" style="cursor:pointer" data-open="${id}"><div class="txt">${n}${avail}</div><div style="color:var(--accent1);font-weight:700">→</div></div>`;
+    }).join('')}</div>`;
+  return {
+    title:'📱 '+HalDo.i18n.t('apps'),
+    html:render(),
+    onMount:(w)=>{
+      const rb = () => {
+        w.querySelectorAll('.tab').forEach(x=>x.onclick=()=>{
+          activeLetter=x.dataset.l;
+          w.querySelector('.win-body').innerHTML=render();
+          rb();
+        });
+        w.querySelectorAll('[data-open]').forEach(item => {
+          item.onclick = () => {
+            const id = item.dataset.open;
+            if (APPS[id]) {
+              HalDo.apps.open(id);
+            } else {
+              HalDo.util.toast('🔧 '+item.querySelector('.txt').textContent.replace(' (bald)','').trim()+' – Modul folgt in v128');
+            }
+          };
+        });
+      };
+      rb();
+    }
+  };
+};
+
+/* Re-register global aliases */
+Object.keys(APPS).forEach(k => { HalDo[k] = {open:() => HalDo.apps.open(k)}; });
+
+console.log('✅ v127.1 HOTFIX: '+Object.keys(APPS).length+' Apps • '+Object.keys(ALIASES).length+' Aliases');
+setTimeout(()=>{ if(HalDo.util&&HalDo.util.toast) HalDo.util.toast('✅ v127.1 – Bugfix aktiv'); }, 800);
+})();
+</script>
+<!-- ============ /v127.1 HOTFIX ============ -->
 </body>
 </html>
