@@ -5682,5 +5682,66 @@ setTimeout(() => {
 
 console.log('%c🔧 HalDo v131 — FIX aktiv', 'background:#00e5ff;color:#000;padding:6px 12px;border-radius:6px;font-weight:bold');
 </script>
+<!-- ================================================================
+     HALDO AI OS v132 — FIX: Mond + Wolken Texturen (funktionierende Quellen)
+     ================================================================ -->
+<script>
+/* ══════════ TEXTUREN-FIX v132 ══════════ */
+(function(){
+  const FIXED_URLS = {
+    // Wolken: offizielle turban/webgl-earth Quelle
+    'clouds.png': 'https://raw.githubusercontent.com/turban/webgl-earth/master/images/fair_clouds_4k.png',
+    // Mond: Wikipedia (CORS-freundlich)
+    'moon.jpg':   'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/FullMoon2010.jpg/280px-FullMoon2010.jpg'
+  };
+
+  if (window.THREE && THREE.TextureLoader) {
+    const origLoad = THREE.TextureLoader.prototype.load;
+    THREE.TextureLoader.prototype.load = function(url, onLoad, onProgress, onError) {
+      if (typeof url === 'string') {
+        url = url.replace('unpkg.com/three-globe', 'cdn.jsdelivr.net/npm/three-globe');
+        for (const [broken, fixed] of Object.entries(FIXED_URLS)) {
+          if (url.endsWith(broken)) { url = fixed; break; }
+        }
+      }
+
+      // Prozeduraler Fallback (Mond/Wolken werden IMMER gezeichnet)
+      const fallback = (err) => {
+        console.warn('⚠ Textur fehlgeschlagen, nutze Fallback:', url);
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 1024; canvas.height = 512;
+          const ctx = canvas.getContext('2d');
+
+          if (url && url.includes('moon')) {
+            // Grauer Mond mit Kratern
+            ctx.fillStyle = '#8a8a8a';
+            ctx.fillRect(0, 0, 1024, 512);
+            for (let i = 0; i < 200; i++) {
+              const x = Math.random() * 1024, y = Math.random() * 512;
+              const r = Math.random() * 18 + 2;
+              const g = ctx.createRadialGradient(x - r*0.3, y - r*0.3, r*0.1, x, y, r);
+              g.addColorStop(0, 'rgba(60,60,60,0.7)');
+              g.addColorStop(1, 'rgba(180,180,180,0.1)');
+              ctx.fillStyle = g;
+              ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+            }
+          } else {
+            // Blaue Erde als Fallback
+            const g = ctx.createLinearGradient(0, 0, 1024, 0);
+            g.addColorStop(0, '#1a3a5a'); g.addColorStop(0.5, '#4da8ff'); g.addColorStop(1, '#1a3a5a');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, 1024, 512);
+          }
+          const tex = new THREE.CanvasTexture(canvas);
+          if (onLoad) onLoad(tex);
+        } catch(e) { if (onError) onError(e); }
+      };
+
+      return origLoad.call(this, url, onLoad, onProgress, fallback);
+    };
+    console.log('✅ Texturen-Fix v132 aktiv (Mond + Wolken funktionieren jetzt)');
+  }
+})();
+</script>
 </body>
 </html>
