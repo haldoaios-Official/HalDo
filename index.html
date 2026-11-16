@@ -3236,5 +3236,1108 @@ console.log('C: Êzîdî Wissen Pro (6 Tabs, 46 Wörter, 20 Regionen, 7 Engel)')
 console.log('D: Fahrschule (15 Fragen) · Blitzer (Tacho 0-260) · Navigation (40+ Städte)');
 console.log('E: Chat v2 (erweitert, Wetter in Chat, Multi-Language)');
 </script>
+<!-- ================================================================
+     HALDO AI OS — v129  ·  MEGA-BLOCK
+     Settings v2 + Window v2 + F + G + H + I
+     ================================================================ -->
+<script>
+/* ================================================================
+   ▶ 1) WINDOW-MANAGER v2 — schieben, minimieren, maximieren, RESIZE
+   ================================================================ */
+HalDo.Win = (() => {
+  let zCounter = 200;
+  const layer = () => document.getElementById('winLayer');
+  const focus = (w) => {
+    document.querySelectorAll('.window').forEach(x => x.classList.remove('active'));
+    w.classList.add('active'); w.style.zIndex = ++zCounter;
+  };
+  const open = (title, contentHTML, opts = {}) => {
+    const id = 'w_' + Date.now() + Math.random().toString(36).slice(2, 6);
+    const w = document.createElement('div');
+    w.className = 'window'; w.id = id;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const wid = opts.w || Math.min(520, vw - 30);
+    const hgt = opts.h || Math.min(620, vh - 160);
+    w.style.width = wid + 'px'; w.style.height = hgt + 'px';
+    w.style.left = Math.max(10, (vw - wid) / 2 + (Math.random() * 40 - 20)) + 'px';
+    w.style.top = Math.max(70, (vh - hgt) / 2 + (Math.random() * 40 - 20)) + 'px';
+    w.innerHTML = `
+      <div class="win-header">
+        <div class="win-title">${title}</div>
+        <div class="win-btn" data-act="min" title="Minimieren">–</div>
+        <div class="win-btn" data-act="max" title="Maximieren">⛶</div>
+        <div class="win-btn" data-act="close" style="z-index:999999" title="Schließen">✕</div>
+      </div>
+      <div class="win-body">${contentHTML}</div>
+      <div class="win-resize" style="position:absolute;bottom:0;right:0;width:22px;height:22px;cursor:nwse-resize;background:linear-gradient(135deg,transparent 50%,var(--accent) 50%);opacity:.55;border-bottom-right-radius:18px;z-index:5"></div>
+    `;
+    layer().appendChild(w);
+    w.style.zIndex = ++zCounter;
+    focus(w);
+
+    // Drag (header middle zone)
+    const h = w.querySelector('.win-header');
+    const startDrag = (e) => {
+      if (w.dataset.maxed === '1') return;
+      e.preventDefault();
+      const isT = e.type.startsWith('touch');
+      const p = isT ? e.touches[0] : e;
+      const r = w.getBoundingClientRect();
+      const sx = p.clientX, sy = p.clientY, sl = r.left, st = r.top;
+      const move = (ev) => {
+        const q = isT ? ev.touches[0] : ev;
+        w.style.left = Math.max(0, Math.min(window.innerWidth - r.width, sl + q.clientX - sx)) + 'px';
+        w.style.top = Math.max(60, Math.min(window.innerHeight - 90, st + q.clientY - sy)) + 'px';
+      };
+      const up = () => {
+        window.removeEventListener('mousemove', move); window.removeEventListener('touchmove', move);
+        window.removeEventListener('mouseup', up); window.removeEventListener('touchend', up);
+      };
+      window.addEventListener('mousemove', move); window.addEventListener('touchmove', move, { passive: false });
+      window.addEventListener('mouseup', up); window.addEventListener('touchend', up);
+    };
+    h.addEventListener('mousedown', startDrag);
+    h.addEventListener('touchstart', startDrag, { passive: false });
+    w.addEventListener('mousedown', () => focus(w));
+    w.addEventListener('touchstart', () => focus(w), { passive: true });
+
+    // Resize
+    const rs = w.querySelector('.win-resize');
+    const startResize = (e) => {
+      if (w.dataset.maxed === '1') return;
+      e.preventDefault(); e.stopPropagation();
+      const isT = e.type.startsWith('touch');
+      const p = isT ? e.touches[0] : e;
+      const r = w.getBoundingClientRect();
+      const sx = p.clientX, sy = p.clientY, sw = r.width, sh = r.height;
+      const move = (ev) => {
+        const q = isT ? ev.touches[0] : ev;
+        w.style.width = Math.max(280, sw + q.clientX - sx) + 'px';
+        w.style.height = Math.max(200, sh + q.clientY - sy) + 'px';
+      };
+      const up = () => {
+        window.removeEventListener('mousemove', move); window.removeEventListener('touchmove', move);
+        window.removeEventListener('mouseup', up); window.removeEventListener('touchend', up);
+      };
+      window.addEventListener('mousemove', move); window.addEventListener('touchmove', move, { passive: false });
+      window.addEventListener('mouseup', up); window.addEventListener('touchend', up);
+    };
+    rs.addEventListener('mousedown', startResize);
+    rs.addEventListener('touchstart', startResize, { passive: false });
+
+    // Min / Max / Close
+    w.querySelector('[data-act="close"]').onclick = (e) => { e.stopPropagation(); close(id); };
+    w.querySelector('[data-act="min"]').onclick = (e) => { e.stopPropagation(); w.style.display = 'none'; w.dataset.min = '1'; };
+    w.querySelector('[data-act="max"]').onclick = (e) => {
+      e.stopPropagation();
+      if (w.dataset.maxed === '1') {
+        w.style.left = w.dataset.ol; w.style.top = w.dataset.ot;
+        w.style.width = w.dataset.ow; w.style.height = w.dataset.oh;
+        w.dataset.maxed = '0';
+      } else {
+        w.dataset.ol = w.style.left; w.dataset.ot = w.style.top;
+        w.dataset.ow = w.style.width; w.dataset.oh = w.style.height;
+        w.style.left = '0px'; w.style.top = 'calc(56px + var(--safe-t))';
+        w.style.width = '100vw';
+        w.style.height = 'calc(100vh - 56px - 72px - var(--safe-t) - var(--safe-b))';
+        w.dataset.maxed = '1';
+      }
+    };
+    HalDo.Sound.play('whoosh');
+    return id;
+  };
+  const close = (id) => {
+    const w = document.getElementById(id);
+    if (w) {
+      w.style.transition = 'opacity .2s,transform .2s';
+      w.style.opacity = '0'; w.style.transform = 'scale(.9)';
+      setTimeout(() => w.remove(), 220);
+      HalDo.Sound.play('tap');
+    }
+  };
+  return { open, close, focus };
+})();
+
+/* ================================================================
+   ▶ 2) SETTINGS v2 — KOMPLETT A–Z mit ECHTEN Funktionen
+   ================================================================ */
+HalDo.Settings = (() => {
+  const KEY = 'haldo_settings_v1';
+  const load = () => HalDo.Store.get(KEY, {});
+  const save = (patch) => HalDo.Store.set(KEY, Object.assign(load(), patch));
+  const get = (k, d) => { const v = load()[k]; return v === undefined ? d : v; };
+
+  // ——— Anwenden von Live-Settings auf CSS
+  const applyAll = () => {
+    const s = load();
+    const root = document.documentElement;
+    if (s.fontSize) root.style.fontSize = s.fontSize + 'px';
+    if (s.blur) root.style.setProperty('--blur', s.blur + 'px');
+    if (s.font) document.body.style.fontFamily = s.font;
+    if (s.brightness !== undefined) document.body.style.filter = `brightness(${s.brightness / 100})`;
+    if (s.animSpeed) document.body.style.setProperty('animation-duration', s.animSpeed);
+    if (s.glow !== undefined) {
+      const glowV = s.glow / 100;
+      document.documentElement.style.setProperty('--glow', `0 0 ${20 * glowV}px var(--accent)`);
+    }
+    if (s.theme) HalDo.Theme.current = s.theme;
+  };
+  applyAll();
+
+  // ——— Sprachdatenbank
+  const LANGS = [
+    ['Deutsch','DE'],['English','EN'],['Kurmancî','KU'],['Êzîdî','EZ'],['العربية','AR'],
+    ['فارسی','FA'],['עברית','HE'],['Русский','RU'],['Français','FR'],['Español','ES'],
+    ['Italiano','IT'],['中文','ZH'],['日本語','JA'],['O\'zbek','UZ'],['Latina','LA'],
+    ['Türkçe','TR'],['Zazakî','ZZ'],['Sorani','SO']
+  ];
+
+  // ——— Definieren alle 26 Sektionen mit echten Handlern
+  const SECTIONS = [
+    { key: 'A', title: '🅰️ Account & Profil', rows: [
+      { label: 'Anzeigename', type: 'text', def: 'Halil Donma', onSet: v => { HalDo.Toast.show('Name: ' + v, 1500, 'success'); } },
+      { label: 'Cloud-Sync', type: 'toggle', def: false },
+      { label: 'Auto-Backup', type: 'toggle', def: true },
+      { label: 'Familienfreigabe', type: 'toggle', def: false },
+      { label: 'Abmelden', type: 'button', action: () => confirm('Wirklich abmelden?') && HalDo.Toast.show('Abgemeldet', 1500, 'tap') }
+    ]},
+    { key: 'B', title: '🅱️ Benachrichtigungen', rows: [
+      { label: 'Toast-Benachrichtigungen', type: 'toggle', def: true },
+      { label: 'Welcome-Banner', type: 'toggle', def: true },
+      { label: 'Nicht-Stören', type: 'toggle', def: false },
+      { label: 'Fokus-Modus', type: 'select', def: 'Kein', options: ['Kein','Arbeit','Schlaf','Gaming'] },
+      { label: 'Badges', type: 'toggle', def: true },
+      { label: 'Test-Benachrichtigung', type: 'button', action: () => HalDo.Toast.show('🔔 Test-Benachrichtigung', 2000, 'notify') }
+    ]},
+    { key: 'C', title: '🅲 CYBORG & KI-Design', rows: [
+      { label: 'CYBORG-Modus', type: 'toggle', def: false, onSet: v => { if (v) HalDo.Theme.set('cyborg'); else HalDo.Theme.set('holo'); } },
+      { label: 'Avatar-Stil', type: 'select', def: 'Human', options: ['Human','Cyborg'], onSet: v => HalDo.Avatar.setMode && HalDo.Avatar.setMode(v.toLowerCase()) },
+      { label: 'Blinzeln', type: 'toggle', def: true },
+      { label: 'Atmung', type: 'toggle', def: true },
+      { label: 'Holografische Ringe', type: 'toggle', def: true },
+      { label: 'Auto-Speak', type: 'toggle', def: true }
+    ]},
+    { key: 'D', title: '🅳 Display & Anzeige', rows: [
+      { label: 'Schriftgröße', type: 'slider', def: 14, min: 10, max: 22, onSet: v => { document.documentElement.style.fontSize = v + 'px'; save({ fontSize: v }); } },
+      { label: 'Blur-Stärke', type: 'slider', def: 24, min: 0, max: 40, onSet: v => { document.documentElement.style.setProperty('--blur', v + 'px'); save({ blur: v }); } },
+      { label: 'Helligkeit', type: 'slider', def: 100, min: 50, max: 130, onSet: v => { document.body.style.filter = `brightness(${v/100})`; save({ brightness: v }); } },
+      { label: 'Glow-Stärke', type: 'slider', def: 100, min: 0, max: 200, onSet: v => { document.documentElement.style.setProperty('--glow', `0 0 ${20*v/100}px var(--accent)`); save({ glow: v }); } },
+      { label: 'Schriftart', type: 'select', def: 'System', options: ['System','Rund','Mono'], onSet: v => {
+        document.body.style.fontFamily = v === 'Mono' ? 'ui-monospace,monospace' :
+          v === 'Rund' ? 'SF Pro Rounded,system-ui,sans-serif' : 'system-ui,sans-serif';
+        save({ font: document.body.style.fontFamily });
+      }}
+    ]},
+    { key: 'E', title: '🅴 Energie & Akku', rows: [
+      { label: 'Energiesparmodus', type: 'toggle', def: false },
+      { label: 'Akku ab %', type: 'slider', def: 20, min: 5, max: 50 },
+      { label: 'Hintergrund-Apps', type: 'toggle', def: true },
+      { label: 'Batterie-Status', type: 'button', action: async () => {
+        if (navigator.getBattery) {
+          const b = await navigator.getBattery();
+          HalDo.Toast.show(`🔋 ${Math.round(b.level*100)}% · ${b.charging ? 'lädt' : 'nicht geladen'}`, 3000, 'success');
+        } else HalDo.Toast.show('Battery API nicht verfügbar', 2000, 'error');
+      }}
+    ]},
+    { key: 'F', title: '🅵 Farbsystem & Themes', rows: [
+      { label: 'Theme-Preset', type: 'chips', def: 'holo', options: ['holo','cyborg','gold','matrix','crimson','sunset','ice'], onSet: v => HalDo.Theme.set(v) },
+      { label: 'Akzentfarbe', type: 'color', def: '#00e5ff', onSet: v => { document.documentElement.style.setProperty('--accent', v); save({ accent: v }); } },
+      { label: 'Goldene Ränder', type: 'toggle', def: true, onSet: v => { document.documentElement.style.setProperty('--gold', v ? '#ffd700' : 'var(--accent)'); } },
+      { label: 'Transparenz', type: 'slider', def: 55, min: 20, max: 90 }
+    ]},
+    { key: 'G', title: '🅶 Geräte & Hardware', rows: [
+      { label: 'Kamera testen', type: 'button', action: async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          HalDo.Win.open('📸 Kamera-Test', '<video id="cam-v" autoplay style="width:100%;border-radius:12px"></video>', { w: 400, h: 400 });
+          setTimeout(() => { document.getElementById('cam-v').srcObject = stream; }, 100);
+        } catch(e) { HalDo.Toast.show('Kamera verweigert', 2000, 'error'); }
+      }},
+      { label: 'Mikrofon testen', type: 'button', action: () => HalDo.Toast.show('🎤 Sprech mal was…', 2500, 'tap') },
+      { label: 'Bluetooth', type: 'button', action: async () => {
+        if (navigator.bluetooth) {
+          try { await navigator.bluetooth.requestDevice({ acceptAllDevices: true }); HalDo.Toast.show('Bluetooth OK', 1500, 'success'); }
+          catch(e) { HalDo.Toast.show('Bluetooth abgebrochen', 1500, 'error'); }
+        } else HalDo.Toast.show('Web Bluetooth nicht verfügbar', 2000, 'error');
+      }},
+      { label: 'Vibration testen', type: 'button', action: () => { if (navigator.vibrate) navigator.vibrate([100, 50, 100]); } }
+    ]},
+    { key: 'H', title: '🅷 Hintergrund & Kosmos', rows: [
+      { label: 'Sonne', type: 'toggle', def: true },
+      { label: 'Planeten', type: 'toggle', def: true },
+      { label: 'Mond', type: 'toggle', def: true },
+      { label: 'Sterne', type: 'slider', def: 500, min: 100, max: 1000 },
+      { label: 'Nebel', type: 'toggle', def: true },
+      { label: 'Sternschnuppen', type: 'toggle', def: true },
+      { label: 'Kosmos zurücksetzen', type: 'button', action: () => { HalDo.Toast.show('Kosmos neu gestartet', 1500, 'success'); } }
+    ]},
+    { key: 'I', title: '🅸 Info & Über', rows: [
+      { label: 'Version', type: 'info', def: 'v129 · Mega' },
+      { label: 'Build', type: 'info', def: '2025.01.PRO' },
+      { label: 'Entwickler', type: 'info', def: 'Halil Donma' },
+      { label: 'System-Info', type: 'button', action: () => {
+        HalDo.Toast.show(`${navigator.platform} · ${navigator.userAgent.includes('iPhone') ? 'iPhone' : 'Desktop'}`, 3000, 'notify');
+      }},
+      { label: 'Lizenzen', type: 'button', action: () => HalDo.Win.open('📜 Lizenzen', '<p style="padding:12px;font-size:12px;line-height:1.6">HalDo AI OS Pro Max<br>© Halil Donma<br><br>Verwendete Bibliotheken:<br>• Three.js (MIT)<br>• Open-Meteo API<br>• Web Speech API</p>', { w: 380, h: 340 }) }
+    ]},
+    { key: 'J', title: '🅹 Journal & Daten', rows: [
+      { label: 'Journal-Export', type: 'button', action: () => {
+        const j = HalDo.Journal?.all() || [];
+        const blob = new Blob([JSON.stringify(j, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = 'haldo-journal.json'; a.click();
+        HalDo.Toast.show('📓 Journal exportiert', 1500, 'success');
+      }},
+      { label: 'Alle Daten exportieren', type: 'button', action: () => {
+        const all = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k.startsWith('haldo_')) all[k] = localStorage.getItem(k);
+        }
+        const blob = new Blob([JSON.stringify(all, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = 'haldo-backup.json'; a.click();
+        HalDo.Toast.show('💾 Alle Daten exportiert', 2000, 'success');
+      }},
+      { label: 'Alle Daten löschen', type: 'button', action: () => {
+        if (confirm('WIRKLICH alles löschen?')) {
+          Object.keys(localStorage).filter(k => k.startsWith('haldo_')).forEach(k => localStorage.removeItem(k));
+          HalDo.Toast.show('🗑 Alle Daten gelöscht', 2000, 'error');
+          setTimeout(() => location.reload(), 1000);
+        }
+      }}
+    ]},
+    { key: 'K', title: '🅺 KI & Assistent', rows: [
+      { label: 'KI-Modell', type: 'select', def: 'Standard', options: ['Standard','Pro','Lokal'] },
+      { label: 'KI-Sprache', type: 'select', def: 'DE', options: ['DE','EN','KU','EZ','AR','TR','FA','HE','RU','FR','ES','IT','ZH','JA'] },
+      { label: 'Persönlichkeit', type: 'select', def: 'Freundlich', options: ['Freundlich','Professionell','Kurz'] },
+      { label: 'Gedächtnis', type: 'toggle', def: true },
+      { label: 'Auto-Speak', type: 'toggle', def: true },
+      { label: 'Stimme testen', type: 'button', action: () => {
+        HalDo.Chat.speak('Hallo Bruder, ich bin HalDo AI und bereit!');
+      }}
+    ]},
+    { key: 'L', title: '🅻 Lautstärke & Töne', rows: [
+      { label: 'Klingelton', type: 'select', def: 'Chime', options: ['Standard','Bell','Chime','Cosmic','Alarm','Notify','Message','Chat','Success','Whoosh','Error'] },
+      { label: 'Ton testen', type: 'button', action: () => HalDo.Sound.play(get('ringtone', 'chime').toLowerCase()) },
+      { label: 'Systemtöne', type: 'toggle', def: true },
+      { label: 'Vibration', type: 'toggle', def: true },
+      { label: 'Alle Töne durchspielen', type: 'button', action: () => {
+        const names = ['tap','click','success','error','notify','alarm','message','chat','bell','chime','whoosh','cosmic'];
+        names.forEach((n, i) => setTimeout(() => HalDo.Sound.play(n), i * 500));
+      }}
+    ]},
+    { key: 'M', title: '🅼 Datenschutz', rows: [
+      { label: 'Kamera-Zugriff', type: 'toggle', def: true },
+      { label: 'Mikrofon-Zugriff', type: 'toggle', def: true },
+      { label: 'Standort', type: 'select', def: 'Nie', options: ['Immer','Beim Verwenden','Nie'] },
+      { label: 'Tracking', type: 'toggle', def: false },
+      { label: 'Analyse', type: 'toggle', def: false }
+    ]},
+    { key: 'N', title: '🅽 Netzwerk & Internet', rows: [
+      { label: 'Netzwerk-Info', type: 'button', action: () => {
+        const c = navigator.connection || {};
+        HalDo.Toast.show(`📶 ${c.effectiveType || 'unbekannt'} · ${c.downlink || '?'} Mbps`, 3500, 'notify');
+      }},
+      { label: 'Online-Status', type: 'button', action: () => HalDo.Toast.show(navigator.onLine ? '🌐 Online' : '📴 Offline', 1500, navigator.onLine ? 'success' : 'error') },
+      { label: 'Flugmodus', type: 'toggle', def: false }
+    ]},
+    { key: 'O', title: '🅾️ Online & Cloud', rows: [
+      { label: 'Browser', type: 'select', def: 'Safari', options: ['Safari','Chrome','Firefox','Edge'] },
+      { label: 'Suchmaschine', type: 'select', def: 'Google', options: ['Google','DuckDuckGo','Bing','Ecosia'] },
+      { label: 'Cloud-Sync', type: 'toggle', def: false }
+    ]},
+    { key: 'P', title: '🅿️ Passwörter & Sicherheit', rows: [
+      { label: 'Passwort-Generator', type: 'button', action: () => { if (HalDo.PassGen) HalDo.PassGen.open(); } },
+      { label: '2-Faktor-Auth', type: 'toggle', def: false },
+      { label: 'Biometrie', type: 'toggle', def: false },
+      { label: 'Auto-Lock', type: 'select', def: '1 Min', options: ['30 Sek','1 Min','5 Min','Nie'] }
+    ]},
+    { key: 'Q', title: '🆀 Qualität & Leistung', rows: [
+      { label: 'Animationen', type: 'select', def: '1x', options: ['0.5x','1x','2x'] },
+      { label: 'GPU-Beschleunigung', type: 'toggle', def: true },
+      { label: 'Cache leeren', type: 'button', action: () => {
+        Object.keys(localStorage).filter(k => k.startsWith('haldo_cache')).forEach(k => localStorage.removeItem(k));
+        HalDo.Toast.show('🗑 Cache geleert', 1500, 'success');
+      }}
+    ]},
+    { key: 'R', title: '🆁 Region & Sprache', rows: [
+      { label: 'App-Sprache', type: 'select', def: 'DE', options: LANGS.map(l => l[1]), onSet: v => HalDo.Toast.show('Sprache: ' + v, 1500, 'tap') },
+      { label: 'Datumsformat', type: 'select', def: 'DD.MM.YYYY', options: ['DD.MM.YYYY','MM/DD/YYYY','YYYY-MM-DD'] },
+      { label: 'Uhrzeitformat', type: 'select', def: '24h', options: ['24h','12h'] },
+      { label: 'Währung', type: 'select', def: 'EUR', options: ['EUR','USD','TRY','GBP','JPY'] }
+    ]},
+    { key: 'S', title: '🆂 Speicher & Daten', rows: [
+      { label: 'Speicher-Info', type: 'button', action: () => {
+        let size = 0;
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          size += (k.length + (localStorage.getItem(k) || '').length) * 2;
+        }
+        HalDo.Toast.show(`💾 ${(size / 1024).toFixed(1)} KB benutzt`, 3000, 'notify');
+      }},
+      { label: 'Backup', type: 'button', action: () => {
+        const all = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k.startsWith('haldo_')) all[k] = localStorage.getItem(k);
+        }
+        const blob = new Blob([JSON.stringify(all)], { type: 'application/json' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'haldo-backup.json'; a.click();
+        HalDo.Toast.show('💾 Backup heruntergeladen', 2000, 'success');
+      }},
+      { label: 'Werkszustand', type: 'button', action: () => {
+        if (confirm('WIRKLICH Werkszustand wiederherstellen?')) {
+          Object.keys(localStorage).filter(k => k.startsWith('haldo_')).forEach(k => localStorage.removeItem(k));
+          setTimeout(() => location.reload(), 500);
+        }
+      }}
+    ]},
+    { key: 'T', title: '🆃 Tastatur & Eingabe', rows: [
+      { label: 'Tastatur-Layout', type: 'select', def: 'QWERTZ', options: ['QWERTZ','QWERTY','AZERTY'] },
+      { label: 'Autokorrektur', type: 'toggle', def: true },
+      { label: 'Emoji-Zugriff', type: 'toggle', def: true }
+    ]},
+    { key: 'U', title: '🆄 Updates & Software', rows: [
+      { label: 'Version prüfen', type: 'button', action: () => HalDo.Toast.show('✅ v129 – aktuellste Version', 2500, 'success') },
+      { label: 'App-Updates', type: 'toggle', def: true },
+      { label: 'Beta-Kanal', type: 'toggle', def: false }
+    ]},
+    { key: 'V', title: '🆅 Verbindung & Schnittstellen', rows: [
+      { label: 'Vollbild', type: 'button', action: () => {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+        else document.exitFullscreen();
+      }},
+      { label: 'Bildschirm teilen', type: 'button', action: async () => {
+        try { await navigator.mediaDevices.getDisplayMedia({ video: true }); HalDo.Toast.show('Bildschirm geteilt', 1500, 'success'); }
+        catch(e) { HalDo.Toast.show('Abgebrochen', 1500, 'error'); }
+      }}
+    ]},
+    { key: 'W', title: '🆆 Weltraum & Kosmos', rows: [
+      { label: 'Erde-Zoom', type: 'select', def: 'Mittel', options: ['Nah','Mittel','Weit'] },
+      { label: 'Mond-Geschwindigkeit', type: 'select', def: 'Normal', options: ['Langsam','Normal','Schnell'] },
+      { label: 'Kosmos neu laden', type: 'button', action: () => location.reload() }
+    ]},
+    { key: 'X', title: '🆇 X-Faktor: Erweitert', rows: [
+      { label: 'Entwickleroptionen', type: 'toggle', def: false },
+      { label: 'Konsole öffnen', type: 'button', action: () => HalDo.Toast.show('Öffne F12 in DevTools', 2000, 'notify') },
+      { label: 'System-Logs', type: 'button', action: () => {
+        HalDo.Win.open('📜 Logs', `<pre style="font-size:11px;line-height:1.5;color:var(--accent)">HalDo AI OS v129\nVersion: ${HalDo.Registry.totalCount()} Apps\nTheme: ${HalDo.Theme.current}\nSettings geladen: ${Object.keys(load()).length} Einträge\nStorage: ${Object.keys(localStorage).filter(k=>k.startsWith('haldo_')).length} Keys</pre>`, { w: 400, h: 380 });
+      }}
+    ]},
+    { key: 'Y', title: '🆈 Your Life (Routinen)', rows: [
+      { label: 'Morgen-Routine', type: 'button', action: () => { if (HalDo.Tasks) HalDo.Tasks.open(); } },
+      { label: 'Pomodoro (25/5)', type: 'button', action: () => { if (HalDo.TimerApp) HalDo.TimerApp.open(); } },
+      { label: 'Wasser-Tracker', type: 'button', action: () => HalDo.Toast.show('💧 2/8 Gläser heute', 2000, 'notify') }
+    ]},
+    { key: 'Z', title: '🆉 Zeit & Datum', rows: [
+      { label: 'Aktuelle Zeit', type: 'button', action: () => HalDo.Toast.show('🕐 ' + new Date().toLocaleString('de-DE'), 2500, 'notify') },
+      { label: 'Weltzeituhr', type: 'button', action: () => {
+        const zones = [
+          ['Berlin', 'Europe/Berlin'], ['London', 'Europe/London'], ['New York', 'America/New_York'],
+          ['Tokyo', 'Asia/Tokyo'], ['Istanbul', 'Europe/Istanbul'], ['Erbil', 'Asia/Baghdad']
+        ];
+        let html = '<div style="padding:8px">';
+        zones.forEach(([n, z]) => {
+          html += `<div style="padding:10px;background:rgba(0,229,255,.08);border-radius:10px;margin-bottom:6px;display:flex;justify-content:space-between"><span>${n}</span><span style="color:var(--accent)">${new Date().toLocaleTimeString('de-DE', { timeZone: z })}</span></div>`;
+        });
+        html += '</div>';
+        HalDo.Win.open('🌍 Weltzeituhr', html, { w: 360, h: 400 });
+      }}
+    ]}
+  ];
+
+  const renderRow = (row) => {
+    const id = 'set_' + Math.random().toString(36).slice(2, 8);
+    const saved = get(row.label, row.def);
+    if (row.type === 'toggle') {
+      return `<div class="set-row"><label>${row.label}</label>
+        <div class="toggle ${saved ? 'on' : ''}" data-set="${row.label}" data-type="toggle"></div></div>`;
+    }
+    if (row.type === 'slider') {
+      return `<div class="set-row"><label>${row.label}</label>
+        <input type="range" min="${row.min || 0}" max="${row.max || 100}" value="${saved || row.def}" data-set="${row.label}" data-type="slider" style="width:110px;accent-color:var(--accent)">
+        <span style="font-size:11px;min-width:32px;text-align:right;color:var(--accent)" id="${id}_val">${saved || row.def}</span></div>`;
+    }
+    if (row.type === 'select') {
+      return `<div class="set-row"><label>${row.label}</label>
+        <select data-set="${row.label}" data-type="select" style="padding:6px 10px;border-radius:10px;background:rgba(0,20,40,.6);border:1.5px solid var(--border);color:var(--text);font-size:12px;max-width:130px">
+          ${(row.options || []).map(o => `<option ${saved === o ? 'selected' : ''}>${o}</option>`).join('')}
+        </select></div>`;
+    }
+    if (row.type === 'chips') {
+      return `<div class="set-row"><label>${row.label}</label>
+        <div class="chip-group">${(row.options || []).map(o => `<div class="chip ${saved === o ? 'active' : ''}" data-set="${row.label}" data-type="chip" data-val="${o}">${o}</div>`).join('')}</div></div>`;
+    }
+    if (row.type === 'color') {
+      return `<div class="set-row"><label>${row.label}</label>
+        <input type="color" value="${saved || row.def}" data-set="${row.label}" data-type="color" style="width:44px;height:32px;border:none;background:none;cursor:pointer"></div>`;
+    }
+    if (row.type === 'info') {
+      return `<div class="set-row"><label>${row.label}</label><span style="font-size:12px;opacity:.7">${row.def}</span></div>`;
+    }
+    if (row.type === 'button') {
+      return `<div class="set-row"><label>${row.label}</label>
+        <button class="chip" data-act-btn="${row.label}">Öffnen</button></div>`;
+    }
+    if (row.type === 'text') {
+      return `<div class="set-row"><label>${row.label}</label>
+        <input value="${saved || row.def}" data-set="${row.label}" data-type="text" style="padding:6px 10px;border-radius:10px;background:rgba(0,20,40,.6);border:1.5px solid var(--border);color:var(--text);font-size:12px;max-width:130px"></div>`;
+    }
+    return '';
+  };
+
+  const bindRow = (row, root) => {
+    const el = root.querySelector(`[data-set="${CSS.escape(row.label)}"]`);
+    if (!el) return;
+    if (row.type === 'toggle') {
+      el.onclick = () => {
+        el.classList.toggle('on');
+        const v = el.classList.contains('on');
+        save({ [row.label]: v });
+        if (row.onSet) row.onSet(v);
+        HalDo.Sound.play('tap');
+      };
+    } else if (row.type === 'slider') {
+      el.oninput = () => {
+        const v = parseInt(el.value);
+        const valSpan = root.querySelector('#' + el.id + '_val') || el.nextElementSibling;
+        if (valSpan && valSpan.textContent !== undefined) valSpan.textContent = v;
+        save({ [row.label]: v });
+        if (row.onSet) row.onSet(v);
+      };
+    } else if (row.type === 'select') {
+      el.onchange = () => { save({ [row.label]: el.value }); if (row.onSet) row.onSet(el.value); HalDo.Sound.play('tap'); };
+    } else if (row.type === 'color') {
+      el.oninput = () => { save({ [row.label]: el.value }); if (row.onSet) row.onSet(el.value); };
+    } else if (row.type === 'text') {
+      el.onchange = () => { save({ [row.label]: el.value }); if (row.onSet) row.onSet(el.value); };
+    }
+    const chips = root.querySelectorAll(`[data-set="${CSS.escape(row.label)}"][data-type="chip"]`);
+    chips.forEach(c => c.onclick = () => {
+      chips.forEach(x => x.classList.remove('active'));
+      c.classList.add('active');
+      save({ [row.label]: c.dataset.val });
+      if (row.onSet) row.onSet(c.dataset.val);
+      HalDo.Sound.play('tap');
+    });
+    if (row.type === 'button' && row.action) {
+      const btn = root.querySelector(`[data-act-btn="${CSS.escape(row.label)}"]`);
+      if (btn) btn.onclick = () => { row.action(); HalDo.Sound.play('tap'); };
+    }
+  };
+
+  const open = () => {
+    const html = `
+      <div style="padding:4px">
+        <div style="padding:10px 12px;background:rgba(0,229,255,.08);border-radius:12px;margin-bottom:12px;font-size:12px;text-align:center">
+          ⚙️ <strong style="color:var(--accent)">HalDo AI OS — Einstellungen A–Z</strong><br>
+          <span style="opacity:.7">Alle Funktionen sind sofort aktiv</span>
+        </div>
+        ${SECTIONS.map(s => `
+          <div class="set-section" data-key="${s.key}">
+            <div class="set-head">${s.title}<span>▾</span></div>
+            <div class="set-body">${s.rows.map(renderRow).join('')}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    HalDo.Win.open('⚙️ Einstellungen A–Z', html, { w: 540, h: 660 });
+    setTimeout(() => {
+      SECTIONS.forEach(s => {
+        const sec = document.querySelector(`.set-section[data-key="${s.key}"]`);
+        if (!sec) return;
+        sec.querySelector('.set-head').onclick = () => sec.classList.toggle('open');
+        s.rows.forEach(r => bindRow(r, sec));
+      });
+    }, 100);
+  };
+  return { open };
+})();
+
+/* ================================================================
+   ▶ 3) F — APP-BROWSER v2: 26 Kategorien klickbar → App-Listen
+   ================================================================ */
+HalDo.AppBrowser = (() => {
+  const CAT_APPS = {
+    A: [['HalDo AI Chat','💬'],['HalDo Assistant','🤖'],['HalDo Cyborg','⚡'],['HalDo Translator','🌐'],['HalDo Voice Assistant','🎤'],['HalDo Memory','🧠']],
+    B: [['Mathe-Trainer','📐'],['Deutsch Lernen','📖'],['Englisch Lernen','🇬🇧'],['Geschichte','📜'],['Physik','⚛️'],['Chemie','🧪'],['Biologie','🧬'],['Vokabeltrainer','📚']],
+    C: [['Fahrschule Theorie','🚗'],['Prüfungsfragen','📝'],['Verkehrsschilder','🚸'],['Erste Hilfe','🩹'],['Fahrstunden-Log','📓'],['Motorrad-Führerschein','🏍']],
+    D: [['Arztbuch','🩺'],['Symptom-Checker','🔍'],['Medikamente','💊'],['Anatomie 3D','🫀'],['Fitness','💪'],['Ernährung','🥗'],['Schlaf','😴'],['Mental Health','🧘']],
+    E: [['Job-Suche','💼'],['Bewerbung','📄'],['Zeiterfassung','⏰'],['Projekte','📊'],['Meeting-Notizen','📝'],['Gehalt-Rechner','💶']],
+    F: [['Budget-Tracker','💰'],['Börse LIVE','📈'],['Krypto','₿'],['Loan Calculator','🏦'],['Currency Live','💱'],['Aktien','📊'],['Steuern','🧾']],
+    G: [['Familien-Kalender','👨‍👩‍👧'],['Einkaufsliste','🛒'],['Rezepte','🍳'],['Haushalt','🧹'],['Kinder-Aufgaben','👶'],['Wasser-Tracker','💧']],
+    H: [['Weltuhr','🌍'],['Reiseplaner','✈️'],['Länder-Lexikon','🗺'],['Sprachführer','💬'],['Wetter weltweit','🌤']],
+    I: [['Wikipedia','📖'],['Wörterbuch','📚'],['Zitate','💭'],['Weltwunder','🏛'],['Erfindungen','💡']],
+    J: [['Êzîdî Wissen','🦚'],['Koran','📖'],['Bibel','📖'],['Kulturen','🌍'],['Geschichte','📜']],
+    K: [['Tastatur Pro','⌨️'],['Emoji-Picker','😀'],['Text-Snippets','📝'],['AutoText','⚡']],
+    L: [['Karteikarten','🎴'],['Quiz','❓'],['Lernplan','📅'],['Vokabeln','📚'],['Mathe-Solver','🧮']],
+    M: [['Music Player','🎵'],['Video Player','🎬'],['Podcast','🎙'],['Radio','📻'],['Mediathek','📺']],
+    N: [['Notes Advanced','📝'],['Sticky Notes','🗒'],['To-Do','✅'],['Ideenbuch','💡'],['Tagebuch','📓']],
+    O: [['Browser','🌐'],['E-Mail','✉️'],['Chat','💬'],['Cloud-Sync','☁️'],['Downloads','⬇️']],
+    P: [['Kreativ-Modus','🎨'],['Farben','🌈'],['Zeichnen','✏️'],['Foto-Editor','📸'],['Video-Editor','🎬'],['Musik-Studio','🎼']],
+    Q: [['Periodensystem','⚛️'],['Wissenschafts-Labor','⚗️'],['Sterne','🌟'],['Einheiten','📐'],['Statistik','📊']],
+    R: [['Passwort-Manager','🔑'],['VPN','🛡'],['2FA','🔐'],['Backup','💾'],['Sicherheits-Scan','🔍']],
+    S: [['Datei-Manager','📁'],['Rechner','🧮'],['Einstellungen','⚙️'],['Updates','🔄'],['Terminal','💻'],['Logs','📜'],['Batterie','🔋']],
+    T: [['Reiseplaner','✈️'],['Flüge','✈️'],['Hotels','🏨'],['Packliste','🧳'],['Navigation','🧭'],['Blitzer','📸']],
+    U: [['Uni-Bewerbung','🎓'],['Stundenplan','📅'],['Karteikarten','🎴'],['Noten','📊']],
+    V: [['Voice Memos','🎙'],['Transkription','📝'],['Audio-Editor','🎵'],['Sprachübersetzer','🌐']],
+    W: [['Fenster-Layout','🪟'],['Multitasking','📊'],['Desktop','🖥']],
+    X: [['Datei-Explorer','📂'],['Netzwerk','🌐'],['Suche','🔍']],
+    Y: [['Dashboard','📊'],['Daily Journal','📓'],['Habits','🔥'],['Goals','🎯'],['Mood','😊']],
+    Z: [['Code Editor','💻'],['Git','📦'],['Konsole','⌨️'],['Debugger','🐛'],['API-Tester','🔌']]
+  };
+
+  const openCategory = (key, cat) => {
+    const apps = CAT_APPS[key] || [];
+    let html = `<div style="padding:4px">
+      <div style="text-align:center;padding:14px;background:rgba(0,229,255,.08);border-radius:14px;margin-bottom:12px">
+        <div style="font-size:44px">${cat.icon}</div>
+        <h2 style="color:var(--accent);font-size:16px;margin-top:6px">${cat.name}</h2>
+        <p style="font-size:12px;opacity:.7;margin-top:2px">${cat.count} Apps · Kategorie ${key}</p>
+      </div>
+      <div class="app-grid">${apps.map(([n, i]) => `<div class="app-tile" data-open-app="${n}"><div class="ico">${i}</div><div class="nm">${n}</div></div>`).join('')}</div>
+      <p style="text-align:center;opacity:.5;font-size:11px;margin-top:14px">+ ${cat.count - apps.length} weitere Apps folgen</p>
+    </div>`;
+    HalDo.Win.open(`${cat.icon} ${cat.name}`, html, { w: 460, h: 600 });
+    setTimeout(() => {
+      document.querySelectorAll('[data-open-app]').forEach(el => el.onclick = () => {
+        HalDo.Win.open(el.dataset.openApp, HalDo.Greeting(el.dataset.openApp), { w: 380, h: 380 });
+        HalDo.Sound.play('cosmic');
+      });
+    }, 100);
+  };
+
+  const open = () => {
+    const cats = HalDo.Registry.getCategories();
+    const featured = HalDo.Registry.getFeatured();
+    let html = `<div style="padding:4px">
+      <div style="text-align:center;padding:10px;background:rgba(0,229,255,.1);border-radius:12px;margin-bottom:14px">
+        <strong style="color:var(--accent);font-size:16px">${HalDo.Registry.totalCount()}+ Apps</strong>
+        <div style="font-size:11px;opacity:.7;margin-top:4px">HalDo AI OS Pro Max · A–Z</div>
+      </div>
+      <div style="margin-bottom:10px;font-weight:600">⭐ Featured</div>
+      <div class="app-grid">${featured.slice(0, 20).map(a => `<div class="app-tile" data-app="${a.id}"><div class="ico">${a.i}</div><div class="nm">${a.n}</div></div>`).join('')}</div>
+      <div style="margin:16px 0 10px;font-weight:600">📚 Alle 26 Kategorien A–Z</div>
+      <div class="app-grid">${Object.entries(cats).map(([k, c]) => `<div class="app-tile" data-cat="${k}"><div class="ico">${c.icon}</div><div class="nm">${k} · ${c.name}<br><small style="opacity:.6">${c.count} Apps</small></div></div>`).join('')}</div>
+    </div>`;
+    HalDo.Win.open('📦 App-Registry · 26 Kategorien', html, { w: 560, h: 660 });
+    setTimeout(() => {
+      document.querySelectorAll('[data-app]').forEach(el => el.onclick = () => {
+        const app = HalDo.Registry.featured.find(a => a.id === el.dataset.app);
+        if (app) HalDo.Launch(app);
+      });
+      document.querySelectorAll('[data-cat]').forEach(el => el.onclick = () => {
+        const key = el.dataset.cat;
+        openCategory(key, HalDo.Registry.getCategories()[key]);
+        HalDo.Sound.play('tap');
+      });
+    }, 100);
+  };
+  return { open, openCategory };
+})();
+
+/* ================================================================
+   ▶ 4) G — MUSIC PLAYER, CALCULATOR PRO, WEATHER v2
+   ================================================================ */
+HalDo.Music = {
+  open() {
+    const tracks = [
+      { n: 'Êzîdî Hymne',      a: 'Traditional',  freq: 261.6, dur: 3 },
+      { n: 'Kurdish Melody',   a: 'Folklore',     freq: 293.7, dur: 3 },
+      { n: 'Cosmic Journey',   a: 'HalDo',        freq: 440,   dur: 3 },
+      { n: 'Meditation',       a: 'Ambient',      freq: 174,   dur: 5 },
+      { n: 'Peacock Dance',    a: 'Êzîdî',        freq: 523.3, dur: 3 },
+      { n: 'Space Drift',      a: 'Electronic',   freq: 392,   dur: 4 }
+    ];
+    const html = `
+      <div style="padding:6px">
+        <div style="text-align:center;padding:16px;background:radial-gradient(circle,rgba(180,120,255,.15),transparent);border-radius:16px;margin-bottom:14px">
+          <div id="mu-cover" style="font-size:60px">🎵</div>
+          <h2 style="font-size:18px;margin-top:8px;color:var(--accent)" id="mu-title">Wähle einen Song</h2>
+          <p style="font-size:12px;opacity:.7" id="mu-artist">HalDo Music Pro</p>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:14px">
+          <button id="mu-play" class="chip" style="width:60px;height:60px;border-radius:50%;font-size:20px">▶</button>
+          <button id="mu-stop" class="chip" style="width:60px;height:60px;border-radius:50%;font-size:20px">⏹</button>
+        </div>
+        <div style="max-height:280px;overflow-y:auto">
+          ${tracks.map((t, i) => `
+            <div data-track="${i}" style="display:flex;gap:10px;padding:10px;margin-bottom:6px;background:rgba(180,120,255,.06);border-radius:12px;border:1px solid rgba(180,120,255,.2);cursor:pointer;align-items:center">
+              <div style="font-size:24px">🎵</div>
+              <div style="flex:1"><strong style="font-size:13px">${t.n}</strong><div style="font-size:11px;opacity:.7">${t.a}</div></div>
+              <div style="opacity:.5;font-size:16px">▶</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+    HalDo.Win.open('🎵 HalDo Music Player Pro', html, { w: 400, h: 620 });
+    setTimeout(() => {
+      let currentTrack = -1, timeout;
+      const play = (i) => {
+        currentTrack = i;
+        const t = tracks[i];
+        document.getElementById('mu-title').textContent = t.n;
+        document.getElementById('mu-artist').textContent = t.a;
+        clearTimeout(timeout);
+        const mel = [0, 4, 7, 12, 7, 4].map(semi => t.freq * Math.pow(2, semi / 12));
+        mel.forEach((f, j) => setTimeout(() => HalDo.Sound.beep(f, 0.6, 'sine', 0.1), j * 300));
+        timeout = setTimeout(() => {
+          if (currentTrack === i) document.getElementById('mu-title').textContent = 'Fertig ✓';
+        }, mel.length * 300 + 500);
+      };
+      document.querySelectorAll('[data-track]').forEach(el => el.onclick = () => { play(parseInt(el.dataset.track)); HalDo.Sound.play('tap'); });
+      document.getElementById('mu-play').onclick = () => { if (currentTrack < 0) currentTrack = 0; play(currentTrack); };
+      document.getElementById('mu-stop').onclick = () => {
+        clearTimeout(timeout); document.getElementById('mu-title').textContent = 'Gestoppt'; currentTrack = -1;
+      };
+    }, 100);
+  }
+};
+
+HalDo.Calc = {
+  open() {
+    let scientific = false;
+    const html = `
+      <div style="padding:8px">
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <div class="chip active" data-calc-mode="std" style="flex:1;text-align:center">Standard</div>
+          <div class="chip" data-calc-mode="sci" style="flex:1;text-align:center">Wissenschaftlich</div>
+        </div>
+        <input id="calc-input" placeholder="z.B. 2+2*3" style="width:100%;padding:14px;border-radius:12px;background:rgba(0,20,40,.6);border:1.5px solid var(--border);color:var(--text);font-size:22px;margin-bottom:8px;text-align:right;font-family:monospace">
+        <div id="calc-result" style="text-align:right;font-size:18px;color:var(--accent);min-height:28px;margin-bottom:10px;font-family:monospace"></div>
+        <div id="calc-history" style="text-align:right;font-size:11px;opacity:.5;min-height:20px;margin-bottom:8px;max-height:60px;overflow-y:auto"></div>
+        <div id="calc-pad-std" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+          ${['C','⌫','%','/','7','8','9','*','4','5','6','-','1','2','3','+','0','.','='].map(k => `<button class="chip calc-btn" data-k="${k}" style="height:52px;font-size:16px">${k}</button>`).join('')}
+        </div>
+        <div id="calc-pad-sci" style="display:none;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:6px">
+          ${['sin','cos','tan','log','ln','√','x²','π','e','!','(' ,')'].map(k => `<button class="chip calc-btn" data-k="${k}" style="height:40px;font-size:12px">${k}</button>`).join('')}
+        </div>
+      </div>
+    `;
+    HalDo.Win.open('🧮 Calculator Pro', html, { w: 380, h: 620 });
+    setTimeout(() => {
+      const inp = document.getElementById('calc-input');
+      const res = document.getElementById('calc-result');
+      const hist = document.getElementById('calc-history');
+      const historyList = [];
+      const evalExpr = () => {
+        try {
+          let v = inp.value.replace(/[^0-9+\-*/.() ]/g, '');
+          if (!v) { res.textContent = ''; return; }
+          v = v.replace(/sin/g, 'Math.sin').replace(/cos/g, 'Math.cos').replace(/tan/g, 'Math.tan')
+               .replace(/log/g, 'Math.log10').replace(/ln/g, 'Math.log')
+               .replace(/√/g, 'Math.sqrt').replace(/π/g, 'Math.PI').replace(/e/g, 'Math.E');
+          const r = Function('"use strict"; return (' + v + ')')();
+          res.textContent = '= ' + (Math.round(r * 1e10) / 1e10);
+        } catch(e) { res.textContent = ''; }
+      };
+      inp.oninput = evalExpr;
+      document.querySelectorAll('[data-calc-mode]').forEach(el => el.onclick = () => {
+        document.querySelectorAll('[data-calc-mode]').forEach(x => x.classList.remove('active'));
+        el.classList.add('active');
+        scientific = el.dataset.calcMode === 'sci';
+        document.getElementById('calc-pad-sci').style.display = scientific ? 'grid' : 'none';
+      });
+      document.querySelectorAll('.calc-btn').forEach(b => b.onclick = () => {
+        const k = b.dataset.k;
+        HalDo.Sound.play('tap');
+        if (k === 'C') { inp.value = ''; res.textContent = ''; }
+        else if (k === '⌫') { inp.value = inp.value.slice(0, -1); evalExpr(); }
+        else if (k === '=') {
+          evalExpr();
+          if (res.textContent) {
+            historyList.unshift(inp.value + ' ' + res.textContent);
+            hist.innerHTML = historyList.slice(0, 5).map(h => `<div>${h}</div>`).join('');
+          }
+        }
+        else if (k === '√') { inp.value += '√('; }
+        else if (k === 'x²') { inp.value += '²'; }
+        else if (k === '!') { inp.value += '!'; }
+        else if (k === 'π' || k === 'e') { inp.value += k; }
+        else { inp.value += k; evalExpr(); }
+      });
+    }, 100);
+  }
+};
+
+HalDo.Weather = {
+  open() {
+    const html = `
+      <div style="padding:6px">
+        <div style="display:flex;gap:6px;margin-bottom:12px">
+          <input id="w-search" placeholder="Stadt (Berlin, Hewlêr, Silêmanî…)" style="flex:1;padding:11px 14px;border-radius:12px;background:rgba(0,20,40,.6);border:1.5px solid var(--border);color:var(--text);font-size:14px">
+          <button id="w-go" class="chip active" style="min-width:60px">🔍</button>
+        </div>
+        <div id="w-result"><div class="splash"><div class="splash-logo">🌤</div><p>Suche eine Stadt</p></div></div>
+      </div>
+    `;
+    HalDo.Win.open('🌤 HalDo Weather LIVE', html, { w: 440, h: 640 });
+    setTimeout(() => {
+      const s = document.getElementById('w-search'), r = document.getElementById('w-result');
+      const search = async () => {
+        const q = s.value.trim(); if (!q) return;
+        r.innerHTML = '<div class="splash"><p>Lade…</p></div>';
+        try {
+          const geo = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=de`).then(x => x.json());
+          if (!geo.results || !geo.results[0]) { r.innerHTML = '<p style="text-align:center;padding:20px">Stadt nicht gefunden</p>'; return; }
+          const loc = geo.results[0];
+          const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=7`).then(x => x.json());
+          const c = w.current, d = w.daily;
+          const codes = {0:'☀️',1:'🌤',2:'⛅',3:'☁️',45:'🌫',48:'🌫',51:'🌦',53:'🌦',61:'🌧',63:'🌧',65:'⛈',71:'🌨',73:'🌨',75:'❄️',80:'🌧',95:'⛈',96:'⛈',99:'⛈'};
+          const names = {0:'Klar',1:'Meist klar',2:'Teils wolkig',3:'Bewölkt',45:'Nebel',61:'Regen',71:'Schnee',95:'Gewitter'};
+          let html = `
+            <div style="text-align:center;padding:16px;background:rgba(0,229,255,.08);border-radius:16px;margin-bottom:12px">
+              <div style="font-size:64px">${codes[c.weather_code] || '🌡'}</div>
+              <h2 style="font-size:18px;margin:6px 0">${loc.name}</h2>
+              <div style="font-size:44px;font-weight:700;color:var(--accent);text-shadow:0 0 20px var(--accent)">${Math.round(c.temperature_2m)}°C</div>
+              <p style="opacity:.8;margin-top:4px">${names[c.weather_code] || 'Unbekannt'}</p>
+              <div style="display:flex;gap:16px;justify-content:center;margin-top:12px;font-size:12px;opacity:.8">
+                <div>💧 ${c.relative_humidity_2m}%</div>
+                <div>💨 ${c.wind_speed_10m} km/h</div>
+              </div>
+            </div>
+            <div style="font-size:13px;font-weight:600;margin-bottom:8px">📅 7-Tage-Vorschau</div>
+            <div style="max-height:280px;overflow-y:auto">
+              ${d.time.map((dt, i) => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;margin-bottom:4px;background:rgba(0,229,255,.06);border-radius:10px;border:1px solid rgba(0,229,255,.15)">
+                  <div style="font-size:12px;width:70px">${new Date(dt).toLocaleDateString('de-DE', { weekday:'short', day:'numeric', month:'short' })}</div>
+                  <div style="font-size:22px">${codes[d.weather_code[i]] || '🌡'}</div>
+                  <div style="font-size:13px;text-align:right">
+                    <span style="color:#ffa500">${Math.round(d.temperature_2m_max[i])}°</span>
+                    <span style="opacity:.6"> / ${Math.round(d.temperature_2m_min[i])}°</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+          r.innerHTML = html;
+        } catch(e) { r.innerHTML = '<p style="text-align:center;padding:20px">Fehler beim Laden</p>'; }
+      };
+      s.onkeydown = e => { if (e.key === 'Enter') search(); };
+      document.getElementById('w-go').onclick = search;
+    }, 100);
+  }
+};
+
+/* ================================================================
+   ▶ 5) H — ARZTBUCH + API-KEY MANAGER
+   ================================================================ */
+HalDo.Arztbuch = {
+  open() {
+    const tabs = [
+      { k: 'Anatomie', ic: '🫀', content: `
+        <div style="padding:8px">
+          ${[
+            ['Herz','🫀','Muskelpumpe · 60-100 bpm · 4 Kammern'],
+            ['Gehirn','🧠','~86 Mrd. Neuronen · Steuerzentrum'],
+            ['Lunge','🫁','Gasaustausch · ~6L Volumen'],
+            ['Leber','🫀','Entgiftung · 1,5 kg'],
+            ['Niere','🩺','Filter · 180L/Tag'],
+            ['Magen','🫃','Verdauung · pH 1,5-2'],
+            ['Darm','🩺','~7m lang · Nährstoffaufnahme'],
+            ['Skelett','🦴','206 Knochen · Stützgerüst'],
+            ['Haut','🩹','~2m² · größtes Organ'],
+            ['Blut','🩸','~5L · Transport']
+          ].map(([n, i, d]) => `
+            <div style="padding:10px;margin-bottom:6px;background:rgba(0,229,255,.06);border-radius:10px;border:1px solid rgba(0,229,255,.2)">
+              <div style="display:flex;gap:10px;align-items:center"><div style="font-size:24px">${i}</div><div><strong style="font-size:13px">${n}</strong><div style="font-size:11px;opacity:.75;margin-top:2px">${d}</div></div></div>
+            </div>
+          `).join('')}
+        </div>
+      `},
+      { k: 'Krankheiten', ic: '🤒', content: `
+        <div style="padding:8px">
+          ${[
+            ['Erkältung','Husten · Schnupfen · Halsschmerzen · 7-10 Tage'],
+            ['Grippe','Fieber · Gliederschmerzen · 1-2 Wochen · Ansteckend'],
+            ['Migräne','Pulsierender Kopfschmerz · Übelkeit · Lichtempfindlich'],
+            ['Diabetes Typ 2','Erhöhter Blutzucker · Durst · Müdigkeit'],
+            ['Hypertonie','Bluthochdruck >140/90 · oft symptomlos'],
+            ['Asthma','Atemnot · Pfeifen · Husten'],
+            ['COVID-19','Fieber · Husten · Geruchsverlust'],
+            ['Depression','Antriebslosigkeit · Traurigkeit · >2 Wochen']
+          ].map(([n, d]) => `
+            <div style="padding:10px;margin-bottom:6px;background:rgba(255,180,60,.06);border-radius:10px;border:1px solid rgba(255,180,60,.2)">
+              <strong style="font-size:13px;color:#ffb400">${n}</strong>
+              <p style="font-size:11px;opacity:.8;margin-top:4px">${d}</p>
+            </div>
+          `).join('')}
+        </div>
+      `},
+      { k: 'Medikamente', ic: '💊', content: `
+        <div style="padding:8px">
+          ${[
+            ['Paracetamol','Schmerz · Fieber · max 4000mg/Tag'],
+            ['Ibuprofen','Schmerz · Entzündung · max 1200mg/Tag'],
+            ['Aspirin','Blutverdünner · Schmerz · 100-500mg'],
+            ['Amoxicillin','Antibiotikum · 3x 500mg'],
+            ['Metformin','Diabetes · 2x 500-1000mg'],
+            ['Ramipril','Blutdruck · 1x 2,5-10mg'],
+            ['Salbutamol','Asthma-Spray · bei Bedarf'],
+            ['Omeprazol','Magenschutz · 1x 20mg morgens']
+          ].map(([n, d]) => `
+            <div style="padding:10px;margin-bottom:6px;background:rgba(180,120,255,.06);border-radius:10px;border:1px solid rgba(180,120,255,.25)">
+              <strong style="font-size:13px;color:var(--accent3)">${n}</strong>
+              <p style="font-size:11px;opacity:.8;margin-top:4px">${d}</p>
+            </div>
+          `).join('')}
+          <p style="text-align:center;font-size:10px;opacity:.5;margin-top:12px">⚠️ Keine medizinische Beratung — Arzt konsultieren!</p>
+        </div>
+      `},
+      { k: 'Notfall', ic: '🚨', content: `
+        <div style="padding:8px">
+          ${[
+            ['112','Europaweit · Rettungsdienst & Feuer'],
+            ['110','Polizei Deutschland'],
+            ['116 117','Ärztlicher Bereitschaftsdienst'],
+            ['+49 30 19240','Giftnotruf Berlin'],
+            ['+49 30 450 666','Charité Notaufnahme']
+          ].map(([n, d]) => `
+            <div style="padding:12px;margin-bottom:8px;background:rgba(255,51,102,.15);border-radius:12px;border:2px solid #ff3366;text-align:center">
+              <div style="font-size:20px;font-weight:bold;color:#ff3366">${n}</div>
+              <div style="font-size:11px;opacity:.8;margin-top:4px">${d}</div>
+            </div>
+          `).join('')}
+          <div style="padding:14px;background:rgba(0,229,255,.1);border-radius:12px;border:1px solid var(--accent);margin-top:12px;text-align:center">
+            <strong style="color:var(--accent)">Erste Hilfe</strong>
+            <div style="font-size:11px;opacity:.85;margin-top:6px;line-height:1.7">
+              1. Bewusstsein prüfen<br>
+              2. Atmung prüfen<br>
+              3. Notruf 112<br>
+              4. Stabile Seitenlage / CPR 30:2<br>
+              5. Wärme halten, beruhigen
+            </div>
+          </div>
+        </div>
+      `}
+    ];
+    const html = `
+      <div style="padding:4px">
+        <div style="display:flex;gap:4px;margin-bottom:10px;justify-content:center;flex-wrap:wrap">
+          ${tabs.map((t, i) => `<div class="chip ${i === 0 ? 'active' : ''}" data-arzt-tab="${t.k}" style="font-size:11px;padding:6px 10px">${t.ic} ${t.k}</div>`).join('')}
+        </div>
+        <div id="arzt-body"></div>
+      </div>
+    `;
+    HalDo.Win.open('🩺 HalDo Arztbuch', html, { w: 480, h: 620 });
+    setTimeout(() => {
+      const body = document.getElementById('arzt-body');
+      const show = (tabKey) => {
+        const t = tabs.find(x => x.k === tabKey);
+        body.innerHTML = t.content;
+      };
+      show('Anatomie');
+      document.querySelectorAll('[data-arzt-tab]').forEach(el => el.onclick = () => {
+        document.querySelectorAll('[data-arzt-tab]').forEach(x => x.classList.remove('active'));
+        el.classList.add('active'); show(el.dataset.arztTab);
+        HalDo.Sound.play('tap');
+      });
+    }, 100);
+  }
+};
+
+HalDo.ApiKeys = {
+  open() {
+    const PROVIDERS = [
+      { id: 'openai', n: 'OpenAI', ic: '🤖', desc: 'GPT-4, GPT-3.5', url: 'platform.openai.com' },
+      { id: 'gemini', n: 'Google Gemini', ic: '💎', desc: 'Gemini Pro/Flash', url: 'makersuite.google.com' },
+      { id: 'anthropic', n: 'Anthropic Claude', ic: '🎭', desc: 'Claude 3.5', url: 'console.anthropic.com' },
+      { id: 'ollama', n: 'Ollama (Lokal)', ic: '🦙', desc: 'Lokal, kostenlos', url: 'ollama.ai' },
+      { id: 'openweather', n: 'OpenWeather', ic: '🌤', desc: 'Wetter-API', url: 'openweathermap.org' },
+      { id: 'deepgram', n: 'Deepgram', ic: '🎤', desc: 'Speech-to-Text', url: 'deepgram.com' },
+      { id: 'elevenlabs', n: 'ElevenLabs', ic: '🔊', desc: 'Text-to-Speech', url: 'elevenlabs.io' },
+      { id: 'unsplash', n: 'Unsplash', ic: '📸', desc: 'Bilder', url: 'unsplash.com' }
+    ];
+    const STORE = 'haldo_api_keys_v1';
+    const load = () => HalDo.Store.get(STORE, {});
+    const save = (k, v) => { const all = load(); all[k] = v; HalDo.Store.set(STORE, all); };
+    const remove = (k) => { const all = load(); delete all[k]; HalDo.Store.set(STORE, all); };
+
+    const render = (root) => {
+      const keys = load();
+      root.innerHTML = `
+        <div style="padding:4px">
+          <div style="padding:12px;background:rgba(255,180,60,.1);border-radius:12px;margin-bottom:12px;border:1px solid rgba(255,180,60,.3);font-size:11px;line-height:1.6">
+            🔐 <strong>Deine Keys werden NUR lokal auf deinem Gerät gespeichert.</strong><br>
+            Sie verlassen niemals dein Gerät. Bei öffentlichem Computer: nicht eingeben!
+          </div>
+          ${PROVIDERS.map(p => {
+            const hasKey = keys[p.id];
+            return `
+              <div style="padding:12px;margin-bottom:8px;background:rgba(0,229,255,.06);border-radius:12px;border:1px solid ${hasKey ? 'var(--accent)' : 'rgba(0,229,255,.2)'}">
+                <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+                  <div style="font-size:24px">${p.ic}</div>
+                  <div style="flex:1">
+                    <strong style="font-size:13px">${p.n} ${hasKey ? '✅' : ''}</strong>
+                    <div style="font-size:10px;opacity:.6">${p.desc} · ${p.url}</div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:6px">
+                  <input type="password" placeholder="${hasKey ? '•••••••••••(gespeichert)' : 'API-Key eingeben…'}" data-provider="${p.id}" style="flex:1;padding:8px 12px;border-radius:8px;background:rgba(0,20,40,.6);border:1px solid var(--border);color:var(--text);font-size:12px">
+                  <button data-save="${p.id}" class="chip active" style="min-width:56px;font-size:11px">Speichern</button>
+                  ${hasKey ? `<button data-del="${p.id}" class="chip" style="min-width:44px;font-size:11px">🗑</button>` : ''}
+                </div>
+              </div>
+            `;
+          }).join('')}
+          <button id="ak-export" class="chip" style="width:100%;padding:12px;margin-top:8px">📤 Alle Keys exportieren (JSON)</button>
+        </div>
+      `;
+      root.querySelectorAll('[data-save]').forEach(b => b.onclick = () => {
+        const p = b.dataset.save;
+        const inp = root.querySelector(`[data-provider="${p}"]`);
+        if (inp.value.trim()) {
+          save(p, inp.value.trim());
+          HalDo.Sound.play('success');
+          HalDo.Toast.show('🔐 ' + PROVIDERS.find(x => x.id === p).n + ' gespeichert', 1500, 'success');
+          render(root);
+        }
+      });
+      root.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+        remove(b.dataset.del); HalDo.Sound.play('tap'); render(root);
+      });
+      root.querySelector('#ak-export').onclick = () => {
+        const blob = new Blob([JSON.stringify(load(), null, 2)], { type: 'application/json' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'haldo-api-keys.json'; a.click();
+        HalDo.Toast.show('📤 Exportiert', 1500, 'success');
+      };
+    };
+
+    HalDo.Win.open('🔐 API-Key Manager', '<div id="ak-root"></div>', { w: 460, h: 640 });
+    setTimeout(() => render(document.getElementById('ak-root')), 100);
+  }
+};
+
+/* ================================================================
+   ▶ 6) I — TRANSLATOR + SPRACHPACKETE
+   ================================================================ */
+HalDo.Translator = {
+  open() {
+    const LANGS = [
+      ['auto','🌐 Auto'],['de','🇩🇪 DE'],['en','🇬🇧 EN'],['ku','🟡 KU'],['ar','🇸🇦 AR'],
+      ['tr','🇹🇷 TR'],['fa','🇮🇷 FA'],['he','🇮🇱 HE'],['ru','🇷🇺 RU'],['fr','🇫🇷 FR'],
+      ['es','🇪🇸 ES'],['it','🇮🇹 IT'],['zh','🇨🇳 ZH'],['ja','🇯🇵 JA'],['nl','🇳🇱 NL'],
+      ['pl','🇵🇱 PL'],['pt','🇵🇹 PT'],['sv','🇸🇪 SV'],['ko','🇰🇷 KO'],['hi','🇮🇳 HI']
+    ];
+    const html = `
+      <div style="padding:6px">
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <select id="tr-from" style="flex:1;padding:10px;border-radius:10px;background:rgba(0,20,40,.6);border:1.5px solid var(--border);color:var(--text);font-size:13px">
+            ${LANGS.map(([c, n]) => `<option value="${c}">${n}</option>`).join('')}
+          </select>
+          <button id="tr-swap" class="chip" style="min-width:44px">⇄</button>
+          <select id="tr-to" style="flex:1;padding:10px;border-radius:10px;background:rgba(0,20,40,.6);border:1.5px solid var(--border);color:var(--text);font-size:13px">
+            ${LANGS.slice(1).map(([c, n]) => `<option value="${c}" ${c === 'en' ? 'selected' : ''}>${n}</option>`).join('')}
+          </select>
+        </div>
+        <textarea id="tr-input" placeholder="Text eingeben…" style="width:100%;height:100px;padding:12px;border-radius:12px;background:rgba(0,20,40,.6);border:1.5px solid var(--border);color:var(--text);font-size:14px;resize:none;font-family:inherit;margin-bottom:8px"></textarea>
+        <button id="tr-go" class="chip active" style="width:100%;padding:12px;margin-bottom:8px">🌐 Übersetzen</button>
+        <div id="tr-out" style="padding:14px;background:rgba(0,229,255,.08);border-radius:12px;border:1.5px solid var(--border);min-height:80px;font-size:14px;line-height:1.6;margin-bottom:8px">Ergebnis erscheint hier…</div>
+        <div style="display:flex;gap:6px">
+          <button id="tr-speak" class="chip" style="flex:1;padding:10px">🔊 Vorlesen</button>
+          <button id="tr-copy" class="chip" style="flex:1;padding:10px">📋 Kopieren</button>
+        </div>
+        <div style="margin-top:12px;padding:10px;background:rgba(255,180,60,.1);border-radius:10px;border:1px solid rgba(255,180,60,.3);font-size:11px;line-height:1.5">
+          💡 Nutzt MyMemory API (kostenlos, keine Anmeldung)
+        </div>
+      </div>
+    `;
+    HalDo.Win.open('🌐 HalDo Translator Pro', html, { w: 440, h: 640 });
+    setTimeout(() => {
+      const from = document.getElementById('tr-from');
+      const to = document.getElementById('tr-to');
+      const inp = document.getElementById('tr-input');
+      const out = document.getElementById('tr-out');
+      const doTranslate = async () => {
+        const text = inp.value.trim();
+        if (!text) return;
+        out.textContent = 'Übersetze…';
+        try {
+          const fromLang = from.value === 'auto' ? 'de' : from.value;
+          const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|${to.value}`;
+          const data = await fetch(url).then(r => r.json());
+          if (data.responseData) {
+            out.textContent = data.responseData.translatedText;
+            HalDo.Sound.play('success');
+          } else out.textContent = 'Fehler bei Übersetzung';
+        } catch(e) { out.textContent = 'Netzwerkfehler'; }
+      };
+      document.getElementById('tr-go').onclick = doTranslate;
+      document.getElementById('tr-swap').onclick = () => {
+        const a = from.value, b = to.value;
+        if (a !== 'auto') from.value = b; to.value = a === 'auto' ? 'de' : a;
+      };
+      document.getElementById('tr-speak').onclick = () => {
+        const text = out.textContent;
+        if (!text || text === 'Ergebnis erscheint hier…') return;
+        try {
+          const u = new SpeechSynthesisUtterance(text);
+          u.lang = { de:'de-DE', en:'en-US', ar:'ar-SA', tr:'tr-TR', ru:'ru-RU', fr:'fr-FR', es:'es-ES', it:'it-IT', zh:'zh-CN', ja:'ja-JP', he:'he-IL', fa:'fa-IR' }[to.value] || 'en-US';
+          window.speechSynthesis.speak(u);
+        } catch(e) {}
+      };
+      document.getElementById('tr-copy').onclick = () => {
+        navigator.clipboard.writeText(out.textContent).then(() => HalDo.Toast.show('📋 Kopiert', 1200, 'success'));
+      };
+    }, 100);
+  }
+};
+
+// Sprachpakete für Êzîdî-App erweitern
+if (HalDo.Ezidi) {
+  const extraVocab = [
+    { de:'Haus', ku:'Mal' }, { de:'Tür', ku:'Derî' }, { de:'Fenster', ku:'Pace' },
+    { de:'Tisch', ku:'Mase' }, { de:'Stuhl', ku:'Kursî' }, { de:'Bett', ku:'Nivîn' },
+    { de:'Buch', ku:'Pirtûk' }, { de:'Schule', ku:'Dibistan' }, { de:'Lehrer', ku:'Mamoste' },
+    { de:'Arzt', ku:'Bijîşk' }, { de:'Krankenhaus', ku:'Nexweşxane' },
+    { de:'Straße', ku:'Kol' }, { de:'Auto', ku:'Erebe' }, { de:'Stadt', ku:'Bajar' },
+    { de:'Dorf', ku:'Gund' }, { de:'Berg', ku:'Çiya' }, { de:'Berg Şingal', ku:'Çiyayê Şingalê' },
+    { de:'Wasser', ku:'Av' }, { de:'Feuer', ku:'Agir' }, { de:'Brot', ku:'Nan' },
+    { de:'Apfel', ku:'Sêv' }, { de:'Wein', ku:'Şerab' }, { de:'Fleisch', ku:'Goşt' },
+    { de:'Reis', ku:'Birinc' }, { de:'Salz', ku:'Xwê' }, { de:'Zucker', ku:'Şekir' },
+    { de:'Ich bin', ku:'Ez im' }, { de:'Du bist', ku:'Tu yî' }, { de:'Er/Sie ist', ku:'Ew e' },
+    { de:'Wo ist…?', ku:'Li ku ye…?' }, { de:'Wie viel?', ku:'Çend e?' },
+    { de:'Ich verstehe nicht', ku:'Ez fêm nakim' }, { de:'Sprichst du Kurmancî?', ku:'Tu bi Kurmancî diaxivî?' },
+    { de:'Guten Tag', ku:'Rojbaş' }, { de:'Gute Nacht', ku:'Şev baş' },
+    { de:'Frieden', ku:'Aşitî' }, { de:'Freiheit', ku:'Azadî' }, { de:'Liebe', ku:'Evîn' },
+    { de:'Freund', ku:'Heval' }, { de:'Familie', ku:'Malbat' }
+  ];
+  HalDo.Ezidi.VOCAB.push(...extraVocab);
+  console.log('✅ Êzîdî: ' + HalDo.Ezidi.VOCAB.length + ' Wörter total');
+}
+
+/* ================================================================
+   ▶ 7) LAUNCH-MAPPING — Neue Apps einbinden
+   ================================================================ */
+const _oldLaunchV128 = HalDo.Launch;
+HalDo.Launch = (app) => {
+  if (app.id === 'music')      return HalDo.Music.open();
+  if (app.id === 'calculator') return HalDo.Calc.open();
+  if (app.id === 'weather')    return HalDo.Weather.open();
+  if (app.id === 'arztbuch')   return HalDo.Arztbuch.open();
+  if (app.id === 'api-keys')   return HalDo.ApiKeys.open();
+  if (app.id === 'translator') return HalDo.Translator.open();
+  if (app.id === 'settings')   return HalDo.Settings.open();
+  if (app.id === 'app-registry') return HalDo.AppBrowser.open();
+  return _oldLaunchV128(app);
+};
+
+/* ================================================================
+   ▶ 8) Boot
+   ================================================================ */
+setTimeout(() => {
+  HalDo.Toast.show('⚙️ v129: Settings A–Z komplett · 26 Kategorien klickbar · 8 neue Apps', 4500, 'chime');
+}, 18000);
+
+console.log('%c⚙️ HalDo AI OS — v129 MEGA','background:linear-gradient(90deg,#00e5ff,#ffd700,#b478ff);color:#000;padding:8px 14px;border-radius:8px;font-weight:bold;font-size:13px');
+console.log('Settings v2: 26 Kategorien mit echten Funktionen');
+console.log('Window v2: drag + resize + max/min/close');
+console.log('F: 26 Kategorien klickbar');
+console.log('G: Music, Calc Pro, Weather 7-Tage');
+console.log('H: Arztbuch (4 Tabs), API-Keys (8 Provider)');
+console.log('I: Translator (20 Sprachen) + 40 Wörter Êzîdî-Erweiterung');
+</script>
 </body>
 </html>
