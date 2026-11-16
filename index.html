@@ -1343,5 +1343,962 @@ window.addEventListener('DOMContentLoaded', () => {
   }, 5200);
 });
 </script>
+<!-- ================================================================
+     HALDO AI OS — PHASE 2 ADD-ON (v127)
+     6er-Pack LIVE + Avatar v2 (Human + Cyborg)
+     Präsentiert von Halil Donma
+     ================================================================ -->
+<script>
+/* ================================================================
+   1) AVATAR V2 — Realistisches Gesicht + Cyborg-Modus
+   ================================================================ */
+HalDo.Avatar = (() => {
+  let canvas, ctx, raf, lastT = 0, blinkTimer = 0, nextBlink = 4500;
+  let eyeTargetX = 0, eyeTargetY = 0, eyeX = 0, eyeY = 0;
+  let mouthOpen = 0, mouthTarget = 0;
+  let state = 'idle';
+  let mode = 'human'; // 'human' | 'cyborg'
+  let hairPhase = 0;
+  let blinkPhase = 0; // 0..1 for blink animation
+
+  const setMode = (m) => {
+    mode = m;
+    HalDo.Store.set('avatar_mode', m);
+    HalDo.Toast.show(m === 'cyborg' ? '⚡ Cyborg-Modus' : '🤖 Human-Modus', 1500, 'tap');
+  };
+
+  const setState = (s) => {
+    state = s;
+    if (s === 'speaking') {
+      // generate mouth movement target
+      mouthTarget = Math.random() * 0.8 + 0.2;
+    } else {
+      mouthTarget = 0;
+    }
+  };
+
+  const drawHuman = (t, breath, lookX, lookY, blinkAmt) => {
+    const W = canvas.width, H = canvas.height;
+    const cx = W / 2;
+    // --- Hals ---
+    ctx.fillStyle = '#e0b890';
+    ctx.beginPath();
+    ctx.ellipse(cx, H * 0.72 + breath, W * 0.09, H * 0.12, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // --- Haare hinten ---
+    ctx.fillStyle = '#5a3a2a';
+    ctx.beginPath();
+    ctx.ellipse(cx, H * 0.38 + breath * 0.5, W * 0.32, H * 0.40, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // --- Kopf (Haut-Gradient mit Licht oben links) ---
+    const headGrad = ctx.createRadialGradient(cx - 20, H * 0.32 + breath, 10, cx, H * 0.42 + breath, W * 0.40);
+    headGrad.addColorStop(0, '#f5d5b8');
+    headGrad.addColorStop(0.6, '#ecc5a0');
+    headGrad.addColorStop(1, '#d4a888');
+    ctx.fillStyle = headGrad;
+    ctx.beginPath();
+    // Kopf mit Kinn-Verjüngung
+    ctx.ellipse(cx, H * 0.42 + breath, W * 0.24, H * 0.30, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Kinn-Schatten
+    ctx.fillStyle = 'rgba(180,140,110,0.35)';
+    ctx.beginPath();
+    ctx.ellipse(cx, H * 0.63 + breath, W * 0.10, H * 0.03, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // --- Wangen-Rouge ---
+    ctx.fillStyle = 'rgba(255,150,150,0.32)';
+    ctx.beginPath();
+    ctx.ellipse(cx - W * 0.13, H * 0.50 + breath, W * 0.055, H * 0.028, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx + W * 0.13, H * 0.50 + breath, W * 0.055, H * 0.028, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // --- Nase ---
+    const noseX = cx + lookX * 2, noseY = H * 0.48 + breath;
+    ctx.strokeStyle = '#c69878';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(noseX, noseY - 6);
+    ctx.quadraticCurveTo(noseX - 4, noseY + 10, noseX - 6, noseY + 14);
+    ctx.stroke();
+    // Nasenlöcher
+    ctx.fillStyle = '#8a6050';
+    ctx.beginPath();
+    ctx.ellipse(noseX - 6, noseY + 14, 2.5, 1.8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(noseX + 6, noseY + 14, 2.5, 1.8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // --- Augen ---
+    const eyeY = H * 0.40 + breath, eyeLx = cx - 28, eyeRx = cx + 28;
+    const eyeW = 15, eyeH = 14 * (1 - blinkAmt * 0.95);
+    // Weiß
+    ctx.fillStyle = '#f8f0e8';
+    ctx.beginPath(); ctx.ellipse(eyeLx, eyeY, eyeW, eyeH, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(eyeRx, eyeY, eyeW, eyeH, 0, 0, Math.PI * 2); ctx.fill();
+    if (blinkAmt < 0.5) {
+      // Iris (braun-grün)
+      const irisGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, 8);
+      irisGrad.addColorStop(0, '#5a7a4a');
+      irisGrad.addColorStop(1, '#3a5a2a');
+      // Linkes Auge
+      ctx.save();
+      ctx.translate(eyeLx + lookX, eyeY + lookY);
+      ctx.fillStyle = irisGrad;
+      ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.fill();
+      // Pupille
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.arc(0, 0, 3.5, 0, Math.PI * 2); ctx.fill();
+      // Glanzpunkt
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.beginPath(); ctx.arc(-2, -2.5, 1.8, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      // Rechtes Auge
+      ctx.save();
+      ctx.translate(eyeRx + lookX, eyeY + lookY);
+      ctx.fillStyle = irisGrad;
+      ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.arc(0, 0, 3.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.beginPath(); ctx.arc(-2, -2.5, 1.8, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    } else {
+      // Blinzel-Linie
+      ctx.strokeStyle = '#5a3a2a';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(eyeLx - 12, eyeY); ctx.lineTo(eyeLx + 12, eyeY); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(eyeRx - 12, eyeY); ctx.lineTo(eyeRx + 12, eyeY); ctx.stroke();
+    }
+    // Wimpern (oben)
+    ctx.strokeStyle = '#3a2a1a';
+    ctx.lineWidth = 1.5;
+    if (blinkAmt < 0.5) {
+      for (let i = -3; i <= 3; i++) {
+        const lx = eyeLx + i * 4;
+        ctx.beginPath();
+        ctx.moveTo(lx, eyeY - 11);
+        ctx.lineTo(lx + i * 0.3, eyeY - 15);
+        ctx.stroke();
+        const rx = eyeRx + i * 4;
+        ctx.beginPath();
+        ctx.moveTo(rx, eyeY - 11);
+        ctx.lineTo(rx + i * 0.3, eyeY - 15);
+        ctx.stroke();
+      }
+    }
+    // --- Augenbrauen ---
+    ctx.strokeStyle = '#4a2a1a';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(eyeLx - 16, eyeY - 24);
+    ctx.quadraticCurveTo(eyeLx, eyeY - 30, eyeLx + 14, eyeY - 24);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(eyeRx - 14, eyeY - 24);
+    ctx.quadraticCurveTo(eyeRx, eyeY - 30, eyeRx + 16, eyeY - 24);
+    ctx.stroke();
+    // --- Lippen ---
+    const lipY = H * 0.58 + breath;
+    const lipOpen = mouthOpen * 10;
+    // Oberlippe
+    ctx.fillStyle = '#c44a5a';
+    ctx.beginPath();
+    ctx.moveTo(cx - 14, lipY);
+    ctx.quadraticCurveTo(cx - 7, lipY - 4, cx, lipY - 3);
+    ctx.quadraticCurveTo(cx + 7, lipY - 4, cx + 14, lipY);
+    ctx.quadraticCurveTo(cx, lipY + lipOpen / 2, cx - 14, lipY);
+    ctx.fill();
+    // Unterlippe
+    ctx.beginPath();
+    ctx.moveTo(cx - 14, lipY);
+    ctx.quadraticCurveTo(cx, lipY + lipOpen + 5, cx + 14, lipY);
+    ctx.quadraticCurveTo(cx, lipY + lipOpen / 2, cx - 14, lipY);
+    ctx.fill();
+    // Mund-Innenraum wenn offen
+    if (lipOpen > 1) {
+      ctx.fillStyle = '#3a1a20';
+      ctx.beginPath();
+      ctx.ellipse(cx, lipY + lipOpen / 2, 10, lipOpen / 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // --- Haare vorne (Strähnen) ---
+    ctx.strokeStyle = '#4a2a1a';
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 5; i++) {
+      const hx = cx - 40 + i * 20 + Math.sin(t / 800 + i) * 2;
+      ctx.beginPath();
+      ctx.moveTo(hx, H * 0.20 + breath);
+      ctx.quadraticCurveTo(hx + Math.sin(t / 600 + i) * 3, H * 0.28 + breath, hx - 3, H * 0.34 + breath);
+      ctx.stroke();
+    }
+    // Haar-Glanz
+    ctx.strokeStyle = 'rgba(255,220,180,0.35)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+      const hx = cx - 25 + i * 20;
+      ctx.beginPath();
+      ctx.moveTo(hx, H * 0.16 + breath);
+      ctx.quadraticCurveTo(hx + 5, H * 0.20 + breath, hx + 2, H * 0.26 + breath);
+      ctx.stroke();
+    }
+    // --- Holografische Ringe ---
+    ctx.strokeStyle = `rgba(0,229,255,${0.3 + Math.sin(t / 500) * 0.15})`;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(cx, H * 0.42 + breath, W * 0.36, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, H * 0.42 + breath, W * 0.40, 0, Math.PI * 2); ctx.stroke();
+  };
+
+  const drawCyborg = (t, breath, lookX, lookY, blinkAmt) => {
+    const W = canvas.width, H = canvas.height;
+    const cx = W / 2;
+    // Hals
+    const neckGrad = ctx.createLinearGradient(cx - 20, 0, cx + 20, 0);
+    neckGrad.addColorStop(0, '#4a2a5a');
+    neckGrad.addColorStop(0.5, '#8a5a9a');
+    neckGrad.addColorStop(1, '#4a2a5a');
+    ctx.fillStyle = neckGrad;
+    ctx.beginPath();
+    ctx.ellipse(cx, H * 0.72 + breath, W * 0.09, H * 0.12, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Kopf metallisch
+    const headGrad = ctx.createRadialGradient(cx - 20, H * 0.32 + breath, 10, cx, H * 0.42 + breath, W * 0.40);
+    headGrad.addColorStop(0, '#e0b0d0');
+    headGrad.addColorStop(0.5, '#a070a0');
+    headGrad.addColorStop(1, '#5a3a6a');
+    ctx.fillStyle = headGrad;
+    ctx.beginPath();
+    ctx.ellipse(cx, H * 0.42 + breath, W * 0.24, H * 0.30, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Schaltkreis-Linien auf Wange
+    ctx.strokeStyle = `rgba(255,120,200,${0.6 + Math.sin(t / 300) * 0.3})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx + 30, H * 0.50 + breath);
+    ctx.lineTo(cx + 45, H * 0.55 + breath);
+    ctx.lineTo(cx + 55, H * 0.55 + breath);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx + 50, H * 0.40 + breath);
+    ctx.lineTo(cx + 58, H * 0.42 + breath);
+    ctx.stroke();
+    // Leucht-Punkte
+    ctx.fillStyle = '#ff78c8';
+    ctx.beginPath(); ctx.arc(cx + 55, H * 0.55 + breath, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 58, H * 0.42 + breath, 1.8, 0, Math.PI * 2); ctx.fill();
+    // Augen - linkes human-ähnlich, rechtes cyborg (leuchtend)
+    const eyeY = H * 0.40 + breath, eyeLx = cx - 28, eyeRx = cx + 28;
+    // Linkes Auge (human)
+    ctx.fillStyle = '#f0e0f0';
+    ctx.beginPath(); ctx.ellipse(eyeLx, eyeY, 14, 13 * (1 - blinkAmt * 0.95), 0, 0, Math.PI * 2); ctx.fill();
+    if (blinkAmt < 0.5) {
+      ctx.save();
+      ctx.translate(eyeLx + lookX, eyeY + lookY);
+      ctx.fillStyle = '#b478ff';
+      ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.arc(0, 0, 3.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.beginPath(); ctx.arc(-2, -2.5, 1.8, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+    // Rechtes Auge (cyborg - rot leuchtend)
+    ctx.fillStyle = '#2a0a1a';
+    ctx.beginPath(); ctx.ellipse(eyeRx, eyeY, 14, 13 * (1 - blinkAmt * 0.95), 0, 0, Math.PI * 2); ctx.fill();
+    if (blinkAmt < 0.5) {
+      const eyeGlow = ctx.createRadialGradient(eyeRx + lookX, eyeY + lookY, 0, eyeRx + lookX, eyeY + lookY, 10);
+      eyeGlow.addColorStop(0, '#ff2040');
+      eyeGlow.addColorStop(0.7, '#ff6080');
+      eyeGlow.addColorStop(1, 'rgba(255,32,64,0)');
+      ctx.fillStyle = eyeGlow;
+      ctx.beginPath(); ctx.arc(eyeRx + lookX, eyeY + lookY, 10, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ff2040';
+      ctx.beginPath(); ctx.arc(eyeRx + lookX, eyeY + lookY, 4, 0, Math.PI * 2); ctx.fill();
+    }
+    // Augenbrauen metall
+    ctx.strokeStyle = '#3a2040';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(eyeLx - 16, eyeY - 24);
+    ctx.lineTo(eyeLx + 14, eyeY - 22);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(eyeRx - 14, eyeY - 22);
+    ctx.lineTo(eyeRx + 16, eyeY - 24);
+    ctx.stroke();
+    // Mund-Grill
+    const mouthY = H * 0.58 + breath;
+    const grillOpen = mouthOpen * 12;
+    ctx.fillStyle = '#1a0a1e';
+    ctx.beginPath();
+    ctx.ellipse(cx, mouthY, 18, 6 + grillOpen / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Grill-Streifen
+    ctx.strokeStyle = '#ff78c8';
+    ctx.lineWidth = 1.5;
+    for (let i = -3; i <= 3; i++) {
+      const y = mouthY + i * (3 + grillOpen / 7);
+      if (Math.abs(i * (3 + grillOpen / 7)) < 6 + grillOpen / 2) {
+        ctx.beginPath();
+        ctx.moveTo(cx - 14, y);
+        ctx.lineTo(cx + 14, y);
+        ctx.stroke();
+      }
+    }
+    // Antenne / Cyber-Implant
+    ctx.strokeStyle = '#8a6a9a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx + 40, H * 0.20 + breath);
+    ctx.lineTo(cx + 48, H * 0.12 + breath);
+    ctx.stroke();
+    ctx.fillStyle = `rgba(255,120,200,${0.7 + Math.sin(t / 400) * 0.3})`;
+    ctx.beginPath(); ctx.arc(cx + 48, H * 0.12 + breath, 3, 0, Math.PI * 2); ctx.fill();
+    // Holografische Ringe (pink)
+    ctx.strokeStyle = `rgba(255,120,200,${0.35 + Math.sin(t / 500) * 0.15})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(cx, H * 0.42 + breath, W * 0.36, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, H * 0.42 + breath, W * 0.40, 0, Math.PI * 2); ctx.stroke();
+    // Extra: rotierende Ringe
+    ctx.strokeStyle = 'rgba(255,120,200,0.4)';
+    ctx.save();
+    ctx.translate(cx, H * 0.42 + breath);
+    ctx.rotate(t / 2000);
+    ctx.beginPath(); ctx.ellipse(0, 0, W * 0.44, W * 0.16, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  };
+
+  const loop = (t) => {
+    if (!ctx) return;
+    const dt = lastT ? t - lastT : 16;
+    lastT = t;
+
+    // Blinzeln alle 4.5s
+    blinkTimer += dt;
+    if (blinkTimer >= nextBlink) {
+      blinkPhase += dt / 150; // 150ms Blinzeln
+      if (blinkPhase >= 1) { blinkPhase = 0; blinkTimer = 0; nextBlink = 4200 + Math.random() * 800; }
+    }
+    const blinkAmt = blinkPhase > 0 ? Math.sin(blinkPhase * Math.PI) : 0;
+
+    // Atmung
+    const breath = Math.sin(t / 1100) * 3;
+
+    // Pupillen wandern (alle 3-5 Sek neue Richtung)
+    if (Math.random() < 0.008) {
+      eyeTargetX = (Math.random() - 0.5) * 6;
+      eyeTargetY = (Math.random() - 0.5) * 4;
+    }
+    eyeX += (eyeTargetX - eyeX) * 0.08;
+    eyeY += (eyeTargetY - eyeY) * 0.08;
+
+    // Sprechender Mund
+    if (state === 'speaking') {
+      if (Math.random() < 0.15) mouthTarget = 0.2 + Math.random() * 0.8;
+      mouthOpen += (mouthTarget - mouthOpen) * 0.2;
+    } else {
+      mouthOpen += (0 - mouthOpen) * 0.15;
+    }
+
+    // Clear
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (mode === 'cyborg') {
+      drawCyborg(t, breath, eyeX, eyeY, blinkAmt);
+    } else {
+      drawHuman(t, breath, eyeX, eyeY, blinkAmt);
+    }
+
+    raf = requestAnimationFrame(loop);
+  };
+
+  const init = (c) => {
+    canvas = c;
+    canvas.width = 240;
+    canvas.height = 320;
+    ctx = canvas.getContext('2d');
+    mode = HalDo.Store.get('avatar_mode', 'human');
+    if (raf) cancelAnimationFrame(raf);
+    lastT = 0; blinkTimer = 0; blinkPhase = 0;
+    raf = requestAnimationFrame(loop);
+  };
+
+  const destroy = () => {
+    if (raf) cancelAnimationFrame(raf);
+    raf = null; ctx = null;
+  };
+
+  return { init, destroy, setState, setMode, getMode: () => mode };
+})();
+
+/* ================================================================
+   2) 6er-PACK — Tasks, Notes, Habits, Goals, Journal, Calendar
+   ================================================================ */
+
+/* ------------- 2.1 TASKS ------------- */
+HalDo.Tasks = (() => {
+  const KEY = 'haldo_tasks_v1';
+  const all = () => HalDo.Store.get(KEY, []);
+  const save = (arr) => HalDo.Store.set(KEY, arr);
+  const add = (title, opts = {}) => {
+    const tasks = all();
+    const t = { id: 't_' + Date.now(), title, done: false, prio: opts.prio || 'normal', due: opts.due || null, ts: Date.now() };
+    tasks.unshift(t); save(tasks); return t;
+  };
+  const complete = (id) => { const tasks = all(); const t = tasks.find(x => x.id === id); if (t) { t.done = !t.done; save(tasks); } };
+  const remove = (id) => save(all().filter(x => x.id !== id));
+  const open = () => all().filter(t => !t.done);
+  const done = () => all().filter(t => t.done);
+  const today = () => { const d = new Date().toISOString().slice(0, 10); return all().filter(t => t.due === d); };
+
+  const render = (root) => {
+    const tasks = all();
+    const openC = tasks.filter(t => !t.done).length;
+    const doneC = tasks.filter(t => t.done).length;
+    root.innerHTML = `
+      <div style="padding:4px">
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <input id="tk-input" placeholder="Neue Aufgabe…" style="flex:1;padding:11px 14px;border-radius:12px;background:rgba(0,20,40,.6);border:1.5px solid var(--border);color:var(--text);font-size:14px">
+          <button id="tk-add" class="chip active" style="min-width:70px">+</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:10px;font-size:12px;opacity:.8">
+          <div class="chip active">Offen (${openC})</div>
+          <div class="chip">Erledigt (${doneC})</div>
+        </div>
+        <div id="tk-list" style="max-height:340px;overflow-y:auto">
+          ${tasks.length === 0 ? '<p style="text-align:center;opacity:.5;padding:20px">Noch keine Aufgaben</p>' :
+            tasks.map(t => `
+              <div style="display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:6px;background:rgba(0,229,255,.06);border-radius:12px;border:1px solid rgba(0,229,255,.2)">
+                <div data-check="${t.id}" style="width:28px;height:28px;min-width:28px;border-radius:8px;border:2px solid var(--accent);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;${t.done ? 'background:var(--accent);color:#000' : ''}">${t.done ? '✓' : ''}</div>
+                <div style="flex:1;${t.done ? 'opacity:.5;text-decoration:line-through' : ''}">${t.title}</div>
+                <div data-del="${t.id}" style="width:32px;height:32px;min-width:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:.6;font-size:16px">🗑</div>
+              </div>
+            `).join('')}
+        </div>
+      </div>
+    `;
+    root.querySelector('#tk-add').onclick = () => {
+      const inp = root.querySelector('#tk-input');
+      const v = inp.value.trim(); if (!v) return;
+      add(v); inp.value = '';
+      HalDo.Sound.play('success');
+      render(root);
+    };
+    root.querySelector('#tk-input').onkeydown = (e) => { if (e.key === 'Enter') root.querySelector('#tk-add').click(); };
+    root.querySelectorAll('[data-check]').forEach(el => el.onclick = () => { complete(el.dataset.check); HalDo.Sound.play('tap'); render(root); });
+    root.querySelectorAll('[data-del]').forEach(el => el.onclick = () => { remove(el.dataset.del); HalDo.Sound.play('tap'); render(root); });
+  };
+
+  const openApp = () => {
+    const id = HalDo.Win.open('✅ HalDo Tasks Pro', '<div id="tk-root"></div>', { w: 420, h: 560 });
+    setTimeout(() => render(document.getElementById('tk-root')), 80);
+  };
+
+  return { add, complete, remove, all, open: openApp, today };
+})();
+
+/* ------------- 2.2 NOTES (überschreibt) ------------- */
+HalDo.Notes = (() => {
+  const KEY = 'haldo_notes_v1';
+  const all = () => HalDo.Store.get(KEY, []);
+  const save = (arr) => HalDo.Store.set(KEY, arr);
+  const add = (title, body, opts = {}) => {
+    const ns = all();
+    const n = { id: 'n_' + Date.now(), title, body, cat: opts.cat || 'Allgemein', ts: Date.now() };
+    ns.unshift(n); save(ns); return n;
+  };
+  const remove = (id) => save(all().filter(x => x.id !== id));
+  const search = (q) => {
+    const t = q.toLowerCase();
+    return all().filter(n => (n.title || '').toLowerCase().includes(t) || (n.body || '').toLowerCase().includes(t));
+  };
+
+  const render = (root, q = '') => {
+    const notes = q ? search(q) : all();
+    root.innerHTML = `
+      <div style="padding:4px">
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <input id="nt-search" placeholder="🔍 Suchen…" value="${q}" style="flex:1;padding:10px 14px;border-radius:12px;background:rgba(0,20,40,.6);border:1.5px solid var(--border);color:var(--text);font-size:13px">
+          <button id="nt-new" class="chip active" style="min-width:60px">+</button>
+        </div>
+        <div id="nt-list" style="max-height:340px;overflow-y:auto">
+          ${notes.length === 0 ? '<p style="text-align:center;opacity:.5;padding:20px">Keine Notizen</p>' :
+            notes.map(n => `
+              <div style="padding:10px;margin-bottom:6px;background:rgba(0,229,255,.06);border-radius:12px;border:1px solid rgba(0,229,255,.2);cursor:pointer" data-edit="${n.id}">
+                <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
+                  <strong style="font-size:14px">${n.title || '(ohne Titel)'}</strong>
+                  <span data-del="${n.id}" style="opacity:.5;cursor:pointer;min-width:24px;text-align:center">🗑</span>
+                </div>
+                <div style="font-size:12px;opacity:.7;margin-top:4px;white-space:pre-wrap">${(n.body || '').slice(0, 120)}${(n.body || '').length > 120 ? '…' : ''}</div>
+                <div style="font-size:10px;opacity:.5;margin-top:6px">${n.cat} · ${new Date(n.ts).toLocaleDateString('de-DE')}</div>
+              </div>
+            `).join('')}
+        </div>
+      </div>
+    `;
+    const sr = root.querySelector('#nt-search');
+    sr.oninput = () => render(root, sr.value);
+    root.querySelector('#nt-new').onclick = () => {
+      const r2 = root.parentElement;
+      root.innerHTML = `
+        <div style="padding:4px">
+          <input id="nt-title" placeholder="Titel…" style="width:100%;padding:10px;border-radius:10px;background:rgba(0,20,40,.6);border:1.5px solid var(--border);color:var(--text);margin-bottom:8px;font-size:14px">
+          <textarea id="nt-body" placeholder="Inhalt…" style="width:100%;height:220px;padding:10px;border-radius:10px;background:rgba(0,20,40,.6);border:1.5px solid var(--border);color:var(--text);resize:none;font-family:inherit;margin-bottom:8px;font-size:13px"></textarea>
+          <div style="display:flex;gap:6px">
+            <button id="nt-save" class="chip active" style="flex:1;padding:11px">💾 Speichern</button>
+            <button id="nt-cancel" class="chip" style="flex:1;padding:11px">Abbrechen</button>
+          </div>
+        </div>
+      `;
+      root.querySelector('#nt-save').onclick = () => {
+        const t = root.querySelector('#nt-title').value.trim();
+        const b = root.querySelector('#nt-body').value.trim();
+        if (!t && !b) return;
+        add(t, b); HalDo.Sound.play('success'); HalDo.Toast.show('📝 Notiz gespeichert', 1200, 'success');
+        render(root);
+      };
+      root.querySelector('#nt-cancel').onclick = () => render(root);
+    };
+    root.querySelectorAll('[data-del]').forEach(el => el.onclick = (e) => {
+      e.stopPropagation();
+      if (confirm('Löschen?')) { remove(el.dataset.del); HalDo.Sound.play('tap'); render(root, q); }
+    });
+    root.querySelectorAll('[data-edit]').forEach(el => el.onclick = () => {
+      const n = all().find(x => x.id === el.dataset.edit);
+      if (!n) return;
+      root.innerHTML = `
+        <div style="padding:4px">
+          <input id="nt-title" value="${n.title}" style="width:100%;padding:10px;border-radius:10px;background:rgba(0,20,40,.6);border:1.5px solid var(--border);color:var(--text);margin-bottom:8px;font-size:14px">
+          <textarea id="nt-body" style="width:100%;height:220px;padding:10px;border-radius:10px;background:rgba(0,20,40,.6);border:1.5px solid var(--border);color:var(--text);resize:none;font-family:inherit;margin-bottom:8px;font-size:13px">${n.body}</textarea>
+          <div style="display:flex;gap:6px">
+            <button id="nt-save" class="chip active" style="flex:1;padding:11px">💾 Speichern</button>
+            <button id="nt-cancel" class="chip" style="flex:1;padding:11px">Zurück</button>
+          </div>
+        </div>
+      `;
+      root.querySelector('#nt-save').onclick = () => {
+        const ns = all(); const x = ns.find(y => y.id === n.id);
+        x.title = root.querySelector('#nt-title').value.trim();
+        x.body = root.querySelector('#nt-body').value.trim();
+        save(ns); HalDo.Sound.play('success'); render(root, q);
+      };
+      root.querySelector('#nt-cancel').onclick = () => render(root, q);
+    });
+  };
+
+  const openApp = () => {
+    HalDo.Win.open('📝 HalDo Notes Advanced', '<div id="nt-root"></div>', { w: 420, h: 580 });
+    setTimeout(() => render(document.getElementById('nt-root')), 80);
+  };
+  return { add, remove, all, search, open: openApp };
+})();
+
+/* ------------- 2.3 HABITS ------------- */
+HalDo.Habits = (() => {
+  const KEY = 'haldo_habits_v1';
+  const all = () => HalDo.Store.get(KEY, []);
+  const save = (arr) => HalDo.Store.set(KEY, arr);
+  const add = (name, opts = {}) => {
+    const hs = all();
+    const h = { id: 'h_' + Date.now(), name, icon: opts.icon || '⭐', checks: {}, ts: Date.now() };
+    hs.unshift(h); save(hs); return h;
+  };
+  const remove = (id) => save(all().filter(x => x.id !== id));
+  const checkIn = (id, date = new Date().toISOString().slice(0, 10)) => {
+    const hs = all(); const h = hs.find(x => x.id === id);
+    if (!h) return;
+    h.checks[date] = !h.checks[date];
+    save(hs);
+  };
+  const streakOf = (id) => {
+    const h = all().find(x => x.id === id);
+    if (!h) return 0;
+    let s = 0; const d = new Date();
+    while (true) {
+      const key = d.toISOString().slice(0, 10);
+      if (h.checks[key]) { s++; d.setDate(d.getDate() - 1); } else break;
+      if (s > 365) break;
+    }
+    return s;
+  };
+  const weekDays = () => {
+    const out = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      out.push(d);
+    }
+    return out;
+  };
+
+  const render = (root) => {
+    const habits = all();
+    const days = weekDays();
+    root.innerHTML = `
+      <div style="padding:4px">
+        <div style="display:flex;gap:6px;margin-bottom:12px">
+          <input id="hb-input" placeholder="Neue Gewohnheit…" style="flex:1;padding:11px 14px;border-radius:12px;background:rgba(0,20,40,.6);border:1.5px solid var(--border);color:var(--text);font-size:14px">
+          <button id="hb-add" class="chip active" style="min-width:60px">+</button>
+        </div>
+        ${habits.length === 0 ? '<p style="text-align:center;opacity:.5;padding:20px">Noch keine Gewohnheiten</p>' :
+          habits.map(h => {
+            const streak = streakOf(h.id);
+            return `
+              <div style="padding:12px;margin-bottom:8px;background:rgba(0,229,255,.06);border-radius:12px;border:1px solid rgba(0,229,255,.2)">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                  <strong style="font-size:14px">${h.icon} ${h.name}</strong>
+                  <div style="display:flex;gap:6px;align-items:center">
+                    <span style="font-size:12px;color:#ffa500">🔥 ${streak}</span>
+                    <span data-del="${h.id}" style="opacity:.5;cursor:pointer;padding:4px">🗑</span>
+                  </div>
+                </div>
+                <div style="display:flex;gap:4px;justify-content:space-between">
+                  ${days.map(d => {
+                    const key = d.toISOString().slice(0, 10);
+                    const checked = h.checks[key];
+                    const dayName = ['So','Mo','Di','Mi','Do','Fr','Sa'][d.getDay()];
+                    return `<div style="flex:1;text-align:center">
+                      <div style="font-size:9px;opacity:.6;margin-bottom:3px">${dayName}</div>
+                      <div data-check-h="${h.id}" data-date="${key}" style="height:30px;border-radius:8px;border:1.5px solid var(--accent);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;${checked ? 'background:var(--accent);color:#000' : 'background:rgba(0,229,255,.05)'}">${checked ? '✓' : ''}</div>
+                    </div>`;
+                  }).join('')}
+                </div>
+              </div>
+            `;
+          }).join('')}
+      </div>
+    `;
+    root.querySelector('#hb-add').onclick = () => {
+      const inp = root.querySelector('#hb-input');
+      const v = inp.value.trim(); if (!v) return;
+      add(v); inp.value = ''; HalDo.Sound.play('success'); render(root);
+    };
+    root.querySelector('#hb-input').onkeydown = (e) => { if (e.key === 'Enter') root.querySelector('#hb-add').click(); };
+    root.querySelectorAll('[data-check-h]').forEach(el => el.onclick = () => {
+      checkIn(el.dataset.checkH || el.dataset.checkH, el.dataset.date);
+      HalDo.Sound.play('tap'); render(root);
+    });
+    // fix: data-check-h attr name
+    root.querySelectorAll('[data-check-h]').forEach(el => el.onclick = () => {
+      checkIn(el.getAttribute('data-check-h'), el.dataset.date);
+      HalDo.Sound.play('tap'); render(root);
+    });
+    root.querySelectorAll('[data-del]').forEach(el => el.onclick = () => {
+      if (confirm('Gewohnheit löschen?')) { remove(el.dataset.del); HalDo.Sound.play('tap'); render(root); }
+    });
+  };
+
+  const openApp = () => {
+    HalDo.Win.open('🔥 HalDo Habits Pro', '<div id="hb-root"></div>', { w: 440, h: 560 });
+    setTimeout(() => render(document.getElementById('hb-root')), 80);
+  };
+  return { add, remove, checkIn, streakOf, all, open: openApp };
+})();
+
+/* ------------- 2.4 GOALS ------------- */
+HalDo.Goals = (() => {
+  const KEY = 'haldo_goals_v1';
+  const all = () => HalDo.Store.get(KEY, []);
+  const save = (arr) => HalDo.Store.set(KEY, arr);
+  const add = (title, opts = {}) => {
+    const gs = all();
+    const g = { id: 'g_' + Date.now(), title, target: opts.target || 100, current: opts.current || 0, unit: opts.unit || '%', deadline: opts.deadline || null, ts: Date.now() };
+    gs.unshift(g); save(gs); return g;
+  };
+  const update = (id, current) => {
+    const gs = all(); const g = gs.find(x => x.id === id);
+    if (g) { g.current = Math.min(current, g.target); save(gs); }
+  };
+  const remove = (id) => save(all().filter(x => x.id !== id));
+  const active = () => all().filter(g => g.current < g.target);
+
+  const render = (root) => {
+    const goals = all();
+    root.innerHTML = `
+      <div style="padding:4px">
+        <div style="display:flex;gap:6px;margin-bottom:12px">
+          <input id="gl-input" placeholder="Neues Ziel…" style="flex:1;padding:11px 14px;border-radius:12px;background:rgba(0,20,40,.6);border:1.5px solid var(--border);color:var(--text);font-size:14px">
+          <button id="gl-add" class="chip active" style="min-width:60px">+</button>
+        </div>
+        ${goals.length === 0 ? '<p style="text-align:center;opacity:.5;padding:20px">Noch keine Ziele</p>' :
+          goals.map(g => {
+            const pct = Math.round((g.current / g.target) * 100);
+            return `
+              <div style="padding:12px;margin-bottom:8px;background:rgba(0,229,255,.06);border-radius:12px;border:1px solid rgba(0,229,255,.2)">
+                <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+                  <strong style="font-size:14px;flex:1">${g.title}</strong>
+                  <span data-del="${g.id}" style="opacity:.5;cursor:pointer;padding:4px">🗑</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                  <div style="flex:1;height:10px;background:rgba(0,0,0,.4);border-radius:5px;overflow:hidden;border:1px solid rgba(0,229,255,.3)">
+                    <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent3));box-shadow:0 0 10px var(--accent);transition:width .3s"></div>
+                  </div>
+                  <span style="font-size:12px;color:var(--accent);min-width:48px;text-align:right">${pct}%</span>
+                </div>
+                <div style="display:flex;gap:6px;align-items:center">
+                  <input type="range" min="0" max="${g.target}" value="${g.current}" data-goal="${g.id}" style="flex:1;accent-color:var(--accent)">
+                  <span style="font-size:11px;opacity:.7;min-width:60px;text-align:right">${g.current}/${g.target}${g.unit}</span>
+                </div>
+              </div>
+            `;
+          }).join('')}
+      </div>
+    `;
+    root.querySelector('#gl-add').onclick = () => {
+      const v = root.querySelector('#gl-input').value.trim(); if (!v) return;
+      add(v); root.querySelector('#gl-input').value = ''; HalDo.Sound.play('success'); render(root);
+    };
+    root.querySelector('#gl-input').onkeydown = (e) => { if (e.key === 'Enter') root.querySelector('#gl-add').click(); };
+    root.querySelectorAll('[data-goal]').forEach(el => el.oninput = () => {
+      update(el.dataset.goal, parseInt(el.value)); render(root);
+    });
+    root.querySelectorAll('[data-del]').forEach(el => el.onclick = () => {
+      if (confirm('Ziel löschen?')) { remove(el.dataset.del); HalDo.Sound.play('tap'); render(root); }
+    });
+  };
+
+  const openApp = () => {
+    HalDo.Win.open('🎯 HalDo Goals Pro', '<div id="gl-root"></div>', { w: 420, h: 540 });
+    setTimeout(() => render(document.getElementById('gl-root')), 80);
+  };
+  return { add, update, remove, all, active, open: openApp };
+})();
+
+/* ------------- 2.5 JOURNAL ------------- */
+HalDo.Journal = (() => {
+  const KEY = 'haldo_journal_v1';
+  const all = () => HalDo.Store.get(KEY, []);
+  const save = (arr) => HalDo.Store.set(KEY, arr);
+  const write = (title, content, mood = '😊', tags = []) => {
+    const js = all();
+    const e = { id: 'j_' + Date.now(), title, content, mood, tags, ts: Date.now(), date: new Date().toISOString().slice(0, 10) };
+    js.unshift(e); save(js); return e;
+  };
+  const remove = (id) => save(all().filter(x => x.id !== id));
+  const streak = () => {
+    const js = all();
+    if (!js.length) return 0;
+    const dates = new Set(js.map(e => e.date));
+    let s = 0; const d = new Date();
+    while (true) {
+      const key = d.toISOString().slice(0, 10);
+      if (dates.has(key)) { s++; d.setDate(d.getDate() - 1); } else break;
+      if (s > 365) break;
+    }
+    return s;
+  };
+  const MOODS = ['😊','😐','😢','😡','😴','🤩','😰','🥳'];
+
+  const render = (root) => {
+    const entries = all();
+    root.innerHTML = `
+      <div style="padding:4px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:12px;opacity:.7">${entries.length} Einträge · 🔥 ${streak()} Tage Streak</div>
+          <button id="jn-new" class="chip active">+ Neu</button>
+        </div>
+        <div style="max-height:380px;overflow-y:auto">
+          ${entries.length === 0 ? '<p style="text-align:center;opacity:.5;padding:20px">Noch keine Einträge</p>' :
+            entries.map(e => `
+              <div style="padding:10px;margin-bottom:6px;background:rgba(0,229,255,.06);border-radius:12px;border:1px solid rgba(0,229,255,.2)">
+                <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
+                  <div style="flex:1">
+                    <strong style="font-size:14px">${e.mood} ${e.title || '(ohne Titel)'}</strong>
+                    <div style="font-size:10px;opacity:.6;margin-top:2px">${new Date(e.ts).toLocaleString('de-DE')}</div>
+                  </div>
+                  <span data-del="${e.id}" style="opacity:.5;cursor:pointer;padding:4px">🗑</span>
+                </div>
+                <div style="font-size:12px;opacity:.85;margin-top:6px;white-space:pre-wrap">${(e.content || '').slice(0, 140)}${(e.content || '').length > 140 ? '…' : ''}</div>
+              </div>
+            `).join('')}
+        </div>
+      </div>
+    `;
+    root.querySelector('#jn-new').onclick = () => {
+      root.innerHTML = `
+        <div style="padding:4px">
+          <input id="jn-title" placeholder="Titel…" style="width:100%;padding:10px;border-radius:10px;background:rgba(0,20,40,.6);border:1.5px solid var(--border);color:var(--text);margin-bottom:8px;font-size:14px">
+          <div style="margin-bottom:8px">
+            <label style="font-size:12px;opacity:.7;display:block;margin-bottom:4px">Stimmung</label>
+            <div style="display:flex;gap:4px">${MOODS.map(m => `<div class="chip" data-mood="${m}" style="font-size:20px;padding:6px 10px;min-height:40px">${m}</div>`).join('')}</div>
+          </div>
+          <textarea id="jn-body" placeholder="Schreib was dir durch den Kopf geht…" style="width:100%;height:180px;padding:10px;border-radius:10px;background:rgba(0,20,40,.6);border:1.5px solid var(--border);color:var(--text);resize:none;font-family:inherit;margin-bottom:8px;font-size:13px"></textarea>
+          <div style="display:flex;gap:6px">
+            <button id="jn-save" class="chip active" style="flex:1;padding:11px">💾 Speichern</button>
+            <button id="jn-cancel" class="chip" style="flex:1;padding:11px">Abbrechen</button>
+          </div>
+        </div>
+      `;
+      let selectedMood = '😊';
+      root.querySelectorAll('[data-mood]').forEach(el => el.onclick = () => {
+        root.querySelectorAll('[data-mood]').forEach(x => x.classList.remove('active'));
+        el.classList.add('active'); selectedMood = el.dataset.mood;
+      });
+      root.querySelectorAll('[data-mood]')[0].classList.add('active');
+      root.querySelector('#jn-save').onclick = () => {
+        const t = root.querySelector('#jn-title').value.trim();
+        const b = root.querySelector('#jn-body').value.trim();
+        if (!t && !b) return;
+        write(t, b, selectedMood); HalDo.Sound.play('success'); HalDo.Toast.show('📓 Eintrag gespeichert', 1200, 'success');
+        render(root);
+      };
+      root.querySelector('#jn-cancel').onclick = () => render(root);
+    };
+    root.querySelectorAll('[data-del]').forEach(el => el.onclick = () => {
+      if (confirm('Eintrag löschen?')) { remove(el.dataset.del); HalDo.Sound.play('tap'); render(root); }
+    });
+  };
+
+  const openApp = () => {
+    HalDo.Win.open('📓 HalDo Journal Pro', '<div id="jn-root"></div>', { w: 440, h: 600 });
+    setTimeout(() => render(document.getElementById('jn-root')), 80);
+  };
+  return { write, remove, all, streak, open: openApp };
+})();
+
+/* ------------- 2.6 CALENDAR ------------- */
+HalDo.Calendar = (() => {
+  const KEY = 'haldo_calendar_v1';
+  const all = () => HalDo.Store.get(KEY, []);
+  const save = (arr) => HalDo.Store.set(KEY, arr);
+  const add = (title, date, opts = {}) => {
+    const es = all();
+    const e = { id: 'e_' + Date.now(), title, date, time: opts.time || '', ts: Date.now() };
+    es.push(e); save(es); return e;
+  };
+  const remove = (id) => save(all().filter(x => x.id !== id));
+  const forDate = (dateStr) => all().filter(e => e.date === dateStr);
+
+  let viewMonth = new Date();
+  const render = (root) => {
+    const y = viewMonth.getFullYear(), m = viewMonth.getMonth();
+    const firstDay = new Date(y, m, 1).getDay(); // 0=So
+    const startOffset = (firstDay + 6) % 7; // Mo-start
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const monthName = viewMonth.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+    const today = new Date().toISOString().slice(0, 10);
+    const dayNames = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+
+    let cells = '';
+    for (let i = 0; i < startOffset; i++) cells += '<div></div>';
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const evs = forDate(dateStr);
+      const isToday = dateStr === today;
+      cells += `<div data-day="${dateStr}" style="padding:6px;aspect-ratio:1;border-radius:10px;cursor:pointer;background:${isToday ? 'rgba(0,229,255,.3)' : 'rgba(0,229,255,.06)'};border:1.5px solid ${isToday ? 'var(--accent)' : 'rgba(0,229,255,.15)'};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;position:relative">
+        <div style="font-weight:${isToday ? '700' : '500'}">${d}</div>
+        ${evs.length > 0 ? `<div style="position:absolute;bottom:3px;display:flex;gap:2px">${evs.slice(0, 3).map(() => '<div style="width:4px;height:4px;border-radius:50%;background:var(--accent3)"></div>').join('')}</div>` : ''}
+      </div>`;
+    }
+
+    root.innerHTML = `
+      <div style="padding:4px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <button id="cal-prev" class="chip" style="min-width:44px">‹</button>
+          <strong style="font-size:15px;text-transform:capitalize">${monthName}</strong>
+          <button id="cal-next" class="chip" style="min-width:44px">›</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px">
+          ${dayNames.map(d => `<div style="text-align:center;font-size:10px;opacity:.6;padding:4px">${d}</div>`).join('')}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">${cells}</div>
+        <div id="cal-day-view" style="margin-top:12px"></div>
+      </div>
+    `;
+    root.querySelector('#cal-prev').onclick = () => { viewMonth.setMonth(viewMonth.getMonth() - 1); render(root); };
+    root.querySelector('#cal-next').onclick = () => { viewMonth.setMonth(viewMonth.getMonth() + 1); render(root); };
+    root.querySelectorAll('[data-day]').forEach(el => el.onclick = () => {
+      const dateStr = el.dataset.day;
+      const evs = forDate(dateStr);
+      const dv = root.querySelector('#cal-day-view');
+      dv.innerHTML = `
+        <div style="padding:12px;background:rgba(0,229,255,.08);border-radius:12px;border:1px solid rgba(0,229,255,.25)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <strong style="font-size:13px">${new Date(dateStr).toLocaleDateString('de-DE', { weekday:'long', day:'numeric', month:'long' })}</strong>
+            <button id="cal-add-ev" class="chip active" style="font-size:11px">+ Termin</button>
+          </div>
+          ${evs.length === 0 ? '<p style="opacity:.5;font-size:12px">Keine Termine</p>' :
+            evs.map(e => `<div style="padding:8px;background:rgba(0,229,255,.1);border-radius:8px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;font-size:13px">
+              <span>${e.time ? e.time + ' · ' : ''}${e.title}</span>
+              <span data-del-cal="${e.id}" style="opacity:.5;cursor:pointer;padding:4px">🗑</span>
+            </div>`).join('')}
+        </div>
+      `;
+      dv.querySelector('#cal-add-ev').onclick = () => {
+        const t = prompt('Termin-Titel:'); if (!t) return;
+        const time = prompt('Uhrzeit (z.B. 14:30) — leer für ganztägig:', '') || '';
+        add(t, dateStr, { time });
+        HalDo.Sound.play('success'); render(root);
+        setTimeout(() => root.querySelector(`[data-day="${dateStr}"]`).click(), 50);
+      };
+      dv.querySelectorAll('[data-del-cal]').forEach(x => x.onclick = () => {
+        remove(x.dataset.delCal); HalDo.Sound.play('tap'); render(root);
+        setTimeout(() => root.querySelector(`[data-day="${dateStr}"]`).click(), 50);
+      });
+    });
+  };
+
+  const openApp = () => {
+    viewMonth = new Date();
+    HalDo.Win.open('📅 HalDo Calendar Pro', '<div id="cal-root"></div>', { w: 460, h: 620 });
+    setTimeout(() => render(document.getElementById('cal-root')), 80);
+  };
+  return { add, remove, all, forDate, open: openApp };
+})();
+
+/* ================================================================
+   3) LAUNCH-MAPPING überschreiben (alte API merken)
+   ================================================================ */
+const _oldLaunch = HalDo.Launch;
+HalDo.Launch = (app) => {
+  if (app.id === 'tasks')    return HalDo.Tasks.open();
+  if (app.id === 'notes')    return HalDo.Notes.open();
+  if (app.id === 'habits')   return HalDo.Habits.open();
+  if (app.id === 'goals')    return HalDo.Goals.open();
+  if (app.id === 'journal')  return HalDo.Journal.open();
+  if (app.id === 'calendar') return HalDo.Calendar.open();
+  return _oldLaunch(app);
+};
+
+/* ================================================================
+   4) CHAT um Avatar-Modus-Toggle erweitern
+   ================================================================ */
+const _oldChatOpen = HalDo.Chat.open;
+HalDo.Chat.open = () => {
+  _oldChatOpen();
+  setTimeout(() => {
+    const canvas = document.getElementById('avatar-canvas');
+    if (!canvas) return;
+    // Aktuelles Modus-Badge einfügen
+    const wrapper = canvas.parentElement;
+    let modeBtn = wrapper.querySelector('#avatar-mode-btn');
+    if (!modeBtn) {
+      modeBtn = document.createElement('div');
+      modeBtn.id = 'avatar-mode-btn';
+      modeBtn.style.cssText = 'text-align:center;margin-top:6px;cursor:pointer;font-size:11px;padding:6px 12px;border-radius:20px;background:rgba(0,229,255,.15);border:1px solid var(--border);display:inline-block';
+      wrapper.insertBefore(modeBtn, wrapper.lastElementChild);
+      const updateBtn = () => {
+        const m = HalDo.Avatar.getMode();
+        modeBtn.textContent = m === 'cyborg' ? '⚡ Cyborg-Modus' : '🤖 Human-Modus';
+      };
+      modeBtn.onclick = () => {
+        HalDo.Avatar.setMode(HalDo.Avatar.getMode() === 'human' ? 'cyborg' : 'human');
+        updateBtn(); HalDo.Sound.play('whoosh');
+      };
+      updateBtn();
+    }
+  }, 200);
+};
+
+/* ================================================================
+   5) Boot-Info
+   ================================================================ */
+setTimeout(() => {
+  HalDo.Toast.show('🎉 Phase 2: 6 Apps LIVE + Avatar v2', 3200, 'chime');
+}, 8500);
+
+console.log('%c🦚 HalDo AI OS — Phase 2 v127 geladen','background:linear-gradient(90deg,#00e5ff,#b478ff);color:#000;padding:6px 12px;border-radius:6px;font-weight:bold');
+console.log('Apps: Tasks, Notes, Habits, Goals, Journal, Calendar');
+console.log('Avatar: Human + Cyborg mit Blinzeln, Atmung, Pupillen-Wandern, sprechendem Mund');
+</script>
 </body>
 </html>
