@@ -2396,5 +2396,557 @@ console.log('%c✅ Phase 4 geladen — Avatar + Modern Chat + Modern Settings', 
 console.log('%c🎭 Human · Cyborg · TTS · STT · Blinzeln · Atmung · Sprechen', 'color:#b478ff;font-size:11px');
 })();
 </script>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
+
+<script>
+/* ============ PHASE 3 + UI OVERHAUL ============ */
+(function(){
+'use strict';
+
+/* ===== 1. UI OVERHAUL CSS (Special & Modern) ===== */
+const styleOverhaul = document.createElement('style');
+styleOverhaul.textContent = `
+/* Fenster noch moderner (Holografisch) */
+.win {
+  border: 1px solid rgba(0, 229, 255, 0.25) !important;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,229,255,0.05), 0 0 40px rgba(0,229,255,0.15) !important;
+  backdrop-filter: blur(32px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(150%) !important;
+  border-radius: 20px !important;
+  transition: transform 0.2s, box-shadow 0.3s !important;
+}
+.win:hover {
+  box-shadow: 0 30px 60px rgba(0,0,0,0.8), inset 0 0 30px rgba(0,229,255,0.08), 0 0 60px rgba(0,229,255,0.25) !important;
+}
+.win-header {
+  background: linear-gradient(90deg, rgba(0,229,255,0.15), rgba(180,120,255,0.05), transparent) !important;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.2) !important;
+}
+.win-title {
+  letter-spacing: 1px;
+  text-shadow: 0 0 10px rgba(0,229,255,0.5);
+}
+
+/* Neue App-Icons Hover */
+.app-tile {
+  background: linear-gradient(145deg, rgba(0,229,255,0.05), rgba(0,0,0,0.3)) !important;
+  border: 1px solid rgba(0,229,255,0.15) !important;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
+}
+.app-tile:hover {
+  border-color: rgba(0,229,255,0.5) !important;
+  box-shadow: 0 4px 20px rgba(0,229,255,0.2), inset 0 0 10px rgba(0,229,255,0.1) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Modern App Layout (für die 20 neuen Apps) */
+.app-container { display: flex; flex-direction: column; height: 100%; gap: 12px; overflow-y: auto; padding-right: 4px; }
+.app-container::-webkit-scrollbar { width: 4px; }
+.app-container::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 2px; }
+.app-title { font-size: 18px; font-weight: 800; color: var(--accent); text-shadow: 0 0 10px var(--accent); margin-bottom: 8px; }
+.app-card { background: rgba(0,229,255,0.05); border: 1px solid rgba(0,229,255,0.2); border-radius: 14px; padding: 16px; }
+.app-input { width: 100%; height: 44px; border-radius: 12px; border: 1px solid rgba(0,229,255,0.3); background: rgba(0,0,0,0.5); color: #fff; padding: 0 14px; font-family: inherit; font-size: 14px; margin-bottom: 8px; transition: 0.2s; }
+.app-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 15px rgba(0,229,255,0.3); }
+.app-btn { padding: 0 20px; height: 44px; border-radius: 12px; border: none; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #000; font-weight: 800; cursor: pointer; font-size: 14px; transition: 0.2s; box-shadow: 0 4px 15px rgba(0,229,255,0.3); }
+.app-btn:active { transform: scale(0.95); }
+.app-btn.secondary { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); box-shadow: none; }
+.app-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.app-list { display: flex; flex-direction: column; gap: 8px; }
+.app-list-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); }
+`;
+
+if (!document.getElementById('haldo-overhaul-style')) {
+  styleOverhaul.id = 'haldo-overhaul-style';
+  document.head.appendChild(styleOverhaul);
+}
+
+/* ===== 2. DATABASE HELPER (für alle 20 Apps) ===== */
+HalDo.DB = {
+  get: (k, d) => { try { const v = localStorage.getItem('haldo_db_' + k); return v ? JSON.parse(v) : d; } catch(e) { return d; } },
+  set: (k, v) => { try { localStorage.setItem('haldo_db_' + k, JSON.stringify(v)); } catch(e) {} }
+};
+
+/* ===== 3. DIE 20 NEUEN APPS ===== */
+const APPS_20 = {};
+
+/* 1. ToDo Pro */
+APPS_20['todo-pro'] = () => {
+  let tasks = HalDo.DB.get('todo', []);
+  const render = () => {
+    const html = `
+      <div class="app-container">
+        <div class="app-title">📋 HalDo ToDo Pro</div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="tdInp" class="app-input" placeholder="Neue Aufgabe..." onkeydown="if(event.key==='Enter')window.HalDoApps.todoAdd()">
+          <button class="app-btn" onclick="window.HalDoApps.todoAdd()">+</button>
+        </div>
+        <div class="app-list">
+          ${tasks.length === 0 ? '<div style="text-align:center;color:var(--dim);padding:20px">Keine Aufgaben</div>' : ''}
+          ${tasks.map((t, i) => `
+            <div class="app-list-item">
+              <input type="checkbox" ${t.done?'checked':''} onchange="window.HalDoApps.todoToggle(${i})" style="width:20px;height:20px;accent-color:var(--accent)">
+              <div style="flex:1;${t.done?'text-decoration:line-through;opacity:0.5':''}">${t.text}</div>
+              <button class="app-btn secondary" onclick="window.HalDoApps.todoDel(${i})" style="height:32px;padding:0 10px">✕</button>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+    return html;
+  };
+  window.HalDoApps.todoAdd = () => { const v = document.getElementById('tdInp').value.trim(); if(v) { tasks.push({text:v, done:false}); HalDo.DB.set('todo', tasks); HalDo.Win.destroy('app-todo-pro'); window.HalDoApps.open('todo-pro'); } };
+  window.HalDoApps.todoToggle = (i) => { tasks[i].done = !tasks[i].done; HalDo.DB.set('todo', tasks); HalDo.Win.destroy('app-todo-pro'); window.HalDoApps.open('todo-pro'); };
+  window.HalDoApps.todoDel = (i) => { tasks.splice(i, 1); HalDo.DB.set('todo', tasks); HalDo.Win.destroy('app-todo-pro'); window.HalDoApps.open('todo-pro'); };
+  return render();
+};
+
+/* 2. Shopping List */
+APPS_20['shopping'] = () => {
+  let items = HalDo.DB.get('shopping', []);
+  const html = `
+    <div class="app-container">
+      <div class="app-title">🛒 Einkaufsliste</div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="shInp" class="app-input" placeholder="Artikel hinzufügen..." onkeydown="if(event.key==='Enter')window.HalDoApps.shAdd()">
+        <button class="app-btn" onclick="window.HalDoApps.shAdd()">+</button>
+      </div>
+      <div class="app-list">
+        ${items.map((it, i) => `
+          <div class="app-list-item">
+            <input type="checkbox" ${it.done?'checked':''} onchange="window.HalDoApps.shToggle(${i})" style="width:20px;height:20px;accent-color:var(--accent)">
+            <div style="flex:1;${it.done?'text-decoration:line-through;opacity:0.5':''}">${it.text}</div>
+            <button class="app-btn secondary" onclick="window.HalDoApps.shDel(${i})" style="height:32px;padding:0 10px">✕</button>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  window.HalDoApps.shAdd = () => { const v = document.getElementById('shInp').value.trim(); if(v) { items.push({text:v, done:false}); HalDo.DB.set('shopping', items); HalDo.Win.destroy('app-shopping'); window.HalDoApps.open('shopping'); } };
+  window.HalDoApps.shToggle = (i) => { items[i].done = !items[i].done; HalDo.DB.set('shopping', items); HalDo.Win.destroy('app-shopping'); window.HalDoApps.open('shopping'); };
+  window.HalDoApps.shDel = (i) => { items.splice(i, 1); HalDo.DB.set('shopping', items); HalDo.Win.destroy('app-shopping'); window.HalDoApps.open('shopping'); };
+  return html;
+};
+
+/* 3. Recipes */
+APPS_20['recipes'] = () => {
+  const recipes = [
+    { name: 'Êzîdî Lamm-Stew', time: '2 Std', ing: 'Lamm, Zwiebeln, Tomaten, Kurkuma' },
+    { name: 'Kurdisches Fladenbrot (Nan)', time: '45 Min', ing: 'Mehl, Wasser, Hefe, Salz' },
+    { name: 'Kubba (Bulgur-Bällchen)', time: '1,5 Std', ing: 'Bulgur, Hackfleisch, Zwiebeln' }
+  ];
+  return `
+    <div class="app-container">
+      <div class="app-title">🍲 HalDo Recipes</div>
+      <div class="app-list">
+        ${recipes.map(r => `
+          <div class="app-card">
+            <h3 style="color:var(--accent);margin-bottom:4px">${r.name}</h3>
+            <div style="font-size:12px;color:var(--dim);margin-bottom:8px">⏱ ${r.time}</div>
+            <div style="font-size:13px">${r.ing}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+};
+
+/* 4. Password Generator */
+APPS_20['password'] = () => {
+  let len = 16;
+  const gen = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
+    let p = "";
+    for(let i=0; i<len; i++) p += chars.charAt(Math.floor(Math.random() * chars.length));
+    return p;
+  };
+  const html = `
+    <div class="app-container">
+      <div class="app-title">🔐 Password Generator</div>
+      <div class="app-card" style="text-align:center">
+        <div id="pwResult" style="font-size:20px;font-weight:bold;letter-spacing:2px;color:var(--accent);word-break:break-all;margin-bottom:16px">Klicke auf Generieren</div>
+        <button class="app-btn" onclick="document.getElementById('pwResult').textContent = window.HalDoApps.pwGen(${len}); HalDo.Sound.success()">Generieren</button>
+      </div>
+      <div class="app-card">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Länge: ${len}</span></div>
+        <input type="range" min="8" max="32" value="${len}" oninput="window.HalDoApps.setPwLen(this.value)" style="width:100%;accent-color:var(--accent)">
+      </div>
+    </div>
+  `;
+  window.HalDoApps.pwGen = (l) => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
+    let p = ""; for(let i=0; i<l; i++) p += chars.charAt(Math.floor(Math.random() * chars.length)); return p;
+  };
+  window.HalDoApps.setPwLen = (l) => { len = parseInt(l); HalDo.Win.destroy('app-password'); window.HalDoApps.open('password'); };
+  return html;
+};
+
+/* 5. QR Generator */
+APPS_20['qr'] = () => {
+  return `
+    <div class="app-container">
+      <div class="app-title">📱 QR Generator</div>
+      <div class="app-card">
+        <input type="text" id="qrInp" class="app-input" placeholder="Text oder URL eingeben..." onkeydown="if(event.key==='Enter')window.HalDoApps.qrGen()">
+        <button class="app-btn" style="width:100%" onclick="window.HalDoApps.qrGen()">QR-Code erstellen</button>
+      </div>
+      <div id="qrRes" style="text-align:center;margin-top:20px"></div>
+    </div>
+  `;
+};
+window.HalDoApps.qrGen = () => {
+  const v = document.getElementById('qrInp').value;
+  if(!v) return;
+  document.getElementById('qrRes').innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(v)}" style="border-radius:16px;box-shadow:0 0 20px rgba(0,229,255,0.3)">`;
+  HalDo.Sound.success();
+};
+
+/* 6. Unit Converter */
+APPS_20['unit'] = () => {
+  return `
+    <div class="app-container">
+      <div class="app-title">📏 Unit Converter</div>
+      <div class="app-card">
+        <input type="number" id="uInp" class="app-input" placeholder="Wert eingeben" value="1" oninput="window.HalDoApps.unitCalc()">
+        <div class="app-grid-2" style="margin-top:8px">
+          <select id="uFrom" class="app-input" onchange="window.HalDoApps.unitCalc()">
+            <option value="km">Kilometer</option><option value="m">Meter</option><option value="cm">Zentimeter</option>
+            <option value="mi">Meilen</option><option value="ft">Fuß</option>
+          </select>
+          <select id="uTo" class="app-input" onchange="window.HalDoApps.unitCalc()">
+            <option value="m">Meter</option><option value="km">Kilometer</option><option value="cm">Zentimeter</option>
+            <option value="mi">Meilen</option><option value="ft">Fuß</option>
+          </select>
+        </div>
+        <div style="text-align:center;margin-top:16px;font-size:24px;font-weight:800;color:var(--accent)" id="uRes">1 km = 1000 m</div>
+      </div>
+    </div>
+  `;
+};
+window.HalDoApps.unitCalc = () => {
+  const v = parseFloat(document.getElementById('uInp').value) || 0;
+  const from = document.getElementById('uFrom').value;
+  const to = document.getElementById('uTo').value;
+  const rates = { km:1000, m:1, cm:0.01, mi:1609.34, ft:0.3048 };
+  const inM = v * rates[from];
+  const res = inM / rates[to];
+  document.getElementById('uRes').textContent = `${v} ${from} = ${res.toFixed(2)} ${to}`;
+};
+
+/* 7. Translator (Mock) */
+APPS_20['translator'] = () => {
+  return `
+    <div class="app-container">
+      <div class="app-title">🌐 Translator</div>
+      <div class="app-card">
+        <select class="app-input"><option>Deutsch</option><option>English</option><option>Kurmancî</option><option>Ezidî</option><option>العربية</option></select>
+        <textarea class="app-input" style="height:100px;resize:none;padding:12px" placeholder="Text eingeben..."></textarea>
+        <button class="app-btn" style="width:100%" onclick="HalDo.Toast.show('🌐 Übersetzung lädt... (API erforderlich)')">Übersetzen</button>
+      </div>
+    </div>
+  `;
+};
+
+/* 8. Currency Live */
+APPS_20['currency'] = () => {
+  setTimeout(async () => {
+    try {
+      const res = await fetch('https://api.frankfurter.app/latest?from=EUR');
+      const data = await res.json();
+      const el = document.getElementById('curList');
+      if(el) {
+        el.innerHTML = Object.entries(data.rates).map(([k,v]) => `
+          <div class="app-list-item">
+            <span style="font-weight:800;color:var(--accent)">${k}</span>
+            <span style="flex:1;text-align:right">${v.toFixed(2)}</span>
+          </div>
+        `).join('');
+      }
+    } catch(e) { document.getElementById('curList').innerHTML = '<div style="color:red">Fehler beim Laden</div>'; }
+  }, 500);
+  return `
+    <div class="app-container">
+      <div class="app-title">💱 Currency Live (EUR)</div>
+      <div class="app-card" id="curList"><div style="text-align:center;color:var(--dim)">Lade Live-Kurse...</div></div>
+    </div>
+  `;
+};
+
+/* 9. Mood Tracker */
+APPS_20['mood'] = () => {
+  let moods = HalDo.DB.get('mood', []);
+  const emojis = ['😊','😐','😢','😡','😴','🤩'];
+  const html = `
+    <div class="app-container">
+      <div class="app-title">🧠 Mood Tracker</div>
+      <div class="app-card" style="text-align:center">
+        <div style="font-size:14px;margin-bottom:12px">Wie fühlst du dich heute?</div>
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+          ${emojis.map(e => `<button class="app-btn secondary" style="font-size:24px;padding:10px" onclick="window.HalDoApps.setMood('${e}')">${e}</button>`).join('')}
+        </div>
+      </div>
+      <div class="app-list">
+        ${moods.map(m => `<div class="app-list-item"><span style="font-size:20px">${m.emoji}</span><span style="flex:1">${m.date}</span></div>`).join('')}
+      </div>
+    </div>
+  `;
+  window.HalDoApps.setMood = (e) => {
+    moods.unshift({ emoji: e, date: new Date().toLocaleDateString('de-DE') });
+    HalDo.DB.set('mood', moods);
+    HalDo.Win.destroy('app-mood'); window.HalDoApps.open('mood');
+    HalDo.Sound.success(); HalDo.Toast.show('Stimmung gespeichert!');
+  };
+  return html;
+};
+
+/* 10. Water Tracker */
+APPS_20['water'] = () => {
+  let glasses = HalDo.DB.get('water', 0);
+  const target = 8;
+  const html = `
+    <div class="app-container">
+      <div class="app-title">💧 Water Tracker</div>
+      <div class="app-card" style="text-align:center">
+        <div style="font-size:48px;margin-bottom:8px">🥛</div>
+        <div style="font-size:24px;font-weight:800;color:var(--accent);margin-bottom:4px">${glasses} / ${target} Gläser</div>
+        <div style="height:12px;background:rgba(255,255,255,0.1);border-radius:6px;overflow:hidden;margin-bottom:16px">
+          <div style="height:100%;width:${Math.min(100, (glasses/target)*100)}%;background:linear-gradient(90deg,#00e5ff,#4da8ff);box-shadow:0 0 10px #00e5ff;transition:width 0.3s"></div>
+        </div>
+        <button class="app-btn" onclick="window.HalDoApps.addWater(1)">+ 1 Glas</button>
+        <button class="app-btn secondary" style="margin-left:8px" onclick="window.HalDoApps.addWater(-1)">- 1 Glas</button>
+      </div>
+    </div>
+  `;
+  window.HalDoApps.addWater = (n) => {
+    glasses = Math.max(0, glasses + n); HalDo.DB.set('water', glasses);
+    HalDo.Win.destroy('app-water'); window.HalDoApps.open('water');
+    HalDo.Sound.click();
+  };
+  return html;
+};
+
+/* 11. Pomodoro */
+APPS_20['pomodoro'] = () => {
+  return `
+    <div class="app-container">
+      <div class="app-title">🍅 Pomodoro Pro</div>
+      <div class="app-card" style="text-align:center">
+        <div style="font-size:64px;font-weight:900;color:var(--accent);font-variant-numeric:tabular-nums" id="pomoTime">25:00</div>
+        <div style="font-size:12px;color:var(--dim);margin-bottom:16px">Fokus-Zeit</div>
+        <button class="app-btn" onclick="HalDo.Toast.show('Pomodoro gestartet!')">▶ Start</button>
+      </div>
+    </div>
+  `;
+};
+
+/* 12. Sleep Tracker */
+APPS_20['sleep'] = () => {
+  return `
+    <div class="app-container">
+      <div class="app-title">🌙 Sleep Tracker</div>
+      <div class="app-card">
+        <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+          <span>Zuletzt geschlafen:</span><strong>7h 30m</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+          <span>Qualität:</span><strong style="color:#00ff88">Gut 😴</strong>
+        </div>
+        <button class="app-btn" style="width:100%" onclick="HalDo.Toast.show('Schlaf aufgezeichnet')">+ Schlaf eintragen</button>
+      </div>
+    </div>
+  `;
+};
+
+/* 13. Flashcard Pro */
+APPS_20['flashcard'] = () => {
+  let cards = HalDo.DB.get('flashcards', [{q:'Was ist die Hauptstadt von Kurdistan?', a:'Hewlêr (Erbil)'}]);
+  let curr = 0, showA = false;
+  const html = `
+    <div class="app-container">
+      <div class="app-title">🎴 Flashcards</div>
+      <div class="app-card" style="min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer" onclick="window.HalDoApps.flipCard()">
+        <div style="font-size:12px;color:var(--dim);margin-bottom:8px">Klicke zum Umdrehen</div>
+        <div style="font-size:18px;font-weight:700">${showA ? cards[curr].a : cards[curr].q}</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="app-btn secondary" style="flex:1" onclick="window.HalDoApps.prevCard()">←</button>
+        <button class="app-btn secondary" style="flex:1" onclick="window.HalDoApps.nextCard()">→</button>
+      </div>
+    </div>
+  `;
+  window.HalDoApps.flipCard = () => { showA = !showA; HalDo.Win.destroy('app-flashcard'); window.HalDoApps.open('flashcard'); };
+  window.HalDoApps.nextCard = () => { curr = (curr+1)%cards.length; showA=false; HalDo.Win.destroy('app-flashcard'); window.HalDoApps.open('flashcard'); };
+  window.HalDoApps.prevCard = () => { curr = (curr-1+cards.length)%cards.length; showA=false; HalDo.Win.destroy('app-flashcard'); window.HalDoApps.open('flashcard'); };
+  return html;
+};
+
+/* 14. Contacts */
+APPS_20['contacts'] = () => {
+  return `
+    <div class="app-container">
+      <div class="app-title">👥 Contacts</div>
+      <div style="margin-bottom:12px"><input type="text" class="app-input" placeholder="Suchen..."></div>
+      <div class="app-list">
+        <div class="app-list-item"><div style="width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#000;font-weight:bold">H</div><div>Halil Donma</div></div>
+        <div class="app-list-item"><div style="width:32px;height:32px;border-radius:50%;background:var(--accent2);display:flex;align-items:center;justify-content:center;color:#000;font-weight:bold">A</div><div>Ali</div></div>
+      </div>
+    </div>
+  `;
+};
+
+/* 15. Random Generator */
+APPS_20['random'] = () => {
+  return `
+    <div class="app-container">
+      <div class="app-title">🎲 Random</div>
+      <div class="app-card" style="text-align:center">
+        <div id="randRes" style="font-size:48px;font-weight:900;color:var(--accent);margin:20px 0">?</div>
+        <button class="app-btn" onclick="document.getElementById('randRes').textContent = Math.floor(Math.random()*100)+1; HalDo.Sound.click()">Zahl (1-100)</button>
+        <button class="app-btn secondary" style="margin-top:8px" onclick="document.getElementById('randRes').textContent = ['Kopf','Zahl'][Math.floor(Math.random()*2)]; HalDo.Sound.click()">Münze werfen</button>
+      </div>
+    </div>
+  `;
+};
+
+/* 16. Stopwatch */
+APPS_20['stopwatch'] = () => {
+  return `
+    <div class="app-container">
+      <div class="app-title">⏱️ Stoppuhr</div>
+      <div class="app-card" style="text-align:center">
+        <div style="font-size:48px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--accent);margin-bottom:16px">00:00.00</div>
+        <button class="app-btn">Start</button>
+        <button class="app-btn secondary" style="margin-left:8px">Reset</button>
+      </div>
+    </div>
+  `;
+};
+
+/* 17. World Clock */
+APPS_20['worldclock'] = () => {
+  return `
+    <div class="app-container">
+      <div class="app-title">🌍 World Clock</div>
+      <div class="app-list">
+        <div class="app-list-item"><span>Berlin</span><strong style="margin-left:auto">${new Date().toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin'})}</strong></div>
+        <div class="app-list-item"><span>Istanbul</span><strong style="margin-left:auto">${new Date().toLocaleTimeString('de-DE',{timeZone:'Europe/Istanbul'})}</strong></div>
+        <div class="app-list-item"><span>New York</span><strong style="margin-left:auto">${new Date().toLocaleTimeString('de-DE',{timeZone:'America/New_York'})}</strong></div>
+        <div class="app-list-item"><span>Tokyo</span><strong style="margin-left:auto">${new Date().toLocaleTimeString('de-DE',{timeZone:'Asia/Tokyo'})}</strong></div>
+      </div>
+    </div>
+  `;
+};
+
+/* 18. Text Analyzer */
+APPS_20['analyzer'] = () => {
+  return `
+    <div class="app-container">
+      <div class="app-title">📝 Text Analyzer</div>
+      <textarea class="app-input" style="height:120px;padding:12px;resize:none" placeholder="Text einfügen..." oninput="window.HalDoApps.anText(this.value)"></textarea>
+      <div class="app-card app-grid-2" style="text-align:center">
+        <div><div style="font-size:24px;font-weight:800;color:var(--accent)" id="anWords">0</div><div style="font-size:10px;color:var(--dim)">Wörter</div></div>
+        <div><div style="font-size:24px;font-weight:800;color:var(--accent)" id="anChars">0</div><div style="font-size:10px;color:var(--dim)">Zeichen</div></div>
+      </div>
+    </div>
+  `;
+};
+window.HalDoApps.anText = (t) => {
+  document.getElementById('anWords').textContent = t.trim() ? t.trim().split(/\\s+/).length : 0;
+  document.getElementById('anChars').textContent = t.length;
+};
+
+/* 19. Date Calculator */
+APPS_20['datecalc'] = () => {
+  return `
+    <div class="app-container">
+      <div class="app-title">📅 Date Calculator</div>
+      <div class="app-card">
+        <label style="font-size:12px;color:var(--dim)">Geburtsdatum:</label>
+        <input type="date" id="dcDate" class="app-input" onchange="window.HalDoApps.dcCalc()">
+        <div id="dcRes" style="text-align:center;margin-top:16px;font-size:18px;font-weight:700;color:var(--accent)">-</div>
+      </div>
+    </div>
+  `;
+};
+window.HalDoApps.dcCalc = () => {
+  const d = document.getElementById('dcDate').value;
+  if(!d) return;
+  const diff = Date.now() - new Date(d).getTime();
+  const days = Math.floor(diff / (1000*60*60*24));
+  const years = Math.floor(days / 365.25);
+  document.getElementById('dcRes').textContent = `${years} Jahre (${days} Tage)`;
+};
+
+/* 20. Music Player (Mock UI) */
+APPS_20['music'] = () => {
+  return `
+    <div class="app-container">
+      <div class="app-title">🎵 Music Player</div>
+      <div class="app-card" style="text-align:center">
+        <div style="width:120px;height:120px;border-radius:16px;background:linear-gradient(135deg,var(--accent),var(--accent2));margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:48px;box-shadow:0 10px 30px rgba(0,229,255,0.4)">🎵</div>
+        <div style="font-size:16px;font-weight:800">HalDo Theme</div>
+        <div style="font-size:12px;color:var(--dim);margin-bottom:16px">Halil Donma</div>
+        <div style="height:4px;background:rgba(255,255,255,0.1);border-radius:2px;margin-bottom:16px">
+          <div style="height:100%;width:40%;background:var(--accent);border-radius:2px"></div>
+        </div>
+        <div style="display:flex;justify-content:center;gap:16px;font-size:24px">
+          <span style="cursor:pointer">⏮</span><span style="cursor:pointer;color:var(--accent)">▶</span><span style="cursor:pointer">⏭</span>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+/* ===== 4. OPEN HANDLER & REGISTRY PATCH ===== */
+window.HalDoApps = { open: (id) => {
+  if (!APPS_20[id]) return;
+  if (HalDo.Win.windows['app-' + id]) return HalDo.Win.focus('app-' + id);
+  const html = APPS_20[id]();
+  HalDo.Win.create('app-' + id, '⚙️ HalDo ' + id.charAt(0).toUpperCase() + id.slice(1), html, {width: 420, height: 540});
+  HalDo.Sound.open();
+}};
+
+// Patch HalDo.UI.open
+const _p3Open = HalDo.UI.open;
+HalDo.UI.open = function(appId) {
+  // Match slug mit den 20 neuen Apps
+  const match = Object.keys(APPS_20).find(k => appId.includes(k));
+  if (match) return window.HalDoApps.open(match);
+  return _p3Open.call(HalDo.UI, appId);
+};
+
+// Patch App Registry (damit sie in der "Apps" Ansicht erscheinen)
+const originalAPPS = window.APPS || [];
+const extraApps = [
+  {id:'todo-pro', name:'HalDo ToDo Pro', shortName:'ToDo Pro', icon:'📋', category:'Y', catName:'Your Life'},
+  {id:'shopping', name:'HalDo Shopping', shortName:'Shopping', icon:'🛒', category:'G', catName:'Zuhause'},
+  {id:'recipes', name:'HalDo Recipes', shortName:'Recipes', icon:'🍲', category:'G', catName:'Zuhause'},
+  {id:'password', name:'HalDo Password', shortName:'Password', icon:'🔐', category:'R', catName:'Sicherheit'},
+  {id:'qr', name:'HalDo QR', shortName:'QR Generator', icon:'📱', category:'P', catName:'Kreativität'},
+  {id:'unit', name:'HalDo Unit Converter', shortName:'Unit Conv.', icon:'📏', category:'Q', catName:'Wissenschaft'},
+  {id:'translator', name:'HalDo Translator', shortName:'Translator', icon:'🌐', category:'A', catName:'AI & Assistant'},
+  {id:'currency', name:'HalDo Currency', shortName:'Currency', icon:'💱', category:'F', catName:'Finanzen'},
+  {id:'mood', name:'HalDo Mood', shortName:'Mood', icon:'🧠', category:'Y', catName:'Your Life'},
+  {id:'water', name:'HalDo Water', shortName:'Water', icon:'💧', category:'Y', catName:'Your Life'},
+  {id:'pomodoro', name:'HalDo Pomodoro', shortName:'Pomodoro', icon:'🍅', category:'Y', catName:'Your Life'},
+  {id:'sleep', name:'HalDo Sleep', shortName:'Sleep', icon:'🌙', category:'Y', catName:'Your Life'},
+  {id:'flashcard', name:'HalDo Flashcard', shortName:'Flashcards', icon:'🎴', category:'L', catName:'Lernen'},
+  {id:'contacts', name:'HalDo Contacts', shortName:'Contacts', icon:'👥', category:'S', catName:'System'},
+  {id:'random', name:'HalDo Random', shortName:'Random', icon:'🎲', category:'S', catName:'System'},
+  {id:'stopwatch', name:'HalDo Stopwatch', shortName:'Stopwatch', icon:'⏱️', category:'S', catName:'System'},
+  {id:'worldclock', name:'HalDo World Clock', shortName:'World Clock', icon:'🌍', category:'S', catName:'System'},
+  {id:'analyzer', name:'HalDo Text Analyzer', shortName:'Text Analyzer', icon:'📝', category:'N', catName:'Notizen'},
+  {id:'datecalc', name:'HalDo Date Calc', shortName:'Date Calc', icon:'📅', category:'S', catName:'System'},
+  {id:'music', name:'HalDo Music', shortName:'Music', icon:'🎵', category:'M', catName:'Medien'}
+];
+
+if (window.APPS) {
+  window.APPS.push(...extraApps);
+} else {
+  window.APPS = extraApps;
+}
+
+console.log('%c✅ Phase 3 geladen — 20 neue Apps & UI Overhaul', 'color:#ff78c8;font-weight:bold;font-size:14px');
+})();
+</script>
 </body>
 </html>
