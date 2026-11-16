@@ -2948,5 +2948,400 @@ if (window.APPS) {
 console.log('%c✅ Phase 3 geladen — 20 neue Apps & UI Overhaul', 'color:#ff78c8;font-weight:bold;font-size:14px');
 })();
 </script>
+<script>
+/* ============ ULTIMATE SETTINGS APP (A-Z) ============ */
+(function(){
+'use strict';
+
+/* Modernes CSS für die Settings */
+const setCSS = document.createElement('style');
+setCSS.textContent = `
+.settings-modal { display: flex; flex-direction: column; height: 100%; gap: 12px; }
+.set-search { position: sticky; top: 0; z-index: 10; padding-bottom: 8px; background: linear-gradient(180deg, var(--glass) 80%, transparent); backdrop-filter: blur(20px); }
+.set-search input { width: 100%; height: 48px; border-radius: 14px; border: 1px solid var(--border); background: rgba(0,0,0,0.5); color: var(--text); padding: 0 16px; font-size: 15px; font-family: inherit; transition: 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+.set-search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 20px rgba(0,229,255,0.3); }
+.set-list { display: flex; flex-direction: column; gap: 10px; }
+.set-card { border: 1px solid rgba(0,229,255,0.2); border-radius: 16px; background: rgba(0,229,255,0.03); overflow: hidden; transition: 0.3s; }
+.set-card.hidden { display: none; }
+.set-card.open { background: rgba(0,229,255,0.08); border-color: var(--accent); }
+.set-card-head { padding: 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.set-card-head:hover { background: rgba(255,255,255,0.05); }
+.set-card-letter { width: 36px; height: 36px; border-radius: 12px; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; color: #000; font-weight: 900; font-size: 16px; box-shadow: 0 0 15px rgba(0,229,255,0.3); }
+.set-card-title { flex: 1; font-weight: 800; font-size: 15px; letter-spacing: 0.5px; }
+.set-card-arrow { transition: 0.3s; color: var(--dim); }
+.set-card.open .set-card-arrow { transform: rotate(90deg); color: var(--accent); }
+.set-card-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; padding: 0 16px; }
+.set-card.open .set-card-body { max-height: 3000px; padding-bottom: 16px; }
+.set-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 16px; }
+.set-row:last-child { border-bottom: none; }
+.set-label { font-size: 13px; color: var(--text); flex: 1; }
+.set-label small { display: block; font-size: 11px; color: var(--dim); margin-top: 2px; }
+.set-btn-group { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.set-chip { padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: rgba(0,0,0,0.3); color: var(--text); font-size: 12px; cursor: pointer; transition: 0.2s; font-weight: 600; }
+.set-chip.active { background: var(--accent); color: #000; border-color: var(--accent); box-shadow: 0 0 10px var(--accent); }
+.set-slider { -webkit-appearance: none; width: 140px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.1); outline: none; }
+.set-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); cursor: pointer; box-shadow: 0 0 10px var(--accent); }
+.set-color-picker { width: 40px; height: 40px; border: none; border-radius: 8px; cursor: pointer; background: transparent; padding: 0; }
+.set-color-picker::-webkit-color-swatch-wrapper { padding: 0; }
+.set-color-picker::-webkit-color-swatch { border: 2px solid var(--border); border-radius: 8px; }
+.set-input { height: 36px; border-radius: 10px; border: 1px solid var(--border); background: rgba(0,0,0,0.5); color: var(--text); padding: 0 12px; font-size: 13px; font-family: inherit; width: 160px; }
+.set-input:focus { outline: none; border-color: var(--accent); }
+.set-action-btn { padding: 8px 16px; border-radius: 10px; border: none; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #000; font-weight: 800; font-size: 12px; cursor: pointer; }
+.set-action-btn.danger { background: linear-gradient(135deg, #ff4444, #aa0000); color: #fff; }
+`;
+if(!document.getElementById('haldo-settings-css')) { setCSS.id = 'haldo-settings-css'; document.head.appendChild(setCSS); }
+
+/* =========================================
+   DIE KOMPLETTEN EINSTELLUNGEN (A-Z)
+   ========================================= */
+const MASTER_SETTINGS = [
+  { key:'A', title:'Account & Profil', icon:'👤', items:[
+    { id:'acc-name', label:'Anzeigename', type:'input', def:'Halil Donma' },
+    { id:'acc-email', label:'E-Mail', type:'input', def:'halil@haldo.ai' },
+    { id:'cloud-sync', label:'Cloud-Sync', type:'toggle', def:true, desc:'Daten in der Cloud sichern' },
+    { id:'acc-devices', label:'Meine Geräte', type:'button', text:'Geräte verwalten', action:'toast' }
+  ]},
+  { key:'B', title:'Benachrichtigungen', icon:'🔔', items:[
+    { id:'notif-toast', label:'Toast-Benachrichtigungen', type:'toggle', def:true },
+    { id:'notif-sound', label:'Benachrichtigungston', type:'toggle', def:true },
+    { id:'dnd', label:'Nicht-Stören-Modus', type:'toggle', def:false },
+    { id:'focus', label:'Fokus-Modus', type:'chips', opts:['Kein','Arbeit','Schlaf','Gaming'], def:'Kein' }
+  ]},
+  { key:'C', title:'CYBORG & KI-Design', icon:'⚡', items:[
+    { id:'cyborg-mode', label:'CYBORG-Modus', type:'toggle', def:false, desc:'Pink/Violett Design aktivieren' },
+    { id:'avatar-style', label:'Avatar Stil', type:'chips', opts:['Human 🤖','Cyborg ⚡'], def:'Human 🤖' },
+    { id:'auto-speak', label:'Auto-Speak (KI liest vor)', type:'toggle', def:false },
+    { id:'holo-rings', label:'Holografische Ringe', type:'toggle', def:true }
+  ]},
+  { key:'D', title:'Display & Anzeige', icon:'🖥️', items:[
+    { id:'font-size', label:'Schriftgröße', type:'chips', opts:['S','M','L','XL'], def:'M' },
+    { id:'blur-strength', label:'Glas-Effekt (Blur)', type:'chips', opts:['Wenig','Mittel','Viel','Max'], def:'Mittel' },
+    { id:'anim-speed', label:'Animationsgeschwindigkeit', type:'chips', opts:['0.5x','1x','2x'], def:'1x' },
+    { id:'glow-strength', label:'Glow-Stärke', type:'toggle', def:true }
+  ]},
+  { key:'E', title:'Energie & Akku', icon:'🔋', items:[
+    { id:'power-save', label:'Energiesparmodus', type:'toggle', def:false },
+    { id:'bg-apps', label:'Hintergrund-Apps', type:'toggle', def:true, desc:'Apps im Hintergrund erlauben' },
+    { id:'bat-status', label:'Akku-Status', type:'text', val:'Gesund (94%)' }
+  ]},
+  { key:'F', title:'Farbsystem & Themes', icon:'🎨', items:[
+    { id:'theme', label:'Theme Preset', type:'chips', opts:['Holo','Cyborg','Gold','Matrix','Crimson','Sunset','Ice'], def:'Holo' },
+    { id:'custom-color', label:'Akzentfarbe', type:'color', def:'#00e5ff' },
+    { id:'glass-opacity', label:'Fenster-Transparenz', type:'slider', min:10, max:100, def:55 },
+    { id:'gold-borders', label:'Goldene Ränder', type:'toggle', def:true }
+  ]},
+  { key:'G', title:'Geräte & Hardware', icon:'📷', items:[
+    { id:'hw-cam', label:'Kamera Zugriff', type:'toggle', def:true },
+    { id:'hw-mic', label:'Mikrofon Zugriff', type:'toggle', def:true },
+    { id:'hw-bt', label:'Bluetooth', type:'toggle', def:true },
+    { id:'hw-nfc', label:'NFC', type:'toggle', def:false }
+  ]},
+  { key:'H', title:'Hintergrund & Kosmos', icon:'🌌', items:[
+    { id:'cos-sun', label:'Sonne & Corona', type:'toggle', def:true },
+    { id:'cos-planets', label:'12 Planeten', type:'toggle', def:true },
+    { id:'cos-stars', label:'Sternenhimmel', type:'toggle', def:true },
+    { id:'cos-moon', label:'Mond (um Erde)', type:'toggle', def:true },
+    { id:'cos-nebula', label:'Nebel & Gaswolken', type:'toggle', def:true }
+  ]},
+  { key:'I', title:'Info & Über', icon:'ℹ️', items:[
+    { id:'sys-version', label:'Version', type:'text', val:'v125 Pro Max' },
+    { id:'sys-dev', label:'Entwickler', type:'text', val:'Halil Donma' },
+    { id:'sys-build', label:'Build', type:'text', val:'2025.10.24' },
+    { id:'sys-lic', label:'Lizenzen', type:'button', text:'Anzeigen', action:'toast' }
+  ]},
+  { key:'J', title:'Journal & Daten', icon:'📔', items:[
+    { id:'jrn-mood', label:'Stimmungs-Tracking', type:'toggle', def:true },
+    { id:'jrn-cloud', label:'Journal in Cloud speichern', type:'toggle', def:false }
+  ]},
+  { key:'K', title:'KI & Assistant', icon:'🤖', items:[
+    { id:'ki-openai', label:'OpenAI API-Key', type:'input', def:'' },
+    { id:'ki-gemini', label:'Gemini API-Key', type:'input', def:'' },
+    { id:'ki-ollama', label:'Ollama URL (Lokal)', type:'input', def:'http://localhost:11434' },
+    { id:'ki-lang', label:'KI-Sprache', type:'chips', opts:['DE','EN','KU','EZ','AR','TR'], def:'DE' },
+    { id:'ki-mem', label:'Gedächtnis (Memory)', type:'toggle', def:true }
+  ]},
+  { key:'L', title:'Lautstärke & Töne', icon:'🔊', items:[
+    { id:'snd-ring', label:'Klingelton', type:'chips', opts:['Digital','Chime','Retro','SciFi'], def:'SciFi' },
+    { id:'snd-vol', label:'System-Lautstärke', type:'slider', min:0, max:100, def:80 },
+    { id:'snd-vibe', label:'Vibration', type:'toggle', def:true }
+  ]},
+  { key:'M', title:'Datenschutz', icon:'🔒', items:[
+    { id:'priv-track', label:'App-übergreifendes Tracking', type:'toggle', def:false },
+    { id:'priv-analytics', label:'Analyse senden', type:'toggle', def:false },
+    { id:'priv-loc', label:'Standortzugriff', type:'chips', opts:['Immer','Beim Nutzen','Nie'], def:'Beim Nutzen' }
+  ]},
+  { key:'N', title:'Netzwerk', icon:'📶', items:[
+    { id:'net-wlan', label:'WLAN', type:'toggle', def:true },
+    { id:'net-mobile', label:'Mobile Daten', type:'toggle', def:true },
+    { id:'net-vpn', label:'VPN aktiv', type:'toggle', def:false },
+    { id:'net-airplane', label:'Flugmodus', type:'toggle', def:false }
+  ]},
+  { key:'O', title:'Online & Cloud', icon:'☁️', items:[
+    { id:'cloud-prov', label:'Cloud-Anbieter', type:'chips', opts:['HalDo Cloud','iCloud','Google Drive'], def:'HalDo Cloud' },
+    { id:'cloud-auto', label:'Auto-Backup', type:'toggle', def:true }
+  ]},
+  { key:'P', title:'Passwörter & Sicherheit', icon:'🔐', items:[
+    { id:'sec-2fa', label:'2-Faktor-Auth', type:'toggle', def:false },
+    { id:'sec-bio', label:'Biometrie (FaceID)', type:'toggle', def:true },
+    { id:'sec-lock', label:'Auto-Lock', type:'chips', opts:['30s','1Min','5Min','Nie'], def:'1Min' }
+  ]},
+  { key:'Q', title:'Qualität & Leistung', icon:'🎯', items:[
+    { id:'perf-gpu', label:'GPU-Beschleunigung', type:'toggle', def:true, desc:'Für Kosmos-Animationen' },
+    { id:'perf-ram', label:'RAM-Optimierung', type:'toggle', def:true }
+  ]},
+  { key:'R', title:'Region & Sprache', icon:'🌐', items:[
+    { id:'reg-lang', label:'System-Sprache', type:'chips', opts:['Deutsch','English','Kurmancî','Ezidî','العربية','Türkçe'], def:'Deutsch' },
+    { id:'reg-date', label:'Datumsformat', type:'chips', opts:['DD.MM.YYYY','MM/DD/YYYY'], def:'DD.MM.YYYY' },
+    { id:'reg-cur', label:'Währung', type:'chips', opts:['EUR','USD','TRY'], def:'EUR' }
+  ]},
+  { key:'S', title:'Speicher & Daten', icon:'💾', items:[
+    { id:'data-export', label:'Daten Exportieren (JSON)', type:'button', text:'Exportieren', action:'export' },
+    { id:'data-clear', label:'Cache leeren', type:'button', text:'Leeren', action:'toast' },
+    { id:'data-reset', label:'Werkszustand (Reset)', type:'button', text:'Reset', action:'reset', danger:true }
+  ]},
+  { key:'T', title:'Tastatur & Eingabe', icon:'⌨️', items:[
+    { id:'kbd-layout', label:'Tastaturlayout', type:'chips', opts:['QWERTZ','QWERTY','AZERTY'], def:'QWERTZ' },
+    { id:'kbd-auto', label:'Autokorrektur', type:'toggle', def:true }
+  ]},
+  { key:'U', title:'Updates', icon:'🔄', items:[
+    { id:'upd-auto', label:'Auto-Updates', type:'toggle', def:true },
+    { id:'upd-beta', label:'Beta-Kanal', type:'toggle', def:false }
+  ]},
+  { key:'V', title:'Verbindungen', icon:'🔗', items:[
+    { id:'conn-airdrop', label:'AirDrop / NearDrop', type:'toggle', def:true },
+    { id:'conn-handoff', label:'Handoff', type:'toggle', def:true }
+  ]},
+  { key:'W', title:'Weltraum-Details', icon:'🪐', items:[
+    { id:'cos-speed', label:'Planeten-Geschwindigkeit', type:'chips', opts:['Langsam','Normal','Schnell'], def:'Normal' },
+    { id:'cos-orbits', label:'Umlaufbahnen anzeigen', type:'toggle', def:true }
+  ]},
+  { key:'X', title:'X-Faktor (Erweitert)', icon:'🧪', items:[
+    { id:'x-dev', label:'Entwickler-Modus', type:'toggle', def:false },
+    { id:'x-agent', label:'Agentic AI (Beta)', type:'toggle', def:false },
+    { id:'x-logs', label:'System-Logs', type:'button', text:'Öffnen', action:'toast' }
+  ]},
+  { key:'Y', title:'Your Life (Routinen)', icon:'🌅', items:[
+    { id:'life-morning', label:'Morgen-Routine', type:'toggle', def:true },
+    { id:'life-sleep', label:'Schlaf-Tracker', type:'toggle', def:true }
+  ]},
+  { key:'Z', title:'Zeit & Datum', icon:'🕐', items:[
+    { id:'time-auto', label:'Automatische Zeit', type:'toggle', def:true },
+    { id:'time-24h', label:'24-Stunden-Format', type:'toggle', def:true }
+  ]}
+];
+
+/* =========================================
+   SETTINGS RENDER LOGIK
+   ========================================= */
+HalDo.UI.renderSettings = () => {
+  if (HalDo.Win.windows['haldo-settings']) return HalDo.Win.focus('haldo-settings');
+
+  const getVal = (id, def) => HalDo.Store.get(id, def);
+
+  const renderItem = (item) => {
+    const val = getVal(item.id, item.def);
+    
+    if (item.type === 'toggle') {
+      return `<div class="set-row">
+        <div class="set-label">${item.label} ${item.desc ? `<small>${item.desc}</small>` : ''}</div>
+        <div class="toggle ${val?'on':''}" data-id="${item.id}" data-type="toggle"></div>
+      </div>`;
+    }
+    if (item.type === 'chips') {
+      return `<div class="set-row" style="flex-direction:column;align-items:flex-start">
+        <div class="set-label">${item.label} ${item.desc ? `<small>${item.desc}</small>` : ''}</div>
+        <div class="set-btn-group" style="justify-content:flex-start;width:100%">
+          ${item.opts.map(o => `<div class="set-chip ${val===o?'active':''}" data-id="${item.id}" data-val="${o}" data-type="chips">${o}</div>`).join('')}
+        </div>
+      </div>`;
+    }
+    if (item.type === 'slider') {
+      return `<div class="set-row">
+        <div class="set-label">${item.label}</div>
+        <input type="range" class="set-slider" min="${item.min}" max="${item.max}" value="${val}" data-id="${item.id}" data-type="slider">
+      </div>`;
+    }
+    if (item.type === 'color') {
+      return `<div class="set-row">
+        <div class="set-label">${item.label}</div>
+        <input type="color" class="set-color-picker" value="${val}" data-id="${item.id}" data-type="color">
+      </div>`;
+    }
+    if (item.type === 'input') {
+      return `<div class="set-row">
+        <div class="set-label">${item.label}</div>
+        <input type="text" class="set-input" value="${val}" data-id="${item.id}" data-type="input" placeholder="Eingeben...">
+      </div>`;
+    }
+    if (item.type === 'text') {
+      return `<div class="set-row">
+        <div class="set-label">${item.label}</div>
+        <span style="font-size:12px;color:var(--dim);font-weight:700">${item.val}</span>
+      </div>`;
+    }
+    if (item.type === 'button') {
+      return `<div class="set-row">
+        <div class="set-label">${item.label}</div>
+        <button class="set-action-btn ${item.danger?'danger':''}" data-action="${item.action}">${item.text}</button>
+      </div>`;
+    }
+    return '';
+  };
+
+  const html = `
+    <div class="settings-modal">
+      <div class="set-search">
+        <input type="text" id="setSearch" placeholder="🔍 Suche alle Einstellungen..." oninput="HalDo.UI.filterSettings(this.value)">
+      </div>
+      <div class="set-list" id="setList">
+        ${MASTER_SETTINGS.map(sec => `
+          <div class="set-card" data-search="${sec.title.toLowerCase()} ${sec.items.map(i=>i.label.toLowerCase()).join(' ')}">
+            <div class="set-card-head">
+              <div class="set-card-letter">${sec.key}</div>
+              <div class="set-card-title">${sec.icon} ${sec.title}</div>
+              <div class="set-card-arrow">▸</div>
+            </div>
+            <div class="set-card-body">
+              ${sec.items.map(renderItem).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  const win = HalDo.Win.create('haldo-settings', '⚙️ Einstellungen A–Z', html, {width: 600, height: 700});
+
+  // Accordion Logik
+  win.querySelectorAll('.set-card-head').forEach(h => {
+    h.addEventListener('click', () => {
+      h.parentElement.classList.toggle('open');
+      HalDo.Sound.click();
+    });
+  });
+
+  // Event Listener für Toggles
+  win.querySelectorAll('.toggle').forEach(t => {
+    t.addEventListener('click', () => {
+      t.classList.toggle('on');
+      const isOn = t.classList.contains('on');
+      HalDo.Store.set(t.dataset.id, isOn);
+      HalDo.Sound.click();
+      applyChange(t.dataset.id, isOn);
+    });
+  });
+
+  // Event Listener für Chips
+  win.querySelectorAll('.set-chip').forEach(c => {
+    c.addEventListener('click', () => {
+      const group = c.parentElement;
+      group.querySelectorAll('.set-chip').forEach(x => x.classList.remove('active'));
+      c.classList.add('active');
+      HalDo.Store.set(c.dataset.id, c.dataset.val);
+      HalDo.Sound.click();
+      applyChange(c.dataset.id, c.dataset.val);
+    });
+  });
+
+  // Event Listener für Slider & Color & Input
+  win.querySelectorAll('.set-slider, .set-color-picker, .set-input').forEach(el => {
+    el.addEventListener('input', (e) => {
+      const val = e.target.value;
+      HalDo.Store.set(e.target.dataset.id, val);
+      applyChange(e.target.dataset.id, val);
+    });
+  });
+
+  // Event Listener für Action Buttons
+  win.querySelectorAll('.set-action-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      const action = b.dataset.action;
+      if (action === 'toast') { HalDo.Toast.show('✅ Aktion ausgeführt'); HalDo.Sound.success(); }
+      if (action === 'reset') {
+        if (confirm('⚠️ BIST DU SICHER? Alle Daten (Tasks, Notizen, Einstellungen) werden gelöscht!')) {
+          localStorage.clear();
+          location.reload();
+        }
+      }
+      if (action === 'export') {
+        const data = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          try { data[key] = JSON.parse(localStorage.getItem(key)); } catch(e) { data[key] = localStorage.getItem(key); }
+        }
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'haldo_backup.json';
+        a.click();
+        HalDo.Toast.show('💾 Export gestartet'); HalDo.Sound.success();
+      }
+    });
+  });
+};
+
+/* =========================================
+   LIVE ANWENDUNG DER EINSTELLUNGEN
+   ========================================= */
+const applyChange = (id, val) => {
+  // Themes
+  if (id === 'theme') {
+    const map = {Holo:'holo',Cyborg:'cyborg',Gold:'gold',Matrix:'matrix',Crimson:'crimson',Sunset:'sunset',Ice:'ice'};
+    document.documentElement.setAttribute('data-theme', map[val] || 'holo');
+  }
+  if (id === 'custom-color') {
+    document.documentElement.style.setProperty('--accent', val);
+    document.documentElement.style.setProperty('--border', val + '80'); // 50% alpha
+  }
+  // Display
+  if (id === 'font-size') {
+    const m = {S:'13px',M:'15px',L:'17px',XL:'19px'};
+    document.documentElement.style.setProperty('--fs', m[val] || '15px');
+  }
+  if (id === 'blur-strength') {
+    const m = {Wenig:'12px',Mittel:'24px',Viel:'36px',Max:'48px'};
+    document.documentElement.style.setProperty('--blur', m[val] || '24px');
+  }
+  if (id === 'anim-speed') {
+    const m = {'0.5x':0.5,'1x':1,'2x':2};
+    document.documentElement.style.setProperty('--anim', m[val] || 1);
+  }
+  // Cyborg Modus
+  if (id === 'cyborg-mode') {
+    document.documentElement.setAttribute('data-theme', val ? 'cyborg' : 'holo');
+  }
+  if (id === 'glass-opacity') {
+    const alpha = val / 100;
+    document.documentElement.style.setProperty('--glass', `rgba(10,20,40,${alpha})`);
+  }
+};
+
+/* Suchfunktion */
+HalDo.UI.filterSettings = (q) => {
+  q = q.toLowerCase().trim();
+  document.querySelectorAll('.set-card').forEach(card => {
+    if (!q) { card.classList.remove('hidden'); return; }
+    const isMatch = card.dataset.search.includes(q);
+    card.classList.toggle('hidden', !isMatch);
+    if (isMatch) card.classList.add('open');
+  });
+};
+
+/* Nav-Override um immer die neuen Settings zu öffnen */
+const _navOrig = HalDo.UI.nav;
+HalDo.UI.nav = function(section) {
+  if (section === 'system') { return HalDo.UI.open('settings'); }
+  return _navOrig.call(HalDo.UI, section);
+};
+
+const _openOrig = HalDo.UI.open;
+HalDo.UI.open = function(appId) {
+  if (appId === 'settings') return HalDo.UI.renderSettings();
+  return _openOrig.call(HalDo.UI, appId);
+};
+
+console.log('%c✅ Ultimate Settings A-Z geladen!', 'color:#ffd166;font-weight:bold;font-size:14px');
+})();
+</script>
 </body>
 </html>
