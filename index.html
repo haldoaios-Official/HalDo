@@ -5743,5 +5743,566 @@ console.log('%c🔧 HalDo v131 — FIX aktiv', 'background:#00e5ff;color:#000;pa
   }
 })();
 </script>
+<!-- ================================================================
+     HALDO AI OS v133 — Mond-Fix (offline) + Fahrschule Pro Max
+     ================================================================ -->
+<script>
+/* ══════════ 1) MOND-FIX — 100% Canvas, kein Download nötig ══════════ */
+(function(){
+  // Erzeuge Mond-Textur direkt im Browser (nicht herunterladbar, immer verfügbar)
+  function makeMoonTexture() {
+    const c = document.createElement('canvas');
+    c.width = 1024; c.height = 512;
+    const ctx = c.getContext('2d');
+    // Grundfarbe
+    ctx.fillStyle = '#8a8a8a'; ctx.fillRect(0, 0, 1024, 512);
+    // Dunkle "Maria" (Mondmeere)
+    for (let i = 0; i < 20; i++) {
+      ctx.fillStyle = `rgba(70,70,70,${0.4 + Math.random()*0.3})`;
+      ctx.beginPath();
+      ctx.ellipse(Math.random()*1024, Math.random()*512, Math.random()*120+40, Math.random()*80+30, Math.random()*Math.PI, 0, Math.PI*2);
+      ctx.fill();
+    }
+    // Krater
+    for (let i = 0; i < 500; i++) {
+      const x = Math.random()*1024, y = Math.random()*512, r = Math.random()*22+2;
+      const g = ctx.createRadialGradient(x-r*0.4, y-r*0.4, r*0.1, x, y, r);
+      g.addColorStop(0, 'rgba(45,45,45,0.85)');
+      g.addColorStop(0.55, 'rgba(110,110,110,0.45)');
+      g.addColorStop(0.9, 'rgba(180,180,180,0.15)');
+      g.addColorStop(1, 'rgba(160,160,160,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+    }
+    return c.toDataURL('image/png');
+  }
+  function makeCloudsTexture() {
+    const c = document.createElement('canvas');
+    c.width = 1024; c.height = 512;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = 'rgba(0,0,0,0)'; ctx.fillRect(0, 0, 1024, 512);
+    for (let i = 0; i < 60; i++) {
+      const x = Math.random()*1024, y = Math.random()*512;
+      const rx = Math.random()*120+40, ry = Math.random()*40+15;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, rx);
+      g.addColorStop(0, `rgba(255,255,255,${0.35 + Math.random()*0.3})`);
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.ellipse(x, y, rx, ry, Math.random()*Math.PI, 0, Math.PI*2); ctx.fill();
+    }
+    return c.toDataURL('image/png');
+  }
+
+  const MOON = makeMoonTexture();
+  const CLOUDS = makeCloudsTexture();
+
+  if (window.THREE && THREE.TextureLoader) {
+    const origLoad = THREE.TextureLoader.prototype.load;
+    THREE.TextureLoader.prototype.load = function(url, onLoad, onProgress, onError) {
+      if (typeof url === 'string') {
+        // Cloud + Moon: komplett durch Canvas-Data-URLs ersetzen (keine Netzwerk-Calls)
+        if (url.includes('moon')) url = MOON;
+        else if (url.includes('clouds')) url = CLOUDS;
+        else url = url.replace('unpkg.com/three-globe', 'cdn.jsdelivr.net/npm/three-globe');
+      }
+      return origLoad.call(this, url, onLoad, onProgress, onError);
+    };
+    console.log('✅ Mond + Wolken: 100% Canvas, keine externen URLs mehr');
+  }
+})();
+
+/* ══════════ 2) FAHRSCHULE PRO MAX ══════════ */
+HalDo.FahrschuleProMax = (() => {
+
+  // ── SPRACH-PAKETE ──
+  const UI = {
+    de: { name:'Deutsch', flag:'🇩🇪', tts:'de-DE',
+      setup:'Prüfung konfigurieren', qCount:'Anzahl Fragen', cat:'Kategorie', lang:'Sprache',
+      mode:'Modus', exam:'Prüfung', learn:'Lernen', quick:'Schnelltest',
+      start:'Prüfung starten', question:'Frage', of:'von', time:'Zeit',
+      next:'Weiter', finish:'Auswerten', correct:'✓ Richtig!', wrong:'✗ Falsch',
+      result:'Ergebnis', passed:'🎉 BESTANDEN!', failed:'📚 Nicht bestanden',
+      aiHelp:'🤖 KI fragen', speak:'🔊 Vorlesen', repeat:'🔄 Wiederholen',
+      close:'Schließen', correctAnswer:'Richtige Antwort:', explanation:'Erklärung:',
+      selectAll:'Alle Kategorien', answer:'Antwort', cancel:'Abbrechen',
+      points:'richtig', again:'Nochmal', details:'Details' },
+    en: { name:'English', flag:'🇬🇧', tts:'en-US',
+      setup:'Configure Exam', qCount:'Questions', cat:'Category', lang:'Language',
+      mode:'Mode', exam:'Exam', learn:'Learn', quick:'Quick test',
+      start:'Start exam', question:'Question', of:'of', time:'Time',
+      next:'Next', finish:'Finish', correct:'✓ Correct!', wrong:'✗ Wrong',
+      result:'Result', passed:'🎉 PASSED!', failed:'📚 Failed',
+      aiHelp:'🤖 Ask AI', speak:'🔊 Speak', repeat:'🔄 Retry',
+      close:'Close', correctAnswer:'Correct answer:', explanation:'Explanation:',
+      selectAll:'All categories', answer:'Answer', cancel:'Cancel',
+      points:'correct', again:'Again', details:'Details' },
+    tr: { name:'Türkçe', flag:'🇹🇷', tts:'tr-TR',
+      setup:'Sınavı Yapılandır', qCount:'Soru Sayısı', cat:'Kategori', lang:'Dil',
+      mode:'Mod', exam:'Sınav', learn:'Öğren', quick:'Hızlı test',
+      start:'Sınavı Başlat', question:'Soru', of:'/', time:'Süre',
+      next:'İleri', finish:'Bitir', correct:'✓ Doğru!', wrong:'✗ Yanlış',
+      result:'Sonuç', passed:'🎉 GEÇTİN!', failed:'📚 Başarısız',
+      aiHelp:'🤖 AI sor', speak:'🔊 Oku', repeat:'🔄 Tekrar',
+      close:'Kapat', correctAnswer:'Doğru cevap:', explanation:'Açıklama:',
+      selectAll:'Tüm kategoriler', answer:'Cevap', cancel:'İptal',
+      points:'doğru', again:'Tekrar', details:'Detaylar' },
+    ku: { name:'Kurmancî', flag:'🟡', tts:'tr-TR',
+      setup:'Saz bike', qCount:'Hejmara pirsan', cat:'Kategorî', lang:'Ziman',
+      mode:'Mod', exam:'Azmûn', learn:'Fêr bibe', quick:'Test bilez',
+      start:'Dest pê bike', question:'Pirs', of:'/', time:'Dem',
+      next:'Pêşve', finish:'Biqedîne', correct:'✓ Rast!', wrong:'✗ Şaş',
+      result:'Encam', passed:'🎉 DERBAS BÛ!', failed:'📚 Derbas nebû',
+      aiHelp:'🤖 Ji AI pirs', speak:'🔊 Bixwîne', repeat:'🔄 Dîsa',
+      close:'Girtin', correctAnswer:'Bersiva rast:', explanation:'Ravekirin:',
+      selectAll:'Hemû kategori', answer:'Bersiv', cancel:'Betal',
+      points:'rast', again:'Dîsa', details:'Hûrgilî' },
+    ar: { name:'العربية', flag:'🇸🇦', tts:'ar-SA',
+      setup:'إعداد الامتحان', qCount:'عدد الأسئلة', cat:'الفئة', lang:'اللغة',
+      mode:'الوضع', exam:'امتحان', learn:'تعلم', quick:'اختبار سريع',
+      start:'ابدأ الامتحان', question:'السؤال', of:'من', time:'الوقت',
+      next:'التالي', finish:'إنهاء', correct:'✓ صحيح!', wrong:'✗ خطأ',
+      result:'النتيجة', passed:'🎉 نجحت!', failed:'📚 لم تنجح',
+      aiHelp:'🤖 اسأل الذكاء', speak:'🔊 قراءة', repeat:'🔄 إعادة',
+      close:'إغلاق', correctAnswer:'الإجابة الصحيحة:', explanation:'التفسير:',
+      selectAll:'كل الفئات', answer:'إجابة', cancel:'إلغاء',
+      points:'صحيح', again:'مرة أخرى', details:'تفاصيل' }
+  };
+  const getUI = (l) => UI[l] || UI.de;
+
+  // ── KATEGORIEN ──
+  const CATS = {
+    all: { de:'Alle', en:'All', tr:'Tümü', ku:'Hemû', ar:'الكل', icon:'📚' },
+    speed: { de:'Geschwindigkeit', en:'Speed', tr:'Hız', ku:'Lez', ar:'السرعة', icon:'⚡' },
+    sign: { de:'Verkehrszeichen', en:'Road signs', tr:'Trafik işaretleri', ku:'Nîşaneyên trafîkê', ar:'علامات المرور', icon:'🚸' },
+    priority: { de:'Vorfahrt', en:'Priority', tr:'Geçiş hakkı', ku:'Desthilatdarî', ar:'أولوية المرور', icon:'🛑' },
+    alcohol: { de:'Alkohol & Drogen', en:'Alcohol & drugs', tr:'Alkol & uyuşturucu', ku:'Alkol & narkotîk', ar:'الكحول والمخدرات', icon:'🍺' },
+    distance: { de:'Abstand', en:'Distance', tr:'Mesafe', ku:'Dûrahî', ar:'المسافة', icon:'📏' },
+    overtaking: { de:'Überholen', en:'Overtaking', tr:'Sollama', ku:'Derbaskirin', ar:'التجاوز', icon:'🏎' },
+    highway: { de:'Autobahn', en:'Highway', tr:'Otoyol', ku:'Otoban', ar:'الطريق السريع', icon:'🛣' },
+    parking: { de:'Parken', en:'Parking', tr:'Park', ku:'Parkkirin', ar:'الوقوف', icon:'🅿️' },
+    lights: { de:'Beleuchtung', en:'Lights', tr:'Işıklar', ku:'Ronahî', ar:'الأنوار', icon:'💡' },
+    weather: { de:'Wetter', en:'Weather', tr:'Hava', ku:'Hewa', ar:'الطقس', icon:'🌧' },
+    tech: { de:'Technik', en:'Technique', tr:'Teknik', ku:'Teknîk', ar:'التقنية', icon:'🔧' },
+    firstAid: { de:'Erste Hilfe', en:'First aid', tr:'İlk yardım', ku:'Alîkariya pêşîn', ar:'الإسعافات', icon:'🩹' },
+    behavior: { de:'Verhalten', en:'Behavior', tr:'Davranış', ku:'Helwest', ar:'السلوك', icon:'🚗' }
+  };
+  const getCat = (id, l) => (CATS[id] && CATS[id][l]) || (CATS[id] && CATS[id].de) || id;
+
+  // ── FRAGEN-DATENBANK (100 Fragen) ──
+  const QUESTIONS = [
+    // Speed (13)
+    {q:'Wie schnell dürfen Sie innerorts höchstens fahren?',a:['30 km/h','50 km/h','70 km/h','100 km/h'],c:1,cat:'speed',ex:'Innerorts gilt in Deutschland 50 km/h als Höchstgeschwindigkeit.'},
+    {q:'Wie schnell auf Landstraße (außerorts)?',a:['70','80','100','130'],c:2,cat:'speed',ex:'Außerorts: 100 km/h für PKW.'},
+    {q:'Richtgeschwindigkeit auf Autobahn?',a:['100','120','130','150'],c:2,cat:'speed',ex:'Autobahn-Richtgeschwindigkeit: 130 km/h. Kein Limit, aber empfohlen.'},
+    {q:'Wie schnell in einer 30er-Zone?',a:['30','40','50','20'],c:0,cat:'speed',ex:'In der 30er-Zone: höchstens 30 km/h.'},
+    {q:'Mit Winterreifen max. wie schnell?',a:['Kein Limit','190','210','Bis Herstellerangabe'],c:3,cat:'speed',ex:'Winterreifen haben oft Tempolimit (z.B. 160/190/210). Herstellerangabe beachten!'},
+    {q:'Fahranfänger Probezeit: Welche Geschwindigkeit ist erlaubt?',a:['Wie für alle','50 km/h max','80 km/h max','100 km/h max'],c:0,cat:'speed',ex:'Keine Sonder-Regel — gilt 0,0‰ und normale Limits.'},
+    {q:'Spielstraße: Welche Geschwindigkeit?',a:['5','10','20','30'],c:0,cat:'speed',ex:'Schrittgeschwindigkeit (ca. 5-7 km/h). Fußgänger haben Vorrang.'},
+    {q:'Verkehrsberuhigter Bereich: wie schnell?',a:['5-7 km/h','20','30','50'],c:0,cat:'speed',ex:'Schrittgeschwindigkeit, Fußgänger haben Vorrang.'},
+    {q:'In einer 30er-Zone nachts — welches Limit?',a:['30','50','70','Aufhebung'],c:0,cat:'speed',ex:'Gilt rund um die Uhr.'},
+    {q:'Mit Anhänger außerorts: wie schnell?',a:['80','100','120','130'],c:0,cat:'speed',ex:'Mit Anhänger außerorts 80 km/h.'},
+    {q:'Mit Anhänger auf Autobahn?',a:['80','100','120','130'],c:0,cat:'speed',ex:'Mit Anhänger auch 80 km/h auf Autobahn.'},
+    {q:'Nebelschlussleuchte bei welcher Sicht aktivieren?',a:['<50m','<100m','<150m','Bei jedem Nebel'],c:0,cat:'speed',ex:'Nebelschlussleuchte nur bei Sichtweite unter 50m.'},
+    {q:'Wo gilt Tempo 30 als Standard seit 2020?',a:['Innenstädte','Schulstraßen','Beide','Nirgends'],c:1,cat:'speed',ex:'Vor Schulen/Kitas häufig Tempo 30.'},
+
+    // Sign (17)
+    {q:'Was bedeutet ein rotes Dreieck?',a:['Vorfahrt','Warnung','Stop','Verbote'],c:1,cat:'sign',ex:'Rotes Dreieck = Gefahrenstelle / Warnung.'},
+    {q:'Was bedeutet ein rundes rotes Schild?',a:['Verbot','Gebot','Warnung','Vorfahrt'],c:0,cat:'sign',ex:'Roter Kreis = Verbot (z.B. Tempolimit, Einfahrt verboten).'},
+    {q:'Was bedeutet ein blaues rundes Schild?',a:['Verbot','Gebot','Warnung','Stop'],c:1,cat:'sign',ex:'Blaues rundes Schild = Gebot (z.B. Radweg, Fußgänger).'},
+    {q:'Was bedeutet ein gelbes Rautenschild?',a:['Vorfahrtstraße','Stop','Warnung','Gebot'],c:0,cat:'sign',ex:'Gelbes Rautenschild = Vorfahrtstraße (Priorität).'},
+    {q:'Was bedeutet ein aufgestelltes Achteck?',a:['Vorfahrt','Stop','Parken','Verbot'],c:1,cat:'sign',ex:'Achteck = Stopschild. Anhalten, Vorfahrt gewähren.'},
+    {q:'Was bedeutet "Vorfahrt gewähren" Schild?',a:['Rotes Dreieck','Blaues Schild','Umgekehrtes Dreieck','Achteck'],c:2,cat:'sign',ex:'Umgekehrtes rotes Dreieck = Vorfahrt gewähren.'},
+    {q:'Einbahnstraße: Welches Zeichen?',a:['Blaues Rechteck mit Pfeil','Rotes Dreieck','Rundes Schild','Achteck'],c:0,cat:'sign',ex:'Blaues Rechteck mit weißem Pfeil = Einbahnstraße.'},
+    {q:'Was bedeutet durchgestrichener Ortsname?',a:['Ort verlassen','Ort beginnt','Verbot','Parkverbot'],c:0,cat:'sign',ex:'Durchgestrichen = Ort wird verlassen (Ende der Ortschaft).'},
+    {q:'Was bedeutet "Ende aller Verbote"?',a:['Weiß mit schwarzen Streifen','Rundes rotes Schild','Blaues Schild','Gelbes Schild'],c:0,cat:'sign',ex:'Weiß mit schwarzen Streifen = alle Verbote enden.'},
+    {q:'Haltestelle: Wie viel Abstand zum Parken?',a:['5m','10m','15m','20m'],c:2,cat:'sign',ex:'15m vor und hinter Haltestellenschild nicht parken.'},
+    {q:'Fußgängerüberweg (Zebrastreifen): Was tun?',a:['Hupen','Anhalten und überqueren lassen','Weiterfahren','Ausweichen'],c:1,cat:'sign',ex:'Fußgänger haben Vorrang — ggf. anhalten.'},
+    {q:'Bahnübergang mit Blinklicht: Was tun?',a:['Weiterfahren','Anhalten','Schneller fahren','Hupen'],c:1,cat:'sign',ex:'Blinklicht = Anhalten und warten.'},
+    {q:'Andreaskreuz Bedeutung?',a:['Vorfahrt','Bahnübergang','Stop','Einbahn'],c:1,cat:'sign',ex:'Andreaskreuz = Bahnübergang mit Vorrang der Schienenfahrzeuge.'},
+    {q:'Was bedeutet "Spielstraße" Schild?',a:['30er Zone','Spielende Kinder','Schrittgeschwindigkeit','Parkplatz'],c:2,cat:'sign',ex:'Spielstraße = Schrittgeschwindigkeit, Fußgänger bevorzugt.'},
+    {q:'Wer hat Vorfahrt beim Kreisverkehr?',a:['Einfahrende','Im Kreis fahrende','Beide','Rechts vor Links'],c:1,cat:'sign',ex:'Im Kreis fahrende haben Vorfahrt (bei Kreisverkehr-Schild).'},
+    {q:'Vor Kreisverkehr ohne Schild: Was gilt?',a:['Rechts vor Links','Wer zuerst','Wer schneller','Immer Vorfahrt'],c:0,cat:'sign',ex:'Ohne Beschilderung gilt rechts vor links.'},
+    {q:'Was bedeutet "Vorfahrtstraße" Ende?',a:['Freie Fahrt','Rechts vor Links','Stop','Warnung'],c:1,cat:'sign',ex:'Nach Ende der Vorfahrtstraße gilt rechts vor links.'},
+
+    // Priority (12)
+    {q:'Wer hat Vorfahrt an einer Kreuzung ohne Beschilderung?',a:['Rechts vor Links','Wer zuerst kommt','Wer schneller ist','Wer links fährt'],c:0,cat:'priority',ex:'Ohne Schilder gilt rechts vor links.'},
+    {q:'Sie wollen links abbiegen. Wer hat Vorfahrt?',a:['Sie','Gegenverkehr','Beide','Rechts'],c:1,cat:'priority',ex:'Linksabbieger müssen Gegenverkehr durchlassen.'},
+    {q:'Beim Abbiegen auf Fußgänger Rücksicht?',a:['Nein','Ja, immer','Nur mit Schild','Nur am Zebrastreifen'],c:1,cat:'priority',ex:'Immer auf Fußgänger achten beim Abbiegen.'},
+    {q:'Ausfahrt aus Grundstück: Vorfahrt?',a:['Ja','Nein','Manchmal','Mit Schild'],c:1,cat:'priority',ex:'Ausfahrt aus Grundstück = keine Vorfahrt, alle durchlassen.'},
+    {q:'Radfahrer auf Radweg: Vorfahrt beim Rechtsabbiegen?',a:['Sie haben Vorfahrt','Radfahrer haben Vorfahrt','Beide','Egal'],c:1,cat:'priority',ex:'Radfahrer auf Radweg haben Vorrang beim Rechtsabbiegen.'},
+    {q:'Bushaltestelle: Bus fährt an. Was tun?',a:['Vorbeifahren','Bus ausfahren lassen','Hupen','Beschleunigen'],c:1,cat:'priority',ex:'Linienbus beim Ausfahren aus Haltestelle bevorzugen.'},
+    {q:'Wer hat Vorrang bei Polizei-Marschroute?',a:['Sie','Polizei/Sonderrechte','Beide','Egal'],c:1,cat:'priority',ex:'Fahrzeuge mit Sondersignal haben Vorrang.'},
+    {q:'An enger Stelle, Gegenverkehr: Wer fährt zuerst?',a:['Wer Platz hat','Bergab-Fahrer','Wer näher ist','Egal'],c:0,cat:'priority',ex:'Wer leichter ausweichen kann, muss warten (z.B. bergab vor bergauf).'},
+    {q:'An Steigung mit Gegenverkehr: Wer hat Vorrang?',a:['Bergauf','Bergab','Wer schneller','Egal'],c:0,cat:'priority',ex:'Bergauf fahrende haben Vorrang.'},
+    {q:'Vorfahrt gewähren: Müssen Sie trotzdem anhalten?',a:['Nein','Ja wenn nötig','Nie','Nur bei Stop'],c:1,cat:'priority',ex:'"Vorfahrt gewähren" heißt ggf. anhalten.'},
+    {q:'An Bushaltestelle: Fahren Sie rechts vorbei?',a:['Ja immer','Nur mit Warnblinker','Nein wenn Bus blinkt','Egal'],c:1,cat:'priority',ex:'Wenn Bus ausfährt: nicht vorbei, Bus ausfahren lassen.'},
+    {q:'Vorfahrt gilt für welche Straße?',a:['Alle','Nur befestigte','Nur außerorts','Nur Bundesstraßen'],c:0,cat:'priority',ex:'Vorfahrt gilt für alle Straßen.'},
+
+    // Alcohol (7)
+    {q:'Promillegrenze für Fahranfänger in Probezeit?',a:['0,0','0,3','0,5','0,8'],c:0,cat:'alcohol',ex:'In der Probezeit: 0,0 Promille!'},
+    {q:'Promillegrenze für unter 21-Jährige?',a:['0,0','0,3','0,5','0,8'],c:0,cat:'alcohol',ex:'Unter 21: 0,0 Promille.'},
+    {q:'Promillegrenze für erfahrene Fahrer?',a:['0,0','0,3','0,5','1,0'],c:2,cat:'alcohol',ex:'Erwachsene: 0,5 Promille Grenze (0,3 = Ordnungswidrigkeit mit Ausfall).'},
+    {q:'Ab welchem Wert ist Fahren eine Straftat?',a:['0,3','0,5','1,1','1,5'],c:2,cat:'alcohol',ex:'Ab 1,1 Promille = Straftat (absolute Fahruntüchtigkeit).'},
+    {q:'Ein Bier — darf ich noch fahren?',a:['Ja','Nein, kann über 0,3 sein','Nur 1 km','Kommt drauf an'],c:1,cat:'alcohol',ex:'Ein Bier kann je nach Körpergewicht schon 0,3-0,5‰ ergeben — riskant!'},
+    {q:'Wie lange dauert 1 Promille abbauen?',a:['1 Std','3-4 Std','6 Std','10 Std'],c:2,cat:'alcohol',ex:'Ca. 6 Stunden für 1‰ (0,1‰ pro Stunde).'},
+    {q:'Drogen am Steuer — Konsequenz?',a:['Nichts','Geldstrafe','Führerschein weg + MPU','Nur Verwarnung'],c:2,cat:'alcohol',ex:'Drogen: Führerschein weg, MPU, Straftat.'},
+
+    // Distance (8)
+    {q:'Sicherheitsabstand bei 100 km/h?',a:['10m','30m','50m (halber Tacho)','100m'],c:2,cat:'distance',ex:'Faustregel: halber Tacho in Metern.'},
+    {q:'Abstand innerorts bei 50 km/h?',a:['5m','15m','25m','50m'],c:2,cat:'distance',ex:'Mindestens 25m (halber Tacho).'},
+    {q:'Bei Regen — Abstand wie?',a:['Gleich','Verdoppeln','Halbieren','Egal'],c:1,cat:'distance',ex:'Bei Regen: Bremsweg länger, Abstand verdoppeln.'},
+    {q:'Abstand zu Radfahrern innerorts?',a:['1m','1,5m','2m','3m'],c:1,cat:'distance',ex:'Innerorts mind. 1,5m zu Radfahrern.'},
+    {q:'Abstand zu Radfahrern außerorts?',a:['1m','1,5m','2m','3m'],c:2,cat:'distance',ex:'Außerorts mind. 2m zu Radfahrern.'},
+    {q:'Anhalteweg bei 50 km/h trocken?',a:['10m','27m','40m','60m'],c:1,cat:'distance',ex:'Anhalteweg = Reaktionsweg + Bremsweg ≈ 27m.'},
+    {q:'Anhalteweg bei 100 km/h trocken?',a:['50m','80m','100m','130m'],c:2,cat:'distance',ex:'Anhalteweg bei 100 km/h ≈ 100m.'},
+    {q:'Beim Hinterherfahren hinter LKW — Abstand?',a:['Gering','Groß','Egal','Nur wenn Ladung'],c:1,cat:'distance',ex:'Genug Abstand halten für Sicht und Sicherheit.'},
+
+    // Overtaking (10)
+    {q:'Wann dürfen Sie überholen?',a:['Immer','Nur wenn übersichtlich und erlaubt','In Kurven','Bei Rot'],c:1,cat:'overtaking',ex:'Überholen nur bei klarer Sicht und ohne Verbot.'},
+    {q:'Wo ist Überholen verboten?',a:['Autobahn','Unübersichtliche Stellen','Landstraße','Innerorts'],c:1,cat:'overtaking',ex:'Verboten: unübersichtlich (Kurven, Kuppen, Bahnübergänge).'},
+    {q:'Dürfen Sie an Fußgängerüberweg überholen?',a:['Ja','Nein','Nur langsam','Nur mit Abstand'],c:1,cat:'overtaking',ex:'An Zebrastreifen nicht überholen.'},
+    {q:'Dürfen Sie an Haltestelle überholen?',a:['Ja','Nein','Nur langsam','Nur wenn Platz'],c:0,cat:'overtaking',ex:'An Haltestellen erlaubt, wenn Bus nicht ausfährt.'},
+    {q:'Beim Überholen: Welchen Abstand zu Radfahrern?',a:['1m','1,5m innerorts / 2m außerorts','2,5m','Nur 0,5m'],c:1,cat:'overtaking',ex:'Mindestens 1,5m innerorts, 2m außerorts.'},
+    {q:'Überholverbot: Was gilt?',a:['Nur für PKW','Nur für LKW','Für alle (mehrspurige)','Für Motorräder'],c:2,cat:'overtaking',ex:'Überholverbot gilt für alle Kraftfahrzeuge.'},
+    {q:'Überholen bei Nebel mit <50m Sicht?',a:['Erlaubt','Verboten','Erlaubt mit Vorsicht','Nur LKW'],c:1,cat:'overtaking',ex:'Bei Sicht <50m: Überholverbot.'},
+    {q:'Wie viel Zeit zum Überholen einplanen?',a:['1-2 Sek','3-5 Sek','10 Sek','20 Sek'],c:1,cat:'overtaking',ex:'Überholvorgang braucht 3-5 Sekunden.'},
+    {q:'Beim Überholen: Wie blinken?',a:['Nicht','Links, dann rechts','Nur rechts','Nur links'],c:1,cat:'overtaking',ex:'Links blinken vor Überholen, rechts zum Wiedereinordnen.'},
+    {q:'Beim Rückwechsel nach Überholen: Abstand zum Überholten?',a:['0m','Rückspiegel-Abstand','Mindestens 2s','Egal'],c:1,cat:'overtaking',ex:'Sicherer Abstand im Rückspiegel sichtbar.'},
+
+    // Highway (8)
+    {q:'Was ist auf Autobahn verboten?',a:['Überholen','Wenden','Fahren','Blinken'],c:1,cat:'highway',ex:'Wenden auf Autobahn = verboten (Lebensgefahr!).'},
+    {q:'Rückwärts fahren auf Autobahn?',a:['Erlaubt','Verboten','Nur nachts','Nur im Stau'],c:1,cat:'highway',ex:'Rückwärtsfahren verboten auf Autobahn.'},
+    {q:'Standstreifen befahren?',a:['Erlaubt','Nur bei Panne/Notfall','Immer','Zum Überholen'],c:1,cat:'highway',ex:'Standstreifen nur bei Panne/Notfall.'},
+    {q:'Wer darf auf Autobahn fahren?',a:['Alle','Nur >60 km/h-Fahrzeuge','Nur PKW','Nur mit Führerschein'],c:1,cat:'highway',ex:'Fahrzeuge müssen bauartbedingt >60 km/h fahren können.'},
+    {q:'Auffahren auf Autobahn: Was tun?',a:['Anhalten','Beschleunigen und einordnen','Hupen','Warten'],c:1,cat:'highway',ex:'Beschleunigungsstreifen nutzen, Geschwindigkeit anpassen.'},
+    {q:'Bei Stau auf Autobahn: Rettungsgasse bilden?',a:['Nein','Ja, sofort','Erst wenn Blaulicht','Nie'],c:1,cat:'highway',ex:'Rettungsgasse sofort bilden zwischen linken und anderen Spuren.'},
+    {q:'Standstreifen im Stau nutzen?',a:['Erlaubt','Verboten','Nur bei Stau >5km','Nur rechts'],c:1,cat:'highway',ex:'Standstreifen nie im Stau nutzen — Rettungsgasse!'},
+    {q:'Ausfahrt Autobahn: Wo bremsen?',a:['Auf Autobahn','Auf Ausfädelspur','Auf Ausfahrt','Auf Landstraße'],c:1,cat:'highway',ex:'Auf der Ausfädelspur abbremsen.'},
+
+    // Parking (5)
+    {q:'Parken vor Feuerwehrzufahrt?',a:['Erlaubt','Verboten','Kurzzeitig','Nachts'],c:1,cat:'parking',ex:'Parken vor Feuerwehrzufahrt verboten.'},
+    {q:'Parken auf Gehweg — wann erlaubt?',a:['Immer','Nur mit Schild','Nie','Nachts'],c:1,cat:'parking',ex:'Nur wenn ausdrücklich erlaubt (Parkschild).'},
+    {q:'Parken vor Grundstückseinfahrt?',a:['Erlaubt','Verboten','Kurz','Nachts'],c:1,cat:'parking',ex:'Parken vor Ein-/Ausfahrten verboten.'},
+    {q:'Parken auf Behinderten-Parkplatz?',a:['Erlaubt','Nur mit Ausweis','Immer','Nachts'],c:1,cat:'parking',ex:'Nur mit gültigem Behindertenausweis.'},
+    {q:'An enger Fahrbahn: Parken wo?',a:['Rechts','Links','Mitte','Egal'],c:0,cat:'parking',ex:'Rechts parken (Fahrtrichtung).'},
+
+    // Lights (5)
+    {q:'Wann Abblendlicht an?',a:['Nur nachts','Bei Dämmerung/Dunkelheit/Nebel','Nie','Nur im Tunnel'],c:1,cat:'lights',ex:'Abblendlicht bei Dunkelheit, Dämmerung, Nebel, Regen.'},
+    {q:'Fernlicht wann nutzen?',a:['Immer','Außerorts ohne Blendung','Innerorts','Immer nachts'],c:1,cat:'lights',ex:'Fernlicht nur außerorts, wenn niemand geblendet wird.'},
+    {q:'Nebelschlussleuchte wann?',a:['Immer bei Nebel','Sicht <50m','Sicht <150m','Nie'],c:1,cat:'lights',ex:'Nur bei Sicht unter 50m.'},
+    {q:'Warnblinker wann?',a:['Immer','Bei Panne/Gefahr','Beim Abbiegen','Bei Regen'],c:1,cat:'lights',ex:'Warnblinker: Panne, Stau-Ende, Gefahr.'},
+    {q:'Tagfahrlicht reicht nachts?',a:['Ja','Nein','Immer','Nur innerorts'],c:1,cat:'lights',ex:'Tagfahrlicht = nur vorne. Nachts: Abblendlicht!'},
+
+    // Weather (5)
+    {q:'Bei Nebel: Was tun?',a:['Fernlicht','Abblendlicht + langsam','Warnblinker','Hupen'],c:1,cat:'weather',ex:'Abblendlicht und Geschwindigkeit anpassen.'},
+    {q:'Aquaplaning: Was tun?',a:['Bremsen','Gas weg, lenken ruhig','Beschleunigen','Hupen'],c:1,cat:'weather',ex:'Gas wegnehmen, nicht bremsen, ruhig lenken.'},
+    {q:'Glatteis: Wie fahren?',a:['Schnell','Langsam, sanft','Normal','Hupen'],c:1,cat:'weather',ex:'Langsam, sanft bremsen und lenken.'},
+    {q:'Starkregen: Abstand?',a:['Gering','Verdoppeln','Halbieren','Gleich'],c:1,cat:'weather',ex:'Bei starkem Regen: Abstand verdoppeln.'},
+    {q:'Schneefall: Was tun?',a:['Scheiben sauber + Licht','Nichts','Nur vorne frei','Nur hinten'],c:0,cat:'weather',ex:'Alle Scheiben frei, Licht an.'},
+
+    // Tech (4)
+    {q:'Mindestprofiltiefe Reifen?',a:['1mm','1,6mm','3mm','5mm'],c:1,cat:'tech',ex:'Mindestens 1,6mm (empfohlen: 3mm Winter, 4mm Sommer).'},
+    {q:'Reifendruck prüfen wann?',a:['Nie','Monatlich/kalt','Jährlich','Nur bei Panne'],c:1,cat:'tech',ex:'Monatlich bei kalten Reifen prüfen.'},
+    {q:'Bremsen quietschen — was tun?',a:['Ignorieren','Werkstatt','Weiterfahren','Hupen'],c:1,cat:'tech',ex:'Sofort in Werkstatt — Belag verschlissen?'},
+    {q:'TÜV: Wie oft für PKW?',a:['Jedes Jahr','Alle 2 Jahre','Alle 3 Jahre','Alle 5 Jahre'],c:1,cat:'tech',ex:'PKW: alle 2 Jahre HU/AU.'},
+
+    // First Aid (5)
+    {q:'Erste Schritte bei Unfall?',a:['Wegfahren','Absichern (Warnblinker/Warndreieck)','Foto','Nichts'],c:1,cat:'firstAid',ex:'Erst absichern, dann helfen, dann Notruf.'},
+    {q:'Notrufnummer in Deutschland?',a:['110','112','115','116'],c:1,cat:'firstAid',ex:'112 = europaweiter Notruf.'},
+    {q:'Notruf: Welche Infos wichtig?',a:['Name','Ort, was passiert, wie viele, welche Verletzungen','Alter','Wetter'],c:1,cat:'firstAid',ex:'WO, WAS, WIE VIELE, WELCHE VERLETZUNGEN.'},
+    {q:'Stabile Seitenlage: Wann?',a:['Bei Bewusstlosigkeit mit Atmung','Bei Atemstillstand','Bei Knochenbruch','Nie'],c:0,cat:'firstAid',ex:'Bewusstlos aber atmet: stabile Seitenlage.'},
+    {q:'Bei Atemstillstand: Was tun?',a:['Warten','Herzdruckmassage','Wasser geben','Nichts'],c:1,cat:'firstAid',ex:'Sofort CPR 30:2, Notruf 112.'},
+
+    // Behavior (6)
+    {q:'Vor dem Losfahren: Was prüfen?',a:['Spiegel, Gurt, Umfeld','Nur Radio','Nur Handy','Nur Navi'],c:0,cat:'behavior',ex:'Spiegel, Gurt, Umfeld, Sitzposition.'},
+    {q:'Handy am Steuer: erlaubt?',a:['Ja','Nein','Nur kurz','Nur Freisprech'],c:1,cat:'behavior',ex:'Handy in der Hand = verboten. Nur Freisprechanlage.'},
+    {q:'Beim Fahren trinken?',a:['Erlaubt','Nur aus Flasche','Nicht bei Alkohol','Egal'],c:2,cat:'behavior',ex:'Wasser OK, Alkohol verboten. Vorsicht bei Ablenkung.'},
+    {q:'Müdigkeit am Steuer?',a:['Ignorieren','Pause machen','Kaffee reicht','Fenster auf'],c:1,cat:'behavior',ex:'Pause alle 2h, 15-20 Min. Kaffee hilft nur kurz.'},
+    {q:'Rettungsgasse wann bilden?',a:['Wenn Blaulicht kommt','Sofort bei Stau','Nur nachts','Nie'],c:1,cat:'behavior',ex:'Rettungsgasse sofort bei Stau bilden.'},
+    {q:'Kinder unter 12 Jahren: Wo sitzen?',a:['Vorne','Hinten mit Rückhalte','Vorne ohne','Egal'],c:1,cat:'behavior',ex:'Kinder unter 12 (und <150cm): Rückhalte, hinten.'}
+  ];
+
+  // ── STATE ──
+  let state = { lang: 'de', count: 30, cat: 'all', questions: [], idx: 0, score: 0,
+    answers: [], startTime: 0, timer: null, mode: 'exam' };
+
+  const t = (k) => getUI(state.lang)[k] || k;
+
+  // ── SETUP ──
+  const renderSetup = (root) => {
+    const u = getUI(state.lang);
+    root.innerHTML = `
+      <div style="padding:6px">
+        <div style="text-align:center;padding:14px;background:radial-gradient(circle,rgba(0,229,255,.15),transparent);border-radius:16px;margin-bottom:16px">
+          <div style="font-size:44px">🚗</div>
+          <h2 style="color:var(--accent);font-size:18px;margin-top:6px">Fahrschule Pro Max</h2>
+          <p style="font-size:11px;opacity:.7;margin-top:4px">${QUESTIONS.length} Fragen · ${Object.keys(UI).length} Sprachen</p>
+        </div>
+
+        <div style="margin-bottom:14px">
+          <div style="font-size:12px;opacity:.7;margin-bottom:6px">🌐 ${u.lang}</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            ${Object.entries(UI).map(([k,v]) => `<div class="chip ${state.lang===k?'active':''}" data-lang="${k}">${v.flag} ${v.name}</div>`).join('')}
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px">
+          <div style="font-size:12px;opacity:.7;margin-bottom:6px">🎯 ${u.mode}</div>
+          <div style="display:flex;gap:4px">
+            <div class="chip ${state.mode==='exam'?'active':''}" data-mode="exam">📝 ${u.exam}</div>
+            <div class="chip ${state.mode==='learn'?'active':''}" data-mode="learn">📖 ${u.learn}</div>
+            <div class="chip ${state.mode==='quick'?'active':''}" data-mode="quick">⚡ ${u.quick}</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px">
+          <div style="font-size:12px;opacity:.7;margin-bottom:6px">📚 ${u.cat}</div>
+          <select id="fs-cat" style="width:100%;padding:10px;border-radius:10px;background:rgba(0,20,40,.6);border:1.5px solid var(--border);color:var(--text);font-size:13px">
+            ${Object.keys(CATS).map(k => `<option value="${k}" ${state.cat===k?'selected':''}>${CATS[k].icon} ${getCat(k,state.lang)}</option>`).join('')}
+          </select>
+        </div>
+
+        <div style="margin-bottom:16px">
+          <div style="font-size:12px;opacity:.7;margin-bottom:6px">🔢 ${u.qCount}</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            ${[15,20,30,45,50,60,90,120].map(n => `<div class="chip ${state.count===n?'active':''}" data-count="${n}">${n}</div>`).join('')}
+          </div>
+        </div>
+
+        <button id="fs-start" class="chip active" style="width:100%;padding:14px;font-size:14px;font-weight:600">🚀 ${u.start}</button>
+
+        <div style="margin-top:16px;padding:12px;background:rgba(255,180,60,.1);border-radius:12px;border:1px solid rgba(255,180,60,.3);font-size:11px;line-height:1.6">
+          <strong style="color:#ffb400">💡 Profi-Tipps:</strong><br>
+          ✓ 15 Min pro 15 Fragen (bei Prüfung)<br>
+          ✓ Bestehen ab 80% richtig<br>
+          ✓ KI kann jede Frage erklären<br>
+          ✓ 🔊 Vorlesen-Funktion in jeder Sprache
+        </div>
+      </div>
+    `;
+    root.querySelectorAll('[data-lang]').forEach(el => el.onclick = () => { state.lang = el.dataset.lang; renderSetup(root); HalDo.Sound.play('tap'); });
+    root.querySelectorAll('[data-mode]').forEach(el => el.onclick = () => { state.mode = el.dataset.mode; renderSetup(root); });
+    root.querySelector('#fs-cat').onchange = (e) => { state.cat = e.target.value; };
+    root.querySelectorAll('[data-count]').forEach(el => el.onclick = () => { state.count = parseInt(el.dataset.count); renderSetup(root); });
+    root.querySelector('#fs-start').onclick = () => startQuiz(root);
+  };
+
+  // ── START QUIZ ──
+  const startQuiz = (root) => {
+    let pool = state.cat === 'all' ? QUESTIONS : QUESTIONS.filter(q => q.cat === state.cat);
+    // Mischen
+    pool = [...pool].sort(() => Math.random() - 0.5);
+    const limit = Math.min(state.count, pool.length);
+    state.questions = pool.slice(0, limit);
+    state.idx = 0;
+    state.score = 0;
+    state.answers = [];
+    state.startTime = Date.now();
+    HalDo.Sound.play('whoosh');
+    renderQuestion(root);
+  };
+
+  // ── QUESTION ──
+  const renderQuestion = (root) => {
+    if (state.idx >= state.questions.length) { renderResult(root); return; }
+    const q = state.questions[state.idx];
+    const u = getUI(state.lang);
+    const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+    const mm = String(Math.floor(elapsed/60)).padStart(2,'0');
+    const ss = String(elapsed%60).padStart(2,'0');
+    const pct = ((state.idx) / state.questions.length) * 100;
+
+    root.innerHTML = `
+      <div style="padding:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;opacity:.85;margin-bottom:8px">
+          <span>📝 ${u.question} ${state.idx+1}/${state.questions.length}</span>
+          <span style="color:var(--accent)">⏱ ${mm}:${ss}</span>
+        </div>
+        <div style="height:5px;background:rgba(0,0,0,.4);border-radius:3px;overflow:hidden;margin-bottom:14px">
+          <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent3));transition:width .3s;box-shadow:0 0 10px var(--accent)"></div>
+        </div>
+
+        <div style="padding:14px;background:rgba(0,229,255,.1);border-radius:14px;border:1.5px solid var(--accent);margin-bottom:14px">
+          <div style="font-size:11px;opacity:.7;margin-bottom:6px">${CATS[q.cat]?.icon || '📚'} ${getCat(q.cat, state.lang)}</div>
+          <div style="font-size:15px;line-height:1.5;font-weight:500">${q.q}</div>
+          <div style="margin-top:10px;display:flex;gap:6px">
+            <button id="fs-speak" class="chip" style="font-size:11px">🔊 ${u.speak}</button>
+            <button id="fs-ai" class="chip" style="font-size:11px">${u.aiHelp}</button>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${q.a.map((opt, i) => `<button data-ans="${i}" style="padding:14px;text-align:left;border-radius:12px;background:rgba(0,229,255,.08);border:1.5px solid rgba(0,229,255,.25);color:var(--text);font-size:14px;cursor:pointer;transition:all .15s;min-height:48px">
+            <strong style="color:var(--accent);margin-right:8px">${String.fromCharCode(65+i)}.</strong>${opt}
+          </button>`).join('')}
+        </div>
+      </div>
+    `;
+
+    root.querySelector('#fs-speak').onclick = () => {
+      speak(q.q + '. ' + q.a.map((a,i) => String.fromCharCode(65+i) + ': ' + a).join('. '));
+    };
+    root.querySelector('#fs-ai').onclick = () => openAIHelper(q);
+
+    root.querySelectorAll('[data-ans]').forEach(btn => btn.onclick = () => {
+      const chosen = parseInt(btn.dataset.ans);
+      const correct = chosen === q.c;
+      state.answers.push({ chosen, correct });
+      if (correct) state.score++;
+
+      // Feedback
+      root.querySelectorAll('[data-ans]').forEach((b, i) => {
+        b.style.pointerEvents = 'none';
+        if (i === q.c) { b.style.background = 'rgba(0,255,136,.3)'; b.style.borderColor = '#00ff88'; }
+        else if (i === chosen && !correct) { b.style.background = 'rgba(255,51,102,.3)'; b.style.borderColor = '#ff3366'; }
+      });
+
+      HalDo.Sound.play(correct ? 'success' : 'error');
+      HalDo.Toast.show(correct ? u.correct : `${u.wrong} → ${q.a[q.c]}`, 2200, correct ? 'success' : 'error');
+
+      // Zeige Erklärung + Weiter-Button
+      const expl = document.createElement('div');
+      expl.style.cssText = 'margin-top:14px;padding:12px;background:rgba(255,180,60,.1);border-radius:12px;border:1px solid rgba(255,180,60,.3);font-size:12px;line-height:1.6';
+      expl.innerHTML = `<strong style="color:#ffb400">${u.correctAnswer}</strong> ${q.a[q.c]}<br><strong style="color:#ffb400">${u.explanation}</strong> ${q.ex}`;
+      root.querySelector('.win-body-pro')?.appendChild(expl) || root.appendChild(expl);
+
+      const nextBtn = document.createElement('button');
+      nextBtn.className = 'chip active';
+      nextBtn.style.cssText = 'width:100%;padding:14px;margin-top:10px;font-size:14px';
+      nextBtn.textContent = state.idx + 1 >= state.questions.length ? '🎯 ' + u.finish : '➡ ' + u.next;
+      nextBtn.onclick = () => { state.idx++; renderQuestion(root); };
+      root.appendChild(nextBtn);
+    });
+  };
+
+  // ── RESULT ──
+  const renderResult = (root) => {
+    const u = getUI(state.lang);
+    const total = state.questions.length;
+    const pct = Math.round((state.score / total) * 100);
+    const passed = pct >= 80;
+    const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+    root.innerHTML = `
+      <div style="padding:20px;text-align:center">
+        <div style="font-size:72px">${passed ? '🎉' : '📚'}</div>
+        <h2 style="font-size:32px;color:${passed?'#00ff88':'#ffb400'};margin:10px 0">${pct}%</h2>
+        <p style="font-size:16px;opacity:.9">${state.score} / ${total} ${u.points}</p>
+        <p style="font-size:12px;opacity:.7;margin-top:4px">⏱ ${Math.floor(elapsed/60)} Min ${elapsed%60} Sek</p>
+        <p style="margin-top:12px;font-size:15px;font-weight:600;color:${passed?'#00ff88':'#ff8800'}">${passed ? u.passed : u.failed}</p>
+
+        <div style="margin-top:18px;max-height:180px;overflow-y:auto;text-align:left;padding:10px;background:rgba(0,20,40,.4);border-radius:12px">
+          ${state.questions.map((q, i) => {
+            const a = state.answers[i];
+            const ok = a && a.correct;
+            return `<div style="padding:6px 8px;margin-bottom:4px;border-radius:8px;background:${ok?'rgba(0,255,136,.08)':'rgba(255,80,80,.08)'};border-left:3px solid ${ok?'#00ff88':'#ff5050'};font-size:11px">
+              ${ok?'✓':'✗'} ${q.q.slice(0,55)}${q.q.length>55?'…':''}
+            </div>`;
+          }).join('')}
+        </div>
+
+        <div style="display:flex;gap:6px;margin-top:18px;justify-content:center;flex-wrap:wrap">
+          <button id="fs-again" class="chip active" style="padding:12px 20px">${u.repeat}</button>
+          <button id="fs-setup" class="chip" style="padding:12px 20px">⚙️ ${u.setup}</button>
+        </div>
+      </div>
+    `;
+    root.querySelector('#fs-again').onclick = () => startQuiz(root);
+    root.querySelector('#fs-setup').onclick = () => renderSetup(root);
+  };
+
+  // ── TTS ──
+  const speak = (text) => {
+    if (!('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = getUI(state.lang).tts;
+      u.rate = 0.92;
+      u.pitch = 1.0;
+      window.speechSynthesis.speak(u);
+    } catch(e) {}
+  };
+
+  // ── KI-HELFER ──
+  const openAIHelper = (q) => {
+    const u = getUI(state.lang);
+    const html = `
+      <div style="padding:10px">
+        <div style="text-align:center;padding:10px;background:radial-gradient(circle,rgba(180,120,255,.2),transparent);border-radius:12px;margin-bottom:12px">
+          <div style="font-size:36px">🤖</div>
+          <div style="color:var(--accent3);font-size:14px;margin-top:4px">HalDo AI</div>
+        </div>
+        <div style="padding:12px;background:rgba(0,229,255,.1);border-radius:10px;font-size:13px;line-height:1.6;margin-bottom:12px">
+          <strong style="color:var(--accent)">${q.q}</strong>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+          <button class="chip active" data-ai="explain" style="font-size:11px">💡 ${u.explanation}</button>
+          <button class="chip" data-ai="why" style="font-size:11px">🤔 Warum?</button>
+          <button class="chip" data-ai="answer" style="font-size:11px">✅ ${u.correctAnswer}</button>
+          <button class="chip" data-ai="speak" style="font-size:11px">🔊 ${u.speak}</button>
+        </div>
+        <div id="ai-out" style="padding:14px;background:rgba(0,20,40,.6);border-radius:12px;border:1.5px solid var(--border);min-height:120px;font-size:13px;line-height:1.6">
+          <em style="opacity:.6">Wähle eine Option oben…</em>
+        </div>
+      </div>
+    `;
+    HalDo.Win.open('🤖 HalDo AI · Hilfe', html, { w: 420, h: 500 });
+    setTimeout(() => {
+      const out = document.getElementById('ai-out');
+      document.querySelectorAll('[data-ai]').forEach(btn => btn.onclick = () => {
+        const action = btn.dataset.ai;
+        let text = '';
+        if (action === 'explain') {
+          text = `<strong style="color:var(--accent)">💡 Erklärung:</strong><br><br>${q.ex}`;
+        } else if (action === 'why') {
+          const whyMap = {
+            speed:'Geschwindigkeitsbegrenzungen schützen Leben. Höhere Geschwindigkeit = längerer Bremsweg. Faustregel: halber Tacho als Abstand.',
+            sign:'Verkehrszeichen sind die Sprache der Straße. Rot = Verbot/Gefahr, Blau = Gebot, Gelb = Vorfahrt.',
+            priority:'Vorfahrt-Regeln verhindern Unfälle. Ohne Schilder: rechts vor links. Mit Schildern: Schilder haben Vorrang.',
+            alcohol:'Alkohol verlangsamt Reaktionen dramatisch. Bei 0,5‰ ist das Unfallrisiko doppelt so hoch wie nüchtern.',
+            distance:'Abstand = Sicherheit. Halber Tacho als Faustregel gibt dir Zeit zu reagieren und zu bremsen.',
+            overtaking:'Überholen braucht Sicht und Platz. 3-5 Sekunden für den ganzen Vorgang.',
+            highway:'Autobahn = hohe Geschwindigkeit = keine Fehler erlaubt. Rettungsgasse kann Leben retten.',
+            parking:'Parken richtig = Sicherheit für alle. Behinderten-Parkplätze sind kein Kavaliersdelikt.',
+            lights:'Sehen und gesehen werden. Lichter sind deine Kommunikation mit anderen Fahrern.',
+            weather:'Wetter ändert alles: Bremsweg, Sicht, Grip. Passe dich an die Bedingungen an.',
+            tech:'Ein gut gewartetes Auto ist ein sicheres Auto. Reifen, Bremsen, Licht — regelmäßig prüfen.',
+            firstAid:'Sofort helfen kann Leben retten. Absichern, Notruf 112, dann helfen.',
+            behavior:'Verantwortung am Steuer = Rücksicht. Handy, Müdigkeit, Alkohol: die größten Risiken.'
+          };
+          text = `<strong style="color:var(--accent3)">🤔 Hintergrund:</strong><br><br>${whyMap[q.cat] || 'Sicherheit geht vor — Verkehrsregeln schützen alle.'}`;
+        } else if (action === 'answer') {
+          text = `<strong style="color:#00ff88">✅ Richtige Antwort:</strong><br><br>${q.a[q.c]}<br><br><em style="opacity:.8">${q.ex}</em>`;
+        } else if (action === 'speak') {
+          speak(q.q + '. Richtige Antwort: ' + q.a[q.c] + '. ' + q.ex);
+          text = '<em>🔊 Wird vorgelesen…</em>';
+        }
+        out.innerHTML = text;
+        HalDo.Sound.play('chat');
+      });
+    }, 100);
+  };
+
+  // ── OPEN ──
+  const open = () => {
+    state = { ...state, idx: 0, score: 0, answers: [], questions: [] };
+    HalDo.Win.open('🚗 HalDo Fahrschule Pro Max', '<div id="fs-root"></div>', { w: 520, h: 680 });
+    setTimeout(() => renderSetup(document.getElementById('fs-root')), 100);
+  };
+
+  return { open, QUESTIONS, CATS };
+})();
+
+/* ══════════ 3) LAUNCH-MAPPING ══════════ */
+const _prevLaunchV133 = HalDo.Launch;
+HalDo.Launch = (app) => {
+  if (app.id === 'fahrschule') return HalDo.FahrschuleProMax.open();
+  return _prevLaunchV133(app);
+};
+
+console.log('%c✅ v133 geladen','background:linear-gradient(90deg,#00e5ff,#ffd700);color:#000;padding:6px 12px;border-radius:6px;font-weight:bold');
+console.log('🌙 Mond + ☁️ Wolken: 100% Canvas (kein Download nötig)');
+console.log('🚗 Fahrschule Pro Max: ' + HalDo.FahrschuleProMax.QUESTIONS.length + ' Fragen, 8 Counts, 5 Sprachen');
+</script>
 </body>
 </html>
