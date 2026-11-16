@@ -2046,5 +2046,468 @@ HalDo.Apps.register({
 /* --- STARTUP --- */
 document.addEventListener('DOMContentLoaded', initHalDo);
 </script>
+<!-- ==========================================================
+     HalDo AI OS Pro Max — PHASE 2 · PACK 1 (6 Apps)
+     Einfügen VOR </body>, NACH dem Haupt-Script
+     ========================================================== -->
+<script>
+/* ==========================================================
+   PACK 1 — Finance · Music · Recipes · Shopping · Translator · Contacts
+   ========================================================== */
+
+/* --- 1. FINANCE PRO --- */
+HalDo.Apps.register({
+  id:'finance', name:'Finanzen', icon:'💰', cat:'life', width:520, height:560,
+  build: (body) => {
+    const KEY = 'finance_v1';
+    const get = () => HalDo.Store.get(KEY, []);
+    const set = (v) => HalDo.Store.set(KEY, v);
+    const cats = ['🍔 Essen','🏠 Wohnen','🚗 Auto','💊 Gesundheit','🎮 Freizeit','💼 Gehalt','🎁 Geschenk','📦 Sonstiges'];
+
+    body.innerHTML = `
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <select id="fnType" style="flex:0 0 110px">
+          <option value="out">💸 Ausgabe</option>
+          <option value="in">💰 Einnahme</option>
+        </select>
+        <input id="fnTitle" placeholder="Beschreibung" style="flex:1">
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <input id="fnAmount" type="number" placeholder="Betrag €" step="0.01" style="flex:1">
+        <select id="fnCat" style="flex:1">
+          ${cats.map(c => `<option>${c}</option>`).join('')}
+        </select>
+      </div>
+      <button class="btn primary" id="fnAdd" style="width:100%;margin-bottom:14px">+ Buchung hinzufügen</button>
+      <div id="fnBalance" style="padding:14px;background:rgba(0,229,255,.12);border:1.5px solid var(--accent);border-radius:14px;text-align:center;margin-bottom:14px">
+        <div style="font-size:11px;color:rgba(224,240,255,.6);letter-spacing:1px">BALANCE</div>
+        <div id="fnBalVal" style="font-size:32px;font-weight:800;color:var(--cyan);margin-top:4px">0,00 €</div>
+      </div>
+      <div id="fnList" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto"></div>
+    `;
+    const render = () => {
+      const items = get();
+      let bal = 0;
+      items.forEach(it => bal += it.type === 'in' ? it.amount : -it.amount);
+      body.querySelector('#fnBalVal').textContent =
+        bal.toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 }) + ' €';
+      body.querySelector('#fnBalVal').style.color = bal >= 0 ? 'var(--cyan)' : '#ff6677';
+
+      const list = body.querySelector('#fnList');
+      list.innerHTML = items.length
+        ? items.map((it, i) => `
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;
+            background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.2);padding:10px 12px;border-radius:10px;font-size:13px">
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.title}</div>
+              <div style="font-size:10px;color:rgba(224,240,255,.5)">${it.cat} · ${it.date}</div>
+            </div>
+            <div style="font-weight:700;color:${it.type==='in'?'#66ff99':'#ff7788'};white-space:nowrap">
+              ${it.type==='in'?'+':'-'}${it.amount.toFixed(2)} €
+            </div>
+            <button class="btn danger" style="padding:4px 8px;font-size:11px" data-del="${i}">✕</button>
+          </div>`).join('')
+        : '<div style="text-align:center;padding:20px;color:rgba(224,240,255,.5);font-size:12px">Noch keine Buchungen.</div>';
+      list.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+        const it = get(); it.splice(parseInt(b.dataset.del), 1); set(it); HalDo.Sound.play('tap'); render();
+      }));
+    };
+    body.querySelector('#fnAdd').addEventListener('click', () => {
+      const title = body.querySelector('#fnTitle').value.trim();
+      const amount = parseFloat(body.querySelector('#fnAmount').value);
+      if (!title || !amount || amount <= 0) { HalDo.Toast.show('⚠️ Titel & Betrag eingeben'); return; }
+      const items = get();
+      items.unshift({
+        title, amount,
+        type: body.querySelector('#fnType').value,
+        cat: body.querySelector('#fnCat').value,
+        date: new Date().toLocaleDateString('de-DE')
+      });
+      set(items);
+      body.querySelector('#fnTitle').value = '';
+      body.querySelector('#fnAmount').value = '';
+      HalDo.Sound.play('success'); render();
+    });
+    render();
+  }
+});
+
+/* --- 2. MUSIC PLAYER PRO --- */
+HalDo.Apps.register({
+  id:'music', name:'Musik', icon:'🎵', cat:'media', width:460, height:540,
+  build: (body) => {
+    const tracks = [
+      { name:'Nachtfahrt', artist:'HalDo Synth', freq:[261.63, 329.63, 392.00], tempo:0.4, icon:'🌃' },
+      { name:'Kosmischer Wind', artist:'HalDo Ambient', freq:[196.00, 246.94, 293.66], tempo:0.6, icon:'🌌' },
+      { name:'Sternenregen', artist:'HalDo Dream', freq:[220.00, 277.18, 329.63], tempo:0.5, icon:'✨' },
+      { name:'Morgenröte', artist:'HalDo Chill', freq:[293.66, 369.99, 440.00], tempo:0.45, icon:'🌅' },
+      { name:'Êzîdî Melodie', artist:'Traditional', freq:[261.63, 311.13, 392.00], tempo:0.55, icon:'🦚' },
+      { name:'Fahrschule Groove', artist:'HalDo Beat', freq:[349.23, 440.00, 523.25], tempo:0.35, icon:'🚗' }
+    ];
+    let audioCtx = null, playing = null, currentTrack = null, stopFlag = false, iv = null;
+    body.innerHTML = `
+      <div style="text-align:center;padding:16px 8px">
+        <div id="mpCover" style="font-size:64px;margin-bottom:12px;filter:drop-shadow(0 0 20px var(--accent))">🎵</div>
+        <div id="mpName" style="font-size:16px;font-weight:700;color:#fff">Kein Track</div>
+        <div id="mpArtist" style="font-size:11px;color:var(--pink);margin-top:4px">— auswählen —</div>
+        <div style="display:flex;justify-content:center;gap:14px;margin-top:16px">
+          <button class="btn" id="mpPlay" style="width:56px;height:56px;font-size:22px;border-radius:50%">▶</button>
+          <button class="btn danger" id="mpStop" style="width:56px;height:56px;font-size:22px;border-radius:50%">⏹</button>
+        </div>
+      </div>
+      <div style="margin-top:12px;max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
+        ${tracks.map((t, i) => `
+          <div class="mp-track" data-i="${i}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;
+            background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.2);border-radius:10px;cursor:pointer;transition:.15s">
+            <span style="font-size:22px">${t.icon}</span>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600">${t.name}</div>
+              <div style="font-size:10px;color:rgba(224,240,255,.5)">${t.artist}</div>
+            </div>
+            <span style="color:var(--cyan)">▶</span>
+          </div>`).join('')}
+      </div>
+    `;
+    const play = (idx) => {
+      stop();
+      currentTrack = tracks[idx];
+      body.querySelector('#mpCover').textContent = currentTrack.icon;
+      body.querySelector('#mpName').textContent = currentTrack.name;
+      body.querySelector('#mpArtist').textContent = currentTrack.artist;
+      body.querySelectorAll('.mp-track').forEach((el, i) => {
+        el.style.background = i === idx ? 'rgba(0,229,255,.25)' : 'rgba(0,229,255,.06)';
+        el.style.borderColor = i === idx ? 'var(--accent)' : 'rgba(0,229,255,.2)';
+      });
+      if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; } }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const loop = () => {
+        if (stopFlag) return;
+        currentTrack.freq.forEach((f, i) => {
+          const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+          o.type = 'sine'; o.frequency.value = f;
+          o.connect(g); g.connect(audioCtx.destination);
+          const now = audioCtx.currentTime;
+          g.gain.setValueAtTime(0, now);
+          g.gain.linearRampToValueAtTime(0.06, now + 0.05);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+          o.start(now); o.stop(now + 1.3);
+        });
+      };
+      loop();
+      iv = setInterval(loop, currentTrack.tempo * 1000);
+      HalDo.Sound.play('success');
+    };
+    const stop = () => {
+      stopFlag = true;
+      if (iv) { clearInterval(iv); iv = null; }
+      body.querySelector('#mpPlay').textContent = '▶';
+    };
+    body.querySelectorAll('.mp-track').forEach(el => {
+      el.addEventListener('click', () => play(parseInt(el.dataset.i)));
+    });
+    body.querySelector('#mpPlay').addEventListener('click', () => {
+      if (iv) { stop(); }
+      else if (currentTrack) { stopFlag = false; play(tracks.indexOf(currentTrack)); }
+      else { stopFlag = false; play(0); }
+    });
+    body.querySelector('#mpStop').addEventListener('click', stop);
+    window.addEventListener('beforeunload', stop);
+  }
+});
+
+/* --- 3. RECIPES PRO --- */
+HalDo.Apps.register({
+  id:'recipes', name:'Rezepte', icon:'🍳', cat:'life', width:560, height:540,
+  build: (body) => {
+    const recipes = [
+      { name:'Êzîdî Bulgur-Pilav', cat:'🍚 Haupt', time:'25 min', ing:['200g Bulgur','1 Zwiebel','2 EL Butter','Salz','Pfeffer','Brühe'], steps:['Zwiebel würfeln, in Butter glasig braten','Bulgur dazu, kurz anrösten','Brühe angießen (2:1), 15min köcheln','Mit Salz & Pfeffer abschmecken'] },
+      { name:'Kurdisches Dolma', cat:'🍲 Haupt', time:'60 min', ing:['Weinblätter','Reis','Hackfleisch','Zwiebel','Tomatenmark','Gewürze'], steps:['Füllung aus Reis, Hack & Gewürzen mischen','In Weinblätter rollen','Schichtweise in Topf','Mit Wasser & Tomatenmark bedecken','45min köcheln'] },
+      { name:'Klasik Mercimek Çorbası', cat:'🍜 Suppe', time:'30 min', ing:['200g rote Linsen','1 Zwiebel','1 Karotte','Kartoffel','Kreuzkümmel','Zitrone'], steps:['Gemüse würfeln und anbraten','Linsen + Wasser dazu','20min köcheln','Pürieren, mit Kreuzkümmel & Zitrone'] },
+      { name:'Hühner-Curry', cat:'🍛 Haupt', time:'35 min', ing:['500g Hähnchen','Kokosmilch','Curry-Paste','Zwiebel','Paprika','Reis'], steps:['Hähnchen würfeln und anbraten','Zwiebel & Curry dazu','Kokosmilch angießen','15min köcheln','Mit Reis servieren'] },
+      { name:'Fattoush Salat', cat:'🥗 Salat', time:'15 min', ing:['Fladenbrot','Tomaten','Gurke','Petersilie','Minze','Zitrone','Olivenöl'], steps:['Fladenbrot rösten & brechen','Gemüse würfeln','Kräuter hacken','Alles mischen','Mit Zitrone & Öl anmachen'] },
+      { name:'Künefe', cat:'🍮 Dessert', time:'40 min', ing:['Engelshaar-Teig','Käse (ungezuckert)','Butter','Zuckersirup','Pistazien'], steps:['Teig mit Butter schichten','Käse in die Mitte','Backen bis goldbraun','Mit Sirup übergießen','Pistazien drüber'] },
+      { name:'Baklava', cat:'🍮 Dessert', time:'90 min', ing:['Filoteig','Butter','Walnüsse','Zucker','Honig','Zitrone'], steps:['Filoteig mit Butter schichten','Walnüsse einstreuen','In Rauten schneiden','Backen (180°C, 30 min)','Mit Honig-Sirup tränken'] },
+      { name:'Morgen-Smoothie', cat:'🥤 Frühstück', time:'5 min', ing:['Banane','Beeren','Joghurt','Honig','Milch'], steps:['Alles in Mixer','30 Sek mixen','In Glas füllen','Mit Minze garnieren'] }
+    ];
+    body.innerHTML = `
+      <input id="rcSearch" type="text" placeholder="🔍 Rezept suchen…" style="margin-bottom:12px">
+      <div id="rcList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px"></div>
+      <div id="rcDetail" style="display:none;position:absolute;inset:14px;background:rgba(5,15,30,.98);backdrop-filter:blur(20px);border-radius:14px;padding:16px;overflow-y:auto;z-index:10">
+        <button class="btn" id="rcBack" style="margin-bottom:12px">← Zurück</button>
+        <div id="rcContent"></div>
+      </div>
+    `;
+    const render = () => {
+      const q = (body.querySelector('#rcSearch').value || '').toLowerCase();
+      const list = body.querySelector('#rcList');
+      list.innerHTML = recipes
+        .map((r, i) => ({ r, i }))
+        .filter(({ r }) => !q || r.name.toLowerCase().includes(q))
+        .map(({ r, i }) => `
+          <div data-rc="${i}" style="background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.2);
+            padding:12px;border-radius:10px;cursor:pointer;transition:.15s;text-align:center">
+            <div style="font-size:24px">${r.cat.split(' ')[0]}</div>
+            <div style="font-size:12px;font-weight:600;margin-top:6px;line-height:1.3">${r.name}</div>
+            <div style="font-size:10px;color:rgba(224,240,255,.5);margin-top:4px">${r.time}</div>
+          </div>`).join('');
+      list.querySelectorAll('[data-rc]').forEach(el => {
+        el.addEventListener('click', () => showDetail(parseInt(el.dataset.rc)));
+      });
+    };
+    const showDetail = (idx) => {
+      const r = recipes[idx];
+      const det = body.querySelector('#rcDetail');
+      body.querySelector('#rcContent').innerHTML = `
+        <div style="text-align:center;margin-bottom:14px">
+          <div style="font-size:48px">${r.cat.split(' ')[0]}</div>
+          <div style="font-size:20px;font-weight:700;margin-top:6px">${r.name}</div>
+          <div style="font-size:11px;color:var(--cyan)">${r.cat} · ${r.time}</div>
+        </div>
+        <h4 style="color:var(--cyan);margin:14px 0 8px;font-size:13px">🛒 Zutaten</h4>
+        <ul style="padding-left:18px;font-size:13px;line-height:1.7">${r.ing.map(i => `<li>${i}</li>`).join('')}</ul>
+        <h4 style="color:var(--cyan);margin:14px 0 8px;font-size:13px">👨‍🍳 Zubereitung</h4>
+        <ol style="padding-left:18px;font-size:13px;line-height:1.7">${r.steps.map(s => `<li>${s}</li>`).join('')}</ol>
+        <button class="btn primary" id="rcSpeak" style="margin-top:16px;width:100%">🔊 Vorlesen</button>
+      `;
+      det.style.display = 'block';
+      body.querySelector('#rcSpeak').addEventListener('click', () => {
+        HalDo.Welcome.speak(r.name + '. Zutaten: ' + r.ing.join(', ') + '. Zubereitung: ' + r.steps.join('. '));
+      });
+      HalDo.Sound.play('tap');
+    };
+    body.querySelector('#rcBack').addEventListener('click', () => {
+      body.querySelector('#rcDetail').style.display = 'none';
+    });
+    body.querySelector('#rcSearch').addEventListener('input', render);
+    render();
+  }
+});
+
+/* --- 4. SHOPPING LIST PRO --- */
+HalDo.Apps.register({
+  id:'shopping', name:'Einkauf', icon:'🛒', cat:'life', width:480, height:520,
+  build: (body) => {
+    const KEY = 'shopping_v1';
+    const get = () => HalDo.Store.get(KEY, []);
+    const set = (v) => HalDo.Store.set(KEY, v);
+    const cats = ['🥩 Fleisch','🥬 Gemüse','🍎 Obst','🥛 Milchprodukte','🍞 Backwaren','🧴 Haushalt','📦 Sonstiges'];
+    body.innerHTML = `
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input id="shIn" placeholder="Was einkaufen?" style="flex:1">
+        <select id="shCat" style="flex:0 0 120px">
+          ${cats.map(c => `<option>${c}</option>`).join('')}
+        </select>
+        <button class="btn primary" id="shAdd">+</button>
+      </div>
+      <div id="shStats" style="font-size:11px;color:rgba(224,240,255,.6);margin-bottom:10px;text-align:center"></div>
+      <div id="shList" style="display:flex;flex-direction:column;gap:6px"></div>
+      <button class="btn danger" id="shClear" style="width:100%;margin-top:12px;display:none">🗑️ Erledigte löschen</button>
+    `;
+    const render = () => {
+      const items = get();
+      const list = body.querySelector('#shList');
+      const done = items.filter(i => i.done).length;
+      body.querySelector('#shStats').textContent = `${items.length} Artikel · ${done} erledigt`;
+      body.querySelector('#shClear').style.display = done > 0 ? 'block' : 'none';
+      list.innerHTML = items.length
+        ? items.map((it, i) => `
+          <div style="display:flex;align-items:center;gap:10px;background:rgba(0,229,255,.06);
+            border:1px solid rgba(0,229,255,.2);padding:10px 12px;border-radius:10px;font-size:13px;
+            ${it.done ? 'opacity:.5;' : ''}">
+            <input type="checkbox" ${it.done?'checked':''} data-ck="${i}" style="width:20px;height:20px">
+            <div style="flex:1;${it.done?'text-decoration:line-through':''}">
+              <div style="font-weight:600">${it.name}</div>
+              <div style="font-size:10px;color:rgba(224,240,255,.5)">${it.cat}</div>
+            </div>
+            <button class="btn danger" style="padding:4px 8px;font-size:11px" data-del="${i}">✕</button>
+          </div>`).join('')
+        : '<div style="text-align:center;padding:24px;color:rgba(224,240,255,.5);font-size:12px">Einkaufsliste leer.</div>';
+      list.querySelectorAll('[data-ck]').forEach(cb => cb.addEventListener('change', () => {
+        const it = get(); it[parseInt(cb.dataset.ck)].done = cb.checked; set(it); HalDo.Sound.play('tap'); render();
+      }));
+      list.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+        const it = get(); it.splice(parseInt(b.dataset.del), 1); set(it); render();
+      }));
+    };
+    body.querySelector('#shAdd').addEventListener('click', () => {
+      const v = body.querySelector('#shIn').value.trim(); if (!v) return;
+      const it = get(); it.unshift({ name:v, cat: body.querySelector('#shCat').value, done:false }); set(it);
+      body.querySelector('#shIn').value = ''; HalDo.Sound.play('success'); render();
+    });
+    body.querySelector('#shIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') body.querySelector('#shAdd').click(); });
+    body.querySelector('#shClear').addEventListener('click', () => {
+      set(get().filter(i => !i.done)); render(); HalDo.Sound.play('tap');
+    });
+    render();
+  }
+});
+
+/* --- 5. TRANSLATOR PRO --- */
+HalDo.Apps.register({
+  id:'translator', name:'Übersetzer', icon:'🌍', cat:'tools', width:540, height:560,
+  build: (body) => {
+    const dict = {
+      'hallo': { de:'hallo', en:'hello', ku:'silav', ez:'silav', ar:'مرحبا', tr:'merhaba', fa:'سلام', he:'שלום', ru:'привет', fr:'bonjour', es:'hola', it:'ciao', zh:'你好', ja:'こんにちは' },
+      'danke': { de:'danke', en:'thank you', ku:'spas', ez:'spas', ar:'شكرا', tr:'teşekkürler', fa:'متشکرم', he:'תודה', ru:'спасибо', fr:'merci', es:'gracias', it:'grazie', zh:'谢谢', ja:'ありがとう' },
+      'wasser': { de:'wasser', en:'water', ku:'av', ez:'av', ar:'ماء', tr:'su', fa:'آب', he:'מים', ru:'вода', fr:'eau', es:'agua', it:'acqua', zh:'水', ja:'水' },
+      'brot': { de:'brot', en:'bread', ku:'nan', ez:'nan', ar:'خبز', tr:'ekmek', fa:'نان', he:'לחם', ru:'хлеб', fr:'pain', es:'pan', it:'pane', zh:'面包', ja:'パン' },
+      'freund': { de:'freund', en:'friend', ku:'heval', ez:'heval', ar:'صديق', tr:'arkadaş', fa:'دوست', he:'חבר', ru:'друг', fr:'ami', es:'amigo', it:'amico', zh:'朋友', ja:'友達' },
+      'liebe': { de:'liebe', en:'love', ku:'evîn', ez:'evîn', ar:'حب', tr:'aşk', fa:'عشق', he:'אהבה', ru:'любовь', fr:'amour', es:'amor', it:'amore', zh:'爱', ja:'愛' },
+      'haus': { de:'haus', en:'house', ku:'mal', ez:'mal', ar:'بيت', tr:'ev', fa:'خانه', he:'בית', ru:'дом', fr:'maison', es:'casa', it:'casa', zh:'房子', ja:'家' },
+      'gott': { de:'gott', en:'god', ku:'xwedê', ez:'xwedê', ar:'الله', tr:'tanrı', fa:'خدا', he:'אלוהים', ru:'бог', fr:'dieu', es:'dios', it:'dio', zh:'神', ja:'神' },
+      'ja': { de:'ja', en:'yes', ku:'erê', ez:'erê', ar:'نعم', tr:'evet', fa:'بله', he:'כן', ru:'да', fr:'oui', es:'sí', it:'sì', zh:'是', ja:'はい' },
+      'nein': { de:'nein', en:'no', ku:'na', ez:'na', ar:'لا', tr:'hayır', fa:'نه', he:'לא', ru:'нет', fr:'non', es:'no', it:'no', zh:'不', ja:'いいえ' },
+      'guten morgen': { de:'guten morgen', en:'good morning', ku:'beyanî baş', ez:'beyanî baş', ar:'صباح الخير', tr:'günaydın', fa:'صبح بخیر', he:'בוקר טוב', ru:'доброе утро', fr:'bonjour', es:'buenos días', it:'buongiorno', zh:'早上好', ja:'おはよう' },
+      'willkommen': { de:'willkommen', en:'welcome', ku:'bi xêr hatî', ez:'bi xêr hatî', ar:'أهلا وسهلا', tr:'hoş geldin', fa:'خوش آمدید', he:'ברוך הבא', ru:'добро пожаловать', fr:'bienvenue', es:'bienvenido', it:'benvenuto', zh:'欢迎', ja:'ようこそ' }
+    };
+    const langs = [
+      { code:'de', name:'🇩🇪 Deutsch' }, { code:'en', name:'🇬🇧 English' },
+      { code:'ku', name:'🌄 Kurmandschi' }, { code:'ez', name:'🦚 Êzîdî' },
+      { code:'ar', name:'🇸🇦 العربية' }, { code:'tr', name:'🇹🇷 Türkçe' },
+      { code:'fa', name:'🇮🇷 فارسی' }, { code:'he', name:'🇮🇱 עברית' },
+      { code:'ru', name:'🇷🇺 Русский' }, { code:'fr', name:'🇫🇷 Français' },
+      { code:'es', name:'🇪🇸 Español' }, { code:'it', name:'🇮🇹 Italiano' },
+      { code:'zh', name:'🇨🇳 中文' }, { code:'ja', name:'🇯🇵 日本語' }
+    ];
+    body.innerHTML = `
+      <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+        <select id="tlFrom" style="flex:1">
+          ${langs.map(l => `<option value="${l.code}">${l.name}</option>`).join('')}
+        </select>
+        <button class="btn" id="tlSwap" style="padding:8px 12px">⇄</button>
+        <select id="tlTo" style="flex:1">
+          ${langs.map(l => `<option value="${l.code}" ${l.code==='en'?'selected':''}>${l.name}</option>`).join('')}
+        </select>
+      </div>
+      <textarea id="tlIn" placeholder="Text eingeben (z.B. hallo, danke, freund, liebe…)" style="min-height:100px"></textarea>
+      <button class="btn primary" id="tlGo" style="width:100%;margin-top:10px">🔄 Übersetzen</button>
+      <div id="tlOut" style="margin-top:14px;padding:16px;background:rgba(0,229,255,.1);border:1.5px solid var(--accent);border-radius:14px;min-height:100px;font-size:15px;line-height:1.6;color:var(--cyan)">
+        Ergebnis erscheint hier…
+      </div>
+      <button class="btn" id="tlSpeak" style="width:100%;margin-top:10px">🔊 Vorlesen</button>
+      <div style="margin-top:12px;font-size:11px;color:rgba(224,240,255,.5);text-align:center">
+        Mini-Wörterbuch: ${Object.keys(dict).length} Begriffe · volle API in Phase 3
+      </div>
+    `;
+    const translate = () => {
+      const text = body.querySelector('#tlIn').value.trim().toLowerCase();
+      const to = body.querySelector('#tlTo').value;
+      if (!text) return;
+      let result = dict[text]?.[to];
+      if (!result) {
+        result = `❓ "${text}" ist nicht im Mini-Wörterbuch.\nVerfügbar: ${Object.keys(dict).slice(0, 8).join(', ')}…`;
+      }
+      body.querySelector('#tlOut').textContent = result;
+      HalDo.Sound.play('success');
+    };
+    body.querySelector('#tlGo').addEventListener('click', translate);
+    body.querySelector('#tlIn').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); translate(); }
+    });
+    body.querySelector('#tlSwap').addEventListener('click', () => {
+      const a = body.querySelector('#tlFrom').value;
+      const b = body.querySelector('#tlTo').value;
+      body.querySelector('#tlFrom').value = b;
+      body.querySelector('#tlTo').value = a;
+      HalDo.Sound.play('tap');
+    });
+    body.querySelector('#tlSpeak').addEventListener('click', () => {
+      const t = body.querySelector('#tlOut').textContent;
+      if (t && t !== 'Ergebnis erscheint hier…') HalDo.Welcome.speak(t);
+    });
+  }
+});
+
+/* --- 6. CONTACTS PRO --- */
+HalDo.Apps.register({
+  id:'contacts', name:'Kontakte', icon:'👥', cat:'tools', width:500, height:540,
+  build: (body) => {
+    const KEY = 'contacts_v1';
+    const get = () => HalDo.Store.get(KEY, []);
+    const set = (v) => HalDo.Store.set(KEY, v);
+    body.innerHTML = `
+      <input id="ctSearch" type="text" placeholder="🔍 Kontakt suchen…" style="margin-bottom:12px">
+      <button class="btn primary" id="ctNew" style="width:100%;margin-bottom:12px">+ Neuer Kontakt</button>
+      <div id="ctList" style="display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto"></div>
+      <div id="ctModal" style="display:none;position:absolute;inset:14px;background:rgba(5,15,30,.98);
+        backdrop-filter:blur(20px);border-radius:14px;padding:16px;z-index:10;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <h3 style="font-size:15px;color:var(--cyan)">Kontakt</h3>
+          <button class="btn" id="ctCancel">✕</button>
+        </div>
+        <input id="ctName" placeholder="Name *" style="padding:10px">
+        <input id="ctPhone" placeholder="Telefon" type="tel" style="padding:10px">
+        <input id="ctMail" placeholder="E-Mail" type="email" style="padding:10px">
+        <input id="ctNote" placeholder="Notiz" style="padding:10px">
+        <button class="btn primary" id="ctSave" style="margin-top:8px">💾 Speichern</button>
+      </div>
+    `;
+    const render = () => {
+      const q = (body.querySelector('#ctSearch').value || '').toLowerCase();
+      const list = body.querySelector('#ctList');
+      const items = get().filter(c => !q || c.name.toLowerCase().includes(q));
+      list.innerHTML = items.length
+        ? items.map((c, i) => {
+          const realIdx = get().findIndex(x => x === c);
+          return `<div style="background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.2);
+            padding:12px;border-radius:10px;display:flex;align-items:center;gap:10px">
+            <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--purple));
+              display:flex;align-items:center;justify-content:center;font-weight:700;color:#000;font-size:16px">
+              ${c.name.charAt(0).toUpperCase()}
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name}</div>
+              <div style="font-size:11px;color:rgba(224,240,255,.6);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                ${c.phone ? '📞 '+c.phone+' ' : ''}${c.mail ? '✉️ '+c.mail : ''}
+              </div>
+            </div>
+            ${c.phone ? `<a href="tel:${c.phone}" class="btn" style="padding:6px 10px;font-size:12px;text-decoration:none">📞</a>` : ''}
+            <button class="btn danger" style="padding:6px 10px;font-size:11px" data-del="${realIdx}">✕</button>
+          </div>`;
+        }).join('')
+        : '<div style="text-align:center;padding:20px;color:rgba(224,240,255,.5);font-size:12px">Keine Kontakte.</div>';
+      list.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+        if (confirm('Kontakt löschen?')) {
+          const it = get(); it.splice(parseInt(b.dataset.del), 1); set(it); render();
+        }
+      }));
+    };
+    body.querySelector('#ctNew').addEventListener('click', () => {
+      body.querySelector('#ctName').value = '';
+      body.querySelector('#ctPhone').value = '';
+      body.querySelector('#ctMail').value = '';
+      body.querySelector('#ctNote').value = '';
+      body.querySelector('#ctModal').style.display = 'flex';
+    });
+    body.querySelector('#ctCancel').addEventListener('click', () => {
+      body.querySelector('#ctModal').style.display = 'none';
+    });
+    body.querySelector('#ctSave').addEventListener('click', () => {
+      const name = body.querySelector('#ctName').value.trim();
+      if (!name) { HalDo.Toast.show('⚠️ Name eingeben'); return; }
+      const items = get();
+      items.unshift({
+        name,
+        phone: body.querySelector('#ctPhone').value.trim(),
+        mail: body.querySelector('#ctMail').value.trim(),
+        note: body.querySelector('#ctNote').value.trim(),
+        date: new Date().toLocaleDateString('de-DE')
+      });
+      set(items);
+      body.querySelector('#ctModal').style.display = 'none';
+      HalDo.Sound.play('success');
+      render();
+    });
+    body.querySelector('#ctSearch').addEventListener('input', render);
+    render();
+  }
+});
+
+/* ==========================================================
+   PACK 1 komplett geladen
+   Apps: finance, music, recipes, shopping, translator, contacts
+   ========================================================== */
+console.log('✅ HalDo Pack 1 loaded: finance, music, recipes, shopping, translator, contacts');
+</script>
 </body>
 </html>
