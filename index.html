@@ -1036,5 +1036,870 @@ window.addEventListener('DOMContentLoaded', () => {
 // Expose
 window.HalDo = HalDo;
 </script>
+<script>
+/* ============ PHASE 2: ECHTE APPS ============ */
+/* Wird an HalDo angehängt — nutzt bestehende Window/Sound/Toast API */
+
+/* ============ HELPER: Storage ============ */
+HalDo.Store2 = (() => {
+  const get = (key, def) => {
+    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch(e) { return def; }
+  };
+  const set = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {} };
+  return { get, set };
+})();
+
+/* ============ 1. HALDO TASKS ============ */
+HalDo.Tasks = (() => {
+  const KEY = 'haldo_tasks_v1';
+  let items = HalDo.Store2.get(KEY, []);
+  const save = () => HalDo.Store2.set(KEY, items);
+  const add = (title, opts = {}) => {
+    items.unshift({ id: Date.now() + Math.random(), title, done: false, priority: opts.priority || 'normal', created: Date.now() });
+    save(); return items[0];
+  };
+  const toggle = (id) => { const t = items.find(x => x.id === id); if (t) { t.done = !t.done; save(); } };
+  const del = (id) => { items = items.filter(x => x.id !== id); save(); };
+  const all = () => items;
+  const open = () => items.filter(t => !t.done);
+
+  const render = () => {
+    const winId = 'haldo-tasks';
+    if (HalDo.Win.windows[winId]) return HalDo.Win.focus(winId);
+    const html = `
+      <style>
+        .task-input{display:flex;gap:8px;margin-bottom:12px}
+        .task-input input{flex:1;height:44px;border-radius:12px;border:1px solid var(--border);background:rgba(0,0,0,.4);color:var(--text);padding:0 14px;font-size:14px;font-family:inherit}
+        .task-input input:focus{outline:none;border-color:var(--accent)}
+        .task-input button{width:44px;height:44px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000;font-size:20px;font-weight:900;cursor:pointer}
+        .task-list{display:flex;flex-direction:column;gap:8px}
+        .task-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:rgba(0,229,255,.06);border:1px solid var(--border);transition:all .2s;min-height:52px}
+        .task-item.done{opacity:.5}
+        .task-item.done .task-title{text-decoration:line-through}
+        .task-check{width:28px;height:28px;border-radius:8px;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:transparent;font-weight:900;font-size:14px}
+        .task-item.done .task-check{background:var(--accent);color:#000}
+        .task-title{flex:1;font-size:13px}
+        .task-del{width:32px;height:32px;border-radius:8px;border:none;background:rgba(255,80,80,.2);color:#ff8080;cursor:pointer;font-size:14px}
+        .task-priority{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+        .task-priority.high{background:#ff4477}
+        .task-priority.normal{background:var(--accent)}
+        .task-priority.low{background:#888}
+        .task-empty{text-align:center;padding:40px;color:var(--dim);font-size:13px}
+        .task-stats{display:flex;gap:16px;margin-bottom:12px;font-size:11px;color:var(--dim)}
+        .task-stats strong{color:var(--accent);font-size:16px;display:block;margin-top:2px}
+      </style>
+      <div class="task-input">
+        <input type="text" id="taskInput" placeholder="Neue Aufgabe..." onkeydown="if(event.key==='Enter')HalDo.Tasks.addUI()">
+        <button onclick="HalDo.Tasks.addUI()">+</button>
+      </div>
+      <div class="task-stats">
+        <div>Gesamt<strong>${items.length}</strong></div>
+        <div>Offen<strong>${open().length}</strong></div>
+        <div>Erledigt<strong>${items.length - open().length}</strong></div>
+      </div>
+      <div class="task-list" id="taskList"></div>
+    `;
+    HalDo.Win.create(winId, '✅ HalDo Tasks', html, {width: 560, height: 520});
+    renderList();
+    setTimeout(() => document.getElementById('taskInput')?.focus(), 100);
+  };
+
+  const renderList = () => {
+    const list = document.getElementById('taskList');
+    if (!list) return;
+    if (items.length === 0) {
+      list.innerHTML = '<div class="task-empty">🎯 Noch keine Aufgaben.<br>Füge deine erste hinzu!</div>';
+      return;
+    }
+    list.innerHTML = items.map(t => `
+      <div class="task-item ${t.done ? 'done' : ''}">
+        <div class="task-priority ${t.priority}"></div>
+        <div class="task-check" onclick="HalDo.Tasks.toggleUI(${t.id})">${t.done ? '✓' : ''}</div>
+        <div class="task-title">${escapeHtml(t.title)}</div>
+        <button class="task-del" onclick="HalDo.Tasks.delUI(${t.id})">✕</button>
+      </div>
+    `).join('');
+  };
+
+  const escapeHtml = (s) => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  const addUI = () => {
+    const inp = document.getElementById('taskInput');
+    if (!inp || !inp.value.trim()) return;
+    add(inp.value.trim());
+    inp.value = '';
+    renderList();
+    HalDo.Sound.success();
+    HalDo.Toast.show('✅ Aufgabe hinzugefügt');
+  };
+  const toggleUI = (id) => { toggle(id); renderList(); HalDo.Sound.click(); };
+  const delUI = (id) => { del(id); renderList(); HalDo.Sound.close(); };
+
+  return { add, toggle, del, all, open, render, addUI, toggleUI, delUI, count: () => items.length };
+})();
+
+/* ============ 2. HALDO NOTES ============ */
+HalDo.Notes = (() => {
+  const KEY = 'haldo_notes_v1';
+  let notes = HalDo.Store2.get(KEY, []);
+  const save = () => HalDo.Store2.set(KEY, notes);
+  const add = (title, body) => {
+    notes.unshift({ id: Date.now() + Math.random(), title, body, created: Date.now(), updated: Date.now() });
+    save(); return notes[0];
+  };
+  const update = (id, title, body) => {
+    const n = notes.find(x => x.id === id);
+    if (n) { n.title = title; n.body = body; n.updated = Date.now(); save(); }
+  };
+  const del = (id) => { notes = notes.filter(x => x.id !== id); save(); };
+  const all = () => notes;
+
+  let currentId = null;
+
+  const render = () => {
+    const winId = 'haldo-notes';
+    if (HalDo.Win.windows[winId]) return HalDo.Win.focus(winId);
+    const html = `
+      <style>
+        .notes-wrap{display:flex;gap:12px;height:100%}
+        .notes-side{width:180px;display:flex;flex-direction:column;gap:8px}
+        .notes-side button{width:100%;height:40px;border-radius:10px;border:1px solid var(--border);background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000;font-weight:700;cursor:pointer;font-size:13px}
+        .notes-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+        .note-item{padding:10px 12px;border-radius:10px;background:rgba(0,229,255,.06);border:1px solid var(--border);cursor:pointer;font-size:12px;transition:all .15s}
+        .note-item:hover{background:rgba(0,229,255,.15)}
+        .note-item.active{background:var(--accent);color:#000}
+        .note-item .note-title{font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .note-item .note-preview{font-size:10px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .notes-editor{flex:1;display:flex;flex-direction:column;gap:8px}
+        .notes-editor input,.notes-editor textarea{border-radius:10px;border:1px solid var(--border);background:rgba(0,0,0,.4);color:var(--text);padding:10px 14px;font-size:13px;font-family:inherit}
+        .notes-editor input:focus,.notes-editor textarea:focus{outline:none;border-color:var(--accent)}
+        .notes-editor input{height:44px;font-weight:700;font-size:15px}
+        .notes-editor textarea{flex:1;resize:none;line-height:1.6}
+        .notes-actions{display:flex;gap:8px}
+        .notes-actions button{flex:1;height:40px;border-radius:10px;border:none;cursor:pointer;font-weight:700;font-size:12px}
+        .btn-save{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000}
+        .btn-del{background:rgba(255,80,80,.25);color:#ff8080}
+        @media(max-width:640px){.notes-side{display:none}.notes-editor{width:100%}}
+      </style>
+      <div class="notes-wrap">
+        <div class="notes-side">
+          <button onclick="HalDo.Notes.newNote()">+ Neue Notiz</button>
+          <div class="notes-list" id="notesList"></div>
+        </div>
+        <div class="notes-editor">
+          <input type="text" id="noteTitle" placeholder="Titel..." oninput="HalDo.Notes.autoSave()">
+          <textarea id="noteBody" placeholder="Schreib etwas..." oninput="HalDo.Notes.autoSave()"></textarea>
+          <div class="notes-actions">
+            <button class="btn-save" onclick="HalDo.Notes.saveCurrent()">💾 Speichern</button>
+            <button class="btn-del" onclick="HalDo.Notes.delCurrent()">🗑️ Löschen</button>
+          </div>
+        </div>
+      </div>
+    `;
+    HalDo.Win.create(winId, '📝 HalDo Notes', html, {width: 680, height: 560});
+    renderList();
+    if (notes.length > 0) selectNote(notes[0].id);
+  };
+
+  const renderList = () => {
+    const list = document.getElementById('notesList');
+    if (!list) return;
+    if (notes.length === 0) { list.innerHTML = '<div style="text-align:center;padding:20px;font-size:11px;color:var(--dim)">Keine Notizen</div>'; return; }
+    list.innerHTML = notes.map(n => `
+      <div class="note-item ${n.id === currentId ? 'active' : ''}" onclick="HalDo.Notes.selectNote(${n.id})">
+        <div class="note-title">${escapeHtml(n.title || 'Ohne Titel')}</div>
+        <div class="note-preview">${escapeHtml((n.body || '').slice(0, 40))}</div>
+      </div>
+    `).join('');
+  };
+
+  const escapeHtml = (s) => (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  const newNote = () => {
+    const n = add('Neue Notiz', '');
+    currentId = n.id;
+    renderList();
+    selectNote(n.id);
+    HalDo.Sound.click();
+  };
+
+  const selectNote = (id) => {
+    currentId = id;
+    const n = notes.find(x => x.id === id);
+    if (!n) return;
+    document.getElementById('noteTitle').value = n.title;
+    document.getElementById('noteBody').value = n.body;
+    renderList();
+    HalDo.Sound.click();
+  };
+
+  let autoTimer;
+  const autoSave = () => {
+    clearTimeout(autoTimer);
+    autoTimer = setTimeout(() => {
+      if (!currentId) return;
+      const t = document.getElementById('noteTitle')?.value || '';
+      const b = document.getElementById('noteBody')?.value || '';
+      update(currentId, t, b);
+      renderList();
+    }, 800);
+  };
+
+  const saveCurrent = () => {
+    if (!currentId) return;
+    const t = document.getElementById('noteTitle').value;
+    const b = document.getElementById('noteBody').value;
+    update(currentId, t, b);
+    HalDo.Sound.success();
+    HalDo.Toast.show('💾 Notiz gespeichert');
+  };
+
+  const delCurrent = () => {
+    if (!currentId) return;
+    if (!confirm('Notiz wirklich löschen?')) return;
+    del(currentId);
+    currentId = null;
+    document.getElementById('noteTitle').value = '';
+    document.getElementById('noteBody').value = '';
+    renderList();
+    HalDo.Sound.close();
+    HalDo.Toast.show('🗑️ Notiz gelöscht');
+  };
+
+  return { add, update, del, all, render, newNote, selectNote, autoSave, saveCurrent, delCurrent };
+})();
+
+/* ============ 3. HALDO CALENDAR ============ */
+HalDo.Calendar = (() => {
+  const KEY = 'haldo_cal_v1';
+  let events = HalDo.Store2.get(KEY, []);
+  const save = () => HalDo.Store2.set(KEY, events);
+  const add = (title, date) => { events.push({ id: Date.now() + Math.random(), title, date }); save(); };
+  const del = (id) => { events = events.filter(x => x.id !== id); save(); };
+  const forDate = (d) => events.filter(e => e.date === d);
+  let viewDate = new Date();
+  let selectedDate = new Date().toISOString().split('T')[0];
+
+  const render = () => {
+    const winId = 'haldo-cal';
+    if (HalDo.Win.windows[winId]) return HalDo.Win.focus(winId);
+    const html = `
+      <style>
+        .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+        .cal-nav{width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:rgba(0,229,255,.08);color:var(--text);cursor:pointer;font-size:16px}
+        .cal-month{font-size:16px;font-weight:800;color:var(--accent)}
+        .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:16px}
+        .cal-dayname{text-align:center;font-size:10px;color:var(--dim);font-weight:700;padding:6px 0;text-transform:uppercase}
+        .cal-day{aspect-ratio:1;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;transition:all .15s;border:1px solid transparent}
+        .cal-day:hover{background:rgba(0,229,255,.15)}
+        .cal-day.today{background:rgba(0,229,255,.2);border-color:var(--accent);font-weight:800}
+        .cal-day.selected{background:var(--accent);color:#000;font-weight:800}
+        .cal-day.other{color:rgba(255,255,255,.2)}
+        .cal-day.has-event::after{content:'';position:absolute;bottom:4px;width:4px;height:4px;border-radius:50%;background:var(--accent)}
+        .cal-day{position:relative}
+        .cal-event-input{display:flex;gap:8px;margin-bottom:10px}
+        .cal-event-input input{flex:1;height:40px;border-radius:10px;border:1px solid var(--border);background:rgba(0,0,0,.4);color:var(--text);padding:0 12px;font-size:13px;font-family:inherit}
+        .cal-events{display:flex;flex-direction:column;gap:6px}
+        .cal-event{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(0,229,255,.06);border:1px solid var(--border);font-size:12px}
+        .cal-event-title{flex:1}
+        .cal-event-del{width:28px;height:28px;border-radius:6px;border:none;background:rgba(255,80,80,.2);color:#ff8080;cursor:pointer;font-size:12px}
+      </style>
+      <div class="cal-header">
+        <button class="cal-nav" onclick="HalDo.Calendar.prevMonth()">‹</button>
+        <div class="cal-month" id="calMonth"></div>
+        <button class="cal-nav" onclick="HalDo.Calendar.nextMonth()">›</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px" id="calSelDate"></div>
+      <div class="cal-event-input">
+        <input type="text" id="calEventInput" placeholder="Neues Event für diesen Tag..." onkeydown="if(event.key==='Enter')HalDo.Calendar.addUI()">
+        <button style="width:40px;height:40px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000;font-size:18px;font-weight:900;cursor:pointer" onclick="HalDo.Calendar.addUI()">+</button>
+      </div>
+      <div class="cal-events" id="calEvents"></div>
+    `;
+    HalDo.Win.create(winId, '📅 HalDo Calendar', html, {width: 500, height: 600});
+    renderGrid();
+    renderEvents();
+  };
+
+  const renderGrid = () => {
+    const monthNames = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+    const dayNames = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+    const y = viewDate.getFullYear(), m = viewDate.getMonth();
+    document.getElementById('calMonth').textContent = `${monthNames[m]} ${y}`;
+    const first = new Date(y, m, 1);
+    const firstDay = (first.getDay() + 6) % 7;
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const prevMonthDays = new Date(y, m, 0).getDate();
+    const grid = document.getElementById('calGrid');
+    let html = dayNames.map(d => `<div class="cal-dayname">${d}</div>`).join('');
+    const todayStr = new Date().toISOString().split('T')[0];
+    for (let i = 0; i < firstDay; i++) {
+      html += `<div class="cal-day other">${prevMonthDays - firstDay + i + 1}</div>`;
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const hasEvent = events.some(e => e.date === dateStr);
+      const cls = ['cal-day'];
+      if (dateStr === todayStr) cls.push('today');
+      if (dateStr === selectedDate) cls.push('selected');
+      if (hasEvent) cls.push('has-event');
+      html += `<div class="${cls.join(' ')}" onclick="HalDo.Calendar.selectDate('${dateStr}')">${d}</div>`;
+    }
+    document.getElementById('calGrid').innerHTML = html;
+  };
+
+  const renderEvents = () => {
+    const list = document.getElementById('calEvents');
+    if (!list) return;
+    const dayEvents = forDate(selectedDate);
+    document.getElementById('calSelDate').textContent = `📌 ${new Date(selectedDate).toLocaleDateString('de-DE', {weekday:'long', day:'numeric', month:'long'})}`;
+    if (dayEvents.length === 0) {
+      list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--dim);font-size:12px">Keine Events an diesem Tag</div>';
+      return;
+    }
+    list.innerHTML = dayEvents.map(e => `<div class="cal-event"><div class="cal-event-title">${e.title.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</div><button class="cal-event-del" onclick="HalDo.Calendar.delUI(${e.id})">✕</button></div>`).join('');
+  };
+
+  const prevMonth = () => { viewDate.setMonth(viewDate.getMonth() - 1); renderGrid(); HalDo.Sound.click(); };
+  const nextMonth = () => { viewDate.setMonth(viewDate.getMonth() + 1); renderGrid(); HalDo.Sound.click(); };
+  const selectDate = (d) => { selectedDate = d; renderGrid(); renderEvents(); HalDo.Sound.click(); };
+  const addUI = () => {
+    const inp = document.getElementById('calEventInput');
+    if (!inp || !inp.value.trim()) return;
+    add(inp.value.trim(), selectedDate);
+    inp.value = '';
+    renderGrid(); renderEvents();
+    HalDo.Sound.success();
+    HalDo.Toast.show('📅 Event hinzugefügt');
+  };
+  const delUI = (id) => { del(id); renderGrid(); renderEvents(); HalDo.Sound.close(); };
+
+  return { add, del, forDate, all: () => events, render, prevMonth, nextMonth, selectDate, addUI, delUI };
+})();
+
+/* ============ 4. HALDO WEATHER (Live Open-Meteo) ============ */
+HalDo.Weather = (() => {
+  const getIcon = (code) => {
+    if (code === 0) return '☀️';
+    if (code < 3) return '🌤️';
+    if (code < 48) return '☁️';
+    if (code < 58) return '🌧️';
+    if (code < 68) return '🌧️';
+    if (code < 78) return '❄️';
+    if (code < 88) return '🌧️';
+    return '⛈️';
+  };
+  const getDesc = (code) => {
+    if (code === 0) return 'Klar';
+    if (code < 3) return 'Leicht bewölkt';
+    if (code < 48) return 'Bewölkt';
+    if (code < 58) return 'Nieselregen';
+    if (code < 68) return 'Regen';
+    if (code < 78) return 'Schnee';
+    if (code < 88) return 'Regenschauer';
+    return 'Gewitter';
+  };
+
+  let currentCity = null;
+
+  const fetchWeather = async (city) => {
+    try {
+      const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=de`);
+      const geo = await geoRes.json();
+      if (!geo.results || geo.results.length === 0) throw new Error('Stadt nicht gefunden');
+      const { latitude, longitude, name, country } = geo.results[0];
+      const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&hourly=temperature_2m,weathercode&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=5`);
+      const w = await wRes.json();
+      currentCity = { name, country };
+      return { geo: { name, country }, current: w.current_weather, daily: w.daily };
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const render = () => {
+    const winId = 'haldo-weather';
+    if (HalDo.Win.windows[winId]) return HalDo.Win.focus(winId);
+    const html = `
+      <style>
+        .weather-search{display:flex;gap:8px;margin-bottom:16px}
+        .weather-search input{flex:1;height:44px;border-radius:12px;border:1px solid var(--border);background:rgba(0,0,0,.4);color:var(--text);padding:0 14px;font-size:14px;font-family:inherit}
+        .weather-search input:focus{outline:none;border-color:var(--accent)}
+        .weather-search button{width:44px;height:44px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000;font-size:18px;cursor:pointer;font-weight:900}
+        .weather-now{text-align:center;padding:20px;border-radius:16px;background:linear-gradient(135deg,rgba(0,229,255,.15),rgba(77,168,255,.08));border:1px solid var(--border);margin-bottom:12px}
+        .weather-now .w-icon{font-size:64px;margin-bottom:8px}
+        .weather-now .w-temp{font-size:42px;font-weight:900;color:var(--accent);line-height:1}
+        .weather-now .w-desc{font-size:13px;color:var(--dim);margin-top:4px}
+        .weather-now .w-city{font-size:15px;font-weight:700;margin-top:8px}
+        .weather-forecast{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+        .w-day{text-align:center;padding:10px 6px;border-radius:10px;background:rgba(0,229,255,.06);border:1px solid var(--border);font-size:10px}
+        .w-day .w-dayname{font-weight:700;margin-bottom:6px;font-size:11px}
+        .w-day .w-dicon{font-size:24px;margin-bottom:4px}
+        .w-day .w-dtemp{font-weight:700;font-size:11px}
+        .w-day .w-dmin{color:var(--dim);font-size:10px}
+        .weather-loading{text-align:center;padding:40px;color:var(--dim)}
+      </style>
+      <div class="weather-search">
+        <input type="text" id="weatherCity" placeholder="Stadt eingeben (z.B. Berlin)..." onkeydown="if(event.key==='Enter')HalDo.Weather.searchUI()">
+        <button onclick="HalDo.Weather.searchUI()">🔍</button>
+      </div>
+      <div id="weatherContent"><div class="weather-loading">🌍 Suche eine Stadt für Live-Wetter...</div></div>
+    `;
+    HalDo.Win.create(winId, '🌤️ HalDo Weather (Live)', html, {width: 480, height: 520});
+    // Auto load
+    setTimeout(() => { document.getElementById('weatherCity').value = 'Berlin'; searchUI(); }, 200);
+  };
+
+  const searchUI = async () => {
+    const inp = document.getElementById('weatherCity');
+    if (!inp || !inp.value.trim()) return;
+    const content = document.getElementById('weatherContent');
+    content.innerHTML = '<div class="weather-loading">⏳ Lade Wetter...</div>';
+    HalDo.Sound.click();
+    const data = await fetchWeather(inp.value.trim());
+    if (!data) {
+      content.innerHTML = '<div class="weather-loading">❌ Stadt nicht gefunden</div>';
+      HalDo.Sound.error();
+      return;
+    }
+    const cur = data.current;
+    const daily = data.daily;
+    const dayNames = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+    content.innerHTML = `
+      <div class="weather-now">
+        <div class="w-icon">${getIcon(cur.weathercode)}</div>
+        <div class="w-temp">${Math.round(cur.temperature)}°C</div>
+        <div class="w-desc">${getDesc(cur.weathercode)} · Wind ${cur.windspeed} km/h</div>
+        <div class="w-city">📍 ${data.geo.name}, ${data.geo.country}</div>
+      </div>
+      <div class="weather-forecast">
+        ${daily.time.slice(0, 5).map((t, i) => {
+          const d = new Date(t);
+          return `<div class="w-day">
+            <div class="w-dayname">${dayNames[d.getDay()]}</div>
+            <div class="w-dicon">${getIcon(daily.weathercode[i])}</div>
+            <div class="w-dtemp">${Math.round(daily.temperature_2m_max[i])}°</div>
+            <div class="w-dmin">${Math.round(daily.temperature_2m_min[i])}°</div>
+          </div>`;
+        }).join('')}
+      </div>
+    `;
+    HalDo.Sound.success();
+  };
+
+  return { render, searchUI, forCity: fetchWeather };
+})();
+
+/* ============ 5. HALDO TIMER ============ */
+HalDo.Timer = (() => {
+  let interval = null;
+  let remaining = 0;
+  let total = 0;
+
+  const render = () => {
+    const winId = 'haldo-timer';
+    if (HalDo.Win.windows[winId]) return HalDo.Win.focus(winId);
+    const html = `
+      <style>
+        .timer-display{text-align:center;padding:30px;margin-bottom:16px;border-radius:16px;background:linear-gradient(135deg,rgba(0,229,255,.12),rgba(77,168,255,.05));border:1px solid var(--border)}
+        .timer-time{font-size:64px;font-weight:900;color:var(--accent);font-variant-numeric:tabular-nums;letter-spacing:2px;line-height:1}
+        .timer-label{font-size:12px;color:var(--dim);margin-top:8px;text-transform:uppercase;letter-spacing:2px}
+        .timer-presets{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:16px}
+        .timer-preset{padding:10px 16px;border-radius:12px;border:1px solid var(--border);background:rgba(0,229,255,.06);color:var(--text);cursor:pointer;font-size:13px;font-weight:700;min-height:44px}
+        .timer-preset:active{transform:scale(.95);background:rgba(0,229,255,.2)}
+        .timer-actions{display:flex;gap:8px;justify-content:center}
+        .timer-btn{height:48px;padding:0 24px;border-radius:12px;border:none;cursor:pointer;font-size:14px;font-weight:700;min-width:120px}
+        .timer-btn.start{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000}
+        .timer-btn.stop{background:rgba(255,80,80,.25);color:#ff8080}
+        .timer-btn.reset{background:rgba(255,255,255,.1);color:var(--text)}
+      </style>
+      <div class="timer-display">
+        <div class="timer-time" id="timerTime">00:00</div>
+        <div class="timer-label" id="timerLabel">Bereit</div>
+      </div>
+      <div class="timer-presets">
+        <button class="timer-preset" onclick="HalDo.Timer.setPreset(60)">1 Min</button>
+        <button class="timer-preset" onclick="HalDo.Timer.setPreset(300)">5 Min</button>
+        <button class="timer-preset" onclick="HalDo.Timer.setPreset(600)">10 Min</button>
+        <button class="timer-preset" onclick="HalDo.Timer.setPreset(1500)">25 Min</button>
+        <button class="timer-preset" onclick="HalDo.Timer.setPreset(1800)">30 Min</button>
+        <button class="timer-preset" onclick="HalDo.Timer.setPreset(3600)">1 Std</button>
+      </div>
+      <div class="timer-actions">
+        <button class="timer-btn start" onclick="HalDo.Timer.start()">▶ Start</button>
+        <button class="timer-btn stop" onclick="HalDo.Timer.stop()">⏸ Stop</button>
+        <button class="timer-btn reset" onclick="HalDo.Timer.reset()">↻ Reset</button>
+      </div>
+    `;
+    HalDo.Win.create(winId, '⏱️ HalDo Timer', html, {width: 420, height: 480});
+  };
+
+  const fmt = (s) => {
+    const m = Math.floor(s / 60), sec = s % 60;
+    return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+  };
+
+  const updateDisplay = () => {
+    const el = document.getElementById('timerTime');
+    const lbl = document.getElementById('timerLabel');
+    if (el) el.textContent = fmt(remaining);
+    if (lbl) lbl.textContent = interval ? '⏳ Läuft...' : (remaining > 0 ? 'Pausiert' : 'Bereit');
+  };
+
+  const setPreset = (sec) => {
+    stop();
+    total = sec; remaining = sec;
+    updateDisplay();
+    HalDo.Sound.click();
+  };
+
+  const start = () => {
+    if (remaining <= 0) return;
+    if (interval) return;
+    HalDo.Sound.click();
+    interval = setInterval(() => {
+      remaining--;
+      updateDisplay();
+      if (remaining <= 0) {
+        stop();
+        HalDo.Sound.success();
+        HalDo.Toast.show('⏰ Timer abgelaufen!', 5000);
+      }
+    }, 1000);
+    updateDisplay();
+  };
+
+  const stop = () => {
+    if (interval) { clearInterval(interval); interval = null; }
+    updateDisplay();
+  };
+
+  const reset = () => {
+    stop();
+    remaining = total;
+    updateDisplay();
+    HalDo.Sound.click();
+  };
+
+  return { render, setPreset, start, stop, reset, startCountdown: setPreset };
+})();
+
+/* ============ 6. HALDO CALCULATOR ============ */
+HalDo.Calc = (() => {
+  let expr = '';
+  const render = () => {
+    const winId = 'haldo-calc';
+    if (HalDo.Win.windows[winId]) return HalDo.Win.focus(winId);
+    const html = `
+      <style>
+        .calc-display{background:rgba(0,0,0,.5);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:12px;text-align:right;font-size:32px;font-weight:900;color:var(--accent);min-height:80px;word-break:break-all;font-variant-numeric:tabular-nums}
+        .calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+        .calc-btn{height:60px;border-radius:12px;border:1px solid var(--border);background:rgba(0,229,255,.08);color:var(--text);font-size:20px;font-weight:700;cursor:pointer;transition:all .15s}
+        .calc-btn:active{transform:scale(.95);background:rgba(0,229,255,.25)}
+        .calc-btn.op{background:rgba(77,168,255,.2);color:var(--accent)}
+        .calc-btn.eq{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000;font-weight:900}
+        .calc-btn.clear{background:rgba(255,80,80,.25);color:#ff8080}
+      </style>
+      <div class="calc-display" id="calcDisp">0</div>
+      <div class="calc-grid">
+        <button class="calc-btn clear" onclick="HalDo.Calc.clear()">C</button>
+        <button class="calc-btn" onclick="HalDo.Calc.press('(')">(</button>
+        <button class="calc-btn" onclick="HalDo.Calc.press(')')">)</button>
+        <button class="calc-btn op" onclick="HalDo.Calc.press('/')">÷</button>
+        <button class="calc-btn" onclick="HalDo.Calc.press('7')">7</button>
+        <button class="calc-btn" onclick="HalDo.Calc.press('8')">8</button>
+        <button class="calc-btn" onclick="HalDo.Calc.press('9')">9</button>
+        <button class="calc-btn op" onclick="HalDo.Calc.press('*')">×</button>
+        <button class="calc-btn" onclick="HalDo.Calc.press('4')">4</button>
+        <button class="calc-btn" onclick="HalDo.Calc.press('5')">5</button>
+        <button class="calc-btn" onclick="HalDo.Calc.press('6')">6</button>
+        <button class="calc-btn op" onclick="HalDo.Calc.press('-')">−</button>
+        <button class="calc-btn" onclick="HalDo.Calc.press('1')">1</button>
+        <button class="calc-btn" onclick="HalDo.Calc.press('2')">2</button>
+        <button class="calc-btn" onclick="HalDo.Calc.press('3')">3</button>
+        <button class="calc-btn op" onclick="HalDo.Calc.press('+')">+</button>
+        <button class="calc-btn" onclick="HalDo.Calc.press('0')" style="grid-column:span 2">0</button>
+        <button class="calc-btn" onclick="HalDo.Calc.press('.')">.</button>
+        <button class="calc-btn eq" onclick="HalDo.Calc.evalUI()">=</button>
+      </div>
+    `;
+    HalDo.Win.create(winId, '🧮 HalDo Calculator', html, {width: 360, height: 520});
+  };
+
+  const press = (ch) => {
+    expr += ch;
+    document.getElementById('calcDisp').textContent = expr || '0';
+    HalDo.Sound.click();
+  };
+  const clear = () => { expr = ''; document.getElementById('calcDisp').textContent = '0'; HalDo.Sound.close(); };
+  const evalUI = () => {
+    try {
+      const result = eval(expr || '0');
+      document.getElementById('calcDisp').textContent = result;
+      expr = String(result);
+      HalDo.Sound.success();
+    } catch(e) {
+      document.getElementById('calcDisp').textContent = 'Fehler';
+      expr = '';
+      HalDo.Sound.error();
+    }
+  };
+  const ev = (e) => { try { return eval(e); } catch { return NaN; } };
+
+  return { render, press, clear, evalUI, eval: ev };
+})();
+
+/* ============ 7. HALDO JOURNAL ============ */
+HalDo.Journal = (() => {
+  const KEY = 'haldo_journal_v1';
+  let entries = HalDo.Store2.get(KEY, []);
+  const save = () => HalDo.Store2.set(KEY, entries);
+  const moods = ['😊','😐','😢','😡','😴','🤩','😌','😰'];
+
+  const render = () => {
+    const winId = 'haldo-journal';
+    if (HalDo.Win.windows[winId]) return HalDo.Win.focus(winId);
+    const html = `
+      <style>
+        .jr-input{margin-bottom:12px}
+        .jr-input input,.jr-input textarea{width:100%;border-radius:12px;border:1px solid var(--border);background:rgba(0,0,0,.4);color:var(--text);padding:12px 14px;font-size:13px;font-family:inherit;margin-bottom:8px}
+        .jr-input input:focus,.jr-input textarea:focus{outline:none;border-color:var(--accent)}
+        .jr-input input{height:44px;font-weight:700;font-size:15px}
+        .jr-input textarea{min-height:100px;resize:vertical;line-height:1.6}
+        .jr-moods{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+        .jr-mood{width:40px;height:40px;border-radius:10px;border:1px solid var(--border);background:rgba(0,229,255,.06);cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+        .jr-mood.active{background:var(--accent);transform:scale(1.1)}
+        .jr-save{width:100%;height:44px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000;font-weight:800;cursor:pointer;font-size:14px;margin-bottom:16px}
+        .jr-entries{display:flex;flex-direction:column;gap:10px}
+        .jr-entry{padding:14px;border-radius:12px;background:rgba(0,229,255,.06);border:1px solid var(--border)}
+        .jr-entry-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+        .jr-entry-mood{font-size:24px}
+        .jr-entry-title{flex:1;font-weight:700;font-size:13px}
+        .jr-entry-date{font-size:10px;color:var(--dim)}
+        .jr-entry-body{font-size:12px;line-height:1.6;color:rgba(232,244,255,.85);white-space:pre-wrap}
+      </style>
+      <div class="jr-input">
+        <input type="text" id="jrTitle" placeholder="Titel des Eintrags...">
+        <div class="jr-moods" id="jrMoods">
+          ${moods.map((m, i) => `<button class="jr-mood ${i===0?'active':''}" onclick="HalDo.Journal.setMood('${m}')">${m}</button>`).join('')}
+        </div>
+        <textarea id="jrBody" placeholder="Wie war dein Tag?"></textarea>
+        <button class="jr-save" onclick="HalDo.Journal.saveUI()">✍️ Eintrag speichern</button>
+      </div>
+      <div class="jr-entries" id="jrEntries"></div>
+    `;
+    HalDo.Win.create(winId, '📔 HalDo Journal', html, {width: 560, height: 600});
+    renderEntries();
+  };
+
+  let selMood = moods[0];
+  const setMood = (m) => {
+    selMood = m;
+    document.querySelectorAll('.jr-mood').forEach(b => b.classList.toggle('active', b.textContent === m));
+    HalDo.Sound.click();
+  };
+
+  const saveUI = () => {
+    const t = document.getElementById('jrTitle').value.trim();
+    const b = document.getElementById('jrBody').value.trim();
+    if (!t && !b) return;
+    entries.unshift({ id: Date.now(), title: t || 'Ohne Titel', body: b, mood: selMood, date: new Date().toISOString() });
+    save();
+    document.getElementById('jrTitle').value = '';
+    document.getElementById('jrBody').value = '';
+    renderEntries();
+    HalDo.Sound.success();
+    HalDo.Toast.show('📔 Journal-Eintrag gespeichert');
+  };
+
+  const renderEntries = () => {
+    const list = document.getElementById('jrEntries');
+    if (!list) return;
+    if (entries.length === 0) { list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--dim);font-size:12px">Noch keine Einträge.<br>Schreib deinen ersten!</div>'; return; }
+    list.innerHTML = entries.slice(0, 20).map(e => `
+      <div class="jr-entry">
+        <div class="jr-entry-head">
+          <div class="jr-entry-mood">${e.mood}</div>
+          <div class="jr-entry-title">${esc(e.title)}</div>
+          <div class="jr-entry-date">${new Date(e.date).toLocaleDateString('de-DE')}</div>
+        </div>
+        <div class="jr-entry-body">${esc(e.body)}</div>
+      </div>
+    `).join('');
+  };
+
+  const esc = (s) => (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  const write = (title, content, mood) => { entries.unshift({ id: Date.now(), title, body: content, mood: mood || '😊', date: new Date().toISOString() }); save(); };
+  const all = () => entries;
+  const count = () => entries.length;
+  const streak = () => {
+    if (entries.length === 0) return 0;
+    let s = 0;
+    const today = new Date().toISOString().split('T')[0];
+    let d = new Date();
+    while (true) {
+      const ds = d.toISOString().split('T')[0];
+      if (entries.some(e => e.date.startsWith(ds))) { s++; d.setDate(d.getDate() - 1); }
+      else break;
+    }
+    return s;
+  };
+
+  return { render, setMood, saveUI, write, all, count, streak };
+})();
+
+/* ============ 8. HALDO HABITS ============ */
+HalDo.Habits = (() => {
+  const KEY = 'haldo_habits_v1';
+  let habits = HalDo.Store2.get(KEY, []);
+  const save = () => HalDo.Store2.set(KEY, habits);
+
+  const render = () => {
+    const winId = 'haldo-habits';
+    if (HalDo.Win.windows[winId]) return HalDo.Win.focus(winId);
+    const html = `
+      <style>
+        .hb-input{display:flex;gap:8px;margin-bottom:16px}
+        .hb-input input{flex:1;height:44px;border-radius:12px;border:1px solid var(--border);background:rgba(0,0,0,.4);color:var(--text);padding:0 14px;font-size:14px;font-family:inherit}
+        .hb-input input:focus{outline:none;border-color:var(--accent)}
+        .hb-input button{width:44px;height:44px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000;font-size:20px;font-weight:900;cursor:pointer}
+        .hb-list{display:flex;flex-direction:column;gap:10px}
+        .hb-item{padding:14px;border-radius:14px;background:rgba(0,229,255,.06);border:1px solid var(--border)}
+        .hb-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+        .hb-name{flex:1;font-weight:700;font-size:14px}
+        .hb-streak{font-size:11px;color:var(--accent);font-weight:700}
+        .hb-check{width:40px;height:40px;border-radius:10px;border:2px solid var(--accent);background:transparent;color:transparent;cursor:pointer;font-size:18px;font-weight:900;display:flex;align-items:center;justify-content:center}
+        .hb-check.done{background:var(--accent);color:#000}
+        .hb-week{display:flex;gap:6px;justify-content:space-between}
+        .hb-day{flex:1;height:36px;border-radius:8px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--dim);font-weight:700}
+        .hb-day.done{background:var(--accent);color:#000}
+        .hb-day.today{border:2px solid var(--accent)}
+        .hb-del{width:32px;height:32px;border-radius:8px;border:none;background:rgba(255,80,80,.2);color:#ff8080;cursor:pointer;font-size:13px}
+        .hb-empty{text-align:center;padding:40px;color:var(--dim);font-size:13px}
+      </style>
+      <div class="hb-input">
+        <input type="text" id="hbInput" placeholder="Neue Gewohnheit (z.B. Wasser trinken)..." onkeydown="if(event.key==='Enter')HalDo.Habits.addUI()">
+        <button onclick="HalDo.Habits.addUI()">+</button>
+      </div>
+      <div class="hb-list" id="hbList"></div>
+    `;
+    HalDo.Win.create(winId, '🌱 HalDo Habits', html, {width: 560, height: 560});
+    renderList();
+  };
+
+  const addUI = () => {
+    const inp = document.getElementById('hbInput');
+    if (!inp || !inp.value.trim()) return;
+    habits.push({ id: Date.now(), name: inp.value.trim(), checks: [], created: Date.now() });
+    save();
+    inp.value = '';
+    renderList();
+    HalDo.Sound.success();
+    HalDo.Toast.show('🌱 Gewohnheit hinzugefügt');
+  };
+
+  const checkIn = (id) => {
+    const h = habits.find(x => x.id === id);
+    if (!h) return;
+    const today = new Date().toISOString().split('T')[0];
+    if (h.checks.includes(today)) h.checks = h.checks.filter(d => d !== today);
+    else h.checks.push(today);
+    save();
+    renderList();
+    HalDo.Sound.click();
+  };
+
+  const delHabit = (id) => {
+    habits = habits.filter(x => x.id !== id);
+    save();
+    renderList();
+    HalDo.Sound.close();
+  };
+
+  const streakOf = (id) => {
+    const h = habits.find(x => x.id === id);
+    if (!h) return 0;
+    let s = 0, d = new Date();
+    while (true) {
+      const ds = d.toISOString().split('T')[0];
+      if (h.checks.includes(ds)) { s++; d.setDate(d.getDate() - 1); }
+      else break;
+    }
+    return s;
+  };
+
+  const renderList = () => {
+    const list = document.getElementById('hbList');
+    if (!list) return;
+    if (habits.length === 0) { list.innerHTML = '<div class="hb-empty">🌱 Noch keine Gewohnheiten.<br>Füge deine erste hinzu!</div>'; return; }
+    const today = new Date().toISOString().split('T')[0];
+    const dayNames = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+    list.innerHTML = habits.map(h => {
+      const done = h.checks.includes(today);
+      const streak = streakOf(h.id);
+      const week = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const ds = d.toISOString().split('T')[0];
+        week.push({ day: dayNames[(d.getDay() + 6) % 7], done: h.checks.includes(ds), today: ds === today });
+      }
+      return `
+        <div class="hb-item">
+          <div class="hb-head">
+            <div class="hb-name">${esc(h.name)}</div>
+            <div class="hb-streak">🔥 ${streak} Tage</div>
+            <button class="hb-check ${done ? 'done' : ''}" onclick="HalDo.Habits.checkInUI(${h.id})">${done ? '✓' : ''}</button>
+            <button class="hb-del" onclick="HalDo.Habits.delUI(${h.id})">✕</button>
+          </div>
+          <div class="hb-week">
+            ${week.map(w => `<div class="hb-day ${w.done ? 'done' : ''} ${w.today ? 'today' : ''}">${w.day}</div>`).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
+  };
+
+  const esc = (s) => (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  return { render, addUI, checkInUI: checkIn, delUI: delHabit, streakOf, add: (n) => habits.push({ id: Date.now(), name: n, checks: [], created: Date.now() }), all: () => habits };
+})();
+
+/* ============ REGISTRY: App-IDs zu Modulen ============ */
+HalDo.AppModules = {
+  'tasks': () => HalDo.Tasks.render(),
+  'notes': () => HalDo.Notes.render(),
+  'calendar': () => HalDo.Calendar.render(),
+  'weather': () => HalDo.Weather.render(),
+  'timer': () => HalDo.Timer.render(),
+  'calc': () => HalDo.Calc.render(),
+  'calculator': () => HalDo.Calc.render(),
+  'journal': () => HalDo.Journal.render(),
+  'habits': () => HalDo.Habits.render()
+};
+
+/* ============ OVERRIDE: open() prüft Module ============ */
+const _originalOpen = HalDo.UI.open;
+HalDo.UI.open = function(appId) {
+  // Suche nach App-Modul basierend auf ID oder Name
+  const app = APPS.find(a => a.id === appId);
+  if (app) {
+    const nameLower = app.shortName.toLowerCase();
+    for (const [key, fn] of Object.entries(HalDo.AppModules)) {
+      if (nameLower.includes(key)) {
+        HalDo.Sound.open();
+        return fn();
+      }
+    }
+  }
+  // Fallback auf Original
+  return _originalOpen.call(HalDo.UI, appId);
+};
+
+console.log('%c✅ HalDo Phase 2 geladen — 8 Apps aktiv', 'color:#00e5ff;font-weight:bold;font-size:14px');
+console.log('%c📱 Tasks · Notes · Calendar · Weather · Timer · Calculator · Journal · Habits', 'color:#4da8ff;font-size:11px');
+</script>
 </body>
 </html>
