@@ -5495,5 +5495,192 @@ console.log('✅ K: File Manager, Camera, Voice Memos, Clipboard');
 console.log('✅ L: Fahrschule Prüfungssimulator (Timer)');
 console.log('✅ M: Vocab, Flashcards, Periodensystem, Math Solver, Statistics');
 </script>
+<!-- ================================================================
+     HALDO AI OS v131 — FIX: CORS/404 Texturen + Launch-Sicherheit
+     ================================================================ -->
+<script>
+/* ══════════ 1) TEXTUREN-FIX — funktionierende Quellen ══════════ */
+(function(){
+  // clouds.png + moon.jpg gibt's NICHT bei three-globe/example/img
+  // → wir nehmen funktionierende CDN-Quellen + Fallback
+  const FIXED_URLS = {
+    'clouds.png': 'https://cdn.jsdelivr.net/gh/turban/webgl-earth@master/images/fair_clouds_4k.png',
+    'moon.jpg':   'https://cdn.jsdelivr.net/gh/homer-jay/solar-system-textures@main/moon.jpg'
+  };
+
+  if (window.THREE && THREE.TextureLoader) {
+    const orig = THREE.TextureLoader.prototype.load;
+    THREE.TextureLoader.prototype.load = function(url, onLoad, onProgress, onError) {
+      if (typeof url === 'string') {
+        // Fix three-globe unpkg → jsdelivr
+        url = url.replace('unpkg.com/three-globe', 'cdn.jsdelivr.net/npm/three-globe');
+        // Fix fehlende Dateien
+        for (const [broken, fixed] of Object.entries(FIXED_URLS)) {
+          if (url.endsWith(broken)) {
+            url = fixed;
+            break;
+          }
+        }
+      }
+      // Fallback: wenn Textur fehlschlägt → prozedural erzeugen (kein 404-Crash)
+      const safeOnError = (err) => {
+        console.warn('⚠ Textur fehlgeschlagen, nutze Fallback:', url);
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 512; canvas.height = 256;
+          const ctx = canvas.getContext('2d');
+          // Generischer Farbverlauf als Fallback
+          const g = ctx.createLinearGradient(0, 0, 512, 0);
+          g.addColorStop(0, '#1a3a5a');
+          g.addColorStop(0.5, '#4da8ff');
+          g.addColorStop(1, '#1a3a5a');
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, 512, 256);
+          const tex = new THREE.CanvasTexture(canvas);
+          if (onLoad) onLoad(tex);
+        } catch(e) {
+          if (onError) onError(e);
+        }
+      };
+      return orig.call(this, url, onLoad, onProgress, safeOnError);
+    };
+    console.log('✅ Texturen-Fix v131 aktiv (clouds + moon auf funktionierende Quellen)');
+  }
+})();
+
+/* ══════════ 2) LAUNCH-SICHERHEIT — Apps zeigen IMMER etwas ══════════ */
+(function(){
+  // Backup: die ORIGINAL Launch-Funktion merken (aus v128 oder v127)
+  const _fallbackLaunch = HalDo.Launch;
+
+  // Universeller Fallback: Splash-Fenster mit App-Name + Icon
+  const _showSplash = (app) => {
+    const name = app.n || app.name || app.id || 'HalDo App';
+    const icon = app.i || '📱';
+    HalDo.Win.open(name, HalDo.Greeting(name).replace('🦚', icon), { w: 380, h: 380 });
+    try { HalDo.Sound.play('cosmic'); } catch(e) {}
+  };
+
+  // NEUE robuste Launch-Funktion
+  HalDo.Launch = (app) => {
+    if (!app || !app.id) { HalDo.Toast.show('App nicht gefunden', 1500, 'error'); return; }
+
+    // Direkte Zuordnung zu echten Implementierungen
+    const impl = {
+      // --- BESTEHENDE APPS ---
+      'ezidi':        () => HalDo.Ezidi?.open?.(),
+      'fahrschule':   () => HalDo.FahrschuleSim?.open?.() || HalDo.Fahrschule?.open?.(),
+      'traffic':      () => HalDo.Blitzer?.open?.(),
+      'navigation':   () => HalDo.Navigation?.open?.(),
+      'tasks':        () => HalDo.Tasks?.open?.(),
+      'notes':        () => HalDo.Notes?.open?.(),
+      'habits':       () => HalDo.Habits?.open?.(),
+      'goals':        () => HalDo.Goals?.open?.(),
+      'journal':      () => HalDo.Journal?.open?.(),
+      'calendar':     () => HalDo.Calendar?.open?.(),
+      'dashboard':    () => HalDo.Dashboard?.open?.(),
+      'memory':       () => HalDo.Memory?.open?.(),
+      'ai-memory':    () => HalDo.Memory?.open?.(),
+      'mood':         () => HalDo.Mood?.open?.(),
+      'sleep':        () => HalDo.Sleep?.open?.(),
+      'water':        () => HalDo.Water?.open?.(),
+      'pomodoro':     () => HalDo.Pomodoro?.open?.(),
+      'filemanager':  () => HalDo.FileManager?.open?.(),
+      'camera':       () => HalDo.Camera?.open?.(),
+      'voicememo':    () => HalDo.VoiceMemos?.open?.(),
+      'clipboard':    () => HalDo.Clipboard?.open?.(),
+      'vocab':        () => HalDo.Vocab?.open?.(),
+      'flashcards':   () => HalDo.Flashcards?.open?.(),
+      'ptable':       () => HalDo.PeriodicTable?.open?.(),
+      'mathsolver':   () => HalDo.MathSolver?.open?.(),
+      'stats':        () => HalDo.Stats?.open?.(),
+      'stats2':       () => HalDo.Stats?.open?.(),
+      'music':        () => HalDo.Music?.open?.(),
+      'calculator':   () => HalDo.Calc?.open?.(),
+      'weather':      () => HalDo.Weather?.open?.(),
+      'arztbuch':     () => HalDo.Arztbuch?.open?.(),
+      'api-keys':     () => HalDo.ApiKeys?.open?.(),
+      'translator':   () => HalDo.Translator?.open?.(),
+      'settings':     () => HalDo.Settings?.open?.(),
+      'app-registry': () => HalDo.AppBrowser?.open?.(),
+      'avatar':       () => HalDo.Chat?.open?.(),
+      'chat':         () => HalDo.Chat?.open?.(),
+      'timer':        () => HalDo.TimerApp?.open?.(),
+      'password':     () => HalDo.PassGen?.open?.()
+    };
+
+    const fn = impl[app.id];
+    if (fn) {
+      try {
+        const result = fn();
+        if (result === undefined) {
+          // Modul existiert, aber .open() fehlt → Splash
+          _showSplash(app);
+        }
+      } catch(e) {
+        console.error('Launch-Fehler für', app.id, e);
+        _showSplash(app);
+      }
+      return;
+    }
+
+    // Fallback: Original-Launch oder Splash
+    try {
+      if (typeof _fallbackLaunch === 'function') {
+        const r = _fallbackLaunch(app);
+        if (r !== undefined) return;
+      }
+    } catch(e) {
+      console.warn('Fallback-Launch fehlgeschlagen:', e);
+    }
+    _showSplash(app);
+  };
+
+  console.log('✅ Launch-Fix v131: Jede App zeigt jetzt garantiert etwas');
+})();
+
+/* ══════════ 3) HALDO.EZIDI-SICHERHEIT (falls Modul fehlt) ══════════ */
+(function(){
+  if (!HalDo.Ezidi) {
+    console.warn('⚠ HalDo.Ezidi nicht geladen — baue Notfall-Version');
+    HalDo.Ezidi = {
+      open() {
+        HalDo.Win.open('🦚 Êzîdî Wissen', `
+          <div style="padding:20px;text-align:center">
+            <div style="font-size:64px">🦚</div>
+            <h2 style="color:#ffb400;margin:12px 0">Êzîdî Wissen Pro</h2>
+            <p style="opacity:.8;line-height:1.6">
+              Die Êzîdî sind eine der ältesten Religionsgemeinschaften der Welt.
+              Heilige Stadt: <strong>Laliş</strong>. Oberster Engel: <strong>Melek Taus</strong>.
+            </p>
+            <div style="margin-top:16px;padding:12px;background:rgba(255,180,60,.1);border-radius:12px;border:1px solid #ffb400">
+              <strong>Bitte lade die Seite neu (Ctrl+Shift+R)</strong><br>
+              <span style="font-size:12px;opacity:.7">um das vollständige Modul zu laden</span>
+            </div>
+          </div>
+        `, { w: 420, h: 460 });
+        try { HalDo.Sound.play('cosmic'); } catch(e) {}
+      }
+    };
+  }
+})();
+
+/* ══════════ 4) BOOT-CHECK — zeigt fehlende Module in Konsole ══════════ */
+setTimeout(() => {
+  const required = ['Ezidi','Fahrschule','Blitzer','Navigation','Tasks','Notes','Habits','Goals',
+                    'Journal','Calendar','Dashboard','Memory','Mood','Sleep','Water','Pomodoro',
+                    'FileManager','Camera','VoiceMemos','Clipboard','Vocab','Flashcards',
+                    'PeriodicTable','MathSolver','Stats','Music','Calc','Weather','Arztbuch',
+                    'ApiKeys','Translator','Settings','AppBrowser','Chat'];
+  const missing = required.filter(k => !HalDo[k] || typeof (HalDo[k].open || HalDo[k].openApp) !== 'function');
+  if (missing.length) {
+    console.warn('⚠ Fehlende Module:', missing);
+  } else {
+    console.log('✅ Alle ' + required.length + ' Module geladen und launchbar');
+  }
+}, 3000);
+
+console.log('%c🔧 HalDo v131 — FIX aktiv', 'background:#00e5ff;color:#000;padding:6px 12px;border-radius:6px;font-weight:bold');
+</script>
 </body>
 </html>
