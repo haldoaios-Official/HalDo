@@ -9298,11 +9298,9 @@ window.TalkingHead = TalkingHead; // global verfügbar machen
 </script>
 <!-- HALDO LIVING IDENTITY ENGINE -->
 <!-- ================================================================
-     HALDO AI OS v136 — ECHTER 3D-MENSCH (TalkingHead + Ready Player Me)
-     Ersetzt den alten Canvas-Avatar im Chat durch einen echten 3D-Avatar.
+     HALDO AI OS v136a — 3D-Mensch (Workaround ohne Google-TTS)
+     TalkingHead startet mit Dummy-Endpunkt, wir übernehmen TTS selbst.
      ================================================================ -->
-
-<!-- 1) Import-Map für Three.js + TalkingHead (muss VOR dem Modul-Script stehen) -->
 <script type="importmap">
 {
   "imports": {
@@ -9317,52 +9315,46 @@ window.TalkingHead = TalkingHead; // global verfügbar machen
 import { TalkingHead } from "talkinghead";
 
 /* ═══════════════════════════════════════════════════════════════
-   1) HALDO 3D AVATAR — verwaltet TalkingHead-Instanz
+   1) HALDO 3D AVATAR — Workaround: Web Speech API als TTS
    ═══════════════════════════════════════════════════════════════ */
 const HalDo3D = {
   head: null,
   container: null,
   ready: false,
 
-  // Startet den 3D-Avatar in einem Container
   async start(containerId, avatarUrl) {
     this.container = document.getElementById(containerId);
     if (!this.container) return;
 
-    // WICHTIG: Der Avatar muss ARKit- & Oculus-Viseme-Morph-Targets haben!
-    // Der Demo-Avatar unten ist dafür vorbereitet. Für einen eigenen Avatar:
-    // 1. Gehe auf https://readyplayer.me
-    // 2. Erstelle Avatar (männlich/weiblich)
-    // 3. Kopiere die .glb-URL und füge die Query-Parameter hinzu:
-    //    ?morphTargets=ARKit,Oculus%20Visemes,mouthOpen,mouthSmile,eyesClosed,eyesLookUp,eyesLookDown
     const finalUrl = avatarUrl.includes('?')
       ? avatarUrl
       : avatarUrl + '?morphTargets=ARKit,Oculus%20Visemes,mouthOpen,mouthSmile,eyesClosed,eyesLookUp,eyesLookDown&textureSizeLimit=1024&textureFormat=png';
 
     try {
+      // ⚠️ WICHTIG: Dummy-Endpunkt, damit TalkingHead startet.
+      // Wir rufen head.speakText() NICHT auf — wir nutzen unsere eigene speak()-Logik.
       this.head = new TalkingHead(this.container, {
-        ttsEndpoint: null,       // Wir nutzen die Web Speech API (browser-intern)
-        lipsyncModules: ["de"], // Deutsch für Lippensynchronisation
-        cameraView: "upper",    // "upper" = Kopf + Oberkörper sichtbar
+        ttsEndpoint: "/gtts/",  // Dummy — wird nicht wirklich aufgerufen
+        lipsyncModules: ["de"],
+        cameraView: "upper",
         cameraRotateEnable: true,
         avatarMood: "neutral"
       });
 
       await this.head.showAvatar({
         url: finalUrl,
-        body: "F",              // "F" = weiblich, "M" = männlich
+        body: "F",
         avatarMood: "neutral",
         ttsLang: "de-DE",
         lipsyncLang: "de"
       });
 
       this.ready = true;
-      console.log("✅ 3D-Avatar geladen und bereit");
+      console.log("✅ 3D-Avatar geladen (TTS übernimmt die Web Speech API)");
     } catch (err) {
       console.error("❌ 3D-Avatar konnte nicht geladen werden:", err);
-      // Fallback: Nachricht im Container anzeigen
       this.container.innerHTML = `
-        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text);text-align:center;padding:20px">
+        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#e6f7ff;text-align:center;padding:20px">
           <div>
             <div style="font-size:40px">🤖</div>
             <p style="margin-top:10px;font-size:12px;opacity:.7">3D-Avatar wird geladen…<br>Bitte Internetverbindung prüfen</p>
@@ -9371,99 +9363,104 @@ const HalDo3D = {
     }
   },
 
-  // Spricht Text mit Lippensynchronisation
+  // Spricht Text mit Web Speech API + grobe Mundbewegung via Avatar-Mood
   speak(text) {
-    if (this.head && this.ready) {
-      this.head.speakText(text);
-    } else {
-      // Fallback: Browser-TTS ohne Lippensync
+    if (!this.ready) {
+      // Fallback: nur Browser-TTS
       try {
         const u = new SpeechSynthesisUtterance(text);
         u.lang = "de-DE";
         window.speechSynthesis.cancel();
         window.speechSynthesis.speak(u);
       } catch (e) {}
+      return;
     }
+
+    // 1) Mund "öffnen" (grobe Animation)
+    try { this.head.setMood("neutral"); } catch (e) {}
+
+    // 2) Web Speech API für die Stimme
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "de-DE";
+      u.rate = 0.95;
+      u.pitch = 1.05;
+
+      u.onstart = () => {
+        // Mund-Animation starten: wir "pumpen" die Emotion kurz
+        try {
+          this.head.setMood("happy");
+          setTimeout(() => this.head.setMood("neutral"), 300);
+        } catch (e) {}
+      };
+      u.onend = () => {
+        try { this.head.setMood("neutral"); } catch (e) {}
+      };
+
+      window.speechSynthesis.speak(u);
+    } catch (e) {}
   },
 
-  // Setzt Stimmung (neutral, happy, sad, angry, surprised)
   setMood(mood) {
     if (this.head && this.ready) {
-      this.head.setMood(mood);
+      try { this.head.setMood(mood); } catch (e) {}
     }
   },
 
-  // Stoppt Sprache
   stop() {
+    try { window.speechSynthesis.cancel(); } catch (e) {}
     if (this.head && this.ready) {
       try { this.head.stopSpeaking(); } catch (e) {}
     }
-    try { window.speechSynthesis.cancel(); } catch (e) {}
   }
 };
 
-// Global verfügbar machen, damit der Rest von HalDo darauf zugreifen kann
 window.HalDo3D = HalDo3D;
 
 /* ═══════════════════════════════════════════════════════════════
-   2) CHAT-FENSTER ANPASSEN — 3D-Avatar statt Canvas
+   2) CHAT-FENSTER ANPASSEN
    ═══════════════════════════════════════════════════════════════ */
-// Wir warten, bis HalDo.Chat existiert, und überschreiben dann die open()-Methode
 setTimeout(() => {
   if (!window.HalDo || !window.HalDo.Chat) return;
 
   const originalChatOpen = HalDo.Chat.open;
 
   HalDo.Chat.open = function () {
-    // Original öffnen (setzt das Fenster-HTML)
     originalChatOpen();
 
-    // Nach kurzer Zeit das Canvas durch den 3D-Container ersetzen
     setTimeout(async () => {
       const canvas = document.getElementById('avatar-canvas');
       if (!canvas) return;
 
-      // Container erstellen
       const container = document.createElement('div');
       container.id = 'haldo-3d-avatar-container';
       container.style.cssText = `
-        width: 100%;
-        height: 220px;
-        border-radius: 16px;
-        overflow: hidden;
+        width: 100%; height: 220px; border-radius: 16px; overflow: hidden;
         background: radial-gradient(circle at center, #0a1a2a, #000208);
         border: 1.5px solid var(--accent);
         box-shadow: 0 0 20px rgba(0,229,255,0.3);
         position: relative;
       `;
 
-      // Canvas ersetzen
       canvas.parentNode.replaceChild(container, canvas);
 
-      // Demo-Avatar (weiblich, RPM) — zum Testen.
-      // Für eigenen Avatar: URL von readyplayer.me hier einsetzen.
+      // Demo-Avatar (weiblich, RPM). Für eigenen Avatar: URL von readyplayer.me ersetzen.
       const DEMO_AVATAR = "https://models.readyplayer.me/64bfa15f0e72c63d7c3934a6.glb";
 
       await HalDo3D.start('haldo-3d-avatar-container', DEMO_AVATAR);
 
-      // Bestehende speak-Funktion überschreiben, damit sie den 3D-Avatar nutzt
-      const originalSpeak = HalDo.Chat.speak;
+      // speak() überschreiben, damit sie den 3D-Avatar nutzt
       HalDo.Chat.speak = function (text) {
         HalDo3D.speak(text);
-        // Stimmung leicht anpassen (optional)
-        if (text.includes("Hallo") || text.includes("Willkommen")) {
-          setTimeout(() => HalDo3D.setMood("happy"), 500);
-        } else {
-          setTimeout(() => HalDo3D.setMood("neutral"), 500);
-        }
       };
 
-      console.log("✅ 3D-Avatar im Chat-Fenster aktiviert");
-    }, 300); // kurz warten, bis das Chat-DOM fertig ist
+      console.log("✅ 3D-Avatar im Chat-Fenster aktiviert (Web Speech API als TTS)");
+    }, 300);
   };
 
   console.log("✅ HalDo.Chat.open() für 3D-Avatar gepatcht");
-}, 2000); // warten, bis HalDo.Chat existiert
+}, 2000);
 </script>
 </body>
 </html>
