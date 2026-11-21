@@ -9954,308 +9954,267 @@ setTimeout(() => {
 </script>
 <!-- ENDE HALDO APPEARANCE STUDIO -->
 <!-- ================================================================
-     HALDO AI OS v141 — HalDo Arztbuch Pro Max (Komplett & 3D)
+     HALDO AI OS v142 — Arztbuch Pro Max (Sofort-Start + Lazy 3D)
      ================================================================ -->
 <script>
-(function loadMedical3D() {
-  // 1. Three.js Module laden (falls noch nicht vorhanden)
-  function loadLibs(cb) {
-    if (window.THREE && window.THREE.GLTFLoader && window.THREE.OrbitControls) {
-      cb(); return;
+(function() {
+  // 1. Die 3D-Umgebung (wird nur geladen, wenn man auf Anatomie klickt)
+  let Anatomie3D = null;
+
+  function init3DViewer(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    // Lade Three.js Module dynamisch nach
+    function loadScript(src, cb) {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = cb;
+      document.head.appendChild(s);
     }
-    const s1 = document.createElement('script');
-    s1.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js';
-    s1.onload = () => {
-      const s2 = document.createElement('script');
-      s2.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js';
-      s2.onload = cb;
-      document.head.appendChild(s2);
-    };
-    document.head.appendChild(s1);
-  }
 
-  loadLibs(() => {
-    // 2. Der 3D-Viewer für das Arztbuch
-    const Anatomie3D = {
-      scene: null, camera: null, renderer: null, controls: null,
-      currentModel: null, animationId: null, container: null,
-
-      init(containerId) {
-        this.container = document.getElementById(containerId);
-        if (!this.container) return;
-        
-        // Verhindere doppelte Renderer
-        if (this.renderer) this.stop(); 
-
-        this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x0a1420);
-        const w = this.container.clientWidth || 400;
-        const h = this.container.clientHeight || 350;
-
-        this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
-        this.camera.position.set(0, 0, 5);
-
-        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        this.renderer.setSize(w, h);
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        this.container.appendChild(this.renderer.domElement);
-
-        this.scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-        const l1 = new THREE.DirectionalLight(0x00e5ff, 2); l1.position.set(5, 5, 5); this.scene.add(l1);
-        const l2 = new THREE.DirectionalLight(0xb478ff, 1); l2.position.set(-5, -5, -5); this.scene.add(l2);
-
-        this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
-        this.controls.enableDamping = true;
-        this.controls.autoRotate = true;
-
-        this.loadModel('c1_atlas');
-
-        const animate = () => {
-          this.animationId = requestAnimationFrame(animate);
-          this.controls.update();
-          this.renderer.render(this.scene, this.camera);
-        };
-        animate();
-      },
-
-      async loadModel(modelId) {
-        const url = `https://haldoaios-official.github.io/HalDo/models/adult_male/adult_female/${modelId}.glb`;
-        const loader = new THREE.GLTFLoader();
-        try {
-          if (this.currentModel) this.scene.remove(this.currentModel);
-          const gltf = await loader.loadAsync(url);
-          this.currentModel = gltf.scene;
-          
-          const box = new THREE.Box3().setFromObject(this.currentModel);
-          const center = box.getCenter(new THREE.Vector3());
-          const size = box.getSize(new THREE.Vector3());
-          const scale = 2 / Math.max(size.x, size.y, size.z);
-          
-          this.currentModel.scale.set(scale, scale, scale);
-          this.currentModel.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
-
-          this.currentModel.traverse((child) => {
-            if (child.isMesh) {
-              child.material = new THREE.MeshStandardMaterial({
-                color: 0xe0e0e0, roughness: 0.6, metalness: 0.1,
-                emissive: 0x00e5ff, emissiveIntensity: 0.05
-              });
-            }
-          });
-          this.scene.add(this.currentModel);
-        } catch (err) {
-          console.error(`❌ Modell ${modelId} Fehler:`, err);
-        }
-      },
+    function start3D() {
+      if (Anatomie3D) {
+        Anatomie3D.init(containerId);
+        return;
+      }
       
-      stop() {
-        if (this.animationId) cancelAnimationFrame(this.animationId);
-        if (this.renderer) {
-          this.renderer.dispose();
-          if (this.renderer.domElement && this.renderer.domElement.parentNode) {
-            this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
+      Anatomie3D = {
+        scene: null, camera: null, renderer: null, controls: null,
+        currentModel: null, animationId: null,
+
+        init(cid) {
+          const c = document.getElementById(cid);
+          if (!c) return;
+          if (this.renderer) this.stop();
+
+          this.scene = new THREE.Scene();
+          this.scene.background = new THREE.Color(0x0a1420);
+          const w = c.clientWidth || 400;
+          const h = c.clientHeight || 350;
+
+          this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
+          this.camera.position.set(0, 0, 5);
+
+          this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+          this.renderer.setSize(w, h);
+          this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+          c.appendChild(this.renderer.domElement);
+
+          this.scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+          const l1 = new THREE.DirectionalLight(0x00e5ff, 2); l1.position.set(5, 5, 5); this.scene.add(l1);
+          const l2 = new THREE.DirectionalLight(0xb478ff, 1); l2.position.set(-5, -5, -5); this.scene.add(l2);
+
+          this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+          this.controls.enableDamping = true;
+          this.controls.autoRotate = true;
+
+          this.loadModel('c1_atlas');
+
+          const animate = () => {
+            this.animationId = requestAnimationFrame(animate);
+            this.controls.update();
+            this.renderer.render(this.scene, this.camera);
+          };
+          animate();
+        },
+
+        async loadModel(modelId) {
+          const url = `https://haldoaios-official.github.io/HalDo/models/adult_male/adult_female/${modelId}.glb`;
+          const loader = new THREE.GLTFLoader();
+          try {
+            if (this.currentModel) this.scene.remove(this.currentModel);
+            const gltf = await loader.loadAsync(url);
+            this.currentModel = gltf.scene;
+            
+            const box = new THREE.Box3().setFromObject(this.currentModel);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            const scale = 2 / Math.max(size.x, size.y, size.z);
+            
+            this.currentModel.scale.set(scale, scale, scale);
+            this.currentModel.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+
+            this.currentModel.traverse((child) => {
+              if (child.isMesh) {
+                child.material = new THREE.MeshStandardMaterial({
+                  color: 0xe0e0e0, roughness: 0.6, metalness: 0.1,
+                  emissive: 0x00e5ff, emissiveIntensity: 0.05
+                });
+              }
+            });
+            this.scene.add(this.currentModel);
+          } catch (err) {
+            console.error(`❌ Modell ${modelId} Fehler:`, err);
+          }
+        },
+        stop() {
+          if (this.animationId) cancelAnimationFrame(this.animationId);
+          if (this.renderer) {
+            this.renderer.dispose();
+            if (this.renderer.domElement && this.renderer.domElement.parentNode) {
+              this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
+            }
           }
         }
-      }
-    };
+      };
+      Anatomie3D.init(containerId);
+    }
 
-    const BONES = [
-      { id: 'c1_atlas', n: 'C1 Atlas (Hals)' }, { id: 'c2', n: 'C2 Axis (Hals)' },
-      { id: 'c3', n: 'C3 (Hals)' }, { id: 'c4', n: 'C4 (Hals)' }, { id: 'c5', n: 'C5 (Hals)' },
-      { id: 'c6', n: 'C6 (Hals)' }, { id: 'c7', n: 'C7 (Hals)' },
-      { id: 'l1', n: 'L1 (Lende)' }, { id: 'l2', n: 'L2 (Lende)' }, { id: 'l3', n: 'L3 (Lende)' },
-      { id: 'l4', n: 'L4 (Lende)' }, { id: 'l5', n: 'L5 (Lende)' }, { id: 'coccyx', n: 'Steißbein' }
-    ];
+    // Wenn Three.js schon da ist, direkt starten. Sonst nachladen.
+    if (window.THREE && window.THREE.GLTFLoader) {
+      start3D();
+    } else {
+      loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js', () => {
+        loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js', start3D);
+      });
+    }
+  }
 
-    // 3. Das KOMPLETTE Arztbuch bauen
-    window.HalDo = window.HalDo || {};
-    HalDo.Arztbuch = {
-      open() {
-        const tabs = [
-          { k: 'Anatomie', ic: '🫀' },
-          { k: 'KI-Assistent', ic: '🤖' },
-          { k: 'Krankheiten', ic: '🤒' },
-          { k: 'Medikamente', ic: '💊' },
-          { k: 'Laborwerte', ic: '🧪' },
-          { k: 'Notfall', ic: '🚨' }
-        ];
+  const BONES = [
+    { id: 'c1_atlas', n: 'C1 Atlas (Hals)' }, { id: 'c2', n: 'C2 Axis (Hals)' },
+    { id: 'c3', n: 'C3 (Hals)' }, { id: 'c4', n: 'C4 (Hals)' }, { id: 'c5', n: 'C5 (Hals)' },
+    { id: 'c6', n: 'C6 (Hals)' }, { id: 'c7', n: 'C7 (Hals)' },
+    { id: 'l1', n: 'L1 (Lende)' }, { id: 'l2', n: 'L2 (Lende)' }, { id: 'l3', n: 'L3 (Lende)' },
+    { id: 'l4', n: 'L4 (Lende)' }, { id: 'l5', n: 'L5 (Lende)' }, { id: 'coccyx', n: 'Steißbein' }
+  ];
 
-        const html = `
-          <div style="padding:4px; height: 100%; display: flex; flex-direction: column;">
-            <div style="display:flex; gap:4px; margin-bottom:10px; justify-content:center; flex-wrap:wrap">
-              ${tabs.map((t, i) => `<div class="chip ${i === 0 ? 'active' : ''}" data-arzt-tab="${t.k}" style="font-size:11px;padding:6px 10px">${t.ic} ${t.k}</div>`).join('')}
-            </div>
-            <div id="arzt-body" style="flex:1; overflow-y:auto;"></div>
+  // 2. Das Arztbuch SOFORT definieren (kein Warten auf 3D!)
+  window.HalDo = window.HalDo || {};
+  HalDo.Arztbuch = {
+    open() {
+      const tabs = [
+        { k: 'Anatomie', ic: '🫀' }, { k: 'KI-Assistent', ic: '🤖' },
+        { k: 'Krankheiten', ic: '🤒' }, { k: 'Medikamente', ic: '💊' },
+        { k: 'Laborwerte', ic: '🧪' }, { k: 'Notfall', ic: '🚨' }
+      ];
+
+      const html = `
+        <div style="padding:4px; height: 100%; display: flex; flex-direction: column;">
+          <div style="display:flex; gap:4px; margin-bottom:10px; justify-content:center; flex-wrap:wrap">
+            ${tabs.map((t, i) => `<div class="chip ${i === 0 ? 'active' : ''}" data-arzt-tab="${t.k}" style="font-size:11px;padding:6px 10px">${t.ic} ${t.k}</div>`).join('')}
           </div>
-        `;
+          <div id="arzt-body" style="flex:1; overflow-y:auto;"></div>
+        </div>
+      `;
 
-        HalDo.Win.open('🩺 HalDo Arztbuch Pro Max', html, { w: 500, h: 650 });
+      HalDo.Win.open('🩺 HalDo Arztbuch Pro Max', html, { w: 500, h: 650 });
 
-        setTimeout(() => {
-          const body = document.getElementById('arzt-body');
-          
-          const showTab = (tabKey) => {
-            // Stoppe 3D, falls Tab gewechselt wird
-            Anatomie3D.stop();
+      setTimeout(() => {
+        const body = document.getElementById('arzt-body');
+        
+        const showTab = (tabKey) => {
+          if (Anatomie3D) Anatomie3D.stop();
 
-            if (tabKey === 'Anatomie') {
-              body.innerHTML = `
-                <div style="height: 400px; display:flex; flex-direction:column;">
-                  <div style="display:flex; gap:6px; margin-bottom:8px;">
-                    <select id="bone-select" style="flex:1; padding:8px; border-radius:8px; background:rgba(0,20,40,.6); border:1px solid var(--border); color:var(--text); font-size:12px;">
-                      ${BONES.map(b => `<option value="${b.id}">${b.n}</option>`).join('')}
-                    </select>
-                  </div>
-                  <div id="anatomie-3d-container" style="flex:1; width:100%; border-radius:12px; border:1.5px solid var(--accent); position:relative; background:#0a1420;">
-                    <div style="position:absolute; bottom:10px; right:10px; z-index:10; font-size:10px; opacity:0.5; color:#fff;">Drehen & Zoomen</div>
-                  </div>
+          if (tabKey === 'Anatomie') {
+            body.innerHTML = `
+              <div style="height: 400px; display:flex; flex-direction:column;">
+                <div style="display:flex; gap:6px; margin-bottom:8px;">
+                  <select id="bone-select" style="flex:1; padding:8px; border-radius:8px; background:rgba(0,20,40,.6); border:1px solid var(--border); color:var(--text); font-size:12px;">
+                    ${BONES.map(b => `<option value="${b.id}">${b.n}</option>`).join('')}
+                  </select>
                 </div>
-              `;
-              setTimeout(() => {
-                Anatomie3D.init('anatomie-3d-container');
-                document.getElementById('bone-select').onchange = (e) => Anatomie3D.loadModel(e.target.value);
-              }, 100);
-            } 
-            else if (tabKey === 'KI-Assistent') {
-              body.innerHTML = `
-                <div style="padding:10px; background:rgba(180,120,255,0.1); border-radius:12px; border:1px solid var(--accent3); text-align:center; margin-bottom:12px;">
-                  <strong style="color:var(--accent3);">HalDo AI Medizin-Assistent</strong>
-                  <p style="font-size:11px; opacity:0.8; margin-top:4px;">Frag mich zu Symptomen, Medikamenten oder Anatomie.</p>
+                <div id="anatomie-3d-container" style="flex:1; width:100%; border-radius:12px; border:1.5px solid var(--accent); position:relative; background:#0a1420;">
+                  <div style="position:absolute; bottom:10px; right:10px; z-index:10; font-size:10px; opacity:0.5; color:#fff;">Drehen & Zoomen</div>
+                  <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:var(--accent); font-size:12px;">Lade 3D-Modell...</div>
                 </div>
-                <div id="med-chat-log" style="height:300px; overflow-y:auto; padding:10px; background:rgba(0,0,0,0.2); border-radius:10px; margin-bottom:10px; display:flex; flex-direction:column; gap:8px;">
-                  <div class="msg ai" style="align-self:flex-start; background:rgba(180,120,255,0.2); padding:8px 12px; border-radius:12px; font-size:12px;">Hallo! Ich bin dein medizinischer KI-Assistent. Wie kann ich helfen?</div>
-                </div>
-                <div style="display:flex; gap:6px;">
-                  <input id="med-chat-in" placeholder="Stelle eine Frage..." style="flex:1; padding:10px; border-radius:10px; background:rgba(0,20,40,.6); border:1px solid var(--border); color:var(--text); font-size:13px;">
-                  <button id="med-chat-send" class="chip active" style="min-width:50px;">➤</button>
-                </div>
-              `;
-              const log = document.getElementById('med-chat-log');
-              const inp = document.getElementById('med-chat-in');
-              const send = document.getElementById('med-chat-send');
-              
-              const addMsg = (text, who) => {
-                const div = document.createElement('div');
-                div.className = 'msg ' + who;
-                div.style.cssText = `align-self:${who==='user'?'flex-end':'flex-start'}; background:${who==='user'?'rgba(0,229,255,0.2)':'rgba(180,120,255,0.2)'}; padding:8px 12px; border-radius:12px; font-size:12px; max-width:80%;`;
-                div.textContent = text;
-                log.appendChild(div); log.scrollTop = log.scrollHeight;
+              </div>
+            `;
+            // Erst hier laden wir die 3D-Sachen!
+            init3DViewer('anatomie-3d-container');
+            setTimeout(() => {
+              document.getElementById('bone-select').onchange = (e) => {
+                if (Anatomie3D) Anatomie3D.loadModel(e.target.value);
               };
-              
-              send.onclick = () => {
-                const t = inp.value.trim(); if (!t) return;
-                addMsg(t, 'user'); inp.value = '';
-                setTimeout(async () => {
-                  if (window.HalDoAI && HalDoAI.apiKey) {
-                    const ans = await HalDoAI.ask("Du bist ein Arzt-Assistent. Antworte kurz und medizinisch korrekt auf Deutsch: " + t);
-                    addMsg(ans, 'ai');
-                  } else {
-                    addMsg("Ich benötige einen Gemini API-Key, um frei antworten zu können. (Öffne die API-Key App)", 'ai');
-                  }
-                }, 500);
-              };
-            }
-            else if (tabKey === 'Krankheiten') {
-              const krankheiten = [
-                ['Erkältung','Husten, Schnupfen, Halsschmerzen. 7-10 Tage. Viel trinken.'],
-                ['Grippe','Plötzliches Fieber, Gliederschmerzen. 1-2 Wochen.'],
-                ['Migräne','Pulsierender Kopfschmerz, Übelkeit, Lichtempfindlich.'],
-                ['Diabetes Typ 2','Erhöhter Blutzucker, Durst, Müdigkeit.'],
-                ['Bluthochdruck','Oft symptomlos. Werte >140/90.'],
-                ['Asthma','Atemnot, Pfeifen, Husten.'],
-                ['COVID-19','Fieber, Husten, Geruchsverlust.'],
-                ['Depression','Antriebslosigkeit, Traurigkeit, Schlafstörung.']
-              ];
-              body.innerHTML = `<div style="padding:8px;">${krankheiten.map(k => `
-                <div style="padding:10px; background:rgba(255,180,60,0.1); border-radius:10px; margin-bottom:6px; border:1px solid rgba(255,180,60,0.3);">
-                  <strong style="font-size:13px; color:#ffb400;">${k[0]}</strong>
-                  <p style="font-size:11px; opacity:0.8; margin-top:4px;">${k[1]}</p>
-                </div>`).join('')}</div>`;
-            }
-            else if (tabKey === 'Medikamente') {
-              const meds = [
-                ['Paracetamol','Schmerz/Fieber','max 4000mg/Tag'],
-                ['Ibuprofen','Schmerz/Entzündung','max 1200mg/Tag, mit Essen'],
-                ['Aspirin','Blutverdünner/Schmerz','100-500mg'],
-                ['Amoxicillin','Antibiotikum','3x500mg, nur bei Bakterien'],
-                ['Metformin','Diabetes','2x500-1000mg'],
-                ['Ramipril','Blutdruck','1x2,5-10mg'],
-                ['Salbutamol','Asthma','Spray bei Bedarf'],
-                ['Omeprazol','Magenschutz','1x20mg morgens']
-              ];
-              body.innerHTML = `<div style="padding:8px;">${meds.map(m => `
-                <div style="padding:10px; background:rgba(0,229,255,0.05); border-radius:10px; margin-bottom:6px; border:1px solid rgba(0,229,255,0.2);">
-                  <strong style="font-size:13px; color:var(--accent);">${m[0]}</strong>
-                  <div style="font-size:11px; opacity:0.8;">${m[1]}</div>
-                  <div style="font-size:11px; color:#ff5050; margin-top:4px;">💊 ${m[2]}</div>
-                </div>`).join('')}</div>`;
-            }
-            else if (tabKey === 'Laborwerte') {
-              const vals = [
-                ['Blutzucker','70-100 mg/dl'], ['HbA1c','<5,7 %'], ['Cholesterin','<200 mg/dl'],
-                ['LDL','<130 mg/dl'], ['HDL','>40 mg/dl'], ['Triglyceride','<150 mg/dl'],
-                ['Hämoglobin','12-17 g/dl'], ['Kreatinin','0,6-1,2 mg/dl'], ['CRP','<5 mg/l'],
-                ['TSH','0,4-4,0 mU/l']
-              ];
-              body.innerHTML = `<div style="padding:8px;">${vals.map(v => `
-                <div style="padding:10px; background:rgba(0,229,255,0.05); border-radius:10px; margin-bottom:6px; border:1px solid rgba(0,229,255,0.2); display:flex; justify-content:space-between;">
-                  <strong style="font-size:13px;">${v[0]}</strong>
-                  <span style="font-size:12px; color:var(--accent);">${v[1]}</span>
-                </div>`).join('')}</div>`;
-            }
-            else if (tabKey === 'Notfall') {
-              body.innerHTML = `
-                <div style="padding:8px;">
-                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
-                    <a href="tel:112" style="padding:14px; background:rgba(255,80,80,0.2); border-radius:12px; border:2px solid #ff5050; text-align:center; text-decoration:none; color:#fff;">
-                      <div style="font-size:20px; font-weight:bold; color:#ff5050;">112</div>
-                      <div style="font-size:10px; opacity:0.8;">Rettung</div>
-                    </a>
-                    <a href="tel:110" style="padding:14px; background:rgba(255,80,80,0.2); border-radius:12px; border:2px solid #ff5050; text-align:center; text-decoration:none; color:#fff;">
-                      <div style="font-size:20px; font-weight:bold; color:#ff5050;">110</div>
-                      <div style="font-size:10px; opacity:0.8;">Polizei</div>
-                    </a>
-                  </div>
-                  <div style="padding:12px; background:rgba(0,229,255,0.1); border-radius:12px; border:1px solid var(--accent);">
-                    <strong style="color:var(--accent); font-size:13px;">🩹 Erste Hilfe</strong>
-                    <div style="font-size:11px; line-height:1.8; margin-top:6px; opacity:0.85;">
-                      1. Bewusstsein prüfen (ansprechen, rütteln)<br>
-                      2. Atmung prüfen (5-10 Sek)<br>
-                      3. Notruf 112<br>
-                      4. Stabile Seitenlage / CPR 30:2<br>
-                      5. Wärme · beruhigen
-                    </div>
-                  </div>
-                </div>
-              `;
-            }
-          };
-
-          showTab('Anatomie');
-
-          document.querySelectorAll('[data-arzt-tab]').forEach(el => {
-            el.onclick = () => {
-              document.querySelectorAll('[data-arzt-tab]').forEach(x => x.classList.remove('active'));
-              el.classList.add('active');
-              showTab(el.dataset.arztTab);
-              HalDo.Sound.play('tap');
+            }, 100);
+          } 
+          else if (tabKey === 'KI-Assistent') {
+            body.innerHTML = `
+              <div style="padding:10px; background:rgba(180,120,255,0.1); border-radius:12px; border:1px solid var(--accent3); text-align:center; margin-bottom:12px;">
+                <strong style="color:var(--accent3);">HalDo AI Medizin-Assistent</strong>
+                <p style="font-size:11px; opacity:0.8; margin-top:4px;">Frag mich zu Symptomen, Medikamenten oder Anatomie.</p>
+              </div>
+              <div id="med-chat-log" style="height:300px; overflow-y:auto; padding:10px; background:rgba(0,0,0,0.2); border-radius:10px; margin-bottom:10px; display:flex; flex-direction:column; gap:8px;">
+                <div class="msg ai" style="align-self:flex-start; background:rgba(180,120,255,0.2); padding:8px 12px; border-radius:12px; font-size:12px;">Hallo! Ich bin dein medizinischer KI-Assistent. Wie kann ich helfen?</div>
+              </div>
+              <div style="display:flex; gap:6px;">
+                <input id="med-chat-in" placeholder="Stelle eine Frage..." style="flex:1; padding:10px; border-radius:10px; background:rgba(0,20,40,.6); border:1px solid var(--border); color:var(--text); font-size:13px;">
+                <button id="med-chat-send" class="chip active" style="min-width:50px;">➤</button>
+              </div>
+            `;
+            const log = document.getElementById('med-chat-log');
+            const inp = document.getElementById('med-chat-in');
+            const send = document.getElementById('med-chat-send');
+            
+            const addMsg = (text, who) => {
+              const div = document.createElement('div');
+              div.className = 'msg ' + who;
+              div.style.cssText = `align-self:${who==='user'?'flex-end':'flex-start'}; background:${who==='user'?'rgba(0,229,255,0.2)':'rgba(180,120,255,0.2)'}; padding:8px 12px; border-radius:12px; font-size:12px; max-width:80%;`;
+              div.textContent = text;
+              log.appendChild(div); log.scrollTop = log.scrollHeight;
             };
-          });
-        }, 150);
-      }
-    };
+            
+            send.onclick = () => {
+              const t = inp.value.trim(); if (!t) return;
+              addMsg(t, 'user'); inp.value = '';
+              setTimeout(async () => {
+                if (window.HalDoAI && HalDoAI.apiKey) {
+                  const ans = await HalDoAI.ask("Du bist ein Arzt-Assistent. Antworte kurz und medizinisch korrekt auf Deutsch: " + t);
+                  addMsg(ans, 'ai');
+                } else {
+                  addMsg("Ich benötige einen Gemini API-Key, um frei antworten zu können. (Öffne die API-Key App)", 'ai');
+                }
+              }, 500);
+            };
+          }
+          else if (tabKey === 'Krankheiten') {
+            const k = [['Erkältung','Husten, Schnupfen. 7-10 Tage.'],['Grippe','Fieber, Gliederschmerzen.'],['Migräne','Kopfschmerz, Übelkeit.'],['Diabetes','Durst, Müdigkeit.'],['Asthma','Atemnot, Husten.'],['Depression','Antriebslos, Traurig.']];
+            body.innerHTML = `<div style="padding:8px;">${k.map(x => `<div style="padding:10px; background:rgba(255,180,60,0.1); border-radius:10px; margin-bottom:6px; border:1px solid #ffb400;"><strong style="font-size:13px; color:#ffb400;">${x[0]}</strong><p style="font-size:11px; opacity:0.8; margin-top:4px;">${x[1]}</p></div>`).join('')}</div>`;
+          }
+          else if (tabKey === 'Medikamente') {
+            const m = [['Paracetamol','Schmerz','max 4000mg/Tag'],['Ibuprofen','Entzündung','max 1200mg/Tag'],['Amoxicillin','Antibiotikum','3x500mg'],['Metformin','Diabetes','2x500mg'],['Omeprazol','Magen','1x20mg']];
+            body.innerHTML = `<div style="padding:8px;">${m.map(x => `<div style="padding:10px; background:rgba(0,229,255,0.05); border-radius:10px; margin-bottom:6px; border:1px solid var(--border);"><strong style="font-size:13px; color:var(--accent);">${x[0]}</strong><div style="font-size:11px; opacity:0.8;">${x[1]}</div><div style="font-size:11px; color:#ff5050; margin-top:4px;">💊 ${x[2]}</div></div>`).join('')}</div>`;
+          }
+          else if (tabKey === 'Laborwerte') {
+            const l = [['Blutzucker','70-100 mg/dl'],['HbA1c','<5,7 %'],['Cholesterin','<200 mg/dl'],['CRP','<5 mg/l'],['TSH','0,4-4,0 mU/l']];
+            body.innerHTML = `<div style="padding:8px;">${l.map(x => `<div style="padding:10px; background:rgba(0,229,255,0.05); border-radius:10px; margin-bottom:6px; border:1px solid var(--border); display:flex; justify-content:space-between;"><strong style="font-size:13px;">${x[0]}</strong><span style="font-size:12px; color:var(--accent);">${x[1]}</span></div>`).join('')}</div>`;
+          }
+          else if (tabKey === 'Notfall') {
+            body.innerHTML = `<div style="padding:8px;"><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;"><a href="tel:112" style="padding:14px; background:rgba(255,80,80,0.2); border-radius:12px; border:2px solid #ff5050; text-align:center; text-decoration:none; color:#fff;"><div style="font-size:20px; font-weight:bold; color:#ff5050;">112</div><div style="font-size:10px; opacity:0.8;">Rettung</div></a><a href="tel:110" style="padding:14px; background:rgba(255,80,80,0.2); border-radius:12px; border:2px solid #ff5050; text-align:center; text-decoration:none; color:#fff;"><div style="font-size:20px; font-weight:bold; color:#ff5050;">110</div><div style="font-size:10px; opacity:0.8;">Polizei</div></a></div></div>`;
+          }
+        };
 
-    // 4. Launch-Mapping für das Arztbuch überschreiben
-    const oldLaunch = HalDo.Launch;
-    HalDo.Launch = (app) => {
-      if (app.id === 'arztbuch' || app.id === 'anatomy' || app.id === 'anatomie' || app.id === 'health') {
-        return HalDo.Arztbuch.open();
-      }
-      return oldLaunch(app);
-    };
+        showTab('Anatomie');
+        document.querySelectorAll('[data-arzt-tab]').forEach(el => {
+          el.onclick = () => {
+            document.querySelectorAll('[data-arzt-tab]').forEach(x => x.classList.remove('active'));
+            el.classList.add('active');
+            showTab(el.dataset.arztTab);
+          };
+        });
+      }, 100);
+    }
+  };
 
-    console.log('%c🩺 v141 — Arztbuch Pro Max (mit 3D & KI) geladen!', 'background:linear-gradient(90deg,#00e5ff,#00ff88);color:#000;padding:6px 12px;border-radius:6px;font-weight:bold');
-  });
+  // 3. Der unzerstörbare Launcher
+  const oldLaunch = HalDo.Launch;
+  HalDo.Launch = function(app) {
+    if (app && (app.id === 'arztbuch' || app.id === 'anatomy' || app.id === 'anatomie' || app.id === 'health')) {
+      return HalDo.Arztbuch.open();
+    }
+    return oldLaunch(app);
+  };
+
+  // 4. Der "Coming Soon"-Killer (fängt alte Splash-Screens ab)
+  const oldWinOpen = HalDo.Win.open;
+  HalDo.Win.open = function(title, content, opts) {
+    if (title && (title.toLowerCase().includes('arztbuch') || title.toLowerCase().includes('anatomie')) && content && content.includes('Coming Soon')) {
+      return HalDo.Arztbuch.open(); // Öffne stattdessen das echte Arztbuch
+    }
+    return oldWinOpen(title, content, opts);
+  };
+
+  console.log('%c🩺 v142 — Arztbuch (Sofort-Start) aktiviert!', 'background:linear-gradient(90deg,#00e5ff,#00ff88);color:#000;padding:6px 12px;border-radius:6px;font-weight:bold');
 })();
 </script>
 </body>
