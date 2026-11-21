@@ -9954,187 +9954,156 @@ setTimeout(() => {
 </script>
 <!-- ENDE HALDO APPEARANCE STUDIO -->
 <!-- ================================================================
-     HALDO AI OS v139 — 3D-Anatomie (Konfliktfreier Fix)
-     Lädt Modelle direkt von deinem GitHub-Repo.
+     HALDO AI OS v140 — ANATOMIE 3D FORCE-OVERRIDE
+     MUSS GANZ AM ENDE STEHEN (direkt vor </body>)!
      ================================================================ -->
 <script>
-// 1. Wir laden den GLTFLoader (für .glb-Dateien) passend zu deiner bereits geladenen Three.js Version (r128)
-(function loadDependencies() {
-  if (window.THREE && !window.THREE.GLTFLoader) {
-    // GLTFLoader laden
+window.addEventListener('load', () => {
+  // 1. Zuerst laden wir die fehlenden Three.js-Module für GLB-Dateien nach
+  function load3DLibraries(callback) {
+    if (window.THREE && window.THREE.GLTFLoader) {
+      callback(); return;
+    }
+    // GLTFLoader (für .glb)
     const s1 = document.createElement('script');
     s1.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js';
     s1.onload = () => {
-      // OrbitControls laden (für Maus-Steuerung)
+      // OrbitControls (Maus-Steuerung)
       const s2 = document.createElement('script');
       s2.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js';
-      s2.onload = () => initAnatomyApp();
+      s2.onload = callback;
       document.head.appendChild(s2);
     };
     document.head.appendChild(s1);
-  } else {
-    initAnatomyApp();
   }
-})();
 
-function initAnatomyApp() {
-  // Basis-URL zu deinen Modellen auf GitHub Pages
-  const BASE_URL = 'https://haldoaios-official.github.io/HalDo/models/adult_male/adult_female/';
-  
-  // Die Knochen aus deinem GitHub-Ordner
-  const BONES = [
-    { id: 'c1_atlas', name: 'C1 Atlas (Halswirbel)' },
-    { id: 'c2', name: 'C2 Axis (Halswirbel)' },
-    { id: 'c3', name: 'C3 (Halswirbel)' },
-    { id: 'c4', name: 'C4 (Halswirbel)' },
-    { id: 'c5', name: 'C5 (Halswirbel)' },
-    { id: 'c6', name: 'C6 (Halswirbel)' },
-    { id: 'c7', name: 'C7 (Halswirbel)' },
-    { id: 'l1', name: 'L1 (Lendenwirbel)' },
-    { id: 'l2', name: 'L2 (Lendenwirbel)' },
-    { id: 'l3', name: 'L3 (Lendenwirbel)' },
-    { id: 'l4', name: 'L4 (Lendenwirbel)' },
-    { id: 'l5', name: 'L5 (Lendenwirbel)' },
-    { id: 'coccyx', name: 'Steißbein (Coccyx)' }
-  ];
+  load3DLibraries(() => {
+    // 2. Der echte 3D-Viewer
+    const Anatomie3D = {
+      scene: null, camera: null, renderer: null, controls: null,
+      currentModel: null, animationId: null, container: null,
 
-  const Anatomie3D = {
-    scene: null, camera: null, renderer: null, controls: null,
-    currentModel: null, animationId: null, container: null,
-
-    async init(containerId) {
-      this.container = document.getElementById(containerId);
-      if (!this.container) return;
-
-      // Szene aufbauen
-      this.scene = new THREE.Scene();
-      this.scene.background = new THREE.Color(0x0a1420);
-      const width = this.container.clientWidth || 400;
-      const height = this.container.clientHeight || 350;
-
-      this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-      this.camera.position.set(0, 0, 5);
-
-      this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      this.renderer.setSize(width, height);
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      this.container.appendChild(this.renderer.domElement);
-
-      // Beleuchtung (Cyan & Pink)
-      this.scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-      const light1 = new THREE.DirectionalLight(0x00e5ff, 2);
-      light1.position.set(5, 5, 5); this.scene.add(light1);
-      const light2 = new THREE.DirectionalLight(0xb478ff, 1);
-      light2.position.set(-5, -5, -5); this.scene.add(light2);
-
-      // Steuerung
-      this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
-      this.controls.enableDamping = true;
-      this.controls.dampingFactor = 0.05;
-      this.controls.autoRotate = true;
-      this.controls.autoRotateSpeed = 1.5;
-
-      // Erstes Modell laden
-      await this.loadModel('c1_atlas');
-
-      // Animations-Loop
-      const animate = () => {
-        this.animationId = requestAnimationFrame(animate);
-        this.controls.update();
-        this.renderer.render(this.scene, this.camera);
-      };
-      animate();
-
-      window.addEventListener('resize', () => {
+      init(containerId) {
+        this.container = document.getElementById(containerId);
         if (!this.container) return;
-        const w = this.container.clientWidth; const h = this.container.clientHeight;
-        this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
+
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x0a1420);
+        const w = this.container.clientWidth || 400;
+        const h = this.container.clientHeight || 350;
+
+        this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
+        this.camera.position.set(0, 0, 5);
+
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         this.renderer.setSize(w, h);
-      });
-    },
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.container.appendChild(this.renderer.domElement);
 
-    async loadModel(modelId) {
-      const url = `${BASE_URL}${modelId}.glb`;
-      const loader = new THREE.GLTFLoader();
-      try {
-        const gltf = await loader.loadAsync(url);
-        if (this.currentModel) this.scene.remove(this.currentModel);
-        
-        this.currentModel = gltf.scene;
-        const box = new THREE.Box3().setFromObject(this.currentModel);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = 2 / maxDim;
-        this.currentModel.scale.set(scale, scale, scale);
-        this.currentModel.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+        this.scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+        const l1 = new THREE.DirectionalLight(0x00e5ff, 2); l1.position.set(5, 5, 5); this.scene.add(l1);
+        const l2 = new THREE.DirectionalLight(0xb478ff, 1); l2.position.set(-5, -5, -5); this.scene.add(l2);
 
-        this.currentModel.traverse((child) => {
-          if (child.isMesh) {
-            child.material = new THREE.MeshStandardMaterial({
-              color: 0xe0e0e0, roughness: 0.6, metalness: 0.1,
-              emissive: 0x00e5ff, emissiveIntensity: 0.05
-            });
-          }
-        });
-        this.scene.add(this.currentModel);
-        console.log(`✅ Modell geladen: ${modelId}`);
-      } catch (err) {
-        console.error(`❌ Modell ${modelId} konnte nicht geladen werden:`, err);
-      }
-    }
-  };
+        this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.enableDamping = true;
+        this.controls.autoRotate = true;
 
-  // 2. Die App überschreiben, sodass sie nicht mehr "Coming Soon" zeigt
-  window.HalDo = window.HalDo || {};
-  HalDo.Anatomy = {
-    open() {
-      const html = `
-        <div style="padding:6px; height: 100%; display: flex; flex-direction: column;">
-          <div style="display:flex; gap:8px; margin-bottom:10px;">
-            <select id="bone-select" style="flex:1; padding:10px; border-radius:10px; background:rgba(0,20,40,.6); border:1.5px solid var(--border); color:var(--text); font-size:13px;">
-              ${BONES.map(b => `<option value="${b.id}">${b.name}</option>`).join('')}
-            </select>
-            <div style="padding:10px 14px; background:rgba(0,229,255,0.1); border-radius:10px; font-size:12px; color:var(--accent); display:flex; align-items:center;">
-              🫀 3D-Modell
-            </div>
-          </div>
+        this.loadModel('c1_atlas');
+
+        const animate = () => {
+          this.animationId = requestAnimationFrame(animate);
+          this.controls.update();
+          this.renderer.render(this.scene, this.camera);
+        };
+        animate();
+      },
+
+      async loadModel(modelId) {
+        const url = `https://haldoaios-official.github.io/HalDo/models/adult_male/adult_female/${modelId}.glb`;
+        const loader = new THREE.GLTFLoader();
+        try {
+          if (this.currentModel) this.scene.remove(this.currentModel);
+          const gltf = await loader.loadAsync(url);
+          this.currentModel = gltf.scene;
           
-          <div id="anatomie-3d-container" style="flex:1; width:100%; border-radius:12px; overflow:hidden; border:1.5px solid var(--accent); box-shadow:0 0 20px rgba(0,229,255,0.2); position:relative; background:#0a1420; min-height: 300px;">
-             <div style="position:absolute; bottom:10px; right:10px; z-index:10; font-size:10px; opacity:0.5; color:#fff;">
-                Maus: Drehen · Scrollen: Zoom
-             </div>
+          const box = new THREE.Box3().setFromObject(this.currentModel);
+          const center = box.getCenter(new THREE.Vector3());
+          const size = box.getSize(new THREE.Vector3());
+          const scale = 2 / Math.max(size.x, size.y, size.z);
+          
+          this.currentModel.scale.set(scale, scale, scale);
+          this.currentModel.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+
+          this.currentModel.traverse((child) => {
+            if (child.isMesh) {
+              child.material = new THREE.MeshStandardMaterial({
+                color: 0xe0e0e0, roughness: 0.6, metalness: 0.1,
+                emissive: 0x00e5ff, emissiveIntensity: 0.05
+              });
+            }
+          });
+          this.scene.add(this.currentModel);
+          console.log(`✅ Modell geladen: ${modelId}`);
+        } catch (err) {
+          console.error(`❌ Modell ${modelId} Fehler:`, err);
+        }
+      }
+    };
+
+    const BONES = ['c1_atlas','c2','c3','c4','c5','c6','c7','l1','l2','l3','l4','l5','coccyx'];
+
+    // 3. Die HTML-Vorlage für das Fenster
+    const get3DHTML = () => `
+      <div style="padding:6px; height: 100%; display: flex; flex-direction: column;">
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+          <select id="bone-select" style="flex:1; padding:10px; border-radius:10px; background:rgba(0,20,40,.6); border:1.5px solid var(--border); color:var(--text); font-size:13px;">
+            ${BONES.map(b => `<option value="${b}">${b.toUpperCase()} (Wirbel/Knochen)</option>`).join('')}
+          </select>
+          <div style="padding:10px 14px; background:rgba(0,229,255,0.1); border-radius:10px; font-size:12px; color:var(--accent); display:flex; align-items:center;">
+            🫀 3D-Modell
           </div>
         </div>
-      `;
-      
-      HalDo.Win.open('🫀 Anatomie 3D', html, { w: 460, h: 600 });
-      
-      setTimeout(() => {
-        Anatomie3D.init('anatomie-3d-container');
-        const select = document.getElementById('bone-select');
-        if (select) {
-          select.onchange = (e) => {
-            Anatomie3D.loadModel(e.target.value);
-            HalDo.Sound.play('tap');
-          };
-        }
-      }, 200);
-    }
-  };
+        <div id="anatomie-3d-container" style="flex:1; width:100%; border-radius:12px; overflow:hidden; border:1.5px solid var(--accent); box-shadow:0 0 20px rgba(0,229,255,0.2); position:relative; background:#0a1420; min-height: 300px;">
+           <div style="position:absolute; bottom:10px; right:10px; z-index:10; font-size:10px; opacity:0.5; color:#fff;">Maus: Drehen · Scrollen: Zoom</div>
+        </div>
+      </div>
+    `;
 
-  // 3. Launch-Mapping patchen (damit es von überall aufgerufen werden kann)
-  const oldLaunch = HalDo.Launch;
-  HalDo.Launch = (app) => {
-    if (app.id === 'anatomy' || app.id === 'anatomie') {
-      return HalDo.Anatomy.open();
-    }
-    return oldLaunch(app);
-  };
+    // 4. DEN HAUPT-LAUNCHER KApern (Egal wer ihn aufruft)
+    const originalLaunch = HalDo.Launch;
+    HalDo.Launch = function(app) {
+      if (app && (app.id === 'anatomy' || app.id === 'anatomie' || (app.n && app.n.toLowerCase().includes('anatomie')))) {
+        // Statt "Coming Soon" öffnen wir unser echtes 3D-Fenster
+        HalDo.Win.open('🫀 Anatomie 3D', get3DHTML(), { w: 460, h: 600 });
+        setTimeout(() => {
+          Anatomie3D.init('anatomie-3d-container');
+          const sel = document.getElementById('bone-select');
+          if (sel) sel.onchange = (e) => Anatomie3D.loadModel(e.target.value);
+        }, 200);
+        return; // Stoppt den alten Code!
+      }
+      return originalLaunch(app); // Alle anderen Apps normal öffnen
+    };
 
-  console.log('%c🦴 v139 — Echte 3D-Anatomie geladen!', 'background:linear-gradient(90deg,#00e5ff,#00ff88);color:#000;padding:6px 12px;border-radius:6px;font-weight:bold');
-  console.log('✅ Modelle werden von GitHub geladen.');
-}
+    // 5. FALLBACK: Falls eine App den "Coming Soon" Screen direkt aufruft
+    const originalWinOpen = HalDo.Win.open;
+    HalDo.Win.open = function(title, content, opts) {
+      if (title && title.toLowerCase().includes('anatomie') && content && content.includes('Coming Soon')) {
+        content = get3DHTML(); // Ersetze den hässlichen Coming Soon Screen
+        const winId = originalWinOpen(title, content, opts);
+        setTimeout(() => {
+          Anatomie3D.init('anatomie-3d-container');
+          const sel = document.getElementById('bone-select');
+          if (sel) sel.onchange = (e) => Anatomie3D.loadModel(e.target.value);
+        }, 200);
+        return winId;
+      }
+      return originalWinOpen(title, content, opts);
+    };
+
+    console.log('%c🦴 v140 — 3D-Anatomie Nuklear-Override aktiv!', 'background:linear-gradient(90deg,#00e5ff,#00ff88);color:#000;padding:6px 12px;border-radius:6px;font-weight:bold');
+  });
+});
 </script>
 </body>
 </html>
