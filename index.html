@@ -9954,151 +9954,143 @@ setTimeout(() => {
 </script>
 <!-- ENDE HALDO APPEARANCE STUDIO -->
 <!-- ================================================================
-     HALDO AI OS v138 — 3D-Anatomie (Ersetzt die leere Anatomie-App)
+     HALDO AI OS v139 — 3D-Anatomie (Konfliktfreier Fix)
+     Lädt Modelle direkt von deinem GitHub-Repo.
      ================================================================ -->
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js/+esm",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
-  }
-}
-</script>
-
-<script type="module">
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
-// Die Basis-URL für deine Modelle auf GitHub Pages
-const BASE_URL = 'https://raw.githubusercontent.com/haldoaios-Official/HalDo/main/models/adult_male/adult_female/';
-
-// Liste der verfügbaren Knochen-Modelle (basierend auf deinem Screenshot)
-const BONES = [
-  { id: 'c1_atlas', name: 'C1 Atlas (Halswirbel)' },
-  { id: 'c2', name: 'C2 Axis (Halswirbel)' },
-  { id: 'c3', name: 'C3 (Halswirbel)' },
-  { id: 'c4', name: 'C4 (Halswirbel)' },
-  { id: 'c5', name: 'C5 (Halswirbel)' },
-  { id: 'c6', name: 'C6 (Halswirbel)' },
-  { id: 'c7', name: 'C7 (Halswirbel)' },
-  { id: 'l1', name: 'L1 (Lendenwirbel)' },
-  { id: 'l2', name: 'L2 (Lendenwirbel)' },
-  { id: 'l3', name: 'L3 (Lendenwirbel)' },
-  { id: 'l4', name: 'L4 (Lendenwirbel)' },
-  { id: 'l5', name: 'L5 (Lendenwirbel)' },
-  { id: 'coccyx', name: 'Steißbein (Coccyx)' }
-];
-
-const Anatomie3D = {
-  scene: null, camera: null, renderer: null, controls: null,
-  currentModel: null, animationId: null, container: null,
-
-  async init(containerId) {
-    this.container = document.getElementById(containerId);
-    if (!this.container) return;
-
-    // 1) Szene aufbauen
-    this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x0a1420);
-    const width = this.container.clientWidth;
-    const height = this.container.clientHeight;
-
-    this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    this.camera.position.set(0, 0, 5);
-
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    this.renderer.setSize(width, height);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.container.appendChild(this.renderer.domElement);
-
-    // 2) Beleuchtung (Cyan & Pink passend zu HalDo)
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-    const light1 = new THREE.DirectionalLight(0x00e5ff, 2);
-    light1.position.set(5, 5, 5); this.scene.add(light1);
-    const light2 = new THREE.DirectionalLight(0xb478ff, 1);
-    light2.position.set(-5, -5, -5); this.scene.add(light2);
-
-    // 3) Steuerung (Maus drehen, zoomen)
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
-    this.controls.autoRotate = true;
-    this.controls.autoRotateSpeed = 1.5;
-
-    // 4) Erstes Modell laden
-    await this.loadModel('c1_atlas');
-
-    // 5) Animations-Loop
-    const animate = () => {
-      this.animationId = requestAnimationFrame(animate);
-      this.controls.update();
-      this.renderer.render(this.scene, this.camera);
+<script>
+// 1. Wir laden den GLTFLoader (für .glb-Dateien) passend zu deiner bereits geladenen Three.js Version (r128)
+(function loadDependencies() {
+  if (window.THREE && !window.THREE.GLTFLoader) {
+    // GLTFLoader laden
+    const s1 = document.createElement('script');
+    s1.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js';
+    s1.onload = () => {
+      // OrbitControls laden (für Maus-Steuerung)
+      const s2 = document.createElement('script');
+      s2.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js';
+      s2.onload = () => initAnatomyApp();
+      document.head.appendChild(s2);
     };
-    animate();
+    document.head.appendChild(s1);
+  } else {
+    initAnatomyApp();
+  }
+})();
 
-    window.addEventListener('resize', () => {
+function initAnatomyApp() {
+  // Basis-URL zu deinen Modellen auf GitHub Pages
+  const BASE_URL = 'https://haldoaios-official.github.io/HalDo/models/adult_male/adult_female/';
+  
+  // Die Knochen aus deinem GitHub-Ordner
+  const BONES = [
+    { id: 'c1_atlas', name: 'C1 Atlas (Halswirbel)' },
+    { id: 'c2', name: 'C2 Axis (Halswirbel)' },
+    { id: 'c3', name: 'C3 (Halswirbel)' },
+    { id: 'c4', name: 'C4 (Halswirbel)' },
+    { id: 'c5', name: 'C5 (Halswirbel)' },
+    { id: 'c6', name: 'C6 (Halswirbel)' },
+    { id: 'c7', name: 'C7 (Halswirbel)' },
+    { id: 'l1', name: 'L1 (Lendenwirbel)' },
+    { id: 'l2', name: 'L2 (Lendenwirbel)' },
+    { id: 'l3', name: 'L3 (Lendenwirbel)' },
+    { id: 'l4', name: 'L4 (Lendenwirbel)' },
+    { id: 'l5', name: 'L5 (Lendenwirbel)' },
+    { id: 'coccyx', name: 'Steißbein (Coccyx)' }
+  ];
+
+  const Anatomie3D = {
+    scene: null, camera: null, renderer: null, controls: null,
+    currentModel: null, animationId: null, container: null,
+
+    async init(containerId) {
+      this.container = document.getElementById(containerId);
       if (!this.container) return;
-      const w = this.container.clientWidth; const h = this.container.clientHeight;
-      this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
-      this.renderer.setSize(w, h);
-    });
-  },
 
-  async loadModel(modelId) {
-    const url = `${BASE_URL}${modelId}.glb`;
-    const loader = new GLTFLoader();
-    try {
-      const gltf = await loader.loadAsync(url);
-      if (this.currentModel) this.scene.remove(this.currentModel);
-      
-      this.currentModel = gltf.scene;
-      const box = new THREE.Box3().setFromObject(this.currentModel);
-      const center = box.getCenter(new THREE.Vector3());
-      const size = box.getSize(new THREE.Vector3());
-      const maxDim = Math.max(size.x, size.y, size.z);
-      const scale = 2 / maxDim;
-      this.currentModel.scale.set(scale, scale, scale);
-      this.currentModel.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+      // Szene aufbauen
+      this.scene = new THREE.Scene();
+      this.scene.background = new THREE.Color(0x0a1420);
+      const width = this.container.clientWidth || 400;
+      const height = this.container.clientHeight || 350;
 
-      this.currentModel.traverse((child) => {
-        if (child.isMesh) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: 0xe0e0e0, roughness: 0.6, metalness: 0.1,
-            emissive: 0x00e5ff, emissiveIntensity: 0.05
-          });
-        }
+      this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+      this.camera.position.set(0, 0, 5);
+
+      this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      this.renderer.setSize(width, height);
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      this.container.appendChild(this.renderer.domElement);
+
+      // Beleuchtung (Cyan & Pink)
+      this.scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+      const light1 = new THREE.DirectionalLight(0x00e5ff, 2);
+      light1.position.set(5, 5, 5); this.scene.add(light1);
+      const light2 = new THREE.DirectionalLight(0xb478ff, 1);
+      light2.position.set(-5, -5, -5); this.scene.add(light2);
+
+      // Steuerung
+      this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+      this.controls.enableDamping = true;
+      this.controls.dampingFactor = 0.05;
+      this.controls.autoRotate = true;
+      this.controls.autoRotateSpeed = 1.5;
+
+      // Erstes Modell laden
+      await this.loadModel('c1_atlas');
+
+      // Animations-Loop
+      const animate = () => {
+        this.animationId = requestAnimationFrame(animate);
+        this.controls.update();
+        this.renderer.render(this.scene, this.camera);
+      };
+      animate();
+
+      window.addEventListener('resize', () => {
+        if (!this.container) return;
+        const w = this.container.clientWidth; const h = this.container.clientHeight;
+        this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
+        this.renderer.setSize(w, h);
       });
-      this.scene.add(this.currentModel);
-      console.log(`✅ Modell geladen: ${modelId}`);
-    } catch (err) {
-      console.error(`❌ Modell ${modelId} konnte nicht geladen werden:`, err);
-    }
-  },
+    },
 
-  stop() {
-    if (this.animationId) cancelAnimationFrame(this.animationId);
-    if (this.renderer) {
-      this.renderer.dispose();
-      if (this.renderer.domElement && this.renderer.domElement.parentNode) {
-        this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
+    async loadModel(modelId) {
+      const url = `${BASE_URL}${modelId}.glb`;
+      const loader = new THREE.GLTFLoader();
+      try {
+        const gltf = await loader.loadAsync(url);
+        if (this.currentModel) this.scene.remove(this.currentModel);
+        
+        this.currentModel = gltf.scene;
+        const box = new THREE.Box3().setFromObject(this.currentModel);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const scale = 2 / maxDim;
+        this.currentModel.scale.set(scale, scale, scale);
+        this.currentModel.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+
+        this.currentModel.traverse((child) => {
+          if (child.isMesh) {
+            child.material = new THREE.MeshStandardMaterial({
+              color: 0xe0e0e0, roughness: 0.6, metalness: 0.1,
+              emissive: 0x00e5ff, emissiveIntensity: 0.05
+            });
+          }
+        });
+        this.scene.add(this.currentModel);
+        console.log(`✅ Modell geladen: ${modelId}`);
+      } catch (err) {
+        console.error(`❌ Modell ${modelId} konnte nicht geladen werden:`, err);
       }
     }
-  }
-};
+  };
 
-window.Anatomie3D = Anatomie3D;
-
-// Warten, bis HalDo existiert, dann die Anatomie-App überschreiben
-setTimeout(() => {
+  // 2. Die App überschreiben, sodass sie nicht mehr "Coming Soon" zeigt
   window.HalDo = window.HalDo || {};
-  
-  // Die neue Anatomie-App
   HalDo.Anatomy = {
     open() {
       const html = `
         <div style="padding:6px; height: 100%; display: flex; flex-direction: column;">
-          <!-- Header & Dropdown -->
           <div style="display:flex; gap:8px; margin-bottom:10px;">
             <select id="bone-select" style="flex:1; padding:10px; border-radius:10px; background:rgba(0,20,40,.6); border:1.5px solid var(--border); color:var(--text); font-size:13px;">
               ${BONES.map(b => `<option value="${b.id}">${b.name}</option>`).join('')}
@@ -10108,7 +10100,6 @@ setTimeout(() => {
             </div>
           </div>
           
-          <!-- 3D Container -->
           <div id="anatomie-3d-container" style="flex:1; width:100%; border-radius:12px; overflow:hidden; border:1.5px solid var(--accent); box-shadow:0 0 20px rgba(0,229,255,0.2); position:relative; background:#0a1420; min-height: 300px;">
              <div style="position:absolute; bottom:10px; right:10px; z-index:10; font-size:10px; opacity:0.5; color:#fff;">
                 Maus: Drehen · Scrollen: Zoom
@@ -10121,8 +10112,6 @@ setTimeout(() => {
       
       setTimeout(() => {
         Anatomie3D.init('anatomie-3d-container');
-        
-        // Dropdown-Event
         const select = document.getElementById('bone-select');
         if (select) {
           select.onchange = (e) => {
@@ -10134,21 +10123,18 @@ setTimeout(() => {
     }
   };
 
-  // Launch-Mapping aktualisieren
-  if (HalDo.Launch) {
-    const oldLaunch = HalDo.Launch;
-    HalDo.Launch = (app) => {
-      if (app.id === 'anatomy' || app.id === 'anatomie') {
-        return HalDo.Anatomy.open();
-      }
-      return oldLaunch(app);
-    };
-  }
+  // 3. Launch-Mapping patchen (damit es von überall aufgerufen werden kann)
+  const oldLaunch = HalDo.Launch;
+  HalDo.Launch = (app) => {
+    if (app.id === 'anatomy' || app.id === 'anatomie') {
+      return HalDo.Anatomy.open();
+    }
+    return oldLaunch(app);
+  };
 
-  console.log('%c🦴 v138 — 3D-Anatomie erfolgreich verbunden!', 'background:linear-gradient(90deg,#00e5ff,#00ff88);color:#000;padding:6px 12px;border-radius:6px;font-weight:bold');
-  console.log('✅ Modelle werden von deinem GitHub-Repo geladen.');
-}, 2500);
-
+  console.log('%c🦴 v139 — Echte 3D-Anatomie geladen!', 'background:linear-gradient(90deg,#00e5ff,#00ff88);color:#000;padding:6px 12px;border-radius:6px;font-weight:bold');
+  console.log('✅ Modelle werden von GitHub geladen.');
+}
 </script>
 </body>
 </html>
