@@ -9285,670 +9285,51 @@ setTimeout(() => {
 console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#00ff88;color:#000;padding:6px 12px;border-radius:6px;font-weight:bold');
 </script>
 <!-- ================================================================
-     HALDO AI OS v136c — 3D-Mensch mit HeadTTS (Browser-Modus, GitHub Pages)
-     ================================================================ -->
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js/+esm",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
-    "talkinghead": "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@1.8.2/modules/talkinghead.mjs",
-    "headtts": "https://cdn.jsdelivr.net/npm/@met4citizen/headtts@1.3/+esm"
-  }
-}
-</script>
-
-<script type="module">
-import { TalkingHead } from "talkinghead";
-import { HeadTTS } from "headtts";
-
-/* ═══════════════════════════════════════════════════════════════
-   1) HeadTTS im Browser initialisieren
-   ═══════════════════════════════════════════════════════════════ */
-let headtts = null;
-try {
-  headtts = new HeadTTS({
-    endpoints: ["webgpu", "wasm"],
-    languages: ["en-us"],
-    voices: ["af_bella"],
-    defaultVoice: "af_bella",
-    defaultLanguage: "en-us"
-  });
-  console.log("✅ HeadTTS initialisiert");
-} catch (e) {
-  console.error("❌ HeadTTS Fehler:", e);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   2) HALDO 3D AVATAR — TalkingHead + HeadTTS (speakAudio!)
-   ═══════════════════════════════════════════════════════════════ */
-const HalDo3D = {
-  head: null,
-  ready: false,
-
-  async start(containerId, avatarUrl) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-
-    const finalUrl = avatarUrl + '?morphTargets=ARKit,Oculus%20Visemes,mouthOpen,mouthSmile,eyesClosed,eyesLookUp,eyesLookDown&textureSizeLimit=1024&textureFormat=png';
-
-    try {
-      // WICHTIG: Absoluter Dummy-Endpunkt, damit TalkingHead startet.
-      // Dieser wird NIE aufgerufen, weil wir speakAudio() verwenden.
-      this.head = new TalkingHead(container, {
-        ttsEndpoint: "https://example.com/tts", // Dummy – wird nicht kontaktiert
-        lipsyncModules: ["en"],
-        cameraView: "upper",
-        cameraRotateEnable: true,
-        avatarMood: "neutral"
-      });
-
-      await this.head.showAvatar({
-        url: finalUrl,
-        body: "F",
-        avatarMood: "neutral",
-        ttsLang: "en-US",
-        lipsyncLang: "en"
-      });
-
-      // HeadTTS verbinden
-      if (headtts) {
-        await headtts.connect();
-        console.log("✅ HeadTTS verbunden");
-
-        // HeadTTS-Ausgabe an TalkingHead.speakAudio() weiterleiten
-        headtts.onmessage = (message) => {
-          if (message.type === "audio") {
-            try {
-              this.head.speakAudio(message.data, { lipsyncLang: "en" });
-              console.log("🔊 Audio an Avatar gesendet");
-            } catch (err) {
-              console.error("speakAudio Fehler:", err);
-            }
-          } else if (message.type === "error") {
-            console.error("HeadTTS Fehler:", message.data?.error || "Unbekannt");
-          }
-        };
-      }
-
-      this.ready = true;
-      console.log("✅ 3D-Avatar mit HeadTTS geladen (speakAudio-Modus)");
-    } catch (err) {
-      console.error("❌ 3D-Avatar Fehler:", err);
-      container.innerHTML = `
-        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#e6f7ff;text-align:center;padding:20px">
-          <div>
-            <div style="font-size:40px">🤖</div>
-            <p style="margin-top:10px;font-size:12px;opacity:.7">3D-Avatar konnte nicht geladen werden.<br>Prüfe die Konsole (F12) für Details.</p>
-          </div>
-        </div>`;
-    }
-  },
-
-  // Spricht Text: HeadTTS → Audio → speakAudio → Lippensync
-  async speak(text) {
-    if (!this.ready) {
-      // Fallback: nur Browser-TTS
-      try {
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = "de-DE";
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(u);
-      } catch (e) {}
-      return;
-    }
-
-    // HeadTTS für Lippensync (Englisch)
-    if (headtts) {
-      try {
-        // Sprache setzen (Englisch, da HeadTTS nur Englisch unterstützt)
-        await headtts.setup({ language: "en-us", voice: "af_bella" });
-        // Text synthetisieren – Ergebnis kommt über onmessage
-        await headtts.synthesize({ text: text, type: "text" });
-        return;
-      } catch (e) {
-        console.warn("HeadTTS speak fehlgeschlagen, Fallback auf Web Speech API:", e);
-      }
-    }
-
-    // Fallback: Web Speech API (Deutsch, ohne Lippensync)
-    try {
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = "de-DE";
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(u);
-    } catch (e) {}
-  },
-
-  setMood(mood) {
-    if (this.head && this.ready) {
-      try { this.head.setMood(mood); } catch (e) {}
-    }
-  },
-
-  stop() {
-    if (this.head && this.ready) {
-      try { this.head.stopSpeaking(); } catch (e) {}
-    }
-    try { window.speechSynthesis.cancel(); } catch (e) {}
-  }
-};
-
-window.HalDo3D = HalDo3D;
-
-/* ═══════════════════════════════════════════════════════════════
-   3) Chat-Fenster patchen
-   ═══════════════════════════════════════════════════════════════ */
-setTimeout(() => {
-  if (!window.HalDo || !window.HalDo.Chat) return;
-
-  const originalChatOpen = HalDo.Chat.open;
-
-  HalDo.Chat.open = function () {
-    originalChatOpen();
-
-    setTimeout(async () => {
-      const canvas = document.getElementById('avatar-canvas');
-      if (!canvas) return;
-
-      const container = document.createElement('div');
-      container.id = 'haldo-3d-avatar-container';
-      container.style.cssText = `
-        width: 100%; height: 220px; border-radius: 16px; overflow: hidden;
-        background: radial-gradient(circle at center, #0a1a2a, #000208);
-        border: 1.5px solid var(--accent);
-        box-shadow: 0 0 20px rgba(0,229,255,0.3);
-        position: relative;
-      `;
-/* HALDO – READY PLAYER ME 404 SCHUTZ */
-(function () {
-    "use strict";
-
-    const brokenAvatarURL = "readyplayerme.github.io/visage/male.glb";
-
-    window.addEventListener("error", function (event) {
-        const source = event.target && event.target.src;
-
-        if (typeof source === "string" &&
-            source.includes(brokenAvatarURL)) {
-            console.warn(
-                "HalDo: Externes Ready Player Me Modell nicht erreichbar."
-            );
-        }
-    }, true);
-
-    console.log("HalDo Avatar-Fehlerschutz aktiviert.");
-})();
-</script>
-<!-- =====================================================
-     HalDo AI – APPEARANCE & AVATAR STUDIO
-     Einfügen direkt vor </body> in index.html
-===================================================== -->
-<style id="haldo-appearance-styles">
-  :root {
-    --haldo-custom-accent: #00aaff;
-  }
-
-  #haldo-studio-button {
-    position: fixed;
-    right: 22px;
-    bottom: 22px;
-    z-index: 999990;
-    padding: 13px 19px;
-    border: 1px solid var(--haldo-custom-accent);
-    border-radius: 14px;
-    color: white;
-    background: linear-gradient(135deg, #06172c, #102e50);
-    box-shadow: 0 0 18px var(--haldo-custom-accent);
-    font: 600 14px Arial, sans-serif;
-    cursor: pointer;
-  }
-
-  #haldo-studio-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 999991;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    background: rgba(0, 5, 18, .84);
-    backdrop-filter: blur(12px);
-    font-family: Arial, sans-serif;
-  }
-
-  #haldo-studio-overlay.haldo-open { display: flex; }
-
-  #haldo-studio {
-    width: min(920px, 100%);
-    max-height: 92vh;
-    overflow-y: auto;
-    padding: 22px;
-    color: #eef8ff;
-    border: 1px solid #078dff;
-    border-radius: 22px;
-    background: linear-gradient(145deg, #07172b, #101e39 65%, #071225);
-    box-shadow: 0 0 35px #007bff66;
-  }
-
-  #haldo-studio h2 {
-    margin: 0 0 7px;
-    color: #42caff;
-    font-size: 25px;
-  }
-
-  #haldo-studio .haldo-subtitle {
-    margin: 0 0 20px;
-    color: #b8d8f5;
-  }
-
-  #haldo-studio .haldo-section { margin-top: 20px; }
-
-  #haldo-studio .haldo-section h3 {
-    margin: 0 0 11px;
-    font-size: 16px;
-    color: #8edcff;
-  }
-
-  #haldo-studio .haldo-options {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
-    gap: 10px;
-  }
-
-  #haldo-studio .haldo-choice {
-    min-height: 76px;
-    padding: 12px 8px;
-    color: white;
-    border: 1px solid #28628f;
-    border-radius: 13px;
-    background: #0a2340;
-    cursor: pointer;
-    font-size: 14px;
-  }
-
-  #haldo-studio .haldo-choice strong {
-    display: block;
-    margin-bottom: 6px;
-    font-size: 25px;
-  }
-
-  #haldo-studio .haldo-choice.selected {
-    border: 2px solid #00c8ff;
-    background: #123d64;
-    box-shadow: 0 0 14px #00aaff66;
-  }
-
-  #haldo-studio select,
-  #haldo-studio input[type="color"] {
-    min-height: 42px;
-    padding: 8px;
-    color: white;
-    border: 1px solid #287bb4;
-    border-radius: 9px;
-    background: #0a2340;
-  }
-
-  #haldo-studio .haldo-preview {
-    margin-top: 20px;
-    padding: 18px;
-    text-align: center;
-    border: 1px solid var(--haldo-custom-accent);
-    border-radius: 15px;
-    background: radial-gradient(ellipse at center, #16436c, #061326 75%);
-  }
-
-  #haldo-studio .haldo-preview-avatar {
-    margin: 8px auto;
-    font-size: 66px;
-    filter: drop-shadow(0 0 12px var(--haldo-custom-accent));
-  }
-
-  #haldo-studio .haldo-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 20px;
-  }
-
-  #haldo-studio .haldo-action {
-    flex: 1;
-    min-width: 130px;
-    padding: 13px;
-    color: white;
-    border: 1px solid #159fff;
-    border-radius: 10px;
-    background: #07518a;
-    cursor: pointer;
-    font-weight: bold;
-  }
-
-  #haldo-studio .haldo-action.secondary {
-    background: #26344a;
-    border-color: #64758d;
-  }
-
-  #haldo-studio .haldo-note {
-    margin-top: 14px;
-    color: #a9c8e4;
-    font-size: 12px;
-    line-height: 1.5;
-  }
-
-  @media (max-width: 600px) {
-    #haldo-studio { padding: 16px; }
-    #haldo-studio-button { right: 12px; bottom: 12px; }
-  }
-</style>
-
-<button id="haldo-studio-button" type="button">
-  ⚙️ HalDo Design
-</button>
-
-<div id="haldo-studio-overlay" role="dialog"
-     aria-modal="true" aria-label="HalDo Design Studio">
-  <div id="haldo-studio">
-    <h2>💙 HalDo Avatar & Design Studio</h2>
-    <p class="haldo-subtitle">
-      Gestalte deinen persönlichen HalDo-Begleiter.
-    </p>
-
-    <div class="haldo-section">
-      <h3>1. Avatar-Modus auswählen</h3>
-      <div class="haldo-options" data-setting="avatar">
-        <button class="haldo-choice" data-value="human">
-          <strong>👩</strong>Mensch
-        </button>
-        <button class="haldo-choice" data-value="cyborg">
-          <strong>🦾</strong>Cyborg
-        </button>
-        <button class="haldo-choice" data-value="android">
-          <strong>🤖</strong>Android
-        </button>
-        <button class="haldo-choice" data-value="hologram">
-          <strong>✨</strong>Hologramm
-        </button>
-        <button class="haldo-choice" data-value="robot">
-          <strong>🦿</strong>Roboter
-        </button>
-      </div>
-    </div>
-
-    <div class="haldo-section">
-      <h3>2. Erscheinungsbild</h3>
-      <div class="haldo-options" data-setting="appearance">
-        <button class="haldo-choice" data-value="female">
-          <strong>👩</strong>Weiblich
-        </button>
-        <button class="haldo-choice" data-value="male">
-          <strong>👨</strong>Männlich
-        </button>
-        <button class="haldo-choice" data-value="multiple">
-          <strong>👥</strong>Mehrere
-        </button>
-      </div>
-    </div>
-
-    <div class="haldo-section">
-      <h3>3. Darstellung</h3>
-      <div class="haldo-options" data-setting="body">
-        <button class="haldo-choice" data-value="full">
-          <strong>🧍</strong>Ganzkörper
-        </button>
-        <button class="haldo-choice" data-value="upper">
-          <strong>👤</strong>Oberkörper
-        </button>
-        <button class="haldo-choice" data-value="face">
-          <strong>🙂</strong>Gesicht
-        </button>
-      </div>
-    </div>
-
-    <div class="haldo-section">
-      <h3>4. Hintergrund</h3>
-      <div class="haldo-options" data-setting="background">
-        <button class="haldo-choice" data-value="futuristic">
-          <strong>🌃</strong>Futuristischer Raum
-        </button>
-        <button class="haldo-choice" data-value="space">
-          <strong>🌌</strong>Weltraum
-        </button>
-        <button class="haldo-choice" data-value="city">
-          <strong>🏙️</strong>Skyline
-        </button>
-        <button class="haldo-choice" data-value="studio">
-          <strong>💎</strong>Studio
-        </button>
-      </div>
-    </div>
-
-    <div class="haldo-section">
-      <h3>5. Deine Neonfarbe</h3>
-      <input id="haldo-studio-color" type="color" value="#00aaff">
-    </div>
-
-    <div class="haldo-section">
-      <h3>6. Sprache</h3>
-      <select id="haldo-studio-language">
-        <option value="de">Deutsch</option>
-        <option value="en">English</option>
-        <option value="tr">Türkçe</option>
-        <option value="ku">Kurdî</option>
-        <option value="ar">العربية</option>
-        <option value="fr">Français</option>
-      </select>
-    </div>
-
-    <div class="haldo-preview">
-      <div>Deine aktuelle Auswahl</div>
-      <div class="haldo-preview-avatar" id="haldo-studio-avatar">👩</div>
-      <strong id="haldo-studio-preview-name">HalDo AI Human</strong>
-      <div id="haldo-studio-preview-details">Mensch · Weiblich · Ganzkörper</div>
-    </div>
-
-    <div class="haldo-actions">
-      <button class="haldo-action" id="haldo-studio-save">
-        💾 Auswahl speichern
-      </button>
-      <button class="haldo-action secondary" id="haldo-studio-reset">
-        ↩ Standarddesign
-      </button>
-      <button class="haldo-action secondary" id="haldo-studio-close">
-        ✕ Schließen
-      </button>
-    </div>
-
-    <p class="haldo-note">
-      Deine Einstellungen werden lokal in diesem Browser gespeichert.
-      Die Auswahl steuert zunächst dieses Studio. Für die tatsächliche
-      3D-Avatar-Darstellung müssen die vorhandenen Avatar-Modelle und
-      die HalDo-3D-Engine anschließend angebunden werden.
-    </p>
-  </div>
-</div>
-
-<script>
-(() => {
-  "use strict";
-
-  const STORAGE_KEY = "haldo_appearance_settings_v1";
-
-  const defaults = {
-    avatar: "human",
-    appearance: "female",
-    body: "full",
-    background: "futuristic",
-    color: "#00aaff",
-    language: "de"
-  };
-
-  const labels = {
-    avatar: {
-      human: "Mensch",
-      cyborg: "Cyborg",
-      android: "Android",
-      hologram: "Hologramm",
-      robot: "Roboter"
-    },
-    appearance: {
-      female: "Weiblich",
-      male: "Männlich",
-      multiple: "Mehrere"
-    },
-    body: {
-      full: "Ganzkörper",
-      upper: "Oberkörper",
-      face: "Gesicht"
-    }
-  };
-
-  const icons = {
-    human: "👩",
-    cyborg: "🦾",
-    android: "🤖",
-    hologram: "✨",
-    robot: "🦿"
-  };
-
-  let settings = { ...defaults };
-
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-    settings = { ...defaults, ...saved };
-  } catch (error) {
-    console.warn("HalDo: Einstellungen konnten nicht geladen werden.", error);
-  }
-
-  const overlay = document.getElementById("haldo-studio-overlay");
-  const colorInput = document.getElementById("haldo-studio-color");
-  const languageInput = document.getElementById("haldo-studio-language");
-
-  if (!overlay || !colorInput || !languageInput) return;
-
-  function render() {
-    document.querySelectorAll("#haldo-studio [data-setting]").forEach(group => {
-      const key = group.dataset.setting;
-      group.querySelectorAll(".haldo-choice").forEach(button => {
-        button.classList.toggle(
-          "selected",
-          button.dataset.value === settings[key]
-        );
-      });
-    });
-
-    colorInput.value = settings.color;
-    languageInput.value = settings.language;
-
-    document.documentElement.style.setProperty(
-      "--haldo-custom-accent",
-      settings.color
-    );
-
-    document.getElementById("haldo-studio-avatar").textContent =
-      icons[settings.avatar] || "👩";
-
-    document.getElementById("haldo-studio-preview-name").textContent =
-      "HalDo AI " + (labels.avatar[settings.avatar] || "Human");
-
-    document.getElementById("haldo-studio-preview-details").textContent =
-      [
-        labels.avatar[settings.avatar],
-        labels.appearance[settings.appearance],
-        labels.body[settings.body]
-      ].join(" · ");
-  }
-
-  function save() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-      window.dispatchEvent(new CustomEvent("haldo:appearance-change", {
-        detail: { ...settings }
-      }));
-      alert("💙 Deine HalDo-Einstellungen wurden gespeichert!");
-    } catch (error) {
-      alert("Speichern nicht möglich. Bitte Browser-Speicher prüfen.");
-      console.error(error);
-    }
-  }
-
-  document.getElementById("haldo-studio-button").addEventListener("click", () => {
-    overlay.classList.add("haldo-open");
-  });
-
-  document.getElementById("haldo-studio-close").addEventListener("click", () => {
-    overlay.classList.remove("haldo-open");
-  });
-
-  overlay.addEventListener("click", event => {
-    if (event.target === overlay) overlay.classList.remove("haldo-open");
-  });
-
-  document.querySelectorAll("#haldo-studio [data-setting]").forEach(group => {
-    group.addEventListener("click", event => {
-      const button = event.target.closest(".haldo-choice");
-      if (!button) return;
-
-      settings[group.dataset.setting] = button.dataset.value;
-      render();
-    });
-  });
-
-  colorInput.addEventListener("input", () => {
-    settings.color = colorInput.value;
-    render();
-  });
-
-  languageInput.addEventListener("change", () => {
-    settings.language = languageInput.value;
-  });
-
-  document.getElementById("haldo-studio-save").addEventListener("click", save);
-
-  document.getElementById("haldo-studio-reset").addEventListener("click", () => {
-    settings = { ...defaults };
-    render();
-    save();
-  });
-
-  // Schnittstelle für die spätere Verbindung mit HalDos 3D-Engine.
-  window.HalDoAppearance = {
-    getSettings() {
-      return { ...settings };
-    },
-    open() {
-      overlay.classList.add("haldo-open");
-    },
-    save
-  };
-
-  render();
-
-  window.dispatchEvent(new CustomEvent("haldo:appearance-change", {
-    detail: { ...settings }
-  }));
-
-  console.log("💙 HalDo Appearance Studio geladen.");
-})();
-</script>
-<!-- ENDE HALDO APPEARANCE STUDIO -->
-<!-- ================================================================
-     HALDO AI OS v143 — Arztbuch Pro Max (Finaler Fix)
-     Lädt 3D-Modelle von GitHub, behebt DEMO_AVATAR-Fehler.
+     HALDO AI OS v144 — Arztbuch Pro Max (Finaler, stabiler Fix)
      ================================================================ -->
 <script>
 (function() {
-  // 1. Warten, bis die Seite komplett geladen ist
-  window.addEventListener('load', () => {
+  // Warten, bis die Seite komplett geladen ist
+  window.addEventListener('load', function() {
 
-    // 2. Die 3D-Umgebung (wird nur bei Bedarf geladen)
-    let Anatomie3D = null;
+    // ---------------------------------------------------------
+    // 1. DEINE MODELL-LISTE (Hier die genauen Dateinamen eintragen!)
+    // ---------------------------------------------------------
+    var MODELS = [
+      { id: 'c1_atlas', name: 'C1 Atlas (Hals)' },
+      { id: 'c2', name: 'C2 Axis (Hals)' },
+      { id: 'c3', name: 'C3 (Hals)' },
+      { id: 'c4', name: 'C4 (Hals)' },
+      { id: 'c5', name: 'C5 (Hals)' },
+      { id: 'c6', name: 'C6 (Hals)' },
+      { id: 'c7', name: 'C7 (Hals)' },
+      { id: 'l1', name: 'L1 (Lende)' },
+      { id: 'l2', name: 'L2 (Lende)' },
+      { id: 'l3', name: 'L3 (Lende)' },
+      { id: 'l4', name: 'L4 (Lende)' },
+      { id: 'l5', name: 'L5 (Lende)' },
+      { id: 'coccyx', name: 'Steißbein' }
+      // --- HIER DEINE WEITEREN MODELLE EINTRAGEN ---
+      // { id: 'baby', name: 'Baby (Säugling)' },
+      // { id: 'pregnant', name: 'Schwangere Frau' },
+      // { id: 'skeleton', name: 'Skelett (Ganzkörper)' },
+      // { id: 'organs', name: 'Innere Organe' }
+    ];
+
+    var BASE_URL = 'https://haldoaios-official.github.io/HalDo/models/adult_male/adult_female/';
+
+    // ---------------------------------------------------------
+    // 2. 3D-Viewer (wird nur bei Bedarf geladen)
+    // ---------------------------------------------------------
+    var Anatomie3D = null;
 
     function init3DViewer(containerId) {
-      const container = document.getElementById(containerId);
+      var container = document.getElementById(containerId);
       if (!container) return;
 
+      // Lade Three.js und GLTFLoader, falls noch nicht vorhanden
       function loadScript(src, cb) {
-        const s = document.createElement('script');
+        var s = document.createElement('script');
         s.src = src;
         s.onload = cb;
         document.head.appendChild(s);
@@ -9959,20 +9340,20 @@ setTimeout(() => {
           Anatomie3D.init(containerId);
           return;
         }
-        
+
         Anatomie3D = {
           scene: null, camera: null, renderer: null, controls: null,
           currentModel: null, animationId: null,
 
-          init(cid) {
-            const c = document.getElementById(cid);
+          init: function(cid) {
+            var c = document.getElementById(cid);
             if (!c) return;
             if (this.renderer) this.stop();
 
             this.scene = new THREE.Scene();
             this.scene.background = new THREE.Color(0x0a1420);
-            const w = c.clientWidth || 400;
-            const h = c.clientHeight || 350;
+            var w = c.clientWidth || 400;
+            var h = c.clientHeight || 350;
 
             this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
             this.camera.position.set(0, 0, 5);
@@ -9983,8 +9364,8 @@ setTimeout(() => {
             c.appendChild(this.renderer.domElement);
 
             this.scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-            const l1 = new THREE.DirectionalLight(0x00e5ff, 2); l1.position.set(5, 5, 5); this.scene.add(l1);
-            const l2 = new THREE.DirectionalLight(0xb478ff, 1); l2.position.set(-5, -5, -5); this.scene.add(l2);
+            var l1 = new THREE.DirectionalLight(0x00e5ff, 2); l1.position.set(5, 5, 5); this.scene.add(l1);
+            var l2 = new THREE.DirectionalLight(0xb478ff, 1); l2.position.set(-5, -5, -5); this.scene.add(l2);
 
             this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
             this.controls.enableDamping = true;
@@ -9992,32 +9373,32 @@ setTimeout(() => {
 
             this.loadModel('c1_atlas');
 
-            const animate = () => {
-              this.animationId = requestAnimationFrame(animate);
-              this.controls.update();
-              this.renderer.render(this.scene, this.camera);
+            var self = this;
+            var animate = function() {
+              self.animationId = requestAnimationFrame(animate);
+              self.controls.update();
+              self.renderer.render(self.scene, self.camera);
             };
             animate();
           },
 
-          async loadModel(modelId) {
-            // URL zu deinem GitHub-Repository
-            const url = `https://haldoaios-official.github.io/HalDo/models/adult_male/adult_female/${modelId}.glb`;
-            const loader = new THREE.GLTFLoader();
-            try {
-              if (this.currentModel) this.scene.remove(this.currentModel);
-              const gltf = await loader.loadAsync(url);
-              this.currentModel = gltf.scene;
+          loadModel: function(modelId) {
+            var url = BASE_URL + modelId + '.glb';
+            var loader = new THREE.GLTFLoader();
+            var self = this;
+            loader.load(url, function(gltf) {
+              if (self.currentModel) self.scene.remove(self.currentModel);
+              self.currentModel = gltf.scene;
               
-              const box = new THREE.Box3().setFromObject(this.currentModel);
-              const center = box.getCenter(new THREE.Vector3());
-              const size = box.getSize(new THREE.Vector3());
-              const scale = 2 / Math.max(size.x, size.y, size.z);
+              var box = new THREE.Box3().setFromObject(self.currentModel);
+              var center = box.getCenter(new THREE.Vector3());
+              var size = box.getSize(new THREE.Vector3());
+              var scale = 2 / Math.max(size.x, size.y, size.z);
               
-              this.currentModel.scale.set(scale, scale, scale);
-              this.currentModel.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+              self.currentModel.scale.set(scale, scale, scale);
+              self.currentModel.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
 
-              this.currentModel.traverse((child) => {
+              self.currentModel.traverse(function(child) {
                 if (child.isMesh) {
                   child.material = new THREE.MeshStandardMaterial({
                     color: 0xe0e0e0, roughness: 0.6, metalness: 0.1,
@@ -10025,12 +9406,13 @@ setTimeout(() => {
                   });
                 }
               });
-              this.scene.add(this.currentModel);
-            } catch (err) {
-              console.error(`❌ Modell ${modelId} Fehler:`, err);
-            }
+              self.scene.add(self.currentModel);
+            }, undefined, function(err) {
+              console.error('❌ Modell ' + modelId + ' Fehler:', err);
+            });
           },
-          stop() {
+
+          stop: function() {
             if (this.animationId) cancelAnimationFrame(this.animationId);
             if (this.renderer) {
               this.renderer.dispose();
@@ -10047,103 +9429,96 @@ setTimeout(() => {
       if (window.THREE && window.THREE.GLTFLoader) {
         start3D();
       } else {
-        // GLTFLoader laden
-        loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js', () => {
-          // OrbitControls laden
+        loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js', function() {
           loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js', start3D);
         });
       }
     }
 
-    const BONES = [
-      { id: 'c1_atlas', n: 'C1 Atlas (Hals)' }, { id: 'c2', n: 'C2 Axis (Hals)' },
-      { id: 'c3', n: 'C3 (Hals)' }, { id: 'c4', n: 'C4 (Hals)' }, { id: 'c5', n: 'C5 (Hals)' },
-      { id: 'c6', n: 'C6 (Hals)' }, { id: 'c7', n: 'C7 (Hals)' },
-      { id: 'l1', n: 'L1 (Lende)' }, { id: 'l2', n: 'L2 (Lende)' }, { id: 'l3', n: 'L3 (Lende)' },
-      { id: 'l4', n: 'L4 (Lende)' }, { id: 'l5', n: 'L5 (Lende)' }, { id: 'coccyx', n: 'Steißbein' }
-    ];
-
+    // ---------------------------------------------------------
     // 3. Das Arztbuch definieren
+    // ---------------------------------------------------------
     window.HalDo = window.HalDo || {};
     HalDo.Arztbuch = {
-      open() {
-        const tabs = [
-          { k: 'Anatomie', ic: '🫀' }, { k: 'KI-Assistent', ic: '🤖' },
-          { k: 'Krankheiten', ic: '🤒' }, { k: 'Medikamente', ic: '💊' },
-          { k: 'Laborwerte', ic: '🧪' }, { k: 'Notfall', ic: '🚨' }
+      open: function() {
+        var tabs = [
+          { k: 'Anatomie', ic: '🫀' },
+          { k: 'KI-Assistent', ic: '🤖' },
+          { k: 'Krankheiten', ic: '🤒' },
+          { k: 'Medikamente', ic: '💊' },
+          { k: 'Laborwerte', ic: '🧪' },
+          { k: 'Notfall', ic: '🚨' }
         ];
 
-        const html = `
-          <div style="padding:4px; height: 100%; display: flex; flex-direction: column;">
-            <div style="display:flex; gap:4px; margin-bottom:10px; justify-content:center; flex-wrap:wrap">
-              ${tabs.map((t, i) => `<div class="chip ${i === 0 ? 'active' : ''}" data-arzt-tab="${t.k}" style="font-size:11px;padding:6px 10px">${t.ic} ${t.k}</div>`).join('')}
-            </div>
-            <div id="arzt-body" style="flex:1; overflow-y:auto;"></div>
-          </div>
-        `;
+        var html = '<div style="padding:4px; height: 100%; display: flex; flex-direction: column;">' +
+          '<div style="display:flex; gap:4px; margin-bottom:10px; justify-content:center; flex-wrap:wrap">';
+        for (var i = 0; i < tabs.length; i++) {
+          html += '<div class="chip ' + (i === 0 ? 'active' : '') + '" data-arzt-tab="' + tabs[i].k + '" style="font-size:11px;padding:6px 10px">' + tabs[i].ic + ' ' + tabs[i].k + '</div>';
+        }
+        html += '</div><div id="arzt-body" style="flex:1; overflow-y:auto;"></div></div>';
 
         HalDo.Win.open('🩺 HalDo Arztbuch Pro Max', html, { w: 500, h: 650 });
 
-        setTimeout(() => {
-          const body = document.getElementById('arzt-body');
-          
-          const showTab = (tabKey) => {
+        setTimeout(function() {
+          var body = document.getElementById('arzt-body');
+
+          function showTab(tabKey) {
             if (Anatomie3D) Anatomie3D.stop();
 
             if (tabKey === 'Anatomie') {
-              body.innerHTML = `
-                <div style="height: 400px; display:flex; flex-direction:column;">
-                  <div style="display:flex; gap:6px; margin-bottom:8px;">
-                    <select id="bone-select" style="flex:1; padding:8px; border-radius:8px; background:rgba(0,20,40,.6); border:1px solid var(--border); color:var(--text); font-size:12px;">
-                      ${BONES.map(b => `<option value="${b.id}">${b.n}</option>`).join('')}
-                    </select>
-                  </div>
-                  <div id="anatomie-3d-container" style="flex:1; width:100%; border-radius:12px; border:1.5px solid var(--accent); position:relative; background:#0a1420;">
-                    <div style="position:absolute; bottom:10px; right:10px; z-index:10; font-size:10px; opacity:0.5; color:#fff;">Drehen & Zoomen</div>
-                    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:var(--accent); font-size:12px;">Lade 3D-Modell...</div>
-                  </div>
-                </div>
-              `;
+              var boneOptions = '';
+              for (var i = 0; i < MODELS.length; i++) {
+                boneOptions += '<option value="' + MODELS[i].id + '">' + MODELS[i].name + '</option>';
+              }
+              body.innerHTML = '<div style="height: 400px; display:flex; flex-direction:column;">' +
+                '<div style="display:flex; gap:6px; margin-bottom:8px;">' +
+                '<select id="bone-select" style="flex:1; padding:8px; border-radius:8px; background:rgba(0,20,40,.6); border:1px solid var(--border); color:var(--text); font-size:12px;">' + boneOptions + '</select>' +
+                '</div>' +
+                '<div id="anatomie-3d-container" style="flex:1; width:100%; border-radius:12px; border:1.5px solid var(--accent); position:relative; background:#0a1420;">' +
+                '<div style="position:absolute; bottom:10px; right:10px; z-index:10; font-size:10px; opacity:0.5; color:#fff;">Drehen & Zoomen</div>' +
+                '<div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:var(--accent); font-size:12px;">Lade 3D-Modell...</div>' +
+                '</div></div>';
+
               init3DViewer('anatomie-3d-container');
-              setTimeout(() => {
-                document.getElementById('bone-select').onchange = (e) => {
-                  if (Anatomie3D) Anatomie3D.loadModel(e.target.value);
-                };
+              setTimeout(function() {
+                var sel = document.getElementById('bone-select');
+                if (sel) {
+                  sel.onchange = function(e) {
+                    if (Anatomie3D) Anatomie3D.loadModel(e.target.value);
+                  };
+                }
               }, 100);
             } 
             else if (tabKey === 'KI-Assistent') {
-              body.innerHTML = `
-                <div style="padding:10px; background:rgba(180,120,255,0.1); border-radius:12px; border:1px solid var(--accent3); text-align:center; margin-bottom:12px;">
-                  <strong style="color:var(--accent3);">HalDo AI Medizin-Assistent</strong>
-                  <p style="font-size:11px; opacity:0.8; margin-top:4px;">Frag mich zu Symptomen, Medikamenten oder Anatomie.</p>
-                </div>
-                <div id="med-chat-log" style="height:300px; overflow-y:auto; padding:10px; background:rgba(0,0,0,0.2); border-radius:10px; margin-bottom:10px; display:flex; flex-direction:column; gap:8px;">
-                  <div class="msg ai" style="align-self:flex-start; background:rgba(180,120,255,0.2); padding:8px 12px; border-radius:12px; font-size:12px;">Hallo! Ich bin dein medizinischer KI-Assistent. Wie kann ich helfen?</div>
-                </div>
-                <div style="display:flex; gap:6px;">
-                  <input id="med-chat-in" placeholder="Stelle eine Frage..." style="flex:1; padding:10px; border-radius:10px; background:rgba(0,20,40,.6); border:1px solid var(--border); color:var(--text); font-size:13px;">
-                  <button id="med-chat-send" class="chip active" style="min-width:50px;">➤</button>
-                </div>
-              `;
-              const log = document.getElementById('med-chat-log');
-              const inp = document.getElementById('med-chat-in');
-              const send = document.getElementById('med-chat-send');
-              
-              const addMsg = (text, who) => {
-                const div = document.createElement('div');
+              body.innerHTML = '<div style="padding:10px; background:rgba(180,120,255,0.1); border-radius:12px; border:1px solid var(--accent3); text-align:center; margin-bottom:12px;">' +
+                '<strong style="color:var(--accent3);">HalDo AI Medizin-Assistent</strong>' +
+                '<p style="font-size:11px; opacity:0.8; margin-top:4px;">Frag mich zu Symptomen, Medikamenten oder Anatomie.</p></div>' +
+                '<div id="med-chat-log" style="height:300px; overflow-y:auto; padding:10px; background:rgba(0,0,0,0.2); border-radius:10px; margin-bottom:10px; display:flex; flex-direction:column; gap:8px;">' +
+                '<div class="msg ai" style="align-self:flex-start; background:rgba(180,120,255,0.2); padding:8px 12px; border-radius:12px; font-size:12px;">Hallo! Ich bin dein medizinischer KI-Assistent. Wie kann ich helfen?</div></div>' +
+                '<div style="display:flex; gap:6px;">' +
+                '<input id="med-chat-in" placeholder="Stelle eine Frage..." style="flex:1; padding:10px; border-radius:10px; background:rgba(0,20,40,.6); border:1px solid var(--border); color:var(--text); font-size:13px;">' +
+                '<button id="med-chat-send" class="chip active" style="min-width:50px;">➤</button></div>';
+
+              var log = document.getElementById('med-chat-log');
+              var inp = document.getElementById('med-chat-in');
+              var send = document.getElementById('med-chat-send');
+
+              function addMsg(text, who) {
+                var div = document.createElement('div');
                 div.className = 'msg ' + who;
-                div.style.cssText = `align-self:${who==='user'?'flex-end':'flex-start'}; background:${who==='user'?'rgba(0,229,255,0.2)':'rgba(180,120,255,0.2)'}; padding:8px 12px; border-radius:12px; font-size:12px; max-width:80%;`;
+                div.style.cssText = 'align-self:' + (who === 'user' ? 'flex-end' : 'flex-start') + '; background:' + (who === 'user' ? 'rgba(0,229,255,0.2)' : 'rgba(180,120,255,0.2)') + '; padding:8px 12px; border-radius:12px; font-size:12px; max-width:80%;';
                 div.textContent = text;
                 log.appendChild(div); log.scrollTop = log.scrollHeight;
-              };
-              
-              send.onclick = () => {
-                const t = inp.value.trim(); if (!t) return;
+              }
+
+              send.onclick = function() {
+                var t = inp.value.trim(); if (!t) return;
                 addMsg(t, 'user'); inp.value = '';
-                setTimeout(async () => {
+                setTimeout(function() {
                   if (window.HalDoAI && HalDoAI.apiKey) {
-                    const ans = await HalDoAI.ask("Du bist ein Arzt-Assistent. Antworte kurz und medizinisch korrekt auf Deutsch: " + t);
-                    addMsg(ans, 'ai');
+                    HalDoAI.ask("Du bist ein Arzt-Assistent. Antworte kurz und medizinisch korrekt auf Deutsch: " + t).then(function(ans) {
+                      addMsg(ans, 'ai');
+                    });
                   } else {
                     addMsg("Ich benötige einen Gemini API-Key, um frei antworten zu können. (Öffne die API-Key App)", 'ai');
                   }
@@ -10151,7 +9526,7 @@ setTimeout(() => {
               };
             }
             else if (tabKey === 'Krankheiten') {
-              const k = [
+              var k = [
                 ['Erkältung','Husten, Schnupfen, Halsschmerzen. 7-10 Tage. Viel trinken.'],
                 ['Grippe','Plötzliches Fieber, Gliederschmerzen. 1-2 Wochen.'],
                 ['Migräne','Pulsierender Kopfschmerz, Übelkeit, Lichtempfindlich.'],
@@ -10161,14 +9536,17 @@ setTimeout(() => {
                 ['COVID-19','Fieber, Husten, Geruchsverlust.'],
                 ['Depression','Antriebslosigkeit, Traurigkeit, Schlafstörung.']
               ];
-              body.innerHTML = `<div style="padding:8px;">${k.map(x => `
-                <div style="padding:10px; background:rgba(255,180,60,0.1); border-radius:10px; margin-bottom:6px; border:1px solid #ffb400;">
-                  <strong style="font-size:13px; color:#ffb400;">${x[0]}</strong>
-                  <p style="font-size:11px; opacity:0.8; margin-top:4px;">${x[1]}</p>
-                </div>`).join('')}</div>`;
+              var htmlK = '<div style="padding:8px;">';
+              for (var i = 0; i < k.length; i++) {
+                htmlK += '<div style="padding:10px; background:rgba(255,180,60,0.1); border-radius:10px; margin-bottom:6px; border:1px solid #ffb400;">' +
+                  '<strong style="font-size:13px; color:#ffb400;">' + k[i][0] + '</strong>' +
+                  '<p style="font-size:11px; opacity:0.8; margin-top:4px;">' + k[i][1] + '</p></div>';
+              }
+              htmlK += '</div>';
+              body.innerHTML = htmlK;
             }
             else if (tabKey === 'Medikamente') {
-              const m = [
+              var m = [
                 ['Paracetamol','Schmerz/Fieber','max 4000mg/Tag'],
                 ['Ibuprofen','Schmerz/Entzündung','max 1200mg/Tag, mit Essen'],
                 ['Aspirin','Blutverdünner/Schmerz','100-500mg'],
@@ -10178,66 +9556,65 @@ setTimeout(() => {
                 ['Salbutamol','Asthma','Spray bei Bedarf'],
                 ['Omeprazol','Magenschutz','1x20mg morgens']
               ];
-              body.innerHTML = `<div style="padding:8px;">${m.map(x => `
-                <div style="padding:10px; background:rgba(0,229,255,0.05); border-radius:10px; margin-bottom:6px; border:1px solid var(--border);">
-                  <strong style="font-size:13px; color:var(--accent);">${x[0]}</strong>
-                  <div style="font-size:11px; opacity:0.8;">${x[1]}</div>
-                  <div style="font-size:11px; color:#ff5050; margin-top:4px;">💊 ${x[2]}</div>
-                </div>`).join('')}</div>`;
+              var htmlM = '<div style="padding:8px;">';
+              for (var i = 0; i < m.length; i++) {
+                htmlM += '<div style="padding:10px; background:rgba(0,229,255,0.05); border-radius:10px; margin-bottom:6px; border:1px solid var(--border);">' +
+                  '<strong style="font-size:13px; color:var(--accent);">' + m[i][0] + '</strong>' +
+                  '<div style="font-size:11px; opacity:0.8;">' + m[i][1] + '</div>' +
+                  '<div style="font-size:11px; color:#ff5050; margin-top:4px;">💊 ' + m[i][2] + '</div></div>';
+              }
+              htmlM += '</div>';
+              body.innerHTML = htmlM;
             }
             else if (tabKey === 'Laborwerte') {
-              const l = [
+              var l = [
                 ['Blutzucker','70-100 mg/dl'], ['HbA1c','<5,7 %'], ['Cholesterin','<200 mg/dl'],
                 ['LDL','<130 mg/dl'], ['HDL','>40 mg/dl'], ['Triglyceride','<150 mg/dl'],
                 ['Hämoglobin','12-17 g/dl'], ['Kreatinin','0,6-1,2 mg/dl'], ['CRP','<5 mg/l'],
                 ['TSH','0,4-4,0 mU/l']
               ];
-              body.innerHTML = `<div style="padding:8px;">${l.map(x => `
-                <div style="padding:10px; background:rgba(0,229,255,0.05); border-radius:10px; margin-bottom:6px; border:1px solid var(--border); display:flex; justify-content:space-between;">
-                  <strong style="font-size:13px;">${x[0]}</strong>
-                  <span style="font-size:12px; color:var(--accent);">${x[1]}</span>
-                </div>`).join('')}</div>`;
+              var htmlL = '<div style="padding:8px;">';
+              for (var i = 0; i < l.length; i++) {
+                htmlL += '<div style="padding:10px; background:rgba(0,229,255,0.05); border-radius:10px; margin-bottom:6px; border:1px solid var(--border); display:flex; justify-content:space-between;">' +
+                  '<strong style="font-size:13px;">' + l[i][0] + '</strong>' +
+                  '<span style="font-size:12px; color:var(--accent);">' + l[i][1] + '</span></div>';
+              }
+              htmlL += '</div>';
+              body.innerHTML = htmlL;
             }
             else if (tabKey === 'Notfall') {
-              body.innerHTML = `<div style="padding:8px;">
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
-                  <a href="tel:112" style="padding:14px; background:rgba(255,80,80,0.2); border-radius:12px; border:2px solid #ff5050; text-align:center; text-decoration:none; color:#fff;">
-                    <div style="font-size:20px; font-weight:bold; color:#ff5050;">112</div>
-                    <div style="font-size:10px; opacity:0.8;">Rettung</div>
-                  </a>
-                  <a href="tel:110" style="padding:14px; background:rgba(255,80,80,0.2); border-radius:12px; border:2px solid #ff5050; text-align:center; text-decoration:none; color:#fff;">
-                    <div style="font-size:20px; font-weight:bold; color:#ff5050;">110</div>
-                    <div style="font-size:10px; opacity:0.8;">Polizei</div>
-                  </a>
-                </div>
-                <div style="padding:12px; background:rgba(0,229,255,0.1); border-radius:12px; border:1px solid var(--accent);">
-                  <strong style="color:var(--accent); font-size:13px;">🩹 Erste Hilfe</strong>
-                  <div style="font-size:11px; line-height:1.8; margin-top:6px; opacity:0.85;">
-                    1. Bewusstsein prüfen (ansprechen, rütteln)<br>
-                    2. Atmung prüfen (5-10 Sek)<br>
-                    3. Notruf 112<br>
-                    4. Stabile Seitenlage / CPR 30:2<br>
-                    5. Wärme · beruhigen
-                  </div>
-                </div>
-              </div>`;
+              body.innerHTML = '<div style="padding:8px;">' +
+                '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">' +
+                '<a href="tel:112" style="padding:14px; background:rgba(255,80,80,0.2); border-radius:12px; border:2px solid #ff5050; text-align:center; text-decoration:none; color:#fff;">' +
+                '<div style="font-size:20px; font-weight:bold; color:#ff5050;">112</div><div style="font-size:10px; opacity:0.8;">Rettung</div></a>' +
+                '<a href="tel:110" style="padding:14px; background:rgba(255,80,80,0.2); border-radius:12px; border:2px solid #ff5050; text-align:center; text-decoration:none; color:#fff;">' +
+                '<div style="font-size:20px; font-weight:bold; color:#ff5050;">110</div><div style="font-size:10px; opacity:0.8;">Polizei</div></a></div>' +
+                '<div style="padding:12px; background:rgba(0,229,255,0.1); border-radius:12px; border:1px solid var(--accent);">' +
+                '<strong style="color:var(--accent); font-size:13px;">🩹 Erste Hilfe</strong>' +
+                '<div style="font-size:11px; line-height:1.8; margin-top:6px; opacity:0.85;">1. Bewusstsein prüfen<br>2. Atmung prüfen<br>3. Notruf 112<br>4. Stabile Seitenlage / CPR 30:2<br>5. Wärme · beruhigen</div></div></div>';
             }
-          };
+          }
 
           showTab('Anatomie');
-          document.querySelectorAll('[data-arzt-tab]').forEach(el => {
-            el.onclick = () => {
-              document.querySelectorAll('[data-arzt-tab]').forEach(x => x.classList.remove('active'));
-              el.classList.add('active');
-              showTab(el.dataset.arztTab);
-            };
-          });
+          var tabEls = document.querySelectorAll('[data-arzt-tab]');
+          for (var j = 0; j < tabEls.length; j++) {
+            tabEls[j].onclick = (function(el) {
+              return function() {
+                var all = document.querySelectorAll('[data-arzt-tab]');
+                for (var x = 0; x < all.length; x++) all[x].classList.remove('active');
+                el.classList.add('active');
+                showTab(el.getAttribute('data-arzt-tab'));
+              };
+            })(tabEls[j]);
+          }
         }, 100);
       }
     };
 
+    // ---------------------------------------------------------
     // 4. Der unzerstörbare Launcher
-    const oldLaunch = HalDo.Launch;
+    // ---------------------------------------------------------
+    var oldLaunch = HalDo.Launch;
     HalDo.Launch = function(app) {
       if (app && (app.id === 'arztbuch' || app.id === 'anatomy' || app.id === 'anatomie' || app.id === 'health')) {
         return HalDo.Arztbuch.open();
@@ -10245,16 +9622,18 @@ setTimeout(() => {
       return oldLaunch(app);
     };
 
+    // ---------------------------------------------------------
     // 5. Der "Coming Soon"-Killer
-    const oldWinOpen = HalDo.Win.open;
+    // ---------------------------------------------------------
+    var oldWinOpen = HalDo.Win.open;
     HalDo.Win.open = function(title, content, opts) {
-      if (title && (title.toLowerCase().includes('arztbuch') || title.toLowerCase().includes('anatomie')) && content && content.includes('Coming Soon')) {
+      if (title && (title.toLowerCase().indexOf('arztbuch') !== -1 || title.toLowerCase().indexOf('anatomie') !== -1) && content && content.indexOf('Coming Soon') !== -1) {
         return HalDo.Arztbuch.open();
       }
       return oldWinOpen(title, content, opts);
     };
 
-    console.log('%c🩺 v143 — Arztbuch Pro Max (Finaler Fix) geladen!', 'background:linear-gradient(90deg,#00e5ff,#00ff88);color:#000;padding:6px 12px;border-radius:6px;font-weight:bold');
+    console.log('%c🩺 v144 — Arztbuch Pro Max (Stabiler Fix) geladen!', 'background:linear-gradient(90deg,#00e5ff,#00ff88);color:#000;padding:6px 12px;border-radius:6px;font-weight:bold');
   });
 })();
 </script>
