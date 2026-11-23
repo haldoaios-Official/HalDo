@@ -9049,7 +9049,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
 })();
 </script>
 <!-- ============================================================ -->
-<!-- HALDO 3D ANATOMIE – KORRIGIERTE PFADE (Stand: bestätigt)      -->
+<!-- HALDO 3D ANATOMIE – MIT DRACO-FIX (funktioniert mit deinen GLBs) -->
 <!-- ============================================================ -->
 <script type="importmap">
 {
@@ -9064,6 +9064,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
 // ---------- 1. SZENE ----------
 const scene = new THREE.Scene();
@@ -9093,11 +9094,17 @@ controls.dampingFactor = 0.08;
 controls.target.set(0, 1, 0);
 controls.update();
 
-// ---------- 4. MODELL-LISTE (KORRIGIERT) ----------
-// WICHTIG: Jeder Pfad wurde gegen die echte GitHub-Struktur geprüft.
-// "baby.glb" beginnt bei c2.glb – c1_atlas.glb gibt es dort NICHT.
+// ---------- 4. DRACO-LOADER (DAS IST DER FIX!) ----------
+const dracoLoader = new DRACOLoader();
+// Decoder-Dateien kommen direkt von jsDelivr (Three.js-Version 0.160.0)
+dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
+
+const loader = new GLTFLoader();
+loader.setDRACOLoader(dracoLoader);   // <-- HIER wird der Draco-Loader angehängt
+
+// ---------- 5. MODELL-LISTE (Pfade bleiben korrekt) ----------
 const modelFiles = [
-  // ---- Adult Male (direkt unter models/adult_male/) ----
+  // Adult Male
   'models/adult_male/c1_atlas.glb',
   'models/adult_male/c2.glb',
   'models/adult_male/c3.glb',
@@ -9107,8 +9114,7 @@ const modelFiles = [
   'models/adult_male/c7.glb',
   'models/adult_male/coccyx.glb',
   'models/adult_male/l1.glb',
-
-  // ---- Adult Female (unter models/adult_male/adult_female/) ----
+  // Adult Female
   'models/adult_male/adult_female/c1_atlas.glb',
   'models/adult_male/adult_female/c2.glb',
   'models/adult_male/adult_female/c3.glb',
@@ -9117,8 +9123,7 @@ const modelFiles = [
   'models/adult_male/adult_female/c6.glb',
   'models/adult_male/adult_female/c7.glb',
   'models/adult_male/adult_female/coccyx.glb',
-
-  // ---- Baby (unter .../baby.glb/ – OHNE c1_atlas.glb!) ----
+  // Baby (kein c1_atlas.glb!)
   'models/adult_male/adult_female/baby.glb/c2.glb',
   'models/adult_male/adult_female/baby.glb/c3.glb',
   'models/adult_male/adult_female/baby.glb/c4.glb',
@@ -9130,8 +9135,7 @@ const modelFiles = [
   'models/adult_male/adult_female/baby.glb/l2.glb'
 ];
 
-// ---------- 5. LADEN ----------
-const loader = new GLTFLoader();
+// ---------- 6. LADEN ----------
 let loadedCount = 0;
 let errorCount = 0;
 
@@ -9157,7 +9161,7 @@ modelFiles.forEach((path) => {
   );
 });
 
-// ---------- 6. ANIMATION ----------
+// ---------- 7. ANIMATION ----------
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
@@ -9165,16 +9169,16 @@ function animate() {
 }
 animate();
 
-// ---------- 7. RESPONSIVE ----------
+// ---------- 8. RESPONSIVE ----------
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });
 
-// ---------- 8. DEBUG ----------
-window.HalDo3D = { scene, camera, renderer, controls };
-console.log('🧠 HalDo 3D bereit. Modelle werden geladen …');
+// ---------- 9. DEBUG ----------
+window.HalDo3D = { scene, camera, renderer, controls, dracoLoader };
+console.log('🧠 HalDo 3D mit DRACOLoader bereit.');
 </script>
 <!-- ============================================================ -->
 <!-- ENDE HALDO 3D ANATOMIE LOADER                                 -->
