@@ -138,7 +138,7 @@
       });
     }
     function draw(){
-      if(stopped||!root.isConnected){stopped=true;cancelAnimationFrame(frame);return;}
+      if(stopped||!root.isConnected){stopped=true;cancelAnimationFrame(frame);window.removeEventListener("resize",resize);return;}
       var w=rect.width,h=rect.height;
       ctx.clearRect(0,0,w,h);
       var t=performance.now()/1000;
