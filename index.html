@@ -10232,5 +10232,316 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
 </script>
 <!-- ENDE HALDO AI OS PRO MAX STABILIZATION BUILD v151 -->
 
+
+
+<!-- ================================================================
+     HALDO AI OS PRO MAX – UNIVERSAL VOICE HUB v152
+     Gemeinsame Sprachschnittstelle für alle registrierten Apps A–Z.
+     Browser-TTS/STT + app-context bridge + voice command registry.
+     ================================================================ -->
+<style id="haldo-universal-voicehub-v152-styles">
+#haldoVoiceHub{position:fixed;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:900;font-family:inherit;color:var(--text,#e6f7ff)}
+#haldoVoiceHub .hv-launch{height:48px;min-width:48px;padding:0 15px;border-radius:25px;border:1.5px solid var(--accent,#00e5ff);background:linear-gradient(135deg,rgba(0,229,255,.24),rgba(180,120,255,.22));color:inherit;box-shadow:0 0 22px rgba(0,229,255,.28),0 8px 28px rgba(0,0,0,.32);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);font:600 13px system-ui,sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px}
+#haldoVoiceHub .hv-launch .hv-orb{width:10px;height:10px;border-radius:50%;background:#00f0ff;box-shadow:0 0 12px #00e5ff;display:inline-block}
+#haldoVoiceHub.hv-listening .hv-launch .hv-orb{background:#ff78c8;box-shadow:0 0 16px #ff78c8;animation:hvPulse .85s infinite}
+#haldoVoiceHub.hv-speaking .hv-launch .hv-orb{background:#80ffc2;box-shadow:0 0 16px #80ffc2;animation:hvPulse 1.15s infinite}
+@keyframes hvPulse{50%{transform:scale(1.55);opacity:.65}}
+#haldoVoiceHub .hv-panel{display:none;position:absolute;right:0;bottom:58px;width:min(360px,calc(100vw - 28px));max-height:min(72vh,640px);overflow:auto;padding:14px;border:1.5px solid var(--accent,#00e5ff);border-radius:18px;background:rgba(2,13,32,.94);box-shadow:0 0 32px rgba(0,229,255,.22),0 16px 50px rgba(0,0,0,.55);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
+#haldoVoiceHub.hv-open .hv-panel{display:block}
+#haldoVoiceHub .hv-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+#haldoVoiceHub .hv-title{font-size:15px;font-weight:800;color:var(--accent,#00e5ff)}
+#haldoVoiceHub .hv-status{font-size:11px;padding:4px 8px;border-radius:20px;background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.25)}
+#haldoVoiceHub .hv-response{min-height:58px;max-height:130px;overflow:auto;padding:10px;border:1px solid rgba(0,229,255,.2);border-radius:12px;background:rgba(0,20,45,.5);font-size:13px;line-height:1.55;white-space:pre-wrap;margin:9px 0}
+#haldoVoiceHub .hv-input{width:100%;min-height:42px;padding:10px 12px;border:1px solid var(--border,rgba(0,229,255,.4));border-radius:11px;background:rgba(0,8,22,.85);color:inherit;font:inherit;outline:none}
+#haldoVoiceHub .hv-row{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0}
+#haldoVoiceHub .hv-btn{min-height:42px;padding:8px 12px;border:1px solid var(--border,rgba(0,229,255,.4));border-radius:11px;background:rgba(0,229,255,.1);color:inherit;font:600 12px system-ui,sans-serif;cursor:pointer}
+#haldoVoiceHub .hv-btn.primary{background:linear-gradient(120deg,rgba(0,229,255,.26),rgba(77,168,255,.22));border-color:var(--accent,#00e5ff)}
+#haldoVoiceHub .hv-muted{font-size:11px;line-height:1.5;opacity:.72}
+#haldoVoiceHub .hv-label{display:block;font-size:11px;opacity:.8;margin:9px 0 4px}
+#haldoVoiceHub .hv-window-tools{display:inline-flex;align-items:center;gap:4px;margin-left:auto;flex-shrink:0}
+#haldoVoiceHub .hv-window-tools button{min-width:36px;width:36px;height:36px;border-radius:10px;border:1px solid rgba(0,229,255,.35);background:rgba(0,20,40,.82);color:inherit;cursor:pointer;font-size:15px}
+#haldoVoiceHub .hv-window-tools button:hover{border-color:var(--accent,#00e5ff);box-shadow:0 0 10px rgba(0,229,255,.3)}
+@media(max-width:600px){#haldoVoiceHub .hv-panel{width:min(340px,calc(100vw - 20px));right:-4px}#haldoVoiceHub .hv-launch{height:46px;padding:0 13px}#haldoVoiceHub .hv-window-tools button{width:34px;min-width:34px;height:34px}}
+</style>
+<script id="haldo-universal-voicehub-v152">
+(function(){
+  'use strict';
+  const H=window.HalDo;
+  if(!H || H.VoiceHub) return;
+
+  const STORE_KEY='haldo_universal_voicehub_v1';
+  const LANGS=[
+    ['de-DE','Deutsch'],['en-US','English'],['ku-TR','Kurmancî (Browser-Unterstützung abhängig)'],
+    ['ckb-IQ','Sorani (Browser-Unterstützung abhängig)'],['ar-SA','العربية'],['fa-IR','فارسی'],
+    ['he-IL','עברית'],['tr-TR','Türkçe'],['ru-RU','Русский'],['fr-FR','Français'],
+    ['es-ES','Español'],['it-IT','Italiano'],['zh-CN','中文'],['ja-JP','日本語'],['uz-UZ',"O‘zbek"]
+  ];
+  const DEFAULTS={language:'de-DE',voiceURI:'',rate:0.98,pitch:1,autoSpeak:true,readLimit:6500};
+  const readPrefs=()=>({...DEFAULTS,...(H.Store?.get(STORE_KEY,{})||{})});
+  const writePrefs=p=>H.Store?.set(STORE_KEY,{...DEFAULTS,...p});
+  const state={mode:'idle',recognition:null,dictation:false,queue:[],speaking:false,lastTranscript:'',activeAppId:null,observer:null,commands:new Map(),appAdapters:new Map(),panelOpen:false};
+  const norm=s=>String(s||'').toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[’']/g,'').replace(/[^\p{L}\p{N}\s-]/gu,' ').replace(/\s+/g,' ').trim();
+  const toast=(m,type='info')=>{try{H.Toast?.show(String(m),3000,type==='error'?'error':type==='success'?'success':'notify');}catch(_){console.info('[HalDo Voice]',m);}};
+  const setState=next=>{
+    state.mode=next;
+    const dock=document.getElementById('haldoVoiceHub');
+    dock?.classList.toggle('hv-listening',next==='listening');
+    dock?.classList.toggle('hv-speaking',next==='speaking');
+    const status=dock?.querySelector('[data-hv-status]');
+    if(status)status.textContent=({idle:'Bereit',listening:'Hört zu …',thinking:'Verarbeitet …',speaking:'Spricht …',error:'Fehler'})[next]||next;
+    try{H.LivingAvatar?.setState?.(next==='error'?'idle':next);}catch(_){}
+    H.VoiceHub?.emit?.('state',{state:next});
+  };
+  const getVoices=()=>('speechSynthesis'in window ? speechSynthesis.getVoices() : []);
+  function selectedVoice(){const p=readPrefs();return getVoices().find(v=>v.voiceURI===p.voiceURI)||getVoices().find(v=>v.lang?.toLowerCase()===p.language.toLowerCase())||null;}
+  function textChunks(text,max=420){
+    const clean=String(text||'').replace(/\s+/g,' ').trim();if(!clean)return [];
+    const sentences=clean.match(/[^.!?。！？]+[.!?。！？]*/g)||[clean];const out=[];let part='';
+    for(const sentence of sentences){let s=sentence.trim();while(s.length>max){if(part){out.push(part);part='';}let cut=s.lastIndexOf(' ',max);if(cut<max*.5)cut=max;out.push(s.slice(0,cut).trim());s=s.slice(cut).trim();}if((part+' '+s).trim().length>max){if(part)out.push(part);part=s;}else part=(part+' '+s).trim();}
+    if(part)out.push(part);return out;
+  }
+  function speak(text){
+    if(!('speechSynthesis'in window)||!window.SpeechSynthesisUtterance){toast('Sprachausgabe wird von diesem Browser nicht unterstützt.','error');return false;}
+    const chunks=textChunks(text);if(!chunks.length)return false;
+    stopSpeaking(false);state.queue=chunks;state.speaking=true;playNextChunk();return true;
+  }
+  function playNextChunk(){
+    if(!state.queue.length){state.speaking=false;setState('idle');return;}
+    const p=readPrefs();const phrase=state.queue.shift();const utterance=new SpeechSynthesisUtterance(phrase);
+    utterance.lang=p.language||'de-DE';utterance.rate=Number(p.rate)||.98;utterance.pitch=Number(p.pitch)||1;
+    const voice=selectedVoice();if(voice)utterance.voice=voice;
+    utterance.onstart=()=>setState('speaking');utterance.onend=()=>{if(state.queue.length)playNextChunk();else{state.speaking=false;setState('idle');}};
+    utterance.onerror=e=>{state.queue=[];state.speaking=false;setState('idle');console.warn('HalDo TTS:',e.error);};
+    try{speechSynthesis.speak(utterance);}catch(e){state.queue=[];state.speaking=false;setState('error');toast('Sprachausgabe fehlgeschlagen: '+e.message,'error');}
+  }
+  function stopSpeaking(update=true){
+    state.queue=[];state.speaking=false;
+    try{if('speechSynthesis'in window)speechSynthesis.cancel();}catch(_){}
+    if(update)setState('idle');
+  }
+  function activeWindow(){
+    const all=[...document.querySelectorAll('#winLayer .window, #winLayer .window-pro, .window-pro')].filter(w=>w.isConnected);
+    if(!all.length)return null;
+    return all.find(w=>w.classList.contains('active'))||all.sort((a,b)=>(Number(getComputedStyle(b).zIndex)||0)-(Number(getComputedStyle(a).zIndex)||0))[0];
+  }
+  function titleOf(win){return win?.querySelector('.win-title,.win-header-pro h2,.window-title')?.textContent?.trim()||win?.getAttribute('aria-label')||'HalDo';}
+  function getAppId(win){
+    if(!win)return null;if(win.dataset.haldoAppId)return win.dataset.haldoAppId;
+    const title=norm(titleOf(win));const apps=H.Registry?.featured||[];
+    const found=apps.find(a=>norm(a.n)===title||title.includes(norm(a.n))||title.includes(norm(a.id)));
+    return found?.id||null;
+  }
+  function getWindowText(win){
+    if(!win)return 'Auf dem Desktop ist momentan kein App-Fenster geöffnet.';
+    const body=win.querySelector('.win-body,.window-body,.hdx-root,.app-content-body')||win;
+    const clone=body.cloneNode(true);
+    clone.querySelectorAll('button,input,textarea,select,script,style,[aria-hidden="true"],.hv-window-tools,#haldoVoiceHub').forEach(el=>el.remove());
+    let txt=(clone.innerText||clone.textContent||'').replace(/\s+/g,' ').trim();
+    const limit=Number(readPrefs().readLimit)||6500;if(txt.length>limit)txt=txt.slice(0,limit)+' … Der restliche Inhalt wurde aus Zeitgründen gekürzt.';
+    return txt||('Das Fenster '+titleOf(win)+' enthält derzeit keinen vorlesbaren Text.');
+  }
+  function updateContext(){const win=activeWindow();state.activeAppId=getAppId(win);return {window:win,appId:state.activeAppId,title:titleOf(win)};}
+  function announce(message){const dock=document.getElementById('haldoVoiceHub');const reply=dock?.querySelector('[data-hv-reply]');if(reply)reply.textContent=message;return message;}
+  function normalizeAppMatch(query){
+    const q=norm(query);if(!q)return null;
+    const aliases={
+      'arztbuch':['arztbuch','anatomie','gesundheit','medizin'], 'email':['e mail','email','mail','postfach'],
+      'chat-pro':['chat pro','messenger','haldo chat'], 'videocall':['video call','video calls','videoanruf','videocall','meeting'],
+      'phone':['phone','telefon','anrufen','telefonieren'], 'fahrschule':['fahrschule','fuehrerschein','fuhrerschein','führerschein'],
+      'ezidi':['ezidi','ezîdî','ezidi wissen','kultur'], 'app-registry':['app registry','app liste','alle apps','registry'],
+      'settings':['einstellungen','settings'], 'weather':['wetter','weather'], 'filemanager':['dateimanager','datei manager','dateien'],
+      'ai-memory':['gedaechtnis','gedächtnis','memory'], 'videocall':['videocall','video anruf','videoanruf']
+    };
+    const apps=H.Registry?.featured||[];
+    let best=null;
+    for(const app of apps){
+      const terms=[app.n,app.id,(aliases[app.id]||[])].flat().map(norm).filter(Boolean);
+      const score=terms.reduce((s,t)=>s+(q===t?100:q.includes(t)?70:t.includes(q)?45:0),0);
+      if(score>0&&(!best||score>best.score))best={app,score};
+    }
+    return best?.app||null;
+  }
+  function launchApp(app){
+    if(!app)return false;
+    try{H.Launch?.(app);H.VoiceHub.emit('app:launch',{app});return true;}
+    catch(e){console.error('HalDo Voice App-Start:',e);toast('App konnte nicht geöffnet werden: '+(e.message||e),'error');return false;}
+  }
+  function focusDictationTarget(){
+    const win=activeWindow();if(!win)return document.querySelector('[contenteditable="true"],input[type="text"],textarea');
+    const active=document.activeElement;
+    if(active&&win.contains(active)&&(/^(INPUT|TEXTAREA)$/.test(active.tagName)||active.isContentEditable))return active;
+    return win.querySelector('[data-voice-input],textarea:not([disabled]),input:not([disabled]):not([type="file"]),[contenteditable="true"]');
+  }
+  function insertDictation(text){
+    const target=focusDictationTarget();if(!target)return false;
+    if(target.isContentEditable){target.textContent=(target.textContent||'')+(target.textContent?' ':'')+text;}
+    else{const start=typeof target.selectionStart==='number'?target.selectionStart:target.value.length;const end=typeof target.selectionEnd==='number'?target.selectionEnd:target.value.length;const value=target.value||'';target.value=value.slice(0,start)+text+value.slice(end);target.dispatchEvent(new Event('input',{bubbles:true}));target.dispatchEvent(new Event('change',{bubbles:true}));}
+    target.focus?.();return true;
+  }
+  async function sendToBackend(text){
+    const p=H.Store?.get('master150_avatar_prefs_v1',{})||{};const endpoint=String(p.backendUrl||'').trim();
+    if(!endpoint)return null;
+    let url;try{url=new URL(endpoint,location.href);}catch(_){return null;}
+    if(url.protocol!=='https:')return null;
+    const response=await fetch(url.href,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,source:'haldo-universal-voicehub',language:readPrefs().language,appContext:updateContext().appId})});
+    if(!response.ok)throw new Error('AI-Backend antwortet mit HTTP '+response.status);
+    const data=await response.json();return String(data.reply||data.message||'Der AI-Dienst hat keine Textantwort geliefert.');
+  }
+  async function processTranscript(raw){
+    const text=String(raw||'').trim();if(!text)return;
+    state.lastTranscript=text;const q=norm(text);const ctx=updateContext();
+    const inp=document.querySelector('#haldoVoiceHub [data-hv-input]');if(inp)inp.value=text;
+    H.VoiceHub.emit('transcript',{text,context:ctx});
+    if(state.dictation){state.dictation=false;const ok=insertDictation(text);const reply=ok?'Ich habe den gesprochenen Text in das aktive Eingabefeld eingefügt.':'Ich habe kein Eingabefeld in der aktiven App gefunden.';announce(reply);if(readPrefs().autoSpeak)speak(reply);return reply;}
+    if(/^(stopp|stop|abbrechen|ruhe|sprache stoppen|vorlesen stoppen)$/.test(q)){stopListening();stopSpeaking();announce('Sprachsteuerung und Sprachausgabe gestoppt.');return 'Sprachsteuerung und Sprachausgabe gestoppt.';}
+    if(/(lies|lese|vorlesen|lies mir|lese mir).*(vor|inhalt|seite|fenster|app)|^(vorlesen|lies vor)$/.test(q)){
+      const content=getWindowText(ctx.window);announce('Ich lese '+ctx.title+' vor.');speak(content);return content;
+    }
+    if(/^(diktat|diktieren|spracheingabe|schreib mit)$/.test(q)){state.dictation=true;announce('Diktat aktiv. Sprich jetzt deinen Text.');startListening(true);return 'Diktat aktiv.';}
+    if(/(oeffne|offne|öffne|starte|zeige|wechsel zu|gehe zu|geh zu|open)\s+/.test(q)){
+      if(/cyborg|jarvis/.test(q)){H.LivingAvatar?.open?.('cyborg');const r='HalDo Cyborg und Jarvis werden geöffnet.';announce(r);if(readPrefs().autoSpeak)speak(r);return r;}
+      if(/haldo ai|assistant|ki assistent|ki-assistent/.test(q)){H.LivingAvatar?.open?.('ai');const r='Living HalDo AI wird geöffnet.';announce(r);if(readPrefs().autoSpeak)speak(r);return r;}
+      const app=normalizeAppMatch(q.replace(/^(.*?)(oeffne|offne|öffne|starte|zeige|wechsel zu|gehe zu|geh zu|open)\s+/,'').replace(/^(bitte|den|die|das|meine|mein)\s+/,''));
+      if(app){const ok=launchApp(app);const r=ok?app.n+' wird geöffnet.':'Die App konnte nicht geöffnet werden.';announce(r);if(readPrefs().autoSpeak)speak(r);return r;}
+    }
+    if(/(aktiviere|schalte ein|wechsle in|wechsle zu|starte).*(cyborg|jarvis)/.test(q)){H.LivingAvatar?.open?.('cyborg');const r='HalDo Cyborg und Jarvis sind geöffnet.';announce(r);if(readPrefs().autoSpeak)speak(r);return r;}
+    if(/(oeffne|offne|öffne|starte|zeige|wechsel zu|gehe zu|geh zu|open).*(haldo ai|haldo ki|assistant|jarvis|cyborg)/.test(q)){const cyborg=/jarvis|cyborg/.test(q);H.LivingAvatar?.open?.(cyborg?'cyborg':'ai');const r=cyborg?'HalDo Cyborg und Jarvis werden geöffnet.':'Living HalDo AI wird geöffnet.';announce(r);if(readPrefs().autoSpeak)speak(r);return r;}
+    if(/(haldo ai|haldo ki|jarvis|cyborg).*(zuhoeren|zuhören|hoer zu|hör zu|hoere zu|höre zu)/.test(q)){startListening(false);return 'Ich höre zu.';}
+    if(/^(hallo|hi|hey|guten morgen|guten tag|guten abend|hey haldo|hallo haldo)$/.test(q)){const r='Hallo! Ich bin HalDo AI. Du kannst mir sagen, welche App ich öffnen oder vorlesen soll.';announce(r);if(readPrefs().autoSpeak)speak(r);return r;}
+    const ctxAdapter=ctx.appId&&state.appAdapters.get(ctx.appId);
+    if(ctxAdapter?.commands){
+      for(const command of ctxAdapter.commands){
+        const matches=(command.phrases||[]).some(p=>q.includes(norm(p)));
+        if(matches&&typeof command.run==='function'){
+          try{const result=await command.run({text,appId:ctx.appId,window:ctx.window,api:H.VoiceHub});const r=typeof result==='string'?result:(result?.speech||'Die App-Aktion wurde ausgeführt.');announce(r);if(readPrefs().autoSpeak)speak(r);return r;}
+          catch(e){const r='Die Aktion in '+ctx.title+' ist fehlgeschlagen: '+e.message;announce(r);speak(r);return r;}
+        }
+      }
+    }
+    for(const command of state.commands.values()){
+      if(command.appId && command.appId!==ctx.appId)continue;
+      const matches=(command.phrases||[]).some(p=>q.includes(norm(p)));
+      if(matches){
+        try{const result=await command.run({text,appId:ctx.appId,window:ctx.window,api:H.VoiceHub});const r=typeof result==='string'?result:(result?.speech||'Die Sprachaktion wurde ausgeführt.');announce(r);if(readPrefs().autoSpeak)speak(r);return r;}
+        catch(e){const r='Die Sprachaktion '+command.name+' ist fehlgeschlagen: '+e.message;announce(r);if(readPrefs().autoSpeak)speak(r);return r;}
+      }
+    }
+    try{
+      setState('thinking');const backendReply=await sendToBackend(text);
+      if(backendReply){announce(backendReply);setState('idle');if(readPrefs().autoSpeak)speak(backendReply);return backendReply;}
+    }catch(e){console.warn('HalDo Voice Backend:',e);}
+    const reply='Ich habe dich verstanden. Ich kann alle registrierten HalDo-Apps öffnen, den Inhalt der aktiven App vorlesen und Text in Eingabefelder diktieren. Für freie KI-Antworten und tiefergehende Aktionen muss ein sicherer HalDo-AI-Backend-Dienst verbunden sein.';
+    announce(reply);setState('idle');if(readPrefs().autoSpeak)speak(reply);return reply;
+  }
+  function startListening(dictation=false){
+    const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!Recognition){toast('Spracherkennung ist in diesem Browser nicht verfügbar. Nutze Chrome/Edge oder die Texteingabe.','error');setState('error');return false;}
+    try{
+      if(state.recognition){try{state.recognition.abort();}catch(_){}}
+      stopSpeaking(false);state.dictation=!!dictation;
+      const rec=new Recognition();state.recognition=rec;rec.lang=readPrefs().language||'de-DE';rec.continuous=false;rec.interimResults=true;rec.maxAlternatives=1;
+      const transcriptNode=document.querySelector('#haldoVoiceHub [data-hv-interim]');
+      rec.onstart=()=>{setState('listening');if(transcriptNode)transcriptNode.textContent='Ich höre zu …';};
+      rec.onresult=e=>{let finalText='';let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0]?.transcript||'';if(e.results[i].isFinal)finalText+=t;else interim+=t;}if(transcriptNode)transcriptNode.textContent=finalText||interim||'Ich höre zu …';if(finalText)processTranscript(finalText);};
+      rec.onerror=e=>{setState('idle');if(e.error!=='no-speech'&&e.error!=='aborted')toast('Mikrofon/Spracherkennung: '+e.error,'error');};
+      rec.onend=()=>{if(state.mode==='listening')setState('idle');if(state.recognition===rec)state.recognition=null;};
+      rec.start();return true;
+    }catch(e){setState('error');toast('Mikrofon konnte nicht gestartet werden: '+e.message,'error');return false;}
+  }
+  function stopListening(){if(state.recognition){try{state.recognition.stop();}catch(_){}state.recognition=null;}state.dictation=false;if(state.mode==='listening')setState('idle');}
+  function openPanel(){const dock=document.getElementById('haldoVoiceHub');if(!dock)return;dock.classList.add('hv-open');state.panelOpen=true;dock.querySelector('[data-hv-input]')?.focus();}
+  function closePanel(){const dock=document.getElementById('haldoVoiceHub');dock?.classList.remove('hv-open');state.panelOpen=false;}
+  function fillVoiceOptions(){
+    const dock=document.getElementById('haldoVoiceHub');if(!dock)return;const p=readPrefs();const language=dock.querySelector('[data-hv-language]');const voices=dock.querySelector('[data-hv-voice]');
+    if(language){language.innerHTML=LANGS.map(([v,n])=>`<option value="${v}" ${v===p.language?'selected':''}>${n}</option>`).join('');}
+    if(voices){voices.innerHTML='<option value="">Automatische passende Stimme</option>'+getVoices().map(v=>`<option value="${String(v.voiceURI).replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" ${v.voiceURI===p.voiceURI?'selected':''}>${String(v.name).replace(/</g,'&lt;')} (${v.lang})</option>`).join('');}
+    const support=dock.querySelector('[data-hv-support]');if(support)support.textContent='TTS: '+(('speechSynthesis'in window)?'verfügbar':'nicht verfügbar')+' · Spracheingabe: '+((window.SpeechRecognition||window.webkitSpeechRecognition)?'verfügbar':'nicht verfügbar');
+  }
+  function buildDock(){
+    if(document.getElementById('haldoVoiceHub'))return;
+    const dock=document.createElement('section');dock.id='haldoVoiceHub';dock.innerHTML=`
+      <div class="hv-panel" role="dialog" aria-label="HalDo universeller Sprachassistent">
+        <div class="hv-head"><div><div class="hv-title">🎙 HalDo Voice Hub</div><div class="hv-muted">Eine Stimme und Sprachsteuerung für deine Apps A–Z</div></div><span class="hv-status" data-hv-status>Bereit</span></div>
+        <div class="hv-row"><button class="hv-btn primary" data-hv-listen>🎤 Sprechen</button><button class="hv-btn" data-hv-dictate>📝 Diktieren</button><button class="hv-btn" data-hv-read>🔊 Aktive App vorlesen</button><button class="hv-btn" data-hv-stop>⏹ Stop</button></div>
+        <div class="hv-response" data-hv-reply>Hallo! Ich bin HalDo. Ich kann registrierte Apps öffnen, Inhalte vorlesen und Text diktieren.</div>
+        <div class="hv-muted" data-hv-interim aria-live="polite">Bereit für deine Spracheingabe.</div>
+        <label class="hv-label">Nachricht an HalDo</label><div class="hv-row"><input class="hv-input" data-hv-input placeholder="z. B. Öffne Arztbuch oder lies diese App vor"><button class="hv-btn primary" data-hv-send>➤</button></div>
+        <details><summary class="hv-label">Stimme und Sprache</summary>
+          <label class="hv-label">Sprache / Spracherkennung</label><select class="hv-input" data-hv-language></select>
+          <label class="hv-label">Installierte Browser-Stimme</label><select class="hv-input" data-hv-voice></select>
+          <label class="hv-label">Sprechgeschwindigkeit</label><input class="hv-input" type="range" min="0.7" max="1.3" step="0.05" data-hv-rate value="0.98">
+          <label class="hv-row" style="align-items:center;font-size:12px"><input type="checkbox" data-hv-autospeak checked> Antworten automatisch vorlesen</label>
+          <button class="hv-btn primary" data-hv-save>Stimmeinstellungen speichern</button>
+          <div class="hv-muted" data-hv-support></div>
+        </details>
+        <div class="hv-muted" style="margin-top:9px">Beispiele: „Öffne Arztbuch“, „Starte Fahrschule“, „Öffne HalDo Chat“, „Lies diese App vor“, „Diktieren“, „Stop“.</div>
+      </div>
+      <button class="hv-launch" type="button" data-hv-toggle aria-label="HalDo Voice öffnen"><span class="hv-orb"></span>🎙 HalDo Voice</button>`;
+    document.body.appendChild(dock);
+    const p=readPrefs();dock.querySelector('[data-hv-rate]').value=p.rate;dock.querySelector('[data-hv-autospeak]').checked=p.autoSpeak;fillVoiceOptions();
+    dock.addEventListener('click',async e=>{
+      const b=e.target.closest('button');if(!b)return;
+      if(b.hasAttribute('data-hv-toggle')){dock.classList.toggle('hv-open');state.panelOpen=dock.classList.contains('hv-open');return;}
+      if(b.hasAttribute('data-hv-listen')){startListening(false);return;}
+      if(b.hasAttribute('data-hv-dictate')){announce('Diktat aktiv. Sprich deinen Text.');startListening(true);return;}
+      if(b.hasAttribute('data-hv-read')){const ctx=updateContext();const text=getWindowText(ctx.window);announce('Ich lese '+ctx.title+' vor.');speak(text);return;}
+      if(b.hasAttribute('data-hv-stop')){stopListening();stopSpeaking();announce('Sprachsteuerung und Vorlesen gestoppt.');return;}
+      if(b.hasAttribute('data-hv-save')){const p=readPrefs();p.language=dock.querySelector('[data-hv-language]').value;p.voiceURI=dock.querySelector('[data-hv-voice]').value;p.rate=Number(dock.querySelector('[data-hv-rate]').value);p.autoSpeak=dock.querySelector('[data-hv-autospeak]').checked;writePrefs(p);fillVoiceOptions();toast('HalDo-Stimmeinstellungen gespeichert.','success');return;}
+      if(b.hasAttribute('data-hv-send')){const val=dock.querySelector('[data-hv-input]').value.trim();if(val)await processTranscript(val);return;}
+    });
+    dock.querySelector('[data-hv-input]').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();dock.querySelector('[data-hv-send]').click();}});
+    dock.querySelector('[data-hv-language]').addEventListener('change',e=>{const p=readPrefs();p.language=e.target.value;writePrefs(p);fillVoiceOptions();});
+  }
+  function addWindowTools(win){
+    const header=win.querySelector('.win-header,.win-header-pro');if(!header||header.querySelector('.hv-window-tools'))return;
+    const tools=document.createElement('div');tools.className='hv-window-tools';tools.innerHTML='<button type="button" data-hv-window-listen title="Mit HalDo in dieser App sprechen" aria-label="In dieser App sprechen">🎤</button><button type="button" data-hv-window-read title="Aktive App vorlesen" aria-label="App vorlesen">🔊</button>';
+    tools.addEventListener('mousedown',e=>e.stopPropagation());tools.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
+    const close=header.querySelector('.win-btn:last-child,.window-close');if(close)header.insertBefore(tools,close);else header.appendChild(tools);
+    win.dataset.haldoVoiceContext=getAppId(win)||'';
+  }
+  function scanWindows(){document.querySelectorAll('#winLayer .window,#winLayer .window-pro,.window-pro').forEach(addWindowTools);}
+  function registerApp(appId,adapter={}){if(!appId)throw new Error('Voice-App benötigt eine appId.');state.appAdapters.set(String(appId),adapter);H.VoiceHub.emit('app:registered',{appId});return()=>state.appAdapters.delete(String(appId));}
+  function registerCommand(name,phrases,run,appId=null){if(!name||!Array.isArray(phrases)||typeof run!=='function')throw new Error('Ungültiger Voice-Befehl.');state.commands.set(name,{name,phrases,run,appId});return()=>state.commands.delete(name);}
+  function speakApp(appId,text){const app=(H.Registry?.featured||[]).find(a=>a.id===appId);const win=activeWindow();const content=text||getWindowText(win);return speak(content);}
+  function attach(appId,options={}){const win=activeWindow();if(win){win.dataset.haldoAppId=appId;win.dataset.haldoVoiceContext=appId;}if(options.commands)registerApp(appId,{commands:options.commands});return {appId,window:win};}
+  const listeners=new Map();
+  const api={
+    version:'152.0.0',
+    speak,stop:speakStop=>{stopListening();stopSpeaking();return true;},listen:()=>startListening(false),dictate:()=>startListening(true),readActive:()=>speakApp(updateContext().appId),
+    open:openPanel,close:closePanel,toggle:()=>{const d=document.getElementById('haldoVoiceHub');d?.classList.toggle('hv-open');},
+    registerApp,registerCommand,attach,process:processTranscript,getContext:updateContext,getState:()=>({...state,recognition:!!state.recognition,queueLength:state.queue.length}),
+    on:(event,fn)=>{if(!listeners.has(event))listeners.set(event,new Set());listeners.get(event).add(fn);return()=>listeners.get(event)?.delete(fn);},
+    emit:(event,payload)=>{for(const fn of listeners.get(event)||[]){try{fn(payload);}catch(e){console.error('HalDo Voice event:',e);}}},
+    listCommands:()=>['Öffne [App-Name]','Lies diese App vor','Diktat','Stop','Öffne HalDo AI','Öffne Jarvis/Cyborg']
+  };
+  H.VoiceHub=api;window.HalDoVoiceHub=api;
+  document.addEventListener('click',e=>{
+    const read=e.target.closest('[data-hv-window-read]');if(read){const win=read.closest('.window,.window-pro');const text=getWindowText(win);announce('Ich lese '+titleOf(win)+' vor.');speak(text);return;}
+    const listen=e.target.closest('[data-hv-window-listen]');if(listen){const win=listen.closest('.window,.window-pro');if(win){win.classList.add('active');win.dataset.haldoAppId=getAppId(win)||'';}startListening(false);openPanel();}
+  },true);
+  const observer=new MutationObserver(()=>scanWindows());
+  const init=()=>{buildDock();scanWindows();observer.observe(document.body,{childList:true,subtree:true});setTimeout(fillVoiceOptions,500);if('speechSynthesis'in window){if(typeof speechSynthesis.addEventListener==='function')speechSynthesis.addEventListener('voiceschanged',fillVoiceOptions);else{const prev=speechSynthesis.onvoiceschanged;speechSynthesis.onvoiceschanged=function(e){try{prev?.call(this,e);}catch(_){}fillVoiceOptions();};}}
+    document.addEventListener('focusin',e=>{const win=e.target.closest?.('.window,.window-pro');if(win){win.classList.add('active');state.activeAppId=getAppId(win);}});
+    const prevLaunch=H.Launch;if(typeof prevLaunch==='function'){H.Launch=function(app){const result=prevLaunch.call(this,app);setTimeout(scanWindows,40);state.activeAppId=app?.id||state.activeAppId;api.emit('app:opened',{app});return result;};}
+    console.info('🎙 HalDo Universal Voice Hub v152 bereit. Registry-Apps:',H.Registry?.featured?.length||0,'geplante Plätze:',H.Registry?.totalCount?.()||375);
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+
+  /* Public voice hooks for every current and future app module. */
+  H.AppVoice={
+    register:(appId,adapter)=>api.registerApp(appId,adapter),
+    command:(name,phrases,run,appId)=>api.registerCommand(name,phrases,run,appId),
+    speak:(text)=>api.speak(text),listen:()=>api.listen(),dictate:()=>api.dictate(),
+    read:()=>api.readActive(),attach:(appId,options)=>api.attach(appId,options)
+  };
+  if(H.Master){H.Master.version='152.0.0';}
+  if(typeof H.getCapabilityReport==='function'){
+    const previous=H.getCapabilityReport.bind(H);
+    H.getCapabilityReport=function(){const report=previous();return {...report,build:'152.0.0',universalVoice:{tts:'speechSynthesis'in window,recognition:!!(window.SpeechRecognition||window.webkitSpeechRecognition),registryAppsVoiceLaunchable:H.Registry?.featured?.length||0,appContextReadAloud:true,dictation:true,customAppAdapters:state.appAdapters.size},};};
+  }
+})();
+</script>
+<!-- ENDE HALDO UNIVERSAL VOICE HUB v152 -->
+
 </body>
 </html>
