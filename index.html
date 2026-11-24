@@ -13160,79 +13160,50 @@ window.setTimeout(openSystem,260);
 
 <!-- HALDO v165 · Drei neue A–Z Apps: Bibliothek, Inventar, Mindmap -->
 <script id="haldo-v165-three-apps">
-(function(){
+(function () {
 'use strict';
-const H=window.HalDo;if(!H||!H.Win||!H.Store)return;
-const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const uid=p=>p+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);
-const save=(k,v)=>H.Store.set('v165_'+k,v);
-const load=(k,d)=>{const v=H.Store.get('v165_'+k,d);return Array.isArray(v)?v:d;};
-const download=(name,data,type)=>{const a=document.createElement('a'),u=URL.createObjectURL(new Blob([data],{type:type||'application/json'}));a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1200);};
-const css=`<style>
-.h165{font:13px/1.45 system-ui;color:var(--text,#eef);padding:12px;min-height:100%;box-sizing:border-box}
-.h165 *{box-sizing:border-box}.h165-hero{padding:17px;border-radius:17px;background:linear-gradient(125deg,rgba(34,211,238,.16),rgba(168,85,247,.16));border:1px solid rgba(255,255,255,.12);margin-bottom:12px}
-.h165-hero h2{margin:0 0 4px;font-size:19px;color:var(--accent,#7dd3fc)}.h165-muted{opacity:.68;font-size:11px}
-.h165-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0}
-.h165-stat,.h165-card{padding:11px;border-radius:13px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);min-width:0}
-.h165-stat b{display:block;font-size:20px}.h165-stat span{font-size:10px;opacity:.65}
-.h165-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.h165-field{width:100%;padding:10px;border-radius:9px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.15);color:inherit;font:inherit;margin:4px 0}
-.h165-btn{border:1px solid rgba(255,255,255,.16);border-radius:9px;padding:9px 11px;background:rgba(255,255,255,.08);color:inherit;font:inherit;cursor:pointer}
-.h165-btn.primary{background:linear-gradient(120deg,#06b6d4,#8b5cf6);color:white;border:0;font-weight:800}
-.h165-btn.danger{color:#fda4af}.h165-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.h165-row>*{min-width:0}
-.h165-item{padding:11px;margin:7px 0;border-radius:12px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08)}
-.h165-item strong{display:block;font-size:13px}.h165-item small{opacity:.65}.h165-tag{font-size:10px;padding:3px 7px;border-radius:20px;background:rgba(34,211,238,.13);color:#67e8f9}
-.h165-empty{text-align:center;padding:25px;opacity:.6}.h165-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-@media(max-width:520px){.h165-grid{grid-template-columns:1fr}.h165-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.h165{padding:8px}}
-</style>`;
-function mountWindow(title,icon,subtitle,dimensions,mount){
- const id=uid('h165');H.Win.open(icon+' '+title,css+'<div class="h165" id="'+id+'"></div>',dimensions||{w:680,h:700});
- setTimeout(()=>{const root=document.getElementById(id);if(root&&root.isConnected)mount(root);},70);
+var H=window.HalDo;
+if(!H||!H.Win||!H.Store)return;
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function uid(){return 'h165-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);}
+function exportData(name,data){var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(function(){URL.revokeObjectURL(url);},1000);}
+var apps=[
+{id:'bibliothek',title:'HalDo Bibliothek Pro',icon:'📚',welcome:'Willkommen bei HalDo Bibliothek Pro',desc:'Bücher, Lernmaterial und Lesefortschritt verwalten',key:'v165_bibliothek',fields:[['title','Titel / Buchname'],['author','Autor / Herausgeber'],['category','Kategorie']],statuses:['Geplant','In Arbeit','Gelesen']},
+{id:'inventar',title:'HalDo Inventar Pro',icon:'📦',welcome:'Willkommen bei HalDo Inventar Pro',desc:'Artikel, Standorte und Mindestbestände verwalten',key:'v165_inventar',fields:[['title','Artikelname'],['category','Kategorie'],['location','Standort'],['quantity','Menge']],statuses:['Vorhanden','Niedriger Bestand','Ausgeliehen']},
+{id:'mindmap',title:'HalDo Mindmap Pro',icon:'🧠',welcome:'Willkommen bei HalDo Mindmap Pro',desc:'Ideen, Themenzweige und nächste Schritte sammeln',key:'v165_mindmap',fields:[['title','Gedanke / Hauptthema'],['branch','Themenzweig'],['details','Details / nächste Schritte']],statuses:['Offen','In Arbeit','Erledigt']}
+];
+function read(app){var value=H.Store.get(app.key,[]);return Array.isArray(value)?value:[];}
+function write(app,value){H.Store.set(app.key,value);}
+function openApp(app){
+var rootId=uid();
+H.Win.open(app.icon+' '+app.title,'<div id="'+rootId+'" style="padding:12px;font:13px system-ui;color:var(--text);height:100%;overflow:auto"></div>',{w:700,h:700});
+setTimeout(function(){
+var root=document.getElementById(rootId);if(!root)return;
+var query='';
+function render(){
+var all=read(app);
+var visible=all.filter(function(item){return (JSON.stringify(item)).toLowerCase().indexOf(query.toLowerCase())!==-1;});
+var form=app.fields.map(function(field){return '<input name="'+field[0]+'" maxlength="180" placeholder="'+field[1]+'" required class="h165-field" style="width:100%;padding:10px;margin:4px 0;border-radius:9px;background:rgba(0,0,0,.2);color:inherit;border:1px solid var(--border,rgba(255,255,255,.2))">';}).join('');
+var cards=visible.map(function(item){return '<article style="padding:12px;margin:8px 0;border:1px solid var(--border,rgba(255,255,255,.12));border-radius:12px;background:rgba(255,255,255,.04)"><b>'+esc(item.title)+'</b><div style="opacity:.7;font-size:11px;margin:5px 0">'+app.fields.slice(1).map(function(field){return esc(item[field[0]]||'');}).filter(Boolean).join(' · ')+'</div><div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap"><select data-status="'+esc(item.id)+'" style="padding:7px;border-radius:8px;background:#172033;color:white">'+app.statuses.map(function(status){return '<option '+(status===item.status?'selected':'')+'>'+status+'</option>';}).join('')+'</select><button data-delete="'+esc(item.id)+'" class="chip">Löschen</button></div></article>';}).join('');
+root.innerHTML='<section style="padding:16px;border-radius:16px;background:linear-gradient(120deg,rgba(14,165,233,.18),rgba(168,85,247,.18));margin-bottom:12px"><h2 style="margin:0 0 5px;color:var(--accent,#67e8f9)">'+app.icon+' '+app.welcome+'</h2><div style="opacity:.72;font-size:11px">'+app.desc+'</div></section><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0"><div class="card"><b>'+all.length+'</b><div style="font-size:10px;opacity:.7">Einträge</div></div><div class="card"><b>'+all.filter(function(x){return x.status===app.statuses[0];}).length+'</b><div style="font-size:10px;opacity:.7">'+app.statuses[0]+'</div></div><div class="card"><b>'+all.filter(function(x){return x.status===app.statuses[app.statuses.length-1];}).length+'</b><div style="font-size:10px;opacity:.7">'+app.statuses[app.statuses.length-1]+'</div></div></div><form id="'+rootId+'-form" class="card" style="padding:12px"><b>＋ Neuer Eintrag</b>'+form+'<button class="chip active" style="margin-top:7px">Speichern</button></form><div style="display:flex;gap:7px;margin:12px 0"><input id="'+rootId+'-search" placeholder="Suchen …" value="'+esc(query)+'" style="flex:1;min-width:0;padding:9px;border-radius:8px;background:rgba(0,0,0,.2);color:inherit;border:1px solid var(--border,rgba(255,255,255,.2))"><button id="'+rootId+'-export" class="chip">JSON Export</button></div><div>'+(cards||'<div style="text-align:center;padding:24px;opacity:.6">Noch keine Einträge vorhanden.</div>')+'</div><p style="font-size:10px;opacity:.55">Daten werden lokal in diesem Browser gespeichert. Keine automatische Cloud-Synchronisierung.</p>';
+root.querySelector('#'+rootId+'-form').onsubmit=function(event){event.preventDefault();var data=new FormData(event.currentTarget);var item={id:uid(),status:app.statuses[0],created:Date.now()};app.fields.forEach(function(field){item[field[0]]=String(data.get(field[0])||'').trim();});if(!item.title)return;var list=read(app);list.unshift(item);write(app,list);render();};
+root.querySelector('#'+rootId+'-search').oninput=function(event){query=event.target.value;var cursor=query.length;render();var input=root.querySelector('#'+rootId+'-search');input.focus();input.setSelectionRange(cursor,cursor);};
+root.querySelector('#'+rootId+'-export').onclick=function(){exportData(app.id+'-haldo.json',read(app));};
+root.querySelectorAll('[data-status]').forEach(function(select){select.onchange=function(){var list=read(app);var item=list.find(function(x){return x.id===select.dataset.status;});if(item){item.status=select.value;write(app,list);render();}};});
+root.querySelectorAll('[data-delete]').forEach(function(button){button.onclick=function(){if(!confirm('Eintrag wirklich löschen?'))return;write(app,read(app).filter(function(x){return x.id!==button.dataset.delete;}));render();};});
 }
-function wireDownload(root,selector,fn){root.querySelectorAll(selector).forEach(el=>el.addEventListener('click',fn));}
-H.bibliothek={open(){mountWindow('HalDo Bibliothek Pro','📚','',{w:720,h:740},root=>{
- let query='',filter='Alle';
- const read=()=>load('bibliothek',[]);
- const render=()=>{const a=read(),shown=a.filter(x=>(filter==='Alle'||x.status===filter)&&(!query||(x.title+' '+x.author+' '+x.category).toLowerCase().includes(query.toLowerCase())));
- root.innerHTML='<div class="h165-hero"><h2>Willkommen bei HalDo Bibliothek Pro</h2><div class="h165-muted">Deine persönliche digitale Bibliothek · Bücher, Lernmaterial und Lesefortschritt</div></div>'+
- '<div class="h165-stats"><div class="h165-stat"><b>'+a.length+'</b><span>Medien gesamt</span></div><div class="h165-stat"><b>'+a.filter(x=>x.status==='Gelesen').length+'</b><span>Gelesen</span></div><div class="h165-stat"><b>'+a.filter(x=>x.status==='In Arbeit').length+'</b><span>In Arbeit</span></div></div>'+
- '<div class="h165-card"><b>＋ Medium hinzufügen</b><form data-form><input class="h165-field" name="title" required maxlength="120" placeholder="Titel des Buchs / Mediums"><div class="h165-grid"><input class="h165-field" name="author" maxlength="90" placeholder="Autor / Herausgeber"><input class="h165-field" name="category" maxlength="50" placeholder="Kategorie (z. B. Medizin)"></div><div class="h165-grid"><select class="h165-field" name="status"><option>Geplant</option><option>In Arbeit</option><option>Gelesen</option></select><input class="h165-field" name="pages" type="number" min="0" max="100000" placeholder="Seiten (optional)"></div><button class="h165-btn primary">In Bibliothek speichern</button></form></div>'+
- '<div class="h165-row" style="margin:10px 0"><input class="h165-field" data-search placeholder="Bibliothek durchsuchen …" value="'+esc(query)+'" style="flex:1"><select class="h165-field" data-filter style="max-width:150px"><option>Alle</option><option>Geplant</option><option>In Arbeit</option><option>Gelesen</option></select><button class="h165-btn" data-export>JSON Export</button></div><div>'+ (shown.length?shown.map(x=>'<div class="h165-item"><strong>'+esc(x.title)+'</strong><small>'+esc(x.author||'Autor unbekannt')+' · '+esc(x.category||'Ohne Kategorie')+' · '+(x.pages?esc(x.pages)+' Seiten · ':'')+new Date(x.created).toLocaleDateString('de-DE')+'</small><div class="h165-actions"><span class="h165-tag">'+esc(x.status)+'</span><button class="h165-btn" data-status="'+esc(x.id)+'">Status wechseln</button><button class="h165-btn danger" data-del="'+esc(x.id)+'">Löschen</button></div></div>').join(''):'<div class="h165-empty">Noch keine Medien gefunden.</div>')+'</div><div class="h165-muted">Speicherung lokal in diesem Browser. Für wichtige Daten regelmäßig exportieren.</div>';
- root.querySelector('[data-filter]').value=filter;root.querySelector('[data-search]').oninput=e=>{query=e.target.value;render();const n=root.querySelector('[data-search]');n.focus();n.setSelectionRange(query.length,query.length);};
- root.querySelector('[data-filter]').onchange=e=>{filter=e.target.value;render();};
- root.querySelector('[data-form]').onsubmit=e=>{e.preventDefault();const d=new FormData(e.target);const title=String(d.get('title')||'').trim();if(!title)return;const list=read();list.unshift({id:uid('book'),title,author:String(d.get('author')||'').trim(),category:String(d.get('category')||'').trim(),status:d.get('status'),pages:Number(d.get('pages'))||0,created:Date.now()});save('bibliothek',list);render();};
- root.querySelector('[data-export]').onclick=()=>download('haldo-bibliothek.json',JSON.stringify(read(),null,2));
- root.querySelectorAll('[data-status]').forEach(b=>b.onclick=()=>{const list=read(),x=list.find(v=>v.id===b.dataset.status);if(x){x.status=x.status==='Geplant'?'In Arbeit':x.status==='In Arbeit'?'Gelesen':'Geplant';save('bibliothek',list);render();}});
- root.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{if(!confirm('Eintrag wirklich löschen?'))return;save('bibliothek',read().filter(x=>x.id!==b.dataset.del));render();});
- };)}};
-H.inventar={open(){mountWindow('HalDo Inventar Pro','📦','',{w:720,h:740},root=>{
- let query='';const read=()=>load('inventar',[]);
- const render=()=>{const a=read(),shown=a.filter(x=>(x.name+' '+x.category+' '+x.location).toLowerCase().includes(query.toLowerCase())),qty=a.reduce((s,x)=>s+x.qty,0),low=a.filter(x=>x.qty<=x.min).length;
- root.innerHTML='<div class="h165-hero"><h2>Willkommen bei HalDo Inventar Pro</h2><div class="h165-muted">Gegenstände, Geräte, Lagerorte und Mindestbestände im Blick behalten</div></div><div class="h165-stats"><div class="h165-stat"><b>'+a.length+'</b><span>Artikel</span></div><div class="h165-stat"><b>'+qty+'</b><span>Gesamtmenge</span></div><div class="h165-stat"><b>'+low+'</b><span>Mindestbestand erreicht</span></div></div><div class="h165-card"><b>＋ Inventarartikel erfassen</b><form data-form><input class="h165-field" name="name" required maxlength="100" placeholder="Artikelname"><div class="h165-grid"><input class="h165-field" name="category" placeholder="Kategorie"><input class="h165-field" name="location" placeholder="Standort / Raum"></div><div class="h165-grid"><label>Menge<input class="h165-field" name="qty" type="number" min="0" max="1000000" value="1"></label><label>Mindestbestand<input class="h165-field" name="min" type="number" min="0" max="1000000" value="0"></label></div><input class="h165-field" name="note" maxlength="300" placeholder="Notiz / Seriennummer (optional)"><button class="h165-btn primary">Artikel speichern</button></form></div><div class="h165-row"><input class="h165-field" data-search placeholder="Inventar durchsuchen …" value="'+esc(query)+'" style="flex:1"><button class="h165-btn" data-export>JSON Export</button></div><div>'+(shown.length?shown.map(x=>'<div class="h165-item"><strong>'+esc(x.name)+' <span class="h165-tag">'+x.qty+' Stück</span></strong><small>'+esc(x.category||'Ohne Kategorie')+' · '+esc(x.location||'Standort offen')+' · Mindestbestand '+x.min+'</small><div class="h165-muted">'+esc(x.note||'')+'</div><div class="h165-actions"><button class="h165-btn" data-minus="'+esc(x.id)+'">− 1</button><button class="h165-btn" data-plus="'+esc(x.id)+'">＋ 1</button><button class="h165-btn danger" data-del="'+esc(x.id)+'">Löschen</button></div></div>').join(''):'<div class="h165-empty">Noch keine Artikel vorhanden.</div>')+'</div><div class="h165-muted">Lokale Bestandsliste – keine automatische Synchronisierung oder Warenwirtschaftsanbindung.</div>';
- root.querySelector('[data-search]').oninput=e=>{query=e.target.value;render();const n=root.querySelector('[data-search]');n.focus();n.setSelectionRange(query.length,query.length);};
- root.querySelector('[data-form]').onsubmit=e=>{e.preventDefault();const d=new FormData(e.target),name=String(d.get('name')||'').trim();if(!name)return;const list=read();list.unshift({id:uid('item'),name,category:String(d.get('category')||''),location:String(d.get('location')||''),qty:Math.max(0,Number(d.get('qty'))||0),min:Math.max(0,Number(d.get('min'))||0),note:String(d.get('note')||''),created:Date.now()});save('inventar',list);render();};
- root.querySelector('[data-export]').onclick=()=>download('haldo-inventar.json',JSON.stringify(read(),null,2));
- root.querySelectorAll('[data-plus],[data-minus]').forEach(b=>b.onclick=()=>{const list=read(),x=list.find(v=>v.id===(b.dataset.plus||b.dataset.minus));if(x){x.qty=Math.max(0,x.qty+(b.dataset.plus?1:-1));save('inventar',list);render();}});
- root.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{if(confirm('Artikel aus Inventar entfernen?')){save('inventar',read().filter(x=>x.id!==b.dataset.del));render();}});
- };)}};
-H.mindmap={open(){mountWindow('HalDo Mindmap Pro','🧠','',{w:760,h:760},root=>{
- let query='';const read=()=>load('mindmap',[]);
- const render=()=>{const a=read(),shown=a.filter(x=>(x.title+' '+x.note+' '+x.group).toLowerCase().includes(query.toLowerCase()));
- root.innerHTML='<div class="h165-hero"><h2>Willkommen bei HalDo Mindmap Pro</h2><div class="h165-muted">Gedanken sammeln, Themen strukturieren und Ideen Schritt für Schritt entwickeln</div></div><div class="h165-stats"><div class="h165-stat"><b>'+a.length+'</b><span>Knoten</span></div><div class="h165-stat"><b>'+a.filter(x=>x.state==='Erledigt').length+'</b><span>Abgeschlossen</span></div><div class="h165-stat"><b>'+new Set(a.map(x=>x.group).filter(Boolean)).size+'</b><span>Themenbereiche</span></div></div><div class="h165-card"><b>＋ Neuen Gedanken anlegen</b><form data-form><input class="h165-field" name="title" required maxlength="120" placeholder="Idee / Hauptgedanke"><div class="h165-grid"><input class="h165-field" name="group" maxlength="60" placeholder="Thema / Zweig"><select class="h165-field" name="state"><option>Offen</option><option>In Arbeit</option><option>Erledigt</option></select></div><textarea class="h165-field" name="note" maxlength="800" rows="2" placeholder="Details, Fragen oder nächste Schritte"></textarea><button class="h165-btn primary">Gedanken speichern</button></form></div><div class="h165-row"><input class="h165-field" data-search placeholder="Mindmap durchsuchen …" value="'+esc(query)+'" style="flex:1"><button class="h165-btn" data-export>Mindmap JSON exportieren</button></div><div>'+(shown.length?shown.map((x,i)=>'<div class="h165-item" style="margin-left:'+Math.min(i%3,2)*13+'px;border-left:3px solid '+(x.state==='Erledigt'?'#34d399':x.state==='In Arbeit'?'#fbbf24':'#67e8f9')+'"><strong>'+esc(x.title)+'</strong><small>↳ '+esc(x.group||'Allgemeiner Zweig')+' · '+esc(x.state)+'</small><p style="margin:7px 0 0;white-space:pre-wrap">'+esc(x.note||'Noch keine Details')+'</p><div class="h165-actions"><button class="h165-btn" data-state="'+esc(x.id)+'">Status ändern</button><button class="h165-btn danger" data-del="'+esc(x.id)+'">Entfernen</button></div></div>').join(''):'<div class="h165-empty">Noch keine Gedanken. Lege deinen ersten Knoten an.</div>')+'</div><div class="h165-muted">Hinweis: Diese Version verwaltet Mindmap-Knoten strukturiert als Liste; grafische Verbindungslinien und Drag-and-drop folgen als eigener Ausbau.</div>';
- root.querySelector('[data-search]').oninput=e=>{query=e.target.value;render();const n=root.querySelector('[data-search]');n.focus();n.setSelectionRange(query.length,query.length);};
- root.querySelector('[data-form]').onsubmit=e=>{e.preventDefault();const d=new FormData(e.target),title=String(d.get('title')||'').trim();if(!title)return;const list=read();list.unshift({id:uid('node'),title,group:String(d.get('group')||''),state:d.get('state'),note:String(d.get('note')||''),created:Date.now()});save('mindmap',list);render();};
- root.querySelector('[data-export]').onclick=()=>download('haldo-mindmap.json',JSON.stringify({app:'HalDo Mindmap Pro',version:1,nodes:read()},null,2));
- root.querySelectorAll('[data-state]').forEach(b=>b.onclick=()=>{const list=read(),x=list.find(v=>v.id===b.dataset.state);if(x){x.state=x.state==='Offen'?'In Arbeit':x.state==='In Arbeit'?'Erledigt':'Offen';save('mindmap',list);render();}});
- root.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{if(confirm('Gedanken wirklich entfernen?')){save('mindmap',read().filter(x=>x.id!==b.dataset.del));render();}});
- };)}};
+render();
+},80);
+}
+apps.forEach(function(app){H[app.id]={open:function(){openApp(app);}};});
 if(H.Registry&&Array.isArray(H.Registry.featured)){
- const additions=[{id:'bibliothek',n:'HalDo Bibliothek Pro',i:'📚'},{id:'inventar',n:'HalDo Inventar Pro',i:'📦'},{id:'mindmap',n:'HalDo Mindmap Pro',i:'🧠'}];
- additions.forEach(a=>{if(!H.Registry.featured.some(x=>x.id===a.id))H.Registry.featured.push(a);});
+apps.forEach(function(app){if(!H.Registry.featured.some(function(x){return x.id===app.id;}))H.Registry.featured.push({id:app.id,n:app.title,i:app.icon});});
 }
 if(H.Master&&typeof H.Master.getCategoryApps==='function'){
- const old=H.Master.getCategoryApps.bind(H.Master);
- H.Master.getCategoryApps=key=>old(key).concat((key==='B'?[{id:'bibliothek',name:'HalDo Bibliothek Pro',icon:'📚'}]:key==='I'?[{id:'inventar',name:'HalDo Inventar Pro',icon:'📦'}]:key==='M'?[{id:'mindmap',name:'HalDo Mindmap Pro',icon:'🧠'}]:[]));
+var previous=H.Master.getCategoryApps.bind(H.Master);
+H.Master.getCategoryApps=function(key){var result=previous(key);var letter={bibliothek:'B',inventar:'I',mindmap:'M'};return result.concat(apps.filter(function(app){return letter[app.id]===key;}).map(function(app){return {id:app.id,name:app.title,icon:app.icon};}));};
 }
-console.log('🦚 HalDo v165: Bibliothek Pro, Inventar Pro und Mindmap Pro registriert.');
+console.log('HalDo v165: drei neue A–Z Apps geladen.');
 })();
 </script>
 
