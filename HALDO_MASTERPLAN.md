@@ -200,3 +200,132 @@ Dies ist der langfristige Produktkatalog. Er ist absichtlich breiter als der akt
 ---
 
 **Arbeitsregel:** Bei jeder neuen Sitzung zuerst dieses Dokument und den aktuellen GitHub-Stand lesen. Keine alten Versionsstände als aktuelle Basis behandeln. Keine Veröffentlichung als erfolgreich bezeichnen, bevor GitHub Actions dies bestätigt.
+
+
+# Verbindliche korrigierte Master-Spezifikation (Nutzerstand 24.11.2026)
+
+Dieser Abschnitt ergänzt die bisherige Release-Historie und ist ab diesem Stand die maßgebliche Produkt- und Architekturplanung. Er ersetzt keine Prüfung des tatsächlich implementierten Codes. **Planung, Codebestand, technische Abhängigkeiten und getesteter Live-Status sind getrennt auszuweisen.**
+
+## 1. Projektziel und Wahrheitsregeln
+
+HalDo AI OS Pro Max ist eine responsive Browser-/PWA-Plattform für iPhone, iPad, Laptop und weitere Geräte. Die Zielshell bleibt `index.html`; eigenständige App-Logik gehört bevorzugt in eigenständige Module. Vor Änderungen sind IDs, Assets, Pfade, Abhängigkeiten, Script-Versionen und bestehende Funktionen zu inventarisieren. Nichts blind löschen oder überschreiben. Eine Funktion gilt erst nach tatsächlichem Code- und Geräte-/Browser-Test als fertig. Browser-/OS-Grenzen und fehlende Backend-Dienste müssen sichtbar ausgewiesen werden.
+
+Die Oberfläche folgt dem holografischen HalDo-Design (Cyan `#00e5ff`, Blau `#4da8ff`, Purple `#b478ff`; Cyborg Pink/Violett; Glassmorphism, goldener Außen- und blauer Innenrahmen, Touch-/Safe-Area-Unterstützung). Vorhandenes `logo.png` bleibt erhalten. Top-Bar, Sidebar, Desktop-Fenster, Bottom-Bar [Chat]/[AI]/[CYBORG], App-Begrüßung und konfigurierbare Themes sind Teil des Zielbilds. Z-Index-Zielordnung: Fenster 200/250, Floating Panels 900, Toasts 1000, Modals 1100, Alerts 1200, Fenster-Aktionsbuttons 999999. Alte Störer-Selektoren nur nach Abhängigkeitsprüfung ändern.
+
+## 2. Core-Architektur
+
+Einheitliche Dienste: Boot/Version, App-Registry und Router, App-Lifecycle, Window Manager, Event Bus, Storage mit Namespaces/Migration/Export/Import/Backup, Settings, Localization/RTL, Permissions/Capabilities, Fehlerdiagnose, Offline/PWA und Update/Rollback. App-IDs müssen stabil und dedupliziert sein. Jede App braucht UI, Logik, State, Validierung, Fehler-/Leerzustände, Speicherverhalten, Touch-/Tastaturbedienung und Hilfe. API-Schlüssel und Provider-Geheimnisse gehören niemals in öffentliches Frontend-JavaScript oder `localStorage`.
+
+Ziel-Globals und Funktionsverträge aus der Nutzerspezifikation (u. a. Memory, Journal, Goals, Habits, Tasks, Reminders, Calendar, Weather, Contacts, Notes, Finance, Music, Calculator, Recipes, Shopping, Timer, Translator, Workout, Utilities, QR, Random, Password, Analyzer, Date, Clipboard, Sleep, Mood, Bookmarks, Reading, Vocabulary, Flashcards, Periodic Table, Math, Statistics, Geo, Êzîdî und UI118) sind bei der Bestandsaufnahme gegen vorhandene APIs abzugleichen. Keine parallelen doppelten Services erzeugen.
+
+## 3. 26 Kategorien – Sollumfang 375
+
+| Code | Kategorie | Soll |
+|---|---|---:|
+| A | HalDo AI & Assistant Pro | 17 |
+| B | HalDo Bildung Pro | 39 |
+| C | HalDo Fahrschule Pro | 22 |
+| D | HalDo Gesundheit Pro | 24 |
+| E | HalDo Arbeit Pro | 18 |
+| F | HalDo Finanzen Pro | 13 |
+| G | HalDo Zuhause & Familie Pro | 13 |
+| H | HalDo World Pro | 14 |
+| I | HalDo Wissen Pro | 17 |
+| J | HalDo Kultur & Religion Pro | 9 |
+| K | HalDo Keyboard Pro | 11 |
+| L | HalDo Lernen Pro | 11 |
+| M | HalDo Medien Pro | 12 |
+| N | HalDo Notizen Pro | 11 |
+| O | HalDo Online Pro | 9 |
+| P | HalDo Kreativität Pro | 11 |
+| Q | HalDo Wissenschaft Pro | 11 |
+| R | HalDo Sicherheit Pro | 10 |
+| S | HalDo System Pro | 20 |
+| T | HalDo Travel Pro | 14 |
+| U | HalDo Universität Pro | 18 |
+| V | HalDo Voice Pro | 9 |
+| W | HalDo Windows Pro | 8 |
+| X | HalDo Explorer Pro | 7 |
+| Y | HalDo Your Life Pro | 12 |
+| Z | HalDo Entwickler Pro | 15 |
+| | **Gesamt** | **375** |
+
+375 ist das Registry-/Planungsziel, kein Beleg für 375 fertige Apps. Unbenannte Plätze bleiben „Name/Funktion zu spezifizieren“. Die Kernliste hat eine Zählungsinkonsistenz (71 angekündigt, Einträge bis 75); Namen/IDs müssen dedupliziert werden. Tasks/ToDo, Statistics/Statistics 2, Utilities/QR sowie Avatar/Living Avatar sind fachlich abzugrenzen oder zusammenzuführen. Navigation und Connectivity sind als App/Systemdienst/Systemfähigkeit einzuordnen.
+
+## 4. Explizite Kern-Apps
+
+Die 75 Einträge der Nutzerspezifikation sind die Ausgangsliste für die Registry-Inventur: App-Registry, AI Memory, Journal, Goals, Habits, Tasks, Reminders, Dashboard, Avatar, Calendar, Fahrschule, Traffic/Fahrzeug-Modus, Weather LIVE, Contacts, Notes, Finance, Music Player, Calculator, Recipes, Shopping List, Timer, Translator, Workout, Utilities, QR Generator, Random, Password, Text Analyzer, Date Calculator, Clipboard, ToDo, Pomodoro, Water Tracker, Breathing, Statistics, Scientific Calc, Unit Converter, Currency Live, Health Calculator, Emergency Info, World Clock, Voice Memos, Camera, File Manager, Habit Heatmap, Sticky Notes, QR Sticker, Network Info, Device Info, Loan Calculator, Science Lab, Sleep Tracker, Mood Tracker, Bookmarks, Reading List, Vocabulary, Flashcards, Periodic Table, Math Solver, Statistics 2, Geo Quiz, Êzîdî Wissen, Recipe Scaler, UI-Revolution, UI-Reset, Holo UI, Musik Studio, Video Studio, API Key, Einstellungen, Arztbuch sowie E-Mail, Chat, Video Calls und Phone. Diese Liste ist nicht gleichbedeutend mit abgeschlossener Implementierung. Navigation Pro, WLAN/Bluetooth/Hotspot Center, Living AI Avatar und Cosmic World sind zusätzlich gewünschte Systemmodule/-fähigkeiten.
+
+## 5. Einstellungen Pro – 26 Bereiche
+
+Account & Profil; Benachrichtigungen; CYBORG & KI-Design; Display & Anzeige; Energie & Akku; Farbsystem & Themes; Geräte & Hardware; Hintergrund & Kosmos; Info & Über; Journal & persönliche Daten; KI & Assistant; Lautstärke & Töne; Mitteilungen & Datenschutz; Netzwerk & Internet; Online & Cloud; Passwörter & Sicherheit; Qualität & Leistung; Region & Sprache; Speicher & Daten; Tastatur & Eingabe; Updates & Software; Verbindung & Schnittstellen; Weltraum & Kosmos-Details; X-Faktor/Erweiterte Einstellungen; Your Life; Zeit & Datum. Jede Option erhält einen ehrlichen Funktionsstatus: aktiv, Browser-/Hardware-eingeschränkt, Backend/Native-App erforderlich oder nicht implementiert. Eine Website darf keine systemweiten Fähigkeiten vortäuschen.
+
+## 6. Großsysteme und besondere Anforderungen
+
+- **Fahrschule Pro Max:** Klassen AM, A1, A2, A, B, B96, BE, C1, C1E, C, CE, D1, D1E, D, DE, L, T; Sitzungsgrößen 15/20/30/45/50/60/90/120; Lern-, Themen-, Fehler-, Wiederholungs- und Prüfungsmodus, Feedback/Erklärungen, Statistik, Sprache/Voice. Amtliche/lizenzierte Fragen und Medien nur mit geklärten Rechten.
+- **Arztbuch Pro:** medizinisches Dashboard, Krankheiten, Medikamente, Labor, Patientendokumentation/-verträge, Pflege, Notfall, IoT und 3D-Anatomie. Keine Diagnose-/Therapieentscheidung vortäuschen; klinische Daten nur mit geeigneter Zugriffskontrolle, Einwilligung und sicherem Backend. 3D-Viewer muss im Arztbuchfenster mounten, vorhandene GLB-Assets katalogisieren, Three.js-Versionen vereinheitlichen, Resize/Timeout/Fehler/Dispose korrekt behandeln. Details siehe `docs/ARZTBUCH_MASTERKATALOG_A-Z.md` und `database/arztbuch-schema-v1.sql`.
+- **Êzîdî Wissen Pro:** eigenständige, quellengeprüfte Plattform für Êzîdî-Kultur, Religion, Geschichte, Orte, Traditionen und Sprachmaterial. Keine fremden Glaubensinhalte als Bestandteil der Glaubensdarstellung; Unsicherheiten/Quellen sichtbar.
+- **Living HalDo AI/Jarvis/Cyborg:** eine gemeinsame Avatar-/Assistentenplattform mit Zuständen idle/listening/thinking/speaking/answering/error, kontrollierbarer Mimik/Gesten, TTS/STT soweit unterstützt, echter audio-gebundener Lip-Sync, Einwilligungs-Gedächtnis und bestätigungspflichtigen sensiblen Systemaktionen.
+- **Cosmic World:** Sonne, die zwölf vom Nutzer benannten Himmelskörper (Merkur, Venus, Erde, Mars, Jupiter, Saturn, Uranus, Neptun, Pluto, Xena, Sedna, Eris), Erde/Mond, Sterne/Nebel/Sternschnuppen und konfigurierbare Performance.
+- **Navigation Pro:** Karten-/Routenprovider, Orts-/Namenssuche, Standort nur nach Zustimmung, verifizierte Daten.
+- **WLAN/Bluetooth/Hotspot Center:** Diagnose und unterstützte Browser-APIs; systemweite Funksteuerung benötigt native Companion-App/OS-Integration.
+
+## 7. Kommunikation – vier eigenständige Apps
+
+Die am 24.11.2026 ergänzte Communication Suite besteht aus **HalDo E-Mail Pro**, **HalDo Chat Pro**, **HalDo Video Calls Pro** und **HalDo Phone Pro**. Sie teilen Identität, Kontakte, Benachrichtigungen, Berechtigungen und Upload-Dienste, bleiben aber eigenständige Registry-Apps. HalDo-AI-Unterhaltungen bleiben ein separater Datenraum. Zuordnung: O (E-Mail/Chat), V (Video Calls/Phone); keine Erhöhung der 375 Sollplätze ohne deduplizierte Registry-Prüfung.
+
+### E-Mail Pro
+Mehrkontenclient, gemeinsamer Posteingang, Gmail/Outlook/Yahoo/iCloud und weitere Provider nur über tatsächlich unterstützte OAuth-/IMAP-/SMTP-Verbindungen; Ordner/Labels, Suche/Filter, Compose/Reply/Forward, CC/BCC, Anhänge, Signaturen, Vorlagen, Entwürfe, geplantes Senden, Offline-Entwürfe und Benachrichtigungen. `Halil@haldo.ai` ist Wunschadresse, nicht aktiv bis Domain, MX, SPF, DKIM, DMARC, Mailserver und Postfachzustellung eingerichtet/getestet sind. Keine Zugangsdaten/Tokens im Frontend oder localStorage.
+
+### Chat Pro
+Einzel-/Gruppen-/Team-Chats und Kanäle, Nachrichtenstatus, Antworten/Reaktionen/Bearbeiten/Löschen, Dateien/Bilder/Sprachnachrichten, Suche/Archiv, Blockieren/Melden, Push und Gerätesynchronisierung. E2EE erst nach geprüftem Protokoll und Schlüsselmanagement behaupten. Keine automatische AI-Einsicht in private Kommunikation.
+
+### Video Calls Pro
+1:1/Gruppen-Meetings, Räume/Links, Geräteprüfung, Kamera/Mikrofon, Galerie/Sprecher, Bildschirmfreigabe, Chat, Reaktionen/Handheben, Warteraum/Hostrechte, Untertitel/Übersetzung mit Einwilligung. Erfordert HTTPS, WebRTC, Signalisierungsserver und STUN/TURN. Aufzeichnung standardmäßig aus und nur mit ausdrücklicher Zustimmung aller Beteiligten.
+
+### Phone Pro
+Wählfeld, Kontakte/Favoriten/Anrufliste, HalDo-zu-HalDo-VoIP und externe PSTN-Telefonie nur über Provider/SIP-Gateway, Backend-Tokens und regulatorische Prüfung. Providerfunktionen wie Mailbox/Weiterleitung nur ausweisen, wenn unterstützt. `tel:` ist kein integriertes VoIP. Notruffähigkeit niemals ohne zugelassenen und getesteten Prozess behaupten; mobile Hintergrundtelefonie kann native Companion-App erfordern.
+
+### Gemeinsame Kommunikationsdienste
+Ziel-APIs: `HalDo.Email.accounts/connectAccount/createMailbox/send/draft/search/sync`; `HalDo.Chat.conversations/sendMessage/editMessage/deleteMessage/search/openConversation`; `HalDo.VideoCalls.createRoom/join/leave/mute/toggleCamera/shareScreen`; `HalDo.Phone.dial/answer/decline/hangup/hold/mute/history`. Jede Funktion zeigt ehrlichen Status (bereit, Provider verbinden, Backend fehlt, Browser nicht unterstützt, Berechtigung erforderlich, Fehler). AI-Zugriff nur nach expliziter kontextbezogener Freigabe.
+
+## 8. Sprachen, Warnungen und Qualität
+
+Lokalisierung zentral über Übersetzungsschlüssel, Fallback, RTL, Zahlen-/Datum-/Währungs-/Einheitenformat. Gewünschte Sprachen u. a. Deutsch, Englisch, Kurmanji, Sorani, Gorani, Türkisch, Arabisch, Persisch, Hebräisch, Russisch, Französisch, Spanisch, Italienisch, Chinesisch, Japanisch, Usbekisch und Latein; Êzîdî ist keine pauschale Sprachcode-Bezeichnung. Übersetzungsqualität kennzeichnen. Warnungen müssen Quelle, Aktualität und Unsicherheit zeigen.
+
+## 9. Abnahmekriterien je App
+
+1. Stabile deduplizierte Registry-ID, Name, Icon, Kategorie, Version, Beschreibung.
+2. HalDo-Willkommen und responsives Layout.
+3. Echte UI und Kernlogik; keine Scheinbuttons.
+4. State/Speicherung über Schließen und Wiederöffnen.
+5. Validierung, Bearbeiten, Löschen, Suche/Filter soweit passend.
+6. Lade-, Leer-, Erfolgs- und Fehlerzustände.
+7. Window Manager, Fokus/Z-Index, Touch/Tastatur.
+8. Localization, Berechtigungen, Datenschutz.
+9. AI/Voice nur bei echter Anbindung.
+10. Desktop-/Mobile-/Medien-/3D-Tests und Regressionstests.
+11. Nach Commit Raw-Datei erneut prüfen und GitHub Actions/Pages abwarten.
+
+## 10. Umsetzungsphasen
+
+0. Bestand/Backup/IDs/Assets/Abhängigkeiten inventarisieren.
+1. Core und UI stabilisieren.
+2. Arztbuch-3D-Viewer und Three.js-/GLB-Ladepfad reparieren.
+3. Living AI/Jarvis/Cyborg.
+4. Êzîdî Wissen Pro.
+5. Apps A–Z in deduplizierten, testbaren Paketen.
+6. Cosmic World, Fahrschule und Navigation.
+7. Integration, Regression, Performance, Barrierefreiheit, Mobile/PWA, Backup/Migration und Release.
+
+## 11. Inventarlücken
+
+- 375 Sollplätze, aber nicht alle Namen/Funktionen eindeutig spezifiziert.
+- Kernliste als 71 Apps bezeichnet, nummeriert bis 75.
+- Tasks/ToDo, Statistics/Statistics 2, Utilities/QR, Avatar/Living Avatar abgrenzen.
+- Systemmodule gegenüber Apps klassifizieren.
+- Browser-/OS-Funktionen mit Status und echter Capability versehen.
+- Kommunikations-IDs und bestehende Module vor Integration deduplizieren.
+- `Halil@haldo.ai` bleibt Zieladresse bis erfolgreicher Mailserver-/DNS-/Zustellkonfiguration.
+
+**Verbindlicher Grundsatz:** Diese Spezifikation beschreibt das Soll. Der jeweilige Ist-Stand wird separat anhand der aktuellen Repository-Dateien und realer Tests ausgewiesen.
