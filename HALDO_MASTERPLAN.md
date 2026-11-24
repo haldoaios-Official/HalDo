@@ -111,12 +111,14 @@ Die folgenden Einträge sind aus dem aktuellen Repository-Dateibaum und den zule
 | v160 | System Diagnostics und Versions-/Metadatenabgleich |
 | v161 | universeller goldener Galaxie-Willkommensauftritt und App-Branding |
 | v162 | Living Identity + Identity Bridge eingebunden |
+| v163 | Lebendiger kosmischer Welcome-Auftritt: goldene Sonne, Lichtkranz, Partikel, Flügelbewegung und App-spezifische Identität |
 
 ### Zuletzt bestätigter GitHub-Stand
-- Letzter bestätigter Commit: `ade827940b3a448e4818b8961784f72f4a79eb56`
-- Commit-Nachricht: `Build v162: activate Living Identity and Identity Bridge`
-- Hauptdatei zuletzt geprüft: `index.html` (v162; 925.611 Zeichen; 13.154 Zeilen beim Audit am 24.11.2026)
-- Beide zugehörigen Pages-Workflows wurden mit Ergebnis `success` gemeldet.
+- v163 Hauptdatei-Commit: `d678bede14e9990f6ea17d75ffc5ddef2eff8cbe` (Titel/BUILD auf v163, Motion-Modul eingebunden).
+- v163 Motion-Modul-Commit: `ddaaa184f88422d21e5c4b64a508021a089c60f3`; anschließende Cleanup-Verbesserung: `7f297f965a0f8bfa9d036db1d3a87bfef089c513`.
+- Projektgedächtnis: `HALDO_MASTERPLAN.md`; README-Verweis-Commit: `5ea20ef140be8167afc309a54888d5f86353c60b`.
+- Hauptdatei zuletzt geprüft: `index.html` v163; 925.755 Zeichen; 13.158 Zeilen beim Audit am 24.11.2026.
+- Der v163 Deployment-Workflow war bei der letzten Abfrage noch in Bearbeitung; erst nach erfolgreichem Abschluss als veröffentlicht bezeichnen.
 - Diese Angaben sind ein Audit-Snapshot und müssen vor jeder späteren Änderung erneut live geprüft werden.
 
 ## 6. A–Z Zielkatalog — geplante HalDo-App-Landschaft
