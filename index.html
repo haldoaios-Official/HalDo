@@ -8851,35 +8851,238 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
           },
 
           loadModel: function(modelId) {
-            var url = BASE_URL + modelId + '.glb';
-            var loader = new THREE.GLTFLoader();
-            var self = this;
-            loader.load(url, function(gltf) {
-              if (self.currentModel) self.scene.remove(self.currentModel);
-              self.currentModel = gltf.scene;
-              
-              var box = new THREE.Box3().setFromObject(self.currentModel);
-              var center = box.getCenter(new THREE.Vector3());
-              var size = box.getSize(new THREE.Vector3());
-              var scale = 2 / Math.max(size.x, size.y, size.z);
-              
-              self.currentModel.scale.set(scale, scale, scale);
-              self.currentModel.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
 
-              self.currentModel.traverse(function(child) {
-                if (child.isMesh) {
-                  child.material = new THREE.MeshStandardMaterial({
-                    color: 0xe0e0e0, roughness: 0.6, metalness: 0.1,
-                    emissive: 0x00e5ff, emissiveIntensity: 0.05
-                  });
+    var c = document.getElementById('anatomie-3d-container');
+
+    if (!c || !this.scene || !this.camera || !this.renderer) {
+        console.error('HalDo Anatomie: 3D-Viewer nicht initialisiert.');
+        return;
+    }
+
+    var statusNode = c.querySelector('[data-haldo-3d-status]');
+
+    if (!statusNode) {
+        var nodes = Array.prototype.slice.call(
+            c.querySelectorAll('div')
+        );
+
+        statusNode = nodes.find(function(el) {
+            return el.textContent.indexOf('Lade 3D-Modell') !== -1;
+        }) || null;
+    }
+
+    function showStatus(message, isError) {
+
+        if (!statusNode || !statusNode.parentNode) {
+            statusNode = document.createElement('div');
+
+            statusNode.setAttribute(
+                'data-haldo-3d-status',
+                ''
+            );
+
+            c.appendChild(statusNode);
+        }
+
+        statusNode.style.cssText =
+            'position:absolute;' +
+            'top:50%;left:50%;' +
+            'transform:translate(-50%,-50%);' +
+            'z-index:20;' +
+            'padding:12px;' +
+            'text-align:center;' +
+            'pointer-events:none;' +
+            'color:' + (isError ? '#ff718b' : '#00e5ff') + ';' +
+            'font-size:13px;';
+
+        statusNode.textContent = message;
+    }
+
+    showStatus('🦴 Lade 3D-Modell: ' + modelId + ' ...', false);
+
+    var url = BASE_URL + modelId + '.glb';
+
+    try {
+
+        if (!THREE.DRACOLoader) {
+            throw new Error('DRACOLoader wurde nicht geladen.');
+        }
+
+        if (!this.dracoLoader) {
+
+            this.dracoLoader = new THREE.DRACOLoader();
+
+            this.dracoLoader.setDecoderPath(
+                'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/'
+            );
+
+            this.dracoLoader.setWorkerLimit(2);
+        }
+
+        var loader = new THREE.GLTFLoader();
+
+        loader.setDRACOLoader(this.dracoLoader);
+
+    } catch (error) {
+
+        showStatus('3D-Fehler: ' + error.message, true);
+
+        console.error('HalDo Anatomie:', error);
+
+        return;
+    }
+
+    var self = this;
+
+    var requestId = (this.loadRequestId || 0) + 1;
+
+    this.loadRequestId = requestId;
+
+    loader.load(
+
+        url,
+
+        function(gltf) {
+
+            if (requestId !== self.loadRequestId) {
+                return;
+            }
+
+            var model = gltf.scene;
+
+            var box = new THREE.Box3().setFromObject(model);
+
+            var center = box.getCenter(new THREE.Vector3());
+
+            var size = box.getSize(new THREE.Vector3());
+
+            var maxDim = Math.max(
+                size.x,
+                size.y,
+                size.z
+            );
+
+            if (!Number.isFinite(maxDim) || maxDim <= 0) {
+
+                showStatus(
+                    'Das 3D-Modell enthält keine sichtbare Geometrie.',
+                    true
+                );
+
+                return;
+            }
+
+            var scale = 2 / maxDim;
+
+            model.scale.setScalar(scale);
+
+            model.position.set(
+                -center.x * scale,
+                -center.y * scale,
+                -center.z * scale
+            );
+
+            model.traverse(function(child) {
+
+                if (!child.isMesh) return;
+
+                if (child.material) {
+
+                    var materials = Array.isArray(child.material)
+                        ? child.material
+                        : [child.material];
+
+                    materials.forEach(function(material) {
+
+                        if (!material) return;
+
+                        material.side = THREE.DoubleSide;
+                        material.needsUpdate = true;
+
+                    });
                 }
-              });
-              self.scene.add(self.currentModel);
-            }, undefined, function(err) {
-              console.error('❌ Modell ' + modelId + ' Fehler:', err);
             });
-          },
 
+            if (self.currentModel) {
+
+                self.scene.remove(self.currentModel);
+
+            }
+
+            self.currentModel = model;
+
+            self.scene.add(model);
+
+            self.camera.position.set(0, 0.25, 5);
+
+            self.camera.lookAt(0, 0, 0);
+
+            self.camera.near = 0.01;
+
+            self.camera.far = 100;
+
+            self.camera.updateProjectionMatrix();
+
+            if (self.controls) {
+
+                self.controls.target.set(0, 0, 0);
+
+                self.controls.update();
+            }
+
+            if (statusNode && statusNode.parentNode) {
+
+                statusNode.parentNode.removeChild(statusNode);
+
+                statusNode = null;
+            }
+
+            console.log(
+                '✅ HalDo Anatomie: 3D-Modell sichtbar:',
+                modelId
+            );
+
+        },
+
+        function(progress) {
+
+            if (
+                progress &&
+                progress.lengthComputable &&
+                requestId === self.loadRequestId
+            ) {
+
+                var percent = Math.round(
+                    progress.loaded / progress.total * 100
+                );
+
+                showStatus(
+                    '🦴 Lade 3D-Modell ... ' + percent + '%',
+                    false
+                );
+            }
+        },
+
+        function(error) {
+
+            if (requestId !== self.loadRequestId) {
+                return;
+            }
+
+            console.error(
+                '❌ HalDo Anatomie – Modellfehler:',
+                modelId,
+                error
+            );
+
+            showStatus(
+                '3D-Modell konnte nicht geladen werden. Bitte erneut versuchen.',
+                true
+            );
+        }
+    );
+
+},
           stop: function() {
             if (this.animationId) cancelAnimationFrame(this.animationId);
             if (this.renderer) {
