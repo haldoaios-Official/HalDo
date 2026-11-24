@@ -113,6 +113,7 @@ Die folgenden Einträge sind aus dem aktuellen Repository-Dateibaum und den zule
 | v162 | Living Identity + Identity Bridge eingebunden |
 | v163 | Lebendiger kosmischer Welcome-Auftritt: goldene Sonne, Lichtkranz, Partikel, Flügelbewegung und App-spezifische Identität |
 | v164 | Originales `logo.png` als lebendiges goldenes Engel-Emblem mit Lichtkranz, Glanzreflexen, Sternen und subtiler Flügelbewegung |
+| v165 | Drei neue A–Z-Apps: HalDo Bibliothek Pro, HalDo Inventar Pro und HalDo Mindmap Pro; lokale Speicherung, Suche, Status-/Bestandsverwaltung und JSON-Export |
 
 ### Zuletzt bestätigter GitHub-Stand
 - v163 Hauptdatei-Commit: `d678bede14e9990f6ea17d75ffc5ddef2eff8cbe` (Titel/BUILD auf v163, Motion-Modul eingebunden).
@@ -163,7 +164,15 @@ Dies ist der langfristige Produktkatalog. Er ist absichtlich breiter als der akt
 - Datenschutz, Rollen/Rechte, Audit-Protokolle, Verschlüsselung, Export und sichere Backups.
 - Keine erfundenen medizinischen Daten oder Dosierungen. Fachinhalte benötigen verlässliche Quellen und professionelle Prüfung.
 
-## 7. Prioritäten für die nächsten Entwicklungsschritte
+## 7. Release v165 — drei neue A–Z-Apps
+
+- **HalDo Bibliothek Pro (B):** Bücher/Medien erfassen, Autor und Kategorie pflegen, Lesestatus verwalten, suchen und JSON exportieren.
+- **HalDo Inventar Pro (I):** Artikel, Kategorie, Standort, Menge und Mindestbestand erfassen; Bestände erhöhen/verringern, Warnstatus erkennen, suchen und JSON exportieren.
+- **HalDo Mindmap Pro (M):** Gedanken/Knoten mit Thema, Details und Status erfassen, filtern, Status fortschreiben und JSON exportieren. Diese erste Version ist eine strukturierte Knotenverwaltung; grafische Verbindungslinien und Drag-and-drop sind ausdrücklich noch nicht enthalten.
+- Alle drei Apps verwenden das bestehende HalDo-Fenstersystem und `HalDo.Store`; ihre IDs werden als Featured-Apps sowie in den A–Z-Kategorien B, I und M ergänzt.
+- Lokale Browser-Speicherung bedeutet keine automatische Cloud-Synchronisierung. Export regelmäßig sichern.
+
+## 8. Prioritäten für die nächsten Entwicklungsschritte
 
 1. **v163 — Masterplan und Bestandsinventar:** dieses Dokument im Repository verankern, README verlinken, App-Registry und Modulstatus künftig nachvollziehbar pflegen.
 2. **v164 — Living Golden Angel Emblem:** das originale `logo.png` im vorhandenen Welcome als golden leuchtendes, schwebendes Engel-Emblem mit Glanzreflexen, Lichtkranz, Sternpunkten und sanft bewegten SVG-Flügeln darstellen; Originalbild nicht ersetzen.
@@ -172,7 +181,7 @@ Dies ist der langfristige Produktkatalog. Er ist absichtlich breiter als der akt
 5. **App-Inventar vervollständigen:** jede App mit ID, Anzeigename, Kategorie, Entry-Datei, Launcher-Ziel, Status (fertig/in Arbeit/geplant), Funktionen, Speicher und Tests dokumentieren.
 6. **Nächster regulärer App-Release:** erst nach dem Inventar zwei noch nicht vorhandene Apps auswählen und vollständig integrieren.
 
-## 8. Release-Checkliste
+## 9. Release-Checkliste
 
 - [ ] Aktuellen `main`-Commit und Datei-SHAs frisch abgerufen.
 - [ ] Bestehende App-IDs und Module geprüft; keine Duplikate.
