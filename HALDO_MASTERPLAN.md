@@ -112,6 +112,7 @@ Die folgenden Einträge sind aus dem aktuellen Repository-Dateibaum und den zule
 | v161 | universeller goldener Galaxie-Willkommensauftritt und App-Branding |
 | v162 | Living Identity + Identity Bridge eingebunden |
 | v163 | Lebendiger kosmischer Welcome-Auftritt: goldene Sonne, Lichtkranz, Partikel, Flügelbewegung und App-spezifische Identität |
+| v164 | Originales `logo.png` als lebendiges goldenes Engel-Emblem mit Lichtkranz, Glanzreflexen, Sternen und subtiler Flügelbewegung |
 
 ### Zuletzt bestätigter GitHub-Stand
 - v163 Hauptdatei-Commit: `d678bede14e9990f6ea17d75ffc5ddef2eff8cbe` (Titel/BUILD auf v163, Motion-Modul eingebunden).
@@ -165,8 +166,8 @@ Dies ist der langfristige Produktkatalog. Er ist absichtlich breiter als der akt
 ## 7. Prioritäten für die nächsten Entwicklungsschritte
 
 1. **v163 — Masterplan und Bestandsinventar:** dieses Dokument im Repository verankern, README verlinken, App-Registry und Modulstatus künftig nachvollziehbar pflegen.
-2. **Welcome/Identity-Audit:** v161-Begrüßung, `splash.js`, `logo.png`, Living Identity und Identity Bridge auf doppelte Startsequenzen, tatsächliche Einbindung und App-Startverhalten prüfen.
-3. **Lebendiger Welcome-Auftritt:** vorhandene Begrüßung gezielt verbessern, ohne vorhandene Launch-Logik zu brechen. Goldene Sonne, Engel-Flügelanimation, Milchstraße, Licht-/Partikeleffekte, Original-Logo und App-spezifische Texte.
+2. **v164 — Living Golden Angel Emblem:** das originale `logo.png` im vorhandenen Welcome als golden leuchtendes, schwebendes Engel-Emblem mit Glanzreflexen, Lichtkranz, Sternpunkten und sanft bewegten SVG-Flügeln darstellen; Originalbild nicht ersetzen.
+3. **Welcome/Identity-Audit:** v161-Begrüßung, `splash.js`, `logo.png`, Living Identity und Identity Bridge auf doppelte Startsequenzen, tatsächliche Einbindung und App-Startverhalten prüfen.
 4. **App-Designsystem:** gemeinsame hochwertige Komponenten für Karten, Chat, Tabellen, Formulare, Seitenleisten und Fenster; pro App eigener Akzent und Begrüßung.
 5. **App-Inventar vervollständigen:** jede App mit ID, Anzeigename, Kategorie, Entry-Datei, Launcher-Ziel, Status (fertig/in Arbeit/geplant), Funktionen, Speicher und Tests dokumentieren.
 6. **Nächster regulärer App-Release:** erst nach dem Inventar zwei noch nicht vorhandene Apps auswählen und vollständig integrieren.
