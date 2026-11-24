@@ -12773,5 +12773,189 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
 </script>
 <!-- ENDE HALDO ZWEIER-PAKET v157 -->
 
+
+<!-- ================================================================
+     HALDO AI OS PRO MAX — v158
+     HalDo Sprach- & Stimmenstudio Pro
+     Mehrsprachige Sprachausgabe · eigene Sprachproben · Provider-Proxy
+     ================================================================ -->
+<script id="haldo-v158-language-voice">
+(function(){
+  'use strict';
+  var H=window.HalDo=window.HalDo||{};
+  var BUILD='158.0.0';
+  var KEY='haldo_v158_voice_settings';
+  var LANGS=[
+    ['de-DE','Deutsch'],['en-US','English (US)'],['en-GB','English (UK)'],
+    ['ku-TR','Kurmancî (Êzîdî)'],['ckb-IQ','Kurdî (Soranî)'],
+    ['tr-TR','Türkçe'],['ar-SA','العربية'],['fa-IR','فارسی'],
+    ['fr-FR','Français'],['es-ES','Español'],['it-IT','Italiano'],
+    ['ru-RU','Русский'],['nl-NL','Nederlands'],['pl-PL','Polski'],
+    ['pt-PT','Português'],['sv-SE','Svenska'],['da-DK','Dansk'],
+    ['no-NO','Norsk'],['fi-FI','Suomi'],['el-GR','Ελληνικά'],
+    ['hi-IN','हिन्दी'],['ur-PK','اردو'],['pa-IN','ਪੰਜਾਬੀ'],
+    ['bn-BD','বাংলা'],['zh-CN','中文'],['ja-JP','日本語'],
+    ['ko-KR','한국어'],['vi-VN','Tiếng Việt'],['id-ID','Bahasa Indonesia'],
+    ['sw-KE','Kiswahili'],['he-IL','עברית'],['uk-UA','Українська'],
+    ['ro-RO','Română'],['hu-HU','Magyar'],['az-AZ','Azərbaycanca'],
+    ['hy-AM','Հայերեն'],['ka-GE','ქართული'],['ps-AF','پښتو'],
+    ['so-SO','Soomaali'],['af-ZA','Afrikaans']
+  ];
+  var DEFAULTS={language:'de-DE',rate:1,pitch:1,volume:1,voiceURI:'',endpoint:'',voiceId:''};
+  function readSettings(){
+    try{return Object.assign({},DEFAULTS,JSON.parse(localStorage.getItem(KEY)||'{}'));}
+    catch(_){return Object.assign({},DEFAULTS);}
+  }
+  var settings=readSettings(),root=null,mediaRecorder=null,recordedChunks=[],recordedBlob=null,stream=null;
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(settings));}catch(_){}}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function notifyUser(message,type){
+    if(typeof H.Notify==='function')H.Notify(message,type||'info');
+    else if(typeof H.notify==='function')H.notify(message,type||'info');
+    else console.info('[HalDo Voice]',message);
+  }
+  function stopTracks(){if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;}}
+  function getVoices(){
+    try{return window.speechSynthesis?window.speechSynthesis.getVoices():[];}catch(_){return [];}
+  }
+  function matchingVoices(lang){
+    var prefix=String(lang||'').split('-')[0].toLowerCase();
+    return getVoices().filter(function(v){return String(v.lang||'').toLowerCase().indexOf(prefix)===0;});
+  }
+  function refreshVoiceSelect(){
+    if(!root||!root.isConnected)return;
+    var select=root.querySelector('[data-hv-voice]');
+    if(!select)return;
+    var voices=getVoices(),html='<option value="">Automatische Systemstimme</option>';
+    voices.forEach(function(v){html+='<option value="'+esc(v.voiceURI)+'">'+esc(v.name)+' · '+esc(v.lang)+'</option>';});
+    select.innerHTML=html;
+    select.value=settings.voiceURI||'';
+  }
+  function speak(){
+    if(!root||!root.isConnected)return;
+    var text=root.querySelector('[data-hv-text]').value.trim();
+    if(!text){notifyUser('Bitte zuerst einen Text eingeben.','warning');return;}
+    var language=root.querySelector('[data-hv-language]').value;
+    var endpoint=root.querySelector('[data-hv-endpoint]').value.trim();
+    var voiceId=root.querySelector('[data-hv-voice-id]').value.trim();
+    settings.language=language;settings.rate=Number(root.querySelector('[data-hv-rate]').value);
+    settings.pitch=Number(root.querySelector('[data-hv-pitch]').value);
+    settings.volume=Number(root.querySelector('[data-hv-volume]').value);
+    settings.voiceURI=root.querySelector('[data-hv-voice]').value;
+    settings.endpoint=endpoint;settings.voiceId=voiceId;save();
+    if(endpoint){
+      root.querySelector('[data-hv-status]').textContent='Verbinde mit deinem konfigurierten Sprachserver …';
+      fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        text:text,language:language,voiceId:voiceId,model:'eleven_v4'
+      })}).then(function(response){
+        if(!response.ok)throw new Error('Sprachserver antwortet mit HTTP '+response.status);
+        var type=response.headers.get('content-type')||'';
+        if(type.indexOf('application/json')!==-1)return response.json().then(function(data){
+          if(data.audioUrl)return {url:data.audioUrl};
+          if(data.audioBase64)return {base64:data.audioBase64,mime:data.mimeType||'audio/mpeg'};
+          throw new Error('Server lieferte keine Audioausgabe.');
+        });
+        return response.blob().then(function(blob){return {blob:blob};});
+      }).then(function(result){
+        var url=result.url||(result.blob?URL.createObjectURL(result.blob):'');
+        if(result.base64){var raw=atob(result.base64),arr=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);url=URL.createObjectURL(new Blob([arr],{type:result.mime}));}
+        var audio=new Audio(url);audio.play();
+        root.querySelector('[data-hv-status]').textContent='Mehrsprachige KI-Stimme wird abgespielt.';
+        audio.onended=function(){if(url.indexOf('blob:')===0)URL.revokeObjectURL(url);};
+      }).catch(function(error){root.querySelector('[data-hv-status]').textContent='Sprachserver nicht verfügbar: '+error.message;notifyUser(error.message,'error');});
+      return;
+    }
+    if(!window.speechSynthesis||!window.SpeechSynthesisUtterance){
+      notifyUser('Dieser Browser unterstützt keine integrierte Sprachausgabe.','error');return;
+    }
+    window.speechSynthesis.cancel();
+    var utterance=new SpeechSynthesisUtterance(text);
+    utterance.lang=language;utterance.rate=settings.rate;utterance.pitch=settings.pitch;utterance.volume=settings.volume;
+    var voices=getVoices(),chosen=voices.find(function(v){return v.voiceURI===settings.voiceURI;});
+    if(chosen)utterance.voice=chosen;
+    utterance.onstart=function(){root.querySelector('[data-hv-status]').textContent='Systemstimme spricht. Für deine geklonte Stimme bitte einen Sprachserver verbinden.';};
+    utterance.onerror=function(e){root.querySelector('[data-hv-status]').textContent='Sprachausgabe: '+e.error;};
+    window.speechSynthesis.speak(utterance);
+  }
+  function startRecording(){
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaRecorder){
+      notifyUser('Audioaufnahme wird in diesem Browser nicht unterstützt.','error');return;
+    }
+    navigator.mediaDevices.getUserMedia({audio:true}).then(function(media){
+      stream=media;recordedChunks=[];
+      var options={};
+      if(MediaRecorder.isTypeSupported('audio/webm;codecs=opus'))options.mimeType='audio/webm;codecs=opus';
+      mediaRecorder=new MediaRecorder(stream,options);
+      mediaRecorder.ondataavailable=function(e){if(e.data&&e.data.size)recordedChunks.push(e.data);};
+      mediaRecorder.onstop=function(){
+        recordedBlob=new Blob(recordedChunks,{type:mediaRecorder.mimeType||'audio/webm'});
+        var link=root&&root.querySelector('[data-hv-download]');
+        if(link){link.href=URL.createObjectURL(recordedBlob);link.download='haldo-eigene-sprachprobe-'+Date.now()+'.webm';link.hidden=false;}
+        if(root&&root.isConnected)root.querySelector('[data-hv-status]').textContent='Sprachprobe aufgenommen. Du kannst sie jetzt herunterladen und freiwillig für deinen eigenen Voice-Clone-Anbieter verwenden.';
+        stopTracks();
+      };
+      mediaRecorder.start();
+      root.querySelector('[data-hv-status]').textContent='Aufnahme läuft. Sprich klar und in ruhiger Umgebung.';
+      root.querySelector('[data-hv-record]').disabled=true;root.querySelector('[data-hv-stop]').disabled=false;
+    }).catch(function(error){notifyUser('Mikrofonzugriff nicht möglich: '+error.message,'error');});
+  }
+  function stopRecording(){
+    if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop();
+    if(root&&root.isConnected){root.querySelector('[data-hv-record]').disabled=false;root.querySelector('[data-hv-stop]').disabled=true;}
+  }
+  function render(){
+    if(!root||!root.isConnected)return;
+    var languageOptions=LANGS.map(function(l){return '<option value="'+esc(l[0])+'" '+(settings.language===l[0]?'selected':'')+'>'+esc(l[1])+'</option>';}).join('');
+    root.innerHTML='<style>'+
+      '.hv158{--a:#5eead4;color:var(--text,#e8eefc);font:inherit;padding:14px;background:linear-gradient(145deg,rgba(13,22,42,.98),rgba(19,28,54,.96));border-radius:18px;min-height:580px;box-sizing:border-box}'+
+      '.hv158 *{box-sizing:border-box}.hv158 .hero{padding:18px;border:1px solid #5eead433;border-radius:16px;background:radial-gradient(circle at 90% 0,#5eead422,transparent 48%),#111d35}.hv158 h2{margin:0 0 6px;font-size:21px}.hv158 p{color:#aebbd1;line-height:1.5;font-size:13px}.hv158 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:12px}.hv158 .panel{background:#101a30;border:1px solid #ffffff18;border-radius:14px;padding:14px;min-width:0}.hv158 label{display:block;font-size:12px;color:#aebbd1;margin:10px 0 5px}.hv158 input,.hv158 select,.hv158 textarea{width:100%;border:1px solid #ffffff25;border-radius:10px;background:#0b1428;color:#f4f7ff;padding:10px;font:inherit;min-width:0}.hv158 textarea{min-height:110px;resize:vertical}.hv158 button,.hv158 .download{border:1px solid #5eead455;border-radius:10px;background:#153448;color:#eafffb;padding:10px 13px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;margin:5px 5px 0 0}.hv158 button.primary{background:linear-gradient(120deg,#0e7490,#0f766e);border:0}.hv158 button:disabled{opacity:.45;cursor:not-allowed}.hv158 .muted{font-size:12px;color:#9eabc1}.hv158 .status{margin-top:12px;padding:12px;border-radius:10px;background:#0a2630;color:#b9fff1;font-size:13px;overflow-wrap:anywhere}.hv158 .tag{display:inline-block;border:1px solid #5eead455;border-radius:20px;padding:4px 9px;color:#a7f3e6;font-size:11px;margin:3px}'+
+      '</style><div class="hv158"><div class="hero"><div class="tag">HALDO AI · MULTILINGUAL VOICE</div><h2>🗣️ HalDo Sprach- & Stimmenstudio Pro</h2><p>Sprich Texte in vielen Sprachen, nimm deine eigene Stimme auf und verbinde optional einen sicheren Sprachserver für deine persönliche KI-Stimme.</p></div>'+
+      '<div class="grid"><section class="panel"><b>🌍 Mehrsprachig sprechen</b><label>Sprache</label><select data-hv-language>'+languageOptions+'</select><label>Systemstimme</label><select data-hv-voice><option value="">Automatische Systemstimme</option></select><label>Geschwindigkeit <span data-hv-rate-value>'+settings.rate.toFixed(1)+'</span></label><input data-hv-rate type="range" min=".7" max="1.3" step=".1" value="'+settings.rate+'"><label>Tonhöhe</label><input data-hv-pitch type="range" min=".5" max="1.8" step=".1" value="'+settings.pitch+'"><label>Lautstärke</label><input data-hv-volume type="range" min="0" max="1" step=".1" value="'+settings.volume+'"><label>Dein Text</label><textarea data-hv-text placeholder="Schreibe hier etwas, das HalDo sprechen soll …"></textarea><button class="primary" data-hv-speak>▶ Jetzt sprechen</button><button data-hv-stop-speech>■ Stop</button></section>'+
+      '<section class="panel"><b>🎙️ Deine eigene Stimme</b><p>Nimm eine klare Sprachprobe von dir selbst auf. Die Aufnahme bleibt zunächst in diesem Browser und wird nicht automatisch hochgeladen.</p><button class="primary" data-hv-record>● Aufnahme starten</button><button data-hv-stop disabled data-hv-stop-record>■ Aufnahme beenden</button><a class="download" data-hv-download hidden>⬇ Sprachprobe herunterladen</a><div class="muted">Tipp: Nimm mehrere Minuten in ruhiger Umgebung auf. Für einen Voice Clone kann der Anbieter weitere Aufnahmen und eine Identitätsprüfung verlangen.</div><div class="status">Deine Stimme gehört dir. Verwende nur eigene Aufnahmen oder Stimmen mit ausdrücklicher Berechtigung.</div></section>'+
+      '<section class="panel"><b>✨ Eigene KI-Stimme verbinden</b><p>Für eine geklonte Stimme benötigt HalDo einen privaten Server-Proxy. GitHub Pages kann keine geheimen API-Schlüssel sicher speichern. Lege niemals deinen Anbieter-API-Key in diese Seite.</p><label>Deine Sprachserver-URL (optional)</label><input data-hv-endpoint type="url" placeholder="https://dein-server.example/api/voice/tts" value="'+esc(settings.endpoint)+'"><label>Voice-ID deines eigenen geklonten Profils</label><input data-hv-voice-id type="text" placeholder="Deine Voice-ID" value="'+esc(settings.voiceId)+'"><p class="muted">Der Server muss POST JSON {text, language, voiceId, model} annehmen und Audio (oder audioUrl/audioBase64) zurückgeben. Der Server verwaltet den API-Key vertraulich.</p><button data-hv-save>Verbindung speichern</button></section></div>'+
+      '<div class="status" data-hv-status>Bereit. Wähle eine Sprache und teste zuerst die Systemstimme.</div><p class="muted">Sprachabdeckung hängt von den installierten Browserstimmen bzw. deinem verbundenen Anbieter ab. Kurmancî/Êzîdî wird als Auswahl angeboten; eine hochwertige KI-Stimme dafür ist nicht bei jedem Anbieter garantiert. Sorani ist bei Eleven v4 als ckb dokumentiert.</p></div>';
+    refreshVoiceSelect();
+    root.querySelector('[data-hv-speak]').addEventListener('click',speak);
+    root.querySelector('[data-hv-stop-speech]').addEventListener('click',function(){if(window.speechSynthesis)window.speechSynthesis.cancel();});
+    root.querySelector('[data-hv-record]').addEventListener('click',startRecording);
+    root.querySelector('[data-hv-stop]').addEventListener('click',stopRecording);
+    root.querySelector('[data-hv-save]').addEventListener('click',function(){
+      settings.endpoint=root.querySelector('[data-hv-endpoint]').value.trim();
+      settings.voiceId=root.querySelector('[data-hv-voice-id]').value.trim();
+      settings.language=root.querySelector('[data-hv-language]').value;
+      save();notifyUser('Sprachstudio-Einstellungen gespeichert.','success');
+    });
+    root.querySelector('[data-hv-language]').addEventListener('change',function(){settings.language=this.value;save();});
+    root.querySelector('[data-hv-voice]').addEventListener('change',function(){settings.voiceURI=this.value;save();});
+    root.querySelector('[data-hv-rate]').addEventListener('input',function(){root.querySelector('[data-hv-rate-value]').textContent=Number(this.value).toFixed(1);});
+  }
+  function open(){
+    var id='haldo-v158-voice-'+Date.now();
+    if(!H.Win||typeof H.Win.open!=='function'){notifyUser('HalDo Fensterverwaltung ist nicht verfügbar.','error');return;}
+    H.Win.open('🗣️ HalDo Sprach- & Stimmenstudio Pro','<div id="'+id+'"></div>',{w:820,h:820});
+    window.setTimeout(function(){root=document.getElementById(id);if(root&&root.isConnected)render();},80);
+  }
+  H.LanguageVoiceStudio={open:open,languages:LANGS.slice(),speak:speak,version:BUILD};
+  if(H.Registry&&Array.isArray(H.Registry.featured)){
+    var app=H.Registry.featured.find(function(x){return x.id==='language-voice';});
+    if(app){app.n='HalDo Sprach- & Stimmenstudio Pro';app.i='🗣️';}
+    else H.Registry.featured.push({id:'language-voice',n:'HalDo Sprach- & Stimmenstudio Pro',i:'🗣️'});
+    var seen=new Set();
+    H.Registry.featured=H.Registry.featured.filter(function(item){if(!item||!item.id||seen.has(item.id))return false;seen.add(item.id);if(!/^HalDo\b/i.test(String(item.n||'')))item.n='HalDo '+String(item.n||item.id);return true;});
+  }
+  var previousLaunch=H.Launch;
+  H.Launch=function(app){
+    if(app&&app.id==='language-voice')return H.LanguageVoiceStudio.open();
+    if(typeof previousLaunch==='function')return previousLaunch.apply(this,arguments);
+  };
+  try{if(H.AppVoice&&typeof H.AppVoice.command==='function'){
+    H.AppVoice.command('haldo-open-language-voice',['öffne haldo sprachstudio','öffne stimmenstudio','öffne haldo sprach und stimmenstudio'],function(){H.LanguageVoiceStudio.open();return 'HalDo Sprach- und Stimmenstudio wird geöffnet.';});
+  }}catch(error){console.warn('[HalDo v158] Voice command:',error);}
+  if(H.Master)H.Master.version=BUILD;
+  console.info('🗣️ HalDo v158 bereit: Mehrsprachiges Sprach- und Stimmenstudio.');
+})();
+</script>
+<!-- ENDE HALDO v158 — SPRACH- UND STIMMENSTUDIO -->
+
 </body>
 </html>
