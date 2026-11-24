@@ -31,6 +31,10 @@ Ein professionelles, lebendiges Betriebssystem im Browser, das auf allen Geräte
 - `cyborg.png` (Das Bild des Cyborgs)
 - `earth.png` (Das Bild der Erde)
 
+## 🧭 Dauerhafte Projekt-Roadmap
+
+Die verbindliche Entwicklungsgrundlage, A–Z-App-Landschaft, Release-Historie, Designregeln und Prüflisten stehen in **[HALDO_MASTERPLAN.md](./HALDO_MASTERPLAN.md)**. Dieses Dokument ist vor jeder weiteren Änderung zu lesen und aktuell zu halten.
+
 ## 🚀 Nächste Schritte (Roadmap)
 - [x] Grundgerüst mit HTML/CSS/JS
 - [x] 12 Planeten & Sonne
