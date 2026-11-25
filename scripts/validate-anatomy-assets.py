@@ -27,6 +27,65 @@ def check_module(source: str, label: str) -> None:
     if result.returncode:
         fail(f"JavaScript-Syntaxfehler in {label}: {result.stderr.strip()}")
 
+def multiply_matrix4(a: list[list[float]], b: list[list[float]]) -> list[list[float]]:
+    return [[sum(a[row][k] * b[k][col] for k in range(4)) for col in range(4)] for row in range(4)]
+
+def node_local_matrix(node: dict) -> list[list[float]]:
+    if "matrix" in node:
+        values = node["matrix"]
+        return [
+            [values[0], values[4], values[8], values[12]],
+            [values[1], values[5], values[9], values[13]],
+            [values[2], values[6], values[10], values[14]],
+            [values[3], values[7], values[11], values[15]],
+        ]
+    tx, ty, tz = node.get("translation", [0.0, 0.0, 0.0])
+    x, y, z, w = node.get("rotation", [0.0, 0.0, 0.0, 1.0])
+    sx, sy, sz = node.get("scale", [1.0, 1.0, 1.0])
+    rotation = [
+        [1 - 2 * (y*y + z*z), 2 * (x*y - z*w), 2 * (x*z + y*w)],
+        [2 * (x*y + z*w), 1 - 2 * (x*x + z*z), 2 * (y*z - x*w)],
+        [2 * (x*z - y*w), 2 * (y*z + x*w), 1 - 2 * (x*x + y*y)],
+    ]
+    return [
+        [rotation[0][0] * sx, rotation[0][1] * sy, rotation[0][2] * sz, tx],
+        [rotation[1][0] * sx, rotation[1][1] * sy, rotation[1][2] * sz, ty],
+        [rotation[2][0] * sx, rotation[2][1] * sy, rotation[2][2] * sz, tz],
+        [0.0, 0.0, 0.0, 1.0],
+    ]
+
+def transform_point(matrix: list[list[float]], point: list[float]) -> list[float]:
+    x, y, z = point
+    return [
+        matrix[0][0]*x + matrix[0][1]*y + matrix[0][2]*z + matrix[0][3],
+        matrix[1][0]*x + matrix[1][1]*y + matrix[1][2]*z + matrix[1][3],
+        matrix[2][0]*x + matrix[2][1]*y + matrix[2][2]*z + matrix[2][3],
+    ]
+
+def scene_node_world_matrices(document: dict) -> dict[int, tuple[list[list[float]], list[str]]]:
+    nodes = document.get("nodes", [])
+    scenes = document.get("scenes", [])
+    if not nodes or not scenes:
+        return {}
+    scene_index = document.get("scene", 0)
+    roots = scenes[scene_index].get("nodes", []) if 0 <= scene_index < len(scenes) else []
+    output: dict[int, tuple[list[list[float]], list[str]]] = {}
+    identity = [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]]
+
+    def visit(index: int, parent: list[list[float]], chain: list[str]) -> None:
+        if index < 0 or index >= len(nodes) or index in output:
+            return
+        node = nodes[index]
+        world = multiply_matrix4(parent, node_local_matrix(node))
+        name_chain = chain + [str(node.get("name") or f"node-{index}")]
+        output[index] = (world, name_chain)
+        for child in node.get("children", []):
+            visit(child, world, name_chain)
+
+    for root in roots:
+        visit(root, identity, [])
+    return output
+
 manifest_path = ROOT / "models/manifest.json"
 sources_path = ROOT / "models/sources.json"
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -86,7 +145,8 @@ for profile_id, expected_count in EXPECTED.items():
             fail(f"GLB ohne nodes/scenes: {relative_path}")
         if bone_id in {"skull", "mandible", "c1_atlas", "c2", "c7", "t1", "sacrum", "sternum", "left_humerus", "left_radius", "left_metacarpal_1", "left_femur", "right_femur", "left_coxal", "right_coxal", "left_tibia"}:
             node_info = []
-            for node in document.get("nodes", []):
+            world_by_node = scene_node_world_matrices(document)
+            for node_index, node in enumerate(document.get("nodes", [])):
                 if "mesh" not in node:
                     continue
                 mesh_index = node["mesh"]
@@ -94,17 +154,37 @@ for profile_id, expected_count in EXPECTED.items():
                 primitive = mesh.get("primitives", [{}])[0]
                 position_index = primitive.get("attributes", {}).get("POSITION")
                 accessor = document.get("accessors", [])[position_index] if position_index is not None else {}
+                world_record = world_by_node.get(node_index)
+                world_bounds = None
+                if world_record and accessor.get("min") and accessor.get("max"):
+                    world_matrix, node_chain = world_record
+                    lo, hi = accessor["min"], accessor["max"]
+                    corners = [
+                        transform_point(world_matrix, [x, y, z])
+                        for x in (lo[0], hi[0])
+                        for y in (lo[1], hi[1])
+                        for z in (lo[2], hi[2])
+                    ]
+                    world_bounds = {
+                        "min": [min(point[axis] for point in corners) for axis in range(3)],
+                        "max": [max(point[axis] for point in corners) for axis in range(3)],
+                    }
+                else:
+                    node_chain = []
                 node_info.append({
                     "node": node.get("name"),
+                    "node_index": node_index,
+                    "hierarchy": node_chain,
                     "translation": node.get("translation"),
                     "rotation": node.get("rotation"),
                     "scale": node.get("scale"),
                     "matrix": node.get("matrix"),
+                    "world_translation": world_record[0][:3][3] if world_record else None,
                     "node_extras": node.get("extras"),
                     "mesh_name": mesh.get("name"),
                     "mesh_extras": mesh.get("extras"),
-                    "min": accessor.get("min"),
-                    "max": accessor.get("max"),
+                    "local_bounds": {"min": accessor.get("min"), "max": accessor.get("max")},
+                    "world_bounds": world_bounds,
                 })
             geometry_diagnostics.append(f"{profile_id}/{bone_id}: {node_info}")
         if "KHR_draco_mesh_compression" in document.get("extensionsRequired", []):
