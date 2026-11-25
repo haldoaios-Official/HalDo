@@ -275,6 +275,77 @@ def summarize_male_female_transform_audit(
         "assets_with_world_transform_differences": sum(item["nodes_with_world_transform_differences"] > 0 for item in assets.values()),
         **totals,
     }
+    root_scale_groups: dict[tuple[float, float, float], list[str]] = {}
+    root_scale_by_asset: dict[str, tuple[float, float, float]] = {}
+    all_local_differences_are_root_scale_only = True
+    male_root_identity_for_all_changes = True
+    for bone_id, asset_record in assets.items():
+        for detail in asset_record["changed_node_details"]:
+            if detail["max_abs_local_matrix_delta"] <= tolerance:
+                continue
+            if detail["path"] != "r0":
+                all_local_differences_are_root_scale_only = False
+                continue
+            male_local = detail["adult_male_local_matrix"]
+            female_local = detail["adult_female_local_matrix"]
+            non_scale_delta = max(
+                abs(male_local[row][col] - female_local[row][col])
+                for row in range(4)
+                for col in range(4)
+                if not (row == col and row < 3)
+            )
+            male_scale = tuple(male_local[axis][axis] for axis in range(3))
+            female_scale = tuple(round(female_local[axis][axis], 6) for axis in range(3))
+            if non_scale_delta > tolerance:
+                all_local_differences_are_root_scale_only = False
+            if any(abs(male_scale[axis] - 1.0) > tolerance for axis in range(3)):
+                male_root_identity_for_all_changes = False
+            root_scale_groups.setdefault(female_scale, []).append(bone_id)
+            root_scale_by_asset[bone_id] = female_scale
+
+    bilateral_pairs_checked = 0
+    bilateral_pair_mismatches = []
+    for bone_id, left_scale in sorted(root_scale_by_asset.items()):
+        if not bone_id.startswith("left_"):
+            continue
+        right_id = "right_" + bone_id[len("left_"):]
+        if right_id not in root_scale_by_asset:
+            bilateral_pair_mismatches.append({"left": bone_id, "right": right_id, "reason": "Gegenstück fehlt im Transform-Audit"})
+            continue
+        bilateral_pairs_checked += 1
+        if any(abs(left_scale[axis] - root_scale_by_asset[right_id][axis]) > tolerance for axis in range(3)):
+            bilateral_pair_mismatches.append({
+                "left": bone_id,
+                "right": right_id,
+                "left_scale": list(left_scale),
+                "right_scale": list(root_scale_by_asset[right_id]),
+            })
+
+    node_count_distribution = {}
+    for asset_record in assets.values():
+        key = (asset_record["adult_male_node_count"], asset_record["adult_female_node_count"])
+        label = f"adult_male={key[0]},adult_female={key[1]}"
+        node_count_distribution[label] = node_count_distribution.get(label, 0) + 1
+
+    root_scale_analysis = {
+        "assets_with_root_scale_changes": len(root_scale_by_asset),
+        "changed_asset_ids": sorted(root_scale_by_asset),
+        "all_local_transform_differences_are_root_scale_only": all_local_differences_are_root_scale_only,
+        "male_root_scale_is_identity_for_all_changed_assets": male_root_identity_for_all_changes,
+        "bilateral_pairs_checked": bilateral_pairs_checked,
+        "bilateral_pairs_with_matching_scale": bilateral_pairs_checked - len(bilateral_pair_mismatches),
+        "bilateral_pair_mismatches": bilateral_pair_mismatches,
+        "female_root_scale_groups": [
+            {
+                "adult_female_root_scale_xyz": list(scale),
+                "asset_count": len(ids),
+                "asset_ids": sorted(ids),
+            }
+            for scale, ids in sorted(root_scale_groups.items(), key=lambda item: (-len(item[1]), item[0]))
+        ],
+    }
+    summary["node_count_distribution"] = node_count_distribution
+
     return {
         "schema_version": 1,
         "comparison": "adult_male versus adult_female",
@@ -289,6 +360,7 @@ def summarize_male_female_transform_audit(
             "Die aktiven glTF-Szenen werden verglichen; nicht referenzierte, inaktive Nodes sind nicht Teil dieses Berichts."
         ],
         "summary": summary,
+        "root_scale_analysis": root_scale_analysis,
         "assets": assets,
     }
 
