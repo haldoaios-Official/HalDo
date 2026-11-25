@@ -297,7 +297,7 @@ try {
   }
   await appWelcome.locator('.h161-button').click();
 
-  const anatomyFrameElement = launcherPage.locator('#haldo-anatomy-frame');
+  const anatomyFrameElement = launcherPage.locator('iframe[title="HalDo Anatomie 3D Pro Max"]');
   await anatomyFrameElement.waitFor({ state: 'attached', timeout: 15000 });
   const embeddedFrame = launcherPage.frames().find(frame => frame.url().includes('/anatomie.html'));
   if (!embeddedFrame) throw new Error('HalDo-Launcher hat keinen Anatomie-iFrame geladen.');
