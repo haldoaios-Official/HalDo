@@ -428,10 +428,14 @@ try {
                   bounds[axis][1] = Math.max(bounds[axis][1], offsetMm);
                 }
               }
+              const nearest = nearestVertexPair(femurCranial, candidates);
               return {
                 radius_mm: radiusMm,
                 coxal_candidate_vertex_count: candidates.length,
                 coxal_candidate_percent: Number((candidates.length / models.coxal.length * 100).toFixed(2)),
+                nearest_vertex_distance_mm: Number(nearest.nearest_vertex_distance_mm.toFixed(3)),
+                nearest_point_a_world_m: nearest.point_a_world_m,
+                nearest_point_b_world_m: nearest.point_b_world_m,
                 centroid_offset_from_femur_band_center_mm: candidateCenter.map((value, axis) =>
                   Number(((value - femurProximalCenter[axis]) * 1000).toFixed(2))
                 ),
