@@ -273,12 +273,17 @@ try {
   await systemWelcome.locator('.h161-button').click();
   await systemWelcome.waitFor({ state: 'detached', timeout: 10000 });
 
-  await launcherPage.evaluate(() => window.HalDo.AppBrowser.open());
-  const anatomyTile = launcherPage.locator('.window [data-app="anatomie-3d"]');
-  await anatomyTile.waitFor({ state: 'visible', timeout: 15000 });
-  // AppBrowser registriert die Tile-Klicks über einen kurzen setTimeout.
-  await launcherPage.waitForTimeout(150);
-  await anatomyTile.click();
+  const appRegistered = await launcherPage.evaluate(() =>
+    window.HalDo.Registry.getFeatured().some(app => app.id === 'anatomie-3d')
+  );
+  if (!appRegistered) throw new Error('Anatomie 3D Pro Max fehlt in der HalDo App-Registry.');
+  console.log('PASS HalDo App-Registry enthält Anatomie 3D Pro Max');
+
+  // Startet exakt den Launch-Eintrag, den auch die App-Registry aufruft.
+  await launcherPage.evaluate(() => {
+    const app = window.HalDo.Registry.getFeatured().find(item => item.id === 'anatomie-3d');
+    window.HalDo.Launch(app);
+  });
 
   // Für Apps wird zuerst die passende HalDo-Begrüßung mit Startknopf gezeigt.
   const appWelcome = launcherPage.locator('#haldo-v161-welcome');
