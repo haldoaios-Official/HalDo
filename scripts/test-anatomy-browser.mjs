@@ -278,7 +278,7 @@ try {
   const maleFemaleGeometryAudit = await page.evaluate(async () => {
     const THREE = await import('three');
     const { loadBoneModel } = await import('./models/loader.js');
-    const sampleIds = ['left_coxal', 'right_coxal', 'left_femur', 'right_femur', 'left_tibia'];
+    const sampleIds = ['left_coxal', 'right_coxal', 'left_femur', 'right_femur', 'left_tibia', 'skull', 'mandible'];
     function sortedLocalVertices(root) {
       const vertices = [];
       root.traverse(node => {
