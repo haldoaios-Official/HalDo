@@ -279,6 +279,11 @@ try {
     null,
     { timeout: 240000 }
   );
+  const embeddedBox = await anatomyFrameElement.boundingBox();
+  if (!embeddedBox || embeddedBox.width < 500 || embeddedBox.height < 350) {
+    throw new Error('Anatomie-iFrame wird im HalDo-Fenster nicht in ausreichender Größe dargestellt.');
+  }
+  await launcherPage.screenshot({ path: 'artifacts/anatomy/haldo-launcher.png', fullPage: true });
   console.log('PASS HalDo App-Launcher öffnet Anatomie 3D Pro Max im Fenster');
 
   if (pageErrors.length) throw new Error('Browser-JavaScriptfehler: ' + pageErrors.join(' | '));
