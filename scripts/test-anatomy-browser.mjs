@@ -192,7 +192,8 @@ try {
     for (const profileId of profiles) {
       const models = {};
       for (const boneId of ['coxal', 'sacrum', 'femur', 'patella', 'tibia', 'fibula', 'talus', 'calcaneus']) {
-        const gltf = await loadBoneModel(THREE, profileId, 'left_' + boneId);
+        const assetId = boneId === 'sacrum' ? 'sacrum' : 'left_' + boneId;
+        const gltf = await loadBoneModel(THREE, profileId, assetId);
         models[boneId] = collectWorldVertices(gltf.scene);
       }
       const joints = {};
