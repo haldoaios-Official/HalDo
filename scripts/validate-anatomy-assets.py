@@ -12,9 +12,27 @@ EXPECTED = {"adult_male": 179, "adult_female": 179, "baby": 178}
 errors: list[str] = []
 draco_assets: dict[str, int] = {}
 geometry_diagnostics: list[str] = []
+ADAPTATION_SAMPLE_BONES = ("left_coxal", "right_coxal", "left_femur", "right_femur", "left_tibia")
+adaptation_bin_payloads: dict[tuple[str, str], bytes] = {}
+adaptation_parent_scales: dict[tuple[str, str], list[float]] = {}
 
 def fail(message: str) -> None:
     errors.append(message)
+
+def glb_binary_chunk(data: bytes) -> bytes | None:
+    """Return the first GLB BIN chunk without attempting to decode mesh compression."""
+    offset = 12
+    while offset + 8 <= len(data):
+        chunk_length = int.from_bytes(data[offset:offset + 4], "little")
+        chunk_type = data[offset + 4:offset + 8]
+        chunk_start = offset + 8
+        chunk_end = chunk_start + chunk_length
+        if chunk_end > len(data):
+            return None
+        if chunk_type == b"BIN\\0":
+            return data[chunk_start:chunk_end]
+        offset = chunk_end
+    return None
 
 def check_module(source: str, label: str) -> None:
     result = subprocess.run(
@@ -152,6 +170,20 @@ for profile_id, expected_count in EXPECTED.items():
             continue
         if not document.get("nodes") or not document.get("scenes"):
             fail(f"GLB ohne nodes/scenes: {relative_path}")
+        if profile_id in {"adult_female", "baby"} and bone_id in ADAPTATION_SAMPLE_BONES:
+            binary_payload = glb_binary_chunk(data)
+            if binary_payload is None:
+                fail(f"{relative_path}: BIN-Chunk für Adaptionsvergleich fehlt oder ist ungültig")
+            else:
+                adaptation_bin_payloads[(profile_id, bone_id)] = binary_payload
+            scenes = document.get("scenes", [])
+            scene_index = document.get("scene", 0)
+            roots = scenes[scene_index].get("nodes", []) if 0 <= scene_index < len(scenes) else []
+            if len(roots) != 1:
+                fail(f"{relative_path}: erwartete genau einen Szenen-Root für Parent-Skalierungsprüfung")
+            else:
+                root_node = document.get("nodes", [])[roots[0]]
+                adaptation_parent_scales[(profile_id, bone_id)] = root_node.get("scale", [1.0, 1.0, 1.0])
         if bone_id in {"skull", "mandible", "c1_atlas", "c2", "c7", "t1", "sacrum", "sternum", "left_humerus", "left_radius", "left_metacarpal_1", "left_femur", "right_femur", "left_coxal", "right_coxal", "left_tibia", "right_tibia"}:
             node_info = []
             world_by_node = scene_node_world_matrices(document)
@@ -204,6 +236,20 @@ for profile_id, expected_count in EXPECTED.items():
         # The inventory's Git blob SHA is retained to make accidental asset drift visible.
         if not record.get("sha"):
             fail(f"Manifest ohne Git-SHA: {relative_path}")
+
+for bone_id in ADAPTATION_SAMPLE_BONES:
+    female_payload = adaptation_bin_payloads.get(("adult_female", bone_id))
+    baby_payload = adaptation_bin_payloads.get(("baby", bone_id))
+    if female_payload is None or baby_payload is None:
+        fail(f"{bone_id}: weiblicher/Baby-BIN-Payload für Vergleich fehlt")
+    elif female_payload != baby_payload:
+        fail(f"{bone_id}: weibliche und Baby-Geometrie-Payloads sind nicht mehr byteidentisch; sources.json/App-Hinweis neu bewerten")
+    female_scale = adaptation_parent_scales.get(("adult_female", bone_id))
+    baby_scale = adaptation_parent_scales.get(("baby", bone_id))
+    if female_scale is None or baby_scale is None or len(female_scale) != 3 or len(baby_scale) != 3:
+        fail(f"{bone_id}: Parent-Skalierung für weibliches/Baby-Profil fehlt")
+    elif any(abs(float(baby_scale[i]) - float(female_scale[i]) * 0.62) > 1e-5 for i in range(3)):
+        fail(f"{bone_id}: Baby-Parent-Skalierung weicht von 0,62 × adult_female ab")
 
 for profile_id in EXPECTED:
     if sources.get("profiles", {}).get(profile_id, {}).get("source_status") not in {"pending", "published"}:
