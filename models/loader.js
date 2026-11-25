@@ -25,13 +25,14 @@ async function createSharedLoader(options) {
   const loader = new GLTFLoader(options.manager);
   const { MeshoptDecoder } = await import('three/addons/libs/meshopt_decoder.module.js');
   loader.setMeshoptDecoder(MeshoptDecoder);
-  if (options.dracoDecoderPath) {
-    const { DRACOLoader } = await import('three/addons/loaders/DRACOLoader.js');
-    const draco = new DRACOLoader(options.manager);
-    draco.setDecoderPath(options.dracoDecoderPath);
-    draco.setWorkerLimit(2);
-    loader.setDRACOLoader(draco);
-  }
+  // Der männliche Originalbestand verwendet KHR_draco_mesh_compression.
+  // Daher muss der Draco-Decoder auch ohne explizite Aufruferoption gesetzt sein.
+  const dracoDecoderPath = options.dracoDecoderPath || 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/';
+  const { DRACOLoader } = await import('three/addons/loaders/DRACOLoader.js');
+  const draco = new DRACOLoader(options.manager);
+  draco.setDecoderPath(dracoDecoderPath);
+  draco.setWorkerLimit(2);
+  loader.setDRACOLoader(draco);
   return loader;
 }
 
