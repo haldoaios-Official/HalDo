@@ -364,6 +364,202 @@ def summarize_male_female_transform_audit(
         "assets": assets,
     }
 
+def summarize_female_baby_transform_audit(
+    documents: dict[tuple[str, str], dict],
+    asset_ids: set[str],
+    tolerance: float = 1e-6,
+) -> dict:
+    """Compare every adult_female/baby active-scene transform chain before loader runtime adjustments."""
+    assets: dict[str, dict] = {}
+    ratio_groups: dict[tuple[float, float, float], list[str]] = {}
+    ratio_by_asset: dict[str, tuple[float, float, float]] = {}
+    totals = {
+        "shared_node_paths": 0,
+        "nodes_with_local_transform_differences": 0,
+        "nodes_with_parent_world_transform_differences": 0,
+        "nodes_with_world_transform_differences": 0,
+    }
+    all_local_differences_are_root_scale_only = True
+
+    for bone_id in sorted(asset_ids):
+        female_doc = documents.get(("adult_female", bone_id))
+        baby_doc = documents.get(("baby", bone_id))
+        if female_doc is None or baby_doc is None:
+            fail(f"{bone_id}: GLB-JSON für den vollständigen Frau/Baby-Transformaudit fehlt")
+            continue
+        try:
+            female_nodes = scene_transform_path_records(female_doc)
+            baby_nodes = scene_transform_path_records(baby_doc)
+        except Exception as exc:
+            fail(f"{bone_id}: Frau/Baby-Transformhierarchie konnte nicht ausgewertet werden: {exc}")
+            continue
+
+        female_paths, baby_paths = set(female_nodes), set(baby_nodes)
+        shared_paths = sorted(female_paths & baby_paths)
+        missing_in_baby = sorted(female_paths - baby_paths)
+        missing_in_female = sorted(baby_paths - female_paths)
+        name_mismatches = []
+        changed_nodes = []
+        local_changed = parent_changed = world_changed = 0
+        max_local_delta = max_parent_delta = max_world_delta = 0.0
+        for node_path in shared_paths:
+            female_node = female_nodes[node_path]
+            baby_node = baby_nodes[node_path]
+            local_delta = max_abs_matrix_delta(female_node["local_matrix"], baby_node["local_matrix"])
+            parent_delta = max_abs_matrix_delta(female_node["parent_world_matrix"], baby_node["parent_world_matrix"])
+            world_delta = max_abs_matrix_delta(female_node["world_matrix"], baby_node["world_matrix"])
+            max_local_delta = max(max_local_delta, local_delta)
+            max_parent_delta = max(max_parent_delta, parent_delta)
+            max_world_delta = max(max_world_delta, world_delta)
+            names_differ = female_node.get("name") != baby_node.get("name")
+            if names_differ:
+                name_mismatches.append({
+                    "path": node_path,
+                    "adult_female": female_node.get("name"),
+                    "baby": baby_node.get("name"),
+                })
+            local_differs = local_delta > tolerance
+            parent_differs = parent_delta > tolerance
+            world_differs = world_delta > tolerance
+            local_changed += int(local_differs)
+            parent_changed += int(parent_differs)
+            world_changed += int(world_differs)
+            if local_differs and node_path != "r0":
+                all_local_differences_are_root_scale_only = False
+            if local_differs or parent_differs or world_differs or names_differ:
+                changed_nodes.append({
+                    "path": node_path,
+                    "adult_female_name": female_node.get("name"),
+                    "baby_name": baby_node.get("name"),
+                    "adult_female_parent_path": female_node.get("parent_path"),
+                    "baby_parent_path": baby_node.get("parent_path"),
+                    "max_abs_local_matrix_delta": local_delta,
+                    "max_abs_parent_world_matrix_delta": parent_delta,
+                    "max_abs_world_matrix_delta": world_delta,
+                    "adult_female_local_matrix": female_node["local_matrix"],
+                    "baby_local_matrix": baby_node["local_matrix"],
+                    "adult_female_parent_world_matrix": female_node["parent_world_matrix"],
+                    "baby_parent_world_matrix": baby_node["parent_world_matrix"],
+                    "adult_female_world_matrix": female_node["world_matrix"],
+                    "baby_world_matrix": baby_node["world_matrix"],
+                })
+
+        female_root = female_nodes.get("r0")
+        baby_root = baby_nodes.get("r0")
+        if female_root is None or baby_root is None:
+            fail(f"{bone_id}: Frau/Baby-GLB besitzt keinen vergleichbaren r0-Szenen-Root")
+            root_ratio = None
+        else:
+            female_local = female_root["local_matrix"]
+            baby_local = baby_root["local_matrix"]
+            if any(abs(female_local[axis][axis]) <= 1e-12 for axis in range(3)):
+                fail(f"{bone_id}: weibliche Root-Skalierung enthält Null und kann nicht als Verhältnis verglichen werden")
+                root_ratio = None
+            else:
+                root_ratio = tuple(round(baby_local[axis][axis] / female_local[axis][axis], 6) for axis in range(3))
+                ratio_groups.setdefault(root_ratio, []).append(bone_id)
+                ratio_by_asset[bone_id] = root_ratio
+                non_scale_delta = max(
+                    abs(female_local[row][col] - baby_local[row][col])
+                    for row in range(4)
+                    for col in range(4)
+                    if not (row == col and row < 3)
+                )
+                if non_scale_delta > tolerance:
+                    all_local_differences_are_root_scale_only = False
+
+        totals["shared_node_paths"] += len(shared_paths)
+        totals["nodes_with_local_transform_differences"] += local_changed
+        totals["nodes_with_parent_world_transform_differences"] += parent_changed
+        totals["nodes_with_world_transform_differences"] += world_changed
+        assets[bone_id] = {
+            "hierarchy_paths_match": not missing_in_baby and not missing_in_female,
+            "adult_female_node_count": len(female_nodes),
+            "baby_node_count": len(baby_nodes),
+            "shared_node_path_count": len(shared_paths),
+            "missing_in_baby_paths": missing_in_baby,
+            "missing_in_adult_female_paths": missing_in_female,
+            "node_name_mismatches": name_mismatches,
+            "root_scale_ratio_baby_vs_adult_female_xyz": list(root_ratio) if root_ratio else None,
+            "nodes_with_local_transform_differences": local_changed,
+            "nodes_with_parent_world_transform_differences": parent_changed,
+            "nodes_with_world_transform_differences": world_changed,
+            "max_abs_local_matrix_delta": max_local_delta,
+            "max_abs_parent_world_matrix_delta": max_parent_delta,
+            "max_abs_world_matrix_delta": max_world_delta,
+            "changed_node_details": changed_nodes,
+        }
+
+    bilateral_pairs_checked = 0
+    bilateral_pair_mismatches = []
+    for bone_id, left_ratio in sorted(ratio_by_asset.items()):
+        if not bone_id.startswith("left_"):
+            continue
+        right_id = "right_" + bone_id[len("left_"):]
+        if right_id not in ratio_by_asset:
+            bilateral_pair_mismatches.append({"left": bone_id, "right": right_id, "reason": "Gegenstück fehlt im Frau/Baby-Transformaudit"})
+            continue
+        bilateral_pairs_checked += 1
+        right_ratio = ratio_by_asset[right_id]
+        if any(abs(left_ratio[axis] - right_ratio[axis]) > tolerance for axis in range(3)):
+            bilateral_pair_mismatches.append({
+                "left": bone_id,
+                "right": right_id,
+                "left_ratio": list(left_ratio),
+                "right_ratio": list(right_ratio),
+            })
+
+    node_count_distribution = {}
+    for asset_record in assets.values():
+        key = (asset_record["adult_female_node_count"], asset_record["baby_node_count"])
+        label = f"adult_female={key[0]},baby={key[1]}"
+        node_count_distribution[label] = node_count_distribution.get(label, 0) + 1
+    summary = {
+        "expected_asset_pairs": len(asset_ids),
+        "completed_asset_pairs": len(assets),
+        "assets_with_matching_hierarchy_paths": sum(item["hierarchy_paths_match"] for item in assets.values()),
+        "assets_with_different_hierarchy_paths": sum(not item["hierarchy_paths_match"] for item in assets.values()),
+        "assets_with_node_name_mismatches": sum(bool(item["node_name_mismatches"]) for item in assets.values()),
+        "assets_with_local_transform_differences": sum(item["nodes_with_local_transform_differences"] > 0 for item in assets.values()),
+        "assets_with_parent_world_transform_differences": sum(item["nodes_with_parent_world_transform_differences"] > 0 for item in assets.values()),
+        "assets_with_world_transform_differences": sum(item["nodes_with_world_transform_differences"] > 0 for item in assets.values()),
+        **totals,
+        "node_count_distribution": node_count_distribution,
+    }
+    return {
+        "schema_version": 1,
+        "comparison": "adult_female versus baby",
+        "matrix_component_absolute_tolerance": tolerance,
+        "tolerance_note": "Numerische Vergleichsschwelle für Matrix-Komponenten; keine anatomische oder klinische Toleranz.",
+        "path_definition": "Stabile Pfade aus Root-Reihenfolge und Child-Reihenfolge der aktiven glTF-Szene (r0/c0/c1...).",
+        "method": "Vergleicht für alle zugeordneten Assets die lokale 4x4-Matrix, kumulierte Parent-Weltmatrix und kumulierte Node-Weltmatrix; Root-Skalierungsverhältnisse werden achsenweise berechnet.",
+        "scope_limitations": [
+            "Vergleich der GLB-Rohtransforms vor Laufzeitkorrekturen des Loaders.",
+            "Parent-Weltmatrizen beziehen sich auf Parent-Nodes innerhalb derselben einzelnen GLB-Datei.",
+            "Der Baby-Mandible-Runtime-Faktor 0,62 und die Laufzeit-Schädelverschiebung sind nicht eingerechnet.",
+            "Keine klinische oder anatomische Validierung und keine Bewertung von Gelenkflächen.",
+            "Nicht referenzierte, inaktive Nodes außerhalb der aktiven glTF-Szene sind nicht Teil dieses Berichts.",
+        ],
+        "summary": summary,
+        "root_scale_ratio_analysis": {
+            "assets_with_root_scale_ratios": len(ratio_by_asset),
+            "all_local_transform_differences_are_root_scale_only": all_local_differences_are_root_scale_only,
+            "bilateral_pairs_checked": bilateral_pairs_checked,
+            "bilateral_pairs_with_matching_scale_ratio": bilateral_pairs_checked - len(bilateral_pair_mismatches),
+            "bilateral_pair_mismatches": bilateral_pair_mismatches,
+            "baby_to_adult_female_root_scale_ratio_groups": [
+                {
+                    "baby_to_adult_female_root_scale_ratio_xyz": list(ratio),
+                    "asset_count": len(ids),
+                    "asset_ids": sorted(ids),
+                }
+                for ratio, ids in sorted(ratio_groups.items(), key=lambda item: (-len(item[1]), item[0]))
+            ],
+        },
+        "assets": assets,
+    }
+
+
 manifest_path = ROOT / "models/manifest.json"
 sources_path = ROOT / "models/sources.json"
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -432,7 +628,7 @@ for profile_id, expected_count in EXPECTED.items():
             continue
         if not document.get("nodes") or not document.get("scenes"):
             fail(f"GLB ohne nodes/scenes: {relative_path}")
-        if profile_id in {"adult_male", "adult_female"}:
+        if profile_id in {"adult_male", "adult_female", "baby"}:
             scene_documents[(profile_id, bone_id)] = document
         if profile_id in {"adult_female", "baby"} and bone_id in ADAPTATION_SAMPLE_BONES:
             binary_payload = glb_binary_chunk(data)
@@ -516,6 +712,22 @@ transform_report_path.write_text(
 )
 print("MALE-FEMALE-TRANSFORM-AUDIT-SUMMARY", json.dumps(male_female_transform_audit["summary"], ensure_ascii=False, separators=(",", ":")))
 print("MALE-FEMALE-TRANSFORM-AUDIT-FILE: artifacts/anatomy/transform-audit.json")
+female_baby_transform_audit = summarize_female_baby_transform_audit(
+    scene_documents,
+    set(ADAPTATION_SAMPLE_BONES),
+    tolerance=1e-6,
+)
+if female_baby_transform_audit["summary"]["completed_asset_pairs"] != EXPECTED["baby"]:
+    fail("Frau/Baby-Transformaudit hat nicht alle 178 Asset-Paare ausgewertet")
+baby_transform_report_path = ROOT / "artifacts/anatomy/baby-transform-audit.json"
+baby_transform_report_path.parent.mkdir(parents=True, exist_ok=True)
+baby_transform_report_path.write_text(
+    json.dumps(female_baby_transform_audit, ensure_ascii=False, indent=2) + "\\n",
+    encoding="utf-8",
+)
+print("FEMALE-BABY-TRANSFORM-AUDIT-SUMMARY", json.dumps(female_baby_transform_audit["summary"], ensure_ascii=False, separators=(",", ":")))
+print("FEMALE-BABY-ROOT-SCALE-RATIO-GROUPS", json.dumps(female_baby_transform_audit["root_scale_ratio_analysis"]["baby_to_adult_female_root_scale_ratio_groups"], ensure_ascii=False, separators=(",", ":")))
+print("FEMALE-BABY-TRANSFORM-AUDIT-FILE: artifacts/anatomy/baby-transform-audit.json")
 recorded_transform_audit = sources.get("profiles", {}).get("adult_female", {}).get("transform_hierarchy_comparison", {})
 summary_key_map = {
     "asset_pair_count": "completed_asset_pairs",
