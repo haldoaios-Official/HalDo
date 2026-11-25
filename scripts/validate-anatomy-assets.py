@@ -13,6 +13,7 @@ errors: list[str] = []
 draco_assets: dict[str, int] = {}
 geometry_diagnostics: list[str] = []
 ADAPTATION_SAMPLE_BONES: tuple[str, ...] = ()
+SPECIAL_ADAPTATION_SCALE_RATIOS = {"skull": (1.0, 1.0, 1.34), "mandible": (1.0, 1.0, 1.22)}
 adaptation_bin_payloads: dict[tuple[str, str], bytes] = {}
 adaptation_parent_scales: dict[tuple[str, str], list[float]] = {}
 
@@ -244,7 +245,8 @@ for profile_id, expected_count in EXPECTED.items():
             fail(f"Manifest ohne Git-SHA: {relative_path}")
 
 verified_geometry_pairs = 0
-verified_scale_pairs = 0
+verified_uniform_scale_pairs = 0
+verified_special_scale_pairs = 0
 for bone_id in ADAPTATION_SAMPLE_BONES:
     female_payload = adaptation_bin_payloads.get(("adult_female", bone_id))
     baby_payload = adaptation_bin_payloads.get(("baby", bone_id))
@@ -258,10 +260,15 @@ for bone_id in ADAPTATION_SAMPLE_BONES:
     baby_scale = adaptation_parent_scales.get(("baby", bone_id))
     if female_scale is None or baby_scale is None or len(female_scale) != 3 or len(baby_scale) != 3:
         fail(f"{bone_id}: Parent-Skalierung für weibliches/Baby-Profil fehlt")
-    elif any(abs(float(baby_scale[i]) - float(female_scale[i]) * 0.62) > 1e-5 for i in range(3)):
-        fail(f"{bone_id}: Baby-Parent-Skalierung weicht von 0,62 × adult_female ab")
     else:
-        verified_scale_pairs += 1
+        expected_ratio = SPECIAL_ADAPTATION_SCALE_RATIOS.get(bone_id, (0.62, 0.62, 0.62))
+        actual_ratio = tuple(float(baby_scale[i]) / float(female_scale[i]) for i in range(3))
+        if any(abs(actual_ratio[i] - expected_ratio[i]) > 1e-5 for i in range(3)):
+            fail(f"{bone_id}: Baby-Parent-Skalierung {actual_ratio} weicht von erwartetem Verhältnis {expected_ratio} ab")
+        elif bone_id in SPECIAL_ADAPTATION_SCALE_RATIOS:
+            verified_special_scale_pairs += 1
+        else:
+            verified_uniform_scale_pairs += 1
 
 for profile_id in EXPECTED:
     if sources.get("profiles", {}).get(profile_id, {}).get("source_status") not in {"pending", "published"}:
@@ -281,6 +288,10 @@ if "loader.setDRACOLoader(draco)" not in loader:
     fail("loader.js aktiviert keinen Draco-Decoder")
 if "loadProfileModels" not in loader:
     fail("loader.js exportiert keine Profil-Ladefunktion")
+if "mandibleRoot.scale.multiplyScalar(0.62)" not in loader:
+    fail("loader.js enthält nicht die dokumentierte 0,62-Laufzeitkorrektur des Baby-Unterkiefers")
+if "skullRoot.position.y += offsetY" not in loader:
+    fail("loader.js enthält nicht die getrennte Schädel-Ausrichtung an der Halswirbel-Referenz")
 
 launcher = (ROOT / "index.html").read_text(encoding="utf-8")
 if launcher.count("id:'anatomie-3d'") != 1:
@@ -303,11 +314,13 @@ if "hpfrei/body-anatomy-3d-viewer" in anatomy:
     fail("anatomie.html verwendet noch das externe Ganzkörpermodell")
 if "visuelle Adaption" not in anatomy or "Gelenkpassungen" not in anatomy or "nicht fachlich oder klinisch validiert" not in anatomy:
     fail("anatomie.html kennzeichnet die weibliche Adaption samt offener Gelenkvalidierung nicht ausreichend")
-if "0,62-fach skalierte visuelle Ableitung" not in anatomy or "byteidentisch" not in anatomy or "keine eigenständig modellierte oder altersgerechte Neugeborenen-Anatomie" not in anatomy:
-    fail("anatomie.html kennzeichnet die Baby-/Neugeborenen-Skalierung nicht eindeutig als nicht altersanatomische Vorschau")
-baby_geometry_sample = sources.get("profiles", {}).get("baby", {}).get("geometry_comparison_sample", {})
-if baby_geometry_sample.get("female_baby_bin_payloads_byte_identical") is not True or baby_geometry_sample.get("baby_parent_scale_factor_vs_adult_female") != 0.62:
-    fail("sources.json dokumentiert den geprüften Geometrie-/Skalierungsbefund des Baby-Profils nicht korrekt")
+if "0,62-fach skalierte visuelle Ableitung" not in anatomy or "178 Geometrie-Payloads byteidentisch" not in anatomy or "keine eigenständig modellierte oder altersgerechte Neugeborenen-Anatomie" not in anatomy or "176 von 178" not in anatomy:
+    fail("anatomie.html kennzeichnet den vollständigen Baby-/Neugeborenen-Geometrie- und Skalierungsbefund nicht ausreichend")
+baby_geometry = sources.get("profiles", {}).get("baby", {}).get("geometry_comparison", {})
+if baby_geometry.get("automated_asset_pair_count") != EXPECTED["baby"] or baby_geometry.get("female_baby_bin_payloads_byte_identical") is not True or baby_geometry.get("uniform_baby_parent_scale_factor_vs_adult_female") != 0.62:
+    fail("sources.json dokumentiert den vollständigen 178-Dateien-Geometrievergleich des Baby-Profils nicht korrekt")
+if baby_geometry.get("special_parent_scale_ratios") != {"skull": [1.0, 1.0, 1.34], "mandible": [1.0, 1.0, 1.22]} or baby_geometry.get("runtime_baby_mandible_scale_factor") != 0.62:
+    fail("sources.json dokumentiert die Schädel-/Unterkiefer-Sondertransforms nicht korrekt")
 from html.parser import HTMLParser
 
 class ModuleScriptParser(HTMLParser):
@@ -345,7 +358,7 @@ for index, source in enumerate(module_scripts, start=1):
 print("Profilbestände:", EXPECTED)
 print("Draco-komprimierte GLBs:", draco_assets)
 print(f"Weiblich/Baby-Geometrievergleich: {verified_geometry_pairs}/{len(ADAPTATION_SAMPLE_BONES)} BIN-Paare byteidentisch")
-print(f"Weiblich/Baby-Skalierungsvergleich: {verified_scale_pairs}/{len(ADAPTATION_SAMPLE_BONES)} Parent-Transforms entsprechen 0,62")
+print(f"Weiblich/Baby-Skalierungsvergleich: {verified_uniform_scale_pairs}/{len(ADAPTATION_SAMPLE_BONES)} Standard-Paare mit Faktor 0,62; {verified_special_scale_pairs}/{len(SPECIAL_ADAPTATION_SCALE_RATIOS)} dokumentierte Sondertransforms")
 print("Räumliche Stichprobe (GLB-Rohkoordinaten und Node-Transforms):")
 for item in geometry_diagnostics:
     print(item)
