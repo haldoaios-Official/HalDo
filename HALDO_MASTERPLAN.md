@@ -329,3 +329,16 @@ Lokalisierung zentral über Übersetzungsschlüssel, Fallback, RTL, Zahlen-/Datu
 - `Halil@haldo.ai` bleibt Zieladresse bis erfolgreicher Mailserver-/DNS-/Zustellkonfiguration.
 
 **Verbindlicher Grundsatz:** Diese Spezifikation beschreibt das Soll. Der jeweilige Ist-Stand wird separat anhand der aktuellen Repository-Dateien und realer Tests ausgewiesen.
+
+
+## HALDO v166 – zusätzliche A–Z-Apps (25.11.2026)
+
+Die folgenden drei Apps wurden als benannte Implementierungen innerhalb der bereits geplanten 375 App-Plätze ergänzt. Die Kategorien-Sollzahlen bleiben unverändert.
+
+- **G – HalDo Haushaltsmanager Pro** (haushalt): lokale Haushaltsaufgaben mit Bereich, Zuständigkeit, Fälligkeitsdatum, Statuswechsel, Löschen und JSON-Export. Familien-/Cloud-Synchronisierung ist noch nicht vorhanden.
+- **K – HalDo Keyboard Studio Pro** (keyboard-pro): virtuelles Eingabefeld mit Deutsch, Englisch, Kurmancî und Soranî, Einfügen, Löschen und Kopieren. Es ersetzt ausdrücklich nicht die systemweite iOS-/Android-/Windows-Tastatur.
+- **X – HalDo Datei-Konverter Pro** (datei-konverter): lokale Textverarbeitung und Konvertierung TXT/CSV/JSON, Datei-Vorschau und Download. Unterstützt einfache CSV-Tabellen sowie JSON-Arrays von Objekten; PDF-/Office-/Bildkonvertierung ist nicht enthalten.
+
+**Integration:** Die drei Apps werden in der bestehenden HalDo-App-Registry registriert und über H.Master.getCategoryApps() in G, K und X einsortiert. Die bestehende Fensterverwaltung und der lokale HalDo-Store werden weiterverwendet. Keine zusätzliche Kategorie und keine Erhöhung der 375 geplanten Plätze.
+
+**Status:** JavaScript-Syntax des v166-Blocks geprüft. GitHub-Pages-Workflow nach dem korrigierten Commit noch in Ausführung; Veröffentlichung erst nach erfolgreichem Workflow bestätigen.
