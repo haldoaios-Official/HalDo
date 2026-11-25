@@ -110,7 +110,11 @@
 <div id="topbar">
   <h1>🦴 Anatomie <span>3D Pro Max</span></h1>
   <div class="top-actions">
-    <button class="btn active" id="btn-muscles">💪 Muskeln</button>
+    <label for="profile-select" style="font-size:12px;color:var(--muted)">Profil</label>
+    <select class="btn" id="profile-select" aria-label="Anatomieprofil"><option value="adult_male">Erwachsener Mann</option><option value="adult_female">Erwachsene Frau · visuelle Adaption</option><option value="baby">Neugeborenen-Skalierung · Vorschau (nicht altersanatomisch)</option></select>
+    <button class="btn primary" id="btn-load-profile">Profil laden</button>
+    <span id="profile-status" style="font-size:11px;color:var(--muted);max-width:170px">Lokale Knochenmodelle</span>
+    <button class="btn" id="btn-muscles" disabled title="In den lokalen Paketen sind derzeit keine Muskelmodelle enthalten.">💪 Muskeln (separat)</button>
     <button class="btn active" id="btn-bones">🦴 Knochen</button>
     <button class="btn" id="btn-reset">🔄 Reset</button>
     <button class="btn" id="btn-tts">🔊 TTS</button>
@@ -152,14 +156,12 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { loadModelManifest, loadProfileModels } from './models/loader.js';
 
 /* ============================================================
    KONFIGURATION
    ============================================================ */
-const MODEL_URL = 'https://raw.githubusercontent.com/hpfrei/body-anatomy-3d-viewer/main/public/body.glb';
-// Falls CORS-Probleme: Datei herunterladen und './body.glb' verwenden.
+// Die Profile werden ausschließlich aus dem lokalen HalDo-Manifest geladen.
 
 /* ============================================================
    SCENE, CAMERA, RENDERER
@@ -230,74 +232,114 @@ ground.receiveShadow = true;
 scene.add(ground);
 
 /* ============================================================
-   LOADER (DRACO)
-   ============================================================ */
-const dracoLoader = new DRACOLoader();
-dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
-
-const gltfLoader = new GLTFLoader();
-gltfLoader.setDRACOLoader(dracoLoader);
-
-/* ============================================================
-   MODELL LADEN
+   LOKALE HALDO-MODELLVERWALTUNG
    ============================================================ */
 let model = null;
 let muscles = [];
 let bones = [];
 let organs = [];
+let activeProfile = 'adult_male';
+let modelManifest = null;
+let loadSequence = 0;
+let lastHighlighted = null;
+let resetCameraPosition = new THREE.Vector3(0, 1.2, 6);
+let resetControlsTarget = new THREE.Vector3(0, 1.0, 0);
 
 const loadingEl = document.getElementById('loading');
 const loadFill = document.getElementById('load-fill');
 const loadText = document.getElementById('load-text');
+const profileSelect = document.getElementById('profile-select');
+const profileStatus = document.getElementById('profile-status');
+const loadProfileButton = document.getElementById('btn-load-profile');
 
-gltfLoader.load(
-  MODEL_URL,
-  (gltf) => {
-    model = gltf.scene;
+function disposeModel(root) {
+  if (!root) return;
+  root.traverse(node => {
+    if (!node.isMesh) return;
+    node.geometry?.dispose?.();
+    const materials = Array.isArray(node.material) ? node.material : [node.material];
+    materials.filter(Boolean).forEach(material => material.dispose?.());
+  });
+  scene.remove(root);
+}
 
-    // Füße auf y=0 setzen
-    const box = new THREE.Box3().setFromObject(model);
-    model.position.y = -box.min.y; // hebt Modell so, dass min.y = 0
-
-    // Schatten + Kategorisierung
-    model.traverse((node) => {
-      if (node.isMesh) {
-        node.castShadow = true;
-        node.receiveShadow = true;
-
-        const type = (node.userData.type || '').toLowerCase();
-        if (type.includes('muscle')) muscles.push(node);
-        else if (type.includes('bone')) bones.push(node);
-        else if (type.includes('organ')) organs.push(node);
+async function loadSelectedProfile() {
+  const sequence = ++loadSequence;
+  activeProfile = profileSelect.value;
+  loadProfileButton.disabled = true;
+  profileSelect.disabled = true;
+  loadingEl.classList.remove('hidden');
+  loadFill.style.width = '0%';
+  loadFill.style.background = 'linear-gradient(90deg,var(--cyan),#3b82f6)';
+  loadText.textContent = 'HalDo-Modellbestand wird vorbereitet…';
+  profileStatus.textContent = 'Manifest wird geprüft…';
+  clearHighlight();
+  if (model) disposeModel(model);
+  model = null;
+  muscles = [];
+  bones = [];
+  organs = [];
+  try {
+    if (!modelManifest) modelManifest = await loadModelManifest();
+    const result = await loadProfileModels(THREE, modelManifest, activeProfile, {
+      concurrency: 3,
+      onProgress: progress => {
+        if (sequence !== loadSequence) return;
+        const percent = Math.round(progress.completed / progress.total * 100);
+        loadFill.style.width = percent + '%';
+        loadText.textContent = 'Lade ' + activeProfile + ': ' + progress.loaded + '/' + progress.total + ' Knochenmodelle';
       }
     });
-
+    if (sequence !== loadSequence) { disposeModel(result.group); return; }
+    model = result.group;
+    model.traverse(node => {
+      if (!node.isMesh) return;
+      node.castShadow = true;
+      node.receiveShadow = true;
+      bones.push(node);
+    });
     scene.add(model);
-
-    // Ladeanzeige ausblenden
-    loadingEl.classList.add('hidden');
-
-    // Info-Text setzen
-    document.getElementById('info-content').innerHTML = `
-      <div class="empty">
-        <span class="ico">👆</span>
-        Klicke auf einen Muskel oder Knochen im 3D-Modell, um Details zu sehen.
-      </div>
-    `;
-  },
-  (xhr) => {
-    if (xhr.total) {
-      const pct = Math.round((xhr.loaded / xhr.total) * 100);
-      loadFill.style.width = pct + '%';
-      loadText.textContent = `Modell wird geladen… ${pct}%`;
+    const bounds = new THREE.Box3().setFromObject(model);
+    if (!bounds.isEmpty()) {
+      const center = bounds.getCenter(new THREE.Vector3());
+      const size = bounds.getSize(new THREE.Vector3());
+      const distance = Math.max(size.x, size.y, size.z) * 1.8 || 6;
+      controls.target.copy(center);
+      camera.position.set(center.x, center.y + size.y * 0.08, center.z + distance);
+      controls.maxDistance = Math.max(12, distance * 4);
+      controls.update();
+      resetCameraPosition.copy(camera.position);
+      resetControlsTarget.copy(controls.target);
     }
-  },
-  (err) => {
-    console.error('Modell-Ladefehler:', err);
-    loadText.textContent = '⚠️ Modell konnte nicht geladen werden.';
-    document.getElementById('load-fill').style.background = '#ef4444';
+    loadingEl.classList.add('hidden');
+    const failedText = result.failed ? ', ' + result.failed + ' fehlgeschlagen' : '';
+    profileStatus.textContent = result.loaded + '/' + result.total + ' Knochen geladen' + failedText;
+    const profileNotice = activeProfile === 'adult_male'
+      ? 'Hinweis: Vorhandener männlicher Original-GLB-Bestand. Quelle, Lizenz und klinische Validierung sind noch nicht vollständig belegt; nicht für Diagnose oder Behandlungsplanung verwenden.'
+      : activeProfile === 'baby'
+        ? 'Wichtiger Hinweis: Das Neugeborenen-Profil ist derzeit nur eine visuelle Skalierungs-Vorschau aus dem weiblichen Anpassungsbestand und keine eigenständig modellierte oder altersgerechte Neugeborenen-Anatomie. Alle 178 Baby-GLB-Geometrie-Payloads sind byteidentisch mit den zugeordneten weiblichen Assets. Der vollständige GLB-Transformaudit bestätigt 178/178 übereinstimmende Hierarchiepfade und Node-Namen. Bei allen 178 Assets unterscheiden sich die lokalen Transform-Matrizen ausschließlich am Root-Node durch Skalierung; bei 177 Assets wirkt diese Skalierung zusätzlich auf die Parent-Weltmatrix des Mesh-Childs. 176 von 178 Assets haben das Root-Skalierungsverhältnis 0,62/0,62/0,62; Schädel und Unterkiefer haben gesonderte Sondertransforms (Schädel 1,0/1,0/1,34; Unterkiefer 1,0/1,0/1,22). Alle 75 geprüften Links-/Rechts-Paare haben übereinstimmende Skalierungsverhältnisse. Diese GLB-Rohdaten-Auswertung berücksichtigt weder die zusätzliche 0,62-Laufzeitkorrektur des Unterkiefers noch die Laufzeit-Schädelverschiebung anhand der Halswirbelreferenz. Die App zeigt diese Laufzeitkorrekturen gesondert an. Gelenkpunkte, Gelenkpassungen und altersgerechte Anatomie sind nicht fachlich oder klinisch validiert; nicht für Diagnose oder Behandlungsplanung verwenden.'
+        : 'Hinweis: Dieses Profil ist eine visuelle Adaption aus dem männlichen Bestand. Der vollständige Chromium-Vergleich fand bei allen 179 männlich/weiblich zugeordneten Modellpaaren identische lokale Vertex-Punktwolken (Koordinaten-Quantisierung 0,000001 m). Der zusätzliche GLB-Transformaudit fand 179/179 übereinstimmende Hierarchiepfade und Node-Namen. Bei 120 von 179 Assets unterscheiden sich jedoch die lokalen Root-Transforms; alle 120 lokalen Abweichungen betreffen ausschließlich diagonale Skalierungswerte, nicht Translation, Rotation oder Scherung. Bei 119 Assets wirkt sich die Root-Skalierung zusätzlich auf die Weltmatrix des internen Mesh-Childs aus. Die 59 geprüften Links-/Rechts-Paare verwenden jeweils übereinstimmende Skalierungswerte. Diese Parent-Weltmatrizen beziehen sich auf die Hierarchie innerhalb einer einzelnen GLB-Datei, nicht auf übergreifende Skelett-Gelenke. Der Audit vergleicht keine Normalen, Materialien, Dreiecks-Konnektivität/Topologie oder Gelenkflächen und belegt keine eigenständige weibliche Modellierung oder klinische Eignung. Anatomische Proportionen und Gelenkpassungen – besonders die Hüftgelenke – sind nicht fachlich oder klinisch validiert; nicht für Diagnose oder Behandlungsplanung verwenden.';
+    const alignmentNotice = result.alignmentAdjustments?.length
+      ? '<br>Schädelposition anhand der Halswirbel-Referenz ausgerichtet' + (result.alignmentAdjustments.some(item => item.boneId === 'mandible') ? '; Unterkiefer-Skalierung des Baby-Profils korrigiert.' : '.')
+      : '';
+    infoContent.innerHTML = '<div class="empty"><span class="ico">🦴</span>' + result.loaded + ' Knochenmodelle aus dem Profil ' + activeProfile + ' geladen. Klicke auf einen Knochen für Details.' + alignmentNotice + '<br><br><small>' + profileNotice + '</small>' + (result.failed ? '<br><br>' + result.failed + ' Datei(en) konnten nicht geladen werden.' : '') + '</div>';
+    if (result.failed) console.warn('HalDo-Modell-Ladefehler:', result.failures);
+  } catch (error) {
+    console.error('HalDo-Modell-Ladefehler:', error);
+    loadText.textContent = '⚠️ ' + (error?.message || 'Modellbestand konnte nicht geladen werden.');
+    profileStatus.textContent = 'Laden fehlgeschlagen';
+    loadFill.style.background = '#ef4444';
+  } finally {
+    loadProfileButton.disabled = false;
+    profileSelect.disabled = false;
   }
-);
+}
+
+loadProfileButton.addEventListener('click', loadSelectedProfile);
+profileSelect.addEventListener('change', () => {
+  profileStatus.textContent = 'Profil ausgewählt – bitte laden';
+});
+loadSelectedProfile();
 
 /* ============================================================
    RAYCASTER – Klick auf Körperteil
@@ -326,11 +368,24 @@ renderer.domElement.addEventListener('click', (event) => {
    ============================================================ */
 const infoContent = document.getElementById('info-content');
 
+function safeWikiUrl(value) {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 function showInfo(mesh) {
-  const name = mesh.userData.name || mesh.name || 'Unbekanntes Körperteil';
-  const detail = mesh.userData.nameDetail || mesh.userData.description || '';
-  const type = (mesh.userData.type || 'struktur').toLowerCase();
-  const wiki = mesh.userData.wikiLink || '';
+  const rawName = mesh.userData.name || mesh.userData.boneId || mesh.name;
+  const name = typeof rawName === 'string' || typeof rawName === 'number'
+    ? String(rawName) : 'Unbekanntes Körperteil';
+  const rawDetail = mesh.userData.nameDetail || mesh.userData.description || '';
+  const detail = typeof rawDetail === 'string' || typeof rawDetail === 'number' ? String(rawDetail) : '';
+  const type = String(mesh.userData.type || 'struktur').toLowerCase();
+  const wiki = safeWikiUrl(mesh.userData.wikiLink);
 
   const typeLabel = type.includes('muscle') ? 'Muskel'
                   : type.includes('bone') ? 'Knochen'
@@ -341,54 +396,88 @@ function showInfo(mesh) {
                   : type.includes('organ') ? 'type-organ'
                   : 'type-bone';
 
-  infoContent.innerHTML = `
-    <div class="info-card">
-      <div class="type-badge ${typeClass}">${typeLabel}</div>
-      <div class="name">${name}</div>
-      ${detail ? `<div class="detail">${detail}</div>` : ''}
-      <div class="actions">
-        <button class="btn primary" id="info-speak">🔊 Vorlesen</button>
-        ${wiki ? `<a class="btn" href="${wiki}" target="_blank" rel="noopener">📖 Wiki</a>` : ''}
-      </div>
-    </div>
-  `;
+  // GLB-Extras sind externe Modelldaten: ausschließlich als Text ausgeben.
+  const card = document.createElement('div');
+  card.className = 'info-card';
 
-  // TTS-Button
-  const speakBtn = document.getElementById('info-speak');
-  if (speakBtn) {
-    speakBtn.addEventListener('click', () => {
-      speakText(`${name}. ${detail}`);
-    });
+  const badge = document.createElement('div');
+  badge.className = 'type-badge ' + typeClass;
+  badge.textContent = typeLabel;
+  card.appendChild(badge);
+
+  const nameElement = document.createElement('div');
+  nameElement.className = 'name';
+  nameElement.textContent = name;
+  card.appendChild(nameElement);
+
+  if (detail) {
+    const detailElement = document.createElement('div');
+    detailElement.className = 'detail';
+    detailElement.textContent = detail;
+    card.appendChild(detailElement);
   }
 
-  // Ausgewähltes Mesh hervorheben (Emissive-Glow)
+  const actions = document.createElement('div');
+  actions.className = 'actions';
+
+  const speakButton = document.createElement('button');
+  speakButton.className = 'btn primary';
+  speakButton.type = 'button';
+  speakButton.textContent = '🔊 Vorlesen';
+  speakButton.addEventListener('click', () => speakText(name + '. ' + detail));
+  actions.appendChild(speakButton);
+
+  if (wiki) {
+    const wikiLink = document.createElement('a');
+    wikiLink.className = 'btn';
+    wikiLink.href = wiki;
+    wikiLink.target = '_blank';
+    wikiLink.rel = 'noopener noreferrer';
+    wikiLink.textContent = '📖 Wiki';
+    actions.appendChild(wikiLink);
+  }
+
+  card.appendChild(actions);
+  infoContent.replaceChildren(card);
   highlightMesh(mesh);
 }
 
 /* ============================================================
    HERVORHEBUNG
    ============================================================ */
-let lastHighlighted = null;
+function clearHighlight() {
+  if (!lastHighlighted) return;
+  for (const state of lastHighlighted.materials) {
+    state.material.emissive.setHex(state.color);
+    state.material.emissiveIntensity = state.intensity;
+  }
+  lastHighlighted = null;
+}
 
 function highlightMesh(mesh) {
-  // Alten Glow entfernen
-  if (lastHighlighted) {
-    lastHighlighted.material.emissive?.setHex(0x000000);
-    lastHighlighted.material.emissiveIntensity = 0;
-  }
+  clearHighlight();
+  const materials = (Array.isArray(mesh.material) ? mesh.material : [mesh.material])
+    .filter(material => material?.emissive);
+  if (!materials.length) return;
 
-  // Neuen Glow setzen
-  if (mesh.material && mesh.material.emissive) {
-    mesh.material.emissive.setHex(0x00e5ff);
-    mesh.material.emissiveIntensity = 0.35;
-    lastHighlighted = mesh;
+  lastHighlighted = {
+    mesh,
+    materials: materials.map(material => ({
+      material,
+      color: material.emissive.getHex(),
+      intensity: material.emissiveIntensity
+    }))
+  };
+  for (const material of materials) {
+    material.emissive.setHex(0x00e5ff);
+    material.emissiveIntensity = 0.35;
   }
 }
 
 /* ============================================================
    FILTER – Muskeln / Knochen ein-/ausblenden
    ============================================================ */
-let showMuscles = true;
+let showMuscles = false;
 let showBones = true;
 
 const btnMuscles = document.getElementById('btn-muscles');
@@ -411,25 +500,20 @@ btnBones.addEventListener('click', () => {
    ============================================================ */
 document.getElementById('btn-reset').addEventListener('click', () => {
   // Sichtbarkeit zurücksetzen
-  showMuscles = true;
+  showMuscles = false;
   showBones = true;
   muscles.forEach(m => m.visible = true);
   bones.forEach(b => b.visible = true);
   organs.forEach(o => o.visible = true);
-  btnMuscles.classList.add('active');
+  btnMuscles.classList.remove('active');
   btnBones.classList.add('active');
 
-  // Kamera zurücksetzen
-  camera.position.set(0, 1.2, 6);
-  controls.target.set(0, 1.0, 0);
+  // Kamera auf die passende Ansicht des aktuell geladenen Profils zurücksetzen.
+  camera.position.copy(resetCameraPosition);
+  controls.target.copy(resetControlsTarget);
   controls.update();
 
-  // Hervorhebung entfernen
-  if (lastHighlighted) {
-    lastHighlighted.material.emissive?.setHex(0x000000);
-    lastHighlighted.material.emissiveIntensity = 0;
-    lastHighlighted = null;
-  }
+  clearHighlight();
 
   // Info zurücksetzen
   infoContent.innerHTML = `

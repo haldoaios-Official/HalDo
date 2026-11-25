@@ -569,6 +569,7 @@ HalDo.Registry = (() => {
     {id:'api-keys', n:'API Key Manager', i:'🔐'},
     {id:'settings', n:'Einstellungen A–Z', i:'⚙️'},
     {id:'arztbuch', n:'🩺 Arztbuch', i:'🩺'},
+    {id:'anatomie-3d', n:'Anatomie 3D Pro Max', i:'🦴'},
     {id:'navigation', n:'🧭 Navigation', i:'🧭'},
     {id:'wlan-bt', n:'📶 WLAN/Bluetooth', i:'📶'},
     {id:'email', n:'HalDo E-Mail', i:'✉️'},
@@ -622,6 +623,7 @@ HalDo.Launch = (app) => {
   if (app.id === 'timer') { HalDo.TimerApp.open(); return; }
   if (app.id === 'password') { HalDo.PassGen.open(); return; }
   if (app.id === 'app-registry') { HalDo.AppBrowser.open(); return; }
+  if (app.id === 'anatomie-3d' && HalDo.Anatomy3DProMax) { HalDo.Anatomy3DProMax.open(); return; }
   // Default: splash greeting
   HalDo.Win.open(app.n || app.name, HalDo.Greeting(app.n || app.name), { w: 380, h: 380 });
   HalDo.Sound.play('cosmic');
@@ -12726,8 +12728,30 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
       return true;
     });
   }
+  // Eigenständiger Startpunkt für die lokale Anatomie-Seite im finalen v157-App-Dispatcher.
+  H.Anatomy3DProMax = {
+    open: function () {
+      var width = Math.max(300, Math.min(1180, window.innerWidth - 32));
+      var height = Math.max(420, Math.min(860, window.innerHeight - 110));
+      var frameId = 'haldo-anatomy-frame-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
+      var frameHtml = '<iframe id="' + frameId + '" src="./anatomie.html" title="HalDo Anatomie 3D Pro Max" style="display:block;flex:1 1 auto;width:100%;height:100%;min-height:0;border:0;background:#0a0e17"></iframe>';
+      var windowId = H.Win.open('🦴 Anatomie 3D Pro Max', frameHtml, { w: width, h: height });
+      var appWindow = document.getElementById(windowId);
+      var body = appWindow && appWindow.querySelector('.win-body-pro, .win-body');
+      if (body) {
+        body.style.display = 'flex';
+        body.style.flex = '1 1 auto';
+        body.style.minHeight = '0';
+        body.style.padding = '0';
+        body.style.overflow = 'hidden';
+      }
+      return windowId;
+    }
+  };
+
   var ROUTES={
     'settings':'Settings','avatar':'Chat','chat':'Chat','weather':'Weather','calculator':'Calc','notes':'Notes','timer':'TimerApp','password':'PassGen','app-registry':'AppBrowser',
+    'anatomie-3d':'Anatomy3DProMax',
     'tasks':'Tasks','calendar':'Calendar','habits':'Habits','goals':'Goals','journal':'Journal','ezidi':'Ezidi','fahrschule':'Fahrschule','traffic':'Blitzer','navigation':'Navigation',
     'music':'Music','arztbuch':'Arztbuch','api-keys':'ApiKeys','translator':'Translator','dashboard':'Dashboard','memory':'Memory','ai-memory':'Memory','mood':'Mood','sleep':'Sleep','water':'Water','pomodoro':'Pomodoro',
     'filemanager':'FileManager','camera':'Camera','voicememo':'VoiceMemos','clipboard':'Clipboard','vocab':'Vocab','flashcards':'Flashcards','ptable':'PeriodicTable','mathsolver':'MathSolver','stats':'Stats','stats2':'Stats',
@@ -13101,7 +13125,7 @@ return /^haldo\b/i.test(raw)?raw:'HalDo '+raw;
 }
 function descriptionFor(app){
 var id=String(app&&app.id||'').toLowerCase();
-if(/arzt|health|med|lab|anatomy|symptom|impf/.test(id))return 'Dein digitaler Gesundheits- und Organisationsbereich – klar strukturiert, sorgfältig und übersichtlich.';
+if(/arzt|health|med|lab|anatomy|anatomie|symptom|impf/.test(id))return 'Dein digitaler Gesundheits- und Organisationsbereich – klar strukturiert, sorgfältig und übersichtlich.';
 if(/fahr|traffic|navigation/.test(id))return 'Dein digitaler Lern- und Begleitbereich für Mobilität, Wissen und sichere Entscheidungen.';
 if(/music|video|studio|radio|podcast/.test(id))return 'Dein kreativer Arbeitsplatz für Ideen, Medien und neue Projekte.';
 if(/chat|ai|voice|avatar/.test(id))return 'Dein persönlicher KI-Begleiter – bereit für Gespräche, Ideen und Zusammenarbeit.';
@@ -13292,3 +13316,32 @@ console.info('HalDo v166: Haushaltsmanager, Keyboard Studio und Datei-Konverter 
 })();
 </script>
 <!-- ENDE HALDO v166 -->
+<!-- HALDO ANATOMIE 3D — finaler App-Start nach allen Legacy-Launchern -->
+<script id="haldo-anatomy3d-final-launch">
+(function () {
+  'use strict';
+  var H = window.HalDo = window.HalDo || {};
+  if (!H.Anatomy3DProMax || typeof H.Anatomy3DProMax.open !== 'function') {
+    console.error('[HalDo Anatomie 3D] Anatomy3D-Modul fehlt; App-Start nicht registriert.');
+    return;
+  }
+
+  // Dieser Wrapper steht bewusst nach allen älteren App-Launchern.
+  // Die Anatomie erhält ihre individuelle HalDo-Begrüßung und startet danach direkt.
+  var previousLaunch = H.Launch;
+  H.Launch = function (app) {
+    if (app && app.id === 'anatomie-3d') {
+      var enterAnatomy = function () { return H.Anatomy3DProMax.open(); };
+      if (H.WelcomeExperience && typeof H.WelcomeExperience.openApp === 'function') {
+        return H.WelcomeExperience.openApp(app, enterAnatomy);
+      }
+      return enterAnatomy();
+    }
+    if (typeof previousLaunch === 'function') return previousLaunch.apply(this, arguments);
+  };
+
+  console.info('[HalDo Anatomie 3D] Finaler App-Start mit individueller Begrüßung bereit.');
+})();
+</script>
+<!-- ENDE HALDO ANATOMIE 3D — finaler App-Start -->
+
