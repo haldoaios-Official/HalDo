@@ -291,6 +291,7 @@ try {
     const boneTypes = ['coxal', 'femur', 'patella', 'tibia', 'fibula', 'talus', 'calcaneus'];
     const END_BAND_FRACTION = 0.18;
     const LOCAL_ROI_RADIUS_MM = 70;
+    const MIN_CANDIDATE_VERTEX_COUNT = 20;
     const report = [];
 
     function collectWorldVertices(root) {
@@ -409,7 +410,8 @@ try {
               bone_b: side + '_coxal',
               region_a: femurCranial,
               region_b: withinRadius(models.coxal, femurProximalCenter, LOCAL_ROI_RADIUS_MM),
-              roi_definition: 'Femur: craniales 18%-Y-Endband; Becken: 70-mm-Umgebungsradius um den Schwerpunkt des Femur-Endbands.'
+              roi_definition: 'Femur: craniales 18%-Y-Endband; Becken: 70-mm-Umgebungsradius um den Schwerpunkt des Femur-Endbands.',
+              local_roi_radius_mm: LOCAL_ROI_RADIUS_MM
             },
             {
               joint_id: 'knee_femur_tibia',
@@ -425,7 +427,8 @@ try {
               bone_b: side + '_patella',
               region_a: femurCaudal,
               region_b: withinRadius(models.patella, femurDistalCenter, LOCAL_ROI_RADIUS_MM),
-              roi_definition: 'Femur: kaudales 18%-Y-Endband; Patella: 70-mm-Umgebungsradius um den Schwerpunkt des distalen Femur-Endbands.'
+              roi_definition: 'Femur: kaudales 18%-Y-Endband; Patella: 70-mm-Umgebungsradius um den Schwerpunkt des distalen Femur-Endbands.',
+              local_roi_radius_mm: LOCAL_ROI_RADIUS_MM
             },
             {
               joint_id: 'ankle_tibia_talus',
@@ -464,7 +467,9 @@ try {
               method: 'Regionaler Vertex-zu-Vertex-Endbereichsvergleich in Weltkoordinaten nach GLB-Transforms.',
               roi_definition: joint.roi_definition,
               end_band_fraction: END_BAND_FRACTION,
-              local_roi_radius_mm: LOCAL_ROI_RADIUS_MM,
+              local_roi_radius_mm: joint.local_roi_radius_mm ?? null,
+              candidate_set_status: Math.min(joint.region_a.length, joint.region_b.length) < MIN_CANDIDATE_VERTEX_COUNT
+                ? 'sparse_candidate_set' : 'sampled_candidate_set',
               candidate_vertex_count_a: joint.region_a.length,
               candidate_vertex_count_b: joint.region_b.length,
               full_mesh_vertex_count_a: models[joint.bone_a.slice(side.length + 1)].length,
@@ -488,7 +493,9 @@ try {
     if (!Number.isFinite(diagnostic.nearest_vertex_distance_mm) ||
         diagnostic.nearest_vertex_distance_mm < 0 ||
         diagnostic.candidate_vertex_count_a < 1 ||
-        diagnostic.candidate_vertex_count_b < 1) {
+        diagnostic.candidate_vertex_count_b < 1 ||
+        !['sparse_candidate_set', 'sampled_candidate_set'].includes(diagnostic.candidate_set_status) ||
+        (Math.min(diagnostic.candidate_vertex_count_a, diagnostic.candidate_vertex_count_b) < 20) !== (diagnostic.candidate_set_status === 'sparse_candidate_set')) {
       throw new Error('Ungültige regionale Gelenkdiagnostik: ' + JSON.stringify(diagnostic));
     }
     console.log('REGIONAL-JOINT-ENDPOINT-DIAGNOSTIC', JSON.stringify(diagnostic));
@@ -500,7 +507,10 @@ try {
     sides: ['left', 'right'],
     joint_regions_per_side: 6,
     measurement_count: regionalJointDiagnostics.length,
-    method: 'Reproduzierbare 18%-Endbänder entlang der globalen Modell-Y-Achse sowie lokal begrenzte 70-mm-Umgebungsradien für Becken- und Patella-ROI; nächstes Paar aus dekodierten Welt-Vertices.',
+    local_roi_radius_mm_for_hip_and_patella_mm: LOCAL_ROI_RADIUS_MM,
+    minimum_candidate_vertex_count_for_sampling_flag: MIN_CANDIDATE_VERTEX_COUNT,
+    method: 'Reproduzierbare 18%-Endbänder entlang der globalen Modell-Y-Achse sowie lokal begrenzte 70-mm-Umgebungsradien ausschließlich für Becken- und Patella-ROI; nächstes Paar aus dekodierten Welt-Vertices.',
+    sampling_note: 'Weniger als 20 Kandidaten-Vertices auf einer Seite werden als sparse_candidate_set markiert. Das ist eine technische Stichprobenwarnung, keine anatomische Bewertung.',
     limitations: [
       'Nicht klinisch oder anatomisch validiert.',
       'Keine fachlich markierten Gelenkflächen oder anatomischen Landmarken.',
@@ -521,6 +531,12 @@ try {
     profiles: regionalJointAudit.profiles.length,
     sides: regionalJointAudit.sides.length,
     joint_regions_per_side: regionalJointAudit.joint_regions_per_side,
+    sparse_candidate_region_count: regionalJointDiagnostics.filter(item => item.candidate_set_status === 'sparse_candidate_set').length,
+    sparse_candidate_regions: regionalJointDiagnostics.filter(item => item.candidate_set_status === 'sparse_candidate_set').map(item => ({
+      profile: item.profile, side: item.side, joint_id: item.joint_id,
+      candidate_vertex_count_a: item.candidate_vertex_count_a,
+      candidate_vertex_count_b: item.candidate_vertex_count_b
+    })),
     min_candidate_distance_mm: Math.min(...regionalJointDiagnostics.map(item => item.nearest_vertex_distance_mm)),
     max_candidate_distance_mm: Math.max(...regionalJointDiagnostics.map(item => item.nearest_vertex_distance_mm))
   }));
