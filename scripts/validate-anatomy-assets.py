@@ -902,15 +902,28 @@ for key in [
     if recorded_baby_ratio.get(key) != actual_baby_ratio.get(key):
         fail(f"sources.json: Baby-Root-Skalierungsanalyse stimmt bei {key} nicht mit den GLB-Dateien überein")
 recorded_baby_groups = [
-    {"baby_to_adult_female_root_scale_ratio_xyz": group.get("baby_to_adult_female_root_scale_ratio_xyz"), "asset_count": group.get("asset_count"), "asset_ids": group.get("asset_ids", [])}
+    {"baby_to_adult_female_root_scale_ratio_xyz": group.get("baby_to_adult_female_root_scale_ratio_xyz"), "asset_count": group.get("asset_count")}
     for group in recorded_baby_ratio.get("baby_to_adult_female_root_scale_ratio_groups", [])
 ]
 actual_baby_groups = [
-    {"baby_to_adult_female_root_scale_ratio_xyz": group.get("baby_to_adult_female_root_scale_ratio_xyz"), "asset_count": group.get("asset_count"), "asset_ids": group.get("asset_ids", [])}
+    {"baby_to_adult_female_root_scale_ratio_xyz": group.get("baby_to_adult_female_root_scale_ratio_xyz"), "asset_count": group.get("asset_count")}
     for group in actual_baby_ratio.get("baby_to_adult_female_root_scale_ratio_groups", [])
 ]
 if recorded_baby_groups != actual_baby_groups:
     fail("sources.json: Baby-Root-Skalierungsgruppen stimmen nicht mit den GLB-Dateien überein")
+actual_special_baby_assets = {
+    tuple(group["baby_to_adult_female_root_scale_ratio_xyz"]): group.get("asset_ids", [])
+    for group in actual_baby_ratio.get("baby_to_adult_female_root_scale_ratio_groups", [])
+    if group["baby_to_adult_female_root_scale_ratio_xyz"] in ([1.0, 1.0, 1.22], [1.0, 1.0, 1.34])
+}
+recorded_special_baby_assets = {
+    tuple(group["baby_to_adult_female_root_scale_ratio_xyz"]): group.get("asset_ids", [])
+    for group in recorded_baby_ratio.get("baby_to_adult_female_root_scale_ratio_groups", [])
+    if group["baby_to_adult_female_root_scale_ratio_xyz"] in ([1.0, 1.0, 1.22], [1.0, 1.0, 1.34])
+}
+expected_special_baby_assets = {(1.0, 1.0, 1.22): ["mandible"], (1.0, 1.0, 1.34): ["skull"]}
+if actual_special_baby_assets != expected_special_baby_assets or recorded_special_baby_assets != expected_special_baby_assets:
+    fail("Baby-Transformaudit: dokumentierte Schädel-/Unterkiefer-Ausnahmen stimmen nicht mit den GLB-Dateien überein")
 if recorded_baby_transform.get("asset_pair_count") != EXPECTED["baby"] or recorded_baby_transform.get("assets_with_different_hierarchy_paths") != 0:
     fail("sources.json dokumentiert nicht den vollständigen 178-Paar-Baby-Transformaudit")
 print("FEMALE-BABY-ROOT-SCALE-RATIO-GROUPS", json.dumps(actual_baby_groups, ensure_ascii=False, separators=(",", ":")))
