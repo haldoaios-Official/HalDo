@@ -516,6 +516,55 @@ transform_report_path.write_text(
 )
 print("MALE-FEMALE-TRANSFORM-AUDIT-SUMMARY", json.dumps(male_female_transform_audit["summary"], ensure_ascii=False, separators=(",", ":")))
 print("MALE-FEMALE-TRANSFORM-AUDIT-FILE: artifacts/anatomy/transform-audit.json")
+recorded_transform_audit = sources.get("profiles", {}).get("adult_female", {}).get("transform_hierarchy_comparison", {})
+for key in [
+    "asset_pair_count",
+    "assets_with_matching_hierarchy_paths",
+    "assets_with_different_hierarchy_paths",
+    "assets_with_node_name_mismatches",
+    "shared_node_paths",
+    "assets_with_local_transform_differences",
+    "assets_with_parent_world_transform_differences",
+    "assets_with_world_transform_differences",
+    "nodes_with_local_transform_differences",
+    "nodes_with_parent_world_transform_differences",
+    "nodes_with_world_transform_differences",
+    "node_count_distribution",
+]:
+    if recorded_transform_audit.get(key) != male_female_transform_audit["summary"].get(key):
+        fail(f"sources.json: Transformaudit-Zusammenfassung stimmt bei {key} nicht mit den GLB-Dateien überein")
+if recorded_transform_audit.get("matrix_component_absolute_tolerance") != male_female_transform_audit["matrix_component_absolute_tolerance"]:
+    fail("sources.json: numerische Transformaudit-Toleranz stimmt nicht")
+for key in ["max_abs_local_matrix_delta", "max_abs_parent_world_matrix_delta", "max_abs_world_matrix_delta"]:
+    if abs(float(recorded_transform_audit.get(key, -1)) - max(
+        asset[key] for asset in male_female_transform_audit["assets"].values()
+    )) > 1e-9:
+        fail(f"sources.json: maximaler Matrixdelta für {key} stimmt nicht")
+recorded_root_scale = recorded_transform_audit.get("root_scale_analysis", {})
+actual_root_scale = male_female_transform_audit["root_scale_analysis"]
+for key in [
+    "assets_with_root_scale_changes",
+    "all_local_transform_differences_are_root_scale_only",
+    "male_root_scale_is_identity_for_all_changed_assets",
+    "bilateral_pairs_checked",
+    "bilateral_pairs_with_matching_scale",
+    "bilateral_pair_mismatches",
+]:
+    if recorded_root_scale.get(key) != actual_root_scale.get(key):
+        fail(f"sources.json: Root-Skalierungs-Audit stimmt bei {key} nicht mit den GLB-Dateien überein")
+recorded_groups = [
+    {"adult_female_root_scale_xyz": group.get("adult_female_root_scale_xyz"), "asset_count": group.get("asset_count")}
+    for group in recorded_root_scale.get("female_root_scale_groups", [])
+]
+actual_groups = [
+    {"adult_female_root_scale_xyz": group.get("adult_female_root_scale_xyz"), "asset_count": group.get("asset_count")}
+    for group in actual_root_scale.get("female_root_scale_groups", [])
+]
+if recorded_groups != actual_groups:
+    fail("sources.json: Gruppen der weiblichen Root-Skalierungen stimmen nicht mit den GLB-Dateien überein")
+if recorded_transform_audit.get("asset_pair_count") != EXPECTED["adult_female"]:
+    fail("sources.json: Transformaudit ist nicht für alle 179 männlich/weiblichen Asset-Paare dokumentiert")
+print("MALE-FEMALE-ROOT-SCALE-GROUPS", json.dumps(actual_groups, ensure_ascii=False, separators=(",", ":")))
 verified_geometry_pairs = 0
 verified_uniform_scale_pairs = 0
 verified_special_scale_pairs = 0
