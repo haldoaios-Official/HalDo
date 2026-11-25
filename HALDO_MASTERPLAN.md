@@ -342,3 +342,19 @@ Die folgenden drei Apps wurden als benannte Implementierungen innerhalb der bere
 **Integration:** Die drei Apps werden in der bestehenden HalDo-App-Registry registriert und über H.Master.getCategoryApps() in G, K und X einsortiert. Die bestehende Fensterverwaltung und der lokale HalDo-Store werden weiterverwendet. Keine zusätzliche Kategorie und keine Erhöhung der 375 geplanten Plätze.
 
 **Status:** JavaScript-Syntax des v166-Blocks geprüft. GitHub-Pages-Workflow nach dem korrigierten Commit noch in Ausführung; Veröffentlichung erst nach erfolgreichem Workflow bestätigen.
+
+## HALDO v167 – Laborwerte Pro und Medikamentenplan Pro (25.11.2026)
+
+Zwei eigenständige Dokumentations-Apps wurden als zusätzliche benannte Apps in den bestehenden A–Z-Plan aufgenommen:
+
+- **L – HalDo Laborwerte Pro** (`laborwerte-pro`): Laborparameter, gemessener Wert, Einheit, Referenzbereich exakt laut Laborbefund, Befunddatum, Labor/Einrichtung und Notiz dokumentieren; Einträge bearbeiten, löschen und durchsuchen.
+- **M – HalDo Medikamentenplan Pro** (`medikamentenplan-pro`): Medikament/Handelsname, Wirkstoff laut Packung/Verordnung, verordnete Dosierung als Freitext, Anwendungsform, verordnete Einnahmezeiten, Beginn/Ende, verordnende Praxis und Hinweise dokumentieren; Einträge bearbeiten, löschen und durchsuchen.
+
+**Datenschutz- und Sicherheitskonzept:** Die beiden Module verwenden getrennte lokale Datentresore. Einträge werden vor dem Schreiben mit AES-256-GCM verschlüsselt; der Schlüssel wird aus einer vom Nutzer gesetzten Passphrase via PBKDF2-HMAC-SHA-256 (310.000 Iterationen) abgeleitet. Die Passphrase wird nicht gespeichert. Ein verschlüsseltes JSON-Backup kann heruntergeladen werden. Ohne Passphrase sind die Daten nicht wiederherstellbar. Die Funktion benötigt HTTPS und Web Crypto. Es findet kein Upload der Datensätze statt.
+
+**Medizinische Grenzen:** Beide Apps sind reine Dokumentationshilfen. Sie diagnostizieren keine Erkrankungen, interpretieren keine Laborwerte und empfehlen oder verändern keine Dosierungen. Referenzbereiche und Dosierungen müssen aus Originalbefund bzw. ärztlicher Verordnung übernommen werden. Die Apps ersetzen weder Patientenakte noch ärztliche Beratung oder ein geprüftes Medikationssystem.
+
+**Integration:** Die Module werden in `js/haldo-v167-medical-apps.js` implementiert, über die bestehenden Fenster- und Registry-Schnittstellen gestartet und den A–Z-Buchstaben L und M zugeordnet. Der v166-Block wurde in `index.html` vor das schließende `</body>` verschoben; der Versionskopf wurde auf v167 gesetzt.
+
+**Prüfstatus:** JavaScript-Syntax des neuen v167-Moduls sowie aller 25 ausführbaren Inline-Script-Blöcke der Hauptdatei erfolgreich statisch kompiliert. HTML-Struktur und App-Start wurden nicht in einem echten Browser-End-to-End-Test geprüft. Deployment erst nach Review und erfolgreichem GitHub-Pages-Workflow bestätigen.
+
