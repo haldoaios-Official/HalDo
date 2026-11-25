@@ -89,6 +89,13 @@ try {
     if (profile.id !== 'adult_male' && (!infoText.includes('Gelenkpassungen') || !infoText.includes('nicht fachlich oder klinisch validiert'))) {
       throw new Error(profile.id + ': Hinweis auf offene Gelenkvalidierung wird nicht angezeigt.');
     }
+    if (profile.id === 'baby' && (
+      !infoText.includes('178 Geometrie-Payloads byteidentisch') ||
+      !infoText.includes('176 von 178') ||
+      !infoText.includes('gesonderte Sondertransforms')
+    )) {
+      throw new Error('Baby-Profil: vollständiger Hinweis auf Skalierungsbefund und Sondertransforms wird nicht angezeigt.');
+    }
     if (profile.id === 'baby' && !infoText.includes('Unterkiefer-Skalierung des Baby-Profils korrigiert')) {
       throw new Error('Baby-Profil: Unterkiefer-Skalierung wurde nicht korrigiert.');
     }
