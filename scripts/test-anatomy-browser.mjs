@@ -48,6 +48,8 @@ try {
   });
 
   await page.goto(baseUrl + '/anatomie.html', { waitUntil: 'domcontentloaded', timeout: 60000 });
+  const canvas = page.locator('#viewport canvas');
+
 
   await mkdir('artifacts/anatomy', { recursive: true });
 
@@ -88,11 +90,41 @@ try {
       const overlay = document.querySelector('#loading');
       return overlay?.classList.contains('hidden') && getComputedStyle(overlay).opacity === '0';
     }, null, { timeout: 10000 });
+
+    // Klick-Auswahl auf echte GLB-Meshes prüfen (nicht nur Canvas-Erstellung).
+    const canvasBox = await canvas.boundingBox();
+    if (!canvasBox) throw new Error(profile.id + ': Canvas besitzt keine messbare Fläche.');
+    let selectedName = '';
+    const xCandidates = [0.50, 0.48, 0.52];
+    const yCandidates = [0.32, 0.36, 0.40, 0.44, 0.48, 0.52, 0.56, 0.60, 0.64, 0.68, 0.72, 0.76];
+    for (const y of yCandidates) {
+      for (const x of xCandidates) {
+        await page.mouse.click(canvasBox.x + canvasBox.width * x, canvasBox.y + canvasBox.height * y);
+        if (await page.locator('#info-content .info-card').count()) {
+          selectedName = (await page.locator('#info-content .info-card .name').textContent())?.trim() || '';
+          if (selectedName) break;
+        }
+      }
+      if (selectedName) break;
+    }
+    if (!selectedName) throw new Error(profile.id + ': Klick auf Knochen hat keine Detailkarte geöffnet.');
+    console.log('PASS', profile.id, 'Klick-Auswahl:', selectedName);
+
+    // Sichtbarkeit umschalten und mit Reset inklusive Kameraansicht zurücksetzen.
+    await page.locator('#btn-bones').click();
+    const bonesHidden = !(await page.locator('#btn-bones').evaluate(el => el.classList.contains('active')));
+    if (!bonesHidden) throw new Error(profile.id + ': Knochen-Schalter hat nicht deaktiviert.');
+    await page.locator('#btn-reset').click();
+    const bonesRestored = await page.locator('#btn-bones').evaluate(el => el.classList.contains('active'));
+    if (!bonesRestored) throw new Error(profile.id + ': Reset hat die Knochenansicht nicht wiederhergestellt.');
+    if (await page.locator('#info-content .info-card').count()) {
+      throw new Error(profile.id + ': Reset hat die Detailauswahl nicht zurückgesetzt.');
+    }
+
     await page.screenshot({ path: 'artifacts/anatomy/' + profile.id + '.png', fullPage: true });
     console.log('PASS', profile.id, status);
   }
 
-  const canvas = page.locator('#viewport canvas');
   if (await canvas.count() !== 1) throw new Error('3D-Canvas wurde nicht genau einmal erstellt.');
   const canvasSize = await canvas.evaluate(element => ({ width: element.width, height: element.height }));
   if (canvasSize.width < 100 || canvasSize.height < 100) throw new Error('3D-Canvas hat keine gültige Größe.');
