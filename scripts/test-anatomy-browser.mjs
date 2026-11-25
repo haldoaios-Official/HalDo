@@ -100,13 +100,14 @@ try {
       throw new Error('adult_female: vollständiger Geometrie- und Transformaudit samt Grenzen wird nicht angezeigt.');
     }
     if (profile.id === 'baby' && (
-      !infoText.includes('178 Baby-GLB-Geometrie-Payloads byteidentisch') ||
-      !infoText.includes('176 von 178 Root-Skalierungsverhältnissen') ||
+      !infoText.includes('178 Baby-GLB-Geometrie-Payloads sind byteidentisch') ||
+      !infoText.includes('176 von 178 Assets haben das Root-Skalierungsverhältnis 0,62/0,62/0,62') ||
       !infoText.includes('gesonderte Sondertransforms') ||
       !infoText.includes('178/178 übereinstimmende Hierarchiepfade') ||
-      !infoText.includes('alle 178 Assets unterscheiden sich die lokalen Transform-Matrizen ausschließlich am Root-Node') ||
-      !infoText.includes('alle 75 geprüften Links-/Rechts-Paare') ||
-      !infoText.includes('Laufzeitkorrektur des Unterkiefers')
+      !infoText.includes('Bei allen 178 Assets unterscheiden sich die lokalen Transform-Matrizen ausschließlich am Root-Node') ||
+      !infoText.includes('Alle 75 geprüften Links-/Rechts-Paare') ||
+      !infoText.includes('Laufzeitkorrektur des Unterkiefers') ||
+      !infoText.includes('keine eigenständig modellierte oder altersgerechte Neugeborenen-Anatomie')
     )) {
       throw new Error('Baby-Profil: vollständiger Geometrie- und Transformaudit samt Laufzeit-Abgrenzung wird nicht angezeigt.');
     }
