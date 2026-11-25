@@ -296,7 +296,11 @@ try {
     throw new Error('Die Anatomie-App erhält nicht die passende Gesundheitsbegrüßung.');
   }
   await appWelcome.locator('.h161-button').click();
-  await appWelcome.waitFor({ state: 'detached', timeout: 10000 });
+  await launcherPage.waitForFunction(() => {
+    const overlay = document.getElementById('haldo-v161-welcome');
+    return !overlay || (overlay.classList.contains('h161-leaving') &&
+      getComputedStyle(overlay).pointerEvents === 'none');
+  }, null, { timeout: 5000 });
   await launcherPage.waitForTimeout(550);
 
   const launcherDiagnostics = await launcherPage.evaluate(() => ({
