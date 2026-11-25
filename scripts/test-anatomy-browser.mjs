@@ -723,7 +723,7 @@ try {
   }
   await writeFile(
     'artifacts/anatomy/hip-root-scale-sensitivity-audit.json',
-    JSON.stringify(hipScaleSensitivityAudit, null, 2) + '\\n',
+    JSON.stringify(hipScaleSensitivityAudit, null, 2) + '\n',
     'utf8'
   );
   console.log('HIP-ROOT-SCALE-SENSITIVITY-SUMMARY', JSON.stringify({
