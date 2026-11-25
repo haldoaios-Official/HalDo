@@ -302,10 +302,17 @@ try {
   const embeddedFrame = launcherPage.frames().find(frame => frame.url().includes('/anatomie.html'));
   if (!embeddedFrame) throw new Error('HalDo-Launcher hat keinen Anatomie-iFrame geladen.');
   await embeddedFrame.waitForFunction(
-    () => (document.querySelector('#profile-status')?.textContent || '').includes('179/179 Knochen geladen'),
+    () => {
+      const status = document.querySelector('#profile-status')?.textContent || '';
+      return status.includes('179/179 Knochen geladen') || status.includes('Laden fehlgeschlagen');
+    },
     null,
-    { timeout: 240000 }
+    { timeout: 60000 }
   );
+  const embeddedStatus = await embeddedFrame.locator('#profile-status').textContent();
+  if (!embeddedStatus?.includes('179/179 Knochen geladen')) {
+    throw new Error('Anatomie 3D im HalDo-Fenster konnte nicht vollständig laden: ' + embeddedStatus);
+  }
   const embeddedBox = await anatomyFrameElement.boundingBox();
   if (!embeddedBox || embeddedBox.width < 500 || embeddedBox.height < 350) {
     throw new Error('Anatomie-iFrame wird im HalDo-Fenster nicht in ausreichender Größe dargestellt.');
