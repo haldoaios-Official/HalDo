@@ -62,7 +62,7 @@ def transform_point(matrix: list[list[float]], point: list[float]) -> list[float
         matrix[2][0]*x + matrix[2][1]*y + matrix[2][2]*z + matrix[2][3],
     ]
 
-def scene_node_world_matrices(document: dict) -> dict[int, tuple[list[list[float]], list[str]]]:
+def scene_node_world_matrices(document: dict) -> dict[int, tuple[list[list[float]], list[str], list[dict]]]:
     nodes = document.get("nodes", [])
     scenes = document.get("scenes", [])
     if not nodes or not scenes:
@@ -72,18 +72,27 @@ def scene_node_world_matrices(document: dict) -> dict[int, tuple[list[list[float
     output: dict[int, tuple[list[list[float]], list[str]]] = {}
     identity = [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]]
 
-    def visit(index: int, parent: list[list[float]], chain: list[str]) -> None:
+    def visit(index: int, parent: list[list[float]], chain: list[str], transform_chain: list[dict]) -> None:
         if index < 0 or index >= len(nodes) or index in output:
             return
         node = nodes[index]
         world = multiply_matrix4(parent, node_local_matrix(node))
         name_chain = chain + [str(node.get("name") or f"node-{index}")]
-        output[index] = (world, name_chain)
+        transform_record = {
+            "node_index": index,
+            "name": node.get("name"),
+            "translation": node.get("translation"),
+            "rotation": node.get("rotation"),
+            "scale": node.get("scale"),
+            "matrix": node.get("matrix"),
+        }
+        current_transform_chain = transform_chain + [transform_record]
+        output[index] = (world, name_chain, current_transform_chain)
         for child in node.get("children", []):
-            visit(child, world, name_chain)
+            visit(child, world, name_chain, current_transform_chain)
 
     for root in roots:
-        visit(root, identity, [])
+        visit(root, identity, [], [])
     return output
 
 manifest_path = ROOT / "models/manifest.json"
@@ -143,7 +152,7 @@ for profile_id, expected_count in EXPECTED.items():
             continue
         if not document.get("nodes") or not document.get("scenes"):
             fail(f"GLB ohne nodes/scenes: {relative_path}")
-        if bone_id in {"skull", "mandible", "c1_atlas", "c2", "c7", "t1", "sacrum", "sternum", "left_humerus", "left_radius", "left_metacarpal_1", "left_femur", "right_femur", "left_coxal", "right_coxal", "left_tibia"}:
+        if bone_id in {"skull", "mandible", "c1_atlas", "c2", "c7", "t1", "sacrum", "sternum", "left_humerus", "left_radius", "left_metacarpal_1", "left_femur", "right_femur", "left_coxal", "right_coxal", "left_tibia", "right_tibia"}:
             node_info = []
             world_by_node = scene_node_world_matrices(document)
             for node_index, node in enumerate(document.get("nodes", [])):
@@ -157,7 +166,7 @@ for profile_id, expected_count in EXPECTED.items():
                 world_record = world_by_node.get(node_index)
                 world_bounds = None
                 if world_record and accessor.get("min") and accessor.get("max"):
-                    world_matrix, node_chain = world_record
+                    world_matrix, node_chain, hierarchy_transforms = world_record
                     lo, hi = accessor["min"], accessor["max"]
                     corners = [
                         transform_point(world_matrix, [x, y, z])
@@ -180,6 +189,8 @@ for profile_id, expected_count in EXPECTED.items():
                     "scale": node.get("scale"),
                     "matrix": node.get("matrix"),
                     "world_translation": [world_record[0][0][3], world_record[0][1][3], world_record[0][2][3]] if world_record else None,
+                    "world_matrix": world_record[0] if world_record else None,
+                    "hierarchy_transforms": world_record[2] if world_record else [],
                     "node_extras": node.get("extras"),
                     "mesh_name": mesh.get("name"),
                     "mesh_extras": mesh.get("extras"),
