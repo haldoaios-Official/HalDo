@@ -635,8 +635,8 @@ if "hpfrei/body-anatomy-3d-viewer" in anatomy:
     fail("anatomie.html verwendet noch das externe Ganzkörpermodell")
 if "visuelle Adaption" not in anatomy or "Gelenkpassungen" not in anatomy or "nicht fachlich oder klinisch validiert" not in anatomy:
     fail("anatomie.html kennzeichnet die weibliche Adaption samt offener Gelenkvalidierung nicht ausreichend")
-if "vollständigen Chromium-Browser-Audit" not in anatomy or "179/179 lokale Vertex-Punktwolken" not in anatomy or "0,000001 m" not in anatomy or "Dreiecks-Konnektivität/Topologie" not in anatomy:
-    fail("anatomie.html kennzeichnet den vollständigen weiblich/männlichen 179-Paar-Audit samt Grenzen nicht ausreichend")
+if "Der vollständige Chromium-Vergleich" not in anatomy or "identische lokale Vertex-Punktwolken" not in anatomy or "179/179 übereinstimmende Hierarchiepfade" not in anatomy or "120 von 179 Assets" not in anatomy or "Scherung" not in anatomy or "Dreiecks-Konnektivität/Topologie" not in anatomy:
+    fail("anatomie.html kennzeichnet den vollständigen weiblich/männlichen Geometrie- und Transformaudit samt Grenzen nicht ausreichend")
 female_geometry = sources.get("profiles", {}).get("adult_female", {}).get("geometry_comparison", {})
 if female_geometry.get("automated_asset_pair_count") != EXPECTED["adult_female"]:
     fail("sources.json dokumentiert nicht alle 179 weiblich/männlichen Modellpaare")
