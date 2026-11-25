@@ -284,7 +284,7 @@ try {
   // Neue, räumlich begrenzte Endbereichs-Diagnostik:
   // Diese Heuristik nutzt die vertikale Y-Achse des zusammengesetzten Modells,
   // ersetzt aber KEINE fachlich markierten Gelenkflächen oder anatomischen Landmarken.
-  const regionalJointDiagnostics = await page.evaluate(async () => {
+  const regionalAuditData = await page.evaluate(async () => {
     const THREE = await import('three');
     const { loadBoneModel } = await import('./models/loader.js');
     const profileIds = ['adult_male', 'adult_female', 'baby'];
@@ -622,8 +622,17 @@ try {
         }
       }
     }
-    return report;
+    return {
+      regionalJointDiagnostics: report,
+      hipScaleSensitivityReport
+    };
   });
+
+  const regionalJointDiagnostics = regionalAuditData.regionalJointDiagnostics;
+  const hipScaleSensitivityReport = regionalAuditData.hipScaleSensitivityReport;
+  if (!Array.isArray(regionalJointDiagnostics) || !Array.isArray(hipScaleSensitivityReport)) {
+    throw new Error('Der Browser-Audit hat keine gültigen regionalen bzw. Hip-Scale-Ergebnisse zurückgegeben.');
+  }
 
   if (regionalJointDiagnostics.length !== 36) {
     throw new Error('Regionaler Gelenk-Endbereichsaudit unvollständig: erwartet 36 Seiten-/Profil-Messungen, gefunden ' + regionalJointDiagnostics.length);
