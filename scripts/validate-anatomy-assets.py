@@ -145,7 +145,7 @@ module_scripts = parser.modules
 if not module_scripts:
     fail("anatomie.html enthält kein auswertbares type=module-Script")
 
-for file in ["models/catalog.js", "models/loader.js", "models/package.js"]:
+for file in ["models/catalog.js", "models/loader.js", "models/package.js", "scripts/test-anatomy-browser.mjs"]:
     check_module((ROOT / file).read_text(encoding="utf-8"), file)
 for index, source in enumerate(module_scripts, start=1):
     check_module(source, f"anatomie.html Modul {index}")
