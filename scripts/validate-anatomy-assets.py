@@ -114,6 +114,8 @@ if "loadModelManifest, loadProfileModels" not in anatomy:
     fail("anatomie.html ist nicht mit dem lokalen Modell-Loader verbunden")
 if "hpfrei/body-anatomy-3d-viewer" in anatomy:
     fail("anatomie.html verwendet noch das externe Ganzkörpermodell")
+if "visuelle Adaption" not in anatomy or "kein klinisch validiertes morphometrisches" not in anatomy:
+    fail("anatomie.html kennzeichnet die weibliche und Baby-Adaption nicht ausreichend")
 from html.parser import HTMLParser
 
 class ModuleScriptParser(HTMLParser):
