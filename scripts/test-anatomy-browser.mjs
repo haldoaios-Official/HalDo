@@ -1,5 +1,6 @@
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
+import { mkdir } from 'node:fs/promises';
 import process from 'node:process';
 
 const port = 4173;
@@ -48,6 +49,8 @@ try {
 
   await page.goto(baseUrl + '/anatomie.html', { waitUntil: 'domcontentloaded', timeout: 60000 });
 
+  await mkdir('artifacts/anatomy', { recursive: true });
+
   const profiles = [
     { id: 'adult_male', count: 179 },
     { id: 'adult_female', count: 179 },
@@ -74,6 +77,7 @@ try {
     if (!status?.includes(profile.count + '/' + profile.count + ' Knochen geladen')) {
       throw new Error(profile.id + ' konnte nicht vollständig geladen werden: ' + status);
     }
+    await page.screenshot({ path: 'artifacts/anatomy/' + profile.id + '.png', fullPage: true });
     console.log('PASS', profile.id, status);
   }
 
