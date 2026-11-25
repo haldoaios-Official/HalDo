@@ -181,6 +181,7 @@ try {
     const profiles = ['adult_male', 'adult_female', 'baby'];
     const pairs = [
       ['hip', 'coxal', 'femur'],
+      ['sacroiliac', 'coxal', 'sacrum'],
       ['knee_femur_patella', 'femur', 'patella'],
       ['knee_femur_tibia', 'femur', 'tibia'],
       ['ankle_tibia_talus', 'tibia', 'talus'],
@@ -190,7 +191,7 @@ try {
     const report = [];
     for (const profileId of profiles) {
       const models = {};
-      for (const boneId of ['coxal', 'femur', 'patella', 'tibia', 'fibula', 'talus', 'calcaneus']) {
+      for (const boneId of ['coxal', 'sacrum', 'femur', 'patella', 'tibia', 'fibula', 'talus', 'calcaneus']) {
         const gltf = await loadBoneModel(THREE, profileId, 'left_' + boneId);
         models[boneId] = collectWorldVertices(gltf.scene);
       }
