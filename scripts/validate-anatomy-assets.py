@@ -29,7 +29,7 @@ def glb_binary_chunk(data: bytes) -> bytes | None:
         chunk_end = chunk_start + chunk_length
         if chunk_end > len(data):
             return None
-        if chunk_type == b"BIN\\0":
+        if chunk_type == b"BIN\0":
             return data[chunk_start:chunk_end]
         offset = chunk_end
     return None
