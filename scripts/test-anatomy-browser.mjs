@@ -301,12 +301,16 @@ try {
 
   const launcherDiagnostics = await launcherPage.evaluate(() => ({
     anatomyModule: typeof window.HalDo?.Anatomy3D?.open,
+    registeredId: window.HalDo?.Registry?.getFeatured?.().find(app => app.id === 'anatomie-3d')?.id || null,
+    dispatcherHasRoute: !!window.HalDo?.SystemV157?.routes?.().includes('anatomie-3d'),
+    routeListHasAnatomy: window.HalDo?.SystemV157?.routes?.().filter(id => /anatom/i.test(id)) || [],
     finalLaunch: String(window.HalDo?.Launch || '').slice(0, 500),
-    windows: Array.from(document.querySelectorAll('#winLayer .window')).map(el => ({
-      title: el.querySelector('.win-title')?.textContent || '',
-      bodyText: (el.querySelector('.win-body')?.textContent || '').slice(0, 250),
+    windows: Array.from(document.querySelectorAll('#winLayer .window, #winLayer .win-pro')).map(el => ({
+      title: el.querySelector('.win-title, .win-title-pro')?.textContent || '',
+      bodyText: (el.querySelector('.win-body, .win-body-pro')?.textContent || '').slice(0, 250),
       frames: el.querySelectorAll('iframe').length
     })),
+    notifications: Array.from(document.querySelectorAll('#toasts, .toast, [role="alert"]')).map(el => (el.textContent || '').slice(0, 200)),
     remainingWelcome: !!document.querySelector('#haldo-v161-welcome')
   }));
   console.log('HALDO-LAUNCH-DIAGNOSTIC', JSON.stringify(launcherDiagnostics));
