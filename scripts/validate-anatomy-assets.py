@@ -12,7 +12,7 @@ EXPECTED = {"adult_male": 179, "adult_female": 179, "baby": 178}
 errors: list[str] = []
 draco_assets: dict[str, int] = {}
 geometry_diagnostics: list[str] = []
-ADAPTATION_SAMPLE_BONES = ("left_coxal", "right_coxal", "left_femur", "right_femur", "left_tibia")
+ADAPTATION_SAMPLE_BONES: tuple[str, ...] = ()
 adaptation_bin_payloads: dict[tuple[str, str], bytes] = {}
 adaptation_parent_scales: dict[tuple[str, str], list[float]] = {}
 
@@ -117,6 +117,12 @@ manifest_path = ROOT / "models/manifest.json"
 sources_path = ROOT / "models/sources.json"
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 sources = json.loads(sources_path.read_text(encoding="utf-8"))
+ADAPTATION_SAMPLE_BONES = tuple(manifest.get("profiles", {}).get("baby", {}).get("asset_ids", []))
+if len(ADAPTATION_SAMPLE_BONES) != EXPECTED["baby"]:
+    fail(f"Baby-Adaptionsaudit: erwartet {EXPECTED['baby']} Knochen-IDs, gefunden {len(ADAPTATION_SAMPLE_BONES)}")
+female_asset_ids = set(manifest.get("profiles", {}).get("adult_female", {}).get("asset_ids", []))
+if not set(ADAPTATION_SAMPLE_BONES).issubset(female_asset_ids):
+    fail("Baby-Adaptionsaudit: mindestens eine Baby-Knochen-ID fehlt im weiblichen Vergleichsprofil")
 
 if manifest.get("schema_version") != 1:
     fail("manifest.json: schema_version muss 1 sein")
@@ -237,6 +243,8 @@ for profile_id, expected_count in EXPECTED.items():
         if not record.get("sha"):
             fail(f"Manifest ohne Git-SHA: {relative_path}")
 
+verified_geometry_pairs = 0
+verified_scale_pairs = 0
 for bone_id in ADAPTATION_SAMPLE_BONES:
     female_payload = adaptation_bin_payloads.get(("adult_female", bone_id))
     baby_payload = adaptation_bin_payloads.get(("baby", bone_id))
@@ -244,12 +252,16 @@ for bone_id in ADAPTATION_SAMPLE_BONES:
         fail(f"{bone_id}: weiblicher/Baby-BIN-Payload für Vergleich fehlt")
     elif female_payload != baby_payload:
         fail(f"{bone_id}: weibliche und Baby-Geometrie-Payloads sind nicht mehr byteidentisch; sources.json/App-Hinweis neu bewerten")
+    else:
+        verified_geometry_pairs += 1
     female_scale = adaptation_parent_scales.get(("adult_female", bone_id))
     baby_scale = adaptation_parent_scales.get(("baby", bone_id))
     if female_scale is None or baby_scale is None or len(female_scale) != 3 or len(baby_scale) != 3:
         fail(f"{bone_id}: Parent-Skalierung für weibliches/Baby-Profil fehlt")
     elif any(abs(float(baby_scale[i]) - float(female_scale[i]) * 0.62) > 1e-5 for i in range(3)):
         fail(f"{bone_id}: Baby-Parent-Skalierung weicht von 0,62 × adult_female ab")
+    else:
+        verified_scale_pairs += 1
 
 for profile_id in EXPECTED:
     if sources.get("profiles", {}).get(profile_id, {}).get("source_status") not in {"pending", "published"}:
@@ -332,6 +344,8 @@ for index, source in enumerate(module_scripts, start=1):
 
 print("Profilbestände:", EXPECTED)
 print("Draco-komprimierte GLBs:", draco_assets)
+print(f"Weiblich/Baby-Geometrievergleich: {verified_geometry_pairs}/{len(ADAPTATION_SAMPLE_BONES)} BIN-Paare byteidentisch")
+print(f"Weiblich/Baby-Skalierungsvergleich: {verified_scale_pairs}/{len(ADAPTATION_SAMPLE_BONES)} Parent-Transforms entsprechen 0,62")
 print("Räumliche Stichprobe (GLB-Rohkoordinaten und Node-Transforms):")
 for item in geometry_diagnostics:
     print(item)
