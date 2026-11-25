@@ -84,7 +84,7 @@ for profile_id, expected_count in EXPECTED.items():
             continue
         if not document.get("nodes") or not document.get("scenes"):
             fail(f"GLB ohne nodes/scenes: {relative_path}")
-        if bone_id in {"skull", "mandible", "c1_atlas", "c2", "c7", "t1", "sacrum", "sternum", "left_humerus", "left_radius", "left_metacarpal_1", "left_femur", "left_tibia"}:
+        if bone_id in {"skull", "mandible", "c1_atlas", "c2", "c7", "t1", "sacrum", "sternum", "left_humerus", "left_radius", "left_metacarpal_1", "left_femur", "right_femur", "left_coxal", "right_coxal", "left_tibia"}:
             node_info = []
             for node in document.get("nodes", []):
                 if "mesh" not in node:
@@ -97,8 +97,12 @@ for profile_id, expected_count in EXPECTED.items():
                 node_info.append({
                     "node": node.get("name"),
                     "translation": node.get("translation"),
+                    "rotation": node.get("rotation"),
                     "scale": node.get("scale"),
                     "matrix": node.get("matrix"),
+                    "node_extras": node.get("extras"),
+                    "mesh_name": mesh.get("name"),
+                    "mesh_extras": mesh.get("extras"),
                     "min": accessor.get("min"),
                     "max": accessor.get("max"),
                 })
