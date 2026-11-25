@@ -517,22 +517,23 @@ transform_report_path.write_text(
 print("MALE-FEMALE-TRANSFORM-AUDIT-SUMMARY", json.dumps(male_female_transform_audit["summary"], ensure_ascii=False, separators=(",", ":")))
 print("MALE-FEMALE-TRANSFORM-AUDIT-FILE: artifacts/anatomy/transform-audit.json")
 recorded_transform_audit = sources.get("profiles", {}).get("adult_female", {}).get("transform_hierarchy_comparison", {})
-for key in [
-    "asset_pair_count",
-    "assets_with_matching_hierarchy_paths",
-    "assets_with_different_hierarchy_paths",
-    "assets_with_node_name_mismatches",
-    "shared_node_paths",
-    "assets_with_local_transform_differences",
-    "assets_with_parent_world_transform_differences",
-    "assets_with_world_transform_differences",
-    "nodes_with_local_transform_differences",
-    "nodes_with_parent_world_transform_differences",
-    "nodes_with_world_transform_differences",
-    "node_count_distribution",
-]:
-    if recorded_transform_audit.get(key) != male_female_transform_audit["summary"].get(key):
-        fail(f"sources.json: Transformaudit-Zusammenfassung stimmt bei {key} nicht mit den GLB-Dateien überein")
+summary_key_map = {
+    "asset_pair_count": "completed_asset_pairs",
+    "assets_with_matching_hierarchy_paths": "assets_with_matching_hierarchy_paths",
+    "assets_with_different_hierarchy_paths": "assets_with_different_hierarchy_paths",
+    "assets_with_node_name_mismatches": "assets_with_node_name_mismatches",
+    "shared_node_paths": "shared_node_paths",
+    "assets_with_local_transform_differences": "assets_with_local_transform_differences",
+    "assets_with_parent_world_transform_differences": "assets_with_parent_world_transform_differences",
+    "assets_with_world_transform_differences": "assets_with_world_transform_differences",
+    "nodes_with_local_transform_differences": "nodes_with_local_transform_differences",
+    "nodes_with_parent_world_transform_differences": "nodes_with_parent_world_transform_differences",
+    "nodes_with_world_transform_differences": "nodes_with_world_transform_differences",
+    "node_count_distribution": "node_count_distribution",
+}
+for recorded_key, computed_key in summary_key_map.items():
+    if recorded_transform_audit.get(recorded_key) != male_female_transform_audit["summary"].get(computed_key):
+        fail(f"sources.json: Transformaudit-Zusammenfassung stimmt bei {recorded_key} nicht mit den GLB-Dateien überein")
 if recorded_transform_audit.get("matrix_component_absolute_tolerance") != male_female_transform_audit["matrix_component_absolute_tolerance"]:
     fail("sources.json: numerische Transformaudit-Toleranz stimmt nicht")
 for key in ["max_abs_local_matrix_delta", "max_abs_parent_world_matrix_delta", "max_abs_world_matrix_delta"]:
