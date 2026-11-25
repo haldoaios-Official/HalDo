@@ -11,6 +11,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 EXPECTED = {"adult_male": 179, "adult_female": 179, "baby": 178}
 errors: list[str] = []
 draco_assets: dict[str, int] = {}
+geometry_diagnostics: list[str] = []
 
 def fail(message: str) -> None:
     errors.append(message)
@@ -83,6 +84,25 @@ for profile_id, expected_count in EXPECTED.items():
             continue
         if not document.get("nodes") or not document.get("scenes"):
             fail(f"GLB ohne nodes/scenes: {relative_path}")
+        if bone_id in {"skull", "mandible", "c2", "c7", "t1", "sacrum", "sternum", "left_humerus", "left_radius", "left_metacarpal_1", "left_femur", "left_tibia"}:
+            node_info = []
+            for node in document.get("nodes", []):
+                if "mesh" not in node:
+                    continue
+                mesh_index = node["mesh"]
+                mesh = document.get("meshes", [])[mesh_index]
+                primitive = mesh.get("primitives", [{}])[0]
+                position_index = primitive.get("attributes", {}).get("POSITION")
+                accessor = document.get("accessors", [])[position_index] if position_index is not None else {}
+                node_info.append({
+                    "node": node.get("name"),
+                    "translation": node.get("translation"),
+                    "scale": node.get("scale"),
+                    "matrix": node.get("matrix"),
+                    "min": accessor.get("min"),
+                    "max": accessor.get("max"),
+                })
+            geometry_diagnostics.append(f"{profile_id}/{bone_id}: {node_info}")
         if "KHR_draco_mesh_compression" in document.get("extensionsRequired", []):
             draco_assets[profile_id] += 1
 
@@ -152,6 +172,9 @@ for index, source in enumerate(module_scripts, start=1):
 
 print("Profilbestände:", EXPECTED)
 print("Draco-komprimierte GLBs:", draco_assets)
+print("Räumliche Stichprobe (GLB-Rohkoordinaten und Node-Transforms):")
+for item in geometry_diagnostics:
+    print(item)
 print("Manifestpfade, GLB-Header, JSON-Chunks, Katalog und JS-Syntax geprüft.")
 if errors:
     print("\n".join(f"FEHLER: {message}" for message in errors), file=sys.stderr)
