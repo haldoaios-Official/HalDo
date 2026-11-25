@@ -129,6 +129,14 @@ if "loader.setDRACOLoader(draco)" not in loader:
 if "loadProfileModels" not in loader:
     fail("loader.js exportiert keine Profil-Ladefunktion")
 
+launcher = (ROOT / "index.html").read_text(encoding="utf-8")
+if launcher.count("id:'anatomie-3d'") != 1:
+    fail("index.html muss Anatomie 3D Pro Max genau einmal im App-Registry anbieten")
+if launcher.count("if (app.id === 'anatomie-3d')") != 1:
+    fail("index.html benötigt genau eine dedizierte Launch-Route für Anatomie 3D Pro Max")
+if 'src="./anatomie.html"' not in launcher:
+    fail("Der HalDo-Launcher öffnet die lokale anatomie.html nicht im App-Fenster")
+
 anatomy = (ROOT / "anatomie.html").read_text(encoding="utf-8")
 if "loadModelManifest, loadProfileModels" not in anatomy:
     fail("anatomie.html ist nicht mit dem lokalen Modell-Loader verbunden")
