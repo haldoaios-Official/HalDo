@@ -114,6 +114,7 @@ export function formatPackageSize(sizeMb) {
 }
 
 export function modelPackageDownloadPlan(manifest, profileId, boneIds = []) {
+  const profile = manifest?.profiles?.[profileId];
   const summary = modelPackageSummary(manifest, profileId, boneIds);
   const normalizedBoneIds = normalizeBoneIds(boneIds);
   const requestedIds = new Set(normalizedBoneIds);
