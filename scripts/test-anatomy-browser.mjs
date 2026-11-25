@@ -296,6 +296,23 @@ try {
     throw new Error('Die Anatomie-App erhält nicht die passende Gesundheitsbegrüßung.');
   }
   await appWelcome.locator('.h161-button').click();
+  await appWelcome.waitFor({ state: 'detached', timeout: 10000 });
+  await launcherPage.waitForTimeout(550);
+
+  const launcherDiagnostics = await launcherPage.evaluate(() => ({
+    anatomyModule: typeof window.HalDo?.Anatomy3D?.open,
+    finalLaunch: String(window.HalDo?.Launch || '').slice(0, 500),
+    windows: Array.from(document.querySelectorAll('#winLayer .window')).map(el => ({
+      title: el.querySelector('.win-title')?.textContent || '',
+      bodyText: (el.querySelector('.win-body')?.textContent || '').slice(0, 250),
+      frames: el.querySelectorAll('iframe').length
+    })),
+    remainingWelcome: !!document.querySelector('#haldo-v161-welcome')
+  }));
+  console.log('HALDO-LAUNCH-DIAGNOSTIC', JSON.stringify(launcherDiagnostics));
+  if (launcherDiagnostics.anatomyModule !== 'function') {
+    throw new Error('Der zentrale HalDo Anatomy3D-Launcher wurde nicht registriert.');
+  }
 
   const anatomyFrameElement = launcherPage.locator('iframe[title="HalDo Anatomie 3D Pro Max"]');
   await anatomyFrameElement.waitFor({ state: 'attached', timeout: 15000 });
