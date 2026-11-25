@@ -100,11 +100,15 @@ try {
       throw new Error('adult_female: vollständiger Geometrie- und Transformaudit samt Grenzen wird nicht angezeigt.');
     }
     if (profile.id === 'baby' && (
-      !infoText.includes('178 Geometrie-Payloads byteidentisch') ||
-      !infoText.includes('176 von 178') ||
-      !infoText.includes('gesonderte Sondertransforms')
+      !infoText.includes('178 Baby-GLB-Geometrie-Payloads byteidentisch') ||
+      !infoText.includes('176 von 178 Root-Skalierungsverhältnissen') ||
+      !infoText.includes('gesonderte Sondertransforms') ||
+      !infoText.includes('178/178 übereinstimmende Hierarchiepfade') ||
+      !infoText.includes('alle 178 Assets unterscheiden sich die lokalen Transform-Matrizen ausschließlich am Root-Node') ||
+      !infoText.includes('alle 75 geprüften Links-/Rechts-Paare') ||
+      !infoText.includes('Laufzeitkorrektur des Unterkiefers')
     )) {
-      throw new Error('Baby-Profil: vollständiger Hinweis auf Skalierungsbefund und Sondertransforms wird nicht angezeigt.');
+      throw new Error('Baby-Profil: vollständiger Geometrie- und Transformaudit samt Laufzeit-Abgrenzung wird nicht angezeigt.');
     }
     if (profile.id === 'baby' && !infoText.includes('Unterkiefer-Skalierung des Baby-Profils korrigiert')) {
       throw new Error('Baby-Profil: Unterkiefer-Skalierung wurde nicht korrigiert.');
