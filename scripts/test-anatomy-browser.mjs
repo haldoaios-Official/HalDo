@@ -171,18 +171,21 @@ try {
     const profiles = ['adult_male', 'adult_female', 'baby'];
     const report = [];
     for (const profileId of profiles) {
-      const [coxal, femur] = await Promise.all([
-        loadBoneModel(THREE, profileId, 'left_coxal'),
-        loadBoneModel(THREE, profileId, 'left_femur')
-      ]);
-      const pelvisPoints = collectWorldVertices(coxal.scene);
-      const femurPoints = collectWorldVertices(femur.scene);
-      report.push({
-        profile: profileId,
-        pelvis_vertices: pelvisPoints.length,
-        femur_vertices: femurPoints.length,
-        closest_surface_vertices: closestSurfaceVertices(pelvisPoints, femurPoints)
-      });
+      for (const side of ['left', 'right']) {
+        const [coxal, femur] = await Promise.all([
+          loadBoneModel(THREE, profileId, side + '_coxal'),
+          loadBoneModel(THREE, profileId, side + '_femur')
+        ]);
+        const pelvisPoints = collectWorldVertices(coxal.scene);
+        const femurPoints = collectWorldVertices(femur.scene);
+        report.push({
+          profile: profileId,
+          side,
+          pelvis_vertices: pelvisPoints.length,
+          femur_vertices: femurPoints.length,
+          closest_surface_vertices: closestSurfaceVertices(pelvisPoints, femurPoints)
+        });
+      }
     }
     return report;
   });
