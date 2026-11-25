@@ -314,6 +314,11 @@ if "hpfrei/body-anatomy-3d-viewer" in anatomy:
     fail("anatomie.html verwendet noch das externe Ganzkörpermodell")
 if "visuelle Adaption" not in anatomy or "Gelenkpassungen" not in anatomy or "nicht fachlich oder klinisch validiert" not in anatomy:
     fail("anatomie.html kennzeichnet die weibliche Adaption samt offener Gelenkvalidierung nicht ausreichend")
+if "sieben geprüften Schlüssel-Meshes" not in anatomy or "maximale Koordinatenabweichung 0,0 m" not in anatomy or "nicht durch neu modellierte lokale Knochenformen" not in anatomy:
+    fail("anatomie.html kennzeichnet den weiblich/männlichen Mesh-Vergleich nicht ausreichend")
+female_geometry_sample = sources.get("profiles", {}).get("adult_female", {}).get("geometry_comparison_sample", {})
+if female_geometry_sample.get("same_local_vertex_set_within_0_01_mm") is not True or female_geometry_sample.get("max_abs_coordinate_delta_m") != 0.0 or len(female_geometry_sample.get("checked_assets", [])) != 7:
+    fail("sources.json dokumentiert den weiblich/männlichen 7-Mesh-Vergleich nicht korrekt")
 if "0,62-fach skalierte visuelle Ableitung" not in anatomy or "178 Geometrie-Payloads byteidentisch" not in anatomy or "keine eigenständig modellierte oder altersgerechte Neugeborenen-Anatomie" not in anatomy or "176 von 178" not in anatomy:
     fail("anatomie.html kennzeichnet den vollständigen Baby-/Neugeborenen-Geometrie- und Skalierungsbefund nicht ausreichend")
 baby_geometry = sources.get("profiles", {}).get("baby", {}).get("geometry_comparison", {})
