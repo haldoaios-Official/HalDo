@@ -507,8 +507,8 @@ try {
     sides: ['left', 'right'],
     joint_regions_per_side: 6,
     measurement_count: regionalJointDiagnostics.length,
-    local_roi_radius_mm_for_hip_and_patella_mm: LOCAL_ROI_RADIUS_MM,
-    minimum_candidate_vertex_count_for_sampling_flag: MIN_CANDIDATE_VERTEX_COUNT,
+    local_roi_radius_mm_for_hip_and_patella_mm: 70,
+    minimum_candidate_vertex_count_for_sampling_flag: 20,
     method: 'Reproduzierbare 18%-Endbänder entlang der globalen Modell-Y-Achse sowie lokal begrenzte 70-mm-Umgebungsradien ausschließlich für Becken- und Patella-ROI; nächstes Paar aus dekodierten Welt-Vertices.',
     sampling_note: 'Weniger als 20 Kandidaten-Vertices auf einer Seite werden als sparse_candidate_set markiert. Das ist eine technische Stichprobenwarnung, keine anatomische Bewertung.',
     limitations: [
