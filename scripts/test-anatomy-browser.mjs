@@ -273,62 +273,105 @@ try {
     }
   }
 
-  // Vergleicht ausgewählte weibliche Meshes mit dem männlichen Ausgangsbestand
-  // nach echtem Draco-Decoding. Root-Transforms bleiben bewusst außen vor.
+  // Vergleicht ALLE weiblichen GLB-Mesh-Vertex-Punktwolken mit dem männlichen
+  // Ausgangsbestand nach echtem Draco-Decoding. Root-/Node-Transforms und
+  // Dreiecks-Konnektivität werden bewusst nicht in diesen lokalen Geometrievergleich eingerechnet.
   const maleFemaleGeometryAudit = await page.evaluate(async () => {
     const THREE = await import('three');
     const { loadBoneModel } = await import('./models/loader.js');
-    const sampleIds = ['left_coxal', 'right_coxal', 'left_femur', 'right_femur', 'left_tibia', 'skull', 'mandible'];
-    function sortedLocalVertices(root) {
-      const vertices = [];
+    const response = await fetch('./models/manifest.json', { cache: 'no-cache' });
+    if (!response.ok) throw new Error('Manifest für vollständigen Mesh-Audit konnte nicht geladen werden.');
+    const manifest = await response.json();
+    const maleIds = manifest?.profiles?.adult_male?.asset_ids || [];
+    const femaleIds = manifest?.profiles?.adult_female?.asset_ids || [];
+    if (maleIds.length !== 179 || femaleIds.length !== 179 ||
+        maleIds.some(id => !femaleIds.includes(id)) ||
+        femaleIds.some(id => !maleIds.includes(id))) {
+      throw new Error('Männlicher und weiblicher Manifestbestand müssen dieselben 179 Bone-IDs enthalten.');
+    }
+
+    function sortedLocalVertexKeys(root) {
+      const keys = [];
       root.traverse(node => {
         const position = node.isMesh ? node.geometry?.getAttribute('position') : null;
         if (!position) return;
         for (let i = 0; i < position.count; i++) {
-          vertices.push([
-            Math.round(position.getX(i) * 1e6) / 1e6,
-            Math.round(position.getY(i) * 1e6) / 1e6,
-            Math.round(position.getZ(i) * 1e6) / 1e6
+          const x = Math.round(position.getX(i) * 1e6);
+          const y = Math.round(position.getY(i) * 1e6);
+          const z = Math.round(position.getZ(i) * 1e6);
+          keys.push(x + ',' + y + ',' + z);
+        }
+      });
+      keys.sort();
+      return keys;
+    }
+
+    function disposeModel(gltf) {
+      if (!gltf?.scene) return;
+      gltf.scene.traverse(node => {
+        node.geometry?.dispose?.();
+        if (Array.isArray(node.material)) node.material.forEach(material => material?.dispose?.());
+        else node.material?.dispose?.();
+      });
+    }
+
+    const results = new Array(femaleIds.length);
+    const failures = [];
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < femaleIds.length) {
+        const index = cursor++;
+        const boneId = femaleIds[index];
+        let male = null;
+        let female = null;
+        try {
+          [male, female] = await Promise.all([
+            loadBoneModel(THREE, 'adult_male', boneId),
+            loadBoneModel(THREE, 'adult_female', boneId)
           ]);
-        }
-      });
-      vertices.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
-      return vertices;
-    }
-    const results = [];
-    for (const boneId of sampleIds) {
-      const [male, female] = await Promise.all([
-        loadBoneModel(THREE, 'adult_male', boneId),
-        loadBoneModel(THREE, 'adult_female', boneId)
-      ]);
-      const maleVertices = sortedLocalVertices(male.scene);
-      const femaleVertices = sortedLocalVertices(female.scene);
-      let maxAbsCoordinateDelta = null;
-      let withinTolerance = maleVertices.length === femaleVertices.length;
-      if (withinTolerance) {
-        maxAbsCoordinateDelta = 0;
-        for (let i = 0; i < maleVertices.length; i++) {
-          for (let axis = 0; axis < 3; axis++) {
-            maxAbsCoordinateDelta = Math.max(
-              maxAbsCoordinateDelta,
-              Math.abs(maleVertices[i][axis] - femaleVertices[i][axis])
-            );
+          const maleKeys = sortedLocalVertexKeys(male.scene);
+          const femaleKeys = sortedLocalVertexKeys(female.scene);
+          let same = maleKeys.length > 0 && maleKeys.length === femaleKeys.length;
+          if (same) {
+            for (let i = 0; i < maleKeys.length; i++) {
+              if (maleKeys[i] !== femaleKeys[i]) {
+                same = false;
+                break;
+              }
+            }
           }
+          results[index] = {
+            bone_id: boneId,
+            male_vertices: maleKeys.length,
+            female_vertices: femaleKeys.length,
+            same_local_vertex_set_within_0_001_mm: same
+          };
+        } catch (error) {
+          failures.push({ bone_id: boneId, message: error?.message || String(error) });
+        } finally {
+          disposeModel(male);
+          disposeModel(female);
         }
-        withinTolerance = maxAbsCoordinateDelta <= 0.00001;
       }
-      results.push({
-        bone_id: boneId,
-        male_vertices: maleVertices.length,
-        female_vertices: femaleVertices.length,
-        same_local_vertex_set_within_0_01_mm: withinTolerance,
-        max_abs_coordinate_delta_m: maxAbsCoordinateDelta
-      });
+    };
+    await Promise.all(Array.from({ length: Math.min(3, femaleIds.length) }, worker));
+    if (failures.length) {
+      throw new Error('Vollständiger Männer/Frauen-Mesh-Audit unvollständig: ' + JSON.stringify(failures));
     }
-    return results;
+    const mismatches = results.filter(result => !result.same_local_vertex_set_within_0_001_mm);
+    return {
+      total_pairs: results.length,
+      completed_pairs: results.filter(Boolean).length,
+      identical_vertex_point_clouds: results.length - mismatches.length,
+      different_vertex_point_clouds: mismatches.length,
+      mismatch_details: mismatches,
+      tolerance_m: 0.000001,
+      note: 'Vergleicht sortierte lokale Vertex-Punktwolken nach Decoder; Node-Transforms, Normalen, Materialien und Dreiecks-Konnektivität werden nicht verglichen.'
+    };
   });
-  for (const result of maleFemaleGeometryAudit) {
-    console.log('MALE-FEMALE-GEOMETRY-DIAGNOSTIC', JSON.stringify(result));
+  console.log('MALE-FEMALE-FULL-GEOMETRY-AUDIT', JSON.stringify(maleFemaleGeometryAudit));
+  if (maleFemaleGeometryAudit.completed_pairs !== 179) {
+    throw new Error('Nicht alle 179 weiblichen Assets wurden gegen den männlichen Bestand geprüft.');
   }
 
   // Prüft, ob Anatomie 3D aus dem echten HalDo-App-Launcher als Fenster startet.
