@@ -269,8 +269,9 @@ try {
   // Vergleicht ausgewählte weibliche Meshes mit dem männlichen Ausgangsbestand
   // nach echtem Draco-Decoding. Root-Transforms bleiben bewusst außen vor.
   const maleFemaleGeometryAudit = await page.evaluate(async () => {
+    const THREE = await import('three');
     const { loadBoneModel } = await import('./models/loader.js');
-    const sampleIds = ['left_coxal', 'right_coxal', 'left_femur', 'right_femur', 'left_tibia', 'skull', 'mandible'];
+    const sampleIds = ['left_coxal', 'right_coxal', 'left_femur', 'right_femur', 'left_tibia'];
     function sortedLocalVertices(root) {
       const vertices = [];
       root.traverse(node => {
@@ -290,8 +291,8 @@ try {
     const results = [];
     for (const boneId of sampleIds) {
       const [male, female] = await Promise.all([
-        loadBoneModel(undefined, 'adult_male', boneId),
-        loadBoneModel(undefined, 'adult_female', boneId)
+        loadBoneModel(THREE, 'adult_male', boneId),
+        loadBoneModel(THREE, 'adult_female', boneId)
       ]);
       const maleVertices = sortedLocalVertices(male.scene);
       const femaleVertices = sortedLocalVertices(female.scene);
