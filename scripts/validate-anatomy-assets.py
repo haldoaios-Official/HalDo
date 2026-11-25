@@ -179,7 +179,7 @@ for profile_id, expected_count in EXPECTED.items():
                     "rotation": node.get("rotation"),
                     "scale": node.get("scale"),
                     "matrix": node.get("matrix"),
-                    "world_translation": world_record[0][:3][3] if world_record else None,
+                    "world_translation": [world_record[0][0][3], world_record[0][1][3], world_record[0][2][3]] if world_record else None,
                     "node_extras": node.get("extras"),
                     "mesh_name": mesh.get("name"),
                     "mesh_extras": mesh.get("extras"),
