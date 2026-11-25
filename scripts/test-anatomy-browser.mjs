@@ -294,6 +294,7 @@ try {
     const MIN_CANDIDATE_VERTEX_COUNT = 20;
     const report = [];
     const hipScaleSensitivityReport = [];
+    const otherJointScaleSensitivityReport = [];
 
     function collectWorldVertices(root) {
       root.updateMatrixWorld(true);
@@ -411,6 +412,52 @@ try {
       };
     }
 
+    function simulateOtherJointScaleScenario(modelScenes, side, joint, scenario) {
+      const sceneA = modelScenes[joint.bone_a].clone(true);
+      const sceneB = modelScenes[joint.bone_b].clone(true);
+      const rootA = findAssetRootNode(sceneA, side + '_' + joint.bone_a);
+      const rootB = findAssetRootNode(sceneB, side + '_' + joint.bone_b);
+      const sourceScaleA = rootA.scale.toArray().slice(0, 3);
+      const sourceScaleB = rootB.scale.toArray().slice(0, 3);
+
+      if (scenario.scaleA) rootA.scale.set(...scenario.scaleA);
+      if (scenario.scaleB) rootB.scale.set(...scenario.scaleB);
+
+      const pointsA = collectWorldVertices(sceneA);
+      const pointsB = collectWorldVertices(sceneB);
+      const regionA = endBand(pointsA, joint.end_a, END_BAND_FRACTION);
+      let regionB;
+      if (joint.radius_mm) {
+        regionB = withinRadius(pointsB, centroid(regionA), joint.radius_mm);
+      } else {
+        regionB = endBand(pointsB, joint.end_b, END_BAND_FRACTION);
+      }
+      const nearest = regionB.length ? nearestVertexPair(regionA, regionB) : null;
+
+      return {
+        profile: joint.profile,
+        side,
+        joint_id: joint.joint_id,
+        bone_a: joint.bone_a,
+        bone_b: joint.bone_b,
+        scenario_id: scenario.id,
+        description: scenario.description,
+        source_root_scale_a_xyz: sourceScaleA,
+        source_root_scale_b_xyz: sourceScaleB,
+        applied_root_scale_a_xyz: rootA.scale.toArray().slice(0, 3),
+        applied_root_scale_b_xyz: rootB.scale.toArray().slice(0, 3),
+        region_a_end_band_vertex_count: regionA.length,
+        region_b_candidate_vertex_count: regionB.length,
+        region_b_roi_radius_mm: joint.radius_mm ?? null,
+        nearest_vertex_distance_mm: nearest
+          ? Number(nearest.nearest_vertex_distance_mm.toFixed(3)) : null,
+        point_a_world_m: nearest?.point_a_world_m ?? null,
+        point_b_world_m: nearest?.point_b_world_m ?? null,
+        diagnostic_only: true,
+        no_source_assets_modified: true
+      };
+    }
+
     function nearestVertexPair(pointsA, pointsB) {
       if (!pointsA.length || !pointsB.length) {
         throw new Error('Leere Gelenk-Kandidatenregion: A=' + pointsA.length + ', B=' + pointsB.length);
@@ -496,6 +543,38 @@ try {
               source_coxal_root_scale_xyz: sourceCoxalScale,
               ...simulateHipScaleScenario(modelScenes.femur, modelScenes.coxal, side, scenario)
             });
+          }
+          const otherJointSpecs = [
+            { joint_id: 'knee_femur_tibia', bone_a: 'femur', bone_b: 'tibia', end_a: 'caudal', end_b: 'cranial' },
+            { joint_id: 'knee_femur_patella', bone_a: 'femur', bone_b: 'patella', end_a: 'caudal', radius_mm: LOCAL_ROI_RADIUS_MM },
+            { joint_id: 'ankle_tibia_talus', bone_a: 'tibia', bone_b: 'talus', end_a: 'caudal', end_b: 'cranial' },
+            { joint_id: 'ankle_fibula_talus', bone_a: 'fibula', bone_b: 'talus', end_a: 'caudal', end_b: 'cranial' },
+            { joint_id: 'hindfoot_talus_calcaneus', bone_a: 'talus', bone_b: 'calcaneus', end_a: 'caudal', end_b: 'cranial' }
+          ];
+          for (const spec of otherJointSpecs) {
+            const rootA = findAssetRootNode(modelScenes[spec.bone_a], side + '_' + spec.bone_a);
+            const rootB = findAssetRootNode(modelScenes[spec.bone_b], side + '_' + spec.bone_b);
+            const sourceScaleA = rootA.scale.toArray().slice(0, 3);
+            const sourceScaleB = rootB.scale.toArray().slice(0, 3);
+            const variants = [
+              { id: 'source_profile_transforms', description: 'Originale GLB-Root-Transforms unverändert' },
+              { id: 'both_roots_identity', description: 'Beide Root-Skalierungen hypothetisch auf [1,1,1]' },
+              { id: 'both_roots_match_bone_a_scale', description: 'Beide Root-Skalierungen hypothetisch wie Knochen A' },
+              { id: 'both_roots_match_bone_b_scale', description: 'Beide Root-Skalierungen hypothetisch wie Knochen B' }
+            ].map(variant => ({
+              ...variant,
+              scaleA: variant.id === 'both_roots_identity' ? [1, 1, 1]
+                : variant.id === 'both_roots_match_bone_b_scale' ? sourceScaleB : null,
+              scaleB: variant.id === 'both_roots_identity' ? [1, 1, 1]
+                : variant.id === 'both_roots_match_bone_a_scale' ? sourceScaleA : null
+            }));
+            for (const variant of variants) {
+              otherJointScaleSensitivityReport.push(
+                simulateOtherJointScaleScenario(
+                  modelScenes, side, { ...spec, profile: profileId }, variant
+                )
+              );
+            }
           }
 
           // Rein technische Radius-Sensitivitätsanalyse für die Hüft-ROI.
@@ -624,13 +703,17 @@ try {
     }
     return {
       regionalJointDiagnostics: report,
-      hipScaleSensitivityReport
+      hipScaleSensitivityReport,
+      otherJointScaleSensitivityReport
     };
   });
 
   const regionalJointDiagnostics = regionalAuditData.regionalJointDiagnostics;
   const hipScaleSensitivityReport = regionalAuditData.hipScaleSensitivityReport;
-  if (!Array.isArray(regionalJointDiagnostics) || !Array.isArray(hipScaleSensitivityReport)) {
+  const otherJointScaleSensitivityReport = regionalAuditData.otherJointScaleSensitivityReport;
+  if (!Array.isArray(regionalJointDiagnostics) ||
+      !Array.isArray(hipScaleSensitivityReport) ||
+      !Array.isArray(otherJointScaleSensitivityReport)) {
     throw new Error('Der Browser-Audit hat keine gültigen regionalen bzw. Hip-Scale-Ergebnisse zurückgegeben.');
   }
 
@@ -740,6 +823,64 @@ try {
     profiles: hipScaleSensitivityAudit.profiles.length,
     sides: hipScaleSensitivityAudit.sides.length,
     scenario_ids: ['source_profile_transforms', 'both_roots_identity', 'both_roots_match_femur_scale', 'both_roots_match_coxal_scale']
+  }));
+
+  if (otherJointScaleSensitivityReport.length !== 120) {
+    throw new Error('Gelenk-Root-Scale-Sensitivity unvollständig: erwartet 120 Szenarien, gefunden ' + otherJointScaleSensitivityReport.length);
+  }
+  const otherJointScaleSensitivityAudit = {
+    schema_version: 1,
+    generated_by: 'scripts/test-anatomy-browser.mjs',
+    profiles: ['adult_male', 'adult_female', 'baby'],
+    sides: ['left', 'right'],
+    joints: [
+      'knee_femur_tibia', 'knee_femur_patella', 'ankle_tibia_talus',
+      'ankle_fibula_talus', 'hindfoot_talus_calcaneus'
+    ],
+    scenarios_per_joint_side: 4,
+    measurement_count: otherJointScaleSensitivityReport.length,
+    scenario_note: 'Was-wäre-wenn-Analyse auf temporären Three.js-Kopien. Root-Skalierungen werden ausschließlich im Arbeitsspeicher verändert; keine gespeicherte GLB-Datei oder produktive Szene wird verändert.',
+    interpretation_limits: [
+      'Die Szenarien sind keine anatomisch validierten Ziel-Transforms und keine Korrekturempfehlung.',
+      'Es werden heuristische 18%-Y-Endbänder und für Femur-Patella eine 70-mm-Umgebungsregion verwendet.',
+      'Es werden Mesh-Vertices statt segmentierter Gelenkflächen verglichen.',
+      'Eine Verringerung des Vertex-Abstands beweist keine korrekte Gelenkposition oder klinische Eignung.',
+      'Root-Skalierung um den glTF-Node-Ursprung kann andere Körperbereiche verschieben und Proportionen verändern.'
+    ],
+    measurements: otherJointScaleSensitivityReport
+  };
+  const sourceRegionDiagnostics = regionalJointDiagnostics;
+  for (const item of otherJointScaleSensitivityAudit.measurements) {
+    if (!Number.isFinite(item.applied_root_scale_a_xyz[0]) ||
+        !Number.isFinite(item.applied_root_scale_b_xyz[0]) ||
+        item.region_a_end_band_vertex_count < 1 ||
+        item.region_b_candidate_vertex_count < 0 ||
+        (item.region_b_candidate_vertex_count > 0) !== Number.isFinite(item.nearest_vertex_distance_mm)) {
+      throw new Error('Ungültiges Gelenk-Root-Scale-Szenario: ' + JSON.stringify(item));
+    }
+    if (item.scenario_id === 'source_profile_transforms') {
+      const source = sourceRegionDiagnostics.find(d =>
+        d.profile === item.profile && d.side === item.side && d.joint_id === item.joint_id
+      );
+      if (!source ||
+          source.candidate_vertex_count_a !== item.region_a_end_band_vertex_count ||
+          source.candidate_vertex_count_b !== item.region_b_candidate_vertex_count ||
+          Math.abs(source.nearest_vertex_distance_mm - item.nearest_vertex_distance_mm) > 0.02) {
+        throw new Error('Original-Transform-Szenario stimmt nicht mit regionaler Gelenkdiagnostik überein: ' + JSON.stringify({ source, item }));
+      }
+    }
+  }
+  await writeFile(
+    'artifacts/anatomy/other-joint-root-scale-sensitivity-audit.json',
+    JSON.stringify(otherJointScaleSensitivityAudit, null, 2) + '\n',
+    'utf8'
+  );
+  console.log('OTHER-JOINT-ROOT-SCALE-SENSITIVITY-SUMMARY', JSON.stringify({
+    measurement_count: otherJointScaleSensitivityAudit.measurement_count,
+    profiles: otherJointScaleSensitivityAudit.profiles.length,
+    sides: otherJointScaleSensitivityAudit.sides.length,
+    joints: otherJointScaleSensitivityAudit.joints.length,
+    sparse_scenarios: otherJointScaleSensitivityAudit.measurements.filter(item => item.region_b_candidate_vertex_count < 20).length
   }));
 
   // Vergleicht ALLE weiblichen GLB-Mesh-Vertex-Punktwolken mit dem männlichen
