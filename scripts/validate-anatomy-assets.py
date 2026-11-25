@@ -121,7 +121,12 @@ sources = json.loads(sources_path.read_text(encoding="utf-8"))
 ADAPTATION_SAMPLE_BONES = tuple(manifest.get("profiles", {}).get("baby", {}).get("asset_ids", []))
 if len(ADAPTATION_SAMPLE_BONES) != EXPECTED["baby"]:
     fail(f"Baby-Adaptionsaudit: erwartet {EXPECTED['baby']} Knochen-IDs, gefunden {len(ADAPTATION_SAMPLE_BONES)}")
+male_asset_ids = set(manifest.get("profiles", {}).get("adult_male", {}).get("asset_ids", []))
 female_asset_ids = set(manifest.get("profiles", {}).get("adult_female", {}).get("asset_ids", []))
+if len(male_asset_ids) != EXPECTED["adult_male"] or len(female_asset_ids) != EXPECTED["adult_female"]:
+    fail("Männer/Frauen-Geometrieaudit: Ausgangsprofile müssen jeweils 179 eindeutige IDs enthalten")
+if male_asset_ids != female_asset_ids:
+    fail("Männer/Frauen-Geometrieaudit: die Asset-ID-Mengen der Profile stimmen nicht überein")
 if not set(ADAPTATION_SAMPLE_BONES).issubset(female_asset_ids):
     fail("Baby-Adaptionsaudit: mindestens eine Baby-Knochen-ID fehlt im weiblichen Vergleichsprofil")
 
