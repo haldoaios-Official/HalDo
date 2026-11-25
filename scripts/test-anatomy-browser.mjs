@@ -285,6 +285,9 @@ try {
   if (!welcomeText?.includes('HalDo Anatomie 3D Pro Max')) {
     throw new Error('Die spezielle Begrüßung für Anatomie 3D Pro Max wird nicht angezeigt.');
   }
+  if (!welcomeText.includes('Gesundheits- und Organisationsbereich')) {
+    throw new Error('Die Anatomie-App erhält nicht die passende Gesundheitsbegrüßung.');
+  }
   await appWelcome.locator('.h161-button').click();
 
   const anatomyFrameElement = launcherPage.locator('#haldo-anatomy-frame');
