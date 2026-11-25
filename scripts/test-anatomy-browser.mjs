@@ -192,6 +192,17 @@ try {
   for (const diagnostic of hipDiagnostics) {
     console.log('HIP-JOINT-DIAGNOSTIC', JSON.stringify(diagnostic));
   }
+  for (const profileId of ['adult_male', 'adult_female', 'baby']) {
+    const left = hipDiagnostics.find(item => item.profile === profileId && item.side === 'left');
+    const right = hipDiagnostics.find(item => item.profile === profileId && item.side === 'right');
+    if (!left || !right) throw new Error(profileId + ': Hüftgelenk-Messung für eine Seite fehlt.');
+    const sideDifference = Math.abs(
+      left.closest_surface_vertices.distance_mm - right.closest_surface_vertices.distance_mm
+    );
+    if (sideDifference > 0.05) {
+      throw new Error(profileId + ': links/rechts abweichende Hüftgelenk-Messung (' + sideDifference.toFixed(3) + ' mm).');
+    }
+  }
 
   if (pageErrors.length) throw new Error('Browser-JavaScriptfehler: ' + pageErrors.join(' | '));
   if (failedAssetRequests.length) throw new Error('Fehlgeschlagene Modell-/Decoder-Anfragen: ' + JSON.stringify(failedAssetRequests));
