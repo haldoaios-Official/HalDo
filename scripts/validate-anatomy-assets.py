@@ -244,7 +244,12 @@ if "loadModelManifest, loadProfileModels" not in anatomy:
 if "hpfrei/body-anatomy-3d-viewer" in anatomy:
     fail("anatomie.html verwendet noch das externe Ganzkörpermodell")
 if "visuelle Adaption" not in anatomy or "Gelenkpassungen" not in anatomy or "nicht fachlich oder klinisch validiert" not in anatomy:
-    fail("anatomie.html kennzeichnet die weibliche und Baby-Adaption samt offener Gelenkvalidierung nicht ausreichend")
+    fail("anatomie.html kennzeichnet die weibliche Adaption samt offener Gelenkvalidierung nicht ausreichend")
+if "0,62-fach skalierte visuelle Ableitung" not in anatomy or "byteidentisch" not in anatomy or "keine eigenständig modellierte oder altersgerechte Neugeborenen-Anatomie" not in anatomy:
+    fail("anatomie.html kennzeichnet die Baby-/Neugeborenen-Skalierung nicht eindeutig als nicht altersanatomische Vorschau")
+baby_geometry_sample = sources.get("profiles", {}).get("baby", {}).get("geometry_comparison_sample", {})
+if baby_geometry_sample.get("female_baby_bin_payloads_byte_identical") is not True or baby_geometry_sample.get("baby_parent_scale_factor_vs_adult_female") != 0.62:
+    fail("sources.json dokumentiert den geprüften Geometrie-/Skalierungsbefund des Baby-Profils nicht korrekt")
 from html.parser import HTMLParser
 
 class ModuleScriptParser(HTMLParser):
