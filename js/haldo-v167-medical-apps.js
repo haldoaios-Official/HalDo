@@ -70,9 +70,45 @@
     return btoa(binary);
   }
   function base64ToBytes(value) {
+    if (typeof value !== 'string' || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)) {
+      throw new Error('Das Backup enthält ungültige Base64-Daten.');
+    }
     var binary = atob(value), bytes = new Uint8Array(binary.length);
     for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     return bytes;
+  }
+  function validateEnvelope(envelope) {
+    if (!envelope || typeof envelope !== 'object' || envelope.format !== 'haldo-aes-gcm-v1' ||
+        envelope.kdf !== 'PBKDF2-SHA-256' || envelope.iterations !== 310000) {
+      throw new Error('Unbekanntes oder nicht unterstütztes Backup-Format.');
+    }
+    var salt = base64ToBytes(envelope.salt);
+    var iv = base64ToBytes(envelope.iv);
+    var data = base64ToBytes(envelope.data);
+    if (salt.length !== 16 || iv.length !== 12 || data.length < 16 || data.length > 5 * 1024 * 1024) {
+      throw new Error('Die Backup-Größe oder die Verschlüsselungsdaten sind ungültig.');
+    }
+    return {salt:salt, iv:iv, data:data};
+  }
+  function decryptEnvelope(envelope, passphrase) {
+    var parts = validateEnvelope(envelope);
+    return deriveKey(passphrase, parts.salt).then(function (key) {
+      return window.crypto.subtle.decrypt({name:'AES-GCM', iv:parts.iv}, key, parts.data)
+        .then(function (plain) {
+          var records = JSON.parse(decoder.decode(plain));
+          if (!Array.isArray(records) || records.length > 50000 ||
+              records.some(function (record) {
+                return !record || typeof record !== 'object' || Array.isArray(record) ||
+                  typeof record.id !== 'string' || record.id.length > 160;
+              })) {
+            throw new Error('Die entschlüsselten Einträge haben eine ungültige Struktur.');
+          }
+          return {key:key, salt:parts.salt, records:records, dirty:false};
+        });
+    }).catch(function (error) {
+      if (error && error.name === 'OperationError') throw new Error('Passphrase falsch oder Backup beschädigt.');
+      throw error;
+    });
   }
   function cryptoReady() {
     return !!(window.crypto && window.crypto.subtle && window.isSecureContext);
@@ -114,25 +150,40 @@
   }
   function unlock(config, passphrase) {
     var envelope = readEnvelope(config);
-    var salt = envelope && envelope.salt ? base64ToBytes(envelope.salt) : window.crypto.getRandomValues(new Uint8Array(16));
-    return deriveKey(passphrase, salt).then(function (key) {
-      if (!envelope) {
+    if (!envelope) {
+      var salt = window.crypto.getRandomValues(new Uint8Array(16));
+      return deriveKey(passphrase, salt).then(function (key) {
         vaults[config.id] = {key:key, salt:salt, records:[], dirty:false};
         return vaults[config.id];
-      }
-      if (envelope.format !== 'haldo-aes-gcm-v1' || !envelope.iv || !envelope.data) throw new Error('Der Tresor hat ein unbekanntes Format.');
-      return window.crypto.subtle.decrypt(
-        {name:'AES-GCM', iv:base64ToBytes(envelope.iv)},
-        key, base64ToBytes(envelope.data)
-      ).then(function (plain) {
-        var records = JSON.parse(decoder.decode(plain));
-        if (!Array.isArray(records)) throw new Error('Die Tresordaten sind ungültig.');
-        vaults[config.id] = {key:key, salt:salt, records:records, dirty:false};
-        return vaults[config.id];
       });
-    }).catch(function (error) {
-      if (error && error.name === 'OperationError') throw new Error('Passphrase falsch oder Tresordaten beschädigt.');
-      throw error;
+    }
+    return decryptEnvelope(envelope, passphrase).then(function (vault) {
+      vaults[config.id] = vault;
+      return vault;
+    });
+  }
+  function importEncryptedBackup(config, file, passphrase) {
+    if (!file || file.size > 5 * 1024 * 1024) return Promise.reject(new Error('Backup-Datei fehlt oder ist größer als 5 MB.'));
+    return file.text().then(function (raw) {
+      var envelope;
+      try { envelope = JSON.parse(raw); }
+      catch (_) { throw new Error('Die Backup-Datei ist kein gültiges JSON.'); }
+      return decryptEnvelope(envelope, passphrase).then(function (vault) {
+        if (!window.confirm('Das vorhandene lokale ' + config.title + '-Tresor-Backup durch dieses geprüfte Backup ersetzen?')) {
+          vault.records = [];
+          vault.key = null;
+          throw new Error('Import abgebrochen. Vorhandene Daten wurden nicht verändert.');
+        }
+        try {
+          writeEnvelope(config, envelope);
+        } catch (error) {
+          vault.records = [];
+          vault.key = null;
+          throw new Error('Backup konnte lokal nicht gespeichert werden: ' + error.message);
+        }
+        vaults[config.id] = vault;
+        return vault;
+      });
     });
   }
   function save(config) {
@@ -191,7 +242,8 @@
       '<div class="card"><h3>' + (existing ? 'Tresor entsperren' : 'Verschlüsselten Tresor anlegen') + '</h3>' +
       '<p class="muted">' + (existing ? 'Gib deine bisherige Passphrase ein.' : 'Lege eine Passphrase mit mindestens 12 Zeichen fest.') + '</p>' +
       '<form id="h167-unlock-form"><label>Passphrase</label><input id="h167-pass" type="password" minlength="12" autocomplete="current-password" required placeholder="Mindestens 12 Zeichen" />' +
-      '<button class="primary" type="submit">' + (existing ? 'Tresor entsperren' : 'Tresor erstellen') + '</button></form><div id="h167-gate-status" class="muted" aria-live="polite"></div></div>' +
+      '<button class="primary" type="submit">' + (existing ? 'Tresor entsperren' : 'Tresor erstellen') + '</button></form><div id="h167-gate-status" class="muted" aria-live="polite"></div>' +
+      '<div class="row"><button type="button" id="h167-import">Verschlüsseltes Backup importieren</button><input id="h167-import-file" type="file" accept="application/json,.json" hidden /></div></div>' +
       (existing ? '<button id="h167-backup">Verschlüsseltes Backup herunterladen</button>' : '') +
       '<p class="muted">Diese App sendet keine Einträge an einen Server. Die Verschlüsselung schützt gespeicherte Daten, ersetzt aber keine Gerätesicherung, Zugriffssperre oder Datenschutzprüfung deiner Organisation.</p>';
     root.querySelector('#h167-unlock-form').addEventListener('submit', function (event) {
@@ -209,6 +261,34 @@
     });
     var backup = root.querySelector('#h167-backup');
     if (backup) backup.addEventListener('click', function () { downloadEncryptedBackup(config); });
+    var importButton = root.querySelector('#h167-import');
+    var importFile = root.querySelector('#h167-import-file');
+    if (importButton && importFile) {
+      importButton.addEventListener('click', function () {
+        var pass = root.querySelector('#h167-pass').value;
+        var status = root.querySelector('#h167-gate-status');
+        if (pass.length < 12) {
+          status.textContent = 'Bitte zuerst die Passphrase des Backups eingeben (mindestens 12 Zeichen).';
+          root.querySelector('#h167-pass').focus();
+          return;
+        }
+        importFile.click();
+      });
+      importFile.addEventListener('change', function () {
+        var file = importFile.files && importFile.files[0];
+        var pass = root.querySelector('#h167-pass').value;
+        var status = root.querySelector('#h167-gate-status');
+        if (!file) return;
+        status.textContent = 'Backup wird geprüft und entschlüsselt …';
+        importEncryptedBackup(config, file, pass).then(function () {
+          root.querySelector('#h167-pass').value = '';
+          status.textContent = 'Backup erfolgreich geprüft und importiert.';
+          renderWorkspace(root, config);
+        }).catch(function (error) {
+          status.textContent = error.message || 'Backup-Import fehlgeschlagen.';
+        }).finally(function () { importFile.value = ''; });
+      });
+    }
   }
   function renderWorkspace(root, config) {
     var vault = vaults[config.id];
