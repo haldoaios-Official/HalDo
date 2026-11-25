@@ -403,6 +403,44 @@ try {
           const femurProximalCenter = centroid(femurCranial);
           const femurDistalCenter = centroid(femurCaudal);
 
+          // Rein technische Radius-Sensitivitätsanalyse für die Hüft-ROI.
+          // Sie zeigt, wie stark die Anzahl der Becken-Vertices von der
+          // willkürlichen ROI-Radiuswahl abhängt. Sie identifiziert KEINE
+          // Acetabulum- oder Femurkopf-Gelenkfläche und verändert keine Modelle.
+          const hipRoiRadiusSweep = [40, 50, 60, 70, 80, 90, 100, 125, 150, 175, 200, 250]
+            .map(radiusMm => {
+              const candidates = withinRadius(models.coxal, femurProximalCenter, radiusMm);
+              if (!candidates.length) {
+                return {
+                  radius_mm: radiusMm,
+                  coxal_candidate_vertex_count: 0,
+                  coxal_candidate_percent: 0,
+                  centroid_offset_from_femur_band_center_mm: null,
+                  candidate_bounds_relative_to_femur_center_mm: null
+                };
+              }
+              const candidateCenter = centroid(candidates);
+              const bounds = [[Infinity, -Infinity], [Infinity, -Infinity], [Infinity, -Infinity]];
+              for (const point of candidates) {
+                for (let axis = 0; axis < 3; axis++) {
+                  const offsetMm = (point[axis] - femurProximalCenter[axis]) * 1000;
+                  bounds[axis][0] = Math.min(bounds[axis][0], offsetMm);
+                  bounds[axis][1] = Math.max(bounds[axis][1], offsetMm);
+                }
+              }
+              return {
+                radius_mm: radiusMm,
+                coxal_candidate_vertex_count: candidates.length,
+                coxal_candidate_percent: Number((candidates.length / models.coxal.length * 100).toFixed(2)),
+                centroid_offset_from_femur_band_center_mm: candidateCenter.map((value, axis) =>
+                  Number(((value - femurProximalCenter[axis]) * 1000).toFixed(2))
+                ),
+                candidate_bounds_relative_to_femur_center_mm: bounds.map(axisBounds =>
+                  axisBounds.map(value => Number(value.toFixed(2)))
+                )
+              };
+            });
+
           const joints = [
             {
               joint_id: 'hip',
@@ -410,6 +448,7 @@ try {
               bone_b: side + '_coxal',
               region_a: femurCranial,
               region_b: withinRadius(models.coxal, femurProximalCenter, LOCAL_ROI_RADIUS_MM),
+              hip_roi_radius_sweep: hipRoiRadiusSweep,
               roi_definition: 'Femur: craniales 18%-Y-Endband; Becken: 70-mm-Umgebungsradius um den Schwerpunkt des Femur-Endbands.',
               local_roi_radius_mm: LOCAL_ROI_RADIUS_MM
             },
@@ -472,6 +511,7 @@ try {
                 ? 'sparse_candidate_set' : 'sampled_candidate_set',
               candidate_vertex_count_a: joint.region_a.length,
               candidate_vertex_count_b: joint.region_b.length,
+              hip_roi_radius_sweep: joint.hip_roi_radius_sweep ?? null,
               full_mesh_vertex_count_a: models[joint.bone_a.slice(side.length + 1)].length,
               full_mesh_vertex_count_b: models[joint.bone_b.slice(side.length + 1)].length,
               metric_note: 'Nicht klinisch: keine segmentierten Gelenkflächen, keine Dreiecks-Oberflächenabstände, keine Knorpelmodelle und keine validierten anatomischen Landmarken. Nur reproduzierbare regionale Nähe von Mesh-Vertices.',
