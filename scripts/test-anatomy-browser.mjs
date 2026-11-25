@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import process from 'node:process';
 
 const port = 4173;
@@ -280,6 +280,251 @@ try {
       throw new Error(diagnostic.profile + ': linke/rechte Hüftgelenk-Messung ist nicht spiegelgleich.');
     }
   }
+
+  // Neue, räumlich begrenzte Endbereichs-Diagnostik:
+  // Diese Heuristik nutzt die vertikale Y-Achse des zusammengesetzten Modells,
+  // ersetzt aber KEINE fachlich markierten Gelenkflächen oder anatomischen Landmarken.
+  const regionalJointDiagnostics = await page.evaluate(async () => {
+    const THREE = await import('three');
+    const { loadBoneModel } = await import('./models/loader.js');
+    const profileIds = ['adult_male', 'adult_female', 'baby'];
+    const boneTypes = ['coxal', 'femur', 'patella', 'tibia', 'fibula', 'talus', 'calcaneus'];
+    const END_BAND_FRACTION = 0.18;
+    const LOCAL_ROI_RADIUS_MM = 70;
+    const report = [];
+
+    function collectWorldVertices(root) {
+      root.updateMatrixWorld(true);
+      const points = [];
+      const temp = new THREE.Vector3();
+      root.traverse(node => {
+        const position = node.isMesh ? node.geometry?.getAttribute('position') : null;
+        if (!position) return;
+        for (let i = 0; i < position.count; i++) {
+          temp.fromBufferAttribute(position, i).applyMatrix4(node.matrixWorld);
+          points.push([temp.x, temp.y, temp.z]);
+        }
+      });
+      return points;
+    }
+
+    function disposeModel(gltf) {
+      if (!gltf?.scene) return;
+      gltf.scene.traverse(node => {
+        node.geometry?.dispose?.();
+        if (Array.isArray(node.material)) node.material.forEach(material => material?.dispose?.());
+        else node.material?.dispose?.();
+      });
+    }
+
+    function yRange(points) {
+      if (!points.length) return null;
+      let min = Infinity, max = -Infinity;
+      for (const point of points) {
+        min = Math.min(min, point[1]);
+        max = Math.max(max, point[1]);
+      }
+      return { min_m: min, max_m: max, span_m: max - min };
+    }
+
+    function endBand(points, end, fraction) {
+      const range = yRange(points);
+      if (!range || range.span_m <= 0) return [];
+      const width = range.span_m * fraction;
+      const threshold = end === 'cranial'
+        ? range.max_m - width
+        : range.min_m + width;
+      return points.filter(point => end === 'cranial'
+        ? point[1] >= threshold
+        : point[1] <= threshold);
+    }
+
+    function centroid(points) {
+      if (!points.length) throw new Error('Leere Punktregion ohne Schwerpunkt.');
+      const sum = [0, 0, 0];
+      for (const point of points) {
+        sum[0] += point[0]; sum[1] += point[1]; sum[2] += point[2];
+      }
+      return sum.map(value => value / points.length);
+    }
+
+    function withinRadius(points, center, radiusMm) {
+      const radiusSquared = (radiusMm / 1000) ** 2;
+      return points.filter(point => {
+        const dx = point[0] - center[0];
+        const dy = point[1] - center[1];
+        const dz = point[2] - center[2];
+        return dx * dx + dy * dy + dz * dz <= radiusSquared;
+      });
+    }
+
+    function nearestVertexPair(pointsA, pointsB) {
+      if (!pointsA.length || !pointsB.length) {
+        throw new Error('Leere Gelenk-Kandidatenregion: A=' + pointsA.length + ', B=' + pointsB.length);
+      }
+      let bestSquared = Infinity, bestA = null, bestB = null;
+      for (const a of pointsA) {
+        for (const b of pointsB) {
+          const dx = a[0] - b[0], dy = a[1] - b[1], dz = a[2] - b[2];
+          const squared = dx * dx + dy * dy + dz * dz;
+          if (squared < bestSquared) {
+            bestSquared = squared; bestA = a; bestB = b;
+          }
+        }
+      }
+      return {
+        nearest_vertex_distance_mm: Math.sqrt(bestSquared) * 1000,
+        point_a_world_m: bestA,
+        point_b_world_m: bestB
+      };
+    }
+
+    for (const profileId of profileIds) {
+      for (const side of ['left', 'right']) {
+        const models = {};
+        const gltfs = [];
+        try {
+          for (const boneType of boneTypes) {
+            const boneId = side + '_' + boneType;
+            const gltf = await loadBoneModel(THREE, profileId, boneId);
+            gltfs.push(gltf);
+            models[boneType] = collectWorldVertices(gltf.scene);
+          }
+
+          const femurCranial = endBand(models.femur, 'cranial', END_BAND_FRACTION);
+          const femurCaudal = endBand(models.femur, 'caudal', END_BAND_FRACTION);
+          const tibiaCranial = endBand(models.tibia, 'cranial', END_BAND_FRACTION);
+          const tibiaCaudal = endBand(models.tibia, 'caudal', END_BAND_FRACTION);
+          const fibulaCaudal = endBand(models.fibula, 'caudal', END_BAND_FRACTION);
+          const talusCranial = endBand(models.talus, 'cranial', END_BAND_FRACTION);
+          const talusCaudal = endBand(models.talus, 'caudal', END_BAND_FRACTION);
+          const calcaneusCranial = endBand(models.calcaneus, 'cranial', END_BAND_FRACTION);
+          const femurProximalCenter = centroid(femurCranial);
+          const femurDistalCenter = centroid(femurCaudal);
+
+          const joints = [
+            {
+              joint_id: 'hip',
+              bone_a: side + '_femur',
+              bone_b: side + '_coxal',
+              region_a: femurCranial,
+              region_b: withinRadius(models.coxal, femurProximalCenter, LOCAL_ROI_RADIUS_MM),
+              roi_definition: 'Femur: craniales 18%-Y-Endband; Becken: 70-mm-Umgebungsradius um den Schwerpunkt des Femur-Endbands.'
+            },
+            {
+              joint_id: 'knee_femur_tibia',
+              bone_a: side + '_femur',
+              bone_b: side + '_tibia',
+              region_a: femurCaudal,
+              region_b: tibiaCranial,
+              roi_definition: 'Femur: kaudales 18%-Y-Endband; Tibia: craniales 18%-Y-Endband.'
+            },
+            {
+              joint_id: 'knee_femur_patella',
+              bone_a: side + '_femur',
+              bone_b: side + '_patella',
+              region_a: femurCaudal,
+              region_b: withinRadius(models.patella, femurDistalCenter, LOCAL_ROI_RADIUS_MM),
+              roi_definition: 'Femur: kaudales 18%-Y-Endband; Patella: 70-mm-Umgebungsradius um den Schwerpunkt des distalen Femur-Endbands.'
+            },
+            {
+              joint_id: 'ankle_tibia_talus',
+              bone_a: side + '_tibia',
+              bone_b: side + '_talus',
+              region_a: tibiaCaudal,
+              region_b: talusCranial,
+              roi_definition: 'Tibia: kaudales 18%-Y-Endband; Talus: craniales 18%-Y-Endband.'
+            },
+            {
+              joint_id: 'ankle_fibula_talus',
+              bone_a: side + '_fibula',
+              bone_b: side + '_talus',
+              region_a: fibulaCaudal,
+              region_b: talusCranial,
+              roi_definition: 'Fibula: kaudales 18%-Y-Endband; Talus: craniales 18%-Y-Endband.'
+            },
+            {
+              joint_id: 'hindfoot_talus_calcaneus',
+              bone_a: side + '_talus',
+              bone_b: side + '_calcaneus',
+              region_a: talusCaudal,
+              region_b: calcaneusCranial,
+              roi_definition: 'Talus: kaudales 18%-Y-Endband; Calcaneus: craniales 18%-Y-Endband.'
+            }
+          ];
+
+          for (const joint of joints) {
+            const measured = nearestVertexPair(joint.region_a, joint.region_b);
+            report.push({
+              profile: profileId,
+              side,
+              joint_id: joint.joint_id,
+              bone_a: joint.bone_a,
+              bone_b: joint.bone_b,
+              method: 'Regionaler Vertex-zu-Vertex-Endbereichsvergleich in Weltkoordinaten nach GLB-Transforms.',
+              roi_definition: joint.roi_definition,
+              end_band_fraction: END_BAND_FRACTION,
+              local_roi_radius_mm: LOCAL_ROI_RADIUS_MM,
+              candidate_vertex_count_a: joint.region_a.length,
+              candidate_vertex_count_b: joint.region_b.length,
+              full_mesh_vertex_count_a: models[joint.bone_a.slice(side.length + 1)].length,
+              full_mesh_vertex_count_b: models[joint.bone_b.slice(side.length + 1)].length,
+              metric_note: 'Nicht klinisch: keine segmentierten Gelenkflächen, keine Dreiecks-Oberflächenabstände, keine Knorpelmodelle und keine validierten anatomischen Landmarken. Nur reproduzierbare regionale Nähe von Mesh-Vertices.',
+              ...measured
+            });
+          }
+        } finally {
+          gltfs.forEach(disposeModel);
+        }
+      }
+    }
+    return report;
+  });
+
+  if (regionalJointDiagnostics.length !== 36) {
+    throw new Error('Regionaler Gelenk-Endbereichsaudit unvollständig: erwartet 36 Seiten-/Profil-Messungen, gefunden ' + regionalJointDiagnostics.length);
+  }
+  for (const diagnostic of regionalJointDiagnostics) {
+    if (!Number.isFinite(diagnostic.nearest_vertex_distance_mm) ||
+        diagnostic.nearest_vertex_distance_mm < 0 ||
+        diagnostic.candidate_vertex_count_a < 1 ||
+        diagnostic.candidate_vertex_count_b < 1) {
+      throw new Error('Ungültige regionale Gelenkdiagnostik: ' + JSON.stringify(diagnostic));
+    }
+    console.log('REGIONAL-JOINT-ENDPOINT-DIAGNOSTIC', JSON.stringify(diagnostic));
+  }
+  const regionalJointAudit = {
+    schema_version: 1,
+    generated_by: 'scripts/test-anatomy-browser.mjs',
+    profiles: ['adult_male', 'adult_female', 'baby'],
+    sides: ['left', 'right'],
+    joint_regions_per_side: 6,
+    measurement_count: regionalJointDiagnostics.length,
+    method: 'Reproduzierbare 18%-Endbänder entlang der globalen Modell-Y-Achse sowie lokal begrenzte 70-mm-Umgebungsradien für Becken- und Patella-ROI; nächstes Paar aus dekodierten Welt-Vertices.',
+    limitations: [
+      'Nicht klinisch oder anatomisch validiert.',
+      'Keine fachlich markierten Gelenkflächen oder anatomischen Landmarken.',
+      'Keine Dreiecks-Oberflächenabstände; es werden Mesh-Vertices verglichen.',
+      'Keine Knorpelschicht und kein physiologischer Gelenkspalt modelliert.',
+      'Die Y-Endband-Heuristik ist eine technische Kandidatenregion und kann fachlich relevante Gelenkflächen verfehlen.',
+      'Es werden keine GLB-Dateien, Vertices oder Modell-Transforms verändert.'
+    ],
+    measurements: regionalJointDiagnostics
+  };
+  await writeFile(
+    'artifacts/anatomy/regional-joint-endpoint-audit.json',
+    JSON.stringify(regionalJointAudit, null, 2) + '\n',
+    'utf8'
+  );
+  console.log('REGIONAL-JOINT-ENDPOINT-AUDIT-SUMMARY', JSON.stringify({
+    measurement_count: regionalJointAudit.measurement_count,
+    profiles: regionalJointAudit.profiles.length,
+    sides: regionalJointAudit.sides.length,
+    joint_regions_per_side: regionalJointAudit.joint_regions_per_side,
+    min_candidate_distance_mm: Math.min(...regionalJointDiagnostics.map(item => item.nearest_vertex_distance_mm)),
+    max_candidate_distance_mm: Math.max(...regionalJointDiagnostics.map(item => item.nearest_vertex_distance_mm))
+  }));
+  console.log('REGIONAL-JOINT-ENDPOINT-AUDIT-FILE: artifacts/anatomy/regional-joint-endpoint-audit.json');
 
   // Vergleicht ALLE weiblichen GLB-Mesh-Vertex-Punktwolken mit dem männlichen
   // Ausgangsbestand nach echtem Draco-Decoding. Root-/Node-Transforms und
