@@ -266,10 +266,27 @@ try {
     null,
     { timeout: 30000 }
   );
+
+  // Das Betriebssystem zeigt beim ersten Start seine globale Begrüßung.
+  const systemWelcome = launcherPage.locator('#haldo-v161-welcome');
+  await systemWelcome.waitFor({ state: 'visible', timeout: 15000 });
+  await systemWelcome.locator('.h161-button').click();
+  await systemWelcome.waitFor({ state: 'detached', timeout: 10000 });
+
   await launcherPage.locator('.side-item[data-nav="apps"]').click();
   const anatomyTile = launcherPage.locator('.window [data-app="anatomie-3d"]');
   await anatomyTile.waitFor({ state: 'visible', timeout: 15000 });
   await anatomyTile.click();
+
+  // Für Apps wird zuerst die passende HalDo-Begrüßung mit Startknopf gezeigt.
+  const appWelcome = launcherPage.locator('#haldo-v161-welcome');
+  await appWelcome.waitFor({ state: 'visible', timeout: 15000 });
+  const welcomeText = await appWelcome.textContent();
+  if (!welcomeText?.includes('HalDo Anatomie 3D Pro Max')) {
+    throw new Error('Die spezielle Begrüßung für Anatomie 3D Pro Max wird nicht angezeigt.');
+  }
+  await appWelcome.locator('.h161-button').click();
+
   const anatomyFrameElement = launcherPage.locator('#haldo-anatomy-frame');
   await anatomyFrameElement.waitFor({ state: 'attached', timeout: 15000 });
   const embeddedFrame = launcherPage.frames().find(frame => frame.url().includes('/anatomie.html'));
