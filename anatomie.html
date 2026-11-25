@@ -242,6 +242,8 @@ let activeProfile = 'adult_male';
 let modelManifest = null;
 let loadSequence = 0;
 let lastHighlighted = null;
+let resetCameraPosition = new THREE.Vector3(0, 1.2, 6);
+let resetControlsTarget = new THREE.Vector3(0, 1.0, 0);
 
 const loadingEl = document.getElementById('loading');
 const loadFill = document.getElementById('load-fill');
@@ -271,8 +273,8 @@ async function loadSelectedProfile() {
   loadFill.style.background = 'linear-gradient(90deg,var(--cyan),#3b82f6)';
   loadText.textContent = 'HalDo-Modellbestand wird vorbereitet…';
   profileStatus.textContent = 'Manifest wird geprüft…';
+  clearHighlight();
   if (model) disposeModel(model);
-  lastHighlighted = null;
   model = null;
   muscles = [];
   bones = [];
@@ -306,6 +308,8 @@ async function loadSelectedProfile() {
       camera.position.set(center.x, center.y + size.y * 0.08, center.z + distance);
       controls.maxDistance = Math.max(12, distance * 4);
       controls.update();
+      resetCameraPosition.copy(camera.position);
+      resetControlsTarget.copy(controls.target);
     }
     loadingEl.classList.add('hidden');
     const failedText = result.failed ? ', ' + result.failed + ' fehlgeschlagen' : '';
@@ -362,11 +366,24 @@ renderer.domElement.addEventListener('click', (event) => {
    ============================================================ */
 const infoContent = document.getElementById('info-content');
 
+function safeWikiUrl(value) {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 function showInfo(mesh) {
-  const name = mesh.userData.name || mesh.userData.boneId || mesh.name || 'Unbekanntes Körperteil';
-  const detail = mesh.userData.nameDetail || mesh.userData.description || '';
-  const type = (mesh.userData.type || 'struktur').toLowerCase();
-  const wiki = mesh.userData.wikiLink || '';
+  const rawName = mesh.userData.name || mesh.userData.boneId || mesh.name;
+  const name = typeof rawName === 'string' || typeof rawName === 'number'
+    ? String(rawName) : 'Unbekanntes Körperteil';
+  const rawDetail = mesh.userData.nameDetail || mesh.userData.description || '';
+  const detail = typeof rawDetail === 'string' || typeof rawDetail === 'number' ? String(rawDetail) : '';
+  const type = String(mesh.userData.type || 'struktur').toLowerCase();
+  const wiki = safeWikiUrl(mesh.userData.wikiLink);
 
   const typeLabel = type.includes('muscle') ? 'Muskel'
                   : type.includes('bone') ? 'Knochen'
@@ -377,45 +394,81 @@ function showInfo(mesh) {
                   : type.includes('organ') ? 'type-organ'
                   : 'type-bone';
 
-  infoContent.innerHTML = `
-    <div class="info-card">
-      <div class="type-badge ${typeClass}">${typeLabel}</div>
-      <div class="name">${name}</div>
-      ${detail ? `<div class="detail">${detail}</div>` : ''}
-      <div class="actions">
-        <button class="btn primary" id="info-speak">🔊 Vorlesen</button>
-        ${wiki ? `<a class="btn" href="${wiki}" target="_blank" rel="noopener">📖 Wiki</a>` : ''}
-      </div>
-    </div>
-  `;
+  // GLB-Extras sind externe Modelldaten: ausschließlich als Text ausgeben.
+  const card = document.createElement('div');
+  card.className = 'info-card';
 
-  // TTS-Button
-  const speakBtn = document.getElementById('info-speak');
-  if (speakBtn) {
-    speakBtn.addEventListener('click', () => {
-      speakText(`${name}. ${detail}`);
-    });
+  const badge = document.createElement('div');
+  badge.className = 'type-badge ' + typeClass;
+  badge.textContent = typeLabel;
+  card.appendChild(badge);
+
+  const nameElement = document.createElement('div');
+  nameElement.className = 'name';
+  nameElement.textContent = name;
+  card.appendChild(nameElement);
+
+  if (detail) {
+    const detailElement = document.createElement('div');
+    detailElement.className = 'detail';
+    detailElement.textContent = detail;
+    card.appendChild(detailElement);
   }
 
-  // Ausgewähltes Mesh hervorheben (Emissive-Glow)
+  const actions = document.createElement('div');
+  actions.className = 'actions';
+
+  const speakButton = document.createElement('button');
+  speakButton.className = 'btn primary';
+  speakButton.type = 'button';
+  speakButton.textContent = '🔊 Vorlesen';
+  speakButton.addEventListener('click', () => speakText(name + '. ' + detail));
+  actions.appendChild(speakButton);
+
+  if (wiki) {
+    const wikiLink = document.createElement('a');
+    wikiLink.className = 'btn';
+    wikiLink.href = wiki;
+    wikiLink.target = '_blank';
+    wikiLink.rel = 'noopener noreferrer';
+    wikiLink.textContent = '📖 Wiki';
+    actions.appendChild(wikiLink);
+  }
+
+  card.appendChild(actions);
+  infoContent.replaceChildren(card);
   highlightMesh(mesh);
 }
 
 /* ============================================================
    HERVORHEBUNG
    ============================================================ */
-function highlightMesh(mesh) {
-  // Alten Glow entfernen
-  if (lastHighlighted) {
-    lastHighlighted.material.emissive?.setHex(0x000000);
-    lastHighlighted.material.emissiveIntensity = 0;
+function clearHighlight() {
+  if (!lastHighlighted) return;
+  for (const state of lastHighlighted.materials) {
+    state.material.emissive.setHex(state.color);
+    state.material.emissiveIntensity = state.intensity;
   }
+  lastHighlighted = null;
+}
 
-  // Neuen Glow setzen
-  if (mesh.material && mesh.material.emissive) {
-    mesh.material.emissive.setHex(0x00e5ff);
-    mesh.material.emissiveIntensity = 0.35;
-    lastHighlighted = mesh;
+function highlightMesh(mesh) {
+  clearHighlight();
+  const materials = (Array.isArray(mesh.material) ? mesh.material : [mesh.material])
+    .filter(material => material?.emissive);
+  if (!materials.length) return;
+
+  lastHighlighted = {
+    mesh,
+    materials: materials.map(material => ({
+      material,
+      color: material.emissive.getHex(),
+      intensity: material.emissiveIntensity
+    }))
+  };
+  for (const material of materials) {
+    material.emissive.setHex(0x00e5ff);
+    material.emissiveIntensity = 0.35;
   }
 }
 
@@ -453,17 +506,12 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   btnMuscles.classList.remove('active');
   btnBones.classList.add('active');
 
-  // Kamera zurücksetzen
-  camera.position.set(0, 1.2, 6);
-  controls.target.set(0, 1.0, 0);
+  // Kamera auf die passende Ansicht des aktuell geladenen Profils zurücksetzen.
+  camera.position.copy(resetCameraPosition);
+  controls.target.copy(resetControlsTarget);
   controls.update();
 
-  // Hervorhebung entfernen
-  if (lastHighlighted) {
-    lastHighlighted.material.emissive?.setHex(0x000000);
-    lastHighlighted.material.emissiveIntensity = 0;
-    lastHighlighted = null;
-  }
+  clearHighlight();
 
   // Info zurücksetzen
   infoContent.innerHTML = `
