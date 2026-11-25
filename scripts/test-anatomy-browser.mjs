@@ -266,6 +266,63 @@ try {
     }
   }
 
+  // Vergleicht ausgewählte weibliche Meshes mit dem männlichen Ausgangsbestand
+  // nach echtem Draco-Decoding. Root-Transforms bleiben bewusst außen vor.
+  const maleFemaleGeometryAudit = await page.evaluate(async () => {
+    const { loadBoneModel } = await import('./models/loader.js');
+    const sampleIds = ['left_coxal', 'right_coxal', 'left_femur', 'right_femur', 'left_tibia', 'skull', 'mandible'];
+    function sortedLocalVertices(root) {
+      const vertices = [];
+      root.traverse(node => {
+        const position = node.isMesh ? node.geometry?.getAttribute('position') : null;
+        if (!position) return;
+        for (let i = 0; i < position.count; i++) {
+          vertices.push([
+            Math.round(position.getX(i) * 1e6) / 1e6,
+            Math.round(position.getY(i) * 1e6) / 1e6,
+            Math.round(position.getZ(i) * 1e6) / 1e6
+          ]);
+        }
+      });
+      vertices.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+      return vertices;
+    }
+    const results = [];
+    for (const boneId of sampleIds) {
+      const [male, female] = await Promise.all([
+        loadBoneModel(undefined, 'adult_male', boneId),
+        loadBoneModel(undefined, 'adult_female', boneId)
+      ]);
+      const maleVertices = sortedLocalVertices(male.scene);
+      const femaleVertices = sortedLocalVertices(female.scene);
+      let maxAbsCoordinateDelta = null;
+      let withinTolerance = maleVertices.length === femaleVertices.length;
+      if (withinTolerance) {
+        maxAbsCoordinateDelta = 0;
+        for (let i = 0; i < maleVertices.length; i++) {
+          for (let axis = 0; axis < 3; axis++) {
+            maxAbsCoordinateDelta = Math.max(
+              maxAbsCoordinateDelta,
+              Math.abs(maleVertices[i][axis] - femaleVertices[i][axis])
+            );
+          }
+        }
+        withinTolerance = maxAbsCoordinateDelta <= 0.00001;
+      }
+      results.push({
+        bone_id: boneId,
+        male_vertices: maleVertices.length,
+        female_vertices: femaleVertices.length,
+        same_local_vertex_set_within_0_01_mm: withinTolerance,
+        max_abs_coordinate_delta_m: maxAbsCoordinateDelta
+      });
+    }
+    return results;
+  });
+  for (const result of maleFemaleGeometryAudit) {
+    console.log('MALE-FEMALE-GEOMETRY-DIAGNOSTIC', JSON.stringify(result));
+  }
+
   // Prüft, ob Anatomie 3D aus dem echten HalDo-App-Launcher als Fenster startet.
   const launcherPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await launcherPage.goto(baseUrl + '/index.html', { waitUntil: 'domcontentloaded', timeout: 120000 });
