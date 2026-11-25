@@ -132,13 +132,13 @@ if "loadProfileModels" not in loader:
 launcher = (ROOT / "index.html").read_text(encoding="utf-8")
 if launcher.count("id:'anatomie-3d'") != 1:
     fail("index.html muss Anatomie 3D Pro Max genau einmal im App-Registry anbieten")
-if "if (app.id === 'anatomie-3d' && HalDo.Anatomy3D)" not in launcher:
+if "if (app.id === 'anatomie-3d' && HalDo.Anatomy3DProMax)" not in launcher:
     fail("Der frühe HalDo-Launcher enthält keinen kompatiblen Anatomie-3D-Aufruf")
-if "'anatomie-3d':'Anatomy3D'" not in launcher or "H.Anatomy3D = H.Anatomy3D ||" not in launcher:
+if "'anatomie-3d':'Anatomy3DProMax'" not in launcher or "H.Anatomy3DProMax = {" not in launcher:
     fail("Der zentrale finale HalDo-App-Dispatcher kennt Anatomie 3D Pro Max nicht")
 if 'src="./anatomie.html"' not in launcher:
     fail("Der HalDo-Launcher öffnet die lokale anatomie.html nicht im App-Fenster")
-if 'haldo-anatomy3d-final-launch' not in launcher or "H.WelcomeExperience.openApp(app, enterAnatomy)" not in launcher:
+if 'haldo-anatomy3d-final-launch' not in launcher or "H.WelcomeExperience.openApp(app, enterAnatomy)" not in launcher or "H.Anatomy3DProMax.open()" not in launcher:
     fail("Die finale Anatomie-Route muss die individuelle HalDo-App-Begrüßung starten")
 if "querySelector('.win-body-pro, .win-body')" not in launcher:
     fail("Die Anatomie-Fensterintegration unterstützt den finalen Win-Pro-Fensterkörper nicht")
