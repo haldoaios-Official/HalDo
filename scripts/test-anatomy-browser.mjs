@@ -258,6 +258,29 @@ try {
     }
   }
 
+  // Prüft, ob Anatomie 3D aus dem echten HalDo-App-Launcher als Fenster startet.
+  const launcherPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  await launcherPage.goto(baseUrl + '/index.html', { waitUntil: 'domcontentloaded', timeout: 120000 });
+  await launcherPage.waitForFunction(
+    () => typeof window.HalDo?.Launch === 'function' && typeof window.HalDo?.AppBrowser?.open === 'function',
+    null,
+    { timeout: 30000 }
+  );
+  await launcherPage.locator('.side-item[data-nav="apps"]').click();
+  const anatomyTile = launcherPage.locator('.window [data-app="anatomie-3d"]');
+  await anatomyTile.waitFor({ state: 'visible', timeout: 15000 });
+  await anatomyTile.click();
+  const anatomyFrameElement = launcherPage.locator('#haldo-anatomy-frame');
+  await anatomyFrameElement.waitFor({ state: 'attached', timeout: 15000 });
+  const embeddedFrame = launcherPage.frames().find(frame => frame.url().includes('/anatomie.html'));
+  if (!embeddedFrame) throw new Error('HalDo-Launcher hat keinen Anatomie-iFrame geladen.');
+  await embeddedFrame.waitForFunction(
+    () => (document.querySelector('#profile-status')?.textContent || '').includes('179/179 Knochen geladen'),
+    null,
+    { timeout: 240000 }
+  );
+  console.log('PASS HalDo App-Launcher öffnet Anatomie 3D Pro Max im Fenster');
+
   if (pageErrors.length) throw new Error('Browser-JavaScriptfehler: ' + pageErrors.join(' | '));
   if (failedAssetRequests.length) throw new Error('Fehlgeschlagene Modell-/Decoder-Anfragen: ' + JSON.stringify(failedAssetRequests));
 
