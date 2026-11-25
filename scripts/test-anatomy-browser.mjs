@@ -90,12 +90,14 @@ try {
       throw new Error(profile.id + ': Hinweis auf offene Gelenkvalidierung wird nicht angezeigt.');
     }
     if (profile.id === 'adult_female' && (
-      !infoText.includes('vollständigen Chromium-Browser-Audit') ||
-      !infoText.includes('179/179 lokale Vertex-Punktwolken') ||
-      !infoText.includes('0,000001 m') ||
+      !infoText.includes('Der vollständige Chromium-Vergleich') ||
+      !infoText.includes('identische lokale Vertex-Punktwolken') ||
+      !infoText.includes('179/179 übereinstimmende Hierarchiepfade') ||
+      !infoText.includes('120 von 179 Assets') ||
+      !infoText.includes('Scherung') ||
       !infoText.includes('Dreiecks-Konnektivität/Topologie')
     )) {
-      throw new Error('adult_female: vollständiger 179-Paar-Geometrieaudit samt Grenzen wird nicht angezeigt.');
+      throw new Error('adult_female: vollständiger Geometrie- und Transformaudit samt Grenzen wird nicht angezeigt.');
     }
     if (profile.id === 'baby' && (
       !infoText.includes('178 Geometrie-Payloads byteidentisch') ||
