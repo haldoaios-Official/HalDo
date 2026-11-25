@@ -156,7 +156,7 @@ try {
       return points;
     }
 
-    function closestSurfaceVertices(a, b) {
+    function closestVertexPairAcrossCompleteMeshes(a, b) {
       let bestSquared = Infinity;
       let bestA = null;
       let bestB = null;
@@ -172,7 +172,7 @@ try {
         }
       }
       return {
-        distance_mm: Math.sqrt(bestSquared) * 1000,
+        nearest_vertex_distance_mm: Math.sqrt(bestSquared) * 1000,
         point_a: bestA,
         point_b: bestB
       };
@@ -198,18 +198,19 @@ try {
       }
       const joints = {};
       for (const [name, a, b] of pairs) {
-        joints[name] = closestSurfaceVertices(models[a], models[b]);
+        joints[name] = closestVertexPairAcrossCompleteMeshes(models[a], models[b]);
       }
       report.push({
         profile: profileId,
+        metric_note: 'Global minimum over all transformed mesh vertices; not joint-local and not a clinical joint-gap measurement.',
         vertex_counts: Object.fromEntries(Object.entries(models).map(([id, vertices]) => [id, vertices.length])),
-        joints
+        global_mesh_nearest_vertex_pairs: joints
       });
     }
     return report;
   });
   for (const diagnostic of jointDiagnostics) {
-    console.log('LOWER-LIMB-JOINT-DIAGNOSTIC', JSON.stringify(diagnostic));
+    console.log('GLOBAL-MESH-NEAREST-VERTEX-DIAGNOSTIC', JSON.stringify(diagnostic));
   }
 
   // Linke/rechte Hüftsymmetrie wird separat am tatsächlichen Modellbestand geprüft.
