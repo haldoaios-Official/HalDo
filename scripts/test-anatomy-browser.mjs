@@ -211,7 +211,6 @@ try {
       ['hindfoot_talus_calcaneus', 'talus', 'calcaneus']
     ];
     const report = [];
-    const hipScaleSensitivityReport = [];
     for (const profileId of profiles) {
       const models = {};
       for (const boneId of ['coxal', 'sacrum', 'femur', 'patella', 'tibia', 'fibula', 'talus', 'calcaneus']) {
@@ -294,6 +293,7 @@ try {
     const LOCAL_ROI_RADIUS_MM = 70;
     const MIN_CANDIDATE_VERTEX_COUNT = 20;
     const report = [];
+    const hipScaleSensitivityReport = [];
 
     function collectWorldVertices(root) {
       root.updateMatrixWorld(true);
