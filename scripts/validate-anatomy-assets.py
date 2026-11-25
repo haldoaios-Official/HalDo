@@ -69,7 +69,7 @@ def scene_node_world_matrices(document: dict) -> dict[int, tuple[list[list[float
         return {}
     scene_index = document.get("scene", 0)
     roots = scenes[scene_index].get("nodes", []) if 0 <= scene_index < len(scenes) else []
-    output: dict[int, tuple[list[list[float]], list[str]]] = {}
+    output: dict[int, tuple[list[list[float]], list[str], list[dict]]] = {}
     identity = [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]]
 
     def visit(index: int, parent: list[list[float]], chain: list[str], transform_chain: list[dict]) -> None:
