@@ -135,9 +135,9 @@ try {
   const canvasSize = await canvas.evaluate(element => ({ width: element.width, height: element.height }));
   if (canvasSize.width < 100 || canvasSize.height < 100) throw new Error('3D-Canvas hat keine gültige Größe.');
 
-  // Vermisst den echten Oberflächenabstand zwischen linker Hüftpfanne und Femurkopf.
-  // Diagnostik-only: misst dekodierte Draco-Meshes, verändert keine Modell-Transforms.
-  const hipDiagnostics = await page.evaluate(async () => {
+  // Vermisst angrenzende Oberflächen der unteren Extremität in allen Profilen.
+  // Diagnostik-only: misst dekodierte Meshes und verändert keine Modell-Transforms.
+  const jointDiagnostics = await page.evaluate(async () => {
     const THREE = await import('three');
     const { loadBoneModel } = await import('./models/loader.js');
 
@@ -171,42 +171,88 @@ try {
           }
         }
       }
-      return { distance_mm: Math.sqrt(bestSquared) * 1000, pelvis_point: bestA, femur_point: bestB };
+      return {
+        distance_mm: Math.sqrt(bestSquared) * 1000,
+        point_a: bestA,
+        point_b: bestB
+      };
     }
 
     const profiles = ['adult_male', 'adult_female', 'baby'];
+    const pairs = [
+      ['hip', 'coxal', 'femur'],
+      ['knee_femur_patella', 'femur', 'patella'],
+      ['knee_femur_tibia', 'femur', 'tibia'],
+      ['ankle_tibia_talus', 'tibia', 'talus'],
+      ['ankle_fibula_talus', 'fibula', 'talus'],
+      ['hindfoot_talus_calcaneus', 'talus', 'calcaneus']
+    ];
     const report = [];
     for (const profileId of profiles) {
-      for (const side of ['left', 'right']) {
-        const [coxal, femur] = await Promise.all([
-          loadBoneModel(THREE, profileId, side + '_coxal'),
-          loadBoneModel(THREE, profileId, side + '_femur')
-        ]);
-        const pelvisPoints = collectWorldVertices(coxal.scene);
-        const femurPoints = collectWorldVertices(femur.scene);
-        report.push({
-          profile: profileId,
-          side,
-          pelvis_vertices: pelvisPoints.length,
-          femur_vertices: femurPoints.length,
-          closest_surface_vertices: closestSurfaceVertices(pelvisPoints, femurPoints)
-        });
+      const models = {};
+      for (const boneId of ['coxal', 'femur', 'patella', 'tibia', 'fibula', 'talus', 'calcaneus']) {
+        const gltf = await loadBoneModel(THREE, profileId, 'left_' + boneId);
+        models[boneId] = collectWorldVertices(gltf.scene);
       }
+      const joints = {};
+      for (const [name, a, b] of pairs) {
+        joints[name] = closestSurfaceVertices(models[a], models[b]);
+      }
+      report.push({
+        profile: profileId,
+        vertex_counts: Object.fromEntries(Object.entries(models).map(([id, vertices]) => [id, vertices.length])),
+        joints
+      });
     }
     return report;
   });
-  for (const diagnostic of hipDiagnostics) {
-    console.log('HIP-JOINT-DIAGNOSTIC', JSON.stringify(diagnostic));
+  for (const diagnostic of jointDiagnostics) {
+    console.log('LOWER-LIMB-JOINT-DIAGNOSTIC', JSON.stringify(diagnostic));
   }
-  for (const profileId of ['adult_male', 'adult_female', 'baby']) {
-    const left = hipDiagnostics.find(item => item.profile === profileId && item.side === 'left');
-    const right = hipDiagnostics.find(item => item.profile === profileId && item.side === 'right');
-    if (!left || !right) throw new Error(profileId + ': Hüftgelenk-Messung für eine Seite fehlt.');
-    const sideDifference = Math.abs(
-      left.closest_surface_vertices.distance_mm - right.closest_surface_vertices.distance_mm
-    );
-    if (sideDifference > 0.05) {
-      throw new Error(profileId + ': links/rechts abweichende Hüftgelenk-Messung (' + sideDifference.toFixed(3) + ' mm).');
+
+  // Linke/rechte Hüftsymmetrie wird separat am tatsächlichen Modellbestand geprüft.
+  const hipSymmetry = await page.evaluate(async () => {
+    const THREE = await import('three');
+    const { loadBoneModel } = await import('./models/loader.js');
+    function collect(root) {
+      root.updateMatrixWorld(true);
+      const pts = [], temp = new THREE.Vector3();
+      root.traverse(node => {
+        const pos = node.isMesh ? node.geometry?.getAttribute('position') : null;
+        if (!pos) return;
+        for (let i = 0; i < pos.count; i++) {
+          temp.fromBufferAttribute(pos, i).applyMatrix4(node.matrixWorld);
+          pts.push([temp.x, temp.y, temp.z]);
+        }
+      });
+      return pts;
+    }
+    function distance(a, b) {
+      let min = Infinity;
+      for (const p of a) for (const q of b) {
+        const x = p[0]-q[0], y = p[1]-q[1], z = p[2]-q[2];
+        min = Math.min(min, x*x+y*y+z*z);
+      }
+      return Math.sqrt(min)*1000;
+    }
+    const report = [];
+    for (const profile of ['adult_male', 'adult_female', 'baby']) {
+      const sides = {};
+      for (const side of ['left', 'right']) {
+        const [pelvis, femur] = await Promise.all([
+          loadBoneModel(THREE, profile, side + '_coxal'),
+          loadBoneModel(THREE, profile, side + '_femur')
+        ]);
+        sides[side] = distance(collect(pelvis.scene), collect(femur.scene));
+      }
+      report.push({profile, ...sides, difference_mm:Math.abs(sides.left-sides.right)});
+    }
+    return report;
+  });
+  for (const diagnostic of hipSymmetry) {
+    console.log('HIP-SYMMETRY-DIAGNOSTIC', JSON.stringify(diagnostic));
+    if (diagnostic.difference_mm > 0.05) {
+      throw new Error(diagnostic.profile + ': linke/rechte Hüftgelenk-Messung ist nicht spiegelgleich.');
     }
   }
 
