@@ -319,11 +319,17 @@ if "hpfrei/body-anatomy-3d-viewer" in anatomy:
     fail("anatomie.html verwendet noch das externe Ganzkörpermodell")
 if "visuelle Adaption" not in anatomy or "Gelenkpassungen" not in anatomy or "nicht fachlich oder klinisch validiert" not in anatomy:
     fail("anatomie.html kennzeichnet die weibliche Adaption samt offener Gelenkvalidierung nicht ausreichend")
-if "sieben geprüften Schlüssel-Meshes" not in anatomy or "maximale Koordinatenabweichung 0,0 m" not in anatomy or "nicht durch neu modellierte lokale Knochenformen" not in anatomy:
-    fail("anatomie.html kennzeichnet den weiblich/männlichen Mesh-Vergleich nicht ausreichend")
-female_geometry_sample = sources.get("profiles", {}).get("adult_female", {}).get("geometry_comparison_sample", {})
-if female_geometry_sample.get("same_local_vertex_set_within_0_01_mm") is not True or female_geometry_sample.get("max_abs_coordinate_delta_m") != 0.0 or len(female_geometry_sample.get("checked_assets", [])) != 7:
-    fail("sources.json dokumentiert den weiblich/männlichen 7-Mesh-Vergleich nicht korrekt")
+if "vollständigen Chromium-Browser-Audit" not in anatomy or "179/179 lokale Vertex-Punktwolken" not in anatomy or "0,000001 m" not in anatomy or "Dreiecks-Konnektivität/Topologie" not in anatomy:
+    fail("anatomie.html kennzeichnet den vollständigen weiblich/männlichen 179-Paar-Audit samt Grenzen nicht ausreichend")
+female_geometry = sources.get("profiles", {}).get("adult_female", {}).get("geometry_comparison", {})
+if female_geometry.get("automated_asset_pair_count") != EXPECTED["adult_female"]:
+    fail("sources.json dokumentiert nicht alle 179 weiblich/männlichen Modellpaare")
+if female_geometry.get("identical_vertex_point_clouds") != EXPECTED["adult_female"] or female_geometry.get("different_vertex_point_clouds") != 0:
+    fail("sources.json enthält nicht das verifizierte Ergebnis 179 identische und 0 unterschiedliche Vertex-Punktwolken")
+if female_geometry.get("coordinate_quantization_m") != 0.000001 or female_geometry.get("mismatch_asset_ids") != []:
+    fail("sources.json dokumentiert Quantisierung oder Abweichungsliste des vollständigen Geometrieaudits falsch")
+if not all(item in female_geometry.get("not_compared", []) for item in ["Node-Transforms und Hierarchie", "Vertex-Normalen", "Materialien und Texturen", "Dreiecks-Konnektivität und Topologie"]):
+    fail("sources.json dokumentiert die Grenzen des weiblich/männlichen Punktwolkenvergleichs nicht vollständig")
 if "0,62-fach skalierte visuelle Ableitung" not in anatomy or "178 Geometrie-Payloads byteidentisch" not in anatomy or "keine eigenständig modellierte oder altersgerechte Neugeborenen-Anatomie" not in anatomy or "176 von 178" not in anatomy:
     fail("anatomie.html kennzeichnet den vollständigen Baby-/Neugeborenen-Geometrie- und Skalierungsbefund nicht ausreichend")
 baby_geometry = sources.get("profiles", {}).get("baby", {}).get("geometry_comparison", {})
@@ -368,6 +374,7 @@ for index, source in enumerate(module_scripts, start=1):
 print("Profilbestände:", EXPECTED)
 print("Draco-komprimierte GLBs:", draco_assets)
 print(f"Weiblich/Baby-Geometrievergleich: {verified_geometry_pairs}/{len(ADAPTATION_SAMPLE_BONES)} BIN-Paare byteidentisch")
+print(f"Weiblich/Männlich-Vollvergleich: {female_geometry.get('identical_vertex_point_clouds', 0)}/{female_geometry.get('automated_asset_pair_count', 0)} lokale Vertex-Punktwolken identisch; {female_geometry.get('different_vertex_point_clouds', 0)} Unterschiede; Quantisierung {female_geometry.get('coordinate_quantization_m', 'unbekannt')} m")
 print(f"Weiblich/Baby-Skalierungsvergleich: {verified_uniform_scale_pairs}/{len(ADAPTATION_SAMPLE_BONES)} Standard-Paare mit Faktor 0,62; {verified_special_scale_pairs}/{len(SPECIAL_ADAPTATION_SCALE_RATIOS)} dokumentierte Sondertransforms")
 print("Räumliche Stichprobe (GLB-Rohkoordinaten und Node-Transforms):")
 for item in geometry_diagnostics:
