@@ -84,6 +84,10 @@ try {
     if (profile.id === 'baby' && !infoText.includes('Unterkiefer-Skalierung des Baby-Profils korrigiert')) {
       throw new Error('Baby-Profil: Unterkiefer-Skalierung wurde nicht korrigiert.');
     }
+    await page.waitForFunction(() => {
+      const overlay = document.querySelector('#loading');
+      return overlay?.classList.contains('hidden') && getComputedStyle(overlay).opacity === '0';
+    }, null, { timeout: 10000 });
     await page.screenshot({ path: 'artifacts/anatomy/' + profile.id + '.png', fullPage: true });
     console.log('PASS', profile.id, status);
   }
