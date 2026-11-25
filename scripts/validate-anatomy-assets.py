@@ -439,7 +439,7 @@ if male_female_transform_audit["summary"]["completed_asset_pairs"] != EXPECTED["
 transform_report_path = ROOT / "artifacts/anatomy/transform-audit.json"
 transform_report_path.parent.mkdir(parents=True, exist_ok=True)
 transform_report_path.write_text(
-    json.dumps(male_female_transform_audit, ensure_ascii=False, indent=2) + "\\n",
+    json.dumps(male_female_transform_audit, ensure_ascii=False, indent=2) + \n,
     encoding="utf-8",
 )
 print("MALE-FEMALE-TRANSFORM-AUDIT-SUMMARY", json.dumps(male_female_transform_audit["summary"], ensure_ascii=False, separators=(",", ":")))
