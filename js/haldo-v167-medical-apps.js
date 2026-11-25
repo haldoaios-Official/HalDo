@@ -157,7 +157,9 @@
         return vaults[config.id];
       });
     }
-    return decryptEnvelope(envelope, passphrase).then(function (vault) {
+    return Promise.resolve().then(function () {
+      return decryptEnvelope(envelope, passphrase);
+    }).then(function (vault) {
       vaults[config.id] = vault;
       return vault;
     });
