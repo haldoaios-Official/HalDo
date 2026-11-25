@@ -77,6 +77,13 @@ try {
     if (!status?.includes(profile.count + '/' + profile.count + ' Knochen geladen')) {
       throw new Error(profile.id + ' konnte nicht vollständig geladen werden: ' + status);
     }
+    const infoText = await page.locator('#info-content').textContent();
+    if (!infoText?.includes('Schädelposition anhand der Halswirbel-Referenz ausgerichtet')) {
+      throw new Error(profile.id + ': Schädel wurde nicht anhand der Halswirbel ausgerichtet.');
+    }
+    if (profile.id === 'baby' && !infoText.includes('Unterkiefer-Skalierung des Baby-Profils korrigiert')) {
+      throw new Error('Baby-Profil: Unterkiefer-Skalierung wurde nicht korrigiert.');
+    }
     await page.screenshot({ path: 'artifacts/anatomy/' + profile.id + '.png', fullPage: true });
     console.log('PASS', profile.id, status);
   }
