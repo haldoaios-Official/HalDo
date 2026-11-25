@@ -114,9 +114,32 @@ if "loadModelManifest, loadProfileModels" not in anatomy:
     fail("anatomie.html ist nicht mit dem lokalen Modell-Loader verbunden")
 if "hpfrei/body-anatomy-3d-viewer" in anatomy:
     fail("anatomie.html verwendet noch das externe Ganzkörpermodell")
-module_scripts = []
-import re
-module_scripts = re.findall(r'<script\\s+type=["\\']module["\\']\\s*>(.*?)</script>', anatomy, re.S)
+from html.parser import HTMLParser
+
+class ModuleScriptParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.in_module = False
+        self.parts: list[str] = []
+        self.modules: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag.lower() == "script" and dict(attrs).get("type") == "module":
+            self.in_module = True
+            self.parts = []
+
+    def handle_data(self, data: str) -> None:
+        if self.in_module:
+            self.parts.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag.lower() == "script" and self.in_module:
+            self.modules.append("".join(self.parts))
+            self.in_module = False
+
+parser = ModuleScriptParser()
+parser.feed(anatomy)
+module_scripts = parser.modules
 if not module_scripts:
     fail("anatomie.html enthält kein auswertbares type=module-Script")
 
@@ -129,6 +152,6 @@ print("Profilbestände:", EXPECTED)
 print("Draco-komprimierte GLBs:", draco_assets)
 print("Manifestpfade, GLB-Header, JSON-Chunks, Katalog und JS-Syntax geprüft.")
 if errors:
-    print("\\n".join(f"FEHLER: {message}" for message in errors), file=sys.stderr)
+    print("\n".join(f"FEHLER: {message}" for message in errors), file=sys.stderr)
     sys.exit(1)
 print("ANATOMY VALIDATION: PASS")
