@@ -55,6 +55,7 @@ export async function loadProfileModels(THREE, manifest, profileId, options = {}
   }
   const ids = profile.asset_ids;
   const scenes = new Array(ids.length);
+  const scenesByBoneId = new Map();
   const failures = [];
   let cursor = 0;
   let completed = 0;
@@ -74,6 +75,7 @@ export async function loadProfileModels(THREE, manifest, profileId, options = {}
           node.receiveShadow = true;
         });
         scenes[index] = root;
+        scenesByBoneId.set(boneId, root);
       } catch (error) {
         failures.push({ boneId, message: error?.message || String(error) });
       }
@@ -82,9 +84,31 @@ export async function loadProfileModels(THREE, manifest, profileId, options = {}
     }
   };
   await Promise.all(Array.from({ length: Math.min(concurrency, ids.length) }, worker));
+
+  // The source skull GLB is exported around its own local origin near y=0,
+  // while the cervical vertebrae retain the assembled skeleton coordinates.
+  // Align only this known outlier to C1 (or C2 for the baby set); do not
+  // recenter or rescale the individual bones.
+  const alignmentAdjustments = [];
+  const skullRoot = scenesByBoneId.get('skull');
+  const anchorId = scenesByBoneId.has('c1_atlas') ? 'c1_atlas' : 'c2';
+  const anchorRoot = scenesByBoneId.get(anchorId);
+  if (skullRoot && anchorRoot) {
+    const skullBounds = new THREE.Box3().setFromObject(skullRoot);
+    const anchorBounds = new THREE.Box3().setFromObject(anchorRoot);
+    if (!skullBounds.isEmpty() && !anchorBounds.isEmpty()) {
+      const offsetY = anchorBounds.max.y - skullBounds.min.y - 0.015;
+      if (Number.isFinite(offsetY) && Math.abs(offsetY) < 2.5) {
+        skullRoot.position.y += offsetY;
+        skullRoot.updateMatrixWorld(true);
+        alignmentAdjustments.push({ boneId: 'skull', anchorId, axis: 'y', offset: offsetY });
+      }
+    }
+  }
+
   const group = new THREE.Group();
   scenes.filter(Boolean).forEach(root => group.add(root));
   const loaded = scenes.filter(Boolean).length;
   if (!loaded) throw new Error(`Kein einziges GLB-Modell aus ${profileId} konnte geladen werden.`);
-  return { group, loaded, failed: failures.length, failures, total: ids.length, profileId };
+  return { group, loaded, failed: failures.length, failures, total: ids.length, profileId, alignmentAdjustments };
 }
