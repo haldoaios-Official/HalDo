@@ -211,6 +211,7 @@ try {
       ['hindfoot_talus_calcaneus', 'talus', 'calcaneus']
     ];
     const report = [];
+    const hipScaleSensitivityReport = [];
     for (const profileId of profiles) {
       const models = {};
       for (const boneId of ['coxal', 'sacrum', 'femur', 'patella', 'tibia', 'fibula', 'talus', 'calcaneus']) {
@@ -359,6 +360,57 @@ try {
       });
     }
 
+    function findAssetRootNode(scene, boneId) {
+      let match = null;
+      scene.traverse(node => {
+        if (!match && node.name === boneId) match = node;
+      });
+      if (!match) throw new Error('GLB-Rootknoten nicht gefunden: ' + boneId);
+      return match;
+    }
+
+    // Reine Was-wäre-wenn-Analyse: Die Overrides werden ausschließlich auf
+    // temporäre Three.js-Kopien angewendet. Originale GLB-Szenen/Transforms
+    // und die produktive Ladepipeline bleiben unberührt.
+    function simulateHipScaleScenario(femurScene, coxalScene, side, scenario) {
+      const femurClone = femurScene.clone(true);
+      const coxalClone = coxalScene.clone(true);
+      const femurRoot = findAssetRootNode(femurClone, side + '_femur');
+      const coxalRoot = findAssetRootNode(coxalClone, side + '_coxal');
+      const currentFemurScale = femurRoot.scale.toArray().slice(0, 3);
+      const currentCoxalScale = coxalRoot.scale.toArray().slice(0, 3);
+
+      if (scenario.femurScale) femurRoot.scale.set(...scenario.femurScale);
+      if (scenario.coxalScale) coxalRoot.scale.set(...scenario.coxalScale);
+
+      const femurPoints = collectWorldVertices(femurClone);
+      const coxalPoints = collectWorldVertices(coxalClone);
+      const femurBand = endBand(femurPoints, 'cranial', END_BAND_FRACTION);
+      const center = centroid(femurBand);
+      const coxalCandidates = withinRadius(coxalPoints, center, LOCAL_ROI_RADIUS_MM);
+      const nearest = coxalCandidates.length
+        ? nearestVertexPair(femurBand, coxalCandidates)
+        : null;
+
+      return {
+        scenario_id: scenario.id,
+        description: scenario.description,
+        applied_femur_root_scale_xyz: femurRoot.scale.toArray().slice(0, 3),
+        applied_coxal_root_scale_xyz: coxalRoot.scale.toArray().slice(0, 3),
+        source_femur_root_scale_xyz: currentFemurScale,
+        source_coxal_root_scale_xyz: currentCoxalScale,
+        femur_end_band_vertex_count: femurBand.length,
+        coxal_roi_radius_mm: LOCAL_ROI_RADIUS_MM,
+        coxal_candidate_vertex_count: coxalCandidates.length,
+        nearest_vertex_distance_mm: nearest
+          ? Number(nearest.nearest_vertex_distance_mm.toFixed(3)) : null,
+        point_a_world_m: nearest?.point_a_world_m ?? null,
+        point_b_world_m: nearest?.point_b_world_m ?? null,
+        diagnostic_only: true,
+        no_source_assets_modified: true
+      };
+    }
+
     function nearestVertexPair(pointsA, pointsB) {
       if (!pointsA.length || !pointsB.length) {
         throw new Error('Leere Gelenk-Kandidatenregion: A=' + pointsA.length + ', B=' + pointsB.length);
@@ -383,6 +435,7 @@ try {
     for (const profileId of profileIds) {
       for (const side of ['left', 'right']) {
         const models = {};
+        const modelScenes = {};
         const gltfs = [];
         try {
           for (const boneType of boneTypes) {
@@ -390,6 +443,7 @@ try {
             const gltf = await loadBoneModel(THREE, profileId, boneId);
             gltfs.push(gltf);
             models[boneType] = collectWorldVertices(gltf.scene);
+            modelScenes[boneType] = gltf.scene;
           }
 
           const femurCranial = endBand(models.femur, 'cranial', END_BAND_FRACTION);
@@ -402,6 +456,47 @@ try {
           const calcaneusCranial = endBand(models.calcaneus, 'cranial', END_BAND_FRACTION);
           const femurProximalCenter = centroid(femurCranial);
           const femurDistalCenter = centroid(femurCaudal);
+
+          // Vergleicht die unveränderten Profiltransforms mit drei rein
+          // rechnerischen Harmonisierungsszenarien. Das Ergebnis ist keine
+          // Empfehlung für eine Skalierung und wird nicht in die App geladen.
+          const femurRoot = findAssetRootNode(modelScenes.femur, side + '_femur');
+          const coxalRoot = findAssetRootNode(modelScenes.coxal, side + '_coxal');
+          const sourceFemurScale = femurRoot.scale.toArray().slice(0, 3);
+          const sourceCoxalScale = coxalRoot.scale.toArray().slice(0, 3);
+          const hipScaleScenarios = [
+            {
+              id: 'source_profile_transforms',
+              description: 'Originale GLB-Root-Transforms unverändert'
+            },
+            {
+              id: 'both_roots_identity',
+              description: 'Beide Root-Skalierungen hypothetisch auf [1,1,1]'
+            },
+            {
+              id: 'both_roots_match_femur_scale',
+              description: 'Becken- und Femur-Root hypothetisch mit Femur-Skalierung'
+            },
+            {
+              id: 'both_roots_match_coxal_scale',
+              description: 'Femur- und Becken-Root hypothetisch mit Becken-Skalierung'
+            }
+          ].map(scenario => ({
+            ...scenario,
+            femurScale: scenario.id === 'both_roots_identity' ? [1, 1, 1]
+              : scenario.id === 'both_roots_match_coxal_scale' ? sourceCoxalScale : null,
+            coxalScale: scenario.id === 'both_roots_identity' ? [1, 1, 1]
+              : scenario.id === 'both_roots_match_femur_scale' ? sourceFemurScale : null
+          }));
+          for (const scenario of hipScaleScenarios) {
+            hipScaleSensitivityReport.push({
+              profile: profileId,
+              side,
+              source_femur_root_scale_xyz: sourceFemurScale,
+              source_coxal_root_scale_xyz: sourceCoxalScale,
+              ...simulateHipScaleScenario(modelScenes.femur, modelScenes.coxal, side, scenario)
+            });
+          }
 
           // Rein technische Radius-Sensitivitätsanalyse für die Hüft-ROI.
           // Sie zeigt, wie stark die Anzahl der Becken-Vertices von der
@@ -585,6 +680,58 @@ try {
     max_candidate_distance_mm: Math.max(...regionalJointDiagnostics.map(item => item.nearest_vertex_distance_mm))
   }));
   console.log('REGIONAL-JOINT-ENDPOINT-AUDIT-FILE: artifacts/anatomy/regional-joint-endpoint-audit.json');
+
+  if (hipScaleSensitivityReport.length !== 24) {
+    throw new Error('Hüft-Root-Scale-Sensitivity unvollständig: erwartet 24 Szenarien, gefunden ' + hipScaleSensitivityReport.length);
+  }
+  const hipScaleSensitivityAudit = {
+    schema_version: 1,
+    generated_by: 'scripts/test-anatomy-browser.mjs',
+    profiles: ['adult_male', 'adult_female', 'baby'],
+    sides: ['left', 'right'],
+    scenarios_per_side: 4,
+    measurement_count: hipScaleSensitivityReport.length,
+    roi_radius_mm: 70,
+    scenario_note: 'Was-wäre-wenn-Analyse auf temporären Three.js-Kopien. Root-Skalierungen werden ausschließlich im Arbeitsspeicher verändert; keine gespeicherte GLB-Datei oder produktive Szene wird verändert.',
+    interpretation_limits: [
+      'Die Szenarien sind keine anatomisch validierten Ziel-Transforms und keine Korrekturempfehlung.',
+      'Die ROI wird heuristisch über ein Femur-Y-Endband und einen 70-mm-Radius am Becken definiert.',
+      'Es werden Mesh-Vertices statt segmentierter Gelenkflächen verglichen.',
+      'Eine Verringerung des Vertex-Abstands beweist keine korrekte Gelenkposition oder klinische Eignung.',
+      'Root-Skalierung um den glTF-Node-Ursprung kann andere Körperbereiche verschieben und Proportionen verändern.'
+    ],
+    measurements: hipScaleSensitivityReport
+  };
+  const sourceHipDiagnostics = regionalJointDiagnostics.filter(item => item.joint_id === 'hip');
+  for (const item of hipScaleSensitivityAudit.measurements) {
+    if (!Number.isFinite(item.applied_femur_root_scale_xyz[0]) ||
+        !Number.isFinite(item.applied_coxal_root_scale_xyz[0]) ||
+        item.femur_end_band_vertex_count < 1 ||
+        item.coxal_candidate_vertex_count < 0 ||
+        (item.coxal_candidate_vertex_count > 0) !== Number.isFinite(item.nearest_vertex_distance_mm)) {
+      throw new Error('Ungültiges Hüft-Root-Scale-Szenario: ' + JSON.stringify(item));
+    }
+    if (item.scenario_id === 'source_profile_transforms') {
+      const source = sourceHipDiagnostics.find(d => d.profile === item.profile && d.side === item.side);
+      if (!source ||
+          Math.abs(source.candidate_vertex_count_b - item.coxal_candidate_vertex_count) > 0 ||
+          (source.nearest_vertex_distance_mm === null) ||
+          Math.abs(source.nearest_vertex_distance_mm - item.nearest_vertex_distance_mm) > 0.02) {
+        throw new Error('Original-Transform-Szenario stimmt nicht mit der regionalen Hüftdiagnostik überein: ' + JSON.stringify({ source, item }));
+      }
+    }
+  }
+  await writeFile(
+    'artifacts/anatomy/hip-root-scale-sensitivity-audit.json',
+    JSON.stringify(hipScaleSensitivityAudit, null, 2) + '\\n',
+    'utf8'
+  );
+  console.log('HIP-ROOT-SCALE-SENSITIVITY-SUMMARY', JSON.stringify({
+    measurement_count: hipScaleSensitivityAudit.measurement_count,
+    profiles: hipScaleSensitivityAudit.profiles.length,
+    sides: hipScaleSensitivityAudit.sides.length,
+    scenario_ids: ['source_profile_transforms', 'both_roots_identity', 'both_roots_match_femur_scale', 'both_roots_match_coxal_scale']
+  }));
 
   // Vergleicht ALLE weiblichen GLB-Mesh-Vertex-Punktwolken mit dem männlichen
   // Ausgangsbestand nach echtem Draco-Decoding. Root-/Node-Transforms und
