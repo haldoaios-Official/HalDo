@@ -273,9 +273,11 @@ try {
   await systemWelcome.locator('.h161-button').click();
   await systemWelcome.waitFor({ state: 'detached', timeout: 10000 });
 
-  await launcherPage.locator('.side-item[data-nav="apps"]').click();
+  await launcherPage.evaluate(() => window.HalDo.AppBrowser.open());
   const anatomyTile = launcherPage.locator('.window [data-app="anatomie-3d"]');
   await anatomyTile.waitFor({ state: 'visible', timeout: 15000 });
+  // AppBrowser registriert die Tile-Klicks über einen kurzen setTimeout.
+  await launcherPage.waitForTimeout(150);
   await anatomyTile.click();
 
   // Für Apps wird zuerst die passende HalDo-Begrüßung mit Startknopf gezeigt.
