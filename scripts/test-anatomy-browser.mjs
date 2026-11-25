@@ -83,6 +83,12 @@ try {
     if (!infoText?.includes('Schädelposition anhand der Halswirbel-Referenz ausgerichtet')) {
       throw new Error(profile.id + ': Schädel wurde nicht anhand der Halswirbel ausgerichtet.');
     }
+    if (profile.id === 'adult_male' && !infoText.includes('Quelle, Lizenz und klinische Validierung')) {
+      throw new Error('adult_male: Quellen- und Klinikhinweis wird nicht angezeigt.');
+    }
+    if (profile.id !== 'adult_male' && (!infoText.includes('Gelenkpassungen') || !infoText.includes('nicht fachlich oder klinisch validiert'))) {
+      throw new Error(profile.id + ': Hinweis auf offene Gelenkvalidierung wird nicht angezeigt.');
+    }
     if (profile.id === 'baby' && !infoText.includes('Unterkiefer-Skalierung des Baby-Profils korrigiert')) {
       throw new Error('Baby-Profil: Unterkiefer-Skalierung wurde nicht korrigiert.');
     }
