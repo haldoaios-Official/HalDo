@@ -859,13 +859,61 @@ if female_geometry.get("coordinate_quantization_m") != 0.000001 or female_geomet
     fail("sources.json dokumentiert Quantisierung oder Abweichungsliste des vollständigen Geometrieaudits falsch")
 if not all(item in female_geometry.get("not_compared", []) for item in ["Node-Transforms und Hierarchie", "Vertex-Normalen", "Materialien und Texturen", "Dreiecks-Konnektivität und Topologie"]):
     fail("sources.json dokumentiert die Grenzen des weiblich/männlichen Punktwolkenvergleichs nicht vollständig")
-if "0,62-fach skalierte visuelle Ableitung" not in anatomy or "178 Geometrie-Payloads byteidentisch" not in anatomy or "keine eigenständig modellierte oder altersgerechte Neugeborenen-Anatomie" not in anatomy or "176 von 178" not in anatomy:
-    fail("anatomie.html kennzeichnet den vollständigen Baby-/Neugeborenen-Geometrie- und Skalierungsbefund nicht ausreichend")
+if "visuelle Skalierungs-Vorschau" not in anatomy or "178 Baby-GLB-Geometrie-Payloads byteidentisch" not in anatomy or "keine eigenständige oder altersgerechte Neugeborenen-Anatomie" not in anatomy or "176 von 178 Root-Skalierungsverhältnissen" not in anatomy or "178/178 übereinstimmende Hierarchiepfade" not in anatomy or "alle 75 geprüften Links-/Rechts-Paare" not in anatomy:
+    fail("anatomie.html kennzeichnet den vollständigen Baby-Geometrie- und Transformaudit samt Einschränkungen nicht ausreichend")
 baby_geometry = sources.get("profiles", {}).get("baby", {}).get("geometry_comparison", {})
 if baby_geometry.get("automated_asset_pair_count") != EXPECTED["baby"] or baby_geometry.get("female_baby_bin_payloads_byte_identical") is not True or baby_geometry.get("uniform_baby_parent_scale_factor_vs_adult_female") != 0.62:
     fail("sources.json dokumentiert den vollständigen 178-Dateien-Geometrievergleich des Baby-Profils nicht korrekt")
 if baby_geometry.get("special_parent_scale_ratios") != {"skull": [1.0, 1.0, 1.34], "mandible": [1.0, 1.0, 1.22]} or baby_geometry.get("runtime_baby_mandible_scale_factor") != 0.62:
     fail("sources.json dokumentiert die Schädel-/Unterkiefer-Sondertransforms nicht korrekt")
+recorded_baby_transform = sources.get("profiles", {}).get("baby", {}).get("transform_hierarchy_comparison", {})
+baby_summary_key_map = {
+    "asset_pair_count": "completed_asset_pairs",
+    "assets_with_matching_hierarchy_paths": "assets_with_matching_hierarchy_paths",
+    "assets_with_different_hierarchy_paths": "assets_with_different_hierarchy_paths",
+    "assets_with_node_name_mismatches": "assets_with_node_name_mismatches",
+    "shared_node_paths": "shared_node_paths",
+    "assets_with_local_transform_differences": "assets_with_local_transform_differences",
+    "assets_with_parent_world_transform_differences": "assets_with_parent_world_transform_differences",
+    "assets_with_world_transform_differences": "assets_with_world_transform_differences",
+    "nodes_with_local_transform_differences": "nodes_with_local_transform_differences",
+    "nodes_with_parent_world_transform_differences": "nodes_with_parent_world_transform_differences",
+    "nodes_with_world_transform_differences": "nodes_with_world_transform_differences",
+    "node_count_distribution": "node_count_distribution",
+}
+for recorded_key, computed_key in baby_summary_key_map.items():
+    if recorded_baby_transform.get(recorded_key) != female_baby_transform_audit["summary"].get(computed_key):
+        fail(f"sources.json: Baby-Transformaudit-Zusammenfassung stimmt bei {recorded_key} nicht mit den GLB-Dateien überein")
+if recorded_baby_transform.get("matrix_component_absolute_tolerance") != female_baby_transform_audit["matrix_component_absolute_tolerance"]:
+    fail("sources.json: Baby-Transformaudit-Toleranz stimmt nicht")
+for key in ["max_abs_local_matrix_delta", "max_abs_parent_world_matrix_delta", "max_abs_world_matrix_delta"]:
+    actual_max = max(asset[key] for asset in female_baby_transform_audit["assets"].values())
+    if abs(float(recorded_baby_transform.get(key, -1)) - actual_max) > 1e-9:
+        fail(f"sources.json: Baby-Transformaudit-Maximum für {key} stimmt nicht")
+recorded_baby_ratio = recorded_baby_transform.get("root_scale_ratio_analysis", {})
+actual_baby_ratio = female_baby_transform_audit["root_scale_ratio_analysis"]
+for key in [
+    "assets_with_root_scale_ratios",
+    "all_local_transform_differences_are_root_scale_only",
+    "bilateral_pairs_checked",
+    "bilateral_pairs_with_matching_scale_ratio",
+    "bilateral_pair_mismatches",
+]:
+    if recorded_baby_ratio.get(key) != actual_baby_ratio.get(key):
+        fail(f"sources.json: Baby-Root-Skalierungsanalyse stimmt bei {key} nicht mit den GLB-Dateien überein")
+recorded_baby_groups = [
+    {"baby_to_adult_female_root_scale_ratio_xyz": group.get("baby_to_adult_female_root_scale_ratio_xyz"), "asset_count": group.get("asset_count"), "asset_ids": group.get("asset_ids", [])}
+    for group in recorded_baby_ratio.get("baby_to_adult_female_root_scale_ratio_groups", [])
+]
+actual_baby_groups = [
+    {"baby_to_adult_female_root_scale_ratio_xyz": group.get("baby_to_adult_female_root_scale_ratio_xyz"), "asset_count": group.get("asset_count"), "asset_ids": group.get("asset_ids", [])}
+    for group in actual_baby_ratio.get("baby_to_adult_female_root_scale_ratio_groups", [])
+]
+if recorded_baby_groups != actual_baby_groups:
+    fail("sources.json: Baby-Root-Skalierungsgruppen stimmen nicht mit den GLB-Dateien überein")
+if recorded_baby_transform.get("asset_pair_count") != EXPECTED["baby"] or recorded_baby_transform.get("assets_with_different_hierarchy_paths") != 0:
+    fail("sources.json dokumentiert nicht den vollständigen 178-Paar-Baby-Transformaudit")
+print("FEMALE-BABY-ROOT-SCALE-RATIO-GROUPS", json.dumps(actual_baby_groups, ensure_ascii=False, separators=(",", ":")))
 from html.parser import HTMLParser
 
 class ModuleScriptParser(HTMLParser):
