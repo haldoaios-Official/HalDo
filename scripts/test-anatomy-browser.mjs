@@ -129,6 +129,67 @@ try {
   const canvasSize = await canvas.evaluate(element => ({ width: element.width, height: element.height }));
   if (canvasSize.width < 100 || canvasSize.height < 100) throw new Error('3D-Canvas hat keine gültige Größe.');
 
+  // Vermisst den echten Oberflächenabstand zwischen linker Hüftpfanne und Femurkopf.
+  // Diagnostik-only: misst dekodierte Draco-Meshes, verändert keine Modell-Transforms.
+  const hipDiagnostics = await page.evaluate(async () => {
+    const THREE = await import('three');
+    const { loadBoneModel } = await import('./models/loader.js');
+
+    function collectWorldVertices(root) {
+      root.updateMatrixWorld(true);
+      const points = [];
+      const temp = new THREE.Vector3();
+      root.traverse(node => {
+        const position = node.isMesh ? node.geometry?.getAttribute('position') : null;
+        if (!position) return;
+        for (let i = 0; i < position.count; i++) {
+          temp.fromBufferAttribute(position, i).applyMatrix4(node.matrixWorld);
+          points.push([temp.x, temp.y, temp.z]);
+        }
+      });
+      return points;
+    }
+
+    function closestSurfaceVertices(a, b) {
+      let bestSquared = Infinity;
+      let bestA = null;
+      let bestB = null;
+      for (const p of a) {
+        for (const q of b) {
+          const dx = p[0] - q[0], dy = p[1] - q[1], dz = p[2] - q[2];
+          const squared = dx * dx + dy * dy + dz * dz;
+          if (squared < bestSquared) {
+            bestSquared = squared;
+            bestA = p;
+            bestB = q;
+          }
+        }
+      }
+      return { distance_mm: Math.sqrt(bestSquared) * 1000, pelvis_point: bestA, femur_point: bestB };
+    }
+
+    const profiles = ['adult_male', 'adult_female', 'baby'];
+    const report = [];
+    for (const profileId of profiles) {
+      const [coxal, femur] = await Promise.all([
+        loadBoneModel(THREE, profileId, 'left_coxal'),
+        loadBoneModel(THREE, profileId, 'left_femur')
+      ]);
+      const pelvisPoints = collectWorldVertices(coxal.scene);
+      const femurPoints = collectWorldVertices(femur.scene);
+      report.push({
+        profile: profileId,
+        pelvis_vertices: pelvisPoints.length,
+        femur_vertices: femurPoints.length,
+        closest_surface_vertices: closestSurfaceVertices(pelvisPoints, femurPoints)
+      });
+    }
+    return report;
+  });
+  for (const diagnostic of hipDiagnostics) {
+    console.log('HIP-JOINT-DIAGNOSTIC', JSON.stringify(diagnostic));
+  }
+
   if (pageErrors.length) throw new Error('Browser-JavaScriptfehler: ' + pageErrors.join(' | '));
   if (failedAssetRequests.length) throw new Error('Fehlgeschlagene Modell-/Decoder-Anfragen: ' + JSON.stringify(failedAssetRequests));
 
