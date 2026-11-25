@@ -300,7 +300,8 @@ try {
   await launcherPage.waitForTimeout(550);
 
   const launcherDiagnostics = await launcherPage.evaluate(() => ({
-    anatomyModule: typeof window.HalDo?.Anatomy3D?.open,
+    anatomyModule: typeof window.HalDo?.Anatomy3DProMax?.open,
+    legacyAnatomyModulePreserved: typeof window.HalDo?.Anatomy3D?.open,
     registeredId: window.HalDo?.Registry?.getFeatured?.().find(app => app.id === 'anatomie-3d')?.id || null,
     dispatcherHasRoute: !!window.HalDo?.SystemV157?.routes?.().includes('anatomie-3d'),
     routeListHasAnatomy: window.HalDo?.SystemV157?.routes?.().filter(id => /anatom/i.test(id)) || [],
