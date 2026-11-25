@@ -708,11 +708,19 @@ try {
   if (!appRegistered) throw new Error('Anatomie 3D Pro Max fehlt in der HalDo App-Registry.');
   console.log('PASS HalDo App-Registry enthält Anatomie 3D Pro Max');
 
-  // Startet exakt den Launch-Eintrag, den auch die App-Registry aufruft.
-  await launcherPage.evaluate(() => {
-    const app = window.HalDo.Registry.getFeatured().find(item => item.id === 'anatomie-3d');
-    window.HalDo.Launch(app);
-  });
+  // Prüft den echten Benutzerweg: App-Registry öffnen, nach der
+  // Anatomie-App suchen und genau deren sichtbare Startkarte anklicken.
+  await launcherPage.evaluate(() => window.HalDo.AppBrowser.open());
+  const registrySearch = launcherPage.locator('input[data-registry-search]');
+  await registrySearch.waitFor({ state: 'visible', timeout: 15000 });
+  await registrySearch.fill('Anatomie 3D Pro Max');
+  const anatomyLaunchCard = launcherPage.locator('button[data-launch="anatomie-3d"]');
+  await anatomyLaunchCard.waitFor({ state: 'visible', timeout: 10000 });
+  const launchCardText = await anatomyLaunchCard.textContent();
+  if (!launchCardText?.includes('Anatomie 3D Pro Max')) {
+    throw new Error('Die Anatomie-App wird in der sichtbaren App-Registry-Suche nicht korrekt angezeigt.');
+  }
+  await anatomyLaunchCard.click();
 
   // Für Apps wird zuerst die passende HalDo-Begrüßung mit Startknopf gezeigt.
   const appWelcome = launcherPage.locator('#haldo-v161-welcome');
