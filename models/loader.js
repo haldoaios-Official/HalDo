@@ -91,6 +91,16 @@ export async function loadProfileModels(THREE, manifest, profileId, options = {}
   // recenter or rescale the individual bones.
   const alignmentAdjustments = [];
   const skullRoot = scenesByBoneId.get('skull');
+
+  // One baby mandible export is missing the shared 0.62 age-profile scale
+  // used by the other baby bones. Apply it at the GLTF scene root so its
+  // existing Blender proportions remain intact.
+  const mandibleRoot = scenesByBoneId.get('mandible');
+  if (profileId === 'baby' && mandibleRoot) {
+    mandibleRoot.scale.multiplyScalar(0.62);
+    mandibleRoot.updateMatrixWorld(true);
+    alignmentAdjustments.push({ boneId: 'mandible', axis: 'scale', factor: 0.62 });
+  }
   const anchorId = scenesByBoneId.has('c1_atlas') ? 'c1_atlas' : 'c2';
   const anchorRoot = scenesByBoneId.get(anchorId);
   if (skullRoot && anchorRoot) {
