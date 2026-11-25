@@ -1,3 +1,4 @@
+import { modelPath } from './catalog.js';
 export const MODEL_MANIFEST_SCHEMA = 1;
 export const MODEL_SOURCE_REGISTRY_SCHEMA = 1;
 export const MODEL_PACKAGE_CACHE = 'osteo3d-models-v1';
@@ -53,7 +54,7 @@ export function validateModelManifest(manifest, boneIds = []) {
       if (Number.isInteger(profile.asset_count) && profile.asset_count !== profile.asset_ids.length) errors.push(`${profileId}: asset_count no coincide con asset_ids`);
     }
   }
-  const expectedProfiles = ['adult_male', 'adult_female', 'infant', 'neonate'];
+  const expectedProfiles = ['adult_male', 'adult_female', 'baby'];
   for (const profileId of expectedProfiles) if (!manifest?.profiles?.[profileId]) errors.push(`falta perfil ${profileId}`);
   return { valid: errors.length === 0, errors, profileCount: Object.keys(manifest?.profiles || {}).length, boneCount: boneIds.length };
 }
@@ -70,7 +71,7 @@ export function validateModelSourceRegistry(manifest, registry = {}) {
       continue;
     }
     if (!['pending', 'published'].includes(source.source_status)) errors.push(`${profileId}: source_status no válido`);
-    if (profile.asset_status === 'placeholder' && source.source_status === 'pending') continue;
+    if (source.source_status === 'pending') continue;
     for (const field of ['author', 'institution', 'url', 'license', 'license_url', 'version', 'consulted_at']) {
       if (!source[field]) errors.push(`${profileId}: falta ${field}`);
     }
@@ -124,7 +125,7 @@ export function modelPackageDownloadPlan(manifest, profileId, boneIds = []) {
     urls: summary.status === 'missing'
       ? []
       : availableIds
-        .map(boneId => `./models/${summary.pattern.replace('{bone_id}', boneId)}`)
+        .map(boneId => `${profile.root}/${boneId}.glb`)
   };
 }
 
@@ -182,7 +183,7 @@ export async function importModelPackageFiles(profileId, files = [], boneIds = [
         rejected.push(file?.name || 'archivo sin nombre');
         continue;
       }
-      const url = `./models/${profileId}/${baseName}.glb`;
+      const url = modelPath(profileId, baseName);
       const existed = await cache.match(url);
       if (existed) replacedEntries.push({ url, response: existed.clone() }); else addedUrls.push(url);
       await cache.put(url, new Response(body, { headers: { 'content-type': 'model/gltf-binary', 'content-length': String(file.size || body.byteLength) } }));
@@ -227,7 +228,7 @@ export async function getCachedModelBoneIds(profileId, boneIds = [], options = {
   if (globalThis.caches.has && !(await caches.has(cacheName))) return [];
   const cache = await caches.open(cacheName);
   const entries = await Promise.all(boneIds.map(async boneId => {
-    const response = await cache.match(`./models/${profileId}/${boneId}.glb`);
+    const response = await cache.match(modelPath(profileId, boneId));
     return response ? boneId : null;
   }));
   return entries.filter(Boolean);
