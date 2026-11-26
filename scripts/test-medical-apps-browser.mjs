@@ -366,6 +366,14 @@ async function run() {
   const tasksBadge = await appRegistryRoot.locator('[data-launch="tasks"] [data-implementation-status]').innerText();
   assert.equal(tasksBadge, 'Grundgerüst');
   assert.match(await appRegistryRoot.innerText(), /Start-Routen/);
+  await appRegistryRoot.locator('[data-category="A"]').click();
+  const categoryLaunchCards = appRegistryRoot.locator('[data-launch]');
+  const categoryCardCount = await categoryLaunchCards.count();
+  assert.ok(categoryCardCount > 0);
+  assert.equal(await categoryLaunchCards.locator('[data-implementation-status]').count(), categoryCardCount);
+  assert.equal(await appRegistryRoot.locator('[data-launch="avatar"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  await appRegistryRoot.locator('[data-category=""]').click();
+
   await closeWindow(appRegistryRoot);
   pass('HalDo App-Registry Pro zeigt Grundgerüste und eigene Module sichtbar getrennt an');
 
