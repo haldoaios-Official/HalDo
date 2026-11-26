@@ -693,3 +693,29 @@ Beide Apps sind als eigenständige Module registriert: `recipes` unter G und `an
 **Abnahme v175 – aktuell in Arbeit:** GitHub Actions Lauf #189 (`45808104525`) läuft auf dem aktuellen PR-Head `1b0d185b64462084e640b76bf09c9bd7ba3d30cc`. Die aktualisierte Chromium-Suite umfasst Runtime-/Registry-Checks, URL- und WLAN-QR-Generierung, PNG-Download, Sticker-Seitenerstellung, echte PDF-Datei aus Text sowie einen lokalen Mehrseiten-Scan mit PDF-Seitenzahl- und Löschprüfung. Bis der Lauf erfolgreich beendet ist, gelten diese Tests als ausstehend; die Module werden nicht vorzeitig als browserabgenommen markiert.
 
 **Release-Grenze:** Alle Änderungen befinden sich auf `work-v167-medical-apps` und Draft-PR #1. Der Arbeitsbranch lag beim letzten Vergleich 197 Commits vor `main` und 0 dahinter. Kein Merge nach `main`, keine Veröffentlichung/Pages-Deployment. Die 375 Registry-Plätze sind weiterhin die geplante Katalogkapazität, nicht die Zahl der vollständig umgesetzten und freigegebenen Anwendungen.
+
+
+## HALDO v176 – Wissenschaftslabor, WLAN/Bluetooth-Manager und aktuelle Browserabnahme (26.11.2026)
+
+### HalDo Wissenschaftslabor Pro
+- Eigenständiges lokales Formel- und Einheitenlabor mit 24 geprüften Formeln, Suche, Berechnung und lokalem Verlauf.
+- Nenner-/Eingabevalidierung verhindert ungültige Berechnungen; die App ersetzt keine fachliche oder medizinische Beratung.
+
+### HalDo WLAN- & Bluetooth-Manager Pro
+- Zeigt nur Netzwerk- und Geräteinformationen an, die der Browser tatsächlich bereitstellt.
+- Bluetooth-Verbindung erfolgt ausschließlich nach ausdrücklicher Auswahl im Browser-Gerätewähler. GATT-Merkmale können – sofern das Gerät und der Browser sie freigeben – gelesen und nach expliziter Nutzeraktion beschrieben werden.
+- Browser-Sicherheitsgrenzen bleiben bestehen: keine stille WLAN-Passwort-/SSID-Auslesung, kein Zugriff auf beliebige gekoppelte Geräte und keine Umgehung von Berechtigungen.
+
+### Aktuelle Abnahme – GitHub Actions Lauf #211
+- Lauf #211 (ID `45826798332`) auf Commit `97d83060987d8c24a9c7b86d9b1c3e4ec31b6c4d`: **86/86 Chromium-Browserprüfungen erfolgreich**.
+- v176: Wissenschaftslabor (24 Formeln, Suche, Berechnung, Verlauf, Nennerprüfung) sowie WLAN/Bluetooth-Manager (Browsergrenzen, expliziter Gerätewähler, GATT-Lesen, bestätigtes Schreiben und Trennen).
+- Anatomie 3D: Modellpfade, GLB-Metadaten, vier schematische Profile mit je 179 Knochen, deutsche Namen/Regionen, Knochenkatalog, Auswahl, Profilwechsel, lokaler GLB-Import und Ressourcenfreigabe. Das schematische Skelett ist ausdrücklich als nicht klinisch und in willkürlichen Einheiten gekennzeichnet.
+- Arztbuch: verschlüsselter Tresor, Vitalwerte, Suche/Datumsfilter, Verlauf, Bearbeiten/Löschen, Monats-/Jahresübersicht und tatsächlicher CSV-Dateidownload. CSV-Datei geprüft auf UTF-8-BOM, Spalten, beide Messdatensätze, korrektes Quoting und Entschärfung von Tabellenformeln.
+- Laborwerte und Medikamentenplan: verschlüsselte Speicherung, Bearbeiten/Löschen, Backup-Wiederherstellung und falsche Passphrase/Backup-Ablehnung.
+- Weitere geprüfte Module: Pflegeprotokoll, Arzttermine/Überweisungen, Krankheits- und Medikamentenlexikon, Einheiten-Umrechner, Habit Heatmap, QR Studio/Sticker, PDF-Center, Dokumenten-Scanner.
+- Der ältere Abschnitt zur v175-Abnahme weiter oben ist historisch; Lauf #211 enthält die vollständige aktualisierte Suite einschließlich v175/v176 und Arztbuch-CSV-Download.
+
+### Verbleibende Arbeit und Release-Grenze
+- Die Registry-Zahl von 375 bleibt ein Planungsziel, kein Nachweis von 375 fertigen Apps. Generische Grundgerüste und ungeprüfte Zuordnungen müssen weiterhin einzeln inventarisiert und entweder fachlich implementiert oder ehrlich als geplant/Grundgerüst markiert werden.
+- Ein erfolgreicher Chromium-Lauf bestätigt die geprüften Browserabläufe, aber weder medizinische Validierung noch Produktions-/Live-Betrieb auf GitHub Pages.
+- Alle Änderungen bleiben auf `work-v167-medical-apps` und Draft-PR #1. Kein Merge nach `main`, keine produktive Veröffentlichung.
