@@ -331,7 +331,7 @@ async function run() {
     worldClock: window.HalDo.AppBrowser.getStatus('worldclock'),
     recipeScaler: window.HalDo.AppBrowser.getStatus('recipe-scaler')
   }));
-  assert.equal(v168Build.version, '175.0.0');
+  assert.equal(v168Build.version, '176.0.0');
   assert.equal(v168Build.worldClock.kind, 'module');
   assert.equal(v168Build.recipeScaler.kind, 'module');
   const v168Runtime = await page.evaluate(() => ({
@@ -344,7 +344,7 @@ async function run() {
   assert.equal(v168Runtime.worldClockOpen, 'function');
   assert.equal(v168Runtime.recipeScalerOpen, 'function');
   assert.equal(v168Runtime.scriptLoaded, true);
-  assert.equal(v168Runtime.build, '175.0.0');
+  assert.equal(v168Runtime.build, '176.0.0');
   await page.evaluate(() => window.HalDo.Launch({ id: 'worldclock', n: 'HalDo Weltuhr Pro' }));
   await dismissWelcomeIfPresent();
   const worldClockRoot = page.locator('#winLayer .hdv168-root').last();
@@ -660,7 +660,7 @@ async function run() {
     scientificOpen: typeof window.HalDo.scientific?.open,
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v172-learning-apps.js'))
   }));
-  assert.equal(v172Runtime.build, '175.0.0');
+  assert.equal(v172Runtime.build, '176.0.0');
   assert.equal(v172Runtime.moduleVersion, '172.0.0');
   assert.deepEqual(v172Runtime.apps, ['breathing', 'scientific']);
   assert.equal(v172Runtime.breathing.kind, 'module');
@@ -796,6 +796,8 @@ async function run() {
       qrStickers: H.AppBrowser.getStatus('qr-sticker'),
       pdfCenter: H.AppBrowser.getStatus('pdf-center'),
       documentScanner: H.AppBrowser.getStatus('document-scanner'),
+      scienceLab: H.AppBrowser.getStatus('science-lab'),
+      wlanBluetooth: H.AppBrowser.getStatus('wlan-bt'),
       breathingRoute: H.SystemV157.resolveRoute('breathing'),
       scientificRoute: H.SystemV157.resolveRoute('scientific'),
       careDocumentationRoute: H.SystemV157.resolveRoute('pflegeprotokoll-pro'),
@@ -828,7 +830,7 @@ async function run() {
   assert.equal(registryHealth.utilities.kind, 'module');
   assert.equal(registryHealth.recipes.kind, 'module');
   assert.equal(registryHealth.analyzer.kind, 'module');
-  assert.equal(registryHealth.statusCounts.modules, 88);
+  assert.equal(registryHealth.statusCounts.modules, 90);
   assert.equal(registryHealth.statusCounts.scaffolds, 1);
   assert.equal(registryHealth.breathing.kind, 'module');
   assert.equal(registryHealth.scientific.kind, 'module');
@@ -854,13 +856,15 @@ async function run() {
   assert.equal(registryHealth.medicationCatalogueRoute.routeConfigured, true);
   assert.equal(registryHealth.medicationCatalogueRoute.moduleName, 'medikamentenlexikon-pro');
   assert.equal(registryHealth.medicationCatalogueRoute.moduleAvailable, true);
-  assert.equal(registryHealth.statusCounts.review, 2);
+  assert.equal(registryHealth.statusCounts.review, 0);
   assert.equal(registryHealth.unitConverter.kind, 'module');
   assert.equal(registryHealth.habitHeatmap.kind, 'module');
   assert.equal(registryHealth.qrStudio.kind, 'module');
   assert.equal(registryHealth.qrStickers.kind, 'module');
   assert.equal(registryHealth.pdfCenter.kind, 'module');
   assert.equal(registryHealth.documentScanner.kind, 'module');
+  assert.equal(registryHealth.scienceLab.kind, 'module');
+  assert.equal(registryHealth.wlanBluetooth.kind, 'module');
   assert.equal(registryHealth.datecalc.kind, 'module');
   assert.equal(registryHealth.deviceInfo.kind, 'module');
   console.log('HALDO APP REGISTRY HEALTH ' + JSON.stringify(registryHealth));
@@ -920,6 +924,10 @@ async function run() {
   await appRegistryRoot.locator('[data-category="S"]').click();
   const categorySGrid = appRegistryRoot.locator('[data-category-app-grid="S"]');
   assert.equal(await categorySGrid.locator('[data-launch="pdf-center"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  assert.equal(await categorySGrid.locator('[data-launch="wlan-bt"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  await appRegistryRoot.locator('[data-category="I"]').click();
+  const categoryIGrid = appRegistryRoot.locator('[data-category-app-grid="I"]');
+  assert.equal(await categoryIGrid.locator('[data-launch="science-lab"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   await appRegistryRoot.locator('[data-category=""]').click();
 
   await closeWindow(appRegistryRoot);
@@ -942,7 +950,7 @@ async function run() {
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v173-care-apps.js')),
     sharedVaultReady: !!(window.HalDo.MedicalVault && typeof window.HalDo.MedicalVault.registerConfig === 'function')
   }));
-  assert.equal(v173Runtime.build, '175.0.0');
+  assert.equal(v173Runtime.build, '176.0.0');
   assert.equal(v173Runtime.moduleVersion, '173.0.0');
   assert.deepEqual(v173Runtime.apps, ['pflegeprotokoll-pro', 'arzttermine-pro']);
   assert.deepEqual(v173Runtime.errors, []);
@@ -1079,7 +1087,7 @@ async function run() {
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v174-medical-knowledge.js')),
     categoryApi: typeof window.HalDo.Registry.registerCategoryApp
   }));
-  assert.equal(v174Runtime.build, '175.0.0');
+  assert.equal(v174Runtime.build, '176.0.0');
   assert.equal(v174Runtime.moduleVersion, '174.0.0');
   assert.deepEqual(v174Runtime.apps, ['krankheitslexikon-pro', 'medikamentenlexikon-pro']);
   assert.ok(v174Runtime.status.every((item) => item.ready && item.entries > 0));
@@ -1143,7 +1151,7 @@ async function run() {
     heatmapOpen: typeof window.HalDo.heatmap?.open,
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v174-utility-apps.js'))
   }));
-  assert.equal(v174UtilityRuntime.build, '175.0.0');
+  assert.equal(v174UtilityRuntime.build, '176.0.0');
   assert.equal(v174UtilityRuntime.utilityVersion, '174.0.0');
   assert.deepEqual(v174UtilityRuntime.appIds, ['unitconv', 'heatmap']);
   assert.ok(v174UtilityRuntime.status.every((item) => item.ready));
@@ -1223,7 +1231,7 @@ async function run() {
     stickerOpen: typeof window.HalDo['qr-sticker']?.open,
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v175-qr-apps.js'))
   }));
-  assert.equal(v175Runtime.build, '175.0.0');
+  assert.equal(v175Runtime.build, '176.0.0');
   assert.equal(v175Runtime.moduleVersion, '175.0.0');
   assert.deepEqual(v175Runtime.appIds, ['qr', 'qr-sticker']);
   assert.ok(v175Runtime.status.every((item) => item.ready));
@@ -1314,7 +1322,7 @@ async function run() {
     imagePdfApi: typeof window.HalDo.DocumentScanner.createPdfBlob,
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v175-document-apps.js'))
   }));
-  assert.equal(v175DocumentRuntime.build, '175.0.0');
+  assert.equal(v175DocumentRuntime.build, '176.0.0');
   assert.equal(v175DocumentRuntime.moduleVersion, '175.0.0');
   assert.deepEqual(v175DocumentRuntime.apps, ['pdf-center', 'document-scanner']);
   assert.deepEqual(v175DocumentRuntime.moduleStatus, { registered:2, build:'175.0.0', localOnly:true });
@@ -1383,6 +1391,110 @@ async function run() {
   assert.equal(await documentScanner.locator('[data-v175-export]').isDisabled(), true);
   await closeWindow(documentScanner);
   pass('HalDo Dokumenten-Scanner Pro: lokales Bild, zwei PDF-Seiten, Export und Löschen geprüft');
+
+  // v176: science formulas and browser-permission-aware WLAN/Bluetooth manager.
+  const v176Source = await fs.readFile(path.join(ROOT, 'js/haldo-v176-science-iot-apps.js'), 'utf8');
+  assert.equal(/\beval\s*\(|\bnew\s+Function\s*\(|\bfetch\s*\(|XMLHttpRequest|WebSocket/.test(v176Source), false, 'v176 darf weder dynamische Codeausführung noch externe Netzwerkdienste verwenden.');
+  const v176Runtime = await page.evaluate(() => ({
+    build: window.HalDo.Master.version,
+    moduleVersion: window.HalDo.AppsV176.version,
+    apps: window.HalDo.AppsV176.apps,
+    status: window.HalDo.AppsV176.status(),
+    science: window.HalDo.AppBrowser.getStatus('science-lab'),
+    wlan: window.HalDo.AppBrowser.getStatus('wlan-bt'),
+    scienceOpen: typeof window.HalDo['science-lab']?.open,
+    wlanOpen: typeof window.HalDo['wlan-bt']?.open,
+    scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v176-science-iot-apps.js'))
+  }));
+  assert.equal(v176Runtime.build, '176.0.0');
+  assert.equal(v176Runtime.moduleVersion, '176.0.0');
+  assert.deepEqual(v176Runtime.apps, ['science-lab', 'wlan-bt']);
+  assert.ok(v176Runtime.status.every((item) => item.ready));
+  assert.equal(v176Runtime.science.kind, 'module');
+  assert.equal(v176Runtime.wlan.kind, 'module');
+  assert.equal(v176Runtime.scienceOpen, 'function');
+  assert.equal(v176Runtime.wlanOpen, 'function');
+  assert.equal(v176Runtime.scriptLoaded, true);
+  pass('HalDo v176: Wissenschaftslabor und WLAN/Bluetooth-Manager sind als eigene Module registriert');
+
+  await page.evaluate(() => window.HalDo.Launch({ id: 'science-lab', n: 'HalDo Wissenschaftslabor Pro' }));
+  await dismissWelcomeIfPresent();
+  const scienceLab = page.locator('#winLayer [data-hv176-app="science-lab"]').last();
+  await scienceLab.waitFor({ state: 'visible', timeout: 10000 });
+  assert.match(await scienceLab.innerText(), /24 Formeln/);
+  await scienceLab.locator('[data-hv176-search]').fill('Geschwindigkeit');
+  await scienceLab.locator('[data-hv176-formula="speed"]').click();
+  await scienceLab.locator('[data-hv176-field="s"]').fill('100');
+  await scienceLab.locator('[data-hv176-field="t"]').fill('20');
+  await scienceLab.locator('[data-hv176-calculate]').click();
+  assert.equal((await scienceLab.locator('[data-hv176-result] strong').innerText()).trim(), '5 m/s');
+  await scienceLab.locator('[data-hv176-save]').click();
+  assert.equal(await page.evaluate(() => window.HalDo.Store.get('haldo_v176_science_history', []).length), 1);
+  await scienceLab.locator('[data-hv176-back]').click();
+  await scienceLab.locator('[data-hv176-search]').fill('Kraft');
+  await scienceLab.locator('[data-hv176-formula="force"]').click();
+  await scienceLab.locator('[data-hv176-field="m"]').fill('10');
+  await scienceLab.locator('[data-hv176-field="a"]').fill('9.81');
+  await scienceLab.locator('[data-hv176-calculate]').click();
+  assert.equal((await scienceLab.locator('[data-hv176-result] strong').innerText()).trim(), '98,1 N');
+  await scienceLab.locator('[data-hv176-back]').click();
+  await scienceLab.locator('[data-hv176-clear-history]').click();
+  assert.equal(await page.evaluate(() => window.HalDo.Store.get('haldo_v176_science_history', []).length), 0);
+  await scienceLab.locator('[data-hv176-search]').fill('Frequenz');
+  await scienceLab.locator('[data-hv176-formula="frequency"]').click();
+  await scienceLab.locator('[data-hv176-field="T"]').fill('0');
+  await scienceLab.locator('[data-hv176-calculate]').click();
+  assert.match(await scienceLab.locator('[data-hv176-status]').innerText(), /Periodendauer muss größer als 0/);
+  assert.equal(await scienceLab.locator('[data-hv176-save]').isDisabled(), true);
+  await closeWindow(scienceLab);
+  pass('HalDo Wissenschaftslabor Pro: 24 Formeln, Suche, Berechnung, Verlauf und Nenner-Validierung geprüft');
+
+  // Mock Web Bluetooth to exercise explicit chooser/GATT operations deterministically.
+  await page.evaluate(() => {
+    const characteristic = {
+      readValue: async () => new DataView(Uint8Array.from([0x2a, 0x17]).buffer),
+      writeValueWithResponse: async (bytes) => { window.__haldoV176Written = Array.from(bytes); }
+    };
+    const service = { getCharacteristic: async (uuid) => { window.__haldoV176Characteristic = uuid; return characteristic; } };
+    const device = {
+      name:'HalDo Test Sensor',
+      addEventListener(name, callback) { if (name === 'gattserverdisconnected') this.__disconnect = callback; },
+      removeEventListener(name) { if (name === 'gattserverdisconnected') this.__disconnect = null; },
+      gatt:{
+        connected:false,
+        async connect() { this.connected = true; return this; },
+        disconnect() { this.connected = false; if (device.__disconnect) device.__disconnect(); },
+        async getPrimaryService(uuid) { window.__haldoV176Service = uuid; return service; }
+      }
+    };
+    window.__haldoV176Device = device;
+    window.__haldoV176ChooserOptions = null;
+    Object.defineProperty(navigator, 'bluetooth', { configurable:true, value:{ requestDevice:async (options) => { window.__haldoV176ChooserOptions = options; return device; } } });
+  });
+  await page.evaluate(() => window.HalDo.Launch({ id: 'wlan-bt', n: 'HalDo WLAN- & Bluetooth-Manager Pro' }));
+  await dismissWelcomeIfPresent();
+  const wlanManager = page.locator('#winLayer [data-hv176-app="wlan-bt"]').last();
+  await wlanManager.waitFor({ state: 'visible', timeout: 10000 });
+  assert.match(await wlanManager.innerText(), /SSID.*nicht|SSID|Browser/);
+  await wlanManager.locator('[data-hv176-connect]').click();
+  await wlanManager.locator('[data-hv176-disconnect]:not(:disabled)').waitFor({ state:'visible', timeout:10000 });
+  assert.match(await wlanManager.locator('[data-hv176-ble-message]').innerText(), /Verbunden mit HalDo Test Sensor/);
+  assert.equal(await page.evaluate(() => window.__haldoV176ChooserOptions.acceptAllDevices), true);
+  assert.deepEqual(await page.evaluate(() => window.__haldoV176ChooserOptions.optionalServices), ['battery_service']);
+  await wlanManager.locator('[data-hv176-read]').click();
+  assert.equal((await wlanManager.locator('[data-hv176-read-result] strong').innerText()).trim(), '2A 17');
+  await wlanManager.locator('[data-hv176-write-value]').fill('01 02');
+  await wlanManager.locator('[data-hv176-write]').click();
+  assert.match(await wlanManager.locator('[data-hv176-ble-message]').innerText(), /ausdrücklich bestätigen/);
+  await wlanManager.locator('[data-hv176-write-confirm]').check();
+  await wlanManager.locator('[data-hv176-write]').click();
+  assert.deepEqual(await page.evaluate(() => window.__haldoV176Written), [1, 2]);
+  await wlanManager.locator('[data-hv176-disconnect]').click();
+  assert.equal(await wlanManager.locator('[data-hv176-disconnect]').isDisabled(), true);
+  assert.match(await wlanManager.locator('[data-hv176-ble-message]').innerText(), /getrennt/);
+  await closeWindow(wlanManager);
+  assert.equal(await page.evaluate(() => window.__haldoV176Device.gatt.connected), false);
+  pass('HalDo WLAN/Bluetooth-Manager Pro: Netzwerkgrenzen, expliziter Gerätewähler, GATT-Lesen, bestätigtes Schreiben und Trennen geprüft');
 
   const anatomyCatalogCheck = await page.evaluate(async () => {
     const [catalog, loader] = await Promise.all([
