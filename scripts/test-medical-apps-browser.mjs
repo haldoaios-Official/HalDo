@@ -658,6 +658,8 @@ async function run() {
   pass('HalDo v172: Atemtrainer und Wissenschaftsrechner sind als eigene Module registriert');
 
   await page.evaluate(() => window.HalDo.Launch({ id: 'breathing', n: 'HalDo Atemtrainer Pro' }));
+  await page.locator('#haldo-v161-welcome').waitFor({ state: 'visible', timeout: 10000 });
+  assert.match(await page.locator('#haldo-v161-welcome .h161-title').innerText(), /HalDo Atemtrainer Pro/);
   await dismissWelcomeIfPresent();
   const breathingRoot = page.locator('#winLayer .hdv172-root[data-hv172-app="breathing"]').last();
   await breathingRoot.waitFor({ state: 'visible', timeout: 10000 });
@@ -684,6 +686,8 @@ async function run() {
   pass('HalDo Atemtrainer Pro: Muster auswählen, Runden setzen, starten, pausieren, fortsetzen und sicher zurücksetzen');
 
   await page.evaluate(() => window.HalDo.Launch({ id: 'scientific', n: 'HalDo Wissenschaftsrechner Pro' }));
+  await page.locator('#haldo-v161-welcome').waitFor({ state: 'visible', timeout: 10000 });
+  assert.match(await page.locator('#haldo-v161-welcome .h161-title').innerText(), /HalDo Wissenschaftsrechner Pro/);
   await dismissWelcomeIfPresent();
   const scientificRoot = page.locator('#winLayer .hdv172-root[data-hv172-app="scientific"]').last();
   await scientificRoot.waitFor({ state: 'visible', timeout: 10000 });
