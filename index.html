@@ -241,6 +241,7 @@ body.ice{--accent:#a0e0ff;--accent2:#e0f0ff;--accent3:#a0e0ff;
 .hdx-status.bad{background:rgba(255,80,100,.12);color:#ff9baa}
 .hdx-status.scaffold{background:rgba(255,190,70,.12);color:#ffd27a}
 .hdx-status.review{background:rgba(160,175,195,.12);color:#bdc9d8}
+.hdx-status.route{background:rgba(90,160,255,.12);color:#a9d3ff}
 .hdx-two{display:grid;grid-template-columns:minmax(180px,.8fr) minmax(0,1.7fr);gap:10px;min-height:340px}
 .hdx-chat-list{max-height:420px;overflow:auto;border:1px solid rgba(0,229,255,.15);border-radius:12px;padding:6px}
 .hdx-chat-person{width:100%;text-align:left;padding:10px;border:0;border-radius:9px;background:transparent;color:inherit;cursor:pointer;margin-bottom:3px}
@@ -10193,17 +10194,35 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
       'downloads':'Downloads','search':'Search','social':'Social','news':'News','network-info':'NetworkInfo'
     });
     const getStatus = (appId) => {
-      const module = H[moduleAliases[appId] || appId];
+      const route = H.SystemV157 && typeof H.SystemV157.resolveRoute === 'function'
+        ? H.SystemV157.resolveRoute(appId)
+        : null;
+      const alias = moduleAliases[appId];
+      const aliasModule = alias ? H[alias] : null;
+      const module = aliasModule && typeof aliasModule.open === 'function'
+        ? aliasModule
+        : route && route.moduleName && H[route.moduleName]
+          ? H[route.moduleName]
+          : H[appId];
       if (module && typeof module.open === 'function' && module.isGenericFallback) {
         return { kind:'scaffold', label:'Grundgerüst', description:'Generische Datensammel-Oberfläche; fachlicher Ausbau und Abnahme sind offen.' };
       }
       if (module && typeof module.open === 'function') {
         return { kind:'module', label:'Modul vorhanden', description:'Eigenes Startmodul erkannt; vollständige Funktionsabnahme je App bleibt separat.' };
       }
-      return { kind:'review', label:'Prüfung offen', description:'Sonderroute oder Modulzuordnung ist noch nicht direkt klassifiziert.' };
+      if (route && route.routeConfigured) {
+        return {
+          kind:'route',
+          label:'Start-Route vorhanden',
+          description:route.moduleName
+            ? 'Zentrale Start-Route ist eingetragen, aber das zugehörige Modul wurde im Laufzeitcheck nicht gefunden.'
+            : 'Zentrale Sonderroute ist registriert; die konkrete Modulzuordnung muss noch geprüft werden.'
+        };
+      }
+      return { kind:'review', label:'Prüfung offen', description:'Weder eigenes Modul noch zentraler Startpfad wurden eindeutig zugeordnet.' };
     };
     function mount(id){const root=document.getElementById(id);if(!root)return;let search='';let cat='';
-      const render=()=>{const list=(H.Registry?.featured||[]).filter(a=>!search||[a.n,a.id].join(' ').toLowerCase().includes(search.toLowerCase()));const category=cat?categories[cat]:null;const allStatuses=(H.Registry?.featured||[]).map(a=>getStatus(a.id));const summary={modules:allStatuses.filter(s=>s.kind==='module').length,scaffolds:allStatuses.filter(s=>s.kind==='scaffold').length,review:allStatuses.filter(s=>s.kind==='review').length};root.innerHTML=`<div class="hdx-root"><div class="hdx-banner hdx-spread"><div><strong>HalDo App-Registry Pro</strong><div class="hdx-muted">A–Z-Katalog · Suche · Schnellstart · Kommunikations-Suite</div></div><span class="hdx-status">${plannedTotal} geplante Plätze · ${summary.modules} Module · ${summary.scaffolds} Grundgerüste · ${summary.review} Prüfung offen</span></div><input class="hdx-field" data-registry-search placeholder="Apps suchen …" value="${esc(search)}"><div class="hdx-tabs"><button class="hdx-tab ${!cat?'active':''}" data-category="">Alle Apps</button>${Object.keys(categories).map(k=>`<button class="hdx-tab ${cat===k?'active':''}" data-category="${k}">${k}</button>`).join('')}</div>
+      const render=()=>{const list=(H.Registry?.featured||[]).filter(a=>!search||[a.n,a.id].join(' ').toLowerCase().includes(search.toLowerCase()));const category=cat?categories[cat]:null;const allStatuses=(H.Registry?.featured||[]).map(a=>getStatus(a.id));const summary={modules:allStatuses.filter(s=>s.kind==='module').length,scaffolds:allStatuses.filter(s=>s.kind==='scaffold').length,routes:allStatuses.filter(s=>s.kind==='route').length,review:allStatuses.filter(s=>s.kind==='review').length};root.innerHTML=`<div class="hdx-root"><div class="hdx-banner hdx-spread"><div><strong>HalDo App-Registry Pro</strong><div class="hdx-muted">A–Z-Katalog · Suche · Schnellstart · Kommunikations-Suite</div></div><span class="hdx-status">${plannedTotal} geplante Plätze · ${summary.modules} Module · ${summary.scaffolds} Grundgerüste · ${summary.routes} Start-Routen · ${summary.review} Prüfung offen</span></div><input class="hdx-field" data-registry-search placeholder="Apps suchen …" value="${esc(search)}"><div class="hdx-tabs"><button class="hdx-tab ${!cat?'active':''}" data-category="">Alle Apps</button>${Object.keys(categories).map(k=>`<button class="hdx-tab ${cat===k?'active':''}" data-category="${k}">${k}</button>`).join('')}</div>
         ${category?`<div class="hdx-card"><div class="hdx-spread"><h3>${category.icon} ${category.name}</h3><span class="hdx-status">Soll: ${category.count}</span></div><p class="hdx-muted">Benannte Kern-Apps, die in dieser Kategorie im Masterplan zugeordnet sind:</p><div class="hdx-grid">${namedForCategory(cat).map(a=>`<button class="hdx-btn" data-launch="${esc(a.id)}">${esc(a.icon)} ${esc(a.name)}</button>`).join('')||'<div class="hdx-empty">In der vorliegenden Masterliste sind für diese Kategorie noch keine individuellen App-Namen präzisiert. Die geplante Anzahl bleibt im Registry-Ziel erhalten.</div>'}</div></div>`:''}
         <div class="hdx-grid">${list.map(a=>{const state=getStatus(a.id);return `<button class="hdx-card" style="text-align:left;color:inherit;cursor:pointer" data-launch="${esc(a.id)}"><div style="font-size:22px">${esc(a.i||'📱')}</div><strong>${esc(a.n)}</strong><div class="hdx-muted">${esc(a.id)}</div><span class="hdx-status ${state.kind}" data-implementation-status="${state.kind}" title="${esc(state.description)}">${state.label}</span></button>`;}).join('')}</div>
         <div class="hdx-banner"><strong>Planungsstatus ehrlich dargestellt</strong><br><span class="hdx-muted">375 ist die Zielkapazität der 26 Kategorien, nicht die Zahl fertiger Apps. „Modul vorhanden“ kennzeichnet einen eigenen Startpunkt, „Grundgerüst“ eine generische Datensammelansicht und „Prüfung offen“ eine noch nicht direkt klassifizierte Sonderroute. Diese Statusangaben ersetzen keine Funktionsabnahme.</span></div></div>`;};
@@ -13418,6 +13437,18 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
     version:BUILD,
     registryCleanup:function(){return Object.assign({},registryCleanup);},
     routes:function(){return Object.keys(ROUTES);},
+    resolveRoute:function(id){
+      var configured=Object.prototype.hasOwnProperty.call(ROUTES,id);
+      var moduleName=configured?ROUTES[id]:null;
+      var module=moduleName?H[moduleName]:H[id];
+      return {
+        id:id,
+        routeConfigured:configured,
+        moduleName:moduleName,
+        moduleAvailable:Boolean(module&&typeof module.open==='function'),
+        genericFallback:Boolean(module&&module.isGenericFallback)
+      };
+    },
     getVersion:function(){return BUILD;}
   };
 
