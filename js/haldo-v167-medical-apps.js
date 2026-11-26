@@ -334,8 +334,17 @@
     var editingId = null, search = '';
     function fieldMarkup(field) {
       var id = field[0], label = field[1], type = field[2], required = field[3];
-      if (type === 'textarea') return '<label>' + esc(label) + '</label><textarea name="' + id + '" maxlength="2000"></textarea>';
-      return '<label>' + esc(label) + '</label><input name="' + id + '" type="' + type + '" maxlength="240" ' + (required ? 'required' : '') + ' />';
+      var requiredAttr = required ? ' required' : '';
+      if (type === 'textarea') {
+        return '<label for="h167-field-' + esc(id) + '">' + esc(label) + '</label><textarea id="h167-field-' + esc(id) + '" name="' + esc(id) + '" maxlength="2000"' + requiredAttr + '></textarea>';
+      }
+      if (type === 'select') {
+        var options = Array.isArray(field[4]) ? field[4] : [];
+        return '<label for="h167-field-' + esc(id) + '">' + esc(label) + '</label><select id="h167-field-' + esc(id) + '" name="' + esc(id) + '"' + requiredAttr + '><option value="">Bitte auswählen</option>' +
+          options.map(function (option) { return '<option value="' + esc(option) + '">' + esc(option) + '</option>'; }).join('') +
+          '</select>';
+      }
+      return '<label for="h167-field-' + esc(id) + '">' + esc(label) + '</label><input id="h167-field-' + esc(id) + '" name="' + esc(id) + '" type="' + esc(type) + '" maxlength="240"' + requiredAttr + ' />';
     }
     function render() {
       vault = vaults[config.id];
@@ -352,12 +361,15 @@
         '<div class="row"><input id="h167-search" type="search" placeholder="Einträge durchsuchen …" value="' + esc(search) + '"/><button id="h167-backup">Verschlüsseltes Backup</button><button class="danger" id="h167-lock">Tresor sperren</button></div>' +
         '<div class="muted">' + vault.records.length + ' Einträge gespeichert · nur auf diesem Gerät in diesem Browser</div>' +
         (records.length ? records.map(function (record) {
-          var title = record.name || record.medication || 'Eintrag';
-          var sub = config.id === 'laborwerte-pro'
-            ? [record.value, record.unit, record.date, record.reference ? 'Referenz: ' + record.reference : ''].filter(Boolean).join(' · ')
-            : [record.dose, record.route, record.times, record.start ? 'Beginn: ' + record.start : ''].filter(Boolean).join(' · ');
+          var title = record[config.titleField || 'name'] || record.name || record.medication || 'Eintrag';
+          var sub = typeof config.summary === 'function'
+            ? config.summary(record)
+            : config.id === 'laborwerte-pro'
+              ? [record.value, record.unit, record.date, record.reference ? 'Referenz: ' + record.reference : ''].filter(Boolean).join(' · ')
+              : [record.dose, record.route, record.times, record.start ? 'Beginn: ' + record.start : ''].filter(Boolean).join(' · ');
+          var note = config.noteField ? record[config.noteField] : record.note;
           return '<div class="card"><div class="record-title">' + esc(title) + '</div><div class="muted">' + esc(sub) + '</div>' +
-            (record.note ? '<p>' + esc(record.note) + '</p>' : '') +
+            (note ? '<p>' + esc(note) + '</p>' : '') +
             '<div class="row"><button data-edit="' + esc(record.id) + '">Bearbeiten</button><button class="danger" data-delete="' + esc(record.id) + '">Löschen</button></div></div>';
         }).join('') : '<div class="empty">Noch keine Einträge oder keine Treffer.</div>') +
         '<p class="muted">Vor jedem Eintrag die Angaben mit dem Originaldokument abgleichen. Einheiten, Referenzbereiche und Dosierungen nicht automatisch ergänzen oder umrechnen.</p>';
@@ -392,8 +404,11 @@
           var input = form.elements[field[0]];
           data[field[0]] = String(input && input.value || '').trim();
         });
-        if (!data.name || (config.id === 'laborwerte-pro' && !data.value) || (config.id === 'medikamentenplan-pro' && !data.dose)) {
-          notify('Bitte die Pflichtfelder ausfüllen.', 'warning'); return;
+        var requiredFields = Array.isArray(config.requiredFields) ? config.requiredFields.slice() : ['name'];
+        if (config.id === 'laborwerte-pro' && requiredFields.indexOf('value') < 0) requiredFields.push('value');
+        if (config.id === 'medikamentenplan-pro' && requiredFields.indexOf('dose') < 0) requiredFields.push('dose');
+        if (requiredFields.some(function (fieldName) { return !data[fieldName]; })) {
+          notify('Bitte alle Pflichtfelder ausfüllen.', 'warning'); return;
         }
         if (editingId) {
           var old = vault.records.find(function (x) { return x.id === editingId; });
@@ -410,6 +425,55 @@
     render();
   }
 
+  function registerConfig(config) {
+    if (!config || typeof config !== 'object' || !/^[a-z0-9-]{2,80}$/.test(String(config.id || ''))) {
+      throw new Error('Ungültige Medical-Vault-App-Konfiguration.');
+    }
+    if (configs.some(function (item) { return item.id === config.id; })) {
+      throw new Error('Medical-Vault-App ist bereits registriert: ' + config.id);
+    }
+    if (!/^[a-z0-9_-]{3,100}$/.test(String(config.key || '')) ||
+        !Array.isArray(config.fields) || !config.fields.length ||
+        !config.fields.some(function (field) { return field[0] === (config.titleField || 'name'); })) {
+      throw new Error('Medical-Vault-App benötigt einen eindeutigen Speicher-Schlüssel und ein Titel-Feld.');
+    }
+    if (configs.some(function (item) { return item.key === config.key; })) {
+      throw new Error('Medical-Vault-Speicher-Schlüssel wird bereits verwendet: ' + config.key);
+    }
+    if (!config.fields.every(function (field) {
+      return Array.isArray(field) && /^[a-z][a-zA-Z0-9_]*$/.test(String(field[0] || '')) &&
+        typeof field[1] === 'string' && ['text','date','time','email','tel','number','textarea','select'].indexOf(field[2]) >= 0;
+    })) {
+      throw new Error('Medical-Vault-App enthält ein nicht unterstütztes Feld.');
+    }
+    configs.push(config);
+    H[config.id] = {
+      open:function () { openApp(config); },
+      version:config.version || BUILD,
+      isGenericFallback:false,
+      implementationKind:'module'
+    };
+    if (H.Registry && Array.isArray(H.Registry.featured)) {
+      var existing = H.Registry.featured.find(function (app) { return app && app.id === config.id; });
+      if (existing) { existing.n = config.title; existing.i = config.icon; }
+      else H.Registry.featured.push({id:config.id,n:config.title,i:config.icon});
+      if (H.Master) H.Master.namedCoreApps = H.Registry.featured.length;
+    }
+    return H[config.id];
+  }
+
+  H.MedicalVault = {
+    registerConfig:registerConfig,
+    open:function (id) {
+      var config = configs.find(function (item) { return item.id === id; });
+      if (!config) throw new Error('Unbekannte Medical-Vault-App: ' + id);
+      return openApp(config);
+    },
+    getRegisteredApps:function () {
+      return configs.map(function (config) { return {id:config.id,title:config.title,version:config.version || BUILD}; });
+    }
+  };
+
   configs.forEach(function (config) {
     H[config.id] = {open:function () { openApp(config); }, version:BUILD};
     if (H.Registry && Array.isArray(H.Registry.featured)) {
@@ -423,7 +487,8 @@
     H.Master.getCategoryApps = function (letter) {
       var result = previousCategoryApps(letter) || [];
       var extra = configs.filter(function (config) {
-        return (config.id === 'laborwerte-pro' && letter === 'L') ||
+        return config.category === letter ||
+          (config.id === 'laborwerte-pro' && letter === 'L') ||
           (config.id === 'medikamentenplan-pro' && letter === 'M');
       }).map(function (config) { return {id:config.id,name:config.title,icon:config.icon}; });
       return result.concat(extra.filter(function (item) {
