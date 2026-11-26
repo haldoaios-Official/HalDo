@@ -546,3 +546,27 @@ Die App-Registry zeigt diese Kennzeichnung auf jedem benannten Karten-Eintrag so
 **Abnahme:** GitHub Actions Lauf #97 (`45757482836`) auf Commit `f4d4ed2c64efc4deb6586e2bc33974ca001310b9`: **49/49 Chromium-Browserprüfungen erfolgreich**. Geprüft wurden 26 Kategorien, 375 Sollplätze, eindeutige Registry-IDs, der Status eines generischen Reminders-Grundgerüsts, das vorhandene Chat-Pro-Modul und die tatsächliche Anzeige der Status-Tags in der geöffneten App-Registry.
 
 **Erste Laufzeit-Zählung:** 86 benannte App-IDs, 25 mit eigenem erkannten Startmodul, 4 generische Grundgerüste und 57 noch zu prüfende Zuordnungen. Diese Zahlen beschreiben den Erkennungsstand der Registry, nicht die Anzahl fertig abgenommener Fach-Apps. Die offenen Zuordnungen werden als nächster Schritt anhand der wirklichen Launcher-Routen und Laufzeitmodule einzeln geprüft.
+
+## HALDO v168/v169 – A–Z-Apps und Abnahme (26.11.2026)
+
+### v168 – Weltuhr Pro und Rezept-Skalierung Pro
+
+- **HalDo Weltuhr Pro:** IANA-Zeitzonen hinzufügen/entfernen, mehrere Ortszeiten live darstellen, speichern, nach Suchbegriff filtern und nach erneutem Öffnen wiederherstellen.
+- **HalDo Rezept-Skalierung Pro:** Rezepte mit Zutaten und Basismengen speichern, Portionszahl ändern und Mengen neu berechnen; Basisrezept bleibt unverändert, Rezepte lassen sich bearbeiten und löschen.
+- Doppelte Begrüßungsweiterleitung im App-Launcher entfernt: v168-Apps geben die Kontrolle an die globale HalDo-Willkommensschicht ab, statt eine zweite Begrüßung selbst zu starten.
+- Der Browser-Test wartet auf die tatsächlich gerenderten App-Karten, bevor er Inhalte prüft. So wird verzögertes Mounting nicht mit einem fehlenden Modul verwechselt.
+
+**Abnahme:** GitHub Actions Lauf #120 (`45761953174`) auf Commit `e8fe01a0a16dedb4a7fd41ef0be21c425c16129f`: **51/51 Chromium-Browserprüfungen erfolgreich**. Die Weltuhr wurde mit Hinzufügen, Live-Anzeige, Speichern, Wiederherstellen, Suchen und Entfernen getestet. Die Rezept-Skalierung wurde mit Rezeptanlage, zwei Zutaten, Verdoppelung der Portionen, unveränderten Basiswerten und Löschen getestet.
+
+### v169 – Workout Planner Pro und Werkzeuge Pro
+
+- **HalDo Workout Planner Pro:** Trainingseinheiten mit Datum, Dauer, Notizen und Übungen anlegen; pro Übung Sätze, Wiederholungen und optionales Gewicht erfassen; Einheiten bearbeiten, durchsuchen und entfernen. Die Daten liegen lokal im HalDo Store. Das Modul bietet Trainingsdokumentation, keine medizinische oder therapeutische Empfehlung.
+- **HalDo Werkzeuge Pro:** Längen-, Massen-, Volumen-, Flächen-, Geschwindigkeits- und Temperaturumrechnung; Prozentwertberechnung; Kalendertag-Abstand zwischen zwei Daten; letzter Berechnungsverlauf lokal speichern und löschen.
+- Beide Module ersetzen die bisherigen generischen Datensammel-Grundgerüste derselben App-IDs. Registry-Status wird dynamisch als eigenes Modul erkannt; `workout` ist im G-Katalog, `utilities` im U-Katalog eingetragen.
+- Die Laufzeitzählung bleibt bei 86 benannten App-IDs und 26 Kategorien/375 Sollplätzen. Der Status verschiebt sich auf 72 eigene Module, 3 generische Grundgerüste, 1 zentrale Route und 10 noch zu prüfende Zuordnungen.
+
+**Abnahme:** GitHub Actions Lauf #124 (`45762384692`) auf Commit `c7d6eb5da2253b9e167971a17ed0bf4eebc3735e`: **53/53 Chromium-Browserprüfungen erfolgreich**. Geprüft wurden Modulregistrierung, Workout-CRUD/Bearbeiten/Suche/Löschen, Einheitenumrechnung (2.500 m → 2,5 km), Prozentrechnung (15 % von 200 → 30), Datumsabstand (1.–26. November 2026 → 25 Tage), lokaler Berechnungsverlauf und vollständige Regression der vorhandenen medizinischen und Anatomie-Tests.
+
+**Zusätzliche Registry-Prüfung:** `index.html` wurde danach ergänzt, damit Werkzeuge Pro unter U auch im sichtbaren A–Z-Kategoriefilter erscheint. Der Browser-Test prüft nun die Kategorie-Kacheln G (Workout) und U (Werkzeuge) einschließlich des Status-Tags „Modul vorhanden“. Lauf #125 (`45762656371`) und Lauf #126 (`45762674927`) prüfen diesen Nachtrag noch; deren Endergebnis ist bei dieser Dokumentation offen.
+
+**Release-Grenze:** Alle oben genannten Änderungen liegen im Arbeitsbranch `work-v167-medical-apps` und sind nicht nach `main` gemergt oder veröffentlicht. Die 375 Plätze bleiben Sollkapazität; nicht spezifizierte oder generische Scaffolds sind weiterhin offen.
