@@ -445,7 +445,7 @@ Die rekursive Git-Baum-Inventur auf `work-v167-medical-apps` ergab 539 GLB-Datei
 - `models/adult_male/adult_female/baby.glb/`: 178 einzelne GLB-Knochenmodelle; `c1_atlas.glb` fehlt in diesem Profil. `baby.glb` ist im Git-Baum ein Verzeichnis, keine einzelne GLB-Datei.
 - Ein Neugeborenen-Profilverzeichnis `models/neonate/` ist nicht vorhanden.
 
-Der aktive In-Shell-Viewer in `index.html` bietet aktuell nur 11 fest eingetragene Modellpfade an und lädt jeweils ein einzelnes Knochenmodell. Das ist kein vollständig zusammengesetztes, interaktives Ganzkörpermodell. `anatomie.html` ist eine separate Seite mit Three.js 0.160 ES-Modulen und verweist auf ein externes `body.glb`; der integrierte Viewer nutzt das globale Three.js r128. Diese Laufzeitpfade dürfen nicht ungeprüft vermischt werden.
+Der In-Shell-Viewer in `index.html` enthält inzwischen zwei getrennte Arbeitsweisen: (1) vorhandene einzelne GLB-Knochenmodelle aus den verifizierten Profilpfaden laden und (2) ein vollständiges schematisches Skelett aus `models/skeleton.js`, `base-bones.js`, `extended-bones.js` und `procedural.js` aufbauen. Die Profilwahl umfasst adult_male, adult_female, infant und neonate; das Skelett bleibt ausdrücklich eine schematische Lernansicht in willkürlichen Einheiten. `anatomie.html` bleibt eine separate Seite mit Three.js 0.160 ES-Modulen und externem `body.glb`; der integrierte Viewer nutzt das globale Three.js r128. Diese Laufzeitpfade dürfen nicht ungeprüft vermischt werden.
 
 Die vorhandenen `models/manifest.json` und `models/sources.json`, auf die `models/loader.js` standardmäßig zugreift, fehlen derzeit. Die separate `js/haldo-human-3d-engine.js` verwendet eigene `assets/avatars/*.glb`-Pfade; Anatomie-Knochenmodelle werden nicht als Avatar-Ersatz verwendet. Vollständigkeit, Skinning/Animation und Lizenzherkunft der großen Root-GLBs sind noch nicht bestätigt.
 
@@ -464,6 +464,25 @@ GitHub Actions Chromium-Lauf #56 (`45751307888`) auf Commit `f2b0f2f79c761dcd855
 - `female-base-mesh-base_female.glb`: 4.497.424 Byte, 166 GLTF-Nodes, 2 Meshes, 1 Skin, 0 Animationen. Damit ist es ein skinned Base-Mesh-Kandidat für den Anatomie-Viewer; es wurde noch nicht visuell, morphologisch oder lizenzrechtlich freigegeben und wird nicht automatisch als Avatar verwendet.
 - `models/adult_male/adult_female/c1_atlas.glb`: 42.512 Byte, 2 Nodes, 1 Mesh, 0 Skins, 0 Animationen. Es ist ein einzelnes statisches Knochenmodell, kein rigged Ganzkörpermodell.
 
-Der aktuelle Viewer lädt diese Assets noch nicht als vollständigen Anatomie-Arbeitsbereich. Der nächste Abnahmeschritt prüft, ob `base-bones.js`, `extended-bones.js` und `procedural.js` ein eindeutiges, vollständiges schematisches Knochenmodell aufbauen können. Die resultierende Lehrdarstellung muss sichtbar als schematisch und mit willkürlichen Anzeigeeinheiten gekennzeichnet bleiben. Ein erfolgreich zusammengesetztes Skelett wäre noch keine klinisch validierte Anatomie.
+Der Viewer verwendet die einzelnen GLB-Dateien weiterhin als separate auswählbare Modelle; das zusammengesetzte 179-Knochen-Skelett wird derzeit aus prozedural erzeugter Lehrgeometrie aufgebaut. Die GLB-Kandidaten sind nicht automatisch in das prozedurale Skelett eingesetzt. Diese Trennung schützt vor der falschen Behauptung, dass einzelne Knochen-GLBs bereits ein vollständiges Ganzkörpermodell ergeben.
 
-GitHub Actions Lauf #57 (`45751373420`) enthält diese zusätzliche Skelett-Aufbauprüfung und ist bei dieser Dokumentation noch offen.
+GitHub Actions Lauf #57 (`45751373420`) auf Commit `688c3803a7cb2f93cd17e681f1103ee83c8b6eea` war erfolgreich: **36/36 Browserprüfungen**. Lauf #60 (`45751602470`) auf Commit `cdd57ca1ef722f2df819d4608157bb8b98716ed5` war ebenfalls erfolgreich: **37/37 Prüfungen**. Darin wurden die 179 eindeutigen Knochen-Definitionen, 556 erzeugte Meshes und alle vier schematischen Profile geprüft.
+
+## Anatomie-Viewer – Bedienintegration und asynchrone Stabilität (26.11.2026)
+
+### Aktueller Funktionsumfang im Hauptsystem
+
+Der aktuelle `index.html`-Viewer enthält bereits die sichtbare Bedienintegration: Anatomie-Tab, Profil-Auswahl für vier schematische Profile, Schaltfläche für das gesamte schematische Skelett, separate Schaltfläche für einzelne GLB-Modelle, lokale GLB/GLTF-Dateiauswahl, Orbit-/Touch-Steuerung und eine Knochen-Informationskarte. Die 3D-Auswahl führt über Raycasting vom Canvas zur Knochen-ID; die Informationskarte zeigt deutsche, englische und lateinische Bezeichnung sowie Körperregion und Seite. Die Darstellung kennzeichnet ihre willkürlichen Einheiten und den fehlenden klinischen Einsatz ausdrücklich.
+
+`models/skeleton.js` stellt den wiederverwendbaren Builder bereit. Er prüft doppelte Knochen-IDs, baut 179 anatomische Definitionen als 179 Knochenobjekte auf, liefert die ID-Suche über `byId` und stellt eine zentrale Ressourcenfreigabe für Geometrien und Materialien bereit.
+
+### Stabilitätskorrektur
+
+Der Viewer hat jetzt Request-Tokens für asynchrone Modellladevorgänge. Ein verspätet eintreffendes GLB-Ergebnis darf kein inzwischen neueres schematisches Modell mehr überschreiben. Beim Wechsel des Tabs oder Schließen des Fensters werden laufende Requests ungültig gemacht, das aktuelle Objekt entfernt und die Ressourcen/der Renderer freigegeben. Temporäre lokale Blob-URLs werden bei Fehlern, veralteten Antworten oder beim Wechsel auf ein anderes Modell freigegeben.
+
+### Browserabnahme
+
+GitHub Actions Lauf #61 (`45751778936`) auf Commit `c2ea7326a4ee8e96cbb048f756b25d05a1a935b6` war erfolgreich: **37/37 Browserprüfungen** für die bis dahin vorhandenen Core-, Anatomie-Modul- und Arztbuchtests. Für den tatsächlichen Bedienweg im Fenster wurden anschließend End-to-End-Prüfungen ergänzt: Skelett laden, Profil wechseln, Viewer beim Tabwechsel freigeben, erneut öffnen und Fenster schließen. Die erste Ausführung #63 scheiterte nur am mehrdeutigen Playwright-Tab-Selektor (zwei Treffer), bevor der Viewer-Ladevorgang getestet wurde. Der Selektor ist in der aktuellen Testfassung auf den letzten passenden Tab-Button eingegrenzt. Lauf #66 (`45752240343`) prüft diese korrigierte Testfassung; sein endgültiges Ergebnis ist bei dieser Dokumentation noch offen.
+
+**Nächster Schritt nach grüner Abnahme:** die echte Knochen-Selektion im Browser verifizieren, danach Einzel-GLB-Ladevorgang, Fehler-/Retry-Pfad und lokale Modellfreigabe separat testen. Anschließend die GLB-Lizenz-/Quellenmetadaten und die fehlenden Manifeste für den Paketmanager klären, bevor Assets als offline-downloadbare Pakete angeboten werden.
+
