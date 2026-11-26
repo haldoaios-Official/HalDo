@@ -1219,6 +1219,17 @@ async function run() {
 
   // v175: two QR applications share a pinned browser renderer; payload data stays local.
   const v175Source = await fs.readFile(path.join(ROOT, 'js/haldo-v175-qr-apps.js'), 'utf8');
+  const qrVendorSource = await fs.readFile(path.join(ROOT, 'js/vendor/qrcode-generator.js'), 'utf8');
+  assert.match(qrVendorSource, /Kazuhiko Arase/);
+  assert.match(qrVendorSource, /stringToBytesFuncs/);
+  assert.equal(/cdn\\.jsdelivr\\.net|QR_LIBRARY_URL|script\\.src\\s*=/.test(v175Source), false, 'QR-Erzeugung muss ohne externen CDN-Renderer funktionieren.');
+  const qrVendorRuntime = await page.evaluate(() => ({
+    loaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/vendor/qrcode-generator.js')),
+    generator: typeof window.qrcode,
+    utf8: typeof window.qrcode?.stringToBytesFuncs?.['UTF-8']
+  }));
+  assert.deepEqual(qrVendorRuntime, { loaded:true, generator:'function', utf8:'function' });
+
   assert.equal(/\bfetch\s*\(|XMLHttpRequest|WebSocket/.test(v175Source), false, 'QR-Payloads dürfen nicht an externe QR-Endpunkte gesendet werden.');
   const v175Runtime = await page.evaluate(() => ({
     build: window.HalDo.Master.version,
