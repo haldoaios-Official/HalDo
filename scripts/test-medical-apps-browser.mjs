@@ -355,6 +355,22 @@ async function run() {
   await clearToDate.fill('');
   await clearToDate.dispatchEvent('change');
 
+  await hub.locator('[name="title"]').fill('Puls E2E');
+  await hub.locator('[name="result"]').fill('72');
+  await hub.locator('[name="unit"]').fill('bpm');
+  await hub.locator('[name="date"]').fill('2026-11-25');
+  await hub.locator('[data-ab-form] button[type="submit"]').click();
+  await hub.getByText('Puls E2E', { exact: true }).waitFor({ timeout: 10000 });
+  assert.equal(await hub.locator('[data-ab-vital-chart]').count(), 0);
+  await hub.locator('[name="title"]').fill('Puls E2E');
+  await hub.locator('[name="result"]').fill('75');
+  await hub.locator('[name="unit"]').fill('bpm');
+  await hub.locator('[name="date"]').fill('2026-11-26');
+  await hub.locator('[data-ab-form] button[type="submit"]').click();
+  await hub.locator('[data-ab-vital-chart]').waitFor({ state: 'visible', timeout: 10000 });
+  assert.equal(await hub.locator('[data-ab-vital-chart] circle').count(), 2);
+  pass('Arztbuch: Zwei numerische Messungen derselben Messgröße werden als Verlauf dargestellt');
+
 
 
   await hub.locator('[data-ab-edit-vital]').click();
