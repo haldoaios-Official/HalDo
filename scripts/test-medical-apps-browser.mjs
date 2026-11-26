@@ -355,6 +355,23 @@ async function run() {
   await clearToDate.fill('');
   await clearToDate.dispatchEvent('change');
 
+  await hub.locator('[data-ab-edit-vital]').click();
+  await hub.locator('[name="result"]').fill('118/76');
+  await hub.locator('[data-ab-form] button[type="submit"]').click();
+  await hub.getByText('118/76', { exact: false }).waitFor({ timeout: 10000 });
+  await assertArztbuchEncrypted(['Blutdruck E2E', '118/76']);
+  vitalData = await readArztbuchData(PASS);
+  assert.equal(vitalData.vitals[0].result, '118/76');
+  pass('Arztbuch: Vitalwert kann bearbeitet und erneut verschlüsselt gespeichert werden');
+
+  page.once('dialog', (dialog) => dialog.accept());
+  await hub.locator('[data-ab-delete][data-ab-type="vitals"]').click();
+  await hub.locator('.hdp154-empty').getByText('Noch keine Einträge in diesem Bereich.', { exact: true }).waitFor();
+  await assertArztbuchEncrypted(['Blutdruck E2E', 'Nur automatischer Browser-Test']);
+  vitalData = await readArztbuchData(PASS);
+  assert.equal(vitalData.vitals.length, 0);
+  pass('Arztbuch: Vitalwert kann gelöscht werden; der verschlüsselte Tresor bleibt gültig');
+
   await hub.locator('[name="title"]').fill('Puls E2E');
   await hub.locator('[name="result"]').fill('72');
   await hub.locator('[name="unit"]').fill('bpm');
@@ -373,22 +390,6 @@ async function run() {
 
 
 
-  await hub.locator('[data-ab-edit-vital]').click();
-  await hub.locator('[name="result"]').fill('118/76');
-  await hub.locator('[data-ab-form] button[type="submit"]').click();
-  await hub.getByText('118/76', { exact: false }).waitFor({ timeout: 10000 });
-  await assertArztbuchEncrypted(['Blutdruck E2E', '118/76']);
-  vitalData = await readArztbuchData(PASS);
-  assert.equal(vitalData.vitals[0].result, '118/76');
-  pass('Arztbuch: Vitalwert kann bearbeitet und erneut verschlüsselt gespeichert werden');
-
-  page.once('dialog', (dialog) => dialog.accept());
-  await hub.locator('[data-ab-delete][data-ab-type="vitals"]').click();
-  await hub.locator('.hdp154-empty').getByText('Noch keine Einträge in diesem Bereich.', { exact: true }).waitFor();
-  await assertArztbuchEncrypted(['Blutdruck E2E', 'Nur automatischer Browser-Test']);
-  vitalData = await readArztbuchData(PASS);
-  assert.equal(vitalData.vitals.length, 0);
-  pass('Arztbuch: Vitalwert kann gelöscht werden; der verschlüsselte Tresor bleibt gültig');
 
   await hub.locator('[data-ab-tab="overview"]').click();
   await hub.locator('[data-ab-open-module="laborwerte-pro"]').waitFor({ state: 'visible' });
