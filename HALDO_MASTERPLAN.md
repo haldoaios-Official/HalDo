@@ -594,3 +594,45 @@ Beide Apps sind als eigenständige Module registriert: `recipes` unter G und `an
 **Technische Korrekturen während der Abnahme:** Die Versionsprüfung unterscheidet jetzt korrekt `AppsV169.version` (169.0.0) und `AppsV170.version` (170.0.0). Zutatenzeilen lassen sich vor vollständiger Rezeptvalidierung bearbeiten; die komplette Pflichtfeldprüfung bleibt beim Speichern aktiv.
 
 **Freigabegrenze:** Änderungen bleiben auf `work-v167-medical-apps`, Draft-PR #1; kein Merge nach `main` und keine produktive Veröffentlichung.
+
+## HALDO v171 – Datumsrechner Pro und Geräte-Info Pro (26.11.2026)
+
+### HalDo Datumsrechner Pro
+- Monatsarithmetik begrenzt auf das gültige Monatsende (z. B. Monatswechsel vom 31. Januar).
+- Kalender-Tagesabstände, Arbeitstage und ISO-Kalenderwochen werden getrennt berechnet.
+- Der zuletzt verwendete Verlauf wird lokal gespeichert und kann gelöscht werden.
+
+### HalDo Geräte-Info Pro
+- Lokale Browser-, Bildschirm-, Sprache-, Zeitzonen- und verfügbare Web-API-Diagnose.
+- Aktualisierung der angezeigten Momentaufnahme; keine Berechtigungsabfrage für Kamera, Mikrofon, Standort oder Funkgeräte.
+- Keine WLAN-SSID, MAC-Adresse oder gekoppelten Bluetooth-Geräte auslesen. Nicht verfügbare Browserinformationen bleiben als nicht verfügbar gekennzeichnet.
+
+**Abnahme:** GitHub Actions Lauf #145 (`45799265039`) auf Commit `997e37b352944e8f3f570c58f7befd3c01b8cac8`: **58/58 Chromium-Browserprüfungen erfolgreich**. Neben beiden v171-Apps wurden die gesamte bisherige v168–v170-Regression, App-Registry-Inventur, Anatomie-Viewer, Profilwechsel, Knochenkatalog, Arztbuch, Vitalwerte, Laborwerte und Medikamentenplan geprüft.
+
+### Zusätzliche Core-/Anatomie-Korrektur in diesem Abnahmeschritt
+- Die spätere v151-Stabilisierungsdatei enthielt fünf ungültig maskierte Template-String-Ausdrücke und wies denselben `H.Anatomy3D`-Namespace erneut zu. Das verursachte einen JavaScript-Syntaxfehler und hätte den vollständigen Pro-Max-Viewer mit Knochenkatalog überschrieben.
+- Die spätere Zuweisung ist jetzt nur noch ein Fallback, wenn kein früherer Anatomy3D-Baustein vorhanden ist. Die fehlerhaften Escape-Zeichen sind korrigiert. Der primäre Viewer meldet `pro-max-v2` und seine geprüften Funktionen (Knochenkatalog, Profile, Raycast-Auswahl, Ressourcenfreigabe).
+- Der Test überprüft, dass die Stabilisierungsdatei ohne Syntaxfehler geladen ist und der vollständige Viewer aktiv bleibt. Browserlauf #145 enthält diese Prüfung und ist mit 58/58 bestanden.
+
+**Statusgrenze:** Die v171-Module sind im Arbeitsbranch registriert und in der genannten Browser-Suite abgenommen; das ist keine Live-Veröffentlichung. Der Draft-PR bleibt unverändert offen.
+
+## HALDO v172 – Atemtrainer Pro und Wissenschaftsrechner Pro (26.11.2026)
+
+### HalDo Atemtrainer Pro
+- Ersetzt das generische Atemübungs-Grundgerüst durch eine eigenständige App.
+- Drei auswählbare Rhythmen: ruhige Atmung 5/5, Box-Atmung 4/4/4/4 und 4-7-8.
+- 2, 4, 6, 8 oder 12 Runden, gut sichtbare Phasen- und Countdown-Anzeige, Start, Pause, echtes Fortsetzen mit erhaltener Restzeit und Zurücksetzen.
+- Die App startet nie automatisch. Sie zeigt einen klaren Wellness-Hinweis und empfiehlt, bei Schwindel, Atemnot oder Unwohlsein sofort aufzuhören.
+- Lokal gespeichert werden nur die ausgewählten Voreinstellungen sowie bei abgeschlossenen Sitzungen Rhythmus, Rundenzahl und Dauer; keine Gesundheits- oder Diagnosedaten.
+
+### HalDo Wissenschaftsrechner Pro
+- Ersetzt das generische Grundgerüst durch einen eigenen wissenschaftlichen Rechner mit DEG/RAD, trigonometrischen und inversen trigonometrischen Funktionen, Wurzel, ln/log10, abs, exp, Potenzen, Fakultät, Prozent, π, e und Ans.
+- Der Ausdruck wird durch Tokenizer und rekursiven Parser ausgewertet. Es werden keine dynamische Codeausführung, `eval` oder `new Function` verwendet.
+- Eingaben sind begrenzt; ungültige Zeichen, Klammern, Division durch null, unzulässige Wurzeln/Logarithmen, Fakultät außerhalb 0–170 und nicht endliche/zu große Ergebnisse werden abgefangen.
+- Der lokale Verlauf speichert nur den eingegebenen Ausdruck, das Ergebnis und den Zeitpunkt. Verlauf und Winkelmodus lassen sich lokal löschen bzw. ändern.
+
+**Technischer Stand:** `js/haldo-v172-learning-apps.js` ist angelegt und in `index.html` nach v171 eingebunden. Die beiden App-IDs behalten ihre bestehenden Registry-Plätze und werden als eigenständige Module registriert. Der zentrale HalDo-Build wird auf `172.0.0` gesetzt; die Modulversionsnummern v168, v169, v170 und v171 bleiben unabhängig.
+
+**Abnahme noch offen:** Die Chromium-End-to-End-Suite für die v172-Module ist aktuell in GitHub Actions. Sie prüft die echte Registrierung, Atemrhythmus/Runden/Start/Pause/Fortsetzen/Reset sowie DEG/RAD, Funktions- und Potenzberechnung, Ans, Fehlerfälle, Verlaufsspeicherung und das Fehlen dynamischer Codeausführung. Die Testausführung muss abgeschlossen sein, bevor diese beiden Apps als browsergeprüft markiert werden.
+
+**Release-Grenze:** Änderungen bleiben auf `work-v167-medical-apps` und Draft-PR #1. Kein Merge nach `main`, keine GitHub-Pages-Veröffentlichung. Ein vorhandenes Modul ist nicht automatisch fachlich vollständig freigegeben.
