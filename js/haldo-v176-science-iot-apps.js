@@ -294,12 +294,18 @@
       root.querySelector('[data-hv176-downlink]').textContent = info && Number.isFinite(info.downlink) ? formatNumber(info.downlink) + ' Mbit/s' : 'Nicht verfügbar';
     }
     function setConnected(connected) {
-      root.querySelector('[data-hv176-connect]').disabled = connected;
-      root.querySelector('[data-hv176-disconnect]').disabled = !connected;
-      root.querySelector('[data-hv176-read]').disabled = !connected;
-      root.querySelector('[data-hv176-write-value]').disabled = !connected;
-      root.querySelector('[data-hv176-write]').disabled = !connected;
-      root.querySelector('[data-hv176-write-confirm]').disabled = !connected;
+      if (!root.isConnected) return;
+      [
+        ['[data-hv176-connect]', connected],
+        ['[data-hv176-disconnect]', !connected],
+        ['[data-hv176-read]', !connected],
+        ['[data-hv176-write-value]', !connected],
+        ['[data-hv176-write]', !connected],
+        ['[data-hv176-write-confirm]', !connected]
+      ].forEach(function (entry) {
+        var control = root.querySelector(entry[0]);
+        if (control) control.disabled = entry[1];
+      });
     }
     function disconnect() {
       if (server && server.connected && typeof server.disconnect === 'function') {
