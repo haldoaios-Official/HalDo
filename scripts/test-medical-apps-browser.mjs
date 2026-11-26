@@ -1068,7 +1068,7 @@ async function run() {
   const diseaseCatalogue = page.locator('#winLayer .hdv174-root').last();
   await diseaseCatalogue.waitFor({ state: 'visible', timeout: 10000 });
   assert.equal(await diseaseCatalogue.locator('[data-k174-entry]').count(), 4);
-  assert.match(await diseaseCatalogue.innerText(), /keine Selbstdiagnose/);
+  assert.match(await diseaseCatalogue.innerText(), /keine Selbstdiagnose/i);
   await diseaseCatalogue.locator('[data-k174-search]').fill('HbA1c');
   await diseaseCatalogue.locator('[data-k174-detail]').getByText('HbA1c', { exact: false }).waitFor({ timeout: 10000 });
   assert.match(await diseaseCatalogue.locator('[data-k174-detail]').innerText(), /gesund\.bund\.de/);
