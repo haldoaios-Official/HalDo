@@ -103,7 +103,7 @@
               })) {
             throw new Error('Die entschlüsselten Einträge haben eine ungültige Struktur.');
           }
-          return {key:key, salt:parts.salt, records:records, dirty:false};
+          return {key:key, salt:parts.salt, records:records, persistedRecords:JSON.parse(JSON.stringify(records)), dirty:false};
         });
     }).catch(function (error) {
       if (error && error.name === 'OperationError') throw new Error('Passphrase falsch oder Backup beschädigt.');
@@ -153,7 +153,7 @@
     if (!envelope) {
       var salt = window.crypto.getRandomValues(new Uint8Array(16));
       return deriveKey(passphrase, salt).then(function (key) {
-        vaults[config.id] = {key:key, salt:salt, records:[], dirty:false};
+        vaults[config.id] = {key:key, salt:salt, records:[], persistedRecords:[], dirty:false};
         return vaults[config.id];
       });
     }
@@ -191,9 +191,19 @@
   function save(config) {
     var vault = vaults[config.id];
     if (!vault) return Promise.reject(new Error('Tresor ist gesperrt.'));
+    var lastCommitted = Array.isArray(vault.persistedRecords)
+      ? vault.persistedRecords
+      : [];
     return encryptRecords(config, vault.records, vault.key).then(function () {
+      vault.persistedRecords = JSON.parse(JSON.stringify(vault.records));
       vault.dirty = false;
       return true;
+    }).catch(function (error) {
+      // Keep the in-memory view consistent with the last encrypted local save.
+      // A quota/security/storage error must not leave an unsaved edit appearing committed.
+      vault.records = JSON.parse(JSON.stringify(lastCommitted));
+      vault.dirty = true;
+      throw error;
     });
   }
   function lock(config) {
