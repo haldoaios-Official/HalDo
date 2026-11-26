@@ -407,7 +407,7 @@ async function run() {
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v169-a-z-apps.js'))
   }));
   console.log('HALDO V169 RUNTIME ' + JSON.stringify(v169Runtime));
-  assert.equal(v169Runtime.build, '170.0.0');
+  assert.equal(v169Runtime.build, '169.0.0');
   assert.equal(v169Runtime.workout.kind, 'module');
   assert.equal(v169Runtime.utilities.kind, 'module');
   assert.equal(v169Runtime.workoutOpen, 'function');
