@@ -99,7 +99,7 @@ async function seedLegacyArztbuchVault() {
     const legacyData = { appointments: [], medications: [], allergies: [], labs: [], notes: [] };
     const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoder.encode(JSON.stringify(legacyData)));
     const toB64 = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes)));
-    localStorage.setItem('v154_arztbuch_encrypted_vault', JSON.stringify({
+    localStorage.setItem('haldo_v154_arztbuch_encrypted_vault', JSON.stringify({
       v: 1, algorithm: 'AES-GCM-256', kdf: 'PBKDF2-SHA-256', iterations: 210000,
       salt: toB64(salt), iv: toB64(iv), cipher: toB64(cipher)
     }));
@@ -119,10 +119,10 @@ async function readArztbuchData(passphrase) {
     );
     const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(envelope.iv) }, key, fromB64(envelope.cipher));
     return JSON.parse(new TextDecoder().decode(plain));
-  }, { storageKey: 'v154_arztbuch_encrypted_vault', pass: passphrase });
+  }, { storageKey: 'haldo_v154_arztbuch_encrypted_vault', pass: passphrase });
 }
 async function assertArztbuchEncrypted(plaintexts = []) {
-  const raw = await readVault('v154_arztbuch_encrypted_vault');
+  const raw = await readVault('haldo_v154_arztbuch_encrypted_vault');
   assert.ok(raw, 'Verschlüsselter Arztbuch-Tresor fehlt.');
   const envelope = JSON.parse(raw);
   assert.equal(envelope.algorithm, 'AES-GCM-256');
@@ -149,7 +149,7 @@ async function openArztbuchHub() {
   await unlockForm.waitFor({ state: 'visible', timeout: 20000 });
   await hub.locator('[name="pass"]').fill(PASS);
   const confirm = hub.locator('[name="confirm"]');
-  if (await confirm.count()) await confirm.fill(PASS);
+  assert.equal(await confirm.count(), 0, 'Der vorbereitete alte Arztbuch-Tresor wurde nicht erkannt; es darf kein neuer Tresor erstellt werden.');
   await unlockForm.locator('button[type="submit"]').click();
   await hub.locator('[data-ab-open-module="laborwerte-pro"]').waitFor({ state: 'visible', timeout: 20000 });
   return hub;
