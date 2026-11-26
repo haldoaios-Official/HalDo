@@ -716,8 +716,15 @@ async function run() {
   assert.equal(scientificHistory.length, 4);
   await closeWindow(scientificRoot);
   await page.evaluate(() => window.HalDo.Launch({ id: 'scientific', n: 'HalDo Wissenschaftsrechner Pro' }));
+  await dismissWelcomeIfPresent();
   const reopenedScientific = page.locator('#winLayer .hdv172-root[data-hv172-app="scientific"]').last();
   await reopenedScientific.waitFor({ state: 'visible', timeout: 10000 });
+  await reopenedScientific.locator('[data-s172-history]').waitFor({ state: 'visible', timeout: 10000 });
+  await page.waitForFunction(() => {
+    const roots = Array.from(document.querySelectorAll('.hdv172-root[data-hv172-app="scientific"]'));
+    const root = roots[roots.length - 1];
+    return !!root && !!root.querySelector('[data-s172-history] li');
+  });
   assert.equal(await reopenedScientific.locator('[data-s172-history] li').count(), 4);
   await reopenedScientific.locator('[data-s172-clear-history]').click();
   assert.equal(await page.evaluate(() => window.HalDo.Store.get('haldo_v172_scientific_history', []).length), 0);
