@@ -9783,7 +9783,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
       };
       root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.arztTab){if(tab==='anatomy')disposeViewer();tab=b.dataset.arztTab;draw();}if(b.hasAttribute('data-arzt-open3d')){if(tab==='anatomy')disposeViewer();tab='anatomy';draw();}if(b.hasAttribute('data-arzt-legacy')&&H.ArztbuchLegacyOpen){H.ArztbuchLegacyOpen();}if(b.hasAttribute('data-model-load'))loadModel(root.querySelector('[data-model-select]').value);if(b.hasAttribute('data-model-schematic'))loadSchematicSkeleton();});
       root.addEventListener('change',e=>{if(e.target.matches('[data-model-file]')){const f=e.target.files?.[0];if(f){const url=URL.createObjectURL(f);loadModel(url,true);}}});
-      let renderer=null,scene=null,camera=null,controls=null,frame=0,loader=null,resizeObserver=null,currentObject=null,initialized=false;
+      let renderer=null,scene=null,camera=null,controls=null,frame=0,loader=null,resizeObserver=null,currentObject=null,initialized=false,loadToken=0;
       let currentSkeleton=null,skeletonApi=null,currentObjectUrl=null,raycaster=null,pointer=null,canvasClickHandler=null,resizeHandler=null;
       function status(msg,bad=false){const el=root.querySelector('[data-anatomy-status]');if(el){el.textContent=msg;el.style.color=bad?'#ff9baa':'#8fffe1';}}
       function disposeObjectResources(object){
@@ -9810,6 +9810,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
         if(currentObjectUrl){URL.revokeObjectURL(currentObjectUrl);currentObjectUrl=null;}
       }
       function disposeViewer(){
+        loadToken+=1;
         if(frame){cancelAnimationFrame(frame);frame=0;}
         if(renderer&&renderer.domElement&&canvasClickHandler)renderer.domElement.removeEventListener('click',canvasClickHandler);
         if(resizeObserver){resizeObserver.disconnect();resizeObserver=null;}
@@ -9891,32 +9892,38 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
       async function loadSchematicSkeleton(){
         initViewer();
         if(!renderer||!scene||!camera){status('Der 3D-Viewer ist nicht verfügbar.',true);return;}
+        const requestToken=++loadToken;
         const profileId=root.querySelector('[data-anatomy-profile]')?.value||'adult_male';
         status('Erzeuge schematisches Skelett für das Profil '+profileId+' …');
         try{
           const api=await import('./models/skeleton.js');
+          if(!root.isConnected||requestToken!==loadToken||!renderer||!scene)return;
           const skeleton=api.createSchematicSkeleton(window.THREE,profileId);
+          if(!root.isConnected||requestToken!==loadToken||!renderer||!scene){api.disposeSchematicSkeleton(skeleton);return;}
           clearCurrentObject();
           skeletonApi=api;currentSkeleton=skeleton;currentObject=skeleton.group;
           scene.add(currentObject);fit(currentObject);
           const info=root.querySelector('[data-bone-info]');
           if(info)info.textContent=skeleton.bones.length+' Knochen geladen. Wähle einen Knochen per Mausklick. Schematische Lehrdarstellung, keine klinische Vermessung.';
           status('Schematisches Skelett geladen: '+skeleton.bones.length+' Knochen · Profil '+profileId+' · willkürliche Einheiten.');
-        }catch(error){status('Schematisches Skelett konnte nicht erstellt werden: '+error.message,true);console.error('HalDo schematic anatomy:',error);}
+        }catch(error){if(requestToken===loadToken&&root.isConnected){status('Schematisches Skelett konnte nicht erstellt werden: '+error.message,true);console.error('HalDo schematic anatomy:',error);}}
       }
       function loadModel(url,objectUrl=false){
         initViewer();
-        if(!renderer||!loader){status('GLTFLoader/DRACOLoader nicht geladen. Prüfe CDN-Verbindung.',true);return;}
+        if(!renderer||!loader){if(objectUrl)URL.revokeObjectURL(url);status('GLTFLoader/DRACOLoader nicht geladen. Prüfe CDN-Verbindung.',true);return;}
+        const requestToken=++loadToken;
         status('Lade 3D-Modell: '+url+' …');
         loader.load(url,gltf=>{
-          if(!root.isConnected)return;
+          if(!root.isConnected||requestToken!==loadToken||!renderer||!scene){disposeObjectResources(gltf.scene);if(objectUrl)URL.revokeObjectURL(url);return;}
           try{
             clearCurrentObject();
             currentObject=gltf.scene;scene.add(currentObject);fit(currentObject);
             if(objectUrl)currentObjectUrl=url;
             status('✅ 3D-Modell geladen: '+url);
-          }catch(err){disposeObjectResources(gltf.scene);status('Modell konnte nicht dargestellt werden: '+err.message,true);}
-        },xhr=>{if(xhr.total)status('Lade 3D-Modell … '+Math.round(xhr.loaded/xhr.total*100)+'%');},err=>{
+          }catch(err){disposeObjectResources(gltf.scene);if(objectUrl)URL.revokeObjectURL(url);status('Modell konnte nicht dargestellt werden: '+err.message,true);}
+        },xhr=>{if(requestToken===loadToken&&xhr.total)status('Lade 3D-Modell … '+Math.round(xhr.loaded/xhr.total*100)+'%');},err=>{
+          if(objectUrl)URL.revokeObjectURL(url);
+          if(requestToken!==loadToken||!root.isConnected)return;
           console.error('HalDo GLB load error:',url,err);status('Modell nicht geladen: '+url+' · Pfad/Decoder prüfen.',true);
         });
       }
