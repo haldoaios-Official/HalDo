@@ -62,13 +62,14 @@ function pass(label) {
 }
 
 async function waitForStatus(root, text) {
-  await root.locator('#h167-gate-status').waitFor();
-  await root.page().waitForFunction(
-    ({ selector, expected }) => {
-      const el = document.querySelector(selector);
+  const rootId = await root.getAttribute('id');
+  await page.waitForFunction(
+    ({ id, expected }) => {
+      const host = document.getElementById(id);
+      const el = host && host.querySelector('#h167-gate-status');
       return !!el && el.textContent.includes(expected);
     },
-    { selector: '#h167-gate-status', expected: text }
+    { id: rootId, expected: text }
   );
 }
 
