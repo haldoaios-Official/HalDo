@@ -325,6 +325,7 @@ async function run() {
         scaffolds: statuses.filter((item) => item.kind === 'scaffold').length,
         review: statuses.filter((item) => item.kind === 'review').length
       },
+      statusInventory: statuses,
       reminders: H.AppBrowser.getStatus('reminders'),
       chatPro: H.AppBrowser.getStatus('chat-pro')
     };
