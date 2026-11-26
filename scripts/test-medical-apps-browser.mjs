@@ -334,7 +334,10 @@ async function run() {
       remindersRoute: H.SystemV157.resolveRoute('reminders'),
       reminders: H.AppBrowser.getStatus('reminders'),
       chatPro: H.AppBrowser.getStatus('chat-pro'),
-      tasks: H.AppBrowser.getStatus('tasks')
+      tasks: H.AppBrowser.getStatus('tasks'),
+      languageVoice: H.AppBrowser.getStatus('language-voice'),
+      aiVoiceCore: H.AppBrowser.getStatus('ai-voice-core'),
+      systemDiagnostics: H.AppBrowser.getStatus('system-diagnostics')
     };
   });
   assert.equal(registryHealth.categoryCount, 26);
@@ -354,6 +357,9 @@ async function run() {
   assert.equal(registryHealth.remindersRoute.moduleAvailable, true);
   assert.equal(registryHealth.reminders.kind, 'module');
   assert.equal(registryHealth.chatPro.kind, 'module');
+  assert.equal(registryHealth.languageVoice.kind, 'module');
+  assert.equal(registryHealth.aiVoiceCore.kind, 'module');
+  assert.equal(registryHealth.systemDiagnostics.kind, 'module');
   console.log('HALDO APP REGISTRY HEALTH ' + JSON.stringify(registryHealth));
   pass('HalDo Core: 26 Kategorien, 375 Sollplätze, eindeutige App-IDs und Modulstatus geprüft');
 
