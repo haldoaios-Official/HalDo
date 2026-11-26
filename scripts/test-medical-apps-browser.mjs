@@ -373,11 +373,12 @@ async function run() {
   assert.equal(tasksBadge, 'Modul vorhanden');
   assert.match(await appRegistryRoot.innerText(), /Start-Routen/);
   await appRegistryRoot.locator('[data-category="A"]').click();
-  const categoryLaunchCards = appRegistryRoot.locator('[data-launch]');
+  const categoryAppGrid = appRegistryRoot.locator('[data-category-app-grid="A"]');
+  const categoryLaunchCards = categoryAppGrid.locator('[data-launch]');
   const categoryCardCount = await categoryLaunchCards.count();
   assert.ok(categoryCardCount > 0);
   assert.equal(await categoryLaunchCards.locator('[data-implementation-status]').count(), categoryCardCount);
-  assert.equal(await appRegistryRoot.locator('[data-launch="avatar"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  assert.equal(await categoryAppGrid.locator('[data-launch="avatar"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   await appRegistryRoot.locator('[data-category=""]').click();
 
   await closeWindow(appRegistryRoot);
