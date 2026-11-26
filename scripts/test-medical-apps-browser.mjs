@@ -796,6 +796,7 @@ async function run() {
       deviceInfo: H.AppBrowser.getStatus('device-info'),
       breathing: H.AppBrowser.getStatus('breathing'),
       scientific: H.AppBrowser.getStatus('scientific'),
+      geoQuiz: H.AppBrowser.getStatus('geo-quiz'),
       careDocumentation: H.AppBrowser.getStatus('pflegeprotokoll-pro'),
       appointments: H.AppBrowser.getStatus('arzttermine-pro'),
       diseaseCatalogue: H.AppBrowser.getStatus('krankheitslexikon-pro'),
@@ -867,6 +868,7 @@ async function run() {
   assert.equal(registryHealth.medicationCatalogueRoute.moduleName, 'medikamentenlexikon-pro');
   assert.equal(registryHealth.medicationCatalogueRoute.moduleAvailable, true);
   assert.equal(registryHealth.statusCounts.review, 0);
+  assert.equal(registryHealth.geoQuiz.kind, 'module');
   assert.equal(registryHealth.unitConverter.kind, 'module');
   assert.equal(registryHealth.habitHeatmap.kind, 'module');
   assert.equal(registryHealth.qrStudio.kind, 'module');
@@ -889,6 +891,9 @@ async function run() {
   const tasksBadge = await appRegistryRoot.locator('[data-launch="tasks"] [data-implementation-status]').innerText();
   assert.equal(tasksBadge, 'Modul vorhanden');
   assert.match(await appRegistryRoot.innerText(), /Start-Routen/);
+  await appRegistryRoot.locator('[data-category="B"]').click();
+  const categoryBGrid = appRegistryRoot.locator('[data-category-app-grid="B"]');
+  assert.equal(await categoryBGrid.locator('[data-launch="geo-quiz"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   await appRegistryRoot.locator('[data-category="D"]').click();
   const categoryDGrid = appRegistryRoot.locator('[data-category-app-grid="D"]');
   assert.equal(await categoryDGrid.locator('[data-launch="datecalc"] [data-implementation-status]').innerText(), 'Modul vorhanden');
