@@ -279,7 +279,7 @@ async function run() {
   const requiredExternalAssets = [
     'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
     'https://cdn.jsdelivr.net/npm/three@0.128.0/',
-    'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/',
+    'https://cdn.jsdelivr.net/npm/qrcode@1.5.1/',
     'https://unpkg.com/three-globe/example/img/'
   ];
   await page.route('**/*', (route) => {
