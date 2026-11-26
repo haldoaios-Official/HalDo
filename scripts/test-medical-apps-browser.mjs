@@ -430,6 +430,48 @@ async function run() {
   assert.ok(schematicSkeleton.bounds.every((value) => Number.isFinite(value) && value > 0));
   console.log('ANATOMY SCHEMATIC SKELETON ' + JSON.stringify(schematicSkeleton));
   pass('Anatomie 3D: vollständiges schematisches Skelett lässt sich aus den vorhandenen Knochenmodulen aufbauen');
+  const skeletonModuleCheck = await page.evaluate(async () => {
+    const skeletonApi = await import('/models/skeleton.js');
+    const profiles = ['adult_male', 'adult_female', 'infant', 'neonate'];
+    const results = [];
+    for (const profileId of profiles) {
+      const skeleton = skeletonApi.createSchematicSkeleton(window.THREE, profileId);
+      skeleton.group.updateMatrixWorld(true);
+      const bounds = new window.THREE.Box3().setFromObject(skeleton.group);
+      const size = bounds.getSize(new window.THREE.Vector3());
+      results.push({
+        profileId,
+        boneCount: skeleton.bones.length,
+        groupChildren: skeleton.group.children.length,
+        hasSkull: skeleton.byId.has('skull'),
+        units: skeleton.units,
+        clinicalUse: skeleton.group.userData.clinicalUse,
+        bounds: [size.x, size.y, size.z]
+      });
+      skeletonApi.disposeSchematicSkeleton(skeleton);
+    }
+    let invalidProfileRejected = false;
+    try {
+      skeletonApi.createSchematicSkeleton(window.THREE, 'not-a-profile');
+    } catch {
+      invalidProfileRejected = true;
+    }
+    return { results, invalidProfileRejected, definitionCount: skeletonApi.getSchematicBoneDefinitions().length };
+  });
+  assert.deepEqual(skeletonModuleCheck.results.map((item) => item.profileId), ['adult_male', 'adult_female', 'infant', 'neonate']);
+  assert.ok(skeletonModuleCheck.results.every((item) =>
+    item.boneCount === 179 &&
+    item.groupChildren === 179 &&
+    item.hasSkull &&
+    item.units === 'arbitrary' &&
+    item.clinicalUse === false &&
+    item.bounds.every((value) => Number.isFinite(value) && value > 0)
+  ));
+  assert.equal(skeletonModuleCheck.definitionCount, 179);
+  assert.equal(skeletonModuleCheck.invalidProfileRejected, true);
+  console.log('ANATOMY SKELETON MODULE ' + JSON.stringify(skeletonModuleCheck));
+  pass('Anatomie 3D Pro: wiederverwendbarer Skelett-Baukasten unterstützt vier Profile und Ressourcenfreigabe');
+
 
 
 
