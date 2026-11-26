@@ -622,6 +622,8 @@ async function run() {
   assert.equal(await boneRegion.inputValue(), '');
   assert.equal(await boneResults.getAttribute('data-result-count'), '179');
   assert.equal(await boneResults.getAttribute('data-visible-count'), '179');
+  assert.match(await anatomyAppRoot.locator('[data-anatomy-status]').innerText(), /Kamera zurückgesetzt/);
+
   pass('Anatomie 3D Pro: Knochenkatalog unterstützt Umlaute-Suche, Namenssuche, Regionenfilter und 3D-Sichtbarkeitsfilter');
 
 
