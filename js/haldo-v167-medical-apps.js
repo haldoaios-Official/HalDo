@@ -229,8 +229,13 @@
     var url = URL.createObjectURL(blob), a = document.createElement('a');
     a.href = url;
     a.download = config.id + '-verschluesseltes-backup.json';
+    a.hidden = true;
+    document.body.appendChild(a);
     a.click();
-    setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+    setTimeout(function () {
+      if (a.parentNode) a.parentNode.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 1500);
   }
   var css = '<style id="haldo-v167-medical-css">' +
     '.h167{box-sizing:border-box;padding:15px;color:var(--text,#eaf4ff);font:13px/1.5 system-ui,sans-serif}' +
