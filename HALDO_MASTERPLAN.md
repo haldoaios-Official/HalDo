@@ -496,7 +496,9 @@ Die ersten UI-End-to-End-Läufe deckten zwei echte Integrationsprobleme auf:
 
 **Neue Eingabehärtung:** Der lokale Import akzeptiert jetzt nur eigenständige `.glb`-Dateien. `.gltf` mit externen Neben-Dateien wird abgewiesen, da die relativen Ressourcendateien über die temporäre Blob-URL nicht zuverlässig auflösbar sind. Lokale GLB-Dateien über 64 MB werden abgelehnt. Die bereits geladene Modellansicht bleibt bei einer abgewiesenen Eingabe erhalten.
 
-**Offener nächster Test:** GitHub Actions Lauf #76 (`45754332845`) testet die Eingabehärtung im Quellcode; Lauf #77 soll nach dem zugehörigen Test-Commit die Abweisung einer extern referenzierten `.gltf`-Datei und den Erhalt der bestehenden Modellansicht prüfen. Das Ergebnis dieser negativen Eingabeprüfung steht noch aus.
+**Abnahme Eingabehärtung:** GitHub Actions Lauf #79 (`45754564860`) auf Commit `fba3bab90d083ca7dc991144f74cf6a6c85f3383` war erfolgreich: **45/45 Browserprüfungen**. Eine externe `.gltf`-Datei wurde abgewiesen, während die bereits geladene GLB-Ansicht erhalten blieb.
 
-**Danach:** Ladefehler/Retry separat testen, anschließend Lizenz-/Quellenmetadaten und fehlende Paketmanager-Manifeste klären, bevor Assets als offline-downloadbare Pakete angeboten werden.
+**Abnahme deutsche Anatomie-Terminologie:** GitHub Actions Lauf #84 (`45755017353`) auf Commit `8cd2a3e7e491e6b08395139eaf05f4abc9725bc2` war erfolgreich: **46/46 Browserprüfungen**. Für alle 179 Knochen-Definitionen sind deutsche Namen und deutsche Regionsbezeichnungen vorhanden (`missingGerman: []`). Stichproben geprüft: Schädel, 2. Halswirbel, 1. Rippe links, Oberschenkelknochen rechts, Mittelglied des Zeigefingers links und Endglied der kleinen Zehe rechts. Der aktive Viewer zeigt beim Anklicken Deutsch, Latein, Englisch, Körperregion und Seite.
+
+**Nächster Schritt:** durchsuchbarer Knochenkatalog mit deutscher/lateinischer/englischer Suche, Filter nach Körperregion und direkter Auswahl des Knochen-Eintrags. Danach Ladefehler/Retry, Lizenz-/Quellenmetadaten und fehlende Paketmanager-Manifeste klären, bevor Assets als offline-downloadbare Pakete angeboten werden.
 
