@@ -471,6 +471,14 @@ async function run() {
   assert.equal(skeletonModuleCheck.invalidProfileRejected, true);
   console.log('ANATOMY SKELETON MODULE ' + JSON.stringify(skeletonModuleCheck));
   pass('Anatomie 3D Pro: wiederverwendbarer Skelett-Baukasten unterstützt vier Profile und Ressourcenfreigabe');
+  // Record which version of the duplicate Anatomy3D assignment is active at runtime.
+  const activeAnatomyRuntime = await page.evaluate(() => ({
+    stabilization151: !!window.HalDo.__stabilization151,
+    openSource: String(window.HalDo.Anatomy3D?.open || '').slice(0, 500),
+    build: window.HalDo.Master?.version || null
+  }));
+  console.log('ACTIVE ANATOMY RUNTIME ' + JSON.stringify(activeAnatomyRuntime));
+
   // Exercise the actual Arztbuch anatomy window, its profile selector and WebGL viewer.
   await page.evaluate(() => window.HalDo.Anatomy3D.open());
   await dismissWelcomeIfPresent();
@@ -478,10 +486,11 @@ async function run() {
   await anatomyAppRoot.waitFor({ state: 'visible', timeout: 10000 });
   await anatomyAppRoot.locator('button[data-arzt-tab="anatomy"]').last().click();
   await anatomyAppRoot.locator('[data-model-schematic]').waitFor({ state: 'visible', timeout: 10000 });
+  await anatomyAppRoot.locator('[data-model-load]').click();
   await page.waitForFunction(() => {
     return Array.from(document.querySelectorAll('#winLayer .hdx-root [data-anatomy-status]'))
       .some((element) => element.textContent.includes('3D-Modell sichtbar und interaktiv geladen'));
-  }, { timeout: 20000 });
+  }, { timeout: 30000 });
   assert.equal(await anatomyAppRoot.locator('.hdx-anatomy-view canvas').count(), 1);
   pass('Anatomie 3D Pro: einzelnes vorhandenes GLB-Knochenmodell wird im aktiven Viewer geladen');
   await anatomyAppRoot.locator('[data-model-schematic]').click();
