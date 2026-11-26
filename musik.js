@@ -4,7 +4,13 @@
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
-  if(!window.HalDo || !HalDo.Runtime) return;
+  var H = window.HalDo;
+  // HalDo AI OS Pro Max uses the native Win/Store APIs in index.html.
+  // The standalone Runtime loader is not part of the main page bundle.
+  if(!H || !H.Win || !H.Store) {
+    console.error("[HalDo Music Studio] Native HalDo Win/Store API not available.");
+    return;
+  }
 
   function _esc(s){
     return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
@@ -344,6 +350,27 @@
     build();
   }
 
-  HalDoApp("music-studio", { name: "HalDo Music Studio Pro", icon: "🎼", render: render, category: "creative" });
-  console.log("🦚 musik.js v22.0 geladen — ABSOLUTE MAXIMUM");
+  // Native launcher bridge: open the existing DAW renderer in a HalDo window.
+  // Keep project data namespaced and persistent through the platform Store API.
+  H.MusicStudio = H.MusicStudio || {};
+  H.MusicStudio.open = function(){
+    var rootId = "haldo-music-studio-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
+    H.Win.open("🎼 HalDo Music Studio Pro", '<div id="' + rootId + '" style="height:100%;overflow:auto"></div>', { w:900, h:760 });
+    window.setTimeout(function(){
+      var root = document.getElementById(rootId);
+      if(!root || !root.isConnected) return;
+      var store = {
+        get: function(key, fallback){ return H.Store.get("music-studio:" + key, fallback); },
+        set: function(key, value){ return H.Store.set("music-studio:" + key, value); }
+      };
+      render(root, { appId:"music-studio", store:store, ai:H.AI || null });
+    }, 80);
+  };
+
+  // Register with the optional modular runtime when it is present, without
+  // making the native index.html launcher depend on that separate runtime.
+  if(H.Runtime && typeof H.Runtime.register === "function") {
+    H.Runtime.register("music-studio", { name:"HalDo Music Studio Pro", icon:"🎼", render:render, category:"creative" });
+  }
+  console.log("🦚 musik.js v22.1 geladen — native HalDo launcher connected");
 })();
