@@ -383,6 +383,54 @@ async function run() {
   assert.ok(glbMetadata.individualBone.nodes > 0 && glbMetadata.individualBone.meshes > 0);
   console.log('ANATOMY GLB METADATA ' + JSON.stringify(glbMetadata));
   pass('Anatomie 3D: GLB-2.0-Struktur von Basis-Mesh und Einzelknochen wird geprüft');
+  const schematicSkeleton = await page.evaluate(async () => {
+    const [base, extended, procedural, catalog] = await Promise.all([
+      import('/models/base-bones.js'),
+      import('/models/extended-bones.js'),
+      import('/models/procedural.js'),
+      import('/models/catalog.js')
+    ]);
+    const definitions = [...base.baseBones, ...extended.extendedBones];
+    const anatomical = definitions.filter(procedural.isAnatomicalBone);
+    const ids = anatomical.map((bone) => bone.id);
+    const duplicateIds = ids.filter((id, index) => ids.indexOf(id) !== index);
+    const assetIds = new Set(catalog.PROFILE_CATALOG.adult_male.asset_ids);
+    const missingAssets = ids.filter((id) => !assetIds.has(id));
+    const group = new window.THREE.Group();
+    group.name = 'HalDo-Schematic-Skeleton-Test';
+    anatomical.forEach((bone) => {
+      group.add(procedural.createProceduralBone(window.THREE, bone, 'adult_male'));
+    });
+    group.updateMatrixWorld(true);
+    const bounds = new window.THREE.Box3().setFromObject(group);
+    const size = bounds.getSize(new window.THREE.Vector3());
+    let meshCount = 0;
+    group.traverse((node) => { if (node.isMesh) meshCount += 1; });
+    const result = {
+      definitionCount: definitions.length,
+      anatomicalCount: anatomical.length,
+      uniqueCount: new Set(ids).size,
+      duplicateIds,
+      missingAssets,
+      meshCount,
+      bounds: [size.x, size.y, size.z]
+    };
+    group.traverse((node) => {
+      if (node.isMesh) {
+        node.geometry?.dispose();
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        materials.forEach((material) => material?.dispose());
+      }
+    });
+    return result;
+  });
+  assert.equal(schematicSkeleton.duplicateIds.length, 0);
+  assert.equal(schematicSkeleton.anatomicalCount, schematicSkeleton.uniqueCount);
+  assert.ok(schematicSkeleton.meshCount > 100);
+  assert.ok(schematicSkeleton.bounds.every((value) => Number.isFinite(value) && value > 0));
+  console.log('ANATOMY SCHEMATIC SKELETON ' + JSON.stringify(schematicSkeleton));
+  pass('Anatomie 3D: vollständiges schematisches Skelett lässt sich aus den vorhandenen Knochenmodulen aufbauen');
+
 
 
 
