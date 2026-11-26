@@ -358,7 +358,7 @@
 
   H.qr = { open:openQrStudio, version:BUILD };
   H['qr-sticker'] = { open:openQrStickers, version:BUILD };
-  H.AppsV175 = {
+  H.AppsV175Qr = {
     version:BUILD,
     appIds:['qr','qr-sticker'],
     status:function () {
