@@ -294,6 +294,23 @@ async function run() {
   await systemWelcome.waitFor({ state: 'detached', timeout: 10000 });
   await page.locator('#loader').waitFor({ state: 'hidden', timeout: 20000 });
   pass('HalDo-Willkommensbildschirm und Three.js-Kosmos: Arbeitsbereich vollständig gestartet');
+  const launchChecks = [
+    ['bibliothek', 'HalDo Bibliothek Pro'],
+    ['inventar', 'HalDo Inventar Pro'],
+    ['mindmap', 'HalDo Mindmap Pro'],
+    ['haushalt', 'HalDo Haushaltsmanager Pro'],
+    ['keyboard-pro', 'HalDo Keyboard Studio Pro'],
+    ['datei-konverter', 'HalDo Datei-Konverter Pro']
+  ];
+  for (const [appId, title] of launchChecks) {
+    await page.evaluate((id) => window.HalDo.Launch({ id, n: id }), appId);
+    await dismissWelcomeIfPresent();
+    const openedTitle = page.locator('#winLayer').getByText(title, { exact: false }).last();
+    await openedTitle.waitFor({ state: 'visible', timeout: 10000 });
+    await closeWindow(openedTitle);
+  }
+  pass('HalDo v165/v166: Sechs zusätzliche Apps öffnen ihre eigenen Module über den zentralen Launcher');
+
 
   // Seed an older encrypted v154 record without a vitals array to verify backward compatibility.
   await seedLegacyArztbuchVault();
