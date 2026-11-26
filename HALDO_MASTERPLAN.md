@@ -526,3 +526,9 @@ Der aktive Arztbuch-Viewer enthält jetzt zusätzlich einen interaktiven Knochen
 Die Auswahl eines Knochen-Eintrags aus dem Suchkatalog richtet die Perspektivkamera nun auf den ausgewählten Knochen aus. Dabei wird die vorhandene Blickrichtung beibehalten; die Kameraabstände werden anhand der tatsächlichen Objektbegrenzung berechnet. Die Auswahl per direktem Klick auf das 3D-Modell bleibt unverändert.
 
 **Abnahme:** GitHub Actions Lauf #91 (`45756897378`) auf Commit `403cd7b966e1d2a4822c409173fb86664772dd25`: **47/47 Browserprüfungen erfolgreich**. Die bestehende Such-/Regionstestfolge wählt den linken Oberschenkelknochen aus der Liste aus und bestätigt die Kamera-Fokusmeldung für genau diesen Knochen.
+
+### Kamera- und Filter-Reset
+
+Der Filter-Reset setzt nun zusätzlich die Perspektivkamera auf das gesamte Skelett zurück, entfernt eine aktive Knochenmarkierung und zeigt wieder alle 179 Knochen. Suchtext und Regionsauswahl werden geleert. Damit ist der Wechsel zwischen gezielter Detailansicht und Gesamtübersicht ohne erneutes Schließen/Öffnen möglich.
+
+**Abnahme:** GitHub Actions Lauf #93 (`45756951571`) auf Commit `c1a87d696c9ed992a1be6cf3cf59ff066f1ad238`: **47/47 Browserprüfungen erfolgreich**. Der E2E-Test prüft nach der Regionsfilterung 179 sichtbare Knochen, leere Such-/Regionsfelder und die Bestätigung „Kamera zurückgesetzt“.
