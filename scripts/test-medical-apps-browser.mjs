@@ -76,9 +76,15 @@ async function waitForStatus(root, text) {
 
 async function dismissWelcomeIfPresent() {
   const welcome = page.locator('#haldo-v161-welcome');
-  if (!(await welcome.count())) return;
+  // H.Launch may finish its wrapper chain on the next browser task. Wait for
+  // the app-specific welcome instead of checking the DOM only once.
+  try {
+    await welcome.waitFor({ state: 'visible', timeout: 3000 });
+  } catch {
+    return;
+  }
   const button = welcome.locator('button.h161-button');
-  if (!(await button.count())) return;
+  await button.waitFor({ state: 'visible', timeout: 3000 });
   await button.click();
   await welcome.waitFor({ state: 'detached', timeout: 10000 });
 }
