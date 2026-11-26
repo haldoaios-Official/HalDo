@@ -320,7 +320,7 @@ async function run() {
     worldClock: window.HalDo.AppBrowser.getStatus('worldclock'),
     recipeScaler: window.HalDo.AppBrowser.getStatus('recipe-scaler')
   }));
-  assert.equal(v168Build.version, '169.0.0');
+  assert.equal(v168Build.version, '170.0.0');
   assert.equal(v168Build.worldClock.kind, 'module');
   assert.equal(v168Build.recipeScaler.kind, 'module');
   const v168Runtime = await page.evaluate(() => ({
@@ -333,7 +333,7 @@ async function run() {
   assert.equal(v168Runtime.worldClockOpen, 'function');
   assert.equal(v168Runtime.recipeScalerOpen, 'function');
   assert.equal(v168Runtime.scriptLoaded, true);
-  assert.equal(v168Runtime.build, '169.0.0');
+  assert.equal(v168Runtime.build, '170.0.0');
   await page.evaluate(() => window.HalDo.Launch({ id: 'worldclock', n: 'HalDo Weltuhr Pro' }));
   await dismissWelcomeIfPresent();
   const worldClockRoot = page.locator('#winLayer .hdv168-root').last();
@@ -407,7 +407,7 @@ async function run() {
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v169-a-z-apps.js'))
   }));
   console.log('HALDO V169 RUNTIME ' + JSON.stringify(v169Runtime));
-  assert.equal(v169Runtime.build, '169.0.0');
+  assert.equal(v169Runtime.build, '170.0.0');
   assert.equal(v169Runtime.workout.kind, 'module');
   assert.equal(v169Runtime.utilities.kind, 'module');
   assert.equal(v169Runtime.workoutOpen, 'function');
@@ -478,6 +478,99 @@ async function run() {
   await closeWindow(utilitiesRoot);
   pass('HalDo Werkzeuge Pro: Einheiten, Prozentwerte und Datumsabstände berechnen und Verlauf verwalten');
 
+  const v170Runtime = await page.evaluate(() => ({
+    build: window.HalDo.AppsV170 && window.HalDo.AppsV170.version,
+    recipes: window.HalDo.AppBrowser.getStatus('recipes'),
+    analyzer: window.HalDo.AppBrowser.getStatus('analyzer'),
+    recipesOpen: typeof window.HalDo.recipes?.open,
+    analyzerOpen: typeof window.HalDo.analyzer?.open,
+    scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v170-productivity-apps.js'))
+  }));
+  console.log('HALDO V170 RUNTIME ' + JSON.stringify(v170Runtime));
+  assert.equal(v170Runtime.build, '170.0.0');
+  assert.equal(v170Runtime.recipes.kind, 'module');
+  assert.equal(v170Runtime.analyzer.kind, 'module');
+  assert.equal(v170Runtime.recipesOpen, 'function');
+  assert.equal(v170Runtime.analyzerOpen, 'function');
+  assert.equal(v170Runtime.scriptLoaded, true);
+
+  // Recipe book: required fields, ingredient rows, steps, favorite, edit, filter, delete.
+  await page.evaluate(() => window.HalDo.Launch({ id: 'recipes', n: 'HalDo Rezepte Pro' }));
+  await dismissWelcomeIfPresent();
+  const recipesRoot = page.locator('#winLayer .hdv170-root[data-hv170-app="recipes"]').last();
+  await recipesRoot.waitFor({ state: 'visible', timeout: 10000 });
+  await recipesRoot.locator('[data-r170-new]').click();
+  await recipesRoot.locator('[data-r170-save]').click();
+  assert.match(await recipesRoot.locator('[data-r170-status]').innerText(), /Rezeptname/);
+  await recipesRoot.locator('[data-r170-name]').fill('E2E Linsensuppe');
+  await recipesRoot.locator('[data-r170-category]').selectOption('Hauptgericht');
+  await recipesRoot.locator('[data-r170-servings]').fill('2');
+  await recipesRoot.locator('[data-r170-prep]').fill('30');
+  await recipesRoot.locator('[data-r170-ingredient-name]').first().fill('Linsen');
+  await recipesRoot.locator('[data-r170-ingredient-amount]').first().fill('200');
+  await recipesRoot.locator('[data-r170-ingredient-unit]').first().fill('g');
+  await recipesRoot.locator('[data-r170-add-ingredient]').click();
+  const recipeIngredients = recipesRoot.locator('[data-r170-ingredient]');
+  assert.equal(await recipeIngredients.count(), 2);
+  await recipeIngredients.nth(1).locator('[data-r170-ingredient-name]').fill('Wasser');
+  await recipeIngredients.nth(1).locator('[data-r170-ingredient-amount]').fill('500');
+  await recipeIngredients.nth(1).locator('[data-r170-ingredient-unit]').fill('ml');
+  await recipesRoot.locator('[data-r170-steps]').fill('Linsen abspülen.\nMit Wasser weich kochen.');
+  await recipesRoot.locator('[data-r170-save]').click();
+  await recipesRoot.locator('[data-r170-list] [data-r170-open]').filter({ hasText: 'E2E Linsensuppe' }).waitFor({ state: 'visible' });
+  let savedRecipe = await page.evaluate(() => window.HalDo.Store.get('haldo_v170_recipe_book', [])[0]);
+  assert.equal(savedRecipe.ingredients.length, 2);
+  assert.equal(savedRecipe.steps.length, 2);
+  assert.equal(savedRecipe.category, 'Hauptgericht');
+  await recipesRoot.locator('[data-r170-favorite]').click();
+  savedRecipe = await page.evaluate(() => window.HalDo.Store.get('haldo_v170_recipe_book', [])[0]);
+  assert.equal(savedRecipe.favorite, true);
+  await recipesRoot.locator('[data-r170-edit]').click();
+  await recipesRoot.locator('[data-r170-prep]').fill('35');
+  await recipesRoot.locator('[data-r170-save]').click();
+  savedRecipe = await page.evaluate(() => window.HalDo.Store.get('haldo_v170_recipe_book', [])[0]);
+  assert.equal(savedRecipe.prepMinutes, 35);
+  await recipesRoot.locator('[data-r170-search]').fill('Wasser');
+  assert.equal(await recipesRoot.locator('[data-r170-list] [data-r170-open]').count(), 1);
+  await recipesRoot.locator('[data-r170-filter]').selectOption('Hauptgericht');
+  assert.equal(await recipesRoot.locator('[data-r170-list] [data-r170-open]').count(), 1);
+  await recipesRoot.locator('[data-r170-search]').fill('kein Treffer');
+  assert.equal(await recipesRoot.locator('[data-r170-list] [data-r170-open]').count(), 0);
+  await recipesRoot.locator('[data-r170-search]').fill('');
+  await recipesRoot.locator('[data-r170-delete]').click();
+  assert.equal(await page.evaluate(() => window.HalDo.Store.get('haldo_v170_recipe_book', []).length), 0);
+  await closeWindow(recipesRoot);
+  pass('HalDo Rezepte Pro: Rezepte, Kategorien, Zutaten und Schritte anlegen, Favorit setzen, bearbeiten, suchen und löschen');
+
+  // Text analyzer: live metrics and summary-only local history (never raw text).
+  await page.evaluate(() => window.HalDo.Launch({ id: 'analyzer', n: 'HalDo Text Analyzer Pro' }));
+  await dismissWelcomeIfPresent();
+  const analyzerRoot = page.locator('#winLayer .hdv170-root[data-hv170-app="analyzer"]').last();
+  await analyzerRoot.waitFor({ state: 'visible', timeout: 10000 });
+  await analyzerRoot.locator('[data-an170-title]').fill('E2E Textprobe');
+  await analyzerRoot.locator('[data-an170-text]').fill('HalDo baut professionelle Apps. Apps bleiben sicher und lokal.');
+  assert.equal(await analyzerRoot.locator('[data-an170-words]').innerText(), '9');
+  assert.equal(await analyzerRoot.locator('[data-an170-sentences]').innerText(), '2');
+  assert.equal(await analyzerRoot.locator('[data-an170-reading]').innerText(), '1');
+  await analyzerRoot.locator('[data-an170-save]').click();
+  let analysisHistory = await page.evaluate(() => window.HalDo.Store.get('haldo_v170_text_analysis_history', []));
+  assert.equal(analysisHistory.length, 1);
+  assert.equal(analysisHistory[0].title, 'E2E Textprobe');
+  assert.equal(analysisHistory[0].words, 9);
+  assert.equal(Object.prototype.hasOwnProperty.call(analysisHistory[0], 'text'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(analysisHistory[0], 'rawText'), false);
+  await closeWindow(analyzerRoot);
+  await page.evaluate(() => window.HalDo.Launch({ id: 'analyzer', n: 'HalDo Text Analyzer Pro' }));
+  const reopenedAnalyzer = page.locator('#winLayer .hdv170-root[data-hv170-app="analyzer"]').last();
+  await reopenedAnalyzer.waitFor({ state: 'visible', timeout: 10000 });
+  assert.equal(await reopenedAnalyzer.locator('[data-an170-history] li').count(), 1);
+  await reopenedAnalyzer.locator('[data-an170-clear-history]').click();
+  assert.equal(await page.evaluate(() => window.HalDo.Store.get('haldo_v170_text_analysis_history', []).length), 0);
+  await closeWindow(reopenedAnalyzer);
+  pass('HalDo Text Analyzer Pro: Textkennzahlen live berechnen, nur Statistik lokal speichern und Verlauf wiederherstellen/löschen');
+
+
+
 
 
   const registryHealth = await page.evaluate(() => {
@@ -508,7 +601,9 @@ async function run() {
       aiVoiceCore: H.AppBrowser.getStatus('ai-voice-core'),
       systemDiagnostics: H.AppBrowser.getStatus('system-diagnostics'),
       workout: H.AppBrowser.getStatus('workout'),
-      utilities: H.AppBrowser.getStatus('utilities')
+      utilities: H.AppBrowser.getStatus('utilities'),
+      recipes: H.AppBrowser.getStatus('recipes'),
+      analyzer: H.AppBrowser.getStatus('analyzer')
     };
   });
   assert.equal(registryHealth.categoryCount, 26);
@@ -533,8 +628,10 @@ async function run() {
   assert.equal(registryHealth.systemDiagnostics.kind, 'module');
   assert.equal(registryHealth.workout.kind, 'module');
   assert.equal(registryHealth.utilities.kind, 'module');
-  assert.equal(registryHealth.statusCounts.modules, 72);
-  assert.equal(registryHealth.statusCounts.review, 10);
+  assert.equal(registryHealth.recipes.kind, 'module');
+  assert.equal(registryHealth.analyzer.kind, 'module');
+  assert.equal(registryHealth.statusCounts.modules, 74);
+  assert.equal(registryHealth.statusCounts.review, 8);
   console.log('HALDO APP REGISTRY HEALTH ' + JSON.stringify(registryHealth));
   pass('HalDo Core: 26 Kategorien, 375 Sollplätze, eindeutige App-IDs und Modulstatus geprüft');
 
@@ -554,9 +651,11 @@ async function run() {
   assert.ok(categoryCardCount > 0);
   assert.equal(await categoryLaunchCards.locator('[data-implementation-status]').count(), categoryCardCount);
   assert.equal(await categoryAppGrid.locator('[data-launch="avatar"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  assert.equal(await categoryAppGrid.locator('[data-launch="analyzer"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   await appRegistryRoot.locator('[data-category="G"]').click();
   const categoryGGrid = appRegistryRoot.locator('[data-category-app-grid="G"]');
   assert.equal(await categoryGGrid.locator('[data-launch="workout"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  assert.equal(await categoryGGrid.locator('[data-launch="recipes"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   await appRegistryRoot.locator('[data-category="U"]').click();
   const categoryUGrid = appRegistryRoot.locator('[data-category-app-grid="U"]');
   assert.equal(await categoryUGrid.locator('[data-launch="utilities"] [data-implementation-status]').innerText(), 'Modul vorhanden');
