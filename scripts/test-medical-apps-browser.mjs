@@ -797,6 +797,7 @@ async function run() {
       breathing: H.AppBrowser.getStatus('breathing'),
       scientific: H.AppBrowser.getStatus('scientific'),
       geoQuiz: H.AppBrowser.getStatus('geo-quiz'),
+      musicStudio: H.AppBrowser.getStatus('music-studio'),
       careDocumentation: H.AppBrowser.getStatus('pflegeprotokoll-pro'),
       appointments: H.AppBrowser.getStatus('arzttermine-pro'),
       diseaseCatalogue: H.AppBrowser.getStatus('krankheitslexikon-pro'),
@@ -822,7 +823,7 @@ async function run() {
   assert.equal(registryHealth.uniqueIds, registryHealth.appCount);
   assert.ok(registryHealth.appCount >= 71);
   assert.ok(registryHealth.statusCounts.modules > 0);
-  assert.ok(registryHealth.statusCounts.scaffolds > 0);
+  assert.equal(registryHealth.statusCounts.scaffolds, 0);
   assert.equal(Object.values(registryHealth.statusCounts).reduce((sum, value) => sum + value, 0), registryHealth.appCount);
   assert.equal(registryHealth.tasksRoute.routeConfigured, true);
   assert.equal(registryHealth.tasksRoute.moduleName, 'Tasks');
@@ -841,8 +842,9 @@ async function run() {
   assert.equal(registryHealth.utilities.kind, 'module');
   assert.equal(registryHealth.recipes.kind, 'module');
   assert.equal(registryHealth.analyzer.kind, 'module');
-  assert.equal(registryHealth.statusCounts.modules, 90);
-  assert.equal(registryHealth.statusCounts.scaffolds, 1);
+  assert.equal(registryHealth.statusCounts.modules, 92);
+  assert.equal(registryHealth.statusCounts.scaffolds, 0);
+  assert.equal(registryHealth.statusCounts.routes, 0);
   assert.equal(registryHealth.breathing.kind, 'module');
   assert.equal(registryHealth.scientific.kind, 'module');
   assert.equal(registryHealth.breathingRoute.routeConfigured, true);
@@ -869,6 +871,7 @@ async function run() {
   assert.equal(registryHealth.medicationCatalogueRoute.moduleAvailable, true);
   assert.equal(registryHealth.statusCounts.review, 0);
   assert.equal(registryHealth.geoQuiz.kind, 'module');
+  assert.equal(registryHealth.musicStudio.kind, 'module');
   assert.equal(registryHealth.unitConverter.kind, 'module');
   assert.equal(registryHealth.habitHeatmap.kind, 'module');
   assert.equal(registryHealth.qrStudio.kind, 'module');
