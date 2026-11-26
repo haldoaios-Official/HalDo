@@ -331,6 +331,7 @@ async function run() {
       tasksRoute: H.SystemV157.resolveRoute('tasks'),
       avatarRoute: H.SystemV157.resolveRoute('avatar'),
       avatarStatus: H.AppBrowser.getStatus('avatar'),
+      remindersRoute: H.SystemV157.resolveRoute('reminders'),
       reminders: H.AppBrowser.getStatus('reminders'),
       chatPro: H.AppBrowser.getStatus('chat-pro'),
       tasks: H.AppBrowser.getStatus('tasks')
@@ -349,7 +350,9 @@ async function run() {
   assert.equal(registryHealth.avatarRoute.moduleAvailable, true);
   assert.equal(registryHealth.avatarStatus.kind, 'module');
   assert.ok(['module', 'route'].includes(registryHealth.tasks.kind));
-  assert.equal(registryHealth.reminders.kind, 'scaffold');
+  assert.equal(registryHealth.remindersRoute.moduleName, 'Reminders');
+  assert.equal(registryHealth.remindersRoute.moduleAvailable, true);
+  assert.equal(registryHealth.reminders.kind, 'module');
   assert.equal(registryHealth.chatPro.kind, 'module');
   console.log('HALDO APP REGISTRY HEALTH ' + JSON.stringify(registryHealth));
   pass('HalDo Core: 26 Kategorien, 375 Sollplätze, eindeutige App-IDs und Modulstatus geprüft');
@@ -358,7 +361,7 @@ async function run() {
   const appRegistryRoot = page.locator('#winLayer .hdx-root').last();
   await appRegistryRoot.getByText('HalDo App-Registry Pro', { exact: true }).waitFor({ timeout: 10000 });
   assert.match(await appRegistryRoot.innerText(), /375 geplante Plätze/);
-  assert.equal(await appRegistryRoot.locator('[data-launch="reminders"] [data-implementation-status]').innerText(), 'Grundgerüst');
+  assert.equal(await appRegistryRoot.locator('[data-launch="reminders"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   assert.equal(await appRegistryRoot.locator('[data-launch="chat-pro"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   const tasksBadge = await appRegistryRoot.locator('[data-launch="tasks"] [data-implementation-status]').innerText();
   assert.ok(['Modul vorhanden', 'Start-Route vorhanden'].includes(tasksBadge));
