@@ -520,3 +520,9 @@ Der aktive Arztbuch-Viewer enthält jetzt zusätzlich einen interaktiven Knochen
 **Abnahme:** GitHub Actions Lauf #88 (`45756658850`) auf Test-Commit `45145393f11a99615430441357d6aabfc5131ae3`: **47/47 Chromium-Browserprüfungen erfolgreich**. Neu geprüft wurden Umlaute-Suche, Namenssuche nach linkem Oberschenkelknochen, direkte Auswahl/Markierung, Filter auf die Körperregion Schädel (2 sichtbare Knochen) und Zurücksetzen auf 179 sichtbare Knochen. Die bisherigen Viewer-, Profilwechsel-, Ressourcenfreigabe-, Arztbuch-, Laborwerte- und Medikamentenplanprüfungen blieben ebenfalls erfolgreich.
 
 **Nächster Anatomie-Schritt:** Beim Auswählen aus dem Katalog die Kamera gezielt auf den Knochen fokussieren; danach gezielte Ansichten/Layer für Knochen, Muskeln und Organe nur mit tatsächlich vorhandenen oder ausdrücklich als schematisch markierten Assets ergänzen. Vor dem Zusammenführen externer Anatomie-GLBs bleiben Quelle, Lizenz und anatomische Zuordnung zu prüfen.
+
+### Kamera-Fokus für Suchtreffer
+
+Die Auswahl eines Knochen-Eintrags aus dem Suchkatalog richtet die Perspektivkamera nun auf den ausgewählten Knochen aus. Dabei wird die vorhandene Blickrichtung beibehalten; die Kameraabstände werden anhand der tatsächlichen Objektbegrenzung berechnet. Die Auswahl per direktem Klick auf das 3D-Modell bleibt unverändert.
+
+**Abnahme:** GitHub Actions Lauf #91 (`45756897378`) auf Commit `403cd7b966e1d2a4822c409173fb86664772dd25`: **47/47 Browserprüfungen erfolgreich**. Die bestehende Such-/Regionstestfolge wählt den linken Oberschenkelknochen aus der Liste aus und bestätigt die Kamera-Fokusmeldung für genau diesen Knochen.
