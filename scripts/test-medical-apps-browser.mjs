@@ -1285,7 +1285,7 @@ async function run() {
 
   // The PDF center and scanner keep all selected files in the current browser tab.
   const v175DocumentSource = await fs.readFile(path.join(ROOT, 'js/haldo-v175-document-apps.js'), 'utf8');
-  assert.equal(/\\bfetch\\s*\\(|XMLHttpRequest|WebSocket/.test(v175DocumentSource), false, 'Dokumente dürfen nicht zu externen Servern hochgeladen werden.');
+  assert.equal(/\bfetch\s*\(|XMLHttpRequest|WebSocket/.test(v175DocumentSource), false, 'Dokumente dürfen nicht zu externen Servern hochgeladen werden.');
   const v175DocumentRuntime = await page.evaluate(() => ({
     build: window.HalDo.Master.version,
     moduleVersion: window.HalDo.AppsV175Documents.version,
@@ -1324,7 +1324,7 @@ async function run() {
     page.waitForEvent('download'),
     pdfCenter.locator('[data-v175-pdf-create]').click()
   ]);
-  assert.match(textPdfDownload.suggestedFilename(), /\\.pdf$/i);
+  assert.match(textPdfDownload.suggestedFilename(), /\.pdf$/i);
   const textPdfPath = await textPdfDownload.path();
   const textPdfBytes = await fs.readFile(textPdfPath);
   assert.ok(textPdfBytes.toString('latin1').startsWith('%PDF-1.4'));
@@ -1359,11 +1359,11 @@ async function run() {
     page.waitForEvent('download'),
     documentScanner.locator('[data-v175-export]').click()
   ]);
-  assert.match(scanPdfDownload.suggestedFilename(), /\\.pdf$/i);
+  assert.match(scanPdfDownload.suggestedFilename(), /\.pdf$/i);
   const scanPdfBytes = await fs.readFile(await scanPdfDownload.path());
   const scanPdfText = scanPdfBytes.toString('latin1');
   assert.ok(scanPdfText.startsWith('%PDF-1.4'));
-  assert.match(scanPdfText, /\\/Count 2/);
+  assert.ok(scanPdfText.includes('/Count 2'));
   await documentScanner.locator('[data-v175-clear-pages]').click();
   assert.equal(await documentScanner.locator('[data-v175-page-count]').innerText(), '0');
   assert.equal(await documentScanner.locator('[data-v175-export]').isDisabled(), true);
