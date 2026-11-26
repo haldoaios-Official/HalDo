@@ -637,8 +637,8 @@ async function run() {
 
   // v172: two formerly generic scaffolds are replaced by real independent apps.
   const v172Source = await fs.readFile(path.join(ROOT, 'js/haldo-v172-learning-apps.js'), 'utf8');
-  assert.equal(/\\beval\\s*\\(/.test(v172Source), false, 'Wissenschaftsrechner darf keine dynamische Auswertung verwenden.');
-  assert.equal(/\\bnew\\s+Function\\s*\\(/.test(v172Source), false, 'Wissenschaftsrechner darf keine dynamischen Funktionen erzeugen.');
+  assert.equal(/\beval\s*\(/.test(v172Source), false, 'Wissenschaftsrechner darf keine dynamische Auswertung verwenden.');
+  assert.equal(/\bnew\s+Function\s*\(/.test(v172Source), false, 'Wissenschaftsrechner darf keine dynamischen Funktionen erzeugen.');
   const v172Runtime = await page.evaluate(() => ({
     build: window.HalDo.Master.version,
     apps: window.HalDo.AppsV172.apps.map((app) => app.id),
