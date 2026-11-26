@@ -584,7 +584,7 @@ async function run() {
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v171-date-device-apps.js'))
   }));
   console.log('HALDO V171 RUNTIME ' + JSON.stringify(v171Runtime));
-  assert.equal(v171Runtime.build, '172.0.0');
+  assert.equal(v171Runtime.build, '171.0.0');
   assert.equal(v171Runtime.datecalc.kind, 'module');
   assert.equal(v171Runtime.deviceInfo.kind, 'module');
   assert.equal(v171Runtime.datecalcOpen, 'function');
