@@ -672,8 +672,10 @@ async function run() {
   await breathingRoot.locator('[data-b172-pause]').click();
   assert.equal(await breathingRoot.locator('[data-b172-start]').innerText(), '▶ Fortsetzen');
   assert.match(await breathingRoot.locator('[data-b172-status]').innerText(), /Pausiert/);
+  const pausedBreathTime = await breathingRoot.locator('[data-b172-time]').innerText();
   await breathingRoot.locator('[data-b172-start]').click();
   assert.equal(await breathingRoot.locator('[data-b172-pause]').isDisabled(), false);
+  assert.equal(await breathingRoot.locator('[data-b172-time]').innerText(), pausedBreathTime);
   await breathingRoot.locator('[data-b172-reset]').click();
   assert.match(await breathingRoot.locator('[data-b172-status]').innerText(), /Zurückgesetzt/);
   assert.equal(await breathingRoot.locator('[data-b172-pattern]').isDisabled(), false);
