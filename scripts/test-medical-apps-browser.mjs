@@ -310,6 +310,45 @@ async function run() {
     await closeWindow(openedTitle);
   }
   pass('HalDo v165/v166: Sechs zusätzliche Apps öffnen ihre eigenen Module über den zentralen Launcher');
+  const anatomyCatalogCheck = await page.evaluate(async () => {
+    const [catalog, loader] = await Promise.all([
+      import('/models/catalog.js'),
+      import('/models/loader.js')
+    ]);
+    const paths = [
+      catalog.modelPath('adult_male', 'skull'),
+      catalog.modelPath('adult_female', 'skull'),
+      catalog.modelPath('infant', 'c2')
+    ];
+    const responses = await Promise.all(paths.map(async (url) => {
+      const response = await fetch(url, { method: 'HEAD' });
+      return { url, status: response.status };
+    }));
+    const unavailableError = await loader.loadBoneModel(
+      window.THREE, 'neonate', 'skull'
+    ).then(() => '', (error) => error.message);
+    return {
+      counts: {
+        adultMale: catalog.PROFILE_CATALOG.adult_male.asset_count,
+        adultFemale: catalog.PROFILE_CATALOG.adult_female.asset_count,
+        infant: catalog.PROFILE_CATALOG.infant.asset_count
+      },
+      paths,
+      responses,
+      infantAtlas: catalog.modelPath('infant', 'c1_atlas'),
+      neonate: catalog.modelPath('neonate', 'skull'),
+      unknown: catalog.modelPath('adult_male', 'not_a_real_bone'),
+      unavailableError
+    };
+  });
+  assert.deepEqual(anatomyCatalogCheck.counts, { adultMale: 179, adultFemale: 179, infant: 178 });
+  assert.deepEqual(anatomyCatalogCheck.responses.map((entry) => entry.status), [200, 200, 200]);
+  assert.equal(anatomyCatalogCheck.infantAtlas, null);
+  assert.equal(anatomyCatalogCheck.neonate, null);
+  assert.equal(anatomyCatalogCheck.unknown, null);
+  assert.match(anatomyCatalogCheck.unavailableError, /No verified GLB asset/);
+  pass('Anatomie 3D: 179/179/178 echte Modellpfade und nicht verfügbare Profile werden sicher erkannt');
+
 
 
   // Seed an older encrypted v154 record without a vitals array to verify backward compatibility.
