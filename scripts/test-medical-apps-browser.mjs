@@ -224,7 +224,7 @@ async function assertEncrypted(key, plaintexts = []) {
 
 async function exportBackup(root) {
   const [download] = await Promise.all([
-    page.waitForEvent('download'),
+    page.waitForEvent('download', { timeout:20000 }),
     root.locator('#h167-backup').click()
   ]);
   const filePath = await download.path();
@@ -1267,7 +1267,7 @@ async function run() {
   await qrStudio.locator('.hdv175-result canvas').waitFor({ state: 'visible', timeout: 20000 });
   assert.equal((await qrStudio.locator('[data-q175-preview]').innerText()).trim(), 'geo:52.52,13.405');
   const [qrDownload] = await Promise.all([
-    page.waitForEvent('download'),
+    page.waitForEvent('download', { timeout:20000 }),
     qrStudio.locator('[data-q175-download]').click()
   ]);
   assert.match(qrDownload.suggestedFilename(), /^haldo-qr-\d+\.png$/);
@@ -1335,7 +1335,7 @@ async function run() {
   await pdfCenter.locator('input[id$="-title"]').fill('HalDo Testdokument');
   await pdfCenter.locator('textarea[id$="-text"]').fill('Hallo HalDo. Lokaler PDF-Test mit Umlauten äöü.');
   const [textPdfDownload] = await Promise.all([
-    page.waitForEvent('download'),
+    page.waitForEvent('download', { timeout:20000 }),
     pdfCenter.locator('[data-v175-pdf-create]').click()
   ]);
   assert.match(textPdfDownload.suggestedFilename(), /\.pdf$/i);
@@ -1370,7 +1370,7 @@ async function run() {
   }, { timeout:10000 });
   assert.equal(await documentScanner.locator('[data-v175-pages] .hdv175-page').count(), 2);
   const [scanPdfDownload] = await Promise.all([
-    page.waitForEvent('download'),
+    page.waitForEvent('download', { timeout:20000 }),
     documentScanner.locator('[data-v175-export]').click()
   ]);
   assert.match(scanPdfDownload.suggestedFilename(), /\.pdf$/i);
