@@ -719,7 +719,7 @@ async function run() {
   await dismissWelcomeIfPresent();
   const reopenedScientific = page.locator('#winLayer .hdv172-root[data-hv172-app="scientific"]').last();
   await reopenedScientific.waitFor({ state: 'visible', timeout: 10000 });
-  await reopenedScientific.locator('[data-s172-history]').waitFor({ state: 'visible', timeout: 10000 });
+  await reopenedScientific.locator('ul[data-s172-history]').waitFor({ state: 'visible', timeout: 10000 });
   await page.waitForFunction(() => {
     const roots = Array.from(document.querySelectorAll('.hdv172-root[data-hv172-app="scientific"]'));
     const root = roots[roots.length - 1];
