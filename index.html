@@ -280,6 +280,14 @@ body.ice{--accent:#a0e0ff;--accent2:#e0f0ff;--accent3:#a0e0ff;
 .hdx-anatomy-view{position:relative;width:100%;height:390px;min-height:280px;background:radial-gradient(ellipse at center,rgba(0,70,110,.18),rgba(0,0,12,.85));border:1px solid rgba(0,229,255,.25);border-radius:14px;overflow:hidden}
 .hdx-anatomy-view canvas{display:block;width:100%;height:100%}
 .hdx-anatomy-status{position:absolute;left:10px;bottom:10px;z-index:2;padding:6px 9px;background:rgba(0,0,0,.65);border:1px solid rgba(0,229,255,.2);border-radius:9px;font-size:11px;max-width:calc(100% - 20px)}
+.hdx-bone-tools{display:grid;grid-template-columns:minmax(180px,1fr) minmax(160px,.8fr) auto;gap:7px;margin:8px 0}
+.hdx-bone-results{display:flex;flex-wrap:wrap;gap:6px;max-height:116px;overflow:auto;padding:7px;border:1px solid rgba(0,229,255,.16);border-radius:11px;background:rgba(0,8,20,.28)}
+.hdx-bone-result{max-width:100%;text-align:left;border:1px solid rgba(0,229,255,.2);border-radius:9px;background:rgba(0,229,255,.06);color:inherit;padding:6px 9px;cursor:pointer;font:inherit;font-size:11px}
+.hdx-bone-result:hover,.hdx-bone-result.active{border-color:var(--accent,#00e5ff);background:rgba(0,229,255,.16)}
+.hdx-bone-result:disabled{opacity:.45;cursor:not-allowed}
+.hdx-bone-result-count{width:100%;font-size:10px;opacity:.65}
+.hdx-bone-results:empty{display:none}
+@media(max-width:620px){.hdx-bone-tools{grid-template-columns:1fr 1fr}.hdx-bone-tools [data-bone-clear]{grid-column:1/-1}}
 @keyframes hdx-orbit{to{transform:rotate(360deg)}}
 @keyframes hdx-breathe{0%,100%{transform:translateY(1px) scale(1)}50%{transform:translateY(-3px) scale(1.012)}}
 @keyframes hdx-look{0%,100%{transform:translateX(0)}25%{transform:translateX(4px)}70%{transform:translateX(-3px)}}
@@ -9776,13 +9784,17 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
       const draw=()=>{
         root.querySelectorAll('[data-arzt-tab]').forEach(b=>b.classList.toggle('active',b.dataset.arztTab===tab));
         if(tab==='overview')panel.innerHTML=`<div class="hdx-grid">${[['🫀','Anatomie 3D','Interaktiver Viewer mit GLB-Modellen'],['🧬','Organsysteme','Lernübersicht zu Körperstrukturen'],['🧪','Laborwerte','Werte nur mit Referenzbereich und Quelle einordnen'],['🚨','Notfall','Notrufinformationen und Erste-Hilfe-Hinweise']].map(x=>`<div class="hdx-card"><h3>${x[0]} ${x[1]}</h3><p class="hdx-muted">${x[2]}</p></div>`).join('')}</div><div class="hdx-banner"><strong>3D-Modellbestand</strong><br><span class="hdx-muted">Die in deinem Projekt vorhandenen GLB-Dateien werden erst bei Auswahl einzeln geladen. Wenn ein Modellpfad nicht erreichbar ist, zeigt der Viewer den tatsächlichen Fehler statt endlos „Lade …“ an.</span></div><div class="hdx-row"><button class="hdx-btn primary" data-arzt-open3d>3D-Anatomie öffnen</button>${H.ArztbuchLegacyOpen?'<button class="hdx-btn" data-arzt-legacy>Weitere vorhandene Arztbuch-Wissensmodule</button>':''}</div>`;
-        if(tab==='anatomy')panel.innerHTML=`<div class="hdx-row"><select class="hdx-field" data-anatomy-profile aria-label="Anatomie-Profil"><option value="adult_male">Erwachsener – männlich</option><option value="adult_female">Erwachsener – weiblich</option><option value="infant">Säugling – schematisch</option><option value="neonate">Neugeborenes – schematisch</option></select><button class="hdx-btn primary" type="button" data-model-schematic>🦴 Ganzes Skelett laden (schematisch)</button></div><div class="hdx-row"><select class="hdx-field" data-model-select>${modelPaths.map(p=>`<option value="${esc(p)}">${esc(p.split('/').pop())}</option>`).join('')}</select><button class="hdx-btn" data-model-load>Einzelknochen laden</button><label class="hdx-btn">GLB lokal wählen<input type="file" accept=".glb,model/gltf-binary" data-model-file hidden></label></div><div class="hdx-anatomy-view" data-anatomy-view><div class="hdx-anatomy-status" data-anatomy-status>3D-Viewer wird vorbereitet …</div></div><div class="hdx-card" data-bone-info aria-live="polite">Wähle das schematische Skelett und klicke anschließend auf einen Knochen, um seine Bezeichnung und Körperregion zu sehen.</div><p class="hdx-muted">Maus/Touch: drehen · Mausrad/Pinch: zoomen · rechte Taste/Zwei-Finger: verschieben. Die schematische Lernansicht nutzt willkürliche Darstellungseinheiten und ist nicht für Diagnose, Behandlung oder klinische Vermessung bestimmt. Einzelmodelle können als vorhandene GLB-Datei oder lokal geladen werden.</p>`;
+        if(tab==='anatomy')panel.innerHTML=`<div class="hdx-row"><select class="hdx-field" data-anatomy-profile aria-label="Anatomie-Profil"><option value="adult_male">Erwachsener – männlich</option><option value="adult_female">Erwachsener – weiblich</option><option value="infant">Säugling – schematisch</option><option value="neonate">Neugeborenes – schematisch</option></select><button class="hdx-btn primary" type="button" data-model-schematic>🦴 Ganzes Skelett laden (schematisch)</button></div><div class="hdx-row"><select class="hdx-field" data-model-select>${modelPaths.map(p=>`<option value="${esc(p)}">${esc(p.split('/').pop())}</option>`).join('')}</select><button class="hdx-btn" data-model-load>Einzelknochen laden</button><label class="hdx-btn">GLB lokal wählen<input type="file" accept=".glb,model/gltf-binary" data-model-file hidden></label></div><div class="hdx-bone-tools"><input class="hdx-field" type="search" data-bone-search placeholder="Knochen suchen: Deutsch, Englisch oder Latein" aria-label="Knochen suchen" disabled><select class="hdx-field" data-bone-region aria-label="Körperregion filtern" disabled><option value="">Alle Körperregionen</option></select><button class="hdx-btn" type="button" data-bone-clear disabled>Filter zurücksetzen</button></div><div class="hdx-bone-results" data-bone-results aria-label="Knochenkatalog">Lade zuerst das schematische Skelett.</div><div class="hdx-anatomy-view" data-anatomy-view><div class="hdx-anatomy-status" data-anatomy-status>3D-Viewer wird vorbereitet …</div></div><div class="hdx-card" data-bone-info aria-live="polite">Wähle das schematische Skelett und klicke anschließend auf einen Knochen, um seine Bezeichnung und Körperregion zu sehen.</div><p class="hdx-muted">Maus/Touch: drehen · Mausrad/Pinch: zoomen · rechte Taste/Zwei-Finger: verschieben. Die schematische Lernansicht nutzt willkürliche Darstellungseinheiten und ist nicht für Diagnose, Behandlung oder klinische Vermessung bestimmt. Einzelmodelle können als vorhandene GLB-Datei oder lokal geladen werden.</p>`;
         if(tab==='systems')panel.innerHTML=`<div class="hdx-grid">${organs.map(o=>`<div class="hdx-card"><strong>🧬 ${o[0]}</strong><p class="hdx-muted">${o[1]}</p></div>`).join('')}</div><p class="hdx-muted">Die Detaildarstellungen werden mit geprüften anatomischen Inhalten und den zugehörigen 3D-Assets erweitert.</p>`;
         if(tab==='emergency')panel.innerHTML=`<div class="hdx-card"><h3>🚨 Notfall</h3><p>Bei akuter Lebensgefahr in Deutschland/EU: <strong>112</strong>.</p><p>Bei Bewusstlosigkeit und fehlender normaler Atmung: Notruf absetzen, Wiederbelebung beginnen und den Anweisungen der Leitstelle folgen.</p><p class="hdx-muted">Diese Übersicht ersetzt keine zertifizierte Erste-Hilfe-Ausbildung oder professionelle medizinische Versorgung.</p></div>`;
         if(tab==='anatomy')initViewer();
       };
-      root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.arztTab){if(tab==='anatomy')disposeViewer();tab=b.dataset.arztTab;draw();}if(b.hasAttribute('data-arzt-open3d')){if(tab==='anatomy')disposeViewer();tab='anatomy';draw();}if(b.hasAttribute('data-arzt-legacy')&&H.ArztbuchLegacyOpen){H.ArztbuchLegacyOpen();}if(b.hasAttribute('data-model-load'))loadModel(root.querySelector('[data-model-select]').value);if(b.hasAttribute('data-model-schematic'))loadSchematicSkeleton();});
+      root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.arztTab){if(tab==='anatomy')disposeViewer();tab=b.dataset.arztTab;draw();}if(b.hasAttribute('data-arzt-open3d')){if(tab==='anatomy')disposeViewer();tab='anatomy';draw();}if(b.hasAttribute('data-arzt-legacy')&&H.ArztbuchLegacyOpen){H.ArztbuchLegacyOpen();}if(b.hasAttribute('data-model-load'))loadModel(root.querySelector('[data-model-select]').value);if(b.hasAttribute('data-model-schematic'))loadSchematicSkeleton();if(b.dataset.boneSelect)selectBone(b.dataset.boneSelect);if(b.hasAttribute('data-bone-clear')){const search=root.querySelector('[data-bone-search]');const region=root.querySelector('[data-bone-region]');if(search)search.value='';if(region)region.value='';applyBoneRegionFilter();}});
+      root.addEventListener('input',e=>{
+        if(e.target.matches('[data-bone-search]'))renderBoneCatalog();
+      });
       root.addEventListener('change',e=>{
+        if(e.target.matches('[data-bone-region]')){applyBoneRegionFilter();return;}
         if(!e.target.matches('[data-model-file]'))return;
         const file=e.target.files?.[0];if(!file)return;
         if(!String(file.name||'').toLowerCase().endsWith('.glb')){
@@ -9797,6 +9809,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
       });
       let renderer=null,scene=null,camera=null,controls=null,frame=0,loader=null,resizeObserver=null,currentObject=null,initialized=false,loadToken=0;
       let currentSkeleton=null,skeletonApi=null,currentObjectUrl=null,raycaster=null,pointer=null,canvasClickHandler=null,resizeHandler=null;
+      let selectedBoneId=null,highlightedMaterials=[];
       function status(msg,bad=false){const el=root.querySelector('[data-anatomy-status]');if(el){el.textContent=msg;el.style.color=bad?'#ff9baa':'#8fffe1';}}
       function disposeObjectResources(object){
         if(!object||typeof object.traverse!=='function')return;
@@ -9818,8 +9831,141 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
         if(currentObject&&scene)scene.remove(currentObject);
         if(currentSkeleton&&skeletonApi&&typeof skeletonApi.disposeSchematicSkeleton==='function')skeletonApi.disposeSchematicSkeleton(currentSkeleton);
         else if(currentObject)disposeObjectResources(currentObject);
-        currentObject=null;currentSkeleton=null;skeletonApi=null;
+        currentObject=null;currentSkeleton=null;skeletonApi=null;selectedBoneId=null;clearBoneHighlight();
         if(currentObjectUrl){URL.revokeObjectURL(currentObjectUrl);currentObjectUrl=null;}
+        updateBoneCatalogControls();
+      }
+      function clearBoneHighlight(){
+        highlightedMaterials.forEach((entry)=>{
+          if(!entry.material||!entry.material.emissive)return;
+          entry.material.emissive.copy(entry.emissive);
+          entry.material.emissiveIntensity=entry.intensity;
+        });
+        highlightedMaterials=[];
+      }
+      function highlightBone(entry){
+        clearBoneHighlight();
+        if(!entry||!entry.object)return;
+        const seen=new Set();
+        entry.object.traverse((node)=>{
+          if(!node.isMesh)return;
+          const assigned=Array.isArray(node.material)?node.material:[node.material];
+          assigned.forEach((material)=>{
+            if(!material||!material.emissive||seen.has(material))return;
+            seen.add(material);
+            highlightedMaterials.push({material,emissive:material.emissive.clone(),intensity:material.emissiveIntensity});
+            material.emissive.setHex(0x00e5ff);
+            material.emissiveIntensity=.72;
+          });
+        });
+        selectedBoneId=entry.id;
+      }
+      function normalizeBoneSearch(value){
+        return String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('de-DE').trim();
+      }
+      function filteredBoneEntries(){
+        if(!currentSkeleton)return [];
+        const query=normalizeBoneSearch(root.querySelector('[data-bone-search]')?.value||'');
+        const region=root.querySelector('[data-bone-region]')?.value||'';
+        return currentSkeleton.bones.filter((entry)=>{
+          const definition=entry.definition;
+          const entryRegion=definition.regionDe||definition.region||'';
+          if(region&&entryRegion!==region)return false;
+          if(!query)return true;
+          const searchable=[entry.id,definition.de,definition.en,definition.la,entryRegion,definition.sideDe,definition.side]
+            .filter(Boolean).map(normalizeBoneSearch);
+          return searchable.some((value)=>value.includes(query));
+        });
+      }
+      function renderBoneCatalog(){
+        const results=root.querySelector('[data-bone-results]');
+        if(!results)return;
+        results.replaceChildren();
+        if(!currentSkeleton){
+          results.textContent='Lade zuerst das schematische Skelett.';
+          results.dataset.resultCount='0';
+          results.dataset.visibleCount='0';
+          return;
+        }
+        const entries=filteredBoneEntries();
+        const visibleCount=currentSkeleton.bones.filter((entry)=>entry.object.visible).length;
+        results.dataset.resultCount=String(entries.length);
+        results.dataset.visibleCount=String(visibleCount);
+        const summary=document.createElement('div');
+        summary.className='hdx-bone-result-count';
+        summary.textContent=entries.length+' Treffer · '+visibleCount+' Knochen im 3D-Modell sichtbar'+(entries.length>40?' · erste 40 Treffer angezeigt':'');
+        results.appendChild(summary);
+        entries.slice(0,40).forEach((entry)=>{
+          const definition=entry.definition;
+          const button=document.createElement('button');
+          button.type='button';
+          button.className='hdx-bone-result'+(entry.id===selectedBoneId?' active':'');
+          button.dataset.boneSelect=entry.id;
+          button.setAttribute('aria-pressed',entry.id===selectedBoneId?'true':'false');
+          button.textContent=(definition.de||entry.id)+' · '+(definition.regionDe||definition.region||'');
+          results.appendChild(button);
+        });
+        if(!entries.length){
+          const empty=document.createElement('div');
+          empty.className='hdx-muted';
+          empty.textContent='Keine passenden Knochen gefunden. Suche oder Körperregion ändern.';
+          results.appendChild(empty);
+        }
+      }
+      function populateBoneRegions(){
+        const select=root.querySelector('[data-bone-region]');
+        if(!select||!currentSkeleton)return;
+        const previous=select.value;
+        const regions=[...new Set(currentSkeleton.bones.map((entry)=>entry.definition.regionDe||entry.definition.region).filter(Boolean))]
+          .sort((a,b)=>a.localeCompare(b,'de'));
+        select.replaceChildren();
+        const all=document.createElement('option');
+        all.value='';all.textContent='Alle Körperregionen';select.appendChild(all);
+        regions.forEach((region)=>{
+          const option=document.createElement('option');
+          option.value=region;option.textContent=region;select.appendChild(option);
+        });
+        select.value=regions.includes(previous)?previous:'';
+      }
+      function applyBoneRegionFilter(){
+        if(!currentSkeleton)return;
+        const region=root.querySelector('[data-bone-region]')?.value||'';
+        currentSkeleton.bones.forEach((entry)=>{
+          const entryRegion=entry.definition.regionDe||entry.definition.region||'';
+          entry.object.visible=!region||entryRegion===region;
+        });
+        if(selectedBoneId){
+          const selected=currentSkeleton.byId.get(selectedBoneId);
+          if(selected&&!selected.object.visible){
+            clearBoneHighlight();selectedBoneId=null;
+            const info=root.querySelector('[data-bone-info]');
+            if(info)info.textContent='Der zuvor ausgewählte Knochen liegt außerhalb der aktiven Körperregion.';
+          }
+        }
+        renderBoneCatalog();
+        status(region?'Körperregion '+region+' gefiltert.':'Alle Körperregionen sichtbar.');
+      }
+      function updateBoneCatalogControls(){
+        const enabled=!!currentSkeleton;
+        ['[data-bone-search]','[data-bone-region]','[data-bone-clear]'].forEach((selector)=>{
+          const control=root.querySelector(selector);
+          if(control)control.disabled=!enabled;
+        });
+        if(!enabled){
+          const results=root.querySelector('[data-bone-results]');
+          if(results){results.textContent='Lade zuerst das schematische Skelett.';results.dataset.resultCount='0';results.dataset.visibleCount='0';}
+          return;
+        }
+        populateBoneRegions();
+        applyBoneRegionFilter();
+      }
+      function selectBone(boneId){
+        if(!currentSkeleton)return;
+        const entry=currentSkeleton.byId.get(boneId);
+        if(!entry||!entry.object.visible)return;
+        highlightBone(entry);
+        showSelectedBone(boneId,entry.object.name);
+        renderBoneCatalog();
       }
       function disposeViewer(){
         loadToken+=1;
@@ -9835,7 +9981,9 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
       function showSelectedBone(boneId,objectName){
         const info=root.querySelector('[data-bone-info]');
         if(currentSkeleton&&currentSkeleton.byId.has(boneId)){
-          const definition=currentSkeleton.byId.get(boneId).definition;
+          const entry=currentSkeleton.byId.get(boneId);
+          highlightBone(entry);
+          const definition=entry.definition;
           const details=[
             ['Deutsch',definition.de||definition.id],
             ['Latein',definition.la],
@@ -9921,6 +10069,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
           if(!root.isConnected||requestToken!==loadToken||!renderer||!scene){api.disposeSchematicSkeleton(skeleton);return;}
           clearCurrentObject();
           skeletonApi=api;currentSkeleton=skeleton;currentObject=skeleton.group;
+          populateBoneRegions();updateBoneCatalogControls();
           scene.add(currentObject);fit(currentObject);
           const info=root.querySelector('[data-bone-info]');
           if(info)info.textContent=skeleton.bones.length+' Knochen geladen. Wähle einen Knochen per Mausklick. Schematische Lehrdarstellung, keine klinische Vermessung.';
