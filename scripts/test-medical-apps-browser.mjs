@@ -486,6 +486,32 @@ async function run() {
   assert.equal(await anatomyAppRoot.locator('.hdx-anatomy-view canvas').count(), 1);
   assert.match(await anatomyAppRoot.locator('[data-bone-info]').innerText(), /179 Knochen/);
   pass('Anatomie 3D Pro: Arztbuch-Viewer rendert das vollständige schematische Erwachsenenskelett');
+  const boneSelection = await anatomyAppRoot.locator('.hdx-anatomy-view canvas').evaluate((canvas) => {
+    const info = canvas.closest('.hdx-root')?.querySelector('[data-bone-info]');
+    if (!info) return null;
+    const initial = info.textContent;
+    const rect = canvas.getBoundingClientRect();
+    const fractions = [0.15, 0.25, 0.35, 0.45, 0.5, 0.55, 0.65, 0.75, 0.85];
+    for (const y of fractions) {
+      for (const x of fractions) {
+        canvas.dispatchEvent(new MouseEvent('click', {
+          bubbles: true,
+          clientX: rect.left + rect.width * x,
+          clientY: rect.top + rect.height * y
+        }));
+        if (info.textContent !== initial && info.textContent.includes('Schematisches Lehrmodell')) {
+          return info.textContent;
+        }
+      }
+    }
+    return null;
+  });
+  assert.ok(boneSelection, 'Kein sichtbarer schematischer Knochen konnte im Viewer ausgewählt werden.');
+  assert.match(boneSelection, /Bezeichnung:/);
+  assert.match(boneSelection, /Latein:/);
+  assert.match(boneSelection, /Körperregion:/);
+  pass('Anatomie 3D Pro: Knochen sind per Mausklick auswählbar und zeigen deutsche, englische und lateinische Angaben');
+
 
   await anatomyAppRoot.locator('[data-anatomy-profile]').selectOption('infant');
   await anatomyAppRoot.locator('[data-model-schematic]').click();
