@@ -663,7 +663,7 @@
     createPdfBlob:createImagePdfBlob,
     getStatus:function () { return { version:BUILD, maximumPages:30, localOnly:true, persistentStorage:false, ocr:false, automaticCrop:false }; }
   };
-  H.AppsV175 = {
+  H.AppsV175Documents = {
     version:BUILD,
     apps:definitions.map(function (app) { return { id:app.id, title:app.title, category:app.category }; }),
     status:function () { return { registered:definitions.length, build:BUILD, localOnly:true }; }
