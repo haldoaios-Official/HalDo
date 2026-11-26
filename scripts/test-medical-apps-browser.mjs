@@ -348,6 +348,42 @@ async function run() {
   assert.equal(anatomyCatalogCheck.unknown, null);
   assert.match(anatomyCatalogCheck.unavailableError, /No verified GLB asset/);
   pass('Anatomie 3D: 179/179/178 echte Modellpfade und nicht verfügbare Profile werden sicher erkannt');
+  const glbMetadata = await page.evaluate(async () => {
+    async function inspect(path) {
+      const response = await fetch(path);
+      if (!response.ok) throw new Error(path + ' returned HTTP ' + response.status);
+      const buffer = await response.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      const view = new DataView(buffer);
+      const magic = new TextDecoder().decode(bytes.slice(0, 4));
+      const version = view.getUint32(4, true);
+      const declaredLength = view.getUint32(8, true);
+      const jsonLength = view.getUint32(12, true);
+      const jsonType = new TextDecoder().decode(bytes.slice(16, 20));
+      if (magic !== 'glTF' || version !== 2 || declaredLength !== buffer.byteLength || jsonType !== 'JSON') {
+        throw new Error(path + ' is not a valid GLB 2.0 container');
+      }
+      const json = JSON.parse(new TextDecoder().decode(bytes.slice(20, 20 + jsonLength)));
+      return {
+        path,
+        bytes: buffer.byteLength,
+        nodes: (json.nodes || []).length,
+        meshes: (json.meshes || []).length,
+        skins: (json.skins || []).length,
+        animations: (json.animations || []).length,
+        nodeNames: (json.nodes || []).map((node) => node.name).filter(Boolean).slice(0, 8)
+      };
+    }
+    return {
+      baseMesh: await inspect('/female-base-mesh-base_female.glb'),
+      individualBone: await inspect('/models/adult_male/adult_female/c1_atlas.glb')
+    };
+  });
+  assert.ok(glbMetadata.baseMesh.nodes > 0 && glbMetadata.baseMesh.meshes > 0);
+  assert.ok(glbMetadata.individualBone.nodes > 0 && glbMetadata.individualBone.meshes > 0);
+  console.log('ANATOMY GLB METADATA ' + JSON.stringify(glbMetadata));
+  pass('Anatomie 3D: GLB-2.0-Struktur von Basis-Mesh und Einzelknochen wird geprüft');
+
 
 
 
