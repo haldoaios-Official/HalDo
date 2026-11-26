@@ -995,7 +995,7 @@ async function run() {
   await appointments.locator('[name="status"]').selectOption('Erledigt');
   await appointments.locator('[name="referralStatus"]').selectOption('Eingelöst');
   await appointments.locator('#h167-record-form button[type="submit"]').click();
-  await appointments.getByText('Erledigt', { exact: false }).waitFor({ timeout: 15000 });
+  await appointments.locator('.card .muted').filter({ hasText: 'Erledigt' }).waitFor({ state: 'visible', timeout: 15000 });
   await assertEncrypted(appointmentKey, ['Terminperson E2E', 'Testpraxis E2E']);
   pass('HalDo Arzttermine & Überweisungen Pro: Suche, Bearbeitung und Statuswechsel bleiben verschlüsselt');
 
