@@ -499,6 +499,14 @@ async function run() {
   console.log('SINGLE BONE GLB LOAD STATUS ' + singleBoneStatus);
   assert.equal(await anatomyAppRoot.locator('.hdx-anatomy-view canvas').count(), 1);
   pass('Anatomie 3D Pro: einzelnes vorhandenes GLB-Knochenmodell wird im aktiven Viewer geladen');
+  await page.evaluate(() => {
+    const originalRevoke = URL.revokeObjectURL.bind(URL);
+    window.__haldoRevokedBlobUrls = [];
+    URL.revokeObjectURL = (url) => {
+      if (typeof url === 'string' && url.startsWith('blob:')) window.__haldoRevokedBlobUrls.push(url);
+      return originalRevoke(url);
+    };
+  });
   await anatomyAppRoot.locator('[data-model-file]').setInputFiles(
     path.join(ROOT, 'models/adult_male/adult_female/c1_atlas.glb')
   );
@@ -513,12 +521,17 @@ async function run() {
   const localGlbStatus = await anatomyAppRoot.locator('[data-anatomy-status]').innerText();
   console.log('LOCAL GLB IMPORT STATUS ' + localGlbStatus);
   assert.match(localGlbStatus, /3D-Modell/);
+  const localBlobUrl = (localGlbStatus.match(/blob:[^\\s]+/) || [])[0];
+  assert.ok(localBlobUrl, 'Der lokale GLB-Import muss über eine temporäre Blob-URL laufen.');
   pass('Anatomie 3D Pro: lokale GLB-Datei wird ohne externen Modellserver importiert');
   await anatomyAppRoot.locator('[data-model-schematic]').click();
   await page.waitForFunction(() => {
     return Array.from(document.querySelectorAll('#winLayer .hdx-root [data-anatomy-status]'))
       .some((element) => element.textContent.includes('Schematisches Skelett geladen: 179 Knochen'));
   }, { timeout: 30000 });
+  const revokedBlobUrls = await page.evaluate(() => window.__haldoRevokedBlobUrls || []);
+  assert.ok(revokedBlobUrls.includes(localBlobUrl), 'Beim Modellwechsel muss die lokale Blob-URL freigegeben werden.');
+  pass('Anatomie 3D Pro: lokale Blob-URL wird beim Austausch des Modells wieder freigegeben');
   assert.equal(await anatomyAppRoot.locator('.hdx-anatomy-view canvas').count(), 1);
   assert.match(await anatomyAppRoot.locator('[data-bone-info]').innerText(), /179 Knochen/);
   pass('Anatomie 3D Pro: Arztbuch-Viewer rendert das vollständige schematische Erwachsenenskelett');
