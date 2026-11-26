@@ -499,6 +499,21 @@ async function run() {
   console.log('SINGLE BONE GLB LOAD STATUS ' + singleBoneStatus);
   assert.equal(await anatomyAppRoot.locator('.hdx-anatomy-view canvas').count(), 1);
   pass('Anatomie 3D Pro: einzelnes vorhandenes GLB-Knochenmodell wird im aktiven Viewer geladen');
+  await anatomyAppRoot.locator('[data-model-file]').setInputFiles(
+    path.join(ROOT, 'models/adult_male/adult_female/c1_atlas.glb')
+  );
+  await page.waitForFunction(() => {
+    return Array.from(document.querySelectorAll('#winLayer .hdx-root [data-anatomy-status]'))
+      .some((element) => {
+        const message = element.textContent || '';
+        return message.includes('3D-Modell geladen: blob:') ||
+          message.includes('3D-Modell sichtbar und interaktiv geladen');
+      });
+  }, { timeout: 30000 });
+  const localGlbStatus = await anatomyAppRoot.locator('[data-anatomy-status]').innerText();
+  console.log('LOCAL GLB IMPORT STATUS ' + localGlbStatus);
+  assert.match(localGlbStatus, /3D-Modell/);
+  pass('Anatomie 3D Pro: lokale GLB-Datei wird ohne externen Modellserver importiert');
   await anatomyAppRoot.locator('[data-model-schematic]').click();
   await page.waitForFunction(() => {
     return Array.from(document.querySelectorAll('#winLayer .hdx-root [data-anatomy-status]'))
