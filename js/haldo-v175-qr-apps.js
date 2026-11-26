@@ -141,7 +141,7 @@
     }
     if (type === 'email') {
       var mail = valueOf(root, 'email');
-      if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(mail)) throw new Error('Bitte eine gültige Empfänger-Adresse eingeben.');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) throw new Error('Bitte eine gültige Empfänger-Adresse eingeben.');
       var subject = valueOf(root, 'subject');
       var body = valueOf(root, 'body');
       return 'mailto:' + mail + (subject || body ? '?' + [
@@ -365,7 +365,7 @@
     version:BUILD,
     appIds:['qr','qr-sticker'],
     status:function () {
-      return this.appIds.map(function (id) { return { id:id, ready:!!(H[id] && typeof H[id].open === 'function'); }; });
+      return this.appIds.map(function (id) { return { id:id, ready:!!(H[id] && typeof H[id].open === 'function') }; });
     }
   };
   if (H.AppVoice && typeof H.AppVoice.command === 'function') {
