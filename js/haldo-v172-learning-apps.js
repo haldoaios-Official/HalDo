@@ -253,7 +253,7 @@
 
     function startSession() {
       if (active && !paused) return;
-      if (!active) {
+      if (!active && !paused) {
         patternId = patternSelect.value;
         cycles = Number(cycleSelect.value);
         cycleIndex = 0;
