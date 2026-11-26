@@ -1969,6 +1969,7 @@ async function run() {
   await hub.locator('[name="result"]').fill('75');
   await hub.locator('[name="unit"]').fill('bpm');
   await hub.locator('[name="date"]').fill('2026-11-26');
+  await hub.locator('[name="details"]').fill('=1+1; "morgens"');
   await hub.locator('[data-ab-form] button[type="submit"]').click();
   await hub.locator('[data-ab-vital-chart]').waitFor({ state: 'visible', timeout: 10000 });
   assert.equal(await hub.locator('[data-ab-vital-chart] circle').count(), 2);
@@ -1981,6 +1982,19 @@ async function run() {
   pass('Arztbuch: Monats- und Jahresübersicht wechseln den Zeitraum korrekt');
   assert.equal(await hub.locator('[data-ab-vital-export]').isVisible(), true);
   pass('Arztbuch: CSV-Export-Schaltfläche ist im Vitalwerte-Verlauf sichtbar');
+
+  const csvDownloadPromise = page.waitForEvent('download');
+  await hub.locator('[data-ab-vital-export]').click();
+  const csvDownload = await csvDownloadPromise;
+  assert.equal(csvDownload.suggestedFilename(), 'haldo-vitalwerte.csv');
+  const csvPath = await csvDownload.path();
+  assert.ok(csvPath, 'CSV-Download hat keinen Dateipfad geliefert.');
+  const csvText = await fs.readFile(csvPath, 'utf8');
+  assert.equal(csvText.charCodeAt(0), 0xFEFF, 'CSV-Datei besitzt keine UTF-8-BOM.');
+  assert.ok(csvText.includes('"Messgröße";"Messwert";"Einheit";"Messdatum";"Quelle";"Notiz"'));
+  assert.equal((csvText.match(/"Puls E2E"/g) || []).length, 2, 'CSV enthält nicht beide Vitalwert-Messungen.');
+  assert.ok(csvText.includes(String.raw\`"'=1+1; ""morgens"""\`), 'CSV hat Formelinjection-Präfix oder CSV-Quoting nicht korrekt angewendet.');
+  pass('Arztbuch: CSV wird tatsächlich heruntergeladen; UTF-8, Spalten, beide Datensätze und sichere Zell-Escapes geprüft');
 
 
 
