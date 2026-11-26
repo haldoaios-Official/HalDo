@@ -172,16 +172,16 @@ async function openMedicalAppFromHub(hub, appId) {
   return root;
 }
 async function closeWindow(root) {
-  const windowId = await root.evaluate((element) => {
-    const layer = element.closest('#winLayer');
-    if (!layer) return null;
-    let host = element;
-    while (host.parentElement && host.parentElement !== layer) host = host.parentElement;
-    return host.parentElement === layer && host.id ? host.id : null;
+  const closeResult = await root.evaluate((element) => {
+    const windowHost = element.closest('.window');
+    const closeButton = windowHost?.querySelector('[data-act="close"]');
+    if (!windowHost?.id || !closeButton) {
+      return { ok: false, windowId: windowHost?.id || null, hasCloseButton: Boolean(closeButton) };
+    }
+    closeButton.click();
+    return { ok: true, windowId: windowHost.id };
   });
-  assert.ok(windowId, 'Fenster-ID konnte vor dem Schließen nicht aus #winLayer ermittelt werden.');
-  const windowHost = page.locator('#' + windowId);
-  await windowHost.locator('[data-act="close"]').click();
+  assert.ok(closeResult.ok, 'Fenster-Schließen nicht möglich: ' + JSON.stringify(closeResult));
   await root.waitFor({ state: 'detached', timeout: 5000 });
 }
 async function createOrUnlock(root, passphrase) {
