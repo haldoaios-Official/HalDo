@@ -321,6 +321,16 @@ async function run() {
   assert.equal(v168Build.version, '168.0.0');
   assert.equal(v168Build.worldClock.kind, 'module');
   assert.equal(v168Build.recipeScaler.kind, 'module');
+  const v168Runtime = await page.evaluate(() => ({
+    worldClockOpen: typeof window.HalDo.worldclock?.open,
+    recipeScalerOpen: typeof window.HalDo['recipe-scaler']?.open,
+    build: window.HalDo.Master.version,
+    scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v168-core-apps.js'))
+  }));
+  console.log('HALDO V168 RUNTIME ' + JSON.stringify(v168Runtime));
+  assert.equal(v168Runtime.worldClockOpen, 'function');
+  assert.equal(v168Runtime.recipeScalerOpen, 'function');
+  assert.equal(v168Runtime.scriptLoaded, true);
   await page.evaluate(() => window.HalDo.Launch({ id: 'worldclock', n: 'HalDo Weltuhr Pro' }));
   await dismissWelcomeIfPresent();
   const worldClockRoot = page.locator('#winLayer .hdv168-root').last();
@@ -1063,6 +1073,7 @@ try {
   }
   console.error('\nBROWSER-TEST FEHLGESCHLAGEN');
   console.error(error?.stack || error);
+  if (pageErrors.length) console.error('BROWSER PAGE ERRORS ' + pageErrors.join('\n---\n'));
   process.exitCode = 1;
 } finally {
   if (browser) await browser.close().catch(() => {});
