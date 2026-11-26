@@ -1,0 +1,49 @@
+name: HalDo v167 Medical Apps Browser Tests
+
+on:
+  push:
+    branches:
+      - work-v167-medical-apps
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'index.html'
+      - 'js/haldo-v167-medical-apps.js'
+      - 'scripts/test-medical-apps-browser.mjs'
+      - '.github/workflows/medical-apps-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  medical-apps-browser:
+    name: Encrypted vault end-to-end tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Playwright
+        run: npm install --no-save --package-lock=false playwright
+
+      - name: Install Chromium and system dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Run HalDo medical-app browser tests
+        run: node scripts/test-medical-apps-browser.mjs
+
+      - name: Upload browser failure screenshot
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: haldo-v167-medical-browser-failure
+          path: artifacts/medical-apps-browser-failure.png
+          if-no-files-found: ignore
