@@ -1252,6 +1252,20 @@ async function run() {
   await qrStudio.locator('.hdv175-result canvas').waitFor({ state: 'visible', timeout: 20000 });
   assert.match(await qrStudio.locator('[data-q175-preview]').innerText(), /WLAN-Zugangsdaten sind codiert/);
   assert.equal(await qrStudio.locator('.hdv175-result canvas').count(), 1);
+  await qrStudio.locator('[data-q175-type]').selectOption('email');
+  await qrStudio.locator('[data-q175-field="email"]').fill('info@example.com');
+  await qrStudio.locator('[data-q175-field="subject"]').fill('HalDo');
+  await qrStudio.locator('[data-q175-generate]').click();
+  await qrStudio.locator('.hdv175-result canvas').waitFor({ state: 'visible', timeout: 20000 });
+  assert.match(await qrStudio.locator('[data-q175-preview]').innerText(), /^mailto:info@example\.com\?subject=HalDo$/);
+  await qrStudio.locator('[data-q175-type]').selectOption('geo');
+  await qrStudio.locator('[data-q175-generate]').click();
+  await qrStudio.locator('.hdv175-alert').filter({ hasText: 'Bitte Breitengrad und Längengrad eingeben' }).waitFor({ state: 'visible', timeout: 5000 });
+  await qrStudio.locator('[data-q175-field="latitude"]').fill('52.52');
+  await qrStudio.locator('[data-q175-field="longitude"]').fill('13.405');
+  await qrStudio.locator('[data-q175-generate]').click();
+  await qrStudio.locator('.hdv175-result canvas').waitFor({ state: 'visible', timeout: 20000 });
+  assert.equal((await qrStudio.locator('[data-q175-preview]').innerText()).trim(), 'geo:52.52,13.405');
   const [qrDownload] = await Promise.all([
     page.waitForEvent('download'),
     qrStudio.locator('[data-q175-download]').click()
