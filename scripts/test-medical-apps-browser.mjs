@@ -575,6 +575,67 @@ async function run() {
   await closeWindow(reopenedAnalyzer);
   pass('HalDo Text Analyzer Pro: Textkennzahlen live berechnen, nur Statistik lokal speichern und Verlauf wiederherstellen/löschen');
 
+  const v171Runtime = await page.evaluate(() => ({
+    build: window.HalDo.AppsV171 && window.HalDo.AppsV171.version,
+    datecalc: window.HalDo.AppBrowser.getStatus('datecalc'),
+    deviceInfo: window.HalDo.AppBrowser.getStatus('device-info'),
+    datecalcOpen: typeof window.HalDo.datecalc?.open,
+    deviceInfoOpen: typeof window.HalDo['device-info']?.open,
+    scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v171-date-device-apps.js'))
+  }));
+  console.log('HALDO V171 RUNTIME ' + JSON.stringify(v171Runtime));
+  assert.equal(v171Runtime.build, '171.0.0');
+  assert.equal(v171Runtime.datecalc.kind, 'module');
+  assert.equal(v171Runtime.deviceInfo.kind, 'module');
+  assert.equal(v171Runtime.datecalcOpen, 'function');
+  assert.equal(v171Runtime.deviceInfoOpen, 'function');
+  assert.equal(v171Runtime.scriptLoaded, true);
+
+  // Date Calculator: month-end clamping, working-day count, calendar metadata, history.
+  await page.evaluate(() => window.HalDo.Launch({ id: 'datecalc', n: 'HalDo Datumsrechner Pro' }));
+  await dismissWelcomeIfPresent();
+  const dateRoot = page.locator('#winLayer .hdv171-root[data-hv171-app="datecalc"]').last();
+  await dateRoot.waitFor({ state: 'visible', timeout: 10000 });
+  await dateRoot.locator('[data-dc-base]').fill('2026-01-31');
+  await dateRoot.locator('[data-dc-amount]').fill('1');
+  await dateRoot.locator('[data-dc-unit]').selectOption('months');
+  await dateRoot.locator('[data-dc-calculate]').click();
+  assert.match(await dateRoot.locator('[data-dc-result]').innerText(), /^2026-02-28/);
+  await dateRoot.locator('[data-dc-tab="difference"]').click();
+  await dateRoot.locator('[data-dc-start]').fill('2026-11-01');
+  await dateRoot.locator('[data-dc-end]').fill('2026-11-26');
+  await dateRoot.locator('[data-dc-gap-calc]').click();
+  assert.equal(await dateRoot.locator('[data-dc-result]').innerText(), '25 Kalendertage · 19 Arbeitstage (Mo–Fr)');
+  await dateRoot.locator('[data-dc-tab="calendar"]').click();
+  await dateRoot.locator('[data-dc-info-date]').fill('2026-11-26');
+  await dateRoot.locator('[data-dc-info-calc]').click();
+  assert.match(await dateRoot.locator('[data-dc-result]').innerText(), /Donnerstag · ISO-KW 48 · Kein Schaltjahr · 2026/);
+  let dateHistory = await page.evaluate(() => window.HalDo.Store.get('haldo_v171_datecalc_history', []));
+  assert.equal(dateHistory.length, 3);
+  await dateRoot.locator('[data-dc-clear-history]').click();
+  assert.equal(await page.evaluate(() => window.HalDo.Store.get('haldo_v171_datecalc_history', []).length), 0);
+  await closeWindow(dateRoot);
+  pass('HalDo Datumsrechner Pro: Monatsende korrekt begrenzen, Arbeitstage zählen, ISO-Kalenderdaten berechnen und Verlauf verwalten');
+
+  // Device info: read-only browser snapshot; never request device permissions or expose network identifiers.
+  await page.evaluate(() => window.HalDo.Launch({ id: 'device-info', n: 'HalDo Geräte-Info Pro' }));
+  await dismissWelcomeIfPresent();
+  const deviceRoot = page.locator('#winLayer .hdv171-root[data-hv171-app="device-info"]').last();
+  await deviceRoot.waitFor({ state: 'visible', timeout: 10000 });
+  await deviceRoot.locator('[data-di-details]').waitFor({ state: 'visible', timeout: 10000 });
+  assert.match(await deviceRoot.locator('[data-di-details]').innerText(), /Browserkennung/);
+  assert.match(await deviceRoot.locator('[data-di-details]').innerText(), /Zeitzone/);
+  assert.match(await deviceRoot.locator('[data-di-details]').innerText(), /Bildschirm/);
+  assert.match(await deviceRoot.locator('[data-di-capabilities]').innerText(), /WebGL/);
+  assert.match(await deviceRoot.innerText(), /WLAN-SSID, MAC-Adresse, gekoppelte Bluetooth-Geräte/);
+  assert.equal(await deviceRoot.locator('[data-di-details]').innerText().includes('MAC-Adresse'), false);
+  await deviceRoot.locator('[data-di-refresh]').click();
+  assert.match(await deviceRoot.locator('[data-di-status]').innerText(), /aktualisiert/);
+  await closeWindow(deviceRoot);
+  pass('HalDo Geräte-Info Pro: Browser-/Display-/API-Diagnose lokal anzeigen, aktualisieren und keine Funk-IDs auslesen');
+
+
+
 
 
 
@@ -609,7 +670,9 @@ async function run() {
       workout: H.AppBrowser.getStatus('workout'),
       utilities: H.AppBrowser.getStatus('utilities'),
       recipes: H.AppBrowser.getStatus('recipes'),
-      analyzer: H.AppBrowser.getStatus('analyzer')
+      analyzer: H.AppBrowser.getStatus('analyzer'),
+      datecalc: H.AppBrowser.getStatus('datecalc'),
+      deviceInfo: H.AppBrowser.getStatus('device-info')
     };
   });
   assert.equal(registryHealth.categoryCount, 26);
@@ -636,8 +699,10 @@ async function run() {
   assert.equal(registryHealth.utilities.kind, 'module');
   assert.equal(registryHealth.recipes.kind, 'module');
   assert.equal(registryHealth.analyzer.kind, 'module');
-  assert.equal(registryHealth.statusCounts.modules, 74);
-  assert.equal(registryHealth.statusCounts.review, 8);
+  assert.equal(registryHealth.statusCounts.modules, 76);
+  assert.equal(registryHealth.statusCounts.review, 6);
+  assert.equal(registryHealth.datecalc.kind, 'module');
+  assert.equal(registryHealth.deviceInfo.kind, 'module');
   console.log('HALDO APP REGISTRY HEALTH ' + JSON.stringify(registryHealth));
   pass('HalDo Core: 26 Kategorien, 375 Sollplätze, eindeutige App-IDs und Modulstatus geprüft');
 
@@ -650,6 +715,12 @@ async function run() {
   const tasksBadge = await appRegistryRoot.locator('[data-launch="tasks"] [data-implementation-status]').innerText();
   assert.equal(tasksBadge, 'Modul vorhanden');
   assert.match(await appRegistryRoot.innerText(), /Start-Routen/);
+  await appRegistryRoot.locator('[data-category="D"]').click();
+  const categoryDGrid = appRegistryRoot.locator('[data-category-app-grid="D"]');
+  assert.equal(await categoryDGrid.locator('[data-launch="datecalc"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  await appRegistryRoot.locator('[data-category="X"]').click();
+  const categoryXGrid = appRegistryRoot.locator('[data-category-app-grid="X"]');
+  assert.equal(await categoryXGrid.locator('[data-launch="device-info"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   await appRegistryRoot.locator('[data-category="A"]').click();
   const categoryAppGrid = appRegistryRoot.locator('[data-category-app-grid="A"]');
   const categoryLaunchCards = categoryAppGrid.locator('[data-launch]');
