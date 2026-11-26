@@ -915,8 +915,8 @@ async function run() {
   assert.equal(await categoryPGrid.locator('[data-launch="qr"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   assert.equal(await categoryPGrid.locator('[data-launch="qr-sticker"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   await appRegistryRoot.locator('[data-category="D"]').click();
-  const categoryDGrid = appRegistryRoot.locator('[data-category-app-grid="D"]');
-  assert.equal(await categoryDGrid.locator('[data-launch="document-scanner"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  const categoryDocumentGrid = appRegistryRoot.locator('[data-category-app-grid="D"]');
+  assert.equal(await categoryDocumentGrid.locator('[data-launch="document-scanner"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   await appRegistryRoot.locator('[data-category="S"]').click();
   const categorySGrid = appRegistryRoot.locator('[data-category-app-grid="S"]');
   assert.equal(await categorySGrid.locator('[data-launch="pdf-center"] [data-implementation-status]').innerText(), 'Modul vorhanden');
