@@ -91,9 +91,9 @@ async function openMedicalApp(appId) {
     }
   }
 
-  const root = page.locator('.window .win-body .h167').last();
-  await root.waitFor({ state: 'visible', timeout: 20000 });
-  await root.locator('#h167-unlock-form').waitFor({ timeout: 15000 });
+  await page.locator('#h167-unlock-form').last().waitFor({ state: 'visible', timeout: 20000 });
+  const root = page.locator('.h167').filter({ has: page.locator('#h167-unlock-form') }).last();
+  await root.waitFor({ state: 'visible', timeout: 5000 });
   return root;
 }
 
