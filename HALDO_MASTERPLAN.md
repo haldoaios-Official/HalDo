@@ -13,7 +13,8 @@
 
 ## 1. Verbindliche Arbeitsregeln
 
-1. Immer im bestehenden Repository `haldoaios-Official/HalDo` und grundsätzlich auf `main` weiterarbeiten.
+1. Immer im bestehenden Repository `haldoaios-Official/HalDo` arbeiten. Produktive Änderungen ausschließlich auf einem ausdrücklich benannten Arbeitsbranch durchführen; `main` bleibt geschützt und wird nicht direkt beschrieben. Der aktuelle Arbeitsbranch ist `work-v167-medical-apps`.
+2a. Vor Beginn einer neuen Arbeitseinheit Arbeitsbranch, HEAD-Commit, Datei-SHAs, offene Pull Requests und relevante CI-Läufe erneut aus GitHub lesen. Bei Bedarf einen neuen thematischen Branch vom aktuellen freigegebenen Stand anlegen; nicht ungeprüft in einen veralteten Branch schreiben.
 2. Die vorhandene vollständige `index.html` ist die zentrale Hauptdatei. Sie darf nicht durch ein neues Demo-Projekt, eine alte ZIP oder einen Parallelbau ersetzt werden.
 3. Vor jeder Änderung den aktuellen Branch, Commit, Datei-SHA, App-Registry, Dateibaum und betroffene Module erneut aus GitHub lesen.
 4. Bestehende Apps, Funktionen, IDs, Daten, Bilder, Styles und Integrationen erhalten. Vorhandene Funktionen nicht blind duplizieren.
@@ -25,6 +26,8 @@
 10. In der Übergabe immer Version, Commit-Link, vollständigen Raw-Link der `index.html`, geänderte Dateien, Funktionsumfang, Tests und Deploymentstatus nennen.
 11. Vor einer Änderung eine sichere Basis behalten; niemals einen alten Backup-Stand über die aktuelle Hauptdatei schreiben.
 12. Keine geheimen Schlüssel, Passwörter oder privaten API-Tokens in öffentliche Dateien committen. Externe KI-Dienste nur mit sicherer Backend-/Proxy-Architektur oder vom Nutzer selbst konfigurierten Schlüsseln anbinden.
+13. Den A–Z-Plan eigenständig in sinnvoller technischer Reihenfolge abarbeiten und den nächsten klaren Engpass selbst auswählen. Keine nutzerseitige Freigabe für jede kleine, reversible Code-/Test-/Dokumentationsänderung verlangen; riskante Aktionen (Merge nach main, Veröffentlichung, irreversible Datenänderungen, kostenpflichtige Dienste, sensible externe Verbindungen) ausdrücklich vorher freigeben lassen.
+14. Keine Hintergrundarbeit oder späteren Ergebnisse versprechen. Den in der aktiven Sitzung möglichen Arbeitsschritt fertig ausführen, Ergebnisse und offene Punkte dokumentieren und bei einer späteren Sitzung am gespeicherten Ist-Stand fortsetzen.
 
 ## 2. Produktidentität und Willkommenserlebnis
 
@@ -389,3 +392,19 @@ Das bestehende Arztbuch Pro (v154) enthält nun einen zusätzlichen Bereich **Vi
 **Abnahme:** GitHub Actions Chromium-End-to-End-Lauf **25/25 erfolgreich** auf Code-/Test-Commit `2b426e2407f9ebfb47967bd4c5ca2d31f5a9261f`. Workflow: https://github.com/haldoaios-Official/HalDo/actions/runs/45739739542. Geprüft wurden: echter älterer verschlüsselter v154-Tresor ohne Vitalwerte-Feld entsperren; Kompatibilität des neuen Bereichs; Vitalwert anlegen, bearbeiten, löschen und verschlüsselt speichern; danach weiterhin die vollständigen Kernabläufe, Passwortfehler, Backup-Wiederherstellung und Fensterschließen von Laborwerte Pro und Medikamentenplan Pro. Alle 25 Prüfungen erfolgreich.
 
 **Release-Grenzen:** Der Arbeitsstand liegt weiterhin im Draft-PR #1 und ist nicht gemergt. `main` wurde nicht verändert. GitHub-Pages-Veröffentlichung sowie klinische und datenschutzrechtliche Freigabe sind nicht Bestandteil dieses Tests.
+
+## HALDO Arztbuch Pro – Vitalwerte-Verlauf, Auswertung und Export (26.11.2026)
+
+Der Vitalwerte-Bereich des bestehenden Arztbuchs wurde nach der Grunddokumentation um einen nachvollziehbaren Verlauf erweitert:
+
+- Chronologische Sortierung nach Messdatum; Textsuche über die gespeicherten Vitalwert-Angaben.
+- Inklusive Datumsfilter „Von“ und „Bis“.
+- Grafische Verlaufskurve nur für numerische Einzelwerte mit gültigem Datum und identischer Messgrößen-Bezeichnung sowie Einheit. Verhältniswerte wie Blutdruck „120/80“ und nichtnumerische Angaben bleiben in der Eintragsliste; sie werden nicht fälschlich als Einzelzahl interpretiert.
+- Bei mehreren Messgrößen getrennte Auswahl der Datenreihe. Es werden nie unterschiedliche Einheiten in einer Kurve zusammengeführt.
+- Monats-/Jahresübersicht pro ausgewählter Messreihe mit Anzahl, Minimum, Durchschnitt und Maximum. Diese Werte sind rein statistisch und keine medizinische Bewertung.
+- Suche, Datumsfilter und Reihen-/Zeitraumauswahl erhalten unfertige Formulareingaben beim erneuten Rendern.
+- CSV-Export enthält nur die aktuell gefilterten Vitalwerte und zeigt vor dem Export klar an, dass CSV unverschlüsselte Gesundheitsangaben enthält. Die lokale Tresorablage selbst bleibt AES-GCM-verschlüsselt; der Export ist bewusst eine separate Klartextdatei.
+
+**Abnahme:** GitHub Actions Chromium-Lauf #45, Job „Encrypted vault end-to-end tests“, auf Commit bed28c9ec542dee230ddcdbf0805e0ea908687e4: **32/32 Browserprüfungen erfolgreich**. Geprüft wurden u. a. Rückwärtskompatibilität des älteren Arztbuch-Tresors, Vitalwert anlegen/bearbeiten/löschen, Textsuche, inklusive Von-/Bis-Datumsgrenzen, Erhaltung unfertiger Formularwerte, numerische Verlaufskurve, Monats-/Jahresumschaltung und Sichtbarkeit der CSV-Export-Schaltfläche. Die tatsächliche heruntergeladene CSV-Datei und deren vollständiger Inhalt sind noch nicht durch einen eigenen Download-/Dateiinhalt-End-to-End-Test abgedeckt; dies bleibt ein offener Testpunkt.
+
+**Repository-Status bei dieser Aktualisierung:** Arbeitsbranch work-v167-medical-apps; Draft-PR #1 gegen main; der Branch lag beim letzten Vergleich 49 Commits vor main und 0 Commits dahinter. Kein Merge, keine Pages-Veröffentlichung. Klinische, datenschutzrechtliche und produktive Freigabe sind separate Abnahmeschritte.
