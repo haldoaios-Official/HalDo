@@ -82,6 +82,58 @@ async function dismissWelcomeIfPresent() {
   await welcome.waitFor({ state: 'detached', timeout: 10000 });
 }
 
+async function seedLegacyArztbuchVault() {
+  await page.evaluate(async (passphrase) => {
+    const encoder = new TextEncoder();
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const baseKey = await crypto.subtle.importKey('raw', encoder.encode(passphrase), 'PBKDF2', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt, iterations: 210000, hash: 'SHA-256' },
+      baseKey,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+    // Intentionally omit "vitals": this is the v154 vault schema before this upgrade.
+    const legacyData = { appointments: [], medications: [], allergies: [], labs: [], notes: [] };
+    const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoder.encode(JSON.stringify(legacyData)));
+    const toB64 = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes)));
+    localStorage.setItem('v154_arztbuch_encrypted_vault', JSON.stringify({
+      v: 1, algorithm: 'AES-GCM-256', kdf: 'PBKDF2-SHA-256', iterations: 210000,
+      salt: toB64(salt), iv: toB64(iv), cipher: toB64(cipher)
+    }));
+  }, passphrase);
+}
+async function readArztbuchData(passphrase) {
+  return page.evaluate(async ({ storageKey, pass }) => {
+    const envelope = JSON.parse(localStorage.getItem(storageKey));
+    const fromB64 = (value) => Uint8Array.from(atob(value), (char) => char.charCodeAt(0));
+    const baseKey = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: fromB64(envelope.salt), iterations: envelope.iterations, hash: 'SHA-256' },
+      baseKey,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['decrypt']
+    );
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(envelope.iv) }, key, fromB64(envelope.cipher));
+    return JSON.parse(new TextDecoder().decode(plain));
+  }, { storageKey: 'v154_arztbuch_encrypted_vault', pass: passphrase });
+}
+async function assertArztbuchEncrypted(plaintexts = []) {
+  const raw = await readVault('v154_arztbuch_encrypted_vault');
+  assert.ok(raw, 'Verschlüsselter Arztbuch-Tresor fehlt.');
+  const envelope = JSON.parse(raw);
+  assert.equal(envelope.algorithm, 'AES-GCM-256');
+  assert.equal(envelope.kdf, 'PBKDF2-SHA-256');
+  assert.equal(envelope.iterations, 210000);
+  for (const value of plaintexts) {
+    assert.equal(raw.includes(value), false, 'Klartext im Arztbuch-localStorage entdeckt: ' + value);
+  }
+  return envelope;
+}
+
 async function openArztbuchHub() {
   await page.evaluate(() => {
     if (!window.HalDo || typeof window.HalDo.Launch !== 'function') {
@@ -96,7 +148,8 @@ async function openArztbuchHub() {
   const unlockForm = hub.locator('[data-ab-unlock-form]');
   await unlockForm.waitFor({ state: 'visible', timeout: 20000 });
   await hub.locator('[name="pass"]').fill(PASS);
-  await hub.locator('[name="confirm"]').fill(PASS);
+  const confirm = hub.locator('[name="confirm"]');
+  if (await confirm.count()) await confirm.fill(PASS);
   await unlockForm.locator('button[type="submit"]').click();
   await hub.locator('[data-ab-open-module="laborwerte-pro"]').waitFor({ state: 'visible', timeout: 20000 });
   return hub;
@@ -242,9 +295,53 @@ async function run() {
   await page.locator('#loader').waitFor({ state: 'hidden', timeout: 20000 });
   pass('HalDo-Willkommensbildschirm und Three.js-Kosmos: Arbeitsbereich vollständig gestartet');
 
+  // Seed an older encrypted v154 record without a vitals array to verify backward compatibility.
+  await seedLegacyArztbuchVault();
   // Open the real Arztbuch hub first. Both encrypted modules must be reachable from its tiles.
   const hub = await openArztbuchHub();
-  pass('HalDo Arztbuch Pro wurde geöffnet und der eigene Tresor entsperrt');
+  const legacyBeforeVitals = await readArztbuchData(PASS);
+  assert.equal(Object.prototype.hasOwnProperty.call(legacyBeforeVitals, 'vitals'), false);
+  pass('HalDo Arztbuch Pro entsperrt einen älteren verschlüsselten Tresor ohne Vitalwerte-Feld');
+
+  // Existing v154 vaults receive an in-memory empty array and persist it on the first edit.
+  await hub.locator('[data-ab-tab="vitals"]').click();
+  await hub.locator('[data-ab-form]').waitFor({ state: 'visible', timeout: 10000 });
+  await hub.getByText('Noch keine Einträge in diesem Bereich.', { exact: true }).waitFor();
+  pass('Arztbuch: Vitalwerte-Bereich wird bei älteren Tresoren kompatibel ergänzt');
+
+  await hub.locator('[name="title"]').fill('Blutdruck E2E');
+  await hub.locator('[name="result"]').fill('120/80');
+  await hub.locator('[name="unit"]').fill('mmHg');
+  await hub.locator('[name="date"]').fill('2026-11-26');
+  await hub.locator('[name="source"]').selectOption('Eigene Eingabe');
+  await hub.locator('[name="details"]').fill('Nur automatischer Browser-Test');
+  await hub.locator('[data-ab-form] button[type="submit"]').click();
+  await hub.getByText('Blutdruck E2E', { exact: true }).waitFor({ timeout: 10000 });
+  await assertArztbuchEncrypted(['Blutdruck E2E', 'Nur automatischer Browser-Test']);
+  let vitalData = await readArztbuchData(PASS);
+  assert.equal(vitalData.vitals.length, 1);
+  assert.equal(vitalData.vitals[0].result, '120/80');
+  pass('Arztbuch: Vitalwert angelegt, im bestehenden Tresor verschlüsselt gespeichert und strukturell geprüft');
+
+  await hub.locator('[data-ab-edit-vital]').click();
+  await hub.locator('[name="result"]').fill('118/76');
+  await hub.locator('[data-ab-form] button[type="submit"]').click();
+  await hub.getByText('118/76', { exact: false }).waitFor({ timeout: 10000 });
+  await assertArztbuchEncrypted(['Blutdruck E2E', '118/76']);
+  vitalData = await readArztbuchData(PASS);
+  assert.equal(vitalData.vitals[0].result, '118/76');
+  pass('Arztbuch: Vitalwert kann bearbeitet und erneut verschlüsselt gespeichert werden');
+
+  page.once('dialog', (dialog) => dialog.accept());
+  await hub.locator('[data-ab-delete][data-ab-type="vitals"]').click();
+  await hub.locator('.hdp154-empty').getByText('Noch keine Einträge in diesem Bereich.', { exact: true }).waitFor();
+  await assertArztbuchEncrypted(['Blutdruck E2E', 'Nur automatischer Browser-Test']);
+  vitalData = await readArztbuchData(PASS);
+  assert.equal(vitalData.vitals.length, 0);
+  pass('Arztbuch: Vitalwert kann gelöscht werden; der verschlüsselte Tresor bleibt gültig');
+
+  await hub.locator('[data-ab-tab="overview"]').click();
+  await hub.locator('[data-ab-open-module="laborwerte-pro"]').waitFor({ state: 'visible' });
 
   // Laborwerte: empty-vault persistence, CRUD, ciphertext, backup restore and password rejection.
   const labKey = 'haldo_v167_laborwerte_vault';
