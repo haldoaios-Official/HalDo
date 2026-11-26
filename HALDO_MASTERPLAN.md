@@ -482,7 +482,15 @@ Der Viewer hat jetzt Request-Tokens für asynchrone Modellladevorgänge. Ein ver
 
 ### Browserabnahme
 
-GitHub Actions Lauf #61 (`45751778936`) auf Commit `c2ea7326a4ee8e96cbb048f756b25d05a1a935b6` war erfolgreich: **37/37 Browserprüfungen** für die bis dahin vorhandenen Core-, Anatomie-Modul- und Arztbuchtests. Für den tatsächlichen Bedienweg im Fenster wurden anschließend End-to-End-Prüfungen ergänzt: Skelett laden, Profil wechseln, Viewer beim Tabwechsel freigeben, erneut öffnen und Fenster schließen. Die erste Ausführung #63 scheiterte nur am mehrdeutigen Playwright-Tab-Selektor (zwei Treffer), bevor der Viewer-Ladevorgang getestet wurde. Der Selektor ist in der aktuellen Testfassung auf den letzten passenden Tab-Button eingegrenzt. Lauf #66 (`45752240343`) prüft diese korrigierte Testfassung; sein endgültiges Ergebnis ist bei dieser Dokumentation noch offen.
+GitHub Actions Lauf #61 (`45751778936`) auf Commit `c2ea7326a4ee8e96cbb048f756b25d05a1a935b6` war erfolgreich: **37/37 Browserprüfungen** für die damaligen Core-, Anatomie-Modul- und Arztbuchtests.
 
-**Nächster Schritt nach grüner Abnahme:** die echte Knochen-Selektion im Browser verifizieren, danach Einzel-GLB-Ladevorgang, Fehler-/Retry-Pfad und lokale Modellfreigabe separat testen. Anschließend die GLB-Lizenz-/Quellenmetadaten und die fehlenden Manifeste für den Paketmanager klären, bevor Assets als offline-downloadbare Pakete angeboten werden.
+Die ersten UI-End-to-End-Läufe deckten zwei echte Integrationsprobleme auf:
+- Lauf #63 scheiterte zuerst an einem mehrdeutigen Playwright-Tab-Selektor; der Test wurde auf den konkreten Tab-Button eingegrenzt.
+- Läufe #66 und #67 zeigten anschließend, dass eine spätere v151-Stabilisierungsroutine die frühere Anatomie-Implementierung überschreibt. Der Test hatte deshalb das alte aktive Arztbuch-Fenster geöffnet, das die neuen Skelett-Steuerelemente noch nicht enthielt. Die Profilwahl, der Skelett-Builder, Raycasting-Auswahl und die Ressourcenbereinigung wurden daraufhin in die tatsächlich aktive v151-Runtime integriert – nicht nur in den früher überschriebenen Codeblock.
+
+**Abnahme der aktiven Runtime:** GitHub Actions Lauf #68 (`45752661749`) auf Commit `02e809acd4ac64161075244c82fad9cb5b6ac480`: **41/41 Browserprüfungen erfolgreich**. Im tatsächlichen Arztbuch-Fenster wurden das schematische Erwachsenenskelett gerendert, ein Knochen angeklickt und seine deutschen, englischen und lateinischen Angaben geprüft. Säuglingsprofil, weibliches Profil, Viewer-Neuaufbau und Ressourcenfreigabe beim Tabwechsel/Fensterschließen wurden ebenfalls erfolgreich geprüft.
+
+**Offener nächster Test:** Lauf #69 (`45752863151`) auf Commit `03a4b21cafb2677da15a950d7643f52c56c1340f` ergänzt die ausdrückliche End-to-End-Prüfung, dass der aktive Viewer auch ein einzelnes vorhandenes GLB-Knochenmodell tatsächlich lädt. Das Ergebnis dieses Laufs ist bei dieser Dokumentation noch offen.
+
+**Danach:** lokale GLB-Datei importieren und freigeben, Ladefehler/Retry separat prüfen, anschließend Lizenz-/Quellenmetadaten und fehlende Paketmanager-Manifeste klären, bevor Assets als offline-downloadbare Pakete angeboten werden.
 
