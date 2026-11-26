@@ -323,11 +323,14 @@ async function run() {
       statusCounts: {
         modules: statuses.filter((item) => item.kind === 'module').length,
         scaffolds: statuses.filter((item) => item.kind === 'scaffold').length,
+        routes: statuses.filter((item) => item.kind === 'route').length,
         review: statuses.filter((item) => item.kind === 'review').length
       },
       statusInventory: statuses,
+      tasksRoute: H.SystemV157.resolveRoute('tasks'),
       reminders: H.AppBrowser.getStatus('reminders'),
-      chatPro: H.AppBrowser.getStatus('chat-pro')
+      chatPro: H.AppBrowser.getStatus('chat-pro'),
+      tasks: H.AppBrowser.getStatus('tasks')
     };
   });
   assert.equal(registryHealth.categoryCount, 26);
@@ -336,6 +339,10 @@ async function run() {
   assert.ok(registryHealth.appCount >= 71);
   assert.ok(registryHealth.statusCounts.modules > 0);
   assert.ok(registryHealth.statusCounts.scaffolds > 0);
+  assert.equal(Object.values(registryHealth.statusCounts).reduce((sum, value) => sum + value, 0), registryHealth.appCount);
+  assert.equal(registryHealth.tasksRoute.routeConfigured, true);
+  assert.equal(registryHealth.tasksRoute.moduleName, 'Tasks');
+  assert.ok(['module', 'route'].includes(registryHealth.tasks.kind));
   assert.equal(registryHealth.reminders.kind, 'scaffold');
   assert.equal(registryHealth.chatPro.kind, 'module');
   console.log('HALDO APP REGISTRY HEALTH ' + JSON.stringify(registryHealth));
@@ -347,6 +354,9 @@ async function run() {
   assert.match(await appRegistryRoot.innerText(), /375 geplante Plätze/);
   assert.equal(await appRegistryRoot.locator('[data-launch="reminders"] [data-implementation-status]').innerText(), 'Grundgerüst');
   assert.equal(await appRegistryRoot.locator('[data-launch="chat-pro"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  const tasksBadge = await appRegistryRoot.locator('[data-launch="tasks"] [data-implementation-status]').innerText();
+  assert.ok(['Modul vorhanden', 'Start-Route vorhanden'].includes(tasksBadge));
+  assert.match(await appRegistryRoot.innerText(), /Start-Routen/);
   await closeWindow(appRegistryRoot);
   pass('HalDo App-Registry Pro zeigt Grundgerüste und eigene Module sichtbar getrennt an');
 
