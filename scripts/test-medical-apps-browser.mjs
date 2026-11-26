@@ -382,7 +382,7 @@ async function run() {
   await ingredientRows.nth(1).locator('[data-rs-ingredient-amount]').fill('300');
   await ingredientRows.nth(1).locator('[data-rs-ingredient-unit]').fill('ml');
   await recipeRoot.locator('[data-rs-save]').click();
-  await recipeRoot.getByText('E2E Pfannkuchen', { exact: true }).waitFor({ state: 'visible' });
+  await recipeRoot.locator('[data-rs-recipe-list] [data-rs-open]').filter({ hasText: 'E2E Pfannkuchen' }).waitFor({ state: 'visible' });
   assert.deepEqual(await recipeRoot.locator('[data-rs-scaled-amount]').allTextContents(), ['200', '300']);
   await recipeRoot.locator('[data-rs-target-servings]').fill('4');
   assert.deepEqual(await recipeRoot.locator('[data-rs-scaled-amount]').allTextContents(), ['400', '600']);
