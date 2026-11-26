@@ -11435,8 +11435,18 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
         '<div class="hdp154-panel"><b>Deine Übersicht</b><p>Allergien: '+data.allergies.length+' · Notizen: '+data.notes.length+'</p><div class="hdp154-actions"><button class="hdp154-btn primary" data-ab-read>🔊 HalDo AI liest Übersicht vor</button><button class="hdp154-btn" data-ab-export>⬇ Verschlüsselte Sicherung</button><button class="hdp154-btn danger" data-ab-lock>🔒 Jetzt sperren</button></div></div>'+
         '<div class="hdp154-ai"><div class="hdp154-ai-title">🦾 HalDo AI · Arztbuch-Leseassistent</div><p class="hdp154-muted">Frage nach deinen gespeicherten Einträgen oder lasse dir die Übersicht vorlesen. Die Hilfe organisiert und liest Angaben – sie diagnostiziert nicht.</p><form data-ab-ai-form><input class="hdp154-field" name="question" maxlength="220" placeholder="z. B. Lies meine Laborwerte vor" required><div class="hdp154-actions"><button class="hdp154-btn primary" type="submit">HalDo KI fragen</button></div></form><div class="hdp154-feedback" data-ab-ai-answer>HalDo AI ist bereit.</div></div>';
     }
-    function renderUnlocked(root){
+    function renderUnlocked(root,preserveDraft){
       if(!root||!root.isConnected||!data)return;
+      var formDraft=null;
+      if(preserveDraft){
+        var currentForm=root.querySelector('[data-ab-form]');
+        if(currentForm){
+          formDraft=[];
+          Array.prototype.forEach.call(currentForm.elements,function(field){
+            if(field.name)formDraft.push({name:field.name,value:field.value});
+          });
+        }
+      }
       var tabs=[['overview','Übersicht'],['appointments','Arzttermine'],['medications','Medikamente'],['allergies','Allergien'],['labs','Laborwerte'],['vitals','Vitalwerte'],['notes','Notizen']];
       var html='<div class="hdp154-head"><div><div class="hdp154-title">🩺 HalDo Arztbuch Pro</div><div class="hdp154-sub">HalDo AI · HalDo Voice · Cyborg-Leseassistent · verschlüsselter Tresor</div></div><span class="hdp154-chip">🔐 Entsperrt</span></div>'+
         '<div class="hdp154-tabs">'+tabs.map(function(t){return '<button class="hdp154-tab '+(tab===t[0]?'active':'')+'" data-ab-tab="'+t[0]+'">'+esc(t[1])+'</button>';}).join('')+'</div>';
@@ -11450,6 +11460,15 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
       }else html+=addForm()+(recordsFor(tab).map(function(item){return recordHtml(item,tab);}).join('')||'<div class="hdp154-empty">Noch keine Einträge in diesem Bereich.</div>');
       html+='<div class="hdp154-foot">Datenschutz: Daten werden in diesem Browser lokal gespeichert und vor dem Speichern verschlüsselt. Eine Wiederherstellung ohne Passphrase ist nicht möglich. Keine Synchronisierung mit einer Arztpraxis. Die App ersetzt keine ärztliche Beratung, Diagnose oder Behandlung.</div>';
       root.innerHTML=html;
+      if(formDraft){
+        var nextForm=root.querySelector('[data-ab-form]');
+        if(nextForm){
+          formDraft.forEach(function(saved){
+            var field=nextForm.elements.namedItem(saved.name);
+            if(field)field.value=saved.value;
+          });
+        }
+      }
     }
     function renderLock(root,message){
       if(!root||!root.isConnected)return;
@@ -11521,7 +11540,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
         if(!field.matches('[data-ab-vital-search]'))return;
         vitalSearch=field.value;
         var cursor=field.selectionStart;
-        renderUnlocked(root);
+        renderUnlocked(root,true);
         var next=root.querySelector('[data-ab-vital-search]');
         if(next){next.focus();next.setSelectionRange(cursor,cursor);}
       });
@@ -11532,7 +11551,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
         else if(field.matches('[data-ab-vital-series]'))vitalSeriesKey=field.value;
         else if(field.matches('[data-ab-vital-summary-mode]'))vitalSummaryMode=field.value==='year'?'year':'month';
         else return;
-        renderUnlocked(root);
+        renderUnlocked(root,true);
       });
       root.addEventListener('click',function(event){
         var b=event.target.closest('button');if(!b||!root.contains(b))return;
