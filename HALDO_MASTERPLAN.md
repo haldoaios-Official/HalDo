@@ -13,22 +13,20 @@
 
 ## 1. Verbindliche Arbeitsregeln
 
-1. Immer im bestehenden Repository `haldoaios-Official/HalDo` arbeiten. Produktive Änderungen ausschließlich auf einem ausdrücklich benannten Arbeitsbranch durchführen; `main` bleibt geschützt und wird nicht direkt beschrieben. Der aktuelle Arbeitsbranch ist `work-v167-medical-apps`.
-2a. Vor Beginn einer neuen Arbeitseinheit Arbeitsbranch, HEAD-Commit, Datei-SHAs, offene Pull Requests und relevante CI-Läufe erneut aus GitHub lesen. Bei Bedarf einen neuen thematischen Branch vom aktuellen freigegebenen Stand anlegen; nicht ungeprüft in einen veralteten Branch schreiben.
-2. Die vorhandene vollständige `index.html` ist die zentrale Hauptdatei. Sie darf nicht durch ein neues Demo-Projekt, eine alte ZIP oder einen Parallelbau ersetzt werden.
-3. Vor jeder Änderung den aktuellen Branch, Commit, Datei-SHA, App-Registry, Dateibaum und betroffene Module erneut aus GitHub lesen.
-4. Bestehende Apps, Funktionen, IDs, Daten, Bilder, Styles und Integrationen erhalten. Vorhandene Funktionen nicht blind duplizieren.
-5. Für jeden regulären App-Release werden zwei neue, eigenständige und sinnvoll vollständige HalDo-Apps gebaut. Beide müssen im Manifest/Registry, Launcher/AppStore und Start-/Fenstersystem korrekt integriert sein.
-6. Reine System-, Wartungs-, Branding- oder Fehlerbehebungs-Releases zählen nicht als App-Paar und dürfen zusätzlich erfolgen.
-7. Keine App nur als Namen, Attrappe oder leeren Bildschirm veröffentlichen. Funktionen, Zustände, Speicherung, Fehlerfälle und mobile Darstellung prüfen.
+1. Immer im bestehenden Repository `haldoaios-Official/HalDo` arbeiten. Produktive Änderungen ausschließlich auf einem ausdrücklich benannten Arbeitsbranch durchführen; `main` bleibt geschützt und wird nicht direkt beschrieben. Aktueller Arbeitsbranch: `work-v167-medical-apps`.
+2. Vor jeder Arbeitseinheit Branch, HEAD-Commit, Datei-SHAs, offene Pull Requests, CI-Läufe, App-Registry, Dateibaum und betroffene Module erneut aus GitHub lesen. Nicht ungeprüft in einen veralteten Branch schreiben.
+3. Die vorhandene vollständige `index.html` ist die zentrale Hauptdatei. Sie darf nicht durch ein neues Demo-Projekt, eine alte ZIP oder einen Parallelbau ersetzt werden.
+4. Bestehende Apps, Funktionen, IDs, Daten, Bilder, Styles und Integrationen erhalten. Vorhandene Funktionen nicht blind duplizieren oder aus Bequemlichkeit entfernen.
+5. Für jeden regulären App-Release werden zwei neue, eigenständige und sinnvoll vollständige HalDo-Apps gebaut. Beide müssen im Manifest/Registry, Launcher/AppStore und Start-/Fenstersystem korrekt integriert sein. System-, Wartungs-, Branding- oder Fehlerbehebungs-Releases dürfen zusätzlich erfolgen.
+6. Keine App nur als Namen, Attrappe oder leeren Bildschirm veröffentlichen. Funktionen, Zustände, Speicherung, Fehlerfälle, Berechtigungen, Barrierefreiheit und mobile Darstellung prüfen.
+7. Änderungen in kleinen, nachvollziehbaren und testbaren Schritten vornehmen. Vor größeren Eingriffen sichere Basis behalten; niemals einen alten Backup-Stand über die aktuelle Hauptdatei schreiben.
 8. Nach jedem GitHub-Write die geänderten Dateien erneut von GitHub abrufen und Commit-SHA/Datei-SHA kontrollieren.
-9. GitHub Actions und Pages-Deployment separat prüfen. Nur bei erfolgreichem Workflow als veröffentlicht bezeichnen.
-10. In der Übergabe immer Version, Commit-Link, vollständigen Raw-Link der `index.html`, geänderte Dateien, Funktionsumfang, Tests und Deploymentstatus nennen.
-11. Vor einer Änderung eine sichere Basis behalten; niemals einen alten Backup-Stand über die aktuelle Hauptdatei schreiben.
-12. Keine geheimen Schlüssel, Passwörter oder privaten API-Tokens in öffentliche Dateien committen. Externe KI-Dienste nur mit sicherer Backend-/Proxy-Architektur oder vom Nutzer selbst konfigurierten Schlüsseln anbinden.
-13. Den A–Z-Plan eigenständig in sinnvoller technischer Reihenfolge abarbeiten und den nächsten klaren Engpass selbst auswählen. Keine nutzerseitige Freigabe für jede kleine, reversible Code-/Test-/Dokumentationsänderung verlangen; riskante Aktionen (Merge nach main, Veröffentlichung, irreversible Datenänderungen, kostenpflichtige Dienste, sensible externe Verbindungen) ausdrücklich vorher freigeben lassen.
-14. Keine Hintergrundarbeit oder späteren Ergebnisse versprechen. Den in der aktiven Sitzung möglichen Arbeitsschritt fertig ausführen, Ergebnisse und offene Punkte dokumentieren und bei einer späteren Sitzung am gespeicherten Ist-Stand fortsetzen.
-
+9. GitHub Actions, GitHub Pages-Deployment und produktive Erreichbarkeit separat prüfen. Ein erfolgreicher Testlauf bedeutet nicht automatisch, dass die Änderung veröffentlicht ist.
+10. In jeder technischen Übergabe Version/Branch, Commit-SHA, geänderte Dateien, Funktionsumfang, durchgeführte Tests, bekannte Einschränkungen und Deploymentstatus nennen.
+11. Keine geheimen Schlüssel, Passwörter oder privaten API-Tokens in öffentliche Dateien committen. Externe KI-Dienste nur mit sicherer Backend-/Proxy-Architektur oder vom Nutzer selbst konfigurierten Schlüsseln anbinden.
+12. Den A–Z-Plan eigenständig in sinnvoller technischer Reihenfolge abarbeiten und den nächsten klaren Engpass selbst auswählen. Für kleine, reversible Code-, Test- und Dokumentationsänderungen ist keine wiederholte Einzelbestätigung nötig.
+13. Riskante Aktionen – insbesondere Merge nach `main`, Veröffentlichung, irreversible Datenänderungen, kostenpflichtige Dienste oder sensible externe Verbindungen – erst nach ausdrücklicher Freigabe durchführen.
+14. Keine Hintergrundarbeit oder späteren Ergebnisse versprechen. Den in der aktiven Sitzung möglichen Arbeitsschritt ausführen, Ergebnisse und offene Punkte dokumentieren und bei einer späteren Sitzung am gespeicherten Ist-Stand fortsetzen.
 ## 2. Produktidentität und Willkommenserlebnis
 
 ### HalDo-Markenidentität
