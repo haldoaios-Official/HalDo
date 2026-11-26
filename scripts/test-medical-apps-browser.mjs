@@ -330,7 +330,7 @@ async function run() {
     worldClock: window.HalDo.AppBrowser.getStatus('worldclock'),
     recipeScaler: window.HalDo.AppBrowser.getStatus('recipe-scaler')
   }));
-  assert.equal(v168Build.version, '173.0.0');
+  assert.equal(v168Build.version, '174.0.0');
   assert.equal(v168Build.worldClock.kind, 'module');
   assert.equal(v168Build.recipeScaler.kind, 'module');
   const v168Runtime = await page.evaluate(() => ({
@@ -343,7 +343,7 @@ async function run() {
   assert.equal(v168Runtime.worldClockOpen, 'function');
   assert.equal(v168Runtime.recipeScalerOpen, 'function');
   assert.equal(v168Runtime.scriptLoaded, true);
-  assert.equal(v168Runtime.build, '173.0.0');
+  assert.equal(v168Runtime.build, '174.0.0');
   await page.evaluate(() => window.HalDo.Launch({ id: 'worldclock', n: 'HalDo Weltuhr Pro' }));
   await dismissWelcomeIfPresent();
   const worldClockRoot = page.locator('#winLayer .hdv168-root').last();
@@ -659,7 +659,7 @@ async function run() {
     scientificOpen: typeof window.HalDo.scientific?.open,
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v172-learning-apps.js'))
   }));
-  assert.equal(v172Runtime.build, '173.0.0');
+  assert.equal(v172Runtime.build, '174.0.0');
   assert.equal(v172Runtime.moduleVersion, '172.0.0');
   assert.deepEqual(v172Runtime.apps, ['breathing', 'scientific']);
   assert.equal(v172Runtime.breathing.kind, 'module');
@@ -787,10 +787,14 @@ async function run() {
       scientific: H.AppBrowser.getStatus('scientific'),
       careDocumentation: H.AppBrowser.getStatus('pflegeprotokoll-pro'),
       appointments: H.AppBrowser.getStatus('arzttermine-pro'),
+      diseaseCatalogue: H.AppBrowser.getStatus('krankheitslexikon-pro'),
+      medicationCatalogue: H.AppBrowser.getStatus('medikamentenlexikon-pro'),
       breathingRoute: H.SystemV157.resolveRoute('breathing'),
       scientificRoute: H.SystemV157.resolveRoute('scientific'),
       careDocumentationRoute: H.SystemV157.resolveRoute('pflegeprotokoll-pro'),
-      appointmentsRoute: H.SystemV157.resolveRoute('arzttermine-pro')
+      appointmentsRoute: H.SystemV157.resolveRoute('arzttermine-pro'),
+      diseaseCatalogueRoute: H.SystemV157.resolveRoute('krankheitslexikon-pro'),
+      medicationCatalogueRoute: H.SystemV157.resolveRoute('medikamentenlexikon-pro')
     };
   });
   assert.equal(registryHealth.categoryCount, 26);
@@ -817,7 +821,7 @@ async function run() {
   assert.equal(registryHealth.utilities.kind, 'module');
   assert.equal(registryHealth.recipes.kind, 'module');
   assert.equal(registryHealth.analyzer.kind, 'module');
-  assert.equal(registryHealth.statusCounts.modules, 80);
+  assert.equal(registryHealth.statusCounts.modules, 82);
   assert.equal(registryHealth.statusCounts.scaffolds, 1);
   assert.equal(registryHealth.breathing.kind, 'module');
   assert.equal(registryHealth.scientific.kind, 'module');
@@ -835,6 +839,14 @@ async function run() {
   assert.equal(registryHealth.appointmentsRoute.routeConfigured, true);
   assert.equal(registryHealth.appointmentsRoute.moduleName, 'arzttermine-pro');
   assert.equal(registryHealth.appointmentsRoute.moduleAvailable, true);
+  assert.equal(registryHealth.diseaseCatalogue.kind, 'module');
+  assert.equal(registryHealth.medicationCatalogue.kind, 'module');
+  assert.equal(registryHealth.diseaseCatalogueRoute.routeConfigured, true);
+  assert.equal(registryHealth.diseaseCatalogueRoute.moduleName, 'krankheitslexikon-pro');
+  assert.equal(registryHealth.diseaseCatalogueRoute.moduleAvailable, true);
+  assert.equal(registryHealth.medicationCatalogueRoute.routeConfigured, true);
+  assert.equal(registryHealth.medicationCatalogueRoute.moduleName, 'medikamentenlexikon-pro');
+  assert.equal(registryHealth.medicationCatalogueRoute.moduleAvailable, true);
   assert.equal(registryHealth.statusCounts.review, 6);
   assert.equal(registryHealth.datecalc.kind, 'module');
   assert.equal(registryHealth.deviceInfo.kind, 'module');
@@ -855,6 +867,12 @@ async function run() {
   assert.equal(await categoryDGrid.locator('[data-launch="datecalc"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   assert.equal(await categoryDGrid.locator('[data-launch="pflegeprotokoll-pro"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   assert.equal(await categoryDGrid.locator('[data-launch="arzttermine-pro"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  await appRegistryRoot.locator('[data-category="K"]').click();
+  const categoryKGrid = appRegistryRoot.locator('[data-category-app-grid="K"]');
+  assert.equal(await categoryKGrid.locator('[data-launch="krankheitslexikon-pro"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  await appRegistryRoot.locator('[data-category="M"]').click();
+  const categoryMGrid = appRegistryRoot.locator('[data-category-app-grid="M"]');
+  assert.equal(await categoryMGrid.locator('[data-launch="medikamentenlexikon-pro"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   await appRegistryRoot.locator('[data-category="X"]').click();
   const categoryXGrid = appRegistryRoot.locator('[data-category-app-grid="X"]');
   assert.equal(await categoryXGrid.locator('[data-launch="device-info"] [data-implementation-status]').innerText(), 'Modul vorhanden');
@@ -884,6 +902,7 @@ async function run() {
   assert.equal(/\bfetch\s*\(|XMLHttpRequest|WebSocket/.test(v173Source), false, 'v173 darf keine externen Netzwerkverbindungen aufbauen.');
   const v173Runtime = await page.evaluate(() => ({
     build: window.HalDo.Master.version,
+    moduleVersion: window.HalDo.AppsV173.version,
     apps: window.HalDo.AppsV173.apps.map((app) => app.id),
     status: window.HalDo.AppsV173.status(),
     errors: window.HalDo.AppsV173.errors,
@@ -894,7 +913,8 @@ async function run() {
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v173-care-apps.js')),
     sharedVaultReady: !!(window.HalDo.MedicalVault && typeof window.HalDo.MedicalVault.registerConfig === 'function')
   }));
-  assert.equal(v173Runtime.build, '173.0.0');
+  assert.equal(v173Runtime.build, '174.0.0');
+  assert.equal(v173Runtime.moduleVersion, '173.0.0');
   assert.deepEqual(v173Runtime.apps, ['pflegeprotokoll-pro', 'arzttermine-pro']);
   assert.deepEqual(v173Runtime.errors, []);
   assert.ok(v173Runtime.status.every((item) => item.ready && item.registered));
@@ -1013,6 +1033,72 @@ async function run() {
   await assertEncrypted(appointmentKey, ['Terminperson E2E']);
   await closeApp(appointments);
   pass('HalDo Arzttermine & Überweisungen Pro: Löschen und Fenster-Schließen sperren den Tresor');
+
+
+  // v174: source-linked disease and medication reference catalogues.
+  const v174Source = await fs.readFile(path.join(ROOT, 'js/haldo-v174-medical-knowledge.js'), 'utf8');
+  assert.equal(/\bfetch\s*\(|XMLHttpRequest|WebSocket/.test(v174Source), false, 'v174 muss ohne externe Datenabrufe funktionieren.');
+  const v174Runtime = await page.evaluate(() => ({
+    build: window.HalDo.Master.version,
+    moduleVersion: window.HalDo.AppsV174.version,
+    apps: window.HalDo.AppsV174.apps.map((app) => app.id),
+    status: window.HalDo.AppsV174.status(),
+    disease: window.HalDo.AppBrowser.getStatus('krankheitslexikon-pro'),
+    medication: window.HalDo.AppBrowser.getStatus('medikamentenlexikon-pro'),
+    diseaseOpen: typeof window.HalDo['krankheitslexikon-pro']?.open,
+    medicationOpen: typeof window.HalDo['medikamentenlexikon-pro']?.open,
+    scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v174-medical-knowledge.js')),
+    categoryApi: typeof window.HalDo.Registry.registerCategoryApp
+  }));
+  assert.equal(v174Runtime.build, '174.0.0');
+  assert.equal(v174Runtime.moduleVersion, '174.0.0');
+  assert.deepEqual(v174Runtime.apps, ['krankheitslexikon-pro', 'medikamentenlexikon-pro']);
+  assert.ok(v174Runtime.status.every((item) => item.ready && item.entries > 0));
+  assert.equal(v174Runtime.disease.kind, 'module');
+  assert.equal(v174Runtime.medication.kind, 'module');
+  assert.equal(v174Runtime.diseaseOpen, 'function');
+  assert.equal(v174Runtime.medicationOpen, 'function');
+  assert.equal(v174Runtime.scriptLoaded, true);
+  assert.equal(v174Runtime.categoryApi, 'function');
+  pass('HalDo v174: Krankheitslexikon und Medikamentenlexikon sind registriert und in A–Z-Kategorien integriert');
+
+  await page.evaluate(() => window.HalDo.Launch({ id: 'krankheitslexikon-pro', n: 'HalDo Krankheitslexikon Pro' }));
+  await page.locator('#haldo-v161-welcome').waitFor({ state: 'visible', timeout: 10000 });
+  await dismissWelcomeIfPresent();
+  const diseaseCatalogue = page.locator('#winLayer .hdv174-root').last();
+  await diseaseCatalogue.waitFor({ state: 'visible', timeout: 10000 });
+  assert.equal(await diseaseCatalogue.locator('[data-k174-entry]').count(), 4);
+  assert.match(await diseaseCatalogue.innerText(), /keine Selbstdiagnose/);
+  await diseaseCatalogue.locator('[data-k174-search]').fill('HbA1c');
+  await diseaseCatalogue.locator('[data-k174-detail]').getByText('HbA1c', { exact: false }).waitFor({ timeout: 10000 });
+  assert.match(await diseaseCatalogue.locator('[data-k174-detail]').innerText(), /gesund\.bund\.de/);
+  assert.equal(await diseaseCatalogue.locator('[data-k174-entry]').count(), 1);
+  await diseaseCatalogue.locator('[data-k174-search]').fill('');
+  await diseaseCatalogue.locator('[data-k174-category]').selectOption('Atemwege');
+  assert.equal(await diseaseCatalogue.locator('[data-k174-entry]').count(), 1);
+  await diseaseCatalogue.locator('[data-k174-entry="asthma"]').click();
+  assert.match(await diseaseCatalogue.locator('[data-k174-detail]').innerText(), /Spirometrie|Peak-Flow/);
+  assert.match(await diseaseCatalogue.locator('[data-k174-detail] a').first().getAttribute('href'), /^https:\/\/gesund\.bund\.de\//);
+  await closeWindow(diseaseCatalogue);
+  pass('HalDo Krankheitslexikon Pro: Suche, Kategorien, Details und offizielle Gesundheitsquellen funktionieren');
+
+  await page.evaluate(() => window.HalDo.Launch({ id: 'medikamentenlexikon-pro', n: 'HalDo Medikamentenlexikon Pro' }));
+  await page.locator('#haldo-v161-welcome').waitFor({ state: 'visible', timeout: 10000 });
+  await dismissWelcomeIfPresent();
+  const medicationCatalogue = page.locator('#winLayer .hdv174-root').last();
+  await medicationCatalogue.waitFor({ state: 'visible', timeout: 10000 });
+  assert.equal(await medicationCatalogue.locator('[data-k174-entry]').count(), 2);
+  await medicationCatalogue.locator('[data-k174-search]').fill('Leber');
+  await medicationCatalogue.locator('[data-k174-detail]').getByText('Leber', { exact: false }).waitFor({ timeout: 10000 });
+  assert.equal(await medicationCatalogue.locator('[data-k174-entry]').count(), 1);
+  assert.match(await medicationCatalogue.locator('[data-k174-detail]').innerText(), /Überdosierung|Gebrauchsinformation/);
+  const medicationSourceLinks = await medicationCatalogue.locator('[data-k174-detail] a').evaluateAll((links) => links.map((link) => link.href));
+  assert.ok(medicationSourceLinks.length > 0);
+  assert.ok(medicationSourceLinks.every((url) => url.startsWith('https://www.bfarm.de/')));
+  await medicationCatalogue.locator('[data-k174-search]').fill('Ibuprofen');
+  assert.match(await medicationCatalogue.locator('[data-k174-detail]').innerText(), /Magen-Darm|NSAR/);
+  await closeWindow(medicationCatalogue);
+  pass('HalDo Medikamentenlexikon Pro: Wirkstoffsuche, Sicherheitshinweise und BfArM-Quellen funktionieren');
 
   const anatomyCatalogCheck = await page.evaluate(async () => {
     const [catalog, loader] = await Promise.all([
