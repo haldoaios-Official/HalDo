@@ -295,6 +295,7 @@ async function run() {
   await page.locator('#loader').waitFor({ state: 'hidden', timeout: 20000 });
   pass('HalDo-Willkommensbildschirm und Three.js-Kosmos: Arbeitsbereich vollständig gestartet');
   const launchChecks = [
+    ['avatar', 'Living HalDo AI'],
     ['bibliothek', 'HalDo Bibliothek Pro'],
     ['inventar', 'HalDo Inventar Pro'],
     ['mindmap', 'HalDo Mindmap Pro'],
@@ -309,7 +310,7 @@ async function run() {
     await openedTitle.waitFor({ state: 'visible', timeout: 10000 });
     await closeWindow(openedTitle);
   }
-  pass('HalDo v165/v166: Sechs zusätzliche Apps öffnen ihre eigenen Module über den zentralen Launcher');
+  pass('HalDo Core: Living Avatar und sechs v165/v166-Apps öffnen ihre eigenen Module über den zentralen Launcher');
   const registryHealth = await page.evaluate(() => {
     const H = window.HalDo;
     const apps = H.Registry.featured;
@@ -328,6 +329,8 @@ async function run() {
       },
       statusInventory: statuses,
       tasksRoute: H.SystemV157.resolveRoute('tasks'),
+      avatarRoute: H.SystemV157.resolveRoute('avatar'),
+      avatarStatus: H.AppBrowser.getStatus('avatar'),
       reminders: H.AppBrowser.getStatus('reminders'),
       chatPro: H.AppBrowser.getStatus('chat-pro'),
       tasks: H.AppBrowser.getStatus('tasks')
@@ -342,6 +345,9 @@ async function run() {
   assert.equal(Object.values(registryHealth.statusCounts).reduce((sum, value) => sum + value, 0), registryHealth.appCount);
   assert.equal(registryHealth.tasksRoute.routeConfigured, true);
   assert.equal(registryHealth.tasksRoute.moduleName, 'Tasks');
+  assert.equal(registryHealth.avatarRoute.moduleName, 'LivingAvatar');
+  assert.equal(registryHealth.avatarRoute.moduleAvailable, true);
+  assert.equal(registryHealth.avatarStatus.kind, 'module');
   assert.ok(['module', 'route'].includes(registryHealth.tasks.kind));
   assert.equal(registryHealth.reminders.kind, 'scaffold');
   assert.equal(registryHealth.chatPro.kind, 'module');
