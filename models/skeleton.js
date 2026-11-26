@@ -7,6 +7,135 @@ import {
   isAnatomicalBone
 } from './procedural.js';
 
+const GERMAN_FIXED_NAMES = Object.freeze({
+  skull: 'Schädel',
+  mandible: 'Unterkiefer',
+  c1_atlas: 'Atlas (1. Halswirbel)',
+  sternum: 'Brustbein',
+  sacrum: 'Kreuzbein',
+  coccyx: 'Steißbein'
+});
+
+const GERMAN_PAIRED_NAMES = Object.freeze({
+  clavicle: 'Schlüsselbein',
+  humerus: 'Oberarmknochen',
+  femur: 'Oberschenkelknochen',
+  tibia: 'Schienbein',
+  coxal: 'Hüftbein',
+  scapula: 'Schulterblatt',
+  radius: 'Speiche',
+  ulna: 'Elle',
+  patella: 'Kniescheibe',
+  fibula: 'Wadenbein'
+});
+
+const GERMAN_CARPAL_NAMES = Object.freeze({
+  scaphoid: 'Kahnbein',
+  lunate: 'Mondbein',
+  triquetrum: 'Dreiecksbein',
+  pisiform: 'Erbsenbein',
+  trapezium: 'Großes Vieleckbein',
+  trapezoid: 'Kleines Vieleckbein',
+  capitate: 'Kopfbein',
+  hamate: 'Hakenbein'
+});
+
+const GERMAN_TARSAL_NAMES = Object.freeze({
+  talus: 'Sprungbein',
+  calcaneus: 'Fersenbein',
+  navicular: 'Kahnbein des Fußes',
+  medial_cuneiform: 'Mediales Keilbein',
+  intermediate_cuneiform: 'Mittleres Keilbein',
+  lateral_cuneiform: 'Laterales Keilbein',
+  cuboid: 'Würfelbein'
+});
+
+const GERMAN_FINGER_NAMES = Object.freeze({
+  1: 'Daumen',
+  2: 'Zeigefinger',
+  3: 'Mittelfinger',
+  4: 'Ringfinger',
+  5: 'Kleiner Finger'
+});
+
+const GERMAN_TOE_NAMES = Object.freeze({
+  1: 'Großzehe',
+  2: 'Zweite Zehe',
+  3: 'Dritte Zehe',
+  4: 'Vierte Zehe',
+  5: 'Kleine Zehe'
+});
+
+const GERMAN_REGION_NAMES = Object.freeze({
+  'Cráneo': 'Schädel',
+  'Columna': 'Wirbelsäule',
+  'Tórax': 'Brustkorb',
+  'Cintura escapular': 'Schultergürtel',
+  Pelvis: 'Becken',
+  'Extremidad superior': 'Obere Extremität',
+  Manos: 'Hände',
+  'Extremidad inferior': 'Untere Extremität',
+  Pies: 'Füße'
+});
+
+function germanSide(id) {
+  if (id.startsWith('left_')) return 'Links';
+  if (id.startsWith('right_')) return 'Rechts';
+  return '';
+}
+
+function germanBoneName(id) {
+  if (GERMAN_FIXED_NAMES[id]) return GERMAN_FIXED_NAMES[id];
+
+  let match = id.match(/^c([2-7])$/);
+  if (match) return match[1] + '. Halswirbel';
+  match = id.match(/^t(\\d+)$/);
+  if (match) return match[1] + '. Brustwirbel';
+  match = id.match(/^l(\\d+)$/);
+  if (match) return match[1] + '. Lendenwirbel';
+
+  match = id.match(/^(left|right)_rib_(\\d+)$/);
+  if (match) return match[2] + '. Rippe ' + (match[1] === 'left' ? 'links' : 'rechts');
+
+  const side = germanSide(id);
+  const prefix = id.replace(/^(left|right)_/, '');
+  if (GERMAN_PAIRED_NAMES[prefix]) {
+    return GERMAN_PAIRED_NAMES[prefix] + (side ? ' ' + side.toLowerCase() : '');
+  }
+
+  if (GERMAN_CARPAL_NAMES[prefix]) {
+    return GERMAN_CARPAL_NAMES[prefix] + (side ? ' ' + side.toLowerCase() : '');
+  }
+  if (GERMAN_TARSAL_NAMES[prefix]) {
+    return GERMAN_TARSAL_NAMES[prefix] + (side ? ' ' + side.toLowerCase() : '');
+  }
+
+  match = prefix.match(/^metacarpal_(\\d+)$/);
+  if (match) return match[1] + '. Mittelhandknochen ' + side.toLowerCase();
+  match = prefix.match(/^metatarsal_(\\d+)$/);
+  if (match) return match[1] + '. Mittelfußknochen ' + side.toLowerCase();
+
+  match = prefix.match(/^digit_(\\d+)_(proximal|middle|distal)$/);
+  if (match) {
+    const finger = GERMAN_FINGER_NAMES[match[1]];
+    const part = { proximal: 'Grundglied', middle: 'Mittelglied', distal: 'Endglied' }[match[2]];
+    return part + ' des ' + finger + 's ' + side.toLowerCase();
+  }
+
+  match = prefix.match(/^toe_(\\d+)_(proximal|middle|distal)$/);
+  if (match) {
+    const toe = GERMAN_TOE_NAMES[match[1]];
+    const part = { proximal: 'Grundglied', middle: 'Mittelglied', distal: 'Endglied' }[match[2]];
+    return part + ' der ' + toe + ' ' + side.toLowerCase();
+  }
+
+  return '';
+}
+
+function germanRegionName(region) {
+  return GERMAN_REGION_NAMES[region] || '';
+}
+
 export function getSchematicBoneDefinitions() {
   const seen = new Set();
   const definitions = [];
@@ -19,6 +148,9 @@ export function getSchematicBoneDefinitions() {
     seen.add(bone.id);
     definitions.push({
       ...bone,
+      de: germanBoneName(bone.id),
+      regionDe: germanRegionName(bone.region),
+      sideDe: germanSide(bone.id),
       p: Array.isArray(bone.p) ? [...bone.p] : [0, 0, 0],
       e: Array.isArray(bone.e) ? [...bone.e] : [0, 0, 0],
       size: Array.isArray(bone.size) ? [...bone.size] : [1, 1, 1]
@@ -63,8 +195,13 @@ export function createSchematicSkeleton(THREE, profileId = 'adult_male', options
       object.userData = {
         ...(object.userData || {}),
         boneId: definition.id,
+        name_de: definition.de || '',
+        name_en: definition.en || '',
+        name_la: definition.la || '',
         region: definition.region || '',
+        region_de: definition.regionDe || '',
         side: definition.side || '',
+        side_de: definition.sideDe || '',
         profileId,
         schematic: true,
         modelSource: 'procedural',
