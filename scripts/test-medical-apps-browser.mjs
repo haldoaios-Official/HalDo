@@ -524,6 +524,17 @@ async function run() {
   const localBlobUrl = (localGlbStatus.match(/blob:[^\\s]+/) || [])[0];
   assert.ok(localBlobUrl, 'Der lokale GLB-Import muss über eine temporäre Blob-URL laufen.');
   pass('Anatomie 3D Pro: lokale GLB-Datei wird ohne externen Modellserver importiert');
+  await anatomyAppRoot.locator('[data-model-file]').setInputFiles({
+    name: 'external-references.gltf',
+    mimeType: 'model/gltf+json',
+    buffer: Buffer.from('{"asset":{"version":"2.0"}}', 'utf8')
+  });
+  await page.waitForFunction(() => {
+    return Array.from(document.querySelectorAll('#winLayer .hdx-root [data-anatomy-status]'))
+      .some((element) => element.textContent.includes('Nur eigenständige GLB-Dateien'));
+  }, { timeout: 10000 });
+  assert.equal(await anatomyAppRoot.locator('.hdx-anatomy-view canvas').count(), 1);
+  pass('Anatomie 3D Pro: externe GLTF-Datei wird abgewiesen, das geladene Modell bleibt erhalten');
   await anatomyAppRoot.locator('[data-model-schematic]').click();
   await page.waitForFunction(() => {
     return Array.from(document.querySelectorAll('#winLayer .hdx-root [data-anatomy-status]'))
