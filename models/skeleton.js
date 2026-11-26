@@ -51,19 +51,19 @@ const GERMAN_TARSAL_NAMES = Object.freeze({
 });
 
 const GERMAN_FINGER_NAMES = Object.freeze({
-  1: 'Daumen',
-  2: 'Zeigefinger',
-  3: 'Mittelfinger',
-  4: 'Ringfinger',
-  5: 'Kleiner Finger'
+  1: 'Daumens',
+  2: 'Zeigefingers',
+  3: 'Mittelfingers',
+  4: 'Ringfingers',
+  5: 'kleinen Fingers'
 });
 
 const GERMAN_TOE_NAMES = Object.freeze({
   1: 'Großzehe',
-  2: 'Zweite Zehe',
-  3: 'Dritte Zehe',
-  4: 'Vierte Zehe',
-  5: 'Kleine Zehe'
+  2: 'zweiten Zehe',
+  3: 'dritten Zehe',
+  4: 'vierten Zehe',
+  5: 'kleinen Zehe'
 });
 
 const GERMAN_REGION_NAMES = Object.freeze({
@@ -119,7 +119,7 @@ function germanBoneName(id) {
   if (match) {
     const finger = GERMAN_FINGER_NAMES[match[1]];
     const part = { proximal: 'Grundglied', middle: 'Mittelglied', distal: 'Endglied' }[match[2]];
-    return part + ' des ' + finger + 's ' + side.toLowerCase();
+    return part + ' des ' + finger + ' ' + side.toLowerCase();
   }
 
   match = prefix.match(/^toe_(\d+)_(proximal|middle|distal)$/);
