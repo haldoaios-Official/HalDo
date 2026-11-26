@@ -358,7 +358,7 @@
           }
         }
       } catch (error) {
-        if (status) status.textContent = 'Basisinformationen verfügbar; Speicherbelegung nicht freigegeben.';
+        if (status) status.textContent = 'Geräteinformationen aktualisiert; Speicherbelegung nicht freigegeben.';
       }
     }
 
