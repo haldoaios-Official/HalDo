@@ -520,6 +520,26 @@
   H.worldclock = { open: openWorldClock, version: BUILD };
   H['recipe-scaler'] = { open: openRecipeScaler, version: BUILD };
   H.CoreAppsV168 = { version: BUILD, worldClock: openWorldClock, recipeScaler: openRecipeScaler };
+
+  // The universal v161 welcome wrapper is retained, but the final v168
+  // dispatcher explicitly connects these new IDs to their own app modules.
+  var previousLaunch = H.Launch;
+  H.Launch = function (app) {
+    if (app && app.id === 'worldclock') {
+      if (H.WelcomeExperience && typeof H.WelcomeExperience.openApp === 'function') {
+        return H.WelcomeExperience.openApp(app, openWorldClock);
+      }
+      return openWorldClock();
+    }
+    if (app && app.id === 'recipe-scaler') {
+      if (H.WelcomeExperience && typeof H.WelcomeExperience.openApp === 'function') {
+        return H.WelcomeExperience.openApp(app, openRecipeScaler);
+      }
+      return openRecipeScaler();
+    }
+    if (typeof previousLaunch === 'function') return previousLaunch.apply(this, arguments);
+  };
+
   H.Master = H.Master || {};
   H.Master.version = BUILD;
   H.Master.specDate = '2026-11-26';
