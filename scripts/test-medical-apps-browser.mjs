@@ -476,7 +476,7 @@ async function run() {
   await dismissWelcomeIfPresent();
   const anatomyAppRoot = page.locator('#winLayer .hdx-root').last();
   await anatomyAppRoot.waitFor({ state: 'visible', timeout: 10000 });
-  await anatomyAppRoot.locator('[data-arzt-tab="anatomy"]').click();
+  await anatomyAppRoot.locator('button[data-arzt-tab="anatomy"]').last().click();
   await anatomyAppRoot.locator('[data-model-schematic]').waitFor({ state: 'visible', timeout: 10000 });
   await anatomyAppRoot.locator('[data-model-schematic]').click();
   await page.waitForFunction(() => {
@@ -522,9 +522,9 @@ async function run() {
   assert.equal(await anatomyAppRoot.locator('.hdx-anatomy-view canvas').count(), 1);
   pass('Anatomie 3D Pro: Profilwechsel auf Säugling erzeugt das passende schematische Skelett');
 
-  await anatomyAppRoot.locator('[data-arzt-tab="systems"]').click();
+  await anatomyAppRoot.locator('button[data-arzt-tab="systems"]').last().click();
   assert.equal(await anatomyAppRoot.locator('.hdx-anatomy-view canvas').count(), 0);
-  await anatomyAppRoot.locator('[data-arzt-tab="anatomy"]').click();
+  await anatomyAppRoot.locator('button[data-arzt-tab="anatomy"]').last().click();
   await anatomyAppRoot.locator('[data-anatomy-profile]').selectOption('adult_female');
   await anatomyAppRoot.locator('[data-model-schematic]').click();
   await page.waitForFunction(() => {
