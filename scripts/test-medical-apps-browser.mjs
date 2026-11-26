@@ -628,7 +628,8 @@ async function run() {
   assert.match(await deviceRoot.locator('[data-di-details]').innerText(), /Bildschirm/);
   assert.match(await deviceRoot.locator('[data-di-capabilities]').innerText(), /WebGL/);
   assert.match(await deviceRoot.innerText(), /WLAN-SSID, MAC-Adresse, gekoppelte Bluetooth-Geräte/);
-  assert.equal(await deviceRoot.locator('[data-di-details]').innerText().includes('MAC-Adresse'), false);
+  const deviceDetailsText = await deviceRoot.locator('[data-di-details]').innerText();
+  assert.equal(deviceDetailsText.includes('MAC-Adresse'), false);
   await deviceRoot.locator('[data-di-refresh]').click();
   assert.match(await deviceRoot.locator('[data-di-status]').innerText(), /aktualisiert/);
   await closeWindow(deviceRoot);
