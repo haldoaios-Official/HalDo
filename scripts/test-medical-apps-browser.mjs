@@ -471,6 +471,44 @@ async function run() {
   assert.equal(skeletonModuleCheck.invalidProfileRejected, true);
   console.log('ANATOMY SKELETON MODULE ' + JSON.stringify(skeletonModuleCheck));
   pass('Anatomie 3D Pro: wiederverwendbarer Skelett-Baukasten unterstützt vier Profile und Ressourcenfreigabe');
+  // Exercise the actual Arztbuch anatomy window, its profile selector and WebGL viewer.
+  await page.evaluate(() => window.HalDo.Anatomy3D.open());
+  await dismissWelcomeIfPresent();
+  const anatomyAppRoot = page.locator('#winLayer .hdx-root').last();
+  await anatomyAppRoot.waitFor({ state: 'visible', timeout: 10000 });
+  await anatomyAppRoot.locator('[data-arzt-tab="anatomy"]').click();
+  await anatomyAppRoot.locator('[data-model-schematic]').waitFor({ state: 'visible', timeout: 10000 });
+  await anatomyAppRoot.locator('[data-model-schematic]').click();
+  await page.waitForFunction(() => {
+    return Array.from(document.querySelectorAll('#winLayer .hdx-root [data-anatomy-status]'))
+      .some((element) => element.textContent.includes('Schematisches Skelett geladen: 179 Knochen'));
+  }, { timeout: 30000 });
+  assert.equal(await anatomyAppRoot.locator('.hdx-anatomy-view canvas').count(), 1);
+  assert.match(await anatomyAppRoot.locator('[data-bone-info]').innerText(), /179 Knochen/);
+  pass('Anatomie 3D Pro: Arztbuch-Viewer rendert das vollständige schematische Erwachsenenskelett');
+
+  await anatomyAppRoot.locator('[data-anatomy-profile]').selectOption('infant');
+  await anatomyAppRoot.locator('[data-model-schematic]').click();
+  await page.waitForFunction(() => {
+    return Array.from(document.querySelectorAll('#winLayer .hdx-root [data-anatomy-status]'))
+      .some((element) => element.textContent.includes('Profil infant'));
+  }, { timeout: 30000 });
+  assert.equal(await anatomyAppRoot.locator('.hdx-anatomy-view canvas').count(), 1);
+  pass('Anatomie 3D Pro: Profilwechsel auf Säugling erzeugt das passende schematische Skelett');
+
+  await anatomyAppRoot.locator('[data-arzt-tab="systems"]').click();
+  assert.equal(await anatomyAppRoot.locator('.hdx-anatomy-view canvas').count(), 0);
+  await anatomyAppRoot.locator('[data-arzt-tab="anatomy"]').click();
+  await anatomyAppRoot.locator('[data-anatomy-profile]').selectOption('adult_female');
+  await anatomyAppRoot.locator('[data-model-schematic]').click();
+  await page.waitForFunction(() => {
+    return Array.from(document.querySelectorAll('#winLayer .hdx-root [data-anatomy-status]'))
+      .some((element) => element.textContent.includes('Profil adult_female'));
+  }, { timeout: 30000 });
+  assert.equal(await anatomyAppRoot.locator('.hdx-anatomy-view canvas').count(), 1);
+  await closeWindow(anatomyAppRoot);
+  pass('Anatomie 3D Pro: Profilwechsel, Viewer-Neuaufbau und Fenster-Schließen geben Ressourcen frei');
+
 
 
 
