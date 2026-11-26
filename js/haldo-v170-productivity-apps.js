@@ -139,7 +139,7 @@
       }).join('');
     }
 
-    function collectDraft() {
+    function collectDraft(skipCompleteness) {
       if (!draft) throw new Error('Kein Rezeptentwurf geöffnet.');
       var name = root.querySelector('[data-r170-name]').value.trim();
       var category = root.querySelector('[data-r170-category]').value;
@@ -157,10 +157,12 @@
       }).filter(Boolean);
       var steps = root.querySelector('[data-r170-steps]').value.split(/\r?\n/).map(function (step) { return step.trim(); }).filter(Boolean);
 
-      if (!name) throw new Error('Bitte einen Rezeptnamen eingeben.');
-      if (RECIPE_CATEGORIES.indexOf(category) === -1) throw new Error('Bitte eine gültige Rezeptkategorie auswählen.');
-      if (!ingredients.length) throw new Error('Bitte mindestens eine Zutat hinzufügen.');
-      if (!steps.length) throw new Error('Bitte mindestens einen Zubereitungsschritt eintragen.');
+      if (!skipCompleteness) {
+        if (!name) throw new Error('Bitte einen Rezeptnamen eingeben.');
+        if (RECIPE_CATEGORIES.indexOf(category) === -1) throw new Error('Bitte eine gültige Rezeptkategorie auswählen.');
+        if (!ingredients.length) throw new Error('Bitte mindestens eine Zutat hinzufügen.');
+        if (!steps.length) throw new Error('Bitte mindestens einen Zubereitungsschritt eintragen.');
+      }
 
       return {
         id:draft.id,
@@ -252,12 +254,12 @@
         render(); return;
       }
       if (button.hasAttribute('data-r170-add-ingredient')) {
-        var editing = collectDraft();
+        var editing = collectDraft(true);
         editing.ingredients.push({name:'',amount:'',unit:''});
         draft = editing; render(); return;
       }
       if (button.dataset.r170RemoveIngredient != null) {
-        var updated = collectDraft();
+        var updated = collectDraft(true);
         updated.ingredients.splice(Number(button.dataset.r170RemoveIngredient), 1);
         if (!updated.ingredients.length) updated.ingredients.push({name:'',amount:'',unit:''});
         draft = updated; render(); return;
