@@ -406,3 +406,26 @@ Der Vitalwerte-Bereich des bestehenden Arztbuchs wurde nach der Grunddokumentati
 **Abnahme:** GitHub Actions Chromium-Lauf #45, Job „Encrypted vault end-to-end tests“, auf Commit bed28c9ec542dee230ddcdbf0805e0ea908687e4: **32/32 Browserprüfungen erfolgreich**. Geprüft wurden u. a. Rückwärtskompatibilität des älteren Arztbuch-Tresors, Vitalwert anlegen/bearbeiten/löschen, Textsuche, inklusive Von-/Bis-Datumsgrenzen, Erhaltung unfertiger Formularwerte, numerische Verlaufskurve, Monats-/Jahresumschaltung und Sichtbarkeit der CSV-Export-Schaltfläche. Die tatsächliche heruntergeladene CSV-Datei und deren vollständiger Inhalt sind noch nicht durch einen eigenen Download-/Dateiinhalt-End-to-End-Test abgedeckt; dies bleibt ein offener Testpunkt.
 
 **Repository-Status bei dieser Aktualisierung:** Arbeitsbranch work-v167-medical-apps; Draft-PR #1 gegen main; der Branch lag beim letzten Vergleich 49 Commits vor main und 0 Commits dahinter. Kein Merge, keine Pages-Veröffentlichung. Klinische, datenschutzrechtliche und produktive Freigabe sind separate Abnahmeschritte.
+
+## HALDO Core-Architektur-Audit – tatsächlicher Laufzeitpfad (26.11.2026)
+
+Die aktuelle produktive Startseite wurde erneut direkt im Arbeitsbranch untersucht. Diese Befunde sind wichtig, bevor die 375 geplanten Plätze weiter aufgefüllt werden:
+
+- `index.html` ist weiterhin die tatsächlich zentrale Startseite (rund 968 KB Quelltext). Der Hauptteil des Systems – Registry, Fenster-/Startlogik, App-Katalog und zahlreiche Apps – ist in der Datei als Inline-JavaScript enthalten. Die statischen Script-Referenzen der Seite laden Three.js r128 samt Controls/GLTF/DRACO sowie Living-Identity-/Welcome-Dateien und das v167-Medizinmodul.
+- Die eingebettete Basis-Registry enthält 71 eindeutige Featured-IDs. Spätere Integrationen ergänzen `chat-pro`, drei v165-Apps und drei v166-Apps. Die Code-Inventur ergibt damit 78 benannte Einträge nach diesen Erweiterungen; eine separate Laufzeit-Zählprüfung soll dies noch festigen.
+- Die 26 Buchstabenkategorien summieren sich auf 375 geplante Plätze. Diese Zahl ist die Sollkapazität, nicht die Anzahl fertiger, installierter oder produktiv geprüfter Anwendungen.
+- Im Repository liegen zusätzlich ältere Dateien wie `registry.js`, `apps.js`, `app-manager.js`, `router.js`, `runtime.js` und `window-manager.js`. Sie erscheinen nicht in den statischen Script-Referenzen der aktuellen `index.html`. Sie dürfen nicht ungeprüft als aktive Runtime behandelt oder zusätzlich eingebunden werden; ihre verbliebenen Referenzen und ihr Legacy-Status sind separat zu klären.
+- Die zentrale Startfunktion wird über mehrere aufeinanderfolgende Integrationsblöcke erweitert. Das macht Startpfade schwer nachvollziehbar und verlangt eine systematische App-ID-zu-Modul-Prüfung.
+- Ein früherer Fallback erzeugte für manche nicht speziell implementierten IDs eine generische Listen-App. Diese ist eine provisorische Datensammel-Oberfläche und kein Nachweis einer fachlich vollständigen App. Solche Einträge müssen in der späteren App-Inventur sichtbar als Scaffold/Platzhalter klassifiziert werden.
+- Der bestehende CI-Workflow ist derzeit auf die medizinischen Browserabläufe ausgerichtet. Ein vollständiger Plattform-Smoke-Test für Registry-Konsistenz, Launcher-Abdeckung, AppStore, Fensterverwaltung, Mobile-Layout und sämtliche App-Familien fehlt noch.
+
+**Erster Core-Fix:** Der gemeinsame Basis-Launcher prüft jetzt vor dem allgemeinen Begrüßungs-Fallback, ob unter der stabilen App-ID ein Modul mit `open()` registriert ist. So können spätere v165-/v166-Module ihre echte Implementierung über den zentralen Startweg erreichen, ohne die vorhandenen Sonderrouten zu ersetzen. Sechs Chromium-Startprüfungen für Bibliothek, Inventar, Mindmap, Haushaltsmanager, Keyboard Studio und Datei-Konverter wurden ergänzt. Die zugehörigen GitHub-Actions-Läufe #48 und #49 sind zum Zeitpunkt dieser Dokumentation noch nicht abschließend ausgewertet.
+
+**Nächste Core-Prioritäten:**
+1. Ergebnis der sechs Launcher-Tests auswerten und ggf. Start-/Schließfehler beheben.
+2. Für jede benannte Registry-ID tatsächliches Modul, konkreten Startpfad, Funktionsstatus und Datenpersistenz erfassen; generische Scaffolds ausdrücklich von vollständigen Apps trennen.
+3. Registry, Launcher, AppStore und Fenster-Lifecycle schrittweise vereinheitlichen, ohne Legacy-Dateien doppelt zu laden oder vorhandene IDs/Daten zu verändern.
+4. Einen eigenständigen Plattform-Smoke-Test aufbauen. Erst danach weitere App-Paare im A–Z-Katalog in planmäßiger Reihenfolge umsetzen.
+5. Anschließend die 3D-Anatomie-Ladepfade und Three.js-/GLB-Versionen systematisch vereinheitlichen; danach Living AI/Avatar und die übrigen Großsysteme.
+
+**Sicherheitsgrenze:** Diese Bestandsaufnahme ist eine Code-/Repository-Prüfung, kein vollständiger manueller UX-, Mobile-, Penetrations-, Datenschutz- oder klinischer Freigabetest.
