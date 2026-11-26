@@ -478,6 +478,12 @@ async function run() {
   await anatomyAppRoot.waitFor({ state: 'visible', timeout: 10000 });
   await anatomyAppRoot.locator('button[data-arzt-tab="anatomy"]').last().click();
   await anatomyAppRoot.locator('[data-model-schematic]').waitFor({ state: 'visible', timeout: 10000 });
+  await page.waitForFunction(() => {
+    return Array.from(document.querySelectorAll('#winLayer .hdx-root [data-anatomy-status]'))
+      .some((element) => element.textContent.includes('3D-Modell sichtbar und interaktiv geladen'));
+  }, { timeout: 20000 });
+  assert.equal(await anatomyAppRoot.locator('.hdx-anatomy-view canvas').count(), 1);
+  pass('Anatomie 3D Pro: einzelnes vorhandenes GLB-Knochenmodell wird im aktiven Viewer geladen');
   await anatomyAppRoot.locator('[data-model-schematic]').click();
   await page.waitForFunction(() => {
     return Array.from(document.querySelectorAll('#winLayer .hdx-root [data-anatomy-status]'))
