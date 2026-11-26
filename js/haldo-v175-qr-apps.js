@@ -9,7 +9,6 @@
 
   var H = window.HalDo;
   var BUILD = '175.0.0';
-  var QR_LIBRARY_URL = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js';
   if (!H || !H.Win || !H.Store || H.__haldoV175QrApps) {
     if (H && !H.__haldoV175QrApps) console.error('[HalDo v175] HalDo Window/Store API is not available.');
     return;
@@ -25,30 +24,47 @@
   }
 
   function ensureQrLibrary() {
-    if (window.QRCode && typeof window.QRCode.toCanvas === 'function') return Promise.resolve(window.QRCode);
     if (qrLibraryPromise) return qrLibraryPromise;
-    qrLibraryPromise = new Promise(function (resolve, reject) {
-      var existing = document.getElementById('haldo-v175-qrcode-library');
-      if (existing) {
-        existing.addEventListener('load', function () {
-          if (window.QRCode && typeof window.QRCode.toCanvas === 'function') resolve(window.QRCode);
-          else reject(new Error('Die QR-Bibliothek wurde geladen, stellt aber keine toCanvas-Funktion bereit.'));
-        }, { once:true });
-        existing.addEventListener('error', function () { reject(new Error('Die QR-Bibliothek konnte nicht geladen werden.')); }, { once:true });
-        return;
+    qrLibraryPromise = Promise.resolve().then(function () {
+      var generator = window.qrcode;
+      if (typeof generator !== 'function') {
+        throw new Error('Die lokale QR-Bibliothek ist nicht geladen. Bitte HalDo neu laden.');
       }
-      var script = document.createElement('script');
-      script.id = 'haldo-v175-qrcode-library';
-      script.src = QR_LIBRARY_URL;
-      script.async = true;
-      script.crossOrigin = 'anonymous';
-      script.referrerPolicy = 'no-referrer';
-      script.onload = function () {
-        if (window.QRCode && typeof window.QRCode.toCanvas === 'function') resolve(window.QRCode);
-        else reject(new Error('Die QR-Bibliothek ist nicht verfügbar.'));
+      if (generator.stringToBytesFuncs && generator.stringToBytesFuncs['UTF-8']) {
+        generator.stringToBytes = generator.stringToBytesFuncs['UTF-8'];
+      }
+      return {
+        toCanvas:function (canvas, text, options, callback) {
+          try {
+            var qr = generator(0, options && options.errorCorrectionLevel || 'M');
+            qr.addData(String(text == null ? '' : text), 'Byte');
+            qr.make();
+            var moduleCount = qr.getModuleCount();
+            var margin = Number(options && options.margin);
+            if (!Number.isFinite(margin) || margin < 0) margin = 4;
+            var targetWidth = Number(options && options.width) || 280;
+            var scale = Math.max(2, Math.floor(targetWidth / (moduleCount + margin * 2)));
+            var side = (moduleCount + margin * 2) * scale;
+            canvas.width = side;
+            canvas.height = side;
+            var context = canvas.getContext('2d');
+            if (!context) throw new Error('Canvas ist in diesem Browser nicht verfügbar.');
+            context.fillStyle = options && options.color && options.color.light || '#ffffff';
+            context.fillRect(0, 0, side, side);
+            context.fillStyle = options && options.color && options.color.dark || '#000000';
+            for (var row = 0; row < moduleCount; row += 1) {
+              for (var column = 0; column < moduleCount; column += 1) {
+                if (qr.isDark(row, column)) {
+                  context.fillRect((column + margin) * scale, (row + margin) * scale, scale, scale);
+                }
+              }
+            }
+            callback(null, canvas);
+          } catch (error) {
+            callback(error);
+          }
+        }
       };
-      script.onerror = function () { reject(new Error('QR-Renderer konnte nicht geladen werden. Bitte Internetverbindung prüfen.')); };
-      document.head.appendChild(script);
     }).catch(function (error) {
       qrLibraryPromise = null;
       throw error;
