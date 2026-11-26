@@ -401,6 +401,9 @@ async function run() {
   assert.equal(await hub.locator('[data-ab-vital-summary-row] td').first().textContent(), '2026');
   await hub.locator('[data-ab-vital-summary-mode]').selectOption('month');
   pass('Arztbuch: Monats- und Jahresübersicht wechseln den Zeitraum korrekt');
+  assert.equal(await hub.locator('[data-ab-vital-export]').isVisible(), true);
+  pass('Arztbuch: CSV-Export-Schaltfläche ist im Vitalwerte-Verlauf sichtbar');
+
 
 
 
