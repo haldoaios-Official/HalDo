@@ -521,14 +521,9 @@
   H['recipe-scaler'] = { open: openRecipeScaler, version: BUILD };
   H.CoreAppsV168 = { version: BUILD, worldClock: openWorldClock, recipeScaler: openRecipeScaler };
 
-  // The global welcome layer wraps HalDo.Launch later in index.html.
-  // Dispatch directly here so the same app does not receive two welcome screens.
-  var previousLaunch = H.Launch;
-  H.Launch = function (app) {
-    if (app && app.id === 'worldclock') return openWorldClock();
-    if (app && app.id === 'recipe-scaler') return openRecipeScaler();
-    if (typeof previousLaunch === 'function') return previousLaunch.apply(this, arguments);
-  };
+  // No separate H.Launch wrapper here. The single dispatcher in index.html
+  // already shows the global welcome experience and resolves H[app.id].open().
+  // Keeping this module passive prevents a later script from bypassing that flow.
 
   H.Master = H.Master || {};
   H.Master.version = BUILD;
