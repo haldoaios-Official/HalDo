@@ -532,3 +532,17 @@ Die Auswahl eines Knochen-Eintrags aus dem Suchkatalog richtet die Perspektivkam
 Der Filter-Reset setzt nun zusätzlich die Perspektivkamera auf das gesamte Skelett zurück, entfernt eine aktive Knochenmarkierung und zeigt wieder alle 179 Knochen. Suchtext und Regionsauswahl werden geleert. Damit ist der Wechsel zwischen gezielter Detailansicht und Gesamtübersicht ohne erneutes Schließen/Öffnen möglich.
 
 **Abnahme:** GitHub Actions Lauf #93 (`45756951571`) auf Commit `c1a87d696c9ed992a1be6cf3cf59ff066f1ad238`: **47/47 Browserprüfungen erfolgreich**. Der E2E-Test prüft nach der Regionsfilterung 179 sichtbare Knochen, leere Such-/Regionsfelder und die Bestätigung „Kamera zurückgesetzt“.
+
+## HalDo App-Registry – wahrheitsgemäße Implementierungsstatus (26.11.2026)
+
+Die zentrale App-Registry unterscheidet jetzt drei Zustände pro benannter App:
+
+- **Modul vorhanden:** ein eigenes Startmodul mit `open()` wurde über die geprüfte Modulzuordnung gefunden. Das ist kein Nachweis, dass jede Fachfunktion fertig ist.
+- **Grundgerüst:** das automatische generische Factory-Fallback wurde explizit markiert (`isGenericFallback` / `implementationKind: generic-scaffold`). Es bleibt startbar, wird aber nicht als fachlich fertige App ausgegeben.
+- **Prüfung offen:** die App-ID wird noch nicht eindeutig einem eigenen Modul oder einem bekannten Factory-Grundgerüst zugeordnet. Eine Sonderroute darf nicht irrtümlich als fehlendes oder fertiges Modul bewertet werden.
+
+Die App-Registry zeigt diese Kennzeichnung auf jedem benannten Karten-Eintrag sowie eine Zusammenfassung oben. Die 375 geplanten Plätze bleiben die Sollkapazität der 26 Buchstabenkategorien. Die tatsächliche Zahl benannter App-IDs und deren Implementierungsstatus wird separat erfasst.
+
+**Abnahme:** GitHub Actions Lauf #97 (`45757482836`) auf Commit `f4d4ed2c64efc4deb6586e2bc33974ca001310b9`: **49/49 Chromium-Browserprüfungen erfolgreich**. Geprüft wurden 26 Kategorien, 375 Sollplätze, eindeutige Registry-IDs, der Status eines generischen Reminders-Grundgerüsts, das vorhandene Chat-Pro-Modul und die tatsächliche Anzeige der Status-Tags in der geöffneten App-Registry.
+
+**Erste Laufzeit-Zählung:** 86 benannte App-IDs, 25 mit eigenem erkannten Startmodul, 4 generische Grundgerüste und 57 noch zu prüfende Zuordnungen. Diese Zahlen beschreiben den Erkennungsstand der Registry, nicht die Anzahl fertig abgenommener Fach-Apps. Die offenen Zuordnungen werden als nächster Schritt anhand der wirklichen Launcher-Routen und Laufzeitmodule einzeln geprüft.
