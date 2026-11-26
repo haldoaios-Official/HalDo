@@ -344,6 +344,6 @@
     build();
   }
 
-  HalDoApp("musik", { name: "Musik", icon: "🎵", render: render, category: "lifestyle" });
+  HalDoApp("music-studio", { name: "HalDo Music Studio Pro", icon: "🎼", render: render, category: "creative" });
   console.log("🦚 musik.js v22.0 geladen — ABSOLUTE MAXIMUM");
 })();
