@@ -323,6 +323,14 @@ async function run() {
   assert.equal(vitalData.vitals[0].result, '120/80');
   pass('Arztbuch: Vitalwert angelegt, im bestehenden Tresor verschlüsselt gespeichert und strukturell geprüft');
 
+  const timelineSearch = hub.locator('[data-ab-vital-search]');
+  await timelineSearch.fill('Blutdruck E2E');
+  assert.equal(await hub.locator('.hdp154-record').count(), 1);
+  await timelineSearch.fill('no-match');
+  await hub.getByText('Keine Vitalwerte für diese Suche oder diesen Zeitraum.', { exact: true }).waitFor();
+  await timelineSearch.fill('');
+  pass('Arztbuch: Vitalwerte-Verlauf unterstützt die Textsuche');
+
   await hub.locator('[data-ab-edit-vital]').click();
   await hub.locator('[name="result"]').fill('118/76');
   await hub.locator('[data-ab-form] button[type="submit"]').click();
