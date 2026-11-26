@@ -471,6 +471,36 @@ async function run() {
   assert.equal(skeletonModuleCheck.invalidProfileRejected, true);
   console.log('ANATOMY SKELETON MODULE ' + JSON.stringify(skeletonModuleCheck));
   pass('Anatomie 3D Pro: wiederverwendbarer Skelett-Baukasten unterstützt vier Profile und Ressourcenfreigabe');
+  const germanAnatomyCatalog = await page.evaluate(async () => {
+    const api = await import('/models/skeleton.js');
+    const definitions = api.getSchematicBoneDefinitions();
+    const byId = new Map(definitions.map((bone) => [bone.id, bone]));
+    return {
+      count: definitions.length,
+      missingGerman: definitions.filter((bone) => !bone.de || !bone.regionDe).map((bone) => bone.id),
+      names: {
+        skull: byId.get('skull')?.de,
+        c2: byId.get('c2')?.de,
+        leftRib1: byId.get('left_rib_1')?.de,
+        rightFemur: byId.get('right_femur')?.de,
+        leftIndexMiddlePhalanx: byId.get('left_digit_2_middle')?.de,
+        rightLittleToeDistalPhalanx: byId.get('right_toe_5_distal')?.de
+      },
+      regions: [...new Set(definitions.map((bone) => bone.regionDe))]
+    };
+  });
+  assert.equal(germanAnatomyCatalog.count, 179);
+  assert.deepEqual(germanAnatomyCatalog.missingGerman, []);
+  assert.equal(germanAnatomyCatalog.names.skull, 'Schädel');
+  assert.equal(germanAnatomyCatalog.names.c2, '2. Halswirbel');
+  assert.equal(germanAnatomyCatalog.names.leftRib1, '1. Rippe links');
+  assert.equal(germanAnatomyCatalog.names.rightFemur, 'Oberschenkelknochen rechts');
+  assert.equal(germanAnatomyCatalog.names.leftIndexMiddlePhalanx, 'Mittelglied des Zeigefingers links');
+  assert.equal(germanAnatomyCatalog.names.rightLittleToeDistalPhalanx, 'Endglied der kleinen Zehe rechts');
+  assert.ok(germanAnatomyCatalog.regions.includes('Wirbelsäule'));
+  console.log('GERMAN ANATOMY TERMS ' + JSON.stringify(germanAnatomyCatalog));
+  pass('Anatomie 3D: alle 179 Knochen-Definitionen besitzen deutsche Namen und Körperregionen');
+
   // Record which version of the duplicate Anatomy3D assignment is active at runtime.
   const activeAnatomyRuntime = await page.evaluate(() => ({
     stabilization151: !!window.HalDo.__stabilization151,
@@ -567,7 +597,7 @@ async function run() {
     return null;
   });
   assert.ok(boneSelection, 'Kein sichtbarer schematischer Knochen konnte im Viewer ausgewählt werden.');
-  assert.match(boneSelection, /Bezeichnung:/);
+  assert.match(boneSelection, /Deutsch:/);
   assert.match(boneSelection, /Latein:/);
   assert.match(boneSelection, /Körperregion:/);
   pass('Anatomie 3D Pro: Knochen sind per Mausklick auswählbar und zeigen deutsche, englische und lateinische Angaben');
