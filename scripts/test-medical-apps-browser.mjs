@@ -601,6 +601,27 @@ async function run() {
   assert.match(boneSelection, /Latein:/);
   assert.match(boneSelection, /Körperregion:/);
   pass('Anatomie 3D Pro: Knochen sind per Mausklick auswählbar und zeigen deutsche, englische und lateinische Angaben');
+  const boneSearch = anatomyAppRoot.locator('[data-bone-search]');
+  const boneRegion = anatomyAppRoot.locator('[data-bone-region]');
+  const boneResults = anatomyAppRoot.locator('[data-bone-results]');
+  await boneSearch.fill('schadel');
+  assert.equal(await boneResults.getAttribute('data-result-count'), '2', 'Die Suche soll Umlaute auch ohne Akzent finden.');
+  await boneSearch.fill('Oberschenkelknochen links');
+  assert.equal(await boneResults.getAttribute('data-result-count'), '1');
+  await boneResults.locator('[data-bone-select="left_femur"]').click();
+  assert.match(await anatomyAppRoot.locator('[data-bone-info]').innerText(), /Deutsch: Oberschenkelknochen links/);
+  assert.equal(await boneResults.locator('[data-bone-select="left_femur"]').getAttribute('aria-pressed'), 'true');
+  await boneRegion.selectOption('Schädel');
+  await boneSearch.fill('');
+  assert.equal(await boneResults.getAttribute('data-result-count'), '2');
+  assert.equal(await boneResults.getAttribute('data-visible-count'), '2');
+  await anatomyAppRoot.locator('[data-bone-clear]').click();
+  assert.equal(await boneSearch.inputValue(), '');
+  assert.equal(await boneRegion.inputValue(), '');
+  assert.equal(await boneResults.getAttribute('data-result-count'), '179');
+  assert.equal(await boneResults.getAttribute('data-visible-count'), '179');
+  pass('Anatomie 3D Pro: Knochenkatalog unterstützt Umlaute-Suche, Namenssuche, Regionenfilter und 3D-Sichtbarkeitsfilter');
+
 
 
   await anatomyAppRoot.locator('[data-anatomy-profile]').selectOption('infant');
