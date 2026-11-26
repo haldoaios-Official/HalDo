@@ -141,10 +141,10 @@
     }
     if (type === 'email') {
       var mail = valueOf(root, 'email');
-      if (!mail) throw new Error('Bitte eine Empfänger-Adresse eingeben.');
+      if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(mail)) throw new Error('Bitte eine gültige Empfänger-Adresse eingeben.');
       var subject = valueOf(root, 'subject');
       var body = valueOf(root, 'body');
-      return 'mailto:' + encodeURIComponent(mail) + (subject || body ? '?' + [
+      return 'mailto:' + mail + (subject || body ? '?' + [
         subject ? 'subject=' + encodeURIComponent(subject) : '',
         body ? 'body=' + encodeURIComponent(body) : ''
       ].filter(Boolean).join('&') : '');
@@ -155,8 +155,11 @@
       return 'SMSTO:' + number + ':' + valueOf(root, 'body');
     }
     if (type === 'geo') {
-      var lat = Number(valueOf(root, 'latitude'));
-      var lng = Number(valueOf(root, 'longitude'));
+      var latitude = valueOf(root, 'latitude');
+      var longitude = valueOf(root, 'longitude');
+      if (!latitude || !longitude) throw new Error('Bitte Breitengrad und Längengrad eingeben.');
+      var lat = Number(latitude);
+      var lng = Number(longitude);
       if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
         throw new Error('Bitte gültige Koordinaten eingeben (Breite −90 bis 90, Länge −180 bis 180).');
       }
