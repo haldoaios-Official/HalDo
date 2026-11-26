@@ -789,6 +789,8 @@ async function run() {
       appointments: H.AppBrowser.getStatus('arzttermine-pro'),
       diseaseCatalogue: H.AppBrowser.getStatus('krankheitslexikon-pro'),
       medicationCatalogue: H.AppBrowser.getStatus('medikamentenlexikon-pro'),
+      unitConverter: H.AppBrowser.getStatus('unitconv'),
+      habitHeatmap: H.AppBrowser.getStatus('heatmap'),
       breathingRoute: H.SystemV157.resolveRoute('breathing'),
       scientificRoute: H.SystemV157.resolveRoute('scientific'),
       careDocumentationRoute: H.SystemV157.resolveRoute('pflegeprotokoll-pro'),
@@ -821,7 +823,7 @@ async function run() {
   assert.equal(registryHealth.utilities.kind, 'module');
   assert.equal(registryHealth.recipes.kind, 'module');
   assert.equal(registryHealth.analyzer.kind, 'module');
-  assert.equal(registryHealth.statusCounts.modules, 82);
+  assert.equal(registryHealth.statusCounts.modules, 84);
   assert.equal(registryHealth.statusCounts.scaffolds, 1);
   assert.equal(registryHealth.breathing.kind, 'module');
   assert.equal(registryHealth.scientific.kind, 'module');
@@ -847,7 +849,9 @@ async function run() {
   assert.equal(registryHealth.medicationCatalogueRoute.routeConfigured, true);
   assert.equal(registryHealth.medicationCatalogueRoute.moduleName, 'medikamentenlexikon-pro');
   assert.equal(registryHealth.medicationCatalogueRoute.moduleAvailable, true);
-  assert.equal(registryHealth.statusCounts.review, 6);
+  assert.equal(registryHealth.statusCounts.review, 4);
+  assert.equal(registryHealth.unitConverter.kind, 'module');
+  assert.equal(registryHealth.habitHeatmap.kind, 'module');
   assert.equal(registryHealth.datecalc.kind, 'module');
   assert.equal(registryHealth.deviceInfo.kind, 'module');
   console.log('HALDO APP REGISTRY HEALTH ' + JSON.stringify(registryHealth));
@@ -891,6 +895,12 @@ async function run() {
   await appRegistryRoot.locator('[data-category="U"]').click();
   const categoryUGrid = appRegistryRoot.locator('[data-category-app-grid="U"]');
   assert.equal(await categoryUGrid.locator('[data-launch="utilities"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  await appRegistryRoot.locator('[data-category="Q"]').click();
+  const categoryQGrid = appRegistryRoot.locator('[data-category-app-grid="Q"]');
+  assert.equal(await categoryQGrid.locator('[data-launch="unitconv"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  await appRegistryRoot.locator('[data-category="Y"]').click();
+  const categoryYGrid = appRegistryRoot.locator('[data-category-app-grid="Y"]');
+  assert.equal(await categoryYGrid.locator('[data-launch="heatmap"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   await appRegistryRoot.locator('[data-category=""]').click();
 
   await closeWindow(appRegistryRoot);
@@ -1099,6 +1109,84 @@ async function run() {
   assert.match(await medicationCatalogue.locator('[data-k174-detail]').innerText(), /Magen-Darm|NSAR/);
   await closeWindow(medicationCatalogue);
   pass('HalDo Medikamentenlexikon Pro: Wirkstoffsuche, Sicherheitshinweise und BfArM-Quellen funktionieren');
+
+  // v174 Utility apps: local unit conversion and a heatmap backed by the existing Habits data.
+  const v174UtilitySource = await fs.readFile(path.join(ROOT, 'js/haldo-v174-utility-apps.js'), 'utf8');
+  assert.equal(/\bfetch\s*\(|XMLHttpRequest|WebSocket/.test(v174UtilitySource), false, 'v174 Utility-Apps dürfen keine externen Datenabrufe verwenden.');
+  const v174UtilityRuntime = await page.evaluate(() => ({
+    build: window.HalDo.Master.version,
+    utilityVersion: window.HalDo.AppsV174Utility.version,
+    appIds: window.HalDo.AppsV174Utility.appIds,
+    status: window.HalDo.AppsV174Utility.status(),
+    unitConverter: window.HalDo.AppBrowser.getStatus('unitconv'),
+    habitHeatmap: window.HalDo.AppBrowser.getStatus('heatmap'),
+    unitOpen: typeof window.HalDo.unitconv?.open,
+    heatmapOpen: typeof window.HalDo.heatmap?.open,
+    scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v174-utility-apps.js'))
+  }));
+  assert.equal(v174UtilityRuntime.build, '174.0.0');
+  assert.equal(v174UtilityRuntime.utilityVersion, '174.0.0');
+  assert.deepEqual(v174UtilityRuntime.appIds, ['unitconv', 'heatmap']);
+  assert.ok(v174UtilityRuntime.status.every((item) => item.ready));
+  assert.equal(v174UtilityRuntime.unitConverter.kind, 'module');
+  assert.equal(v174UtilityRuntime.habitHeatmap.kind, 'module');
+  assert.equal(v174UtilityRuntime.unitOpen, 'function');
+  assert.equal(v174UtilityRuntime.heatmapOpen, 'function');
+  assert.equal(v174UtilityRuntime.scriptLoaded, true);
+  pass('HalDo v174 Utility: Einheiten-Umrechner und Habit Heatmap sind ohne externe Dienste registriert');
+
+  await page.evaluate(() => window.HalDo.Launch({ id: 'unitconv', n: 'HalDo Einheiten-Umrechner Pro' }));
+  const unitConverter = page.locator('#winLayer [data-hv174-app="unitconv"]').last();
+  await unitConverter.waitFor({ state: 'visible', timeout: 10000 });
+  await unitConverter.locator('[data-hv174-value]').fill('2500');
+  await unitConverter.locator('[data-hv174-from]').selectOption('m');
+  await unitConverter.locator('[data-hv174-to]').selectOption('km');
+  assert.equal((await unitConverter.locator('[data-hv174-result]').textContent()).trim(), '2,5');
+  await unitConverter.locator('[data-hv174-category]').selectOption('temperature');
+  await unitConverter.locator('[data-hv174-from]').selectOption('f');
+  await unitConverter.locator('[data-hv174-to]').selectOption('c');
+  await unitConverter.locator('[data-hv174-value]').fill('32');
+  assert.equal((await unitConverter.locator('[data-hv174-result]').textContent()).trim(), '0');
+  await unitConverter.locator('[data-hv174-from]').selectOption('c');
+  await unitConverter.locator('[data-hv174-to]').selectOption('k');
+  await unitConverter.locator('[data-hv174-value]').fill('-300');
+  assert.match(await unitConverter.locator('[data-hv174-status]').textContent(), /absoluten Nullpunkt/);
+  await unitConverter.locator('[data-hv174-category]').selectOption('digital');
+  await unitConverter.locator('[data-hv174-from]').selectOption('kib');
+  await unitConverter.locator('[data-hv174-to]').selectOption('kb');
+  await unitConverter.locator('[data-hv174-value]').fill('1');
+  assert.equal((await unitConverter.locator('[data-hv174-result]').textContent()).trim(), '1,024');
+  await unitConverter.locator('[data-hv174-save]').click();
+  assert.equal(await page.evaluate(() => window.HalDo.Store.get('haldo_v174_unit_converter_history', []).length), 1);
+  await unitConverter.locator('[data-hv174-clear-history]').click();
+  assert.equal(await page.evaluate(() => window.HalDo.Store.get('haldo_v174_unit_converter_history', []).length), 0);
+  await closeWindow(unitConverter);
+  pass('HalDo Einheiten-Umrechner Pro: Länge, Temperatur, absoluter Nullpunkt, Datenmenge und lokaler Verlauf geprüft');
+
+  const heatmapHabitId = await page.evaluate(() => window.HalDo.Habits.add('Lesen E2E').id);
+  await page.evaluate((id) => {
+    window.HalDo.Habits.checkIn(id, '2026-11-24');
+    window.HalDo.Habits.checkIn(id, '2026-11-25');
+  }, heatmapHabitId);
+  await page.evaluate(() => window.HalDo.Launch({ id: 'heatmap', n: 'HalDo Habit Heatmap Pro' }));
+  const habitHeatmap = page.locator('#winLayer [data-hv174-app="heatmap"]').last();
+  await habitHeatmap.waitFor({ state: 'visible', timeout: 10000 });
+  await habitHeatmap.locator('[data-hv174-month]').fill('2026-11');
+  await habitHeatmap.locator('[data-hv174-habit]').selectOption(heatmapHabitId);
+  assert.equal(await habitHeatmap.locator('[data-hv174-day].level-4').count(), 2);
+  assert.equal(await habitHeatmap.locator('[data-hv174-date="2026-11-28"]').isDisabled(), true);
+  await habitHeatmap.locator('[data-hv174-date="2026-11-26"]').click();
+  assert.equal(await habitHeatmap.locator('[data-hv174-day].level-4').count(), 3);
+  assert.equal(await page.evaluate((id) => window.HalDo.Habits.all().find((habit) => habit.id === id).checks['2026-11-26'], heatmapHabitId), true);
+  await habitHeatmap.locator('[data-hv174-date="2026-11-26"]').click();
+  assert.equal(await habitHeatmap.locator('[data-hv174-day].level-4').count(), 2);
+  await habitHeatmap.locator('[data-hv174-month]').fill('2026-10');
+  assert.equal(await habitHeatmap.locator('[data-hv174-day].level-4').count(), 0);
+  await habitHeatmap.locator('[data-hv174-month]').fill('2026-11');
+  await habitHeatmap.locator('[data-hv174-habit]').selectOption('all');
+  assert.equal(await habitHeatmap.locator('[data-hv174-day].level-4').count(), 2);
+  await closeWindow(habitHeatmap);
+  pass('HalDo Habit Heatmap Pro: bestehende Habit-Daten, Monatsnavigation, Check-in-Änderung und Zukunftssperre geprüft');
 
   const anatomyCatalogCheck = await page.evaluate(async () => {
     const [catalog, loader] = await Promise.all([
