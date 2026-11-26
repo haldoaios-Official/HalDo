@@ -11190,7 +11190,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
     var ITERATIONS=210000;
     var encoder=new TextEncoder(),decoder=new TextDecoder();
     var vault=null,sessionKey=null,data=null,unlocked=false,currentRoot=null,tab='overview',editingVitalId=null;
-    var vitalSearch='',vitalFrom='',vitalTo='',vitalSeriesKey='';
+    var vitalSearch='',vitalFrom='',vitalTo='',vitalSeriesKey='',vitalSummaryMode='month';
     function emptyData(){return {appointments:[],medications:[],allergies:[],labs:[],notes:[],vitals:[]};}
     function toB64(bytes){
       var binary='',chunk=0x8000;
@@ -11223,7 +11223,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
       return true;
     }
     function lock(){
-      unlocked=false;sessionKey=null;data=null;vault=null;editingVitalId=null;vitalSearch='';vitalFrom='';vitalTo='';vitalSeriesKey='';
+      unlocked=false;sessionKey=null;data=null;vault=null;editingVitalId=null;vitalSearch='';vitalFrom='';vitalTo='';vitalSeriesKey='';vitalSummaryMode='month';
       if(currentRoot&&currentRoot.isConnected)renderLock(currentRoot);
     }
     function dateText(value){
@@ -11333,6 +11333,35 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
       });
       return series;
     }
+    function formatVitalNumber(value){
+      return Number(value.toFixed(2)).toLocaleString('de-DE');
+    }
+    function vitalSummaryHtml(group){
+      if(!group||!group.points.length)return '';
+      var buckets=Object.create(null),keys=[];
+      group.points.forEach(function(point){
+        var key=vitalSummaryMode==='year'?point.date.slice(0,4):point.date.slice(0,7);
+        if(!buckets[key]){
+          buckets[key]={count:0,total:0,min:point.value,max:point.value};
+          keys.push(key);
+        }
+        var bucket=buckets[key];
+        bucket.count++;
+        bucket.total+=point.value;
+        bucket.min=Math.min(bucket.min,point.value);
+        bucket.max=Math.max(bucket.max,point.value);
+      });
+      keys.sort().reverse();
+      var periodLabel=vitalSummaryMode==='year'?'Jahr':'Monat';
+      var html='<section class="hdp154-panel" aria-label="Monats- und Jahresübersicht"><div class="hdp154-ai-title">📆 Monats- und Jahresübersicht</div><label class="hdp154-label" for="hdp154-vital-summary-mode">Zeitraum</label><select id="hdp154-vital-summary-mode" class="hdp154-field" data-ab-vital-summary-mode><option value="month"'+(vitalSummaryMode==='month'?' selected':'')+'>Monat</option><option value="year"'+(vitalSummaryMode==='year'?' selected':'')+'>Jahr</option></select><p class="hdp154-muted">'+esc(group.title)+' · '+esc(group.unit)+'</p><div style="width:100%;overflow-x:auto"><table style="width:100%;border-collapse:collapse;text-align:left"><thead><tr><th style="padding:8px">'+periodLabel+'</th><th style="padding:8px">Anzahl</th><th style="padding:8px">Minimum</th><th style="padding:8px">Durchschnitt</th><th style="padding:8px">Maximum</th></tr></thead><tbody>';
+      html+=keys.map(function(key){
+        var bucket=buckets[key];
+        var label=vitalSummaryMode==='year'?key:key.slice(5,7)+'/'+key.slice(0,4);
+        return '<tr data-ab-vital-summary-row><td style="padding:8px;border-top:1px solid var(--border,rgba(128,128,128,.25))">'+esc(label)+'</td><td style="padding:8px;border-top:1px solid var(--border,rgba(128,128,128,.25))">'+bucket.count+'</td><td style="padding:8px;border-top:1px solid var(--border,rgba(128,128,128,.25))">'+esc(formatVitalNumber(bucket.min))+' '+esc(group.unit)+'</td><td style="padding:8px;border-top:1px solid var(--border,rgba(128,128,128,.25))">'+esc(formatVitalNumber(bucket.total/bucket.count))+' '+esc(group.unit)+'</td><td style="padding:8px;border-top:1px solid var(--border,rgba(128,128,128,.25))">'+esc(formatVitalNumber(bucket.max))+' '+esc(group.unit)+'</td></tr>';
+      }).join('');
+      html+='</tbody></table></div><p class="hdp154-muted">Rein statistische Zusammenfassung deiner Einträge. Keine Normwert-, Risiko- oder Therapieauswertung.</p></section>';
+      return html;
+    }
     function vitalChartHtml(items){
       var groups=vitalSeries(items);
       if(!groups.length){
@@ -11349,7 +11378,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
         html+='<p><strong>'+esc(selected.title)+' · '+esc(selected.unit)+'</strong></p>';
       }
       if(selected.points.length<2){
-        html+='<div class="hdp154-empty" data-ab-vital-chart-empty>Für '+esc(selected.title)+' werden mindestens zwei numerische Messungen mit Datum benötigt.</div></section>';
+        html+='<div class="hdp154-empty" data-ab-vital-chart-empty>Für '+esc(selected.title)+' werden mindestens zwei numerische Messungen mit Datum benötigt.</div></section>'+vitalSummaryHtml(selected);
         return html;
       }
       var width=640,height=220,left=54,right=18,top=18,bottom=42;
@@ -11374,7 +11403,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
         var label=dateText(point.point.date)+' · '+String(point.point.value).replace('.',',')+' '+selected.unit;
         return '<circle cx="'+point.x.toFixed(2)+'" cy="'+point.y.toFixed(2)+'" r="4.5" fill="currentColor"><title>'+esc(label)+'</title></circle>';
       }).join('');
-      html+='<div style="width:100%;overflow-x:auto"><svg data-ab-vital-chart viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Chronologischer Verlauf für '+esc(selected.title)+' in '+esc(selected.unit)+'" style="display:block;width:100%;min-width:320px;height:auto;color:var(--accent,#4f8cff)"><line x1="'+left+'" y1="'+(top+plotHeight)+'" x2="'+(width-right)+'" y2="'+(top+plotHeight)+'" stroke="currentColor" opacity=".35"/><line x1="'+left+'" y1="'+top+'" x2="'+left+'" y2="'+(top+plotHeight)+'" stroke="currentColor" opacity=".35"/><text x="'+(left-8)+'" y="'+(top+5)+'" text-anchor="end" font-size="11" fill="currentColor">'+esc(String(Number(high.toFixed(2))).replace('.',','))+'</text><text x="'+(left-8)+'" y="'+(top+plotHeight)+'" text-anchor="end" font-size="11" fill="currentColor">'+esc(String(Number(low.toFixed(2))).replace('.',','))+'</text><path d="'+path+'" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'+circles+labels+'</svg></div><p class="hdp154-muted">'+selected.points.length+' numerische Messungen · chronologische Darstellung · keine medizinische Bewertung</p></section>';
+      html+='<div style="width:100%;overflow-x:auto"><svg data-ab-vital-chart viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Chronologischer Verlauf für '+esc(selected.title)+' in '+esc(selected.unit)+'" style="display:block;width:100%;min-width:320px;height:auto;color:var(--accent,#4f8cff)"><line x1="'+left+'" y1="'+(top+plotHeight)+'" x2="'+(width-right)+'" y2="'+(top+plotHeight)+'" stroke="currentColor" opacity=".35"/><line x1="'+left+'" y1="'+top+'" x2="'+left+'" y2="'+(top+plotHeight)+'" stroke="currentColor" opacity=".35"/><text x="'+(left-8)+'" y="'+(top+5)+'" text-anchor="end" font-size="11" fill="currentColor">'+esc(String(Number(high.toFixed(2))).replace('.',','))+'</text><text x="'+(left-8)+'" y="'+(top+plotHeight)+'" text-anchor="end" font-size="11" fill="currentColor">'+esc(String(Number(low.toFixed(2))).replace('.',','))+'</text><path d="'+path+'" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'+circles+labels+'</svg></div><p class="hdp154-muted">'+selected.points.length+' numerische Messungen · chronologische Darstellung · keine medizinische Bewertung</p></section>'+vitalSummaryHtml(selected);
       return html;
     }
     function recordHtml(item,type){
@@ -11439,7 +11468,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
       if(!supportsCrypto()){renderLock(root,'Dieser Browser stellt Web Crypto nicht in einem sicheren Kontext bereit. Öffne HalDo über HTTPS in einem aktuellen Browser.');return;}
       renderLock(root,'');
       var observer=new MutationObserver(function(){
-        if(!root.isConnected){observer.disconnect();unlocked=false;sessionKey=null;data=null;vault=null;currentRoot=null;vitalSearch='';vitalFrom='';vitalTo='';vitalSeriesKey='';}
+        if(!root.isConnected){observer.disconnect();unlocked=false;sessionKey=null;data=null;vault=null;currentRoot=null;vitalSearch='';vitalFrom='';vitalTo='';vitalSeriesKey='';vitalSummaryMode='month';}
       });
       observer.observe(document.body,{childList:true,subtree:true});
       root.addEventListener('submit',function(event){
@@ -11501,12 +11530,13 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
         if(field.matches('[data-ab-vital-from]'))vitalFrom=field.value;
         else if(field.matches('[data-ab-vital-to]'))vitalTo=field.value;
         else if(field.matches('[data-ab-vital-series]'))vitalSeriesKey=field.value;
+        else if(field.matches('[data-ab-vital-summary-mode]'))vitalSummaryMode=field.value==='year'?'year':'month';
         else return;
         renderUnlocked(root);
       });
       root.addEventListener('click',function(event){
         var b=event.target.closest('button');if(!b||!root.contains(b))return;
-        if(b.dataset.abTab){tab=b.dataset.abTab;if(tab!=='vitals'){editingVitalId=null;vitalSearch='';vitalFrom='';vitalTo='';vitalSeriesKey='';}renderUnlocked(root);return;}
+        if(b.dataset.abTab){tab=b.dataset.abTab;if(tab!=='vitals'){editingVitalId=null;vitalSearch='';vitalFrom='';vitalTo='';vitalSeriesKey='';vitalSummaryMode='month';}renderUnlocked(root);return;}
         if(b.dataset.abEditVital){
           var selectedVital=data&&data.vitals.find(function(x){return x.id===b.dataset.abEditVital;});
           if(!selectedVital)return;
