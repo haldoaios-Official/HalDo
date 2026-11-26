@@ -387,6 +387,13 @@ async function run() {
   await hub.locator('[data-ab-vital-chart]').waitFor({ state: 'visible', timeout: 10000 });
   assert.equal(await hub.locator('[data-ab-vital-chart] circle').count(), 2);
   pass('Arztbuch: Zwei numerische Messungen derselben Messgröße werden als Verlauf dargestellt');
+  assert.equal(await hub.locator('[data-ab-vital-summary-row]').count(), 1);
+  assert.equal(await hub.locator('[data-ab-vital-summary-row] td').first().textContent(), '11/2026');
+  await hub.locator('[data-ab-vital-summary-mode]').selectOption('year');
+  assert.equal(await hub.locator('[data-ab-vital-summary-row] td').first().textContent(), '2026');
+  await hub.locator('[data-ab-vital-summary-mode]').selectOption('month');
+  pass('Arztbuch: Monats- und Jahresübersicht wechseln den Zeitraum korrekt');
+
 
 
 
