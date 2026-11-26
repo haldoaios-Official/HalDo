@@ -693,5 +693,14 @@
     }
   };
 
+  /* Das aktive v157+ Routing ist explizit; neue Module müssen dort registriert werden. */
+  var previousLaunch = H.Launch;
+  H.Launch = function (app) {
+    if (app && app.id === 'breathing') return H.breathing.open();
+    if (app && app.id === 'scientific') return H.scientific.open();
+    if (typeof previousLaunch === 'function') return previousLaunch.apply(this, arguments);
+    return undefined;
+  };
+
   console.info('[HalDo v172] Atemtrainer Pro und Wissenschaftsrechner Pro registriert.');
 })();
