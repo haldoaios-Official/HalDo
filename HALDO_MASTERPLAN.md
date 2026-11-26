@@ -373,3 +373,19 @@ Die bestehende App **Arztbuch** wird als zentraler Einstieg für die medizinisch
 **Medizinische Grenzen:** Das Arztbuch ist eine Informations- und Dokumentationsoberfläche. Die neuen Tresore dokumentieren eingetragene Daten; sie stellen keine Diagnose, interpretieren keine Laborbefunde und ändern keine ärztlichen Dosierungsanweisungen.
 
 **Abnahme:** Der reale Weg `Arztbuch → Laborwerte Pro` und `Arztbuch → Medikamentenplan Pro` wurde im Chromium-End-to-End-Workflow erfolgreich geprüft. **21 von 21 Prüfungen bestanden** auf Commit `15198dd8efe00a25f70a6e07c424b6dde356937b`; Workflow: `https://github.com/haldoaios-Official/HalDo/actions/runs/45734441796`. Der Test hat das bestehende v154-Arztbuch geöffnet und seinen separaten Tresor entsperrt, danach beide v167-Module über die neuen Schnellzugriffe gestartet und deren Verschlüsselungs-/CRUD-/Backup-Abläufe geprüft. Die klinische und datenschutzrechtliche Prüfung bleibt ein eigener Freigabeschritt; GitHub-Pages-Veröffentlichung ist nicht Bestandteil dieses Browserlaufs.
+
+## HALDO Arztbuch – Vitalwerte-Dokumentation (26.11.2026)
+
+Das bestehende Arztbuch Pro (v154) enthält nun einen zusätzlichen Bereich **Vitalwerte** innerhalb derselben verschlüsselten persönlichen Akte.
+
+- Eigene Messgröße, Messwert, Einheit, Messdatum, Quelle der Angabe und optionale Notiz erfassen.
+- Vitalwert-Einträge bearbeiten und löschen; Übersicht zeigt Anzahl und den zuletzt gespeicherten Eintrag.
+- Speicherung läuft über den bereits vorhandenen v154-Arztbuch-Tresor (AES-GCM-256, PBKDF2-SHA-256 mit 210.000 Iterationen). Es wurde kein paralleler Vitalwerte-Speicher angelegt.
+- Rückwärtskompatibilität: Beim Entsperren älterer v154-Datensätze ohne `vitals`-Array wird das Feld im Arbeitsspeicher ergänzt. Die bestehende Akte muss nicht vorab manuell konvertiert werden; die neue Struktur wird beim nächsten Speichervorgang mitverschlüsselt.
+- Die vorhandenen Bereiche Arzttermine, Medikamente, Allergien, Laborwerte und Notizen sowie die Schnellzugriffe auf Laborwerte Pro und Medikamentenplan Pro bleiben erhalten.
+
+**Medizinische Grenzen:** Die Vitalwerte sind manuell erfasste bzw. vom Nutzer übertragene Dokumentation. Es gibt keine automatische Geräteverbindung, Grenzwertbewertung, Diagnose, Therapieempfehlung, kontinuierliche Überwachung oder Notfallalarmierung. Einheit und Quelle werden mitgespeichert; medizinische Interpretation erfolgt nicht durch dieses Modul.
+
+**Abnahme:** GitHub Actions Chromium-End-to-End-Lauf **25/25 erfolgreich** auf Code-/Test-Commit `2b426e2407f9ebfb47967bd4c5ca2d31f5a9261f`. Workflow: https://github.com/haldoaios-Official/HalDo/actions/runs/45739739542. Geprüft wurden: echter älterer verschlüsselter v154-Tresor ohne Vitalwerte-Feld entsperren; Kompatibilität des neuen Bereichs; Vitalwert anlegen, bearbeiten, löschen und verschlüsselt speichern; danach weiterhin die vollständigen Kernabläufe, Passwortfehler, Backup-Wiederherstellung und Fensterschließen von Laborwerte Pro und Medikamentenplan Pro. Alle 25 Prüfungen erfolgreich.
+
+**Release-Grenzen:** Der Arbeitsstand liegt weiterhin im Draft-PR #1 und ist nicht gemergt. `main` wurde nicht verändert. GitHub-Pages-Veröffentlichung sowie klinische und datenschutzrechtliche Freigabe sind nicht Bestandteil dieses Tests.
