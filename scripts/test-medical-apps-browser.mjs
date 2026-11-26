@@ -320,7 +320,7 @@ async function run() {
     worldClock: window.HalDo.AppBrowser.getStatus('worldclock'),
     recipeScaler: window.HalDo.AppBrowser.getStatus('recipe-scaler')
   }));
-  assert.equal(v168Build.version, '168.0.0');
+  assert.equal(v168Build.version, '169.0.0');
   assert.equal(v168Build.worldClock.kind, 'module');
   assert.equal(v168Build.recipeScaler.kind, 'module');
   const v168Runtime = await page.evaluate(() => ({
@@ -333,6 +333,7 @@ async function run() {
   assert.equal(v168Runtime.worldClockOpen, 'function');
   assert.equal(v168Runtime.recipeScalerOpen, 'function');
   assert.equal(v168Runtime.scriptLoaded, true);
+  assert.equal(v168Runtime.build, '169.0.0');
   await page.evaluate(() => window.HalDo.Launch({ id: 'worldclock', n: 'HalDo Weltuhr Pro' }));
   await dismissWelcomeIfPresent();
   const worldClockRoot = page.locator('#winLayer .hdv168-root').last();
@@ -396,6 +397,89 @@ async function run() {
   await closeWindow(recipeRoot);
   pass('HalDo Rezept-Skalierung Pro: Rezepte anlegen, Zutaten pflegen, Portionen skalieren, Basisdaten bewahren und löschen');
 
+  // v169: workout planner CRUD, search, and durable local persistence.
+  const v169Runtime = await page.evaluate(() => ({
+    build: window.HalDo.AppsV169 && window.HalDo.AppsV169.version,
+    workout: window.HalDo.AppBrowser.getStatus('workout'),
+    utilities: window.HalDo.AppBrowser.getStatus('utilities'),
+    workoutOpen: typeof window.HalDo.workout?.open,
+    utilitiesOpen: typeof window.HalDo.utilities?.open,
+    scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v169-a-z-apps.js'))
+  }));
+  console.log('HALDO V169 RUNTIME ' + JSON.stringify(v169Runtime));
+  assert.equal(v169Runtime.build, '169.0.0');
+  assert.equal(v169Runtime.workout.kind, 'module');
+  assert.equal(v169Runtime.utilities.kind, 'module');
+  assert.equal(v169Runtime.workoutOpen, 'function');
+  assert.equal(v169Runtime.utilitiesOpen, 'function');
+  assert.equal(v169Runtime.scriptLoaded, true);
+
+  await page.evaluate(() => window.HalDo.Launch({ id: 'workout', n: 'HalDo Workout Planner Pro' }));
+  await dismissWelcomeIfPresent();
+  const workoutRoot = page.locator('#winLayer .hdv169-root[data-hv169-app="workout"]').last();
+  await workoutRoot.waitFor({ state: 'visible', timeout: 10000 });
+  await workoutRoot.locator('[data-wk-new]').click();
+  await workoutRoot.locator('[data-wk-name]').fill('E2E Ganzkörpertraining');
+  await workoutRoot.locator('[data-wk-exercise-name]').first().fill('Kniebeugen');
+  await workoutRoot.locator('[data-wk-sets]').first().fill('3');
+  await workoutRoot.locator('[data-wk-reps]').first().fill('12');
+  await workoutRoot.locator('[data-wk-weight]').first().fill('20');
+  await workoutRoot.locator('[data-wk-add-exercise]').click();
+  let workoutExercises = workoutRoot.locator('[data-wk-exercise]');
+  assert.equal(await workoutExercises.count(), 2);
+  await workoutExercises.nth(1).locator('[data-wk-exercise-name]').fill('Rudern');
+  await workoutExercises.nth(1).locator('[data-wk-sets]').fill('4');
+  await workoutExercises.nth(1).locator('[data-wk-reps]').fill('10');
+  await workoutRoot.locator('[data-wk-save]').click();
+  await workoutRoot.locator('[data-wk-list] [data-wk-open]').filter({ hasText: 'E2E Ganzkörpertraining' }).waitFor({ state: 'visible' });
+  let savedWorkout = await page.evaluate(() => window.HalDo.Store.get('haldo_v169_workout_sessions', [])[0]);
+  assert.equal(savedWorkout.name, 'E2E Ganzkörpertraining');
+  assert.equal(savedWorkout.exercises.length, 2);
+  assert.equal(savedWorkout.exercises[0].reps, 12);
+  await workoutRoot.locator('[data-wk-edit]').click();
+  await workoutRoot.locator('[data-wk-reps]').first().fill('15');
+  await workoutRoot.locator('[data-wk-save]').click();
+  savedWorkout = await page.evaluate(() => window.HalDo.Store.get('haldo_v169_workout_sessions', [])[0]);
+  assert.equal(savedWorkout.exercises[0].reps, 15);
+  await workoutRoot.locator('[data-wk-search]').fill('Kniebeugen');
+  assert.equal(await workoutRoot.locator('[data-wk-list] [data-wk-open]').count(), 1);
+  await workoutRoot.locator('[data-wk-search]').fill('kein treffer');
+  assert.equal(await workoutRoot.locator('[data-wk-list] [data-wk-open]').count(), 0);
+  await workoutRoot.locator('[data-wk-search]').fill('');
+  await workoutRoot.locator('[data-wk-delete]').click();
+  assert.equal(await page.evaluate(() => window.HalDo.Store.get('haldo_v169_workout_sessions', []).length), 0);
+  await closeWindow(workoutRoot);
+  pass('HalDo Workout Planner Pro: Trainingspläne anlegen, Übungen pflegen, bearbeiten, suchen und löschen');
+
+  await page.evaluate(() => window.HalDo.Launch({ id: 'utilities', n: 'HalDo Werkzeuge Pro' }));
+  await dismissWelcomeIfPresent();
+  const utilitiesRoot = page.locator('#winLayer .hdv169-root[data-hv169-app="utilities"]').last();
+  await utilitiesRoot.waitFor({ state: 'visible', timeout: 10000 });
+  await utilitiesRoot.locator('[data-u-category]').selectOption('length');
+  await utilitiesRoot.locator('[data-u-value]').fill('2500');
+  await utilitiesRoot.locator('[data-u-convert]').click();
+  assert.equal(await utilitiesRoot.locator('[data-u-result]').innerText(), '2,5 km');
+  let utilityHistory = await page.evaluate(() => window.HalDo.Store.get('haldo_v169_utility_history', []));
+  assert.equal(utilityHistory.length, 1);
+  await utilitiesRoot.locator('[data-u-tab="percent"]').click();
+  await utilitiesRoot.locator('[data-u-percent-base]').fill('200');
+  await utilitiesRoot.locator('[data-u-percent-rate]').fill('15');
+  await utilitiesRoot.locator('[data-u-percent-calc]').click();
+  assert.equal(await utilitiesRoot.locator('[data-u-result]').innerText(), '30');
+  await utilitiesRoot.locator('[data-u-tab="dates"]').click();
+  await utilitiesRoot.locator('[data-u-date-start]').fill('2026-11-01');
+  await utilitiesRoot.locator('[data-u-date-end]').fill('2026-11-26');
+  await utilitiesRoot.locator('[data-u-date-calc]').click();
+  assert.equal(await utilitiesRoot.locator('[data-u-result]').innerText(), '25 Tage');
+  utilityHistory = await page.evaluate(() => window.HalDo.Store.get('haldo_v169_utility_history', []));
+  assert.equal(utilityHistory.length, 3);
+  await utilitiesRoot.locator('[data-u-clear-history]').click();
+  assert.equal(await page.evaluate(() => window.HalDo.Store.get('haldo_v169_utility_history', []).length), 0);
+  await closeWindow(utilitiesRoot);
+  pass('HalDo Werkzeuge Pro: Einheiten, Prozentwerte und Datumsabstände berechnen und Verlauf verwalten');
+
+
+
   const registryHealth = await page.evaluate(() => {
     const H = window.HalDo;
     const apps = H.Registry.featured;
@@ -422,7 +506,9 @@ async function run() {
       tasks: H.AppBrowser.getStatus('tasks'),
       languageVoice: H.AppBrowser.getStatus('language-voice'),
       aiVoiceCore: H.AppBrowser.getStatus('ai-voice-core'),
-      systemDiagnostics: H.AppBrowser.getStatus('system-diagnostics')
+      systemDiagnostics: H.AppBrowser.getStatus('system-diagnostics'),
+      workout: H.AppBrowser.getStatus('workout'),
+      utilities: H.AppBrowser.getStatus('utilities')
     };
   });
   assert.equal(registryHealth.categoryCount, 26);
@@ -445,6 +531,10 @@ async function run() {
   assert.equal(registryHealth.languageVoice.kind, 'module');
   assert.equal(registryHealth.aiVoiceCore.kind, 'module');
   assert.equal(registryHealth.systemDiagnostics.kind, 'module');
+  assert.equal(registryHealth.workout.kind, 'module');
+  assert.equal(registryHealth.utilities.kind, 'module');
+  assert.equal(registryHealth.statusCounts.modules, 72);
+  assert.equal(registryHealth.statusCounts.review, 10);
   console.log('HALDO APP REGISTRY HEALTH ' + JSON.stringify(registryHealth));
   pass('HalDo Core: 26 Kategorien, 375 Sollplätze, eindeutige App-IDs und Modulstatus geprüft');
 
