@@ -1465,8 +1465,25 @@ async function run() {
   await scienceLab.locator('[data-hv176-calculate]').click();
   assert.match(await scienceLab.locator('[data-hv176-status]').innerText(), /Periodendauer muss größer als 0/);
   assert.equal(await scienceLab.locator('[data-hv176-save]').isDisabled(), true);
+
+  await scienceLab.locator('[data-hv176-back]').click();
+  await scienceLab.locator('[data-hv176-search]').fill('Kreisfläche');
+  await scienceLab.locator('[data-hv176-formula="circle-area"]').click();
+  await scienceLab.locator('[data-hv176-field="r"]').fill('-1');
+  await scienceLab.locator('[data-hv176-calculate]').click();
+  assert.match(await scienceLab.locator('[data-hv176-status]').innerText(), /Radius darf nicht negativ sein/);
+  assert.equal(await scienceLab.locator('[data-hv176-save]').isDisabled(), true);
+
+  await scienceLab.locator('[data-hv176-back]').click();
+  await scienceLab.locator('[data-hv176-search]').fill('Kraft');
+  await scienceLab.locator('[data-hv176-formula="force"]').click();
+  await scienceLab.locator('[data-hv176-field="m"]').fill('1e101');
+  await scienceLab.locator('[data-hv176-field="a"]').fill('1');
+  await scienceLab.locator('[data-hv176-calculate]').click();
+  assert.match(await scienceLab.locator('[data-hv176-status]').innerText(), /außerhalb des unterstützten Zahlenbereichs/);
+  assert.equal(await scienceLab.locator('[data-hv176-save]').isDisabled(), true);
   await closeWindow(scienceLab);
-  pass('HalDo Wissenschaftslabor Pro: 24 Formeln, Suche, Berechnung, Verlauf und Nenner-Validierung geprüft');
+  pass('HalDo Wissenschaftslabor Pro: 24 Formeln, Suche, Berechnung, Verlauf, Nenner-, Radius- und Ergebnisbereichsvalidierung geprüft');
 
   // Mock Web Bluetooth to exercise explicit chooser/GATT operations deterministically.
   await page.evaluate(() => {
