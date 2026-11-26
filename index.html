@@ -9776,28 +9776,149 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
       const draw=()=>{
         root.querySelectorAll('[data-arzt-tab]').forEach(b=>b.classList.toggle('active',b.dataset.arztTab===tab));
         if(tab==='overview')panel.innerHTML=`<div class="hdx-grid">${[['🫀','Anatomie 3D','Interaktiver Viewer mit GLB-Modellen'],['🧬','Organsysteme','Lernübersicht zu Körperstrukturen'],['🧪','Laborwerte','Werte nur mit Referenzbereich und Quelle einordnen'],['🚨','Notfall','Notrufinformationen und Erste-Hilfe-Hinweise']].map(x=>`<div class="hdx-card"><h3>${x[0]} ${x[1]}</h3><p class="hdx-muted">${x[2]}</p></div>`).join('')}</div><div class="hdx-banner"><strong>3D-Modellbestand</strong><br><span class="hdx-muted">Die in deinem Projekt vorhandenen GLB-Dateien werden erst bei Auswahl einzeln geladen. Wenn ein Modellpfad nicht erreichbar ist, zeigt der Viewer den tatsächlichen Fehler statt endlos „Lade …“ an.</span></div><div class="hdx-row"><button class="hdx-btn primary" data-arzt-open3d>3D-Anatomie öffnen</button>${H.ArztbuchLegacyOpen?'<button class="hdx-btn" data-arzt-legacy>Weitere vorhandene Arztbuch-Wissensmodule</button>':''}</div>`;
-        if(tab==='anatomy')panel.innerHTML=`<div class="hdx-row"><select class="hdx-field" data-model-select>${modelPaths.map(p=>`<option value="${esc(p)}">${esc(p.split('/').pop())}</option>`).join('')}</select><button class="hdx-btn primary" data-model-load>Modell laden</button><label class="hdx-btn">GLB lokal wählen<input type="file" accept=".glb,.gltf" data-model-file hidden></label></div><div class="hdx-anatomy-view" data-anatomy-view><div class="hdx-anatomy-status" data-anatomy-status>3D-Viewer wird vorbereitet …</div></div><p class="hdx-muted">Maus/Touch: drehen · Mausrad/Pinch: zoomen · rechte Taste/Zwei-Finger: verschieben. Modelle müssen im GitHub-Projekt unter dem angegebenen Pfad vorhanden sein oder lokal ausgewählt werden.</p>`;
+        if(tab==='anatomy')panel.innerHTML=`<div class="hdx-row"><select class="hdx-field" data-anatomy-profile aria-label="Anatomie-Profil"><option value="adult_male">Erwachsener – männlich</option><option value="adult_female">Erwachsener – weiblich</option><option value="infant">Säugling – schematisch</option><option value="neonate">Neugeborenes – schematisch</option></select><button class="hdx-btn primary" type="button" data-model-schematic>🦴 Ganzes Skelett laden (schematisch)</button></div><div class="hdx-row"><select class="hdx-field" data-model-select>${modelPaths.map(p=>`<option value="${esc(p)}">${esc(p.split('/').pop())}</option>`).join('')}</select><button class="hdx-btn" data-model-load>Einzelknochen laden</button><label class="hdx-btn">GLB lokal wählen<input type="file" accept=".glb,.gltf" data-model-file hidden></label></div><div class="hdx-anatomy-view" data-anatomy-view><div class="hdx-anatomy-status" data-anatomy-status>3D-Viewer wird vorbereitet …</div></div><div class="hdx-card" data-bone-info aria-live="polite">Wähle das schematische Skelett und klicke anschließend auf einen Knochen, um seine Bezeichnung und Körperregion zu sehen.</div><p class="hdx-muted">Maus/Touch: drehen · Mausrad/Pinch: zoomen · rechte Taste/Zwei-Finger: verschieben. Die schematische Lernansicht nutzt willkürliche Darstellungseinheiten und ist nicht für Diagnose, Behandlung oder klinische Vermessung bestimmt. Einzelmodelle können als vorhandene GLB-Datei oder lokal geladen werden.</p>`;
         if(tab==='systems')panel.innerHTML=`<div class="hdx-grid">${organs.map(o=>`<div class="hdx-card"><strong>🧬 ${o[0]}</strong><p class="hdx-muted">${o[1]}</p></div>`).join('')}</div><p class="hdx-muted">Die Detaildarstellungen werden mit geprüften anatomischen Inhalten und den zugehörigen 3D-Assets erweitert.</p>`;
         if(tab==='emergency')panel.innerHTML=`<div class="hdx-card"><h3>🚨 Notfall</h3><p>Bei akuter Lebensgefahr in Deutschland/EU: <strong>112</strong>.</p><p>Bei Bewusstlosigkeit und fehlender normaler Atmung: Notruf absetzen, Wiederbelebung beginnen und den Anweisungen der Leitstelle folgen.</p><p class="hdx-muted">Diese Übersicht ersetzt keine zertifizierte Erste-Hilfe-Ausbildung oder professionelle medizinische Versorgung.</p></div>`;
         if(tab==='anatomy')initViewer();
       };
-      root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.arztTab){tab=b.dataset.arztTab;draw();}if(b.hasAttribute('data-arzt-open3d')){tab='anatomy';draw();}if(b.hasAttribute('data-arzt-legacy')&&H.ArztbuchLegacyOpen){H.ArztbuchLegacyOpen();}if(b.hasAttribute('data-model-load'))loadModel(root.querySelector('[data-model-select]').value);});
+      root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.arztTab){if(tab==='anatomy')disposeViewer();tab=b.dataset.arztTab;draw();}if(b.hasAttribute('data-arzt-open3d')){if(tab==='anatomy')disposeViewer();tab='anatomy';draw();}if(b.hasAttribute('data-arzt-legacy')&&H.ArztbuchLegacyOpen){H.ArztbuchLegacyOpen();}if(b.hasAttribute('data-model-load'))loadModel(root.querySelector('[data-model-select]').value);if(b.hasAttribute('data-model-schematic'))loadSchematicSkeleton();});
       root.addEventListener('change',e=>{if(e.target.matches('[data-model-file]')){const f=e.target.files?.[0];if(f){const url=URL.createObjectURL(f);loadModel(url,true);}}});
       let renderer=null,scene=null,camera=null,controls=null,frame=0,loader=null,resizeObserver=null,currentObject=null,initialized=false;
+      let currentSkeleton=null,skeletonApi=null,currentObjectUrl=null,raycaster=null,pointer=null,canvasClickHandler=null,resizeHandler=null;
       function status(msg,bad=false){const el=root.querySelector('[data-anatomy-status]');if(el){el.textContent=msg;el.style.color=bad?'#ff9baa':'#8fffe1';}}
-      function initViewer(){if(initialized)return;const host=root.querySelector('[data-anatomy-view]');if(!host||!window.THREE)return;initialized=true;
-        if(!THREE.WebGLRenderer){status('WebGL ist in diesem Browser nicht verfügbar.',true);return;}
-        try{scene=new THREE.Scene();scene.background=new THREE.Color(0x030b18);camera=new THREE.PerspectiveCamera(42,1,.01,10000);camera.position.set(0,0,4);renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(host.clientWidth,host.clientHeight);host.appendChild(renderer.domElement);scene.add(new THREE.HemisphereLight(0xd8f4ff,0x1b2740,1.8));const key=new THREE.DirectionalLight(0xffffff,2.1);key.position.set(3,5,6);scene.add(key);const fill=new THREE.DirectionalLight(0x55bbff,.9);fill.position.set(-4,1,-3);scene.add(fill);
-          if(THREE.OrbitControls){controls=new THREE.OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.06;controls.minDistance=.3;controls.maxDistance=100;}
-          if(THREE.DRACOLoader){const draco=new THREE.DRACOLoader();draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/');draco.setWorkerLimit(2);loader=new THREE.GLTFLoader();loader.setDRACOLoader(draco);}else if(THREE.GLTFLoader)loader=new THREE.GLTFLoader();
-          const onResize=()=>{if(!renderer||!camera)return;const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);};if('ResizeObserver' in window){resizeObserver=new ResizeObserver(onResize);resizeObserver.observe(host);}else{window.addEventListener('resize',onResize);}
-          const animate=()=>{if(!host.isConnected){cancelAnimationFrame(frame);resizeObserver?.disconnect();renderer?.dispose();return;}frame=requestAnimationFrame(animate);controls?.update();renderer.render(scene,camera);};animate();
-          status('Viewer bereit. Wähle ein Modell und klicke „Modell laden“.');
-        }catch(err){status('3D-Initialisierung fehlgeschlagen: '+err.message,true);console.error('HalDo Anatomy:',err);}
+      function disposeObjectResources(object){
+        if(!object||typeof object.traverse!=='function')return;
+        const geometries=new Set(),materials=new Set(),textures=new Set();
+        object.traverse(node=>{
+          if(node.geometry)geometries.add(node.geometry);
+          const assigned=Array.isArray(node.material)?node.material:[node.material];
+          assigned.forEach(material=>{
+            if(!material)return;
+            materials.add(material);
+            Object.keys(material).forEach(key=>{const value=material[key];if(value&&value.isTexture)textures.add(value);});
+          });
+        });
+        textures.forEach(texture=>texture.dispose());
+        geometries.forEach(geometry=>geometry.dispose());
+        materials.forEach(material=>material.dispose());
       }
-      function fit(object){const box=new THREE.Box3().setFromObject(object);const size=box.getSize(new THREE.Vector3());const center=box.getCenter(new THREE.Vector3());const max=Math.max(size.x,size.y,size.z);if(!Number.isFinite(max)||max<=0)throw new Error('Das Modell enthält keine sichtbare Geometrie.');object.position.sub(center);const dist=max/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)))*1.6;camera.position.set(0,0,dist);camera.near=Math.max(.001,dist/1000);camera.far=Math.max(1000,dist*100);camera.updateProjectionMatrix();controls?.target.set(0,0,0);controls?.update();}
-      function loadModel(url,objectUrl=false){initViewer();if(!renderer||!loader){status('GLTFLoader/DRACOLoader nicht geladen. Prüfe CDN-Verbindung.',true);return;}status('Lade 3D-Modell: '+url+' …');
-        loader.load(url,gltf=>{if(!root.isConnected)return;try{const obj=gltf.scene;if(currentObject)scene.remove(currentObject);currentObject=obj;scene.add(obj);fit(obj);status('✅ 3D-Modell geladen: '+url);if(objectUrl)setTimeout(()=>URL.revokeObjectURL(url),60000);}catch(err){status('Modell konnte nicht dargestellt werden: '+err.message,true);}},xhr=>{if(xhr.total)status('Lade 3D-Modell … '+Math.round(xhr.loaded/xhr.total*100)+'%');},err=>{console.error('HalDo GLB load error:',url,err);status('Modell nicht geladen: '+url+' · Pfad/Decoder prüfen.',true);});
+      function clearCurrentObject(){
+        if(currentObject&&scene)scene.remove(currentObject);
+        if(currentSkeleton&&skeletonApi&&typeof skeletonApi.disposeSchematicSkeleton==='function')skeletonApi.disposeSchematicSkeleton(currentSkeleton);
+        else if(currentObject)disposeObjectResources(currentObject);
+        currentObject=null;currentSkeleton=null;skeletonApi=null;
+        if(currentObjectUrl){URL.revokeObjectURL(currentObjectUrl);currentObjectUrl=null;}
+      }
+      function disposeViewer(){
+        if(frame){cancelAnimationFrame(frame);frame=0;}
+        if(renderer&&renderer.domElement&&canvasClickHandler)renderer.domElement.removeEventListener('click',canvasClickHandler);
+        if(resizeObserver){resizeObserver.disconnect();resizeObserver=null;}
+        if(resizeHandler){window.removeEventListener('resize',resizeHandler);resizeHandler=null;}
+        clearCurrentObject();
+        if(controls&&typeof controls.dispose==='function')controls.dispose();
+        if(renderer){renderer.dispose();if(typeof renderer.forceContextLoss==='function')renderer.forceContextLoss();if(renderer.domElement&&renderer.domElement.parentNode)renderer.domElement.parentNode.removeChild(renderer.domElement);}
+        renderer=null;scene=null;camera=null;controls=null;loader=null;raycaster=null;pointer=null;canvasClickHandler=null;initialized=false;
+      }
+      function showSelectedBone(boneId,objectName){
+        const info=root.querySelector('[data-bone-info]');
+        if(currentSkeleton&&currentSkeleton.byId.has(boneId)){
+          const definition=currentSkeleton.byId.get(boneId).definition;
+          const label=[definition.es||definition.id,definition.region,definition.side].filter(Boolean).join(' · ');
+          if(info)info.textContent=label+' · Schematische Lehrdarstellung in willkürlichen Einheiten.';
+          status('Ausgewählt: '+(definition.es||definition.id));
+        }else{
+          if(info)info.textContent='Ausgewählt: '+(objectName||boneId||'3D-Struktur')+'. Für dieses importierte Einzelmodell liegen in dieser Ansicht keine zusätzlichen Anatomie-Metadaten vor.';
+          status('3D-Struktur ausgewählt: '+(objectName||boneId||'unbekannt'));
+        }
+      }
+      function initViewer(){
+        if(initialized)return;
+        const host=root.querySelector('[data-anatomy-view]');
+        if(!host||!window.THREE)return;
+        if(!THREE.WebGLRenderer){status('WebGL ist in diesem Browser nicht verfügbar.',true);return;}
+        try{
+          initialized=true;
+          scene=new THREE.Scene();scene.background=new THREE.Color(0x030b18);
+          camera=new THREE.PerspectiveCamera(42,1,.01,10000);camera.position.set(0,0,4);
+          renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+          renderer.setSize(Math.max(1,host.clientWidth),Math.max(1,host.clientHeight));
+          host.appendChild(renderer.domElement);
+          scene.add(new THREE.HemisphereLight(0xd8f4ff,0x1b2740,1.8));
+          const key=new THREE.DirectionalLight(0xffffff,2.1);key.position.set(3,5,6);scene.add(key);
+          const fill=new THREE.DirectionalLight(0x55bbff,.9);fill.position.set(-4,1,-3);scene.add(fill);
+          if(THREE.OrbitControls){controls=new THREE.OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.06;controls.minDistance=.3;controls.maxDistance=100;}
+          if(THREE.DRACOLoader){const draco=new THREE.DRACOLoader();draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/');draco.setWorkerLimit(2);loader=new THREE.GLTFLoader();loader.setDRACOLoader(draco);}
+          else if(THREE.GLTFLoader)loader=new THREE.GLTFLoader();
+          resizeHandler=()=>{if(!renderer||!camera||!host.isConnected)return;const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);};
+          if('ResizeObserver' in window){resizeObserver=new ResizeObserver(resizeHandler);resizeObserver.observe(host);}
+          else window.addEventListener('resize',resizeHandler);
+          raycaster=new THREE.Raycaster();pointer=new THREE.Vector2();
+          canvasClickHandler=event=>{
+            if(!currentObject||!renderer||!raycaster||!pointer)return;
+            const rect=renderer.domElement.getBoundingClientRect();
+            if(!rect.width||!rect.height)return;
+            pointer.x=((event.clientX-rect.left)/rect.width)*2-1;
+            pointer.y=-((event.clientY-rect.top)/rect.height)*2+1;
+            raycaster.setFromCamera(pointer,camera);
+            const hit=raycaster.intersectObject(currentObject,true)[0];
+            if(!hit)return;
+            showSelectedBone(hit.object.userData?.boneId||'',hit.object.name||hit.object.parent?.name||'3D-Struktur');
+          };
+          renderer.domElement.addEventListener('click',canvasClickHandler);
+          const animate=()=>{
+            if(!host.isConnected){disposeViewer();return;}
+            frame=requestAnimationFrame(animate);
+            controls?.update();renderer.render(scene,camera);
+          };
+          animate();
+          status('Viewer bereit. Wähle ein Einzelmodell oder lade das vollständige schematische Skelett.');
+        }catch(err){disposeViewer();status('3D-Initialisierung fehlgeschlagen: '+err.message,true);console.error('HalDo Anatomy:',err);}
+      }
+      function fit(object){
+        const box=new THREE.Box3().setFromObject(object);
+        const size=box.getSize(new THREE.Vector3());
+        const center=box.getCenter(new THREE.Vector3());
+        const max=Math.max(size.x,size.y,size.z);
+        if(!Number.isFinite(max)||max<=0)throw new Error('Das Modell enthält keine sichtbare Geometrie.');
+        object.position.sub(center);
+        const distance=max/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)))*1.6;
+        camera.position.set(0,0,distance);
+        camera.near=Math.max(.001,distance/1000);
+        camera.far=Math.max(1000,distance*100);
+        camera.updateProjectionMatrix();controls?.target.set(0,0,0);controls?.update();
+      }
+      async function loadSchematicSkeleton(){
+        initViewer();
+        if(!renderer||!scene||!camera){status('Der 3D-Viewer ist nicht verfügbar.',true);return;}
+        const profileId=root.querySelector('[data-anatomy-profile]')?.value||'adult_male';
+        status('Erzeuge schematisches Skelett für das Profil '+profileId+' …');
+        try{
+          const api=await import('./models/skeleton.js');
+          const skeleton=api.createSchematicSkeleton(window.THREE,profileId);
+          clearCurrentObject();
+          skeletonApi=api;currentSkeleton=skeleton;currentObject=skeleton.group;
+          scene.add(currentObject);fit(currentObject);
+          const info=root.querySelector('[data-bone-info]');
+          if(info)info.textContent=skeleton.bones.length+' Knochen geladen. Wähle einen Knochen per Mausklick. Schematische Lehrdarstellung, keine klinische Vermessung.';
+          status('Schematisches Skelett geladen: '+skeleton.bones.length+' Knochen · Profil '+profileId+' · willkürliche Einheiten.');
+        }catch(error){status('Schematisches Skelett konnte nicht erstellt werden: '+error.message,true);console.error('HalDo schematic anatomy:',error);}
+      }
+      function loadModel(url,objectUrl=false){
+        initViewer();
+        if(!renderer||!loader){status('GLTFLoader/DRACOLoader nicht geladen. Prüfe CDN-Verbindung.',true);return;}
+        status('Lade 3D-Modell: '+url+' …');
+        loader.load(url,gltf=>{
+          if(!root.isConnected)return;
+          try{
+            clearCurrentObject();
+            currentObject=gltf.scene;scene.add(currentObject);fit(currentObject);
+            if(objectUrl)currentObjectUrl=url;
+            status('✅ 3D-Modell geladen: '+url);
+          }catch(err){disposeObjectResources(gltf.scene);status('Modell konnte nicht dargestellt werden: '+err.message,true);}
+        },xhr=>{if(xhr.total)status('Lade 3D-Modell … '+Math.round(xhr.loaded/xhr.total*100)+'%');},err=>{
+          console.error('HalDo GLB load error:',url,err);status('Modell nicht geladen: '+url+' · Pfad/Decoder prüfen.',true);
+        });
       }
       draw();
     }
