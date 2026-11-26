@@ -1993,7 +1993,7 @@ async function run() {
   assert.equal(csvText.charCodeAt(0), 0xFEFF, 'CSV-Datei besitzt keine UTF-8-BOM.');
   assert.ok(csvText.includes('"Messgröße";"Messwert";"Einheit";"Messdatum";"Quelle";"Notiz"'));
   assert.equal((csvText.match(/"Puls E2E"/g) || []).length, 2, 'CSV enthält nicht beide Vitalwert-Messungen.');
-  assert.ok(csvText.includes(String.raw\`"'=1+1; ""morgens"""\`), 'CSV hat Formelinjection-Präfix oder CSV-Quoting nicht korrekt angewendet.');
+  assert.ok(csvText.includes('"' + "'=1+1; " + '""morgens"""'), 'CSV hat Formelinjection-Präfix oder CSV-Quoting nicht korrekt angewendet.');
   pass('Arztbuch: CSV wird tatsächlich heruntergeladen; UTF-8, Spalten, beide Datensätze und sichere Zell-Escapes geprüft');
 
 
