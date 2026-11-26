@@ -719,3 +719,10 @@ Beide Apps sind als eigenständige Module registriert: `recipes` unter G und `an
 - Die Registry-Zahl von 375 bleibt ein Planungsziel, kein Nachweis von 375 fertigen Apps. Generische Grundgerüste und ungeprüfte Zuordnungen müssen weiterhin einzeln inventarisiert und entweder fachlich implementiert oder ehrlich als geplant/Grundgerüst markiert werden.
 - Ein erfolgreicher Chromium-Lauf bestätigt die geprüften Browserabläufe, aber weder medizinische Validierung noch Produktions-/Live-Betrieb auf GitHub Pages.
 - Alle Änderungen bleiben auf `work-v167-medical-apps` und Draft-PR #1. Kein Merge nach `main`, keine produktive Veröffentlichung.
+
+
+### Korrigierte Registry-Inventur aus Lauf #211
+- Die Laufzeitprüfung meldet aktuell **92 eindeutige App-IDs in 26 Kategorien** bei 375 geplanten Katalogplätzen.
+- Statusverteilung: **90 eigenes Startmodul**, **1 generisches Grundgerüst**, **1 zentrale Route**, **0 ungeklärte Zuordnungen**.
+- Diese Zählung ersetzt die ältere Inventur mit 86 App-IDs / 25 Modulen / 4 Grundgerüsten / 57 ungeprüften Zuordnungen aus dem früheren Abschnitt. Die alten Zahlen bleiben als historischer Zwischenstand lesbar.
+- „Eigenes Startmodul“ bedeutet ausschließlich, dass die Registry eine eigene `open()`-Implementierung erkennt. Es ist keine vollständige fachliche Abnahme aller Funktionen, Datenquellen, Berechtigungen, Barrierefreiheit oder Sicherheitsanforderungen.
