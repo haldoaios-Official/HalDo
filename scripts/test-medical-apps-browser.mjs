@@ -554,6 +554,12 @@ async function run() {
   assert.ok(categoryCardCount > 0);
   assert.equal(await categoryLaunchCards.locator('[data-implementation-status]').count(), categoryCardCount);
   assert.equal(await categoryAppGrid.locator('[data-launch="avatar"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  await appRegistryRoot.locator('[data-category="G"]').click();
+  const categoryGGrid = appRegistryRoot.locator('[data-category-app-grid="G"]');
+  assert.equal(await categoryGGrid.locator('[data-launch="workout"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  await appRegistryRoot.locator('[data-category="U"]').click();
+  const categoryUGrid = appRegistryRoot.locator('[data-category-app-grid="U"]');
+  assert.equal(await categoryUGrid.locator('[data-launch="utilities"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   await appRegistryRoot.locator('[data-category=""]').click();
 
   await closeWindow(appRegistryRoot);
