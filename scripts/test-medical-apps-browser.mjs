@@ -304,7 +304,7 @@ async function run() {
   pass('HalDo Arztbuch Pro entsperrt einen älteren verschlüsselten Tresor ohne Vitalwerte-Feld');
 
   // Existing v154 vaults receive an in-memory empty array and persist it on the first edit.
-  await hub.locator('[data-ab-tab="vitals"]').click();
+  await hub.locator('.hdp154-tabs [data-ab-tab=vitals]').click();
   await hub.locator('[data-ab-form]').waitFor({ state: 'visible', timeout: 10000 });
   await hub.getByText('Noch keine Einträge in diesem Bereich.', { exact: true }).waitFor();
   pass('Arztbuch: Vitalwerte-Bereich wird bei älteren Tresoren kompatibel ergänzt');
