@@ -9,7 +9,7 @@
 
   var H = window.HalDo;
   var BUILD = '175.0.0';
-  var QR_LIBRARY_URL = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+  var QR_LIBRARY_URL = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js';
   if (!H || !H.Win || !H.Store || H.__haldoV175QrApps) {
     if (H && !H.__haldoV175QrApps) console.error('[HalDo v175] HalDo Window/Store API is not available.');
     return;
