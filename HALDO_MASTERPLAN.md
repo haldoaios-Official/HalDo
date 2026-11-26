@@ -636,3 +636,60 @@ Beide Apps sind als eigenständige Module registriert: `recipes` unter G und `an
 **Abnahme noch offen:** Die Chromium-End-to-End-Suite für die v172-Module ist aktuell in GitHub Actions. Sie prüft die echte Registrierung, Atemrhythmus/Runden/Start/Pause/Fortsetzen/Reset sowie DEG/RAD, Funktions- und Potenzberechnung, Ans, Fehlerfälle, Verlaufsspeicherung und das Fehlen dynamischer Codeausführung. Die Testausführung muss abgeschlossen sein, bevor diese beiden Apps als browsergeprüft markiert werden.
 
 **Release-Grenze:** Änderungen bleiben auf `work-v167-medical-apps` und Draft-PR #1. Kein Merge nach `main`, keine GitHub-Pages-Veröffentlichung. Ein vorhandenes Modul ist nicht automatisch fachlich vollständig freigegeben.
+## HALDO v174 – Einheiten-Umrechner Pro, Habit Heatmap Pro und Medizinlexika (26.11.2026)
+
+### HalDo Einheiten-Umrechner Pro
+- Umrechnung von Länge, Masse/Gewicht, Volumen, Fläche, Geschwindigkeit, Zeit, Temperatur, Druck und Datenmenge.
+- Temperaturumrechnung erfolgt über Kelvin; Temperaturen unter dem absoluten Nullpunkt werden abgewiesen.
+- Dezimale und binäre Datenmengeneinheiten sind getrennt bezeichnet (KB/MB mit 1000er-Schritten, KiB/MiB mit 1024er-Schritten).
+- Lokaler Verlauf mit Speichern und Löschen über den bestehenden HalDo Store. Keine externen Umrechnungsdienste.
+
+### HalDo Habit Heatmap Pro
+- Monatsansicht für alle bestehenden Gewohnheiten oder eine einzelne ausgewählte Gewohnheit.
+- Check-ins werden direkt über `HalDo.Habits` gelesen und geändert. Es wird kein zweiter Gewohnheitenspeicher angelegt.
+- Monatsnavigation, Check-in-Tage, aktive Tage, Erfüllungsübersicht und aktuelle Serie; zukünftige Tage sind gesperrt.
+- Bei fehlenden Gewohnheiten kann die erste Gewohnheit erstellt und danach in der bestehenden Habits-App weiterverwaltet werden.
+
+### Krankheitslexikon Pro und Medikamentenlexikon Pro
+- Eigenständige Such- und Katalogansichten mit Kategorien und Detailinformationen.
+- Medikamenten- und Sicherheitshinweise müssen mit den angezeigten offiziellen Fachquellen geprüft werden; der Katalog ersetzt weder ärztliche Verordnung noch Gebrauchsinformation oder pharmazeutische Beratung.
+- Keine individuelle Diagnose, Dosierungsentscheidung oder automatische Therapieempfehlung.
+
+### Technische Integration
+- Utility-Module in `js/haldo-v174-utility-apps.js`; Registry-Namespace `HalDo.AppsV174Utility` ist getrennt von den medizinischen Katalogen `HalDo.AppsV174`.
+- Beide Utility-Apps sind im vorhandenen App-Launcher registriert; Modulstatus wird in der zentralen A–Z-Registry angezeigt.
+- Der Habit-Kalender nutzt die vorhandene Datenstruktur. Der Umrechnungsverlauf ist lokal und separat gekennzeichnet.
+
+## HALDO v175 – QR Studio, QR Sticker, PDF-Center und Dokumenten-Scanner (26.11.2026)
+
+### HalDo QR Studio Pro
+- QR-Generierung für Text, HTTP-/HTTPS-URL, WLAN-Zugang, vCard-Kontakt, E-Mail, SMS und Geo-Koordinaten.
+- Download des generierten Codes als PNG; URL-Protokollprüfung und Eingabevalidierung.
+- WLAN-Passwörter sind naturgemäß im fertigen QR-Payload enthalten. Die App weist ausdrücklich darauf hin, solche Codes nur mit vorgesehenen Personen zu teilen.
+- Verwendet die fest versionierte QR-Renderer-Bibliothek `qrcode@1.5.3` aus einem CDN. Der QR-Inhalt selbst wird lokal an die Renderer-Bibliothek im Browser übergeben und nicht an einen QR-Erzeugungsdienst hochgeladen. Für das erstmalige Laden der Bibliothek ist eine Internetverbindung erforderlich.
+
+### HalDo QR Sticker Pro
+- Mehrere QR-Aufkleber aus Zeilen im Format `Titel | Inhalt` erstellen.
+- Drucklayout mit bis zu 12 Aufklebern pro Seite; übergroße Eingabelisten werden abgewiesen.
+- Der Sticker-Inhalt bleibt lokal im geöffneten Browserfenster.
+
+### HalDo PDF- & Druck-Center Pro
+- Textdokumente lokal als PDF 1.4 erzeugen und herunterladen.
+- Lokale PDF-, PNG- und JPEG-Dateien im aktuellen Browser-Tab ansehen und über die Browser-/Betriebssystem-Druckfunktion ausgeben.
+- Dateien werden nicht zu einem HalDo-Server hochgeladen und nicht dauerhaft im HalDo Store abgelegt. Die Objekt-URLs werden beim Wechseln/Schließen freigegeben.
+
+### HalDo Dokumenten-Scanner Pro
+- Dokumentaufnahme über eine lokale Bilddatei oder nach ausdrücklicher Browserfreigabe über die Kamera (HTTPS/secure context erforderlich).
+- Helligkeit, Kontrast, Graustufen und 90°-Drehung; bis zu 30 Seiten pro PDF mit Umordnen, Entfernen und mehrseitigem PDF-Export.
+- Bilder und Seiten bleiben nur im Arbeitsspeicher des aktuellen Browser-Tabs; beim Schließen werden Kamera-Streams gestoppt und Objekt-URLs freigegeben.
+- Aktuelle Grenzen sind sichtbar dokumentiert: keine OCR-Texterkennung, keine automatische Kantenerkennung, keine perspektivische Entzerrung und keine dauerhafte Scan-Ablage. Die vorhandene Version ist ein lokaler Mehrseiten-Scanner-Grundumfang und kein vollständiger Ersatz für professionelle Dokumentenmanagement- oder OCR-Software.
+
+### Technische Integration und Konfliktvermeidung
+- QR-Module in `js/haldo-v175-qr-apps.js` verwenden `HalDo.AppsV175Qr`.
+- PDF-/Scanner-Module in `js/haldo-v175-document-apps.js` verwenden `HalDo.AppsV175Documents`.
+- Die zwei getrennten Registry-Namensräume vermeiden, dass das Laden der QR-Datei die PDF-/Scanner-Registry überschreibt oder umgekehrt. Der gemeinsame HalDo-System-Build ist `175.0.0`.
+- Beide Skripte werden nach den v174-Modulen in `index.html` geladen und registrieren ihre stabilen App-IDs in der bestehenden A–Z-Registry.
+
+**Abnahme v175 – aktuell in Arbeit:** GitHub Actions Lauf #189 (`45808104525`) läuft auf dem aktuellen PR-Head `1b0d185b64462084e640b76bf09c9bd7ba3d30cc`. Die aktualisierte Chromium-Suite umfasst Runtime-/Registry-Checks, URL- und WLAN-QR-Generierung, PNG-Download, Sticker-Seitenerstellung, echte PDF-Datei aus Text sowie einen lokalen Mehrseiten-Scan mit PDF-Seitenzahl- und Löschprüfung. Bis der Lauf erfolgreich beendet ist, gelten diese Tests als ausstehend; die Module werden nicht vorzeitig als browserabgenommen markiert.
+
+**Release-Grenze:** Alle Änderungen befinden sich auf `work-v167-medical-apps` und Draft-PR #1. Der Arbeitsbranch lag beim letzten Vergleich 197 Commits vor `main` und 0 dahinter. Kein Merge nach `main`, keine Veröffentlichung/Pages-Deployment. Die 375 Registry-Plätze sind weiterhin die geplante Katalogkapazität, nicht die Zahl der vollständig umgesetzten und freigegebenen Anwendungen.
