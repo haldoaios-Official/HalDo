@@ -330,6 +330,16 @@ async function run() {
   await hub.getByText('Keine Vitalwerte für diese Suche oder diesen Zeitraum.', { exact: true }).waitFor();
   await timelineSearch.fill('');
   pass('Arztbuch: Vitalwerte-Verlauf unterstützt die Textsuche');
+  const fromDate = hub.locator('[data-ab-vital-from]');
+  await fromDate.fill('2026-11-27');
+  await fromDate.dispatchEvent('change');
+  assert.equal(await hub.locator('.hdp154-record').count(), 0);
+  const fromDateReset = hub.locator('[data-ab-vital-from]');
+  await fromDateReset.fill('2026-11-26');
+  await fromDateReset.dispatchEvent('change');
+  assert.equal(await hub.locator('.hdp154-record').count(), 1);
+  pass('Arztbuch: Vitalwerte-Verlauf prüft die Von-Datumsgrenze');
+
 
   await hub.locator('[data-ab-edit-vital]').click();
   await hub.locator('[name="result"]').fill('118/76');
