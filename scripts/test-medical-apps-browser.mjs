@@ -173,16 +173,24 @@ async function openMedicalAppFromHub(hub, appId) {
 }
 async function closeWindow(root) {
   const closeResult = await root.evaluate((element) => {
-    const windowHost = element.closest('.window');
-    const closeButton = windowHost?.querySelector('[data-act="close"]');
-    if (!windowHost?.id || !closeButton) {
-      return { ok: false, windowId: windowHost?.id || null, hasCloseButton: Boolean(closeButton) };
+    const layer = element.closest('#winLayer');
+    if (!layer) return { ok: false, reason: 'winLayer nicht gefunden' };
+    let windowHost = element;
+    while (windowHost.parentElement && windowHost.parentElement !== layer) {
+      windowHost = windowHost.parentElement;
+    }
+    if (windowHost.parentElement !== layer || !windowHost.id) {
+      return { ok: false, reason: 'Fenstercontainer nicht gefunden' };
+    }
+    const closeButton = windowHost.querySelector('[data-act="close"]');
+    if (!closeButton) {
+      return { ok: false, reason: 'Schließen-Schaltfläche fehlt', windowId: windowHost.id };
     }
     closeButton.click();
     return { ok: true, windowId: windowHost.id };
   });
   assert.ok(closeResult.ok, 'Fenster-Schließen nicht möglich: ' + JSON.stringify(closeResult));
-  await root.waitFor({ state: 'detached', timeout: 5000 });
+  await page.locator('#' + closeResult.windowId).waitFor({ state: 'detached', timeout: 5000 });
 }
 async function createOrUnlock(root, passphrase) {
   await root.locator('#h167-pass').fill(passphrase);
