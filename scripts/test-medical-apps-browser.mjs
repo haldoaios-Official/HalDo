@@ -1099,7 +1099,7 @@ async function run() {
   await medicationCatalogue.waitFor({ state: 'visible', timeout: 10000 });
   assert.equal(await medicationCatalogue.locator('[data-k174-entry]').count(), 2);
   await medicationCatalogue.locator('[data-k174-search]').fill('Leber');
-  await medicationCatalogue.locator('[data-k174-detail]').getByText('Leber', { exact: false }).waitFor({ timeout: 10000 });
+  await medicationCatalogue.locator('[data-k174-detail] .hdv174-warning').waitFor({ state: 'visible', timeout: 10000 });
   assert.equal(await medicationCatalogue.locator('[data-k174-entry]').count(), 1);
   assert.match(await medicationCatalogue.locator('[data-k174-detail]').innerText(), /Überdosierung|Gebrauchsinformation/);
   const medicationSourceLinks = await medicationCatalogue.locator('[data-k174-detail] a').evaluateAll((links) => links.map((link) => link.href));
