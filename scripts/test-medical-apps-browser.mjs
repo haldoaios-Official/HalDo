@@ -1482,7 +1482,7 @@ async function run() {
       gatt:{
         connected:false,
         async connect() { this.connected = true; return this; },
-        disconnect() { this.connected = false; if (device.__disconnect) device.__disconnect(); },
+        disconnect() { this.connected = false; window.__haldoV176DisconnectCount = (window.__haldoV176DisconnectCount || 0) + 1; if (device.__disconnect) device.__disconnect(); },
         async getPrimaryService(uuid) { window.__haldoV176Service = uuid; return service; }
       }
     };
@@ -1511,9 +1511,14 @@ async function run() {
   await wlanManager.locator('[data-hv176-disconnect]').click();
   assert.equal(await wlanManager.locator('[data-hv176-disconnect]').isDisabled(), true);
   assert.match(await wlanManager.locator('[data-hv176-ble-message]').innerText(), /getrennt/);
+  await wlanManager.locator('[data-hv176-connect]').click();
+  await wlanManager.locator('[data-hv176-disconnect]:not(:disabled)').waitFor({ state:'visible', timeout:10000 });
+  assert.equal(await page.evaluate(() => window.__haldoV176Device.gatt.connected), true);
+  const disconnectsBeforeClose = await page.evaluate(() => window.__haldoV176DisconnectCount || 0);
   await closeWindow(wlanManager);
-  assert.equal(await page.evaluate(() => window.__haldoV176Device.gatt.connected), false);
-  pass('HalDo WLAN/Bluetooth-Manager Pro: Netzwerkgrenzen, expliziter Gerätewähler, GATT-Lesen, bestätigtes Schreiben und Trennen geprüft');
+  await page.waitForFunction(() => window.__haldoV176Device.gatt.connected === false);
+  assert.equal(await page.evaluate(() => window.__haldoV176DisconnectCount), disconnectsBeforeClose + 1);
+  pass('HalDo WLAN/Bluetooth-Manager Pro: Netzwerkgrenzen, expliziter Gerätewähler, GATT-Lesen, bestätigtes Schreiben, manuelles Trennen und automatisches Trennen beim Fensterschließen geprüft');
 
   const anatomyCatalogCheck = await page.evaluate(async () => {
     const [catalog, loader] = await Promise.all([
