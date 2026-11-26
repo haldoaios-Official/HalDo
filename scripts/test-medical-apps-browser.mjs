@@ -80,8 +80,19 @@ async function openMedicalApp(appId) {
     }
     window.HalDo.Launch({ id });
   }, appId);
+
+  // The v161 welcome experience can be shown for an app before its window opens.
+  const appWelcome = page.locator('#haldo-v161-welcome');
+  if (await appWelcome.count()) {
+    const button = appWelcome.locator('button.h161-button');
+    if (await button.count()) {
+      await button.click();
+      await appWelcome.waitFor({ state: 'detached', timeout: 10000 });
+    }
+  }
+
   const root = page.locator('.window .win-body .h167').last();
-  await root.waitFor({ state: 'visible', timeout: 15000 });
+  await root.waitFor({ state: 'visible', timeout: 20000 });
   await root.locator('#h167-unlock-form').waitFor({ timeout: 15000 });
   return root;
 }
@@ -169,6 +180,13 @@ async function run() {
       !!(window.HalDo['laborwerte-pro'] && window.HalDo['medikamentenplan-pro']);
   }, { timeout: 45000 });
   pass('HalDo OS startet auf sicherem Browser-Kontext; beide medizinischen Apps sind registriert');
+
+  // Complete the actual first-run welcome gate before opening app windows.
+  const systemWelcome = page.locator('#haldo-v161-welcome');
+  await systemWelcome.waitFor({ state: 'visible', timeout: 15000 });
+  await systemWelcome.locator('button.h161-button').click();
+  await systemWelcome.waitFor({ state: 'detached', timeout: 10000 });
+  pass('HalDo-Willkommensbildschirm: „System betreten“ öffnet den Arbeitsbereich');
 
   // Laborwerte: empty-vault persistence, CRUD, ciphertext, backup restore and password rejection.
   const labKey = 'haldo_v167_laborwerte_vault';
