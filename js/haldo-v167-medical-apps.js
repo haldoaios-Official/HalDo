@@ -12,6 +12,7 @@
   var encoder = new TextEncoder();
   var decoder = new TextDecoder();
   var vaults = Object.create(null);
+  var activeInstances = Object.create(null);
   var configs = [
     {
       id: 'laborwerte-pro',
@@ -153,8 +154,16 @@
     if (!envelope) {
       var salt = window.crypto.getRandomValues(new Uint8Array(16));
       return deriveKey(passphrase, salt).then(function (key) {
-        vaults[config.id] = {key:key, salt:salt, records:[], persistedRecords:[], dirty:false};
-        return vaults[config.id];
+        var vault = {key:key, salt:salt, records:[], persistedRecords:[], dirty:false};
+        vaults[config.id] = vault;
+        // Persist an encrypted empty envelope immediately: creating a vault must
+        // survive closing the window or reloading before the first record exists.
+        return encryptRecords(config, vault.records, key).then(function () {
+          return vault;
+        }).catch(function (error) {
+          lock(config);
+          throw new Error('Der verschlüsselte Tresor konnte nicht angelegt werden: ' + error.message);
+        });
       });
     }
     return Promise.resolve().then(function () {
@@ -243,6 +252,18 @@
     window.setTimeout(function () {
       var root = document.getElementById(rootId);
       if (!root || !root.isConnected) return;
+      activeInstances[config.id] = (activeInstances[config.id] || 0) + 1;
+      // Remove decrypted records and the CryptoKey when the last window closes.
+      var observer = new MutationObserver(function () {
+        if (root.isConnected) return;
+        observer.disconnect();
+        activeInstances[config.id] = Math.max(0, (activeInstances[config.id] || 1) - 1);
+        if (activeInstances[config.id] === 0) {
+          delete activeInstances[config.id];
+          lock(config);
+        }
+      });
+      observer.observe(document.body, {childList:true, subtree:true});
       renderGate(root, config);
     }, 70);
   }
