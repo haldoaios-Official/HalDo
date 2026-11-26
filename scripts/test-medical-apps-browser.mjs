@@ -940,6 +940,18 @@ async function run() {
     build: window.HalDo.Master?.version || null
   }));
   console.log('ACTIVE ANATOMY RUNTIME ' + JSON.stringify(activeAnatomyRuntime));
+  const anatomyRuntimeContract = await page.evaluate(() => ({
+    version: window.HalDo.Anatomy3D?.version || null,
+    features: window.HalDo.Anatomy3D?.features || null
+  }));
+  assert.equal(activeAnatomyRuntime.stabilization151, true);
+  assert.equal(anatomyRuntimeContract.version, 'pro-max-v2');
+  assert.equal(anatomyRuntimeContract.features?.boneCatalog, true);
+  assert.equal(anatomyRuntimeContract.features?.profiles, true);
+  assert.equal(anatomyRuntimeContract.features?.raycast, true);
+  assert.equal(anatomyRuntimeContract.features?.resourceCleanup, true);
+  pass('Anatomie 3D Pro: v151-Stabilisierung lädt ohne Syntaxfehler und bewahrt den vollständigen Pro-Max-Viewer');
+
 
   // Exercise the actual Arztbuch anatomy window, its profile selector and WebGL viewer.
   await page.evaluate(() => window.HalDo.Anatomy3D.open());
