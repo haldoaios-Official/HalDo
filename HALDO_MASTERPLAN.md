@@ -356,5 +356,20 @@ Zwei eigenständige Dokumentations-Apps wurden als zusätzliche benannte Apps in
 
 **Integration:** Die Module werden in `js/haldo-v167-medical-apps.js` implementiert, über die bestehenden Fenster- und Registry-Schnittstellen gestartet und den A–Z-Buchstaben L und M zugeordnet. Der v166-Block wurde in `index.html` vor das schließende `</body>` verschoben; der Versionskopf wurde auf v167 gesetzt.
 
-**Prüfstatus:** JavaScript-Syntax des neuen v167-Moduls sowie aller 25 ausführbaren Inline-Script-Blöcke der Hauptdatei erfolgreich statisch kompiliert. HTML-Struktur und App-Start wurden nicht in einem echten Browser-End-to-End-Test geprüft. Deployment erst nach Review und erfolgreichem GitHub-Pages-Workflow bestätigen.
+**Prüfstatus:** JavaScript-Syntax des neuen v167-Moduls sowie aller 25 ausführbaren Inline-Script-Blöcke der Hauptdatei erfolgreich statisch kompiliert. Der Chromium-End-to-End-Workflow hat den HalDo-Start, beide Apps, Verschlüsselung, CRUD, Passwortschutz, Backup-Rundlauf und Fensterschließen mit 17/17 Prüfungen erfolgreich bestätigt (Commit `ffbb5201d139024f9a1b7fae17d36fe48493e387`). Die anschließende Arztbuch-Kommandozentrale-Integration wird separat getestet. GitHub-Pages-Veröffentlichung und produktiver Browser-Test sind damit noch nicht bestätigt.
 
+
+
+## HALDO Arztbuch – Kommandozentrale-Integration (26.11.2026)
+
+Die bestehende App **Arztbuch** wird als zentraler Einstieg für die medizinischen Dokumentationsmodule erweitert, ohne die vorhandenen Gesundheitsfunktionen zu entfernen.
+
+- **Laborwerte Pro:** eigener Schnellzugriff auf den verschlüsselten Laborwerte-Tresor.
+- **Medikamentenplan Pro:** eigener Schnellzugriff auf den getrennten verschlüsselten Medikamentenplan-Tresor.
+- Die bestehenden Bereiche Symptom-Checker, Medikamente, Notfall, Anatomie, Fitness, Ernährung, Impfungen, Laborwerte und Mental Health bleiben erhalten.
+- Die Schnellzugriff-Kacheln sind per Maus und Tastatur bedienbar. Die Kacheln werden nur innerhalb des zugehörigen Arztbuch-Fensters gebunden.
+- Beim Öffnen werden die vorhandenen HalDo-Launcher- und Fenster-Schnittstellen verwendet; die medizinischen Apps erhalten keine zweite, separate Speicherimplementierung.
+
+**Medizinische Grenzen:** Das Arztbuch ist eine Informations- und Dokumentationsoberfläche. Die neuen Tresore dokumentieren eingetragene Daten; sie stellen keine Diagnose, interpretieren keine Laborbefunde und ändern keine ärztlichen Dosierungsanweisungen.
+
+**Abnahme:** Der Browser-Test wird um den echten Weg `Arztbuch → Laborwerte Pro` und `Arztbuch → Medikamentenplan Pro` erweitert. Erst nach erfolgreichem Chromium-Lauf gilt diese Integration als technisch abgenommen. Die klinische und datenschutzrechtliche Prüfung bleibt ein eigener Freigabeschritt.
