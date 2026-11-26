@@ -438,7 +438,7 @@
   H.unitconv = { open:openUnitConverter, version:BUILD };
   H.heatmap = { open:openHabitHeatmap, version:BUILD };
 
-  H.AppsV174 = {
+  H.AppsV174Utility = {
     version:BUILD,
     appIds:['unitconv','heatmap'],
     status:function () {
