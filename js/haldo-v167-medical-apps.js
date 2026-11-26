@@ -470,7 +470,7 @@
       return openApp(config);
     },
     getRegisteredApps:function () {
-      return configs.map(function (config) { return {id:config.id,title:config.title,version:config.version || BUILD}; });
+      return configs.map(function (config) { return {id:config.id,title:config.title,icon:config.icon,category:config.category || null,version:config.version || BUILD}; });
     }
   };
 
