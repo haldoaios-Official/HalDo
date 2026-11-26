@@ -142,8 +142,19 @@ async function exportBackup(root) {
 }
 
 async function closeApp(root) {
-  const win = page.locator('.window').filter({ has: root }).last();
-  await win.locator('[data-act="close"]').click();
+  const windowId = await root.evaluate((element) => {
+    const host = element.closest('.window');
+    return host && host.id ? host.id : null;
+  });
+  assert.ok(windowId, 'HalDo-App-Fenster konnte über das App-Wurzelelement nicht gefunden werden.');
+  const win = page.locator('#' + windowId);
+  const closeButton = win.locator('.win-header .win-btn').last();
+  if (await closeButton.count()) {
+    await closeButton.click();
+  } else {
+    // Keep compatibility with window-manager builds that expose only the close API.
+    await page.evaluate((id) => window.HalDo.Win.close(id), windowId);
+  }
   await root.waitFor({ state: 'detached', timeout: 5000 });
 }
 
