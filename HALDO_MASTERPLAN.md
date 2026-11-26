@@ -492,7 +492,11 @@ Die ersten UI-End-to-End-Läufe deckten zwei echte Integrationsprobleme auf:
 
 **Abnahme Einzel-GLB im aktiven Viewer:** Lauf #72 (`45753639149`) auf Commit `7911a9b1b4f636f9bb150c2571cad0b8fd1b3e87` ist erfolgreich: **42/42 Browserprüfungen**. Die Laufzeitdiagnose ergab `stabilization151:false`; aktiv ist die frühere `H.Anatomy3D.open`-Funktion mit dem Statusformat `3D-Modell geladen: ...`. Der Test war zunächst auf den Statusstring der anderen v151-Funktion fixiert. Nach Anpassung auf beide vorhandenen Erfolgsmeldungen wurde der explizite Klick auf „Einzelknochen laden“ erfolgreich geprüft; `models/adult_male/adult_female/c1_atlas.glb` wurde geladen und dargestellt.
 
-**Offener nächster Test:** Lauf #73 (`45753859187`) auf Commit `23573a061a81bdd375e11926daf7bc95633466a3` ergänzt die End-to-End-Prüfung des lokalen GLB-Imports über „GLB lokal wählen“ und des anschließenden Modellwechsels. Das Ergebnis dieses Laufs ist bei dieser Dokumentation noch offen.
+**Abnahme lokaler GLB-Import und Blob-Lifecycle:** GitHub Actions Lauf #75 (`45754100205`) auf Commit `45e8e5a86e5bceff556961cc8897b8cdbc03ba38`: **44/44 Browserprüfungen erfolgreich**. Geprüft wurden der explizite Einzel-GLB-Ladevorgang, Import einer lokalen GLB-Datei via `blob:`-URL, Ersetzung des lokalen Modells durch das schematische Skelett und der tatsächliche Aufruf von `URL.revokeObjectURL` für die lokale Blob-URL. Danach liefen Knochen-Auswahl, Profilwechsel und Fenster-/Viewer-Aufräumen weiter erfolgreich.
 
-**Danach:** Ladefehler/Retry separat prüfen, lokale Blob-URL-Freigabe verifizieren, anschließend Lizenz-/Quellenmetadaten und fehlende Paketmanager-Manifeste klären, bevor Assets als offline-downloadbare Pakete angeboten werden.
+**Neue Eingabehärtung:** Der lokale Import akzeptiert jetzt nur eigenständige `.glb`-Dateien. `.gltf` mit externen Neben-Dateien wird abgewiesen, da die relativen Ressourcendateien über die temporäre Blob-URL nicht zuverlässig auflösbar sind. Lokale GLB-Dateien über 64 MB werden abgelehnt. Die bereits geladene Modellansicht bleibt bei einer abgewiesenen Eingabe erhalten.
+
+**Offener nächster Test:** GitHub Actions Lauf #76 (`45754332845`) testet die Eingabehärtung im Quellcode; Lauf #77 soll nach dem zugehörigen Test-Commit die Abweisung einer extern referenzierten `.gltf`-Datei und den Erhalt der bestehenden Modellansicht prüfen. Das Ergebnis dieser negativen Eingabeprüfung steht noch aus.
+
+**Danach:** Ladefehler/Retry separat testen, anschließend Lizenz-/Quellenmetadaten und fehlende Paketmanager-Manifeste klären, bevor Assets als offline-downloadbare Pakete angeboten werden.
 
