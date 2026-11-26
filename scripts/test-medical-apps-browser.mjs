@@ -143,21 +143,23 @@ async function exportBackup(root) {
 
 async function closeApp(root) {
   const windowId = await root.evaluate((element) => {
-    const host = element.closest('.window');
-    return host && host.id ? host.id : null;
+    const layer = element.closest('#winLayer');
+    if (!layer) return null;
+    let host = element;
+    while (host.parentElement && host.parentElement !== layer) {
+      host = host.parentElement;
+    }
+    return host.parentElement === layer && host.id ? host.id : null;
   });
-  assert.ok(windowId, 'HalDo-App-Fenster konnte über das App-Wurzelelement nicht gefunden werden.');
-  const win = page.locator('#' + windowId);
-  const closeButton = win.locator('.win-header .win-btn').last();
-  if (await closeButton.count()) {
-    await closeButton.click();
-  } else {
-    // Keep compatibility with window-manager builds that expose only the close API.
-    await page.evaluate((id) => window.HalDo.Win.close(id), windowId);
-  }
+  assert.ok(windowId, 'HalDo-Fenster konnte im #winLayer nicht gefunden werden.');
+  await page.evaluate((id) => {
+    if (!window.HalDo || !window.HalDo.Win || typeof window.HalDo.Win.close !== 'function') {
+      throw new Error('HalDo.Win.close ist nicht verfügbar.');
+    }
+    window.HalDo.Win.close(id);
+  }, windowId);
   await root.waitFor({ state: 'detached', timeout: 5000 });
 }
-
 async function run() {
   await new Promise((resolve, reject) => {
     server.once('error', reject);
