@@ -490,7 +490,9 @@ Die ersten UI-End-to-End-Läufe deckten zwei echte Integrationsprobleme auf:
 
 **Abnahme der aktiven Runtime:** GitHub Actions Lauf #68 (`45752661749`) auf Commit `02e809acd4ac64161075244c82fad9cb5b6ac480`: **41/41 Browserprüfungen erfolgreich**. Im tatsächlichen Arztbuch-Fenster wurden das schematische Erwachsenenskelett gerendert, ein Knochen angeklickt und seine deutschen, englischen und lateinischen Angaben geprüft. Säuglingsprofil, weibliches Profil, Viewer-Neuaufbau und Ressourcenfreigabe beim Tabwechsel/Fensterschließen wurden ebenfalls erfolgreich geprüft.
 
-**Offener nächster Test:** Lauf #69 (`45752863151`) auf Commit `03a4b21cafb2677da15a950d7643f52c56c1340f` ergänzt die ausdrückliche End-to-End-Prüfung, dass der aktive Viewer auch ein einzelnes vorhandenes GLB-Knochenmodell tatsächlich lädt. Das Ergebnis dieses Laufs ist bei dieser Dokumentation noch offen.
+**Abnahme Einzel-GLB im aktiven Viewer:** Lauf #72 (`45753639149`) auf Commit `7911a9b1b4f636f9bb150c2571cad0b8fd1b3e87` ist erfolgreich: **42/42 Browserprüfungen**. Die Laufzeitdiagnose ergab `stabilization151:false`; aktiv ist die frühere `H.Anatomy3D.open`-Funktion mit dem Statusformat `3D-Modell geladen: ...`. Der Test war zunächst auf den Statusstring der anderen v151-Funktion fixiert. Nach Anpassung auf beide vorhandenen Erfolgsmeldungen wurde der explizite Klick auf „Einzelknochen laden“ erfolgreich geprüft; `models/adult_male/adult_female/c1_atlas.glb` wurde geladen und dargestellt.
 
-**Danach:** lokale GLB-Datei importieren und freigeben, Ladefehler/Retry separat prüfen, anschließend Lizenz-/Quellenmetadaten und fehlende Paketmanager-Manifeste klären, bevor Assets als offline-downloadbare Pakete angeboten werden.
+**Offener nächster Test:** Lauf #73 (`45753859187`) auf Commit `23573a061a81bdd375e11926daf7bc95633466a3` ergänzt die End-to-End-Prüfung des lokalen GLB-Imports über „GLB lokal wählen“ und des anschließenden Modellwechsels. Das Ergebnis dieses Laufs ist bei dieser Dokumentation noch offen.
+
+**Danach:** Ladefehler/Retry separat prüfen, lokale Blob-URL-Freigabe verifizieren, anschließend Lizenz-/Quellenmetadaten und fehlende Paketmanager-Manifeste klären, bevor Assets als offline-downloadbare Pakete angeboten werden.
 
