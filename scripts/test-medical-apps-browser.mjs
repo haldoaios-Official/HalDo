@@ -154,7 +154,10 @@ async function run() {
   const address = server.address();
   const baseUrl = 'http://127.0.0.1:' + address.port;
 
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch({
+    headless: true,
+    args: ['--enable-webgl', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']
+  });
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     acceptDownloads: true
@@ -162,11 +165,17 @@ async function run() {
   page = await context.newPage();
   page.on('pageerror', (error) => pageErrors.push(error.stack || error.message));
 
-  // The medical apps are local-only. Avoid unrelated third-party model/CDN
-  // downloads during this focused browser test.
+  // The OS shell needs its pinned Three.js r128 runtime to initialize the
+  // cosmic background and remove the startup loader. Keep unrelated services blocked.
+  const requiredExternalAssets = [
+    'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
+    'https://cdn.jsdelivr.net/npm/three@0.128.0/',
+    'https://unpkg.com/three-globe/example/img/'
+  ];
   await page.route('**/*', (route) => {
     const url = route.request().url();
-    if (url.startsWith(baseUrl) || url.startsWith('data:') || url.startsWith('blob:')) {
+    if (url.startsWith(baseUrl) || url.startsWith('data:') || url.startsWith('blob:') ||
+        requiredExternalAssets.some((prefix) => url.startsWith(prefix))) {
       return route.continue();
     }
     return route.abort();
@@ -186,7 +195,8 @@ async function run() {
   await systemWelcome.waitFor({ state: 'visible', timeout: 15000 });
   await systemWelcome.locator('button.h161-button').click();
   await systemWelcome.waitFor({ state: 'detached', timeout: 10000 });
-  pass('HalDo-Willkommensbildschirm: „System betreten“ öffnet den Arbeitsbereich');
+  await page.locator('#loader').waitFor({ state: 'hidden', timeout: 20000 });
+  pass('HalDo-Willkommensbildschirm und Three.js-Kosmos: Arbeitsbereich vollständig gestartet');
 
   // Laborwerte: empty-vault persistence, CRUD, ciphertext, backup restore and password rejection.
   const labKey = 'haldo_v167_laborwerte_vault';
