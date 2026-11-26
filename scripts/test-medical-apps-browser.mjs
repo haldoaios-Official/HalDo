@@ -82,35 +82,39 @@ async function dismissWelcomeIfPresent() {
   await welcome.waitFor({ state: 'detached', timeout: 10000 });
 }
 
-async function openHealthHub() {
+async function openArztbuchHub() {
   await page.evaluate(() => {
     if (!window.HalDo || typeof window.HalDo.Launch !== 'function') {
       throw new Error('HalDo.Launch ist nicht verfügbar.');
     }
-    window.HalDo.Launch({ id: 'arztbuch', n: '🩺 Arztbuch' });
+    window.HalDo.Launch({ id: 'arztbuch', n: 'HalDo Arztbuch Pro' });
   });
   await dismissWelcomeIfPresent();
-  const title = page.locator('#winLayer .win-title')
-    .filter({ hasText: 'HalDo Arztbuch Pro · Kommandozentrale' }).last();
-  await title.waitFor({ state: 'visible', timeout: 20000 });
-  const hub = page.locator('#winLayer .window')
-    .filter({ hasText: 'HalDo Arztbuch Pro · Kommandozentrale' }).last();
-  await hub.waitFor({ state: 'visible', timeout: 5000 });
-  return hub;
+  const unlockForm = page.locator('[data-ab-unlock-form]').last();
+  await unlockForm.waitFor({ state: 'visible', timeout: 20000 });
+  await unlockForm.locator('[name="pass"]').fill(PASS);
+  await unlockForm.locator('[name="confirm"]').fill(PASS);
+  await unlockForm.locator('button[type="submit"]').click();
+  const launchButton = page.locator('[data-ab-open-module="laborwerte-pro"]').last();
+  await launchButton.waitFor({ state: 'visible', timeout: 20000 });
+  const windowId = await launchButton.evaluate((element) => {
+    const host = element.closest('.window');
+    return host && host.id ? host.id : null;
+  });
+  assert.ok(windowId, 'Das entsperrte Arztbuch-Fenster konnte nicht gefunden werden.');
+  return page.locator('#' + windowId);
 }
 
-async function openMedicalAppFromHub(hub, label) {
-  const tile = hub.getByRole('button', { name: label });
-  await tile.waitFor({ state: 'visible', timeout: 10000 });
-  await tile.click();
+async function openMedicalAppFromHub(hub, appId) {
+  const launchButton = hub.locator('[data-ab-open-module="' + appId + '"]');
+  await launchButton.waitFor({ state: 'visible', timeout: 10000 });
+  await launchButton.click();
   await dismissWelcomeIfPresent();
   await page.locator('#h167-unlock-form').last().waitFor({ state: 'visible', timeout: 20000 });
-  // Keep the root locator stable after unlocking replaces the gate form with the workspace form.
   const root = page.locator('.h167').last();
   await root.waitFor({ state: 'visible', timeout: 5000 });
   return root;
 }
-
 async function closeWindow(win) {
   const windowId = await win.getAttribute('id');
   assert.ok(windowId, 'Fenster-ID konnte vor dem Schließen nicht gelesen werden.');
@@ -238,12 +242,12 @@ async function run() {
   pass('HalDo-Willkommensbildschirm und Three.js-Kosmos: Arbeitsbereich vollständig gestartet');
 
   // Open the real Arztbuch hub first. Both encrypted modules must be reachable from its tiles.
-  const hub = await openHealthHub();
-  pass('Arztbuch Pro Kommandozentrale ist über die bestehende Arztbuch-App erreichbar');
+  const hub = await openArztbuchHub();
+  pass('HalDo Arztbuch Pro wurde geöffnet und der eigene Tresor entsperrt');
 
   // Laborwerte: empty-vault persistence, CRUD, ciphertext, backup restore and password rejection.
   const labKey = 'haldo_v167_laborwerte_vault';
-  const lab = await openMedicalAppFromHub(hub, 'Laborwerte Pro');
+  const lab = await openMedicalAppFromHub(hub, 'laborwerte-pro');
   pass('Arztbuch-Kommandozentrale öffnet HalDo Laborwerte Pro direkt');
   await createOrUnlock(lab, PASS);
   await assertEncrypted(labKey);
@@ -310,7 +314,7 @@ async function run() {
 
   // Medication plan: required fields, edit/save path, ciphertext, backup import/export.
   const medicationKey = 'haldo_v167_medication_vault';
-  const medication = await openMedicalAppFromHub(hub, 'Medikamentenplan Pro');
+  const medication = await openMedicalAppFromHub(hub, 'medikamentenplan-pro');
   pass('Arztbuch-Kommandozentrale öffnet HalDo Medikamentenplan Pro direkt');
   await createOrUnlock(medication, PASS);
   await assertEncrypted(medicationKey);
