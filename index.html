@@ -6976,43 +6976,10 @@ HalDo.Health = {
       ['🥗','Ernährung', () => HalDo.Nutrition.open()],
       ['💉','Impfungen', () => HalDo.Impfungen.open()],
       ['🧪','Laborwerte', () => HalDo.Lab.open()],
-      ['🧘','Mental Health', () => HalDo.MentalHealth.open()],
-      ['🧪','Laborwerte Pro', () => HalDo.Launch({id:'laborwerte-pro', n:'HalDo Laborwerte Pro'})],
-      ['💊','Medikamentenplan Pro', () => HalDo.Launch({id:'medikamentenplan-pro', n:'HalDo Medikamentenplan Pro'})]
+      ['🧘','Mental Health', () => HalDo.MentalHealth.open()]
     ];
-    const html = `
-      <div style="padding:10px">
-        <div style="padding:13px;margin-bottom:12px;border:1px solid rgba(0,229,255,.24);border-radius:13px;background:linear-gradient(120deg,rgba(0,180,210,.12),rgba(120,80,210,.12))">
-          <strong style="font-size:15px">🩺 HalDo Arztbuch Pro</strong>
-          <div style="font-size:11px;opacity:.78;margin-top:4px">Deine medizinische Kommandozentrale für Information, Organisation und Dokumentation.</div>
-          <div style="font-size:10px;opacity:.65;margin-top:6px">Laborwerte Pro und Medikamentenplan Pro speichern Einträge in getrennten, lokal verschlüsselten Tresoren.</div>
-        </div>
-        <div class="app-grid">${subs.map(([i,n],k) => `
-          <div class="app-tile" data-h="${k}" role="button" tabindex="0" aria-label="${n}">
-            <div class="ico">${i}</div><div class="nm">${n}</div>
-          </div>
-        `).join('')}</div>
-        <p style="font-size:10px;opacity:.62;margin:12px 2px 2px">Dokumentations- und Informationshilfe. Sie ersetzt keine ärztliche Untersuchung, Diagnose oder Verordnung.</p>
-      </div>
-    `;
-    const windowId = miniApp('🩺 HalDo Arztbuch Pro · Kommandozentrale', html, 520, 610);
-    window.setTimeout(() => {
-      const win = document.getElementById(windowId);
-      if (!win) return;
-      win.querySelectorAll('[data-h]').forEach(el => {
-        const launch = () => {
-          const item = subs[Number(el.dataset.h)];
-          if (item && typeof item[2] === 'function') item[2]();
-        };
-        el.addEventListener('click', launch);
-        el.addEventListener('keydown', event => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            launch();
-          }
-        });
-      });
-    }, 100);
+    miniApp('🏥 Gesundheit Pro', `<div style="padding:4px"><div class="app-grid">${subs.map(([i,n],k) => `<div class="app-tile" data-h="${k}"><div class="ico">${i}</div><div class="nm">${n}</div></div>`).join('')}</div></div>`, 480, 480);
+    setTimeout(() => document.querySelectorAll('[data-h]').forEach(el => el.onclick = () => subs[parseInt(el.dataset.h)][2]()), 100);
   }
 };
 
@@ -11329,6 +11296,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
     function overviewHtml(){
       var next=data.appointments.filter(function(x){return x.date&&x.date>=new Date().toISOString().slice(0,10);}).sort(function(a,b){return a.date.localeCompare(b.date);})[0];
       return '<div class="hdp154-statgrid"><div class="hdp154-stat"><b>'+data.appointments.length+'</b><span>Arzttermine</span></div><div class="hdp154-stat"><b>'+data.medications.length+'</b><span>Medikamente dokumentiert</span></div><div class="hdp154-stat"><b>'+data.labs.length+'</b><span>Laborwerte</span></div></div>'+
+        '<div class="hdp154-panel"><b>Erweiterte Dokumentation</b><p class="hdp154-muted">Öffne die eigenständigen, lokal verschlüsselten Pro-Module für Laborwerte und Medikationsdokumentation.</p><div class="hdp154-actions"><button class="hdp154-btn primary" type="button" data-ab-open-module="laborwerte-pro">🧪 Laborwerte Pro öffnen</button><button class="hdp154-btn primary" type="button" data-ab-open-module="medikamentenplan-pro">💊 Medikamentenplan Pro öffnen</button></div></div>'+
         '<div class="hdp154-panel"><b>Nächster eingetragener Termin</b><p style="margin-top:6px">'+(next?esc(next.title)+' · '+esc(dateText(next.date)):'Noch kein zukünftiger Termin eingetragen.')+'</p></div>'+
         '<div class="hdp154-panel"><b>Deine Übersicht</b><p>Allergien: '+data.allergies.length+' · Notizen: '+data.notes.length+'</p><div class="hdp154-actions"><button class="hdp154-btn primary" data-ab-read>🔊 HalDo AI liest Übersicht vor</button><button class="hdp154-btn" data-ab-export>⬇ Verschlüsselte Sicherung</button><button class="hdp154-btn danger" data-ab-lock>🔒 Jetzt sperren</button></div></div>'+
         '<div class="hdp154-ai"><div class="hdp154-ai-title">🦾 HalDo AI · Arztbuch-Leseassistent</div><p class="hdp154-muted">Frage nach deinen gespeicherten Einträgen oder lasse dir die Übersicht vorlesen. Die Hilfe organisiert und liest Angaben – sie diagnostiziert nicht.</p><form data-ab-ai-form><input class="hdp154-field" name="question" maxlength="220" placeholder="z. B. Lies meine Laborwerte vor" required><div class="hdp154-actions"><button class="hdp154-btn primary" type="submit">HalDo KI fragen</button></div></form><div class="hdp154-feedback" data-ab-ai-answer>HalDo AI ist bereit.</div></div>';
@@ -11404,6 +11372,14 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
       root.addEventListener('click',function(event){
         var b=event.target.closest('button');if(!b||!root.contains(b))return;
         if(b.dataset.abTab){tab=b.dataset.abTab;renderUnlocked(root);return;}
+        if(b.dataset.abOpenModule){
+          var moduleId=b.dataset.abOpenModule;
+          var moduleNames={'laborwerte-pro':'HalDo Laborwerte Pro','medikamentenplan-pro':'HalDo Medikamentenplan Pro'};
+          if(!moduleNames[moduleId])return;
+          if(typeof H.Launch==='function')H.Launch({id:moduleId,n:moduleNames[moduleId]});
+          else notify('Das gewählte Pro-Modul ist derzeit nicht verfügbar.','error');
+          return;
+        }
         if(b.hasAttribute('data-ab-lock')){lock();notify('HalDo Arztbuch wurde gesperrt.');return;}
         if(b.hasAttribute('data-ab-read')){speak(summary());return;}
         if(b.hasAttribute('data-ab-export')){
