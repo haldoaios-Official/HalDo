@@ -54,6 +54,7 @@ const server = http.createServer(async (req, res) => {
 let browser;
 let page;
 const pageErrors = [];
+const browserConsoleErrors = [];
 const checks = [];
 
 function pass(label) {
@@ -261,6 +262,7 @@ async function run() {
   });
   page = await context.newPage();
   page.on('pageerror', (error) => pageErrors.push(error.stack || error.message));
+  page.on('console', (message) => { if (message.type() === 'error') browserConsoleErrors.push(message.text()); });
 
   // The OS shell needs its pinned Three.js r128 runtime to initialize the
   // cosmic background and remove the startup loader. Keep unrelated services blocked.
@@ -336,6 +338,7 @@ async function run() {
   const worldClockRoot = page.locator('#winLayer .hdv168-root').last();
   await worldClockRoot.waitFor({ state: 'visible', timeout: 10000 });
   const worldClockCards = worldClockRoot.locator('[data-wc-card]');
+  await worldClockCards.first().waitFor({ state: 'visible', timeout: 10000 });
   assert.equal(await worldClockCards.count(), 4);
   assert.notEqual(await worldClockRoot.locator('[data-wc-time="berlin"]').innerText(), '--:--:--');
   await worldClockRoot.locator('[data-wc-select]').selectOption('Asia/Dubai');
@@ -348,6 +351,7 @@ async function run() {
   await page.evaluate(() => window.HalDo.Launch({ id: 'worldclock', n: 'HalDo Weltuhr Pro' }));
   const reopenedWorldClock = page.locator('#winLayer .hdv168-root').last();
   await reopenedWorldClock.waitFor({ state: 'visible', timeout: 10000 });
+  await reopenedWorldClock.locator('[data-wc-card]').first().waitFor({ state: 'visible', timeout: 10000 });
   assert.equal(await reopenedWorldClock.locator('[data-wc-card]').count(), 5);
   await reopenedWorldClock.locator('[data-wc-search]').fill('Dubai');
   assert.equal(await reopenedWorldClock.locator('[data-wc-card]:visible').count(), 1);
@@ -1074,6 +1078,7 @@ try {
   console.error('\nBROWSER-TEST FEHLGESCHLAGEN');
   console.error(error?.stack || error);
   if (pageErrors.length) console.error('BROWSER PAGE ERRORS ' + pageErrors.join('\n---\n'));
+  if (browserConsoleErrors.length) console.error('BROWSER CONSOLE ERRORS ' + browserConsoleErrors.join('\n---\n'));
   process.exitCode = 1;
 } finally {
   if (browser) await browser.close().catch(() => {});
