@@ -330,7 +330,7 @@ async function run() {
     worldClock: window.HalDo.AppBrowser.getStatus('worldclock'),
     recipeScaler: window.HalDo.AppBrowser.getStatus('recipe-scaler')
   }));
-  assert.equal(v168Build.version, '172.0.0');
+  assert.equal(v168Build.version, '173.0.0');
   assert.equal(v168Build.worldClock.kind, 'module');
   assert.equal(v168Build.recipeScaler.kind, 'module');
   const v168Runtime = await page.evaluate(() => ({
@@ -343,7 +343,7 @@ async function run() {
   assert.equal(v168Runtime.worldClockOpen, 'function');
   assert.equal(v168Runtime.recipeScalerOpen, 'function');
   assert.equal(v168Runtime.scriptLoaded, true);
-  assert.equal(v168Runtime.build, '172.0.0');
+  assert.equal(v168Runtime.build, '173.0.0');
   await page.evaluate(() => window.HalDo.Launch({ id: 'worldclock', n: 'HalDo Weltuhr Pro' }));
   await dismissWelcomeIfPresent();
   const worldClockRoot = page.locator('#winLayer .hdv168-root').last();
@@ -651,6 +651,7 @@ async function run() {
   assert.equal(/\bnew\s+Function\s*\(/.test(v172Source), false, 'Wissenschaftsrechner darf keine dynamischen Funktionen erzeugen.');
   const v172Runtime = await page.evaluate(() => ({
     build: window.HalDo.Master.version,
+    moduleVersion: window.HalDo.AppsV172.version,
     apps: window.HalDo.AppsV172.apps.map((app) => app.id),
     breathing: window.HalDo.AppBrowser.getStatus('breathing'),
     scientific: window.HalDo.AppBrowser.getStatus('scientific'),
@@ -658,7 +659,8 @@ async function run() {
     scientificOpen: typeof window.HalDo.scientific?.open,
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v172-learning-apps.js'))
   }));
-  assert.equal(v172Runtime.build, '172.0.0');
+  assert.equal(v172Runtime.build, '173.0.0');
+  assert.equal(v172Runtime.moduleVersion, '172.0.0');
   assert.deepEqual(v172Runtime.apps, ['breathing', 'scientific']);
   assert.equal(v172Runtime.breathing.kind, 'module');
   assert.equal(v172Runtime.scientific.kind, 'module');
