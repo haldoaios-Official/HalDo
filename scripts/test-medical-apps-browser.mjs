@@ -103,7 +103,7 @@ async function seedLegacyArztbuchVault() {
       v: 1, algorithm: 'AES-GCM-256', kdf: 'PBKDF2-SHA-256', iterations: 210000,
       salt: toB64(salt), iv: toB64(iv), cipher: toB64(cipher)
     }));
-  }, passphrase);
+  }, PASS);
 }
 async function readArztbuchData(passphrase) {
   return page.evaluate(async ({ storageKey, pass }) => {
