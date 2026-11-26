@@ -351,8 +351,10 @@ async function run() {
   assert.equal(v168Runtime.recipeScalerOpen, 'function');
   assert.equal(v168Runtime.scriptLoaded, true);
   assert.equal(v168Runtime.build, '176.0.0');
-  await page.evaluate(() => window.HalDo.Launch({ id: 'worldclock', n: 'HalDo Weltuhr Pro' }));
-  await dismissWelcomeIfPresent();
+  // Test the World Clock module directly here. The global welcome/launcher flow
+  // is covered separately; keeping it out of this module test avoids conflating
+  // welcome-overlay timing with the actual window and clock implementation.
+  await page.evaluate(() => window.HalDo.worldclock.open());
   const worldClockRoot = page.locator('#winLayer .hdv168-root').last();
   await worldClockRoot.waitFor({ state: 'visible', timeout: 10000 });
   const worldClockCards = worldClockRoot.locator('[data-wc-card]');
@@ -366,7 +368,7 @@ async function run() {
   const savedZones = await page.evaluate(() => window.HalDo.Store.get('haldo_v168_world_clock_zones', []));
   assert.equal(savedZones.length, 5);
   await closeWindow(worldClockRoot);
-  await page.evaluate(() => window.HalDo.Launch({ id: 'worldclock', n: 'HalDo Weltuhr Pro' }));
+  await page.evaluate(() => window.HalDo.worldclock.open());
   const reopenedWorldClock = page.locator('#winLayer .hdv168-root').last();
   await reopenedWorldClock.waitFor({ state: 'visible', timeout: 10000 });
   await reopenedWorldClock.locator('[data-wc-card]').first().waitFor({ state: 'visible', timeout: 10000 });
