@@ -172,25 +172,23 @@ async function openMedicalAppFromHub(hub, appId) {
   return root;
 }
 async function closeWindow(root) {
-  const closeResult = await root.evaluate((element) => {
+  const windowId = await root.evaluate((element) => {
     const layer = element.closest('#winLayer');
-    if (!layer) return { ok: false, reason: 'winLayer nicht gefunden' };
-    let windowHost = element;
-    while (windowHost.parentElement && windowHost.parentElement !== layer) {
-      windowHost = windowHost.parentElement;
+    if (!layer) return null;
+    let host = element;
+    while (host.parentElement && host.parentElement !== layer) {
+      host = host.parentElement;
     }
-    if (windowHost.parentElement !== layer || !windowHost.id) {
-      return { ok: false, reason: 'Fenstercontainer nicht gefunden' };
-    }
-    const closeButton = windowHost.querySelector('[data-act="close"]');
-    if (!closeButton) {
-      return { ok: false, reason: 'Schließen-Schaltfläche fehlt', windowId: windowHost.id };
-    }
-    closeButton.click();
-    return { ok: true, windowId: windowHost.id };
+    return host.parentElement === layer && host.id ? host.id : null;
   });
-  assert.ok(closeResult.ok, 'Fenster-Schließen nicht möglich: ' + JSON.stringify(closeResult));
-  await page.locator('#' + closeResult.windowId).waitFor({ state: 'detached', timeout: 5000 });
+  assert.ok(windowId, 'HalDo-Fenster konnte im #winLayer nicht gefunden werden.');
+  await page.evaluate((id) => {
+    if (!window.HalDo || !window.HalDo.Win || typeof window.HalDo.Win.close !== 'function') {
+      throw new Error('HalDo.Win.close ist nicht verfügbar.');
+    }
+    window.HalDo.Win.close(id);
+  }, windowId);
+  await page.locator('#' + windowId).waitFor({ state: 'detached', timeout: 5000 });
 }
 async function createOrUnlock(root, passphrase) {
   await root.locator('#h167-pass').fill(passphrase);
