@@ -320,7 +320,7 @@ async function run() {
     worldClock: window.HalDo.AppBrowser.getStatus('worldclock'),
     recipeScaler: window.HalDo.AppBrowser.getStatus('recipe-scaler')
   }));
-  assert.equal(v168Build.version, '171.0.0');
+  assert.equal(v168Build.version, '172.0.0');
   assert.equal(v168Build.worldClock.kind, 'module');
   assert.equal(v168Build.recipeScaler.kind, 'module');
   const v168Runtime = await page.evaluate(() => ({
@@ -333,7 +333,7 @@ async function run() {
   assert.equal(v168Runtime.worldClockOpen, 'function');
   assert.equal(v168Runtime.recipeScalerOpen, 'function');
   assert.equal(v168Runtime.scriptLoaded, true);
-  assert.equal(v168Runtime.build, '171.0.0');
+  assert.equal(v168Runtime.build, '172.0.0');
   await page.evaluate(() => window.HalDo.Launch({ id: 'worldclock', n: 'HalDo Weltuhr Pro' }));
   await dismissWelcomeIfPresent();
   const worldClockRoot = page.locator('#winLayer .hdv168-root').last();
@@ -584,7 +584,7 @@ async function run() {
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v171-date-device-apps.js'))
   }));
   console.log('HALDO V171 RUNTIME ' + JSON.stringify(v171Runtime));
-  assert.equal(v171Runtime.build, '171.0.0');
+  assert.equal(v171Runtime.build, '172.0.0');
   assert.equal(v171Runtime.datecalc.kind, 'module');
   assert.equal(v171Runtime.deviceInfo.kind, 'module');
   assert.equal(v171Runtime.datecalcOpen, 'function');
@@ -635,6 +635,90 @@ async function run() {
   await closeWindow(deviceRoot);
   pass('HalDo Geräte-Info Pro: Browser-/Display-/API-Diagnose lokal anzeigen, aktualisieren und keine Funk-IDs auslesen');
 
+  // v172: two formerly generic scaffolds are replaced by real independent apps.
+  const v172Source = await fs.readFile(path.join(ROOT, 'js/haldo-v172-learning-apps.js'), 'utf8');
+  assert.equal(/\\beval\\s*\\(/.test(v172Source), false, 'Wissenschaftsrechner darf keine dynamische Auswertung verwenden.');
+  assert.equal(/\\bnew\\s+Function\\s*\\(/.test(v172Source), false, 'Wissenschaftsrechner darf keine dynamischen Funktionen erzeugen.');
+  const v172Runtime = await page.evaluate(() => ({
+    build: window.HalDo.Master.version,
+    apps: window.HalDo.AppsV172.apps.map((app) => app.id),
+    breathing: window.HalDo.AppBrowser.getStatus('breathing'),
+    scientific: window.HalDo.AppBrowser.getStatus('scientific'),
+    breathingOpen: typeof window.HalDo.breathing?.open,
+    scientificOpen: typeof window.HalDo.scientific?.open,
+    scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v172-learning-apps.js'))
+  }));
+  assert.equal(v172Runtime.build, '172.0.0');
+  assert.deepEqual(v172Runtime.apps, ['breathing', 'scientific']);
+  assert.equal(v172Runtime.breathing.kind, 'module');
+  assert.equal(v172Runtime.scientific.kind, 'module');
+  assert.equal(v172Runtime.breathingOpen, 'function');
+  assert.equal(v172Runtime.scientificOpen, 'function');
+  assert.equal(v172Runtime.scriptLoaded, true);
+  pass('HalDo v172: Atemtrainer und Wissenschaftsrechner sind als eigene Module registriert');
+
+  await page.evaluate(() => window.HalDo.Launch({ id: 'breathing', n: 'HalDo Atemtrainer Pro' }));
+  await dismissWelcomeIfPresent();
+  const breathingRoot = page.locator('#winLayer .hdv172-root[data-hv172-app="breathing"]').last();
+  await breathingRoot.waitFor({ state: 'visible', timeout: 10000 });
+  await breathingRoot.locator('[data-b172-pattern]').selectOption('box');
+  await breathingRoot.locator('[data-b172-cycles]').selectOption('2');
+  const breathingPrefs = await page.evaluate(() => window.HalDo.Store.get('haldo_v172_breathing_preferences', {}));
+  assert.deepEqual(breathingPrefs, { pattern: 'box', cycles: 2 });
+  await breathingRoot.locator('[data-b172-start]').click();
+  assert.equal(await breathingRoot.locator('[data-b172-phase]').innerText(), 'Einatmen');
+  assert.equal(await breathingRoot.locator('[data-b172-time]').innerText(), '4');
+  assert.equal(await breathingRoot.locator('[data-b172-pause]').isDisabled(), false);
+  await breathingRoot.locator('[data-b172-pause]').click();
+  assert.equal(await breathingRoot.locator('[data-b172-start]').innerText(), '▶ Fortsetzen');
+  assert.match(await breathingRoot.locator('[data-b172-status]').innerText(), /Pausiert/);
+  await breathingRoot.locator('[data-b172-start]').click();
+  assert.equal(await breathingRoot.locator('[data-b172-pause]').isDisabled(), false);
+  await breathingRoot.locator('[data-b172-reset]').click();
+  assert.match(await breathingRoot.locator('[data-b172-status]').innerText(), /Zurückgesetzt/);
+  assert.equal(await breathingRoot.locator('[data-b172-pattern]').isDisabled(), false);
+  assert.equal(await page.evaluate(() => window.HalDo.Store.get('haldo_v172_breathing_history', []).length), 0);
+  await closeWindow(breathingRoot);
+  pass('HalDo Atemtrainer Pro: Muster auswählen, Runden setzen, starten, pausieren, fortsetzen und sicher zurücksetzen');
+
+  await page.evaluate(() => window.HalDo.Launch({ id: 'scientific', n: 'HalDo Wissenschaftsrechner Pro' }));
+  await dismissWelcomeIfPresent();
+  const scientificRoot = page.locator('#winLayer .hdv172-root[data-hv172-app="scientific"]').last();
+  await scientificRoot.waitFor({ state: 'visible', timeout: 10000 });
+  const scientificInput = scientificRoot.locator('[data-s172-expression]');
+  const scientificResult = scientificRoot.locator('[data-s172-result]');
+  await scientificInput.fill('sqrt(81)+sin(30)');
+  await scientificRoot.locator('[data-s172-calculate]').click();
+  assert.equal(await scientificResult.innerText(), '9.5');
+  await scientificInput.fill('2^3^2');
+  await scientificRoot.locator('[data-s172-calculate]').click();
+  assert.equal(await scientificResult.innerText(), '512');
+  await scientificInput.fill('1/0');
+  await scientificRoot.locator('[data-s172-calculate]').click();
+  assert.match(await scientificRoot.locator('[data-s172-status]').innerText(), /Division durch null/);
+  assert.equal(await scientificResult.innerText(), '–');
+  await scientificRoot.locator('[data-s172-angle]').click();
+  assert.equal(await scientificRoot.locator('[data-s172-angle]').innerText(), 'RAD');
+  await scientificInput.fill('sin(pi/2)');
+  await scientificRoot.locator('[data-s172-calculate]').click();
+  assert.equal(await scientificResult.innerText(), '1');
+  await scientificRoot.locator('[data-s172-angle]').click();
+  await scientificInput.fill('Ans+1');
+  await scientificRoot.locator('[data-s172-calculate]').click();
+  assert.equal(await scientificResult.innerText(), '2');
+  const scientificHistory = await page.evaluate(() => window.HalDo.Store.get('haldo_v172_scientific_history', []));
+  assert.equal(scientificHistory.length, 4);
+  await closeWindow(scientificRoot);
+  await page.evaluate(() => window.HalDo.Launch({ id: 'scientific', n: 'HalDo Wissenschaftsrechner Pro' }));
+  const reopenedScientific = page.locator('#winLayer .hdv172-root[data-hv172-app="scientific"]').last();
+  await reopenedScientific.waitFor({ state: 'visible', timeout: 10000 });
+  assert.equal(await reopenedScientific.locator('[data-s172-history] li').count(), 4);
+  await reopenedScientific.locator('[data-s172-clear-history]').click();
+  assert.equal(await page.evaluate(() => window.HalDo.Store.get('haldo_v172_scientific_history', []).length), 0);
+  await closeWindow(reopenedScientific);
+  pass('HalDo Wissenschaftsrechner Pro: DEG/RAD, Funktionen, Potenzbindung, Ans, Fehlerbehandlung und Verlauf sicher berechnen');
+
+
 
 
 
@@ -673,7 +757,9 @@ async function run() {
       recipes: H.AppBrowser.getStatus('recipes'),
       analyzer: H.AppBrowser.getStatus('analyzer'),
       datecalc: H.AppBrowser.getStatus('datecalc'),
-      deviceInfo: H.AppBrowser.getStatus('device-info')
+      deviceInfo: H.AppBrowser.getStatus('device-info'),
+      breathing: H.AppBrowser.getStatus('breathing'),
+      scientific: H.AppBrowser.getStatus('scientific')
     };
   });
   assert.equal(registryHealth.categoryCount, 26);
@@ -700,7 +786,10 @@ async function run() {
   assert.equal(registryHealth.utilities.kind, 'module');
   assert.equal(registryHealth.recipes.kind, 'module');
   assert.equal(registryHealth.analyzer.kind, 'module');
-  assert.equal(registryHealth.statusCounts.modules, 76);
+  assert.equal(registryHealth.statusCounts.modules, 78);
+  assert.equal(registryHealth.statusCounts.scaffolds, 1);
+  assert.equal(registryHealth.breathing.kind, 'module');
+  assert.equal(registryHealth.scientific.kind, 'module');
   assert.equal(registryHealth.statusCounts.review, 6);
   assert.equal(registryHealth.datecalc.kind, 'module');
   assert.equal(registryHealth.deviceInfo.kind, 'module');
