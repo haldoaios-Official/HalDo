@@ -89,12 +89,12 @@ function germanBoneName(id) {
 
   let match = id.match(/^c([2-7])$/);
   if (match) return match[1] + '. Halswirbel';
-  match = id.match(/^t(\\d+)$/);
+  match = id.match(/^t(\d+)$/);
   if (match) return match[1] + '. Brustwirbel';
-  match = id.match(/^l(\\d+)$/);
+  match = id.match(/^l(\d+)$/);
   if (match) return match[1] + '. Lendenwirbel';
 
-  match = id.match(/^(left|right)_rib_(\\d+)$/);
+  match = id.match(/^(left|right)_rib_(\d+)$/);
   if (match) return match[2] + '. Rippe ' + (match[1] === 'left' ? 'links' : 'rechts');
 
   const side = germanSide(id);
@@ -110,19 +110,19 @@ function germanBoneName(id) {
     return GERMAN_TARSAL_NAMES[prefix] + (side ? ' ' + side.toLowerCase() : '');
   }
 
-  match = prefix.match(/^metacarpal_(\\d+)$/);
+  match = prefix.match(/^metacarpal_(\d+)$/);
   if (match) return match[1] + '. Mittelhandknochen ' + side.toLowerCase();
-  match = prefix.match(/^metatarsal_(\\d+)$/);
+  match = prefix.match(/^metatarsal_(\d+)$/);
   if (match) return match[1] + '. Mittelfußknochen ' + side.toLowerCase();
 
-  match = prefix.match(/^digit_(\\d+)_(proximal|middle|distal)$/);
+  match = prefix.match(/^digit_(\d+)_(proximal|middle|distal)$/);
   if (match) {
     const finger = GERMAN_FINGER_NAMES[match[1]];
     const part = { proximal: 'Grundglied', middle: 'Mittelglied', distal: 'Endglied' }[match[2]];
     return part + ' des ' + finger + 's ' + side.toLowerCase();
   }
 
-  match = prefix.match(/^toe_(\\d+)_(proximal|middle|distal)$/);
+  match = prefix.match(/^toe_(\d+)_(proximal|middle|distal)$/);
   if (match) {
     const toe = GERMAN_TOE_NAMES[match[1]];
     const part = { proximal: 'Grundglied', middle: 'Mittelglied', distal: 'Endglied' }[match[2]];
