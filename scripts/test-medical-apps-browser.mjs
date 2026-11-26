@@ -311,6 +311,77 @@ async function run() {
     await closeWindow(openedTitle);
   }
   pass('HalDo Core: Living Avatar und sechs v165/v166-Apps öffnen ihre eigenen Module über den zentralen Launcher');
+
+  // v168: world clock with persistent timezone list.
+  const v168Build = await page.evaluate(() => ({
+    version: window.HalDo.Master.version,
+    worldClock: window.HalDo.AppBrowser.getStatus('worldclock'),
+    recipeScaler: window.HalDo.AppBrowser.getStatus('recipe-scaler')
+  }));
+  assert.equal(v168Build.version, '168.0.0');
+  assert.equal(v168Build.worldClock.kind, 'module');
+  assert.equal(v168Build.recipeScaler.kind, 'module');
+  await page.evaluate(() => window.HalDo.Launch({ id: 'worldclock', n: 'HalDo Weltuhr Pro' }));
+  await dismissWelcomeIfPresent();
+  const worldClockRoot = page.locator('#winLayer .hdv168-root').last();
+  await worldClockRoot.waitFor({ state: 'visible', timeout: 10000 });
+  const worldClockCards = worldClockRoot.locator('[data-wc-card]');
+  assert.equal(await worldClockCards.count(), 4);
+  assert.notEqual(await worldClockRoot.locator('[data-wc-time="berlin"]').innerText(), '--:--:--');
+  await worldClockRoot.locator('[data-wc-select]').selectOption('Asia/Dubai');
+  await worldClockRoot.locator('[data-wc-add]').click();
+  await worldClockRoot.locator('[data-wc-card]').filter({ hasText: 'Dubai' }).waitFor({ state: 'visible' });
+  assert.equal(await worldClockCards.count(), 5);
+  const savedZones = await page.evaluate(() => window.HalDo.Store.get('haldo_v168_world_clock_zones', []));
+  assert.equal(savedZones.length, 5);
+  await closeWindow(worldClockRoot);
+  await page.evaluate(() => window.HalDo.Launch({ id: 'worldclock', n: 'HalDo Weltuhr Pro' }));
+  const reopenedWorldClock = page.locator('#winLayer .hdv168-root').last();
+  await reopenedWorldClock.waitFor({ state: 'visible', timeout: 10000 });
+  assert.equal(await reopenedWorldClock.locator('[data-wc-card]').count(), 5);
+  await reopenedWorldClock.locator('[data-wc-search]').fill('Dubai');
+  assert.equal(await reopenedWorldClock.locator('[data-wc-card]:visible').count(), 1);
+  await reopenedWorldClock.locator('[data-wc-search]').fill('');
+  await reopenedWorldClock.locator('[data-wc-card]').filter({ hasText: 'Dubai' }).locator('[data-wc-remove]').click();
+  assert.equal(await reopenedWorldClock.locator('[data-wc-card]').count(), 4);
+  const zonesAfterRemoval = await page.evaluate(() => window.HalDo.Store.get('haldo_v168_world_clock_zones', []));
+  assert.equal(zonesAfterRemoval.length, 4);
+  await closeWindow(reopenedWorldClock);
+  pass('HalDo Weltuhr Pro: IANA-Zeitzonen hinzufügen, live anzeigen, speichern, wiederherstellen, filtern und entfernen');
+
+  // v168: recipe authoring and portion scaling preserve base amounts.
+  await page.evaluate(() => window.HalDo.Launch({ id: 'recipe-scaler', n: 'HalDo Rezept-Skalierung Pro' }));
+  await dismissWelcomeIfPresent();
+  const recipeRoot = page.locator('#winLayer .hdv168-root').last();
+  await recipeRoot.waitFor({ state: 'visible', timeout: 10000 });
+  await recipeRoot.locator('[data-rs-new]').first().click();
+  await recipeRoot.locator('[data-rs-name]').fill('E2E Pfannkuchen');
+  await recipeRoot.locator('[data-rs-base-servings]').fill('2');
+  let ingredientRows = recipeRoot.locator('[data-rs-ingredient]');
+  await ingredientRows.nth(0).locator('[data-rs-ingredient-name]').fill('Mehl');
+  await ingredientRows.nth(0).locator('[data-rs-ingredient-amount]').fill('200');
+  await ingredientRows.nth(0).locator('[data-rs-ingredient-unit]').fill('g');
+  await recipeRoot.locator('[data-rs-add-ingredient]').click();
+  ingredientRows = recipeRoot.locator('[data-rs-ingredient]');
+  assert.equal(await ingredientRows.count(), 2);
+  await ingredientRows.nth(1).locator('[data-rs-ingredient-name]').fill('Milch');
+  await ingredientRows.nth(1).locator('[data-rs-ingredient-amount]').fill('300');
+  await ingredientRows.nth(1).locator('[data-rs-ingredient-unit]').fill('ml');
+  await recipeRoot.locator('[data-rs-save]').click();
+  await recipeRoot.getByText('E2E Pfannkuchen', { exact: true }).waitFor({ state: 'visible' });
+  assert.deepEqual(await recipeRoot.locator('[data-rs-scaled-amount]').allTextContents(), ['200', '300']);
+  await recipeRoot.locator('[data-rs-target-servings]').fill('4');
+  assert.deepEqual(await recipeRoot.locator('[data-rs-scaled-amount]').allTextContents(), ['400', '600']);
+  const originalRecipe = await page.evaluate(() => window.HalDo.Store.get('haldo_v168_recipes', [])[0]);
+  assert.equal(originalRecipe.baseServings, 2);
+  assert.equal(originalRecipe.ingredients[0].amount, 200);
+  assert.equal(originalRecipe.ingredients[1].amount, 300);
+  await recipeRoot.locator('[data-rs-delete]').click();
+  assert.equal(await page.evaluate(() => window.HalDo.Store.get('haldo_v168_recipes', []).length), 0);
+  assert.equal(await recipeRoot.getByText('Noch keine Rezepte gespeichert.').count(), 1);
+  await closeWindow(recipeRoot);
+  pass('HalDo Rezept-Skalierung Pro: Rezepte anlegen, Zutaten pflegen, Portionen skalieren, Basisdaten bewahren und löschen');
+
   const registryHealth = await page.evaluate(() => {
     const H = window.HalDo;
     const apps = H.Registry.featured;
