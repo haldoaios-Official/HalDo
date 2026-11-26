@@ -772,7 +772,9 @@ async function run() {
       datecalc: H.AppBrowser.getStatus('datecalc'),
       deviceInfo: H.AppBrowser.getStatus('device-info'),
       breathing: H.AppBrowser.getStatus('breathing'),
-      scientific: H.AppBrowser.getStatus('scientific')
+      scientific: H.AppBrowser.getStatus('scientific'),
+      breathingRoute: H.SystemV157.resolveRoute('breathing'),
+      scientificRoute: H.SystemV157.resolveRoute('scientific')
     };
   });
   assert.equal(registryHealth.categoryCount, 26);
@@ -803,6 +805,12 @@ async function run() {
   assert.equal(registryHealth.statusCounts.scaffolds, 1);
   assert.equal(registryHealth.breathing.kind, 'module');
   assert.equal(registryHealth.scientific.kind, 'module');
+  assert.equal(registryHealth.breathingRoute.routeConfigured, true);
+  assert.equal(registryHealth.breathingRoute.moduleName, 'breathing');
+  assert.equal(registryHealth.breathingRoute.moduleAvailable, true);
+  assert.equal(registryHealth.scientificRoute.routeConfigured, true);
+  assert.equal(registryHealth.scientificRoute.moduleName, 'scientific');
+  assert.equal(registryHealth.scientificRoute.moduleAvailable, true);
   assert.equal(registryHealth.statusCounts.review, 6);
   assert.equal(registryHealth.datecalc.kind, 'module');
   assert.equal(registryHealth.deviceInfo.kind, 'module');
