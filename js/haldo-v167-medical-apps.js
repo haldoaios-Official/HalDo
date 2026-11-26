@@ -496,12 +496,9 @@
       }));
     };
   }
-  var previousLaunch = H.Launch;
-  H.Launch = function (app) {
-    if (app && app.id === 'laborwerte-pro') return H['laborwerte-pro'].open();
-    if (app && app.id === 'medikamentenplan-pro') return H['medikamentenplan-pro'].open();
-    if (typeof previousLaunch === 'function') return previousLaunch.apply(this, arguments);
-  };
+  // Do not wrap H.Launch here. The global welcome dispatcher in index.html
+  // already resolves H[app.id].open() after the welcome overlay is accepted.
+  // Directly opening medical apps here would bypass that shared experience.
   try {
     if (H.AppVoice && typeof H.AppVoice.command === 'function') {
       H.AppVoice.command('haldo-open-laborwerte',['öffne haldo laborwerte','starte laborwerte pro'],function () { H['laborwerte-pro'].open(); return 'HalDo Laborwerte Pro wird geöffnet.'; });
