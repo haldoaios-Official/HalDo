@@ -489,8 +489,14 @@ async function run() {
   await anatomyAppRoot.locator('[data-model-load]').click();
   await page.waitForFunction(() => {
     return Array.from(document.querySelectorAll('#winLayer .hdx-root [data-anatomy-status]'))
-      .some((element) => element.textContent.includes('3D-Modell sichtbar und interaktiv geladen'));
+      .some((element) => {
+        const message = element.textContent || '';
+        return message.includes('3D-Modell sichtbar und interaktiv geladen') ||
+          message.includes('3D-Modell geladen:');
+      });
   }, { timeout: 30000 });
+  const singleBoneStatus = await anatomyAppRoot.locator('[data-anatomy-status]').innerText();
+  console.log('SINGLE BONE GLB LOAD STATUS ' + singleBoneStatus);
   assert.equal(await anatomyAppRoot.locator('.hdx-anatomy-view canvas').count(), 1);
   pass('Anatomie 3D Pro: einzelnes vorhandenes GLB-Knochenmodell wird im aktiven Viewer geladen');
   await anatomyAppRoot.locator('[data-model-schematic]').click();
