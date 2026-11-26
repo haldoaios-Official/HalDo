@@ -429,3 +429,30 @@ Die aktuelle produktive Startseite wurde erneut direkt im Arbeitsbranch untersuc
 5. Anschließend die 3D-Anatomie-Ladepfade und Three.js-/GLB-Versionen systematisch vereinheitlichen; danach Living AI/Avatar und die übrigen Großsysteme.
 
 **Sicherheitsgrenze:** Diese Bestandsaufnahme ist eine Code-/Repository-Prüfung, kein vollständiger manueller UX-, Mobile-, Penetrations-, Datenschutz- oder klinischer Freigabetest.
+
+## Core-Launcher-Abnahme und Anatomie-Asset-Inventur (26.11.2026)
+
+### Launcher-Abnahme
+
+GitHub Actions Lauf #49 (`45750570163`) auf Commit `fbcbc5b568b3f25ed3b3f85c96c8e3237b2f2ce3` ist abgeschlossen: **33/33 Chromium-Browserprüfungen erfolgreich**. Zusätzlich zu den bisherigen Arztbuch-, Laborwerte- und Medikamentenplan-Prüfungen öffnen sechs v165/v166-Apps über `HalDo.Launch` tatsächlich ihre eigenen Module: Bibliothek, Inventar, Mindmap, Haushaltsmanager, Keyboard Studio und Datei-Konverter. Der gemeinsame Basis-Launcher prüft nun registrierte `HalDo[app.id].open()`-Module vor dem generischen Begrüßungs-Fallback. Das ist eine Launcher-Integration, keine vollständige Funktionsabnahme dieser sechs Apps.
+
+### Anatomie 3D – verifizierte Dateistruktur
+
+Die rekursive Git-Baum-Inventur auf `work-v167-medical-apps` ergab 539 GLB-Dateien im Repository, davon 537 unter `models/`. Die direkt im jeweiligen Profilordner vorhandenen Knochenmodelle sind:
+
+- `models/adult_male/`: 179 einzelne GLB-Knochenmodelle.
+- `models/adult_male/adult_female/`: 179 einzelne GLB-Knochenmodelle mit denselben Dateinamen.
+- `models/adult_male/adult_female/baby.glb/`: 178 einzelne GLB-Knochenmodelle; `c1_atlas.glb` fehlt in diesem Profil. `baby.glb` ist im Git-Baum ein Verzeichnis, keine einzelne GLB-Datei.
+- Ein Neugeborenen-Profilverzeichnis `models/neonate/` ist nicht vorhanden.
+
+Der aktive In-Shell-Viewer in `index.html` bietet aktuell nur 11 fest eingetragene Modellpfade an und lädt jeweils ein einzelnes Knochenmodell. Das ist kein vollständig zusammengesetztes, interaktives Ganzkörpermodell. `anatomie.html` ist eine separate Seite mit Three.js 0.160 ES-Modulen und verweist auf ein externes `body.glb`; der integrierte Viewer nutzt das globale Three.js r128. Diese Laufzeitpfade dürfen nicht ungeprüft vermischt werden.
+
+Die vorhandenen `models/manifest.json` und `models/sources.json`, auf die `models/loader.js` standardmäßig zugreift, fehlen derzeit. Die separate `js/haldo-human-3d-engine.js` verwendet eigene `assets/avatars/*.glb`-Pfade; Anatomie-Knochenmodelle werden nicht als Avatar-Ersatz verwendet. Vollständigkeit, Skinning/Animation und Lizenzherkunft der großen Root-GLBs sind noch nicht bestätigt.
+
+### Katalogkorrektur
+
+`models/catalog.js` wurde anhand der tatsächlichen Git-Pfade korrigiert: Adult Male und Adult Female zeigen auf die vorhandenen 179-Datei-Ordner; Infant zeigt auf den vorhandenen 178-Datei-Ordner `baby.glb/`; Neonate ist ausdrücklich `placeholder` ohne Root. Die Katalogfunktion gibt für nicht vorhandene Profil-/Knochen-IDs `null` zurück, statt still auf ein anderes Profil auszuweichen. `models/loader.js` nutzt jetzt diese Pfadauflösung und lehnt nicht verfügbare Assets ab, bevor ein 3D-Loader initialisiert wird.
+
+**Aktueller Testpunkt:** Browser-End-to-End-Prüfung lädt `models/catalog.js` und `models/loader.js`, überprüft die drei konkreten Modellpfade per HTTP HEAD (Erwartung: 200) und prüft die Ablehnung von `c1_atlas` im Infant-Profil sowie des nicht vorhandenen Neonate-Profils. GitHub Actions Lauf #53 auf dem aktuellen Test-Commit ist noch nicht abschließend ausgewertet; vor der nächsten Integration ist das Ergebnis abzuwarten.
+
+**Freigabegrenze:** Die Katalogkorrektur dokumentiert nur vorhandene Dateien und Pfade. Sie behauptet weder einen vollständigen Ganzkörper-Viewer noch medizinische Genauigkeit oder geprüfte Nutzungsrechte. Vor einem produktiven Anatomie-Release müssen GLB-Struktur (Meshes/Nodes/Skinning/Animation), Asset-Quelle und Lizenz, Profilabdeckung und tatsächliche Darstellung im Browser gesondert geprüft werden.
