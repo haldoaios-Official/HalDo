@@ -1136,6 +1136,7 @@ async function run() {
   pass('HalDo v174 Utility: Einheiten-Umrechner und Habit Heatmap sind ohne externe Dienste registriert');
 
   await page.evaluate(() => window.HalDo.Launch({ id: 'unitconv', n: 'HalDo Einheiten-Umrechner Pro' }));
+  await dismissWelcomeIfPresent();
   const unitConverter = page.locator('#winLayer [data-hv174-app="unitconv"]').last();
   await unitConverter.waitFor({ state: 'visible', timeout: 10000 });
   await unitConverter.locator('[data-hv174-value]').fill('2500');
@@ -1169,6 +1170,7 @@ async function run() {
     window.HalDo.Habits.checkIn(id, '2026-11-25');
   }, heatmapHabitId);
   await page.evaluate(() => window.HalDo.Launch({ id: 'heatmap', n: 'HalDo Habit Heatmap Pro' }));
+  await dismissWelcomeIfPresent();
   const habitHeatmap = page.locator('#winLayer [data-hv174-app="heatmap"]').last();
   await habitHeatmap.waitFor({ state: 'visible', timeout: 10000 });
   await habitHeatmap.locator('[data-hv174-month]').fill('2026-11');
