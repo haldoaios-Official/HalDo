@@ -794,6 +794,8 @@ async function run() {
       habitHeatmap: H.AppBrowser.getStatus('heatmap'),
       qrStudio: H.AppBrowser.getStatus('qr'),
       qrStickers: H.AppBrowser.getStatus('qr-sticker'),
+      pdfCenter: H.AppBrowser.getStatus('pdf-center'),
+      documentScanner: H.AppBrowser.getStatus('document-scanner'),
       breathingRoute: H.SystemV157.resolveRoute('breathing'),
       scientificRoute: H.SystemV157.resolveRoute('scientific'),
       careDocumentationRoute: H.SystemV157.resolveRoute('pflegeprotokoll-pro'),
@@ -826,7 +828,7 @@ async function run() {
   assert.equal(registryHealth.utilities.kind, 'module');
   assert.equal(registryHealth.recipes.kind, 'module');
   assert.equal(registryHealth.analyzer.kind, 'module');
-  assert.equal(registryHealth.statusCounts.modules, 86);
+  assert.equal(registryHealth.statusCounts.modules, 88);
   assert.equal(registryHealth.statusCounts.scaffolds, 1);
   assert.equal(registryHealth.breathing.kind, 'module');
   assert.equal(registryHealth.scientific.kind, 'module');
@@ -857,6 +859,8 @@ async function run() {
   assert.equal(registryHealth.habitHeatmap.kind, 'module');
   assert.equal(registryHealth.qrStudio.kind, 'module');
   assert.equal(registryHealth.qrStickers.kind, 'module');
+  assert.equal(registryHealth.pdfCenter.kind, 'module');
+  assert.equal(registryHealth.documentScanner.kind, 'module');
   assert.equal(registryHealth.datecalc.kind, 'module');
   assert.equal(registryHealth.deviceInfo.kind, 'module');
   console.log('HALDO APP REGISTRY HEALTH ' + JSON.stringify(registryHealth));
@@ -910,6 +914,12 @@ async function run() {
   const categoryPGrid = appRegistryRoot.locator('[data-category-app-grid="P"]');
   assert.equal(await categoryPGrid.locator('[data-launch="qr"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   assert.equal(await categoryPGrid.locator('[data-launch="qr-sticker"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  await appRegistryRoot.locator('[data-category="D"]').click();
+  const categoryDGrid = appRegistryRoot.locator('[data-category-app-grid="D"]');
+  assert.equal(await categoryDGrid.locator('[data-launch="document-scanner"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  await appRegistryRoot.locator('[data-category="S"]').click();
+  const categorySGrid = appRegistryRoot.locator('[data-category-app-grid="S"]');
+  assert.equal(await categorySGrid.locator('[data-launch="pdf-center"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   await appRegistryRoot.locator('[data-category=""]').click();
 
   await closeWindow(appRegistryRoot);
@@ -1204,9 +1214,9 @@ async function run() {
   assert.equal(/\bfetch\s*\(|XMLHttpRequest|WebSocket/.test(v175Source), false, 'QR-Payloads dürfen nicht an externe QR-Endpunkte gesendet werden.');
   const v175Runtime = await page.evaluate(() => ({
     build: window.HalDo.Master.version,
-    moduleVersion: window.HalDo.AppsV175.version,
-    appIds: window.HalDo.AppsV175.appIds,
-    status: window.HalDo.AppsV175.status(),
+    moduleVersion: window.HalDo.AppsV175Qr.version,
+    appIds: window.HalDo.AppsV175Qr.appIds,
+    status: window.HalDo.AppsV175Qr.status(),
     qr: window.HalDo.AppBrowser.getStatus('qr'),
     stickers: window.HalDo.AppBrowser.getStatus('qr-sticker'),
     qrOpen: typeof window.HalDo.qr?.open,
@@ -1272,6 +1282,93 @@ async function run() {
   assert.equal(await qrStickers.locator('[data-q175-sticker-print]').isDisabled(), true);
   await closeWindow(qrStickers);
   pass('HalDo QR Sticker Pro: mehrere Druck-Sticker erstellen und Mengenbegrenzung sicher prüfen');
+
+  // The PDF center and scanner keep all selected files in the current browser tab.
+  const v175DocumentSource = await fs.readFile(path.join(ROOT, 'js/haldo-v175-document-apps.js'), 'utf8');
+  assert.equal(/\\bfetch\\s*\\(|XMLHttpRequest|WebSocket/.test(v175DocumentSource), false, 'Dokumente dürfen nicht zu externen Servern hochgeladen werden.');
+  const v175DocumentRuntime = await page.evaluate(() => ({
+    build: window.HalDo.Master.version,
+    moduleVersion: window.HalDo.AppsV175Documents.version,
+    apps: window.HalDo.AppsV175Documents.apps.map((app) => app.id),
+    moduleStatus: window.HalDo.AppsV175Documents.status(),
+    pdf: window.HalDo.AppBrowser.getStatus('pdf-center'),
+    scanner: window.HalDo.AppBrowser.getStatus('document-scanner'),
+    pdfOpen: typeof window.HalDo.PdfCenter?.open,
+    scannerOpen: typeof window.HalDo.DocumentScanner?.open,
+    scannerStatus: window.HalDo.DocumentScanner.getStatus(),
+    textPdfApi: typeof window.HalDo.PdfCenter.createTextPdfBlob,
+    imagePdfApi: typeof window.HalDo.DocumentScanner.createPdfBlob,
+    scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v175-document-apps.js'))
+  }));
+  assert.equal(v175DocumentRuntime.build, '175.0.0');
+  assert.equal(v175DocumentRuntime.moduleVersion, '175.0.0');
+  assert.deepEqual(v175DocumentRuntime.apps, ['pdf-center', 'document-scanner']);
+  assert.deepEqual(v175DocumentRuntime.moduleStatus, { registered:2, build:'175.0.0', localOnly:true });
+  assert.equal(v175DocumentRuntime.pdf.kind, 'module');
+  assert.equal(v175DocumentRuntime.scanner.kind, 'module');
+  assert.equal(v175DocumentRuntime.pdfOpen, 'function');
+  assert.equal(v175DocumentRuntime.scannerOpen, 'function');
+  assert.equal(v175DocumentRuntime.textPdfApi, 'function');
+  assert.equal(v175DocumentRuntime.imagePdfApi, 'function');
+  assert.deepEqual(v175DocumentRuntime.scannerStatus, { version:'175.0.0', maximumPages:30, localOnly:true, persistentStorage:false, ocr:false, automaticCrop:false });
+  assert.equal(v175DocumentRuntime.scriptLoaded, true);
+  pass('HalDo v175 Dokumente: PDF-Center und Scanner sind als lokale Module registriert');
+
+  await page.evaluate(() => window.HalDo.Launch({ id: 'pdf-center', n: 'HalDo PDF- & Druck-Center Pro' }));
+  await dismissWelcomeIfPresent();
+  const pdfCenter = page.locator('#winLayer [data-hdv175-app="pdf-center"]').last();
+  await pdfCenter.waitFor({ state: 'visible', timeout: 10000 });
+  await pdfCenter.locator('input[id$="-title"]').fill('HalDo Testdokument');
+  await pdfCenter.locator('textarea[id$="-text"]').fill('Hallo HalDo. Lokaler PDF-Test mit Umlauten äöü.');
+  const [textPdfDownload] = await Promise.all([
+    page.waitForEvent('download'),
+    pdfCenter.locator('[data-v175-pdf-create]').click()
+  ]);
+  assert.match(textPdfDownload.suggestedFilename(), /\\.pdf$/i);
+  const textPdfPath = await textPdfDownload.path();
+  const textPdfBytes = await fs.readFile(textPdfPath);
+  assert.ok(textPdfBytes.toString('latin1').startsWith('%PDF-1.4'));
+  assert.ok(textPdfBytes.toString('latin1').includes('48616C6C6F2048616C446F'));
+  assert.equal(await pdfCenter.locator('[data-v175-pdf-print]').isDisabled(), false);
+  await closeWindow(pdfCenter);
+  pass('HalDo PDF- & Druck-Center Pro: echtes lokales PDF aus Text erzeugt, heruntergeladen und PDF-Struktur geprüft');
+
+  const scannerPngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/J4sAAAAASUVORK5CYII=';
+  await page.evaluate(() => window.HalDo.Launch({ id: 'document-scanner', n: 'HalDo Dokumenten-Scanner Pro' }));
+  await dismissWelcomeIfPresent();
+  const documentScanner = page.locator('#winLayer [data-hdv175-app="document-scanner"]').last();
+  await documentScanner.waitFor({ state: 'visible', timeout: 10000 });
+  await documentScanner.locator('[data-v175-scan-file]').setInputFiles({
+    name:'haldo-scan-test.png',
+    mimeType:'image/png',
+    buffer:Buffer.from(scannerPngBase64, 'base64')
+  });
+  await documentScanner.locator('[data-v175-add-page]:not(:disabled)').waitFor({ state:'visible', timeout:10000 });
+  await documentScanner.locator('[data-v175-add-page]').click();
+  await page.waitForFunction(() => {
+    const count = document.querySelector('#winLayer [data-hdv175-app="document-scanner"] [data-v175-page-count]');
+    return count && count.textContent === '1';
+  }, { timeout:10000 });
+  await documentScanner.locator('[data-v175-add-page]').click();
+  await page.waitForFunction(() => {
+    const count = document.querySelector('#winLayer [data-hdv175-app="document-scanner"] [data-v175-page-count]');
+    return count && count.textContent === '2';
+  }, { timeout:10000 });
+  assert.equal(await documentScanner.locator('[data-v175-pages] .hdv175-page').count(), 2);
+  const [scanPdfDownload] = await Promise.all([
+    page.waitForEvent('download'),
+    documentScanner.locator('[data-v175-export]').click()
+  ]);
+  assert.match(scanPdfDownload.suggestedFilename(), /\\.pdf$/i);
+  const scanPdfBytes = await fs.readFile(await scanPdfDownload.path());
+  const scanPdfText = scanPdfBytes.toString('latin1');
+  assert.ok(scanPdfText.startsWith('%PDF-1.4'));
+  assert.match(scanPdfText, /\\/Count 2/);
+  await documentScanner.locator('[data-v175-clear-pages]').click();
+  assert.equal(await documentScanner.locator('[data-v175-page-count]').innerText(), '0');
+  assert.equal(await documentScanner.locator('[data-v175-export]').isDisabled(), true);
+  await closeWindow(documentScanner);
+  pass('HalDo Dokumenten-Scanner Pro: lokales Bild, zwei PDF-Seiten, Export und Löschen geprüft');
 
   const anatomyCatalogCheck = await page.evaluate(async () => {
     const [catalog, loader] = await Promise.all([
