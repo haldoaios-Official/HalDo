@@ -196,6 +196,7 @@
     }
 
     function finishSession() {
+      elapsedMs = sessionStarted ? Date.now() - sessionStarted : elapsedMs;
       stopTimer();
       active = false;
       paused = false;
@@ -209,6 +210,8 @@
       startButton.disabled = false;
       pauseButton.disabled = true;
       pauseButton.textContent = '⏸ Pause';
+      patternSelect.disabled = false;
+      cycleSelect.disabled = false;
       saveCompletedSession();
     }
 
