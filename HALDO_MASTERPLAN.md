@@ -456,3 +456,14 @@ Die vorhandenen `models/manifest.json` und `models/sources.json`, auf die `model
 **Aktueller Testpunkt:** Browser-End-to-End-Prüfung lädt `models/catalog.js` und `models/loader.js`, überprüft die drei konkreten Modellpfade per HTTP HEAD (Erwartung: 200) und prüft die Ablehnung von `c1_atlas` im Infant-Profil sowie des nicht vorhandenen Neonate-Profils. GitHub Actions Lauf #53 auf dem aktuellen Test-Commit ist noch nicht abschließend ausgewertet; vor der nächsten Integration ist das Ergebnis abzuwarten.
 
 **Freigabegrenze:** Die Katalogkorrektur dokumentiert nur vorhandene Dateien und Pfade. Sie behauptet weder einen vollständigen Ganzkörper-Viewer noch medizinische Genauigkeit oder geprüfte Nutzungsrechte. Vor einem produktiven Anatomie-Release müssen GLB-Struktur (Meshes/Nodes/Skinning/Animation), Asset-Quelle und Lizenz, Profilabdeckung und tatsächliche Darstellung im Browser gesondert geprüft werden.
+
+## Anatomie 3D – GLB-Struktur und Kandidatenbewertung (26.11.2026)
+
+GitHub Actions Chromium-Lauf #56 (`45751307888`) auf Commit `f2b0f2f79c761dcd8552a1039a87e6fff732c6f5` ist erfolgreich: **35/35 Browserprüfungen**. Neben der verifizierten Profilpfad-Auflösung wurden zwei lokale GLB-2.0-Dateien bytegenau strukturell gelesen:
+
+- `female-base-mesh-base_female.glb`: 4.497.424 Byte, 166 GLTF-Nodes, 2 Meshes, 1 Skin, 0 Animationen. Damit ist es ein skinned Base-Mesh-Kandidat für den Anatomie-Viewer; es wurde noch nicht visuell, morphologisch oder lizenzrechtlich freigegeben und wird nicht automatisch als Avatar verwendet.
+- `models/adult_male/adult_female/c1_atlas.glb`: 42.512 Byte, 2 Nodes, 1 Mesh, 0 Skins, 0 Animationen. Es ist ein einzelnes statisches Knochenmodell, kein rigged Ganzkörpermodell.
+
+Der aktuelle Viewer lädt diese Assets noch nicht als vollständigen Anatomie-Arbeitsbereich. Der nächste Abnahmeschritt prüft, ob `base-bones.js`, `extended-bones.js` und `procedural.js` ein eindeutiges, vollständiges schematisches Knochenmodell aufbauen können. Die resultierende Lehrdarstellung muss sichtbar als schematisch und mit willkürlichen Anzeigeeinheiten gekennzeichnet bleiben. Ein erfolgreich zusammengesetztes Skelett wäre noch keine klinisch validierte Anatomie.
+
+GitHub Actions Lauf #57 (`45751373420`) enthält diese zusätzliche Skelett-Aufbauprüfung und ist bei dieser Dokumentation noch offen.
