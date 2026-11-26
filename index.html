@@ -13459,16 +13459,42 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
     registryCleanup:function(){return Object.assign({},registryCleanup);},
     routes:function(){return Object.keys(ROUTES);},
     resolveRoute:function(id){
+      id=String(id||'');
       var configured=Object.prototype.hasOwnProperty.call(ROUTES,id);
       var moduleName=configured?ROUTES[id]:null;
-      var module=moduleName?H[moduleName]:H[id];
+      var routedModule=moduleName?H[moduleName]:null;
+      var directModule=H[id];
+      // Match the real launcher's precedence: named route first, then direct app id.
+      var module=routedModule&&typeof routedModule.open==='function'?routedModule:
+        (directModule&&typeof directModule.open==='function'?directModule:null);
+      var available=Boolean(module);
+      var genericFallback=Boolean(module&&module.isGenericFallback);
       return {
         id:id,
         routeConfigured:configured,
         moduleName:moduleName,
-        moduleAvailable:Boolean(module&&typeof module.open==='function'),
-        genericFallback:Boolean(module&&module.isGenericFallback)
+        moduleAvailable:available,
+        startReady:available&&!genericFallback,
+        genericFallback:genericFallback,
+        resolution:!available?'missing':(genericFallback?'placeholder':(module===routedModule?'route':'direct')),
+        implementationKind:module&&module.implementationKind||null
       };
+    },
+    auditRegistry:function(){
+      var entries=H.Registry&&Array.isArray(H.Registry.featured)?H.Registry.featured:[];
+      var results=entries.filter(function(app){return app&&app.id;}).map(function(app){
+        var status=this.resolveRoute(app.id);
+        status.name=app.n||app.name||app.id;
+        status.icon=app.i||app.icon||'';
+        return status;
+      },this);
+      var counts={total:results.length,ready:0,placeholder:0,missing:0};
+      results.forEach(function(item){
+        if(item.resolution==='missing')counts.missing++;
+        else if(item.resolution==='placeholder')counts.placeholder++;
+        else counts.ready++;
+      });
+      return {version:BUILD,counts:counts,apps:results};
     },
     getVersion:function(){return BUILD;}
   };
