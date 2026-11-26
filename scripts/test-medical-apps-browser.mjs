@@ -92,7 +92,8 @@ async function openMedicalApp(appId) {
   }
 
   await page.locator('#h167-unlock-form').last().waitFor({ state: 'visible', timeout: 20000 });
-  const root = page.locator('.h167').filter({ has: page.locator('#h167-unlock-form') }).last();
+  // Keep the root locator stable after unlocking replaces the gate form with the workspace form.
+  const root = page.locator('.h167').last();
   await root.waitFor({ state: 'visible', timeout: 5000 });
   return root;
 }
