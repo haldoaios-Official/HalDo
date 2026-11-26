@@ -611,6 +611,8 @@ async function run() {
   await boneResults.locator('[data-bone-select="left_femur"]').click();
   assert.match(await anatomyAppRoot.locator('[data-bone-info]').innerText(), /Deutsch: Oberschenkelknochen links/);
   assert.equal(await boneResults.locator('[data-bone-select="left_femur"]').getAttribute('aria-pressed'), 'true');
+  assert.match(await anatomyAppRoot.locator('[data-anatomy-status]').innerText(), /Kamera fokussiert: Oberschenkelknochen links/);
+
   await boneRegion.selectOption('Schädel');
   await boneSearch.fill('');
   assert.equal(await boneResults.getAttribute('data-result-count'), '2');
