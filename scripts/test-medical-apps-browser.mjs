@@ -279,6 +279,7 @@ async function run() {
   const requiredExternalAssets = [
     'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
     'https://cdn.jsdelivr.net/npm/three@0.128.0/',
+    'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/',
     'https://unpkg.com/three-globe/example/img/'
   ];
   await page.route('**/*', (route) => {
@@ -330,7 +331,7 @@ async function run() {
     worldClock: window.HalDo.AppBrowser.getStatus('worldclock'),
     recipeScaler: window.HalDo.AppBrowser.getStatus('recipe-scaler')
   }));
-  assert.equal(v168Build.version, '174.0.0');
+  assert.equal(v168Build.version, '175.0.0');
   assert.equal(v168Build.worldClock.kind, 'module');
   assert.equal(v168Build.recipeScaler.kind, 'module');
   const v168Runtime = await page.evaluate(() => ({
@@ -343,7 +344,7 @@ async function run() {
   assert.equal(v168Runtime.worldClockOpen, 'function');
   assert.equal(v168Runtime.recipeScalerOpen, 'function');
   assert.equal(v168Runtime.scriptLoaded, true);
-  assert.equal(v168Runtime.build, '174.0.0');
+  assert.equal(v168Runtime.build, '175.0.0');
   await page.evaluate(() => window.HalDo.Launch({ id: 'worldclock', n: 'HalDo Weltuhr Pro' }));
   await dismissWelcomeIfPresent();
   const worldClockRoot = page.locator('#winLayer .hdv168-root').last();
@@ -659,7 +660,7 @@ async function run() {
     scientificOpen: typeof window.HalDo.scientific?.open,
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v172-learning-apps.js'))
   }));
-  assert.equal(v172Runtime.build, '174.0.0');
+  assert.equal(v172Runtime.build, '175.0.0');
   assert.equal(v172Runtime.moduleVersion, '172.0.0');
   assert.deepEqual(v172Runtime.apps, ['breathing', 'scientific']);
   assert.equal(v172Runtime.breathing.kind, 'module');
@@ -791,6 +792,8 @@ async function run() {
       medicationCatalogue: H.AppBrowser.getStatus('medikamentenlexikon-pro'),
       unitConverter: H.AppBrowser.getStatus('unitconv'),
       habitHeatmap: H.AppBrowser.getStatus('heatmap'),
+      qrStudio: H.AppBrowser.getStatus('qr'),
+      qrStickers: H.AppBrowser.getStatus('qr-sticker'),
       breathingRoute: H.SystemV157.resolveRoute('breathing'),
       scientificRoute: H.SystemV157.resolveRoute('scientific'),
       careDocumentationRoute: H.SystemV157.resolveRoute('pflegeprotokoll-pro'),
@@ -823,7 +826,7 @@ async function run() {
   assert.equal(registryHealth.utilities.kind, 'module');
   assert.equal(registryHealth.recipes.kind, 'module');
   assert.equal(registryHealth.analyzer.kind, 'module');
-  assert.equal(registryHealth.statusCounts.modules, 84);
+  assert.equal(registryHealth.statusCounts.modules, 86);
   assert.equal(registryHealth.statusCounts.scaffolds, 1);
   assert.equal(registryHealth.breathing.kind, 'module');
   assert.equal(registryHealth.scientific.kind, 'module');
@@ -849,9 +852,11 @@ async function run() {
   assert.equal(registryHealth.medicationCatalogueRoute.routeConfigured, true);
   assert.equal(registryHealth.medicationCatalogueRoute.moduleName, 'medikamentenlexikon-pro');
   assert.equal(registryHealth.medicationCatalogueRoute.moduleAvailable, true);
-  assert.equal(registryHealth.statusCounts.review, 4);
+  assert.equal(registryHealth.statusCounts.review, 2);
   assert.equal(registryHealth.unitConverter.kind, 'module');
   assert.equal(registryHealth.habitHeatmap.kind, 'module');
+  assert.equal(registryHealth.qrStudio.kind, 'module');
+  assert.equal(registryHealth.qrStickers.kind, 'module');
   assert.equal(registryHealth.datecalc.kind, 'module');
   assert.equal(registryHealth.deviceInfo.kind, 'module');
   console.log('HALDO APP REGISTRY HEALTH ' + JSON.stringify(registryHealth));
@@ -901,6 +906,10 @@ async function run() {
   await appRegistryRoot.locator('[data-category="Y"]').click();
   const categoryYGrid = appRegistryRoot.locator('[data-category-app-grid="Y"]');
   assert.equal(await categoryYGrid.locator('[data-launch="heatmap"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  await appRegistryRoot.locator('[data-category="P"]').click();
+  const categoryPGrid = appRegistryRoot.locator('[data-category-app-grid="P"]');
+  assert.equal(await categoryPGrid.locator('[data-launch="qr"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  assert.equal(await categoryPGrid.locator('[data-launch="qr-sticker"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   await appRegistryRoot.locator('[data-category=""]').click();
 
   await closeWindow(appRegistryRoot);
@@ -923,7 +932,7 @@ async function run() {
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v173-care-apps.js')),
     sharedVaultReady: !!(window.HalDo.MedicalVault && typeof window.HalDo.MedicalVault.registerConfig === 'function')
   }));
-  assert.equal(v173Runtime.build, '174.0.0');
+  assert.equal(v173Runtime.build, '175.0.0');
   assert.equal(v173Runtime.moduleVersion, '173.0.0');
   assert.deepEqual(v173Runtime.apps, ['pflegeprotokoll-pro', 'arzttermine-pro']);
   assert.deepEqual(v173Runtime.errors, []);
@@ -1060,7 +1069,7 @@ async function run() {
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v174-medical-knowledge.js')),
     categoryApi: typeof window.HalDo.Registry.registerCategoryApp
   }));
-  assert.equal(v174Runtime.build, '174.0.0');
+  assert.equal(v174Runtime.build, '175.0.0');
   assert.equal(v174Runtime.moduleVersion, '174.0.0');
   assert.deepEqual(v174Runtime.apps, ['krankheitslexikon-pro', 'medikamentenlexikon-pro']);
   assert.ok(v174Runtime.status.every((item) => item.ready && item.entries > 0));
@@ -1124,7 +1133,7 @@ async function run() {
     heatmapOpen: typeof window.HalDo.heatmap?.open,
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v174-utility-apps.js'))
   }));
-  assert.equal(v174UtilityRuntime.build, '174.0.0');
+  assert.equal(v174UtilityRuntime.build, '175.0.0');
   assert.equal(v174UtilityRuntime.utilityVersion, '174.0.0');
   assert.deepEqual(v174UtilityRuntime.appIds, ['unitconv', 'heatmap']);
   assert.ok(v174UtilityRuntime.status.every((item) => item.ready));
@@ -1189,6 +1198,80 @@ async function run() {
   assert.equal(await habitHeatmap.locator('[data-hv174-day].level-4').count(), 2);
   await closeWindow(habitHeatmap);
   pass('HalDo Habit Heatmap Pro: bestehende Habit-Daten, Monatsnavigation, Check-in-Änderung und Zukunftssperre geprüft');
+
+  // v175: two QR applications share a pinned browser renderer; payload data stays local.
+  const v175Source = await fs.readFile(path.join(ROOT, 'js/haldo-v175-qr-apps.js'), 'utf8');
+  assert.equal(/\bfetch\s*\(|XMLHttpRequest|WebSocket/.test(v175Source), false, 'QR-Payloads dürfen nicht an externe QR-Endpunkte gesendet werden.');
+  const v175Runtime = await page.evaluate(() => ({
+    build: window.HalDo.Master.version,
+    moduleVersion: window.HalDo.AppsV175.version,
+    appIds: window.HalDo.AppsV175.appIds,
+    status: window.HalDo.AppsV175.status(),
+    qr: window.HalDo.AppBrowser.getStatus('qr'),
+    stickers: window.HalDo.AppBrowser.getStatus('qr-sticker'),
+    qrOpen: typeof window.HalDo.qr?.open,
+    stickerOpen: typeof window.HalDo['qr-sticker']?.open,
+    scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v175-qr-apps.js'))
+  }));
+  assert.equal(v175Runtime.build, '175.0.0');
+  assert.equal(v175Runtime.moduleVersion, '175.0.0');
+  assert.deepEqual(v175Runtime.appIds, ['qr', 'qr-sticker']);
+  assert.ok(v175Runtime.status.every((item) => item.ready));
+  assert.equal(v175Runtime.qr.kind, 'module');
+  assert.equal(v175Runtime.stickers.kind, 'module');
+  assert.equal(v175Runtime.qrOpen, 'function');
+  assert.equal(v175Runtime.stickerOpen, 'function');
+  assert.equal(v175Runtime.scriptLoaded, true);
+  pass('HalDo v175: QR Studio und QR Sticker sind als eigenständige A–Z-Module registriert');
+
+  await page.evaluate(() => window.HalDo.Launch({ id: 'qr', n: 'HalDo QR Studio Pro' }));
+  await dismissWelcomeIfPresent();
+  const qrStudio = page.locator('#winLayer [data-hv175-app="qr"]').last();
+  await qrStudio.waitFor({ state: 'visible', timeout: 10000 });
+  await qrStudio.locator('[data-q175-type]').selectOption('url');
+  await qrStudio.locator('[data-q175-field="url"]').fill('https://example.com/haldo');
+  await qrStudio.locator('[data-q175-generate]').click();
+  await qrStudio.locator('.hdv175-result canvas').waitFor({ state: 'visible', timeout: 20000 });
+  assert.equal(await qrStudio.locator('.hdv175-result canvas').count(), 1);
+  assert.match(await qrStudio.locator('[data-q175-preview]').innerText(), /https:\/\/example\.com\/haldo/);
+  await qrStudio.locator('[data-q175-type]').selectOption('wifi');
+  await qrStudio.locator('[data-q175-field="ssid"]').fill('HalDo-Gast');
+  await qrStudio.locator('[data-q175-field="password"]').fill('WLAN-Test-175');
+  await qrStudio.locator('[data-q175-field="encryption"]').selectOption('WPA');
+  await qrStudio.locator('[data-q175-generate]').click();
+  await qrStudio.locator('.hdv175-result canvas').waitFor({ state: 'visible', timeout: 20000 });
+  assert.match(await qrStudio.locator('[data-q175-preview]').innerText(), /WLAN-Zugangsdaten sind codiert/);
+  assert.equal(await qrStudio.locator('.hdv175-result canvas').count(), 1);
+  const [qrDownload] = await Promise.all([
+    page.waitForEvent('download'),
+    qrStudio.locator('[data-q175-download]').click()
+  ]);
+  assert.match(qrDownload.suggestedFilename(), /^haldo-qr-\d+\.png$/);
+  await closeWindow(qrStudio);
+  pass('HalDo QR Studio Pro: URL- und WLAN-QR-Codes erstellen und PNG lokal herunterladen');
+
+  await page.evaluate(() => window.HalDo.Launch({ id: 'qr-sticker', n: 'HalDo QR Sticker Pro' }));
+  await dismissWelcomeIfPresent();
+  const qrStickers = page.locator('#winLayer [data-hv175-app="qr-sticker"]').last();
+  await qrStickers.waitFor({ state: 'visible', timeout: 10000 });
+  await qrStickers.locator('[data-q175-sticker-input]').fill(
+    'HalDo Website | https://example.com/haldo\nInventar 001 | HALDO-INV-0001'
+  );
+  await qrStickers.locator('[data-q175-sticker-generate]').click();
+  await qrStickers.locator('[data-q175-sticker-card]').nth(1).waitFor({ state: 'visible', timeout: 20000 });
+  assert.equal(await qrStickers.locator('[data-q175-sticker-card]').count(), 2);
+  assert.equal(await qrStickers.locator('[data-q175-sticker-canvas]').count(), 2);
+  assert.equal(await qrStickers.locator('[data-q175-sticker-title]').nth(0).innerText(), 'HalDo Website');
+  assert.equal(await qrStickers.locator('[data-q175-sticker-title]').nth(1).innerText(), 'Inventar 001');
+  assert.equal(await qrStickers.locator('[data-q175-sticker-print]').isDisabled(), false);
+  await qrStickers.locator('[data-q175-sticker-input]').fill(
+    Array.from({ length:13 }, (_, index) => 'Sticker ' + index + ' | value-' + index).join('\n')
+  );
+  await qrStickers.locator('[data-q175-sticker-generate]').click();
+  assert.match(await qrStickers.locator('[data-q175-sticker-status]').innerText(), /Maximal 12 Sticker/);
+  assert.equal(await qrStickers.locator('[data-q175-sticker-print]').isDisabled(), true);
+  await closeWindow(qrStickers);
+  pass('HalDo QR Sticker Pro: mehrere Druck-Sticker erstellen und Mengenbegrenzung sicher prüfen');
 
   const anatomyCatalogCheck = await page.evaluate(async () => {
     const [catalog, loader] = await Promise.all([
