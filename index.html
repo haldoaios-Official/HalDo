@@ -10140,31 +10140,48 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
         </div><div data-arzt-panel></div></div>`;
       const panel=root.querySelector('[data-arzt-panel]');
 
+      function disposeObjectResources(object){
+        if(!object||typeof object.traverse!=='function')return;
+        const geometries=new Set(),materials=new Set(),textures=new Set();
+        object.traverse(obj=>{
+          if(obj.geometry)geometries.add(obj.geometry);
+          const assigned=Array.isArray(obj.material)?obj.material:[obj.material];
+          assigned.forEach(mat=>{
+            if(!mat)return;
+            materials.add(mat);
+            Object.keys(mat).forEach(key=>{const value=mat[key];if(value&&value.isTexture)textures.add(value);});
+          });
+        });
+        textures.forEach(texture=>texture.dispose?.());
+        geometries.forEach(geometry=>geometry.dispose?.());
+        materials.forEach(mat=>mat.dispose?.());
+      }
+      function releaseCurrentModel(state){
+        if(!state||!state.currentObject)return;
+        if(state.scene)state.scene.remove(state.currentObject);
+        if(state.currentSkeleton&&state.skeletonApi?.disposeSchematicSkeleton){
+          state.skeletonApi.disposeSchematicSkeleton(state.currentSkeleton);
+        }else{
+          disposeObjectResources(state.currentObject);
+        }
+        state.currentObject=null;state.currentSkeleton=null;state.skeletonApi=null;
+        if(state.currentObjectUrl){URL.revokeObjectURL(state.currentObjectUrl);state.currentObjectUrl=null;}
+      }
       function cleanupViewer(){
         if(!viewer)return;
-        viewer.disposed=true;
-        if(viewer.frame)cancelAnimationFrame(viewer.frame);
-        if(viewer.resizeObserver)viewer.resizeObserver.disconnect();
-        if(viewer.resizeHandler)window.removeEventListener('resize',viewer.resizeHandler);
-        if(viewer.request && viewer.request.abort){try{viewer.request.abort();}catch(_){}}
-        try{viewer.controls?.dispose();}catch(_){}
-        if(viewer.currentObject){
-          viewer.currentObject.traverse(obj=>{
-            if(obj.geometry)obj.geometry.dispose();
-            if(obj.material){
-              const materials=Array.isArray(obj.material)?obj.material:[obj.material];
-              materials.forEach(mat=>{
-                if(!mat)return;
-                for(const key of ['map','normalMap','roughnessMap','metalnessMap','emissiveMap','aoMap']){
-                  if(mat[key])mat[key].dispose?.();
-                }
-                mat.dispose?.();
-              });
-            }
-          });
+        const state=viewer;
+        state.disposed=true;state.loadToken+=1;
+        if(state.frame)cancelAnimationFrame(state.frame);
+        if(state.resizeObserver)state.resizeObserver.disconnect();
+        if(state.resizeHandler)window.removeEventListener('resize',state.resizeHandler);
+        if(state.request&&state.request.abort){try{state.request.abort();}catch(_){}}
+        if(state.renderer?.domElement&&state.canvasClickHandler){
+          state.renderer.domElement.removeEventListener('click',state.canvasClickHandler);
         }
-        try{viewer.renderer?.dispose();viewer.renderer?.forceContextLoss?.();}catch(_){}
-        viewer.renderer?.domElement?.remove();
+        releaseCurrentModel(state);
+        try{state.controls?.dispose();}catch(_){}
+        try{state.renderer?.dispose();state.renderer?.forceContextLoss?.();}catch(_){}
+        state.renderer?.domElement?.remove();
         viewer=null;
       }
 
@@ -10182,15 +10199,25 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
           <button class="hdx-btn primary" data-arzt-tab="anatomy">🦴 3D-Anatomie öffnen</button>
           ${H.ArztbuchLegacyOpen?'<button class="hdx-btn" data-legacy-arztbuch>Vorhandene Wissensmodule öffnen</button>':''}`;
         }else if(tab==='anatomy'){
-          panel.innerHTML=`<div class="hdx-anatomy-toolbar">
-            <select class="hdx-field" data-model-select aria-label="3D-Modell auswählen">${modelPaths.map((p,i)=>`<option value="${esc151(p)}" ${i===0?'selected':''}>${esc151(p.split('/').pop())} · ${esc151(p.split('/').slice(-2,-1)[0]||'Modell')}</option>`).join('')}</select>
-            <button class="hdx-btn primary" data-model-load>Modell laden</button>
+          panel.innerHTML=\`<div class="hdx-row" style="margin-bottom:8px">
+            <select class="hdx-field" data-anatomy-profile aria-label="Schematisches Anatomie-Profil">
+              <option value="adult_male">Erwachsener – männlich (schematisch)</option>
+              <option value="adult_female">Erwachsener – weiblich (schematisch)</option>
+              <option value="infant">Säugling (schematisch)</option>
+              <option value="neonate">Neugeborenes (schematisch)</option>
+            </select>
+            <button class="hdx-btn primary" type="button" data-model-schematic>🦴 Ganzes Skelett laden</button>
+          </div>
+          <div class="hdx-anatomy-toolbar">
+            <select class="hdx-field" data-model-select aria-label="Einzelnes 3D-Knochenmodell auswählen">\${modelPaths.map((p,i)=>\`<option value="\${esc151(p)}" \${i===0?'selected':''}>\${esc151(p.split('/').pop())} · \${esc151(p.split('/').slice(-2,-1)[0]||'Modell')}</option>\`).join('')}</select>
+            <button class="hdx-btn" data-model-load>Einzel-GLB laden</button>
             <button class="hdx-btn" data-model-reset>Ansicht zurücksetzen</button>
             <button class="hdx-btn" data-model-fullscreen>Vollbild</button>
           </div>
           <div class="hdx-anatomy-view" data-anatomy-view><div class="hdx-anatomy-status" data-anatomy-status role="status" aria-live="polite">3D-Viewer wird vorbereitet …</div></div>
+          <div class="hdx-card" data-bone-info aria-live="polite">Wähle ein schematisches Skelett und klicke auf einen Knochen, um deutsche, englische und lateinische Angaben zu sehen.</div>
           <div class="hdx-row" style="margin-top:8px"><label class="hdx-btn">Eigenes GLB-Modell wählen<input type="file" accept=".glb,model/gltf-binary" data-model-file hidden></label><span class="hdx-muted">Touch/Maus: drehen · Pinch/Rad: zoomen · rechte Taste/Zwei Finger: verschieben</span></div>
-          <p class="hdx-muted" data-model-info>Das ausgewählte Modell wird automatisch geladen. Die verfügbaren Modelle hängen vom Inhalt des GitHub-Ordners /models ab.</p>`;
+          <p class="hdx-muted" data-model-info>Die schematische Lernansicht nutzt willkürliche Darstellungseinheiten und ist nicht für Diagnose, Behandlung oder klinische Vermessung bestimmt. Einzel-GLB-Dateien werden separat geladen.</p>\`;
           requestAnimationFrame(()=>initViewer());
         }else if(tab==='systems'){
           panel.innerHTML=`<div class="hdx-grid">${organInfo.map(o=>`<div class="hdx-card"><h3>${o[0]} ${o[1]}</h3><p class="hdx-muted">${o[2]}</p></div>`).join('')}</div><div class="hdx-banner"><strong>Hinweis</strong><br><span class="hdx-muted">Diese Übersicht ist eine Lernnavigation. Detaillierte Organmodelle und medizinische Inhalte müssen jeweils mit geprüften Quellen und passenden 3D-Assets verknüpft werden.</span></div>`;
@@ -10207,7 +10234,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
           if(!host.isConnected||viewer)return;
           const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);
           try{
-            const state={scene:null,camera:null,renderer:null,controls:null,loader:null,draco:null,frame:0,resizeObserver:null,resizeHandler:null,request:null,currentObject:null,disposed:false,baseCamera:null,host};
+            const state={scene:null,camera:null,renderer:null,controls:null,loader:null,draco:null,frame:0,resizeObserver:null,resizeHandler:null,request:null,currentObject:null,currentSkeleton:null,skeletonApi:null,currentObjectUrl:null,loadToken:0,raycaster:null,pointer:null,canvasClickHandler:null,disposed:false,baseCamera:null,host};
             viewer=state;
             state.scene=new THREE.Scene();
             state.scene.background=new THREE.Color(0x030b18);
@@ -10218,6 +10245,31 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
             state.renderer.setSize(w,h,false);
             state.renderer.outputEncoding=THREE.sRGBEncoding;
             host.insertBefore(state.renderer.domElement,host.firstChild);
+            state.raycaster=new THREE.Raycaster();state.pointer=new THREE.Vector2();
+            state.canvasClickHandler=event=>{
+              if(viewer!==state||state.disposed||!state.currentSkeleton||!state.raycaster)return;
+              const rect=state.renderer.domElement.getBoundingClientRect();
+              if(!rect.width||!rect.height)return;
+              state.pointer.x=((event.clientX-rect.left)/rect.width)*2-1;
+              state.pointer.y=-((event.clientY-rect.top)/rect.height)*2+1;
+              state.raycaster.setFromCamera(state.pointer,state.camera);
+              const hit=state.raycaster.intersectObject(state.currentObject,true)[0];
+              if(!hit)return;
+              let node=hit.object,boneId=node.userData?.boneId||'';
+              while(!boneId&&node.parent){node=node.parent;boneId=node.userData?.boneId||'';}
+              const entry=state.currentSkeleton.byId.get(boneId);
+              if(!entry)return;
+              const bone=entry.definition;
+              const details=[
+                ['Bezeichnung',bone.es||bone.id],['Latein',bone.la],['Englisch',bone.en],
+                ['Körperregion',bone.region],['Seite',bone.side],
+                ['Modellhinweis','Schematisches Lehrmodell in willkürlichen Einheiten; nicht klinisch vermessen.']
+              ].filter(item=>item[1]);
+              const info=root.querySelector('[data-bone-info]');
+              if(info)info.textContent=details.map(item=>item[0]+': '+item[1]).join('\\n');
+              setStatus('Ausgewählt: '+(bone.es||bone.id),'success');
+            };
+            state.renderer.domElement.addEventListener('click',state.canvasClickHandler);
             state.scene.add(new THREE.HemisphereLight(0xd8f4ff,0x1b2740,1.65));
             const key=new THREE.DirectionalLight(0xffffff,2.0);key.position.set(3,5,6);state.scene.add(key);
             const fill=new THREE.DirectionalLight(0x55bbff,.8);fill.position.set(-4,1,-3);state.scene.add(fill);
@@ -10289,17 +10341,47 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
         if(v.controls){v.controls.target.set(0,0,0);v.controls.minDistance=Math.max(.2,distance*.18);v.controls.maxDistance=Math.max(20,distance*15);v.controls.update();}
         v.baseCamera={position:v.camera.position.clone(),target:v.controls?v.controls.target.clone():new THREE.Vector3()};
       }
+      async function loadSchematicSkeleton(){
+        const state=viewer;
+        if(!state||!state.scene||!root.isConnected){setStatus('3D-Viewer ist noch nicht bereit.','error');return;}
+        if(state.request&&state.request.abort){try{state.request.abort();}catch(_){}}
+        const requestToken=++state.loadToken;
+        const profileId=root.querySelector('[data-anatomy-profile]')?.value||'adult_male';
+        setStatus('Erzeuge schematisches Skelett für das Profil '+profileId+' …');
+        const info=root.querySelector('[data-model-info]');
+        if(info)info.textContent='Die Lehrgeometrie wird aus den vorhandenen Knochen-Definitionen aufgebaut; Anzeigeeinheiten sind willkürlich.';
+        try{
+          const api=await import('./models/skeleton.js');
+          if(viewer!==state||state.disposed||requestToken!==state.loadToken||!root.isConnected)return;
+          const skeleton=api.createSchematicSkeleton(window.THREE,profileId);
+          if(viewer!==state||state.disposed||requestToken!==state.loadToken||!root.isConnected){
+            api.disposeSchematicSkeleton(skeleton);return;
+          }
+          releaseCurrentModel(state);
+          state.currentSkeleton=skeleton;state.skeletonApi=api;state.currentObject=skeleton.group;
+          state.scene.add(skeleton.group);fitModel(skeleton.group);
+          if(info)info.textContent=skeleton.bones.length+' Knochen geladen. Klicke auf einen Knochen für deutsche, englische und lateinische Angaben. Schematische Lehrdarstellung, nicht klinisch vermessen.';
+          setStatus('Schematisches Skelett geladen: '+skeleton.bones.length+' Knochen · Profil '+profileId+'.','success');
+        }catch(error){
+          if(viewer===state&&!state.disposed&&requestToken===state.loadToken){
+            setStatus('Schematisches Skelett konnte nicht erstellt werden: '+(error.message||error),'error');
+            console.error('HalDo v151 schematic anatomy:',error);
+          }
+        }
+      }
       function loadModel(url,objectUrl=false){
-        if(!viewer||!viewer.loader){setStatus('3D-Viewer ist noch nicht bereit.','error');return;}
-        const v=viewer;
+        if(!viewer||!viewer.loader){if(objectUrl)URL.revokeObjectURL(url);setStatus('3D-Viewer ist noch nicht bereit.','error');return;}
+        const v=viewer,requestToken=++v.loadToken;
         if(v.request&&v.request.abort){try{v.request.abort();}catch(_){}}
         setStatus('⏳ Lade 3D-Modell: '+(objectUrl?'lokale Datei':url)+' …');
         const info=root.querySelector('[data-model-info]');if(info)info.textContent='Ladevorgang läuft. Bei einem Fehler wird die konkrete Ursache angezeigt.';
         let settled=false;
-        const timeout=setTimeout(()=>{if(!settled&&viewer===v&&!v.disposed)setStatus('Zeitüberschreitung beim Laden. Bitte Modellpfad/CDN und Netzwerk prüfen.','error');},30000);
+        const timeout=setTimeout(()=>{if(!settled&&viewer===v&&!v.disposed&&requestToken===v.loadToken)setStatus('Zeitüberschreitung beim Laden. Bitte Modellpfad/CDN und Netzwerk prüfen.','error');},30000);
         v.request=v.loader.load(url,gltf=>{
           settled=true;clearTimeout(timeout);
-          if(viewer!==v||v.disposed||!root.isConnected){if(objectUrl)URL.revokeObjectURL(url);return;}
+          if(viewer!==v||v.disposed||requestToken!==v.loadToken||!root.isConnected){
+            disposeObjectResources(gltf.scene);if(objectUrl)URL.revokeObjectURL(url);return;
+          }
           try{
             const object=gltf.scene;
             object.traverse(child=>{
@@ -10308,22 +10390,27 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
               const materials=Array.isArray(child.material)?child.material:[child.material];
               materials.forEach(mat=>{if(mat){mat.side=THREE.DoubleSide;mat.needsUpdate=true;}});
             });
-            if(v.currentObject){v.scene.remove(v.currentObject);v.currentObject.traverse(child=>{child.geometry?.dispose?.();if(child.material){(Array.isArray(child.material)?child.material:[child.material]).forEach(m=>m?.dispose?.());}});}
-            v.currentObject=object;v.scene.add(object);fitModel(object);
+            releaseCurrentModel(v);
+            v.currentObject=object;if(objectUrl)v.currentObjectUrl=url;
+            v.scene.add(object);fitModel(object);
             setStatus('✅ 3D-Modell sichtbar und interaktiv geladen.','success');
             if(info)info.textContent='Geladen: '+(objectUrl?'lokale GLB-Datei':url)+'. Drehen, zoomen und verschieben ist aktiviert.';
+          }catch(err){
+            disposeObjectResources(gltf.scene);
             if(objectUrl)URL.revokeObjectURL(url);
-          }catch(err){setStatus('Modell konnte nicht dargestellt werden: '+(err.message||err),'error');console.error('HalDo v151 model fit:',err);}
+            setStatus('Modell konnte nicht dargestellt werden: '+(err.message||err),'error');
+            console.error('HalDo v151 model fit:',err);
+          }
         },xhr=>{
-          if(viewer!==v||v.disposed)return;
+          if(viewer!==v||v.disposed||requestToken!==v.loadToken)return;
           if(xhr&&xhr.lengthComputable&&xhr.total>0)setStatus('⏳ Lade 3D-Modell … '+Math.round(xhr.loaded/xhr.total*100)+'%');
         },err=>{
           settled=true;clearTimeout(timeout);
-          if(viewer!==v||v.disposed)return;
+          if(objectUrl)URL.revokeObjectURL(url);
+          if(viewer!==v||v.disposed||requestToken!==v.loadToken)return;
           const detail=err?.message||'Netzwerk-/GLB-Fehler';
           setStatus('❌ Modell konnte nicht geladen werden: '+detail,'error');
           if(info)info.textContent='Prüfe, ob die Datei im Repository unter exakt diesem Pfad vorhanden und öffentlich abrufbar ist.';
-          if(objectUrl)URL.revokeObjectURL(url);
           console.error('HalDo v151 GLB error:',url,err);
         });
       }
@@ -10332,6 +10419,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
         const b=e.target.closest('button');if(!b)return;
         if(b.dataset.arztTab){tab=b.dataset.arztTab;renderTab();return;}
         if(b.hasAttribute('data-legacy-arztbuch')&&H.ArztbuchLegacyOpen){H.ArztbuchLegacyOpen();return;}
+        if(b.hasAttribute('data-model-schematic')){loadSchematicSkeleton();return;}
         if(b.hasAttribute('data-model-load')){const select=root.querySelector('[data-model-select]');if(select)loadModel(select.value);return;}
         if(b.hasAttribute('data-model-reset')){if(viewer?.currentObject)fitModel(viewer.currentObject);return;}
         if(b.hasAttribute('data-model-fullscreen')){const host=root.querySelector('[data-anatomy-view]');if(host?.requestFullscreen)host.requestFullscreen().catch(err=>toast151('Vollbild nicht möglich: '+err.message,'warning'));else toast151('Vollbild wird in diesem Browser nicht unterstützt.','warning');return;}
