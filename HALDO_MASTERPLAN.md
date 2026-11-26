@@ -502,3 +502,21 @@ Die ersten UI-End-to-End-Läufe deckten zwei echte Integrationsprobleme auf:
 
 **Nächster Schritt:** durchsuchbarer Knochenkatalog mit deutscher/lateinischer/englischer Suche, Filter nach Körperregion und direkter Auswahl des Knochen-Eintrags. Danach Ladefehler/Retry, Lizenz-/Quellenmetadaten und fehlende Paketmanager-Manifeste klären, bevor Assets als offline-downloadbare Pakete angeboten werden.
 
+
+## Anatomie 3D – Knochenkatalog und Regionsfilter (26.11.2026)
+
+Der aktive Arztbuch-Viewer enthält jetzt zusätzlich einen interaktiven Knochenkatalog:
+
+- Suche über deutsche, englische und lateinische Bezeichnungen sowie stabile Knochen-IDs.
+- Akzentunabhängige Suche: „schadel“ findet beispielsweise „Schädel“.
+- Filter nach den neun vorhandenen Körperregionen.
+- Der Regionsfilter begrenzt sowohl die Trefferliste als auch die tatsächlich sichtbaren Knochen im 3D-Modell.
+- Suchtreffer lassen sich direkt auswählen; der passende Knochen wird hervorgehoben und seine Bezeichnungen/Region/Seite werden in der Informationskarte angezeigt.
+- Die Trefferliste ist bei großen Treffermengen begrenzt dargestellt; Trefferzahl und Anzahl sichtbarer Knochen werden ausgewiesen.
+- Beim Laden eines Einzel-GLB werden die Skelettsuche und Regionsfilter deaktiviert, damit keine falschen Katalogtreffer zum importierten Einzelmodell angezeigt werden.
+
+**Technische Umsetzung:** `index.html` enthält die Such-/Filterbedienung, die akzentunabhängige Normalisierung und das Sichtbarkeitsmanagement. Die bestehenden `models/skeleton.js`-Definitionen und die zentrale `byId`-Zuordnung bleiben die Datenquelle; es wird kein zweiter Knochenkatalog angelegt.
+
+**Abnahme:** GitHub Actions Lauf #88 (`45756658850`) auf Test-Commit `45145393f11a99615430441357d6aabfc5131ae3`: **47/47 Chromium-Browserprüfungen erfolgreich**. Neu geprüft wurden Umlaute-Suche, Namenssuche nach linkem Oberschenkelknochen, direkte Auswahl/Markierung, Filter auf die Körperregion Schädel (2 sichtbare Knochen) und Zurücksetzen auf 179 sichtbare Knochen. Die bisherigen Viewer-, Profilwechsel-, Ressourcenfreigabe-, Arztbuch-, Laborwerte- und Medikamentenplanprüfungen blieben ebenfalls erfolgreich.
+
+**Nächster Anatomie-Schritt:** Beim Auswählen aus dem Katalog die Kamera gezielt auf den Knochen fokussieren; danach gezielte Ansichten/Layer für Knochen, Muskeln und Organe nur mit tatsächlich vorhandenen oder ausdrücklich als schematisch markierten Assets ergänzen. Vor dem Zusammenführen externer Anatomie-GLBs bleiben Quelle, Lizenz und anatomische Zuordnung zu prüfen.
