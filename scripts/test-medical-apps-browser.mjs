@@ -308,6 +308,14 @@ async function run() {
   await hub.locator('[data-ab-form]').waitFor({ state: 'visible', timeout: 10000 });
   await hub.getByText('Noch keine Einträge in diesem Bereich.', { exact: true }).waitFor();
   pass('Arztbuch: Vitalwerte-Bereich wird bei älteren Tresoren kompatibel ergänzt');
+  await hub.locator('[name="title"]').fill('Entwurf E2E');
+  await hub.locator('[name="result"]').fill('88');
+  await hub.locator('[data-ab-vital-search]').fill('keine-treffer');
+  assert.equal(await hub.locator('[name="title"]').inputValue(), 'Entwurf E2E');
+  assert.equal(await hub.locator('[name="result"]').inputValue(), '88');
+  await hub.locator('[data-ab-vital-search]').fill('');
+  pass('Arztbuch: Unfertige Vitalwert-Eingaben bleiben beim Filtern erhalten');
+
 
   await hub.locator('[name="title"]').fill('Blutdruck E2E');
   await hub.locator('[name="result"]').fill('120/80');
