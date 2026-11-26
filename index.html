@@ -11190,6 +11190,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
     var ITERATIONS=210000;
     var encoder=new TextEncoder(),decoder=new TextDecoder();
     var vault=null,sessionKey=null,data=null,unlocked=false,currentRoot=null,tab='overview',editingVitalId=null;
+    var vitalSearch='',vitalFrom='',vitalTo='';
     function emptyData(){return {appointments:[],medications:[],allergies:[],labs:[],notes:[],vitals:[]};}
     function toB64(bytes){
       var binary='',chunk=0x8000;
@@ -11287,7 +11288,23 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
       return '<form class="hdp154-panel" data-ab-form><div class="hdp154-ai-title">'+heading+'</div>'+fields+actions+'</form>';
     }
     function recordsFor(type){
-      return data[type].slice().sort(function(a,b){return String(b.createdAt||'').localeCompare(String(a.createdAt||''));});
+      return data[type].slice().sort(function(a,b){
+        if(type==='vitals'){
+          var byDate=String(b.date||'').localeCompare(String(a.date||''));
+          if(byDate)return byDate;
+        }
+        return String(b.createdAt||'').localeCompare(String(a.createdAt||''));
+      });
+    }
+    function filteredVitals(){
+      var query=vitalSearch.trim().toLocaleLowerCase();
+      return recordsFor('vitals').filter(function(item){
+        var date=String(item.date||'');
+        if(vitalFrom&&(!date||date<vitalFrom))return false;
+        if(vitalTo&&(!date||date>vitalTo))return false;
+        if(query&&JSON.stringify(item).toLocaleLowerCase().indexOf(query)===-1)return false;
+        return true;
+      });
     }
     function recordHtml(item,type){
       var meta=[];
@@ -11324,7 +11341,12 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
       var html='<div class="hdp154-head"><div><div class="hdp154-title">🩺 HalDo Arztbuch Pro</div><div class="hdp154-sub">HalDo AI · HalDo Voice · Cyborg-Leseassistent · verschlüsselter Tresor</div></div><span class="hdp154-chip">🔐 Entsperrt</span></div>'+
         '<div class="hdp154-tabs">'+tabs.map(function(t){return '<button class="hdp154-tab '+(tab===t[0]?'active':'')+'" data-ab-tab="'+t[0]+'">'+esc(t[1])+'</button>';}).join('')+'</div>';
       if(tab==='overview') html+=overviewHtml();
-      else html+=addForm()+(recordsFor(tab).map(function(item){return recordHtml(item,tab);}).join('')||'<div class="hdp154-empty">Noch keine Einträge in diesem Bereich.</div>');
+      else if(tab==='vitals'){
+        var vitalItems=filteredVitals();
+        html+=addForm();
+        html+='<section class="hdp154-panel" aria-label="Vitalwerte-Verlauf"><div class="hdp154-ai-title">📈 Vitalwerte-Verlauf</div><label class="hdp154-label" for="hdp154-vital-search">Suche</label><input id="hdp154-vital-search" class="hdp154-field" data-ab-vital-search type="search" maxlength="120" placeholder="Messgröße, Messwert, Einheit oder Notiz suchen" value="'+esc(vitalSearch)+'"><div class="hdp154-grid"><div><label class="hdp154-label" for="hdp154-vital-from">Von</label><input id="hdp154-vital-from" class="hdp154-field" data-ab-vital-from type="date" value="'+esc(vitalFrom)+'"></div><div><label class="hdp154-label" for="hdp154-vital-to">Bis</label><input id="hdp154-vital-to" class="hdp154-field" data-ab-vital-to type="date" value="'+esc(vitalTo)+'"></div></div><p class="hdp154-muted">'+vitalItems.length+' von '+data.vitals.length+' Einträgen · chronologisch nach Messdatum · keine medizinische Bewertung</p></section>';
+        html+=vitalItems.map(function(item){return recordHtml(item,'vitals');}).join('')||'<div class="hdp154-empty">'+(data.vitals.length?'Keine Vitalwerte für diese Suche oder diesen Zeitraum.':'Noch keine Einträge in diesem Bereich.')+'</div>';
+      }else html+=addForm()+(recordsFor(tab).map(function(item){return recordHtml(item,tab);}).join('')||'<div class="hdp154-empty">Noch keine Einträge in diesem Bereich.</div>');
       html+='<div class="hdp154-foot">Datenschutz: Daten werden in diesem Browser lokal gespeichert und vor dem Speichern verschlüsselt. Eine Wiederherstellung ohne Passphrase ist nicht möglich. Keine Synchronisierung mit einer Arztpraxis. Die App ersetzt keine ärztliche Beratung, Diagnose oder Behandlung.</div>';
       root.innerHTML=html;
     }
@@ -11393,9 +11415,25 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
           encryptAndSave().then(function(){editingVitalId=null;renderUnlocked(root);notify(type==='vitals'?'Vitalwert verschlüsselt gespeichert.':'Eintrag verschlüsselt gespeichert.','success');}).catch(function(e){notify('Speichern fehlgeschlagen: '+(e.message||e),'error');});
         }
       });
+      root.addEventListener('input',function(event){
+        var field=event.target;
+        if(!field.matches('[data-ab-vital-search]'))return;
+        vitalSearch=field.value;
+        var cursor=field.selectionStart;
+        renderUnlocked(root);
+        var next=root.querySelector('[data-ab-vital-search]');
+        if(next){next.focus();next.setSelectionRange(cursor,cursor);}
+      });
+      root.addEventListener('change',function(event){
+        var field=event.target;
+        if(field.matches('[data-ab-vital-from]'))vitalFrom=field.value;
+        else if(field.matches('[data-ab-vital-to]'))vitalTo=field.value;
+        else return;
+        renderUnlocked(root);
+      });
       root.addEventListener('click',function(event){
         var b=event.target.closest('button');if(!b||!root.contains(b))return;
-        if(b.dataset.abTab){tab=b.dataset.abTab;if(tab!=='vitals')editingVitalId=null;renderUnlocked(root);return;}
+        if(b.dataset.abTab){tab=b.dataset.abTab;if(tab!=='vitals'){editingVitalId=null;vitalSearch='';vitalFrom='';vitalTo='';}renderUnlocked(root);return;}
         if(b.dataset.abEditVital){
           var selectedVital=data&&data.vitals.find(function(x){return x.id===b.dataset.abEditVital;});
           if(!selectedVital)return;
