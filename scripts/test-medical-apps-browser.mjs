@@ -349,7 +349,7 @@ async function run() {
   assert.equal(registryHealth.avatarRoute.moduleName, 'LivingAvatar');
   assert.equal(registryHealth.avatarRoute.moduleAvailable, true);
   assert.equal(registryHealth.avatarStatus.kind, 'module');
-  assert.ok(['module', 'route'].includes(registryHealth.tasks.kind));
+  assert.equal(registryHealth.tasks.kind, 'scaffold');
   assert.equal(registryHealth.remindersRoute.moduleName, 'Reminders');
   assert.equal(registryHealth.remindersRoute.moduleAvailable, true);
   assert.equal(registryHealth.reminders.kind, 'module');
@@ -364,7 +364,7 @@ async function run() {
   assert.equal(await appRegistryRoot.locator('[data-launch="reminders"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   assert.equal(await appRegistryRoot.locator('[data-launch="chat-pro"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   const tasksBadge = await appRegistryRoot.locator('[data-launch="tasks"] [data-implementation-status]').innerText();
-  assert.ok(['Modul vorhanden', 'Start-Route vorhanden'].includes(tasksBadge));
+  assert.equal(tasksBadge, 'Grundgerüst');
   assert.match(await appRegistryRoot.innerText(), /Start-Routen/);
   await closeWindow(appRegistryRoot);
   pass('HalDo App-Registry Pro zeigt Grundgerüste und eigene Module sichtbar getrennt an');
