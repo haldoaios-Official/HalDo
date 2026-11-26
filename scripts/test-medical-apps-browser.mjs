@@ -339,6 +339,22 @@ async function run() {
   await fromDateReset.dispatchEvent('change');
   assert.equal(await hub.locator('.hdp154-record').count(), 1);
   pass('Arztbuch: Vitalwerte-Verlauf prüft die Von-Datumsgrenze');
+  const toDate = hub.locator('[data-ab-vital-to]');
+  await toDate.fill('2026-11-25');
+  await toDate.dispatchEvent('change');
+  assert.equal(await hub.locator('.hdp154-record').count(), 0);
+  const toDateReset = hub.locator('[data-ab-vital-to]');
+  await toDateReset.fill('2026-11-26');
+  await toDateReset.dispatchEvent('change');
+  assert.equal(await hub.locator('.hdp154-record').count(), 1);
+  pass('Arztbuch: Vitalwerte-Verlauf prüft die Bis-Datumsgrenze');
+  const clearFromDate = hub.locator('[data-ab-vital-from]');
+  await clearFromDate.fill('');
+  await clearFromDate.dispatchEvent('change');
+  const clearToDate = hub.locator('[data-ab-vital-to]');
+  await clearToDate.fill('');
+  await clearToDate.dispatchEvent('change');
+
 
 
   await hub.locator('[data-ab-edit-vital]').click();
