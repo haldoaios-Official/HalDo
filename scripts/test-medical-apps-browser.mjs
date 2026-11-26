@@ -195,6 +195,16 @@ async function submitRecord(root, values) {
   await root.locator('#h167-record-form button[type="submit"]').click();
 }
 
+async function submitMedicalVaultRecord(root, values) {
+  for (const [name, value] of Object.entries(values)) {
+    const field = root.locator('[name="' + name + '"]');
+    const tagName = await field.evaluate((element) => element.tagName);
+    if (tagName === 'SELECT') await field.selectOption(String(value));
+    else await field.fill(String(value));
+  }
+  await root.locator('#h167-record-form button[type="submit"]').click();
+}
+
 async function readVault(key) {
   return page.evaluate((storageKey) => localStorage.getItem(storageKey), key);
 }
@@ -773,8 +783,12 @@ async function run() {
       deviceInfo: H.AppBrowser.getStatus('device-info'),
       breathing: H.AppBrowser.getStatus('breathing'),
       scientific: H.AppBrowser.getStatus('scientific'),
+      careDocumentation: H.AppBrowser.getStatus('pflegeprotokoll-pro'),
+      appointments: H.AppBrowser.getStatus('arzttermine-pro'),
       breathingRoute: H.SystemV157.resolveRoute('breathing'),
-      scientificRoute: H.SystemV157.resolveRoute('scientific')
+      scientificRoute: H.SystemV157.resolveRoute('scientific'),
+      careDocumentationRoute: H.SystemV157.resolveRoute('pflegeprotokoll-pro'),
+      appointmentsRoute: H.SystemV157.resolveRoute('arzttermine-pro')
     };
   });
   assert.equal(registryHealth.categoryCount, 26);
@@ -801,7 +815,7 @@ async function run() {
   assert.equal(registryHealth.utilities.kind, 'module');
   assert.equal(registryHealth.recipes.kind, 'module');
   assert.equal(registryHealth.analyzer.kind, 'module');
-  assert.equal(registryHealth.statusCounts.modules, 78);
+  assert.equal(registryHealth.statusCounts.modules, 80);
   assert.equal(registryHealth.statusCounts.scaffolds, 1);
   assert.equal(registryHealth.breathing.kind, 'module');
   assert.equal(registryHealth.scientific.kind, 'module');
@@ -811,6 +825,14 @@ async function run() {
   assert.equal(registryHealth.scientificRoute.routeConfigured, true);
   assert.equal(registryHealth.scientificRoute.moduleName, 'scientific');
   assert.equal(registryHealth.scientificRoute.moduleAvailable, true);
+  assert.equal(registryHealth.careDocumentation.kind, 'module');
+  assert.equal(registryHealth.appointments.kind, 'module');
+  assert.equal(registryHealth.careDocumentationRoute.routeConfigured, true);
+  assert.equal(registryHealth.careDocumentationRoute.moduleName, 'pflegeprotokoll-pro');
+  assert.equal(registryHealth.careDocumentationRoute.moduleAvailable, true);
+  assert.equal(registryHealth.appointmentsRoute.routeConfigured, true);
+  assert.equal(registryHealth.appointmentsRoute.moduleName, 'arzttermine-pro');
+  assert.equal(registryHealth.appointmentsRoute.moduleAvailable, true);
   assert.equal(registryHealth.statusCounts.review, 6);
   assert.equal(registryHealth.datecalc.kind, 'module');
   assert.equal(registryHealth.deviceInfo.kind, 'module');
@@ -829,6 +851,8 @@ async function run() {
   await appRegistryRoot.locator('[data-category="D"]').click();
   const categoryDGrid = appRegistryRoot.locator('[data-category-app-grid="D"]');
   assert.equal(await categoryDGrid.locator('[data-launch="datecalc"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  assert.equal(await categoryDGrid.locator('[data-launch="pflegeprotokoll-pro"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  assert.equal(await categoryDGrid.locator('[data-launch="arzttermine-pro"] [data-implementation-status]').innerText(), 'Modul vorhanden');
   await appRegistryRoot.locator('[data-category="X"]').click();
   const categoryXGrid = appRegistryRoot.locator('[data-category-app-grid="X"]');
   assert.equal(await categoryXGrid.locator('[data-launch="device-info"] [data-implementation-status]').innerText(), 'Modul vorhanden');
@@ -851,6 +875,142 @@ async function run() {
 
   await closeWindow(appRegistryRoot);
   pass('HalDo App-Registry Pro zeigt Grundgerüste und eigene Module sichtbar getrennt an');
+
+
+  // v173: encrypted care documentation and appointment/referral coordination apps.
+  const v173Source = await fs.readFile(path.join(ROOT, 'js/haldo-v173-care-apps.js'), 'utf8');
+  assert.equal(/\bfetch\s*\(|XMLHttpRequest|WebSocket/.test(v173Source), false, 'v173 darf keine externen Netzwerkverbindungen aufbauen.');
+  const v173Runtime = await page.evaluate(() => ({
+    build: window.HalDo.Master.version,
+    apps: window.HalDo.AppsV173.apps.map((app) => app.id),
+    status: window.HalDo.AppsV173.status(),
+    errors: window.HalDo.AppsV173.errors,
+    care: window.HalDo.AppBrowser.getStatus('pflegeprotokoll-pro'),
+    appointments: window.HalDo.AppBrowser.getStatus('arzttermine-pro'),
+    careOpen: typeof window.HalDo['pflegeprotokoll-pro']?.open,
+    appointmentsOpen: typeof window.HalDo['arzttermine-pro']?.open,
+    scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v173-care-apps.js')),
+    sharedVaultReady: !!(window.HalDo.MedicalVault && typeof window.HalDo.MedicalVault.registerConfig === 'function')
+  }));
+  assert.equal(v173Runtime.build, '173.0.0');
+  assert.deepEqual(v173Runtime.apps, ['pflegeprotokoll-pro', 'arzttermine-pro']);
+  assert.deepEqual(v173Runtime.errors, []);
+  assert.ok(v173Runtime.status.every((item) => item.ready && item.registered));
+  assert.equal(v173Runtime.care.kind, 'module');
+  assert.equal(v173Runtime.appointments.kind, 'module');
+  assert.equal(v173Runtime.careOpen, 'function');
+  assert.equal(v173Runtime.appointmentsOpen, 'function');
+  assert.equal(v173Runtime.scriptLoaded, true);
+  assert.equal(v173Runtime.sharedVaultReady, true);
+  pass('HalDo v173: Pflegeprotokoll und Arzttermine/Überweisungen sind als eigene verschlüsselte Module registriert');
+
+  const careKey = 'haldo_v173_care_documentation_vault';
+  await page.evaluate(() => window.HalDo.Launch({ id: 'pflegeprotokoll-pro', n: 'HalDo Pflegeprotokoll Pro' }));
+  await page.locator('#haldo-v161-welcome').waitFor({ state: 'visible', timeout: 10000 });
+  assert.match(await page.locator('#haldo-v161-welcome .h161-title').innerText(), /HalDo Pflegeprotokoll Pro/);
+  await dismissWelcomeIfPresent();
+  const care = page.locator('#winLayer .h167').last();
+  await care.waitFor({ state: 'visible', timeout: 10000 });
+  await createOrUnlock(care, PASS);
+  await assertEncrypted(careKey);
+  await submitMedicalVaultRecord(care, {
+    name: 'Pflegeperson E2E',
+    date: '2026-11-26',
+    time: '09:15',
+    category: 'Mobilität',
+    activity: 'Unterstützung beim sicheren Aufstehen E2E',
+    result: 'Maßnahme dokumentiert E2E',
+    performedBy: 'Pflegekraft Test',
+    handover: 'Rückmeldung bei Übergabe E2E',
+    note: 'Nur automatischer Browser-Test'
+  });
+  await care.getByText('Pflegeperson E2E', { exact: true }).waitFor({ timeout: 15000 });
+  await care.getByText('Unterstützung beim sicheren Aufstehen E2E', { exact: false }).waitFor({ timeout: 10000 });
+  await assertEncrypted(careKey, ['Pflegeperson E2E', 'Unterstützung beim sicheren Aufstehen E2E', 'Nur automatischer Browser-Test']);
+  pass('HalDo Pflegeprotokoll Pro: Pflegemaßnahme mit Datum, Bereich, Ergebnis und Übergabe wird verschlüsselt gespeichert');
+
+  await care.locator('#h167-search').fill('Übergabe E2E');
+  assert.equal(await care.locator('[data-edit]').count(), 1);
+  await care.locator('#h167-search').fill('kein Treffer');
+  await care.getByText('Noch keine Einträge oder keine Treffer.', { exact: true }).waitFor();
+  await care.locator('#h167-search').fill('');
+  await care.locator('[data-edit]').first().click();
+  await care.locator('[name="activity"]').fill('Pflegemaßnahme aktualisiert E2E');
+  await care.locator('[name="category"]').selectOption('Beobachtung');
+  await care.locator('#h167-record-form button[type="submit"]').click();
+  await care.getByText('Pflegemaßnahme aktualisiert E2E', { exact: false }).waitFor({ timeout: 15000 });
+  await assertEncrypted(careKey, ['Pflegeperson E2E', 'Pflegemaßnahme aktualisiert E2E']);
+  pass('HalDo Pflegeprotokoll Pro: Suche, Filter, Bearbeitung und erneute Verschlüsselung funktionieren');
+
+  const careBackup = await exportBackup(care);
+  await care.locator('#h167-lock').click();
+  await care.locator('#h167-pass').fill(PASS);
+  await care.locator('#h167-unlock-form button[type="submit"]').click();
+  await care.locator('#h167-record-form').waitFor({ timeout: 15000 });
+  await care.getByText('Pflegemaßnahme aktualisiert E2E', { exact: false }).waitFor({ timeout: 10000 });
+  await assertEncrypted(careKey, ['Pflegeperson E2E']);
+  pass('HalDo Pflegeprotokoll Pro: Tresor sperren/entsperren und verschlüsseltes Backup exportieren');
+  page.once('dialog', (dialog) => dialog.accept());
+  await care.locator('[data-delete]').first().click();
+  await care.getByText('Noch keine Einträge oder keine Treffer.', { exact: true }).waitFor({ timeout: 15000 });
+  await assertEncrypted(careKey, ['Pflegeperson E2E']);
+  await closeApp(care);
+  pass('HalDo Pflegeprotokoll Pro: Löschen und Fenster-Schließen sperren den Tresor');
+
+  const appointmentKey = 'haldo_v173_appointments_referrals_vault';
+  await page.evaluate(() => window.HalDo.Launch({ id: 'arzttermine-pro', n: 'HalDo Arzttermine & Überweisungen Pro' }));
+  await page.locator('#haldo-v161-welcome').waitFor({ state: 'visible', timeout: 10000 });
+  assert.match(await page.locator('#haldo-v161-welcome .h161-title').innerText(), /HalDo Arzttermine & Überweisungen Pro/);
+  await dismissWelcomeIfPresent();
+  const appointments = page.locator('#winLayer .h167').last();
+  await appointments.waitFor({ state: 'visible', timeout: 10000 });
+  await createOrUnlock(appointments, PASS);
+  await assertEncrypted(appointmentKey);
+  await submitMedicalVaultRecord(appointments, {
+    name: 'Terminperson E2E',
+    type: 'Überweisung',
+    date: '2026-12-02',
+    time: '10:30',
+    provider: 'Testpraxis E2E',
+    specialty: 'Kardiologie',
+    purpose: 'Terminorganisation E2E',
+    status: 'Bestätigt',
+    referralStatus: 'Ausgestellt',
+    contact: '0511 123456',
+    note: 'Testunterlagen mitbringen E2E'
+  });
+  await appointments.getByText('Terminperson E2E', { exact: true }).waitFor({ timeout: 15000 });
+  await appointments.getByText('Testpraxis E2E', { exact: false }).waitFor({ timeout: 10000 });
+  await assertEncrypted(appointmentKey, ['Terminperson E2E', 'Testpraxis E2E', 'Testunterlagen mitbringen E2E']);
+  pass('HalDo Arzttermine & Überweisungen Pro: Termin und Überweisung mit Praxis, Fachrichtung und Status verschlüsselt gespeichert');
+
+  await appointments.locator('#h167-search').fill('Kardiologie');
+  assert.equal(await appointments.locator('[data-edit]').count(), 1);
+  await appointments.locator('#h167-search').fill('kein Treffer');
+  await appointments.getByText('Noch keine Einträge oder keine Treffer.', { exact: true }).waitFor();
+  await appointments.locator('#h167-search').fill('');
+  await appointments.locator('[data-edit]').first().click();
+  await appointments.locator('[name="status"]').selectOption('Erledigt');
+  await appointments.locator('[name="referralStatus"]').selectOption('Eingelöst');
+  await appointments.locator('#h167-record-form button[type="submit"]').click();
+  await appointments.getByText('Erledigt', { exact: false }).waitFor({ timeout: 15000 });
+  await assertEncrypted(appointmentKey, ['Terminperson E2E', 'Testpraxis E2E']);
+  pass('HalDo Arzttermine & Überweisungen Pro: Suche, Bearbeitung und Statuswechsel bleiben verschlüsselt');
+
+  const appointmentsBackup = await exportBackup(appointments);
+  await appointments.locator('#h167-lock').click();
+  await appointments.locator('#h167-pass').fill(PASS);
+  await appointments.locator('#h167-unlock-form button[type="submit"]').click();
+  await appointments.locator('#h167-record-form').waitFor({ timeout: 15000 });
+  await appointments.getByText('Terminperson E2E', { exact: true }).waitFor({ timeout: 10000 });
+  await assertEncrypted(appointmentKey, ['Terminperson E2E']);
+  pass('HalDo Arzttermine & Überweisungen Pro: Tresor sperren/entsperren und Backup exportieren');
+  page.once('dialog', (dialog) => dialog.accept());
+  await appointments.locator('[data-delete]').first().click();
+  await appointments.getByText('Noch keine Einträge oder keine Treffer.', { exact: true }).waitFor({ timeout: 15000 });
+  await assertEncrypted(appointmentKey, ['Terminperson E2E']);
+  await closeApp(appointments);
+  pass('HalDo Arzttermine & Überweisungen Pro: Löschen und Fenster-Schließen sperren den Tresor');
 
   const anatomyCatalogCheck = await page.evaluate(async () => {
     const [catalog, loader] = await Promise.all([
