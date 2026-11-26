@@ -90,21 +90,17 @@ async function openArztbuchHub() {
     window.HalDo.Launch({ id: 'arztbuch', n: 'HalDo Arztbuch Pro' });
   });
   await dismissWelcomeIfPresent();
-  const unlockForm = page.locator('[data-ab-unlock-form]').last();
-  await unlockForm.waitFor({ state: 'visible', timeout: 20000 });
-  await unlockForm.locator('[name="pass"]').fill(PASS);
-  await unlockForm.locator('[name="confirm"]').fill(PASS);
-  await unlockForm.locator('button[type="submit"]').click();
-  const launchButton = page.locator('[data-ab-open-module="laborwerte-pro"]').last();
-  await launchButton.waitFor({ state: 'visible', timeout: 20000 });
-  const windowId = await launchButton.evaluate((element) => {
-    const host = element.closest('.window');
-    return host && host.id ? host.id : null;
-  });
-  assert.ok(windowId, 'Das entsperrte Arztbuch-Fenster konnte nicht gefunden werden.');
-  return page.locator('#' + windowId);
-}
 
+  // The existing v154 openRoot helper creates .hdp154-root inside the window.
+  const hub = page.locator('#winLayer .hdp154-root').last();
+  const unlockForm = hub.locator('[data-ab-unlock-form]');
+  await unlockForm.waitFor({ state: 'visible', timeout: 20000 });
+  await hub.locator('[name="pass"]').fill(PASS);
+  await hub.locator('[name="confirm"]').fill(PASS);
+  await unlockForm.locator('button[type="submit"]').click();
+  await hub.locator('[data-ab-open-module="laborwerte-pro"]').waitFor({ state: 'visible', timeout: 20000 });
+  return hub;
+}
 async function openMedicalAppFromHub(hub, appId) {
   const launchButton = hub.locator('[data-ab-open-module="' + appId + '"]');
   await launchButton.waitFor({ state: 'visible', timeout: 10000 });
@@ -115,18 +111,23 @@ async function openMedicalAppFromHub(hub, appId) {
   await root.waitFor({ state: 'visible', timeout: 5000 });
   return root;
 }
-async function closeWindow(win) {
-  const windowId = await win.getAttribute('id');
-  assert.ok(windowId, 'Fenster-ID konnte vor dem Schließen nicht gelesen werden.');
+async function closeWindow(root) {
+  const windowId = await root.evaluate((element) => {
+    const layer = element.closest('#winLayer');
+    if (!layer) return null;
+    let host = element;
+    while (host.parentElement && host.parentElement !== layer) host = host.parentElement;
+    return host.parentElement === layer && host.id ? host.id : null;
+  });
+  assert.ok(windowId, 'Fenster-ID konnte vor dem Schließen nicht aus #winLayer ermittelt werden.');
   await page.evaluate((id) => {
     if (!window.HalDo || !window.HalDo.Win || typeof window.HalDo.Win.close !== 'function') {
       throw new Error('HalDo.Win.close ist nicht verfügbar.');
     }
     window.HalDo.Win.close(id);
   }, windowId);
-  await win.waitFor({ state: 'detached', timeout: 5000 });
+  await root.waitFor({ state: 'detached', timeout: 5000 });
 }
-
 async function createOrUnlock(root, passphrase) {
   await root.locator('#h167-pass').fill(passphrase);
   await root.locator('#h167-unlock-form button[type="submit"]').click();
