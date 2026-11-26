@@ -136,8 +136,8 @@
     var iv = window.crypto.getRandomValues(new Uint8Array(12));
     return window.crypto.subtle.encrypt({name:'AES-GCM', iv:iv}, key, encoder.encode(JSON.stringify(records)))
       .then(function (cipher) {
-        var current = readEnvelope(config);
-        var salt = current && current.salt ? current.salt : vaults[config.id].salt;
+        // Use the decoded salt held by the unlocked vault. The persisted envelope stores Base64 text.
+        var salt = vaults[config.id].salt;
         writeEnvelope(config, {
           format:'haldo-aes-gcm-v1',
           kdf:'PBKDF2-SHA-256',
