@@ -180,12 +180,8 @@ async function closeWindow(root) {
     return host.parentElement === layer && host.id ? host.id : null;
   });
   assert.ok(windowId, 'Fenster-ID konnte vor dem Schließen nicht aus #winLayer ermittelt werden.');
-  await page.evaluate((id) => {
-    if (!window.HalDo || !window.HalDo.Win || typeof window.HalDo.Win.close !== 'function') {
-      throw new Error('HalDo.Win.close ist nicht verfügbar.');
-    }
-    window.HalDo.Win.close(id);
-  }, windowId);
+  const windowHost = page.locator('#' + windowId);
+  await windowHost.locator('[data-act="close"]').click();
   await root.waitFor({ state: 'detached', timeout: 5000 });
 }
 async function createOrUnlock(root, passphrase) {
