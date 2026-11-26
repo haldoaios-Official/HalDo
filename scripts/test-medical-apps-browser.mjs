@@ -842,7 +842,7 @@ async function run() {
   assert.equal(registryHealth.utilities.kind, 'module');
   assert.equal(registryHealth.recipes.kind, 'module');
   assert.equal(registryHealth.analyzer.kind, 'module');
-  assert.equal(registryHealth.statusCounts.modules, 92);
+  assert.equal(registryHealth.statusCounts.modules, 91);
   assert.equal(registryHealth.statusCounts.scaffolds, 0);
   assert.equal(registryHealth.statusCounts.routes, 0);
   assert.equal(registryHealth.breathing.kind, 'module');
