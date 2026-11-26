@@ -696,8 +696,14 @@
   /* Das aktive v157+ Routing ist explizit; neue Module müssen dort registriert werden. */
   var previousLaunch = H.Launch;
   H.Launch = function (app) {
-    if (app && app.id === 'breathing') return H.breathing.open();
-    if (app && app.id === 'scientific') return H.scientific.open();
+    if (app && (app.id === 'breathing' || app.id === 'scientific')) {
+      var module = H[app.id];
+      var openModule = function () { return module.open(); };
+      if (H.WelcomeExperience && typeof H.WelcomeExperience.openApp === 'function') {
+        return H.WelcomeExperience.openApp(app, openModule);
+      }
+      return openModule();
+    }
     if (typeof previousLaunch === 'function') return previousLaunch.apply(this, arguments);
     return undefined;
   };
