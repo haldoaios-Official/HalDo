@@ -570,3 +570,27 @@ Die App-Registry zeigt diese Kennzeichnung auf jedem benannten Karten-Eintrag so
 **Zusätzliche Registry-Prüfung:** `index.html` wurde danach ergänzt, damit Werkzeuge Pro unter U auch im sichtbaren A–Z-Kategoriefilter erscheint. Der Browser-Test prüft nun die Kategorie-Kacheln G (Workout) und U (Werkzeuge) einschließlich des Status-Tags „Modul vorhanden“. Lauf #125 (`45762656371`) und Lauf #126 (`45762674927`) prüfen diesen Nachtrag noch; deren Endergebnis ist bei dieser Dokumentation offen.
 
 **Release-Grenze:** Alle oben genannten Änderungen liegen im Arbeitsbranch `work-v167-medical-apps` und sind nicht nach `main` gemergt oder veröffentlicht. Die 375 Plätze bleiben Sollkapazität; nicht spezifizierte oder generische Scaffolds sind weiterhin offen.
+
+## HALDO v170 – Rezepte Pro und Text Analyzer Pro (26.11.2026)
+
+### HalDo Rezepte Pro
+
+- Eigenständiges Rezeptbuch, getrennt von der vorhandenen Rezept-Portionsskalierung.
+- Rezepte mit Name, Kategorie, Portionen, Zubereitungszeit, Zutaten (Menge/Einheit), Zubereitungsschritten und Notizen/Allergenhinweisen anlegen.
+- Favoriten, Bearbeiten, Löschen, Suche über Namen und Zutaten sowie Kategorienfilter.
+- Daten werden lokal im HalDo Store gespeichert. Pflichtfelder werden erst beim endgültigen Speichern vollständig validiert; Zutatenzeilen lassen sich während der Bearbeitung hinzufügen/entfernen, ohne dass der ganze Entwurf schon vollständig sein muss.
+
+### HalDo Text Analyzer Pro
+
+- Lokale Analyse von Zeichen, Zeichen ohne Leerzeichen, Wörtern, Sätzen, Absätzen, Zeilen, durchschnittlicher Wortlänge, geschätzter Lesezeit und häufigen Wörtern.
+- Sofortige Aktualisierung während der Eingabe; Text bleibt im Browser und wird nicht automatisch übertragen.
+- Beim Speichern wird nur eine Zusammenfassung mit Titel und Kennzahlen abgelegt, nicht der Originaltext. Verlauf bleibt nach Schließen/Wiederöffnen verfügbar und lässt sich löschen.
+- Umlaute und Unicode-Buchstaben werden in der Wortzählung berücksichtigt. Die Lesezeit ist eine grobe Schätzung (200 Wörter/Minute), keine verbindliche Messung.
+
+Beide Apps sind als eigenständige Module registriert: `recipes` unter G und `analyzer` unter A. Die aktuelle Registry-Inventur zeigt 86 eindeutige App-IDs, 26 Kategorien, 375 geplante Plätze sowie 74 eigene Module, 3 generische Grundgerüste, 1 zentrale Route und 8 noch zu prüfende Zuordnungen. „Modul vorhanden“ ist der technische Integrationsstatus, keine vollständige Fachabnahme jedes Moduls.
+
+**Abnahme:** GitHub Actions Lauf #136 (`45763693310`) auf Commit `25769af20eed87f2fc7c968066d4fb7a7182ac26`: **55/55 Chromium-Browserprüfungen erfolgreich**. Zusätzlich zur bisherigen 53/53-Regression wurden Rezeptanlage mit Pflichtfeldfehler, Kategorien, zwei Zutaten, Zubereitungsschritte, Speichern, Schließen/Wiederöffnen, Favorit, Bearbeiten, Suche/Filter und Löschen geprüft. Der Text Analyzer wurde mit Live-Kennzahlen geprüft; beim Speichern blieben Originaltext und Rohtextfelder aus dem gespeicherten Verlauf heraus. Der Verlauf wurde nach Wiederöffnung wiederhergestellt und anschließend gelöscht. Die sechs v165/v166 Launcher-Tests, v168/v169-Apps, Anatomie-/GLB-/Skelett-Tests sowie Arztbuch-, Vitalwerte-, Laborwerte- und Medikamentenplan-Regressionen bestanden ebenfalls.
+
+**Technische Korrekturen während der Abnahme:** Die Versionsprüfung unterscheidet jetzt korrekt `AppsV169.version` (169.0.0) und `AppsV170.version` (170.0.0). Zutatenzeilen lassen sich vor vollständiger Rezeptvalidierung bearbeiten; die komplette Pflichtfeldprüfung bleibt beim Speichern aktiv.
+
+**Freigabegrenze:** Änderungen bleiben auf `work-v167-medical-apps`, Draft-PR #1; kein Merge nach `main` und keine produktive Veröffentlichung.
