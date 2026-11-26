@@ -11306,6 +11306,11 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
         return true;
       });
     }
+    function csvCell(value){
+      var text=String(value==null?'':value);
+      if(/^\s*[=+\-@]/.test(text))text="'"+text;
+      return '"'+text.replace(/"/g,'""')+'"';
+    }
     function numericVitalValue(value){
       var raw=String(value==null?'':value).trim().replace(',','.');
       if(!/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(raw))return null;
@@ -11454,7 +11459,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
       else if(tab==='vitals'){
         var vitalItems=filteredVitals();
         html+=addForm();
-        html+='<section class="hdp154-panel" aria-label="Vitalwerte-Verlauf"><div class="hdp154-ai-title">📈 Vitalwerte-Verlauf</div><label class="hdp154-label" for="hdp154-vital-search">Suche</label><input id="hdp154-vital-search" class="hdp154-field" data-ab-vital-search type="search" maxlength="120" placeholder="Messgröße, Messwert, Einheit oder Notiz suchen" value="'+esc(vitalSearch)+'"><div class="hdp154-grid"><div><label class="hdp154-label" for="hdp154-vital-from">Von</label><input id="hdp154-vital-from" class="hdp154-field" data-ab-vital-from type="date" value="'+esc(vitalFrom)+'"></div><div><label class="hdp154-label" for="hdp154-vital-to">Bis</label><input id="hdp154-vital-to" class="hdp154-field" data-ab-vital-to type="date" value="'+esc(vitalTo)+'"></div></div><p class="hdp154-muted">'+vitalItems.length+' von '+data.vitals.length+' Einträgen · chronologisch nach Messdatum · keine medizinische Bewertung</p></section>';
+        html+='<section class="hdp154-panel" aria-label="Vitalwerte-Verlauf"><div class="hdp154-ai-title">📈 Vitalwerte-Verlauf</div><label class="hdp154-label" for="hdp154-vital-search">Suche</label><input id="hdp154-vital-search" class="hdp154-field" data-ab-vital-search type="search" maxlength="120" placeholder="Messgröße, Messwert, Einheit oder Notiz suchen" value="'+esc(vitalSearch)+'"><div class="hdp154-grid"><div><label class="hdp154-label" for="hdp154-vital-from">Von</label><input id="hdp154-vital-from" class="hdp154-field" data-ab-vital-from type="date" value="'+esc(vitalFrom)+'"></div><div><label class="hdp154-label" for="hdp154-vital-to">Bis</label><input id="hdp154-vital-to" class="hdp154-field" data-ab-vital-to type="date" value="'+esc(vitalTo)+'"></div></div><p class="hdp154-muted">'+vitalItems.length+' von '+data.vitals.length+' Einträgen · chronologisch nach Messdatum · keine medizinische Bewertung</p><div class="hdp154-actions"><button class="hdp154-btn" type="button" data-ab-vital-export'+(vitalItems.length?'':' disabled')+'>⬇ CSV exportieren (Klartext)</button></div><p class="hdp154-muted">Datenschutzhinweis: CSV-Dateien enthalten unverschlüsselte Gesundheitsangaben. Speichere und teile die Datei nur an einem geschützten Ort.</p></section>';
         html+=vitalChartHtml(vitalItems);
         html+=vitalItems.map(function(item){return recordHtml(item,'vitals');}).join('')||'<div class="hdp154-empty">'+(data.vitals.length?'Keine Vitalwerte für diese Suche oder diesen Zeitraum.':'Noch keine Einträge in diesem Bereich.')+'</div>';
       }else html+=addForm()+(recordsFor(tab).map(function(item){return recordHtml(item,tab);}).join('')||'<div class="hdp154-empty">Noch keine Einträge in diesem Bereich.</div>');
@@ -11569,6 +11574,21 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
           if(typeof H.Launch==='function')H.Launch({id:moduleId,n:moduleNames[moduleId]});
           else notify('Das gewählte Pro-Modul ist derzeit nicht verfügbar.','error');
           return;
+        }
+        if(b.hasAttribute('data-ab-vital-export')){
+          var exportItems=filteredVitals();
+          if(!exportItems.length){notify('Keine Vitalwerte für den Export vorhanden.','error');return;}
+          var csvRows=[['Messgröße','Messwert','Einheit','Messdatum','Quelle','Notiz']];
+          exportItems.forEach(function(item){
+            csvRows.push([item.title,item.result,item.unit,item.date,item.source,item.details]);
+          });
+          var csv='\\uFEFF'+csvRows.map(function(row){return row.map(csvCell).join(';');}).join('\\r\\n');
+          var csvBlob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+          var csvUrl=URL.createObjectURL(csvBlob),csvLink=document.createElement('a');
+          csvLink.href=csvUrl;csvLink.download='haldo-vitalwerte.csv';
+          document.body.appendChild(csvLink);csvLink.click();csvLink.remove();
+          window.setTimeout(function(){URL.revokeObjectURL(csvUrl);},1500);
+          notify('Gefilterte Vitalwerte als unverschlüsselte CSV exportiert.','success');return;
         }
         if(b.hasAttribute('data-ab-lock')){lock();notify('HalDo Arztbuch wurde gesperrt.');return;}
         if(b.hasAttribute('data-ab-read')){speak(summary());return;}
