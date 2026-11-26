@@ -522,6 +522,11 @@ async function run() {
   assert.equal(savedRecipe.ingredients.length, 2);
   assert.equal(savedRecipe.steps.length, 2);
   assert.equal(savedRecipe.category, 'Hauptgericht');
+  await closeWindow(recipesRoot);
+  await page.evaluate(() => window.HalDo.Launch({ id: 'recipes', n: 'HalDo Rezepte Pro' }));
+  await dismissWelcomeIfPresent();
+  await recipesRoot.waitFor({ state: 'visible', timeout: 10000 });
+  assert.equal(await recipesRoot.locator('[data-r170-list] [data-r170-open]').count(), 1);
   await recipesRoot.locator('[data-r170-favorite]').click();
   savedRecipe = await page.evaluate(() => window.HalDo.Store.get('haldo_v170_recipe_book', [])[0]);
   assert.equal(savedRecipe.favorite, true);
@@ -561,6 +566,7 @@ async function run() {
   assert.equal(Object.prototype.hasOwnProperty.call(analysisHistory[0], 'rawText'), false);
   await closeWindow(analyzerRoot);
   await page.evaluate(() => window.HalDo.Launch({ id: 'analyzer', n: 'HalDo Text Analyzer Pro' }));
+  await dismissWelcomeIfPresent();
   const reopenedAnalyzer = page.locator('#winLayer .hdv170-root[data-hv170-app="analyzer"]').last();
   await reopenedAnalyzer.waitFor({ state: 'visible', timeout: 10000 });
   assert.equal(await reopenedAnalyzer.locator('[data-an170-history] li').count(), 1);
