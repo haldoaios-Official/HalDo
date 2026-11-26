@@ -310,6 +310,45 @@ async function run() {
     await closeWindow(openedTitle);
   }
   pass('HalDo v165/v166: Sechs zusätzliche Apps öffnen ihre eigenen Module über den zentralen Launcher');
+  const registryHealth = await page.evaluate(() => {
+    const H = window.HalDo;
+    const apps = H.Registry.featured;
+    const categories = H.Registry.getCategories();
+    const statuses = apps.map((app) => ({ id: app.id, ...H.AppBrowser.getStatus(app.id) }));
+    return {
+      appCount: apps.length,
+      uniqueIds: new Set(apps.map((app) => app.id)).size,
+      categoryCount: Object.keys(categories).length,
+      plannedSlots: Object.values(categories).reduce((sum, category) => sum + Number(category.count || 0), 0),
+      statusCounts: {
+        modules: statuses.filter((item) => item.kind === 'module').length,
+        scaffolds: statuses.filter((item) => item.kind === 'scaffold').length,
+        review: statuses.filter((item) => item.kind === 'review').length
+      },
+      reminders: H.AppBrowser.getStatus('reminders'),
+      chatPro: H.AppBrowser.getStatus('chat-pro')
+    };
+  });
+  assert.equal(registryHealth.categoryCount, 26);
+  assert.equal(registryHealth.plannedSlots, 375);
+  assert.equal(registryHealth.uniqueIds, registryHealth.appCount);
+  assert.ok(registryHealth.appCount >= 71);
+  assert.ok(registryHealth.statusCounts.modules > 0);
+  assert.ok(registryHealth.statusCounts.scaffolds > 0);
+  assert.equal(registryHealth.reminders.kind, 'scaffold');
+  assert.equal(registryHealth.chatPro.kind, 'module');
+  console.log('HALDO APP REGISTRY HEALTH ' + JSON.stringify(registryHealth));
+  pass('HalDo Core: 26 Kategorien, 375 Sollplätze, eindeutige App-IDs und Modulstatus geprüft');
+
+  await page.evaluate(() => window.HalDo.AppBrowser.open());
+  const appRegistryRoot = page.locator('#winLayer .hdx-root').last();
+  await appRegistryRoot.getByText('HalDo App-Registry Pro', { exact: true }).waitFor({ timeout: 10000 });
+  assert.match(await appRegistryRoot.innerText(), /375 geplante Plätze/);
+  assert.equal(await appRegistryRoot.locator('[data-launch="reminders"] [data-implementation-status]').innerText(), 'Grundgerüst');
+  assert.equal(await appRegistryRoot.locator('[data-launch="chat-pro"] [data-implementation-status]').innerText(), 'Modul vorhanden');
+  await closeWindow(appRegistryRoot);
+  pass('HalDo App-Registry Pro zeigt Grundgerüste und eigene Module sichtbar getrennt an');
+
   const anatomyCatalogCheck = await page.evaluate(async () => {
     const [catalog, loader] = await Promise.all([
       import('/models/catalog.js'),
