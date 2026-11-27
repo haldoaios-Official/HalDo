@@ -72,7 +72,7 @@
         }else if(tab==='piano'){
           out+='<div class="hdms-card"><b>Piano Roll · C3–B5</b><div class="hdms-muted">Klicke ein Feld, um eine MIDI-Note zu setzen oder zu entfernen. Die Noten werden mit der Piano-Spur abgespielt und exportiert.</div><div style="overflow-x:auto;margin-top:10px"><div style="display:grid;grid-template-columns:52px repeat(16,minmax(18px,1fr));gap:3px;min-width:420px">';
           for(var pitch=83;pitch>=48;pitch--){var names=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];out+='<div class="hdms-label">'+names[pitch%12]+(Math.floor(pitch/12)-1)+'</div>';for(var col=0;col<16;col++){var found=state.pianoNotes.some(function(n){return n.step===col&&n.note===pitch;});out+='<button class="hdms-step '+(found?'on':'')+'" style="--step:#60a5fa;height:19px" data-piano-step="'+col+'" data-piano-note="'+pitch+'" aria-label="'+names[pitch%12]+' Schritt '+(col+1)+'" aria-pressed="'+found+'"></button>';}}
-          out+='</div></div></div>';
+          out+='</div></div><button class="hdms-btn active" id="hdms-midi-export" style="margin-top:10px;width:100%">⬇ MIDI-Datei exportieren</button></div>';
         }else if(tab==='mixer'){
           out+='<div class="hdms-card"><b>Spur-Mixer</b><div class="hdms-muted">Lautstärke, Panorama, Stummschaltung und Solo pro Spur</div>';
           TRACKS.forEach(function(t){var x=state.tracks[t.id];out+='<div class="hdms-mixrow"><b style="color:'+t.color+'">'+t.name+'</b><label class="hdms-muted">VOL<input class="hdms-input" type="range" min="0" max="100" value="'+Math.round(x.vol*100)+'" data-vol="'+t.id+'"></label><label class="hdms-muted">PAN<input class="hdms-input" type="range" min="-100" max="100" value="'+Math.round(x.pan*100)+'" data-pan="'+t.id+'"></label><div><button class="hdms-btn '+(x.mute?'active':'')+'" data-mute="'+t.id+'">M</button><button class="hdms-btn '+(x.solo?'active':'')+'" data-solo="'+t.id+'">S</button></div></div>';});
@@ -147,6 +147,29 @@
           download('HalDo-Music-Studio-'+state.bpm+'BPM.wav',new Blob([ab],{type:'audio/wav'}));say('WAV erfolgreich gerendert und exportiert.');
         }catch(e){say('Exportfehler: '+e.message);}finally{btn.disabled=false;btn.textContent='⬇ WAV exportieren';}
       }
+      function exportMidi(){
+        try{
+          var ppq=480,stepTicks=ppq/4,stepSeconds=60/state.bpm/4,events=[];
+          events.push({tick:0,order:0,bytes:[0xFF,0x51,0x03,(Math.round(60000000/state.bpm)>>16)&255,(Math.round(60000000/state.bpm)>>8)&255,Math.round(60000000/state.bpm)&255]});
+          for(var bar=0;bar<state.bars;bar++)state.pianoNotes.forEach(function(n){
+            var start=bar*16*stepTicks+n.step*stepTicks;
+            var duration=Math.max(24,Math.round((n.duration/stepSeconds)*stepTicks));
+            var velocity=Math.max(1,Math.min(127,Math.round(n.velocity*127)));
+            events.push({tick:start,order:1,bytes:[0x90,n.note,velocity]});
+            events.push({tick:start+duration,order:0,bytes:[0x80,n.note,0]});
+          });
+          events.sort(function(a,b){return a.tick-b.tick||a.order-b.order;});
+          function vlq(value){var buffer=value&0x7F,out=[];while((value>>=7)){buffer<<=8;buffer|=((value&0x7F)|0x80);}while(true){out.push(buffer&255);if(buffer&0x80)buffer>>=8;else break;}return out;}
+          var track=[],last=0;
+          events.forEach(function(e){track=track.concat(vlq(e.tick-last),e.bytes);last=e.tick;});
+          track=track.concat([0x00,0xFF,0x2F,0x00]);
+          function u32(n){return [(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255];}
+          function ascii(s){return s.split('').map(function(ch){return ch.charCodeAt(0);});}
+          var bytes=ascii('MThd').concat(u32(6),[0,0,0,1,(ppq>>8)&255,ppq&255],ascii('MTrk'),u32(track.length),track);
+          download('HalDo-Music-Studio-'+state.bpm+'BPM.mid',new Blob([new Uint8Array(bytes)],{type:'audio/midi'}));
+          say('MIDI-Datei exportiert · '+state.pianoNotes.length+' Piano-Noten · '+state.bars+' Takte.');
+        }catch(e){say('MIDI-Exportfehler: '+e.message);}
+      }
       function bind(){
         panel.querySelectorAll('[data-track]').forEach(function(b){b.addEventListener('click',function(){var x=state.tracks[b.dataset.track],i=Number(b.dataset.step);x.steps[i]=!x.steps[i];save();render();bind();});});
         panel.querySelectorAll('[data-piano-step]').forEach(function(el){el.addEventListener('click',function(){var stepNo=Number(el.dataset.pianoStep),pitch=Number(el.dataset.pianoNote),at=state.pianoNotes.findIndex(function(n){return n.step===stepNo&&n.note===pitch;});if(at>=0)state.pianoNotes.splice(at,1);else state.pianoNotes.push({step:stepNo,note:pitch,velocity:.78,duration:.22});state.tracks.piano.steps[stepNo]=state.pianoNotes.some(function(n){return n.step===stepNo;});save();render();bind();});});
@@ -156,6 +179,7 @@
         panel.querySelectorAll('[data-solo]').forEach(function(el){el.addEventListener('click',function(){var x=state.tracks[el.dataset.solo];x.solo=!x.solo;save();render();bind();if(graph)syncGraph(graph);});});
         ['master','reverb','delay'].forEach(function(k){var el=panel.querySelector('[data-'+k+']');if(el)el.addEventListener('input',function(){state[k]=Number(el.value)/100;if(graph)syncGraph(graph);save();});});
         var ex=panel.querySelector('#hdms-export');if(ex)ex.addEventListener('click',exportWav);
+        var midi=panel.querySelector('#hdms-midi-export');if(midi)midi.addEventListener('click',exportMidi);
       }
       root.querySelectorAll('[data-tab]').forEach(function(b){b.addEventListener('click',function(){tab=b.dataset.tab;state.selected=tab;save();render();bind();});});
       root.querySelector('#hdms-bpm').addEventListener('change',function(){state.bpm=Math.max(40,Math.min(240,Number(this.value)||110));this.value=state.bpm;save();});
