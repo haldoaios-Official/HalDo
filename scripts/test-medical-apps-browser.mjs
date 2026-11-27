@@ -306,7 +306,8 @@ async function run() {
       !!(window.HalDo && window.HalDo.Win && window.HalDo.Launch) &&
       !!(window.HalDo['laborwerte-pro'] && window.HalDo['medikamentenplan-pro']) &&
       !!(window.HalDo.BrandingV177 && window.HalDo.BrandingV177.ready) &&
-      !!(window.HalDo.AICore && window.HalDo.AICore.version === '178.0.0');
+      !!(window.HalDo.AICore && window.HalDo.AICore.version === '178.0.0') &&
+      !!(window.HalDo.PermissionCore && window.HalDo.PermissionCore.version === '179.0.0');
   }, { timeout: 45000 });
   pass('HalDo OS startet auf sicherem Browser-Kontext; beide medizinischen Apps sind registriert');
   const brandAudit = await page.evaluate(() => ({
@@ -412,6 +413,97 @@ async function run() {
   assert.ok(aiCoreAudit.audit.some((entry) => entry.event === 'haldo:core:test:smoke'));
   assert.equal(aiCoreAudit.audit.some((entry) => JSON.stringify(entry).includes('must-not-be-stored')), false);
   pass('HalDo AI Core v178: VoiceHub, Registry, lokale Präferenzen, Audit-Metadaten und ehrlicher Capability-Status geprüft');
+
+  const permissionCoreAudit = await page.evaluate(async () => {
+    const H = window.HalDo;
+    const core = H.PermissionCore;
+    const platform = H.AICore;
+    const app = platform.getApp('avatar');
+    core.registerApp('avatar', ['microphone']);
+    let undeclaredRejected = false;
+    try { await platform.permissions.request('camera', 'avatar'); }
+    catch { undeclaredRejected = true; }
+
+    let registrationRejected = false;
+    try { core.registerApp('avatar', ['contacts']); }
+    catch { registrationRejected = true; }
+
+    const nativeMedia = navigator.mediaDevices;
+    const originalGetUserMedia = nativeMedia.getUserMedia;
+    window.__haldoV179MockStoppedTracks = 0;
+    Object.defineProperty(nativeMedia, 'getUserMedia', {
+      configurable: true,
+      value: async () => ({
+        getTracks: () => [{
+          stop: () => { window.__haldoV179MockStoppedTracks += 1; }
+        }]
+      })
+    });
+
+    window.__haldoV179DeniedResult = null;
+    const deniedPromise = platform.permissions.request('microphone', 'avatar')
+      .then(value => { window.__haldoV179DeniedResult = value; return value; });
+    return {
+      version: core.version,
+      appName: app?.name || null,
+      status: core.getStatus(),
+      manifest: core.listApps(),
+      undeclaredRejected,
+      registrationRejected,
+      originalGetUserMediaType: typeof originalGetUserMedia,
+      deniedPromiseStarted: !!deniedPromise
+    };
+  });
+  assert.equal(permissionCoreAudit.version, '179.0.0');
+  assert.equal(permissionCoreAudit.appName, 'HalDo Cyborg Avatar AI Pro');
+  assert.equal(permissionCoreAudit.status.explicitConsentRequired, true);
+  assert.equal(permissionCoreAudit.status.persistentGrants, false);
+  assert.equal(permissionCoreAudit.status.sessionGrantCount, 0);
+  assert.equal(permissionCoreAudit.manifest[0].id, 'avatar');
+  assert.deepEqual(permissionCoreAudit.manifest[0].permissions.map(item => item.id), ['microphone']);
+  assert.equal(permissionCoreAudit.undeclaredRejected, true);
+  assert.equal(permissionCoreAudit.registrationRejected, true);
+  assert.equal(permissionCoreAudit.originalGetUserMediaType, 'function');
+  assert.equal(permissionCoreAudit.deniedPromiseStarted, true);
+
+  const consentWindow = page.locator('#winLayer .window').filter({ has: page.locator('.hdv179-consent') }).last();
+  await consentWindow.locator('.hdv179-consent [data-consent-deny]').click();
+  await page.waitForFunction(() => window.__haldoV179DeniedResult === false, { timeout: 5000 });
+  const deniedState = await page.evaluate(() => ({
+    granted: window.HalDo.PermissionCore.has('microphone', 'avatar'),
+    audit: window.HalDo.AICore.getRecentAudit(10).some(entry =>
+      entry.event === 'haldo:core:permission:decision' &&
+      entry.action === 'microphone' && entry.status === 'denied'
+    )
+  }));
+  assert.equal(deniedState.granted, false);
+  assert.equal(deniedState.audit, true);
+
+  await page.evaluate(() => {
+    window.__haldoV179GrantedResult = null;
+    window.HalDo.AICore.permissions.request('microphone', 'avatar')
+      .then(value => { window.__haldoV179GrantedResult = value; });
+  });
+  const secondConsent = page.locator('#winLayer .window').filter({ has: page.locator('.hdv179-consent') }).last();
+  await secondConsent.locator('.hdv179-consent [data-consent-allow]').click();
+  await page.waitForFunction(() => window.__haldoV179GrantedResult === true, { timeout: 5000 });
+  const grantedState = await page.evaluate(() => ({
+    granted: window.HalDo.AICore.permissions.has('microphone', 'avatar'),
+    stoppedTracks: window.__haldoV179MockStoppedTracks,
+    service: window.HalDo.AICore.getStatus().permissionService
+  }));
+  assert.equal(grantedState.granted, true);
+  assert.equal(grantedState.stoppedTracks, 1, 'Temporäre Medienstreams müssen nach der Browserfreigabe sofort gestoppt werden.');
+  assert.equal(grantedState.service, true);
+  assert.equal(await page.evaluate(() => window.HalDo.AICore.permissions.revoke('microphone', 'avatar')), true);
+  assert.equal(await page.evaluate(() => window.HalDo.AICore.permissions.has('microphone', 'avatar')), false);
+
+  await page.evaluate(() => {
+    Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
+      configurable: true,
+      value: window.__haldoV179OriginalGetUserMedia
+    });
+  }).catch(() => {});
 
   // Complete the actual first-run welcome gate before opening app windows.
   const systemWelcome = page.locator('#haldo-v161-welcome');
