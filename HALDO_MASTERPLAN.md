@@ -726,3 +726,29 @@ Beide Apps sind als eigenständige Module registriert: `recipes` unter G und `an
 - Statusverteilung: **90 eigenes Startmodul**, **1 generisches Grundgerüst**, **1 zentrale Route**, **0 ungeklärte Zuordnungen**.
 - Diese Zählung ersetzt die ältere Inventur mit 86 App-IDs / 25 Modulen / 4 Grundgerüsten / 57 ungeprüften Zuordnungen aus dem früheren Abschnitt. Die alten Zahlen bleiben als historischer Zwischenstand lesbar.
 - „Eigenes Startmodul“ bedeutet ausschließlich, dass die Registry eine eigene `open()`-Implementierung erkennt. Es ist keine vollständige fachliche Abnahme aller Funktionen, Datenquellen, Berechtigungen, Barrierefreiheit oder Sicherheitsanforderungen.
+
+## AKTUELLER IST-STAND – v176 / Registry-Audit vom 27.11.2026
+
+Dieser Abschnitt korrigiert die älteren Zwischenzahlen im Abschnitt „Korrigierte Registry-Inventur aus Lauf #211“. Maßgeblich ist jetzt der erneute Laufzeit-Audit im aktuellen Arbeitsbranch `work-v167-medical-apps` sowie die Registry-Abnahme im Browser-Test.
+
+- **92 eindeutige App-IDs** in der Registry.
+- **26 Kategorien** mit zusammen **375 geplanten Plätzen**.
+- **92 Einträge mit eigenem erreichbarem Startmodul** laut `HalDo.AppBrowser.getStatus()`.
+- **0 generische Grundgerüste**, **0 reine Start-Routen** und **0 ungeklärte Registry-Zuordnungen** in diesem Audit.
+- Das bedeutet: Alle 92 aktuell benannten Registry-Apps besitzen einen erkannten Startpfad. Es bedeutet ausdrücklich **nicht**, dass alle 92 Apps bereits fachlich vollständig, sicherheitsgeprüft, barrierefrei oder auf allen Geräten abgenommen sind.
+- 375 bleibt der geplante Gesamtausbau. Gegenüber 92 benannten IDs sind **283 Plätze noch nicht als eigenständige App-IDs benannt bzw. implementiert**. Die Namen und Funktionen dieser Plätze müssen anhand der Nutzerwünsche konkretisiert werden; sie dürfen nicht als fertige Apps ausgegeben werden.
+
+### Aktuelle CI-Prüfung
+
+- GitHub Actions Lauf **#231** (`45928317252`) auf Branch-Commit `206d602d1cfc801a204aeedd6e3049837ee0f4f7`: **25/25 Testgruppen erfolgreich**.
+- Der Lauf prüft unter anderem OS-Start, Registry-/Launcher-Zuordnung, A–Z-Kategorien, medizinische Tresore, Vitalwerte, v168–v176-Module und die dokumentierten Browserabläufe.
+- Der frühere umfassende Lauf **#211** (`45826798332`) mit **86/86 Einzelprüfungen** bleibt als historischer Abnahmestand dokumentiert; er ist nicht mit dem neueren Lauf #231 gleichzusetzen.
+
+### Branch- und Veröffentlichungsgrenze
+
+- Produktiver Hauptbranch `main` steht weiterhin auf `4ab7b6c164d7bc28359e500a47322e378f0ca44d` (v166-Basis).
+- Die weiterentwickelte v176-Fassung liegt auf `work-v167-medical-apps`, Commit `206d602d1cfc801a204aeedd6e3049837ee0f4f7`.
+- Pull Request [#1](https://github.com/haldoaios-Official/HalDo/pull/1) bleibt offen und als Draft markiert. Es wurde kein Merge und keine GitHub-Pages-Veröffentlichung vorgenommen.
+- Nächster Ausbau: die noch nicht benannten A–Z-Plätze anhand der bestätigten Nutzeranforderungen konkretisieren, anschließend pro regulärem App-Release zwei neue eigenständige Apps implementieren, integrieren und mit Browserprüfungen abnehmen.
+
+**Wahrheitsregel:** Registry-Startbarkeit, fachliche Funktionsvollständigkeit, Datenschutz-/Sicherheitsprüfung und Live-Veröffentlichung sind vier getrennte Abnahmestufen.
