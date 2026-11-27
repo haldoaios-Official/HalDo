@@ -155,6 +155,10 @@
 
         modelRoot: null,
 
+        faceMeshes: [],
+
+        faceExpressionWeights: Object.create(null),
+
         animationActions: {},
 
         activeAction: null,
@@ -1590,6 +1594,8 @@
 
         state.currentAnimation = null;
 
+        state.faceMeshes = [];
+
 
         if (state.modelRoot) {
 
@@ -1637,6 +1643,133 @@
         }
 
         state.loaded = false;
+
+    }
+
+
+    /* ========================================================
+       FACE MORPH TARGETS
+    ======================================================== */
+
+    function collectFaceMeshes(model) {
+
+        const meshes = [];
+
+        if (!model || typeof model.traverse !== "function") {
+            return meshes;
+        }
+
+        model.traverse(function (object) {
+
+            if (
+                !object ||
+                !object.isMesh ||
+                !object.morphTargetDictionary ||
+                !Array.isArray(object.morphTargetInfluences)
+            ) {
+                return;
+            }
+
+            meshes.push({
+                mesh: object,
+                dictionary: object.morphTargetDictionary,
+                influences: object.morphTargetInfluences
+            });
+
+        });
+
+        return meshes;
+
+    }
+
+
+    function applyFaceExpression(name, weight) {
+
+        if (
+            typeof name !== "string" ||
+            !/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(name) ||
+            !Number.isFinite(weight)
+        ) {
+            return false;
+        }
+
+        const normalizedWeight = Math.max(0, Math.min(1, weight));
+        state.faceExpressionWeights[name] = normalizedWeight;
+
+        let applied = 0;
+
+        state.faceMeshes.forEach(function (entry) {
+
+            const index = entry.dictionary[name];
+
+            if (
+                Number.isInteger(index) &&
+                index >= 0 &&
+                index < entry.influences.length
+            ) {
+
+                entry.influences[index] = normalizedWeight;
+                applied += 1;
+
+            }
+
+        });
+
+        if (applied > 0) {
+
+            EVENTS.emit("face-expression-changed", {
+                name: name,
+                weight: normalizedWeight,
+                meshes: applied
+            });
+
+        }
+
+        return applied > 0;
+
+    }
+
+
+    function setFaceExpressions(expressions) {
+
+        if (
+            !expressions ||
+            typeof expressions !== "object" ||
+            Array.isArray(expressions)
+        ) {
+            return 0;
+        }
+
+        let applied = 0;
+
+        Object.keys(expressions).forEach(function (name) {
+
+            if (applyFaceExpression(name, expressions[name])) {
+                applied += 1;
+            }
+
+        });
+
+        return applied;
+
+    }
+
+
+    function resetFaceExpressions() {
+
+        let reset = 0;
+
+        Object.keys(state.faceExpressionWeights).forEach(function (name) {
+
+            if (applyFaceExpression(name, 0)) {
+                reset += 1;
+            }
+
+        });
+
+        state.faceExpressionWeights = Object.create(null);
+
+        return reset;
 
     }
 
@@ -1980,7 +2113,13 @@
 
             state.modelRoot = model;
 
+            state.faceMeshes = collectFaceMeshes(model);
+
             state.scene.add(model);
+
+            Object.keys(state.faceExpressionWeights).forEach(function (name) {
+                applyFaceExpression(name, state.faceExpressionWeights[name]);
+            });
 
 
             fitModel(model);
@@ -2732,6 +2871,12 @@
 
         playAnimation: playAnimation,
 
+        setFaceExpression: applyFaceExpression,
+
+        setFaceExpressions: setFaceExpressions,
+
+        resetFaceExpressions: resetFaceExpressions,
+
         setEmotion: setEmotion,
 
         setState: setState,
@@ -2769,6 +2914,12 @@
 
                 activity:
                     state.currentActivity,
+
+                faceMeshCount:
+                    state.faceMeshes.length,
+
+                faceExpressionCount:
+                    Object.keys(state.faceExpressionWeights).length,
 
                 error:
                     state.error
