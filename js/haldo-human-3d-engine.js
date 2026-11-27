@@ -159,6 +159,8 @@
 
         faceExpressionWeights: Object.create(null),
 
+        emotionFaceExpressionNames: [],
+
         animationActions: {},
 
         activeAction: null,
@@ -1768,8 +1770,83 @@
         });
 
         state.faceExpressionWeights = Object.create(null);
+        state.emotionFaceExpressionNames = [];
 
         return reset;
+
+    }
+
+
+    function getFaceExpressions() {
+
+        const expressions = Object.create(null);
+
+        state.faceMeshes.forEach(function (entry) {
+
+            Object.keys(entry.dictionary).forEach(function (name) {
+
+                const index = entry.dictionary[name];
+
+                if (
+                    !Object.prototype.hasOwnProperty.call(expressions, name) &&
+                    Number.isInteger(index) &&
+                    index >= 0 &&
+                    index < entry.influences.length
+                ) {
+
+                    expressions[name] = entry.influences[index] || 0;
+
+                }
+
+            });
+
+        });
+
+        return expressions;
+
+    }
+
+
+    function applyEmotionFace(emotion) {
+
+        const profiles = {
+            friendly: { mouthSmile: 0.14 },
+            happy: {
+                mouthSmile: 0.58,
+                eyeSquintLeft: 0.10,
+                eyeSquintRight: 0.10
+            },
+            thinking: {
+                browInnerUp: 0.22,
+                mouthPucker: 0.04
+            },
+            surprised: {
+                jawOpen: 0.18,
+                eyeWideLeft: 0.62,
+                eyeWideRight: 0.62,
+                browInnerUp: 0.38
+            },
+            serious: {
+                browDownLeft: 0.20,
+                browDownRight: 0.20,
+                mouthPress: 0.10
+            },
+            listening: { browInnerUp: 0.10 },
+            // No artificial jaw movement: real speech must be driven by timed visemes.
+            speaking: {},
+            calm: { mouthSmile: 0.06 }
+        };
+
+        const profile = profiles[emotion];
+        if (!profile) return 0;
+
+        state.emotionFaceExpressionNames.forEach(function (name) {
+            applyFaceExpression(name, 0);
+        });
+
+        state.emotionFaceExpressionNames = Object.keys(profile);
+
+        return setFaceExpressions(profile);
 
     }
 
@@ -2434,6 +2511,8 @@
         state.currentEmotion =
             emotion;
 
+        const faceExpressionCount = applyEmotionFace(emotion);
+
         if (state.container) {
 
             state.container.dataset.emotion =
@@ -2444,7 +2523,8 @@
         EVENTS.emit(
             "emotion-changed",
             {
-                emotion: emotion
+                emotion: emotion,
+                faceExpressionsApplied: faceExpressionCount
             }
         );
 
@@ -2875,6 +2955,8 @@
 
         setFaceExpressions: setFaceExpressions,
 
+        getFaceExpressions: getFaceExpressions,
+
         resetFaceExpressions: resetFaceExpressions,
 
         setEmotion: setEmotion,
@@ -2920,6 +3002,9 @@
 
                 faceExpressionCount:
                     Object.keys(state.faceExpressionWeights).length,
+
+                supportedFaceExpressions:
+                    Object.keys(getFaceExpressions()),
 
                 error:
                     state.error
