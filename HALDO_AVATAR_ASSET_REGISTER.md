@@ -99,3 +99,46 @@ Die Selbsttests erzeugen nur kleine synthetische GLB-Fixtures und prüfen gülti
 Die Anbieter-Dokumentation beschreibt den Endpunkt https://grab3d.com/api/v1/models/{slug}.json als öffentliche, schlüssellose JSON-Schnittstelle. Das Schema stellt unter anderem files, rigged, origin, license, created und manifestUrl bereit. origin unterscheidet KI-gestützte Erstellung vom prozeduralen Aufbau. Die Download-URLs folgen laut Dokumentation dem Muster https://grab3d.com/dl/<slug>/<file>. Diese Schnittstelle kann zur späteren automatisierten Metadaten-Erfassung verwendet werden; sie ist kein Beweis, dass eine konkrete GLB-Datei lokal vorhanden oder geprüft wurde.
 
 Quelle: https://grab3d.com/developers/
+
+
+## Bevorzugte Erzeugungspipeline für lebensechte Avatare: HumanForge
+
+**Status: technischer Kandidat – noch keine exportierte GLB-Datei in HalDo abgenommen.**
+
+Untersuchter Upstream:
+- Projekt: https://github.com/abdulrehman043/humanforge
+- Dokumentation: https://github.com/abdulrehman043/humanforge#realistic-human
+- Asset-Lizenzhinweise: https://github.com/abdulrehman043/humanforge/blob/main/LICENSE.ASSETS.md
+- Paketmetadaten zum geprüften Stand: Version 0.8.1, Quellcode-Lizenz MIT.
+
+Warum diese Pipeline besser zu HalDo passt:
+- Der 3D-Zweig verwendet ein MakeHuman-/MPFB2-basiertes Basismodell; der Hersteller dokumentiert ca. 26.700 Dreiecke für den Körper und einen anpassbaren männlichen/weiblichen Avatar mit Haaren, Kleidung, Haut- und Augenoptionen.
+- Das Asset-Register von HumanForge erklärt die verwendeten Kern-Menschendaten, Rig- und Expression-Units als CC0 1.0. Community-Pakete dürfen nur einzeln nach ihrer dokumentierten Lizenz hinzugefügt werden; CC-BY-Pakete bleiben für eine CC0-only-Ausgabe ausgeschlossen.
+- Die Exportfunktion beschreibt ein GLB mit Mixamo-Skelett, ARKit-benannten Blendshapes und komprimierten/sparse Morph Targets. Das Projekt nennt als ungefähre Exportgröße rund 3 MB; die tatsächliche Dateigröße muss nach einem konkreten HalDo-Look gemessen werden.
+- Die dokumentierten Expression-Namen umfassen unter anderem jawOpen, mouthSmile, mouthFrown, mouthPucker, mouthFunnel, eyeBlinkLeft, eyeBlinkRight, eyeWideLeft, browDownLeft und browInnerUpLeft.
+
+### Lizenz- und Build-Grenzen
+
+HumanForge-Quellcode (MIT) und die darin dokumentierten Kern-Avatar-Assets (CC0 1.0) sind getrennt zu behandeln. Die Build-Anleitung setzt voraus, dass die MakeHuman-System-Assets und MPFB2-Daten lokal beschafft und in der vorgesehenen Lizenzvariante abgelegt werden. Herkunft, Lizenzdateien und Build-Inputs müssen gemeinsam mit einem exportierten HalDo-GLB archiviert werden.
+
+### Kompatibilität mit der aktuellen HalDo-Engine
+
+HumanForge 0.8.1 verlangt als Peer-Dependency Three.js ab r160. HalDo verwendet in index.html derzeit Three.js r128. **HumanForge darf daher nicht als Laufzeitpaket direkt in die bestehende Anwendung eingebunden werden.**
+
+Vorgesehener sicherer Weg:
+1. HumanForge getrennt als Asset-Generator verwenden und einen eigenen neutral bekleideten HalDo-Human-Look exportieren.
+2. Export-GLB mit dem lokalen HalDo-Validator prüfen: Header, Chunks, Meshes, Skins, Joint-Namen, Animationen und Morph Targets.
+3. Das GLB in einem separaten Three.js-r128-Probeaufbau laden. Insbesondere KHR_mesh_quantization, sparse Morph Targets, Material-Texturen, Skeleton-Bindung und Blendshape-Namen testen.
+4. Falls die r128-Pipeline eine Export-Erweiterung nicht unterstützt, eine standardkonforme GLB-Kopie ohne diese Erweiterung erzeugen und erneut validieren; nicht die globale Three.js-Version des gesamten OS ungeprüft austauschen.
+5. Erst nach bestandener Probe das Modell in assets/avatars/ aufnehmen und die Human3D-Engine gezielt dafür freigeben.
+
+### Menschliche Mimik in HalDo
+
+Die Human3D-Engine besitzt nun eine modellunabhängige Schnittstelle für Morph Targets:
+- HalDo.Human3D.setFaceExpression(name, weight)
+- HalDo.Human3D.setFaceExpressions(map)
+- HalDo.Human3D.resetFaceExpressions()
+
+Die Schnittstelle sucht die benannten Morph Targets auf geladenen Meshes, begrenzt Gewichte auf 0–1 und verwirft ungültige Namen/Gewichte. Sie erzeugt selbst keine Gesichtsanimation: sichtbar werden Ausdrücke erst, wenn das gewählte GLB die passenden Morph Targets tatsächlich enthält. Audio-zu-Visem-Analyse und zeitlich synchronisierte Lippensynchronisation bleiben ein separater nächster Entwicklungsschritt.
+
+**Aktueller Asset-Status bleibt unverändert:** HumanForge ist eine bevorzugte Erzeugungspipeline, aber es wurde noch kein daraus generiertes HalDo-GLB übernommen, geprüft oder produktiv geladen.
