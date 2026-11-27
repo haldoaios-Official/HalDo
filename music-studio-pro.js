@@ -48,8 +48,8 @@
       '<div id="hdms-panel"></div><div class="hdms-actions"><button class="hdms-btn active" id="hdms-play">▶ Wiedergabe</button><button class="hdms-btn" id="hdms-stop">■ Stop</button><button class="hdms-btn" id="hdms-clear">Leeren</button><button class="hdms-btn" id="hdms-demo">Groove erstellen</button></div><div class="hdms-status" id="hdms-status" aria-live="polite">Bereit. Audio startet erst nach deiner Wiedergabe-Aktion.</div></div>';
     H.Win.open('🎼 HalDo Music Studio Pro',html,{w:900,h:760});
     window.setTimeout(function(){
-      var win=document.getElementById(winId);
-      /* Win.open creates its own ID; find the just-opened root by its unique content ID. */
+      var win;
+      /* Locate this studio window by its unique root element. */
       var root=document.getElementById(rootId);
       if(!root)return;
       win=root.closest('.window');
@@ -141,7 +141,6 @@
         }catch(e){say('Exportfehler: '+e.message);}finally{btn.disabled=false;btn.textContent='⬇ WAV exportieren';}
       }
       function bind(){
-        root.querySelectorAll('[data-tab]').forEach(function(b){b.addEventListener('click',function(){tab=b.dataset.tab;state.selected=tab;save();render();bind();});});
         panel.querySelectorAll('[data-track]').forEach(function(b){b.addEventListener('click',function(){var x=state.tracks[b.dataset.track],i=Number(b.dataset.step);x.steps[i]=!x.steps[i];save();render();bind();});});
         panel.querySelectorAll('[data-vol]').forEach(function(el){el.addEventListener('input',function(){state.tracks[el.dataset.vol].vol=Number(el.value)/100;if(graph)syncGraph(graph);save();});});
         panel.querySelectorAll('[data-pan]').forEach(function(el){el.addEventListener('input',function(){state.tracks[el.dataset.pan].pan=Number(el.value)/100;if(graph)syncGraph(graph);save();});});
@@ -150,6 +149,7 @@
         ['master','reverb','delay'].forEach(function(k){var el=panel.querySelector('[data-'+k+']');if(el)el.addEventListener('input',function(){state[k]=Number(el.value)/100;if(graph)syncGraph(graph);save();});});
         var ex=panel.querySelector('#hdms-export');if(ex)ex.addEventListener('click',exportWav);
       }
+      root.querySelectorAll('[data-tab]').forEach(function(b){b.addEventListener('click',function(){tab=b.dataset.tab;state.selected=tab;save();render();bind();});});
       root.querySelectorAll('[data-tab]').forEach(function(b){b.addEventListener('click',function(){tab=b.dataset.tab;state.selected=tab;save();render();bind();});});
       root.querySelector('#hdms-bpm').addEventListener('change',function(){state.bpm=Math.max(40,Math.min(240,Number(this.value)||110));this.value=state.bpm;save();});
       root.querySelector('#hdms-bars').addEventListener('change',function(){state.bars=Number(this.value);save();});
