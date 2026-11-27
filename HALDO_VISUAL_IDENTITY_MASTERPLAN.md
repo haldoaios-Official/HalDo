@@ -91,3 +91,14 @@ GitHub Actions Run 46058656613: Syntaxprüfung erfolgreich, GLB-Validator-Selbst
 [Qualitätslauf 46058656613](https://github.com/haldoaios-Official/HalDo/actions/runs/46058656613)
 
 **Status bleibt:** Human3D ist noch nicht produktiv in index.html eingebunden. Die Engine wird erst nach Bereitstellung und technischer Freigabe echter Avatar-GLBs integriert.
+
+
+## Ergänzung: Mimik-Schnittstelle und neue Asset-Strategie (27.11.2026)
+
+Die Human3D-Engine stellt jetzt drei allgemeine Methoden für GLTF-Morph-Targets bereit: setFaceExpression(name, weight), setFaceExpressions(map) und resetFaceExpressions(). Die Engine sucht Targets in den tatsächlich geladenen Meshes, begrenzt Gewichte auf 0 bis 1 und lässt nicht vorhandene Targets wirkungslos. Das ist eine steuerbare Mimik-Schnittstelle, noch keine automatische Audio-/Visem-Analyse.
+
+Die Chromium-Regression prüft das Setzen und Zurücksetzen von jawOpen, eyeBlinkLeft und mouthSmile an einem Test-GLTF-Mesh. GitHub Actions Run 46061538577 meldet 8/8 erfolgreiche Browserprüfungen einschließlich GLB-Validator-Selbsttests. Der Testlauf simuliert die Morph-Target-Datenstruktur; er beweist noch nicht, dass ein Produktions-Avatar in HalDo geladen wurde.
+
+Als bevorzugte Erzeugungspipeline wird HumanForge untersucht: MakeHuman-/MPFB2-basierte CC0-Kern-Assets, Mixamo-Rig und ARKit-benannte Gesichtsausdrücke. Da HumanForge aktuell Three.js ab r160 erwartet und HalDo r128 verwendet, wird es zunächst ausschließlich separat zur GLB-Erzeugung betrachtet. Exportdateien müssen auf r128-Kompatibilität getestet werden; es gibt keine ungeprüfte globale Three.js-Aktualisierung.
+
+**Produktionsfreigabe unverändert:** Es ist noch kein HumanForge-GLB in HalDo aufgenommen oder visuell abgenommen. Die vier erwarteten Avatar-Dateien fehlen weiterhin. Kein Avatar darf als vollständig, lebensecht oder lippensynchron integriert bezeichnet werden, bevor die jeweilige GLB-Datei, Mimik, Animationen und Browserdarstellung mit echten Daten geprüft sind.
