@@ -32,6 +32,15 @@
   function categoryIndex() {
     var map = {};
     var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    if (H.Master && typeof H.Master.getCategoryCatalogApps === 'function') {
+      letters.forEach(function (letter) {
+        try {
+          (H.Master.getCategoryCatalogApps(letter) || []).forEach(function (entry) {
+            if (entry && entry.id && !map[entry.id]) map[entry.id] = letter;
+          });
+        } catch (e) {}
+      });
+    }
     if (H.Master && typeof H.Master.getCategoryApps === 'function') {
       letters.forEach(function (letter) {
         try {
@@ -64,6 +73,23 @@
   }
   function getInventory() {
     var apps = H.Registry.featured.slice();
+    var registryIds = new Set(apps.map(function (app) { return app.id; }));
+    if (H.Master && typeof H.Master.getCategoryCatalogApps === 'function') {
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(function (letter) {
+        try {
+          (H.Master.getCategoryCatalogApps(letter) || []).forEach(function (entry) {
+            if (!entry || !entry.id || registryIds.has(entry.id)) return;
+            registryIds.add(entry.id);
+            apps.push({
+              id:entry.id,
+              n:entry.name || 'Name noch offen',
+              i:entry.icon || '📦',
+              __catalogOnly:true
+            });
+          });
+        } catch (e) {}
+      });
+    }
     var routes = getRouteIds();
     var categories = categoryIndex();
     return apps.map(function (app) {
@@ -75,7 +101,10 @@
         category:categories[app.id] || '—',
         status:status.key,
         statusLabel:status.label,
-        detail:status.detail
+        detail:app.__catalogOnly
+          ? 'A–Z-Katalog-ID vorhanden, aber noch nicht in der Kern-Registry registriert. ' + status.detail
+          : status.detail,
+        catalogOnly:app.__catalogOnly === true
       };
     }).filter(function (app) { return !!app.id; }).sort(function (a,b) {
       return a.category.localeCompare(b.category) || a.name.localeCompare(b.name);
@@ -149,7 +178,7 @@
         var summary = {native:0,dedicated:0,generic:0,route:0,missing:0};
         inventory.forEach(function (item) { summary[item.status] = (summary[item.status] || 0) + 1; });
         stats.innerHTML = [
-          ['🧩',inventory.length,'Benannte Kern-Apps'],
+          ['🧩',inventory.length,'Sichtbare Katalogeinträge'],
           ['🗂',plan.planned,'Geplante App-Plätze'],
           ['🔠',plan.categoryCount,'A–Z-Kategorien'],
           ['✅',summary.native + summary.dedicated,'Direkt erkannte Module']
@@ -166,7 +195,8 @@
         cats.innerHTML = Object.entries(plan.categories).map(function (entry) {
           var key = entry[0], category = entry[1];
           var named = H.Master && typeof H.Master.getCategoryApps === 'function' ? H.Master.getCategoryApps(key) : [];
-          return '<div class="hdsc-cat"><b>' + esc(category.icon || '📁') + ' ' + esc(key) + ' · ' + esc(category.name || 'Kategorie') + '</b><small>' + (Number(category.count) || 0) + ' geplante Plätze · ' + (named ? named.length : 0) + ' namentlich zugeordnet</small></div>';
+          var catalog = H.Master && typeof H.Master.getCategoryCatalogApps === 'function' ? H.Master.getCategoryCatalogApps(key) : named;
+          return '<div class="hdsc-cat"><b>' + esc(category.icon || '📁') + ' ' + esc(key) + ' · ' + esc(category.name || 'Kategorie') + '</b><small>' + (Number(category.count) || 0) + ' geplante Plätze · ' + (catalog ? catalog.length : 0) + ' Katalog-IDs · ' + (named ? named.length : 0) + ' registrierte Kern-Apps</small></div>';
         }).join('');
 
         var query = String(search.value || '').trim().toLowerCase();
