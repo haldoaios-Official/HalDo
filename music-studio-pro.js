@@ -150,7 +150,6 @@
         var ex=panel.querySelector('#hdms-export');if(ex)ex.addEventListener('click',exportWav);
       }
       root.querySelectorAll('[data-tab]').forEach(function(b){b.addEventListener('click',function(){tab=b.dataset.tab;state.selected=tab;save();render();bind();});});
-      root.querySelectorAll('[data-tab]').forEach(function(b){b.addEventListener('click',function(){tab=b.dataset.tab;state.selected=tab;save();render();bind();});});
       root.querySelector('#hdms-bpm').addEventListener('change',function(){state.bpm=Math.max(40,Math.min(240,Number(this.value)||110));this.value=state.bpm;save();});
       root.querySelector('#hdms-bars').addEventListener('change',function(){state.bars=Number(this.value);save();});
       playBtn.addEventListener('click',function(){if(playing)stop();else start();});
