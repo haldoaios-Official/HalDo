@@ -129,6 +129,8 @@
 
         pendingModelKey: null,
 
+        modelRequestId: 0,
+
         currentAnimation: null,
 
         currentEmotion: "friendly",
@@ -1835,6 +1837,12 @@
 
         }
 
+        // Latest request wins: an earlier slow network response must not
+        // replace a model that the user selected more recently.
+        const requestId = ++state.modelRequestId;
+        const previousModelRoot = state.modelRoot;
+        const previousLoadedState = state.loaded;
+
         state.loading = true;
 
         state.error = null;
@@ -1860,9 +1868,11 @@
         try {
 
             await initializeScene();
+            if (requestId !== state.modelRequestId) return false;
 
             const GLTFLoader =
                 await loadGLTFLoader();
+            if (requestId !== state.modelRequestId) return false;
 
             const loader =
                 new GLTFLoader();
@@ -1913,6 +1923,7 @@
                     }
                 );
 
+            if (requestId !== state.modelRequestId) return false;
 
             if (
                 !gltf ||
@@ -2083,9 +2094,16 @@
 
         } catch (error) {
 
+            // Ignore failures from requests superseded by a newer selection.
+            if (requestId !== state.modelRequestId) return false;
+
             state.loading = false;
 
-            state.loaded = false;
+            // Keep the previous avatar usable when a replacement fails before
+            // it has been committed to the scene.
+            state.loaded = state.modelRoot === previousModelRoot
+                ? previousLoadedState
+                : false;
 
             state.error = error;
 
