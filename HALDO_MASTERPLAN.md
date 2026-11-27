@@ -876,3 +876,32 @@ Für die v179-Abnahme sind folgende Abläufe in `scripts/test-medical-apps-brows
 5. Launcher-Aufruf des Privacy & Consent Center sowie getrennte Anzeige der App- und Browserstatuswerte.
 
 **Release-Grenze:** Arbeitsbranch `work-v167-medical-apps`, Draft-PR #1. v179 wird erst nach erfolgreicher CI-Abnahme als geprüft markiert; kein Merge nach `main` und keine Live-Veröffentlichung.
+
+
+## HALDO v180 – HalDo DataVault Pro (27.11.2026)
+
+**Implementiert im Arbeitsbranch:** js/haldo-v180-datavault-core.js, geladen nach v179 in index.html. Der neue Dienst ist vom vorhandenen Arztbuch-Tresor v154 sowie von HalDo Backup & Recovery getrennt. Es gibt keine automatische Migration oder gemeinsame Klartextablage.
+
+### Tatsächlich implementierte Funktionen
+- **Eigene IndexedDB-Datenbank:** haldo_datavault_v180, getrennte Stores für Tresor-Metadaten und verschlüsselte Datensätze. In Datensatz-Records liegen nur opake IDs, Zeitstempel, IVs und Chiffretext.
+- **Verschlüsselung:** AES-GCM mit 256-Bit-Schlüssel, zufällige 96-Bit-IV je Datensatz, zufälliger 128-Bit-Salt, PBKDF2-SHA-256 mit 310.000 Iterationen. Der Datensatz-Kontext wird zusätzlich als AES-GCM Additional Authenticated Data gebunden.
+- **Passphrase und Schlüssel:** mindestens 12 Zeichen; Passphrase wird nicht persistiert. Der abgeleitete, nicht exportierbare CryptoKey bleibt ausschließlich im Arbeitsspeicher und wird bei Sperren, Schließen des App-Fensters sowie pagehide entfernt.
+- **Schlüsselprüfung:** beim Anlegen wird ein verschlüsselter Prüfsatz gespeichert; ein falsches Passwort entsperrt den Tresor nicht.
+- **Datensatz-API:** create, unlock, lock, lockAll, isUnlocked, put, get, list, deleteRecord, deleteVault und getStatus. list gibt nur opake IDs und Zeitstempel aus; Inhalte werden erst nach Entsperren entschlüsselt.
+- **Verschlüsseltes Backup:** Export enthält verschlüsselte Datensätze und Schlüsselprüf-Metadaten. Import prüft Dateiformat, Größen-/Anzahlgrenzen, Passphrase und Authentizität jedes Datensatzes. Import ist nur in einen Browser ohne bereits vorhandenen DataVault möglich.
+- **Grenzen:** maximal 5.000 Datensätze, 2 MB je Datensatz und 25 MB je Backup. Browser-Speicher kann vom Nutzer oder Browser gelöscht werden; lokale Verschlüsselung ersetzt kein externes Backup.
+- **Integration:** Launcher-Modul HalDo DataVault Pro, Registry-ID data-vault, A–Z-Kategorie D sowie Statusprojektion im v178 AI Core. HalDo Privacy & Consent Center Pro wird parallel in A–Z-Kategorie P registriert.
+- **Audit:** nur reduzierte Operationsmetadaten über den vorhandenen v178-Core; keine Passphrase, Datensatzinhalte oder medizinischen Werte im Audit.
+
+### Explizit nicht vorhanden
+Keine Cloud-Synchronisierung, keine Serverkonten, keine Passwort-Wiederherstellung, keine Geräteübertragung ohne exportiertes Backup, keine automatische Datenmigration, keine Zertifizierung als Medizinprodukt und keine Zusicherung klinischer oder regulatorischer Freigabe. Bei Verlust der Passphrase sind verschlüsselte Inhalte nicht wiederherstellbar.
+
+### Browserabnahme für v180
+scripts/test-medical-apps-browser.mjs erweitert die End-to-End-Prüfung um:
+1. Erstellen, Entsperren und Speichern eines Datensatzes im separaten IndexedDB-Tresor.
+2. Prüfung, dass Test-Klartext weder in IndexedDB-Records noch im Backup oder in localStorage/sessionStorage erscheint.
+3. Sperren, Ablehnung eines Lesezugriffs im gesperrten Zustand und Zurückweisung einer falschen Passphrase.
+4. Korrektes erneutes Entsperren, verschlüsselten Backup-Export, Löschen und authentifizierten Import mit Daten-Roundtrip.
+5. Launcher-, A–Z-Kategorie-, Route- und AppBrowser-Registrierung.
+
+**Release-Grenze:** Arbeitsbranch work-v167-medical-apps, Draft-PR #1. Der v179-Stand wurde auf Commit 73fc998f0999ab46775558d50068ba8ce98f7b6b mit GitHub Actions #265 erfolgreich geprüft. Die v180-Änderungen benötigen einen neuen vollständigen Browserlauf. Kein Merge nach main, keine GitHub-Pages-Veröffentlichung und keine Freigabe zur Speicherung echter Patientendaten.
