@@ -1547,6 +1547,45 @@ async function run() {
   assert.equal(await page.evaluate(() => window.__haldoV176DisconnectCount), disconnectsBeforeClose + 1);
   pass('HalDo WLAN/Bluetooth-Manager Pro: Netzwerkgrenzen, expliziter Gerätewähler, GATT-Lesen, bestätigtes Schreiben, manuelles Trennen und automatisches Trennen beim Fensterschließen geprüft');
 
+  // Music Studio: launch the native window, edit a sequencer step, play/stop,
+  // persist mixer FX settings, and validate an actual exported PCM WAV file.
+  const musicStudioRuntime = await page.evaluate(() => ({
+    moduleOpen: typeof window.HalDo.MusicStudio?.open,
+    route: window.HalDo.AppBrowser.getStatus('music-studio')
+  }));
+  assert.equal(musicStudioRuntime.moduleOpen, 'function');
+  assert.equal(musicStudioRuntime.route.kind, 'module');
+  await page.evaluate(() => window.HalDo.MusicStudio.open());
+  const musicStudio = page.locator('#winLayer').locator('#btnPlay').locator('xpath=ancestor::*[.//*[@id="btnPlay"]]').last();
+  await page.locator('#btnPlay').waitFor({ state:'visible', timeout:10000 });
+  assert.equal(await page.locator('[data-trk="kick"][data-idx="0"]').count(), 1);
+  await page.locator('[data-trk="kick"][data-idx="0"]').click();
+  assert.notEqual(await page.locator('[data-trk="kick"][data-idx="0"]').getAttribute('style'), null);
+  await page.locator('#btnPlay').click();
+  await page.getByRole('button', { name:/Stop/ }).waitFor({ state:'visible', timeout:5000 });
+  await page.locator('#btnPlay').click();
+  await page.getByRole('button', { name:/Play/ }).waitFor({ state:'visible', timeout:5000 });
+  await page.locator('[data-mtab="mixer"]').click();
+  await page.locator('#revInp').fill('45');
+  await page.locator('#delInp').fill('35');
+  await page.locator('#btnSave').click();
+  const musicStored = await page.evaluate(() => window.HalDo.Store.get('music-studio:proj_v22', null));
+  assert.equal(musicStored.masterRev, 0.45);
+  assert.equal(musicStored.masterDel, 0.35);
+  const [musicWavDownload] = await Promise.all([
+    page.waitForEvent('download', { timeout:20000 }),
+    page.locator('#btnExport').click()
+  ]);
+  assert.match(musicWavDownload.suggestedFilename(), /\.wav$/i);
+  const musicWav = await fs.readFile(await musicWavDownload.path());
+  assert.equal(musicWav.toString('ascii', 0, 4), 'RIFF');
+  assert.equal(musicWav.toString('ascii', 8, 12), 'WAVE');
+  assert.equal(musicWav.toString('ascii', 12, 16), 'fmt ');
+  assert.equal(musicWav.readUInt16LE(20), 1, 'WAV muss PCM enthalten.');
+  assert.equal(musicWav.readUInt16LE(22), 2, 'WAV muss Stereo enthalten.');
+  await closeWindow(page.locator('#winLayer').filter({ has:page.locator('#btnSave') }).last());
+  pass('HalDo Music Studio: natives Fenster, Sequencer-Schritt, Play/Stop, gespeicherte Master-FX und echter Stereo-PCM-WAV-Export geprüft');
+
   const anatomyCatalogCheck = await page.evaluate(async () => {
     const [catalog, loader] = await Promise.all([
       import('/models/catalog.js'),
@@ -2164,7 +2203,7 @@ async function run() {
   await closeWindow(hub);
   pass('Arztbuch Pro: Kommandozentrale lässt sich regulär schließen');
 
-  const relevantErrors = pageErrors.filter((entry) => /haldo-v167|h167|laborwerte-pro|medikamentenplan-pro|arztbuch|gesundheit/i.test(entry));
+  const relevantErrors = pageErrors.filter((entry) => /haldo-v167|h167|laborwerte-pro|medikamentenplan-pro|arztbuch|gesundheit|musik\.js|music-studio/i.test(entry));
   assert.deepEqual(relevantErrors, [], 'JavaScript-Fehler im v167-Modul: ' + relevantErrors.join('\n'));
   console.log('\nBrowser-Test abgeschlossen: ' + checks.length + ' Prüfungen erfolgreich.');
   await context.close();
