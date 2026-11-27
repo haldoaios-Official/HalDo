@@ -397,6 +397,8 @@ async function run() {
   assert.equal(aiCoreAudit.status.permissionService, true, 'v179 stellt den zustimmungsbasierten Berechtigungsdienst bereit.');
   assert.equal(aiCoreAudit.status.permissionCoreVersion, '179.0.0');
   assert.equal(aiCoreAudit.status.permissionModel, 'explicit-session-consent');
+  assert.equal(aiCoreAudit.status.permissionCoreVersion, '179.0.0');
+  assert.equal(aiCoreAudit.status.permissionModel, 'explicit-session-consent');
   assert.equal(aiCoreAudit.status.authentication, false);
   assert.equal(aiCoreAudit.status.commonSecureVault, false);
   assert.equal(aiCoreAudit.status.aiInferenceRuntime, false);
@@ -415,6 +417,14 @@ async function run() {
   assert.ok(aiCoreAudit.audit.some((entry) => entry.event === 'haldo:core:test:smoke'));
   assert.equal(aiCoreAudit.audit.some((entry) => JSON.stringify(entry).includes('must-not-be-stored')), false);
   pass('HalDo AI Core v178: VoiceHub, Registry, lokale Präferenzen, Audit-Metadaten und ehrlicher Capability-Status geprüft');
+
+  // Complete the actual first-run welcome gate before opening app windows.
+  const systemWelcome = page.locator('#haldo-v161-welcome');
+  await systemWelcome.waitFor({ state: 'visible', timeout: 15000 });
+  await systemWelcome.locator('button.h161-button').click();
+  await systemWelcome.waitFor({ state: 'detached', timeout: 10000 });
+  await page.locator('#loader').waitFor({ state: 'hidden', timeout: 20000 });
+  pass('HalDo-Willkommensbildschirm und Three.js-Kosmos: Arbeitsbereich vollständig gestartet');
 
   const permissionCoreAudit = await page.evaluate(async () => {
     const H = window.HalDo;
@@ -520,14 +530,6 @@ async function run() {
       value: window.__haldoV179OriginalGetUserMedia
     });
   });
-
-  // Complete the actual first-run welcome gate before opening app windows.
-  const systemWelcome = page.locator('#haldo-v161-welcome');
-  await systemWelcome.waitFor({ state: 'visible', timeout: 15000 });
-  await systemWelcome.locator('button.h161-button').click();
-  await systemWelcome.waitFor({ state: 'detached', timeout: 10000 });
-  await page.locator('#loader').waitFor({ state: 'hidden', timeout: 20000 });
-  pass('HalDo-Willkommensbildschirm und Three.js-Kosmos: Arbeitsbereich vollständig gestartet');
 
   const privacyApp = await page.evaluate(() => ({
     registry: window.HalDo.AICore.getApp('privacy-center'),
