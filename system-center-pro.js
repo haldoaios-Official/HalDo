@@ -205,6 +205,13 @@
 
   H.SystemCenter = {open:open,inventory:getInventory,refresh:getInventory};
   H[APP_ID] = H.SystemCenter;
+
+  // Route the launcher to the real app window instead of the generic greeting.
+  var previousLaunch = H.Launch;
+  H.Launch = function (app) {
+    if (app && app.id === APP_ID) return open();
+    if (typeof previousLaunch === 'function') return previousLaunch.apply(this, arguments);
+  };
   if (!H.Registry.featured.some(function (item) { return item.id === APP_ID; })) {
     H.Registry.featured.push({id:APP_ID,n:APP_NAME,i:APP_ICON});
   }
