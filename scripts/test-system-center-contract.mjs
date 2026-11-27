@@ -80,6 +80,8 @@ assert.equal(byId['planned-demo'].name, 'Name noch offen', 'Unknown app names ar
 assert.equal(byId['planned-demo'].status, 'missing', 'Unregistered catalogue IDs are clearly marked as missing modules');
 assert.equal(byId['planned-demo'].catalogOnly, true);
 assert.equal(byId['native-demo'].category, 'A');
+assert.match(source, /item\.status !== 'missing'/, 'Entries without modules are not offered a fake launch action');
+assert.match(source, /noch zu benennen/, 'Unspecified plan slots are shown transparently per category');
 assert.equal(byId['system-center'].category, 'S');
 assert.equal(H.Registry.totalCount(), 22, 'The planned slot count is preserved');
 assert.match(index, /<script src="system-center-pro\.js"><\/script>/, 'System Center script is included in index.html');
