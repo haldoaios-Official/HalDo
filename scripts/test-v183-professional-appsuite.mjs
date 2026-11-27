@@ -120,7 +120,11 @@ try {
       return nativeClick.call(this);
     };
   });
-  await brand.locator('[data-brand-export]').click();
+  // The desktop shell's fixed bottom bar may overlap the app window in a short
+  // headless viewport. This test targets the export handler itself, so force the
+  // click after Playwright has resolved the real button, rather than testing hit
+  // testing against unrelated shell chrome.
+  await brand.locator('[data-brand-export]').click({ force:true });
   const exported = await page.evaluate(() => window.__haldoV183ExportCapture);
   assert(exported, 'Der Export-Button hat keinen Download-Link ausgelöst.');
   assert.equal(exported.filename, 'haldo-logo-entwurf.svg');
