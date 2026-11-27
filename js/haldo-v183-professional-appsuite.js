@@ -398,16 +398,15 @@
         }
         root.querySelector('[data-brand-export]').addEventListener('click', function () {
           var svg = svgMarkup();
-          var blob = new Blob([svg], { type:'image/svg+xml;charset=utf-8' });
-          var url = URL.createObjectURL(blob);
           var link = document.createElement('a');
-          link.href = url;
+          link.href = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
           link.download = 'haldo-logo-entwurf.svg';
-          link.style.display = 'none';
+          link.style.position = 'fixed';
+          link.style.left = '-10000px';
+          link.style.top = '0';
           document.body.appendChild(link);
           link.click();
-          link.remove();
-          window.setTimeout(function () { URL.revokeObjectURL(url); }, 1200);
+          window.setTimeout(function () { link.remove(); }, 1000);
         });
         root.querySelector('[data-brand-save]').addEventListener('click', function () {
           if (!H.DataVault || !H.DataVault.isUnlocked()) {
