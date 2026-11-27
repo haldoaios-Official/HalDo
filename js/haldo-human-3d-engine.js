@@ -161,6 +161,14 @@
 
         emotionFaceExpressionNames: [],
 
+        visemeTimeline: null,
+
+        visemeExpressionWeights: Object.create(null),
+
+        visemeExpressionNames: [],
+
+        visemeCurrentTimeMs: null,
+
         animationActions: {},
 
         activeAction: null,
@@ -1685,18 +1693,7 @@
     }
 
 
-    function applyFaceExpression(name, weight) {
-
-        if (
-            typeof name !== "string" ||
-            !/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(name) ||
-            !Number.isFinite(weight)
-        ) {
-            return false;
-        }
-
-        const normalizedWeight = Math.max(0, Math.min(1, weight));
-        state.faceExpressionWeights[name] = normalizedWeight;
+    function writeFaceExpression(name, weight, layer) {
 
         let applied = 0;
 
@@ -1710,7 +1707,7 @@
                 index < entry.influences.length
             ) {
 
-                entry.influences[index] = normalizedWeight;
+                entry.influences[index] = weight;
                 applied += 1;
 
             }
@@ -1721,13 +1718,40 @@
 
             EVENTS.emit("face-expression-changed", {
                 name: name,
-                weight: normalizedWeight,
+                weight: weight,
+                layer: layer || "base",
                 meshes: applied
             });
 
         }
 
         return applied > 0;
+
+    }
+
+
+    function applyFaceExpression(name, weight) {
+
+        if (
+            typeof name !== "string" ||
+            !/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(name) ||
+            !Number.isFinite(weight)
+        ) {
+            return false;
+        }
+
+        const normalizedWeight = Math.max(0, Math.min(1, weight));
+        state.faceExpressionWeights[name] = normalizedWeight;
+
+        // A live viseme takes priority over the resting/emotion expression.
+        const effectiveWeight = Object.prototype.hasOwnProperty.call(
+            state.visemeExpressionWeights,
+            name
+        )
+            ? state.visemeExpressionWeights[name]
+            : normalizedWeight;
+
+        return writeFaceExpression(name, effectiveWeight, "base");
 
     }
 
@@ -1847,6 +1871,210 @@
         state.emotionFaceExpressionNames = Object.keys(profile);
 
         return setFaceExpressions(profile);
+
+    }
+
+
+    /* ========================================================
+       AUDIO-CLOCKED VISEME TIMELINE
+       The caller supplies real timestamps from the same audio clock.
+    ======================================================== */
+
+    function setVisemeExpression(name, weight) {
+
+        if (
+            typeof name !== "string" ||
+            !/^(?:jaw|mouth)[A-Za-z0-9_]{0,61}$|^viseme_[A-Za-z0-9_]{1,58}$/.test(name) ||
+            !Number.isFinite(weight)
+        ) {
+            return false;
+        }
+
+        const normalizedWeight = Math.max(0, Math.min(1, weight));
+        state.visemeExpressionWeights[name] = normalizedWeight;
+
+        return writeFaceExpression(name, normalizedWeight, "viseme");
+
+    }
+
+
+    function clearVisemeTimeline() {
+
+        const names = state.visemeExpressionNames.slice();
+
+        state.visemeTimeline = null;
+        state.visemeExpressionNames = [];
+        state.visemeExpressionWeights = Object.create(null);
+        state.visemeCurrentTimeMs = null;
+
+        names.forEach(function (name) {
+
+            const baseWeight = Number.isFinite(state.faceExpressionWeights[name])
+                ? state.faceExpressionWeights[name]
+                : 0;
+
+            writeFaceExpression(name, baseWeight, "base");
+
+        });
+
+        return names.length;
+
+    }
+
+
+    function setVisemeTimeline(frames) {
+
+        if (!Array.isArray(frames) || frames.length < 2 || frames.length > 12000) {
+            return false;
+        }
+
+        const normalizedFrames = [];
+        const expressionNames = new Set();
+        let previousTime = -1;
+
+        for (let i = 0; i < frames.length; i += 1) {
+
+            const frame = frames[i];
+
+            if (
+                !frame ||
+                typeof frame !== "object" ||
+                Array.isArray(frame) ||
+                !Number.isFinite(frame.timeMs) ||
+                frame.timeMs < 0 ||
+                frame.timeMs > 3600000 ||
+                frame.timeMs <= previousTime ||
+                !frame.expressions ||
+                typeof frame.expressions !== "object" ||
+                Array.isArray(frame.expressions)
+            ) {
+                return false;
+            }
+
+            const expressions = Object.create(null);
+            const names = Object.keys(frame.expressions);
+
+            if (!names.length) return false;
+
+            for (let j = 0; j < names.length; j += 1) {
+
+                const name = names[j];
+                const weight = frame.expressions[name];
+
+                if (
+                    !/^(?:jaw|mouth)[A-Za-z0-9_]{0,61}$|^viseme_[A-Za-z0-9_]{1,58}$/.test(name) ||
+                    !Number.isFinite(weight) ||
+                    weight < 0 ||
+                    weight > 1
+                ) {
+                    return false;
+                }
+
+                expressions[name] = weight;
+                expressionNames.add(name);
+
+            }
+
+            normalizedFrames.push({
+                timeMs: frame.timeMs,
+                expressions: expressions
+            });
+
+            previousTime = frame.timeMs;
+
+        }
+
+        clearVisemeTimeline();
+
+        state.visemeTimeline = normalizedFrames;
+        state.visemeExpressionNames = Array.from(expressionNames);
+        updateVisemes(normalizedFrames[0].timeMs);
+
+        EVENTS.emit("viseme-timeline-started", {
+            frameCount: normalizedFrames.length,
+            durationMs: normalizedFrames[normalizedFrames.length - 1].timeMs,
+            expressions: state.visemeExpressionNames.slice()
+        });
+
+        return true;
+
+    }
+
+
+    function updateVisemes(audioTimeMs) {
+
+        if (
+            !state.visemeTimeline ||
+            !Number.isFinite(audioTimeMs) ||
+            audioTimeMs < 0
+        ) {
+            return 0;
+        }
+
+        const frames = state.visemeTimeline;
+        const lastFrame = frames[frames.length - 1];
+
+        if (audioTimeMs > lastFrame.timeMs) {
+            clearVisemeTimeline();
+            EVENTS.emit("viseme-timeline-ended", { timeMs: audioTimeMs });
+            return 0;
+        }
+
+        let leftIndex = 0;
+        let rightIndex = frames.length - 1;
+
+        // Binary search for the first frame at or after the audio clock.
+        while (leftIndex < rightIndex) {
+
+            const middle = Math.floor((leftIndex + rightIndex) / 2);
+
+            if (frames[middle].timeMs < audioTimeMs) {
+                leftIndex = middle + 1;
+            } else {
+                rightIndex = middle;
+            }
+
+        }
+
+        const right = frames[leftIndex];
+        const left = leftIndex > 0 ? frames[leftIndex - 1] : right;
+        const span = right.timeMs - left.timeMs;
+        const amount = span > 0
+            ? Math.max(0, Math.min(1, (audioTimeMs - left.timeMs) / span))
+            : 0;
+
+        state.visemeExpressionNames.forEach(function (name) {
+
+            const from = Number.isFinite(left.expressions[name])
+                ? left.expressions[name]
+                : 0;
+            const to = Number.isFinite(right.expressions[name])
+                ? right.expressions[name]
+                : 0;
+            const weight = from + (to - from) * amount;
+
+            setVisemeExpression(name, weight);
+
+        });
+
+        state.visemeCurrentTimeMs = audioTimeMs;
+
+        return state.visemeExpressionNames.length;
+
+    }
+
+
+    function getVisemeStatus() {
+
+        return {
+            active: Boolean(state.visemeTimeline),
+            frameCount: state.visemeTimeline ? state.visemeTimeline.length : 0,
+            durationMs: state.visemeTimeline
+                ? state.visemeTimeline[state.visemeTimeline.length - 1].timeMs
+                : 0,
+            currentTimeMs: state.visemeCurrentTimeMs,
+            expressions: state.visemeExpressionNames.slice()
+        };
 
     }
 
@@ -2196,6 +2424,11 @@
 
             Object.keys(state.faceExpressionWeights).forEach(function (name) {
                 applyFaceExpression(name, state.faceExpressionWeights[name]);
+            });
+
+            // Reapply the current audio viseme layer to a newly committed avatar.
+            Object.keys(state.visemeExpressionWeights).forEach(function (name) {
+                setVisemeExpression(name, state.visemeExpressionWeights[name]);
             });
 
 
@@ -2959,6 +3192,14 @@
 
         resetFaceExpressions: resetFaceExpressions,
 
+        setVisemeTimeline: setVisemeTimeline,
+
+        updateVisemes: updateVisemes,
+
+        clearVisemeTimeline: clearVisemeTimeline,
+
+        getVisemeStatus: getVisemeStatus,
+
         setEmotion: setEmotion,
 
         setState: setState,
@@ -3005,6 +3246,12 @@
 
                 supportedFaceExpressions:
                     Object.keys(getFaceExpressions()),
+
+                visemeActive:
+                    Boolean(state.visemeTimeline),
+
+                visemeExpressionCount:
+                    state.visemeExpressionNames.length,
 
                 error:
                     state.error
