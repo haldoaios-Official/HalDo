@@ -304,9 +304,25 @@ async function run() {
     return window.isSecureContext &&
       !!(window.crypto && window.crypto.subtle) &&
       !!(window.HalDo && window.HalDo.Win && window.HalDo.Launch) &&
-      !!(window.HalDo['laborwerte-pro'] && window.HalDo['medikamentenplan-pro']);
+      !!(window.HalDo['laborwerte-pro'] && window.HalDo['medikamentenplan-pro']) &&
+      !!(window.HalDo.BrandingV177 && window.HalDo.BrandingV177.ready);
   }, { timeout: 45000 });
   pass('HalDo OS startet auf sicherem Browser-Kontext; beide medizinischen Apps sind registriert');
+  const brandAudit = await page.evaluate(() => ({
+    version: window.HalDo.Master.version,
+    featuredCount: window.HalDo.Registry.featured.length,
+    unbranded: window.HalDo.Registry.featured.filter((app) => !/^HalDo\\b/.test(String(app.n || ''))).map((app) => app.id),
+    specialAvatar: window.HalDo.Registry.featured.find((app) => app.id === 'avatar')?.n,
+    specialFahrschule: window.HalDo.Registry.featured.find((app) => app.id === 'fahrschule')?.n,
+    specialArztbuch: window.HalDo.Registry.featured.find((app) => app.id === 'arztbuch')?.n
+  }));
+  assert.equal(brandAudit.version, '177.0.0');
+  assert.ok(brandAudit.featuredCount >= 70, 'Registry enthält unerwartet wenige Apps.');
+  assert.deepEqual(brandAudit.unbranded, [], 'Alle Registry-Apps müssen mit HalDo beginnen.');
+  assert.equal(brandAudit.specialAvatar, 'HalDo Cyborg Avatar AI Pro');
+  assert.equal(brandAudit.specialFahrschule, 'HalDo Fahrschule AI Pro');
+  assert.equal(brandAudit.specialArztbuch, 'HalDo Arztbuch AI Pro Max');
+  pass('HalDo v177 Markenstandard: jede Registry-App trägt HalDo; AI/Cyborg-Spezialnamen und 177-Version geprüft');
 
   // Complete the actual first-run welcome gate before opening app windows.
   const systemWelcome = page.locator('#haldo-v161-welcome');
