@@ -102,3 +102,25 @@ Die Chromium-Regression prüft das Setzen und Zurücksetzen von jawOpen, eyeBlin
 Als bevorzugte Erzeugungspipeline wird HumanForge untersucht: MakeHuman-/MPFB2-basierte CC0-Kern-Assets, Mixamo-Rig und ARKit-benannte Gesichtsausdrücke. Da HumanForge aktuell Three.js ab r160 erwartet und HalDo r128 verwendet, wird es zunächst ausschließlich separat zur GLB-Erzeugung betrachtet. Exportdateien müssen auf r128-Kompatibilität getestet werden; es gibt keine ungeprüfte globale Three.js-Aktualisierung.
 
 **Produktionsfreigabe unverändert:** Es ist noch kein HumanForge-GLB in HalDo aufgenommen oder visuell abgenommen. Die vier erwarteten Avatar-Dateien fehlen weiterhin. Kein Avatar darf als vollständig, lebensecht oder lippensynchron integriert bezeichnet werden, bevor die jeweilige GLB-Datei, Mimik, Animationen und Browserdarstellung mit echten Daten geprüft sind.
+
+
+## Emotionsprofile an echte Gesichtsmorphs gekoppelt (27.11.2026)
+
+Die `HalDo.Human3D.setEmotion()`-Funktion setzt nicht mehr nur den UI-Status. Sie wendet jetzt zurückhaltende Profile auf vorhandene Morph Targets an:
+
+| HalDo-Emotion | Erwartete Morph Targets (sofern im GLB vorhanden) |
+|---|---|
+| Friendly | mouthSmile |
+| Happy | mouthSmile, eyeSquintLeft, eyeSquintRight |
+| Thinking | browInnerUp, mouthPucker |
+| Surprised | jawOpen, eyeWideLeft, eyeWideRight, browInnerUp |
+| Serious | browDownLeft, browDownRight, mouthPress |
+| Listening | browInnerUp |
+| Speaking | keine künstliche Mundbewegung; später zeitgesteuerte Viseme |
+| Calm | leichte mouthSmile-Ausprägung |
+
+Die Profile werden bei einem Emotionswechsel zurückgesetzt, bevor das nächste Profil gesetzt wird. `getFaceExpressions()` liefert die tatsächlich im geladenen Modell vorhandenen Gesichtskanäle samt aktuellem Einflusswert; `getStatus()` meldet nun außerdem Anzahl und Namen unterstützter Face-Morphs. Nicht vorhandene Zielkanäle werden ignoriert. Eine Emotion wird daher nicht fälschlich als sichtbare Animation gemeldet, wenn das gewählte GLB das Morph Target nicht besitzt.
+
+Chromium-Testlauf [46066932372](https://github.com/haldoaios-Official/HalDo/actions/runs/46066932372): **8/8 Prüfungen erfolgreich**. Die synthetische GLB-Testszene prüft Profilwechsel, Neutralisierung, gezielte Einzel-/Batch-Werte und die Regel, dass Speaking ohne Viseme-Daten den Kiefer nicht künstlich bewegt.
+
+**Nächste Stufe:** zeitgesteuerte Viseme aus einer TTS-/Speech-Pipeline anbinden. Browser-`SpeechSynthesis` liefert in HalDo derzeit keine geprüften phonem-/visemgenauen Daten; Wortgrenzen oder pauschale Kieferbewegungen dürfen nicht als echte Lippensynchronisation ausgegeben werden.
