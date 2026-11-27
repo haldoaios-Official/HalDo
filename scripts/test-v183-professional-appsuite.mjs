@@ -128,6 +128,25 @@ try {
       const faceMeshCount = engine.getStatus().faceMeshCount;
       const resetCount = engine.resetFaceExpressions();
       const resetValues = testMorphInfluencesByPath['e2e-race-fast.glb'].slice(0, 3);
+      const invalidVisemeOutsideMouth = engine.setVisemeTimeline([
+        { timeMs:0, expressions:{ eyeBlinkLeft:1 } },
+        { timeMs:100, expressions:{ eyeBlinkLeft:0 } }
+      ]);
+      const invalidVisemeWeight = engine.setVisemeTimeline([
+        { timeMs:0, expressions:{ jawOpen:0 } },
+        { timeMs:100, expressions:{ jawOpen:1.2 } }
+      ]);
+      const visemeTimelineSet = engine.setVisemeTimeline([
+        { timeMs:0, expressions:{ jawOpen:0, mouthPucker:0 } },
+        { timeMs:100, expressions:{ jawOpen:1, mouthPucker:0.2 } },
+        { timeMs:200, expressions:{ jawOpen:0, mouthPucker:1 } }
+      ]);
+      const visemeInitialValues = engine.getFaceExpressions();
+      const visemeUpdateCount = engine.updateVisemes(150);
+      const visemeMidValues = engine.getFaceExpressions();
+      const visemeMidStatus = engine.getVisemeStatus();
+      const visemeClearCount = engine.clearVisemeTimeline();
+      const visemeAfterClear = engine.getFaceExpressions();
       const failedReplacement = await engine.setModel('e2e-race-fail');
 
       // A completed loader script without THREE.GLTFLoader must fail quickly,
@@ -159,6 +178,15 @@ try {
         faceMeshCount,
         resetCount,
         resetValues,
+        invalidVisemeOutsideMouth,
+        invalidVisemeWeight,
+        visemeTimelineSet,
+        visemeInitialValues,
+        visemeUpdateCount,
+        visemeMidValues,
+        visemeMidStatus,
+        visemeClearCount,
+        visemeAfterClear,
         failedReplacement,
         staleLoaderResult,
         staleLoaderError,
@@ -190,6 +218,19 @@ try {
   assert.deepEqual(avatarLoadSafety.faceValues, [0.7, 0.4, 0.6]);
   assert.equal(avatarLoadSafety.resetCount, 9);
   assert.deepEqual(avatarLoadSafety.resetValues, [0, 0, 0]);
+  assert.equal(avatarLoadSafety.invalidVisemeOutsideMouth, false, 'Viseme dürfen keine Augen-/Emotionskanäle übernehmen.');
+  assert.equal(avatarLoadSafety.invalidVisemeWeight, false, 'Viseme-Gewichte außerhalb 0–1 müssen abgewiesen werden.');
+  assert.equal(avatarLoadSafety.visemeTimelineSet, true);
+  assert.equal(avatarLoadSafety.visemeInitialValues.jawOpen, 0);
+  assert.equal(avatarLoadSafety.visemeUpdateCount, 2);
+  assert.ok(Math.abs(avatarLoadSafety.visemeMidValues.jawOpen - 0.5) < 1e-9);
+  assert.ok(Math.abs(avatarLoadSafety.visemeMidValues.mouthPucker - 0.6) < 1e-9);
+  assert.equal(avatarLoadSafety.visemeMidStatus.active, true);
+  assert.equal(avatarLoadSafety.visemeMidStatus.currentTimeMs, 150);
+  assert.equal(avatarLoadSafety.visemeMidStatus.frameCount, 3);
+  assert.equal(avatarLoadSafety.visemeClearCount, 2);
+  assert.equal(avatarLoadSafety.visemeAfterClear.jawOpen, 0);
+  assert.equal(avatarLoadSafety.visemeAfterClear.mouthPucker, 0);
   assert.equal(avatarLoadSafety.model, 'e2e-race-fast', 'Das zuletzt ausgewählte Avatar-Modell wurde überschrieben.');
   assert.equal(avatarLoadSafety.failedReplacement, false);
   assert.equal(avatarLoadSafety.loaded, true, 'Ein fehlgeschlagener Modellwechsel hat das vorherige Avatar-Modell deaktiviert.');
