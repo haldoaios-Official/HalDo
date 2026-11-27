@@ -1556,19 +1556,19 @@ async function run() {
   assert.equal(musicStudioRuntime.moduleOpen, 'function');
   assert.equal(musicStudioRuntime.route.kind, 'module');
   await page.evaluate(() => window.HalDo.MusicStudio.open());
-  const musicStudio = page.locator('#winLayer').locator('#btnPlay').locator('xpath=ancestor::*[.//*[@id="btnPlay"]]').last();
-  await page.locator('#btnPlay').waitFor({ state:'visible', timeout:10000 });
-  assert.equal(await page.locator('[data-trk="kick"][data-idx="0"]').count(), 1);
-  await page.locator('[data-trk="kick"][data-idx="0"]').click();
-  assert.notEqual(await page.locator('[data-trk="kick"][data-idx="0"]').getAttribute('style'), null);
+  const musicStudio = page.locator('[id^="haldo-music-studio-"]').last();
+  await musicStudio.locator('#btnPlay').waitFor({ state:'visible', timeout:10000 });
+  assert.equal(await musicStudio.locator('[data-trk="kick"][data-idx="0"]').count(), 1);
+  await musicStudio.locator('[data-trk="kick"][data-idx="0"]').click();
+  assert.notEqual(await musicStudio.locator('[data-trk="kick"][data-idx="0"]').getAttribute('style'), null);
+  await musicStudio.locator('#btnPlay').click();
+  await musicStudio.getByRole('button', { name:/Stop/ }).waitFor({ state:'visible', timeout:5000 });
   await page.locator('#btnPlay').click();
-  await page.getByRole('button', { name:/Stop/ }).waitFor({ state:'visible', timeout:5000 });
-  await page.locator('#btnPlay').click();
-  await page.getByRole('button', { name:/Play/ }).waitFor({ state:'visible', timeout:5000 });
-  await page.locator('[data-mtab="mixer"]').click();
-  await page.locator('#revInp').fill('45');
-  await page.locator('#delInp').fill('35');
-  await page.locator('#btnSave').click();
+  await musicStudio.getByRole('button', { name:/Play/ }).waitFor({ state:'visible', timeout:5000 });
+  await musicStudio.locator('[data-mtab="mixer"]').click();
+  await musicStudio.locator('#revInp').fill('45');
+  await musicStudio.locator('#delInp').fill('35');
+  await musicStudio.locator('#btnSave').click();
   const musicStored = await page.evaluate(() => window.HalDo.Store.get('music-studio:proj_v22', null));
   assert.equal(musicStored.masterRev, 0.45);
   assert.equal(musicStored.masterDel, 0.35);
@@ -1583,7 +1583,7 @@ async function run() {
   assert.equal(musicWav.toString('ascii', 12, 16), 'fmt ');
   assert.equal(musicWav.readUInt16LE(20), 1, 'WAV muss PCM enthalten.');
   assert.equal(musicWav.readUInt16LE(22), 2, 'WAV muss Stereo enthalten.');
-  await closeWindow(page.locator('#winLayer').filter({ has:page.locator('#btnSave') }).last());
+  await closeWindow(musicStudio);
   pass('HalDo Music Studio: natives Fenster, Sequencer-Schritt, Play/Stop, gespeicherte Master-FX und echter Stereo-PCM-WAV-Export geprüft');
 
   const anatomyCatalogCheck = await page.evaluate(async () => {
