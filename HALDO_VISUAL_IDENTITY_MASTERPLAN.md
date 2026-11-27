@@ -171,3 +171,8 @@ Beispiel für die JSON-Antwort eines eigenen, serverseitig geschützten TTS-Prox
 **Unveränderte Grenze:** Browser-`SpeechSynthesis` bleibt ohne Visem-Zeitachse. Der TTS-Server muss die optionalen Daten tatsächlich liefern und sie korrekt zur erzeugten Audiodatei ausrichten. Derzeit ist kein TTS-Provider konfiguriert und die Human3D-Engine wird in der aktuellen `index.html` weiterhin nicht produktiv eingebunden; deshalb ist noch keine echte Avatar-Lippensynchronisation im laufenden HalDo-System freigegeben.
 
 Die Chromium-E2E ergänzt eine simulierte Provider-Antwort. Sie kontrolliert Audio-Zeit 50 ms/150 ms, Interpolation, aktive Bindung und Reset bei Pause. Der Test beweist die Verbindung zwischen Voice-Core und Human3D-API im simulierten Lauf, nicht eine reale Provider-Audioausgabe.
+
+
+### Ergänzende Randfallprüfung: Rücksprung nach Timeline-Ende
+
+Die Audio-Brücke erkennt jetzt auch, wenn die Visem-Zeitachse vor dem Ende der Audiodatei ausläuft. In diesem Fall wird die Animation beendet, aber die Audio-Bindung bleibt für einen möglichen Rücksprung erhalten. Bei einem Seek zurück in den gültigen Zeitbereich wird die Timeline erneut aktiviert und anhand der neuen Audio-Position ausgewertet. Der Chromium-Test prüft das Beenden nach 200 ms und den Rücksprung auf 100 ms mit Wiederherstellung von `jawOpen = 1`.
