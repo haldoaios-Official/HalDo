@@ -33,6 +33,13 @@ const H = {
       if (letter === 'A') return [{ id: 'native-demo', name: 'Native Demo' }];
       if (letter === 'S') return [];
       return [];
+    },
+    getCategoryCatalogApps(letter) {
+      if (letter === 'A') return [
+        { id: 'native-demo', name: 'Native Demo', icon: '🧪', registered: true },
+        { id: 'planned-demo', name: 'Name noch offen', icon: '📦', registered: false }
+      ];
+      return [];
     }
   },
   SystemV157: {
@@ -68,6 +75,10 @@ assert.equal(byId['dedicated-demo'].status, 'dedicated');
 assert.equal(byId['generic-demo'].status, 'generic');
 assert.equal(byId['route-demo'].status, 'route');
 assert.equal(byId['missing-demo'].status, 'missing');
+assert.ok(byId['planned-demo'], 'Unregistered A–Z catalogue IDs are included in the inventory');
+assert.equal(byId['planned-demo'].name, 'Name noch offen', 'Unknown app names are not invented');
+assert.equal(byId['planned-demo'].status, 'missing', 'Unregistered catalogue IDs are clearly marked as missing modules');
+assert.equal(byId['planned-demo'].catalogOnly, true);
 assert.equal(byId['native-demo'].category, 'A');
 assert.equal(byId['system-center'].category, 'S');
 assert.equal(H.Registry.totalCount(), 22, 'The planned slot count is preserved');
