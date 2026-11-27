@@ -176,3 +176,40 @@ Die Chromium-E2E ergänzt eine simulierte Provider-Antwort. Sie kontrolliert Aud
 ### Ergänzende Randfallprüfung: Rücksprung nach Timeline-Ende
 
 Die Audio-Brücke erkennt jetzt auch, wenn die Visem-Zeitachse vor dem Ende der Audiodatei ausläuft. In diesem Fall wird die Animation beendet, aber die Audio-Bindung bleibt für einen möglichen Rücksprung erhalten. Bei einem Seek zurück in den gültigen Zeitbereich wird die Timeline erneut aktiviert und anhand der neuen Audio-Position ausgewertet. Der Chromium-Test prüft das Beenden nach 200 ms und den Rücksprung auf 100 ms mit Wiederherstellung von `jawOpen = 1`.
+
+
+## Optionaler Azure-55-Blendshape-Adapter (27.11.2026)
+
+Die Voice-Core-Antwort kann neben dem bereits dokumentierten, anbieterneutralen `visemeTimeline`-Format nun optional folgende Azure-Variante liefern:
+
+```json
+{
+  "audioUrl": "https://voice.example/haldo-audio.mp3",
+  "visemeFormat": "azure-blendshapes-55-v1",
+  "azureVisemeEvents": [
+    {
+      "audioOffset": 0,
+      "animation": {
+        "FrameIndex": 0,
+        "BlendShapes": [
+          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        ]
+      }
+    }
+  ]
+}
+```
+
+Der Adapter kennt die von Microsoft dokumentierte Reihenfolge der 55 Blendshape-Kanäle. Er verwendet `FrameIndex` als 60-FPS-Zeitbasis, validiert jeden 55-Werte-Frame und wandelt nur die Mund-/Kieferkanäle (`jaw*`, `mouth*`) in das HalDo-Zeitachsenformat um. Augen-, Brauen- und Kopfkanäle bleiben der separaten Emotions-/Identitätsschicht vorbehalten. Die übrigen 55er-Kanäle werden nicht blind überschrieben.
+
+Die Umwandlung ist als `HalDo.VoiceCore.normalizeAzureVisemeEvents(events)` verfügbar. Der Provider kann entweder die fertige, neutrale `visemeTimeline` oder die rohe Azure-SDK-Eventstruktur senden; beide Pfade bleiben optional und der bestehende Audio-Player funktioniert weiter, falls die Visem-Daten fehlen oder ungültig sind.
+
+### Anbieter-Eignung und Sprachgrenzen
+
+Microsoft dokumentiert für Azure Speech SDK 55 Blendshape-Werte je Frame bei 60 FPS sowie Audio-Offsets für Visemereignisse. In der aktuellen Locale-Tabelle ist `de-DE` mit **Viseme ID und Blend shapes** aufgeführt. `tr-TR` ist dort nur mit **Viseme ID** aufgeführt; für diese Sprache darf der 55-Blendshape-Pfad daher nicht vorausgesetzt werden. Die jeweilige Stimme/Locale muss vor einer Freigabe zusätzlich praktisch getestet werden.
+
+Quellen:
+- Microsoft Learn, [Get facial position with viseme](https://learn.microsoft.com/azure/ai-services/speech-service/how-to-speech-synthesis-viseme)
+- Microsoft Learn, [Language and voice support for Azure Speech](https://learn.microsoft.com/azure/ai-services/speech-service/language-support?tabs=tts)
+
+**Status:** Adapter und synthetischer Browser-Test vorhanden. Es ist weder ein Azure-Konto noch ein Voice-Proxy konfiguriert; es wurden keine echten Azure-Audio-/Blendshape-Daten erzeugt oder abgenommen.
