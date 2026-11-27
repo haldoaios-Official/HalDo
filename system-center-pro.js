@@ -209,7 +209,7 @@
   // Route the launcher to the real app window instead of the generic greeting.
   var previousLaunch = H.Launch;
   H.Launch = function (app) {
-    if (app && app.id === APP_ID) return open();
+    if (app && app.id === APP_ID) return H.SystemCenter.open();
     if (typeof previousLaunch === 'function') return previousLaunch.apply(this, arguments);
   };
   if (!H.Registry.featured.some(function (item) { return item.id === APP_ID; })) {
