@@ -1051,7 +1051,8 @@ async function run() {
       careDocumentationRoute: H.SystemV157.resolveRoute('pflegeprotokoll-pro'),
       appointmentsRoute: H.SystemV157.resolveRoute('arzttermine-pro'),
       diseaseCatalogueRoute: H.SystemV157.resolveRoute('krankheitslexikon-pro'),
-      medicationCatalogueRoute: H.SystemV157.resolveRoute('medikamentenlexikon-pro')
+      medicationCatalogueRoute: H.SystemV157.resolveRoute('medikamentenlexikon-pro'),
+      privacyCenterRoute: H.SystemV157.resolveRoute('privacy-center')
     };
   });
   assert.equal(registryHealth.categoryCount, 26);
@@ -1078,7 +1079,7 @@ async function run() {
   assert.equal(registryHealth.utilities.kind, 'module');
   assert.equal(registryHealth.recipes.kind, 'module');
   assert.equal(registryHealth.analyzer.kind, 'module');
-  assert.equal(registryHealth.statusCounts.modules, 92);
+  assert.equal(registryHealth.statusCounts.modules, 93);
   assert.equal(registryHealth.statusCounts.scaffolds, 0);
   assert.equal(registryHealth.statusCounts.routes, 0);
   assert.equal(registryHealth.breathing.kind, 'module');
@@ -1105,6 +1106,9 @@ async function run() {
   assert.equal(registryHealth.medicationCatalogueRoute.routeConfigured, true);
   assert.equal(registryHealth.medicationCatalogueRoute.moduleName, 'medikamentenlexikon-pro');
   assert.equal(registryHealth.medicationCatalogueRoute.moduleAvailable, true);
+  assert.equal(registryHealth.privacyCenterRoute.moduleAvailable, true);
+  assert.equal(registryHealth.privacyCenterRoute.startReady, true);
+  assert.equal(registryHealth.privacyCenterRoute.resolution, 'direct');
   assert.equal(registryHealth.statusCounts.review, 0);
   assert.equal(registryHealth.geoQuiz.kind, 'module');
   assert.equal(registryHealth.musicStudio.kind, 'module');
