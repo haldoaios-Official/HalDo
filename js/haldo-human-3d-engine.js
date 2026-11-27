@@ -127,6 +127,10 @@
 
         currentModelKey: null,
 
+        pendingModelKey: null,
+
+        modelRequestId: 0,
+
         currentAnimation: null,
 
         currentEmotion: "friendly",
@@ -150,6 +154,20 @@
         loader: null,
 
         modelRoot: null,
+
+        faceMeshes: [],
+
+        faceExpressionWeights: Object.create(null),
+
+        emotionFaceExpressionNames: [],
+
+        visemeTimeline: null,
+
+        visemeExpressionWeights: Object.create(null),
+
+        visemeExpressionNames: [],
+
+        visemeCurrentTimeMs: null,
 
         animationActions: {},
 
@@ -1021,22 +1039,53 @@
                         'script[data-haldo-gltf-loader="true"]'
                     );
 
+                function resolveLoader() {
+                    if (THREE.GLTFLoader) {
+                        resolve(THREE.GLTFLoader);
+                        return true;
+                    }
+                    return false;
+                }
+
+                function rejectLoader(message) {
+                    reject(new Error(message));
+                }
+
                 if (existing) {
+                    // Ein vorhandenes Script kann sein load-Event bereits
+                    // ausgelöst haben. Zuerst den tatsächlichen Zustand prüfen,
+                    // statt ausschließlich auf ein zukünftiges Event zu warten.
+                    if (resolveLoader()) {
+                        existing.dataset.haldoLoadState = "loaded";
+                        return;
+                    }
+
+                    if (existing.dataset.haldoLoadState === "failed") {
+                        rejectLoader(
+                            "GLTFLoader konnte zuvor nicht geladen werden."
+                        );
+                        return;
+                    }
+
+                    if (
+                        existing.dataset.haldoLoadState === "loaded" ||
+                        existing.readyState === "complete"
+                    ) {
+                        rejectLoader(
+                            "GLTFLoader-Script ist beendet, aber THREE.GLTFLoader fehlt."
+                        );
+                        return;
+                    }
 
                     existing.addEventListener(
                         "load",
                         function () {
-
-                            if (THREE.GLTFLoader) {
-                                resolve(THREE.GLTFLoader);
-                            } else {
-                                reject(
-                                    new Error(
-                                        "GLTFLoader wurde nicht registriert."
-                                    )
+                            existing.dataset.haldoLoadState = "loaded";
+                            if (!resolveLoader()) {
+                                rejectLoader(
+                                    "GLTFLoader wurde geladen, aber nicht registriert."
                                 );
                             }
-
                         },
                         { once: true }
                     );
@@ -1044,19 +1093,15 @@
                     existing.addEventListener(
                         "error",
                         function () {
-
-                            reject(
-                                new Error(
-                                    "GLTFLoader konnte nicht geladen werden."
-                                )
+                            existing.dataset.haldoLoadState = "failed";
+                            rejectLoader(
+                                "GLTFLoader konnte nicht geladen werden."
                             );
-
                         },
                         { once: true }
                     );
 
                     return;
-
                 }
 
                 const script =
@@ -1069,36 +1114,26 @@
 
                 script.dataset.haldoGltfLoader =
                     "true";
+                script.dataset.haldoLoadState =
+                    "loading";
 
                 script.onload = function () {
+                    script.dataset.haldoLoadState = "loaded";
 
-                    if (THREE.GLTFLoader) {
-
-                        resolve(
-                            THREE.GLTFLoader
+                    if (!resolveLoader()) {
+                        rejectLoader(
+                            "Three.GLTFLoader ist nach dem Laden nicht verfügbar."
                         );
-
-                    } else {
-
-                        reject(
-                            new Error(
-                                "Three.GLTFLoader ist nicht verfügbar."
-                            )
-                        );
-
                     }
-
                 };
 
                 script.onerror = function () {
+                    script.dataset.haldoLoadState = "failed";
 
-                    reject(
-                        new Error(
-                            "Der GLTFLoader konnte nicht geladen werden. " +
-                            "Bitte Internetverbindung und CDN prüfen."
-                        )
+                    rejectLoader(
+                        "Der GLTFLoader konnte nicht geladen werden. " +
+                        "Bitte Internetverbindung und CDN prüfen."
                     );
-
                 };
 
                 document.head.appendChild(script);
@@ -1569,6 +1604,8 @@
 
         state.currentAnimation = null;
 
+        state.faceMeshes = [];
+
 
         if (state.modelRoot) {
 
@@ -1616,6 +1653,428 @@
         }
 
         state.loaded = false;
+
+    }
+
+
+    /* ========================================================
+       FACE MORPH TARGETS
+    ======================================================== */
+
+    function collectFaceMeshes(model) {
+
+        const meshes = [];
+
+        if (!model || typeof model.traverse !== "function") {
+            return meshes;
+        }
+
+        model.traverse(function (object) {
+
+            if (
+                !object ||
+                !object.isMesh ||
+                !object.morphTargetDictionary ||
+                !Array.isArray(object.morphTargetInfluences)
+            ) {
+                return;
+            }
+
+            meshes.push({
+                mesh: object,
+                dictionary: object.morphTargetDictionary,
+                influences: object.morphTargetInfluences
+            });
+
+        });
+
+        return meshes;
+
+    }
+
+
+    function writeFaceExpression(name, weight, layer) {
+
+        let applied = 0;
+
+        state.faceMeshes.forEach(function (entry) {
+
+            const index = entry.dictionary[name];
+
+            if (
+                Number.isInteger(index) &&
+                index >= 0 &&
+                index < entry.influences.length
+            ) {
+
+                entry.influences[index] = weight;
+                applied += 1;
+
+            }
+
+        });
+
+        if (applied > 0) {
+
+            EVENTS.emit("face-expression-changed", {
+                name: name,
+                weight: weight,
+                layer: layer || "base",
+                meshes: applied
+            });
+
+        }
+
+        return applied > 0;
+
+    }
+
+
+    function applyFaceExpression(name, weight) {
+
+        if (
+            typeof name !== "string" ||
+            !/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(name) ||
+            !Number.isFinite(weight)
+        ) {
+            return false;
+        }
+
+        const normalizedWeight = Math.max(0, Math.min(1, weight));
+        state.faceExpressionWeights[name] = normalizedWeight;
+
+        // A live viseme takes priority over the resting/emotion expression.
+        const effectiveWeight = Object.prototype.hasOwnProperty.call(
+            state.visemeExpressionWeights,
+            name
+        )
+            ? state.visemeExpressionWeights[name]
+            : normalizedWeight;
+
+        return writeFaceExpression(name, effectiveWeight, "base");
+
+    }
+
+
+    function setFaceExpressions(expressions) {
+
+        if (
+            !expressions ||
+            typeof expressions !== "object" ||
+            Array.isArray(expressions)
+        ) {
+            return 0;
+        }
+
+        let applied = 0;
+
+        Object.keys(expressions).forEach(function (name) {
+
+            if (applyFaceExpression(name, expressions[name])) {
+                applied += 1;
+            }
+
+        });
+
+        return applied;
+
+    }
+
+
+    function resetFaceExpressions() {
+
+        let reset = 0;
+
+        Object.keys(state.faceExpressionWeights).forEach(function (name) {
+
+            if (applyFaceExpression(name, 0)) {
+                reset += 1;
+            }
+
+        });
+
+        state.faceExpressionWeights = Object.create(null);
+        state.emotionFaceExpressionNames = [];
+
+        return reset;
+
+    }
+
+
+    function getFaceExpressions() {
+
+        const expressions = Object.create(null);
+
+        state.faceMeshes.forEach(function (entry) {
+
+            Object.keys(entry.dictionary).forEach(function (name) {
+
+                const index = entry.dictionary[name];
+
+                if (
+                    !Object.prototype.hasOwnProperty.call(expressions, name) &&
+                    Number.isInteger(index) &&
+                    index >= 0 &&
+                    index < entry.influences.length
+                ) {
+
+                    expressions[name] = entry.influences[index] || 0;
+
+                }
+
+            });
+
+        });
+
+        return expressions;
+
+    }
+
+
+    function applyEmotionFace(emotion) {
+
+        const profiles = {
+            friendly: { mouthSmile: 0.14 },
+            happy: {
+                mouthSmile: 0.58,
+                eyeSquintLeft: 0.10,
+                eyeSquintRight: 0.10
+            },
+            thinking: {
+                browInnerUp: 0.22,
+                mouthPucker: 0.04
+            },
+            surprised: {
+                jawOpen: 0.18,
+                eyeWideLeft: 0.62,
+                eyeWideRight: 0.62,
+                browInnerUp: 0.38
+            },
+            serious: {
+                browDownLeft: 0.20,
+                browDownRight: 0.20,
+                mouthPress: 0.10
+            },
+            listening: { browInnerUp: 0.10 },
+            // No artificial jaw movement: real speech must be driven by timed visemes.
+            speaking: {},
+            calm: { mouthSmile: 0.06 }
+        };
+
+        const profile = profiles[emotion];
+        if (!profile) return 0;
+
+        state.emotionFaceExpressionNames.forEach(function (name) {
+            applyFaceExpression(name, 0);
+        });
+
+        state.emotionFaceExpressionNames = Object.keys(profile);
+
+        return setFaceExpressions(profile);
+
+    }
+
+
+    /* ========================================================
+       AUDIO-CLOCKED VISEME TIMELINE
+       The caller supplies real timestamps from the same audio clock.
+    ======================================================== */
+
+    function setVisemeExpression(name, weight) {
+
+        if (
+            typeof name !== "string" ||
+            !/^(?:jaw|mouth)[A-Za-z0-9_]{0,61}$|^viseme_[A-Za-z0-9_]{1,58}$/.test(name) ||
+            !Number.isFinite(weight)
+        ) {
+            return false;
+        }
+
+        const normalizedWeight = Math.max(0, Math.min(1, weight));
+        state.visemeExpressionWeights[name] = normalizedWeight;
+
+        return writeFaceExpression(name, normalizedWeight, "viseme");
+
+    }
+
+
+    function clearVisemeTimeline() {
+
+        const names = state.visemeExpressionNames.slice();
+
+        state.visemeTimeline = null;
+        state.visemeExpressionNames = [];
+        state.visemeExpressionWeights = Object.create(null);
+        state.visemeCurrentTimeMs = null;
+
+        names.forEach(function (name) {
+
+            const baseWeight = Number.isFinite(state.faceExpressionWeights[name])
+                ? state.faceExpressionWeights[name]
+                : 0;
+
+            writeFaceExpression(name, baseWeight, "base");
+
+        });
+
+        return names.length;
+
+    }
+
+
+    function setVisemeTimeline(frames) {
+
+        if (!Array.isArray(frames) || frames.length < 2 || frames.length > 12000) {
+            return false;
+        }
+
+        const normalizedFrames = [];
+        const expressionNames = new Set();
+        let previousTime = -1;
+
+        for (let i = 0; i < frames.length; i += 1) {
+
+            const frame = frames[i];
+
+            if (
+                !frame ||
+                typeof frame !== "object" ||
+                Array.isArray(frame) ||
+                !Number.isFinite(frame.timeMs) ||
+                frame.timeMs < 0 ||
+                frame.timeMs > 3600000 ||
+                frame.timeMs <= previousTime ||
+                !frame.expressions ||
+                typeof frame.expressions !== "object" ||
+                Array.isArray(frame.expressions)
+            ) {
+                return false;
+            }
+
+            const expressions = Object.create(null);
+            const names = Object.keys(frame.expressions);
+
+            if (!names.length) return false;
+
+            for (let j = 0; j < names.length; j += 1) {
+
+                const name = names[j];
+                const weight = frame.expressions[name];
+
+                if (
+                    !/^(?:jaw|mouth)[A-Za-z0-9_]{0,61}$|^viseme_[A-Za-z0-9_]{1,58}$/.test(name) ||
+                    !Number.isFinite(weight) ||
+                    weight < 0 ||
+                    weight > 1
+                ) {
+                    return false;
+                }
+
+                expressions[name] = weight;
+                expressionNames.add(name);
+
+            }
+
+            normalizedFrames.push({
+                timeMs: frame.timeMs,
+                expressions: expressions
+            });
+
+            previousTime = frame.timeMs;
+
+        }
+
+        clearVisemeTimeline();
+
+        state.visemeTimeline = normalizedFrames;
+        state.visemeExpressionNames = Array.from(expressionNames);
+        updateVisemes(normalizedFrames[0].timeMs);
+
+        EVENTS.emit("viseme-timeline-started", {
+            frameCount: normalizedFrames.length,
+            durationMs: normalizedFrames[normalizedFrames.length - 1].timeMs,
+            expressions: state.visemeExpressionNames.slice()
+        });
+
+        return true;
+
+    }
+
+
+    function updateVisemes(audioTimeMs) {
+
+        if (
+            !state.visemeTimeline ||
+            !Number.isFinite(audioTimeMs) ||
+            audioTimeMs < 0
+        ) {
+            return 0;
+        }
+
+        const frames = state.visemeTimeline;
+        const lastFrame = frames[frames.length - 1];
+
+        if (audioTimeMs > lastFrame.timeMs) {
+            clearVisemeTimeline();
+            EVENTS.emit("viseme-timeline-ended", { timeMs: audioTimeMs });
+            return 0;
+        }
+
+        let leftIndex = 0;
+        let rightIndex = frames.length - 1;
+
+        // Binary search for the first frame at or after the audio clock.
+        while (leftIndex < rightIndex) {
+
+            const middle = Math.floor((leftIndex + rightIndex) / 2);
+
+            if (frames[middle].timeMs < audioTimeMs) {
+                leftIndex = middle + 1;
+            } else {
+                rightIndex = middle;
+            }
+
+        }
+
+        const right = frames[leftIndex];
+        const left = leftIndex > 0 ? frames[leftIndex - 1] : right;
+        const span = right.timeMs - left.timeMs;
+        const amount = span > 0
+            ? Math.max(0, Math.min(1, (audioTimeMs - left.timeMs) / span))
+            : 0;
+
+        state.visemeExpressionNames.forEach(function (name) {
+
+            const from = Number.isFinite(left.expressions[name])
+                ? left.expressions[name]
+                : 0;
+            const to = Number.isFinite(right.expressions[name])
+                ? right.expressions[name]
+                : 0;
+            const weight = from + (to - from) * amount;
+
+            setVisemeExpression(name, weight);
+
+        });
+
+        state.visemeCurrentTimeMs = audioTimeMs;
+
+        return state.visemeExpressionNames.length;
+
+    }
+
+
+    function getVisemeStatus() {
+
+        return {
+            active: Boolean(state.visemeTimeline),
+            frameCount: state.visemeTimeline ? state.visemeTimeline.length : 0,
+            durationMs: state.visemeTimeline
+                ? state.visemeTimeline[state.visemeTimeline.length - 1].timeMs
+                : 0,
+            currentTimeMs: state.visemeCurrentTimeMs,
+            expressions: state.visemeExpressionNames.slice()
+        };
 
     }
 
@@ -1816,6 +2275,12 @@
 
         }
 
+        // Latest request wins: an earlier slow network response must not
+        // replace a model that the user selected more recently.
+        const requestId = ++state.modelRequestId;
+        const previousModelRoot = state.modelRoot;
+        const previousLoadedState = state.loaded;
+
         state.loading = true;
 
         state.error = null;
@@ -1841,9 +2306,11 @@
         try {
 
             await initializeScene();
+            if (requestId !== state.modelRequestId) return false;
 
             const GLTFLoader =
                 await loadGLTFLoader();
+            if (requestId !== state.modelRequestId) return false;
 
             const loader =
                 new GLTFLoader();
@@ -1894,6 +2361,7 @@
                     }
                 );
 
+            if (requestId !== state.modelRequestId) return false;
 
             if (
                 !gltf ||
@@ -1950,7 +2418,18 @@
 
             state.modelRoot = model;
 
+            state.faceMeshes = collectFaceMeshes(model);
+
             state.scene.add(model);
+
+            Object.keys(state.faceExpressionWeights).forEach(function (name) {
+                applyFaceExpression(name, state.faceExpressionWeights[name]);
+            });
+
+            // Reapply the current audio viseme layer to a newly committed avatar.
+            Object.keys(state.visemeExpressionWeights).forEach(function (name) {
+                setVisemeExpression(name, state.visemeExpressionWeights[name]);
+            });
 
 
             fitModel(model);
@@ -1995,6 +2474,9 @@
                 config;
 
             state.currentModelKey =
+                modelKey;
+
+            state.pendingModelKey =
                 modelKey;
 
             state.loaded = true;
@@ -2061,9 +2543,16 @@
 
         } catch (error) {
 
+            // Ignore failures from requests superseded by a newer selection.
+            if (requestId !== state.modelRequestId) return false;
+
             state.loading = false;
 
-            state.loaded = false;
+            // Keep the previous avatar usable when a replacement fails before
+            // it has been committed to the scene.
+            state.loaded = state.modelRoot === previousModelRoot
+                ? previousLoadedState
+                : false;
 
             state.error = error;
 
@@ -2255,6 +2744,8 @@
         state.currentEmotion =
             emotion;
 
+        const faceExpressionCount = applyEmotionFace(emotion);
+
         if (state.container) {
 
             state.container.dataset.emotion =
@@ -2265,7 +2756,8 @@
         EVENTS.emit(
             "emotion-changed",
             {
-                emotion: emotion
+                emotion: emotion,
+                faceExpressionsApplied: faceExpressionCount
             }
         );
 
@@ -2497,9 +2989,23 @@
 
         startRendering();
 
+        const identitySettings =
+            HD.LivingIdentity &&
+            typeof HD.LivingIdentity.getSettings === "function"
+                ? HD.LivingIdentity.getSettings()
+                : {};
+
+        const identityModel =
+            identitySettings.avatar &&
+            CONFIG.models[identitySettings.avatar]
+                ? identitySettings.avatar
+                : null;
+
         const selected =
             modelKey ||
+            state.pendingModelKey ||
             state.currentModelKey ||
+            identityModel ||
             CONFIG.defaultModel;
 
         if (
@@ -2583,14 +3089,20 @@
                 const detail =
                     event.detail || {};
 
+                const avatarMode =
+                    detail.avatarMode ||
+                    detail.avatar;
+
                 if (
-                    detail.avatarMode &&
-                    CONFIG.models[detail.avatarMode]
+                    avatarMode &&
+                    CONFIG.models[avatarMode]
                 ) {
 
-                    setModel(
-                        detail.avatarMode
-                    );
+                    state.pendingModelKey = avatarMode;
+
+                    if (state.opened) {
+                        setModel(avatarMode);
+                    }
 
                 }
 
@@ -2672,6 +3184,22 @@
 
         playAnimation: playAnimation,
 
+        setFaceExpression: applyFaceExpression,
+
+        setFaceExpressions: setFaceExpressions,
+
+        getFaceExpressions: getFaceExpressions,
+
+        resetFaceExpressions: resetFaceExpressions,
+
+        setVisemeTimeline: setVisemeTimeline,
+
+        updateVisemes: updateVisemes,
+
+        clearVisemeTimeline: clearVisemeTimeline,
+
+        getVisemeStatus: getVisemeStatus,
+
         setEmotion: setEmotion,
 
         setState: setState,
@@ -2697,6 +3225,10 @@
                 model:
                     state.currentModelKey,
 
+                selectedModel:
+                    state.pendingModelKey ||
+                    state.currentModelKey,
+
                 animation:
                     state.currentAnimation,
 
@@ -2705,6 +3237,21 @@
 
                 activity:
                     state.currentActivity,
+
+                faceMeshCount:
+                    state.faceMeshes.length,
+
+                faceExpressionCount:
+                    Object.keys(state.faceExpressionWeights).length,
+
+                supportedFaceExpressions:
+                    Object.keys(getFaceExpressions()),
+
+                visemeActive:
+                    Boolean(state.visemeTimeline),
+
+                visemeExpressionCount:
+                    state.visemeExpressionNames.length,
 
                 error:
                     state.error

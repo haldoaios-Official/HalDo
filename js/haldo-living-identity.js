@@ -963,8 +963,8 @@
         settings.avatar = mode;
 
         saveSettings();
-        updatePreview();
         renderAvatarOptions();
+        applySettings();
 
         return true;
     }
@@ -994,8 +994,8 @@
         settings.emotion = emotion;
 
         saveSettings();
-        updatePreview();
         renderEmotionOptions();
+        applySettings();
 
         return true;
     }

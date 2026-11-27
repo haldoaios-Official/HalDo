@@ -13705,37 +13705,286 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
 var H=window.HalDo=window.HalDo||{},BUILD='159.0.0',STORE='haldo_v159_voice_core';
 var defaults={endpoint:'',voiceId:'',provider:'custom',language:'de-DE',rate:1,pitch:1,volume:1};
 function load(){try{return Object.assign({},defaults,JSON.parse(localStorage.getItem(STORE)||'{}'));}catch(_){return Object.assign({},defaults);}}
-var config=load(),recognition=null,activeAudio=null,activeObjectUrl=null,windowRoot=null,listeners={};
+var config=load(),recognition=null,activeAudio=null,activeObjectUrl=null,windowRoot=null,listeners={},activeVisemeBinding=null;
 var languages=[['de-DE','Deutsch'],['en-US','English'],['ku-TR','Kurmancî (Êzîdî)'],['ckb-IQ','Kurdî (Sorani)'],['tr-TR','Türkçe'],['ar-SA','العربية'],['fa-IR','فارسی'],['fr-FR','Français'],['es-ES','Español'],['it-IT','Italiano'],['ru-RU','Русский'],['nl-NL','Nederlands'],['pl-PL','Polski'],['pt-PT','Português'],['hi-IN','हिन्दी'],['ur-PK','اردو'],['zh-CN','中文'],['ja-JP','日本語'],['ko-KR','한국어'],['sw-KE','Kiswahili'],['so-SO','Soomaali'],['af-ZA','Afrikaans'],['uk-UA','Українська']];
 function emit(n,d){(listeners[n]||[]).slice().forEach(function(f){try{f(d||{});}catch(e){console.error(e);}});try{window.dispatchEvent(new CustomEvent('haldo:voice:'+n,{detail:d||{}}));}catch(_){}}
 function on(n,f){if(typeof f!=='function')return function(){};(listeners[n]||(listeners[n]=[])).push(f);return function(){listeners[n]=(listeners[n]||[]).filter(function(x){return x!==f;});};}
 function save(){try{localStorage.setItem(STORE,JSON.stringify(config));}catch(_){}}
 function setConfig(v){config=Object.assign({},config,v||{});save();emit('config',{config:getConfig()});return getConfig();}
 function getConfig(){return {provider:config.provider,language:config.language,voiceId:config.voiceId,endpointConfigured:!!config.endpoint,rate:config.rate,pitch:config.pitch,volume:config.volume};}
+// Conservative intersection of Microsoft's viseme locale table and its
+// SSML mstts:viseme FacialExpression instructions: only these locales are
+// explicitly confirmed by both documents for 55-channel output.
+var AZURE_BLENDSHAPE_LOCALES={'en-US':true,'zh-CN':true};
+function getProviderCapabilities(language){
+var locale=String(language||config.language||'de-DE');
+var azureBlendShapes55=Object.prototype.hasOwnProperty.call(AZURE_BLENDSHAPE_LOCALES,locale);
+return {
+provider:config.provider,
+language:locale,
+azureSpeech:{blendShapes55:azureBlendShapes55,requestedVisemeFormat:azureBlendShapes55?'azure-blendshapes-55-v1':null}
+};
+}
+var AZURE_BLENDSHAPE_NAMES=[
+'eyeBlinkLeft','eyeLookDownLeft','eyeLookInLeft','eyeLookOutLeft','eyeLookUpLeft','eyeSquintLeft','eyeWideLeft',
+'eyeBlinkRight','eyeLookDownRight','eyeLookInRight','eyeLookOutRight','eyeLookUpRight','eyeSquintRight','eyeWideRight',
+'jawForward','jawLeft','jawRight','jawOpen','mouthClose','mouthFunnel','mouthPucker','mouthLeft','mouthRight',
+'mouthSmileLeft','mouthSmileRight','mouthFrownLeft','mouthFrownRight','mouthDimpleLeft','mouthDimpleRight',
+'mouthStretchLeft','mouthStretchRight','mouthRollLower','mouthRollUpper','mouthShrugLower','mouthShrugUpper',
+'mouthPressLeft','mouthPressRight','mouthLowerDownLeft','mouthLowerDownRight','mouthUpperUpLeft','mouthUpperUpRight',
+'browDownLeft','browDownRight','browInnerUp','browOuterUpLeft','browOuterUpRight','cheekPuff','cheekSquintLeft',
+'cheekSquintRight','noseSneerLeft','noseSneerRight','tongueOut','headRoll','leftEyeRoll','rightEyeRoll'
+];
+function normalizeAzureVisemeEvents(events){
+if(!Array.isArray(events)||!events.length||events.length>12000)return null;
+var byFrame=new Map(),totalFrames=0;
+for(var i=0;i<events.length;i++){
+var event=events[i]||{},animation=event.animation||event.Animation||null;
+if(typeof animation==='string'){try{animation=JSON.parse(animation);}catch(_){return null;}}
+if(!animation||typeof animation!=='object')return null;
+var blendShapes=animation.BlendShapes||animation.blendShapes;
+if(!Array.isArray(blendShapes))return null;
+var startIndex=Number.isInteger(animation.FrameIndex)?animation.FrameIndex:null;
+if(startIndex===null){
+var offset=Number(event.audioOffset);
+if(!Number.isFinite(offset)||offset<0)return null;
+startIndex=Math.round((offset/10000)/(1000/60));
+}
+if(startIndex<0||blendShapes.length===0)return null;
+totalFrames+=blendShapes.length;
+if(totalFrames>12000)return null;
+for(var f=0;f<blendShapes.length;f++){
+var values=blendShapes[f];
+if(!Array.isArray(values)||values.length!==55)return null;
+var expressions=Object.create(null);
+for(var c=0;c<AZURE_BLENDSHAPE_NAMES.length;c++){
+var name=AZURE_BLENDSHAPE_NAMES[c];
+if(name.indexOf('jaw')!==0&&name.indexOf('mouth')!==0)continue;
+var weight=values[c];
+if(!Number.isFinite(weight)||weight<0||weight>1)return null;
+expressions[name]=weight;
+}
+byFrame.set(startIndex+f,expressions);
+}
+}
+var indices=Array.from(byFrame.keys()).sort(function(a,b){return a-b;});
+if(!indices.length)return null;
+if(indices[0]>0){
+var neutral=Object.create(null);
+AZURE_BLENDSHAPE_NAMES.forEach(function(name){if(name.indexOf('jaw')===0||name.indexOf('mouth')===0)neutral[name]=0;});
+byFrame.set(0,neutral);
+indices.unshift(0);
+}
+if(indices.length===1){
+var only=byFrame.get(indices[0]);
+indices.push(indices[0]+1);
+byFrame.set(indices[1],Object.assign(Object.create(null),only));
+}
+if(indices.length>12000)return null;
+return indices.map(function(frameIndex){
+return {timeMs:frameIndex*(1000/60),expressions:byFrame.get(frameIndex)};
+});
+}
+function clearVisemePlayback(reason){
+var binding=activeVisemeBinding;
+if(!binding)return false;
+if(binding.raf!==null&&typeof window.cancelAnimationFrame==='function')window.cancelAnimationFrame(binding.raf);
+binding.raf=null;
+binding.audio.removeEventListener('play',binding.onPlay);
+binding.audio.removeEventListener('pause',binding.onPause);
+binding.audio.removeEventListener('seeked',binding.onSeeked);
+binding.audio.removeEventListener('timeupdate',binding.onTimeUpdate);
+binding.audio.removeEventListener('ended',binding.onEnded);
+binding.audio.removeEventListener('error',binding.onError);
+if(binding.timelineActive&&binding.engine&&typeof binding.engine.clearVisemeTimeline==='function'){
+try{binding.engine.clearVisemeTimeline();}catch(e){console.warn('[HalDo Voice Core] Visem-Reset:',e);}
+}
+activeVisemeBinding=null;
+emit('viseme:cleared',{reason:reason||'manual'});
+return true;
+}
+function bindVisemeAudio(audio,frames){
+clearVisemePlayback('replaced');
+if(!audio||typeof audio.addEventListener!=='function'||!Array.isArray(frames))return false;
+var engine=H.Human3D;
+if(!engine||typeof engine.setVisemeTimeline!=='function'||typeof engine.updateVisemes!=='function'||typeof engine.clearVisemeTimeline!=='function'){
+emit('viseme:unavailable',{reason:'HalDo Human3D mit Visem-Schnittstelle ist nicht geladen.'});
+return false;
+}
+var binding={audio:audio,frames:frames,engine:engine,raf:null,timelineActive:false};
+function applyTimeline(){
+var status=typeof engine.getVisemeStatus==='function'?engine.getVisemeStatus():null;
+if(binding.timelineActive&&(!status||status.active!==false))return true;
+binding.timelineActive=false;
+try{binding.timelineActive=engine.setVisemeTimeline(frames)===true;}
+catch(error){emit('viseme:error',{message:error.message});binding.timelineActive=false;}
+if(!binding.timelineActive)emit('viseme:rejected',{reason:'Visem-Zeitachse wurde von Human3D abgewiesen.'});
+return binding.timelineActive;
+}
+function cancelFrame(){
+if(binding.raf!==null&&typeof window.cancelAnimationFrame==='function')window.cancelAnimationFrame(binding.raf);
+binding.raf=null;
+}
+function schedule(){
+if(binding.raf===null&&!audio.paused&&!audio.ended&&typeof window.requestAnimationFrame==='function'){
+binding.raf=window.requestAnimationFrame(tick);
+}
+}
+function updateAtPlaybackTime(){
+var playbackTime=Math.max(0,Number(audio.currentTime||0)*1000);
+var durationMs=frames[frames.length-1].timeMs;
+if(playbackTime>durationMs){
+if(binding.timelineActive){
+try{engine.updateVisemes(playbackTime);}catch(error){emit('viseme:error',{message:error.message});}
+binding.timelineActive=false;
+}
+return false;
+}
+if(!applyTimeline())return false;
+try{
+engine.updateVisemes(playbackTime);
+var status=typeof engine.getVisemeStatus==='function'?engine.getVisemeStatus():null;
+if(status&&status.active===false){binding.timelineActive=false;return false;}
+return true;
+}catch(error){
+emit('viseme:error',{message:error.message});
+cancelFrame();
+return false;
+}
+}
+function tick(){
+binding.raf=null;
+if(activeVisemeBinding!==binding||audio.paused||audio.ended)return;
+if(updateAtPlaybackTime())schedule();
+}
+binding.onPlay=function(){if(updateAtPlaybackTime())schedule();};
+binding.onPause=function(){
+cancelFrame();
+if(binding.timelineActive){
+try{engine.clearVisemeTimeline();}catch(error){emit('viseme:error',{message:error.message});}
+binding.timelineActive=false;
+}
+};
+binding.onSeeked=function(){
+if(audio.paused||audio.ended)return;
+if(updateAtPlaybackTime())schedule();
+};
+binding.onTimeUpdate=function(){
+if(audio.paused||audio.ended)return;
+if(updateAtPlaybackTime())schedule();
+};
+binding.onEnded=function(){clearVisemePlayback('ended');};
+binding.onError=function(){clearVisemePlayback('audio-error');};
+activeVisemeBinding=binding;
+audio.addEventListener('play',binding.onPlay);
+audio.addEventListener('pause',binding.onPause);
+audio.addEventListener('seeked',binding.onSeeked);
+audio.addEventListener('timeupdate',binding.onTimeUpdate);
+audio.addEventListener('ended',binding.onEnded);
+audio.addEventListener('error',binding.onError);
+emit('viseme:bound',{frameCount:frames.length});
+if(!audio.paused&&!audio.ended)binding.onPlay();
+return true;
+}
 function speak(text,opts){
 text=String(text||'').trim();opts=opts||{};if(!text)return Promise.reject(new Error('Kein Text zum Sprechen angegeben.'));
 var lang=opts.language||config.language||'de-DE',endpoint=opts.endpoint||config.endpoint,voiceId=opts.voiceId||config.voiceId;
-if(endpoint){emit('speaking',{text:text,language:lang,mode:'provider'});return fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text,language:lang,voiceId:voiceId,model:'eleven_v4'})}).then(function(res){if(!res.ok)throw new Error('Voice-Server HTTP '+res.status);var ct=res.headers.get('content-type')||'';return ct.indexOf('application/json')>=0?res.json().then(function(d){if(d.audioUrl)return {url:d.audioUrl};if(d.audioBase64)return {base64:d.audioBase64,mime:d.mimeType||'audio/mpeg'};throw new Error('Serverantwort enthält keine Audiodaten.');}):res.blob().then(function(b){return {blob:b};});}).then(function(r){var url=r.url;if(r.blob){if(activeObjectUrl)URL.revokeObjectURL(activeObjectUrl);activeObjectUrl=URL.createObjectURL(r.blob);url=activeObjectUrl;}if(r.base64){var raw=atob(r.base64),a=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)a[i]=raw.charCodeAt(i);if(activeObjectUrl)URL.revokeObjectURL(activeObjectUrl);activeObjectUrl=URL.createObjectURL(new Blob([a],{type:r.mime}));url=activeObjectUrl;}activeAudio=new Audio(url);return activeAudio.play().then(function(){emit('spoken',{language:lang,mode:'provider'});return {mode:'provider'};});}).catch(function(e){emit('error',{message:e.message});throw e;});}
-if(!window.speechSynthesis||!window.SpeechSynthesisUtterance)return Promise.reject(new Error('Browser-Sprachausgabe nicht verfügbar.'));
-window.speechSynthesis.cancel();return new Promise(function(resolve,reject){var u=new SpeechSynthesisUtterance(text);u.lang=lang;u.rate=Number(opts.rate||config.rate||1);u.pitch=Number(opts.pitch||config.pitch||1);u.volume=Number(opts.volume==null?config.volume:opts.volume);var voices=window.speechSynthesis.getVoices(),v=voices.find(function(x){return x.voiceURI===opts.voiceURI;});if(v)u.voice=v;u.onstart=function(){emit('speaking',{text:text,language:lang,mode:'browser'});};u.onend=function(){emit('spoken',{language:lang,mode:'browser'});resolve({mode:'browser'});};u.onerror=function(e){var err=new Error('Sprachausgabe: '+e.error);emit('error',{message:err.message});reject(err);};window.speechSynthesis.speak(u);});
+if(endpoint){
+emit('speaking',{text:text,language:lang,mode:'provider'});
+var provider=opts.provider||config.provider||'custom';
+var providerRequest={protocol:'haldo-voice-v1',provider:provider,text:text,language:lang,voiceId:voiceId};
+if(provider==='azure-speech'){
+providerRequest.responseMode='audio';
+providerRequest.requestedVisemeFormat=getProviderCapabilities(lang).azureSpeech.requestedVisemeFormat;
+if(voiceId)providerRequest.voiceName=voiceId;
+}else{
+providerRequest.model=opts.model||'eleven_v4';
 }
-function stop(){try{if(window.speechSynthesis)window.speechSynthesis.cancel();if(activeAudio){activeAudio.pause();activeAudio=null;}if(recognition){var r=recognition;recognition=null;r.onresult=null;try{r.stop();}catch(_){}}emit('stopped',{});}catch(e){console.warn('[HalDo Voice Core]',e);}}
+return fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(providerRequest)})
+.then(function(res){
+if(!res.ok)throw new Error('Voice-Server HTTP '+res.status);
+var ct=res.headers.get('content-type')||'';
+return ct.indexOf('application/json')>=0?res.json().then(function(d){
+if(d.audioUrl)return {url:d.audioUrl,visemeTimeline:d.visemeTimeline,visemeFormat:d.visemeFormat,azureVisemeEvents:d.azureVisemeEvents};
+if(d.audioBase64)return {base64:d.audioBase64,mime:d.mimeType||'audio/mpeg',visemeTimeline:d.visemeTimeline,visemeFormat:d.visemeFormat,azureVisemeEvents:d.azureVisemeEvents};
+throw new Error('Serverantwort enthält keine Audiodaten.');
+}):res.blob().then(function(b){return {blob:b};});
+})
+.then(function(r){
+var url=r.url;
+if(r.blob){
+if(activeObjectUrl)URL.revokeObjectURL(activeObjectUrl);
+activeObjectUrl=URL.createObjectURL(r.blob);url=activeObjectUrl;
+}
+if(r.base64){
+var raw=atob(r.base64),a=new Uint8Array(raw.length);
+for(var i=0;i<raw.length;i++)a[i]=raw.charCodeAt(i);
+if(activeObjectUrl)URL.revokeObjectURL(activeObjectUrl);
+activeObjectUrl=URL.createObjectURL(new Blob([a],{type:r.mime}));url=activeObjectUrl;
+}
+if(activeAudio){try{activeAudio.pause();}catch(_){}activeAudio=null;}
+clearVisemePlayback('replaced');
+activeAudio=new Audio(url);
+var visemeFrames=Array.isArray(r.visemeTimeline)?r.visemeTimeline:null;
+if(!visemeFrames&&r.visemeFormat==='azure-blendshapes-55-v1')visemeFrames=normalizeAzureVisemeEvents(r.azureVisemeEvents);
+if(Array.isArray(visemeFrames))bindVisemeAudio(activeAudio,visemeFrames);
+else if(r.visemeFormat==='azure-blendshapes-55-v1')emit('viseme:rejected',{reason:'Azure-Blendshape-Daten konnten nicht in eine gültige Zeitachse umgewandelt werden.'});
+return activeAudio.play().then(function(){
+emit('spoken',{language:lang,mode:'provider',visemes:!!activeVisemeBinding});
+return {mode:'provider',visemes:!!activeVisemeBinding};
+});
+})
+.catch(function(e){
+clearVisemePlayback('voice-error');
+emit('error',{message:e.message});throw e;
+});
+}
+if(!window.speechSynthesis||!window.SpeechSynthesisUtterance)return Promise.reject(new Error('Browser-Sprachausgabe nicht verfügbar.'));
+window.speechSynthesis.cancel();
+return new Promise(function(resolve,reject){
+var u=new SpeechSynthesisUtterance(text);
+u.lang=lang;u.rate=Number(opts.rate||config.rate||1);u.pitch=Number(opts.pitch||config.pitch||1);
+u.volume=Number(opts.volume==null?config.volume:opts.volume);
+var voices=window.speechSynthesis.getVoices(),v=voices.find(function(x){return x.voiceURI===opts.voiceURI;});
+if(v)u.voice=v;
+u.onstart=function(){emit('speaking',{text:text,language:lang,mode:'browser'});};
+u.onend=function(){emit('spoken',{language:lang,mode:'browser'});resolve({mode:'browser',visemes:false});};
+u.onerror=function(e){var err=new Error('Sprachausgabe: '+e.error);emit('error',{message:err.message});reject(err);};
+window.speechSynthesis.speak(u);
+});
+}
+function stop(){try{clearVisemePlayback('stop');if(window.speechSynthesis)window.speechSynthesis.cancel();if(activeAudio){activeAudio.pause();activeAudio=null;}if(activeObjectUrl){URL.revokeObjectURL(activeObjectUrl);activeObjectUrl=null;}if(recognition){var r=recognition;recognition=null;r.onresult=null;try{r.stop();}catch(_){}}emit('stopped',{});}catch(e){console.warn('[HalDo Voice Core]',e);}}
 function listen(opts){opts=opts||{};var SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return Promise.reject(new Error('Spracheingabe wird in diesem Browser nicht unterstützt.'));stop();return new Promise(function(resolve,reject){var rec=new SR();recognition=rec;rec.lang=opts.language||config.language||'de-DE';rec.continuous=!!opts.continuous;rec.interimResults=!!opts.interimResults;rec.onstart=function(){emit('listening',{language:rec.lang});};rec.onresult=function(e){var finalText='',interim='';for(var i=e.resultIndex;i<e.results.length;i++){var t=e.results[i][0].transcript;if(e.results[i].isFinal)finalText+=t;else interim+=t;}emit('transcript',{text:finalText||interim,final:!!finalText,language:rec.lang});if(finalText&&!opts.continuous){recognition=null;resolve({text:finalText,language:rec.lang});}};rec.onerror=function(e){recognition=null;var err=new Error('Spracheingabe: '+e.error);emit('error',{message:err.message});reject(err);};rec.onend=function(){if(recognition===rec)recognition=null;emit('listenend',{});};try{rec.start();}catch(e){recognition=null;reject(e);}});}
-function status(){return {version:BUILD,speechSynthesis:!!window.speechSynthesis,speechRecognition:!!(window.SpeechRecognition||window.webkitSpeechRecognition),mediaRecorder:!!window.MediaRecorder,config:getConfig(),cloneReady:false};}
+function status(){var engine=H.Human3D;return {version:BUILD,speechSynthesis:!!window.speechSynthesis,speechRecognition:!!(window.SpeechRecognition||window.webkitSpeechRecognition),mediaRecorder:!!window.MediaRecorder,config:getConfig(),providerCapabilities:getProviderCapabilities(config.language),cloneReady:false,visemeAudioBridge:true,azureBlendshapeAdapter:true,visemeEngineReady:!!(engine&&typeof engine.setVisemeTimeline==='function'&&typeof engine.updateVisemes==='function'),visemeAudioBound:!!activeVisemeBinding};}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function render(){
 if(!windowRoot||!windowRoot.isConnected)return;
 var opts=languages.map(function(x){return '<option value="'+x[0]+'" '+(config.language===x[0]?'selected':'')+'>'+esc(x[1])+'</option>';}).join('');
-windowRoot.innerHTML='<style>.hv159{padding:15px;color:var(--text,#eef4ff);font:inherit;background:linear-gradient(145deg,#101a31,#182744);border-radius:16px;min-height:580px;box-sizing:border-box}.hv159 *{box-sizing:border-box}.hv159 .hero,.hv159 .panel{border:1px solid #65e6d533;border-radius:14px;padding:15px;background:#0b162b;margin-bottom:12px}.hv159 h2{margin:0 0 6px;font-size:21px}.hv159 p,.hv159 .muted{color:#aebbd1;font-size:13px;line-height:1.5}.hv159 label{display:block;color:#aebbd1;font-size:12px;margin:10px 0 5px}.hv159 input,.hv159 select,.hv159 textarea{width:100%;padding:10px;border:1px solid #ffffff2a;border-radius:9px;background:#071225;color:#fff;font:inherit}.hv159 textarea{min-height:95px}.hv159 button{padding:10px 14px;margin:7px 6px 0 0;border:0;border-radius:9px;background:#0e7490;color:white;font-weight:700}.hv159 button.primary{background:#0f766e}.hv159 .status{padding:12px;border-radius:10px;background:#10313a;color:#baf9ed;font-size:13px;overflow-wrap:anywhere}.hv159 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.hv159 .pill{display:inline-block;padding:4px 8px;border:1px solid #65e6d566;border-radius:20px;font-size:11px;color:#a7f3e6;margin:2px}</style><div class="hv159"><div class="hero"><span class="pill">HALDO AI · SHARED VOICE ENGINE · v'+BUILD+'</span><h2>🎙️ HalDo AI Voice Core Pro</h2><p>Eine gemeinsame Sprachschnittstelle für HalDo AI, Arztbuch, Fahrschule, Bildung und Cyborg. Deine eigene Stimme kann später über ein verifiziertes Voice-Cloning-Profil verbunden werden.</p></div><div class="grid"><section class="panel"><b>🌍 Sprache & Ausgabe</b><label>Sprache</label><select data-lang>'+opts+'</select><label>Text, den HalDo sprechen soll</label><textarea data-text placeholder="Schreibe einen Text …"></textarea><button class="primary" data-speak>▶ Sprechen</button><button data-stop>■ Stoppen</button><p class="muted">Ohne Server wird die installierte Browserstimme verwendet. Verfügbarkeit und Qualität hängen vom Gerät ab.</p></section><section class="panel"><b>🎧 Spracheingabe</b><p>Starte die Mikrofon-Spracherkennung und übernimm das erkannte Ergebnis in das Textfeld.</p><button class="primary" data-listen>🎤 Jetzt zuhören</button><button data-listen-stop>Aufnahme stoppen</button><div class="status" data-heard>Warte auf Spracheingabe.</div></section></div><section class="panel"><b>🔐 Spätere eigene KI-Stimme verbinden</b><p>Hier wird nur die Server-Adresse und Voice-ID gespeichert. Ein Anbieter-API-Schlüssel wird niemals in HalDo oder im Browser abgelegt.</p><label>Privater Voice-Proxy-Endpunkt</label><input data-endpoint type="url" placeholder="https://dein-server.example/api/voice/tts" value="'+esc(config.endpoint)+'"><label>Deine eigene Voice-ID (später)</label><input data-voiceid value="'+esc(config.voiceId)+'" placeholder="Wird nach dem Voice-Cloning eingetragen"><label>Voice-Anbieter</label><select data-provider><option value="custom">Eigener sicherer Server-Proxy</option><option value="elevenlabs">ElevenLabs über deinen Server-Proxy</option></select><button class="primary" data-save>Verbindung speichern</button><div class="muted">Der Proxy nimmt POST JSON {text, language, voiceId, model} entgegen und liefert Audio oder audioUrl/audioBase64. CORS muss für deine HalDo-Domain freigegeben sein.</div></section><div class="status" data-status>Bereit. Browser-Sprachausgabe und Spracheingabe können getestet werden.</div><p class="muted">Hinweis: Dieses Modul erstellt noch keinen Stimmklon. Dafür braucht es später ein Anbieter-Konto, eigene saubere Sprachproben, Verifizierung und einen sicheren Server. Kurmancî/Êzîdî ist als Auswahl vorgesehen; Sorani-Kurdisch (ckb) ist bei Eleven v4 ausdrücklich dokumentiert.</p></div>';
+windowRoot.innerHTML='<style>.hv159{padding:15px;color:var(--text,#eef4ff);font:inherit;background:linear-gradient(145deg,#101a31,#182744);border-radius:16px;min-height:580px;box-sizing:border-box}.hv159 *{box-sizing:border-box}.hv159 .hero,.hv159 .panel{border:1px solid #65e6d533;border-radius:14px;padding:15px;background:#0b162b;margin-bottom:12px}.hv159 h2{margin:0 0 6px;font-size:21px}.hv159 p,.hv159 .muted{color:#aebbd1;font-size:13px;line-height:1.5}.hv159 label{display:block;color:#aebbd1;font-size:12px;margin:10px 0 5px}.hv159 input,.hv159 select,.hv159 textarea{width:100%;padding:10px;border:1px solid #ffffff2a;border-radius:9px;background:#071225;color:#fff;font:inherit}.hv159 textarea{min-height:95px}.hv159 button{padding:10px 14px;margin:7px 6px 0 0;border:0;border-radius:9px;background:#0e7490;color:white;font-weight:700}.hv159 button.primary{background:#0f766e}.hv159 .status{padding:12px;border-radius:10px;background:#10313a;color:#baf9ed;font-size:13px;overflow-wrap:anywhere}.hv159 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.hv159 .pill{display:inline-block;padding:4px 8px;border:1px solid #65e6d566;border-radius:20px;font-size:11px;color:#a7f3e6;margin:2px}</style><div class="hv159"><div class="hero"><span class="pill">HALDO AI · SHARED VOICE ENGINE · v'+BUILD+'</span><h2>🎙️ HalDo AI Voice Core Pro</h2><p>Eine gemeinsame Sprachschnittstelle für HalDo AI, Arztbuch, Fahrschule, Bildung und Cyborg. Deine eigene Stimme kann später über ein verifiziertes Voice-Cloning-Profil verbunden werden.</p></div><div class="grid"><section class="panel"><b>🌍 Sprache & Ausgabe</b><label>Sprache</label><select data-lang>'+opts+'</select><label>Text, den HalDo sprechen soll</label><textarea data-text placeholder="Schreibe einen Text …"></textarea><button class="primary" data-speak>▶ Sprechen</button><button data-stop>■ Stoppen</button><p class="muted">Ohne Server wird die installierte Browserstimme verwendet. Verfügbarkeit und Qualität hängen vom Gerät ab.</p></section><section class="panel"><b>🎧 Spracheingabe</b><p>Starte die Mikrofon-Spracherkennung und übernimm das erkannte Ergebnis in das Textfeld.</p><button class="primary" data-listen>🎤 Jetzt zuhören</button><button data-listen-stop>Aufnahme stoppen</button><div class="status" data-heard>Warte auf Spracheingabe.</div></section></div><section class="panel"><b>🔐 Spätere eigene KI-Stimme verbinden</b><p>Hier wird nur die Server-Adresse und Voice-ID gespeichert. Ein Anbieter-API-Schlüssel wird niemals in HalDo oder im Browser abgelegt.</p><label>Privater Voice-Proxy-Endpunkt</label><input data-endpoint type="url" placeholder="https://dein-server.example/api/voice/tts" value="'+esc(config.endpoint)+'"><label>Deine eigene Voice-ID (später)</label><input data-voiceid value="'+esc(config.voiceId)+'" placeholder="Wird nach dem Voice-Cloning eingetragen"><label>Voice-Anbieter</label><select data-provider><option value="custom" '+(config.provider==='custom'?'selected':'')+'>Eigener sicherer Server-Proxy</option><option value="elevenlabs" '+(config.provider==='elevenlabs'?'selected':'')+'>ElevenLabs über deinen Server-Proxy</option><option value="azure-speech" '+(config.provider==='azure-speech'?'selected':'')+'>Microsoft Azure Speech über deinen Server-Proxy</option></select><div class="muted" data-provider-info></div><button class="primary" data-save>Verbindung speichern</button><div class="muted">Der Proxy nimmt POST JSON mit protocol=haldo-voice-v1, provider, text, language und voiceId entgegen. Azure erhält zusätzlich voiceName und requestedVisemeFormat (wenn die ausgewählte Locale 55 Blendshapes unterstützt). Die Serverantwort liefert Audio (audioUrl/audioBase64) und optional visemeTimeline oder Azure-Events. Der Server verwaltet alle Anbieter-Schlüssel vertraulich; Browser-TTS liefert keine Phonem-/Visem-Zeitachse. CORS muss für deine HalDo-Domain freigegeben sein.</div></section><div class="status" data-status>Bereit. Browser-Sprachausgabe und Spracheingabe können getestet werden.</div><p class="muted">Hinweis: Dieses Modul erstellt noch keinen Stimmklon. Dafür braucht es später ein Anbieter-Konto, eigene saubere Sprachproben, Verifizierung und einen sicheren Server. Kurmancî/Êzîdî ist als Auswahl vorgesehen; Sorani-Kurdisch (ckb) ist bei Eleven v4 ausdrücklich dokumentiert.</p></div>';
 function el(s){return windowRoot.querySelector(s);}
-el('[data-speak]').onclick=function(){setConfig({language:el('[data-lang]').value});speak(el('[data-text]').value).then(function(r){el('[data-status]').textContent='Sprachausgabe gestartet ('+r.mode+').';}).catch(function(e){el('[data-status]').textContent=e.message;});};
+function updateProviderInfo(){
+var provider=el('[data-provider]').value,language=el('[data-lang]').value,cap=getProviderCapabilities(language);
+if(provider==='azure-speech'){
+el('[data-provider-info]').textContent=cap.azureSpeech.blendShapes55
+?'Für '+language+' sind Azure-55-Blendshapes dokumentiert. Dein Proxy muss sie zusammen mit dem Audio liefern.'
+:'Für '+language+' sind in der geprüften Azure-Tabelle keine 55-Blendshapes ausgewiesen. Audio kann weiterhin geliefert werden, aber diese 3D-Blendshape-Lippensynchronisation wird nicht angefordert.';
+}else if(provider==='elevenlabs'){
+el('[data-provider-info]').textContent='ElevenLabs wird über deinen sicheren Proxy angesprochen. Visemdaten sind nur verfügbar, wenn dein Proxy ein unterstütztes visemeTimeline-Format zurückgibt.';
+}else{
+el('[data-provider-info]').textContent='Der benutzerdefinierte Proxy entscheidet anhand seiner Serverkonfiguration über den TTS-Anbieter und das optionale Visemformat.';
+}
+}
+el('[data-provider]').addEventListener('change',updateProviderInfo);
+el('[data-lang]').addEventListener('change',updateProviderInfo);
+updateProviderInfo();
+el('[data-speak]').onclick=function(){setConfig({language:el('[data-lang]').value,provider:el('[data-provider]').value});speak(el('[data-text]').value).then(function(r){el('[data-status]').textContent='Sprachausgabe gestartet ('+r.mode+').';}).catch(function(e){el('[data-status]').textContent=e.message;});};
 el('[data-stop]').onclick=stop;
 el('[data-listen]').onclick=function(){setConfig({language:el('[data-lang]').value});el('[data-heard]').textContent='Mikrofon wird gestartet …';listen({language:config.language}).then(function(r){el('[data-heard]').textContent='Erkannt: '+r.text;el('[data-text]').value=r.text;}).catch(function(e){el('[data-heard]').textContent=e.message;});};
 el('[data-listen-stop]').onclick=stop;
-el('[data-save]').onclick=function(){setConfig({endpoint:el('[data-endpoint]').value.trim(),voiceId:el('[data-voiceid]').value.trim(),provider:el('[data-provider]').value,language:el('[data-lang]').value});el('[data-status]').textContent='Einstellungen lokal gespeichert. Kein API-Schlüssel wurde gespeichert.';};
+el('[data-save]').onclick=function(){setConfig({endpoint:el('[data-endpoint]').value.trim(),voiceId:el('[data-voiceid]').value.trim(),provider:el('[data-provider]').value,language:el('[data-lang]').value});updateProviderInfo();el('[data-status]').textContent='Einstellungen lokal gespeichert. Kein API-Schlüssel wurde gespeichert.';};
 }
 function open(){if(!H.Win||typeof H.Win.open!=='function'){console.warn('[HalDo Voice Core] Fensterverwaltung nicht verfügbar.');return;}var id='haldo-v159-voice-core-'+Date.now();H.Win.open('🎙️ HalDo AI Voice Core Pro','<div id="'+id+'"></div>',{w:850,h:850});window.setTimeout(function(){windowRoot=document.getElementById(id);if(windowRoot&&windowRoot.isConnected)render();},90);}
-H.VoiceCore={version:BUILD,speak:speak,listen:listen,stop:stop,on:on,emit:emit,setConfig:setConfig,getConfig:getConfig,status:status,open:open,languages:languages.slice()};H.AIVoiceCore=H.VoiceCore;
+H.VoiceCore={version:BUILD,speak:speak,listen:listen,stop:stop,on:on,emit:emit,setConfig:setConfig,getConfig:getConfig,getProviderCapabilities:getProviderCapabilities,status:status,bindVisemeAudio:bindVisemeAudio,normalizeAzureVisemeEvents:normalizeAzureVisemeEvents,clearVisemeAudio:function(){return clearVisemePlayback('manual');},open:open,languages:languages.slice()};H.AIVoiceCore=H.VoiceCore;
 if(H.Registry&&Array.isArray(H.Registry.featured)){var app=H.Registry.featured.find(function(x){return x.id==='ai-voice-core';});if(!app)H.Registry.featured.push({id:'ai-voice-core',n:'HalDo AI Voice Core Pro',i:'🎙️'});else{app.n='HalDo AI Voice Core Pro';app.i='🎙️';}}
 var oldLaunch=H.Launch;H.Launch=function(app){if(app&&app.id==='ai-voice-core')return open();if(typeof oldLaunch==='function')return oldLaunch.apply(this,arguments);};
 try{if(H.AppVoice&&typeof H.AppVoice.command==='function')H.AppVoice.command('haldo-open-ai-voice-core',['öffne haldo voice core','öffne haldo ai voice core','starte haldo sprachkern'],function(){open();return 'HalDo AI Voice Core Pro wird geöffnet.';});}catch(e){console.warn('[HalDo Voice Core] Sprachbefehl:',e);}
@@ -14051,6 +14300,7 @@ console.info('HalDo v166: Haushaltsmanager, Keyboard Studio und Datei-Konverter 
 <script src="./js/haldo-v180-datavault-core.js" defer></script>
 <script src="./js/haldo-v181-permission-policy.js" defer></script>
 <script src="./js/haldo-v182-permission-lifecycle.js" defer></script>
+<script src="./js/haldo-v183-professional-appsuite.js" defer></script>
 
 </body>
 </html>
