@@ -124,3 +124,19 @@ Die Profile werden bei einem Emotionswechsel zurückgesetzt, bevor das nächste 
 Chromium-Testlauf [46066932372](https://github.com/haldoaios-Official/HalDo/actions/runs/46066932372): **8/8 Prüfungen erfolgreich**. Die synthetische GLB-Testszene prüft Profilwechsel, Neutralisierung, gezielte Einzel-/Batch-Werte und die Regel, dass Speaking ohne Viseme-Daten den Kiefer nicht künstlich bewegt.
 
 **Nächste Stufe:** zeitgesteuerte Viseme aus einer TTS-/Speech-Pipeline anbinden. Browser-`SpeechSynthesis` liefert in HalDo derzeit keine geprüften phonem-/visemgenauen Daten; Wortgrenzen oder pauschale Kieferbewegungen dürfen nicht als echte Lippensynchronisation ausgegeben werden.
+
+
+## Zeitsynchronisierte Viseme-Schnittstelle vorbereitet (27.11.2026)
+
+Die Human3D-Engine stellt jetzt eine provider-neutrale Zeitachsen-Schnittstelle bereit:
+
+- `setVisemeTimeline(frames)` nimmt mindestens zwei streng aufsteigend sortierte Zeitpunkte entgegen. Jeder Frame enthält `timeMs` und ein `expressions`-Objekt mit Mund-/Kieferkanälen (`jaw*`, `mouth*` oder `viseme_*`) und normierten Gewichten von 0 bis 1.
+- `updateVisemes(audioTimeMs)` interpoliert die Werte anhand der vom Audioplayer gelieferten Zeit in Millisekunden. Der Aufrufer muss dieselbe Zeitbasis wie die Audiospur verwenden; ein eigener Timer der Engine wird absichtlich nicht als Ersatz verwendet.
+- `clearVisemeTimeline()` entfernt die Visem-Ebene und stellt die aktuelle Basis-/Emotionsmimik wieder her.
+- `getVisemeStatus()` meldet, ob eine Zeitachse aktiv ist, ihre Dauer, den letzten Audiotimestamp und die gesteuerten Kanäle.
+
+Die Visem-Ebene überschreibt während ihrer Laufzeit nur die betroffenen Mund-/Kieferkanäle und wird bei einem Modellwechsel auf das neu geladene Gesicht übertragen. Ungültige Zeitpunkte, nicht aufsteigende Frames, nicht-mundbezogene Kanäle und Gewichte außerhalb 0 bis 1 werden abgewiesen.
+
+**Wichtige Grenze:** Diese Schnittstelle analysiert keine Stimme, erzeugt keine Phoneme/Viseme und spielt selbst kein Audio ab. Die bestehende Browser-`SpeechSynthesis`-Ausgabe liefert HalDo hier noch keine geprüfte phonemgenaue Zeitachse. Ein TTS-/Audioanbieter muss echte Visemwerte liefern und `updateVisemes()` mit seiner tatsächlichen Playback-Zeit aufrufen. Bis diese Verbindung und ein echtes Avatar-GLB getestet sind, ist Lip-Sync weiterhin **nicht produktiv fertig**.
+
+Die Browser-Regression erweitert den synthetischen Test um Interpolation bei 150 ms, Validierung der Kanäle/Gewichte, Statusmeldung und sauberes Zurücksetzen der Visem-Ebene. Der Test belegt die Engine-Logik, nicht die Qualität oder Verfügbarkeit eines realen Avatar-Modells.
