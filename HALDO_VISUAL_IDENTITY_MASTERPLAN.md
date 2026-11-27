@@ -213,3 +213,22 @@ Quellen:
 - Microsoft Learn, [Language and voice support for Azure Speech](https://learn.microsoft.com/azure/ai-services/speech-service/language-support?tabs=tts)
 
 **Status:** Adapter und synthetischer Browser-Test vorhanden. Es ist weder ein Azure-Konto noch ein Voice-Proxy konfiguriert; es wurden keine echten Azure-Audio-/Blendshape-Daten erzeugt oder abgenommen.
+
+
+## Provider-spezifischer Azure-Requestvertrag und Locale-Prüfung (27.11.2026)
+
+Die Voice-Core-Einstellung für den Anbieter wurde bisher zwar lokal gespeichert, aber nicht mit dem TTS-Request an den Proxy übergeben. Das ist korrigiert: Der Voice Core sendet jetzt `protocol: "haldo-voice-v1"` und `provider` explizit mit. Für den bestehenden Custom-/ElevenLabs-Pfad bleibt der bisherige Modellhinweis `eleven_v4` erhalten. Für Azure wird kein ElevenLabs-Modellname übertragen; stattdessen wird `voiceName` aus der gespeicherten Voice-ID gesetzt und das gewünschte Visemformat separat angefordert.
+
+Die Azure-55-Blendshape-Anforderung wird nur für die in Microsofts aktueller Locale-Tabelle ausdrücklich mit **Blend shapes** markierten Sprachen gesetzt. Für `de-DE` ist sie verfügbar; für `tr-TR` listet Microsoft nur **Viseme ID**, nicht die 55 Blendshape-Daten. Die UI zeigt diese Einschränkung an und fordert bei nicht bestätigten Locales keine 55-Kanal-Daten an. Wenn der Proxy nur Audio liefern kann, bleibt der Sprachpfad nutzbar; eine 3D-Mimik wird nicht vorgetäuscht.
+
+Die Provider- und Locale-Prüfung ist über `HalDo.VoiceCore.getProviderCapabilities(language)` abrufbar. Die Browser-Regression prüft unter anderem:
+- Azure Request enthält Provider, Protokollversion, Voice-Name und das korrekte Blendshape-Format bei `de-DE`.
+- Azure erhält keinen `eleven_v4`-Modellnamen.
+- `tr-TR` fordert keine 55 Blendshapes an.
+- Der vorherige Custom-/ElevenLabs-Payload behält seinen Modellhinweis.
+
+Microsofts Dokumentation beschreibt die 55 Werte pro Frame bei 60 FPS und die VisemeReceived-Events mit Audiooffset in Ticks. Sie führt die 55 Blendshape-Kanäle samt Reihenfolge und die Locale-Verfügbarkeit auf:
+- [Viseme und 3D-Blendshapes](https://learn.microsoft.com/azure/ai-services/speech-service/how-to-speech-synthesis-viseme)
+- [Azure Speech – Language and voice support](https://learn.microsoft.com/azure/ai-services/speech-service/language-support?tabs=tts)
+
+**Unverändert:** Der Requestvertrag implementiert keinen Server und benötigt weiterhin einen privaten Azure-Speech-Proxy. Kein Azure-Schlüssel wird in der Browser-App gespeichert. Es ist noch keine echte Azure-Ausgabe erzeugt worden.
