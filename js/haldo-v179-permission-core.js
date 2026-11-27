@@ -44,6 +44,11 @@
       }
     }
   };
+  Object.keys(PERMISSIONS).forEach(function (key) {
+    Object.freeze(PERMISSIONS[key]);
+  });
+  Object.freeze(PERMISSIONS);
+
   var manifests = new Map();
   var grants = new Map();
   var pending = new Map();
@@ -256,6 +261,7 @@
       var root = document.getElementById(rootId);
       if (!root) {
         pending.delete(pendingKey);
+        emitAudit(permission, id, 'denied');
         resolveRequest(false);
         return;
       }
@@ -263,10 +269,22 @@
       var deny = root.querySelector('[data-consent-deny]');
       var status = root.querySelector('[data-consent-status]');
       var busy = false;
+      var settled = false;
+      var closeObserver = new MutationObserver(function () {
+        if (root.isConnected || settled) return;
+        settled = true;
+        pending.delete(pendingKey);
+        emitAudit(permission, id, 'denied');
+        resolveRequest(false);
+        closeObserver.disconnect();
+      });
+      closeObserver.observe(document.body, { childList: true, subtree: true });
 
       function finish(granted, outcome) {
-        if (busy) return;
+        if (busy || settled) return;
         busy = true;
+        settled = true;
+        closeObserver.disconnect();
         if (status) status.textContent = outcome;
         if (granted) {
           getGrantMap(id).add(permission);
@@ -292,6 +310,7 @@
         if (deny) deny.disabled = true;
         if (status) status.textContent = 'Browserberechtigung wird angefragt …';
         requestBrowserPermission(permission).then(function (browserGranted) {
+          if (settled) return;
           busy = false;
           if (browserGranted) {
             finish(true, 'Freigabe erteilt. Sie gilt nur für diese HalDo-Sitzung.');
@@ -299,6 +318,7 @@
             finish(false, 'Der Browser hat den Zugriff nicht freigegeben.');
           }
         }).catch(function () {
+          if (settled) return;
           busy = false;
           finish(false, 'Die Browseranfrage ist fehlgeschlagen.');
         });
@@ -469,7 +489,7 @@
 
   var api = {
     version: VERSION,
-    permissions: Object.keys(PERMISSIONS),
+    permissions: Object.freeze(Object.keys(PERMISSIONS)),
     describe: function (id) { return PERMISSIONS[id] || null; },
     registerApp: registerApp,
     unregisterApp: unregisterApp,
