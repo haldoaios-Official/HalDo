@@ -62,7 +62,7 @@
       var active=state.patterns.find(function(p){return p.id===state.activePatternId;});
       if(active){var activeData=cleanPatternData(active);state.tracks=activeData.tracks;state.pianoNotes=activeData.pianoNotes;}
       var validIds=state.patterns.map(function(p){return p.id;});
-      state.arrangement=Array.from({length:8},function(_,i){var id=Array.isArray(saved.arrangement)?saved.arrangement[i]:null;return validIds.indexOf(id)>=0?id:(i===0?state.activePatternId:null);});
+      state.arrangement=Array.from({length:8},function(_,i){if(Array.isArray(saved.arrangement)){var id=saved.arrangement[i];return validIds.indexOf(id)>=0?id:null;}return i===0?state.activePatternId:null;});
     }else{
       state.patterns=[{id:makePatternId(),name:'Pattern 1',tracks:clone(state.tracks),pianoNotes:clone(state.pianoNotes)}];
       state.activePatternId=state.patterns[0].id;
