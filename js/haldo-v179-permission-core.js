@@ -119,8 +119,9 @@
   function unregisterApp(appId) {
     var id = identifier(appId, 'App');
     manifests.delete(id);
+    var cancelledPending = cancelPendingForApp(id);
     var removed = revokeAll(id);
-    return { appId: id, revoked: removed };
+    return { appId: id, revoked: removed, cancelledPending: cancelledPending };
   }
 
   function getGrantMap(appId) {
@@ -254,10 +255,31 @@
     var resolveRequest;
     var promise = new Promise(function (resolve) { resolveRequest = resolve; });
     var windowId = H.Win.open('🛡️ HalDo Berechtigungsfreigabe', html, { w: 440, h: 480 });
-    var record = { promise: promise, windowId: windowId, resolve: resolveRequest };
+    var busy = false;
+    var settled = false;
+    var closeObserver = null;
+
+    function cancelRequest() {
+      if (settled) return false;
+      settled = true;
+      if (closeObserver) closeObserver.disconnect();
+      pending.delete(pendingKey);
+      emitAudit(permission, id, 'cancelled');
+      try { if (windowId) H.Win.close(windowId); } catch (_) {}
+      resolveRequest(false);
+      return true;
+    }
+
+    var record = {
+      promise: promise,
+      windowId: windowId,
+      resolve: resolveRequest,
+      cancel: cancelRequest
+    };
     pending.set(pendingKey, record);
 
     window.setTimeout(function () {
+      if (settled) return;
       var root = document.getElementById(rootId);
       if (!root) {
         pending.delete(pendingKey);
@@ -268,9 +290,7 @@
       var allow = root.querySelector('[data-consent-allow]');
       var deny = root.querySelector('[data-consent-deny]');
       var status = root.querySelector('[data-consent-status]');
-      var busy = false;
-      var settled = false;
-      var closeObserver = new MutationObserver(function () {
+      closeObserver = new MutationObserver(function () {
         if (root.isConnected || settled) return;
         settled = true;
         pending.delete(pendingKey);
@@ -328,9 +348,30 @@
     return promise;
   }
 
+  function cancelPending(permission, appId) {
+    if (!Object.prototype.hasOwnProperty.call(PERMISSIONS, permission)) return false;
+    var id = identifier(appId, 'App');
+    var item = pending.get(id + ':' + permission);
+    return !!(item && typeof item.cancel === 'function' && item.cancel());
+  }
+
+  function cancelPendingForApp(appId) {
+    var id = identifier(appId, 'App');
+    var prefix = id + ':';
+    var keys = Array.from(pending.keys());
+    var cancelled = 0;
+    keys.forEach(function (key) {
+      if (key.indexOf(prefix) !== 0) return;
+      var item = pending.get(key);
+      if (item && typeof item.cancel === 'function' && item.cancel()) cancelled += 1;
+    });
+    return cancelled;
+  }
+
   function revoke(permission, appId) {
     var id = identifier(appId, 'App');
     if (!Object.prototype.hasOwnProperty.call(PERMISSIONS, permission)) return false;
+    cancelPending(permission, id);
     var set = grants.get(id);
     if (!set || !set.has(permission)) return false;
     set.delete(permission);
@@ -340,6 +381,7 @@
 
   function revokeAll(appId) {
     var id = identifier(appId, 'App');
+    cancelPendingForApp(id);
     var set = grants.get(id);
     if (!set) return 0;
     var count = set.size;
@@ -376,6 +418,7 @@
       version: VERSION,
       manifestCount: manifests.size,
       sessionGrantCount: grantedCount,
+      pendingRequestCount: pending.size,
       persistentGrants: false,
       explicitConsentRequired: true,
       browserPermissionStatusSeparate: true,
@@ -494,6 +537,7 @@
     registerApp: registerApp,
     unregisterApp: unregisterApp,
     request: request,
+    cancelPending: cancelPending,
     has: has,
     revoke: revoke,
     revokeAll: revokeAll,
@@ -516,6 +560,7 @@
   if (H.AICore) {
     H.AICore.permissions = Object.freeze({
       request: request,
+      cancelPending: cancelPending,
       has: has,
       revoke: revoke,
       revokeAll: revokeAll,

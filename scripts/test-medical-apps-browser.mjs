@@ -436,6 +436,7 @@ async function run() {
   assert.equal(aiCoreAudit.status.permissionService, true, 'v179 stellt den zustimmungsbasierten Berechtigungsdienst bereit.');
   assert.equal(aiCoreAudit.status.permissionCoreVersion, '179.0.0');
   assert.equal(aiCoreAudit.status.permissionPolicyVersion, '181.0.0');
+  assert.equal(aiCoreAudit.status.permissionLifecycleVersion, '182.0.0');
   assert.equal(aiCoreAudit.status.permissionModel, 'explicit-session-consent');
   assert.equal(aiCoreAudit.status.authentication, false);
   assert.equal(aiCoreAudit.status.commonSecureVault, true, 'v180 stellt den verschlüsselten IndexedDB-Datentresor bereit.');
@@ -587,6 +588,62 @@ async function run() {
   assert.equal(manifestReplacement.policy.roleBasedAccessAvailable, false);
   await page.evaluate(() => window.HalDo.PermissionCore.registerApp('avatar', ['microphone']));
   pass('HalDo v181 Permission Policy: aktive Sitzungsfreigabe wird bei verkleinertem App-Manifest sofort widerrufen');
+
+  // v182: shrinking a manifest cancels the visible consent and an in-flight
+  // browser request; a late browser result must never create a HalDo grant.
+  await page.evaluate(() => {
+    window.__haldoV182Result = null;
+    window.__haldoV182GetUserMediaStarted = false;
+    window.__haldoV182StoppedTracks = 0;
+    window.__haldoV182ResolveGetUserMedia = null;
+    Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
+      configurable: true,
+      value: () => {
+        window.__haldoV182GetUserMediaStarted = true;
+        return new Promise(resolve => { window.__haldoV182ResolveGetUserMedia = resolve; });
+      }
+    });
+    window.HalDo.AICore.permissions.request('microphone', 'avatar')
+      .then(value => { window.__haldoV182Result = value; });
+  });
+  const v182Consent = page.locator('#winLayer .hdv179-consent').last();
+  await v182Consent.waitFor({ state: 'visible', timeout: 5000 });
+  await v182Consent.locator('[data-consent-allow]').click();
+  await page.waitForFunction(() =>
+    window.__haldoV182GetUserMediaStarted &&
+    typeof window.__haldoV182ResolveGetUserMedia === 'function',
+    { timeout: 5000 }
+  );
+  const v182Cancellation = await page.evaluate(() => {
+    const H = window.HalDo;
+    const result = H.PermissionCore.registerApp('avatar', []);
+    return {
+      cancelledPendingCount: result.cancelledPendingCount,
+      cancelledPendingPermissions: result.cancelledPendingPermissions,
+      resolved: window.__haldoV182Result,
+      pendingCount: H.PermissionCore.getStatus().pendingRequestCount,
+      lifecycle: H.PermissionLifecyclePolicy.getStatus()
+    };
+  });
+  assert.equal(v182Cancellation.cancelledPendingCount, 1);
+  assert.deepEqual(v182Cancellation.cancelledPendingPermissions, ['microphone']);
+  await page.waitForFunction(() => window.__haldoV182Result === false, { timeout: 5000 });
+  await v182Consent.waitFor({ state: 'detached', timeout: 5000 });
+  assert.equal(v182Cancellation.pendingCount, 0);
+  assert.equal(v182Cancellation.lifecycle.pendingRequestCancellation, true);
+  assert.equal(v182Cancellation.lifecycle.browserOriginPermissionRevocationAvailable, false);
+
+  await page.evaluate(() => {
+    window.__haldoV182ResolveGetUserMedia({
+      getTracks: () => [{
+        stop: () => { window.__haldoV182StoppedTracks += 1; }
+      }]
+    });
+  });
+  await page.waitForFunction(() => window.__haldoV182StoppedTracks === 1, { timeout: 5000 });
+  assert.equal(await page.evaluate(() => window.HalDo.PermissionCore.has('microphone', 'avatar')), false);
+  await page.evaluate(() => window.HalDo.PermissionCore.registerApp('avatar', ['microphone']));
+  pass('HalDo v182 Permission Lifecycle: Manifest-Reduktion bricht offene Browseranfrage ab und verhindert verspäteten Sitzungsgrant');
 
   await page.evaluate(() => {
     window.__haldoV179ClosedResult = null;

@@ -922,3 +922,19 @@ scripts/test-medical-apps-browser.mjs erweitert die End-to-End-Prüfung um:
 Die Chromium-Regression erteilt in einem kontrollierten Test erneut eine Mikrofon-Sitzungsfreigabe, reduziert dann das Manifest auf eine leere Liste und bestätigt, dass der zuvor aktive Grant sofort widerrufen wird. Der Test bestätigt zugleich, dass keine Authentifizierung oder Rollenverwaltung vorgetäuscht wird.
 
 **Grenze:** Dies ist ein clientseitiger Richtlinien-Guard innerhalb derselben JavaScript-Origin, keine Sicherheitsgrenze gegen bösartige oder kompromittierte Skripte. Echte Benutzer-/Rollenverwaltung benötigt eine verifizierte serverseitige Identität und serverseitige Autorisierung.
+
+## HALDO v182 – Permission Request Lifecycle (27.11.2026)
+
+**Implementiert im Arbeitsbranch:** `js/haldo-v182-permission-lifecycle.js`; ergänzt den v179 Permission Core und wird nach v181 geladen.
+
+### Tatsächliche Änderung
+- Bei einer Manifest-Reduktion werden offene HalDo-Zustimmungsanfragen für entfernte Berechtigungen aktiv beendet.
+- Die Anfrage-Promise wird mit `false` aufgelöst, der HalDo-Dialog geschlossen und die ausstehende Anfrage aus dem Sitzungsstatus entfernt.
+- Auch wenn der Browser seine bereits gestartete Berechtigungsanfrage später beantwortet, wird kein verspäteter HalDo-Sitzungsgrant mehr angelegt.
+- Das manuelle Widerrufen bzw. Abmelden einer App beendet ebenfalls ausstehende HalDo-Anfragen.
+- Der Status weist ausdrücklich darauf hin, dass Browser-Websiteberechtigungen nicht durch HalDo widerrufen werden können.
+
+### Browserabnahme
+Die Chromium-Regression startet eine ausstehende Mikrofonanfrage, löst die Browserantwort absichtlich verzögert aus, verkleinert in der Zwischenzeit das App-Manifest und prüft anschließend: Dialog geschlossen, HalDo-Promise mit `false` aufgelöst, keine aktive Sitzungserlaubnis und temporärer Medienstream gestoppt.
+
+**Grenze:** HalDo kann eine Anfrage innerhalb der eigenen App abbrechen und einen späteren Sitzungsgrant verhindern. Bereits an den Browser übergebene Websiteberechtigungsdialoge lassen sich nicht zuverlässig abbrechen; eine dort erteilte Origin-Berechtigung muss in den Browser-Einstellungen verwaltet werden. Dies ist weiterhin kein Ersatz für serverseitige Authentifizierung, Rollenautorisierung oder eine echte App-Sandbox.
