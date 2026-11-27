@@ -68,6 +68,7 @@ try {
     if (!THREE) throw new Error('Three.js r128 ist für den Human3D-Test nicht verfügbar.');
     const NativeRenderer = THREE.WebGLRenderer;
     const NativeLoader = THREE.GLTFLoader;
+    const testMorphInfluencesByPath = Object.create(null);
     class TestRenderer {
       constructor() { this.domElement = document.createElement('canvas'); this.shadowMap = {}; }
       setPixelRatio() {}
@@ -80,7 +81,12 @@ try {
         window.setTimeout(() => {
           if (url.includes('fail')) { onError(new Error('synthetic GLB load failure')); return; }
           const scene = new THREE.Group();
-          scene.add(new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial()));
+          const face = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial());
+          // Simulate the morph-target dictionary/influences produced by GLTFLoader.
+          face.morphTargetDictionary = { jawOpen:0, eyeBlinkLeft:1, mouthSmile:2 };
+          face.morphTargetInfluences = [0, 0, 0];
+          testMorphInfluencesByPath[url] = face.morphTargetInfluences;
+          scene.add(face);
           onLoad({ scene, animations:[new THREE.AnimationClip('Idle', 1, [])] });
         }, delay);
       }
@@ -95,6 +101,13 @@ try {
       const slow = engine.setModel('e2e-race-slow');
       const fast = engine.setModel('e2e-race-fast');
       const raceResults = await Promise.all([slow, fast]);
+      const jawApplied = engine.setFaceExpression('jawOpen', 0.7);
+      const blinkApplied = engine.setFaceExpression('eyeBlinkLeft', 0.4);
+      const batchApplied = engine.setFaceExpressions({ mouthSmile:0.6 });
+      const faceValues = testMorphInfluencesByPath['e2e-race-fast.glb'].slice();
+      const faceMeshCount = engine.getStatus().faceMeshCount;
+      const resetCount = engine.resetFaceExpressions();
+      const resetValues = testMorphInfluencesByPath['e2e-race-fast.glb'].slice();
       const failedReplacement = await engine.setModel('e2e-race-fail');
 
       // A completed loader script without THREE.GLTFLoader must fail quickly,
@@ -112,6 +125,13 @@ try {
       const status = engine.getStatus();
       return {
         raceResults,
+        jawApplied,
+        blinkApplied,
+        batchApplied,
+        faceValues,
+        faceMeshCount,
+        resetCount,
+        resetValues,
         failedReplacement,
         staleLoaderResult,
         staleLoaderError,
@@ -125,6 +145,13 @@ try {
     }
   });
   assert.deepEqual(avatarLoadSafety.raceResults, [false, true], 'Ein veraltetes GLB-Ergebnis wurde nicht verworfen.');
+  assert.equal(avatarLoadSafety.jawApplied, true);
+  assert.equal(avatarLoadSafety.blinkApplied, true);
+  assert.equal(avatarLoadSafety.batchApplied, 1);
+  assert.equal(avatarLoadSafety.faceMeshCount, 1);
+  assert.deepEqual(avatarLoadSafety.faceValues, [0.7, 0.4, 0.6]);
+  assert.equal(avatarLoadSafety.resetCount, 3);
+  assert.deepEqual(avatarLoadSafety.resetValues, [0, 0, 0]);
   assert.equal(avatarLoadSafety.model, 'e2e-race-fast', 'Das zuletzt ausgewählte Avatar-Modell wurde überschrieben.');
   assert.equal(avatarLoadSafety.failedReplacement, false);
   assert.equal(avatarLoadSafety.loaded, true, 'Ein fehlgeschlagener Modellwechsel hat das vorherige Avatar-Modell deaktiviert.');
