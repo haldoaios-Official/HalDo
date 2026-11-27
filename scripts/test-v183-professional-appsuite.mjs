@@ -66,7 +66,7 @@ try {
   await lawyer.locator('[name="status"]').fill('Testfall');
   await lawyer.locator('[name="notes"]').fill('Geheime Testnotiz v183');
   await lawyer.locator('[data-workspace-form] button[type="submit"]').click();
-  await lawyer.getByText('Test Mandant v183').waitFor({ timeout:20000 });
+  await lawyer.getByText('Test Mandant v183', { exact:true }).waitFor({ timeout:20000 });
   const cleartextLeak = await page.evaluate(async () => {
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('haldo_datavault_v180', 1);
