@@ -95,11 +95,25 @@ try {
   await page.evaluate(() => window.HalDo['logo-patent-pro'].open());
   const brand = page.locator('.hdv183-brand');
   await brand.locator('[data-brand-preview] svg').waitFor();
-  const downloadPromise = page.waitForEvent('download');
+  await page.evaluate(() => {
+    window.__haldoV183ExportCapture = null;
+    document.addEventListener('click', event => {
+      const link = event.target && event.target.closest ? event.target.closest('a[download]') : null;
+      if (!link || link.download !== 'haldo-logo-entwurf.svg') return;
+      window.__haldoV183ExportCapture = { href: link.href, filename: link.download };
+      event.preventDefault();
+    }, true);
+  });
   await brand.locator('[data-brand-export]').click();
-  const download = await downloadPromise;
-  assert.match(download.suggestedFilename(), /\.svg$/i);
-  pass('Logo-Studio erzeugt eine SVG-Datei zum Export.');
+  const exported = await page.evaluate(() => window.__haldoV183ExportCapture);
+  assert(exported, 'Der Export-Button hat keinen Download-Link ausgelöst.');
+  assert.equal(exported.filename, 'haldo-logo-entwurf.svg');
+  assert.match(exported.href, /^data:image\\/svg\\+xml;charset=utf-8,/);
+  const svgPayload = decodeURIComponent(exported.href.split(',').slice(1).join(','));
+  assert.match(svgPayload, /^<svg\\s+xmlns="http:\\/\\/www\\.w3\\.org\\/2000\\/svg"/);
+  assert.match(svgPayload, /viewBox="0 0 100 100"/);
+  assert.match(svgPayload, /aria-label="Logo-Entwurf"/);
+  pass('Logo-Studio erzeugt einen benannten Download-Link mit gültigem SVG-Inhalt.');
 
   assert.deepEqual(errors, [], 'Browser-Konsole oder Seite enthält Fehler: ' + errors.join(' | '));
   pass('Keine Browser- oder JavaScript-Konsolenfehler im Testszenario.');
