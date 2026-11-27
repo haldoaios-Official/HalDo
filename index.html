@@ -13740,7 +13740,9 @@ return false;
 }
 var binding={audio:audio,frames:frames,engine:engine,raf:null,timelineActive:false};
 function applyTimeline(){
-if(binding.timelineActive)return true;
+var status=typeof engine.getVisemeStatus==='function'?engine.getVisemeStatus():null;
+if(binding.timelineActive&&(!status||status.active!==false))return true;
+binding.timelineActive=false;
 try{binding.timelineActive=engine.setVisemeTimeline(frames)===true;}
 catch(error){emit('viseme:error',{message:error.message});binding.timelineActive=false;}
 if(!binding.timelineActive)emit('viseme:rejected',{reason:'Visem-Zeitachse wurde von Human3D abgewiesen.'});
@@ -13756,11 +13758,21 @@ binding.raf=window.requestAnimationFrame(tick);
 }
 }
 function updateAtPlaybackTime(){
+var playbackTime=Math.max(0,Number(audio.currentTime||0)*1000);
+var durationMs=frames[frames.length-1].timeMs;
+if(playbackTime>durationMs){
+if(binding.timelineActive){
+try{engine.updateVisemes(playbackTime);}catch(error){emit('viseme:error',{message:error.message});}
+binding.timelineActive=false;
+}
+return false;
+}
 if(!applyTimeline())return false;
 try{
-engine.updateVisemes(Math.max(0,Number(audio.currentTime||0)*1000));
+engine.updateVisemes(playbackTime);
 var status=typeof engine.getVisemeStatus==='function'?engine.getVisemeStatus():null;
-return !status||status.active!==false;
+if(status&&status.active===false){binding.timelineActive=false;return false;}
+return true;
 }catch(error){
 emit('viseme:error',{message:error.message});
 cancelFrame();
