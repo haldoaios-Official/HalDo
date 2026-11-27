@@ -291,6 +291,15 @@ try {
       if (!next) throw new Error('Zweiter Animation-Frame fehlt.');
       frames.delete(next[0]); next[1](150);
       const jawAt150ms = engine.getFaceExpressions().jawOpen;
+      audio.currentTime = 0.25;
+      next = Array.from(frames.entries()).pop();
+      if (!next) throw new Error('Frame zur Prüfung des Timeline-Endes fehlt.');
+      frames.delete(next[0]); next[1](250);
+      const inactiveAfterTimelineEnd = !engine.getVisemeStatus().active;
+      audio.currentTime = 0.1;
+      audio.dispatch('seeked');
+      const activeAfterSeekBack = engine.getVisemeStatus().active;
+      const jawAfterSeekBack = engine.getFaceExpressions().jawOpen;
       const audioBridgeBound = H.VoiceCore.status().visemeAudioBound;
       audio.pause();
       const inactiveAfterPause = !engine.getVisemeStatus().active;
@@ -302,6 +311,9 @@ try {
         activeAfterPlay,
         jawAt50ms,
         jawAt150ms,
+        inactiveAfterTimelineEnd,
+        activeAfterSeekBack,
+        jawAfterSeekBack,
         audioBridgeBound,
         inactiveAfterPause,
         jawAfterPause,
@@ -320,6 +332,9 @@ try {
   assert.equal(voiceVisemeBridge.activeAfterPlay, true);
   assert.ok(Math.abs(voiceVisemeBridge.jawAt50ms - 0.5) < 1e-9);
   assert.ok(Math.abs(voiceVisemeBridge.jawAt150ms - 0.5) < 1e-9);
+  assert.equal(voiceVisemeBridge.inactiveAfterTimelineEnd, true, 'Visem-Zeitachse wurde nach ihrem Ende nicht beendet.');
+  assert.equal(voiceVisemeBridge.activeAfterSeekBack, true, 'Zurückspulen hat die Visem-Zeitachse nicht erneut aktiviert.');
+  assert.equal(voiceVisemeBridge.jawAfterSeekBack, 1, 'Zurückspulen hat den zur neuen Audioposition passenden Morph nicht wiederhergestellt.');
   assert.equal(voiceVisemeBridge.audioBridgeBound, true);
   assert.equal(voiceVisemeBridge.inactiveAfterPause, true, 'Pause hat die laufende Visem-Ebene nicht zurückgesetzt.');
   assert.equal(voiceVisemeBridge.jawAfterPause, 0, 'Pause hat den Kiefer-Morph nicht neutralisiert.');
