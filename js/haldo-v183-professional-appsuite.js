@@ -198,7 +198,7 @@
         var task = action === 'create' ? vault.create(pass) : vault.unlock(pass);
         Promise.resolve(task).then(function () {
           form.elements.passphrase.value = '';
-          onReady(root);
+          onReady(root, appConfig);
         }).catch(function (error) {
           message.textContent = error.message || 'Tresorvorgang fehlgeschlagen.';
           button.disabled = false;
