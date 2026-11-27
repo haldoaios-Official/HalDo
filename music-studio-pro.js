@@ -22,6 +22,19 @@
       return a;
     }, {})
   };
+  var patternCounter=0;
+  function makePatternId(){patternCounter++;return 'pattern-'+Date.now().toString(36)+'-'+patternCounter.toString(36);}
+  function cleanPatternData(raw){
+    var clean={tracks:clone(DEFAULT.tracks),pianoNotes:[]};
+    if(raw&&raw.tracks)TRACKS.forEach(function(t){
+      var old=raw.tracks[t.id];if(!old)return;
+      if(Array.isArray(old.steps))clean.tracks[t.id].steps=Array.from({length:16},function(_,i){return !!old.steps[i];});
+      ['vol','pan','send'].forEach(function(k){if(Number.isFinite(Number(old[k])))clean.tracks[t.id][k]=Math.max(k==='pan'?-1:0,Math.min(1,Number(old[k])));});
+      clean.tracks[t.id].mute=!!old.mute;clean.tracks[t.id].solo=!!old.solo;
+    });
+    if(raw&&Array.isArray(raw.pianoNotes))clean.pianoNotes=raw.pianoNotes.filter(function(n){return n&&Number.isInteger(n.step)&&n.step>=0&&n.step<16&&Number.isInteger(n.note)&&n.note>=48&&n.note<=83;}).slice(0,512).map(function(n){return {step:n.step,note:n.note,velocity:Math.max(.05,Math.min(1,Number(n.velocity)||.75)),duration:Math.max(.05,Math.min(1,Number(n.duration)||.22))};});
+    return clean;
+  }
   function clone(v){return JSON.parse(JSON.stringify(v));}
   function load(source){
     var saved=source===undefined?H.Store.get(KEY,null):source, state=clone(DEFAULT);
@@ -37,6 +50,20 @@
         ['vol','pan','send'].forEach(function(k){if(Number.isFinite(Number(old[k])))state.tracks[t.id][k]=Math.max(k==='pan'?-1:0,Math.min(1,Number(old[k])));});
         state.tracks[t.id].mute=!!old.mute;state.tracks[t.id].solo=!!old.solo;
       });
+      var used={},rawPatterns=Array.isArray(saved.patterns)?saved.patterns.slice(0,32):[];
+      state.patterns=rawPatterns.map(function(p,index){
+        var id=String(p&&p.id||makePatternId()).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,64)||makePatternId();
+        if(used[id])id=makePatternId();used[id]=true;
+        var data=cleanPatternData(p);
+        return {id:id,name:String(p&&p.name||('Pattern '+(index+1))).slice(0,48)||('Pattern '+(index+1)),tracks:data.tracks,pianoNotes:data.pianoNotes};
+      });
+      if(!state.patterns.length)state.patterns=[{id:makePatternId(),name:'Pattern 1',tracks:clone(state.tracks),pianoNotes:clone(state.pianoNotes)}];
+      state.activePatternId=state.patterns.some(function(p){return p.id===saved.activePatternId;})?saved.activePatternId:state.patterns[0].id;
+      var active=state.patterns.find(function(p){return p.id===state.activePatternId;});
+      if(active){var activeData=cleanPatternData(active);state.tracks=activeData.tracks;state.pianoNotes=activeData.pianoNotes;}
+    }else{
+      state.patterns=[{id:makePatternId(),name:'Pattern 1',tracks:clone(state.tracks),pianoNotes:clone(state.pianoNotes)}];
+      state.activePatternId=state.patterns[0].id;
     }
     return state;
   }
@@ -59,7 +86,42 @@
       var panel=root.querySelector('#hdms-panel'),status=root.querySelector('#hdms-status'),playBtn=root.querySelector('#hdms-play');
       root.querySelector('#hdms-bars').value=String(state.bars);
       var tab='sequencer',audio=null,graph=null,playing=false,step=0,timer=null,raf=0,observer=null,closed=false;
-      function save(){H.Store.set(KEY,state);var el=root.querySelector('#hdms-save');if(el)el.textContent='● Gespeichert';}
+      function syncActivePattern(){
+        if(!Array.isArray(state.patterns))state.patterns=[];
+        var active=state.patterns.find(function(p){return p.id===state.activePatternId;});
+        if(!active){active={id:makePatternId(),name:'Pattern '+(state.patterns.length+1)};state.patterns.push(active);state.activePatternId=active.id;}
+        active.tracks=clone(state.tracks);active.pianoNotes=clone(state.pianoNotes);
+      }
+      function save(){syncActivePattern();H.Store.set(KEY,state);var el=root.querySelector('#hdms-save');if(el)el.textContent='● Gespeichert';}
+      function switchPattern(id){
+        syncActivePattern();
+        var target=state.patterns.find(function(p){return p.id===id;});if(!target)return;
+        var data=cleanPatternData(target);state.tracks=data.tracks;state.pianoNotes=data.pianoNotes;state.activePatternId=target.id;
+        save();render();bind();say('Aktiv: '+target.name);
+      }
+      function createPattern(duplicate){
+        if(state.patterns.length>=32){say('Maximal 32 Patterns pro Projekt.');return;}
+        syncActivePattern();
+        var source=state.patterns.find(function(p){return p.id===state.activePatternId;});
+        var data=duplicate&&source?cleanPatternData(source):cleanPatternData(null);
+        var item={id:makePatternId(),name:'Pattern '+(state.patterns.length+1),tracks:data.tracks,pianoNotes:data.pianoNotes};
+        state.patterns.push(item);state.activePatternId=item.id;state.tracks=clone(item.tracks);state.pianoNotes=clone(item.pianoNotes);
+        save();render();bind();say(duplicate?'Pattern dupliziert.':'Neues leeres Pattern erstellt.');
+      }
+      function deletePattern(){
+        if(state.patterns.length<=1){say('Mindestens ein Pattern muss im Projekt bleiben.');return;}
+        var index=state.patterns.findIndex(function(p){return p.id===state.activePatternId;});
+        if(index<0)return;
+        var removed=state.patterns.splice(index,1)[0],next=state.patterns[Math.max(0,index-1)];
+        state.activePatternId=next.id;var data=cleanPatternData(next);state.tracks=data.tracks;state.pianoNotes=data.pianoNotes;
+        save();render();bind();say(removed.name+' wurde gelöscht.');
+      }
+      function renamePattern(){
+        var field=root.querySelector('#hdms-pattern-name'),active=state.patterns.find(function(p){return p.id===state.activePatternId;});
+        if(!field||!active)return;
+        active.name=String(field.value||'').trim().slice(0,48)||active.name;field.value=active.name;
+        save();render();bind();say('Pattern umbenannt.');
+      }
       function say(msg){if(status)status.textContent=msg;}
       function safeFileName(name){return String(name||'HalDo-Projekt').replace(/[^\w\-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)||'HalDo-Projekt';}
       function exportProject(){
@@ -96,7 +158,10 @@
         root.querySelectorAll('[data-tab]').forEach(function(b){b.classList.toggle('active',b.dataset.tab===tab);});
         var out='';
         if(tab==='sequencer'){
-          out+='<div class="hdms-card"><div class="hdms-muted" style="margin-bottom:8px">16 Schritte · Ein Pattern wird über die gewählte Taktzahl wiederholt</div><div style="overflow-x:auto"><div class="hdms-grid">';
+          out+='<div class="hdms-card"><b>Pattern-Verwaltung</b><div class="hdms-row" style="margin-top:8px"><select class="hdms-number" id="hdms-pattern-select" style="min-width:145px;flex:1">';
+          state.patterns.forEach(function(p){out+='<option value="'+esc(p.id)+'" '+(p.id===state.activePatternId?'selected':'')+'>'+esc(p.name)+'</option>';});
+          out+='</select><input class="hdms-number" id="hdms-pattern-name" maxlength="48" value="'+esc((state.patterns.find(function(p){return p.id===state.activePatternId;})||{}).name||'Pattern')+'" aria-label="Pattern-Name" style="width:145px"><button class="hdms-btn" id="hdms-pattern-rename">Umbenennen</button></div><div class="hdms-actions" style="margin-top:8px"><button class="hdms-btn" id="hdms-pattern-new">＋ Neu</button><button class="hdms-btn" id="hdms-pattern-duplicate">⧉ Duplizieren</button><button class="hdms-btn" id="hdms-pattern-delete">✕ Löschen</button><span class="hdms-muted">'+state.patterns.length+'/32 Patterns</span></div></div>';
+          out+='<div class="hdms-card"><div class="hdms-muted" style="margin-bottom:8px">16 Schritte · Jedes Pattern besitzt eigene Spuren und Piano-Noten</div><div style="overflow-x:auto"><div class="hdms-grid">';
           out+='<div class="hdms-label">SPUR</div>';for(var i=0;i<16;i++)out+='<div class="hdms-label" style="justify-content:center">'+(i+1)+'</div>';
           TRACKS.forEach(function(t){out+='<div class="hdms-label" style="color:'+t.color+'">'+t.name+'</div>';for(var j=0;j<16;j++){var on=state.tracks[t.id].steps[j];out+='<button class="hdms-step '+(on?'on':'')+'" style="--step:'+t.color+'" data-track="'+t.id+'" data-step="'+j+'" aria-label="'+esc(t.name)+' Schritt '+(j+1)+'" aria-pressed="'+on+'"></button>'; }});
           out+='</div></div></div>';
@@ -202,6 +267,12 @@
         }catch(e){say('MIDI-Exportfehler: '+e.message);}
       }
       function bind(){
+        var patternSelect=root.querySelector('#hdms-pattern-select');
+        if(patternSelect)patternSelect.addEventListener('change',function(){switchPattern(this.value);});
+        var newPattern=root.querySelector('#hdms-pattern-new');if(newPattern)newPattern.addEventListener('click',function(){createPattern(false);});
+        var duplicatePattern=root.querySelector('#hdms-pattern-duplicate');if(duplicatePattern)duplicatePattern.addEventListener('click',function(){createPattern(true);});
+        var deletePatternBtn=root.querySelector('#hdms-pattern-delete');if(deletePatternBtn)deletePatternBtn.addEventListener('click',deletePattern);
+        var renamePatternBtn=root.querySelector('#hdms-pattern-rename');if(renamePatternBtn)renamePatternBtn.addEventListener('click',renamePattern);
         panel.querySelectorAll('[data-track]').forEach(function(b){b.addEventListener('click',function(){var x=state.tracks[b.dataset.track],i=Number(b.dataset.step);x.steps[i]=!x.steps[i];save();render();bind();});});
         panel.querySelectorAll('[data-piano-step]').forEach(function(el){el.addEventListener('click',function(){var stepNo=Number(el.dataset.pianoStep),pitch=Number(el.dataset.pianoNote),at=state.pianoNotes.findIndex(function(n){return n.step===stepNo&&n.note===pitch;});if(at>=0)state.pianoNotes.splice(at,1);else state.pianoNotes.push({step:stepNo,note:pitch,velocity:.78,duration:.22});state.tracks.piano.steps[stepNo]=state.pianoNotes.some(function(n){return n.step===stepNo;});save();render();bind();});});
         panel.querySelectorAll('[data-vol]').forEach(function(el){el.addEventListener('input',function(){state.tracks[el.dataset.vol].vol=Number(el.value)/100;if(graph)syncGraph(graph);save();});});
@@ -222,7 +293,7 @@
       root.querySelector('#hdms-bars').addEventListener('change',function(){state.bars=Number(this.value);save();});
       playBtn.addEventListener('click',function(){if(playing)stop();else start();});
       root.querySelector('#hdms-stop').addEventListener('click',stop);
-      root.querySelector('#hdms-clear').addEventListener('click',function(){TRACKS.forEach(function(t){state.tracks[t.id].steps.fill(false);});save();render();bind();say('Alle Pattern-Schritte geleert.');});
+      root.querySelector('#hdms-clear').addEventListener('click',function(){TRACKS.forEach(function(t){state.tracks[t.id].steps.fill(false);});state.pianoNotes=[];save();render();bind();say('Aktives Pattern geleert.');});
       root.querySelector('#hdms-demo').addEventListener('click',function(){
         var patterns={kick:[0,4,8,12],snare:[4,12],hat:[0,2,4,6,8,10,12,14],bass:[0,8],chords:[0,6,10],lead:[2,5,9,13],vocal:[7,15],piano:[0,4,8,12]};
         state.pianoNotes=[{step:0,note:60,velocity:.72,duration:.3},{step:4,note:64,velocity:.72,duration:.3},{step:8,note:67,velocity:.72,duration:.3},{step:12,note:72,velocity:.72,duration:.3}];
