@@ -96,8 +96,29 @@ try {
       const fast = engine.setModel('e2e-race-fast');
       const raceResults = await Promise.all([slow, fast]);
       const failedReplacement = await engine.setModel('e2e-race-fail');
+
+      // A completed loader script without THREE.GLTFLoader must fail quickly,
+      // not wait forever for a load event that has already happened.
+      const staleLoaderScript = document.createElement('script');
+      staleLoaderScript.dataset.haldoGltfLoader = 'true';
+      staleLoaderScript.dataset.haldoLoadState = 'loaded';
+      document.head.appendChild(staleLoaderScript);
+      THREE.GLTFLoader = undefined;
+      engine.registerModel('e2e-loader-stale', { name:'Stale loader test avatar', path:'e2e-loader-stale.glb' });
+      const staleLoaderResult = await engine.setModel('e2e-loader-stale');
+      const staleLoaderError = engine.getStatus().error;
+      staleLoaderScript.remove();
+
       const status = engine.getStatus();
-      return { raceResults, failedReplacement, model:status.model, loaded:status.loaded, animation:status.animation };
+      return {
+        raceResults,
+        failedReplacement,
+        staleLoaderResult,
+        staleLoaderError,
+        model:status.model,
+        loaded:status.loaded,
+        animation:status.animation
+      };
     } finally {
       THREE.WebGLRenderer = NativeRenderer;
       THREE.GLTFLoader = NativeLoader;
@@ -108,7 +129,11 @@ try {
   assert.equal(avatarLoadSafety.failedReplacement, false);
   assert.equal(avatarLoadSafety.loaded, true, 'Ein fehlgeschlagener Modellwechsel hat das vorherige Avatar-Modell deaktiviert.');
   assert.equal(avatarLoadSafety.animation, 'Idle');
-  pass('Human3D ignoriert verspätete Modellantworten und behält bei Ladefehlern das vorherige Avatar-Modell.');
+  assert.equal(avatarLoadSafety.staleLoaderResult, false);
+  assert.match(avatarLoadSafety.staleLoaderError, /GLTFLoader-Script ist beendet/);
+  assert.equal(avatarLoadSafety.model, 'e2e-race-fast', 'Der defekte Loader-Fall hat das vorherige Modell entfernt.');
+  assert.equal(avatarLoadSafety.loaded, true);
+  pass('Human3D schützt Modellwechsel, erhält das vorige Modell und erkennt einen bereits beendeten defekten GLTFLoader.');
 
   await page.evaluate(() => window.HalDo['app-registry'].open());
   const store = page.locator('.hdv183-store');
