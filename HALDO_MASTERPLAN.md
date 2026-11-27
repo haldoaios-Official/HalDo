@@ -905,3 +905,20 @@ scripts/test-medical-apps-browser.mjs erweitert die End-to-End-Prüfung um:
 5. Launcher-, A–Z-Kategorie-, Route- und AppBrowser-Registrierung.
 
 **Release-Grenze:** Arbeitsbranch work-v167-medical-apps, Draft-PR #1. Der v179-Stand wurde auf Commit 73fc998f0999ab46775558d50068ba8ce98f7b6b mit GitHub Actions #265 erfolgreich geprüft. Die v180-Änderungen benötigen einen neuen vollständigen Browserlauf. Kein Merge nach main, keine GitHub-Pages-Veröffentlichung und keine Freigabe zur Speicherung echter Patientendaten.
+
+
+## HALDO v181 – Permission Manifest Lifecycle Policy (27.11.2026)
+
+**Implementiert im Arbeitsbranch:** js/haldo-v181-permission-policy.js, geladen nach v180. Diese Ergänzung härtet den Lebenszyklus der v179-App-Manifeste; sie ersetzt den Browser-Permission-Dialog nicht.
+
+### Tatsächliche Änderung
+- Bei erneuter Registrierung einer App wird das bisherige Manifest vor dem Update gelesen.
+- Rechte, die im neuen Manifest fehlen, werden sofort aus den aktiven HalDo-Sitzungsgrants dieser App widerrufen.
+- Die Rückgabe von registerApp enthält revokedPermissions und revokedCount; die v179-Validierung bleibt maßgeblich und ungültige Manifeste verändern den vorherigen Zustand nicht.
+- Eine reduzierte Metadaten-Auditmeldung wird über den v178-Core publiziert.
+- Status meldet ausdrücklich, dass Anmeldung, Serveridentität, rollenbasierter Zugriff und eine echte App-Sandbox weiterhin nicht vorhanden sind.
+
+### Browserabnahme
+Die Chromium-Regression erteilt in einem kontrollierten Test erneut eine Mikrofon-Sitzungsfreigabe, reduziert dann das Manifest auf eine leere Liste und bestätigt, dass der zuvor aktive Grant sofort widerrufen wird. Der Test bestätigt zugleich, dass keine Authentifizierung oder Rollenverwaltung vorgetäuscht wird.
+
+**Grenze:** Dies ist ein clientseitiger Richtlinien-Guard innerhalb derselben JavaScript-Origin, keine Sicherheitsgrenze gegen bösartige oder kompromittierte Skripte. Echte Benutzer-/Rollenverwaltung benötigt eine verifizierte serverseitige Identität und serverseitige Autorisierung.

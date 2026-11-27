@@ -335,7 +335,8 @@ async function run() {
       !!(window.HalDo.BrandingV177 && window.HalDo.BrandingV177.ready) &&
       !!(window.HalDo.AICore && window.HalDo.AICore.version === '178.0.0') &&
       !!(window.HalDo.PermissionCore && window.HalDo.PermissionCore.version === '179.0.0') &&
-      !!(window.HalDo.DataVault && window.HalDo.DataVault.version === '180.0.0');
+      !!(window.HalDo.DataVault && window.HalDo.DataVault.version === '180.0.0') &&
+      !!(window.HalDo.PermissionPolicy && window.HalDo.PermissionPolicy.version === '181.0.0');
   }, { timeout: 45000 });
   pass('HalDo OS startet auf sicherem Browser-Kontext; beide medizinischen Apps sind registriert');
   const brandAudit = await page.evaluate(() => ({
@@ -424,6 +425,7 @@ async function run() {
   assert.equal(aiCoreAudit.status.localPreferences, true);
   assert.equal(aiCoreAudit.status.permissionService, true, 'v179 stellt den zustimmungsbasierten Berechtigungsdienst bereit.');
   assert.equal(aiCoreAudit.status.permissionCoreVersion, '179.0.0');
+  assert.equal(aiCoreAudit.status.permissionPolicyVersion, '181.0.0');
   assert.equal(aiCoreAudit.status.permissionModel, 'explicit-session-consent');
   assert.equal(aiCoreAudit.status.authentication, false);
   assert.equal(aiCoreAudit.status.commonSecureVault, true, 'v180 stellt den verschlüsselten IndexedDB-Datentresor bereit.');
@@ -543,6 +545,37 @@ async function run() {
   assert.equal(grantedState.service, true);
   assert.equal(await page.evaluate(() => window.HalDo.AICore.permissions.revoke('microphone', 'avatar')), true);
   assert.equal(await page.evaluate(() => window.HalDo.AICore.permissions.has('microphone', 'avatar')), false);
+
+  // v181: removing a granted capability from an app manifest revokes it immediately.
+  await page.evaluate(() => {
+    window.__haldoV181GrantedResult = null;
+    window.HalDo.PermissionCore.registerApp('avatar', ['microphone']);
+    window.HalDo.PermissionCore.request('microphone', 'avatar')
+      .then(value => { window.__haldoV181GrantedResult = value; });
+  });
+  const policyConsent = page.locator('#winLayer .hdv179-consent').last();
+  await policyConsent.locator('[data-consent-allow]').click();
+  await page.waitForFunction(() => window.__haldoV181GrantedResult === true, { timeout: 5000 });
+  const manifestReplacement = await page.evaluate(() => {
+    const H = window.HalDo;
+    const before = H.PermissionCore.has('microphone', 'avatar');
+    const result = H.PermissionCore.registerApp('avatar', []);
+    return {
+      before,
+      revokedCount: result.revokedCount,
+      revokedPermissions: result.revokedPermissions,
+      after: H.PermissionCore.has('microphone', 'avatar'),
+      policy: H.PermissionPolicy.getStatus()
+    };
+  });
+  assert.equal(manifestReplacement.before, true);
+  assert.equal(manifestReplacement.revokedCount, 1);
+  assert.deepEqual(manifestReplacement.revokedPermissions, ['microphone']);
+  assert.equal(manifestReplacement.after, false);
+  assert.equal(manifestReplacement.policy.revokeRemovedManifestGrants, true);
+  assert.equal(manifestReplacement.policy.authenticationAvailable, false);
+  assert.equal(manifestReplacement.policy.roleBasedAccessAvailable, false);
+  await page.evaluate(() => window.HalDo.PermissionCore.registerApp('avatar', ['microphone']));
 
   await page.evaluate(() => {
     window.__haldoV179ClosedResult = null;
