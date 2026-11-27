@@ -342,3 +342,15 @@ Die folgenden drei Apps wurden als benannte Implementierungen innerhalb der bere
 **Integration:** Die drei Apps werden in der bestehenden HalDo-App-Registry registriert und über H.Master.getCategoryApps() in G, K und X einsortiert. Die bestehende Fensterverwaltung und der lokale HalDo-Store werden weiterverwendet. Keine zusätzliche Kategorie und keine Erhöhung der 375 geplanten Plätze.
 
 **Status:** JavaScript-Syntax des v166-Blocks geprüft. GitHub-Pages-Workflow nach dem korrigierten Commit noch in Ausführung; Veröffentlichung erst nach erfolgreichem Workflow bestätigen.
+
+## HALDO MUSIC STUDIO PRO MAX — Integrationsstand (27.11.2026)
+
+**Status: Implementierung auf Feature-Branch; noch nicht gemergt und nicht als veröffentlicht bestätigt.**
+
+- Feature-Branch: feature/native-music-studio-pro-20261127.
+- Neues Modul: music-studio.js. Es registriert HalDo.MusicStudio direkt und verwendet die vorhandenen Verträge HalDo.Win.open() und HalDo.Store.get()/set(). Die inkompatible Legacy-Schnittstelle HalDo.Runtime/HalDoApp() wird nicht benötigt.
+- index.html: Der Medien-Kachel-Aufruf „Musik Studio“ öffnet jetzt HalDo.MusicStudio.open(). Das Modul wird nach dem vorhandenen v166-Script eingebunden. Die bestehende Registry-ID music-studio und Route MusicStudio bleiben erhalten.
+- Funktionsumfang des aktuellen Integrationsstands: 7-Spur-Step-Sequencer (Kick, Snare, Hi-Hat, Bass, Chords, Lead, Vocal Synth), 16 Steps pro Takt, 40–240 BPM, 1–8 Takte, Instrumentenauswahl, Mute/Solo, Lautstärke/Panorama, Master-Lautstärke, Reverb/Delay, Visualizer, lokale Projektspeicherung, JSON-Import/-Export und Offline-WAV-Rendering.
+- Audio-Lifecycle: AudioContext wird nach Nutzeraktion gestartet und beim Schließen des Fensters beendet. Der Export verwendet einen separaten OfflineAudioContext.
+- Bewusste Abgrenzung: Dies ist die native, funktionale Studio-Grundlage – noch keine vollständige FL-Studio-/Ableton-Klasse-DAW. Mehrspur-Timeline mit frei verschiebbaren Audio-Clips, MIDI-Dateiimport/-export, Mikrofonaufnahme, Sample-Browser, Automation, Undo/Redo und umfangreiche Plug-in-/Effektketten bleiben eigene Ausbaustufen.
+- Qualitätsstatus: GitHub-Dateien auf dem Feature-Branch erneut abgerufen und die erwarteten Registrierungs-/Launcher-Zeichenfolgen geprüft. Noch kein echter Browser-Audiotest, kein geräteübergreifender Test und kein erfolgreicher Pages-Deployment-Nachweis. Diese Punkte bleiben vor Merge/Release offen.
