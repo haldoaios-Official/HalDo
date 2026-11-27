@@ -16,16 +16,17 @@
     {id:'piano',name:'Piano Roll',kind:'synth',color:'#60a5fa',vol:.48,pan:0}
   ];
   var DEFAULT = {
-    bpm:110, bars:4, master:.82, reverb:.18, delay:.12, selected:'sequencer', pianoNotes:[],
+    projectName:'Mein HalDo Projekt', bpm:110, bars:4, master:.82, reverb:.18, delay:.12, selected:'sequencer', pianoNotes:[],
     tracks: TRACKS.reduce(function (a,t) {
       a[t.id] = {steps:Array.from({length:16},function(){return false;}),vol:t.vol,pan:t.pan,mute:false,solo:false,send:.35};
       return a;
     }, {})
   };
   function clone(v){return JSON.parse(JSON.stringify(v));}
-  function load(){
-    var saved=H.Store.get(KEY,null), state=clone(DEFAULT);
+  function load(source){
+    var saved=source===undefined?H.Store.get(KEY,null):source, state=clone(DEFAULT);
     if(saved && typeof saved==='object'){
+      state.projectName=String(saved.projectName||DEFAULT.projectName).slice(0,80)||DEFAULT.projectName;
       state.bpm=Math.max(40,Math.min(240,Number(saved.bpm)||110));
       state.bars=[1,2,4,8].indexOf(Number(saved.bars))>=0?Number(saved.bars):4;
       ['master','reverb','delay'].forEach(function(k){if(Number.isFinite(Number(saved[k])))state[k]=Math.max(0,Math.min(1,Number(saved[k])));});
@@ -45,7 +46,7 @@
     var state=load(), rootId='haldo-music-'+Date.now()+'-root';
     var html='<div id="'+rootId+'" class="hdms-root"><style>'+
       '.hdms-root{font:13px/1.45 system-ui,sans-serif;color:var(--text,#eaf4ff);height:100%;overflow:auto;padding:12px;box-sizing:border-box}.hdms-root *{box-sizing:border-box}.hdms-hero{padding:14px;border:1px solid rgba(0,229,255,.25);border-radius:15px;background:linear-gradient(120deg,rgba(0,180,220,.16),rgba(130,80,220,.18));margin-bottom:10px}.hdms-title{font-size:18px;font-weight:850}.hdms-muted{opacity:.68;font-size:11px}.hdms-tabs,.hdms-actions,.hdms-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.hdms-tabs{margin:10px 0}.hdms-btn{border:1px solid var(--border,rgba(120,180,220,.25));background:rgba(30,60,90,.5);color:inherit;border-radius:9px;padding:8px 11px;cursor:pointer}.hdms-btn.active{background:var(--accent,rgba(0,200,230,.22));border-color:var(--accent,#00d5ed);color:var(--text,#fff)}.hdms-card{padding:12px;border:1px solid var(--border,rgba(120,180,220,.22));background:rgba(10,30,55,.35);border-radius:13px;margin:9px 0}.hdms-grid{display:grid;grid-template-columns:78px repeat(16,minmax(18px,1fr));gap:4px;min-width:450px}.hdms-step{height:27px;border:1px solid rgba(130,180,220,.16);border-radius:5px;background:rgba(0,0,0,.24);cursor:pointer}.hdms-step.on{background:var(--step);border-color:var(--step)}.hdms-step.play{outline:2px solid #fff;outline-offset:1px}.hdms-label{display:flex;align-items:center;font-size:11px;font-weight:700}.hdms-input{accent-color:var(--accent,#00d5ed);max-width:100%;width:100%}.hdms-number{width:72px;padding:7px;border-radius:8px;border:1px solid var(--border,rgba(120,180,220,.3));background:rgba(0,0,0,.25);color:inherit}.hdms-mixrow{display:grid;grid-template-columns:75px 1fr 1fr 42px;gap:8px;align-items:center;margin:10px 0}.hdms-status{font-size:11px;opacity:.72;min-height:18px}@media(max-width:520px){.hdms-mixrow{grid-template-columns:65px 1fr 1fr 35px}.hdms-root{padding:8px}}'+
-      '</style><div class="hdms-hero"><div class="hdms-title">🎼 HalDo Music Studio Pro</div><div class="hdms-muted">Native Audio Engine · Step Sequencer · Mixer · Master FX · WAV Export · Auto-Save</div><div class="hdms-row" style="margin-top:10px"><label>Tempo <input class="hdms-number" id="hdms-bpm" type="number" min="40" max="240" value="'+state.bpm+'"> BPM</label><label>Takte <select class="hdms-number" id="hdms-bars"><option value="1">1</option><option value="2">2</option><option value="4">4</option><option value="8">8</option></select></label><span class="hdms-muted" id="hdms-save">● Automatisch gespeichert</span></div></div>'+
+      '</style><div class="hdms-hero"><div class="hdms-title">🎼 HalDo Music Studio Pro</div><div class="hdms-muted">Native Audio Engine · Step Sequencer · Mixer · Master FX · WAV Export · Auto-Save</div><div class="hdms-row" style="margin-top:10px"><label>Tempo <input class="hdms-number" id="hdms-bpm" type="number" min="40" max="240" value="'+state.bpm+'"> BPM</label><label>Takte <select class="hdms-number" id="hdms-bars"><option value="1">1</option><option value="2">2</option><option value="4">4</option><option value="8">8</option></select></label><label>Projekt <input class="hdms-number" id="hdms-project-name" type="text" maxlength="80" value="'+esc(state.projectName)+'" style="width:180px"></label><span class="hdms-muted" id="hdms-save">● Automatisch gespeichert</span><div class="hdms-row" style="margin-top:8px"><button class="hdms-btn" id="hdms-project-export">⬇ Projekt sichern</button><button class="hdms-btn" id="hdms-project-import-trigger">⬆ Projekt laden</button><input id="hdms-project-file" type="file" accept=".json,application/json" style="display:none"></div></div></div>'+
       '<canvas id="hdms-viz" width="900" height="52" style="width:100%;height:52px;background:rgba(0,0,0,.2);border-radius:10px;margin:2px 0 8px"></canvas><div class="hdms-tabs"><button class="hdms-btn active" data-tab="sequencer">🎹 Sequencer</button><button class="hdms-btn" data-tab="piano">🎼 Piano Roll</button><button class="hdms-btn" data-tab="mixer">🎚 Mixer</button><button class="hdms-btn" data-tab="master">✨ Master & Export</button></div>'+
       '<div id="hdms-panel"></div><div class="hdms-actions"><button class="hdms-btn active" id="hdms-play">▶ Wiedergabe</button><button class="hdms-btn" id="hdms-stop">■ Stop</button><button class="hdms-btn" id="hdms-clear">Leeren</button><button class="hdms-btn" id="hdms-demo">Groove erstellen</button></div><div class="hdms-status" id="hdms-status" aria-live="polite">Bereit. Audio startet erst nach deiner Wiedergabe-Aktion.</div></div>';
     H.Win.open('🎼 HalDo Music Studio Pro',html,{w:900,h:760});
@@ -60,6 +61,36 @@
       var tab='sequencer',audio=null,graph=null,playing=false,step=0,timer=null,raf=0,observer=null,closed=false;
       function save(){H.Store.set(KEY,state);var el=root.querySelector('#hdms-save');if(el)el.textContent='● Gespeichert';}
       function say(msg){if(status)status.textContent=msg;}
+      function safeFileName(name){return String(name||'HalDo-Projekt').replace(/[^\w\-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)||'HalDo-Projekt';}
+      function exportProject(){
+        try{
+          var payload={app:'HalDoMusicStudioPro',formatVersion:1,exportedAt:new Date().toISOString(),project:clone(state)};
+          download(safeFileName(state.projectName)+'.haldo-music.json',new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));
+          say('Projektdatei wurde exportiert.');
+        }catch(e){say('Projekt-Export fehlgeschlagen: '+e.message);}
+      }
+      function importProjectFile(file){
+        if(!file)return;
+        if(file.size>2*1024*1024){say('Die Projektdatei ist zu groß (maximal 2 MB).');return;}
+        var reader=new FileReader();
+        reader.onerror=function(){say('Die Projektdatei konnte nicht gelesen werden.');};
+        reader.onload=function(){
+          try{
+            var payload=JSON.parse(String(reader.result||''));
+            if(!payload||payload.app!=='HalDoMusicStudioPro'||payload.formatVersion!==1||!payload.project||typeof payload.project!=='object')throw new Error('Unbekanntes oder nicht unterstütztes HalDo-Projektformat.');
+            var incoming=load(payload.project);
+            Object.keys(state).forEach(function(k){delete state[k];});
+            Object.keys(incoming).forEach(function(k){state[k]=incoming[k];});
+            root.querySelector('#hdms-bpm').value=String(state.bpm);
+            root.querySelector('#hdms-bars').value=String(state.bars);
+            root.querySelector('#hdms-project-name').value=state.projectName;
+            tab='sequencer';state.selected=tab;save();render();bind();
+            say('Projekt „'+state.projectName+'“ wurde geladen.');
+          }catch(e){say('Import abgebrochen: '+e.message);}
+        };
+        reader.readAsText(file);
+      }
+
       function activeTracks(){var anySolo=TRACKS.some(function(t){return state.tracks[t.id].solo;});return TRACKS.filter(function(t){var x=state.tracks[t.id];return !x.mute&&(!anySolo||x.solo);});}
       function render(){
         root.querySelectorAll('[data-tab]').forEach(function(b){b.classList.toggle('active',b.dataset.tab===tab);});
@@ -182,6 +213,11 @@
         var midi=panel.querySelector('#hdms-midi-export');if(midi)midi.addEventListener('click',exportMidi);
       }
       root.querySelectorAll('[data-tab]').forEach(function(b){b.addEventListener('click',function(){tab=b.dataset.tab;state.selected=tab;save();render();bind();});});
+      root.querySelector('#hdms-project-name').addEventListener('change',function(){state.projectName=String(this.value||'Mein HalDo Projekt').trim().slice(0,80)||'Mein HalDo Projekt';this.value=state.projectName;save();});
+      root.querySelector('#hdms-project-export').addEventListener('click',exportProject);
+      var projectFile=root.querySelector('#hdms-project-file');
+      root.querySelector('#hdms-project-import-trigger').addEventListener('click',function(){projectFile.click();});
+      projectFile.addEventListener('change',function(){if(this.files&&this.files[0])importProjectFile(this.files[0]);this.value='';});
       root.querySelector('#hdms-bpm').addEventListener('change',function(){state.bpm=Math.max(40,Math.min(240,Number(this.value)||110));this.value=state.bpm;save();});
       root.querySelector('#hdms-bars').addEventListener('change',function(){state.bars=Number(this.value);save();});
       playBtn.addEventListener('click',function(){if(playing)stop();else start();});
