@@ -36,6 +36,13 @@ try {
   await page.goto('http://127.0.0.1:' + address.port + '/index.html', { waitUntil:'domcontentloaded' });
   await page.waitForFunction(() => !!(window.HalDo && window.HalDo.ProfessionalSuiteV183), null, { timeout:20000 });
 
+  // The production build intentionally opens the global welcome overlay on first load.
+  // Dismiss it before interacting with app windows so it cannot intercept Playwright clicks.
+  const welcomeButton = page.locator('#haldo-v161-welcome .h161-button');
+  await welcomeButton.waitFor({ state:'visible', timeout:10000 });
+  await welcomeButton.click();
+  await page.locator('#haldo-v161-welcome').waitFor({ state:'detached', timeout:10000 });
+
   const status = await page.evaluate(() => window.HalDo.ProfessionalSuiteV183.getStatus());
   assert.deepEqual(status.registered.map(x => x.id), ['app-registry','anwaelte-pro','gesetze-pro','logo-patent-pro']);
   assert(status.registered.every(x => x.ready));
