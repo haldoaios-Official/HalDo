@@ -260,17 +260,18 @@ try {
       play() { this.paused = false; this.dispatch('play'); return Promise.resolve(); }
       pause() { if (this.paused) return; this.paused = true; this.dispatch('pause'); }
     }
+    let mockVoicePayload = {
+      audioUrl:'https://voice.example.test/haldo-audio.mp3',
+      visemeTimeline:[
+        { timeMs:0, expressions:{ jawOpen:0, mouthPucker:0 } },
+        { timeMs:100, expressions:{ jawOpen:1, mouthPucker:0.2 } },
+        { timeMs:200, expressions:{ jawOpen:0, mouthPucker:1 } }
+      ]
+    };
     window.fetch = async () => ({
       ok:true,
       headers:{ get:()=>'application/json' },
-      json:async()=>({
-        audioUrl:'https://voice.example.test/haldo-audio.mp3',
-        visemeTimeline:[
-          { timeMs:0, expressions:{ jawOpen:0, mouthPucker:0 } },
-          { timeMs:100, expressions:{ jawOpen:1, mouthPucker:0.2 } },
-          { timeMs:200, expressions:{ jawOpen:0, mouthPucker:1 } }
-        ]
-      })
+      json:async()=>mockVoicePayload
     });
     window.Audio = TestAudio;
     window.requestAnimationFrame = callback => { const id=++nextFrame; frames.set(id,callback); return id; };
@@ -305,6 +306,37 @@ try {
       const inactiveAfterPause = !engine.getVisemeStatus().active;
       const jawAfterPause = engine.getFaceExpressions().jawOpen;
       H.VoiceCore.stop();
+
+      const azureNeutral = new Array(55).fill(0);
+      const azureOpen = new Array(55).fill(0);
+      azureOpen[17] = 0.8; // jawOpen
+      azureOpen[20] = 0.4; // mouthPucker
+      const azureWide = new Array(55).fill(0);
+      azureWide[17] = 1;
+      azureWide[20] = 0.8;
+      mockVoicePayload = {
+        audioUrl:'https://voice.example.test/haldo-azure-audio.mp3',
+        visemeFormat:'azure-blendshapes-55-v1',
+        azureVisemeEvents:[{
+          audioOffset:0,
+          animation:JSON.stringify({
+            FrameIndex:0,
+            BlendShapes:[azureNeutral,azureOpen,azureWide]
+          })
+        }]
+      };
+      const convertedAzureTimeline = H.VoiceCore.normalizeAzureVisemeEvents(mockVoicePayload.azureVisemeEvents);
+      const azureResult = await H.VoiceCore.speak('HalDo Azure Visem-Test',{ endpoint:'https://voice.example.test/azure-tts', language:'de-DE' });
+      const azureAudio = audios[1];
+      if (!azureAudio) throw new Error('Azure-Provider-Audioelement wurde nicht erstellt.');
+      azureAudio.currentTime = (1000/60/2)/1000;
+      const azureNext = Array.from(frames.entries()).pop();
+      if (!azureNext) throw new Error('Azure-Blendshape-Frame wurde nicht registriert.');
+      frames.delete(azureNext[0]); azureNext[1](8.333);
+      const azureJawAtHalfFrame = engine.getFaceExpressions().jawOpen;
+      const azurePuckerAtHalfFrame = engine.getFaceExpressions().mouthPucker;
+      H.VoiceCore.stop();
+
       return {
         mode:result.mode,
         visemes:result.visemes,
@@ -317,7 +349,15 @@ try {
         audioBridgeBound,
         inactiveAfterPause,
         jawAfterPause,
-        voiceStatus
+        voiceStatus,
+        azureAdapterReady:typeof H.VoiceCore.normalizeAzureVisemeEvents==='function',
+        azureFrameCount:convertedAzureTimeline&&convertedAzureTimeline.length,
+        azureSecondFrameTime:convertedAzureTimeline&&convertedAzureTimeline[1].timeMs,
+        azureSecondFrameJaw:convertedAzureTimeline&&convertedAzureTimeline[1].expressions.jawOpen,
+        azureSecondFramePucker:convertedAzureTimeline&&convertedAzureTimeline[1].expressions.mouthPucker,
+        azurePlaybackVisemes:azureResult.visemes,
+        azureJawAtHalfFrame,
+        azurePuckerAtHalfFrame
       };
     } finally {
       try { H.VoiceCore.stop(); } catch (_) {}
@@ -340,7 +380,15 @@ try {
   assert.equal(voiceVisemeBridge.jawAfterPause, 0, 'Pause hat den Kiefer-Morph nicht neutralisiert.');
   assert.equal(voiceVisemeBridge.voiceStatus.visemeAudioBridge, true);
   assert.equal(voiceVisemeBridge.voiceStatus.visemeEngineReady, true);
-  pass('HalDo Voice Core synchronisiert Provider-Viseme mit Audio.currentTime und setzt sie bei Pause zurück.');
+  assert.equal(voiceVisemeBridge.azureAdapterReady, true);
+  assert.equal(voiceVisemeBridge.azureFrameCount, 3);
+  assert.ok(Math.abs(voiceVisemeBridge.azureSecondFrameTime - (1000/60)) < 1e-9);
+  assert.equal(voiceVisemeBridge.azureSecondFrameJaw, 0.8);
+  assert.equal(voiceVisemeBridge.azureSecondFramePucker, 0.4);
+  assert.equal(voiceVisemeBridge.azurePlaybackVisemes, true, 'Azure-Blendshape-Events wurden nicht zur Audio-Wiedergabe gebunden.');
+  assert.ok(Math.abs(voiceVisemeBridge.azureJawAtHalfFrame - 0.4) < 1e-9);
+  assert.ok(Math.abs(voiceVisemeBridge.azurePuckerAtHalfFrame - 0.2) < 1e-9);
+  pass('HalDo Voice Core synchronisiert Provider-Viseme, Azure-55-Blendshapes und Audio.currentTime; Pause und Seek bleiben stabil.');
 
   await page.evaluate(() => window.HalDo['app-registry'].open());
   const store = page.locator('.hdv183-store');
