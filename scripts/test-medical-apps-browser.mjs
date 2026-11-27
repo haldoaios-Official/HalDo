@@ -654,6 +654,30 @@ async function run() {
   assert.equal(dataVaultCleanup.unlocked, false);
   assert.equal(dataVaultCleanup.app.name, 'HalDo DataVault Pro');
   pass('HalDo DataVault Pro v180: IndexedDB-Verschlüsselung, Sitzungsschlüssel, falsche Passphrase und Backup-Import geprüft');
+  const dataVaultUiPassphrase = 'HalDo-UI-Test-Passphrase-180';
+  await page.evaluate(() => window.HalDo.Launch({ id: 'data-vault', n: 'HalDo DataVault Pro' }));
+  await dismissWelcomeIfPresent();
+  const dataVaultRoot = page.locator('#winLayer .hdv180-root').last();
+  await dataVaultRoot.waitFor({ state: 'visible', timeout: 10000 });
+  await dataVaultRoot.locator('[data-vault-auth] input[name="passphrase"]').fill(dataVaultUiPassphrase);
+  await dataVaultRoot.locator('[data-vault-auth] button[type="submit"]').click();
+  await dataVaultRoot.locator('[data-vault-record-form]').waitFor({ state: 'visible', timeout: 10000 });
+  assert.equal(await dataVaultRoot.locator('[data-vault-auth]').count(), 0, 'Das Passwortformular muss nach erfolgreichem Entsperren ausgeblendet sein.');
+  await dataVaultRoot.locator('[data-vault-record-form] input[name="title"]').fill('HalDo DataVault UI Eintrag');
+  await dataVaultRoot.locator('[data-vault-record-form] textarea[name="body"]').fill('Über die HalDo-Oberfläche verschlüsselt gespeichert.');
+  await dataVaultRoot.locator('[data-vault-record-form] button[type="submit"]').click();
+  await dataVaultRoot.getByText('HalDo DataVault UI Eintrag', { exact: true }).waitFor({ state: 'visible', timeout: 10000 });
+  await closeWindow(dataVaultRoot);
+  await page.waitForFunction(() => !window.HalDo.DataVault.isUnlocked(), { timeout: 5000 });
+  const dataVaultUiLock = await page.evaluate(async (passphrase) => {
+    await window.HalDo.DataVault.unlock(passphrase);
+    const records = await window.HalDo.DataVault.list();
+    await window.HalDo.DataVault.deleteVault();
+    return { records: records.length, locked: !window.HalDo.DataVault.isUnlocked() };
+  }, dataVaultUiPassphrase);
+  assert.equal(dataVaultUiLock.records, 1);
+  assert.equal(dataVaultUiLock.locked, true);
+  pass('HalDo DataVault Pro v180 Oberfläche: Tresor anlegen, Eintrag speichern und beim Fensterschließen automatisch sperren');
   const launchChecks = [
     ['avatar', 'Living HalDo AI'],
     ['bibliothek', 'HalDo Bibliothek Pro'],
