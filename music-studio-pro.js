@@ -12,10 +12,11 @@
     {id:'bass',name:'Bass',kind:'synth',color:'#a78bfa',vol:.68,pan:0},
     {id:'chords',name:'Chords',kind:'synth',color:'#34d399',vol:.42,pan:-.18},
     {id:'lead',name:'Lead',kind:'synth',color:'#f472b6',vol:.55,pan:.18},
-    {id:'vocal',name:'Vocal Synth',kind:'synth',color:'#f97316',vol:.32,pan:0}
+    {id:'vocal',name:'Vocal Synth',kind:'synth',color:'#f97316',vol:.32,pan:0},
+    {id:'piano',name:'Piano Roll',kind:'synth',color:'#60a5fa',vol:.48,pan:0}
   ];
   var DEFAULT = {
-    bpm:110, bars:4, master:.82, reverb:.18, delay:.12, selected:'sequencer',
+    bpm:110, bars:4, master:.82, reverb:.18, delay:.12, selected:'sequencer', pianoNotes:[],
     tracks: TRACKS.reduce(function (a,t) {
       a[t.id] = {steps:Array.from({length:16},function(){return false;}),vol:t.vol,pan:t.pan,mute:false,solo:false,send:.35};
       return a;
@@ -28,6 +29,7 @@
       state.bpm=Math.max(40,Math.min(240,Number(saved.bpm)||110));
       state.bars=[1,2,4,8].indexOf(Number(saved.bars))>=0?Number(saved.bars):4;
       ['master','reverb','delay'].forEach(function(k){if(Number.isFinite(Number(saved[k])))state[k]=Math.max(0,Math.min(1,Number(saved[k])));});
+      if(Array.isArray(saved.pianoNotes))state.pianoNotes=saved.pianoNotes.filter(function(n){return n&&Number.isInteger(n.step)&&n.step>=0&&n.step<16&&Number.isInteger(n.note)&&n.note>=48&&n.note<=83;}).map(function(n){return {step:n.step,note:n.note,velocity:Math.max(.05,Math.min(1,Number(n.velocity)||.75)),duration:Math.max(.05,Math.min(1,Number(n.duration)||.22))};});
       if(saved.tracks) TRACKS.forEach(function(t){
         var old=saved.tracks[t.id]; if(!old)return;
         if(Array.isArray(old.steps))state.tracks[t.id].steps=Array.from({length:16},function(_,i){return !!old.steps[i];});
@@ -44,7 +46,7 @@
     var html='<div id="'+rootId+'" class="hdms-root"><style>'+
       '.hdms-root{font:13px/1.45 system-ui,sans-serif;color:var(--text,#eaf4ff);height:100%;overflow:auto;padding:12px;box-sizing:border-box}.hdms-root *{box-sizing:border-box}.hdms-hero{padding:14px;border:1px solid rgba(0,229,255,.25);border-radius:15px;background:linear-gradient(120deg,rgba(0,180,220,.16),rgba(130,80,220,.18));margin-bottom:10px}.hdms-title{font-size:18px;font-weight:850}.hdms-muted{opacity:.68;font-size:11px}.hdms-tabs,.hdms-actions,.hdms-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.hdms-tabs{margin:10px 0}.hdms-btn{border:1px solid var(--border,rgba(120,180,220,.25));background:rgba(30,60,90,.5);color:inherit;border-radius:9px;padding:8px 11px;cursor:pointer}.hdms-btn.active{background:var(--accent,rgba(0,200,230,.22));border-color:var(--accent,#00d5ed);color:var(--text,#fff)}.hdms-card{padding:12px;border:1px solid var(--border,rgba(120,180,220,.22));background:rgba(10,30,55,.35);border-radius:13px;margin:9px 0}.hdms-grid{display:grid;grid-template-columns:78px repeat(16,minmax(18px,1fr));gap:4px;min-width:450px}.hdms-step{height:27px;border:1px solid rgba(130,180,220,.16);border-radius:5px;background:rgba(0,0,0,.24);cursor:pointer}.hdms-step.on{background:var(--step);border-color:var(--step)}.hdms-step.play{outline:2px solid #fff;outline-offset:1px}.hdms-label{display:flex;align-items:center;font-size:11px;font-weight:700}.hdms-input{accent-color:var(--accent,#00d5ed);max-width:100%;width:100%}.hdms-number{width:72px;padding:7px;border-radius:8px;border:1px solid var(--border,rgba(120,180,220,.3));background:rgba(0,0,0,.25);color:inherit}.hdms-mixrow{display:grid;grid-template-columns:75px 1fr 1fr 42px;gap:8px;align-items:center;margin:10px 0}.hdms-status{font-size:11px;opacity:.72;min-height:18px}@media(max-width:520px){.hdms-mixrow{grid-template-columns:65px 1fr 1fr 35px}.hdms-root{padding:8px}}'+
       '</style><div class="hdms-hero"><div class="hdms-title">🎼 HalDo Music Studio Pro</div><div class="hdms-muted">Native Audio Engine · Step Sequencer · Mixer · Master FX · WAV Export · Auto-Save</div><div class="hdms-row" style="margin-top:10px"><label>Tempo <input class="hdms-number" id="hdms-bpm" type="number" min="40" max="240" value="'+state.bpm+'"> BPM</label><label>Takte <select class="hdms-number" id="hdms-bars"><option value="1">1</option><option value="2">2</option><option value="4">4</option><option value="8">8</option></select></label><span class="hdms-muted" id="hdms-save">● Automatisch gespeichert</span></div></div>'+
-      '<canvas id="hdms-viz" width="900" height="52" style="width:100%;height:52px;background:rgba(0,0,0,.2);border-radius:10px;margin:2px 0 8px"></canvas><div class="hdms-tabs"><button class="hdms-btn active" data-tab="sequencer">🎹 Sequencer</button><button class="hdms-btn" data-tab="mixer">🎚 Mixer</button><button class="hdms-btn" data-tab="master">✨ Master & Export</button></div>'+
+      '<canvas id="hdms-viz" width="900" height="52" style="width:100%;height:52px;background:rgba(0,0,0,.2);border-radius:10px;margin:2px 0 8px"></canvas><div class="hdms-tabs"><button class="hdms-btn active" data-tab="sequencer">🎹 Sequencer</button><button class="hdms-btn" data-tab="piano">🎼 Piano Roll</button><button class="hdms-btn" data-tab="mixer">🎚 Mixer</button><button class="hdms-btn" data-tab="master">✨ Master & Export</button></div>'+
       '<div id="hdms-panel"></div><div class="hdms-actions"><button class="hdms-btn active" id="hdms-play">▶ Wiedergabe</button><button class="hdms-btn" id="hdms-stop">■ Stop</button><button class="hdms-btn" id="hdms-clear">Leeren</button><button class="hdms-btn" id="hdms-demo">Groove erstellen</button></div><div class="hdms-status" id="hdms-status" aria-live="polite">Bereit. Audio startet erst nach deiner Wiedergabe-Aktion.</div></div>';
     H.Win.open('🎼 HalDo Music Studio Pro',html,{w:900,h:760});
     window.setTimeout(function(){
@@ -66,6 +68,10 @@
           out+='<div class="hdms-card"><div class="hdms-muted" style="margin-bottom:8px">16 Schritte · Ein Pattern wird über die gewählte Taktzahl wiederholt</div><div style="overflow-x:auto"><div class="hdms-grid">';
           out+='<div class="hdms-label">SPUR</div>';for(var i=0;i<16;i++)out+='<div class="hdms-label" style="justify-content:center">'+(i+1)+'</div>';
           TRACKS.forEach(function(t){out+='<div class="hdms-label" style="color:'+t.color+'">'+t.name+'</div>';for(var j=0;j<16;j++){var on=state.tracks[t.id].steps[j];out+='<button class="hdms-step '+(on?'on':'')+'" style="--step:'+t.color+'" data-track="'+t.id+'" data-step="'+j+'" aria-label="'+esc(t.name)+' Schritt '+(j+1)+'" aria-pressed="'+on+'"></button>'; }});
+          out+='</div></div></div>';
+        }else if(tab==='piano'){
+          out+='<div class="hdms-card"><b>Piano Roll · C3–B5</b><div class="hdms-muted">Klicke ein Feld, um eine MIDI-Note zu setzen oder zu entfernen. Die Noten werden mit der Piano-Spur abgespielt und exportiert.</div><div style="overflow-x:auto;margin-top:10px"><div style="display:grid;grid-template-columns:52px repeat(16,minmax(18px,1fr));gap:3px;min-width:420px">';
+          for(var pitch=83;pitch>=48;pitch--){var names=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];out+='<div class="hdms-label">'+names[pitch%12]+(Math.floor(pitch/12)-1)+'</div>';for(var col=0;col<16;col++){var found=state.pianoNotes.some(function(n){return n.step===col&&n.note===pitch;});out+='<button class="hdms-step '+(found?'on':'')+'" style="--step:#60a5fa;height:19px" data-piano-step="'+col+'" data-piano-note="'+pitch+'" aria-label="'+names[pitch%12]+' Schritt '+(col+1)+'" aria-pressed="'+found+'"></button>';}}
           out+='</div></div></div>';
         }else if(tab==='mixer'){
           out+='<div class="hdms-card"><b>Spur-Mixer</b><div class="hdms-muted">Lautstärke, Panorama, Stummschaltung und Solo pro Spur</div>';
@@ -103,6 +109,7 @@
         var live=activeTracks(),x,vol;
         TRACKS.forEach(function(t){if(live.indexOf(t)<0)return;x=state.tracks[t.id];if(!x.steps[index])return;vol=x.vol;
           if(t.kind==='drum')drum(ctx,g,t.id,vol,when);
+          else if(t.id==='piano')state.pianoNotes.filter(function(n){return n.step===index;}).forEach(function(n){note(ctx,g,'piano',midi(n.note),n.duration,vol*n.velocity,'triangle',when);});
           else if(t.id==='bass')note(ctx,g,t.id,midi(45),.23,vol,'sawtooth',when);
           else if(t.id==='chords')[57,60,64].forEach(function(n){note(ctx,g,t.id,midi(n),.42,vol*.31,'triangle',when);});
           else if(t.id==='lead')note(ctx,g,t.id,midi([69,72,74,76,79,81,84,86][index%8]),.22,vol,'triangle',when);
@@ -142,6 +149,7 @@
       }
       function bind(){
         panel.querySelectorAll('[data-track]').forEach(function(b){b.addEventListener('click',function(){var x=state.tracks[b.dataset.track],i=Number(b.dataset.step);x.steps[i]=!x.steps[i];save();render();bind();});});
+        panel.querySelectorAll('[data-piano-step]').forEach(function(el){el.addEventListener('click',function(){var stepNo=Number(el.dataset.pianoStep),pitch=Number(el.dataset.pianoNote),at=state.pianoNotes.findIndex(function(n){return n.step===stepNo&&n.note===pitch;});if(at>=0)state.pianoNotes.splice(at,1);else state.pianoNotes.push({step:stepNo,note:pitch,velocity:.78,duration:.22});state.tracks.piano.steps[stepNo]=state.pianoNotes.some(function(n){return n.step===stepNo;});save();render();bind();});});
         panel.querySelectorAll('[data-vol]').forEach(function(el){el.addEventListener('input',function(){state.tracks[el.dataset.vol].vol=Number(el.value)/100;if(graph)syncGraph(graph);save();});});
         panel.querySelectorAll('[data-pan]').forEach(function(el){el.addEventListener('input',function(){state.tracks[el.dataset.pan].pan=Number(el.value)/100;if(graph)syncGraph(graph);save();});});
         panel.querySelectorAll('[data-mute]').forEach(function(el){el.addEventListener('click',function(){var x=state.tracks[el.dataset.mute];x.mute=!x.mute;save();render();bind();if(graph)syncGraph(graph);});});
@@ -156,7 +164,8 @@
       root.querySelector('#hdms-stop').addEventListener('click',stop);
       root.querySelector('#hdms-clear').addEventListener('click',function(){TRACKS.forEach(function(t){state.tracks[t.id].steps.fill(false);});save();render();bind();say('Alle Pattern-Schritte geleert.');});
       root.querySelector('#hdms-demo').addEventListener('click',function(){
-        var patterns={kick:[0,4,8,12],snare:[4,12],hat:[0,2,4,6,8,10,12,14],bass:[0,8],chords:[0,6,10],lead:[2,5,9,13],vocal:[7,15]};
+        var patterns={kick:[0,4,8,12],snare:[4,12],hat:[0,2,4,6,8,10,12,14],bass:[0,8],chords:[0,6,10],lead:[2,5,9,13],vocal:[7,15],piano:[0,4,8,12]};
+        state.pianoNotes=[{step:0,note:60,velocity:.72,duration:.3},{step:4,note:64,velocity:.72,duration:.3},{step:8,note:67,velocity:.72,duration:.3},{step:12,note:72,velocity:.72,duration:.3}];
         TRACKS.forEach(function(t){state.tracks[t.id].steps.fill(false);(patterns[t.id]||[]).forEach(function(i){state.tracks[t.id].steps[i]=true;});});save();render();bind();say('Groove-Vorlage erstellt. Passe sie im Sequencer an.');
       });
       render();bind();
