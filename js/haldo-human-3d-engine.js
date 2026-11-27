@@ -2722,6 +2722,10 @@
                 model:
                     state.currentModelKey,
 
+                selectedModel:
+                    state.pendingModelKey ||
+                    state.currentModelKey,
+
                 animation:
                     state.currentAnimation,
 
