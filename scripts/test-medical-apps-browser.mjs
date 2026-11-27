@@ -1452,7 +1452,8 @@ async function run() {
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v176-science-iot-apps.js'))
   }));
   assert.equal(v176Runtime.build, '177.0.0');
-  assert.equal(v176Runtime.moduleVersion, '177.0.0');
+  // The platform branding layer is v177; this independently versioned app module remains v176.
+  assert.equal(v176Runtime.moduleVersion, '176.0.0');
   assert.deepEqual(v176Runtime.apps, ['science-lab', 'wlan-bt']);
   assert.ok(v176Runtime.status.every((item) => item.ready));
   assert.equal(v176Runtime.science.kind, 'module');
