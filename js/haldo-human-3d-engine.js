@@ -1023,22 +1023,53 @@
                         'script[data-haldo-gltf-loader="true"]'
                     );
 
+                function resolveLoader() {
+                    if (THREE.GLTFLoader) {
+                        resolve(THREE.GLTFLoader);
+                        return true;
+                    }
+                    return false;
+                }
+
+                function rejectLoader(message) {
+                    reject(new Error(message));
+                }
+
                 if (existing) {
+                    // Ein vorhandenes Script kann sein load-Event bereits
+                    // ausgelöst haben. Zuerst den tatsächlichen Zustand prüfen,
+                    // statt ausschließlich auf ein zukünftiges Event zu warten.
+                    if (resolveLoader()) {
+                        existing.dataset.haldoLoadState = "loaded";
+                        return;
+                    }
+
+                    if (existing.dataset.haldoLoadState === "failed") {
+                        rejectLoader(
+                            "GLTFLoader konnte zuvor nicht geladen werden."
+                        );
+                        return;
+                    }
+
+                    if (
+                        existing.dataset.haldoLoadState === "loaded" ||
+                        existing.readyState === "complete"
+                    ) {
+                        rejectLoader(
+                            "GLTFLoader-Script ist beendet, aber THREE.GLTFLoader fehlt."
+                        );
+                        return;
+                    }
 
                     existing.addEventListener(
                         "load",
                         function () {
-
-                            if (THREE.GLTFLoader) {
-                                resolve(THREE.GLTFLoader);
-                            } else {
-                                reject(
-                                    new Error(
-                                        "GLTFLoader wurde nicht registriert."
-                                    )
+                            existing.dataset.haldoLoadState = "loaded";
+                            if (!resolveLoader()) {
+                                rejectLoader(
+                                    "GLTFLoader wurde geladen, aber nicht registriert."
                                 );
                             }
-
                         },
                         { once: true }
                     );
@@ -1046,19 +1077,15 @@
                     existing.addEventListener(
                         "error",
                         function () {
-
-                            reject(
-                                new Error(
-                                    "GLTFLoader konnte nicht geladen werden."
-                                )
+                            existing.dataset.haldoLoadState = "failed";
+                            rejectLoader(
+                                "GLTFLoader konnte nicht geladen werden."
                             );
-
                         },
                         { once: true }
                     );
 
                     return;
-
                 }
 
                 const script =
@@ -1071,36 +1098,26 @@
 
                 script.dataset.haldoGltfLoader =
                     "true";
+                script.dataset.haldoLoadState =
+                    "loading";
 
                 script.onload = function () {
+                    script.dataset.haldoLoadState = "loaded";
 
-                    if (THREE.GLTFLoader) {
-
-                        resolve(
-                            THREE.GLTFLoader
+                    if (!resolveLoader()) {
+                        rejectLoader(
+                            "Three.GLTFLoader ist nach dem Laden nicht verfügbar."
                         );
-
-                    } else {
-
-                        reject(
-                            new Error(
-                                "Three.GLTFLoader ist nicht verfügbar."
-                            )
-                        );
-
                     }
-
                 };
 
                 script.onerror = function () {
+                    script.dataset.haldoLoadState = "failed";
 
-                    reject(
-                        new Error(
-                            "Der GLTFLoader konnte nicht geladen werden. " +
-                            "Bitte Internetverbindung und CDN prüfen."
-                        )
+                    rejectLoader(
+                        "Der GLTFLoader konnte nicht geladen werden. " +
+                        "Bitte Internetverbindung und CDN prüfen."
                     );
-
                 };
 
                 document.head.appendChild(script);
