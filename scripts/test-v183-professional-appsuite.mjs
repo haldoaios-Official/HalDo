@@ -108,9 +108,9 @@ try {
   const exported = await page.evaluate(() => window.__haldoV183ExportCapture);
   assert(exported, 'Der Export-Button hat keinen Download-Link ausgelöst.');
   assert.equal(exported.filename, 'haldo-logo-entwurf.svg');
-  assert.match(exported.href, /^data:image\\/svg\\+xml;charset=utf-8,/);
+  assert.ok(exported.href.startsWith('data:image/svg+xml;charset=utf-8,'));
   const svgPayload = decodeURIComponent(exported.href.split(',').slice(1).join(','));
-  assert.match(svgPayload, /^<svg\\s+xmlns="http:\\/\\/www\\.w3\\.org\\/2000\\/svg"/);
+  assert.ok(svgPayload.startsWith('<svg xmlns="http://www.w3.org/2000/svg"'));
   assert.match(svgPayload, /viewBox="0 0 100 100"/);
   assert.match(svgPayload, /aria-label="Logo-Entwurf"/);
   pass('Logo-Studio erzeugt einen benannten Download-Link mit gültigem SVG-Inhalt.');
