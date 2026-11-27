@@ -307,7 +307,8 @@ async function run() {
       !!(window.HalDo['laborwerte-pro'] && window.HalDo['medikamentenplan-pro']) &&
       !!(window.HalDo.BrandingV177 && window.HalDo.BrandingV177.ready) &&
       !!(window.HalDo.AICore && window.HalDo.AICore.version === '178.0.0') &&
-      !!(window.HalDo.PermissionCore && window.HalDo.PermissionCore.version === '179.0.0');
+      !!(window.HalDo.PermissionCore && window.HalDo.PermissionCore.version === '179.0.0') &&
+      !!(window.HalDo.DataVault && window.HalDo.DataVault.version === '180.0.0');
   }, { timeout: 45000 });
   pass('HalDo OS startet auf sicherem Browser-Kontext; beide medizinischen Apps sind registriert');
   const brandAudit = await page.evaluate(() => ({
@@ -398,7 +399,12 @@ async function run() {
   assert.equal(aiCoreAudit.status.permissionCoreVersion, '179.0.0');
   assert.equal(aiCoreAudit.status.permissionModel, 'explicit-session-consent');
   assert.equal(aiCoreAudit.status.authentication, false);
-  assert.equal(aiCoreAudit.status.commonSecureVault, false);
+  assert.equal(aiCoreAudit.status.commonSecureVault, true, 'v180 stellt den verschlüsselten IndexedDB-Datentresor bereit.');
+  assert.equal(aiCoreAudit.status.dataVaultVersion, '180.0.0');
+  assert.equal(aiCoreAudit.status.vaultStorage, 'indexeddb-encrypted');
+  assert.equal(aiCoreAudit.status.vaultKeyPersistence, 'memory-only');
+  assert.equal(aiCoreAudit.status.vaultRemoteSync, false);
+  assert.equal(aiCoreAudit.status.vaultKeyRecovery, false);
   assert.equal(aiCoreAudit.status.aiInferenceRuntime, false);
   assert.equal(aiCoreAudit.status.agentRuntime, false);
   assert.equal(aiCoreAudit.status.backendConnected, false);
@@ -551,6 +557,103 @@ async function run() {
   assert.match(await privacyRoot.locator('[data-center-browser]').innerText(), /Kamera/);
   await closeWindow(privacyRoot);
   pass('HalDo Privacy & Consent Center Pro: App-Manifeste, Sitzungsfreigaben und getrennte Browserstatus sichtbar');
+  // v180: encrypted IndexedDB vault, memory-only key, authenticated backup round-trip.
+  const dataVaultAudit = await page.evaluate(async () => {
+    const H = window.HalDo;
+    const vault = H.DataVault;
+    const passphrase = 'HalDo-Test-Passphrase-180';
+    const marker = 'HDV180-PLAINTEXT-MUST-NEVER-LEAK-7391';
+    await vault.create(passphrase);
+    const recordId = await vault.put({ title: 'DataVault Regression', body: marker });
+    const statusAfterCreate = await vault.getStatus();
+    const storedRows = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('haldo_datavault_v180');
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction(['records'], 'readonly');
+        const get = tx.objectStore('records').getAll();
+        get.onsuccess = () => { resolve(get.result || []); db.close(); };
+        get.onerror = () => { db.close(); reject(get.error); };
+      };
+    });
+    const rawIndexedDbText = JSON.stringify(storedRows);
+    const backup = await vault.exportEncryptedBackup();
+    const backupText = JSON.stringify(backup);
+    const browserStorageText = [localStorage, sessionStorage].map(storage => {
+      let text = '';
+      for (let i = 0; i < storage.length; i += 1) {
+        const key = storage.key(i);
+        text += String(key) + String(storage.getItem(key));
+      }
+      return text;
+    }).join('|');
+    const cleartextAbsent = !rawIndexedDbText.includes(marker) &&
+      !backupText.includes(marker) && !browserStorageText.includes(marker);
+    const passphraseAbsent = !rawIndexedDbText.includes(passphrase) &&
+      !backupText.includes(passphrase) && !browserStorageText.includes(passphrase);
+    const readBeforeLock = await vault.get(recordId);
+    vault.lock();
+    let lockedReadRejected = false;
+    try { await vault.get(recordId); } catch { lockedReadRejected = true; }
+    let wrongPassphraseRejected = false;
+    try { await vault.unlock('Wrong-HalDo-Passphrase'); }
+    catch { wrongPassphraseRejected = true; }
+    const stillLockedAfterWrongPassphrase = !vault.isUnlocked();
+    await vault.unlock(passphrase);
+    const readAfterUnlock = await vault.get(recordId);
+    await vault.deleteVault();
+    const imported = await vault.importEncryptedBackup(backupText, passphrase);
+    const readAfterImport = await vault.get(recordId);
+    const statusAfterImport = await vault.getStatus();
+    return {
+      version: vault.version,
+      storage: statusAfterCreate.storage,
+      unlockedAfterCreate: statusAfterCreate.unlocked,
+      recordCountAfterCreate: statusAfterCreate.recordCount,
+      cleartextAbsent,
+      passphraseAbsent,
+      readBeforeLock: readBeforeLock.body,
+      lockedReadRejected,
+      wrongPassphraseRejected,
+      stillLockedAfterWrongPassphrase,
+      readAfterUnlock: readAfterUnlock.body,
+      imported: imported.imported,
+      importedRecords: imported.records,
+      readAfterImport: readAfterImport.body,
+      vaultExistsAfterImport: statusAfterImport.vaultExists,
+      unlockedAfterImport: statusAfterImport.unlocked
+    };
+  });
+  assert.equal(dataVaultAudit.version, '180.0.0');
+  assert.equal(dataVaultAudit.storage, 'indexeddb-encrypted');
+  assert.equal(dataVaultAudit.unlockedAfterCreate, true);
+  assert.equal(dataVaultAudit.recordCountAfterCreate, 1);
+  assert.equal(dataVaultAudit.cleartextAbsent, true, 'Klartext darf weder in IndexedDB noch im Export oder Browser-Webstorage erscheinen.');
+  assert.equal(dataVaultAudit.passphraseAbsent, true, 'Die Passphrase darf nicht persistent gespeichert werden.');
+  assert.equal(dataVaultAudit.readBeforeLock, 'HDV180-PLAINTEXT-MUST-NEVER-LEAK-7391');
+  assert.equal(dataVaultAudit.lockedReadRejected, true);
+  assert.equal(dataVaultAudit.wrongPassphraseRejected, true);
+  assert.equal(dataVaultAudit.stillLockedAfterWrongPassphrase, true);
+  assert.equal(dataVaultAudit.readAfterUnlock, 'HDV180-PLAINTEXT-MUST-NEVER-LEAK-7391');
+  assert.equal(dataVaultAudit.imported, true);
+  assert.equal(dataVaultAudit.importedRecords, 1);
+  assert.equal(dataVaultAudit.readAfterImport, 'HDV180-PLAINTEXT-MUST-NEVER-LEAK-7391');
+  assert.equal(dataVaultAudit.vaultExistsAfterImport, true);
+  assert.equal(dataVaultAudit.unlockedAfterImport, true);
+  const dataVaultCleanup = await page.evaluate(async () => {
+    await window.HalDo.DataVault.deleteVault();
+    const status = await window.HalDo.DataVault.getStatus();
+    return {
+      vaultExists: status.vaultExists,
+      unlocked: status.unlocked,
+      app: window.HalDo.AICore.getApp('data-vault')
+    };
+  });
+  assert.equal(dataVaultCleanup.vaultExists, false);
+  assert.equal(dataVaultCleanup.unlocked, false);
+  assert.equal(dataVaultCleanup.app.name, 'HalDo DataVault Pro');
+  pass('HalDo DataVault Pro v180: IndexedDB-Verschlüsselung, Sitzungsschlüssel, falsche Passphrase und Backup-Import geprüft');
   const launchChecks = [
     ['avatar', 'Living HalDo AI'],
     ['bibliothek', 'HalDo Bibliothek Pro'],
@@ -558,7 +661,8 @@ async function run() {
     ['mindmap', 'HalDo Mindmap Pro'],
     ['haushalt', 'HalDo Haushaltsmanager Pro'],
     ['keyboard-pro', 'HalDo Keyboard Studio Pro'],
-    ['datei-konverter', 'HalDo Datei-Konverter Pro']
+    ['datei-konverter', 'HalDo Datei-Konverter Pro'],
+    ['data-vault', 'HalDo DataVault Pro']
   ];
   for (const [appId, title] of launchChecks) {
     await page.evaluate((id) => window.HalDo.Launch({ id, n: id }), appId);
@@ -1052,7 +1156,10 @@ async function run() {
       appointmentsRoute: H.SystemV157.resolveRoute('arzttermine-pro'),
       diseaseCatalogueRoute: H.SystemV157.resolveRoute('krankheitslexikon-pro'),
       medicationCatalogueRoute: H.SystemV157.resolveRoute('medikamentenlexikon-pro'),
-      privacyCenterRoute: H.SystemV157.resolveRoute('privacy-center')
+      privacyCenterRoute: H.SystemV157.resolveRoute('privacy-center'),
+      dataVaultRoute: H.SystemV157.resolveRoute('data-vault'),
+      privacyCenterCategory: H.Master.getCategoryApps('P').some((app) => app.id === 'privacy-center'),
+      dataVaultCategory: H.Master.getCategoryApps('D').some((app) => app.id === 'data-vault')
     };
   });
   assert.equal(registryHealth.categoryCount, 26);
@@ -1079,7 +1186,7 @@ async function run() {
   assert.equal(registryHealth.utilities.kind, 'module');
   assert.equal(registryHealth.recipes.kind, 'module');
   assert.equal(registryHealth.analyzer.kind, 'module');
-  assert.equal(registryHealth.statusCounts.modules, 93);
+  assert.equal(registryHealth.statusCounts.modules, 94);
   assert.equal(registryHealth.statusCounts.scaffolds, 0);
   assert.equal(registryHealth.statusCounts.routes, 0);
   assert.equal(registryHealth.breathing.kind, 'module');
@@ -1109,6 +1216,11 @@ async function run() {
   assert.equal(registryHealth.privacyCenterRoute.moduleAvailable, true);
   assert.equal(registryHealth.privacyCenterRoute.startReady, true);
   assert.equal(registryHealth.privacyCenterRoute.resolution, 'direct');
+  assert.equal(registryHealth.dataVaultRoute.moduleAvailable, true);
+  assert.equal(registryHealth.dataVaultRoute.startReady, true);
+  assert.equal(registryHealth.dataVaultRoute.resolution, 'direct');
+  assert.equal(registryHealth.privacyCenterCategory, true);
+  assert.equal(registryHealth.dataVaultCategory, true);
   assert.equal(registryHealth.statusCounts.review, 0);
   assert.equal(registryHealth.geoQuiz.kind, 'module');
   assert.equal(registryHealth.musicStudio.kind, 'module');
