@@ -83,8 +83,35 @@ async function dismissWelcomeIfPresent() {
   } catch {
     return;
   }
+
   const button = welcome.locator('button.h161-button');
-  await button.waitFor({ state: 'visible', timeout: 3000 });
+  try {
+    await button.waitFor({ state: 'visible', timeout: 3000 });
+  } catch (error) {
+    // Another UI action may already have started the documented fade-out
+    // transition between the root and button checks. Treat only that completed
+    // dismissal race as success; a visible welcome without its button remains
+    // a real test failure.
+    const state = await welcome.evaluate((root) => ({
+      connected: root.isConnected,
+      leaving: root.classList.contains('h161-leaving')
+    })).catch(() => ({ connected: false, leaving: true }));
+    if (!state.connected || state.leaving) {
+      await welcome.waitFor({ state: 'detached', timeout: 10000 }).catch(() => {});
+      return;
+    }
+    throw error;
+  }
+
+  if (!(await button.isEnabled())) {
+    const leaving = await welcome.evaluate((root) => root.classList.contains('h161-leaving')).catch(() => true);
+    if (leaving) {
+      await welcome.waitFor({ state: 'detached', timeout: 10000 }).catch(() => {});
+      return;
+    }
+    throw new Error('Der HalDo-Willkommensbutton ist unerwartet deaktiviert.');
+  }
+
   await button.click();
   await welcome.waitFor({ state: 'detached', timeout: 10000 });
 }
