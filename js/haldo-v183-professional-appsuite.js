@@ -401,7 +401,12 @@
           var blob = new Blob([svg], { type:'image/svg+xml;charset=utf-8' });
           var url = URL.createObjectURL(blob);
           var link = document.createElement('a');
-          link.href = url; link.download = 'haldo-logo-entwurf.svg'; link.click();
+          link.href = url;
+          link.download = 'haldo-logo-entwurf.svg';
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
           window.setTimeout(function () { URL.revokeObjectURL(url); }, 1200);
         });
         root.querySelector('[data-brand-save]').addEventListener('click', function () {
