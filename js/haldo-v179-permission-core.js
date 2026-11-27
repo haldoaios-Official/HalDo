@@ -514,7 +514,6 @@
   }
 
   if (H.AICore) {
-    var oldPermissions = H.AICore.permissions || {};
     H.AICore.permissions = Object.freeze({
       request: request,
       has: has,
