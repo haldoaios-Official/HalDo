@@ -504,6 +504,17 @@ async function run() {
   assert.equal(await page.evaluate(() => window.HalDo.AICore.permissions.has('microphone', 'avatar')), false);
 
   await page.evaluate(() => {
+    window.__haldoV179ClosedResult = null;
+    window.HalDo.AICore.permissions.request('microphone', 'avatar')
+      .then(value => { window.__haldoV179ClosedResult = value; });
+  });
+  const cancelConsent = page.locator('#winLayer .hdv179-consent').last();
+  await cancelConsent.waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('#winLayer .win-pro').last().locator('.wc-close').click();
+  await page.waitForFunction(() => window.__haldoV179ClosedResult === false, { timeout: 5000 });
+  assert.equal(await page.evaluate(() => window.HalDo.PermissionCore.has('microphone', 'avatar')), false);
+
+  await page.evaluate(() => {
     Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
       configurable: true,
       value: window.__haldoV179OriginalGetUserMedia
