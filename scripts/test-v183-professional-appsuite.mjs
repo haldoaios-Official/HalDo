@@ -48,6 +48,20 @@ try {
   assert(status.registered.every(x => x.ready));
   pass('Alle vier Apps sind registriert und besitzen einen open()-Handler.');
 
+  assert(page.evaluate(() => !!window.HalDo.LivingIdentity), 'LivingIdentity ist nicht verfügbar.');
+  await page.addScriptTag({ path:path.join(ROOT, 'js/haldo-human-3d-engine.js') });
+  const identityBridge = await page.evaluate(() => {
+    const identity = window.HalDo.LivingIdentity;
+    identity.setAvatarMode('cyborg');
+    const afterAvatar = window.HalDo.Human3D.getStatus();
+    identity.setEmotion('thinking');
+    const afterEmotion = window.HalDo.Human3D.getStatus();
+    return { selectedModel:afterAvatar.selectedModel, emotion:afterEmotion.emotion };
+  });
+  assert.equal(identityBridge.selectedModel, 'cyborg');
+  assert.equal(identityBridge.emotion, 'thinking');
+  pass('LivingIdentity übergibt Avatar-Auswahl und Emotion korrekt an Human3D.');
+
   await page.evaluate(() => window.HalDo['app-registry'].open());
   const store = page.locator('.hdv183-store');
   await store.waitFor({ state:'visible' });
