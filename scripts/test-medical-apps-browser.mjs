@@ -347,6 +347,14 @@ async function run() {
     try { core.preferences.set('medical-records', { note: 'must-not-be-stored' }); }
     catch { sensitivePreferenceRejected = true; }
 
+    let nestedSensitivePropertyRejected = false;
+    try { core.preferences.set('browser-safe', { display: { patientName: 'not-allowed' } }); }
+    catch { nestedSensitivePropertyRejected = true; }
+
+    let freeTextEventRejected = false;
+    try { core.events.emit('test:free-text', { action: 'patient has a diagnosis' }); }
+    catch { freeTextEventRejected = true; }
+
     let arbitraryEventFieldRejected = false;
     try { core.events.emit('test:unsafe', { patientName: 'not-allowed' }); }
     catch { arbitraryEventFieldRejected = true; }
@@ -390,6 +398,8 @@ async function run() {
   assert.deepEqual(aiCoreAudit.preference, { ready: true, revision: 178 });
   assert.equal(aiCoreAudit.preferenceRemoved, true);
   assert.equal(aiCoreAudit.sensitivePreferenceRejected, true);
+  assert.equal(aiCoreAudit.nestedSensitivePropertyRejected, true);
+  assert.equal(aiCoreAudit.freeTextEventRejected, true);
   assert.equal(aiCoreAudit.arbitraryEventFieldRejected, true);
   assert.ok(aiCoreAudit.audit.some((entry) => entry.event === 'haldo:core:test:smoke'));
   assert.equal(aiCoreAudit.audit.some((entry) => JSON.stringify(entry).includes('must-not-be-stored')), false);
