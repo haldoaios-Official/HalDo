@@ -17,7 +17,7 @@
   var MAX_METADATA_BYTES = 8192;
   var audit = [];
   var sequence = 0;
-  var CORE_STORE_PREFIX = 'haldo_aicore_v178:';
+  var CORE_STORE_PREFIX = 'aicore_v178:';
   var SECRET_KEY_PATTERN = /(password|passphrase|credential|token|secret|medical|health|patient|medication|diagnos|labor|vital|insurance|auth)/i;
   var EVENT_NAME_PATTERN = /^[a-z0-9][a-z0-9:_-]{0,63}$/i;
   var METADATA_KEYS = {
