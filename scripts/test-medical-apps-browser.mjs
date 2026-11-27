@@ -311,7 +311,7 @@ async function run() {
   const brandAudit = await page.evaluate(() => ({
     version: window.HalDo.Master.version,
     featuredCount: window.HalDo.Registry.featured.length,
-    unbranded: window.HalDo.Registry.featured.filter((app) => !/^HalDo\\b/.test(String(app.n || ''))).map((app) => app.id),
+    unbranded: window.HalDo.Registry.featured.filter((app) => !/^HalDo\b/.test(String(app.n || ''))).map((app) => app.id),
     specialAvatar: window.HalDo.Registry.featured.find((app) => app.id === 'avatar')?.n,
     specialFahrschule: window.HalDo.Registry.featured.find((app) => app.id === 'fahrschule')?.n,
     specialArztbuch: window.HalDo.Registry.featured.find((app) => app.id === 'arztbuch')?.n
@@ -355,7 +355,7 @@ async function run() {
     worldClock: window.HalDo.AppBrowser.getStatus('worldclock'),
     recipeScaler: window.HalDo.AppBrowser.getStatus('recipe-scaler')
   }));
-  assert.equal(v168Build.version, '176.0.0');
+  assert.equal(v168Build.version, '177.0.0');
   assert.equal(v168Build.worldClock.kind, 'module');
   assert.equal(v168Build.recipeScaler.kind, 'module');
   const v168Runtime = await page.evaluate(() => ({
@@ -368,7 +368,7 @@ async function run() {
   assert.equal(v168Runtime.worldClockOpen, 'function');
   assert.equal(v168Runtime.recipeScalerOpen, 'function');
   assert.equal(v168Runtime.scriptLoaded, true);
-  assert.equal(v168Runtime.build, '176.0.0');
+  assert.equal(v168Runtime.build, '177.0.0');
   // Test the World Clock module directly here. The global welcome/launcher flow
   // is covered separately; keeping it out of this module test avoids conflating
   // welcome-overlay timing with the actual window and clock implementation.
@@ -686,7 +686,7 @@ async function run() {
     scientificOpen: typeof window.HalDo.scientific?.open,
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v172-learning-apps.js'))
   }));
-  assert.equal(v172Runtime.build, '176.0.0');
+  assert.equal(v172Runtime.build, '177.0.0');
   assert.equal(v172Runtime.moduleVersion, '172.0.0');
   assert.deepEqual(v172Runtime.apps, ['breathing', 'scientific']);
   assert.equal(v172Runtime.breathing.kind, 'module');
@@ -984,7 +984,7 @@ async function run() {
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v173-care-apps.js')),
     sharedVaultReady: !!(window.HalDo.MedicalVault && typeof window.HalDo.MedicalVault.registerConfig === 'function')
   }));
-  assert.equal(v173Runtime.build, '176.0.0');
+  assert.equal(v173Runtime.build, '177.0.0');
   assert.equal(v173Runtime.moduleVersion, '173.0.0');
   assert.deepEqual(v173Runtime.apps, ['pflegeprotokoll-pro', 'arzttermine-pro']);
   assert.deepEqual(v173Runtime.errors, []);
@@ -1121,7 +1121,7 @@ async function run() {
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v174-medical-knowledge.js')),
     categoryApi: typeof window.HalDo.Registry.registerCategoryApp
   }));
-  assert.equal(v174Runtime.build, '176.0.0');
+  assert.equal(v174Runtime.build, '177.0.0');
   assert.equal(v174Runtime.moduleVersion, '174.0.0');
   assert.deepEqual(v174Runtime.apps, ['krankheitslexikon-pro', 'medikamentenlexikon-pro']);
   assert.ok(v174Runtime.status.every((item) => item.ready && item.entries > 0));
@@ -1185,7 +1185,7 @@ async function run() {
     heatmapOpen: typeof window.HalDo.heatmap?.open,
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v174-utility-apps.js'))
   }));
-  assert.equal(v174UtilityRuntime.build, '176.0.0');
+  assert.equal(v174UtilityRuntime.build, '177.0.0');
   assert.equal(v174UtilityRuntime.utilityVersion, '174.0.0');
   assert.deepEqual(v174UtilityRuntime.appIds, ['unitconv', 'heatmap']);
   assert.ok(v174UtilityRuntime.status.every((item) => item.ready));
@@ -1276,7 +1276,7 @@ async function run() {
     stickerOpen: typeof window.HalDo['qr-sticker']?.open,
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v175-qr-apps.js'))
   }));
-  assert.equal(v175Runtime.build, '176.0.0');
+  assert.equal(v175Runtime.build, '177.0.0');
   assert.equal(v175Runtime.moduleVersion, '175.0.0');
   assert.deepEqual(v175Runtime.appIds, ['qr', 'qr-sticker']);
   assert.ok(v175Runtime.status.every((item) => item.ready));
@@ -1367,7 +1367,7 @@ async function run() {
     imagePdfApi: typeof window.HalDo.DocumentScanner.createPdfBlob,
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v175-document-apps.js'))
   }));
-  assert.equal(v175DocumentRuntime.build, '176.0.0');
+  assert.equal(v175DocumentRuntime.build, '177.0.0');
   assert.equal(v175DocumentRuntime.moduleVersion, '175.0.0');
   assert.deepEqual(v175DocumentRuntime.apps, ['pdf-center', 'document-scanner']);
   assert.deepEqual(v175DocumentRuntime.moduleStatus, { registered:2, build:'175.0.0', localOnly:true });
@@ -1451,8 +1451,8 @@ async function run() {
     wlanOpen: typeof window.HalDo['wlan-bt']?.open,
     scriptLoaded: performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/js/haldo-v176-science-iot-apps.js'))
   }));
-  assert.equal(v176Runtime.build, '176.0.0');
-  assert.equal(v176Runtime.moduleVersion, '176.0.0');
+  assert.equal(v176Runtime.build, '177.0.0');
+  assert.equal(v176Runtime.moduleVersion, '177.0.0');
   assert.deepEqual(v176Runtime.apps, ['science-lab', 'wlan-bt']);
   assert.ok(v176Runtime.status.every((item) => item.ready));
   assert.equal(v176Runtime.science.kind, 'module');
