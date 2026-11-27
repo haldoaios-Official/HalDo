@@ -348,6 +348,12 @@
     return promise;
   }
 
+  function hasPending(permission, appId) {
+    if (!Object.prototype.hasOwnProperty.call(PERMISSIONS, permission)) return false;
+    var id = identifier(appId, 'App');
+    return pending.has(id + ':' + permission);
+  }
+
   function cancelPending(permission, appId) {
     if (!Object.prototype.hasOwnProperty.call(PERMISSIONS, permission)) return false;
     var id = identifier(appId, 'App');
@@ -537,6 +543,7 @@
     registerApp: registerApp,
     unregisterApp: unregisterApp,
     request: request,
+    hasPending: hasPending,
     cancelPending: cancelPending,
     has: has,
     revoke: revoke,

@@ -26,14 +26,26 @@
     // Keep the v179 validator/v181 active-grant revocation authoritative.
     // Invalid input must throw before pending dialogs are cancelled.
     var previous = core.listApps().find(function (item) { return item.id === appId; });
+    var pendingBefore = [];
+    if (previous && Array.isArray(permissions)) {
+      previous.permissions.forEach(function (entry) {
+        if (permissions.indexOf(entry.id) < 0 && core.hasPending(entry.id, appId)) {
+          pendingBefore.push(entry.id);
+        }
+      });
+    }
+
+    // v181 may cancel a pending request as part of its grant-revocation path.
+    // Capture pending requests before calling it, then verify they are gone.
     var result = originalRegisterApp.call(core, appId, permissions);
     var nextSet = new Set(result.permissions);
     var cancelled = [];
 
     if (previous) {
       previous.permissions.forEach(function (entry) {
-        if (!nextSet.has(entry.id) && core.cancelPending(entry.id, appId)) {
-          cancelled.push(entry.id);
+        if (!nextSet.has(entry.id) && pendingBefore.indexOf(entry.id) >= 0) {
+          if (core.hasPending(entry.id, appId)) core.cancelPending(entry.id, appId);
+          if (!core.hasPending(entry.id, appId)) cancelled.push(entry.id);
         }
       });
     }

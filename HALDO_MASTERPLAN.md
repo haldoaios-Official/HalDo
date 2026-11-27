@@ -938,3 +938,6 @@ Die Chromium-Regression erteilt in einem kontrollierten Test erneut eine Mikrofo
 Die Chromium-Regression startet eine ausstehende Mikrofonanfrage, löst die Browserantwort absichtlich verzögert aus, verkleinert in der Zwischenzeit das App-Manifest und prüft anschließend: Dialog geschlossen, HalDo-Promise mit `false` aufgelöst, keine aktive Sitzungserlaubnis und temporärer Medienstream gestoppt.
 
 **Grenze:** HalDo kann eine Anfrage innerhalb der eigenen App abbrechen und einen späteren Sitzungsgrant verhindern. Bereits an den Browser übergebene Websiteberechtigungsdialoge lassen sich nicht zuverlässig abbrechen; eine dort erteilte Origin-Berechtigung muss in den Browser-Einstellungen verwaltet werden. Dies ist weiterhin kein Ersatz für serverseitige Authentifizierung, Rollenautorisierung oder eine echte App-Sandbox.
+
+### v182 Korrektur im Browser-Testlauf
+Der erste CI-Durchlauf zeigte eine Zählungsabweichung: v181 hatte die ausstehende Anfrage bereits über den Widerruf im v179-Kern beendet, bevor v182 die Anzahl ermittelte. Die Korrektur erfasst deshalb ausstehende Anfragen vor dem Aufruf der vorhandenen v181-Policy und bestätigt anschließend, dass diese Anfragen tatsächlich nicht mehr offen sind. Der Funktionswiderruf wird dadurch nicht doppelt ausgeführt.
