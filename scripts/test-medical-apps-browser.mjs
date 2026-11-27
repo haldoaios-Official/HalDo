@@ -373,6 +373,8 @@ async function run() {
       preference,
       preferenceRemoved,
       sensitivePreferenceRejected,
+      nestedSensitivePropertyRejected,
+      freeTextEventRejected,
       arbitraryEventFieldRejected,
       audit
     };
