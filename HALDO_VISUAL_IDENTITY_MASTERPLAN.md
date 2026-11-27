@@ -232,3 +232,22 @@ Microsofts Dokumentation beschreibt die 55 Werte pro Frame bei 60 FPS und die Vi
 - [Azure Speech – Language and voice support](https://learn.microsoft.com/azure/ai-services/speech-service/language-support?tabs=tts)
 
 **Unverändert:** Der Requestvertrag implementiert keinen Server und benötigt weiterhin einen privaten Azure-Speech-Proxy. Kein Azure-Schlüssel wird in der Browser-App gespeichert. Es ist noch keine echte Azure-Ausgabe erzeugt worden.
+
+
+### Konservative Azure-Locale-Freigabe nach Dokumentationsabgleich (27.11.2026)
+
+Beim Abgleich der beiden offiziellen Microsoft-Dokumente wurde eine Abweichung festgestellt:
+
+- Die Azure-Sprach-/Viseme-Locale-Tabelle nennt für viele zusätzliche Sprachen den Eintrag **Blend shapes**, darunter `de-DE`.
+- Die konkrete SSML-Dokumentation zum Element `mstts:viseme` sagt derzeit ausdrücklich, dass `type="FacialExpression"` nur für neuronale Stimmen der Locales `en-US` und `zh-CN` unterstützt wird.
+
+Bis ein echter SDK-Aufruf die anderen Sprachen bestätigt, verwendet HalDo daher die konservative Schnittmenge der beiden Dokumentationsaussagen: **Nur `en-US` und `zh-CN` werden für den 55-Kanal-FacialExpression-Request freigegeben.** Für `de-DE`, `tr-TR` und andere nicht gemeinsam bestätigte Locales wird kein 55-Blendshape-Format angefordert. Die normale Audioausgabe bleibt möglich.
+
+Diese Einschränkung ist bewusst strenger als die allgemeine Locale-Tabelle. Sie verhindert, dass die App einen dokumentarisch nicht eindeutig bestätigten SSML-Modus auswählt. Nach einem echten Azure-SDK-Integrationstest kann die Whitelist gezielt erweitert werden.
+
+Quellenabgleich:
+- [Azure SSML – Viseme-Element, Typ FacialExpression](https://learn.microsoft.com/de-de/azure/ai-services/speech-service/speech-synthesis-markup-voice) (zuletzt aktualisiert 21.05.2026; en-US und zh-CN)
+- [Azure Speech – Viseme-Locale-Tabelle](https://learn.microsoft.com/azure/ai-services/speech-service/language-support?tabs=tts) (Locale-Tabelle mit separatem Eintrag Blend shapes)
+- [Get facial position with viseme](https://learn.microsoft.com/azure/ai-services/speech-service/how-to-speech-synthesis-viseme) (55 Blendshape-Kanäle, 60 FPS und Audiooffset)
+
+Die E2E deckt nun ausdrücklich ab: `en-US` und `zh-CN` werden freigegeben; `de-DE` und `tr-TR` werden bis zum praktischen Nachweis nicht für FacialExpression angefordert.
