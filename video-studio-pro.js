@@ -232,9 +232,11 @@
       function drawFrame(ctx, canvas, clip) {
         var w = canvas.width, h = canvas.height;
         ctx.fillStyle = '#070b13'; ctx.fillRect(0, 0, w, h);
-        var vw = video.videoWidth || w, vh = video.videoHeight || h;
-        var scale = Math.min(w / vw, h / vh), dw = vw * scale, dh = vh * scale;
-        ctx.drawImage(video, (w - dw) / 2, (h - dh) / 2, dw, dh);
+        if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+          var vw = video.videoWidth, vh = video.videoHeight;
+          var scale = Math.min(w / vw, h / vh), dw = vw * scale, dh = vh * scale;
+          ctx.drawImage(video, (w - dw) / 2, (h - dh) / 2, dw, dh);
+        }
         var title = root.querySelector('#hdvs-title-text').value.trim();
         var pos = root.querySelector('#hdvs-title-position').value;
         if (title) {
