@@ -62,6 +62,54 @@ try {
   assert.equal(identityBridge.emotion, 'thinking');
   pass('LivingIdentity übergibt Avatar-Auswahl und Emotion korrekt an Human3D.');
 
+  // Simulate out-of-order GLB responses without requiring real avatar assets or WebGL.
+  const avatarLoadSafety = await page.evaluate(async () => {
+    const THREE = window.THREE;
+    if (!THREE) throw new Error('Three.js r128 ist für den Human3D-Test nicht verfügbar.');
+    const NativeRenderer = THREE.WebGLRenderer;
+    const NativeLoader = THREE.GLTFLoader;
+    class TestRenderer {
+      constructor() { this.domElement = document.createElement('canvas'); this.shadowMap = {}; }
+      setPixelRatio() {}
+      setSize() {}
+      render() {}
+    }
+    class TestLoader {
+      load(url, onLoad, _onProgress, onError) {
+        const delay = url.includes('slow') ? 80 : 5;
+        window.setTimeout(() => {
+          if (url.includes('fail')) { onError(new Error('synthetic GLB load failure')); return; }
+          const scene = new THREE.Group();
+          scene.add(new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial()));
+          onLoad({ scene, animations:[new THREE.AnimationClip('Idle', 1, [])] });
+        }, delay);
+      }
+    }
+    try {
+      THREE.WebGLRenderer = TestRenderer;
+      THREE.GLTFLoader = TestLoader;
+      const engine = window.HalDo.Human3D;
+      engine.registerModel('e2e-race-slow', { name:'Slow test avatar', path:'e2e-race-slow.glb' });
+      engine.registerModel('e2e-race-fast', { name:'Fast test avatar', path:'e2e-race-fast.glb' });
+      engine.registerModel('e2e-race-fail', { name:'Failing test avatar', path:'e2e-race-fail.glb' });
+      const slow = engine.setModel('e2e-race-slow');
+      const fast = engine.setModel('e2e-race-fast');
+      const raceResults = await Promise.all([slow, fast]);
+      const failedReplacement = await engine.setModel('e2e-race-fail');
+      const status = engine.getStatus();
+      return { raceResults, failedReplacement, model:status.model, loaded:status.loaded, animation:status.animation };
+    } finally {
+      THREE.WebGLRenderer = NativeRenderer;
+      THREE.GLTFLoader = NativeLoader;
+    }
+  });
+  assert.deepEqual(avatarLoadSafety.raceResults, [false, true], 'Ein veraltetes GLB-Ergebnis wurde nicht verworfen.');
+  assert.equal(avatarLoadSafety.model, 'e2e-race-fast', 'Das zuletzt ausgewählte Avatar-Modell wurde überschrieben.');
+  assert.equal(avatarLoadSafety.failedReplacement, false);
+  assert.equal(avatarLoadSafety.loaded, true, 'Ein fehlgeschlagener Modellwechsel hat das vorherige Avatar-Modell deaktiviert.');
+  assert.equal(avatarLoadSafety.animation, 'Idle');
+  pass('Human3D ignoriert verspätete Modellantworten und behält bei Ladefehlern das vorherige Avatar-Modell.');
+
   await page.evaluate(() => window.HalDo['app-registry'].open());
   const store = page.locator('.hdv183-store');
   await store.waitFor({ state:'visible' });
