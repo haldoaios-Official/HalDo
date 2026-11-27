@@ -241,6 +241,92 @@ try {
   assert.equal(avatarLoadSafety.loaded, true);
   pass('Human3D schützt Modellwechsel, erhält das vorige Modell und erkennt einen bereits beendeten defekten GLTFLoader.');
 
+  const voiceVisemeBridge = await page.evaluate(async () => {
+    const H = window.HalDo;
+    const engine = H.Human3D;
+    if (!H.VoiceCore || !engine) throw new Error('Voice Core oder Human3D fehlt.');
+    const originalFetch = window.fetch;
+    const NativeAudio = window.Audio;
+    const originalRAF = window.requestAnimationFrame;
+    const originalCAF = window.cancelAnimationFrame;
+    const frames = new Map();
+    const audios = [];
+    let nextFrame = 0;
+    class TestAudio {
+      constructor(src) { this.src = src; this.currentTime = 0; this.paused = true; this.ended = false; this.listeners = Object.create(null); audios.push(this); }
+      addEventListener(name, fn) { (this.listeners[name] || (this.listeners[name] = new Set())).add(fn); }
+      removeEventListener(name, fn) { if (this.listeners[name]) this.listeners[name].delete(fn); }
+      dispatch(name) { for (const fn of Array.from(this.listeners[name] || [])) fn({ type:name, target:this }); }
+      play() { this.paused = false; this.dispatch('play'); return Promise.resolve(); }
+      pause() { if (this.paused) return; this.paused = true; this.dispatch('pause'); }
+    }
+    window.fetch = async () => ({
+      ok:true,
+      headers:{ get:()=>'application/json' },
+      json:async()=>({
+        audioUrl:'https://voice.example.test/haldo-audio.mp3',
+        visemeTimeline:[
+          { timeMs:0, expressions:{ jawOpen:0, mouthPucker:0 } },
+          { timeMs:100, expressions:{ jawOpen:1, mouthPucker:0.2 } },
+          { timeMs:200, expressions:{ jawOpen:0, mouthPucker:1 } }
+        ]
+      })
+    });
+    window.Audio = TestAudio;
+    window.requestAnimationFrame = callback => { const id=++nextFrame; frames.set(id,callback); return id; };
+    window.cancelAnimationFrame = id => frames.delete(id);
+    try {
+      const result = await H.VoiceCore.speak('HalDo Visem-Test',{ endpoint:'https://voice.example.test/tts', language:'de-DE' });
+      const audio = audios[0];
+      if (!audio) throw new Error('Provider-Audioelement wurde nicht erstellt.');
+      const activeAfterPlay = engine.getVisemeStatus().active;
+      const voiceStatus = H.VoiceCore.status();
+      audio.currentTime = 0.05;
+      let next = Array.from(frames.entries()).pop();
+      if (!next) throw new Error('Keine Animation-Frame-Aktualisierung registriert.');
+      frames.delete(next[0]); next[1](50);
+      const jawAt50ms = engine.getFaceExpressions().jawOpen;
+      audio.currentTime = 0.15;
+      next = Array.from(frames.entries()).pop();
+      if (!next) throw new Error('Zweiter Animation-Frame fehlt.');
+      frames.delete(next[0]); next[1](150);
+      const jawAt150ms = engine.getFaceExpressions().jawOpen;
+      const audioBridgeBound = H.VoiceCore.status().visemeAudioBound;
+      audio.pause();
+      const inactiveAfterPause = !engine.getVisemeStatus().active;
+      const jawAfterPause = engine.getFaceExpressions().jawOpen;
+      H.VoiceCore.stop();
+      return {
+        mode:result.mode,
+        visemes:result.visemes,
+        activeAfterPlay,
+        jawAt50ms,
+        jawAt150ms,
+        audioBridgeBound,
+        inactiveAfterPause,
+        jawAfterPause,
+        voiceStatus
+      };
+    } finally {
+      try { H.VoiceCore.stop(); } catch (_) {}
+      window.fetch = originalFetch;
+      window.Audio = NativeAudio;
+      window.requestAnimationFrame = originalRAF;
+      window.cancelAnimationFrame = originalCAF;
+    }
+  });
+  assert.equal(voiceVisemeBridge.mode, 'provider');
+  assert.equal(voiceVisemeBridge.visemes, true, 'Voice Core hat die Provider-Viseme nicht an Human3D übergeben.');
+  assert.equal(voiceVisemeBridge.activeAfterPlay, true);
+  assert.ok(Math.abs(voiceVisemeBridge.jawAt50ms - 0.5) < 1e-9);
+  assert.ok(Math.abs(voiceVisemeBridge.jawAt150ms - 0.5) < 1e-9);
+  assert.equal(voiceVisemeBridge.audioBridgeBound, true);
+  assert.equal(voiceVisemeBridge.inactiveAfterPause, true, 'Pause hat die laufende Visem-Ebene nicht zurückgesetzt.');
+  assert.equal(voiceVisemeBridge.jawAfterPause, 0, 'Pause hat den Kiefer-Morph nicht neutralisiert.');
+  assert.equal(voiceVisemeBridge.voiceStatus.visemeAudioBridge, true);
+  assert.equal(voiceVisemeBridge.voiceStatus.visemeEngineReady, true);
+  pass('HalDo Voice Core synchronisiert Provider-Viseme mit Audio.currentTime und setzt sie bei Pause zurück.');
+
   await page.evaluate(() => window.HalDo['app-registry'].open());
   const store = page.locator('.hdv183-store');
   await store.waitFor({ state:'visible' });
