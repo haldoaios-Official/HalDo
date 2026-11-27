@@ -31,8 +31,8 @@
       if (!app || typeof app !== 'object') return;
       var id = String(app.id || '');
       var existing = String(app.n || id || 'App').trim();
-      var clean = preferredNames[id] || existing.replace(/^HalDo\\s+/i, '').trim();
-      app.n = /^HalDo\\b/i.test(clean) ? clean : 'HalDo ' + clean;
+      var clean = preferredNames[id] || existing.replace(/^HalDo\s+/i, '').trim();
+      app.n = /^HalDo\b/i.test(clean) ? clean : 'HalDo ' + clean;
     });
     return true;
   }
@@ -42,7 +42,7 @@
     var originalOpen = H.Win.open;
     H.Win.open = function (title) {
       var args = Array.prototype.slice.call(arguments);
-      if (typeof title === 'string' && !/\\bHalDo\\b/i.test(title)) {
+      if (typeof title === 'string' && !/\bHalDo\b/i.test(title)) {
         args[0] = 'HalDo ' + title;
       }
       return originalOpen.apply(this, args);
@@ -68,7 +68,7 @@
         version: BUILD,
         ready: this.ready,
         appCount: apps.length,
-        unbranded: apps.filter(function (app) { return !/^HalDo\\b/.test(String(app.n || '')); }).map(function (app) { return app.id; }),
+        unbranded: apps.filter(function (app) { return !/^HalDo\b/.test(String(app.n || '')); }).map(function (app) { return app.id; }),
         windowTitleGuard: !!(H.Win && H.Win.__v177BrandWrapped)
       };
     }
