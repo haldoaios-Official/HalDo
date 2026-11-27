@@ -768,3 +768,62 @@ Dieser Abschnitt korrigiert die älteren Zwischenzahlen im Abschnitt „Korrigie
 - Die vollständige Hauptdatei wurde aus dem unveränderten Parent-Commit `6a5d306500abf05c730fb4f77be85be0389e4346` wiederhergestellt und nur der Dokumenttitel auf v176 angepasst.
 - Wiederherstellungsprüfung: 1.002.901 Zeichen, 14.051 Zeilen, v173- und v176-Script-Einbindungen vorhanden. Der neue Branch-Commit ist `46c9cb60125705eb6ed8d2ece71ee31c21f02856`.
 - Der fehlgeschlagene Lauf #233 bleibt als fehlgeschlagener Lauf dokumentiert und darf nicht als erfolgreicher Test gezählt werden. Der wiederhergestellte Stand benötigt einen neuen vollständigen Browserlauf vor weiterer Freigabe.
+
+
+## HALDO v177 – Produktidentität, AI-Core-Architektur und A–Z-Lückenschluss (27.11.2026)
+
+### Verbindliche Produkt- und Namensregel
+- Jede eigenständige Anwendung erhält einen sichtbaren Produktnamen mit dem Präfix **„HalDo“** (z. B. „HalDo Arztbuch AI Pro“, „HalDo Musikstudio Pro Max“, „HalDo Cyborg Control AI“).
+- App-ID, Anzeigename, Fenstertitel, A–Z-Katalog, Suchindex, Sprachbefehl und Hilfetexte müssen dieselbe Produktidentität verwenden. Historische IDs dürfen aus Kompatibilitätsgründen bestehen bleiben; sie werden nicht unüberlegt umbenannt.
+- „AI“, „KI“, „Cyborg“, „Pro“ und „Pro Max“ sind keine Dekoration: Die Bezeichnung darf nur Funktionen versprechen, die tatsächlich implementiert und getestet sind. Bei reinen Verwaltungswerkzeugen ist „HalDo … Pro“ besser als ein irreführendes „AI“.
+- Einheitliche Designqualität: responsives Layout, Tastaturbedienung, klare Zustände (Laden/Leer/Fehler/Erfolg), verständliche Hilfen, konsistente Icons, keine toten Schaltflächen, sichere Formulare und saubere Fenster-/Ressourcenfreigabe.
+
+### Plattformarchitektur – HalDo AI Core (geplant, noch nicht als fertig implementiert markieren)
+Der gemeinsame Plattformkern soll schrittweise folgende Dienste bereitstellen:
+1. **HalDo AI Orchestrator:** Aufgaben über mehrere Apps planen und ausführen; vor externen, finanziellen, medizinischen oder irreversiblen Aktionen Bestätigung verlangen.
+2. **HalDo Identity & Access Pro:** Anmeldung, Sitzungen, Rollen, App-Berechtigungen und nachvollziehbare Freigaben.
+3. **HalDo DataVault Pro:** Verschlüsselung, Schlüsselverwaltung, Backup/Wiederherstellung, Export und Datenlöschung mit klaren Grenzen.
+4. **HalDo Knowledge Graph AI:** Freigegebene Informationen zwischen Apps verknüpfen, Quellen und Herkunft speichern; keine stillschweigende Vermischung privater Daten.
+5. **HalDo Agent Hub:** Agenten, Werkzeuge und Integrationen registrieren, Berechtigungen begrenzen, Ausführungen protokollieren und jederzeit abbrechbar machen.
+6. **HalDo Observability & Quality Center:** Fehlerberichte, Laufzeitstatus, Testabdeckung, Performance und Sicherheitsereignisse ohne unnötige personenbezogene Inhalte.
+7. **HalDo Accessibility AI:** Vorlesen, Spracheingabe, Untertitel, einfache Sprache, Tastatursteuerung und anpassbare Darstellung.
+8. **HalDo Offline & Sync Manager:** Offline-Fähigkeit, Konfliktauflösung und nachvollziehbare Synchronisierung; keine Synchronisierung ohne echte, sichere Backend-Verbindung.
+
+### Zusätzliche A–Z-Kandidaten zur fachlichen Prüfung
+Diese Vorschläge erweitern die bisherige Wunschliste. Sie sind **Planungskandidaten**, keine implementierten Apps und keine Behauptung weltweiter Neuheit:
+- **HalDo AI Command Center:** zentrale Aufgabenübersicht und kontrollierte appübergreifende Workflows.
+- **HalDo CyberShield AI Pro:** Sicherheitscheck, Berechtigungsübersicht, Sitzungsverwaltung, Phishing-Aufklärung und lokale Sicherheitsprotokolle.
+- **HalDo Accessibility AI Pro:** barrierearme Bedienung und persönliche Assistenzprofile.
+- **HalDo Life & Home AI:** Haushaltsabläufe, Wartungsfristen, Energieübersicht und freigegebene Smart-Home-Geräte.
+- **HalDo Research Lab AI:** Quellenvergleich, Belegstellen, Aktualitätsprüfung und Kennzeichnung widersprüchlicher Aussagen.
+- **HalDo Knowledge Vault AI:** persönliches Wissensarchiv mit Tags, Volltextsuche, Quellenherkunft und Export.
+- **HalDo Emergency & Recovery Pro:** Notfallkontakte, wichtige Dokumente, Wiederherstellungsanleitungen und ausgewählte Offline-Informationen.
+- **HalDo Privacy & Consent Center:** Datenübersicht, Einwilligungen, Berechtigungen, Export- und Löschabläufe.
+- **HalDo Developer Studio AI:** API-Explorer, lokale Testumgebung, Protokollanalyse und sichere Projektvorlagen.
+- **HalDo Digital Legacy Pro:** freiwillig verwaltete Nachlass- und Notfallhinweise mit streng kontrollierten Freigaberegeln.
+
+Vor Aufnahme in die 375 Plätze ist jeder Kandidat auf Überschneidung mit vorhandenen Apps, tatsächlichen Nutzerbedarf, technische Machbarkeit, Datenschutz, Kosten und rechtliche Anforderungen zu prüfen.
+
+### Qualitäts- und Freigabegate für jede App
+Jede App durchläuft getrennte Stufen:
+- **P0 – Inventar:** Zweck, Zielgruppe, Abgrenzung, vorhandene Module und Datenflüsse dokumentiert.
+- **P1 – UX:** eigener HalDo-Name, responsive Oberfläche, barrierearme Bedienung und alle UI-Zustände.
+- **P2 – Funktion:** Kernabläufe funktionieren tatsächlich; Erstellen/Lesen/Bearbeiten/Löschen, Suche, Import/Export nur soweit fachlich sinnvoll.
+- **P3 – Sicherheit:** Eingabevalidierung, XSS-Schutz, Berechtigungen, Datenschutz, sichere Speicherung und Fehlerbehandlung geprüft.
+- **P4 – Integration:** Launcher, Registry, A–Z-Katalog, Suche, Sprachsteuerung und gemeinsame Plattformdienste konsistent.
+- **P5 – Test:** automatisierte Browser- und Regressionstests; kritische Abläufe zusätzlich manuell prüfen.
+- **P6 – Release:** Dokumentation, bekannte Grenzen, Versionshinweise und Rollback-Plan.
+Ein App-Startpfad oder ein grüner CI-Lauf allein bedeutet nicht, dass eine App fachlich vollständig oder produktionsreif ist.
+
+### CI-Nachprüfung nach Wiederherstellung der Hauptdatei
+- GitHub Actions Lauf **#234** (ID `45935998740`) auf dem wiederhergestellten Hauptdatei-Commit `46c9cb60125705eb6ed8d2ece71ee31c21f02856`: **87/87 Chromium-Browserprüfungen erfolgreich**, Job „Encrypted vault end-to-end tests“ = `success`.
+- Die Prüfung umfasst die dokumentierten 87 Browserabläufe einschließlich v175/v176, Anatomie-3D, Arztbuch, Vitalwerte, Laborwerte und Medikamentenplan. Sie ist keine Vollabnahme aller 92 Apps.
+- Der Branch enthält danach zusätzlich die Masterplan-Dokumentation; CI #234 bezieht sich ausdrücklich auf den getesteten Commit `46c9cb60125705eb6ed8d2ece71ee31c21f02856`, nicht auf spätere Commits.
+- Branch `work-v167-medical-apps`, Draft-PR #1; kein Merge nach `main`, keine Live-Veröffentlichung.
+
+### Nächste technische Reihenfolge
+1. Vollständiges App-Inventar aus Registry, allen v167–v176-Modulen und Tests erstellen; Anzeigenamen mit der HalDo-Namensregel abgleichen, ohne IDs oder bestehende Funktionen zu beschädigen.
+2. 26 A–Z-Kategorien und 375 Sollplätze neu abgleichen; Doppelungen, fehlende Nutzerwünsche und unbenannte Plätze als konkrete App-Spezifikationen erfassen.
+3. HalDo AI Core als gemeinsame, modular testbare Dienste aufbauen; zuerst Identität/Berechtigungen, Ereignisprotokoll, sichere Speicheradapter und App-Registry-Vertrag.
+4. Danach Apps in kleinen Releases implementieren; jede Änderung mit vollständiger Regression und dokumentierter Abnahme.
+5. Medizinische, finanzielle, Kommunikations- und IoT-Integrationen nur mit passenden Sicherheits-, Datenschutz-, Rechts- und Backend-Voraussetzungen freigeben.
