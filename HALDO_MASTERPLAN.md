@@ -849,3 +849,30 @@ Der Capability-Status meldet zentrale Berechtigungen, Authentifizierung, gemeins
 4. Den AI-Orchestrator erst nach nachgewiesenen Berechtigungen, Abbruchmechanismus, Protokollierung und Bestätigung kritischer Aktionen aufbauen.
 
 **Release-Grenze:** Arbeitsbranch `work-v167-medical-apps`, Draft-PR #1. Kein Merge nach `main`, keine GitHub-Pages-Veröffentlichung, keine Freigabe zur Speicherung echter Patientendaten.
+
+## HALDO v179 – HalDo Permission & Consent Core (27.11.2026)
+
+**Implementiert im Arbeitsbranch:** `js/haldo-v179-permission-core.js`, eingebunden nach v178 in `index.html`. Zusätzlich erscheint `HalDo Privacy & Consent Center Pro` als eigener Launcher-Eintrag.
+
+### Tatsächlich bereitgestellte Funktionen
+- **Explizite App-Manifeste:** Eine App muss die von ihr benötigten Rechte über `HalDo.PermissionCore.registerApp(appId, permissions)` deklarieren. Unbekannte Rechte, unbekannte App-IDs und nicht deklarierte Zugriffe werden abgewiesen.
+- **Zustimmungsdialog:** Vor einer Anfrage an Browser-APIs öffnet HalDo einen sichtbaren Dialog mit App-Name, Zweck und Ablehnen-/Zustimmen-Aktion. Erst die Zustimmung löst die Browseranfrage aus.
+- **Getrennte Zuständigkeiten:** Kamera, Mikrofon, Standort und Benachrichtigungen besitzen getrennte Verfügbarkeits- und Browserstatusanzeigen. Ein HalDo-Sitzungsgrant ist nicht dasselbe wie eine vom Browser gespeicherte Websiteberechtigung.
+- **Sitzungsgrants:** HalDo-Freigaben liegen ausschließlich im Arbeitsspeicher. Sie werden nicht in `localStorage` oder `sessionStorage` gespeichert und verfallen beim Neuladen/Schließen der Seite.
+- **Widerruf:** HalDo-Sitzungsgrants können einzeln, pro App oder im Consent Center widerrufen werden. Bereits vom Browser erteilte Websiteberechtigungen kann JavaScript nicht zuverlässig zurücknehmen; diese müssen in den Browser-Einstellungen verwaltet werden.
+- **Medienhygiene:** Der Freigabecheck stoppt temporär geöffnete Kamera-/Mikrofonstreams direkt nach erfolgreicher Browserfreigabe. Die App muss danach für ihre eigentliche Funktion einen eigenen Stream anfordern.
+- **Abbruchverhalten:** Wird der HalDo-Zustimmungsdialog geschlossen, wird die wartende Anfrage als abgelehnt aufgelöst. Es bleibt kein unendlicher Pending-Aufruf zurück.
+- **Audit-Anbindung:** Entscheidungen werden als begrenzte, nicht-freitextliche Metadaten über den bestehenden v178-Core/VoiceHub publiziert.
+
+### Wichtige Freigabegrenzen
+v179 ist ein Berechtigungsfundament, noch keine vollständige Rollen-/Kontenverwaltung. Grants sind sitzungsbezogen und nicht geräteübergreifend. Browserstatus kann je nach Browser als `unknown` erscheinen. Die Website kann keine vom Browser gespeicherten Kamer-, Mikrofon-, Standort- oder Benachrichtigungsrechte zuverlässig widerrufen. Noch müssen die einzelnen Apps ihre realen Berechtigungsmanifeste deklarieren; das Modul erfindet keine Rechte aus App-Namen oder Beschreibungen.
+
+### Browserabnahme
+Für die v179-Abnahme sind folgende Abläufe in `scripts/test-medical-apps-browser.mjs` vorgesehen:
+1. Manifest-Validierung und Ablehnung nicht deklarierter Rechte.
+2. Explizite Ablehnung ohne Sitzungserlaubnis.
+3. Zustimmung mit simuliertem Browser-Medienadapter und unmittelbarem Stoppen des temporären Streams.
+4. Einzelwiderruf und Schließen des Dialogs während einer offenen Anfrage.
+5. Launcher-Aufruf des Privacy & Consent Center sowie getrennte Anzeige der App- und Browserstatuswerte.
+
+**Release-Grenze:** Arbeitsbranch `work-v167-medical-apps`, Draft-PR #1. v179 wird erst nach erfolgreicher CI-Abnahme als geprüft markiert; kein Merge nach `main` und keine Live-Veröffentlichung.
