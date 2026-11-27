@@ -281,9 +281,11 @@ try {
     window.requestAnimationFrame = callback => { const id=++nextFrame; frames.set(id,callback); return id; };
     window.cancelAnimationFrame = id => frames.delete(id);
     try {
-      const result = await H.VoiceCore.speak('HalDo Visem-Test',{ endpoint:'https://voice.example.test/tts', provider:'azure-speech', language:'de-DE', voiceId:'de-DE-KatjaNeural' });
+      const result = await H.VoiceCore.speak('HalDo Visem-Test',{ endpoint:'https://voice.example.test/tts', provider:'azure-speech', language:'en-US', voiceId:'en-US-AvaNeural' });
       const deProviderCapabilities = H.VoiceCore.getProviderCapabilities('de-DE');
       const trProviderCapabilities = H.VoiceCore.getProviderCapabilities('tr-TR');
+      const enProviderCapabilities = H.VoiceCore.getProviderCapabilities('en-US');
+      const zhProviderCapabilities = H.VoiceCore.getProviderCapabilities('zh-CN');
       const audio = audios[0];
       if (!audio) throw new Error('Provider-Audioelement wurde nicht erstellt.');
       const activeAfterPlay = engine.getVisemeStatus().active;
@@ -332,7 +334,7 @@ try {
         }]
       };
       const convertedAzureTimeline = H.VoiceCore.normalizeAzureVisemeEvents(mockVoicePayload.azureVisemeEvents);
-      const azureResult = await H.VoiceCore.speak('HalDo Azure Visem-Test',{ endpoint:'https://voice.example.test/azure-tts', provider:'azure-speech', language:'de-DE', voiceId:'de-DE-KatjaNeural' });
+      const azureResult = await H.VoiceCore.speak('HalDo Azure Visem-Test',{ endpoint:'https://voice.example.test/azure-tts', provider:'azure-speech', language:'en-US', voiceId:'en-US-AvaNeural' });
       const azureRequestBody = voiceRequestBodies[1];
       const azureAudio = audios[1];
       if (!azureAudio) throw new Error('Azure-Provider-Audioelement wurde nicht erstellt.');
@@ -367,6 +369,8 @@ try {
         azurePuckerAtHalfFrame,
         deAzureBlendShapes:deProviderCapabilities.azureSpeech.blendShapes55,
         trAzureBlendShapes:trProviderCapabilities.azureSpeech.blendShapes55,
+        enAzureBlendShapes:enProviderCapabilities.azureSpeech.blendShapes55,
+        zhAzureBlendShapes:zhProviderCapabilities.azureSpeech.blendShapes55,
         deAzureRequestedFormat:deProviderCapabilities.azureSpeech.requestedVisemeFormat,
         trAzureRequestedFormat:trProviderCapabilities.azureSpeech.requestedVisemeFormat,
         firstRequestProvider:voiceRequestBodies[0].provider,
@@ -406,14 +410,17 @@ try {
   assert.equal(voiceVisemeBridge.azurePlaybackVisemes, true, 'Azure-Blendshape-Events wurden nicht zur Audio-Wiedergabe gebunden.');
   assert.ok(Math.abs(voiceVisemeBridge.azureJawAtHalfFrame - 0.4) < 1e-9);
   assert.ok(Math.abs(voiceVisemeBridge.azurePuckerAtHalfFrame - 0.2) < 1e-9);
-  assert.equal(voiceVisemeBridge.deAzureBlendShapes,true,'de-DE muss in der offiziellen Azure-Blendshape-Locale-Liste enthalten sein.');
-  assert.equal(voiceVisemeBridge.trAzureBlendShapes,false,'tr-TR darf nicht fälschlich als 55-Blendshape-Locale ausgewiesen werden.');
-  assert.equal(voiceVisemeBridge.deAzureRequestedFormat,'azure-blendshapes-55-v1');
+  assert.equal(voiceVisemeBridge.deAzureBlendShapes,false,'de-DE wird wegen widersprüchlicher Microsoft-Dokumentation bis zu einem echten Provider-Test konservativ nicht freigegeben.');
+  assert.equal(voiceVisemeBridge.trAzureBlendShapes,false,'tr-TR darf nicht als 55-Blendshape-Locale ausgewiesen werden.');
+  assert.equal(voiceVisemeBridge.enAzureBlendShapes,true,'en-US ist in beiden Microsoft-Dokumentationspfaden bestätigt.');
+  assert.equal(voiceVisemeBridge.zhAzureBlendShapes,true,'zh-CN ist in beiden Microsoft-Dokumentationspfaden bestätigt.');
+  assert.equal(voiceVisemeBridge.deAzureRequestedFormat,null);
   assert.equal(voiceVisemeBridge.trAzureRequestedFormat,null);
+  assert.equal(voiceVisemeBridge.firstRequestVisemeFormat,'azure-blendshapes-55-v1');
   assert.equal(voiceVisemeBridge.firstRequestProvider,'azure-speech');
   assert.equal(voiceVisemeBridge.firstRequestProtocol,'haldo-voice-v1');
   assert.equal(voiceVisemeBridge.firstRequestVisemeFormat,'azure-blendshapes-55-v1');
-  assert.equal(voiceVisemeBridge.firstRequestVoiceName,'de-DE-KatjaNeural');
+  assert.equal(voiceVisemeBridge.firstRequestVoiceName,'en-US-AvaNeural');
   assert.equal(voiceVisemeBridge.azureRequestProvider,'azure-speech');
   assert.equal(voiceVisemeBridge.azureRequestVisemeFormat,'azure-blendshapes-55-v1');
   assert.equal(voiceVisemeBridge.azureRequestHasModel,false,'Azure darf keinen ElevenLabs-Modellnamen erhalten.');
