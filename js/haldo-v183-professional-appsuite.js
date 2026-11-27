@@ -50,8 +50,10 @@
     if (entry) {
       entry.n = title;
       entry.i = icon;
+      entry.category = category;
+      entry.desc = description;
     } else {
-      H.Registry.featured.push({ id: id, n: title, i: icon });
+      H.Registry.featured.push({ id: id, n: title, i: icon, category: category, desc: description });
     }
     H[id] = {
       version: VERSION,
