@@ -347,6 +347,10 @@ async function run() {
     try { core.preferences.set('medical-records', { note: 'must-not-be-stored' }); }
     catch { sensitivePreferenceRejected = true; }
 
+    let freeTextPreferenceRejected = false;
+    try { core.preferences.set('display-note', 'personal free text is not a preference token'); }
+    catch { freeTextPreferenceRejected = true; }
+
     let nestedSensitivePropertyRejected = false;
     try { core.preferences.set('browser-safe', { display: { patientName: 'not-allowed' } }); }
     catch { nestedSensitivePropertyRejected = true; }
@@ -373,6 +377,7 @@ async function run() {
       preference,
       preferenceRemoved,
       sensitivePreferenceRejected,
+      freeTextPreferenceRejected,
       nestedSensitivePropertyRejected,
       freeTextEventRejected,
       arbitraryEventFieldRejected,
@@ -400,6 +405,7 @@ async function run() {
   assert.deepEqual(aiCoreAudit.preference, { ready: true, revision: 178 });
   assert.equal(aiCoreAudit.preferenceRemoved, true);
   assert.equal(aiCoreAudit.sensitivePreferenceRejected, true);
+  assert.equal(aiCoreAudit.freeTextPreferenceRejected, true);
   assert.equal(aiCoreAudit.nestedSensitivePropertyRejected, true);
   assert.equal(aiCoreAudit.freeTextEventRejected, true);
   assert.equal(aiCoreAudit.arbitraryEventFieldRejected, true);
