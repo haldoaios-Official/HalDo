@@ -707,10 +707,10 @@
             '<div class="hdv180-grid"><div class="hdv180-card"><strong>' + (status.vaultExists ? 'Tresor angelegt' : 'Noch kein Tresor') + '</strong><div class="hdv180-muted">Tresorstatus</div></div>' +
             '<div class="hdv180-card"><strong>' + (status.unlocked ? 'Entsperrt' : 'Gesperrt') + '</strong><div class="hdv180-muted">Arbeitssitzung</div></div>' +
             '<div class="hdv180-card"><strong>' + status.recordCount + '</strong><div class="hdv180-muted">Verschlüsselte Datensätze</div></div></div>';
-          var auth = '<section class="hdv180-card"><h3 style="margin-top:0">' + (status.vaultExists ? 'Tresor entsperren' : 'Neuen Tresor erstellen') + '</h3>' +
+          var auth = !status.unlocked ? '<section class="hdv180-card"><h3 style="margin-top:0">' + (status.vaultExists ? 'Tresor entsperren' : 'Neuen Tresor erstellen') + '</h3>' +
             '<form data-vault-auth><label>Passphrase (mindestens 12 Zeichen)</label><input type="password" name="passphrase" autocomplete="new-password" minlength="12" maxlength="200" required>' +
             '<button class="primary" type="submit">' + (status.vaultExists ? '🔓 Entsperren' : '✨ Tresor erstellen') + '</button></form>' +
-            '<p class="hdv180-muted">Die Passphrase wird weder gespeichert noch übertragen. Bei Verlust gibt es keine Rücksetzung. Der Arbeitsschlüssel bleibt nur bis zum Sperren, Schließen oder Neuladen im Arbeitsspeicher.</p></section>';
+            '<p class="hdv180-muted">Die Passphrase wird weder gespeichert noch übertragen. Bei Verlust gibt es keine Rücksetzung. Der Arbeitsschlüssel bleibt nur bis zum Sperren, Schließen oder Neuladen im Arbeitsspeicher.</p></section>' : '';
           var importMarkup = !status.vaultExists ? '<section class="hdv180-card"><h3 style="margin-top:0">Verschlüsseltes Backup importieren</h3><label>Datei auswählen</label><input type="file" accept=".hdvault,.json,application/json" data-vault-import-file><button type="button" data-vault-import>Backup prüfen und importieren</button><p class="hdv180-muted">Import ist nur möglich, wenn in diesem Browser noch kein DataVault vorhanden ist.</p></section>' : '';
           var workspace = '';
           if (status.unlocked) {
@@ -890,6 +890,6 @@
     }
   }
 
-  window.addEventListener('pagehide', lockAll, { once: true });
+  window.addEventListener('pagehide', lockAll);
   console.info('[HalDo v180] DataVault Core bereit. Lokale Verschlüsselung:', secureCryptoAvailable());
 })(window, document);
