@@ -958,3 +958,32 @@ Der erste CI-Durchlauf zeigte eine Zählungsabweichung: v181 hatte die ausstehen
 Vor weiteren A–Z-App-Erweiterungen wird ein Registry-/Launcher-Konsistenztest erstellt. Er muss für jede sichtbare Featured-ID den tatsächlichen Öffnungspfad oder einen ausdrücklich dokumentierten System-Sonderfall nachweisen, doppelte IDs erkennen, dynamisch registrierte Module einbeziehen und den tatsächlichen Fensterstart einschließlich Welcome-Wrapper prüfen. Zusätzlich werden geplante 375 Katalogplätze, benannte Einträge, implementierte Handler und browsergetestete Apps als getrennte Kennzahlen ausgewiesen.
 
 **Status:** Statische Bestandsprüfung abgeschlossen; noch keine Registry- oder Launcher-Codeänderung aus diesem Audit. Keine Aussage, dass alle 71 Featured-Einträge oder alle 375 Zielplätze vollständig funktionsfähig sind. Der nächste Schritt ist der automatisierte Konsistenztest, nicht das Ersetzen der bestehenden Registry.
+
+
+## HALDO v183 — Professional App Suite (Arbeitsbranch, 27.11.2026)
+
+**Arbeitsbranch:** `work-v183-professional-appsuite`  
+**Basis:** `work-v167-medical-apps`  
+**Implementierungsmodul:** `js/haldo-v183-professional-appsuite.js`
+
+### Enthaltene Erweiterungen
+- **HalDo AI AppStore Pro Max:** Die bestehende stabile Registry-ID `app-registry` wird erweitert, nicht dupliziert. Die Oberfläche zeigt Featured-Registry-Einträge, Suchfilter, Kategorien und ob ein `open()`-Startmodul vorhanden ist. Öffnen nutzt den bestehenden HalDo-Launcher, sofern verfügbar.
+- **HalDo Anwälte App Pro:** Organisationsbereich für Mandanten, Angelegenheiten/Aktenzeichen, Status, Wiedervorlagen und Notizen. Datensätze werden über die vorhandene v180 DataVault-API verschlüsselt gespeichert.
+- **HalDo Gesetze App Pro:** Einstieg und Suche für eine kleine Startauswahl deutscher Gesetze mit Links zum amtlichen Portal „Gesetze im Internet“. Gemerkte Gesetze können im DataVault verschlüsselt abgelegt werden.
+- **HalDo Logo & Patent App Pro:** einfacher SVG-Logoentwurf mit Export sowie verschlüsselte Projekt-/Schutzrechtsmetadaten und Links zu DPMA, EUIPO und WIPO. Das vorhandene originale `logo.png` wird nicht überschrieben.
+
+### Sicherheits- und Funktionsgrenzen
+- Keine vertraulichen Kanzlei-, Mandanten- oder Schutzrechtsdaten in localStorage. Die drei Arbeitsbereiche verwenden ausschließlich die vorhandene verschlüsselte v180 DataVault-API; ohne entsperrten Tresor ist Speichern nicht möglich.
+- Der DataVault ist derzeit ein lokaler gemeinsamer Browser-Tresor. Er stellt keine Kanzlei-Mandantentrennung, Rollen-/Rechteverwaltung, Serverauthentifizierung, revisionssichere Aktenführung, Rechtsberatung oder berufsrechtliche Freigabe bereit.
+- Gesetze-App-Links sind Quellen-Einstiege, kein automatischer Aktualitätsdienst. Vor rechtlicher Verwendung ist die aktuelle amtliche Fassung zu prüfen.
+- Logo-Export und DPMA/EUIPO/WIPO-Links sind keine Markenähnlichkeitsprüfung, keine Patentierbarkeitsprüfung und keine Anmeldung.
+- AppStore zeigt Registry- und Modulverfügbarkeit. Netzwerkbasierte Installation, automatische Updates, Signaturprüfung und Rollback sind noch nicht implementiert.
+- Die neuen Apps sind auf dem Arbeitsbranch eingebunden; sie sind nicht in `main` oder GitHub Pages veröffentlicht.
+
+### Noch ausstehende Abnahme
+- JavaScript-Syntaxprüfung des neuen Moduls.
+- Browser-E2E für Store-Suche/Start, DataVault-Gate, verschlüsselte Speicherung/Löschung, Gesetzeslinks und SVG-Export.
+- Regressionstest für bestehende Registry-/Launcher-Apps.
+- Datenschutz-, Sicherheits-, anwaltliche Fach- und Markenrechtsprüfung vor produktivem Einsatz.
+
+**Status:** Implementierung auf Arbeitsbranch begonnen; nicht gemergt, nicht live und noch nicht als vollständig abgenommen gekennzeichnet.
