@@ -744,6 +744,14 @@ Dieser Abschnitt korrigiert die älteren Zwischenzahlen im Abschnitt „Korrigie
 - Der Lauf prüft unter anderem OS-Start, Registry-/Launcher-Zuordnung, A–Z-Kategorien, medizinische Tresore, Vitalwerte, v168–v176-Module und die dokumentierten Browserabläufe.
 - Der frühere umfassende Lauf **#211** (`45826798332`) mit **86/86 Einzelprüfungen** bleibt als historischer Abnahmestand dokumentiert; er ist nicht mit dem neueren Lauf #231 gleichzusetzen.
 
+### Nachprüfung vom 27.11.2026 – Lauf #232
+
+- Der aktuelle PR-Head `65bb0008a3e2ec43de0c74bbf788da39a5dcb6c7` wurde in GitHub Actions Lauf **#232** (`45929786397`) erneut mit Chromium geprüft.
+- Ergebnis: **87/87 Einzelprüfungen erfolgreich**. Der Job „Encrypted vault end-to-end tests“ endete mit `success`.
+- Die Suite umfasst u. a. Pflegeprotokoll, Arzttermine/Überweisungen, Krankheits- und Medikamentenlexikon, Einheiten-Umrechner, Habit Heatmap, QR Studio, QR Sticker, PDF-/Druck-Center, Dokumenten-Scanner, Wissenschaftslabor, WLAN/Bluetooth-Manager, Musikstudio, Anatomie 3D sowie Arztbuch/Vitalwerte/Laborwerte/Medikamentenplan.
+- Diese 87 Prüfungen sind gezielte automatisierte Browserprüfungen der aufgeführten Abläufe. Sie sind **keine** vollständige Funktionsabnahme aller 92 Registry-Apps und ersetzen weder klinische noch Datenschutz-/Sicherheitsprüfung.
+- `index.html` verwendet weiterhin den Dokumenttitel „Master Build v167“, obwohl v168–v176-Module eingebunden sind. Der sichtbare HTML-Titel wird deshalb im selben Arbeitsbranch auf v176 vereinheitlicht; historische Modulversionen bleiben unverändert.
+
 ### Branch- und Veröffentlichungsgrenze
 
 - Produktiver Hauptbranch `main` steht weiterhin auf `4ab7b6c164d7bc28359e500a47322e378f0ca44d` (v166-Basis).
