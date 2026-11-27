@@ -9437,6 +9437,24 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
     const meta = appTitleMap[id];
     return meta ? {id, ...meta} : null;
   }).filter(Boolean).filter((a,i,arr) => arr.findIndex(x => x.id === a.id) === i);
+  // Vollständiger A–Z-Katalog: auch IDs ohne Kern-Registry-Eintrag sichtbar machen.
+  const catalogForCategory = key => {
+    const seen = new Set();
+    const items = (categoryApps[key] || []).filter(id => {
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    }).map(id => {
+      const meta = appTitleMap[id];
+      return meta
+        ? {id, name:meta.name, icon:meta.icon, registered:true}
+        : {id, name:'Name noch offen', icon:'📦', registered:false};
+    });
+    if (key === 'S' && H.Registry && H.Registry.featured.some(app => app.id === 'system-center') && !seen.has('system-center')) {
+      items.push({id:'system-center', name:'HalDo System Center Pro', icon:'🧭', registered:true});
+    }
+    return items;
+  };
 
   H.Master = {
     version:'151.0.0',
@@ -9445,6 +9463,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
     namedCoreApps:H.Registry && H.Registry.featured ? H.Registry.featured.length : 0,
     communication:{ email:'O', chat:'O', videoCalls:'V', phone:'V' },
     getCategoryApps:key => namedForCategory(key),
+    getCategoryCatalogApps:key => catalogForCategory(key),
     getStatus(){
       return {
         version:this.version,
