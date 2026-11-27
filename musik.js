@@ -23,6 +23,8 @@
   var masterGain = null;
   var masterReverb = null;
   var masterDelay = null;
+  var masterReverbReturn = null;
+  var masterDelayReturn = null;
   var analyser = null;
   var isPlaying = false;
   var currentStep = 0;
@@ -40,12 +42,23 @@
       var revBuf = audioCtx.createBuffer(2, Math.floor(audioCtx.sampleRate * 1.5), audioCtx.sampleRate);
       for (var c = 0; c < 2; c++) { var d = revBuf.getChannelData(c); for (var i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/d.length, 2.0); }
       masterReverb.buffer = revBuf;
+      masterReverbReturn = audioCtx.createGain(); masterReverbReturn.gain.value = 0.2;
+      masterReverb.connect(masterReverbReturn);
       
       masterDelay = audioCtx.createDelay(1.0); masterDelay.delayTime.value = 0.25;
       var delayFb = audioCtx.createGain(); delayFb.gain.value = 0.3;
+      masterDelayReturn = audioCtx.createGain(); masterDelayReturn.gain.value = 0.1;
       masterDelay.connect(delayFb); delayFb.connect(masterDelay);
+      masterDelay.connect(masterDelayReturn);
       
-      masterGain.connect(analyser); analyser.connect(audioCtx.destination);
+      // Parallel wet returns: every track reaches the master analyser/output
+      // while the saved Reverb and Delay controls actually change their sends.
+      masterGain.connect(analyser);
+      masterGain.connect(masterReverb);
+      masterGain.connect(masterDelay);
+      masterReverbReturn.connect(analyser);
+      masterDelayReturn.connect(analyser);
+      analyser.connect(audioCtx.destination);
     }
     if (audioCtx.state === "suspended") audioCtx.resume();
   }
@@ -246,8 +259,8 @@
         container.querySelectorAll("[data-pan]").forEach(s => s.addEventListener("input", function(){ ST.tracks[this.dataset.pan].pan = this.value/100; save(); }));
         container.querySelectorAll("[data-inst]").forEach(s => s.addEventListener("change", function(){ ST.tracks[this.dataset.inst].inst = this.value; save(); }));
         
-        container.querySelector("#revInp").addEventListener("input", function(){ ST.masterRev = this.value/100; container.querySelector("#lbl_rev").textContent = this.value+"%"; save(); });
-        container.querySelector("#delInp").addEventListener("input", function(){ ST.masterDel = this.value/100; container.querySelector("#lbl_del").textContent = this.value+"%"; save(); });
+        container.querySelector("#revInp").addEventListener("input", function(){ ST.masterRev = this.value/100; if(masterReverbReturn) masterReverbReturn.gain.setTargetAtTime(ST.masterRev * 0.5, audioCtx.currentTime, 0.015); container.querySelector("#lbl_rev").textContent = this.value+"%"; save(); });
+        container.querySelector("#delInp").addEventListener("input", function(){ ST.masterDel = this.value/100; if(masterDelayReturn) masterDelayReturn.gain.setTargetAtTime(ST.masterDel * 0.5, audioCtx.currentTime, 0.015); container.querySelector("#lbl_del").textContent = this.value+"%"; save(); });
         
         container.querySelector("#btnExport").addEventListener("click", exportWav);
       }
@@ -281,7 +294,10 @@
       if (isPlaying) {
         clearInterval(loopInterval); isPlaying = false; build();
       } else {
-        initAudio(); isPlaying = true; currentStep = 0; build();
+        initAudio();
+        if(masterReverbReturn) masterReverbReturn.gain.setTargetAtTime(ST.masterRev * 0.5, audioCtx.currentTime, 0.015);
+        if(masterDelayReturn) masterDelayReturn.gain.setTargetAtTime(ST.masterDel * 0.5, audioCtx.currentTime, 0.015);
+        isPlaying = true; currentStep = 0; build();
         var stepDur = (60 / ST.bpm) / 4;
         loopInterval = setInterval(() => {
           if(ST.tracks.kick.grid[currentStep]) playKick(ST.tracks.kick.vol);
