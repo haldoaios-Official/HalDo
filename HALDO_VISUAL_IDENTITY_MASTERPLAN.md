@@ -63,3 +63,31 @@ Der Systemstart und der Einstieg in ausgewählte Apps erhalten einen besonderen 
 - Keine Aussage „fotorealistisch“, „lebensecht integriert“ oder „vollständig“ ohne nachgewiesenes Modell und bestandene Browserprüfung.
 
 **Aktueller Status:** Gestaltungsrichtung und technische Lücken dokumentiert. Noch keine neuen Avatar-GLB-Dateien, keine Human3D-Laufzeitintegration und keine neue Bildwelt als produktiv abgenommen.
+
+## Technischer Fortschritt — Avatar-Pipeline (27.11.2026)
+
+### Abgeschlossene Engineering-Schutzmaßnahmen
+
+- Human3D verwirft nun Antworten älterer GLB-Ladevorgänge, wenn inzwischen ein anderes Modell ausgewählt wurde. Eine langsame Netzwerkantwort kann dadurch nicht mehr das zuletzt gewählte Modell ersetzen.
+- Scheitert ein Modellwechsel vor dem Austausch des vorhandenen Modells, bleibt das bisher geladene Modell aktiv.
+- Die GLTFLoader-Initialisierung prüft, ob der Loader bereits verfügbar ist und verwaltet den Zustand eines vorhandenen Loader-Scripts. Ein bereits abgeschlossenes Script ohne registrierten Loader wird als Fehler gemeldet, statt auf ein nicht mehr eintreffendes Ladeereignis zu warten.
+- Browser-Regressionstests decken parallele Modellanforderungen, fehlgeschlagene Ersatzmodelle und den bereits abgeschlossenen GLTFLoader-Fehlerfall ab.
+
+### GLB-Eingangsprüfung
+
+Das neue Werkzeug scripts/validate-haldo-avatar-assets.mjs kontrolliert lokal vorliegende Dateien hinsichtlich GLB-Header, glTF-2.0-Struktur, JSON-/BIN-Chunks, Meshes, Skins/Joints, Animationskanälen und Morph Targets. Die CI führt Parser-Selbsttests aus und meldet fehlende Produktionsdateien gesondert. Ein vollständiger Khronos-Validator, eine visuelle 3D-Abnahme und ein Performance-Test bleiben zusätzliche Freigabeschritte.
+
+### Tatsächlicher Asset-Status
+
+- Produktions-Avatare im Repository: **0 verifiziert**.
+- Erwartete Dateien, die noch fehlen: **Human, Cyborg, Android, Robot**.
+- Weibliche Variante: ein zusätzlicher, optionaler Woman-Base-Mesh-Kandidat ist dokumentiert; sie ist nicht Teil der Produktionskonfiguration.
+- Die Grab3D-API-Dokumentation stellt Herkunfts-, Lizenz-, Rig- und Download-Metadaten in Aussicht. Die konkreten Binärdateien sind weiterhin nicht Bestandteil des Repositorys und dürfen nicht als geprüft behandelt werden.
+
+### Letzter automatisierter Qualitätslauf
+
+GitHub Actions Run 46058656613: Syntaxprüfung erfolgreich, GLB-Validator-Selbsttests erfolgreich, Chromium-E2E erfolgreich mit **8/8 Prüfungen**. Der Lauf bestätigt die Engineering-Regressionstests, nicht das Laden oder die visuelle Qualität echter Avatar-Dateien.
+
+[Qualitätslauf 46058656613](https://github.com/haldoaios-Official/HalDo/actions/runs/46058656613)
+
+**Status bleibt:** Human3D ist noch nicht produktiv in index.html eingebunden. Die Engine wird erst nach Bereitstellung und technischer Freigabe echter Avatar-GLBs integriert.
