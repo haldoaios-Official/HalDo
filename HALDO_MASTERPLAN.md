@@ -833,9 +833,9 @@ Ein App-Startpfad oder ein grüner CI-Lauf allein bedeutet nicht, dass eine App 
 **Implementiert im Arbeitsbranch:** `js/haldo-v178-ai-core.js`, eingebunden am Ende von `index.html` nach dem v177-Markenmodul. Das Modul ist eine Integrationsgrundlage und ausdrücklich noch kein vollständiger KI-Orchestrator.
 
 ### Tatsächlich bereitgestellte Schnittstellen
-- **Event-Transport:** nutzt ausschließlich den vorhandenen `HalDo.VoiceHub.on/emit`; es wird kein zweiter Event-Bus aufgebaut. Ereignisse verwenden den Namensraum `haldo:core:` und akzeptieren nur begrenzte Metadatenfelder. Freitext, Patientendaten, Zugangsdaten und beliebige Payload-Felder sind keine erlaubten Event-Metadaten.
+- **Event-Transport:** nutzt ausschließlich den vorhandenen `HalDo.VoiceHub.on/emit`; es wird kein zweiter Event-Bus aufgebaut. Ereignisse verwenden den Namensraum `haldo:core:` und akzeptieren nur App-/Aktions-/Status-Bezeichner sowie nicht-negative Zähler. Freitext, Patientendaten, Zugangsdaten, freie Ressourcen-IDs und beliebige Payload-Felder werden technisch abgewiesen.
 - **App-Registry:** stellt eine schreibgeschützte Projektion der vorhandenen `HalDo.Registry.featured` bereit; bestehende App-IDs und Registry-Einträge werden nicht verändert.
-- **Lokale Präferenzen:** verwendet `HalDo.Store` nur für kleine, nicht-sensitive Einstellungen. Schlüssel mit Begriffen wie Passwort, Token, Patient, Medizin, Medikamente, Diagnose, Labor oder Vitalwert werden abgewiesen. Dieser Adapter ist nicht verschlüsselt und darf keine Gesundheits-, Identitäts- oder Zugangsdaten speichern.
+- **Lokale Präferenzen:** verwendet `HalDo.Store` nur für kleine, nicht-sensitive Einstellungen. Schlüssel und verschachtelte Eigenschaftsnamen mit Begriffen wie Passwort, Token, Patient, Medizin, Medikamente, Diagnose, Labor oder Vitalwert werden abgewiesen. Dieser Adapter ist nicht verschlüsselt und darf keine Gesundheits-, Identitäts- oder Zugangsdaten speichern.
 - **Identitätsdarstellung:** liest ausschließlich freigegebene Avatar-/Logo-/Darstellungseinstellungen über die vorhandene `HalDo.IdentityBridge`. Das ist keine Benutzeranmeldung und keine Kontenverwaltung.
 - **Sitzungs-Audit:** hält maximal 100 reduzierte Ereignis-Metadaten im Arbeitsspeicher. Es ist kein dauerhaftes Sicherheitsprotokoll und speichert keine Event-Payloads.
 
