@@ -127,6 +127,8 @@
 
         currentModelKey: null,
 
+        pendingModelKey: null,
+
         currentAnimation: null,
 
         currentEmotion: "friendly",
@@ -1997,6 +1999,9 @@
             state.currentModelKey =
                 modelKey;
 
+            state.pendingModelKey =
+                modelKey;
+
             state.loaded = true;
 
             state.loading = false;
@@ -2497,9 +2502,23 @@
 
         startRendering();
 
+        const identitySettings =
+            HD.LivingIdentity &&
+            typeof HD.LivingIdentity.getSettings === "function"
+                ? HD.LivingIdentity.getSettings()
+                : {};
+
+        const identityModel =
+            identitySettings.avatar &&
+            CONFIG.models[identitySettings.avatar]
+                ? identitySettings.avatar
+                : null;
+
         const selected =
             modelKey ||
+            state.pendingModelKey ||
             state.currentModelKey ||
+            identityModel ||
             CONFIG.defaultModel;
 
         if (
@@ -2583,14 +2602,20 @@
                 const detail =
                     event.detail || {};
 
+                const avatarMode =
+                    detail.avatarMode ||
+                    detail.avatar;
+
                 if (
-                    detail.avatarMode &&
-                    CONFIG.models[detail.avatarMode]
+                    avatarMode &&
+                    CONFIG.models[avatarMode]
                 ) {
 
-                    setModel(
-                        detail.avatarMode
-                    );
+                    state.pendingModelKey = avatarMode;
+
+                    if (state.opened) {
+                        setModel(avatarMode);
+                    }
 
                 }
 
