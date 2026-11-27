@@ -941,3 +941,20 @@ Die Chromium-Regression startet eine ausstehende Mikrofonanfrage, löst die Brow
 
 ### v182 Korrektur im Browser-Testlauf
 Der erste CI-Durchlauf zeigte eine Zählungsabweichung: v181 hatte die ausstehende Anfrage bereits über den Widerruf im v179-Kern beendet, bevor v182 die Anzahl ermittelte. Die Korrektur erfasst deshalb ausstehende Anfragen vor dem Aufruf der vorhandenen v181-Policy und bestätigt anschließend, dass diese Anfragen tatsächlich nicht mehr offen sind. Der Funktionswiderruf wird dadurch nicht doppelt ausgeführt.
+
+
+## Registry- und A–Z-Bestandsaudit (27.11.2026)
+
+**Geprüfte Basis:** Branch `work-v167-medical-apps`, Hauptdatei `index.html` (Blob-SHA `4e621cb79c62358afa886f8a30fe9e0b73a3a7e0`), Registry-Abschnitt ab Zeile 515 sowie Modul-Ladebereich ab Zeile 14034.
+
+### Verifizierte Befunde
+- Die aktive Desktop-/Featured-Registry ist die Inline-Implementierung `HalDo.Registry` in `index.html`. Ihr initiales Featured-Array enthält **71 eindeutige IDs**, keine Duplikate.
+- Die 26 A–Z-Kategorien enthalten zusammen **375 geplante Plätze**. 375 ist die Zielkapazität des Katalogs und ausdrücklich nicht die Zahl fertig implementierter oder vollständig getesteter Apps.
+- Die Module v167 bis v182 werden am Ende der Hauptdatei explizit geladen. Mehrere Module ergänzen bestehende Registry-IDs um echte `open()`-Handler; andere registrieren neue Einträge über die vorhandene Featured-/MedicalVault-Schnittstelle.
+- `registry.js`, `apps.js`, `appstore.js` und `app-manager.js` sind im Repository vorhanden, werden aber im aktuell geprüften `index.html` nicht als statische Script-Dateien eingebunden. Sie werden deshalb nicht ohne weiteren Laufzeitnachweis als aktive Registry-/Launcher-Quelle behandelt. Keine dieser Dateien wurde verändert.
+- Die aktive Registry-Namensnormalisierung in `index.html` ergänzt fehlendes „HalDo“-Branding. Die Regel muss bei zukünftigen Modulen weiterhin durch Tests abgesichert werden.
+
+### Konsequenz für die nächste Implementierungsstufe
+Vor weiteren A–Z-App-Erweiterungen wird ein Registry-/Launcher-Konsistenztest erstellt. Er muss für jede sichtbare Featured-ID den tatsächlichen Öffnungspfad oder einen ausdrücklich dokumentierten System-Sonderfall nachweisen, doppelte IDs erkennen, dynamisch registrierte Module einbeziehen und den tatsächlichen Fensterstart einschließlich Welcome-Wrapper prüfen. Zusätzlich werden geplante 375 Katalogplätze, benannte Einträge, implementierte Handler und browsergetestete Apps als getrennte Kennzahlen ausgewiesen.
+
+**Status:** Statische Bestandsprüfung abgeschlossen; noch keine Registry- oder Launcher-Codeänderung aus diesem Audit. Keine Aussage, dass alle 71 Featured-Einträge oder alle 375 Zielplätze vollständig funktionsfähig sind. Der nächste Schritt ist der automatisierte Konsistenztest, nicht das Ersetzen der bestehenden Registry.
