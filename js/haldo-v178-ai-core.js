@@ -191,10 +191,41 @@
     });
   }
 
+  function validatePreferenceData(value, depth) {
+    if (depth > 8) throw new Error('HalDo AI Core preferences exceed the supported nesting depth.');
+    if (value == null || typeof value === 'boolean') return;
+    if (typeof value === 'number') {
+      if (!Number.isFinite(value)) throw new Error('HalDo AI Core preferences require finite numbers.');
+      return;
+    }
+    if (typeof value === 'string') {
+      if (!/^[a-z0-9][a-z0-9._:-]{0,79}$/i.test(value)) {
+        throw new Error('HalDo AI Core preferences accept short configuration tokens only, not free text.');
+      }
+      return;
+    }
+    if (Array.isArray(value)) {
+      if (value.length > 100) throw new Error('HalDo AI Core preference arrays are limited to 100 items.');
+      value.forEach(function (item) { validatePreferenceData(item, depth + 1); });
+      return;
+    }
+    if (!isPlainObject(value)) throw new Error('HalDo AI Core preferences accept only plain JSON configuration data.');
+    Object.keys(value).forEach(function (key) {
+      if (SECRET_KEY_PATTERN.test(key)) {
+        throw new Error('Sensitive property names are not allowed in HalDo AI Core preferences: ' + key);
+      }
+      if (!/^[a-z0-9][a-z0-9._:-]{0,79}$/i.test(key)) {
+        throw new Error('HalDo AI Core preference property names must be short identifiers.');
+      }
+      validatePreferenceData(value[key], depth + 1);
+    });
+  }
+
   function setPreference(key, value) {
     if (!preferencesAvailable()) throw new Error('HalDo local preference storage is unavailable.');
     var normalized = validatePreferenceKey(key);
     rejectSensitiveFields(value, 0);
+    validatePreferenceData(value, 0);
     var serialized = JSON.stringify(value);
     if (typeof serialized !== 'string' || serialized.length > 16384) {
       throw new Error('HalDo AI Core preference must be JSON data no larger than 16 KB.');
