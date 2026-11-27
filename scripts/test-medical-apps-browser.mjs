@@ -305,7 +305,8 @@ async function run() {
       !!(window.crypto && window.crypto.subtle) &&
       !!(window.HalDo && window.HalDo.Win && window.HalDo.Launch) &&
       !!(window.HalDo['laborwerte-pro'] && window.HalDo['medikamentenplan-pro']) &&
-      !!(window.HalDo.BrandingV177 && window.HalDo.BrandingV177.ready);
+      !!(window.HalDo.BrandingV177 && window.HalDo.BrandingV177.ready) &&
+      !!(window.HalDo.AICore && window.HalDo.AICore.version === '178.0.0');
   }, { timeout: 45000 });
   pass('HalDo OS startet auf sicherem Browser-Kontext; beide medizinischen Apps sind registriert');
   const brandAudit = await page.evaluate(() => ({
@@ -323,6 +324,76 @@ async function run() {
   assert.equal(brandAudit.specialFahrschule, 'HalDo Fahrschule AI Pro');
   assert.equal(brandAudit.specialArztbuch, 'HalDo Arztbuch AI Pro Max');
   pass('HalDo v177 Markenstandard: jede Registry-App trägt HalDo; AI/Cyborg-Spezialnamen und 177-Version geprüft');
+
+  const aiCoreAudit = await page.evaluate(() => {
+    const H = window.HalDo;
+    const core = H.AICore;
+    let eventPayload = null;
+    const unsubscribe = core.events.on('test:smoke', (payload) => { eventPayload = payload; });
+    const emitted = core.events.emit('test:smoke', {
+      appId: 'browser-test',
+      action: 'smoke',
+      status: 'ok',
+      count: 1
+    });
+    unsubscribe();
+
+    core.preferences.set('browser-test', { ready: true, revision: 178 });
+    const preference = core.preferences.get('browser-test', null);
+    core.preferences.remove('browser-test');
+    const preferenceRemoved = core.preferences.get('browser-test', null) === null;
+
+    let sensitivePreferenceRejected = false;
+    try { core.preferences.set('medical-records', { note: 'must-not-be-stored' }); }
+    catch { sensitivePreferenceRejected = true; }
+
+    let arbitraryEventFieldRejected = false;
+    try { core.events.emit('test:unsafe', { patientName: 'not-allowed' }); }
+    catch { arbitraryEventFieldRejected = true; }
+
+    const status = core.getStatus();
+    const audit = core.getRecentAudit(5);
+    return {
+      version: core.version,
+      platformVersion: H.Master.version,
+      aiCoreVersion: H.Master.aiCoreVersion,
+      appCount: core.listApps().length,
+      arztbuchName: core.getApp('arztbuch')?.name || null,
+      status,
+      emitted,
+      eventPayload,
+      preference,
+      preferenceRemoved,
+      sensitivePreferenceRejected,
+      arbitraryEventFieldRejected,
+      audit
+    };
+  });
+  assert.equal(aiCoreAudit.version, '178.0.0');
+  assert.equal(aiCoreAudit.platformVersion, '177.0.0', 'v178 darf die Plattform-Buildversion nicht überschreiben.');
+  assert.equal(aiCoreAudit.aiCoreVersion, '178.0.0');
+  assert.ok(aiCoreAudit.appCount >= 70, 'AI Core sieht die vorhandene App-Registry nicht vollständig.');
+  assert.equal(aiCoreAudit.arztbuchName, 'HalDo Arztbuch AI Pro Max');
+  assert.equal(aiCoreAudit.status.localOnly, true);
+  assert.equal(aiCoreAudit.status.eventHub, true);
+  assert.equal(aiCoreAudit.status.appRegistry, true);
+  assert.equal(aiCoreAudit.status.localPreferences, true);
+  assert.equal(aiCoreAudit.status.permissionService, false, 'Nicht geladene Berechtigungsdienste dürfen nicht vorgetäuscht werden.');
+  assert.equal(aiCoreAudit.status.authentication, false);
+  assert.equal(aiCoreAudit.status.commonSecureVault, false);
+  assert.equal(aiCoreAudit.status.aiInferenceRuntime, false);
+  assert.equal(aiCoreAudit.status.agentRuntime, false);
+  assert.equal(aiCoreAudit.status.backendConnected, false);
+  assert.equal(aiCoreAudit.emitted, true);
+  assert.equal(aiCoreAudit.eventPayload.name, 'test:smoke');
+  assert.deepEqual(aiCoreAudit.eventPayload.metadata, { appId: 'browser-test', action: 'smoke', status: 'ok', count: 1 });
+  assert.deepEqual(aiCoreAudit.preference, { ready: true, revision: 178 });
+  assert.equal(aiCoreAudit.preferenceRemoved, true);
+  assert.equal(aiCoreAudit.sensitivePreferenceRejected, true);
+  assert.equal(aiCoreAudit.arbitraryEventFieldRejected, true);
+  assert.ok(aiCoreAudit.audit.some((entry) => entry.event === 'haldo:core:test:smoke'));
+  assert.equal(aiCoreAudit.audit.some((entry) => JSON.stringify(entry).includes('must-not-be-stored')), false);
+  pass('HalDo AI Core v178: VoiceHub, Registry, lokale Präferenzen, Audit-Metadaten und ehrlicher Capability-Status geprüft');
 
   // Complete the actual first-run welcome gate before opening app windows.
   const systemWelcome = page.locator('#haldo-v161-welcome');
