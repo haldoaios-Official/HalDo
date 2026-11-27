@@ -51,3 +51,25 @@ Die vorhandene Engine `js/haldo-human-3d-engine.js` erwartet diese Pfade. Derzei
 - Kein Modell darf ohne Prüfung als fotorealistisch oder lippensynchron bezeichnet werden.
 - Anatomie-GLBs bleiben strikt getrennt von Avatar-GLBs.
 - Das Register dokumentiert externe Kandidaten; es ersetzt weder den Download noch die technische und rechtliche Prüfung der konkreten Dateien.
+
+
+## Herkunft, KI-Transparenz und Lizenzprüfung (27.11.2026)
+
+Die Paket-Lizenzdateien der vier oben genannten Kandidaten wurden zusätzlich auf der jeweiligen Modellseite geöffnet und geprüft:
+
+- **Lizenzstatus laut Paketdatei:** CC0 1.0 Universal. Der Anbieter erklärt, die Rechte an Modellen, Texturen und Bildern im gesetzlich möglichen Umfang aufzugeben; keine Namensnennung wird verlangt.
+- **Herkunft:** Alle vier geprüften Paketdateien deklarieren ausdrücklich „AI-assisted“. Basismesh und Texturen wurden mit dem KI-gestützten Image-to-3D-Werkzeug Meshy erstellt und anschließend in Blender bereinigt, skaliert, texturiert und geprüft.
+- **Transparenzpflichten:** Der Anbieter weist darauf hin, dass Plattformen mit KI-Kennzeichnungspflichten (als Beispiel Steam) diese Assets als KI-unterstützt behandeln. Für HalDo sind Herkunft und Bearbeitungsweg deshalb in dieser Asset-Dokumentation festzuhalten und bei jeder späteren Veröffentlichung die jeweiligen Plattformregeln erneut zu prüfen.
+- **Wichtig:** CC0-Lizenzangaben und KI-Herkunft sagen nichts über die technische Eignung, Gesichtsanimation oder Qualität als sprechender Avatar aus.
+
+### Zusätzliche Angaben zum Robot-Kandidaten
+
+Die Robot-Modellseite nennt die rigged GLB-Variante mit Walk/Run, ca. 13 MB, 800.000 Dreiecke in High Detail bzw. 399.999 in Light und 4K-Texturen (Light: 1K). Die Abmessungen der statischen Modellseite betragen 1,08 × 0,38 × 1,50 m. Diese Angaben beschreiben die Anbieter-Auswahl, nicht eine von HalDo geprüfte lokale Datei.
+
+### Grenzen der Rig-Informationen
+
+Die Grab3D-Dokumentation beschreibt bei einer Gruppe anderer Beispiel-Rigs 24 Bones und keine Finger-, Kiefer- oder Gesichtsknochen. Diese Aussage darf **nicht** ohne Inspektion auf Man Base Mesh, Cyborg, Porcelain Android oder Robot übertragen werden. Für alle vier konkreten Rigged-GLBs bleiben Bone-Namen, Anzahl und Hierarchie, Morph Targets, Viseme, Blinzeln und echte Idle-/Talk-Clips offen, bis die Download-Dateien selbst untersucht wurden.
+
+### Download- und Prüfstatus
+
+Zum Stand dieses Commits wurden die Binärdateien nicht in das HalDo-Repository übernommen. Die direkten Download-Links sind dokumentiert, aber die GLB-Dateien konnten in der aktuellen Arbeitsumgebung nicht zuverlässig abgerufen und deshalb weder mit einem glTF-Parser noch in einem Browser-Viewer validiert werden. **Alle vier bleiben Kandidaten und dürfen nicht als integrierte Produktions-Avatare angezeigt werden.**
