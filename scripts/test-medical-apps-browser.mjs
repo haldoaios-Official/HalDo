@@ -1817,7 +1817,10 @@ async function run() {
   // Exercise the actual Arztbuch anatomy window, its profile selector and WebGL viewer.
   await page.evaluate(() => window.HalDo.Anatomy3D.open());
   await dismissWelcomeIfPresent();
-  const anatomyAppRoot = page.locator('#winLayer .hdx-root').last();
+  // Several HalDo apps share the .hdx-root class; scope to this window by its title.
+  const anatomyWindow = page.locator('#winLayer .win-pro').filter({ hasText: 'HalDo Arztbuch Pro Max' }).last();
+  await anatomyWindow.waitFor({ state: 'visible', timeout: 10000 });
+  const anatomyAppRoot = anatomyWindow.locator('.win-body-pro > .hdx-root').first();
   await anatomyAppRoot.waitFor({ state: 'visible', timeout: 10000 });
   await anatomyAppRoot.locator('button[data-arzt-tab="anatomy"]').last().click();
   await anatomyAppRoot.locator('[data-model-schematic]').waitFor({ state: 'visible', timeout: 10000 });
