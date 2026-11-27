@@ -140,3 +140,34 @@ Die Visem-Ebene überschreibt während ihrer Laufzeit nur die betroffenen Mund-/
 **Wichtige Grenze:** Diese Schnittstelle analysiert keine Stimme, erzeugt keine Phoneme/Viseme und spielt selbst kein Audio ab. Die bestehende Browser-`SpeechSynthesis`-Ausgabe liefert HalDo hier noch keine geprüfte phonemgenaue Zeitachse. Ein TTS-/Audioanbieter muss echte Visemwerte liefern und `updateVisemes()` mit seiner tatsächlichen Playback-Zeit aufrufen. Bis diese Verbindung und ein echtes Avatar-GLB getestet sind, ist Lip-Sync weiterhin **nicht produktiv fertig**.
 
 Die Browser-Regression erweitert den synthetischen Test um Interpolation bei 150 ms, Validierung der Kanäle/Gewichte, Statusmeldung und sauberes Zurücksetzen der Visem-Ebene. Der Test belegt die Engine-Logik, nicht die Qualität oder Verfügbarkeit eines realen Avatar-Modells.
+
+
+## HalDo Voice Core ↔ Audio-Visem-Brücke integriert (27.11.2026)
+
+Die tatsächlich im `index.html` eingebettete **HalDo AI Voice Core Pro v159** wurde erweitert. Der Provider-Zweig kann jetzt neben `audioUrl` oder `audioBase64` optional ein JSON-Feld `visemeTimeline` entgegennehmen. Die separate Datei `voice.js` ist dafür nicht der zentrale Ladepfad; die Erweiterung sitzt bewusst im tatsächlich eingebetteten Voice Core.
+
+### Provider-Antwortvertrag
+
+Beispiel für die JSON-Antwort eines eigenen, serverseitig geschützten TTS-Proxys:
+
+```json
+{
+  "audioUrl": "https://voice.example/haldo-audio.mp3",
+  "visemeTimeline": [
+    { "timeMs": 0, "expressions": { "jawOpen": 0, "mouthPucker": 0 } },
+    { "timeMs": 100, "expressions": { "jawOpen": 1, "mouthPucker": 0.2 } },
+    { "timeMs": 200, "expressions": { "jawOpen": 0, "mouthPucker": 1 } }
+  ]
+}
+```
+
+- `timeMs` ist die Position innerhalb derselben Audiodatei, nicht die Serverzeit.
+- `expressions` enthält nur erlaubte Mund-/Kieferkanäle; die Human3D-Engine prüft Frames, sortierte Zeitwerte und Gewichte.
+- Während der Wiedergabe liest die Brücke `HTMLAudioElement.currentTime` und aktualisiert Human3D über `requestAnimationFrame`; das vermeidet die grobe Taktung eines reinen `timeupdate`-Events.
+- Pause setzt die Visem-Ebene zurück; Fortsetzen legt sie anhand der aktuellen Wiedergabezeit erneut an. Seek, Ende, Fehler und Stop werden behandelt.
+- Fehlt die Human3D-Engine oder weist sie die Timeline ab, wird die Audio-Wiedergabe nicht blockiert. Der Voice Core meldet den Grund über Voice-Events.
+- `HalDo.VoiceCore.bindVisemeAudio(audio, frames)` ist zusätzlich als Provider-/App-Adapter verfügbar; `clearVisemeAudio()` löst die aktuelle Bindung.
+
+**Unveränderte Grenze:** Browser-`SpeechSynthesis` bleibt ohne Visem-Zeitachse. Der TTS-Server muss die optionalen Daten tatsächlich liefern und sie korrekt zur erzeugten Audiodatei ausrichten. Derzeit ist kein TTS-Provider konfiguriert und die Human3D-Engine wird in der aktuellen `index.html` weiterhin nicht produktiv eingebunden; deshalb ist noch keine echte Avatar-Lippensynchronisation im laufenden HalDo-System freigegeben.
+
+Die Chromium-E2E ergänzt eine simulierte Provider-Antwort. Sie kontrolliert Audio-Zeit 50 ms/150 ms, Interpolation, aktive Bindung und Reset bei Pause. Der Test beweist die Verbindung zwischen Voice-Core und Human3D-API im simulierten Lauf, nicht eine reale Provider-Audioausgabe.
