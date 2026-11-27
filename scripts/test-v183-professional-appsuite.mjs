@@ -268,16 +268,22 @@ try {
         { timeMs:200, expressions:{ jawOpen:0, mouthPucker:1 } }
       ]
     };
-    window.fetch = async () => ({
-      ok:true,
-      headers:{ get:()=>'application/json' },
-      json:async()=>mockVoicePayload
-    });
+    const voiceRequestBodies = [];
+    window.fetch = async (_url, init) => {
+      voiceRequestBodies.push(JSON.parse(init.body));
+      return {
+        ok:true,
+        headers:{ get:()=>'application/json' },
+        json:async()=>mockVoicePayload
+      };
+    };
     window.Audio = TestAudio;
     window.requestAnimationFrame = callback => { const id=++nextFrame; frames.set(id,callback); return id; };
     window.cancelAnimationFrame = id => frames.delete(id);
     try {
-      const result = await H.VoiceCore.speak('HalDo Visem-Test',{ endpoint:'https://voice.example.test/tts', language:'de-DE' });
+      const result = await H.VoiceCore.speak('HalDo Visem-Test',{ endpoint:'https://voice.example.test/tts', provider:'azure-speech', language:'de-DE', voiceId:'de-DE-KatjaNeural' });
+      const deProviderCapabilities = H.VoiceCore.getProviderCapabilities('de-DE');
+      const trProviderCapabilities = H.VoiceCore.getProviderCapabilities('tr-TR');
       const audio = audios[0];
       if (!audio) throw new Error('Provider-Audioelement wurde nicht erstellt.');
       const activeAfterPlay = engine.getVisemeStatus().active;
@@ -326,7 +332,8 @@ try {
         }]
       };
       const convertedAzureTimeline = H.VoiceCore.normalizeAzureVisemeEvents(mockVoicePayload.azureVisemeEvents);
-      const azureResult = await H.VoiceCore.speak('HalDo Azure Visem-Test',{ endpoint:'https://voice.example.test/azure-tts', language:'de-DE' });
+      const azureResult = await H.VoiceCore.speak('HalDo Azure Visem-Test',{ endpoint:'https://voice.example.test/azure-tts', provider:'azure-speech', language:'de-DE', voiceId:'de-DE-KatjaNeural' });
+      const azureRequestBody = voiceRequestBodies[1];
       const azureAudio = audios[1];
       if (!azureAudio) throw new Error('Azure-Provider-Audioelement wurde nicht erstellt.');
       azureAudio.currentTime = (1000/60/2)/1000;
@@ -357,7 +364,18 @@ try {
         azureSecondFramePucker:convertedAzureTimeline&&convertedAzureTimeline[1].expressions.mouthPucker,
         azurePlaybackVisemes:azureResult.visemes,
         azureJawAtHalfFrame,
-        azurePuckerAtHalfFrame
+        azurePuckerAtHalfFrame,
+        deAzureBlendShapes:deProviderCapabilities.azureSpeech.blendShapes55,
+        trAzureBlendShapes:trProviderCapabilities.azureSpeech.blendShapes55,
+        deAzureRequestedFormat:deProviderCapabilities.azureSpeech.requestedVisemeFormat,
+        trAzureRequestedFormat:trProviderCapabilities.azureSpeech.requestedVisemeFormat,
+        firstRequestProvider:voiceRequestBodies[0].provider,
+        firstRequestProtocol:voiceRequestBodies[0].protocol,
+        firstRequestVisemeFormat:voiceRequestBodies[0].requestedVisemeFormat,
+        firstRequestVoiceName:voiceRequestBodies[0].voiceName,
+        azureRequestProvider:azureRequestBody.provider,
+        azureRequestVisemeFormat:azureRequestBody.requestedVisemeFormat,
+        azureRequestHasModel:Object.prototype.hasOwnProperty.call(azureRequestBody,'model')
       };
     } finally {
       try { H.VoiceCore.stop(); } catch (_) {}
@@ -388,7 +406,18 @@ try {
   assert.equal(voiceVisemeBridge.azurePlaybackVisemes, true, 'Azure-Blendshape-Events wurden nicht zur Audio-Wiedergabe gebunden.');
   assert.ok(Math.abs(voiceVisemeBridge.azureJawAtHalfFrame - 0.4) < 1e-9);
   assert.ok(Math.abs(voiceVisemeBridge.azurePuckerAtHalfFrame - 0.2) < 1e-9);
-  pass('HalDo Voice Core synchronisiert Provider-Viseme, Azure-55-Blendshapes und Audio.currentTime; Pause und Seek bleiben stabil.');
+  assert.equal(voiceVisemeBridge.deAzureBlendShapes,true,'de-DE muss in der offiziellen Azure-Blendshape-Locale-Liste enthalten sein.');
+  assert.equal(voiceVisemeBridge.trAzureBlendShapes,false,'tr-TR darf nicht fälschlich als 55-Blendshape-Locale ausgewiesen werden.');
+  assert.equal(voiceVisemeBridge.deAzureRequestedFormat,'azure-blendshapes-55-v1');
+  assert.equal(voiceVisemeBridge.trAzureRequestedFormat,null);
+  assert.equal(voiceVisemeBridge.firstRequestProvider,'azure-speech');
+  assert.equal(voiceVisemeBridge.firstRequestProtocol,'haldo-voice-v1');
+  assert.equal(voiceVisemeBridge.firstRequestVisemeFormat,'azure-blendshapes-55-v1');
+  assert.equal(voiceVisemeBridge.firstRequestVoiceName,'de-DE-KatjaNeural');
+  assert.equal(voiceVisemeBridge.azureRequestProvider,'azure-speech');
+  assert.equal(voiceVisemeBridge.azureRequestVisemeFormat,'azure-blendshapes-55-v1');
+  assert.equal(voiceVisemeBridge.azureRequestHasModel,false,'Azure darf keinen ElevenLabs-Modellnamen erhalten.');
+  pass('HalDo Voice Core synchronisiert Provider-Viseme, Azure-55-Blendshapes, Locale-Prüfung und das provider-spezifische Request-Protokoll; Pause und Seek bleiben stabil.');
 
   await page.evaluate(() => window.HalDo['app-registry'].open());
   const store = page.locator('.hdv183-store');
