@@ -91,7 +91,7 @@
       amp.gain.setValueAtTime(.001,when);amp.gain.linearRampToValueAtTime(peak,when+.025);amp.gain.setTargetAtTime(.001,end-.035,.045);
       osc.connect(filter2);filter2.connect(amp);amp.connect(b.gain);osc.start(when);osc.stop(end+.12);
     }
-    return {buses:buses,analyser:analyser,update:update,note:note,close:function(){try{master.disconnect();}catch(e){}}};
+    return {buses:buses,analyser:analyser,update:update,note:note,close:function(){try{master.disconnect();}catch(e){}try{if(ctx.state!=='closed')ctx.close();}catch(e){}}};
   }
   function makeOffline(state){
     var O=window.OfflineAudioContext||window.webkitOfflineAudioContext;
