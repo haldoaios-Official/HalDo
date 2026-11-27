@@ -91,7 +91,7 @@
       amp.gain.setValueAtTime(.001,when);amp.gain.linearRampToValueAtTime(peak,when+.025);amp.gain.setTargetAtTime(.001,end-.035,.045);
       osc.connect(filter2);filter2.connect(amp);amp.connect(b.gain);osc.start(when);osc.stop(end+.12);
     }
-    return {buses:buses,analyser:analyser,update:update,note:note,close:function(){try{master.disconnect();}catch(e){}try{if(ctx.state!=='closed')ctx.close();}catch(e){}}};
+    return {context:ctx,buses:buses,analyser:analyser,update:update,note:note,close:function(){try{master.disconnect();}catch(e){}try{if(ctx.state!=='closed')ctx.close();}catch(e){}}};
   }
   function makeOffline(state){
     var O=window.OfflineAudioContext||window.webkitOfflineAudioContext;
@@ -164,7 +164,7 @@
     function status(message){var root=document.getElementById(rootId),el=root&&root.querySelector('#hms-status');if(el)el.textContent=message;}
     function schedule(){
       if(!playing||!audio)return;
-      var step=60/state.bpm/4,now=audio.analyser.context?audio.analyser.context.currentTime:0;
+      var step=60/state.bpm/4,now=audio.context.currentTime;
       while(nextTime<now+.12){
         var idx=stepIndex;
         TRACKS.forEach(function(t){
@@ -178,13 +178,19 @@
         stepIndex=(stepIndex+1)%16;nextTime+=step;
       }
     }
-    function start(){
+    async function start(){
       if(playing)return;
       var AC=window.AudioContext||window.webkitAudioContext;if(!AC){status('Web Audio wird von diesem Browser nicht unterstützt.');return;}
-      try{audio=new AC();audio.resume();audio=makeEngine(audio,state);}catch(e){audio=null;status('Audio konnte nicht gestartet werden: '+e.message);return;}
-      playing=true;stepIndex=0;nextTime=audio.analyser.context?audio.analyser.context.currentTime+.04:0;
-      // Analyser nodes expose no context consistently; use the local AudioContext clock.
-      var root=document.getElementById(rootId);if(root){root.querySelector('#hms-play').textContent='▶ Läuft';}
+      var context;
+      try{
+        context=new AC();
+        await context.resume();
+        if(closed){if(context.state!=='closed')await context.close();return;}
+        if(context.state!=='running')throw new Error('Audio-Kontext blieb pausiert.');
+        audio=makeEngine(context,state);
+      }catch(e){try{if(context&&context.state!=='closed')context.close();}catch(_){}audio=null;status('Audio konnte nicht gestartet werden: '+e.message);return;}
+      playing=true;stepIndex=0;nextTime=audio.context.currentTime+.04;
+      var root=document.getElementById(rootId);if(root){root.querySelector('#hms-play').textContent='▶ Läuft';drawVisualizer(root);}
       status('Wiedergabe läuft · '+state.bpm+' BPM');timer=setInterval(schedule,25);
     }
     function drawVisualizer(root){
