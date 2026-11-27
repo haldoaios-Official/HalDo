@@ -208,5 +208,14 @@
   if (!H.Registry.featured.some(function (item) { return item.id === APP_ID; })) {
     H.Registry.featured.push({id:APP_ID,n:APP_NAME,i:APP_ICON});
   }
+  if (H.Master && typeof H.Master.getCategoryApps === 'function') {
+    var previousCategoryApps = H.Master.getCategoryApps.bind(H.Master);
+    H.Master.getCategoryApps = function (key) {
+      var items = previousCategoryApps(key) || [];
+      if (key !== 'S' || items.some(function (item) { return item.id === APP_ID; })) return items;
+      return items.concat([{id:APP_ID,name:APP_NAME,icon:APP_ICON}]);
+    };
+    H.Master.namedCoreApps = H.Registry.featured.length;
+  }
   console.info('HalDo System Center Pro: Live-App-Inventar und A–Z-Statusübersicht registriert.');
 })();
