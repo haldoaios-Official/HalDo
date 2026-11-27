@@ -394,7 +394,9 @@ async function run() {
   assert.equal(aiCoreAudit.status.eventHub, true);
   assert.equal(aiCoreAudit.status.appRegistry, true);
   assert.equal(aiCoreAudit.status.localPreferences, true);
-  assert.equal(aiCoreAudit.status.permissionService, false, 'Nicht geladene Berechtigungsdienste dürfen nicht vorgetäuscht werden.');
+  assert.equal(aiCoreAudit.status.permissionService, true, 'v179 stellt den zustimmungsbasierten Berechtigungsdienst bereit.');
+  assert.equal(aiCoreAudit.status.permissionCoreVersion, '179.0.0');
+  assert.equal(aiCoreAudit.status.permissionModel, 'explicit-session-consent');
   assert.equal(aiCoreAudit.status.authentication, false);
   assert.equal(aiCoreAudit.status.commonSecureVault, false);
   assert.equal(aiCoreAudit.status.aiInferenceRuntime, false);
@@ -515,6 +517,29 @@ async function run() {
   await systemWelcome.waitFor({ state: 'detached', timeout: 10000 });
   await page.locator('#loader').waitFor({ state: 'hidden', timeout: 20000 });
   pass('HalDo-Willkommensbildschirm und Three.js-Kosmos: Arbeitsbereich vollständig gestartet');
+
+  const privacyApp = await page.evaluate(() => ({
+    registry: window.HalDo.AICore.getApp('privacy-center'),
+    moduleOpen: typeof window.HalDo['privacy-center']?.open,
+    manifest: window.HalDo.PermissionCore.listApps().find(app => app.id === 'avatar')
+  }));
+  assert.equal(privacyApp.registry.name, 'HalDo Privacy & Consent Center Pro');
+  assert.equal(privacyApp.moduleOpen, 'function');
+  assert.ok(privacyApp.manifest);
+  await page.evaluate(() => window.HalDo.Launch({ id: 'privacy-center', n: 'HalDo Privacy & Consent Center Pro' }));
+  await dismissWelcomeIfPresent();
+  const privacyRoot = page.locator('#winLayer .hdv179-center').last();
+  await privacyRoot.waitFor({ state: 'visible', timeout: 10000 });
+  await page.waitForFunction(() => {
+    const host = document.querySelector('#winLayer .hdv179-center [data-center-browser]');
+    return !!host && host.querySelectorAll('div').length >= 4;
+  }, { timeout: 10000 });
+  assert.match(await privacyRoot.locator('[data-center-summary]').innerText(), /Aktive HalDo-Sitzungsfreigaben: 0/);
+  assert.match(await privacyRoot.locator('[data-center-apps]').innerText(), /HalDo Cyborg Avatar AI Pro/);
+  assert.match(await privacyRoot.locator('[data-center-apps]').innerText(), /Mikrofon/);
+  assert.match(await privacyRoot.locator('[data-center-browser]').innerText(), /Kamera/);
+  await closeWindow(privacyRoot);
+  pass('HalDo Privacy & Consent Center Pro: App-Manifeste, Sitzungsfreigaben und getrennte Browserstatus sichtbar');
   const launchChecks = [
     ['avatar', 'Living HalDo AI'],
     ['bibliothek', 'HalDo Bibliothek Pro'],
