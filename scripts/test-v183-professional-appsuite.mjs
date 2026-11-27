@@ -97,12 +97,14 @@ try {
   await brand.locator('[data-brand-preview] svg').waitFor();
   await page.evaluate(() => {
     window.__haldoV183ExportCapture = null;
-    document.addEventListener('click', event => {
-      const link = event.target && event.target.closest ? event.target.closest('a[download]') : null;
-      if (!link || link.download !== 'haldo-logo-entwurf.svg') return;
-      window.__haldoV183ExportCapture = { href: link.href, filename: link.download };
-      event.preventDefault();
-    }, true);
+    const nativeClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function () {
+      if (this.download === 'haldo-logo-entwurf.svg') {
+        window.__haldoV183ExportCapture = { href: this.href, filename: this.download };
+        return;
+      }
+      return nativeClick.call(this);
+    };
   });
   await brand.locator('[data-brand-export]').click();
   const exported = await page.evaluate(() => window.__haldoV183ExportCapture);
