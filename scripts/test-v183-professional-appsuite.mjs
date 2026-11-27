@@ -83,8 +83,21 @@ try {
           const scene = new THREE.Group();
           const face = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial());
           // Simulate the morph-target dictionary/influences produced by GLTFLoader.
-          face.morphTargetDictionary = { jawOpen:0, eyeBlinkLeft:1, mouthSmile:2 };
-          face.morphTargetInfluences = [0, 0, 0];
+          face.morphTargetDictionary = {
+            jawOpen:0,
+            eyeBlinkLeft:1,
+            mouthSmile:2,
+            browInnerUp:3,
+            mouthPucker:4,
+            eyeSquintLeft:5,
+            eyeSquintRight:6,
+            eyeWideLeft:7,
+            eyeWideRight:8,
+            browDownLeft:9,
+            browDownRight:10,
+            mouthPress:11
+          };
+          face.morphTargetInfluences = new Array(12).fill(0);
           testMorphInfluencesByPath[url] = face.morphTargetInfluences;
           scene.add(face);
           onLoad({ scene, animations:[new THREE.AnimationClip('Idle', 1, [])] });
@@ -101,6 +114,12 @@ try {
       const slow = engine.setModel('e2e-race-slow');
       const fast = engine.setModel('e2e-race-fast');
       const raceResults = await Promise.all([slow, fast]);
+      const happyEmotionSet = engine.setEmotion('happy');
+      const happyFaceValues = engine.getFaceExpressions();
+      const surprisedEmotionSet = engine.setEmotion('surprised');
+      const surprisedFaceValues = engine.getFaceExpressions();
+      const speakingEmotionSet = engine.setEmotion('speaking');
+      const speakingFaceValues = engine.getFaceExpressions();
       const jawApplied = engine.setFaceExpression('jawOpen', 0.7);
       const blinkApplied = engine.setFaceExpression('eyeBlinkLeft', 0.4);
       const batchApplied = engine.setFaceExpressions({ mouthSmile:0.6 });
@@ -125,6 +144,12 @@ try {
       const status = engine.getStatus();
       return {
         raceResults,
+        happyEmotionSet,
+        happyFaceValues,
+        surprisedEmotionSet,
+        surprisedFaceValues,
+        speakingEmotionSet,
+        speakingFaceValues,
         jawApplied,
         blinkApplied,
         batchApplied,
@@ -145,6 +170,15 @@ try {
     }
   });
   assert.deepEqual(avatarLoadSafety.raceResults, [false, true], 'Ein veraltetes GLB-Ergebnis wurde nicht verworfen.');
+  assert.equal(avatarLoadSafety.happyEmotionSet, true);
+  assert.equal(avatarLoadSafety.happyFaceValues.mouthSmile, 0.58);
+  assert.equal(avatarLoadSafety.happyFaceValues.eyeSquintLeft, 0.1);
+  assert.equal(avatarLoadSafety.surprisedEmotionSet, true);
+  assert.equal(avatarLoadSafety.surprisedFaceValues.mouthSmile, 0, 'Vorige Emotions-Morphs wurden beim Wechsel nicht neutralisiert.');
+  assert.equal(avatarLoadSafety.surprisedFaceValues.jawOpen, 0.18);
+  assert.equal(avatarLoadSafety.surprisedFaceValues.eyeWideLeft, 0.62);
+  assert.equal(avatarLoadSafety.speakingEmotionSet, true);
+  assert.equal(avatarLoadSafety.speakingFaceValues.jawOpen, 0, 'Sprechen darf ohne Visem-Daten keine künstliche Mundbewegung auslösen.');
   assert.equal(avatarLoadSafety.jawApplied, true);
   assert.equal(avatarLoadSafety.blinkApplied, true);
   assert.equal(avatarLoadSafety.batchApplied, 1);
