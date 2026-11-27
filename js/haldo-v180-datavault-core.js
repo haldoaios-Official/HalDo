@@ -722,7 +722,8 @@
             '<p class="hdv180-muted" data-vault-notice role="status" aria-live="polite"></p>' +
             '<p class="hdv180-muted">Speicherung erfolgt ausschließlich lokal in IndexedDB. Keine Cloud-Synchronisierung, kein Konten- oder Wiederherstellungsdienst und keine automatische Migration aus dem Arztbuch-Tresor. Vor echten Gesundheitsdaten sind zusätzliche Sicherheits- und Datenschutzprüfungen erforderlich.</p>';
 
-          root.querySelector('[data-vault-auth]').addEventListener('submit', function (event) {
+          var authForm = root.querySelector('[data-vault-auth]');
+          if (authForm) authForm.addEventListener('submit', function (event) {
             event.preventDefault();
             var form = event.currentTarget;
             var pass = form.elements.passphrase.value;
