@@ -1563,18 +1563,18 @@ async function run() {
   assert.notEqual(await musicStudio.locator('[data-trk="kick"][data-idx="0"]').getAttribute('style'), null);
   await musicStudio.locator('#btnPlay').click();
   await musicStudio.getByRole('button', { name:/Stop/ }).waitFor({ state:'visible', timeout:5000 });
-  await page.locator('#btnPlay').click();
+  await musicStudio.locator('#btnPlay').click();
   await musicStudio.getByRole('button', { name:/Play/ }).waitFor({ state:'visible', timeout:5000 });
   await musicStudio.locator('[data-mtab="mixer"]').click();
-  await musicStudio.locator('#revInp').fill('45');
-  await musicStudio.locator('#delInp').fill('35');
+  await musicStudio.locator('#revInp').evaluate((el) => { el.value='45'; el.dispatchEvent(new Event('input', { bubbles:true })); });
+  await musicStudio.locator('#delInp').evaluate((el) => { el.value='35'; el.dispatchEvent(new Event('input', { bubbles:true })); });
   await musicStudio.locator('#btnSave').click();
   const musicStored = await page.evaluate(() => window.HalDo.Store.get('music-studio:proj_v22', null));
   assert.equal(musicStored.masterRev, 0.45);
   assert.equal(musicStored.masterDel, 0.35);
   const [musicWavDownload] = await Promise.all([
     page.waitForEvent('download', { timeout:20000 }),
-    page.locator('#btnExport').click()
+    musicStudio.locator('#btnExport').click()
   ]);
   assert.match(musicWavDownload.suggestedFilename(), /\.wav$/i);
   const musicWav = await fs.readFile(await musicWavDownload.path());
