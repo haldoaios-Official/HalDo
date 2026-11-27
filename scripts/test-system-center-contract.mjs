@@ -12,7 +12,9 @@ const categories = {
   A: { name: 'HalDo AI', icon: '🤖', count: 10 },
   S: { name: 'HalDo System', icon: '⚙️', count: 12 }
 };
+let fallbackLaunchCalls = 0;
 const H = {
+  Launch(app) { fallbackLaunchCalls += 1; return app.id; },
   Win: { open() {} },
   Registry: {
     featured: [
@@ -50,6 +52,12 @@ runInNewContext(source, { window, document, console, URL, Blob, HTMLCanvasElemen
 
 assert.equal(typeof H.SystemCenter.open, 'function', 'System Center open() is registered');
 assert.equal(H['system-center'], H.SystemCenter, 'App-ID points to the System Center module');
+let systemCenterOpenCalls = 0;
+H.SystemCenter.open = () => { systemCenterOpenCalls += 1; };
+H.Launch({ id: 'system-center', n: 'HalDo System Center Pro' });
+assert.equal(systemCenterOpenCalls, 1, 'Launcher opens the real System Center module');
+assert.equal(H.Launch({ id: 'native-demo' }), 'native-demo', 'Other app launches preserve the previous launcher');
+assert.equal(fallbackLaunchCalls, 1, 'Previous launcher is called for non-System-Center apps');
 assert.ok(H.Registry.featured.some(app => app.id === 'system-center'), 'System Center is in the featured registry');
 assert.equal(H.Master.getCategoryApps('S').some(app => app.id === 'system-center'), true, 'System Center is assigned to category S');
 
@@ -66,4 +74,4 @@ assert.equal(H.Registry.totalCount(), 22, 'The planned slot count is preserved')
 assert.match(index, /<script src="system-center-pro\.js"><\/script>/, 'System Center script is included in index.html');
 assert.ok(index.indexOf('<script src="video-studio-pro.js"></script>') < index.indexOf('<script src="system-center-pro.js"></script>'), 'System Center loads after the studio modules');
 
-console.log('System Center contract tests passed: registration, category, all five inventory states, plan count and script order.');
+console.log('System Center contract tests passed: registration, category, launcher routing, fallback preservation, all five inventory states, plan count and script order.');
