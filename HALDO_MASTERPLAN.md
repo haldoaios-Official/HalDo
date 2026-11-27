@@ -750,7 +750,7 @@ Dieser Abschnitt korrigiert die älteren Zwischenzahlen im Abschnitt „Korrigie
 - Ergebnis: **87/87 Einzelprüfungen erfolgreich**. Der Job „Encrypted vault end-to-end tests“ endete mit `success`.
 - Die Suite umfasst u. a. Pflegeprotokoll, Arzttermine/Überweisungen, Krankheits- und Medikamentenlexikon, Einheiten-Umrechner, Habit Heatmap, QR Studio, QR Sticker, PDF-/Druck-Center, Dokumenten-Scanner, Wissenschaftslabor, WLAN/Bluetooth-Manager, Musikstudio, Anatomie 3D sowie Arztbuch/Vitalwerte/Laborwerte/Medikamentenplan.
 - Diese 87 Prüfungen sind gezielte automatisierte Browserprüfungen der aufgeführten Abläufe. Sie sind **keine** vollständige Funktionsabnahme aller 92 Registry-Apps und ersetzen weder klinische noch Datenschutz-/Sicherheitsprüfung.
-- `index.html` verwendet weiterhin den Dokumenttitel „Master Build v167“, obwohl v168–v176-Module eingebunden sind. Der sichtbare HTML-Titel wird deshalb im selben Arbeitsbranch auf v176 vereinheitlicht; historische Modulversionen bleiben unverändert.
+- Der Dokumenttitel in `index.html` wurde auf „Master Build v176“ vereinheitlicht; die vollständige 14.051-zeilige Hauptdatei mit den vorhandenen v167–v176-Integrationen ist erhalten.
 
 ### Branch- und Veröffentlichungsgrenze
 
@@ -760,3 +760,11 @@ Dieser Abschnitt korrigiert die älteren Zwischenzahlen im Abschnitt „Korrigie
 - Nächster Ausbau: die noch nicht benannten A–Z-Plätze anhand der bestätigten Nutzeranforderungen konkretisieren, anschließend pro regulärem App-Release zwei neue eigenständige Apps implementieren, integrieren und mit Browserprüfungen abnehmen.
 
 **Wahrheitsregel:** Registry-Startbarkeit, fachliche Funktionsvollständigkeit, Datenschutz-/Sicherheitsprüfung und Live-Veröffentlichung sind vier getrennte Abnahmestufen.
+
+
+### Wiederherstellung der Hauptdatei – 27.11.2026
+
+- Eine fehlerhafte partielle Dateiaktualisierung hatte `index.html` vorübergehend auf einen 337-Byte-Kopf gekürzt. Der unmittelbar folgende Chromium-Lauf #233 schlug deshalb bereits beim OS-Start fehl (0 erreichte Prüfungen; Timeout in `scripts/test-medical-apps-browser.mjs`).
+- Die vollständige Hauptdatei wurde aus dem unveränderten Parent-Commit `6a5d306500abf05c730fb4f77be85be0389e4346` wiederhergestellt und nur der Dokumenttitel auf v176 angepasst.
+- Wiederherstellungsprüfung: 1.002.901 Zeichen, 14.051 Zeilen, v173- und v176-Script-Einbindungen vorhanden. Der neue Branch-Commit ist `46c9cb60125705eb6ed8d2ece71ee31c21f02856`.
+- Der fehlgeschlagene Lauf #233 bleibt als fehlgeschlagener Lauf dokumentiert und darf nicht als erfolgreicher Test gezählt werden. Der wiederhergestellte Stand benötigt einen neuen vollständigen Browserlauf vor weiterer Freigabe.
