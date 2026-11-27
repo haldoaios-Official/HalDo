@@ -25,12 +25,9 @@
     action: true,
     status: true,
     resourceType: true,
-    resourceId: true,
     correlationId: true,
-    timestamp: true,
     count: true,
     durationMs: true,
-    reason: true,
     source: true,
     version: true
   };
@@ -76,14 +73,21 @@
       }
       var value = metadata[key];
       if (value == null) return;
-      if (typeof value === 'string') {
-        normalized[key] = value.slice(0, 240);
-      } else if (typeof value === 'number' && Number.isFinite(value)) {
+      if (typeof value === 'string' && /^(appId|action|status|resourceType|source|version)$/.test(key)) {
+        if (!/^[a-z0-9][a-z0-9._:-]{0,79}$/i.test(value)) {
+          throw new Error('HalDo AI Core metadata strings must be short identifiers, not free text.');
+        }
         normalized[key] = value;
-      } else if (typeof value === 'boolean') {
+      } else if (key === 'correlationId' && typeof value === 'string') {
+        if (!/^[a-f0-9-]{16,64}$/i.test(value)) {
+          throw new Error('HalDo AI Core correlationId must be an opaque hexadecimal identifier.');
+        }
+        normalized[key] = value;
+      } else if ((key === 'count' || key === 'durationMs') &&
+                 typeof value === 'number' && Number.isFinite(value) && value >= 0) {
         normalized[key] = value;
       } else {
-        throw new TypeError('HalDo AI Core event metadata values must be strings, finite numbers, booleans or null.');
+        throw new TypeError('HalDo AI Core event metadata accepts identifier strings and non-negative numeric counters only.');
       }
     });
     var serialized = JSON.stringify(normalized);
@@ -172,9 +176,25 @@
     return normalized;
   }
 
+  function rejectSensitiveFields(value, depth) {
+    if (depth > 8) throw new Error('HalDo AI Core preferences exceed the supported nesting depth.');
+    if (Array.isArray(value)) {
+      value.forEach(function (item) { rejectSensitiveFields(item, depth + 1); });
+      return;
+    }
+    if (!isPlainObject(value)) return;
+    Object.keys(value).forEach(function (key) {
+      if (SECRET_KEY_PATTERN.test(key)) {
+        throw new Error('Sensitive property names are not allowed in HalDo AI Core preferences: ' + key);
+      }
+      rejectSensitiveFields(value[key], depth + 1);
+    });
+  }
+
   function setPreference(key, value) {
     if (!preferencesAvailable()) throw new Error('HalDo local preference storage is unavailable.');
     var normalized = validatePreferenceKey(key);
+    rejectSensitiveFields(value, 0);
     var serialized = JSON.stringify(value);
     if (typeof serialized !== 'string' || serialized.length > 16384) {
       throw new Error('HalDo AI Core preference must be JSON data no larger than 16 KB.');
