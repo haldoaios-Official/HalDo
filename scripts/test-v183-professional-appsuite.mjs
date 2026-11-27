@@ -121,10 +121,11 @@ try {
     };
   });
   // The desktop shell's fixed bottom bar may overlap the app window in a short
-  // headless viewport. This test targets the export handler itself, so force the
-  // click after Playwright has resolved the real button, rather than testing hit
-  // testing against unrelated shell chrome.
-  await brand.locator('[data-brand-export]').click({ force:true });
+  // headless viewport. This check targets the registered export handler itself;
+  // dispatching the click event avoids testing unrelated shell hit-testing.
+  const exportButton = brand.locator('[data-brand-export]');
+  assert.equal(await exportButton.count(), 1, 'Der SVG-Export-Button fehlt oder ist doppelt.');
+  await exportButton.dispatchEvent('click');
   const exported = await page.evaluate(() => window.__haldoV183ExportCapture);
   assert(exported, 'Der Export-Button hat keinen Download-Link ausgelöst.');
   assert.equal(exported.filename, 'haldo-logo-entwurf.svg');
