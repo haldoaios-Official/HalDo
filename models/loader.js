@@ -1,4 +1,5 @@
 import { validateModelManifest, validateModelSourceRegistry } from './package.js';
+import { modelPath } from './catalog.js';
 
 export async function loadModelManifest(url = './models/manifest.json') {
   const response = await fetch(url, { cache: 'no-cache' });
@@ -35,11 +36,12 @@ async function createSharedLoader(options) {
 }
 
 export async function loadBoneModel(THREE, profileId, boneId, options = {}) {
+  const url = options.url || modelPath(profileId, boneId);
+  if (!url) throw new Error(`No verified GLB asset for profile "${profileId}" and bone "${boneId}".`);
   const key = options.manager || options.dracoDecoderPath || 'default';
   if (!sharedLoaders.has(key)) {
     sharedLoaders.set(key, createSharedLoader(options).catch(error => { sharedLoaders.delete(key); throw error; }));
   }
   const loader = await sharedLoaders.get(key);
-  const url = options.url || `./models/${profileId}/${boneId}.glb`;
   return new Promise((resolve, reject) => loader.load(url, resolve, undefined, reject));
 }

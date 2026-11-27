@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#000208">
-<title>HalDo AI OS Pro Max – Master Build v166</title>
+<title>HalDo AI OS Pro Max – Master Build v176</title>
 <style>
 :root{
   --accent:#00e5ff; --accent2:#4da8ff; --accent3:#b478ff;
@@ -239,6 +239,9 @@ body.ice{--accent:#a0e0ff;--accent2:#e0f0ff;--accent3:#a0e0ff;
 .hdx-status{font-size:11px;padding:5px 8px;border-radius:20px;background:rgba(255,190,70,.11);color:#ffd27a;display:inline-flex;gap:5px;align-items:center}
 .hdx-status.ok{background:rgba(0,255,150,.1);color:#80ffc2}
 .hdx-status.bad{background:rgba(255,80,100,.12);color:#ff9baa}
+.hdx-status.scaffold{background:rgba(255,190,70,.12);color:#ffd27a}
+.hdx-status.review{background:rgba(160,175,195,.12);color:#bdc9d8}
+.hdx-status.route{background:rgba(90,160,255,.12);color:#a9d3ff}
 .hdx-two{display:grid;grid-template-columns:minmax(180px,.8fr) minmax(0,1.7fr);gap:10px;min-height:340px}
 .hdx-chat-list{max-height:420px;overflow:auto;border:1px solid rgba(0,229,255,.15);border-radius:12px;padding:6px}
 .hdx-chat-person{width:100%;text-align:left;padding:10px;border:0;border-radius:9px;background:transparent;color:inherit;cursor:pointer;margin-bottom:3px}
@@ -280,6 +283,14 @@ body.ice{--accent:#a0e0ff;--accent2:#e0f0ff;--accent3:#a0e0ff;
 .hdx-anatomy-view{position:relative;width:100%;height:390px;min-height:280px;background:radial-gradient(ellipse at center,rgba(0,70,110,.18),rgba(0,0,12,.85));border:1px solid rgba(0,229,255,.25);border-radius:14px;overflow:hidden}
 .hdx-anatomy-view canvas{display:block;width:100%;height:100%}
 .hdx-anatomy-status{position:absolute;left:10px;bottom:10px;z-index:2;padding:6px 9px;background:rgba(0,0,0,.65);border:1px solid rgba(0,229,255,.2);border-radius:9px;font-size:11px;max-width:calc(100% - 20px)}
+.hdx-bone-tools{display:grid;grid-template-columns:minmax(180px,1fr) minmax(160px,.8fr) auto;gap:7px;margin:8px 0}
+.hdx-bone-results{display:flex;flex-wrap:wrap;gap:6px;max-height:116px;overflow:auto;padding:7px;border:1px solid rgba(0,229,255,.16);border-radius:11px;background:rgba(0,8,20,.28)}
+.hdx-bone-result{max-width:100%;text-align:left;border:1px solid rgba(0,229,255,.2);border-radius:9px;background:rgba(0,229,255,.06);color:inherit;padding:6px 9px;cursor:pointer;font:inherit;font-size:11px}
+.hdx-bone-result:hover,.hdx-bone-result.active{border-color:var(--accent,#00e5ff);background:rgba(0,229,255,.16)}
+.hdx-bone-result:disabled{opacity:.45;cursor:not-allowed}
+.hdx-bone-result-count{width:100%;font-size:10px;opacity:.65}
+.hdx-bone-results:empty{display:none}
+@media(max-width:620px){.hdx-bone-tools{grid-template-columns:1fr 1fr}.hdx-bone-tools [data-bone-clear]{grid-column:1/-1}}
 @keyframes hdx-orbit{to{transform:rotate(360deg)}}
 @keyframes hdx-breathe{0%,100%{transform:translateY(1px) scale(1)}50%{transform:translateY(-3px) scale(1.012)}}
 @keyframes hdx-look{0%,100%{transform:translateX(0)}25%{transform:translateX(4px)}70%{transform:translateX(-3px)}}
@@ -622,6 +633,11 @@ HalDo.Launch = (app) => {
   if (app.id === 'timer') { HalDo.TimerApp.open(); return; }
   if (app.id === 'password') { HalDo.PassGen.open(); return; }
   if (app.id === 'app-registry') { HalDo.AppBrowser.open(); return; }
+  // Dispatch modules registered under their stable app ID before falling back to a generic greeting.
+  if (app && app.id && HalDo[app.id] && typeof HalDo[app.id].open === 'function') {
+    HalDo[app.id].open();
+    return;
+  }
   // Default: splash greeting
   HalDo.Win.open(app.n || app.name, HalDo.Greeting(app.n || app.name), { w: 380, h: 380 });
   HalDo.Sound.play('cosmic');
@@ -8258,6 +8274,8 @@ factory.calc = (title, fields, calcFn, resultLabel = 'Ergebnis') => ({
 
 /* ---- 6) GENERIC APP (Fallback für alle restlichen) ---- */
 factory.generic = (title, icon, description) => ({
+  isGenericFallback: true,
+  implementationKind: 'generic-scaffold',
   open() {
     const key = 'haldo_gen_' + title.replace(/\s/g, '_').toLowerCase();
     const all = () => HalDo.Store.get(key, []);
@@ -8479,6 +8497,8 @@ HalDo.GeoQuiz = {
     factory.quiz('🌍 Geo-Quiz', qs).open();
   }
 };
+// Stable registry ID uses a hyphen; point it at the existing specialized quiz module.
+HalDo['geo-quiz'] = HalDo.GeoQuiz;
 HalDo.Physik = {
   open() {
     const forms = [
@@ -9406,10 +9426,10 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
   }
 
   const categoryApps = {
-    A:['app-registry','ai-memory','avatar','dashboard','chat'],
+    A:['app-registry','analyzer','ai-memory','avatar','dashboard','chat'],
     B:['vocab','flashcards','geo-quiz','mathsolver','reading','ptable','stats2'],
     C:['fahrschule','traffic','navigation'],
-    D:['arztbuch','healthcalc','emergency','fitness','symptom','meds','anatomy','nutrition','impfungen','lab','mental'],
+    D:['datecalc','arztbuch','healthcalc','emergency','fitness','symptom','meds','anatomy','nutrition','impfungen','lab','mental'],
     E:['job-search','bewerbung','zeiterfassung','projekte','meeting','report','absence','gehalt'],
     F:['finance','budget','crypto','aktien','tax','loan','currency'],
     G:['recipes','shopping','workout'],
@@ -9425,7 +9445,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
     R:['password','emergency','api-keys'],
     S:['settings','app-registry','device-info','network-info','wlan-bt','filemanager','backup'],
     T:['navigation','weather','trip','packing','phrasebook','wonders'],
-    U:['fahrschule','vocab','flashcards','ptable','mathsolver','geo-quiz'],
+    U:['utilities','fahrschule','vocab','flashcards','ptable','mathsolver','geo-quiz'],
     V:['phone','videocall','voicememo'],
     W:['filemanager','sticky'], X:['device-info','network-info','api-keys'],
     Y:['habits','goals','tasks','journal','mood','sleep','water','pomodoro','breathing','heatmap'],
@@ -9433,10 +9453,27 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
   };
   const appTitleMap = {};
   if (H.Registry && H.Registry.featured) H.Registry.featured.forEach(a => { appTitleMap[a.id] = { name:a.n, icon:a.i || '📱' }; });
-  const namedForCategory = key => (categoryApps[key] || []).map(id => {
-    const meta = appTitleMap[id];
-    return meta ? {id, ...meta} : null;
-  }).filter(Boolean).filter((a,i,arr) => arr.findIndex(x => x.id === a.id) === i);
+  const namedForCategory = key => {
+    const baseIds = categoryApps[key] || [];
+    const registeredIds = H.MedicalVault && typeof H.MedicalVault.getRegisteredApps === 'function'
+      ? H.MedicalVault.getRegisteredApps().filter(app => app.category === key).map(app => app.id)
+      : [];
+    return baseIds.concat(registeredIds).filter((id,i,arr) => arr.indexOf(id) === i).map(id => {
+      const live = H.Registry && H.Registry.featured ? H.Registry.featured.find(app => app.id === id) : null;
+      const meta = live ? { name:live.n, icon:live.i || '📱' } : appTitleMap[id];
+      return meta ? {id, ...meta} : null;
+    }).filter(Boolean).filter((a,i,arr) => arr.findIndex(x => x.id === a.id) === i);
+  };
+  // Public extension point for independently registered HalDo modules.
+  // The App Registry and Master category API share the same live category list.
+  if (H.Registry) H.Registry.registerCategoryApp = function (key, id) {
+    if (!Object.prototype.hasOwnProperty.call(categories, key) ||
+        typeof id !== 'string' || !/^[a-z0-9-]{2,80}$/.test(id)) return false;
+    if (!Array.isArray(categoryApps[key])) categoryApps[key] = [];
+    if (!categoryApps[key].includes(id)) categoryApps[key].push(id);
+    return true;
+  };
+
 
   H.Master = {
     version:'151.0.0',
@@ -9771,32 +9808,345 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
       const draw=()=>{
         root.querySelectorAll('[data-arzt-tab]').forEach(b=>b.classList.toggle('active',b.dataset.arztTab===tab));
         if(tab==='overview')panel.innerHTML=`<div class="hdx-grid">${[['🫀','Anatomie 3D','Interaktiver Viewer mit GLB-Modellen'],['🧬','Organsysteme','Lernübersicht zu Körperstrukturen'],['🧪','Laborwerte','Werte nur mit Referenzbereich und Quelle einordnen'],['🚨','Notfall','Notrufinformationen und Erste-Hilfe-Hinweise']].map(x=>`<div class="hdx-card"><h3>${x[0]} ${x[1]}</h3><p class="hdx-muted">${x[2]}</p></div>`).join('')}</div><div class="hdx-banner"><strong>3D-Modellbestand</strong><br><span class="hdx-muted">Die in deinem Projekt vorhandenen GLB-Dateien werden erst bei Auswahl einzeln geladen. Wenn ein Modellpfad nicht erreichbar ist, zeigt der Viewer den tatsächlichen Fehler statt endlos „Lade …“ an.</span></div><div class="hdx-row"><button class="hdx-btn primary" data-arzt-open3d>3D-Anatomie öffnen</button>${H.ArztbuchLegacyOpen?'<button class="hdx-btn" data-arzt-legacy>Weitere vorhandene Arztbuch-Wissensmodule</button>':''}</div>`;
-        if(tab==='anatomy')panel.innerHTML=`<div class="hdx-row"><select class="hdx-field" data-model-select>${modelPaths.map(p=>`<option value="${esc(p)}">${esc(p.split('/').pop())}</option>`).join('')}</select><button class="hdx-btn primary" data-model-load>Modell laden</button><label class="hdx-btn">GLB lokal wählen<input type="file" accept=".glb,.gltf" data-model-file hidden></label></div><div class="hdx-anatomy-view" data-anatomy-view><div class="hdx-anatomy-status" data-anatomy-status>3D-Viewer wird vorbereitet …</div></div><p class="hdx-muted">Maus/Touch: drehen · Mausrad/Pinch: zoomen · rechte Taste/Zwei-Finger: verschieben. Modelle müssen im GitHub-Projekt unter dem angegebenen Pfad vorhanden sein oder lokal ausgewählt werden.</p>`;
+        if(tab==='anatomy')panel.innerHTML=`<div class="hdx-row"><select class="hdx-field" data-anatomy-profile aria-label="Anatomie-Profil"><option value="adult_male">Erwachsener – männlich</option><option value="adult_female">Erwachsener – weiblich</option><option value="infant">Säugling – schematisch</option><option value="neonate">Neugeborenes – schematisch</option></select><button class="hdx-btn primary" type="button" data-model-schematic>🦴 Ganzes Skelett laden (schematisch)</button></div><div class="hdx-row"><select class="hdx-field" data-model-select>${modelPaths.map(p=>`<option value="${esc(p)}">${esc(p.split('/').pop())}</option>`).join('')}</select><button class="hdx-btn" data-model-load>Einzelknochen laden</button><label class="hdx-btn">GLB lokal wählen<input type="file" accept=".glb,model/gltf-binary" data-model-file hidden></label></div><div class="hdx-bone-tools"><input class="hdx-field" type="search" data-bone-search placeholder="Knochen suchen: Deutsch, Englisch oder Latein" aria-label="Knochen suchen" disabled><select class="hdx-field" data-bone-region aria-label="Körperregion filtern" disabled><option value="">Alle Körperregionen</option></select><button class="hdx-btn" type="button" data-bone-clear disabled>Filter zurücksetzen</button></div><div class="hdx-bone-results" data-bone-results aria-label="Knochenkatalog">Lade zuerst das schematische Skelett.</div><div class="hdx-anatomy-view" data-anatomy-view><div class="hdx-anatomy-status" data-anatomy-status>3D-Viewer wird vorbereitet …</div></div><div class="hdx-card" data-bone-info aria-live="polite">Wähle das schematische Skelett und klicke anschließend auf einen Knochen, um seine Bezeichnung und Körperregion zu sehen.</div><p class="hdx-muted">Maus/Touch: drehen · Mausrad/Pinch: zoomen · rechte Taste/Zwei-Finger: verschieben. Die schematische Lernansicht nutzt willkürliche Darstellungseinheiten und ist nicht für Diagnose, Behandlung oder klinische Vermessung bestimmt. Einzelmodelle können als vorhandene GLB-Datei oder lokal geladen werden.</p>`;
         if(tab==='systems')panel.innerHTML=`<div class="hdx-grid">${organs.map(o=>`<div class="hdx-card"><strong>🧬 ${o[0]}</strong><p class="hdx-muted">${o[1]}</p></div>`).join('')}</div><p class="hdx-muted">Die Detaildarstellungen werden mit geprüften anatomischen Inhalten und den zugehörigen 3D-Assets erweitert.</p>`;
         if(tab==='emergency')panel.innerHTML=`<div class="hdx-card"><h3>🚨 Notfall</h3><p>Bei akuter Lebensgefahr in Deutschland/EU: <strong>112</strong>.</p><p>Bei Bewusstlosigkeit und fehlender normaler Atmung: Notruf absetzen, Wiederbelebung beginnen und den Anweisungen der Leitstelle folgen.</p><p class="hdx-muted">Diese Übersicht ersetzt keine zertifizierte Erste-Hilfe-Ausbildung oder professionelle medizinische Versorgung.</p></div>`;
         if(tab==='anatomy')initViewer();
       };
-      root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.arztTab){tab=b.dataset.arztTab;draw();}if(b.hasAttribute('data-arzt-open3d')){tab='anatomy';draw();}if(b.hasAttribute('data-arzt-legacy')&&H.ArztbuchLegacyOpen){H.ArztbuchLegacyOpen();}if(b.hasAttribute('data-model-load'))loadModel(root.querySelector('[data-model-select]').value);});
-      root.addEventListener('change',e=>{if(e.target.matches('[data-model-file]')){const f=e.target.files?.[0];if(f){const url=URL.createObjectURL(f);loadModel(url,true);}}});
-      let renderer=null,scene=null,camera=null,controls=null,frame=0,loader=null,resizeObserver=null,currentObject=null,initialized=false;
+      root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.arztTab){if(tab==='anatomy')disposeViewer();tab=b.dataset.arztTab;draw();}if(b.hasAttribute('data-arzt-open3d')){if(tab==='anatomy')disposeViewer();tab='anatomy';draw();}if(b.hasAttribute('data-arzt-legacy')&&H.ArztbuchLegacyOpen){H.ArztbuchLegacyOpen();}if(b.hasAttribute('data-model-load'))loadModel(root.querySelector('[data-model-select]').value);if(b.hasAttribute('data-model-schematic'))loadSchematicSkeleton();if(b.dataset.boneSelect)selectBone(b.dataset.boneSelect);if(b.hasAttribute('data-bone-clear')){const search=root.querySelector('[data-bone-search]');const region=root.querySelector('[data-bone-region]');if(search)search.value='';if(region)region.value='';applyBoneRegionFilter();clearBoneHighlight();selectedBoneId=null;if(currentObject)fit(currentObject);const info=root.querySelector('[data-bone-info]');if(info&&currentSkeleton)info.textContent='Alle '+currentSkeleton.bones.length+' Knochen sichtbar. Wähle einen Eintrag oder klicke auf das 3D-Modell.';renderBoneCatalog();status('Gesamtes Skelett sichtbar · Kamera zurückgesetzt.');}});
+      root.addEventListener('input',e=>{
+        if(e.target.matches('[data-bone-search]'))renderBoneCatalog();
+      });
+      root.addEventListener('change',e=>{
+        if(e.target.matches('[data-bone-region]')){applyBoneRegionFilter();return;}
+        if(!e.target.matches('[data-model-file]'))return;
+        const file=e.target.files?.[0];if(!file)return;
+        if(!String(file.name||'').toLowerCase().endsWith('.glb')){
+          status('Nur eigenständige GLB-Dateien (.glb) werden unterstützt. Externe .gltf-Neben-Dateien können hier nicht zuverlässig geladen werden.',true);
+          e.target.value='';return;
+        }
+        if(file.size>64*1024*1024){
+          status('Die lokale GLB-Datei überschreitet das Limit von 64 MB. Bitte eine kleinere Datei wählen.',true);
+          e.target.value='';return;
+        }
+        const url=URL.createObjectURL(file);loadModel(url,true);
+      });
+      let renderer=null,scene=null,camera=null,controls=null,frame=0,loader=null,resizeObserver=null,currentObject=null,initialized=false,loadToken=0;
+      let currentSkeleton=null,skeletonApi=null,currentObjectUrl=null,raycaster=null,pointer=null,canvasClickHandler=null,resizeHandler=null;
+      let selectedBoneId=null,highlightedMaterials=[];
       function status(msg,bad=false){const el=root.querySelector('[data-anatomy-status]');if(el){el.textContent=msg;el.style.color=bad?'#ff9baa':'#8fffe1';}}
-      function initViewer(){if(initialized)return;const host=root.querySelector('[data-anatomy-view]');if(!host||!window.THREE)return;initialized=true;
-        if(!THREE.WebGLRenderer){status('WebGL ist in diesem Browser nicht verfügbar.',true);return;}
-        try{scene=new THREE.Scene();scene.background=new THREE.Color(0x030b18);camera=new THREE.PerspectiveCamera(42,1,.01,10000);camera.position.set(0,0,4);renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(host.clientWidth,host.clientHeight);host.appendChild(renderer.domElement);scene.add(new THREE.HemisphereLight(0xd8f4ff,0x1b2740,1.8));const key=new THREE.DirectionalLight(0xffffff,2.1);key.position.set(3,5,6);scene.add(key);const fill=new THREE.DirectionalLight(0x55bbff,.9);fill.position.set(-4,1,-3);scene.add(fill);
-          if(THREE.OrbitControls){controls=new THREE.OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.06;controls.minDistance=.3;controls.maxDistance=100;}
-          if(THREE.DRACOLoader){const draco=new THREE.DRACOLoader();draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/');draco.setWorkerLimit(2);loader=new THREE.GLTFLoader();loader.setDRACOLoader(draco);}else if(THREE.GLTFLoader)loader=new THREE.GLTFLoader();
-          const onResize=()=>{if(!renderer||!camera)return;const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);};if('ResizeObserver' in window){resizeObserver=new ResizeObserver(onResize);resizeObserver.observe(host);}else{window.addEventListener('resize',onResize);}
-          const animate=()=>{if(!host.isConnected){cancelAnimationFrame(frame);resizeObserver?.disconnect();renderer?.dispose();return;}frame=requestAnimationFrame(animate);controls?.update();renderer.render(scene,camera);};animate();
-          status('Viewer bereit. Wähle ein Modell und klicke „Modell laden“.');
-        }catch(err){status('3D-Initialisierung fehlgeschlagen: '+err.message,true);console.error('HalDo Anatomy:',err);}
+      function disposeObjectResources(object){
+        if(!object||typeof object.traverse!=='function')return;
+        const geometries=new Set(),materials=new Set(),textures=new Set();
+        object.traverse(node=>{
+          if(node.geometry)geometries.add(node.geometry);
+          const assigned=Array.isArray(node.material)?node.material:[node.material];
+          assigned.forEach(material=>{
+            if(!material)return;
+            materials.add(material);
+            Object.keys(material).forEach(key=>{const value=material[key];if(value&&value.isTexture)textures.add(value);});
+          });
+        });
+        textures.forEach(texture=>texture.dispose());
+        geometries.forEach(geometry=>geometry.dispose());
+        materials.forEach(material=>material.dispose());
       }
-      function fit(object){const box=new THREE.Box3().setFromObject(object);const size=box.getSize(new THREE.Vector3());const center=box.getCenter(new THREE.Vector3());const max=Math.max(size.x,size.y,size.z);if(!Number.isFinite(max)||max<=0)throw new Error('Das Modell enthält keine sichtbare Geometrie.');object.position.sub(center);const dist=max/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)))*1.6;camera.position.set(0,0,dist);camera.near=Math.max(.001,dist/1000);camera.far=Math.max(1000,dist*100);camera.updateProjectionMatrix();controls?.target.set(0,0,0);controls?.update();}
-      function loadModel(url,objectUrl=false){initViewer();if(!renderer||!loader){status('GLTFLoader/DRACOLoader nicht geladen. Prüfe CDN-Verbindung.',true);return;}status('Lade 3D-Modell: '+url+' …');
-        loader.load(url,gltf=>{if(!root.isConnected)return;try{const obj=gltf.scene;if(currentObject)scene.remove(currentObject);currentObject=obj;scene.add(obj);fit(obj);status('✅ 3D-Modell geladen: '+url);if(objectUrl)setTimeout(()=>URL.revokeObjectURL(url),60000);}catch(err){status('Modell konnte nicht dargestellt werden: '+err.message,true);}},xhr=>{if(xhr.total)status('Lade 3D-Modell … '+Math.round(xhr.loaded/xhr.total*100)+'%');},err=>{console.error('HalDo GLB load error:',url,err);status('Modell nicht geladen: '+url+' · Pfad/Decoder prüfen.',true);});
+      function clearCurrentObject(){
+        if(currentObject&&scene)scene.remove(currentObject);
+        if(currentSkeleton&&skeletonApi&&typeof skeletonApi.disposeSchematicSkeleton==='function')skeletonApi.disposeSchematicSkeleton(currentSkeleton);
+        else if(currentObject)disposeObjectResources(currentObject);
+        currentObject=null;currentSkeleton=null;skeletonApi=null;selectedBoneId=null;clearBoneHighlight();
+        if(currentObjectUrl){URL.revokeObjectURL(currentObjectUrl);currentObjectUrl=null;}
+        updateBoneCatalogControls();
+      }
+      function clearBoneHighlight(){
+        highlightedMaterials.forEach((entry)=>{
+          if(!entry.material||!entry.material.emissive)return;
+          entry.material.emissive.copy(entry.emissive);
+          entry.material.emissiveIntensity=entry.intensity;
+        });
+        highlightedMaterials=[];
+      }
+      function highlightBone(entry){
+        clearBoneHighlight();
+        if(!entry||!entry.object)return;
+        const seen=new Set();
+        entry.object.traverse((node)=>{
+          if(!node.isMesh)return;
+          const assigned=Array.isArray(node.material)?node.material:[node.material];
+          assigned.forEach((material)=>{
+            if(!material||!material.emissive||seen.has(material))return;
+            seen.add(material);
+            highlightedMaterials.push({material,emissive:material.emissive.clone(),intensity:material.emissiveIntensity});
+            material.emissive.setHex(0x00e5ff);
+            material.emissiveIntensity=.72;
+          });
+        });
+        selectedBoneId=entry.id;
+      }
+      function normalizeBoneSearch(value){
+        return String(value||'').normalize('NFD').replace(/\p{M}/gu,'').toLocaleLowerCase('de-DE').trim();
+      }
+      function filteredBoneEntries(){
+        if(!currentSkeleton)return [];
+        const query=normalizeBoneSearch(root.querySelector('[data-bone-search]')?.value||'');
+        const region=root.querySelector('[data-bone-region]')?.value||'';
+        return currentSkeleton.bones.filter((entry)=>{
+          const definition=entry.definition;
+          const entryRegion=definition.regionDe||definition.region||'';
+          if(region&&entryRegion!==region)return false;
+          if(!query)return true;
+          const searchable=[entry.id,definition.de,definition.en,definition.la,entryRegion,definition.sideDe,definition.side]
+            .filter(Boolean).map(normalizeBoneSearch);
+          return searchable.some((value)=>value.includes(query));
+        });
+      }
+      function renderBoneCatalog(){
+        const results=root.querySelector('[data-bone-results]');
+        if(!results)return;
+        results.replaceChildren();
+        if(!currentSkeleton){
+          results.textContent='Lade zuerst das schematische Skelett.';
+          results.dataset.resultCount='0';
+          results.dataset.visibleCount='0';
+          return;
+        }
+        const entries=filteredBoneEntries();
+        const visibleCount=currentSkeleton.bones.filter((entry)=>entry.object.visible).length;
+        results.dataset.resultCount=String(entries.length);
+        results.dataset.visibleCount=String(visibleCount);
+        const summary=document.createElement('div');
+        summary.className='hdx-bone-result-count';
+        summary.textContent=entries.length+' Treffer · '+visibleCount+' Knochen im 3D-Modell sichtbar'+(entries.length>40?' · erste 40 Treffer angezeigt':'');
+        results.appendChild(summary);
+        entries.slice(0,40).forEach((entry)=>{
+          const definition=entry.definition;
+          const button=document.createElement('button');
+          button.type='button';
+          button.className='hdx-bone-result'+(entry.id===selectedBoneId?' active':'');
+          button.dataset.boneSelect=entry.id;
+          button.setAttribute('aria-pressed',entry.id===selectedBoneId?'true':'false');
+          button.textContent=(definition.de||entry.id)+' · '+(definition.regionDe||definition.region||'');
+          results.appendChild(button);
+        });
+        if(!entries.length){
+          const empty=document.createElement('div');
+          empty.className='hdx-muted';
+          empty.textContent='Keine passenden Knochen gefunden. Suche oder Körperregion ändern.';
+          results.appendChild(empty);
+        }
+      }
+      function populateBoneRegions(){
+        const select=root.querySelector('[data-bone-region]');
+        if(!select||!currentSkeleton)return;
+        const previous=select.value;
+        const regions=[...new Set(currentSkeleton.bones.map((entry)=>entry.definition.regionDe||entry.definition.region).filter(Boolean))]
+          .sort((a,b)=>a.localeCompare(b,'de'));
+        select.replaceChildren();
+        const all=document.createElement('option');
+        all.value='';all.textContent='Alle Körperregionen';select.appendChild(all);
+        regions.forEach((region)=>{
+          const option=document.createElement('option');
+          option.value=region;option.textContent=region;select.appendChild(option);
+        });
+        select.value=regions.includes(previous)?previous:'';
+      }
+      function applyBoneRegionFilter(){
+        if(!currentSkeleton)return;
+        const region=root.querySelector('[data-bone-region]')?.value||'';
+        currentSkeleton.bones.forEach((entry)=>{
+          const entryRegion=entry.definition.regionDe||entry.definition.region||'';
+          entry.object.visible=!region||entryRegion===region;
+        });
+        if(selectedBoneId){
+          const selected=currentSkeleton.byId.get(selectedBoneId);
+          if(selected&&!selected.object.visible){
+            clearBoneHighlight();selectedBoneId=null;
+            const info=root.querySelector('[data-bone-info]');
+            if(info)info.textContent='Der zuvor ausgewählte Knochen liegt außerhalb der aktiven Körperregion.';
+          }
+        }
+        renderBoneCatalog();
+        status(region?'Körperregion '+region+' gefiltert.':'Alle Körperregionen sichtbar.');
+      }
+      function updateBoneCatalogControls(){
+        const enabled=!!currentSkeleton;
+        ['[data-bone-search]','[data-bone-region]','[data-bone-clear]'].forEach((selector)=>{
+          const control=root.querySelector(selector);
+          if(control)control.disabled=!enabled;
+        });
+        if(!enabled){
+          const results=root.querySelector('[data-bone-results]');
+          if(results){results.textContent='Lade zuerst das schematische Skelett.';results.dataset.resultCount='0';results.dataset.visibleCount='0';}
+          return;
+        }
+        populateBoneRegions();
+        applyBoneRegionFilter();
+      }
+      function focusBone(entry){
+        if(!entry||!entry.object||!camera)return false;
+        try{
+          currentObject?.updateMatrixWorld(true);
+          const box=new THREE.Box3().setFromObject(entry.object);
+          const size=box.getSize(new THREE.Vector3());
+          const center=box.getCenter(new THREE.Vector3());
+          if(!Number.isFinite(size.x)||!Number.isFinite(size.y)||!Number.isFinite(size.z))return false;
+          const offset=camera.position.clone().sub(controls?.target||new THREE.Vector3(0,0,0));
+          if(!Number.isFinite(offset.length())||offset.lengthSq()<1e-8)offset.set(0,0,1);
+          offset.normalize();
+          const distance=Math.max(size.length()*2.6,1.1);
+          camera.position.copy(center).add(offset.multiplyScalar(distance));
+          camera.near=Math.max(.001,distance/1000);
+          camera.far=Math.max(100,distance*100);
+          camera.updateProjectionMatrix();
+          if(controls){controls.target.copy(center);controls.update();}
+          else camera.lookAt(center);
+          return true;
+        }catch(error){
+          console.warn('HalDo Anatomy focus failed:',error);
+          return false;
+        }
+      }
+      function selectBone(boneId){
+        if(!currentSkeleton)return;
+        const entry=currentSkeleton.byId.get(boneId);
+        if(!entry||!entry.object.visible)return;
+        showSelectedBone(boneId,entry.object.name);
+        const focused=focusBone(entry);
+        if(focused)status('Kamera fokussiert: '+(entry.definition.de||entry.id));
+        renderBoneCatalog();
+      }
+      function disposeViewer(){
+        loadToken+=1;
+        if(frame){cancelAnimationFrame(frame);frame=0;}
+        if(renderer&&renderer.domElement&&canvasClickHandler)renderer.domElement.removeEventListener('click',canvasClickHandler);
+        if(resizeObserver){resizeObserver.disconnect();resizeObserver=null;}
+        if(resizeHandler){window.removeEventListener('resize',resizeHandler);resizeHandler=null;}
+        clearCurrentObject();
+        if(controls&&typeof controls.dispose==='function')controls.dispose();
+        if(renderer){renderer.dispose();if(typeof renderer.forceContextLoss==='function')renderer.forceContextLoss();if(renderer.domElement&&renderer.domElement.parentNode)renderer.domElement.parentNode.removeChild(renderer.domElement);}
+        renderer=null;scene=null;camera=null;controls=null;loader=null;raycaster=null;pointer=null;canvasClickHandler=null;initialized=false;
+      }
+      function showSelectedBone(boneId,objectName){
+        const info=root.querySelector('[data-bone-info]');
+        if(currentSkeleton&&currentSkeleton.byId.has(boneId)){
+          const entry=currentSkeleton.byId.get(boneId);
+          highlightBone(entry);
+          const definition=entry.definition;
+          const details=[
+            ['Deutsch',definition.de||definition.id],
+            ['Latein',definition.la],
+            ['Englisch',definition.en],
+            ['Körperregion',definition.regionDe||definition.region],
+            ['Seite',definition.sideDe||definition.side],
+            ['Modellhinweis','Schematisches Lehrmodell in willkürlichen Einheiten; nicht klinisch vermessen.']
+          ].filter((entry)=>entry[1]);
+          if(info)info.textContent=details.map((entry)=>entry[0]+': '+entry[1]).join('\n');
+          status('Ausgewählt: '+(definition.de||definition.id));
+        }else{
+          if(info)info.textContent='Ausgewählt: '+(objectName||boneId||'3D-Struktur')+'. Für dieses importierte Einzelmodell liegen in dieser Ansicht keine zusätzlichen Anatomie-Metadaten vor.';
+          status('3D-Struktur ausgewählt: '+(objectName||boneId||'unbekannt'));
+        }
+      }
+      function initViewer(){
+        if(initialized)return;
+        const host=root.querySelector('[data-anatomy-view]');
+        if(!host||!window.THREE)return;
+        if(!THREE.WebGLRenderer){status('WebGL ist in diesem Browser nicht verfügbar.',true);return;}
+        try{
+          initialized=true;
+          scene=new THREE.Scene();scene.background=new THREE.Color(0x030b18);
+          camera=new THREE.PerspectiveCamera(42,1,.01,10000);camera.position.set(0,0,4);
+          renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+          renderer.setSize(Math.max(1,host.clientWidth),Math.max(1,host.clientHeight));
+          host.appendChild(renderer.domElement);
+          scene.add(new THREE.HemisphereLight(0xd8f4ff,0x1b2740,1.8));
+          const key=new THREE.DirectionalLight(0xffffff,2.1);key.position.set(3,5,6);scene.add(key);
+          const fill=new THREE.DirectionalLight(0x55bbff,.9);fill.position.set(-4,1,-3);scene.add(fill);
+          if(THREE.OrbitControls){controls=new THREE.OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.06;controls.minDistance=.3;controls.maxDistance=100;}
+          if(THREE.DRACOLoader){const draco=new THREE.DRACOLoader();draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/');draco.setWorkerLimit(2);loader=new THREE.GLTFLoader();loader.setDRACOLoader(draco);}
+          else if(THREE.GLTFLoader)loader=new THREE.GLTFLoader();
+          resizeHandler=()=>{if(!renderer||!camera||!host.isConnected)return;const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);};
+          if('ResizeObserver' in window){resizeObserver=new ResizeObserver(resizeHandler);resizeObserver.observe(host);}
+          else window.addEventListener('resize',resizeHandler);
+          raycaster=new THREE.Raycaster();pointer=new THREE.Vector2();
+          canvasClickHandler=event=>{
+            if(!currentObject||!renderer||!raycaster||!pointer)return;
+            const rect=renderer.domElement.getBoundingClientRect();
+            if(!rect.width||!rect.height)return;
+            pointer.x=((event.clientX-rect.left)/rect.width)*2-1;
+            pointer.y=-((event.clientY-rect.top)/rect.height)*2+1;
+            raycaster.setFromCamera(pointer,camera);
+            const hit=raycaster.intersectObject(currentObject,true)[0];
+            if(!hit)return;
+            showSelectedBone(hit.object.userData?.boneId||'',hit.object.name||hit.object.parent?.name||'3D-Struktur');
+          };
+          renderer.domElement.addEventListener('click',canvasClickHandler);
+          const animate=()=>{
+            if(!host.isConnected){disposeViewer();return;}
+            frame=requestAnimationFrame(animate);
+            controls?.update();renderer.render(scene,camera);
+          };
+          animate();
+          status('Viewer bereit. Wähle ein Einzelmodell oder lade das vollständige schematische Skelett.');
+        }catch(err){disposeViewer();status('3D-Initialisierung fehlgeschlagen: '+err.message,true);console.error('HalDo Anatomy:',err);}
+      }
+      function fit(object){
+        const box=new THREE.Box3().setFromObject(object);
+        const size=box.getSize(new THREE.Vector3());
+        const center=box.getCenter(new THREE.Vector3());
+        const max=Math.max(size.x,size.y,size.z);
+        if(!Number.isFinite(max)||max<=0)throw new Error('Das Modell enthält keine sichtbare Geometrie.');
+        object.position.sub(center);
+        const distance=max/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)))*1.6;
+        camera.position.set(0,0,distance);
+        camera.near=Math.max(.001,distance/1000);
+        camera.far=Math.max(1000,distance*100);
+        camera.updateProjectionMatrix();controls?.target.set(0,0,0);controls?.update();
+      }
+      async function loadSchematicSkeleton(){
+        initViewer();
+        if(!renderer||!scene||!camera){status('Der 3D-Viewer ist nicht verfügbar.',true);return;}
+        const requestToken=++loadToken;
+        const profileId=root.querySelector('[data-anatomy-profile]')?.value||'adult_male';
+        status('Erzeuge schematisches Skelett für das Profil '+profileId+' …');
+        try{
+          const api=await import('./models/skeleton.js');
+          if(!root.isConnected||requestToken!==loadToken||!renderer||!scene)return;
+          const skeleton=api.createSchematicSkeleton(window.THREE,profileId);
+          if(!root.isConnected||requestToken!==loadToken||!renderer||!scene){api.disposeSchematicSkeleton(skeleton);return;}
+          clearCurrentObject();
+          skeletonApi=api;currentSkeleton=skeleton;currentObject=skeleton.group;
+          populateBoneRegions();updateBoneCatalogControls();
+          scene.add(currentObject);fit(currentObject);
+          const info=root.querySelector('[data-bone-info]');
+          if(info)info.textContent=skeleton.bones.length+' Knochen geladen. Wähle einen Knochen per Mausklick. Schematische Lehrdarstellung, keine klinische Vermessung.';
+          status('Schematisches Skelett geladen: '+skeleton.bones.length+' Knochen · Profil '+profileId+' · willkürliche Einheiten.');
+        }catch(error){if(requestToken===loadToken&&root.isConnected){status('Schematisches Skelett konnte nicht erstellt werden: '+error.message,true);console.error('HalDo schematic anatomy:',error);}}
+      }
+      function loadModel(url,objectUrl=false){
+        initViewer();
+        if(!renderer||!loader){if(objectUrl)URL.revokeObjectURL(url);status('GLTFLoader/DRACOLoader nicht geladen. Prüfe CDN-Verbindung.',true);return;}
+        const requestToken=++loadToken;
+        status('Lade 3D-Modell: '+url+' …');
+        loader.load(url,gltf=>{
+          if(!root.isConnected||requestToken!==loadToken||!renderer||!scene){disposeObjectResources(gltf.scene);if(objectUrl)URL.revokeObjectURL(url);return;}
+          try{
+            clearCurrentObject();
+            currentObject=gltf.scene;scene.add(currentObject);fit(currentObject);
+            if(objectUrl)currentObjectUrl=url;
+            status('✅ 3D-Modell geladen: '+url);
+          }catch(err){disposeObjectResources(gltf.scene);if(objectUrl)URL.revokeObjectURL(url);status('Modell konnte nicht dargestellt werden: '+err.message,true);}
+        },xhr=>{if(requestToken===loadToken&&xhr.total)status('Lade 3D-Modell … '+Math.round(xhr.loaded/xhr.total*100)+'%');},err=>{
+          if(objectUrl)URL.revokeObjectURL(url);
+          if(requestToken!==loadToken||!root.isConnected)return;
+          console.error('HalDo GLB load error:',url,err);status('Modell nicht geladen: '+url+' · Pfad/Decoder prüfen.',true);
+        });
       }
       draw();
     }
-    return {open,modelPaths};
+    return {open,modelPaths,version:'pro-max-v2',features:{boneCatalog:true,profiles:true,raycast:true,resourceCleanup:true}};
   })();
   // Arztbuch-Einstieg auf das verbundene 3D-Arztbuch aktualisieren.
   H.Arztbuch = H.Arztbuch || {};
@@ -9850,16 +10200,60 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
      ------------------------------------------------------------ */
   H.AppBrowser = (() => {
     const open=()=>{const id=uid('registry');openWindow('📦 HalDo App-Registry Pro',`<div id="${id}" class="hdx-root"></div>`,{w:760,h:760});setTimeout(()=>mount(id),60);};
+    const moduleAliases = Object.freeze({
+      'app-registry':'AppBrowser','ai-memory':'ai-memory','avatar':'LivingAvatar','chat':'Chat',
+      'settings':'MasterSettings','weather':'Weather','calculator':'Calc','notes':'Notes',
+      'timer':'TimerApp','password':'PassGen','arztbuch':'Arztbuch','email':'EmailPro',
+      'phone':'PhonePro','videocall':'VideoCalls','chat-pro':'ChatPro',
+      'job-search':'JobSearch','bewerbung':'Bewerbung','zeiterfassung':'Zeiterfassung',
+      'projekte':'Projekte','meeting':'MeetingNotizen','gehalt':'Gehalt','report':'ReportGen',
+      'absence':'Absence','podcasts':'Podcasts','radio':'Radio','mediathek':'Mediathek',
+      'streaming':'Streaming','video':'VideoPlayer','gallery':'Gallery','sticky':'StickyNotes',
+      'bookmarks':'Bookmarks','reading':'ReadingList','browser':'Browser','cloud':'Cloud',
+      'downloads':'Downloads','search':'Search','social':'Social','news':'News','network-info':'NetworkInfo',
+      'language-voice':'LanguageVoiceStudio','ai-voice-core':'VoiceCore','system-diagnostics':'SystemDiagnostics'
+    });
+    const getStatus = (appId) => {
+      const route = H.SystemV157 && typeof H.SystemV157.resolveRoute === 'function'
+        ? H.SystemV157.resolveRoute(appId)
+        : null;
+      const alias = moduleAliases[appId];
+      const aliasModule = alias ? H[alias] : null;
+      const routedModule = route && route.routeConfigured && route.moduleName
+        ? H[route.moduleName]
+        : null;
+      const module = route && route.routeConfigured
+        ? routedModule
+        : aliasModule && typeof aliasModule.open === 'function'
+          ? aliasModule
+          : H[appId];
+      if (module && typeof module.open === 'function' && module.isGenericFallback) {
+        return { kind:'scaffold', label:'Grundgerüst', description:'Generische Datensammel-Oberfläche; fachlicher Ausbau und Abnahme sind offen.' };
+      }
+      if (module && typeof module.open === 'function') {
+        return { kind:'module', label:'Modul vorhanden', description:'Das aktive Start-Routing erreicht ein eigenes open()-Modul; vollständige Funktionsabnahme je App bleibt separat.' };
+      }
+      if (route && route.routeConfigured) {
+        return {
+          kind:'route',
+          label:'Start-Route vorhanden',
+          description:route.moduleName
+            ? 'Zentrale Start-Route ist eingetragen, aber das zugehörige Modul wurde im Laufzeitcheck nicht gefunden.'
+            : 'Zentrale Sonderroute ist registriert; die konkrete Modulzuordnung muss noch geprüft werden.'
+        };
+      }
+      return { kind:'review', label:'Prüfung offen', description:'Weder eigenes Modul noch zentraler Startpfad wurden eindeutig zugeordnet.' };
+    };
     function mount(id){const root=document.getElementById(id);if(!root)return;let search='';let cat='';
-      const render=()=>{const list=(H.Registry?.featured||[]).filter(a=>!search||[a.n,a.id].join(' ').toLowerCase().includes(search.toLowerCase()));const category=cat?categories[cat]:null;root.innerHTML=`<div class="hdx-root"><div class="hdx-banner hdx-spread"><div><strong>HalDo App-Registry Pro</strong><div class="hdx-muted">A–Z-Katalog · Suche · Schnellstart · Kommunikations-Suite</div></div><span class="hdx-status">${plannedTotal} geplante App-Plätze</span></div><input class="hdx-field" data-registry-search placeholder="Apps suchen …" value="${esc(search)}"><div class="hdx-tabs"><button class="hdx-tab ${!cat?'active':''}" data-category="">Alle Apps</button>${Object.keys(categories).map(k=>`<button class="hdx-tab ${cat===k?'active':''}" data-category="${k}">${k}</button>`).join('')}</div>
-        ${category?`<div class="hdx-card"><div class="hdx-spread"><h3>${category.icon} ${category.name}</h3><span class="hdx-status">Soll: ${category.count}</span></div><p class="hdx-muted">Benannte Kern-Apps, die in dieser Kategorie im Masterplan zugeordnet sind:</p><div class="hdx-grid">${namedForCategory(cat).map(a=>`<button class="hdx-btn" data-launch="${esc(a.id)}">${esc(a.icon)} ${esc(a.name)}</button>`).join('')||'<div class="hdx-empty">In der vorliegenden Masterliste sind für diese Kategorie noch keine individuellen App-Namen präzisiert. Die geplante Anzahl bleibt im Registry-Ziel erhalten.</div>'}</div></div>`:''}
-        <div class="hdx-grid">${list.map(a=>`<button class="hdx-card" style="text-align:left;color:inherit;cursor:pointer" data-launch="${esc(a.id)}"><div style="font-size:22px">${esc(a.i||'📱')}</div><strong>${esc(a.n)}</strong><div class="hdx-muted">${esc(a.id)}</div></button>`).join('')}</div>
-        <div class="hdx-banner"><strong>Planungsstatus ehrlich dargestellt</strong><br><span class="hdx-muted">375 ist die Zielkapazität der 26 Kategorien. ${list.length} benannte Kern-App-Einträge werden in dieser Oberfläche geführt; nicht namentlich spezifizierte Plätze werden nicht als fertig implementierte Apps ausgegeben.</span></div></div>`;};
+      const render=()=>{const list=(H.Registry?.featured||[]).filter(a=>!search||[a.n,a.id].join(' ').toLowerCase().includes(search.toLowerCase()));const category=cat?categories[cat]:null;const allStatuses=(H.Registry?.featured||[]).map(a=>getStatus(a.id));const summary={modules:allStatuses.filter(s=>s.kind==='module').length,scaffolds:allStatuses.filter(s=>s.kind==='scaffold').length,routes:allStatuses.filter(s=>s.kind==='route').length,review:allStatuses.filter(s=>s.kind==='review').length};root.innerHTML=`<div class="hdx-root"><div class="hdx-banner hdx-spread"><div><strong>HalDo App-Registry Pro</strong><div class="hdx-muted">A–Z-Katalog · Suche · Schnellstart · Kommunikations-Suite</div></div><span class="hdx-status">${plannedTotal} geplante Plätze · ${summary.modules} Module · ${summary.scaffolds} Grundgerüste · ${summary.routes} Start-Routen · ${summary.review} Prüfung offen</span></div><input class="hdx-field" data-registry-search placeholder="Apps suchen …" value="${esc(search)}"><div class="hdx-tabs"><button class="hdx-tab ${!cat?'active':''}" data-category="">Alle Apps</button>${Object.keys(categories).map(k=>`<button class="hdx-tab ${cat===k?'active':''}" data-category="${k}">${k}</button>`).join('')}</div>
+        ${category?`<div class="hdx-card"><div class="hdx-spread"><h3>${category.icon} ${category.name}</h3><span class="hdx-status">Soll: ${category.count}</span></div><p class="hdx-muted">Benannte Kern-Apps, die in dieser Kategorie im Masterplan zugeordnet sind:</p><div class="hdx-grid" data-category-app-grid="${esc(cat)}">${namedForCategory(cat).map(a=>{const state=getStatus(a.id);return `<button class="hdx-btn" data-launch="${esc(a.id)}"><span>${esc(a.icon)} ${esc(a.name)}</span><span class="hdx-status ${state.kind}" data-implementation-status="${state.kind}" title="${esc(state.description)}">${state.label}</span></button>`;}).join('')||'<div class="hdx-empty">In der vorliegenden Masterliste sind für diese Kategorie noch keine individuellen App-Namen präzisiert. Die geplante Anzahl bleibt im Registry-Ziel erhalten.</div>'}</div></div>`:''}
+        <div class="hdx-grid">${list.map(a=>{const state=getStatus(a.id);return `<button class="hdx-card" style="text-align:left;color:inherit;cursor:pointer" data-launch="${esc(a.id)}"><div style="font-size:22px">${esc(a.i||'📱')}</div><strong>${esc(a.n)}</strong><div class="hdx-muted">${esc(a.id)}</div><span class="hdx-status ${state.kind}" data-implementation-status="${state.kind}" title="${esc(state.description)}">${state.label}</span></button>`;}).join('')}</div>
+        <div class="hdx-banner"><strong>Planungsstatus ehrlich dargestellt</strong><br><span class="hdx-muted">375 ist die Zielkapazität der 26 Kategorien, nicht die Zahl fertiger Apps. „Modul vorhanden“ kennzeichnet einen eigenen Startpunkt, „Grundgerüst“ eine generische Datensammelansicht und „Prüfung offen“ eine noch nicht direkt klassifizierte Sonderroute. Diese Statusangaben ersetzen keine Funktionsabnahme.</span></div></div>`;};
       root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.category!==undefined){cat=b.dataset.category;render();return;}if(b.dataset.launch){const app=H.Registry.featured.find(a=>a.id===b.dataset.launch);if(app)H.Launch(app);}});
       root.addEventListener('input',e=>{if(e.target.matches('[data-registry-search]')){search=e.target.value;const pos=e.target.selectionStart;render();const inp=root.querySelector('[data-registry-search]');inp?.focus();inp?.setSelectionRange(pos,pos);}});
       render();
     }
-    return {open};
+    return {open, getStatus};
   })();
 
   const previousLaunch = H.Launch;
@@ -9955,7 +10349,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
 
   /* 3D ANATOMY – one renderer per open viewer, automatic first model,
      visible progress/errors, cleanup when the OS window closes. */
-  H.Anatomy3D=(function(){
+  H.Anatomy3D=H.Anatomy3D||(function(){
     const modelPaths=[
       'models/adult_male/adult_female/c1_atlas.glb',
       'models/adult_male/adult_female/c2.glb',
@@ -10000,31 +10394,48 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
         </div><div data-arzt-panel></div></div>`;
       const panel=root.querySelector('[data-arzt-panel]');
 
+      function disposeObjectResources(object){
+        if(!object||typeof object.traverse!=='function')return;
+        const geometries=new Set(),materials=new Set(),textures=new Set();
+        object.traverse(obj=>{
+          if(obj.geometry)geometries.add(obj.geometry);
+          const assigned=Array.isArray(obj.material)?obj.material:[obj.material];
+          assigned.forEach(mat=>{
+            if(!mat)return;
+            materials.add(mat);
+            Object.keys(mat).forEach(key=>{const value=mat[key];if(value&&value.isTexture)textures.add(value);});
+          });
+        });
+        textures.forEach(texture=>texture.dispose?.());
+        geometries.forEach(geometry=>geometry.dispose?.());
+        materials.forEach(mat=>mat.dispose?.());
+      }
+      function releaseCurrentModel(state){
+        if(!state||!state.currentObject)return;
+        if(state.scene)state.scene.remove(state.currentObject);
+        if(state.currentSkeleton&&state.skeletonApi?.disposeSchematicSkeleton){
+          state.skeletonApi.disposeSchematicSkeleton(state.currentSkeleton);
+        }else{
+          disposeObjectResources(state.currentObject);
+        }
+        state.currentObject=null;state.currentSkeleton=null;state.skeletonApi=null;
+        if(state.currentObjectUrl){URL.revokeObjectURL(state.currentObjectUrl);state.currentObjectUrl=null;}
+      }
       function cleanupViewer(){
         if(!viewer)return;
-        viewer.disposed=true;
-        if(viewer.frame)cancelAnimationFrame(viewer.frame);
-        if(viewer.resizeObserver)viewer.resizeObserver.disconnect();
-        if(viewer.resizeHandler)window.removeEventListener('resize',viewer.resizeHandler);
-        if(viewer.request && viewer.request.abort){try{viewer.request.abort();}catch(_){}}
-        try{viewer.controls?.dispose();}catch(_){}
-        if(viewer.currentObject){
-          viewer.currentObject.traverse(obj=>{
-            if(obj.geometry)obj.geometry.dispose();
-            if(obj.material){
-              const materials=Array.isArray(obj.material)?obj.material:[obj.material];
-              materials.forEach(mat=>{
-                if(!mat)return;
-                for(const key of ['map','normalMap','roughnessMap','metalnessMap','emissiveMap','aoMap']){
-                  if(mat[key])mat[key].dispose?.();
-                }
-                mat.dispose?.();
-              });
-            }
-          });
+        const state=viewer;
+        state.disposed=true;state.loadToken+=1;
+        if(state.frame)cancelAnimationFrame(state.frame);
+        if(state.resizeObserver)state.resizeObserver.disconnect();
+        if(state.resizeHandler)window.removeEventListener('resize',state.resizeHandler);
+        if(state.request&&state.request.abort){try{state.request.abort();}catch(_){}}
+        if(state.renderer?.domElement&&state.canvasClickHandler){
+          state.renderer.domElement.removeEventListener('click',state.canvasClickHandler);
         }
-        try{viewer.renderer?.dispose();viewer.renderer?.forceContextLoss?.();}catch(_){}
-        viewer.renderer?.domElement?.remove();
+        releaseCurrentModel(state);
+        try{state.controls?.dispose();}catch(_){}
+        try{state.renderer?.dispose();state.renderer?.forceContextLoss?.();}catch(_){}
+        state.renderer?.domElement?.remove();
         viewer=null;
       }
 
@@ -10042,15 +10453,25 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
           <button class="hdx-btn primary" data-arzt-tab="anatomy">🦴 3D-Anatomie öffnen</button>
           ${H.ArztbuchLegacyOpen?'<button class="hdx-btn" data-legacy-arztbuch>Vorhandene Wissensmodule öffnen</button>':''}`;
         }else if(tab==='anatomy'){
-          panel.innerHTML=`<div class="hdx-anatomy-toolbar">
-            <select class="hdx-field" data-model-select aria-label="3D-Modell auswählen">${modelPaths.map((p,i)=>`<option value="${esc151(p)}" ${i===0?'selected':''}>${esc151(p.split('/').pop())} · ${esc151(p.split('/').slice(-2,-1)[0]||'Modell')}</option>`).join('')}</select>
-            <button class="hdx-btn primary" data-model-load>Modell laden</button>
+          panel.innerHTML=`<div class="hdx-row" style="margin-bottom:8px">
+            <select class="hdx-field" data-anatomy-profile aria-label="Schematisches Anatomie-Profil">
+              <option value="adult_male">Erwachsener – männlich (schematisch)</option>
+              <option value="adult_female">Erwachsener – weiblich (schematisch)</option>
+              <option value="infant">Säugling (schematisch)</option>
+              <option value="neonate">Neugeborenes (schematisch)</option>
+            </select>
+            <button class="hdx-btn primary" type="button" data-model-schematic>🦴 Ganzes Skelett laden</button>
+          </div>
+          <div class="hdx-anatomy-toolbar">
+            <select class="hdx-field" data-model-select aria-label="Einzelnes 3D-Knochenmodell auswählen">${modelPaths.map((p,i)=>`<option value="${esc151(p)}" ${i===0?'selected':''}>${esc151(p.split('/').pop())} · ${esc151(p.split('/').slice(-2,-1)[0]||'Modell')}</option>`).join('')}</select>
+            <button class="hdx-btn" data-model-load>Einzel-GLB laden</button>
             <button class="hdx-btn" data-model-reset>Ansicht zurücksetzen</button>
             <button class="hdx-btn" data-model-fullscreen>Vollbild</button>
           </div>
           <div class="hdx-anatomy-view" data-anatomy-view><div class="hdx-anatomy-status" data-anatomy-status role="status" aria-live="polite">3D-Viewer wird vorbereitet …</div></div>
+          <div class="hdx-card" data-bone-info aria-live="polite">Wähle ein schematisches Skelett und klicke auf einen Knochen, um deutsche, englische und lateinische Angaben zu sehen.</div>
           <div class="hdx-row" style="margin-top:8px"><label class="hdx-btn">Eigenes GLB-Modell wählen<input type="file" accept=".glb,model/gltf-binary" data-model-file hidden></label><span class="hdx-muted">Touch/Maus: drehen · Pinch/Rad: zoomen · rechte Taste/Zwei Finger: verschieben</span></div>
-          <p class="hdx-muted" data-model-info>Das ausgewählte Modell wird automatisch geladen. Die verfügbaren Modelle hängen vom Inhalt des GitHub-Ordners /models ab.</p>`;
+          <p class="hdx-muted" data-model-info>Die schematische Lernansicht nutzt willkürliche Darstellungseinheiten und ist nicht für Diagnose, Behandlung oder klinische Vermessung bestimmt. Einzel-GLB-Dateien werden separat geladen.</p>`;
           requestAnimationFrame(()=>initViewer());
         }else if(tab==='systems'){
           panel.innerHTML=`<div class="hdx-grid">${organInfo.map(o=>`<div class="hdx-card"><h3>${o[0]} ${o[1]}</h3><p class="hdx-muted">${o[2]}</p></div>`).join('')}</div><div class="hdx-banner"><strong>Hinweis</strong><br><span class="hdx-muted">Diese Übersicht ist eine Lernnavigation. Detaillierte Organmodelle und medizinische Inhalte müssen jeweils mit geprüften Quellen und passenden 3D-Assets verknüpft werden.</span></div>`;
@@ -10067,7 +10488,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
           if(!host.isConnected||viewer)return;
           const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);
           try{
-            const state={scene:null,camera:null,renderer:null,controls:null,loader:null,draco:null,frame:0,resizeObserver:null,resizeHandler:null,request:null,currentObject:null,disposed:false,baseCamera:null,host};
+            const state={scene:null,camera:null,renderer:null,controls:null,loader:null,draco:null,frame:0,resizeObserver:null,resizeHandler:null,request:null,currentObject:null,currentSkeleton:null,skeletonApi:null,currentObjectUrl:null,loadToken:0,raycaster:null,pointer:null,canvasClickHandler:null,disposed:false,baseCamera:null,host};
             viewer=state;
             state.scene=new THREE.Scene();
             state.scene.background=new THREE.Color(0x030b18);
@@ -10078,6 +10499,31 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
             state.renderer.setSize(w,h,false);
             state.renderer.outputEncoding=THREE.sRGBEncoding;
             host.insertBefore(state.renderer.domElement,host.firstChild);
+            state.raycaster=new THREE.Raycaster();state.pointer=new THREE.Vector2();
+            state.canvasClickHandler=event=>{
+              if(viewer!==state||state.disposed||!state.currentSkeleton||!state.raycaster)return;
+              const rect=state.renderer.domElement.getBoundingClientRect();
+              if(!rect.width||!rect.height)return;
+              state.pointer.x=((event.clientX-rect.left)/rect.width)*2-1;
+              state.pointer.y=-((event.clientY-rect.top)/rect.height)*2+1;
+              state.raycaster.setFromCamera(state.pointer,state.camera);
+              const hit=state.raycaster.intersectObject(state.currentObject,true)[0];
+              if(!hit)return;
+              let node=hit.object,boneId=node.userData?.boneId||'';
+              while(!boneId&&node.parent){node=node.parent;boneId=node.userData?.boneId||'';}
+              const entry=state.currentSkeleton.byId.get(boneId);
+              if(!entry)return;
+              const bone=entry.definition;
+              const details=[
+                ['Bezeichnung',bone.es||bone.id],['Latein',bone.la],['Englisch',bone.en],
+                ['Körperregion',bone.region],['Seite',bone.side],
+                ['Modellhinweis','Schematisches Lehrmodell in willkürlichen Einheiten; nicht klinisch vermessen.']
+              ].filter(item=>item[1]);
+              const info=root.querySelector('[data-bone-info]');
+              if(info)info.textContent=details.map(item=>item[0]+': '+item[1]).join('\\n');
+              setStatus('Ausgewählt: '+(bone.es||bone.id),'success');
+            };
+            state.renderer.domElement.addEventListener('click',state.canvasClickHandler);
             state.scene.add(new THREE.HemisphereLight(0xd8f4ff,0x1b2740,1.65));
             const key=new THREE.DirectionalLight(0xffffff,2.0);key.position.set(3,5,6);state.scene.add(key);
             const fill=new THREE.DirectionalLight(0x55bbff,.8);fill.position.set(-4,1,-3);state.scene.add(fill);
@@ -10149,17 +10595,47 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
         if(v.controls){v.controls.target.set(0,0,0);v.controls.minDistance=Math.max(.2,distance*.18);v.controls.maxDistance=Math.max(20,distance*15);v.controls.update();}
         v.baseCamera={position:v.camera.position.clone(),target:v.controls?v.controls.target.clone():new THREE.Vector3()};
       }
+      async function loadSchematicSkeleton(){
+        const state=viewer;
+        if(!state||!state.scene||!root.isConnected){setStatus('3D-Viewer ist noch nicht bereit.','error');return;}
+        if(state.request&&state.request.abort){try{state.request.abort();}catch(_){}}
+        const requestToken=++state.loadToken;
+        const profileId=root.querySelector('[data-anatomy-profile]')?.value||'adult_male';
+        setStatus('Erzeuge schematisches Skelett für das Profil '+profileId+' …');
+        const info=root.querySelector('[data-model-info]');
+        if(info)info.textContent='Die Lehrgeometrie wird aus den vorhandenen Knochen-Definitionen aufgebaut; Anzeigeeinheiten sind willkürlich.';
+        try{
+          const api=await import('./models/skeleton.js');
+          if(viewer!==state||state.disposed||requestToken!==state.loadToken||!root.isConnected)return;
+          const skeleton=api.createSchematicSkeleton(window.THREE,profileId);
+          if(viewer!==state||state.disposed||requestToken!==state.loadToken||!root.isConnected){
+            api.disposeSchematicSkeleton(skeleton);return;
+          }
+          releaseCurrentModel(state);
+          state.currentSkeleton=skeleton;state.skeletonApi=api;state.currentObject=skeleton.group;
+          state.scene.add(skeleton.group);fitModel(skeleton.group);
+          if(info)info.textContent=skeleton.bones.length+' Knochen geladen. Klicke auf einen Knochen für deutsche, englische und lateinische Angaben. Schematische Lehrdarstellung, nicht klinisch vermessen.';
+          setStatus('Schematisches Skelett geladen: '+skeleton.bones.length+' Knochen · Profil '+profileId+'.','success');
+        }catch(error){
+          if(viewer===state&&!state.disposed&&requestToken===state.loadToken){
+            setStatus('Schematisches Skelett konnte nicht erstellt werden: '+(error.message||error),'error');
+            console.error('HalDo v151 schematic anatomy:',error);
+          }
+        }
+      }
       function loadModel(url,objectUrl=false){
-        if(!viewer||!viewer.loader){setStatus('3D-Viewer ist noch nicht bereit.','error');return;}
-        const v=viewer;
+        if(!viewer||!viewer.loader){if(objectUrl)URL.revokeObjectURL(url);setStatus('3D-Viewer ist noch nicht bereit.','error');return;}
+        const v=viewer,requestToken=++v.loadToken;
         if(v.request&&v.request.abort){try{v.request.abort();}catch(_){}}
         setStatus('⏳ Lade 3D-Modell: '+(objectUrl?'lokale Datei':url)+' …');
         const info=root.querySelector('[data-model-info]');if(info)info.textContent='Ladevorgang läuft. Bei einem Fehler wird die konkrete Ursache angezeigt.';
         let settled=false;
-        const timeout=setTimeout(()=>{if(!settled&&viewer===v&&!v.disposed)setStatus('Zeitüberschreitung beim Laden. Bitte Modellpfad/CDN und Netzwerk prüfen.','error');},30000);
+        const timeout=setTimeout(()=>{if(!settled&&viewer===v&&!v.disposed&&requestToken===v.loadToken)setStatus('Zeitüberschreitung beim Laden. Bitte Modellpfad/CDN und Netzwerk prüfen.','error');},30000);
         v.request=v.loader.load(url,gltf=>{
           settled=true;clearTimeout(timeout);
-          if(viewer!==v||v.disposed||!root.isConnected){if(objectUrl)URL.revokeObjectURL(url);return;}
+          if(viewer!==v||v.disposed||requestToken!==v.loadToken||!root.isConnected){
+            disposeObjectResources(gltf.scene);if(objectUrl)URL.revokeObjectURL(url);return;
+          }
           try{
             const object=gltf.scene;
             object.traverse(child=>{
@@ -10168,22 +10644,27 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
               const materials=Array.isArray(child.material)?child.material:[child.material];
               materials.forEach(mat=>{if(mat){mat.side=THREE.DoubleSide;mat.needsUpdate=true;}});
             });
-            if(v.currentObject){v.scene.remove(v.currentObject);v.currentObject.traverse(child=>{child.geometry?.dispose?.();if(child.material){(Array.isArray(child.material)?child.material:[child.material]).forEach(m=>m?.dispose?.());}});}
-            v.currentObject=object;v.scene.add(object);fitModel(object);
+            releaseCurrentModel(v);
+            v.currentObject=object;if(objectUrl)v.currentObjectUrl=url;
+            v.scene.add(object);fitModel(object);
             setStatus('✅ 3D-Modell sichtbar und interaktiv geladen.','success');
             if(info)info.textContent='Geladen: '+(objectUrl?'lokale GLB-Datei':url)+'. Drehen, zoomen und verschieben ist aktiviert.';
+          }catch(err){
+            disposeObjectResources(gltf.scene);
             if(objectUrl)URL.revokeObjectURL(url);
-          }catch(err){setStatus('Modell konnte nicht dargestellt werden: '+(err.message||err),'error');console.error('HalDo v151 model fit:',err);}
+            setStatus('Modell konnte nicht dargestellt werden: '+(err.message||err),'error');
+            console.error('HalDo v151 model fit:',err);
+          }
         },xhr=>{
-          if(viewer!==v||v.disposed)return;
+          if(viewer!==v||v.disposed||requestToken!==v.loadToken)return;
           if(xhr&&xhr.lengthComputable&&xhr.total>0)setStatus('⏳ Lade 3D-Modell … '+Math.round(xhr.loaded/xhr.total*100)+'%');
         },err=>{
           settled=true;clearTimeout(timeout);
-          if(viewer!==v||v.disposed)return;
+          if(objectUrl)URL.revokeObjectURL(url);
+          if(viewer!==v||v.disposed||requestToken!==v.loadToken)return;
           const detail=err?.message||'Netzwerk-/GLB-Fehler';
           setStatus('❌ Modell konnte nicht geladen werden: '+detail,'error');
           if(info)info.textContent='Prüfe, ob die Datei im Repository unter exakt diesem Pfad vorhanden und öffentlich abrufbar ist.';
-          if(objectUrl)URL.revokeObjectURL(url);
           console.error('HalDo v151 GLB error:',url,err);
         });
       }
@@ -10192,6 +10673,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
         const b=e.target.closest('button');if(!b)return;
         if(b.dataset.arztTab){tab=b.dataset.arztTab;renderTab();return;}
         if(b.hasAttribute('data-legacy-arztbuch')&&H.ArztbuchLegacyOpen){H.ArztbuchLegacyOpen();return;}
+        if(b.hasAttribute('data-model-schematic')){loadSchematicSkeleton();return;}
         if(b.hasAttribute('data-model-load')){const select=root.querySelector('[data-model-select]');if(select)loadModel(select.value);return;}
         if(b.hasAttribute('data-model-reset')){if(viewer?.currentObject)fitModel(viewer.currentObject);return;}
         if(b.hasAttribute('data-model-fullscreen')){const host=root.querySelector('[data-anatomy-view]');if(host?.requestFullscreen)host.requestFullscreen().catch(err=>toast151('Vollbild nicht möglich: '+err.message,'warning'));else toast151('Vollbild wird in diesem Browser nicht unterstützt.','warning');return;}
@@ -11005,7 +11487,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
 .hdp154-tabs{display:flex;gap:6px;overflow:auto;padding:3px 0 8px}
 .hdp154-tab{padding:7px 10px;border:1px solid rgba(0,229,255,.18);border-radius:999px;background:transparent;color:inherit;font:inherit;font-size:11px;white-space:nowrap;cursor:pointer}
 .hdp154-tab.active{background:rgba(0,229,255,.16);border-color:rgba(0,229,255,.55)}
-.hdp154-statgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:9px 0}
+.hdp154-statgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:9px 0}
 .hdp154-stat{padding:10px;border:1px solid rgba(0,229,255,.16);border-radius:11px;background:rgba(0,229,255,.045);min-width:0}
 .hdp154-stat b{display:block;font-size:19px;font-variant-numeric:tabular-nums}.hdp154-stat span{font-size:10px;opacity:.68}
 .hdp154-question{font-size:16px;font-weight:850;line-height:1.45;margin:8px 0 12px}
@@ -11020,7 +11502,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
 .hdp154-ai{border:1px solid rgba(180,120,255,.3);background:linear-gradient(135deg,rgba(0,229,255,.07),rgba(180,120,255,.08));border-radius:13px;padding:12px;margin:9px 0}
 .hdp154-ai-title{font-weight:850;margin-bottom:6px}
 .hdp154-link{color:var(--accent,#00e5ff);text-decoration:underline}
-@media(max-width:520px){.hdp154-grid{grid-template-columns:1fr}.hdp154-head{align-items:flex-start}.hdp154-title{font-size:15px}}
+@media(max-width:520px){.hdp154-grid{grid-template-columns:1fr}.hdp154-statgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.hdp154-head{align-items:flex-start}.hdp154-title{font-size:15px}}
 </style>
 <script id="haldo-v154-two-apps">
 (function(){
@@ -11189,8 +11671,9 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
     var KEY='v154_arztbuch_encrypted_vault';
     var ITERATIONS=210000;
     var encoder=new TextEncoder(),decoder=new TextDecoder();
-    var vault=null,sessionKey=null,data=null,unlocked=false,currentRoot=null,tab='overview';
-    function emptyData(){return {appointments:[],medications:[],allergies:[],labs:[],notes:[]};}
+    var vault=null,sessionKey=null,data=null,unlocked=false,currentRoot=null,tab='overview',editingVitalId=null;
+    var vitalSearch='',vitalFrom='',vitalTo='',vitalSeriesKey='',vitalSummaryMode='month';
+    function emptyData(){return {appointments:[],medications:[],allergies:[],labs:[],notes:[],vitals:[]};}
     function toB64(bytes){
       var binary='',chunk=0x8000;
       for(var i=0;i<bytes.length;i+=chunk) binary+=String.fromCharCode.apply(null,bytes.subarray(i,Math.min(i+chunk,bytes.length)));
@@ -11218,11 +11701,11 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
     }
     function validData(value){
       if(!value||typeof value!=='object')return false;
-      ['appointments','medications','allergies','labs','notes'].forEach(function(k){if(!Array.isArray(value[k]))value[k]=[];});
+      ['appointments','medications','allergies','labs','notes','vitals'].forEach(function(k){if(!Array.isArray(value[k]))value[k]=[];});
       return true;
     }
     function lock(){
-      unlocked=false;sessionKey=null;data=null;vault=null;
+      unlocked=false;sessionKey=null;data=null;vault=null;editingVitalId=null;vitalSearch='';vitalFrom='';vitalTo='';vitalSeriesKey='';vitalSummaryMode='month';
       if(currentRoot&&currentRoot.isConnected)renderLock(currentRoot);
     }
     function dateText(value){
@@ -11232,10 +11715,11 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
     }
     function summary(){
       if(!data)return 'HalDo Arztbuch ist gesperrt.';
-      return 'HalDo Arztbuch Zusammenfassung. Arzttermine: '+data.appointments.length+'. Medikamenteneinträge: '+data.medications.length+'. Allergien: '+data.allergies.length+'. Laborwerte: '+data.labs.length+'. Notizen: '+data.notes.length+'. Diese Angaben wurden von dir eingetragen und sind keine medizinische Bewertung.';
+      return 'HalDo Arztbuch Zusammenfassung. Arzttermine: '+data.appointments.length+'. Medikamenteneinträge: '+data.medications.length+'. Allergien: '+data.allergies.length+'. Laborwerte: '+data.labs.length+'. Notizen: '+data.notes.length+'. Vitalwerte: '+data.vitals.length+'. Diese Angaben wurden von dir eingetragen und sind keine medizinische Bewertung.';
     }
     function safeAnswer(question){
       var q=String(question||'').toLowerCase();
+      if(/vital|blutdruck|puls|blutzucker|temperatur|sauerstoff|gewicht/.test(q))return 'HalDo KI-Leseassistent: Ich kann deine selbst eingetragenen Vitalwerte geordnet anzeigen und vorlesen. Ich prüfe keine Grenzwerte, stelle keine Diagnose und löse keine medizinische Alarmierung aus. Bei Beschwerden oder einem Notfall wende dich an medizinisches Fachpersonal.';
       if(/labor|blutwert|wert|referenz|normbereich/.test(q))return 'HalDo KI-Leseassistent: Ich kann deine gespeicherten Laborwerte und die vom Labor angegebenen Referenzbereiche vorlesen und übersichtlich darstellen. Referenzbereiche hängen unter anderem vom Labor und der Untersuchung ab. Ich stelle keine Diagnose und bewerte keine Erkrankung.';
       if(/medikament|dosis|tablette|einnahme/.test(q))return 'HalDo KI-Leseassistent: Das Arztbuch dokumentiert nur die Angaben, die du selbst eingetragen hast. Starte, ändere oder beende keine Medikation aufgrund einer App-Antwort. Frage dafür deine Ärztin, deinen Arzt oder eine Apotheke.';
       if(/allerg/.test(q))return 'HalDo KI-Leseassistent: Ich kann deine gespeicherten Allergieangaben vorlesen. Bei einer akuten schweren allergischen Reaktion rufe den örtlichen Notruf. Die App ersetzt keine medizinische Notfallversorgung.';
@@ -11244,7 +11728,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
       return 'HalDo KI hilft dir, selbst eingetragene Gesundheitsinformationen zu organisieren und vorzulesen. Sie kann keine Diagnose stellen, Laborwerte medizinisch beurteilen oder Medikamente empfehlen. Was möchtest du in deinem Arztbuch nachschlagen?';
     }
     function open(){
-      tab='overview';
+      tab='overview';editingVitalId=null;
       openRoot('🩺 HalDo Arztbuch Pro',uid('hdp154-medical'),{w:690,h:800},mount);
     }
     function renderLock(root,message){
@@ -11260,23 +11744,154 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
         '<div class="hdp154-foot">Wichtig: Ohne Passphrase kann der Tresor nicht wiederhergestellt werden. Browser-Verschlüsselung schützt gespeicherte Daten, aber nicht vor Schadsoftware oder manipuliertem Website-Code. Dies ist kein Ersatz für die Patientenakte deiner Praxis.</div></div>';
     }
     function addForm(){
-      var label=tab==='appointments'?'Arzttermin':tab==='medications'?'Medikament':tab==='allergies'?'Allergie':tab==='labs'?'Laborwert':'Notiz';
-      var fields='<label class="hdp154-label">'+(tab==='labs'?'Untersuchung / Laborwert':tab==='allergies'?'Allergen':tab==='medications'?'Name des Medikaments':'Titel')+' *</label><input class="hdp154-field" name="title" maxlength="120" required>';
+      var editingVital=tab==='vitals'&&editingVitalId?data.vitals.find(function(x){return x.id===editingVitalId;}):null;
+      var label=tab==='appointments'?'Arzttermin':tab==='medications'?'Medikament':tab==='allergies'?'Allergie':tab==='labs'?'Laborwert':tab==='vitals'?'Vitalwert':'Notiz';
+      var titleLabel=tab==='vitals'?'Messgröße':tab==='labs'?'Untersuchung / Laborwert':tab==='allergies'?'Allergen':tab==='medications'?'Name des Medikaments':'Titel';
+      var titleValue=editingVital?' value="'+esc(editingVital.title)+'"':'';
+      var fields='<label class="hdp154-label">'+titleLabel+' *</label><input class="hdp154-field" name="title" maxlength="120" required'+(tab==='vitals'?' placeholder="z. B. Blutdruck, Puls oder Gewicht"':'')+titleValue+'>';
       if(tab==='appointments'){
         fields+='<label class="hdp154-label">Datum</label><input class="hdp154-field" type="date" name="date"><label class="hdp154-label">Praxis / Arzt</label><input class="hdp154-field" name="doctor" maxlength="120"><label class="hdp154-label">Notiz</label><textarea class="hdp154-field" name="details" rows="2" maxlength="1000"></textarea>';
       }else if(tab==='medications'){
         fields+='<div class="hdp154-grid"><div><label class="hdp154-label">Dosierung laut deinem Plan</label><input class="hdp154-field" name="dose" maxlength="120" placeholder="Nur dokumentieren"></div><div><label class="hdp154-label">Einnahmehinweis laut Plan</label><input class="hdp154-field" name="schedule" maxlength="160"></div></div><div class="hdp154-grid"><div><label class="hdp154-label">Beginn</label><input class="hdp154-field" type="date" name="start"></div><div><label class="hdp154-label">Ende</label><input class="hdp154-field" type="date" name="end"></div></div><label class="hdp154-label">Notiz</label><textarea class="hdp154-field" name="details" rows="2" maxlength="1000"></textarea>';
       }else if(tab==='allergies'){
         fields+='<div class="hdp154-grid"><div><label class="hdp154-label">Reaktion (deine Angabe)</label><input class="hdp154-field" name="reaction" maxlength="180"></div><div><label class="hdp154-label">Schweregrad (eigene Dokumentation)</label><select class="hdp154-field" name="severity"><option value="">Nicht angegeben</option><option>Leicht</option><option>Mittel</option><option>Schwer</option><option>Unbekannt</option></select></div></div><label class="hdp154-label">Notiz</label><textarea class="hdp154-field" name="details" rows="2" maxlength="1000"></textarea>';
+      }else if(tab==='vitals'){
+        fields+='<div class="hdp154-grid"><div><label class="hdp154-label">Messwert / Angabe *</label><input class="hdp154-field" name="result" maxlength="80" required value="'+esc(editingVital?editingVital.result||'':'')+'" placeholder="z. B. 120/80 oder 72"></div><div><label class="hdp154-label">Einheit *</label><input class="hdp154-field" name="unit" maxlength="32" required value="'+esc(editingVital?editingVital.unit||'':'')+'" placeholder="z. B. mmHg, bpm, kg"></div></div>'+
+          '<div class="hdp154-grid"><div><label class="hdp154-label">Messdatum *</label><input class="hdp154-field" type="date" name="date" required value="'+esc(editingVital?editingVital.date||'':'')+'"></div><div><label class="hdp154-label">Quelle der Angabe</label><select class="hdp154-field" name="source"><option value="Eigene Eingabe"'+(editingVital&&editingVital.source==='Eigene Eingabe'?' selected':'')+'>Eigene Eingabe</option><option value="Messgerät"'+(editingVital&&editingVital.source==='Messgerät'?' selected':'')+'>Messgerät</option><option value="Befund"'+(editingVital&&editingVital.source==='Befund'?' selected':'')+'>Befund / Dokument</option></select></div></div>'+
+          '<label class="hdp154-label">Notiz (optional)</label><textarea class="hdp154-field" name="details" rows="2" maxlength="1000">'+esc(editingVital?editingVital.details||'':'')+'</textarea>'+
+          '<p class="hdp154-muted">Nur zur eigenen Dokumentation. HalDo bewertet den Messwert nicht und überwacht keine Notfälle.</p>';
       }else if(tab==='labs'){
         fields+='<div class="hdp154-grid"><div><label class="hdp154-label">Ergebnis</label><input class="hdp154-field" name="result" maxlength="80"></div><div><label class="hdp154-label">Einheit</label><input class="hdp154-field" name="unit" maxlength="40"></div></div><div class="hdp154-grid"><div><label class="hdp154-label">Referenzbereich laut Labor</label><input class="hdp154-field" name="reference" maxlength="100"></div><div><label class="hdp154-label">Datum</label><input class="hdp154-field" type="date" name="date"></div></div><label class="hdp154-label">Notiz (optional)</label><textarea class="hdp154-field" name="details" rows="2" maxlength="1000"></textarea>';
       }else{
         fields+='<label class="hdp154-label">Notiz</label><textarea class="hdp154-field" name="details" rows="3" maxlength="3000" required></textarea>';
       }
-      return '<form class="hdp154-panel" data-ab-form><div class="hdp154-ai-title">＋ '+label+' hinzufügen</div>'+fields+'<div class="hdp154-actions"><button class="hdp154-btn primary" type="submit">Eintrag verschlüsselt speichern</button></div></form>';
+      var heading=editingVital?'Vitalwert bearbeiten':'＋ '+label+' hinzufügen';
+      var actions='<div class="hdp154-actions"><button class="hdp154-btn primary" type="submit">'+(editingVital?'Änderungen verschlüsselt speichern':'Eintrag verschlüsselt speichern')+'</button>'+(editingVital?'<button class="hdp154-btn" type="button" data-ab-vital-cancel>Abbrechen</button>':'')+'</div>';
+      return '<form class="hdp154-panel" data-ab-form><div class="hdp154-ai-title">'+heading+'</div>'+fields+actions+'</form>';
     }
     function recordsFor(type){
-      return data[type].slice().sort(function(a,b){return String(b.createdAt||'').localeCompare(String(a.createdAt||''));});
+      return data[type].slice().sort(function(a,b){
+        if(type==='vitals'){
+          var byDate=String(b.date||'').localeCompare(String(a.date||''));
+          if(byDate)return byDate;
+        }
+        return String(b.createdAt||'').localeCompare(String(a.createdAt||''));
+      });
+    }
+    function filteredVitals(){
+      var query=vitalSearch.trim().toLocaleLowerCase();
+      return recordsFor('vitals').filter(function(item){
+        var date=String(item.date||'');
+        if(vitalFrom&&(!date||date<vitalFrom))return false;
+        if(vitalTo&&(!date||date>vitalTo))return false;
+        if(query&&JSON.stringify(item).toLocaleLowerCase().indexOf(query)===-1)return false;
+        return true;
+      });
+    }
+    function csvCell(value){
+      var text=String(value==null?'':value);
+      if(/^\s*[=+\-@]/.test(text))text="'"+text;
+      return '"'+text.replace(/"/g,'""')+'"';
+    }
+    function numericVitalValue(value){
+      var raw=String(value==null?'':value).trim().replace(',','.');
+      if(!/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(raw))return null;
+      var number=Number(raw);
+      return isFinite(number)?number:null;
+    }
+    function vitalSeries(items){
+      var grouped=Object.create(null),series=[];
+      items.forEach(function(item){
+        var title=String(item.title||'').trim(),unit=String(item.unit||'').trim();
+        var date=String(item.date||''),value=numericVitalValue(item.result);
+        if(!title||!unit||!/^\d{4}-\d{2}-\d{2}$/.test(date)||value===null)return;
+        var key=title.toLocaleLowerCase()+'::'+unit.toLocaleLowerCase();
+        if(!grouped[key]){
+          grouped[key]={key:key,title:title,unit:unit,points:[]};
+          series.push(grouped[key]);
+        }
+        grouped[key].points.push({date:date,value:value,createdAt:String(item.createdAt||'')});
+      });
+      series.forEach(function(group){
+        group.points.sort(function(a,b){
+          var byDate=a.date.localeCompare(b.date);
+          return byDate||a.createdAt.localeCompare(b.createdAt);
+        });
+      });
+      return series;
+    }
+    function formatVitalNumber(value){
+      return Number(value.toFixed(2)).toLocaleString('de-DE');
+    }
+    function vitalSummaryHtml(group){
+      if(!group||!group.points.length)return '';
+      var buckets=Object.create(null),keys=[];
+      group.points.forEach(function(point){
+        var key=vitalSummaryMode==='year'?point.date.slice(0,4):point.date.slice(0,7);
+        if(!buckets[key]){
+          buckets[key]={count:0,total:0,min:point.value,max:point.value};
+          keys.push(key);
+        }
+        var bucket=buckets[key];
+        bucket.count++;
+        bucket.total+=point.value;
+        bucket.min=Math.min(bucket.min,point.value);
+        bucket.max=Math.max(bucket.max,point.value);
+      });
+      keys.sort().reverse();
+      var periodLabel=vitalSummaryMode==='year'?'Jahr':'Monat';
+      var html='<section class="hdp154-panel" aria-label="Monats- und Jahresübersicht"><div class="hdp154-ai-title">📆 Monats- und Jahresübersicht</div><label class="hdp154-label" for="hdp154-vital-summary-mode">Zeitraum</label><select id="hdp154-vital-summary-mode" class="hdp154-field" data-ab-vital-summary-mode><option value="month"'+(vitalSummaryMode==='month'?' selected':'')+'>Monat</option><option value="year"'+(vitalSummaryMode==='year'?' selected':'')+'>Jahr</option></select><p class="hdp154-muted">'+esc(group.title)+' · '+esc(group.unit)+'</p><div style="width:100%;overflow-x:auto"><table style="width:100%;border-collapse:collapse;text-align:left"><thead><tr><th style="padding:8px">'+periodLabel+'</th><th style="padding:8px">Anzahl</th><th style="padding:8px">Minimum</th><th style="padding:8px">Durchschnitt</th><th style="padding:8px">Maximum</th></tr></thead><tbody>';
+      html+=keys.map(function(key){
+        var bucket=buckets[key];
+        var label=vitalSummaryMode==='year'?key:key.slice(5,7)+'/'+key.slice(0,4);
+        return '<tr data-ab-vital-summary-row><td style="padding:8px;border-top:1px solid var(--border,rgba(128,128,128,.25))">'+esc(label)+'</td><td style="padding:8px;border-top:1px solid var(--border,rgba(128,128,128,.25))">'+bucket.count+'</td><td style="padding:8px;border-top:1px solid var(--border,rgba(128,128,128,.25))">'+esc(formatVitalNumber(bucket.min))+' '+esc(group.unit)+'</td><td style="padding:8px;border-top:1px solid var(--border,rgba(128,128,128,.25))">'+esc(formatVitalNumber(bucket.total/bucket.count))+' '+esc(group.unit)+'</td><td style="padding:8px;border-top:1px solid var(--border,rgba(128,128,128,.25))">'+esc(formatVitalNumber(bucket.max))+' '+esc(group.unit)+'</td></tr>';
+      }).join('');
+      html+='</tbody></table></div><p class="hdp154-muted">Rein statistische Zusammenfassung deiner Einträge. Keine Normwert-, Risiko- oder Therapieauswertung.</p></section>';
+      return html;
+    }
+    function vitalChartHtml(items){
+      var groups=vitalSeries(items);
+      if(!groups.length){
+        return '<section class="hdp154-panel" aria-label="Vitalwerte-Grafik"><div class="hdp154-ai-title">📊 Messwerte grafisch</div><div class="hdp154-empty" data-ab-vital-chart-empty>Für eine Verlaufskurve werden mindestens zwei numerische Messungen mit Datum sowie derselben Messgröße und Einheit benötigt. Verhältniswerte wie 120/80 bleiben in der Eintragsliste.</div></section>';
+      }
+      var selected=groups.find(function(group){return group.key===vitalSeriesKey;});
+      if(!selected){selected=groups[0];vitalSeriesKey=selected.key;}
+      var html='<section class="hdp154-panel" aria-label="Vitalwerte-Grafik"><div class="hdp154-ai-title">📊 Messwerte grafisch</div><p class="hdp154-muted">Nur gleiche Messgröße und Einheit werden gemeinsam dargestellt. Nichtnumerische Angaben und Verhältniswerte werden nicht in die Kurve übernommen.</p>';
+      if(groups.length>1){
+        html+='<label class="hdp154-label" for="hdp154-vital-series">Messgröße auswählen</label><select id="hdp154-vital-series" class="hdp154-field" data-ab-vital-series>';
+        html+=groups.map(function(group){return '<option value="'+esc(group.key)+'"'+(group.key===selected.key?' selected':'')+'>'+esc(group.title)+' · '+esc(group.unit)+' ('+group.points.length+')</option>';}).join('');
+        html+='</select>';
+      }else{
+        html+='<p><strong>'+esc(selected.title)+' · '+esc(selected.unit)+'</strong></p>';
+      }
+      if(selected.points.length<2){
+        html+='<div class="hdp154-empty" data-ab-vital-chart-empty>Für '+esc(selected.title)+' werden mindestens zwei numerische Messungen mit Datum benötigt.</div></section>'+vitalSummaryHtml(selected);
+        return html;
+      }
+      var width=640,height=220,left=54,right=18,top=18,bottom=42;
+      var plotWidth=width-left-right,plotHeight=height-top-bottom;
+      var values=selected.points.map(function(point){return point.value;});
+      var min=Math.min.apply(Math,values),max=Math.max.apply(Math,values);
+      var range=max-min,pad=range?range*0.12:Math.max(Math.abs(max)*0.1,1);
+      var low=min-pad,high=max+pad;
+      var coords=selected.points.map(function(point,index){
+        var x=left+index*plotWidth/(selected.points.length-1);
+        var y=top+(high-point.value)/(high-low)*plotHeight;
+        return {x:x,y:y,point:point};
+      });
+      var path=coords.map(function(point,index){return (index?'L ':'M ')+point.x.toFixed(2)+' '+point.y.toFixed(2);}).join(' ');
+      var ticks=Math.min(selected.points.length,6),labels='';
+      for(var tick=0;tick<ticks;tick++){
+        var pointIndex=ticks===1?0:Math.round(tick*(selected.points.length-1)/(ticks-1));
+        var point=coords[pointIndex];
+        labels+='<text x="'+point.x.toFixed(2)+'" y="'+(height-12)+'" text-anchor="middle" font-size="11" fill="currentColor">'+esc(dateText(point.point.date))+'</text>';
+      }
+      var circles=coords.map(function(point){
+        var label=dateText(point.point.date)+' · '+String(point.point.value).replace('.',',')+' '+selected.unit;
+        return '<circle cx="'+point.x.toFixed(2)+'" cy="'+point.y.toFixed(2)+'" r="4.5" fill="currentColor"><title>'+esc(label)+'</title></circle>';
+      }).join('');
+      html+='<div style="width:100%;overflow-x:auto"><svg data-ab-vital-chart viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Chronologischer Verlauf für '+esc(selected.title)+' in '+esc(selected.unit)+'" style="display:block;width:100%;min-width:320px;height:auto;color:var(--accent,#4f8cff)"><line x1="'+left+'" y1="'+(top+plotHeight)+'" x2="'+(width-right)+'" y2="'+(top+plotHeight)+'" stroke="currentColor" opacity=".35"/><line x1="'+left+'" y1="'+top+'" x2="'+left+'" y2="'+(top+plotHeight)+'" stroke="currentColor" opacity=".35"/><text x="'+(left-8)+'" y="'+(top+5)+'" text-anchor="end" font-size="11" fill="currentColor">'+esc(String(Number(high.toFixed(2))).replace('.',','))+'</text><text x="'+(left-8)+'" y="'+(top+plotHeight)+'" text-anchor="end" font-size="11" fill="currentColor">'+esc(String(Number(low.toFixed(2))).replace('.',','))+'</text><path d="'+path+'" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'+circles+labels+'</svg></div><p class="hdp154-muted">'+selected.points.length+' numerische Messungen · chronologische Darstellung · keine medizinische Bewertung</p></section>'+vitalSummaryHtml(selected);
+      return html;
     }
     function recordHtml(item,type){
       var meta=[];
@@ -11288,27 +11903,59 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
       if(item.end)meta.push('Ende: '+dateText(item.end));
       if(item.reaction)meta.push('Reaktion: '+item.reaction);
       if(item.severity)meta.push('Eigene Angabe: '+item.severity);
-      if(item.result)meta.push('Ergebnis: '+item.result+' '+(item.unit||''));
+      if(item.result)meta.push((type==='vitals'?'Messwert: ':'Ergebnis: ')+item.result+' '+(item.unit||''));
       if(item.reference)meta.push('Labor-Referenz: '+item.reference);
+      if(type==='vitals'&&item.source)meta.push('Quelle: '+item.source);
       if(item.details)meta.push(item.details);
-      return '<article class="hdp154-record"><strong>'+esc(item.title)+'</strong><small>'+esc(meta.join(' · ')||'Ohne weitere Angaben')+'</small><div class="hdp154-actions"><button class="hdp154-btn danger" type="button" data-ab-delete="'+esc(item.id)+'" data-ab-type="'+esc(type)+'">Eintrag löschen</button></div></article>';
+      var actions=(type==='vitals'?'<button class="hdp154-btn" type="button" data-ab-edit-vital="'+esc(item.id)+'">Eintrag bearbeiten</button>':'')+
+        '<button class="hdp154-btn danger" type="button" data-ab-delete="'+esc(item.id)+'" data-ab-type="'+esc(type)+'">Eintrag löschen</button>';
+      return '<article class="hdp154-record"><strong>'+esc(item.title)+'</strong><small>'+esc(meta.join(' · ')||'Ohne weitere Angaben')+'</small><div class="hdp154-actions">'+actions+'</div></article>';
     }
     function overviewHtml(){
       var next=data.appointments.filter(function(x){return x.date&&x.date>=new Date().toISOString().slice(0,10);}).sort(function(a,b){return a.date.localeCompare(b.date);})[0];
-      return '<div class="hdp154-statgrid"><div class="hdp154-stat"><b>'+data.appointments.length+'</b><span>Arzttermine</span></div><div class="hdp154-stat"><b>'+data.medications.length+'</b><span>Medikamente dokumentiert</span></div><div class="hdp154-stat"><b>'+data.labs.length+'</b><span>Laborwerte</span></div></div>'+
+      var latestVital=recordsFor('vitals')[0];
+      var latestVitalText=latestVital?esc(latestVital.title)+' · '+esc(latestVital.result||'')+' '+esc(latestVital.unit||'')+' · '+esc(dateText(latestVital.date)):'Noch kein Vitalwert eingetragen.';
+      return '<div class="hdp154-statgrid"><div class="hdp154-stat"><b>'+data.appointments.length+'</b><span>Arzttermine</span></div><div class="hdp154-stat"><b>'+data.medications.length+'</b><span>Medikamente dokumentiert</span></div><div class="hdp154-stat"><b>'+data.labs.length+'</b><span>Laborwerte</span></div><div class="hdp154-stat"><b>'+data.vitals.length+'</b><span>Vitalwerte</span></div></div>'+
+        '<div class="hdp154-panel"><b>Erweiterte Dokumentation</b><p class="hdp154-muted">Öffne die eigenständigen, lokal verschlüsselten Pro-Module für Laborwerte und Medikationsdokumentation oder erfasse eigene Vitalwerte.</p><div class="hdp154-actions"><button class="hdp154-btn primary" type="button" data-ab-open-module="laborwerte-pro">🧪 Laborwerte Pro öffnen</button><button class="hdp154-btn primary" type="button" data-ab-open-module="medikamentenplan-pro">💊 Medikamentenplan Pro öffnen</button><button class="hdp154-btn" type="button" data-ab-tab="vitals">📈 Vitalwerte erfassen</button></div></div>'+
+        '<div class="hdp154-panel"><b>Letzter gespeicherter Vitalwert</b><p style="margin-top:6px">'+latestVitalText+'</p><p class="hdp154-muted">Eigene Dokumentation ohne automatische medizinische Bewertung oder Notfallüberwachung.</p><div class="hdp154-actions"><button class="hdp154-btn" type="button" data-ab-tab="vitals">Vitalwerte öffnen</button></div></div>'+
         '<div class="hdp154-panel"><b>Nächster eingetragener Termin</b><p style="margin-top:6px">'+(next?esc(next.title)+' · '+esc(dateText(next.date)):'Noch kein zukünftiger Termin eingetragen.')+'</p></div>'+
         '<div class="hdp154-panel"><b>Deine Übersicht</b><p>Allergien: '+data.allergies.length+' · Notizen: '+data.notes.length+'</p><div class="hdp154-actions"><button class="hdp154-btn primary" data-ab-read>🔊 HalDo AI liest Übersicht vor</button><button class="hdp154-btn" data-ab-export>⬇ Verschlüsselte Sicherung</button><button class="hdp154-btn danger" data-ab-lock>🔒 Jetzt sperren</button></div></div>'+
         '<div class="hdp154-ai"><div class="hdp154-ai-title">🦾 HalDo AI · Arztbuch-Leseassistent</div><p class="hdp154-muted">Frage nach deinen gespeicherten Einträgen oder lasse dir die Übersicht vorlesen. Die Hilfe organisiert und liest Angaben – sie diagnostiziert nicht.</p><form data-ab-ai-form><input class="hdp154-field" name="question" maxlength="220" placeholder="z. B. Lies meine Laborwerte vor" required><div class="hdp154-actions"><button class="hdp154-btn primary" type="submit">HalDo KI fragen</button></div></form><div class="hdp154-feedback" data-ab-ai-answer>HalDo AI ist bereit.</div></div>';
     }
-    function renderUnlocked(root){
+    function renderUnlocked(root,preserveDraft){
       if(!root||!root.isConnected||!data)return;
-      var tabs=[['overview','Übersicht'],['appointments','Arzttermine'],['medications','Medikamente'],['allergies','Allergien'],['labs','Laborwerte'],['notes','Notizen']];
+      var formDraft=null;
+      if(preserveDraft){
+        var currentForm=root.querySelector('[data-ab-form]');
+        if(currentForm){
+          formDraft=[];
+          Array.prototype.forEach.call(currentForm.elements,function(field){
+            if(field.name)formDraft.push({name:field.name,value:field.value});
+          });
+        }
+      }
+      var tabs=[['overview','Übersicht'],['appointments','Arzttermine'],['medications','Medikamente'],['allergies','Allergien'],['labs','Laborwerte'],['vitals','Vitalwerte'],['notes','Notizen']];
       var html='<div class="hdp154-head"><div><div class="hdp154-title">🩺 HalDo Arztbuch Pro</div><div class="hdp154-sub">HalDo AI · HalDo Voice · Cyborg-Leseassistent · verschlüsselter Tresor</div></div><span class="hdp154-chip">🔐 Entsperrt</span></div>'+
         '<div class="hdp154-tabs">'+tabs.map(function(t){return '<button class="hdp154-tab '+(tab===t[0]?'active':'')+'" data-ab-tab="'+t[0]+'">'+esc(t[1])+'</button>';}).join('')+'</div>';
       if(tab==='overview') html+=overviewHtml();
-      else html+=addForm()+(recordsFor(tab).map(function(item){return recordHtml(item,tab);}).join('')||'<div class="hdp154-empty">Noch keine Einträge in diesem Bereich.</div>');
+      else if(tab==='vitals'){
+        var vitalItems=filteredVitals();
+        html+=addForm();
+        html+='<section class="hdp154-panel" aria-label="Vitalwerte-Verlauf"><div class="hdp154-ai-title">📈 Vitalwerte-Verlauf</div><label class="hdp154-label" for="hdp154-vital-search">Suche</label><input id="hdp154-vital-search" class="hdp154-field" data-ab-vital-search type="search" maxlength="120" placeholder="Messgröße, Messwert, Einheit oder Notiz suchen" value="'+esc(vitalSearch)+'"><div class="hdp154-grid"><div><label class="hdp154-label" for="hdp154-vital-from">Von</label><input id="hdp154-vital-from" class="hdp154-field" data-ab-vital-from type="date" value="'+esc(vitalFrom)+'"></div><div><label class="hdp154-label" for="hdp154-vital-to">Bis</label><input id="hdp154-vital-to" class="hdp154-field" data-ab-vital-to type="date" value="'+esc(vitalTo)+'"></div></div><p class="hdp154-muted">'+vitalItems.length+' von '+data.vitals.length+' Einträgen · chronologisch nach Messdatum · keine medizinische Bewertung</p><div class="hdp154-actions"><button class="hdp154-btn" type="button" data-ab-vital-export'+(vitalItems.length?'':' disabled')+'>⬇ CSV exportieren (Klartext)</button></div><p class="hdp154-muted">Datenschutzhinweis: CSV-Dateien enthalten unverschlüsselte Gesundheitsangaben. Speichere und teile die Datei nur an einem geschützten Ort.</p></section>';
+        html+=vitalChartHtml(vitalItems);
+        html+=vitalItems.map(function(item){return recordHtml(item,'vitals');}).join('')||'<div class="hdp154-empty">'+(data.vitals.length?'Keine Vitalwerte für diese Suche oder diesen Zeitraum.':'Noch keine Einträge in diesem Bereich.')+'</div>';
+      }else html+=addForm()+(recordsFor(tab).map(function(item){return recordHtml(item,tab);}).join('')||'<div class="hdp154-empty">Noch keine Einträge in diesem Bereich.</div>');
       html+='<div class="hdp154-foot">Datenschutz: Daten werden in diesem Browser lokal gespeichert und vor dem Speichern verschlüsselt. Eine Wiederherstellung ohne Passphrase ist nicht möglich. Keine Synchronisierung mit einer Arztpraxis. Die App ersetzt keine ärztliche Beratung, Diagnose oder Behandlung.</div>';
       root.innerHTML=html;
+      if(formDraft){
+        var nextForm=root.querySelector('[data-ab-form]');
+        if(nextForm){
+          formDraft.forEach(function(saved){
+            var field=nextForm.elements.namedItem(saved.name);
+            if(field)field.value=saved.value;
+          });
+        }
+      }
     }
     function renderLock(root,message){
       if(!root||!root.isConnected)return;
@@ -11327,7 +11974,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
       if(!supportsCrypto()){renderLock(root,'Dieser Browser stellt Web Crypto nicht in einem sicheren Kontext bereit. Öffne HalDo über HTTPS in einem aktuellen Browser.');return;}
       renderLock(root,'');
       var observer=new MutationObserver(function(){
-        if(!root.isConnected){observer.disconnect();unlocked=false;sessionKey=null;data=null;vault=null;currentRoot=null;}
+        if(!root.isConnected){observer.disconnect();unlocked=false;sessionKey=null;data=null;vault=null;currentRoot=null;vitalSearch='';vitalFrom='';vitalTo='';vitalSeriesKey='';vitalSummaryMode='month';}
       });
       observer.observe(document.body,{childList:true,subtree:true});
       root.addEventListener('submit',function(event){
@@ -11363,14 +12010,68 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
           event.preventDefault();if(!unlocked||!data)return;
           var type=tab,record={id:uid('arztbuch'),title:form.elements.title.value.trim(),createdAt:new Date().toISOString()};
           if(!record.title){notify('Bitte einen Titel eingeben.','error');return;}
-          ['date','doctor','dose','schedule','start','end','reaction','severity','result','unit','reference','details'].forEach(function(k){if(form.elements[k])record[k]=form.elements[k].value.trim();});
-          data[type].unshift(record);
-          encryptAndSave().then(function(){renderUnlocked(root);notify('Eintrag verschlüsselt gespeichert.','success');}).catch(function(e){notify('Speichern fehlgeschlagen: '+(e.message||e),'error');});
+          ['date','doctor','dose','schedule','start','end','reaction','severity','result','unit','reference','details','source'].forEach(function(k){if(form.elements[k])record[k]=form.elements[k].value.trim();});
+          if(type==='vitals'&&editingVitalId){
+            var existingVital=data.vitals.find(function(x){return x.id===editingVitalId;});
+            if(!existingVital){editingVitalId=null;notify('Der Vitalwert wurde nicht mehr gefunden.','error');renderUnlocked(root);return;}
+            ['title','result','unit','date','source','details'].forEach(function(k){existingVital[k]=record[k]||'';});
+            existingVital.updatedAt=new Date().toISOString();
+          }else{
+            data[type].unshift(record);
+          }
+          encryptAndSave().then(function(){editingVitalId=null;renderUnlocked(root);notify(type==='vitals'?'Vitalwert verschlüsselt gespeichert.':'Eintrag verschlüsselt gespeichert.','success');}).catch(function(e){notify('Speichern fehlgeschlagen: '+(e.message||e),'error');});
         }
+      });
+      root.addEventListener('input',function(event){
+        var field=event.target;
+        if(!field.matches('[data-ab-vital-search]'))return;
+        vitalSearch=field.value;
+        var cursor=field.selectionStart;
+        renderUnlocked(root,true);
+        var next=root.querySelector('[data-ab-vital-search]');
+        if(next){next.focus();next.setSelectionRange(cursor,cursor);}
+      });
+      root.addEventListener('change',function(event){
+        var field=event.target;
+        if(field.matches('[data-ab-vital-from]'))vitalFrom=field.value;
+        else if(field.matches('[data-ab-vital-to]'))vitalTo=field.value;
+        else if(field.matches('[data-ab-vital-series]'))vitalSeriesKey=field.value;
+        else if(field.matches('[data-ab-vital-summary-mode]'))vitalSummaryMode=field.value==='year'?'year':'month';
+        else return;
+        renderUnlocked(root,true);
       });
       root.addEventListener('click',function(event){
         var b=event.target.closest('button');if(!b||!root.contains(b))return;
-        if(b.dataset.abTab){tab=b.dataset.abTab;renderUnlocked(root);return;}
+        if(b.dataset.abTab){tab=b.dataset.abTab;if(tab!=='vitals'){editingVitalId=null;vitalSearch='';vitalFrom='';vitalTo='';vitalSeriesKey='';vitalSummaryMode='month';}renderUnlocked(root);return;}
+        if(b.dataset.abEditVital){
+          var selectedVital=data&&data.vitals.find(function(x){return x.id===b.dataset.abEditVital;});
+          if(!selectedVital)return;
+          tab='vitals';editingVitalId=selectedVital.id;renderUnlocked(root);return;
+        }
+        if(b.hasAttribute('data-ab-vital-cancel')){editingVitalId=null;renderUnlocked(root);return;}
+        if(b.dataset.abOpenModule){
+          var moduleId=b.dataset.abOpenModule;
+          var moduleNames={'laborwerte-pro':'HalDo Laborwerte Pro','medikamentenplan-pro':'HalDo Medikamentenplan Pro'};
+          if(!moduleNames[moduleId])return;
+          if(typeof H.Launch==='function')H.Launch({id:moduleId,n:moduleNames[moduleId]});
+          else notify('Das gewählte Pro-Modul ist derzeit nicht verfügbar.','error');
+          return;
+        }
+        if(b.hasAttribute('data-ab-vital-export')){
+          var exportItems=filteredVitals();
+          if(!exportItems.length){notify('Keine Vitalwerte für den Export vorhanden.','error');return;}
+          var csvRows=[['Messgröße','Messwert','Einheit','Messdatum','Quelle','Notiz']];
+          exportItems.forEach(function(item){
+            csvRows.push([item.title,item.result,item.unit,item.date,item.source,item.details]);
+          });
+          var csv='\uFEFF'+csvRows.map(function(row){return row.map(csvCell).join(';');}).join('\r\n');
+          var csvBlob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+          var csvUrl=URL.createObjectURL(csvBlob),csvLink=document.createElement('a');
+          csvLink.href=csvUrl;csvLink.download='haldo-vitalwerte.csv';
+          document.body.appendChild(csvLink);csvLink.click();csvLink.remove();
+          window.setTimeout(function(){URL.revokeObjectURL(csvUrl);},1500);
+          notify('Gefilterte Vitalwerte als unverschlüsselte CSV exportiert.','success');return;
+        }
         if(b.hasAttribute('data-ab-lock')){lock();notify('HalDo Arztbuch wurde gesperrt.');return;}
         if(b.hasAttribute('data-ab-read')){speak(summary());return;}
         if(b.hasAttribute('data-ab-export')){
@@ -11383,6 +12084,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
           if(!data||!Array.isArray(data[type]))return;
           if(!window.confirm('Diesen Eintrag wirklich löschen?'))return;
           data[type]=data[type].filter(function(x){return x.id!==id;});
+          if(type==='vitals'&&editingVitalId===id)editingVitalId=null;
           encryptAndSave().then(function(){renderUnlocked(root);notify('Eintrag gelöscht.','success');}).catch(function(e){notify('Löschen fehlgeschlagen: '+(e.message||e),'error');});return;
         }
       });
@@ -12727,7 +13429,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
     });
   }
   var ROUTES={
-    'settings':'Settings','avatar':'Chat','chat':'Chat','weather':'Weather','calculator':'Calc','notes':'Notes','timer':'TimerApp','password':'PassGen','app-registry':'AppBrowser',
+    'settings':'Settings','avatar':'LivingAvatar','chat':'Chat','weather':'Weather','calculator':'Calc','notes':'Notes','timer':'TimerApp','password':'PassGen','app-registry':'AppBrowser',
     'tasks':'Tasks','calendar':'Calendar','habits':'Habits','goals':'Goals','journal':'Journal','ezidi':'Ezidi','fahrschule':'Fahrschule','traffic':'Blitzer','navigation':'Navigation',
     'music':'Music','arztbuch':'Arztbuch','api-keys':'ApiKeys','translator':'Translator','dashboard':'Dashboard','memory':'Memory','ai-memory':'Memory','mood':'Mood','sleep':'Sleep','water':'Water','pomodoro':'Pomodoro',
     'filemanager':'FileManager','camera':'Camera','voicememo':'VoiceMemos','clipboard':'Clipboard','vocab':'Vocab','flashcards':'Flashcards','ptable':'PeriodicTable','mathsolver':'MathSolver','stats':'Stats','stats2':'Stats',
@@ -12735,7 +13437,7 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
     'trip':'TripPlanner','packing':'Packing','phrasebook':'Phrasebook','wonders':'Wonders','symptom':'SymptomChecker','meds':'Meds','emergency':'Emergency','anatomy':'Anatomy','fitness':'Fitness','nutrition':'Nutrition','impfungen':'Impfungen','lab':'Lab','mental':'MentalHealth','healthcalc':'Nutrition',
     'bildung':'Bildung','arbeit':'Arbeit','medien':'Medien','notizen':'Notizen','online':'Online','mathe':'MatheTrainer','deutsch':'DeutschTrainer','geschichte':'GeschichteQuiz','physik':'Physik','biologie':'Biologie','geoquiz':'GeoQuiz','rechtschreibung':'Rechtschreibung','iq':'IQTest','lesen':'Leseverstehen','geometrie':'Geometrie',
     'job-search':'JobSearch','bewerbung':'Bewerbung','zeiterfassung':'Zeiterfassung','projekte':'Projekte','meeting':'MeetingNotizen','gehalt':'Gehalt','report':'ReportGen','absence':'Absence','podcasts':'Podcasts','radio':'Radio','mediathek':'Mediathek','streaming':'Streaming','video':'VideoPlayer','gallery':'Gallery','sticky':'StickyNotes','bookmarks':'Bookmarks','reading':'ReadingList','browser':'Browser','cloud':'Cloud','downloads':'Downloads','search':'Search','social':'Social','news':'News','network-info':'NetworkInfo',
-    'contacts':'KontaktePro','documents':'DokumentePro','dokumente':'DokumentePro','reminders':'Reminders','shopping':'Shopping','update-center':'UpdateCenter','backup-recovery':'BackupRecovery',
+    'contacts':'KontaktePro','documents':'DokumentePro','dokumente':'DokumentePro','reminders':'Reminders','shopping':'Shopping','update-center':'UpdateCenter','backup-recovery':'BackupRecovery','breathing':'breathing','scientific':'scientific','pflegeprotokoll-pro':'pflegeprotokoll-pro','arzttermine-pro':'arzttermine-pro','krankheitslexikon-pro':'krankheitslexikon-pro','medikamentenlexikon-pro':'medikamentenlexikon-pro',
     'music-studio':'MusicStudio','video-studio':'VideoStudio','fahrschule-pro':'Fahrschule'
   };
   function launch(app){
@@ -12758,6 +13460,44 @@ console.log('%c🚀 HalDo v135 geladen — Factory-System aktiv', 'background:#0
     version:BUILD,
     registryCleanup:function(){return Object.assign({},registryCleanup);},
     routes:function(){return Object.keys(ROUTES);},
+    resolveRoute:function(id){
+      id=String(id||'');
+      var configured=Object.prototype.hasOwnProperty.call(ROUTES,id);
+      var moduleName=configured?ROUTES[id]:null;
+      var routedModule=moduleName?H[moduleName]:null;
+      var directModule=H[id];
+      // Match the real launcher's precedence: named route first, then direct app id.
+      var module=routedModule&&typeof routedModule.open==='function'?routedModule:
+        (directModule&&typeof directModule.open==='function'?directModule:null);
+      var available=Boolean(module);
+      var genericFallback=Boolean(module&&module.isGenericFallback);
+      return {
+        id:id,
+        routeConfigured:configured,
+        moduleName:moduleName,
+        moduleAvailable:available,
+        startReady:available&&!genericFallback,
+        genericFallback:genericFallback,
+        resolution:!available?'missing':(genericFallback?'placeholder':(module===routedModule?'route':'direct')),
+        implementationKind:module&&module.implementationKind||null
+      };
+    },
+    auditRegistry:function(){
+      var entries=H.Registry&&Array.isArray(H.Registry.featured)?H.Registry.featured:[];
+      var results=entries.filter(function(app){return app&&app.id;}).map(function(app){
+        var status=this.resolveRoute(app.id);
+        status.name=app.n||app.name||app.id;
+        status.icon=app.i||app.icon||'';
+        return status;
+      },this);
+      var counts={total:results.length,ready:0,placeholder:0,missing:0};
+      results.forEach(function(item){
+        if(item.resolution==='missing')counts.missing++;
+        else if(item.resolution==='placeholder')counts.placeholder++;
+        else counts.ready++;
+      });
+      return {version:BUILD,counts:counts,apps:results};
+    },
     getVersion:function(){return BUILD;}
   };
 
@@ -13028,14 +13768,16 @@ test('Service Worker',!!navigator.serviceWorker),test('Internetverbindung',navig
 return checks;
 }
 function summary(){var c=collect(),n=c.filter(function(x){return x.ok;}).length;return 'HalDo System Diagnostics Pro v'+BUILD+': '+n+' von '+c.length+' Prüfungen verfügbar.';}
+function registryAudit(){try{if(H.SystemV157&&typeof H.SystemV157.auditRegistry==='function')return H.SystemV157.auditRegistry();}catch(error){console.warn('[HalDo Diagnostics] App-Audit:',error);}return null;}
 function open(){
 if(!H.Win||typeof H.Win.open!=='function'){if(typeof H.Notify==='function')H.Notify('HalDo Fensterverwaltung ist nicht verfügbar.','error');return;}
 var id='haldo-v160-diagnostics-'+Date.now();
 H.Win.open('🛡️ HalDo System Diagnostics Pro','<div id="'+id+'"></div>',{w:720,h:760});
 window.setTimeout(function(){
 var root=document.getElementById(id);if(!root||!root.isConnected)return;
-var c=collect(),n=c.filter(function(x){return x.ok;}).length;
-root.innerHTML='<style>.hd160{color:var(--text,#eaf2ff);font:13px/1.5 system-ui;padding:16px}.hd160-head{padding:16px;border:1px solid #38bdf855;border-radius:15px;background:linear-gradient(130deg,#0e749033,#4338ca22)}.hd160 h2{margin:0 0 5px}.hd160 p{opacity:.75}.hd160-stat{font-size:26px;font-weight:850;margin:10px 0}.hd160-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin-top:14px}.hd160-item{padding:11px;border:1px solid #ffffff20;border-radius:11px;background:#0b1730}.hd160-item b{display:block}.hd160-item small{opacity:.7;overflow-wrap:anywhere}.hd160-good{color:#6ee7b7}.hd160-warn{color:#fbbf24}.hd160-foot{font-size:11px;opacity:.65;margin-top:14px}</style><div class="hd160"><div class="hd160-head"><h2>🛡️ HalDo System Diagnostics Pro</h2><p>Technische Kompatibilitätsprüfung – keine Daten werden hochgeladen.</p><div class="hd160-stat">'+n+' / '+c.length+' Prüfungen verfügbar</div><b>Build v'+BUILD+'</b></div><div class="hd160-list">'+c.map(function(x){return '<div class="hd160-item"><b class="'+(x.ok?'hd160-good':'hd160-warn')+'">'+(x.ok?'✓':'!')+' '+esc(x.name)+'</b><small>'+esc(x.detail)+'</small></div>';}).join('')+'</div><div class="hd160-foot">„Nicht verfügbar“ ist nicht automatisch ein Fehler. Funktionen können von Browser, Gerät, Berechtigungen oder HTTPS abhängen. Geprüft wird die API-Verfügbarkeit, nicht die vollständige Funktion jeder App.</div></div>';
+var c=collect(),n=c.filter(function(x){return x.ok;}).length,audit=registryAudit();
+root.innerHTML='<style>.hd160{color:var(--text,#eaf2ff);font:13px/1.5 system-ui;padding:16px}.hd160-head{padding:16px;border:1px solid #38bdf855;border-radius:15px;background:linear-gradient(130deg,#0e749033,#4338ca22)}.hd160 h2{margin:0 0 5px}.hd160 p{opacity:.75}.hd160-stat{font-size:26px;font-weight:850;margin:10px 0}.hd160-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin-top:14px}.hd160-item{padding:11px;border:1px solid #ffffff20;border-radius:11px;background:#0b1730}.hd160-item b{display:block}.hd160-item small{opacity:.7;overflow-wrap:anywhere}.hd160-good{color:#6ee7b7}.hd160-warn{color:#fbbf24}.hd160-registry{margin-top:16px;padding:14px;border:1px solid #a78bfa55;border-radius:13px;background:#111a31}.hd160-registry h3{margin:0 0 6px}.hd160-registry-stats{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.hd160-registry-stats span{padding:6px 9px;border-radius:8px;background:#ffffff0d}.hd160-registry-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:7px}.hd160-registry-item{padding:9px;border:1px solid #ffffff1b;border-radius:9px;background:#071225}.hd160-registry-item b{display:block}.hd160-registry-item small{opacity:.72;overflow-wrap:anywhere}.hd160-ready{color:#6ee7b7}.hd160-placeholder{color:#fbbf24}.hd160-missing{color:#fca5a5}.hd160-foot{font-size:11px;opacity:.65;margin-top:14px}</style><div class="hd160"><div class="hd160-head"><h2>🛡️ HalDo System Diagnostics Pro</h2><p>Technische Kompatibilitätsprüfung – keine Daten werden hochgeladen.</p><div class="hd160-stat">'+n+' / '+c.length+' Prüfungen verfügbar</div><b>Build v'+BUILD+'</b></div><div class="hd160-list">'+c.map(function(x){return '<div class="hd160-item"><b class="'+(x.ok?'hd160-good':'hd160-warn')+'">'+(x.ok?'✓':'!')+' '+esc(x.name)+'</b><small>'+esc(x.detail)+'</small></div>';}).join('')+'</div><section class="hd160-registry"><h3>📚 App-Verzeichnis – Implementierungsprüfung</h3><p>Abgleich der registrierten Apps mit dem zentralen Routenplan. „Bereit“ bedeutet: Ein passendes Modul mit eigener open()-Funktion wurde gefunden; es ist kein vollständiger Funktionstest.</p><div class="hd160-registry-stats" id="hd160-registry-stats"></div><div class="hd160-registry-list" id="hd160-registry-list"></div></section><div class="hd160-foot">„Nicht verfügbar“ ist nicht automatisch ein Fehler. Funktionen können von Browser, Gerät, Berechtigungen oder HTTPS abhängen. Geprüft wird die API-Verfügbarkeit, nicht die vollständige Funktion jeder App.</div></div>';
+var stats=root.querySelector('#hd160-registry-stats'),list=root.querySelector('#hd160-registry-list');if(stats&&list){if(!audit){stats.textContent='Zentrales App-Audit ist in diesem Lauf nicht verfügbar.';}else{var counts=audit.counts||{};stats.innerHTML='<span>Gesamt: '+Number(counts.total||0)+'</span><span class="hd160-ready">Bereit: '+Number(counts.ready||0)+'</span><span class="hd160-placeholder">Platzhalter: '+Number(counts.placeholder||0)+'</span><span class="hd160-missing">Fehlend: '+Number(counts.missing||0)+'</span>';list.innerHTML=(audit.apps||[]).map(function(app){var kind=app.resolution==='route'?'hd160-ready':(app.resolution==='direct'?'hd160-ready':(app.resolution==='placeholder'?'hd160-placeholder':'hd160-missing'));var label=app.resolution==='route'?'ROUTE':(app.resolution==='direct'?'DIREKT':(app.resolution==='placeholder'?'PLATZHALTER':'FEHLT'));return '<div class="hd160-registry-item"><b class="'+kind+'">'+esc(label)+' · '+esc(app.name||app.id)+'</b><small>ID: '+esc(app.id)+' · Modul: '+esc(app.moduleName||'—')+'</small></div>';}).join('')||'<div class="hd160-registry-item">Keine registrierten Apps gefunden.</div>';}}
 },80);
 }
 H.SystemDiagnostics={version:BUILD,collect:collect,summary:summary,open:open};
@@ -13207,10 +13949,6 @@ console.log('HalDo v165: drei neue A–Z Apps geladen.');
 })();
 </script>
 
-</body>
-</html>
-
-
 <!-- HALDO AI OS PRO MAX — v166 · Drei weitere A–Z Apps -->
 <script id="haldo-v166-three-apps">
 (function(){
@@ -13292,3 +14030,27 @@ console.info('HalDo v166: Haushaltsmanager, Keyboard Studio und Datei-Konverter 
 })();
 </script>
 <!-- ENDE HALDO v166 -->
+
+<script src="./js/haldo-v167-medical-apps.js" defer></script>
+<script src="./js/haldo-v168-core-apps.js" defer></script>
+<script src="./js/haldo-v169-a-z-apps.js" defer></script>
+<script src="./js/haldo-v170-productivity-apps.js" defer></script>
+<script src="./js/haldo-v171-date-device-apps.js" defer></script>
+<script src="./js/haldo-v172-learning-apps.js" defer></script>
+<script src="./js/haldo-v173-care-apps.js" defer></script>
+<script src="./js/haldo-v174-utility-apps.js" defer></script>
+<script src="./js/haldo-v174-medical-knowledge.js" defer></script>
+<script src="./js/vendor/qrcode-generator.js" defer></script>
+<script src="./js/haldo-v175-qr-apps.js" defer></script>
+<script src="./js/haldo-v175-document-apps.js" defer></script>
+<script src="./js/haldo-v176-science-iot-apps.js" defer></script>
+<script src="./musik.js" defer></script>
+<script src="./js/haldo-v177-brand-core.js" defer></script>
+<script src="./js/haldo-v178-ai-core.js" defer></script>
+<script src="./js/haldo-v179-permission-core.js" defer></script>
+<script src="./js/haldo-v180-datavault-core.js" defer></script>
+<script src="./js/haldo-v181-permission-policy.js" defer></script>
+<script src="./js/haldo-v182-permission-lifecycle.js" defer></script>
+
+</body>
+</html>

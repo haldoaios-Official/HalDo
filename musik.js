@@ -4,7 +4,13 @@
    ═══════════════════════════════════════════════════════════ */
 (function(){
   "use strict";
-  if(!window.HalDo || !HalDo.Runtime) return;
+  var H = window.HalDo;
+  // HalDo AI OS Pro Max uses the native Win/Store APIs in index.html.
+  // The standalone Runtime loader is not part of the main page bundle.
+  if(!H || !H.Win || !H.Store) {
+    console.error("[HalDo Music Studio] Native HalDo Win/Store API not available.");
+    return;
+  }
 
   function _esc(s){
     return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
@@ -17,6 +23,8 @@
   var masterGain = null;
   var masterReverb = null;
   var masterDelay = null;
+  var masterReverbReturn = null;
+  var masterDelayReturn = null;
   var analyser = null;
   var isPlaying = false;
   var currentStep = 0;
@@ -34,12 +42,23 @@
       var revBuf = audioCtx.createBuffer(2, Math.floor(audioCtx.sampleRate * 1.5), audioCtx.sampleRate);
       for (var c = 0; c < 2; c++) { var d = revBuf.getChannelData(c); for (var i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/d.length, 2.0); }
       masterReverb.buffer = revBuf;
+      masterReverbReturn = audioCtx.createGain(); masterReverbReturn.gain.value = 0.2;
+      masterReverb.connect(masterReverbReturn);
       
       masterDelay = audioCtx.createDelay(1.0); masterDelay.delayTime.value = 0.25;
       var delayFb = audioCtx.createGain(); delayFb.gain.value = 0.3;
+      masterDelayReturn = audioCtx.createGain(); masterDelayReturn.gain.value = 0.1;
       masterDelay.connect(delayFb); delayFb.connect(masterDelay);
+      masterDelay.connect(masterDelayReturn);
       
-      masterGain.connect(analyser); analyser.connect(audioCtx.destination);
+      // Parallel wet returns: every track reaches the master analyser/output
+      // while the saved Reverb and Delay controls actually change their sends.
+      masterGain.connect(analyser);
+      masterGain.connect(masterReverb);
+      masterGain.connect(masterDelay);
+      masterReverbReturn.connect(analyser);
+      masterDelayReturn.connect(analyser);
+      analyser.connect(audioCtx.destination);
     }
     if (audioCtx.state === "suspended") audioCtx.resume();
   }
@@ -240,8 +259,8 @@
         container.querySelectorAll("[data-pan]").forEach(s => s.addEventListener("input", function(){ ST.tracks[this.dataset.pan].pan = this.value/100; save(); }));
         container.querySelectorAll("[data-inst]").forEach(s => s.addEventListener("change", function(){ ST.tracks[this.dataset.inst].inst = this.value; save(); }));
         
-        container.querySelector("#revInp").addEventListener("input", function(){ ST.masterRev = this.value/100; container.querySelector("#lbl_rev").textContent = this.value+"%"; save(); });
-        container.querySelector("#delInp").addEventListener("input", function(){ ST.masterDel = this.value/100; container.querySelector("#lbl_del").textContent = this.value+"%"; save(); });
+        container.querySelector("#revInp").addEventListener("input", function(){ ST.masterRev = this.value/100; if(masterReverbReturn) masterReverbReturn.gain.setTargetAtTime(ST.masterRev * 0.5, audioCtx.currentTime, 0.015); container.querySelector("#lbl_rev").textContent = this.value+"%"; save(); });
+        container.querySelector("#delInp").addEventListener("input", function(){ ST.masterDel = this.value/100; if(masterDelayReturn) masterDelayReturn.gain.setTargetAtTime(ST.masterDel * 0.5, audioCtx.currentTime, 0.015); container.querySelector("#lbl_del").textContent = this.value+"%"; save(); });
         
         container.querySelector("#btnExport").addEventListener("click", exportWav);
       }
@@ -275,7 +294,10 @@
       if (isPlaying) {
         clearInterval(loopInterval); isPlaying = false; build();
       } else {
-        initAudio(); isPlaying = true; currentStep = 0; build();
+        initAudio();
+        if(masterReverbReturn) masterReverbReturn.gain.setTargetAtTime(ST.masterRev * 0.5, audioCtx.currentTime, 0.015);
+        if(masterDelayReturn) masterDelayReturn.gain.setTargetAtTime(ST.masterDel * 0.5, audioCtx.currentTime, 0.015);
+        isPlaying = true; currentStep = 0; build();
         var stepDur = (60 / ST.bpm) / 4;
         loopInterval = setInterval(() => {
           if(ST.tracks.kick.grid[currentStep]) playKick(ST.tracks.kick.vol);
@@ -344,6 +366,27 @@
     build();
   }
 
-  HalDoApp("musik", { name: "Musik", icon: "🎵", render: render, category: "lifestyle" });
-  console.log("🦚 musik.js v22.0 geladen — ABSOLUTE MAXIMUM");
+  // Native launcher bridge: open the existing DAW renderer in a HalDo window.
+  // Keep project data namespaced and persistent through the platform Store API.
+  H.MusicStudio = H.MusicStudio || {};
+  H.MusicStudio.open = function(){
+    var rootId = "haldo-music-studio-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
+    H.Win.open("🎼 HalDo Music Studio Pro", '<div id="' + rootId + '" style="height:100%;overflow:auto"></div>', { w:900, h:760 });
+    window.setTimeout(function(){
+      var root = document.getElementById(rootId);
+      if(!root || !root.isConnected) return;
+      var store = {
+        get: function(key, fallback){ return H.Store.get("music-studio:" + key, fallback); },
+        set: function(key, value){ return H.Store.set("music-studio:" + key, value); }
+      };
+      render(root, { appId:"music-studio", store:store, ai:H.AI || null });
+    }, 80);
+  };
+
+  // Register with the optional modular runtime when it is present, without
+  // making the native index.html launcher depend on that separate runtime.
+  if(H.Runtime && typeof H.Runtime.register === "function") {
+    H.Runtime.register("music-studio", { name:"HalDo Music Studio Pro", icon:"🎼", render:render, category:"creative" });
+  }
+  console.log("🦚 musik.js v22.1 geladen — native HalDo launcher connected");
 })();
