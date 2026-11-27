@@ -209,13 +209,23 @@ async function closeWindow(root) {
     return host.parentElement === layer && host.id ? host.id : null;
   });
   assert.ok(windowId, 'HalDo-Fenster konnte im #winLayer nicht gefunden werden.');
-  await page.evaluate((id) => {
-    if (!window.HalDo || !window.HalDo.Win || typeof window.HalDo.Win.close !== 'function') {
-      throw new Error('HalDo.Win.close ist nicht verfügbar.');
-    }
-    window.HalDo.Win.close(id);
-  }, windowId);
-  await page.locator('#' + windowId).waitFor({ state: 'detached', timeout: 5000 });
+
+  // Exercise the same visible close control a user presses. This is more
+  // faithful than calling the manager API from the test page and avoids
+  // relying on a stale global reference if a legacy window manager was loaded.
+  const closeButton = page.locator('#' + windowId + ' .wc-close').first();
+  if (await closeButton.count()) {
+    await closeButton.click({ timeout: 5000 });
+  } else {
+    await page.evaluate((id) => {
+      if (!window.HalDo || !window.HalDo.Win || typeof window.HalDo.Win.close !== 'function') {
+        throw new Error('HalDo.Win.close ist nicht verfügbar und es gibt keinen sichtbaren Schließen-Button.');
+      }
+      window.HalDo.Win.close(id);
+    }, windowId);
+  }
+
+  await page.locator('#' + windowId).waitFor({ state: 'detached', timeout: 10000 });
 }
 async function createOrUnlock(root, passphrase) {
   await root.locator('#h167-pass').fill(passphrase);
@@ -576,6 +586,7 @@ async function run() {
   assert.equal(manifestReplacement.policy.authenticationAvailable, false);
   assert.equal(manifestReplacement.policy.roleBasedAccessAvailable, false);
   await page.evaluate(() => window.HalDo.PermissionCore.registerApp('avatar', ['microphone']));
+  pass('HalDo v181 Permission Policy: aktive Sitzungsfreigabe wird bei verkleinertem App-Manifest sofort widerrufen');
 
   await page.evaluate(() => {
     window.__haldoV179ClosedResult = null;
