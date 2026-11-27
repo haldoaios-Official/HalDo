@@ -73,3 +73,29 @@ Die Grab3D-Dokumentation beschreibt bei einer Gruppe anderer Beispiel-Rigs 24 Bo
 ### Download- und Prüfstatus
 
 Zum Stand dieses Commits wurden die Binärdateien nicht in das HalDo-Repository übernommen. Die direkten Download-Links sind dokumentiert, aber die GLB-Dateien konnten in der aktuellen Arbeitsumgebung nicht zuverlässig abgerufen und deshalb weder mit einem glTF-Parser noch in einem Browser-Viewer validiert werden. **Alle vier bleiben Kandidaten und dürfen nicht als integrierte Produktions-Avatare angezeigt werden.**
+
+
+## Weitere Human-Variante: weiblicher Avatar-Kandidat
+
+| HalDo-Rolle | Modell | Rigged-Download | Angaben der Modellseite | Status |
+|---|---|---|---|---|
+| Human Female (optional) | [Woman Base Mesh](https://grab3d.com/models/characters/woman-base-character/) | [Rigged GLB, Walk/Run](https://grab3d.com/dl/woman-base-character-rigged/woman-base-character-rigged.glb) | 305.702 Dreiecke (Light 152.851), 4K-PBR (Light 1K), 1,68 m, taupefarbenes Sportoberteil, dunkle Shorts und barfuß, CC0 1.0 | Kandidat – nicht heruntergeladen oder technisch geprüft |
+
+Die Modellseite beschreibt diese Variante als neutralen, bekleideten Ausgangskörper mit zurückgebundenem Haar und vorhandenen Walk-/Run-Clips. Sie ist eine mögliche weibliche Human-Variante, aber noch keine Freigabe zur Produktion. Outfit, Gesicht, Rig-Hierarchie und Performance müssen nach lokalem Download geprüft werden.
+
+## Reproduzierbare lokale Asset-Prüfung
+
+scripts/validate-haldo-avatar-assets.mjs prüft die vier vom Human3D-Engine-Konfigurationssatz erwarteten GLB-Dateien anhand des tatsächlichen Datei-Inhalts:
+
+- GLB-Magic, Version 2.0, Längenfeld, Chunk-Grenzen und JSON-/BIN-Struktur.
+- Vorhandene Meshes, Skins/Joints und Animationskanäle mit gültigen Node-Verweisen.
+- Anzahl der Animationsclips, Skeleton-Namenshinweise sowie Morph Targets.
+- Fehlende Dateien werden als PENDING ausgewiesen. Ungültige Dateien werden abgewiesen. Mit dem Schalter --strict wird zusätzlich eine fehlende Datei zum Fehler.
+
+Die Selbsttests erzeugen nur kleine synthetische GLB-Fixtures und prüfen gültige sowie absichtlich fehlerhafte Container. Sie ersetzen weder einen vollständigen Khronos glTF Validator noch Sichtkontrolle, Gesichtstest, Performance-Messung oder Lizenzprüfung. Die Datei wird nicht aus dem Internet nachgeladen.
+
+## Offizielle Grab3D-Metadaten-Schnittstelle
+
+Die Anbieter-Dokumentation beschreibt den Endpunkt https://grab3d.com/api/v1/models/{slug}.json als öffentliche, schlüssellose JSON-Schnittstelle. Das Schema stellt unter anderem files, rigged, origin, license, created und manifestUrl bereit. origin unterscheidet KI-gestützte Erstellung vom prozeduralen Aufbau. Die Download-URLs folgen laut Dokumentation dem Muster https://grab3d.com/dl/<slug>/<file>. Diese Schnittstelle kann zur späteren automatisierten Metadaten-Erfassung verwendet werden; sie ist kein Beweis, dass eine konkrete GLB-Datei lokal vorhanden oder geprüft wurde.
+
+Quelle: https://grab3d.com/developers/
