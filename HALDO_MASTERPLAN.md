@@ -827,3 +827,25 @@ Ein App-Startpfad oder ein grüner CI-Lauf allein bedeutet nicht, dass eine App 
 3. HalDo AI Core als gemeinsame, modular testbare Dienste aufbauen; zuerst Identität/Berechtigungen, Ereignisprotokoll, sichere Speicheradapter und App-Registry-Vertrag.
 4. Danach Apps in kleinen Releases implementieren; jede Änderung mit vollständiger Regression und dokumentierter Abnahme.
 5. Medizinische, finanzielle, Kommunikations- und IoT-Integrationen nur mit passenden Sicherheits-, Datenschutz-, Rechts- und Backend-Voraussetzungen freigeben.
+
+## HALDO v178 – HalDo AI Core Foundation (27.11.2026)
+
+**Implementiert im Arbeitsbranch:** `js/haldo-v178-ai-core.js`, eingebunden am Ende von `index.html` nach dem v177-Markenmodul. Das Modul ist eine Integrationsgrundlage und ausdrücklich noch kein vollständiger KI-Orchestrator.
+
+### Tatsächlich bereitgestellte Schnittstellen
+- **Event-Transport:** nutzt ausschließlich den vorhandenen `HalDo.VoiceHub.on/emit`; es wird kein zweiter Event-Bus aufgebaut. Ereignisse verwenden den Namensraum `haldo:core:` und akzeptieren nur begrenzte Metadatenfelder. Freitext, Patientendaten, Zugangsdaten und beliebige Payload-Felder sind keine erlaubten Event-Metadaten.
+- **App-Registry:** stellt eine schreibgeschützte Projektion der vorhandenen `HalDo.Registry.featured` bereit; bestehende App-IDs und Registry-Einträge werden nicht verändert.
+- **Lokale Präferenzen:** verwendet `HalDo.Store` nur für kleine, nicht-sensitive Einstellungen. Schlüssel mit Begriffen wie Passwort, Token, Patient, Medizin, Medikamente, Diagnose, Labor oder Vitalwert werden abgewiesen. Dieser Adapter ist nicht verschlüsselt und darf keine Gesundheits-, Identitäts- oder Zugangsdaten speichern.
+- **Identitätsdarstellung:** liest ausschließlich freigegebene Avatar-/Logo-/Darstellungseinstellungen über die vorhandene `HalDo.IdentityBridge`. Das ist keine Benutzeranmeldung und keine Kontenverwaltung.
+- **Sitzungs-Audit:** hält maximal 100 reduzierte Ereignis-Metadaten im Arbeitsspeicher. Es ist kein dauerhaftes Sicherheitsprotokoll und speichert keine Event-Payloads.
+
+### Bewusst nicht als vorhanden ausgewiesene Dienste
+Der Capability-Status meldet zentrale Berechtigungen, Authentifizierung, gemeinsamen verschlüsselten Datentresor, KI-Inferenz, Agent-Runtime und Backend-Verbindung als nicht verfügbar, solange keine echte Implementierung in der aktiven Plattform geladen und geprüft ist. Ein Aufruf der Berechtigungs-API wird abgelehnt, wenn kein zentraler Berechtigungsdienst vorhanden ist. Die vorhandenen medizinischen Einzel-Tresore bleiben eigenständig; v178 ersetzt oder öffnet sie nicht.
+
+### Geplante nächste Schritte
+1. Browser-Regression von v178 auf dem exakten Commit durchführen und alle Status-/Grenztests prüfen.
+2. Berechtigungsmodell mit App-Manifest, Consent-Dialog, Widerruf und tatsächlicher Laufzeitkontrolle konzipieren; erst nach Prüfung in aktiver Hauptdatei integrieren.
+3. Danach Identität/Auth-Backend und sichere zentrale Datenschnittstellen getrennt entwerfen. Keine Konten, Synchronisierung oder KI-Agenten ohne echte Backend-Komponenten versprechen.
+4. Den AI-Orchestrator erst nach nachgewiesenen Berechtigungen, Abbruchmechanismus, Protokollierung und Bestätigung kritischer Aktionen aufbauen.
+
+**Release-Grenze:** Arbeitsbranch `work-v167-medical-apps`, Draft-PR #1. Kein Merge nach `main`, keine GitHub-Pages-Veröffentlichung, keine Freigabe zur Speicherung echter Patientendaten.
