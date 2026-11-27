@@ -123,10 +123,11 @@ try {
       const jawApplied = engine.setFaceExpression('jawOpen', 0.7);
       const blinkApplied = engine.setFaceExpression('eyeBlinkLeft', 0.4);
       const batchApplied = engine.setFaceExpressions({ mouthSmile:0.6 });
-      const faceValues = testMorphInfluencesByPath['e2e-race-fast.glb'].slice();
+      const faceValues = testMorphInfluencesByPath['e2e-race-fast.glb'].slice(0, 3);
+      const supportedFaceExpressions = Object.keys(engine.getFaceExpressions());
       const faceMeshCount = engine.getStatus().faceMeshCount;
       const resetCount = engine.resetFaceExpressions();
-      const resetValues = testMorphInfluencesByPath['e2e-race-fast.glb'].slice();
+      const resetValues = testMorphInfluencesByPath['e2e-race-fast.glb'].slice(0, 3);
       const failedReplacement = await engine.setModel('e2e-race-fail');
 
       // A completed loader script without THREE.GLTFLoader must fail quickly,
@@ -154,6 +155,7 @@ try {
         blinkApplied,
         batchApplied,
         faceValues,
+        supportedFaceExpressions,
         faceMeshCount,
         resetCount,
         resetValues,
@@ -183,8 +185,10 @@ try {
   assert.equal(avatarLoadSafety.blinkApplied, true);
   assert.equal(avatarLoadSafety.batchApplied, 1);
   assert.equal(avatarLoadSafety.faceMeshCount, 1);
+  assert.ok(avatarLoadSafety.supportedFaceExpressions.includes('mouthSmile'));
+  assert.ok(avatarLoadSafety.supportedFaceExpressions.includes('eyeWideLeft'));
   assert.deepEqual(avatarLoadSafety.faceValues, [0.7, 0.4, 0.6]);
-  assert.equal(avatarLoadSafety.resetCount, 3);
+  assert.equal(avatarLoadSafety.resetCount, 9);
   assert.deepEqual(avatarLoadSafety.resetValues, [0, 0, 0]);
   assert.equal(avatarLoadSafety.model, 'e2e-race-fast', 'Das zuletzt ausgewählte Avatar-Modell wurde überschrieben.');
   assert.equal(avatarLoadSafety.failedReplacement, false);
