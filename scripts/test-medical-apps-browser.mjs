@@ -397,8 +397,6 @@ async function run() {
   assert.equal(aiCoreAudit.status.permissionService, true, 'v179 stellt den zustimmungsbasierten Berechtigungsdienst bereit.');
   assert.equal(aiCoreAudit.status.permissionCoreVersion, '179.0.0');
   assert.equal(aiCoreAudit.status.permissionModel, 'explicit-session-consent');
-  assert.equal(aiCoreAudit.status.permissionCoreVersion, '179.0.0');
-  assert.equal(aiCoreAudit.status.permissionModel, 'explicit-session-consent');
   assert.equal(aiCoreAudit.status.authentication, false);
   assert.equal(aiCoreAudit.status.commonSecureVault, false);
   assert.equal(aiCoreAudit.status.aiInferenceRuntime, false);
