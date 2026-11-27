@@ -541,7 +541,10 @@
     console.error('[HalDo v179] Privacy Center konnte nicht registriert werden:', error);
   }
 
+  if (H.Registry && typeof H.Registry.registerCategoryApp === 'function') H.Registry.registerCategoryApp('P', APP_ID);
+
   H.Master = H.Master || {};
   H.Master.permissionCoreVersion = VERSION;
+  H.Master.namedCoreApps = H.Registry && H.Registry.featured ? H.Registry.featured.length : H.Master.namedCoreApps;
   console.info('[HalDo v179] Permission & Consent Core bereit.', getStatus());
 })(window, document);
