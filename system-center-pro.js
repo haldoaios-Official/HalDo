@@ -174,6 +174,40 @@
       verificationNote:'Technischer Laufzeit-Snapshot: Modul-/Routenmerkmale wurden erkannt. Das ist keine vollständige manuelle Funktions- oder Browserabnahme.'
     };
   }
+  // Curated profiles below are tied to the named, reviewed source modules.
+  // They describe code that exists; they do not imply a manual browser acceptance test.
+  var VERIFIED_MODULE_METADATA = {
+    'system-center': {
+      source:'Modulcode · system-center-pro.js',
+      purpose:'Den tatsächlichen App-, Registry- und A–Z-Entwicklungsstand von HalDo sichtbar machen.',
+      description:'Zentrale Übersicht mit App-Inventar, Laufzeitstatus, Kategorie-Audit und technischen nächsten Schritten.',
+      features:['Suche und Status-/Kategorie-Filter für App-Einträge','A–Z-Planplätze, eindeutige IDs und Mehrfachzuordnungen','Erkennung von Registry-, Modul- und Dispatcher-Status','Detailansicht mit Befund, Dokumentationslücken und nächsten Schritten','CSV-Export des App-Inventars und der hinterlegten Dokumentation']
+    },
+    'music-studio': {
+      source:'Modulcode · music-studio-pro.js',
+      purpose:'Musikprojekte direkt im Browser erstellen, bearbeiten und exportieren.',
+      description:'Browserbasiertes Musikstudio mit Drum-/Synth-Spuren, visueller Pattern- und Arrangement-Bearbeitung sowie Mixer und Master-Effekten.',
+      features:['16-Step-Sequencer mit Drum- und Synth-Spuren','Arrangement-Timeline und Pattern-Verwaltung mit bis zu 32 Patterns','Piano Roll zur Notenbearbeitung','Mixer mit Lautstärke, Panorama, Mute und Solo','Master-Bereich mit Reverb und Delay','Automatisches Speichern sowie Projektdatei-Import und -Export','WAV- und MIDI-Export laut Studio-Oberfläche']
+    },
+    'video-studio': {
+      source:'Modulcode · video-studio-pro.js',
+      purpose:'Videoclips lokal im Browser sichten, schneiden und als Filmvorschau zusammenstellen.',
+      description:'Browserbasierter Mehrspur-Clip-Editor mit Vorschau, Trim-Steuerung, Titel-Overlay und WebM-Export.',
+      features:['Import mehrerer Videodateien mit bis zu 60 Clips pro Projekt','Einzelclip- und Filmvorschau','Start-/End-Trim, Reihenfolge ändern und Clips entfernen','Titel-Overlay mit Positionierung','WebM-Export über Canvas und MediaRecorder, sofern der Browser dies unterstützt','Projektdatei sichern und öffnen; Quelldateien müssen danach erneut importiert werden']
+    },
+    'system-diagnostics': {
+      source:'Modulcode · index.html / v160 System Diagnostics',
+      purpose:'Browser- und HalDo-Systemzustand mit klaren Prüfhinweisen sichtbar machen.',
+      description:'Systemdiagnose mit Registry-, Dispatcher-, Modul- und Browser-API-Prüfungen sowie exportierbarem Diagnosebericht.',
+      features:['Prüfung zentraler Laufzeitmodule und App-Registry','Dispatcher-Ziele und auflösbare App-Routen prüfen','Browser-, Speicher- und Geräte-APIs als verfügbar/nicht verfügbar erfassen','Diagnosebericht mit Prüfstatus und erklärtem Geltungsbereich exportieren','Runtime-Error-Monitor-Bericht einbinden, wenn das Modul geladen ist']
+    },
+    'runtime-error-monitor': {
+      source:'Modulcode · index.html / v167 Runtime Error Monitor',
+      purpose:'JavaScript-Laufzeitfehler und unbehandelte Promise-Fehler lokal erfassen.',
+      description:'Laufzeitmonitor mit begrenztem Ereignispuffer, Schwärzung typischer Geheimniswerte und lokalem Fehlerbericht.',
+      features:['Erfassung von window-Fehlern und unhandled Promise rejections','Begrenzter In-Memory-Puffer mit maximal 100 Ereignissen','Redaktion typischer Token-, Passwort-, API-Key- und URL-Parameter-Werte','Fehlerliste, Zusammenfassung und Bericht','Lokaler JSON-Export sowie manuelles Leeren','Keine dauerhafte Speicherung; Neuladen der Seite leert die Ereignisliste']
+    }
+  };
   function normalizeMetadataText(value) {
     if (typeof value === 'string') return value.trim();
     if (Array.isArray(value)) {
@@ -194,6 +228,8 @@
         if (entry && String(entry.id) === id) sources.push({label:'A–Z-Katalog',entry:entry});
       });
     });
+    var verified = VERIFIED_MODULE_METADATA[id];
+    if (verified) sources.push({label:verified.source,entry:verified});
     function firstValue(keys) {
       for (var i = 0; i < sources.length; i += 1) {
         for (var j = 0; j < keys.length; j += 1) {
