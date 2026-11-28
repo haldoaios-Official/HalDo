@@ -270,7 +270,7 @@
             hasAnimations: false,
             hasMorphTargets: false,
             hasFacialMorphTargets: false,
-            humanoidMotionReady: false,
+            rigAndClipsPresent: false,
             warnings: []
         };
 
@@ -292,7 +292,7 @@
                         ? skeleton.bones
                         : [];
 
-                    if (object.isSkinnedMesh === true || bones.length > 0) {
+                    if (object.isSkinnedMesh === true) {
                         report.skinnedMeshCount += 1;
                         bones.forEach(function (bone) {
                             if (bone) boneReferences.add(bone);
@@ -347,13 +347,13 @@
         report.hasAnimations = report.animationCount > 0;
         report.hasMorphTargets = report.morphTargetCount > 0;
         report.hasFacialMorphTargets = report.facialMorphTargetNames.length > 0;
-        report.humanoidMotionReady = report.isRigged && report.hasAnimations;
+        report.rigAndClipsPresent = report.isRigged && report.hasAnimations;
 
         if (report.meshCount === 0) {
             report.warnings.push("Die Szene enthält kein erkanntes Mesh.");
         }
         if (!report.isRigged) {
-            report.warnings.push("Kein humanoides Rig mit SkinnedMesh und Skelettknochen nachgewiesen.");
+            report.warnings.push("Kein SkinnedMesh mit zugeordneten Skelettknochen nachgewiesen.");
         }
         if (!report.hasAnimations) {
             report.warnings.push("Das GLB enthält keine Animationsclips.");
@@ -2149,8 +2149,8 @@
 
             const capabilityStatus = state.modelCapabilities;
             const rigStatus = capabilityStatus.isRigged
-                ? "Rig: ja"
-                : "Rig fehlt";
+                ? "Skin/Skelett: ja"
+                : "Skin/Skelett fehlt";
             const faceStatus = capabilityStatus.hasFacialMorphTargets
                 ? "Gesichts-Morphs: " + capabilityStatus.facialMorphTargetNames.length
                 : "Gesichts-Morphs fehlen";
