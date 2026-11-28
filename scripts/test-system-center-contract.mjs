@@ -16,7 +16,7 @@ const categories = {
 };
 let fallbackLaunchCalls = 0;
 const H = {
-  Launch(app) { fallbackLaunchCalls += 1; return app.id; },
+  Launch(app) { fallbackLaunchCalls += 1; const target = this[app.id]; if (target && typeof target.open === 'function') return target.open(); return app.id; },
   Win: { open() {} },
   Registry: {
     featured: [
@@ -83,7 +83,8 @@ H.SystemCenter.open = () => { systemCenterOpenCalls += 1; };
 H.Launch({ id: 'system-center', n: 'HalDo System Center Pro' });
 assert.equal(systemCenterOpenCalls, 1, 'Launcher opens the real System Center module');
 assert.equal(H.Launch({ id: 'native-demo' }), 'native-demo', 'Other app launches preserve the previous launcher');
-assert.equal(fallbackLaunchCalls, 1, 'Previous launcher is called for non-System-Center apps');
+assert.equal(fallbackLaunchCalls, 2, 'Previous central launcher is preserved for both System Center and other apps');
+assert.match(source, /if \(typeof previousLaunch === 'function'\) return previousLaunch\.apply\(this, arguments\);/, 'System Center does not bypass the central launcher or welcome experience');
 assert.ok(H.Registry.featured.some(app => app.id === 'system-center'), 'System Center is in the featured registry');
 assert.equal(H.Master.getCategoryApps('S').some(app => app.id === 'system-center'), true, 'System Center is assigned to category S');
 
@@ -113,6 +114,18 @@ assert.equal(byId['planned-demo'].catalogOnly, true);
 assert.equal(byId['native-demo'].category, 'A');
 assert.deepEqual(Array.from(byId['native-demo'].categories), ['A', 'S'], 'Every category assignment is retained for a multiply assigned app');
 assert.match(source, /!item\.catalogOnly && \['native','dedicated','generic','routeReady'\]\.indexOf\(item\.status\) !== -1/, 'Only entries with a recognized launch target can be launched');
+for (const [status, label] of [
+  ['native','Native Module'],
+  ['dedicated','Eigenständige Module'],
+  ['generic','Generische Platzhalter'],
+  ['routeReady','Route mit erkanntem Zielmodul'],
+  ['moduleUnrouted','Modul vorhanden · Route fehlt'],
+  ['route','Route ohne erkanntes Zielmodul'],
+  ['missing','Noch ohne Modul']
+]) {
+  assert.match(source, new RegExp("id:'" + status + "',name:'" + label.replace(/[.*+?^${}()|[\]\\]/g, '\\assert.match(source, /!item\.catalogOnly && \['native','dedicated','generic','routeReady'\]\.indexOf\(item\.status\) !== -1/, 'Only entries with a recognized launch target can be launched');') + "'"), 'Status filter option exists: ' + status);
+}
+assert.match(source, /statusFilter === 'all' \|\| item\.status === statusFilter/, 'Selected status filter is applied to inventory rows');
 assert.match(source, /moduleUnrouted/, 'Modules without an active dispatcher route have a separate status');
 assert.match(source, /Planplätze ohne Katalog-ID/, 'Unassigned plan slots are labelled accurately');
 assert.match(source, /moduleFor\(app\.id\)/, 'Runtime route targets are resolved through the dispatcher API');
