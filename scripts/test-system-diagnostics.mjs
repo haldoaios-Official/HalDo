@@ -18,6 +18,7 @@ const localStorage = { setItem(k,v){localData.set(k,String(v));}, getItem(k){ret
 const H = {
   Master:{version:'166.0.0'}, Registry:registry, Win:{open(){}},
   SystemV157:{routes:()=>['system-diagnostics','route-ok','route-missing'],moduleFor:id=>({'system-diagnostics':'SystemDiagnostics','route-ok':'RouteOk','route-missing':'MissingModule'}[id]||null)},
+  RuntimeErrorMonitor:{summary:()=>({total:3,runtime:2,unhandledRejections:1,limit:100}),report:()=>({product:'HalDo Runtime Error Monitor Pro',errors:[]})},
   UpdateCenter:{open(){}},BackupRecovery:{open(){}},DokumentePro:{open(){}},KontaktePro:{open(){}},SystemCenter:{open(){}},MusicStudio:{open(){}},VideoStudio:{open(){}},RouteOk:{open(){}}
 };
 const window={HalDo:H,localStorage,indexedDB:{},crypto:{subtle:{}},speechSynthesis:{},MediaRecorder:function(){},setTimeout(){}};
@@ -38,11 +39,15 @@ assert.match(byName['Dispatcher-Zielmodule'].detail,/route-missing/);
 assert.equal(byName['Lokaler Speicher'].ok,true);
 assert.equal(localData.size,0,'Temporary storage probe cleans up its key');
 assert.equal(byName['System Center'].ok,true);
+assert.equal(byName['Runtime Error Monitor'].ok,true);
+assert.match(byName['Runtime Error Monitor'].detail,/3 lokale Ereignisse/);
 const report=H.SystemDiagnostics.report();
 assert.equal(report.product,'HalDo System Diagnostics Pro');
 assert.equal(report.version,'160.1.0');
 assert.equal(report.summary.total,checks.length);
 assert.equal(report.summary.available,checks.filter(x=>x.ok).length);
+assert.equal(report.runtimeErrors.product,'HalDo Runtime Error Monitor Pro');
+assert.equal(report.runtimeErrors.errors.length,0);
 assert.match(report.scope,/Keine vollständigen fachlichen App- oder Servertests/);
 assert.match(match[1],/data-health-refresh/);
 assert.match(match[1],/data-health-export/);
