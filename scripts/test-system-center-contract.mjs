@@ -23,7 +23,7 @@ const H = {
       { id: 'generic-demo', n: 'Generic Demo', i: '📦' },
       { id: 'route-demo', n: 'Route Demo', i: '🛣️' },
       { id: 'route-ready-demo', n: 'Route Ready Demo', i: '🧭' },
-      { id: 'module-unrouted-demo', n: 'Module Unrouted Demo', i: '🧩' },
+      { id: 'unrouted-demo', n: 'Module Unrouted Demo', i: '🧩' },
       { id: 'geo-quiz', n: 'Geo Quiz', i: '🗺️' },
       { id: 'missing-demo', n: 'Missing Demo', i: '❔' }
     ],
@@ -85,8 +85,8 @@ assert.equal(byId['generic-demo'].status, 'generic');
 assert.equal(byId['route-demo'].status, 'route');
 assert.equal(byId['route-ready-demo'].status, 'routeReady', 'A route alias with a real open() target is recognized as ready');
 assert.equal(byId['route-ready-demo'].module, 'RouteReadyModule', 'The resolved launcher target is visible in the inventory');
-assert.equal(byId['module-unrouted-demo'].status, 'moduleUnrouted', 'A PascalCase module without a dispatcher route is reported separately');
-assert.equal(byId['module-unrouted-demo'].module, 'UnroutedDemo');
+assert.equal(byId['unrouted-demo'].status, 'moduleUnrouted', 'A PascalCase module without a dispatcher route is reported separately');
+assert.equal(byId['unrouted-demo'].module, 'UnroutedDemo');
 assert.equal(byId['geo-quiz'].status, 'routeReady', 'A real dispatcher target takes precedence over a direct generic fallback');
 assert.equal(byId['geo-quiz'].module, 'GeoQuizModule');
 assert.equal(byId['missing-demo'].status, 'missing');
