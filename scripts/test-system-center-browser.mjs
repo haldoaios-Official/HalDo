@@ -116,6 +116,30 @@ try {
   assert.ok(await rows.count() > 0, 'The A category filter returns matching rows');
 
   await category.selectOption('all');
+  await status.selectOption('all');
+
+  const profile = root.locator('select').nth(2);
+  assert.equal(await profile.locator('option').count(), 4, 'All, complete, partial and missing documentation profile filters are available');
+  const profileFixtures = await page.evaluate(() => {
+    const inventory = window.HalDo.SystemCenter.inventory();
+    return Object.fromEntries(['complete', 'partial', 'missing'].map(status => [
+      status,
+      inventory.filter(app => app.metadataStatus === status).map(app => app.id)
+    ]));
+  });
+  for (const profileStatus of ['complete', 'partial', 'missing']) {
+    assert.ok(profileFixtures[profileStatus].length > 0, 'The inventory contains at least one ' + profileStatus + ' documentation profile fixture');
+    await profile.selectOption(profileStatus);
+    await page.waitForFunction(expected => {
+      const root = document.querySelector('.hdsc-root');
+      const actual = Array.from(root.querySelectorAll('tbody tr .hdsc-id')).map(node => node.textContent.trim()).sort();
+      return JSON.stringify(actual) === JSON.stringify(expected.slice().sort());
+    }, profileFixtures[profileStatus]);
+  }
+  await profile.selectOption('all');
+  await root.locator('#' + (await root.locator('select').nth(2).getAttribute('id').then(id => id.replace(/-profile$/, ''))) + '-clear').click();
+  assert.equal(await profile.inputValue(), 'all', 'Reset returns the documentation profile filter to All');
+
   const downloadPromise = page.waitForEvent('download');
   await root.locator('[data-action="export"]').click();
   const download = await downloadPromise;
