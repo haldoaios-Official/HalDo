@@ -217,7 +217,7 @@
     var text = String(value == null ? '' : value);
     // App metadata is text: neutralize spreadsheet formulas even after leading whitespace/control chars.
     // Numeric values remain numeric, including legitimate negative numbers.
-    if (typeof value !== 'number' && /^[\\s\\u0000-\\u001f]*[=+\\-@]/.test(text)) text = "'" + text;
+    if (typeof value !== 'number' && /^[\s\u0000-\u001f]*[=+\-@]/.test(text)) text = "'" + text;
     return '"' + text.replace(/"/g,'""') + '"';
   }
   function exportInventory() {
