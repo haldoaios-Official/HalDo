@@ -186,4 +186,24 @@ assert.match(keyboardModule, /ta\.dir=lang==='Soranî'\?'rtl':'ltr'/, 'Sorani te
 assert.match(keyboardModule, /ta\.style\.textAlign=lang==='Soranî'\?'right':'left'/, 'Sorani text field aligns from the right');
 assert.match(keyboardModule, /keyGrid\.style\.direction=lang==='Soranî'\?'rtl':'ltr'/, 'Virtual keyboard rows switch to right-to-left layout for Sorani');
 
+const converterStart = index.indexOf('/* X — lokaler Datei-Konverter');
+const converterEnd = index.indexOf('var apps=[household,keyboard,converter];', converterStart);
+assert.ok(converterStart >= 0 && converterEnd > converterStart, 'File converter module boundaries exist');
+const converterSource = index.slice(converterStart, converterEnd);
+const parseStart = converterSource.indexOf('function parseCSV(text) {');
+const toCSVStart = converterSource.indexOf('function toCSV(arr) {', parseStart);
+const converterBindingsEnd = converterSource.indexOf("root.querySelector('#h166-con-run')", toCSVStart);
+assert.ok(parseStart >= 0 && toCSVStart > parseStart && converterBindingsEnd > toCSVStart, 'CSV parsing and export functions are present');
+const parseCSV = runInNewContext('(' + converterSource.slice(parseStart, toCSVStart).trim() + ')');
+const toCSV = runInNewContext('(' + converterSource.slice(toCSVStart, converterBindingsEnd).trim() + ')');
+assert.equal(JSON.stringify(parseCSV('name,age\\r\\n"Alice, Inc.",30')), JSON.stringify([{ name: 'Alice, Inc.', age: '30' }]), 'Quoted commas are parsed as part of a CSV cell');
+assert.equal(JSON.stringify(parseCSV('name\\r\\n"Alice ""A"" Example"')), JSON.stringify([{ name: 'Alice "A" Example' }]), 'Escaped double quotes are decoded');
+assert.throws(() => parseCSV('"unfinished'), /nicht geschlossenes Anführungszeichen/, 'Unclosed quoted CSV cells are rejected');
+assert.throws(() => parseCSV('bad"name,value'), /müssen am Anfang/, 'Quotes inside unquoted CSV cells are rejected');
+assert.throws(() => parseCSV('"value"x,next'), /Unerwartetes Zeichen/, 'Unexpected data after closing quote is rejected');
+const safeCsv = toCSV([{ note: '=1+1', amount: -5 }, { note: ' +SUM(A1:A2)', amount: 8 }]);
+assert.ok(safeCsv.includes('"\'=1+1"'), 'CSV export prefixes equals-formula text with an apostrophe');
+assert.ok(safeCsv.includes('"\' +SUM(A1:A2)"'), 'CSV export neutralizes formula text after leading whitespace');
+assert.ok(safeCsv.includes('"-5"'), 'Numeric negative values remain numeric and are not rewritten as text');
+
 console.log('System Center contract tests passed: registration, category, launcher routing, fallback preservation, all direct, routed, generic, unrouted and missing module states, catalogue reconciliation metrics, plan count and script order.');
