@@ -132,6 +132,48 @@
     }
     return {key:'missing',label:'Noch ohne Modul',detail:'Weder direktes Modul noch Dispatcher-Ziel erkannt',moduleName:''};
   }
+  function getAppGuidance(app,status) {
+    var guidance = {
+      native: {
+        label:'Natives HalDo-Modul erkannt',
+        steps:['App im echten Browser starten und die wichtigsten Arbeitsabläufe manuell testen.','Bedienung, Fehlerfälle sowie Import-/Exportpfade prüfen, sofern die App diese anbietet.','Ergebnis der praktischen Abnahme dokumentieren.']
+      },
+      dedicated: {
+        label:'Eigenständiges Modul erkannt',
+        steps:['Modul über den zentralen Launcher im echten Browser starten.','Die zugesagten Kernfunktionen einzeln durchtesten und Fehlerfälle prüfen.','Nach erfolgreicher Abnahme einen konkreten Funktionstest ergänzen.']
+      },
+      routeReady: {
+        label:'Zentrales Routenziel erkannt',
+        steps:['Start der App über den zentralen Launcher im echten Browser prüfen.','Kontrollieren, ob die erkannte open()-Methode tatsächlich das richtige Fachmodul öffnet.','Kernabläufe der App praktisch testen und dokumentieren.']
+      },
+      generic: {
+        label:'Generischer Platzhalter erkannt',
+        steps:['Fachlichen Zweck und verbindlichen Funktionsumfang der App festlegen.','Den generischen Platzhalter durch ein eigenständiges HalDo-Fachmodul ersetzen.','Eigenes Modul registrieren, Launcher-Ziel verbinden und Funktionen testen.']
+      },
+      moduleUnrouted: {
+        label:'Modul vorhanden, zentrale Verbindung fehlt',
+        steps:['Vorhandenes Modul und seine App-ID fachlich zuordnen.','Die passende ID im zentralen Dispatcher mit dem echten Modul verbinden.','Start über den Launcher und die Kernabläufe praktisch testen.']
+      },
+      route: {
+        label:'Zentrale Route ohne startbares Ziel erkannt',
+        steps:['Dispatcher-Zuordnung und tatsächlichen Modulnamen prüfen.','Ein startbares Modul mit exportierter open()-Methode bereitstellen oder die Route korrigieren.','Launcher-Verbindung und Kernabläufe praktisch testen.']
+      },
+      missing: {
+        label:'Noch kein startbares Modul erkannt',
+        steps:['Zweck, Verantwortungsbereich und Funktionsumfang der App festlegen.','Eigenständiges HalDo-Modul implementieren und in der Registry registrieren.','Dispatcher-Verbindung ergänzen und automatisierte sowie praktische Tests hinzufügen.']
+      }
+    };
+    var result = guidance[status.key] || guidance.missing;
+    var steps = result.steps.slice();
+    if (app && app.__catalogOnly === true) {
+      steps.unshift('Katalogeintrag fachlich benennen und beschreiben; erst nach bestätigtem Umfang in die Kern-Registry aufnehmen.');
+    }
+    return {
+      implementationLabel:result.label,
+      nextSteps:steps,
+      verificationNote:'Technischer Laufzeit-Snapshot: Modul-/Routenmerkmale wurden erkannt. Das ist keine vollständige manuelle Funktions- oder Browserabnahme.'
+    };
+  }
   function getInventory() {
     var apps = H.Registry.featured.slice();
     var registryIds = new Set(apps.map(function (app) { return app.id; }));
@@ -165,7 +207,10 @@
           : status.detail,
         catalogOnly:app.__catalogOnly === true,
         registration:app.__catalogOnly === true ? 'planned-only' : 'registered',
-        registrationLabel:app.__catalogOnly === true ? 'Nur A–Z-Katalog' : 'In Kern-Registry'
+        registrationLabel:app.__catalogOnly === true ? 'Nur A–Z-Katalog' : 'In Kern-Registry',
+        implementationLabel:getAppGuidance(app,status).implementationLabel,
+        nextSteps:getAppGuidance(app,status).nextSteps,
+        verificationNote:getAppGuidance(app,status).verificationNote
       };
     }).filter(function (app) { return !!app.id; }).sort(function (a,b) {
       return a.category.localeCompare(b.category) || a.name.localeCompare(b.name);
@@ -278,7 +323,7 @@
   function open() {
     var rootId = 'haldo-system-center-' + Date.now().toString(36);
     var html = '<div id="' + rootId + '" class="hdsc-root"><style>' +
-      '.hdsc-root{height:100%;overflow:auto;padding:14px;box-sizing:border-box;color:var(--text,#eaf4ff);font:13px/1.45 system-ui,sans-serif}.hdsc-root *{box-sizing:border-box}.hdsc-hero{padding:16px;border:1px solid rgba(0,220,235,.25);border-radius:16px;background:linear-gradient(120deg,rgba(0,160,210,.17),rgba(120,75,210,.17));margin-bottom:12px}.hdsc-title{font-size:20px;font-weight:850;letter-spacing:-.3px}.hdsc-muted{font-size:11px;opacity:.7}.hdsc-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.hdsc-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.hdsc-btn{border:1px solid var(--border,rgba(120,180,220,.25));background:rgba(20,50,80,.55);color:inherit;border-radius:9px;padding:8px 11px;cursor:pointer}.hdsc-btn:disabled{opacity:.45;cursor:not-allowed}.hdsc-btn.primary{border-color:var(--accent,#00d5ed);background:rgba(0,190,220,.14)}.hdsc-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:12px 0}.hdsc-stat{padding:12px;border:1px solid var(--border,rgba(120,180,220,.2));border-radius:12px;background:rgba(8,28,50,.28);min-width:0}.hdsc-value{font-size:22px;font-weight:850;font-variant-numeric:tabular-nums}.hdsc-label{font-size:10px;opacity:.7;margin-top:3px}.hdsc-section{margin-top:13px;padding:13px;border:1px solid var(--border,rgba(120,180,220,.2));border-radius:13px;background:rgba(8,28,50,.2)}.hdsc-section h3{margin:0 0 9px;font-size:14px}.hdsc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.hdsc-cat{padding:10px;border:1px solid var(--border,rgba(120,180,220,.18));border-radius:10px;background:rgba(0,0,0,.13);text-align:left;color:inherit;width:100%;cursor:pointer;font:inherit}.hdsc-cat:hover,.hdsc-cat:focus-visible{border-color:var(--accent,#00d5ed);outline:none;background:rgba(0,150,190,.1)}.hdsc-cat b{display:block;font-size:13px}.hdsc-cat small{display:block;font-size:10px;opacity:.75;margin-top:3px;line-height:1.5}.hdsc-cat strong{font-size:10px;font-weight:750;color:var(--accent,#00d5ed)}.hdsc-tools{display:grid;grid-template-columns:minmax(0,1fr) 170px 170px auto;gap:8px;margin:10px 0}.hdsc-input{width:100%;min-width:0;padding:9px 10px;border:1px solid var(--border,rgba(120,180,220,.28));border-radius:9px;background:rgba(0,0,0,.2);color:inherit}.hdsc-table{width:100%;border-collapse:collapse;font-size:11px}.hdsc-table th{text-align:left;opacity:.65;font-weight:650;padding:8px 7px;border-bottom:1px solid var(--border,rgba(120,180,220,.2))}.hdsc-table td{padding:8px 7px;border-bottom:1px solid rgba(120,180,220,.1);vertical-align:middle}.hdsc-table tr:last-child td{border-bottom:0}.hdsc-appname{font-weight:750}.hdsc-id{font-size:10px;opacity:.58}.hdsc-status{display:inline-block;padding:4px 7px;border-radius:7px;background:rgba(130,150,180,.12);white-space:nowrap}.hdsc-status.native{color:#7fffd4;background:rgba(0,200,140,.12)}.hdsc-status.dedicated{color:#9ed4ff;background:rgba(50,130,220,.13)}.hdsc-status.generic{color:#ffd27d;background:rgba(230,160,20,.12)}.hdsc-status.route{color:#e0c3ff;background:rgba(150,90,220,.14)}.hdsc-status.routeReady{color:#7fffd4;background:rgba(0,200,140,.12)}.hdsc-status.moduleUnrouted{color:#ffd27d;background:rgba(230,160,20,.12)}.hdsc-status.missing{color:#ffabb2;background:rgba(220,70,90,.12)}.hdsc-note{padding:10px;border:1px solid rgba(230,170,50,.25);border-radius:10px;background:rgba(230,170,50,.07);font-size:11px;margin-top:9px}.hdsc-footer{opacity:.55;font-size:10px;margin-top:12px}.hdsc-count{font-variant-numeric:tabular-nums}.hdsc-empty{padding:20px;text-align:center;opacity:.65}.hdsc-tablewrap{overflow:auto}@media(max-width:680px){.hdsc-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.hdsc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hdsc-tools{grid-template-columns:1fr 1fr}.hdsc-tools input{grid-column:1/-1}.hdsc-table{min-width:650px}}@media(max-width:430px){.hdsc-grid{grid-template-columns:1fr 1fr}.hdsc-root{padding:8px}}' +
+      '.hdsc-root{height:100%;overflow:auto;padding:14px;box-sizing:border-box;color:var(--text,#eaf4ff);font:13px/1.45 system-ui,sans-serif}.hdsc-root *{box-sizing:border-box}.hdsc-hero{padding:16px;border:1px solid rgba(0,220,235,.25);border-radius:16px;background:linear-gradient(120deg,rgba(0,160,210,.17),rgba(120,75,210,.17));margin-bottom:12px}.hdsc-title{font-size:20px;font-weight:850;letter-spacing:-.3px}.hdsc-muted{font-size:11px;opacity:.7}.hdsc-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.hdsc-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.hdsc-btn{border:1px solid var(--border,rgba(120,180,220,.25));background:rgba(20,50,80,.55);color:inherit;border-radius:9px;padding:8px 11px;cursor:pointer}.hdsc-btn:disabled{opacity:.45;cursor:not-allowed}.hdsc-btn.primary{border-color:var(--accent,#00d5ed);background:rgba(0,190,220,.14)}.hdsc-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:12px 0}.hdsc-stat{padding:12px;border:1px solid var(--border,rgba(120,180,220,.2));border-radius:12px;background:rgba(8,28,50,.28);min-width:0}.hdsc-value{font-size:22px;font-weight:850;font-variant-numeric:tabular-nums}.hdsc-label{font-size:10px;opacity:.7;margin-top:3px}.hdsc-section{margin-top:13px;padding:13px;border:1px solid var(--border,rgba(120,180,220,.2));border-radius:13px;background:rgba(8,28,50,.2)}.hdsc-section h3{margin:0 0 9px;font-size:14px}.hdsc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.hdsc-cat{padding:10px;border:1px solid var(--border,rgba(120,180,220,.18));border-radius:10px;background:rgba(0,0,0,.13);text-align:left;color:inherit;width:100%;cursor:pointer;font:inherit}.hdsc-cat:hover,.hdsc-cat:focus-visible{border-color:var(--accent,#00d5ed);outline:none;background:rgba(0,150,190,.1)}.hdsc-cat b{display:block;font-size:13px}.hdsc-cat small{display:block;font-size:10px;opacity:.75;margin-top:3px;line-height:1.5}.hdsc-cat strong{font-size:10px;font-weight:750;color:var(--accent,#00d5ed)}.hdsc-tools{display:grid;grid-template-columns:minmax(0,1fr) 170px 170px auto;gap:8px;margin:10px 0}.hdsc-input{width:100%;min-width:0;padding:9px 10px;border:1px solid var(--border,rgba(120,180,220,.28));border-radius:9px;background:rgba(0,0,0,.2);color:inherit}.hdsc-table{width:100%;border-collapse:collapse;font-size:11px}.hdsc-table th{text-align:left;opacity:.65;font-weight:650;padding:8px 7px;border-bottom:1px solid var(--border,rgba(120,180,220,.2))}.hdsc-table td{padding:8px 7px;border-bottom:1px solid rgba(120,180,220,.1);vertical-align:middle}.hdsc-table tr:last-child td{border-bottom:0}.hdsc-appname{font-weight:750}.hdsc-id{font-size:10px;opacity:.58}.hdsc-status{display:inline-block;padding:4px 7px;border-radius:7px;background:rgba(130,150,180,.12);white-space:nowrap}.hdsc-status.native{color:#7fffd4;background:rgba(0,200,140,.12)}.hdsc-status.dedicated{color:#9ed4ff;background:rgba(50,130,220,.13)}.hdsc-status.generic{color:#ffd27d;background:rgba(230,160,20,.12)}.hdsc-status.route{color:#e0c3ff;background:rgba(150,90,220,.14)}.hdsc-status.routeReady{color:#7fffd4;background:rgba(0,200,140,.12)}.hdsc-status.moduleUnrouted{color:#ffd27d;background:rgba(230,160,20,.12)}.hdsc-status.missing{color:#ffabb2;background:rgba(220,70,90,.12)}.hdsc-note{padding:10px;border:1px solid rgba(230,170,50,.25);border-radius:10px;background:rgba(230,170,50,.07);font-size:11px;margin-top:9px}.hdsc-footer{opacity:.55;font-size:10px;margin-top:12px}.hdsc-count{font-variant-numeric:tabular-nums}.hdsc-empty{padding:20px;text-align:center;opacity:.65}.hdsc-tablewrap{overflow:auto}.hdsc-detail{margin-top:12px;padding:14px;border:1px solid var(--accent,rgba(0,210,230,.35));border-radius:12px;background:rgba(0,120,160,.07)}.hdsc-detail h4{margin:0 0 5px;font-size:15px}.hdsc-detail p{margin:7px 0;font-size:11px}.hdsc-detail ol{margin:7px 0 0;padding-left:22px}.hdsc-detail li{margin:5px 0;font-size:11px}.hdsc-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:9px}.hdsc-detail-cell{padding:8px;border:1px solid var(--border,rgba(120,180,220,.18));border-radius:8px;min-width:0}.hdsc-detail-cell small{display:block;opacity:.65;font-size:10px}.hdsc-detail-cell b{display:block;font-size:11px;overflow-wrap:anywhere}@media(max-width:680px){.hdsc-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.hdsc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hdsc-tools{grid-template-columns:1fr 1fr}.hdsc-tools input{grid-column:1/-1}.hdsc-table{min-width:650px}}@media(max-width:430px){.hdsc-grid{grid-template-columns:1fr 1fr}.hdsc-root{padding:8px}}' +
       '</style><div class="hdsc-hero"><div class="hdsc-row"><span style="font-size:28px">🧭</span><div><div class="hdsc-title">HalDo System Center Pro</div><div class="hdsc-muted">Live-App-Inventar · A–Z-Masterplan · Modulstatus · Systemprüfung</div></div></div>' +
       '<div class="hdsc-actions"><button class="hdsc-btn primary" data-action="registry">📦 App-Registry öffnen</button><button class="hdsc-btn" data-action="export">⬇ Inventar als CSV</button><button class="hdsc-btn" data-action="refresh">↻ Status aktualisieren</button></div></div>' +
       '<div class="hdsc-stats" id="' + rootId + '-stats"></div>' +
@@ -301,6 +346,7 @@
       '<div class="hdsc-section" id="' + rootId + '-inventory"><div class="hdsc-row" style="justify-content:space-between"><h3 style="margin:0">📋 Vollständiges A–Z-App-Inventar</h3><span class="hdsc-muted" id="' + rootId + '-count"></span></div>' +
       '<div class="hdsc-tools"><input class="hdsc-input" id="' + rootId + '-search" placeholder="App oder App-ID suchen …"><select class="hdsc-input" id="' + rootId + '-filter">' + FILTERS.map(function (f) { return '<option value="' + f.id + '">' + f.name + '</option>'; }).join('') + '</select><select class="hdsc-input" id="' + rootId + '-category"><option value="all">Alle A–Z-Kategorien</option><option value="none">Ohne Kategorie</option>' + Object.keys(getCategories()).sort().map(function (key) { var category = getCategories()[key]; return '<option value="' + esc(key) + '">' + esc(key + ' · ' + (category.name || 'Kategorie')) + '</option>'; }).join('') + '</select><button class="hdsc-btn" id="' + rootId + '-clear">Zurücksetzen</button></div>' +
       '<div class="hdsc-tablewrap"><table class="hdsc-table"><thead><tr><th>Kategorie(n)</th><th>App</th><th>Registrierung</th><th>Erkanntes Modul</th><th>Status</th><th>Aktion</th></tr></thead><tbody id="' + rootId + '-body"></tbody></table></div>' +
+      '<div class="hdsc-detail" id="' + rootId + '-detail" hidden aria-live="polite"></div>' +
       '<div class="hdsc-footer">Status wird aus dem aktuell geladenen HalDo-Laufzeitsystem erkannt. „Spezialroute prüfen“ ist ausdrücklich keine Bestätigung einer vollständig funktionsfähigen App.</div></div>' +
       '<div class="hdsc-section"><h3>✅ Aktuell bestätigte native Studio-Module</h3><div class="hdsc-row"><span class="hdsc-status native">HalDo Music Studio Pro</span><span class="hdsc-status native">HalDo Video Studio Pro</span></div><div class="hdsc-muted" style="margin-top:8px">Nativ registrierte Module werden anhand ihrer Modulregistrierung erkannt. Browser-/Exportfunktionen müssen zusätzlich im echten Browser praktisch getestet werden.</div></div>';
 
@@ -312,6 +358,7 @@
       var versions = root.querySelector('#' + rootId + '-versions');
       var cats = root.querySelector('#' + rootId + '-cats');
       var body = root.querySelector('#' + rootId + '-body');
+      var detailPanel = root.querySelector('#' + rootId + '-detail');
       var count = root.querySelector('#' + rootId + '-count');
       var search = root.querySelector('#' + rootId + '-search');
       var filter = root.querySelector('#' + rootId + '-filter');
@@ -367,10 +414,27 @@
         body.innerHTML = filtered.length ? filtered.map(function (item) {
           // Catalogue-only IDs are visible for planning, but are not launchable until registered.
           var canOpen = !item.catalogOnly && ['native','dedicated','routeReady'].indexOf(item.status) !== -1;
-          return '<tr><td>' + esc(item.categories.length ? item.categories.join(' · ') : '—') + '</td><td><div class="hdsc-appname">' + esc(item.icon) + ' ' + esc(item.name) + '</div><div class="hdsc-id">' + esc(item.id) + '</div></td><td><span class="hdsc-status ' + (item.catalogOnly ? 'missing' : 'native') + '">' + esc(item.registrationLabel) + '</span></td><td>' + esc(item.module || '—') + '</td><td><span class="hdsc-status ' + item.status + '" title="' + esc(item.detail) + '">' + esc(item.statusLabel) + '</span></td><td><button class="hdsc-btn" data-open-app="' + esc(item.id) + '"' + (canOpen ? '' : ' disabled title="' + esc(item.status === 'generic' ? 'Generischer Platzhalter: noch kein eigenständiges Fachmodul.' : 'Für diese App ist noch kein startbares Modul registriert.') + '"') + '>' + (canOpen ? 'Öffnen' : (item.status === 'generic' ? 'Platzhalter' : 'Modul fehlt')) + '</button></td></tr>';
+          return '<tr><td>' + esc(item.categories.length ? item.categories.join(' · ') : '—') + '</td><td><div class="hdsc-appname">' + esc(item.icon) + ' ' + esc(item.name) + '</div><div class="hdsc-id">' + esc(item.id) + '</div></td><td><span class="hdsc-status ' + (item.catalogOnly ? 'missing' : 'native') + '">' + esc(item.registrationLabel) + '</span></td><td>' + esc(item.module || '—') + '</td><td><span class="hdsc-status ' + item.status + '" title="' + esc(item.detail) + '">' + esc(item.statusLabel) + '</span></td><td><div class="hdsc-row"><button type="button" class="hdsc-btn" data-app-details="' + esc(item.id) + '">Details</button><button class="hdsc-btn" data-open-app="' + esc(item.id) + '"' + (canOpen ? '' : ' disabled title="' + esc(item.status === 'generic' ? 'Generischer Platzhalter: noch kein eigenständiges Fachmodul.' : 'Für diese App ist noch kein startbares Modul registriert.') + '"') + '>' + (canOpen ? 'Öffnen' : (item.status === 'generic' ? 'Platzhalter' : 'Modul fehlt')) + '</button></div></td></tr>';
         }).join('') : '<tr><td colspan="6" class="hdsc-empty">Keine passenden Apps gefunden.</td></tr>';
       }
       root.addEventListener('click',function (event) {
+        var detailButton = event.target.closest('[data-app-details]');
+        if (detailButton) {
+          var detailApp = getInventory().find(function (item) { return item.id === detailButton.dataset.appDetails; });
+          if (detailApp) {
+            detailPanel.innerHTML = '<div class="hdsc-row" style="justify-content:space-between"><div><h4>' + esc(detailApp.icon) + ' ' + esc(detailApp.name) + '</h4><div class="hdsc-id">' + esc(detailApp.id) + '</div></div><button type="button" class="hdsc-btn" data-close-details>Schließen</button></div>' +
+              '<div class="hdsc-detail-grid"><div class="hdsc-detail-cell"><small>Technischer Status</small><b>' + esc(detailApp.statusLabel) + '</b></div><div class="hdsc-detail-cell"><small>Implementierungsmerkmal</small><b>' + esc(detailApp.implementationLabel) + '</b></div><div class="hdsc-detail-cell"><small>Registrierung</small><b>' + esc(detailApp.registrationLabel) + '</b></div><div class="hdsc-detail-cell"><small>Kategorie(n)</small><b>' + esc(detailApp.categories.length ? detailApp.categories.join(' · ') : 'Keine Kategorie zugeordnet') + '</b></div><div class="hdsc-detail-cell"><small>Erkanntes Laufzeitmodul</small><b>' + esc(detailApp.module || 'Kein Modul erkannt') + '</b></div><div class="hdsc-detail-cell"><small>Startbarkeit</small><b>' + (detailApp.catalogOnly ? 'Noch nicht über die Kern-Registry startbar' : (['native','dedicated','routeReady'].indexOf(detailApp.status) !== -1 ? 'Startziel technisch erkannt' : 'Noch kein verifiziertes Startziel')) + '</b></div></div>' +
+              '<p><b>Aktueller Befund:</b> ' + esc(detailApp.detail) + '</p><p><b>Nächste technische Schritte:</b></p><ol>' + detailApp.nextSteps.map(function (step) { return '<li>' + esc(step) + '</li>'; }).join('') + '</ol>' +
+              '<div class="hdsc-note">' + esc(detailApp.verificationNote) + '</div>';
+            detailPanel.hidden = false;
+          }
+          return;
+        }
+        if (event.target.closest('[data-close-details]')) {
+          detailPanel.hidden = true;
+          detailPanel.innerHTML = '';
+          return;
+        }
         var categoryButton = event.target.closest('[data-filter-category]');
         if (categoryButton) {
           categoryFilter.value = categoryButton.dataset.filterCategory;
@@ -402,7 +466,7 @@
     },90);
   }
 
-  H.SystemCenter = {open:open,inventory:getInventory,plan:getPlan,refresh:getInventory,categoryRegisteredCount:countRegisteredCategoryApps,categoryProgress:getCategoryProgress};
+  H.SystemCenter = {open:open,inventory:getInventory,plan:getPlan,refresh:getInventory,categoryRegisteredCount:countRegisteredCategoryApps,categoryProgress:getCategoryProgress,guidance:getAppGuidance};
   H[APP_ID] = H.SystemCenter;
 
   // Route the launcher to the real app window instead of the generic greeting.
