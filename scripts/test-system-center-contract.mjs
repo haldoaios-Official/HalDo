@@ -80,8 +80,10 @@ assert.equal(byId['planned-demo'].name, 'Name noch offen', 'Unknown app names ar
 assert.equal(byId['planned-demo'].status, 'missing', 'Unregistered catalogue IDs are clearly marked as missing modules');
 assert.equal(byId['planned-demo'].catalogOnly, true);
 assert.equal(byId['native-demo'].category, 'A');
-assert.match(source, /item\.status !== 'missing'/, 'Entries without modules are not offered a fake launch action');
-assert.match(source, /noch zu benennen/, 'Unspecified plan slots are shown transparently per category');
+assert.match(source, /!item\.catalogOnly && item\.status !== 'missing'/, 'Catalogue-only IDs are visible but never offered a fake launch action');
+assert.match(source, /Planplätze ohne Katalog-ID/, 'Unassigned plan slots are labelled accurately');
+assert.match(source, /registryWithoutCategory,'Registry-Apps ohne Kategorie'/, 'Registered apps outside the A-Z catalogue are counted');
+assert.match(source, /Vollständiges A–Z-App-Inventar/, 'Inventory heading includes planned catalogue entries');
 assert.equal(byId['system-center'].category, 'S');
 const planAudit = H.SystemCenter.plan();
 assert.equal(planAudit.planned, 22);
