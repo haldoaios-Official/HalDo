@@ -215,7 +215,7 @@
   }
   function exportInventory() {
     var rows = getInventory();
-    var csv = [['Kategorie(n)','App','App-ID','Status','Hinweis']].concat(rows.map(function (r) {
+    var csv = [['Kategorie(n)','App','App-ID','Erkanntes Modul','Status','Hinweis']].concat(rows.map(function (r) {
       return [r.categories.length ? r.categories.join(', ') : '—',r.name,r.id,r.module || '—',r.statusLabel,r.detail];
     })).map(function (row) {
       return row.map(function (cell) { return '"' + String(cell).replace(/"/g,'""') + '"'; }).join(';');
