@@ -39,7 +39,7 @@ const report=H.SystemDiagnostics.report();
 assert.equal(report.product,'HalDo System Diagnostics Pro');
 assert.equal(report.summary.total,checks.length);
 assert.equal(report.summary.available,checks.filter(x=>x.ok).length);
-assert.match(report.scope,/keine vollständigen fachlichen App- oder Servertests/);
+assert.match(report.scope,/Keine vollständigen fachlichen App- oder Servertests/);
 assert.match(match[1],/data-health-refresh/);
 assert.match(match[1],/data-health-export/);
 assert.match(match[1],/Keine Daten werden hochgeladen/);
