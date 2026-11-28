@@ -322,7 +322,7 @@
 
                     dictionaryNames.forEach(function (name) {
                         morphNames.add(name);
-                        if (/jaw|mouth|viseme|phoneme|blink|smile|brow|lip/i.test(name)) {
+                        if (/jaw|mouth|viseme|phoneme|blink|smile|brow|lip|cheek/i.test(name)) {
                             facialMorphNames.add(name);
                         }
                     });
