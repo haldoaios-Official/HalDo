@@ -6,13 +6,13 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const source = readFileSync(resolve(here, '../app-dependency-monitor-pro.js'), 'utf8');
-const registry = { featured: [{ id: 'one', n: 'HalDo One' }, { id: 'one', n: 'HalDo Duplicate' }, { id: 'two', n: 'HalDo Two' }] };
+const registry = { featured: [{ id: 'one', n: 'HalDo One' }, { id: 'one', n: 'HalDo Duplicate' }, { id: 'two', n: 'HalDo Two' }, { id: 'route-ok', n: 'HalDo Routed One' }, { id: 'route-ok-two', n: 'HalDo Routed Two' }] };
 const H = {
   Registry: registry,
   Master: { getCategoryApps: () => [{ id: 'existing', name: 'Existing' }] },
   SystemV157: {
     routes: () => ['route-ok', 'route-no-module', 'route-no-target'],
-    moduleFor: id => ({ 'route-ok': 'Ready', 'route-no-target': 'Missing' }[id] || null)
+    moduleFor: id => ({ 'route-ok': 'Ready', 'route-ok-two': 'Ready', 'route-no-target': 'Missing' }[id] || null)
   },
   Ready: { open() {} }
 };
@@ -31,7 +31,7 @@ const report = H.AppDependencyMonitor.analyze({
     { src: '/offline.js', status: 'unknown', external: false }
   ],
   apps: registry.featured,
-  routes: ['route-ok', 'route-no-module', 'route-no-target'],
+  routes: ['route-ok', 'route-no-module', 'route-no-target', 'route-ok-two'],
   moduleFor: H.SystemV157.moduleFor,
   modules: H
 });
@@ -43,11 +43,19 @@ assert.equal(report.summary.unknownLocalScripts, 1);
 assert.equal(report.summary.duplicateScriptReferences, 1, 'Query strings do not hide duplicate script references');
 assert.equal(report.summary.duplicateAppIds, 1);
 assert.equal(report.summary.unresolvedRoutes, 2);
+assert.equal(report.summary.appModuleDependencies, 5);
+assert.equal(report.summary.resolvedAppModuleDependencies, 2);
+assert.equal(report.summary.unresolvedAppModuleDependencies, 3);
+assert.equal(report.summary.sharedModuleTargets, 1);
+assert.deepEqual(JSON.parse(JSON.stringify(report.dependencies.sharedModules[0])), { module: 'Ready', appIds: ['route-ok', 'route-ok-two'] });
+assert.equal(report.dependencies.appModules.find(item => item.appId === 'route-ok').dependencyType, 'dispatcher-module');
+assert.equal(report.dependencies.appModules.find(item => item.appId === 'route-ok').status, 'resolved');
+assert.equal(report.dependencies.appModules.find(item => item.appId === 'one').status, 'unresolved');
 assert.equal(report.unresolvedRoutes[0].id, 'route-no-module');
 assert.equal(report.unresolvedRoutes[1].id, 'route-no-target');
-assert.match(report.scope, /Keine vollständige Laufzeit/);
+assert.match(report.scope, /interner Quellcode-Imports/);
 assert.equal(H.Registry.featured.some(item => item.id === 'app-dependency-monitor'), true);
 assert.equal(H.Master.getCategoryApps('S').some(item => item.id === 'app-dependency-monitor'), true);
 assert.equal(H.Master.getCategoryApps('A').some(item => item.id === 'app-dependency-monitor'), false);
-console.log('App Dependency Monitor contract tests passed: script inventory, duplicate detection, missing/unknown distinction, registry IDs, dispatcher resolution and A–Z registration.');
+console.log('App Dependency Monitor contract tests passed: script inventory, duplicate detection, missing/unknown distinction, registry IDs, app-to-module dependency mapping, shared targets, dispatcher resolution and A–Z registration.');
 
