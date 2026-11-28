@@ -22,6 +22,7 @@ const H = {
       { id: 'dedicated-demo', n: 'Dedicated Demo', i: '🧰' },
       { id: 'generic-demo', n: 'Generic Demo', i: '📦' },
       { id: 'route-demo', n: 'Route Demo', i: '🛣️' },
+      { id: 'route-ready-demo', n: 'Route Ready Demo', i: '🧭' },
       { id: 'missing-demo', n: 'Missing Demo', i: '❔' }
     ],
     getCategories: () => categories,
@@ -44,7 +45,8 @@ const H = {
     }
   },
   SystemV157: {
-    routes: () => ['route-demo'],
+    routes: () => ['route-demo', 'route-ready-demo'],
+    moduleFor: id => id === 'route-ready-demo' ? 'RouteReadyModule' : null,
     getVersion: () => '166.0.0'
   },
   MusicStudio: { __nativePro: true },
@@ -53,6 +55,7 @@ const H = {
 H['native-demo'] = { __nativePro: true, open() {} };
 H['dedicated-demo'] = { open() {} };
 H['generic-demo'] = { open: function haldo_gen_placeholder() {} };
+H.RouteReadyModule = { open() {} };
 
 const window = { HalDo: H, setTimeout() {} };
 const document = { title: 'HalDo AI OS Pro Max – Master Build v166' };
@@ -75,6 +78,8 @@ assert.equal(byId['native-demo'].status, 'native');
 assert.equal(byId['dedicated-demo'].status, 'dedicated');
 assert.equal(byId['generic-demo'].status, 'generic');
 assert.equal(byId['route-demo'].status, 'route');
+assert.equal(byId['route-ready-demo'].status, 'routeReady', 'A route alias with a real open() target is recognized as ready');
+assert.equal(byId['route-ready-demo'].module, 'RouteReadyModule', 'The resolved launcher target is visible in the inventory');
 assert.equal(byId['missing-demo'].status, 'missing');
 assert.deepEqual(Array.from(byId['missing-demo'].categories), [], 'Unassigned registry apps have an explicit empty category list');
 assert.ok(byId['planned-demo'], 'Unregistered A–Z catalogue IDs are included in the inventory');
@@ -83,8 +88,11 @@ assert.equal(byId['planned-demo'].status, 'missing', 'Unregistered catalogue IDs
 assert.equal(byId['planned-demo'].catalogOnly, true);
 assert.equal(byId['native-demo'].category, 'A');
 assert.deepEqual(Array.from(byId['native-demo'].categories), ['A', 'S'], 'Every category assignment is retained for a multiply assigned app');
-assert.match(source, /!item\.catalogOnly && item\.status !== 'missing'/, 'Catalogue-only IDs are visible but never offered a fake launch action');
+assert.match(source, /!item\.catalogOnly && \['native','dedicated','generic','routeReady'\]\.indexOf\(item\.status\) !== -1/, 'Only entries with a recognized module can be launched');
 assert.match(source, /Planplätze ohne Katalog-ID/, 'Unassigned plan slots are labelled accurately');
+assert.match(source, /moduleFor\(app\.id\)/, 'Runtime route targets are resolved through the dispatcher API');
+assert.match(index, /moduleFor:function\(id\)\{return ROUTES\[String\(id\)\]\|\|null;\}/, 'The central dispatcher exposes its explicit module resolver');
+assert.match(source, /Erkanntes Modul/, 'Inventory displays the resolved implementation name');
 assert.match(source, /registryWithoutCategory,'Registry-Apps ohne Kategorie'/, 'Registered apps outside the A-Z catalogue are counted');
 assert.match(source, /Vollständiges A–Z-App-Inventar/, 'Inventory heading includes planned catalogue entries');
 assert.match(source, /-category.*Alle A–Z-Kategorien.*Ohne Kategorie/, 'Inventory exposes A-Z and unassigned-category filters');
