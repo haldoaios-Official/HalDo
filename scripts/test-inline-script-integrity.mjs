@@ -43,6 +43,6 @@ for (let index = 1; index < ordered.length; index += 1) {
   const before = srcOrder.get(ordered[index - 1]);
   const after = srcOrder.get(ordered[index]);
   assert.ok(before !== undefined && after !== undefined, 'Fehlende Identitäts-Komponente in index.html: ' + ordered[index - 1] + ' / ' + ordered[index]);
-  assert.ok(before < after, 'Falsche Script-Reihenfolge: ' + ordered[index - 1] + ' muss vor ' + ordered[index] geladen werden');
+  assert.ok(before < after, 'Falsche Script-Reihenfolge: ' + ordered[index - 1] + ' muss vor ' + ordered[index] + ' geladen werden');
 }
 console.log('HalDo inline runtime integrity passed: ' + inline.length + ' Inline-Scripts syntaktisch geprüft, ' + ids.size + ' eindeutige Script-IDs, Identitäts-Ladereihenfolge korrekt.');
