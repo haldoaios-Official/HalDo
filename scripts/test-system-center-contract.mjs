@@ -178,4 +178,12 @@ for (const [id, letter] of [['bibliothek','B'],['inventar','I'],['mindmap','M'],
 }
 assert.ok(index.indexOf('haldo-v160-system-diagnostics') < index.indexOf('<script src="system-center-pro.js"></script>'), 'Post-v157 route target modules load before System Center');
 
+const keyboardStart = index.indexOf("id:'keyboard-pro'");
+const converterStart = index.indexOf('/* X — lokaler Datei-Konverter');
+assert.ok(keyboardStart >= 0 && converterStart > keyboardStart, 'Keyboard module is isolated before the file converter module');
+const keyboardModule = index.slice(keyboardStart, converterStart);
+assert.match(keyboardModule, /ta\.dir=lang==='Soranî'\?'rtl':'ltr'/, 'Sorani text field switches to right-to-left direction');
+assert.match(keyboardModule, /ta\.style\.textAlign=lang==='Soranî'\?'right':'left'/, 'Sorani text field aligns from the right');
+assert.match(keyboardModule, /keyGrid\.style\.direction=lang==='Soranî'\?'rtl':'ltr'/, 'Virtual keyboard rows switch to right-to-left layout for Sorani');
+
 console.log('System Center contract tests passed: registration, category, launcher routing, fallback preservation, all direct, routed, generic, unrouted and missing module states, catalogue reconciliation metrics, plan count and script order.');
