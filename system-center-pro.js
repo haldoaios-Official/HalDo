@@ -32,11 +32,17 @@
   function categoryIndex() {
     var map = {};
     var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    function add(letter, entry) {
+      if (!entry || !entry.id) return;
+      var id = String(entry.id);
+      if (!map[id]) map[id] = [];
+      if (map[id].indexOf(letter) === -1) map[id].push(letter);
+    }
     if (H.Master && typeof H.Master.getCategoryCatalogApps === 'function') {
       letters.forEach(function (letter) {
         try {
           (H.Master.getCategoryCatalogApps(letter) || []).forEach(function (entry) {
-            if (entry && entry.id && !map[entry.id]) map[entry.id] = letter;
+            add(letter, entry);
           });
         } catch (e) {}
       });
@@ -45,11 +51,12 @@
       letters.forEach(function (letter) {
         try {
           (H.Master.getCategoryApps(letter) || []).forEach(function (entry) {
-            if (entry && entry.id && !map[entry.id]) map[entry.id] = letter;
+            add(letter, entry);
           });
         } catch (e) {}
       });
     }
+    Object.keys(map).forEach(function (id) { map[id].sort(); });
     return map;
   }
   function inspectApp(app, routeIds) {
@@ -98,7 +105,8 @@
         id:String(app.id || ''),
         name:String(app.n || app.name || app.id || 'Unbenannte App'),
         icon:String(app.i || '📱'),
-        category:categories[app.id] || '—',
+        categories:categories[app.id] ? categories[app.id].slice() : [],
+        category:categories[app.id] && categories[app.id].length ? categories[app.id][0] : '—',
         status:status.key,
         statusLabel:status.label,
         detail:app.__catalogOnly
@@ -161,7 +169,7 @@
   function exportInventory() {
     var rows = getInventory();
     var csv = [['Kategorie','App','App-ID','Status','Hinweis']].concat(rows.map(function (r) {
-      return [r.category,r.name,r.id,r.statusLabel,r.detail];
+      return [r.categories.length ? r.categories.join(', ') : '—',r.name,r.id,r.statusLabel,r.detail];
     })).map(function (row) {
       return row.map(function (cell) { return '"' + String(cell).replace(/"/g,'""') + '"'; }).join(';');
     }).join('\r\n');
@@ -234,14 +242,14 @@
         var query = String(search.value || '').trim().toLowerCase();
         var statusFilter = filter.value;
         var filtered = inventory.filter(function (item) {
-          var text = [item.name,item.id,item.category,item.statusLabel].join(' ').toLowerCase();
-          return (!query || text.indexOf(query) !== -1) && (statusFilter === 'all' || item.status === statusFilter) && (categoryFilter.value === 'all' || item.category === categoryFilter.value);
+          var text = [item.name,item.id,item.categories.join(' '),item.statusLabel].join(' ').toLowerCase();
+          return (!query || text.indexOf(query) !== -1) && (statusFilter === 'all' || item.status === statusFilter) && (categoryFilter.value === 'all' || item.categories.indexOf(categoryFilter.value) !== -1);
         });
         count.textContent = filtered.length + ' von ' + inventory.length + ' Einträgen';
         body.innerHTML = filtered.length ? filtered.map(function (item) {
           // Catalogue-only IDs are visible for planning, but are not launchable until registered.
           var canOpen = !item.catalogOnly && item.status !== 'missing';
-          return '<tr><td>' + esc(item.category) + '</td><td><div class="hdsc-appname">' + esc(item.icon) + ' ' + esc(item.name) + '</div><div class="hdsc-id">' + esc(item.id) + '</div></td><td><span class="hdsc-status ' + item.status + '" title="' + esc(item.detail) + '">' + esc(item.statusLabel) + '</span></td><td><button class="hdsc-btn" data-open-app="' + esc(item.id) + '"' + (canOpen ? '' : ' disabled title="Für diese App ist noch kein Modul registriert"') + '>' + (canOpen ? 'Öffnen' : 'Modul fehlt') + '</button></td></tr>';
+          return '<tr><td>' + esc(item.categories.length ? item.categories.join(' · ') : '—') + '</td><td><div class="hdsc-appname">' + esc(item.icon) + ' ' + esc(item.name) + '</div><div class="hdsc-id">' + esc(item.id) + '</div></td><td><span class="hdsc-status ' + item.status + '" title="' + esc(item.detail) + '">' + esc(item.statusLabel) + '</span></td><td><button class="hdsc-btn" data-open-app="' + esc(item.id) + '"' + (canOpen ? '' : ' disabled title="Für diese App ist noch kein Modul registriert"') + '>' + (canOpen ? 'Öffnen' : 'Modul fehlt') + '</button></td></tr>';
         }).join('') : '<tr><td colspan="4" class="hdsc-empty">Keine passenden Apps gefunden.</td></tr>';
       }
       root.addEventListener('click',function (event) {
