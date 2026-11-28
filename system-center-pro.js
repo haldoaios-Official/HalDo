@@ -250,6 +250,13 @@
       description:'Lokaler Datei-Konverter mit Eingabevorschau, CSV-Parser, JSON-Verarbeitung und Speichern des konvertierten Ergebnisses.',
       features:['TXT-Dateien lokal lesen und als TXT speichern','Einfache CSV-Tabellen mit Anführungszeichenprüfung in JSON umwandeln','JSON-Arrays von Objekten in CSV umwandeln','Ergebnisvorschau und Download der konvertierten Datei','CSV-Export maskiert formelartige Textwerte gegen Tabellenkalkulations-Formel-Injection','Keine PDF-, Office- oder Bildkonvertierung in dieser Version','TXT wird nicht automatisch in strukturierte JSON- oder CSV-Daten umgewandelt']
     }
+,
+    'avatar': {
+      source:'Modulcode · index.html / v151 Capability Report + v154 LivingAvatar',
+      purpose:'Eine sprachgesteuerte HalDo-AI-/Cyborg-Oberfläche für Spracheingabe, Sprachausgabe und ausgewählte lokale App-Aktionen bereitstellen.',
+      description:'Living HalDo AI / CYBORG-JARVIS mit animiertem Gesichtsstatus, Browser-Sprachausgabe, optionaler Browser-Spracherkennung und fest zugeordneten lokalen App-Aktionen. Der aktuelle Capability Report bestätigt noch kein realistisches 3D-Avatar-Modell und keine Phonem-Lippensynchronisation.',
+      features:['AI- und CYBORG/JARVIS-Modus','Animierter Status für Bereit, Zuhören, Denken und Sprechen','Sprachausgabe über Browser SpeechSynthesis mit Sprache, Stimme, Tempo und Tonhöhe','Spracherkennung nur, wenn der Browser SpeechRecognition oder webkitSpeechRecognition bereitstellt','Vordefinierte lokale Aktionen zum Öffnen ausgewählter HalDo-Apps','Optionale Backend-URL-Einstellung; Zugangsschlüssel gehören nicht in den Frontend-Code','Aktuell kein realistisches 3D-Avatar-Modell und keine Phonem-basierte Lippensynchronisation laut Capability Report']
+    }
   };
   function normalizeMetadataText(value) {
     if (typeof value === 'string') return value.trim();
