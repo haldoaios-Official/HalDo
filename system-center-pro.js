@@ -118,7 +118,30 @@
     var reported = NaN;
     try { reported = Number(H.Registry.totalCount()); } catch (e) {}
     if (Number.isFinite(reported) && reported > 0) planned = reported;
-    return {planned:planned,categoryCount:Object.keys(categories).length,categories:categories};
+    var catalogIds = new Set();
+    var catalogAssignments = 0;
+    if (H.Master && typeof H.Master.getCategoryCatalogApps === 'function') {
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(function (letter) {
+        try {
+          var entries = H.Master.getCategoryCatalogApps(letter) || [];
+          catalogAssignments += entries.length;
+          entries.forEach(function (entry) { if (entry && entry.id) catalogIds.add(String(entry.id)); });
+        } catch (e) {}
+      });
+    }
+    var registryIds = new Set((H.Registry && H.Registry.featured || []).map(function (app) { return String(app.id); }));
+    var registeredInCatalog = Array.from(catalogIds).filter(function (id) { return registryIds.has(id); }).length;
+    return {
+      planned:planned,
+      categoryCount:Object.keys(categories).length,
+      categories:categories,
+      catalogAssignments:catalogAssignments,
+      catalogUnique:catalogIds.size,
+      registryCount:registryIds.size,
+      registeredInCatalog:registeredInCatalog,
+      registryWithoutCategory:Array.from(registryIds).filter(function (id) { return !catalogIds.has(id); }).length,
+      unassignedPlanSlots:Math.max(0,planned - catalogAssignments)
+    };
   }
   function getVersionInfo() {
     var title = String(document.title || '');
@@ -178,10 +201,14 @@
         var summary = {native:0,dedicated:0,generic:0,route:0,missing:0};
         inventory.forEach(function (item) { summary[item.status] = (summary[item.status] || 0) + 1; });
         stats.innerHTML = [
-          ['🧩',inventory.length,'Sichtbare Katalogeinträge'],
+          ['🧩',inventory.length,'Sichtbare Einträge'],
           ['🗂',plan.planned,'Geplante App-Plätze'],
           ['🔠',plan.categoryCount,'A–Z-Kategorien'],
-          ['✅',summary.native + summary.dedicated,'Direkt erkannte Module']
+          ['🧾',plan.catalogAssignments,'Kategorie-Zuordnungen'],
+          ['🆔',plan.catalogUnique,'Eindeutige Katalog-IDs'],
+          ['📦',plan.registryCount,'Registrierte Kern-Apps'],
+          ['🔗',plan.registeredInCatalog,'In Katalog & Registry'],
+          ['🧭',plan.unassignedPlanSlots,'Planplätze ohne App-ID']
         ].map(function (item) {
           return '<div class="hdsc-stat"><div class="hdsc-value">' + item[0] + ' ' + item[1] + '</div><div class="hdsc-label">' + item[2] + '</div></div>';
         }).join('');
@@ -237,7 +264,7 @@
     },90);
   }
 
-  H.SystemCenter = {open:open,inventory:getInventory,refresh:getInventory};
+  H.SystemCenter = {open:open,inventory:getInventory,plan:getPlan,refresh:getInventory};
   H[APP_ID] = H.SystemCenter;
 
   // Route the launcher to the real app window instead of the generic greeting.
