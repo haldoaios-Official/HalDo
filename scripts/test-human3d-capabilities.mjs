@@ -62,7 +62,7 @@ assert.equal(staticReport.meshCount, 1);
 assert.equal(staticReport.skinnedMeshCount, 0);
 assert.equal(staticReport.isRigged, false, 'A static mesh is not misclassified as a rigged avatar');
 assert.equal(staticReport.rigAndClipsPresent, false);
-assert.ok(staticReport.warnings.some(value => value.includes('Kein humanoides Rig')));
+assert.ok(staticReport.warnings.some(value => value.includes('Kein SkinnedMesh')));
 
 const skeletonOnlyScene = {
   traverse(callback) {
