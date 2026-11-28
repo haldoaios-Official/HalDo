@@ -196,8 +196,8 @@ const converterBindingsEnd = converterSource.indexOf("root.querySelector('#h166-
 assert.ok(parseStart >= 0 && toCSVStart > parseStart && converterBindingsEnd > toCSVStart, 'CSV parsing and export functions are present');
 const parseCSV = runInNewContext('(' + converterSource.slice(parseStart, toCSVStart).trim() + ')');
 const toCSV = runInNewContext('(' + converterSource.slice(toCSVStart, converterBindingsEnd).trim() + ')');
-assert.equal(JSON.stringify(parseCSV('name,age\\r\\n"Alice, Inc.",30')), JSON.stringify([{ name: 'Alice, Inc.', age: '30' }]), 'Quoted commas are parsed as part of a CSV cell');
-assert.equal(JSON.stringify(parseCSV('name\\r\\n"Alice ""A"" Example"')), JSON.stringify([{ name: 'Alice "A" Example' }]), 'Escaped double quotes are decoded');
+assert.equal(JSON.stringify(parseCSV('name,age\r\n"Alice, Inc.",30')), JSON.stringify([{ name: 'Alice, Inc.', age: '30' }]), 'Quoted commas are parsed as part of a CSV cell');
+assert.equal(JSON.stringify(parseCSV('name\r\n"Alice ""A"" Example"')), JSON.stringify([{ name: 'Alice "A" Example' }]), 'Escaped double quotes are decoded');
 assert.throws(() => parseCSV('"unfinished'), /nicht geschlossenes Anführungszeichen/, 'Unclosed quoted CSV cells are rejected');
 assert.throws(() => parseCSV('bad"name,value'), /müssen am Anfang/, 'Quotes inside unquoted CSV cells are rejected');
 assert.throws(() => parseCSV('"value"x,next'), /Unerwartetes Zeichen/, 'Unexpected data after closing quote is rejected');
