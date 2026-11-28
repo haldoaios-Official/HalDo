@@ -115,6 +115,10 @@ assert.ok(byId['planned-demo'], 'Unregistered A–Z catalogue IDs are included i
 assert.equal(byId['planned-demo'].name, 'Name noch offen', 'Unknown app names are not invented');
 assert.equal(byId['planned-demo'].status, 'missing', 'Unregistered catalogue IDs are clearly marked as missing modules');
 assert.equal(byId['planned-demo'].catalogOnly, true);
+assert.equal(byId['planned-demo'].registration, 'planned-only', 'Catalogue-only apps are distinct from registered apps');
+assert.equal(byId['planned-demo'].registrationLabel, 'Nur A–Z-Katalog');
+assert.equal(byId['native-demo'].registration, 'registered', 'Registry-backed apps expose their registration state');
+assert.equal(byId['native-demo'].registrationLabel, 'In Kern-Registry');
 assert.equal(byId['native-demo'].category, 'A');
 assert.deepEqual(Array.from(byId['native-demo'].categories), ['A', 'S'], 'Every category assignment is retained for a multiply assigned app');
 assert.match(source, /!item\.catalogOnly && \['native','dedicated','routeReady'\]\.indexOf\(item\.status\) !== -1/, 'Only native or dedicated modules and resolved route targets can be launched');
@@ -142,7 +146,8 @@ for (const [id, moduleName] of [['email','EmailPro'],['phone','PhonePro'],['vide
 assert.match(source, /Erkanntes Modul/, 'Inventory displays the resolved implementation name');
 assert.match(source, /registryWithoutCategory,'Registry-Apps ohne Kategorie'/, 'Registered apps outside the A-Z catalogue are counted');
 assert.match(source, /Vollständiges A–Z-App-Inventar/, 'Inventory heading includes planned catalogue entries');
-assert.match(source, /\['Kategorie\(n\)','App','App-ID','Erkanntes Modul','Status','Hinweis'\]/, 'CSV export headers align with all six exported inventory fields');
+assert.match(source, /\['Kategorie\(n\)','App','App-ID','Registrierung','Erkanntes Modul','Status','Hinweis'\]/, 'CSV export includes the separate registration state');
+assert.match(source, /registrationLabel/, 'Inventory UI exposes catalogue-only and registry-backed registration labels');
 const csvCellMatch = source.match(/function csvCell\(value\) \{[\s\S]*?\n  \}/);
 assert.ok(csvCellMatch, 'System Center CSV export uses a dedicated cell sanitizer');
 const csvCell = runInNewContext('(' + csvCellMatch[0] + ')');
