@@ -61,8 +61,22 @@ const staticReport = engine.inspectModelCapabilities(rigidScene, []);
 assert.equal(staticReport.meshCount, 1);
 assert.equal(staticReport.skinnedMeshCount, 0);
 assert.equal(staticReport.isRigged, false, 'A static mesh is not misclassified as a rigged avatar');
-assert.equal(staticReport.humanoidMotionReady, false);
+assert.equal(staticReport.rigAndClipsPresent, false);
 assert.ok(staticReport.warnings.some(value => value.includes('Kein humanoides Rig')));
+
+const skeletonOnlyScene = {
+  traverse(callback) {
+    callback({
+      isMesh: true,
+      skeleton: { bones: [{ name: 'Root' }] },
+      geometry: { morphAttributes: {} }
+    });
+  }
+};
+const skeletonOnlyReport = engine.inspectModelCapabilities(skeletonOnlyScene, [{ name: 'Idle' }]);
+assert.equal(skeletonOnlyReport.skinnedMeshCount, 0, 'A skeleton-like property without an actual SkinnedMesh is not sufficient');
+assert.equal(skeletonOnlyReport.isRigged, false, 'A non-skinned mesh is not falsely classified as rigged');
+
 
 const bones = [{ name: 'Hips' }, { name: 'Spine' }, { name: 'Head' }];
 const riggedScene = {
@@ -86,6 +100,7 @@ const riggedScene = {
     });
     callback({
       isMesh: true,
+      isSkinnedMesh: true,
       skeleton: { bones },
       geometry: { morphAttributes: {} }
     });
@@ -95,7 +110,7 @@ const riggedScene = {
 const animations = [{ name: 'Idle' }, { name: 'Walk' }, { name: 'Talk' }];
 const report = engine.inspectModelCapabilities(riggedScene, animations);
 assert.equal(report.meshCount, 2);
-assert.equal(report.skinnedMeshCount, 2, 'Skeleton-bearing meshes are counted as rigged even if a test fixture omits the convenience flag');
+assert.equal(report.skinnedMeshCount, 2, 'Only meshes explicitly marked as SkinnedMesh count as skinned');
 assert.equal(report.skeletonBoneCount, 3, 'Shared skeleton bones are counted once');
 assert.equal(report.morphMeshCount, 1);
 assert.equal(report.morphTargetCount, 4, 'Duplicate morph attributes do not double-count the same target set');
@@ -107,7 +122,7 @@ assert.equal(report.isRigged, true);
 assert.equal(report.hasAnimations, true);
 assert.equal(report.hasMorphTargets, true);
 assert.equal(report.hasFacialMorphTargets, true);
-assert.equal(report.humanoidMotionReady, true);
+assert.equal(report.rigAndClipsPresent, true, 'The flag reports structural rig plus clip presence, not verified humanoid quality');
 assert.deepEqual(Array.from(report.warnings), [], 'A fully populated test model has no capability warnings');
 
 const geometryOnlyMorphScene = {
@@ -141,7 +156,7 @@ const partial = engine.inspectModelCapabilities(partiallyNamedScene, []);
 assert.equal(partial.isRigged, true);
 assert.equal(partial.hasAnimations, false);
 assert.equal(partial.hasFacialMorphTargets, true);
-assert.equal(partial.humanoidMotionReady, false, 'A rig without animation clips is not reported as motion-ready');
+assert.equal(partial.rigAndClipsPresent, false, 'A rig without animation clips is not reported as ready');
 assert.ok(partial.warnings.some(value => value.includes('keine Animationsclips')));
 
 const statusBeforeModel = engine.getStatus();
