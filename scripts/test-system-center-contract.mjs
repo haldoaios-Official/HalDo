@@ -175,6 +175,32 @@ assert.equal(planAudit.catalogUnnamed, 1, 'Catalogue IDs without a confirmed dis
 assert.equal(planAudit.registeredInCatalog, 3, 'Registry overlap includes later registered category apps');
 assert.equal(planAudit.unassignedPlanSlots, 17, 'Unassigned plan slots remain visible as a gap');
 assert.equal(H.Registry.totalCount(), 22, 'The planned slot count is preserved');
+
+const aProgress = H.SystemCenter.categoryProgress('A');
+assert.equal(aProgress.planned, 10, 'Category progress keeps the planned capacity for the selected letter');
+assert.equal(aProgress.catalogIds, 3, 'Category progress counts de-duplicated catalogue IDs from both catalogue sources');
+assert.equal(aProgress.namedIds, 2, 'Category progress distinguishes named IDs from unnamed planning entries');
+assert.equal(aProgress.registeredIds, 2, 'Category progress counts only IDs actually present in the core registry');
+assert.equal(aProgress.readyModules, 2, 'Category progress counts native and dedicated modules as recognized targets');
+assert.equal(aProgress.missingModules, 1, 'Category progress separately reports catalogue entries without a module');
+assert.equal(aProgress.planSlotsWithoutId, 7, 'Category progress treats unassigned capacity as slots without IDs, not as app records');
+assert.equal(aProgress.statusCounts.native, 1);
+assert.equal(aProgress.statusCounts.dedicated, 1);
+
+const sProgress = H.SystemCenter.categoryProgress('S');
+assert.equal(sProgress.catalogIds, 2, 'Category progress includes the System Center category extension');
+assert.equal(sProgress.registeredIds, 2, 'System Center is counted as registered in its own category');
+assert.equal(sProgress.modulesWithoutRoute, 1, 'A registered module without a dispatcher route is reported separately');
+assert.equal(sProgress.readyModules, 1, 'Only the native demo is counted as route-ready in category S');
+assert.equal(sProgress.planSlotsWithoutId, 10);
+const emptyProgress = H.SystemCenter.categoryProgress('Z');
+assert.equal(emptyProgress.catalogIds, 0, 'Empty categories do not get invented catalogue entries');
+assert.equal(emptyProgress.planSlotsWithoutId, 0, 'An unknown category does not create fictitious planned slots');
+assert.match(source, /data-filter-category=/, 'A-Z category cards expose a filter action');
+assert.match(source, /categoryFilter\.value = categoryButton\.dataset\.filterCategory/, 'Selecting an A-Z category filters the app inventory');
+assert.match(source, /inventorySection\.scrollIntoView/, 'Selecting a category brings its filtered inventory into view');
+assert.match(source, /categoryProgress:getCategoryProgress/, 'Per-category audit is available through the System Center runtime API');
+assert.match(source, /Module erkannt/, 'A-Z cards show how many implementation targets were recognized');
 assert.match(index, /<script src="system-center-pro\.js"><\/script>/, 'System Center script is included in index.html');
 assert.ok(index.indexOf('<script src="video-studio-pro.js"></script>') < index.indexOf('<script src="system-center-pro.js"></script>'), 'System Center loads after the studio modules');
 assert.ok(index.indexOf('moduleFor:function(id)') < index.indexOf('<script src="system-center-pro.js"></script>'), 'Dispatcher module resolver is available before System Center starts');
