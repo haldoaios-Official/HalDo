@@ -13072,6 +13072,63 @@ console.info('HalDo App Health Monitor Pro v'+BUILD+' bereit.');
 <!-- ENDE HALDO v160 SYSTEM DIAGNOSTICS -->
 
 
+<!-- HALDO AI OS PRO MAX — v167: Runtime Error Monitor Pro -->
+<script id="haldo-v167-runtime-error-monitor">
+(function(){
+'use strict';
+var H=window.HalDo=window.HalDo||{},BUILD='167.0.0',LIMIT=100,records=[],nextId=1,installed=false;
+function redact(value){
+  var s=String(value==null?'':value);
+  s=s.replace(/((?:token|access_token|refresh_token|api[_-]?key|authorization|password|passwd|secret|session)[=:]["']?)[^\s&"'<>;,]*/gi,'$1[REDACTED]');
+  s=s.replace(/([?&][^=&#\s]+)=([^&#\s]*)/g,'$1=[REDACTED]');
+  return s.length>2000?s.slice(0,1997)+'...':s;
+}
+function safeString(value){try{return redact(value&&value.stack?value.stack:value&&value.message?value.message:value);}catch(e){return '[nicht lesbarer Fehler]';}}
+function capture(input){
+  input=input||{};
+  var entry={id:nextId++,type:String(input.type||'manual').slice(0,40),message:redact(input.message||'Unbekannter Fehler'),source:redact(input.source||''),line:Number(input.line)||0,column:Number(input.column)||0,stack:redact(input.stack||''),timestamp:new Date().toISOString(),app:String(input.app||'').slice(0,120)};
+  records.push(entry);if(records.length>LIMIT)records.splice(0,records.length-LIMIT);
+  return Object.assign({},entry);
+}
+function onError(event){
+  if(!event)return;
+  capture({type:'runtime',message:event.message||safeString(event.error),source:event.filename||'',line:event.lineno,column:event.colno,stack:safeString(event.error)});
+}
+function onRejection(event){
+  if(!event)return;
+  capture({type:'unhandled-rejection',message:safeString(event.reason),stack:event.reason&&event.reason.stack?safeString(event.reason):''});
+}
+function list(){return records.map(function(x){return Object.assign({},x);});}
+function summary(){var runtime=0,rejections=0;records.forEach(function(x){if(x.type==='runtime')runtime++;if(x.type==='unhandled-rejection')rejections++;});return {total:records.length,runtime:runtime,unhandledRejections:rejections,limit:LIMIT};}
+function report(){return {product:'HalDo Runtime Error Monitor Pro',version:BUILD,generatedAt:new Date().toISOString(),summary:summary(),errors:list(),scope:'Lokaler, begrenzter Ereignisspeicher für window-Fehler und unbehandelte Promise-Rejections. Normale console.warn-Meldungen werden nicht als Fehler erfasst. Keine automatische Übertragung.'};}
+function clear(){records.length=0;return summary();}
+function exportReport(){
+  if(typeof Blob==='undefined'||!window.URL||typeof window.URL.createObjectURL!=='function'||!document||!document.createElement)return false;
+  var blob=new Blob([JSON.stringify(report(),null,2)],{type:'application/json;charset=utf-8'}),url=window.URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='HalDo-Runtime-Error-Report.json';document.body.appendChild(a);a.click();a.remove();
+  window.setTimeout(function(){window.URL.revokeObjectURL(url);},1500);return true;
+}
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function open(){
+  if(!H.Win||typeof H.Win.open!=='function')return false;
+  var id='haldo-runtime-errors-'+Date.now();
+  H.Win.open('🧯 HalDo Runtime Error Monitor Pro','<div id="'+id+'"></div>',{w:760,h:700});
+  window.setTimeout(function(){
+    var root=document&&document.getElementById?document.getElementById(id):null;if(!root)return;
+    function render(){var data=list(),counts=summary();root.innerHTML='<section style="padding:16px;color:var(--text,#eaf2ff);font:13px/1.5 system-ui"><header style="padding:15px;border:1px solid #38bdf855;border-radius:14px;background:#0e749022"><h2>🧯 HalDo Runtime Error Monitor Pro</h2><p>Erfasst Laufzeitfehler und unbehandelte Promise-Fehler. Normale Warnungen bleiben außen vor.</p><h2>'+counts.total+' / '+LIMIT+' gespeicherte Ereignisse</h2><p>'+counts.runtime+' Laufzeitfehler · '+counts.unhandledRejections+' unbehandelte Promise-Fehler</p><p>Nur lokal · keine automatische Übertragung</p><button data-rem-refresh>Aktualisieren</button> <button data-rem-export>JSON exportieren</button> <button data-rem-clear>Liste leeren</button></header><div style="display:grid;gap:8px;margin-top:12px">'+(data.length?data.slice().reverse().map(function(x){return '<article style="padding:10px;border:1px solid #ffffff22;border-radius:10px"><b>'+esc(x.type)+' · '+esc(x.timestamp)+'</b><p>'+esc(x.message)+'</p><small>'+esc(x.source)+(x.line?':'+x.line+':'+x.column:'')+'</small></article>';}).join(''):'<p>Noch keine Laufzeitfehler erfasst.</p>')+'</div><p style="opacity:.65;font-size:11px;margin-top:12px">Maximal '+LIMIT+' Ereignisse im Arbeitsspeicher. Ein Neuladen der Seite leert die Liste.</p></section>';}
+    root.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-rem-refresh'))render();if(b.hasAttribute('data-rem-export'))exportReport();if(b.hasAttribute('data-rem-clear')){clear();render();}});render();
+  },80);return true;
+}
+if(typeof window.addEventListener==='function'){window.addEventListener('error',onError);window.addEventListener('unhandledrejection',onRejection);installed=true;}
+H.RuntimeErrorMonitor={version:BUILD,installed:installed,limit:LIMIT,capture:capture,list:list,summary:summary,report:report,clear:clear,exportReport:exportReport,open:open};
+if(H.Registry&&Array.isArray(H.Registry.featured)&&!H.Registry.featured.some(function(x){return x&&x.id==='runtime-error-monitor';}))H.Registry.featured.push({id:'runtime-error-monitor',n:'HalDo Runtime Error Monitor Pro',i:'🧯'});
+var previousLaunch=H.Launch;H.Launch=function(app){if(app&&app.id==='runtime-error-monitor')return open();if(typeof previousLaunch==='function')return previousLaunch.apply(this,arguments);};
+try{if(H.AppVoice&&typeof H.AppVoice.command==='function')H.AppVoice.command('haldo-runtime-error-monitor',['öffne haldo fehler-monitor','öffne runtime error monitor','zeige laufzeitfehler'],function(){open();return summary().total+' Laufzeitereignisse erfasst.';});}catch(e){}
+})();
+</script>
+<!-- ENDE HALDO v167 RUNTIME ERROR MONITOR -->
+
+
 <!-- HALDO AI OS PRO MAX — v161: Universal Welcome Experience -->
 <style id="haldo-v161-global-welcome-styles">
 :root{--haldo-gold:#f8d77b;--haldo-gold-strong:#ffe9a6}
