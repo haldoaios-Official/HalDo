@@ -255,7 +255,7 @@ assert.equal(sProgress.catalogIds, 2, 'Category progress includes the System Cen
 assert.equal(sProgress.registeredIds, 2, 'System Center is counted as registered in its own category');
 assert.equal(sProgress.modulesWithoutRoute, 0, 'A direct System Center module is not falsely classified as unrouted');
 assert.equal(sProgress.readyModules, 2, 'Native and directly registered System Center modules are recognized');
-assert.equal(sProgress.profilesComplete, 1, 'Per-category profile metrics include metadata from the central registry');
+assert.equal(sProgress.profilesComplete, 2, 'Per-category profile metrics include metadata from the central registry and the documented System Center');
 assert.equal(sProgress.planSlotsWithoutId, 10);
 const emptyProgress = H.SystemCenter.categoryProgress('Z');
 assert.equal(emptyProgress.catalogIds, 0, 'Empty categories do not get invented catalogue entries');
