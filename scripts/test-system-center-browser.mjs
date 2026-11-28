@@ -136,7 +136,6 @@ try {
       return JSON.stringify(actual) === JSON.stringify(expected.slice().sort());
     }, profileFixtures[profileStatus]);
   }
-  await profile.selectOption('all');
   await root.locator('#' + (await root.locator('select').nth(2).getAttribute('id').then(id => id.replace(/-profile$/, ''))) + '-clear').click();
   assert.equal(await profile.inputValue(), 'all', 'Reset returns the documentation profile filter to All');
 
