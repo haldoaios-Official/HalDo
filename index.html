@@ -13294,8 +13294,72 @@ setTimeout(function(){var root=document.getElementById(id);if(!root)return;var s
 root.innerHTML=css+'<div class="h166"><div class="hero"><b style="font-size:18px">🔄 HalDo Datei-Konverter Pro</b><div class="muted">Lokale Text-, CSV- und JSON-Konvertierung direkt im Browser</div></div><div class="card"><label>Datei auswählen</label><input id="h166-con-file" type="file" accept=".txt,.csv,.json,text/plain,text/csv,application/json"><div class="row"><div><label>Zielformat</label><select id="h166-con-format"><option value="json">JSON</option><option value="csv">CSV</option><option value="txt">TXT</option></select></div><button id="h166-con-run" class="primary">Konvertieren</button><button id="h166-con-download">Ergebnis speichern</button></div><div id="h166-con-status" class="muted">Noch keine Datei geladen.</div></div><div class="card"><b>Vorschau Eingabe</b><pre id="h166-con-input" class="preview muted">Wähle eine Datei aus.</pre></div><div class="card"><b>Vorschau Ergebnis</b><pre id="h166-con-output" class="preview muted">Noch kein Ergebnis.</pre></div><p class="muted">Dateien werden ausschließlich lokal im Browser verarbeitet. Unterstützt werden einfache CSV-Tabellen und JSON-Arrays von Objekten. Keine PDF-, Office- oder Bildkonvertierung in dieser Version.</p></div>';
 var file=root.querySelector('#h166-con-file'),status=root.querySelector('#h166-con-status'),inputView=root.querySelector('#h166-con-input'),outputView=root.querySelector('#h166-con-output'),format=root.querySelector('#h166-con-format');
 file.onchange=function(){var f=file.files&&file.files[0];if(!f)return;filename=f.name;var reader=new FileReader();reader.onload=function(){source=String(reader.result||'');inputView.textContent=source.slice(0,12000);output='';outputView.textContent='Bereit zur Konvertierung.';status.textContent='Geladen: '+filename+' · '+f.size+' Bytes';};reader.onerror=function(){status.textContent='Datei konnte nicht gelesen werden.';};reader.readAsText(f);};
-function parseCSV(text){var rows=[],row=[],cell='',quoted=false;for(var i=0;i<text.length;i++){var c=text[i],n=text[i+1];if(c==='"'&&quoted&&n==='"'){cell+='"';i++;}else if(c==='"'){quoted=!quoted;}else if(c===','&&!quoted){row.push(cell);cell='';}else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&n==='\n')i++;row.push(cell);if(row.some(function(x){return x!=='';}))rows.push(row);row=[];cell='';}else{cell+=c;}}row.push(cell);if(row.some(function(x){return x!=='';}))rows.push(row);if(!rows.length)return [];var headers=rows.shift();return rows.map(function(r){var out={};headers.forEach(function(h,i){out[h||('column_'+(i+1))]=r[i]||'';});return out;});}
-function toCSV(arr){if(!Array.isArray(arr)||!arr.length||typeof arr[0]!=='object'||arr[0]===null)throw new Error('JSON muss ein Array aus Objekten enthalten.');var keys=Array.from(new Set(arr.reduce(function(a,x){return a.concat(Object.keys(x));},[])));function q(v){var s=v==null?'':typeof v==='object'?JSON.stringify(v):String(v);return '"'+s.replace(/"/g,'""')+'"';}return [keys.map(q).join(',' )].concat(arr.map(function(x){return keys.map(function(k){return q(x[k]);}).join(',');})).join('\r\n');}
+function parseCSV(text) {
+  var rows = [], row = [], cell = '', quoted = false, afterQuote = false;
+  for (var i = 0; i < text.length; i++) {
+    var c = text[i], next = text[i + 1];
+    if (quoted) {
+      if (c === '"' && next === '"') { cell += '"'; i++; }
+      else if (c === '"') { quoted = false; afterQuote = true; }
+      else { cell += c; }
+      continue;
+    }
+    if (afterQuote) {
+      if (c === ',') { row.push(cell); cell = ''; afterQuote = false; }
+      else if (c === '\n' || c === '\r') {
+        if (c === '\r' && next === '\n') i++;
+        row.push(cell);
+        if (row.some(function (value) { return value !== ''; })) rows.push(row);
+        row = []; cell = ''; afterQuote = false;
+      } else if (c !== ' ' && c !== '\t') {
+        throw new Error('Unerwartetes Zeichen nach einem schließenden CSV-Anführungszeichen.');
+      }
+      continue;
+    }
+    if (c === '"') {
+      if (cell.length !== 0) throw new Error('CSV-Anführungszeichen müssen am Anfang eines Feldes stehen.');
+      quoted = true;
+    } else if (c === ',') {
+      row.push(cell); cell = '';
+    } else if (c === '\n' || c === '\r') {
+      if (c === '\r' && next === '\n') i++;
+      row.push(cell);
+      if (row.some(function (value) { return value !== ''; })) rows.push(row);
+      row = []; cell = '';
+    } else {
+      cell += c;
+    }
+  }
+  if (quoted) throw new Error('CSV enthält ein nicht geschlossenes Anführungszeichen.');
+  row.push(cell);
+  if (row.some(function (value) { return value !== ''; })) rows.push(row);
+  if (!rows.length) return [];
+  var headers = rows.shift();
+  return rows.map(function (values) {
+    var result = {};
+    headers.forEach(function (header, index) {
+      result[header || ('column_' + (index + 1))] = values[index] || '';
+    });
+    return result;
+  });
+}
+function toCSV(arr) {
+  if (!Array.isArray(arr) || !arr.length || typeof arr[0] !== 'object' || arr[0] === null) {
+    throw new Error('JSON muss ein Array aus Objekten enthalten.');
+  }
+  var keys = Array.from(new Set(arr.reduce(function (all, item) {
+    return all.concat(Object.keys(item));
+  }, [])));
+  function quote(value) {
+    var text = value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
+    // Spreadsheet apps may execute formula-like CSV cells. Prefix risky text values.
+    if (typeof value === 'string' && /^[\\s]*[=+\\-@]/.test(text)) text = "'" + text;
+    return '"' + text.replace(/"/g, '""') + '"';
+  }
+  return [keys.map(quote).join(',')].concat(arr.map(function (item) {
+    return keys.map(function (key) { return quote(item[key]); }).join(',');
+  })).join('\\r\\n');
+}
 root.querySelector('#h166-con-run').onclick=function(){if(!source){status.textContent='Bitte zuerst eine Datei auswählen.';return;}try{var target=format.value,ext=(filename.split('.').pop()||'txt').toLowerCase(),value;if(target==='txt'){output=source;outName=filename.replace(/\.[^.]+$/,'')+'.txt';}else if(target==='json'){if(ext==='csv')value=parseCSV(source);else if(ext==='json')value=JSON.parse(source);else throw new Error('TXT kann nicht automatisch in JSON strukturiert werden.');output=JSON.stringify(value,null,2);outName=filename.replace(/\.[^.]+$/,'')+'.json';}else{if(ext==='json')value=JSON.parse(source);else if(ext==='csv')value=parseCSV(source);else throw new Error('TXT kann nicht automatisch in CSV strukturiert werden.');output=toCSV(value);outName=filename.replace(/\.[^.]+$/,'')+'.csv';}outputView.textContent=output.slice(0,12000);status.textContent='Konvertierung erfolgreich · '+output.length+' Zeichen';}catch(e){output='';outputView.textContent='';status.textContent='Fehler: '+e.message;}};
 root.querySelector('#h166-con-download').onclick=function(){if(!output){status.textContent='Bitte zuerst erfolgreich konvertieren.';return;}var mime=format.value==='json'?'application/json':format.value==='csv'?'text/csv':'text/plain';download(outName,output,mime);};
 },80);
