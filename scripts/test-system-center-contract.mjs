@@ -166,6 +166,7 @@ assert.ok(errorMonitorProfile.featureSummary.includes('Keine dauerhafte Speicher
 const systemCenterProfile = H.SystemCenter.appMetadata({ id: 'system-center' });
 assert.equal(systemCenterProfile.metadataStatus, 'complete');
 assert.equal(systemCenterProfile.metadataSource, 'Modulcode · system-center-pro.js');
+assert.ok(systemCenterProfile.featureSummary.includes('Dokumentationsvollständigkeitsfilter'), 'System Center profile documents the app documentation completeness filter');
 assert.match(source, /VERIFIED_MODULE_METADATA/, 'Curated module profiles are kept in an explicit source-linked metadata map');
 assert.match(source, /Quelldateien müssen danach erneut importiert werden/, 'Video project metadata explains that media sources must be re-imported');
 assert.match(source, /Keine dauerhafte Speicherung; Neuladen der Seite leert die Ereignisliste/, 'Runtime monitor documentation discloses its in-memory-only scope');
