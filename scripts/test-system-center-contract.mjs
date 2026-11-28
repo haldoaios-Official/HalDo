@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
@@ -9,6 +9,12 @@ const source = readFileSync(resolve(here, '../system-center-pro.js'), 'utf8');
 const index = readFileSync(resolve(here, '../index.html'), 'utf8');
 const musicStudio = readFileSync(resolve(here, '../music-studio-pro.js'), 'utf8');
 const videoStudio = readFileSync(resolve(here, '../video-studio-pro.js'), 'utf8');
+const humanEngine = readFileSync(resolve(here, '../js/haldo-human-3d-engine.js'), 'utf8');
+const livingIdentity = readFileSync(resolve(here, '../js/haldo-living-identity.js'), 'utf8');
+const aiAvatar = readFileSync(resolve(here, '../ai-avatar.js'), 'utf8');
+const avatarWidget = readFileSync(resolve(here, '../avatar.js'), 'utf8');
+const humanPage = readFileSync(resolve(here, '../human.html'), 'utf8');
+const avatarTestPage = readFileSync(resolve(here, '../avatar-test.html'), 'utf8');
 
 const categories = {
   A: { name: 'HalDo AI', icon: '🤖', count: 10 },
@@ -192,12 +198,34 @@ assert.ok(converterProfile.featureSummary.includes('CSV-Export maskiert formelar
 
 const avatarProfile = H.SystemCenter.appMetadata({ id: 'avatar' });
 assert.equal(avatarProfile.metadataStatus, 'complete');
-assert.equal(avatarProfile.metadataSource, 'Modulcode · index.html / v151 Capability Report + v154 LivingAvatar');
-assert.ok(avatarProfile.featureSummary.includes('kein realistisches 3D-Avatar-Modell'));
-assert.ok(avatarProfile.featureSummary.includes('keine Phonem-basierte Lippensynchronisation'));
-assert.ok(avatarProfile.featureSummary.includes('Browser SpeechSynthesis'));
+assert.equal(avatarProfile.metadataSource, 'Modulcode · index.html / v151+v154; ai-avatar.js; avatar.js; js/haldo-living-identity.js; human.html; avatar-test.html; js/haldo-human-3d-engine.js');
+assert.ok(avatarProfile.description.includes('nicht in index.html eingebunden'));
+assert.ok(avatarProfile.featureSummary.includes('Canvas-2D-Foto-Avatare'));
+assert.ok(avatarProfile.featureSummary.includes('AnimationMixer-Unterstützung'));
+assert.ok(avatarProfile.featureSummary.includes('SkinnedMesh/Skeleton'));
+assert.ok(avatarProfile.featureSummary.includes('assets/avatars/haldo-human.glb'));
 assert.match(index, /realistic3DModel:false,phonemeLipSync:false/, 'Living Avatar profile limitations are grounded in the existing capability report');
 assert.match(index, /H\.LivingAvatar = \(\(\) => \{/, 'Living Avatar profile points to an existing runtime module');
+
+// Avatar implementation audit: distinguish the active 2D UI from the isolated GLB engine.
+assert.match(aiAvatar, /<svg viewBox=/, 'AI avatar uses an SVG-based face illustration');
+assert.match(avatarWidget, /<svg viewBox=/, 'Floating avatar widget uses SVG graphics');
+assert.match(livingIdentity, /haldo-id-mouth/, 'Living Identity renders its face with DOM/CSS elements');
+assert.match(humanPage, /getContext\(["']2d["']\)/, 'Human page renders through a 2D canvas context');
+assert.match(avatarTestPage, /getContext\(["']2d["']\)/, 'Avatar test page renders through a 2D canvas context');
+assert.doesNotMatch(index, /<script[^>]+(?:haldo-human-3d-engine|ai-avatar|avatar\.js)/i, 'Standalone avatar experiments are not silently treated as active index.html modules');
+assert.match(humanEngine, /new THREE\.AnimationMixer/, 'Human3D engine can play animations included in loaded GLB files');
+assert.match(humanEngine, /const clips\s*=\s*gltf\.animations\s*\|\|\s*\[\]/, 'GLB animation clips are optional rather than guaranteed');
+assert.doesNotMatch(humanEngine, /isSkinnedMesh|\.skeleton\b|SkeletonHelper/, 'Human3D engine does not yet validate a rigged humanoid skeleton');
+assert.doesNotMatch(humanEngine, /morphTargetInfluences|viseme|phoneme|lip.?sync/i, 'Human3D engine has no source-backed morph-target or phoneme lip-sync pipeline');
+for (const modelPath of [
+  'assets/avatars/haldo-human.glb',
+  'assets/avatars/haldo-cyborg.glb',
+  'assets/avatars/haldo-android.glb',
+  'assets/avatars/haldo-robot.glb'
+]) {
+  assert.equal(existsSync(resolve(here, '..', modelPath)), false, 'Configured Human3D model file is still missing: ' + modelPath);
+}
 
 
 
