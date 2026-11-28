@@ -129,7 +129,7 @@ assert.equal(byId['planned-demo'].metadataStatus, 'partial', 'A catalogue descri
 assert.equal(byId['planned-demo'].metadataSource, 'A–Z-Katalog');
 assert.deepEqual(Array.from(byId['planned-demo'].metadataMissing), ['Zweck','Funktionsumfang']);
 assert.equal(byId['missing-demo'].metadataStatus, 'missing', 'Apps without description fields are explicitly marked as undocumented');
-assert.match(source, /Beschreibung noch nicht im App-Datensatz gepflegt\./, 'Missing app descriptions are not invented');
+assert.match(source, /Noch keine Beschreibung im App-Datensatz gepflegt\./, 'Missing app descriptions are not invented');
 assert.match(source, /Funktionsumfang noch nicht im App-Datensatz dokumentiert\./, 'Missing feature scopes are explicitly disclosed');
 assert.match(source, /Metadatenquelle/, 'App details disclose the metadata source');
 assert.match(source, /App-Profile dokumentiert/, 'Dashboard exposes complete app documentation coverage');
