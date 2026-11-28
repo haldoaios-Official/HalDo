@@ -184,11 +184,17 @@
     try { reported = Number(H.Registry.totalCount()); } catch (e) {}
     if (Number.isFinite(reported) && reported > 0) planned = reported;
     var catalogIds = new Set();
+    var catalogUnnamedIds = new Set();
     var catalogAssignments = 0;
     'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(function (letter) {
       var entries = getCategoryEntries(letter);
       catalogAssignments += entries.length;
-      entries.forEach(function (entry) { if (entry && entry.id) catalogIds.add(String(entry.id)); });
+      entries.forEach(function (entry) {
+        if (!entry || !entry.id) return;
+        var id = String(entry.id);
+        catalogIds.add(id);
+        if (!entry.name || entry.name === 'Name noch offen') catalogUnnamedIds.add(id);
+      });
     });
     var registryIds = new Set((H.Registry && H.Registry.featured || []).map(function (app) { return String(app.id); }));
     var registeredInCatalog = Array.from(catalogIds).filter(function (id) { return registryIds.has(id); }).length;
@@ -198,6 +204,8 @@
       categories:categories,
       catalogAssignments:catalogAssignments,
       catalogUnique:catalogIds.size,
+      catalogDuplicateAssignments:Math.max(0,catalogAssignments - catalogIds.size),
+      catalogUnnamed:catalogUnnamedIds.size,
       registryCount:registryIds.size,
       registeredInCatalog:registeredInCatalog,
       registryWithoutCategory:Array.from(registryIds).filter(function (id) { return !catalogIds.has(id); }).length,
@@ -275,6 +283,8 @@
           ['🔠',plan.categoryCount,'A–Z-Kategorien'],
           ['🧾',plan.catalogAssignments,'Kategorie-Zuordnungen'],
           ['🆔',plan.catalogUnique,'Eindeutige Katalog-IDs'],
+          ['🔁',plan.catalogDuplicateAssignments,'Mehrfach-Zuordnungen über Kategorien'],
+          ['🏷️',plan.catalogUnnamed,'Katalog-IDs ohne App-Namen'],
           ['📦',plan.registryCount,'Registrierte Kern-Apps'],
           ['🗂',inventory.filter(function (item) { return item.registration === 'planned-only'; }).length,'Nur im A–Z-Katalog'],
           ['🔗',plan.registeredInCatalog,'In Katalog & Registry'],
