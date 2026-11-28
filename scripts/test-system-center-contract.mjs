@@ -117,7 +117,9 @@ assert.equal(byId['planned-demo'].status, 'missing', 'Unregistered catalogue IDs
 assert.equal(byId['planned-demo'].catalogOnly, true);
 assert.equal(byId['native-demo'].category, 'A');
 assert.deepEqual(Array.from(byId['native-demo'].categories), ['A', 'S'], 'Every category assignment is retained for a multiply assigned app');
-assert.match(source, /!item\.catalogOnly && \['native','dedicated','generic','routeReady'\]\.indexOf\(item\.status\) !== -1/, 'Only entries with a recognized launch target can be launched');
+assert.match(source, /!item\.catalogOnly && \['native','dedicated','routeReady'\]\.indexOf\(item\.status\) !== -1/, 'Only native or dedicated modules and resolved route targets can be launched');
+assert.match(source, /item\.status === 'generic' \? 'Platzhalter' : 'Modul fehlt'/, 'Generic placeholders are visibly labelled and cannot be launched as finished apps');
+assert.match(source, /Generischer Platzhalter: noch kein eigenständiges Fachmodul\./, 'Disabled placeholder action explains why the entry cannot be launched');
 for (const [status, label] of [
   ['native','Native Module'],
   ['dedicated','Eigenständige Module'],
