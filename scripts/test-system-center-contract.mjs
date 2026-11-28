@@ -179,6 +179,24 @@ for (const [id, letter] of [['bibliothek','B'],['inventar','I'],['mindmap','M'],
 assert.ok(index.indexOf('haldo-v160-system-diagnostics') < index.indexOf('<script src="system-center-pro.js"></script>'), 'Post-v157 route target modules load before System Center');
 
 const keyboardStart = index.indexOf("id:'keyboard-pro'");
+const backupStart = index.indexOf('H.BackupRecovery=(function(){');
+const safeEntriesStart = index.indexOf('function safeEntries(entries){', backupStart);
+const safeEntriesEnd = index.indexOf('function systemInfo()', safeEntriesStart);
+assert.ok(backupStart >= 0 && safeEntriesStart > backupStart && safeEntriesEnd > safeEntriesStart, 'Backup key filter is present');
+const safeEntries = runInNewContext('(' + index.slice(safeEntriesStart, safeEntriesEnd).trim() + ')');
+const filteredBackup = safeEntries([
+  ['haldo_profile','{}'],
+  ['haldo_apiKey','example-secret'],
+  ['haldo_access_token','example-token'],
+  ['haldo_user_config','{}']
+]);
+assert.deepEqual(JSON.parse(JSON.stringify(filteredBackup)), {
+  entries:[['haldo_profile','{}']], excluded:3
+}, 'Quick backup uses key-name heuristics and reports skipped keys');
+assert.ok(index.includes('Er prüft keine Werte und erkennt nicht jedes Geheimnis.'), 'German quick-backup warning explains that key-name filtering is not a guarantee');
+assert.ok(index.includes('The quick filter skips storage keys whose names suggest configuration or secrets.'), 'English quick-backup warning describes the heuristic accurately');
+assert.ok(index.includes("<span>'+tr('excludedKeys')+'</span>"), 'Skipped-key metric uses a localized, accurate label');
+
 const converterStart = index.indexOf('/* X — lokaler Datei-Konverter');
 assert.ok(keyboardStart >= 0 && converterStart > keyboardStart, 'Keyboard module is isolated before the file converter module');
 const keyboardModule = index.slice(keyboardStart, converterStart);
