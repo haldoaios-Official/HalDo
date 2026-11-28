@@ -207,6 +207,49 @@
       description:'Laufzeitmonitor mit begrenztem Ereignispuffer, Schwärzung typischer Geheimniswerte und lokalem Fehlerbericht.',
       features:['Erfassung von window-Fehlern und unhandled Promise rejections','Begrenzter In-Memory-Puffer mit maximal 100 Ereignissen','Redaktion typischer Token-, Passwort-, API-Key- und URL-Parameter-Werte','Fehlerliste, Zusammenfassung und Bericht','Lokaler JSON-Export sowie manuelles Leeren','Keine dauerhafte Speicherung; Neuladen der Seite leert die Ereignisliste']
     }
+,
+    'arztbuch': {
+      source:'Modulcode · index.html / v154 Arztbuch + Anatomy3D',
+      purpose:'Medizinische Informationen und Anatomie zum Lernen bereitstellen sowie persönliche Gesundheitsdaten lokal geschützt organisieren.',
+      description:'Der aktive Arztbuch-Einstieg öffnet einen medizinischen Informationsbereich mit 3D-Anatomie, Organsystemen, Laborhinweisen und Notfallinformationen. Ein separater Legacy-Einstieg führt weiterhin zum persönlichen Gesundheitsjournal mit verschlüsseltem Browser-Tresor.',
+      features:['3D-Anatomie-Viewer mit GLB/GLTF-Modellen, Modellpfad-Auswahl und lokalem Datei-Import','Viewer-Steuerung für Drehen, Zoomen und Verschieben sowie sichtbare Lade- und Fehlerzustände','Lernübersicht zu Herz, Gehirn, Lunge, Leber, Niere, Verdauung, Skelett und Muskeln','Laborhinweise mit Referenzbereich und Quellenbezug; keine automatische medizinische Bewertung','Notfallinformationen und Erste-Hilfe-Hinweise; ersetzt keine professionelle Versorgung','Separates Gesundheitsjournal für Termine, Medikamente, Allergien, Laborwerte und Notizen','Gesundheitsjournal verwendet PBKDF2-SHA-256 und AES-GCM-256 mit 210.000 Ableitungsiterationen, sofern sichere Browser-Kryptografie verfügbar ist','Medizinisches Informations- und Lernwerkzeug; keine Diagnose oder Behandlung']
+    },
+    'fahrschule': {
+      source:'Modulcode · index.html / v154 HalDo Fahrschule Pro',
+      purpose:'Theoriefragen und Prüfungssituationen zum deutschen Straßenverkehrsrecht üben.',
+      description:'Lern-App mit thematisch sortierten StVO-Fragen, erklärten Antworten, einem 10-Fragen-Prüfungsmodus und lokal gespeicherten Lernfortschritten.',
+      features:['Theorie-Lernmodus mit Themen wie Vorfahrt, Geschwindigkeit und Verkehrszeichen','Fragen nennen passende StVO-Paragraphen und verlinken auf das Gesetz im Internet','Antwortauswertung mit erklärenden Lösungshinweisen','Prüfungsmodus mit 10 Fragen sowie Zähler für Versuche und beste Punktzahl','Lernfortschritt wird lokal im HalDo-Speicher abgelegt','HalDo KI-Lerncoach mit regelbasierten Erläuterungen zu ausgewählten Verkehrsthemen','Vorlesen von Fragen und Ergebnissen über die verfügbare Sprachausgabe']
+    },
+    'email': {
+      source:'Modulcode · index.html / HalDo EmailPro',
+      purpose:'E-Mail-Kontenprofile, Nachrichtenentwürfe und E-Mail-Arbeitsabläufe in einer HalDo-Oberfläche verwalten.',
+      description:'E-Mail-Oberfläche mit Kontenverwaltung, Posteingang-, Gesendet- und Entwürfe-Ansichten sowie Nachrichteneditor. Authentifizierung, echte Postfach-Synchronisierung und Versand sind an einen sicheren Mail-Backend-Adapter gebunden.',
+      features:['Kontoprofile für HalDo Mail, Gmail, Outlook, Yahoo, iCloud und benutzerdefiniertes IMAP/SMTP','Nachrichten verfassen mit An, CC, BCC, Betreff, Text und Anhängen','Entwürfe lokal speichern, erneut öffnen und bearbeiten','Gesendet- und Posteingang-Ansichten in der Oberfläche','Senden nur über einen verbundenen HalDo-Mail-Backend-Adapter; ohne Adapter bleibt die Nachricht ein Entwurf','Passwörter und OAuth-Tokens werden nicht in dieser öffentlichen HTML-Datei gespeichert','Synchronisierung und echte Zustellung sind ohne Backend ausdrücklich nicht aktiv']
+    },
+    'phone': {
+      source:'Modulcode · index.html / HalDo PhonePro',
+      purpose:'Telefonnummern und SIP-Adressen über eine Browser-Wähloberfläche vorbereiten und Telefonieanbieter anbinden.',
+      description:'Softphone-Oberfläche mit Wählfeld, Favoriten, Anrufverlauf und SIP-Profilbereich. Ohne verbundenen Provider wird ein Anruf an die Telefon-App des Geräts übergeben.',
+      features:['Wählfeld für Telefonnummern und SIP-Adressen','Favoriten speichern, erneut anwählen und entfernen','Lokal gespeicherter Anrufverlauf','Anruf über einen verbundenen Provider-Adapter oder per tel:-Übergabe an die Geräte-Telefon-App','SIP-Server- und Benutzerprofil erfassen; Provider-Adapter bleibt erforderlich','Halten, Anklopfen, Mailbox und Weiterleitung benötigen zusätzliche Provider-Dienste','Die Browser-App stellt selbst keine Notruffunktion bereit']
+    },
+    'haushalt': {
+      source:'Modulcode · index.html / v166 Haushaltsmanager',
+      purpose:'Haushaltsaufgaben mit Zuständigkeiten, Bereichen, Fälligkeiten und Bearbeitungsstatus organisieren.',
+      description:'Lokaler Haushaltsmanager mit Aufgabenformular, Filter, Aufgabenstatus und JSON-Export.',
+      features:['Haushaltsaufgaben mit Titel, Bereich, zuständiger Person und Fälligkeitsdatum anlegen','Aufgaben nach Offen, In Arbeit und Erledigt filtern und aktualisieren','Aufgaben löschen und den Gesamt-/Offen-/Erledigt-Stand anzeigen','Einträge lokal im HalDo-Speicher dieses Browsers sichern','Aufgaben als JSON-Datei exportieren','Keine Familien-Cloud und keine gemeinsame Gerätesynchronisierung in dieser Version']
+    },
+    'keyboard-pro': {
+      source:'Modulcode · index.html / v166 Keyboard Studio',
+      purpose:'Mehrsprachige Texteingabe über ein virtuelles Tastenraster innerhalb von HalDo ermöglichen.',
+      description:'Virtuelle Tastatur mit deutschen, englischen, kurdisch-kurmancîschen und soranîschen Layouts, Textfeld und Kopierfunktion.',
+      features:['Tastaturlayouts Deutsch, English, Kurmancî und Soranî','Deutsche Umlaute sowie Kurmancî-Sonderzeichen','Soranî-Eingabe mit RTL-Textfeld, rechter Textausrichtung und RTL-Tastenraster','Shift, Löschen, neue Zeile und Leertaste','Text über die Zwischenablage kopieren','Wirkt nur innerhalb des eigenen HalDo-Textfelds und ersetzt nicht die systemweite Windows-/Mobil-Tastatur']
+    },
+    'datei-konverter': {
+      source:'Modulcode · index.html / v166 Datei-Konverter',
+      purpose:'Einfache Text-, CSV- und JSON-Dateien lokal im Browser umwandeln.',
+      description:'Lokaler Datei-Konverter mit Eingabevorschau, CSV-Parser, JSON-Verarbeitung und Speichern des konvertierten Ergebnisses.',
+      features:['TXT-Dateien lokal lesen und als TXT speichern','Einfache CSV-Tabellen mit Anführungszeichenprüfung in JSON umwandeln','JSON-Arrays von Objekten in CSV umwandeln','Ergebnisvorschau und Download der konvertierten Datei','CSV-Export maskiert formelartige Textwerte gegen Tabellenkalkulations-Formel-Injection','Keine PDF-, Office- oder Bildkonvertierung in dieser Version','TXT wird nicht automatisch in strukturierte JSON- oder CSV-Daten umgewandelt']
+    }
   };
   function normalizeMetadataText(value) {
     if (typeof value === 'string') return value.trim();
