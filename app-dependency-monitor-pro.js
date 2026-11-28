@@ -12,8 +12,9 @@
     var scripts = Array.isArray(input.scripts) ? input.scripts : [];
     var apps = Array.isArray(input.apps) ? input.apps : [];
     var routes = Array.isArray(input.routes) ? input.routes : [];
-    var seenSources = Object.create(null), seenApps = Object.create(null);
-    var duplicateScripts = [], duplicateApps = [], routeIssues = [];
+    var modules = input.modules || {};
+    var seenSources = Object.create(null), seenApps = Object.create(null), moduleUsers = Object.create(null);
+    var duplicateScripts = [], duplicateApps = [], routeIssues = [], appDependencies = [], sharedModules = [];
     var localScripts = [], externalScripts = [];
     scripts.forEach(function (item, index) {
       var src = safe(item && item.src).trim();
@@ -26,26 +27,52 @@
     });
     apps.forEach(function (app) {
       if (!app || !app.id) return;
-      var id = safe(app.id);
+      var id = safe(app.id), moduleName = null, target = null, dependencyType = 'unresolved', status = 'unresolved';
       if (seenApps[id]) duplicateApps.push({ id: id, first: seenApps[id], duplicate: app.name || app.n || id });
       else seenApps[id] = app.name || app.n || id;
+      try { moduleName = typeof input.moduleFor === 'function' ? input.moduleFor(id) : null; } catch (e) {}
+      if (moduleName) {
+        target = modules[moduleName];
+        dependencyType = 'dispatcher-module';
+        status = target && typeof target.open === 'function' ? 'resolved' : 'missing-target';
+      } else if (modules[id] && typeof modules[id].open === 'function') {
+        moduleName = id;
+        target = modules[id];
+        dependencyType = 'direct-app-module';
+        status = 'resolved';
+      }
+      var dependency = { appId: id, appName: safe(app.name || app.n || id), dependencyType: dependencyType, targetModule: safe(moduleName || ''), status: status };
+      appDependencies.push(dependency);
+      if (status === 'resolved') {
+        if (!moduleUsers[moduleName]) moduleUsers[moduleName] = [];
+        moduleUsers[moduleName].push(id);
+      } else {
+        routeIssues.push({ id: id, module: safe(moduleName || ''), reason: status === 'missing-target' ? 'Zielmodul fehlt oder besitzt keine open()-Funktion' : 'Weder Dispatcher-Ziel noch direktes App-Modul erkannt' });
+      }
     });
     routes.forEach(function (id) {
       var moduleName = null;
       try { moduleName = typeof input.moduleFor === 'function' ? input.moduleFor(id) : null; } catch (e) {}
-      var target = moduleName && input.modules ? input.modules[moduleName] : null;
-      if (!moduleName || !target || typeof target.open !== 'function') {
-        routeIssues.push({ id: safe(id), module: safe(moduleName || ''), reason: !moduleName ? 'Route ohne Modulzuordnung' : 'Zielmodul fehlt oder besitzt keine open()-Funktion' });
+      var target = moduleName && modules[moduleName] ? modules[moduleName] : modules[id];
+      if (!target || typeof target.open !== 'function') {
+        if (!routeIssues.some(function (issue) { return issue.id === safe(id); })) {
+          routeIssues.push({ id: safe(id), module: safe(moduleName || ''), reason: moduleName ? 'Zielmodul fehlt oder besitzt keine open()-Funktion' : 'Route besitzt weder Modulzuordnung noch direktes App-Modul' });
+        }
       }
+    });
+    Object.keys(moduleUsers).forEach(function (moduleName) {
+      if (moduleUsers[moduleName].length > 1) sharedModules.push({ module: moduleName, appIds: moduleUsers[moduleName].slice() });
     });
     var failed = scripts.filter(function (item) { return item && item.status === 'missing'; }).map(function (item) { return { src: safe(item.src), status: 'missing' }; });
     var unknown = scripts.filter(function (item) { return item && item.status === 'unknown'; }).map(function (item) { return { src: safe(item.src), status: 'unknown' }; });
+    var resolvedDependencies = appDependencies.filter(function (item) { return item.status === 'resolved'; }).length;
     return {
       product: APP_NAME, version: BUILD, generatedAt: new Date().toISOString(),
-      summary: { scriptReferences: scripts.length, localScripts: localScripts.length, externalScripts: externalScripts.length, missingLocalScripts: failed.length, unknownLocalScripts: unknown.length, duplicateScriptReferences: duplicateScripts.length, registeredApps: apps.length, duplicateAppIds: duplicateApps.length, dispatcherRoutes: routes.length, unresolvedRoutes: routeIssues.length },
+      summary: { scriptReferences: scripts.length, localScripts: localScripts.length, externalScripts: externalScripts.length, missingLocalScripts: failed.length, unknownLocalScripts: unknown.length, duplicateScriptReferences: duplicateScripts.length, registeredApps: apps.length, duplicateAppIds: duplicateApps.length, dispatcherRoutes: routes.length, unresolvedRoutes: routeIssues.length, appModuleDependencies: appDependencies.length, resolvedAppModuleDependencies: resolvedDependencies, unresolvedAppModuleDependencies: appDependencies.length - resolvedDependencies, sharedModuleTargets: sharedModules.length },
       scripts: { local: localScripts, external: externalScripts, missing: failed, unknown: unknown },
+      dependencies: { appModules: appDependencies, sharedModules: sharedModules },
       duplicates: { scripts: duplicateScripts, appIds: duplicateApps }, unresolvedRoutes: routeIssues,
-      scope: 'Read-only Prüfung der Script-Einbindungen, Registry-IDs und Dispatcher-Zielmodule. Keine vollständige Laufzeit- oder Quellcode-Abhängigkeitsanalyse.'
+      scope: 'Read-only Zuordnung App-ID → Dispatcher-Zielmodul oder direktes App-Modul. Keine vollständige Analyse interner Quellcode-Imports oder dynamischer Laufzeitabhängigkeiten.'
     };
   }
   function collectScriptTags() {
@@ -100,8 +127,8 @@
       function section(title, rows) { return '<div class="panel"><strong>' + esc(title) + '</strong><pre>' + (rows.length ? rows.map(function (x) { return esc(JSON.stringify(x)); }).join('\n') : 'Keine Auffälligkeiten erkannt.') + '</pre></div>'; }
       function render() {
         var s = report.summary;
-        stats.innerHTML = [['Script-Referenzen',s.scriptReferences],['Lokale Skripte',s.localScripts],['Externe Skripte',s.externalScripts],['Fehlende Dateien',s.missingLocalScripts],['Doppelte Scripts',s.duplicateScriptReferences],['Doppelte App-IDs',s.duplicateAppIds],['Offene Routen',s.unresolvedRoutes]].map(function (x) { return '<div class="stat"><div class="muted">' + x[0] + '</div><div class="value">' + x[1] + '</div></div>'; }).join('');
-        details.innerHTML = section('Fehlende lokale Dateien', report.scripts.missing) + section('Unklare Datei-Prüfungen', report.scripts.unknown) + section('Doppelte Script-Einbindungen', report.duplicates.scripts) + section('Doppelte Registry-App-IDs', report.duplicates.appIds) + section('Nicht auflösbare Dispatcher-Routen', report.unresolvedRoutes);
+        stats.innerHTML = [['Script-Referenzen',s.scriptReferences],['Lokale Skripte',s.localScripts],['Externe Skripte',s.externalScripts],['Fehlende Dateien',s.missingLocalScripts],['Doppelte Scripts',s.duplicateScriptReferences],['Doppelte App-IDs',s.duplicateAppIds],['Offene Routen',s.unresolvedRoutes],['App-Modul-Verbindungen',s.resolvedAppModuleDependencies],['Ungeklärte App-Verbindungen',s.unresolvedAppModuleDependencies]].map(function (x) { return '<div class="stat"><div class="muted">' + x[0] + '</div><div class="value">' + x[1] + '</div></div>'; }).join('');
+        details.innerHTML = section('Fehlende lokale Dateien', report.scripts.missing) + section('Unklare Datei-Prüfungen', report.scripts.unknown) + section('Doppelte Script-Einbindungen', report.duplicates.scripts) + section('Doppelte Registry-App-IDs', report.duplicates.appIds) + section('App → Modul-Abhängigkeiten', report.dependencies.appModules) + section('Von mehreren Apps genutzte Module', report.dependencies.sharedModules) + section('Nicht auflösbare Dispatcher-Routen', report.unresolvedRoutes);
         status.textContent = 'Prüfung abgeschlossen · ' + report.generatedAt;
         exportButton.disabled = false;
       }
