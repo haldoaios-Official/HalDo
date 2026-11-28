@@ -129,10 +129,10 @@ assert.match(source, /function getCategoryEntries\(letter\)/, 'A-Z analysis comb
 assert.equal(byId['system-center'].category, 'S');
 const planAudit = H.SystemCenter.plan();
 assert.equal(planAudit.planned, 22);
-assert.equal(planAudit.catalogAssignments, 4, 'Late category extensions are included and repeated placements are deduplicated per letter');
-assert.equal(planAudit.catalogUnique, 3, 'Unique catalogue IDs include late category extensions without double counting');
-assert.equal(planAudit.registeredInCatalog, 2, 'Registry overlap includes later registered category apps');
-assert.equal(planAudit.unassignedPlanSlots, 18, 'Unassigned plan slots remain visible as a gap');
+assert.equal(planAudit.catalogAssignments, 5, 'Late category extensions are included and repeated placements are deduplicated per letter');
+assert.equal(planAudit.catalogUnique, 4, 'Unique catalogue IDs include late category extensions without double counting');
+assert.equal(planAudit.registeredInCatalog, 3, 'Registry overlap includes later registered category apps');
+assert.equal(planAudit.unassignedPlanSlots, 17, 'Unassigned plan slots remain visible as a gap');
 assert.equal(H.Registry.totalCount(), 22, 'The planned slot count is preserved');
 assert.match(index, /<script src="system-center-pro\.js"><\/script>/, 'System Center script is included in index.html');
 assert.ok(index.indexOf('<script src="video-studio-pro.js"></script>') < index.indexOf('<script src="system-center-pro.js"></script>'), 'System Center loads after the studio modules');
