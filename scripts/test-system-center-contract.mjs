@@ -123,7 +123,7 @@ for (const [status, label] of [
   ['route','Route ohne erkanntes Zielmodul'],
   ['missing','Noch ohne Modul']
 ]) {
-  assert.match(source, new RegExp("id:'" + status + "',name:'" + label.replace(/[.*+?^${}()|[\]\\]/g, '\\assert.match(source, /!item\.catalogOnly && \['native','dedicated','generic','routeReady'\]\.indexOf\(item\.status\) !== -1/, 'Only entries with a recognized launch target can be launched');') + "'"), 'Status filter option exists: ' + status);
+  assert.ok(source.includes("{id:'" + status + "',name:'" + label + "'}"), 'Status filter option exists: ' + status);
 }
 assert.match(source, /statusFilter === 'all' \|\| item\.status === statusFilter/, 'Selected status filter is applied to inventory rows');
 assert.match(source, /moduleUnrouted/, 'Modules without an active dispatcher route have a separate status');
