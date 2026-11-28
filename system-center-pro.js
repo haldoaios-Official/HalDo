@@ -169,6 +169,10 @@
       return a.category.localeCompare(b.category) || a.name.localeCompare(b.name);
     });
   }
+  function countRegisteredCategoryApps(entries) {
+    var registered = new Set((H.Registry && H.Registry.featured || []).map(function (app) { return String(app.id); }));
+    return (entries || []).filter(function (entry) { return entry && entry.id && registered.has(String(entry.id)); }).length;
+  }
   function getPlan() {
     var categories = getCategories();
     var planned = Object.keys(categories).reduce(function (sum,key) {
@@ -287,12 +291,12 @@
 
         cats.innerHTML = Object.entries(plan.categories).map(function (entry) {
           var key = entry[0], category = entry[1];
-          var named = H.Master && typeof H.Master.getCategoryApps === 'function' ? H.Master.getCategoryApps(key) : [];
           var catalog = getCategoryEntries(key);
+          var registeredCount = countRegisteredCategoryApps(catalog);
           var planned = Math.max(0,Number(category.count) || 0);
           var catalogCount = catalog.length;
           var unspecified = Math.max(0,planned - catalogCount);
-          return '<div class="hdsc-cat"><b>' + esc(category.icon || '📁') + ' ' + esc(key) + ' · ' + esc(category.name || 'Kategorie') + '</b><small>' + planned + ' Planplätze · ' + catalogCount + ' Katalog-IDs · ' + unspecified + ' Planplätze ohne Katalog-ID · ' + (named ? named.length : 0) + ' Kern-Apps registriert</small></div>';
+          return '<div class="hdsc-cat"><b>' + esc(category.icon || '📁') + ' ' + esc(key) + ' · ' + esc(category.name || 'Kategorie') + '</b><small>' + planned + ' Planplätze · ' + catalogCount + ' Katalog-IDs · ' + unspecified + ' Planplätze ohne Katalog-ID · ' + registeredCount + ' tatsächlich registrierte Kern-Apps</small></div>';
         }).join('');
 
         var query = String(search.value || '').trim().toLowerCase();
@@ -332,7 +336,7 @@
     },90);
   }
 
-  H.SystemCenter = {open:open,inventory:getInventory,plan:getPlan,refresh:getInventory};
+  H.SystemCenter = {open:open,inventory:getInventory,plan:getPlan,refresh:getInventory,categoryRegisteredCount:countRegisteredCategoryApps};
   H[APP_ID] = H.SystemCenter;
 
   // Route the launcher to the real app window instead of the generic greeting.
