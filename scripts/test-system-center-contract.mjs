@@ -160,6 +160,37 @@ assert.match(source, /VERIFIED_MODULE_METADATA/, 'Curated module profiles are ke
 assert.match(source, /Quelldateien müssen danach erneut importiert werden/, 'Video project metadata explains that media sources must be re-imported');
 assert.match(source, /Keine dauerhafte Speicherung; Neuladen der Seite leert die Ereignisliste/, 'Runtime monitor documentation discloses its in-memory-only scope');
 
+const arztbuchProfile = H.SystemCenter.appMetadata({ id: 'arztbuch' });
+assert.equal(arztbuchProfile.metadataStatus, 'complete', 'Arztbuch profile is documented from its existing source implementation');
+assert.equal(arztbuchProfile.metadataSource, 'Modulcode · index.html / v154 Arztbuch + Anatomy3D');
+assert.ok(arztbuchProfile.featureSummary.includes('AES-GCM-256'));
+assert.ok(arztbuchProfile.featureSummary.includes('keine Diagnose oder Behandlung'));
+const fahrschuleProfile = H.SystemCenter.appMetadata({ id: 'fahrschule' });
+assert.equal(fahrschuleProfile.metadataStatus, 'complete');
+assert.ok(fahrschuleProfile.featureSummary.includes('10 Fragen'));
+assert.ok(fahrschuleProfile.featureSummary.includes('lokal im HalDo-Speicher'));
+const emailProfile = H.SystemCenter.appMetadata({ id: 'email' });
+assert.equal(emailProfile.metadataStatus, 'complete');
+assert.ok(emailProfile.featureSummary.includes('ohne Adapter bleibt die Nachricht ein Entwurf'));
+assert.ok(emailProfile.featureSummary.includes('echte Zustellung sind ohne Backend ausdrücklich nicht aktiv'));
+const phoneProfile = H.SystemCenter.appMetadata({ id: 'phone' });
+assert.equal(phoneProfile.metadataStatus, 'complete');
+assert.ok(phoneProfile.featureSummary.includes('keine Notruffunktion'));
+assert.ok(phoneProfile.featureSummary.includes('tel:-Übergabe'));
+const householdProfile = H.SystemCenter.appMetadata({ id: 'haushalt' });
+assert.equal(householdProfile.metadataStatus, 'complete');
+assert.ok(householdProfile.featureSummary.includes('Keine Familien-Cloud'));
+assert.ok(householdProfile.featureSummary.includes('JSON-Datei exportieren'));
+const keyboardProfile = H.SystemCenter.appMetadata({ id: 'keyboard-pro' });
+assert.equal(keyboardProfile.metadataStatus, 'complete');
+assert.ok(keyboardProfile.featureSummary.includes('Soranî-Eingabe'));
+assert.ok(keyboardProfile.featureSummary.includes('ersetzt nicht die systemweite'));
+const converterProfile = H.SystemCenter.appMetadata({ id: 'datei-konverter' });
+assert.equal(converterProfile.metadataStatus, 'complete');
+assert.ok(converterProfile.featureSummary.includes('Keine PDF-, Office- oder Bildkonvertierung'));
+assert.ok(converterProfile.featureSummary.includes('CSV-Export maskiert formelartige Textwerte'));
+
+
 assert.equal(byId['native-demo'].implementationLabel, 'Natives HalDo-Modul erkannt');
 assert.ok(byId['native-demo'].nextSteps.some(step => step.includes('echten Browser')), 'Native modules expose a concrete manual verification step');
 assert.ok(byId['dedicated-demo'].nextSteps.some(step => step.includes('Kernfunktionen')), 'Dedicated modules expose a core workflow test step');
