@@ -135,6 +135,31 @@ assert.match(source, /Metadatenquelle/, 'App details disclose the metadata sourc
 assert.match(source, /App-Profile dokumentiert/, 'Dashboard exposes complete app documentation coverage');
 assert.match(source, /Profilstatus/, 'CSV export includes app documentation status');
 assert.match(source, /appMetadata:getAppMetadata/, 'App metadata resolver is exposed for read-only inspection');
+
+const musicProfile = H.SystemCenter.appMetadata({ id: 'music-studio' });
+assert.equal(musicProfile.metadataStatus, 'complete', 'Verified Music Studio source metadata is surfaced as a complete profile');
+assert.equal(musicProfile.metadataSource, 'Modulcode · music-studio-pro.js');
+assert.ok(musicProfile.featureSummary.includes('16-Step-Sequencer'));
+assert.ok(musicProfile.featureSummary.includes('WAV- und MIDI-Export'));
+const videoProfile = H.SystemCenter.appMetadata({ id: 'video-studio' });
+assert.equal(videoProfile.metadataStatus, 'complete');
+assert.equal(videoProfile.metadataSource, 'Modulcode · video-studio-pro.js');
+assert.ok(videoProfile.featureSummary.includes('WebM-Export'));
+assert.ok(videoProfile.featureSummary.includes('Quelldateien müssen danach erneut importiert werden'));
+const diagnosticsProfile = H.SystemCenter.appMetadata({ id: 'system-diagnostics' });
+assert.equal(diagnosticsProfile.metadataStatus, 'complete');
+assert.ok(diagnosticsProfile.featureSummary.includes('Dispatcher-Ziele'));
+const errorMonitorProfile = H.SystemCenter.appMetadata({ id: 'runtime-error-monitor' });
+assert.equal(errorMonitorProfile.metadataStatus, 'complete');
+assert.ok(errorMonitorProfile.featureSummary.includes('maximal 100 Ereignissen'));
+assert.ok(errorMonitorProfile.featureSummary.includes('Keine dauerhafte Speicherung'));
+const systemCenterProfile = H.SystemCenter.appMetadata({ id: 'system-center' });
+assert.equal(systemCenterProfile.metadataStatus, 'complete');
+assert.equal(systemCenterProfile.metadataSource, 'Modulcode · system-center-pro.js');
+assert.match(source, /VERIFIED_MODULE_METADATA/, 'Curated module profiles are kept in an explicit source-linked metadata map');
+assert.match(source, /Quelldateien müssen danach erneut importiert werden/, 'Video project metadata explains that media sources must be re-imported');
+assert.match(source, /Keine dauerhafte Speicherung; Neuladen der Seite leert die Ereignisliste/, 'Runtime monitor documentation discloses its in-memory-only scope');
+
 assert.equal(byId['native-demo'].implementationLabel, 'Natives HalDo-Modul erkannt');
 assert.ok(byId['native-demo'].nextSteps.some(step => step.includes('echten Browser')), 'Native modules expose a concrete manual verification step');
 assert.ok(byId['dedicated-demo'].nextSteps.some(step => step.includes('Kernfunktionen')), 'Dedicated modules expose a core workflow test step');
