@@ -83,8 +83,14 @@ assert.equal(byId['native-demo'].category, 'A');
 assert.match(source, /item\.status !== 'missing'/, 'Entries without modules are not offered a fake launch action');
 assert.match(source, /noch zu benennen/, 'Unspecified plan slots are shown transparently per category');
 assert.equal(byId['system-center'].category, 'S');
+const planAudit = H.SystemCenter.plan();
+assert.equal(planAudit.planned, 22);
+assert.equal(planAudit.catalogAssignments, 3, 'Category assignment count includes the System Center category assignment');
+assert.equal(planAudit.catalogUnique, 3, 'Unique catalogue IDs are counted without double counting');
+assert.equal(planAudit.registeredInCatalog, 2, 'Registry overlap is reported explicitly');
+assert.equal(planAudit.unassignedPlanSlots, 19, 'Unassigned plan slots remain visible as a gap');
 assert.equal(H.Registry.totalCount(), 22, 'The planned slot count is preserved');
 assert.match(index, /<script src="system-center-pro\.js"><\/script>/, 'System Center script is included in index.html');
 assert.ok(index.indexOf('<script src="video-studio-pro.js"></script>') < index.indexOf('<script src="system-center-pro.js"></script>'), 'System Center loads after the studio modules');
 
-console.log('System Center contract tests passed: registration, category, launcher routing, fallback preservation, all five inventory states, plan count and script order.');
+console.log('System Center contract tests passed: registration, category, launcher routing, fallback preservation, all five inventory states, catalogue reconciliation metrics, plan count and script order.');
