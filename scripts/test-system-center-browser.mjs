@@ -50,10 +50,11 @@ try {
   browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ acceptDownloads: true, viewport: { width: 1440, height: 1000 } });
 
-  // Keep the acceptance test deterministic and independent of optional third-party CDNs.
+  // Allow the core CDN scripts (Three.js) needed by the OS boot sequence; block other external requests.
   await page.route('**/*', route => {
     const url = new URL(route.request().url());
     if (url.hostname === '127.0.0.1' && url.port === String(address.port)) return route.continue();
+    if (route.request().resourceType() === 'script' && ['cdnjs.cloudflare.com', 'cdn.jsdelivr.net'].includes(url.hostname)) return route.continue();
     return route.abort();
   });
 
