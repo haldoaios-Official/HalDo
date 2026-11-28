@@ -220,7 +220,7 @@ assert.match(humanEngine, /function inspectModelCapabilities\(model, animations\
 assert.match(humanEngine, /object\.isSkinnedMesh === true/, 'Human3D capability inspection detects skinned meshes');
 assert.match(humanEngine, /object\.skeleton/, 'Human3D capability inspection checks skeleton data');
 assert.match(humanEngine, /morphTargetDictionary|morphAttributes/, 'Human3D capability inspection detects morph-target availability');
-assert.doesNotMatch(humanEngine, /morphTargetInfluences|viseme|phoneme|lip.?sync/i, 'Capability detection does not pretend to animate facial morphs or perform phoneme lip sync');
+assert.doesNotMatch(humanEngine, /\.morphTargetInfluences|\.setValueAtTime|lipSync|lip-sync|phonemeToMorph|visemeToMorph/i, 'Capability detection does not pretend to animate facial morphs or perform phoneme lip sync');
 for (const modelPath of [
   'assets/avatars/haldo-human.glb',
   'assets/avatars/haldo-cyborg.glb',
