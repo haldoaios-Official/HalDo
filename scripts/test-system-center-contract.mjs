@@ -20,7 +20,7 @@ const H = {
   Win: { open() {} },
   Registry: {
     featured: [
-      { id: 'native-demo', n: 'Native Demo', i: '🧪' },
+      { id: 'native-demo', n: 'Native Demo', i: '🧪', purpose:'Demonstrates a native module', description:'A test application with a native runtime module.', features:['Module launch','Runtime inspection'] },
       { id: 'dedicated-demo', n: 'Dedicated Demo', i: '🧰' },
       { id: 'generic-demo', n: 'Generic Demo', i: '📦' },
       { id: 'route-demo', n: 'Route Demo', i: '🛣️' },
@@ -48,7 +48,7 @@ const H = {
     getCategoryCatalogApps(letter) {
       if (letter === 'A') return [
         { id: 'native-demo', name: 'Native Demo', icon: '🧪', registered: true },
-        { id: 'planned-demo', name: 'Name noch offen', icon: '📦', registered: false }
+        { id: 'planned-demo', name: 'Name noch offen', icon: '📦', registered: false, description:'A catalogue-only test description.' }
       ];
       if (letter === 'S') return [{ id: 'native-demo', name: 'Native Demo', icon: '🧪', registered: true }];
       return [];
@@ -119,6 +119,22 @@ assert.equal(byId['planned-demo'].registration, 'planned-only', 'Catalogue-only 
 assert.equal(byId['planned-demo'].registrationLabel, 'Nur A–Z-Katalog');
 assert.equal(byId['native-demo'].registration, 'registered', 'Registry-backed apps expose their registration state');
 assert.equal(byId['native-demo'].registrationLabel, 'In Kern-Registry');
+assert.equal(byId['native-demo'].metadataStatus, 'complete', 'Complete app documentation is detected from registry metadata');
+assert.equal(byId['native-demo'].purpose, 'Demonstrates a native module');
+assert.equal(byId['native-demo'].description, 'A test application with a native runtime module.');
+assert.equal(byId['native-demo'].featureSummary, 'Module launch · Runtime inspection');
+assert.equal(byId['native-demo'].metadataSource, 'Kern-Registry');
+assert.deepEqual(Array.from(byId['native-demo'].metadataMissing), [], 'Complete app records have no missing documentation fields');
+assert.equal(byId['planned-demo'].metadataStatus, 'partial', 'A catalogue description without purpose or feature scope remains partial');
+assert.equal(byId['planned-demo'].metadataSource, 'A–Z-Katalog');
+assert.deepEqual(Array.from(byId['planned-demo'].metadataMissing), ['Zweck','Funktionsumfang']);
+assert.equal(byId['missing-demo'].metadataStatus, 'missing', 'Apps without description fields are explicitly marked as undocumented');
+assert.match(source, /Beschreibung noch nicht im App-Datensatz gepflegt\./, 'Missing app descriptions are not invented');
+assert.match(source, /Funktionsumfang noch nicht im App-Datensatz dokumentiert\./, 'Missing feature scopes are explicitly disclosed');
+assert.match(source, /Metadatenquelle/, 'App details disclose the metadata source');
+assert.match(source, /App-Profile dokumentiert/, 'Dashboard exposes complete app documentation coverage');
+assert.match(source, /Profilstatus/, 'CSV export includes app documentation status');
+assert.match(source, /appMetadata:getAppMetadata/, 'App metadata resolver is exposed for read-only inspection');
 assert.equal(byId['native-demo'].implementationLabel, 'Natives HalDo-Modul erkannt');
 assert.ok(byId['native-demo'].nextSteps.some(step => step.includes('echten Browser')), 'Native modules expose a concrete manual verification step');
 assert.ok(byId['dedicated-demo'].nextSteps.some(step => step.includes('Kernfunktionen')), 'Dedicated modules expose a core workflow test step');
@@ -135,6 +151,8 @@ assert.match(source, /detailApp\.nextSteps\.map/, 'The detail panel renders the 
 assert.match(source, /Aktueller Befund:/, 'The detail panel explains the observed implementation state');
 assert.match(source, /Startbarkeit/, 'The detail panel distinguishes detected launch targets from non-launchable entries');
 assert.match(source, /guidance:getAppGuidance/, 'App guidance is exposed through the System Center API');
+assert.match(source, /item\.purpose,item\.description,item\.featureSummary/, 'Inventory search includes app purpose and documented feature scope');
+assert.match(source, /\['Kategorie\(n\)','App','App-ID','Registrierung','Zweck','Beschreibung','Funktionsumfang','Profilstatus','Metadatenquelle'/, 'CSV export exposes app documentation and metadata provenance');
 assert.equal(byId['native-demo'].category, 'A');
 assert.deepEqual(Array.from(byId['native-demo'].categories), ['A', 'S'], 'Every category assignment is retained for a multiply assigned app');
 assert.match(source, /!item\.catalogOnly && \['native','dedicated','routeReady'\]\.indexOf\(item\.status\) !== -1/, 'Only native or dedicated modules and resolved route targets can be launched');
@@ -203,12 +221,16 @@ assert.equal(aProgress.planSlotsWithoutId, 6, 'Category progress treats unassign
 assert.equal(aProgress.statusCounts.native, 1);
 assert.equal(aProgress.statusCounts.dedicated, 1);
 assert.equal(aProgress.statusCounts.moduleUnrouted, 1, 'Per-category audit reports installed modules without a dispatcher route');
+assert.equal(aProgress.profilesComplete, 1, 'A-Z progress counts fully documented profiles');
+assert.equal(aProgress.profilesPartial, 1, 'A-Z progress counts partially documented profiles');
+assert.equal(aProgress.profilesMissing, 2, 'A-Z progress counts missing app documentation without fabricating descriptions');
 
 const sProgress = H.SystemCenter.categoryProgress('S');
 assert.equal(sProgress.catalogIds, 2, 'Category progress includes the System Center category extension');
 assert.equal(sProgress.registeredIds, 2, 'System Center is counted as registered in its own category');
 assert.equal(sProgress.modulesWithoutRoute, 0, 'A direct System Center module is not falsely classified as unrouted');
 assert.equal(sProgress.readyModules, 2, 'Native and directly registered System Center modules are recognized');
+assert.equal(sProgress.profilesComplete, 1, 'Per-category profile metrics include metadata from the central registry');
 assert.equal(sProgress.planSlotsWithoutId, 10);
 const emptyProgress = H.SystemCenter.categoryProgress('Z');
 assert.equal(emptyProgress.catalogIds, 0, 'Empty categories do not get invented catalogue entries');
