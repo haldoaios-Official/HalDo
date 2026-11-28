@@ -156,7 +156,8 @@ assert.ok(index.indexOf('haldo-v165-three-apps') < index.indexOf('<script src="s
 assert.ok(index.indexOf('haldo-v166-three-apps') < index.indexOf('<script src="system-center-pro.js"></script>'), 'v166 category extensions load before System Center');
 for (const [id, letter] of [['bibliothek','B'],['inventar','I'],['mindmap','M'],['haushalt','G'],['keyboard-pro','K'],['datei-konverter','X']]) {
   assert.ok(index.includes("id:'" + id + "'"), 'Later A-Z app exists: ' + id);
-  assert.ok(index.includes(id + ':' + "'" + letter + "'"), 'Later A-Z app is assigned to category ' + letter + ': ' + id);
+  const categoryAssignment = id.indexOf('-') === -1 ? id + ':' + "'" + letter + "'" : "'" + id + "':'" + letter + "'";
+  assert.ok(index.includes(categoryAssignment), 'Later A-Z app is assigned to category ' + letter + ': ' + id);
 }
 assert.ok(index.indexOf('haldo-v160-system-diagnostics') < index.indexOf('<script src="system-center-pro.js"></script>'), 'Post-v157 route target modules load before System Center');
 
