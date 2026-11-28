@@ -30,6 +30,8 @@ assert.equal(H.Master.version,'166.0.0','Diagnostics must not overwrite the oper
 const checks=H.SystemDiagnostics.collect(),byName=Object.fromEntries(checks.map(x=>[x.name,x]));
 assert.equal(byName['HalDo-Kern'].ok,true);
 assert.equal(byName['Doppelte App-IDs'].ok,true);
+assert.equal(byName['Registry-App-Zielmodule'].ok,false);
+assert.match(byName['Registry-App-Zielmodule'].detail,/route-missing/);
 assert.equal(byName['Dispatcher-Routen'].ok,true);
 assert.equal(byName['Dispatcher-Zielmodule'].ok,false);
 assert.match(byName['Dispatcher-Zielmodule'].detail,/route-missing/);
@@ -45,4 +47,4 @@ assert.match(report.scope,/Keine vollständigen fachlichen App- oder Servertests
 assert.match(match[1],/data-health-refresh/);
 assert.match(match[1],/data-health-export/);
 assert.match(match[1],/Keine Daten werden hochgeladen/);
-console.log('System Diagnostics contract tests passed: runtime APIs, registry, dispatcher resolution, safe storage probe, report schema and UI actions.');
+console.log('System Diagnostics contract tests passed: runtime APIs, registry, registry launch-target coverage, dispatcher resolution, safe storage probe, report schema and UI actions.');
