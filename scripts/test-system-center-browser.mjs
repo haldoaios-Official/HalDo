@@ -74,6 +74,8 @@ try {
   await welcome.locator('button').click({ force: true });
   const root = page.locator('.hdsc-root');
   await root.waitFor({ state: 'visible', timeout: 15000 });
+  // Wait for the OS boot overlay to finish before interacting with app controls.
+  await page.locator('#loader').waitFor({ state: 'detached', timeout: 10000 });
 
   const search = root.locator('input[placeholder^="App oder App-ID"]');
   const status = root.locator('select').nth(0);
