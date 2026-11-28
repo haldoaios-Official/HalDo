@@ -21,7 +21,7 @@ const mime = {
 const server = createServer(async (request, response) => {
   try {
     const pathname = decodeURIComponent(new URL(request.url, 'http://127.0.0.1').pathname);
-    const relative = pathname === '/' ? 'index.html' : pathname.replace(/^\\/+/, '');
+    const relative = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
     const file = resolve(projectRoot, relative);
     if (file !== projectRoot && !file.startsWith(projectRoot + sep)) {
       response.writeHead(403).end('Forbidden');
