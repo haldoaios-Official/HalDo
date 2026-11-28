@@ -34,6 +34,6 @@ assert.equal(monitor.report().product,'HalDo Runtime Error Monitor Pro');
 assert.match(monitor.report().scope,/Keine automatische Übertragung/);
 assert.equal(monitor.clear().total,0);
 assert.ok(H.Registry.featured.some(x=>x.id==='runtime-error-monitor'));
-assert.equal(H.Launch({id:'runtime-error-monitor'}),false,'open safely reports unavailable window UI');
+assert.equal(H.Launch({id:'runtime-error-monitor'}),true,'monitor opens through the window manager');
 assert.equal(H.Launch({id:'other'}),'previous-launch','previous launcher remains chained');
 console.log('Runtime Error Monitor contract tests passed: event capture, rejection separation, redaction, bounded storage, report, clear and launcher chaining.');
