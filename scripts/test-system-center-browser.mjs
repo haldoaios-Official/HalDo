@@ -60,12 +60,18 @@ try {
   await page.goto(`http://127.0.0.1:${address.port}/`, { waitUntil: 'domcontentloaded', timeout: 30000 });
   await page.waitForFunction(() => window.HalDo && typeof window.HalDo.Launch === 'function' && window.HalDo.SystemCenter, null, { timeout: 30000 });
 
+  // The global welcome experience opens once automatically during startup.
+  const welcomeSelector = '#haldo-v161-welcome';
+  const welcome = page.locator(welcomeSelector);
+  await welcome.waitFor({ state: 'visible', timeout: 15000 });
+  await welcome.locator('button').click({ force: true });
+  await welcome.waitFor({ state: 'hidden', timeout: 10000 });
+
   // Exercise the same public launcher entry point used by the app registry.
   await page.evaluate(() => window.HalDo.Launch({ id: 'system-center', n: 'HalDo System Center Pro' }));
-  // The global welcome experience intentionally gates app launch behind a user action.
-  const welcome = page.locator('#haldo-v161-welcome');
+  // App launch is intentionally gated by its own welcome/confirmation screen.
   await welcome.waitFor({ state: 'visible', timeout: 15000 });
-  await welcome.locator('button').click();
+  await welcome.locator('button').click({ force: true });
   const root = page.locator('.hdsc-root');
   await root.waitFor({ state: 'visible', timeout: 15000 });
 
