@@ -151,7 +151,7 @@ try {
   assert.ok(await search.isVisible(), 'Search remains visible in the mobile viewport');
   assert.ok(await root.locator('[data-action="export"]').isVisible(), 'CSV action remains available in the mobile viewport');
 
-  console.log('System Center Chromium acceptance passed: launcher, A–Z inventory, all status options, category filter, search, details, close, CSV download and mobile visibility.');
+  console.log('System Center Chromium acceptance passed: launcher, A–Z inventory, runtime status filters, category filter, complete/partial/missing profile filters, reset, search, details, close, CSV download and mobile visibility.');
 } finally {
   if (browser) await browser.close();
   await new Promise(resolveClose => server.close(resolveClose));
