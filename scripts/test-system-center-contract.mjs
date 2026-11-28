@@ -25,7 +25,11 @@ const H = {
       { id: 'route-ready-demo', n: 'Route Ready Demo', i: '🧭' },
       { id: 'unrouted-demo', n: 'Module Unrouted Demo', i: '🧩' },
       { id: 'geo-quiz', n: 'Geo Quiz', i: '🗺️' },
-      { id: 'missing-demo', n: 'Missing Demo', i: '❔' }
+      { id: 'missing-demo', n: 'Missing Demo', i: '❔' },
+      { id: 'dynamic-demo', n: 'Dynamic Category Demo', i: '🧩' },
+      { id: 'language-voice', n: 'Language Voice', i: '🗣️' },
+      { id: 'ai-voice-core', n: 'AI Voice Core', i: '🎙️' },
+      { id: 'system-diagnostics', n: 'System Diagnostics', i: '🛡️' }
     ],
     getCategories: () => categories,
     totalCount: () => 22
@@ -33,7 +37,7 @@ const H = {
   Master: {
     version: '166.0.0',
     getCategoryApps(letter) {
-      if (letter === 'A') return [{ id: 'native-demo', name: 'Native Demo' }];
+      if (letter === 'A') return [{ id: 'native-demo', name: 'Native Demo' }, { id: 'dynamic-demo', name: 'Dynamic Category Demo' }];
       if (letter === 'S') return [{ id: 'native-demo', name: 'Native Demo' }];
       return [];
     },
@@ -47,8 +51,8 @@ const H = {
     }
   },
   SystemV157: {
-    routes: () => ['route-demo', 'route-ready-demo', 'geo-quiz'],
-    moduleFor: id => id === 'route-ready-demo' ? 'RouteReadyModule' : id === 'geo-quiz' ? 'GeoQuizModule' : null,
+    routes: () => ['route-demo', 'route-ready-demo', 'geo-quiz', 'language-voice', 'ai-voice-core', 'system-diagnostics'],
+    moduleFor: id => ({'route-ready-demo':'RouteReadyModule','geo-quiz':'GeoQuizModule','language-voice':'LanguageVoiceStudio','ai-voice-core':'VoiceCore','system-diagnostics':'SystemDiagnostics'}[id] || null),
     getVersion: () => '166.0.0'
   },
   MusicStudio: { __nativePro: true },
@@ -60,6 +64,10 @@ H['generic-demo'] = { open: function haldo_gen_placeholder() {} };
 H.RouteReadyModule = { open() {} };
 H.UnroutedDemo = { open() {} };
 H.GeoQuizModule = { open() {} };
+H.LanguageVoiceStudio = { open() {} };
+H.VoiceCore = { open() {} };
+H.SystemDiagnostics = { open() {} };
+H['dynamic-demo'] = { open() {} };
 H['geo-quiz'] = { open: function haldo_gen_geo_quiz_placeholder() {} };
 
 const window = { HalDo: H, setTimeout() {} };
@@ -89,6 +97,11 @@ assert.equal(byId['unrouted-demo'].status, 'moduleUnrouted', 'A PascalCase modul
 assert.equal(byId['unrouted-demo'].module, 'UnroutedDemo');
 assert.equal(byId['geo-quiz'].status, 'routeReady', 'A real dispatcher target takes precedence over a direct generic fallback');
 assert.equal(byId['geo-quiz'].module, 'GeoQuizModule');
+for (const [id, moduleName] of [['language-voice','LanguageVoiceStudio'],['ai-voice-core','VoiceCore'],['system-diagnostics','SystemDiagnostics']]) {
+  assert.equal(byId[id].status, 'routeReady', 'Post-v157 launcher wrapper target is recognized: ' + id);
+  assert.equal(byId[id].module, moduleName);
+}
+assert.deepEqual(Array.from(byId['dynamic-demo'].categories), ['A'], 'Later category extensions are included from getCategoryApps');
 assert.equal(byId['missing-demo'].status, 'missing');
 assert.deepEqual(Array.from(byId['missing-demo'].categories), [], 'Unassigned registry apps have an explicit empty category list');
 assert.ok(byId['planned-demo'], 'Unregistered A–Z catalogue IDs are included in the inventory');
@@ -102,7 +115,7 @@ assert.match(source, /moduleUnrouted/, 'Modules without an active dispatcher rou
 assert.match(source, /Planplätze ohne Katalog-ID/, 'Unassigned plan slots are labelled accurately');
 assert.match(source, /moduleFor\(app\.id\)/, 'Runtime route targets are resolved through the dispatcher API');
 assert.match(index, /moduleFor:function\(id\)\{return ROUTES\[String\(id\)\]\|\|null;\}/, 'The central dispatcher exposes its explicit module resolver');
-for (const [id, moduleName] of [['email','EmailPro'],['phone','PhonePro'],['videocall','VideoCalls'],['chat-pro','ChatPro'],['geo-quiz','GeoQuiz'],['aktien','Aktien'],['science-lab','ScienceLab'],['backup','BackupRecovery']]) {
+for (const [id, moduleName] of [['email','EmailPro'],['phone','PhonePro'],['videocall','VideoCalls'],['chat-pro','ChatPro'],['geo-quiz','GeoQuiz'],['aktien','Aktien'],['science-lab','ScienceLab'],['backup','BackupRecovery'],['language-voice','LanguageVoiceStudio'],['ai-voice-core','VoiceCore'],['system-diagnostics','SystemDiagnostics']]) {
   assert.match(index, new RegExp("'" + id + "':'" + moduleName + "'"), 'Dispatcher route is wired: ' + id + ' → ' + moduleName);
 }
 assert.match(source, /Erkanntes Modul/, 'Inventory displays the resolved implementation name');
@@ -112,13 +125,14 @@ assert.match(source, /-category.*Alle A–Z-Kategorien.*Ohne Kategorie/, 'Invent
 assert.match(source, /categoryFilter\.addEventListener\('change',render\)/, 'Changing the category filter refreshes the inventory');
 assert.match(source, /categoryFilter\.value === 'all' \|\| \(categoryFilter\.value === 'none' \? item\.categories\.length === 0 : item\.categories\.indexOf\(categoryFilter\.value\) !== -1\)/, 'Category filter supports both assigned letters and the unassigned registry list');
 assert.match(source, /item\.categories\.join\(' · '\)/, 'Inventory displays all category assignments for each app');
+assert.match(source, /function getCategoryEntries\(letter\)/, 'A-Z analysis combines the stable catalogue and later category extensions');
 assert.equal(byId['system-center'].category, 'S');
 const planAudit = H.SystemCenter.plan();
 assert.equal(planAudit.planned, 22);
-assert.equal(planAudit.catalogAssignments, 3, 'Category assignment count includes repeated placement across different categories');
-assert.equal(planAudit.catalogUnique, 2, 'Unique catalogue IDs are counted without double counting');
-assert.equal(planAudit.registeredInCatalog, 1, 'Registry overlap is reported explicitly');
-assert.equal(planAudit.unassignedPlanSlots, 19, 'Unassigned plan slots remain visible as a gap');
+assert.equal(planAudit.catalogAssignments, 4, 'Late category extensions are included and repeated placements are deduplicated per letter');
+assert.equal(planAudit.catalogUnique, 3, 'Unique catalogue IDs include late category extensions without double counting');
+assert.equal(planAudit.registeredInCatalog, 2, 'Registry overlap includes later registered category apps');
+assert.equal(planAudit.unassignedPlanSlots, 18, 'Unassigned plan slots remain visible as a gap');
 assert.equal(H.Registry.totalCount(), 22, 'The planned slot count is preserved');
 assert.match(index, /<script src="system-center-pro\.js"><\/script>/, 'System Center script is included in index.html');
 assert.ok(index.indexOf('<script src="video-studio-pro.js"></script>') < index.indexOf('<script src="system-center-pro.js"></script>'), 'System Center loads after the studio modules');
