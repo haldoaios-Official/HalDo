@@ -138,6 +138,8 @@ for (const [status, label] of [
 assert.match(source, /statusFilter === 'all' \|\| item\.status === statusFilter/, 'Selected status filter is applied to inventory rows');
 assert.match(source, /moduleUnrouted/, 'Modules without an active dispatcher route have a separate status');
 assert.match(source, /Planplätze ohne Katalog-ID/, 'Unassigned plan slots are labelled accurately');
+assert.match(source, /Mehrfach-Zuordnungen über Kategorien/, 'Cross-category duplicate assignments are visible in the dashboard');
+assert.match(source, /Katalog-IDs ohne App-Namen/, 'Unnamed catalogue IDs are visible instead of being silently treated as named apps');
 assert.match(source, /moduleFor\(app\.id\)/, 'Runtime route targets are resolved through the dispatcher API');
 assert.match(index, /moduleFor:function\(id\)\{return ROUTES\[String\(id\)\]\|\|null;\}/, 'The central dispatcher exposes its explicit module resolver');
 for (const [id, moduleName] of [['email','EmailPro'],['phone','PhonePro'],['videocall','VideoCalls'],['chat-pro','ChatPro'],['geo-quiz','GeoQuiz'],['aktien','Aktien'],['science-lab','ScienceLab'],['backup','BackupRecovery'],['language-voice','LanguageVoiceStudio'],['ai-voice-core','VoiceCore'],['system-diagnostics','SystemDiagnostics']]) {
@@ -168,6 +170,8 @@ const planAudit = H.SystemCenter.plan();
 assert.equal(planAudit.planned, 22);
 assert.equal(planAudit.catalogAssignments, 5, 'Late category extensions are included and repeated placements are deduplicated per letter');
 assert.equal(planAudit.catalogUnique, 4, 'Unique catalogue IDs include late category extensions without double counting');
+assert.equal(planAudit.catalogDuplicateAssignments, 1, 'Cross-category duplicate assignments are counted separately from unique IDs');
+assert.equal(planAudit.catalogUnnamed, 1, 'Catalogue IDs without a confirmed display name remain explicitly measurable');
 assert.equal(planAudit.registeredInCatalog, 3, 'Registry overlap includes later registered category apps');
 assert.equal(planAudit.unassignedPlanSlots, 17, 'Unassigned plan slots remain visible as a gap');
 assert.equal(H.Registry.totalCount(), 22, 'The planned slot count is preserved');
