@@ -62,6 +62,10 @@ try {
 
   // Exercise the same public launcher entry point used by the app registry.
   await page.evaluate(() => window.HalDo.Launch({ id: 'system-center', n: 'HalDo System Center Pro' }));
+  // The global welcome experience intentionally gates app launch behind a user action.
+  const welcome = page.locator('[role="dialog"]');
+  await welcome.waitFor({ state: 'visible', timeout: 15000 });
+  await welcome.locator('button').click();
   const root = page.locator('.hdsc-root');
   await root.waitFor({ state: 'visible', timeout: 15000 });
 
