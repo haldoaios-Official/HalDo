@@ -181,7 +181,7 @@
       source:'Modulcode · system-center-pro.js',
       purpose:'Den tatsächlichen App-, Registry- und A–Z-Entwicklungsstand von HalDo sichtbar machen.',
       description:'Zentrale Übersicht mit App-Inventar, Laufzeitstatus, Kategorie-Audit und technischen nächsten Schritten.',
-      features:['Suche und Status-/Kategorie-Filter für App-Einträge','A–Z-Planplätze, eindeutige IDs und Mehrfachzuordnungen','Erkennung von Registry-, Modul- und Dispatcher-Status','Detailansicht mit Befund, Dokumentationslücken und nächsten Schritten','CSV-Export des App-Inventars und der hinterlegten Dokumentation']
+      features:['Suche sowie Status-, Kategorie- und Dokumentationsvollständigkeitsfilter für App-Einträge','A–Z-Planplätze, eindeutige IDs und Mehrfachzuordnungen','Erkennung von Registry-, Modul- und Dispatcher-Status','Detailansicht mit Befund, Dokumentationslücken und nächsten Schritten','CSV-Export des App-Inventars und der hinterlegten Dokumentation']
     },
     'music-studio': {
       source:'Modulcode · music-studio-pro.js',
@@ -480,7 +480,7 @@
       '<div class="hdsc-section"><div class="hdsc-row" style="justify-content:space-between"><h3 style="margin:0">🧾 Was bisher in HalDo gebaut wurde</h3><span class="hdsc-status native">Projektübersicht</span></div>' +
       '<div class="hdsc-muted" style="margin:6px 0 10px">Diese Übersicht zeigt konkret integrierte Arbeiten im aktuellen Entwicklungsstand. „Automatisiert geprüft“ bedeutet nicht, dass jede App bereits manuell im echten Browser vollständig getestet wurde.</div>' +
       '<div class="hdsc-grid">' +
-      '<div class="hdsc-cat"><b>🧭 System Center Pro</b><small>Live-App-Inventar, A–Z-Kategorien, Suche, Status- und Buchstabenfilter, Registry-Abgleich, CSV-Export und Modul-/Dispatcher-Erkennung</small></div>' +
+      '<div class="hdsc-cat"><b>🧭 System Center Pro</b><small>Live-App-Inventar, A–Z-Kategorien, Suche, Status-, Kategorie- und Profilfilter, Registry-Abgleich, CSV-Export und Modul-/Dispatcher-Erkennung</small></div>' +
       '<div class="hdsc-cat"><b>🎵 Music Studio Pro</b><small>Studio-Modul eingebunden; Lade- und Vertragsprüfungen in der automatisierten Projektprüfung</small></div>' +
       '<div class="hdsc-cat"><b>🎬 Video Studio Pro</b><small>Studio-Modul eingebunden; Lade- und Vertragsprüfungen in der automatisierten Projektprüfung</small></div>' +
       '<div class="hdsc-cat"><b>🩺 System Diagnostics</b><small>Systemdiagnose mit Prüfungen für Kern, Registry, Dispatcher, Module, Browser- und Speicher-APIs sowie Diagnosebericht</small></div>' +
