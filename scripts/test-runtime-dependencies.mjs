@@ -20,7 +20,9 @@ for (const attributes of tags) {
   let decoded;
   try { decoded = decodeURIComponent(clean); }
   catch { throw new Error('Ungültige URL-Kodierung im Script-Pfad: ' + raw); }
-  const relative = decoded.replace(/^\/+/, '').replace(/^(?:\.\/)+/, '');
+  let relative = decoded;
+  while (relative.startsWith('/')) relative = relative.slice(1);
+  while (relative.startsWith('./')) relative = relative.slice(2);
   const absolute = resolve(root, relative);
   assert.ok(absolute === root || absolute.startsWith(root + sep), 'Script-Pfad verlässt das Repository: ' + raw);
   references.push({ raw, path: relative, absolute, kind: 'local', ordered: /\b(?:async|defer)\b/i.test(attributes) });
