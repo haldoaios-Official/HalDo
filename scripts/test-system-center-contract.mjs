@@ -122,5 +122,6 @@ assert.equal(planAudit.unassignedPlanSlots, 19, 'Unassigned plan slots remain vi
 assert.equal(H.Registry.totalCount(), 22, 'The planned slot count is preserved');
 assert.match(index, /<script src="system-center-pro\.js"><\/script>/, 'System Center script is included in index.html');
 assert.ok(index.indexOf('<script src="video-studio-pro.js"></script>') < index.indexOf('<script src="system-center-pro.js"></script>'), 'System Center loads after the studio modules');
+assert.ok(index.indexOf('moduleFor:function(id)') < index.indexOf('<script src="system-center-pro.js"></script>'), 'Dispatcher module resolver is available before System Center starts');
 
-console.log('System Center contract tests passed: registration, category, launcher routing, fallback preservation, all five inventory states, catalogue reconciliation metrics, plan count and script order.');
+console.log('System Center contract tests passed: registration, category, launcher routing, fallback preservation, all direct, routed, generic, unrouted and missing module states, catalogue reconciliation metrics, plan count and script order.');
