@@ -55,8 +55,8 @@ const H = {
     }
   },
   SystemV157: {
-    routes: () => ['route-demo', 'route-ready-demo', 'geo-quiz', 'language-voice', 'ai-voice-core', 'system-diagnostics'],
-    moduleFor: id => ({'route-ready-demo':'RouteReadyModule','geo-quiz':'GeoQuizModule','language-voice':'LanguageVoiceStudio','ai-voice-core':'VoiceCore','system-diagnostics':'SystemDiagnostics'}[id] || null),
+    routes: () => ['route-demo', 'route-ready-demo', 'geo-quiz', 'language-voice', 'ai-voice-core', 'system-diagnostics', 'scientific', 'breathing'],
+    moduleFor: id => ({'route-ready-demo':'RouteReadyModule','geo-quiz':'GeoQuizModule','language-voice':'LanguageVoiceStudio','ai-voice-core':'VoiceCore','system-diagnostics':'SystemDiagnostics','scientific':'Calc','breathing':'MentalHealth'}[id] || null),
     getVersion: () => '166.0.0'
   },
   MusicStudio: { __nativePro: true },
@@ -71,6 +71,8 @@ H.GeoQuizModule = { open() {} };
 H.LanguageVoiceStudio = { open() {} };
 H.VoiceCore = { open() {} };
 H.SystemDiagnostics = { open() {} };
+H.Calc = { open() {} };
+H.MentalHealth = { open() {} };
 H['dynamic-demo'] = { open() {} };
 H['geo-quiz'] = { open: function haldo_gen_geo_quiz_placeholder() {} };
 
