@@ -6,15 +6,15 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 export function inspectScriptOrder(html) {
-  const tags = [...String(html).matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script\\s*>/gi)];
+  const tags = [...String(html).matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)];
   const scripts = tags.map((match, index) => {
     const attributes = match[1] || '';
     const body = match[2] || '';
-    const srcMatch = attributes.match(/\\bsrc\\s*=\\s*(["'])(.*?)\\1/i);
-    const idMatch = attributes.match(/\\bid\\s*=\\s*(["'])(.*?)\\1/i);
-    const typeMatch = attributes.match(/\\btype\\s*=\\s*(["'])(.*?)\\1/i);
-    const async = /\\basync\\b/i.test(attributes);
-    const defer = /\\bdefer\\b/i.test(attributes);
+    const srcMatch = attributes.match(/\bsrc\s*=\s*(["'])(.*?)\1/i);
+    const idMatch = attributes.match(/\bid\s*=\s*(["'])(.*?)\1/i);
+    const typeMatch = attributes.match(/\btype\s*=\s*(["'])(.*?)\1/i);
+    const async = /\basync\b/i.test(attributes);
+    const defer = /\bdefer\b/i.test(attributes);
     const module = Boolean(typeMatch && typeMatch[2].toLowerCase() === 'module');
     let execution = 'parser-blocking';
     if (async) execution = 'async';
@@ -27,7 +27,6 @@ export function inspectScriptOrder(html) {
       execution
     };
   });
-  const position = name => scripts.findIndex(item => item.src.replace(/^\\.\\//, '') === name || item.id === name);
   const constraints = [
     ['three.js', 'OrbitControls.js'],
     ['three.js', 'GLTFLoader.js'],
