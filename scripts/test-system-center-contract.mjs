@@ -141,6 +141,14 @@ assert.match(source, /Erkanntes Modul/, 'Inventory displays the resolved impleme
 assert.match(source, /registryWithoutCategory,'Registry-Apps ohne Kategorie'/, 'Registered apps outside the A-Z catalogue are counted');
 assert.match(source, /Vollständiges A–Z-App-Inventar/, 'Inventory heading includes planned catalogue entries');
 assert.match(source, /\['Kategorie\(n\)','App','App-ID','Erkanntes Modul','Status','Hinweis'\]/, 'CSV export headers align with all six exported inventory fields');
+const csvCellMatch = source.match(/function csvCell\\(value\\) \\{[\\s\\S]*?\\n  \\}/);
+assert.ok(csvCellMatch, 'System Center CSV export uses a dedicated cell sanitizer');
+const csvCell = runInNewContext('(' + csvCellMatch[0] + ')');
+assert.equal(csvCell('=1+1'), "\"' =1+1\"".replace(" ", ""), 'Formula-like CSV text is prefixed with an apostrophe');
+assert.equal(csvCell('  +SUM(A1:A2)'), "\"'  +SUM(A1:A2)\"", 'Formula-like text after leading whitespace is neutralized');
+assert.equal(csvCell('\\t@cmd'), "\"'\\t@cmd\"", 'Formula-like text after control whitespace is neutralized');
+assert.equal(csvCell(-5), '"-5"', 'Numeric negative values remain unchanged');
+assert.match(source, /row\\.map\\(csvCell\\)/, 'Every exported CSV cell passes through the sanitizer');
 assert.match(source, /-category.*Alle A–Z-Kategorien.*Ohne Kategorie/, 'Inventory exposes A-Z and unassigned-category filters');
 assert.match(source, /categoryFilter\.addEventListener\('change',render\)/, 'Changing the category filter refreshes the inventory');
 assert.match(source, /categoryFilter\.value === 'all' \|\| \(categoryFilter\.value === 'none' \? item\.categories\.length === 0 : item\.categories\.indexOf\(categoryFilter\.value\) !== -1\)/, 'Category filter supports both assigned letters and the unassigned registry list');
