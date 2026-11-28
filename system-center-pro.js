@@ -174,6 +174,53 @@
       verificationNote:'Technischer Laufzeit-Snapshot: Modul-/Routenmerkmale wurden erkannt. Das ist keine vollständige manuelle Funktions- oder Browserabnahme.'
     };
   }
+  function normalizeMetadataText(value) {
+    if (typeof value === 'string') return value.trim();
+    if (Array.isArray(value)) {
+      return value.filter(function (item) { return typeof item === 'string' && item.trim(); })
+        .map(function (item) { return item.trim(); }).join(' · ');
+    }
+    return '';
+  }
+  function getAppMetadata(app) {
+    var id = String(app && app.id || '');
+    var sources = [];
+    var registryEntry = (H.Registry && H.Registry.featured || []).find(function (entry) {
+      return entry && String(entry.id) === id;
+    });
+    if (registryEntry) sources.push({label:'Kern-Registry',entry:registryEntry});
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(function (letter) {
+      getCategoryEntries(letter).forEach(function (entry) {
+        if (entry && String(entry.id) === id) sources.push({label:'A–Z-Katalog',entry:entry});
+      });
+    });
+    function firstValue(keys) {
+      for (var i = 0; i < sources.length; i += 1) {
+        for (var j = 0; j < keys.length; j += 1) {
+          var value = normalizeMetadataText(sources[i].entry[keys[j]]);
+          if (value) return {value:value,source:sources[i].label};
+        }
+      }
+      return {value:'',source:''};
+    }
+    var purpose = firstValue(['purpose','goal']);
+    var description = firstValue(['description','shortDescription','summary','overview']);
+    var features = firstValue(['features','capabilities','featureSummary','functions']);
+    var present = [purpose,description,features].filter(function (field) { return !!field.value; }).length;
+    var labels = [];
+    [purpose,description,features].forEach(function (field) {
+      if (field.source && labels.indexOf(field.source) === -1) labels.push(field.source);
+    });
+    return {
+      purpose:purpose.value,
+      description:description.value,
+      featureSummary:features.value,
+      metadataStatus:present === 3 ? 'complete' : (present > 0 ? 'partial' : 'missing'),
+      metadataStatusLabel:present === 3 ? 'Profil dokumentiert' : (present > 0 ? 'Teilweise dokumentiert' : 'Profil noch offen'),
+      metadataSource:labels.length ? labels.join(' + ') : 'Kein Beschreibungsdatensatz vorhanden',
+      metadataMissing:[!purpose.value ? 'Zweck' : '',!description.value ? 'Beschreibung' : '',!features.value ? 'Funktionsumfang' : ''].filter(Boolean)
+    };
+  }
   function getInventory() {
     var apps = H.Registry.featured.slice();
     var registryIds = new Set(apps.map(function (app) { return app.id; }));
@@ -193,6 +240,8 @@
     var categories = categoryIndex();
     return apps.map(function (app) {
       var status = inspectApp(app, routes);
+      var metadata = getAppMetadata(app);
+      var guidance = getAppGuidance(app,status);
       return {
         id:String(app.id || ''),
         name:String(app.n || app.name || app.id || 'Unbenannte App'),
@@ -208,9 +257,16 @@
         catalogOnly:app.__catalogOnly === true,
         registration:app.__catalogOnly === true ? 'planned-only' : 'registered',
         registrationLabel:app.__catalogOnly === true ? 'Nur A–Z-Katalog' : 'In Kern-Registry',
-        implementationLabel:getAppGuidance(app,status).implementationLabel,
-        nextSteps:getAppGuidance(app,status).nextSteps,
-        verificationNote:getAppGuidance(app,status).verificationNote
+        purpose:metadata.purpose,
+        description:metadata.description,
+        featureSummary:metadata.featureSummary,
+        metadataStatus:metadata.metadataStatus,
+        metadataStatusLabel:metadata.metadataStatusLabel,
+        metadataSource:metadata.metadataSource,
+        metadataMissing:metadata.metadataMissing,
+        implementationLabel:guidance.implementationLabel,
+        nextSteps:guidance.nextSteps,
+        verificationNote:guidance.verificationNote
       };
     }).filter(function (app) { return !!app.id; }).sort(function (a,b) {
       return a.category.localeCompare(b.category) || a.name.localeCompare(b.name);
@@ -227,12 +283,16 @@
     var routes = getRouteIds();
     var registered = new Set((H.Registry && H.Registry.featured || []).map(function (app) { return String(app.id); }));
     var counts = {native:0,dedicated:0,generic:0,routeReady:0,moduleUnrouted:0,route:0,missing:0};
-    var named = 0;
+    var named = 0, profilesComplete = 0, profilesPartial = 0, profilesMissing = 0;
     entries.forEach(function (entry) {
       if (!entry || !entry.id) return;
       if (entry.name && entry.name !== 'Name noch offen') named += 1;
       var status = inspectApp({id:String(entry.id)},routes);
       counts[status.key] = (counts[status.key] || 0) + 1;
+      var metadata = getAppMetadata(entry);
+      if (metadata.metadataStatus === 'complete') profilesComplete += 1;
+      else if (metadata.metadataStatus === 'partial') profilesPartial += 1;
+      else profilesMissing += 1;
     });
     var planned = Math.max(0,Number(category.count) || 0);
     var catalogIds = entries.length;
@@ -242,6 +302,9 @@
       planned:planned,
       catalogIds:catalogIds,
       namedIds:named,
+      profilesComplete:profilesComplete,
+      profilesPartial:profilesPartial,
+      profilesMissing:profilesMissing,
       registeredIds:countRegisteredCategoryApps(entries),
       readyModules:counts.native + counts.dedicated + counts.routeReady,
       genericPlaceholders:counts.generic,
@@ -313,8 +376,8 @@
   }
   function exportInventory() {
     var rows = getInventory();
-    var csv = [['Kategorie(n)','App','App-ID','Registrierung','Erkanntes Modul','Status','Hinweis']].concat(rows.map(function (r) {
-      return [r.categories.length ? r.categories.join(', ') : '—',r.name,r.id,r.registrationLabel,r.module || '—',r.statusLabel,r.detail];
+    var csv = [['Kategorie(n)','App','App-ID','Registrierung','Zweck','Beschreibung','Funktionsumfang','Profilstatus','Metadatenquelle','Erkanntes Modul','Status','Hinweis']].concat(rows.map(function (r) {
+      return [r.categories.length ? r.categories.join(', ') : '—',r.name,r.id,r.registrationLabel,r.purpose || '—',r.description || '—',r.featureSummary || '—',r.metadataStatusLabel,r.metadataSource,r.module || '—',r.statusLabel,r.detail];
     })).map(function (row) {
       return row.map(csvCell).join(';');
     }).join('\r\n');
@@ -378,6 +441,9 @@
           ['🆔',plan.catalogUnique,'Eindeutige Katalog-IDs'],
           ['🔁',plan.catalogDuplicateAssignments,'Mehrfach-Zuordnungen über Kategorien'],
           ['🏷️',plan.catalogUnnamed,'Katalog-IDs ohne App-Namen'],
+          ['📝',inventory.filter(function (item) { return item.metadataStatus === 'complete'; }).length,'App-Profile dokumentiert'],
+          ['🧩',inventory.filter(function (item) { return item.metadataStatus === 'partial'; }).length,'App-Profile teilweise dokumentiert'],
+          ['📄',inventory.filter(function (item) { return item.metadataStatus === 'missing'; }).length,'App-Profile noch offen'],
           ['📦',plan.registryCount,'Registrierte Kern-Apps'],
           ['🗂',inventory.filter(function (item) { return item.registration === 'planned-only'; }).length,'Nur im A–Z-Katalog'],
           ['🔗',plan.registeredInCatalog,'In Katalog & Registry'],
@@ -401,13 +467,14 @@
             '<b>' + esc((plan.categories[key] && plan.categories[key].icon) || '📁') + ' ' + esc(key) + ' · ' + esc(progress.name) + '</b>' +
             '<small>' + progress.planned + ' Planplätze · ' + progress.catalogIds + ' Katalog-IDs (' + progress.namedIds + ' benannt) · ' + progress.registeredIds + ' registriert</small>' +
             '<small><strong>' + progress.readyModules + ' Module erkannt</strong> · ' + progress.genericPlaceholders + ' Platzhalter · ' + progress.modulesWithoutRoute + ' ohne Route · ' + progress.routesWithoutTarget + ' Route ohne Ziel · ' + progress.missingModules + ' ohne Modul</small>' +
+            '<small>' + progress.profilesComplete + ' Profile vollständig · ' + progress.profilesPartial + ' teilweise · ' + progress.profilesMissing + ' ohne Beschreibung/Funktionsumfang</small>' +
             '<small>' + progress.planSlotsWithoutId + ' Planplätze noch ohne Katalog-ID · anklicken zum Filtern</small></button>';
         }).join('');
 
         var query = String(search.value || '').trim().toLowerCase();
         var statusFilter = filter.value;
         var filtered = inventory.filter(function (item) {
-          var text = [item.name,item.id,item.categories.join(' '),item.statusLabel].join(' ').toLowerCase();
+          var text = [item.name,item.id,item.categories.join(' '),item.statusLabel,item.purpose,item.description,item.featureSummary].join(' ').toLowerCase();
           return (!query || text.indexOf(query) !== -1) && (statusFilter === 'all' || item.status === statusFilter) && (categoryFilter.value === 'all' || (categoryFilter.value === 'none' ? item.categories.length === 0 : item.categories.indexOf(categoryFilter.value) !== -1));
         });
         count.textContent = filtered.length + ' von ' + inventory.length + ' Einträgen';
@@ -423,7 +490,11 @@
           var detailApp = getInventory().find(function (item) { return item.id === detailButton.dataset.appDetails; });
           if (detailApp) {
             detailPanel.innerHTML = '<div class="hdsc-row" style="justify-content:space-between"><div><h4>' + esc(detailApp.icon) + ' ' + esc(detailApp.name) + '</h4><div class="hdsc-id">' + esc(detailApp.id) + '</div></div><button type="button" class="hdsc-btn" data-close-details>Schließen</button></div>' +
-              '<div class="hdsc-detail-grid"><div class="hdsc-detail-cell"><small>Technischer Status</small><b>' + esc(detailApp.statusLabel) + '</b></div><div class="hdsc-detail-cell"><small>Implementierungsmerkmal</small><b>' + esc(detailApp.implementationLabel) + '</b></div><div class="hdsc-detail-cell"><small>Registrierung</small><b>' + esc(detailApp.registrationLabel) + '</b></div><div class="hdsc-detail-cell"><small>Kategorie(n)</small><b>' + esc(detailApp.categories.length ? detailApp.categories.join(' · ') : 'Keine Kategorie zugeordnet') + '</b></div><div class="hdsc-detail-cell"><small>Erkanntes Laufzeitmodul</small><b>' + esc(detailApp.module || 'Kein Modul erkannt') + '</b></div><div class="hdsc-detail-cell"><small>Startbarkeit</small><b>' + (detailApp.catalogOnly ? 'Noch nicht über die Kern-Registry startbar' : (['native','dedicated','routeReady'].indexOf(detailApp.status) !== -1 ? 'Startziel technisch erkannt' : 'Noch kein verifiziertes Startziel')) + '</b></div></div>' +
+              '<div class="hdsc-detail-grid"><div class="hdsc-detail-cell"><small>Technischer Status</small><b>' + esc(detailApp.statusLabel) + '</b></div><div class="hdsc-detail-cell"><small>Implementierungsmerkmal</small><b>' + esc(detailApp.implementationLabel) + '</b></div><div class="hdsc-detail-cell"><small>Registrierung</small><b>' + esc(detailApp.registrationLabel) + '</b></div><div class="hdsc-detail-cell"><small>Kategorie(n)</small><b>' + esc(detailApp.categories.length ? detailApp.categories.join(' · ') : 'Keine Kategorie zugeordnet') + '</b></div><div class="hdsc-detail-cell"><small>Erkanntes Laufzeitmodul</small><b>' + esc(detailApp.module || 'Kein Modul erkannt') + '</b></div><div class="hdsc-detail-cell"><small>Startbarkeit</small><b>' + (detailApp.catalogOnly ? 'Noch nicht über die Kern-Registry startbar' : (['native','dedicated','routeReady'].indexOf(detailApp.status) !== -1 ? 'Startziel technisch erkannt' : 'Noch kein verifiziertes Startziel')) + '</b></div><div class="hdsc-detail-cell"><small>Dokumentationsstatus</small><b>' + esc(detailApp.metadataStatusLabel) + '</b></div><div class="hdsc-detail-cell"><small>Metadatenquelle</small><b>' + esc(detailApp.metadataSource) + '</b></div></div>' +
+              '<p><b>Zweck:</b> ' + esc(detailApp.purpose || 'Zweck noch nicht im App-Datensatz dokumentiert.') + '</p>' +
+              '<p><b>Beschreibung:</b> ' + esc(detailApp.description || 'Noch keine Beschreibung im App-Datensatz gepflegt.') + '</p>' +
+              '<p><b>Dokumentierter Funktionsumfang:</b> ' + esc(detailApp.featureSummary || 'Funktionsumfang noch nicht im App-Datensatz dokumentiert.') + '</p>' +
+              (detailApp.metadataMissing.length ? '<p><b>Fehlende Dokumentationsfelder:</b> ' + esc(detailApp.metadataMissing.join(', ')) + '</p>' : '') +
               '<p><b>Aktueller Befund:</b> ' + esc(detailApp.detail) + '</p><p><b>Nächste technische Schritte:</b></p><ol>' + detailApp.nextSteps.map(function (step) { return '<li>' + esc(step) + '</li>'; }).join('') + '</ol>' +
               '<div class="hdsc-note">' + esc(detailApp.verificationNote) + '</div>';
             detailPanel.hidden = false;
@@ -466,7 +537,7 @@
     },90);
   }
 
-  H.SystemCenter = {open:open,inventory:getInventory,plan:getPlan,refresh:getInventory,categoryRegisteredCount:countRegisteredCategoryApps,categoryProgress:getCategoryProgress,guidance:getAppGuidance};
+  H.SystemCenter = {open:open,inventory:getInventory,plan:getPlan,refresh:getInventory,categoryRegisteredCount:countRegisteredCategoryApps,categoryProgress:getCategoryProgress,guidance:getAppGuidance,appMetadata:getAppMetadata};
   H[APP_ID] = H.SystemCenter;
 
   // Route the launcher to the real app window instead of the generic greeting.
