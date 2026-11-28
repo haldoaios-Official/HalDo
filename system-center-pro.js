@@ -31,33 +31,36 @@
     try { return H.SystemV157 && typeof H.SystemV157.routes === 'function' ? H.SystemV157.routes() : []; }
     catch (e) { return []; }
   }
+  function getCategoryEntries(letter) {
+    var byId = Object.create(null);
+    function addAll(entries) {
+      (entries || []).forEach(function (entry) {
+        if (!entry || !entry.id) return;
+        var id = String(entry.id);
+        if (!byId[id]) byId[id] = entry;
+      });
+    }
+    try {
+      if (H.Master && typeof H.Master.getCategoryCatalogApps === 'function') {
+        addAll(H.Master.getCategoryCatalogApps(letter));
+      }
+    } catch (e) {}
+    try {
+      if (H.Master && typeof H.Master.getCategoryApps === 'function') {
+        addAll(H.Master.getCategoryApps(letter));
+      }
+    } catch (e) {}
+    return Object.keys(byId).map(function (id) { return byId[id]; });
+  }
   function categoryIndex() {
     var map = {};
-    var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-    function add(letter, entry) {
-      if (!entry || !entry.id) return;
-      var id = String(entry.id);
-      if (!map[id]) map[id] = [];
-      if (map[id].indexOf(letter) === -1) map[id].push(letter);
-    }
-    if (H.Master && typeof H.Master.getCategoryCatalogApps === 'function') {
-      letters.forEach(function (letter) {
-        try {
-          (H.Master.getCategoryCatalogApps(letter) || []).forEach(function (entry) {
-            add(letter, entry);
-          });
-        } catch (e) {}
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(function (letter) {
+      getCategoryEntries(letter).forEach(function (entry) {
+        var id = String(entry.id);
+        if (!map[id]) map[id] = [];
+        if (map[id].indexOf(letter) === -1) map[id].push(letter);
       });
-    }
-    if (H.Master && typeof H.Master.getCategoryApps === 'function') {
-      letters.forEach(function (letter) {
-        try {
-          (H.Master.getCategoryApps(letter) || []).forEach(function (entry) {
-            add(letter, entry);
-          });
-        } catch (e) {}
-      });
-    }
+    });
     Object.keys(map).forEach(function (id) { map[id].sort(); });
     return map;
   }
@@ -132,22 +135,18 @@
   function getInventory() {
     var apps = H.Registry.featured.slice();
     var registryIds = new Set(apps.map(function (app) { return app.id; }));
-    if (H.Master && typeof H.Master.getCategoryCatalogApps === 'function') {
-      'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(function (letter) {
-        try {
-          (H.Master.getCategoryCatalogApps(letter) || []).forEach(function (entry) {
-            if (!entry || !entry.id || registryIds.has(entry.id)) return;
-            registryIds.add(entry.id);
-            apps.push({
-              id:entry.id,
-              n:entry.name || 'Name noch offen',
-              i:entry.icon || '📦',
-              __catalogOnly:true
-            });
-          });
-        } catch (e) {}
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(function (letter) {
+      getCategoryEntries(letter).forEach(function (entry) {
+        if (!entry || !entry.id || registryIds.has(entry.id)) return;
+        registryIds.add(entry.id);
+        apps.push({
+          id:entry.id,
+          n:entry.name || 'Name noch offen',
+          i:entry.icon || '📦',
+          __catalogOnly:true
+        });
       });
-    }
+    });
     var routes = getRouteIds();
     var categories = categoryIndex();
     return apps.map(function (app) {
@@ -180,15 +179,11 @@
     if (Number.isFinite(reported) && reported > 0) planned = reported;
     var catalogIds = new Set();
     var catalogAssignments = 0;
-    if (H.Master && typeof H.Master.getCategoryCatalogApps === 'function') {
-      'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(function (letter) {
-        try {
-          var entries = H.Master.getCategoryCatalogApps(letter) || [];
-          catalogAssignments += entries.length;
-          entries.forEach(function (entry) { if (entry && entry.id) catalogIds.add(String(entry.id)); });
-        } catch (e) {}
-      });
-    }
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(function (letter) {
+      var entries = getCategoryEntries(letter);
+      catalogAssignments += entries.length;
+      entries.forEach(function (entry) { if (entry && entry.id) catalogIds.add(String(entry.id)); });
+    });
     var registryIds = new Set((H.Registry && H.Registry.featured || []).map(function (app) { return String(app.id); }));
     var registeredInCatalog = Array.from(catalogIds).filter(function (id) { return registryIds.has(id); }).length;
     return {
@@ -286,9 +281,9 @@
         cats.innerHTML = Object.entries(plan.categories).map(function (entry) {
           var key = entry[0], category = entry[1];
           var named = H.Master && typeof H.Master.getCategoryApps === 'function' ? H.Master.getCategoryApps(key) : [];
-          var catalog = H.Master && typeof H.Master.getCategoryCatalogApps === 'function' ? H.Master.getCategoryCatalogApps(key) : named;
+          var catalog = getCategoryEntries(key);
           var planned = Math.max(0,Number(category.count) || 0);
-          var catalogCount = catalog ? catalog.length : 0;
+          var catalogCount = catalog.length;
           var unspecified = Math.max(0,planned - catalogCount);
           return '<div class="hdsc-cat"><b>' + esc(category.icon || '📁') + ' ' + esc(key) + ' · ' + esc(category.name || 'Kategorie') + '</b><small>' + planned + ' Planplätze · ' + catalogCount + ' Katalog-IDs · ' + unspecified + ' Planplätze ohne Katalog-ID · ' + (named ? named.length : 0) + ' Kern-Apps registriert</small></div>';
         }).join('');
