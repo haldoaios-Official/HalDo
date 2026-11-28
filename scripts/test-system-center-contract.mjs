@@ -140,6 +140,10 @@ assert.match(source, /Funktionsumfang noch nicht im App-Datensatz dokumentiert\.
 assert.match(source, /Metadatenquelle/, 'App details disclose the metadata source');
 assert.match(source, /App-Profile dokumentiert/, 'Dashboard exposes complete app documentation coverage');
 assert.match(source, /Profilstatus/, 'CSV export includes app documentation status');
+assert.match(source, /-profile><option value="all">Alle Profilstände<\/option><option value="complete">Profil vollständig<\/option><option value="partial">Profil teilweise<\/option><option value="missing">Profil fehlt<\/option>/, 'System Center exposes all three documentation completeness filters');
+assert.match(source, /profileFilter\.value === 'all' \|\| item\.metadataStatus === profileFilter\.value/, 'Profile filter is applied to the live inventory predicate');
+assert.match(source, /profileFilter\.addEventListener\('change',render\)/, 'Changing profile completeness re-renders the inventory');
+assert.match(source, /profileFilter\.value = 'all'; render\(\)/, 'Reset clears the documentation completeness filter');
 assert.match(source, /appMetadata:getAppMetadata/, 'App metadata resolver is exposed for read-only inspection');
 
 const musicProfile = H.SystemCenter.appMetadata({ id: 'music-studio' });
