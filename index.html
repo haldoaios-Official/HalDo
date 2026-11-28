@@ -13029,42 +13029,43 @@ if(H.Master)H.Master.version=BUILD;console.info('HalDo AI Voice Core Pro v'+BUIL
 <script id="haldo-v160-system-diagnostics">
 (function(){
 'use strict';
-var H=window.HalDo=window.HalDo||{},BUILD='161.0.0';
+var H=window.HalDo=window.HalDo||{},BUILD='161.1.0';
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function test(name,ok,detail){return {name:name,ok:!!ok,detail:detail||(ok?'Verfügbar':'Nicht verfügbar')};}
-function collect(){
-var checks=[
-test('HalDo-Kern',!!H.Master,'Master-API '+(H.Master&&H.Master.version||'gefunden')),
+function safeStorageProbe(){try{var s=window.localStorage,k='__haldo_health_probe__'+Date.now(),v='ok';s.setItem(k,v);var ok=s.getItem(k)===v;s.removeItem(k);return {ok:ok,detail:ok?'Schreib-/Lese-/Löschtest erfolgreich':'Unerwartetes Speicherergebnis'};}catch(e){return {ok:false,detail:'Speichertest blockiert: '+String(e&&e.name||e)};}}
+function routeAudit(){var routes=[],unresolved=[],duplicates=[],seen=Object.create(null),apps=H.Registry&&Array.isArray(H.Registry.featured)?H.Registry.featured:[];try{routes=H.SystemV157&&typeof H.SystemV157.routes==='function'?H.SystemV157.routes():[];}catch(e){};(Array.isArray(routes)?routes:[]).forEach(function(id){var name=null,target=null;try{name=H.SystemV157&&typeof H.SystemV157.moduleFor==='function'?H.SystemV157.moduleFor(id):null;target=name?H[name]:null;}catch(e){}if(!name||!target||typeof target.open!=='function')unresolved.push(String(id)+(name?' → '+name:' → Ziel fehlt'));});apps.forEach(function(app){if(!app||!app.id)return;var id=String(app.id);if(seen[id])duplicates.push(id);seen[id]=true;});return {routes:Array.isArray(routes)?routes:[],unresolved:unresolved,duplicates:duplicates,registryCount:apps.length};}
+function collect(){var a=routeAudit(),s=safeStorageProbe();return [
+test('HalDo-Kern',!!H.Master,'Master-API '+(H.Master&&H.Master.version||'nicht gemeldet')),
 test('Fensterverwaltung',!!(H.Win&&typeof H.Win.open==='function')),
-test('App-Verzeichnis',!!(H.Registry&&Array.isArray(H.Registry.featured)),H.Registry&&Array.isArray(H.Registry.featured)?H.Registry.featured.length+' Einträge':'Nicht verfügbar'),
-test('Lokaler Speicher',!!window.localStorage),test('IndexedDB',!!window.indexedDB),
-test('Web Crypto',!!(window.crypto&&crypto.subtle),'HTTPS oder sicherer Kontext erforderlich'),
+test('App-Verzeichnis',!!(H.Registry&&Array.isArray(H.Registry.featured)),a.registryCount+' Registry-Einträge'),
+test('Doppelte App-IDs',a.duplicates.length===0,a.duplicates.length?'Doppelte IDs: '+a.duplicates.join(', '):'Keine doppelten IDs erkannt'),
+test('Dispatcher-Routen',a.routes.length>0,a.routes.length+' zentrale Routen erkannt'),
+test('Dispatcher-Zielmodule',a.unresolved.length===0,a.unresolved.length?'Nicht aufgelöst: '+a.unresolved.slice(0,8).join('; ')+(a.unresolved.length>8?' …':''):'Alle Routen besitzen ein open()-Ziel'),
+test('System Center',!!(H.SystemCenter&&typeof H.SystemCenter.open==='function')),
+test('Music Studio',!!(H.MusicStudio&&typeof H.MusicStudio.open==='function')),
+test('Video Studio',!!(H.VideoStudio&&typeof H.VideoStudio.open==='function')),
+test('Update Center',!!(H.UpdateCenter&&typeof H.UpdateCenter.open==='function')),
+test('Backup & Recovery',!!(H.BackupRecovery&&typeof H.BackupRecovery.open==='function')),
+test('Dokumente',!!(H.DokumentePro&&typeof H.DokumentePro.open==='function')),
+test('Kontakte',!!(H.KontaktePro&&typeof H.KontaktePro.open==='function')),
+test('Lokaler Speicher',s.ok,s.detail),
+test('IndexedDB API',!!window.indexedDB),
+test('Web Crypto',!!(window.crypto&&window.crypto.subtle),'Sicherer Browserkontext kann erforderlich sein'),
 test('Sprachausgabe',!!window.speechSynthesis),
 test('Mikrofonaufnahme',!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder)),
 test('Spracherkennung',!!(window.SpeechRecognition||window.webkitSpeechRecognition)),
-test('Service Worker',!!navigator.serviceWorker),test('Internetverbindung',navigator.onLine,'Browser-Netzwerkstatus')
-];
-['UpdateCenter','BackupRecovery','LanguageVoiceStudio','VoiceCore','DokumentePro','KontaktePro'].forEach(function(k){checks.push(test('Modul: '+k,!!(H[k]&&typeof H[k].open==='function')));});
-return checks;
-}
-function summary(){var c=collect(),n=c.filter(function(x){return x.ok;}).length;return 'HalDo System Diagnostics Pro v'+BUILD+': '+n+' von '+c.length+' Prüfungen verfügbar.';}
-function open(){
-if(!H.Win||typeof H.Win.open!=='function'){if(typeof H.Notify==='function')H.Notify('HalDo Fensterverwaltung ist nicht verfügbar.','error');return;}
-var id='haldo-v160-diagnostics-'+Date.now();
-H.Win.open('🛡️ HalDo System Diagnostics Pro','<div id="'+id+'"></div>',{w:720,h:760});
-window.setTimeout(function(){
-var root=document.getElementById(id);if(!root||!root.isConnected)return;
-var c=collect(),n=c.filter(function(x){return x.ok;}).length;
-root.innerHTML='<style>.hd160{color:var(--text,#eaf2ff);font:13px/1.5 system-ui;padding:16px}.hd160-head{padding:16px;border:1px solid #38bdf855;border-radius:15px;background:linear-gradient(130deg,#0e749033,#4338ca22)}.hd160 h2{margin:0 0 5px}.hd160 p{opacity:.75}.hd160-stat{font-size:26px;font-weight:850;margin:10px 0}.hd160-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin-top:14px}.hd160-item{padding:11px;border:1px solid #ffffff20;border-radius:11px;background:#0b1730}.hd160-item b{display:block}.hd160-item small{opacity:.7;overflow-wrap:anywhere}.hd160-good{color:#6ee7b7}.hd160-warn{color:#fbbf24}.hd160-foot{font-size:11px;opacity:.65;margin-top:14px}</style><div class="hd160"><div class="hd160-head"><h2>🛡️ HalDo System Diagnostics Pro</h2><p>Technische Kompatibilitätsprüfung – keine Daten werden hochgeladen.</p><div class="hd160-stat">'+n+' / '+c.length+' Prüfungen verfügbar</div><b>Build v'+BUILD+'</b></div><div class="hd160-list">'+c.map(function(x){return '<div class="hd160-item"><b class="'+(x.ok?'hd160-good':'hd160-warn')+'">'+(x.ok?'✓':'!')+' '+esc(x.name)+'</b><small>'+esc(x.detail)+'</small></div>';}).join('')+'</div><div class="hd160-foot">„Nicht verfügbar“ ist nicht automatisch ein Fehler. Funktionen können von Browser, Gerät, Berechtigungen oder HTTPS abhängen. Geprüft wird die API-Verfügbarkeit, nicht die vollständige Funktion jeder App.</div></div>';
-},80);
-}
-H.SystemDiagnostics={version:BUILD,collect:collect,summary:summary,open:open};
+test('Service Worker',!!navigator.serviceWorker),
+test('Internetverbindung',navigator.onLine,'Browser-Netzwerkstatus; kein Server-Erreichbarkeitstest')
+];}
+function summary(){var c=collect(),n=c.filter(function(x){return x.ok;}).length;return 'HalDo App Health Monitor: '+n+' von '+c.length+' Prüfungen verfügbar; '+(c.length-n)+' Hinweise.';}
+function report(){var c=collect(),n=c.filter(function(x){return x.ok;}).length;return {product:'HalDo System Diagnostics Pro',version:BUILD,generatedAt:new Date().toISOString(),summary:{total:c.length,available:n,notAvailable:c.length-n},checks:c,scope:'Browser-API- und Laufzeitprüfung. Keine vollständigen fachlichen App- oder Servertests.'};}
+function exportReport(){var blob=new Blob([JSON.stringify(report(),null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='HalDo-App-Health-Report.json';document.body.appendChild(a);a.click();a.remove();window.setTimeout(function(){URL.revokeObjectURL(url);},1500);}
+function open(){if(!H.Win||typeof H.Win.open!=='function')return;var id='haldo-health-'+Date.now();H.Win.open('🛡️ HalDo App Health Monitor Pro','<div id="'+id+'"></div>',{w:760,h:800});window.setTimeout(function(){var root=document.getElementById(id);if(!root||!root.isConnected)return;function render(){var c=collect(),n=c.filter(function(x){return x.ok;}).length;root.innerHTML='<style>.hd160{color:var(--text,#eaf2ff);font:13px/1.5 system-ui;padding:16px}.hd160-head{padding:16px;border:1px solid #38bdf855;border-radius:15px;background:linear-gradient(130deg,#0e749033,#4338ca22)}.hd160-stat{font-size:26px;font-weight:850;margin:10px 0}.hd160-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.hd160 button{border:1px solid #6b8eb455;border-radius:9px;padding:8px 11px;background:#102441;color:inherit;cursor:pointer}.hd160-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin-top:14px}.hd160-item{padding:11px;border:1px solid #ffffff20;border-radius:11px;background:#0b1730;min-width:0}.hd160-item b{display:block}.hd160-item small{opacity:.7;overflow-wrap:anywhere}.hd160-good{color:#6ee7b7}.hd160-warn{color:#fbbf24}.hd160-foot{font-size:11px;opacity:.65;margin-top:14px}</style><div class="hd160"><div class="hd160-head"><h2>🛡️ HalDo App Health Monitor Pro</h2><p>Lokale Laufzeit-, Registry-, Dispatcher- und Browser-Kompatibilitätsprüfung. Keine Daten werden hochgeladen.</p><div class="hd160-stat">'+n+' / '+c.length+' Prüfungen verfügbar</div><b>Build v'+BUILD+'</b><div class="hd160-actions"><button type="button" data-health-refresh>↻ Erneut prüfen</button><button type="button" data-health-export>⬇ JSON-Prüfbericht</button></div></div><div class="hd160-list">'+c.map(function(x){return '<div class="hd160-item"><b class="'+(x.ok?'hd160-good':'hd160-warn')+'">'+(x.ok?'✓':'!')+' '+esc(x.name)+'</b><small>'+esc(x.detail)+'</small></div>';}).join('')+'</div><div class="hd160-foot">„Nicht verfügbar“ ist nicht automatisch ein Fehler. Browser, Gerät, Berechtigungen und HTTPS können APIs einschränken. Der Bericht bestätigt keine vollständigen fachlichen App-Tests, Server-Erreichbarkeit oder Datenwiederherstellung.</div></div>';}root.addEventListener('click',function(e){var x=e.target.closest('button');if(!x)return;if(x.hasAttribute('data-health-refresh'))render();if(x.hasAttribute('data-health-export'))exportReport();});render();},80);}
+H.SystemDiagnostics={version:BUILD,collect:collect,summary:summary,report:report,open:open};
 if(H.Registry&&Array.isArray(H.Registry.featured)&&!H.Registry.featured.some(function(x){return x&&x.id==='system-diagnostics';}))H.Registry.featured.push({id:'system-diagnostics',n:'HalDo System Diagnostics Pro',i:'🛡️'});
-var previousLaunch=H.Launch;
-H.Launch=function(app){if(app&&app.id==='system-diagnostics')return open();if(typeof previousLaunch==='function')return previousLaunch.apply(this,arguments);};
+var previousLaunch=H.Launch;H.Launch=function(app){if(app&&app.id==='system-diagnostics')return open();if(typeof previousLaunch==='function')return previousLaunch.apply(this,arguments);};
 try{if(H.AppVoice&&typeof H.AppVoice.command==='function')H.AppVoice.command('haldo-system-diagnostics',['öffne haldo systemdiagnose','öffne systemdiagnose','prüfe haldo system'],function(){open();return summary();});}catch(e){console.warn('[HalDo v160] Sprachbefehl:',e);}
-H.Master=H.Master||{};H.Master.version=BUILD;
-console.info('HalDo System Diagnostics Pro v'+BUILD+' bereit.');
+H.Master=H.Master||{};H.Master.version=BUILD;console.info('HalDo App Health Monitor Pro v'+BUILD+' bereit.');
 })();
 </script>
 <!-- ENDE HALDO v160 SYSTEM DIAGNOSTICS -->
