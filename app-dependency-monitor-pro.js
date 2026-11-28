@@ -46,8 +46,6 @@
       if (status === 'resolved') {
         if (!moduleUsers[moduleName]) moduleUsers[moduleName] = [];
         moduleUsers[moduleName].push(id);
-      } else {
-        routeIssues.push({ id: id, module: safe(moduleName || ''), reason: status === 'missing-target' ? 'Zielmodul fehlt oder besitzt keine open()-Funktion' : 'Weder Dispatcher-Ziel noch direktes App-Modul erkannt' });
       }
     });
     routes.forEach(function (id) {
