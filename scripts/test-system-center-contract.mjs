@@ -182,7 +182,7 @@ for (const [id, moduleName] of [['email','EmailPro'],['phone','PhonePro'],['vide
 assert.match(source, /Erkanntes Modul/, 'Inventory displays the resolved implementation name');
 assert.match(source, /registryWithoutCategory,'Registry-Apps ohne Kategorie'/, 'Registered apps outside the A-Z catalogue are counted');
 assert.match(source, /Vollständiges A–Z-App-Inventar/, 'Inventory heading includes planned catalogue entries');
-assert.match(source, /\['Kategorie\(n\)','App','App-ID','Registrierung','Erkanntes Modul','Status','Hinweis'\]/, 'CSV export includes the separate registration state');
+assert.match(source, /\['Kategorie\(n\)','App','App-ID','Registrierung','Zweck','Beschreibung','Funktionsumfang','Profilstatus','Metadatenquelle','Erkanntes Modul','Status','Hinweis'\]/, 'CSV export includes registration, documentation coverage and metadata provenance');
 assert.match(source, /registrationLabel/, 'Inventory UI exposes catalogue-only and registry-backed registration labels');
 const csvCellMatch = source.match(/function csvCell\(value\) \{[\s\S]*?\n  \}/);
 assert.ok(csvCellMatch, 'System Center CSV export uses a dedicated cell sanitizer');
