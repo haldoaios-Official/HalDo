@@ -23,6 +23,8 @@ const H = {
       { id: 'generic-demo', n: 'Generic Demo', i: '📦' },
       { id: 'route-demo', n: 'Route Demo', i: '🛣️' },
       { id: 'route-ready-demo', n: 'Route Ready Demo', i: '🧭' },
+      { id: 'module-unrouted-demo', n: 'Module Unrouted Demo', i: '🧩' },
+      { id: 'geo-quiz', n: 'Geo Quiz', i: '🗺️' },
       { id: 'missing-demo', n: 'Missing Demo', i: '❔' }
     ],
     getCategories: () => categories,
@@ -45,8 +47,8 @@ const H = {
     }
   },
   SystemV157: {
-    routes: () => ['route-demo', 'route-ready-demo'],
-    moduleFor: id => id === 'route-ready-demo' ? 'RouteReadyModule' : null,
+    routes: () => ['route-demo', 'route-ready-demo', 'geo-quiz'],
+    moduleFor: id => id === 'route-ready-demo' ? 'RouteReadyModule' : id === 'geo-quiz' ? 'GeoQuizModule' : null,
     getVersion: () => '166.0.0'
   },
   MusicStudio: { __nativePro: true },
@@ -56,6 +58,9 @@ H['native-demo'] = { __nativePro: true, open() {} };
 H['dedicated-demo'] = { open() {} };
 H['generic-demo'] = { open: function haldo_gen_placeholder() {} };
 H.RouteReadyModule = { open() {} };
+H.UnroutedDemo = { open() {} };
+H.GeoQuizModule = { open() {} };
+H['geo-quiz'] = { open: function haldo_gen_geo_quiz_placeholder() {} };
 
 const window = { HalDo: H, setTimeout() {} };
 const document = { title: 'HalDo AI OS Pro Max – Master Build v166' };
@@ -80,6 +85,10 @@ assert.equal(byId['generic-demo'].status, 'generic');
 assert.equal(byId['route-demo'].status, 'route');
 assert.equal(byId['route-ready-demo'].status, 'routeReady', 'A route alias with a real open() target is recognized as ready');
 assert.equal(byId['route-ready-demo'].module, 'RouteReadyModule', 'The resolved launcher target is visible in the inventory');
+assert.equal(byId['module-unrouted-demo'].status, 'moduleUnrouted', 'A PascalCase module without a dispatcher route is reported separately');
+assert.equal(byId['module-unrouted-demo'].module, 'UnroutedDemo');
+assert.equal(byId['geo-quiz'].status, 'routeReady', 'A real dispatcher target takes precedence over a direct generic fallback');
+assert.equal(byId['geo-quiz'].module, 'GeoQuizModule');
 assert.equal(byId['missing-demo'].status, 'missing');
 assert.deepEqual(Array.from(byId['missing-demo'].categories), [], 'Unassigned registry apps have an explicit empty category list');
 assert.ok(byId['planned-demo'], 'Unregistered A–Z catalogue IDs are included in the inventory');
@@ -88,10 +97,14 @@ assert.equal(byId['planned-demo'].status, 'missing', 'Unregistered catalogue IDs
 assert.equal(byId['planned-demo'].catalogOnly, true);
 assert.equal(byId['native-demo'].category, 'A');
 assert.deepEqual(Array.from(byId['native-demo'].categories), ['A', 'S'], 'Every category assignment is retained for a multiply assigned app');
-assert.match(source, /!item\.catalogOnly && \['native','dedicated','generic','routeReady'\]\.indexOf\(item\.status\) !== -1/, 'Only entries with a recognized module can be launched');
+assert.match(source, /!item\.catalogOnly && \['native','dedicated','generic','routeReady'\]\.indexOf\(item\.status\) !== -1/, 'Only entries with a recognized launch target can be launched');
+assert.match(source, /moduleUnrouted/, 'Modules without an active dispatcher route have a separate status');
 assert.match(source, /Planplätze ohne Katalog-ID/, 'Unassigned plan slots are labelled accurately');
 assert.match(source, /moduleFor\(app\.id\)/, 'Runtime route targets are resolved through the dispatcher API');
 assert.match(index, /moduleFor:function\(id\)\{return ROUTES\[String\(id\)\]\|\|null;\}/, 'The central dispatcher exposes its explicit module resolver');
+for (const [id, moduleName] of [['email','EmailPro'],['phone','PhonePro'],['videocall','VideoCalls'],['chat-pro','ChatPro'],['geo-quiz','GeoQuiz'],['aktien','Aktien'],['science-lab','ScienceLab'],['backup','BackupRecovery']]) {
+  assert.match(index, new RegExp("['"]" + id + "['"]\\s*:\\s*['"]" + moduleName + "['"]"), 'Dispatcher route is wired: ' + id + ' → ' + moduleName);
+}
 assert.match(source, /Erkanntes Modul/, 'Inventory displays the resolved implementation name');
 assert.match(source, /registryWithoutCategory,'Registry-Apps ohne Kategorie'/, 'Registered apps outside the A-Z catalogue are counted');
 assert.match(source, /Vollständiges A–Z-App-Inventar/, 'Inventory heading includes planned catalogue entries');
