@@ -190,6 +190,16 @@ assert.equal(converterProfile.metadataStatus, 'complete');
 assert.ok(converterProfile.featureSummary.includes('Keine PDF-, Office- oder Bildkonvertierung'));
 assert.ok(converterProfile.featureSummary.includes('CSV-Export maskiert formelartige Textwerte'));
 
+const avatarProfile = H.SystemCenter.appMetadata({ id: 'avatar' });
+assert.equal(avatarProfile.metadataStatus, 'complete');
+assert.equal(avatarProfile.metadataSource, 'Modulcode · index.html / v151 Capability Report + v154 LivingAvatar');
+assert.ok(avatarProfile.featureSummary.includes('kein realistisches 3D-Avatar-Modell'));
+assert.ok(avatarProfile.featureSummary.includes('keine Phonem-basierte Lippensynchronisation'));
+assert.ok(avatarProfile.featureSummary.includes('Browser SpeechSynthesis'));
+assert.match(index, /realistic3DModel:false,phonemeLipSync:false/, 'Living Avatar profile limitations are grounded in the existing capability report');
+assert.match(index, /H\.LivingAvatar = \(\(\) => \{/, 'Living Avatar profile points to an existing runtime module');
+
+
 
 assert.equal(byId['native-demo'].implementationLabel, 'Natives HalDo-Modul erkannt');
 assert.ok(byId['native-demo'].nextSteps.some(step => step.includes('echten Browser')), 'Native modules expose a concrete manual verification step');
