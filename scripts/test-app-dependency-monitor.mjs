@@ -21,6 +21,7 @@ runInNewContext(source, { window, console, Date, String, Array, Object, Promise,
 assert.equal(typeof H.AppDependencyMonitor.analyze, 'function');
 assert.equal(typeof H.AppDependencyMonitor.scan, 'function');
 assert.equal(typeof H.AppDependencyMonitor.open, 'function');
+assert.equal(H.AppDependencyMonitor.version, '1.1.0');
 
 const report = H.AppDependencyMonitor.analyze({
   scripts: [
