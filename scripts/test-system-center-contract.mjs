@@ -84,7 +84,7 @@ assert.match(source, /!item\.catalogOnly && item\.status !== 'missing'/, 'Catalo
 assert.match(source, /Planplätze ohne Katalog-ID/, 'Unassigned plan slots are labelled accurately');
 assert.match(source, /registryWithoutCategory,'Registry-Apps ohne Kategorie'/, 'Registered apps outside the A-Z catalogue are counted');
 assert.match(source, /Vollständiges A–Z-App-Inventar/, 'Inventory heading includes planned catalogue entries');
-assert.match(source, /Alle A–Z-Kategorien/, 'Inventory exposes a dedicated A-Z category filter');
+assert.match(source, /-category.*Alle A–Z-Kategorien/, 'Inventory exposes a dedicated A-Z category filter');
 assert.match(source, /categoryFilter\.addEventListener\('change',render\)/, 'Changing the category filter refreshes the inventory');
 assert.match(source, /categoryFilter\.value === 'all' \|\| item\.category === categoryFilter\.value/, 'Category filter restricts the inventory to the selected letter');
 assert.equal(byId['system-center'].category, 'S');
