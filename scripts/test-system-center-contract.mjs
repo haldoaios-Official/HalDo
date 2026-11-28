@@ -41,7 +41,7 @@ const H = {
   Master: {
     version: '166.0.0',
     getCategoryApps(letter) {
-      if (letter === 'A') return [{ id: 'native-demo', name: 'Native Demo' }, { id: 'dynamic-demo', name: 'Dynamic Category Demo' }];
+      if (letter === 'A') return [{ id: 'native-demo', name: 'Native Demo' }, { id: 'dynamic-demo', name: 'Dynamic Category Demo' }, { id: 'unrouted-demo', name: 'Module Unrouted Demo' }];
       if (letter === 'S') return [{ id: 'native-demo', name: 'Native Demo' }];
       return [];
     },
@@ -168,30 +168,31 @@ assert.equal(H.SystemCenter.categoryRegisteredCount(H.Master.getCategoryCatalogA
 assert.equal(H.SystemCenter.categoryRegisteredCount(H.Master.getCategoryCatalogApps('S')), 1, 'Unregistered category IDs are excluded from registered counts');
 const planAudit = H.SystemCenter.plan();
 assert.equal(planAudit.planned, 22);
-assert.equal(planAudit.catalogAssignments, 5, 'Late category extensions are included and repeated placements are deduplicated per letter');
-assert.equal(planAudit.catalogUnique, 4, 'Unique catalogue IDs include late category extensions without double counting');
+assert.equal(planAudit.catalogAssignments, 6, 'Late category extensions are included and repeated placements are deduplicated per letter');
+assert.equal(planAudit.catalogUnique, 5, 'Unique catalogue IDs include late category extensions without double counting');
 assert.equal(planAudit.catalogDuplicateAssignments, 1, 'Cross-category duplicate assignments are counted separately from unique IDs');
 assert.equal(planAudit.catalogUnnamed, 1, 'Catalogue IDs without a confirmed display name remain explicitly measurable');
-assert.equal(planAudit.registeredInCatalog, 3, 'Registry overlap includes later registered category apps');
-assert.equal(planAudit.unassignedPlanSlots, 17, 'Unassigned plan slots remain visible as a gap');
+assert.equal(planAudit.registeredInCatalog, 4, 'Registry overlap includes later registered category apps');
+assert.equal(planAudit.unassignedPlanSlots, 16, 'Unassigned plan slots remain visible as a gap');
 assert.equal(H.Registry.totalCount(), 22, 'The planned slot count is preserved');
 
 const aProgress = H.SystemCenter.categoryProgress('A');
 assert.equal(aProgress.planned, 10, 'Category progress keeps the planned capacity for the selected letter');
-assert.equal(aProgress.catalogIds, 3, 'Category progress counts de-duplicated catalogue IDs from both catalogue sources');
-assert.equal(aProgress.namedIds, 2, 'Category progress distinguishes named IDs from unnamed planning entries');
-assert.equal(aProgress.registeredIds, 2, 'Category progress counts only IDs actually present in the core registry');
+assert.equal(aProgress.catalogIds, 4, 'Category progress counts de-duplicated catalogue IDs from both catalogue sources');
+assert.equal(aProgress.namedIds, 3, 'Category progress distinguishes named IDs from unnamed planning entries');
+assert.equal(aProgress.registeredIds, 3, 'Category progress counts only IDs actually present in the core registry');
 assert.equal(aProgress.readyModules, 2, 'Category progress counts native and dedicated modules as recognized targets');
 assert.equal(aProgress.missingModules, 1, 'Category progress separately reports catalogue entries without a module');
-assert.equal(aProgress.planSlotsWithoutId, 7, 'Category progress treats unassigned capacity as slots without IDs, not as app records');
+assert.equal(aProgress.planSlotsWithoutId, 6, 'Category progress treats unassigned capacity as slots without IDs, not as app records');
 assert.equal(aProgress.statusCounts.native, 1);
 assert.equal(aProgress.statusCounts.dedicated, 1);
+assert.equal(aProgress.statusCounts.moduleUnrouted, 1, 'Per-category audit reports installed modules without a dispatcher route');
 
 const sProgress = H.SystemCenter.categoryProgress('S');
 assert.equal(sProgress.catalogIds, 2, 'Category progress includes the System Center category extension');
 assert.equal(sProgress.registeredIds, 2, 'System Center is counted as registered in its own category');
-assert.equal(sProgress.modulesWithoutRoute, 1, 'A registered module without a dispatcher route is reported separately');
-assert.equal(sProgress.readyModules, 1, 'Only the native demo is counted as route-ready in category S');
+assert.equal(sProgress.modulesWithoutRoute, 0, 'A direct System Center module is not falsely classified as unrouted');
+assert.equal(sProgress.readyModules, 2, 'Native and directly registered System Center modules are recognized');
 assert.equal(sProgress.planSlotsWithoutId, 10);
 const emptyProgress = H.SystemCenter.categoryProgress('Z');
 assert.equal(emptyProgress.catalogIds, 0, 'Empty categories do not get invented catalogue entries');
