@@ -163,7 +163,9 @@
         detail:app.__catalogOnly
           ? 'A–Z-Katalog-ID vorhanden, aber noch nicht in der Kern-Registry registriert. ' + status.detail
           : status.detail,
-        catalogOnly:app.__catalogOnly === true
+        catalogOnly:app.__catalogOnly === true,
+        registration:app.__catalogOnly === true ? 'planned-only' : 'registered',
+        registrationLabel:app.__catalogOnly === true ? 'Nur A–Z-Katalog' : 'In Kern-Registry'
       };
     }).filter(function (app) { return !!app.id; }).sort(function (a,b) {
       return a.category.localeCompare(b.category) || a.name.localeCompare(b.name);
@@ -226,8 +228,8 @@
   }
   function exportInventory() {
     var rows = getInventory();
-    var csv = [['Kategorie(n)','App','App-ID','Erkanntes Modul','Status','Hinweis']].concat(rows.map(function (r) {
-      return [r.categories.length ? r.categories.join(', ') : '—',r.name,r.id,r.module || '—',r.statusLabel,r.detail];
+    var csv = [['Kategorie(n)','App','App-ID','Registrierung','Erkanntes Modul','Status','Hinweis']].concat(rows.map(function (r) {
+      return [r.categories.length ? r.categories.join(', ') : '—',r.name,r.id,r.registrationLabel,r.module || '—',r.statusLabel,r.detail];
     })).map(function (row) {
       return row.map(csvCell).join(';');
     }).join('\r\n');
@@ -244,7 +246,7 @@
       '<div class="hdsc-section"><h3>🗂 A–Z-Kategorien und Planungsumfang</h3><div class="hdsc-muted">Geplante App-Plätze sind Masterplan-Ziele – keine Behauptung, dass alle diese Apps bereits fertig programmiert sind.</div><div class="hdsc-grid" id="' + rootId + '-cats" style="margin-top:9px"></div></div>' +
       '<div class="hdsc-section"><div class="hdsc-row" style="justify-content:space-between"><h3 style="margin:0">📋 Vollständiges A–Z-App-Inventar</h3><span class="hdsc-muted" id="' + rootId + '-count"></span></div>' +
       '<div class="hdsc-tools"><input class="hdsc-input" id="' + rootId + '-search" placeholder="App oder App-ID suchen …"><select class="hdsc-input" id="' + rootId + '-filter">' + FILTERS.map(function (f) { return '<option value="' + f.id + '">' + f.name + '</option>'; }).join('') + '</select><select class="hdsc-input" id="' + rootId + '-category"><option value="all">Alle A–Z-Kategorien</option><option value="none">Ohne Kategorie</option>' + Object.keys(getCategories()).sort().map(function (key) { var category = getCategories()[key]; return '<option value="' + esc(key) + '">' + esc(key + ' · ' + (category.name || 'Kategorie')) + '</option>'; }).join('') + '</select><button class="hdsc-btn" id="' + rootId + '-clear">Zurücksetzen</button></div>' +
-      '<div class="hdsc-tablewrap"><table class="hdsc-table"><thead><tr><th>Kategorie(n)</th><th>App</th><th>Erkanntes Modul</th><th>Status</th><th>Aktion</th></tr></thead><tbody id="' + rootId + '-body"></tbody></table></div>' +
+      '<div class="hdsc-tablewrap"><table class="hdsc-table"><thead><tr><th>Kategorie(n)</th><th>App</th><th>Registrierung</th><th>Erkanntes Modul</th><th>Status</th><th>Aktion</th></tr></thead><tbody id="' + rootId + '-body"></tbody></table></div>' +
       '<div class="hdsc-footer">Status wird aus dem aktuell geladenen HalDo-Laufzeitsystem erkannt. „Spezialroute prüfen“ ist ausdrücklich keine Bestätigung einer vollständig funktionsfähigen App.</div></div>' +
       '<div class="hdsc-section"><h3>✅ Aktuell bestätigte native Studio-Module</h3><div class="hdsc-row"><span class="hdsc-status native">HalDo Music Studio Pro</span><span class="hdsc-status native">HalDo Video Studio Pro</span></div><div class="hdsc-muted" style="margin-top:8px">Nativ registrierte Module werden anhand ihrer Modulregistrierung erkannt. Browser-/Exportfunktionen müssen zusätzlich im echten Browser praktisch getestet werden.</div></div>';
 
@@ -274,6 +276,7 @@
           ['🧾',plan.catalogAssignments,'Kategorie-Zuordnungen'],
           ['🆔',plan.catalogUnique,'Eindeutige Katalog-IDs'],
           ['📦',plan.registryCount,'Registrierte Kern-Apps'],
+          ['🗂',inventory.filter(function (item) { return item.registration === 'planned-only'; }).length,'Nur im A–Z-Katalog'],
           ['🔗',plan.registeredInCatalog,'In Katalog & Registry'],
           ['🗃',plan.registryWithoutCategory,'Registry-Apps ohne Kategorie'],
           ['🧭',summary.routeReady,'Launcher-Zielmodule erkannt'],
@@ -309,7 +312,7 @@
         body.innerHTML = filtered.length ? filtered.map(function (item) {
           // Catalogue-only IDs are visible for planning, but are not launchable until registered.
           var canOpen = !item.catalogOnly && ['native','dedicated','routeReady'].indexOf(item.status) !== -1;
-          return '<tr><td>' + esc(item.categories.length ? item.categories.join(' · ') : '—') + '</td><td><div class="hdsc-appname">' + esc(item.icon) + ' ' + esc(item.name) + '</div><div class="hdsc-id">' + esc(item.id) + '</div></td><td>' + esc(item.module || '—') + '</td><td><span class="hdsc-status ' + item.status + '" title="' + esc(item.detail) + '">' + esc(item.statusLabel) + '</span></td><td><button class="hdsc-btn" data-open-app="' + esc(item.id) + '"' + (canOpen ? '' : ' disabled title="' + esc(item.status === 'generic' ? 'Generischer Platzhalter: noch kein eigenständiges Fachmodul.' : 'Für diese App ist noch kein startbares Modul registriert.') + '"') + '>' + (canOpen ? 'Öffnen' : (item.status === 'generic' ? 'Platzhalter' : 'Modul fehlt')) + '</button></td></tr>';
+          return '<tr><td>' + esc(item.categories.length ? item.categories.join(' · ') : '—') + '</td><td><div class="hdsc-appname">' + esc(item.icon) + ' ' + esc(item.name) + '</div><div class="hdsc-id">' + esc(item.id) + '</div></td><td><span class="hdsc-status ' + (item.catalogOnly ? 'missing' : 'native') + '">' + esc(item.registrationLabel) + '</span></td><td>' + esc(item.module || '—') + '</td><td><span class="hdsc-status ' + item.status + '" title="' + esc(item.detail) + '">' + esc(item.statusLabel) + '</span></td><td><button class="hdsc-btn" data-open-app="' + esc(item.id) + '" + (canOpen ? '' : ' disabled title="' + esc(item.status === 'generic' ? 'Generischer Platzhalter: noch kein eigenständiges Fachmodul.' : 'Für diese App ist noch kein startbares Modul registriert.') + '"') + '>' + (canOpen ? 'Öffnen' : (item.status === 'generic' ? 'Platzhalter' : 'Modul fehlt')) + '</button></td></tr>';
         }).join('') : '<tr><td colspan="5" class="hdsc-empty">Keine passenden Apps gefunden.</td></tr>';
       }
       root.addEventListener('click',function (event) {
