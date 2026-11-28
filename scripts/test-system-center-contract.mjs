@@ -216,8 +216,11 @@ assert.match(avatarTestPage, /getContext\(["']2d["']\)/, 'Avatar test page rende
 assert.doesNotMatch(index, /<script[^>]+(?:haldo-human-3d-engine|ai-avatar|avatar\.js)/i, 'Standalone avatar experiments are not silently treated as active index.html modules');
 assert.match(humanEngine, /new THREE\.AnimationMixer/, 'Human3D engine can play animations included in loaded GLB files');
 assert.match(humanEngine, /const clips\s*=\s*gltf\.animations\s*\|\|\s*\[\]/, 'GLB animation clips are optional rather than guaranteed');
-assert.doesNotMatch(humanEngine, /isSkinnedMesh|\.skeleton\b|SkeletonHelper/, 'Human3D engine does not yet validate a rigged humanoid skeleton');
-assert.doesNotMatch(humanEngine, /morphTargetInfluences|viseme|phoneme|lip.?sync/i, 'Human3D engine has no source-backed morph-target or phoneme lip-sync pipeline');
+assert.match(humanEngine, /function inspectModelCapabilities\(model, animations\)/, 'Human3D engine exposes explicit model capability inspection');
+assert.match(humanEngine, /object\.isSkinnedMesh === true/, 'Human3D capability inspection detects skinned meshes');
+assert.match(humanEngine, /object\.skeleton/, 'Human3D capability inspection checks skeleton data');
+assert.match(humanEngine, /morphTargetDictionary|morphAttributes/, 'Human3D capability inspection detects morph-target availability');
+assert.doesNotMatch(humanEngine, /morphTargetInfluences|viseme|phoneme|lip.?sync/i, 'Capability detection does not pretend to animate facial morphs or perform phoneme lip sync');
 for (const modelPath of [
   'assets/avatars/haldo-human.glb',
   'assets/avatars/haldo-cyborg.glb',
