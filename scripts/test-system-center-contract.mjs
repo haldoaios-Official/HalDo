@@ -88,7 +88,8 @@ assert.match(source, /registryWithoutCategory,'Registry-Apps ohne Kategorie'/, '
 assert.match(source, /Vollständiges A–Z-App-Inventar/, 'Inventory heading includes planned catalogue entries');
 assert.match(source, /-category.*Alle A–Z-Kategorien/, 'Inventory exposes a dedicated A-Z category filter');
 assert.match(source, /categoryFilter\.addEventListener\('change',render\)/, 'Changing the category filter refreshes the inventory');
-assert.match(source, /categoryFilter\.value === 'all' \|\| item\.category === categoryFilter\.value/, 'Category filter restricts the inventory to the selected letter');
+assert.match(source, /categoryFilter\.value === 'all' \|\| item\.categories\.indexOf\(categoryFilter\.value\) !== -1/, 'Category filter includes apps assigned to the selected letter');
+assert.match(source, /item\.categories\.join\(' · '\)/, 'Inventory displays all category assignments for each app');
 assert.equal(byId['system-center'].category, 'S');
 const planAudit = H.SystemCenter.plan();
 assert.equal(planAudit.planned, 22);
