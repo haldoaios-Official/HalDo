@@ -185,6 +185,9 @@ const keyboardModule = index.slice(keyboardStart, converterStart);
 assert.match(keyboardModule, /ta\.dir=lang==='Soranî'\?'rtl':'ltr'/, 'Sorani text field switches to right-to-left direction');
 assert.match(keyboardModule, /ta\.style\.textAlign=lang==='Soranî'\?'right':'left'/, 'Sorani text field aligns from the right');
 assert.match(keyboardModule, /keyGrid\.style\.direction=lang==='Soranî'\?'rtl':'ltr'/, 'Virtual keyboard rows switch to right-to-left layout for Sorani');
+assert.match(keyboardModule, /'Deutsch':\['qwertzuiop','asdfghjkl','yxcvbnm','äöüß'\]/, 'German keyboard includes umlaut and sharp-s keys');
+assert.match(keyboardModule, /'Kurmancî':\['qwertyuiop','asdfghjkl','zxcvbnm','çêîşû'\]/, 'Kurmanci keyboard includes its five additional Latin letters');
+assert.match(keyboardModule, /shift\?ch\.toUpperCase\(\):ch/, 'Shift applies case conversion to special layout characters');
 
 const converterEnd = index.indexOf('var apps=[household,keyboard,converter];', converterStart);
 assert.ok(converterStart >= 0 && converterEnd > converterStart, 'File converter module boundaries exist');
