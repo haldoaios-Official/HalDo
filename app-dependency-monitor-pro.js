@@ -4,7 +4,7 @@
   var H = window.HalDo = window.HalDo || {};
   var APP_ID = 'app-dependency-monitor';
   var APP_NAME = 'HalDo App Dependency Monitor Pro Max';
-  var BUILD = '1.0.0';
+  var BUILD = '1.1.0';
 
   function safe(value) { return String(value == null ? '' : value); }
   function analyze(input) {
