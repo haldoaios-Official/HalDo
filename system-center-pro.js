@@ -331,8 +331,10 @@
   // Route the launcher to the real app window instead of the generic greeting.
   var previousLaunch = H.Launch;
   H.Launch = function (app) {
-    if (app && app.id === APP_ID) return H.SystemCenter.open();
+    // Preserve the central launcher (including the universal welcome experience).
+    // The v157 dispatcher can then resolve H[APP_ID].open() like every other app.
     if (typeof previousLaunch === 'function') return previousLaunch.apply(this, arguments);
+    if (app && app.id === APP_ID) return H.SystemCenter.open();
   };
   if (!H.Registry.featured.some(function (item) { return item.id === APP_ID; })) {
     H.Registry.featured.push({id:APP_ID,n:APP_NAME,i:APP_ICON});
