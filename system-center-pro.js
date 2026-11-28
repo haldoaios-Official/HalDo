@@ -176,7 +176,7 @@
       '<div class="hdsc-stats" id="' + rootId + '-stats"></div>' +
       '<div id="' + rootId + '-versions"></div>' +
       '<div class="hdsc-section"><h3>🗂 A–Z-Kategorien und Planungsumfang</h3><div class="hdsc-muted">Geplante App-Plätze sind Masterplan-Ziele – keine Behauptung, dass alle diese Apps bereits fertig programmiert sind.</div><div class="hdsc-grid" id="' + rootId + '-cats" style="margin-top:9px"></div></div>' +
-      '<div class="hdsc-section"><div class="hdsc-row" style="justify-content:space-between"><h3 style="margin:0">📋 Benannte HalDo-Kern-Apps</h3><span class="hdsc-muted" id="' + rootId + '-count"></span></div>' +
+      '<div class="hdsc-section"><div class="hdsc-row" style="justify-content:space-between"><h3 style="margin:0">📋 Vollständiges A–Z-App-Inventar</h3><span class="hdsc-muted" id="' + rootId + '-count"></span></div>' +
       '<div class="hdsc-tools"><input class="hdsc-input" id="' + rootId + '-search" placeholder="App oder App-ID suchen …"><select class="hdsc-input" id="' + rootId + '-filter">' + FILTERS.map(function (f) { return '<option value="' + f.id + '">' + f.name + '</option>'; }).join('') + '</select><button class="hdsc-btn" id="' + rootId + '-clear">Zurücksetzen</button></div>' +
       '<div class="hdsc-tablewrap"><table class="hdsc-table"><thead><tr><th>Kategorie</th><th>App</th><th>Status</th><th>Aktion</th></tr></thead><tbody id="' + rootId + '-body"></tbody></table></div>' +
       '<div class="hdsc-footer">Status wird aus dem aktuell geladenen HalDo-Laufzeitsystem erkannt. „Spezialroute prüfen“ ist ausdrücklich keine Bestätigung einer vollständig funktionsfähigen App.</div></div>' +
@@ -208,7 +208,8 @@
           ['🆔',plan.catalogUnique,'Eindeutige Katalog-IDs'],
           ['📦',plan.registryCount,'Registrierte Kern-Apps'],
           ['🔗',plan.registeredInCatalog,'In Katalog & Registry'],
-          ['🧭',plan.unassignedPlanSlots,'Planplätze ohne App-ID']
+          ['🗃',plan.registryWithoutCategory,'Registry-Apps ohne Kategorie'],
+          ['🧭',plan.unassignedPlanSlots,'Planplätze ohne Katalog-ID']
         ].map(function (item) {
           return '<div class="hdsc-stat"><div class="hdsc-value">' + item[0] + ' ' + item[1] + '</div><div class="hdsc-label">' + item[2] + '</div></div>';
         }).join('');
@@ -226,7 +227,7 @@
           var planned = Math.max(0,Number(category.count) || 0);
           var catalogCount = catalog ? catalog.length : 0;
           var unspecified = Math.max(0,planned - catalogCount);
-          return '<div class="hdsc-cat"><b>' + esc(category.icon || '📁') + ' ' + esc(key) + ' · ' + esc(category.name || 'Kategorie') + '</b><small>' + planned + ' Planplätze · ' + catalogCount + ' Katalog-IDs · ' + unspecified + ' noch zu benennen · ' + (named ? named.length : 0) + ' Kern-Apps registriert</small></div>';
+          return '<div class="hdsc-cat"><b>' + esc(category.icon || '📁') + ' ' + esc(key) + ' · ' + esc(category.name || 'Kategorie') + '</b><small>' + planned + ' Planplätze · ' + catalogCount + ' Katalog-IDs · ' + unspecified + ' Planplätze ohne Katalog-ID · ' + (named ? named.length : 0) + ' Kern-Apps registriert</small></div>';
         }).join('');
 
         var query = String(search.value || '').trim().toLowerCase();
@@ -237,7 +238,8 @@
         });
         count.textContent = filtered.length + ' von ' + inventory.length + ' Einträgen';
         body.innerHTML = filtered.length ? filtered.map(function (item) {
-          var canOpen = item.status !== 'missing';
+          // Catalogue-only IDs are visible for planning, but are not launchable until registered.
+          var canOpen = !item.catalogOnly && item.status !== 'missing';
           return '<tr><td>' + esc(item.category) + '</td><td><div class="hdsc-appname">' + esc(item.icon) + ' ' + esc(item.name) + '</div><div class="hdsc-id">' + esc(item.id) + '</div></td><td><span class="hdsc-status ' + item.status + '" title="' + esc(item.detail) + '">' + esc(item.statusLabel) + '</span></td><td><button class="hdsc-btn" data-open-app="' + esc(item.id) + '"' + (canOpen ? '' : ' disabled title="Für diese App ist noch kein Modul registriert"') + '>' + (canOpen ? 'Öffnen' : 'Modul fehlt') + '</button></td></tr>';
         }).join('') : '<tr><td colspan="4" class="hdsc-empty">Keine passenden Apps gefunden.</td></tr>';
       }
