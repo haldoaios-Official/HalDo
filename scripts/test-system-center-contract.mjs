@@ -31,7 +31,7 @@ const H = {
     version: '166.0.0',
     getCategoryApps(letter) {
       if (letter === 'A') return [{ id: 'native-demo', name: 'Native Demo' }];
-      if (letter === 'S') return [];
+      if (letter === 'S') return [{ id: 'native-demo', name: 'Native Demo' }];
       return [];
     },
     getCategoryCatalogApps(letter) {
@@ -39,6 +39,7 @@ const H = {
         { id: 'native-demo', name: 'Native Demo', icon: '🧪', registered: true },
         { id: 'planned-demo', name: 'Name noch offen', icon: '📦', registered: false }
       ];
+      if (letter === 'S') return [{ id: 'native-demo', name: 'Native Demo', icon: '🧪', registered: true }];
       return [];
     }
   },
@@ -80,6 +81,7 @@ assert.equal(byId['planned-demo'].name, 'Name noch offen', 'Unknown app names ar
 assert.equal(byId['planned-demo'].status, 'missing', 'Unregistered catalogue IDs are clearly marked as missing modules');
 assert.equal(byId['planned-demo'].catalogOnly, true);
 assert.equal(byId['native-demo'].category, 'A');
+assert.deepEqual(Array.from(byId['native-demo'].categories), ['A', 'S'], 'Every category assignment is retained for a multiply assigned app');
 assert.match(source, /!item\.catalogOnly && item\.status !== 'missing'/, 'Catalogue-only IDs are visible but never offered a fake launch action');
 assert.match(source, /Planplätze ohne Katalog-ID/, 'Unassigned plan slots are labelled accurately');
 assert.match(source, /registryWithoutCategory,'Registry-Apps ohne Kategorie'/, 'Registered apps outside the A-Z catalogue are counted');
@@ -90,10 +92,10 @@ assert.match(source, /categoryFilter\.value === 'all' \|\| item\.category === ca
 assert.equal(byId['system-center'].category, 'S');
 const planAudit = H.SystemCenter.plan();
 assert.equal(planAudit.planned, 22);
-assert.equal(planAudit.catalogAssignments, 2, 'Category assignment count reflects the supplied catalogue entries');
+assert.equal(planAudit.catalogAssignments, 3, 'Category assignment count includes repeated placement across different categories');
 assert.equal(planAudit.catalogUnique, 2, 'Unique catalogue IDs are counted without double counting');
 assert.equal(planAudit.registeredInCatalog, 1, 'Registry overlap is reported explicitly');
-assert.equal(planAudit.unassignedPlanSlots, 20, 'Unassigned plan slots remain visible as a gap');
+assert.equal(planAudit.unassignedPlanSlots, 19, 'Unassigned plan slots remain visible as a gap');
 assert.equal(H.Registry.totalCount(), 22, 'The planned slot count is preserved');
 assert.match(index, /<script src="system-center-pro\.js"><\/script>/, 'System Center script is included in index.html');
 assert.ok(index.indexOf('<script src="video-studio-pro.js"></script>') < index.indexOf('<script src="system-center-pro.js"></script>'), 'System Center loads after the studio modules');
