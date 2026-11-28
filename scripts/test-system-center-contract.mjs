@@ -85,10 +85,10 @@ assert.match(source, /noch zu benennen/, 'Unspecified plan slots are shown trans
 assert.equal(byId['system-center'].category, 'S');
 const planAudit = H.SystemCenter.plan();
 assert.equal(planAudit.planned, 22);
-assert.equal(planAudit.catalogAssignments, 3, 'Category assignment count includes the System Center category assignment');
-assert.equal(planAudit.catalogUnique, 3, 'Unique catalogue IDs are counted without double counting');
-assert.equal(planAudit.registeredInCatalog, 2, 'Registry overlap is reported explicitly');
-assert.equal(planAudit.unassignedPlanSlots, 19, 'Unassigned plan slots remain visible as a gap');
+assert.equal(planAudit.catalogAssignments, 2, 'Category assignment count reflects the supplied catalogue entries');
+assert.equal(planAudit.catalogUnique, 2, 'Unique catalogue IDs are counted without double counting');
+assert.equal(planAudit.registeredInCatalog, 1, 'Registry overlap is reported explicitly');
+assert.equal(planAudit.unassignedPlanSlots, 20, 'Unassigned plan slots remain visible as a gap');
 assert.equal(H.Registry.totalCount(), 22, 'The planned slot count is preserved');
 assert.match(index, /<script src="system-center-pro\.js"><\/script>/, 'System Center script is included in index.html');
 assert.ok(index.indexOf('<script src="video-studio-pro.js"></script>') < index.indexOf('<script src="system-center-pro.js"></script>'), 'System Center loads after the studio modules');
