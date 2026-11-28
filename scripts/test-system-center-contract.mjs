@@ -140,6 +140,7 @@ for (const [id, moduleName] of [['email','EmailPro'],['phone','PhonePro'],['vide
 assert.match(source, /Erkanntes Modul/, 'Inventory displays the resolved implementation name');
 assert.match(source, /registryWithoutCategory,'Registry-Apps ohne Kategorie'/, 'Registered apps outside the A-Z catalogue are counted');
 assert.match(source, /Vollständiges A–Z-App-Inventar/, 'Inventory heading includes planned catalogue entries');
+assert.match(source, /\['Kategorie\(n\)','App','App-ID','Erkanntes Modul','Status','Hinweis'\]/, 'CSV export headers align with all six exported inventory fields');
 assert.match(source, /-category.*Alle A–Z-Kategorien.*Ohne Kategorie/, 'Inventory exposes A-Z and unassigned-category filters');
 assert.match(source, /categoryFilter\.addEventListener\('change',render\)/, 'Changing the category filter refreshes the inventory');
 assert.match(source, /categoryFilter\.value === 'all' \|\| \(categoryFilter\.value === 'none' \? item\.categories\.length === 0 : item\.categories\.indexOf\(categoryFilter\.value\) !== -1\)/, 'Category filter supports both assigned letters and the unassigned registry list');
