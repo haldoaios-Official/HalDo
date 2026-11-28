@@ -100,7 +100,7 @@ assert.equal(byId['unrouted-demo'].status, 'moduleUnrouted', 'A PascalCase modul
 assert.equal(byId['unrouted-demo'].module, 'UnroutedDemo');
 assert.equal(byId['geo-quiz'].status, 'routeReady', 'A real dispatcher target takes precedence over a direct generic fallback');
 assert.equal(byId['geo-quiz'].module, 'GeoQuizModule');
-for (const [id, moduleName] of [['language-voice','LanguageVoiceStudio'],['ai-voice-core','VoiceCore'],['system-diagnostics','SystemDiagnostics']]) {
+for (const [id, moduleName] of [['language-voice','LanguageVoiceStudio'],['ai-voice-core','VoiceCore'],['system-diagnostics','SystemDiagnostics'],['scientific','Calc'],['breathing','MentalHealth']]) {
   assert.equal(byId[id].status, 'routeReady', 'Post-v157 launcher wrapper target is recognized: ' + id);
   assert.equal(byId[id].module, moduleName);
 }
@@ -155,7 +155,7 @@ assert.ok(index.indexOf('moduleFor:function(id)') < index.indexOf('<script src="
 const routeTable = index.match(/var ROUTES=\{([\s\S]*?)\n  \};/);
 assert.ok(routeTable, 'Central dispatcher route table exists');
 const routePairs = [...routeTable[1].matchAll(/'([^']+)':'([^']+)'/g)].map(match => ({ id: match[1], module: match[2] }));
-assert.ok(routePairs.length >= 100, 'Central dispatcher exposes the complete route catalogue');
+assert.ok(routePairs.length >= 128, 'Central dispatcher exposes the expanded route catalogue, including the verified A-Z aliases');
 assert.equal(new Set(routePairs.map(route => route.id)).size, routePairs.length, 'Dispatcher route IDs are unique');
 const moduleAssignments = index + '\n' + musicStudio + '\n' + videoStudio;
 const declaredModules = new Set([...moduleAssignments.matchAll(/(?:HalDo|H)\.([A-Za-z_$][\w$]*)\s*=/g)].map(match => match[1]));
