@@ -103,7 +103,7 @@ assert.match(source, /Planplätze ohne Katalog-ID/, 'Unassigned plan slots are l
 assert.match(source, /moduleFor\(app\.id\)/, 'Runtime route targets are resolved through the dispatcher API');
 assert.match(index, /moduleFor:function\(id\)\{return ROUTES\[String\(id\)\]\|\|null;\}/, 'The central dispatcher exposes its explicit module resolver');
 for (const [id, moduleName] of [['email','EmailPro'],['phone','PhonePro'],['videocall','VideoCalls'],['chat-pro','ChatPro'],['geo-quiz','GeoQuiz'],['aktien','Aktien'],['science-lab','ScienceLab'],['backup','BackupRecovery']]) {
-  assert.match(index, new RegExp("['"]" + id + "['"]\\s*:\\s*['"]" + moduleName + "['"]"), 'Dispatcher route is wired: ' + id + ' → ' + moduleName);
+  assert.match(index, new RegExp("'" + id + "':'" + moduleName + "'"), 'Dispatcher route is wired: ' + id + ' → ' + moduleName);
 }
 assert.match(source, /Erkanntes Modul/, 'Inventory displays the resolved implementation name');
 assert.match(source, /registryWithoutCategory,'Registry-Apps ohne Kategorie'/, 'Registered apps outside the A-Z catalogue are counted');
