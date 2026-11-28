@@ -133,6 +133,8 @@
 
         currentActivity: "idle",
 
+        modelCapabilities: null,
+
         error: null,
 
         frameId: null,
@@ -245,6 +247,136 @@
 
     }
 
+
+
+
+    /* ========================================================
+       MODEL CAPABILITY INSPECTION
+       ======================================================== */
+
+    function inspectModelCapabilities(model, animations) {
+
+        const report = {
+            meshCount: 0,
+            skinnedMeshCount: 0,
+            skeletonBoneCount: 0,
+            morphMeshCount: 0,
+            morphTargetCount: 0,
+            morphTargetNames: [],
+            facialMorphTargetNames: [],
+            animationCount: 0,
+            animationNames: [],
+            isRigged: false,
+            hasAnimations: false,
+            hasMorphTargets: false,
+            hasFacialMorphTargets: false,
+            rigAndClipsPresent: false,
+            warnings: []
+        };
+
+        const boneReferences = new Set();
+        const morphNames = new Set();
+        const facialMorphNames = new Set();
+
+        if (!model || typeof model.traverse !== "function") {
+            report.warnings.push("Keine durchlaufbare 3D-Szene zur Modellprüfung vorhanden.");
+        } else {
+            try {
+                model.traverse(function (object) {
+                    if (!object || !object.isMesh) return;
+
+                    report.meshCount += 1;
+
+                    const skeleton = object.skeleton || null;
+                    const bones = skeleton && Array.isArray(skeleton.bones)
+                        ? skeleton.bones
+                        : [];
+
+                    if (object.isSkinnedMesh === true) {
+                        report.skinnedMeshCount += 1;
+                        bones.forEach(function (bone) {
+                            if (bone) boneReferences.add(bone);
+                        });
+                    }
+
+                    const dictionary = object.morphTargetDictionary;
+                    const dictionaryNames = dictionary && typeof dictionary === "object"
+                        ? Object.keys(dictionary)
+                        : [];
+                    const morphAttributes = object.geometry && object.geometry.morphAttributes
+                        ? object.geometry.morphAttributes
+                        : {};
+                    const attributeCounts = Object.keys(morphAttributes).map(function (key) {
+                        const attribute = morphAttributes[key];
+                        return Array.isArray(attribute) ? attribute.length : 0;
+                    });
+                    const geometryMorphCount = attributeCounts.length
+                        ? Math.max.apply(null, attributeCounts)
+                        : 0;
+                    const targetCount = Math.max(dictionaryNames.length, geometryMorphCount);
+
+                    if (targetCount > 0) {
+                        report.morphMeshCount += 1;
+                        report.morphTargetCount += targetCount;
+                    }
+
+                    dictionaryNames.forEach(function (name) {
+                        morphNames.add(name);
+                        if (/jaw|mouth|viseme|phoneme|blink|smile|brow|lip|cheek/i.test(name)) {
+                            facialMorphNames.add(name);
+                        }
+                    });
+                });
+            } catch (error) {
+                report.warnings.push("Die Modellprüfung wurde vorzeitig beendet: " + String(error && error.message || error));
+            }
+        }
+
+        const clipList = Array.isArray(animations) ? animations : [];
+        report.animationCount = clipList.length;
+        report.animationNames = clipList.map(function (clip, index) {
+            return clip && typeof clip.name === "string" && clip.name.trim()
+                ? clip.name.trim()
+                : "Animation " + (index + 1);
+        });
+
+        report.skeletonBoneCount = boneReferences.size;
+        report.morphTargetNames = Array.from(morphNames).sort();
+        report.facialMorphTargetNames = Array.from(facialMorphNames).sort();
+        report.isRigged = report.skinnedMeshCount > 0 && report.skeletonBoneCount > 0;
+        report.hasAnimations = report.animationCount > 0;
+        report.hasMorphTargets = report.morphTargetCount > 0;
+        report.hasFacialMorphTargets = report.facialMorphTargetNames.length > 0;
+        report.rigAndClipsPresent = report.isRigged && report.hasAnimations;
+
+        if (report.meshCount === 0) {
+            report.warnings.push("Die Szene enthält kein erkanntes Mesh.");
+        }
+        if (!report.isRigged) {
+            report.warnings.push("Kein SkinnedMesh mit zugeordneten Skelettknochen nachgewiesen.");
+        }
+        if (!report.hasAnimations) {
+            report.warnings.push("Das GLB enthält keine Animationsclips.");
+        }
+        if (!report.hasMorphTargets) {
+            report.warnings.push("Keine Morph-Targets nachgewiesen.");
+        } else if (!report.hasFacialMorphTargets) {
+            report.warnings.push("Morph-Targets vorhanden, aber keine eindeutig benannten Gesichts-Targets erkannt.");
+        }
+
+        return report;
+    }
+
+
+    function copyModelCapabilities(report) {
+        if (!report) return null;
+        return Object.assign({}, report, {
+            morphTargetNames: report.morphTargetNames.slice(),
+            facialMorphTargetNames: report.facialMorphTargetNames.slice(),
+            animationNames: report.animationNames.slice(),
+            warnings: report.warnings.slice()
+        });
+    }
 
     function setLoading(visible, message) {
 
@@ -1569,6 +1701,8 @@
 
         state.currentAnimation = null;
 
+        state.modelCapabilities = null;
+
 
         if (state.modelRoot) {
 
@@ -1956,10 +2090,13 @@
             fitModel(model);
 
 
-            /* Animationen übernehmen */
+            /* Animationen und Modellfähigkeiten übernehmen */
 
             const clips =
                 gltf.animations || [];
+
+            state.modelCapabilities =
+                inspectModelCapabilities(model, clips);
 
             state.modelRoot.userData.animations =
                 clips;
@@ -2010,12 +2147,20 @@
 
             setLoading(false);
 
+            const capabilityStatus = state.modelCapabilities;
+            const rigStatus = capabilityStatus.isRigged
+                ? "Skin/Skelett: ja"
+                : "Skin/Skelett fehlt";
+            const faceStatus = capabilityStatus.hasFacialMorphTargets
+                ? "Gesichts-Morphs: " + capabilityStatus.facialMorphTargetNames.length
+                : "Gesichts-Morphs fehlen";
+
             setStatus(
-                config.name +
-                " ONLINE | " +
-                clips.length +
-                " Animation(en)",
-                "success"
+                config.name + " GELADEN | " +
+                rigStatus + " | Clips: " +
+                capabilityStatus.animationCount + " | " +
+                faceStatus,
+                capabilityStatus.isRigged ? "success" : "normal"
             );
 
 
@@ -2038,7 +2183,8 @@
                     name: config.name,
                     animations: clips.map(
                         clip => clip.name
-                    )
+                    ),
+                    capabilities: copyModelCapabilities(state.modelCapabilities)
                 }
             );
 
@@ -2706,6 +2852,9 @@
                 activity:
                     state.currentActivity,
 
+                modelCapabilities:
+                    copyModelCapabilities(state.modelCapabilities),
+
                 error:
                     state.error
                         ? state.error.message
@@ -2723,6 +2872,8 @@
             );
 
         },
+
+        inspectModelCapabilities: inspectModelCapabilities,
 
         getAnimations: function () {
 
