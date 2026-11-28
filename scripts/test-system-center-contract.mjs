@@ -157,6 +157,8 @@ assert.match(source, /categoryFilter\.value === 'all' \|\| \(categoryFilter\.val
 assert.match(source, /item\.categories\.join\(' · '\)/, 'Inventory displays all category assignments for each app');
 assert.match(source, /function getCategoryEntries\(letter\)/, 'A-Z analysis combines the stable catalogue and later category extensions');
 assert.equal(byId['system-center'].category, 'S');
+assert.equal(H.SystemCenter.categoryRegisteredCount(H.Master.getCategoryCatalogApps('A')), 1, 'Only registry-backed A category IDs count as registered');
+assert.equal(H.SystemCenter.categoryRegisteredCount(H.Master.getCategoryCatalogApps('S')), 1, 'Unregistered category IDs are excluded from registered counts');
 const planAudit = H.SystemCenter.plan();
 assert.equal(planAudit.planned, 22);
 assert.equal(planAudit.catalogAssignments, 5, 'Late category extensions are included and repeated placements are deduplicated per letter');
