@@ -60,7 +60,7 @@ const H = {
   MusicStudio: { __nativePro: true },
   VideoStudio: { __nativePro: true }
 };
-H['native-demo'] = { __nativePro: true, open() {} };
+H['native-demo'] = { __nativePro: true, open() { return 'native-demo'; } };
 H['dedicated-demo'] = { open() {} };
 H['generic-demo'] = { open: function haldo_gen_placeholder() {} };
 H.RouteReadyModule = { open() {} };
