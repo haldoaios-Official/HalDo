@@ -6,13 +6,13 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const htmlPath = resolve(root, 'index.html');
 const html = readFileSync(htmlPath, 'utf8');
-const tags = [...html.matchAll(/<script\\b([^>]*)>/gi)].map(match => match[1]);
+const tags = [...html.matchAll(/<script\b([^>]*)>/gi)].map(match => match[1]);
 const references = [];
 for (const attributes of tags) {
-  const src = attributes.match(/\\bsrc\\s*=\\s*(["'])(.*?)\\1/i);
+  const src = attributes.match(/\bsrc\s*=\s*(["'])(.*?)\1/i);
   if (!src) continue;
   const raw = src[2].trim();
-  if (!raw || /^(?:[a-z][a-z0-9+.-]*:|\\/\\/)/i.test(raw)) {
+  if (!raw || /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(raw)) {
     references.push({ raw, kind: 'external' });
     continue;
   }
@@ -20,10 +20,10 @@ for (const attributes of tags) {
   let decoded;
   try { decoded = decodeURIComponent(clean); }
   catch { throw new Error('Ungültige URL-Kodierung im Script-Pfad: ' + raw); }
-  const relative = decoded.replace(/^\\/+/, '');
+  const relative = decoded.replace(/^\/+/, '');
   const absolute = resolve(root, relative);
   assert.ok(absolute === root || absolute.startsWith(root + sep), 'Script-Pfad verlässt das Repository: ' + raw);
-  references.push({ raw, path: relative, absolute, kind: 'local', ordered: /\\b(?:async|defer)\\b/i.test(attributes) });
+  references.push({ raw, path: relative, absolute, kind: 'local', ordered: /\b(?:async|defer)\b/i.test(attributes) });
 }
 
 const local = references.filter(item => item.kind === 'local');
