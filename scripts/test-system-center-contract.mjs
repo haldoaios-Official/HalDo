@@ -27,6 +27,8 @@ const H = {
       { id: 'route-ready-demo', n: 'Route Ready Demo', i: '🧭' },
       { id: 'unrouted-demo', n: 'Module Unrouted Demo', i: '🧩' },
       { id: 'geo-quiz', n: 'Geo Quiz', i: '🗺️' },
+      { id: 'scientific', n: 'Scientific Calculator', i: '🔬' },
+      { id: 'breathing', n: 'Breathing Exercise', i: '🫁' },
       { id: 'missing-demo', n: 'Missing Demo', i: '❔' },
       { id: 'dynamic-demo', n: 'Dynamic Category Demo', i: '🧩' },
       { id: 'language-voice', n: 'Language Voice', i: '🗣️' },
