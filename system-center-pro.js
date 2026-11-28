@@ -213,12 +213,19 @@
     document.body.appendChild(a); a.click(); a.remove();
     window.setTimeout(function () { URL.revokeObjectURL(url); },1500);
   }
+  function csvCell(value) {
+    var text = String(value == null ? '' : value);
+    // App metadata is text: neutralize spreadsheet formulas even after leading whitespace/control chars.
+    // Numeric values remain numeric, including legitimate negative numbers.
+    if (typeof value !== 'number' && /^[\\s\\u0000-\\u001f]*[=+\\-@]/.test(text)) text = "'" + text;
+    return '"' + text.replace(/"/g,'""') + '"';
+  }
   function exportInventory() {
     var rows = getInventory();
     var csv = [['Kategorie(n)','App','App-ID','Erkanntes Modul','Status','Hinweis']].concat(rows.map(function (r) {
       return [r.categories.length ? r.categories.join(', ') : '—',r.name,r.id,r.module || '—',r.statusLabel,r.detail];
     })).map(function (row) {
-      return row.map(function (cell) { return '"' + String(cell).replace(/"/g,'""') + '"'; }).join(';');
+      return row.map(csvCell).join(';');
     }).join('\r\n');
     download('HalDo-Systeminventar.csv',new Blob(['\ufeff' + csv],{type:'text/csv;charset=utf-8'}));
   }
