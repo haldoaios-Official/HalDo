@@ -175,6 +175,38 @@
     var registered = new Set((H.Registry && H.Registry.featured || []).map(function (app) { return String(app.id); }));
     return (entries || []).filter(function (entry) { return entry && entry.id && registered.has(String(entry.id)); }).length;
   }
+  function getCategoryProgress(letter) {
+    var key = String(letter || '').toUpperCase();
+    var category = getCategories()[key] || {};
+    var entries = getCategoryEntries(key);
+    var routes = getRouteIds();
+    var registered = new Set((H.Registry && H.Registry.featured || []).map(function (app) { return String(app.id); }));
+    var counts = {native:0,dedicated:0,generic:0,routeReady:0,moduleUnrouted:0,route:0,missing:0};
+    var named = 0;
+    entries.forEach(function (entry) {
+      if (!entry || !entry.id) return;
+      if (entry.name && entry.name !== 'Name noch offen') named += 1;
+      var status = inspectApp({id:String(entry.id)},routes);
+      counts[status.key] = (counts[status.key] || 0) + 1;
+    });
+    var planned = Math.max(0,Number(category.count) || 0);
+    var catalogIds = entries.length;
+    return {
+      letter:key,
+      name:String(category.name || 'Kategorie'),
+      planned:planned,
+      catalogIds:catalogIds,
+      namedIds:named,
+      registeredIds:countRegisteredCategoryApps(entries),
+      readyModules:counts.native + counts.dedicated + counts.routeReady,
+      genericPlaceholders:counts.generic,
+      modulesWithoutRoute:counts.moduleUnrouted,
+      routesWithoutTarget:counts.route,
+      missingModules:counts.missing,
+      planSlotsWithoutId:Math.max(0,planned - catalogIds),
+      statusCounts:counts
+    };
+  }
   function getPlan() {
     var categories = getCategories();
     var planned = Object.keys(categories).reduce(function (sum,key) {
@@ -246,7 +278,7 @@
   function open() {
     var rootId = 'haldo-system-center-' + Date.now().toString(36);
     var html = '<div id="' + rootId + '" class="hdsc-root"><style>' +
-      '.hdsc-root{height:100%;overflow:auto;padding:14px;box-sizing:border-box;color:var(--text,#eaf4ff);font:13px/1.45 system-ui,sans-serif}.hdsc-root *{box-sizing:border-box}.hdsc-hero{padding:16px;border:1px solid rgba(0,220,235,.25);border-radius:16px;background:linear-gradient(120deg,rgba(0,160,210,.17),rgba(120,75,210,.17));margin-bottom:12px}.hdsc-title{font-size:20px;font-weight:850;letter-spacing:-.3px}.hdsc-muted{font-size:11px;opacity:.7}.hdsc-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.hdsc-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.hdsc-btn{border:1px solid var(--border,rgba(120,180,220,.25));background:rgba(20,50,80,.55);color:inherit;border-radius:9px;padding:8px 11px;cursor:pointer}.hdsc-btn:disabled{opacity:.45;cursor:not-allowed}.hdsc-btn.primary{border-color:var(--accent,#00d5ed);background:rgba(0,190,220,.14)}.hdsc-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:12px 0}.hdsc-stat{padding:12px;border:1px solid var(--border,rgba(120,180,220,.2));border-radius:12px;background:rgba(8,28,50,.28);min-width:0}.hdsc-value{font-size:22px;font-weight:850;font-variant-numeric:tabular-nums}.hdsc-label{font-size:10px;opacity:.7;margin-top:3px}.hdsc-section{margin-top:13px;padding:13px;border:1px solid var(--border,rgba(120,180,220,.2));border-radius:13px;background:rgba(8,28,50,.2)}.hdsc-section h3{margin:0 0 9px;font-size:14px}.hdsc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.hdsc-cat{padding:10px;border:1px solid var(--border,rgba(120,180,220,.18));border-radius:10px;background:rgba(0,0,0,.13)}.hdsc-cat b{display:block;font-size:13px}.hdsc-cat small{font-size:10px;opacity:.67}.hdsc-tools{display:grid;grid-template-columns:minmax(0,1fr) 170px 170px auto;gap:8px;margin:10px 0}.hdsc-input{width:100%;min-width:0;padding:9px 10px;border:1px solid var(--border,rgba(120,180,220,.28));border-radius:9px;background:rgba(0,0,0,.2);color:inherit}.hdsc-table{width:100%;border-collapse:collapse;font-size:11px}.hdsc-table th{text-align:left;opacity:.65;font-weight:650;padding:8px 7px;border-bottom:1px solid var(--border,rgba(120,180,220,.2))}.hdsc-table td{padding:8px 7px;border-bottom:1px solid rgba(120,180,220,.1);vertical-align:middle}.hdsc-table tr:last-child td{border-bottom:0}.hdsc-appname{font-weight:750}.hdsc-id{font-size:10px;opacity:.58}.hdsc-status{display:inline-block;padding:4px 7px;border-radius:7px;background:rgba(130,150,180,.12);white-space:nowrap}.hdsc-status.native{color:#7fffd4;background:rgba(0,200,140,.12)}.hdsc-status.dedicated{color:#9ed4ff;background:rgba(50,130,220,.13)}.hdsc-status.generic{color:#ffd27d;background:rgba(230,160,20,.12)}.hdsc-status.route{color:#e0c3ff;background:rgba(150,90,220,.14)}.hdsc-status.routeReady{color:#7fffd4;background:rgba(0,200,140,.12)}.hdsc-status.moduleUnrouted{color:#ffd27d;background:rgba(230,160,20,.12)}.hdsc-status.missing{color:#ffabb2;background:rgba(220,70,90,.12)}.hdsc-note{padding:10px;border:1px solid rgba(230,170,50,.25);border-radius:10px;background:rgba(230,170,50,.07);font-size:11px;margin-top:9px}.hdsc-footer{opacity:.55;font-size:10px;margin-top:12px}.hdsc-count{font-variant-numeric:tabular-nums}.hdsc-empty{padding:20px;text-align:center;opacity:.65}.hdsc-tablewrap{overflow:auto}@media(max-width:680px){.hdsc-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.hdsc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hdsc-tools{grid-template-columns:1fr 1fr}.hdsc-tools input{grid-column:1/-1}.hdsc-table{min-width:650px}}@media(max-width:430px){.hdsc-grid{grid-template-columns:1fr 1fr}.hdsc-root{padding:8px}}' +
+      '.hdsc-root{height:100%;overflow:auto;padding:14px;box-sizing:border-box;color:var(--text,#eaf4ff);font:13px/1.45 system-ui,sans-serif}.hdsc-root *{box-sizing:border-box}.hdsc-hero{padding:16px;border:1px solid rgba(0,220,235,.25);border-radius:16px;background:linear-gradient(120deg,rgba(0,160,210,.17),rgba(120,75,210,.17));margin-bottom:12px}.hdsc-title{font-size:20px;font-weight:850;letter-spacing:-.3px}.hdsc-muted{font-size:11px;opacity:.7}.hdsc-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.hdsc-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.hdsc-btn{border:1px solid var(--border,rgba(120,180,220,.25));background:rgba(20,50,80,.55);color:inherit;border-radius:9px;padding:8px 11px;cursor:pointer}.hdsc-btn:disabled{opacity:.45;cursor:not-allowed}.hdsc-btn.primary{border-color:var(--accent,#00d5ed);background:rgba(0,190,220,.14)}.hdsc-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:12px 0}.hdsc-stat{padding:12px;border:1px solid var(--border,rgba(120,180,220,.2));border-radius:12px;background:rgba(8,28,50,.28);min-width:0}.hdsc-value{font-size:22px;font-weight:850;font-variant-numeric:tabular-nums}.hdsc-label{font-size:10px;opacity:.7;margin-top:3px}.hdsc-section{margin-top:13px;padding:13px;border:1px solid var(--border,rgba(120,180,220,.2));border-radius:13px;background:rgba(8,28,50,.2)}.hdsc-section h3{margin:0 0 9px;font-size:14px}.hdsc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.hdsc-cat{padding:10px;border:1px solid var(--border,rgba(120,180,220,.18));border-radius:10px;background:rgba(0,0,0,.13);text-align:left;color:inherit;width:100%;cursor:pointer;font:inherit}.hdsc-cat:hover,.hdsc-cat:focus-visible{border-color:var(--accent,#00d5ed);outline:none;background:rgba(0,150,190,.1)}.hdsc-cat b{display:block;font-size:13px}.hdsc-cat small{display:block;font-size:10px;opacity:.75;margin-top:3px;line-height:1.5}.hdsc-cat strong{font-size:10px;font-weight:750;color:var(--accent,#00d5ed)}.hdsc-tools{display:grid;grid-template-columns:minmax(0,1fr) 170px 170px auto;gap:8px;margin:10px 0}.hdsc-input{width:100%;min-width:0;padding:9px 10px;border:1px solid var(--border,rgba(120,180,220,.28));border-radius:9px;background:rgba(0,0,0,.2);color:inherit}.hdsc-table{width:100%;border-collapse:collapse;font-size:11px}.hdsc-table th{text-align:left;opacity:.65;font-weight:650;padding:8px 7px;border-bottom:1px solid var(--border,rgba(120,180,220,.2))}.hdsc-table td{padding:8px 7px;border-bottom:1px solid rgba(120,180,220,.1);vertical-align:middle}.hdsc-table tr:last-child td{border-bottom:0}.hdsc-appname{font-weight:750}.hdsc-id{font-size:10px;opacity:.58}.hdsc-status{display:inline-block;padding:4px 7px;border-radius:7px;background:rgba(130,150,180,.12);white-space:nowrap}.hdsc-status.native{color:#7fffd4;background:rgba(0,200,140,.12)}.hdsc-status.dedicated{color:#9ed4ff;background:rgba(50,130,220,.13)}.hdsc-status.generic{color:#ffd27d;background:rgba(230,160,20,.12)}.hdsc-status.route{color:#e0c3ff;background:rgba(150,90,220,.14)}.hdsc-status.routeReady{color:#7fffd4;background:rgba(0,200,140,.12)}.hdsc-status.moduleUnrouted{color:#ffd27d;background:rgba(230,160,20,.12)}.hdsc-status.missing{color:#ffabb2;background:rgba(220,70,90,.12)}.hdsc-note{padding:10px;border:1px solid rgba(230,170,50,.25);border-radius:10px;background:rgba(230,170,50,.07);font-size:11px;margin-top:9px}.hdsc-footer{opacity:.55;font-size:10px;margin-top:12px}.hdsc-count{font-variant-numeric:tabular-nums}.hdsc-empty{padding:20px;text-align:center;opacity:.65}.hdsc-tablewrap{overflow:auto}@media(max-width:680px){.hdsc-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.hdsc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hdsc-tools{grid-template-columns:1fr 1fr}.hdsc-tools input{grid-column:1/-1}.hdsc-table{min-width:650px}}@media(max-width:430px){.hdsc-grid{grid-template-columns:1fr 1fr}.hdsc-root{padding:8px}}' +
       '</style><div class="hdsc-hero"><div class="hdsc-row"><span style="font-size:28px">🧭</span><div><div class="hdsc-title">HalDo System Center Pro</div><div class="hdsc-muted">Live-App-Inventar · A–Z-Masterplan · Modulstatus · Systemprüfung</div></div></div>' +
       '<div class="hdsc-actions"><button class="hdsc-btn primary" data-action="registry">📦 App-Registry öffnen</button><button class="hdsc-btn" data-action="export">⬇ Inventar als CSV</button><button class="hdsc-btn" data-action="refresh">↻ Status aktualisieren</button></div></div>' +
       '<div class="hdsc-stats" id="' + rootId + '-stats"></div>' +
@@ -266,7 +298,7 @@
       '<div class="hdsc-cat"><b>🛡️ Qualitäts- und Integritätsprüfungen</b><small>Automatische Syntax-, Modul-Abhängigkeits-, Inline-Script-, Registry-, Diagnose- und System-Center-Vertragstests</small></div>' +
       '</div><div class="hdsc-note"><b>Prüfgrenze:</b> Die automatisierte GitHub-Prüfung für diesen Entwicklungsstand ist erfolgreich. Ein vollständiger manueller Live-Browsertest aller Apps steht noch aus. Apps, die nur im A–Z-Katalog stehen, werden ausdrücklich nicht als fertig oder startbar ausgegeben.</div></div>' +
       '<div class="hdsc-section"><h3>🗂 A–Z-Kategorien und Planungsumfang</h3><div class="hdsc-muted">Geplante App-Plätze sind Masterplan-Ziele – keine Behauptung, dass alle diese Apps bereits fertig programmiert sind.</div><div class="hdsc-grid" id="' + rootId + '-cats" style="margin-top:9px"></div></div>' +
-      '<div class="hdsc-section"><div class="hdsc-row" style="justify-content:space-between"><h3 style="margin:0">📋 Vollständiges A–Z-App-Inventar</h3><span class="hdsc-muted" id="' + rootId + '-count"></span></div>' +
+      '<div class="hdsc-section" id="' + rootId + '-inventory"><div class="hdsc-row" style="justify-content:space-between"><h3 style="margin:0">📋 Vollständiges A–Z-App-Inventar</h3><span class="hdsc-muted" id="' + rootId + '-count"></span></div>' +
       '<div class="hdsc-tools"><input class="hdsc-input" id="' + rootId + '-search" placeholder="App oder App-ID suchen …"><select class="hdsc-input" id="' + rootId + '-filter">' + FILTERS.map(function (f) { return '<option value="' + f.id + '">' + f.name + '</option>'; }).join('') + '</select><select class="hdsc-input" id="' + rootId + '-category"><option value="all">Alle A–Z-Kategorien</option><option value="none">Ohne Kategorie</option>' + Object.keys(getCategories()).sort().map(function (key) { var category = getCategories()[key]; return '<option value="' + esc(key) + '">' + esc(key + ' · ' + (category.name || 'Kategorie')) + '</option>'; }).join('') + '</select><button class="hdsc-btn" id="' + rootId + '-clear">Zurücksetzen</button></div>' +
       '<div class="hdsc-tablewrap"><table class="hdsc-table"><thead><tr><th>Kategorie(n)</th><th>App</th><th>Registrierung</th><th>Erkanntes Modul</th><th>Status</th><th>Aktion</th></tr></thead><tbody id="' + rootId + '-body"></tbody></table></div>' +
       '<div class="hdsc-footer">Status wird aus dem aktuell geladenen HalDo-Laufzeitsystem erkannt. „Spezialroute prüfen“ ist ausdrücklich keine Bestätigung einer vollständig funktionsfähigen App.</div></div>' +
@@ -316,14 +348,13 @@
           (versionWarn ? '<div class="hdsc-note">Versionsangaben sind noch nicht einheitlich. Der Seitentitel, der zentrale Launcher und ältere Master-Metadaten werden getrennt angezeigt, damit ein alter Wert nicht als aktueller Build ausgegeben wird.</div>' : '<div class="hdsc-muted" style="margin-top:8px">Versionsangaben stimmen überein.</div>') +
           '<div class="hdsc-row" style="margin-top:9px"><span class="hdsc-status ' + (H.MusicStudio && H.MusicStudio.__nativePro ? 'native' : 'missing') + '">Music Studio: ' + (H.MusicStudio && H.MusicStudio.__nativePro ? 'geladen' : 'nicht erkannt') + '</span><span class="hdsc-status ' + (H.VideoStudio && H.VideoStudio.__nativePro ? 'native' : 'missing') + '">Video Studio: ' + (H.VideoStudio && H.VideoStudio.__nativePro ? 'geladen' : 'nicht erkannt') + '</span><span class="hdsc-status ' + (typeof (window.AudioContext || window.webkitAudioContext) === 'function' ? 'dedicated' : 'missing') + '">Web Audio: ' + (typeof (window.AudioContext || window.webkitAudioContext) === 'function' ? 'verfügbar' : 'nicht verfügbar') + '</span><span class="hdsc-status ' + (window.MediaRecorder && HTMLCanvasElement.prototype.captureStream ? 'dedicated' : 'missing') + '">Videoaufnahme: ' + (window.MediaRecorder && HTMLCanvasElement.prototype.captureStream ? 'API verfügbar' : 'API fehlt') + '</span></div></div>';
 
-        cats.innerHTML = Object.entries(plan.categories).map(function (entry) {
-          var key = entry[0], category = entry[1];
-          var catalog = getCategoryEntries(key);
-          var registeredCount = countRegisteredCategoryApps(catalog);
-          var planned = Math.max(0,Number(category.count) || 0);
-          var catalogCount = catalog.length;
-          var unspecified = Math.max(0,planned - catalogCount);
-          return '<div class="hdsc-cat"><b>' + esc(category.icon || '📁') + ' ' + esc(key) + ' · ' + esc(category.name || 'Kategorie') + '</b><small>' + planned + ' Planplätze · ' + catalogCount + ' Katalog-IDs · ' + unspecified + ' Planplätze ohne Katalog-ID · ' + registeredCount + ' tatsächlich registrierte Kern-Apps</small></div>';
+        cats.innerHTML = Object.keys(plan.categories).sort().map(function (key) {
+          var progress = getCategoryProgress(key);
+          return '<button type="button" class="hdsc-cat" data-filter-category="' + esc(key) + '" aria-label="Kategorie ' + esc(key) + ' filtern: ' + esc(progress.name) + '">' +
+            '<b>' + esc((plan.categories[key] && plan.categories[key].icon) || '📁') + ' ' + esc(key) + ' · ' + esc(progress.name) + '</b>' +
+            '<small>' + progress.planned + ' Planplätze · ' + progress.catalogIds + ' Katalog-IDs (' + progress.namedIds + ' benannt) · ' + progress.registeredIds + ' registriert</small>' +
+            '<small><strong>' + progress.readyModules + ' Module erkannt</strong> · ' + progress.genericPlaceholders + ' Platzhalter · ' + progress.modulesWithoutRoute + ' ohne Route · ' + progress.routesWithoutTarget + ' Route ohne Ziel · ' + progress.missingModules + ' ohne Modul</small>' +
+            '<small>' + progress.planSlotsWithoutId + ' Planplätze noch ohne Katalog-ID · anklicken zum Filtern</small></button>';
         }).join('');
 
         var query = String(search.value || '').trim().toLowerCase();
@@ -340,6 +371,14 @@
         }).join('') : '<tr><td colspan="6" class="hdsc-empty">Keine passenden Apps gefunden.</td></tr>';
       }
       root.addEventListener('click',function (event) {
+        var categoryButton = event.target.closest('[data-filter-category]');
+        if (categoryButton) {
+          categoryFilter.value = categoryButton.dataset.filterCategory;
+          render();
+          var inventorySection = root.querySelector('#' + rootId + '-inventory');
+          if (inventorySection && typeof inventorySection.scrollIntoView === 'function') inventorySection.scrollIntoView({behavior:'smooth',block:'start'});
+          return;
+        }
         var action = event.target.closest('[data-action]');
         if (action) {
           if (action.dataset.action === 'registry' && H.AppBrowser && typeof H.AppBrowser.open === 'function') H.AppBrowser.open();
@@ -363,7 +402,7 @@
     },90);
   }
 
-  H.SystemCenter = {open:open,inventory:getInventory,plan:getPlan,refresh:getInventory,categoryRegisteredCount:countRegisteredCategoryApps};
+  H.SystemCenter = {open:open,inventory:getInventory,plan:getPlan,refresh:getInventory,categoryRegisteredCount:countRegisteredCategoryApps,categoryProgress:getCategoryProgress};
   H[APP_ID] = H.SystemCenter;
 
   // Route the launcher to the real app window instead of the generic greeting.
