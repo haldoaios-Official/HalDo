@@ -186,7 +186,6 @@ assert.match(keyboardModule, /ta\.dir=lang==='Soranî'\?'rtl':'ltr'/, 'Sorani te
 assert.match(keyboardModule, /ta\.style\.textAlign=lang==='Soranî'\?'right':'left'/, 'Sorani text field aligns from the right');
 assert.match(keyboardModule, /keyGrid\.style\.direction=lang==='Soranî'\?'rtl':'ltr'/, 'Virtual keyboard rows switch to right-to-left layout for Sorani');
 
-const converterStart = index.indexOf('/* X — lokaler Datei-Konverter');
 const converterEnd = index.indexOf('var apps=[household,keyboard,converter];', converterStart);
 assert.ok(converterStart >= 0 && converterEnd > converterStart, 'File converter module boundaries exist');
 const converterSource = index.slice(converterStart, converterEnd);
