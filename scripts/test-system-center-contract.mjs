@@ -7,6 +7,8 @@ import { dirname, resolve } from 'node:path';
 const here = dirname(fileURLToPath(import.meta.url));
 const source = readFileSync(resolve(here, '../system-center-pro.js'), 'utf8');
 const index = readFileSync(resolve(here, '../index.html'), 'utf8');
+const musicStudio = readFileSync(resolve(here, '../music-studio-pro.js'), 'utf8');
+const videoStudio = readFileSync(resolve(here, '../video-studio-pro.js'), 'utf8');
 
 const categories = {
   A: { name: 'HalDo AI', icon: '🤖', count: 10 },
@@ -137,8 +139,25 @@ assert.equal(H.Registry.totalCount(), 22, 'The planned slot count is preserved')
 assert.match(index, /<script src="system-center-pro\.js"><\/script>/, 'System Center script is included in index.html');
 assert.ok(index.indexOf('<script src="video-studio-pro.js"></script>') < index.indexOf('<script src="system-center-pro.js"></script>'), 'System Center loads after the studio modules');
 assert.ok(index.indexOf('moduleFor:function(id)') < index.indexOf('<script src="system-center-pro.js"></script>'), 'Dispatcher module resolver is available before System Center starts');
+const routeTable = index.match(/var ROUTES=\\{([\\s\\S]*?)\\n  \\};/);
+assert.ok(routeTable, 'Central dispatcher route table exists');
+const routePairs = [...routeTable[1].matchAll(/'([^']+)':'([^']+)'/g)].map(match => ({ id: match[1], module: match[2] }));
+assert.ok(routePairs.length >= 100, 'Central dispatcher exposes the complete route catalogue');
+assert.equal(new Set(routePairs.map(route => route.id)).size, routePairs.length, 'Dispatcher route IDs are unique');
+const moduleAssignments = index + '\\n' + musicStudio + '\\n' + videoStudio;
+const declaredModules = new Set([...moduleAssignments.matchAll(/(?:HalDo|H)\\.([A-Za-z_$][\\w$]*)\\s*=/g)].map(match => match[1]));
+const unresolvedTargets = routePairs.filter(route => !declaredModules.has(route.module));
+assert.deepEqual(unresolvedTargets, [], 'Every dispatcher target is implemented in index.html or an explicitly loaded studio module');
+assert.match(musicStudio, /H\\.MusicStudio=\\{__nativePro:true,open:open\\}/, 'Music Studio target is exported by its external module');
+assert.match(videoStudio, /H\\.VideoStudio = \\{__nativePro:true, open:open\\}/, 'Video Studio target is exported by its external module');
+assert.ok(index.indexOf('<script src="music-studio-pro.js"></script>') < index.indexOf('<script src="system-center-pro.js"></script>'), 'Music Studio loads before System Center');
+assert.ok(index.indexOf('<script src="video-studio-pro.js"></script>') < index.indexOf('<script src="system-center-pro.js"></script>'), 'Video Studio loads before System Center');
 assert.ok(index.indexOf('haldo-v165-three-apps') < index.indexOf('<script src="system-center-pro.js"></script>'), 'v165 category extensions load before System Center');
 assert.ok(index.indexOf('haldo-v166-three-apps') < index.indexOf('<script src="system-center-pro.js"></script>'), 'v166 category extensions load before System Center');
+for (const [id, letter] of [['bibliothek','B'],['inventar','I'],['mindmap','M'],['haushalt','G'],['keyboard-pro','K'],['datei-konverter','X']]) {
+  assert.ok(index.includes("id:'" + id + "'"), 'Later A-Z app exists: ' + id);
+  assert.ok(index.includes(id + ':' + "'" + letter + "'"), 'Later A-Z app is assigned to category ' + letter + ': ' + id);
+}
 assert.ok(index.indexOf('haldo-v160-system-diagnostics') < index.indexOf('<script src="system-center-pro.js"></script>'), 'Post-v157 route target modules load before System Center');
 
 console.log('System Center contract tests passed: registration, category, launcher routing, fallback preservation, all direct, routed, generic, unrouted and missing module states, catalogue reconciliation metrics, plan count and script order.');
